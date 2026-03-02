@@ -1,26 +1,9 @@
 #!/usr/bin/env bash
-set -e
-cd "$(dirname "$0")/.."
+set -euo pipefail
 
-if [ -d .venv ]; then
-  PY=".venv/bin/python"
-else
-  PY="python3"
+if [ -f ".venv/bin/activate" ]; then
+  . ".venv/bin/activate"
 fi
 
-if command -v lumos >/dev/null 2>&1; then
-  RUNNER="lumos"
-else
-  RUNNER="$PY -m lumos_core"
-fi
-
-OUT="$("$RUNNER" <<'EOT'
-HELP
-durum
-exit
-EOT
-)"
-
-echo "$OUT" | grep -q "Komutlar:"
-echo "$OUT" | grep -q "LOCKED"
+bash scripts/run.sh cli
 echo "OK: smoke_cli passed"

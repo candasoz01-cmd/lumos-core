@@ -8,3 +8,12 @@ __pycache__/
 .venv/
 .lumos/
 *.log
+
+.venv/
+venv/
+*.egg-info/
+src/*.egg-info/
+build/
+dist/
+__pycache__/
+.pytest_cache/
