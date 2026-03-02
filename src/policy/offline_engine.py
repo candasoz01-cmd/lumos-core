@@ -3,8 +3,6 @@ from datetime import datetime
 from getpass import getpass
 from device.contacts import Contacts
 from typing import Optional
-from security.keystore import FileKeyStore
-from memory.secure_store import SecureNotesStore
 
 class OfflineEngineV1:
     FEATURE_ORDER = False

@@ -10,7 +10,6 @@ import subprocess
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
 
 # Run tests with src in path so "security.presence_lock" resolves
 ROOT = Path(__file__).resolve().parent.parent
@@ -110,7 +109,7 @@ def test_disable_silent_true_no_presence_stopped_in_log():
     log_path.write_text("", encoding="utf-8")
     try:
         # Run smoke flow: kamera aç -> evet -> 10 -> kapat -> çık (disable uses silent=True)
-        result = subprocess.run(
+        _ = subprocess.run(
             [sys.executable, str(ROOT / "src" / "main.py")],
             cwd=str(ROOT),
             env={**os.environ, "PYTHONPATH": str(SRC)},
@@ -133,7 +132,7 @@ def test_enable_then_disable_log_order_option_b():
     log_path.parent.mkdir(parents=True, exist_ok=True)
     log_path.write_text("", encoding="utf-8")
     try:
-        result = subprocess.run(
+        _ = subprocess.run(
             [sys.executable, str(ROOT / "src" / "main.py")],
             cwd=str(ROOT),
             env={**os.environ, "PYTHONPATH": str(SRC)},

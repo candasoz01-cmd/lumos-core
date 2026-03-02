@@ -1,9 +1,23 @@
-import os
-from security.aliases import load_aliases, save_aliases, apply_alias
+"""Lumos core CLI: lock, presence, alias, durum."""
 import json
-import time
+import os
+import re
+from getpass import getpass
 from pathlib import Path
-from getpass import getpass 
+
+from core.engine import CoreEngine
+from core.logfmt import logfmt
+from core.lumos import Lumos
+from core.state import CoreState, format_status_line
+from engine.online_engine import OnlineEngineV1
+from memory.secure_store import SecureNotesStore
+from policy.offline_engine import OfflineEngineV1
+from security import presence_lock as pl
+from security.aliases import load_aliases, save_aliases, apply_alias
+from security.keystore import FileKeyStore
+from security.permissions import PermissionManager
+
+
 def norm_cmd(s: str) -> str:
     s = (s or "").strip().casefold()
     aliases = {
@@ -29,19 +43,6 @@ HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | exit
   exit     Çıkış (q, çık, quit)
 Örnek: kilit, kamera aç, durum, çık"""
 
-from security import presence_lock as pl
-from security.permissions import PermissionManager
-from security.keystore import FileKeyStore
-from security.identity import DeviceIdentity
-from memory.secure_store import SecureNotesStore
-
-from core.lumos import Lumos
-from core.state import CoreState, format_status_line
-from core.engine import CoreEngine
-from core.logfmt import logfmt
-from context.context import Context
-from policy.offline_engine import OfflineEngineV1
-from engine.online_engine import OnlineEngineV1
 
 def _lumos_dir() -> str:
     if Path("src/.lumos").exists():
@@ -68,16 +69,17 @@ def _input_or_eof(prompt: str, eof_value: str = "cik") -> str:
 def _parse_yes_no(x: str) -> bool | None:
     x = (x or "").strip().lower()
     x = x.replace("ı", "i").replace("İ", "i")
-    yes = {"evet","e","y","yes","ok","tamam","ewet"}
-    no  = {"hayir","hayır","h","n","no"}
-    if x in yes: return True
-    if x in no:  return False
+    yes = {"evet", "e", "y", "yes", "ok", "tamam", "ewet"}
+    no = {"hayir", "hayır", "h", "n", "no"}
+    if x in yes:
+        return True
+    if x in no:
+        return False
     return None
 
 
 def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, list[str]]:
     """Strip, casefold, apply user aliases, normalize head to canonical command. Return (canonical, args)."""
-    import re
     s = (raw or "").strip().casefold()
     if not s:
         return ("", [])
@@ -111,7 +113,6 @@ def handle_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, list[s
 
 def main() -> None:
     mode = os.getenv("LUMOS_MODE", "offline").strip().lower()
-    debug = os.getenv("LUMOS_DEBUG", "0") == "1"
 
     base_dir = _lumos_dir()
     try:
@@ -130,7 +131,6 @@ def main() -> None:
     lumos.boot()
     root_key = None
     ks = FileKeyStore(base_dir=base_dir)
-    ident = DeviceIdentity(base_dir=base_dir)
 
     def _attach_notes(rk: bytes) -> bool:
         try:
@@ -363,7 +363,6 @@ def main() -> None:
             if isinstance(r, str):
                 return r
 
-        PRESENCE_AUTOSTART = True
         try:
             import inspect
             import atexit
@@ -454,12 +453,6 @@ def main() -> None:
                 pw = getpass("Passphrase: ")
                 ok, msg = engine.unlock_with_passphrase(pw)
                 print(msg)
-                if ok:
-                    try:
-                        if "maybe_device_unlock" in globals():
-                            maybe_device_unlock(lumos, pw)
-                    except Exception:
-                        pass
                 return False
             print("HELP: durum | ac | kapat | cik")
             return False

@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import json
-import os
 import hashlib
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives import serialization
