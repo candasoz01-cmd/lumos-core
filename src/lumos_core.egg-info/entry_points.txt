@@ -1,0 +1,2 @@
+[console_scripts]
+lumos = lumos_core.__main__:main

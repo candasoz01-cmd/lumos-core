@@ -1,0 +1,79 @@
+import os
+import json
+import time
+
+from security.request_signer import RequestSigner
+from collections import deque
+
+
+class ModelClient:
+    def __init__(self, api_key: str | None = None):
+        self.api_key = api_key or os.getenv("LUMOS_API_KEY")
+
+        # server-sim replay cache (in-memory)
+        self._nonce_cache: dict[str, int] = {}
+        self._ts_skew = int(os.getenv("LUMOS_TS_SKEW", "60"))      # seconds
+        self._nonce_cache = deque(maxlen=100)
+
+        # server-sim pubkey (dev)
+        pub_b64 = (os.getenv("LUMOS_SERVER_PUB_B64", "") or "").strip()
+        self._server_pub_b64 = pub_b64
+
+    def _cleanup_nonces(self, now: int) -> None:
+        if not self._nonce_cache:
+            return
+        dead = [n for n, exp in self._nonce_cache.items() if exp <= now]
+        for n in dead:
+            self._nonce_cache.pop(n, None)
+
+    def _server_sim_verify(self, wire: str) -> tuple[bool, str]:
+        # wire: SignedRequest.__dict__ JSON
+        try:
+            obj = json.loads(wire)
+        except Exception:
+            return False, "bad_json"
+
+        lumos_id = str(obj.get("lumos_id", "")).strip()
+        ts = int(obj.get("ts", 0))
+        nonce = str(obj.get("nonce", ""))
+        payload = obj.get("payload", None)
+        sig_b64 = str(obj.get("sig_b64", ""))
+
+        now = int(time.time())
+
+        # timestamp skew check
+        if abs(now - ts) > self._ts_skew:
+            return False, "bad_ts"
+
+        # nonce replay check
+        self._cleanup_nonces(now)
+        if nonce in self._nonce_cache:
+            return False, "replay"
+        self._nonce_cache[nonce] = now + self._nonce_ttl
+
+        # public key source: env (dev sim)
+        if not self._server_pub_b64:
+            return False, "no_server_pub"
+
+        from security.crypto import b64d
+        pub_bytes = b64d(self._server_pub_b64)
+
+        ok = RequestSigner.verify(
+            lumos_id=lumos_id,
+            public_key_bytes=pub_bytes,
+            ts=ts,
+            nonce=nonce,
+            payload=payload,
+            sig_b64=sig_b64,
+        )
+        return (ok, "ok" if ok else "bad_sig")
+
+    def generate(self, prompt: str) -> str:
+        # Online stub + opsiyonel server-sim doğrulama
+        if os.getenv("LUMOS_SERVER_SIM", "0") == "1":
+            ok, reason = self._server_sim_verify(prompt)
+            if ok:
+                return "SERVER_OK"
+            return f"SERVER_REJECT:{reason}"
+
+        return "Yanındayım."

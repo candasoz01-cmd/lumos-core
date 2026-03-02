@@ -1,0 +1,10 @@
+from dataclasses import dataclass
+from typing import Optional
+
+@dataclass
+class MemoryNote:
+    kind: str                 # "preference", "constraint", "summary"
+    content: str              # ileride saklanacak metin
+    source: str = "local"     # local / cloud / user
+    ttl_seconds: Optional[int] = None
+    created_at: Optional[float] = None

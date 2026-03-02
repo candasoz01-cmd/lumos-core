@@ -1,0 +1,43 @@
+from dataclasses import dataclass
+from typing import Optional
+from context.context import Context
+
+@dataclass
+class Decision:
+    allow: bool
+    reason: Optional[str] = None
+    payload: Optional[dict] = None
+
+class PolicyRules:
+    @staticmethod
+    def evaluate(ctx: Context, mode: str, confidence_threshold: float, engine) -> Decision:
+        if mode == "offline" or not ctx.online:
+            payload = engine.process(getattr(ctx, "message", ""))
+            return Decision(True, "Offline mod: offline engine", payload)
+
+        if not getattr(ctx, "lumos_id", ""):
+            return Decision(
+                False,
+                "Kimlik yok",
+                {
+                    "response": "Online moda geçemem. Önce kimlik kurulmalı.",
+                    "reason": "Cihaz kimliği (identity) bulunamadı.",
+                    "follow_up": "Terminal: python -m src.scripts.init_identity"
+                }
+            )
+
+        if ctx.confidence < confidence_threshold:
+            return Decision(False, "Emin değil", None)
+
+        if ctx.user_is_child:
+            return Decision(True, "Çocuk modu", {"response": "Lumos burada. (Çocuk modu)", "reason": "", "follow_up": ""})
+
+        msg = getattr(ctx, "message", "")
+        short_ctx = getattr(ctx, "short_context", "")
+
+        try:
+            payload = engine.process(msg, short_ctx)
+        except TypeError:
+            payload = engine.process(msg)
+
+        return Decision(True, "Online mod: engine", payload)

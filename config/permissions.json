@@ -1,0 +1,65 @@
+{
+  "location": {
+    "fast": "Yakın bağlam (konum) gerektiğinde kullanılır.",
+    "expert": {
+      "why": "Yakın çevre, zamanlama ve bağlamı iyileştirmek için.",
+      "when": "Sadece sen istediğinde / görev sırasında.",
+      "retention": "Kalıcılık yok. Anlık kullanılır (RAM).",
+      "release": "Görev bitince kullanmayı bırakır. OS iznini kapatmak istersen ayarlara yönlendirir."
+    }
+  },
+  "microphone": {
+    "fast": "Ses girişi yalnızca konuşurken kullanılır.",
+    "expert": {
+      "why": "Sesli komut / dikte için.",
+      "when": "Yalnızca aktif kullanım sırasında.",
+      "retention": "Ses kaydı tutulmaz (varsayılan).",
+      "release": "İş bitince mikrofon akışı kapanır."
+    }
+  },
+  "system_time": {
+    "fast": "Saat/tarih gibi yerel cihaz bilgileri gerektiğinde kullanılır.",
+    "expert": {
+      "why": "Saat/tarih gibi temel yanıtları offline verebilmek için.",
+      "when": "Sadece sen sorduğunda (anlık).",
+      "retention": "Kayıt yok. Anlık kullanılır (RAM).",
+      "release": "Yanıt üretildikten hemen sonra bırakır (TTL)."
+    }
+  },
+  "draft_message": {
+    "fast": "Mesaj taslağı üretmek için kullanılır (göndermez).",
+    "expert": {
+      "why": "Kullanıcı adına yazı taslağı üretmek, gönderim kullanıcıda kalır.",
+      "when": "Sadece sen istediğinde (görev sırasında).",
+      "retention": "Kayıt yok. Taslak metin anlık üretilir (RAM).",
+      "release": "Görev bitince otomatik bırakır (TTL)."
+    }
+  },
+  "draft_order": {
+    "fast": "Sipariş taslağı üretmek için kullanılır (göndermez).",
+    "expert": {
+      "why": "Sipariş metni/özet üretmek, gönderim kullanıcıda kalır.",
+      "when": "Sadece sen istediğinde (görev sırasında).",
+      "retention": "Kayıt yok. Taslak metin anlık üretilir (RAM).",
+      "release": "Görev bitince otomatik bırakır (TTL)."
+    }
+  },
+  "sms_send": {
+    "fast": "Offline modda SMS göndermek için (operatör). Gönderim öncesi onay sorulur.",
+    "expert": {
+      "why": "Kullanıcı adına SMS göndermek geri alınamaz; bu yüzden izin+onay şart.",
+      "when": "Sadece kullanıcı 'gönder' dediğinde.",
+      "retention": "Numara/mesaj kalıcı kaydedilmez.",
+      "release": "İş bitince TTL ile otomatik bırakılır."
+    }
+  },
+  "contacts_read": {
+    "fast": "Rehberden kişi bulmak için (offline).",
+    "expert": {
+      "why": "Alıcıyı doğru seçmek için rehber gerekir.",
+      "when": "Sadece sen 'X'e mesaj gönder' dediğinde.",
+      "retention": "Rehber kopyalanmaz; sadece eşleşen kayda bakılır.",
+      "release": "Görev bitince TTL ile bırakır."
+    }
+  }
+}

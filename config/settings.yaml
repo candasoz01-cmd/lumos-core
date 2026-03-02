@@ -1,0 +1,9 @@
+mode: offline
+
+safety:
+  children_mode: true
+  parent_visibility: true
+
+behavior:
+  fill_gaps: false
+  guess: false

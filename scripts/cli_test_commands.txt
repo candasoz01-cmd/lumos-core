@@ -1,0 +1,27 @@
+# CLI test komutları (lumos-core)
+
+# Uygulamayı çalıştır
+PYTHONPATH=src python src/main.py
+
+# Hızlı senaryo 1: Kamera menüsü -> aç -> evet -> 10 -> çık
+#   Sen: kamera
+#   Kamera> aç
+#   Kamera tabanlı otomatik kilit açılsın mı? (evet/hayır): evet
+#   Kaç saniye yüz görünmezse kilitlesin? (varsayılan 30): 10
+#   Kamera> cik
+#   Sen: cik
+
+# Hızlı senaryo 2: Kilit menüsü -> aç -> kilitle -> çık
+#   Sen: kilit
+#   Kilit> ac
+#   Passphrase: (şifre)
+#   Kilit> kapat   (veya kilitle / lock)
+#   Kilit> cik
+#   Sen: exit
+
+# Alias testi
+#   Sen: alias liste
+#   Sen: alias ekle k kilit
+#   Sen: k
+#   Sen: alias sil k
+#   Sen: alias liste
