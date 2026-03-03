@@ -1,20 +1,22 @@
-# Lumos-social: tek komutla ayağa kalkma + kalite kapısı
-# Kurulum: make setup
-# Kalite: make check  (veya ruff check . && ruff format . && pytest -q)
+# Lumos-social: repo hygiene + kalite kapısı
+# make setup  -> kurulum
+# make check  -> lint + fmt + test
 
-.PHONY: setup lint format test check
+.PHONY: setup lint fmt format test check
 
 setup:
 	python -m pip install -e ".[dev]"
 
 lint:
-	ruff check .
+	python -m ruff check .
 
-format:
-	ruff format .
+fmt:
+	python -m ruff format .
+
+format: fmt
 
 test:
-	pytest -q
+	python -m pytest -q
 
-check: format lint test
-	@echo "OK: format + lint + test"
+check: lint fmt test
+	@echo "OK: lint + fmt + test"
