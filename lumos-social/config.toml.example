@@ -1,0 +1,4 @@
+# Optional config.toml (copy to config.toml). No secrets here.
+# env = "dev"
+# log_level = "INFO"
+# connectors = ["mock"]

@@ -1,0 +1,22 @@
+# Data (DB out of repo)
+.data/
+*.db
+
+# Secrets and local config
+.env
+*.secret
+config.toml
+
+# Venv and build
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Test and tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+coverage.xml
+htmlcov/
