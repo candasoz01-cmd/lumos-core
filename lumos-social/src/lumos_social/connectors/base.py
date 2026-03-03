@@ -1,40 +1,21 @@
-"""Connector interface: fetch_updates, send_message, health."""
+"""Connector protocol: start(bus), stop(). Connectors emit events to bus."""
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING
 
-
-@dataclass
-class Update:
-    """Single update from a connector (e.g. new message, notification)."""
-
-    id: str
-    kind: str
-    payload: dict[str, Any]
-    source: str = ""
+if TYPE_CHECKING:
+    from lumos_social.core.bus import EventBus
 
 
 class BaseConnector(ABC):
-    """Interface for social connectors: fetch updates, send message, health check."""
+    """Interface: start(bus) to emit events, stop() to tear down."""
 
-    @property
     @abstractmethod
-    def name(self) -> str:
-        """Connector identifier (e.g. 'mock', 'twitter')."""
+    def start(self, bus: "EventBus") -> None:
+        """Start and emit events to bus (e.g. once, N times, or loop)."""
         ...
 
     @abstractmethod
-    def fetch_updates(self) -> list[Update]:
-        """Fetch new updates since last call. Returns list of Update."""
-        ...
-
-    @abstractmethod
-    def send_message(self, target: str, content: str) -> bool:
-        """Send a message to target. Returns True on success."""
-        ...
-
-    @abstractmethod
-    def health(self) -> dict[str, Any]:
-        """Current health/status (e.g. connected, last_fetch)."""
+    def stop(self) -> None:
+        """Stop and release resources."""
         ...

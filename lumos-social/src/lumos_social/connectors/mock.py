@@ -1,39 +1,46 @@
-"""Mock connector: returns fake data, no external calls."""
+"""Mock connector: emit N or 1 incoming_message events in start(bus)."""
 
-from typing import Any
+import uuid
 
-from lumos_social.connectors.base import BaseConnector, Update
+from lumos_social.connectors.base import BaseConnector
+from lumos_social.core.bus import EventBus
+from lumos_social.core.events import Event
 
 
 class MockConnector(BaseConnector):
-    """Sahte data dönen connector. fetch_updates ile test update'leri üretir."""
+    """--once: 1 event. --n N: N events. Payload: platform, from_user, text, message_id."""
 
-    def __init__(self) -> None:
-        self._fetch_count = 0
-        self._sent: list[tuple[str, str]] = []
+    def __init__(self, once: bool = False, n: int | None = None) -> None:
+        self._once = once
+        self._n = n
+        self._stopped = False
 
     @property
     def name(self) -> str:
         return "mock"
 
-    def fetch_updates(self) -> list[Update]:
-        self._fetch_count += 1
-        return [
-            Update(
-                id=f"mock-{self._fetch_count}-1",
-                kind="message",
-                payload={"text": "hello from mock", "seq": self._fetch_count},
-                source=self.name,
-            ),
-        ]
+    def start(self, bus: EventBus) -> None:
+        count = 1 if self._once else (self._n if self._n is not None else 1)
+        for i in range(count):
+            event = self._make_event(seq=i + 1)
+            bus.publish(event)
+        self._stopped = False
 
-    def send_message(self, target: str, content: str) -> bool:
-        self._sent.append((target, content))
-        return True
+    def stop(self) -> None:
+        self._stopped = True
 
-    def health(self) -> dict[str, Any]:
-        return {
-            "name": self.name,
-            "ok": True,
-            "fetch_count": self._fetch_count,
-        }
+    def _make_event(self, seq: int = 1) -> Event:
+        return Event(
+            kind="incoming_message",
+            payload={
+                "platform": "mock",
+                "from_user": "user_1",
+                "text": "hello",
+                "message_id": f"mock-{uuid.uuid4().hex[:8]}",
+                "seq": seq,
+            },
+            source="mock",
+        )
+
+    def health(self) -> dict[str, object]:
+        return {"name": self.name, "ok": True}

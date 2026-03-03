@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Lumos social layer: connector interface, event bus, mock connectors"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = ["typer>=0.9"]
+dependencies = ["typer>=0.9", "cryptography>=42"]
 
 [project.optional-dependencies]
 toml = ["tomli>=2.0; python_version<'3.11'"]

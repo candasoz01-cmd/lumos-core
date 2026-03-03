@@ -1,4 +1,4 @@
-"""Tests for config (env + optional toml)."""
+"""Tests for config (Config dataclass, toml or defaults)."""
 
 from pathlib import Path
 
@@ -8,16 +8,15 @@ from lumos_social.config import load_config
 
 
 def test_load_config_defaults() -> None:
-    # No TOML; env may or may not be set
     cfg = load_config(config_path=Path("/nonexistent/config.toml"))
-    assert "env" in cfg
-    assert "log_level" in cfg
-    assert cfg["connectors"] == []
+    assert cfg.env == "dev" or cfg.env != ""
+    assert cfg.log_level
+    assert cfg.connector == "mock"
 
 
 def test_load_config_env_override(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("LUMOS_SOCIAL_ENV", "test")
     monkeypatch.setenv("LUMOS_SOCIAL_LOG_LEVEL", "DEBUG")
     cfg = load_config(config_path=Path("/nonexistent/config.toml"))
-    assert cfg["env"] == "test"
-    assert cfg["log_level"] == "DEBUG"
+    assert cfg.env == "test"
+    assert cfg.log_level == "DEBUG"

@@ -6,6 +6,10 @@ Lumos **social layer**: connector interface, event bus, and message pipeline ske
 - **First version:** no real platform integration; **connector interface + mock connector** only.
 - **Code quality:** ruff (format + lint), mypy, pytest.
 
+## Geliştirici notu
+
+Python kodunu terminale satır satır yapıştırma; kod ya dosyaya (heredoc vb.) yazılır ya da `python -c '...'` ile tek satır çalıştırılır.
+
 ## Structure
 
 - `src/lumos_social/` — package

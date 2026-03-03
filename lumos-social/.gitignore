@@ -10,9 +10,9 @@ config.toml
 # Venv and build
 .venv/
 venv/
-*.egg-info/
 dist/
 build/
+.egg-info/
 
 # Test and tooling
 .pytest_cache/

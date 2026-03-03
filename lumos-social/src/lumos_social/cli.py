@@ -1,57 +1,76 @@
-"""CLI: status, run. Typer-based. python -m lumos_social status | run."""
-
-import sys
-import time
+"""CLI: status, run, context. Typer."""
 
 import typer
 
+from lumos_social.app.handlers import register_handlers
+from lumos_social.app.runner import build_connector
 from lumos_social.config import load_config
 from lumos_social.connectors.mock import MockConnector
+from lumos_social.context.engine import get_engine
 from lumos_social.core.bus import EventBus
-from lumos_social.core.events import Event
-from lumos_social.service import SocialService
 
 app = typer.Typer(help="Lumos social layer CLI")
+context_app = typer.Typer(help="Context: ingest interactions, report stats")
+app.add_typer(context_app, name="context")
 
 
 @app.command()
 def status() -> None:
-    """Özet: env, mode, connector health (kilit/presence bilgisi yoksa sadece connector)."""
+    """Özet: env, log_level, connector (mevcut davranış)."""
     config = load_config()
     connector = MockConnector()
     health = connector.health()
     print("lumos-social status")
-    print(f"  env: {config.get('env', 'dev')}")
-    print(f"  mode: {config.get('log_level', 'INFO')} (log_level)")
-    print(f"  connector: {health.get('name', 'mock')}")
-    print(f"  health: ok={health.get('ok', True)} fetch_count={health.get('fetch_count', 0)}")
+    print(f"  env: {config.env}")
+    print(f"  log_level: {config.log_level}")
+    print(f"  connector: {health.get('name', config.connector)}")
+    print(f"  health: ok={health.get('ok', True)}")
 
 
 @app.command()
-def run() -> None:
-    """Mock connector'ı çalıştırıp event'leri akıtır (Ctrl+C ile çık)."""
-    connector = MockConnector()
+def run(
+    once: bool = typer.Option(False, "--once", help="Tek event üretip çık"),
+    n: int | None = typer.Option(None, "--n", help="N adet event üretip çık"),
+) -> None:
+    """Config'ten connector seçer, bus'a event basar, handler'lar işler. --once veya --n ile çık."""
+    cfg = load_config()
     bus = EventBus()
+    register_handlers(bus)
+    if n is None and not once:
+        once = True
+    connector = build_connector(cfg, once=once, n=n)
+    print("connector başlatıldı")
+    connector.start(bus)
+    connector.stop()
+    print("connector durduruldu")
 
-    def on_event(event: Event) -> None:
-        print(f"event {event.kind} source={event.source} payload={event.payload}")
 
-    bus.subscribe(on_event)
-    service = SocialService(connector, bus)
-    print("lumos-social run (mock connector, event stream; Ctrl+C to stop)")
-    try:
-        while True:
-            n = service.fetch_and_publish()
-            if n > 0:
-                pass  # handler already printed
-            time.sleep(1)
-    except KeyboardInterrupt:
-        print("\nstopped")
-        sys.exit(0)
+@context_app.command("ingest")
+def context_ingest(
+    name: str = typer.Argument(..., help="Kişi adı"),
+    message: str = typer.Argument(..., help="Mesaj metni"),
+    ts: str = typer.Option(..., "--ts", help="ISO8601 timestamp (e.g. 2026-03-03T20:30:00Z)"),
+) -> None:
+    """Store one interaction for context engine."""
+    engine = get_engine()
+    engine.ingest(name, message, ts)
+    print("OK")
+
+
+@context_app.command("report")
+def context_report(
+    name: str = typer.Argument(..., help="Kişi adı"),
+) -> None:
+    """Report interactions, stats, importance score for a name."""
+    engine = get_engine()
+    r = engine.report(name)
+    print(f"name: {r['name']}")
+    print(f"interaction_count: {r['interaction_count']}")
+    print(f"last_ts: {r['last_ts']}")
+    print(f"importance_score: {r['importance_score']}")
 
 
 def main() -> None:
-    """Entrypoint for lumos-social script and python -m lumos_social."""
     app()
 
 
