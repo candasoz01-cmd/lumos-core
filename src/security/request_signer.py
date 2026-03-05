@@ -1,13 +1,14 @@
+import base64
 import json
 import os
 import time
-import secrets
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 
 from security.crypto import b64e, b64d
+from security.entropy import get_random_bytes
 
 
 def _canon(obj: Any) -> bytes:
@@ -50,7 +51,7 @@ class RequestSigner:
 
     def sign(self, payload: Any, ts: Optional[int] = None, nonce: Optional[str] = None, include_pub: bool = False) -> SignedRequest:
         ts = int(ts if ts is not None else time.time())
-        nonce = nonce or secrets.token_urlsafe(12)
+        nonce = nonce or base64.urlsafe_b64encode(get_random_bytes(12)).decode("utf-8").rstrip("=")
 
         envelope = {
             "lumos_id": self.lumos_id,
@@ -96,7 +97,7 @@ class RequestSigner:
 def _selftest() -> None:
     if os.getenv("LUMOS_SIGNER_SELFTEST", "0") != "1":
         return
-    seed = secrets.token_bytes(32)
+    seed = get_random_bytes(32)
     priv = Ed25519PrivateKey.from_private_bytes(seed)
     pub = priv.public_key().public_bytes_raw()
 

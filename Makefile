@@ -19,7 +19,7 @@ install:
 	pip install -e .
 
 compile:
-	$(PYTHON) -m py_compile src/main.py src/security/presence_lock.py src/core/state.py src/core/engine.py src/core/config.py src/core/logfmt.py src/security/presence_fsm.py
+	$(PYTHON) -m py_compile src/main.py src/security/presence_lock.py src/security/entropy/__init__.py src/security/entropy/provider.py src/security/entropy/providers/os_urandom.py src/security/entropy/providers/qiskit_aer.py src/security/entropy/providers/ibm_runtime.py src/security/crypto.py src/core/state.py src/core/engine.py src/core/config.py src/core/logfmt.py src/security/presence_fsm.py
 
 test:
 	$(PYTEST) -q

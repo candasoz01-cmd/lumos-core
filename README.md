@@ -86,3 +86,13 @@ curl http://127.0.0.1:8765/status
 - Web smoke: sunucu arka planda başlatılır, `/health` ve `/status` curl ile istenir, başarılıysa "OK: smoke_web passed" yazılır.
 
 **Not:** Web v1 = read-only. Kilit açma/kapama veya presence aç/kapat işlemleri yapılmaz; sadece mevcut durum okunur.
+
+---
+
+## Güvenlik ve entropy
+
+Şifreleme, keystore ve imza için rastgele veri `security.entropy` üzerinden alınır: `entropy(n, provider="os")`, `get_random_bytes(n)`. **Varsayılan:** OS CSPRNG (`os.urandom`). Provider seçimi: `LUMOS_ENTROPY_PROVIDER=os|qiskit_aer|ibm_runtime`.
+
+### Quantum entropy (experimental)
+
+Varsayılan kaynak kriptografik olarak güvenli OS CSPRNG’dir. İsteğe bağlı deneysel provider’lar: `qiskit_aer` (yerel simülatör), `ibm_runtime` (IBM Quantum). IBM Quantum runtime bağlantısı hazırsa gerçek backend kullanılabilir; yoksa veya hata durumunda otomatik olarak os.urandom’a düşülür.

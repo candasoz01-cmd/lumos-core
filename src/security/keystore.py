@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import os
 import json
 from dataclasses import dataclass
 from pathlib import Path
 
 from security.crypto import encrypt_with_passphrase, decrypt_with_passphrase, EncryptedBlob
+from security.entropy import get_random_bytes
 
 
 @dataclass
@@ -33,7 +33,7 @@ class FileKeyStore:
     def init(self, passphrase: str) -> None:
         if self.is_initialized():
             return
-        root_key = os.urandom(32)  # 256-bit
+        root_key = get_random_bytes(32)  # 256-bit
         aad = b"lumos-keystore-v1"
         blob = encrypt_with_passphrase(passphrase, root_key, aad=aad)
         data = {"v": 1, "root_key": blob.to_dict()}

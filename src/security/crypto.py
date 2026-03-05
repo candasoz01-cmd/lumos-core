@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-import os
 import base64
 from dataclasses import dataclass
 from typing import Tuple, Optional
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
+
+from security.entropy import get_random_bytes
 
 
 def b64e(b: bytes) -> str:
@@ -33,7 +34,7 @@ def derive_key_scrypt(passphrase: str, salt: bytes, length: int = 32) -> bytes:
 def aesgcm_encrypt(key: bytes, plaintext: bytes, aad: Optional[bytes] = None) -> Tuple[bytes, bytes]:
     if len(key) != 32:
         raise ValueError("AESGCM key 32 byte olmalı")
-    nonce = os.urandom(12)
+    nonce = get_random_bytes(12)
     ct = AESGCM(key).encrypt(nonce, plaintext, aad)
     return nonce, ct
 
@@ -73,7 +74,7 @@ class EncryptedBlob:
 
 
 def encrypt_with_passphrase(passphrase: str, plaintext: bytes, aad: Optional[bytes] = None) -> EncryptedBlob:
-    salt = os.urandom(16)
+    salt = get_random_bytes(16)
     key = derive_key_scrypt(passphrase, salt)
     nonce, ct = aesgcm_encrypt(key, plaintext, aad=aad)
     return EncryptedBlob(
