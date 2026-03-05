@@ -1,7 +1,7 @@
 import re
 from datetime import datetime
 from getpass import getpass
-from device.contacts import Contacts
+from lumos_core.device.contacts import Contacts
 from typing import Optional
 
 class OfflineEngineV1:

@@ -2,11 +2,11 @@ import os
 import json
 from pathlib import Path
 
-from engine.model_client import ModelClient
-from security.keystore import FileKeyStore
-from security.identity import DeviceIdentity
-from security.request_signer import RequestSigner
-from memory.secure_store import SecureNotesStore
+from lumos_core.engine.model_client import ModelClient
+from lumos_core.security.keystore import FileKeyStore
+from lumos_core.security.identity import DeviceIdentity
+from lumos_core.security.request_signer import RequestSigner
+from lumos_core.memory.secure_store import SecureNotesStore
 
 
 def _base_dir() -> str:

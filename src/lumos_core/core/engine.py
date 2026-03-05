@@ -38,7 +38,7 @@ class CoreEngine:
             )
         except Exception as e:
             try:
-                from core.logfmt import logfmt
+                from lumos_core.core.logfmt import logfmt
                 log_event(logfmt("presence_autostart_failed", err=str(e)))
             except Exception:
                 pass

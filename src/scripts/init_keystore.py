@@ -1,5 +1,5 @@
 from getpass import getpass
-from security.keystore import FileKeyStore
+from lumos_core.security.keystore import FileKeyStore
 
 def main():
     ks = FileKeyStore(base_dir="src/.lumos")

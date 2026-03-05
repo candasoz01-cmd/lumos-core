@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional
-from context.context import Context
+from lumos_core.context.context import Context
 
 @dataclass
 class Decision:

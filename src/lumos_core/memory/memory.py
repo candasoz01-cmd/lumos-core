@@ -2,9 +2,9 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 import time
 
-from context.context import Context
-from memory.schema import MemoryNote
-from memory.secure_store import SecureNotesStore
+from lumos_core.context.context import Context
+from lumos_core.memory.schema import MemoryNote
+from lumos_core.memory.secure_store import SecureNotesStore
 
 
 @dataclass

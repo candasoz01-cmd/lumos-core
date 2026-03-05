@@ -7,8 +7,8 @@ from typing import Any, Dict, Optional
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 
-from security.crypto import b64e, b64d
-from security.entropy import get_random_bytes
+from lumos_core.security.crypto import b64e, b64d
+from lumos_core.security.entropy import get_random_bytes
 
 
 def _canon(obj: Any) -> bytes:

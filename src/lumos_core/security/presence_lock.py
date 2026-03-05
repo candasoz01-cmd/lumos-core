@@ -9,7 +9,7 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Callable, Optional
 
-from core.logfmt import logfmt
+from lumos_core.core.logfmt import logfmt
 
 
 def _append_log(message: str) -> None:

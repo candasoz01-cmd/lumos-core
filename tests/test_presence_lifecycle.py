@@ -20,7 +20,7 @@ if str(SRC) not in sys.path:
 
 def test_stop_presence_lock_silent_true_does_not_log_presence_stopped():
     """stop_presence_lock(silent=True) must not log presence_stopped."""
-    import security.presence_lock as pl
+    import lumos_core.security.presence_lock as pl
     log_calls = []
     with patch.object(pl, "_append_log", side_effect=lambda msg: log_calls.append(msg)):
         pl.stop_presence_lock(base_dir=Path(ROOT / ".lumos"), silent=True)
@@ -30,7 +30,7 @@ def test_stop_presence_lock_silent_true_does_not_log_presence_stopped():
 
 def test_stop_presence_lock_silent_false_logs_presence_stopped_only_if_was_running():
     """stop_presence_lock(silent=False) logs presence_stopped only when was_running."""
-    import security.presence_lock as pl
+    import lumos_core.security.presence_lock as pl
     log_calls = []
     with patch.object(pl, "_append_log", side_effect=lambda msg: log_calls.append(msg)):
         with patch.object(pl, "is_running", return_value=True):
@@ -41,7 +41,7 @@ def test_stop_presence_lock_silent_false_logs_presence_stopped_only_if_was_runni
 
 def test_stop_presence_lock_silent_false_no_log_when_not_running():
     """stop_presence_lock(silent=False) must not log presence_stopped when was_running=False."""
-    import security.presence_lock as pl
+    import lumos_core.security.presence_lock as pl
     log_calls = []
     with patch.object(pl, "_append_log", side_effect=lambda msg: log_calls.append(msg)):
         with patch.object(pl, "is_running", return_value=False):
@@ -52,7 +52,7 @@ def test_stop_presence_lock_silent_false_no_log_when_not_running():
 
 def test_recover_if_needed_logs_presence_autostarted_only_when_enabled_and_not_running():
     """Boot recovery logs presence_autostarted only when config enabled and thread not running."""
-    import security.presence_lock as pl
+    import lumos_core.security.presence_lock as pl
     log_events = []
     def capture(msg):
         log_events.append(msg)
@@ -68,7 +68,7 @@ def test_recover_if_needed_logs_presence_autostarted_only_when_enabled_and_not_r
 
 def test_recover_if_needed_does_nothing_when_disabled():
     """When config disabled, recover_if_needed does not start or log presence_autostarted."""
-    import security.presence_lock as pl
+    import lumos_core.security.presence_lock as pl
     log_events = []
     start_called = []
     def capture(msg):
@@ -166,8 +166,8 @@ def test_enable_then_disable_log_order_option_b():
 
 def test_presence_fsm_get_state_disabled():
     """FSM get_state returns DISABLED when config enabled=False."""
-    import security.presence_fsm as fsm_mod
-    import security.presence_lock as pl
+    import lumos_core.security.presence_fsm as fsm_mod
+    import lumos_core.security.presence_lock as pl
     with patch.object(pl, "is_enabled_from_config", return_value=False):
         with patch.object(pl, "is_running", return_value=False):
             s = fsm_mod.get_state(Path(ROOT / ".lumos"), pl)
@@ -176,8 +176,8 @@ def test_presence_fsm_get_state_disabled():
 
 def test_presence_fsm_get_state_enabled_idle():
     """FSM get_state returns ENABLED_IDLE when config enabled=True and thread not running."""
-    import security.presence_fsm as fsm_mod
-    import security.presence_lock as pl
+    import lumos_core.security.presence_fsm as fsm_mod
+    import lumos_core.security.presence_lock as pl
     with patch.object(pl, "is_enabled_from_config", return_value=True):
         with patch.object(pl, "is_running", return_value=False):
             s = fsm_mod.get_state(Path(ROOT / ".lumos"), pl)
@@ -186,7 +186,7 @@ def test_presence_fsm_get_state_enabled_idle():
 
 def test_format_status_line_from_snapshot():
     """format_status_line produces 'LOCKED | Presence: ... | Mode: ... | Log: ...' from snapshot."""
-    from core.state import format_status_line
+    from lumos_core.core.state import format_status_line
     snap = {
         "lock_status": "LOCKED",
         "presence_enabled": True,
@@ -203,8 +203,8 @@ def test_format_status_line_from_snapshot():
 
 def test_presence_fsm_get_state_running():
     """FSM get_state returns RUNNING when config enabled=True and thread running."""
-    import security.presence_fsm as fsm_mod
-    import security.presence_lock as pl
+    import lumos_core.security.presence_fsm as fsm_mod
+    import lumos_core.security.presence_lock as pl
     with patch.object(pl, "is_enabled_from_config", return_value=True):
         with patch.object(pl, "is_running", return_value=True):
             s = fsm_mod.get_state(Path(ROOT / ".lumos"), pl)

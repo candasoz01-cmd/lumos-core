@@ -5,17 +5,17 @@ import re
 from getpass import getpass
 from pathlib import Path
 
-from core.engine import CoreEngine
-from core.logfmt import logfmt
-from core.lumos import Lumos
-from core.state import CoreState, format_status_line
-from engine.online_engine import OnlineEngineV1
-from memory.secure_store import SecureNotesStore
-from policy.offline_engine import OfflineEngineV1
-from security import presence_lock as pl
-from security.aliases import load_aliases, save_aliases, apply_alias
-from security.keystore import FileKeyStore
-from security.permissions import PermissionManager
+from lumos_core.core.engine import CoreEngine
+from lumos_core.core.logfmt import logfmt
+from lumos_core.core.lumos import Lumos
+from lumos_core.core.state import CoreState, format_status_line
+from lumos_core.engine.online_engine import OnlineEngineV1
+from lumos_core.memory.secure_store import SecureNotesStore
+from lumos_core.policy.offline_engine import OfflineEngineV1
+from lumos_core.security import presence_lock as pl
+from lumos_core.security.aliases import load_aliases, save_aliases, apply_alias
+from lumos_core.security.keystore import FileKeyStore
+from lumos_core.security.permissions import PermissionManager
 
 
 def norm_cmd(s: str) -> str:
@@ -516,7 +516,7 @@ def main() -> None:
     def run_panel() -> None:
         from pathlib import Path as _P
         try:
-            from ui.tui import run_tui, tui_available
+            from lumos_core.ui.tui import run_tui, tui_available
         except ImportError:
             print("Bu terminal panel desteklemiyor (curses yok).")
             return

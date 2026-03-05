@@ -3,8 +3,8 @@ import json
 import time
 from typing import Any, Tuple
 
-from security.crypto import b64d
-from security.request_signer import RequestSigner
+from lumos_core.security.crypto import b64d
+from lumos_core.security.request_signer import RequestSigner
 
 
 class ModelClient:

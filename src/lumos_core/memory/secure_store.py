@@ -5,7 +5,7 @@ from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import List, Any
 
-from security.crypto import aesgcm_encrypt, aesgcm_decrypt, b64e, b64d
+from lumos_core.security.crypto import aesgcm_encrypt, aesgcm_decrypt, b64e, b64d
 
 
 class SecureNotesStore:

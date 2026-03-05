@@ -4,8 +4,8 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from security.crypto import encrypt_with_passphrase, decrypt_with_passphrase, EncryptedBlob
-from security.entropy import get_random_bytes
+from lumos_core.security.crypto import encrypt_with_passphrase, decrypt_with_passphrase, EncryptedBlob
+from lumos_core.security.entropy import get_random_bytes
 
 
 @dataclass

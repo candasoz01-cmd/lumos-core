@@ -7,7 +7,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from core.logfmt import logfmt  # noqa: E402
+from lumos_core.core.logfmt import logfmt  # noqa: E402
 
 
 def test_logfmt_event_first():

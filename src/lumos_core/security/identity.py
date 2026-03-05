@@ -8,7 +8,7 @@ from pathlib import Path
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives import serialization
 
-from security.crypto import aesgcm_encrypt, aesgcm_decrypt, b64e, b64d
+from lumos_core.security.crypto import aesgcm_encrypt, aesgcm_decrypt, b64e, b64d
 
 
 def sha256_hex(b: bytes) -> str:

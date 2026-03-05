@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import List
-from context.context import Context
+from lumos_core.context.context import Context
 
 @dataclass
 class SessionMemory:

@@ -1,6 +1,6 @@
-from core.lumos import Lumos
-from context.context import Context
-from policy.offline_engine import OfflineEngineV1
+from lumos_core.core.lumos import Lumos
+from lumos_core.context.context import Context
+from lumos_core.policy.offline_engine import OfflineEngineV1
 
 def run():
     lumos = Lumos(mode="offline", engine=OfflineEngineV1())

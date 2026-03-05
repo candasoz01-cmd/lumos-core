@@ -5,8 +5,8 @@ Provider çalışmazsa fallback os.urandom.
 from __future__ import annotations
 
 import os
-from security.entropy.provider import EntropyProvider
-from security.entropy.providers.os_urandom import OSUrandomProvider
+from lumos_core.security.entropy.provider import EntropyProvider
+from lumos_core.security.entropy.providers.os_urandom import OSUrandomProvider
 
 _OS = OSUrandomProvider()
 
@@ -18,13 +18,13 @@ def get_provider(name: str) -> EntropyProvider:
         return _OS
     if name == "qiskit_aer":
         try:
-            from security.entropy.providers.qiskit_aer import QiskitAerProvider
+            from lumos_core.security.entropy.providers.qiskit_aer import QiskitAerProvider
             return QiskitAerProvider()
         except Exception:
             return _OS
     if name == "ibm_runtime":
         try:
-            from security.entropy.providers.ibm_runtime import IBMRuntimeProvider
+            from lumos_core.security.entropy.providers.ibm_runtime import IBMRuntimeProvider
             return IBMRuntimeProvider()
         except Exception:
             return _OS

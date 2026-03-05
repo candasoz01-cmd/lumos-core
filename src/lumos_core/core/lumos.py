@@ -1,14 +1,14 @@
 import os
 from dataclasses import dataclass, field
 from typing import Optional
-from context.context import Context
-from policy.rules import PolicyRules
-from memory.memory import Memory
-from memory.session_memory import SessionMemory
-from engine.base import BaseEngine
-from policy.offline_engine import OfflineEngineV1
-from core.version import VERSION
-from security.lock import LockState
+from lumos_core.context.context import Context
+from lumos_core.policy.rules import PolicyRules
+from lumos_core.memory.memory import Memory
+from lumos_core.memory.session_memory import SessionMemory
+from lumos_core.engine.base import BaseEngine
+from lumos_core.policy.offline_engine import OfflineEngineV1
+from lumos_core.core.version import VERSION
+from lumos_core.security.lock import LockState
 
 @dataclass
 class Lumos:

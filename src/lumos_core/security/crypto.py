@@ -7,7 +7,7 @@ from typing import Tuple, Optional
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 
-from security.entropy import get_random_bytes
+from lumos_core.security.entropy import get_random_bytes
 
 
 def b64e(b: bytes) -> str:
