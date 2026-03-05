@@ -1,0 +1,3 @@
+# Install Qiskit 1.0.2 (for qc_demo.py)
+qiskit==1.0.2
+qiskit-aer
