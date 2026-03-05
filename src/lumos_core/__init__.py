@@ -1,4 +1,5 @@
-"""Lumos core: CLI and read-only web."""
-from .version import VERSION
+"""
+Lumos Core package
+"""
 
-__version__ = VERSION
+__version__ = "0.1.0"
