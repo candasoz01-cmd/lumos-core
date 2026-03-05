@@ -21,3 +21,9 @@ __pycache__/
 .pytest_cache/
 *.ipynb
 .ipynb_checkpoints/
+
+# Kurator raporları (repo kirletmesin)
+KURATOR*.md
+
+KURATOR_GIT_TALIMAT.md
+KURATOR_SON_RAPOR.md
