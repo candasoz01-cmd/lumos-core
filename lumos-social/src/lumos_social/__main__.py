@@ -1,6 +1,6 @@
-"""python -m lumos_social status | run"""
+"""python -m lumos_social status | person | context"""
 
-from lumos_social.cli import main
+from lumos_social.main import main
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

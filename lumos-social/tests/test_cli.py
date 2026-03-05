@@ -1,10 +1,9 @@
-"""Tests for CLI status command."""
+"""Tests for CLI (argparse: status, person, context)."""
 
 import subprocess
 import sys
 from pathlib import Path
 
-# Project root = parent of src
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "src"
 
@@ -18,8 +17,8 @@ def test_cli_status_exit_zero() -> None:
         env={**__import__("os").environ, "PYTHONPATH": str(SRC)},
     )
     assert r.returncode == 0
-    assert "lumos-social status" in r.stdout
-    assert "connector" in r.stdout.lower() or "health" in r.stdout.lower()
+    assert "ok" in r.stdout
+    assert "db=" in r.stdout
 
 
 def test_cli_no_args_shows_usage() -> None:
@@ -32,16 +31,17 @@ def test_cli_no_args_shows_usage() -> None:
     )
     assert r.returncode != 0
     out = r.stdout + r.stderr
-    assert "Usage" in out or "Missing command" in out or "COMMAND" in out
+    assert "usage" in out.lower() or "required" in out.lower()
 
 
-def test_cli_run_help() -> None:
+def test_cli_context_help() -> None:
     r = subprocess.run(
-        [sys.executable, "-m", "lumos_social", "run", "--help"],
+        [sys.executable, "-m", "lumos_social", "context", "--help"],
         cwd=ROOT,
         capture_output=True,
         text=True,
         env={**__import__("os").environ, "PYTHONPATH": str(SRC)},
     )
     assert r.returncode == 0
-    assert "run" in r.stdout.lower()
+    assert "context" in r.stdout.lower()
+    assert "ingest" in r.stdout.lower() or "report" in r.stdout.lower()
