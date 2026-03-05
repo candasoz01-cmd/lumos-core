@@ -208,3 +208,9 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Kurator raporları (repo kirletmesin)
+KURATOR*.md
+
+KURATOR_GIT_TALIMAT.md
+KURATOR_SON_RAPOR.md
