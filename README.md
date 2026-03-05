@@ -1,5 +1,7 @@
 # Lumos-core
 
+**Çekirdek repo (tek kaynak, monorepo).** İçinde `lumos-social/` bulunur. WORK_2026 içindeki dış `lumos-social` klasörü sandbox/legacy'dir; bağlanmaz. Detay: `docs/REPO_LAYOUT.md`.
+
 Lumos tek bir karaktere sahiptir.
 
 - Emin olmadığı yerde konuşmaz.
@@ -94,5 +96,7 @@ curl http://127.0.0.1:8765/status
 Şifreleme, keystore ve imza için rastgele veri `security.entropy` üzerinden alınır: `entropy(n, provider="os")`, `get_random_bytes(n)`. **Varsayılan:** OS CSPRNG (`os.urandom`). Provider seçimi: `LUMOS_ENTROPY_PROVIDER=os|qiskit_aer|ibm_runtime`.
 
 ### Quantum entropy (experimental)
+
+Detay: `src/lumos_core/security/entropy/README.md`. Demo ve Qiskit araçları: **WORK_2026/lumos-quantum**.
 
 Varsayılan kaynak kriptografik olarak güvenli OS CSPRNG’dir. İsteğe bağlı deneysel provider’lar: `qiskit_aer` (yerel simülatör), `ibm_runtime` (IBM Quantum). IBM Quantum runtime bağlantısı hazırsa gerçek backend kullanılabilir; yoksa veya hata durumunda otomatik olarak os.urandom’a düşülür.
