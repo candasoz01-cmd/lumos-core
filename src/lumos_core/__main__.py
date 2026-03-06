@@ -27,10 +27,25 @@ def _run_web() -> None:
 
 
 def _run_cli() -> None:
-    """Run the interactive CLI (main.main)."""
-    from main import main as cli_main  # noqa: E402
+    """Run the interactive CLI (lumos_core.interactive_cli.main)."""
+    from lumos_core.security.consent import has_user_consent
+
+    if not has_user_consent():
+        from lumos_core.system.env_scan import build_capability_report, print_onboarding_preview
+
+        env = build_capability_report()
+        print_onboarding_preview(env)
+        print()
+
+    from lumos_core.interactive_cli import main as cli_main
     result = cli_main()
     sys.exit(0 if result is None else result)
+
+
+def _run_env() -> None:
+    """Run first-run environment scan (lumos_core.cli env)."""
+    from lumos_core.cli import _run_env as _env
+    _env()
 
 
 def main() -> None:
@@ -40,6 +55,7 @@ def main() -> None:
     sub = parser.add_subparsers(dest="cmd", help="subcommand")
     sub.add_parser("cli", help="run interactive CLI (default)")
     sub.add_parser("web", help="run Web v1 server")
+    sub.add_parser("env", help="first-run environment scan (JSON + summary)")
     args = parser.parse_args()
 
     if args.version:
@@ -47,6 +63,8 @@ def main() -> None:
         sys.exit(0)
     if args.cmd == "web":
         _run_web()
+    elif args.cmd == "env":
+        _run_env()
     else:
         # default or explicit cli
         _run_cli()
