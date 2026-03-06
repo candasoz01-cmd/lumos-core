@@ -16,6 +16,17 @@ Lumos'un ilerlemesi, yaptığı doğrulardan çok yapmadığı yanlışlarla öl
 
 ---
 
+## First run: lumos env
+
+İlk açılışta ortam taraması için: **`lumos env`**  
+OS, CPU, RAM, python/node/git sürümleri, shell, ağ ve yetenek özeti (can/limited/cannot) JSON + okunur özet olarak basılır. Uygulama listesi /Applications ve ~/Applications ile sınırlıdır; eksik olabilir.
+
+```bash
+lumos env
+```
+
+---
+
 ## Quick start
 
 ```bash
@@ -36,7 +47,7 @@ make run
 |-------|----------|
 | `make check` | Tek doğrulama kapısı: compile + test + smoke + cli + web |
 | `make compile` | `py_compile` (main, presence_lock, state, …) |
-| `make test` | `pytest -q` |
+| `make test` | `python -m pytest -q` |
 | `make smoke` | `bash scripts/smoke_presence.sh` |
 | `make cli` | `bash scripts/smoke_cli.sh` |
 | `make web` | `bash scripts/smoke_web.sh` |

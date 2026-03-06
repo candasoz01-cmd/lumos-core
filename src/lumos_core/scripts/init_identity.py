@@ -1,12 +1,14 @@
+"""Initialize device identity. Run: python -m lumos_core.scripts.init_identity"""
 from getpass import getpass
 
-from src.security.keystore import FileKeyStore
-from src.security.identity import DeviceIdentity
+from lumos_core.security.identity import DeviceIdentity
+from lumos_core.security.keystore import FileKeyStore
 
-def main():
+
+def main() -> None:
     ks = FileKeyStore(base_dir="src/.lumos")
     if not ks.is_initialized():
-        print("Keystore yok. Önce: python -m src.scripts.init_keystore")
+        print("Keystore yok. Önce: python -m lumos_core.scripts.init_keystore")
         return
 
     p = getpass("Passphrase: ")
@@ -23,6 +25,7 @@ def main():
 
     ident.init(root_key)
     print("OK: Identity oluşturuldu (src/.lumos/identity.json)")
+
 
 if __name__ == "__main__":
     main()

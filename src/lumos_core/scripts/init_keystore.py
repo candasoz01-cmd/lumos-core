@@ -1,7 +1,10 @@
+"""Initialize keystore (src/.lumos or .lumos). Run: python -m lumos_core.scripts.init_keystore"""
 from getpass import getpass
+
 from lumos_core.security.keystore import FileKeyStore
 
-def main():
+
+def main() -> None:
     ks = FileKeyStore(base_dir="src/.lumos")
     if ks.is_initialized():
         print("Keystore zaten var. (OK)")
@@ -13,6 +16,7 @@ def main():
         return
     ks.init(p1)
     print("OK: Keystore oluşturuldu (src/.lumos/keystore.json)")
+
 
 if __name__ == "__main__":
     main()

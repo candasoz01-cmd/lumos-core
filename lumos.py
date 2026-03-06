@@ -49,7 +49,7 @@ def main_cli() -> None:
     if str(Path("src").resolve()) not in sys.path:
         sys.path.insert(0, str(Path("src").resolve()))
 
-    from main import main as lumos_main
+    from lumos_core.interactive_cli import main as lumos_main
     lumos_main()
 
 if __name__ == "__main__":

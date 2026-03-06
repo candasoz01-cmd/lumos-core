@@ -22,6 +22,10 @@ __pycache__/
 *.ipynb
 .ipynb_checkpoints/
 
+# Refactor leftovers (do not re-add)
+src/security.bak_lock/
+src/src/
+
 # Kurator raporları (repo kirletmesin)
 KURATOR*.md
 

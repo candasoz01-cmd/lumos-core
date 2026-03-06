@@ -8,8 +8,8 @@ def _check_qiskit() -> None:
         from qiskit_aer import AerSimulator  # noqa: F401
     except ImportError as e:
         raise ImportError(
-            "Qiskit entropy için qiskit ve qiskit-aer gerekir: "
-            "pip install qiskit qiskit-aer"
+            "Qiskit entropy provider için qiskit ve qiskit-aer kurulu olmalı: "
+            "pip install qiskit qiskit-aer (veya pip install 'lumos-quantum[qiskit]')"
         ) from e
 
 

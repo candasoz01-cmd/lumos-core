@@ -1,11 +1,11 @@
 import json
 import sys
 from collections import Counter
-from src.tools.file_classifier import scan_folder
+from lumos_core.tools.file_classifier import scan_folder
 
 def main():
     if len(sys.argv) < 2:
-        print("Kullanım: python3 -m src.tools.run_classify <klasor_yolu>")
+        print("Kullanım: python -m lumos_core.tools.run_classify <klasor_yolu>")
         sys.exit(1)
 
     folder = sys.argv[1]
