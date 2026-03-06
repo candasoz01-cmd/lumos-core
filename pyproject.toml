@@ -11,17 +11,20 @@ requires-python = ">=3.10"
 
 dependencies = [
   "cryptography>=42",
+  "openai>=1.0",
 ]
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
 
 [tool.setuptools.dynamic]
 version = {attr = "lumos_core.version.VERSION"}
 
 [project.scripts]
-lumos = "lumos_core.__main__:main"
+lumos = "lumos_core.cli:main"
 
 [tool.setuptools]
 package-dir = { "" = "src" }
-py-modules = ["main"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
