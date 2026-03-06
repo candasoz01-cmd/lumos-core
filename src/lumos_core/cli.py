@@ -11,14 +11,15 @@ def run_ask(prompt: str, provider: str = "openai") -> None:
 
     router = AIRouter()
     try:
-        response = router.route(prompt, provider=provider)
+        result = router.route(prompt, provider=provider)
     except ValueError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
+    prefix = "[stub] " if result.is_stub else ""
     print()
     print(f"Provider: {provider}")
     print(f"Prompt: {prompt}")
-    print(f"Response: [stub] {response}")
+    print(f"Response: {prefix}{result.text}")
     print()
 
 
