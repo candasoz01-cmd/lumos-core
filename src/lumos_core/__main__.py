@@ -54,6 +54,12 @@ def _run_ask(prompt: str, provider: str) -> None:
     run_ask(prompt, provider=provider)
 
 
+def _run_chat(provider: str) -> None:
+    """Run chat command: interactive terminal chat via AIRouter (lumos_core.cli)."""
+    from lumos_core.cli import run_chat
+    run_chat(provider=provider)
+
+
 def main() -> None:
     from lumos_core import __version__
     parser = argparse.ArgumentParser(prog="lumos", description="Lumos core CLI and web")
@@ -65,6 +71,8 @@ def main() -> None:
     ask_p = sub.add_parser("ask", help="send a prompt to the AI router")
     ask_p.add_argument("prompt", help="your prompt (e.g. \"Explain quantum computing\")")
     ask_p.add_argument("--provider", default="openai", help="AI provider: openai, gemini, anthropic (default: openai)")
+    chat_p = sub.add_parser("chat", help="interactive terminal chat with AI")
+    chat_p.add_argument("--provider", default="openai", help="AI provider (default: openai)")
     args = parser.parse_args()
 
     if args.version:
@@ -76,6 +84,8 @@ def main() -> None:
         _run_env()
     elif args.cmd == "ask":
         _run_ask(args.prompt, args.provider)
+    elif args.cmd == "chat":
+        _run_chat(args.provider)
     else:
         # default or explicit cli
         _run_cli()

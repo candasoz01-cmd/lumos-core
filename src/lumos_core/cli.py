@@ -23,6 +23,36 @@ def run_ask(prompt: str, provider: str = "openai") -> None:
     print()
 
 
+def run_chat(provider: str = "openai") -> None:
+    """Interactive terminal chat: read lines, send through AIRouter, print responses. Exit on exit/quit/Ctrl+C/Ctrl+D."""
+    from lumos_core.ai_router import AIRouter
+
+    router = AIRouter()
+    EXIT_WORDS = frozenset({"exit", "quit"})
+
+    while True:
+        try:
+            line = input("Lumos > ").strip()
+        except EOFError:
+            break
+        except KeyboardInterrupt:
+            print()
+            break
+
+        if not line:
+            continue
+        if line.lower() in EXIT_WORDS:
+            break
+
+        try:
+            result = router.route(line, provider=provider)
+        except ValueError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            continue
+        prefix = "[stub] " if result.is_stub else ""
+        print("Lumos > " + prefix + result.text)
+
+
 def main():
     parser = argparse.ArgumentParser(prog="lumos")
     parser.add_argument("--version", action="store_true")

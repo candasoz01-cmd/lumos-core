@@ -1,16 +1,16 @@
 """
 AI Router for Lumos: route prompts to multiple AI providers.
 
-Prepares the architecture for connecting to OpenAI, Gemini, Anthropic, etc.
-Real providers are registered when configured (e.g. OPENAI_API_KEY); others use stubs.
+Uses the provider registry (ai_providers.registry) so providers can be
+registered dynamically. Real providers are registered when configured
+(e.g. OPENAI_API_KEY); others use stubs.
 """
 from __future__ import annotations
 
-import os
-from typing import Any, Protocol
+from typing import Any
 
-# Supported provider names; extend this set when adding new providers.
-SUPPORTED_PROVIDERS = frozenset({"openai", "gemini", "anthropic"})
+from lumos_core.ai_providers.base import AIProvider
+from lumos_core.ai_providers.registry import ensure_builtins, get_provider, list_providers
 
 
 class RouteResult:
@@ -23,17 +23,9 @@ class RouteResult:
         self.is_stub = is_stub
 
 
-class AIProvider(Protocol):
-    """Protocol for a single AI provider. Implement this to add a new provider."""
-
-    def complete(self, prompt: str, **kwargs: Any) -> str:
-        """Send prompt to the provider and return the response text."""
-        ...
-
-
 class AIRouter:
     """
-    Routes prompts to the appropriate AI provider.
+    Routes prompts to the appropriate AI provider via the registry.
 
     Usage:
         router = AIRouter()
@@ -41,24 +33,12 @@ class AIRouter:
     """
 
     def __init__(self) -> None:
-        self._providers: dict[str, AIProvider] = {}
-        self._register_builtin_stubs()
-        self._register_real_providers()
-
-    def _register_builtin_stubs(self) -> None:
-        """Register stub handlers for each supported provider. Replaced by real ones when configured."""
-        for name in SUPPORTED_PROVIDERS:
-            self._providers[name] = _StubProvider(name)
-
-    def _register_real_providers(self) -> None:
-        """Register real providers when their config (e.g. API key) is present."""
-        if os.environ.get("OPENAI_API_KEY", "").strip():
-            from lumos_core.ai_providers.openai import OpenAIProvider
-            self._providers["openai"] = OpenAIProvider()
+        ensure_builtins()
 
     def register_provider(self, name: str, provider: AIProvider) -> None:
-        """Register a provider for routing. Use this to add or override providers."""
-        self._providers[name] = provider
+        """Register a provider for routing. Use this to add or override providers in tests or plugins."""
+        from lumos_core.ai_providers.registry import register
+        register(name, lambda: provider)
 
     def route(self, prompt: str, provider: str, **kwargs: Any) -> RouteResult:
         """
@@ -68,29 +48,18 @@ class AIRouter:
         :param provider: Provider name (e.g. 'openai', 'gemini', 'anthropic').
         :param kwargs: Optional provider-specific options (for future use).
         :return: RouteResult with response text and is_stub flag.
-        :raises ValueError: If provider is not supported or not registered, or key missing (e.g. openai).
+        :raises ValueError: If provider is not supported or not available (e.g. API key missing).
         """
-        provider = provider.lower().strip()
-        if provider not in self._providers:
-            supported = ", ".join(sorted(self._providers))
+        key = provider.lower().strip()
+        impl = get_provider(key)
+        if impl is None:
+            supported = ", ".join(list_providers())
             raise ValueError(f"Unknown provider '{provider}'. Supported: {supported}")
-        impl = self._providers[provider]
-        if provider == "openai" and getattr(impl, "is_stub", True):
+        # Allow stub providers to return placeholder response; require real config for non-stub (e.g. openai).
+        if not getattr(impl, "is_stub", False) and not impl.is_available:
             raise ValueError(
-                "OPENAI_API_KEY is not set. Set it in your environment to use the OpenAI provider."
+                f"Provider '{provider}' is not available (e.g. API key not set)."
             )
         text = impl.complete(prompt, **kwargs)
         is_stub = getattr(impl, "is_stub", True)
         return RouteResult(text=text, is_stub=is_stub)
-
-
-class _StubProvider:
-    """Placeholder provider that returns a stub response until real APIs are implemented."""
-
-    is_stub = True
-
-    def __init__(self, name: str) -> None:
-        self._name = name
-
-    def complete(self, prompt: str, **kwargs: Any) -> str:
-        return "This is where the provider response will appear."

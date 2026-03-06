@@ -4,15 +4,22 @@ from __future__ import annotations
 import os
 from typing import Any
 
+from lumos_core.ai_providers.base import BaseAIProvider
 
-class OpenAIProvider:
+
+class OpenAIProvider(BaseAIProvider):
     """Real OpenAI API provider. Requires OPENAI_API_KEY in the environment."""
 
+    name = "OpenAI"
     is_stub = False
 
     def __init__(self, api_key: str | None = None, model: str = "gpt-4o-mini") -> None:
         self._api_key = (api_key or os.environ.get("OPENAI_API_KEY") or "").strip()
         self._model = model
+
+    @property
+    def is_available(self) -> bool:
+        return bool(self._api_key)
 
     def complete(self, prompt: str, **kwargs: Any) -> str:
         """Send prompt to OpenAI chat completions and return the response text."""
