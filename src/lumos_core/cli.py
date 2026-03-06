@@ -6,10 +6,12 @@ from lumos_core import __version__
 
 
 def run_ask(prompt: str, provider: str = "openai") -> None:
-    """Route prompt through pre_route then AIRouter; print response or Lumos message."""
+    """Route prompt through pre_route then AIRouter then response_builder; print response or Lumos message."""
     from lumos_core.ai_router import AIRouter
     from lumos_core.context.context import Context
     from lumos_core.policy.pre_route import pre_route
+    from lumos_core.response_builder import build_response
+    from lumos_core.user_identity import load as load_user_identity
 
     ctx = Context(message=prompt)
     route = pre_route(ctx)
@@ -23,21 +25,26 @@ def run_ask(prompt: str, provider: str = "openai") -> None:
     except ValueError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
+    user = load_user_identity()
+    out_text = build_response(result.text, user)
     prefix = "[stub] " if result.is_stub else ""
     print()
     print(f"Provider: {provider}")
     print(f"Prompt: {prompt}")
-    print(f"Response: {prefix}{result.text}")
+    print(f"Response: {prefix}{out_text}")
     print()
 
 
 def run_chat(provider: str = "openai") -> None:
-    """Interactive terminal chat: pre_route then AIRouter; Lumos messages for command/tool/unsupported."""
+    """Interactive terminal chat: pre_route then AIRouter then response_builder; Lumos messages for command/tool/unsupported."""
     from lumos_core.ai_router import AIRouter
     from lumos_core.context.context import Context
     from lumos_core.policy.pre_route import pre_route
+    from lumos_core.response_builder import build_response
+    from lumos_core.user_identity import load as load_user_identity
 
     router = AIRouter()
+    user = load_user_identity()
     EXIT_WORDS = frozenset({"exit", "quit"})
 
     while True:
@@ -65,8 +72,9 @@ def run_chat(provider: str = "openai") -> None:
         except ValueError as e:
             print(f"Error: {e}", file=sys.stderr)
             continue
+        out_text = build_response(result.text, user)
         prefix = "[stub] " if result.is_stub else ""
-        print("Lumos > " + prefix + result.text)
+        print("Lumos > " + prefix + out_text)
 
 
 def main():
