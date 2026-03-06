@@ -48,6 +48,12 @@ def _run_env() -> None:
     _env()
 
 
+def _run_ask(prompt: str, provider: str) -> None:
+    """Run ask command: route prompt through AIRouter and print response (lumos_core.cli)."""
+    from lumos_core.cli import run_ask
+    run_ask(prompt, provider=provider)
+
+
 def main() -> None:
     from lumos_core import __version__
     parser = argparse.ArgumentParser(prog="lumos", description="Lumos core CLI and web")
@@ -56,6 +62,9 @@ def main() -> None:
     sub.add_parser("cli", help="run interactive CLI (default)")
     sub.add_parser("web", help="run Web v1 server")
     sub.add_parser("env", help="first-run environment scan (JSON + summary)")
+    ask_p = sub.add_parser("ask", help="send a prompt to the AI router")
+    ask_p.add_argument("prompt", help="your prompt (e.g. \"Explain quantum computing\")")
+    ask_p.add_argument("--provider", default="openai", help="AI provider: openai, gemini, anthropic (default: openai)")
     args = parser.parse_args()
 
     if args.version:
@@ -65,6 +74,8 @@ def main() -> None:
         _run_web()
     elif args.cmd == "env":
         _run_env()
+    elif args.cmd == "ask":
+        _run_ask(args.prompt, args.provider)
     else:
         # default or explicit cli
         _run_cli()

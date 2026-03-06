@@ -66,4 +66,4 @@ class _StubProvider:
         self._name = name
 
     def complete(self, prompt: str, **kwargs: Any) -> str:
-        return f"[{self._name}] Stub response for prompt ({len(prompt)} chars). API not implemented yet."
+        return "This is where the provider response will appear."
