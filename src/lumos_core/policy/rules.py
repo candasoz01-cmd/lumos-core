@@ -1,12 +1,6 @@
-from dataclasses import dataclass
-from typing import Optional
 from lumos_core.context.context import Context
+from lumos_core.policy.decision import Decision
 
-@dataclass
-class Decision:
-    allow: bool
-    reason: Optional[str] = None
-    payload: Optional[dict] = None
 
 class PolicyRules:
     @staticmethod

@@ -6,8 +6,16 @@ from lumos_core import __version__
 
 
 def run_ask(prompt: str, provider: str = "openai") -> None:
-    """Route prompt through AIRouter and print provider, prompt, and response (stub or real)."""
+    """Route prompt through pre_route then AIRouter; print response or Lumos message."""
     from lumos_core.ai_router import AIRouter
+    from lumos_core.context.context import Context
+    from lumos_core.policy.pre_route import pre_route
+
+    ctx = Context(message=prompt)
+    route = pre_route(ctx)
+    if route.destination != "provider":
+        print(route.message)
+        return
 
     router = AIRouter()
     try:
@@ -24,8 +32,10 @@ def run_ask(prompt: str, provider: str = "openai") -> None:
 
 
 def run_chat(provider: str = "openai") -> None:
-    """Interactive terminal chat: read lines, send through AIRouter, print responses. Exit on exit/quit/Ctrl+C/Ctrl+D."""
+    """Interactive terminal chat: pre_route then AIRouter; Lumos messages for command/tool/unsupported."""
     from lumos_core.ai_router import AIRouter
+    from lumos_core.context.context import Context
+    from lumos_core.policy.pre_route import pre_route
 
     router = AIRouter()
     EXIT_WORDS = frozenset({"exit", "quit"})
@@ -43,6 +53,12 @@ def run_chat(provider: str = "openai") -> None:
             continue
         if line.lower() in EXIT_WORDS:
             break
+
+        ctx = Context(message=line)
+        route = pre_route(ctx)
+        if route.destination != "provider":
+            print("Lumos > " + route.message)
+            continue
 
         try:
             result = router.route(line, provider=provider)
