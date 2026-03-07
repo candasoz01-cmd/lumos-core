@@ -15,9 +15,12 @@ from lumos_core.memory.user_memory import (
     save_approved_preferences,
 )
 from lumos_core.memory.memory_manager import (
+    add_approved_preference as add_approved_preference_mm,
     create_session_memory,
     format_user_memory_for_context,
     load_user_profile,
+    parse_memory_save_intent,
+    preference_key_from_value,
 )
 from lumos_core.user_identity import UserIdentity
 
@@ -127,3 +130,36 @@ class TestMemoryManager:
         assert "Alex" in out
         assert "lang" in out and "Python" in out
         assert "Remembered (user-approved)" in out
+
+
+class TestMemorySaveIntent:
+    """Explicit memory-save only: 'bunu hatırla: ...' -> store in user memory, no auto-save."""
+
+    def test_parse_memory_save_intent_detects_prefix(self) -> None:
+        assert parse_memory_save_intent("bunu hatırla: Ben Türkçe konuşurum") == "Ben Türkçe konuşurum"
+        assert parse_memory_save_intent("bunu hatırla: Adım Can") == "Adım Can"
+        assert parse_memory_save_intent("bunu hatırla: Kahveyi sade severim") == "Kahveyi sade severim"
+        assert parse_memory_save_intent("  bunu hatırla: x  ") == "x"
+
+    def test_parse_memory_save_intent_returns_none_for_other_messages(self) -> None:
+        assert parse_memory_save_intent("hello") is None
+        assert parse_memory_save_intent("bunu hatırla") is None  # no colon
+        assert parse_memory_save_intent("bunu hatırla:") is None  # empty content
+        assert parse_memory_save_intent("") is None
+
+    def test_preference_key_from_value(self) -> None:
+        assert preference_key_from_value("Ben Türkçe konuşurum")  # non-empty key
+        assert preference_key_from_value("Adım Can")
+        key = preference_key_from_value("Kahveyi sade severim")
+        assert key == "kahveyi_sade_severim" or "kahveyi" in key
+
+    def test_memory_save_roundtrip(self) -> None:
+        """Parse intent -> derive key -> add_approved_preference -> load: preference is stored."""
+        with tempfile.TemporaryDirectory() as tmp:
+            content = "Ben Türkçe konuşurum"
+            key = preference_key_from_value(content)
+            add_approved_preference_mm(key, content, base_dir=tmp)
+            prefs = load_approved_preferences(base_dir=tmp)
+            assert len(prefs) == 1
+            assert prefs[0]["key"] == key
+            assert prefs[0]["value"] == content

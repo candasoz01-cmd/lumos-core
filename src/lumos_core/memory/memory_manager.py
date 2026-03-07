@@ -40,6 +40,33 @@ def add_approved_preference(key: str, value: str, base_dir: str | Path | None = 
     _add_approved_preference(key, value, base_dir)
 
 
+# Explicit memory-save intent: "bunu hatırla: ..." (user-approved only)
+_MEMORY_SAVE_PREFIX = "bunu hatırla:"
+_MAX_KEY_LEN = 32
+
+
+def parse_memory_save_intent(message: str) -> str | None:
+    """
+    If message is an explicit memory-save intent ("bunu hatırla: ..."), return the content to store; else None.
+    Used by CLI to avoid sending to the provider; content is stored via add_approved_preference only after this.
+    """
+    msg = (message or "").strip()
+    if not msg.lower().startswith(_MEMORY_SAVE_PREFIX.lower()):
+        return None
+    after = msg.split(":", 1)[1].strip() if ":" in msg else ""
+    return after if after else None
+
+
+def preference_key_from_value(value: str) -> str:
+    """
+    Derive a stable key from a preference value for storage.
+    Used when the user says "bunu hatırla: X" and we store key=derived, value=X.
+    """
+    raw = (value or "").strip()[:50].lower().replace(" ", "_")
+    key = "".join(c for c in raw if c.isalnum() or c == "_")
+    return key[: _MAX_KEY_LEN] if key else "pref"
+
+
 def format_user_memory_for_context(user: UserIdentity, approved_preferences: list[dict[str, str]]) -> str:
     """
     Format user profile and approved preferences as a short string for system/context.

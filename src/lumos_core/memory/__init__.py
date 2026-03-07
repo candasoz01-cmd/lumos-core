@@ -18,6 +18,8 @@ from lumos_core.memory.memory_manager import (
     create_session_memory,
     format_user_memory_for_context,
     load_user_profile,
+    parse_memory_save_intent,
+    preference_key_from_value,
 )
 
 __all__ = [
@@ -30,4 +32,6 @@ __all__ = [
     "load_user_profile",
     "format_user_memory_for_context",
     "build_chat_context",
+    "parse_memory_save_intent",
+    "preference_key_from_value",
 ]

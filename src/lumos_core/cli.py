@@ -9,9 +9,25 @@ def run_ask(prompt: str, provider: str = "openai") -> None:
     """Route prompt through pre_route then AIRouter then response_builder; print response or Lumos message."""
     from lumos_core.ai_router import AIRouter
     from lumos_core.context.context import Context
-    from lumos_core.memory.memory_manager import format_user_memory_for_context, load_user_profile
+    from lumos_core.memory.memory_manager import (
+        add_approved_preference,
+        format_user_memory_for_context,
+        load_user_profile,
+        parse_memory_save_intent,
+        preference_key_from_value,
+    )
     from lumos_core.policy.pre_route import pre_route
     from lumos_core.response_builder import build_response
+
+    # Explicit memory-save: "bunu hatırla: ..." -> store in user memory only, no provider
+    content = parse_memory_save_intent(prompt)
+    if content is not None:
+        key = preference_key_from_value(content)
+        add_approved_preference(key, content)
+        print()
+        print(f"Lumos > Bunu hatırladım: {content}")
+        print()
+        return
 
     ctx = Context(message=prompt)
     route = pre_route(ctx)
@@ -46,9 +62,12 @@ def run_chat(provider: str = "openai") -> None:
     from lumos_core.ai_router import AIRouter
     from lumos_core.context.context import Context
     from lumos_core.memory.memory_manager import (
+        add_approved_preference,
         build_chat_context,
         create_session_memory,
         load_user_profile,
+        parse_memory_save_intent,
+        preference_key_from_value,
     )
     from lumos_core.policy.pre_route import pre_route
     from lumos_core.response_builder import build_response
@@ -72,6 +91,15 @@ def run_chat(provider: str = "openai") -> None:
             continue
         if line.lower() in EXIT_WORDS:
             break
+
+        # Explicit memory-save: "bunu hatırla: ..." -> store in user memory only, confirm, no provider
+        content = parse_memory_save_intent(line)
+        if content is not None:
+            key = preference_key_from_value(content)
+            add_approved_preference(key, content)
+            _, approved_prefs = load_user_profile()
+            print("Lumos > Bunu hatırladım.")
+            continue
 
         ctx = Context(message=line)
         route = pre_route(ctx)
