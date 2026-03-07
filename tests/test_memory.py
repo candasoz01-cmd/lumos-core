@@ -182,6 +182,21 @@ class TestMemorySaveIntent:
         assert parse_memory_save_intent("bunu hatırla  ") is None
         assert parse_memory_save_intent("bunu hatırla   :   ") is None
 
+    def test_parse_memory_save_intent_requested_variations(self) -> None:
+        """Explicit variations: 'bunu hatırla : ...' and 'bunu hatırla ...' (with or without colon)."""
+        # Space before colon
+        assert parse_memory_save_intent("bunu hatırla : kahveyi sade severim") == "kahveyi sade severim"
+        assert parse_memory_save_intent("bunu hatırla  :  tercih") == "tercih"
+        # No colon: content immediately after optional spaces
+        assert parse_memory_save_intent("bunu hatırla Adım Can") == "Adım Can"
+        assert parse_memory_save_intent("bunu hatırla  ben Türkçe konuşurum") == "ben Türkçe konuşurum"
+        # Combined: leading space on message, space before colon
+        assert parse_memory_save_intent("  bunu hatırla : x  ") == "x"
+
+    def test_parse_memory_save_intent_none_and_empty(self) -> None:
+        """Empty string returns None; no crash."""
+        assert parse_memory_save_intent("") is None
+
     def test_preference_key_from_value(self) -> None:
         assert preference_key_from_value("Ben Türkçe konuşurum")  # non-empty key
         assert preference_key_from_value("Adım Can")

@@ -5,6 +5,7 @@ Session = temporary (active chat only). User = persistent local file. No backgro
 from __future__ import annotations
 
 import re
+import unicodedata
 from pathlib import Path
 
 from lumos_core.memory.session_memory import SessionMemory
@@ -43,8 +44,15 @@ def add_approved_preference(key: str, value: str, base_dir: str | Path | None = 
 
 # Explicit memory-save intent: "bunu hatırla" at start + optional colon/spaces + content (user-approved only).
 # No automatic saving; CLI stores only when this returns non-empty content.
-# Prefix pattern: "bunu" + one-or-more whitespace + "hatırla" (word boundary) + optional whitespace + optional (colon + optional whitespace) + optional whitespace.
-# Content is everything after the prefix; stripped. Empty content returns None.
+#
+# Detection logic:
+# 1. Normalize: strip leading/trailing whitespace from the message.
+# 2. Prefix: literal "bunu" + one-or-more whitespace + "hatırla" with word boundary (\b) so we do not match
+#    "bunu hatırlamak" or "bunu hatırlayalım". Then optional whitespace, then optional colon (with optional
+#    surrounding whitespace), then optional trailing whitespace. So we match: "bunu hatırla: x", "bunu hatırla : x",
+#    "bunu hatırla x", "bunu  hatırla  :  x", "bunu hatırla\nx", "bunu hatırla\t: x", etc.
+# 3. Content: everything after the matched prefix, stripped. If content is empty or only whitespace, return None.
+# 4. Must match at start (after strip); "lütfen bunu hatırla" does not match (phrase not at start).
 _MEMORY_SAVE_PREFIX = re.compile(
     r"bunu\s+hatırla\b\s*(?::\s*)?\s*",
     re.IGNORECASE | re.DOTALL,
@@ -57,8 +65,13 @@ def parse_memory_save_intent(message: str) -> str | None:
     If message is an explicit memory-save intent ("bunu hatırla ..." at start), return the content to store; else None.
     Supports: "bunu hatırla: x", "bunu hatırla : x", "bunu hatırla x", "bunu  hatırla  something", tabs/newlines.
     Requires the exact phrase at start (after strip); no content or only whitespace after prefix returns None.
+    Only explicit user phrasing triggers this; no automatic memory saving.
     """
-    msg = (message or "").strip()
+    if not message:
+        return None
+    msg = message.strip()
+    if not msg:
+        return None
     m = _MEMORY_SAVE_PREFIX.match(msg)
     if not m:
         return None
