@@ -1,7 +1,8 @@
 """Focused tests for the minimal v1 decision layer (pre_route)."""
 from __future__ import annotations
 
-import pytest
+import os
+from pathlib import Path
 
 from lumos_core.context.context import Context
 from lumos_core.policy.pre_route import pre_route
@@ -47,3 +48,19 @@ class TestPreRouteV1:
         r = pre_route(ctx)
         assert r.destination == "unsupported", f"expected unsupported, got {r}"
         assert "Lumos" in r.message
+
+    def test_read_this_file_routes_to_file_tool(self) -> None:
+        """'read this file <path>' is handled by read-only file tool (destination=tool)."""
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            cwd = Path(tmp)
+            (cwd / "readme.txt").write_text("Hello from readme", encoding="utf-8")
+            old_cwd = os.getcwd()
+            try:
+                os.chdir(tmp)
+                ctx = Context(message="read this file readme.txt")
+                r = pre_route(ctx)
+                assert r.destination == "tool", f"expected tool, got {r.destination}"
+                assert "Hello from readme" in r.message
+            finally:
+                os.chdir(old_cwd)

@@ -2,9 +2,6 @@
 from __future__ import annotations
 
 import tempfile
-from pathlib import Path
-
-import pytest
 
 from lumos_core.context.context import Context
 from lumos_core.memory.session_memory import SessionMemory
@@ -16,9 +13,9 @@ from lumos_core.memory.user_memory import (
 )
 from lumos_core.memory.memory_manager import (
     add_approved_preference as add_approved_preference_mm,
+    build_chat_context,
     create_session_memory,
     format_user_memory_for_context,
-    load_user_profile,
     parse_memory_save_intent,
     preference_key_from_value,
 )
@@ -130,6 +127,20 @@ class TestMemoryManager:
         assert "Alex" in out
         assert "lang" in out and "Python" in out
         assert "Remembered (user-approved)" in out
+
+    def test_build_chat_context_includes_recent_messages_from_session(self) -> None:
+        """Chat session memory: build_chat_context passes recent_messages to router."""
+        user = UserIdentity()
+        session = create_session_memory(max_messages=10)
+        session.add_turn("What is 2+2?", "4.")
+        ctx = build_chat_context(user, [], session_memory=session)
+        assert "recent_messages" in ctx
+        recent = ctx["recent_messages"]
+        assert len(recent) == 2
+        assert recent[0]["role"] == "user" and recent[0]["content"] == "What is 2+2?"
+        assert recent[1]["role"] == "assistant" and recent[1]["content"] == "4."
+        ctx_no_session = build_chat_context(user, [], session_memory=None)
+        assert ctx_no_session["recent_messages"] == []
 
 
 class TestMemorySaveIntent:

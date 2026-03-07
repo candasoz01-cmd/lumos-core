@@ -5,7 +5,6 @@ Session = temporary (active chat only). User = persistent local file. No backgro
 from __future__ import annotations
 
 import re
-import unicodedata
 from pathlib import Path
 
 from lumos_core.memory.session_memory import SessionMemory
@@ -111,24 +110,32 @@ def format_user_memory_for_context(user: UserIdentity, approved_preferences: lis
 
 
 def build_chat_context(
-    session_memory: SessionMemory,
     user: UserIdentity,
     approved_preferences: list[dict[str, str]],
+    session_memory: SessionMemory | None = None,
 ) -> dict[str, object]:
     """
-    Build chat context for one turn: system prompt suffix (user memory + session summary) and recent messages.
-    Returns kwargs to pass to ai_router.route(): chat_context_suffix, recent_messages.
-    All chat context is assembled here so the router only appends one string.
+    Build chat context for one turn. Single entry point: all context is assembled here and
+    passed to the router as chat_context=... so chat context is wired only through the memory manager.
+
+    - For ask (no session): pass session_memory=None → suffix = user memory only, recent_messages = [].
+    - For chat: pass session_memory → suffix = user memory + session summary, recent_messages from session.
+
+    Returns dict to pass as chat_context= to ai_router.route(): chat_context_suffix, recent_messages.
     """
     parts: list[str] = []
     user_memory_str = format_user_memory_for_context(user, approved_preferences)
     if user_memory_str and user_memory_str.strip():
         parts.append(user_memory_str.strip())
-    session_summary = (session_memory.get_session_summary() or "").strip()
-    if session_summary:
-        parts.append("Session context (earlier in this chat): " + session_summary)
+    if session_memory is not None:
+        session_summary = (session_memory.get_session_summary() or "").strip()
+        if session_summary:
+            parts.append("Session context (earlier in this chat): " + session_summary)
     chat_context_suffix = "\n\n".join(parts) if parts else ""
+    recent_messages = (
+        session_memory.get_recent_messages() if session_memory is not None else []
+    )
     return {
         "chat_context_suffix": chat_context_suffix or None,
-        "recent_messages": session_memory.get_recent_messages(),
+        "recent_messages": recent_messages,
     }

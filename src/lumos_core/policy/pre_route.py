@@ -7,9 +7,13 @@ Reuses OfflineEngineV1 intent classification to detect:
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 from lumos_core.context.context import Context
 from lumos_core.policy.decision import PreRouteResult
 from lumos_core.policy.offline_engine import OfflineEngineV1
+from lumos_core.tools.file_tools import try_handle_read_file
+from lumos_core.tools.project_tools import try_handle_project_structure
 from lumos_core.tools.system_tools import try_handle_readonly_tool
 
 # Exact phrases that are CLI commands (lock/presence/alias/durum). Chat/ask do not run these.
@@ -87,6 +91,14 @@ def pre_route(ctx: Context) -> PreRouteResult:
     tool_result = try_handle_readonly_tool(msg)
     if tool_result is not None:
         return PreRouteResult("tool", tool_result)
+    # Read-only file tool: read text file (path in message or ctx.current_file)
+    file_result = try_handle_read_file(msg, cwd=Path.cwd(), current_file=getattr(ctx, "current_file", None) or None)
+    if file_result is not None:
+        return PreRouteResult("tool", file_result)
+    # Read-only project structure: scan project / show repo structure
+    project_result = try_handle_project_structure(msg, cwd=Path.cwd())
+    if project_result is not None:
+        return PreRouteResult("tool", project_result)
 
     # Command/tool: device read/control or system action (not in our read-only set)
     if _looks_like_device_or_system_action(lower):

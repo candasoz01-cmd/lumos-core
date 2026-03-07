@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+
 @dataclass
 class Context:
     message: str = ""
@@ -9,3 +10,5 @@ class Context:
     short_context: str = ""
     lumos_id: str = ""
     unlocked: bool = False
+    """Optional path to 'current file' for file-read tools (e.g. 'read this file')."""
+    current_file: str = ""

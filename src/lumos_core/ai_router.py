@@ -45,9 +45,14 @@ class AIRouter:
         """
         Route the prompt to the given provider and return the response.
 
+        Chat context (user memory, session summary, recent messages) must be passed only via
+        chat_context=..., built by memory_manager.build_chat_context(). All context is wired
+        through the memory manager; raw user_memory_context/session_summary/recent_messages
+        are ignored.
+
         :param prompt: User prompt to send to the AI.
         :param provider: Provider name (e.g. 'openai', 'gemini', 'anthropic').
-        :param kwargs: Optional provider-specific options (for future use).
+        :param kwargs: user_name, chat_context (from build_chat_context), and optional provider options.
         :return: RouteResult with response text and is_stub flag.
         :raises ValueError: If provider is not supported or not available (e.g. API key missing).
         """
@@ -62,9 +67,19 @@ class AIRouter:
                 f"Provider '{provider}' is not available (e.g. API key not set)."
             )
         user_name = kwargs.pop("user_name", None)
-        chat_context_suffix = kwargs.pop("chat_context_suffix", None)
+        # Chat context only via memory_manager.build_chat_context()
+        kwargs.pop("user_memory_context", None)
+        kwargs.pop("session_summary", None)
+        kwargs.pop("recent_messages", None)
+        chat_context = kwargs.pop("chat_context", None)
+        if isinstance(chat_context, dict):
+            chat_context_suffix = chat_context.get("chat_context_suffix")
+            kwargs["recent_messages"] = chat_context.get("recent_messages", [])
+        else:
+            chat_context_suffix = None
+            kwargs.setdefault("recent_messages", [])
         lumos_system_prompt = get_system_prompt(user_name)
-        if chat_context_suffix and (chat_context_suffix := chat_context_suffix.strip()):
+        if chat_context_suffix and (chat_context_suffix := (chat_context_suffix or "").strip()):
             lumos_system_prompt = lumos_system_prompt + "\n\n" + chat_context_suffix
         text = impl.complete(prompt, system_prompt=lumos_system_prompt, **kwargs)
         is_stub = getattr(impl, "is_stub", True)
