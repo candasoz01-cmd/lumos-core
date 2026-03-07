@@ -30,9 +30,18 @@ class OpenAIProvider(BaseAIProvider):
         from openai import OpenAI
 
         client = OpenAI(api_key=self._api_key)
+        messages: list[dict[str, str]] = []
+        if kwargs.get("system_prompt"):
+            messages.append({"role": "system", "content": kwargs["system_prompt"]})
+        recent = kwargs.get("recent_messages")
+        if recent and isinstance(recent, list):
+            for m in recent:
+                if isinstance(m, dict) and m.get("role") in ("user", "assistant") and m.get("content"):
+                    messages.append({"role": m["role"], "content": m["content"]})
+        messages.append({"role": "user", "content": prompt})
         response = client.chat.completions.create(
             model=kwargs.get("model", self._model),
-            messages=[{"role": "user", "content": prompt}],
+            messages=messages,
         )
         content = response.choices[0].message.content
         return content if content is not None else ""

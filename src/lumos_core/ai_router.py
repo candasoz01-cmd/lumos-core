@@ -11,6 +11,7 @@ from typing import Any
 
 from lumos_core.ai_providers.base import AIProvider
 from lumos_core.ai_providers.registry import ensure_builtins, get_provider, list_providers
+from lumos_core.system_prompt import get_system_prompt
 
 
 class RouteResult:
@@ -60,6 +61,14 @@ class AIRouter:
             raise ValueError(
                 f"Provider '{provider}' is not available (e.g. API key not set)."
             )
-        text = impl.complete(prompt, **kwargs)
+        user_name = kwargs.pop("user_name", None)
+        user_memory_context = kwargs.pop("user_memory_context", None)
+        session_summary = kwargs.pop("session_summary", None)
+        lumos_system_prompt = get_system_prompt(user_name)
+        if user_memory_context and (user_memory_context := user_memory_context.strip()):
+            lumos_system_prompt = lumos_system_prompt + "\n\n" + user_memory_context
+        if session_summary and (session_summary := session_summary.strip()):
+            lumos_system_prompt = lumos_system_prompt + "\n\nSession context (earlier in this chat): " + session_summary
+        text = impl.complete(prompt, system_prompt=lumos_system_prompt, **kwargs)
         is_stub = getattr(impl, "is_stub", True)
         return RouteResult(text=text, is_stub=is_stub)
