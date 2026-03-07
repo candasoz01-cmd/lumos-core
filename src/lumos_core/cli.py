@@ -9,9 +9,9 @@ def run_ask(prompt: str, provider: str = "openai") -> None:
     """Route prompt through pre_route then AIRouter then response_builder; print response or Lumos message."""
     from lumos_core.ai_router import AIRouter
     from lumos_core.context.context import Context
+    from lumos_core.memory.memory_manager import format_user_memory_for_context, load_user_profile
     from lumos_core.policy.pre_route import pre_route
     from lumos_core.response_builder import build_response
-    from lumos_core.user_identity import load as load_user_identity
 
     ctx = Context(message=prompt)
     route = pre_route(ctx)
@@ -20,12 +20,18 @@ def run_ask(prompt: str, provider: str = "openai") -> None:
         return
 
     router = AIRouter()
+    user, approved_prefs = load_user_profile()
+    user_memory_context = format_user_memory_for_context(user, approved_prefs)
     try:
-        result = router.route(prompt, provider=provider)
+        result = router.route(
+            prompt,
+            provider=provider,
+            user_name=user.name or None,
+            user_memory_context=user_memory_context or None,
+        )
     except ValueError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
-    user = load_user_identity()
     out_text = build_response(result.text, user)
     prefix = "[stub] " if result.is_stub else ""
     print()
@@ -39,12 +45,18 @@ def run_chat(provider: str = "openai") -> None:
     """Interactive terminal chat: pre_route then AIRouter then response_builder; Lumos messages for command/tool/unsupported."""
     from lumos_core.ai_router import AIRouter
     from lumos_core.context.context import Context
+    from lumos_core.memory.memory_manager import (
+        create_session_memory,
+        format_user_memory_for_context,
+        load_user_profile,
+    )
     from lumos_core.policy.pre_route import pre_route
     from lumos_core.response_builder import build_response
-    from lumos_core.user_identity import load as load_user_identity
 
     router = AIRouter()
-    user = load_user_identity()
+    user, approved_prefs = load_user_profile()
+    user_memory_context = format_user_memory_for_context(user, approved_prefs)
+    session_memory = create_session_memory(max_messages=10)
     EXIT_WORDS = frozenset({"exit", "quit"})
 
     while True:
@@ -68,11 +80,19 @@ def run_chat(provider: str = "openai") -> None:
             continue
 
         try:
-            result = router.route(line, provider=provider)
+            result = router.route(
+                line,
+                provider=provider,
+                user_name=user.name or None,
+                user_memory_context=user_memory_context or None,
+                recent_messages=session_memory.get_recent_messages(),
+                session_summary=session_memory.get_session_summary() or None,
+            )
         except ValueError as e:
             print(f"Error: {e}", file=sys.stderr)
             continue
         out_text = build_response(result.text, user)
+        session_memory.add_turn(line, result.text)
         prefix = "[stub] " if result.is_stub else ""
         print("Lumos > " + prefix + out_text)
 
