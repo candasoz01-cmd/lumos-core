@@ -133,7 +133,7 @@ class TestMemoryManager:
 
 
 class TestMemorySaveIntent:
-    """Explicit memory-save only: 'bunu hatırla: ...' -> store in user memory, no auto-save."""
+    """Explicit memory-save only: 'bunu hatırla...' -> store in user memory, no auto-save."""
 
     def test_parse_memory_save_intent_detects_prefix(self) -> None:
         assert parse_memory_save_intent("bunu hatırla: Ben Türkçe konuşurum") == "Ben Türkçe konuşurum"
@@ -141,11 +141,46 @@ class TestMemorySaveIntent:
         assert parse_memory_save_intent("bunu hatırla: Kahveyi sade severim") == "Kahveyi sade severim"
         assert parse_memory_save_intent("  bunu hatırla: x  ") == "x"
 
+    def test_parse_memory_save_intent_variations(self) -> None:
+        """Space before colon, or no colon: still detected as explicit memory-save."""
+        assert parse_memory_save_intent("bunu hatırla : Ben Türkçe konuşurum") == "Ben Türkçe konuşurum"
+        assert parse_memory_save_intent("bunu hatırla  :  x") == "x"
+        assert parse_memory_save_intent("bunu hatırla Kahveyi sade severim") == "Kahveyi sade severim"
+        assert parse_memory_save_intent("  bunu hatırla  something  ") == "something"
+
+    def test_parse_memory_save_intent_robust_variations(self) -> None:
+        """Extra spaces between words, around colon; case-insensitive; no false positives."""
+        assert parse_memory_save_intent("bunu  hatırla  foo") == "foo"
+        assert parse_memory_save_intent("bunu   hatırla   :   bar") == "bar"
+        assert parse_memory_save_intent("BUNU HATIRLA: uppercase") == "uppercase"
+        assert parse_memory_save_intent("Bunu Hatırla : mixed") == "mixed"
+        assert parse_memory_save_intent("bunu hatırla\ntwo lines") == "two lines"
+        # No content after prefix -> None
+        assert parse_memory_save_intent("bunu hatırla") is None
+        assert parse_memory_save_intent("bunu hatırla:") is None
+        assert parse_memory_save_intent("bunu hatırla :") is None
+        assert parse_memory_save_intent("bunu hatırla   :   ") is None
+        # Unrelated text not detected
+        assert parse_memory_save_intent("lütfen bunu hatırla: x") is None
+        assert parse_memory_save_intent("bunu hatırlamak istiyorum") is None
+
     def test_parse_memory_save_intent_returns_none_for_other_messages(self) -> None:
         assert parse_memory_save_intent("hello") is None
-        assert parse_memory_save_intent("bunu hatırla") is None  # no colon
+        assert parse_memory_save_intent("bunu hatırla") is None  # no content after prefix
         assert parse_memory_save_intent("bunu hatırla:") is None  # empty content
+        assert parse_memory_save_intent("bunu hatırla :") is None  # only space and colon
         assert parse_memory_save_intent("") is None
+
+    def test_parse_memory_save_intent_new_variations(self) -> None:
+        """Space before/after colon, no colon, tabs, trailing spaces only -> robust detection."""
+        assert parse_memory_save_intent("bunu hatırla : Ben Türkçe konuşurum") == "Ben Türkçe konuşurum"
+        assert parse_memory_save_intent("bunu hatırla  ... my preference") == "... my preference"
+        assert parse_memory_save_intent("bunu hatırla\t: x") == "x"
+        assert parse_memory_save_intent("bunu hatırla\nnewline content") == "newline content"
+        assert parse_memory_save_intent("  bunu hatırla  something  ") == "something"
+        # No content after prefix (trailing spaces only) -> None
+        assert parse_memory_save_intent("bunu hatırla  ") is None
+        assert parse_memory_save_intent("bunu hatırla   :   ") is None
 
     def test_preference_key_from_value(self) -> None:
         assert preference_key_from_value("Ben Türkçe konuşurum")  # non-empty key

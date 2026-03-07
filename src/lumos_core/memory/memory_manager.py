@@ -4,6 +4,7 @@ Session = temporary (active chat only). User = persistent local file. No backgro
 """
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from lumos_core.memory.session_memory import SessionMemory
@@ -40,21 +41,29 @@ def add_approved_preference(key: str, value: str, base_dir: str | Path | None = 
     _add_approved_preference(key, value, base_dir)
 
 
-# Explicit memory-save intent: "bunu hatırla: ..." (user-approved only)
-_MEMORY_SAVE_PREFIX = "bunu hatırla:"
+# Explicit memory-save intent: "bunu hatırla" at start + optional colon/spaces + content (user-approved only).
+# No automatic saving; CLI stores only when this returns non-empty content.
+# Prefix pattern: "bunu" + one-or-more whitespace + "hatırla" (word boundary) + optional whitespace + optional (colon + optional whitespace) + optional whitespace.
+# Content is everything after the prefix; stripped. Empty content returns None.
+_MEMORY_SAVE_PREFIX = re.compile(
+    r"bunu\s+hatırla\b\s*(?::\s*)?\s*",
+    re.IGNORECASE | re.DOTALL,
+)
 _MAX_KEY_LEN = 32
 
 
 def parse_memory_save_intent(message: str) -> str | None:
     """
-    If message is an explicit memory-save intent ("bunu hatırla: ..."), return the content to store; else None.
-    Used by CLI to avoid sending to the provider; content is stored via add_approved_preference only after this.
+    If message is an explicit memory-save intent ("bunu hatırla ..." at start), return the content to store; else None.
+    Supports: "bunu hatırla: x", "bunu hatırla : x", "bunu hatırla x", "bunu  hatırla  something", tabs/newlines.
+    Requires the exact phrase at start (after strip); no content or only whitespace after prefix returns None.
     """
     msg = (message or "").strip()
-    if not msg.lower().startswith(_MEMORY_SAVE_PREFIX.lower()):
+    m = _MEMORY_SAVE_PREFIX.match(msg)
+    if not m:
         return None
-    after = msg.split(":", 1)[1].strip() if ":" in msg else ""
-    return after if after else None
+    content = msg[m.end() :].strip()
+    return content if content else None
 
 
 def preference_key_from_value(value: str) -> str:
