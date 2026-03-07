@@ -21,13 +21,13 @@ def run_ask(prompt: str, provider: str = "openai") -> None:
 
     router = AIRouter()
     user, approved_prefs = load_user_profile()
-    user_memory_context = format_user_memory_for_context(user, approved_prefs)
+    chat_context_suffix = format_user_memory_for_context(user, approved_prefs)
     try:
         result = router.route(
             prompt,
             provider=provider,
             user_name=user.name or None,
-            user_memory_context=user_memory_context or None,
+            chat_context_suffix=chat_context_suffix.strip() or None,
         )
     except ValueError as e:
         print(f"Error: {e}", file=sys.stderr)
@@ -42,21 +42,21 @@ def run_ask(prompt: str, provider: str = "openai") -> None:
 
 
 def run_chat(provider: str = "openai") -> None:
-    """Interactive terminal chat: pre_route then AIRouter then response_builder; Lumos messages for command/tool/unsupported."""
+    """Interactive terminal chat: each message goes through memory manager, then pre_route, AIRouter, response_builder."""
     from lumos_core.ai_router import AIRouter
     from lumos_core.context.context import Context
     from lumos_core.memory.memory_manager import (
+        build_chat_context,
         create_session_memory,
-        format_user_memory_for_context,
         load_user_profile,
     )
     from lumos_core.policy.pre_route import pre_route
     from lumos_core.response_builder import build_response
 
-    router = AIRouter()
+    # 1. Load user profile and create session memory (memory manager)
     user, approved_prefs = load_user_profile()
-    user_memory_context = format_user_memory_for_context(user, approved_prefs)
     session_memory = create_session_memory(max_messages=10)
+    router = AIRouter()
     EXIT_WORDS = frozenset({"exit", "quit"})
 
     while True:
@@ -79,14 +79,17 @@ def run_chat(provider: str = "openai") -> None:
             print("Lumos > " + route.message)
             continue
 
+        # 2. Update session memory (enrich context) and build context from session summary + user memory
+        session_memory.enrich(ctx)
+        context = build_chat_context(session_memory, user, approved_prefs)
+
+        # 3. Send prompt and context to ai_router
         try:
             result = router.route(
                 line,
                 provider=provider,
                 user_name=user.name or None,
-                user_memory_context=user_memory_context or None,
-                recent_messages=session_memory.get_recent_messages(),
-                session_summary=session_memory.get_session_summary() or None,
+                **context,
             )
         except ValueError as e:
             print(f"Error: {e}", file=sys.stderr)

@@ -62,13 +62,10 @@ class AIRouter:
                 f"Provider '{provider}' is not available (e.g. API key not set)."
             )
         user_name = kwargs.pop("user_name", None)
-        user_memory_context = kwargs.pop("user_memory_context", None)
-        session_summary = kwargs.pop("session_summary", None)
+        chat_context_suffix = kwargs.pop("chat_context_suffix", None)
         lumos_system_prompt = get_system_prompt(user_name)
-        if user_memory_context and (user_memory_context := user_memory_context.strip()):
-            lumos_system_prompt = lumos_system_prompt + "\n\n" + user_memory_context
-        if session_summary and (session_summary := session_summary.strip()):
-            lumos_system_prompt = lumos_system_prompt + "\n\nSession context (earlier in this chat): " + session_summary
+        if chat_context_suffix and (chat_context_suffix := chat_context_suffix.strip()):
+            lumos_system_prompt = lumos_system_prompt + "\n\n" + chat_context_suffix
         text = impl.complete(prompt, system_prompt=lumos_system_prompt, **kwargs)
         is_stub = getattr(impl, "is_stub", True)
         return RouteResult(text=text, is_stub=is_stub)

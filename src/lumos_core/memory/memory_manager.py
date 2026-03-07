@@ -59,3 +59,27 @@ def format_user_memory_for_context(user: UserIdentity, approved_preferences: lis
     if not parts:
         return ""
     return "Remembered (user-approved): " + "; ".join(parts)
+
+
+def build_chat_context(
+    session_memory: SessionMemory,
+    user: UserIdentity,
+    approved_preferences: list[dict[str, str]],
+) -> dict[str, object]:
+    """
+    Build chat context for one turn: system prompt suffix (user memory + session summary) and recent messages.
+    Returns kwargs to pass to ai_router.route(): chat_context_suffix, recent_messages.
+    All chat context is assembled here so the router only appends one string.
+    """
+    parts: list[str] = []
+    user_memory_str = format_user_memory_for_context(user, approved_preferences)
+    if user_memory_str and user_memory_str.strip():
+        parts.append(user_memory_str.strip())
+    session_summary = (session_memory.get_session_summary() or "").strip()
+    if session_summary:
+        parts.append("Session context (earlier in this chat): " + session_summary)
+    chat_context_suffix = "\n\n".join(parts) if parts else ""
+    return {
+        "chat_context_suffix": chat_context_suffix or None,
+        "recent_messages": session_memory.get_recent_messages(),
+    }
