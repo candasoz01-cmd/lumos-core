@@ -18,12 +18,12 @@ class TestPreRouteV1:
         assert r.message == ""
 
     def test_explicit_device_tool_request_no_provider(self) -> None:
-        """cihazın saatine bak -> tool_not_implemented, Lumos/CLI message."""
+        """cihazın saatine bak -> tool_not_implemented, short clear Lumos message."""
         ctx = Context(message="cihazın saatine bak")
         r = pre_route(ctx)
         assert r.destination == "tool_not_implemented", f"expected tool_not_implemented, got {r}"
         assert "Lumos" in r.message
-        assert "CLI" in r.message or "cihaz" in r.message.lower()
+        assert "desteklenmiyor" in r.message
 
     def test_natural_command_relay_no_provider(self) -> None:
         """kankime slm söyle -> tool_not_implemented, Lumos limitation message."""

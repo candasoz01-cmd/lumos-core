@@ -10,6 +10,7 @@ from __future__ import annotations
 from lumos_core.context.context import Context
 from lumos_core.policy.decision import PreRouteResult
 from lumos_core.policy.offline_engine import OfflineEngineV1
+from lumos_core.tools.system_tools import try_handle_readonly_tool
 
 # Exact phrases that are CLI commands (lock/presence/alias/durum). Chat/ask do not run these.
 _COMMAND_PHRASES = frozenset({
@@ -37,7 +38,8 @@ _DEVICE_SYSTEM_PHRASES = (
 
 _USE_CLI_MSG = "Lumos: Bu komut için interaktif CLI kullanın: python -m lumos_core cli"
 _RELAY_MSG = "Lumos: Birine mesaj iletme / söyleme bu modda desteklenmiyor."
-_DEVICE_MSG = "Lumos: Cihaz kontrolü veya okuma bu modda desteklenmiyor. İnteraktif CLI: python -m lumos_core cli"
+# Short, clear message when device/system request is outside read-only tool set.
+_DEVICE_MSG = "Lumos: Bu özellik desteklenmiyor. Sorabileceğiniz: hangi klasördeyim, burada ne var, Python sürümü, disk alanı, sistem bilgisi."
 
 
 def _looks_like_relay(lower: str) -> bool:
@@ -81,7 +83,12 @@ def pre_route(ctx: Context) -> PreRouteResult:
     if _looks_like_relay(lower):
         return PreRouteResult("tool_not_implemented", _RELAY_MSG)
 
-    # Command/tool: device read/control or system action
+    # Read-only system tools: cwd, list dir, python version, disk usage, system info
+    tool_result = try_handle_readonly_tool(msg)
+    if tool_result is not None:
+        return PreRouteResult("tool", tool_result)
+
+    # Command/tool: device read/control or system action (not in our read-only set)
     if _looks_like_device_or_system_action(lower):
         return PreRouteResult("tool_not_implemented", _DEVICE_MSG)
 

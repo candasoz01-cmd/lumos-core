@@ -9,7 +9,8 @@ class Decision:
 
 
 # Result of pre_route(ctx): whether to send to AI provider or return a Lumos message.
-PreRouteDestination = Literal["provider", "tool_not_implemented", "unsupported"]
+# "tool" = read-only system tool handled; message contains the tool output.
+PreRouteDestination = Literal["provider", "tool", "tool_not_implemented", "unsupported"]
 
 
 @dataclass
