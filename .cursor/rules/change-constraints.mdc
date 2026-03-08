@@ -1,0 +1,15 @@
+---
+description: Constraints for code changes — minimal scope, no broad refactor, CI first
+alwaysApply: true
+---
+
+# Change constraints
+
+When making code changes in this project:
+
+1. **Do not do a broad refactor.** Change only what is strictly needed for the task.
+2. **Touch only the minimum required files.** Avoid editing unrelated files or "cleaning up" nearby code.
+3. **Keep behavior unchanged** unless the task explicitly requires a behavior change.
+4. **Prioritize passing the CI quality gate.** Fix or adjust changes so CI passes; do not leave failing checks.
+
+Apply these in every change, including fixes, features, and quality improvements.
