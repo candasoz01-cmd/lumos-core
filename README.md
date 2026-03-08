@@ -32,7 +32,7 @@ lumos env
 ```bash
 # Sanal ortam (önerilir)
 python3 -m venv .venv && source .venv/bin/activate   # Linux/macOS
-pip install -r requirements.txt   # varsa
+python -m pip install -e ".[dev]"   # pytest/ruff için [dev]; yoksa python -m pip install pytest ruff
 
 # Doğrulama
 make check
@@ -51,7 +51,7 @@ make run
 | `make smoke` | `bash scripts/smoke_presence.sh` |
 | `make cli` | `bash scripts/smoke_cli.sh` |
 | `make web` | `bash scripts/smoke_web.sh` |
-| `make run` | `PYTHONPATH=src python src/main.py` (etkileşimli CLI) |
+| `make run` | `python -m lumos_core` (etkileşimli CLI) |
 | `make cleanlog` | `.lumos/log.txt` dosyasını temizler |
 
 ## Presence smoke (Option B)

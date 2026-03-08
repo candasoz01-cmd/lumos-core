@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=7"]
+dev = ["pytest>=7", "ruff>=0.1"]
 
 [tool.setuptools.dynamic]
 version = {attr = "lumos_core.version.VERSION"}
@@ -28,3 +28,5 @@ package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
+include = ["lumos_core*"]
+# Tek top-level paket: src/lumos_core. src/ altına yeni paket eklenmez.

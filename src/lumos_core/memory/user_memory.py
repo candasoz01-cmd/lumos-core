@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
 
 # Reuse base_dir from user_identity to keep .lumos in one place
 _USER_MEMORY_FILENAME = "user_memory.json"

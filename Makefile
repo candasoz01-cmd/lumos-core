@@ -1,14 +1,17 @@
 PYTHON := python
-# python -m pytest: venv aktif değilse bile, mevcut Python ortamındaki pytest kullanılır
+# Her yerde python -m kullan (pytest/ruff komutuna güvenme)
 PYTEST := $(PYTHON) -m pytest
+RUFF   := $(PYTHON) -m ruff
 
-.PHONY: help install compile test smoke cli web check run cleanlog
+.PHONY: help install compile test lint format smoke cli web check run cleanlog
 
 help:
 	@echo "Targets:"
 	@echo "  make install   -> pip install -e ."
 	@echo "  make compile   -> py_compile"
 	@echo "  make test      -> python -m pytest -q"
+	@echo "  make lint      -> python -m ruff check ."
+	@echo "  make format    -> python -m ruff format ."
 	@echo "  make smoke     -> bash scripts/smoke_presence.sh"
 	@echo "  make cli       -> bash scripts/smoke_cli.sh"
 	@echo "  make web       -> bash scripts/smoke_web.sh"
@@ -17,14 +20,19 @@ help:
 	@echo "  make cleanlog  -> truncate .lumos/log.txt"
 
 install:
-	$(PYTHON) -m pip install -e .
+	$(PYTHON) -m pip install -e ".[dev]"
 
 compile:
 	@find src/lumos_core -name '*.py' ! -path '*/__pycache__/*' -print0 | xargs -0 -n 50 $(PYTHON) -m py_compile
-	$(PYTHON) -m py_compile src/main.py
 
 test:
 	$(PYTEST) -q
+
+lint:
+	$(RUFF) check .
+
+format:
+	$(RUFF) format .
 
 smoke:
 	bash scripts/smoke_presence.sh

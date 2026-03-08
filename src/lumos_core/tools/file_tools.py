@@ -1,7 +1,7 @@
 """
 Minimal read-only file content tool for Lumos v1.
-Read-only: no file modification. Supports reading text files under the current working directory.
-Large files return a bounded preview. Binary or unsupported files return a clear message.
+Read-only: no file modification. Only files under the project root (cwd) are readable.
+No path traversal (../). Large files return a bounded preview. Binary or unsupported return a clear message.
 """
 from __future__ import annotations
 

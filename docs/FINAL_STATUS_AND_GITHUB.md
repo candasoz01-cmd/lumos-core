@@ -1,40 +1,38 @@
-# Son durum özeti + GitHub notu
+# Son durum raporu + GitHub notu
 
-## 1. Modül konumu raporu (paket dışına taşan / yanlış yerde)
+## 1. Modül konumu raporu (“taşan” ve yanlış yerde olanlar)
 
-**Şu an hangi modüller paket dışına taşmış?**  
-- **Yok.** `security`, `core`, `context`, `memory`, `device`, `engine`, `policy`, `tools`, `ui` hepsi **`src/lumos_core/`** altında; hiçbiri `src/` kökünde top-level paket değil.
+**Şu an paket dışına taşan modül yok.**  
+`security`, `core`, `context`, `memory`, `device`, `engine`, `policy`, `tools`, `ui`, `scripts` hepsi **`src/lumos_core/`** altında; top-level’da ayrı `src/security` veya `src/core` yok. Tüm import’lar `lumos_core.*` kullanıyor.
 
-**Hangisi yanlış yerde ve neden?**  
-- **src/main.py:** Tek bilinçli “dışarıda” dosya; **stub** (sadece `lumos_core.interactive_cli.main` çağırıyor). Tercih edilen giriş `python -m lumos_core` olduğu için konumu tartışılabilir ama kırılmama için bilerek bırakıldı.  
-- **src/scripts/:** İçinde sadece README var (init_keystore/init_identity `lumos_core.scripts`’e taşındı). “Yanlış” değil; legacy yönlendirme.  
-- **src/main.py.bak\*** vb.: Yedek dosyalar; paket değil, isteğe bağlı temizlenebilir.
+**Yanlış yerde / temizlenmesi iyi olanlar:**
 
-**Minimum hamle ile nasıl toplanacak?**  
-- Ek taşıma gerekmiyor: çekirdek zaten tek paket (`lumos_core`). İstersen: (1) `main.py` stub’ı kalsın, (2) `src/scripts/` README kalsın, (3) `main.py.bak*` dosyalarını `.gitignore`’a ekle veya sil (minimal temizlik).
+| Konum | Durum | Neden |
+|-------|--------|--------|
+| **src/scripts/** | Sadece README kaldı; kod `lumos_core.scripts`’e taşındı | Eski adres; yeni kullanım: `python -m lumos_core.scripts.init_keystore` |
+| **src/main.py.bak\*** | Birçok backup dosyası (main.py.bak, main.py.bak_lock, …) | src kökünü kirletiyor; paket değil, arşiv |
 
----
+**Minimum hamle ile toplama:**
 
-## 2. GitHub: default branch ve koruma (AMAÇ 5)
-
-**Default branch:** Repo **Settings → General** sayfasında, en üstte **Default branch** alanı var (Branches sayfası değil). Oradan varsayılan dalı (örn. `kando/main` veya `main`) seçip **Update** ile kaydedin.
-
-**Silme engelleme:** **Settings → Rules → Rulesets** (veya **Branches → Branch protection rules**) içinde ilgili kuralda **“Allow deletions”** kapalı olursa, o branch silinmez. Kuralı o branch’e uygulayın.
-
-**“Not enforced” uyarısı:** Private repo’da organizasyon/plan ayarına göre bazı korumalar “Not enforced” görünebilir. Bu durumda silme/force push’u **yerel disiplin + PR akışı** ile yönetin; merge öncesi inceleme ve doğrudan push’u sınırlayan bir akış yeterli olur.
+1. **src/scripts:** Olduğu gibi bırakılabilir (README yönlendiriyor). İstenirse klasör silinir; dokümanda tek adres `lumos_core.scripts` olur.
+2. **main.py.bak\***: `.gitignore`’a `main.py.bak*` eklenir; gerekiyorsa bu dosyalar repo dışına (veya `docs/archive/`) taşınır / silinir. Tek hamle: `git rm src/main.py.bak*` (veya ignore + commit).
 
 ---
 
-## 3. Son çıktı (net sonuç)
+## 2. GitHub: default branch ve koruma (tek paragraf)
 
-1. **~/WORK_2026** artık repo değil; sadece **workspace**. (`.git` yok; `.git_BACKUP_DO_NOT_TOUCH` varsa yedek.)
-2. **~/WORK_2026/lumos-core** tek ana repo; çekirdek + monorepo içinde lumos-social.
-3. **lumos-social** yolu net: **monorepo** (lumos-core içinde `lumos-social/`). Dışarıdaki ~/WORK_2026/lumos-social sandbox/arşiv; repo’ya bağlanmıyor.
-4. **python -m pytest** çalışıyor; Makefile ve CI’da test **python -m pytest** ile çalışıyor.
-5. **“Yanlış yerdeki klasör”** için kısa rapor ve minimal fix planı yukarıda (modül konumu raporu + minimum hamle).
+**Default branch:** Repo **Settings → General** sayfasında, en üstte **Default branch** alanı var (Branches sayfası değil). Oradan ana branch (örn. `kando/main` veya `main`) seçilir. **Branch protection:** Branches → Add rule (veya mevcut kural) → “Allow deletions” kapatılırsa silme engellenir. Private repo’da bazı kurallar “Not enforced” uyarısı verebilir (plan/org kısıtı); bu durumda silmeyi yerel disiplin ve PR akışıyla yönetmek yeterli.
 
 ---
 
-## 4. Cursor “Submit from a previous message?” penceresi
+## 3. SON ÇIKTI (istenen net sonuç)
 
-Bu popup çıkarsa: **“Continue without reverting”** seçin (revert istemiyoruz); sonra normal şekilde ilerleyin.
+1. **~/WORK_2026** artık repo değil; sadece **workspace**. Git işlemleri `lumos-core` içinde.
+2. **~/WORK_2026/lumos-core** tek ana repo (çekirdek + monorepo içinde lumos-social).
+3. **lumos-social** yolu net: monorepo içinde `lumos-core/lumos-social/`; dışarıdaki `~/WORK_2026/lumos-social` sandbox/legacy, repo’ya bağlanmıyor. Karışıklık yok.
+4. **python -m pytest** çalışıyor; CI’da da aynı çağrı (Makefile: `PYTEST := $(PYTHON) -m pytest`).
+5. **Yanlış yerdeki klasör/dosyalar:** Sadece `src/scripts` (artık sadece README) ve `src/main.py.bak*`; minimal fix: scripts’i isteğe bağlı kaldır, `main.py.bak*` için ignore veya `git rm` + dokümanda tek paket ağacı (`lumos_core`) vurgulanır.
+
+---
+
+**Cursor popup:** “Submit from a previous message?” gelirse **Continue without reverting** seç; revert istemiyoruz.

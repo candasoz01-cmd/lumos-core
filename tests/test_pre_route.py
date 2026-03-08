@@ -64,3 +64,63 @@ class TestPreRouteV1:
                 assert "Hello from readme" in r.message
             finally:
                 os.chdir(old_cwd)
+
+    def test_bu_dosyayi_oku_routes_to_file_tool(self) -> None:
+        """'bu dosyayı oku <path>' is handled by read-only file tool (destination=tool)."""
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "notes.txt").write_text("Project notes here.", encoding="utf-8")
+            old_cwd = os.getcwd()
+            try:
+                os.chdir(tmp)
+                ctx = Context(message="bu dosyayı oku notes.txt")
+                r = pre_route(ctx)
+                assert r.destination == "tool", f"expected tool, got {r.destination}"
+                assert "Project notes here" in r.message
+            finally:
+                os.chdir(old_cwd)
+
+    def test_su_dosyayi_goster_routes_to_file_tool(self) -> None:
+        """'şu dosyayı göster <path>' is handled by read-only file tool (destination=tool)."""
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "x.txt").write_text("icerik", encoding="utf-8")
+            old_cwd = os.getcwd()
+            try:
+                os.chdir(tmp)
+                ctx = Context(message="şu dosyayı göster x.txt")
+                r = pre_route(ctx)
+                assert r.destination == "tool", f"expected tool, got {r.destination}"
+                assert "icerik" in r.message
+            finally:
+                os.chdir(old_cwd)
+
+    def test_read_this_file_uses_current_file_from_context(self) -> None:
+        """When message is 'read this file' with no path, pre_route uses ctx.current_file."""
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "README.md").write_text("# Project\nHello from README.", encoding="utf-8")
+            old_cwd = os.getcwd()
+            try:
+                os.chdir(tmp)
+                ctx = Context(message="read this file", current_file="README.md")
+                r = pre_route(ctx)
+                assert r.destination == "tool", f"expected tool, got {r.destination}"
+                assert "Project" in r.message and "README" in r.message
+            finally:
+                os.chdir(old_cwd)
+
+    def test_dosya_icerigini_ver_routes_to_file_tool(self) -> None:
+        """'dosya içeriğini ver <path>' is handled by read-only file tool (destination=tool)."""
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "config.txt").write_text("config value", encoding="utf-8")
+            old_cwd = os.getcwd()
+            try:
+                os.chdir(tmp)
+                ctx = Context(message="dosya içeriğini ver config.txt")
+                r = pre_route(ctx)
+                assert r.destination == "tool", f"expected tool, got {r.destination}"
+                assert "config value" in r.message
+            finally:
+                os.chdir(old_cwd)

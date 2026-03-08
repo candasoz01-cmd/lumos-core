@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import tempfile
+from unittest.mock import patch
 
 from lumos_core.context.context import Context
 from lumos_core.memory.session_memory import SessionMemory
@@ -141,6 +142,39 @@ class TestMemoryManager:
         assert recent[1]["role"] == "assistant" and recent[1]["content"] == "4."
         ctx_no_session = build_chat_context(user, [], session_memory=None)
         assert ctx_no_session["recent_messages"] == []
+
+    def test_run_chat_passes_session_memory_to_router(self) -> None:
+        """Chat CLI uses session memory: second provider call receives recent_messages from first turn."""
+        from lumos_core.ai_router import AIRouter
+        from lumos_core.ai_providers.base import BaseAIProvider
+        from lumos_core.cli import run_chat
+
+        class _CaptureAllProvider(BaseAIProvider):
+            name = "CaptureAll"
+            is_stub = True
+
+            def __init__(self) -> None:
+                self.all_kwargs: list[dict] = []
+
+            def complete(self, prompt: str, **kwargs: object) -> str:
+                self.all_kwargs.append(dict(kwargs))
+                return "assistant reply"
+
+        router = AIRouter()
+        cap = _CaptureAllProvider()
+        router.register_provider("openai", cap)
+        inputs = ["first user message", "second user message", "exit"]
+        with patch("lumos_core.cli.input", side_effect=inputs):
+            with patch("lumos_core.memory.memory_manager.load_user_profile", return_value=(UserIdentity(), [])):
+                run_chat(provider="openai", router=router)
+        assert len(cap.all_kwargs) >= 2
+        first_call = cap.all_kwargs[0]
+        second_call = cap.all_kwargs[1]
+        assert first_call.get("recent_messages") == []
+        recent = second_call.get("recent_messages") or []
+        assert len(recent) == 2
+        assert recent[0]["role"] == "user" and recent[0]["content"] == "first user message"
+        assert recent[1]["role"] == "assistant" and recent[1]["content"] == "assistant reply"
 
 
 class TestMemorySaveIntent:

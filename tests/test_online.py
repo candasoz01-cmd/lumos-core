@@ -1,17 +1,22 @@
 import os
 import subprocess
 import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
 
 def run():
     env = os.environ.copy()
     env["LUMOS_MODE"] = "online"
+    env["PYTHONPATH"] = str(ROOT / "src")
 
     p = subprocess.run(
-        [sys.executable, "src/main.py"],
+        [sys.executable, "-m", "lumos_core"],
         input=b"selam\n",
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        env=env
+        env=env,
+        cwd=str(ROOT),
     )
 
     out = p.stdout.decode("utf-8", errors="ignore")

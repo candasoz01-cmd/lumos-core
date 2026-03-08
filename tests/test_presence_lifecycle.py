@@ -87,7 +87,7 @@ def test_eof_exits_cleanly_no_traceback():
     """Stdin EOF exits with OK and no traceback (same as typing çık)."""
     import os
     result = subprocess.run(
-        [sys.executable, str(ROOT / "src" / "main.py")],
+        [sys.executable, "-m", "lumos_core"],
         cwd=str(ROOT),
         env={**os.environ, "PYTHONPATH": str(SRC)},
         stdin=subprocess.DEVNULL,
@@ -110,7 +110,7 @@ def test_disable_silent_true_no_presence_stopped_in_log():
     try:
         # Run smoke flow: kamera aç -> evet -> 10 -> kapat -> çık (disable uses silent=True)
         _ = subprocess.run(
-            [sys.executable, str(ROOT / "src" / "main.py")],
+            [sys.executable, "-m", "lumos_core"],
             cwd=str(ROOT),
             env={**os.environ, "PYTHONPATH": str(SRC)},
             capture_output=True,
@@ -133,7 +133,7 @@ def test_enable_then_disable_log_order_option_b():
     log_path.write_text("", encoding="utf-8")
     try:
         _ = subprocess.run(
-            [sys.executable, str(ROOT / "src" / "main.py")],
+            [sys.executable, "-m", "lumos_core"],
             cwd=str(ROOT),
             env={**os.environ, "PYTHONPATH": str(SRC)},
             capture_output=True,

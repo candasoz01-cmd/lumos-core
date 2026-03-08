@@ -6,7 +6,6 @@ requests (e.g. cihazın saatine bak, telefonu aç) return a short clear Lumos me
 """
 from __future__ import annotations
 
-import pytest
 
 from lumos_core.context.context import Context
 from lumos_core.policy.pre_route import pre_route
