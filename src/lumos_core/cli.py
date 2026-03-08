@@ -1,17 +1,28 @@
+from __future__ import annotations
+
 import argparse
 import json
 import sys
+from typing import TYPE_CHECKING
 
 from lumos_core import __version__
 
+if TYPE_CHECKING:
+    from lumos_core.ai_router import AIRouter
 
-def run_ask(prompt: str, provider: str = "openai") -> None:
-    """Route prompt through pre_route then AIRouter then response_builder; print response or Lumos message."""
+
+def run_ask(
+    prompt: str,
+    provider: str = "openai",
+    router: AIRouter | None = None,
+) -> None:
+    """Route prompt through pre_route then AIRouter then response_builder; print response or Lumos message.
+    Pass router= for tests (e.g. mock providers)."""
     from lumos_core.ai_router import AIRouter
     from lumos_core.context.context import Context
     from lumos_core.memory.memory_manager import (
         add_approved_preference,
-        format_user_memory_for_context,
+        build_chat_context,
         load_user_profile,
         parse_memory_save_intent,
         preference_key_from_value,
@@ -35,15 +46,16 @@ def run_ask(prompt: str, provider: str = "openai") -> None:
         print(route.message)
         return
 
-    router = AIRouter()
+    if router is None:
+        router = AIRouter()
     user, approved_prefs = load_user_profile()
-    chat_context_suffix = format_user_memory_for_context(user, approved_prefs)
+    # Chat context wired only through memory manager (build_chat_context; ask has no session)
     try:
         result = router.route(
             prompt,
             provider=provider,
             user_name=user.name or None,
-            chat_context_suffix=chat_context_suffix.strip() or None,
+            chat_context=build_chat_context(user, approved_prefs, session_memory=None),
         )
     except ValueError as e:
         print(f"Error: {e}", file=sys.stderr)
@@ -57,25 +69,34 @@ def run_ask(prompt: str, provider: str = "openai") -> None:
     print()
 
 
-def run_chat(provider: str = "openai") -> None:
-    """Interactive terminal chat: each message goes through memory manager, then pre_route, AIRouter, response_builder."""
+def run_chat(
+    provider: str = "openai",
+    router: AIRouter | None = None,
+) -> None:
+    """
+    Interactive terminal chat with session memory. Each user message is sent through
+    pre_route then either a read-only tool or the AI router. Conversation history
+    (last N messages) is kept in memory for the session and passed to the provider.
+    Exits on exit/quit/Ctrl+C/Ctrl+D.
+    Pass router= for tests (e.g. mock providers).
+    """
     from lumos_core.ai_router import AIRouter
     from lumos_core.context.context import Context
     from lumos_core.memory.memory_manager import (
-        add_approved_preference,
         build_chat_context,
         create_session_memory,
         load_user_profile,
         parse_memory_save_intent,
         preference_key_from_value,
+        add_approved_preference,
     )
     from lumos_core.policy.pre_route import pre_route
     from lumos_core.response_builder import build_response
 
-    # 1. Load user profile and create session memory (memory manager)
+    if router is None:
+        router = AIRouter()
+    session_memory = create_session_memory()
     user, approved_prefs = load_user_profile()
-    session_memory = create_session_memory(max_messages=10)
-    router = AIRouter()
     EXIT_WORDS = frozenset({"exit", "quit"})
 
     while True:
@@ -92,40 +113,36 @@ def run_chat(provider: str = "openai") -> None:
         if line.lower() in EXIT_WORDS:
             break
 
-        # Explicit memory-save: "bunu hatırla: ..." -> store in user memory only, confirm, no provider
+        # Explicit memory-save: "bunu hatırla: ..." -> store in user memory, no provider
         content = parse_memory_save_intent(line)
         if content is not None:
             key = preference_key_from_value(content)
             add_approved_preference(key, content)
-            _, approved_prefs = load_user_profile()
-            print("Lumos > Bunu hatırladım.")
+            print("Lumos > Bunu hatırladım: " + content)
             continue
 
         ctx = Context(message=line)
         route = pre_route(ctx)
         if route.destination != "provider":
             print("Lumos > " + route.message)
+            session_memory.add_turn(line, route.message)
             continue
 
-        # 2. Update session memory (enrich context) and build context from session summary + user memory
-        session_memory.enrich(ctx)
-        context = build_chat_context(session_memory, user, approved_prefs)
-
-        # 3. Send prompt and context to ai_router
         try:
+            chat_context = build_chat_context(user, approved_prefs, session_memory)
             result = router.route(
                 line,
                 provider=provider,
                 user_name=user.name or None,
-                **context,
+                chat_context=chat_context,
             )
         except ValueError as e:
             print(f"Error: {e}", file=sys.stderr)
             continue
         out_text = build_response(result.text, user)
-        session_memory.add_turn(line, result.text)
         prefix = "[stub] " if result.is_stub else ""
         print("Lumos > " + prefix + out_text)
+        session_memory.add_turn(line, out_text)
 
 
 def main():
@@ -136,18 +153,40 @@ def main():
     ask_p = sub.add_parser("ask", help="send a prompt to the AI router")
     ask_p.add_argument("prompt", help="your prompt (e.g. \"Explain quantum computing\")")
     ask_p.add_argument("--provider", default="openai", help="AI provider: openai, gemini, anthropic (default: openai)")
+    chat_p = sub.add_parser("chat", help="interactive terminal chat with session memory")
+    chat_p.add_argument("--provider", default="openai", help="AI provider (default: openai)")
+    tg_p = sub.add_parser("tg", help="telegram: auth, follow, sources, enable, disable, run")
+    tg_p.add_argument(
+        "sub",
+        nargs="?",
+        choices=["auth", "follow", "sources", "enable", "disable", "run"],
+    )
+    tg_p.add_argument("peer", nargs="?", default=None)
     args = parser.parse_args()
 
     if args.version:
         print(__version__)
         return
 
-    if args.cmd == "env":
+    cmd = args.cmd
+    if cmd == "tg":
+        from lumos_social.telegram.cli import _tg_cmd
+
+        tg_argv = ["lumos", args.sub] if getattr(args, "sub", None) else ["lumos"]
+        if getattr(args, "peer", None):
+            tg_argv.append(args.peer)
+        return _tg_cmd(tg_argv, db_path=".data/lumos_social.db")
+
+    if cmd == "env":
         _run_env()
         return
 
-    if args.cmd == "ask":
+    if cmd == "ask":
         run_ask(args.prompt, provider=args.provider)
+        return
+
+    if cmd == "chat":
+        run_chat(provider=args.provider)
         return
 
     print("Lumos core is running")

@@ -73,11 +73,17 @@ def main() -> None:
     ask_p.add_argument("--provider", default="openai", help="AI provider: openai, gemini, anthropic (default: openai)")
     chat_p = sub.add_parser("chat", help="interactive terminal chat with AI")
     chat_p.add_argument("--provider", default="openai", help="AI provider (default: openai)")
+    tg_p = sub.add_parser("tg", help="telegram: auth, follow, sources, enable, disable, run")
+    tg_p.add_argument("sub", nargs="?", choices=["auth", "follow", "sources", "enable", "disable", "run"])
+    tg_p.add_argument("peer", nargs="?", default=None)
     args = parser.parse_args()
 
     if args.version:
         print(__version__)
         sys.exit(0)
+    if args.cmd == "tg":
+        from lumos_social.telegram.cli import _tg_cmd
+        sys.exit(_tg_cmd(args))
     if args.cmd == "web":
         _run_web()
     elif args.cmd == "env":
