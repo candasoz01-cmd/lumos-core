@@ -68,7 +68,9 @@ def scan_system() -> dict[str, Any]:
     """Read-only: OS, CPU, RAM, Python."""
     return {
         "os": platform.system(),
-        "cpu": platform.processor() or _run(["sysctl", "-n", "machdep.cpu.brand_string"]) or "unknown",
+        "cpu": platform.processor()
+        or _run(["sysctl", "-n", "machdep.cpu.brand_string"])
+        or "unknown",
         "ram": detect_ram(),
         "python": sys.version,
     }
@@ -117,25 +119,129 @@ def scan_apps_mac() -> list[str]:
 
 
 def scan_permissions_mac() -> dict[str, str]:
-    """Heuristic detection of accessibility / screen recording (read-only). Do not request permissions."""
+    """Heuristic detection of accessibility / terminal / screen recording / full disk (read-only). Do not request permissions."""
     out: dict[str, str] = {
         "accessibility": "unknown",
+        "terminal": "unknown",
         "screen_recording": "unknown",
+        "full_disk_access": "unknown",
     }
     if platform.system() != "Darwin":
         return out
     try:
         r = subprocess.run(
-            ["osascript", "-e", 'tell application "System Events" to get name of first process'],
+            [
+                "osascript",
+                "-e",
+                'tell application "System Events" to get name of first process',
+            ],
             capture_output=True,
             text=True,
             timeout=3,
         )
-        out["accessibility"] = "granted" if r.returncode == 0 else "denied"
+        ax = "granted" if r.returncode == 0 else "denied"
+        out["accessibility"] = ax
+        out["terminal"] = ax  # same process capability
     except Exception:
         pass
-    # Screen recording: no safe programmatic check without triggering prompt
+    # Screen recording / full disk access: no safe programmatic check without triggering prompt; leave unknown
     return out
+
+
+def _permission_status(raw: str) -> str:
+    """Map raw permission value to ready/missing/unknown."""
+    v = (raw or "unknown").lower()
+    if v == "granted":
+        return "ready"
+    if v == "denied":
+        return "missing"
+    return "unknown"
+
+
+def _readiness_items(perms: dict[str, str]) -> list[dict[str, Any]]:
+    """Build structured items for accessibility, terminal, screen_recording, full_disk_access."""
+    labels = [
+        ("accessibility", "Erişilebilirlik (kilit/presence)"),
+        ("terminal", "Terminal komut çalıştırma"),
+        ("screen_recording", "Ekran kaydı (isteğe bağlı)"),
+        ("full_disk_access", "Tam disk erişimi (isteğe bağlı, dosya tarama)"),
+    ]
+    return [
+        {"name": key, "status": _permission_status(perms.get(key)), "description": desc}
+        for key, desc in labels
+    ]
+
+
+def _readiness_message(perms: dict[str, str], items: list[dict[str, Any]]) -> str:
+    """Kısa kullanıcı mesajı: hazır/eksik ve nasıl açılır."""
+    ax = (perms.get("accessibility") or "unknown").lower()
+    term = (perms.get("terminal") or "unknown").lower()
+    required_ok = ax == "granted" and term == "granted"
+
+    if required_ok:
+        return "macOS izinleri: Hazır."
+    missing_display = []
+    if ax != "granted":
+        missing_display.append("Erişilebilirlik")
+    if term != "granted":
+        missing_display.append("Terminal")
+    msg = "macOS izinleri: Eksik — " + ", ".join(missing_display) + "."
+    msg += "\n  Açmak için: Sistem Ayarları > Gizlilik ve Güvenlik > Erişilebilirlik (ve Terminal) — Lumos/Python/Terminal ekleyin."
+    return msg
+
+
+def get_macos_permission_readiness() -> dict[str, Any]:
+    """
+    macOS izin durumu: ready, missing, message, items, permissions.
+    full_disk_access her zaman permissions ve items içinde yer alır.
+    macOS dışında: ready=True, missing=[], message fallback, items=[], permissions dolu.
+    """
+    perms = scan_permissions_mac()
+    # full_disk_access her zaman sonuçta olsun
+    if "full_disk_access" not in perms:
+        perms["full_disk_access"] = "unknown"
+    if platform.system() != "Darwin":
+        return {
+            "ready": True,
+            "missing": [],
+            "message": "macOS izinleri bu sistemde uygulanmıyor (macOS only).",
+            "permissions": perms,
+            "items": [],
+            "full_disk_access": perms["full_disk_access"],
+        }
+    items = _readiness_items(perms)
+    ax = (perms.get("accessibility") or "unknown").lower()
+    term = (perms.get("terminal") or "unknown").lower()
+    required_ok = ax == "granted" and term == "granted"
+    missing: list[str] = []
+    if ax != "granted":
+        missing.append("Erişilebilirlik")
+    if term != "granted":
+        missing.append("Terminal")
+    msg = _readiness_message(perms, items)
+    return {
+        "ready": required_ok,
+        "missing": missing,
+        "message": msg,
+        "permissions": perms,
+        "items": items,
+        "full_disk_access": perms["full_disk_access"],
+    }
+
+
+def print_permission_readiness() -> None:
+    """Print permission readiness: one status line, then optional details. Non-macOS: fallback message only."""
+    r = get_macos_permission_readiness()
+    print(r["message"])
+    items = r.get("items") or []
+    if items:
+        for i in items:
+            status_label = {
+                "ready": "hazır",
+                "missing": "eksik",
+                "unknown": "bilinmiyor",
+            }.get(i["status"], i["status"])
+            print(f"  • {i['name']}: {status_label} — {i['description']}")
 
 
 def _infer_capabilities(dev: dict[str, bool], apps: list[str]) -> list[str]:

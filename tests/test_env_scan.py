@@ -9,6 +9,7 @@ import pytest
 
 from lumos_core.system.env_scan import (
     build_capability_report,
+    get_macos_permission_readiness,
     scan_apps_mac,
     scan_dev_environment,
     scan_permissions_mac,
@@ -46,9 +47,51 @@ def test_scan_permissions_mac_returns_dict() -> None:
     data = scan_permissions_mac()
     assert isinstance(data, dict)
     assert "accessibility" in data
+    assert "terminal" in data
     assert "screen_recording" in data
+    assert "full_disk_access" in data
     assert data["accessibility"] in ("unknown", "granted", "denied")
+    assert data["terminal"] in ("unknown", "granted", "denied")
     assert data["screen_recording"] in ("unknown", "granted", "denied")
+    assert data["full_disk_access"] in ("unknown", "granted", "denied")
+
+
+def test_get_macos_permission_readiness_structure() -> None:
+    r = get_macos_permission_readiness()
+    assert isinstance(r, dict)
+    assert "ready" in r
+    assert "missing" in r
+    assert "message" in r
+    assert "permissions" in r
+    assert "items" in r
+    assert "full_disk_access" in r
+    assert r["full_disk_access"] in ("unknown", "granted", "denied")
+    assert "full_disk_access" in r["permissions"]
+    assert isinstance(r["ready"], bool)
+    assert isinstance(r["missing"], list)
+    assert isinstance(r["message"], str)
+    assert isinstance(r["permissions"], dict)
+    assert isinstance(r["items"], list)
+    for i in r["items"]:
+        assert "name" in i and "status" in i and "description" in i
+        assert i["status"] in ("ready", "missing", "unknown")
+    # full_disk_access items list içinde de olmalı (macOS'ta)
+    if r["items"]:
+        names = [i["name"] for i in r["items"]]
+        assert "full_disk_access" in names
+
+
+def test_get_macos_permission_readiness_non_darwin() -> None:
+    import platform
+    if platform.system() == "Darwin":
+        pytest.skip("run on non-macOS to assert ready=True fallback")
+    r = get_macos_permission_readiness()
+    assert r["ready"] is True
+    assert r["missing"] == []
+    assert "macOS only" in r["message"]
+    assert r["items"] == []
+    assert "full_disk_access" in r
+    assert r["full_disk_access"] in ("unknown", "granted", "denied")
 
 
 def test_build_capability_report_structure() -> None:

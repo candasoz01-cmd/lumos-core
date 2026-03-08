@@ -1,6 +1,7 @@
 """Lumos core CLI: lock, presence, alias, durum."""
 import json
 import os
+import platform
 import re
 from getpass import getpass
 from pathlib import Path
@@ -16,6 +17,7 @@ from lumos_core.security import presence_lock as pl
 from lumos_core.security.aliases import load_aliases, save_aliases, apply_alias
 from lumos_core.security.keystore import FileKeyStore
 from lumos_core.security.permissions import PermissionManager
+from lumos_core.system.env_scan import print_permission_readiness
 
 
 def norm_cmd(s: str) -> str:
@@ -221,12 +223,6 @@ def main() -> None:
 
         lumos.lock_state.lock()
 
-        fn = globals().get('maybe_device_lock')
-
-        if callable(fn):
-
-            fn(lumos)
-
         try:
 
             os.environ.pop("LUMOS_PASSPHRASE", None)
@@ -298,7 +294,12 @@ def main() -> None:
                 if not was_enabled:
                     state.log_event(logfmt("presence_enabled", timeout=cfg.timeout_sec, poll=cfg.poll_sec, cam=cfg.camera_index, require_face=cfg.require_face))
                 pl.save_presence_cfg(_P(base_dir), cfg)
-                pl.start_presence_lock(base_dir=_P(base_dir), lock_cb=_lock_cb, is_already_locked=state.is_locked, timeout_sec=cfg.timeout_sec, poll_sec=cfg.poll_sec, camera_index=cfg.camera_index, require_face=cfg.require_face)
+                ok, msg = pl.start_presence_lock(base_dir=_P(base_dir), lock_cb=_lock_cb, is_already_locked=state.is_locked, timeout_sec=cfg.timeout_sec, poll_sec=cfg.poll_sec, camera_index=cfg.camera_index, require_face=cfg.require_face)
+                if not ok:
+                    print(msg)
+                    cfg.enabled = False
+                    pl.save_presence_cfg(_P(base_dir), cfg)
+                    return False
                 print("OK")
                 return False
 
@@ -363,58 +364,6 @@ def main() -> None:
             if isinstance(r, str):
                 return r
 
-        try:
-            import inspect
-            import atexit
-            from pathlib import Path as _P
-    
-            _base = _P(base_dir)
-            _pcfg = pl.load_presence_cfg(_base)
-    
-            def _presence_lock_action():
-                try:
-                    engine.do_lock()
-                except Exception:
-                    pass
-                try:
-                    engine.device_lock_cli(silent=True)
-                except Exception:
-                    pass
-    
-            if getattr(_pcfg, "enabled", False) and not pl.is_running():
-                try:
-                    _sig = inspect.signature(pl.start_presence_lock)
-                    _candidates = {
-                        "base_dir": _base,
-                        "on_lock": _presence_lock_action,
-                        "lock_cb": _presence_lock_action,
-                        "lock_fn": _presence_lock_action,
-                        "callback": _presence_lock_action,
-                        "on_trigger": _presence_lock_action,
-                        "on_timeout": _presence_lock_action,
-                        "is_already_locked": state.is_locked,
-                    }
-                    _kwargs = {k: v for k, v in _candidates.items() if k in _sig.parameters}
-                    pl.start_presence_lock(**_kwargs)
-                except Exception:
-                    try:
-                        pl.start_presence_lock(base_dir=_base)
-                    except Exception:
-                        pass
-
-            if getattr(_pcfg, "enabled", False):
-                def _presence_stop():
-                    try:
-                        _sig2 = inspect.signature(pl.stop_presence_lock)
-                        _kwargs2 = {"base_dir": _base} if "base_dir" in _sig2.parameters else {}
-                        pl.stop_presence_lock(**_kwargs2)
-                    except Exception:
-                        pass
-    
-                atexit.register(_presence_stop)
-        except Exception:
-            pass
-
     state = CoreState(lumos, pl, mode)
     engine = CoreEngine(do_lock, device_lock_cli, unlock_with_passphrase, pl)
 
@@ -429,6 +378,9 @@ def main() -> None:
             pass
 
     engine.recover_presence(Path(base_dir), state.log_event, _recovery_lock_cb, state.is_locked)
+
+    if platform.system() == "Darwin":
+        print_permission_readiness()
 
     _GLOBAL_CMDS = {"kilit", "lock", "kamera", "presence", "alias", "exit", "quit"}
 
