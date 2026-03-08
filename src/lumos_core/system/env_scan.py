@@ -229,6 +229,37 @@ def get_macos_permission_readiness() -> dict[str, Any]:
     }
 
 
+# İzin sorusu -> readiness anahtarı (tek izin sorusunda kısa cevap için)
+_PERM_QUERY_PATTERNS: list[tuple[list[str], str, str]] = [
+    (["erişilebilirlik", "accessibility"], "accessibility", "Erişilebilirlik"),
+    (["terminal"], "terminal", "Terminal"),
+    (["screen recording", "ekran kaydı", "ekran kaydi"], "screen_recording", "Ekran kaydı"),
+    (["full disk", "tam disk", "full disk access"], "full_disk_access", "Tam disk erişimi"),
+    (["kamera"], "camera", ""),  # takip edilmiyor; cevap özel
+]
+
+
+def format_permission_readiness_reply(user_message: str) -> str:
+    """Permission odaklı sorularda readiness verisine dayalı kısa cevap. macOS dışında güvenli fallback."""
+    r = get_macos_permission_readiness()
+    perms = r.get("permissions") or {}
+    if platform.system() != "Darwin":
+        return r.get("message") or "macOS izinleri bu sistemde uygulanmıyor (macOS only)."
+    msg = (user_message or "").strip().lower()
+    for keywords, key, label in _PERM_QUERY_PATTERNS:
+        if not any(kw in msg for kw in keywords):
+            continue
+        if key == "camera":
+            return "Kamera izni bu raporun parçası değil. Erişilebilirlik ve ekran kaydı durumunu gösterebilirim: " + r.get("message", "")
+        status = (perms.get(key) or "unknown").lower()
+        if status == "granted":
+            return f"{label}: Evet, verilmiş."
+        if status == "denied":
+            return f"{label}: Hayır, verilmemiş."
+        return f"{label}: Bilinmiyor (Sistem Ayarları > Gizlilik ve Güvenlik'ten kontrol edin)."
+    return r.get("message") or "macOS izinleri: Hazır." if r.get("ready") else "macOS izinleri: Eksik."
+
+
 def print_permission_readiness() -> None:
     """Print permission readiness: one status line, then optional details. Non-macOS: fallback message only."""
     r = get_macos_permission_readiness()
