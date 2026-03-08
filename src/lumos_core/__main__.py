@@ -60,7 +60,7 @@ def _run_chat(provider: str) -> None:
     run_chat(provider=provider)
 
 
-def main() -> None:
+def main() -> int | None:
     from lumos_core import __version__
     parser = argparse.ArgumentParser(prog="lumos", description="Lumos core CLI and web")
     parser.add_argument("--version", action="store_true", help="show version and exit")
@@ -76,6 +76,7 @@ def main() -> None:
     tg_p = sub.add_parser("tg", help="telegram: auth, follow, sources, enable, disable, run")
     tg_p.add_argument("sub", nargs="?", choices=["auth", "follow", "sources", "enable", "disable", "run"])
     tg_p.add_argument("peer", nargs="?", default=None)
+    tg_p.add_argument("--db", default=None)
     args = parser.parse_args()
 
     if args.version:
@@ -83,7 +84,8 @@ def main() -> None:
         sys.exit(0)
     if args.cmd == "tg":
         from lumos_social.telegram.cli import _tg_cmd
-        sys.exit(_tg_cmd(args))
+
+        return _tg_cmd(args)
     if args.cmd == "web":
         _run_web()
     elif args.cmd == "env":
@@ -98,4 +100,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    code = main()
+    sys.exit(code if code is not None else 0)

@@ -162,6 +162,7 @@ def main():
         choices=["auth", "follow", "sources", "enable", "disable", "run"],
     )
     tg_p.add_argument("peer", nargs="?", default=None)
+    tg_p.add_argument("--db", default=None)
     args = parser.parse_args()
 
     if args.version:
@@ -172,10 +173,7 @@ def main():
     if cmd == "tg":
         from lumos_social.telegram.cli import _tg_cmd
 
-        tg_argv = ["lumos", args.sub] if getattr(args, "sub", None) else ["lumos"]
-        if getattr(args, "peer", None):
-            tg_argv.append(args.peer)
-        return _tg_cmd(tg_argv, db_path=".data/lumos_social.db")
+        return _tg_cmd(args)
 
     if cmd == "env":
         _run_env()
