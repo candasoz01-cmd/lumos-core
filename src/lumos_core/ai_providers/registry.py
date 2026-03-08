@@ -54,8 +54,12 @@ def _register_builtins() -> None:
         register(n, lambda _n=n: StubProvider(_n))
 
     if os.environ.get("OPENAI_API_KEY", "").strip():
-        from lumos_core.ai_providers.openai import OpenAIProvider
-        register("openai", OpenAIProvider)
+        try:
+            import openai  # noqa: F401 - ensure package installed before using real provider
+            from lumos_core.ai_providers.openai import OpenAIProvider
+            register("openai", lambda: OpenAIProvider())
+        except ImportError:
+            pass  # Keep stub when openai package is not installed
 
     # Optional: register Gemini/Anthropic when present (try/import or optional package)
     # try:

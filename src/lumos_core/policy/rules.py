@@ -14,7 +14,7 @@ class PolicyRules:
             if not getattr(ctx, "unlocked", False):
                 return Decision(True, "Locked", {"response": "LOCKED", "reason": "", "follow_up": "kilit"})
             if not (getattr(ctx, "lumos_id", "") or "").strip():
-                return Decision(True, "No identity", {"response": "Kimlik yok", "reason": "", "follow_up": "python -m src.scripts.init_identity"})
+                return Decision(True, "No identity", {"response": "Kimlik yok", "reason": "", "follow_up": "python -m lumos_core.scripts.init_identity"})
 
 
         if not getattr(ctx, "lumos_id", ""):
@@ -24,7 +24,7 @@ class PolicyRules:
                 {
                     "response": "Online moda geçemem. Önce kimlik kurulmalı.",
                     "reason": "Cihaz kimliği (identity) bulunamadı.",
-                    "follow_up": "Terminal: python -m src.scripts.init_identity"
+                    "follow_up": "Terminal: python -m lumos_core.scripts.init_identity"
                 }
             )
 

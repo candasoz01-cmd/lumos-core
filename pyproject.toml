@@ -21,7 +21,7 @@ dev = ["pytest>=7"]
 version = {attr = "lumos_core.version.VERSION"}
 
 [project.scripts]
-lumos = "lumos_core.cli:main"
+lumos = "lumos_core.__main__:main"
 
 [tool.setuptools]
 package-dir = { "" = "src" }

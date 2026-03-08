@@ -35,6 +35,11 @@ def main(argv: list[str] | None = None) -> int:
         print("Event: incoming_message (demo)")
         return 0
 
+    if cmd == "tg":
+        from lumos_social.telegram.cli import _tg_cmd
+
+        return _tg_cmd(args)
+
     if cmd == "person":
         if len(args) < 2:
             _usage()

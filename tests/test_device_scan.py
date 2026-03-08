@@ -4,10 +4,8 @@ from __future__ import annotations
 import subprocess
 import sys
 
-import pytest
-
 from lumos_core.device.scan import scan
-from lumos_core.device.capabilities import classify, format_report, CAPABILITY_LEVELS
+from lumos_core.device.capabilities import classify, CAPABILITY_LEVELS
 
 
 def test_scan_output_schema() -> None:

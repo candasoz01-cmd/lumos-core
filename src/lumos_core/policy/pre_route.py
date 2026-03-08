@@ -1,5 +1,9 @@
 """
 Pre-route decision layer for ask/chat: run before AIRouter.
+
+Single-shot only: run once per request and stop. No continuous loop, no retries,
+no background work. Callers (e.g. ask/chat) invoke pre_route(ctx) once per message.
+
 Reuses OfflineEngineV1 intent classification to detect:
 - normal question -> send to provider
 - command/tool request (not implemented in this flow) -> Lumos message
@@ -144,3 +148,13 @@ def pre_route(ctx: Context) -> PreRouteResult:
 
     # GENERAL or anything else: normal question -> provider
     return PreRouteResult("provider", "")
+
+
+if __name__ == "__main__":
+    # Run once and stop: single pre_route invocation then exit (no loop).
+    import sys
+    from lumos_core.context.context import Context
+    msg = sys.argv[1] if len(sys.argv) > 1 else "What is the time?"
+    result = pre_route(Context(message=msg))
+    print(f"destination={result.destination!r} message={result.message!r}")
+    sys.exit(0)

@@ -41,7 +41,7 @@ class FileKeyStore:
 
     def load_root_key(self, passphrase: str) -> bytes:
         if not self.is_initialized():
-            raise RuntimeError("Keystore init edilmemiş. python -m src.scripts.init_keystore çalıştır.")
+            raise RuntimeError("Keystore init edilmemiş. python -m lumos_core.scripts.init_keystore çalıştır.")
         data = json.loads(self.paths.keystore_file.read_text(encoding="utf-8"))
         blob = EncryptedBlob.from_dict(data["root_key"])
         aad = b"lumos-keystore-v1"
