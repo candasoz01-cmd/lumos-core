@@ -5,22 +5,17 @@ the context dict (chat_context_suffix, recent_messages) that would be passed to 
 
 Usage:
   python scripts/build_chat_context.py [base_dir]
-  # With no session (ask-style): only user memory in suffix, recent_messages=[].
-  # With session: set LUMOS_SESSION=1 and optionally add messages (this script uses empty session).
+
+Requires lumos_core to be installed (e.g. pip install -e ".[dev]" or make install).
+With no session (ask-style): only user memory in suffix, recent_messages=[].
+With session: set LUMOS_SESSION=1 and optionally add messages (this script uses empty session).
 """
+
 from __future__ import annotations
 
 import json
 import os
 import sys
-
-# Allow running from repo root when src is not on path
-_REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-_SRC = os.path.join(_REPO_ROOT, "src")
-for _p in (_SRC, _REPO_ROOT):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
-
 from lumos_core.memory import build_chat_context, create_session_memory, load_user_profile
 
 
