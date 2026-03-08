@@ -26,6 +26,12 @@ __pycache__/
 src/security.bak_lock/
 src/src/
 
+# Stub/legacy backups (tek paket: src/lumos_core)
+src/main.py.bak
+src/main.py.bak*
+*.bak
+*.bak_*
+
 # Kurator raporları (repo kirletmesin)
 KURATOR*.md
 

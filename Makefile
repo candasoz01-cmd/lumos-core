@@ -17,7 +17,7 @@ help:
 	@echo "  make cleanlog  -> truncate .lumos/log.txt"
 
 install:
-	pip install -e .
+	$(PYTHON) -m pip install -e .
 
 compile:
 	@find src/lumos_core -name '*.py' ! -path '*/__pycache__/*' -print0 | xargs -0 -n 50 $(PYTHON) -m py_compile

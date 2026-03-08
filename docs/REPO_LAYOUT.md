@@ -13,10 +13,10 @@
 
 ## Çekirdek paket ağacı (src layout)
 
-- **Tek top-level paket:** `src/lumos_core/` (context, core, device, engine, memory, policy, security, tools, ui, scripts).
+- **Tek top-level paket:** `src/lumos_core/` (context, core, device, engine, memory, policy, security, tools, ui, scripts). Paket dışında kalan tek dosya: **src/main.py** (redirect stub; tercih: `python -m lumos_core`).
 - **Giriş:** `python -m lumos_core` veya `lumos` (cli); interaktif CLI: `lumos_core.interactive_cli.main`.
 - **src/main.py:** Sadece yönlendirme (lumos_core.interactive_cli’yi çağırır); tercih: `python -m lumos_core`.
-- **Yardımcı scriptler:** `lumos_core.scripts.init_keystore`, `lumos_core.scripts.init_identity` (eskiden src/scripts/).
+- **Yardımcı scriptler:** `lumos_core.scripts.init_keystore`, `lumos_core.scripts.init_identity`. (Eski `src/scripts/` kaldırıldı; tek yer lumos_core.scripts.)
 
 ## Klasör yapısı (WORK_2026)
 
