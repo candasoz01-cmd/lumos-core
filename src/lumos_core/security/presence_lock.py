@@ -1,8 +1,15 @@
 """
 Presence lock: worker thread + config-driven lifecycle.
 Thread-safe: module-level Lock around start/stop. presence_stopped only when (not silent) and was_running.
+
+Teşhis (presence lock tetiklenmiyordu): lock_cb çağrılıyordu ama lock_mode "mac" hiç
+kullanılmıyordu; macOS ekran kilidi tetiklenmiyordu. trigger_macos_screen_lock() eklendi.
+Teşhis (absence_timeout hiç düşmüyordu): cap.read() False iken continue ile timeout
+kontrolü atlanıyordu; ayrıca cascade false positive verebiliyordu. Timeout her iterasyonda
+kontrol ediliyor, ok=False "yok" sayılıyor; cascade sıkılaştırıldı (minNeighbors=8, minSize 70).
 """
 import json
+import platform
 import time
 import threading
 from dataclasses import dataclass, asdict
@@ -10,6 +17,29 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from lumos_core.core.logfmt import logfmt
+
+
+def trigger_macos_screen_lock() -> bool:
+    """Trigger macOS lock screen. No-op on non-Darwin. Returns True if lock was triggered."""
+    if platform.system() != "Darwin":
+        return False
+    try:
+        import ctypes
+        login_pf = ctypes.CDLL(
+            "/System/Library/PrivateFrameworks/login.framework/Versions/Current/login"
+        )
+        result = login_pf.SACLockScreenImmediate()
+        if result == 0:
+            return True
+    except Exception:
+        pass
+    try:
+        import subprocess
+        subprocess.run(["pmset", "displaysleepnow"], timeout=2, check=False)
+        return True
+    except Exception:
+        pass
+    return False
 
 
 def _append_log(message: str) -> None:
@@ -151,10 +181,11 @@ def save_presence_cfg(base_dir: Path, cfg: PresenceLockConfig) -> None:
     p.write_text(json.dumps(asdict(cfg), ensure_ascii=False, indent=2), encoding="utf-8")
 
 def _detect_face(frame) -> bool:
+    """Yüz var/yok: OpenCV haarcascade_frontalface. Stricter params to reduce false positives."""
     try:
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
-        faces = cascade.detectMultiScale(gray, scaleFactor=1.2, minNeighbors=5, minSize=(60, 60))
+        faces = cascade.detectMultiScale(gray, scaleFactor=1.15, minNeighbors=8, minSize=(70, 70))
         return len(faces) > 0
     except Exception:
         return False
@@ -162,6 +193,7 @@ def _detect_face(frame) -> bool:
 def _presence_loop(*, base_dir: Path, lock_cb: Optional[Callable[[], None]], timeout_sec: int, poll_sec: float, camera_index: int, require_face: bool) -> None:
     _set_status("ON")
     last_seen = time.time()
+    last_logged_present: Optional[bool] = None  # log only on state change
 
     cap = None
     try:
@@ -176,19 +208,29 @@ def _presence_loop(*, base_dir: Path, lock_cb: Optional[Callable[[], None]], tim
 
         while not _STOP.is_set():
             ok, frame = cap.read()
-            if not ok:
-                time.sleep(max(0.2, float(poll_sec)))
-                continue
+            present = False
+            if ok and frame is not None:
+                present = True
+                if require_face:
+                    present = _detect_face(frame)
+                if present:
+                    last_seen = time.time()
 
-            present = True
-            if require_face:
-                present = _detect_face(frame)
+            # Log face state only on change (no spam)
+            if last_logged_present is not None and last_logged_present != present:
+                try:
+                    _append_log(logfmt("face_present", value=present))
+                except Exception:
+                    pass
+            last_logged_present = present
 
-            if present:
-                last_seen = time.time()
-
+            # Always check timeout (even when ok=False: no frame = treat as absent)
             if (time.time() - last_seen) >= float(timeout_sec):
                 if lock_cb:
+                    try:
+                        _append_log(logfmt("absence_timeout", timeout_sec=timeout_sec))
+                    except Exception:
+                        pass
                     try:
                         lock_cb()
                     except Exception:
@@ -208,12 +250,7 @@ def _presence_loop(*, base_dir: Path, lock_cb: Optional[Callable[[], None]], tim
 def start_presence_lock(*, base_dir: Path, lock_cb: Optional[Callable[[], None]] = None, is_already_locked: Optional[Callable[[], bool]] = None, timeout_sec: int = 30, poll_sec: float = 1.0, camera_index: int = 0, require_face: bool = True, silent_stop: bool = False, reason: Optional[str] = None) -> tuple[bool, str]:
     _orig_lock_cb = lock_cb
     def lock_cb():
-        if is_already_locked is not None:
-            try:
-                if is_already_locked():
-                    return
-            except Exception:
-                pass
+        # Always log so absence_timeout is followed by device_locked trigger=presence; then run lock chain.
         try:
             _append_log(logfmt("device_locked", trigger="presence"))
         except Exception:
