@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import tempfile
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from lumos_core.context.context import Context
 from lumos_core.memory.session_memory import SessionMemory
@@ -340,3 +340,17 @@ class TestMemorySaveIntent:
             with patch("sys.stdout", out):
                 run_ask("Adım ne?")
             assert "İsmin kayıtlı değil" in out.getvalue()
+
+    def test_run_ask_perm_query_stays_local_does_not_call_provider(self) -> None:
+        """'erişilebilirlik iznim var mı' akışı lokal/readiness çizgisinde kalır; provider'a kaçmaz."""
+        from io import StringIO
+        from lumos_core.cli import run_ask
+
+        router = MagicMock()
+        out = StringIO()
+        with patch("sys.stdout", out):
+            run_ask("erişilebilirlik iznim var mı", router=router)
+        router.route.assert_not_called()
+        # Cevap lokal (env_scan / izin özeti) olmalı; provider'a hiç gidilmedi
+        text = out.getvalue()
+        assert len(text.strip()) > 0, "run_ask must print local readiness reply for perm query"
