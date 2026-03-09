@@ -121,7 +121,7 @@ def main() -> int | None:
     _apply_lumos_server_pub_b64_fallback()
 
     from lumos_core import __version__
-    parser = argparse.ArgumentParser(prog="lumos", description="Lumos core CLI and web")
+    parser = argparse.ArgumentParser(prog="lumos", description="Lumos core (Kando v0: cli, ask, chat, env)")
     parser.add_argument("--version", action="store_true", help="show version and exit")
     sub = parser.add_subparsers(dest="cmd", help="subcommand")
     sub.add_parser("cli", help="run interactive CLI (default)")

@@ -37,13 +37,15 @@ def norm_cmd(s: str) -> str:
 # Canonical CLI: exit synonyms (q, çık, cik, quit -> exit)
 EXIT_SYNONYMS = frozenset({"exit", "quit", "çık", "cik", "çik", "q"})
 
-HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | exit
-  kilit    Cihaz kilidi / şifre
-  kamera   Yüz tanıma (presence) kilit
-  alias    Komut kısaltmaları (alias liste | alias ekle <ad> <hedef> | alias sil <ad>)
+# Kando v0 resmî komut yüzeyi: sadece bu komutlar desteklenir.
+HELP_TEXT = """Kando v0 resmî komutlar: kilit | kamera | alias | durum | help | exit
+  kilit    Cihaz kilidi / şifre (alt: durum | ac | kapat | cik)
+  kamera   Yüz tanıma kilit (alt: durum | ac | kapat | sure | cik)
+  alias    Kısaltmalar: alias liste | alias ekle <ad> <hedef> | alias sil <ad>
   durum    Özet durum (kilit, presence, mode, log)
+  help     Bu metin
   exit     Çıkış (q, çık, quit)
-Örnek: kilit, kamera aç, durum, çık"""
+Başka girdiler desteklenmez. Örnek: kilit, kamera, durum, çık"""
 
 
 def _lumos_dir() -> str:
@@ -247,6 +249,15 @@ def main() -> None:
                 engine.device_lock_cli(silent=False)
             except Exception:
                 pass
+            cfg = pl.load_presence_cfg(_P(base_dir))
+            mode = getattr(cfg, "lock_mode", "mac")
+            if platform.system() == "Darwin" and mode in ("mac", "lumos+mac"):
+                try:
+                    ok = pl.trigger_macos_screen_lock()
+                    if not ok:
+                        state.log_event(logfmt("macos_lock_failed", trigger="presence"))
+                except Exception as e:
+                    state.log_event(logfmt("macos_lock_error", trigger="presence", err=str(e)))
 
         def _run_cmd(cmd: str) -> bool | str:
             cmd = (cmd or "").strip().lower()
@@ -374,6 +385,12 @@ def main() -> None:
             pass
         try:
             engine.device_lock_cli(silent=True)
+        except Exception:
+            pass
+        try:
+            cfg = pl.load_presence_cfg(Path(base_dir))
+            if platform.system() == "Darwin" and getattr(cfg, "lock_mode", "mac") in ("mac", "lumos+mac"):
+                pl.trigger_macos_screen_lock()
         except Exception:
             pass
 
@@ -537,7 +554,7 @@ def main() -> None:
             print(HELP_TEXT)
             continue
         if route == "unknown":
-            print("Bilinmeyen komut. (help yaz)")
+            print("Desteklenmeyen komut. help yazın.")
             continue
         if route == "exit":
             print("OK")
@@ -559,7 +576,7 @@ def main() -> None:
         if route == "alias":
             alias_menu(args=args)
             continue
-        print("Bilinmeyen komut. (help yaz)")
+        print("Desteklenmeyen komut. help yazın.")
 
 if __name__ == "__main__":
     main()
