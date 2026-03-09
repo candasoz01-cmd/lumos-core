@@ -8,6 +8,11 @@ if [ -f ".venv/bin/activate" ]; then
   . ".venv/bin/activate"
 fi
 [ -d "src" ] && export PYTHONPATH="${ROOT}/src${PYTHONPATH:+:$PYTHONPATH}"
+# V1 consent: pre-create so smoke sees "re-open" behaviour (no onboarding).
+# base_dir is src/.lumos if it exists else .lumos — set both so either path has consent.
+mkdir -p .lumos src/.lumos
+echo '{"granted":true}' > .lumos/consent.json
+echo '{"granted":true}' > src/.lumos/consent.json
 OUT=$(mktemp)
 trap 'rm -f "$OUT"' EXIT
 printf '%s\n' help durum kamera durum cik exit | python -m lumos_core cli 2>&1 > "$OUT" || true

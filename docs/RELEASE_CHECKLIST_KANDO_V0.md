@@ -44,8 +44,9 @@
 
 Bunlar bu checklist’te doğrulanmaz; bilgi için:
 
-- Web v1, tg, consent kalıcılığı, “adım ne” CLI komutu.
+- Web v1, tg, “adım ne” CLI komutu.
 - Kando v0 = interaktif CLI (kilit, kamera, alias, durum, help, exit) + ask/chat + env.
+- V1 consent kalıcılığı: tek kaynak `base_dir/consent.json`; smoke consent ön-oluşturarak tekrar açılışı doğrular.
 
 ---
 

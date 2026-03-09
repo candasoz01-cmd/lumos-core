@@ -10,6 +10,7 @@ Tek senaryo: baştan sona çekirdek CLI akışı (web/tg/ask/chat yok).
 
 **Beklenen:**
 - Consent yoksa: önce onboarding önizlemesi (Merhaba, cihaz incelendi, yapabileceklerim, izin gerektiren özellikler, “Bu bilgiler henüz kaydedilmedi”).
+- Consent varsa (`.lumos/consent.json` veya `src/.lumos/consent.json`): onboarding ve soru atlanır.
 - macOS ise: ardından izin satırı (`macOS izinleri: Hazır.` veya `macOS izinleri: Eksik — ...`); varsa maddeler (`• Erişilebilirlik: hazır/eksik/bilinmiyor — ...`).
 - Sonra ana prompt: `Sen: `
 
@@ -84,7 +85,7 @@ Yarı otomatik smoke (tek komut, anahtar çıktı kontrolü):
 ./scripts/smoke_kando_v0.sh
 ```
 
-Script repo kökünden çalıştırılmalı; gerekirse `.venv` aktive edilir veya `PYTHONPATH=src` kullanılır. PASS/FAIL ile biter.
+Script repo kökünden çalıştırılmalı; gerekirse `.venv` aktive edilir veya `PYTHONPATH=src` kullanılır. V1 consent kalıcılığı için script önce `.lumos/consent.json` (ve gerekiyorsa `src/.lumos/consent.json`) oluşturur; böylece smoke "tekrar açılış" davranışını doğrular (onboarding tekrar çıkmaz). PASS/FAIL ile biter.
 
 **macOS fiziksel lock (V1 doğrulama):** Presence timeout veya manuel "kilit kapat" sonrası `.lumos/log.txt` içinde `macos_lock_triggered` (başarı) veya `macos_lock_failed` / `macos_lock_error` (teşhis) satırları aranabilir; davranış sessizce başarısız olmaz.
 

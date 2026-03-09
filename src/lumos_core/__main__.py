@@ -88,10 +88,12 @@ def _run_cli() -> None:
 
     if not has_user_consent():
         from lumos_core.system.env_scan import build_capability_report, print_onboarding_preview
+        from lumos_core.security.consent import ask_and_persist_consent_if_needed
 
         env = build_capability_report()
         print_onboarding_preview(env)
         print()
+        ask_and_persist_consent_if_needed(_lumos_dir())
 
     from lumos_core.interactive_cli import main as cli_main
     result = cli_main()
