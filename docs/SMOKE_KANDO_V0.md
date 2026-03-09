@@ -86,6 +86,8 @@ Yarı otomatik smoke (tek komut, anahtar çıktı kontrolü):
 
 Script repo kökünden çalıştırılmalı; gerekirse `.venv` aktive edilir veya `PYTHONPATH=src` kullanılır. PASS/FAIL ile biter.
 
+**macOS fiziksel lock (V1 doğrulama):** Presence timeout veya manuel "kilit kapat" sonrası `.lumos/log.txt` içinde `macos_lock_triggered` (başarı) veya `macos_lock_failed` / `macos_lock_error` (teşhis) satırları aranabilir; davranış sessizce başarısız olmaz.
+
 ---
 
 ## CLI dışı: "adım ne"

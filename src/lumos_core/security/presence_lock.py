@@ -20,9 +20,17 @@ from lumos_core.core.logfmt import logfmt
 
 
 def trigger_macos_screen_lock() -> bool:
-    """Trigger macOS lock screen. No-op on non-Darwin. Returns True if lock was triggered."""
+    """Trigger macOS lock screen. No-op on non-Darwin. Returns True if lock was triggered.
+    Logs success/fail/error to .lumos/log.txt (macos_lock_triggered | macos_lock_failed | macos_lock_error)."""
     if platform.system() != "Darwin":
         return False
+
+    def _log(msg: str) -> None:
+        try:
+            _append_log(msg)
+        except Exception:
+            pass
+
     try:
         import ctypes
         login_pf = ctypes.CDLL(
@@ -30,15 +38,27 @@ def trigger_macos_screen_lock() -> bool:
         )
         result = login_pf.SACLockScreenImmediate()
         if result == 0:
+            _log(logfmt("macos_lock_triggered", method="sac"))
             return True
-    except Exception:
-        pass
+        _log(logfmt("macos_lock_failed", method="sac", result=result))
+    except Exception as e:
+        _log(logfmt("macos_lock_error", method="sac", err=str(e)))
+
     try:
         import subprocess
-        subprocess.run(["pmset", "displaysleepnow"], timeout=2, check=False)
-        return True
-    except Exception:
-        pass
+        r = subprocess.run(
+            ["pmset", "displaysleepnow"],
+            timeout=2,
+            capture_output=True,
+            check=False,
+        )
+        if r.returncode == 0:
+            _log(logfmt("macos_lock_triggered", method="pmset"))
+            return True
+        _log(logfmt("macos_lock_failed", method="pmset", returncode=r.returncode))
+    except Exception as e:
+        _log(logfmt("macos_lock_error", method="pmset", err=str(e)))
+
     return False
 
 

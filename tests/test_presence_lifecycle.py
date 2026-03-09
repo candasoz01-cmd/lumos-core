@@ -8,7 +8,7 @@ Option B: presence lifecycle + logging.
 import sys
 import subprocess
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 
 # Run tests with src in path so "security.presence_lock" resolves
@@ -209,3 +209,49 @@ def test_presence_fsm_get_state_running():
         with patch.object(pl, "is_running", return_value=True):
             s = fsm_mod.get_state(Path(ROOT / ".lumos"), pl)
     assert s == fsm_mod.PresenceState.RUNNING
+
+
+# ---- trigger_macos_screen_lock: success/fail logging (V1 physical lock) ----
+
+
+def test_trigger_macos_screen_lock_non_darwin_returns_false_no_log():
+    """On non-Darwin, trigger_macos_screen_lock returns False and does not log."""
+    import lumos_core.security.presence_lock as pl
+    log_calls = []
+    with patch("platform.system", return_value="Linux"):
+        with patch.object(pl, "_append_log", side_effect=lambda msg: log_calls.append(msg)):
+            out = pl.trigger_macos_screen_lock()
+    assert out is False
+    assert len(log_calls) == 0
+
+
+def test_trigger_macos_screen_lock_darwin_sac_success_logs_triggered():
+    """On Darwin with SACLockScreenImmediate success, logs macos_lock_triggered method=sac and returns True."""
+    import lumos_core.security.presence_lock as pl
+    log_calls = []
+    mock_lib = MagicMock()
+    mock_lib.SACLockScreenImmediate.return_value = 0
+    with patch("platform.system", return_value="Darwin"):
+        with patch.object(pl, "_append_log", side_effect=lambda msg: log_calls.append(msg)):
+            with patch("ctypes.CDLL", return_value=mock_lib):
+                out = pl.trigger_macos_screen_lock()
+    assert out is True
+    assert len(log_calls) == 1
+    assert "macos_lock_triggered" in log_calls[0] and "method=sac" in log_calls[0]
+
+
+def test_trigger_macos_screen_lock_darwin_both_fail_logs_failed_or_error():
+    """On Darwin when both SAC and pmset fail, logs macos_lock_failed or macos_lock_error and returns False."""
+    import lumos_core.security.presence_lock as pl
+    log_calls = []
+    with patch("platform.system", return_value="Darwin"):
+        with patch.object(pl, "_append_log", side_effect=lambda msg: log_calls.append(msg)):
+            with patch("ctypes.CDLL", side_effect=OSError("dlopen failed")):
+                with patch("subprocess.run", return_value=MagicMock(returncode=1)):
+                    out = pl.trigger_macos_screen_lock()
+    assert out is False
+    assert len(log_calls) >= 1
+    has_fail_or_error = any(
+        "macos_lock_failed" in m or "macos_lock_error" in m for m in log_calls
+    )
+    assert has_fail_or_error, f"expected fail/error log in {log_calls}"

@@ -255,12 +255,7 @@ def main() -> None:
             cfg = pl.load_presence_cfg(_P(base_dir))
             mode = getattr(cfg, "lock_mode", "mac")
             if platform.system() == "Darwin" and mode in ("mac", "lumos+mac"):
-                try:
-                    ok = pl.trigger_macos_screen_lock()
-                    if not ok:
-                        state.log_event(logfmt("macos_lock_failed", trigger="presence"))
-                except Exception as e:
-                    state.log_event(logfmt("macos_lock_error", trigger="presence", err=str(e)))
+                pl.trigger_macos_screen_lock()
 
         def _run_cmd(cmd: str) -> bool | str:
             cmd = (cmd or "").strip().lower()
@@ -420,6 +415,8 @@ def main() -> None:
                     engine.device_lock_cli(silent=True)
                 except Exception:
                     pass
+                if platform.system() == "Darwin":
+                    engine.pl.trigger_macos_screen_lock()
                 return False
             if c in ("ac", "aç", "unlock", "open"):
                 pw = getpass("Passphrase: ")
