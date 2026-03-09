@@ -3,8 +3,64 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import json
+import os
 import sys
 from pathlib import Path
+
+
+def _lumos_dir() -> Path:
+    p = Path("src/.lumos")
+    if p.exists():
+        return p
+    return Path(".lumos")
+
+
+def _read_pub_b64() -> str:
+    base = _lumos_dir()
+    p = base / "identity.json"
+    if not p.exists():
+        return ""
+    try:
+        d = json.loads(p.read_text(encoding="utf-8"))
+        return str(d.get("public_key_b64", "")).strip()
+    except Exception:
+        return ""
+
+
+def _apply_stage1_env_from_argv() -> None:
+    """Set LUMOS_* env from argv (--online, --offline, --sim, --debug, --pass=); strip those args."""
+    args = sys.argv[1:]
+    kept = []
+    i = 0
+    while i < len(args):
+        a = args[i]
+        alower = a.strip().lower()
+        if alower == "--online":
+            os.environ["LUMOS_MODE"] = "online"
+        elif alower == "--offline":
+            os.environ["LUMOS_MODE"] = "offline"
+        elif alower == "--sim":
+            os.environ["LUMOS_SERVER_SIM"] = "1"
+        elif alower == "--debug":
+            os.environ["LUMOS_DEBUG"] = "1"
+        elif a.startswith("--pass="):
+            os.environ["LUMOS_PASSPHRASE"] = a.split("=", 1)[1]
+        else:
+            kept.append(a)
+        i += 1
+    sys.argv = [sys.argv[0]] + kept
+
+
+def _apply_lumos_server_pub_b64_fallback() -> None:
+    """When online+sim and LUMOS_SERVER_PUB_B64 unset, set from identity.json."""
+    mode = (os.getenv("LUMOS_MODE", "offline") or "").strip().lower()
+    sim = (os.getenv("LUMOS_SERVER_SIM", "0") or "").strip() == "1"
+    if mode != "online" or not sim or os.getenv("LUMOS_SERVER_PUB_B64"):
+        return
+    pub = _read_pub_b64()
+    if pub:
+        os.environ["LUMOS_SERVER_PUB_B64"] = pub
 
 
 def _run_web() -> None:
@@ -61,6 +117,9 @@ def _run_chat(provider: str) -> None:
 
 
 def main() -> int | None:
+    _apply_stage1_env_from_argv()
+    _apply_lumos_server_pub_b64_fallback()
+
     from lumos_core import __version__
     parser = argparse.ArgumentParser(prog="lumos", description="Lumos core CLI and web")
     parser.add_argument("--version", action="store_true", help="show version and exit")
