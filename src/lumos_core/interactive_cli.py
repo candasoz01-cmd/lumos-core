@@ -5,6 +5,7 @@ import platform
 import re
 from getpass import getpass
 from pathlib import Path
+from typing import Callable
 
 from lumos_core.core.engine import CoreEngine
 from lumos_core.core.logfmt import logfmt
@@ -246,16 +247,8 @@ def main() -> None:
         from pathlib import Path as _P
         pl = engine.pl
 
-        def _lock_cb():
-            engine.do_lock()
-            try:
-                engine.device_lock_cli(silent=False)
-            except Exception:
-                pass
-            cfg = pl.load_presence_cfg(_P(base_dir))
-            mode = getattr(cfg, "lock_mode", "mac")
-            if platform.system() == "Darwin" and mode in ("mac", "lumos+mac"):
-                pl.trigger_macos_screen_lock()
+        def _lock_cb() -> None:
+            perform_lock_chain(engine, base_dir, state.log_event, "presence", False)
 
         def _run_cmd(cmd: str) -> bool | str:
             cmd = (cmd or "").strip().lower()
@@ -376,21 +369,36 @@ def main() -> None:
     state = CoreState(lumos, pl, mode)
     engine = CoreEngine(do_lock, device_lock_cli, unlock_with_passphrase, pl)
 
-    def _recovery_lock_cb():
+    def perform_lock_chain(
+        eng: CoreEngine,
+        base: str,
+        log_ev: Callable[[str], None],
+        trigger: str,
+        silent_cli: bool,
+    ) -> None:
+        """Single security backbone: do_lock, device_locked log, device_lock_cli, optional macOS lock. No silent failure."""
         try:
-            engine.do_lock()
+            eng.do_lock()
+        except Exception as e:
+            log_ev(logfmt("lock_chain_error", trigger=trigger, step="do_lock", err=str(e)))
+            return
+        try:
+            log_ev(logfmt("device_locked", trigger=trigger))
         except Exception:
             pass
         try:
-            engine.device_lock_cli(silent=True)
-        except Exception:
-            pass
+            eng.device_lock_cli(silent=silent_cli)
+        except Exception as e:
+            log_ev(logfmt("lock_chain_error", trigger=trigger, step="device_lock_cli", err=str(e)))
         try:
-            cfg = pl.load_presence_cfg(Path(base_dir))
+            cfg = pl.load_presence_cfg(Path(base))
             if platform.system() == "Darwin" and getattr(cfg, "lock_mode", "mac") in ("mac", "lumos+mac"):
                 pl.trigger_macos_screen_lock()
-        except Exception:
-            pass
+        except Exception as e:
+            log_ev(logfmt("lock_chain_error", trigger=trigger, step="macos_lock", err=str(e)))
+
+    def _recovery_lock_cb() -> None:
+        perform_lock_chain(engine, base_dir, state.log_event, "recovery", True)
 
     engine.recover_presence(Path(base_dir), state.log_event, _recovery_lock_cb, state.is_locked)
 
@@ -410,13 +418,7 @@ def main() -> None:
                 print(state.lock_status())
                 return False
             if c in ("kapat", "kilitle", "lock"):
-                engine.do_lock()
-                try:
-                    engine.device_lock_cli(silent=True)
-                except Exception:
-                    pass
-                if platform.system() == "Darwin":
-                    engine.pl.trigger_macos_screen_lock()
+                perform_lock_chain(engine, base_dir, state.log_event, "manual", True)
                 return False
             if c in ("ac", "aç", "unlock", "open"):
                 pw = getpass("Passphrase: ")

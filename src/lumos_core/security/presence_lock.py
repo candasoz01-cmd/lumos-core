@@ -288,12 +288,8 @@ def _presence_loop(*, base_dir: Path, lock_cb: Optional[Callable[[], None]], is_
 
 def start_presence_lock(*, base_dir: Path, lock_cb: Optional[Callable[[], None]] = None, is_already_locked: Optional[Callable[[], bool]] = None, timeout_sec: int = 30, poll_sec: float = 1.0, camera_index: int = 0, require_face: bool = True, silent_stop: bool = False, reason: Optional[str] = None) -> tuple[bool, str]:
     _orig_lock_cb = lock_cb
-    def lock_cb():
-        # Always log so absence_timeout is followed by device_locked trigger=presence; then run lock chain.
-        try:
-            _append_log(logfmt("device_locked", trigger="presence"))
-        except Exception:
-            pass
+    def _wrapper_cb() -> None:
+        # Single lock backbone: caller (e.g. CLI perform_lock_chain) logs device_locked(trigger=...) and runs chain.
         if _orig_lock_cb:
             _orig_lock_cb()
 
@@ -306,7 +302,7 @@ def start_presence_lock(*, base_dir: Path, lock_cb: Optional[Callable[[], None]]
             target=_presence_loop,
             kwargs=dict(
                 base_dir=Path(base_dir),
-                lock_cb=lock_cb,
+                lock_cb=_wrapper_cb,
                 is_already_locked=is_already_locked,
                 timeout_sec=int(timeout_sec),
                 poll_sec=float(poll_sec),

@@ -362,3 +362,80 @@ def test_presence_flapping_face_triggers_absence_timeout():
 
     assert len(lock_cb_calls) == 1, "lock_cb must run once when flapping face never stabilizes"
     assert any("absence_timeout" in m for m in log_calls), "absence_timeout must be logged"
+
+
+def test_unified_lock_log_format_device_locked():
+    """Unified lock backbone: device_locked log must include event and trigger (manual|presence|recovery)."""
+    from lumos_core.core.logfmt import logfmt
+
+    for trigger in ("manual", "presence", "recovery"):
+        msg = logfmt("device_locked", trigger=trigger)
+        assert "event=device_locked" in msg, msg
+        assert f"trigger={trigger}" in msg, msg
+
+
+def test_lock_chain_error_log_format():
+    """Unified lock backbone: lock_chain_error log must include trigger, step, err for diagnosis."""
+    from lumos_core.core.logfmt import logfmt
+
+    msg = logfmt("lock_chain_error", trigger="manual", step="do_lock", err="test err")
+    assert "event=lock_chain_error" in msg
+    assert "trigger=manual" in msg
+    assert "step=do_lock" in msg
+    assert "err=" in msg
+
+
+def test_presence_timeout_path_logs_device_locked_trigger_presence():
+    """Presence timeout must invoke lock_cb; unified contract: lock_cb logs device_locked trigger=presence."""
+    import lumos_core.security.presence_lock as pl
+    from lumos_core.core.logfmt import logfmt
+
+    lock_cb_calls = []
+    log_calls = []
+
+    def unified_style_lock_cb():
+        lock_cb_calls.append(1)
+        log_calls.append(logfmt("device_locked", trigger="presence"))
+
+    timeout_sec = 30
+    poll_sec = 0.2
+    t0 = 1000.0
+    call_count = [0]
+
+    def mock_time():
+        call_count[0] += 1
+        if call_count[0] >= 200:
+            pl._STOP.set()
+        return t0 + (call_count[0] - 1) * poll_sec
+
+    mock_cap = MagicMock()
+    mock_cap.isOpened.return_value = True
+    mock_cap.read.return_value = (True, object())
+
+    def flip_face(_frame):
+        return (call_count[0] % 2) == 0
+
+    with patch.object(pl, "_detect_face", side_effect=flip_face):
+        with patch.object(pl, "cv2", MagicMock()) as mcv2:
+            mcv2.VideoCapture.return_value = mock_cap
+            with patch("lumos_core.security.presence_lock.time") as mtime:
+                mtime.time = mock_time
+                mtime.sleep = lambda x: None
+                pl.start_presence_lock(
+                    base_dir=Path(ROOT / ".lumos"),
+                    lock_cb=unified_style_lock_cb,
+                    is_already_locked=lambda: False,
+                    timeout_sec=timeout_sec,
+                    poll_sec=poll_sec,
+                    camera_index=0,
+                    require_face=True,
+                    silent_stop=True,
+                    reason="internal",
+                )
+                if pl._THREAD and pl._THREAD.is_alive():
+                    pl._THREAD.join(timeout=5.0)
+                pl.stop_presence_lock(base_dir=Path(ROOT / ".lumos"), silent=True)
+
+    assert len(lock_cb_calls) == 1, "lock_cb must run once"
+    assert len(log_calls) == 1, "unified lock_cb must log device_locked once"
+    assert "event=device_locked" in log_calls[0] and "trigger=presence" in log_calls[0], log_calls
