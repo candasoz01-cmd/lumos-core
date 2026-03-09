@@ -67,3 +67,16 @@ Kando v0’da presence zinciri çalışıyor; fiziksel macOS ekran kilidi taraf�
 **Minimum plan:** (1) trigger_macos_screen_lock: başarı/başarısızlık ve kullanılan yöntem (sac/pmset) için tek satır log; pmset returncode kontrolü. (2) Recovery lock_cb: macOS lock sonucunun aynı loglarla yazılması. (3) İsteğe bağlı: manuel "kilit kapat"ın da trigger_macos_screen_lock çağırması (tek davranış noktası). (4) Test: mock ile fail/success log assert; macOS’ta gerçek timeout + log kontrolü; recovery path’te log doğrulama.
 
 Dosya referansları: presence_lock.py (trigger_macos_screen_lock, lock_cb wrapper, _append_log), interactive_cli.py (presence_menu _lock_cb, _recovery_lock_cb, lock_menu kapat path).
+
+---
+
+## 6. V1 tek güvenlik çizgisi (unified lock)
+
+**Teşhis:** Manuel "kilit kapat" ve presence timeout lock iki ayrı yoldan gidiyordu: manuel do_lock + device_lock_cli + (Darwin’de her zaman) trigger_macos_screen_lock; presence _lock_cb aynı adımlar + lock_mode kontrolü; recovery _recovery_lock_cb aynı adımlar ama try/except pass ile sessiz. device_locked log sadece presence wrapper’da vardı; recovery’de macOS sonucu loglanmıyordu.
+
+**Plan:** Tek omurga `perform_lock_chain(engine, base_dir, log_event, trigger, silent_cli)`:
+1. do_lock
+2. device_locked(trigger=…) log
+3. device_lock_cli(silent=…)
+4. presence cfg’ye göre Darwin + lock_mode in (mac, lumos+mac) ise trigger_macos_screen_lock()
+Hata durumunda log_event(lock_chain_error) ile sessiz başarısızlık yok. Manuel, presence ve recovery hepsi bu fonksiyonu çağırır.
