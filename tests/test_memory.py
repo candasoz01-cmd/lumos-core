@@ -277,6 +277,8 @@ class TestMemorySaveIntent:
         assert parse_name_from_content("Benim adım Can") == "Can"
         assert parse_name_from_content("BENIM ADIM Ali") == "Ali"
         assert parse_name_from_content("Kahveyi sade severim") is None
+        assert parse_name_from_content("adım ne?") is None  # ask-intent, not set-name
+        assert parse_name_from_content("adim ne?") is None
         assert parse_name_from_content("") is None
 
     def test_is_ask_my_name_intent(self) -> None:
@@ -287,6 +289,7 @@ class TestMemorySaveIntent:
         assert is_ask_my_name_intent("Adım ne") is True
         assert is_ask_my_name_intent("Adım Can") is False
         assert is_ask_my_name_intent("adım ne değil") is False
+        assert is_ask_my_name_intent("adim ne?") is True  # ASCII i (e.g. from shell)
         assert is_ask_my_name_intent("") is False
 
     def test_apply_memory_save_name_writes_user_preferences(self) -> None:

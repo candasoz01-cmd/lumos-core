@@ -44,8 +44,9 @@ def run_ask(
     if is_ask_my_name_intent(prompt):
         user = load_user_identity()
         print()
-        if (user.name or "").strip():
-            print(f"Lumos > Adın {user.name.strip()}")
+        name = (user.name or "").strip()
+        if name and name.lower().rstrip("?").strip() != "ne":
+            print(f"Lumos > Adın {name}")
         else:
             print("Lumos > İsmin kayıtlı değil.")
         print()
@@ -143,8 +144,9 @@ def run_chat(
             continue
         # "Adım ne?" -> answer only from user_preferences.name (before parsing "Adım X" as set-name)
         if is_ask_my_name_intent(line):
-            if (user.name or "").strip():
-                print("Lumos > Adın " + user.name.strip())
+            name = (user.name or "").strip()
+            if name and name.lower().rstrip("?").strip() != "ne":
+                print("Lumos > Adın " + name)
             else:
                 print("Lumos > İsmin kayıtlı değil.")
             continue

@@ -21,11 +21,18 @@ def _is_name_like_value(value: str) -> bool:
     return v.startswith("adım ") or v.startswith("benim adım ")
 
 
+def _is_ask_name_phrase(tail: str) -> bool:
+    """True if tail is the ask-my-name part (e.g. 'ne', 'ne?'), not a real name."""
+    t = (tail or "").strip().lower().replace("\u0131", "i").rstrip("?").strip()
+    return t == "ne"
+
+
 def parse_name_from_content(content: str) -> str | None:
     """
     If content is a name phrase ("Adım X" or "Benim adım X"), return the name part; else None.
     Canonical name storage is user_preferences.name; this supports routing memory-save to it.
     Supports both Turkish (ı) and ASCII (i) spellings for prefix matching (e.g. "BENIM ADIM X").
+    "Adım ne?" / "adim ne?" are not name phrases; return None so they are not saved as name.
     """
     c = (content or "").strip()
     if not c:
@@ -33,17 +40,22 @@ def parse_name_from_content(content: str) -> str | None:
     low = c.lower().replace("\u0131", "i")  # dotless ı -> i for prefix match
     if low.startswith("adim "):
         name = c[5:].strip()
-        return name if name else None
+        if name and not _is_ask_name_phrase(name):
+            return name
+        return None
     if low.startswith("benim adim "):
         name = c[11:].strip()
-        return name if name else None
+        if name and not _is_ask_name_phrase(name):
+            return name
+        return None
     return None
 
 
 def is_ask_my_name_intent(message: str) -> bool:
-    """True if message is asking for the user's name (e.g. 'Adım ne?'). Answer from user_preferences.name only."""
+    """True if message is asking for the user's name (e.g. 'Adım ne?' / 'adim ne?'). Answer from user_preferences.name only."""
     m = (message or "").strip().lower().rstrip("?").strip()
-    return m == "adım ne"
+    m = m.replace("\u0131", "i")  # Turkish ı -> i so both "adım ne" and "adim ne" match
+    return m == "adim ne"
 
 
 def apply_memory_save(content: str, base_dir: str | Path | None = None) -> str:
