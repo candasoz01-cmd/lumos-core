@@ -239,6 +239,12 @@ _PERM_QUERY_PATTERNS: list[tuple[list[str], str, str]] = [
 ]
 
 
+def looks_like_perm_query(message: str) -> bool:
+    """True if message is asking about a specific permission (readiness); used to route to local reply instead of provider."""
+    msg = (message or "").strip().lower()
+    return any(any(kw in msg for kw in keywords) for keywords, _key, _label in _PERM_QUERY_PATTERNS)
+
+
 def format_permission_readiness_reply(user_message: str) -> str:
     """Permission odaklı sorularda readiness verisine dayalı kısa cevap. macOS dışında güvenli fallback."""
     r = get_macos_permission_readiness()

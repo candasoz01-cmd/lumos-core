@@ -124,3 +124,21 @@ class TestPreRouteV1:
                 assert "config value" in r.message
             finally:
                 os.chdir(old_cwd)
+
+    def test_perm_question_local_readiness_not_provider(self) -> None:
+        """Permission questions (erişilebilirlik/ekran kaydı/tam disk/terminal/kamera) get local readiness reply, not provider."""
+        for msg in (
+            "erişilebilirlik iznim var mı",
+            "ekran kaydı iznim var mı",
+            "tam disk erişimim var mı",
+            "terminal iznim var mı",
+            "kamera iznim var mı",
+        ):
+            ctx = Context(message=msg)
+            r = pre_route(ctx)
+            assert r.destination == "tool", f"expected tool for {msg!r}, got {r.destination}"
+            assert r.message, f"expected non-empty local reply for {msg!r}"
+            # Local reply: from env_scan (Erişilebilirlik/macOS/Kamera/verilmiş/verilmemiş/Bilinmiyor etc.)
+            assert "Lumos:" not in r.message or "CLI" not in r.message, (
+                f"perm question must not get 'use CLI' message for {msg!r}"
+            )

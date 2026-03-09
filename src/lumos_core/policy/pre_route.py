@@ -16,6 +16,7 @@ from pathlib import Path
 from lumos_core.context.context import Context
 from lumos_core.policy.decision import PreRouteResult
 from lumos_core.policy.offline_engine import OfflineEngineV1
+from lumos_core.system.env_scan import format_permission_readiness_reply, looks_like_perm_query
 from lumos_core.tools.file_tools import try_handle_read_file
 from lumos_core.tools.project_tools import try_handle_project_structure
 from lumos_core.tools.system_tools import try_handle_readonly_tool
@@ -81,6 +82,10 @@ def pre_route(ctx: Context) -> PreRouteResult:
             "Lumos: Çok kısa veya boş. Bir soru veya cümle yazın."
         )
 
+    # Permission questions: answer from local readiness (no provider); before command phrases so "kamera iznim var mı" etc. get local reply
+    if looks_like_perm_query(msg):
+        return PreRouteResult("tool", format_permission_readiness_reply(msg))
+
     # Command/tool: exact CLI command phrase or prefix
     if lower in _COMMAND_PHRASES:
         return PreRouteResult("tool_not_implemented", _USE_CLI_MSG)
@@ -119,10 +124,7 @@ def pre_route(ctx: Context) -> PreRouteResult:
             "Lumos: Saat ve tarih için interaktif CLI kullanın: python -m lumos_core cli"
         )
     if intent == "PERM_STATUS":
-        return PreRouteResult(
-            "tool_not_implemented",
-            "Lumos: İzin durumu için interaktif CLI kullanın: python -m lumos_core cli"
-        )
+        return PreRouteResult("tool", format_permission_readiness_reply(msg))
 
     # Tool intents: not implemented in this flow
     if intent == "NETWORK_REQUIRED_WEATHER":
