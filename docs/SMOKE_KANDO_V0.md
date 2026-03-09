@@ -78,6 +78,14 @@ Otomasyon (pipe):
 echo -e "help\ndurum\nkamera\ndurum\ncik\nexit" | python -m lumos_core cli
 ```
 
+Yarı otomatik smoke (tek komut, anahtar çıktı kontrolü):
+
+```bash
+./scripts/smoke_kando_v0.sh
+```
+
+Script repo kökünden çalıştırılmalı; gerekirse `.venv` aktive edilir veya `PYTHONPATH=src` kullanılır. PASS/FAIL ile biter.
+
 ---
 
 ## CLI dışı: "adım ne"
