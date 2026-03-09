@@ -29,7 +29,7 @@
 
 ## 4. Ask akışı
 
-- `lumos ask "merhaba"` (veya `python -m lumos_core ask "merhaba"`) hata vermeden tamamlanıyor (API/network yoksa cevap boş veya hata olabilir; çökme olmamalı).
+- `python -m lumos_core ask "erişilebilirlik iznim var mı"` (veya `python -m lumos_core ask "adım ne?"`) hata vermeden tamamlanıyor (API/network yoksa cevap boş veya hata olabilir; çökme olmamalı).
 
 ---
 
