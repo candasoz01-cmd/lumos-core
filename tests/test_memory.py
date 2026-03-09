@@ -14,10 +14,13 @@ from lumos_core.memory.user_memory import (
 )
 from lumos_core.memory.memory_manager import (
     add_approved_preference as add_approved_preference_mm,
+    apply_memory_save,
     build_chat_context,
     create_session_memory,
     format_user_memory_for_context,
+    is_ask_my_name_intent,
     parse_memory_save_intent,
+    parse_name_from_content,
     preference_key_from_value,
 )
 from lumos_core.user_identity import UserIdentity
@@ -129,6 +132,26 @@ class TestMemoryManager:
         assert "lang" in out and "Python" in out
         assert "Remembered (user-approved)" in out
 
+    def test_format_user_memory_for_context_skips_name_like_preferences(self) -> None:
+        """Name is canonical in user_preferences only; name-like entries in user_memory are not output."""
+        user = UserIdentity(name="Alex", address_mode="adaptive")
+        prefs = [
+            {"key": "lang", "value": "Python"},
+            {"key": "adm_can", "value": "Adım Can"},
+        ]
+        out = format_user_memory_for_context(user, prefs)
+        assert "Alex" in out
+        assert "Python" in out
+        assert "Adım Can" not in out and "adm_can" not in out
+
+    def test_format_user_memory_for_context_name_only_from_user_preferences(self) -> None:
+        """Name is never read from user_memory; only user_preferences.name is used for 'Adım ne?' context."""
+        user = UserIdentity(name="", address_mode="adaptive")  # no name in user_preferences
+        prefs = [{"key": "adm_can", "value": "Adım Can"}]  # name-like in user_memory
+        out = format_user_memory_for_context(user, prefs)
+        assert "Can" not in out and "Adım Can" not in out
+        assert "adm_can" not in out
+
     def test_build_chat_context_includes_recent_messages_from_session(self) -> None:
         """Chat session memory: build_chat_context passes recent_messages to router."""
         user = UserIdentity()
@@ -178,7 +201,7 @@ class TestMemoryManager:
 
 
 class TestMemorySaveIntent:
-    """Explicit memory-save only: 'bunu hatırla...' -> store in user memory, no auto-save."""
+    """Explicit memory-save only: 'bunu hatırla...' -> name to user_preferences.name, else to user_memory. No auto-save."""
 
     def test_parse_memory_save_intent_detects_prefix(self) -> None:
         assert parse_memory_save_intent("bunu hatırla: Ben Türkçe konuşurum") == "Ben Türkçe konuşurum"
@@ -248,6 +271,45 @@ class TestMemorySaveIntent:
         key = preference_key_from_value("Kahveyi sade severim")
         assert key == "kahveyi_sade_severim" or "kahveyi" in key
 
+    def test_parse_name_from_content(self) -> None:
+        assert parse_name_from_content("Adım Can") == "Can"
+        assert parse_name_from_content("Adım  Can") == "Can"
+        assert parse_name_from_content("Benim adım Can") == "Can"
+        assert parse_name_from_content("BENIM ADIM Ali") == "Ali"
+        assert parse_name_from_content("Kahveyi sade severim") is None
+        assert parse_name_from_content("") is None
+
+    def test_is_ask_my_name_intent(self) -> None:
+        """'Adım ne?' / 'adım ne' -> True; answer must come from user_preferences.name only."""
+        assert is_ask_my_name_intent("Adım ne?") is True
+        assert is_ask_my_name_intent("adım ne") is True
+        assert is_ask_my_name_intent("  Adım ne  ?  ") is True
+        assert is_ask_my_name_intent("Adım ne") is True
+        assert is_ask_my_name_intent("Adım Can") is False
+        assert is_ask_my_name_intent("adım ne değil") is False
+        assert is_ask_my_name_intent("") is False
+
+    def test_apply_memory_save_name_writes_user_preferences(self) -> None:
+        """'Adım X' / 'Benim adım X' -> user_preferences.name only, not user_memory."""
+        from lumos_core.user_identity import load as load_user_identity
+        with tempfile.TemporaryDirectory() as tmp:
+            assert apply_memory_save("Adım Can", base_dir=tmp) == "name"
+            user = load_user_identity(base_dir=tmp)
+            assert user.name == "Can"
+            assert apply_memory_save("Benim adım Ali", base_dir=tmp) == "name"
+            user = load_user_identity(base_dir=tmp)
+            assert user.name == "Ali"
+            prefs = load_approved_preferences(base_dir=tmp)
+            assert not any(p.get("value", "").startswith("Adım") or "adım" in (p.get("value") or "").lower() for p in prefs)
+
+    def test_apply_memory_save_preference_writes_user_memory(self) -> None:
+        """Non-name content -> user_memory as before."""
+        with tempfile.TemporaryDirectory() as tmp:
+            assert apply_memory_save("Kahveyi sade severim", base_dir=tmp) == "preference"
+            prefs = load_approved_preferences(base_dir=tmp)
+            assert len(prefs) == 1
+            assert "Kahveyi" in prefs[0]["value"]
+
     def test_memory_save_roundtrip(self) -> None:
         """Parse intent -> derive key -> add_approved_preference -> load: preference is stored."""
         with tempfile.TemporaryDirectory() as tmp:
@@ -258,3 +320,20 @@ class TestMemorySaveIntent:
             assert len(prefs) == 1
             assert prefs[0]["key"] == key
             assert prefs[0]["value"] == content
+
+    def test_run_ask_adim_ne_returns_name_from_user_preferences(self) -> None:
+        """'Adım ne?' is answered only from user_preferences.name; no user_memory read for name."""
+        from io import StringIO
+        from lumos_core.cli import run_ask
+        user_with_name = UserIdentity(name="Can", address_mode="adaptive")
+        user_no_name = UserIdentity(name="", address_mode="adaptive")
+        with patch("lumos_core.user_identity.load", return_value=user_with_name):
+            out = StringIO()
+            with patch("sys.stdout", out):
+                run_ask("Adım ne?")
+            assert "Adın Can" in out.getvalue()
+        with patch("lumos_core.user_identity.load", return_value=user_no_name):
+            out = StringIO()
+            with patch("sys.stdout", out):
+                run_ask("Adım ne?")
+            assert "İsmin kayıtlı değil" in out.getvalue()

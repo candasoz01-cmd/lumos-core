@@ -12,7 +12,55 @@ from lumos_core.memory.user_memory import (
     add_approved_preference as _add_approved_preference,
     load_approved_preferences,
 )
-from lumos_core.user_identity import UserIdentity, load as load_user_identity
+from lumos_core.user_identity import UserIdentity, load as load_user_identity, save as save_user_identity
+
+
+def _is_name_like_value(value: str) -> bool:
+    """True if value looks like a stored name phrase (Adım X / Benim adım X). Used to skip outputting name from user_memory."""
+    v = (value or "").strip().lower()
+    return v.startswith("adım ") or v.startswith("benim adım ")
+
+
+def parse_name_from_content(content: str) -> str | None:
+    """
+    If content is a name phrase ("Adım X" or "Benim adım X"), return the name part; else None.
+    Canonical name storage is user_preferences.name; this supports routing memory-save to it.
+    Supports both Turkish (ı) and ASCII (i) spellings for prefix matching (e.g. "BENIM ADIM X").
+    """
+    c = (content or "").strip()
+    if not c:
+        return None
+    low = c.lower().replace("\u0131", "i")  # dotless ı -> i for prefix match
+    if low.startswith("adim "):
+        name = c[5:].strip()
+        return name if name else None
+    if low.startswith("benim adim "):
+        name = c[11:].strip()
+        return name if name else None
+    return None
+
+
+def is_ask_my_name_intent(message: str) -> bool:
+    """True if message is asking for the user's name (e.g. 'Adım ne?'). Answer from user_preferences.name only."""
+    m = (message or "").strip().lower().rstrip("?").strip()
+    return m == "adım ne"
+
+
+def apply_memory_save(content: str, base_dir: str | Path | None = None) -> str:
+    """
+    Apply explicit memory-save content: if name phrase ("Adım X" / "Benim adım X")
+    -> user_preferences.name only; else -> user_memory. Returns "name" or "preference".
+    """
+    name = parse_name_from_content(content)
+    if name:
+        # Name phrase -> user_preferences.name only; do not write name to user_memory.
+        user = load_user_identity(base_dir)
+        user.name = name
+        save_user_identity(user, base_dir)
+        return "name"
+    key = preference_key_from_value(content)
+    _add_approved_preference(key, content, base_dir)
+    return "preference"
 
 
 def create_session_memory(
@@ -91,16 +139,20 @@ def preference_key_from_value(value: str) -> str:
 def format_user_memory_for_context(user: UserIdentity, approved_preferences: list[dict[str, str]]) -> str:
     """
     Format user profile and approved preferences as a short string for system/context.
-    Empty string if nothing to add. Used to inject into prompts when present.
+    Name is read only from user (user_preferences.name). user_memory (approved_preferences)
+    is never used for name; name-like entries are excluded so "Adım ne?" is answered only from user_preferences.
     """
     parts: list[str] = []
+    # Name only from user_preferences; never from user_memory (approved_preferences).
     if (user.name or "").strip():
         parts.append(f"User's name: {user.name.strip()}")
     if user.address_mode and user.address_mode != "adaptive":
         parts.append(f"Address mode: {user.address_mode}")
     if (user.preferred_address or "").strip():
         parts.append(f"Preferred address: {user.preferred_address.strip()}")
-    for p in approved_preferences:
+    # user_memory is not used for name; exclude name-like entries from context.
+    prefs_for_context = [p for p in approved_preferences if not _is_name_like_value(p.get("value", ""))]
+    for p in prefs_for_context:
         k, v = p.get("key", ""), p.get("value", "")
         if k and v:
             parts.append(f"{k}: {v}")

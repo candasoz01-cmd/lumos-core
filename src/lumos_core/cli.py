@@ -21,22 +21,40 @@ def run_ask(
     from lumos_core.ai_router import AIRouter
     from lumos_core.context.context import Context
     from lumos_core.memory.memory_manager import (
-        add_approved_preference,
+        apply_memory_save,
         build_chat_context,
+        is_ask_my_name_intent,
         load_user_profile,
         parse_memory_save_intent,
-        preference_key_from_value,
+        parse_name_from_content,
     )
     from lumos_core.policy.pre_route import pre_route
     from lumos_core.response_builder import build_response
+    from lumos_core.user_identity import load as load_user_identity
 
-    # Explicit memory-save: "bunu hatırla: ..." -> store in user memory only, no provider
+    # "bunu hatırla: ..." -> name phrase -> user_preferences.name; else -> user_memory
     content = parse_memory_save_intent(prompt)
     if content is not None:
-        key = preference_key_from_value(content)
-        add_approved_preference(key, content)
+        apply_memory_save(content)  # routes name to user_preferences.name, rest to user_memory
         print()
         print(f"Lumos > Bunu hatırladım: {content}")
+        print()
+        return
+    # "Adım ne?" -> answer only from user_preferences.name (before parsing "Adım X" as set-name)
+    if is_ask_my_name_intent(prompt):
+        user = load_user_identity()
+        print()
+        if (user.name or "").strip():
+            print(f"Lumos > Adın {user.name.strip()}")
+        else:
+            print("Lumos > İsmin kayıtlı değil.")
+        print()
+        return
+    # "Benim adım X" / "Adım X" without "bunu hatırla" -> canonical source user_preferences.name
+    if parse_name_from_content(prompt) is not None:
+        apply_memory_save(prompt)
+        print()
+        print(f"Lumos > Bunu hatırladım: {prompt.strip()}")
         print()
         return
 
@@ -83,13 +101,15 @@ def run_chat(
     from lumos_core.ai_router import AIRouter
     from lumos_core.context.context import Context
     from lumos_core.memory.memory_manager import (
+        apply_memory_save,
         build_chat_context,
         create_session_memory,
+        is_ask_my_name_intent,
         load_user_profile,
         parse_memory_save_intent,
-        preference_key_from_value,
-        add_approved_preference,
+        parse_name_from_content,
     )
+    from lumos_core.user_identity import load as load_user_identity
     from lumos_core.policy.pre_route import pre_route
     from lumos_core.response_builder import build_response
 
@@ -113,12 +133,27 @@ def run_chat(
         if line.lower() in EXIT_WORDS:
             break
 
-        # Explicit memory-save: "bunu hatırla: ..." -> store in user memory, no provider
+        # "bunu hatırla: ..." -> name phrase -> user_preferences.name; else -> user_memory
         content = parse_memory_save_intent(line)
         if content is not None:
-            key = preference_key_from_value(content)
-            add_approved_preference(key, content)
+            kind = apply_memory_save(content)  # name -> user_preferences.name only
+            if kind == "name":
+                user = load_user_identity()  # refresh so "Adım ne?" reads from user_preferences
             print("Lumos > Bunu hatırladım: " + content)
+            continue
+        # "Adım ne?" -> answer only from user_preferences.name (before parsing "Adım X" as set-name)
+        if is_ask_my_name_intent(line):
+            if (user.name or "").strip():
+                print("Lumos > Adın " + user.name.strip())
+            else:
+                print("Lumos > İsmin kayıtlı değil.")
+            continue
+        # "Benim adım X" / "Adım X" without "bunu hatırla" -> canonical source user_preferences.name
+        if parse_name_from_content(line) is not None:
+            kind = apply_memory_save(line)
+            if kind == "name":
+                user = load_user_identity()
+            print("Lumos > Bunu hatırladım: " + line.strip())
             continue
 
         ctx = Context(message=line)

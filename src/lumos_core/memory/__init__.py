@@ -14,6 +14,7 @@ from lumos_core.memory.user_memory import (
     save_approved_preferences,
 )
 from lumos_core.memory.memory_manager import (
+    apply_memory_save,
     build_chat_context,
     create_session_memory,
     format_user_memory_for_context,
@@ -23,15 +24,16 @@ from lumos_core.memory.memory_manager import (
 )
 
 __all__ = [
-    "SessionMemory",
-    "load_approved_preferences",
-    "save_approved_preferences",
     "add_approved_preference",
-    "remove_approved_preference",
-    "create_session_memory",
-    "load_user_profile",
-    "format_user_memory_for_context",
+    "apply_memory_save",
     "build_chat_context",
+    "create_session_memory",
+    "format_user_memory_for_context",
+    "load_approved_preferences",
+    "load_user_profile",
     "parse_memory_save_intent",
     "preference_key_from_value",
+    "remove_approved_preference",
+    "save_approved_preferences",
+    "SessionMemory",
 ]
