@@ -303,7 +303,7 @@ def main() -> None:
                 if not was_enabled:
                     state.log_event(logfmt("presence_enabled", timeout=cfg.timeout_sec, poll=cfg.poll_sec, cam=cfg.camera_index, require_face=cfg.require_face))
                 pl.save_presence_cfg(_P(base_dir), cfg)
-                ok, msg = pl.start_presence_lock(base_dir=_P(base_dir), lock_cb=_lock_cb, is_already_locked=state.is_locked, timeout_sec=cfg.timeout_sec, poll_sec=cfg.poll_sec, camera_index=cfg.camera_index, require_face=cfg.require_face)
+                ok, msg = pl.start_presence_lock(base_dir=_P(base_dir), lock_cb=_lock_cb, is_already_locked=state.is_locked, timeout_sec=cfg.timeout_sec, poll_sec=cfg.poll_sec, camera_index=cfg.camera_index, require_face=cfg.require_face, silent_stop=True)
                 if not ok:
                     print(msg)
                     cfg.enabled = False

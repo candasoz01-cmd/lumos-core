@@ -152,7 +152,7 @@ def recover_if_needed(
             poll_sec=float(getattr(cfg, "poll_sec", 1.0)),
             camera_index=int(getattr(cfg, "camera_index", 0)),
             require_face=bool(getattr(cfg, "require_face", True)),
-            silent_stop=False,
+            silent_stop=True,
             reason="boot_desync",
         )
         log_event(logfmt("presence_autostarted", reason="boot_desync"))
@@ -185,7 +185,7 @@ def watchdog_tick(
             poll_sec=float(getattr(cfg, "poll_sec", 1.0)),
             camera_index=int(getattr(cfg, "camera_index", 0)),
             require_face=bool(getattr(cfg, "require_face", True)),
-            silent_stop=False,
+            silent_stop=True,
             reason="watchdog_desync",
         )
         log_event(logfmt("presence_autostarted", reason="watchdog_desync"))
@@ -210,10 +210,14 @@ def _detect_face(frame) -> bool:
     except Exception:
         return False
 
-def _presence_loop(*, base_dir: Path, lock_cb: Optional[Callable[[], None]], timeout_sec: int, poll_sec: float, camera_index: int, require_face: bool) -> None:
+# Ardışık bu kadar frame True gelirse "yüz var" sayılır; kısa flip'ler last_seen'ı resetlemez.
+_STABLE_PRESENT_FRAMES = 2
+
+def _presence_loop(*, base_dir: Path, lock_cb: Optional[Callable[[], None]], is_already_locked: Optional[Callable[[], bool]], timeout_sec: int, poll_sec: float, camera_index: int, require_face: bool) -> None:
     _set_status("ON")
     last_seen = time.time()
     last_logged_present: Optional[bool] = None  # log only on state change
+    consecutive_present = 0
 
     cap = None
     try:
@@ -233,20 +237,33 @@ def _presence_loop(*, base_dir: Path, lock_cb: Optional[Callable[[], None]], tim
                 present = True
                 if require_face:
                     present = _detect_face(frame)
-                if present:
+            if present:
+                consecutive_present += 1
+                if consecutive_present >= _STABLE_PRESENT_FRAMES:
                     last_seen = time.time()
+            else:
+                consecutive_present = 0
 
-            # Log face state only on change (no spam)
-            if last_logged_present is not None and last_logged_present != present:
+            # Log face state only on change; use stabilized value so flips don't spam log
+            stabilized_present = consecutive_present >= _STABLE_PRESENT_FRAMES
+            if last_logged_present is not None and last_logged_present != stabilized_present:
                 try:
-                    _append_log(logfmt("face_present", value=present))
+                    _append_log(logfmt("face_present", value=stabilized_present))
                 except Exception:
                     pass
-            last_logged_present = present
+            last_logged_present = stabilized_present
 
             # Always check timeout (even when ok=False: no frame = treat as absent)
             if (time.time() - last_seen) >= float(timeout_sec):
-                if lock_cb:
+                already_locked = False
+                if is_already_locked is not None:
+                    try:
+                        already_locked = is_already_locked()
+                    except Exception:
+                        pass
+                if already_locked:
+                    last_seen = time.time()
+                elif lock_cb:
                     try:
                         _append_log(logfmt("absence_timeout", timeout_sec=timeout_sec))
                     except Exception:
@@ -255,7 +272,9 @@ def _presence_loop(*, base_dir: Path, lock_cb: Optional[Callable[[], None]], tim
                         lock_cb()
                     except Exception:
                         _set_status("ERR:lock_cb")
-                last_seen = time.time()
+                    last_seen = time.time()
+                else:
+                    last_seen = time.time()
 
             time.sleep(max(0.2, float(poll_sec)))
 
@@ -288,6 +307,7 @@ def start_presence_lock(*, base_dir: Path, lock_cb: Optional[Callable[[], None]]
             kwargs=dict(
                 base_dir=Path(base_dir),
                 lock_cb=lock_cb,
+                is_already_locked=is_already_locked,
                 timeout_sec=int(timeout_sec),
                 poll_sec=float(poll_sec),
                 camera_index=int(camera_index),

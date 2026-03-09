@@ -255,3 +255,110 @@ def test_trigger_macos_screen_lock_darwin_both_fail_logs_failed_or_error():
         "macos_lock_failed" in m or "macos_lock_error" in m for m in log_calls
     )
     assert has_fail_or_error, f"expected fail/error log in {log_calls}"
+
+
+def test_presence_timeout_locks_once_then_skips_when_already_locked():
+    """Repeated timeout cycles must trigger lock_cb only once; once locked, is_already_locked prevents repeat."""
+    import lumos_core.security.presence_lock as pl
+
+    lock_cb_calls = []
+    locked = [False]
+
+    def is_already_locked():
+        return locked[0]
+
+    def user_lock_cb():
+        lock_cb_calls.append(1)
+        locked[0] = True
+
+    time_call_count = [0]
+    t0 = 1000.0
+    step = 0.2
+    timeout_sec = 30
+    # Stop after ~100s simulated so we get at least 2 full timeout cycles (at 30s and 60s)
+    stop_after_calls = 500
+
+    def mock_time():
+        time_call_count[0] += 1
+        if time_call_count[0] >= stop_after_calls:
+            pl._STOP.set()
+        return t0 + (time_call_count[0] - 1) * step
+
+    mock_cap = MagicMock()
+    mock_cap.isOpened.return_value = True
+    mock_cap.read.return_value = (True, object())
+
+    with patch.object(pl, "_detect_face", return_value=False):
+        with patch.object(pl, "cv2", MagicMock()) as mcv2:
+            mcv2.VideoCapture.return_value = mock_cap
+            with patch("lumos_core.security.presence_lock.time") as mtime:
+                mtime.time = mock_time
+                mtime.sleep = lambda x: None
+                pl.start_presence_lock(
+                    base_dir=Path(ROOT / ".lumos"),
+                    lock_cb=user_lock_cb,
+                    is_already_locked=is_already_locked,
+                    timeout_sec=timeout_sec,
+                    poll_sec=step,
+                    camera_index=0,
+                    require_face=True,
+                    silent_stop=True,
+                    reason="internal",
+                )
+                if pl._THREAD and pl._THREAD.is_alive():
+                    pl._THREAD.join(timeout=5.0)
+                pl.stop_presence_lock(base_dir=Path(ROOT / ".lumos"), silent=True)
+
+    assert len(lock_cb_calls) == 1, "lock_cb must be invoked exactly once across repeated timeout cycles"
+
+
+def test_presence_flapping_face_triggers_absence_timeout():
+    """Flapping face_present (true/false every frame) must not reset last_seen; after timeout_sec absence_timeout and lock_cb must run."""
+    import lumos_core.security.presence_lock as pl
+
+    lock_cb_calls = []
+    log_calls = []
+
+    timeout_sec = 30
+    poll_sec = 0.2
+    t0 = 1000.0
+    call_count = [0]
+
+    def mock_time():
+        call_count[0] += 1
+        if call_count[0] >= 200:
+            pl._STOP.set()
+        return t0 + (call_count[0] - 1) * poll_sec
+
+    mock_cap = MagicMock()
+    mock_cap.isOpened.return_value = True
+    mock_cap.read.return_value = (True, object())
+
+    # Alternate True/False so consecutive_present never reaches 2; last_seen stays at t0
+    def flip_face(_frame):
+        return (call_count[0] % 2) == 0
+
+    with patch.object(pl, "_detect_face", side_effect=flip_face):
+        with patch.object(pl, "cv2", MagicMock()) as mcv2:
+            mcv2.VideoCapture.return_value = mock_cap
+            with patch.object(pl, "_append_log", side_effect=lambda msg: log_calls.append(msg)):
+                with patch("lumos_core.security.presence_lock.time") as mtime:
+                    mtime.time = mock_time
+                    mtime.sleep = lambda x: None
+                    pl.start_presence_lock(
+                        base_dir=Path(ROOT / ".lumos"),
+                        lock_cb=lambda: lock_cb_calls.append(1),
+                        is_already_locked=lambda: False,
+                        timeout_sec=timeout_sec,
+                        poll_sec=poll_sec,
+                        camera_index=0,
+                        require_face=True,
+                        silent_stop=True,
+                        reason="internal",
+                    )
+                    if pl._THREAD and pl._THREAD.is_alive():
+                        pl._THREAD.join(timeout=5.0)
+                    pl.stop_presence_lock(base_dir=Path(ROOT / ".lumos"), silent=True)
+
+    assert len(lock_cb_calls) == 1, "lock_cb must run once when flapping face never stabilizes"
+    assert any("absence_timeout" in m for m in log_calls), "absence_timeout must be logged"
