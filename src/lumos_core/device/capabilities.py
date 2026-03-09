@@ -117,7 +117,7 @@ def format_report(data: dict, caps: dict[str, str]) -> str:
         elif val == "denied":
             lines.append(f"  ✗ {label}")
         else:
-            lines.append(f"  ✗ {label} (unknown)")
+            lines.append(f"  ⚠ {label} (app cannot detect; check System Settings)")
     lines.append("")
 
     # Capabilities
@@ -136,13 +136,20 @@ def format_report(data: dict, caps: dict[str, str]) -> str:
         else:
             lines.append(f"  ✗ {label}")
 
-    # İzinler eksikse otomasyon kilidini açma notu
+    # Erişilebilirlik yoksa "To unlock"; yoksa ui_automation: can ile çelişmez
     perms = data.get("permissions") or {}
-    if any((perms.get(k) or "unknown").lower() != "granted" for k in ("accessibility", "full_disk_access", "screen_recording")):
+    ax = (perms.get("accessibility") or "unknown").lower()
+    if ax != "granted":
         lines.append("")
         lines.append("To unlock automation features:")
         lines.append("  1. Enable Accessibility")
         lines.append("  2. Enable Full Disk Access")
         lines.append("  3. Enable Screen Recording")
+    else:
+        fda = (perms.get("full_disk_access") or "unknown").lower()
+        scr = (perms.get("screen_recording") or "unknown").lower()
+        if fda != "granted" or scr != "granted":
+            lines.append("")
+            lines.append("For file scanning or screen capture, check Full Disk Access / Screen Recording in System Settings if needed.")
 
     return "\n".join(lines)

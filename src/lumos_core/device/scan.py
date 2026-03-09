@@ -100,31 +100,13 @@ def scan() -> dict:
     out["applications"] = sorted(set(apps))
     out["applications_note"] = "Sadece /Applications ve ~/Applications; eksik olabilir."
 
-    # macOS izinleri (TCC): programatik kesin tespit zor; kullanıcı System Settings'ten doğrulayabilir
-    out["permissions"] = _scan_permissions()
+    # macOS izinleri: env_scan ile tek kaynak (Full Disk / Screen Recording tespiti orada)
+    from lumos_core.system.env_scan import scan_permissions_mac
+
+    perms = scan_permissions_mac()
+    out["permissions"] = {
+        k: perms.get(k, "unknown")
+        for k in ("accessibility", "full_disk_access", "screen_recording")
+    }
 
     return out
-
-
-def _scan_permissions() -> dict[str, str]:
-    """Accessibility, Full Disk Access, Screen Recording — mümkünse tespit, yoksa unknown."""
-    p: dict[str, str] = {
-        "accessibility": "unknown",
-        "full_disk_access": "unknown",
-        "screen_recording": "unknown",
-    }
-    if platform.system() != "Darwin":
-        return p
-    # Accessibility: System Events'e erişim denemesi (izin yoksa hata döner, prompt çıkabilir)
-    try:
-        r = subprocess.run(
-            ["osascript", "-e", 'tell application "System Events" to get name of first process'],
-            capture_output=True,
-            text=True,
-            timeout=3,
-        )
-        p["accessibility"] = "granted" if r.returncode == 0 else "denied"
-    except Exception:
-        pass
-    # Full Disk Access / Screen Recording: doğrudan API yok; unknown bırakıyoruz
-    return p

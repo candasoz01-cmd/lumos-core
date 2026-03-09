@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import ctypes
+import ctypes.util
 import platform
 import subprocess
 import sys
@@ -118,6 +120,45 @@ def scan_apps_mac() -> list[str]:
     return sorted(set(names))
 
 
+def _check_screen_recording_mac() -> str:
+    """macOS 11+: CGPreflightScreenCaptureAccess (check only, no prompt). Returns granted/denied/unknown."""
+    if platform.system() != "Darwin":
+        return "unknown"
+    try:
+        lib = ctypes.util.find_library("CoreGraphics")
+        if not lib:
+            return "unknown"
+        cg = ctypes.CDLL(lib)
+        fn = getattr(cg, "CGPreflightScreenCaptureAccess", None)
+        if fn is None:
+            return "unknown"
+        fn.restype = ctypes.c_bool
+        if fn():
+            return "granted"
+        return "denied"
+    except Exception:
+        return "unknown"
+
+
+def _check_full_disk_access_mac() -> str:
+    """Heuristic: try reading a path that typically requires FDA. Returns granted/denied/unknown. May trigger prompt once if app not in list."""
+    if platform.system() != "Darwin":
+        return "unknown"
+    # Path that requires Full Disk Access on macOS (user may need to add Terminal/Python to FDA)
+    path = Path("/Library/Preferences/com.apple.TimeMachine.plist")
+    if not path.exists():
+        return "unknown"
+    try:
+        path.read_bytes()
+        return "granted"
+    except PermissionError:
+        return "denied"
+    except OSError:
+        return "unknown"
+    except Exception:
+        return "unknown"
+
+
 def scan_permissions_mac() -> dict[str, str]:
     """Heuristic detection of accessibility / terminal / screen recording / full disk (read-only). Do not request permissions."""
     out: dict[str, str] = {
@@ -144,7 +185,8 @@ def scan_permissions_mac() -> dict[str, str]:
         out["terminal"] = ax  # same process capability
     except Exception:
         pass
-    # Screen recording / full disk access: no safe programmatic check without triggering prompt; leave unknown
+    out["screen_recording"] = _check_screen_recording_mac()
+    out["full_disk_access"] = _check_full_disk_access_mac()
     return out
 
 
