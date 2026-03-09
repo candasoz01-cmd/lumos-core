@@ -47,6 +47,9 @@ HELP_TEXT = """Kando v0 resmî komutlar: kilit | kamera | alias | durum | help |
   exit     Çıkış (q, çık, quit)
 Başka girdiler desteklenmez. Örnek: kilit, kamera, durum, çık"""
 
+# Bilinmeyen komut için tek mesaj (guardrail: test ile korunur).
+UNKNOWN_CMD_MSG = "Desteklenmeyen komut. help yazın."
+
 
 def _lumos_dir() -> str:
     if Path("src/.lumos").exists():
@@ -554,7 +557,7 @@ def main() -> None:
             print(HELP_TEXT)
             continue
         if route == "unknown":
-            print("Desteklenmeyen komut. help yazın.")
+            print(UNKNOWN_CMD_MSG)
             continue
         if route == "exit":
             print("OK")
@@ -576,7 +579,7 @@ def main() -> None:
         if route == "alias":
             alias_menu(args=args)
             continue
-        print("Desteklenmeyen komut. help yazın.")
+        print(UNKNOWN_CMD_MSG)
 
 if __name__ == "__main__":
     main()
