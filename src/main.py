@@ -38,7 +38,7 @@ def norm_cmd(s: str) -> str:
 # Canonical CLI: exit synonyms (q, çık, cik, quit -> exit)
 EXIT_SYNONYMS = frozenset({"exit", "quit", "çık", "cik", "çik", "q"})
 
-HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
+HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | en önemli eksik ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
   kilit    Cihaz kilidi / şifre
   kamera   Yüz tanıma (presence) kilit
   alias    Komut kısaltmaları (alias liste | alias ekle <ad> <hedef> | alias sil <ad>)
@@ -47,6 +47,7 @@ HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | şu a
   şu an güvenli miyim   Doğrudan güvenlik cevabı (kısa, dürüst)
   bana ne önerirsin   Şu an için en mantıklı sonraki adım (1–3 öneri)
   bir sonraki adım ne   Tek ve net bir sonraki adım
+  en önemli eksik ne   Tek kritik eksik (consent > lock > güvenlik; yoksa yok)
   neden böyle diyorsun   Bir önceki cevabın kısa gerekçesi
   bunu kısaca anlat   Bir önceki cevabı kısa ve sade özetle
   bunu hatırla   Son anlamlı cevabı veya durum özetini kısa not olarak kaydeder
@@ -54,7 +55,7 @@ HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | şu a
   son yaptığın ne   En son tamamladığın işi söyler
   bugün ne yaptın   Bugünkü işlerin kısa özeti
   exit     Çıkış (q, çık, quit)
-Örnek: kilit, kamera aç, durum, hazir, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
+Örnek: kilit, kamera aç, durum, hazir, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
 
 REHBER_TEXT = """Şunları kullanabilirsin:
   kilit: cihaz kilidi işlemleri
@@ -64,6 +65,7 @@ REHBER_TEXT = """Şunları kullanabilirsin:
   şu an güvenli miyim: doğrudan güvenlik cevabı
   bana ne önerirsin: şu an için 1–3 sonraki adım önerisi
   bir sonraki adım ne: tek ve net bir sonraki adım
+  en önemli eksik ne: tek kritik eksik
   neden böyle diyorsun: bir önceki cevabın kısa gerekçesi
   bunu kısaca anlat: bir önceki cevabı kısa ve sade özetle
   bunu hatırla: son cevabı veya durum özetini kısa not olarak kaydeder
@@ -146,6 +148,18 @@ def _get_guvenli_cevap(base_dir: str | Path, keystore_initialized: bool, presenc
     if durum_label == "güvenli":
         return "Şu an güvenlisin. Temel korumalar aktif."
     return "Şu an kısmen güvenlisin. " + (parts.get("not_line") or "Durum ile detay görebilirsin.")
+
+
+def _get_en_onemli_eksik(base_dir: str | Path, keystore_initialized: bool, presence_module: Any) -> str:
+    """Mevcut duruma göre tek kritik eksik. Öncelik: consent > lock > temel güvenlik; yoksa kritik eksik yok."""
+    parts = get_durum_parts(Path(base_dir), keystore_initialized, presence_module)
+    if not parts["consent_ok"]:
+        return "En önemli eksik: consent alınmamış."
+    if not parts["lock_ok"]:
+        return "En önemli eksik: lock aktif değil."
+    if parts.get("not_line") != "kritik eksik yok":
+        return "En önemli eksik: temel güvenlik durumu tam değil."
+    return "Şu an kritik bir eksik görünmüyor."
 
 
 def _format_neden_cevap(reason: str | None) -> str:
@@ -283,6 +297,8 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("sonraki_adim", [])
     if _q == "su an guvenli miyim":
         return ("guvenli_miyim", [])
+    if _q == "en onemli eksik ne":
+        return ("en_onemli_eksik", [])
     if _q == "neden boyle diyorsun":
         return ("neden_boyle", [])
     if _q == "bunu kisaca anlat":
@@ -843,6 +859,14 @@ def main() -> None:
             print(resp)
             last_response_reason[0] = resp.split(". ", 1)[1].strip().rstrip(".") if ". " in resp else resp
             last_action[0] = "En son güvenlik cevabını verdim."
+            last_response_text[0] = resp
+            _record_today_action(today_date, today_actions, last_action[0])
+            continue
+        if route == "en_onemli_eksik":
+            resp = _get_en_onemli_eksik(base_dir, ks.is_initialized(), pl)
+            print(resp)
+            last_response_reason[0] = resp
+            last_action[0] = "En son tek kritik eksiği söyledim."
             last_response_text[0] = resp
             _record_today_action(today_date, today_actions, last_action[0])
             continue
