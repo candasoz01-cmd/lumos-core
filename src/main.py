@@ -38,12 +38,13 @@ def norm_cmd(s: str) -> str:
 # Canonical CLI: exit synonyms (q, çık, cik, quit -> exit)
 EXIT_SYNONYMS = frozenset({"exit", "quit", "çık", "cik", "çik", "q"})
 
-HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | en önemli eksik ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
+HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi moddayım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | en önemli eksik ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
   kilit    Cihaz kilidi / şifre
   kamera   Yüz tanıma (presence) kilit
   alias    Komut kısaltmaları (alias liste | alias ekle <ad> <hedef> | alias sil <ad>)
   durum    Kısa durum özeti (lock, presence, consent, mod, kritik not)
   hazır mıyım / hazir   Tek satır hazır olma özeti
+  hangi moddayım   Mevcut çalışma modu (offline / online / güvenli offline)
   şu an güvenli miyim   Doğrudan güvenlik cevabı (kısa, dürüst)
   bana ne önerirsin   Şu an için en mantıklı sonraki adım (1–3 öneri)
   bir sonraki adım ne   Tek ve net bir sonraki adım
@@ -55,13 +56,14 @@ HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | şu a
   son yaptığın ne   En son tamamladığın işi söyler
   bugün ne yaptın   Bugünkü işlerin kısa özeti
   exit     Çıkış (q, çık, quit)
-Örnek: kilit, kamera aç, durum, hazir, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
+Örnek: kilit, kamera aç, durum, hazir, hangi moddayım, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
 
 REHBER_TEXT = """Şunları kullanabilirsin:
   kilit: cihaz kilidi işlemleri
   kamera: yüz algılama ve otomatik kilit
   durum: mevcut durum özeti (detaylı)
   hazir: hızlı hazır olma özeti
+  hangi moddayım: mevcut çalışma modu (tek cümle)
   şu an güvenli miyim: doğrudan güvenlik cevabı
   bana ne önerirsin: şu an için 1–3 sonraki adım önerisi
   bir sonraki adım ne: tek ve net bir sonraki adım
@@ -160,6 +162,21 @@ def _get_en_onemli_eksik(base_dir: str | Path, keystore_initialized: bool, prese
     if parts.get("not_line") != "kritik eksik yok":
         return "En önemli eksik: temel güvenlik durumu tam değil."
     return "Şu an kritik bir eksik görünmüyor."
+
+
+def _get_mod_cevabi(
+    mode: str,
+    base_dir: str | Path,
+    keystore_initialized: bool,
+    presence_module: Any,
+) -> str:
+    """Mevcut çalışma modunu tek cümle söyle. durum/hazır ile karışmaz; sadece mod cevabı."""
+    if (mode or "").strip().lower() == "offline":
+        parts = get_durum_parts(Path(base_dir), keystore_initialized, presence_module)
+        if parts.get("durum_label") == "güvenli":
+            return "Şu an güvenli offline moddasın."
+        return "Şu an offline moddasın."
+    return "Şu an online moddasın."
 
 
 def _format_neden_cevap(reason: str | None) -> str:
@@ -281,8 +298,16 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("durum", rest)
     if head in ("hazir", "hazır"):
         return ("hazir", rest)
-    # "yardım et" / "ne yazabilirim" -> kısa rehber (ı -> i normalize)
-    _q = s.replace("\u0131", "i").replace("İ", "i")
+    # "yardım et" / "ne yazabilirim" -> kısa rehber; Türkçe harfleri ASCII'ye çevir (ö→o, ü→u, ş→s, ğ→g, ç→c, ı→i)
+    _q = (
+        s.replace("\u0131", "i")
+        .replace("İ", "i")
+        .replace("ö", "o")
+        .replace("ü", "u")
+        .replace("ş", "s")
+        .replace("ğ", "g")
+        .replace("ç", "c")
+    )
     if _q in ("yardim et", "ne yazabilirim"):
         return ("rehber", [])
     if _q in ("ne yapiyorsun", "napiyon", "neyapiyorsun", "ne yapiyon"):
@@ -305,6 +330,8 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("kisaca_anlat", [])
     if _q == "bunu hatirla":
         return ("hatirla", [])
+    if _q == "hangi moddayim":
+        return ("hangi_moddayim", [])
     return ("unknown", [])
 
 
@@ -867,6 +894,14 @@ def main() -> None:
             print(resp)
             last_response_reason[0] = resp
             last_action[0] = "En son tek kritik eksiği söyledim."
+            last_response_text[0] = resp
+            _record_today_action(today_date, today_actions, last_action[0])
+            continue
+        if route == "hangi_moddayim":
+            resp = _get_mod_cevabi(mode, base_dir, ks.is_initialized(), pl)
+            print(resp)
+            last_response_reason[0] = resp
+            last_action[0] = "En son mod cevabını verdim."
             last_response_text[0] = resp
             _record_today_action(today_date, today_actions, last_action[0])
             continue
