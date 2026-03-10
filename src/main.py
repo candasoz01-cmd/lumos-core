@@ -8,7 +8,7 @@ from pathlib import Path
 from core.engine import CoreEngine
 from core.logfmt import logfmt
 from core.lumos import Lumos
-from core.state import CoreState, format_durum, format_status_line
+from core.state import CoreState, format_durum
 from core.startup_health import get_durum_parts, get_startup_summary
 from engine.online_engine import OnlineEngineV1
 from memory.secure_store import SecureNotesStore
