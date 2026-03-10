@@ -131,6 +131,11 @@ def test_enable_then_disable_log_order_option_b():
     log_path = ROOT / ".lumos" / "log.txt"
     log_path.parent.mkdir(parents=True, exist_ok=True)
     log_path.write_text("", encoding="utf-8")
+    # Ensure presence was disabled so CLI logs presence_enabled (only logged when not was_enabled).
+    # CI/order can leave presence.json enabled=True from other tests, causing this assert to fail.
+    cfg_file = log_path.parent / "presence.json"
+    if cfg_file.exists():
+        cfg_file.unlink()
     try:
         _ = subprocess.run(
             [sys.executable, "-m", "lumos_core"],
