@@ -8,8 +8,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 from lumos_core.security.consent import (
     has_user_consent,
     save_consent,
