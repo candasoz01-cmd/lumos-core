@@ -95,3 +95,31 @@ def format_status_line(snapshot: dict[str, Any]) -> str:
     mode = (snapshot.get("mode") or "offline").strip()
     log_ts = (snapshot.get("last_log_ts") or "").strip()
     return f"{lock} | Presence: {pres} | Mode: {mode} | Log: {log_ts}"
+
+
+def format_durum(
+    snapshot: dict[str, Any],
+    consent_ok: bool,
+    lock_ok: bool,
+    durum_label: str,
+    not_line: str,
+) -> str:
+    """
+    Durum komutu için okunur çıktı: Durum, Lock, Presence, Consent, Mod, Not.
+    consent_ok/lock_ok/durum_label/not_line get_durum_parts ile alınır.
+    """
+    lock_label = "aktif" if lock_ok else "pasif"
+    enabled = bool(snapshot.get("presence_enabled", False))
+    pres_label = "açık" if enabled else "kapalı"
+    consent_label = "kayıtlı" if consent_ok else "yok"
+    mode = (snapshot.get("mode") or "offline").strip()
+
+    lines = [
+        f"Durum: {durum_label}",
+        f"Lock: {lock_label}",
+        f"Presence: {pres_label}",
+        f"Consent: {consent_label}",
+        f"Mod: {mode}",
+        f"Not: {not_line}",
+    ]
+    return "\n".join(lines)

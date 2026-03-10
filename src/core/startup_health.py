@@ -76,3 +76,36 @@ def get_startup_summary(
 
     pres_label = "presence hazır" if pres_enabled else "presence kapalı"
     return f"Hazır. Lock aktif, {pres_label}, consent kayıtlı."
+
+
+def consent_ok(base_dir: str | Path) -> bool:
+    """Consent dosyası var mı (durum komutu için)."""
+    return _consent_ok(base_dir)
+
+
+def get_durum_parts(
+    base_dir: str | Path,
+    keystore_initialized: bool,
+    presence_module: Any,
+) -> dict[str, Any]:
+    """
+    Durum komutu için etiket ve not. Öncelik: consent > lock > presence > macOS.
+    Döner: consent_ok, lock_ok, durum_label ("güvenli" | "kısmen hazır"), not_line.
+    """
+    consent = _consent_ok(base_dir)
+    lock = _lock_ok(keystore_initialized)
+    pres_ok, pres_enabled = _presence_ok(presence_module, base_dir)
+    macos = _macos_permissions_ok()
+
+    if not consent:
+        return {"consent_ok": False, "lock_ok": lock, "durum_label": "kısmen hazır", "not_line": "consent alınmadı"}
+    if not lock:
+        return {"consent_ok": True, "lock_ok": False, "durum_label": "kısmen hazır", "not_line": "lock hazır değil"}
+    if not pres_ok:
+        return {"consent_ok": True, "lock_ok": True, "durum_label": "kısmen hazır", "not_line": "presence yapılandırması yok"}
+    if pres_enabled and platform.system() == "Darwin" and macos is False:
+        return {"consent_ok": True, "lock_ok": True, "durum_label": "kısmen hazır", "not_line": "kamera izni yok"}
+    if pres_enabled and platform.system() == "Darwin" and macos is None:
+        return {"consent_ok": True, "lock_ok": True, "durum_label": "kısmen hazır", "not_line": "kamera izni bilinmiyor"}
+
+    return {"consent_ok": True, "lock_ok": True, "durum_label": "güvenli", "not_line": "kritik eksik yok"}

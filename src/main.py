@@ -8,8 +8,8 @@ from pathlib import Path
 from core.engine import CoreEngine
 from core.logfmt import logfmt
 from core.lumos import Lumos
-from core.state import CoreState, format_status_line
-from core.startup_health import get_startup_summary
+from core.state import CoreState, format_durum, format_status_line
+from core.startup_health import get_durum_parts, get_startup_summary
 from engine.online_engine import OnlineEngineV1
 from memory.secure_store import SecureNotesStore
 from policy.offline_engine import OfflineEngineV1
@@ -40,8 +40,8 @@ HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | exit
   kilit    Cihaz kilidi / şifre
   kamera   Yüz tanıma (presence) kilit
   alias    Komut kısaltmaları (alias liste | alias ekle <ad> <hedef> | alias sil <ad>)
-  durum    Özet durum (kilit, presence, mode, log)
-  hazır mıyım / hazir   Tek satır hazır olma özeti (consent, lock, presence)
+  durum    Kısa durum özeti (lock, presence, consent, mod, kritik not)
+  hazır mıyım / hazir   Tek satır hazır olma özeti
   exit     Çıkış (q, çık, quit)
 Örnek: kilit, kamera aç, durum, hazir, çık"""
 
@@ -597,7 +597,8 @@ def main() -> None:
             break
         if route == "durum":
             snap = state.snapshot(base_dir=base_dir, log_path=Path.cwd() / ".lumos" / "log.txt")
-            print(format_status_line(snap))
+            parts = get_durum_parts(Path(base_dir), ks.is_initialized(), engine.pl)
+            print(format_durum(snap, parts["consent_ok"], parts["lock_ok"], parts["durum_label"], parts["not_line"]))
             continue
         if route == "hazir":
             print(get_startup_summary(Path(base_dir), not state.is_locked(), pl))
