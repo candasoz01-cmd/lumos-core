@@ -36,15 +36,16 @@ def norm_cmd(s: str) -> str:
 # Canonical CLI: exit synonyms (q, çık, cik, quit -> exit)
 EXIT_SYNONYMS = frozenset({"exit", "quit", "çık", "cik", "çik", "q"})
 
-HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | ne yapıyorsun | exit
+HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | ne yapıyorsun | son yaptığın ne | exit
   kilit    Cihaz kilidi / şifre
   kamera   Yüz tanıma (presence) kilit
   alias    Komut kısaltmaları (alias liste | alias ekle <ad> <hedef> | alias sil <ad>)
   durum    Kısa durum özeti (lock, presence, consent, mod, kritik not)
   hazır mıyım / hazir   Tek satır hazır olma özeti
   ne yapıyorsun   Şu an ne yaptığını söyler
+  son yaptığın ne   En son tamamladığın işi söyler
   exit     Çıkış (q, çık, quit)
-Örnek: kilit, kamera aç, durum, hazir, ne yapıyorsun, çık"""
+Örnek: kilit, kamera aç, durum, hazir, ne yapıyorsun, son yaptığın ne, çık"""
 
 REHBER_TEXT = """Şunları kullanabilirsin:
   kilit: cihaz kilidi işlemleri
@@ -52,6 +53,7 @@ REHBER_TEXT = """Şunları kullanabilirsin:
   durum: mevcut durumu gösterir
   hazir: hızlı hazır olma özeti
   ne yapıyorsun: o an üstünde olduğun işi söyler
+  son yaptığın ne: en son tamamladığın işi söyler
   çık: çıkış yapar"""
 
 # Bilinmeyen komut: kısa, yönlendirici; teknik hata yok
@@ -125,6 +127,8 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("rehber", [])
     if _q in ("ne yapiyorsun", "napiyon", "neyapiyorsun", "ne yapiyon"):
         return ("ne_yapiyorsun", [])
+    if _q == "son yaptigin ne":
+        return ("son_yaptigin_ne", [])
     return ("unknown", [])
 
 
@@ -595,6 +599,7 @@ def main() -> None:
     # ---- CLI döngüsü ----
     pending: str | None = None
     current_task: list[str | None] = [None]  # aktif görev; "ne yapıyorsun" buna bakar
+    last_action: list[str | None] = [None]   # en son tamamlanan iş; "son yaptığın ne" buna bakar
     while True:
         try:
             pl.watchdog_tick(Path(base_dir), state.log_event, _recovery_lock_cb, state.is_locked)
@@ -614,9 +619,11 @@ def main() -> None:
         if route == "":
             continue
         if route == "help":
+            last_action[0] = "En son yardım listesini gösterdim."
             print(HELP_TEXT)
             continue
         if route == "rehber":
+            last_action[0] = "En son yardım rehberini gösterdim."
             print(REHBER_TEXT)
             continue
         if route == "ne_yapiyorsun":
@@ -624,6 +631,12 @@ def main() -> None:
                 print("Şu an " + current_task[0])
             else:
                 print("Şu an aktif bir görevim yok.")
+            continue
+        if route == "son_yaptigin_ne":
+            if last_action[0]:
+                print(last_action[0])
+            else:
+                print("Henüz kayda değer bir işlem yapmadım.")
             continue
         if route == "unknown":
             print(UNKNOWN_CMD_TEXT)
@@ -637,6 +650,7 @@ def main() -> None:
                 snap = state.snapshot(base_dir=base_dir, log_path=Path.cwd() / ".lumos" / "log.txt")
                 parts = get_durum_parts(Path(base_dir), ks.is_initialized(), engine.pl)
                 print(format_durum(snap, parts["consent_ok"], parts["lock_ok"], parts["durum_label"], parts["not_line"]))
+                last_action[0] = "En son durum özetini gösterdim."
             finally:
                 current_task[0] = None
             continue
@@ -644,6 +658,7 @@ def main() -> None:
             current_task[0] = "açılış sağlık özetini doğruluyorum."
             try:
                 print(get_startup_summary(Path(base_dir), not state.is_locked(), pl))
+                last_action[0] = "En son hazır olma özetini verdim."
             finally:
                 current_task[0] = None
             continue
@@ -653,6 +668,8 @@ def main() -> None:
                 result = lock_menu(state=state, engine=engine, initial_cmd=args[0] if args else None)
                 if result is not None:
                     pending = result
+                else:
+                    last_action[0] = "En son kilit menüsünü açtım."
             finally:
                 current_task[0] = None
             continue
@@ -662,11 +679,14 @@ def main() -> None:
                 result = presence_menu(state=state, engine=engine, base_dir=base_dir, initial_cmd=args[0] if args else None)
                 if result is not None:
                     pending = result
+                else:
+                    last_action[0] = "En son kamera menüsünü açtım."
             finally:
                 current_task[0] = None
             continue
         if route == "alias":
             alias_menu(args=args)
+            last_action[0] = "En son alias işlemi yaptım."
             continue
         print(UNKNOWN_CMD_TEXT)
 
