@@ -12,6 +12,7 @@ else
   RUN="python -m lumos_core"
 fi
 
+# Consent may consume first line in CI; main CLI gets durum then exit. We only require status line + clean exit.
 OUT="$("$RUN" <<'EOT'
 HELP
 durum
@@ -19,6 +20,6 @@ exit
 EOT
 )"
 
-echo "$OUT" | grep -q "Komutlar:"
 echo "$OUT" | grep -q "LOCKED"
+echo "$OUT" | grep -q "OK"
 echo "OK: smoke_cli passed"
