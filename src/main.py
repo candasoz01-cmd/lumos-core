@@ -46,6 +46,14 @@ HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | ne ya
   exit     Çıkış (q, çık, quit)
 Örnek: kilit, kamera aç, durum, hazir, ne yapıyorsun, çık"""
 
+REHBER_TEXT = """Şunları kullanabilirsin:
+  kilit: cihaz kilidi işlemleri
+  kamera: yüz algılama ve otomatik kilit
+  durum: mevcut durumu gösterir
+  hazir: hızlı hazır olma özeti
+  ne yapıyorsun: o an üstünde olduğun işi söyler
+  çık: çıkış yapar"""
+
 
 def _lumos_dir() -> str:
     if Path("src/.lumos").exists():
@@ -108,8 +116,10 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("durum", rest)
     if head in ("hazir", "hazır"):
         return ("hazir", rest)
-    # "ne yapıyorsun" ve türevleri (ı -> i normalize)
+    # "yardım et" / "ne yazabilirim" -> kısa rehber (ı -> i normalize)
     _q = s.replace("\u0131", "i").replace("İ", "i")
+    if _q in ("yardim et", "ne yazabilirim"):
+        return ("rehber", [])
     if _q in ("ne yapiyorsun", "napiyon", "neyapiyorsun", "ne yapiyon"):
         return ("ne_yapiyorsun", [])
     return ("unknown", [])
@@ -602,6 +612,9 @@ def main() -> None:
             continue
         if route == "help":
             print(HELP_TEXT)
+            continue
+        if route == "rehber":
+            print(REHBER_TEXT)
             continue
         if route == "ne_yapiyorsun":
             if current_task[0]:
