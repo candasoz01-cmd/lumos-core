@@ -322,21 +322,23 @@ def test_presence_flapping_face_triggers_absence_timeout():
     timeout_sec = 30
     poll_sec = 0.2
     t0 = 1000.0
-    call_count = [0]
+    time_calls = [0]
+    frame_idx = [0]  # increment per _detect_face call so flapping is true/false per frame, not per time.time()
 
     def mock_time():
-        call_count[0] += 1
-        if call_count[0] >= 200:
+        time_calls[0] += 1
+        if time_calls[0] >= 200:
             pl._STOP.set()
-        return t0 + (call_count[0] - 1) * poll_sec
+        return t0 + (time_calls[0] - 1) * poll_sec
 
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = True
     mock_cap.read.return_value = (True, object())
 
-    # Alternate True/False so consecutive_present never reaches 2; last_seen stays at t0
+    # Alternate True/False per frame so consecutive_present never reaches 2; absence_start never cleared
     def flip_face(_frame):
-        return (call_count[0] % 2) == 0
+        frame_idx[0] += 1
+        return (frame_idx[0] % 2) == 0
 
     with patch.object(pl, "_detect_face", side_effect=flip_face):
         with patch.object(pl, "cv2", MagicMock()) as mcv2:
@@ -400,20 +402,22 @@ def test_presence_timeout_path_logs_device_locked_trigger_presence():
     timeout_sec = 30
     poll_sec = 0.2
     t0 = 1000.0
-    call_count = [0]
+    time_calls = [0]
+    frame_idx = [0]
 
     def mock_time():
-        call_count[0] += 1
-        if call_count[0] >= 200:
+        time_calls[0] += 1
+        if time_calls[0] >= 200:
             pl._STOP.set()
-        return t0 + (call_count[0] - 1) * poll_sec
+        return t0 + (time_calls[0] - 1) * poll_sec
 
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = True
     mock_cap.read.return_value = (True, object())
 
     def flip_face(_frame):
-        return (call_count[0] % 2) == 0
+        frame_idx[0] += 1
+        return (frame_idx[0] % 2) == 0
 
     with patch.object(pl, "_detect_face", side_effect=flip_face):
         with patch.object(pl, "cv2", MagicMock()) as mcv2:
@@ -439,3 +443,67 @@ def test_presence_timeout_path_logs_device_locked_trigger_presence():
     assert len(lock_cb_calls) == 1, "lock_cb must run once"
     assert len(log_calls) == 1, "unified lock_cb must log device_locked once"
     assert "event=device_locked" in log_calls[0] and "trigger=presence" in log_calls[0], log_calls
+
+
+def test_realistic_flapping_triggers_absence_timeout_and_lock():
+    """Realistic sequence: stable present, then 3s absent with 1-frame true blips; must trigger absence_timeout and lock_cb (device_locked trigger=presence)."""
+    import lumos_core.security.presence_lock as pl
+    from lumos_core.core.logfmt import logfmt
+
+    lock_cb_calls = []
+    log_calls = []
+
+    def unified_style_lock_cb():
+        lock_cb_calls.append(1)
+        log_calls.append(logfmt("device_locked", trigger="presence"))
+        pl._STOP.set()  # stop after first trigger so we only get one lock
+
+    timeout_sec = 3
+    poll_sec = 0.5
+    t0 = 1000.0
+    time_calls = [0]
+    frame_idx = [0]
+
+    # Frames 1–2 present (stabilized), then absent; frame 6 one true (blip), then absent until timeout
+    def face_for_iter(_frame):
+        frame_idx[0] += 1
+        n = frame_idx[0]
+        if n <= 2 or n == 6:
+            return True
+        return False
+
+    def mock_time():
+        time_calls[0] += 1
+        if time_calls[0] >= 25:
+            pl._STOP.set()
+        return t0 + (time_calls[0] - 1) * poll_sec
+
+    mock_cap = MagicMock()
+    mock_cap.isOpened.return_value = True
+    mock_cap.read.return_value = (True, object())
+
+    with patch.object(pl, "_detect_face", side_effect=face_for_iter):
+        with patch.object(pl, "cv2", MagicMock()) as mcv2:
+            mcv2.VideoCapture.return_value = mock_cap
+            with patch.object(pl, "_append_log", side_effect=lambda msg: log_calls.append(msg)):
+                with patch("lumos_core.security.presence_lock.time") as mtime:
+                    mtime.time = mock_time
+                    mtime.sleep = lambda x: None
+                    pl.start_presence_lock(
+                        base_dir=Path(ROOT / ".lumos"),
+                        lock_cb=unified_style_lock_cb,
+                        is_already_locked=lambda: False,
+                        timeout_sec=timeout_sec,
+                        poll_sec=poll_sec,
+                        camera_index=0,
+                        require_face=True,
+                        silent_stop=True,
+                        reason="internal",
+                    )
+                    if pl._THREAD and pl._THREAD.is_alive():
+                        pl._THREAD.join(timeout=5.0)
+                    pl.stop_presence_lock(base_dir=Path(ROOT / ".lumos"), silent=True)
+
+    assert len(lock_cb_calls) == 1, "lock_cb must run once after realistic flapping + 3s absence"
+    assert any("absence_timeout" in m for m in log_calls), "absence_timeout must be logged"
+    assert any("device_locked" in m and "trigger=presence" in m for m in log_calls), "device_locked trigger=presence must be logged"

@@ -215,9 +215,11 @@ _STABLE_PRESENT_FRAMES = 2
 
 def _presence_loop(*, base_dir: Path, lock_cb: Optional[Callable[[], None]], is_already_locked: Optional[Callable[[], bool]], timeout_sec: int, poll_sec: float, camera_index: int, require_face: bool) -> None:
     _set_status("ON")
-    last_seen = time.time()
     last_logged_present: Optional[bool] = None  # log only on state change
     consecutive_present = 0
+    # Absence timer starts only when we're stably absent; only stable present (>=_STABLE_PRESENT_FRAMES) clears it.
+    # So short true/false flapping does not reset the timeout.
+    absence_start: Optional[float] = None
 
     cap = None
     try:
@@ -239,8 +241,6 @@ def _presence_loop(*, base_dir: Path, lock_cb: Optional[Callable[[], None]], is_
                     present = _detect_face(frame)
             if present:
                 consecutive_present += 1
-                if consecutive_present >= _STABLE_PRESENT_FRAMES:
-                    last_seen = time.time()
             else:
                 consecutive_present = 0
 
@@ -253,8 +253,15 @@ def _presence_loop(*, base_dir: Path, lock_cb: Optional[Callable[[], None]], is_
                     pass
             last_logged_present = stabilized_present
 
-            # Always check timeout (even when ok=False: no frame = treat as absent)
-            if (time.time() - last_seen) >= float(timeout_sec):
+            # Absence counter: start when we become stably absent; clear when stably present. Prevents flapping from blocking timeout.
+            if stabilized_present:
+                absence_start = None
+            else:
+                if absence_start is None:
+                    absence_start = time.time()
+
+            # Timeout check (even when ok=False: no frame = absent)
+            if absence_start is not None and (time.time() - absence_start) >= float(timeout_sec):
                 already_locked = False
                 if is_already_locked is not None:
                     try:
@@ -262,7 +269,7 @@ def _presence_loop(*, base_dir: Path, lock_cb: Optional[Callable[[], None]], is_
                     except Exception:
                         pass
                 if already_locked:
-                    last_seen = time.time()
+                    absence_start = time.time()
                 elif lock_cb:
                     try:
                         _append_log(logfmt("absence_timeout", timeout_sec=timeout_sec))
@@ -272,9 +279,9 @@ def _presence_loop(*, base_dir: Path, lock_cb: Optional[Callable[[], None]], is_
                         lock_cb()
                     except Exception:
                         _set_status("ERR:lock_cb")
-                    last_seen = time.time()
+                    absence_start = time.time()
                 else:
-                    last_seen = time.time()
+                    absence_start = time.time()
 
             time.sleep(max(0.2, float(poll_sec)))
 
