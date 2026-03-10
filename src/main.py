@@ -38,7 +38,7 @@ def norm_cmd(s: str) -> str:
 # Canonical CLI: exit synonyms (q, çık, cik, quit -> exit)
 EXIT_SYNONYMS = frozenset({"exit", "quit", "çık", "cik", "çik", "q"})
 
-HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | neden böyle diyorsun | bunu kısaca anlat | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
+HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
   kilit    Cihaz kilidi / şifre
   kamera   Yüz tanıma (presence) kilit
   alias    Komut kısaltmaları (alias liste | alias ekle <ad> <hedef> | alias sil <ad>)
@@ -49,11 +49,12 @@ HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | şu a
   bir sonraki adım ne   Tek ve net bir sonraki adım
   neden böyle diyorsun   Bir önceki cevabın kısa gerekçesi
   bunu kısaca anlat   Bir önceki cevabı kısa ve sade özetle
+  bunu hatırla   Son anlamlı cevabı veya durum özetini kısa not olarak kaydeder
   ne yapıyorsun   Şu an ne yaptığını söyler
   son yaptığın ne   En son tamamladığın işi söyler
   bugün ne yaptın   Bugünkü işlerin kısa özeti
   exit     Çıkış (q, çık, quit)
-Örnek: kilit, kamera aç, durum, hazir, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, neden böyle diyorsun, bunu kısaca anlat, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
+Örnek: kilit, kamera aç, durum, hazir, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
 
 REHBER_TEXT = """Şunları kullanabilirsin:
   kilit: cihaz kilidi işlemleri
@@ -65,6 +66,7 @@ REHBER_TEXT = """Şunları kullanabilirsin:
   bir sonraki adım ne: tek ve net bir sonraki adım
   neden böyle diyorsun: bir önceki cevabın kısa gerekçesi
   bunu kısaca anlat: bir önceki cevabı kısa ve sade özetle
+  bunu hatırla: son cevabı veya durum özetini kısa not olarak kaydeder
   ne yapıyorsun: o an üstünde olduğun işi söyler
   son yaptığın ne: en son tamamladığın işi söyler
   bugün ne yaptın: bugünkü işlerin kısa özeti
@@ -157,6 +159,9 @@ def _format_neden_cevap(reason: str | None) -> str:
 # Önceki cevabı kısaltmak için: bu uzunluktan kısaysa "zaten kısa" denir
 KISACA_ANLAT_SHORT_THRESHOLD = 90
 
+# "Bunu hatırla" ile kaydedilen notun azami uzunluğu
+HATIRLA_NOTE_MAX_LEN = 150
+
 
 def _shorten_previous_response(text: str) -> str:
     """Önceki (uzun) cevabın özünü bozmadan kısa, sade özeti. Yeni bilgi eklemez."""
@@ -183,6 +188,22 @@ def _shorten_previous_response(text: str) -> str:
     if not truncated:
         return first[:max_len].rstrip()
     return truncated[0].rstrip(".,") + "."
+
+
+def _note_for_hatirla(text: str | None) -> str | None:
+    """Son cevaptan 'bunu hatırla' için kısa not üretir. Anlamsız/teknikse None döner."""
+    if not (text or "").strip():
+        return None
+    short = _shorten_previous_response(text).strip()
+    if not short or len(short) > HATIRLA_NOTE_MAX_LEN:
+        short = short[:HATIRLA_NOTE_MAX_LEN].rsplit(maxsplit=1)[0].rstrip(".,") if len(short or "") > HATIRLA_NOTE_MAX_LEN else (short or "")
+    if not short:
+        return None
+    # Teknik veri dökümü: tek satırda çok pipe (örn. LOCKED | Presence: ...)
+    first_line = (short.split("\n")[0] or "").strip()
+    if first_line.count("|") >= 2 and any(x in first_line.upper() for x in ("LOCKED", "UNLOCKED", "PRESENCE")):
+        return None
+    return short[:HATIRLA_NOTE_MAX_LEN].strip() or None
 
 
 def _lumos_dir() -> str:
@@ -266,6 +287,8 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("neden_boyle", [])
     if _q == "bunu kisaca anlat":
         return ("kisaca_anlat", [])
+    if _q == "bunu hatirla":
+        return ("hatirla", [])
     return ("unknown", [])
 
 
@@ -765,6 +788,7 @@ def main() -> None:
     today_actions: list[list[str]] = [[]]     # bugünkü (tekilleştirilmiş) işler; "bugün ne yaptın" buna bakar
     last_response_reason: list[str | None] = [None]  # son cevabın gerekçesi; "neden böyle diyorsun" buna bakar
     last_response_text: list[str | None] = [None]     # son cevabın tam metni; "bunu kısaca anlat" buna bakar
+    saved_notes: list[list[str]] = [[]]               # "bunu hatırla" ile kaydedilen kısa notlar
     while True:
         try:
             pl.watchdog_tick(Path(base_dir), state.log_event, _recovery_lock_cb, state.is_locked)
@@ -841,6 +865,21 @@ def main() -> None:
             last_action[0] = "En son önceki cevabı kısaca özetledim."
             last_response_text[0] = out_short
             _record_today_action(today_date, today_actions, last_action[0])
+            continue
+        if route == "hatirla":
+            note = _note_for_hatirla(last_response_text[0])
+            if not note:
+                print("Hatırlanacak net bir şey bulamadım.")
+            else:
+                last_saved = (saved_notes[0][-1:] or [""])[0]
+                if note.strip() == last_saved.strip():
+                    print("Zaten not ettim.")
+                else:
+                    saved_notes[0].append(note.strip())
+                    print("Bunu not ettim.")
+            last_response_reason[0] = "bunu hatırla dedin"
+            last_action[0] = "En son hatırla işlemini yaptım."
+            last_response_text[0] = "Bunu not ettim." if note else "Hatırlanacak net bir şey bulamadım."
             continue
         if route == "ne_yapiyorsun":
             if current_task[0]:
