@@ -5,6 +5,7 @@ import re
 from datetime import date
 from getpass import getpass
 from pathlib import Path
+from typing import Any
 
 from core.engine import CoreEngine
 from core.logfmt import logfmt
@@ -37,23 +38,25 @@ def norm_cmd(s: str) -> str:
 # Canonical CLI: exit synonyms (q, çık, cik, quit -> exit)
 EXIT_SYNONYMS = frozenset({"exit", "quit", "çık", "cik", "çik", "q"})
 
-HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
+HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | bana ne önerirsin | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
   kilit    Cihaz kilidi / şifre
   kamera   Yüz tanıma (presence) kilit
   alias    Komut kısaltmaları (alias liste | alias ekle <ad> <hedef> | alias sil <ad>)
   durum    Kısa durum özeti (lock, presence, consent, mod, kritik not)
   hazır mıyım / hazir   Tek satır hazır olma özeti
+  bana ne önerirsin   Şu an için en mantıklı sonraki adım (1–3 öneri)
   ne yapıyorsun   Şu an ne yaptığını söyler
   son yaptığın ne   En son tamamladığın işi söyler
   bugün ne yaptın   Bugünkü işlerin kısa özeti
   exit     Çıkış (q, çık, quit)
-Örnek: kilit, kamera aç, durum, hazir, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
+Örnek: kilit, kamera aç, durum, hazir, bana ne önerirsin, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
 
 REHBER_TEXT = """Şunları kullanabilirsin:
   kilit: cihaz kilidi işlemleri
   kamera: yüz algılama ve otomatik kilit
   durum: mevcut durumu gösterir
   hazir: hızlı hazır olma özeti
+  bana ne önerirsin: şu an için en mantıklı sonraki adım
   ne yapıyorsun: o an üstünde olduğun işi söyler
   son yaptığın ne: en son tamamladığın işi söyler
   bugün ne yaptın: bugünkü işlerin kısa özeti
@@ -61,6 +64,38 @@ REHBER_TEXT = """Şunları kullanabilirsin:
 
 # Bilinmeyen komut: kısa, yönlendirici; teknik hata yok
 UNKNOWN_CMD_TEXT = 'Bunu anlamadım. "durum", "hazir" veya "yardım et" deneyebilirsin.'
+
+
+def _get_oneri(base_dir: str | Path, keystore_initialized: bool, presence_module: Any) -> list[str]:
+    """Mevcut duruma göre 1–3 kısa sonraki adım önerisi. Boş genel tavsiye yok."""
+    from core.startup_health import get_durum_parts
+    parts = get_durum_parts(Path(base_dir), keystore_initialized, presence_module)
+    consent_ok = parts["consent_ok"]
+    lock_ok = parts["lock_ok"]
+    durum_label = parts.get("durum_label", "")
+    out: list[str] = []
+    if not consent_ok:
+        out.append("Önce consent akışını tamamla.")
+        if len(out) >= 3:
+            return out
+    if not lock_ok:
+        out.append("Önce kilit kurulumunu kontrol et: kilit")
+        if len(out) >= 3:
+            return out
+    if consent_ok and lock_ok and durum_label == "güvenli":
+        try:
+            cfg = presence_module.load_presence_cfg(Path(base_dir))
+            pres_enabled = bool(getattr(cfg, "enabled", False))
+        except Exception:
+            pres_enabled = True
+        if not pres_enabled:
+            out.append("İstersen kamera aç: kamera")
+        if not out:
+            out.append("Hazırsın. durum, hazir veya yardım et ile devam edebilirsin.")
+        return out
+    if consent_ok and lock_ok:
+        out.append("İstersen kamera aç: kamera")
+    return out if out else ["durum yazıp mevcut durumu kontrol edebilirsin."]
 
 
 def _lumos_dir() -> str:
@@ -134,6 +169,8 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("son_yaptigin_ne", [])
     if _q == "bugun ne yaptin":
         return ("bugun_ne_yaptin", [])
+    if _q in ("bana ne onerirsin", "ne onerirsin", "onerir"):
+        return ("onerir", [])
     return ("unknown", [])
 
 
@@ -658,6 +695,13 @@ def main() -> None:
             last_action[0] = "En son yardım rehberini gösterdim."
             _record_today_action(today_date, today_actions, last_action[0])
             print(REHBER_TEXT)
+            continue
+        if route == "onerir":
+            oneriler = _get_oneri(base_dir, ks.is_initialized(), pl)
+            for o in oneriler:
+                print(o)
+            last_action[0] = "En son sonraki adım önerisini verdim."
+            _record_today_action(today_date, today_actions, last_action[0])
             continue
         if route == "ne_yapiyorsun":
             if current_task[0]:
