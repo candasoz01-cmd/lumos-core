@@ -54,6 +54,9 @@ REHBER_TEXT = """Şunları kullanabilirsin:
   ne yapıyorsun: o an üstünde olduğun işi söyler
   çık: çıkış yapar"""
 
+# Bilinmeyen komut: kısa, yönlendirici; teknik hata yok
+UNKNOWN_CMD_TEXT = 'Bunu anlamadım. "durum", "hazir" veya "yardım et" deneyebilirsin.'
+
 
 def _lumos_dir() -> str:
     if Path("src/.lumos").exists():
@@ -368,7 +371,7 @@ def main() -> None:
                     break
                 return False
 
-            print("HELP: durum | ac | kapat | sure | cik")
+            print('Bunu anlamadım. Burada durum, ac, kapat, sure veya cik yazabilirsin.')
             return False
 
         print("Kamera: durum | ac | kapat | sure | cik")
@@ -482,7 +485,7 @@ def main() -> None:
                 ok, msg = engine.unlock_with_passphrase(pw)
                 print(msg)
                 return False
-            print("HELP: durum | ac | kapat | cik")
+            print('Bunu anlamadım. Burada durum, ac, kapat veya cik yazabilirsin.')
             return False
 
         print("LOCK")
@@ -623,7 +626,7 @@ def main() -> None:
                 print("Şu an aktif bir görevim yok.")
             continue
         if route == "unknown":
-            print("Bilinmeyen komut. (help yaz)")
+            print(UNKNOWN_CMD_TEXT)
             continue
         if route == "exit":
             print("OK")
@@ -665,7 +668,7 @@ def main() -> None:
         if route == "alias":
             alias_menu(args=args)
             continue
-        print("Bilinmeyen komut. (help yaz)")
+        print(UNKNOWN_CMD_TEXT)
 
 if __name__ == "__main__":
     main()
