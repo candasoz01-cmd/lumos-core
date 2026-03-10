@@ -2,6 +2,7 @@
 import json
 import os
 import re
+from datetime import date
 from getpass import getpass
 from pathlib import Path
 
@@ -36,7 +37,7 @@ def norm_cmd(s: str) -> str:
 # Canonical CLI: exit synonyms (q, çık, cik, quit -> exit)
 EXIT_SYNONYMS = frozenset({"exit", "quit", "çık", "cik", "çik", "q"})
 
-HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | ne yapıyorsun | son yaptığın ne | exit
+HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
   kilit    Cihaz kilidi / şifre
   kamera   Yüz tanıma (presence) kilit
   alias    Komut kısaltmaları (alias liste | alias ekle <ad> <hedef> | alias sil <ad>)
@@ -44,8 +45,9 @@ HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | ne ya
   hazır mıyım / hazir   Tek satır hazır olma özeti
   ne yapıyorsun   Şu an ne yaptığını söyler
   son yaptığın ne   En son tamamladığın işi söyler
+  bugün ne yaptın   Bugünkü işlerin kısa özeti
   exit     Çıkış (q, çık, quit)
-Örnek: kilit, kamera aç, durum, hazir, ne yapıyorsun, son yaptığın ne, çık"""
+Örnek: kilit, kamera aç, durum, hazir, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
 
 REHBER_TEXT = """Şunları kullanabilirsin:
   kilit: cihaz kilidi işlemleri
@@ -54,6 +56,7 @@ REHBER_TEXT = """Şunları kullanabilirsin:
   hazir: hızlı hazır olma özeti
   ne yapıyorsun: o an üstünde olduğun işi söyler
   son yaptığın ne: en son tamamladığın işi söyler
+  bugün ne yaptın: bugünkü işlerin kısa özeti
   çık: çıkış yapar"""
 
 # Bilinmeyen komut: kısa, yönlendirici; teknik hata yok
@@ -129,12 +132,38 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("ne_yapiyorsun", [])
     if _q == "son yaptigin ne":
         return ("son_yaptigin_ne", [])
+    if _q == "bugun ne yaptin":
+        return ("bugun_ne_yaptin", [])
     return ("unknown", [])
 
 
 def handle_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, list[str]]:
     """Alias for normalize_command for compatibility."""
     return normalize_command(raw, base_dir, aliases)
+
+
+def _record_today_action(
+    today_date: list[str],
+    today_actions: list[list[str]],
+    action: str,
+) -> None:
+    """Bugünkü iş listesine ekle; gün değiştiyse sıfırla. Aynı iş tekrar eklenmez."""
+    today = date.today().isoformat()
+    if today_date[0] != today:
+        today_date[0] = today
+        today_actions[0] = []
+    if action and action not in today_actions[0]:
+        today_actions[0].append(action)
+
+
+def _format_today_bullet(action: str) -> str:
+    """'En son X.' -> 'X' (madde metni)."""
+    if action.startswith("En son "):
+        s = action[7:].strip()
+        if s.endswith("."):
+            s = s[:-1]
+        return s
+    return action
 
 
 def main() -> None:
@@ -600,6 +629,8 @@ def main() -> None:
     pending: str | None = None
     current_task: list[str | None] = [None]  # aktif görev; "ne yapıyorsun" buna bakar
     last_action: list[str | None] = [None]   # en son tamamlanan iş; "son yaptığın ne" buna bakar
+    today_date: list[str] = [""]             # YYYY-MM-DD; gün değişince today_actions sıfırlanır
+    today_actions: list[list[str]] = [[]]     # bugünkü (tekilleştirilmiş) işler; "bugün ne yaptın" buna bakar
     while True:
         try:
             pl.watchdog_tick(Path(base_dir), state.log_event, _recovery_lock_cb, state.is_locked)
@@ -620,10 +651,12 @@ def main() -> None:
             continue
         if route == "help":
             last_action[0] = "En son yardım listesini gösterdim."
+            _record_today_action(today_date, today_actions, last_action[0])
             print(HELP_TEXT)
             continue
         if route == "rehber":
             last_action[0] = "En son yardım rehberini gösterdim."
+            _record_today_action(today_date, today_actions, last_action[0])
             print(REHBER_TEXT)
             continue
         if route == "ne_yapiyorsun":
@@ -638,6 +671,18 @@ def main() -> None:
             else:
                 print("Henüz kayda değer bir işlem yapmadım.")
             continue
+        if route == "bugun_ne_yaptin":
+            if today_date[0] != date.today().isoformat():
+                today_date[0] = date.today().isoformat()
+                today_actions[0] = []
+            if not today_actions[0]:
+                print("Bugün kayda değer bir işlem yapmadım.")
+            else:
+                items = today_actions[0][-5:]  # en fazla 5 madde, en son yapılanlar
+                print("Bugün şunları yaptım:")
+                for a in items:
+                    print("- " + _format_today_bullet(a))
+            continue
         if route == "unknown":
             print(UNKNOWN_CMD_TEXT)
             continue
@@ -651,6 +696,7 @@ def main() -> None:
                 parts = get_durum_parts(Path(base_dir), ks.is_initialized(), engine.pl)
                 print(format_durum(snap, parts["consent_ok"], parts["lock_ok"], parts["durum_label"], parts["not_line"]))
                 last_action[0] = "En son durum özetini gösterdim."
+                _record_today_action(today_date, today_actions, last_action[0])
             finally:
                 current_task[0] = None
             continue
@@ -659,6 +705,7 @@ def main() -> None:
             try:
                 print(get_startup_summary(Path(base_dir), not state.is_locked(), pl))
                 last_action[0] = "En son hazır olma özetini verdim."
+                _record_today_action(today_date, today_actions, last_action[0])
             finally:
                 current_task[0] = None
             continue
@@ -670,6 +717,7 @@ def main() -> None:
                     pending = result
                 else:
                     last_action[0] = "En son kilit menüsünü açtım."
+                    _record_today_action(today_date, today_actions, last_action[0])
             finally:
                 current_task[0] = None
             continue
@@ -681,12 +729,14 @@ def main() -> None:
                     pending = result
                 else:
                     last_action[0] = "En son kamera menüsünü açtım."
+                    _record_today_action(today_date, today_actions, last_action[0])
             finally:
                 current_task[0] = None
             continue
         if route == "alias":
             alias_menu(args=args)
             last_action[0] = "En son alias işlemi yaptım."
+            _record_today_action(today_date, today_actions, last_action[0])
             continue
         print(UNKNOWN_CMD_TEXT)
 
