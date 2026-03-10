@@ -36,14 +36,15 @@ def norm_cmd(s: str) -> str:
 # Canonical CLI: exit synonyms (q, çık, cik, quit -> exit)
 EXIT_SYNONYMS = frozenset({"exit", "quit", "çık", "cik", "çik", "q"})
 
-HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | exit
+HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | ne yapıyorsun | exit
   kilit    Cihaz kilidi / şifre
   kamera   Yüz tanıma (presence) kilit
   alias    Komut kısaltmaları (alias liste | alias ekle <ad> <hedef> | alias sil <ad>)
   durum    Kısa durum özeti (lock, presence, consent, mod, kritik not)
   hazır mıyım / hazir   Tek satır hazır olma özeti
+  ne yapıyorsun   Şu an ne yaptığını söyler
   exit     Çıkış (q, çık, quit)
-Örnek: kilit, kamera aç, durum, hazir, çık"""
+Örnek: kilit, kamera aç, durum, hazir, ne yapıyorsun, çık"""
 
 
 def _lumos_dir() -> str:
@@ -107,6 +108,10 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("durum", rest)
     if head in ("hazir", "hazır"):
         return ("hazir", rest)
+    # "ne yapıyorsun" ve türevleri (ı -> i normalize)
+    _q = s.replace("\u0131", "i").replace("İ", "i")
+    if _q in ("ne yapiyorsun", "napiyon", "neyapiyorsun", "ne yapiyon"):
+        return ("ne_yapiyorsun", [])
     return ("unknown", [])
 
 
@@ -260,6 +265,10 @@ def main() -> None:
             cmd = (cmd or "").strip().lower()
             if cmd.startswith("kamera "):
                 cmd = cmd.split(None, 1)[1].strip()
+            _qc = cmd.replace("\u0131", "i")
+            if _qc in ("ne yapiyorsun", "napiyon", "neyapiyorsun", "ne yapiyon"):
+                print("Şu an kamera menüsündeyim.")
+                return False
             if cmd in ("cik", "çık"):
                 print("OK")
                 return True
@@ -439,6 +448,10 @@ def main() -> None:
 
     def lock_menu(*, state: CoreState, engine: CoreEngine, initial_cmd: str | None = None) -> str | None:
         def _run_cmd(c: str) -> bool | str:
+            _qc = (c or "").strip().replace("\u0131", "i")
+            if _qc in ("ne yapiyorsun", "napiyon", "neyapiyorsun", "ne yapiyon"):
+                print("Şu an kilit menüsündeyim.")
+                return False
             if c in ("cik", "çık"):
                 print("OK")
                 return True
@@ -568,6 +581,7 @@ def main() -> None:
 
     # ---- CLI döngüsü ----
     pending: str | None = None
+    current_task: list[str | None] = [None]  # aktif görev; "ne yapıyorsun" buna bakar
     while True:
         try:
             pl.watchdog_tick(Path(base_dir), state.log_event, _recovery_lock_cb, state.is_locked)
@@ -589,6 +603,12 @@ def main() -> None:
         if route == "help":
             print(HELP_TEXT)
             continue
+        if route == "ne_yapiyorsun":
+            if current_task[0]:
+                print("Şu an " + current_task[0])
+            else:
+                print("Şu an aktif bir görevim yok.")
+            continue
         if route == "unknown":
             print("Bilinmeyen komut. (help yaz)")
             continue
@@ -596,22 +616,38 @@ def main() -> None:
             print("OK")
             break
         if route == "durum":
-            snap = state.snapshot(base_dir=base_dir, log_path=Path.cwd() / ".lumos" / "log.txt")
-            parts = get_durum_parts(Path(base_dir), ks.is_initialized(), engine.pl)
-            print(format_durum(snap, parts["consent_ok"], parts["lock_ok"], parts["durum_label"], parts["not_line"]))
+            current_task[0] = "durum çıktısını hazırlıyorum."
+            try:
+                snap = state.snapshot(base_dir=base_dir, log_path=Path.cwd() / ".lumos" / "log.txt")
+                parts = get_durum_parts(Path(base_dir), ks.is_initialized(), engine.pl)
+                print(format_durum(snap, parts["consent_ok"], parts["lock_ok"], parts["durum_label"], parts["not_line"]))
+            finally:
+                current_task[0] = None
             continue
         if route == "hazir":
-            print(get_startup_summary(Path(base_dir), not state.is_locked(), pl))
+            current_task[0] = "açılış sağlık özetini doğruluyorum."
+            try:
+                print(get_startup_summary(Path(base_dir), not state.is_locked(), pl))
+            finally:
+                current_task[0] = None
             continue
         if route == "kilit":
-            result = lock_menu(state=state, engine=engine, initial_cmd=args[0] if args else None)
-            if result is not None:
-                pending = result
+            current_task[0] = "kilit menüsündeyim."
+            try:
+                result = lock_menu(state=state, engine=engine, initial_cmd=args[0] if args else None)
+                if result is not None:
+                    pending = result
+            finally:
+                current_task[0] = None
             continue
         if route == "kamera":
-            result = presence_menu(state=state, engine=engine, base_dir=base_dir, initial_cmd=args[0] if args else None)
-            if result is not None:
-                pending = result
+            current_task[0] = "kamera menüsündeyim."
+            try:
+                result = presence_menu(state=state, engine=engine, base_dir=base_dir, initial_cmd=args[0] if args else None)
+                if result is not None:
+                    pending = result
+            finally:
+                current_task[0] = None
             continue
         if route == "alias":
             alias_menu(args=args)
