@@ -38,7 +38,7 @@ def norm_cmd(s: str) -> str:
 # Canonical CLI: exit synonyms (q, çık, cik, quit -> exit)
 EXIT_SYNONYMS = frozenset({"exit", "quit", "çık", "cik", "çik", "q"})
 
-HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi moddayım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | en önemli eksik ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
+HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi moddayım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | en önemli eksik ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | son not ne | notları göster | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
   kilit    Cihaz kilidi / şifre
   kamera   Yüz tanıma (presence) kilit
   alias    Komut kısaltmaları (alias liste | alias ekle <ad> <hedef> | alias sil <ad>)
@@ -52,11 +52,13 @@ HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi
   neden böyle diyorsun   Bir önceki cevabın kısa gerekçesi
   bunu kısaca anlat   Bir önceki cevabı kısa ve sade özetle
   bunu hatırla   Son anlamlı cevabı veya durum özetini kısa not olarak kaydeder
+  son not ne   En son "bunu hatırla" ile kaydettiğin notu gösterir
+  notları göster   Kayıtlı notları listeler (en fazla son 5)
   ne yapıyorsun   Şu an ne yaptığını söyler
   son yaptığın ne   En son tamamladığın işi söyler
   bugün ne yaptın   Bugünkü işlerin kısa özeti
   exit     Çıkış (q, çık, quit)
-Örnek: kilit, kamera aç, durum, hazir, hangi moddayım, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
+Örnek: kilit, kamera aç, durum, hazir, hangi moddayım, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, son not ne, notları göster, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
 
 REHBER_TEXT = """Şunları kullanabilirsin:
   kilit: cihaz kilidi işlemleri
@@ -71,6 +73,8 @@ REHBER_TEXT = """Şunları kullanabilirsin:
   neden böyle diyorsun: bir önceki cevabın kısa gerekçesi
   bunu kısaca anlat: bir önceki cevabı kısa ve sade özetle
   bunu hatırla: son cevabı veya durum özetini kısa not olarak kaydeder
+  son not ne: en son kaydettiğin notu gösterir
+  notları göster: kayıtlı notları listeler (en fazla son 5)
   ne yapıyorsun: o an üstünde olduğun işi söyler
   son yaptığın ne: en son tamamladığın işi söyler
   bugün ne yaptın: bugünkü işlerin kısa özeti
@@ -330,6 +334,10 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("kisaca_anlat", [])
     if _q == "bunu hatirla":
         return ("hatirla", [])
+    if _q == "son not ne":
+        return ("son_not_ne", [])
+    if _q == "notlari goster":
+        return ("notlari_goster", [])
     if _q == "hangi moddayim":
         return ("hangi_moddayim", [])
     return ("unknown", [])
@@ -939,6 +947,21 @@ def main() -> None:
             last_response_reason[0] = "bunu hatırla dedin"
             last_action[0] = "En son hatırla işlemini yaptım."
             last_response_text[0] = "Bunu not ettim." if note else "Hatırlanacak net bir şey bulamadım."
+            continue
+        if route == "son_not_ne":
+            if saved_notes[0]:
+                print("Son not: " + saved_notes[0][-1])
+            else:
+                print("Henüz kayıtlı bir not yok.")
+            continue
+        if route == "notlari_goster":
+            if not saved_notes[0]:
+                print("Henüz kayıtlı not yok.")
+            else:
+                recent = saved_notes[0][-5:]
+                print("Kayıtlı notlar:")
+                for n in recent:
+                    print("- " + n)
             continue
         if route == "ne_yapiyorsun":
             if current_task[0]:
