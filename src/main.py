@@ -38,7 +38,7 @@ def norm_cmd(s: str) -> str:
 # Canonical CLI: exit synonyms (q, çık, cik, quit -> exit)
 EXIT_SYNONYMS = frozenset({"exit", "quit", "çık", "cik", "çik", "q"})
 
-HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi moddayım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | en önemli eksik ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | son not ne | notları göster | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
+HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi moddayım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | en önemli eksik ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | son not ne | notları göster | notları temizle | notu sil | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
   kilit    Cihaz kilidi / şifre
   kamera   Yüz tanıma (presence) kilit
   alias    Komut kısaltmaları (alias liste | alias ekle <ad> <hedef> | alias sil <ad>)
@@ -54,11 +54,13 @@ HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi
   bunu hatırla   Son anlamlı cevabı veya durum özetini kısa not olarak kaydeder
   son not ne   En son "bunu hatırla" ile kaydettiğin notu gösterir
   notları göster   Kayıtlı notları listeler (en fazla son 5)
+  notları temizle   Kayıtlı notları siler
+  notu sil   En son notu siler
   ne yapıyorsun   Şu an ne yaptığını söyler
   son yaptığın ne   En son tamamladığın işi söyler
   bugün ne yaptın   Bugünkü işlerin kısa özeti
   exit     Çıkış (q, çık, quit)
-Örnek: kilit, kamera aç, durum, hazir, hangi moddayım, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, son not ne, notları göster, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
+Örnek: kilit, kamera aç, durum, hazir, hangi moddayım, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, son not ne, notları göster, notları temizle, notu sil, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
 
 REHBER_TEXT = """Şunları kullanabilirsin:
   kilit: cihaz kilidi işlemleri
@@ -75,6 +77,8 @@ REHBER_TEXT = """Şunları kullanabilirsin:
   bunu hatırla: son cevabı veya durum özetini kısa not olarak kaydeder
   son not ne: en son kaydettiğin notu gösterir
   notları göster: kayıtlı notları listeler (en fazla son 5)
+  notları temizle: kayıtlı notları siler
+  notu sil: en son notu siler
   ne yapıyorsun: o an üstünde olduğun işi söyler
   son yaptığın ne: en son tamamladığın işi söyler
   bugün ne yaptın: bugünkü işlerin kısa özeti
@@ -338,6 +342,12 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("son_not_ne", [])
     if _q == "notlari goster":
         return ("notlari_goster", [])
+    if _q == "notlari temizle":
+        return ("notlari_temizle", [])
+    if _q == "notu sil":
+        return ("notu_sil", [])
+    if _q == "kac not var":
+        return ("kac_not_var", [])
     if _q == "hangi moddayim":
         return ("hangi_moddayim", [])
     return ("unknown", [])
@@ -962,6 +972,27 @@ def main() -> None:
                 print("Kayıtlı notlar:")
                 for n in recent:
                     print("- " + n)
+            continue
+        if route == "notlari_temizle":
+            if not saved_notes[0]:
+                print("Temizlenecek kayıtlı not yok.")
+            else:
+                saved_notes[0].clear()
+                print("Kayıtlı notları temizledim.")
+            continue
+        if route == "notu_sil":
+            if not saved_notes[0]:
+                print("Silinecek kayıtlı not yok.")
+            else:
+                saved_notes[0].pop()
+                print("Son notu sildim.")
+            continue
+        if route == "kac_not_var":
+            n = len(saved_notes[0])
+            if n == 0:
+                print("Kayıtlı not yok.")
+            else:
+                print(f"{n} kayıtlı not var.")
             continue
         if route == "ne_yapiyorsun":
             if current_task[0]:
