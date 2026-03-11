@@ -40,7 +40,7 @@ EXIT_SYNONYMS = frozenset({"exit", "quit", "çık", "cik", "çik", "q"})
 
 # Yardım: gruplu, kısa; help / yardım / yardım et hepsi aynı çıktıyı kullanır
 HELP_TEXT = """Temel
-  durum, hazır, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, kilit, kamera, alias, hangi moddayım, şu an güvenli miyim, exit, yardım etiketler, yardım notlar
+  durum, hazır, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, kilit, kamera, alias, hangi moddayım, şu an güvenli miyim, exit, yardım temel, yardım etiketler, yardım notlar
 
 Notlar
   bunu hatırla, son not ne, notları göster, kaç not var, notu sil, notları temizle, notu düzenle, notu kopyala, notu dışa aktar, notu paylaş, not özetle, not birleştir, notu geri al, not geçmişi, not ara <kelime>
@@ -55,6 +55,10 @@ HELP_ETIKETLER_TEXT = """Etiketler
 # Sadece not komutları; "yardım notlar" için kısa blok
 HELP_NOTLAR_TEXT = """Notlar
   bunu hatırla, son not ne, notları göster, kaç not var, notu sil, notları temizle, notu düzenle, notu kopyala, notu dışa aktar, notu paylaş, not özetle, not birleştir, notu geri al, not geçmişi, not ara <kelime>"""
+
+# Sadece temel komutlar; "yardım temel" için kısa blok (not/etiket karışmaz)
+HELP_TEMEL_TEXT = """Temel
+  durum, hazır, hazır mıyım, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, bana ne önerirsin, bir sonraki adım ne, hangi moddayım, şu an güvenli miyim, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla"""
 
 REHBER_TEXT = HELP_TEXT
 
@@ -286,6 +290,8 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("help_etiketler", [])
     if len(parts) >= 2 and head in ("help", "?", "yardim", "yardım") and parts[1].casefold() == "notlar":
         return ("help_notlar", [])
+    if len(parts) >= 2 and head in ("help", "?", "yardim", "yardım") and parts[1].casefold() == "temel":
+        return ("help_temel", [])
     if head in ("help", "?", "yardim", "yardım"):
         return ("help", [])
     if head in ("kilit", "lock"):
@@ -963,6 +969,13 @@ def main() -> None:
             _record_today_action(today_date, today_actions, last_action[0])
             last_response_text[0] = HELP_NOTLAR_TEXT
             print(HELP_NOTLAR_TEXT)
+            continue
+        if route == "help_temel":
+            last_response_reason[0] = "temel komutları istedin"
+            last_action[0] = "En son temel yardımını gösterdim."
+            _record_today_action(today_date, today_actions, last_action[0])
+            last_response_text[0] = HELP_TEMEL_TEXT
+            print(HELP_TEMEL_TEXT)
             continue
         if route == "rehber":
             last_response_reason[0] = "rehberi istedin"
