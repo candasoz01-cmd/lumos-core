@@ -38,7 +38,7 @@ def norm_cmd(s: str) -> str:
 # Canonical CLI: exit synonyms (q, çık, cik, quit -> exit)
 EXIT_SYNONYMS = frozenset({"exit", "quit", "çık", "cik", "çik", "q"})
 
-HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi moddayım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | en önemli eksik ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | son not ne | not özetle | notu kopyala | notu dışa aktar | notu paylaş | notları göster | etiketli notları göster | etiketleri göster | not geçmişi | not ara <kelime> | etiket ara <kelime> | notları temizle | notu sil | notu düzenle | notu adlandır <etiket> | etiket kaldır <etiket> | not birleştir | notu geri al | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
+HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi moddayım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | en önemli eksik ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | son not ne | not özetle | notu kopyala | notu dışa aktar | notu paylaş | notları göster | etiketli notları göster | etiketleri göster | not geçmişi | not ara <kelime> | etiketli not ara <kelime> | etiket ara <kelime> | notları temizle | notu sil | notu düzenle | notu adlandır <etiket> | etiket kaldır <etiket> | not birleştir | notu geri al | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
   kilit    Cihaz kilidi / şifre
   kamera   Yüz tanıma (presence) kilit
   alias    Komut kısaltmaları (alias liste | alias ekle <ad> <hedef> | alias sil <ad>)
@@ -69,12 +69,13 @@ HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi
   not birleştir   Son iki notu tek kısa notta birleştirir
   notu geri al   Son not işlemini geri alır (silme, temizleme, düzenleme, birleştirme)
   not ara <kelime>   Kayıtlı notlarda kelime arar (en fazla 5 eşleşme)
+  etiketli not ara <kelime>   Sadece etiketli notlarda kelime arar
   etiket ara <kelime>   Kayıtlı etiketlerde kelime arar
   ne yapıyorsun   Şu an ne yaptığını söyler
   son yaptığın ne   En son tamamladığın işi söyler
   bugün ne yaptın   Bugünkü işlerin kısa özeti
   exit     Çıkış (q, çık, quit)
-Örnek: kilit, kamera aç, durum, hazir, hangi moddayım, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, son not ne, not özetle, notu kopyala, notu dışa aktar, notu paylaş, notları göster, etiketli notları göster, etiketleri göster, not geçmişi, not ara lock, etiket ara güven, notları temizle, notu sil, notu düzenle, notu adlandır güvenlik, etiket kaldır güvenlik, not birleştir, notu geri al, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
+Örnek: kilit, kamera aç, durum, hazir, hangi moddayım, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, son not ne, not özetle, notu kopyala, notu dışa aktar, notu paylaş, notları göster, etiketli notları göster, etiketleri göster, not geçmişi, not ara lock, etiketli not ara lock, etiket ara güven, notları temizle, notu sil, notu düzenle, notu adlandır güvenlik, etiket kaldır güvenlik, not birleştir, notu geri al, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
 
 REHBER_TEXT = """Şunları kullanabilirsin:
   kilit: cihaz kilidi işlemleri
@@ -106,6 +107,7 @@ REHBER_TEXT = """Şunları kullanabilirsin:
   not birleştir: son iki notu tek kısa notta birleştirir
   notu geri al: son not işlemini geri alır (silme, temizleme, düzenleme, birleştirme)
   not ara <kelime>: kayıtlı notlarda kelime arar (en fazla 5)
+  etiketli not ara <kelime>: sadece etiketli notlarda kelime arar
   etiket ara <kelime>: kayıtlı etiketlerde kelime arar
   ne yapıyorsun: o an üstünde olduğun işi söyler
   son yaptığın ne: en son tamamladığın işi söyler
@@ -415,6 +417,11 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
     if _q.startswith("not ara "):
         word = (_q[8:].strip().split() or [""])[0]
         return ("not_ara", [word])
+    if _q == "etiketli not ara":
+        return ("etiketli_not_ara", [])
+    if _q.startswith("etiketli not ara "):
+        word = (_q[17:].strip().split() or [""])[0]
+        return ("etiketli_not_ara", [word] if word else [])
     if _q == "notu adlandir":
         return ("notu_adlandir", [])
     if _q.startswith("notu adlandir "):
@@ -1290,6 +1297,21 @@ def main() -> None:
                 recent = matches[-5:]
                 print("Eşleşen notlar:")
                 for n in recent:
+                    print("- " + n)
+            continue
+        if route == "etiketli_not_ara":
+            word = (args[0] if args else "").strip()
+            if not word:
+                print("Aramak için bir kelime yazman gerekiyor.")
+                continue
+            tagged = [n for n in saved_notes[0] if n.startswith("[") and "] " in n]
+            folded = _fold_for_search(word)
+            matches = [n for n in tagged if folded in _fold_for_search(n)]
+            if not matches:
+                print("Bu aramayla eşleşen etiketli not bulamadım.")
+            else:
+                print("Eşleşen etiketli notlar:")
+                for n in matches:
                     print("- " + n)
             continue
         if route == "ne_yapiyorsun":
