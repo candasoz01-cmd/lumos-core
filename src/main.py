@@ -38,7 +38,7 @@ def norm_cmd(s: str) -> str:
 # Canonical CLI: exit synonyms (q, çık, cik, quit -> exit)
 EXIT_SYNONYMS = frozenset({"exit", "quit", "çık", "cik", "çik", "q"})
 
-HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi moddayım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | en önemli eksik ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | son not ne | notları göster | not ara <kelime> | notları temizle | notu sil | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
+HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi moddayım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | en önemli eksik ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | son not ne | notları göster | not ara <kelime> | notları temizle | notu sil | notu düzenle | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
   kilit    Cihaz kilidi / şifre
   kamera   Yüz tanıma (presence) kilit
   alias    Komut kısaltmaları (alias liste | alias ekle <ad> <hedef> | alias sil <ad>)
@@ -56,12 +56,13 @@ HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi
   notları göster   Kayıtlı notları listeler (en fazla son 5)
   notları temizle   Kayıtlı notları siler
   notu sil   En son notu siler
+  notu düzenle   Son notu yeni kısa metinle değiştirir
   not ara <kelime>   Kayıtlı notlarda kelime arar (en fazla 5 eşleşme)
   ne yapıyorsun   Şu an ne yaptığını söyler
   son yaptığın ne   En son tamamladığın işi söyler
   bugün ne yaptın   Bugünkü işlerin kısa özeti
   exit     Çıkış (q, çık, quit)
-Örnek: kilit, kamera aç, durum, hazir, hangi moddayım, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, son not ne, notları göster, not ara lock, notları temizle, notu sil, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
+Örnek: kilit, kamera aç, durum, hazir, hangi moddayım, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, son not ne, notları göster, not ara lock, notları temizle, notu sil, notu düzenle, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
 
 REHBER_TEXT = """Şunları kullanabilirsin:
   kilit: cihaz kilidi işlemleri
@@ -80,6 +81,7 @@ REHBER_TEXT = """Şunları kullanabilirsin:
   notları göster: kayıtlı notları listeler (en fazla son 5)
   notları temizle: kayıtlı notları siler
   notu sil: en son notu siler
+  notu düzenle: son notu yeni kısa metinle değiştirir
   not ara <kelime>: kayıtlı notlarda kelime arar (en fazla 5)
   ne yapıyorsun: o an üstünde olduğun işi söyler
   son yaptığın ne: en son tamamladığın işi söyler
@@ -358,6 +360,8 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("notlari_temizle", [])
     if _q == "notu sil":
         return ("notu_sil", [])
+    if _q == "notu duzenle":
+        return ("notu_duzenle", [])
     if _q == "kac not var":
         return ("kac_not_var", [])
     if _q == "not ara":
@@ -867,6 +871,7 @@ def main() -> None:
     last_response_reason: list[str | None] = [None]  # son cevabın gerekçesi; "neden böyle diyorsun" buna bakar
     last_response_text: list[str | None] = [None]     # son cevabın tam metni; "bunu kısaca anlat" buna bakar
     saved_notes: list[list[str]] = [[]]               # "bunu hatırla" ile kaydedilen kısa notlar
+    pending_note_edit: list[bool] = [False]           # "notu düzenle" sonrası yeni metin bekleniyor
     while True:
         try:
             pl.watchdog_tick(Path(base_dir), state.log_event, _recovery_lock_cb, state.is_locked)
@@ -882,6 +887,18 @@ def main() -> None:
 
         pending = None
         route, args = normalize_command(raw, Path(base_dir), aliases)
+
+        if pending_note_edit[0]:
+            if route != "unknown":
+                pending_note_edit[0] = False
+            else:
+                if not raw.strip():
+                    print("Boş metin kabul edilmiyor.")
+                    continue
+                saved_notes[0][-1] = raw.strip()
+                print("Son notu güncelledim.")
+                pending_note_edit[0] = False
+                continue
 
         if route == "":
             continue
@@ -1003,6 +1020,13 @@ def main() -> None:
             else:
                 saved_notes[0].pop()
                 print("Son notu sildim.")
+            continue
+        if route == "notu_duzenle":
+            if not saved_notes[0]:
+                print("Düzenlenecek kayıtlı not yok.")
+            else:
+                pending_note_edit[0] = True
+                print("Son notu düzenlemek için yeni kısa metni yaz.")
             continue
         if route == "kac_not_var":
             n = len(saved_notes[0])
