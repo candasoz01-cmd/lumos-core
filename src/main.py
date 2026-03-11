@@ -38,7 +38,7 @@ def norm_cmd(s: str) -> str:
 # Canonical CLI: exit synonyms (q, çık, cik, quit -> exit)
 EXIT_SYNONYMS = frozenset({"exit", "quit", "çık", "cik", "çik", "q"})
 
-HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi moddayım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | en önemli eksik ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | son not ne | notu kopyala | notu dışa aktar | notları göster | not ara <kelime> | notları temizle | notu sil | notu düzenle | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
+HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi moddayım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | en önemli eksik ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | son not ne | notu kopyala | notu dışa aktar | notu paylaş | notları göster | not ara <kelime> | notları temizle | notu sil | notu düzenle | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
   kilit    Cihaz kilidi / şifre
   kamera   Yüz tanıma (presence) kilit
   alias    Komut kısaltmaları (alias liste | alias ekle <ad> <hedef> | alias sil <ad>)
@@ -55,6 +55,7 @@ HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi
   son not ne   En son "bunu hatırla" ile kaydettiğin notu gösterir
   notu kopyala   En son notu düz metin olarak verir (kopyalamak için)
   notu dışa aktar   En son notu tek satır düz metin olarak verir (dışa aktarmak için)
+  notu paylaş   En son notu paylaşılabilir tek satır olarak verir
   notları göster   Kayıtlı notları listeler (en fazla son 5)
   notları temizle   Kayıtlı notları siler
   notu sil   En son notu siler
@@ -64,7 +65,7 @@ HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi
   son yaptığın ne   En son tamamladığın işi söyler
   bugün ne yaptın   Bugünkü işlerin kısa özeti
   exit     Çıkış (q, çık, quit)
-Örnek: kilit, kamera aç, durum, hazir, hangi moddayım, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, son not ne, notu kopyala, notu dışa aktar, notları göster, not ara lock, notları temizle, notu sil, notu düzenle, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
+Örnek: kilit, kamera aç, durum, hazir, hangi moddayım, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, son not ne, notu kopyala, notu dışa aktar, notu paylaş, notları göster, not ara lock, notları temizle, notu sil, notu düzenle, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
 
 REHBER_TEXT = """Şunları kullanabilirsin:
   kilit: cihaz kilidi işlemleri
@@ -82,6 +83,7 @@ REHBER_TEXT = """Şunları kullanabilirsin:
   son not ne: en son kaydettiğin notu gösterir
   notu kopyala: en son notu düz metin olarak verir
   notu dışa aktar: en son notu tek satır düz metin olarak verir (dışa aktarmak için)
+  notu paylaş: en son notu paylaşılabilir tek satır olarak verir
   notları göster: kayıtlı notları listeler (en fazla son 5)
   notları temizle: kayıtlı notları siler
   notu sil: en son notu siler
@@ -368,6 +370,8 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("notu_kopyala", [])
     if _q == "notu disa aktar":
         return ("notu_disa_aktar", [])
+    if _q == "notu paylas":
+        return ("notu_paylas", [])
     if _q == "notu duzenle":
         return ("notu_duzenle", [])
     if _q == "kac not var":
@@ -1017,6 +1021,12 @@ def main() -> None:
                 print(saved_notes[0][-1])
             else:
                 print("Dışa aktarılacak kayıtlı not yok.")
+            continue
+        if route == "notu_paylas":
+            if saved_notes[0]:
+                print(saved_notes[0][-1])
+            else:
+                print("Paylaşılacak kayıtlı not yok.")
             continue
         if route == "notlari_goster":
             if not saved_notes[0]:
