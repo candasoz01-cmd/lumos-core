@@ -38,7 +38,7 @@ def norm_cmd(s: str) -> str:
 # Canonical CLI: exit synonyms (q, çık, cik, quit -> exit)
 EXIT_SYNONYMS = frozenset({"exit", "quit", "çık", "cik", "çik", "q"})
 
-HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi moddayım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | en önemli eksik ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | son not ne | not özetle | notu kopyala | notu dışa aktar | notu paylaş | notları göster | not geçmişi | not ara <kelime> | notları temizle | notu sil | notu düzenle | not birleştir | notu geri al | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
+HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi moddayım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | en önemli eksik ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | son not ne | not özetle | notu kopyala | notu dışa aktar | notu paylaş | notları göster | not geçmişi | not ara <kelime> | notları temizle | notu sil | notu düzenle | notu adlandır <etiket> | not birleştir | notu geri al | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
   kilit    Cihaz kilidi / şifre
   kamera   Yüz tanıma (presence) kilit
   alias    Komut kısaltmaları (alias liste | alias ekle <ad> <hedef> | alias sil <ad>)
@@ -62,6 +62,7 @@ HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi
   notları temizle   Kayıtlı notları siler
   notu sil   En son notu siler
   notu düzenle   Son notu yeni kısa metinle değiştirir
+  notu adlandır <etiket>   En son nota kısa etiket ekler
   not birleştir   Son iki notu tek kısa notta birleştirir
   notu geri al   Son not işlemini geri alır (silme, temizleme, düzenleme, birleştirme)
   not ara <kelime>   Kayıtlı notlarda kelime arar (en fazla 5 eşleşme)
@@ -69,7 +70,7 @@ HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi
   son yaptığın ne   En son tamamladığın işi söyler
   bugün ne yaptın   Bugünkü işlerin kısa özeti
   exit     Çıkış (q, çık, quit)
-Örnek: kilit, kamera aç, durum, hazir, hangi moddayım, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, son not ne, not özetle, notu kopyala, notu dışa aktar, notu paylaş, notları göster, not geçmişi, not ara lock, notları temizle, notu sil, notu düzenle, not birleştir, notu geri al, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
+Örnek: kilit, kamera aç, durum, hazir, hangi moddayım, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, son not ne, not özetle, notu kopyala, notu dışa aktar, notu paylaş, notları göster, not geçmişi, not ara lock, notları temizle, notu sil, notu düzenle, notu adlandır güvenlik, not birleştir, notu geri al, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
 
 REHBER_TEXT = """Şunları kullanabilirsin:
   kilit: cihaz kilidi işlemleri
@@ -94,6 +95,7 @@ REHBER_TEXT = """Şunları kullanabilirsin:
   notları temizle: kayıtlı notları siler
   notu sil: en son notu siler
   notu düzenle: son notu yeni kısa metinle değiştirir
+  notu adlandır <etiket>: en son nota kısa etiket ekler
   not birleştir: son iki notu tek kısa notta birleştirir
   notu geri al: son not işlemini geri alır (silme, temizleme, düzenleme, birleştirme)
   not ara <kelime>: kayıtlı notlarda kelime arar (en fazla 5)
@@ -221,6 +223,7 @@ HATIRLA_NOTE_MAX_LEN = 150
 
 # "Not özetle": bu uzunluktan kısaysa "zaten yeterince kısa" denir
 NOT_OZETLE_SHORT_THRESHOLD = 100
+NOT_ADLANDIR_MAX_TAG_LEN = 24
 
 
 def _shorten_previous_response(text: str) -> str:
@@ -400,6 +403,11 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
     if _q.startswith("not ara "):
         word = (_q[8:].strip().split() or [""])[0]
         return ("not_ara", [word])
+    if _q == "notu adlandir":
+        return ("notu_adlandir", [])
+    if _q.startswith("notu adlandir "):
+        tag = _q[14:].strip()
+        return ("notu_adlandir", [tag] if tag else [])
     if _q == "hangi moddayim":
         return ("hangi_moddayim", [])
     return ("unknown", [])
@@ -1119,6 +1127,23 @@ def main() -> None:
             else:
                 pending_note_edit[0] = True
                 print("Son notu düzenlemek için yeni kısa metni yaz.")
+            continue
+        if route == "notu_adlandir":
+            tag_raw = (args[0] if args else "").strip()
+            if not tag_raw:
+                print("Etiket için kısa bir ad yazman gerekiyor.")
+                continue
+            if not saved_notes[0]:
+                print("Etiketlenecek kayıtlı not yok.")
+                continue
+            tag = tag_raw
+            if len(tag) > NOT_ADLANDIR_MAX_TAG_LEN:
+                tag = tag[:NOT_ADLANDIR_MAX_TAG_LEN].strip()
+            old_content = saved_notes[0][-1]
+            saved_notes[0][-1] = "[" + tag + "] " + old_content
+            last_note_undo[0] = ("notu_duzenle", old_content)
+            _record_note_op(note_ops_history, "notu adlandır")
+            print("Son notu etiketledim.")
             continue
         if route == "not_birlestir":
             if len(saved_notes[0]) < 2:
