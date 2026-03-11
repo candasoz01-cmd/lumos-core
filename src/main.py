@@ -38,7 +38,7 @@ def norm_cmd(s: str) -> str:
 # Canonical CLI: exit synonyms (q, çık, cik, quit -> exit)
 EXIT_SYNONYMS = frozenset({"exit", "quit", "çık", "cik", "çik", "q"})
 
-HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi moddayım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | en önemli eksik ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | son not ne | not özetle | notu kopyala | notu dışa aktar | notu paylaş | notları göster | not geçmişi | not ara <kelime> | notları temizle | notu sil | notu düzenle | notu adlandır <etiket> | not birleştir | notu geri al | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
+HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi moddayım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | en önemli eksik ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | son not ne | not özetle | notu kopyala | notu dışa aktar | notu paylaş | notları göster | etiketleri göster | not geçmişi | not ara <kelime> | notları temizle | notu sil | notu düzenle | notu adlandır <etiket> | not birleştir | notu geri al | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
   kilit    Cihaz kilidi / şifre
   kamera   Yüz tanıma (presence) kilit
   alias    Komut kısaltmaları (alias liste | alias ekle <ad> <hedef> | alias sil <ad>)
@@ -58,6 +58,7 @@ HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi
   notu dışa aktar   En son notu tek satır düz metin olarak verir (dışa aktarmak için)
   notu paylaş   En son notu paylaşılabilir tek satır olarak verir
   notları göster   Kayıtlı notları listeler (en fazla son 5)
+  etiketleri göster   Kayıtlı notlardaki etiketleri listeler
   not geçmişi   Son not işlemlerini listeler (en fazla 5)
   notları temizle   Kayıtlı notları siler
   notu sil   En son notu siler
@@ -70,7 +71,7 @@ HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi
   son yaptığın ne   En son tamamladığın işi söyler
   bugün ne yaptın   Bugünkü işlerin kısa özeti
   exit     Çıkış (q, çık, quit)
-Örnek: kilit, kamera aç, durum, hazir, hangi moddayım, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, son not ne, not özetle, notu kopyala, notu dışa aktar, notu paylaş, notları göster, not geçmişi, not ara lock, notları temizle, notu sil, notu düzenle, notu adlandır güvenlik, not birleştir, notu geri al, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
+Örnek: kilit, kamera aç, durum, hazir, hangi moddayım, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, son not ne, not özetle, notu kopyala, notu dışa aktar, notu paylaş, notları göster, etiketleri göster, not geçmişi, not ara lock, notları temizle, notu sil, notu düzenle, notu adlandır güvenlik, not birleştir, notu geri al, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
 
 REHBER_TEXT = """Şunları kullanabilirsin:
   kilit: cihaz kilidi işlemleri
@@ -91,6 +92,7 @@ REHBER_TEXT = """Şunları kullanabilirsin:
   notu dışa aktar: en son notu tek satır düz metin olarak verir (dışa aktarmak için)
   notu paylaş: en son notu paylaşılabilir tek satır olarak verir
   notları göster: kayıtlı notları listeler (en fazla son 5)
+  etiketleri göster: kayıtlı notlardaki etiketleri listeler
   not geçmişi: son not işlemlerini listeler (en fazla 5)
   notları temizle: kayıtlı notları siler
   notu sil: en son notu siler
@@ -376,6 +378,8 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("son_not_ne", [])
     if _q == "notlari goster":
         return ("notlari_goster", [])
+    if _q == "etiketleri goster":
+        return ("etiketleri_goster", [])
     if _q == "notlari temizle":
         return ("notlari_temizle", [])
     if _q == "notu sil":
@@ -1094,6 +1098,22 @@ def main() -> None:
                 print("Kayıtlı notlar:")
                 for n in recent:
                     print("- " + n)
+            continue
+        if route == "etiketleri_goster":
+            seen: set[str] = set()
+            tags_ordered: list[str] = []
+            for n in reversed(saved_notes[0]):
+                if n.startswith("[") and "] " in n:
+                    tag = n[1 : n.index("] ")].strip()
+                    if tag and tag not in seen:
+                        seen.add(tag)
+                        tags_ordered.append(tag)
+            if not tags_ordered:
+                print("Henüz kayıtlı etiket yok.")
+            else:
+                print("Kayıtlı etiketler:")
+                for t in tags_ordered:
+                    print("- " + t)
             continue
         if route == "not_gecmisi":
             if not note_ops_history[0]:
