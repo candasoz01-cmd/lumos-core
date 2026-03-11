@@ -38,7 +38,7 @@ def norm_cmd(s: str) -> str:
 # Canonical CLI: exit synonyms (q, çık, cik, quit -> exit)
 EXIT_SYNONYMS = frozenset({"exit", "quit", "çık", "cik", "çik", "q"})
 
-HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi moddayım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | en önemli eksik ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | son not ne | notu kopyala | notu dışa aktar | notu paylaş | notları göster | not ara <kelime> | notları temizle | notu sil | notu düzenle | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
+HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi moddayım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | en önemli eksik ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | son not ne | not özetle | notu kopyala | notu dışa aktar | notu paylaş | notları göster | not ara <kelime> | notları temizle | notu sil | notu düzenle | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
   kilit    Cihaz kilidi / şifre
   kamera   Yüz tanıma (presence) kilit
   alias    Komut kısaltmaları (alias liste | alias ekle <ad> <hedef> | alias sil <ad>)
@@ -53,6 +53,7 @@ HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi
   bunu kısaca anlat   Bir önceki cevabı kısa ve sade özetle
   bunu hatırla   Son anlamlı cevabı veya durum özetini kısa not olarak kaydeder
   son not ne   En son "bunu hatırla" ile kaydettiğin notu gösterir
+  not özetle   En son kaydedilmiş notu kısa özet halinde verir
   notu kopyala   En son notu düz metin olarak verir (kopyalamak için)
   notu dışa aktar   En son notu tek satır düz metin olarak verir (dışa aktarmak için)
   notu paylaş   En son notu paylaşılabilir tek satır olarak verir
@@ -65,7 +66,7 @@ HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi
   son yaptığın ne   En son tamamladığın işi söyler
   bugün ne yaptın   Bugünkü işlerin kısa özeti
   exit     Çıkış (q, çık, quit)
-Örnek: kilit, kamera aç, durum, hazir, hangi moddayım, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, son not ne, notu kopyala, notu dışa aktar, notu paylaş, notları göster, not ara lock, notları temizle, notu sil, notu düzenle, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
+Örnek: kilit, kamera aç, durum, hazir, hangi moddayım, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, son not ne, not özetle, notu kopyala, notu dışa aktar, notu paylaş, notları göster, not ara lock, notları temizle, notu sil, notu düzenle, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
 
 REHBER_TEXT = """Şunları kullanabilirsin:
   kilit: cihaz kilidi işlemleri
@@ -81,6 +82,7 @@ REHBER_TEXT = """Şunları kullanabilirsin:
   bunu kısaca anlat: bir önceki cevabı kısa ve sade özetle
   bunu hatırla: son cevabı veya durum özetini kısa not olarak kaydeder
   son not ne: en son kaydettiğin notu gösterir
+  not özetle: en son kaydedilmiş notu kısa özet halinde verir
   notu kopyala: en son notu düz metin olarak verir
   notu dışa aktar: en son notu tek satır düz metin olarak verir (dışa aktarmak için)
   notu paylaş: en son notu paylaşılabilir tek satır olarak verir
@@ -210,6 +212,9 @@ KISACA_ANLAT_SHORT_THRESHOLD = 90
 
 # "Bunu hatırla" ile kaydedilen notun azami uzunluğu
 HATIRLA_NOTE_MAX_LEN = 150
+
+# "Not özetle": bu uzunluktan kısaysa "zaten yeterince kısa" denir
+NOT_OZETLE_SHORT_THRESHOLD = 100
 
 
 def _shorten_previous_response(text: str) -> str:
@@ -372,6 +377,8 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("notu_disa_aktar", [])
     if _q == "notu paylas":
         return ("notu_paylas", [])
+    if _q == "not ozetle":
+        return ("not_ozetle", [])
     if _q == "notu duzenle":
         return ("notu_duzenle", [])
     if _q == "kac not var":
@@ -1027,6 +1034,19 @@ def main() -> None:
                 print(saved_notes[0][-1])
             else:
                 print("Paylaşılacak kayıtlı not yok.")
+            continue
+        if route == "not_ozetle":
+            if not saved_notes[0]:
+                print("Özetlenecek kayıtlı not yok.")
+            else:
+                last_note = saved_notes[0][-1].strip()
+                if len(last_note) <= NOT_OZETLE_SHORT_THRESHOLD:
+                    print("Son not zaten yeterince kısa.")
+                else:
+                    short = _shorten_previous_response(last_note).strip()
+                    if not short:
+                        short = (last_note[:120].rsplit(maxsplit=1)[0].rstrip(".,") + ".") if len(last_note) > 120 else last_note
+                    print("Kısa özet: " + short)
             continue
         if route == "notlari_goster":
             if not saved_notes[0]:
