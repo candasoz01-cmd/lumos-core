@@ -38,7 +38,7 @@ def norm_cmd(s: str) -> str:
 # Canonical CLI: exit synonyms (q, çık, cik, quit -> exit)
 EXIT_SYNONYMS = frozenset({"exit", "quit", "çık", "cik", "çik", "q"})
 
-HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi moddayım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | en önemli eksik ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | son not ne | not özetle | notu kopyala | notu dışa aktar | notu paylaş | notları göster | not ara <kelime> | notları temizle | notu sil | notu düzenle | not birleştir | notu geri al | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
+HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi moddayım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | en önemli eksik ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | son not ne | not özetle | notu kopyala | notu dışa aktar | notu paylaş | notları göster | not geçmişi | not ara <kelime> | notları temizle | notu sil | notu düzenle | not birleştir | notu geri al | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
   kilit    Cihaz kilidi / şifre
   kamera   Yüz tanıma (presence) kilit
   alias    Komut kısaltmaları (alias liste | alias ekle <ad> <hedef> | alias sil <ad>)
@@ -58,6 +58,7 @@ HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi
   notu dışa aktar   En son notu tek satır düz metin olarak verir (dışa aktarmak için)
   notu paylaş   En son notu paylaşılabilir tek satır olarak verir
   notları göster   Kayıtlı notları listeler (en fazla son 5)
+  not geçmişi   Son not işlemlerini listeler (en fazla 5)
   notları temizle   Kayıtlı notları siler
   notu sil   En son notu siler
   notu düzenle   Son notu yeni kısa metinle değiştirir
@@ -68,7 +69,7 @@ HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi
   son yaptığın ne   En son tamamladığın işi söyler
   bugün ne yaptın   Bugünkü işlerin kısa özeti
   exit     Çıkış (q, çık, quit)
-Örnek: kilit, kamera aç, durum, hazir, hangi moddayım, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, son not ne, not özetle, notu kopyala, notu dışa aktar, notu paylaş, notları göster, not ara lock, notları temizle, notu sil, notu düzenle, not birleştir, notu geri al, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
+Örnek: kilit, kamera aç, durum, hazir, hangi moddayım, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, son not ne, not özetle, notu kopyala, notu dışa aktar, notu paylaş, notları göster, not geçmişi, not ara lock, notları temizle, notu sil, notu düzenle, not birleştir, notu geri al, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
 
 REHBER_TEXT = """Şunları kullanabilirsin:
   kilit: cihaz kilidi işlemleri
@@ -89,6 +90,7 @@ REHBER_TEXT = """Şunları kullanabilirsin:
   notu dışa aktar: en son notu tek satır düz metin olarak verir (dışa aktarmak için)
   notu paylaş: en son notu paylaşılabilir tek satır olarak verir
   notları göster: kayıtlı notları listeler (en fazla son 5)
+  not geçmişi: son not işlemlerini listeler (en fazla 5)
   notları temizle: kayıtlı notları siler
   notu sil: en son notu siler
   notu düzenle: son notu yeni kısa metinle değiştirir
@@ -391,6 +393,8 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("notu_geri_al", [])
     if _q == "kac not var":
         return ("kac_not_var", [])
+    if _q == "not gecmisi":
+        return ("not_gecmisi", [])
     if _q == "not ara":
         return ("not_ara", [])
     if _q.startswith("not ara "):
@@ -404,6 +408,14 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
 def handle_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, list[str]]:
     """Alias for normalize_command for compatibility."""
     return normalize_command(raw, base_dir, aliases)
+
+
+def _record_note_op(history: list[list[str]], op_label: str) -> None:
+    """Son not işlemleri listesine ekle; en fazla 5, en yeni sonda."""
+    h = history[0]
+    h.append(op_label)
+    if len(h) > 5:
+        h.pop(0)
 
 
 def _record_today_action(
@@ -900,6 +912,7 @@ def main() -> None:
     saved_notes: list[list[str]] = [[]]               # "bunu hatırla" ile kaydedilen kısa notlar
     pending_note_edit: list[bool] = [False]            # "notu düzenle" sonrası yeni metin bekleniyor
     last_note_undo: list[tuple[str, Any] | None] = [None]  # (op, data) tek adımlık geri al
+    note_ops_history: list[list[str]] = [[]]          # son not işlemleri (en fazla 5); "not geçmişi"
     while True:
         try:
             pl.watchdog_tick(Path(base_dir), state.log_event, _recovery_lock_cb, state.is_locked)
@@ -926,6 +939,7 @@ def main() -> None:
                 old_content = saved_notes[0][-1]
                 saved_notes[0][-1] = raw.strip()
                 last_note_undo[0] = ("notu_duzenle", old_content)
+                _record_note_op(note_ops_history, "notu düzenle")
                 print("Son notu güncelledim.")
                 pending_note_edit[0] = False
                 continue
@@ -1017,6 +1031,7 @@ def main() -> None:
                     print("Zaten not ettim.")
                 else:
                     saved_notes[0].append(note.strip())
+                    _record_note_op(note_ops_history, "bunu hatırla")
                     print("Bunu not ettim.")
             last_response_reason[0] = "bunu hatırla dedin"
             last_action[0] = "En son hatırla işlemini yaptım."
@@ -1030,18 +1045,21 @@ def main() -> None:
             continue
         if route == "notu_kopyala":
             if saved_notes[0]:
+                _record_note_op(note_ops_history, "notu kopyala")
                 print(saved_notes[0][-1])
             else:
                 print("Kopyalanacak kayıtlı not yok.")
             continue
         if route == "notu_disa_aktar":
             if saved_notes[0]:
+                _record_note_op(note_ops_history, "notu dışa aktar")
                 print(saved_notes[0][-1])
             else:
                 print("Dışa aktarılacak kayıtlı not yok.")
             continue
         if route == "notu_paylas":
             if saved_notes[0]:
+                _record_note_op(note_ops_history, "notu paylaş")
                 print(saved_notes[0][-1])
             else:
                 print("Paylaşılacak kayıtlı not yok.")
@@ -1050,6 +1068,7 @@ def main() -> None:
             if not saved_notes[0]:
                 print("Özetlenecek kayıtlı not yok.")
             else:
+                _record_note_op(note_ops_history, "not özetle")
                 last_note = saved_notes[0][-1].strip()
                 if len(last_note) <= NOT_OZETLE_SHORT_THRESHOLD:
                     print("Son not zaten yeterince kısa.")
@@ -1068,12 +1087,21 @@ def main() -> None:
                 for n in recent:
                     print("- " + n)
             continue
+        if route == "not_gecmisi":
+            if not note_ops_history[0]:
+                print("Henüz kayıtlı not işlemi yok.")
+            else:
+                print("Son not işlemleri:")
+                for op in reversed(note_ops_history[0]):
+                    print("- " + op)
+            continue
         if route == "notlari_temizle":
             if not saved_notes[0]:
                 print("Temizlenecek kayıtlı not yok.")
             else:
                 last_note_undo[0] = ("notlari_temizle", saved_notes[0][:])
                 saved_notes[0].clear()
+                _record_note_op(note_ops_history, "notları temizle")
                 print("Kayıtlı notları temizledim.")
             continue
         if route == "notu_sil":
@@ -1082,6 +1110,7 @@ def main() -> None:
             else:
                 last_note_undo[0] = ("notu_sil", saved_notes[0][-1])
                 saved_notes[0].pop()
+                _record_note_op(note_ops_history, "notu sil")
                 print("Son notu sildim.")
             continue
         if route == "notu_duzenle":
@@ -1101,6 +1130,7 @@ def main() -> None:
                     merged = (merged[:240].rsplit(maxsplit=1)[0].rstrip(".,") + ".").strip() or merged[:240]
                 saved_notes[0].append(merged)
                 last_note_undo[0] = ("not_birlestir", None)
+                _record_note_op(note_ops_history, "not birleştir")
                 print("Son iki notu birleştirdim.")
             continue
         if route == "notu_geri_al":
@@ -1118,6 +1148,7 @@ def main() -> None:
                 elif op == "not_birlestir":
                     saved_notes[0].pop()
                 last_note_undo[0] = None
+                _record_note_op(note_ops_history, "notu geri al")
                 print("Son not işlemini geri aldım.")
             continue
         if route == "kac_not_var":
@@ -1132,6 +1163,7 @@ def main() -> None:
             if not word:
                 print("Aramak için bir kelime yazman gerekiyor.")
                 continue
+            _record_note_op(note_ops_history, "not ara")
             folded = _fold_for_search(word)
             matches = [n for n in saved_notes[0] if folded in _fold_for_search(n)]
             if not matches:
