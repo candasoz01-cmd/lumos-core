@@ -40,7 +40,7 @@ EXIT_SYNONYMS = frozenset({"exit", "quit", "çık", "cik", "çik", "q"})
 
 # Yardım: gruplu, kısa; help / yardım / yardım et hepsi aynı çıktıyı kullanır
 HELP_TEXT = """Temel
-  durum, hazır, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, kilit, kamera, alias, hangi moddayım, şu an güvenli miyim, exit, yardım temel, yardım etiketler, yardım notlar, yardım güvenlik
+  durum, hazır, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, kilit, kamera, alias, hangi moddayım, şu an güvenli miyim, exit, yardım kısa, yardım temel, yardım etiketler, yardım notlar, yardım güvenlik
 
 Notlar
   bunu hatırla, son not ne, notları göster, kaç not var, notu sil, notları temizle, notu düzenle, notu kopyala, notu dışa aktar, notu paylaş, not özetle, not birleştir, notu geri al, not geçmişi, not ara <kelime>
@@ -63,6 +63,9 @@ HELP_TEMEL_TEXT = """Temel
 # Sadece güvenlik/koruma komutları; "yardım güvenlik" için kısa blok (not/etiket karışmaz)
 HELP_GUVENLIK_TEXT = """Güvenlik
   durum, hazır, hazır mıyım, hangi moddayım, şu an güvenli miyim, neden böyle diyorsun"""
+
+# "yardım kısa": tek satır yönlendirme; detaylı komut listesi yok
+HELP_KISA_TEXT = "Kısa yardım: yardım temel | yardım güvenlik | yardım notlar | yardım etiketler\nGenel liste için: help"
 
 REHBER_TEXT = HELP_TEXT
 
@@ -298,6 +301,8 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("help_temel", [])
     if len(parts) >= 2 and head in ("help", "?", "yardim", "yardım") and parts[1].casefold() in ("güvenlik", "guvenlik"):
         return ("help_guvenlik", [])
+    if len(parts) >= 2 and head in ("help", "?", "yardim", "yardım") and _fold_for_search(parts[1]) == "kisa":
+        return ("help_kisa", [])
     if head in ("help", "?", "yardim", "yardım"):
         return ("help", [])
     if head in ("kilit", "lock"):
@@ -989,6 +994,13 @@ def main() -> None:
             _record_today_action(today_date, today_actions, last_action[0])
             last_response_text[0] = HELP_GUVENLIK_TEXT
             print(HELP_GUVENLIK_TEXT)
+            continue
+        if route == "help_kisa":
+            last_response_reason[0] = "kısa yardımı istedin"
+            last_action[0] = "En son kısa yardımı gösterdim."
+            _record_today_action(today_date, today_actions, last_action[0])
+            last_response_text[0] = HELP_KISA_TEXT
+            print(HELP_KISA_TEXT)
             continue
         if route == "rehber":
             last_response_reason[0] = "rehberi istedin"
