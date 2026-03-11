@@ -38,7 +38,7 @@ def norm_cmd(s: str) -> str:
 # Canonical CLI: exit synonyms (q, çık, cik, quit -> exit)
 EXIT_SYNONYMS = frozenset({"exit", "quit", "çık", "cik", "çik", "q"})
 
-HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi moddayım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | en önemli eksik ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | son not ne | not özetle | notu kopyala | notu dışa aktar | notu paylaş | notları göster | not ara <kelime> | notları temizle | notu sil | notu düzenle | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
+HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi moddayım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | en önemli eksik ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | son not ne | not özetle | notu kopyala | notu dışa aktar | notu paylaş | notları göster | not ara <kelime> | notları temizle | notu sil | notu düzenle | not birleştir | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
   kilit    Cihaz kilidi / şifre
   kamera   Yüz tanıma (presence) kilit
   alias    Komut kısaltmaları (alias liste | alias ekle <ad> <hedef> | alias sil <ad>)
@@ -61,12 +61,13 @@ HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi
   notları temizle   Kayıtlı notları siler
   notu sil   En son notu siler
   notu düzenle   Son notu yeni kısa metinle değiştirir
+  not birleştir   Son iki notu tek kısa notta birleştirir
   not ara <kelime>   Kayıtlı notlarda kelime arar (en fazla 5 eşleşme)
   ne yapıyorsun   Şu an ne yaptığını söyler
   son yaptığın ne   En son tamamladığın işi söyler
   bugün ne yaptın   Bugünkü işlerin kısa özeti
   exit     Çıkış (q, çık, quit)
-Örnek: kilit, kamera aç, durum, hazir, hangi moddayım, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, son not ne, not özetle, notu kopyala, notu dışa aktar, notu paylaş, notları göster, not ara lock, notları temizle, notu sil, notu düzenle, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
+Örnek: kilit, kamera aç, durum, hazir, hangi moddayım, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, son not ne, not özetle, notu kopyala, notu dışa aktar, notu paylaş, notları göster, not ara lock, notları temizle, notu sil, notu düzenle, not birleştir, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
 
 REHBER_TEXT = """Şunları kullanabilirsin:
   kilit: cihaz kilidi işlemleri
@@ -90,6 +91,7 @@ REHBER_TEXT = """Şunları kullanabilirsin:
   notları temizle: kayıtlı notları siler
   notu sil: en son notu siler
   notu düzenle: son notu yeni kısa metinle değiştirir
+  not birleştir: son iki notu tek kısa notta birleştirir
   not ara <kelime>: kayıtlı notlarda kelime arar (en fazla 5)
   ne yapıyorsun: o an üstünde olduğun işi söyler
   son yaptığın ne: en son tamamladığın işi söyler
@@ -381,6 +383,8 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("not_ozetle", [])
     if _q == "notu duzenle":
         return ("notu_duzenle", [])
+    if _q == "not birlestir":
+        return ("not_birlestir", [])
     if _q == "kac not var":
         return ("kac_not_var", [])
     if _q == "not ara":
@@ -1077,6 +1081,17 @@ def main() -> None:
             else:
                 pending_note_edit[0] = True
                 print("Son notu düzenlemek için yeni kısa metni yaz.")
+            continue
+        if route == "not_birlestir":
+            if len(saved_notes[0]) < 2:
+                print("Birleştirmek için en az 2 kayıtlı not gerekiyor.")
+            else:
+                last_two = [saved_notes[0][-2].strip(), saved_notes[0][-1].strip()]
+                merged = (last_two[0] + " " + last_two[1]).strip()
+                if len(merged) > 240:
+                    merged = (merged[:240].rsplit(maxsplit=1)[0].rstrip(".,") + ".").strip() or merged[:240]
+                saved_notes[0].append(merged)
+                print("Son iki notu birleştirdim.")
             continue
         if route == "kac_not_var":
             n = len(saved_notes[0])
