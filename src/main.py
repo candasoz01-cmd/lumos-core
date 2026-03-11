@@ -38,7 +38,7 @@ def norm_cmd(s: str) -> str:
 # Canonical CLI: exit synonyms (q, çık, cik, quit -> exit)
 EXIT_SYNONYMS = frozenset({"exit", "quit", "çık", "cik", "çik", "q"})
 
-HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi moddayım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | en önemli eksik ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | son not ne | notları göster | notları temizle | notu sil | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
+HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi moddayım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | en önemli eksik ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | son not ne | notları göster | not ara <kelime> | notları temizle | notu sil | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
   kilit    Cihaz kilidi / şifre
   kamera   Yüz tanıma (presence) kilit
   alias    Komut kısaltmaları (alias liste | alias ekle <ad> <hedef> | alias sil <ad>)
@@ -56,11 +56,12 @@ HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi
   notları göster   Kayıtlı notları listeler (en fazla son 5)
   notları temizle   Kayıtlı notları siler
   notu sil   En son notu siler
+  not ara <kelime>   Kayıtlı notlarda kelime arar (en fazla 5 eşleşme)
   ne yapıyorsun   Şu an ne yaptığını söyler
   son yaptığın ne   En son tamamladığın işi söyler
   bugün ne yaptın   Bugünkü işlerin kısa özeti
   exit     Çıkış (q, çık, quit)
-Örnek: kilit, kamera aç, durum, hazir, hangi moddayım, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, son not ne, notları göster, notları temizle, notu sil, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
+Örnek: kilit, kamera aç, durum, hazir, hangi moddayım, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, son not ne, notları göster, not ara lock, notları temizle, notu sil, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
 
 REHBER_TEXT = """Şunları kullanabilirsin:
   kilit: cihaz kilidi işlemleri
@@ -79,6 +80,7 @@ REHBER_TEXT = """Şunları kullanabilirsin:
   notları göster: kayıtlı notları listeler (en fazla son 5)
   notları temizle: kayıtlı notları siler
   notu sil: en son notu siler
+  not ara <kelime>: kayıtlı notlarda kelime arar (en fazla 5)
   ne yapıyorsun: o an üstünde olduğun işi söyler
   son yaptığın ne: en son tamamladığın işi söyler
   bugün ne yaptın: bugünkü işlerin kısa özeti
@@ -279,6 +281,16 @@ def _parse_yes_no(x: str) -> bool | None:
     return None
 
 
+def _fold_for_search(s: str) -> str:
+    """Büyük/küçük harf ve Türkçe karakter farkını tolere etmek için metni katla."""
+    s = (s or "").strip().casefold()
+    return (
+        s.replace("\u0131", "i").replace("İ", "i")
+        .replace("ö", "o").replace("ü", "u")
+        .replace("ş", "s").replace("ğ", "g").replace("ç", "c")
+    )
+
+
 def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, list[str]]:
     """Strip, casefold, apply user aliases, normalize head to canonical command. Return (canonical, args)."""
     s = (raw or "").strip().casefold()
@@ -348,6 +360,11 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("notu_sil", [])
     if _q == "kac not var":
         return ("kac_not_var", [])
+    if _q == "not ara":
+        return ("not_ara", [])
+    if _q.startswith("not ara "):
+        word = (_q[8:].strip().split() or [""])[0]
+        return ("not_ara", [word])
     if _q == "hangi moddayim":
         return ("hangi_moddayim", [])
     return ("unknown", [])
@@ -993,6 +1010,21 @@ def main() -> None:
                 print("Kayıtlı not yok.")
             else:
                 print(f"{n} kayıtlı not var.")
+            continue
+        if route == "not_ara":
+            word = (args[0] if args else "").strip()
+            if not word:
+                print("Aramak için bir kelime yazman gerekiyor.")
+                continue
+            folded = _fold_for_search(word)
+            matches = [n for n in saved_notes[0] if folded in _fold_for_search(n)]
+            if not matches:
+                print("Bu aramayla eşleşen not bulamadım.")
+            else:
+                recent = matches[-5:]
+                print("Eşleşen notlar:")
+                for n in recent:
+                    print("- " + n)
             continue
         if route == "ne_yapiyorsun":
             if current_task[0]:
