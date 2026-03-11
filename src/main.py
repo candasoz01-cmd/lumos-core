@@ -38,85 +38,17 @@ def norm_cmd(s: str) -> str:
 # Canonical CLI: exit synonyms (q, çık, cik, quit -> exit)
 EXIT_SYNONYMS = frozenset({"exit", "quit", "çık", "cik", "çik", "q"})
 
-HELP_TEXT = """Komutlar: kilit | kamera | alias | durum | hazır mıyım | hangi moddayım | şu an güvenli miyim | bana ne önerirsin | bir sonraki adım ne | en önemli eksik ne | neden böyle diyorsun | bunu kısaca anlat | bunu hatırla | son not ne | not özetle | notu kopyala | notu dışa aktar | notu paylaş | notları göster | etiketli notları göster | etikete göre notları göster <etiket> | etiketleri göster | not geçmişi | not ara <kelime> | etiketli not ara <kelime> | etiket ara <kelime> | notları temizle | notu sil | notu düzenle | notu adlandır <etiket> | etiket kaldır <etiket> | etiket değiştir <eski> <yeni> | not birleştir | notu geri al | ne yapıyorsun | son yaptığın ne | bugün ne yaptın | exit
-  kilit    Cihaz kilidi / şifre
-  kamera   Yüz tanıma (presence) kilit
-  alias    Komut kısaltmaları (alias liste | alias ekle <ad> <hedef> | alias sil <ad>)
-  durum    Kısa durum özeti (lock, presence, consent, mod, kritik not)
-  hazır mıyım / hazir   Tek satır hazır olma özeti
-  hangi moddayım   Mevcut çalışma modu (offline / online / güvenli offline)
-  şu an güvenli miyim   Doğrudan güvenlik cevabı (kısa, dürüst)
-  bana ne önerirsin   Şu an için en mantıklı sonraki adım (1–3 öneri)
-  bir sonraki adım ne   Tek ve net bir sonraki adım
-  en önemli eksik ne   Tek kritik eksik (consent > lock > güvenlik; yoksa yok)
-  neden böyle diyorsun   Bir önceki cevabın kısa gerekçesi
-  bunu kısaca anlat   Bir önceki cevabı kısa ve sade özetle
-  bunu hatırla   Son anlamlı cevabı veya durum özetini kısa not olarak kaydeder
-  son not ne   En son "bunu hatırla" ile kaydettiğin notu gösterir
-  not özetle   En son kaydedilmiş notu kısa özet halinde verir
-  notu kopyala   En son notu düz metin olarak verir (kopyalamak için)
-  notu dışa aktar   En son notu tek satır düz metin olarak verir (dışa aktarmak için)
-  notu paylaş   En son notu paylaşılabilir tek satır olarak verir
-  notları göster   Kayıtlı notları listeler (en fazla son 5)
-  etiketli notları göster   Sadece etiketli notları listeler (en fazla son 5)
-  etikete göre notları göster <etiket>   Verilen etikete sahip notları listeler (en fazla 5)
-  etiketleri göster   Kayıtlı notlardaki etiketleri listeler
-  not geçmişi   Son not işlemlerini listeler (en fazla 5)
-  notları temizle   Kayıtlı notları siler
-  notu sil   En son notu siler
-  notu düzenle   Son notu yeni kısa metinle değiştirir
-  notu adlandır <etiket>   En son nota kısa etiket ekler
-  etiket kaldır <etiket>   En son nottan etiketi kaldırır
-  etiket değiştir <eski> <yeni>   Son nottaki etiketi yeni adla değiştirir
-  not birleştir   Son iki notu tek kısa notta birleştirir
-  notu geri al   Son not işlemini geri alır (silme, temizleme, düzenleme, birleştirme)
-  not ara <kelime>   Kayıtlı notlarda kelime arar (en fazla 5 eşleşme)
-  etiketli not ara <kelime>   Sadece etiketli notlarda kelime arar
-  etiket ara <kelime>   Kayıtlı etiketlerde kelime arar
-  ne yapıyorsun   Şu an ne yaptığını söyler
-  son yaptığın ne   En son tamamladığın işi söyler
-  bugün ne yaptın   Bugünkü işlerin kısa özeti
-  exit     Çıkış (q, çık, quit)
-Örnek: kilit, kamera aç, durum, hazir, hangi moddayım, şu an güvenli miyim, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla, son not ne, not özetle, notu kopyala, notu dışa aktar, notu paylaş, notları göster, etiketli notları göster, etikete göre notları göster güvenlik, etiketleri göster, not geçmişi, not ara lock, etiketli not ara lock, etiket ara güven, notları temizle, notu sil, notu düzenle, notu adlandır güvenlik, etiket kaldır güvenlik, etiket değiştir güvenlik koruma, not birleştir, notu geri al, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, çık"""
+# Yardım: gruplu, kısa; help / yardım / yardım et hepsi aynı çıktıyı kullanır
+HELP_TEXT = """Temel
+  durum, hazır, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, kilit, kamera, alias, hangi moddayım, şu an güvenli miyim, exit
 
-REHBER_TEXT = """Şunları kullanabilirsin:
-  kilit: cihaz kilidi işlemleri
-  kamera: yüz algılama ve otomatik kilit
-  durum: mevcut durum özeti (detaylı)
-  hazir: hızlı hazır olma özeti
-  hangi moddayım: mevcut çalışma modu (tek cümle)
-  şu an güvenli miyim: doğrudan güvenlik cevabı
-  bana ne önerirsin: şu an için 1–3 sonraki adım önerisi
-  bir sonraki adım ne: tek ve net bir sonraki adım
-  en önemli eksik ne: tek kritik eksik
-  neden böyle diyorsun: bir önceki cevabın kısa gerekçesi
-  bunu kısaca anlat: bir önceki cevabı kısa ve sade özetle
-  bunu hatırla: son cevabı veya durum özetini kısa not olarak kaydeder
-  son not ne: en son kaydettiğin notu gösterir
-  not özetle: en son kaydedilmiş notu kısa özet halinde verir
-  notu kopyala: en son notu düz metin olarak verir
-  notu dışa aktar: en son notu tek satır düz metin olarak verir (dışa aktarmak için)
-  notu paylaş: en son notu paylaşılabilir tek satır olarak verir
-  notları göster: kayıtlı notları listeler (en fazla son 5)
-  etiketli notları göster: sadece etiketli notları listeler (en fazla son 5)
-  etikete göre notları göster <etiket>: verilen etikete sahip notları listeler (en fazla 5)
-  etiketleri göster: kayıtlı notlardaki etiketleri listeler
-  not geçmişi: son not işlemlerini listeler (en fazla 5)
-  notları temizle: kayıtlı notları siler
-  notu sil: en son notu siler
-  notu düzenle: son notu yeni kısa metinle değiştirir
-  notu adlandır <etiket>: en son nota kısa etiket ekler
-  etiket kaldır <etiket>: en son nottan etiketi kaldırır
-  etiket değiştir <eski> <yeni>: son nottaki etiketi yeni adla değiştirir
-  not birleştir: son iki notu tek kısa notta birleştirir
-  notu geri al: son not işlemini geri alır (silme, temizleme, düzenleme, birleştirme)
-  not ara <kelime>: kayıtlı notlarda kelime arar (en fazla 5)
-  etiketli not ara <kelime>: sadece etiketli notlarda kelime arar
-  etiket ara <kelime>: kayıtlı etiketlerde kelime arar
-  ne yapıyorsun: o an üstünde olduğun işi söyler
-  son yaptığın ne: en son tamamladığın işi söyler
-  bugün ne yaptın: bugünkü işlerin kısa özeti
-  çık: çıkış yapar"""
+Notlar
+  bunu hatırla, son not ne, notları göster, kaç not var, notu sil, notları temizle, notu düzenle, notu kopyala, notu dışa aktar, notu paylaş, not özetle, not birleştir, notu geri al, not geçmişi, not ara <kelime>
+
+Etiketler
+  notu adlandır <etiket>, etiketleri göster, etiket ara <kelime>, etiket kaldır <etiket>, etiket değiştir <eski> <yeni>, etiketli notları göster, etiketli not ara <kelime>, etikete göre notları göster <etiket>"""
+
+REHBER_TEXT = HELP_TEXT
 
 # Bilinmeyen komut: kısa, yönlendirici; teknik hata yok
 UNKNOWN_CMD_TEXT = 'Bunu anlamadım. "durum", "hazir" veya "yardım et" deneyebilirsin.'
@@ -342,7 +274,7 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
     rest = parts[1:] if len(parts) > 1 else []
     if head in EXIT_SYNONYMS:
         return ("exit", [])
-    if head in ("help", "?"):
+    if head in ("help", "?", "yardim", "yardım"):
         return ("help", [])
     if head in ("kilit", "lock"):
         return ("kilit", rest)
