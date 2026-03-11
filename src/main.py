@@ -40,7 +40,7 @@ EXIT_SYNONYMS = frozenset({"exit", "quit", "çık", "cik", "çik", "q"})
 
 # Yardım: gruplu, kısa; help / yardım / yardım et hepsi aynı çıktıyı kullanır
 HELP_TEXT = """Temel
-  durum, hazır, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, kilit, kamera, alias, hangi moddayım, şu an güvenli miyim, exit, yardım kısa, yardım temel, yardım etiketler, yardım notlar, yardım güvenlik, yardım arama
+  durum, hazır, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, kilit, kamera, alias, hangi moddayım, şu an güvenli miyim, exit, yardım kısa, yardım temel, yardım etiketler, yardım notlar, yardım not işlemleri, yardım görüntüleme, yardım güvenlik, yardım arama
 
 Notlar
   bunu hatırla, son not ne, notları göster, kaç not var, notu sil, notları temizle, notu düzenle, notu kopyala, notu dışa aktar, notu paylaş, not özetle, not birleştir, notu geri al, not geçmişi, not ara <kelime>
@@ -56,6 +56,10 @@ HELP_ETIKETLER_TEXT = """Etiketler
 HELP_NOTLAR_TEXT = """Notlar
   bunu hatırla, son not ne, notları göster, kaç not var, notu sil, notları temizle, notu düzenle, notu kopyala, notu dışa aktar, notu paylaş, not özetle, not birleştir, notu geri al, not geçmişi, not ara <kelime>"""
 
+# Sadece not üzerinde işlem yapan komutlar; "yardım not işlemleri" için kısa blok (arama/görüntüleme yok)
+HELP_NOT_ISLEMLERI_TEXT = """Not işlemleri:
+  bunu hatırla, notu düzenle, notu sil, notları temizle, notu kopyala, notu dışa aktar, notu paylaş, not özetle, not birleştir, notu geri al"""
+
 # Sadece temel komutlar; "yardım temel" için kısa blok (not/etiket karışmaz)
 HELP_TEMEL_TEXT = """Temel
   durum, hazır, hazır mıyım, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, bana ne önerirsin, bir sonraki adım ne, hangi moddayım, şu an güvenli miyim, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla"""
@@ -68,8 +72,12 @@ HELP_GUVENLIK_TEXT = """Güvenlik
 HELP_ARAMA_TEXT = """Arama:
   not ara <kelime>, etiket ara <kelime>, etiketli not ara <kelime>, etikete göre notları göster <etiket>"""
 
+# Sadece görüntüleme/listeleme komutları; "yardım görüntüleme" için kısa blok (işlem/arama yok)
+HELP_GORUNTULEME_TEXT = """Görüntüleme:
+  durum, hazır, hazır mıyım, hangi moddayım, şu an güvenli miyim, son not ne, kaç not var, notları göster, etiketli notları göster, etiketleri göster, not geçmişi"""
+
 # "yardım kısa": tek satır yönlendirme; detaylı komut listesi yok
-HELP_KISA_TEXT = "Kısa yardım: yardım temel | yardım güvenlik | yardım notlar | yardım etiketler | yardım arama\nGenel liste için: help"
+HELP_KISA_TEXT = "Kısa yardım: yardım temel | yardım güvenlik | yardım notlar | yardım not işlemleri | yardım görüntüleme | yardım etiketler | yardım arama\nGenel liste için: help"
 
 REHBER_TEXT = HELP_TEXT
 
@@ -299,6 +307,8 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("exit", [])
     if len(parts) >= 2 and head in ("help", "?", "yardim", "yardım") and parts[1].casefold() == "etiketler":
         return ("help_etiketler", [])
+    if len(parts) >= 3 and head in ("help", "?", "yardim", "yardım") and parts[1].casefold() == "not" and parts[2].casefold() in ("işlemleri", "islemleri"):
+        return ("help_not_islemleri", [])
     if len(parts) >= 2 and head in ("help", "?", "yardim", "yardım") and parts[1].casefold() == "notlar":
         return ("help_notlar", [])
     if len(parts) >= 2 and head in ("help", "?", "yardim", "yardım") and parts[1].casefold() == "temel":
@@ -309,6 +319,8 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("help_kisa", [])
     if len(parts) >= 2 and head in ("help", "?", "yardim", "yardım") and parts[1].casefold() == "arama":
         return ("help_arama", [])
+    if len(parts) >= 2 and head in ("help", "?", "yardim", "yardım") and parts[1].casefold() in ("görüntüleme", "goruntuleme"):
+        return ("help_goruntuleme", [])
     if head in ("help", "?", "yardim", "yardım"):
         return ("help", [])
     if head in ("kilit", "lock"):
@@ -987,6 +999,13 @@ def main() -> None:
             last_response_text[0] = HELP_NOTLAR_TEXT
             print(HELP_NOTLAR_TEXT)
             continue
+        if route == "help_not_islemleri":
+            last_response_reason[0] = "not işlem komutlarını istedin"
+            last_action[0] = "En son not işlemleri yardımını gösterdim."
+            _record_today_action(today_date, today_actions, last_action[0])
+            last_response_text[0] = HELP_NOT_ISLEMLERI_TEXT
+            print(HELP_NOT_ISLEMLERI_TEXT)
+            continue
         if route == "help_temel":
             last_response_reason[0] = "temel komutları istedin"
             last_action[0] = "En son temel yardımını gösterdim."
@@ -1014,6 +1033,13 @@ def main() -> None:
             _record_today_action(today_date, today_actions, last_action[0])
             last_response_text[0] = HELP_ARAMA_TEXT
             print(HELP_ARAMA_TEXT)
+            continue
+        if route == "help_goruntuleme":
+            last_response_reason[0] = "görüntüleme komutlarını istedin"
+            last_action[0] = "En son görüntüleme yardımını gösterdim."
+            _record_today_action(today_date, today_actions, last_action[0])
+            last_response_text[0] = HELP_GORUNTULEME_TEXT
+            print(HELP_GORUNTULEME_TEXT)
             continue
         if route == "rehber":
             last_response_reason[0] = "rehberi istedin"
