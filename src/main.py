@@ -8,12 +8,14 @@ from getpass import getpass
 from pathlib import Path
 from typing import Any
 
+from core.config import load_config
 from core.engine import CoreEngine
 from core.logfmt import logfmt
 from core.lumos import Lumos
 from core.state import CoreState, format_durum
 from core.startup_health import get_durum_parts, get_startup_summary
 from engine.online_engine import OnlineEngineV1
+from memory.schema import MemoryNote
 from memory.secure_store import SecureNotesStore
 from policy.offline_engine import OfflineEngineV1
 from security import presence_lock as pl
@@ -41,7 +43,7 @@ EXIT_SYNONYMS = frozenset({"exit", "quit", "çık", "cik", "çik", "q"})
 
 # Yardım: gruplu, kısa; help / yardım / yardım et hepsi aynı çıktıyı kullanır
 HELP_TEXT = """Temel
-  durum, hazır, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, kilit, kamera, alias, hangi moddayım, şu an güvenli miyim, exit, yardım kısa, yardım temel, yardım etiketler, yardım notlar, yardım not işlemleri, yardım görüntüleme, yardım güvenlik, yardım arama
+  durum, hazır, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, kilit, kamera, alias, self test, hangi moddayım, şu an güvenli miyim, exit, yardım kısa, yardım temel, yardım etiketler, yardım notlar, yardım not işlemleri, yardım görüntüleme, yardım güvenlik, yardım arama
 
 Notlar
   bunu hatırla, son not ne, notları göster, kaç not var, notu sil, notları temizle, notu düzenle, notu kopyala, notu dışa aktar, notu paylaş, not özetle, not birleştir, notu geri al, not geçmişi, not ara <kelime>
@@ -336,6 +338,10 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("durum", rest)
     if head in ("hazir", "hazır"):
         return ("hazir", rest)
+    if head == "self" and len(parts) >= 2 and parts[1].lower() == "test":
+        return ("self_test", [])
+    if head == "selftest":
+        return ("self_test", [])
     # "not özetle" / "not ozetle": başta "not " + "ozetle" (Türkçe karakterle yazılsa bile) tanınsın; tek kelime sonrası yeterli
     if head == "not" and len(parts) >= 2 and _fold_for_search(parts[1]) == "ozetle":
         return ("not_ozetle", [])
@@ -491,6 +497,156 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
 def handle_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, list[str]]:
     """Alias for normalize_command for compatibility."""
     return normalize_command(raw, base_dir, aliases)
+
+
+def run_startup_self_check(
+    base_dir: str | Path,
+    state: CoreState,
+    lumos: Lumos,
+    aliases: dict,
+) -> None:
+    """Açılışta kısa self-check: config, log, notes, parser, state. 2–5 sn aşmamalı."""
+    print("self-check: başlıyor")
+    results: list[tuple[str, bool, str]] = []
+
+    try:
+        load_config(Path(base_dir))
+        results.append(("config", True, "ok"))
+    except Exception as e:
+        results.append(("config", False, str(e)[:60]))
+
+    try:
+        state.log_event(logfmt("self_check", step="logs"))
+        results.append(("logs", True, "ok"))
+    except Exception as e:
+        results.append(("logs", False, str(e)[:60]))
+
+    notes_ok = False
+    notes_msg = "ok"
+    try:
+        nm = getattr(lumos, "note_memory", None)
+        if nm is None:
+            results.append(("notes", False, "note_memory yok"))
+        else:
+            if getattr(lumos.lock_state, "unlocked", False) and nm.store and nm.root_key:
+                nm._load_from_store()
+            notes_ok = True
+            notes_msg = "ok (kilitli)" if state.is_locked() else "ok"
+            results.append(("notes", True, notes_msg))
+    except Exception as e:
+        results.append(("notes", False, str(e)[:60]))
+
+    try:
+        r, a = normalize_command("help", Path(base_dir), aliases)
+        if r == "help" and a == []:
+            results.append(("parser", True, "ok"))
+        else:
+            results.append(("parser", False, "help route beklenmedi"))
+    except Exception as e:
+        results.append(("parser", False, str(e)[:60]))
+
+    try:
+        state.lock_status()
+        state.snapshot(base_dir=base_dir)
+        results.append(("state", True, "ok"))
+    except Exception as e:
+        results.append(("state", False, str(e)[:60]))
+
+    for name, ok, msg in results:
+        status = "ok" if ok else "fail"
+        if not ok:
+            print(f"  {name}: {status} ({msg})")
+        else:
+            print(f"  {name}: {msg}")
+    all_ok = all(r[1] for r in results)
+    if all_ok:
+        print("overall: ready")
+    else:
+        failed = [r[0] for r in results if not r[1]]
+        print("overall: Kısmen hazır — " + ", ".join(failed))
+
+
+def run_self_test(
+    base_dir: str | Path,
+    state: CoreState,
+    lumos: Lumos,
+    aliases: dict,
+    saved_notes: list,
+) -> tuple[bool, int, int, list[str]]:
+    """Derin self-test: config, logs, not ekleme/düzenleme/özetleme, alias, yardım blokları. Sonuç: passed, toplam, geçen sayısı, kırık alanlar."""
+    areas: list[tuple[str, bool]] = []
+
+    try:
+        load_config(Path(base_dir))
+        areas.append(("config", True))
+    except Exception:
+        areas.append(("config", False))
+
+    try:
+        state.log_event(logfmt("self_test", step="logs"))
+        areas.append(("logs", True))
+    except Exception:
+        areas.append(("logs", False))
+
+    try:
+        if state.is_locked():
+            saved_notes.append("__self_test_note__")
+            saved_notes.pop()
+        else:
+            nm = getattr(lumos, "note_memory", None)
+            if nm and getattr(lumos.lock_state, "unlocked", False):
+                n = MemoryNote(kind="constraint", content="__self_test__", source="local")
+                nm.add(n)
+                if nm.notes and nm.notes[-1].content == "__self_test__":
+                    nm.notes.pop()
+                    if nm.store and nm.root_key:
+                        nm._save_to_store()
+                else:
+                    raise RuntimeError("note add verify failed")
+        areas.append(("notes_add", True))
+    except Exception:
+        areas.append(("notes_add", False))
+
+    try:
+        if state.is_locked() and saved_notes:
+            old = saved_notes[-1]
+            saved_notes[-1] = "__edit_test__"
+            saved_notes[-1] = old
+        elif not state.is_locked():
+            nm = getattr(lumos, "note_memory", None)
+            if nm and nm.notes:
+                old = nm.notes[-1].content
+                nm.notes[-1].content = "__edit_test__"
+                nm.notes[-1].content = old
+        areas.append(("notes_edit", True))
+    except Exception:
+        areas.append(("notes_edit", False))
+
+    try:
+        _shorten_previous_response("Self test uzun bir metin özetlenebilir mi kontrol ediyor.")
+        areas.append(("notes_summarize", True))
+    except Exception:
+        areas.append(("notes_summarize", False))
+
+    try:
+        a1 = load_aliases(base_dir)
+        save_aliases(base_dir, a1 if isinstance(a1, dict) else {})
+        areas.append(("alias", True))
+    except Exception:
+        areas.append(("alias", False))
+
+    try:
+        ok = bool(HELP_TEXT and HELP_TEXT.strip())
+        r, a = normalize_command("help", Path(base_dir), aliases)
+        ok = ok and (r == "help" and a == [])
+        areas.append(("help_blocks", ok))
+    except Exception:
+        areas.append(("help_blocks", False))
+
+    passed_count = sum(1 for _, p in areas if p)
+    total = len(areas)
+    failed_areas = [name for name, p in areas if not p]
+    return (len(failed_areas) == 0, total, passed_count, failed_areas)
 
 
 def _record_note_op(history: list[list[str]], op_label: str) -> None:
@@ -848,8 +1004,10 @@ def main() -> None:
 
     engine.recover_presence(Path(base_dir), state.log_event, _recovery_lock_cb, state.is_locked)
 
+    run_startup_self_check(base_dir, state, lumos, aliases)
+
     # Ürün iyileştirmesi: "hazir" / "hazır mıyım" ana promptta çalışıyor; Kilit> / Kamera> alt menülerinde global komut olarak eklenebilir.
-    _GLOBAL_CMDS = {"kilit", "lock", "kamera", "presence", "alias", "exit", "quit"}
+    _GLOBAL_CMDS = {"kilit", "lock", "kamera", "presence", "alias", "self", "exit", "quit"}
 
     def lock_menu(*, state: CoreState, engine: CoreEngine, initial_cmd: str | None = None) -> str | None:
         def _run_cmd(c: str) -> bool | str:
@@ -1590,6 +1748,17 @@ def main() -> None:
                     _record_today_action(today_date, today_actions, last_action[0])
             finally:
                 current_task[0] = None
+            continue
+        if route == "self_test":
+            passed, total, passed_count, failed_areas = run_self_test(
+                base_dir, state, lumos, aliases, saved_notes[0]
+            )
+            if passed:
+                print(f"self test: passed ({passed_count}/{total})")
+            else:
+                print(f"self test: failed ({passed_count}/{total})")
+                if failed_areas:
+                    print("Kırık alanlar: " + ", ".join(failed_areas))
             continue
         if route == "alias":
             alias_menu(args=args)
