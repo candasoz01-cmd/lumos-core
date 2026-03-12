@@ -445,7 +445,7 @@ def test_find_recent_similar_task_window_and_profile():
     with tempfile.TemporaryDirectory() as d:
         store = TaskStore(d)
         g1 = store.create("G1", "Açıklama", PROFILE_GUVENLI_YURUT)
-        g2 = store.create("G2", "Açıklama", PROFILE_RAPOR)
+        store.create("G2", "Açıklama", PROFILE_RAPOR)
         tasks = store.list_all()
 
         # Zaman damgalarını sahteleyerek pencere testini deterministik yap
