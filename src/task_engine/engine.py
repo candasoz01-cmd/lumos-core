@@ -24,8 +24,9 @@ STEP_COMPLETED = "tamamlandi"
 STEP_ERROR = "hata"
 STEP_STOPPED = "durdu"
 
-# Adım sonuç türü (doğrulama sonrası)
+# Adım sonuç türü (doğrulama sonrası) — adım seviyesinde: tamamlandi, kismi, dogrulanamadi, hata, simulasyon
 STEP_RESULT_VERIFIED = "tamamlandi"
+STEP_RESULT_PARTIAL = "kismi"
 STEP_RESULT_SIMULATION = "simulasyon"
 STEP_RESULT_UNVERIFIABLE = "dogrulanamadi"
 STEP_RESULT_ERROR = "hata"
@@ -49,7 +50,7 @@ class TaskStep:
     kind: str = STEP_TYPE_ANALYZE  # analyze, read, safe_local, ...
     output: str = ""
     error: str = ""
-    result_kind: str = ""  # tamamlandi | simulasyon | dogrulanamadi | hata (adım bittiğinde)
+    result_kind: str = ""  # tamamlandi | kismi | simulasyon | dogrulanamadi | hata (adım bittiğinde)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -91,6 +92,7 @@ class TaskRecord:
     elapsed_seconds: float = 0.0
     verified_count: int = 0
     unverified_count: int = 0
+    simulation_count: int = 0  # adımlardan result_kind == simulasyon olanların sayısı
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -109,6 +111,7 @@ class TaskRecord:
             "elapsed_seconds": self.elapsed_seconds,
             "verified_count": self.verified_count,
             "unverified_count": self.unverified_count,
+            "simulation_count": self.simulation_count,
         }
 
     @classmethod
@@ -130,6 +133,7 @@ class TaskRecord:
             elapsed_seconds=float(d.get("elapsed_seconds", 0.0)),
             verified_count=int(d.get("verified_count", 0)),
             unverified_count=int(d.get("unverified_count", 0)),
+            simulation_count=int(d.get("simulation_count", 0)),
         )
 
 
@@ -318,19 +322,26 @@ class TaskEngine:
             task.elapsed_seconds = elapsed
             task.verified_count = verified_count
             task.unverified_count = unverified_count
+            simulation_count = sum(1 for s in task.steps if getattr(s, "result_kind", "") == STEP_RESULT_SIMULATION)
+            task.simulation_count = simulation_count
             task.completed_at = _now_iso()
-            # Final durum: sahte başarı yok. Sadece gerçek doğrulama varsa tamamlandi.
+            # Görev toplam durumu adımlardan türetilir; profil kuralları uygulanır.
+            total_steps = len(task.steps)
+            all_verified = (verified_count == total_steps and total_steps > 0)
+            # rapor: asla tamamlandi vermez; çoğu durumda simulasyon veya dogrulanamadi/kismi
             if self.permission_profile == PROFILE_RAPOR:
                 if verified_count == 0:
                     task.status = TASK_SIMULATION
                 else:
-                    task.status = TASK_COMPLETED
+                    task.status = TASK_PARTIAL  # rapor profilde doğrulama olsa bile "tamamlandi" değil, kismi
             else:
-                # guvenli_yurut / kisitli_otonom: en az bir gerçek doğrulama varsa tamamlandi
+                # guvenli_yurut / kisitli_otonom: gerçek doğrulama yoksa dogrulanamadi; hepsi doğrulanmışsa tamamlandi; kısmen kismi
                 if verified_count == 0:
                     task.status = TASK_DOGRULANAMADI
-                else:
+                elif all_verified:
                     task.status = TASK_COMPLETED
+                else:
+                    task.status = TASK_PARTIAL
             task.summary = self._make_summary(task, completed, elapsed)
             task.last_output = task.summary
             self.store.update(task)
@@ -364,8 +375,9 @@ class TaskEngine:
             f"Durum: {task.status}",
             f"Geçen süre: {elapsed:.1f}s",
             f"Tamamlanan adım: {completed}/{len(task.steps)}",
-            f"Doğrulanan işlem: {task.verified_count}",
-            f"Doğrulanamayan işlem: {task.unverified_count}",
+            f"Doğrulanan adım: {task.verified_count}",
+            f"Doğrulanamayan adım: {task.unverified_count}",
+            f"Simülasyon adım: {getattr(task, 'simulation_count', 0)}",
         ]
         if task.error_summary:
             parts.append(f"Hata: {task.error_summary}")

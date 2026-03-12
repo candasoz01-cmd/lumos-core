@@ -696,8 +696,8 @@ def run_self_test(
         engine = TaskEngine(ts, PROFILE_GUVENLI_YURUT, True, base_dir=base_dir)
         run_ok, _ = engine.run_task(t.task_id)
         t2 = ts.get(t.task_id)
-        # base_dir verildiği için not kontrol adımı gerçek okuma yapar → tamamlandi beklenir
-        areas.append(("task_engine", bool(run_ok and t2 and t2.status == "tamamlandi")))
+        # base_dir verildiği için not kontrol adımı gerçek okuma yapar → tamamlandi veya kismi (güven katmanı)
+        areas.append(("task_engine", bool(run_ok and t2 and t2.status in ("tamamlandi", "kismi") and t2.verified_count >= 1)))
     except Exception:
         areas.append(("task_engine", False))
 
@@ -1798,7 +1798,8 @@ def main() -> None:
                 continue
             print(f"Görev {t.task_id}: {t.title} — adımlar:")
             for i, s in enumerate(t.steps, 1):
-                print(f"  {i}. [{s.status}] {s.title}")
+                rk = getattr(s, "result_kind", "") or "-"
+                print(f"  {i}. [{s.status}] sonuç: {rk} — {s.title}")
             continue
         if route == "gorev_ozeti":
             id_str = (args[0] if args else "").strip()
@@ -1814,14 +1815,22 @@ def main() -> None:
             if not t:
                 print("Görev bulunamadı.")
                 continue
-            # Kısa net alanlar: durum, geçen süre, tamamlanan adım, doğrulanan/doğrulanamayan, kısa sonuç
+            # Doğrulama sayacı: toplam adım, tamamlanan, doğrulanan, doğrulanamayan, simülasyon, son durum, kısa sonuç
+            total_steps = len(t.steps)
             completed_steps = sum(1 for s in t.steps if s.status == "tamamlandi")
-            parts = [f"Durum: {t.status}"]
+            verified = getattr(t, "verified_count", 0)
+            unverified = getattr(t, "unverified_count", 0)
+            simulation = getattr(t, "simulation_count", 0)
+            parts = [
+                f"Toplam adım: {total_steps}",
+                f"Tamamlanan adım: {completed_steps}",
+                f"Doğrulanan adım: {verified}",
+                f"Doğrulanamayan adım: {unverified}",
+                f"Simülasyon adım: {simulation}",
+                f"Son durum: {t.status}",
+            ]
             if getattr(t, "elapsed_seconds", 0) > 0:
                 parts.append(f"Geçen süre: {t.elapsed_seconds:.1f}s")
-            parts.append(f"Tamamlanan adım: {completed_steps}/{len(t.steps)}")
-            parts.append(f"Doğrulanan işlem: {getattr(t, 'verified_count', 0)}")
-            parts.append(f"Doğrulanamayan işlem: {getattr(t, 'unverified_count', 0)}")
             short_result = (t.description or "")[:80]
             if len(t.description or "") > 80:
                 short_result += "..."
