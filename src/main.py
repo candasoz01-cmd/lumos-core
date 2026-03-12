@@ -350,6 +350,11 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
             return ("notu_paylas", [])
         if rest_folded == "duzenle":
             return ("notu_duzenle", [])
+        if rest_folded.startswith("duzenle ") and len(parts) > 2:
+            # Tek satır: "notu düzenle <metin>" — metni s'den al (Türkçe karakter korunsun)
+            start = len(parts[0]) + 1 + len(parts[1]) + 1
+            edit_text = s[start:].strip()
+            return ("notu_duzenle", [edit_text] if edit_text else [])
         if rest_folded == "sil":
             return ("notu_sil", [])
         if rest_folded == "geri al":
@@ -410,7 +415,8 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("hatirla", [rest] if rest else [])
     if _q in ("bunu hatirla", "bunlari hatirla"):
         return ("hatirla", [])
-    if _q == "son not ne":
+    # "son not ne" + yakın yazım: son not ney, son noy ne
+    if _q in ("son not ne", "son not ney", "son noy ne"):
         return ("son_not_ne", [])
     if _q == "etiketli notlari goster":
         return ("etiketli_notlari_goster", [])
@@ -1338,8 +1344,19 @@ def main() -> None:
             if not saved_notes[0]:
                 print("Düzenlenecek kayıtlı not yok.")
             else:
-                cli_mode[0] = CLI_NOT_DUZENLEME
-                print("Son notu düzenlemek için yeni kısa metni yaz.")
+                inline_text = (args[0] if args else "").strip()
+                if inline_text:
+                    if len(inline_text) > HATIRLA_NOTE_MAX_LEN:
+                        inline_text = (inline_text[:HATIRLA_NOTE_MAX_LEN].rsplit(maxsplit=1)[0].rstrip(".,") or inline_text[:HATIRLA_NOTE_MAX_LEN])
+                    old_content = saved_notes[0][-1]
+                    saved_notes[0][-1] = inline_text
+                    last_note_undo[0] = ("notu_duzenle", old_content)
+                    _record_note_op(note_ops_history, "notu düzenle")
+                    last_action[0] = "En son notu düzenledim."
+                    print("Son notu güncelledim.")
+                else:
+                    cli_mode[0] = CLI_NOT_DUZENLEME
+                    print("Son notu düzenlemek için yeni kısa metni yaz.")
             continue
         if route == "notu_adlandir":
             tag_raw = (args[0] if args else "").strip()
