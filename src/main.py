@@ -521,7 +521,6 @@ def run_startup_self_check(
     except Exception as e:
         results.append(("logs", False, str(e)[:60]))
 
-    notes_ok = False
     notes_msg = "ok"
     try:
         nm = getattr(lumos, "note_memory", None)
@@ -530,7 +529,6 @@ def run_startup_self_check(
         else:
             if getattr(lumos.lock_state, "unlocked", False) and nm.store and nm.root_key:
                 nm._load_from_store()
-            notes_ok = True
             notes_msg = "ok (kilitli)" if state.is_locked() else "ok"
             results.append(("notes", True, notes_msg))
     except Exception as e:
