@@ -62,6 +62,8 @@ Derin doğrulama: config, log, not ekleme/düzenleme/özetleme, alias ve yardım
 - Geliştirme: `make run` aynı komutu kullanır; `scripts/run.sh` ise `cd src && python3 main.py` ile doğrudan geliştirme akışıdır.
 - Tam kurulum (sdist) için: `pip install .` (kaynak dağıtımından). Entry point: `lumos = "lumos_core.__main__:main"` (pyproject.toml).
 
+**`lumos --version` çalışmıyorsa / `cd: no such file or directory: --version` alıyorsanız:** Kabukta tanımlı bir `lumos` alias veya function, pip’in kurduğu script’i gölgeliyor olabilir. Kontrol: `which lumos`, `type lumos`, `command -V lumos`. Çıktı `.venv/bin/lumos` (veya kullandığınız venv’in `bin/lumos`) olmalı; alias/function ise `unalias lumos` veya doğrudan `./.venv/bin/lumos --version` kullanın.
+
 ---
 
 ## Quick start (geliştirici)
