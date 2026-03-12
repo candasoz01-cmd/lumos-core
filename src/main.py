@@ -98,6 +98,65 @@ REHBER_TEXT = HELP_TEXT
 # Bilinmeyen komut: kısa, yönlendirici; teknik hata yok
 UNKNOWN_CMD_TEXT = 'Bunu anlamadım. "durum", "hazir" veya "yardım et" deneyebilirsin.'
 
+# "Neden anlamadın" tipi sorularda kısa açıklama + örnekler
+NEDEN_ANLAMADIN_TEXT = (
+    "Yazdığın ifade kayıtlı komutlara yeterince yakın değildi, bu yüzden güvenli tarafta kalıp işlem yapmadım.\n"
+    "Örnek: görev durumu 2 | görev özeti 1 | yetki profili rapor | yardım"
+)
+
+# Aile bazlı fallback: hangi aileye yakınsa o örnekler
+FALLBACK_BY_FAMILY = {
+    "gorev": 'Görev ailesine yakınsın. Örnek: görevler | görev durumu <id> | görev özeti <id>',
+    "yetki": 'Yetki ailesine yakınsın. Örnek: yetki profili | yetki profili rapor',
+    "not": 'Not ailesine yakınsın. Örnek: notları göster | not ara <kelime> | yardım notlar',
+    "durum": 'Durum/temel ailesine yakınsın. Örnek: durum | hazır | yardım temel',
+}
+
+
+def _is_why_question(raw: str) -> bool:
+    """'neden anlamadın', 'neyi anlamadın', 'neye takıldın' gibi doğal soruları tanır (folded)."""
+    q = _fold_for_search((raw or "").strip())
+    return q in ("neden anlamadin", "neyi anlamadin", "neye takildin")
+
+
+def _infer_family_from_raw(raw: str) -> str | None:
+    """Ham girdiden komut ailesi tahmin et (sadece güvenli kelime eşleşmesi)."""
+    q = _fold_for_search((raw or "").strip())
+    if "gorev" in q or "görev" in raw:
+        return "gorev"
+    if "yetki" in q or "profil" in q:
+        return "yetki"
+    if "not" in q and ("goster" in q or "ara" in q or "hatirla" in q or "etiket" in q):
+        return "not"
+    if "durum" in q or "hazir" in q:
+        return "durum"
+    return None
+
+
+def _route_to_family(route: str) -> str | None:
+    """Route adından aile adı (gorev, yetki, not, durum)."""
+    if not route:
+        return None
+    if route.startswith("gorev") or route == "gorevler":
+        return "gorev"
+    if route.startswith("yetki"):
+        return "yetki"
+    if route.startswith("not") or "not" in route or route in ("hatirla", "son_not_ne", "etiketli_not", "etiket_ara"):
+        return "not"
+    if route in ("durum", "hazir", "rehber", "help"):
+        return "durum"
+    return None
+
+
+def get_fallback_message(raw: str, last_route: str | None) -> str:
+    """Bilinmeyen komut için açıklayıcı, aileye göre yönlendirici mesaj. LLM yok."""
+    if _is_why_question(raw):
+        return NEDEN_ANLAMADIN_TEXT
+    family = _infer_family_from_raw(raw) or _route_to_family(last_route or "")
+    if family and family in FALLBACK_BY_FAMILY:
+        return f"Bunu anlamadım. {FALLBACK_BY_FAMILY[family]}"
+    return UNKNOWN_CMD_TEXT
+
 
 def _get_oneri(base_dir: str | Path, keystore_initialized: bool, presence_module: Any) -> list[str]:
     """Mevcut duruma göre 1–3 kısa sonraki adım önerisi. Boş genel tavsiye yok."""
@@ -304,6 +363,13 @@ def _fold_for_search(s: str) -> str:
     )
 
 
+# Komut toleransı: sadece mevcut komut ailesine yakın, düşük riskli varyasyonlar (LLM yok, çekirdek gevşetilmez).
+# Desteklenen: görev durmu/özti -> durumu/özeti; yetki profil -> profili; genel onaykapat -> onay kapat.
+# Desteklenmez: saat, serbest sohbet; belirsiz ifadeler yine unknown.
+GOREV_SECOND_TOKEN_TOLERANCE = {"durmu": "durumu", "ozti": "ozeti"}  # eksik harf → canonical folded
+YETKI_PROFIL_TOLERANCE = ("profili", "profil")  # yetki profil -> yetki profili
+
+
 def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, list[str]]:
     """Strip, casefold, apply user aliases, normalize head to canonical command. Return (canonical, args)."""
     s = (raw or "").strip().casefold()
@@ -316,6 +382,9 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("", [])
     s = unicodedata.normalize("NFC", s)
     parts = s.split()
+    # Küçük boşluk/yazım sapması: "genel onaykapat" -> genel onay kapat
+    if len(parts) == 2 and _fold_for_search(parts[0]) == "genel" and _fold_for_search(parts[1]) == "onaykapat":
+        parts = [parts[0], "onay", "kapat"]
     head = parts[0]
     rest = parts[1:] if len(parts) > 1 else []
     if head in EXIT_SYNONYMS:
@@ -510,6 +579,7 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("gorevler", [])
     if _head_fold == "gorev" and len(parts) >= 2:
         second_fold = _fold_for_search(parts[1])
+        second_fold = GOREV_SECOND_TOKEN_TOLERANCE.get(second_fold, second_fold)
         if second_fold == "olustur":
             rest = " ".join(parts[2:]).strip()
             return ("gorev_olustur", [rest] if rest else [])
@@ -523,8 +593,8 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
             return ("gorev_iptal", [parts[2]] if len(parts) >= 3 else [])
     if _head_fold == "gorev" and len(parts) == 1:
         return ("gorevler", [])
-    # Yetki profili: yetki profili [ad]
-    if len(parts) >= 2 and _fold_for_search(parts[0]) == "yetki" and _fold_for_search(parts[1]) == "profili":
+    # Yetki profili: yetki profili [ad]; "yetki profil" -> yetki profili (tolerans)
+    if len(parts) >= 2 and _fold_for_search(parts[0]) == "yetki" and _fold_for_search(parts[1]) in YETKI_PROFIL_TOLERANCE:
         return ("yetki_profili", [parts[2]] if len(parts) >= 3 else [])
     # Genel onay: genel onay aç / genel onay kapat
     if len(parts) >= 3 and _fold_for_search(parts[0]) == "genel" and _fold_for_search(parts[1]) == "onay":
@@ -1214,6 +1284,7 @@ def main() -> None:
     today_actions: list[list[str]] = [[]]     # bugünkü (tekilleştirilmiş) işler; "bugün ne yaptın" buna bakar
     last_response_reason: list[str | None] = [None]  # son cevabın gerekçesi; "neden böyle diyorsun" buna bakar
     last_response_text: list[str | None] = [None]     # son cevabın tam metni; "bunu kısaca anlat" buna bakar
+    last_route: list[str | None] = [None]             # son başarılı komut route; fallback'te aileye göre yardım için
     saved_notes: list[list[str]] = [[]]               # kullanıcı notları (bunu hatırla / not et vb.)
     # Tek state: komut yorumlama ile metin-bekleyen akışlar kesin ayrım
     CLI_NORMAL = "normal_komut_modu"
@@ -1272,6 +1343,11 @@ def main() -> None:
         route, args = normalize_command(raw, Path(base_dir), aliases)
 
         if route == "":
+            continue
+        if route != "unknown":
+            last_route[0] = route
+        if route == "unknown":
+            print(get_fallback_message(raw, last_route[0]))
             continue
         if route == "help":
             last_response_reason[0] = "komut listesini istedin"
@@ -1972,7 +2048,7 @@ def main() -> None:
             last_action[0] = "En son alias işlemi yaptım."
             _record_today_action(today_date, today_actions, last_action[0])
             continue
-        print(UNKNOWN_CMD_TEXT)
+        print(get_fallback_message(raw, last_route[0]))
 
 if __name__ == "__main__":
     main()
