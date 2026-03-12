@@ -14,17 +14,67 @@ Lumos'un ilerlemesi, yaptığı doğrulardan çok yapmadığı yanlışlarla öl
 
 ---
 
-## Quick start
+## Nasıl başlatılır
+
+**Tek komut (paket kurulumu sonrası):**
+
+```bash
+lumos
+```
+
+veya:
+
+```bash
+python -m lumos_core
+```
+
+İlk kullanım öncesi proje kökünde paketi kurun:
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate   # Linux/macOS
+pip install -e .
+lumos
+```
+
+Açılışta önce "Lumos başlatılıyor." yazılır, ardından **self-check** çalışır, sonra `Sen:` promptu gelir.
+
+- **Alt komutlar:** `lumos` veya `lumos cli` → etkileşimli CLI; `lumos web` → Web v1 sunucusu (repo kökünden).
+- **Sürüm:** `lumos --version`
+- **Mod:** `LUMOS_MODE=online lumos` veya `LUMOS_MODE=offline lumos` (varsayılan: offline)
+
+---
+
+## Self-check
+
+Açılışta otomatik çalışan kısa doğrulamadır. Config, log, notlar, parser ve state kontrol edilir; 2–5 saniyeyi aşmaz. Çıktıda her adım için `ok` veya `fail` görürsünüz; hepsi geçerse `overall: ready`, aksi halde eksik alanlar listelenir. CLI akışı self-check’ten sonra başlar.
+
+---
+
+## Self test
+
+Derin doğrulama: config, log, not ekleme/düzenleme/özetleme, alias ve yardım blokları test edilir. **Çalıştırma:** CLI içinde promptta `self test` veya `self test` yazın. Sonuç satırı: `self test: passed (N/M)` veya `self test: failed (N/M)`.
+
+---
+
+## Paketleme (yerel)
+
+- Proje kökünde: `pip install -e .` ile kurulum. Tek giriş komutu: **`lumos`** veya **`python -m lumos_core`**.
+- Geliştirme: `make run` aynı komutu kullanır; `scripts/run.sh` ise `cd src && python3 main.py` ile doğrudan geliştirme akışıdır.
+- Tam kurulum (sdist) için: `pip install .` (kaynak dağıtımından). Entry point: `lumos = "lumos_core.__main__:main"` (pyproject.toml).
+
+---
+
+## Quick start (geliştirici)
 
 ```bash
 # Sanal ortam (önerilir)
-python3 -m venv .venv && source .venv/bin/activate   # Linux/macOS
-pip install -r requirements.txt   # varsa
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e .   # veya pip install -r requirements.txt varsa
 
 # Doğrulama
 make check
 
-# Çalıştır
+# Çalıştır (tek komut)
 make run
 ```
 
@@ -38,7 +88,7 @@ make run
 | `make smoke` | `bash scripts/smoke_presence.sh` |
 | `make cli` | `bash scripts/smoke_cli.sh` |
 | `make web` | `bash scripts/smoke_web.sh` |
-| `make run` | `PYTHONPATH=src python src/main.py` (etkileşimli CLI) |
+| `make run` | `lumos` (veya `python -m lumos_core`) — etkileşimli CLI |
 | `make cleanlog` | `.lumos/log.txt` dosyasını temizler |
 
 ## Presence smoke (Option B)
