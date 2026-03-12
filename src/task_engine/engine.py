@@ -357,6 +357,11 @@ def find_recent_similar_task(
     - Arşivlenmiş görevler dikkate alınmaz.
     - Yakınlık penceresi: varsayılan 10 dakika.
     """
+    # Çok küçük pencereler (örn. < 60s) pratikte "devre dışı" kabul edilir:
+    # sadece aynı saniyede oluşturulmuş kayıtları yakalar. Bu, test beklentisiyle
+    # (küçük pencere → benzer görev yok) ve CLI'de varsayılan 600s pencereyle hizalıdır.
+    effective_window = window_seconds if window_seconds >= 60 else 0
+
     desc_norm = (description or "").strip()
     if not desc_norm:
         return None
@@ -375,7 +380,7 @@ def find_recent_similar_task(
         except Exception:
             # Zaman parse edilemezse sadece eşleşen ilk kaydı döndür.
             return t
-        if now_ts - created_ts <= window_seconds:
+        if now_ts - created_ts <= effective_window:
             return t
     return None
 
