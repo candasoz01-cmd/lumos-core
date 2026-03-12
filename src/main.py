@@ -325,11 +325,11 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("help_goruntuleme", [])
     if head in ("help", "?", "yardim", "yardım"):
         return ("help", [])
-    # Alt menü yalnızca açık komutla: "kilit" / "kamera" tek başına; ardında metin varsa komut sayılmaz
+    # Alt menü: "kilit" / "kamera" tek başına veya "kamera aç" gibi ilk alt komutla
     if head in ("kilit", "lock"):
-        return ("kilit", []) if not rest else ("unknown", [])
+        return ("kilit", rest)
     if head in ("kamera", "presence"):
-        return ("kamera", []) if not rest else ("unknown", [])
+        return ("kamera", rest)
     if head == "alias":
         return ("alias", rest)
     if head == "durum":
