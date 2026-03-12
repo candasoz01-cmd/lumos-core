@@ -1004,6 +1004,7 @@ def main() -> None:
 
     engine.recover_presence(Path(base_dir), state.log_event, _recovery_lock_cb, state.is_locked)
 
+    print("Lumos başlatılıyor.")
     run_startup_self_check(base_dir, state, lumos, aliases)
 
     # Ürün iyileştirmesi: "hazir" / "hazır mıyım" ana promptta çalışıyor; Kilit> / Kamera> alt menülerinde global komut olarak eklenebilir.
