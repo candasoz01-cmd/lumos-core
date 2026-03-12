@@ -26,6 +26,7 @@ from task_engine import (
     TaskStore,
     TaskEngine,
     PROFILE_RAPOR,
+    PROFILE_GUVENLI_YURUT,
     ALL_PROFILES,
     get_profile_display_name,
 )
@@ -619,7 +620,7 @@ def run_self_test(
     aliases: dict,
     saved_notes: list,
 ) -> tuple[bool, int, int, list[str]]:
-    """Derin self-test: config, logs, not ekleme/düzenleme/özetleme, alias, yardım blokları. Sonuç: passed, toplam, geçen sayısı, kırık alanlar."""
+    """Derin self-test: config, logs, not ekleme/düzenleme/özetleme, alias, yardım blokları, görev motoru. Sonuç: passed, toplam, geçen sayısı, kırık alanlar."""
     areas: list[tuple[str, bool]] = []
 
     try:
@@ -688,6 +689,16 @@ def run_self_test(
         areas.append(("help_blocks", ok))
     except Exception:
         areas.append(("help_blocks", False))
+
+    try:
+        ts = TaskStore(Path(base_dir))
+        t = ts.create("Self-test görev", "not kontrol ve özet ver", PROFILE_GUVENLI_YURUT)
+        engine = TaskEngine(ts, PROFILE_GUVENLI_YURUT, True)
+        run_ok, _ = engine.run_task(t.task_id)
+        t2 = ts.get(t.task_id)
+        areas.append(("task_engine", bool(run_ok and t2 and t2.status == "tamamlandi")))
+    except Exception:
+        areas.append(("task_engine", False))
 
     passed_count = sum(1 for _, p in areas if p)
     total = len(areas)
@@ -1732,12 +1743,13 @@ def main() -> None:
                 continue
             profile = current_permission_profile[0]
             t = task_store.create(title=desc[:80], description=desc, permission_profile=profile)
+            print(f"Görev {t.task_id} oluşturuldu: {t.title}")
             task_engine = TaskEngine(task_store, profile, general_approval[0])
             current_task[0] = "görev yürütülüyor."
             try:
                 ok, msg = task_engine.run_task(t.task_id)
                 print(msg)
-                last_action[0] = "En son görev oluşturup yürüttüm."
+                last_action[0] = f"Görev {t.task_id} oluşturulup yürütüldü: {t.title}"
                 _record_today_action(today_date, today_actions, last_action[0])
             finally:
                 current_task[0] = None
@@ -1870,6 +1882,14 @@ def main() -> None:
         if route == "durum":
             current_task[0] = "durum çıktısını hazırlıyorum."
             try:
+                # "durum özet" yazıldıysa sahada net görünsün
+                is_ozet = bool(
+                    args
+                    and ("ozet" in (args[0].lower().replace("ö", "o").replace("ı", "i") or "")
+                         or "özet" in (args[0] or ""))
+                )
+                if is_ozet:
+                    print("Durum özeti:")
                 snap = state.snapshot(base_dir=base_dir, log_path=Path.cwd() / ".lumos" / "log.txt")
                 parts = get_durum_parts(Path(base_dir), ks.is_initialized(), engine.pl)
                 durum_txt = format_durum(snap, parts["consent_ok"], parts["lock_ok"], parts["durum_label"], parts["not_line"])

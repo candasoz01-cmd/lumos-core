@@ -155,6 +155,9 @@ class TaskStore:
 
     def _save(self) -> None:
         self.base_dir.mkdir(parents=True, exist_ok=True)
+        # Aynı task_id tek kayıt: son yazılan geçerli; sıra task_id ile tutarlı olsun
+        by_id: dict[int, TaskRecord] = {t.task_id: t for t in self._tasks}
+        self._tasks = sorted(by_id.values(), key=lambda x: x.task_id)
         data = {"tasks": [t.to_dict() for t in self._tasks], "next_id": self._next_id}
         self._file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
