@@ -499,6 +499,8 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         eski = (rest[0] if rest else "").strip()
         yeni = (rest[1] if len(rest) >= 2 else "").strip()
         return ("etiket_degistir", [eski, yeni])
+    if _q in ("durum ozet", "durum ozeti"):
+        return ("durum", [])
     if _q == "hangi moddayim":
         return ("hangi_moddayim", [])
     # Görev motoru: görev oluştur, görevler, görev durumu/özeti/adımları/iptal
@@ -1730,10 +1732,10 @@ def main() -> None:
                 continue
             profile = current_permission_profile[0]
             t = task_store.create(title=desc[:80], description=desc, permission_profile=profile)
-            engine = TaskEngine(task_store, profile, general_approval[0])
+            task_engine = TaskEngine(task_store, profile, general_approval[0])
             current_task[0] = "görev yürütülüyor."
             try:
-                ok, msg = engine.run_task(t.task_id)
+                ok, msg = task_engine.run_task(t.task_id)
                 print(msg)
                 last_action[0] = "En son görev oluşturup yürüttüm."
                 _record_today_action(today_date, today_actions, last_action[0])
@@ -1814,8 +1816,8 @@ def main() -> None:
             except ValueError:
                 print("Geçerli bir görev id yaz.")
                 continue
-            engine = TaskEngine(task_store, current_permission_profile[0], general_approval[0])
-            ok, msg = engine.cancel_task(tid)
+            task_engine = TaskEngine(task_store, current_permission_profile[0], general_approval[0])
+            ok, msg = task_engine.cancel_task(tid)
             print(msg)
             continue
         if route == "ne_yapiyorsun":
