@@ -365,8 +365,8 @@ def _note_for_hatirla(text: str | None) -> str | None:
 
 
 def _lumos_dir() -> str:
-    if Path("src/.lumos").exists():
-        return "src/.lumos"
+    # Çalışma kökü sabit: her zaman CWD altında `.lumos`.
+    # Geliştirme sırasında eski `src/.lumos` düzeni desteklenmez; paketli çalışma ile hizalıdır.
     return ".lumos"
 
 def _read_lumos_id(base_dir: str) -> str:
@@ -678,6 +678,55 @@ def run_startup_self_check(
     print("self-check: başlıyor")
     results: list[tuple[str, bool, str]] = []
 
+    base = Path(base_dir)
+    tasks_dir = base / "tasks"
+    logs_dir = base / "logs"
+    trash_dir = base / "trash"
+    config_dir = base / "config"
+
+    # Çalışma kökü ve sabit klasörlerin minimum yol kontrolleri.
+    try:
+        if not base.exists():
+            results.append(("workdir", False, "çalışma kökü yok"))
+        elif not base.is_dir():
+            results.append(("workdir", False, "çalışma kökü dizin değil"))
+        elif os.access(base, os.W_OK):
+            results.append(("workdir", True, "ok"))
+        else:
+            results.append(("workdir", False, "çalışma kökü yazılamıyor"))
+    except Exception as e:
+        results.append(("workdir", False, str(e)[:60]))
+
+    for name, path in (
+        ("tasks_dir", tasks_dir),
+        ("logs_dir", logs_dir),
+        ("trash_dir", trash_dir),
+    ):
+        try:
+            if not path.exists():
+                results.append((name, False, "yok"))
+            elif not path.is_dir():
+                results.append((name, False, "dizin değil"))
+            elif os.access(path, os.W_OK):
+                results.append((name, True, "ok"))
+            else:
+                results.append((name, False, "yazılamıyor"))
+        except Exception as e:
+            results.append((name, False, str(e)[:60]))
+
+    # config/ opsiyonel: varsa okunabilirliği bilgi amaçlı raporlanır.
+    try:
+        if not config_dir.exists():
+            results.append(("config_dir", True, "yok (opsiyonel)"))
+        elif not config_dir.is_dir():
+            results.append(("config_dir", False, "dizin değil"))
+        elif os.access(config_dir, os.W_OK):
+            results.append(("config_dir", True, "ok"))
+        else:
+            results.append(("config_dir", False, "yazılamıyor"))
+    except Exception as e:
+        results.append(("config_dir", False, str(e)[:60]))
+
     try:
         load_config(Path(base_dir))
         results.append(("config", True, "ok"))
@@ -720,7 +769,7 @@ def run_startup_self_check(
         results.append(("state", False, str(e)[:60]))
 
     try:
-        ts = TaskStore(Path(base_dir))
+        ts = TaskStore(Path(base_dir) / "tasks")
         ts.list_all()
         results.append(("task_engine", True, "ok"))
     except Exception as e:
@@ -818,9 +867,9 @@ def run_self_test(
         areas.append(("help_blocks", False))
 
     try:
-        ts = TaskStore(Path(base_dir))
+        ts = TaskStore(Path(base_dir) / "tasks")
         t = ts.create("Self-test görev", "not kontrol ve özet ver", PROFILE_GUVENLI_YURUT)
-        engine = TaskEngine(ts, PROFILE_GUVENLI_YURUT, True, base_dir=base_dir)
+        engine = TaskEngine(ts, PROFILE_GUVENLI_YURUT, True, base_dir=Path(base_dir) / "tasks")
         run_ok, _ = engine.run_task(t.task_id)
         t2 = ts.get(t.task_id)
         # base_dir verildiği için not kontrol adımı gerçek okuma yapar → tamamlandi veya kismi (güven katmanı)
@@ -870,6 +919,17 @@ def main() -> None:
     mode = os.getenv("LUMOS_MODE", "offline").strip().lower()
 
     base_dir = _lumos_dir()
+    base_path = Path(base_dir)
+    # Sabit omurga: tasks/, logs/, trash/, config/ — yoksa kontrollü oluştur.
+    try:
+        base_path.mkdir(parents=True, exist_ok=True)
+        (base_path / "tasks").mkdir(parents=True, exist_ok=True)
+        (base_path / "logs").mkdir(parents=True, exist_ok=True)
+        (base_path / "trash").mkdir(parents=True, exist_ok=True)
+        (base_path / "config").mkdir(parents=True, exist_ok=True)
+    except Exception:
+        # Dizın oluşturma hataları self-check içinde raporlanır.
+        pass
     try:
         aliases = load_aliases(base_dir)
     except Exception:
@@ -1292,7 +1352,7 @@ def main() -> None:
             return
         mode_label = state.mode_str()
         title_line2 = f"{mode_label} • güvenli"
-        log_path = _P.cwd() / ".lumos" / "log.txt"
+        log_path = _P.cwd() / ".lumos" / "logs" / "log.txt"
 
         def snapshot_getter():
             return state.snapshot(base_dir=base_dir, log_path=log_path)
@@ -1329,7 +1389,8 @@ def main() -> None:
         return
 
     # ---- Görev motoru + yetki profili + genel onay ----
-    task_store = TaskStore(base_dir)
+    tasks_dir = base_path / "tasks"
+    task_store = TaskStore(tasks_dir)
     current_permission_profile: list[str] = [PROFILE_RAPOR]
     general_approval: list[bool] = [False]
 
@@ -2117,7 +2178,7 @@ def main() -> None:
                 )
                 if is_ozet:
                     print("Durum özeti:")
-                snap = state.snapshot(base_dir=base_dir, log_path=Path.cwd() / ".lumos" / "log.txt")
+                snap = state.snapshot(base_dir=base_dir, log_path=Path.cwd() / ".lumos" / "logs" / "log.txt")
                 parts = get_durum_parts(Path(base_dir), ks.is_initialized(), engine.pl)
                 durum_txt = format_durum(snap, parts["consent_ok"], parts["lock_ok"], parts["durum_label"], parts["not_line"])
                 print(durum_txt)

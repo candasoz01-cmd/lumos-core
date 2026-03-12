@@ -91,7 +91,21 @@ make run
 | `make cli` | `bash scripts/smoke_cli.sh` |
 | `make web` | `bash scripts/smoke_web.sh` |
 | `make run` | `lumos` (veya `python -m lumos_core`) — etkileşimli CLI |
-| `make cleanlog` | `.lumos/log.txt` dosyasını temizler |
+| `make cleanlog` | `.lumos/logs/log.txt` dosyasını temizler |
+
+---
+
+## Çalışma yapısı
+
+Lumos, çalışırken bulunduğu dizini çalışma kökü olarak kabul eder ve altında sabit bir omurga kullanır:
+
+- `.lumos/` — çalışma kökü (paketli modda da sabittir)
+  - `tasks/` — görev deposu (`tasks.json` burada tutulur, görevlerin tek kalıcı kaynağıdır)
+  - `logs/` — çalışma logları (`log.txt` burada tutulur)
+  - `trash/` — silinen/taşınan öğeler için arşiv alanı (aktif state kaynağı değildir)
+  - `config/` — isteğe bağlı yerel ayar/override dosyaları (yoksa dahili varsayılanlar kullanılır)
+
+Açılışta self-check, çalışma kökünü ve bu klasörlerin varlığını/yazılabilirliğini kontrol eder; eksikler mümkün olduğu yerde otomatik oluşturulur, kritik hatalar kullanıcıya kısa mesajla raporlanır.
 
 ## Presence smoke (Option B)
 
