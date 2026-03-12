@@ -618,7 +618,7 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("durum", [])
     if _q == "hangi moddayim":
         return ("hangi_moddayim", [])
-    # Görev motoru: görev oluştur, görevler, görev durumu/özeti/adımları/iptal
+    # Görev motoru: görev oluştur, görevler, görev durumu/özeti/adımları/iptal/temizle/arşivle/sil/sayaç
     _head_fold = _fold_for_search(head)
     if _head_fold == "gorevler":
         return ("gorevler", [])
@@ -628,12 +628,24 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         if second_fold == "olustur":
             rest = " ".join(parts[2:]).strip()
             return ("gorev_olustur", [rest] if rest else [])
+        if second_fold == "temizle" and len(parts) >= 3:
+            third_fold = _fold_for_search(parts[2])
+            if third_fold in ("tamamlananlar", "tamamlanmislar", "tamamlanmis"):
+                return ("gorev_temizle_tamamlananlar", [])
+            if third_fold in ("simulasyonlar", "simulasyon", "simülasyonlar"):
+                return ("gorev_temizle_simulasyonlar", [])
         if second_fold == "durumu":
             return ("gorev_durumu", [parts[2]] if len(parts) >= 3 else [])
         if second_fold == "ozeti":
             return ("gorev_ozeti", [parts[2]] if len(parts) >= 3 else [])
         if second_fold == "adimlari":
             return ("gorev_adimlari", [parts[2]] if len(parts) >= 3 else [])
+        if second_fold in ("arsivle", "arsiv", "arşivle", "arşiv"):
+            return ("gorev_arsivle", [parts[2]] if len(parts) >= 3 else [])
+        if second_fold == "sil":
+            return ("gorev_sil", [parts[2]] if len(parts) >= 3 else [])
+        if second_fold in ("sayac", "sayaç", "istatistik", "istatistikler"):
+            return ("gorev_sayac", [])
         if parts[1].lower() in ("iptal", "iptal"):
             return ("gorev_iptal", [parts[2]] if len(parts) >= 3 else [])
     if _head_fold == "gorev" and len(parts) == 1:
@@ -1338,6 +1350,7 @@ def main() -> None:
     cli_mode: list[str] = [CLI_NORMAL]
     last_note_undo: list[tuple[str, Any] | None] = [None]  # (op, data) tek adımlık geri al
     note_ops_history: list[list[str]] = [[]]          # son not işlemleri (en fazla 5); "not geçmişi"
+    last_task_create_fingerprint: list[tuple[str, str] | None] = [None]  # (profil, açıklama) yakın tekrar uyarısı için
     while True:
         try:
             pl.watchdog_tick(Path(base_dir), state.log_event, _recovery_lock_cb, state.is_locked)
@@ -1864,6 +1877,20 @@ def main() -> None:
                 print("Kullanım: görev oluştur <açıklama>")
                 continue
             profile = current_permission_profile[0]
+            # Aynı açıklama + aynı profil + çok yakın zamanda oluşturulmuş görev varsa önce uyar, yeni görev açma.
+            from task_engine import find_recent_similar_task  # lokal import: CLI bağımsız test edilebilir
+
+            fingerprint = (profile, desc)
+            similar = find_recent_similar_task(task_store.list_all(), desc, profile)
+            if similar and last_task_create_fingerprint[0] != fingerprint:
+                last_task_create_fingerprint[0] = fingerprint
+                print(
+                    f"Benzer bir görev zaten var: {similar.task_id}. "
+                    "İstersen önce onu inceleyebilirsin (görev durumu/özeti/adımları). "
+                    "Aynı komutu tekrar yazarsan yeni görev oluştururum."
+                )
+                continue
+            last_task_create_fingerprint[0] = None
             t = task_store.create(title=desc[:80], description=desc, permission_profile=profile)
             print(f"Görev {t.task_id} oluşturuldu: {t.title}")
             task_engine = TaskEngine(task_store, profile, general_approval[0], base_dir=base_dir)
@@ -1881,8 +1908,15 @@ def main() -> None:
             if not tasks:
                 print("Kayıtlı görev yok.")
             else:
+                from task_engine import compute_task_stats, format_task_stats_line
+
+                stats = compute_task_stats(tasks)
+                print(format_task_stats_line(stats))
                 for t in tasks:
-                    print(f"  {t.task_id}: {t.title} — {t.status}")
+                    status_label = t.status
+                    if getattr(t, "archived", False):
+                        status_label = f"{status_label} (arşiv)"
+                    print(f"  {t.task_id}: {t.title} — {status_label}")
             continue
         if route == "gorev_durumu":
             id_str = (args[0] if args else "").strip()
@@ -1971,6 +2005,59 @@ def main() -> None:
             task_engine = TaskEngine(task_store, current_permission_profile[0], general_approval[0], base_dir=base_dir)
             ok, msg = task_engine.cancel_task(tid)
             print(msg)
+            continue
+        if route == "gorev_temizle_tamamlananlar":
+            # Yalnızca arşivleme yap; silme yok.
+            count = task_store.archive_completed()
+            if count == 0:
+                print("Arşivlenecek tamamlanmış görev yok.")
+            else:
+                print(f"{count} tamamlanmış görevi arşive taşıdım.")
+            continue
+        if route == "gorev_temizle_simulasyonlar":
+            # Yalnızca arşivleme yap; silme yok.
+            count = task_store.archive_simulations()
+            if count == 0:
+                print("Arşivlenecek simülasyon görevi yok.")
+            else:
+                print(f"{count} simülasyon görevi arşive taşıdım.")
+            continue
+        if route == "gorev_arsivle":
+            id_str = (args[0] if args else "").strip()
+            if not id_str:
+                print("Kullanım: görev arşivle <id>")
+                continue
+            try:
+                tid = int(id_str)
+            except ValueError:
+                print("Geçerli bir görev id yaz.")
+                continue
+            if task_store.archive(tid):
+                print(f"Görev {tid} arşive taşındı (silinmedi).")
+            else:
+                print("Görev bulunamadı veya zaten arşivde.")
+            continue
+        if route == "gorev_sil":
+            id_str = (args[0] if args else "").strip()
+            if not id_str:
+                print("Kullanım: görev sil <id>")
+                continue
+            try:
+                tid = int(id_str)
+            except ValueError:
+                print("Geçerli bir görev id yaz.")
+                continue
+            # Kalıcı silme: açık ve tek satır uyarı; ek onay istemeden ama sessiz de değil.
+            if task_store.delete(tid):
+                print("Dikkat: Bu görev kalıcı olarak silindi ve geri alınamaz.")
+            else:
+                print("Silinecek görev bulunamadı.")
+            continue
+        if route == "gorev_sayac":
+            from task_engine import compute_task_stats, format_task_stats_line
+
+            stats = compute_task_stats(task_store.list_all())
+            print(format_task_stats_line(stats))
             continue
         if route == "ne_yapiyorsun":
             if current_task[0]:

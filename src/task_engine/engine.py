@@ -76,7 +76,21 @@ class TaskStep:
 
 @dataclass
 class TaskRecord:
-    """Görev kaydı: id, başlık, açıklama, zaman, mod, izin profili, adımlar, durum, özet, hata, doğrulama sayıları."""
+    """Görev kaydı: id, başlık, açıklama, zaman, mod, izin profili, adımlar, durum, özet, hata, doğrulama sayıları.
+
+    Durum ömrü (status):
+      - bekliyor: oluşturuldu, henüz çalıştırılmadı
+      - calisiyor: şu an çalışıyor
+      - tamamlandi: tüm doğrulanabilir adımlar doğrulandı
+      - kismi: kısmen doğrulandı
+      - dogrulanamadi: doğrulama yapılamadı
+      - simulasyon: sadece simülasyon/rapor
+      - hata: adımlardan biri hata ile bitti
+      - durdu: yetki sınırı / iptal
+
+    Arşiv bilgisi:
+      - archived=True → görev arşivde (status alanı yine son yürütme sonucunu korur)
+    """
     task_id: int
     title: str
     description: str
@@ -93,6 +107,8 @@ class TaskRecord:
     verified_count: int = 0
     unverified_count: int = 0
     simulation_count: int = 0  # adımlardan result_kind == simulasyon olanların sayısı
+    archived: bool = False
+    archived_at: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -112,6 +128,8 @@ class TaskRecord:
             "verified_count": self.verified_count,
             "unverified_count": self.unverified_count,
             "simulation_count": self.simulation_count,
+            "archived": self.archived,
+            "archived_at": self.archived_at,
         }
 
     @classmethod
@@ -134,6 +152,8 @@ class TaskRecord:
             verified_count=int(d.get("verified_count", 0)),
             unverified_count=int(d.get("unverified_count", 0)),
             simulation_count=int(d.get("simulation_count", 0)),
+            archived=bool(d.get("archived", False)),
+            archived_at=str(d.get("archived_at", "")),
         )
 
 
@@ -226,6 +246,138 @@ class TaskStore:
                 return
         self._tasks.append(task)
         self._save()
+
+    # --- Hijyen / arşivleme operasyonları (silme yerine arşiv tercih edilir) ---
+
+    def archive(self, task_id: int) -> bool:
+        """Tek görevi arşivle. Görev bulunamazsa veya zaten arşivliyse False."""
+        task = self.get(task_id)
+        if not task or task.archived:
+            return False
+        task.archived = True
+        task.archived_at = _now_iso()
+        self.update(task)
+        return True
+
+    def delete(self, task_id: int) -> bool:
+        """
+        Tek görevi kalıcı olarak sil.
+        Bu işlem geri döndürülemez; JSON'dan da çıkar.
+        """
+        before = len(self._tasks)
+        self._tasks = [t for t in self._tasks if t.task_id != task_id]
+        if len(self._tasks) == before:
+            return False
+        self._save()
+        return True
+
+    def archive_completed(self) -> int:
+        """
+        Tamamlanan görevleri arşivle.
+        Silme yok; status korunur, archived=True olur.
+        Dönüş: arşivlenen görev sayısı.
+        """
+        count = 0
+        for t in self._tasks:
+            if not t.archived and t.status == TASK_COMPLETED:
+                t.archived = True
+                t.archived_at = _now_iso()
+                count += 1
+        if count:
+            self._save()
+        return count
+
+    def archive_simulations(self) -> int:
+        """
+        Simülasyon görevlerini arşivle (status == simulasyon).
+        Silme yok; status korunur, archived=True olur.
+        """
+        count = 0
+        for t in self._tasks:
+            if not t.archived and t.status == TASK_SIMULATION:
+                t.archived = True
+                t.archived_at = _now_iso()
+                count += 1
+        if count:
+            self._save()
+        return count
+
+    def list_non_archived(self) -> list[TaskRecord]:
+        """Arşivde olmayan görevleri döndür (okunabilir listelemek için yardımcı)."""
+        return [t for t in self._tasks if not t.archived]
+
+
+def compute_task_stats(tasks: list[TaskRecord]) -> dict[str, int]:
+    """
+    Görev listesi için özet sayaç:
+      toplam, aktif, tamamlandı, kısmi, doğrulanamadı, simulasyon, arşiv.
+    """
+    total = len(tasks)
+    archived = sum(1 for t in tasks if t.archived)
+    active = sum(1 for t in tasks if t.status in (TASK_PENDING, TASK_RUNNING))
+    completed = sum(1 for t in tasks if t.status == TASK_COMPLETED)
+    partial = sum(1 for t in tasks if t.status == TASK_PARTIAL)
+    unverifiable = sum(1 for t in tasks if t.status == TASK_DOGRULANAMADI)
+    simulation = sum(1 for t in tasks if t.status == TASK_SIMULATION)
+    return {
+        "toplam": total,
+        "aktif": active,
+        "tamamlandi": completed,
+        "kismi": partial,
+        "dogrulanamadi": unverifiable,
+        "simulasyon": simulation,
+        "arsiv": archived,
+    }
+
+
+def format_task_stats_line(stats: dict[str, int]) -> str:
+    """CLI'de ilk satırda gösterilecek kısa özet satırı."""
+    return (
+        "Görevler özeti: "
+        f"toplam={stats.get('toplam', 0)}, "
+        f"aktif={stats.get('aktif', 0)}, "
+        f"tamamlandı={stats.get('tamamlandi', 0)}, "
+        f"kısmi={stats.get('kismi', 0)}, "
+        f"doğrulanamadı={stats.get('dogrulanamadi', 0)}, "
+        f"simulasyon={stats.get('simulasyon', 0)}, "
+        f"arşiv={stats.get('arsiv', 0)}"
+    )
+
+
+def find_recent_similar_task(
+    tasks: list[TaskRecord],
+    description: str,
+    permission_profile: str,
+    *,
+    now_ts: float | None = None,
+    window_seconds: int = 600,
+) -> TaskRecord | None:
+    """
+    Aynı açıklama + aynı profil + yakın zamanda oluşturulmuş görev var mı?
+    - Arşivlenmiş görevler dikkate alınmaz.
+    - Yakınlık penceresi: varsayılan 10 dakika.
+    """
+    desc_norm = (description or "").strip()
+    if not desc_norm:
+        return None
+    if now_ts is None:
+        now_ts = time.time()
+    for t in reversed(tasks):
+        if t.archived:
+            continue
+        if t.permission_profile != permission_profile:
+            continue
+        if (t.description or "").strip() != desc_norm:
+            continue
+        created_str = getattr(t, "created_at", "") or ""
+        try:
+            created_ts = time.mktime(time.strptime(created_str, "%Y-%m-%dT%H:%M:%S"))
+        except Exception:
+            # Zaman parse edilemezse sadece eşleşen ilk kaydı döndür.
+            return t
+        if now_ts - created_ts <= window_seconds:
+            return t
+    return None
 
 
 def _read_notes_or_tasks_verified(base_dir: Path | None) -> tuple[bool, str]:

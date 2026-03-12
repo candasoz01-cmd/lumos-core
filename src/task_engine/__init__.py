@@ -25,6 +25,9 @@ from task_engine.engine import (
     TASK_ERROR,
     TASK_STOPPED,
     TASK_SIMULATION,
+    compute_task_stats,
+    format_task_stats_line,
+    find_recent_similar_task,
 )
 from task_engine.profiles import (
     PROFILE_RAPOR,
@@ -58,6 +61,9 @@ __all__ = [
     "TASK_ERROR",
     "TASK_STOPPED",
     "TASK_SIMULATION",
+    "compute_task_stats",
+    "format_task_stats_line",
+    "find_recent_similar_task",
     "PROFILE_RAPOR",
     "PROFILE_GUVENLI_YURUT",
     "PROFILE_KISITLI_OTONOM",
