@@ -21,6 +21,6 @@ if make check; then
   exit 0
 fi
 
-echo "--- tail .lumos/log.txt (last 30) ---"
-tail -n 30 .lumos/log.txt 2>/dev/null || true
+echo "--- tail .lumos/logs/log.txt (last 30) ---"
+tail -n 30 .lumos/logs/log.txt 2>/dev/null || true
 exit 1

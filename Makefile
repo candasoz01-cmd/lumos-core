@@ -13,7 +13,7 @@ help:
 	@echo "  make web       -> bash scripts/smoke_web.sh"
 	@echo "  make check     -> compile + test + smoke + cli + web"
 	@echo "  make run       -> run main (interactive)"
-	@echo "  make cleanlog  -> truncate .lumos/log.txt"
+	@echo "  make cleanlog  -> truncate .lumos/logs/log.txt"
 
 install:
 	pip install -e .
@@ -39,4 +39,5 @@ run:
 	$(PYTHON) -m lumos_core
 
 cleanlog:
-	: > .lumos/log.txt
+	mkdir -p .lumos/logs
+	: > .lumos/logs/log.txt

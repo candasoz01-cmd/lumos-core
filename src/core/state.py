@@ -65,7 +65,7 @@ class CoreState:
         mode = self.mode_str()
         last_log_ts = ""
         try:
-            lp = log_path if log_path is not None else Path.cwd() / ".lumos" / "log.txt"
+            lp = log_path if log_path is not None else Path.cwd() / ".lumos" / "logs" / "log.txt"
             if lp.exists():
                 lines = lp.read_text(encoding="utf-8", errors="replace").strip().splitlines()
                 if lines:

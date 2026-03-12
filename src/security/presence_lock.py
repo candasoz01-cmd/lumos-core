@@ -15,7 +15,7 @@ from core.logfmt import logfmt
 def _append_log(message: str) -> None:
     try:
         from datetime import datetime
-        log_dir = Path.cwd() / ".lumos"
+        log_dir = Path.cwd() / ".lumos" / "logs"
         log_dir.mkdir(parents=True, exist_ok=True)
         logp = log_dir / "log.txt"
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
