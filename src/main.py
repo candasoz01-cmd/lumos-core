@@ -351,9 +351,8 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         if rest_folded == "duzenle":
             return ("notu_duzenle", [])
         if rest_folded.startswith("duzenle ") and len(parts) > 2:
-            # Tek satır: "notu düzenle <metin>" — metni s'den al (Türkçe karakter korunsun)
-            start = len(parts[0]) + 1 + len(parts[1]) + 1
-            edit_text = s[start:].strip()
+            # Tek satır: "notu düzenle <metin>" — metni parts[2:] ile al (boşluk/konum bağımsız)
+            edit_text = " ".join(parts[2:]).strip()
             return ("notu_duzenle", [edit_text] if edit_text else [])
         if rest_folded == "sil":
             return ("notu_sil", [])
@@ -415,8 +414,9 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("hatirla", [rest] if rest else [])
     if _q in ("bunu hatirla", "bunlari hatirla"):
         return ("hatirla", [])
-    # "son not ne" + yakın yazım: son not ney, son noy ne
-    if _q in ("son not ne", "son not ney", "son noy ne"):
+    # "son not ne" + yakın yazım: son not ney, son noy ne (boşluk normalize)
+    _q_flat = " ".join(_q.split())
+    if _q_flat in ("son not ne", "son not ney", "son noy ne"):
         return ("son_not_ne", [])
     if _q == "etiketli notlari goster":
         return ("etiketli_notlari_goster", [])
