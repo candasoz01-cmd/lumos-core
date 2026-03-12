@@ -104,7 +104,7 @@ def test_eof_exits_cleanly_no_traceback():
 def test_disable_silent_true_no_presence_stopped_in_log():
     """disable(silent=True) must not emit presence_stopped (Option B)."""
     import os
-    log_path = ROOT / ".lumos" / "log.txt"
+    log_path = ROOT / ".lumos" / "logs" / "log.txt"
     log_path.parent.mkdir(parents=True, exist_ok=True)
     log_path.write_text("", encoding="utf-8")
     try:
@@ -128,7 +128,7 @@ def test_disable_silent_true_no_presence_stopped_in_log():
 def test_enable_then_disable_log_order_option_b():
     """After enable: presence_enabled, presence_started; then presence_disabled (no presence_stopped)."""
     import os
-    log_path = ROOT / ".lumos" / "log.txt"
+    log_path = ROOT / ".lumos" / "logs" / "log.txt"
     log_path.parent.mkdir(parents=True, exist_ok=True)
     log_path.write_text("", encoding="utf-8")
     try:
