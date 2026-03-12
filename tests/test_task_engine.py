@@ -1,13 +1,10 @@
 """Görev motoru, yetki profili ve görev kaydı testleri."""
-import json
 import tempfile
-from pathlib import Path
 
-import pytest
+from task_engine import TaskStore, TaskEngine, PROFILE_GUVENLI_YURUT
 
 
 def test_task_store_create_and_list():
-    from task_engine import TaskStore, TaskEngine, PROFILE_GUVENLI_YURUT
 
     with tempfile.TemporaryDirectory() as d:
         store = TaskStore(d)
@@ -21,8 +18,6 @@ def test_task_store_create_and_list():
 
 
 def test_task_engine_run():
-    from task_engine import TaskStore, TaskEngine, PROFILE_GUVENLI_YURUT
-
     with tempfile.TemporaryDirectory() as d:
         store = TaskStore(d)
         t = store.create("Kontrol", "not sistemini kontrol et ve özet ver", PROFILE_GUVENLI_YURUT)
@@ -35,7 +30,7 @@ def test_task_engine_run():
 
 
 def test_permission_profiles():
-    from task_engine import ALL_PROFILES, get_profile_display_name, PROFILE_RAPOR, PROFILE_GUVENLI_YURUT
+    from task_engine import ALL_PROFILES, get_profile_display_name, PROFILE_GUVENLI_YURUT, PROFILE_RAPOR
 
     assert PROFILE_RAPOR in ALL_PROFILES
     assert PROFILE_GUVENLI_YURUT in ALL_PROFILES
@@ -44,7 +39,7 @@ def test_permission_profiles():
 
 
 def test_security_boundary():
-    from task_engine.profiles import SECURITY_NEVER_AUTO, SECURITY_BOUNDARY_DESCRIPTION
+    from task_engine.profiles import SECURITY_BOUNDARY_DESCRIPTION, SECURITY_NEVER_AUTO
 
     assert "kalıcı silme" in SECURITY_BOUNDARY_DESCRIPTION or "silme" in SECURITY_BOUNDARY_DESCRIPTION
     assert "permanent_delete" in SECURITY_NEVER_AUTO

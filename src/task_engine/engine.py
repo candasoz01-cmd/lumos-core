@@ -6,16 +6,14 @@ from __future__ import annotations
 
 import json
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from task_engine.profiles import (
     STEP_TYPE_ANALYZE,
     STEP_TYPE_READ,
-    STEP_TYPE_SAFE_LOCAL,
     is_allowed_for_profile,
-    is_safe_step_kind,
 )
 
 # Adım durumları
@@ -223,7 +221,6 @@ class TaskEngine:
         self.store.update(task)
         start = time.time()
         completed = 0
-        last_error_step: str | None = None
         try:
             for i, step in enumerate(task.steps):
                 if not is_allowed_for_profile(
@@ -245,7 +242,6 @@ class TaskEngine:
                 if ok:
                     completed += 1
                 else:
-                    last_error_step = step.title
                     task.status = TASK_ERROR
                     task.error_summary = err or step.title
                     self.store.update(task)
