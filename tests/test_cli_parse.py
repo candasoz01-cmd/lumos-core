@@ -140,6 +140,51 @@ def test_ambiguous_or_risky_stays_unknown():
     r, _ = _norm("sanırım bitti bu aşamada bakalım ne çıktı")
     assert r == "unknown"
 
+    r, _ = _norm("sanırım bitti bu aşamada bakalım ne çıkacak")
+    assert r == "unknown"
+
+
+def test_fallback_neutral_for_casual_and_no_anchor():
+    """saat, sanırım bitti... gibi belirsiz/sohbet ifadeler -> nötr fallback (aileye zorla bağlanmasın)."""
+    msg_saat = _fallback("saat")
+    assert "yeterince yakın bulmadım" in msg_saat or "işlem yapmadım" in msg_saat
+    assert "Görev ailesine" not in msg_saat and "Yetki ailesine" not in msg_saat
+
+    msg_sanirim = _fallback("sanırım bitti bu aşamada bakalım ne çıkacak")
+    assert "yeterince yakın bulmadım" in msg_sanirim or "işlem yapmadım" in msg_sanirim
+    assert "Görev ailesine" not in msg_sanirim and "Yetki ailesine" not in msg_sanirim
+
+    msg_tamam = _fallback("tamam")
+    assert "Görev ailesine" not in msg_tamam and "Yetki ailesine" not in msg_tamam
+
+
+def test_fallback_family_when_anchor_present():
+    """Anchor varken (görev, yetki vb.) bilinmeyen alt komut -> ilgili aile fallback."""
+    msg_gorev = _fallback("görev xyz 2")
+    assert "görev" in msg_gorev.lower() and ("görev durumu" in msg_gorev or "Görev ailesine" in msg_gorev)
+
+    msg_yetki = _fallback("yetki abc rapor")
+    assert "yetki" in msg_yetki.lower() and ("yetki profili" in msg_yetki or "Yetki ailesine" in msg_yetki)
+
+
+def test_tolerance_and_fallback_priority():
+    """Toleranslı yazım doğru route; anchor yoksa nötr fallback."""
+    r, a = _norm("görev durmu 2")
+    assert r == "gorev_durumu", "görev durmu 2 -> görev ailesi (gorev_durumu)"
+    assert a == ["2"]
+
+    r, a = _norm("görev özti 1")
+    assert r == "gorev_ozeti", "görev özti 1 -> görev ailesi (gorev_ozeti)"
+    assert a == ["1"]
+
+    r, a = _norm("yetki profil rapor")
+    assert r == "yetki_profili", "yetki profil rapor -> yetki ailesi"
+    assert a == ["rapor"]
+
+    # Anchor yok -> nötr (last_route ile aile tahmini yapılmaz)
+    msg = _fallback("saat", last_route="gorev_durumu")
+    assert "Görev ailesine" not in msg
+
 
 def test_full_sequence_routes():
     """Verdiğin tam komut dizisinin hedef route'ları."""
