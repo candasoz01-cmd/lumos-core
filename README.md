@@ -107,6 +107,37 @@ Lumos, çalışırken bulunduğu dizini çalışma kökü olarak kabul eder ve a
 
 Açılışta self-check, çalışma kökünü ve bu klasörlerin varlığını/yazılabilirliğini kontrol eder; eksikler mümkün olduğu yerde otomatik oluşturulur, kritik hatalar kullanıcıya kısa mesajla raporlanır.
 
+---
+
+## Çalışma sözleşmesi
+
+Bu bölüm, paketli çalışma omurgasının ürün/geliştirme sözleşmesini tanımlar. Kod ve test davranışı bu sözleşmeye göre tutarlı kalmalıdır.
+
+### 1. Workspace omurgası
+
+- **Çalışma kökü sabit:** Lumos, çalıştığı dizini (CWD) çalışma kökü kabul eder; altında tek sabit dizin `.lumos/` kullanılır.
+- **Temel omurga:** `tasks/`, `logs/`, `trash/`, `config/` — dört alan sabit ve tanımlıdır.
+- **trash aktif state kaynağı değildir:** Görevler, notlar veya durum okuması trash’ten yapılmaz; sadece arşiv/taşıma alanıdır.
+
+### 2. Silme ve çöp kuralı
+
+- **Doğrudan kalıcı silme yok:** Kullanıcı verisi, onay olmadan kalıcı olarak silinmez.
+- **Önceden tanımlı çöp alanı:** Silinen/taşınan öğeler için yalnızca `.lumos/trash/` kullanılır.
+- **Kalıcı temizleme kullanıcı kararı:** Çöp alanının kalıcı boşaltılması kullanıcı aksiyonuna bağlıdır.
+- **Sistem yeni çöp alanı oluşturmaz:** Sistem kendi inisiyatifiyle başka bir “çöp” veya “silinenler” dizini açmaz.
+
+### 3. Geliştirme sınırı
+
+- **Bu aşamada açılmamış alanlar:** `sandbox/`, `data/`, `exports/` vb. şu an sistem sözleşmesinin parçası değildir.
+- İleride ihtiyaçla açılabilir; açıldığında sözleşme ve dokümantasyon güncellenir.
+
+### 4. Doğrulama ve uyumluluk notu
+
+- **Paketli omurga doğrulandı:** Çalışma kökü, tasks/logs/trash/config yapısı, görev store, log akışı ve kalıcılık gerçek çalıştırma ile doğrulanmıştır.
+- **Log yolu:** Resmî log dosyası `.lumos/logs/log.txt` içindedir. Eski veya harici kod `.lumos/log.txt` (kök altında doğrudan) bekliyorsa bu **tarihsel/legacy** bir beklentidir; yeni davranış ve dokümantasyon `.lumos/logs/log.txt` ile uyumludur.
+
+---
+
 ## Presence smoke (Option B)
 
 `scripts/smoke_presence.sh` şu akışı çalıştırır: **kamera aç → evet → 10 → kamera kapat → çık**.
