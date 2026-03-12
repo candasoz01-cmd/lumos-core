@@ -22,6 +22,25 @@ from security import presence_lock as pl
 from security.aliases import load_aliases, save_aliases, apply_alias
 from security.keystore import FileKeyStore
 from security.permissions import PermissionManager
+from task_engine import (
+    TaskStore,
+    TaskEngine,
+    PROFILE_RAPOR,
+    PROFILE_GUVENLI_YURUT,
+    PROFILE_KISITLI_OTONOM,
+    ALL_PROFILES,
+    get_profile_display_name,
+    TASK_PENDING,
+    TASK_RUNNING,
+    TASK_COMPLETED,
+    TASK_ERROR,
+    TASK_STOPPED,
+    STEP_PENDING,
+    STEP_RUNNING,
+    STEP_COMPLETED,
+    STEP_ERROR,
+    STEP_STOPPED,
+)
 
 
 def norm_cmd(s: str) -> str:
@@ -44,6 +63,9 @@ EXIT_SYNONYMS = frozenset({"exit", "quit", "çık", "cik", "çik", "q"})
 # Yardım: gruplu, kısa; help / yardım / yardım et hepsi aynı çıktıyı kullanır
 HELP_TEXT = """Temel
   durum, hazır, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, kilit, kamera, alias, self test, hangi moddayım, şu an güvenli miyim, exit, yardım kısa, yardım temel, yardım etiketler, yardım notlar, yardım not işlemleri, yardım görüntüleme, yardım güvenlik, yardım arama
+
+Görev motoru
+  görev oluştur <metin>, görevler, görev durumu <id>, görev özeti <id>, görev adımları <id>, görev iptal <id>, yetki profili, yetki profili <rapor|guvenli_yurut|kisitli_otonom>, genel onay aç, genel onay kapat
 
 Notlar
   bunu hatırla, son not ne, notları göster, kaç not var, notu sil, notları temizle, notu düzenle, notu kopyala, notu dışa aktar, notu paylaş, not özetle, not birleştir, notu geri al, not geçmişi, not ara <kelime>
@@ -491,6 +513,35 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("etiket_degistir", [eski, yeni])
     if _q == "hangi moddayim":
         return ("hangi_moddayim", [])
+    # Görev motoru: görev oluştur, görevler, görev durumu/özeti/adımları/iptal
+    _head_fold = _fold_for_search(head)
+    if _head_fold == "gorevler":
+        return ("gorevler", [])
+    if _head_fold == "gorev" and len(parts) >= 2:
+        second_fold = _fold_for_search(parts[1])
+        if second_fold == "olustur":
+            rest = " ".join(parts[2:]).strip()
+            return ("gorev_olustur", [rest] if rest else [])
+        if second_fold == "durumu":
+            return ("gorev_durumu", [parts[2]] if len(parts) >= 3 else [])
+        if second_fold == "ozeti":
+            return ("gorev_ozeti", [parts[2]] if len(parts) >= 3 else [])
+        if second_fold == "adimlari":
+            return ("gorev_adimlari", [parts[2]] if len(parts) >= 3 else [])
+        if parts[1].lower() in ("iptal", "iptal"):
+            return ("gorev_iptal", [parts[2]] if len(parts) >= 3 else [])
+    if _head_fold == "gorev" and len(parts) == 1:
+        return ("gorevler", [])
+    # Yetki profili: yetki profili [ad]
+    if len(parts) >= 2 and _fold_for_search(parts[0]) == "yetki" and _fold_for_search(parts[1]) == "profili":
+        return ("yetki_profili", [parts[2]] if len(parts) >= 3 else [])
+    # Genel onay: genel onay aç / genel onay kapat
+    if len(parts) >= 3 and _fold_for_search(parts[0]) == "genel" and _fold_for_search(parts[1]) == "onay":
+        third = _fold_for_search(parts[2])
+        if third in ("ac", "aç"):
+            return ("genel_onay_ac", [])
+        if third == "kapat":
+            return ("genel_onay_kapat", [])
     return ("unknown", [])
 
 
@@ -549,6 +600,13 @@ def run_startup_self_check(
         results.append(("state", True, "ok"))
     except Exception as e:
         results.append(("state", False, str(e)[:60]))
+
+    try:
+        ts = TaskStore(Path(base_dir))
+        ts.list_all()
+        results.append(("task_engine", True, "ok"))
+    except Exception as e:
+        results.append(("task_engine", False, str(e)[:60]))
 
     for name, ok, msg in results:
         status = "ok" if ok else "fail"
@@ -1141,6 +1199,11 @@ def main() -> None:
             print("Panel açılamadı, normal CLI'ye geçiliyor.")
         return
 
+    # ---- Görev motoru + yetki profili + genel onay ----
+    task_store = TaskStore(base_dir)
+    current_permission_profile: list[str] = [PROFILE_RAPOR]
+    general_approval: list[bool] = [False]
+
     # ---- CLI döngüsü ----
     pending: str | None = None
     current_task: list[str | None] = [None]  # aktif görev; "ne yapıyorsun" buna bakar
@@ -1650,6 +1713,122 @@ def main() -> None:
                 print("Eşleşen etiketli notlar:")
                 for n in matches:
                     print("- " + n)
+            continue
+        # ---- Görev motoru + yetki + genel onay komutları ----
+        if route == "yetki_profili":
+            if not args or not args[0].strip():
+                profile = current_permission_profile[0]
+                print("Yetki profili: " + get_profile_display_name(profile))
+                continue
+            name = (args[0] or "").strip().lower().replace("-", "_")
+            if name in ALL_PROFILES:
+                current_permission_profile[0] = name
+                print("Yetki profili: " + get_profile_display_name(name))
+            else:
+                print("Geçerli profiller: rapor, guvenli_yurut, kisitli_otonom")
+            continue
+        if route == "genel_onay_ac":
+            general_approval[0] = True
+            print("Genel onay açık. Bu oturumda izin profili kapsamında işler yürütülebilir.")
+            continue
+        if route == "genel_onay_kapat":
+            general_approval[0] = False
+            print("Genel onay kapalı.")
+            continue
+        if route == "gorev_olustur":
+            desc = (args[0] if args else "").strip()
+            if not desc:
+                print("Kullanım: görev oluştur <açıklama>")
+                continue
+            profile = current_permission_profile[0]
+            t = task_store.create(title=desc[:80], description=desc, permission_profile=profile)
+            engine = TaskEngine(task_store, profile, general_approval[0])
+            current_task[0] = "görev yürütülüyor."
+            try:
+                ok, msg = engine.run_task(t.task_id)
+                print(msg)
+                last_action[0] = "En son görev oluşturup yürüttüm."
+                _record_today_action(today_date, today_actions, last_action[0])
+            finally:
+                current_task[0] = None
+            continue
+        if route == "gorevler":
+            tasks = task_store.list_all()
+            if not tasks:
+                print("Kayıtlı görev yok.")
+            else:
+                for t in tasks:
+                    print(f"  {t.task_id}: {t.title} — {t.status}")
+            continue
+        if route == "gorev_durumu":
+            id_str = (args[0] if args else "").strip()
+            if not id_str:
+                print("Kullanım: görev durumu <id>")
+                continue
+            try:
+                tid = int(id_str)
+            except ValueError:
+                print("Geçerli bir görev id yaz.")
+                continue
+            t = task_store.get(tid)
+            if not t:
+                print("Görev bulunamadı.")
+                continue
+            print(f"Görev {t.task_id}: {t.title}")
+            print(f"  Durum: {t.status} | Profil: {t.permission_profile} | Oluşturulma: {t.created_at}")
+            if t.error_summary:
+                print(f"  Hata: {t.error_summary}")
+            continue
+        if route == "gorev_adimlari":
+            id_str = (args[0] if args else "").strip()
+            if not id_str:
+                print("Kullanım: görev adımları <id>")
+                continue
+            try:
+                tid = int(id_str)
+            except ValueError:
+                print("Geçerli bir görev id yaz.")
+                continue
+            t = task_store.get(tid)
+            if not t:
+                print("Görev bulunamadı.")
+                continue
+            print(f"Görev {t.task_id}: {t.title} — adımlar:")
+            for i, s in enumerate(t.steps, 1):
+                print(f"  {i}. [{s.status}] {s.title}")
+            continue
+        if route == "gorev_ozeti":
+            id_str = (args[0] if args else "").strip()
+            if not id_str:
+                print("Kullanım: görev özeti <id>")
+                continue
+            try:
+                tid = int(id_str)
+            except ValueError:
+                print("Geçerli bir görev id yaz.")
+                continue
+            t = task_store.get(tid)
+            if not t:
+                print("Görev bulunamadı.")
+                continue
+            if t.summary:
+                print(t.summary)
+            else:
+                print(f"Görev {t.task_id}: {t.status}. Henüz özet yok.")
+            continue
+        if route == "gorev_iptal":
+            id_str = (args[0] if args else "").strip()
+            if not id_str:
+                print("Kullanım: görev iptal <id>")
+                continue
+            try:
+                tid = int(id_str)
+            except ValueError:
+                print("Geçerli bir görev id yaz.")
+                continue
+            engine = TaskEngine(task_store, current_permission_profile[0], general_approval[0])
+            ok, msg = engine.cancel_task(tid)
+            print(msg)
             continue
         if route == "ne_yapiyorsun":
             if current_task[0]:
