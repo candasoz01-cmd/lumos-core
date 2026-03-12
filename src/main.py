@@ -2,6 +2,7 @@
 import json
 import os
 import re
+import unicodedata
 from datetime import date
 from getpass import getpass
 from pathlib import Path
@@ -300,6 +301,7 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
     s = re.sub(r"\s+", " ", s).strip().casefold()
     if not s:
         return ("", [])
+    s = unicodedata.normalize("NFC", s)
     parts = s.split()
     head = parts[0]
     rest = parts[1:] if len(parts) > 1 else []
@@ -323,16 +325,35 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("help_goruntuleme", [])
     if head in ("help", "?", "yardim", "yardım"):
         return ("help", [])
+    # Alt menü yalnızca açık komutla: "kilit" / "kamera" tek başına; ardında metin varsa komut sayılmaz
     if head in ("kilit", "lock"):
-        return ("kilit", rest)
+        return ("kilit", []) if not rest else ("unknown", [])
     if head in ("kamera", "presence"):
-        return ("kamera", rest)
+        return ("kamera", []) if not rest else ("unknown", [])
     if head == "alias":
         return ("alias", rest)
     if head == "durum":
         return ("durum", rest)
     if head in ("hazir", "hazır"):
         return ("hazir", rest)
+    # "not özetle" / "not ozetle": başta "not " + "ozetle" (Türkçe karakterle yazılsa bile) tanınsın; tek kelime sonrası yeterli
+    if head == "not" and len(parts) >= 2 and _fold_for_search(parts[1]) == "ozetle":
+        return ("not_ozetle", [])
+    # "notu X" / "notu X Y": kopyala, dışa aktar, paylaş, düzenle, sil, geri al — Türkçe karakterle yazılsa bile tanınsın
+    if len(parts) >= 2 and head == "notu":
+        rest_folded = _fold_for_search(" ".join(parts[1:]))
+        if rest_folded == "kopyala":
+            return ("notu_kopyala", [])
+        if rest_folded == "disa aktar":
+            return ("notu_disa_aktar", [])
+        if rest_folded == "paylas":
+            return ("notu_paylas", [])
+        if rest_folded == "duzenle":
+            return ("notu_duzenle", [])
+        if rest_folded == "sil":
+            return ("notu_sil", [])
+        if rest_folded == "geri al":
+            return ("notu_geri_al", [])
     # "yardım et" / "ne yazabilirim" -> kısa rehber; Türkçe harfleri ASCII'ye çevir (ö→o, ü→u, ş→s, ğ→g, ç→c, ı→i)
     _q = (
         s.replace("\u0131", "i")
@@ -343,6 +364,9 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         .replace("ğ", "g")
         .replace("ç", "c")
     )
+    # "not özetle" ek güvence: _q ile başta eşleşme (boşluk varyasyonları)
+    if _q.strip() == "not ozetle" or (_q.strip().startswith("not ozetle") and (len(_q.strip()) == 10 or _q.strip()[10:11].isspace())):
+        return ("not_ozetle", [])
     if _q in ("yardim et", "ne yazabilirim"):
         return ("rehber", [])
     if _q in ("ne yapiyorsun", "napiyon", "neyapiyorsun", "ne yapiyon"):
@@ -363,7 +387,28 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         return ("neden_boyle", [])
     if _q == "bunu kisaca anlat":
         return ("kisaca_anlat", [])
-    if _q == "bunu hatirla":
+    # Tek satır: "bunu hatırla ..." / "bunları hatırla ..." -> metin doğrudan not; rest'i s'den al (Türkçe karakter korunsun)
+    if _q.startswith("bunu hatirla "):
+        rest = s[13:].strip()
+        return ("hatirla", [rest] if rest else [])
+    if _q.startswith("bunlari hatirla "):
+        rest = s[16:].strip()
+        return ("hatirla", [rest] if rest else [])
+    # Alias: "not et", "not al", "bunu not et", "bunları hatırla" + tek satır metin
+    if _q == "not et" or _q == "not al":
+        return ("hatirla", [])
+    if _q.startswith("not et "):
+        rest = s[7:].strip()
+        return ("hatirla", [rest] if rest else [])
+    if _q.startswith("not al "):
+        rest = s[7:].strip()
+        return ("hatirla", [rest] if rest else [])
+    if _q == "bunu not et":
+        return ("hatirla", [])
+    if _q.startswith("bunu not et "):
+        rest = s[12:].strip()
+        return ("hatirla", [rest] if rest else [])
+    if _q in ("bunu hatirla", "bunlari hatirla"):
         return ("hatirla", [])
     if _q == "son not ne":
         return ("son_not_ne", [])
@@ -941,8 +986,12 @@ def main() -> None:
     today_actions: list[list[str]] = [[]]     # bugünkü (tekilleştirilmiş) işler; "bugün ne yaptın" buna bakar
     last_response_reason: list[str | None] = [None]  # son cevabın gerekçesi; "neden böyle diyorsun" buna bakar
     last_response_text: list[str | None] = [None]     # son cevabın tam metni; "bunu kısaca anlat" buna bakar
-    saved_notes: list[list[str]] = [[]]               # "bunu hatırla" ile kaydedilen kısa notlar
-    pending_note_edit: list[bool] = [False]            # "notu düzenle" sonrası yeni metin bekleniyor
+    saved_notes: list[list[str]] = [[]]               # kullanıcı notları (bunu hatırla / not et vb.)
+    # Tek state: komut yorumlama ile metin-bekleyen akışlar kesin ayrım
+    CLI_NORMAL = "normal_komut_modu"
+    CLI_NOT_BEKLEME = "not_bekleme_modu"
+    CLI_NOT_DUZENLEME = "not_duzenleme_modu"
+    cli_mode: list[str] = [CLI_NORMAL]
     last_note_undo: list[tuple[str, Any] | None] = [None]  # (op, data) tek adımlık geri al
     note_ops_history: list[list[str]] = [[]]          # son not işlemleri (en fazla 5); "not geçmişi"
     while True:
@@ -959,22 +1008,40 @@ def main() -> None:
                 raw = "çık"
 
         pending = None
-        route, args = normalize_command(raw, Path(base_dir), aliases)
 
-        if pending_note_edit[0]:
-            if route != "unknown":
-                pending_note_edit[0] = False
-            else:
-                if not raw.strip():
-                    print("Boş metin kabul edilmiyor.")
-                    continue
-                old_content = saved_notes[0][-1]
-                saved_notes[0][-1] = raw.strip()
-                last_note_undo[0] = ("notu_duzenle", old_content)
-                _record_note_op(note_ops_history, "notu düzenle")
-                print("Son notu güncelledim.")
-                pending_note_edit[0] = False
+        # ---- Metin-bekleyen modlar: parser çalışmaz, girdi koşulsuz not metnidir ----
+        if cli_mode[0] == CLI_NOT_BEKLEME:
+            cli_mode[0] = CLI_NORMAL
+            if not raw.strip():
+                print("Boş metin kabul edilmiyor.")
                 continue
+            note_text = raw.strip()
+            if len(note_text) > HATIRLA_NOTE_MAX_LEN:
+                note_text = (note_text[:HATIRLA_NOTE_MAX_LEN].rsplit(maxsplit=1)[0].rstrip(".,") or note_text[:HATIRLA_NOTE_MAX_LEN])
+            saved_notes[0].append(note_text)
+            _record_note_op(note_ops_history, "bunu hatırla")
+            last_response_reason[0] = "bunu hatırla dedin"
+            last_action[0] = "En son hatırla işlemini yaptım."
+            last_response_text[0] = "Bunu not ettim."
+            _record_today_action(today_date, today_actions, last_action[0])
+            print("Bunu not ettim.")
+            continue
+        if cli_mode[0] == CLI_NOT_DUZENLEME:
+            cli_mode[0] = CLI_NORMAL
+            if not raw.strip():
+                print("Boş metin kabul edilmiyor.")
+                continue
+            old_content = saved_notes[0][-1]
+            saved_notes[0][-1] = raw.strip()
+            last_note_undo[0] = ("notu_duzenle", old_content)
+            _record_note_op(note_ops_history, "notu düzenle")
+            last_action[0] = "En son notu düzenledim."
+            last_response_text[0] = "Son notu güncelledim."
+            print("Son notu güncelledim.")
+            continue
+
+        # ---- normal_komut_modu: sadece burada parser çalışır ----
+        route, args = normalize_command(raw, Path(base_dir), aliases)
 
         if route == "":
             continue
@@ -1110,20 +1177,22 @@ def main() -> None:
             _record_today_action(today_date, today_actions, last_action[0])
             continue
         if route == "hatirla":
-            note = _note_for_hatirla(last_response_text[0])
-            if not note:
-                print("Hatırlanacak net bir şey bulamadım.")
+            note_rest = (args[0].strip() if args else "")
+            if note_rest:
+                if len(note_rest) > HATIRLA_NOTE_MAX_LEN:
+                    note_rest = (note_rest[:HATIRLA_NOTE_MAX_LEN].rsplit(maxsplit=1)[0].rstrip(".,") or note_rest[:HATIRLA_NOTE_MAX_LEN])
+                saved_notes[0].append(note_rest)
+                _record_note_op(note_ops_history, "bunu hatırla")
+                last_response_reason[0] = "bunu hatırla dedin"
+                last_action[0] = "En son hatırla işlemini yaptım."
+                last_response_text[0] = "Bunu not ettim."
+                _record_today_action(today_date, today_actions, last_action[0])
+                print("Bunu not ettim.")
             else:
-                last_saved = (saved_notes[0][-1:] or [""])[0]
-                if note.strip() == last_saved.strip():
-                    print("Zaten not ettim.")
-                else:
-                    saved_notes[0].append(note.strip())
-                    _record_note_op(note_ops_history, "bunu hatırla")
-                    print("Bunu not ettim.")
-            last_response_reason[0] = "bunu hatırla dedin"
-            last_action[0] = "En son hatırla işlemini yaptım."
-            last_response_text[0] = "Bunu not ettim." if note else "Hatırlanacak net bir şey bulamadım."
+                cli_mode[0] = CLI_NOT_BEKLEME
+                last_response_reason[0] = "bunu hatırla dedin"
+                last_action[0] = "En son hatırla istedin; not metnini bekliyorum."
+                print("Ne hatırlayayım?")
             continue
         if route == "son_not_ne":
             if saved_notes[0]:
@@ -1269,7 +1338,7 @@ def main() -> None:
             if not saved_notes[0]:
                 print("Düzenlenecek kayıtlı not yok.")
             else:
-                pending_note_edit[0] = True
+                cli_mode[0] = CLI_NOT_DUZENLEME
                 print("Son notu düzenlemek için yeni kısa metni yaz.")
             continue
         if route == "notu_adlandir":
