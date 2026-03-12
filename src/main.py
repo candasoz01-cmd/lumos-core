@@ -693,9 +693,10 @@ def run_self_test(
     try:
         ts = TaskStore(Path(base_dir))
         t = ts.create("Self-test görev", "not kontrol ve özet ver", PROFILE_GUVENLI_YURUT)
-        engine = TaskEngine(ts, PROFILE_GUVENLI_YURUT, True)
+        engine = TaskEngine(ts, PROFILE_GUVENLI_YURUT, True, base_dir=base_dir)
         run_ok, _ = engine.run_task(t.task_id)
         t2 = ts.get(t.task_id)
+        # base_dir verildiği için not kontrol adımı gerçek okuma yapar → tamamlandi beklenir
         areas.append(("task_engine", bool(run_ok and t2 and t2.status == "tamamlandi")))
     except Exception:
         areas.append(("task_engine", False))
@@ -1744,7 +1745,7 @@ def main() -> None:
             profile = current_permission_profile[0]
             t = task_store.create(title=desc[:80], description=desc, permission_profile=profile)
             print(f"Görev {t.task_id} oluşturuldu: {t.title}")
-            task_engine = TaskEngine(task_store, profile, general_approval[0])
+            task_engine = TaskEngine(task_store, profile, general_approval[0], base_dir=base_dir)
             current_task[0] = "görev yürütülüyor."
             try:
                 ok, msg = task_engine.run_task(t.task_id)
@@ -1813,10 +1814,19 @@ def main() -> None:
             if not t:
                 print("Görev bulunamadı.")
                 continue
-            if t.summary:
-                print(t.summary)
-            else:
-                print(f"Görev {t.task_id}: {t.status}. Henüz özet yok.")
+            # Kısa net alanlar: durum, geçen süre, tamamlanan adım, doğrulanan/doğrulanamayan, kısa sonuç
+            completed_steps = sum(1 for s in t.steps if s.status == "tamamlandi")
+            parts = [f"Durum: {t.status}"]
+            if getattr(t, "elapsed_seconds", 0) > 0:
+                parts.append(f"Geçen süre: {t.elapsed_seconds:.1f}s")
+            parts.append(f"Tamamlanan adım: {completed_steps}/{len(t.steps)}")
+            parts.append(f"Doğrulanan işlem: {getattr(t, 'verified_count', 0)}")
+            parts.append(f"Doğrulanamayan işlem: {getattr(t, 'unverified_count', 0)}")
+            short_result = (t.description or "")[:80]
+            if len(t.description or "") > 80:
+                short_result += "..."
+            parts.append(f"Kısa sonuç: {short_result or '(yok)'}")
+            print("\n".join(parts))
             continue
         if route == "gorev_iptal":
             id_str = (args[0] if args else "").strip()
@@ -1828,7 +1838,7 @@ def main() -> None:
             except ValueError:
                 print("Geçerli bir görev id yaz.")
                 continue
-            task_engine = TaskEngine(task_store, current_permission_profile[0], general_approval[0])
+            task_engine = TaskEngine(task_store, current_permission_profile[0], general_approval[0], base_dir=base_dir)
             ok, msg = task_engine.cancel_task(tid)
             print(msg)
             continue

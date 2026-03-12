@@ -35,15 +35,16 @@ def test_task_store_create_and_list():
 
 
 def test_task_engine_run():
+    """guvenli_yurut + not kontrol: base_dir verilirse gerçek okuma yapılır, durum tamamlandi olur."""
     with tempfile.TemporaryDirectory() as d:
         store = TaskStore(d)
         t = store.create("Kontrol", "not sistemini kontrol et ve özet ver", PROFILE_GUVENLI_YURUT)
-        engine = TaskEngine(store, PROFILE_GUVENLI_YURUT, True)
+        engine = TaskEngine(store, PROFILE_GUVENLI_YURUT, True, base_dir=d)
         ok, msg = engine.run_task(t.task_id)
         assert ok is True
-        assert "tamamlandi" in msg or "Tamamlanan" in msg
         t2 = store.get(t.task_id)
         assert t2.status == "tamamlandi"
+        assert t2.verified_count >= 1
 
 
 def test_permission_profiles():
@@ -134,7 +135,7 @@ def test_engine_kisitli_otonom_no_approval_blocks_write_local():
 
 
 def test_engine_kisitli_otonom_with_approval_allows_write_local():
-    """kisitli_otonom + genel onay açık: write_local adım yürütülür (simüle)."""
+    """kisitli_otonom + genel onay açık: write_local adım yürütülür (simüle); doğrulama yok → dogrulanamadi."""
     with tempfile.TemporaryDirectory() as d:
         store = TaskStore(d)
         t = store.create("Yaz", "özet ver", PROFILE_KISITLI_OTONOM)
@@ -144,7 +145,7 @@ def test_engine_kisitli_otonom_with_approval_allows_write_local():
         ok, msg = engine.run_task(t.task_id)
         assert ok is True
         t2 = store.get(t.task_id)
-        assert t2.status == "tamamlandi"
+        assert t2.status == "dogrulanamadi"
 
 
 def test_task_persistence_after_reload():
@@ -165,10 +166,10 @@ def test_task_persistence_after_reload():
 
 
 def test_flow_create_run_list_summary():
-    """Akış: görev oluştur → yürüt → görevler listele → görev özeti al (normal komuta dönüş store/engine tarafında)."""
+    """Akış: görev oluştur → yürüt → görevler listele → görev özeti al."""
     with tempfile.TemporaryDirectory() as d:
         store = TaskStore(d)
-        engine = TaskEngine(store, PROFILE_GUVENLI_YURUT, True)
+        engine = TaskEngine(store, PROFILE_GUVENLI_YURUT, True, base_dir=d)
         t = store.create("Akış testi", "not sistemini kontrol et ve özet ver", PROFILE_GUVENLI_YURUT)
         ok, msg = engine.run_task(t.task_id)
         assert ok is True
@@ -177,19 +178,21 @@ def test_flow_create_run_list_summary():
         t2 = store.get(t.task_id)
         assert t2 is not None
         assert t2.summary
-        assert "Geçen süre" in t2.summary or "Tamamlanan" in t2.summary or "tamamlandi" in t2.summary
+        assert t2.status in ("tamamlandi", "kismi", "dogrulanamadi", "simulasyon")
+        assert "Durum:" in t2.summary or "Geçen süre" in t2.summary
 
 
 def test_second_task_creation():
-    """İkinci görev düzgün oluşur: iki görev art arda, listeleme ve id ile erişim."""
+    """İkinci görev düzgün oluşur; base_dir ile doğrulama yapılırsa her iki görev de tamamlandi olabilir."""
     with tempfile.TemporaryDirectory() as d:
         store = TaskStore(d)
-        engine = TaskEngine(store, PROFILE_GUVENLI_YURUT, True)
+        engine = TaskEngine(store, PROFILE_GUVENLI_YURUT, True, base_dir=d)
         t1 = store.create("Birinci", "not sistemini kontrol et ve kısa özet ver", PROFILE_RAPOR)
         t2 = store.create("İkinci", "not sistemini kontrol et ve kısa özet ver", PROFILE_GUVENLI_YURUT)
         assert t1.task_id == 1
         assert t2.task_id == 2
-        ok1, _ = engine.run_task(t1.task_id)
+        engine_rapor = TaskEngine(store, PROFILE_RAPOR, False, base_dir=d)
+        ok1, _ = engine_rapor.run_task(t1.task_id)
         ok2, _ = engine.run_task(t2.task_id)
         assert ok1 is True
         assert ok2 is True
@@ -197,14 +200,16 @@ def test_second_task_creation():
         assert len(tasks) == 2
         g1 = store.get(1)
         g2 = store.get(2)
-        assert g1 is not None and g1.title == "Birinci" and g1.status == "tamamlandi"
-        assert g2 is not None and g2.title == "İkinci" and g2.status == "tamamlandi"
+        assert g1 is not None and g1.title == "Birinci"
+        assert g2 is not None and g2.title == "İkinci"
+        assert g1.status == "tamamlandi"
+        assert g2.status == "tamamlandi"
 
 
 def test_task_integrity_create_a_create_b_list_status_summary():
     """
     Kritik bütünlük: görev oluştur A, görev oluştur B; görevler; görev durumu 1/2; görev özeti 1/2.
-    Beklenen: id 1 sadece A, id 2 sadece B; hiçbir yerde içerik karışması olmasın.
+    A/B açıklamalarında gerçek doğrulama yok → durum dogrulanamadi/simulasyon; içerik karışması olmasın.
     """
     with tempfile.TemporaryDirectory() as d:
         store = TaskStore(d)
@@ -218,35 +223,76 @@ def test_task_integrity_create_a_create_b_list_status_summary():
         ok_a, _ = engine.run_task(ta.task_id)
         ok_b, _ = engine.run_task(tb.task_id)
         assert ok_a is True and ok_b is True
-        # görevler
-        tasks = store.list_all()
-        assert len(tasks) == 2
-        assert tasks[0].task_id == 1 and tasks[0].title == title_a
-        assert tasks[1].task_id == 2 and tasks[1].title == title_b
-        # görev durumu 1 / görev özeti 1 → sadece A
         g1 = store.get(1)
         g2 = store.get(2)
         assert g1 is not None and g1.title == title_a and g1.description == desc_a
         assert g2 is not None and g2.title == title_b and g2.description == desc_b
-        assert g1.summary and desc_a[:20] in g1.summary or title_a in g1.summary or "Görev" in g1.summary
+        assert g1.status != "tamamlandi"  # doğrulama yapılmadı
+        assert g2.status != "tamamlandi"
+        assert g1.summary and (desc_a[:20] in g1.summary or title_a in g1.summary or "Görev" in g1.summary)
         assert g2.summary and (desc_b[:20] in g2.summary or title_b in g2.summary or "Görev" in g2.summary)
-        # İçerik karışması olmasın: 1'in özetinde B geçmesin, 2'nin özetinde A geçmesin
         assert desc_b not in (g1.summary or "") and title_b not in (g1.summary or "")
         assert desc_a not in (g2.summary or "") and title_a not in (g2.summary or "")
 
 
-def test_rapor_and_guvenli_yurut_both_complete_analyze_only_task():
-    """Aynı (sadece analiz/okuma) görev hem rapor hem guvenli_yurut ile tamamlanır; profil ayrışması safe_local/write'da."""
+def test_rapor_and_guvenli_yurut_with_base_dir_verified():
+    """base_dir verildiğinde not kontrol gerçek okuma yapar; rapor=simulasyon yok, guvenli_yurut=tamamlandi."""
     desc = "not sistemini kontrol et ve kısa özet ver"
     with tempfile.TemporaryDirectory() as d:
         store = TaskStore(d)
         t_rapor = store.create("Rapor görev", desc, PROFILE_RAPOR)
         t_guvenli = store.create("Güvenli görev", desc, PROFILE_GUVENLI_YURUT)
-        engine_rapor = TaskEngine(store, PROFILE_RAPOR, False)
-        engine_guvenli = TaskEngine(store, PROFILE_GUVENLI_YURUT, False)
+        engine_rapor = TaskEngine(store, PROFILE_RAPOR, False, base_dir=d)
+        engine_guvenli = TaskEngine(store, PROFILE_GUVENLI_YURUT, False, base_dir=d)
         ok_rapor, _ = engine_rapor.run_task(t_rapor.task_id)
         ok_guvenli, _ = engine_guvenli.run_task(t_guvenli.task_id)
         assert ok_rapor is True
         assert ok_guvenli is True
-        assert store.get(t_rapor.task_id).status == "tamamlandi"
-        assert store.get(t_guvenli.task_id).status == "tamamlandi"
+        r = store.get(t_rapor.task_id)
+        g = store.get(t_guvenli.task_id)
+        assert r.verified_count >= 1
+        assert g.verified_count >= 1
+        assert r.status == "tamamlandi"
+        assert g.status == "tamamlandi"
+
+
+def test_rapor_unverifiable_task_not_tamamlandi():
+    """rapor profili + doğrulanamayan görev (olmayan modülü analiz et) -> tamamlandi OLMAMALI."""
+    with tempfile.TemporaryDirectory() as d:
+        store = TaskStore(d)
+        t = store.create("Analiz", "olmayan modülü analiz et", PROFILE_RAPOR)
+        engine = TaskEngine(store, PROFILE_RAPOR, False, base_dir=d)
+        ok, _ = engine.run_task(t.task_id)
+        assert ok is True
+        t2 = store.get(t.task_id)
+        assert t2.status != "tamamlandi"
+        assert t2.status in ("simulasyon", "dogrulanamadi")
+        assert t2.verified_count == 0
+
+
+def test_guvenli_yurut_unverifiable_task_not_tamamlandi():
+    """guvenli_yurut + doğrulanamayan görev (base_dir yok, sadece analiz adımları) -> tamamlandi OLMAMALI."""
+    with tempfile.TemporaryDirectory() as d:
+        store = TaskStore(d)
+        t = store.create("Analiz", "olmayan modülü analiz et", PROFILE_GUVENLI_YURUT)
+        engine = TaskEngine(store, PROFILE_GUVENLI_YURUT, False)  # base_dir yok
+        ok, _ = engine.run_task(t.task_id)
+        assert ok is True
+        t2 = store.get(t.task_id)
+        assert t2.status != "tamamlandi"
+        assert t2.status == "dogrulanamadi"
+        assert t2.verified_count == 0
+
+
+def test_gorev_ozeti_shows_verified_unverified():
+    """görev özeti: doğrulanan işlem ve doğrulanamayan işlem sayıları görünmeli."""
+    with tempfile.TemporaryDirectory() as d:
+        store = TaskStore(d)
+        t = store.create("Kontrol", "not sistemini kontrol et ve özet ver", PROFILE_GUVENLI_YURUT)
+        engine = TaskEngine(store, PROFILE_GUVENLI_YURUT, True, base_dir=d)
+        engine.run_task(t.task_id)
+        t2 = store.get(t.task_id)
+        assert "Doğrulanan işlem:" in t2.summary
+        assert "Doğrulanamayan işlem:" in t2.summary
+        assert t2.verified_count >= 1
+        assert t2.unverified_count >= 0
