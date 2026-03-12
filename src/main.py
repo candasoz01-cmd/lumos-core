@@ -104,7 +104,21 @@ NEDEN_ANLAMADIN_TEXT = (
     "Örnek: görev durumu 2 | görev özeti 1 | yetki profili rapor | yardım"
 )
 
-# Aile bazlı fallback: hangi aileye yakınsa o örnekler
+# Nötr fallback: anchor yok veya sohbet/belirsiz ifade → aile tahmini yapma, genel örnek ver
+NEUTRAL_FALLBACK_TEXT = (
+    "Bunu kayıtlı komutlara yeterince yakın bulmadım, bu yüzden işlem yapmadım.\n"
+    "Örnek: durum | görevler | görev durumu <id> | görev özeti <id> | yetki profili | yardım"
+)
+
+# Aile fallback sadece başta bu anchor kelimelerden biri varken kullanılır (görev, not, yetki, durum, genel onay)
+COMMAND_ANCHOR_WORDS = frozenset({"gorev", "yetki", "not", "notlar", "durum", "hazir", "genel"})
+# Belirsiz/sohbet ifadeleri: bunlar hiçbir aileye bağlanmaz, nötr fallback (folded)
+CASUAL_FIRST_WORDS = frozenset({
+    "saat", "tamam", "oldu", "neden", "napiyoruz", "napiyon", "ben", "cikti", "sanirim", "bakalim",
+    "tarih", "zaman", "ne", "evet", "hayir", "oldumu",
+})
+
+# Aile bazlı fallback: hangi aileye yakınsa o örnekler (sadece anchor varken kullanılır)
 FALLBACK_BY_FAMILY = {
     "gorev": 'Görev ailesine yakınsın. Örnek: görevler | görev durumu <id> | görev özeti <id>',
     "yetki": 'Yetki ailesine yakınsın. Örnek: yetki profili | yetki profili rapor',
@@ -119,16 +133,43 @@ def _is_why_question(raw: str) -> bool:
     return q in ("neden anlamadin", "neyi anlamadin", "neye takildin")
 
 
-def _infer_family_from_raw(raw: str) -> str | None:
-    """Ham girdiden komut ailesi tahmin et (sadece güvenli kelime eşleşmesi)."""
+def _first_token_folded(raw: str) -> str:
+    """İlk kelimeyi folded döndür (boş satırda boş string)."""
     q = _fold_for_search((raw or "").strip())
-    if "gorev" in q or "görev" in raw:
+    parts = q.split()
+    return parts[0] if parts else ""
+
+
+def _has_anchor(raw: str) -> bool:
+    """İfadede başta belirgin komut kelimesi (anchor) var mı? Yoksa aile fallback kullanılmaz."""
+    return _first_token_folded(raw) in COMMAND_ANCHOR_WORDS
+
+
+def _is_casual_or_indeterminate(raw: str) -> bool:
+    """Serbest sohbet / belirsiz ifade mi? (saat, tamam, sanırım ..., oldu mu, neden, napıyoruz, ben çıktım vb.)"""
+    first = _first_token_folded(raw)
+    if first in CASUAL_FIRST_WORDS:
+        return True
+    q = _fold_for_search((raw or "").strip())
+    # "sanırım bitti bu aşamada bakalım ne çıkacak" gibi uzun sohbet cümleleri
+    if first == "sanirim" or first == "bakalim" or (len(q) > 25 and first in ("ne", "ben", "evet", "hayir")):
+        return True
+    return False
+
+
+def _infer_family_from_raw(raw: str) -> str | None:
+    """Ham girdiden komut ailesi tahmin et; sadece başta anchor varken (güvenli kelime eşleşmesi)."""
+    first = _first_token_folded(raw)
+    q = _fold_for_search((raw or "").strip())
+    if first == "gorev":
         return "gorev"
-    if "yetki" in q or "profil" in q:
+    if first == "yetki":
         return "yetki"
-    if "not" in q and ("goster" in q or "ara" in q or "hatirla" in q or "etiket" in q):
+    if first in ("not", "notlar") and ("goster" in q or "ara" in q or "hatirla" in q or "etiket" in q):
         return "not"
-    if "durum" in q or "hazir" in q:
+    if first in ("durum", "hazir"):
+        return "durum"
+    if first == "genel" and "onay" in q:
         return "durum"
     return None
 
@@ -149,13 +190,17 @@ def _route_to_family(route: str) -> str | None:
 
 
 def get_fallback_message(raw: str, last_route: str | None) -> str:
-    """Bilinmeyen komut için açıklayıcı, aileye göre yönlendirici mesaj. LLM yok."""
+    """Bilinmeyen komut için açıklayıcı mesaj. Anchor yoksa/sohbetse nötr fallback; anchor varsa aile önerisi."""
     if _is_why_question(raw):
         return NEDEN_ANLAMADIN_TEXT
+    if _is_casual_or_indeterminate(raw):
+        return NEUTRAL_FALLBACK_TEXT
+    if not _has_anchor(raw):
+        return NEUTRAL_FALLBACK_TEXT
     family = _infer_family_from_raw(raw) or _route_to_family(last_route or "")
     if family and family in FALLBACK_BY_FAMILY:
         return f"Bunu anlamadım. {FALLBACK_BY_FAMILY[family]}"
-    return UNKNOWN_CMD_TEXT
+    return NEUTRAL_FALLBACK_TEXT
 
 
 def _get_oneri(base_dir: str | Path, keystore_initialized: bool, presence_module: Any) -> list[str]:
