@@ -202,6 +202,12 @@ def test_full_sequence_routes():
         ("görev durumu 2", "gorev_durumu", ["2"]),
         ("görev adımları 2", "gorev_adimlari", ["2"]),
         ("görev özeti 2", "gorev_ozeti", ["2"]),
+        ("görev temizle tamamlananlar", "gorev_temizle_tamamlananlar", []),
+        ("görev temizle simulasyonlar", "gorev_temizle_simulasyonlar", []),
+        ("görev arşivle 1", "gorev_arsivle", ["1"]),
+        ("görev arşivle 2", "gorev_arsivle", ["2"]),
+        ("görev sil 1", "gorev_sil", ["1"]),
+        ("görev sayaç", "gorev_sayac", []),
         ("durum özet", "durum", None),
         ("çık", "exit", []),
     ]

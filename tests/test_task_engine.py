@@ -18,7 +18,11 @@ from task_engine.profiles import (
     STEP_TYPE_EXTERNAL,
     STEP_TYPE_CRITICAL,
 )
-from task_engine.engine import TaskStep
+from task_engine.engine import (
+    TaskStep,
+    compute_task_stats,
+    find_recent_similar_task,
+)
 
 
 def test_task_store_create_and_list():
@@ -340,3 +344,136 @@ def test_step_result_kind_after_run():
         assert t2.verified_count + t2.unverified_count == sum(
             1 for s in t2.steps if s.status == "tamamlandi"
         )
+
+
+def test_task_store_persistence_with_archive_flags():
+    """Arşiv bilgisi (archived, archived_at) kalıcı; yeniden yüklendiğinde korunur."""
+    with tempfile.TemporaryDirectory() as d:
+        store1 = TaskStore(d)
+        t = store1.create("Kalıcı görev", "not kontrol ve özet", PROFILE_GUVENLI_YURUT)
+        tid = t.task_id
+        # Görevi tamamlanmış kabul edip arşivle
+        t.status = "tamamlandi"
+        store1.update(t)
+        count = store1.archive_completed()
+        assert count == 1
+        store2 = TaskStore(d)
+        t2 = store2.get(tid)
+        assert t2 is not None
+        assert t2.archived is True
+        assert isinstance(t2.archived_at, str)
+        assert t2.status == "tamamlandi"
+
+
+def test_archive_completed_and_simulations():
+    """Tamamlanan ve simulasyon görevleri arşivlenir; diğer durumlar dokunulmaz."""
+    with tempfile.TemporaryDirectory() as d:
+        store = TaskStore(d)
+        g1 = store.create("T1", "a", PROFILE_GUVENLI_YURUT)
+        g2 = store.create("T2", "b", PROFILE_GUVENLI_YURUT)
+        g3 = store.create("T3", "c", PROFILE_GUVENLI_YURUT)
+        g1.status = "tamamlandi"
+        g2.status = "simulasyon"
+        g3.status = "kismi"
+        store.update(g1)
+        store.update(g2)
+        store.update(g3)
+
+        c1 = store.archive_completed()
+        assert c1 == 1
+        c2 = store.archive_simulations()
+        assert c2 == 1
+
+        ng1 = store.get(g1.task_id)
+        ng2 = store.get(g2.task_id)
+        ng3 = store.get(g3.task_id)
+        assert ng1.archived is True and ng1.status == "tamamlandi"
+        assert ng2.archived is True and ng2.status == "simulasyon"
+        assert ng3.archived is False and ng3.status == "kismi"
+
+
+def test_archive_vs_delete_single_task():
+    """Arşivle/sil ayrımı: arşivlenen kalır, silinen store'dan çıkar."""
+    with tempfile.TemporaryDirectory() as d:
+        store = TaskStore(d)
+        g1 = store.create("A", "desc", PROFILE_GUVENLI_YURUT)
+        g2 = store.create("B", "desc", PROFILE_GUVENLI_YURUT)
+        store.archive(g1.task_id)
+        assert store.get(g1.task_id).archived is True
+        assert store.delete(g2.task_id) is True
+        assert store.get(g2.task_id) is None
+        # Arşivli görev delete ile de silinebilir (isteyerek sert eylem)
+        assert store.delete(g1.task_id) is True
+        assert store.get(g1.task_id) is None
+
+
+def test_task_stats_summary_counts():
+    """compute_task_stats: toplam, aktif, tamamlandı, kısmi, doğrulanamadı, simulasyon, arşiv sayaçları."""
+    with tempfile.TemporaryDirectory() as d:
+        store = TaskStore(d)
+        g1 = store.create("Aktif", "a", PROFILE_GUVENLI_YURUT)
+        g2 = store.create("Tamam", "b", PROFILE_GUVENLI_YURUT)
+        g3 = store.create("Kısmi", "c", PROFILE_GUVENLI_YURUT)
+        g4 = store.create("Doğrulanamadı", "d", PROFILE_GUVENLI_YURUT)
+        g5 = store.create("Sim", "e", PROFILE_GUVENLI_YURUT)
+
+        g1.status = "bekliyor"
+        g2.status = "tamamlandi"
+        g3.status = "kismi"
+        g4.status = "dogrulanamadi"
+        g5.status = "simulasyon"
+        store.update(g1)
+        store.update(g2)
+        store.update(g3)
+        store.update(g4)
+        store.update(g5)
+
+        # Bir tanesini arşivle
+        store.archive(g2.task_id)
+        stats = compute_task_stats(store.list_all())
+        assert stats["toplam"] == 5
+        assert stats["aktif"] == 1  # sadece bekliyor
+        assert stats["tamamlandi"] == 1
+        assert stats["kismi"] == 1
+        assert stats["dogrulanamadi"] == 1
+        assert stats["simulasyon"] == 1
+        assert stats["arsiv"] == 1
+
+
+def test_find_recent_similar_task_window_and_profile():
+    """Aynı açıklama + profil + pencere içinde → benzer görev; farklı profil veya eski kayıtlar hariç."""
+    with tempfile.TemporaryDirectory() as d:
+        store = TaskStore(d)
+        g1 = store.create("G1", "Açıklama", PROFILE_GUVENLI_YURUT)
+        g2 = store.create("G2", "Açıklama", PROFILE_RAPOR)
+        tasks = store.list_all()
+
+        # Zaman damgalarını sahteleyerek pencere testini deterministik yap
+        import time as _t
+
+        now = _t.time()
+        old_ts = now - 3600
+        for t in tasks:
+            if t.task_id == g1.task_id:
+                t.created_at = _t.strftime("%Y-%m-%dT%H:%M:%S", _t.localtime(now))
+            else:
+                t.created_at = _t.strftime("%Y-%m-%dT%H:%M:%S", _t.localtime(old_ts))
+            store.update(t)
+
+        # Aynı profil + açıklama + pencere içinde → g1
+        sim = find_recent_similar_task(
+            store.list_all(), "Açıklama", PROFILE_GUVENLI_YURUT, now_ts=now, window_seconds=600
+        )
+        assert sim is not None and sim.task_id == g1.task_id
+
+        # Farklı profil → None
+        sim2 = find_recent_similar_task(
+            store.list_all(), "Açıklama", PROFILE_RAPOR, now_ts=now, window_seconds=600
+        )
+        assert sim2 is None
+
+        # Pencere dışında → None
+        sim3 = find_recent_similar_task(
+            store.list_all(), "Açıklama", PROFILE_GUVENLI_YURUT, now_ts=now, window_seconds=10
+        )
+        assert sim3 is None
