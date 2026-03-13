@@ -30,11 +30,17 @@ class CoreEngine:
         log_event: Callable[[str], None],
         lock_cb: Callable[[], None] | None = None,
         is_already_locked: Callable[[], bool] | None = None,
+        *,
+        is_sandbox_mode: bool = False,
     ) -> None:
         """Boot recovery: if config enabled but thread not running, start and log presence_autostarted."""
         try:
             self.pl.recover_if_needed(
-                base_dir, log_event, lock_cb=lock_cb, is_already_locked=is_already_locked
+                base_dir,
+                log_event,
+                lock_cb=lock_cb,
+                is_already_locked=is_already_locked,
+                is_sandbox_mode=is_sandbox_mode,
             )
         except Exception as e:
             try:

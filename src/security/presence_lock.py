@@ -13,7 +13,12 @@ from core.logfmt import logfmt
 from core.workspace_contract import append_log_line, save_presence_cfg_json
 
 
-def _append_log(message: str, base_dir: Path | None = None) -> None:
+def _append_log(
+    message: str,
+    base_dir: Path | None = None,
+    *,
+    is_sandbox_mode: bool = False,
+) -> None:
     try:
         from datetime import datetime
         if base_dir is None:
@@ -22,13 +27,18 @@ def _append_log(message: str, base_dir: Path | None = None) -> None:
             base_dir = Path(base_dir)
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         line = f"{ts} | {message}"
-        append_log_line(base_dir, line)
+        append_log_line(base_dir, line, is_sandbox_mode=is_sandbox_mode)
     except Exception:
         pass
 
 
-def log_event(message: str, base_dir: Path | None = None) -> None:
-    _append_log(message, base_dir=base_dir)
+def log_event(
+    message: str,
+    base_dir: Path | None = None,
+    *,
+    is_sandbox_mode: bool = False,
+) -> None:
+    _append_log(message, base_dir=base_dir, is_sandbox_mode=is_sandbox_mode)
 
 
 _LOCK = threading.RLock()
@@ -91,6 +101,8 @@ def recover_if_needed(
     log_event: Callable[[str], None],
     lock_cb: Optional[Callable[[], None]] = None,
     is_already_locked: Optional[Callable[[], bool]] = None,
+    *,
+    is_sandbox_mode: bool = False,
 ) -> None:
     if not is_enabled_from_config(base_dir) or is_running():
         return
@@ -106,6 +118,7 @@ def recover_if_needed(
             require_face=bool(getattr(cfg, "require_face", True)),
             silent_stop=False,
             reason="boot_desync",
+            is_sandbox_mode=is_sandbox_mode,
         )
         log_event(logfmt("presence_autostarted", reason="boot_desync"))
     except Exception:
@@ -117,6 +130,8 @@ def watchdog_tick(
     log_event: Callable[[str], None],
     lock_cb: Optional[Callable[[], None]] = None,
     is_already_locked: Optional[Callable[[], bool]] = None,
+    *,
+    is_sandbox_mode: bool = False,
 ) -> None:
     """If config enabled and thread not running, start and log presence_autostarted reason=watchdog_desync."""
     if is_already_locked is not None:
@@ -139,6 +154,7 @@ def watchdog_tick(
             require_face=bool(getattr(cfg, "require_face", True)),
             silent_stop=False,
             reason="watchdog_desync",
+            is_sandbox_mode=is_sandbox_mode,
         )
         log_event(logfmt("presence_autostarted", reason="watchdog_desync"))
     except Exception as e:
@@ -147,8 +163,13 @@ def watchdog_tick(
         except Exception:
             pass
 
-def save_presence_cfg(base_dir: Path, cfg: PresenceLockConfig) -> None:
-    save_presence_cfg_json(base_dir, asdict(cfg))
+def save_presence_cfg(
+    base_dir: Path,
+    cfg: PresenceLockConfig,
+    *,
+    is_sandbox_mode: bool = False,
+) -> None:
+    save_presence_cfg_json(base_dir, asdict(cfg), is_sandbox_mode=is_sandbox_mode)
 
 def _detect_face(frame) -> bool:
     try:
@@ -205,7 +226,7 @@ def _presence_loop(*, base_dir: Path, lock_cb: Optional[Callable[[], None]], tim
             pass
         _set_status("OFF")
 
-def start_presence_lock(*, base_dir: Path, lock_cb: Optional[Callable[[], None]] = None, is_already_locked: Optional[Callable[[], bool]] = None, timeout_sec: int = 30, poll_sec: float = 1.0, camera_index: int = 0, require_face: bool = True, silent_stop: bool = False, reason: Optional[str] = None) -> tuple[bool, str]:
+def start_presence_lock(*, base_dir: Path, lock_cb: Optional[Callable[[], None]] = None, is_already_locked: Optional[Callable[[], bool]] = None, timeout_sec: int = 30, poll_sec: float = 1.0, camera_index: int = 0, require_face: bool = True, silent_stop: bool = False, reason: Optional[str] = None, is_sandbox_mode: bool = False) -> tuple[bool, str]:
     _orig_lock_cb = lock_cb
     def lock_cb():
         if is_already_locked is not None:
@@ -215,7 +236,7 @@ def start_presence_lock(*, base_dir: Path, lock_cb: Optional[Callable[[], None]]
             except Exception:
                 pass
         try:
-            _append_log(logfmt("device_locked", trigger="presence"), base_dir=base_dir)
+            _append_log(logfmt("device_locked", trigger="presence"), base_dir=base_dir, is_sandbox_mode=is_sandbox_mode)
         except Exception:
             pass
         if _orig_lock_cb:
@@ -223,7 +244,7 @@ def start_presence_lock(*, base_dir: Path, lock_cb: Optional[Callable[[], None]]
 
     with _LOCK:
         global _THREAD
-        stop_presence_lock(base_dir=base_dir, silent=silent_stop)
+        stop_presence_lock(base_dir=base_dir, silent=silent_stop, is_sandbox_mode=is_sandbox_mode)
 
         _STOP.clear()
         t = threading.Thread(
@@ -242,17 +263,17 @@ def start_presence_lock(*, base_dir: Path, lock_cb: Optional[Callable[[], None]]
         t.start()
         if reason not in ("boot_desync", "internal"):
             try:
-                _append_log(logfmt("presence_started", reason=reason or ""), base_dir=base_dir)
+                _append_log(logfmt("presence_started", reason=reason or ""), base_dir=base_dir, is_sandbox_mode=is_sandbox_mode)
             except Exception:
                 pass
     return True, "OK"
 
-def stop_presence_lock(*, base_dir: Path, reason: Optional[str] = None, silent: bool = False) -> tuple[bool, str]:
+def stop_presence_lock(*, base_dir: Path, reason: Optional[str] = None, silent: bool = False, is_sandbox_mode: bool = False) -> tuple[bool, str]:
     with _LOCK:
         was_running = is_running()
         if (not silent) and was_running:
             try:
-                _append_log(logfmt("presence_stopped", reason=reason or ""), base_dir=base_dir)
+                _append_log(logfmt("presence_stopped", reason=reason or ""), base_dir=base_dir, is_sandbox_mode=is_sandbox_mode)
             except Exception:
                 pass
 

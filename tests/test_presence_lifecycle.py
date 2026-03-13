@@ -22,7 +22,7 @@ def test_stop_presence_lock_silent_true_does_not_log_presence_stopped():
     """stop_presence_lock(silent=True) must not log presence_stopped."""
     import security.presence_lock as pl
     log_calls = []
-    with patch.object(pl, "_append_log", side_effect=lambda msg, base_dir=None: log_calls.append(msg)):
+    with patch.object(pl, "_append_log", side_effect=lambda msg, base_dir=None, **kwargs: log_calls.append(msg)):
         pl.stop_presence_lock(base_dir=Path(ROOT / ".lumos"), silent=True)
     for msg in log_calls:
         assert "event=presence_stopped" not in msg, "silent=True must not log presence_stopped"
@@ -32,7 +32,7 @@ def test_stop_presence_lock_silent_false_logs_presence_stopped_only_if_was_runni
     """stop_presence_lock(silent=False) logs presence_stopped only when was_running."""
     import security.presence_lock as pl
     log_calls = []
-    with patch.object(pl, "_append_log", side_effect=lambda msg, base_dir=None: log_calls.append(msg)):
+    with patch.object(pl, "_append_log", side_effect=lambda msg, base_dir=None, **kwargs: log_calls.append(msg)):
         with patch.object(pl, "is_running", return_value=True):
             pl.stop_presence_lock(base_dir=Path(ROOT / ".lumos"), silent=False)
     stopped = [m for m in log_calls if "event=presence_stopped" in m]
@@ -43,7 +43,7 @@ def test_stop_presence_lock_silent_false_no_log_when_not_running():
     """stop_presence_lock(silent=False) must not log presence_stopped when was_running=False."""
     import security.presence_lock as pl
     log_calls = []
-    with patch.object(pl, "_append_log", side_effect=lambda msg, base_dir=None: log_calls.append(msg)):
+    with patch.object(pl, "_append_log", side_effect=lambda msg, base_dir=None, **kwargs: log_calls.append(msg)):
         with patch.object(pl, "is_running", return_value=False):
             pl.stop_presence_lock(base_dir=Path(ROOT / ".lumos"), silent=False)
     for msg in log_calls:
@@ -199,6 +199,21 @@ def test_format_status_line_from_snapshot():
     snap2 = {"lock_status": "UNLOCKED", "presence_enabled": False, "presence_running": False, "mode": "offline", "last_log_ts": ""}
     line2 = format_status_line(snap2)
     assert "UNLOCKED" in line2 and "OFF" in line2
+
+
+def test_core_state_log_event_passes_sandbox_mode_to_presence():
+    """CoreState(sandbox_mode=True).log_event calls pl.log_event with is_sandbox_mode=True (presence line)."""
+    from core.state import CoreState
+    from pathlib import Path
+    calls = []
+    class FakePl:
+        def log_event(self, message, base_dir=None, is_sandbox_mode=False):
+            calls.append(("log_event", message, is_sandbox_mode))
+    pl = FakePl()
+    state = CoreState(object(), pl, "offline", base_dir=Path(".lumos"), sandbox_mode=True)
+    state.log_event("test_msg")
+    assert len(calls) == 1
+    assert calls[0][0] == "log_event" and calls[0][1] == "test_msg" and calls[0][2] is True
 
 
 def test_presence_fsm_get_state_running():
