@@ -14,7 +14,7 @@ from core.logfmt import logfmt
 from core.lumos import Lumos
 from core.state import CoreState, format_durum
 from core.startup_health import get_durum_parts, get_startup_summary
-from core.workspace_contract import logs_file_path, trash_path
+from core.workspace_contract import ensure_trash_dir, logs_file_path, trash_path
 from engine.online_engine import OnlineEngineV1
 from memory.schema import MemoryNote
 from memory.secure_store import SecureNotesStore
@@ -920,18 +920,25 @@ def _format_today_bullet(action: str) -> str:
     return action
 
 
-def main() -> None:
+def _sandbox_mode_from_env() -> bool:
+    """LUMOS_SANDBOX=1|true|yes (case-insensitive) → True; aksi halde False."""
+    return os.getenv("LUMOS_SANDBOX", "").strip().lower() in ("1", "true", "yes")
+
+
+def main(sandbox_mode: bool | None = None) -> None:
+    if sandbox_mode is None:
+        sandbox_mode = _sandbox_mode_from_env()
+
     mode = os.getenv("LUMOS_MODE", "offline").strip().lower()
 
     base_dir = _lumos_dir()
     base_path = Path(base_dir)
-    sandbox_mode = False  # tek kaynak; şimdilik sabit; ileride env/CLI'dan okunabilir
     # Sabit omurga: tasks/, logs/, trash/, config/ — yoksa kontrollü oluştur.
     try:
         base_path.mkdir(parents=True, exist_ok=True)
         (base_path / "tasks").mkdir(parents=True, exist_ok=True)
         (base_path / "logs").mkdir(parents=True, exist_ok=True)
-        trash_path(base_path).mkdir(parents=True, exist_ok=True)
+        ensure_trash_dir(base_path, is_sandbox_mode=sandbox_mode)
         (base_path / "config").mkdir(parents=True, exist_ok=True)
     except Exception:
         # Dizın oluşturma hataları self-check içinde raporlanır.
