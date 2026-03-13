@@ -33,8 +33,9 @@ class DeviceIdentity:
     - public key: plaintext (kimlik)
     - lumos_id: sha256(public_key_bytes)
     """
-    def __init__(self, base_dir: str = "src/.lumos"):
+    def __init__(self, base_dir: str = "src/.lumos", *, is_sandbox_mode: bool = False):
         self.paths = IdentityPaths(Path(base_dir))
+        self._is_sandbox_mode = is_sandbox_mode
         self.paths.base_dir.mkdir(parents=True, exist_ok=True)
 
     def is_initialized(self) -> bool:
@@ -73,7 +74,7 @@ class DeviceIdentity:
                 "ct_b64": b64e(ct),
             }
         }
-        save_identity_json(self.paths.base_dir, data)
+        save_identity_json(self.paths.base_dir, data, is_sandbox_mode=self._is_sandbox_mode)
 
     def load(self, root_key: bytes) -> dict:
         if not self.is_initialized():
