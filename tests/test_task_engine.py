@@ -216,6 +216,21 @@ def test_engine_kisitli_otonom_no_approval_blocks_write_local():
         assert t2.status == "durdu"
 
 
+def test_engine_kisitli_otonom_no_approval_blocks_safe_local():
+    """kisitli_otonom + genel onay kapalı: safe_local adım da çalışmaz (uygulama katmanı, açık onay gerektirir)."""
+    with tempfile.TemporaryDirectory() as d:
+        store = TaskStore(d)
+        t = store.create("Yerel güvenli iş", "özet ver", PROFILE_KISITLI_OTONOM)
+        t.steps = [TaskStep("Yerel güvenli iş", kind=STEP_TYPE_SAFE_LOCAL)]
+        store.update(t)
+        engine = TaskEngine(store, PROFILE_KISITLI_OTONOM, general_approval=False)
+        ok, msg = engine.run_task(t.task_id)
+        assert ok is False
+        assert "izin" in msg.lower() or "yetki" in msg.lower() or "dışı" in msg.lower()
+        t2 = store.get(t.task_id)
+        assert t2.status == "durdu"
+
+
 def test_engine_kisitli_otonom_with_approval_allows_write_local():
     """kisitli_otonom + genel onay açık: write_local adım yürütülür (simüle); doğrulama yok → dogrulanamadi."""
     with tempfile.TemporaryDirectory() as d:
