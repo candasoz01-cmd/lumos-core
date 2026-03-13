@@ -23,6 +23,7 @@ CORE_STATE_PATH_NAMES = (
     "trash",
     "aliases.json",
     "notes.enc.json",
+    "presence.json",
 )
 
 
@@ -45,6 +46,14 @@ def notes_file_path(base_dir: Path | str) -> Path:
     Çekirdek state listesi ve sandbox guard'ı ile hizalı tutulur.
     """
     return Path(base_dir) / "notes.enc.json"
+
+
+def presence_cfg_path(base_dir: Path | str) -> Path:
+    """
+    presence.json için sözleşmedeki tek çekirdek path.
+    Çekirdek state listesi ve sandbox guard'ı ile hizalı tutulur.
+    """
+    return Path(base_dir) / "presence.json"
 
 
 def save_aliases_json(
@@ -95,6 +104,31 @@ def save_notes_enc_json(
     path.parent.mkdir(parents=True, exist_ok=True)
     import json  # yerel import: workspace_contract yüzeyini dar tutmak için
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def save_presence_cfg_json(
+    base_dir: Path | str,
+    data: dict,
+    *,
+    is_sandbox_mode: bool = False,
+) -> None:
+    """
+    presence.json yazımı için merkezi sink.
+
+    - Path: presence_cfg_path(base_dir)
+    - Guard: allow_write_to_core(live_base_dir=base_dir, target_path=presence_cfg_path)
+      is_sandbox_mode=True iken canlı çekirdek path'e yazmayı reddeder.
+    - is_sandbox_mode varsayılan False olduğu için mevcut davranış korunur.
+    """
+    path = presence_cfg_path(base_dir)
+    if not allow_write_to_core(base_dir, path, is_sandbox_mode=is_sandbox_mode):
+        raise CoreWriteForbidden(
+            "Sandbox modunda canlı çekirdek presence.json path'ine yazma yasak",
+        )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    import json  # yerel import: workspace_contract yüzeyini dar tutmak için
+
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def save_task_store_json(
