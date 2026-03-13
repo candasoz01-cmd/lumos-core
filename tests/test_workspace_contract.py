@@ -228,6 +228,16 @@ def test_save_notes_enc_json_respects_sandbox_guard(tmp_path):
         save_notes_enc_json(base, data, is_sandbox_mode=True)
 
 
+def test_secure_notes_store_sandbox_mode_raises_on_live_core_write(tmp_path):
+    """SecureNotesStore(is_sandbox_mode=True).save() canlı çekirdek path'e yazarken CoreWriteForbidden."""
+    from memory.secure_store import SecureNotesStore
+
+    root_key = b"\x00" * 32  # 32-byte key for AESGCM
+    store = SecureNotesStore(base_dir=str(tmp_path), is_sandbox_mode=True)
+    with pytest.raises(CoreWriteForbidden):
+        store.save(root_key, [])
+
+
 def test_presence_cfg_path_under_base():
     """presence_cfg_path(base) base/presence.json döner."""
     with tempfile.TemporaryDirectory() as d:
