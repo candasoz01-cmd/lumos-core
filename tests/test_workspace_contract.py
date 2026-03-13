@@ -11,12 +11,16 @@ from core.workspace_contract import (
     LUMOS_TRASH_DIRNAME,
     CoreWriteForbidden,
     allow_write_to_core,
+    identity_file_path,
     is_allowed_trash_path,
     is_core_state_path,
+    keystore_file_path,
     may_perform_permanent_delete,
     notes_file_path,
     presence_cfg_path,
     save_aliases_json,
+    save_identity_json,
+    save_keystore_json,
     save_notes_enc_json,
     save_presence_cfg_json,
     trash_path,
@@ -59,13 +63,15 @@ def test_may_perform_permanent_delete_only_user_initiated():
 
 
 def test_core_state_path_names_non_empty_and_contains_contract_paths():
-    """Çekirdek state path listesi boş değil; tasks.json, trash, config, notes.enc.json, presence.json dahil (overwrite yasağı referansı)."""
+    """Çekirdek state path listesi boş değil; tasks.json, trash, config, notes.enc.json, presence.json, identity.json, keystore.json dahil (overwrite yasağı referansı)."""
     assert len(CORE_STATE_PATH_NAMES) >= 3
     assert "tasks.json" in CORE_STATE_PATH_NAMES
     assert "trash" in CORE_STATE_PATH_NAMES
     assert "config" in CORE_STATE_PATH_NAMES
     assert "notes.enc.json" in CORE_STATE_PATH_NAMES
     assert "presence.json" in CORE_STATE_PATH_NAMES
+    assert "identity.json" in CORE_STATE_PATH_NAMES
+    assert "keystore.json" in CORE_STATE_PATH_NAMES
 
 
 def test_is_core_state_path_accepts_core_paths_under_base():
@@ -79,6 +85,8 @@ def test_is_core_state_path_accepts_core_paths_under_base():
         assert is_core_state_path(base, f"{base}/trash") is True
         assert is_core_state_path(base, f"{base}/notes.enc.json") is True
         assert is_core_state_path(base, f"{base}/presence.json") is True
+        assert is_core_state_path(base, f"{base}/identity.json") is True
+        assert is_core_state_path(base, f"{base}/keystore.json") is True
         assert is_core_state_path(base, f"{base}/tasks/tasks.json") is True
         assert is_core_state_path(base, f"{base}/config/foo.json") is True
         assert is_core_state_path(base, f"{base}/logs/log.txt") is True
@@ -117,6 +125,8 @@ def test_allow_write_to_core_sandbox_mode_blocks_live_core():
         assert allow_write_to_core(d, f"{d}/aliases.json", True) is False
         assert allow_write_to_core(d, f"{d}/notes.enc.json", True) is False
         assert allow_write_to_core(d, f"{d}/presence.json", True) is False
+        assert allow_write_to_core(d, f"{d}/identity.json", True) is False
+        assert allow_write_to_core(d, f"{d}/keystore.json", True) is False
 
 
 def test_allow_write_to_core_sandbox_mode_allows_non_core():
@@ -219,3 +229,59 @@ def test_save_presence_cfg_json_respects_sandbox_guard(tmp_path):
 
     with pytest.raises(CoreWriteForbidden):
         save_presence_cfg_json(base, data, is_sandbox_mode=True)
+
+
+def test_identity_file_path_under_base():
+    """identity_file_path(base) base/identity.json döner."""
+    with tempfile.TemporaryDirectory() as d:
+        p = identity_file_path(d)
+        assert p == Path(d) / "identity.json"
+        assert p.name == "identity.json"
+
+
+def test_save_identity_json_uses_core_guard_and_path(tmp_path):
+    """identity.json yazımı merkezi sink üzerinden ve core guard ile yapılır."""
+    base = tmp_path
+    data = {"v": 1, "lumos_id": "x"}
+
+    save_identity_json(base, data)
+    p = identity_file_path(base)
+    assert p.is_file()
+    assert json.loads(p.read_text(encoding="utf-8")) == data
+
+
+def test_save_identity_json_respects_sandbox_guard(tmp_path):
+    """Sandbox modunda canlı çekirdek identity.json path'ine yazma reddedilir."""
+    base = tmp_path
+    data = {"v": 1}
+
+    with pytest.raises(CoreWriteForbidden):
+        save_identity_json(base, data, is_sandbox_mode=True)
+
+
+def test_keystore_file_path_under_base():
+    """keystore_file_path(base) base/keystore.json döner."""
+    with tempfile.TemporaryDirectory() as d:
+        p = keystore_file_path(d)
+        assert p == Path(d) / "keystore.json"
+        assert p.name == "keystore.json"
+
+
+def test_save_keystore_json_uses_core_guard_and_path(tmp_path):
+    """keystore.json yazımı merkezi sink üzerinden ve core guard ile yapılır."""
+    base = tmp_path
+    data = {"v": 1, "root_key": {"cipher": "aesgcm"}}
+
+    save_keystore_json(base, data)
+    p = keystore_file_path(base)
+    assert p.is_file()
+    assert json.loads(p.read_text(encoding="utf-8")) == data
+
+
+def test_save_keystore_json_respects_sandbox_guard(tmp_path):
+    """Sandbox modunda canlı çekirdek keystore.json path'ine yazma reddedilir."""
+    base = tmp_path
+    data = {"v": 1}
+
+    with pytest.raises(CoreWriteForbidden):
+        save_keystore_json(base, data, is_sandbox_mode=True)

@@ -6,6 +6,7 @@ from pathlib import Path
 
 from security.crypto import encrypt_with_passphrase, decrypt_with_passphrase, EncryptedBlob
 from security.entropy import get_random_bytes
+from core.workspace_contract import save_keystore_json
 
 
 @dataclass
@@ -37,7 +38,7 @@ class FileKeyStore:
         aad = b"lumos-keystore-v1"
         blob = encrypt_with_passphrase(passphrase, root_key, aad=aad)
         data = {"v": 1, "root_key": blob.to_dict()}
-        self.paths.keystore_file.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        save_keystore_json(self.paths.base_dir, data)
 
     def load_root_key(self, passphrase: str) -> bytes:
         if not self.is_initialized():

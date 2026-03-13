@@ -24,6 +24,8 @@ CORE_STATE_PATH_NAMES = (
     "aliases.json",
     "notes.enc.json",
     "presence.json",
+    "identity.json",
+    "keystore.json",
 )
 
 
@@ -54,6 +56,22 @@ def presence_cfg_path(base_dir: Path | str) -> Path:
     Çekirdek state listesi ve sandbox guard'ı ile hizalı tutulur.
     """
     return Path(base_dir) / "presence.json"
+
+
+def identity_file_path(base_dir: Path | str) -> Path:
+    """
+    identity.json için sözleşmedeki tek çekirdek path.
+    Çekirdek state listesi ve sandbox guard'ı ile hizalı tutulur.
+    """
+    return Path(base_dir) / "identity.json"
+
+
+def keystore_file_path(base_dir: Path | str) -> Path:
+    """
+    keystore.json için sözleşmedeki tek çekirdek path.
+    Çekirdek state listesi ve sandbox guard'ı ile hizalı tutulur.
+    """
+    return Path(base_dir) / "keystore.json"
 
 
 def save_aliases_json(
@@ -124,6 +142,56 @@ def save_presence_cfg_json(
     if not allow_write_to_core(base_dir, path, is_sandbox_mode=is_sandbox_mode):
         raise CoreWriteForbidden(
             "Sandbox modunda canlı çekirdek presence.json path'ine yazma yasak",
+        )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    import json  # yerel import: workspace_contract yüzeyini dar tutmak için
+
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def save_identity_json(
+    base_dir: Path | str,
+    data: dict,
+    *,
+    is_sandbox_mode: bool = False,
+) -> None:
+    """
+    identity.json yazımı için merkezi sink.
+
+    - Path: identity_file_path(base_dir)
+    - Guard: allow_write_to_core(live_base_dir=base_dir, target_path=identity_file_path)
+      is_sandbox_mode=True iken canlı çekirdek path'e yazmayı reddeder.
+    - is_sandbox_mode varsayılan False olduğu için mevcut davranış korunur.
+    """
+    path = identity_file_path(base_dir)
+    if not allow_write_to_core(base_dir, path, is_sandbox_mode=is_sandbox_mode):
+        raise CoreWriteForbidden(
+            "Sandbox modunda canlı çekirdek identity.json path'ine yazma yasak",
+        )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    import json  # yerel import: workspace_contract yüzeyini dar tutmak için
+
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def save_keystore_json(
+    base_dir: Path | str,
+    data: dict,
+    *,
+    is_sandbox_mode: bool = False,
+) -> None:
+    """
+    keystore.json yazımı için merkezi sink.
+
+    - Path: keystore_file_path(base_dir)
+    - Guard: allow_write_to_core(live_base_dir=base_dir, target_path=keystore_file_path)
+      is_sandbox_mode=True iken canlı çekirdek path'e yazmayı reddeder.
+    - is_sandbox_mode varsayılan False olduğu için mevcut davranış korunur.
+    """
+    path = keystore_file_path(base_dir)
+    if not allow_write_to_core(base_dir, path, is_sandbox_mode=is_sandbox_mode):
+        raise CoreWriteForbidden(
+            "Sandbox modunda canlı çekirdek keystore.json path'ine yazma yasak",
         )
     path.parent.mkdir(parents=True, exist_ok=True)
     import json  # yerel import: workspace_contract yüzeyini dar tutmak için
