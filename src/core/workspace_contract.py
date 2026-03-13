@@ -75,3 +75,30 @@ def is_core_state_path(base_dir: Path | str, candidate_path: Path | str) -> bool
     if parts[0] in ("config", "logs", "trash"):
         return True
     return False
+
+
+def allow_write_to_core(
+    live_base_dir: Path | str,
+    target_path: Path | str,
+    is_sandbox_mode: bool,
+) -> bool:
+    """
+    Sandbox modunda canlı çekirdek state path'e yazmayı reddet.
+    is_sandbox_mode=False ise her zaman True (mevcut davranış).
+    is_sandbox_mode=True ise: target_path live_base_dir altında ve çekirdek state ise False.
+    """
+    if not is_sandbox_mode:
+        return True
+    live = Path(live_base_dir).resolve()
+    target = Path(target_path).resolve()
+    try:
+        target.relative_to(live)
+    except ValueError:
+        return True  # hedef canlı base altında değil, izin ver
+    if is_core_state_path(live, target):
+        return False
+    return True
+
+
+class CoreWriteForbidden(Exception):
+    """Sandbox modunda canlı çekirdek state path'e yazma girişimi."""
