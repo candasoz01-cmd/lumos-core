@@ -951,7 +951,7 @@ def main() -> None:
     lumos = Lumos(mode=mode, engine=engine)
     lumos.boot()
     root_key = None
-    ks = FileKeyStore(base_dir=base_dir)
+    ks = FileKeyStore(base_dir=base_dir, is_sandbox_mode=sandbox_mode)
 
     def _attach_notes(rk: bytes) -> bool:
         try:

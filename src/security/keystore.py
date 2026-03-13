@@ -24,8 +24,9 @@ class FileKeyStore:
     - Diskte plaintext yok
     - passphrase ile türetilmiş anahtarla AES-GCM şifreli
     """
-    def __init__(self, base_dir: str = ".lumos"):
+    def __init__(self, base_dir: str = ".lumos", *, is_sandbox_mode: bool = False):
         self.paths = KeyStorePaths(Path(base_dir))
+        self._is_sandbox_mode = is_sandbox_mode
         self.paths.base_dir.mkdir(parents=True, exist_ok=True)
 
     def is_initialized(self) -> bool:
@@ -38,7 +39,7 @@ class FileKeyStore:
         aad = b"lumos-keystore-v1"
         blob = encrypt_with_passphrase(passphrase, root_key, aad=aad)
         data = {"v": 1, "root_key": blob.to_dict()}
-        save_keystore_json(self.paths.base_dir, data)
+        save_keystore_json(self.paths.base_dir, data, is_sandbox_mode=self._is_sandbox_mode)
 
     def load_root_key(self, passphrase: str) -> bytes:
         if not self.is_initialized():

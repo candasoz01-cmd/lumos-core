@@ -332,6 +332,27 @@ def test_save_keystore_json_respects_sandbox_guard(tmp_path):
         save_keystore_json(base, data, is_sandbox_mode=True)
 
 
+def test_file_keystore_init_respects_sandbox_guard(tmp_path):
+    """FileKeyStore(is_sandbox_mode=True).init() canlı çekirdek path'e yazmayı reddeder."""
+    from security.keystore import FileKeyStore
+
+    base = str(tmp_path)
+    ks = FileKeyStore(base_dir=base, is_sandbox_mode=True)
+    with pytest.raises(CoreWriteForbidden):
+        ks.init("test-passphrase")
+
+
+def test_device_identity_init_respects_sandbox_guard(tmp_path):
+    """DeviceIdentity(is_sandbox_mode=True).init() canlı çekirdek path'e yazmayı reddeder."""
+    from security.identity import DeviceIdentity
+
+    base = str(tmp_path)
+    root_key = b"0" * 32
+    ident = DeviceIdentity(base_dir=base, is_sandbox_mode=True)
+    with pytest.raises(CoreWriteForbidden):
+        ident.init(root_key)
+
+
 def test_append_log_line_appends_lines_with_newline(tmp_path):
     """append_log_line(base, line) logs/log.txt dosyasına satır ekler."""
     base = tmp_path
