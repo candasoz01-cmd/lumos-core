@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from core.workspace_contract import save_aliases_json
