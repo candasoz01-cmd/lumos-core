@@ -179,6 +179,16 @@ def test_save_aliases_json_respects_sandbox_guard(tmp_path):
         save_aliases_json(base, aliases, is_sandbox_mode=True)
 
 
+def test_save_aliases_passes_sandbox_mode_to_sink(tmp_path):
+    """save_aliases(..., is_sandbox_mode=True) canlı çekirdek path'e yazarken CoreWriteForbidden."""
+    from security.aliases import save_aliases
+
+    base_dir = str(tmp_path)
+    aliases = {"g": "gorevler"}
+    with pytest.raises(CoreWriteForbidden):
+        save_aliases(base_dir, aliases, is_sandbox_mode=True)
+
+
 def test_notes_file_path_under_base():
     """notes_file_path(base) base/notes.enc.json döner."""
     with tempfile.TemporaryDirectory() as d:

@@ -858,7 +858,7 @@ def run_self_test(
 
     try:
         a1 = load_aliases(base_dir)
-        save_aliases(base_dir, a1 if isinstance(a1, dict) else {})
+        save_aliases(base_dir, a1 if isinstance(a1, dict) else {}, is_sandbox_mode=sandbox_mode)
         areas.append(("alias", True))
     except Exception:
         areas.append(("alias", False))
@@ -1335,7 +1335,7 @@ def main() -> None:
                 print("Lütfen alias ekle <ad> <hedef> yaz. Örnek: alias ekle k kilit")
                 return
             aliases[name] = target
-            save_aliases(base_dir, aliases)
+            save_aliases(base_dir, aliases, is_sandbox_mode=sandbox_mode)
             print("OK")
             return
         if args[0] == "sil":
@@ -1345,7 +1345,7 @@ def main() -> None:
                 return
             if name in aliases:
                 del aliases[name]
-                save_aliases(base_dir, aliases)
+                save_aliases(base_dir, aliases, is_sandbox_mode=sandbox_mode)
             print("OK")
             return
         print("Alias: alias liste | alias ekle <ad> <hedef> | alias sil <ad>")
