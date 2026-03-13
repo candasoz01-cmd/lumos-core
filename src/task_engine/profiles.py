@@ -199,3 +199,16 @@ def requires_explicit_approval(profile: str, step_type: str, general_approval: b
 def is_safe_step_kind(kind: str) -> bool:
     """Adım türü güvenlik sınırı dışında mı (yani güvenli mi)."""
     return kind in (STEP_TYPE_ANALYZE, STEP_TYPE_READ, STEP_TYPE_PLAN, STEP_TYPE_SAFE_LOCAL)
+
+
+def may_execute_step_at_runtime(profile: str, step_type: str, general_approval: bool) -> bool:
+    """
+    Runtime step enforcement: Bu adım türü verilen profil ve genel onay ile yürütülebilir mi?
+    TaskEngine.run_task() her adım öncesi bu fonksiyonu kullanır; analiz/öneri/uygulama/açık onay
+    ayrımı böylece sadece dokümantasyon değil, gerçek runtime guard olur.
+    - Karar katmanı "asla" (external, critical, tanımsız) → False.
+    - Diğer türler için merkezi is_allowed_for_profile matrisi kullanılır.
+    """
+    if get_decision_layer(step_type) == DECISION_LAYER_NEVER:
+        return False
+    return is_allowed_for_profile(profile, step_type, general_approval)

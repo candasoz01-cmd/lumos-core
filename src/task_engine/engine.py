@@ -19,9 +19,7 @@ from task_engine.profiles import (
     STEP_TYPE_ANALYZE,
     STEP_TYPE_READ,
     PROFILE_RAPOR,
-    DECISION_LAYER_NEVER,
-    get_decision_layer,
-    is_allowed_for_profile,
+    may_execute_step_at_runtime,
 )
 
 # Adım durumları (akış)
@@ -449,15 +447,12 @@ class TaskEngine:
 
     def _is_step_allowed_runtime(self, step: TaskStep) -> bool:
         """
-        Runtime guard: karar katmanı + profil + genel onay ile bu adım yürütülebilir mi?
-        - Karar katmanı "asla" (DECISION_LAYER_NEVER) ise hiçbir profilde izinli değildir.
-        - Diğer durumlarda merkezi is_allowed_for_profile matrisi belirleyicidir.
-        Bu helper, karar katmanını runtime akışına dahil eden en dar enforcement noktasıdır.
+        Runtime step enforcement: bu adım yürütülebilir mi?
+        Merkezi guard may_execute_step_at_runtime(profil, step.kind, genel_onay) kullanılır.
         """
-        decision_layer = get_decision_layer(step.kind)
-        if decision_layer == DECISION_LAYER_NEVER:
-            return False
-        return is_allowed_for_profile(self.permission_profile, step.kind, self.general_approval)
+        return may_execute_step_at_runtime(
+            self.permission_profile, step.kind, self.general_approval
+        )
 
     def run_task(self, task_id: int) -> tuple[bool, str]:
         """
