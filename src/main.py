@@ -674,6 +674,8 @@ def run_startup_self_check(
     state: CoreState,
     lumos: Lumos,
     aliases: dict,
+    *,
+    sandbox_mode: bool = False,
 ) -> None:
     """Açılışta kısa self-check: config, log, notes, parser, state. 2–5 sn aşmamalı."""
     print("self-check: başlıyor")
@@ -770,7 +772,7 @@ def run_startup_self_check(
         results.append(("state", False, str(e)[:60]))
 
     try:
-        ts = TaskStore(Path(base_dir) / "tasks")
+        ts = TaskStore(Path(base_dir) / "tasks", sandbox_mode=sandbox_mode)
         ts.list_all()
         results.append(("task_engine", True, "ok"))
     except Exception as e:
@@ -796,6 +798,8 @@ def run_self_test(
     lumos: Lumos,
     aliases: dict,
     saved_notes: list,
+    *,
+    sandbox_mode: bool = False,
 ) -> tuple[bool, int, int, list[str]]:
     """Derin self-test: config, logs, not ekleme/düzenleme/özetleme, alias, yardım blokları, görev motoru. Sonuç: passed, toplam, geçen sayısı, kırık alanlar."""
     areas: list[tuple[str, bool]] = []
@@ -868,7 +872,7 @@ def run_self_test(
         areas.append(("help_blocks", False))
 
     try:
-        ts = TaskStore(Path(base_dir) / "tasks")
+        ts = TaskStore(Path(base_dir) / "tasks", sandbox_mode=sandbox_mode)
         t = ts.create("Self-test görev", "not kontrol ve özet ver", PROFILE_GUVENLI_YURUT)
         engine = TaskEngine(ts, PROFILE_GUVENLI_YURUT, True, base_dir=Path(base_dir) / "tasks")
         run_ok, _ = engine.run_task(t.task_id)
@@ -921,6 +925,7 @@ def main() -> None:
 
     base_dir = _lumos_dir()
     base_path = Path(base_dir)
+    sandbox_mode = False  # tek kaynak; şimdilik sabit; ileride env/CLI'dan okunabilir
     # Sabit omurga: tasks/, logs/, trash/, config/ — yoksa kontrollü oluştur.
     try:
         base_path.mkdir(parents=True, exist_ok=True)
@@ -1249,7 +1254,7 @@ def main() -> None:
     engine.recover_presence(Path(base_dir), state.log_event, _recovery_lock_cb, state.is_locked)
 
     print("Lumos başlatılıyor.")
-    run_startup_self_check(base_dir, state, lumos, aliases)
+    run_startup_self_check(base_dir, state, lumos, aliases, sandbox_mode=sandbox_mode)
 
     # Ürün iyileştirmesi: "hazir" / "hazır mıyım" ana promptta çalışıyor; Kilit> / Kamera> alt menülerinde global komut olarak eklenebilir.
     _GLOBAL_CMDS = {"kilit", "lock", "kamera", "presence", "alias", "self", "exit", "quit"}
@@ -1388,7 +1393,7 @@ def main() -> None:
 
     # ---- Görev motoru + yetki profili + genel onay ----
     tasks_dir = base_path / "tasks"
-    task_store = TaskStore(tasks_dir)
+    task_store = TaskStore(tasks_dir, sandbox_mode=sandbox_mode)
     current_permission_profile: list[str] = [PROFILE_RAPOR]
     general_approval: list[bool] = [False]
 
@@ -2226,7 +2231,7 @@ def main() -> None:
             continue
         if route == "self_test":
             passed, total, passed_count, failed_areas = run_self_test(
-                base_dir, state, lumos, aliases, saved_notes[0]
+                base_dir, state, lumos, aliases, saved_notes[0], sandbox_mode=sandbox_mode
             )
             if passed:
                 print(f"self test: passed ({passed_count}/{total})")
