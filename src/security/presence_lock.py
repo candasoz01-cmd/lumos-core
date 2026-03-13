@@ -13,10 +13,13 @@ from core.logfmt import logfmt
 from core.workspace_contract import append_log_line, save_presence_cfg_json
 
 
-def _append_log(message: str) -> None:
+def _append_log(message: str, base_dir: Path | None = None) -> None:
     try:
         from datetime import datetime
-        base_dir = Path.cwd() / ".lumos"
+        if base_dir is None:
+            base_dir = Path.cwd() / ".lumos"
+        else:
+            base_dir = Path(base_dir)
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         line = f"{ts} | {message}"
         append_log_line(base_dir, line)
@@ -24,8 +27,8 @@ def _append_log(message: str) -> None:
         pass
 
 
-def log_event(message: str) -> None:
-    _append_log(message)
+def log_event(message: str, base_dir: Path | None = None) -> None:
+    _append_log(message, base_dir=base_dir)
 
 
 _LOCK = threading.RLock()
@@ -212,7 +215,7 @@ def start_presence_lock(*, base_dir: Path, lock_cb: Optional[Callable[[], None]]
             except Exception:
                 pass
         try:
-            _append_log(logfmt("device_locked", trigger="presence"))
+            _append_log(logfmt("device_locked", trigger="presence"), base_dir=base_dir)
         except Exception:
             pass
         if _orig_lock_cb:
@@ -239,7 +242,7 @@ def start_presence_lock(*, base_dir: Path, lock_cb: Optional[Callable[[], None]]
         t.start()
         if reason not in ("boot_desync", "internal"):
             try:
-                _append_log(logfmt("presence_started", reason=reason or ""))
+                _append_log(logfmt("presence_started", reason=reason or ""), base_dir=base_dir)
             except Exception:
                 pass
     return True, "OK"
@@ -249,7 +252,7 @@ def stop_presence_lock(*, base_dir: Path, reason: Optional[str] = None, silent: 
         was_running = is_running()
         if (not silent) and was_running:
             try:
-                _append_log(logfmt("presence_stopped", reason=reason or ""))
+                _append_log(logfmt("presence_stopped", reason=reason or ""), base_dir=base_dir)
             except Exception:
                 pass
 
