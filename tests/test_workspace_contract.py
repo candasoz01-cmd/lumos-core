@@ -1,6 +1,7 @@
 """Kalıcı silme yasağı + sabit trash hedefi + runtime sandbox guard testleri."""
 import json
 import tempfile
+from pathlib import Path
 
 import pytest
 
@@ -13,7 +14,9 @@ from core.workspace_contract import (
     is_allowed_trash_path,
     is_core_state_path,
     may_perform_permanent_delete,
+    notes_file_path,
     save_aliases_json,
+    save_notes_enc_json,
     trash_path,
 )
 
@@ -155,3 +158,31 @@ def test_save_aliases_json_respects_sandbox_guard(tmp_path):
 
     with pytest.raises(CoreWriteForbidden):
         save_aliases_json(base, aliases, is_sandbox_mode=True)
+
+
+def test_notes_file_path_under_base():
+    """notes_file_path(base) base/notes.enc.json döner."""
+    with tempfile.TemporaryDirectory() as d:
+        p = notes_file_path(d)
+        assert p == Path(d) / "notes.enc.json"
+        assert p.name == "notes.enc.json"
+
+
+def test_save_notes_enc_json_uses_core_guard_and_path(tmp_path):
+    """notes.enc.json yazımı merkezi sink üzerinden ve core guard ile yapılır."""
+    base = tmp_path
+    data = {"v": 1, "cipher": "aesgcm", "nonce_b64": "x", "ct_b64": "y"}
+
+    save_notes_enc_json(base, data)
+    p = notes_file_path(base)
+    assert p.is_file()
+    assert json.loads(p.read_text(encoding="utf-8")) == data
+
+
+def test_save_notes_enc_json_respects_sandbox_guard(tmp_path):
+    """Sandbox modunda canlı çekirdek notes.enc.json path'ine yazma reddedilir."""
+    base = tmp_path
+    data = {"v": 1, "cipher": "aesgcm", "nonce_b64": "x", "ct_b64": "y"}
+
+    with pytest.raises(CoreWriteForbidden):
+        save_notes_enc_json(base, data, is_sandbox_mode=True)

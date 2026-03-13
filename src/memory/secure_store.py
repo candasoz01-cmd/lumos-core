@@ -5,6 +5,7 @@ from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import List, Any
 
+from core.workspace_contract import save_notes_enc_json
 from security.crypto import aesgcm_encrypt, aesgcm_decrypt, b64e, b64d
 
 
@@ -55,4 +56,5 @@ class SecureNotesStore:
             "nonce_b64": b64e(nonce),
             "ct_b64": b64e(ct),
         }
-        self.path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+        # notes.enc.json yazımı merkezi sink üzerinden; guard korunur.
+        save_notes_enc_json(self.base, data)
