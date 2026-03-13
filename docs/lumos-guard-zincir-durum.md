@@ -4,6 +4,21 @@ Kod seviyesinde hangi guard’ların aktif olduğunun kısa referansı. Sonraki 
 
 ---
 
+## Milestone 1 kapanış özeti
+
+| Başlık | Ana korunan dosyalar | Test koruması | Kalan açık risk |
+|--------|----------------------|---------------|------------------|
+| Kalıcı silme / sabit trash | `src/core/workspace_contract.py` (LUMOS_TRASH_DIRNAME, trash_path, is_allowed_trash_path, may_perform_permanent_delete), `src/task_engine/engine.py` (TaskStore.delete), `src/main.py` (görev sil → user_initiated=True) | `tests/test_workspace_contract.py` — LUMOS_TRASH_DIRNAME, trash_path, is_allowed_trash_path, may_perform_permanent_delete | Silinen öğe fiziksel olarak trash’e taşınmıyor; main’de trash_dir hâlâ `base / "trash"`; silme/taşıma akışında trash_path(base) ve is_allowed_trash_path zorunlu değil. |
+| Açık onay | `src/task_engine/profiles.py` (STEP_TYPE_*, SECURITY_NEVER_AUTO, is_allowed_for_profile, STEP_PERMISSION_MATRIX), `src/task_engine/engine.py` (run_task) | `tests/test_task_engine.py` — is_allowed_for_profile matrisi ve runtime step enforcement senaryoları | CLI → engine genel onay bayrağının tek kaynaktan ve doğru set edilmesi henüz audit edilmedi; UI/CLI tarafında açık onay akışı formel değil. |
+| Çekirdek overwrite | `src/core/inviolable.py` (verify_core_constants, EXPECTED_*), `src/core/workspace_contract.py` (CORE_STATE_PATH_NAMES) | `tests/test_core_inviolable.py` — çekirdek sabitler, SECURITY_NEVER_AUTO, profil adları; `tests/test_workspace_contract.py` — CORE_STATE_PATH_NAMES | verify_core_constants() sadece testte çalışıyor; runtime’da çekirdek sabit doğrulaması ve çekirdek path’e yazma yasağı henüz zorunlu değil. |
+| Sandbox / kopya alanı | `src/core/workspace_contract.py` (CORE_STATE_PATH_NAMES, is_core_state_path, allow_write_to_core, CoreWriteForbidden), `src/task_engine/engine.py` (TaskStore.sandbox_mode, TaskStore._save) | `tests/test_workspace_contract.py` — is_core_state_path, allow_write_to_core; TaskStore sandbox_mode=True ile canlı path’e yazmada CoreWriteForbidden | Sadece TaskStore bu guard’a bağlı; diğer yazıcılar (SecureNotesStore, save_aliases, save_presence_cfg, keystore/identity) ve main/CLI sandbox modunu henüz kullanmıyor. |
+| Runtime sandbox enforcement | Aynı: TaskStore üzerinden `src/task_engine/engine.py` + allow_write_to_core ile `src/core/workspace_contract.py` | `tests/test_workspace_contract.py` — TaskStore sandbox senaryoları | Runtime sandbox sadece TaskStore için devrede; diğer side-effect sink’ler ve tüm yazma yollarında zorunlu değil; sandbox_mode bayrağı CLI’dan sistematik geçmiyor. |
+| Merkezi yetki matrisi | `src/task_engine/profiles.py` (STEP_PERMISSION_MATRIX, is_allowed_for_profile, STEP_TYPE_*) | `tests/test_task_engine.py` — profil × adım türü matrisi | Yeni adım türleri veya profiller eklenirse matrisin ve testlerin birlikte güncellenmemesi riski; tüm adım yürütümlerinin bu matrise zorunlu bağlı olduğu henüz runtime’da ayrı bir guard ile doğrulanmıyor. |
+| Görev adımı karar katmanı | `src/task_engine/profiles.py` (get_decision_layer benzeri katman mantığı, STEP_TYPE_*, SECURITY_NEVER_AUTO), `src/task_engine/engine.py` (run_task’ta adım türü/katman kullanımı) | `tests/test_task_engine.py` — decision layer’a bağlı step enforcement senaryoları (analiz/uygulama ayrımı) | Adımın `kind` alanı ile gerçek yapılan işin her zaman uyuştuğu henüz garanti değil; bir step içinde yanlış türde side-effect (ör. write_local işleri analyze adımında) yapılmasını engelleyen ayrı bir guard yok. |
+| Runtime step enforcement | `src/task_engine/engine.py` (run_task — her adım öncesi may_execute_step_at_runtime), `src/task_engine/profiles.py` (may_execute_step_at_runtime, STEP_PERMISSION_MATRIX) | `tests/test_task_engine.py` — test_runtime_step_enforcement_* (external/critical red, analiz rapor izinli) | Tüm görev çalıştırma yüzeylerinin (farklı entrypoint/komutlar) aynı runtime guard’ı kullandığı formel olarak test edilmedi; SECURITY_NEVER_AUTO ile kalıcı silme gibi özel adım türleri için ek red branch’i henüz ayrı guard olarak yok. |
+
+---
+
 ## Kalıcı silme / sabit trash guard
 
 - **Korunan:** Kalıcı silme yalnızca kullanıcı komutu; tek çöp dizini sözleşmesi.
@@ -49,11 +64,21 @@ Kod seviyesinde hangi guard’ların aktif olduğunun kısa referansı. Sonraki 
 
 ---
 
-## Sonraki mantıklı guard alanları
+## Bir sonraki teknik faz
 
-- **Runtime sandbox enforcement (genişletme):** TaskStore’da uygulandı; SecureNotesStore, save_aliases, save_presence_cfg, keystore/identity yazma noktalarında aynı allow_write_to_core guard’ı; sandbox modunun main/CLI’dan geçirilmesi.
-- **Genel onay / yetki matrisi:** CLI’dan engine’e genel onay ve profil geçişinin tek kaynak ve tutarlı olduğunun doğrulanması; gerekirse ek test veya runtime check.
-- **Görev adımı uygulama sınırı:** Adım türü (safe_local, write_local) ile gerçek yapılan işin eşleşmesi; yetkisiz iş türünün adım içinde yapılmasının engellenmesi.
+Bu aşamadan sonra yeni guard açarken hedef, mevcut zinciri üç dar eksende sertleştirmek:
+
+1. **Side-effect sink ve sandbox merkezileştirme**  
+   - Tüm yazıcılar (TaskStore, SecureNotesStore, save_aliases, save_presence_cfg, keystore/identity) tek bir side-effect katmanına bağlansın; bu katman allow_write_to_core + CORE_STATE_PATH_NAMES üzerinden sandbox/enforce yapsın.  
+   - main/CLI’dan gelen sandbox_mode bayrağı bu katmana tek kaynaktan aktarılsın; sandbox dışı yazma girişimleri için ortak CoreWriteForbidden benzeri hata yüzeyi oluşturulsun.
+
+2. **Genel onay + explicit approval + runtime execution zincirinin sıkı birleşmesi**  
+   - CLI/UI’daki açık onay (kilit açma, kalıcı silme, genel onay) tek bir approval state’e iner; engine sadece bu state üzerinden adım yürütümü yapsın.  
+   - SECURITY_NEVER_AUTO kapsamındaki adımlar için (özellikle permanent_delete) run_task içinde ayrı red branch’i ve bunun etrafında entegrasyon/test senaryoları tanımlansın.
+
+3. **Görev adımı türü ↔ gerçek side-effect eşleşmesi**  
+   - Her step.kind (analyze, safe_local, write_local, external/critical yok) için izin verilen yan etkiler netleştirilip, step gövdesinde yanlış türde iş yapılmasına karşı runtime guard eklenmesi planlansın.  
+   - Bu eşleşme hem merkezi yetki matrisiyle hem de testlerle korunarak, docs’taki karar katmanları tablosu ile runtime davranışı bire bir hizalansın.
 
 ---
 
