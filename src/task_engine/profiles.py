@@ -13,7 +13,7 @@ Bu modül karar katmanlarını ve profil bazlı yetki matrisini tek merkezde tut
 - Tek guard fonksiyonu: is_allowed_for_profile(profile, step_type, general_approval).
 - Yardımcılar:
   - get_decision_layer(step_type) → karar katmanı (analiz/öneri/uygulama/asla)
-  - requires_explicit_approval(profile, step_type) → bu profil için açık onay gerektiren uygulama adımı mı?
+    - requires_explicit_approval(profile, step_type, general_approval) → bu profil için açık onay gerektiren uygulama adımı mı?
 """
 from __future__ import annotations
 
@@ -175,9 +175,11 @@ def get_decision_layer(step_type: str) -> str:
     return perm.decision_layer
 
 
-def requires_explicit_approval(profile: str, step_type: str) -> bool:
+def requires_explicit_approval(profile: str, step_type: str, general_approval: bool) -> bool:
     """
-    Bu profil için adım türü sadece genel onay açıkken mi izinli?
+    Bu profil için adım türü yapısal olarak sadece genel onay açıkken mi izinli?
+    general_approval parametresi sonucu değiştirmez; imza, is_allowed_for_profile ile
+    hizalı olması için eklenmiştir.
     Örnek:
     - kisitli_otonom + safe_local/write_local → True
     - guvenli_yurut + safe_local → False (genel onaydan bağımsız serbest)
