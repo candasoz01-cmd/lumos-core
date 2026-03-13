@@ -10,11 +10,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from core.workspace_contract import (
-    CoreWriteForbidden,
-    allow_write_to_core,
-    may_perform_permanent_delete,
-)
+from core.workspace_contract import may_perform_permanent_delete, save_task_store_json
 from task_engine.profiles import (
     STEP_TYPE_ANALYZE,
     STEP_TYPE_READ,
@@ -219,18 +215,16 @@ class TaskStore:
             self._next_id = 1
 
     def _save(self) -> None:
-        if self.sandbox_mode:
-            live = self._live_base_dir.resolve() if self._live_base_dir is not None else self.base_dir.parent
-            if not allow_write_to_core(live, self._file, is_sandbox_mode=True):
-                raise CoreWriteForbidden(
-                    "Sandbox modunda canlı çekirdek state path'e yazma yasak",
-                )
-        self.base_dir.mkdir(parents=True, exist_ok=True)
         # Aynı task_id tek kayıt: son yazılan geçerli; sıra task_id ile tutarlı olsun
         by_id: dict[int, TaskRecord] = {t.task_id: t for t in self._tasks}
         self._tasks = sorted(by_id.values(), key=lambda x: x.task_id)
         data = {"tasks": [t.to_dict() for t in self._tasks], "next_id": self._next_id}
-        self._file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        save_task_store_json(
+            tasks_dir=self.base_dir,
+            data=data,
+            sandbox_mode=self.sandbox_mode,
+            live_base_dir=self._live_base_dir,
+        )
 
     def create(self, title: str, description: str, permission_profile: str) -> TaskRecord:
         task = TaskRecord(
