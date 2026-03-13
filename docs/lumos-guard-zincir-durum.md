@@ -13,12 +13,21 @@ Kod seviyesinde hangi guard’ların aktif olduğunun kısa referansı. Sonraki 
 
 ---
 
-## Açık onay guard
+## Açık onay guard / Runtime step enforcement
 
 - **Korunan:** write_local/safe_local yalnızca yetki + genel onay ile; rapor hiç uygulama adımı yürütmez; critical/external asla izinli değil.
-- **Ana dosyalar:** `src/task_engine/profiles.py` (is_allowed_for_profile, PROFILE_*, STEP_TYPE_*); `src/task_engine/engine.py` (run_task — her adım öncesi is_allowed_for_profile).
-- **Test:** `tests/test_task_engine.py` — is_allowed_for_profile matrisi; critical/external her zaman False.
+- **Ana dosyalar:** `src/task_engine/profiles.py` (may_execute_step_at_runtime, is_allowed_for_profile, PROFILE_*, STEP_TYPE_*); `src/task_engine/engine.py` (run_task — her adım öncesi may_execute_step_at_runtime).
+- **Test:** `tests/test_task_engine.py` — is_allowed_for_profile matrisi; runtime: test_runtime_step_enforcement_* (external/critical red, analiz rapor izinli).
 - **Açık risk:** CLI → engine genel onay bayrağının tek kaynaktan ve doğru set edilmesi ayrı audit konusu olabilir.
+
+### Docs seviyesi vs runtime guard (step enforcement)
+
+| Ne | Nerede kalır | Runtime’da zorlanan mı |
+|----|----------------|-------------------------|
+| Karar katmanları (analiz / öneri / uygulama / asla) metni | docs/lumos-karar-sozlesmesi.md, .cursor/rules | Evet: step.kind → get_decision_layer → asla ise red; diğerleri is_allowed_for_profile |
+| Yetki matrisi (profil × adım türü × genel onay) | profiles.py STEP_PERMISSION_MATRIX | Evet: may_execute_step_at_runtime(profile, step_type, general_approval) run_task’ta her adım öncesi |
+| SECURITY_NEVER_AUTO (permanent_delete, external_write, …) listesi | profiles.py, docs | Kısmen: external/critical adım türü runtime’da asla izinli değil; kalıcı silme ayrı guard (may_perform_permanent_delete) |
+| “Analiz adımı uygulama gibi yürütülmesin” | Sözleşme metni | Evet: adım türü (kind) belirleyici; uygulama türü profil/onay uygun değilse adım yürütülmez |
 
 ---
 

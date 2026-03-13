@@ -10,6 +10,7 @@ from task_engine import (
 )
 from task_engine.profiles import (
     is_allowed_for_profile,
+    may_execute_step_at_runtime,
     STEP_TYPE_ANALYZE,
     STEP_TYPE_READ,
     STEP_TYPE_PLAN,
@@ -243,6 +244,41 @@ def test_engine_kisitli_otonom_with_approval_allows_write_local():
         assert ok is True
         t2 = store.get(t.task_id)
         assert t2.status == "dogrulanamadi"
+
+
+# --- Runtime step enforcement paketi: adım türü + profil + onay runtime'da zorlanır ---
+
+
+def test_runtime_step_enforcement_external_and_critical_always_rejected():
+    """Runtime enforcement: external/critical adımlar hiçbir profil ve onayla yürütülmez; run_task ilk adımda durur."""
+    for step_type in (STEP_TYPE_EXTERNAL, STEP_TYPE_CRITICAL):
+        for profile in (PROFILE_RAPOR, PROFILE_GUVENLI_YURUT, PROFILE_KISITLI_OTONOM):
+            with tempfile.TemporaryDirectory() as d:
+                store = TaskStore(d)
+                t = store.create("X", "desc", profile)
+                t.steps = [TaskStep("Dış/kritik iş", kind=step_type)]
+                store.update(t)
+                engine = TaskEngine(store, profile, general_approval=True)
+                ok, msg = engine.run_task(t.task_id)
+                assert ok is False, f"{profile} + {step_type} should be rejected at runtime"
+                t2 = store.get(t.task_id)
+                assert t2.status == "durdu"
+                step = next(s for s in t2.steps if s.status == "durdu")
+                assert "yetki" in step.error.lower() or "onay" in step.error.lower() or "kapsam" in step.error.lower()
+
+
+def test_runtime_step_enforcement_analyze_allowed_rapor_without_approval():
+    """Runtime enforcement: analiz adımı rapor profilde genel onay olmadan yürütülebilir; uygulama adımı değil."""
+    with tempfile.TemporaryDirectory() as d:
+        store = TaskStore(d)
+        t = store.create("Analiz", "sadece analiz", PROFILE_RAPOR)
+        t.steps = [TaskStep("Analiz et", kind=STEP_TYPE_ANALYZE)]
+        store.update(t)
+        engine = TaskEngine(store, PROFILE_RAPOR, general_approval=False)
+        ok, msg = engine.run_task(t.task_id)
+        assert ok is True, "analyze step must run under rapor without approval"
+        assert may_execute_step_at_runtime(PROFILE_RAPOR, STEP_TYPE_ANALYZE, False) is True
+        assert may_execute_step_at_runtime(PROFILE_RAPOR, STEP_TYPE_SAFE_LOCAL, False) is False
 
 
 def test_task_persistence_after_reload():
