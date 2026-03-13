@@ -2108,8 +2108,8 @@ def main() -> None:
             except ValueError:
                 print("Geçerli bir görev id yaz.")
                 continue
-            # Kalıcı silme: açık ve tek satır uyarı; ek onay istemeden ama sessiz de değil.
-            if task_store.delete(tid):
+            # Kalıcı silme: yalnızca açık kullanıcı komutu (guard: user_initiated=True).
+            if task_store.delete(tid, user_initiated=True):
                 print("Dikkat: Bu görev kalıcı olarak silindi ve geri alınamaz.")
             else:
                 print("Silinecek görev bulunamadı.")

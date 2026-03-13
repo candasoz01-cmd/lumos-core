@@ -108,6 +108,15 @@ def test_profile_kisitli_otonom_genel_onay_acik():
     assert is_allowed_for_profile(PROFILE_KISITLI_OTONOM, STEP_TYPE_EXTERNAL, True) is False
 
 
+def test_explicit_approval_required_for_application_steps():
+    """Açık onay guard: uygulama adımları (safe_local, write_local) raporda asla; kisitli_otonom'da yalnızca general_approval True iken."""
+    for app_step in (STEP_TYPE_SAFE_LOCAL, STEP_TYPE_WRITE_LOCAL):
+        assert is_allowed_for_profile(PROFILE_RAPOR, app_step, False) is False
+        assert is_allowed_for_profile(PROFILE_RAPOR, app_step, True) is False
+        assert is_allowed_for_profile(PROFILE_KISITLI_OTONOM, app_step, False) is False
+        assert is_allowed_for_profile(PROFILE_KISITLI_OTONOM, app_step, True) is True
+
+
 def test_engine_rapor_blocks_safe_local_step():
     """rapor profilde safe_local adım çalıştırılırsa görev durur, adım izin dışı işaretlenir."""
     with tempfile.TemporaryDirectory() as d:

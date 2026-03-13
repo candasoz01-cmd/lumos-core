@@ -2,6 +2,12 @@
 Yetki profilleri ve güvenlik sınırı.
 Genel onay modu izin profilinin kapsadığı işlerle sınırlıdır;
 kritik işler asla otomatik yapılmaz.
+
+Açık onay (sözleşme): Öner ama bekle / açık onayla uygula ayrımı.
+- Analiz/öneri: analyze, read, plan — açık onay gerekmez.
+- Uygulama adımları: safe_local, write_local — kisitli_otonom'da yalnızca
+  general_approval True iken izinli; rapor profili hiçbir uygulama adımına izin vermez.
+Tek guard: is_allowed_for_profile(profile, step_type, general_approval).
 """
 from __future__ import annotations
 
@@ -13,9 +19,11 @@ PROFILE_KISITLI_OTONOM = "kisitli_otonom"
 ALL_PROFILES = (PROFILE_RAPOR, PROFILE_GUVENLI_YURUT, PROFILE_KISITLI_OTONOM)
 
 # Adım türleri (güvenlik sınırı kontrolü için)
+# Analiz/öneri (açık onay gerekmez): analyze, read, plan
 STEP_TYPE_ANALYZE = "analyze"       # sadece analiz, hiçbir değişiklik yok
 STEP_TYPE_READ = "read"             # dosya/not okuma
 STEP_TYPE_PLAN = "plan"             # plan üretme, öneri
+# Uygulama (kisitli_otonom'da general_approval gerekir): safe_local, write_local
 STEP_TYPE_SAFE_LOCAL = "safe_local" # güvenli yerel iş (self test, commit önerisi vb.)
 STEP_TYPE_WRITE_LOCAL = "write_local"  # yerel yazma (dikkatli; kalıcı silme hariç)
 STEP_TYPE_EXTERNAL = "external"     # dış servis / network
@@ -48,10 +56,12 @@ def get_profile_display_name(profile: str) -> str:
 def is_allowed_for_profile(profile: str, step_type: str, general_approval: bool) -> bool:
     """
     Profil + genel onay ile bu adım türüne izin var mı?
-    - rapor: sadece analyze, read, plan
-    - guvenli_yurut: analyze, read, plan, safe_local; write_local öneri/önerme düzeyinde
-    - kisitli_otonom: general_approval True ise safe_local ve sınırlı write_local;
-      critical ve external asla True dönmez.
+    Açık onay guard'ı: uygulama adımları (safe_local, write_local) kisitli_otonom'da
+    yalnızca general_approval True iken izinli; rapor hiçbir uygulama adımına izin vermez.
+    - rapor: sadece analyze, read, plan (analiz/öneri)
+    - guvenli_yurut: analyze, read, plan, safe_local; write_local yok
+    - kisitli_otonom: general_approval False iken sadece analyze, read, plan;
+      True iken safe_local ve write_local da izinli. critical/external asla izinli değil.
     """
     if step_type == STEP_TYPE_CRITICAL or step_type == STEP_TYPE_EXTERNAL:
         return False
