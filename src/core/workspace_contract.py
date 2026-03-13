@@ -148,6 +148,31 @@ def save_aliases_json(
     path.write_text(json.dumps(aliases, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def save_config_json(
+    base_dir: Path | str,
+    data: dict,
+    *,
+    is_sandbox_mode: bool = False,
+) -> None:
+    """
+    config.json yazımı için merkezi sink.
+
+    - Path: config_file_path(base_dir)
+    - Guard: allow_write_to_core(live_base_dir=base_dir, target_path=config_file_path)
+      is_sandbox_mode=True iken canlı çekirdek path'e yazmayı reddeder.
+    - is_sandbox_mode varsayılan False olduğu için mevcut davranış korunur.
+    """
+    path = config_file_path(base_dir)
+    if not allow_write_to_core(base_dir, path, is_sandbox_mode=is_sandbox_mode):
+        raise CoreWriteForbidden(
+            "Sandbox modunda canlı çekirdek config.json path'ine yazma yasak",
+        )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    import json  # yerel import: workspace_contract yüzeyini dar tutmak için
+
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def save_notes_enc_json(
     base_dir: Path | str,
     data: dict,

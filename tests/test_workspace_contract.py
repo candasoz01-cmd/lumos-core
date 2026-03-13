@@ -23,6 +23,7 @@ from core.workspace_contract import (
     notes_file_path,
     presence_cfg_path,
     save_aliases_json,
+    save_config_json,
     save_identity_json,
     save_keystore_json,
     save_notes_enc_json,
@@ -203,6 +204,36 @@ def test_config_file_path_under_base():
         p = config_file_path(d)
         assert p == Path(d) / "config.json"
         assert p.name == "config.json"
+
+
+def test_save_config_json_uses_core_guard_and_path(tmp_path):
+    """config.json yazımı merkezi sink üzerinden ve core guard ile yapılır."""
+    base = tmp_path
+    data = {"presence": {"enabled": False, "timeout_sec": 30}}
+
+    save_config_json(base, data)
+    p = config_file_path(base)
+    assert p.is_file()
+    assert json.loads(p.read_text(encoding="utf-8")) == data
+
+
+def test_save_config_json_respects_sandbox_guard(tmp_path):
+    """Sandbox modunda canlı çekirdek config.json path'ine yazma reddedilir."""
+    base = tmp_path
+    data = {"presence": {"enabled": False}}
+
+    with pytest.raises(CoreWriteForbidden):
+        save_config_json(base, data, is_sandbox_mode=True)
+
+
+def test_save_config_passes_sandbox_mode_to_sink(tmp_path):
+    """save_config(..., is_sandbox_mode=True) canlı çekirdek path'e yazarken CoreWriteForbidden."""
+    from core.config import save_config
+
+    base_dir = tmp_path
+    data = {"presence": {"enabled": True}}
+    with pytest.raises(CoreWriteForbidden):
+        save_config(base_dir, data, is_sandbox_mode=True)
 
 
 def test_logs_paths_under_base():
