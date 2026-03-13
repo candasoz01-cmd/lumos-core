@@ -18,11 +18,13 @@ class CoreState:
         mode: str,
         *,
         base_dir: Path | None = None,
+        sandbox_mode: bool = False,
     ) -> None:
         self._lumos = lumos
         self._pl = presence_lock_module
         self._mode = (mode or "offline").strip().lower()
         self._base_dir = Path(base_dir) if base_dir is not None else None
+        self._sandbox_mode = sandbox_mode
 
     def lock_status(self) -> str:
         """LOCKED or UNLOCKED."""
@@ -50,7 +52,11 @@ class CoreState:
         return "offline" if self._mode == "offline" else "online"
 
     def log_event(self, message: str) -> None:
-        self._pl.log_event(message, base_dir=self._base_dir)
+        self._pl.log_event(
+            message,
+            base_dir=self._base_dir,
+            is_sandbox_mode=self._sandbox_mode,
+        )
 
     def snapshot(
         self,

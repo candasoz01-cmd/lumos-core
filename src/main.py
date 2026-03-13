@@ -955,7 +955,7 @@ def main() -> None:
 
     def _attach_notes(rk: bytes) -> bool:
         try:
-            store = SecureNotesStore(base_dir=base_dir)
+            store = SecureNotesStore(base_dir=base_dir, is_sandbox_mode=sandbox_mode)
             lumos.note_memory.attach_store(store, rk)
             return True
         except Exception:
@@ -1121,19 +1121,19 @@ def main() -> None:
                 cfg.lock_mode = "mac"
                 if not was_enabled:
                     state.log_event(logfmt("presence_enabled", timeout=cfg.timeout_sec, poll=cfg.poll_sec, cam=cfg.camera_index, require_face=cfg.require_face))
-                pl.save_presence_cfg(Path(base_dir), cfg)
-                pl.start_presence_lock(base_dir=Path(base_dir), lock_cb=_lock_cb, is_already_locked=state.is_locked, timeout_sec=cfg.timeout_sec, poll_sec=cfg.poll_sec, camera_index=cfg.camera_index, require_face=cfg.require_face)
+                pl.save_presence_cfg(Path(base_dir), cfg, is_sandbox_mode=sandbox_mode)
+                pl.start_presence_lock(base_dir=Path(base_dir), lock_cb=_lock_cb, is_already_locked=state.is_locked, timeout_sec=cfg.timeout_sec, poll_sec=cfg.poll_sec, camera_index=cfg.camera_index, require_face=cfg.require_face, is_sandbox_mode=sandbox_mode)
                 print("OK")
                 return False
 
             if cmd in ("kapat", "off", "stop"):
                 cfg = pl.load_presence_cfg(Path(base_dir))
                 was_enabled = bool(getattr(cfg, "enabled", False))
-                pl.stop_presence_lock(base_dir=Path(base_dir), reason=None, silent=True)
+                pl.stop_presence_lock(base_dir=Path(base_dir), reason=None, silent=True, is_sandbox_mode=sandbox_mode)
                 if was_enabled:
                     state.log_event(logfmt("presence_disabled"))
                 cfg.enabled = False
-                pl.save_presence_cfg(Path(base_dir), cfg)
+                pl.save_presence_cfg(Path(base_dir), cfg, is_sandbox_mode=sandbox_mode)
                 print("OK")
                 return False
 
@@ -1147,10 +1147,10 @@ def main() -> None:
                     if raw == "" or raw in ("ok", "tamam"):
                         val = default
                         cfg.timeout_sec = val
-                        pl.save_presence_cfg(Path(base_dir), cfg)
+                        pl.save_presence_cfg(Path(base_dir), cfg, is_sandbox_mode=sandbox_mode)
                         if cfg.enabled:
-                            pl.stop_presence_lock(base_dir=Path(base_dir), silent=True)
-                            pl.start_presence_lock(base_dir=Path(base_dir), lock_cb=_lock_cb, is_already_locked=state.is_locked, timeout_sec=cfg.timeout_sec, poll_sec=cfg.poll_sec, camera_index=cfg.camera_index, require_face=cfg.require_face, silent_stop=True, reason="internal")
+                            pl.stop_presence_lock(base_dir=Path(base_dir), silent=True, is_sandbox_mode=sandbox_mode)
+                            pl.start_presence_lock(base_dir=Path(base_dir), lock_cb=_lock_cb, is_already_locked=state.is_locked, timeout_sec=cfg.timeout_sec, poll_sec=cfg.poll_sec, camera_index=cfg.camera_index, require_face=cfg.require_face, silent_stop=True, reason="internal", is_sandbox_mode=sandbox_mode)
                         print("OK")
                         break
                     if not raw.isdigit():
@@ -1161,10 +1161,10 @@ def main() -> None:
                         print("Süre 5 ile 600 saniye arasında olmalı.")
                         continue
                     cfg.timeout_sec = val
-                    pl.save_presence_cfg(Path(base_dir), cfg)
+                    pl.save_presence_cfg(Path(base_dir), cfg, is_sandbox_mode=sandbox_mode)
                     if cfg.enabled:
-                        pl.stop_presence_lock(base_dir=Path(base_dir), silent=True)
-                        pl.start_presence_lock(base_dir=Path(base_dir), lock_cb=_lock_cb, is_already_locked=state.is_locked, timeout_sec=cfg.timeout_sec, poll_sec=cfg.poll_sec, camera_index=cfg.camera_index, require_face=cfg.require_face, silent_stop=True, reason="internal")
+                        pl.stop_presence_lock(base_dir=Path(base_dir), silent=True, is_sandbox_mode=sandbox_mode)
+                        pl.start_presence_lock(base_dir=Path(base_dir), lock_cb=_lock_cb, is_already_locked=state.is_locked, timeout_sec=cfg.timeout_sec, poll_sec=cfg.poll_sec, camera_index=cfg.camera_index, require_face=cfg.require_face, silent_stop=True, reason="internal", is_sandbox_mode=sandbox_mode)
                     print("OK")
                     break
                 return False
@@ -1238,7 +1238,7 @@ def main() -> None:
         except Exception:
             pass
 
-    state = CoreState(lumos, pl, mode, base_dir=Path(base_dir))
+    state = CoreState(lumos, pl, mode, base_dir=Path(base_dir), sandbox_mode=sandbox_mode)
     engine = CoreEngine(do_lock, device_lock_cli, unlock_with_passphrase, pl)
 
     def _recovery_lock_cb():
@@ -1251,7 +1251,13 @@ def main() -> None:
         except Exception:
             pass
 
-    engine.recover_presence(Path(base_dir), state.log_event, _recovery_lock_cb, state.is_locked)
+    engine.recover_presence(
+        Path(base_dir),
+        state.log_event,
+        _recovery_lock_cb,
+        state.is_locked,
+        is_sandbox_mode=sandbox_mode,
+    )
 
     print("Lumos başlatılıyor.")
     run_startup_self_check(base_dir, state, lumos, aliases, sandbox_mode=sandbox_mode)
@@ -1417,7 +1423,13 @@ def main() -> None:
     last_task_create_fingerprint: list[tuple[str, str] | None] = [None]  # (profil, açıklama) yakın tekrar uyarısı için
     while True:
         try:
-            pl.watchdog_tick(Path(base_dir), state.log_event, _recovery_lock_cb, state.is_locked)
+            pl.watchdog_tick(
+                Path(base_dir),
+                state.log_event,
+                _recovery_lock_cb,
+                state.is_locked,
+                is_sandbox_mode=sandbox_mode,
+            )
         except Exception:
             pass
         if pending is not None:

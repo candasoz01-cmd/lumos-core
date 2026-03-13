@@ -15,12 +15,20 @@ class SecureNotesStore:
     - key: 32 byte root_key
     - AES-GCM
     - Format versionlu (ileride migrate kolay)
+    - is_sandbox_mode: merkezi sink'e iletilir; sandbox açıkken canlı çekirdek path'e yazma guard'da reddedilir.
     """
-    def __init__(self, base_dir: str = "src/.lumos", filename: str = "notes.enc.json"):
+    def __init__(
+        self,
+        base_dir: str = "src/.lumos",
+        filename: str = "notes.enc.json",
+        *,
+        is_sandbox_mode: bool = False,
+    ):
         self.base = Path(base_dir)
         self.base.mkdir(parents=True, exist_ok=True)
         self.path = self.base / filename
         self.aad = b"lumos-notes-v1"
+        self._is_sandbox_mode = is_sandbox_mode
 
     def _to_plain(self, notes: List[Any]) -> bytes:
         out = []
@@ -57,4 +65,4 @@ class SecureNotesStore:
             "ct_b64": b64e(ct),
         }
         # notes.enc.json yazımı merkezi sink üzerinden; guard korunur.
-        save_notes_enc_json(self.base, data)
+        save_notes_enc_json(self.base, data, is_sandbox_mode=self._is_sandbox_mode)
