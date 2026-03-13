@@ -26,10 +26,10 @@ def _run_web() -> None:
         sys.exit("web/app.py has no main()")
 
 
-def _run_cli() -> None:
-    """Run the interactive CLI (main.main)."""
+def _run_cli(sandbox_mode: bool | None = None) -> None:
+    """Run the interactive CLI (main.main). sandbox_mode: True/False override; None = use env."""
     from main import main as cli_main  # noqa: E402
-    result = cli_main()
+    result = cli_main(sandbox_mode=sandbox_mode)
     sys.exit(0 if result is None else result)
 
 
@@ -37,6 +37,11 @@ def main() -> None:
     from lumos_core import __version__
     parser = argparse.ArgumentParser(prog="lumos", description="Lumos core CLI and web")
     parser.add_argument("--version", action="store_true", help="show version and exit")
+    parser.add_argument(
+        "--sandbox",
+        action="store_true",
+        help="run in sandbox mode (no writes to live core paths)",
+    )
     sub = parser.add_subparsers(dest="cmd", help="subcommand")
     sub.add_parser("cli", help="run interactive CLI (default)")
     sub.add_parser("web", help="run Web v1 server")
@@ -48,8 +53,9 @@ def main() -> None:
     if args.cmd == "web":
         _run_web()
     else:
-        # default or explicit cli
-        _run_cli()
+        # default or explicit cli; --sandbox overrides env
+        sandbox_override = True if args.sandbox else None
+        _run_cli(sandbox_mode=sandbox_override)
 
 
 if __name__ == "__main__":
