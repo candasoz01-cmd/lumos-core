@@ -1,4 +1,5 @@
 """Kalıcı silme yasağı + sabit trash hedefi + runtime sandbox guard testleri."""
+import json
 import tempfile
 
 import pytest
