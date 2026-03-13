@@ -97,6 +97,41 @@ def save_notes_enc_json(
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
+def save_task_store_json(
+    tasks_dir: Path | str,
+    data: dict,
+    *,
+    sandbox_mode: bool,
+    live_base_dir: Path | str | None = None,
+) -> None:
+    """
+    TaskStore için merkezi yazım sink'i.
+
+    - Path: tasks_dir / "tasks.json" (TaskStore.base_dir ile hizalı)
+    - Guard (yalnızca sandbox_mode=True iken):
+      allow_write_to_core(live_base_dir or tasks_dir.parent, target_path, is_sandbox_mode=True)
+      canlı çekirdek state path'ine yazmayı reddeder.
+    - sandbox_mode=False varsayılan davranışı korur; guard devre dışı.
+    """
+    tasks_dir_path = Path(tasks_dir)
+    target_path = tasks_dir_path / "tasks.json"
+
+    if sandbox_mode:
+        live_base = Path(live_base_dir) if live_base_dir is not None else tasks_dir_path.parent
+        if not allow_write_to_core(live_base, target_path, is_sandbox_mode=True):
+            raise CoreWriteForbidden(
+                "Sandbox modunda canlı çekirdek state path'e yazma yasak",
+            )
+
+    tasks_dir_path.mkdir(parents=True, exist_ok=True)
+    import json  # yerel import: workspace_contract yüzeyini dar tutmak için
+
+    target_path.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
 def is_allowed_trash_path(base_dir: Path | str, path: Path | str) -> bool:
     """
     Verilen path, sözleşmedeki tek trash hedefi mi?
