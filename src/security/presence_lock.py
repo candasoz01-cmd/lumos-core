@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from core.logfmt import logfmt
+from core.workspace_contract import save_presence_cfg_json
 
 
 def _append_log(message: str) -> None:
@@ -146,9 +147,7 @@ def watchdog_tick(
             pass
 
 def save_presence_cfg(base_dir: Path, cfg: PresenceLockConfig) -> None:
-    p = _cfg_path(Path(base_dir))
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(json.dumps(asdict(cfg), ensure_ascii=False, indent=2), encoding="utf-8")
+    save_presence_cfg_json(base_dir, asdict(cfg))
 
 def _detect_face(frame) -> bool:
     try:
