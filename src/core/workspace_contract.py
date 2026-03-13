@@ -74,6 +74,30 @@ def keystore_file_path(base_dir: Path | str) -> Path:
     return Path(base_dir) / "keystore.json"
 
 
+def config_file_path(base_dir: Path | str) -> Path:
+    """
+    config.json için sözleşmedeki tek path.
+    Çekirdek state listesi ve sandbox guard'ı ile hizalı tutulur.
+    """
+    return Path(base_dir) / "config.json"
+
+
+def logs_dir_path(base_dir: Path | str) -> Path:
+    """
+    logs dizini için sözleşmedeki tek path.
+    Çekirdek state listesi ve sandbox guard'ı ile hizalı tutulur.
+    """
+    return Path(base_dir) / "logs"
+
+
+def logs_file_path(base_dir: Path | str) -> Path:
+    """
+    Ana log dosyası (log.txt) için sözleşmedeki path.
+    Çekirdek state listesi ve sandbox guard'ı ile hizalı tutulur.
+    """
+    return logs_dir_path(base_dir) / "log.txt"
+
+
 def save_aliases_json(
     base_dir: Path | str,
     aliases: dict[str, str],
