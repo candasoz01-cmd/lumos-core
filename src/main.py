@@ -14,7 +14,7 @@ from core.logfmt import logfmt
 from core.lumos import Lumos
 from core.state import CoreState, format_durum
 from core.startup_health import get_durum_parts, get_startup_summary
-from core.workspace_contract import logs_file_path
+from core.workspace_contract import logs_file_path, trash_path
 from engine.online_engine import OnlineEngineV1
 from memory.schema import MemoryNote
 from memory.secure_store import SecureNotesStore
@@ -684,7 +684,7 @@ def run_startup_self_check(
     base = Path(base_dir)
     tasks_dir = base / "tasks"
     logs_dir = base / "logs"
-    trash_dir = base / "trash"
+    trash_dir = trash_path(base)
     config_dir = base / "config"
 
     # Çalışma kökü ve sabit klasörlerin minimum yol kontrolleri.
@@ -931,7 +931,7 @@ def main() -> None:
         base_path.mkdir(parents=True, exist_ok=True)
         (base_path / "tasks").mkdir(parents=True, exist_ok=True)
         (base_path / "logs").mkdir(parents=True, exist_ok=True)
-        (base_path / "trash").mkdir(parents=True, exist_ok=True)
+        trash_path(base_path).mkdir(parents=True, exist_ok=True)
         (base_path / "config").mkdir(parents=True, exist_ok=True)
     except Exception:
         # Dizın oluşturma hataları self-check içinde raporlanır.
