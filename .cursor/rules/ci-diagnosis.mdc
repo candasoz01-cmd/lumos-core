@@ -1,0 +1,102 @@
+---
+description: CI kırmızı olduğunda ajanların izleyeceği zorunlu teşhis akışı ve ayrım kuralları
+alwaysApply: true
+---
+
+## CI Teşhis Akışı (Zorunlu Sıra)
+
+CI kırmızı olduğunda hiçbir ajan sadece repo state üzerinden teşhis yapmayacak; önce mutlaka CI loglarını inceleyecek.
+
+Zorunlu sıra:
+
+1. **Failing workflow run'ı belirle**
+   - İlgili pipeline / workflow çalışmasını tespit et.
+2. **Failing job'ı belirle**
+   - Hangi job'ın başarısız olduğunu netleştir.
+3. **Log içindeki ilk gerçek hata satırını bul**
+   - Gürültü, uyarı veya tekrar logları değil; başarısızlığa neden olan ilk gerçek hata satırını bul.
+4. **Hata türünü sınıflandır**
+   - Aşağıdaki kategorilerden birine yerleştir:
+     - **lint / ruff**
+     - **import**
+     - **test assertion**
+     - **runtime traceback**
+     - **packaging**
+     - **environment**
+5. **Ancak bundan sonra repo dosyalarına dönüp kök neden analizi yap**
+   - Log analizi tamamlanmadan yalnızca kod tabanına bakarak teşhis verme.
+
+## Kurallar ve Öncelikler
+
+- **Failing log okunmadan “muhtemel kırık alan” denemez.**
+  - Her zaman önce CI logu üzerinden teşhis yap.
+- **CI logu ile repo state çelişirse önce log esas alınır.**
+  - CI logu, yaşanan semptomun birincil kaynağıdır; repo durumu ikincildir.
+- **Teşhis cevabında şu ayrımı zorunlu yap:**
+  - **CI semptomu**: CI'da gördüğün doğrudan hata / failure (ör. belirli testin patlaması, lint hatası, import error).
+  - **Repo kök nedeni**: Kodu inceleyip CI semptomunu üreten asıl neden (ör. yanlış import yolu, bozuk assertion, eksik dependency).
+- **Log yoksa kesin teşhis verme.**
+  - CI loguna erişilemiyorsa veya paylaşılmamışsa:
+    - Net teşhis yerine “**log eksik**” olduğunu açıkça belirt.
+    - Sadece olası senaryolardan, tahmini kök nedenlerden bahset; bunları tahmin olarak etiketle.
+
+## Yanıt Formatı Önerisi
+
+Ajanlar CI ile ilgili cevap verirken, mümkün olduğunda aşağıdaki yapıyı kullanmalı:
+
+- **CI semptomu**: (Logtan aynen veya özetle; failing job, dosya, satır ve hata mesajı)
+- **Hata sınıfı**: (lint / ruff, import, test assertion, runtime traceback, packaging, environment)
+- **Repo kök nedeni (analiz)**: (İlgili dosyalar, satırlar ve muhtemel asıl sebep)
+- **Önerilen düzeltme adımları**: (Kısa ve uygulanabilir adımlar)
+
+## Tarayıcı Ajan için Ek Kural
+
+Tarayıcı Ajan, son commit için CI kırmızıysa aşağıdaki ek zorunluluklara uyar:
+
+- **Repo taramasını tamamlanmış saymadan önce** mutlaka:
+  1. **Failing workflow run'ı** bulur.
+  2. **Failing job'ı** tespit eder.
+  3. Log içinde **ilk gerçek hata satırını** bulur.
+  4. **Hata türünü** yukarıdaki sınıflardan birine yerleştirir.
+
+Tarayıcı Ajan'ın CI analizli cevaplarında, çıktıda **zorunlu olarak** şu alanlar açıkça yer almalıdır:
+
+- **Failing workflow**: (Adı veya ID'si)
+- **Failing job**: (Job adı)
+- **İlk gerçek hata satırı**: (Logtan alıntı veya çok kısa özet)
+- **Hata türü**: (lint / ruff, import, test assertion, runtime traceback, packaging, environment)
+
+## Teşhis Ajanı için Ek Kural
+
+Teşhis Ajanı, CI ile ilgili kök neden analizi yaparken aşağıdaki kurallara uyar:
+
+- **CI logu okunmadan kök neden teşhisi vermez.**
+  - Loga bakmadan sadece repo içeriğine dayanarak “kök neden budur” şeklinde kesin ifade kullanmak yasaktır.
+- **Repo içi tahmin üretmek serbest değildir.**
+  - Log semptomu ile ilişkilendirilmemiş, sadece koda bakarak üretilen tahmini kırık alanlar “teşhis” olarak sunulamaz.
+
+Teşhis sıralaması:
+
+1. **Önce log semptomu**:
+   - CI logundan görülen somut hatayı tanımlar.
+2. **Sonra repo kök nedeni**:
+   - Ancak log semptomu ile repo arasında mantıklı, doğrudan bir bağ kurulabiliyorsa kök neden teşhisi yapılır.
+
+Eğer Teşhis Ajanı, logtaki semptom ile repodaki bir değişiklik veya durum arasında güvenilir bir bağ kuramıyorsa, şu ifadeyi kullanır:
+
+- **“Semptom görüldü ama repo kök nedeni henüz doğrulanamadı.”**
+  - Bu durumda sadece olası aday nedenlerden bahsedilebilir ve bunlar açıkça tahmin / hipotez olarak işaretlenmelidir.
+
+## Cerrah Ajan için Ek Kural
+
+Cerrah Ajan (kod yazan / fix uygulayan ajan) için CI tabanlı müdahalelerde aşağıdaki kural zorunludur:
+
+- İlgili Teşhis Ajanı çıktısında **her iki başlık da** açık ve doldurulmuş şekilde yer almıyorsa **kod yazmaya başlamaz**:
+  1. **CI semptomu**
+  2. **Repo kök nedeni**
+
+- Eğer teşhis çıktısında sadece “muhtemel alan”, “olası kırık bölge” gibi ifadeler varsa ve net bir **repo kök nedeni** tanımı yoksa:
+  - Cerrah Ajan **ameliyata (kod değişikliğine) başlamaz**.
+  - Gerekirse Teşhis Ajanı'ndan ek doğrulama veya daha net kök neden analizi talep eder.
+
+
