@@ -9,6 +9,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives import serialization
 
 from security.crypto import aesgcm_encrypt, aesgcm_decrypt, b64e, b64d
+from core.workspace_contract import save_identity_json
 
 
 def sha256_hex(b: bytes) -> str:
@@ -72,7 +73,7 @@ class DeviceIdentity:
                 "ct_b64": b64e(ct),
             }
         }
-        self.paths.identity_file.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        save_identity_json(self.paths.base_dir, data)
 
     def load(self, root_key: bytes) -> dict:
         if not self.is_initialized():
