@@ -22,7 +22,7 @@ def test_stop_presence_lock_silent_true_does_not_log_presence_stopped():
     """stop_presence_lock(silent=True) must not log presence_stopped."""
     import security.presence_lock as pl
     log_calls = []
-    with patch.object(pl, "_append_log", side_effect=lambda msg: log_calls.append(msg)):
+    with patch.object(pl, "_append_log", side_effect=lambda msg, base_dir=None: log_calls.append(msg)):
         pl.stop_presence_lock(base_dir=Path(ROOT / ".lumos"), silent=True)
     for msg in log_calls:
         assert "event=presence_stopped" not in msg, "silent=True must not log presence_stopped"
@@ -32,7 +32,7 @@ def test_stop_presence_lock_silent_false_logs_presence_stopped_only_if_was_runni
     """stop_presence_lock(silent=False) logs presence_stopped only when was_running."""
     import security.presence_lock as pl
     log_calls = []
-    with patch.object(pl, "_append_log", side_effect=lambda msg: log_calls.append(msg)):
+    with patch.object(pl, "_append_log", side_effect=lambda msg, base_dir=None: log_calls.append(msg)):
         with patch.object(pl, "is_running", return_value=True):
             pl.stop_presence_lock(base_dir=Path(ROOT / ".lumos"), silent=False)
     stopped = [m for m in log_calls if "event=presence_stopped" in m]
@@ -43,7 +43,7 @@ def test_stop_presence_lock_silent_false_no_log_when_not_running():
     """stop_presence_lock(silent=False) must not log presence_stopped when was_running=False."""
     import security.presence_lock as pl
     log_calls = []
-    with patch.object(pl, "_append_log", side_effect=lambda msg: log_calls.append(msg)):
+    with patch.object(pl, "_append_log", side_effect=lambda msg, base_dir=None: log_calls.append(msg)):
         with patch.object(pl, "is_running", return_value=False):
             pl.stop_presence_lock(base_dir=Path(ROOT / ".lumos"), silent=False)
     for msg in log_calls:

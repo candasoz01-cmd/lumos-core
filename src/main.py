@@ -1081,7 +1081,7 @@ def main() -> None:
             if cmd and cmd.split()[0] in _GLOBAL_CMDS:
                 return cmd
             if cmd in ("durum", "status"):
-                cfg = pl.load_presence_cfg(_P(base_dir))
+                cfg = pl.load_presence_cfg(Path(base_dir))
                 print(f"enabled={cfg.enabled} timeout={cfg.timeout_sec}s face={cfg.require_face} mode={cfg.lock_mode} status={pl.presence_status()}")
                 return False
             if cmd in ("ac", "aç", "on"):
@@ -1106,7 +1106,7 @@ def main() -> None:
                 if timeout < 5:
                     timeout = 5
 
-                cfg = pl.load_presence_cfg(_P(base_dir))
+                cfg = pl.load_presence_cfg(Path(base_dir))
                 was_enabled = bool(getattr(cfg, "enabled", False))
                 cfg.enabled = True
                 cfg.timeout_sec = timeout
@@ -1116,24 +1116,24 @@ def main() -> None:
                 cfg.lock_mode = "mac"
                 if not was_enabled:
                     state.log_event(logfmt("presence_enabled", timeout=cfg.timeout_sec, poll=cfg.poll_sec, cam=cfg.camera_index, require_face=cfg.require_face))
-                pl.save_presence_cfg(_P(base_dir), cfg)
-                pl.start_presence_lock(base_dir=_P(base_dir), lock_cb=_lock_cb, is_already_locked=state.is_locked, timeout_sec=cfg.timeout_sec, poll_sec=cfg.poll_sec, camera_index=cfg.camera_index, require_face=cfg.require_face)
+                pl.save_presence_cfg(Path(base_dir), cfg)
+                pl.start_presence_lock(base_dir=Path(base_dir), lock_cb=_lock_cb, is_already_locked=state.is_locked, timeout_sec=cfg.timeout_sec, poll_sec=cfg.poll_sec, camera_index=cfg.camera_index, require_face=cfg.require_face)
                 print("OK")
                 return False
 
             if cmd in ("kapat", "off", "stop"):
-                cfg = pl.load_presence_cfg(_P(base_dir))
+                cfg = pl.load_presence_cfg(Path(base_dir))
                 was_enabled = bool(getattr(cfg, "enabled", False))
-                pl.stop_presence_lock(base_dir=_P(base_dir), reason=None, silent=True)
+                pl.stop_presence_lock(base_dir=Path(base_dir), reason=None, silent=True)
                 if was_enabled:
                     state.log_event(logfmt("presence_disabled"))
                 cfg.enabled = False
-                pl.save_presence_cfg(_P(base_dir), cfg)
+                pl.save_presence_cfg(Path(base_dir), cfg)
                 print("OK")
                 return False
 
             if cmd in ("sure", "süre", "timeout"):
-                cfg = pl.load_presence_cfg(_P(base_dir))
+                cfg = pl.load_presence_cfg(Path(base_dir))
                 default = int(getattr(cfg, "timeout_sec", 30))
                 while True:
                     raw = _input_or_eof(f"Süre (sn) [{default}]: ")
@@ -1142,10 +1142,10 @@ def main() -> None:
                     if raw == "" or raw in ("ok", "tamam"):
                         val = default
                         cfg.timeout_sec = val
-                        pl.save_presence_cfg(_P(base_dir), cfg)
+                        pl.save_presence_cfg(Path(base_dir), cfg)
                         if cfg.enabled:
-                            pl.stop_presence_lock(base_dir=_P(base_dir), silent=True)
-                            pl.start_presence_lock(base_dir=_P(base_dir), lock_cb=_lock_cb, is_already_locked=state.is_locked, timeout_sec=cfg.timeout_sec, poll_sec=cfg.poll_sec, camera_index=cfg.camera_index, require_face=cfg.require_face, silent_stop=True, reason="internal")
+                            pl.stop_presence_lock(base_dir=Path(base_dir), silent=True)
+                            pl.start_presence_lock(base_dir=Path(base_dir), lock_cb=_lock_cb, is_already_locked=state.is_locked, timeout_sec=cfg.timeout_sec, poll_sec=cfg.poll_sec, camera_index=cfg.camera_index, require_face=cfg.require_face, silent_stop=True, reason="internal")
                         print("OK")
                         break
                     if not raw.isdigit():
@@ -1156,10 +1156,10 @@ def main() -> None:
                         print("Süre 5 ile 600 saniye arasında olmalı.")
                         continue
                     cfg.timeout_sec = val
-                    pl.save_presence_cfg(_P(base_dir), cfg)
+                    pl.save_presence_cfg(Path(base_dir), cfg)
                     if cfg.enabled:
-                        pl.stop_presence_lock(base_dir=_P(base_dir), silent=True)
-                        pl.start_presence_lock(base_dir=_P(base_dir), lock_cb=_lock_cb, is_already_locked=state.is_locked, timeout_sec=cfg.timeout_sec, poll_sec=cfg.poll_sec, camera_index=cfg.camera_index, require_face=cfg.require_face, silent_stop=True, reason="internal")
+                        pl.stop_presence_lock(base_dir=Path(base_dir), silent=True)
+                        pl.start_presence_lock(base_dir=Path(base_dir), lock_cb=_lock_cb, is_already_locked=state.is_locked, timeout_sec=cfg.timeout_sec, poll_sec=cfg.poll_sec, camera_index=cfg.camera_index, require_face=cfg.require_face, silent_stop=True, reason="internal")
                     print("OK")
                     break
                 return False
@@ -1186,7 +1186,7 @@ def main() -> None:
             import inspect
             import atexit
         
-            _base = _P(base_dir)
+            _base = Path(base_dir)
             _pcfg = pl.load_presence_cfg(_base)
     
             def _presence_lock_action():
@@ -1233,7 +1233,7 @@ def main() -> None:
         except Exception:
             pass
 
-    state = CoreState(lumos, pl, mode)
+    state = CoreState(lumos, pl, mode, base_dir=Path(base_dir))
     engine = CoreEngine(do_lock, device_lock_cli, unlock_with_passphrase, pl)
 
     def _recovery_lock_cb():

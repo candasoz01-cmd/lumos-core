@@ -11,10 +11,18 @@ from typing import Any
 class CoreState:
     """Read-only view over lumos lock state, presence status, and mode."""
 
-    def __init__(self, lumos: Any, presence_lock_module: Any, mode: str) -> None:
+    def __init__(
+        self,
+        lumos: Any,
+        presence_lock_module: Any,
+        mode: str,
+        *,
+        base_dir: Path | None = None,
+    ) -> None:
         self._lumos = lumos
         self._pl = presence_lock_module
         self._mode = (mode or "offline").strip().lower()
+        self._base_dir = Path(base_dir) if base_dir is not None else None
 
     def lock_status(self) -> str:
         """LOCKED or UNLOCKED."""
@@ -42,7 +50,7 @@ class CoreState:
         return "offline" if self._mode == "offline" else "online"
 
     def log_event(self, message: str) -> None:
-        self._pl.log_event(message)
+        self._pl.log_event(message, base_dir=self._base_dir)
 
     def snapshot(
         self,
