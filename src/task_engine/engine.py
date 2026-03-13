@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from core.workspace_contract import may_perform_permanent_delete
 from task_engine.profiles import (
     STEP_TYPE_ANALYZE,
     STEP_TYPE_READ,
@@ -259,11 +260,14 @@ class TaskStore:
         self.update(task)
         return True
 
-    def delete(self, task_id: int) -> bool:
+    def delete(self, task_id: int, *, user_initiated: bool = False) -> bool:
         """
-        Tek görevi kalıcı olarak sil.
+        Tek görevi kalıcı olarak sil (yalnızca kullanıcı kaynaklı komut ile).
+        user_initiated=False ise hiçbir değişiklik yapılmaz (kalıcı silme yasağı guard’ı).
         Bu işlem geri döndürülemez; JSON'dan da çıkar.
         """
+        if not may_perform_permanent_delete(user_initiated):
+            return False
         before = len(self._tasks)
         self._tasks = [t for t in self._tasks if t.task_id != task_id]
         if len(self._tasks) == before:
