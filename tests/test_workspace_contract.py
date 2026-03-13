@@ -18,6 +18,7 @@ from core.workspace_contract import (
     keystore_file_path,
     logs_dir_path,
     logs_file_path,
+    append_log_line,
     may_perform_permanent_delete,
     notes_file_path,
     presence_cfg_path,
@@ -309,3 +310,24 @@ def test_save_keystore_json_respects_sandbox_guard(tmp_path):
 
     with pytest.raises(CoreWriteForbidden):
         save_keystore_json(base, data, is_sandbox_mode=True)
+
+
+def test_append_log_line_appends_lines_with_newline(tmp_path):
+    """append_log_line(base, line) logs/log.txt dosyasına satır ekler."""
+    base = tmp_path
+
+    append_log_line(base, "first")
+    log_file = logs_file_path(base)
+    assert log_file.is_file()
+    assert log_file.read_text(encoding="utf-8").splitlines() == ["first"]
+
+    append_log_line(base, "second")
+    assert log_file.read_text(encoding="utf-8").splitlines() == ["first", "second"]
+
+
+def test_append_log_line_respects_sandbox_guard(tmp_path):
+    """Sandbox modunda canlı çekirdek logs/log.txt path'ine yazma reddedilir."""
+    base = tmp_path
+
+    with pytest.raises(CoreWriteForbidden):
+        append_log_line(base, "x", is_sandbox_mode=True)

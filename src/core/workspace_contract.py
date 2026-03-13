@@ -98,6 +98,30 @@ def logs_file_path(base_dir: Path | str) -> Path:
     return logs_dir_path(base_dir) / "log.txt"
 
 
+def append_log_line(
+    base_dir: Path | str,
+    line: str,
+    *,
+    is_sandbox_mode: bool = False,
+) -> None:
+    """
+    logs/log.txt için satır ekleme sink'i.
+
+    - Path: logs_file_path(base_dir)
+    - Guard: allow_write_to_core(live_base_dir=base_dir, target_path=logs_file_path)
+      is_sandbox_mode=True iken canlı çekirdek path'e yazmayı reddeder.
+    - is_sandbox_mode varsayılan False olduğu için mevcut davranış korunur.
+    """
+    path = logs_file_path(base_dir)
+    if not allow_write_to_core(base_dir, path, is_sandbox_mode=is_sandbox_mode):
+        raise CoreWriteForbidden(
+            "Sandbox modunda canlı çekirdek logs/log.txt path'ine yazma yasak",
+        )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    existing = path.read_text(encoding="utf-8") if path.exists() else ""
+    path.write_text(existing + line + "\n", encoding="utf-8")
+
+
 def save_aliases_json(
     base_dir: Path | str,
     aliases: dict[str, str],
