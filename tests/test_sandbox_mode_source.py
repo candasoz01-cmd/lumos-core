@@ -1,5 +1,4 @@
 """sandbox_mode gerçek kaynak (env + CLI override) testleri."""
-import pytest
 
 from main import _sandbox_mode_from_env
 
