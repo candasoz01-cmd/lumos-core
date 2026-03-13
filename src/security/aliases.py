@@ -1,6 +1,6 @@
-import json
 from pathlib import Path
 
+from core.workspace_contract import save_aliases_json
 
 def _alias_path(base_dir: str) -> Path:
     return Path(base_dir) / "aliases.json"
@@ -21,9 +21,9 @@ def load_aliases(base_dir: str) -> dict[str, str]:
 
 def save_aliases(base_dir: str, aliases: dict[str, str]) -> None:
     try:
-        p = _alias_path(base_dir)
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(json.dumps(aliases, ensure_ascii=False, indent=2), encoding="utf-8")
+        # aliases.json yazımı merkezi sink üzerinden yapılır.
+        # Mevcut davranış: is_sandbox_mode varsayılan False olduğu için değişmez.
+        save_aliases_json(base_dir, aliases)
     except Exception:
         pass
 

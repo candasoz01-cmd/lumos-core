@@ -31,6 +31,40 @@ def trash_path(base_dir: Path | str) -> Path:
     return Path(base_dir) / LUMOS_TRASH_DIRNAME
 
 
+def alias_file_path(base_dir: Path | str) -> Path:
+    """
+    aliases.json için sözleşmedeki tek çekirdek path.
+    Çekirdek state listesi ve sandbox guard'ı ile hizalı tutulur.
+    """
+    return Path(base_dir) / "aliases.json"
+
+
+def save_aliases_json(
+    base_dir: Path | str,
+    aliases: dict[str, str],
+    *,
+    is_sandbox_mode: bool = False,
+) -> None:
+    """
+    aliases.json yazımı için merkezi sink.
+
+    - Path: alias_file_path(base_dir)
+    - Guard: allow_write_to_core(live_base_dir=base_dir, target_path=alias_file_path)
+      is_sandbox_mode=True iken canlı çekirdek path'e yazmayı reddeder.
+    - is_sandbox_mode varsayılan False olduğu için mevcut davranış korunur.
+    """
+    path = alias_file_path(base_dir)
+    if not allow_write_to_core(base_dir, path, is_sandbox_mode=is_sandbox_mode):
+        raise CoreWriteForbidden(
+            "Sandbox modunda canlı çekirdek aliases.json path'ine yazma yasak",
+        )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # JSON içeriği güvenlik için dışarıda hazırlanır; burada yalnızca side-effect sink bulunur.
+    import json  # yerel import: workspace_contract yüzeyini dar tutmak için
+
+    path.write_text(json.dumps(aliases, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def is_allowed_trash_path(base_dir: Path | str, path: Path | str) -> bool:
     """
     Verilen path, sözleşmedeki tek trash hedefi mi?

@@ -4,6 +4,7 @@ import tempfile
 import pytest
 
 from core.workspace_contract import (
+    alias_file_path,
     CORE_STATE_PATH_NAMES,
     LUMOS_TRASH_DIRNAME,
     CoreWriteForbidden,
@@ -11,6 +12,7 @@ from core.workspace_contract import (
     is_allowed_trash_path,
     is_core_state_path,
     may_perform_permanent_delete,
+    save_aliases_json,
     trash_path,
 )
 
@@ -131,3 +133,24 @@ def test_task_store_sandbox_mode_raises_on_live_core_write():
         store = TaskStore(tasks_dir, sandbox_mode=True)
         with pytest.raises(CoreWriteForbidden):
             store.create("Test", "Açıklama", "rapor")
+
+
+def test_save_aliases_json_uses_core_guard_and_path(tmp_path):
+    """aliases.json yazımı merkezi sink üzerinden ve core guard ile yapılır."""
+    base = tmp_path
+    aliases = {"g": "gorevler"}
+
+    # Varsayılan: is_sandbox_mode=False → guard izin verir ve dosya yazılır.
+    save_aliases_json(base, aliases)
+    p = alias_file_path(base)
+    assert p.is_file()
+    assert json.loads(p.read_text(encoding="utf-8")) == aliases
+
+
+def test_save_aliases_json_respects_sandbox_guard(tmp_path):
+    """Sandbox modunda canlı çekirdek aliases.json path'ine yazma reddedilir."""
+    base = tmp_path
+    aliases = {"g": "gorevler"}
+
+    with pytest.raises(CoreWriteForbidden):
+        save_aliases_json(base, aliases, is_sandbox_mode=True)
