@@ -53,6 +53,15 @@ Onay yoksa: sadece öneri verilir veya sistem otomatik durur (yetki dışı adı
 
 ---
 
+## Sandbox / kopya alanı sınırı
+
+- Deneme/geliştirme **tanımlı kopya/sandbox alanında** yapılır; canlı çekirdek path’lere doğrudan overwrite yok.
+- Sistem kendi kafasına canlı hedef seçemez; yazma hedefi tek kaynaktan (canlı base veya sözleşmeyle tanımlı sandbox base).
+- Çekirdek state: tasks.json, notlar, config, logs, trash, aliases (kod: `core/workspace_contract.CORE_STATE_PATH_NAMES`, `is_core_state_path()`).
+- Detay: **`docs/lumos-guard-sandbox-kopya-siniri.md`**.
+
+---
+
 ## Rol kapma ve kapsam kayması yasağı
 
 - Ajan **kendi rolü dışında** iş üstlenmez; başka ajanın rolünü kapmaz.
