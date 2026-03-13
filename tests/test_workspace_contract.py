@@ -6,15 +6,18 @@ from pathlib import Path
 import pytest
 
 from core.workspace_contract import (
-    alias_file_path,
     CORE_STATE_PATH_NAMES,
     LUMOS_TRASH_DIRNAME,
     CoreWriteForbidden,
+    alias_file_path,
     allow_write_to_core,
+    config_file_path,
     identity_file_path,
     is_allowed_trash_path,
     is_core_state_path,
     keystore_file_path,
+    logs_dir_path,
+    logs_file_path,
     may_perform_permanent_delete,
     notes_file_path,
     presence_cfg_path,
@@ -181,6 +184,27 @@ def test_notes_file_path_under_base():
         p = notes_file_path(d)
         assert p == Path(d) / "notes.enc.json"
         assert p.name == "notes.enc.json"
+
+
+def test_config_file_path_under_base():
+    """config_file_path(base) base/config.json döner."""
+    with tempfile.TemporaryDirectory() as d:
+        p = config_file_path(d)
+        assert p == Path(d) / "config.json"
+        assert p.name == "config.json"
+
+
+def test_logs_paths_under_base():
+    """logs_dir_path ve logs_file_path base altında beklenen path'leri döner."""
+    with tempfile.TemporaryDirectory() as d:
+        base = d
+        logs_dir = logs_dir_path(base)
+        assert logs_dir == Path(base) / "logs"
+        assert logs_dir.name == "logs"
+
+        log_file = logs_file_path(base)
+        assert log_file == logs_dir / "log.txt"
+        assert log_file.name == "log.txt"
 
 
 def test_save_notes_enc_json_uses_core_guard_and_path(tmp_path):

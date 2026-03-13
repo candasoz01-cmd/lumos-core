@@ -10,15 +10,15 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from core.logfmt import logfmt
-from core.workspace_contract import save_presence_cfg_json
+from core.workspace_contract import logs_file_path, save_presence_cfg_json
 
 
 def _append_log(message: str) -> None:
     try:
         from datetime import datetime
-        log_dir = Path.cwd() / ".lumos" / "logs"
-        log_dir.mkdir(parents=True, exist_ok=True)
-        logp = log_dir / "log.txt"
+        base_dir = Path.cwd() / ".lumos"
+        logp = logs_file_path(base_dir)
+        logp.parent.mkdir(parents=True, exist_ok=True)
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         line = f"{ts} | {message}"
         logp.write_text((logp.read_text(encoding="utf-8") if logp.exists() else "") + line + "\n", encoding="utf-8")

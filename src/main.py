@@ -14,6 +14,7 @@ from core.logfmt import logfmt
 from core.lumos import Lumos
 from core.state import CoreState, format_durum
 from core.startup_health import get_durum_parts, get_startup_summary
+from core.workspace_contract import logs_file_path
 from engine.online_engine import OnlineEngineV1
 from memory.schema import MemoryNote
 from memory.secure_store import SecureNotesStore
@@ -1352,7 +1353,7 @@ def main() -> None:
             return
         mode_label = state.mode_str()
         title_line2 = f"{mode_label} • güvenli"
-        log_path = _P.cwd() / ".lumos" / "logs" / "log.txt"
+        log_path = logs_file_path(base_dir)
 
         def snapshot_getter():
             return state.snapshot(base_dir=base_dir, log_path=log_path)
@@ -2178,7 +2179,8 @@ def main() -> None:
                 )
                 if is_ozet:
                     print("Durum özeti:")
-                snap = state.snapshot(base_dir=base_dir, log_path=Path.cwd() / ".lumos" / "logs" / "log.txt")
+                log_path = logs_file_path(base_dir)
+                snap = state.snapshot(base_dir=base_dir, log_path=log_path)
                 parts = get_durum_parts(Path(base_dir), ks.is_initialized(), engine.pl)
                 durum_txt = format_durum(snap, parts["consent_ok"], parts["lock_ok"], parts["durum_label"], parts["not_line"])
                 print(durum_txt)

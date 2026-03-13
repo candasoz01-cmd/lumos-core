@@ -8,6 +8,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from core.workspace_contract import config_file_path
+
 # Presence defaults (aligned with presence_lock.PresenceLockConfig)
 PRESENCE_DEFAULTS = {
     "enabled": False,
@@ -64,7 +66,7 @@ def _validate_presence(data: dict[str, Any]) -> tuple[dict[str, Any], str | None
 def load_config(base_dir: str | Path) -> dict[str, Any]:
     """Load .lumos/config.json (or presence.json for presence). Safe defaults on missing/invalid."""
     base = Path(base_dir)
-    config_path = base / "config.json"
+    config_path = config_file_path(base)
     out: dict[str, Any] = {"presence": dict(PRESENCE_DEFAULTS)}
     if not config_path.exists():
         return out
