@@ -19,6 +19,8 @@ from task_engine.profiles import (
     STEP_TYPE_ANALYZE,
     STEP_TYPE_READ,
     PROFILE_RAPOR,
+    DECISION_LAYER_NEVER,
+    get_decision_layer,
     is_allowed_for_profile,
 )
 
@@ -445,6 +447,18 @@ class TaskEngine:
         self.general_approval = general_approval
         self.base_dir = Path(base_dir) if base_dir else None
 
+    def _is_step_allowed_runtime(self, step: TaskStep) -> bool:
+        """
+        Runtime guard: karar katmanı + profil + genel onay ile bu adım yürütülebilir mi?
+        - Karar katmanı "asla" (DECISION_LAYER_NEVER) ise hiçbir profilde izinli değildir.
+        - Diğer durumlarda merkezi is_allowed_for_profile matrisi belirleyicidir.
+        Bu helper, karar katmanını runtime akışına dahil eden en dar enforcement noktasıdır.
+        """
+        decision_layer = get_decision_layer(step.kind)
+        if decision_layer == DECISION_LAYER_NEVER:
+            return False
+        return is_allowed_for_profile(self.permission_profile, step.kind, self.general_approval)
+
     def run_task(self, task_id: int) -> tuple[bool, str]:
         """
         Görevi çalıştır. Sonuç: (akış başarılı mı, kısa mesaj).
@@ -463,9 +477,7 @@ class TaskEngine:
         unverified_count = 0
         try:
             for i, step in enumerate(task.steps):
-                if not is_allowed_for_profile(
-                    self.permission_profile, step.kind, self.general_approval
-                ):
+                if not self._is_step_allowed_runtime(step):
                     step.status = STEP_STOPPED
                     step.error = "Bu adım yetki profili veya genel onay kapsamında değil."
                     step.result_kind = STEP_RESULT_UNVERIFIABLE
