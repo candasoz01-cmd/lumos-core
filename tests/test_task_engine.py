@@ -17,6 +17,13 @@ from task_engine.profiles import (
     STEP_TYPE_WRITE_LOCAL,
     STEP_TYPE_EXTERNAL,
     STEP_TYPE_CRITICAL,
+    STEP_PERMISSION_MATRIX,
+    DECISION_LAYER_ANALYZE,
+    DECISION_LAYER_SUGGEST,
+    DECISION_LAYER_APPLY,
+    DECISION_LAYER_NEVER,
+    get_decision_layer,
+    requires_explicit_approval,
 )
 from task_engine.engine import (
     TaskStep,
@@ -115,6 +122,61 @@ def test_explicit_approval_required_for_application_steps():
         assert is_allowed_for_profile(PROFILE_RAPOR, app_step, True) is False
         assert is_allowed_for_profile(PROFILE_KISITLI_OTONOM, app_step, False) is False
         assert is_allowed_for_profile(PROFILE_KISITLI_OTONOM, app_step, True) is True
+
+
+def test_step_permission_matrix_matches_contract():
+    """Yetki matrisi: profil × adım türü × genel onay dokümantasyonla birebir hizalı olmalı."""
+    perm_analyze = STEP_PERMISSION_MATRIX[STEP_TYPE_ANALYZE]
+    assert perm_analyze.decision_layer == DECISION_LAYER_ANALYZE
+    assert perm_analyze.allowed_without_approval == perm_analyze.allowed_with_approval == frozenset(
+        {PROFILE_RAPOR, PROFILE_GUVENLI_YURUT, PROFILE_KISITLI_OTONOM}
+    )
+
+    perm_read = STEP_PERMISSION_MATRIX[STEP_TYPE_READ]
+    assert perm_read.decision_layer == DECISION_LAYER_ANALYZE
+
+    perm_plan = STEP_PERMISSION_MATRIX[STEP_TYPE_PLAN]
+    assert perm_plan.decision_layer == DECISION_LAYER_SUGGEST
+
+    perm_safe = STEP_PERMISSION_MATRIX[STEP_TYPE_SAFE_LOCAL]
+    assert perm_safe.decision_layer == DECISION_LAYER_APPLY
+    assert perm_safe.allowed_without_approval == frozenset({PROFILE_GUVENLI_YURUT})
+    assert perm_safe.allowed_with_approval == frozenset({PROFILE_GUVENLI_YURUT, PROFILE_KISITLI_OTONOM})
+
+    perm_write = STEP_PERMISSION_MATRIX[STEP_TYPE_WRITE_LOCAL]
+    assert perm_write.decision_layer == DECISION_LAYER_APPLY
+    assert perm_write.allowed_without_approval == frozenset()
+    assert perm_write.allowed_with_approval == frozenset({PROFILE_KISITLI_OTONOM})
+
+    perm_external = STEP_PERMISSION_MATRIX[STEP_TYPE_EXTERNAL]
+    perm_critical = STEP_PERMISSION_MATRIX[STEP_TYPE_CRITICAL]
+    for perm in (perm_external, perm_critical):
+        assert perm.decision_layer == DECISION_LAYER_NEVER
+        assert perm.allowed_without_approval == frozenset()
+        assert perm.allowed_with_approval == frozenset()
+
+    # Karar katmanı yardımcı fonksiyonu ile hizalı olmalı
+    assert get_decision_layer(STEP_TYPE_ANALYZE) == DECISION_LAYER_ANALYZE
+    assert get_decision_layer(STEP_TYPE_PLAN) == DECISION_LAYER_SUGGEST
+    assert get_decision_layer(STEP_TYPE_SAFE_LOCAL) == DECISION_LAYER_APPLY
+    assert get_decision_layer(STEP_TYPE_WRITE_LOCAL) == DECISION_LAYER_APPLY
+    assert get_decision_layer(STEP_TYPE_EXTERNAL) == DECISION_LAYER_NEVER
+    assert get_decision_layer("bilinmeyen_tur") == DECISION_LAYER_NEVER
+
+
+def test_requires_explicit_approval_for_application_layers():
+    """Genel onay gerektiren uygulama adımları merkezi yardımcı ile net görülebilmeli."""
+    # kisitli_otonom: safe_local ve write_local yalnızca genel onay açıkken izinli
+    assert requires_explicit_approval(PROFILE_KISITLI_OTONOM, STEP_TYPE_SAFE_LOCAL) is True
+    assert requires_explicit_approval(PROFILE_KISITLI_OTONOM, STEP_TYPE_WRITE_LOCAL) is True
+
+    # guvenli_yurut: safe_local genel onaydan bağımsız serbest, write_local asla izinli değil
+    assert requires_explicit_approval(PROFILE_GUVENLI_YURUT, STEP_TYPE_SAFE_LOCAL) is False
+    assert requires_explicit_approval(PROFILE_GUVENLI_YURUT, STEP_TYPE_WRITE_LOCAL) is False
+
+    # rapor: hiçbir uygulama adımı izinli değil, dolayısıyla açık onay gerektiren uygulama adımı da yok
+    assert requires_explicit_approval(PROFILE_RAPOR, STEP_TYPE_SAFE_LOCAL) is False
+    assert requires_explicit_approval(PROFILE_RAPOR, STEP_TYPE_WRITE_LOCAL) is False
 
 
 def test_engine_rapor_blocks_safe_local_step():
