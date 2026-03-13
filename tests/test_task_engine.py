@@ -166,17 +166,23 @@ def test_step_permission_matrix_matches_contract():
 
 def test_requires_explicit_approval_for_application_layers():
     """Genel onay gerektiren uygulama adımları merkezi yardımcı ile net görülebilmeli."""
-    # kisitli_otonom: safe_local ve write_local yalnızca genel onay açıkken izinli
-    assert requires_explicit_approval(PROFILE_KISITLI_OTONOM, STEP_TYPE_SAFE_LOCAL) is True
-    assert requires_explicit_approval(PROFILE_KISITLI_OTONOM, STEP_TYPE_WRITE_LOCAL) is True
+    # kisitli_otonom: safe_local ve write_local yalnızca genel onay açıkken izinli (yapısal olarak)
+    assert requires_explicit_approval(PROFILE_KISITLI_OTONOM, STEP_TYPE_SAFE_LOCAL, False) is True
+    assert requires_explicit_approval(PROFILE_KISITLI_OTONOM, STEP_TYPE_SAFE_LOCAL, True) is True
+    assert requires_explicit_approval(PROFILE_KISITLI_OTONOM, STEP_TYPE_WRITE_LOCAL, False) is True
+    assert requires_explicit_approval(PROFILE_KISITLI_OTONOM, STEP_TYPE_WRITE_LOCAL, True) is True
 
     # guvenli_yurut: safe_local genel onaydan bağımsız serbest, write_local asla izinli değil
-    assert requires_explicit_approval(PROFILE_GUVENLI_YURUT, STEP_TYPE_SAFE_LOCAL) is False
-    assert requires_explicit_approval(PROFILE_GUVENLI_YURUT, STEP_TYPE_WRITE_LOCAL) is False
+    assert requires_explicit_approval(PROFILE_GUVENLI_YURUT, STEP_TYPE_SAFE_LOCAL, False) is False
+    assert requires_explicit_approval(PROFILE_GUVENLI_YURUT, STEP_TYPE_SAFE_LOCAL, True) is False
+    assert requires_explicit_approval(PROFILE_GUVENLI_YURUT, STEP_TYPE_WRITE_LOCAL, False) is False
+    assert requires_explicit_approval(PROFILE_GUVENLI_YURUT, STEP_TYPE_WRITE_LOCAL, True) is False
 
     # rapor: hiçbir uygulama adımı izinli değil, dolayısıyla açık onay gerektiren uygulama adımı da yok
-    assert requires_explicit_approval(PROFILE_RAPOR, STEP_TYPE_SAFE_LOCAL) is False
-    assert requires_explicit_approval(PROFILE_RAPOR, STEP_TYPE_WRITE_LOCAL) is False
+    assert requires_explicit_approval(PROFILE_RAPOR, STEP_TYPE_SAFE_LOCAL, False) is False
+    assert requires_explicit_approval(PROFILE_RAPOR, STEP_TYPE_SAFE_LOCAL, True) is False
+    assert requires_explicit_approval(PROFILE_RAPOR, STEP_TYPE_WRITE_LOCAL, False) is False
+    assert requires_explicit_approval(PROFILE_RAPOR, STEP_TYPE_WRITE_LOCAL, True) is False
 
 
 def test_engine_rapor_blocks_safe_local_step():
