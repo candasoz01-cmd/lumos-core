@@ -19,7 +19,9 @@ from core.workspace_contract import (
     logs_dir_path,
     logs_file_path,
     append_log_line,
+    ensure_trash_dir,
     may_perform_permanent_delete,
+    move_to_trash,
     notes_file_path,
     presence_cfg_path,
     save_aliases_json,
@@ -403,3 +405,42 @@ def test_append_log_line_respects_sandbox_guard(tmp_path):
 
     with pytest.raises(CoreWriteForbidden):
         append_log_line(base, "x", is_sandbox_mode=True)
+
+
+def test_ensure_trash_dir_creates_dir(tmp_path):
+    """ensure_trash_dir varsayılan modda trash dizinini oluşturur."""
+    base = tmp_path
+    ensure_trash_dir(base)
+    p = trash_path(base)
+    assert p.is_dir()
+
+
+def test_ensure_trash_dir_respects_sandbox_guard(tmp_path):
+    """Sandbox modunda canlı çekirdek trash path'ine yazma reddedilir."""
+    base = tmp_path
+    with pytest.raises(CoreWriteForbidden):
+        ensure_trash_dir(base, is_sandbox_mode=True)
+
+
+def test_move_to_trash_moves_file(tmp_path):
+    """move_to_trash dosyayı sözleşmedeki trash dizinine taşır."""
+    base = tmp_path
+    ensure_trash_dir(base)
+    src = base / "tasks" / "tasks.json"
+    src.parent.mkdir(parents=True, exist_ok=True)
+    src.write_text("{}", encoding="utf-8")
+    dest = move_to_trash(base, src)
+    assert dest == trash_path(base) / "tasks.json"
+    assert not src.exists()
+    assert dest.is_file()
+    assert dest.read_text(encoding="utf-8") == "{}"
+
+
+def test_move_to_trash_respects_sandbox_guard(tmp_path):
+    """Sandbox modunda canlı trash path'ine taşıma reddedilir."""
+    base = tmp_path
+    src = base / "orphan.json"
+    src.write_text("x", encoding="utf-8")
+    with pytest.raises(CoreWriteForbidden):
+        move_to_trash(base, src, is_sandbox_mode=True)
+    assert src.is_file()
