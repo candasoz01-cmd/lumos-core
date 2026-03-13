@@ -317,6 +317,63 @@ def is_allowed_trash_path(base_dir: Path | str, path: Path | str) -> bool:
     return candidate == base / LUMOS_TRASH_DIRNAME
 
 
+def ensure_trash_dir(
+    base_dir: Path | str,
+    *,
+    is_sandbox_mode: bool = False,
+) -> None:
+    """
+    Trash dizinini oluşturan merkezi sink (yoksa oluşturur).
+
+    - Path: trash_path(base_dir)
+    - Guard: allow_write_to_core(base_dir, path, is_sandbox_mode)
+      is_sandbox_mode=True iken canlı çekirdek path'e yazmayı reddeder.
+    """
+    path = trash_path(base_dir)
+    if not allow_write_to_core(base_dir, path, is_sandbox_mode=is_sandbox_mode):
+        raise CoreWriteForbidden(
+            "Sandbox modunda canlı çekirdek trash path'ine yazma yasak",
+        )
+    path.mkdir(parents=True, exist_ok=True)
+
+
+def move_to_trash(
+    base_dir: Path | str,
+    source_path: Path | str,
+    *,
+    is_sandbox_mode: bool = False,
+) -> Path:
+    """
+    Dosya veya dizini sözleşmedeki tek trash dizinine taşıyan merkezi sink.
+
+    - Hedef: trash_path(base_dir) altına; başka çöp dizini kullanılamaz.
+    - Guard: is_allowed_trash_path(base_dir, dest_dir) ve
+      allow_write_to_core(base_dir, dest_dir, is_sandbox_mode).
+    - Hedef dosya zaten varsa FileExistsError.
+
+    Dönüş: taşınan öğenin yeni path'i.
+    """
+    import shutil
+
+    base = Path(base_dir).resolve()
+    source = Path(source_path).resolve()
+    dest_dir = trash_path(base)
+    if not is_allowed_trash_path(base, dest_dir):
+        raise CoreWriteForbidden(
+            "Trash hedefi sözleşmedeki path değil",
+        )
+    if not allow_write_to_core(base_dir, dest_dir, is_sandbox_mode=is_sandbox_mode):
+        raise CoreWriteForbidden(
+            "Sandbox modunda canlı çekirdek trash path'ine yazma yasak",
+        )
+    ensure_trash_dir(base_dir, is_sandbox_mode=is_sandbox_mode)
+    dest = dest_dir / source.name
+    if dest.exists():
+        raise FileExistsError(f"Trash hedefi zaten var: {dest}")
+    shutil.move(str(source), str(dest))
+    return dest
+
+
 def may_perform_permanent_delete(user_initiated: bool) -> bool:
     """
     Kalıcı silme yalnızca kullanıcı açık komutu ile.
