@@ -393,18 +393,33 @@ def test_archive_completed_and_simulations():
 
 
 def test_archive_vs_delete_single_task():
-    """Arşivle/sil ayrımı: arşivlenen kalır, silinen store'dan çıkar."""
+    """Arşivle/sil ayrımı: arşivlenen kalır; silme yalnızca açık kullanıcı iradesiyle (user_initiated=True)."""
     with tempfile.TemporaryDirectory() as d:
         store = TaskStore(d)
         g1 = store.create("A", "desc", PROFILE_GUVENLI_YURUT)
         g2 = store.create("B", "desc", PROFILE_GUVENLI_YURUT)
         store.archive(g1.task_id)
         assert store.get(g1.task_id).archived is True
-        assert store.delete(g2.task_id) is True
+        # Kalıcı silme sözleşmesi: yalnızca açık kullanıcı iradesiyle delete başarılı olur
+        ok2 = store.delete(g2.task_id, user_initiated=True)
+        assert ok2 is True, "delete(task_id, user_initiated=True) sözleşmeye uygun olarak True dönmeli"
         assert store.get(g2.task_id) is None
-        # Arşivli görev delete ile de silinebilir (isteyerek sert eylem)
-        assert store.delete(g1.task_id) is True
+        # Arşivli görev de aynı sözleşmeyle (açık irade) kalıcı silinebilir
+        ok1 = store.delete(g1.task_id, user_initiated=True)
+        assert ok1 is True, "arşivli görev delete(..., user_initiated=True) ile silinebilmeli"
         assert store.get(g1.task_id) is None
+
+
+def test_delete_requires_user_initiated():
+    """Kalıcı silme guard: user_initiated=False iken delete hiçbir şey silmez."""
+    with tempfile.TemporaryDirectory() as d:
+        store = TaskStore(d)
+        g = store.create("X", "desc", PROFILE_GUVENLI_YURUT)
+        assert store.get(g.task_id) is not None
+        assert store.delete(g.task_id, user_initiated=False) is False
+        assert store.get(g.task_id) is not None
+        assert store.delete(g.task_id, user_initiated=True) is True
+        assert store.get(g.task_id) is None
 
 
 def test_task_stats_summary_counts():
