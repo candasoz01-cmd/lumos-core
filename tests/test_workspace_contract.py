@@ -1,13 +1,17 @@
-"""Kalıcı silme yasağı + sabit trash hedefi guard sözleşmesi testleri."""
+"""Kalıcı silme yasağı + sabit trash hedefi + runtime sandbox guard testleri."""
 import tempfile
+
+import pytest
 
 from core.workspace_contract import (
     CORE_STATE_PATH_NAMES,
     LUMOS_TRASH_DIRNAME,
-    trash_path,
+    CoreWriteForbidden,
+    allow_write_to_core,
     is_allowed_trash_path,
-    may_perform_permanent_delete,
     is_core_state_path,
+    may_perform_permanent_delete,
+    trash_path,
 )
 
 
@@ -87,3 +91,43 @@ def test_is_core_state_path_rejects_outside_base():
         base = d
         with tempfile.TemporaryDirectory() as other:
             assert is_core_state_path(base, f"{other}/aliases.json") is False
+
+
+def test_allow_write_to_core_when_not_sandbox_mode():
+    """is_sandbox_mode=False ise her zaman True (mevcut davranış)."""
+    with tempfile.TemporaryDirectory() as d:
+        assert allow_write_to_core(d, f"{d}/tasks/tasks.json", False) is True
+        assert allow_write_to_core(d, f"{d}/aliases.json", False) is True
+
+
+def test_allow_write_to_core_sandbox_mode_blocks_live_core():
+    """Sandbox modunda canlı çekirdek path'e yazma reddedilir."""
+    with tempfile.TemporaryDirectory() as d:
+        assert allow_write_to_core(d, f"{d}/tasks/tasks.json", True) is False
+        assert allow_write_to_core(d, f"{d}/aliases.json", True) is False
+        assert allow_write_to_core(d, f"{d}/notes.enc.json", True) is False
+
+
+def test_allow_write_to_core_sandbox_mode_allows_non_core():
+    """Sandbox modunda çekirdek dışı path'e yazma izinli."""
+    with tempfile.TemporaryDirectory() as d:
+        assert allow_write_to_core(d, f"{d}/sandbox/tasks.json", True) is True
+        assert allow_write_to_core(d, f"{d}/other.json", True) is True
+
+
+def test_allow_write_to_core_sandbox_mode_target_outside_live_allowed():
+    """Sandbox modunda canlı base dışı hedefe yazma izinli."""
+    with tempfile.TemporaryDirectory() as d:
+        with tempfile.TemporaryDirectory() as other:
+            assert allow_write_to_core(d, f"{other}/aliases.json", True) is True
+
+
+def test_task_store_sandbox_mode_raises_on_live_core_write():
+    """TaskStore sandbox_mode=True ve canlı çekirdek path'e yazma girişiminde CoreWriteForbidden."""
+    from task_engine.engine import TaskStore
+
+    with tempfile.TemporaryDirectory() as d:
+        tasks_dir = f"{d}/tasks"
+        store = TaskStore(tasks_dir, sandbox_mode=True)
+        with pytest.raises(CoreWriteForbidden):
+            store.create("Test", "Açıklama", "rapor")

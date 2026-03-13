@@ -33,16 +33,16 @@ Kod seviyesinde hangi guard’ların aktif olduğunun kısa referansı. Sonraki 
 
 ## Sandbox / kopya guard
 
-- **Korunan:** Çekirdek state path tanımı ve “bu path çekirdek mi?” sorusu (sandbox açıldığında kullanılacak).
-- **Ana dosyalar:** `src/core/workspace_contract.py` (CORE_STATE_PATH_NAMES, is_core_state_path).
-- **Test:** `tests/test_workspace_contract.py` — is_core_state_path (çekirdek path True, diğerleri/base dışı False); notes.enc.json dahil.
-- **Açık risk:** is_core_state_path hiçbir yazma noktasında çağrılmıyor; sandbox açıldığında bağlanmazsa canlı çekirdeğe yanlış yazma riski kalır.
+- **Korunan:** Çekirdek state path tanımı; “bu path çekirdek mi?” (is_core_state_path); sandbox modunda canlı çekirdek path'e yazma reddi (allow_write_to_core). TaskStore runtime’da sandbox_mode=True iken canlı çekirdek path’e yazarsa CoreWriteForbidden fırlatır.
+- **Ana dosyalar:** `src/core/workspace_contract.py` (CORE_STATE_PATH_NAMES, is_core_state_path, allow_write_to_core, CoreWriteForbidden); `src/task_engine/engine.py` (TaskStore.sandbox_mode, TaskStore._save guard).
+- **Test:** `tests/test_workspace_contract.py` — is_core_state_path; allow_write_to_core (sandbox True/False, core/non-core); TaskStore sandbox_mode=True ile canlı path’e yazmada CoreWriteForbidden.
+- **Açık risk:** Diğer yazıcılar (SecureNotesStore, save_aliases, save_presence_cfg, keystore/identity) henüz guard’a bağlı değil; sandbox modu main/CLI’da açılmadığı için şu an sadece TaskStore dar uygulama.
 
 ---
 
 ## Sonraki mantıklı guard alanları
 
-- **Runtime sandbox enforcement:** Sandbox modu açıldığında çekirdek state yazma noktalarında (veya tek yazıcı katmanında) “sandbox modunda mıyım?” + “hedef canlı çekirdek path mi?” kontrolü; is_core_state_path ile red.
+- **Runtime sandbox enforcement (genişletme):** TaskStore’da uygulandı; SecureNotesStore, save_aliases, save_presence_cfg, keystore/identity yazma noktalarında aynı allow_write_to_core guard’ı; sandbox modunun main/CLI’dan geçirilmesi.
 - **Genel onay / yetki matrisi:** CLI’dan engine’e genel onay ve profil geçişinin tek kaynak ve tutarlı olduğunun doğrulanması; gerekirse ek test veya runtime check.
 - **Görev adımı uygulama sınırı:** Adım türü (safe_local, write_local) ile gerçek yapılan işin eşleşmesi; yetkisiz iş türünün adım içinde yapılmasının engellenmesi.
 

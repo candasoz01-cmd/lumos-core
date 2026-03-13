@@ -10,7 +10,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from core.workspace_contract import may_perform_permanent_delete
+from core.workspace_contract import (
+    CoreWriteForbidden,
+    allow_write_to_core,
+    may_perform_permanent_delete,
+)
 from task_engine.profiles import (
     STEP_TYPE_ANALYZE,
     STEP_TYPE_READ,
@@ -184,11 +188,19 @@ def _break_into_steps(description: str) -> list[TaskStep]:
 
 class TaskStore:
     """Kalıcı görev kaydı: .lumos/tasks.json."""
-    def __init__(self, base_dir: str | Path) -> None:
+    def __init__(
+        self,
+        base_dir: str | Path,
+        *,
+        sandbox_mode: bool = False,
+        live_base_dir: Path | str | None = None,
+    ) -> None:
         self.base_dir = Path(base_dir)
         self._file = self.base_dir / "tasks.json"
         self._tasks: list[TaskRecord] = []
         self._next_id = 1
+        self.sandbox_mode = sandbox_mode
+        self._live_base_dir = Path(live_base_dir) if live_base_dir is not None else None
         self._load()
 
     def _load(self) -> None:
@@ -207,6 +219,12 @@ class TaskStore:
             self._next_id = 1
 
     def _save(self) -> None:
+        if self.sandbox_mode:
+            live = self._live_base_dir.resolve() if self._live_base_dir is not None else self.base_dir.parent
+            if not allow_write_to_core(live, self._file, is_sandbox_mode=True):
+                raise CoreWriteForbidden(
+                    "Sandbox modunda canlı çekirdek state path'e yazma yasak",
+                )
         self.base_dir.mkdir(parents=True, exist_ok=True)
         # Aynı task_id tek kayıt: son yazılan geçerli; sıra task_id ile tutarlı olsun
         by_id: dict[int, TaskRecord] = {t.task_id: t for t in self._tasks}
