@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from core.workspace_contract import config_file_path
+from core.workspace_contract import config_file_path, save_config_json
 
 # Presence defaults (aligned with presence_lock.PresenceLockConfig)
 PRESENCE_DEFAULTS = {
@@ -61,6 +61,16 @@ def _validate_presence(data: dict[str, Any]) -> tuple[dict[str, Any], str | None
     if isinstance(data.get("lock_mode"), str):
         out["lock_mode"] = data["lock_mode"]
     return (out, None)
+
+
+def save_config(
+    base_dir: str | Path,
+    data: dict[str, Any],
+    *,
+    is_sandbox_mode: bool = False,
+) -> None:
+    """config.json yazımı için merkezi sink'e delegasyon. Veriyi hazırla; yazma workspace_contract'ta."""
+    save_config_json(Path(base_dir), data, is_sandbox_mode=is_sandbox_mode)
 
 
 def load_config(base_dir: str | Path) -> dict[str, Any]:
