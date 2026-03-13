@@ -1058,7 +1058,6 @@ def main() -> None:
             pass
 
     def presence_menu(*, state: CoreState, engine: CoreEngine, base_dir: str, initial_cmd: str | None = None) -> str | None:
-        from pathlib import Path as _P
         pl = engine.pl
 
         def _lock_cb():
@@ -1186,8 +1185,7 @@ def main() -> None:
         try:
             import inspect
             import atexit
-            from pathlib import Path as _P
-    
+        
             _base = _P(base_dir)
             _pcfg = pl.load_presence_cfg(_base)
     
@@ -1342,7 +1340,6 @@ def main() -> None:
         print("Alias: alias liste | alias ekle <ad> <hedef> | alias sil <ad>")
 
     def run_panel() -> None:
-        from pathlib import Path as _P
         try:
             from ui.tui import run_tui, tui_available
         except ImportError:
