@@ -56,10 +56,19 @@ def _task_engine_health(base: Path) -> tuple[str, str]:
 
 
 def _read_tasks_payload(base: Path) -> dict:
-    """Read-only: base/tasks.json → task_list, task_filter, selected_task_id, list_updated."""
-    out = {"task_list": [], "task_filter": "all", "selected_task_id": None, "list_updated": None}
+    """Read-only: base/tasks.json → task_list, task_filter, selected_task_id, list_updated, tasks_file_exists, task_count.
+    Güvenli sinyaller: tasks.json var/yok, mtime (list_updated), görev sayısı (task_count)."""
     tasks_file = base / "tasks.json"
-    if not tasks_file.is_file():
+    tasks_file_exists = tasks_file.is_file()
+    out = {
+        "task_list": [],
+        "task_filter": "all",
+        "selected_task_id": None,
+        "list_updated": None,
+        "tasks_file_exists": tasks_file_exists,
+        "task_count": 0,
+    }
+    if not tasks_file_exists:
         return out
     try:
         st_mtime = tasks_file.stat().st_mtime
@@ -89,18 +98,23 @@ def _read_tasks_payload(base: Path) -> dict:
             "guard_result": "—",
             "output_summary": summary[:200] + ("…" if len(summary) > 200 else ""),
         })
+    out["task_count"] = len(out["task_list"])
     return out
 
 def _read_trash_payload(base: Path) -> dict:
-    """Read-only: base/trash dizin listesi → trash_location (çözümlenmiş path), trash_last_move, trash_items."""
+    """Read-only: base/trash dizin listesi → trash_location, trash_last_move, trash_items, trash_dir_exists, trash_item_count.
+    Güvenli sinyaller: trash konumu, dizin var/yok, öğe sayısı, son güncelleme (mtime türetilmiş)."""
     base_resolved = base.resolve()
     trash_dir = base_resolved / "trash"
+    trash_dir_exists = trash_dir.is_dir()
     out = {
         "trash_location": str(trash_dir),
         "trash_last_move": None,
         "trash_items": [],
+        "trash_dir_exists": trash_dir_exists,
+        "trash_item_count": 0,
     }
-    if not trash_dir.is_dir():
+    if not trash_dir_exists:
         return out
     last_mtime = None
     items = []
@@ -129,6 +143,7 @@ def _read_trash_payload(base: Path) -> dict:
         except OSError:
             continue
     out["trash_items"] = items
+    out["trash_item_count"] = len(items)
     if last_mtime is not None:
         try:
             out["trash_last_move"] = datetime.fromtimestamp(last_mtime, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
@@ -137,11 +152,20 @@ def _read_trash_payload(base: Path) -> dict:
     return out
 
 def _read_logs_payload(base: Path) -> dict:
-    """Read-only: base/logs/log.txt son satırlar → log_items, log_filter, log_file_updated, log_location."""
+    """Read-only: base/logs/log.txt son satırlar → log_items, log_filter, log_file_updated, log_location, log_file_exists, log_line_count.
+    Güvenli sinyaller: log dosyası konumu, var/yok, son güncelleme (mtime), satır sayısı (görüntülenen)."""
     base_resolved = base.resolve()
     log_file = base_resolved / "logs" / "log.txt"
-    out = {"log_items": [], "log_filter": "all", "log_file_updated": None, "log_location": str(log_file)}
-    if not log_file.is_file():
+    log_file_exists = log_file.is_file()
+    out = {
+        "log_items": [],
+        "log_filter": "all",
+        "log_file_updated": None,
+        "log_location": str(log_file),
+        "log_file_exists": log_file_exists,
+        "log_line_count": 0,
+    }
+    if not log_file_exists:
         return out
     try:
         mtime = log_file.stat().st_mtime
@@ -164,6 +188,7 @@ def _read_logs_payload(base: Path) -> dict:
             "text": line[:500] + ("…" if len(line) > 500 else ""),
             "ts": ts,
         })
+    out["log_line_count"] = len(out["log_items"])
     return out
 
 def _file_mtime_iso(path: Path) -> str | None:
