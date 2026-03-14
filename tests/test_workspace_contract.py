@@ -456,11 +456,13 @@ def test_ensure_trash_dir_creates_dir(tmp_path):
     assert p.is_dir()
 
 
-def test_ensure_trash_dir_respects_sandbox_guard(tmp_path):
-    """Sandbox modunda canlı çekirdek trash path'ine yazma reddedilir."""
+def test_ensure_trash_dir_sandbox_mode_creates_sandbox_trash(tmp_path):
+    """Sandbox modunda trash, sandbox hedef sözleşmesiyle sandbox/trash altında oluşturulur."""
     base = tmp_path
-    with pytest.raises(CoreWriteForbidden):
-        ensure_trash_dir(base, is_sandbox_mode=True)
+    ensure_trash_dir(base, is_sandbox_mode=True)
+    sandbox_trash = trash_path(sandbox_base_path(base))
+    assert sandbox_trash.is_dir()
+    assert sandbox_trash == base / "sandbox" / "trash"
 
 
 def test_move_to_trash_moves_file(tmp_path):
@@ -477,11 +479,13 @@ def test_move_to_trash_moves_file(tmp_path):
     assert dest.read_text(encoding="utf-8") == "{}"
 
 
-def test_move_to_trash_respects_sandbox_guard(tmp_path):
-    """Sandbox modunda canlı trash path'ine taşıma reddedilir."""
+def test_move_to_trash_sandbox_mode_moves_to_sandbox_trash(tmp_path):
+    """Sandbox modunda taşıma sandbox hedef sözleşmesiyle sandbox/trash altına yapılır."""
     base = tmp_path
     src = base / "orphan.json"
     src.write_text("x", encoding="utf-8")
-    with pytest.raises(CoreWriteForbidden):
-        move_to_trash(base, src, is_sandbox_mode=True)
-    assert src.is_file()
+    dest = move_to_trash(base, src, is_sandbox_mode=True)
+    assert dest == trash_path(sandbox_base_path(base)) / "orphan.json"
+    assert not src.exists()
+    assert dest.is_file()
+    assert dest.read_text(encoding="utf-8") == "x"

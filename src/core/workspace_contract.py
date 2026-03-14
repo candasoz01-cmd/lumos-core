@@ -347,11 +347,12 @@ def ensure_trash_dir(
     """
     Trash dizinini oluşturan merkezi sink (yoksa oluşturur).
 
-    - Path: trash_path(base_dir)
-    - Guard: allow_write_to_core(base_dir, path, is_sandbox_mode)
-      is_sandbox_mode=True iken canlı çekirdek path'e yazmayı reddeder.
+    - Path: trash_path(writing_base_dir(base_dir, is_sandbox_mode)); sandbox sözleşmesi ile hizalı.
+    - Guard: allow_write_to_core(live_base_dir=base_dir, path, is_sandbox_mode)
+      is_sandbox_mode=True iken canlı çekirdek path'e yazmayı reddeder; yazım sandbox/trash'e gider.
     """
-    path = trash_path(base_dir)
+    dest_base = writing_base_dir(base_dir, is_sandbox_mode)
+    path = trash_path(dest_base)
     if not allow_write_to_core(base_dir, path, is_sandbox_mode=is_sandbox_mode):
         raise CoreWriteForbidden(
             "Sandbox modunda canlı çekirdek trash path'ine yazma yasak",
@@ -368,19 +369,19 @@ def move_to_trash(
     """
     Dosya veya dizini sözleşmedeki tek trash dizinine taşıyan merkezi sink.
 
-    - Hedef: trash_path(base_dir) altına; başka çöp dizini kullanılamaz.
-    - Guard: is_allowed_trash_path(base_dir, dest_dir) ve
-      allow_write_to_core(base_dir, dest_dir, is_sandbox_mode).
+    - Hedef: trash_path(writing_base_dir(base_dir, is_sandbox_mode)); sandbox sözleşmesi ile hizalı.
+    - Guard: is_allowed_trash_path(dest_base, dest_dir) ve
+      allow_write_to_core(live_base_dir=base_dir, dest_dir, is_sandbox_mode).
     - Hedef dosya zaten varsa FileExistsError.
 
     Dönüş: taşınan öğenin yeni path'i.
     """
     import shutil
 
-    base = Path(base_dir).resolve()
     source = Path(source_path).resolve()
-    dest_dir = trash_path(base)
-    if not is_allowed_trash_path(base, dest_dir):
+    dest_base = writing_base_dir(base_dir, is_sandbox_mode)
+    dest_dir = trash_path(dest_base)
+    if not is_allowed_trash_path(dest_base, dest_dir):
         raise CoreWriteForbidden(
             "Trash hedefi sözleşmedeki path değil",
         )
