@@ -16,6 +16,7 @@ from cli.cli_parse import (
 )
 from cli.cli_notes import handle_notes
 from cli.cli_readonly import ReadOnlyContext, handle_readonly
+from cli.cli_tasks_mutation import TaskMutationContext, handle_task_mutation
 from core.config import load_config
 from core.engine import CoreEngine
 from core.logfmt import logfmt
@@ -821,6 +822,17 @@ def main(sandbox_mode: bool | None = None) -> None:
     ctx.aliases = aliases
     ctx.record_note_op = lambda label: _record_note_op(note_ops_history, label)
     ctx.record_today_action = lambda action: _record_today_action(today_date, today_actions, action)
+    mut_ctx = TaskMutationContext()
+    mut_ctx.base_dir = base_dir
+    mut_ctx.task_store = task_store
+    mut_ctx.current_permission_profile = current_permission_profile
+    mut_ctx.general_approval = general_approval
+    mut_ctx.current_task = current_task
+    mut_ctx.last_action = last_action
+    mut_ctx.today_date = today_date
+    mut_ctx.today_actions = today_actions
+    mut_ctx.last_task_create_fingerprint = last_task_create_fingerprint
+    mut_ctx.record_today_action = ctx.record_today_action
     while True:
         try:
             pl.watchdog_tick(
@@ -905,98 +917,7 @@ def main(sandbox_mode: bool | None = None) -> None:
             general_approval[0] = False
             print("Genel onay kapalı.")
             continue
-        if route == "gorev_olustur":
-            desc = (args[0] if args else "").strip()
-            if not desc:
-                print("Kullanım: görev oluştur <açıklama>")
-                continue
-            profile = current_permission_profile[0]
-            # Aynı açıklama + aynı profil + çok yakın zamanda oluşturulmuş görev varsa önce uyar, yeni görev açma.
-            from task_engine import find_recent_similar_task  # lokal import: CLI bağımsız test edilebilir
-
-            fingerprint = (profile, desc)
-            similar = find_recent_similar_task(task_store.list_all(), desc, profile)
-            if similar and last_task_create_fingerprint[0] != fingerprint:
-                last_task_create_fingerprint[0] = fingerprint
-                print(
-                    f"Benzer bir görev zaten var: {similar.task_id}. "
-                    "İstersen önce onu inceleyebilirsin (görev durumu/özeti/adımları). "
-                    "Aynı komutu tekrar yazarsan yeni görev oluştururum."
-                )
-                continue
-            last_task_create_fingerprint[0] = None
-            t = task_store.create(title=desc[:80], description=desc, permission_profile=profile)
-            print(f"Görev {t.task_id} oluşturuldu: {t.title}")
-            task_engine = TaskEngine(task_store, profile, general_approval[0], base_dir=base_dir)
-            current_task[0] = "görev yürütülüyor."
-            try:
-                ok, msg = task_engine.run_task(t.task_id)
-                print(msg)
-                last_action[0] = f"Görev {t.task_id} oluşturulup yürütüldü: {t.title}"
-                _record_today_action(today_date, today_actions, last_action[0])
-            finally:
-                current_task[0] = None
-            continue
-        if route == "gorev_iptal":
-            id_str = (args[0] if args else "").strip()
-            if not id_str:
-                print("Kullanım: görev iptal <id>")
-                continue
-            try:
-                tid = int(id_str)
-            except ValueError:
-                print("Geçerli bir görev id yaz.")
-                continue
-            task_engine = TaskEngine(task_store, current_permission_profile[0], general_approval[0], base_dir=base_dir)
-            ok, msg = task_engine.cancel_task(tid)
-            print(msg)
-            continue
-        if route == "gorev_temizle_tamamlananlar":
-            # Yalnızca arşivleme yap; silme yok.
-            count = task_store.archive_completed()
-            if count == 0:
-                print("Arşivlenecek tamamlanmış görev yok.")
-            else:
-                print(f"{count} tamamlanmış görevi arşive taşıdım.")
-            continue
-        if route == "gorev_temizle_simulasyonlar":
-            # Yalnızca arşivleme yap; silme yok.
-            count = task_store.archive_simulations()
-            if count == 0:
-                print("Arşivlenecek simülasyon görevi yok.")
-            else:
-                print(f"{count} simülasyon görevi arşive taşıdım.")
-            continue
-        if route == "gorev_arsivle":
-            id_str = (args[0] if args else "").strip()
-            if not id_str:
-                print("Kullanım: görev arşivle <id>")
-                continue
-            try:
-                tid = int(id_str)
-            except ValueError:
-                print("Geçerli bir görev id yaz.")
-                continue
-            if task_store.archive(tid):
-                print(f"Görev {tid} arşive taşındı (silinmedi).")
-            else:
-                print("Görev bulunamadı veya zaten arşivde.")
-            continue
-        if route == "gorev_sil":
-            id_str = (args[0] if args else "").strip()
-            if not id_str:
-                print("Kullanım: görev sil <id>")
-                continue
-            try:
-                tid = int(id_str)
-            except ValueError:
-                print("Geçerli bir görev id yaz.")
-                continue
-            # Kalıcı silme: yalnızca açık kullanıcı komutu (guard: user_initiated=True).
-            if task_store.delete(tid, user_initiated=True):
-                print("Dikkat: Bu görev kalıcı olarak silindi ve geri alınamaz.")
-            else:
-                print("Silinecek görev bulunamadı.")
+        if handle_task_mutation(route, args, mut_ctx):
             continue
         if route == "exit":
             print("OK")
