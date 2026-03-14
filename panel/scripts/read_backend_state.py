@@ -43,7 +43,6 @@ def _build_state() -> dict:
         return {"dashboard": None, "sandbox": None, "system": None}
 
     writing_label = "sandbox" if is_sandbox else "canlı"
-    sandbox_base = str(sandbox_base_path(base))
 
     dashboard = {
         "sandbox_mode": is_sandbox,
