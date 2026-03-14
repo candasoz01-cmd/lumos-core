@@ -3,8 +3,8 @@
 Read-only backend state for panel Phase 1 bridge.
 Uses only: workspace_contract (paths, writing_base_dir, sandbox_base_path, LUMOS_SANDBOX_DIRNAME)
 and startup_health.consent_ok. No main.py, no write flows, no guard change.
-Output: JSON in fixture-compatible shape for Dashboard, Sandbox, System, Config, Identity, Keystore,
-Tasks, Trash, Logs.
+Output: JSON in fixture-compatible shape for Dashboard, Sandbox, System, Config (config.json mtime only),
+Identity, Keystore, Tasks, Trash, Logs.
 Env: LUMOS_BASE_DIR (default .lumos), LUMOS_SANDBOX_MODE (default false), LUMOS_PROFILE (optional).
 """
 from __future__ import annotations
@@ -182,12 +182,14 @@ def _build_state() -> dict:
 
     writing_label = "sandbox" if is_sandbox else "canlı"
 
-    # Identity / Keystore için güvenli okuma: sadece path varlığı ve mtime; içerik okunmaz. Config bu turda dokunulmaz.
-    identity_path = keystore_path = None
+    # Identity / Keystore için güvenli okuma: sadece path varlığı ve mtime; içerik okunmaz.
+    # Config: sadece config.json path + mtime (içerik okunmaz).
+    identity_path = keystore_path = config_path = None
     try:
-        from core.workspace_contract import identity_file_path, keystore_file_path
+        from core.workspace_contract import identity_file_path, keystore_file_path, config_file_path
         identity_path = identity_file_path(base)
         keystore_path = keystore_file_path(base)
+        config_path = config_file_path(base)
     except Exception:
         pass
 
@@ -250,13 +252,18 @@ def _build_state() -> dict:
             system_health[key] = {"status": default_status, "note": default_note}
     system = {"system_health": system_health}
 
-    # Config: read-only alanlar (workspace path, profil env); bu turda backend okuma yok
+    # Config: read-only — workspace path, profil env, config.json varlık + mtime (içerik okunmaz)
+    config_last = _file_mtime_iso(config_path) if config_path else None
+    if config_last:
+        config_activity_text = "Config dosyası son güncelleme (mtime)."
+    else:
+        config_activity_text = "Config dosyası yok veya okunamadı; yalnızca okuma."
     config_snapshot = {
         "profil": os.environ.get("LUMOS_PROFILE") or "—",
         "workspace_root": str(base),
         "write_status": "Salt okunur",
-        "last_activity": None,
-        "last_activity_text": "Backend yazım kapalı; yalnızca okuma.",
+        "last_activity": config_last,
+        "last_activity_text": config_activity_text,
     }
     config_payload = {"config_snapshot": config_snapshot}
 

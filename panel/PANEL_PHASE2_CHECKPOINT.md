@@ -41,7 +41,13 @@ Aşağıdaki dört ekran ve alanları `read_backend_state.py` çıktısından ge
 
 ### Config (Yapılandırma)
 
-Bu turda dokunulmadı. profil, workspace_root ENV/base; last_activity, last_activity_text sabit/fallback.
+| Alan | Kaynak |
+|------|--------|
+| profil, workspace_root | ENV (LUMOS_PROFILE), base path |
+| write_status | Sabit "Salt okunur" |
+| last_activity | config.json mtime (ISO); dosya yoksa null |
+| last_activity_text | Dosya varsa "Config dosyası son güncelleme (mtime)."; yoksa "Config dosyası yok veya okunamadı; yalnızca okuma." |
+| (içerik) | Okunmaz; sadece path + mtime (identity/keystore ile aynı dar model). |
 
 ### Identity (Kimlik)
 
@@ -59,7 +65,7 @@ Bu turda dokunulmadı. profil, workspace_root ENV/base; last_activity, last_acti
 | keystore_last_update | keystore.json mtime (ISO); yoksa null |
 | keystore_write_scope | Sabit (anahtar/passphrase ifşası yok) |
 
-Dashboard ve Sandbox ENV/base ile beslenir. Config bu turda sabit/fallback; Identity ve Keystore yukarıdaki dar gerçek okumaya bağlıdır.
+Dashboard ve Sandbox ENV/base ile beslenir. Config yukarıdaki dar gerçek okumaya (config.json mtime) bağlıdır; Identity ve Keystore aynı şekilde.
 
 ---
 
@@ -76,7 +82,7 @@ Dashboard ve Sandbox ENV/base ile beslenir. Config bu turda sabit/fallback; Iden
 | **Silinenler** | original_path, scope (öğe bazlı) | Sadece dizin listesi; taşıma metadata yok; "—" |
 | **Kayıtlar** | Satır bazlı timestamp | log.txt satır timestamp’i yok; dosya mtime kullanılıyor |
 | **Kayıtlar** | log_filter | Sabit "all" |
-| **Config** | last_activity, last_activity_text | Bu turda dokunulmadı; sabit/fallback. |
+| **Config** | (yok) | last_activity config.json mtime; last_activity_text backend’den; okunamayan açık fallback. |
 | **Identity / Keystore** | (giderildi) | Phase 2 dar okuma: identity.json / keystore.json varlık + mtime; içerik okunmaz. Dosya yoksa null / açık fallback. |
 
 ---
@@ -103,7 +109,8 @@ Dashboard ve Sandbox ENV/base ile beslenir. Config bu turda sabit/fallback; Iden
 
 ## 5. Sonraki mantıklı teknik adım
 
-- **A) Kimlik ve Anahtar Kasası Phase 2 dar okuma:** Uygulandı. identity.json / keystore.json varlık ve mtime; içerik okunmaz. Yapılandırma bu turda dokunulmadı.
+- **A) Kimlik ve Anahtar Kasası Phase 2 dar okuma:** Uygulandı. identity.json / keystore.json varlık ve mtime; içerik okunmaz.
+- **B) Yapılandırma Phase 2 dar okuma:** config.json path + mtime (last_activity, last_activity_text); içerik okunmaz. Okunamayan alanlar açık fallback.
 - **B) read_backend_state.py içinde tekrar eden okumaları sadeleştirme:** İsteğe bağlı; aynı base/dosyalara birden fazla stat/okuma tek geçişte toplanabilir. Davranış değişmez.
 
 ---

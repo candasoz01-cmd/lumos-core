@@ -54,11 +54,11 @@ window.__LUMOS_READ_STATE__ = {
       "workspace_root": ".lumos",
       "write_status": "Salt okunur",
       "last_activity": null,
-      "last_activity_text": "Backend yazım kapalı; yalnızca okuma."
+      "last_activity_text": "Config dosyası yok veya okunamadı; yalnızca okuma."
     }
   },
   "identity": {
-    "identity_state": "—",
+    "identity_state": "mevcut değil",
     "identity_last_write": null,
     "identity_target_scope": "çekirdek kimlik alanı",
     "identity_guard_result": "Korunuyor"
