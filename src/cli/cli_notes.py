@@ -16,7 +16,6 @@ from cli.cli_parse import (
     NOT_ADLANDIR_MAX_TAG_LEN,
     NOT_OZETLE_SHORT_THRESHOLD,
     _fold_for_search,
-    _record_note_op,
     _shorten_previous_response,
 )
 from cli.cli_readonly import ReadOnlyContext
@@ -218,7 +217,6 @@ def handle_notes(
         return True
 
     # ---- Note mutations (in-memory saved_notes only) ----
-    CLI_NORMAL = "normal_komut_modu"
     CLI_NOT_BEKLEME = "not_bekleme_modu"
     CLI_NOT_DUZENLEME = "not_duzenleme_modu"
 
