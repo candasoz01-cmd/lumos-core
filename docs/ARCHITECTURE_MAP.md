@@ -157,4 +157,20 @@ lumos-core/
 4. **Web:** If panel is served by the same process, serve static panel from a dedicated prefix and keep /health and /status separate; avoid mixing write endpoints with read-only contract without explicit design.
 5. **Tests:** Keep inviolable and workspace_contract tests; add integration tests for panel adapter (given __LUMOS_READ_STATE__, getXxxData() matches CONTRACTS).
 
+---
+
+## 8. Related docs
+
+| Doc | Purpose |
+|-----|---------|
+| **docs/DEPENDENCY_AUDIT.md** | Dependency and import coupling audit: core ↔ security/task_engine/policy/memory, panel/web coupling, fat entrypoints, circular risk, safe refactor priorities. |
+| **Stabilization audits and execution plan** | |
+| **docs/STABILIZATION_MAIN_SPLIT_PLAN.md** | Plan to reduce main.py surface area: thin router, extraction of lock/presence/tasks/notes/status into cli modules; target structure, extraction order, exact moves, risks. |
+| **docs/WORKSPACE_CONTRACT_STABILITY_AUDIT.md** | Stable public API for workspace_contract; risky usages outside contract; freeze rules; minimal safe improvements (path helpers, call-site alignment). |
+| **docs/PERSISTENT_WRITE_PATH_AUDIT.md** | File-by-file list of write locations for tasks, logs, trash, config, aliases, notes, presence, identity, keystore; compliance with workspace_contract; remediation priorities. |
+| **docs/WEB_STABILIZATION_AUDIT.md** | Web app dependency map; read-only guarantee; log path fix; rules to keep web minimal; safe next steps and panel-serving guidance. |
+| **docs/PANEL_READONLY_AUDIT.md** | Panel read-only data flow (backend-bridge, contracts, fixtures, read_backend_state.py, __LUMOS_READ_STATE__); weak points; contract safety; refactor priorities. |
+| **docs/STARTUP_HEALTH_AUDIT.md** | startup_health.py dependency hygiene; no workspace_contract/security/presence_lock import; boundary rules; injected deps only. |
+| **docs/STABILIZATION_EXECUTION_PLAN.md** | Single execution plan: top 7 tasks in safest order, analysis vs code-change, low-risk first, no-touch areas, regression test checklist. |
+
 This map is the single reference for core modules, panel structure, backend contracts, and coupling; update it when adding new core state, panel screens, or entry points.
