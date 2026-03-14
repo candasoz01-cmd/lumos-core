@@ -1,6 +1,7 @@
 /**
  * Lumos Panel v1 — operatör paneli.
- * Ortak bileşenler, merkezi mock state, hash routing. Backend entegrasyonu yok.
+ * Veri adapter katmanı: ekranlar normalize veri ile beslenir; kaynak şu an mockState (backend yok).
+ * Ortak bileşenler, hash routing. Gerçek API entegrasyonu sonraki aşamada adapter üzerinden eklenecek.
  */
 
 (function () {
@@ -27,7 +28,7 @@
     '<p class="empty-desc">' + EMPTY_DESC_DEFAULT + "</p>" +
     "</div>";
 
-  // ——— Merkezi mock state (tek kaynak) ———
+  // ——— Merkezi mock state (tek kaynak; adapter dışında doğrudan okunmaz) ———
   var mockState = {
     appMode: "offline",
     sandboxMode: false,
@@ -138,7 +139,258 @@
     return v[status] || "badge-mode";
   }
 
-  // ——— Mock state helper'ları ———
+  // ——— Veri adapter (tek kaynak: mockState; normalize çıktı) ———
+  var TASK_FILTERS = [
+    { id: "all", label: "Tümü" },
+    { id: "active", label: "Aktif" },
+    { id: "pending", label: "Bekleyen" },
+    { id: "completed", label: "Tamamlandı" },
+    { id: "failed", label: "Başarısız" },
+    { id: "blocked", label: "Engellenen" },
+  ];
+  var LOG_FILTERS = [
+    { id: "all", label: "Tümü", kind: null },
+    { id: "tasks", label: "Görevler", kind: "görev" },
+    { id: "sandbox", label: "Korumalı Alan", kind: "sandbox" },
+    { id: "config", label: "Yapılandırma", kind: "config" },
+    { id: "trash", label: "Silinenler", kind: "trash" },
+    { id: "identity", label: "Kimlik", kind: "identity" },
+    { id: "keystore", label: "Anahtar Kasası", kind: "keystore" },
+    { id: "guard", label: "Koruma", kind: "guard" },
+  ];
+
+  function filterTaskList(list, filterId) {
+    if (!list) return [];
+    if (filterId === "all") return list;
+    var statusMap = { active: "aktif", pending: "bekleyen", completed: "tamamlandı", failed: "başarısız", blocked: "engellenen" };
+    var status = statusMap[filterId];
+    return status ? list.filter(function (t) { return t.status === status; }) : list;
+  }
+
+  function getDashboardData() {
+    var lastEv = mockState.recentEvents && mockState.recentEvents[0] ? mockState.recentEvents[0] : null;
+    var sandboxBadge = mockState.sandboxMode ? { label: "KORUMALI ALAN", variant: "badge-sandbox" } : null;
+    return {
+      title: "Gösterge Paneli",
+      subtitle: "Sistem durumu özeti",
+      metrics: [
+        { title: "Korumalı Alan Durumu", value: mockState.sandboxMode ? " Açık" : "Kapalı", valueBadge: sandboxBadge, note: mockState.sandboxMode ? "Yazım sandbox dizinine yönlendiriliyor; canlıya overwrite yok." : "Yazım doğrudan çalışma alanına gidiyor." },
+        { title: "Yazım Hedefi", value: mockState.writingBaseDir, note: mockState.writingBaseDir === "canlı" ? "Tüm yazma işlemleri çalışma alanına gidiyor." : "Yazma işlemleri sandbox base'e yönlendiriliyor." },
+        { title: "Koruma Durumu", valueBadge: { label: mockState.guardStatus, variant: "badge-guard" }, note: "Çekirdek state path'ler guard ile korunuyor; sözleşme hedefi dışına yazılmaz." },
+        { title: "Son Aktivite", value: lastEv ? formatTime(lastEv.ts) : "—", note: lastEv ? (lastEv.text || "—") : "Henüz kayıt yok." },
+      ],
+      sections: [
+        { title: "Son Olaylar", events: mockState.recentEvents },
+        { title: "Uyarılar ve notlar", warnings: mockState.warnings },
+        { title: "Hızlı geçişler", links: true },
+      ],
+    };
+  }
+
+  function getTasksData() {
+    var filter = mockState.taskFilter || "all";
+    var list = mockState.taskList || [];
+    var filtered = filterTaskList(list, filter);
+    var selected = mockState.selectedTaskId ? list.filter(function (x) { return x.id === mockState.selectedTaskId; })[0] : null;
+    return {
+      title: "Görevler",
+      subtitle: "Liste, detay ve guard sonucu",
+      filters: TASK_FILTERS,
+      activeFilter: filter,
+      listItems: filtered,
+      selectedId: mockState.selectedTaskId,
+      selectedTask: selected,
+      emptyListTitle: "Bu filtrede görev yok",
+      emptyListDesc: "Farklı filtre seçin. " + EMPTY_DESC_DEFAULT,
+      detailTitle: "Görev Detayı",
+      runNoteTitle: "Çalıştırma notu",
+      runNoteBody: "Son çalıştırma ve guard sonucu yukarıdaki detayda. Canlı entegrasyonda test notu burada doldurulacak.",
+    };
+  }
+
+  function getSandboxData() {
+    var m = mockState;
+    var contractBadge = m.sandboxMode ? { label: "KORUMALI ALAN", variant: "badge-sandbox" } : null;
+    return {
+      title: "Korumalı Alan",
+      subtitle: "Yazım hedefi ve sandbox durumu",
+      metrics: [
+        { title: "Kaynak", value: m.sandboxSource || "varsayılan", note: "Öncelik: CLI → ENV → varsayılan. Şu an: " + (m.sandboxSource || "varsayılan") + "." },
+        { title: "Sandbox Base", value: m.sandboxMode ? ".lumos/sandbox veya sözleşmeyle tanımlı base" : "— (korumalı alan kapalı)", note: m.sandboxMode ? "Korumalı alan açıkken tüm yazım bu dizine yönlendirilir." : "Korumalı alan açıldığında sözleşmedeki base kullanılır." },
+        { title: "Yazım Yönü", value: m.writingBaseDir, note: m.writingBaseDir === "canlı" ? "Yazım doğrudan çalışma alanına gidiyor." : "Yazım sandbox base'e yönlendiriliyor." },
+        { title: "Sözleşme Durumu", value: m.sandboxMode ? " Sözleşme tanımlı" : "Canlı mod; sandbox sözleşmesi devre dışı.", valueBadge: contractBadge, note: "Sandbox hedef dizini workspace sözleşmesiyle sabit; yeni çöp/sandbox alanı oluşturulmaz." },
+      ],
+      sections: [
+        { title: "Çözümleme Mantığı", body: "<p>Kaynak önceliği: <strong>CLI → ENV → varsayılan</strong>. Sistem kendi kafasına canlı hedef seçmez; yazma hedefi tek kaynaktan (canlı base veya sözleşmeyle tanımlı sandbox base) gelir.</p><p class=\"text-muted-small\">Resolution: single source of truth.</p>" },
+        { title: "Guard Kuralı", body: "<p>Çekirdek state path'lere doğrudan overwrite yapılmaz. Yazma hedefi tek kaynaktan belirlenir. Canlı çekirdek ile sandbox hedefi ayrı tutulur.</p><p class=\"text-muted-small\">Core state: tasks, logs, trash, config, aliases.</p>" },
+        { title: "Canlı çekirdek / sandbox hedef farkı", body: "<p><strong>Canlı:</strong> Doğrudan çalışma alanı (.lumos vb.).</p><p><strong>Sandbox:</strong> Tanımlı kopya alanı; deneme/geliştirme burada yapılır, canlıya overwrite yok.</p><p class=\"text-muted-small\">Sandbox aktifken çekirdek path'ler okuma için kullanılabilir; yazım yalnızca sandbox base'e.</p>" },
+      ],
+    };
+  }
+
+  function getConfigData() {
+    var cfg = mockState.configSnapshot || {};
+    var lastEv = mockState.recentEvents && mockState.recentEvents[2] ? mockState.recentEvents[2] : null;
+    return {
+      title: "Yapılandırma",
+      subtitle: "Config özeti ve yazım durumu",
+      metrics: [
+        { title: "Mevcut Yapılandırma Özeti", value: (cfg.profil || "—") + " · " + (cfg.workspace_root || "—"), note: "config.json; profil ve workspace kökü." },
+        { title: "Yazım Durumu", value: cfg.writeStatus || "—", note: "Config yazımları merkezi sink/guard hattı üzerinden geçer; sözleşme hedefi dışına yazılmaz." },
+        { title: "Son Config Aktivitesi", value: cfg.lastActivity ? formatTime(cfg.lastActivity) : (lastEv ? formatTime(lastEv.ts) : "—"), note: cfg.lastActivityText || (lastEv ? lastEv.text : "—") },
+      ],
+      sections: [
+        { title: "Sink / Guard hattı", body: "<p>Config yazımları <strong>merkezi sink/guard hattı</strong> üzerinden geçer. Çekirdek state path'ler (config, tasks, logs, trash, aliases) sözleşme ve guard ile korunur; hedef dışına yazım yapılmaz.</p><p class=\"text-muted-small\">Sink: tek giriş noktası; guard: hedef ve kapsam kontrolü.</p>" },
+      ],
+    };
+  }
+
+  function getIdentityData() {
+    var m = mockState;
+    return {
+      title: "Kimlik",
+      subtitle: "Kimlik durumu ve kapsam",
+      metrics: [
+        { title: "Kimlik hazır mı", value: m.identityState || "—", note: "Kimlik hattı sink/guard omurgasına bağlı; riskli işlemler panelden açılmaz." },
+        { title: "Son Yazım", value: m.identityLastWrite ? formatTime(m.identityLastWrite) : "—", note: "Son kimlik yazım/zamanı (mock)." },
+        { title: "Hedef Kapsam", value: m.identityTargetScope || "—", note: "Çekirdek kimlik alanı; yetki dışı değişiklik yapılmaz." },
+        { title: "Guard Sonucu", value: m.identityGuardResult || "—", note: "Guard sonucu: kimlik alanı korunuyor." },
+      ],
+      sections: [
+        { title: "Sink / Guard bağlantısı", body: "<p>Bu hattın <strong>sink/guard omurgasına</strong> bağlı olduğu bu ekrandan görünür. Kimlik alanı çekirdek güvenlik kapsamında; riskli işlemler açılmaz, sadece durum ve kapsam görünürlüğü sağlanır.</p><p class=\"text-muted-small\">Identity sink: tek giriş; guard: kapsam ve yetki kontrolü.</p>" },
+      ],
+    };
+  }
+
+  function getKeystoreData() {
+    var m = mockState;
+    return {
+      title: "Anahtar Kasası",
+      subtitle: "Durum görünürlüğü; anahtar ifşası yok",
+      metrics: [
+        { title: "Hazır mı", value: m.keystoreReady ? "Evet" : "Hayır (kilitli)", note: "Anahtar materyali ekranda açık gösterilmez; sadece durum ve akış görünürlüğü." },
+        { title: "Şifreli Durum", value: m.keystoreState || "—", note: "Passphrase ve anahtar içeriği gösterilmez." },
+        { title: "Son Güncelleme", value: m.keystoreLastUpdate ? formatTime(m.keystoreLastUpdate) : "—", note: "Son güncelleme zamanı (mock)." },
+        { title: "Yazım Kapsamı", value: m.keystoreWriteScope || "—", note: "Kilit açılmadan hassas yazım yapılmaz." },
+      ],
+      sections: [
+        { title: "Görünürlük ilkesi", body: "<p>Anahtar kasası ekranı <strong>durum ve akış görünürlüğü</strong> sağlar. Anahtar materyali (passphrase, key içeriği) açık gösterilmez; yalnızca hazır mı, şifreli durum, son güncelleme ve yazım kapsamı bilgisi gösterilir.</p><p class=\"text-muted-small\">Keystore sink: tek giriş; hassas veri panelde ifşa edilmez.</p>" },
+      ],
+    };
+  }
+
+  function getTrashData() {
+    var items = mockState.trashItems || [];
+    var selected = mockState.selectedTrashId ? items.filter(function (x) { return x.id === mockState.selectedTrashId; })[0] : null;
+    return {
+      title: "Silinenler",
+      subtitle: "Çöp konumu ve liste",
+      summaryMetrics: [
+        { title: "Çöp Konumu", value: mockState.trashLocation },
+        { title: "Son Taşıma", value: formatTime(mockState.trashLastMove) },
+        { title: "Öğe Sayısı", value: String(items.length) },
+        { title: "Kapsam", value: ".lumos/trash — aktif state kaynağı değildir" },
+      ],
+      listItems: items,
+      selectedId: mockState.selectedTrashId,
+      selectedItem: selected,
+      detailTitle: "Seçilen öğe",
+      emptyListTitle: "Çöp listesi boş",
+      emptyListDesc: "Silinen öğe yok. " + EMPTY_DESC_DEFAULT,
+      emptyDetailPlaceholder: "Listeden bir öğe seçin.",
+    };
+  }
+
+  function getLogsData() {
+    var filter = mockState.logFilter || "all";
+    var list = mockState.logItems || [];
+    var kindForFilter = null;
+    for (var fi = 0; fi < LOG_FILTERS.length; fi++) {
+      if (LOG_FILTERS[fi].id === filter) { kindForFilter = LOG_FILTERS[fi].kind; break; }
+    }
+    var filtered = filter === "all" || !kindForFilter ? list : list.filter(function (e) { return e.kind === kindForFilter; });
+    return {
+      title: "Kayıtlar",
+      subtitle: "Olay akışı",
+      filters: LOG_FILTERS,
+      activeFilter: filter,
+      events: filtered,
+      sectionTitle: "Kayıt listesi",
+    };
+  }
+
+  function getSystemStatusData() {
+    var h = mockState.systemHealth || {};
+    var healthKeys = [
+      { key: "workspace_contract", title: "Workspace Sözleşmesi" },
+      { key: "task_engine", title: "Görev Motoru" },
+      { key: "sandbox_source", title: "Sandbox Kaynağı" },
+      { key: "trash_contract", title: "Trash Sözleşmesi" },
+      { key: "config_sink", title: "Config Sink" },
+      { key: "identity_sink", title: "Identity Sink" },
+      { key: "keystore_sink", title: "Keystore Sink" },
+      { key: "general", title: "Genel Sağlık" },
+    ];
+    var healthCards = [];
+    for (var i = 0; i < healthKeys.length; i++) {
+      var raw = h[healthKeys[i].key];
+      var status = !raw ? "—" : (typeof raw === "string" ? raw : (raw.status || "—"));
+      var note = !raw ? "Veri yok." : (typeof raw === "string" ? "" : (raw.note || ""));
+      healthCards.push({ title: healthKeys[i].title, status: status, note: note });
+    }
+    return { title: "Sistem Durumu", subtitle: "Çekirdek parçaların durumu", healthCards: healthCards };
+  }
+
+  function getTopbarData() {
+    var badges = [
+      { label: getBadgeLabel("mode", mockState.appMode), variant: getBadgeVariant(getBadgeLabel("mode", mockState.appMode)) },
+      { label: getBadgeLabel("lock", mockState.keystoreState === "Kilitli" ? "LOCKED" : "UNLOCKED"), variant: getBadgeVariant(getBadgeLabel("lock", mockState.keystoreState === "Kilitli" ? "LOCKED" : "UNLOCKED")) },
+    ];
+    if (mockState.sandboxMode) badges.push({ label: "KORUMALI ALAN", variant: "badge-sandbox" });
+    return { basePath: mockState.basePath || "—", badges: badges };
+  }
+
+  function getSidebarData() {
+    return { workspaceName: mockState.workspaceName || "—", branchName: mockState.branchName || "—" };
+  }
+
+  // ——— Build helpers (adapter çıktısını HTML'e çevirir) ———
+  function buildMetric(m) {
+    var value = m.value;
+    if (m.valueBadge) value = StatusBadge(m.valueBadge.label, m.valueBadge.variant) + (value != null && value !== "" ? value : "");
+    if (value == null || value === "") value = "—";
+    return MetricCard(m.title, value, m.note);
+  }
+
+  function buildMetricCards(metrics) {
+    var html = "";
+    for (var i = 0; i < metrics.length; i++) html += buildMetric(metrics[i]);
+    return html;
+  }
+
+  function buildSection(title, bodyHtml) {
+    return SectionCard(title, bodyHtml);
+  }
+
+  function buildBadge(label, variant) {
+    return StatusBadge(label, variant || getBadgeVariant(label));
+  }
+
+  function buildEmptyState(title, desc) {
+    return EmptyState(title || "Henüz veri yok", desc || EMPTY_DESC_DEFAULT);
+  }
+
+  function buildDetailRows(rows) {
+    var html = "";
+    for (var i = 0; i < rows.length; i++) html += "<p><strong>" + rows[i].label + ":</strong> " + (rows[i].value != null ? rows[i].value : "—") + "</p>";
+    return html;
+  }
+
+  function buildDetailPanel(title, bodyHtml) {
+    return DetailPanel(title, bodyHtml);
+  }
+
+  // ——— Ortak bileşenler (UI primitives) ———
   function renderMetricCards(items) {
     var html = "";
     for (var i = 0; i < items.length; i++) {
@@ -196,7 +448,7 @@
     return '<div class="detail-panel"><div class="detail-title">' + title + "</div><div class=\"detail-body\">" + bodyHtml + "</div></div>";
   }
 
-  // ——— Sidebar (sol menü) ———
+  // ——— Sidebar (adapter verisi) ———
   function renderSidebar() {
     var nav = document.getElementById("nav-menu");
     if (!nav) return;
@@ -208,26 +460,26 @@
         return '<a href="' + s.hash + '"' + active + ">" + s.label + "</a>";
       })
       .join("");
+    var data = getSidebarData();
     var ws = document.getElementById("sidebar-workspace");
-    if (ws) ws.textContent = "Çalışma Alanı: " + (mockState.workspaceName || "—");
+    if (ws) ws.textContent = "Çalışma Alanı: " + data.workspaceName;
     var meta = document.getElementById("sidebar-meta");
-    if (meta) meta.textContent = "Dal: " + (mockState.branchName || "—") + " · Mod: DEV";
+    if (meta) meta.textContent = "Dal: " + data.branchName + " · Mod: DEV";
   }
 
-  // ——— Topbar (üst bar) ———
+  // ——— Topbar (adapter verisi) ———
   function renderTopbar() {
     var screen = getCurrentScreen();
     var titleEl = document.getElementById("topbar-pagetitle");
     if (titleEl) titleEl.textContent = screen.label || "—";
+    var data = getTopbarData();
     var baseEl = document.getElementById("topbar-base-label");
-    if (baseEl) baseEl.textContent = "Temel: " + (mockState.basePath || "—");
+    if (baseEl) baseEl.textContent = "Temel: " + data.basePath;
     var wrap = document.getElementById("topbar-badges");
     if (wrap) {
-      var badges = [];
-      badges.push(StatusBadge(getBadgeLabel("mode", mockState.appMode)));
-      badges.push(StatusBadge(getBadgeLabel("lock", mockState.keystoreState === "Kilitli" ? "LOCKED" : "UNLOCKED")));
-      if (mockState.sandboxMode) badges.push(StatusBadge("KORUMALI ALAN"));
-      wrap.innerHTML = badges.join("");
+      var html = "";
+      for (var i = 0; i < data.badges.length; i++) html += buildBadge(data.badges[i].label, data.badges[i].variant);
+      wrap.innerHTML = html;
     }
   }
 
@@ -240,293 +492,156 @@
     return { id: "_empty", label: "", hash: hash };
   }
 
-  // ——— Ekran: Gösterge Paneli (ortak bileşenler) ———
+  // ——— Ekran: Gösterge Paneli (adapter + build) ———
   function renderDashboard() {
-    var lastEv = mockState.recentEvents && mockState.recentEvents[0] ? mockState.recentEvents[0] : null;
-    var sandboxValue = mockState.sandboxMode
-      ? StatusBadge("KORUMALI ALAN") + " Açık"
-      : "Kapalı";
-    var sandboxNote = mockState.sandboxMode
-      ? "Yazım sandbox dizinine yönlendiriliyor; canlıya overwrite yok."
-      : "Yazım doğrudan çalışma alanına gidiyor.";
-    var guardValue = StatusBadge(mockState.guardStatus);
-    var guardNote = "Çekirdek state path'ler guard ile korunuyor; sözleşme hedefi dışına yazılmaz.";
-    var writingNote = mockState.writingBaseDir === "canlı"
-      ? "Tüm yazma işlemleri çalışma alanına gidiyor."
-      : "Yazma işlemleri sandbox base'e yönlendiriliyor.";
-    var activityValue = lastEv ? formatTime(lastEv.ts) : "—";
-    var activityNote = lastEv ? (lastEv.text || "—") : "Henüz kayıt yok.";
-    var cards = renderMetricCards([
-      { title: "Korumalı Alan Durumu", value: sandboxValue, techNote: sandboxNote },
-      { title: "Yazım Hedefi", value: mockState.writingBaseDir, techNote: writingNote },
-      { title: "Koruma Durumu", value: guardValue, techNote: guardNote },
-      { title: "Son Aktivite", value: activityValue, techNote: activityNote },
-    ]);
+    var data = getDashboardData();
+    var cards = buildMetricCards(data.metrics);
     var warningsHtml = "";
-    if (mockState.warnings && mockState.warnings.length > 0) {
+    if (data.sections[1].warnings && data.sections[1].warnings.length > 0) {
       warningsHtml = "<ul class=\"event-list\">";
-      for (var w = 0; w < mockState.warnings.length; w++) {
-        warningsHtml += "<li>" + StatusBadge("UYARI", "badge-warning") + " " + mockState.warnings[w] + "</li>";
+      for (var w = 0; w < data.sections[1].warnings.length; w++) {
+        warningsHtml += "<li>" + buildBadge("UYARI", "badge-warning") + " " + data.sections[1].warnings[w] + "</li>";
       }
       warningsHtml += "</ul>";
     } else {
       warningsHtml = "<p class=\"text-muted-small\">Uyarı veya not yok.</p>";
     }
     var sections =
-      renderSection("Son Olaylar", EventList(mockState.recentEvents)) +
-      renderSection("Uyarılar ve notlar", warningsHtml) +
-      renderSection("Hızlı geçişler", '<p><a href="#tasks" class="inline-link">Görevler</a> · <a href="#sandbox" class="inline-link">Korumalı Alan</a> · <a href="#config" class="inline-link">Yapılandırma</a> · <a href="#logs" class="inline-link">Kayıtlar</a></p><p class="text-muted-small">Hash ile sayfa yenilenmeden geçiş.</p>');
-    return ViewHeader("Gösterge Paneli", "Sistem durumu özeti") + '<div class="cards-grid">' + cards + "</div>" + sections;
+      buildSection("Son Olaylar", EventList(data.sections[0].events)) +
+      buildSection("Uyarılar ve notlar", warningsHtml) +
+      buildSection("Hızlı geçişler", '<p><a href="#tasks" class="inline-link">Görevler</a> · <a href="#sandbox" class="inline-link">Korumalı Alan</a> · <a href="#config" class="inline-link">Yapılandırma</a> · <a href="#logs" class="inline-link">Kayıtlar</a></p><p class="text-muted-small">Hash ile sayfa yenilenmeden geçiş.</p>');
+    return ViewHeader(data.title, data.subtitle) + '<div class="cards-grid">' + cards + "</div>" + sections;
   }
 
-  // ——— Ekran: Görevler (ViewHeader, SectionCard, DetailPanel, MetricCard, EmptyState) ———
-  var TASK_FILTERS = [
-    { id: "all", label: "Tümü" },
-    { id: "active", label: "Aktif" },
-    { id: "pending", label: "Bekleyen" },
-    { id: "completed", label: "Tamamlandı" },
-    { id: "failed", label: "Başarısız" },
-    { id: "blocked", label: "Engellenen" },
-  ];
-
-  function filterTaskList(list, filterId) {
-    if (!list) return [];
-    if (filterId === "all") return list;
-    var statusMap = { active: "aktif", pending: "bekleyen", completed: "tamamlandı", failed: "başarısız", blocked: "engellenen" };
-    var status = statusMap[filterId];
-    return status ? list.filter(function (t) { return t.status === status; }) : list;
-  }
-
+  // ——— Ekran: Görevler (adapter + build) ———
   function renderTasks() {
-    var filter = mockState.taskFilter || "all";
-    var filtered = filterTaskList(mockState.taskList, filter);
-    var tabsHtml = TASK_FILTERS.map(function (f) {
-      var active = f.id === filter ? " active" : "";
+    var data = getTasksData();
+    var tabsHtml = data.filters.map(function (f) {
+      var active = f.id === data.activeFilter ? " active" : "";
       return '<button type="button" class="log-tab task-filter-tab' + active + '" data-task-filter="' + f.id + '">' + f.label + "</button>";
     }).join("");
     var listBody = '<div class="task-filters" id="task-filters">' + tabsHtml + "</div>";
-    if (filtered.length === 0) {
-      listBody += renderEmptyState("Bu filtrede görev yok", "Farklı filtre seçin. " + EMPTY_DESC_DEFAULT);
+    if (data.listItems.length === 0) {
+      listBody += buildEmptyState(data.emptyListTitle, data.emptyListDesc);
     } else {
       var listItems = "";
-      filtered.forEach(function (t) {
-        var sel = mockState.selectedTaskId === t.id ? " selected" : "";
-        var badge = StatusBadge(t.status, getTaskStatusVariant(t.status));
+      data.listItems.forEach(function (t) {
+        var sel = data.selectedId === t.id ? " selected" : "";
+        var badge = buildBadge(t.status, getTaskStatusVariant(t.status));
         listItems += '<li class="list-item' + sel + '" data-task-id="' + t.id + '"><span class="task-list-badge">' + badge + "</span> " + t.title + "</li>";
       });
       listBody += '<ul class="list-selectable" id="task-list">' + listItems + "</ul>";
     }
-    var listSection = renderSection("Görev Listesi", listBody);
+    var listSection = buildSection("Görev Listesi", listBody);
 
-    var selected = mockState.selectedTaskId
-      ? mockState.taskList.filter(function (x) { return x.id === mockState.selectedTaskId; })[0]
-      : null;
     var detailContent;
-    if (!selected) {
-      detailContent = EmptyState("Görev seçilmedi", "Listeden bir görev seçin.");
+    if (!data.selectedTask) {
+      detailContent = buildEmptyState("Görev seçilmedi", "Listeden bir görev seçin.");
     } else {
-      var lastRunVal = selected.lastRun ? formatTime(selected.lastRun) : "—";
-      var lastRunNote = selected.lastRun ? "Son çalıştırma (mock)." : "Henüz çalıştırılmadı.";
-      var guardVal = selected.guardResult || "—";
-      var guardNote = "Guard: izinli / reddedildi / engelli.";
-      var outVal = (selected.outputSummary || "—").slice(0, 120);
-      if ((selected.outputSummary || "").length > 120) outVal += "…";
-      var outNote = "Çıktı özeti.";
-      var metricRows = renderMetricCards([
-        { title: "Son çalıştırma", value: lastRunVal, techNote: lastRunNote },
-        { title: "Guard sonucu", value: guardVal, techNote: guardNote },
-        { title: "Çıktı özeti", value: outVal, techNote: outNote },
+      var t = data.selectedTask;
+      var lastRunVal = t.lastRun ? formatTime(t.lastRun) : "—";
+      var lastRunNote = t.lastRun ? "Son çalıştırma (mock)." : "Henüz çalıştırılmadı.";
+      var outVal = (t.outputSummary || "—").slice(0, 120);
+      if ((t.outputSummary || "").length > 120) outVal += "…";
+      var metricRows = buildMetricCards([
+        { title: "Son çalıştırma", value: lastRunVal, note: lastRunNote },
+        { title: "Guard sonucu", value: t.guardResult || "—", note: "Guard: izinli / reddedildi / engelli." },
+        { title: "Çıktı özeti", value: outVal, note: "Çıktı özeti." },
       ]);
       detailContent =
-        "<p><strong>" + selected.title + "</strong></p>" +
-        "<p>Durum: " + StatusBadge(selected.status, getTaskStatusVariant(selected.status)) + " · Güncelleme: " + formatTime(selected.updated) + "</p>" +
+        "<p><strong>" + t.title + "</strong></p>" +
+        "<p>Durum: " + buildBadge(t.status, getTaskStatusVariant(t.status)) + " · Güncelleme: " + formatTime(t.updated) + "</p>" +
         '<div class="detail-metrics">' + metricRows + "</div>";
     }
-    var detail = DetailPanel("Görev Detayı", detailContent);
-
-    var runNoteSection = renderSection("Çalıştırma notu", "<p class=\"text-muted-small\">Son çalıştırma ve guard sonucu yukarıdaki detayda. Canlı entegrasyonda test notu burada doldurulacak.</p>");
-
-    return ViewHeader("Görevler", "Liste, detay ve guard sonucu") + '<div class="split-view">' + listSection + detail + "</div>" + runNoteSection;
+    var detail = buildDetailPanel(data.detailTitle, detailContent);
+    var runNoteSection = buildSection(data.runNoteTitle, "<p class=\"text-muted-small\">" + data.runNoteBody + "</p>");
+    return ViewHeader(data.title, data.subtitle) + '<div class="split-view">' + listSection + detail + "</div>" + runNoteSection;
   }
 
-  // ——— Ekran: Korumalı Alan (ortak bileşenler) ———
+  // ——— Ekran: Korumalı Alan (adapter + build) ———
   function renderSandbox() {
-    var sourceNote = "Öncelik: CLI → ENV → varsayılan. Şu an: " + (mockState.sandboxSource || "varsayılan") + ".";
-    var sandboxBase = mockState.sandboxMode ? ".lumos/sandbox veya sözleşmeyle tanımlı base" : "— (korumalı alan kapalı)";
-    var sandboxNote = mockState.sandboxMode ? "Korumalı alan açıkken tüm yazım bu dizine yönlendirilir." : "Korumalı alan açıldığında sözleşmedeki base kullanılır.";
-    var dirValue = mockState.writingBaseDir;
-    var dirNote = dirValue === "canlı" ? "Yazım doğrudan çalışma alanına gidiyor." : "Yazım sandbox base'e yönlendiriliyor.";
-    var contractValue = mockState.sandboxMode ? StatusBadge("KORUMALI ALAN") + " Sözleşme tanımlı" : "Canlı mod; sandbox sözleşmesi devre dışı.";
-    var contractNote = "Sandbox hedef dizini workspace sözleşmesiyle sabit; yeni çöp/sandbox alanı oluşturulmaz.";
-    var topCards = renderMetricCards([
-      { title: "Kaynak", value: mockState.sandboxSource || "varsayılan", techNote: sourceNote },
-      { title: "Sandbox Base", value: sandboxBase, techNote: sandboxNote },
-      { title: "Yazım Yönü", value: dirValue, techNote: dirNote },
-      { title: "Sözleşme Durumu", value: contractValue, techNote: contractNote },
-    ]);
-    var resolutionBody = "<p>Kaynak önceliği: <strong>CLI → ENV → varsayılan</strong>. Sistem kendi kafasına canlı hedef seçmez; yazma hedefi tek kaynaktan (canlı base veya sözleşmeyle tanımlı sandbox base) gelir.</p><p class=\"text-muted-small\">Resolution: single source of truth.</p>";
-    var guardBody = "<p>Çekirdek state path'lere doğrudan overwrite yapılmaz. Yazma hedefi tek kaynaktan belirlenir. Canlı çekirdek ile sandbox hedefi ayrı tutulur.</p><p class=\"text-muted-small\">Core state: tasks, logs, trash, config, aliases.</p>";
-    var diffBody = "<p><strong>Canlı:</strong> Doğrudan çalışma alanı (.lumos vb.).</p><p><strong>Sandbox:</strong> Tanımlı kopya alanı; deneme/geliştirme burada yapılır, canlıya overwrite yok.</p><p class=\"text-muted-small\">Sandbox aktifken çekirdek path'ler okuma için kullanılabilir; yazım yalnızca sandbox base'e.</p>";
-    return (
-      ViewHeader("Korumalı Alan", "Yazım hedefi ve sandbox durumu") +
-      '<div class="cards-grid">' + topCards + "</div>" +
-      renderSection("Çözümleme Mantığı", resolutionBody) +
-      renderSection("Guard Kuralı", guardBody) +
-      renderSection("Canlı çekirdek / sandbox hedef farkı", diffBody)
-    );
+    var data = getSandboxData();
+    var cards = buildMetricCards(data.metrics);
+    var sectionsHtml = "";
+    for (var i = 0; i < data.sections.length; i++) sectionsHtml += buildSection(data.sections[i].title, data.sections[i].body);
+    return ViewHeader(data.title, data.subtitle) + '<div class="cards-grid">' + cards + "</div>" + sectionsHtml;
   }
 
-  // ——— Ekran: Yapılandırma (ortak bileşenler: ViewHeader, MetricCard, SectionCard) ———
+  // ——— Ekran: Yapılandırma (adapter + build) ———
   function renderConfig() {
-    var cfg = mockState.configSnapshot || {};
-    var summaryValue = (cfg.profil || "—") + " · " + (cfg.workspace_root || "—");
-    var summaryNote = "config.json; profil ve workspace kökü.";
-    var writeValue = cfg.writeStatus || "—";
-    var writeNote = "Config yazımları merkezi sink/guard hattı üzerinden geçer; sözleşme hedefi dışına yazılmaz.";
-    var lastActTs = cfg.lastActivity ? formatTime(cfg.lastActivity) : (mockState.recentEvents && mockState.recentEvents[2] ? formatTime(mockState.recentEvents[2].ts) : "—");
-    var lastActText = cfg.lastActivityText || (mockState.recentEvents && mockState.recentEvents[2] ? mockState.recentEvents[2].text : "—");
-    var lastActNote = lastActText;
-    var topCards = renderMetricCards([
-      { title: "Mevcut Yapılandırma Özeti", value: summaryValue, techNote: summaryNote },
-      { title: "Yazım Durumu", value: writeValue, techNote: writeNote },
-      { title: "Son Config Aktivitesi", value: lastActTs, techNote: lastActNote },
-    ]);
-    var sinkBody = "<p>Config yazımları <strong>merkezi sink/guard hattı</strong> üzerinden geçer. Çekirdek state path'ler (config, tasks, logs, trash, aliases) sözleşme ve guard ile korunur; hedef dışına yazım yapılmaz.</p><p class=\"text-muted-small\">Sink: tek giriş noktası; guard: hedef ve kapsam kontrolü.</p>";
-    return (
-      ViewHeader("Yapılandırma", "Config özeti ve yazım durumu") +
-      '<div class="cards-grid">' + topCards + "</div>" +
-      renderSection("Sink / Guard hattı", sinkBody)
-    );
+    var data = getConfigData();
+    var cards = buildMetricCards(data.metrics);
+    var sectionsHtml = "";
+    for (var i = 0; i < data.sections.length; i++) sectionsHtml += buildSection(data.sections[i].title, data.sections[i].body);
+    return ViewHeader(data.title, data.subtitle) + '<div class="cards-grid">' + cards + "</div>" + sectionsHtml;
   }
 
-  // ——— Ekran: Kimlik (ortak bileşenler: ViewHeader, MetricCard, SectionCard) ———
+  // ——— Ekran: Kimlik (adapter + build) ———
   function renderIdentity() {
-    var readyValue = mockState.identityState || "—";
-    var readyNote = "Kimlik hattı sink/guard omurgasına bağlı; riskli işlemler panelden açılmaz.";
-    var lastWriteValue = mockState.identityLastWrite ? formatTime(mockState.identityLastWrite) : "—";
-    var lastWriteNote = "Son kimlik yazım/zamanı (mock).";
-    var scopeValue = mockState.identityTargetScope || "—";
-    var scopeNote = "Çekirdek kimlik alanı; yetki dışı değişiklik yapılmaz.";
-    var guardValue = mockState.identityGuardResult || "—";
-    var guardNote = "Guard sonucu: kimlik alanı korunuyor.";
-    var topCards = renderMetricCards([
-      { title: "Kimlik hazır mı", value: readyValue, techNote: readyNote },
-      { title: "Son Yazım", value: lastWriteValue, techNote: lastWriteNote },
-      { title: "Hedef Kapsam", value: scopeValue, techNote: scopeNote },
-      { title: "Guard Sonucu", value: guardValue, techNote: guardNote },
-    ]);
-    var sinkBody = "<p>Bu hattın <strong>sink/guard omurgasına</strong> bağlı olduğu bu ekrandan görünür. Kimlik alanı çekirdek güvenlik kapsamında; riskli işlemler açılmaz, sadece durum ve kapsam görünürlüğü sağlanır.</p><p class=\"text-muted-small\">Identity sink: tek giriş; guard: kapsam ve yetki kontrolü.</p>";
-    return (
-      ViewHeader("Kimlik", "Kimlik durumu ve kapsam") +
-      '<div class="cards-grid">' + topCards + "</div>" +
-      renderSection("Sink / Guard bağlantısı", sinkBody)
-    );
+    var data = getIdentityData();
+    var cards = buildMetricCards(data.metrics);
+    var sectionsHtml = "";
+    for (var i = 0; i < data.sections.length; i++) sectionsHtml += buildSection(data.sections[i].title, data.sections[i].body);
+    return ViewHeader(data.title, data.subtitle) + '<div class="cards-grid">' + cards + "</div>" + sectionsHtml;
   }
 
-  // ——— Ekran: Anahtar Kasası (ortak bileşenler: ViewHeader, MetricCard, SectionCard) ———
+  // ——— Ekran: Anahtar Kasası (adapter + build) ———
   function renderKeystore() {
-    var readyValue = mockState.keystoreReady ? "Evet" : "Hayır (kilitli)";
-    var readyNote = "Anahtar materyali ekranda açık gösterilmez; sadece durum ve akış görünürlüğü.";
-    var encValue = mockState.keystoreState || "—";
-    var encNote = "Passphrase ve anahtar içeriği gösterilmez.";
-    var lastUpdValue = mockState.keystoreLastUpdate ? formatTime(mockState.keystoreLastUpdate) : "—";
-    var lastUpdNote = "Son güncelleme zamanı (mock).";
-    var writeScopeValue = mockState.keystoreWriteScope || "—";
-    var writeScopeNote = "Kilit açılmadan hassas yazım yapılmaz.";
-    var topCards = renderMetricCards([
-      { title: "Hazır mı", value: readyValue, techNote: readyNote },
-      { title: "Şifreli Durum", value: encValue, techNote: encNote },
-      { title: "Son Güncelleme", value: lastUpdValue, techNote: lastUpdNote },
-      { title: "Yazım Kapsamı", value: writeScopeValue, techNote: writeScopeNote },
-    ]);
-    var visibilityBody = "<p>Anahtar kasası ekranı <strong>durum ve akış görünürlüğü</strong> sağlar. Anahtar materyali (passphrase, key içeriği) açık gösterilmez; yalnızca hazır mı, şifreli durum, son güncelleme ve yazım kapsamı bilgisi gösterilir.</p><p class=\"text-muted-small\">Keystore sink: tek giriş; hassas veri panelde ifşa edilmez.</p>";
-    return (
-      ViewHeader("Anahtar Kasası", "Durum görünürlüğü; anahtar ifşası yok") +
-      '<div class="cards-grid">' + topCards + "</div>" +
-      renderSection("Görünürlük ilkesi", visibilityBody)
-    );
+    var data = getKeystoreData();
+    var cards = buildMetricCards(data.metrics);
+    var sectionsHtml = "";
+    for (var i = 0; i < data.sections.length; i++) sectionsHtml += buildSection(data.sections[i].title, data.sections[i].body);
+    return ViewHeader(data.title, data.subtitle) + '<div class="cards-grid">' + cards + "</div>" + sectionsHtml;
   }
 
-  // ——— Ekran: Silinenler (ortak bileşenler: MetricCard, SectionCard, DetailPanel) ———
+  // ——— Ekran: Silinenler (adapter + build) ———
   function renderTrash() {
-    var items = mockState.trashItems || [];
-    var summary = renderMetricCards([
-      { title: "Çöp Konumu", value: mockState.trashLocation },
-      { title: "Son Taşıma", value: formatTime(mockState.trashLastMove) },
-      { title: "Öğe Sayısı", value: String(items.length) },
-      { title: "Kapsam", value: ".lumos/trash — aktif state kaynağı değildir" },
-    ]);
+    var data = getTrashData();
+    var summary = buildMetricCards(data.summaryMetrics);
     var listSection;
-    if (items.length === 0) {
-      listSection = renderSection("Liste", renderEmptyState("Çöp listesi boş", "Silinen öğe yok. " + EMPTY_DESC_DEFAULT));
+    if (data.listItems.length === 0) {
+      listSection = buildSection("Liste", buildEmptyState(data.emptyListTitle, data.emptyListDesc));
     } else {
       var listHtml = "";
-      items.forEach(function (item) {
-        var sel = mockState.selectedTrashId === item.id ? " selected" : "";
+      data.listItems.forEach(function (item) {
+        var sel = data.selectedId === item.id ? " selected" : "";
         listHtml += '<li class="list-item' + sel + '" data-trash-id="' + item.id + '">' + (item.name || item.id) + " — " + formatTime(item.movedAt) + "</li>";
       });
-      listSection = renderSection("Liste", '<ul class="list-selectable" id="trash-list">' + listHtml + "</ul>");
+      listSection = buildSection("Liste", '<ul class="list-selectable" id="trash-list">' + listHtml + "</ul>");
     }
-    var selected = items.filter(function (x) { return x.id === mockState.selectedTrashId; })[0];
-    var detailBody = selected
-      ? "<p><strong>Ad:</strong> " + (selected.name || "—") + "</p>" +
-        "<p><strong>Orijinal yol:</strong> " + (selected.originalPath || "—") + "</p>" +
-        "<p><strong>Çöp yolu:</strong> " + (selected.trashPath || "—") + "</p>" +
-        "<p><strong>Taşınma:</strong> " + formatTime(selected.movedAt) + "</p>" +
-        "<p><strong>Kapsam:</strong> " + (selected.scope || "—") + "</p>"
-      : "<p class=\"screen-placeholder\">Listeden bir öğe seçin.</p>";
-    var detail = DetailPanel("Seçilen öğe", detailBody);
-    return ViewHeader("Silinenler", "Çöp konumu ve liste") + '<div class="cards-grid">' + summary + "</div>" + '<div class="split-view">' + listSection + detail + "</div>";
+    var detailBody = data.selectedItem
+      ? buildDetailRows([
+          { label: "Ad", value: data.selectedItem.name },
+          { label: "Orijinal yol", value: data.selectedItem.originalPath },
+          { label: "Çöp yolu", value: data.selectedItem.trashPath },
+          { label: "Taşınma", value: formatTime(data.selectedItem.movedAt) },
+          { label: "Kapsam", value: data.selectedItem.scope },
+        ])
+      : "<p class=\"screen-placeholder\">" + data.emptyDetailPlaceholder + "</p>";
+    var detail = buildDetailPanel(data.detailTitle, detailBody);
+    return ViewHeader(data.title, data.subtitle) + '<div class="cards-grid">' + summary + "</div>" + '<div class="split-view">' + listSection + detail + "</div>";
   }
 
-  var LOG_FILTERS = [
-    { id: "all", label: "Tümü", kind: null },
-    { id: "tasks", label: "Görevler", kind: "görev" },
-    { id: "sandbox", label: "Korumalı Alan", kind: "sandbox" },
-    { id: "config", label: "Yapılandırma", kind: "config" },
-    { id: "trash", label: "Silinenler", kind: "trash" },
-    { id: "identity", label: "Kimlik", kind: "identity" },
-    { id: "keystore", label: "Anahtar Kasası", kind: "keystore" },
-    { id: "guard", label: "Koruma", kind: "guard" },
-  ];
-
-  // ——— Ekran: Kayıtlar (ortak bileşenler: EventList, SectionCard) ———
+  // ——— Ekran: Kayıtlar (adapter + build) ———
   function renderLogs() {
-    var filter = mockState.logFilter || "all";
-    var list = mockState.logItems || [];
-    var kindForFilter = null;
-    for (var fi = 0; fi < LOG_FILTERS.length; fi++) {
-      if (LOG_FILTERS[fi].id === filter) { kindForFilter = LOG_FILTERS[fi].kind; break; }
-    }
-    var filtered = filter === "all" || !kindForFilter ? list : list.filter(function (e) { return e.kind === kindForFilter; });
-    var tabsHtml = LOG_FILTERS.map(function (f) {
-      var active = f.id === filter ? " active" : "";
+    var data = getLogsData();
+    var tabsHtml = data.filters.map(function (f) {
+      var active = f.id === data.activeFilter ? " active" : "";
       return '<button type="button" class="log-tab' + active + '" data-log-filter="' + f.id + '">' + f.label + "</button>";
     }).join("");
-    return ViewHeader("Kayıtlar", "Olay akışı") + '<div class="log-tabs" id="log-tabs">' + tabsHtml + "</div>" + renderSection("Kayıt listesi", EventList(filtered));
+    return ViewHeader(data.title, data.subtitle) + '<div class="log-tabs" id="log-tabs">' + tabsHtml + "</div>" + buildSection(data.sectionTitle, EventList(data.events));
   }
 
-  // ——— Ekran: Sistem Durumu (ViewHeader, MetricCard, StatusBadge — hangi parça hazır / dikkat) ———
+  // ——— Ekran: Sistem Durumu (adapter + build) ———
   function renderSystem() {
-    var h = mockState.systemHealth || {};
-    function healthCard(title, key) {
-      var raw = h[key];
-      if (!raw) return MetricCard(title, "—", "Veri yok.");
-      var status = typeof raw === "string" ? raw : (raw.status || "—");
-      var note = typeof raw === "string" ? "" : (raw.note || "");
-      var value = StatusBadge(status, getHealthStatusVariant(status));
-      return MetricCard(title, value, note);
+    var data = getSystemStatusData();
+    var cards = "";
+    for (var i = 0; i < data.healthCards.length; i++) {
+      var c = data.healthCards[i];
+      var value = c.status === "—" ? "—" : buildBadge(c.status, getHealthStatusVariant(c.status));
+      cards += MetricCard(c.title, value, c.note);
     }
-    var cards =
-      healthCard("Workspace Sözleşmesi", "workspace_contract") +
-      healthCard("Görev Motoru", "task_engine") +
-      healthCard("Sandbox Kaynağı", "sandbox_source") +
-      healthCard("Trash Sözleşmesi", "trash_contract") +
-      healthCard("Config Sink", "config_sink") +
-      healthCard("Identity Sink", "identity_sink") +
-      healthCard("Keystore Sink", "keystore_sink") +
-      healthCard("Genel Sağlık", "general");
-    return ViewHeader("Sistem Durumu", "Çekirdek parçaların durumu") + '<div class="cards-grid">' + cards + "</div>";
+    return ViewHeader(data.title, data.subtitle) + '<div class="cards-grid">' + cards + "</div>";
   }
 
   var renderers = {
