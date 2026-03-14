@@ -10,6 +10,8 @@
 
 **Backend binding map:** Gerçek entegrasyon öncesi referans için `BACKEND_BINDING_MAP.md` hazırlandı; her ekranın hangi backend kaynak adaylarına bağlanacağı ve boşluk/risk seviyeleri orada özetlenir.
 
+**Fixture payload ve mapper:** Backend-benzeri örnek payload'lar (`js/fixtures.js` — `LumosFixtures.payloads`) ve bunları panel contract'ına çeviren mapper'lar hazır. Üst çubukta "Veri kaynağı: Demo | Fixture" seçici ile entegrasyon provası yapılabilir. Gerçek backend geldiğinde panel contract'a geçiş bu katmandan (fixture yerine API yanıtı → aynı mapper) yapılacak. Detay: `BACKEND_PAYLOAD_FIXTURES.md`.
+
 ## Çalıştırma
 
 - **Doğrudan:** `panel/index.html` açın (`file://`).
