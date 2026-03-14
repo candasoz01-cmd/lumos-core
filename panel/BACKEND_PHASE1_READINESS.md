@@ -51,3 +51,5 @@
 **Not:** "Giriş kanalı" / "panel'e state sağlama": Backend davranışı değiştirilmediği için şu an panel veriyi doğrudan repo içi modüllerden okuyamıyor; ilk gerçek bağ için tek okuma noktası (ör. durum API'si) tanımlandığında base_dir, is_sandbox_mode ve isteğe bağlı health özeti buradan beslenecek.
 
 **Phase 2 (Görevler / Silinenler / Kayıtlar):** Görevler için `list_updated` (tasks.json dosya mtime) backend’den okunuyor; Silinenler için `trash_location` çözümlenmiş path. Kayıtlar için `log_file_updated` (log.txt mtime) ve `log_location` (çözümlenmiş path) backend’den okunuyor. original_path/scope trash’ta yok; "—" fallback.
+
+**Phase 2 checkpoint (panel):** Gerçek okuma / fallback / sınırlar / sonraki adım özeti: `panel/PANEL_PHASE2_CHECKPOINT.md`.

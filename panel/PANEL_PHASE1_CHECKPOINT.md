@@ -46,3 +46,7 @@
 
 - **Kayıtlar:** `read_backend_state.py` logs payload’a `log_file_updated` (log.txt dosya mtime, ISO) ve `log_location` (çözümlenmiş path) eklendi. Panel contract’a `logFileUpdated`, `logLocation`; Kayıtlar ekranında backend’den geliyorsa "Kayıt dosyası son güncelleme: …" ve "Dosya: …" gösterilir. Dosya yoksa log_file_updated null; log_location yine çözümlü path (nereye baktığımız belli). Okunamayan alanlar açık fallback.
 - **Bridge:** Aynı payload; backend-bridge değişiklik yok. fixtures mapper log_file_updated → logFileUpdated, log_location → logLocation; contracts + normalizeLogs + renderLogs kullanıyor.
+
+---
+
+**Phase 2 tam özet (gerçek okuma / fallback / sınırlar / sonraki adım):** `PANEL_PHASE2_CHECKPOINT.md`.
