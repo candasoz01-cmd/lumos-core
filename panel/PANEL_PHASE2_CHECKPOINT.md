@@ -32,17 +32,20 @@ Aşağıdaki dört ekran ve alanları `read_backend_state.py` çıktısından ge
 | Alan | Kaynak |
 |------|--------|
 | task_list | `base/tasks.json` (id, title, status, updated, last_run, output_summary) |
-| list_updated | tasks.json dosya mtime (ISO); panelde "Liste son güncelleme" |
+| list_updated | tasks.json dosya mtime (ISO) |
+| list_updated_text | Son güncelleme metni (panelde gösterim) |
+| tasks_file_path | Çözülmüş tasks.json dosya yolu |
 | tasks_file_exists | tasks.json var mı (bool) |
-| task_count | Görev sayısı (sayısal özet); panelde "Görev sayısı" |
+| task_count | Görev sayısı (sayısal özet) |
 
 ### Silinenler
 
 | Alan | Kaynak |
 |------|--------|
 | trash_location | Çözümlenmiş (absolute) path |
-| trash_items | `base/trash` dizin listesi (name, trash_path, moved_at) |
+| trash_items | `base/trash` dizin listesi (name, trash_path, moved_at; original_path/scope meta yoksa —) |
 | trash_last_move | Son taşıma zamanı (dizin mtime türetilmiş) |
+| trash_scope_fallback_note | original_path/scope okunamadığında açıklama metni |
 | trash_dir_exists | trash dizini var mı (bool) |
 | trash_item_count | Öğe sayısı (sayısal özet) |
 
@@ -52,6 +55,7 @@ Aşağıdaki dört ekran ve alanları `read_backend_state.py` çıktısından ge
 |------|--------|
 | log_items | `base/logs/log.txt` son 100 satır |
 | log_file_updated | log.txt dosya mtime (ISO) |
+| log_updated_text | Son güncelleme metni (panelde gösterim) |
 | log_location | Çözümlenmiş path |
 | log_file_exists | log.txt var mı (bool) |
 | log_line_count | Görüntülenen satır sayısı (sayısal özet) |
