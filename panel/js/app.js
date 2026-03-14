@@ -262,6 +262,7 @@
     if (useFixtureData && window.LumosFixtures && window.LumosFixtures.payloads) return { type: "fixture", data: window.LumosFixtures.payloads.sandbox };
     return { type: "demo", data: getEffectiveState() };
   }
+  /** System: Phase 2 ilk gerçek backend okuma hedefi; backend → mapper → normalizeSystem. */
   function getSystemSourceData() {
     var backend = Bridge.readBackendSystemState && Bridge.readBackendSystemState();
     if (backend != null) return { type: "backend", data: backend };
