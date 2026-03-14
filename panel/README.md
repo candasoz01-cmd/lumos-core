@@ -37,7 +37,7 @@ Ortak bileşen mantığı kuruldu; kopyala-yapıştır bloklar kaldırıldı. T�
 - **DetailPanel** — Başlık + detay gövdesi (ör. seçilen görev/silinen öğe).
 - **ViewHeader** — Sayfa başlığı + alt başlık.
 
-Dashboard, Korumalı Alan, Silinenler ve Kayıtlar ekranları ortak bileşenler ve helper’lar (renderMetricCards, renderSection, renderEmptyState) ile toparlandı; aynı kart/bölüm diline oturtuldu. Bu turda özellikle **Gösterge Paneli** ve **Korumalı Alan** ekranları güçlendirildi: Dashboard üst kartları (Korumalı Alan Durumu, Yazım Hedefi, Koruma Durumu, Son Aktivite) anlamlı alt açıklama ve mock değerlerle operasyon odaklı hale getirildi; Korumalı Alan ekranında Kaynak, Sandbox Base, Yazım Yönü ve Sözleşme Durumu üst kartlarda net gösteriliyor, Çözümleme Mantığı / Guard Kuralı / canlı–sandbox farkı bölümleri tek bakışta "nereye yazılıyor" sorusuna cevap verecek şekilde sıkılaştırıldı. Bu turda **Yapılandırma**, **Kimlik** ve **Anahtar Kasası** ekranları da aynı kalite seviyesine taşındı: üst kartlarda (Config özeti, yazım durumu, son aktivite; Identity ready, son yazım, hedef kapsam, guard sonucu; Keystore hazır mı, şifreli durum, son güncelleme, yazım kapsamı) ve alt bölümlerde sink/guard hattı veya görünürlük ilkesi net anlatılıyor; mock state (configSnapshot, identityState, keystore alanları) buna göre zenginleştirildi.
+Dashboard, Korumalı Alan, Silinenler ve Kayıtlar ekranları ortak bileşenler ve helper’lar (renderMetricCards, renderSection, renderEmptyState) ile toparlandı; aynı kart/bölüm diline oturtuldu. Bu turda özellikle **Gösterge Paneli** ve **Korumalı Alan** ekranları güçlendirildi: Dashboard üst kartları (Korumalı Alan Durumu, Yazım Hedefi, Koruma Durumu, Son Aktivite) anlamlı alt açıklama ve mock değerlerle operasyon odaklı hale getirildi; Korumalı Alan ekranında Kaynak, Sandbox Base, Yazım Yönü ve Sözleşme Durumu üst kartlarda net gösteriliyor, Çözümleme Mantığı / Guard Kuralı / canlı–sandbox farkı bölümleri tek bakışta "nereye yazılıyor" sorusuna cevap verecek şekilde sıkılaştırıldı. Bu turda **Yapılandırma**, **Kimlik** ve **Anahtar Kasası** ekranları da aynı kalite seviyesine taşındı: üst kartlarda (Config özeti, yazım durumu, son aktivite; Identity ready, son yazım, hedef kapsam, guard sonucu; Keystore hazır mı, şifreli durum, son güncelleme, yazım kapsamı) ve alt bölümlerde sink/guard hattı veya görünürlük ilkesi net anlatılıyor; mock state (configSnapshot, identityState, keystore alanları) buna göre zenginleştirildi. **Bu turda Görevler ve Sistem Durumu ekranları güçlendirildi:** Görevler'de liste, durum filtreleri (Tümü, Aktif, Bekleyen, Başarısız, Engellenen), seçilen görevin detay paneli (son çalıştırma, guard sonucu, çıktı özeti) ve ortak bileşenlerle tutarlı görünüm; Sistem Durumu'nda Workspace Contract, Task Engine, Sandbox Source, Trash Contract, Config/Identity/Keystore Sink ve Genel Sağlık kartları StatusBadge ve kısa notlarla "hangi çekirdek parça hazır, hangisi dikkat istiyor" sorusuna tek bakışta cevap verecek şekilde düzenlendi.
 
 ## Mock state yapısı
 
@@ -55,8 +55,9 @@ Mock state merkezileştirildi; tek kaynaktan (`mockState`) erişilir. Helper’l
 - **configSnapshot** — Config özeti (profil, workspace_root, writeStatus, lastActivity, lastActivityText).
 - **identityState**, **identityLastWrite**, **identityTargetScope**, **identityGuardResult** — Kimlik durumu ve kapsam.
 - **keystoreState**, **keystoreReady**, **keystoreLastUpdate**, **keystoreWriteScope** — Anahtar kasası durumu (anahtar ifşası yok).
-- **systemHealth** — Çekirdek bileşen sağlık durumları.
-- **taskList**, **selectedTaskId**, **selectedTrashId**, **logFilter** — Görev/silinen seçimi ve log filtresi (etkileşim).
+- **systemHealth** — Çekirdek bileşen sağlık durumları (her biri status + note; ok/uyarı/hata).
+- **taskList** — Görev listesi (id, title, status, updated, lastRun, guardResult, outputSummary); status: aktif, bekleyen, tamamlandı, başarısız, engellenen.
+- **taskFilter**, **selectedTaskId**, **selectedTrashId**, **logFilter** — Görev filtresi (Tümü/Aktif/Bekleyen/Başarısız/Engellenen), görev/silinen seçimi ve log filtresi (etkileşim).
 
 ## Yapı
 

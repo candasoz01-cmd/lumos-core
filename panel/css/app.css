@@ -393,6 +393,51 @@ body {
   border-color: var(--link);
 }
 
+/* ——— Görevler: filtre ve liste ——— */
+.task-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: var(--spacing);
+}
+
+.task-filters button {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8rem;
+  background: var(--bg-card);
+  border: var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.task-filters button:hover {
+  color: var(--text);
+  background: #2a2a2a;
+}
+
+.task-filters button.active {
+  background: rgba(126, 184, 255, 0.15);
+  color: var(--link);
+  border-color: var(--link);
+}
+
+.task-list-badge {
+  margin-right: 0.35rem;
+}
+
+.detail-metrics {
+  margin-top: 0.75rem;
+}
+
+.detail-metrics .metric-card {
+  margin-bottom: var(--spacing);
+}
+
+.detail-metrics .metric-card:last-child {
+  margin-bottom: 0;
+}
+
 /* ——— Eski uyumluluk ——— */
 .placeholder,
 .screen-placeholder {
