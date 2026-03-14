@@ -91,6 +91,8 @@
       filters: [],
       activeFilter: "",
       events: [],
+      logFileUpdated: null,
+      logLocation: null,
       sectionTitle: "",
     },
     system: {
@@ -307,6 +309,8 @@
       filters: LOG_FILTERS,
       activeFilter: filter,
       events: filtered,
+      logFileUpdated: state.logFileUpdated || null,
+      logLocation: state.logLocation || null,
       sectionTitle: "Kayıt listesi",
     };
   }
@@ -406,6 +410,8 @@
     applyContractFallbacks("logs", data);
     data.filters = Array.isArray(data.filters) ? data.filters : LOG_FILTERS;
     data.events = Array.isArray(data.events) ? data.events : [];
+    data.logFileUpdated = data.logFileUpdated != null ? data.logFileUpdated : null;
+    data.logLocation = data.logLocation != null ? data.logLocation : null;
     return data;
   }
 

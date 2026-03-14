@@ -230,7 +230,7 @@
   }
 
   function mapLogsPayloadToPanelData(payload) {
-    if (!payload) return applyFallback("logs", { title: "Kayıtlar", subtitle: "Olay akışı", filters: LOG_FILTERS, activeFilter: "all", events: [], sectionTitle: "Kayıt listesi" });
+    if (!payload) return applyFallback("logs", { title: "Kayıtlar", subtitle: "Olay akışı", filters: LOG_FILTERS, activeFilter: "all", events: [], logFileUpdated: null, logLocation: null, sectionTitle: "Kayıt listesi" });
     var events = arr(payload.log_items).map(function (e) { return { id: e.id, kind: e.kind, text: e.text, ts: e.ts }; });
     return applyFallback("logs", {
       title: "Kayıtlar",
@@ -238,6 +238,8 @@
       filters: LOG_FILTERS,
       activeFilter: payload.log_filter || "all",
       events: events,
+      logFileUpdated: payload.log_file_updated || null,
+      logLocation: payload.log_location || null,
       sectionTitle: "Kayıt listesi",
     });
   }
