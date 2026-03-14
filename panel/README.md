@@ -22,6 +22,8 @@
 
 **Phase 1 bridge genişletmesi (Config / Identity / Keystore):** Aynı read-only hattı Config, Kimlik ve Anahtar Kasası ekranlarını da besler. `read_backend_state.py` çıktısına `config` (config_snapshot: profil, workspace_root, write_status), `identity` (identity_state, identity_guard_result vb.), `keystore` (keystore_ready, keystore_state — consent_ok ile) eklenir; backend-bridge ve app adapter bu üç ekran için backend → fixture/demo önceliğiyle çalışır. Yazım yok; salt okunur.
 
+**Phase 1 bridge — Görevler, Silinenler, Kayıtlar:** Aynı read-only hattı Görevler, Silinenler ve Kayıtlar ekranlarına genişletildi. Kaynaklar: `base/tasks.json` (görev listesi), `base/trash` (dizin listesi), `base/logs/log.txt` (son satırlar). `read_backend_state.py` çıktısına `tasks`, `trash`, `logs` eklenir; `backend-bridge.js` ve `app.js` adapter bu üç ekran için backend → fixture → demo önceliğiyle beslenir. Yazım yok; salt okunur.
+
 ## Çalıştırma
 
 - **Doğrudan:** `panel/index.html` açın (`file://`).

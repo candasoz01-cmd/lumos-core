@@ -2,8 +2,8 @@
  * Lumos Panel v1 — Backend bridge (Phase 1).
  * Read-only source bridge: okunabilir kaynak varsa (window.__LUMOS_READ_STATE__) döner;
  * yoksa null → panel fixture/demo fallback kullanır.
- * Dashboard, Sandbox, System, Config, Identity, Keystore ekranları.
- * Kaynak: panel/scripts/read_backend_state.py (workspace_contract + consent_ok).
+ * Dashboard, Sandbox, System, Config, Identity, Keystore, Görevler, Silinenler, Kayıtlar.
+ * Kaynak: panel/scripts/read_backend_state.py (workspace_contract + consent_ok + tasks/trash/logs).
  */
 (function (global) {
   "use strict";
@@ -53,6 +53,24 @@
     return state.keystore;
   }
 
+  function readBackendTasksState() {
+    var state = getReadState();
+    if (!state || !state.tasks || !Array.isArray(state.tasks.task_list)) return null;
+    return state.tasks;
+  }
+
+  function readBackendTrashState() {
+    var state = getReadState();
+    if (!state || !state.trash || !Array.isArray(state.trash.trash_items)) return null;
+    return state.trash;
+  }
+
+  function readBackendLogsState() {
+    var state = getReadState();
+    if (!state || !state.logs || !Array.isArray(state.logs.log_items)) return null;
+    return state.logs;
+  }
+
   global.LumosBackendBridge = {
     readBackendDashboardState: readBackendDashboardState,
     readBackendSandboxState: readBackendSandboxState,
@@ -60,5 +78,8 @@
     readBackendConfigState: readBackendConfigState,
     readBackendIdentityState: readBackendIdentityState,
     readBackendKeystoreState: readBackendKeystoreState,
+    readBackendTasksState: readBackendTasksState,
+    readBackendTrashState: readBackendTrashState,
+    readBackendLogsState: readBackendLogsState,
   };
 })(typeof window !== "undefined" ? window : this);

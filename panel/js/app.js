@@ -286,6 +286,24 @@
     if (useFixtureData && window.LumosFixtures && window.LumosFixtures.payloads) return { type: "fixture", data: window.LumosFixtures.payloads.keystore };
     return { type: "demo", data: getEffectiveState() };
   }
+  function getTasksSourceData() {
+    var backend = Bridge.readBackendTasksState && Bridge.readBackendTasksState();
+    if (backend != null) return { type: "backend", data: backend };
+    if (useFixtureData && window.LumosFixtures && window.LumosFixtures.payloads) return { type: "fixture", data: window.LumosFixtures.payloads.tasks };
+    return { type: "demo", data: getEffectiveState() };
+  }
+  function getTrashSourceData() {
+    var backend = Bridge.readBackendTrashState && Bridge.readBackendTrashState();
+    if (backend != null) return { type: "backend", data: backend };
+    if (useFixtureData && window.LumosFixtures && window.LumosFixtures.payloads) return { type: "fixture", data: window.LumosFixtures.payloads.trash };
+    return { type: "demo", data: getEffectiveState() };
+  }
+  function getLogsSourceData() {
+    var backend = Bridge.readBackendLogsState && Bridge.readBackendLogsState();
+    if (backend != null) return { type: "backend", data: backend };
+    if (useFixtureData && window.LumosFixtures && window.LumosFixtures.payloads) return { type: "fixture", data: window.LumosFixtures.payloads.logs };
+    return { type: "demo", data: getEffectiveState() };
+  }
 
   // ——— Adapter (contract'a hizalı; kaynak: backend → mapper, yoksa fixture/demo → mapper/stub) ———
   function getDashboardData() {
@@ -294,7 +312,16 @@
     return LC.normalizeDashboard(LC.buildDashboardStub(src.data), src.data);
   }
   function getTasksData() {
-    if (useFixtureData && window.LumosFixtures && LC.normalizeTasks) return LC.normalizeTasks(LumosFixtures.mapTasksPayloadToPanelData(LumosFixtures.payloads.tasks), {});
+    var src = getTasksSourceData();
+    if ((src.type === "backend" || src.type === "fixture") && window.LumosFixtures && LC.normalizeTasks) {
+      var data = LC.normalizeTasks(LumosFixtures.mapTasksPayloadToPanelData(src.data), {});
+      var fullList = data.listItems || [];
+      data.activeFilter = mockState.taskFilter || data.activeFilter;
+      data.listItems = LC.filterTaskList ? LC.filterTaskList(fullList, mockState.taskFilter || data.activeFilter) : fullList;
+      data.selectedId = mockState.selectedTaskId || data.selectedId;
+      data.selectedTask = fullList.filter(function (t) { return t.id === (mockState.selectedTaskId || data.selectedId); })[0] || data.selectedTask;
+      return data;
+    }
     var s = getEffectiveState();
     return LC.normalizeTasks(LC.buildTasksStub(s), s);
   }
@@ -319,12 +346,29 @@
     return LC.normalizeKeystore(LC.buildKeystoreStub(src.data), src.data);
   }
   function getTrashData() {
-    if (useFixtureData && window.LumosFixtures && LC.normalizeTrash) return LC.normalizeTrash(LumosFixtures.mapTrashPayloadToPanelData(LumosFixtures.payloads.trash), {});
+    var src = getTrashSourceData();
+    if ((src.type === "backend" || src.type === "fixture") && window.LumosFixtures && LC.normalizeTrash) {
+      var data = LC.normalizeTrash(LumosFixtures.mapTrashPayloadToPanelData(src.data), {});
+      data.selectedId = mockState.selectedTrashId || data.selectedId;
+      data.selectedItem = (data.listItems || []).filter(function (i) { return i.id === (mockState.selectedTrashId || data.selectedId); })[0] || data.selectedItem;
+      return data;
+    }
     var s = getEffectiveState();
     return LC.normalizeTrash(LC.buildTrashStub(s), s);
   }
   function getLogsData() {
-    if (useFixtureData && window.LumosFixtures && LC.normalizeLogs) return LC.normalizeLogs(LumosFixtures.mapLogsPayloadToPanelData(LumosFixtures.payloads.logs), {});
+    var src = getLogsSourceData();
+    if ((src.type === "backend" || src.type === "fixture") && window.LumosFixtures && LC.normalizeLogs) {
+      var data = LC.normalizeLogs(LumosFixtures.mapLogsPayloadToPanelData(src.data), {});
+      data.activeFilter = mockState.logFilter || data.activeFilter;
+      var logFilters = LC.LOG_FILTERS || [];
+      var kindForFilter = null;
+      for (var fi = 0; fi < logFilters.length; fi++) {
+        if (logFilters[fi].id === data.activeFilter) { kindForFilter = logFilters[fi].kind; break; }
+      }
+      data.events = kindForFilter ? (data.events || []).filter(function (e) { return e.kind === kindForFilter; }) : (data.events || []);
+      return data;
+    }
     var s = getEffectiveState();
     return LC.normalizeLogs(LC.buildLogsStub(s), s);
   }
