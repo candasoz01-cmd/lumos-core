@@ -43,6 +43,8 @@
       selectedId: null,
       selectedTask: null,
       listUpdated: null,
+      listUpdatedText: null,
+      tasksFilePath: null,
       taskCount: 0,
       tasksFileExists: false,
       emptyListTitle: "",
@@ -88,6 +90,7 @@
       emptyDetailPlaceholder: "",
       trashItemCount: 0,
       trashDirExists: false,
+      trashScopeFallbackNote: "",
     },
     logs: {
       title: "",
@@ -96,6 +99,7 @@
       activeFilter: "",
       events: [],
       logFileUpdated: null,
+      logUpdatedText: null,
       logLocation: null,
       sectionTitle: "",
       logLineCount: 0,
@@ -202,6 +206,8 @@
       selectedId: state.selectedTaskId,
       selectedTask: selected,
       listUpdated: state.listUpdated || null,
+      listUpdatedText: state.listUpdatedText || null,
+      tasksFilePath: state.tasksFilePath || null,
       taskCount: (state.taskList || []).length,
       tasksFileExists: true,
       emptyListTitle: "Bu filtrede görev yok",
@@ -302,6 +308,7 @@
       emptyDetailPlaceholder: "Listeden bir öğe seçin.",
       trashItemCount: items.length,
       trashDirExists: true,
+      trashScopeFallbackNote: state.trashScopeFallbackNote || "",
     };
   }
 
@@ -320,6 +327,7 @@
       activeFilter: filter,
       events: filtered,
       logFileUpdated: state.logFileUpdated || null,
+      logUpdatedText: state.logUpdatedText || null,
       logLocation: state.logLocation || null,
       sectionTitle: "Kayıt listesi",
       logLineCount: (state.logItems || []).length,
@@ -370,6 +378,8 @@
     data.listItems = Array.isArray(data.listItems) ? data.listItems : [];
     data.selectedTask = data.selectedTask != null ? data.selectedTask : null;
     data.listUpdated = data.listUpdated != null ? data.listUpdated : null;
+    data.listUpdatedText = data.listUpdatedText != null ? data.listUpdatedText : null;
+    data.tasksFilePath = data.tasksFilePath != null ? data.tasksFilePath : null;
     data.taskCount = data.taskCount != null ? data.taskCount : 0;
     data.tasksFileExists = data.tasksFileExists === true;
     if (!data.emptyListTitle) data.emptyListTitle = "Bu filtrede görev yok";
@@ -417,6 +427,7 @@
     data.selectedItem = data.selectedItem != null ? data.selectedItem : null;
     data.trashItemCount = data.trashItemCount != null ? data.trashItemCount : 0;
     data.trashDirExists = data.trashDirExists === true;
+    data.trashScopeFallbackNote = data.trashScopeFallbackNote != null ? data.trashScopeFallbackNote : "";
     if (!data.emptyDetailPlaceholder) data.emptyDetailPlaceholder = "Listeden bir öğe seçin.";
     return data;
   }
@@ -427,6 +438,7 @@
     data.filters = Array.isArray(data.filters) ? data.filters : LOG_FILTERS;
     data.events = Array.isArray(data.events) ? data.events : [];
     data.logFileUpdated = data.logFileUpdated != null ? data.logFileUpdated : null;
+    data.logUpdatedText = data.logUpdatedText != null ? data.logUpdatedText : null;
     data.logLocation = data.logLocation != null ? data.logLocation : null;
     data.logLineCount = data.logLineCount != null ? data.logLineCount : 0;
     data.logFileExists = data.logFileExists === true;

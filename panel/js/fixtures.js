@@ -79,6 +79,7 @@
     trash: {
       trash_location: ".lumos/trash",
       trash_last_move: "2025-03-12T14:00:00",
+      trash_scope_fallback_note: "original_path ve scope dosya sisteminden okunamadı; meta yoksa — gösterilir.",
       trash_items: [
         { id: "tr1", name: "eski_tasks_backup.json", original_path: ".lumos/tasks_backup.json", trash_path: ".lumos/trash/eski_tasks_backup.json", moved_at: "2025-03-12T14:00:00", scope: "tasks" },
         { id: "tr2", name: "notlar_eski.md", original_path: ".lumos/notlar_eski.md", trash_path: ".lumos/trash/notlar_eski.md", moved_at: "2025-03-11T11:00:00", scope: "notes" },
@@ -91,6 +92,9 @@
         { id: "L3", kind: "config", text: "config okundu", ts: "2025-03-14T08:55:00" },
       ],
       log_filter: "all",
+      log_file_updated: "2025-03-14T10:05:00",
+      log_updated_text: "Son güncelleme: 14.03.2025 10:05",
+      log_location: ".lumos/logs/log.txt",
     },
     tasks: {
       task_list: [
@@ -100,6 +104,9 @@
       ],
       task_filter: "all",
       selected_task_id: null,
+      list_updated: "2025-03-14T10:00:00",
+      list_updated_text: "Son güncelleme: 14.03.2025 10:00",
+      tasks_file_path: null,
     },
     system: {
       system_health: {
@@ -212,6 +219,7 @@
     });
     var trashItemCount = payload.trash_item_count != null ? payload.trash_item_count : items.length;
     var trashDirExists = payload.trash_dir_exists === true;
+    var trashScopeFallbackNote = payload.trash_scope_fallback_note != null ? str(payload.trash_scope_fallback_note) : "";
     return applyFallback("trash", {
       title: "Silinenler",
       subtitle: "Çöp konumu ve liste",
@@ -230,11 +238,12 @@
       emptyDetailPlaceholder: "Listeden bir öğe seçin.",
       trashItemCount: trashItemCount,
       trashDirExists: trashDirExists,
+      trashScopeFallbackNote: trashScopeFallbackNote,
     });
   }
 
   function mapLogsPayloadToPanelData(payload) {
-    if (!payload) return applyFallback("logs", { title: "Kayıtlar", subtitle: "Olay akışı", filters: LOG_FILTERS, activeFilter: "all", events: [], logFileUpdated: null, logLocation: null, sectionTitle: "Kayıt listesi", logLineCount: 0, logFileExists: false });
+    if (!payload) return applyFallback("logs", { title: "Kayıtlar", subtitle: "Olay akışı", filters: LOG_FILTERS, activeFilter: "all", events: [], logFileUpdated: null, logUpdatedText: null, logLocation: null, sectionTitle: "Kayıt listesi", logLineCount: 0, logFileExists: false });
     var events = arr(payload.log_items).map(function (e) { return { id: e.id, kind: e.kind, text: e.text, ts: e.ts }; });
     var logLineCount = payload.log_line_count != null ? payload.log_line_count : events.length;
     var logFileExists = payload.log_file_exists === true;
@@ -245,6 +254,7 @@
       activeFilter: payload.log_filter || "all",
       events: events,
       logFileUpdated: payload.log_file_updated || null,
+      logUpdatedText: payload.log_updated_text || null,
       logLocation: payload.log_location || null,
       sectionTitle: "Kayıt listesi",
       logLineCount: logLineCount,
@@ -253,7 +263,7 @@
   }
 
   function mapTasksPayloadToPanelData(payload) {
-    if (!payload) return applyFallback("tasks", { title: "Görevler", subtitle: "Liste, detay ve guard sonucu", filters: TASK_FILTERS, activeFilter: "all", listItems: [], selectedId: null, selectedTask: null, listUpdated: null, emptyListTitle: "Bu filtrede görev yok", emptyListDesc: EMPTY_DESC, detailTitle: "Görev Detayı", runNoteTitle: "Çalıştırma notu", runNoteBody: "Son çalıştırma ve guard sonucu yukarıdaki detayda." });
+    if (!payload) return applyFallback("tasks", { title: "Görevler", subtitle: "Liste, detay ve guard sonucu", filters: TASK_FILTERS, activeFilter: "all", listItems: [], selectedId: null, selectedTask: null, listUpdated: null, listUpdatedText: null, tasksFilePath: null, emptyListTitle: "Bu filtrede görev yok", emptyListDesc: EMPTY_DESC, detailTitle: "Görev Detayı", runNoteTitle: "Çalıştırma notu", runNoteBody: "Son çalıştırma ve guard sonucu yukarıdaki detayda." });
     var list = arr(payload.task_list).map(function (t) {
       return { id: t.id, title: t.title, status: t.status, updated: t.updated, lastRun: t.last_run != null ? t.last_run : null, guardResult: t.guard_result || "—", outputSummary: t.output_summary || "—" };
     });
@@ -264,6 +274,8 @@
     var statusForFilter = { all: null, active: "aktif", pending: "bekleyen", completed: "tamamlandı", failed: "başarısız", blocked: "engellenen" }[filter];
     var filtered = !statusForFilter ? list : list.filter(function (t) { return t.status === statusForFilter; });
     var listUpdated = payload.list_updated || null;
+    var listUpdatedText = payload.list_updated_text || null;
+    var tasksFilePath = payload.tasks_file_path || null;
     var taskCount = payload.task_count != null ? payload.task_count : list.length;
     var tasksFileExists = payload.tasks_file_exists === true;
     return applyFallback("tasks", {
@@ -275,6 +287,8 @@
       selectedId: selId,
       selectedTask: selected,
       listUpdated: listUpdated,
+      listUpdatedText: listUpdatedText,
+      tasksFilePath: tasksFilePath,
       taskCount: taskCount,
       tasksFileExists: tasksFileExists,
       emptyListTitle: "Bu filtrede görev yok",

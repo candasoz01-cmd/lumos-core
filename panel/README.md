@@ -30,11 +30,11 @@
 
 **Phase 2 dar okuma (System):** Sistem Durumu ekranında `workspace_contract` (modül yükleme + path) ve `task_engine` (tasks.json okunabilirliği) gerçek backend'den okunuyor; diğer kartlar türetilmiş/sabit, okunamayan alanlar açık fallback ile bırakıldı. Yazım yok; panel/ ve `read_backend_state.py` kapsamında.
 
-**Phase 2 dar okuma (Görevler, Silinenler):** Görevler için `list_updated` (tasks.json mtime) backend’den okunuyor, panelde "Liste son güncelleme" gösterilir. Silinenler için `trash_location` çözümlenmiş (absolute) path; original_path/scope okunamadığı için "—" fallback bırakıldı.
+**Phase 2 dar okuma (Görevler, Silinenler):** Görevler için `list_updated`, `list_updated_text`, `tasks_file_path` backend’den okunuyor; panelde liste son güncelleme ve dosya yolu gösterilir. Silinenler için `trash_location` çözümlenmiş path; `trash_scope_fallback_note` ile original_path/scope okunamadığında "—" fallback açıklanır.
 
-**Phase 2 dar okuma (Kayıtlar):** Kayıtlar için `log_file_updated` (log.txt mtime) ve `log_location` (çözümlenmiş path) backend’den okunuyor; panelde "Kayıt dosyası son güncelleme" ve "Dosya" satırları gösterilir. Dosya yoksa log_file_updated null; log_location yine path (açık fallback).
+**Phase 2 dar okuma (Kayıtlar):** Kayıtlar için `log_file_updated`, `log_updated_text` ve `log_location` (çözümlenmiş path) backend’den okunuyor; panelde son güncelleme ve dosya yolu gösterilir. Dosya yoksa null; açık fallback.
 
-**Phase 2 dar okuma (Görevler / Silinenler / Kayıtlar) sayısal sinyaller:** Görevler: `tasks_file_exists`, `task_count`, `list_updated`; Silinenler: `trash_dir_exists`, `trash_item_count`, `trash_location`, `trash_last_move`; Kayıtlar: `log_file_exists`, `log_line_count`, `log_file_updated`, `log_location`. Okunamayan alanlar açık fallback; backend write yok.
+**Phase 2 dar okuma (Görevler / Silinenler / Kayıtlar) veri değeri:** Görevler: `list_updated`, `list_updated_text`, `tasks_file_path`, `task_count`, `tasks_file_exists`; Silinenler: `trash_location`, `trash_last_move`, `trash_item_count`, `trash_scope_fallback_note`; Kayıtlar: `log_file_updated`, `log_updated_text`, `log_location`, `log_line_count`, `log_file_exists`. Okunamayan alanlar açık fallback; backend write yok.
 
 **Phase 2 checkpoint (kalıcı):** Mevcut read-only durum kilitlendi; Config + Kimlik + Anahtar Kasası hattı tek yerde özetlenir; gerçek okuma / fallback / teknik özet / sonraki adım: `PANEL_PHASE2_CHECKPOINT.md`.
 

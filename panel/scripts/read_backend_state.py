@@ -56,8 +56,8 @@ def _task_engine_health(base: Path) -> tuple[str, str]:
 
 
 def _read_tasks_payload(base: Path) -> dict:
-    """Read-only: base/tasks.json → task_list, task_filter, selected_task_id, list_updated, tasks_file_exists, task_count.
-    Güvenli sinyaller: tasks.json var/yok, mtime (list_updated), görev sayısı (task_count)."""
+    """Read-only: base/tasks.json → task_list, task_filter, selected_task_id, list_updated, list_updated_text, tasks_file_path, tasks_file_exists, task_count.
+    Güvenli sinyaller: tasks.json var/yok, mtime (list_updated), çözülmüş dosya yolu, görev sayısı (task_count)."""
     tasks_file = base / "tasks.json"
     tasks_file_exists = tasks_file.is_file()
     out = {
@@ -65,14 +65,21 @@ def _read_tasks_payload(base: Path) -> dict:
         "task_filter": "all",
         "selected_task_id": None,
         "list_updated": None,
+        "list_updated_text": None,
+        "tasks_file_path": None,
         "tasks_file_exists": tasks_file_exists,
         "task_count": 0,
     }
     if not tasks_file_exists:
         return out
     try:
+        out["tasks_file_path"] = str(tasks_file.resolve())
+    except Exception:
+        pass
+    try:
         st_mtime = tasks_file.stat().st_mtime
         out["list_updated"] = datetime.fromtimestamp(st_mtime, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+        out["list_updated_text"] = _iso_to_display_text(out["list_updated"])
     except Exception:
         pass
     try:
@@ -102,8 +109,8 @@ def _read_tasks_payload(base: Path) -> dict:
     return out
 
 def _read_trash_payload(base: Path) -> dict:
-    """Read-only: base/trash dizin listesi → trash_location, trash_last_move, trash_items, trash_dir_exists, trash_item_count.
-    Güvenli sinyaller: trash konumu, dizin var/yok, öğe sayısı, son güncelleme (mtime türetilmiş)."""
+    """Read-only: base/trash dizin listesi → trash_location, trash_last_move, trash_items, trash_dir_exists, trash_item_count, trash_scope_fallback_note.
+    Güvenli sinyaller: trash konumu (çözülmüş), dizin var/yok, öğe sayısı. original_path/scope dosya sisteminden türetilmediği için —; fallback notu eklenir."""
     base_resolved = base.resolve()
     trash_dir = base_resolved / "trash"
     trash_dir_exists = trash_dir.is_dir()
@@ -113,6 +120,7 @@ def _read_trash_payload(base: Path) -> dict:
         "trash_items": [],
         "trash_dir_exists": trash_dir_exists,
         "trash_item_count": 0,
+        "trash_scope_fallback_note": "original_path ve scope dosya sisteminden okunamadı; meta yoksa — gösterilir.",
     }
     if not trash_dir_exists:
         return out
@@ -152,8 +160,8 @@ def _read_trash_payload(base: Path) -> dict:
     return out
 
 def _read_logs_payload(base: Path) -> dict:
-    """Read-only: base/logs/log.txt son satırlar → log_items, log_filter, log_file_updated, log_location, log_file_exists, log_line_count.
-    Güvenli sinyaller: log dosyası konumu, var/yok, son güncelleme (mtime), satır sayısı (görüntülenen)."""
+    """Read-only: base/logs/log.txt son satırlar → log_items, log_filter, log_file_updated, log_updated_text, log_location, log_file_exists, log_line_count.
+    Güvenli sinyaller: log dosyası konumu (çözülmüş), var/yok, son güncelleme (mtime + metin), satır sayısı (görüntülenen)."""
     base_resolved = base.resolve()
     log_file = base_resolved / "logs" / "log.txt"
     log_file_exists = log_file.is_file()
@@ -161,6 +169,7 @@ def _read_logs_payload(base: Path) -> dict:
         "log_items": [],
         "log_filter": "all",
         "log_file_updated": None,
+        "log_updated_text": None,
         "log_location": str(log_file),
         "log_file_exists": log_file_exists,
         "log_line_count": 0,
@@ -170,6 +179,7 @@ def _read_logs_payload(base: Path) -> dict:
     try:
         mtime = log_file.stat().st_mtime
         out["log_file_updated"] = datetime.fromtimestamp(mtime, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+        out["log_updated_text"] = _iso_to_display_text(out["log_file_updated"])
     except Exception:
         pass
     try:
@@ -197,6 +207,17 @@ def _file_mtime_iso(path: Path) -> str | None:
         return None
     try:
         return datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+    except Exception:
+        return None
+
+
+def _iso_to_display_text(iso: str | None) -> str | None:
+    """ISO tarih → panelde gösterim metni (Son güncelleme: DD.MM.YYYY HH:MM). Okunamazsa None."""
+    if not iso or iso == "—":
+        return None
+    try:
+        dt = datetime.fromisoformat(iso.replace("Z", "+00:00"))
+        return "Son güncelleme: " + dt.strftime("%d.%m.%Y %H:%M")
     except Exception:
         return None
 

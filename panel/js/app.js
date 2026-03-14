@@ -572,13 +572,15 @@
   // ——— Ekran: Görevler (adapter + build) ———
   function renderTasks() {
     var data = getTasksData();
-    var listUpdatedLine = data.listUpdated ? '<p class="text-muted-small">Liste son güncelleme: ' + formatTime(data.listUpdated) + "</p>" : "";
+    var listUpdatedLine = (data.listUpdatedText || (data.listUpdated ? formatTime(data.listUpdated) : null))
+      ? '<p class="text-muted-small">' + (data.listUpdatedText || ("Liste son güncelleme: " + formatTime(data.listUpdated))) + "</p>" : "";
     var taskCountLine = (data.taskCount != null && data.taskCount !== undefined) ? '<p class="text-muted-small">Görev sayısı: ' + data.taskCount + "</p>" : "";
+    var tasksFilePathLine = data.tasksFilePath ? '<p class="text-muted-small">Görev dosyası: ' + (data.tasksFilePath || "—") + "</p>" : "";
     var tabsHtml = data.filters.map(function (f) {
       var active = f.id === data.activeFilter ? " active" : "";
       return '<button type="button" class="log-tab task-filter-tab' + active + '" data-task-filter="' + f.id + '">' + f.label + "</button>";
     }).join("");
-    var listBody = (listUpdatedLine || taskCountLine ? (listUpdatedLine || "") + (taskCountLine || "") : "") + '<div class="task-filters" id="task-filters">' + tabsHtml + "</div>";
+    var listBody = (listUpdatedLine || taskCountLine || tasksFilePathLine ? (listUpdatedLine || "") + (taskCountLine || "") + (tasksFilePathLine || "") : "") + '<div class="task-filters" id="task-filters">' + tabsHtml + "</div>";
     if (data.listItems.length === 0) {
       listBody += buildEmptyState(data.emptyListTitle, data.emptyListDesc);
     } else {
@@ -656,6 +658,7 @@
   function renderTrash() {
     var data = getTrashData();
     var summary = buildMetricCards(data.summaryMetrics);
+    var scopeNoteLine = data.trashScopeFallbackNote ? '<p class="text-muted-small">' + data.trashScopeFallbackNote + "</p>" : "";
     var listSection;
     if (data.listItems.length === 0) {
       listSection = buildSection("Liste", buildEmptyState(data.emptyListTitle, data.emptyListDesc));
@@ -677,14 +680,14 @@
         ])
       : "<p class=\"screen-placeholder\">" + data.emptyDetailPlaceholder + "</p>";
     var detail = buildDetailPanel(data.detailTitle, detailBody);
-    return ViewHeader(data.title, data.subtitle) + '<div class="cards-grid">' + summary + "</div>" + '<div class="split-view">' + listSection + detail + "</div>";
+    return ViewHeader(data.title, data.subtitle) + '<div class="cards-grid">' + summary + "</div>" + (scopeNoteLine ? scopeNoteLine : "") + '<div class="split-view">' + listSection + detail + "</div>";
   }
 
   // ——— Ekran: Kayıtlar (adapter + build) ———
   function renderLogs() {
     var data = getLogsData();
     var metaLine = "";
-    if (data.logFileUpdated) metaLine += '<p class="text-muted-small">Kayıt dosyası son güncelleme: ' + formatTime(data.logFileUpdated) + "</p>";
+    if (data.logUpdatedText || data.logFileUpdated) metaLine += '<p class="text-muted-small">' + (data.logUpdatedText || ("Kayıt dosyası son güncelleme: " + formatTime(data.logFileUpdated))) + "</p>";
     if (data.logLocation) metaLine += '<p class="text-muted-small">Dosya: ' + (data.logLocation || "") + "</p>";
     if (data.logLineCount != null && data.logLineCount !== undefined) metaLine += '<p class="text-muted-small">Görüntülenen satır: ' + data.logLineCount + "</p>";
     var tabsHtml = data.filters.map(function (f) {
