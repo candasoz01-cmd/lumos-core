@@ -25,7 +25,9 @@ Aşağıdaki dört ekran ve alanları `read_backend_state.py` çıktısından ge
 |------|--------|
 | workspace_contract | `core.workspace_contract` import + `trash_path(base)`, `sandbox_base_path(base)`; ok / uyarı + not |
 | task_engine | `base/tasks.json` varlığı ve JSON okunabilirliği; ok / — + not |
-| keystore_sink, general | `consent_ok(base)` türetilmiş; ifşa yok |
+| keystore_sink, general | `consent_ok(base)` türetilmiş; genel not: "Consent kayıtlı. Lock/presence bu hatta doğrulanmaz." / "Consent alınmadı." |
+| system_paths | Çözümlü path'ler: writing_base, trash, sandbox_base, config, logs, tasks (workspace_contract + base); okunamazsa panel "—" |
+| system_summary | Config/trash/log/tasks zaten okunan sinyaller: config_exists, tasks_file_exists, task_count, trash_dir_exists, trash_item_count, log_file_exists, log_line_count → "Çekirdek dosya özeti" kartı |
 
 ### Görevler
 
@@ -132,6 +134,7 @@ Dashboard ve Sandbox ENV/base ile beslenir. Config yukarıdaki dar gerçek okuma
 
 - **A) Kimlik ve Anahtar Kasası Phase 2 dar okuma:** Uygulandı. identity.json / keystore.json varlık ve mtime; içerik okunmaz.
 - **B) Yapılandırma Phase 2 dar okuma:** config.json path + mtime (last_activity, last_activity_text); içerik okunmaz. Okunamayan alanlar açık fallback.
+- **System ekranı Phase 2 genişletmesi (bu tur):** Çözümlü path'ler (system_paths) ve çekirdek dosya özeti (system_summary) eklendi; genel consent notu netleştirildi. Okunamayan alanlar açık fallback.
 - **Sonraki sağlıklı adım (Görevler / Silinenler / Kayıtlar):** Bu üç ekranda içerik/metadata zenginleştirme (guard sonuçları, original_path/scope, log satır timestamp’i vb.) — Sayısal sinyaller (task_count, trash_item_count, log_line_count) backend'den okunuyor; içerik/metadata derinleştirme sonraki adım.
 - **İsteğe bağlı:** read_backend_state.py içinde tekrar eden okumaları sadeleştirme; davranış değişmez.
 
