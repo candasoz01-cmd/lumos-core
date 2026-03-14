@@ -68,5 +68,19 @@ window.__LUMOS_READ_STATE__ = {
     "keystore_state": "Kilitli",
     "keystore_last_update": null,
     "keystore_write_scope": "Kilit açılmadan hassas yazım yapılmaz"
+  },
+  "tasks": {
+    "task_list": [],
+    "task_filter": "all",
+    "selected_task_id": null
+  },
+  "trash": {
+    "trash_location": ".lumos/trash",
+    "trash_last_move": null,
+    "trash_items": []
+  },
+  "logs": {
+    "log_items": [],
+    "log_filter": "all"
   }
 };

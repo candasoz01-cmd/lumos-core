@@ -3,7 +3,8 @@
 Read-only backend state for panel Phase 1 bridge.
 Uses only: workspace_contract (paths, writing_base_dir, sandbox_base_path, LUMOS_SANDBOX_DIRNAME)
 and startup_health.consent_ok. No main.py, no write flows, no guard change.
-Output: JSON in fixture-compatible shape for Dashboard, Sandbox, System, Config, Identity, Keystore.
+Output: JSON in fixture-compatible shape for Dashboard, Sandbox, System, Config, Identity, Keystore,
+Tasks, Trash, Logs.
 Env: LUMOS_BASE_DIR (default .lumos), LUMOS_SANDBOX_MODE (default false), LUMOS_PROFILE (optional).
 """
 from __future__ import annotations
@@ -11,6 +12,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Repo src for imports (panel/scripts -> panel -> repo root -> src)
@@ -28,6 +30,118 @@ def _base_dir() -> Path:
 def _is_sandbox_mode() -> bool:
     v = os.environ.get("LUMOS_SANDBOX_MODE", "false").lower()
     return v in ("1", "true", "yes")
+
+# Panel status (filtre uyumu): engine status → ekran etiketi
+_TASK_STATUS_MAP = {
+    "bekliyor": "bekleyen",
+    "calisiyor": "aktif",
+    "tamamlandi": "tamamlandı",
+    "hata": "başarısız",
+    "durdu": "engellenen",
+    "kismi": "kismi",
+    "simulasyon": "simulasyon",
+    "dogrulanamadi": "dogrulanamadi",
+}
+
+def _read_tasks_payload(base: Path) -> dict:
+    """Read-only: base/tasks.json → task_list, task_filter, selected_task_id."""
+    out = {"task_list": [], "task_filter": "all", "selected_task_id": None}
+    tasks_file = base / "tasks.json"
+    if not tasks_file.is_file():
+        return out
+    try:
+        data = json.loads(tasks_file.read_text(encoding="utf-8"))
+        raw = data.get("tasks") or []
+    except Exception:
+        return out
+    for t in raw:
+        tid = t.get("task_id")
+        if tid is None:
+            continue
+        status = t.get("status") or "bekliyor"
+        status_panel = _TASK_STATUS_MAP.get(status, status)
+        updated = t.get("completed_at") or t.get("created_at") or ""
+        last_run = t.get("completed_at") if status in ("tamamlandi", "hata", "durdu", "kismi", "simulasyon", "dogrulanamadi") else None
+        summary = (t.get("summary") or t.get("last_output") or "—").strip() or "—"
+        out["task_list"].append({
+            "id": str(tid),
+            "title": t.get("title") or "—",
+            "status": status_panel,
+            "updated": updated,
+            "last_run": last_run,
+            "guard_result": "—",
+            "output_summary": summary[:200] + ("…" if len(summary) > 200 else ""),
+        })
+    return out
+
+def _read_trash_payload(base: Path) -> dict:
+    """Read-only: base/trash dizin listesi → trash_location, trash_last_move, trash_items."""
+    trash_dir = base / "trash"
+    out = {
+        "trash_location": str(trash_dir),
+        "trash_last_move": None,
+        "trash_items": [],
+    }
+    if not trash_dir.is_dir():
+        return out
+    last_mtime = None
+    items = []
+    for i, p in enumerate(sorted(trash_dir.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True)):
+        try:
+            st = p.stat()
+            mtime = st.st_mtime
+            if last_mtime is None or mtime > last_mtime:
+                last_mtime = mtime
+            try:
+                ts = datetime.fromtimestamp(mtime, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+            except Exception:
+                ts = "—"
+            try:
+                rel = p.relative_to(base)
+            except ValueError:
+                rel = p
+            items.append({
+                "id": "tr" + str(i + 1),
+                "name": p.name,
+                "original_path": "—",
+                "trash_path": str(rel),
+                "moved_at": ts,
+                "scope": "—",
+            })
+        except OSError:
+            continue
+    out["trash_items"] = items
+    if last_mtime is not None:
+        try:
+            out["trash_last_move"] = datetime.fromtimestamp(last_mtime, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+        except Exception:
+            pass
+    return out
+
+def _read_logs_payload(base: Path) -> dict:
+    """Read-only: base/logs/log.txt son satırlar → log_items, log_filter."""
+    log_file = base / "logs" / "log.txt"
+    out = {"log_items": [], "log_filter": "all"}
+    if not log_file.is_file():
+        return out
+    try:
+        text = log_file.read_text(encoding="utf-8", errors="replace")
+        lines = [s.strip() for s in text.splitlines() if s.strip()][-100:]
+    except Exception:
+        return out
+    try:
+        mtime = log_file.stat().st_mtime
+        ts = datetime.fromtimestamp(mtime, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+    except Exception:
+        ts = "—"
+    for i, line in enumerate(lines):
+        out["log_items"].append({
+            "id": "L" + str(i + 1),
+            "kind": "log",
+            "text": line[:500] + ("…" if len(line) > 500 else ""),
+            "ts": ts,
+        })
+    return out
 
 def _build_state() -> dict:
     base = _base_dir()
@@ -98,6 +212,15 @@ def _build_state() -> dict:
         "keystore_write_scope": "Kilit açılmadan hassas yazım yapılmaz",
     }
 
+    # Görevler: read-only base/tasks.json (task_list → panel contract)
+    tasks_payload = _read_tasks_payload(base)
+
+    # Silinenler: read-only base/trash dizin listesi
+    trash_payload = _read_trash_payload(base)
+
+    # Kayıtlar: read-only base/logs/log.txt son satırlar
+    logs_payload = _read_logs_payload(base)
+
     return {
         "dashboard": dashboard,
         "sandbox": sandbox,
@@ -105,6 +228,9 @@ def _build_state() -> dict:
         "config": config_payload,
         "identity": identity_payload,
         "keystore": keystore_payload,
+        "tasks": tasks_payload,
+        "trash": trash_payload,
+        "logs": logs_payload,
     }
 
 def main() -> None:
