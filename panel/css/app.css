@@ -14,6 +14,9 @@
   --link-active: #b3d4ff;
   --spacing: 0.75rem;
   --radius: 6px;
+  /* Kart/bölüm tutarlılığı: aynı padding ve radius */
+  --card-padding: var(--spacing);
+  --card-radius: var(--radius);
 }
 
 * {
@@ -186,14 +189,16 @@ body {
   overflow: auto;
 }
 
+/* Başlık hiyerarşisi: sayfa h1 → bölüm h2 → detay başlık */
 .main .view-header {
-  margin-bottom: 1rem;
+  margin-bottom: var(--spacing);
 }
 
 .main .view-header h1 {
   margin: 0 0 0.25rem 0;
   font-size: 1.25rem;
   font-weight: 600;
+  color: var(--text);
 }
 
 .main .view-header .view-subtitle {
@@ -201,12 +206,12 @@ body {
   color: var(--text-muted);
 }
 
-/* ——— Ortak bileşenler ——— */
+/* ——— Ortak bileşenler (tek dil: aynı radius, padding) ——— */
 .metric-card {
   background: var(--bg-card);
   border: var(--border);
-  border-radius: var(--radius);
-  padding: var(--spacing);
+  border-radius: var(--card-radius);
+  padding: var(--card-padding);
   margin-bottom: var(--spacing);
 }
 
@@ -225,8 +230,8 @@ body {
 .section-card {
   background: var(--bg-card);
   border: var(--border);
-  border-radius: var(--radius);
-  padding: var(--spacing);
+  border-radius: var(--card-radius);
+  padding: var(--card-padding);
   margin-bottom: var(--spacing);
 }
 
@@ -247,12 +252,12 @@ body {
 }
 
 .empty-state {
-  padding: 1.5rem;
+  padding: var(--card-padding);
   text-align: center;
   color: var(--text-muted);
   background: var(--bg-card);
   border: var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--card-radius);
   margin-bottom: var(--spacing);
 }
 
@@ -293,8 +298,8 @@ body {
 .detail-panel {
   background: var(--bg-card);
   border: var(--border);
-  border-radius: var(--radius);
-  padding: var(--spacing);
+  border-radius: var(--card-radius);
+  padding: var(--card-padding);
   margin-bottom: var(--spacing);
 }
 
@@ -398,8 +403,8 @@ body {
 .main .card {
   background: var(--bg-card);
   border: var(--border);
-  border-radius: var(--radius);
-  padding: var(--spacing);
+  border-radius: var(--card-radius);
+  padding: var(--card-padding);
   margin-bottom: var(--spacing);
 }
 
