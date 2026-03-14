@@ -12,6 +12,8 @@
 
 **Fixture payload ve mapper:** Backend-benzeri örnek payload'lar (`js/fixtures.js` — `LumosFixtures.payloads`) ve bunları panel contract'ına çeviren mapper'lar hazır. Üst çubukta "Veri kaynağı: Demo | Fixture" seçici ile entegrasyon provası yapılabilir. Gerçek backend geldiğinde panel contract'a geçiş bu katmandan (fixture yerine API yanıtı → aynı mapper) yapılacak. Detay: `BACKEND_PAYLOAD_FIXTURES.md`.
 
+**Milestone özeti:** Panel v1 hattı bilinçli olarak kilitlendi; sonraki adım gerçek backend entegrasyonu. Özet: `PANEL_V1_MILESTONE.md`.
+
 ## Çalıştırma
 
 - **Doğrudan:** `panel/index.html` açın (`file://`).
