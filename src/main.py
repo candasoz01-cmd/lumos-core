@@ -1,7 +1,6 @@
 """Lumos core CLI: lock, presence, alias, durum."""
 import json
 import os
-from datetime import date
 from getpass import getpass
 from pathlib import Path
 from typing import Any
@@ -10,7 +9,6 @@ from cli.cli_parse import (
     HATIRLA_NOTE_MAX_LEN,
     HELP_TEXT,
     NOT_ADLANDIR_MAX_TAG_LEN,
-    UNKNOWN_CMD_TEXT,
     _fold_for_search,
     _record_note_op,
     _record_today_action,
