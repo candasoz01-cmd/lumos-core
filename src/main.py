@@ -8,40 +8,22 @@ from typing import Any
 
 from cli.cli_parse import (
     HATIRLA_NOTE_MAX_LEN,
-    HELP_ARAMA_TEXT,
-    HELP_ETIKETLER_TEXT,
-    HELP_GORUNTULEME_TEXT,
-    HELP_GUVENLIK_TEXT,
-    HELP_KISA_TEXT,
-    HELP_NOT_ISLEMLERI_TEXT,
-    HELP_NOTLAR_TEXT,
-    HELP_TEMEL_TEXT,
     HELP_TEXT,
-    KISACA_ANLAT_SHORT_THRESHOLD,
     NOT_ADLANDIR_MAX_TAG_LEN,
-    NOT_OZETLE_SHORT_THRESHOLD,
-    REHBER_TEXT,
     UNKNOWN_CMD_TEXT,
-    _format_neden_cevap,
-    _format_today_bullet,
-    _get_en_onemli_eksik,
-    _get_guvenli_cevap,
-    _get_mod_cevabi,
-    _get_oneri,
-    _get_tek_sonraki_adim,
-    _record_note_op,
     _fold_for_search,
+    _record_note_op,
     _record_today_action,
     _shorten_previous_response,
     get_fallback_message,
     normalize_command,
 )
+from cli.cli_readonly import ReadOnlyContext, handle_readonly
 from core.config import load_config
 from core.engine import CoreEngine
 from core.logfmt import logfmt
 from core.lumos import Lumos
-from core.state import CoreState, format_durum
-from core.startup_health import get_durum_parts, get_startup_summary
+from core.state import CoreState
 from core.workspace_contract import ensure_trash_dir, logs_file_path, trash_path
 from engine.online_engine import OnlineEngineV1
 from memory.schema import MemoryNote
@@ -822,6 +804,26 @@ def main(sandbox_mode: bool | None = None) -> None:
     last_note_undo: list[tuple[str, Any] | None] = [None]  # (op, data) tek adımlık geri al
     note_ops_history: list[list[str]] = [[]]          # son not işlemleri (en fazla 5); "not geçmişi"
     last_task_create_fingerprint: list[tuple[str, str] | None] = [None]  # (profil, açıklama) yakın tekrar uyarısı için
+    ctx = ReadOnlyContext()
+    ctx.base_dir = base_dir
+    ctx.state = state
+    ctx.ks = ks
+    ctx.pl = pl
+    ctx.mode = mode
+    ctx.engine = engine
+    ctx.saved_notes = saved_notes
+    ctx.note_ops_history = note_ops_history
+    ctx.last_response_reason = last_response_reason
+    ctx.last_action = last_action
+    ctx.last_response_text = last_response_text
+    ctx.today_date = today_date
+    ctx.today_actions = today_actions
+    ctx.current_task = current_task
+    ctx.current_permission_profile = current_permission_profile
+    ctx.task_store = task_store
+    ctx.aliases = aliases
+    ctx.record_note_op = lambda label: _record_note_op(note_ops_history, label)
+    ctx.record_today_action = lambda action: _record_today_action(today_date, today_actions, action)
     while True:
         try:
             pl.watchdog_tick(
@@ -884,136 +886,7 @@ def main(sandbox_mode: bool | None = None) -> None:
         if route == "unknown":
             print(get_fallback_message(raw, last_route[0]))
             continue
-        if route == "help":
-            last_response_reason[0] = "komut listesini istedin"
-            last_action[0] = "En son yardım listesini gösterdim."
-            _record_today_action(today_date, today_actions, last_action[0])
-            last_response_text[0] = HELP_TEXT
-            print(HELP_TEXT)
-            continue
-        if route == "help_etiketler":
-            last_response_reason[0] = "etiket komutlarını istedin"
-            last_action[0] = "En son etiket yardımını gösterdim."
-            _record_today_action(today_date, today_actions, last_action[0])
-            last_response_text[0] = HELP_ETIKETLER_TEXT
-            print(HELP_ETIKETLER_TEXT)
-            continue
-        if route == "help_notlar":
-            last_response_reason[0] = "not komutlarını istedin"
-            last_action[0] = "En son not yardımını gösterdim."
-            _record_today_action(today_date, today_actions, last_action[0])
-            last_response_text[0] = HELP_NOTLAR_TEXT
-            print(HELP_NOTLAR_TEXT)
-            continue
-        if route == "help_not_islemleri":
-            last_response_reason[0] = "not işlem komutlarını istedin"
-            last_action[0] = "En son not işlemleri yardımını gösterdim."
-            _record_today_action(today_date, today_actions, last_action[0])
-            last_response_text[0] = HELP_NOT_ISLEMLERI_TEXT
-            print(HELP_NOT_ISLEMLERI_TEXT)
-            continue
-        if route == "help_temel":
-            last_response_reason[0] = "temel komutları istedin"
-            last_action[0] = "En son temel yardımını gösterdim."
-            _record_today_action(today_date, today_actions, last_action[0])
-            last_response_text[0] = HELP_TEMEL_TEXT
-            print(HELP_TEMEL_TEXT)
-            continue
-        if route == "help_guvenlik":
-            last_response_reason[0] = "güvenlik komutlarını istedin"
-            last_action[0] = "En son güvenlik yardımını gösterdim."
-            _record_today_action(today_date, today_actions, last_action[0])
-            last_response_text[0] = HELP_GUVENLIK_TEXT
-            print(HELP_GUVENLIK_TEXT)
-            continue
-        if route == "help_kisa":
-            last_response_reason[0] = "kısa yardımı istedin"
-            last_action[0] = "En son kısa yardımı gösterdim."
-            _record_today_action(today_date, today_actions, last_action[0])
-            last_response_text[0] = HELP_KISA_TEXT
-            print(HELP_KISA_TEXT)
-            continue
-        if route == "help_arama":
-            last_response_reason[0] = "arama komutlarını istedin"
-            last_action[0] = "En son arama yardımını gösterdim."
-            _record_today_action(today_date, today_actions, last_action[0])
-            last_response_text[0] = HELP_ARAMA_TEXT
-            print(HELP_ARAMA_TEXT)
-            continue
-        if route == "help_goruntuleme":
-            last_response_reason[0] = "görüntüleme komutlarını istedin"
-            last_action[0] = "En son görüntüleme yardımını gösterdim."
-            _record_today_action(today_date, today_actions, last_action[0])
-            last_response_text[0] = HELP_GORUNTULEME_TEXT
-            print(HELP_GORUNTULEME_TEXT)
-            continue
-        if route == "rehber":
-            last_response_reason[0] = "rehberi istedin"
-            last_action[0] = "En son yardım rehberini gösterdim."
-            _record_today_action(today_date, today_actions, last_action[0])
-            last_response_text[0] = REHBER_TEXT
-            print(REHBER_TEXT)
-            continue
-        if route == "onerir":
-            oneriler = _get_oneri(base_dir, ks.is_initialized(), pl)
-            for o in oneriler:
-                print(o)
-            last_response_reason[0] = (oneriler[0].rstrip(".") if oneriler and oneriler[0] else None)
-            last_action[0] = "En son sonraki adım önerisini verdim."
-            last_response_text[0] = "\n".join(oneriler) if oneriler else None
-            _record_today_action(today_date, today_actions, last_action[0])
-            continue
-        if route == "sonraki_adim":
-            step = _get_tek_sonraki_adim(base_dir, ks.is_initialized(), pl)
-            print(step)
-            last_response_reason[0] = step.replace("Bir sonraki adım: ", "").strip() if step.startswith("Bir sonraki adım:") else step
-            last_action[0] = "En son tek sonraki adımı söyledim."
-            last_response_text[0] = step
-            _record_today_action(today_date, today_actions, last_action[0])
-            continue
-        if route == "guvenli_miyim":
-            resp = _get_guvenli_cevap(base_dir, ks.is_initialized(), pl)
-            print(resp)
-            last_response_reason[0] = resp.split(". ", 1)[1].strip().rstrip(".") if ". " in resp else resp
-            last_action[0] = "En son güvenlik cevabını verdim."
-            last_response_text[0] = resp
-            _record_today_action(today_date, today_actions, last_action[0])
-            continue
-        if route == "en_onemli_eksik":
-            resp = _get_en_onemli_eksik(base_dir, ks.is_initialized(), pl)
-            print(resp)
-            last_response_reason[0] = resp
-            last_action[0] = "En son tek kritik eksiği söyledim."
-            last_response_text[0] = resp
-            _record_today_action(today_date, today_actions, last_action[0])
-            continue
-        if route == "hangi_moddayim":
-            resp = _get_mod_cevabi(mode, base_dir, ks.is_initialized(), pl)
-            print(resp)
-            last_response_reason[0] = resp
-            last_action[0] = "En son mod cevabını verdim."
-            last_response_text[0] = resp
-            _record_today_action(today_date, today_actions, last_action[0])
-            continue
-        if route == "neden_boyle":
-            ned_cevap = _format_neden_cevap(last_response_reason[0])
-            print(ned_cevap)
-            last_action[0] = "En son önceki cevabın gerekçesini söyledim."
-            last_response_text[0] = ned_cevap
-            _record_today_action(today_date, today_actions, last_action[0])
-            continue
-        if route == "kisaca_anlat":
-            prev = (last_response_text[0] or "").strip()
-            if not prev or len(prev) < KISACA_ANLAT_SHORT_THRESHOLD:
-                out_short = "Zaten kısa söyledim."
-                print(out_short)
-            else:
-                out_short = _shorten_previous_response(prev)
-                print(out_short)
-            last_response_reason[0] = "kısaca anlat dedin"
-            last_action[0] = "En son önceki cevabı kısaca özetledim."
-            last_response_text[0] = out_short
-            _record_today_action(today_date, today_actions, last_action[0])
+        if handle_readonly(route, args, ctx):
             continue
         if route == "hatirla":
             note_rest = (args[0].strip() if args else "")
@@ -1032,128 +905,6 @@ def main(sandbox_mode: bool | None = None) -> None:
                 last_response_reason[0] = "bunu hatırla dedin"
                 last_action[0] = "En son hatırla istedin; not metnini bekliyorum."
                 print("Ne hatırlayayım?")
-            continue
-        if route == "son_not_ne":
-            if saved_notes[0]:
-                print("Son not: " + saved_notes[0][-1])
-            else:
-                print("Henüz kayıtlı bir not yok.")
-            continue
-        if route == "notu_kopyala":
-            if saved_notes[0]:
-                _record_note_op(note_ops_history, "notu kopyala")
-                print(saved_notes[0][-1])
-            else:
-                print("Kopyalanacak kayıtlı not yok.")
-            continue
-        if route == "notu_disa_aktar":
-            if saved_notes[0]:
-                _record_note_op(note_ops_history, "notu dışa aktar")
-                print(saved_notes[0][-1])
-            else:
-                print("Dışa aktarılacak kayıtlı not yok.")
-            continue
-        if route == "notu_paylas":
-            if saved_notes[0]:
-                _record_note_op(note_ops_history, "notu paylaş")
-                print(saved_notes[0][-1])
-            else:
-                print("Paylaşılacak kayıtlı not yok.")
-            continue
-        if route == "not_ozetle":
-            if not saved_notes[0]:
-                print("Özetlenecek kayıtlı not yok.")
-            else:
-                _record_note_op(note_ops_history, "not özetle")
-                last_note = saved_notes[0][-1].strip()
-                if len(last_note) <= NOT_OZETLE_SHORT_THRESHOLD:
-                    print("Son not zaten yeterince kısa.")
-                else:
-                    short = _shorten_previous_response(last_note).strip()
-                    if not short:
-                        short = (last_note[:120].rsplit(maxsplit=1)[0].rstrip(".,") + ".") if len(last_note) > 120 else last_note
-                    print("Kısa özet: " + short)
-            continue
-        if route == "notlari_goster":
-            if not saved_notes[0]:
-                print("Henüz kayıtlı not yok.")
-            else:
-                recent = saved_notes[0][-5:]
-                print("Kayıtlı notlar:")
-                for n in recent:
-                    print("- " + n)
-            continue
-        if route == "etiketli_notlari_goster":
-            tagged = [n for n in saved_notes[0] if n.startswith("[") and "] " in n]
-            if not tagged:
-                print("Henüz etiketli not yok.")
-            else:
-                recent_tagged = tagged[-5:]
-                print("Etiketli notlar:")
-                for n in recent_tagged:
-                    print("- " + n)
-            continue
-        if route == "etikete_gore_notlari_goster":
-            tag_raw = (args[0] if args else "").strip()
-            if not tag_raw:
-                print("Göstermek için bir etiket yazman gerekiyor.")
-                continue
-            tagged = [n for n in saved_notes[0] if n.startswith("[") and "] " in n]
-            folded = _fold_for_search(tag_raw)
-            matches = [n for n in tagged if _fold_for_search(n[1 : n.index("] ")].strip()) == folded]
-            if not matches:
-                print("Bu etikete sahip not bulamadım.")
-            else:
-                recent = matches[-5:]
-                print("Eşleşen notlar:")
-                for n in recent:
-                    print("- " + n)
-            continue
-        if route == "etiketleri_goster":
-            seen: set[str] = set()
-            tags_ordered: list[str] = []
-            for n in reversed(saved_notes[0]):
-                if n.startswith("[") and "] " in n:
-                    tag = n[1 : n.index("] ")].strip()
-                    if tag and tag not in seen:
-                        seen.add(tag)
-                        tags_ordered.append(tag)
-            if not tags_ordered:
-                print("Henüz kayıtlı etiket yok.")
-            else:
-                print("Kayıtlı etiketler:")
-                for t in tags_ordered:
-                    print("- " + t)
-            continue
-        if route == "etiket_ara":
-            word = (args[0] if args else "").strip()
-            if not word:
-                print("Aramak için bir etiket yazman gerekiyor.")
-                continue
-            seen_tag: set[str] = set()
-            tags_ordered_etiket_ara: list[str] = []
-            for n in reversed(saved_notes[0]):
-                if n.startswith("[") and "] " in n:
-                    tag = n[1 : n.index("] ")].strip()
-                    if tag and tag not in seen_tag:
-                        seen_tag.add(tag)
-                        tags_ordered_etiket_ara.append(tag)
-            folded = _fold_for_search(word)
-            matched = [t for t in tags_ordered_etiket_ara if folded in _fold_for_search(t)]
-            if not matched:
-                print("Bu aramayla eşleşen etiket bulamadım.")
-            else:
-                print("Eşleşen etiketler:")
-                for t in matched:
-                    print("- " + t)
-            continue
-        if route == "not_gecmisi":
-            if not note_ops_history[0]:
-                print("Henüz kayıtlı not işlemi yok.")
-            else:
-                print("Son not işlemleri:")
-                for op in reversed(note_ops_history[0]):
-                    print("- " + op)
             continue
         if route == "notlari_temizle":
             if not saved_notes[0]:
@@ -1289,50 +1040,9 @@ def main(sandbox_mode: bool | None = None) -> None:
                 _record_note_op(note_ops_history, "notu geri al")
                 print("Son not işlemini geri aldım.")
             continue
-        if route == "kac_not_var":
-            n = len(saved_notes[0])
-            if n == 0:
-                print("Kayıtlı not yok.")
-            else:
-                print(f"{n} kayıtlı not var.")
-            continue
-        if route == "not_ara":
-            word = (args[0] if args else "").strip()
-            if not word:
-                print("Aramak için bir kelime yazman gerekiyor.")
-                continue
-            _record_note_op(note_ops_history, "not ara")
-            folded = _fold_for_search(word)
-            matches = [n for n in saved_notes[0] if folded in _fold_for_search(n)]
-            if not matches:
-                print("Bu aramayla eşleşen not bulamadım.")
-            else:
-                recent = matches[-5:]
-                print("Eşleşen notlar:")
-                for n in recent:
-                    print("- " + n)
-            continue
-        if route == "etiketli_not_ara":
-            word = (args[0] if args else "").strip()
-            if not word:
-                print("Aramak için bir kelime yazman gerekiyor.")
-                continue
-            tagged = [n for n in saved_notes[0] if n.startswith("[") and "] " in n]
-            folded = _fold_for_search(word)
-            matches = [n for n in tagged if folded in _fold_for_search(n)]
-            if not matches:
-                print("Bu aramayla eşleşen etiketli not bulamadım.")
-            else:
-                print("Eşleşen etiketli notlar:")
-                for n in matches:
-                    print("- " + n)
-            continue
         # ---- Görev motoru + yetki + genel onay komutları ----
         if route == "yetki_profili":
-            if not args or not args[0].strip():
-                profile = current_permission_profile[0]
-                print("Yetki profili: " + get_profile_display_name(profile))
-                continue
+            # Display-only (no args) handled by handle_readonly; here only set profile
             name = (args[0] or "").strip().lower().replace("-", "_")
             if name in ALL_PROFILES:
                 current_permission_profile[0] = name
@@ -1379,95 +1089,6 @@ def main(sandbox_mode: bool | None = None) -> None:
                 _record_today_action(today_date, today_actions, last_action[0])
             finally:
                 current_task[0] = None
-            continue
-        if route == "gorevler":
-            tasks = task_store.list_all()
-            if not tasks:
-                print("Kayıtlı görev yok.")
-            else:
-                from task_engine import compute_task_stats, format_task_stats_line
-
-                stats = compute_task_stats(tasks)
-                print(format_task_stats_line(stats))
-                for t in tasks:
-                    status_label = t.status
-                    if getattr(t, "archived", False):
-                        status_label = f"{status_label} (arşiv)"
-                    print(f"  {t.task_id}: {t.title} — {status_label}")
-            continue
-        if route == "gorev_durumu":
-            id_str = (args[0] if args else "").strip()
-            if not id_str:
-                print("Kullanım: görev durumu <id>")
-                continue
-            try:
-                tid = int(id_str)
-            except ValueError:
-                print("Geçerli bir görev id yaz.")
-                continue
-            t = task_store.get(tid)
-            if not t:
-                print("Görev bulunamadı.")
-                continue
-            print(f"Görev {t.task_id}: {t.title}")
-            print(f"  Durum: {t.status} | Profil: {t.permission_profile} | Oluşturulma: {t.created_at}")
-            if t.error_summary:
-                print(f"  Hata: {t.error_summary}")
-            continue
-        if route == "gorev_adimlari":
-            id_str = (args[0] if args else "").strip()
-            if not id_str:
-                print("Kullanım: görev adımları <id>")
-                continue
-            try:
-                tid = int(id_str)
-            except ValueError:
-                print("Geçerli bir görev id yaz.")
-                continue
-            t = task_store.get(tid)
-            if not t:
-                print("Görev bulunamadı.")
-                continue
-            print(f"Görev {t.task_id}: {t.title} — adımlar:")
-            for i, s in enumerate(t.steps, 1):
-                rk = getattr(s, "result_kind", "") or "-"
-                print(f"  {i}. [{s.status}] sonuç: {rk} — {s.title}")
-            continue
-        if route == "gorev_ozeti":
-            id_str = (args[0] if args else "").strip()
-            if not id_str:
-                print("Kullanım: görev özeti <id>")
-                continue
-            try:
-                tid = int(id_str)
-            except ValueError:
-                print("Geçerli bir görev id yaz.")
-                continue
-            t = task_store.get(tid)
-            if not t:
-                print("Görev bulunamadı.")
-                continue
-            # Doğrulama sayacı: toplam adım, tamamlanan, doğrulanan, doğrulanamayan, simülasyon, son durum, kısa sonuç
-            total_steps = len(t.steps)
-            completed_steps = sum(1 for s in t.steps if s.status == "tamamlandi")
-            verified = getattr(t, "verified_count", 0)
-            unverified = getattr(t, "unverified_count", 0)
-            simulation = getattr(t, "simulation_count", 0)
-            parts = [
-                f"Toplam adım: {total_steps}",
-                f"Tamamlanan adım: {completed_steps}",
-                f"Doğrulanan adım: {verified}",
-                f"Doğrulanamayan adım: {unverified}",
-                f"Simülasyon adım: {simulation}",
-                f"Son durum: {t.status}",
-            ]
-            if getattr(t, "elapsed_seconds", 0) > 0:
-                parts.append(f"Geçen süre: {t.elapsed_seconds:.1f}s")
-            short_result = (t.description or "")[:80]
-            if len(t.description or "") > 80:
-                short_result += "..."
-            parts.append(f"Kısa sonuç: {short_result or '(yok)'}")
-            print("\n".join(parts))
             continue
         if route == "gorev_iptal":
             id_str = (args[0] if args else "").strip()
@@ -1530,94 +1151,9 @@ def main(sandbox_mode: bool | None = None) -> None:
             else:
                 print("Silinecek görev bulunamadı.")
             continue
-        if route == "gorev_sayac":
-            from task_engine import compute_task_stats, format_task_stats_line
-
-            stats = compute_task_stats(task_store.list_all())
-            print(format_task_stats_line(stats))
-            continue
-        if route == "ne_yapiyorsun":
-            if current_task[0]:
-                txt = "Şu an " + current_task[0]
-                print(txt)
-                last_response_reason[0] = current_task[0]
-            else:
-                txt = "Şu an aktif bir görevim yok."
-                print(txt)
-                last_response_reason[0] = "aktif görev yoktu"
-            last_response_text[0] = txt
-            continue
-        if route == "son_yaptigin_ne":
-            if last_action[0]:
-                print(last_action[0])
-                last_response_reason[0] = last_action[0]
-                last_response_text[0] = last_action[0]
-            else:
-                txt = "Henüz kayda değer bir işlem yapmadım."
-                print(txt)
-                last_response_reason[0] = "henüz işlem yoktu"
-                last_response_text[0] = txt
-            continue
-        if route == "bugun_ne_yaptin":
-            if today_date[0] != date.today().isoformat():
-                today_date[0] = date.today().isoformat()
-                today_actions[0] = []
-            if not today_actions[0]:
-                txt = "Bugün kayda değer bir işlem yapmadım."
-                print(txt)
-                last_response_reason[0] = "bugün işlem yoktu"
-                last_response_text[0] = txt
-            else:
-                items = today_actions[0][-5:]  # en fazla 5 madde, en son yapılanlar
-                lines = ["Bugün şunları yaptım:"] + ["- " + _format_today_bullet(a) for a in items]
-                txt = "\n".join(lines)
-                print(txt)
-                last_response_reason[0] = "bugünkü işlere baktım"
-                last_response_text[0] = txt
-            continue
-        if route == "unknown":
-            last_response_reason[0] = None
-            last_response_text[0] = None
-            print(UNKNOWN_CMD_TEXT)
-            continue
         if route == "exit":
             print("OK")
             break
-        if route == "durum":
-            current_task[0] = "durum çıktısını hazırlıyorum."
-            try:
-                # "durum özet" yazıldıysa sahada net görünsün
-                is_ozet = bool(
-                    args
-                    and ("ozet" in (args[0].lower().replace("ö", "o").replace("ı", "i") or "")
-                         or "özet" in (args[0] or ""))
-                )
-                if is_ozet:
-                    print("Durum özeti:")
-                log_path = logs_file_path(base_dir)
-                snap = state.snapshot(base_dir=base_dir, log_path=log_path)
-                parts = get_durum_parts(Path(base_dir), ks.is_initialized(), engine.pl)
-                durum_txt = format_durum(snap, parts["consent_ok"], parts["lock_ok"], parts["durum_label"], parts["not_line"])
-                print(durum_txt)
-                last_response_reason[0] = parts.get("not_line") or parts.get("durum_label", "")
-                last_action[0] = "En son durum özetini gösterdim."
-                last_response_text[0] = durum_txt
-                _record_today_action(today_date, today_actions, last_action[0])
-            finally:
-                current_task[0] = None
-            continue
-        if route == "hazir":
-            current_task[0] = "açılış sağlık özetini doğruluyorum."
-            try:
-                summary = get_startup_summary(Path(base_dir), not state.is_locked(), pl)
-                print(summary)
-                last_response_reason[0] = summary
-                last_action[0] = "En son hazır olma özetini verdim."
-                last_response_text[0] = summary
-                _record_today_action(today_date, today_actions, last_action[0])
-            finally:
-                current_task[0] = None
-            continue
         if route == "kilit":
             current_task[0] = "kilit menüsündeyim."
             try:
@@ -1654,6 +1190,8 @@ def main(sandbox_mode: bool | None = None) -> None:
                     print("Kırık alanlar: " + ", ".join(failed_areas))
             continue
         if route == "alias":
+            if handle_readonly(route, args, ctx):
+                continue
             alias_menu(args=args)
             last_action[0] = "En son alias işlemi yaptım."
             _record_today_action(today_date, today_actions, last_action[0])
