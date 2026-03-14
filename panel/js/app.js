@@ -248,11 +248,32 @@
     return v[status] || "badge-mode";
   }
 
-  // ——— Adapter (contract'a hizalı; kaynak: stub veya fixture+mapper; yarın backend için sadece bu katmanda mapping değişir) ———
+  // ——— Veri kaynağı soyutlaması (Phase 1: Dashboard, Sandbox, System) ———
+  var Bridge = typeof LumosBackendBridge !== "undefined" ? LumosBackendBridge : {};
+  function getDashboardSourceData() {
+    var backend = Bridge.readBackendDashboardState && Bridge.readBackendDashboardState();
+    if (backend != null) return { type: "backend", data: backend };
+    if (useFixtureData && window.LumosFixtures && window.LumosFixtures.payloads) return { type: "fixture", data: window.LumosFixtures.payloads.dashboard };
+    return { type: "demo", data: getEffectiveState() };
+  }
+  function getSandboxSourceData() {
+    var backend = Bridge.readBackendSandboxState && Bridge.readBackendSandboxState();
+    if (backend != null) return { type: "backend", data: backend };
+    if (useFixtureData && window.LumosFixtures && window.LumosFixtures.payloads) return { type: "fixture", data: window.LumosFixtures.payloads.sandbox };
+    return { type: "demo", data: getEffectiveState() };
+  }
+  function getSystemSourceData() {
+    var backend = Bridge.readBackendSystemState && Bridge.readBackendSystemState();
+    if (backend != null) return { type: "backend", data: backend };
+    if (useFixtureData && window.LumosFixtures && window.LumosFixtures.payloads) return { type: "fixture", data: window.LumosFixtures.payloads.system };
+    return { type: "demo", data: getEffectiveState() };
+  }
+
+  // ——— Adapter (contract'a hizalı; kaynak: backend → mapper, yoksa fixture/demo → mapper/stub) ———
   function getDashboardData() {
-    if (useFixtureData && window.LumosFixtures && LC.normalizeDashboard) return LC.normalizeDashboard(LumosFixtures.mapDashboardPayloadToPanelData(LumosFixtures.payloads.dashboard), {});
-    var s = getEffectiveState();
-    return LC.normalizeDashboard(LC.buildDashboardStub(s), s);
+    var src = getDashboardSourceData();
+    if ((src.type === "backend" || src.type === "fixture") && window.LumosFixtures && LC.normalizeDashboard) return LC.normalizeDashboard(LumosFixtures.mapDashboardPayloadToPanelData(src.data), {});
+    return LC.normalizeDashboard(LC.buildDashboardStub(src.data), src.data);
   }
   function getTasksData() {
     if (useFixtureData && window.LumosFixtures && LC.normalizeTasks) return LC.normalizeTasks(LumosFixtures.mapTasksPayloadToPanelData(LumosFixtures.payloads.tasks), {});
@@ -260,9 +281,9 @@
     return LC.normalizeTasks(LC.buildTasksStub(s), s);
   }
   function getSandboxData() {
-    if (useFixtureData && window.LumosFixtures && LC.normalizeSandbox) return LC.normalizeSandbox(LumosFixtures.mapSandboxPayloadToPanelData(LumosFixtures.payloads.sandbox), {});
-    var s = getEffectiveState();
-    return LC.normalizeSandbox(LC.buildSandboxStub(s), s);
+    var src = getSandboxSourceData();
+    if ((src.type === "backend" || src.type === "fixture") && window.LumosFixtures && LC.normalizeSandbox) return LC.normalizeSandbox(LumosFixtures.mapSandboxPayloadToPanelData(src.data), {});
+    return LC.normalizeSandbox(LC.buildSandboxStub(src.data), src.data);
   }
   function getConfigData() {
     if (useFixtureData && window.LumosFixtures && LC.normalizeConfig) return LC.normalizeConfig(LumosFixtures.mapConfigPayloadToPanelData(LumosFixtures.payloads.config), {});
@@ -290,9 +311,9 @@
     return LC.normalizeLogs(LC.buildLogsStub(s), s);
   }
   function getSystemStatusData() {
-    if (useFixtureData && window.LumosFixtures && LC.normalizeSystem) return LC.normalizeSystem(LumosFixtures.mapSystemPayloadToPanelData(LumosFixtures.payloads.system), {});
-    var s = getEffectiveState();
-    return LC.normalizeSystem(LC.buildSystemStub(s), s);
+    var src = getSystemSourceData();
+    if ((src.type === "backend" || src.type === "fixture") && window.LumosFixtures && LC.normalizeSystem) return LC.normalizeSystem(LumosFixtures.mapSystemPayloadToPanelData(src.data), {});
+    return LC.normalizeSystem(LC.buildSystemStub(src.data), src.data);
   }
 
   function getTopbarData() {

@@ -14,6 +14,8 @@
 
 **Milestone özeti:** Panel v1 hattı bilinçli olarak kilitlendi; sonraki adım gerçek backend entegrasyonu. Özet: `PANEL_V1_MILESTONE.md`.
 
+**Phase 1 backend bridge:** Dashboard, Korumalı Alan ve Sistem Durumu için gerçek veri giriş noktası hazırlandı (`js/backend-bridge.js`, source provider + adapter zinciri). Gerçek veri yoksa panel fallback (demo/fixture) veriyle çalışmaya devam eder. Detay: `BACKEND_BRIDGE_PHASE1.md`.
+
 ## Çalıştırma
 
 - **Doğrudan:** `panel/index.html` açın (`file://`).
