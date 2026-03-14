@@ -1,9 +1,9 @@
 /**
  * Lumos Panel v1 — Backend bridge (Phase 1).
- * Read-only source bridge: okunabilir kaynak varsa (window.__LUMOS_READ_STATE__) döner;
+ * Read-only: okunabilir kaynak varsa (window.__LUMOS_READ_STATE__) backend şeklini (snake_case) döner;
  * yoksa null → panel fixture/demo fallback kullanır.
- * Dashboard, Sandbox, System, Config, Identity, Keystore, Görevler, Silinenler, Kayıtlar.
- * Kaynak: panel/scripts/read_backend_state.py (workspace_contract + consent_ok + tasks/trash/logs).
+ * Bridge çıktısı panel veri şekline fixtures.js map*PayloadToPanelData ile dönüştürülür (contract: js/contracts.js).
+ * Kaynak: panel/scripts/read_backend_state.py.
  */
 (function (global) {
   "use strict";
