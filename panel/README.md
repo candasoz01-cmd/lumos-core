@@ -26,6 +26,8 @@
 
 **Phase 1 bridge — Görevler, Silinenler, Kayıtlar:** Aynı read-only hattı Görevler, Silinenler ve Kayıtlar ekranlarına genişletildi. Kaynaklar: `base/tasks.json` (görev listesi), `base/trash` (dizin listesi), `base/logs/log.txt` (son satırlar). `read_backend_state.py` çıktısına `tasks`, `trash`, `logs` eklenir; `backend-bridge.js` ve `app.js` adapter bu üç ekran için backend → fixture → demo önceliğiyle beslenir. Yazım yok; salt okunur.
 
+**Phase 1 tamamlanma checkpoint:** `PANEL_PHASE1_CHECKPOINT.md` — bridge ile bağlı ekranlar, bilinçli sınırlar, Phase 2 ilk adım (yalnızca System ekranında gerçek backend okuma noktaları) özetlenir.
+
 ## Çalıştırma
 
 - **Doğrudan:** `panel/index.html` açın (`file://`).

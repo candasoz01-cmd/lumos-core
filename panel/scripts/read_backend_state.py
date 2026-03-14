@@ -163,27 +163,35 @@ def _build_state() -> dict:
         "writing_base_dir": writing_label,
     }
 
-    # System: only consent_ok is safe without keystore/presence
+    # System: Phase 2 ilk gerçek backend okuma hedefi. Tek liste ile genişletilebilir; consent_ok şu an tek gerçek okuma.
+    # Yeni kart eklemek için SYSTEM_HEALTH_KEYS'e (key, title, default_status, default_note) ekleyin; Phase 2'de key bazlı gerçek okuma eklenebilir.
+    SYSTEM_HEALTH_KEYS = [
+        ("workspace_contract", "Workspace Sözleşmesi", "ok", "Sözleşme yüklü; çekirdek path'ler tanımlı."),
+        ("task_engine", "Görev Motoru", "—", "Veri yok."),
+        ("sandbox_source", "Sandbox Kaynağı", "ok", "Sandbox kaynağı sözleşmeden türetildi."),
+        ("trash_contract", "Trash Sözleşmesi", "ok", "Trash konumu sözleşmeyle sabit."),
+        ("config_sink", "Config Sink", "ok", "Config salt okunur alanlar bridge ile besleniyor."),
+        ("identity_sink", "Identity Sink", "ok", "Identity salt okunur alanlar bridge ile besleniyor."),
+        ("keystore_sink", "Keystore Sink", "—", "Keystore durumu consent ile türetildi; ifşa yok."),
+        ("general", "Genel Sağlık", "—", "Consent durumu türetildi."),
+    ]
     consent = False
     try:
         from core.startup_health import consent_ok
         consent = consent_ok(base)
-        general_status = "ok" if consent else "uyarı"
-        general_note = "Consent kayıtlı." if consent else "Consent alınmadı."
     except Exception:
-        general_status = "—"
-        general_note = "Veri yok."
+        pass
+    general_status = "ok" if consent else "uyarı"
+    general_note = "Consent kayıtlı." if consent else "Consent alınmadı."
 
-    system_health = {
-        "workspace_contract": {"status": "ok", "note": "Sözleşme yüklü; çekirdek path'ler tanımlı."},
-        "task_engine": {"status": "—", "note": "Veri yok."},
-        "sandbox_source": {"status": "ok", "note": "Sandbox kaynağı sözleşmeden türetildi."},
-        "trash_contract": {"status": "ok", "note": "Trash konumu sözleşmeyle sabit."},
-        "config_sink": {"status": "ok", "note": "Config salt okunur alanlar bridge ile besleniyor."},
-        "identity_sink": {"status": "ok", "note": "Identity salt okunur alanlar bridge ile besleniyor."},
-        "keystore_sink": {"status": general_status, "note": "Keystore durumu consent ile türetildi; ifşa yok."},
-        "general": {"status": general_status, "note": general_note},
-    }
+    system_health = {}
+    for key, title, default_status, default_note in SYSTEM_HEALTH_KEYS:
+        if key == "keystore_sink":
+            system_health[key] = {"status": general_status, "note": "Keystore durumu consent ile türetildi; ifşa yok."}
+        elif key == "general":
+            system_health[key] = {"status": general_status, "note": general_note}
+        else:
+            system_health[key] = {"status": default_status, "note": default_note}
     system = {"system_health": system_health}
 
     # Config: read-only alanlar (workspace path, profil env; yazım yok)

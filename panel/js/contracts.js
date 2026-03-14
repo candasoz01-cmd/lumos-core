@@ -309,6 +309,7 @@
     };
   }
 
+  /** System: Phase 2 ilk gerçek backend okuma hedefi. healthKeys sırası read_backend_state.py SYSTEM_HEALTH_KEYS ile uyumlu tutulur. */
   function buildSystemStub(state) {
     var h = state.systemHealth || {};
     var healthKeys = [

@@ -29,6 +29,7 @@
     return state.sandbox;
   }
 
+  /** Phase 2 ilk gerçek backend okuma hedefi: System ekranı. system_health sırası read_backend_state.py SYSTEM_HEALTH_KEYS ile uyumlu. */
   function readBackendSystemState() {
     var state = getReadState();
     if (!state || !state.system || !state.system.system_health) return null;
