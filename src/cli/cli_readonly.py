@@ -10,19 +10,14 @@ from pathlib import Path
 from typing import Any, Callable
 
 from cli.cli_parse import (
-    HELP_ARAMA_TEXT,
     HELP_ETIKETLER_TEXT,
     HELP_GORUNTULEME_TEXT,
     HELP_GUVENLIK_TEXT,
     HELP_KISA_TEXT,
-    HELP_NOT_ISLEMLERI_TEXT,
-    HELP_NOTLAR_TEXT,
     HELP_TEMEL_TEXT,
     HELP_TEXT,
     KISACA_ANLAT_SHORT_THRESHOLD,
-    NOT_OZETLE_SHORT_THRESHOLD,
     REHBER_TEXT,
-    _fold_for_search,
     _format_neden_cevap,
     _format_today_bullet,
     _get_en_onemli_eksik,
@@ -75,20 +70,6 @@ def handle_readonly(route: str, args: list[str], ctx: ReadOnlyContext) -> bool:
         ctx.last_response_text[0] = HELP_ETIKETLER_TEXT
         print(HELP_ETIKETLER_TEXT)
         return True
-    if route == "help_notlar":
-        ctx.last_response_reason[0] = "not komutlarını istedin"
-        ctx.last_action[0] = "En son not yardımını gösterdim."
-        ctx.record_today_action(ctx.last_action[0])
-        ctx.last_response_text[0] = HELP_NOTLAR_TEXT
-        print(HELP_NOTLAR_TEXT)
-        return True
-    if route == "help_not_islemleri":
-        ctx.last_response_reason[0] = "not işlem komutlarını istedin"
-        ctx.last_action[0] = "En son not işlemleri yardımını gösterdim."
-        ctx.record_today_action(ctx.last_action[0])
-        ctx.last_response_text[0] = HELP_NOT_ISLEMLERI_TEXT
-        print(HELP_NOT_ISLEMLERI_TEXT)
-        return True
     if route == "help_temel":
         ctx.last_response_reason[0] = "temel komutları istedin"
         ctx.last_action[0] = "En son temel yardımını gösterdim."
@@ -109,13 +90,6 @@ def handle_readonly(route: str, args: list[str], ctx: ReadOnlyContext) -> bool:
         ctx.record_today_action(ctx.last_action[0])
         ctx.last_response_text[0] = HELP_KISA_TEXT
         print(HELP_KISA_TEXT)
-        return True
-    if route == "help_arama":
-        ctx.last_response_reason[0] = "arama komutlarını istedin"
-        ctx.last_action[0] = "En son arama yardımını gösterdim."
-        ctx.record_today_action(ctx.last_action[0])
-        ctx.last_response_text[0] = HELP_ARAMA_TEXT
-        print(HELP_ARAMA_TEXT)
         return True
     if route == "help_goruntuleme":
         ctx.last_response_reason[0] = "görüntüleme komutlarını istedin"
@@ -193,168 +167,6 @@ def handle_readonly(route: str, args: list[str], ctx: ReadOnlyContext) -> bool:
         ctx.last_action[0] = "En son önceki cevabı kısaca özetledim."
         ctx.last_response_text[0] = out_short
         ctx.record_today_action(ctx.last_action[0])
-        return True
-
-    # ---- Notes: display-only ----
-    if route == "son_not_ne":
-        if ctx.saved_notes[0]:
-            print("Son not: " + ctx.saved_notes[0][-1])
-        else:
-            print("Henüz kayıtlı bir not yok.")
-        return True
-    if route == "notu_kopyala":
-        if ctx.saved_notes[0]:
-            ctx.record_note_op("notu kopyala")
-            print(ctx.saved_notes[0][-1])
-        else:
-            print("Kopyalanacak kayıtlı not yok.")
-        return True
-    if route == "notu_disa_aktar":
-        if ctx.saved_notes[0]:
-            ctx.record_note_op("notu dışa aktar")
-            print(ctx.saved_notes[0][-1])
-        else:
-            print("Dışa aktarılacak kayıtlı not yok.")
-        return True
-    if route == "notu_paylas":
-        if ctx.saved_notes[0]:
-            ctx.record_note_op("notu paylaş")
-            print(ctx.saved_notes[0][-1])
-        else:
-            print("Paylaşılacak kayıtlı not yok.")
-        return True
-    if route == "not_ozetle":
-        if not ctx.saved_notes[0]:
-            print("Özetlenecek kayıtlı not yok.")
-        else:
-            ctx.record_note_op("not özetle")
-            last_note = ctx.saved_notes[0][-1].strip()
-            if len(last_note) <= NOT_OZETLE_SHORT_THRESHOLD:
-                print("Son not zaten yeterince kısa.")
-            else:
-                short = _shorten_previous_response(last_note).strip()
-                if not short:
-                    short = (last_note[:120].rsplit(maxsplit=1)[0].rstrip(".,") + ".") if len(last_note) > 120 else last_note
-                print("Kısa özet: " + short)
-        return True
-    if route == "notlari_goster":
-        if not ctx.saved_notes[0]:
-            print("Henüz kayıtlı not yok.")
-        else:
-            recent = ctx.saved_notes[0][-5:]
-            print("Kayıtlı notlar:")
-            for n in recent:
-                print("- " + n)
-        return True
-    if route == "etiketli_notlari_goster":
-        tagged = [n for n in ctx.saved_notes[0] if n.startswith("[") and "] " in n]
-        if not tagged:
-            print("Henüz etiketli not yok.")
-        else:
-            recent_tagged = tagged[-5:]
-            print("Etiketli notlar:")
-            for n in recent_tagged:
-                print("- " + n)
-        return True
-    if route == "etikete_gore_notlari_goster":
-        tag_raw = (args[0] if args else "").strip()
-        if not tag_raw:
-            print("Göstermek için bir etiket yazman gerekiyor.")
-            return True
-        tagged = [n for n in ctx.saved_notes[0] if n.startswith("[") and "] " in n]
-        folded = _fold_for_search(tag_raw)
-        matches = [n for n in tagged if _fold_for_search(n[1 : n.index("] ")].strip()) == folded]
-        if not matches:
-            print("Bu etikete sahip not bulamadım.")
-        else:
-            recent = matches[-5:]
-            print("Eşleşen notlar:")
-            for n in recent:
-                print("- " + n)
-        return True
-    if route == "etiketleri_goster":
-        seen: set[str] = set()
-        tags_ordered: list[str] = []
-        for n in reversed(ctx.saved_notes[0]):
-            if n.startswith("[") and "] " in n:
-                tag = n[1 : n.index("] ")].strip()
-                if tag and tag not in seen:
-                    seen.add(tag)
-                    tags_ordered.append(tag)
-        if not tags_ordered:
-            print("Henüz kayıtlı etiket yok.")
-        else:
-            print("Kayıtlı etiketler:")
-            for t in tags_ordered:
-                print("- " + t)
-        return True
-    if route == "etiket_ara":
-        word = (args[0] if args else "").strip()
-        if not word:
-            print("Aramak için bir etiket yazman gerekiyor.")
-            return True
-        seen_tag: set[str] = set()
-        tags_ordered_etiket_ara: list[str] = []
-        for n in reversed(ctx.saved_notes[0]):
-            if n.startswith("[") and "] " in n:
-                tag = n[1 : n.index("] ")].strip()
-                if tag and tag not in seen_tag:
-                    seen_tag.add(tag)
-                    tags_ordered_etiket_ara.append(tag)
-        folded = _fold_for_search(word)
-        matched = [t for t in tags_ordered_etiket_ara if folded in _fold_for_search(t)]
-        if not matched:
-            print("Bu aramayla eşleşen etiket bulamadım.")
-        else:
-            print("Eşleşen etiketler:")
-            for t in matched:
-                print("- " + t)
-        return True
-    if route == "not_gecmisi":
-        if not ctx.note_ops_history[0]:
-            print("Henüz kayıtlı not işlemi yok.")
-        else:
-            print("Son not işlemleri:")
-            for op in reversed(ctx.note_ops_history[0]):
-                print("- " + op)
-        return True
-    if route == "kac_not_var":
-        n = len(ctx.saved_notes[0])
-        if n == 0:
-            print("Kayıtlı not yok.")
-        else:
-            print(f"{n} kayıtlı not var.")
-        return True
-    if route == "not_ara":
-        word = (args[0] if args else "").strip()
-        if not word:
-            print("Aramak için bir kelime yazman gerekiyor.")
-            return True
-        ctx.record_note_op("not ara")
-        folded = _fold_for_search(word)
-        matches = [n for n in ctx.saved_notes[0] if folded in _fold_for_search(n)]
-        if not matches:
-            print("Bu aramayla eşleşen not bulamadım.")
-        else:
-            recent = matches[-5:]
-            print("Eşleşen notlar:")
-            for n in recent:
-                print("- " + n)
-        return True
-    if route == "etiketli_not_ara":
-        word = (args[0] if args else "").strip()
-        if not word:
-            print("Aramak için bir kelime yazman gerekiyor.")
-            return True
-        tagged = [n for n in ctx.saved_notes[0] if n.startswith("[") and "] " in n]
-        folded = _fold_for_search(word)
-        matches = [n for n in tagged if folded in _fold_for_search(n)]
-        if not matches:
-            print("Bu aramayla eşleşen etiketli not bulamadım.")
-        else:
-            print("Eşleşen etiketli notlar:")
-            for n in matches:
-                print("- " + n)
         return True
 
     # ---- Yetki profili: display only (no args or empty args) ----
