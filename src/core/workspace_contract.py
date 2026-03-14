@@ -13,6 +13,10 @@ from pathlib import Path
 # Sözleşme: tek çöp dizin adı; yeni trash/deleted vb. eklenmez.
 LUMOS_TRASH_DIRNAME = "trash"
 
+# Sandbox hedef dizini: sandbox modunda yazım hedefi tek bu alt dizin; yeni sandbox2 vb. eklenmez.
+# writing_base_dir(live_base, is_sandbox_mode=True) == live_base / LUMOS_SANDBOX_DIRNAME.
+LUMOS_SANDBOX_DIRNAME = "sandbox"
+
 # Çekirdek state path isimleri (.lumos altında; overwrite yasağı referansı).
 # Sandbox/kopya yazarken bu path'lere doğrudan yazılmaz; sadece tanımlı yazıcılar yazar.
 CORE_STATE_PATH_NAMES = (
@@ -32,6 +36,24 @@ CORE_STATE_PATH_NAMES = (
 def trash_path(base_dir: Path | str) -> Path:
     """Çalışma köküne göre tek geçerli trash dizinini döndürür."""
     return Path(base_dir) / LUMOS_TRASH_DIRNAME
+
+
+def sandbox_base_path(live_base_dir: Path | str) -> Path:
+    """
+    Canlı çalışma köküne göre tek sandbox kök path.
+    Sandbox modunda yazım hedefi bu base altındadır; canlı çekirdek path'e yazılmaz (allow_write_to_core).
+    """
+    return Path(live_base_dir) / LUMOS_SANDBOX_DIRNAME
+
+
+def writing_base_dir(live_base_dir: Path | str, is_sandbox_mode: bool) -> Path:
+    """
+    Yazım hedefi base: sandbox kapalıyken canlı base, açıkken sandbox base.
+    Tek kaynak; sistem keyfi hedef seçemez. Canlı çekirdek koruması allow_write_to_core ile aynen kalır.
+    """
+    if is_sandbox_mode:
+        return sandbox_base_path(live_base_dir)
+    return Path(live_base_dir)
 
 
 def alias_file_path(base_dir: Path | str) -> Path:
