@@ -33,10 +33,10 @@
 | Soru | Sonuç |
 |------|--------|
 | **Bugün gerçekten okunabilecek veri nerede?** | `src/core/startup_health.py`: `get_startup_summary(base_dir, keystore_initialized, presence_module)` → tek satır string; `get_durum_parts(...)` → `consent_ok`, `lock_ok`, `durum_label`, `not_line`. Consent/lock/presence odaklı; panel'in beklediği 8+1 health kartı yapısı yok. |
-| **Doğrudan bağlanacak alanlar** | Yok. Mevcut çıktı tek özet ve durum etiketi; panel workspace_contract, task_engine, sandbox_source, trash_contract, config_sink, identity_sink, keystore_sink, general kartlarını bekliyor. |
+| **Doğrudan bağlanacak alanlar** | **Phase 2 (dar):** `workspace_contract` — `core.workspace_contract` import + `trash_path(base)`, `sandbox_base_path(base)` (salt okuma). `task_engine` — `base/tasks.json` varlığı ve JSON okunabilirliği (`read_backend_state.py` içinde). |
 | **Mapping gerektiren alanlar** | `get_startup_summary` veya `get_durum_parts` → en azından "Genel Sağlık" kartı (status: ok/uyarı, note: summary veya not_line). Diğer kartlar için backend'de ayrı kontrol yok; genişletme veya placeholder kart gerekir. |
-| **Henüz beklemesi gereken alanlar** | 8+1 kartın her biri için ayrı backend kontrolü (workspace yüklü mü, task engine çalışıyor mu, sandbox kaynağı, trash, config/identity/keystore sink, genel). startup_health şu an bunları tek tek üretmiyor. |
-| **Entegrasyon riski** | **Orta** — mevcut özet/durum ile tek kart doldurulabilir; tam kart seti için backend tarafında genişletme veya panel tarafında placeholder. |
+| **Henüz beklemesi gereken alanlar** | Sandbox kaynağı, config/identity/keystore sink için ayrı backend kontrolleri (şu an türetilmiş/sabit notlar). startup_health tam kart seti üretmiyor. |
+| **Entegrasyon riski** | **Orta** — mevcut özet/durum ile tek kart doldurulabilir; Phase 2 ile workspace_contract ve task_engine dar gerçek okumaya bağlandı. |
 
 ---
 
@@ -46,6 +46,6 @@
 |----------|----------------------------------------|------------------------------------------|-----------------------------------------------------|
 | Dashboard| writing_base_dir, sandbox sabit (giriş verilirse) | Sandbox+guard+olay+uyarı → payload       | Son aktivite, guard metni, uyarı listesi, giriş kanalı |
 | Sandbox  | writing_base_dir, sandbox_base_path, LUMOS_SANDBOX_DIRNAME | is_sandbox + base → metrics               | Kaynak etiketi, panel'e base_dir/is_sandbox kanalı   |
-| System   | —                                      | get_startup_summary / get_durum_parts → genel kart | 8+1 kart için ayrı kontroller                       |
+| System   | workspace_contract (yükleme+path), task_engine (tasks.json okunabilirliği) | get_startup_summary / get_durum_parts → genel kart | Diğer kartlar türetilmiş/sabit; ileride genişletilebilir |
 
 **Not:** "Giriş kanalı" / "panel'e state sağlama": Backend davranışı değiştirilmediği için şu an panel veriyi doğrudan repo içi modüllerden okuyamıyor; ilk gerçek bağ için tek okuma noktası (ör. durum API'si) tanımlandığında base_dir, is_sandbox_mode ve isteğe bağlı health özeti buradan beslenecek.

@@ -20,7 +20,7 @@ window.__LUMOS_READ_STATE__ = {
       },
       "task_engine": {
         "status": "—",
-        "note": "Veri yok."
+        "note": "Görev listesi yok."
       },
       "sandbox_source": {
         "status": "ok",
