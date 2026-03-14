@@ -20,10 +20,11 @@
     system: { id: "system", label: "Sistem Durumu", hash: "#system" },
   };
 
+  var EMPTY_DESC_DEFAULT = "Mock veri; canlı entegrasyon sonraki aşamada açılacak.";
   var EMPTY_FALLBACK =
     '<div class="empty-state">' +
     '<p class="empty-title">Henüz veri yok</p>' +
-    '<p class="empty-desc">Bu bölüm panel iskeletine bağlıdır; canlı entegrasyon sonraki aşamada açılacaktır.</p>' +
+    '<p class="empty-desc">' + EMPTY_DESC_DEFAULT + "</p>" +
     "</div>";
 
   // ——— Merkezi mock state (tek kaynak) ———
@@ -163,7 +164,7 @@
 
   function EmptyState(title, desc) {
     title = title || "Henüz veri yok";
-    desc = desc || "Bu bölüm panel iskeletine bağlıdır; canlı entegrasyon sonraki aşamada açılacaktır.";
+    desc = desc || EMPTY_DESC_DEFAULT;
     return '<div class="empty-state"><p class="empty-title">' + title + "</p><p class=\"empty-desc\">" + desc + "</p></div>";
   }
 
@@ -269,13 +270,13 @@
       }
       warningsHtml += "</ul>";
     } else {
-      warningsHtml = "<p class=\"text-muted-small\">Aktif uyarı veya not yok.</p>";
+      warningsHtml = "<p class=\"text-muted-small\">Uyarı veya not yok.</p>";
     }
     var sections =
       renderSection("Son Olaylar", EventList(mockState.recentEvents)) +
-      renderSection("Uyarılar / Notlar", warningsHtml) +
-      renderSection("Hızlı Geçişler", '<p><a href="#tasks" class="inline-link">Görevler</a> · <a href="#sandbox" class="inline-link">Korumalı Alan</a> · <a href="#config" class="inline-link">Yapılandırma</a> · <a href="#logs" class="inline-link">Kayıtlar</a></p><p class="text-muted-small">Hash routing ile sayfa yenilenmeden geçiş.</p>');
-    return ViewHeader("Gösterge Paneli", "Tek bakışta sistem durumu") + '<div class="cards-grid">' + cards + "</div>" + sections;
+      renderSection("Uyarılar ve notlar", warningsHtml) +
+      renderSection("Hızlı geçişler", '<p><a href="#tasks" class="inline-link">Görevler</a> · <a href="#sandbox" class="inline-link">Korumalı Alan</a> · <a href="#config" class="inline-link">Yapılandırma</a> · <a href="#logs" class="inline-link">Kayıtlar</a></p><p class="text-muted-small">Hash ile sayfa yenilenmeden geçiş.</p>');
+    return ViewHeader("Gösterge Paneli", "Sistem durumu özeti") + '<div class="cards-grid">' + cards + "</div>" + sections;
   }
 
   // ——— Ekran: Görevler (ViewHeader, SectionCard, DetailPanel, MetricCard, EmptyState) ———
@@ -304,7 +305,7 @@
     }).join("");
     var listBody = '<div class="task-filters" id="task-filters">' + tabsHtml + "</div>";
     if (filtered.length === 0) {
-      listBody += renderEmptyState("Bu filtrede görev yok", "Farklı bir filtre seçin veya mock veriye yeni görev ekleyin.");
+      listBody += renderEmptyState("Bu filtrede görev yok", "Farklı filtre seçin.");
     } else {
       var listItems = "";
       filtered.forEach(function (t) {
@@ -321,15 +322,15 @@
       : null;
     var detailContent;
     if (!selected) {
-      detailContent = EmptyState("Görev seçilmedi", "Listeden bir görev seçin; detay paneli güncellenecektir.");
+      detailContent = EmptyState("Görev seçilmedi", "Listeden bir görev seçin.");
     } else {
       var lastRunVal = selected.lastRun ? formatTime(selected.lastRun) : "—";
-      var lastRunNote = selected.lastRun ? "Son çalıştırma zamanı (mock)." : "Henüz çalıştırılmadı.";
+      var lastRunNote = selected.lastRun ? "Son çalıştırma (mock)." : "Henüz çalıştırılmadı.";
       var guardVal = selected.guardResult || "—";
-      var guardNote = "Guard: izinli / reddedildi / engelli (profil veya hedef kapsamı).";
+      var guardNote = "Guard: izinli / reddedildi / engelli.";
       var outVal = (selected.outputSummary || "—").slice(0, 120);
       if ((selected.outputSummary || "").length > 120) outVal += "…";
-      var outNote = "Çıktı özeti; tam log kayıtlar ekranından görülebilir.";
+      var outNote = "Çıktı özeti.";
       var metricRows = renderMetricCards([
         { title: "Son çalıştırma", value: lastRunVal, techNote: lastRunNote },
         { title: "Guard sonucu", value: guardVal, techNote: guardNote },
@@ -342,9 +343,9 @@
     }
     var detail = DetailPanel("Görev Detayı", detailContent);
 
-    var runNoteSection = renderSection("Çalıştırma Notu", "<p class=\"text-muted-small\">Seçilen görevin son çalıştırma ve guard sonucu yukarıdaki detay panelinde gösterilir. İlgili test ve doğrulama notu canlı entegrasyonda bu bölümde doldurulacaktır.</p>");
+    var runNoteSection = renderSection("Çalıştırma notu", "<p class=\"text-muted-small\">Son çalıştırma ve guard sonucu yukarıdaki detayda. Canlı entegrasyonda test notu burada doldurulacak.</p>");
 
-    return ViewHeader("Görevler", "Görev listesi, detay, son çalıştırma ve guard sonucu") + '<div class="split-view">' + listSection + detail + "</div>" + runNoteSection;
+    return ViewHeader("Görevler", "Liste, detay ve guard sonucu") + '<div class="split-view">' + listSection + detail + "</div>" + runNoteSection;
   }
 
   // ——— Ekran: Korumalı Alan (ortak bileşenler) ———
@@ -366,7 +367,7 @@
     var guardBody = "<p>Çekirdek state path'lere doğrudan overwrite yapılmaz. Yazma hedefi tek kaynaktan belirlenir. Canlı çekirdek ile sandbox hedefi ayrı tutulur.</p><p class=\"text-muted-small\">Core state: tasks, logs, trash, config, aliases.</p>";
     var diffBody = "<p><strong>Canlı:</strong> Doğrudan çalışma alanı (.lumos vb.).</p><p><strong>Sandbox:</strong> Tanımlı kopya alanı; deneme/geliştirme burada yapılır, canlıya overwrite yok.</p><p class=\"text-muted-small\">Sandbox aktifken çekirdek path'ler okuma için kullanılabilir; yazım yalnızca sandbox base'e.</p>";
     return (
-      ViewHeader("Korumalı Alan", "Sandbox kararı ve yazım hedefi — tek bakışta nereye yazıldığı") +
+      ViewHeader("Korumalı Alan", "Yazım hedefi ve sandbox durumu") +
       '<div class="cards-grid">' + topCards + "</div>" +
       renderSection("Çözümleme Mantığı", resolutionBody) +
       renderSection("Guard Kuralı", guardBody) +
@@ -391,7 +392,7 @@
     ]);
     var sinkBody = "<p>Config yazımları <strong>merkezi sink/guard hattı</strong> üzerinden geçer. Çekirdek state path'ler (config, tasks, logs, trash, aliases) sözleşme ve guard ile korunur; hedef dışına yazım yapılmaz.</p><p class=\"text-muted-small\">Sink: tek giriş noktası; guard: hedef ve kapsam kontrolü.</p>";
     return (
-      ViewHeader("Yapılandırma", "Config görünürlüğü — sink/guard hattı üzerinden yazım") +
+      ViewHeader("Yapılandırma", "Config özeti ve yazım durumu") +
       '<div class="cards-grid">' + topCards + "</div>" +
       renderSection("Sink / Guard hattı", sinkBody)
     );
@@ -408,14 +409,14 @@
     var guardValue = mockState.identityGuardResult || "—";
     var guardNote = "Guard sonucu: kimlik alanı korunuyor.";
     var topCards = renderMetricCards([
-      { title: "Identity Ready", value: readyValue, techNote: readyNote },
+      { title: "Kimlik hazır mı", value: readyValue, techNote: readyNote },
       { title: "Son Yazım", value: lastWriteValue, techNote: lastWriteNote },
       { title: "Hedef Kapsam", value: scopeValue, techNote: scopeNote },
       { title: "Guard Sonucu", value: guardValue, techNote: guardNote },
     ]);
     var sinkBody = "<p>Bu hattın <strong>sink/guard omurgasına</strong> bağlı olduğu bu ekrandan görünür. Kimlik alanı çekirdek güvenlik kapsamında; riskli işlemler açılmaz, sadece durum ve kapsam görünürlüğü sağlanır.</p><p class=\"text-muted-small\">Identity sink: tek giriş; guard: kapsam ve yetki kontrolü.</p>";
     return (
-      ViewHeader("Kimlik", "Identity durumu — sink/guard omurgasına bağlı görünürlük") +
+      ViewHeader("Kimlik", "Kimlik durumu ve kapsam") +
       '<div class="cards-grid">' + topCards + "</div>" +
       renderSection("Sink / Guard bağlantısı", sinkBody)
     );
@@ -439,7 +440,7 @@
     ]);
     var visibilityBody = "<p>Anahtar kasası ekranı <strong>durum ve akış görünürlüğü</strong> sağlar. Anahtar materyali (passphrase, key içeriği) açık gösterilmez; yalnızca hazır mı, şifreli durum, son güncelleme ve yazım kapsamı bilgisi gösterilir.</p><p class=\"text-muted-small\">Keystore sink: tek giriş; hassas veri panelde ifşa edilmez.</p>";
     return (
-      ViewHeader("Anahtar Kasası", "Keystore durumu — durum ve akış görünürlüğü, anahtar ifşası yok") +
+      ViewHeader("Anahtar Kasası", "Durum görünürlüğü; anahtar ifşası yok") +
       '<div class="cards-grid">' + topCards + "</div>" +
       renderSection("Görünürlük ilkesi", visibilityBody)
     );
@@ -463,14 +464,14 @@
     var listSection = '<ul class="list-selectable" id="trash-list">' + listHtml + "</ul>";
     var selected = items.filter(function (x) { return x.id === mockState.selectedTrashId; })[0];
     var detailBody = selected
-      ? "<p><strong>Name:</strong> " + (selected.name || "—") + "</p>" +
-        "<p><strong>Original Path:</strong> " + (selected.originalPath || "—") + "</p>" +
-        "<p><strong>Trash Path:</strong> " + (selected.trashPath || "—") + "</p>" +
-        "<p><strong>Moved At:</strong> " + formatTime(selected.movedAt) + "</p>" +
-        "<p><strong>Scope:</strong> " + (selected.scope || "—") + "</p>"
+      ? "<p><strong>Ad:</strong> " + (selected.name || "—") + "</p>" +
+        "<p><strong>Orijinal yol:</strong> " + (selected.originalPath || "—") + "</p>" +
+        "<p><strong>Çöp yolu:</strong> " + (selected.trashPath || "—") + "</p>" +
+        "<p><strong>Taşınma:</strong> " + formatTime(selected.movedAt) + "</p>" +
+        "<p><strong>Kapsam:</strong> " + (selected.scope || "—") + "</p>"
       : "<p class=\"screen-placeholder\">Listeden bir öğe seçin.</p>";
-    var detail = DetailPanel("Seçilen öğe detayı", detailBody);
-    return ViewHeader("Silinenler", "Trash görünürlüğü") + '<div class="cards-grid">' + summary + "</div>" + '<div class="split-view">' + renderSection("Liste görünümü", listSection) + detail + "</div>";
+    var detail = DetailPanel("Seçilen öğe", detailBody);
+    return ViewHeader("Silinenler", "Çöp konumu ve liste") + '<div class="cards-grid">' + summary + "</div>" + '<div class="split-view">' + renderSection("Liste", listSection) + detail + "</div>";
   }
 
   var LOG_FILTERS = [
@@ -497,7 +498,7 @@
       var active = f.id === filter ? " active" : "";
       return '<button type="button" class="log-tab' + active + '" data-log-filter="' + f.id + '">' + f.label + "</button>";
     }).join("");
-    return ViewHeader("Kayıtlar", "Olay akışı görünürlüğü") + '<div class="log-tabs" id="log-tabs">' + tabsHtml + "</div>" + renderSection("Kayıt listesi", EventList(filtered));
+    return ViewHeader("Kayıtlar", "Olay akışı") + '<div class="log-tabs" id="log-tabs">' + tabsHtml + "</div>" + renderSection("Kayıt listesi", EventList(filtered));
   }
 
   // ——— Ekran: Sistem Durumu (ViewHeader, MetricCard, StatusBadge — hangi parça hazır / dikkat) ———
@@ -520,7 +521,7 @@
       healthCard("Identity Sink", "identity_sink") +
       healthCard("Keystore Sink", "keystore_sink") +
       healthCard("Genel Sağlık", "general");
-    return ViewHeader("Sistem Durumu", "Hangi çekirdek parça hazır, hangisi dikkat istiyor — tek bakışta") + '<div class="cards-grid">' + cards + "</div>";
+    return ViewHeader("Sistem Durumu", "Çekirdek parçaların durumu") + '<div class="cards-grid">' + cards + "</div>";
   }
 
   var renderers = {
@@ -540,7 +541,7 @@
     if (!main) return;
     var screen = getCurrentScreen();
     var fn = renderers[screen.id];
-    main.innerHTML = fn ? fn() : renderEmptyState("Henüz veri yok", "Geçersiz sayfa. Kenar çubuğundan bir ekran seçin.");
+    main.innerHTML = fn ? fn() : renderEmptyState("Geçersiz sayfa", "Menüden bir ekran seçin.");
   }
 
   // ——— Etkileşimler (delegation) ———

@@ -13,10 +13,11 @@
   --link: #7eb8ff;
   --link-active: #b3d4ff;
   --spacing: 0.75rem;
+  --spacing-sm: 0.5rem;
   --radius: 6px;
-  /* Kart/bölüm tutarlılığı: aynı padding ve radius */
   --card-padding: var(--spacing);
   --card-radius: var(--radius);
+  --margin-card: 0 0 var(--spacing) 0;
 }
 
 * {
@@ -47,9 +48,10 @@ body {
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 0 1rem;
+  padding: 0 var(--spacing);
   background: var(--bg-topbar);
-  border-bottom: 2px solid #3a3a3a;
+  border-bottom: var(--border);
+  min-height: var(--topbar-height);
 }
 
 .topbar-left {
@@ -111,9 +113,10 @@ body {
 
 .badge {
   font-size: 0.7rem;
-  padding: 0.2rem 0.45rem;
+  padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .badge-mode,
@@ -132,40 +135,41 @@ body {
   display: flex;
   flex-direction: column;
   background: var(--bg-sidebar);
-  border-right: 2px solid #3a3a3a;
+  border-right: var(--border);
 }
 
 .nav {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
-  padding: 0.5rem 0;
+  gap: 0.125rem;
+  padding: var(--spacing-sm) 0;
   flex: 1 1 auto;
   min-height: 0;
 }
 
 .nav a {
   display: block;
-  padding: 0.45rem 1rem;
-  color: var(--link);
+  padding: 0.5rem var(--spacing);
+  color: var(--text-muted);
   text-decoration: none;
   border-left: 3px solid transparent;
   font-size: 0.9rem;
 }
 
 .nav a:hover {
-  background: rgba(0,0,0,0.1);
+  background: rgba(0,0,0,0.12);
+  color: var(--link);
 }
 
 .nav a.active {
-  background: rgba(0,0,0,0.15);
+  background: rgba(126, 184, 255, 0.12);
   border-left-color: var(--link);
   color: var(--link-active);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .sidebar-footer {
-  padding: 0.75rem 1rem;
+  padding: var(--spacing);
   border-top: var(--border);
   font-size: 0.8rem;
   color: var(--text-muted);
@@ -184,19 +188,19 @@ body {
 /* ——— Main ——— */
 .main {
   grid-area: main;
-  padding: 1rem;
+  padding: var(--spacing);
   background: var(--bg-main);
   overflow: auto;
 }
 
 /* Başlık hiyerarşisi: sayfa h1 → bölüm h2 → detay başlık */
 .main .view-header {
-  margin-bottom: var(--spacing);
+  margin: 0 0 var(--spacing) 0;
 }
 
 .main .view-header h1 {
   margin: 0 0 0.25rem 0;
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   font-weight: 600;
   color: var(--text);
 }
@@ -204,6 +208,7 @@ body {
 .main .view-header .view-subtitle {
   font-size: 0.85rem;
   color: var(--text-muted);
+  margin: 0;
 }
 
 /* ——— Ortak bileşenler (tek dil: aynı radius, padding) ——— */
@@ -212,19 +217,20 @@ body {
   border: var(--border);
   border-radius: var(--card-radius);
   padding: var(--card-padding);
-  margin-bottom: var(--spacing);
+  margin: var(--margin-card);
 }
 
 .metric-card .metric-title {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-muted);
-  margin-bottom: 0.35rem;
+  margin: 0 0 var(--spacing-sm) 0;
 }
 
 .metric-card .metric-value {
   font-size: 1rem;
   color: var(--text);
+  word-break: break-word;
 }
 
 .section-card {
@@ -232,11 +238,11 @@ body {
   border: var(--border);
   border-radius: var(--card-radius);
   padding: var(--card-padding);
-  margin-bottom: var(--spacing);
+  margin: var(--margin-card);
 }
 
 .section-card .section-title {
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 var(--spacing-sm) 0;
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--text);
@@ -251,6 +257,7 @@ body {
   margin: 0.35rem 0;
 }
 
+/* Boş durum: tek stil */
 .empty-state {
   padding: var(--card-padding);
   text-align: center;
@@ -258,20 +265,21 @@ body {
   background: var(--bg-card);
   border: var(--border);
   border-radius: var(--card-radius);
-  margin-bottom: var(--spacing);
+  margin: var(--margin-card);
 }
 
 .empty-state .empty-title {
   font-size: 1rem;
   font-weight: 500;
   color: var(--text);
-  margin-bottom: 0.5rem;
+  margin: 0 0 var(--spacing-sm) 0;
 }
 
 .empty-state .empty-desc {
   font-size: 0.85rem;
   max-width: 32rem;
   margin: 0 auto;
+  line-height: 1.4;
 }
 
 .event-list {
@@ -284,6 +292,7 @@ body {
   padding: 0.4rem 0;
   border-bottom: 1px solid rgba(255,255,255,0.06);
   font-size: 0.85rem;
+  word-break: break-word;
 }
 
 .event-list li:last-child {
@@ -300,24 +309,50 @@ body {
   border: var(--border);
   border-radius: var(--card-radius);
   padding: var(--card-padding);
-  margin-bottom: var(--spacing);
+  margin: var(--margin-card);
 }
 
 .detail-panel .detail-title {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 600;
-  margin-bottom: 0.5rem;
+  margin: 0 0 var(--spacing-sm) 0;
+  color: var(--text);
 }
 
 .detail-panel .detail-body {
   font-size: 0.85rem;
-  color: var(--text-muted);
+  color: var(--text);
+}
+
+.detail-panel .detail-body p {
+  margin: 0.35rem 0;
+  word-break: break-word;
 }
 
 .text-muted-small {
   font-size: 0.78rem;
   color: var(--text-muted);
-  margin-top: 0.35rem;
+  margin: 0.35rem 0 0 0;
+}
+
+/* Uyarı / bilgi kutuları: tek görsel dil */
+.alert-box {
+  padding: var(--card-padding);
+  border-radius: var(--card-radius);
+  margin: var(--margin-card);
+  font-size: 0.9rem;
+}
+
+.alert-box.alert-warning {
+  background: rgba(224, 224, 160, 0.08);
+  border: 1px solid rgba(224, 224, 160, 0.35);
+  color: var(--text);
+}
+
+.alert-box.alert-info {
+  background: rgba(126, 184, 255, 0.06);
+  border: 1px solid rgba(126, 184, 255, 0.25);
+  color: var(--text);
 }
 
 /* ——— Grid / split ——— */
@@ -325,20 +360,27 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
   gap: var(--spacing);
-  margin-bottom: var(--spacing);
+  margin: 0 0 var(--spacing) 0;
 }
 
 .split-view {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-bottom: var(--spacing);
+  gap: var(--spacing);
+  margin: 0 0 var(--spacing) 0;
 }
 
 @media (max-width: 720px) {
   .split-view {
     grid-template-columns: 1fr;
   }
+}
+
+@media (max-width: 480px) {
+  .main {
+    padding: var(--spacing-sm);
+  }
+  .topbar { gap: 0.5rem; padding: 0 var(--spacing-sm); }
 }
 
 .list-selectable {
@@ -348,61 +390,36 @@ body {
 }
 
 .list-selectable li {
-  padding: 0.5rem 0.75rem;
+  padding: 0.5rem var(--spacing);
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.9rem;
   border-left: 3px solid transparent;
+  word-break: break-word;
 }
 
 .list-selectable li:hover {
-  background: rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.06);
 }
 
 .list-selectable li.selected {
-  background: rgba(126, 184, 255, 0.12);
-  border-left-color: var(--link);
-}
-
-/* ——— Sekmeler (Kayıtlar) ——— */
-.log-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  margin-bottom: var(--spacing);
-}
-
-.log-tabs button {
-  padding: 0.35rem 0.65rem;
-  font-size: 0.8rem;
-  background: var(--bg-card);
-  border: var(--border);
-  border-radius: 4px;
-  color: var(--text-muted);
-  cursor: pointer;
-}
-
-.log-tabs button:hover {
-  color: var(--text);
-  background: #2a2a2a;
-}
-
-.log-tabs button.active {
   background: rgba(126, 184, 255, 0.15);
-  color: var(--link);
-  border-color: var(--link);
+  border-left-color: var(--link);
+  color: var(--link-active);
 }
 
-/* ——— Görevler: filtre ve liste ——— */
+/* ——— Sekmeler / Filtre butonları (Kayıtlar, Görevler) ——— */
+.log-tabs,
 .task-filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  gap: var(--spacing-sm);
   margin-bottom: var(--spacing);
 }
 
+.log-tabs button,
 .task-filters button {
-  padding: 0.35rem 0.65rem;
+  padding: 0.4rem 0.75rem;
   font-size: 0.8rem;
   background: var(--bg-card);
   border: var(--border);
@@ -411,15 +428,18 @@ body {
   cursor: pointer;
 }
 
+.log-tabs button:hover,
 .task-filters button:hover {
   color: var(--text);
   background: #2a2a2a;
 }
 
+.log-tabs button.active,
 .task-filters button.active {
-  background: rgba(126, 184, 255, 0.15);
-  color: var(--link);
+  background: rgba(126, 184, 255, 0.18);
+  color: var(--link-active);
   border-color: var(--link);
+  font-weight: 500;
 }
 
 .task-list-badge {
@@ -466,20 +486,21 @@ body {
 }
 
 .screen-empty {
-  padding: 1rem 0;
+  padding: var(--spacing) 0;
 }
 
 .screen-empty h1 {
-  margin-bottom: 0.5rem;
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: 1.2rem;
 }
 
 .screen-empty .screen-placeholder {
-  margin-top: 0.5rem;
+  margin: var(--spacing-sm) 0 0 0;
 }
 
 .main h1 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1.25rem;
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: 1.2rem;
 }
 
 .inline-link {
