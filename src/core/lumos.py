@@ -5,7 +5,7 @@ from context.context import Context
 from policy.rules import PolicyRules
 from memory.memory import Memory
 from memory.session_memory import SessionMemory
-from engine.base import BaseEngine
+from engine.base_engine import BaseEngine
 from policy.offline_engine import OfflineEngineV1
 from core.version import VERSION
 from security.lock import LockState
