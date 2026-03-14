@@ -10,6 +10,8 @@
 
 **Contract / stub katmanı:** Ekran bazlı veri şekilleri `js/contracts.js` içinde `CONTRACTS` ve stub üreticileri (`buildDashboardStub`, `buildSandboxStub`, …) ile tanımlıdır; adapter bu çıktıyı kullanır. Gerçek backend entegrasyonunda yalnızca mapping (API yanıtı → contract şekli) değiştirilecek; ekranlar aynı contract'ı okumaya devam eder.
 
+**Backend veri sözleşmesi:** Ekran bazlı beklenen alanlar, zorunlu/opsiyonel ve fallback davranışı tek yerde: `BACKEND_DATA_CONTRACT.md`. Şema kaynağı `js/contracts.js` ile uyumludur.
+
 **Backend binding map:** Gerçek entegrasyon öncesi referans için `BACKEND_BINDING_MAP.md` hazırlandı; her ekranın hangi backend kaynak adaylarına bağlanacağı ve boşluk/risk seviyeleri orada özetlenir.
 
 **Fixture payload ve mapper:** Backend-benzeri örnek payload'lar (`js/fixtures.js` — `LumosFixtures.payloads`) ve bunları panel contract'ına çeviren mapper'lar hazır. Üst çubukta "Veri kaynağı: Demo | Fixture" seçici ile entegrasyon provası yapılabilir. Gerçek backend geldiğinde panel contract'a geçiş bu katmandan (fixture yerine API yanıtı → aynı mapper) yapılacak. Detay: `BACKEND_PAYLOAD_FIXTURES.md`.
