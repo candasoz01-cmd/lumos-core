@@ -166,11 +166,30 @@ def _read_logs_payload(base: Path) -> dict:
         })
     return out
 
+def _file_mtime_iso(path: Path) -> str | None:
+    """Dosya varsa mtime ISO; yoksa veya hata ise None."""
+    if not path.is_file():
+        return None
+    try:
+        return datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+    except Exception:
+        return None
+
+
 def _build_state() -> dict:
     base = _base_dir()
     is_sandbox = _is_sandbox_mode()
 
     writing_label = "sandbox" if is_sandbox else "canlı"
+
+    # Identity / Keystore için güvenli okuma: sadece path varlığı ve mtime; içerik okunmaz. Config bu turda dokunulmaz.
+    identity_path = keystore_path = None
+    try:
+        from core.workspace_contract import identity_file_path, keystore_file_path
+        identity_path = identity_file_path(base)
+        keystore_path = keystore_file_path(base)
+    except Exception:
+        pass
 
     dashboard = {
         "sandbox_mode": is_sandbox,
@@ -231,7 +250,7 @@ def _build_state() -> dict:
             system_health[key] = {"status": default_status, "note": default_note}
     system = {"system_health": system_health}
 
-    # Config: read-only alanlar (workspace path, profil env; yazım yok)
+    # Config: read-only alanlar (workspace path, profil env); bu turda backend okuma yok
     config_snapshot = {
         "profil": os.environ.get("LUMOS_PROFILE") or "—",
         "workspace_root": str(base),
@@ -241,19 +260,22 @@ def _build_state() -> dict:
     }
     config_payload = {"config_snapshot": config_snapshot}
 
-    # Identity: read-only alanlar (path/kapsam; kimlik içeriği okunmaz)
+    # Identity: read-only — identity.json varlık + mtime; kimlik içeriği okunmaz
+    identity_exists = identity_path.is_file() if identity_path else False
+    identity_last = _file_mtime_iso(identity_path) if identity_path else None
     identity_payload = {
-        "identity_state": "—",
-        "identity_last_write": None,
+        "identity_state": "mevcut" if identity_exists else "mevcut değil",
+        "identity_last_write": identity_last,
         "identity_target_scope": "çekirdek kimlik alanı",
         "identity_guard_result": "Korunuyor",
     }
 
-    # Keystore: read-only durum (consent_ok; anahtar/passphrase ifşası yok)
+    # Keystore: read-only — consent_ok + keystore.json mtime; anahtar/passphrase ifşası yok
+    keystore_last = _file_mtime_iso(keystore_path) if keystore_path else None
     keystore_payload = {
         "keystore_ready": consent,
         "keystore_state": "Hazır" if consent else "Kilitli",
-        "keystore_last_update": None,
+        "keystore_last_update": keystore_last,
         "keystore_write_scope": "Kilit açılmadan hassas yazım yapılmaz",
     }
 
