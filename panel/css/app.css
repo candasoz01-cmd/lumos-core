@@ -107,8 +107,25 @@ body {
 
 .topbar-actions {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 0.8rem;
   color: var(--text-muted);
+}
+
+.topbar-demo-label {
+  flex-shrink: 0;
+}
+
+.demo-scenario-select {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.4rem;
+  background: var(--bg-main);
+  border: var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  min-width: 8rem;
 }
 
 .badge {
