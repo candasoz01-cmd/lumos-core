@@ -73,19 +73,23 @@
     keystoreLastUpdate: "2025-03-14T07:55:00",
     keystoreWriteScope: "Kilit açılmadan hassas yazım yapılmaz",
     systemHealth: {
-      workspace_contract: "ok",
-      task_engine: "ok",
-      sandbox_source: "ok",
-      trash_contract: "ok",
-      config_sink: "ok",
-      identity_sink: "ok",
-      keystore_sink: "ok",
+      workspace_contract: { status: "ok", note: "Sözleşme yüklü; çekirdek path'ler tanımlı." },
+      task_engine: { status: "ok", note: "Görev motoru çalışıyor." },
+      sandbox_source: { status: "ok", note: "Sandbox kaynağı çözümlendi." },
+      trash_contract: { status: "ok", note: "Trash konumu sözleşmeyle sabit." },
+      config_sink: { status: "ok", note: "Config sink yazım hattı hazır." },
+      identity_sink: { status: "uyarı", note: "Kimlik mevcut değil; hassas işlem yok." },
+      keystore_sink: { status: "uyarı", note: "Keystore kilitli; hassas yazım kapalı." },
+      general: { status: "ok", note: "Çekirdek parçalar operasyonel; 2 uyarı (identity, keystore)." },
     },
     taskList: [
-      { id: "t1", title: "Panel iskeleti genişlet", status: "devam", updated: "2025-03-14T10:00:00" },
-      { id: "t2", title: "Mock state birleştir", status: "bekliyor", updated: "2025-03-14T09:30:00" },
-      { id: "t3", title: "README güncelle", status: "tamamlandı", updated: "2025-03-13T16:00:00" },
+      { id: "t1", title: "Panel iskeleti genişlet", status: "aktif", updated: "2025-03-14T10:00:00", lastRun: "2025-03-14T10:05:00", guardResult: "İzinli", outputSummary: "Panel bileşenleri güncellendi; test geçti." },
+      { id: "t2", title: "Mock state birleştir", status: "bekleyen", updated: "2025-03-14T09:30:00", lastRun: null, guardResult: "—", outputSummary: "—" },
+      { id: "t3", title: "README güncelle", status: "tamamlandı", updated: "2025-03-13T16:00:00", lastRun: "2025-03-13T16:00:00", guardResult: "İzinli", outputSummary: "README güncellendi." },
+      { id: "t4", title: "Guard kuralı doğrula", status: "başarısız", updated: "2025-03-14T08:00:00", lastRun: "2025-03-14T08:00:00", guardResult: "Reddedildi", outputSummary: "Hedef path sözleşme dışı; çalıştırma durduruldu." },
+      { id: "t5", title: "Dış API çağrısı", status: "engellenen", updated: "2025-03-14T07:30:00", lastRun: null, guardResult: "Engelli", outputSummary: "Profil dışı; işlem yapılmadı." },
     ],
+    taskFilter: "all",
     selectedTaskId: null,
     selectedTrashId: null,
     logFilter: "all",
@@ -121,6 +125,16 @@
     if (key === "lock") return value === "LOCKED" ? "KORUMA AKTİF" : "Açık";
     if (key === "sandbox") return "KORUMALI ALAN";
     return value;
+  }
+
+  function getTaskStatusVariant(status) {
+    var v = { aktif: "badge-live", bekleyen: "badge-offline", tamamlandı: "badge-live", başarısız: "badge-warning", engellenen: "badge-blocked" };
+    return v[status] || "badge-mode";
+  }
+
+  function getHealthStatusVariant(status) {
+    var v = { ok: "badge-live", uyarı: "badge-warning", hata: "badge-blocked" };
+    return v[status] || "badge-mode";
   }
 
   // ——— Mock state helper'ları ———
@@ -264,21 +278,73 @@
     return ViewHeader("Gösterge Paneli", "Tek bakışta sistem durumu") + '<div class="cards-grid">' + cards + "</div>" + sections;
   }
 
-  // ——— Ekran: Görevler ———
+  // ——— Ekran: Görevler (ViewHeader, SectionCard, DetailPanel, MetricCard, EmptyState) ———
+  var TASK_FILTERS = [
+    { id: "all", label: "Tümü" },
+    { id: "active", label: "Aktif" },
+    { id: "pending", label: "Bekleyen" },
+    { id: "failed", label: "Başarısız" },
+    { id: "blocked", label: "Engellenen" },
+  ];
+
+  function filterTaskList(list, filterId) {
+    if (!list) return [];
+    if (filterId === "all") return list;
+    var statusMap = { active: "aktif", pending: "bekleyen", failed: "başarısız", blocked: "engellenen" };
+    var status = statusMap[filterId];
+    return status ? list.filter(function (t) { return t.status === status; }) : list;
+  }
+
   function renderTasks() {
-    var listHtml = "";
-    mockState.taskList.forEach(function (t) {
-      var sel = mockState.selectedTaskId === t.id ? " selected" : "";
-      listHtml += '<li class="list-item' + sel + '" data-task-id="' + t.id + '">' + t.title + " — " + t.status + "</li>";
-    });
-    var listSection = '<ul class="list-selectable" id="task-list">' + listHtml + "</ul>";
-    var detail = mockState.selectedTaskId
-      ? (function () {
-          var t = mockState.taskList.filter(function (x) { return x.id === mockState.selectedTaskId; })[0];
-          return t ? DetailPanel("Görev Detayı", "<p><strong>" + t.title + "</strong></p><p>Durum: " + t.status + "</p><p>Güncelleme: " + formatTime(t.updated) + "</p>") : DetailPanel("Görev Detayı", "<p>Seçili görev yok.</p>");
-        })()
-      : DetailPanel("Görev Detayı", "<p class=\"screen-placeholder\">Listeden bir görev seçin.</p>");
-    return ViewHeader("Görevler", "Görev motoru görünürlüğü") + renderSection("Görev Listesi", listSection) + detail + renderSection("Çalıştırma Notu", '<p class="screen-placeholder">İlgili test ve doğrulama notu burada gösterilir.</p>') + renderSection("Filtre", '<p class="screen-placeholder">Durum, etiket, tarih filtreleri (mock).</p>');
+    var filter = mockState.taskFilter || "all";
+    var filtered = filterTaskList(mockState.taskList, filter);
+    var tabsHtml = TASK_FILTERS.map(function (f) {
+      var active = f.id === filter ? " active" : "";
+      return '<button type="button" class="log-tab task-filter-tab' + active + '" data-task-filter="' + f.id + '">' + f.label + "</button>";
+    }).join("");
+    var listBody = '<div class="task-filters" id="task-filters">' + tabsHtml + "</div>";
+    if (filtered.length === 0) {
+      listBody += renderEmptyState("Bu filtrede görev yok", "Farklı bir filtre seçin veya mock veriye yeni görev ekleyin.");
+    } else {
+      var listItems = "";
+      filtered.forEach(function (t) {
+        var sel = mockState.selectedTaskId === t.id ? " selected" : "";
+        var badge = StatusBadge(t.status, getTaskStatusVariant(t.status));
+        listItems += '<li class="list-item' + sel + '" data-task-id="' + t.id + '"><span class="task-list-badge">' + badge + "</span> " + t.title + "</li>";
+      });
+      listBody += '<ul class="list-selectable" id="task-list">' + listItems + "</ul>";
+    }
+    var listSection = renderSection("Görev Listesi", listBody);
+
+    var selected = mockState.selectedTaskId
+      ? mockState.taskList.filter(function (x) { return x.id === mockState.selectedTaskId; })[0]
+      : null;
+    var detailContent;
+    if (!selected) {
+      detailContent = EmptyState("Görev seçilmedi", "Listeden bir görev seçin; detay paneli güncellenecektir.");
+    } else {
+      var lastRunVal = selected.lastRun ? formatTime(selected.lastRun) : "—";
+      var lastRunNote = selected.lastRun ? "Son çalıştırma zamanı (mock)." : "Henüz çalıştırılmadı.";
+      var guardVal = selected.guardResult || "—";
+      var guardNote = "Guard: izinli / reddedildi / engelli (profil veya hedef kapsamı).";
+      var outVal = (selected.outputSummary || "—").slice(0, 120);
+      if ((selected.outputSummary || "").length > 120) outVal += "…";
+      var outNote = "Çıktı özeti; tam log kayıtlar ekranından görülebilir.";
+      var metricRows = renderMetricCards([
+        { title: "Son çalıştırma", value: lastRunVal, techNote: lastRunNote },
+        { title: "Guard sonucu", value: guardVal, techNote: guardNote },
+        { title: "Çıktı özeti", value: outVal, techNote: outNote },
+      ]);
+      detailContent =
+        "<p><strong>" + selected.title + "</strong></p>" +
+        "<p>Durum: " + StatusBadge(selected.status, getTaskStatusVariant(selected.status)) + " · Güncelleme: " + formatTime(selected.updated) + "</p>" +
+        '<div class="detail-metrics">' + metricRows + "</div>";
+    }
+    var detail = DetailPanel("Görev Detayı", detailContent);
+
+    var runNoteSection = renderSection("Çalıştırma Notu", "<p class=\"text-muted-small\">Seçilen görevin son çalıştırma ve guard sonucu yukarıdaki detay panelinde gösterilir. İlgili test ve doğrulama notu canlı entegrasyonda bu bölümde doldurulacaktır.</p>");
+
+    return ViewHeader("Görevler", "Görev listesi, detay, son çalıştırma ve guard sonucu") + '<div class="split-view">' + listSection + detail + "</div>" + runNoteSection;
   }
 
   // ——— Ekran: Korumalı Alan (ortak bileşenler) ———
@@ -434,20 +500,27 @@
     return ViewHeader("Kayıtlar", "Olay akışı görünürlüğü") + '<div class="log-tabs" id="log-tabs">' + tabsHtml + "</div>" + renderSection("Kayıt listesi", EventList(filtered));
   }
 
-  // ——— Ekran: Sistem Durumu (ortak bileşen: renderMetricCards) ———
+  // ——— Ekran: Sistem Durumu (ViewHeader, MetricCard, StatusBadge — hangi parça hazır / dikkat) ———
   function renderSystem() {
     var h = mockState.systemHealth || {};
-    var cards = renderMetricCards([
-      { title: "Workspace Contract", value: h.workspace_contract || "—" },
-      { title: "Task Engine", value: h.task_engine || "—" },
-      { title: "Sandbox Source", value: h.sandbox_source || "—" },
-      { title: "Trash Contract", value: h.trash_contract || "—" },
-      { title: "Config Sink", value: h.config_sink || "—" },
-      { title: "Identity Sink", value: h.identity_sink || "—" },
-      { title: "Keystore Sink", value: h.keystore_sink || "—" },
-      { title: "Genel Sağlık", value: "ok" },
-    ]);
-    return ViewHeader("Sistem Durumu", "Çekirdek teknik sağlık görünümü") + '<div class="cards-grid">' + cards + "</div>";
+    function healthCard(title, key) {
+      var raw = h[key];
+      if (!raw) return MetricCard(title, "—", "Veri yok.");
+      var status = typeof raw === "string" ? raw : (raw.status || "—");
+      var note = typeof raw === "string" ? "" : (raw.note || "");
+      var value = StatusBadge(status, getHealthStatusVariant(status));
+      return MetricCard(title, value, note);
+    }
+    var cards =
+      healthCard("Workspace Contract", "workspace_contract") +
+      healthCard("Task Engine", "task_engine") +
+      healthCard("Sandbox Source", "sandbox_source") +
+      healthCard("Trash Contract", "trash_contract") +
+      healthCard("Config Sink", "config_sink") +
+      healthCard("Identity Sink", "identity_sink") +
+      healthCard("Keystore Sink", "keystore_sink") +
+      healthCard("Genel Sağlık", "general");
+    return ViewHeader("Sistem Durumu", "Hangi çekirdek parça hazır, hangisi dikkat istiyor — tek bakışta") + '<div class="cards-grid">' + cards + "</div>";
   }
 
   var renderers = {
@@ -475,6 +548,11 @@
     var t = e.target;
     if (t.dataset && t.dataset.taskId) {
       mockState.selectedTaskId = t.dataset.taskId;
+      renderMain();
+      return;
+    }
+    if (t.dataset && t.dataset.taskFilter) {
+      mockState.taskFilter = t.dataset.taskFilter;
       renderMain();
       return;
     }
