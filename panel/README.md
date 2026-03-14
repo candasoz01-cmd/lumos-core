@@ -16,6 +16,10 @@
 
 **Phase 1 backend bridge:** Dashboard, Korumalı Alan ve Sistem Durumu için gerçek veri giriş noktası hazırlandı (`js/backend-bridge.js`, source provider + adapter zinciri). Gerçek veri yoksa panel fallback (demo/fixture) veriyle çalışmaya devam eder. Detay: `BACKEND_BRIDGE_PHASE1.md`.
 
+**Phase 1 readiness:** Gerçek entegrasyon için okuma odaklı hazırlık analizi yapıldı; ilk hedef ekranlar Dashboard, Sandbox, System. Hangi alanın nereden okunabileceği ve nelerin mapping/beklemede olduğu: `BACKEND_PHASE1_READINESS.md`.
+
+**Phase 1 read-only bridge uygulandı:** Dashboard, Korumalı Alan ve Sistem Durumu için hazır kaynak varsa (workspace_contract + consent_ok) okunuyor; `panel/scripts/read_backend_state.py --write` ile state enjekte edilebilir. Aksi halde fixture/demo fallback çalışır. Detay: `BACKEND_PHASE1_APPLIED.md`.
+
 ## Çalıştırma
 
 - **Doğrudan:** `panel/index.html` açın (`file://`).
