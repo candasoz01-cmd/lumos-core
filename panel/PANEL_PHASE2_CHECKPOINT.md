@@ -39,7 +39,27 @@ Aşağıdaki dört ekran ve alanları `read_backend_state.py` çıktısından ge
 | log_file_updated | log.txt dosya mtime (ISO) |
 | log_location | Çözümlenmiş path |
 
-Diğer ekranlar (Dashboard, Sandbox, Config, Identity, Keystore) aynı script çıktısından ENV/base/consent ile türetilmiş veya sabit değerlerle beslenir; gerçek okuma bu dört ekrandaki alanlarla sınırlıdır.
+### Config (Yapılandırma)
+
+Bu turda dokunulmadı. profil, workspace_root ENV/base; last_activity, last_activity_text sabit/fallback.
+
+### Identity (Kimlik)
+
+| Alan | Kaynak |
+|------|--------|
+| identity_state | identity.json varlığı → "mevcut" / "mevcut değil" |
+| identity_last_write | identity.json mtime (ISO); yoksa null |
+| identity_target_scope, identity_guard_result | Sabit (içerik okunmaz) |
+
+### Keystore (Anahtar Kasası)
+
+| Alan | Kaynak |
+|------|--------|
+| keystore_ready, keystore_state | consent_ok(base) (mevcut) |
+| keystore_last_update | keystore.json mtime (ISO); yoksa null |
+| keystore_write_scope | Sabit (anahtar/passphrase ifşası yok) |
+
+Dashboard ve Sandbox ENV/base ile beslenir. Config bu turda sabit/fallback; Identity ve Keystore yukarıdaki dar gerçek okumaya bağlıdır.
 
 ---
 
@@ -56,7 +76,8 @@ Diğer ekranlar (Dashboard, Sandbox, Config, Identity, Keystore) aynı script ç
 | **Silinenler** | original_path, scope (öğe bazlı) | Sadece dizin listesi; taşıma metadata yok; "—" |
 | **Kayıtlar** | Satır bazlı timestamp | log.txt satır timestamp’i yok; dosya mtime kullanılıyor |
 | **Kayıtlar** | log_filter | Sabit "all" |
-| **Config / Identity / Keystore** | last_activity, identity_last_write, keystore_last_update vb. | İsteğe bağlı alanlar; tek okuma noktası yok veya sabit |
+| **Config** | last_activity, last_activity_text | Bu turda dokunulmadı; sabit/fallback. |
+| **Identity / Keystore** | (giderildi) | Phase 2 dar okuma: identity.json / keystore.json varlık + mtime; içerik okunmaz. Dosya yoksa null / açık fallback. |
 
 ---
 
@@ -82,10 +103,8 @@ Diğer ekranlar (Dashboard, Sandbox, Config, Identity, Keystore) aynı script ç
 
 ## 5. Sonraki mantıklı teknik adım
 
-İki net seçenek (birini seçmek sonraki turda):
-
-- **A) Config / Identity / Keystore için Phase 2 gerçek okuma genişletmesi:** Bu üç ekranda şu an ENV/sabit/consent_ok ile doldurulan alanları, backend'de tek okuma noktası açıldığında (ör. config dosyası varlığı, identity path okuma, keystore durum bayrağı) gerçek okumaya bağlamak. `read_backend_state.py` ve bridge aynı payload şeklini korur; sadece veri kaynağı genişler.
-- **B) read_backend_state.py içinde tekrar eden okumaları sadeleştirme:** Aynı base, tasks.json veya log dosyasına yapılan birden fazla okuma/stat çağrısını tek geçişte toplamak; kod tekrarını azaltmak. Davranış ve panel çıktısı değişmez; sadece script bakımı kolaylaşır.
+- **A) Kimlik ve Anahtar Kasası Phase 2 dar okuma:** Uygulandı. identity.json / keystore.json varlık ve mtime; içerik okunmaz. Yapılandırma bu turda dokunulmadı.
+- **B) read_backend_state.py içinde tekrar eden okumaları sadeleştirme:** İsteğe bağlı; aynı base/dosyalara birden fazla stat/okuma tek geçişte toplanabilir. Davranış değişmez.
 
 ---
 
