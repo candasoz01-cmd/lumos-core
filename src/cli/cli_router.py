@@ -7,7 +7,7 @@ security, lock, presence, or workspace contract logic.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Callable
+from typing import Callable
 
 from cli.cli_notes import handle_notes
 from cli.cli_parse import (
