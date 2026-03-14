@@ -1,0 +1,108 @@
+/* Lumos Panel v1 — wireframe / iskelet; görsel cila yok */
+
+:root {
+  --sidebar-width: 12rem;
+  --topbar-height: 2.5rem;
+  --border: 1px solid #ccc;
+  --bg-main: #fafafa;
+  --bg-sidebar: #f0f0f0;
+  --bg-topbar: #e8e8e8;
+  --text: #333;
+  --link: #06c;
+  --link-active: #004;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.layout {
+  display: grid;
+  grid-template-areas:
+    "topbar topbar"
+    "sidebar main";
+  grid-template-columns: var(--sidebar-width) 1fr;
+  grid-template-rows: var(--topbar-height) 1fr;
+  min-height: 100vh;
+}
+
+.topbar {
+  grid-area: topbar;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+  background: var(--bg-topbar);
+  border-bottom: var(--border);
+}
+
+.topbar-brand {
+  font-weight: 600;
+}
+
+.topbar-status {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.sidebar {
+  grid-area: sidebar;
+  background: var(--bg-sidebar);
+  border-right: var(--border);
+  padding: 0.5rem 0;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.nav a {
+  display: block;
+  padding: 0.5rem 1rem;
+  color: var(--link);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+}
+
+.nav a:hover {
+  background: rgba(0,0,0,0.05);
+}
+
+.nav a.active {
+  background: rgba(0,0,0,0.06);
+  border-left-color: var(--link);
+  color: var(--link-active);
+  font-weight: 500;
+}
+
+.main {
+  grid-area: main;
+  padding: 1rem;
+  background: var(--bg-main);
+  overflow: auto;
+}
+
+.main h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+}
+
+.placeholder,
+.screen-placeholder {
+  color: #666;
+  font-style: italic;
+}
+
+.screen-placeholder + ul {
+  margin-top: 0.5rem;
+  padding-left: 1.25rem;
+}
