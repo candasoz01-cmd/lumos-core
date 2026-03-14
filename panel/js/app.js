@@ -111,7 +111,25 @@
     return value;
   }
 
-  // ——— Ortak bileşenler (tekrar kullanılabilir) ———
+  // ——— Mock state helper'ları ———
+  function renderMetricCards(items) {
+    var html = "";
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      html += MetricCard(it.title, it.value, it.techNote);
+    }
+    return html;
+  }
+
+  function renderSection(title, bodyHtml) {
+    return SectionCard(title, bodyHtml);
+  }
+
+  function renderEmptyState(title, desc) {
+    return EmptyState(title, desc);
+  }
+
+  // ——— Ortak bileşenler (tekrar kullanılabilir; kopyala-yapıştır yok) ———
   function ViewHeader(title, subtitle) {
     var sub = subtitle ? '<p class="view-subtitle">' + subtitle + "</p>" : "";
     return '<div class="view-header"><h1>' + title + "</h1>" + sub + "</div>";
@@ -195,17 +213,18 @@
     return { id: "_empty", label: "", hash: hash };
   }
 
-  // ——— Ekran: Gösterge Paneli ———
+  // ——— Ekran: Gösterge Paneli (ortak bileşenler) ———
   function renderDashboard() {
-    var cards =
-      MetricCard("Korumalı Alan Durumu", mockState.sandboxMode ? "Açık" : "Kapalı") +
-      MetricCard("Yazım Hedefi", mockState.writingBaseDir) +
-      MetricCard("Koruma Durumu", mockState.guardStatus) +
-      MetricCard("Son Aktivite", formatTime(mockState.recentEvents[0] ? mockState.recentEvents[0].ts : "—"));
+    var cards = renderMetricCards([
+      { title: "Korumalı Alan Durumu", value: mockState.sandboxMode ? "Açık" : "Kapalı" },
+      { title: "Yazım Hedefi", value: mockState.writingBaseDir },
+      { title: "Koruma Durumu", value: mockState.guardStatus },
+      { title: "Son Aktivite", value: formatTime(mockState.recentEvents[0] ? mockState.recentEvents[0].ts : "—") },
+    ]);
     var sections =
-      SectionCard("Son Olaylar", EventList(mockState.recentEvents)) +
-      SectionCard("Uyarılar / Notlar", "<p>" + (mockState.warnings && mockState.warnings[0] ? mockState.warnings[0] : "—") + "</p>") +
-      SectionCard("Hızlı Geçişler", '<p><a href="#tasks" class="inline-link">Görevler</a> · <a href="#sandbox" class="inline-link">Korumalı Alan</a> · <a href="#logs" class="inline-link">Kayıtlar</a></p><p class="text-muted-small">Hash linkleri (mock)</p>');
+      renderSection("Son Olaylar", EventList(mockState.recentEvents)) +
+      renderSection("Uyarılar / Notlar", "<p>" + (mockState.warnings && mockState.warnings[0] ? mockState.warnings[0] : "—") + "</p>") +
+      renderSection("Hızlı Geçişler", '<p><a href="#tasks" class="inline-link">Görevler</a> · <a href="#sandbox" class="inline-link">Korumalı Alan</a> · <a href="#logs" class="inline-link">Kayıtlar</a></p><p class="text-muted-small">Hash linkleri (mock)</p>');
     return ViewHeader("Gösterge Paneli", "Tek bakışta sistem durumu") + '<div class="cards-grid">' + cards + "</div>" + sections;
   }
 
@@ -223,21 +242,21 @@
           return t ? DetailPanel("Görev Detayı", "<p><strong>" + t.title + "</strong></p><p>Durum: " + t.status + "</p><p>Güncelleme: " + formatTime(t.updated) + "</p>") : DetailPanel("Görev Detayı", "<p>Seçili görev yok.</p>");
         })()
       : DetailPanel("Görev Detayı", "<p class=\"screen-placeholder\">Listeden bir görev seçin.</p>");
-    return ViewHeader("Görevler", "Görev motoru görünürlüğü") + SectionCard("Görev Listesi", listSection) + detail + SectionCard("Çalıştırma Notu", '<p class="screen-placeholder">İlgili test ve doğrulama notu burada gösterilir.</p>') + SectionCard("Filtre", '<p class="screen-placeholder">Durum, etiket, tarih filtreleri (mock).</p>');
+    return ViewHeader("Görevler", "Görev motoru görünürlüğü") + renderSection("Görev Listesi", listSection) + detail + renderSection("Çalıştırma Notu", '<p class="screen-placeholder">İlgili test ve doğrulama notu burada gösterilir.</p>') + renderSection("Filtre", '<p class="screen-placeholder">Durum, etiket, tarih filtreleri (mock).</p>');
   }
 
-  // ——— Ekran: Korumalı Alan ———
+  // ——— Ekran: Korumalı Alan (ortak bileşenler) ———
   function renderSandbox() {
     var sandboxBase = mockState.sandboxMode ? "sandbox/" : "—";
     return (
       ViewHeader("Korumalı Alan", "Sandbox kaynağı ve yönlendirme görünürlüğü") +
-      SectionCard("Kaynak", "<p>CLI / ENV / varsayılan</p><p><strong>Şu an:</strong> " + (mockState.sandboxSource || "—") + "</p>") +
-      SectionCard("Sandbox Base", "<p>" + sandboxBase + "</p><p class=\"text-muted-small\">Korumalı alan açıkken yazım hedefi</p>") +
-      SectionCard("Yazım Yönü (Writing Direction)", "<p>" + mockState.writingBaseDir + "</p>") +
-      SectionCard("Sözleşme Durumu (Contract Status)", "<p>Tanımlı</p><p class=\"text-muted-small\">Sandbox hedef dizini sözleşmesi</p>") +
-      SectionCard("Çözümleme Mantığı", "<p>Kaynak önceliği: CLI → ENV → varsayılan. Sistem kendi kafasına canlı hedef seçmez.</p>") +
-      SectionCard("Guard Kuralı", "<p>Çekirdek state path’lere doğrudan overwrite yapılmaz. Yazma hedefi tek kaynaktan (canlı base veya sözleşmeyle tanımlı sandbox base).</p>") +
-      SectionCard("Canlı çekirdek / sandbox hedef dizin farkı", "<p>Canlı: doğrudan çalışma alanı. Sandbox: tanımlı kopya alanı; deneme/geliştirme burada yapılır, canlıya overwrite yok.</p><p class=\"text-muted-small\">Core state paths read-only when sandbox active.</p>")
+      renderSection("Kaynak", "<p>CLI / ENV / varsayılan</p><p><strong>Şu an:</strong> " + (mockState.sandboxSource || "—") + "</p>") +
+      renderSection("Sandbox Base", "<p>" + sandboxBase + "</p><p class=\"text-muted-small\">Korumalı alan açıkken yazım hedefi</p>") +
+      renderSection("Yazım Yönü (Writing Direction)", "<p>" + mockState.writingBaseDir + "</p>") +
+      renderSection("Sözleşme Durumu (Contract Status)", "<p>Tanımlı</p><p class=\"text-muted-small\">Sandbox hedef dizini sözleşmesi</p>") +
+      renderSection("Çözümleme Mantığı", "<p>Kaynak önceliği: CLI → ENV → varsayılan. Sistem kendi kafasına canlı hedef seçmez.</p>") +
+      renderSection("Guard Kuralı", "<p>Çekirdek state path’lere doğrudan overwrite yapılmaz. Yazma hedefi tek kaynaktan (canlı base veya sözleşmeyle tanımlı sandbox base).</p>") +
+      renderSection("Canlı çekirdek / sandbox hedef farkı", "<p>Canlı: doğrudan çalışma alanı. Sandbox: tanımlı kopya alanı; deneme/geliştirme burada yapılır, canlıya overwrite yok.</p><p class=\"text-muted-small\">Core state paths read-only when sandbox active.</p>")
     );
   }
 
@@ -245,27 +264,28 @@
   function renderConfig() {
     var cfg = mockState.configSnapshot || {};
     var summary = "<p>Profil: " + (cfg.profil || "—") + "</p><p>Kök: " + (cfg.workspace_root || "—") + "</p>";
-    return ViewHeader("Yapılandırma", "Config görünürlüğü") + SectionCard("Mevcut Yapılandırma Özeti", summary + '<p class="text-muted-small">config.json</p>') + SectionCard("Yazım Durumu", "<p>Yazım uygun</p>") + SectionCard("Son Config Aktivitesi", "<p>" + formatTime(mockState.recentEvents[2] ? mockState.recentEvents[2].ts : "—") + " — config okundu</p>");
+    return ViewHeader("Yapılandırma", "Config görünürlüğü") + renderSection("Mevcut Yapılandırma Özeti", summary + '<p class="text-muted-small">config.json</p>') + renderSection("Yazım Durumu", "<p>Yazım uygun</p>") + renderSection("Son Config Aktivitesi", "<p>" + formatTime(mockState.recentEvents[2] ? mockState.recentEvents[2].ts : "—") + " — config okundu</p>");
   }
 
   // ——— Ekran: Kimlik ———
   function renderIdentity() {
-    return ViewHeader("Kimlik", "Identity durumu") + SectionCard("Identity Ready", "<p>" + mockState.identityState + "</p>") + SectionCard("Son Yazım", "<p>—</p>") + SectionCard("Hedef Kapsam", "<p class=\"screen-placeholder\">Kimlik yazım kapsamı (mock).</p>") + SectionCard("Guard Sonucu", "<p>Çekirdek güvenlik alanı; yetkisiz değişiklik yapılmaz.</p>");
+    return ViewHeader("Kimlik", "Identity durumu") + renderSection("Identity Ready", "<p>" + mockState.identityState + "</p>") + renderSection("Son Yazım", "<p>—</p>") + renderSection("Hedef Kapsam", "<p class=\"screen-placeholder\">Kimlik yazım kapsamı (mock).</p>") + renderSection("Guard Sonucu", "<p>Çekirdek güvenlik alanı; yetkisiz değişiklik yapılmaz.</p>");
   }
 
   // ——— Ekran: Anahtar Kasası ———
   function renderKeystore() {
-    return ViewHeader("Anahtar Kasası", "Keystore durumu") + SectionCard("Hazır mı", "<p>" + (mockState.keystoreState === "Kilitli" ? "Hayır (kilitli)" : "Evet") + "</p>") + SectionCard("Şifreli Durum", "<p>" + mockState.keystoreState + "</p><p class=\"text-muted-small\">Passphrase gösterilmez.</p>") + SectionCard("Son Güncelleme", "<p>—</p>") + SectionCard("Yazım Kapsamı", "<p class=\"screen-placeholder\">Kilit açılmadan hassas yazım yapılmaz.</p>");
+    return ViewHeader("Anahtar Kasası", "Keystore durumu") + renderSection("Hazır mı", "<p>" + (mockState.keystoreState === "Kilitli" ? "Hayır (kilitli)" : "Evet") + "</p>") + renderSection("Şifreli Durum", "<p>" + mockState.keystoreState + "</p><p class=\"text-muted-small\">Passphrase gösterilmez.</p>") + renderSection("Son Güncelleme", "<p>—</p>") + renderSection("Yazım Kapsamı", "<p class=\"screen-placeholder\">Kilit açılmadan hassas yazım yapılmaz.</p>");
   }
 
-  // ——— Ekran: Silinenler ———
+  // ——— Ekran: Silinenler (ortak bileşenler: MetricCard, SectionCard, DetailPanel) ———
   function renderTrash() {
     var items = mockState.trashItems || [];
-    var summary =
-      MetricCard("Trash Location", mockState.trashLocation) +
-      MetricCard("Son Taşıma (Last Move)", formatTime(mockState.trashLastMove)) +
-      MetricCard("Öğe Sayısı (Item Count)", String(items.length)) +
-      MetricCard("Scope", ".lumos/trash — aktif state kaynağı değildir");
+    var summary = renderMetricCards([
+      { title: "Çöp Konumu", value: mockState.trashLocation },
+      { title: "Son Taşıma", value: formatTime(mockState.trashLastMove) },
+      { title: "Öğe Sayısı", value: String(items.length) },
+      { title: "Kapsam", value: ".lumos/trash — aktif state kaynağı değildir" },
+    ]);
     var listHtml = "";
     items.forEach(function (item) {
       var sel = mockState.selectedTrashId === item.id ? " selected" : "";
@@ -282,7 +302,7 @@
         "<p><strong>Scope:</strong> " + (selected.scope || "—") + "</p>"
       : "<p class=\"screen-placeholder\">Listeden bir öğe seçin.</p>";
     var detail = DetailPanel("Seçilen öğe detayı", detailBody);
-    return ViewHeader("Silinenler", "Trash görünürlüğü") + '<div class="cards-grid">' + summary + "</div>" + '<div class="split-view">' + SectionCard("Liste görünümü", listSection) + detail + "</div>";
+    return ViewHeader("Silinenler", "Trash görünürlüğü") + '<div class="cards-grid">' + summary + "</div>" + '<div class="split-view">' + renderSection("Liste görünümü", listSection) + detail + "</div>";
   }
 
   var LOG_FILTERS = [
@@ -296,7 +316,7 @@
     { id: "guard", label: "Koruma", kind: "guard" },
   ];
 
-  // ——— Ekran: Kayıtlar ———
+  // ——— Ekran: Kayıtlar (ortak bileşenler: EventList, SectionCard) ———
   function renderLogs() {
     var filter = mockState.logFilter || "all";
     var list = mockState.logItems || [];
@@ -309,21 +329,22 @@
       var active = f.id === filter ? " active" : "";
       return '<button type="button" class="log-tab' + active + '" data-log-filter="' + f.id + '">' + f.label + "</button>";
     }).join("");
-    return ViewHeader("Kayıtlar", "Olay akışı görünürlüğü") + '<div class="log-tabs" id="log-tabs">' + tabsHtml + "</div>" + SectionCard("Kayıt listesi", EventList(filtered));
+    return ViewHeader("Kayıtlar", "Olay akışı görünürlüğü") + '<div class="log-tabs" id="log-tabs">' + tabsHtml + "</div>" + renderSection("Kayıt listesi", EventList(filtered));
   }
 
-  // ——— Ekran: Sistem Durumu ———
+  // ——— Ekran: Sistem Durumu (ortak bileşen: renderMetricCards) ———
   function renderSystem() {
     var h = mockState.systemHealth || {};
-    var cards =
-      MetricCard("Workspace Contract", h.workspace_contract || "—") +
-      MetricCard("Task Engine", h.task_engine || "—") +
-      MetricCard("Sandbox Source", h.sandbox_source || "—") +
-      MetricCard("Trash Contract", h.trash_contract || "—") +
-      MetricCard("Config Sink", h.config_sink || "—") +
-      MetricCard("Identity Sink", h.identity_sink || "—") +
-      MetricCard("Keystore Sink", h.keystore_sink || "—") +
-      MetricCard("Genel Sağlık", "ok");
+    var cards = renderMetricCards([
+      { title: "Workspace Contract", value: h.workspace_contract || "—" },
+      { title: "Task Engine", value: h.task_engine || "—" },
+      { title: "Sandbox Source", value: h.sandbox_source || "—" },
+      { title: "Trash Contract", value: h.trash_contract || "—" },
+      { title: "Config Sink", value: h.config_sink || "—" },
+      { title: "Identity Sink", value: h.identity_sink || "—" },
+      { title: "Keystore Sink", value: h.keystore_sink || "—" },
+      { title: "Genel Sağlık", value: "ok" },
+    ]);
     return ViewHeader("Sistem Durumu", "Çekirdek teknik sağlık görünümü") + '<div class="cards-grid">' + cards + "</div>";
   }
 
@@ -344,7 +365,7 @@
     if (!main) return;
     var screen = getCurrentScreen();
     var fn = renderers[screen.id];
-    main.innerHTML = fn ? fn() : EmptyState("Henüz veri yok", "Geçersiz sayfa. Kenar çubuğundan bir ekran seçin.");
+    main.innerHTML = fn ? fn() : renderEmptyState("Henüz veri yok", "Geçersiz sayfa. Kenar çubuğundan bir ekran seçin.");
   }
 
   // ——— Etkileşimler (delegation) ———
