@@ -6,17 +6,15 @@ from pathlib import Path
 from typing import Any
 
 from cli.cli_parse import (
-    HATIRLA_NOTE_MAX_LEN,
     HELP_TEXT,
     _record_note_op,
     _record_today_action,
     _shorten_previous_response,
-    get_fallback_message,
     normalize_command,
 )
-from cli.cli_notes import handle_notes
-from cli.cli_readonly import ReadOnlyContext, handle_readonly
-from cli.cli_tasks_mutation import TaskMutationContext, handle_task_mutation
+from cli.cli_readonly import ReadOnlyContext
+from cli.cli_router import RouterContext, run_cli_loop
+from cli.cli_tasks_mutation import TaskMutationContext
 from core.config import load_config
 from core.engine import CoreEngine
 from core.logfmt import logfmt
@@ -36,8 +34,6 @@ from task_engine import (
     TaskEngine,
     PROFILE_RAPOR,
     PROFILE_GUVENLI_YURUT,
-    ALL_PROFILES,
-    get_profile_display_name,
 )
 
 
@@ -784,8 +780,8 @@ def main(sandbox_mode: bool | None = None) -> None:
     current_permission_profile: list[str] = [PROFILE_RAPOR]
     general_approval: list[bool] = [False]
 
-    # ---- CLI döngüsü ----
-    pending: str | None = None
+    # ---- CLI state and context for router ----
+    pending_ref: list[str | None] = [None]
     current_task: list[str | None] = [None]  # aktif görev; "ne yapıyorsun" buna bakar
     last_action: list[str | None] = [None]   # en son tamamlanan iş; "son yaptığın ne" buna bakar
     today_date: list[str] = [""]             # YYYY-MM-DD; gün değişince today_actions sıfırlanır
@@ -794,11 +790,7 @@ def main(sandbox_mode: bool | None = None) -> None:
     last_response_text: list[str | None] = [None]     # son cevabın tam metni; "bunu kısaca anlat" buna bakar
     last_route: list[str | None] = [None]             # son başarılı komut route; fallback'te aileye göre yardım için
     saved_notes: list[list[str]] = [[]]               # kullanıcı notları (bunu hatırla / not et vb.)
-    # Tek state: komut yorumlama ile metin-bekleyen akışlar kesin ayrım
-    CLI_NORMAL = "normal_komut_modu"
-    CLI_NOT_BEKLEME = "not_bekleme_modu"
-    CLI_NOT_DUZENLEME = "not_duzenleme_modu"
-    cli_mode: list[str] = [CLI_NORMAL]
+    cli_mode: list[str] = ["normal_komut_modu"]
     last_note_undo: list[tuple[str, Any] | None] = [None]  # (op, data) tek adımlık geri al
     note_ops_history: list[list[str]] = [[]]          # son not işlemleri (en fazla 5); "not geçmişi"
     last_task_create_fingerprint: list[tuple[str, str] | None] = [None]  # (profil, açıklama) yakın tekrar uyarısı için
@@ -833,138 +825,51 @@ def main(sandbox_mode: bool | None = None) -> None:
     mut_ctx.today_actions = today_actions
     mut_ctx.last_task_create_fingerprint = last_task_create_fingerprint
     mut_ctx.record_today_action = ctx.record_today_action
-    while True:
+
+    def get_raw_input() -> str:
         try:
-            pl.watchdog_tick(
-                Path(base_dir),
-                state.log_event,
-                _recovery_lock_cb,
-                state.is_locked,
-                is_sandbox_mode=sandbox_mode,
-            )
-        except Exception:
-            pass
-        if pending is not None:
-            raw = pending
+            return input("Sen: ").strip()
+        except EOFError:
+            return "çık"
+
+    router_ctx = RouterContext()
+    router_ctx.base_dir = base_dir
+    router_ctx.aliases = aliases
+    router_ctx.ctx = ctx
+    router_ctx.mut_ctx = mut_ctx
+    router_ctx.pending_ref = pending_ref
+    router_ctx.cli_mode = cli_mode
+    router_ctx.last_route = last_route
+    router_ctx.last_note_undo = last_note_undo
+    router_ctx.get_raw_input = get_raw_input
+    router_ctx.watchdog_tick = lambda: pl.watchdog_tick(
+        Path(base_dir),
+        state.log_event,
+        _recovery_lock_cb,
+        state.is_locked,
+        is_sandbox_mode=sandbox_mode,
+    )
+    router_ctx.on_lock_menu = lambda args: lock_menu(
+        state=state, engine=engine, initial_cmd=args[0] if args else None
+    )
+    router_ctx.on_presence_menu = lambda args: presence_menu(
+        state=state, engine=engine, base_dir=base_dir, initial_cmd=args[0] if args else None
+    )
+    def do_self_test() -> None:
+        passed, total, passed_count, failed_areas = run_self_test(
+            base_dir, state, lumos, aliases, saved_notes[0], sandbox_mode=sandbox_mode
+        )
+        if passed:
+            print(f"self test: passed ({passed_count}/{total})")
         else:
-            try:
-                raw = input("Sen: ").strip()
-            except EOFError:
-                raw = "çık"
+            print(f"self test: failed ({passed_count}/{total})")
+            if failed_areas:
+                print("Kırık alanlar: " + ", ".join(failed_areas))
 
-        pending = None
+    router_ctx.on_self_test = do_self_test
+    router_ctx.on_alias_menu = lambda args: alias_menu(args=args)
 
-        # ---- Metin-bekleyen modlar: parser çalışmaz, girdi koşulsuz not metnidir ----
-        if cli_mode[0] == CLI_NOT_BEKLEME:
-            cli_mode[0] = CLI_NORMAL
-            if not raw.strip():
-                print("Boş metin kabul edilmiyor.")
-                continue
-            note_text = raw.strip()
-            if len(note_text) > HATIRLA_NOTE_MAX_LEN:
-                note_text = (note_text[:HATIRLA_NOTE_MAX_LEN].rsplit(maxsplit=1)[0].rstrip(".,") or note_text[:HATIRLA_NOTE_MAX_LEN])
-            saved_notes[0].append(note_text)
-            _record_note_op(note_ops_history, "bunu hatırla")
-            last_response_reason[0] = "bunu hatırla dedin"
-            last_action[0] = "En son hatırla işlemini yaptım."
-            last_response_text[0] = "Bunu not ettim."
-            _record_today_action(today_date, today_actions, last_action[0])
-            print("Bunu not ettim.")
-            continue
-        if cli_mode[0] == CLI_NOT_DUZENLEME:
-            cli_mode[0] = CLI_NORMAL
-            if not raw.strip():
-                print("Boş metin kabul edilmiyor.")
-                continue
-            old_content = saved_notes[0][-1]
-            saved_notes[0][-1] = raw.strip()
-            last_note_undo[0] = ("notu_duzenle", old_content)
-            _record_note_op(note_ops_history, "notu düzenle")
-            last_action[0] = "En son notu düzenledim."
-            last_response_text[0] = "Son notu güncelledim."
-            print("Son notu güncelledim.")
-            continue
-
-        # ---- normal_komut_modu: sadece burada parser çalışır ----
-        route, args = normalize_command(raw, Path(base_dir), aliases)
-
-        if route == "":
-            continue
-        if route != "unknown":
-            last_route[0] = route
-        if route == "unknown":
-            print(get_fallback_message(raw, last_route[0]))
-            continue
-        if handle_notes(route, args, ctx, cli_mode, last_note_undo):
-            continue
-        if handle_readonly(route, args, ctx):
-            continue
-        # ---- Görev motoru + yetki + genel onay komutları ----
-        if route == "yetki_profili":
-            # Display-only (no args) handled by handle_readonly; here only set profile
-            name = (args[0] or "").strip().lower().replace("-", "_")
-            if name in ALL_PROFILES:
-                current_permission_profile[0] = name
-                print("Yetki profili: " + get_profile_display_name(name))
-            else:
-                print("Geçerli profiller: rapor, guvenli_yurut, kisitli_otonom")
-            continue
-        if route == "genel_onay_ac":
-            general_approval[0] = True
-            print("Genel onay açık. Bu oturumda izin profili kapsamında işler yürütülebilir.")
-            continue
-        if route == "genel_onay_kapat":
-            general_approval[0] = False
-            print("Genel onay kapalı.")
-            continue
-        if handle_task_mutation(route, args, mut_ctx):
-            continue
-        if route == "exit":
-            print("OK")
-            break
-        if route == "kilit":
-            current_task[0] = "kilit menüsündeyim."
-            try:
-                result = lock_menu(state=state, engine=engine, initial_cmd=args[0] if args else None)
-                if result is not None:
-                    pending = result
-                else:
-                    last_action[0] = "En son kilit menüsünü açtım."
-                    _record_today_action(today_date, today_actions, last_action[0])
-            finally:
-                current_task[0] = None
-            continue
-        if route == "kamera":
-            current_task[0] = "kamera menüsündeyim."
-            try:
-                result = presence_menu(state=state, engine=engine, base_dir=base_dir, initial_cmd=args[0] if args else None)
-                if result is not None:
-                    pending = result
-                else:
-                    last_action[0] = "En son kamera menüsünü açtım."
-                    _record_today_action(today_date, today_actions, last_action[0])
-            finally:
-                current_task[0] = None
-            continue
-        if route == "self_test":
-            passed, total, passed_count, failed_areas = run_self_test(
-                base_dir, state, lumos, aliases, saved_notes[0], sandbox_mode=sandbox_mode
-            )
-            if passed:
-                print(f"self test: passed ({passed_count}/{total})")
-            else:
-                print(f"self test: failed ({passed_count}/{total})")
-                if failed_areas:
-                    print("Kırık alanlar: " + ", ".join(failed_areas))
-            continue
-        if route == "alias":
-            if handle_readonly(route, args, ctx):
-                continue
-            alias_menu(args=args)
-            last_action[0] = "En son alias işlemi yaptım."
-            _record_today_action(today_date, today_actions, last_action[0])
-            continue
-        print(get_fallback_message(raw, last_route[0]))
+    run_cli_loop(router_ctx)
 
 if __name__ == "__main__":
     main()
