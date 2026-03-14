@@ -97,6 +97,121 @@
     logFilter: "all",
   };
 
+  // ——— Demo senaryolar (override; adapter tek kaynak olarak getEffectiveState kullanır) ———
+  var currentScenario = "normal_operasyon";
+  var DEMO_SCENARIOS = {
+    normal_operasyon: {},
+    sandbox_aktif: {
+      sandboxMode: true,
+      writingBaseDir: "sandbox",
+      sandboxSource: "CLI",
+      recentEvents: [
+        { id: "e1", kind: "sandbox", text: "Korumalı alan açık; yazım sandbox base'e", ts: "2025-03-14T10:05:00" },
+        { id: "e2", kind: "görev", text: "Görev t2 güncellendi", ts: "2025-03-14T10:00:00" },
+        { id: "e3", kind: "config", text: "config okundu", ts: "2025-03-14T08:55:00" },
+      ],
+      warnings: ["Korumalı alan açık; yazım .lumos/sandbox (veya sözleşme base) altına gidiyor."],
+      logItems: [
+        { id: "L1", kind: "sandbox", text: "Korumalı alan açık; yazım sandbox base'e", ts: "2025-03-14T10:05:00" },
+        { id: "L2", kind: "görev", text: "Görev t2 güncellendi", ts: "2025-03-14T10:00:00" },
+        { id: "L3", kind: "config", text: "config okundu", ts: "2025-03-14T08:55:00" },
+        { id: "L4", kind: "trash", text: "Öğe taşındı: eski_tasks_backup.json", ts: "2025-03-12T14:00:00" },
+        { id: "L5", kind: "guard", text: "Guard: yazım hedefi sandbox", ts: "2025-03-14T07:50:00" },
+      ],
+    },
+    guard_bloklu: {
+      guardStatus: "ENGELLENDİ",
+      recentEvents: [
+        { id: "e1", kind: "guard", text: "Yazım engellendi: hedef path sözleşme dışı", ts: "2025-03-14T10:05:00" },
+        { id: "e2", kind: "görev", text: "Görev t4 guard reddi", ts: "2025-03-14T09:30:00" },
+        { id: "e3", kind: "guard", text: "Dış API çağrısı engelli", ts: "2025-03-14T09:00:00" },
+      ],
+      warnings: ["Guard: bazı aksiyonlar engellendi.", "Hedef path sözleşme dışı; yazım yapılmadı."],
+      logItems: [
+        { id: "L1", kind: "guard", text: "Yazım engellendi: hedef path sözleşme dışı", ts: "2025-03-14T10:05:00" },
+        { id: "L2", kind: "görev", text: "Görev t4 guard reddi", ts: "2025-03-14T09:30:00" },
+        { id: "L3", kind: "guard", text: "Dış API çağrısı engelli", ts: "2025-03-14T09:00:00" },
+        { id: "L4", kind: "config", text: "config okundu", ts: "2025-03-14T08:55:00" },
+        { id: "L5", kind: "guard", text: "Guard: yazım hedefi kontrolü başarısız", ts: "2025-03-14T08:00:00" },
+      ],
+      taskList: [
+        { id: "t1", title: "Panel iskeleti genişlet", status: "aktif", updated: "2025-03-14T10:00:00", lastRun: "2025-03-14T10:05:00", guardResult: "İzinli", outputSummary: "Panel bileşenleri güncellendi." },
+        { id: "t2", title: "Mock state birleştir", status: "bekleyen", updated: "2025-03-14T09:30:00", lastRun: null, guardResult: "—", outputSummary: "—" },
+        { id: "t3", title: "README güncelle", status: "tamamlandı", updated: "2025-03-13T16:00:00", lastRun: "2025-03-13T16:00:00", guardResult: "İzinli", outputSummary: "README güncellendi." },
+        { id: "t4", title: "Guard kuralı doğrula", status: "başarısız", updated: "2025-03-14T08:00:00", lastRun: "2025-03-14T08:00:00", guardResult: "Reddedildi", outputSummary: "Hedef path sözleşme dışı; çalıştırma durduruldu." },
+        { id: "t5", title: "Dış API çağrısı", status: "engellenen", updated: "2025-03-14T07:30:00", lastRun: null, guardResult: "Engelli", outputSummary: "Profil dışı; işlem yapılmadı." },
+        { id: "t6", title: "Dış dizine yaz", status: "engellenen", updated: "2025-03-14T07:00:00", lastRun: null, guardResult: "Engelli", outputSummary: "Guard: hedef sözleşme dışı." },
+      ],
+      systemHealth: {
+        workspace_contract: { status: "ok", note: "Sözleşme yüklü." },
+        task_engine: { status: "ok", note: "Görev motoru çalışıyor." },
+        sandbox_source: { status: "ok", note: "Sandbox kaynağı çözümlendi." },
+        trash_contract: { status: "ok", note: "Trash konumu sabit." },
+        config_sink: { status: "ok", note: "Config sink hazır." },
+        identity_sink: { status: "uyarı", note: "Kimlik mevcut değil." },
+        keystore_sink: { status: "uyarı", note: "Keystore kilitli." },
+        general: { status: "hata", note: "Guard engellemeleri var; bazı aksiyonlar reddedildi." },
+      },
+    },
+    config_uyari: {
+      warnings: ["Config dosyasında dikkat edilmesi gereken alan var.", "Profil sınırı: guvenli_yurut; kritik işlem kapalı."],
+      configSnapshot: {
+        profil: "guvenli_yurut",
+        workspace_root: ".lumos",
+        writeStatus: "Uyarı: dikkat edilmesi gereken alan var",
+        lastActivity: "2025-03-14T08:55:00",
+        lastActivityText: "Config okundu; uyarı alanı işaretlendi.",
+      },
+      recentEvents: [
+        { id: "e1", kind: "görev", text: "Görev t2 güncellendi", ts: "2025-03-14T10:05:00" },
+        { id: "e2", kind: "config", text: "Config uyarı: dikkat alanı", ts: "2025-03-14T09:30:00" },
+        { id: "e3", kind: "config", text: "config okundu", ts: "2025-03-14T08:55:00" },
+      ],
+      logItems: [
+        { id: "L1", kind: "görev", text: "Görev t2 güncellendi", ts: "2025-03-14T10:05:00" },
+        { id: "L2", kind: "config", text: "Config uyarı: dikkat alanı", ts: "2025-03-14T09:30:00" },
+        { id: "L3", kind: "config", text: "config okundu", ts: "2025-03-14T08:55:00" },
+        { id: "L4", kind: "trash", text: "Öğe taşındı: eski_tasks_backup.json", ts: "2025-03-12T14:00:00" },
+      ],
+    },
+    trash_dolu: {
+      trashItems: [
+        { id: "tr1", name: "eski_tasks_backup.json", originalPath: ".lumos/tasks_backup.json", trashPath: ".lumos/trash/eski_tasks_backup.json", movedAt: "2025-03-14T11:00:00", scope: "tasks" },
+        { id: "tr2", name: "notlar_eski.md", originalPath: ".lumos/notlar_eski.md", trashPath: ".lumos/trash/notlar_eski.md", movedAt: "2025-03-14T10:30:00", scope: "notes" },
+        { id: "tr3", name: "config_eski.json", originalPath: ".lumos/config_eski.json", trashPath: ".lumos/trash/config_eski.json", movedAt: "2025-03-14T10:00:00", scope: "config" },
+        { id: "tr4", name: "log_eski.txt", originalPath: ".lumos/log_eski.txt", trashPath: ".lumos/trash/log_eski.txt", movedAt: "2025-03-13T18:00:00", scope: "logs" },
+        { id: "tr5", name: "deneme_notu.md", originalPath: ".lumos/deneme_notu.md", trashPath: ".lumos/trash/deneme_notu.md", movedAt: "2025-03-13T15:00:00", scope: "notes" },
+        { id: "tr6", name: "backup_eski.json", originalPath: ".lumos/backup_eski.json", trashPath: ".lumos/trash/backup_eski.json", movedAt: "2025-03-12T14:00:00", scope: "tasks" },
+      ],
+      trashLastMove: "2025-03-14T11:00:00",
+      logItems: [
+        { id: "L1", kind: "trash", text: "Öğe taşındı: eski_tasks_backup.json", ts: "2025-03-14T11:00:00" },
+        { id: "L2", kind: "trash", text: "Öğe taşındı: notlar_eski.md", ts: "2025-03-14T10:30:00" },
+        { id: "L3", kind: "trash", text: "Öğe taşındı: config_eski.json", ts: "2025-03-14T10:00:00" },
+        { id: "L4", kind: "görev", text: "Görev t2 güncellendi", ts: "2025-03-14T10:05:00" },
+        { id: "L5", kind: "config", text: "config okundu", ts: "2025-03-14T08:55:00" },
+      ],
+    },
+  };
+
+  function getEffectiveState() {
+    var out = {};
+    for (var k in mockState) out[k] = mockState[k];
+    var over = DEMO_SCENARIOS[currentScenario];
+    if (over) for (var k in over) out[k] = over[k];
+    return out;
+  }
+
+  function getScenarioList() {
+    return [
+      { id: "normal_operasyon", label: "Normal operasyon" },
+      { id: "sandbox_aktif", label: "Korumalı alan açık" },
+      { id: "guard_bloklu", label: "Guard engelli" },
+      { id: "config_uyari", label: "Config uyarı" },
+      { id: "trash_dolu", label: "Silinenler dolu" },
+    ];
+  }
+
   // ——— Yardımcılar ———
   function formatTime(s) {
     if (!s || s === "—") return "—";
@@ -168,37 +283,39 @@
   }
 
   function getDashboardData() {
-    var lastEv = mockState.recentEvents && mockState.recentEvents[0] ? mockState.recentEvents[0] : null;
-    var sandboxBadge = mockState.sandboxMode ? { label: "KORUMALI ALAN", variant: "badge-sandbox" } : null;
+    var m = getEffectiveState();
+    var lastEv = m.recentEvents && m.recentEvents[0] ? m.recentEvents[0] : null;
+    var sandboxBadge = m.sandboxMode ? { label: "KORUMALI ALAN", variant: "badge-sandbox" } : null;
     return {
       title: "Gösterge Paneli",
       subtitle: "Sistem durumu özeti",
       metrics: [
-        { title: "Korumalı Alan Durumu", value: mockState.sandboxMode ? " Açık" : "Kapalı", valueBadge: sandboxBadge, note: mockState.sandboxMode ? "Yazım sandbox dizinine yönlendiriliyor; canlıya overwrite yok." : "Yazım doğrudan çalışma alanına gidiyor." },
-        { title: "Yazım Hedefi", value: mockState.writingBaseDir, note: mockState.writingBaseDir === "canlı" ? "Tüm yazma işlemleri çalışma alanına gidiyor." : "Yazma işlemleri sandbox base'e yönlendiriliyor." },
-        { title: "Koruma Durumu", valueBadge: { label: mockState.guardStatus, variant: "badge-guard" }, note: "Çekirdek state path'ler guard ile korunuyor; sözleşme hedefi dışına yazılmaz." },
+        { title: "Korumalı Alan Durumu", value: m.sandboxMode ? " Açık" : "Kapalı", valueBadge: sandboxBadge, note: m.sandboxMode ? "Yazım sandbox dizinine yönlendiriliyor; canlıya overwrite yok." : "Yazım doğrudan çalışma alanına gidiyor." },
+        { title: "Yazım Hedefi", value: m.writingBaseDir, note: m.writingBaseDir === "canlı" ? "Tüm yazma işlemleri çalışma alanına gidiyor." : "Yazma işlemleri sandbox base'e yönlendiriliyor." },
+        { title: "Koruma Durumu", valueBadge: { label: m.guardStatus, variant: "badge-guard" }, note: "Çekirdek state path'ler guard ile korunuyor; sözleşme hedefi dışına yazılmaz." },
         { title: "Son Aktivite", value: lastEv ? formatTime(lastEv.ts) : "—", note: lastEv ? (lastEv.text || "—") : "Henüz kayıt yok." },
       ],
       sections: [
-        { title: "Son Olaylar", events: mockState.recentEvents },
-        { title: "Uyarılar ve notlar", warnings: mockState.warnings },
+        { title: "Son Olaylar", events: m.recentEvents },
+        { title: "Uyarılar ve notlar", warnings: m.warnings },
         { title: "Hızlı geçişler", links: true },
       ],
     };
   }
 
   function getTasksData() {
-    var filter = mockState.taskFilter || "all";
-    var list = mockState.taskList || [];
+    var m = getEffectiveState();
+    var filter = m.taskFilter || "all";
+    var list = m.taskList || [];
     var filtered = filterTaskList(list, filter);
-    var selected = mockState.selectedTaskId ? list.filter(function (x) { return x.id === mockState.selectedTaskId; })[0] : null;
+    var selected = m.selectedTaskId ? list.filter(function (x) { return x.id === m.selectedTaskId; })[0] : null;
     return {
       title: "Görevler",
       subtitle: "Liste, detay ve guard sonucu",
       filters: TASK_FILTERS,
       activeFilter: filter,
       listItems: filtered,
-      selectedId: mockState.selectedTaskId,
+      selectedId: m.selectedTaskId,
       selectedTask: selected,
       emptyListTitle: "Bu filtrede görev yok",
       emptyListDesc: "Farklı filtre seçin. " + EMPTY_DESC_DEFAULT,
@@ -209,7 +326,7 @@
   }
 
   function getSandboxData() {
-    var m = mockState;
+    var m = getEffectiveState();
     var contractBadge = m.sandboxMode ? { label: "KORUMALI ALAN", variant: "badge-sandbox" } : null;
     return {
       title: "Korumalı Alan",
@@ -229,14 +346,16 @@
   }
 
   function getConfigData() {
-    var cfg = mockState.configSnapshot || {};
-    var lastEv = mockState.recentEvents && mockState.recentEvents[2] ? mockState.recentEvents[2] : null;
+    var m = getEffectiveState();
+    var cfg = m.configSnapshot || {};
+    var lastEv = m.recentEvents && m.recentEvents[2] ? m.recentEvents[2] : null;
+    var writeStatusBadge = (cfg.writeStatus || "").indexOf("Uyarı") !== -1 ? { label: "UYARI", variant: "badge-warning" } : null;
     return {
       title: "Yapılandırma",
       subtitle: "Config özeti ve yazım durumu",
       metrics: [
         { title: "Mevcut Yapılandırma Özeti", value: (cfg.profil || "—") + " · " + (cfg.workspace_root || "—"), note: "config.json; profil ve workspace kökü." },
-        { title: "Yazım Durumu", value: cfg.writeStatus || "—", note: "Config yazımları merkezi sink/guard hattı üzerinden geçer; sözleşme hedefi dışına yazılmaz." },
+        { title: "Yazım Durumu", value: cfg.writeStatus || "—", valueBadge: writeStatusBadge, note: "Config yazımları merkezi sink/guard hattı üzerinden geçer; sözleşme hedefi dışına yazılmaz." },
         { title: "Son Config Aktivitesi", value: cfg.lastActivity ? formatTime(cfg.lastActivity) : (lastEv ? formatTime(lastEv.ts) : "—"), note: cfg.lastActivityText || (lastEv ? lastEv.text : "—") },
       ],
       sections: [
@@ -246,7 +365,7 @@
   }
 
   function getIdentityData() {
-    var m = mockState;
+    var m = getEffectiveState();
     return {
       title: "Kimlik",
       subtitle: "Kimlik durumu ve kapsam",
@@ -263,7 +382,7 @@
   }
 
   function getKeystoreData() {
-    var m = mockState;
+    var m = getEffectiveState();
     return {
       title: "Anahtar Kasası",
       subtitle: "Durum görünürlüğü; anahtar ifşası yok",
@@ -280,19 +399,20 @@
   }
 
   function getTrashData() {
-    var items = mockState.trashItems || [];
-    var selected = mockState.selectedTrashId ? items.filter(function (x) { return x.id === mockState.selectedTrashId; })[0] : null;
+    var m = getEffectiveState();
+    var items = m.trashItems || [];
+    var selected = m.selectedTrashId ? items.filter(function (x) { return x.id === m.selectedTrashId; })[0] : null;
     return {
       title: "Silinenler",
       subtitle: "Çöp konumu ve liste",
       summaryMetrics: [
-        { title: "Çöp Konumu", value: mockState.trashLocation },
-        { title: "Son Taşıma", value: formatTime(mockState.trashLastMove) },
+        { title: "Çöp Konumu", value: m.trashLocation },
+        { title: "Son Taşıma", value: formatTime(m.trashLastMove) },
         { title: "Öğe Sayısı", value: String(items.length) },
         { title: "Kapsam", value: ".lumos/trash — aktif state kaynağı değildir" },
       ],
       listItems: items,
-      selectedId: mockState.selectedTrashId,
+      selectedId: m.selectedTrashId,
       selectedItem: selected,
       detailTitle: "Seçilen öğe",
       emptyListTitle: "Çöp listesi boş",
@@ -302,8 +422,9 @@
   }
 
   function getLogsData() {
-    var filter = mockState.logFilter || "all";
-    var list = mockState.logItems || [];
+    var m = getEffectiveState();
+    var filter = m.logFilter || "all";
+    var list = m.logItems || [];
     var kindForFilter = null;
     for (var fi = 0; fi < LOG_FILTERS.length; fi++) {
       if (LOG_FILTERS[fi].id === filter) { kindForFilter = LOG_FILTERS[fi].kind; break; }
@@ -320,7 +441,7 @@
   }
 
   function getSystemStatusData() {
-    var h = mockState.systemHealth || {};
+    var h = (getEffectiveState()).systemHealth || {};
     var healthKeys = [
       { key: "workspace_contract", title: "Workspace Sözleşmesi" },
       { key: "task_engine", title: "Görev Motoru" },
@@ -342,16 +463,18 @@
   }
 
   function getTopbarData() {
+    var m = getEffectiveState();
     var badges = [
-      { label: getBadgeLabel("mode", mockState.appMode), variant: getBadgeVariant(getBadgeLabel("mode", mockState.appMode)) },
-      { label: getBadgeLabel("lock", mockState.keystoreState === "Kilitli" ? "LOCKED" : "UNLOCKED"), variant: getBadgeVariant(getBadgeLabel("lock", mockState.keystoreState === "Kilitli" ? "LOCKED" : "UNLOCKED")) },
+      { label: getBadgeLabel("mode", m.appMode), variant: getBadgeVariant(getBadgeLabel("mode", m.appMode)) },
+      { label: getBadgeLabel("lock", m.keystoreState === "Kilitli" ? "LOCKED" : "UNLOCKED"), variant: getBadgeVariant(getBadgeLabel("lock", m.keystoreState === "Kilitli" ? "LOCKED" : "UNLOCKED")) },
     ];
-    if (mockState.sandboxMode) badges.push({ label: "KORUMALI ALAN", variant: "badge-sandbox" });
-    return { basePath: mockState.basePath || "—", badges: badges };
+    if (m.sandboxMode) badges.push({ label: "KORUMALI ALAN", variant: "badge-sandbox" });
+    return { basePath: m.basePath || "—", badges: badges };
   }
 
   function getSidebarData() {
-    return { workspaceName: mockState.workspaceName || "—", branchName: mockState.branchName || "—" };
+    var m = getEffectiveState();
+    return { workspaceName: m.workspaceName || "—", branchName: m.branchName || "—" };
   }
 
   // ——— Build helpers (adapter çıktısını HTML'e çevirir) ———
@@ -467,7 +590,7 @@
     if (meta) meta.textContent = "Dal: " + data.branchName + " · Mod: DEV";
   }
 
-  // ——— Topbar (adapter verisi) ———
+  // ——— Topbar (adapter verisi + demo senaryo seçici) ———
   function renderTopbar() {
     var screen = getCurrentScreen();
     var titleEl = document.getElementById("topbar-pagetitle");
@@ -480,6 +603,21 @@
       var html = "";
       for (var i = 0; i < data.badges.length; i++) html += buildBadge(data.badges[i].label, data.badges[i].variant);
       wrap.innerHTML = html;
+    }
+    var actionsEl = document.getElementById("topbar-actions");
+    if (actionsEl) {
+      var list = getScenarioList();
+      var opts = list.map(function (s) {
+        return '<option value="' + s.id + '"' + (s.id === currentScenario ? ' selected' : '') + ">" + s.label + "</option>";
+      }).join("");
+      actionsEl.innerHTML = '<span class="topbar-demo-label">DEV</span><select id="demo-scenario-select" class="demo-scenario-select" aria-label="Demo senaryosu">' + opts + "</select>";
+      var sel = document.getElementById("demo-scenario-select");
+      if (sel) {
+        sel.addEventListener("change", function () {
+          currentScenario = sel.value;
+          refresh();
+        });
+      }
     }
   }
 
