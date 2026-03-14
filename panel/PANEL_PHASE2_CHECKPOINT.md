@@ -2,6 +2,8 @@
 
 **Amaç:** Phase 2 read-only backend genişlemesinin mevcut durumunu kalıcı checkpoint ile kilitlemek; hangi ekran/alanın gerçek okumaya bağlı olduğu, nelerin fallback kaldığı ve sonraki teknik adım netleştirilir. Davranış değiştirilmedi; yalnızca mimari kilitleme. Bu turda yeni veri kaynağı açılmaz; mevcut Config + Kimlik + Anahtar Kasası hattı tek yerde özetlenir.
 
+**Bu tur:** Sadece dokümantasyon. Kod ve panel davranışı değişmedi; Phase 2 read-only hattı bu checkpoint ile kalıcı kapatıldı.
+
 ---
 
 ## Phase 2 dar read-only — mini checkpoint (kilitleme)
@@ -11,13 +13,16 @@
 - **Anahtar Kasası ekranında gerçek okunan:** `keystore_ready` (consent_ok), `keystore_state` (Hazır/Kilitli), `keystore_last_update` (keystore.json mtime; yoksa null). `keystore_write_scope` sabit. Anahtar/passphrase **ifşası yok**.
 - **Fallback kalan alanlar:** Dashboard (recent_events, guard_status), Sandbox (sandbox_source), System (bazı kartlar türetilmiş/sabit), Görevler (guard_result satır bazlı), Silinenler (original_path, scope), Kayıtlar (log_filter, satır timestamp). Config/Identity/Keystore’da okunamayan alanlar açık fallback (Bölüm 2).
 - **Backend write neden açılmadı:** Panel salt okuma hattı ile sınırlı; yazım isteği gönderen ekran/akış yok. Güvenlik ve sözleşme gereği Phase 2’de sadece dar okuma kilitlendi.
+- **Neden "tam backend entegrasyonu" değil "dar read-only köprü":** Canlı API/fetch yok; tek giriş `read_backend_state.py` çıktısı (`--write` → state_inject.js). Veri anlık HTTP isteği ile alınmıyor; script çalıştırılıp state enjekte edildiğinde panel o snapshot’ı okur. Bu yüzden hattın tanımı "dar read-only köprü"dür; tam entegrasyon sonraki fazda (API, auth, isteğe bağlı canlı güncelleme) düşünülebilir.
 - **Sonraki sağlıklı adım:** Görevler / Silinenler / Kayıtlar tarafında derinleştirme (içerik/metadata zenginleştirme, guard sonuçları, log satır timestamp’i vb.). Bu turda bu ekranlar için sayısal sinyaller eklendi (tasks_file_exists, task_count; trash_dir_exists, trash_item_count; log_file_exists, log_line_count); panelde gösterim dar ve kontrollü.
 
 ---
 
-## 1. Gerçek backend okumaya bağlanan ekran ve alanlar
+## 1. Gerçek read-only backend sinyali alan ekranlar ve sinyal tipleri
 
-Aşağıdaki dört ekran ve alanları `read_backend_state.py` çıktısından gerçek okumaya bağlıdır (script çalıştırılıp `--write` ile state_inject.js güncellendiğinde canlı veri kullanılır).
+**Hangi ekranlar gerçek read-only backend sinyali alıyor:** System, Görevler, Silinenler, Kayıtlar, Config, Kimlik, Anahtar Kasası. Dashboard ve Sandbox ENV/base ile beslenir (sandbox_mode, writing_base_dir; recent_events/guard_status/warnings fallback). Tümü `window.__LUMOS_READ_STATE__` üzerinden tek kaynaktan (`read_backend_state.py` çıktısı) okunur; bu değişken `--write` ile state_inject.js’e yazıldığında panel gerçek okuma kullanır.
+
+Aşağıdaki tablolar her ekranda **tam olarak hangi tip sinyallerin** okunduğunu gösterir; veri `read_backend_state.py` çıktısından gelir (script çalıştırılıp `--write` ile state_inject.js güncellendiğinde canlı veri kullanılır).
 
 ### System (Sistem Durumu)
 
