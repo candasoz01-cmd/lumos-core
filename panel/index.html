@@ -9,11 +9,27 @@
 <body>
   <div id="app" class="layout">
     <header class="topbar" role="banner">
-      <div class="topbar-brand">Lumos Panel v1</div>
-      <div class="topbar-status" id="topbar-status">—</div>
+      <div class="topbar-left">
+        <span class="topbar-brand">Lumos Panel v1</span>
+        <span class="topbar-pagetitle" id="topbar-pagetitle">—</span>
+      </div>
+      <div class="topbar-search">
+        <input type="text" id="topbar-search" class="topbar-search-input" placeholder="Ara… (mock)" aria-label="Arama" />
+      </div>
+      <div class="topbar-base">
+        <span class="topbar-base-label" id="topbar-base-label">—</span>
+      </div>
+      <div class="topbar-badges" id="topbar-badges" aria-label="Durum rozetleri"></div>
+      <div class="topbar-actions">
+        <span class="topbar-actions-placeholder" id="topbar-actions">Hızlı aksiyon (mock)</span>
+      </div>
     </header>
     <aside class="sidebar" role="navigation">
       <nav class="nav" id="nav-menu" aria-label="Ana menü"></nav>
+      <div class="sidebar-footer" id="sidebar-footer">
+        <div class="sidebar-workspace" id="sidebar-workspace">—</div>
+        <div class="sidebar-meta" id="sidebar-meta">—</div>
+      </div>
     </aside>
     <main class="main" id="main-content" role="main">
       <p class="placeholder">Yükleniyor…</p>

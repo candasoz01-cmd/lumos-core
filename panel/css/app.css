@@ -1,15 +1,19 @@
-/* Lumos Panel v1 — wireframe / iskelet; görsel cila yok */
+/* Lumos Panel v1 — koyu tema, operatör paneli */
 
 :root {
   --sidebar-width: 12rem;
   --topbar-height: 2.5rem;
-  --border: 1px solid #ccc;
-  --bg-main: #fafafa;
-  --bg-sidebar: #f0f0f0;
-  --bg-topbar: #e8e8e8;
-  --text: #333;
-  --link: #06c;
-  --link-active: #004;
+  --border: 1px solid #3a3a3a;
+  --bg-main: #1a1a1a;
+  --bg-sidebar: #252525;
+  --bg-topbar: #2d2d2d;
+  --bg-card: #252525;
+  --text: #e0e0e0;
+  --text-muted: #999;
+  --link: #7eb8ff;
+  --link-active: #b3d4ff;
+  --spacing: 0.75rem;
+  --radius: 6px;
 }
 
 * {
@@ -21,6 +25,7 @@ body {
   font-family: system-ui, -apple-system, sans-serif;
   font-size: 14px;
   color: var(--text);
+  background: var(--bg-main);
 }
 
 .layout {
@@ -33,57 +38,147 @@ body {
   min-height: 100vh;
 }
 
+/* ——— Topbar ——— */
 .topbar {
   grid-area: topbar;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 1rem;
   padding: 0 1rem;
   background: var(--bg-topbar);
   border-bottom: var(--border);
 }
 
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
 .topbar-brand {
   font-weight: 600;
+  flex-shrink: 0;
 }
 
-.topbar-status {
+.topbar-pagetitle {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topbar-search {
+  flex: 0 1 12rem;
+}
+
+.topbar-search-input {
+  width: 100%;
+  padding: 0.25rem 0.5rem;
   font-size: 0.85rem;
-  color: #666;
+  background: #1a1a1a;
+  border: var(--border);
+  border-radius: 4px;
+  color: var(--text);
 }
 
+.topbar-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.topbar-base {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.topbar-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.topbar-actions {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.badge {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.badge-mode,
+.badge-live { background: #2a4a3a; color: #a3e0a3; }
+.badge-offline { background: #3a3a3a; color: var(--text-muted); }
+.badge-lock,
+.badge-guard { background: #4a3a3a; color: #ffb3b3; }
+.badge-sandbox { background: #3a4a3a; color: #b3ffb3; }
+.badge-readonly { background: #3a3a4a; color: #b3b3ff; }
+.badge-warning { background: #4a4a2a; color: #e0e0a0; }
+.badge-blocked { background: #4a2a2a; color: #ffa0a0; }
+
+/* ——— Sidebar ——— */
 .sidebar {
   grid-area: sidebar;
+  display: flex;
+  flex-direction: column;
   background: var(--bg-sidebar);
   border-right: var(--border);
-  padding: 0.5rem 0;
 }
 
 .nav {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.15rem;
+  padding: 0.5rem 0;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .nav a {
   display: block;
-  padding: 0.5rem 1rem;
+  padding: 0.45rem 1rem;
   color: var(--link);
   text-decoration: none;
   border-left: 3px solid transparent;
+  font-size: 0.9rem;
 }
 
 .nav a:hover {
-  background: rgba(0,0,0,0.05);
+  background: rgba(0,0,0,0.1);
 }
 
 .nav a.active {
-  background: rgba(0,0,0,0.06);
+  background: rgba(0,0,0,0.15);
   border-left-color: var(--link);
   color: var(--link-active);
   font-weight: 500;
 }
 
+.sidebar-footer {
+  padding: 0.75rem 1rem;
+  border-top: var(--border);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.sidebar-workspace {
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+}
+
+.sidebar-meta {
+  color: var(--text-muted);
+}
+
+/* ——— Main ——— */
 .main {
   grid-area: main;
   padding: 1rem;
@@ -91,18 +186,248 @@ body {
   overflow: auto;
 }
 
-.main h1 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1.25rem;
+.main .view-header {
+  margin-bottom: 1rem;
 }
 
+.main .view-header h1 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.main .view-header .view-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* ——— Ortak bileşenler ——— */
+.metric-card {
+  background: var(--bg-card);
+  border: var(--border);
+  border-radius: var(--radius);
+  padding: var(--spacing);
+  margin-bottom: var(--spacing);
+}
+
+.metric-card .metric-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 0.35rem;
+}
+
+.metric-card .metric-value {
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.section-card {
+  background: var(--bg-card);
+  border: var(--border);
+  border-radius: var(--radius);
+  padding: var(--spacing);
+  margin-bottom: var(--spacing);
+}
+
+.section-card .section-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.section-card .section-body {
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.section-card .section-body p {
+  margin: 0.35rem 0;
+}
+
+.empty-state {
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  border: var(--border);
+  border-radius: var(--radius);
+  margin-bottom: var(--spacing);
+}
+
+.empty-state .empty-title {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+
+.empty-state .empty-desc {
+  font-size: 0.85rem;
+  max-width: 32rem;
+  margin: 0 auto;
+}
+
+.event-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.event-list li {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  font-size: 0.85rem;
+}
+
+.event-list li:last-child {
+  border-bottom: none;
+}
+
+.event-list .event-time {
+  color: var(--text-muted);
+  margin-right: 0.5rem;
+}
+
+.detail-panel {
+  background: var(--bg-card);
+  border: var(--border);
+  border-radius: var(--radius);
+  padding: var(--spacing);
+  margin-bottom: var(--spacing);
+}
+
+.detail-panel .detail-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.detail-panel .detail-body {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.text-muted-small {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 0.35rem;
+}
+
+/* ——— Grid / split ——— */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: var(--spacing);
+  margin-bottom: var(--spacing);
+}
+
+.split-view {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: var(--spacing);
+}
+
+@media (max-width: 720px) {
+  .split-view {
+    grid-template-columns: 1fr;
+  }
+}
+
+.list-selectable {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.list-selectable li {
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  border-left: 3px solid transparent;
+}
+
+.list-selectable li:hover {
+  background: rgba(255,255,255,0.05);
+}
+
+.list-selectable li.selected {
+  background: rgba(126, 184, 255, 0.12);
+  border-left-color: var(--link);
+}
+
+/* ——— Sekmeler (Kayıtlar) ——— */
+.log-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: var(--spacing);
+}
+
+.log-tabs button {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8rem;
+  background: var(--bg-card);
+  border: var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.log-tabs button:hover {
+  color: var(--text);
+  background: #2a2a2a;
+}
+
+.log-tabs button.active {
+  background: rgba(126, 184, 255, 0.15);
+  color: var(--link);
+  border-color: var(--link);
+}
+
+/* ——— Eski uyumluluk ——— */
 .placeholder,
 .screen-placeholder {
-  color: #666;
+  color: var(--text-muted);
   font-style: italic;
 }
 
-.screen-placeholder + ul {
-  margin-top: 0.5rem;
+.main .card {
+  background: var(--bg-card);
+  border: var(--border);
+  border-radius: var(--radius);
+  padding: var(--spacing);
+  margin-bottom: var(--spacing);
+}
+
+.main .card .section-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.main .card ul {
+  margin: 0.5rem 0 0 0;
   padding-left: 1.25rem;
+}
+
+.screen-empty {
+  padding: 1rem 0;
+}
+
+.screen-empty h1 {
+  margin-bottom: 0.5rem;
+}
+
+.screen-empty .screen-placeholder {
+  margin-top: 0.5rem;
+}
+
+.main h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
 }
