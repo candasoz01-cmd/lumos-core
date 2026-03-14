@@ -36,6 +36,10 @@
 - Kompleks ayar sistemi (sadece config özeti gösterimi)
 - Hash routing dışında routing
 
+## Phase 2 read-only checkpoint
+
+- Gerçek backend okumaya bağlı ekran/alan özeti ve sonraki teknik adım: `PANEL_PHASE2_CHECKPOINT.md`.
+
 ## Sonraki olası küçük işler
 
 - (Bu turda yapıldı: boş durum metni, kart başlıkları TR, sistem durumu başlıkları TR, görev filtresi Tamamlandı, dashboard guard tekrarı, README kapsam özeti.)

@@ -52,4 +52,4 @@
 
 **Phase 2 (Görevler / Silinenler / Kayıtlar):** Görevler için `list_updated` (tasks.json dosya mtime) backend’den okunuyor; Silinenler için `trash_location` çözümlenmiş path. Kayıtlar için `log_file_updated` (log.txt mtime) ve `log_location` (çözümlenmiş path) backend’den okunuyor. original_path/scope trash’ta yok; "—" fallback.
 
-**Phase 2 checkpoint (panel):** Gerçek okuma / fallback / sınırlar / sonraki adım özeti: `panel/PANEL_PHASE2_CHECKPOINT.md`.
+**Phase 2 checkpoint (panel, kalıcı):** Gerçek okuma / fallback / bridge hattı özeti / sonraki adım: `panel/PANEL_PHASE2_CHECKPOINT.md`.

@@ -34,7 +34,7 @@
 
 **Phase 2 dar okuma (Kayıtlar):** Kayıtlar için `log_file_updated` (log.txt mtime) ve `log_location` (çözümlenmiş path) backend’den okunuyor; panelde "Kayıt dosyası son güncelleme" ve "Dosya" satırları gösterilir. Dosya yoksa log_file_updated null; log_location yine path (açık fallback).
 
-**Phase 2 checkpoint:** Gerçek okumaya bağlanan alanlar, fallback kalan alanlar ve bilinçli sınırlar: `PANEL_PHASE2_CHECKPOINT.md`.
+**Phase 2 checkpoint (kalıcı):** Mevcut read-only durum kilitlendi; gerçek okuma / fallback / teknik özet / sonraki adım: `PANEL_PHASE2_CHECKPOINT.md`.
 
 ## Çalıştırma
 
