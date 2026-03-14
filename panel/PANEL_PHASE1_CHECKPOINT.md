@@ -29,9 +29,9 @@
 - **System ekranı:** Şu an `system_health` değerleri büyük ölçüde türetilmiş (consent_ok, sabit notlar). Phase 2'de ilk gerçek backend okuma noktaları bu ekranda açılacak (örn. startup_health, workspace_contract doğrudan okuma).
 - **Hash routing, Türkçe arayüz, demo/fixture fallback** korunur; davranış kırılmaz.
 
-## Phase 2 — İlk adım: System ekranı
+## Phase 2 — İlk adım: System ekranı (dar gerçek okuma)
 
 - **Hedef:** Yalnızca System ekranında ilk gerçek backend okuma noktalarını netleştirmek ve (dar kapsamda) kullanmak.
-- **Noktalar:** `read_backend_state.py` içinde `system_health` üretimi tek ve genişletilebilir yapıya alınır (SYSTEM_HEALTH_KEYS); ileride her kart için gerçek okuma (startup_health, task_engine durumu vb.) bu yapı üzerinden eklenebilir.
-- **Panel tarafı:** Bridge/contracts/fixtures/app hattı System için aynı `system_health` şemasını kullanır; ek kart veya alan eklendiğinde sadece sıra ve anahtarlar uyumlu tutulur.
-- **Kapsam:** Sadece System; diğer ekranlarda davranış değişikliği yok.
+- **Yapılan (dar):** `read_backend_state.py` içinde **workspace_contract:** `core.workspace_contract` import edilip `trash_path(base)`, `sandbox_base_path(base)` çağrılıyor; başarılıysa ok, hata varsa uyarı + "Sözleşme yüklenemedi." **task_engine:** `base/tasks.json` varlığı ve JSON okunabilirliği kontrol ediliyor; okunabiliyorsa ok + "Görev listesi okunabiliyor.", yoksa/okunamazsa "—" + açık fallback notu. Diğer kartlar (sandbox_source, trash_contract, config_sink, identity_sink, keystore_sink, general) türetilmiş/sabit; okunamayan alanlar açık fallback ile bırakıldı.
+- **Panel tarafı:** Bridge/contracts/fixtures/app hattı System için aynı `system_health` şemasını kullanır; ek değişiklik yok.
+- **Kapsam:** Sadece System; backend write yok; diğer ekranlarda davranış değişikliği yok.

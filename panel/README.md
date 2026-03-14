@@ -28,6 +28,8 @@
 
 **Phase 1 tamamlanma checkpoint:** `PANEL_PHASE1_CHECKPOINT.md` — bridge ile bağlı ekranlar, bilinçli sınırlar, Phase 2 ilk adım (yalnızca System ekranında gerçek backend okuma noktaları) özetlenir.
 
+**Phase 2 dar okuma (System):** Sistem Durumu ekranında `workspace_contract` (modül yükleme + path) ve `task_engine` (tasks.json okunabilirliği) gerçek backend'den okunuyor; diğer kartlar türetilmiş/sabit, okunamayan alanlar açık fallback ile bırakıldı. Yazım yok; panel/ ve `read_backend_state.py` kapsamında.
+
 ## Çalıştırma
 
 - **Doğrudan:** `panel/index.html` açın (`file://`).

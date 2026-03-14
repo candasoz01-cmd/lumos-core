@@ -43,6 +43,18 @@ _TASK_STATUS_MAP = {
     "dogrulanamadi": "dogrulanamadi",
 }
 
+def _task_engine_health(base: Path) -> tuple[str, str]:
+    """Read-only: tasks.json varlığı ve okunabilirliği → (status, note). System ekranı task_engine kartı."""
+    tasks_file = base / "tasks.json"
+    if not tasks_file.is_file():
+        return ("—", "Görev listesi yok.")
+    try:
+        json.loads(tasks_file.read_text(encoding="utf-8"))
+        return ("ok", "Görev listesi okunabiliyor.")
+    except Exception:
+        return ("—", "Görev listesi okunamadı.")
+
+
 def _read_tasks_payload(base: Path) -> dict:
     """Read-only: base/tasks.json → task_list, task_filter, selected_task_id."""
     out = {"task_list": [], "task_filter": "all", "selected_task_id": None}
@@ -163,8 +175,7 @@ def _build_state() -> dict:
         "writing_base_dir": writing_label,
     }
 
-    # System: Phase 2 ilk gerçek backend okuma hedefi. Tek liste ile genişletilebilir; consent_ok şu an tek gerçek okuma.
-    # Yeni kart eklemek için SYSTEM_HEALTH_KEYS'e (key, title, default_status, default_note) ekleyin; Phase 2'de key bazlı gerçek okuma eklenebilir.
+    # System: Phase 2 ilk gerçek backend okuma hedefi. workspace_contract ve task_engine dar gerçek okuma; diğerleri türetilmiş/sabit.
     SYSTEM_HEALTH_KEYS = [
         ("workspace_contract", "Workspace Sözleşmesi", "ok", "Sözleşme yüklü; çekirdek path'ler tanımlı."),
         ("task_engine", "Görev Motoru", "—", "Veri yok."),
@@ -184,9 +195,24 @@ def _build_state() -> dict:
     general_status = "ok" if consent else "uyarı"
     general_note = "Consent kayıtlı." if consent else "Consent alınmadı."
 
+    # workspace_contract: gerçek okuma — modül yüklenip path'ler dönebiliyor mu
+    _wc_status, _wc_note = "ok", "Sözleşme yüklü; çekirdek path'ler tanımlı."
+    try:
+        from core.workspace_contract import trash_path, sandbox_base_path
+        trash_path(base)
+        sandbox_base_path(base)
+    except Exception:
+        _wc_status, _wc_note = "uyarı", "Sözleşme yüklenemedi."
+    # task_engine: gerçek okuma — tasks.json var mı, okunabiliyor mu
+    _te_status, _te_note = _task_engine_health(base)
+
     system_health = {}
     for key, title, default_status, default_note in SYSTEM_HEALTH_KEYS:
-        if key == "keystore_sink":
+        if key == "workspace_contract":
+            system_health[key] = {"status": _wc_status, "note": _wc_note}
+        elif key == "task_engine":
+            system_health[key] = {"status": _te_status, "note": _te_note}
+        elif key == "keystore_sink":
             system_health[key] = {"status": general_status, "note": "Keystore durumu consent ile türetildi; ifşa yok."}
         elif key == "general":
             system_health[key] = {"status": general_status, "note": general_note}
