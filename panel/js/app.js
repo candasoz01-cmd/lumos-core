@@ -249,7 +249,7 @@
     var sandboxNote = mockState.sandboxMode
       ? "Yazım sandbox dizinine yönlendiriliyor; canlıya overwrite yok."
       : "Yazım doğrudan çalışma alanına gidiyor.";
-    var guardValue = StatusBadge(mockState.guardStatus) + " " + mockState.guardStatus;
+    var guardValue = StatusBadge(mockState.guardStatus);
     var guardNote = "Çekirdek state path'ler guard ile korunuyor; sözleşme hedefi dışına yazılmaz.";
     var writingNote = mockState.writingBaseDir === "canlı"
       ? "Tüm yazma işlemleri çalışma alanına gidiyor."
@@ -284,6 +284,7 @@
     { id: "all", label: "Tümü" },
     { id: "active", label: "Aktif" },
     { id: "pending", label: "Bekleyen" },
+    { id: "completed", label: "Tamamlandı" },
     { id: "failed", label: "Başarısız" },
     { id: "blocked", label: "Engellenen" },
   ];
@@ -291,7 +292,7 @@
   function filterTaskList(list, filterId) {
     if (!list) return [];
     if (filterId === "all") return list;
-    var statusMap = { active: "aktif", pending: "bekleyen", failed: "başarısız", blocked: "engellenen" };
+    var statusMap = { active: "aktif", pending: "bekleyen", completed: "tamamlandı", failed: "başarısız", blocked: "engellenen" };
     var status = statusMap[filterId];
     return status ? list.filter(function (t) { return t.status === status; }) : list;
   }
@@ -305,7 +306,7 @@
     }).join("");
     var listBody = '<div class="task-filters" id="task-filters">' + tabsHtml + "</div>";
     if (filtered.length === 0) {
-      listBody += renderEmptyState("Bu filtrede görev yok", "Farklı filtre seçin.");
+      listBody += renderEmptyState("Bu filtrede görev yok", "Farklı filtre seçin. " + EMPTY_DESC_DEFAULT);
     } else {
       var listItems = "";
       filtered.forEach(function (t) {
@@ -360,8 +361,8 @@
     var topCards = renderMetricCards([
       { title: "Kaynak", value: mockState.sandboxSource || "varsayılan", techNote: sourceNote },
       { title: "Sandbox Base", value: sandboxBase, techNote: sandboxNote },
-      { title: "Yazım Yönü (Writing Direction)", value: dirValue, techNote: dirNote },
-      { title: "Sözleşme Durumu (Contract Status)", value: contractValue, techNote: contractNote },
+      { title: "Yazım Yönü", value: dirValue, techNote: dirNote },
+      { title: "Sözleşme Durumu", value: contractValue, techNote: contractNote },
     ]);
     var resolutionBody = "<p>Kaynak önceliği: <strong>CLI → ENV → varsayılan</strong>. Sistem kendi kafasına canlı hedef seçmez; yazma hedefi tek kaynaktan (canlı base veya sözleşmeyle tanımlı sandbox base) gelir.</p><p class=\"text-muted-small\">Resolution: single source of truth.</p>";
     var guardBody = "<p>Çekirdek state path'lere doğrudan overwrite yapılmaz. Yazma hedefi tek kaynaktan belirlenir. Canlı çekirdek ile sandbox hedefi ayrı tutulur.</p><p class=\"text-muted-small\">Core state: tasks, logs, trash, config, aliases.</p>";
@@ -455,13 +456,17 @@
       { title: "Öğe Sayısı", value: String(items.length) },
       { title: "Kapsam", value: ".lumos/trash — aktif state kaynağı değildir" },
     ]);
-    var listHtml = "";
-    items.forEach(function (item) {
-      var sel = mockState.selectedTrashId === item.id ? " selected" : "";
-      listHtml += '<li class="list-item' + sel + '" data-trash-id="' + item.id + '">' + (item.name || item.id) + " — " + formatTime(item.movedAt) + "</li>";
-    });
-    if (!listHtml) listHtml = "<li class=\"screen-placeholder\">Öğe yok</li>";
-    var listSection = '<ul class="list-selectable" id="trash-list">' + listHtml + "</ul>";
+    var listSection;
+    if (items.length === 0) {
+      listSection = renderSection("Liste", renderEmptyState("Çöp listesi boş", "Silinen öğe yok. " + EMPTY_DESC_DEFAULT));
+    } else {
+      var listHtml = "";
+      items.forEach(function (item) {
+        var sel = mockState.selectedTrashId === item.id ? " selected" : "";
+        listHtml += '<li class="list-item' + sel + '" data-trash-id="' + item.id + '">' + (item.name || item.id) + " — " + formatTime(item.movedAt) + "</li>";
+      });
+      listSection = renderSection("Liste", '<ul class="list-selectable" id="trash-list">' + listHtml + "</ul>");
+    }
     var selected = items.filter(function (x) { return x.id === mockState.selectedTrashId; })[0];
     var detailBody = selected
       ? "<p><strong>Ad:</strong> " + (selected.name || "—") + "</p>" +
@@ -471,7 +476,7 @@
         "<p><strong>Kapsam:</strong> " + (selected.scope || "—") + "</p>"
       : "<p class=\"screen-placeholder\">Listeden bir öğe seçin.</p>";
     var detail = DetailPanel("Seçilen öğe", detailBody);
-    return ViewHeader("Silinenler", "Çöp konumu ve liste") + '<div class="cards-grid">' + summary + "</div>" + '<div class="split-view">' + renderSection("Liste", listSection) + detail + "</div>";
+    return ViewHeader("Silinenler", "Çöp konumu ve liste") + '<div class="cards-grid">' + summary + "</div>" + '<div class="split-view">' + listSection + detail + "</div>";
   }
 
   var LOG_FILTERS = [
@@ -513,10 +518,10 @@
       return MetricCard(title, value, note);
     }
     var cards =
-      healthCard("Workspace Contract", "workspace_contract") +
-      healthCard("Task Engine", "task_engine") +
-      healthCard("Sandbox Source", "sandbox_source") +
-      healthCard("Trash Contract", "trash_contract") +
+      healthCard("Workspace Sözleşmesi", "workspace_contract") +
+      healthCard("Görev Motoru", "task_engine") +
+      healthCard("Sandbox Kaynağı", "sandbox_source") +
+      healthCard("Trash Sözleşmesi", "trash_contract") +
       healthCard("Config Sink", "config_sink") +
       healthCard("Identity Sink", "identity_sink") +
       healthCard("Keystore Sink", "keystore_sink") +

@@ -23,3 +23,11 @@
 | Sistem Durumu   | `#system`    |
 
 Ortak bileşenler: Sidebar, Topbar, StatusBadge, MetricCard, SectionCard, EmptyState, EventList, DetailPanel, ViewHeader. Detay ve mock state yapısı için `js/app.js` ve `css/app.css` kaynak dosyalarına bakın.
+
+---
+
+## Mevcut kapsam / bilinçli sınırlar / çalıştırma
+
+- **Kapsam:** Tüm veri `mockState` ile; hash routing ile ekran geçişi. Backend, auth, WebSocket yok.
+- **Bilinçli sınırlar:** Canlı API, yeni ekran veya büyük modül bu sürümde açılmaz; sadece mock tabanlı operatör görünümü.
+- **Çalıştırma:** `panel/index.html` doğrudan açılır veya repo kökünden `python3 -m http.server 8080` ile `http://localhost:8080/panel/`. Hash: `#dashboard`, `#tasks`, `#sandbox`, `#config`, `#identity`, `#keystore`, `#trash`, `#logs`, `#system`.
