@@ -30,6 +30,8 @@
 
 **Phase 2 dar okuma (System):** Sistem Durumu ekranında `workspace_contract` (modül yükleme + path) ve `task_engine` (tasks.json okunabilirliği) gerçek backend'den okunuyor; diğer kartlar türetilmiş/sabit, okunamayan alanlar açık fallback ile bırakıldı. Yazım yok; panel/ ve `read_backend_state.py` kapsamında.
 
+**Phase 2 dar okuma (Görevler, Silinenler):** Görevler için `list_updated` (tasks.json mtime) backend’den okunuyor, panelde "Liste son güncelleme" gösterilir. Silinenler için `trash_location` çözümlenmiş (absolute) path; original_path/scope okunamadığı için "—" fallback bırakıldı.
+
 ## Çalıştırma
 
 - **Doğrudan:** `panel/index.html` açın (`file://`).

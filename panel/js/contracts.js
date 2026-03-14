@@ -42,6 +42,7 @@
       listItems: [],
       selectedId: null,
       selectedTask: null,
+      listUpdated: null,
       emptyListTitle: "",
       emptyListDesc: "",
       detailTitle: "",
@@ -192,6 +193,7 @@
       listItems: filtered,
       selectedId: state.selectedTaskId,
       selectedTask: selected,
+      listUpdated: state.listUpdated || null,
       emptyListTitle: "Bu filtrede görev yok",
       emptyListDesc: "Farklı filtre seçin. " + EMPTY_DESC_DEFAULT,
       detailTitle: "Görev Detayı",
@@ -351,6 +353,7 @@
     data.filters = Array.isArray(data.filters) ? data.filters : TASK_FILTERS;
     data.listItems = Array.isArray(data.listItems) ? data.listItems : [];
     data.selectedTask = data.selectedTask != null ? data.selectedTask : null;
+    data.listUpdated = data.listUpdated != null ? data.listUpdated : null;
     if (!data.emptyListTitle) data.emptyListTitle = "Bu filtrede görev yok";
     if (!data.emptyListDesc) data.emptyListDesc = EMPTY_DESC_DEFAULT;
     return data;

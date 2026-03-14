@@ -572,11 +572,12 @@
   // ——— Ekran: Görevler (adapter + build) ———
   function renderTasks() {
     var data = getTasksData();
+    var listUpdatedLine = data.listUpdated ? '<p class="text-muted-small">Liste son güncelleme: ' + formatTime(data.listUpdated) + "</p>" : "";
     var tabsHtml = data.filters.map(function (f) {
       var active = f.id === data.activeFilter ? " active" : "";
       return '<button type="button" class="log-tab task-filter-tab' + active + '" data-task-filter="' + f.id + '">' + f.label + "</button>";
     }).join("");
-    var listBody = '<div class="task-filters" id="task-filters">' + tabsHtml + "</div>";
+    var listBody = (listUpdatedLine ? listUpdatedLine : "") + '<div class="task-filters" id="task-filters">' + tabsHtml + "</div>";
     if (data.listItems.length === 0) {
       listBody += buildEmptyState(data.emptyListTitle, data.emptyListDesc);
     } else {
