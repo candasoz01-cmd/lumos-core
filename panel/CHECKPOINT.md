@@ -38,7 +38,7 @@
 
 ## Phase 2 read-only checkpoint
 
-- Gerçek backend okumaya bağlı ekran/alan özeti ve sonraki teknik adım: `PANEL_PHASE2_CHECKPOINT.md`.
+- Gerçek backend okumaya bağlı ekran/alan özeti (Config + Kimlik + Anahtar Kasası dahil) ve sonraki teknik adım: `PANEL_PHASE2_CHECKPOINT.md`.
 
 ## Sonraki olası küçük işler
 
