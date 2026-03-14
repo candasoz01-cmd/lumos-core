@@ -1,24 +1,38 @@
 /**
  * Lumos Panel v1 — Backend bridge (Phase 1).
- * Gerçek veri okuma giriş noktaları. Bugün no-op; yarın fetch/API buradan bağlanacak.
- * Sadece Dashboard, Sandbox, System ekranları için.
+ * Read-only source bridge: okunabilir kaynak varsa (window.__LUMOS_READ_STATE__) döner;
+ * yoksa null → panel fixture/demo fallback kullanır.
+ * Sadece Dashboard, Sandbox, System ekranları.
+ * Kaynak: panel/scripts/read_backend_state.py (workspace_contract + consent_ok).
  */
 (function (global) {
   "use strict";
 
+  function getReadState() {
+    try {
+      var s = global.__LUMOS_READ_STATE__;
+      return s && typeof s === "object" ? s : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   function readBackendDashboardState() {
-    // Gerçek entegrasyonda: API'den dashboard ham verisi (backend payload şeklinde) dönecek.
-    return null;
+    var state = getReadState();
+    if (!state || !state.dashboard || typeof state.dashboard.sandbox_mode === "undefined") return null;
+    return state.dashboard;
   }
 
   function readBackendSandboxState() {
-    // Gerçek entegrasyonda: API/workspace_contract'tan sandbox durumu.
-    return null;
+    var state = getReadState();
+    if (!state || !state.sandbox || typeof state.sandbox.sandbox_mode === "undefined") return null;
+    return state.sandbox;
   }
 
   function readBackendSystemState() {
-    // Gerçek entegrasyonda: API/startup_health benzeri sistem durumu.
-    return null;
+    var state = getReadState();
+    if (!state || !state.system || !state.system.system_health) return null;
+    return state.system;
   }
 
   global.LumosBackendBridge = {
