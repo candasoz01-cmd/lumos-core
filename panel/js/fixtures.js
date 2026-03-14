@@ -1,12 +1,16 @@
 /**
  * Lumos Panel v1 — Backend-benzeri payload fixture'ları ve panel contract'a mapper'lar.
- * Entegrasyon provası: gerçek API yok; örnek ham payload → contract şekline çevrilir.
- * Eksik alanlarda güvenli fallback (boş liste, null, boş rozet).
+ * Veri sözleşmesi: panel/js/contracts.js CONTRACTS tek kaynaktır; mapper çıktıları bu şemaya uyar.
+ * Eksik alanlar normalizer'da (ve isteğe bağlı applyContractFallbacks) güvenli varsayılana çekilir.
  */
 (function (global) {
   "use strict";
 
   var LC = typeof LumosContracts !== "undefined" ? LumosContracts : {};
+  function applyFallback(screenKey, data) {
+    if (data && LC.applyContractFallbacks) LC.applyContractFallbacks(screenKey, data);
+    return data;
+  }
   var formatTime = LC.formatTime || function (s) {
     if (!s || s === "—") return "—";
     try {
@@ -114,11 +118,11 @@
   // ——— Mapper'lar: backend-benzeri payload → panel contract şekli (güvenli fallback) ———
 
   function mapDashboardPayloadToPanelData(payload) {
-    if (!payload) return { title: "Gösterge Paneli", subtitle: "Sistem durumu özeti", metrics: [], sections: [{ title: "Son Olaylar", events: [] }, { title: "Uyarılar ve notlar", warnings: [] }, { title: "Hızlı geçişler", links: true }] };
+    if (!payload) return applyFallback("dashboard", { title: "Gösterge Paneli", subtitle: "Sistem durumu özeti", metrics: [], sections: [{ title: "Son Olaylar", events: [] }, { title: "Uyarılar ve notlar", warnings: [] }, { title: "Hızlı geçişler", links: true }] });
     var ev = arr(payload.recent_events);
     var lastEv = ev[0] || null;
     var sandboxBadge = payload.sandbox_mode ? { label: "KORUMALI ALAN", variant: "badge-sandbox" } : null;
-    return {
+    return applyFallback("dashboard", {
       title: "Gösterge Paneli",
       subtitle: "Sistem durumu özeti",
       metrics: [
@@ -132,13 +136,13 @@
         { title: "Uyarılar ve notlar", events: undefined, warnings: arr(payload.warnings), links: false },
         { title: "Hızlı geçişler", events: undefined, warnings: undefined, links: true },
       ],
-    };
+    });
   }
 
   function mapSandboxPayloadToPanelData(payload) {
-    if (!payload) return { title: "Korumalı Alan", subtitle: "Yazım hedefi ve sandbox durumu", metrics: [], sections: [] };
+    if (!payload) return applyFallback("sandbox", { title: "Korumalı Alan", subtitle: "Yazım hedefi ve sandbox durumu", metrics: [], sections: [] });
     var badge = payload.sandbox_mode ? { label: "KORUMALI ALAN", variant: "badge-sandbox" } : null;
-    return {
+    return applyFallback("sandbox", {
       title: "Korumalı Alan",
       subtitle: "Yazım hedefi ve sandbox durumu",
       metrics: [
@@ -152,14 +156,14 @@
         { title: "Guard Kuralı", body: "<p>Çekirdek state path'lere doğrudan overwrite yapılmaz. Core state: tasks, logs, trash, config, aliases.</p>" },
         { title: "Canlı çekirdek / sandbox hedef farkı", body: "<p><strong>Canlı:</strong> Doğrudan çalışma alanı.</p><p><strong>Sandbox:</strong> Tanımlı kopya alanı; canlıya overwrite yok.</p>" },
       ],
-    };
+    });
   }
 
   function mapConfigPayloadToPanelData(payload) {
-    if (!payload) return { title: "Yapılandırma", subtitle: "Config özeti ve yazım durumu", metrics: [], sections: [] };
+    if (!payload) return applyFallback("config", { title: "Yapılandırma", subtitle: "Config özeti ve yazım durumu", metrics: [], sections: [] });
     var cfg = payload.config_snapshot || {};
     var writeBadge = (cfg.write_status || "").indexOf("Uyarı") !== -1 ? { label: "UYARI", variant: "badge-warning" } : null;
-    return {
+    return applyFallback("config", {
       title: "Yapılandırma",
       subtitle: "Config özeti ve yazım durumu",
       metrics: [
@@ -168,12 +172,12 @@
         metric("Son Config Aktivitesi", cfg.last_activity ? formatTime(cfg.last_activity) : "—", cfg.last_activity_text || "—", null),
       ],
       sections: [{ title: "Sink / Guard hattı", body: "<p>Config yazımları <strong>merkezi sink/guard hattı</strong> üzerinden geçer. Çekirdek state path'ler sözleşme ve guard ile korunur.</p>" }],
-    };
+    });
   }
 
   function mapIdentityPayloadToPanelData(payload) {
-    if (!payload) return { title: "Kimlik", subtitle: "Kimlik durumu ve kapsam", metrics: [], sections: [] };
-    return {
+    if (!payload) return applyFallback("identity", { title: "Kimlik", subtitle: "Kimlik durumu ve kapsam", metrics: [], sections: [] });
+    return applyFallback("identity", {
       title: "Kimlik",
       subtitle: "Kimlik durumu ve kapsam",
       metrics: [
@@ -183,12 +187,12 @@
         metric("Guard Sonucu", payload.identity_guard_result, "Guard sonucu: kimlik alanı korunuyor.", null),
       ],
       sections: [{ title: "Sink / Guard bağlantısı", body: "<p>Kimlik alanı çekirdek güvenlik kapsamında; sadece durum ve kapsam görünürlüğü sağlanır.</p>" }],
-    };
+    });
   }
 
   function mapKeystorePayloadToPanelData(payload) {
-    if (!payload) return { title: "Anahtar Kasası", subtitle: "Durum görünürlüğü; anahtar ifşası yok", metrics: [], sections: [] };
-    return {
+    if (!payload) return applyFallback("keystore", { title: "Anahtar Kasası", subtitle: "Durum görünürlüğü; anahtar ifşası yok", metrics: [], sections: [] });
+    return applyFallback("keystore", {
       title: "Anahtar Kasası",
       subtitle: "Durum görünürlüğü; anahtar ifşası yok",
       metrics: [
@@ -198,15 +202,15 @@
         metric("Yazım Kapsamı", payload.keystore_write_scope, "Kilit açılmadan hassas yazım yapılmaz.", null),
       ],
       sections: [{ title: "Görünürlük ilkesi", body: "<p>Anahtar kasası ekranı <strong>durum ve akış görünürlüğü</strong> sağlar. Hassas veri panelde ifşa edilmez.</p>" }],
-    };
+    });
   }
 
   function mapTrashPayloadToPanelData(payload) {
-    if (!payload) return { title: "Silinenler", subtitle: "Çöp konumu ve liste", summaryMetrics: [], listItems: [], selectedId: null, selectedItem: null, detailTitle: "Seçilen öğe", emptyListTitle: "Çöp listesi boş", emptyListDesc: EMPTY_DESC, emptyDetailPlaceholder: "Listeden bir öğe seçin." };
+    if (!payload) return applyFallback("trash", { title: "Silinenler", subtitle: "Çöp konumu ve liste", summaryMetrics: [], listItems: [], selectedId: null, selectedItem: null, detailTitle: "Seçilen öğe", emptyListTitle: "Çöp listesi boş", emptyListDesc: "Silinen öğe yok. " + EMPTY_DESC, emptyDetailPlaceholder: "Listeden bir öğe seçin." });
     var items = arr(payload.trash_items).map(function (t) {
       return { id: t.id, name: t.name || t.id, originalPath: t.original_path || "—", trashPath: t.trash_path || "—", movedAt: t.moved_at || "—", scope: t.scope || "—" };
     });
-    return {
+    return applyFallback("trash", {
       title: "Silinenler",
       subtitle: "Çöp konumu ve liste",
       summaryMetrics: [
@@ -222,24 +226,24 @@
       emptyListTitle: "Çöp listesi boş",
       emptyListDesc: "Silinen öğe yok. " + EMPTY_DESC,
       emptyDetailPlaceholder: "Listeden bir öğe seçin.",
-    };
+    });
   }
 
   function mapLogsPayloadToPanelData(payload) {
-    if (!payload) return { title: "Kayıtlar", subtitle: "Olay akışı", filters: LOG_FILTERS, activeFilter: "all", events: [], sectionTitle: "Kayıt listesi" };
+    if (!payload) return applyFallback("logs", { title: "Kayıtlar", subtitle: "Olay akışı", filters: LOG_FILTERS, activeFilter: "all", events: [], sectionTitle: "Kayıt listesi" });
     var events = arr(payload.log_items).map(function (e) { return { id: e.id, kind: e.kind, text: e.text, ts: e.ts }; });
-    return {
+    return applyFallback("logs", {
       title: "Kayıtlar",
       subtitle: "Olay akışı",
       filters: LOG_FILTERS,
       activeFilter: payload.log_filter || "all",
       events: events,
       sectionTitle: "Kayıt listesi",
-    };
+    });
   }
 
   function mapTasksPayloadToPanelData(payload) {
-    if (!payload) return { title: "Görevler", subtitle: "Liste, detay ve guard sonucu", filters: TASK_FILTERS, activeFilter: "all", listItems: [], selectedId: null, selectedTask: null, emptyListTitle: "Bu filtrede görev yok", emptyListDesc: EMPTY_DESC, detailTitle: "Görev Detayı", runNoteTitle: "Çalıştırma notu", runNoteBody: "Son çalıştırma ve guard sonucu yukarıdaki detayda." };
+    if (!payload) return applyFallback("tasks", { title: "Görevler", subtitle: "Liste, detay ve guard sonucu", filters: TASK_FILTERS, activeFilter: "all", listItems: [], selectedId: null, selectedTask: null, listUpdated: null, emptyListTitle: "Bu filtrede görev yok", emptyListDesc: EMPTY_DESC, detailTitle: "Görev Detayı", runNoteTitle: "Çalıştırma notu", runNoteBody: "Son çalıştırma ve guard sonucu yukarıdaki detayda." });
     var list = arr(payload.task_list).map(function (t) {
       return { id: t.id, title: t.title, status: t.status, updated: t.updated, lastRun: t.last_run != null ? t.last_run : null, guardResult: t.guard_result || "—", outputSummary: t.output_summary || "—" };
     });
@@ -249,7 +253,8 @@
     var filter = payload.task_filter || "all";
     var statusForFilter = { all: null, active: "aktif", pending: "bekleyen", completed: "tamamlandı", failed: "başarısız", blocked: "engellenen" }[filter];
     var filtered = !statusForFilter ? list : list.filter(function (t) { return t.status === statusForFilter; });
-    return {
+    var listUpdated = payload.list_updated || null;
+    return applyFallback("tasks", {
       title: "Görevler",
       subtitle: "Liste, detay ve guard sonucu",
       filters: TASK_FILTERS,
@@ -257,16 +262,18 @@
       listItems: filtered,
       selectedId: selId,
       selectedTask: selected,
+      listUpdated: listUpdated,
       emptyListTitle: "Bu filtrede görev yok",
       emptyListDesc: "Farklı filtre seçin. " + EMPTY_DESC,
       detailTitle: "Görev Detayı",
       runNoteTitle: "Çalıştırma notu",
       runNoteBody: "Son çalıştırma ve guard sonucu yukarıdaki detayda.",
-    };
+    });
   }
 
+  /** System: Phase 2 ilk gerçek backend okuma hedefi; key sırası read_backend_state.py SYSTEM_HEALTH_KEYS ile uyumlu. */
   function mapSystemPayloadToPanelData(payload) {
-    if (!payload) return { title: "Sistem Durumu", subtitle: "Çekirdek parçaların durumu", healthCards: [] };
+    if (!payload) return applyFallback("system", { title: "Sistem Durumu", subtitle: "Çekirdek parçaların durumu", healthCards: [] });
     var h = payload.system_health || {};
     var keys = [
       { key: "workspace_contract", title: "Workspace Sözleşmesi" },
@@ -285,7 +292,7 @@
       var note = !raw ? "Veri yok." : (typeof raw === "string" ? "" : str(raw.note));
       healthCards.push({ title: keys[i].title, status: status, note: note });
     }
-    return { title: "Sistem Durumu", subtitle: "Çekirdek parçaların durumu", healthCards: healthCards };
+    return applyFallback("system", { title: "Sistem Durumu", subtitle: "Çekirdek parçaların durumu", healthCards: healthCards });
   }
 
   global.LumosFixtures = {

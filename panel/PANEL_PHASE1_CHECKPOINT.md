@@ -18,8 +18,8 @@
 | Config | readBackendConfigState | config.config_snapshot (profil, workspace_root, write_status) | Salt okunur; yazım yok |
 | Identity | readBackendIdentityState | identity (identity_state, identity_guard_result vb.) | İçerik okunmaz; sadece durum |
 | Keystore | readBackendKeystoreState | keystore (keystore_ready, keystore_state; consent_ok ile) | Anahtar ifşası yok |
-| Görevler | readBackendTasksState | tasks.task_list (base/tasks.json) | Salt okunur |
-| Silinenler | readBackendTrashState | trash.trash_items (base/trash dizini) | Salt okunur |
+| Görevler | readBackendTasksState | tasks.task_list, tasks.list_updated (base/tasks.json + dosya mtime) | Salt okunur; list_updated Phase 2 dar |
+| Silinenler | readBackendTrashState | trash.trash_location (çözümlenmiş path), trash_items (base/trash) | Salt okunur; path çözümlü Phase 2 dar |
 | Kayıtlar | readBackendLogsState | logs.log_items (base/logs/log.txt) | Salt okunur |
 
 ## Bilinçli sınırlar (Phase 1)
@@ -35,3 +35,9 @@
 - **Yapılan (dar):** `read_backend_state.py` içinde **workspace_contract:** `core.workspace_contract` import edilip `trash_path(base)`, `sandbox_base_path(base)` çağrılıyor; başarılıysa ok, hata varsa uyarı + "Sözleşme yüklenemedi." **task_engine:** `base/tasks.json` varlığı ve JSON okunabilirliği kontrol ediliyor; okunabiliyorsa ok + "Görev listesi okunabiliyor.", yoksa/okunamazsa "—" + açık fallback notu. Diğer kartlar (sandbox_source, trash_contract, config_sink, identity_sink, keystore_sink, general) türetilmiş/sabit; okunamayan alanlar açık fallback ile bırakıldı.
 - **Panel tarafı:** Bridge/contracts/fixtures/app hattı System için aynı `system_health` şemasını kullanır; ek değişiklik yok.
 - **Kapsam:** Sadece System; backend write yok; diğer ekranlarda davranış değişikliği yok.
+
+## Phase 2 dar okuma: Görevler ve Silinenler
+
+- **Görevler:** `read_backend_state.py` tasks payload’a `list_updated` eklendi (tasks.json dosya mtime, ISO). Panel contract’a `listUpdated` alanı; Görevler ekranında backend’den geliyorsa "Liste son güncelleme: …" gösterilir. Okunamazsa null; açık fallback.
+- **Silinenler:** `trash_location` artık çözümlenmiş (absolute) path; `base.resolve()` ile üretilir. Panel "Çöp Konumu" metrikinde tam yol görünür. original_path/scope backend’de yok; "—" fallback korundu.
+- **Bridge/app:** Aynı payload şekli; backend-bridge değişiklik yok. fixtures mapper list_updated → listUpdated; contracts + normalizeTasks + renderTasks listUpdated kullanıyor.

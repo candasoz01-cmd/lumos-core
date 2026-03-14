@@ -56,11 +56,16 @@ def _task_engine_health(base: Path) -> tuple[str, str]:
 
 
 def _read_tasks_payload(base: Path) -> dict:
-    """Read-only: base/tasks.json → task_list, task_filter, selected_task_id."""
-    out = {"task_list": [], "task_filter": "all", "selected_task_id": None}
+    """Read-only: base/tasks.json → task_list, task_filter, selected_task_id, list_updated."""
+    out = {"task_list": [], "task_filter": "all", "selected_task_id": None, "list_updated": None}
     tasks_file = base / "tasks.json"
     if not tasks_file.is_file():
         return out
+    try:
+        st_mtime = tasks_file.stat().st_mtime
+        out["list_updated"] = datetime.fromtimestamp(st_mtime, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+    except Exception:
+        pass
     try:
         data = json.loads(tasks_file.read_text(encoding="utf-8"))
         raw = data.get("tasks") or []
@@ -87,8 +92,9 @@ def _read_tasks_payload(base: Path) -> dict:
     return out
 
 def _read_trash_payload(base: Path) -> dict:
-    """Read-only: base/trash dizin listesi → trash_location, trash_last_move, trash_items."""
-    trash_dir = base / "trash"
+    """Read-only: base/trash dizin listesi → trash_location (çözümlenmiş path), trash_last_move, trash_items."""
+    base_resolved = base.resolve()
+    trash_dir = base_resolved / "trash"
     out = {
         "trash_location": str(trash_dir),
         "trash_last_move": None,
@@ -109,7 +115,7 @@ def _read_trash_payload(base: Path) -> dict:
             except Exception:
                 ts = "—"
             try:
-                rel = p.relative_to(base)
+                rel = p.relative_to(base_resolved)
             except ValueError:
                 rel = p
             items.append({

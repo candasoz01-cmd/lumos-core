@@ -72,10 +72,11 @@ window.__LUMOS_READ_STATE__ = {
   "tasks": {
     "task_list": [],
     "task_filter": "all",
-    "selected_task_id": null
+    "selected_task_id": null,
+    "list_updated": null
   },
   "trash": {
-    "trash_location": ".lumos/trash",
+    "trash_location": "/Users/candasoz/WORK_2026/lumos-core/.lumos/trash",
     "trash_last_move": null,
     "trash_items": []
   },

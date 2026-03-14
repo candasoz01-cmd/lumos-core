@@ -49,3 +49,5 @@
 | System   | workspace_contract (yükleme+path), task_engine (tasks.json okunabilirliği) | get_startup_summary / get_durum_parts → genel kart | Diğer kartlar türetilmiş/sabit; ileride genişletilebilir |
 
 **Not:** "Giriş kanalı" / "panel'e state sağlama": Backend davranışı değiştirilmediği için şu an panel veriyi doğrudan repo içi modüllerden okuyamıyor; ilk gerçek bağ için tek okuma noktası (ör. durum API'si) tanımlandığında base_dir, is_sandbox_mode ve isteğe bağlı health özeti buradan beslenecek.
+
+**Phase 2 (Görevler / Silinenler):** Görevler için `list_updated` (tasks.json dosya mtime) backend’den okunuyor; Silinenler için `trash_location` çözümlenmiş (absolute) path. original_path/scope trash’ta backend’de yok; "—" fallback.
