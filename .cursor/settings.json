@@ -1,0 +1,19 @@
+{
+  "plugins": {
+    "grafana-assistant": {
+      "enabled": true
+    },
+    "posthog": {
+      "enabled": true
+    },
+    "supabase": {
+      "enabled": true
+    },
+    "sentry": {
+      "enabled": true
+    },
+    "cloudflare": {
+      "enabled": true
+    }
+  }
+}
