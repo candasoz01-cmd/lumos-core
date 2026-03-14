@@ -34,11 +34,6 @@ def _build_state() -> dict:
     is_sandbox = _is_sandbox_mode()
 
     try:
-        from core.workspace_contract import (
-            LUMOS_SANDBOX_DIRNAME,
-            writing_base_dir,
-            sandbox_base_path,
-        )
     except ImportError:
         return {"dashboard": None, "sandbox": None, "system": None}
 
