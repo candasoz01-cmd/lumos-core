@@ -57,9 +57,21 @@
       { id: "L6", kind: "keystore", text: "Keystore kilitli", ts: "2025-03-14T07:55:00" },
       { id: "L7", kind: "guard", text: "Guard: yazım hedefi canlı", ts: "2025-03-14T07:50:00" },
     ],
-    configSnapshot: { profil: "guvenli_yurut", workspace_root: ".lumos" },
+    configSnapshot: {
+      profil: "guvenli_yurut",
+      workspace_root: ".lumos",
+      writeStatus: "Yazım uygun",
+      lastActivity: "2025-03-14T08:55:00",
+      lastActivityText: "config okundu",
+    },
     identityState: "mevcut değil",
+    identityLastWrite: "2025-03-14T08:00:00",
+    identityTargetScope: "çekirdek kimlik alanı",
+    identityGuardResult: "Korunuyor",
     keystoreState: "Kilitli",
+    keystoreReady: false,
+    keystoreLastUpdate: "2025-03-14T07:55:00",
+    keystoreWriteScope: "Kilit açılmadan hassas yazım yapılmaz",
     systemHealth: {
       workspace_contract: "ok",
       task_engine: "ok",
@@ -296,21 +308,75 @@
     );
   }
 
-  // ——— Ekran: Yapılandırma ———
+  // ——— Ekran: Yapılandırma (ortak bileşenler: ViewHeader, MetricCard, SectionCard) ———
   function renderConfig() {
     var cfg = mockState.configSnapshot || {};
-    var summary = "<p>Profil: " + (cfg.profil || "—") + "</p><p>Kök: " + (cfg.workspace_root || "—") + "</p>";
-    return ViewHeader("Yapılandırma", "Config görünürlüğü") + renderSection("Mevcut Yapılandırma Özeti", summary + '<p class="text-muted-small">config.json</p>') + renderSection("Yazım Durumu", "<p>Yazım uygun</p>") + renderSection("Son Config Aktivitesi", "<p>" + formatTime(mockState.recentEvents[2] ? mockState.recentEvents[2].ts : "—") + " — config okundu</p>");
+    var summaryValue = (cfg.profil || "—") + " · " + (cfg.workspace_root || "—");
+    var summaryNote = "config.json; profil ve workspace kökü.";
+    var writeValue = cfg.writeStatus || "—";
+    var writeNote = "Config yazımları merkezi sink/guard hattı üzerinden geçer; sözleşme hedefi dışına yazılmaz.";
+    var lastActTs = cfg.lastActivity ? formatTime(cfg.lastActivity) : (mockState.recentEvents && mockState.recentEvents[2] ? formatTime(mockState.recentEvents[2].ts) : "—");
+    var lastActText = cfg.lastActivityText || (mockState.recentEvents && mockState.recentEvents[2] ? mockState.recentEvents[2].text : "—");
+    var lastActNote = lastActText;
+    var topCards = renderMetricCards([
+      { title: "Mevcut Yapılandırma Özeti", value: summaryValue, techNote: summaryNote },
+      { title: "Yazım Durumu", value: writeValue, techNote: writeNote },
+      { title: "Son Config Aktivitesi", value: lastActTs, techNote: lastActNote },
+    ]);
+    var sinkBody = "<p>Config yazımları <strong>merkezi sink/guard hattı</strong> üzerinden geçer. Çekirdek state path'ler (config, tasks, logs, trash, aliases) sözleşme ve guard ile korunur; hedef dışına yazım yapılmaz.</p><p class=\"text-muted-small\">Sink: tek giriş noktası; guard: hedef ve kapsam kontrolü.</p>";
+    return (
+      ViewHeader("Yapılandırma", "Config görünürlüğü — sink/guard hattı üzerinden yazım") +
+      '<div class="cards-grid">' + topCards + "</div>" +
+      renderSection("Sink / Guard hattı", sinkBody)
+    );
   }
 
-  // ——— Ekran: Kimlik ———
+  // ——— Ekran: Kimlik (ortak bileşenler: ViewHeader, MetricCard, SectionCard) ———
   function renderIdentity() {
-    return ViewHeader("Kimlik", "Identity durumu") + renderSection("Identity Ready", "<p>" + mockState.identityState + "</p>") + renderSection("Son Yazım", "<p>—</p>") + renderSection("Hedef Kapsam", "<p class=\"screen-placeholder\">Kimlik yazım kapsamı (mock).</p>") + renderSection("Guard Sonucu", "<p>Çekirdek güvenlik alanı; yetkisiz değişiklik yapılmaz.</p>");
+    var readyValue = mockState.identityState || "—";
+    var readyNote = "Kimlik hattı sink/guard omurgasına bağlı; riskli işlemler panelden açılmaz.";
+    var lastWriteValue = mockState.identityLastWrite ? formatTime(mockState.identityLastWrite) : "—";
+    var lastWriteNote = "Son kimlik yazım/zamanı (mock).";
+    var scopeValue = mockState.identityTargetScope || "—";
+    var scopeNote = "Çekirdek kimlik alanı; yetki dışı değişiklik yapılmaz.";
+    var guardValue = mockState.identityGuardResult || "—";
+    var guardNote = "Guard sonucu: kimlik alanı korunuyor.";
+    var topCards = renderMetricCards([
+      { title: "Identity Ready", value: readyValue, techNote: readyNote },
+      { title: "Son Yazım", value: lastWriteValue, techNote: lastWriteNote },
+      { title: "Hedef Kapsam", value: scopeValue, techNote: scopeNote },
+      { title: "Guard Sonucu", value: guardValue, techNote: guardNote },
+    ]);
+    var sinkBody = "<p>Bu hattın <strong>sink/guard omurgasına</strong> bağlı olduğu bu ekrandan görünür. Kimlik alanı çekirdek güvenlik kapsamında; riskli işlemler açılmaz, sadece durum ve kapsam görünürlüğü sağlanır.</p><p class=\"text-muted-small\">Identity sink: tek giriş; guard: kapsam ve yetki kontrolü.</p>";
+    return (
+      ViewHeader("Kimlik", "Identity durumu — sink/guard omurgasına bağlı görünürlük") +
+      '<div class="cards-grid">' + topCards + "</div>" +
+      renderSection("Sink / Guard bağlantısı", sinkBody)
+    );
   }
 
-  // ——— Ekran: Anahtar Kasası ———
+  // ——— Ekran: Anahtar Kasası (ortak bileşenler: ViewHeader, MetricCard, SectionCard) ———
   function renderKeystore() {
-    return ViewHeader("Anahtar Kasası", "Keystore durumu") + renderSection("Hazır mı", "<p>" + (mockState.keystoreState === "Kilitli" ? "Hayır (kilitli)" : "Evet") + "</p>") + renderSection("Şifreli Durum", "<p>" + mockState.keystoreState + "</p><p class=\"text-muted-small\">Passphrase gösterilmez.</p>") + renderSection("Son Güncelleme", "<p>—</p>") + renderSection("Yazım Kapsamı", "<p class=\"screen-placeholder\">Kilit açılmadan hassas yazım yapılmaz.</p>");
+    var readyValue = mockState.keystoreReady ? "Evet" : "Hayır (kilitli)";
+    var readyNote = "Anahtar materyali ekranda açık gösterilmez; sadece durum ve akış görünürlüğü.";
+    var encValue = mockState.keystoreState || "—";
+    var encNote = "Passphrase ve anahtar içeriği gösterilmez.";
+    var lastUpdValue = mockState.keystoreLastUpdate ? formatTime(mockState.keystoreLastUpdate) : "—";
+    var lastUpdNote = "Son güncelleme zamanı (mock).";
+    var writeScopeValue = mockState.keystoreWriteScope || "—";
+    var writeScopeNote = "Kilit açılmadan hassas yazım yapılmaz.";
+    var topCards = renderMetricCards([
+      { title: "Hazır mı", value: readyValue, techNote: readyNote },
+      { title: "Şifreli Durum", value: encValue, techNote: encNote },
+      { title: "Son Güncelleme", value: lastUpdValue, techNote: lastUpdNote },
+      { title: "Yazım Kapsamı", value: writeScopeValue, techNote: writeScopeNote },
+    ]);
+    var visibilityBody = "<p>Anahtar kasası ekranı <strong>durum ve akış görünürlüğü</strong> sağlar. Anahtar materyali (passphrase, key içeriği) açık gösterilmez; yalnızca hazır mı, şifreli durum, son güncelleme ve yazım kapsamı bilgisi gösterilir.</p><p class=\"text-muted-small\">Keystore sink: tek giriş; hassas veri panelde ifşa edilmez.</p>";
+    return (
+      ViewHeader("Anahtar Kasası", "Keystore durumu — durum ve akış görünürlüğü, anahtar ifşası yok") +
+      '<div class="cards-grid">' + topCards + "</div>" +
+      renderSection("Görünürlük ilkesi", visibilityBody)
+    );
   }
 
   // ——— Ekran: Silinenler (ortak bileşenler: MetricCard, SectionCard, DetailPanel) ———
