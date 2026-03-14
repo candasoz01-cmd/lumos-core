@@ -33,10 +33,6 @@ def _build_state() -> dict:
     base = _base_dir()
     is_sandbox = _is_sandbox_mode()
 
-    try:
-    except ImportError:
-        return {"dashboard": None, "sandbox": None, "system": None}
-
     writing_label = "sandbox" if is_sandbox else "canlı"
 
     dashboard = {
