@@ -36,7 +36,7 @@
 
 **Phase 2 dar okuma (Görevler / Silinenler / Kayıtlar) veri değeri:** Görevler: `list_updated`, `list_updated_text`, `tasks_file_path`, `task_count`, `tasks_file_exists`; Silinenler: `trash_location`, `trash_last_move`, `trash_item_count`, `trash_scope_fallback_note`; Kayıtlar: `log_file_updated`, `log_updated_text`, `log_location`, `log_line_count`, `log_file_exists`. Okunamayan alanlar açık fallback; backend write yok.
 
-**Phase 2 checkpoint (kalıcı):** Mevcut read-only durum kilitlendi; Config + Kimlik + Anahtar Kasası hattı tek yerde özetlenir; gerçek okuma / fallback / teknik özet / sonraki adım: `PANEL_PHASE2_CHECKPOINT.md`.
+**Phase 2 checkpoint (kalıcı):** Phase 2 read-only backend hattı kalıcı checkpoint ile kapatıldı; yeni veri kaynağı açılmadı. Hangi ekranlar gerçek okuma alıyor, hangi alanlar fallback, neden dar read-only köprü ve sonraki teknik adım: `PANEL_PHASE2_CHECKPOINT.md`.
 
 **Phase 2 dar okuma (Kimlik, Anahtar Kasası):** Kimlik ekranında `identity_state` (mevcut/mevcut değil) ve `identity_last_write` (identity.json mtime). Anahtar Kasası ekranında `keystore_last_update` (keystore.json mtime). İçerik okunmaz; sadece varlık ve mtime.
 

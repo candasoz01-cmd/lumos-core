@@ -38,7 +38,7 @@
 
 ## Phase 2 read-only checkpoint
 
-- Gerçek backend okumaya bağlı ekran/alan özeti (Config + Kimlik + Anahtar Kasası dahil) ve sonraki teknik adım: `PANEL_PHASE2_CHECKPOINT.md`.
+- Phase 2 read-only hattı kalıcı checkpoint ile kapatıldı (doküman turu; kod/davranış değişmedi). Gerçek backend okumaya bağlı ekran/alan özeti (Config + Kimlik + Anahtar Kasası dahil), fallback alanları ve sonraki teknik adım: `PANEL_PHASE2_CHECKPOINT.md`.
 
 ## Sonraki olası küçük işler
 
