@@ -7,6 +7,7 @@ import pytest
 
 from core.workspace_contract import (
     CORE_STATE_PATH_NAMES,
+    LUMOS_SANDBOX_DIRNAME,
     LUMOS_TRASH_DIRNAME,
     CoreWriteForbidden,
     alias_file_path,
@@ -24,6 +25,7 @@ from core.workspace_contract import (
     move_to_trash,
     notes_file_path,
     presence_cfg_path,
+    sandbox_base_path,
     save_aliases_json,
     save_config_json,
     save_identity_json,
@@ -31,6 +33,7 @@ from core.workspace_contract import (
     save_notes_enc_json,
     save_presence_cfg_json,
     trash_path,
+    writing_base_dir,
 )
 
 
@@ -46,6 +49,44 @@ def test_trash_path_under_base():
         assert p == p.parent / "trash"
         assert p.parent.name != "trash"
         assert p.name == "trash"
+
+
+def test_sandbox_dirname_is_fixed():
+    """Sözleşme: tek sandbox dizin adı; sistem yeni sandbox hedefi üretmez."""
+    assert LUMOS_SANDBOX_DIRNAME == "sandbox"
+
+
+def test_sandbox_base_path_under_live_base():
+    """sandbox_base_path(live_base) her zaman live_base/sandbox döner."""
+    with tempfile.TemporaryDirectory() as d:
+        p = sandbox_base_path(d)
+        assert p == Path(d) / LUMOS_SANDBOX_DIRNAME
+        assert p.name == "sandbox"
+        assert p.parent == Path(d).resolve()
+
+
+def test_writing_base_dir_when_not_sandbox():
+    """writing_base_dir(live_base, False) canlı base döner."""
+    with tempfile.TemporaryDirectory() as d:
+        assert writing_base_dir(d, False) == Path(d).resolve()
+        assert writing_base_dir(d, False) != sandbox_base_path(d)
+
+
+def test_writing_base_dir_when_sandbox():
+    """writing_base_dir(live_base, True) sandbox base döner."""
+    with tempfile.TemporaryDirectory() as d:
+        want = sandbox_base_path(d)
+        assert writing_base_dir(d, True) == want
+        assert writing_base_dir(d, True).name == "sandbox"
+
+
+def test_sandbox_base_not_core_state():
+    """Sandbox base path çekirdek state sayılmaz; guard ile hizalı."""
+    with tempfile.TemporaryDirectory() as d:
+        base = Path(d).resolve()
+        sb = sandbox_base_path(d)
+        assert is_core_state_path(base, sb) is False
+        assert is_core_state_path(base, sb / "tasks" / "tasks.json") is False
 
 
 def test_is_allowed_trash_path_accepts_only_contract_path():
