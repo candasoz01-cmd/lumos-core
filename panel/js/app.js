@@ -248,7 +248,7 @@
     return v[status] || "badge-mode";
   }
 
-  // ——— Veri kaynağı soyutlaması (Phase 1: Dashboard, Sandbox, System) ———
+  // ——— Veri kaynağı soyutlaması (Phase 1: Dashboard, Sandbox, System, Config, Identity, Keystore) ———
   var Bridge = typeof LumosBackendBridge !== "undefined" ? LumosBackendBridge : {};
   function getDashboardSourceData() {
     var backend = Bridge.readBackendDashboardState && Bridge.readBackendDashboardState();
@@ -266,6 +266,24 @@
     var backend = Bridge.readBackendSystemState && Bridge.readBackendSystemState();
     if (backend != null) return { type: "backend", data: backend };
     if (useFixtureData && window.LumosFixtures && window.LumosFixtures.payloads) return { type: "fixture", data: window.LumosFixtures.payloads.system };
+    return { type: "demo", data: getEffectiveState() };
+  }
+  function getConfigSourceData() {
+    var backend = Bridge.readBackendConfigState && Bridge.readBackendConfigState();
+    if (backend != null) return { type: "backend", data: backend };
+    if (useFixtureData && window.LumosFixtures && window.LumosFixtures.payloads) return { type: "fixture", data: window.LumosFixtures.payloads.config };
+    return { type: "demo", data: getEffectiveState() };
+  }
+  function getIdentitySourceData() {
+    var backend = Bridge.readBackendIdentityState && Bridge.readBackendIdentityState();
+    if (backend != null) return { type: "backend", data: backend };
+    if (useFixtureData && window.LumosFixtures && window.LumosFixtures.payloads) return { type: "fixture", data: window.LumosFixtures.payloads.identity };
+    return { type: "demo", data: getEffectiveState() };
+  }
+  function getKeystoreSourceData() {
+    var backend = Bridge.readBackendKeystoreState && Bridge.readBackendKeystoreState();
+    if (backend != null) return { type: "backend", data: backend };
+    if (useFixtureData && window.LumosFixtures && window.LumosFixtures.payloads) return { type: "fixture", data: window.LumosFixtures.payloads.keystore };
     return { type: "demo", data: getEffectiveState() };
   }
 
@@ -286,19 +304,19 @@
     return LC.normalizeSandbox(LC.buildSandboxStub(src.data), src.data);
   }
   function getConfigData() {
-    if (useFixtureData && window.LumosFixtures && LC.normalizeConfig) return LC.normalizeConfig(LumosFixtures.mapConfigPayloadToPanelData(LumosFixtures.payloads.config), {});
-    var s = getEffectiveState();
-    return LC.normalizeConfig(LC.buildConfigStub(s), s);
+    var src = getConfigSourceData();
+    if ((src.type === "backend" || src.type === "fixture") && window.LumosFixtures && LC.normalizeConfig) return LC.normalizeConfig(LumosFixtures.mapConfigPayloadToPanelData(src.data), {});
+    return LC.normalizeConfig(LC.buildConfigStub(src.data), src.data);
   }
   function getIdentityData() {
-    if (useFixtureData && window.LumosFixtures && LC.normalizeIdentity) return LC.normalizeIdentity(LumosFixtures.mapIdentityPayloadToPanelData(LumosFixtures.payloads.identity), {});
-    var s = getEffectiveState();
-    return LC.normalizeIdentity(LC.buildIdentityStub(s), s);
+    var src = getIdentitySourceData();
+    if ((src.type === "backend" || src.type === "fixture") && window.LumosFixtures && LC.normalizeIdentity) return LC.normalizeIdentity(LumosFixtures.mapIdentityPayloadToPanelData(src.data), {});
+    return LC.normalizeIdentity(LC.buildIdentityStub(src.data), src.data);
   }
   function getKeystoreData() {
-    if (useFixtureData && window.LumosFixtures && LC.normalizeKeystore) return LC.normalizeKeystore(LumosFixtures.mapKeystorePayloadToPanelData(LumosFixtures.payloads.keystore), {});
-    var s = getEffectiveState();
-    return LC.normalizeKeystore(LC.buildKeystoreStub(s), s);
+    var src = getKeystoreSourceData();
+    if ((src.type === "backend" || src.type === "fixture") && window.LumosFixtures && LC.normalizeKeystore) return LC.normalizeKeystore(LumosFixtures.mapKeystorePayloadToPanelData(src.data), {});
+    return LC.normalizeKeystore(LC.buildKeystoreStub(src.data), src.data);
   }
   function getTrashData() {
     if (useFixtureData && window.LumosFixtures && LC.normalizeTrash) return LC.normalizeTrash(LumosFixtures.mapTrashPayloadToPanelData(LumosFixtures.payloads.trash), {});

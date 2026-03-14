@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
 Read-only backend state for panel Phase 1 bridge.
-Uses only: workspace_contract (writing_base_dir, sandbox_base_path, LUMOS_SANDBOX_DIRNAME)
+Uses only: workspace_contract (paths, writing_base_dir, sandbox_base_path, LUMOS_SANDBOX_DIRNAME)
 and startup_health.consent_ok. No main.py, no write flows, no guard change.
-Output: JSON in fixture-compatible shape for Dashboard, Sandbox, System.
-Env: LUMOS_BASE_DIR (default .lumos), LUMOS_SANDBOX_MODE (default false).
+Output: JSON in fixture-compatible shape for Dashboard, Sandbox, System, Config, Identity, Keystore.
+Env: LUMOS_BASE_DIR (default .lumos), LUMOS_SANDBOX_MODE (default false), LUMOS_PROFILE (optional).
 """
 from __future__ import annotations
 
@@ -50,6 +50,7 @@ def _build_state() -> dict:
     }
 
     # System: only consent_ok is safe without keystore/presence
+    consent = False
     try:
         from core.startup_health import consent_ok
         consent = consent_ok(base)
@@ -64,14 +65,47 @@ def _build_state() -> dict:
         "task_engine": {"status": "—", "note": "Veri yok."},
         "sandbox_source": {"status": "ok", "note": "Sandbox kaynağı sözleşmeden türetildi."},
         "trash_contract": {"status": "ok", "note": "Trash konumu sözleşmeyle sabit."},
-        "config_sink": {"status": "—", "note": "Veri yok."},
-        "identity_sink": {"status": "—", "note": "Veri yok."},
-        "keystore_sink": {"status": "—", "note": "Veri yok."},
+        "config_sink": {"status": "ok", "note": "Config salt okunur alanlar bridge ile besleniyor."},
+        "identity_sink": {"status": "ok", "note": "Identity salt okunur alanlar bridge ile besleniyor."},
+        "keystore_sink": {"status": general_status, "note": "Keystore durumu consent ile türetildi; ifşa yok."},
         "general": {"status": general_status, "note": general_note},
     }
     system = {"system_health": system_health}
 
-    return {"dashboard": dashboard, "sandbox": sandbox, "system": system}
+    # Config: read-only alanlar (workspace path, profil env; yazım yok)
+    config_snapshot = {
+        "profil": os.environ.get("LUMOS_PROFILE") or "—",
+        "workspace_root": str(base),
+        "write_status": "Salt okunur",
+        "last_activity": None,
+        "last_activity_text": "Backend yazım kapalı; yalnızca okuma.",
+    }
+    config_payload = {"config_snapshot": config_snapshot}
+
+    # Identity: read-only alanlar (path/kapsam; kimlik içeriği okunmaz)
+    identity_payload = {
+        "identity_state": "—",
+        "identity_last_write": None,
+        "identity_target_scope": "çekirdek kimlik alanı",
+        "identity_guard_result": "Korunuyor",
+    }
+
+    # Keystore: read-only durum (consent_ok; anahtar/passphrase ifşası yok)
+    keystore_payload = {
+        "keystore_ready": consent,
+        "keystore_state": "Hazır" if consent else "Kilitli",
+        "keystore_last_update": None,
+        "keystore_write_scope": "Kilit açılmadan hassas yazım yapılmaz",
+    }
+
+    return {
+        "dashboard": dashboard,
+        "sandbox": sandbox,
+        "system": system,
+        "config": config_payload,
+        "identity": identity_payload,
+        "keystore": keystore_payload,
+    }
 
 def main() -> None:
     write_path = None
