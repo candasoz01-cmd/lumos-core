@@ -6,7 +6,9 @@
 
 **Demo senaryo sistemi:** Panel, backend olmadan farklı operasyon durumlarını göstermek için hazır demo senaryoları destekler. Üst çubukta (DEV yanında) senaryo seçici bulunur; seçim değişince tüm ekranların adapter verisi o senaryoya göre güncellenir. Senaryolar: Normal operasyon, Korumalı alan açık, Guard engelli, Config uyarı, Silinenler dolu.
 
-**Contract / stub katmanı:** Panel hâlâ mock/stub tabanlıdır. Ekran bazlı veri şekilleri `js/contracts.js` içinde `CONTRACTS` ve stub üreticileri (`buildDashboardStub`, `buildSandboxStub`, `buildConfigStub`, `buildIdentityStub`, `buildKeystoreStub`, `buildTrashStub`, `buildLogsStub`, `buildTasksStub`, `buildSystemStub`) ile tek modülde tanımlıdır; adapter bu contract çıktısını kullanır ve hafif normalizasyon (eksik metrics/badges/detail için güvenli varsayılan) uygular. Gerçek backend entegrasyonunda yalnızca bu katmandaki mapping (stub yerine API yanıtı → contract şekli) değiştirilecek; ekranlar aynı contract'ı okumaya devam eder.
+**Veri sözleşmesi (tek kaynak):** Tüm ekran veri alanları `panel/js/contracts.js` içinde tek yerde tanımlıdır: `CONTRACTS` (şema), `applyContractFallbacks` (eksik alan güvenli varsayılan), stub üreticileri ve normalizer'lar. Bridge backend şeklini (snake_case) döner; fixture mapper'ları (`js/fixtures.js`) panel şekline çevirir; adapter `LC.normalize*` ile sözleşmeye hizalayıp eksik alanları doldurur. Davranış değişmez; ekranlar hep aynı contract çıktısını okur.
+
+**Contract / stub katmanı:** Ekran bazlı veri şekilleri `js/contracts.js` içinde `CONTRACTS` ve stub üreticileri (`buildDashboardStub`, `buildSandboxStub`, …) ile tanımlıdır; adapter bu çıktıyı kullanır. Gerçek backend entegrasyonunda yalnızca mapping (API yanıtı → contract şekli) değiştirilecek; ekranlar aynı contract'ı okumaya devam eder.
 
 **Backend binding map:** Gerçek entegrasyon öncesi referans için `BACKEND_BINDING_MAP.md` hazırlandı; her ekranın hangi backend kaynak adaylarına bağlanacağı ve boşluk/risk seviyeleri orada özetlenir.
 
