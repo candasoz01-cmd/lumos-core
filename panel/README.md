@@ -6,7 +6,9 @@
 
 **Demo senaryo sistemi:** Panel, backend olmadan farklı operasyon durumlarını göstermek için hazır demo senaryoları destekler. Üst çubukta (DEV yanında) senaryo seçici bulunur; seçim değişince tüm ekranların adapter verisi o senaryoya göre güncellenir. Senaryolar: Normal operasyon, Korumalı alan açık, Guard engelli, Config uyarı, Silinenler dolu.
 
-**Contract / stub katmanı:** Panel hâlâ mock/stub tabanlıdır. Ekran bazlı veri şekilleri `CONTRACTS` ve stub üreticileri (`buildDashboardStub`, `buildTasksStub`, vb.) ile tek yerde tanımlıdır; adapter bu contract çıktısını kullanır ve hafif normalizasyon (eksik metrics/badges/detail için güvenli varsayılan) uygular. Gerçek backend entegrasyonunda yalnızca bu katmandaki mapping (stub yerine API yanıtı → contract şekli) değiştirilecek; ekranlar aynı contract'ı okumaya devam eder.
+**Contract / stub katmanı:** Panel hâlâ mock/stub tabanlıdır. Ekran bazlı veri şekilleri `js/contracts.js` içinde `CONTRACTS` ve stub üreticileri (`buildDashboardStub`, `buildSandboxStub`, `buildConfigStub`, `buildIdentityStub`, `buildKeystoreStub`, `buildTrashStub`, `buildLogsStub`, `buildTasksStub`, `buildSystemStub`) ile tek modülde tanımlıdır; adapter bu contract çıktısını kullanır ve hafif normalizasyon (eksik metrics/badges/detail için güvenli varsayılan) uygular. Gerçek backend entegrasyonunda yalnızca bu katmandaki mapping (stub yerine API yanıtı → contract şekli) değiştirilecek; ekranlar aynı contract'ı okumaya devam eder.
+
+**Backend binding map:** Gerçek entegrasyon öncesi referans için `BACKEND_BINDING_MAP.md` hazırlandı; her ekranın hangi backend kaynak adaylarına bağlanacağı ve boşluk/risk seviyeleri orada özetlenir.
 
 ## Çalıştırma
 
