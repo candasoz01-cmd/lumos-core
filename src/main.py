@@ -8,14 +8,13 @@ from typing import Any
 from cli.cli_parse import (
     HATIRLA_NOTE_MAX_LEN,
     HELP_TEXT,
-    NOT_ADLANDIR_MAX_TAG_LEN,
-    _fold_for_search,
     _record_note_op,
     _record_today_action,
     _shorten_previous_response,
     get_fallback_message,
     normalize_command,
 )
+from cli.cli_notes import handle_notes
 from cli.cli_readonly import ReadOnlyContext, handle_readonly
 from core.config import load_config
 from core.engine import CoreEngine
@@ -884,159 +883,9 @@ def main(sandbox_mode: bool | None = None) -> None:
         if route == "unknown":
             print(get_fallback_message(raw, last_route[0]))
             continue
+        if handle_notes(route, args, ctx, cli_mode, last_note_undo):
+            continue
         if handle_readonly(route, args, ctx):
-            continue
-        if route == "hatirla":
-            note_rest = (args[0].strip() if args else "")
-            if note_rest:
-                if len(note_rest) > HATIRLA_NOTE_MAX_LEN:
-                    note_rest = (note_rest[:HATIRLA_NOTE_MAX_LEN].rsplit(maxsplit=1)[0].rstrip(".,") or note_rest[:HATIRLA_NOTE_MAX_LEN])
-                saved_notes[0].append(note_rest)
-                _record_note_op(note_ops_history, "bunu hatırla")
-                last_response_reason[0] = "bunu hatırla dedin"
-                last_action[0] = "En son hatırla işlemini yaptım."
-                last_response_text[0] = "Bunu not ettim."
-                _record_today_action(today_date, today_actions, last_action[0])
-                print("Bunu not ettim.")
-            else:
-                cli_mode[0] = CLI_NOT_BEKLEME
-                last_response_reason[0] = "bunu hatırla dedin"
-                last_action[0] = "En son hatırla istedin; not metnini bekliyorum."
-                print("Ne hatırlayayım?")
-            continue
-        if route == "notlari_temizle":
-            if not saved_notes[0]:
-                print("Temizlenecek kayıtlı not yok.")
-            else:
-                last_note_undo[0] = ("notlari_temizle", saved_notes[0][:])
-                saved_notes[0].clear()
-                _record_note_op(note_ops_history, "notları temizle")
-                print("Kayıtlı notları temizledim.")
-            continue
-        if route == "notu_sil":
-            if not saved_notes[0]:
-                print("Silinecek kayıtlı not yok.")
-            else:
-                last_note_undo[0] = ("notu_sil", saved_notes[0][-1])
-                saved_notes[0].pop()
-                _record_note_op(note_ops_history, "notu sil")
-                print("Son notu sildim.")
-            continue
-        if route == "notu_duzenle":
-            if not saved_notes[0]:
-                print("Düzenlenecek kayıtlı not yok.")
-            else:
-                inline_text = (args[0] if args else "").strip()
-                if inline_text:
-                    if len(inline_text) > HATIRLA_NOTE_MAX_LEN:
-                        inline_text = (inline_text[:HATIRLA_NOTE_MAX_LEN].rsplit(maxsplit=1)[0].rstrip(".,") or inline_text[:HATIRLA_NOTE_MAX_LEN])
-                    old_content = saved_notes[0][-1]
-                    saved_notes[0][-1] = inline_text
-                    last_note_undo[0] = ("notu_duzenle", old_content)
-                    _record_note_op(note_ops_history, "notu düzenle")
-                    last_action[0] = "En son notu düzenledim."
-                    print("Son notu güncelledim.")
-                else:
-                    cli_mode[0] = CLI_NOT_DUZENLEME
-                    print("Son notu düzenlemek için yeni kısa metni yaz.")
-            continue
-        if route == "notu_adlandir":
-            tag_raw = (args[0] if args else "").strip()
-            if not tag_raw:
-                print("Etiket için kısa bir ad yazman gerekiyor.")
-                continue
-            if not saved_notes[0]:
-                print("Etiketlenecek kayıtlı not yok.")
-                continue
-            tag = tag_raw
-            if len(tag) > NOT_ADLANDIR_MAX_TAG_LEN:
-                tag = tag[:NOT_ADLANDIR_MAX_TAG_LEN].strip()
-            old_content = saved_notes[0][-1]
-            saved_notes[0][-1] = "[" + tag + "] " + old_content
-            last_note_undo[0] = ("notu_duzenle", old_content)
-            _record_note_op(note_ops_history, "notu adlandır")
-            print("Son notu etiketledim.")
-            continue
-        if route == "etiket_kaldir":
-            tag_raw = (args[0] if args else "").strip()
-            if not tag_raw:
-                print("Kaldırmak için bir etiket yazman gerekiyor.")
-                continue
-            if not saved_notes[0]:
-                print("Etiketi kaldıracak kayıtlı not yok.")
-                continue
-            last = saved_notes[0][-1]
-            if not last.startswith("[") or "] " not in last:
-                print("Son notta bu etiket yok.")
-                continue
-            idx = last.index("] ")
-            tag_in_note = last[1:idx].strip()
-            if _fold_for_search(tag_in_note) != _fold_for_search(tag_raw):
-                print("Son notta bu etiket yok.")
-                continue
-            rest = last[idx + 2 :].strip()
-            saved_notes[0][-1] = rest
-            last_note_undo[0] = ("notu_duzenle", last)
-            _record_note_op(note_ops_history, "etiket kaldır")
-            print("Etiketi kaldırdım.")
-            continue
-        if route == "etiket_degistir":
-            eski_raw = (args[0] if len(args) > 0 else "").strip()
-            yeni_raw = (args[1] if len(args) > 1 else "").strip()
-            if not eski_raw or not yeni_raw:
-                print("Eski ve yeni etiket yazman gerekiyor.")
-                continue
-            if not saved_notes[0]:
-                print("Etiket değiştirilecek kayıtlı not yok.")
-                continue
-            last = saved_notes[0][-1]
-            if not last.startswith("[") or "] " not in last:
-                print("Son notta bu etiket yok.")
-                continue
-            idx = last.index("] ")
-            tag_in_note = last[1:idx].strip()
-            if _fold_for_search(tag_in_note) != _fold_for_search(eski_raw):
-                print("Son notta bu etiket yok.")
-                continue
-            yeni = yeni_raw
-            if len(yeni) > NOT_ADLANDIR_MAX_TAG_LEN:
-                yeni = yeni[:NOT_ADLANDIR_MAX_TAG_LEN].strip()
-            rest = last[idx + 2 :].strip()
-            saved_notes[0][-1] = "[" + yeni + "] " + rest
-            last_note_undo[0] = ("notu_duzenle", last)
-            _record_note_op(note_ops_history, "etiket değiştir")
-            print("Etiketi güncelledim.")
-            continue
-        if route == "not_birlestir":
-            if len(saved_notes[0]) < 2:
-                print("Birleştirmek için en az 2 kayıtlı not gerekiyor.")
-            else:
-                last_two = [saved_notes[0][-2].strip(), saved_notes[0][-1].strip()]
-                merged = (last_two[0] + " " + last_two[1]).strip()
-                if len(merged) > 240:
-                    merged = (merged[:240].rsplit(maxsplit=1)[0].rstrip(".,") + ".").strip() or merged[:240]
-                saved_notes[0].append(merged)
-                last_note_undo[0] = ("not_birlestir", None)
-                _record_note_op(note_ops_history, "not birleştir")
-                print("Son iki notu birleştirdim.")
-            continue
-        if route == "notu_geri_al":
-            u = last_note_undo[0]
-            if not u:
-                print("Geri alınacak uygun bir not işlemi yok.")
-            else:
-                op, data = u
-                if op == "notu_sil":
-                    saved_notes[0].append(data)
-                elif op == "notlari_temizle":
-                    saved_notes[0][:] = data
-                elif op == "notu_duzenle":
-                    saved_notes[0][-1] = data
-                elif op == "not_birlestir":
-                    saved_notes[0].pop()
-                last_note_undo[0] = None
-                _record_note_op(note_ops_history, "notu geri al")
-                print("Son not işlemini geri aldım.")
             continue
         # ---- Görev motoru + yetki + genel onay komutları ----
         if route == "yetki_profili":
