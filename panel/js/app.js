@@ -101,6 +101,7 @@
 
   // ——— Demo senaryolar (override; adapter tek kaynak olarak getEffectiveState kullanır) ———
   var currentScenario = "normal_operasyon";
+  var useFixtureData = false;
   var DEMO_SCENARIOS = {
     normal_operasyon: {},
     sandbox_aktif: {
@@ -247,40 +248,49 @@
     return v[status] || "badge-mode";
   }
 
-  // ——— Adapter (contract'a hizalı; kaynak: LumosContracts stub + normalizer; yarın backend için sadece bu katmanda mapping değişir) ———
+  // ——— Adapter (contract'a hizalı; kaynak: stub veya fixture+mapper; yarın backend için sadece bu katmanda mapping değişir) ———
   function getDashboardData() {
+    if (useFixtureData && window.LumosFixtures && LC.normalizeDashboard) return LC.normalizeDashboard(LumosFixtures.mapDashboardPayloadToPanelData(LumosFixtures.payloads.dashboard), {});
     var s = getEffectiveState();
     return LC.normalizeDashboard(LC.buildDashboardStub(s), s);
   }
   function getTasksData() {
+    if (useFixtureData && window.LumosFixtures && LC.normalizeTasks) return LC.normalizeTasks(LumosFixtures.mapTasksPayloadToPanelData(LumosFixtures.payloads.tasks), {});
     var s = getEffectiveState();
     return LC.normalizeTasks(LC.buildTasksStub(s), s);
   }
   function getSandboxData() {
+    if (useFixtureData && window.LumosFixtures && LC.normalizeSandbox) return LC.normalizeSandbox(LumosFixtures.mapSandboxPayloadToPanelData(LumosFixtures.payloads.sandbox), {});
     var s = getEffectiveState();
     return LC.normalizeSandbox(LC.buildSandboxStub(s), s);
   }
   function getConfigData() {
+    if (useFixtureData && window.LumosFixtures && LC.normalizeConfig) return LC.normalizeConfig(LumosFixtures.mapConfigPayloadToPanelData(LumosFixtures.payloads.config), {});
     var s = getEffectiveState();
     return LC.normalizeConfig(LC.buildConfigStub(s), s);
   }
   function getIdentityData() {
+    if (useFixtureData && window.LumosFixtures && LC.normalizeIdentity) return LC.normalizeIdentity(LumosFixtures.mapIdentityPayloadToPanelData(LumosFixtures.payloads.identity), {});
     var s = getEffectiveState();
     return LC.normalizeIdentity(LC.buildIdentityStub(s), s);
   }
   function getKeystoreData() {
+    if (useFixtureData && window.LumosFixtures && LC.normalizeKeystore) return LC.normalizeKeystore(LumosFixtures.mapKeystorePayloadToPanelData(LumosFixtures.payloads.keystore), {});
     var s = getEffectiveState();
     return LC.normalizeKeystore(LC.buildKeystoreStub(s), s);
   }
   function getTrashData() {
+    if (useFixtureData && window.LumosFixtures && LC.normalizeTrash) return LC.normalizeTrash(LumosFixtures.mapTrashPayloadToPanelData(LumosFixtures.payloads.trash), {});
     var s = getEffectiveState();
     return LC.normalizeTrash(LC.buildTrashStub(s), s);
   }
   function getLogsData() {
+    if (useFixtureData && window.LumosFixtures && LC.normalizeLogs) return LC.normalizeLogs(LumosFixtures.mapLogsPayloadToPanelData(LumosFixtures.payloads.logs), {});
     var s = getEffectiveState();
     return LC.normalizeLogs(LC.buildLogsStub(s), s);
   }
   function getSystemStatusData() {
+    if (useFixtureData && window.LumosFixtures && LC.normalizeSystem) return LC.normalizeSystem(LumosFixtures.mapSystemPayloadToPanelData(LumosFixtures.payloads.system), {});
     var s = getEffectiveState();
     return LC.normalizeSystem(LC.buildSystemStub(s), s);
   }
@@ -433,14 +443,15 @@
       var opts = list.map(function (s) {
         return '<option value="' + s.id + '"' + (s.id === currentScenario ? ' selected' : '') + ">" + s.label + "</option>";
       }).join("");
-      actionsEl.innerHTML = '<span class="topbar-demo-label">DEV</span><select id="demo-scenario-select" class="demo-scenario-select" aria-label="Demo senaryosu">' + opts + "</select>";
+      var dataSourceOpts = '<option value="demo"' + (useFixtureData ? '' : ' selected') + '>Demo</option><option value="fixture"' + (useFixtureData ? ' selected' : '') + '>Fixture</option>';
+      actionsEl.innerHTML =
+        '<span class="topbar-demo-label">DEV</span>' +
+        '<select id="demo-scenario-select" class="demo-scenario-select" aria-label="Demo senaryosu">' + opts + '</select>' +
+        '<select id="data-source-select" class="demo-scenario-select" aria-label="Veri kaynağı" title="Veri kaynağı">' + dataSourceOpts + '</select>';
       var sel = document.getElementById("demo-scenario-select");
-      if (sel) {
-        sel.addEventListener("change", function () {
-          currentScenario = sel.value;
-          refresh();
-        });
-      }
+      if (sel) sel.addEventListener("change", function () { currentScenario = sel.value; refresh(); });
+      var dataSel = document.getElementById("data-source-select");
+      if (dataSel) dataSel.addEventListener("change", function () { useFixtureData = dataSel.value === "fixture"; refresh(); });
     }
   }
 
