@@ -34,7 +34,7 @@
 
 **Phase 2 dar okuma (Kayıtlar):** Kayıtlar için `log_file_updated` (log.txt mtime) ve `log_location` (çözümlenmiş path) backend’den okunuyor; panelde "Kayıt dosyası son güncelleme" ve "Dosya" satırları gösterilir. Dosya yoksa log_file_updated null; log_location yine path (açık fallback).
 
-**Phase 2 checkpoint (kalıcı):** Mevcut read-only durum kilitlendi; gerçek okuma / fallback / teknik özet / sonraki adım: `PANEL_PHASE2_CHECKPOINT.md`.
+**Phase 2 checkpoint (kalıcı):** Mevcut read-only durum kilitlendi; Config + Kimlik + Anahtar Kasası hattı tek yerde özetlenir; gerçek okuma / fallback / teknik özet / sonraki adım: `PANEL_PHASE2_CHECKPOINT.md`.
 
 **Phase 2 dar okuma (Kimlik, Anahtar Kasası):** Kimlik ekranında `identity_state` (mevcut/mevcut değil) ve `identity_last_write` (identity.json mtime). Anahtar Kasası ekranında `keystore_last_update` (keystore.json mtime). İçerik okunmaz; sadece varlık ve mtime.
 

@@ -1,6 +1,17 @@
 # Panel Phase 2 Read-Only Backend — Kalıcı Checkpoint
 
-**Amaç:** Phase 2 read-only backend genişlemesinin mevcut durumunu kalıcı checkpoint ile kilitlemek; hangi ekran/alanın gerçek okumaya bağlı olduğu, nelerin fallback kaldığı ve sonraki teknik adım netleştirilir. Davranış değiştirilmedi; yalnızca mimari kilitleme.
+**Amaç:** Phase 2 read-only backend genişlemesinin mevcut durumunu kalıcı checkpoint ile kilitlemek; hangi ekran/alanın gerçek okumaya bağlı olduğu, nelerin fallback kaldığı ve sonraki teknik adım netleştirilir. Davranış değiştirilmedi; yalnızca mimari kilitleme. Bu turda yeni veri kaynağı açılmaz; mevcut Config + Kimlik + Anahtar Kasası hattı tek yerde özetlenir.
+
+---
+
+## Phase 2 dar read-only — mini checkpoint (kilitleme)
+
+- **Config ekranında gerçek okunan:** `profil` (ENV), `workspace_root` (base path), `last_activity` (config.json mtime; dosya yoksa null), `last_activity_text` (açık fallback metni). config.json **içeriği okunmaz**; sadece path ve mtime.
+- **Kimlik ekranında gerçek okunan:** `identity_state` (mevcut / mevcut değil), `identity_last_write` (identity.json mtime; yoksa null). `identity_target_scope`, `identity_guard_result` sabit. Kimlik **içeriği okunmaz**.
+- **Anahtar Kasası ekranında gerçek okunan:** `keystore_ready` (consent_ok), `keystore_state` (Hazır/Kilitli), `keystore_last_update` (keystore.json mtime; yoksa null). `keystore_write_scope` sabit. Anahtar/passphrase **ifşası yok**.
+- **Fallback kalan alanlar:** Dashboard (recent_events, guard_status), Sandbox (sandbox_source), System (bazı kartlar türetilmiş/sabit), Görevler (guard_result satır bazlı), Silinenler (original_path, scope), Kayıtlar (log_filter, satır timestamp). Config/Identity/Keystore’da okunamayan alanlar açık fallback (Bölüm 2).
+- **Backend write neden açılmadı:** Panel salt okuma hattı ile sınırlı; yazım isteği gönderen ekran/akış yok. Güvenlik ve sözleşme gereği Phase 2’de sadece dar okuma kilitlendi.
+- **Sonraki sağlıklı adım:** Görevler / Silinenler / Kayıtlar tarafında derinleştirme (içerik/metadata zenginleştirme, guard sonuçları, log satır timestamp’i vb.). Bu turda bu ekranlar derinleştirilmedi; kapsam yalnızca dokümantasyon + checkpoint kilitleme.
 
 ---
 
@@ -111,7 +122,8 @@ Dashboard ve Sandbox ENV/base ile beslenir. Config yukarıdaki dar gerçek okuma
 
 - **A) Kimlik ve Anahtar Kasası Phase 2 dar okuma:** Uygulandı. identity.json / keystore.json varlık ve mtime; içerik okunmaz.
 - **B) Yapılandırma Phase 2 dar okuma:** config.json path + mtime (last_activity, last_activity_text); içerik okunmaz. Okunamayan alanlar açık fallback.
-- **B) read_backend_state.py içinde tekrar eden okumaları sadeleştirme:** İsteğe bağlı; aynı base/dosyalara birden fazla stat/okuma tek geçişte toplanabilir. Davranış değişmez.
+- **Sonraki sağlıklı adım (Görevler / Silinenler / Kayıtlar):** Bu üç ekranda içerik/metadata zenginleştirme (guard sonuçları, original_path/scope, log satır timestamp’i vb.) — Phase 2 dar okuma bu turda burada derinleştirilmedi; öncelik checkpoint kilitleme ve dokümantasyon.
+- **İsteğe bağlı:** read_backend_state.py içinde tekrar eden okumaları sadeleştirme; davranış değişmez.
 
 ---
 
