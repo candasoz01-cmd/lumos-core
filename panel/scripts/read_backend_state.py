@@ -222,14 +222,23 @@ def _iso_to_display_text(iso: str | None) -> str | None:
         return None
 
 
+def _safe_resolve_path(path: Path | None) -> str | None:
+    """Path çözümle; hata veya yoksa None (panel fallback '—' kullanır)."""
+    if path is None:
+        return None
+    try:
+        return str(path.resolve())
+    except Exception:
+        return None
+
+
 def _build_state() -> dict:
     base = _base_dir()
     is_sandbox = _is_sandbox_mode()
 
     writing_label = "sandbox" if is_sandbox else "canlı"
 
-    # Identity / Keystore için güvenli okuma: sadece path varlığı ve mtime; içerik okunmaz.
-    # Config: sadece config.json path + mtime (içerik okunmaz).
+    # Identity / Keystore / Config path'leri (sadece path + mtime; içerik okunmaz)
     identity_path = keystore_path = config_path = None
     try:
         from core.workspace_contract import identity_file_path, keystore_file_path, config_file_path
@@ -253,7 +262,23 @@ def _build_state() -> dict:
         "writing_base_dir": writing_label,
     }
 
-    # System: Phase 2 ilk gerçek backend okuma hedefi. workspace_contract ve task_engine dar gerçek okuma; diğerleri türetilmiş/sabit.
+    # Config / Tasks / Trash / Logs önce üretilir; System özeti bunlardan türetilir
+    config_last = _file_mtime_iso(config_path) if config_path else None
+    config_activity_text = "Config dosyası son güncelleme (mtime)." if config_last else "Config dosyası yok veya okunamadı; yalnızca okuma."
+    config_payload = {
+        "config_snapshot": {
+            "profil": os.environ.get("LUMOS_PROFILE") or "—",
+            "workspace_root": str(base),
+            "write_status": "Salt okunur",
+            "last_activity": config_last,
+            "last_activity_text": config_activity_text,
+        }
+    }
+    tasks_payload = _read_tasks_payload(base)
+    trash_payload = _read_trash_payload(base)
+    logs_payload = _read_logs_payload(base)
+
+    # System: Phase 2 genişletilmiş okuma — workspace_contract path'leri, task_engine, consent, özet
     SYSTEM_HEALTH_KEYS = [
         ("workspace_contract", "Workspace Sözleşmesi", "ok", "Sözleşme yüklü; çekirdek path'ler tanımlı."),
         ("task_engine", "Görev Motoru", "—", "Veri yok."),
@@ -271,7 +296,7 @@ def _build_state() -> dict:
     except Exception:
         pass
     general_status = "ok" if consent else "uyarı"
-    general_note = "Consent kayıtlı." if consent else "Consent alınmadı."
+    general_note = "Consent kayıtlı. Lock/presence bu hatta doğrulanmaz." if consent else "Consent alınmadı."
 
     # workspace_contract: gerçek okuma — modül yüklenip path'ler dönebiliyor mu
     _wc_status, _wc_note = "ok", "Sözleşme yüklü; çekirdek path'ler tanımlı."
@@ -281,7 +306,6 @@ def _build_state() -> dict:
         sandbox_base_path(base)
     except Exception:
         _wc_status, _wc_note = "uyarı", "Sözleşme yüklenemedi."
-    # task_engine: gerçek okuma — tasks.json var mı, okunabiliyor mu
     _te_status, _te_note = _task_engine_health(base)
 
     system_health = {}
@@ -296,22 +320,37 @@ def _build_state() -> dict:
             system_health[key] = {"status": general_status, "note": general_note}
         else:
             system_health[key] = {"status": default_status, "note": default_note}
-    system = {"system_health": system_health}
 
-    # Config: read-only — workspace path, profil env, config.json varlık + mtime (içerik okunmaz)
-    config_last = _file_mtime_iso(config_path) if config_path else None
-    if config_last:
-        config_activity_text = "Config dosyası son güncelleme (mtime)."
-    else:
-        config_activity_text = "Config dosyası yok veya okunamadı; yalnızca okuma."
-    config_snapshot = {
-        "profil": os.environ.get("LUMOS_PROFILE") or "—",
-        "workspace_root": str(base),
-        "write_status": "Salt okunur",
-        "last_activity": config_last,
-        "last_activity_text": config_activity_text,
+    # Çözümlü path'ler (workspace_contract; okunamazsa None → panel "—" gösterir)
+    system_paths = {}
+    try:
+        from core.workspace_contract import writing_base_dir, trash_path as _trash_path, sandbox_base_path as _sandbox_base, config_file_path as _config_path, logs_dir_path
+        system_paths["writing_base"] = _safe_resolve_path(writing_base_dir(base, is_sandbox))
+        system_paths["trash"] = _safe_resolve_path(_trash_path(base))
+        system_paths["sandbox_base"] = _safe_resolve_path(_sandbox_base(base))
+        system_paths["config"] = _safe_resolve_path(_config_path(base))
+        system_paths["logs"] = _safe_resolve_path(logs_dir_path(base))
+    except Exception:
+        pass
+    tasks_path = base / "tasks.json"
+    system_paths["tasks"] = _safe_resolve_path(tasks_path) if tasks_path else None
+
+    # Çekirdek dosya özeti (zaten okunan tasks/trash/logs/config sinyallerinin dar yansıması)
+    system_summary = {
+        "config_exists": config_path.is_file() if config_path else False,
+        "tasks_file_exists": tasks_payload.get("tasks_file_exists", False),
+        "task_count": tasks_payload.get("task_count", 0),
+        "trash_dir_exists": trash_payload.get("trash_dir_exists", False),
+        "trash_item_count": trash_payload.get("trash_item_count", 0),
+        "log_file_exists": logs_payload.get("log_file_exists", False),
+        "log_line_count": logs_payload.get("log_line_count", 0),
     }
-    config_payload = {"config_snapshot": config_snapshot}
+
+    system = {
+        "system_health": system_health,
+        "system_paths": system_paths,
+        "system_summary": system_summary,
+    }
 
     # Identity: read-only — identity.json varlık + mtime; kimlik içeriği okunmaz
     identity_exists = identity_path.is_file() if identity_path else False
@@ -331,15 +370,6 @@ def _build_state() -> dict:
         "keystore_last_update": keystore_last,
         "keystore_write_scope": "Kilit açılmadan hassas yazım yapılmaz",
     }
-
-    # Görevler: read-only base/tasks.json (task_list → panel contract)
-    tasks_payload = _read_tasks_payload(base)
-
-    # Silinenler: read-only base/trash dizin listesi
-    trash_payload = _read_trash_payload(base)
-
-    # Kayıtlar: read-only base/logs/log.txt son satırlar
-    logs_payload = _read_logs_payload(base)
 
     return {
         "dashboard": dashboard,

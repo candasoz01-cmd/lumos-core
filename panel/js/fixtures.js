@@ -299,7 +299,7 @@
     });
   }
 
-  /** System: Phase 2 ilk gerçek backend okuma hedefi; key sırası read_backend_state.py SYSTEM_HEALTH_KEYS ile uyumlu. */
+  /** System: Phase 2 ilk gerçek backend okuma hedefi; key sırası read_backend_state.py SYSTEM_HEALTH_KEYS ile uyumlu. system_paths / system_summary varsa ek kartlar. */
   function mapSystemPayloadToPanelData(payload) {
     if (!payload) return applyFallback("system", { title: "Sistem Durumu", subtitle: "Çekirdek parçaların durumu", healthCards: [] });
     var h = payload.system_health || {};
@@ -319,6 +319,27 @@
       var status = !raw ? "—" : (typeof raw === "string" ? raw : str(raw.status));
       var note = !raw ? "Veri yok." : (typeof raw === "string" ? "" : str(raw.note));
       healthCards.push({ title: keys[i].title, status: status, note: note });
+    }
+    var paths = payload.system_paths;
+    if (paths && typeof paths === "object") {
+      var pathParts = [];
+      if (paths.writing_base != null && paths.writing_base !== "") pathParts.push("Yazım: " + paths.writing_base);
+      if (paths.trash != null && paths.trash !== "") pathParts.push("Trash: " + paths.trash);
+      if (paths.sandbox_base != null && paths.sandbox_base !== "") pathParts.push("Sandbox: " + paths.sandbox_base);
+      if (paths.config != null && paths.config !== "") pathParts.push("Config: " + paths.config);
+      if (paths.logs != null && paths.logs !== "") pathParts.push("Logs: " + paths.logs);
+      if (paths.tasks != null && paths.tasks !== "") pathParts.push("Görevler: " + paths.tasks);
+      var pathNote = pathParts.length ? pathParts.join("\n") : "Veri yok.";
+      healthCards.push({ title: "Çalışma yolları", status: pathParts.length ? "ok" : "—", note: pathNote });
+    }
+    var summary = payload.system_summary;
+    if (summary && typeof summary === "object") {
+      var cfg = summary.config_exists ? "var" : "yok";
+      var tr = (summary.trash_item_count != null ? summary.trash_item_count : 0) + " öğe";
+      var log = (summary.log_line_count != null ? summary.log_line_count : 0) + " satır";
+      var task = (summary.task_count != null ? summary.task_count : 0) + " kayıt";
+      var sumNote = "Config: " + cfg + ". Trash: " + tr + ". Log: " + log + ". Görevler: " + task + ".";
+      healthCards.push({ title: "Çekirdek dosya özeti", status: "ok", note: sumNote });
     }
     return applyFallback("system", { title: "Sistem Durumu", subtitle: "Çekirdek parçaların durumu", healthCards: healthCards });
   }

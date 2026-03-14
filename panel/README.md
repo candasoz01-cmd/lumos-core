@@ -28,7 +28,7 @@
 
 **Phase 1 tamamlanma checkpoint:** `PANEL_PHASE1_CHECKPOINT.md` — bridge ile bağlı ekranlar, bilinçli sınırlar, Phase 2 ilk adım (yalnızca System ekranında gerçek backend okuma noktaları) özetlenir.
 
-**Phase 2 dar okuma (System):** Sistem Durumu ekranında `workspace_contract` (modül yükleme + path) ve `task_engine` (tasks.json okunabilirliği) gerçek backend'den okunuyor; diğer kartlar türetilmiş/sabit, okunamayan alanlar açık fallback ile bırakıldı. Yazım yok; panel/ ve `read_backend_state.py` kapsamında.
+**Phase 2 dar okuma (System):** Sistem Durumu ekranında `workspace_contract` (modül yükleme + path) ve `task_engine` (tasks.json okunabilirliği) gerçek backend'den okunuyor; diğer kartlar türetilmiş/sabit, okunamayan alanlar açık fallback ile bırakıldı. **Phase 2 genişletme:** System ekranına çözümlü path bilgileri (`system_paths`: yazım hedefi, trash, sandbox, config, logs, görevler) ve çekirdek dosya özeti (`system_summary`: config/trash/log/tasks var/yok ve sayısal sinyaller) eklendi; genel consent notu netleştirildi (Lock/presence bu hatta doğrulanmaz). Yazım yok; panel/ ve `read_backend_state.py` kapsamında.
 
 **Phase 2 dar okuma (Görevler, Silinenler):** Görevler için `list_updated`, `list_updated_text`, `tasks_file_path` backend’den okunuyor; panelde liste son güncelleme ve dosya yolu gösterilir. Silinenler için `trash_location` çözümlenmiş path; `trash_scope_fallback_note` ile original_path/scope okunamadığında "—" fallback açıklanır.
 
