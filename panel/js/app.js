@@ -215,16 +215,40 @@
 
   // ——— Ekran: Gösterge Paneli (ortak bileşenler) ———
   function renderDashboard() {
+    var lastEv = mockState.recentEvents && mockState.recentEvents[0] ? mockState.recentEvents[0] : null;
+    var sandboxValue = mockState.sandboxMode
+      ? StatusBadge("KORUMALI ALAN") + " Açık"
+      : "Kapalı";
+    var sandboxNote = mockState.sandboxMode
+      ? "Yazım sandbox dizinine yönlendiriliyor; canlıya overwrite yok."
+      : "Yazım doğrudan çalışma alanına gidiyor.";
+    var guardValue = StatusBadge(mockState.guardStatus) + " " + mockState.guardStatus;
+    var guardNote = "Çekirdek state path'ler guard ile korunuyor; sözleşme hedefi dışına yazılmaz.";
+    var writingNote = mockState.writingBaseDir === "canlı"
+      ? "Tüm yazma işlemleri çalışma alanına gidiyor."
+      : "Yazma işlemleri sandbox base'e yönlendiriliyor.";
+    var activityValue = lastEv ? formatTime(lastEv.ts) : "—";
+    var activityNote = lastEv ? (lastEv.text || "—") : "Henüz kayıt yok.";
     var cards = renderMetricCards([
-      { title: "Korumalı Alan Durumu", value: mockState.sandboxMode ? "Açık" : "Kapalı" },
-      { title: "Yazım Hedefi", value: mockState.writingBaseDir },
-      { title: "Koruma Durumu", value: mockState.guardStatus },
-      { title: "Son Aktivite", value: formatTime(mockState.recentEvents[0] ? mockState.recentEvents[0].ts : "—") },
+      { title: "Korumalı Alan Durumu", value: sandboxValue, techNote: sandboxNote },
+      { title: "Yazım Hedefi", value: mockState.writingBaseDir, techNote: writingNote },
+      { title: "Koruma Durumu", value: guardValue, techNote: guardNote },
+      { title: "Son Aktivite", value: activityValue, techNote: activityNote },
     ]);
+    var warningsHtml = "";
+    if (mockState.warnings && mockState.warnings.length > 0) {
+      warningsHtml = "<ul class=\"event-list\">";
+      for (var w = 0; w < mockState.warnings.length; w++) {
+        warningsHtml += "<li>" + StatusBadge("UYARI", "badge-warning") + " " + mockState.warnings[w] + "</li>";
+      }
+      warningsHtml += "</ul>";
+    } else {
+      warningsHtml = "<p class=\"text-muted-small\">Aktif uyarı veya not yok.</p>";
+    }
     var sections =
       renderSection("Son Olaylar", EventList(mockState.recentEvents)) +
-      renderSection("Uyarılar / Notlar", "<p>" + (mockState.warnings && mockState.warnings[0] ? mockState.warnings[0] : "—") + "</p>") +
-      renderSection("Hızlı Geçişler", '<p><a href="#tasks" class="inline-link">Görevler</a> · <a href="#sandbox" class="inline-link">Korumalı Alan</a> · <a href="#logs" class="inline-link">Kayıtlar</a></p><p class="text-muted-small">Hash linkleri (mock)</p>');
+      renderSection("Uyarılar / Notlar", warningsHtml) +
+      renderSection("Hızlı Geçişler", '<p><a href="#tasks" class="inline-link">Görevler</a> · <a href="#sandbox" class="inline-link">Korumalı Alan</a> · <a href="#config" class="inline-link">Yapılandırma</a> · <a href="#logs" class="inline-link">Kayıtlar</a></p><p class="text-muted-small">Hash routing ile sayfa yenilenmeden geçiş.</p>');
     return ViewHeader("Gösterge Paneli", "Tek bakışta sistem durumu") + '<div class="cards-grid">' + cards + "</div>" + sections;
   }
 
@@ -247,16 +271,28 @@
 
   // ——— Ekran: Korumalı Alan (ortak bileşenler) ———
   function renderSandbox() {
-    var sandboxBase = mockState.sandboxMode ? "sandbox/" : "—";
+    var sourceNote = "Öncelik: CLI → ENV → varsayılan. Şu an: " + (mockState.sandboxSource || "varsayılan") + ".";
+    var sandboxBase = mockState.sandboxMode ? ".lumos/sandbox veya sözleşmeyle tanımlı base" : "— (korumalı alan kapalı)";
+    var sandboxNote = mockState.sandboxMode ? "Korumalı alan açıkken tüm yazım bu dizine yönlendirilir." : "Korumalı alan açıldığında sözleşmedeki base kullanılır.";
+    var dirValue = mockState.writingBaseDir;
+    var dirNote = dirValue === "canlı" ? "Yazım doğrudan çalışma alanına gidiyor." : "Yazım sandbox base'e yönlendiriliyor.";
+    var contractValue = mockState.sandboxMode ? StatusBadge("KORUMALI ALAN") + " Sözleşme tanımlı" : "Canlı mod; sandbox sözleşmesi devre dışı.";
+    var contractNote = "Sandbox hedef dizini workspace sözleşmesiyle sabit; yeni çöp/sandbox alanı oluşturulmaz.";
+    var topCards = renderMetricCards([
+      { title: "Kaynak", value: mockState.sandboxSource || "varsayılan", techNote: sourceNote },
+      { title: "Sandbox Base", value: sandboxBase, techNote: sandboxNote },
+      { title: "Yazım Yönü (Writing Direction)", value: dirValue, techNote: dirNote },
+      { title: "Sözleşme Durumu (Contract Status)", value: contractValue, techNote: contractNote },
+    ]);
+    var resolutionBody = "<p>Kaynak önceliği: <strong>CLI → ENV → varsayılan</strong>. Sistem kendi kafasına canlı hedef seçmez; yazma hedefi tek kaynaktan (canlı base veya sözleşmeyle tanımlı sandbox base) gelir.</p><p class=\"text-muted-small\">Resolution: single source of truth.</p>";
+    var guardBody = "<p>Çekirdek state path'lere doğrudan overwrite yapılmaz. Yazma hedefi tek kaynaktan belirlenir. Canlı çekirdek ile sandbox hedefi ayrı tutulur.</p><p class=\"text-muted-small\">Core state: tasks, logs, trash, config, aliases.</p>";
+    var diffBody = "<p><strong>Canlı:</strong> Doğrudan çalışma alanı (.lumos vb.).</p><p><strong>Sandbox:</strong> Tanımlı kopya alanı; deneme/geliştirme burada yapılır, canlıya overwrite yok.</p><p class=\"text-muted-small\">Sandbox aktifken çekirdek path'ler okuma için kullanılabilir; yazım yalnızca sandbox base'e.</p>";
     return (
-      ViewHeader("Korumalı Alan", "Sandbox kaynağı ve yönlendirme görünürlüğü") +
-      renderSection("Kaynak", "<p>CLI / ENV / varsayılan</p><p><strong>Şu an:</strong> " + (mockState.sandboxSource || "—") + "</p>") +
-      renderSection("Sandbox Base", "<p>" + sandboxBase + "</p><p class=\"text-muted-small\">Korumalı alan açıkken yazım hedefi</p>") +
-      renderSection("Yazım Yönü (Writing Direction)", "<p>" + mockState.writingBaseDir + "</p>") +
-      renderSection("Sözleşme Durumu (Contract Status)", "<p>Tanımlı</p><p class=\"text-muted-small\">Sandbox hedef dizini sözleşmesi</p>") +
-      renderSection("Çözümleme Mantığı", "<p>Kaynak önceliği: CLI → ENV → varsayılan. Sistem kendi kafasına canlı hedef seçmez.</p>") +
-      renderSection("Guard Kuralı", "<p>Çekirdek state path’lere doğrudan overwrite yapılmaz. Yazma hedefi tek kaynaktan (canlı base veya sözleşmeyle tanımlı sandbox base).</p>") +
-      renderSection("Canlı çekirdek / sandbox hedef farkı", "<p>Canlı: doğrudan çalışma alanı. Sandbox: tanımlı kopya alanı; deneme/geliştirme burada yapılır, canlıya overwrite yok.</p><p class=\"text-muted-small\">Core state paths read-only when sandbox active.</p>")
+      ViewHeader("Korumalı Alan", "Sandbox kararı ve yazım hedefi — tek bakışta nereye yazıldığı") +
+      '<div class="cards-grid">' + topCards + "</div>" +
+      renderSection("Çözümleme Mantığı", resolutionBody) +
+      renderSection("Guard Kuralı", guardBody) +
+      renderSection("Canlı çekirdek / sandbox hedef farkı", diffBody)
     );
   }
 
