@@ -38,7 +38,7 @@ body {
   min-height: 100vh;
 }
 
-/* ——— Topbar ——— */
+/* ——— Topbar (üst bar, net ayrım) ——— */
 .topbar {
   grid-area: topbar;
   display: flex;
@@ -46,7 +46,7 @@ body {
   gap: 1rem;
   padding: 0 1rem;
   background: var(--bg-topbar);
-  border-bottom: var(--border);
+  border-bottom: 2px solid #3a3a3a;
 }
 
 .topbar-left {
@@ -123,13 +123,13 @@ body {
 .badge-warning { background: #4a4a2a; color: #e0e0a0; }
 .badge-blocked { background: #4a2a2a; color: #ffa0a0; }
 
-/* ——— Sidebar ——— */
+/* ——— Sidebar (sol menü, net ayrım) ——— */
 .sidebar {
   grid-area: sidebar;
   display: flex;
   flex-direction: column;
   background: var(--bg-sidebar);
-  border-right: var(--border);
+  border-right: 2px solid #3a3a3a;
 }
 
 .nav {
@@ -430,4 +430,13 @@ body {
 .main h1 {
   margin: 0 0 0.5rem 0;
   font-size: 1.25rem;
+}
+
+.inline-link {
+  color: var(--link);
+  text-decoration: none;
+}
+
+.inline-link:hover {
+  text-decoration: underline;
 }
