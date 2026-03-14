@@ -137,19 +137,24 @@ def _read_trash_payload(base: Path) -> dict:
     return out
 
 def _read_logs_payload(base: Path) -> dict:
-    """Read-only: base/logs/log.txt son satırlar → log_items, log_filter."""
-    log_file = base / "logs" / "log.txt"
-    out = {"log_items": [], "log_filter": "all"}
+    """Read-only: base/logs/log.txt son satırlar → log_items, log_filter, log_file_updated, log_location."""
+    base_resolved = base.resolve()
+    log_file = base_resolved / "logs" / "log.txt"
+    out = {"log_items": [], "log_filter": "all", "log_file_updated": None, "log_location": str(log_file)}
     if not log_file.is_file():
         return out
+    try:
+        mtime = log_file.stat().st_mtime
+        out["log_file_updated"] = datetime.fromtimestamp(mtime, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+    except Exception:
+        pass
     try:
         text = log_file.read_text(encoding="utf-8", errors="replace")
         lines = [s.strip() for s in text.splitlines() if s.strip()][-100:]
     except Exception:
         return out
     try:
-        mtime = log_file.stat().st_mtime
-        ts = datetime.fromtimestamp(mtime, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+        ts = datetime.fromtimestamp(log_file.stat().st_mtime, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     except Exception:
         ts = "—"
     for i, line in enumerate(lines):

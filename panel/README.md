@@ -32,6 +32,8 @@
 
 **Phase 2 dar okuma (Görevler, Silinenler):** Görevler için `list_updated` (tasks.json mtime) backend’den okunuyor, panelde "Liste son güncelleme" gösterilir. Silinenler için `trash_location` çözümlenmiş (absolute) path; original_path/scope okunamadığı için "—" fallback bırakıldı.
 
+**Phase 2 dar okuma (Kayıtlar):** Kayıtlar için `log_file_updated` (log.txt mtime) ve `log_location` (çözümlenmiş path) backend’den okunuyor; panelde "Kayıt dosyası son güncelleme" ve "Dosya" satırları gösterilir. Dosya yoksa log_file_updated null; log_location yine path (açık fallback).
+
 ## Çalıştırma
 
 - **Doğrudan:** `panel/index.html` açın (`file://`).

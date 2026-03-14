@@ -20,7 +20,7 @@
 | Keystore | readBackendKeystoreState | keystore (keystore_ready, keystore_state; consent_ok ile) | Anahtar ifşası yok |
 | Görevler | readBackendTasksState | tasks.task_list, tasks.list_updated (base/tasks.json + dosya mtime) | Salt okunur; list_updated Phase 2 dar |
 | Silinenler | readBackendTrashState | trash.trash_location (çözümlenmiş path), trash_items (base/trash) | Salt okunur; path çözümlü Phase 2 dar |
-| Kayıtlar | readBackendLogsState | logs.log_items (base/logs/log.txt) | Salt okunur |
+| Kayıtlar | readBackendLogsState | logs.log_items, log_file_updated, log_location (base/logs/log.txt + mtime, path) | Salt okunur; Phase 2 dar |
 
 ## Bilinçli sınırlar (Phase 1)
 
@@ -41,3 +41,8 @@
 - **Görevler:** `read_backend_state.py` tasks payload’a `list_updated` eklendi (tasks.json dosya mtime, ISO). Panel contract’a `listUpdated` alanı; Görevler ekranında backend’den geliyorsa "Liste son güncelleme: …" gösterilir. Okunamazsa null; açık fallback.
 - **Silinenler:** `trash_location` artık çözümlenmiş (absolute) path; `base.resolve()` ile üretilir. Panel "Çöp Konumu" metrikinde tam yol görünür. original_path/scope backend’de yok; "—" fallback korundu.
 - **Bridge/app:** Aynı payload şekli; backend-bridge değişiklik yok. fixtures mapper list_updated → listUpdated; contracts + normalizeTasks + renderTasks listUpdated kullanıyor.
+
+## Phase 2 dar okuma: Kayıtlar
+
+- **Kayıtlar:** `read_backend_state.py` logs payload’a `log_file_updated` (log.txt dosya mtime, ISO) ve `log_location` (çözümlenmiş path) eklendi. Panel contract’a `logFileUpdated`, `logLocation`; Kayıtlar ekranında backend’den geliyorsa "Kayıt dosyası son güncelleme: …" ve "Dosya: …" gösterilir. Dosya yoksa log_file_updated null; log_location yine çözümlü path (nereye baktığımız belli). Okunamayan alanlar açık fallback.
+- **Bridge:** Aynı payload; backend-bridge değişiklik yok. fixtures mapper log_file_updated → logFileUpdated, log_location → logLocation; contracts + normalizeLogs + renderLogs kullanıyor.

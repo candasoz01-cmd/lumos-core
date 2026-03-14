@@ -682,11 +682,14 @@
   // ——— Ekran: Kayıtlar (adapter + build) ———
   function renderLogs() {
     var data = getLogsData();
+    var metaLine = "";
+    if (data.logFileUpdated) metaLine += '<p class="text-muted-small">Kayıt dosyası son güncelleme: ' + formatTime(data.logFileUpdated) + "</p>";
+    if (data.logLocation) metaLine += '<p class="text-muted-small">Dosya: ' + (data.logLocation || "") + "</p>";
     var tabsHtml = data.filters.map(function (f) {
       var active = f.id === data.activeFilter ? " active" : "";
       return '<button type="button" class="log-tab' + active + '" data-log-filter="' + f.id + '">' + f.label + "</button>";
     }).join("");
-    return ViewHeader(data.title, data.subtitle) + '<div class="log-tabs" id="log-tabs">' + tabsHtml + "</div>" + buildSection(data.sectionTitle, EventList(data.events));
+    return ViewHeader(data.title, data.subtitle) + (metaLine ? metaLine : "") + '<div class="log-tabs" id="log-tabs">' + tabsHtml + "</div>" + buildSection(data.sectionTitle, EventList(data.events));
   }
 
   // ——— Ekran: Sistem Durumu (adapter + build) ———
