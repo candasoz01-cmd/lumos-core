@@ -206,17 +206,19 @@
   }
 
   function mapTrashPayloadToPanelData(payload) {
-    if (!payload) return applyFallback("trash", { title: "Silinenler", subtitle: "Çöp konumu ve liste", summaryMetrics: [], listItems: [], selectedId: null, selectedItem: null, detailTitle: "Seçilen öğe", emptyListTitle: "Çöp listesi boş", emptyListDesc: "Silinen öğe yok. " + EMPTY_DESC, emptyDetailPlaceholder: "Listeden bir öğe seçin." });
+    if (!payload) return applyFallback("trash", { title: "Silinenler", subtitle: "Çöp konumu ve liste", summaryMetrics: [], listItems: [], selectedId: null, selectedItem: null, detailTitle: "Seçilen öğe", emptyListTitle: "Çöp listesi boş", emptyListDesc: "Silinen öğe yok. " + EMPTY_DESC, emptyDetailPlaceholder: "Listeden bir öğe seçin.", trashItemCount: 0, trashDirExists: false });
     var items = arr(payload.trash_items).map(function (t) {
       return { id: t.id, name: t.name || t.id, originalPath: t.original_path || "—", trashPath: t.trash_path || "—", movedAt: t.moved_at || "—", scope: t.scope || "—" };
     });
+    var trashItemCount = payload.trash_item_count != null ? payload.trash_item_count : items.length;
+    var trashDirExists = payload.trash_dir_exists === true;
     return applyFallback("trash", {
       title: "Silinenler",
       subtitle: "Çöp konumu ve liste",
       summaryMetrics: [
         { title: "Çöp Konumu", value: str(payload.trash_location) },
         { title: "Son Taşıma", value: formatTime(payload.trash_last_move) },
-        { title: "Öğe Sayısı", value: String(items.length) },
+        { title: "Öğe Sayısı", value: String(trashItemCount) },
         { title: "Kapsam", value: ".lumos/trash — aktif state kaynağı değildir" },
       ],
       listItems: items,
@@ -226,12 +228,16 @@
       emptyListTitle: "Çöp listesi boş",
       emptyListDesc: "Silinen öğe yok. " + EMPTY_DESC,
       emptyDetailPlaceholder: "Listeden bir öğe seçin.",
+      trashItemCount: trashItemCount,
+      trashDirExists: trashDirExists,
     });
   }
 
   function mapLogsPayloadToPanelData(payload) {
-    if (!payload) return applyFallback("logs", { title: "Kayıtlar", subtitle: "Olay akışı", filters: LOG_FILTERS, activeFilter: "all", events: [], logFileUpdated: null, logLocation: null, sectionTitle: "Kayıt listesi" });
+    if (!payload) return applyFallback("logs", { title: "Kayıtlar", subtitle: "Olay akışı", filters: LOG_FILTERS, activeFilter: "all", events: [], logFileUpdated: null, logLocation: null, sectionTitle: "Kayıt listesi", logLineCount: 0, logFileExists: false });
     var events = arr(payload.log_items).map(function (e) { return { id: e.id, kind: e.kind, text: e.text, ts: e.ts }; });
+    var logLineCount = payload.log_line_count != null ? payload.log_line_count : events.length;
+    var logFileExists = payload.log_file_exists === true;
     return applyFallback("logs", {
       title: "Kayıtlar",
       subtitle: "Olay akışı",
@@ -241,6 +247,8 @@
       logFileUpdated: payload.log_file_updated || null,
       logLocation: payload.log_location || null,
       sectionTitle: "Kayıt listesi",
+      logLineCount: logLineCount,
+      logFileExists: logFileExists,
     });
   }
 
@@ -256,6 +264,8 @@
     var statusForFilter = { all: null, active: "aktif", pending: "bekleyen", completed: "tamamlandı", failed: "başarısız", blocked: "engellenen" }[filter];
     var filtered = !statusForFilter ? list : list.filter(function (t) { return t.status === statusForFilter; });
     var listUpdated = payload.list_updated || null;
+    var taskCount = payload.task_count != null ? payload.task_count : list.length;
+    var tasksFileExists = payload.tasks_file_exists === true;
     return applyFallback("tasks", {
       title: "Görevler",
       subtitle: "Liste, detay ve guard sonucu",
@@ -265,6 +275,8 @@
       selectedId: selId,
       selectedTask: selected,
       listUpdated: listUpdated,
+      taskCount: taskCount,
+      tasksFileExists: tasksFileExists,
       emptyListTitle: "Bu filtrede görev yok",
       emptyListDesc: "Farklı filtre seçin. " + EMPTY_DESC,
       detailTitle: "Görev Detayı",

@@ -43,6 +43,8 @@
       selectedId: null,
       selectedTask: null,
       listUpdated: null,
+      taskCount: 0,
+      tasksFileExists: false,
       emptyListTitle: "",
       emptyListDesc: "",
       detailTitle: "",
@@ -84,6 +86,8 @@
       emptyListTitle: "",
       emptyListDesc: "",
       emptyDetailPlaceholder: "",
+      trashItemCount: 0,
+      trashDirExists: false,
     },
     logs: {
       title: "",
@@ -94,6 +98,8 @@
       logFileUpdated: null,
       logLocation: null,
       sectionTitle: "",
+      logLineCount: 0,
+      logFileExists: false,
     },
     system: {
       title: "",
@@ -196,6 +202,8 @@
       selectedId: state.selectedTaskId,
       selectedTask: selected,
       listUpdated: state.listUpdated || null,
+      taskCount: (state.taskList || []).length,
+      tasksFileExists: true,
       emptyListTitle: "Bu filtrede görev yok",
       emptyListDesc: "Farklı filtre seçin. " + EMPTY_DESC_DEFAULT,
       detailTitle: "Görev Detayı",
@@ -292,6 +300,8 @@
       emptyListTitle: "Çöp listesi boş",
       emptyListDesc: "Silinen öğe yok. " + EMPTY_DESC_DEFAULT,
       emptyDetailPlaceholder: "Listeden bir öğe seçin.",
+      trashItemCount: items.length,
+      trashDirExists: true,
     };
   }
 
@@ -312,6 +322,8 @@
       logFileUpdated: state.logFileUpdated || null,
       logLocation: state.logLocation || null,
       sectionTitle: "Kayıt listesi",
+      logLineCount: (state.logItems || []).length,
+      logFileExists: true,
     };
   }
 
@@ -358,6 +370,8 @@
     data.listItems = Array.isArray(data.listItems) ? data.listItems : [];
     data.selectedTask = data.selectedTask != null ? data.selectedTask : null;
     data.listUpdated = data.listUpdated != null ? data.listUpdated : null;
+    data.taskCount = data.taskCount != null ? data.taskCount : 0;
+    data.tasksFileExists = data.tasksFileExists === true;
     if (!data.emptyListTitle) data.emptyListTitle = "Bu filtrede görev yok";
     if (!data.emptyListDesc) data.emptyListDesc = EMPTY_DESC_DEFAULT;
     return data;
@@ -401,6 +415,8 @@
     data.summaryMetrics = Array.isArray(data.summaryMetrics) ? data.summaryMetrics : [];
     data.listItems = Array.isArray(data.listItems) ? data.listItems : [];
     data.selectedItem = data.selectedItem != null ? data.selectedItem : null;
+    data.trashItemCount = data.trashItemCount != null ? data.trashItemCount : 0;
+    data.trashDirExists = data.trashDirExists === true;
     if (!data.emptyDetailPlaceholder) data.emptyDetailPlaceholder = "Listeden bir öğe seçin.";
     return data;
   }
@@ -412,6 +428,8 @@
     data.events = Array.isArray(data.events) ? data.events : [];
     data.logFileUpdated = data.logFileUpdated != null ? data.logFileUpdated : null;
     data.logLocation = data.logLocation != null ? data.logLocation : null;
+    data.logLineCount = data.logLineCount != null ? data.logLineCount : 0;
+    data.logFileExists = data.logFileExists === true;
     return data;
   }
 

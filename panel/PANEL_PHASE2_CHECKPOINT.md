@@ -11,7 +11,7 @@
 - **Anahtar Kasası ekranında gerçek okunan:** `keystore_ready` (consent_ok), `keystore_state` (Hazır/Kilitli), `keystore_last_update` (keystore.json mtime; yoksa null). `keystore_write_scope` sabit. Anahtar/passphrase **ifşası yok**.
 - **Fallback kalan alanlar:** Dashboard (recent_events, guard_status), Sandbox (sandbox_source), System (bazı kartlar türetilmiş/sabit), Görevler (guard_result satır bazlı), Silinenler (original_path, scope), Kayıtlar (log_filter, satır timestamp). Config/Identity/Keystore’da okunamayan alanlar açık fallback (Bölüm 2).
 - **Backend write neden açılmadı:** Panel salt okuma hattı ile sınırlı; yazım isteği gönderen ekran/akış yok. Güvenlik ve sözleşme gereği Phase 2’de sadece dar okuma kilitlendi.
-- **Sonraki sağlıklı adım:** Görevler / Silinenler / Kayıtlar tarafında derinleştirme (içerik/metadata zenginleştirme, guard sonuçları, log satır timestamp’i vb.). Bu turda bu ekranlar derinleştirilmedi; kapsam yalnızca dokümantasyon + checkpoint kilitleme.
+- **Sonraki sağlıklı adım:** Görevler / Silinenler / Kayıtlar tarafında derinleştirme (içerik/metadata zenginleştirme, guard sonuçları, log satır timestamp’i vb.). Bu turda bu ekranlar için sayısal sinyaller eklendi (tasks_file_exists, task_count; trash_dir_exists, trash_item_count; log_file_exists, log_line_count); panelde gösterim dar ve kontrollü.
 
 ---
 
@@ -33,6 +33,8 @@ Aşağıdaki dört ekran ve alanları `read_backend_state.py` çıktısından ge
 |------|--------|
 | task_list | `base/tasks.json` (id, title, status, updated, last_run, output_summary) |
 | list_updated | tasks.json dosya mtime (ISO); panelde "Liste son güncelleme" |
+| tasks_file_exists | tasks.json var mı (bool) |
+| task_count | Görev sayısı (sayısal özet); panelde "Görev sayısı" |
 
 ### Silinenler
 
@@ -41,6 +43,8 @@ Aşağıdaki dört ekran ve alanları `read_backend_state.py` çıktısından ge
 | trash_location | Çözümlenmiş (absolute) path |
 | trash_items | `base/trash` dizin listesi (name, trash_path, moved_at) |
 | trash_last_move | Son taşıma zamanı (dizin mtime türetilmiş) |
+| trash_dir_exists | trash dizini var mı (bool) |
+| trash_item_count | Öğe sayısı (sayısal özet) |
 
 ### Kayıtlar
 
@@ -49,6 +53,8 @@ Aşağıdaki dört ekran ve alanları `read_backend_state.py` çıktısından ge
 | log_items | `base/logs/log.txt` son 100 satır |
 | log_file_updated | log.txt dosya mtime (ISO) |
 | log_location | Çözümlenmiş path |
+| log_file_exists | log.txt var mı (bool) |
+| log_line_count | Görüntülenen satır sayısı (sayısal özet) |
 
 ### Config (Yapılandırma)
 
@@ -122,7 +128,7 @@ Dashboard ve Sandbox ENV/base ile beslenir. Config yukarıdaki dar gerçek okuma
 
 - **A) Kimlik ve Anahtar Kasası Phase 2 dar okuma:** Uygulandı. identity.json / keystore.json varlık ve mtime; içerik okunmaz.
 - **B) Yapılandırma Phase 2 dar okuma:** config.json path + mtime (last_activity, last_activity_text); içerik okunmaz. Okunamayan alanlar açık fallback.
-- **Sonraki sağlıklı adım (Görevler / Silinenler / Kayıtlar):** Bu üç ekranda içerik/metadata zenginleştirme (guard sonuçları, original_path/scope, log satır timestamp’i vb.) — Phase 2 dar okuma bu turda burada derinleştirilmedi; öncelik checkpoint kilitleme ve dokümantasyon.
+- **Sonraki sağlıklı adım (Görevler / Silinenler / Kayıtlar):** Bu üç ekranda içerik/metadata zenginleştirme (guard sonuçları, original_path/scope, log satır timestamp’i vb.) — Sayısal sinyaller (task_count, trash_item_count, log_line_count) backend'den okunuyor; içerik/metadata derinleştirme sonraki adım.
 - **İsteğe bağlı:** read_backend_state.py içinde tekrar eden okumaları sadeleştirme; davranış değişmez.
 
 ---

@@ -573,11 +573,12 @@
   function renderTasks() {
     var data = getTasksData();
     var listUpdatedLine = data.listUpdated ? '<p class="text-muted-small">Liste son güncelleme: ' + formatTime(data.listUpdated) + "</p>" : "";
+    var taskCountLine = (data.taskCount != null && data.taskCount !== undefined) ? '<p class="text-muted-small">Görev sayısı: ' + data.taskCount + "</p>" : "";
     var tabsHtml = data.filters.map(function (f) {
       var active = f.id === data.activeFilter ? " active" : "";
       return '<button type="button" class="log-tab task-filter-tab' + active + '" data-task-filter="' + f.id + '">' + f.label + "</button>";
     }).join("");
-    var listBody = (listUpdatedLine ? listUpdatedLine : "") + '<div class="task-filters" id="task-filters">' + tabsHtml + "</div>";
+    var listBody = (listUpdatedLine || taskCountLine ? (listUpdatedLine || "") + (taskCountLine || "") : "") + '<div class="task-filters" id="task-filters">' + tabsHtml + "</div>";
     if (data.listItems.length === 0) {
       listBody += buildEmptyState(data.emptyListTitle, data.emptyListDesc);
     } else {
@@ -685,6 +686,7 @@
     var metaLine = "";
     if (data.logFileUpdated) metaLine += '<p class="text-muted-small">Kayıt dosyası son güncelleme: ' + formatTime(data.logFileUpdated) + "</p>";
     if (data.logLocation) metaLine += '<p class="text-muted-small">Dosya: ' + (data.logLocation || "") + "</p>";
+    if (data.logLineCount != null && data.logLineCount !== undefined) metaLine += '<p class="text-muted-small">Görüntülenen satır: ' + data.logLineCount + "</p>";
     var tabsHtml = data.filters.map(function (f) {
       var active = f.id === data.activeFilter ? " active" : "";
       return '<button type="button" class="log-tab' + active + '" data-log-filter="' + f.id + '">' + f.label + "</button>";
