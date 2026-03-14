@@ -1,6 +1,72 @@
-/**
- * Read-only bridge state (optional).
- * Set by: panel/scripts/read_backend_state.py --write
- * Unset or null: bridge returns null → panel uses fixture/demo fallback.
- */
-window.__LUMOS_READ_STATE__ = null;
+// Read-only bridge state (set by panel/scripts/read_backend_state.py --write)
+window.__LUMOS_READ_STATE__ = {
+  "dashboard": {
+    "sandbox_mode": false,
+    "writing_base_dir": "canlı",
+    "guard_status": "KORUMA AKTİF",
+    "recent_events": [],
+    "warnings": []
+  },
+  "sandbox": {
+    "sandbox_mode": false,
+    "sandbox_source": "varsayılan",
+    "writing_base_dir": "canlı"
+  },
+  "system": {
+    "system_health": {
+      "workspace_contract": {
+        "status": "ok",
+        "note": "Sözleşme yüklü; çekirdek path'ler tanımlı."
+      },
+      "task_engine": {
+        "status": "—",
+        "note": "Veri yok."
+      },
+      "sandbox_source": {
+        "status": "ok",
+        "note": "Sandbox kaynağı sözleşmeden türetildi."
+      },
+      "trash_contract": {
+        "status": "ok",
+        "note": "Trash konumu sözleşmeyle sabit."
+      },
+      "config_sink": {
+        "status": "ok",
+        "note": "Config salt okunur alanlar bridge ile besleniyor."
+      },
+      "identity_sink": {
+        "status": "ok",
+        "note": "Identity salt okunur alanlar bridge ile besleniyor."
+      },
+      "keystore_sink": {
+        "status": "uyarı",
+        "note": "Keystore durumu consent ile türetildi; ifşa yok."
+      },
+      "general": {
+        "status": "uyarı",
+        "note": "Consent alınmadı."
+      }
+    }
+  },
+  "config": {
+    "config_snapshot": {
+      "profil": "—",
+      "workspace_root": ".lumos",
+      "write_status": "Salt okunur",
+      "last_activity": null,
+      "last_activity_text": "Backend yazım kapalı; yalnızca okuma."
+    }
+  },
+  "identity": {
+    "identity_state": "—",
+    "identity_last_write": null,
+    "identity_target_scope": "çekirdek kimlik alanı",
+    "identity_guard_result": "Korunuyor"
+  },
+  "keystore": {
+    "keystore_ready": false,
+    "keystore_state": "Kilitli",
+    "keystore_last_update": null,
+    "keystore_write_scope": "Kilit açılmadan hassas yazım yapılmaz"
+  }
+};

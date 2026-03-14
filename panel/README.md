@@ -20,6 +20,8 @@
 
 **Phase 1 read-only bridge uygulandı:** Dashboard, Korumalı Alan ve Sistem Durumu için hazır kaynak varsa (workspace_contract + consent_ok) okunuyor; `panel/scripts/read_backend_state.py --write` ile state enjekte edilebilir. Aksi halde fixture/demo fallback çalışır. Detay: `BACKEND_PHASE1_APPLIED.md`.
 
+**Phase 1 bridge genişletmesi (Config / Identity / Keystore):** Aynı read-only hattı Config, Kimlik ve Anahtar Kasası ekranlarını da besler. `read_backend_state.py` çıktısına `config` (config_snapshot: profil, workspace_root, write_status), `identity` (identity_state, identity_guard_result vb.), `keystore` (keystore_ready, keystore_state — consent_ok ile) eklenir; backend-bridge ve app adapter bu üç ekran için backend → fixture/demo önceliğiyle çalışır. Yazım yok; salt okunur.
+
 ## Çalıştırma
 
 - **Doğrudan:** `panel/index.html` açın (`file://`).
