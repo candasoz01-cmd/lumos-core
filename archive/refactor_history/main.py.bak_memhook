@@ -1,0 +1,84 @@
+import os
+import json
+from pathlib import Path
+
+from security.permissions import PermissionManager
+from core.lumos import Lumos
+from context.context import Context
+from policy.offline_engine import OfflineEngineV1
+from engine.online_engine import OnlineEngineV1
+
+from security.keystore import FileKeyStore
+from memory.secure_store import SecureNotesStore
+
+
+def _read_lumos_id() -> str:
+    try:
+        src_dir = Path(__file__).resolve().parent
+        identity_path = src_dir / ".lumos" / "identity.json"
+        if not identity_path.exists():
+            return ""
+        data = json.loads(identity_path.read_text(encoding="utf-8"))
+        return str(data.get("lumos_id", "")).strip()
+    except Exception:
+        return ""
+
+
+def main():
+    MODE = os.getenv("LUMOS_MODE", "offline")
+    perm = PermissionManager(enabled=True)
+    engine = OfflineEngineV1(perm=perm) if MODE == "offline" else OnlineEngineV1()
+
+    lumos = Lumos(mode=MODE, engine=engine)
+    lumos.boot()
+
+    passphrase = os.getenv("LUMOS_PASSPHRASE", "").strip()
+    if passphrase:
+        try:
+            ks = FileKeyStore(base_dir="src/.lumos")
+            root_key = ks.load_root_key(passphrase)
+            store = SecureNotesStore(base_dir="src/.lumos")
+            lumos.note_memory.attach_store(store, root_key)
+            if os.getenv("LUMOS_DEBUG", "0") == "1":
+                print("[MEM] encrypted notes: OK")
+        except Exception:
+            if os.getenv("LUMOS_DEBUG", "0") == "1":
+                print("[MEM] encrypted notes: FAIL")
+
+    lumos_id = _read_lumos_id()
+    if os.getenv("LUMOS_DEBUG", "0") == "1":
+        print(f"[ID] lumos_id={'OK' if lumos_id else 'MISSING'}")
+
+    while True:
+        user_in = input("Sen: ").strip()
+        if not user_in:
+            continue
+
+        low = user_in.lower()
+
+        if low in ["exit", "quit", "çık", "cik"]:
+            break
+
+        if low in ["reset", "sil", "temizle"]:
+            lumos.session_memory.clear()
+            print("Lumos: Tamam. Bu oturumun kısa bağlamını sıfırladım.")
+            continue
+
+        ctx = Context(
+            message=user_in,
+            online=(MODE == "online"),
+            confidence=0.9,
+            user_is_child=False,
+            lumos_id=lumos_id
+        )
+
+        out = lumos.respond(ctx)
+        if out:
+            print(f"Lumos: {out}")
+
+        if os.getenv("LUMOS_DEBUG", "0") == "1":
+            snap = perm.snapshot()
+            print(f"[PERM] {snap}")
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,115 @@
+import os
+import json
+from pathlib import Path
+
+from security.permissions import PermissionManager
+from security.keystore import FileKeyStore
+from memory.secure_store import SecureNotesStore
+
+from core.lumos import Lumos
+from context.context import Context
+from policy.offline_engine import OfflineEngineV1
+from engine.online_engine import OnlineEngineV1
+
+
+def _read_lumos_id() -> str:
+    try:
+        src_dir = Path(__file__).resolve().parent
+        identity_path = src_dir / ".lumos" / "identity.json"
+        if not identity_path.exists():
+            return ""
+        data = json.loads(identity_path.read_text(encoding="utf-8"))
+        return str(data.get("lumos_id", "")).strip()
+    except Exception:
+        return ""
+
+
+def main():
+    MODE = os.getenv("LUMOS_MODE", "offline")
+    perm = PermissionManager(enabled=True)
+
+    offline_engine = OfflineEngineV1(perm=perm)
+    engine = offline_engine if MODE == "offline" else OnlineEngineV1()
+
+    lumos = Lumos(mode=MODE, engine=engine)
+    lumos.boot()
+
+    # ---- LOCK CALLBACKS (offline) ----
+
+    def unlock_cb(passphrase: str):
+        passphrase = (passphrase or "").strip()
+        if not passphrase:
+            return False, "Şifre boş."
+
+        try:
+            ks = FileKeyStore(base_dir="src/.lumos")
+            root_key = ks.load_root_key(passphrase)
+
+            store = SecureNotesStore(base_dir="src/.lumos")
+            lumos.note_memory.attach_store(store, root_key)
+
+            lumos.lock_state.unlock(root_key)
+            return True, "Kilit açıldı."
+        except Exception:
+            return False, "Kilit açılamadı. Şifre yanlış olabilir."
+
+    def lock_cb():
+        lumos.lock_state.lock()
+        lumos.note_memory.root_key = None
+        return None
+
+    def status_cb():
+        if lumos.lock_state.unlocked:
+            return {"response": "UNLOCKED"}
+        return {"response": "LOCKED"}
+
+    if MODE == "offline":
+        offline_engine.unlock_cb = unlock_cb
+        offline_engine.lock_cb = lock_cb
+        offline_engine.lock_status_cb = status_cb
+
+    # ---- DEV AUTO-ATTACH (sadece ENV varsa) ----
+    passphrase = os.getenv("LUMOS_PASSPHRASE", "").strip()
+    if passphrase:
+        ok, msg = unlock_cb(passphrase)
+        if os.getenv("LUMOS_DEBUG", "0") == "1":
+            print(f"[MEM] {msg}")
+
+    lumos_id = _read_lumos_id()
+    if os.getenv("LUMOS_DEBUG", "0") == "1":
+        print(f"[ID] lumos_id={'OK' if lumos_id else 'MISSING'}")
+
+    while True:
+        user_in = input("Sen: ").strip()
+        if not user_in:
+            continue
+
+        low = user_in.lower()
+
+        if low in ["exit", "quit", "çık", "cik"]:
+            break
+
+        if low in ["reset", "sil", "temizle"]:
+            lumos.session_memory.clear()
+            print("Lumos: Tamam. Bu oturumun kısa bağlamını sıfırladım.")
+            continue
+
+        ctx = Context(
+            message=user_in,
+            online=(MODE == "online"),
+            confidence=0.9,
+            user_is_child=False,
+            lumos_id=lumos_id
+        )
+
+        out = lumos.respond(ctx)
+        if out:
+            print(f"Lumos: {out}")
+
+        if os.getenv("LUMOS_DEBUG", "0") == "1":
+            snap = perm.snapshot()
+            print(f"[PERM] {snap}")
+
+
+if __name__ == "__main__":
+    main()

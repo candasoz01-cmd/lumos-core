@@ -1,0 +1,194 @@
+import os
+import json
+import time
+from pathlib import Path
+from getpass import getpass
+
+from security.permissions import PermissionManager
+from security.keystore import FileKeyStore
+from security.identity import DeviceIdentity
+from memory.secure_store import SecureNotesStore
+
+from core.lumos import Lumos
+from context.context import Context
+from policy.offline_engine import OfflineEngineV1
+from engine.online_engine import OnlineEngineV1
+
+
+def _lumos_dir() -> str:
+    if Path("src/.lumos").exists():
+        return "src/.lumos"
+    return ".lumos"
+
+
+def _read_lumos_id(base_dir: str) -> str:
+    try:
+        p = Path(base_dir) / "identity.json"
+        if not p.exists():
+            return ""
+        data = json.loads(p.read_text(encoding="utf-8"))
+        return str(data.get("lumos_id", "")).strip()
+    except Exception:
+        return ""
+
+
+def main() -> None:
+    MODE = os.getenv("LUMOS_MODE", "offline").strip().lower()
+    DEBUG = os.getenv("LUMOS_DEBUG", "0") == "1"
+    DEV = os.getenv("LUMOS_DEV", "0") == "1"
+
+    base_dir = _lumos_dir()
+
+    perm = PermissionManager(enabled=True)
+
+    offline_engine = OfflineEngineV1(perm=perm)
+    online_engine = OnlineEngineV1()
+
+    engine = offline_engine if MODE == "offline" else online_engine
+
+    lumos = Lumos(mode=MODE, engine=engine)
+    lumos.boot()
+
+    unlocked = False
+    root_key = None
+
+    ks = FileKeyStore(base_dir=base_dir)
+    ident = DeviceIdentity(base_dir=base_dir)
+
+    def _attach_notes(rk: bytes) -> bool:
+        try:
+            store = SecureNotesStore(base_dir=base_dir)
+            lumos.note_memory.attach_store(store, rk)
+            return True
+        except Exception:
+            return False
+
+    def unlock_with_passphrase(passphrase: str) -> tuple[bool, str]:
+        nonlocal unlocked, root_key
+        p = (passphrase or "").strip()
+        if not p:
+            return False, "FAIL"
+        try:
+            rk = ks.load_root_key(p)
+            if not _attach_notes(rk):
+                return False, "FAIL"
+            root_key = rk
+            unlocked = True
+            return True, "OK"
+        except Exception:
+            return False, "FAIL"
+
+    def do_lock() -> None:
+        nonlocal unlocked, root_key
+        unlocked = False
+        root_key = None
+        try:
+            lumos.note_memory.root_key = None
+        except Exception:
+            pass
+
+    def lock_status() -> str:
+        return "UNLOCKED" if unlocked else "LOCKED"
+
+    def lock_console() -> None:
+        nonlocal unlocked
+        print("LOCK")
+        print("Kilit: durum | ac | kapat | cik")
+        while True:
+            cmd = input("Kilit> ").strip().lower()
+            if not cmd:
+                print("HELP: durum | ac | kapat | cik")
+                continue
+
+            if cmd in ["cik", "çık", "exit", "quit"]:
+                print("OK")
+                return
+
+            if cmd in ["durum", "status"]:
+                print(lock_status())
+                continue
+
+            if cmd in ["kapat", "kilitle", "lock"]:
+                do_lock()
+                print("OK")
+                continue
+
+            if cmd in ["ac", "aç", "unlock"]:
+                pw = getpass("Passphrase: ")
+                ok, msg = unlock_with_passphrase(pw)
+                print(msg)
+                continue
+
+            print("HELP: durum | ac | kapat | cik")
+
+    if DEV:
+        envp = (os.getenv("LUMOS_PASSPHRASE", "") or "").strip()
+        if envp:
+            ok, msg = unlock_with_passphrase(envp)
+            if DEBUG:
+                print(f"[MEM] {msg}")
+
+    lumos_id = _read_lumos_id(base_dir)
+    if DEBUG:
+        print(f"[ID] lumos_id={'OK' if lumos_id else 'MISSING'}")
+
+    auto_lock_enabled = os.getenv("LUMOS_AUTOLOCK", "1") == "1"
+    auto_lock_timeout = int(os.getenv("LUMOS_AUTOLOCK_SECONDS", "60"))
+    last_activity = time.time()
+
+    while True:
+        if unlocked and auto_lock_enabled:
+            if (time.time() - last_activity) > auto_lock_timeout:
+                do_lock()
+                print("AUTO-LOCK")
+
+        user_in = input("Sen: ").strip()
+        if not user_in:
+            continue
+
+        last_activity = time.time()
+        low = user_in.lower().strip()
+
+        if low in ["exit", "quit", "çık", "cik"]:
+            break
+
+        if low in ["kilit", "lock"]:
+            lock_console()
+            continue
+
+        if not unlocked:
+            print("LOCKED")
+            continue
+
+        if MODE == "online":
+            if not lumos_id:
+                print("LOCKED")
+                continue
+            if not ident.is_initialized():
+                print("LOCKED")
+                continue
+
+        if low in ["reset", "sil", "temizle"]:
+            lumos.session_memory.clear()
+            print("Lumos: Tamam.")
+            continue
+
+        ctx = Context(
+            message=user_in,
+            online=(MODE == "online"),
+            confidence=0.9,
+            user_is_child=False,
+            lumos_id=lumos_id,
+        )
+
+        out = lumos.respond(ctx)
+        if out:
+            print(f"Lumos: {out}")
+
+        if DEBUG:
+            snap = perm.snapshot()
+            print(f"[PERM] {snap}")
+
+
+if __name__ == "__main__":
+    main()

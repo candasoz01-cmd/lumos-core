@@ -1,0 +1,140 @@
+import os
+import json
+import time
+from pathlib import Path
+from getpass import getpass
+
+from security.permissions import PermissionManager
+from security.keystore import FileKeyStore
+from security.identity import DeviceIdentity
+from memory.secure_store import SecureNotesStore
+
+from core.lumos import Lumos
+from context.context import Context
+from policy.offline_engine import OfflineEngineV1
+from engine.online_engine import OnlineEngineV1
+
+
+def _lumos_dir() -> str:
+    if Path("src/.lumos").exists():
+        return "src/.lumos"
+    return ".lumos"
+
+
+def _read_lumos_id(base_dir: str) -> str:
+    try:
+        p = Path(base_dir) / "identity.json"
+        if not p.exists():
+            return ""
+        data = json.loads(p.read_text(encoding="utf-8"))
+        return str(data.get("lumos_id", "")).strip()
+    except Exception:
+        return ""
+
+
+def main() -> None:
+    MODE = os.getenv("LUMOS_MODE", "offline").strip().lower()
+    DEBUG = os.getenv("LUMOS_DEBUG", "0") == "1"
+
+    base_dir = _lumos_dir()
+
+    perm = PermissionManager(enabled=True)
+
+    offline_engine = OfflineEngineV1(perm=perm)
+    online_engine = OnlineEngineV1()
+    engine = offline_engine if MODE == "offline" else online_engine
+
+    lumos = Lumos(mode=MODE, engine=engine)
+    lumos.boot()
+
+    root_key = None
+    ks = FileKeyStore(base_dir=base_dir)
+    ident = DeviceIdentity(base_dir=base_dir)
+
+    def _attach_notes(rk: bytes) -> bool:
+        try:
+            store = SecureNotesStore(base_dir=base_dir)
+            lumos.note_memory.attach_store(store, rk)
+            return True
+        except Exception:
+            return False
+
+    def unlock_with_passphrase(passphrase: str) -> tuple[bool, str]:
+        nonlocal root_key
+        p = (passphrase or "").strip()
+        if not p:
+            return False, "FAIL"
+        try:
+            rk = ks.load_root_key(p)
+            if not _attach_notes(rk):
+                return False, "FAIL"
+            root_key = rk
+            lumos.lock_state.unlock(rk)
+            try:
+                lumos.note_memory.root_key = rk
+            except Exception:
+                pass
+            return True, "OK"
+        except Exception:
+            return False, "FAIL"
+
+    def do_lock() -> None:
+        nonlocal root_key
+        lumos.lock_state.lock()
+        root_key = None
+        try:
+            lumos.note_memory.root_key = None
+        except Exception:
+            pass
+
+    def lock_status() -> str:
+        return "UNLOCKED" if lumos.lock_state.unlocked else "LOCKED"
+
+    def lock_console() -> None:
+
+        print("LOCK")
+
+        print("Kilit: durum | ac | kapat | cik")
+
+        while True:
+
+            cmd = input("Kilit> ").strip().lower()
+
+            if cmd in ["cik", "çık", "exit", "quit"]:
+
+                print("OK")
+
+                return
+
+            if cmd in ["durum", "status"]:
+
+                print("UNLOCKED" if lumos.lock_state.unlocked else "LOCKED")
+
+                continue
+
+            if cmd in ["kapat", "kilitle", "lock"]:
+
+                do_lock()
+
+                print("OK")
+
+                continue
+
+            if cmd in ["ac", "aç", "unlock"]:
+
+                pw = getpass("Passphrase: ")
+
+                ok, msg = unlock_with_passphrase(pw)
+
+                print(msg)
+
+                if ok:
+
+                    return
+
+                continue
+
+            print("HELP: durum | ac | kapat | cik")
+
+if __name__ == "__main__":
+    main()
