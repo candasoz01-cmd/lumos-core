@@ -23,11 +23,16 @@ class Lumos:
     lock_state: LockState = field(default_factory=LockState)
 
     def boot(self) -> None:
-        print("Lumos core başlatılıyor...")
-        print(f"Versiyon: {VERSION}")
-        print(f"Mod: {self.mode} (varsayılan)")
-        print("Durum: güvenli")
-        print("Hazır.")
+        print("LUMOS CORE")
+        print("secure runtime link...")
+        print("policy guard online")
+        print("memory channel linked")
+        print("planner ready")
+        print("task engine ready")
+        print("verification ready")
+        print("observation ready")
+        print("system stable")
+        print(f"Version: {VERSION} | Mod: {self.mode}")
 
     def respond(self, ctx: Context) -> Optional[str]:
         # 0) Lock state
