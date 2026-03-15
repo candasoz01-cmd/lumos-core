@@ -169,6 +169,23 @@ def handle_live_brain(
     if not raw:
         return "Boş giriş; işlem yapılmadı."
 
+    # --- Pending intent first: route to resume path before consent, chitchat, or LLM ---
+    # If we asked a clarification (e.g. "Hangi klasör?"), the next reply must fill missing params and resume intent.
+    _pending_intent_name: str | None = None
+    _pending_missing: str = ""
+    if state is not None and getattr(state, "pending_intent", None):
+        _pending_intent_name = (state.pending_intent or "").strip() or "unknown"
+        _params = getattr(state, "pending_params", None) or {}
+        _pending_missing = (_params.get("_missing_param") or "").strip()
+    elif pending_intent_ref is not None and len(pending_intent_ref) > 0 and pending_intent_ref[0]:
+        _pi = pending_intent_ref[0]
+        _pending_intent_name = _pi.get("intent") or "unknown"
+        _pending_missing = _pi.get("missing_param") or ""
+
+    if _pending_intent_name:
+        msg, _ = _resume_pending_intent(raw, _pending_intent_name, _pending_missing, state, pending_intent_ref)
+        return msg
+
     # --- Consent flow: user says "onaylıyorum" (or similar) ---
     if _is_consent_phrase(raw):
         if general_approval_ref is not None:
@@ -185,23 +202,6 @@ def handle_live_brain(
                 + (f"\nDevam etmek için: görev yürüt {task_id}" if task_id else "")
             )
         return "Genel onay açıldı. İstediğin işlemi söyleyebilirsin."
-
-    # --- Pre-LLM: pending intent MUST be handled before any free-text LLM call ---
-    # Clarification replies (e.g. "WORK_2026") go to _resume_pending_intent only; original intent is resumed and state cleared.
-    _pending_intent_name: str | None = None
-    _pending_missing: str = ""
-    if state is not None and getattr(state, "pending_intent", None):
-        _pending_intent_name = (state.pending_intent or "").strip() or "unknown"
-        _params = getattr(state, "pending_params", None) or {}
-        _pending_missing = (_params.get("_missing_param") or "").strip()
-    elif pending_intent_ref is not None and len(pending_intent_ref) > 0 and pending_intent_ref[0]:
-        _pi = pending_intent_ref[0]
-        _pending_intent_name = _pi.get("intent") or "unknown"
-        _pending_missing = _pi.get("missing_param") or ""
-
-    if _pending_intent_name:
-        msg, _ = _resume_pending_intent(raw, _pending_intent_name, _pending_missing, state, pending_intent_ref)
-        return msg
 
     # --- Ask clarification: deterministic intent that needs one param (e.g. list_files → folder) ---
     detected = _detect_list_files_intent(raw)
