@@ -35,7 +35,15 @@ def _evaluate_triggers(signal: dict[str, Any]) -> list[tuple[str, TaskPriority]]
     mem = signal.get("memory_percent")
     process_count = signal.get("process_count")
     if cpu is not None and float(cpu) > TRIGGER_HIGH_CPU_PERCENT:
-        out.append(("High CPU usage detected", TaskPriority.HIGH))
+        desc = "High CPU usage detected"
+        high_cpu = signal.get("high_cpu_processes") or []
+        if high_cpu:
+            top = high_cpu[0]
+            name = top.get("name") or "?"
+            pid = top.get("pid", "?")
+            pct = top.get("cpu_percent", 0)
+            desc += f" — top process: {name} (pid {pid}, {pct}% CPU)"
+        out.append((desc, TaskPriority.HIGH))
     if mem is not None and float(mem) >= TRIGGER_HIGH_MEMORY_PERCENT:
         out.append(("Review high memory usage", TaskPriority.HIGH))
     if process_count is not None and int(process_count) >= TRIGGER_PROCESS_COUNT_ABOVE:
