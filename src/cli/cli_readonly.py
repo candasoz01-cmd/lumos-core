@@ -50,6 +50,7 @@ class ReadOnlyContext:
     current_permission_profile: list
     task_store: Any
     aliases: dict
+    general_approval: list  # same ref as mut_ctx.general_approval; session consent for durum/hazır
     record_note_op: Callable[[str], None]
     record_today_action: Callable[[str], None]
 
@@ -108,8 +109,10 @@ def handle_readonly(route: str, args: list[str], ctx: ReadOnlyContext) -> bool:
         return True
 
     # ---- Status / öneri / güvenlik (read-only) ----
+    _ga = getattr(ctx, "general_approval", None)
+    _session_consent = bool(_ga and _ga[0]) if _ga else False
     if route == "onerir":
-        oneriler = _get_oneri(ctx.base_dir, ctx.ks.is_initialized(), ctx.pl)
+        oneriler = _get_oneri(ctx.base_dir, ctx.ks.is_initialized(), ctx.pl, session_consent=_session_consent)
         for o in oneriler:
             print(o)
         ctx.last_response_reason[0] = (oneriler[0].rstrip(".") if oneriler and oneriler[0] else None)
@@ -118,7 +121,7 @@ def handle_readonly(route: str, args: list[str], ctx: ReadOnlyContext) -> bool:
         ctx.record_today_action(ctx.last_action[0])
         return True
     if route == "sonraki_adim":
-        step = _get_tek_sonraki_adim(ctx.base_dir, ctx.ks.is_initialized(), ctx.pl)
+        step = _get_tek_sonraki_adim(ctx.base_dir, ctx.ks.is_initialized(), ctx.pl, session_consent=_session_consent)
         print(step)
         ctx.last_response_reason[0] = step.replace("Bir sonraki adım: ", "").strip() if step.startswith("Bir sonraki adım:") else step
         ctx.last_action[0] = "En son tek sonraki adımı söyledim."
@@ -126,7 +129,7 @@ def handle_readonly(route: str, args: list[str], ctx: ReadOnlyContext) -> bool:
         ctx.record_today_action(ctx.last_action[0])
         return True
     if route == "guvenli_miyim":
-        resp = _get_guvenli_cevap(ctx.base_dir, ctx.ks.is_initialized(), ctx.pl)
+        resp = _get_guvenli_cevap(ctx.base_dir, ctx.ks.is_initialized(), ctx.pl, session_consent=_session_consent)
         print(resp)
         ctx.last_response_reason[0] = resp.split(". ", 1)[1].strip().rstrip(".") if ". " in resp else resp
         ctx.last_action[0] = "En son güvenlik cevabını verdim."
@@ -134,7 +137,7 @@ def handle_readonly(route: str, args: list[str], ctx: ReadOnlyContext) -> bool:
         ctx.record_today_action(ctx.last_action[0])
         return True
     if route == "en_onemli_eksik":
-        resp = _get_en_onemli_eksik(ctx.base_dir, ctx.ks.is_initialized(), ctx.pl)
+        resp = _get_en_onemli_eksik(ctx.base_dir, ctx.ks.is_initialized(), ctx.pl, session_consent=_session_consent)
         print(resp)
         ctx.last_response_reason[0] = resp
         ctx.last_action[0] = "En son tek kritik eksiği söyledim."
@@ -142,7 +145,7 @@ def handle_readonly(route: str, args: list[str], ctx: ReadOnlyContext) -> bool:
         ctx.record_today_action(ctx.last_action[0])
         return True
     if route == "hangi_moddayim":
-        resp = _get_mod_cevabi(ctx.mode, ctx.base_dir, ctx.ks.is_initialized(), ctx.pl)
+        resp = _get_mod_cevabi(ctx.mode, ctx.base_dir, ctx.ks.is_initialized(), ctx.pl, session_consent=_session_consent)
         print(resp)
         ctx.last_response_reason[0] = resp
         ctx.last_action[0] = "En son mod cevabını verdim."
@@ -240,7 +243,9 @@ def handle_readonly(route: str, args: list[str], ctx: ReadOnlyContext) -> bool:
                 print("Durum özeti:")
             log_path = logs_file_path(ctx.base_dir)
             snap = ctx.state.snapshot(base_dir=ctx.base_dir, log_path=log_path)
-            parts = get_durum_parts(Path(ctx.base_dir), ctx.ks.is_initialized(), ctx.engine.pl)
+            ga = getattr(ctx, "general_approval", None)
+            session_consent = bool(ga and ga[0]) if ga else False
+            parts = get_durum_parts(Path(ctx.base_dir), ctx.ks.is_initialized(), ctx.engine.pl, session_consent=session_consent)
             durum_txt = format_durum(snap, parts["consent_ok"], parts["lock_ok"], parts["durum_label"], parts["not_line"])
             print(durum_txt)
             ctx.last_response_reason[0] = parts.get("not_line") or parts.get("durum_label", "")
@@ -254,7 +259,9 @@ def handle_readonly(route: str, args: list[str], ctx: ReadOnlyContext) -> bool:
         from core.startup_health import get_startup_summary
         ctx.current_task[0] = "açılış sağlık özetini doğruluyorum."
         try:
-            summary = get_startup_summary(Path(ctx.base_dir), not ctx.state.is_locked(), ctx.pl)
+            ga = getattr(ctx, "general_approval", None)
+            session_consent = bool(ga and ga[0]) if ga else False
+            summary = get_startup_summary(Path(ctx.base_dir), not ctx.state.is_locked(), ctx.pl, session_consent=session_consent)
             print(summary)
             ctx.last_response_reason[0] = summary
             ctx.last_action[0] = "En son hazır olma özetini verdim."

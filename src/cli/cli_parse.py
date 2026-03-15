@@ -182,8 +182,13 @@ def get_fallback_message(raw: str, last_route: str | None) -> str:
     return NEUTRAL_FALLBACK_TEXT
 
 
-def _get_oneri(base_dir: str | Path, keystore_initialized: bool, presence_module: Any) -> list[str]:
-    parts = get_durum_parts(Path(base_dir), keystore_initialized, presence_module)
+def _get_oneri(
+    base_dir: str | Path,
+    keystore_initialized: bool,
+    presence_module: Any,
+    session_consent: bool = False,
+) -> list[str]:
+    parts = get_durum_parts(Path(base_dir), keystore_initialized, presence_module, session_consent=session_consent)
     consent_ok = parts["consent_ok"]
     lock_ok = parts["lock_ok"]
     durum_label = parts.get("durum_label", "")
@@ -212,8 +217,13 @@ def _get_oneri(base_dir: str | Path, keystore_initialized: bool, presence_module
     return out if out else ["durum yazıp mevcut durumu kontrol edebilirsin."]
 
 
-def _get_tek_sonraki_adim(base_dir: str | Path, keystore_initialized: bool, presence_module: Any) -> str:
-    oneriler = _get_oneri(base_dir, keystore_initialized, presence_module)
+def _get_tek_sonraki_adim(
+    base_dir: str | Path,
+    keystore_initialized: bool,
+    presence_module: Any,
+    session_consent: bool = False,
+) -> str:
+    oneriler = _get_oneri(base_dir, keystore_initialized, presence_module, session_consent=session_consent)
     first = (oneriler or [""])[0]
     if first.startswith("Önce consent"):
         return "Bir sonraki adım: önce consent akışını tamamla."
@@ -228,8 +238,13 @@ def _get_tek_sonraki_adim(base_dir: str | Path, keystore_initialized: bool, pres
     return "Bir sonraki adım: durum veya hazir ile devam et."
 
 
-def _get_guvenli_cevap(base_dir: str | Path, keystore_initialized: bool, presence_module: Any) -> str:
-    parts = get_durum_parts(Path(base_dir), keystore_initialized, presence_module)
+def _get_guvenli_cevap(
+    base_dir: str | Path,
+    keystore_initialized: bool,
+    presence_module: Any,
+    session_consent: bool = False,
+) -> str:
+    parts = get_durum_parts(Path(base_dir), keystore_initialized, presence_module, session_consent=session_consent)
     consent_ok = parts["consent_ok"]
     lock_ok = parts["lock_ok"]
     durum_label = parts.get("durum_label", "")
@@ -249,8 +264,13 @@ def _get_guvenli_cevap(base_dir: str | Path, keystore_initialized: bool, presenc
     return "Şu an kısmen güvenlisin. " + (parts.get("not_line") or "Durum ile detay görebilirsin.")
 
 
-def _get_en_onemli_eksik(base_dir: str | Path, keystore_initialized: bool, presence_module: Any) -> str:
-    parts = get_durum_parts(Path(base_dir), keystore_initialized, presence_module)
+def _get_en_onemli_eksik(
+    base_dir: str | Path,
+    keystore_initialized: bool,
+    presence_module: Any,
+    session_consent: bool = False,
+) -> str:
+    parts = get_durum_parts(Path(base_dir), keystore_initialized, presence_module, session_consent=session_consent)
     if not parts["consent_ok"]:
         return "En önemli eksik: consent alınmamış."
     if not parts["lock_ok"]:
@@ -265,9 +285,10 @@ def _get_mod_cevabi(
     base_dir: str | Path,
     keystore_initialized: bool,
     presence_module: Any,
+    session_consent: bool = False,
 ) -> str:
     if (mode or "").strip().lower() == "offline":
-        parts = get_durum_parts(Path(base_dir), keystore_initialized, presence_module)
+        parts = get_durum_parts(Path(base_dir), keystore_initialized, presence_module, session_consent=session_consent)
         if parts.get("durum_label") == "güvenli":
             return "Şu an güvenli offline moddasın."
         return "Şu an offline moddasın."

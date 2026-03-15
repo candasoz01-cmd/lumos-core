@@ -774,6 +774,7 @@ def create_runtime(sandbox_mode: bool | None = None) -> RuntimeResult:
     ctx.current_permission_profile = current_permission_profile
     ctx.task_store = task_store
     ctx.aliases = aliases
+    ctx.general_approval = general_approval
     ctx.record_note_op = lambda label: _record_note_op(note_ops_history, label)
     ctx.record_today_action = lambda action: _record_today_action(
         today_date, today_actions, action
