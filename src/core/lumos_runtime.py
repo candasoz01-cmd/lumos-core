@@ -855,6 +855,7 @@ def create_runtime(sandbox_mode: bool | None = None) -> RuntimeResult:
                 current_permission_profile[0],
                 general_approval[0],
                 observation_engine=event_recording_engine,
+                state=state,
             )
             print(msg)
 

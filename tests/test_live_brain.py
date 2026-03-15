@@ -60,6 +60,41 @@ def test_unknown_input_online_routes_to_brain():
     assert call_args[0][0] == "selam"
 
 
+def test_live_brain_injects_state_when_provided():
+    """When state is provided, handle_live_brain passes mode/presence/consent/lock to engine.process."""
+    from core.live_brain import handle_live_brain
+    from core.state import CoreState
+
+    mock_engine = MagicMock()
+    mock_engine.process.return_value = {"response": "Tamam."}
+    mock_lumos = MagicMock()
+    mock_lumos.lock_state.unlocked = True
+    mock_pl = MagicMock()
+    mock_pl.presence_status.return_value = "ON"
+    mock_pl.is_running.return_value = True
+    mock_pl.load_presence_cfg.return_value = MagicMock(enabled=True)
+    state = CoreState(mock_lumos, mock_pl, "online", base_dir=Path("/tmp"))
+    with tempfile.TemporaryDirectory() as d:
+        from task_engine import TaskStore, PROFILE_RAPOR
+
+        store = TaskStore(d)
+        handle_live_brain(
+            "test",
+            mock_engine,
+            store,
+            d,
+            PROFILE_RAPOR,
+            True,
+            observation_engine=None,
+            state=state,
+        )
+    mock_engine.process.assert_called_once()
+    kwargs = mock_engine.process.call_args[1]
+    assert kwargs.get("mode") == "online"
+    assert kwargs.get("lock") == "UNLOCKED"
+    assert kwargs.get("consent") == "kayıtlı"
+
+
 def test_live_brain_direct_response_without_task():
     """Brain can return a direct response without creating a task."""
     from core.live_brain import handle_live_brain
