@@ -26,6 +26,8 @@ class TaskMutationContext:
     last_task_create_fingerprint: list
     record_today_action: Callable[[str], None]
     event_recording_engine: Any = None  # ObservationEngine | None: record execution/verification events
+    pending_intent: list = None  # [dict | None]: clarification flow — intent + missing_param
+    pending_action: list = None  # [dict | None]: consent flow — blocked task_id + goal
 
 
 def handle_task_mutation(route: str, args: list[str], ctx: TaskMutationContext) -> bool:
