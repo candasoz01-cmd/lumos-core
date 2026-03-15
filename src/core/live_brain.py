@@ -4,6 +4,10 @@ When CLI receives unknown input and online mode is enabled, this module handles
 the input via the online engine (LLM) and optionally creates a task through Brain.
 Safe: no bypass of consent/lock/profile; task creation goes through Planner/TaskEngine.
 
+Flow for deterministic intents: intent → tool check → execute or reject.
+If tool not available we reject with "Bu özellik şu an mevcut değil." (no clarification asked).
+If available we ask missing params (e.g. "Hangi klasör?"), then on reply resume → tool check again → execute or reject.
+
 Pending intent: when we ask a clarification (e.g. "Hangi klasör?"), we store the
 active intent; when the user answers, we continue that intent (clarification → answer → resumed intent).
 Pending action: when a task is blocked due to consent, we store it; when the user
@@ -19,6 +23,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from core.brain import run as brain_run
+from core.tool_registry import tool_available
 
 if TYPE_CHECKING:
     from core.state import CoreState
@@ -53,6 +58,16 @@ def _is_likely_unrelated_reply(raw: str, _missing_param: str) -> bool:
     return False
 
 
+_REJECT_MSG = "Bu özellik şu an mevcut değil."
+
+
+def _reject_intent(intent: str, raw: str = "") -> str:
+    """Reject message when tool is not available (intent → tool check → reject)."""
+    if intent == "list_files" and raw:
+        return f"{raw.strip()} klasörü için listeleme istedin; {_REJECT_MSG}"
+    return f"Niyet: {intent}. Yanıt: {raw!r}. {_REJECT_MSG}" if raw else _REJECT_MSG
+
+
 def _resume_pending_intent(
     raw: str,
     intent: str,
@@ -62,6 +77,7 @@ def _resume_pending_intent(
 ) -> tuple[str, bool]:
     """
     Handle user reply when a pending intent exists. Does not call the LLM.
+    Flow: intent → tool check → execute or reject.
     Returns (response_message, consumed).
     - consumed True: reply was used as clarification; state/ref cleared; intent resumed (or rejected).
     - consumed False: reply is unrelated (chitchat/emoji); state kept; ask again or prompt.
@@ -72,7 +88,7 @@ def _resume_pending_intent(
             return "Hangi klasör demek istemiştim; lütfen klasör adı yaz.", False
         return "Lütfen önceki soruya yanıt ver (ör. parametre veya değer yaz).", False
 
-    # Valid clarification reply: resume intent, then clear state (no filesystem faked).
+    # Valid clarification reply: clear state, then intent → tool check → execute / reject
     if pending_intent_ref is not None and len(pending_intent_ref) > 0:
         pending_intent_ref[0] = None
     if state is not None:
@@ -80,9 +96,12 @@ def _resume_pending_intent(
         state.pending_params = {}
         state.pending_action = None
 
+    if not tool_available(intent):
+        return _reject_intent(intent, raw), True
+    # Tool available; execute (real implementation not wired yet — no filesystem)
     if intent == "list_files":
-        return f"{raw.strip()} klasörü için listeleme istedin; bu özellik şu an mevcut değil.", True
-    return f"Niyet: {intent}. Yanıt: {raw!r}. Bu özellik şu an mevcut değil.", True
+        return f"{raw.strip()} klasörü için listeleme istedin; dosya erişimi henüz bağlanmadı.", True
+    return f"Niyet: {intent}. Yanıt: {raw!r}. Dosya erişimi henüz bağlanmadı.", True
 
 
 def _is_consent_phrase(text: str) -> bool:
@@ -203,10 +222,12 @@ def handle_live_brain(
             )
         return "Genel onay açıldı. İstediğin işlemi söyleyebilirsin."
 
-    # --- Ask clarification: deterministic intent that needs one param (e.g. list_files → folder) ---
+    # --- Deterministic intent: intent → tool check → reject or ask clarification ---
     detected = _detect_list_files_intent(raw)
     if detected:
         intent_name = (detected.get("intent") or "").strip() or "unknown"
+        if not tool_available(intent_name):
+            return _REJECT_MSG
         missing_param = (detected.get("missing_param") or "").strip()
         params = dict(detected.get("params") or {})
         if missing_param:
