@@ -9,6 +9,7 @@ DeviceTaskEngine extends ObservationTaskEngine with device_guard / device_action
 from task_engine.models import Task, TaskPriority
 from task_engine.queue import TaskQueue
 from task_engine.observation_engine import ObservationTaskEngine
+from task_engine.queue_watcher import TaskQueueWatcher
 from task_engine.engine import (
     TaskRecord,
     TaskStep,
@@ -54,6 +55,7 @@ __all__ = [
     "TaskPriority",
     "TaskQueue",
     "ObservationTaskEngine",
+    "TaskQueueWatcher",
     "TaskRecord",
     "TaskStep",
     "TaskStore",

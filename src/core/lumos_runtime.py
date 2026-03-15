@@ -41,6 +41,7 @@ from task_engine import (
     TaskStore,
     TaskEngine,
     ObservationTaskEngine,
+    TaskQueueWatcher,
     PROFILE_RAPOR,
     PROFILE_GUVENLI_YURUT,
 )
@@ -737,6 +738,7 @@ def create_runtime(sandbox_mode: bool | None = None) -> RuntimeResult:
     tasks_dir = base_path / "tasks"
     task_store = TaskStore(tasks_dir, sandbox_mode=sandbox_mode)
     observation_engine = ObservationTaskEngine(max_queue_size=500)
+    queue_watcher = TaskQueueWatcher(observation_engine.queue)
     current_permission_profile: list[str] = [PROFILE_RAPOR]
     general_approval: list[bool] = [False]
 
@@ -806,6 +808,7 @@ def create_runtime(sandbox_mode: bool | None = None) -> RuntimeResult:
     router_ctx.last_note_undo = last_note_undo
     router_ctx.get_raw_input = get_raw_input
     router_ctx.observation_engine = observation_engine
+    router_ctx.queue_watcher_tick = queue_watcher.tick
     router_ctx.watchdog_tick = lambda: pl.watchdog_tick(
         Path(base_dir),
         state.log_event,
