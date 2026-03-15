@@ -11,9 +11,6 @@ from task_engine.profiles import (
     STEP_TYPE_ANALYZE,
     STEP_TYPE_CRITICAL,
     STEP_TYPE_EXTERNAL,
-    STEP_TYPE_PLAN,
-    STEP_TYPE_READ,
-    STEP_TYPE_SAFE_LOCAL,
 )
 from task_engine.verification.results import VerificationResult
 
