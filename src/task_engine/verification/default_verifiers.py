@@ -1,0 +1,142 @@
+"""
+Default verifiers per step.kind. Safe, non-destructive.
+Verifiers decide whether executor result can be considered verified.
+"""
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from task_engine.action_registry import ExecutionContext
+from task_engine.verification.results import VerificationResult
+
+if TYPE_CHECKING:
+    from task_engine.engine import TaskRecord, TaskStep
+
+
+def read_verifier(
+    step: "TaskStep",
+    task: "TaskRecord",
+    context: ExecutionContext,
+    ok: bool,
+    output: str,
+    error: str,
+    verified_from_executor: bool,
+) -> VerificationResult:
+    """verified=True only if real data was actually read (executor confirmed read success)."""
+    if not ok or error:
+        return VerificationResult(
+            verified=False,
+            reason="read_failed",
+            details=error or "Okuma tamamlanamadı.",
+        )
+    if verified_from_executor:
+        return VerificationResult(
+            verified=True,
+            reason="data_read",
+            details=output or "Veri okundu.",
+        )
+    return VerificationResult(
+        verified=False,
+        reason="no_data",
+        details=output or "Veri okunamadı (simülasyon).",
+    )
+
+
+def analyze_verifier(
+    step: "TaskStep",
+    task: "TaskRecord",
+    context: ExecutionContext,
+    ok: bool,
+    output: str,
+    error: str,
+    verified_from_executor: bool,
+) -> VerificationResult:
+    """Usually verified=False unless explicit proof input existed and analysis ran on it."""
+    if not ok or error:
+        return VerificationResult(
+            verified=False,
+            reason="analyze_failed",
+            details=error or "Analiz tamamlanamadı.",
+        )
+    # No explicit proof of input + analysis in current safe implementation
+    return VerificationResult(
+        verified=False,
+        reason="simulation",
+        details="Analiz simülasyonu; doğrulama yapılmadı.",
+    )
+
+
+def plan_verifier(
+    step: "TaskStep",
+    task: "TaskRecord",
+    context: ExecutionContext,
+    ok: bool,
+    output: str,
+    error: str,
+    verified_from_executor: bool,
+) -> VerificationResult:
+    """verified=False by default; treated as simulation unless explicit verification possible."""
+    if not ok or error:
+        return VerificationResult(
+            verified=False,
+            reason="plan_failed",
+            details=error or "Planlama tamamlanamadı.",
+        )
+    return VerificationResult(
+        verified=False,
+        reason="simulation",
+        details="Plan simülasyonu; doğrulama yapılmadı.",
+    )
+
+
+def safe_local_verifier(
+    step: "TaskStep",
+    task: "TaskRecord",
+    context: ExecutionContext,
+    ok: bool,
+    output: str,
+    error: str,
+    verified_from_executor: bool,
+) -> VerificationResult:
+    """verified only if expected local non-destructive result can be confirmed (success + no error)."""
+    if not ok or error:
+        return VerificationResult(
+            verified=False,
+            reason="safe_local_failed",
+            details=error or "Yerel işlem tamamlanamadı.",
+        )
+    # Non-destructive success: output indicates completion
+    if output and "tamamlandı" in output.lower():
+        return VerificationResult(
+            verified=True,
+            reason="local_confirmed",
+            details=output or "Güvenli yerel iş doğrulandı.",
+        )
+    return VerificationResult(
+        verified=False,
+        reason="simulation",
+        details=output or "Yerel iş çıktısı doğrulanamadı.",
+    )
+
+
+def default_verifier(
+    step: "TaskStep",
+    task: "TaskRecord",
+    context: ExecutionContext,
+    ok: bool,
+    output: str,
+    error: str,
+    verified_from_executor: bool,
+) -> VerificationResult:
+    """Default: treat as simulation (verified=False) when no kind-specific verifier applies."""
+    if not ok or error:
+        return VerificationResult(
+            verified=False,
+            reason="failed",
+            details=error or "Adım tamamlanamadı.",
+        )
+    return VerificationResult(
+        verified=False,
+        reason="simulation",
+        details="Varsayılan simülasyon; doğrulama yapılmadı.",
+    )

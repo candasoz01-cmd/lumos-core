@@ -45,6 +45,7 @@ from task_engine import (
     PROFILE_RAPOR,
     PROFILE_GUVENLI_YURUT,
 )
+from task_engine.observation import ObservationEngine as EventRecordingEngine
 
 
 def _lumos_dir() -> str:
@@ -739,6 +740,7 @@ def create_runtime(sandbox_mode: bool | None = None) -> RuntimeResult:
     task_store = TaskStore(tasks_dir, sandbox_mode=sandbox_mode)
     observation_engine = ObservationTaskEngine(max_queue_size=500)
     queue_watcher = TaskQueueWatcher(observation_engine.queue)
+    event_recording_engine = EventRecordingEngine()
     current_permission_profile: list[str] = [PROFILE_RAPOR]
     general_approval: list[bool] = [False]
 
@@ -791,6 +793,7 @@ def create_runtime(sandbox_mode: bool | None = None) -> RuntimeResult:
     mut_ctx.today_actions = today_actions
     mut_ctx.last_task_create_fingerprint = last_task_create_fingerprint
     mut_ctx.record_today_action = ctx.record_today_action
+    mut_ctx.event_recording_engine = event_recording_engine
 
     def get_raw_input() -> str:
         try:
