@@ -25,6 +25,7 @@ from cli.cli_router import RouterContext
 from cli.cli_tasks_mutation import TaskMutationContext
 from core.config import load_config
 from core.engine import CoreEngine
+from core.live_brain import handle_live_brain
 from core.logfmt import logfmt
 from core.lumos import Lumos
 from core.state import CoreState
@@ -840,5 +841,23 @@ def create_runtime(sandbox_mode: bool | None = None) -> RuntimeResult:
 
     router_ctx.on_self_test = do_self_test
     router_ctx.on_alias_menu = lambda args: alias_menu(args=args)
+
+    router_ctx.mode = mode
+    if mode == "online":
+        def _live_brain_handler(raw: str) -> None:
+            msg = handle_live_brain(
+                raw,
+                lumos.engine,
+                task_store,
+                base_dir,
+                current_permission_profile[0],
+                general_approval[0],
+                observation_engine=event_recording_engine,
+            )
+            print(msg)
+
+        router_ctx.on_live_brain = _live_brain_handler
+    else:
+        router_ctx.on_live_brain = None
 
     return RuntimeResult(ui_consumed=False, router_ctx=router_ctx)

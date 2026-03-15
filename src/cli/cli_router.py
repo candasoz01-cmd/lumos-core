@@ -8,7 +8,7 @@ presence, or workspace contract logic.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 from cli.cli_notes import handle_notes
 from cli.cli_parse import (
@@ -46,6 +46,9 @@ class RouterContext:
     # Observation task layer: internal tasks from system_monitor signals (set by runtime).
     observation_engine: Any = None  # ObservationTaskEngine | None
     queue_watcher_tick: Callable[[], None] | None = None  # optional; prints new tasks to CLI
+    # Live brain: when mode is "online", unknown input is routed here instead of fallback.
+    mode: str = "offline"
+    on_live_brain: Optional[Callable[[str], None]] = None
 
 
 def run_cli_loop(router_ctx: RouterContext) -> None:
@@ -108,7 +111,13 @@ def run_cli_loop(router_ctx: RouterContext) -> None:
         if route != "unknown":
             router_ctx.last_route[0] = route
         if route == "unknown":
-            print(get_fallback_message(raw, router_ctx.last_route[0]))
+            if (
+                getattr(router_ctx, "mode", "offline") == "online"
+                and getattr(router_ctx, "on_live_brain", None) is not None
+            ):
+                router_ctx.on_live_brain(raw)
+            else:
+                print(get_fallback_message(raw, router_ctx.last_route[0]))
             continue
         if handle_notes(route, args, router_ctx.ctx, router_ctx.cli_mode, router_ctx.last_note_undo):
             continue
