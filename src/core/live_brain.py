@@ -166,6 +166,30 @@ def _lookup_deterministic_intent(normalized: str) -> str | None:
     return INTENT_MAP.get(normalized) if normalized else None
 
 
+def _resolve_deterministic_intent_and_params(raw: str) -> tuple[str | None, dict[str, str]]:
+    """
+    Resolve deterministic intent (list_files, lock, unlock, exit) and params from raw message.
+    Uses INTENT_MAP, _detect_list_files_intent, and extract_intent_params. No execution.
+    Returns (intent_name, params) or (None, {}) when no deterministic intent matches.
+    """
+    t = (raw or "").strip()
+    if not t:
+        return (None, {})
+    normalized = _normalize_for_intent(t)
+    intent_name = _lookup_deterministic_intent(normalized)
+    if intent_name:
+        params = extract_intent_params(intent_name, raw)
+        return (intent_name, params)
+    detected = _detect_list_files_intent(raw)
+    if detected:
+        intent_name = (detected.get("intent") or "").strip() or "list_files"
+        params = dict(detected.get("params") or {})
+        if not params:
+            params = extract_intent_params("list_files", raw)
+        return (intent_name, params)
+    return (None, {})
+
+
 def _detect_list_files_intent(text: str) -> dict | None:
     """
     Detect "list files in folder" / "klasördeki dosyaları listele" or "X klasörünü listele" style intent.
@@ -247,6 +271,16 @@ def handle_live_brain(
     raw = (raw_input or "").strip()
     if not raw:
         return "Boş giriş; işlem yapılmadı."
+
+    # --- Deterministic intent routing: resolve intent + params, print only (no execution, no clarification flow) ---
+    resolved_intent, resolved_params = _resolve_deterministic_intent_and_params(raw)
+    if resolved_intent is not None:
+        lines = [f"intent = {resolved_intent}", f"params = {resolved_params!r}"]
+        if resolved_intent == "list_files" and not resolved_params.get("folder"):
+            g = suggest_next_step("list_files", state, REASON_CLARIFICATION_NEEDED, "folder")
+            if g.get("next_step"):
+                lines.append(f"next_step = {g['next_step']!r}")
+        return "\n".join(lines)
 
     # --- Pending intent first: route to resume path before consent, chitchat, or LLM ---
     # If we asked a clarification (e.g. "Hangi klasör?"), the next reply must fill missing params and resume intent.
