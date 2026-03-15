@@ -13,6 +13,13 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
+from device.intent_surface_mapper import (
+    SURFACE_PRIVACY_CAMERA,
+    SURFACE_SYSTEM_BATTERY,
+    SURFACE_SYSTEM_NETWORK,
+    SURFACE_SYSTEM_PROCESSES,
+)
+
 # ---------------------------------------------------------------------------
 # Action categories
 # ---------------------------------------------------------------------------
@@ -68,13 +75,6 @@ class SuggestedAction:
 # ---------------------------------------------------------------------------
 # Action registry: action_id -> (category, surface, description_template)
 # ---------------------------------------------------------------------------
-
-from device.intent_surface_mapper import (
-    SURFACE_PRIVACY_CAMERA,
-    SURFACE_SYSTEM_BATTERY,
-    SURFACE_SYSTEM_NETWORK,
-    SURFACE_SYSTEM_PROCESSES,
-)
 
 _ACTION_REGISTRY: dict[str, tuple[ActionCategory, str, str]] = {
     "show_device_report": (ActionCategory.READ_ONLY, SURFACE_SYSTEM_PROCESSES, "Show device efficiency report"),
