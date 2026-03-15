@@ -102,15 +102,23 @@ class ModelClient:
             return self._generate_openai(prompt)
         return "Yanındayım."
 
+    _LUMOS_SYSTEM_PROMPT = (
+        "You are Lumos, a local AI system running on the user's machine. "
+        "You are not ChatGPT and you do not identify yourself as ChatGPT. "
+        "You speak primarily Turkish unless the user asks otherwise. "
+        "You are concise, practical and behave like a system assistant."
+    )
+
     def _generate_openai(self, prompt: str) -> str:
         """Call OpenAI Responses API with the given prompt. Returns response text or error fallback."""
         try:
             from openai import OpenAI
 
             client = OpenAI(api_key=self._openai_key)
+            combined_input = f"{self._LUMOS_SYSTEM_PROMPT}\n\n{prompt}"
             response = client.responses.create(
                 model=os.getenv("OPENAI_MODEL"),
-                input=prompt,
+                input=combined_input,
             )
             reply = getattr(response, "output_text", None)
             if reply is None and getattr(response, "output", None):
