@@ -383,7 +383,7 @@ def test_unrelated_chitchat_does_not_consume_pending_intent():
     state2 = CoreState(MagicMock(), MagicMock(), "online")
     state2.pending_intent = "list_files"
     state2.pending_params = {"_missing_param": "folder"}
-    out2 = handle_live_brain(
+    handle_live_brain(
         "👍",
         mock_engine,
         store,
