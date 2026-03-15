@@ -370,19 +370,22 @@ def test_execute_by_kind_write_local_completes_safe():
         assert "Güvenli yerel iş tamamlandı" in step.output
 
 
-def test_execute_by_kind_unknown_treated_as_analyze():
-    """Unknown or empty kind is treated as analyze (safe default)."""
+def test_execute_by_kind_unknown_blocked_as_unsupported():
+    """Unknown step.kind is not executed; task is blocked with unsupported_action."""
     with tempfile.TemporaryDirectory() as d:
         store = TaskStore(d)
         t = store.create("Bilinmeyen", "desc", PROFILE_RAPOR)
         t.steps = [TaskStep("Bilinmeyen adım", kind="unknown_kind")]
         store.update(t)
         engine = TaskEngine(store, PROFILE_RAPOR, False, base_dir=d)
-        ok, _ = engine.run_task(t.task_id)
-        assert ok is True
+        ok, msg = engine.run_task(t.task_id)
+        assert ok is False
         t2 = store.get(t.task_id)
-        step = next(s for s in t2.steps if s.status == "tamamlandi")
-        assert "Adım tamamlandı" in step.output
+        assert t2.status == "durdu"
+        assert t2.block_reason == "unsupported_action"
+        step = next(s for s in t2.steps if s.title == "Bilinmeyen adım")
+        assert step.status == "durdu"
+        assert "Desteklenmeyen adım" in (step.error or "") or "Desteklenmeyen adım" in (t2.error_summary or "")
 
 
 def test_task_persistence_after_reload():
