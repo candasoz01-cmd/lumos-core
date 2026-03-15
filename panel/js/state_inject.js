@@ -85,5 +85,12 @@ window.__LUMOS_READ_STATE__ = {
     "log_filter": "all",
     "log_file_updated": "2026-03-13T22:16:18",
     "log_location": "/Users/candasoz/WORK_2026/lumos-core/.lumos/logs/log.txt"
+  },
+  "guidance": {
+    "mode": "offline",
+    "lock": "LOCKED",
+    "consent": false,
+    "blocked_reason": null,
+    "next_step": null
   }
 };

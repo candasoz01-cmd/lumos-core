@@ -371,6 +371,18 @@ def _build_state() -> dict:
         "keystore_write_scope": "Kilit açılmadan hassas yazım yapılmaz",
     }
 
+    # Guidance: next-step planner surface (mode, lock, consent; blocked_reason/next_step when set by CLI)
+    mode = (os.environ.get("LUMOS_MODE") or "offline").strip().lower()
+    mode = "online" if mode == "online" else "offline"
+    lock = "UNLOCKED" if consent else "LOCKED"  # read_backend_state has no Lumos lock; proxy from consent
+    guidance = {
+        "mode": mode,
+        "lock": lock,
+        "consent": consent,
+        "blocked_reason": None,
+        "next_step": None,
+    }
+
     return {
         "dashboard": dashboard,
         "sandbox": sandbox,
@@ -381,6 +393,7 @@ def _build_state() -> dict:
         "tasks": tasks_payload,
         "trash": trash_payload,
         "logs": logs_payload,
+        "guidance": guidance,
     }
 
 def main() -> None:

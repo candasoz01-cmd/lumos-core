@@ -72,6 +72,13 @@
     return state.logs;
   }
 
+  /** Guidance: next-step planner (mode, lock, consent, blocked_reason, next_step). */
+  function readBackendGuidanceState() {
+    var state = getReadState();
+    if (!state || !state.guidance) return null;
+    return state.guidance;
+  }
+
   global.LumosBackendBridge = {
     readBackendDashboardState: readBackendDashboardState,
     readBackendSandboxState: readBackendSandboxState,
@@ -82,5 +89,6 @@
     readBackendTasksState: readBackendTasksState,
     readBackendTrashState: readBackendTrashState,
     readBackendLogsState: readBackendLogsState,
+    readBackendGuidanceState: readBackendGuidanceState,
   };
 })(typeof window !== "undefined" ? window : this);

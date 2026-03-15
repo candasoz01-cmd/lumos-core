@@ -39,10 +39,27 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from core.brain import run as brain_run
+from core.next_step import (
+    REASON_CLARIFICATION_NEEDED,
+    REASON_CONSENT_MISSING,
+    REASON_TOOL_UNAVAILABLE,
+    suggest_next_step,
+)
 
 if TYPE_CHECKING:
     from core.state import CoreState
     from task_engine.observation import ObservationEngine
+
+# Deterministic intent map: exact phrase (normalized) → intent name. Checked before any LLM call.
+INTENT_MAP: dict[str, str] = {
+    "listele": "list_files",
+    "dosyaları listele": "list_files",
+    "klasör içeriği": "list_files",
+    "kilit aç": "unlock",
+    "kilidi aç": "unlock",
+    "kilit kapat": "lock",
+    "çık": "exit",
+}
 
 # Consent phrases: user granting approval so we can resume a blocked action
 _CONSENT_PHRASES = re.compile(
@@ -73,19 +90,17 @@ def _is_likely_unrelated_reply(raw: str, _missing_param: str) -> bool:
     return False
 
 
-_REJECT_MSG = "Bu özellik şu an mevcut değil."
-
-
 def _tool_available(name: str) -> bool:
     """True if the intent has a registered tool that is available. No registry module: always False."""
     return False
 
 
 def _reject_intent(intent: str, raw: str = "") -> str:
-    """Reject message when tool is not available (intent → tool check → reject)."""
+    """Reject message when tool is not available; use next-step guidance."""
+    g = suggest_next_step(intent, None, REASON_TOOL_UNAVAILABLE, None)
     if intent == "list_files" and raw:
-        return f"{raw.strip()} klasörü için listeleme istedin; {_REJECT_MSG}"
-    return f"Niyet: {intent}. Yanıt: {raw!r}. {_REJECT_MSG}" if raw else _REJECT_MSG
+        return f"{raw.strip()} klasörü için listeleme istedin. {g['message']}"
+    return g["message"] if not raw else f"Niyet: {intent}. Yanıt: {raw!r}. {g['message']}"
 
 
 def _resume_pending_intent(
@@ -117,7 +132,7 @@ def _resume_pending_intent(
         state.pending_action = None
 
     if not _tool_available(intent):
-        return _reject_intent(intent, raw), True
+        return _reject_intent(intent, raw), True  # message includes next_step from suggest_next_step
     # Tool available; execute (real implementation not wired yet — no filesystem)
     if intent == "list_files":
         return f"{raw.strip()} klasörü için listeleme istedin; dosya erişimi henüz bağlanmadı.", True
@@ -128,6 +143,16 @@ def _is_consent_phrase(text: str) -> bool:
     """True if the user message is granting consent (e.g. onaylıyorum)."""
     t = (text or "").strip()
     return bool(t and _CONSENT_PHRASES.match(t))
+
+
+def _normalize_for_intent(text: str) -> str:
+    """Strip and lower for intent map lookup."""
+    return (text or "").strip().lower()
+
+
+def _lookup_deterministic_intent(normalized: str) -> str | None:
+    """Return intent name if normalized input is in INTENT_MAP, else None."""
+    return INTENT_MAP.get(normalized) if normalized else None
 
 
 def _detect_list_files_intent(text: str) -> dict | None:
@@ -242,12 +267,41 @@ def handle_live_brain(
             )
         return "Genel onay açıldı. İstediğin işlemi söyleyebilirsin."
 
-    # --- Deterministic intent: intent → tool check → reject or ask clarification ---
+    # --- Deterministic intent map (before LLM): exact phrase → intent, handle directly ---
+    normalized = _normalize_for_intent(raw)
+    intent_name = _lookup_deterministic_intent(normalized)
+    if intent_name:
+        if intent_name == "list_files":
+            if not _tool_available("list_files"):
+                g = suggest_next_step("list_files", state, REASON_TOOL_UNAVAILABLE, None)
+                return g["message"]
+            detected = {"intent": "list_files", "params": {}, "missing_param": "folder", "user_message": raw}
+            params = dict(detected.get("params") or {})
+            params["_missing_param"] = "folder"
+            if state is not None:
+                state.pending_intent = "list_files"
+                state.pending_params = params
+                state.pending_action = "list_files"
+            if pending_intent_ref is not None and len(pending_intent_ref) > 0:
+                pending_intent_ref[0] = detected
+            g = suggest_next_step("list_files", state, REASON_CLARIFICATION_NEEDED, "folder")
+            return g["message"]
+        if intent_name == "unlock":
+            return "Kilit açma bu arayüzden yapılmıyor."
+        if intent_name == "lock":
+            return "Kilit kapatma bu arayüzden yapılmıyor."
+        if intent_name == "exit":
+            return "Çıkış için uygun komutu kullan (ör. Ctrl+C veya komut satırından çık)."
+        g = suggest_next_step(intent_name, state, REASON_TOOL_UNAVAILABLE, None)
+        return g["message"]
+
+    # --- Regex-based list_files detection (if not in INTENT_MAP) ---
     detected = _detect_list_files_intent(raw)
     if detected:
         intent_name = (detected.get("intent") or "").strip() or "unknown"
         if not _tool_available(intent_name):
-            return _REJECT_MSG
+            g = suggest_next_step(intent_name, state, REASON_TOOL_UNAVAILABLE, None)
+            return g["message"]
         missing_param = (detected.get("missing_param") or "").strip()
         params = dict(detected.get("params") or {})
         if missing_param:
@@ -258,7 +312,8 @@ def handle_live_brain(
             state.pending_action = intent_name
         if pending_intent_ref is not None and len(pending_intent_ref) > 0:
             pending_intent_ref[0] = detected
-        return "Hangi klasör?"
+        g = suggest_next_step(intent_name, state, REASON_CLARIFICATION_NEEDED, missing_param or "folder")
+        return g["message"]
 
     # --- Normal path: build context and call engine ---
     short_context = ""
@@ -303,7 +358,7 @@ def handle_live_brain(
             )
             summary = getattr(brain_result, "human_readable_summary", "") or ""
             block = getattr(brain_result, "block_reason_or_observation", "") or ""
-            # Store pending_action when blocked due to consent / genel onay
+            # Store pending_action when blocked due to consent / genel onay; add next-step message
             if pending_action_ref is not None and len(pending_action_ref) > 0:
                 if "genel onay" in (block or "").lower() or "consent" in (block or "").lower() or "yetki kısıtı" in (block or "").lower():
                     pending_action_ref[0] = {
@@ -311,6 +366,8 @@ def handle_live_brain(
                         "goal": getattr(brain_result, "goal", "") or task_goal,
                         "block_reason": block[:200] if block else "",
                     }
+                    g = suggest_next_step(None, state, REASON_CONSENT_MISSING, None)
+                    return _format_live_with_task(response_text, summary) + "\n" + g["message"]
             return _format_live_with_task(response_text, summary)
         except Exception:
             return response_text + "\nGörev oluşturulurken hata oluştu."

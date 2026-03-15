@@ -277,7 +277,7 @@ def test_list_files_intent_asks_clarification():
                 observation_engine=None,
                 pending_intent_ref=pending_intent_ref,
             )
-    assert out.strip() == "Hangi klasör?"
+    assert "Hangi klasör" in out and ("Sonraki adım" in out or "klasör adını yaz" in out)
     assert pending_intent_ref[0] is not None
     assert pending_intent_ref[0].get("intent") == "list_files"
     assert pending_intent_ref[0].get("missing_param") == "folder"
@@ -315,7 +315,7 @@ def test_list_files_clarification_then_reply_resumes_intent():
                 state=state,
                 pending_intent_ref=pending_intent_ref,
             )
-            assert out1.strip() == "Hangi klasör?"
+            assert "Hangi klasör" in out1 and ("Sonraki adım" in out1 or "klasör adını yaz" in out1)
             assert state.pending_intent == "list_files"
             assert state.pending_params.get("_missing_param") == "folder"
             mock_engine.process.assert_not_called()

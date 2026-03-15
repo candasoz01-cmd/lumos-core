@@ -97,6 +97,13 @@
     selectedTaskId: null,
     selectedTrashId: null,
     logFilter: "all",
+    guidance: {
+      mode: "offline",
+      lock: "LOCKED",
+      consent: false,
+      blocked_reason: null,
+      next_step: null,
+    },
   };
 
   // ——— Demo senaryolar (override; adapter tek kaynak olarak getEffectiveState kullanır) ———
@@ -304,6 +311,11 @@
     if (backend != null) return { type: "backend", data: backend };
     if (useFixtureData && window.LumosFixtures && window.LumosFixtures.payloads) return { type: "fixture", data: window.LumosFixtures.payloads.logs };
     return { type: "demo", data: getEffectiveState() };
+  }
+  function getGuidanceSourceData() {
+    var backend = Bridge.readBackendGuidanceState && Bridge.readBackendGuidanceState();
+    if (backend != null) return { type: "backend", data: backend };
+    return { type: "demo", data: getEffectiveState().guidance || { mode: "offline", lock: "LOCKED", consent: false, blocked_reason: null, next_step: null } };
   }
 
   // ——— Adapter (contract'a hizalı; kaynak: backend → mapper, yoksa fixture/demo → mapper/stub) ———
@@ -548,6 +560,19 @@
     return { id: "_empty", label: "", hash: hash };
   }
 
+  // ——— Guidance card (Durum / Engel / Sonraki adım) ———
+  function buildGuidanceCard() {
+    var g = getGuidanceSourceData().data;
+    if (!g) g = { mode: "—", lock: "—", consent: false, blocked_reason: null, next_step: null };
+    var modeLabel = g.mode === "online" ? "Çevrimiçi" : "Çevrimdışı";
+    var lockLabel = (g.lock || "").toUpperCase() === "UNLOCKED" ? "Açık" : "Kilitli";
+    var consentLabel = g.consent ? "Açık" : "Kapalı";
+    var durumHtml = "<p class=\"text-muted-small\"><strong>Mod:</strong> " + modeLabel + " · <strong>Kilit:</strong> " + lockLabel + " · <strong>Genel onay:</strong> " + consentLabel + "</p>";
+    var engelHtml = (g.blocked_reason && g.blocked_reason.trim()) ? ("<p>" + g.blocked_reason + "</p>") : "<p class=\"text-muted-small\">Şu anda engel yok.</p>";
+    var nextHtml = (g.next_step && g.next_step.trim()) ? ("<p>" + g.next_step + "</p>") : "<p class=\"text-muted-small\">Hazır.</p>";
+    return SectionCard("Durum", durumHtml) + SectionCard("Engel", engelHtml) + SectionCard("Sonraki adım", nextHtml);
+  }
+
   // ——— Ekran: Gösterge Paneli (adapter + build) ———
   function renderDashboard() {
     var data = getDashboardData();
@@ -562,9 +587,11 @@
     } else {
       warningsHtml = "<p class=\"text-muted-small\">Uyarı veya not yok.</p>";
     }
+    var guidanceHtml = '<div class="guidance-cards">' + buildGuidanceCard() + "</div>";
     var sections =
       buildSection("Son Olaylar", EventList(data.sections[0].events)) +
       buildSection("Uyarılar ve notlar", warningsHtml) +
+      buildSection("Durum ve rehber", guidanceHtml) +
       buildSection("Hızlı geçişler", '<p><a href="#tasks" class="inline-link">Görevler</a> · <a href="#sandbox" class="inline-link">Korumalı Alan</a> · <a href="#config" class="inline-link">Yapılandırma</a> · <a href="#logs" class="inline-link">Kayıtlar</a></p><p class="text-muted-small">Hash ile sayfa yenilenmeden geçiş.</p>');
     return ViewHeader(data.title, data.subtitle) + '<div class="cards-grid">' + cards + "</div>" + sections;
   }
