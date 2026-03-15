@@ -125,8 +125,10 @@ def handle_task_mutation(route: str, args: list[str], ctx: TaskMutationContext) 
         except ValueError:
             print("Geçerli bir görev id yaz.")
             return True
+        # Sözleşme: kalıcı silme öncesi tek satır uyarı (geri alınamaz).
+        print("Dikkat: Bu görev kalıcı silinecek, geri alınamaz.")
         if ctx.task_store.delete(tid, user_initiated=True):
-            print("Dikkat: Bu görev kalıcı olarak silindi ve geri alınamaz.")
+            print("Görev silindi.")
         else:
             print("Silinecek görev bulunamadı.")
         return True
