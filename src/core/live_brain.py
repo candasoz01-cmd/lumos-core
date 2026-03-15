@@ -4,14 +4,30 @@ When CLI receives unknown input and online mode is enabled, this module handles
 the input via the online engine (LLM) and optionally creates a task through Brain.
 Safe: no bypass of consent/lock/profile; task creation goes through Planner/TaskEngine.
 
-Flow for deterministic intents: intent → tool check → execute or reject.
-If tool not available we reject with "Bu özellik şu an mevcut değil." (no clarification asked).
-If available we ask missing params (e.g. "Hangi klasör?"), then on reply resume → tool check again → execute or reject.
+--- Pending intent / clarification / resume flow ---
 
-Pending intent: when we ask a clarification (e.g. "Hangi klasör?"), we store the
-active intent; when the user answers, we continue that intent (clarification → answer → resumed intent).
-Pending action: when a task is blocked due to consent, we store it; when the user
-says "onaylıyorum", we set general_approval and propose the next concrete action.
+1. User says something that matches a deterministic intent (e.g. "klasördeki dosyaları listele").
+2. If the intent needs a missing param (e.g. folder), we ask clarification: "Hangi klasör?"
+   and store pending state so the next user message is treated as the answer:
+   - state.pending_intent = intent name (e.g. "list_files")
+   - state.pending_params = { "_missing_param": "folder", ... }
+   - pending_intent_ref[0] = detected dict (intent, params, missing_param, user_message)
+3. Next turn: user message is routed to the resume path first (before consent or LLM).
+   We read pending_intent from state or pending_intent_ref and call _resume_pending_intent.
+4. In _resume_pending_intent:
+   - If the reply looks like chitchat/emoji (e.g. "merhaba"), we do not consume: return
+     a prompt to answer the question; pending state is kept.
+   - If the reply is a valid clarification answer (e.g. "WORK_2026"), we clear pending
+     state (state.pending_intent, pending_params, pending_action; pending_intent_ref[0]),
+     then either execute the intent or reject with "Bu özellik şu an mevcut değil."
+
+State: CoreState.pending_intent, pending_params, pending_action hold the active intent
+between clarification question and answer. Ref (pending_intent_ref) is used when
+caller does not have access to state so the next handle_live_brain call can see the
+pending intent.
+
+Pending action: when a task is blocked due to consent, we set pending_action_ref;
+when the user says "onaylıyorum", we set general_approval and propose the next action.
 
 Active response path: CLI (unknown) → router on_live_brain → handle_live_brain
 → online_engine.process (state injected) → model_client.generate → user output.
@@ -23,7 +39,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from core.brain import run as brain_run
-from core.tool_registry import tool_available
 
 if TYPE_CHECKING:
     from core.state import CoreState
@@ -61,6 +76,11 @@ def _is_likely_unrelated_reply(raw: str, _missing_param: str) -> bool:
 _REJECT_MSG = "Bu özellik şu an mevcut değil."
 
 
+def _tool_available(name: str) -> bool:
+    """True if the intent has a registered tool that is available. No registry module: always False."""
+    return False
+
+
 def _reject_intent(intent: str, raw: str = "") -> str:
     """Reject message when tool is not available (intent → tool check → reject)."""
     if intent == "list_files" and raw:
@@ -96,7 +116,7 @@ def _resume_pending_intent(
         state.pending_params = {}
         state.pending_action = None
 
-    if not tool_available(intent):
+    if not _tool_available(intent):
         return _reject_intent(intent, raw), True
     # Tool available; execute (real implementation not wired yet — no filesystem)
     if intent == "list_files":
@@ -226,7 +246,7 @@ def handle_live_brain(
     detected = _detect_list_files_intent(raw)
     if detected:
         intent_name = (detected.get("intent") or "").strip() or "unknown"
-        if not tool_available(intent_name):
+        if not _tool_available(intent_name):
             return _REJECT_MSG
         missing_param = (detected.get("missing_param") or "").strip()
         params = dict(detected.get("params") or {})
