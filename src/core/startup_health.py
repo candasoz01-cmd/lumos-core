@@ -49,12 +49,14 @@ def get_startup_summary(
     base_dir: str | Path,
     keystore_initialized: bool,
     presence_module: Any,
+    session_consent: bool = False,
 ) -> str:
     """
     Tek satır hazır olma özeti. Öncelik: consent > lock > presence > macOS.
     Sorun varsa yalnızca en kritik eksik; mümkünse bir sonraki adım.
+    session_consent: when True (e.g. genel onay aç), consent is treated as given for this session.
     """
-    consent = _consent_ok(base_dir)
+    consent = _consent_ok(base_dir) or session_consent
     lock = _lock_ok(keystore_initialized)
     pres_ok, pres_enabled = _presence_ok(presence_module, base_dir)
     macos = _macos_permissions_ok()
@@ -87,12 +89,14 @@ def get_durum_parts(
     base_dir: str | Path,
     keystore_initialized: bool,
     presence_module: Any,
+    session_consent: bool = False,
 ) -> dict[str, Any]:
     """
     Durum komutu için etiket ve not. Öncelik: consent > lock > presence > macOS.
     Döner: consent_ok, lock_ok, durum_label ("güvenli" | "kısmen hazır"), not_line.
+    session_consent: when True (e.g. genel onay aç), consent is treated as given for this session.
     """
-    consent = _consent_ok(base_dir)
+    consent = _consent_ok(base_dir) or session_consent
     lock = _lock_ok(keystore_initialized)
     pres_ok, pres_enabled = _presence_ok(presence_module, base_dir)
     macos = _macos_permissions_ok()
