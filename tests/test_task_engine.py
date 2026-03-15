@@ -35,7 +35,7 @@ from task_engine.engine import (
     get_default_action_registry,
 )
 from task_engine.verification import get_default_verification_engine
-from task_engine.planner import plan as planner_plan, get_default_planner
+from task_engine.planner import plan as planner_plan
 from task_engine.observation import (
     ObservationEngine,
     ObservationMemory,

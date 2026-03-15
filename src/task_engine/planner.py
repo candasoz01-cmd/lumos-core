@@ -4,11 +4,16 @@ Safe default behavior only: read, analyze, plan. No destructive actions.
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from task_engine.profiles import (
     STEP_TYPE_ANALYZE,
     STEP_TYPE_PLAN,
     STEP_TYPE_READ,
 )
+
+if TYPE_CHECKING:
+    from task_engine.engine import TaskStep
 
 
 class DefaultPlanner:

@@ -5,7 +5,7 @@ No external IO. Safe, in-memory only.
 """
 from __future__ import annotations
 
-from task_engine.observation.events import ObservationEvent, make_event
+from task_engine.observation.events import ObservationEvent
 from task_engine.observation.memory import ObservationMemory
 from task_engine.observation.state import WorldState
 
