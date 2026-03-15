@@ -37,7 +37,7 @@ HELP_TEXT = """Temel
   durum, hazır, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, bana ne önerirsin, bir sonraki adım ne, en önemli eksik ne, neden böyle diyorsun, bunu kısaca anlat, kilit, kamera, alias, self test, hangi moddayım, şu an güvenli miyim, exit, yardım kısa, yardım temel, yardım etiketler, yardım notlar, yardım not işlemleri, yardım görüntüleme, yardım güvenlik, yardım arama
 
 Görev motoru
-  görev oluştur <metin>, görevler, görev durumu <id>, görev özeti <id>, görev adımları <id>, görev iptal <id>, yetki profili, yetki profili <rapor|guvenli_yurut|kisitli_otonom>, genel onay aç, genel onay kapat
+  görev oluştur <metin>, görevler, görev kuyruk, görev durumu <id>, görev özeti <id>, görev adımları <id>, görev iptal <id>, yetki profili, yetki profili <rapor|guvenli_yurut|kisitli_otonom>, genel onay aç, genel onay kapat
 
 Notlar
   bunu hatırla, son not ne, notları göster, kaç not var, notu sil, notları temizle, notu düzenle, notu kopyala, notu dışa aktar, notu paylaş, not özetle, not birleştir, notu geri al, not geçmişi, not ara <kelime>
@@ -550,6 +550,8 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
         if second_fold == "olustur":
             rest = " ".join(parts[2:]).strip()
             return ("gorev_olustur", [rest] if rest else [])
+        if second_fold in ("kuyruk", "kuyruğu", "kuyruk listesi"):
+            return ("gorev_kuyruk", [])
         if second_fold == "temizle" and len(parts) >= 3:
             third_fold = _fold_for_search(parts[2])
             if third_fold in ("tamamlananlar", "tamamlanmislar", "tamamlanmis"):

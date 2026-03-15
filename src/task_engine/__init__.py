@@ -1,7 +1,14 @@
 """
 Görev motoru: görev kaydı, adım durumları, yürütme mantığı.
 KandoLumos kısıtlı otonom çalışma omurgası.
+
+Core observation layer: Task, TaskPriority, TaskQueue, ObservationTaskEngine
+(signals from system_monitor → triggers → Task → TaskQueue). Device layer:
+DeviceTaskEngine extends ObservationTaskEngine with device_guard / device_action_policy.
 """
+from task_engine.models import Task, TaskPriority
+from task_engine.queue import TaskQueue
+from task_engine.observation_engine import ObservationTaskEngine
 from task_engine.engine import (
     TaskRecord,
     TaskStep,
@@ -37,8 +44,16 @@ from task_engine.profiles import (
     get_profile_display_name,
     SECURITY_BOUNDARY_DESCRIPTION,
 )
+from task_engine.device_tasks import DeviceTaskEngine
+
+# Backward compatibility: DeviceTask is the same as Task.
+DeviceTask = Task
 
 __all__ = [
+    "Task",
+    "TaskPriority",
+    "TaskQueue",
+    "ObservationTaskEngine",
     "TaskRecord",
     "TaskStep",
     "TaskStore",
@@ -70,4 +85,6 @@ __all__ = [
     "ALL_PROFILES",
     "get_profile_display_name",
     "SECURITY_BOUNDARY_DESCRIPTION",
+    "DeviceTask",
+    "DeviceTaskEngine",
 ]
