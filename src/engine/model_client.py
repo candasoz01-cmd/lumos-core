@@ -220,18 +220,20 @@ class ModelClient:
             if usage is not None:
                 try:
                     # Supported usage field names: input_tokens, prompt_tokens, output_tokens, completion_tokens, total_tokens
-                    inp = getattr(usage, "input_tokens", None) or getattr(usage, "prompt_tokens", None)
-                    out_tok = getattr(usage, "output_tokens", None) or getattr(usage, "completion_tokens", None)
-                    input_tokens = _safe_int(inp)
-                    output_tokens = _safe_int(out_tok)
-                    total_raw = getattr(usage, "total_tokens", None)
-                    if type(total_raw) is int or type(total_raw) is float:
-                        total_tokens = int(total_raw)
-                    else:
-                        total_tokens = input_tokens + output_tokens
+                    input_tokens = _safe_int(
+                        getattr(usage, "input_tokens", None)
+                        or getattr(usage, "prompt_tokens", None)
+                    )
+                    output_tokens = _safe_int(
+                        getattr(usage, "output_tokens", None)
+                        or getattr(usage, "completion_tokens", None)
+                    )
+                    total_tokens = _safe_int(
+                        getattr(usage, "total_tokens", input_tokens + output_tokens)
+                    )
                     _ensure_token_logging_visible()
                     logger.info(
-                        "token_usage model=%s input_tokens=%d output_tokens=%d total_tokens=%d",
+                        "token_usage model=%s input_tokens=%s output_tokens=%s total_tokens=%s",
                         model,
                         input_tokens,
                         output_tokens,
