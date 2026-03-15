@@ -30,6 +30,60 @@ _CONSENT_PHRASES = re.compile(
     re.IGNORECASE,
 )
 
+# Replies we do not treat as clarification answers (keep pending intent, do not consume)
+_CHITCHAT_REPLIES = frozenset(
+    s.strip().lower()
+    for s in (
+        "merhaba", "selam", "hi", "hello", "hey", "ok", "tamam", "evet", "hayır", "hayir",
+        "no", "yes", "?", "??", "!", "!!", ":)",
+    )
+)
+
+
+def _is_likely_unrelated_reply(raw: str, _missing_param: str) -> bool:
+    """True if reply looks like small talk/emoji/greeting; do not consume pending intent."""
+    t = (raw or "").strip()
+    if not t:
+        return True
+    if t.lower() in _CHITCHAT_REPLIES:
+        return True
+    # Emoji/symbol-only: no letter, no digit
+    if not re.search(r"[a-zA-Z0-9]", t):
+        return True
+    return False
+
+
+def _resume_pending_intent(
+    raw: str,
+    intent: str,
+    missing_param: str,
+    state: "CoreState | None",
+    pending_intent_ref: list | None,
+) -> tuple[str, bool]:
+    """
+    Handle user reply when a pending intent exists. Does not call the LLM.
+    Returns (response_message, consumed).
+    - consumed True: reply was used as clarification; state/ref cleared; intent resumed (or rejected).
+    - consumed False: reply is unrelated (chitchat/emoji); state kept; ask again or prompt.
+    """
+    if _is_likely_unrelated_reply(raw, missing_param):
+        # Do not consume; keep pending intent; prompt again.
+        if intent == "list_files":
+            return "Hangi klasör demek istemiştim; lütfen klasör adı yaz.", False
+        return "Lütfen önceki soruya yanıt ver (ör. parametre veya değer yaz).", False
+
+    # Valid clarification reply: resume intent, then clear state (no filesystem faked).
+    if pending_intent_ref is not None and len(pending_intent_ref) > 0:
+        pending_intent_ref[0] = None
+    if state is not None:
+        state.pending_intent = None
+        state.pending_params = {}
+        state.pending_action = None
+
+    if intent == "list_files":
+        return f"{raw.strip()} klasörü için listeleme istedin; bu özellik şu an mevcut değil.", True
+    return f"Niyet: {intent}. Yanıt: {raw!r}. Bu özellik şu an mevcut değil.", True
+
 
 def _is_consent_phrase(text: str) -> bool:
     """True if the user message is granting consent (e.g. onaylıyorum)."""
@@ -132,46 +186,37 @@ def handle_live_brain(
             )
         return "Genel onay açıldı. İstediğin işlemi söyleyebilirsin."
 
-    # --- Continuation: we had asked a clarification, user is answering ---
-    if pending_intent_ref is not None and len(pending_intent_ref) > 0 and pending_intent_ref[0]:
-        pi = pending_intent_ref[0]
-        intent = pi.get("intent") or "unknown"
-        missing = pi.get("missing_param") or ""
-        pending_intent_ref[0] = None
-        short_context = (
-            f"Önceki niyet: {intent}. Eksik parametre: {missing}. "
-            f"Kullanıcı yanıtı: {raw!r}. Bu yanıtı kullanarak devam et; "
-            "eğer bu özellik (araç) mevcut değilse açıkça 'Bu özellik şu an mevcut değil' de."
-        )
-        mode = "—"
-        presence = "—"
-        consent = "yok"
-        lock = "—"
-        if state is not None:
-            mode = state.mode_str()
-            lock = state.lock_status()
-            try:
-                presence = state.presence_display()
-            except Exception:
-                presence = "—"
-            consent = "kayıtlı" if general_approval else "yok"
-        if hasattr(online_engine, "process"):
-            result = online_engine.process(
-                raw,
-                short_context=short_context,
-                mode=mode,
-                presence=presence,
-                consent=consent,
-                lock=lock,
-            )
-            response_text = (result.get("response") or "").strip() or "Yanıt yok."
-            return _format_live_direct(response_text)
-        return "Bu niyet için devam edilemedi; motor hazır değil."
+    # --- Pre-LLM: pending intent MUST be handled before any free-text LLM call ---
+    # Clarification replies (e.g. "WORK_2026") go to _resume_pending_intent only; original intent is resumed and state cleared.
+    _pending_intent_name: str | None = None
+    _pending_missing: str = ""
+    if state is not None and getattr(state, "pending_intent", None):
+        _pending_intent_name = (state.pending_intent or "").strip() or "unknown"
+        _params = getattr(state, "pending_params", None) or {}
+        _pending_missing = (_params.get("_missing_param") or "").strip()
+    elif pending_intent_ref is not None and len(pending_intent_ref) > 0 and pending_intent_ref[0]:
+        _pi = pending_intent_ref[0]
+        _pending_intent_name = _pi.get("intent") or "unknown"
+        _pending_missing = _pi.get("missing_param") or ""
+
+    if _pending_intent_name:
+        msg, _ = _resume_pending_intent(raw, _pending_intent_name, _pending_missing, state, pending_intent_ref)
+        return msg
 
     # --- Ask clarification: deterministic intent that needs one param (e.g. list_files → folder) ---
     detected = _detect_list_files_intent(raw)
-    if detected and pending_intent_ref is not None and len(pending_intent_ref) > 0:
-        pending_intent_ref[0] = detected
+    if detected:
+        intent_name = (detected.get("intent") or "").strip() or "unknown"
+        missing_param = (detected.get("missing_param") or "").strip()
+        params = dict(detected.get("params") or {})
+        if missing_param:
+            params["_missing_param"] = missing_param
+        if state is not None:
+            state.pending_intent = intent_name
+            state.pending_params = params
+            state.pending_action = intent_name
+        if pending_intent_ref is not None and len(pending_intent_ref) > 0:
+            pending_intent_ref[0] = detected
         return "Hangi klasör?"
 
     # --- Normal path: build context and call engine ---

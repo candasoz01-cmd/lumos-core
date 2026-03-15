@@ -104,6 +104,16 @@ def run_cli_loop(router_ctx: RouterContext) -> None:
             continue
 
         # ---- normal_komut_modu: normalize and dispatch ----
+        # Pending clarification: next reply must go to live_brain to resume intent (e.g. list_files -> "Hangi klasör?" -> "WORK_2026").
+        _pending = False
+        if getattr(router_ctx.ctx, "state", None) and getattr(router_ctx.ctx.state, "pending_intent", None):
+            _pending = True
+        if not _pending and getattr(router_ctx.mut_ctx, "pending_intent", None) and len(router_ctx.mut_ctx.pending_intent) > 0 and router_ctx.mut_ctx.pending_intent[0]:
+            _pending = True
+        if _pending and getattr(router_ctx, "on_live_brain", None) is not None:
+            router_ctx.on_live_brain(raw)
+            continue
+
         route, args = normalize_command(raw, Path(router_ctx.base_dir), router_ctx.aliases)
 
         if route == "":

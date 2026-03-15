@@ -147,12 +147,11 @@ def test_live_brain_creates_task_when_needed():
 
 
 def test_clarification_answer_resumes_intent():
-    """Clarification -> user answers -> resumed intent: pending_intent set, then user answer continues intent."""
+    """Clarification -> user answers -> pending intent handler only (no LLM); ref cleared."""
     from core.live_brain import handle_live_brain
 
     pending_intent_ref = [{"intent": "list_files", "params": {}, "missing_param": "folder", "user_message": "klasördeki dosyaları listele"}]
     mock_engine = MagicMock()
-    mock_engine.process.return_value = {"response": "Bu özellik şu an mevcut değil. Desteklenen komutlar için yardım yaz."}
     with tempfile.TemporaryDirectory() as d:
         from task_engine import TaskStore, PROFILE_RAPOR
 
@@ -167,13 +166,10 @@ def test_clarification_answer_resumes_intent():
             observation_engine=None,
             pending_intent_ref=pending_intent_ref,
         )
-    assert "mevcut değil" in out or "yardım" in out
+    assert "mevcut değil" in out
+    assert "listeleme istedin" in out or "/tmp" in out
     assert pending_intent_ref[0] is None
-    mock_engine.process.assert_called_once()
-    kwargs = mock_engine.process.call_args[1]
-    assert "list_files" in (kwargs.get("short_context") or "")
-    assert "folder" in (kwargs.get("short_context") or "")
-    assert "/tmp" in (kwargs.get("short_context") or "")
+    mock_engine.process.assert_not_called()
 
 
 def test_consent_approval_resumes_pending_action():
@@ -260,3 +256,174 @@ def test_list_files_intent_asks_clarification():
     assert pending_intent_ref[0].get("intent") == "list_files"
     assert pending_intent_ref[0].get("missing_param") == "folder"
     mock_engine.process.assert_not_called()
+
+
+def test_list_files_clarification_then_reply_resumes_intent():
+    """list_files -> 'Hangi klasör?' -> user replies 'WORK_2026' -> original intent resumes (continuation path)."""
+    from core.live_brain import handle_live_brain
+    from core.state import CoreState
+
+    pending_intent_ref = [None]
+    mock_engine = MagicMock()
+    mock_engine.process.return_value = {"response": "Bu özellik şu an mevcut değil."}
+    mock_lumos = MagicMock()
+    mock_lumos.lock_state.unlocked = True
+    mock_pl = MagicMock()
+    mock_pl.presence_status.return_value = "OFF"
+    mock_pl.is_running.return_value = False
+    state = CoreState(mock_lumos, mock_pl, "online")
+
+    with tempfile.TemporaryDirectory() as d:
+        from task_engine import TaskStore, PROFILE_RAPOR
+
+        store = TaskStore(d)
+        # 1) User: list files in folder -> we ask which folder and store pending on state + ref
+        out1 = handle_live_brain(
+            "klasördeki dosyaları listele",
+            mock_engine,
+            store,
+            d,
+            PROFILE_RAPOR,
+            False,
+            observation_engine=None,
+            state=state,
+            pending_intent_ref=pending_intent_ref,
+        )
+        assert out1.strip() == "Hangi klasör?"
+        assert state.pending_intent == "list_files"
+        assert state.pending_params.get("_missing_param") == "folder"
+        mock_engine.process.assert_not_called()
+
+        # 2) User replies with folder name -> pending intent handler only (no LLM); clear state
+        out2 = handle_live_brain(
+            "WORK_2026",
+            mock_engine,
+            store,
+            d,
+            PROFILE_RAPOR,
+            False,
+            observation_engine=None,
+            state=state,
+            pending_intent_ref=pending_intent_ref,
+        )
+        assert "WORK_2026" in out2 and "listeleme istedin" in out2 and "mevcut değil" in out2
+        assert state.pending_intent is None
+        assert state.pending_params == {}
+        assert pending_intent_ref[0] is None
+        mock_engine.process.assert_not_called()
+
+
+def test_pending_intent_reply_routed_before_llm():
+    """When pending intent exists, reply is handled by _resume_pending_intent; LLM is never called."""
+    from core.live_brain import handle_live_brain
+    from core.state import CoreState
+
+    mock_engine = MagicMock()
+    mock_engine.process.return_value = {"response": "Generic reply."}
+    mock_lumos = MagicMock()
+    mock_pl = MagicMock()
+    state = CoreState(mock_lumos, mock_pl, "online")
+    state.pending_intent = "list_files"
+    state.pending_params = {"_missing_param": "folder"}
+    state.pending_action = "list_files"
+    pending_intent_ref = [None]
+
+    with tempfile.TemporaryDirectory() as d:
+        from task_engine import TaskStore, PROFILE_RAPOR
+        store = TaskStore(d)
+        out = handle_live_brain(
+            "WORK_2026",
+            mock_engine,
+            store,
+            d,
+            PROFILE_RAPOR,
+            False,
+            observation_engine=None,
+            state=state,
+            pending_intent_ref=pending_intent_ref,
+        )
+    assert "WORK_2026" in out and "mevcut değil" in out
+    assert state.pending_intent is None
+    mock_engine.process.assert_not_called()
+
+
+def test_unrelated_chitchat_does_not_consume_pending_intent():
+    """Emoji or greeting as reply does not consume pending intent; state kept; no LLM call."""
+    from core.live_brain import handle_live_brain
+    from core.state import CoreState
+
+    mock_engine = MagicMock()
+    mock_lumos = MagicMock()
+    mock_pl = MagicMock()
+    state = CoreState(mock_lumos, mock_pl, "online")
+    state.pending_intent = "list_files"
+    state.pending_params = {"_missing_param": "folder"}
+    pending_intent_ref = [None]
+
+    with tempfile.TemporaryDirectory() as d:
+        from task_engine import TaskStore, PROFILE_RAPOR
+        store = TaskStore(d)
+        out = handle_live_brain(
+            "merhaba",
+            mock_engine,
+            store,
+            d,
+            PROFILE_RAPOR,
+            False,
+            observation_engine=None,
+            state=state,
+            pending_intent_ref=pending_intent_ref,
+        )
+    assert "Hangi klasör" in out or "lütfen" in out
+    assert state.pending_intent == "list_files"
+    assert state.pending_params.get("_missing_param") == "folder"
+    mock_engine.process.assert_not_called()
+
+    # Emoji-only also should not consume
+    state2 = CoreState(MagicMock(), MagicMock(), "online")
+    state2.pending_intent = "list_files"
+    state2.pending_params = {"_missing_param": "folder"}
+    out2 = handle_live_brain(
+        "👍",
+        mock_engine,
+        store,
+        d,
+        PROFILE_RAPOR,
+        False,
+        observation_engine=None,
+        state=state2,
+        pending_intent_ref=[None],
+    )
+    assert state2.pending_intent == "list_files"
+    mock_engine.process.assert_not_called()
+
+
+def test_pending_state_clears_after_completion():
+    """After valid clarification reply, state.pending_* and ref are cleared."""
+    from core.live_brain import handle_live_brain
+    from core.state import CoreState
+
+    state = CoreState(MagicMock(), MagicMock(), "online")
+    state.pending_intent = "list_files"
+    state.pending_params = {"_missing_param": "folder"}
+    state.pending_action = "list_files"
+    pending_intent_ref = [{"intent": "list_files", "params": {}, "missing_param": "folder"}]
+
+    with tempfile.TemporaryDirectory() as d:
+        from task_engine import TaskStore, PROFILE_RAPOR
+        store = TaskStore(d)
+        handle_live_brain(
+            "/tmp",
+            MagicMock(),
+            store,
+            d,
+            PROFILE_RAPOR,
+            False,
+            observation_engine=None,
+            state=state,
+            pending_intent_ref=pending_intent_ref,
+        )
+    assert state.pending_intent is None
+    assert state.pending_params == {}
+    assert state.pending_action is None
+    assert pending_intent_ref[0] is None
