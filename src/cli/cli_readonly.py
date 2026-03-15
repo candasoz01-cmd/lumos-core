@@ -30,6 +30,12 @@ from cli.cli_parse import (
 from cli.cli_tasks import handle_tasks_readonly
 
 
+def _session_consent_from_ctx(ctx: ReadOnlyContext) -> bool:
+    """Single place to read session consent (genel onay aç) from context. Same ref as mut_ctx.general_approval."""
+    ga = getattr(ctx, "general_approval", None)
+    return bool(ga and len(ga) > 0 and ga[0])
+
+
 class ReadOnlyContext:
     """Context passed to read-only handlers. Main builds this; handlers only read and update response tracking."""
 
@@ -109,8 +115,7 @@ def handle_readonly(route: str, args: list[str], ctx: ReadOnlyContext) -> bool:
         return True
 
     # ---- Status / öneri / güvenlik (read-only) ----
-    _ga = getattr(ctx, "general_approval", None)
-    _session_consent = bool(_ga and _ga[0]) if _ga else False
+    _session_consent = _session_consent_from_ctx(ctx)
     if route == "onerir":
         oneriler = _get_oneri(ctx.base_dir, ctx.ks.is_initialized(), ctx.pl, session_consent=_session_consent)
         for o in oneriler:
@@ -243,9 +248,7 @@ def handle_readonly(route: str, args: list[str], ctx: ReadOnlyContext) -> bool:
                 print("Durum özeti:")
             log_path = logs_file_path(ctx.base_dir)
             snap = ctx.state.snapshot(base_dir=ctx.base_dir, log_path=log_path)
-            ga = getattr(ctx, "general_approval", None)
-            session_consent = bool(ga and ga[0]) if ga else False
-            parts = get_durum_parts(Path(ctx.base_dir), ctx.ks.is_initialized(), ctx.engine.pl, session_consent=session_consent)
+            parts = get_durum_parts(Path(ctx.base_dir), ctx.ks.is_initialized(), ctx.engine.pl, session_consent=_session_consent_from_ctx(ctx))
             durum_txt = format_durum(snap, parts["consent_ok"], parts["lock_ok"], parts["durum_label"], parts["not_line"])
             print(durum_txt)
             ctx.last_response_reason[0] = parts.get("not_line") or parts.get("durum_label", "")
@@ -259,9 +262,7 @@ def handle_readonly(route: str, args: list[str], ctx: ReadOnlyContext) -> bool:
         from core.startup_health import get_startup_summary
         ctx.current_task[0] = "açılış sağlık özetini doğruluyorum."
         try:
-            ga = getattr(ctx, "general_approval", None)
-            session_consent = bool(ga and ga[0]) if ga else False
-            summary = get_startup_summary(Path(ctx.base_dir), not ctx.state.is_locked(), ctx.pl, session_consent=session_consent)
+            summary = get_startup_summary(Path(ctx.base_dir), not ctx.state.is_locked(), ctx.pl, session_consent=_session_consent_from_ctx(ctx))
             print(summary)
             ctx.last_response_reason[0] = summary
             ctx.last_action[0] = "En son hazır olma özetini verdim."

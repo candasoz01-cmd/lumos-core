@@ -8,6 +8,12 @@ from __future__ import annotations
 from typing import Any, Protocol
 
 
+def _task_block_line(task: Any) -> str | None:
+    """If task has a blocking reason, return one line for display (görev durumu / görev özeti)."""
+    from task_engine.diagnostics import format_task_block_line
+    return format_task_block_line(task)
+
+
 class _TaskReadOnlyContext(Protocol):
     """Minimal context for read-only task handlers. Avoids coupling to ReadOnlyContext."""
 
@@ -46,7 +52,10 @@ def handle_tasks_readonly(route: str, args: list[str], ctx: _TaskReadOnlyContext
             return True
         print(f"Görev {t.task_id}: {t.title}")
         print(f"  Durum: {t.status} | Profil: {t.permission_profile} | Oluşturulma: {t.created_at}")
-        if t.error_summary:
+        block_line = _task_block_line(t)
+        if block_line:
+            print(f"  {block_line}")
+        elif t.error_summary:
             print(f"  Hata: {t.error_summary}")
         return True
     if route == "gorev_adimlari":
@@ -66,7 +75,10 @@ def handle_tasks_readonly(route: str, args: list[str], ctx: _TaskReadOnlyContext
         print(f"Görev {t.task_id}: {t.title} — adımlar:")
         for i, s in enumerate(t.steps, 1):
             rk = getattr(s, "result_kind", "") or "-"
-            print(f"  {i}. [{s.status}] sonuç: {rk} — {s.title}")
+            line = f"  {i}. [{s.status}] sonuç: {rk} — {s.title}"
+            if getattr(s, "error", ""):
+                line += f" | Engel: {s.error}"
+            print(line)
         return True
     if route == "gorev_ozeti":
         id_str = (args[0] if args else "").strip()
@@ -97,6 +109,9 @@ def handle_tasks_readonly(route: str, args: list[str], ctx: _TaskReadOnlyContext
         ]
         if getattr(t, "elapsed_seconds", 0) > 0:
             parts.append(f"Geçen süre: {t.elapsed_seconds:.1f}s")
+        block_line = _task_block_line(t)
+        if block_line:
+            parts.append(block_line)
         short_result = (t.description or "")[:80]
         if len(t.description or "") > 80:
             short_result += "..."

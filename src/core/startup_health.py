@@ -14,6 +14,14 @@ def _consent_ok(base_dir: str | Path) -> bool:
     return p.exists()
 
 
+def effective_consent(base_dir: str | Path, session_consent: bool) -> bool:
+    """
+    Single source of truth for consent: file-based consent OR session (genel onay aç).
+    Use this for durum, hazır, şu an güvenli miyim, bir sonraki adım ne, and task gate.
+    """
+    return _consent_ok(base_dir) or session_consent
+
+
 def _lock_ok(keystore_initialized: bool) -> bool:
     return bool(keystore_initialized)
 
@@ -56,7 +64,7 @@ def get_startup_summary(
     Sorun varsa yalnızca en kritik eksik; mümkünse bir sonraki adım.
     session_consent: when True (e.g. genel onay aç), consent is treated as given for this session.
     """
-    consent = _consent_ok(base_dir) or session_consent
+    consent = effective_consent(base_dir, session_consent)
     lock = _lock_ok(keystore_initialized)
     pres_ok, pres_enabled = _presence_ok(presence_module, base_dir)
     macos = _macos_permissions_ok()
@@ -96,7 +104,7 @@ def get_durum_parts(
     Döner: consent_ok, lock_ok, durum_label ("güvenli" | "kısmen hazır"), not_line.
     session_consent: when True (e.g. genel onay aç), consent is treated as given for this session.
     """
-    consent = _consent_ok(base_dir) or session_consent
+    consent = effective_consent(base_dir, session_consent)
     lock = _lock_ok(keystore_initialized)
     pres_ok, pres_enabled = _presence_ok(presence_module, base_dir)
     macos = _macos_permissions_ok()

@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from core.workspace_contract import may_perform_permanent_delete, save_task_store_json
+from task_engine.diagnostics import get_step_block_reason
 from task_engine.profiles import (
     STEP_TYPE_ANALYZE,
     STEP_TYPE_READ,
@@ -110,6 +111,7 @@ class TaskRecord:
     simulation_count: int = 0  # adımlardan result_kind == simulasyon olanların sayısı
     archived: bool = False
     archived_at: str = ""
+    block_reason: str = ""  # diagnostics: missing_consent | lock_active | offline_mode | unsupported_action | policy_restriction
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -131,6 +133,7 @@ class TaskRecord:
             "simulation_count": self.simulation_count,
             "archived": self.archived,
             "archived_at": self.archived_at,
+            "block_reason": self.block_reason,
         }
 
     @classmethod
@@ -155,6 +158,7 @@ class TaskRecord:
             simulation_count=int(d.get("simulation_count", 0)),
             archived=bool(d.get("archived", False)),
             archived_at=str(d.get("archived_at", "")),
+            block_reason=str(d.get("block_reason", "")),
         )
 
 
@@ -459,6 +463,7 @@ class TaskEngine:
         if task.status not in (TASK_PENDING, TASK_ERROR, TASK_STOPPED):
             return False, f"Görev zaten {task.status}."
         task.status = TASK_RUNNING
+        task.block_reason = ""  # clear so re-run or completion doesn't show stale block
         self.store.update(task)
         start = time.time()
         completed = 0
@@ -468,12 +473,20 @@ class TaskEngine:
             for i, step in enumerate(task.steps):
                 if not self._is_step_allowed_runtime(step):
                     step.status = STEP_STOPPED
-                    step.error = "Bu adım yetki profili veya genel onay kapsamında değil."
-                    step.result_kind = STEP_RESULT_UNVERIFIABLE
-                    task.error_summary = step.error
+                    diag = get_step_block_reason(
+                        self.permission_profile, step.kind, self.general_approval
+                    )
+                    if diag:
+                        reason_code, user_message = diag
+                        step.error = user_message
+                        task.error_summary = user_message
+                        task.block_reason = reason_code
+                    else:
+                        step.error = "Bu adım yetki profili veya genel onay kapsamında değil."
+                        task.error_summary = step.error
                     task.status = TASK_STOPPED
                     self.store.update(task)
-                    return False, f"Adım {i+1} izin dışı: {step.title}"
+                    return False, f"Adım {i+1} durdu: {task.error_summary}"
                 step.status = STEP_RUNNING
                 self.store.update(task)
                 ok, out, err, verified = self._execute_step(step, task)
