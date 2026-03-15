@@ -47,12 +47,12 @@ def get_step_block_reason(
     if requires_explicit_approval(profile, step_type, general_approval):
         return (
             BLOCK_POLICY_RESTRICTION,
-            f"Yetki kısıtı — genel onay kapalı. Bu adım türü için «genel onay aç» gerekir.",
+            "Yetki kısıtı — genel onay kapalı. Bu adım türü için «genel onay aç» gerekir.",
         )
     # Profil never allows this step type (e.g. rapor + safe_local)
     return (
         BLOCK_POLICY_RESTRICTION,
-        f"Yetki kısıtı — mevcut profil bu adım türüne izin vermiyor.",
+        "Yetki kısıtı — mevcut profil bu adım türüne izin vermiyor.",
     )
 
 

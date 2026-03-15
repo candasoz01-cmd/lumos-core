@@ -5,8 +5,6 @@ After 'genel onay aç', durum and hazır must reflect consent active; after 'gen
 import tempfile
 from pathlib import Path
 
-import pytest
-
 
 def _mock_presence():
     """Minimal presence module: load_presence_cfg returns enabled=False so we don't touch camera."""
