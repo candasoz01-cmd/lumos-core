@@ -10,6 +10,7 @@ from security.request_signer import RequestSigner
 class ModelClient:
     def __init__(self, api_key: str | None = None):
         self.api_key = api_key or os.getenv("LUMOS_API_KEY")
+        self._openai_key = (os.getenv("OPENAI_API_KEY") or "").strip()
 
         self._ts_skew = int(os.getenv("LUMOS_TS_SKEW", "60"))
 
@@ -86,6 +87,10 @@ class ModelClient:
         self._nonce_cache[nonce] = now + self._nonce_ttl
         return True, "ok"
 
+    def is_openai_available(self) -> bool:
+        """True when OPENAI_API_KEY is set; enables direct OpenAI path without signing."""
+        return bool(self._openai_key)
+
     def generate(self, prompt: str) -> str:
         if os.getenv("LUMOS_SERVER_SIM", "0") == "1":
             ok, reason = self._server_sim_verify(prompt)
@@ -93,4 +98,24 @@ class ModelClient:
                 return json.dumps({"ok": True, "response": "Sim OK", "error": "", "server": "sim"}, ensure_ascii=False)
             return json.dumps({"ok": False, "response": "", "error": reason or "reject", "server": "sim"}, ensure_ascii=False)
 
+        if self._openai_key:
+            return self._generate_openai(prompt)
         return "Yanındayım."
+
+    def _generate_openai(self, prompt: str) -> str:
+        """Call OpenAI Chat Completions with the given prompt. Returns response text or error fallback."""
+        try:
+            from openai import OpenAI
+
+            client = OpenAI(api_key=self._openai_key)
+            response = client.chat.completions.create(
+                model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=int(os.getenv("OPENAI_MAX_TOKENS", "512")),
+            )
+            if response.choices:
+                content = (response.choices[0].message.content or "").strip()
+                return content if content else "Yanıt yok."
+            return "Yanıt yok."
+        except Exception:
+            return "Yanıt üretilirken hata oluştu."

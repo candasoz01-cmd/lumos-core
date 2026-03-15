@@ -314,6 +314,8 @@ def create_runtime(sandbox_mode: bool | None = None) -> RuntimeResult:
     engine = offline_engine if mode == "offline" else online_engine
     lumos = Lumos(mode=mode, engine=engine)
     lumos.boot()
+    if mode == "online" and (os.getenv("OPENAI_API_KEY") or "").strip():
+        print("OpenAI client connected")
     root_key: bytes | None = None
     ks = FileKeyStore(base_dir=base_dir, is_sandbox_mode=sandbox_mode)
 

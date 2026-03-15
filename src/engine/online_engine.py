@@ -49,9 +49,15 @@ class OnlineEngineV1:
 
     def process(self, message: str, short_context: str = "") -> dict:
         if not self.signer:
+            if getattr(self.client, "is_openai_available", lambda: False)():
+                raw = self.client.generate(message)
+                safe = (raw or "").strip() or "Yanıt yok."
+                if len(safe) > 200:
+                    safe = safe[:200].rstrip() + "…"
+                return {"response": safe, "reason": "", "follow_up": ""}
             return {
                 "response": "Online hazır değil.",
-                "reason": "Kimlik/şifre yok (dev için LUMOS_PASSPHRASE gerekli).",
+                "reason": "Kimlik/şifre yok (dev için LUMOS_PASSPHRASE gerekli). OPENAI modu için OPENAI_API_KEY gerekli.",
                 "follow_up": ""
             }
 
