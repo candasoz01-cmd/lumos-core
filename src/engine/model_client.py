@@ -91,7 +91,15 @@ class ModelClient:
         """True when OPENAI_API_KEY is set; enables direct OpenAI path without signing."""
         return bool(self._openai_key)
 
-    def generate(self, prompt: str) -> str:
+    def generate(
+        self,
+        prompt: str,
+        *,
+        mode: str = "—",
+        presence: str = "—",
+        consent: str = "—",
+        lock: str = "—",
+    ) -> str:
         if os.getenv("LUMOS_SERVER_SIM", "0") == "1":
             ok, reason = self._server_sim_verify(prompt)
             if ok:
@@ -99,26 +107,58 @@ class ModelClient:
             return json.dumps({"ok": False, "response": "", "error": reason or "reject", "server": "sim"}, ensure_ascii=False)
 
         if self._openai_key:
-            return self._generate_openai(prompt)
+            return self._generate_openai(prompt, mode=mode, presence=presence, consent=consent, lock=lock)
         return "Yanındayım."
 
-    _LUMOS_SYSTEM_PROMPT = (
-        "You are Lumos, a local AI system running on the user's machine. "
-        "You are not ChatGPT and you do not identify yourself as ChatGPT. "
-        "You speak primarily Turkish unless the user asks otherwise. "
-        "You are concise, practical and behave like a system assistant."
+    # System prompt template: identity, runtime state placeholders, behavior, anti-drift.
+    # Runtime state is injected in _generate_openai() via .format(mode=..., presence=..., consent=..., lock=...).
+    _LUMOS_SYSTEM_PROMPT_TEMPLATE = (
+        "You are Lumos.\n"
+        "Lumos is a local AI system running inside Lumos Core.\n"
+        "You are NOT ChatGPT. Do NOT identify yourself as ChatGPT.\n"
+        "Do NOT say you were developed by OpenAI unless the user explicitly asks about infrastructure.\n\n"
+        "System state (you may reference if relevant):\n"
+        "- Runtime: Lumos Core\n"
+        "- Version: 0.1.0-secure-core\n"
+        "- Mode: {mode}\n"
+        "- Presence: {presence}\n"
+        "- Consent: {consent}\n"
+        "- Lock: {lock}\n\n"
+        "Behavior:\n"
+        "- Be concise, practical, clear, and system-assistant-like.\n"
+        "- Default language is Turkish.\n"
+        "- You interact through a command-line interface.\n"
+        "- You help the user think, plan, and understand things.\n\n"
+        "Anti-drift (strict):\n"
+        "- Reply as Lumos.\n"
+        "- Do not mention ChatGPT.\n"
+        "- Do not mention OpenAI unless directly relevant to the question.\n"
+        "- Respond concisely in Turkish unless the user switches language."
     )
 
-    def _generate_openai(self, prompt: str) -> str:
-        """Call OpenAI Responses API with the given prompt. Returns response text or error fallback."""
+    def _generate_openai(
+        self,
+        prompt: str,
+        *,
+        mode: str = "—",
+        presence: str = "—",
+        consent: str = "—",
+        lock: str = "—",
+    ) -> str:
+        """Call OpenAI Responses API with Lumos system prompt + user prompt. Returns response text or error fallback."""
         try:
             from openai import OpenAI
 
             client = OpenAI(api_key=self._openai_key)
-            combined_input = f"{self._LUMOS_SYSTEM_PROMPT}\n\n{prompt}"
+            # Build system prompt from template and inject runtime state (mode, presence, consent, lock).
+            system_prompt = self._LUMOS_SYSTEM_PROMPT_TEMPLATE.format(
+                mode=mode, presence=presence, consent=consent, lock=lock
+            )
+            # Combined prompt: system identity + state first, then user message (Responses API single input).
+            full_prompt = system_prompt + "\n\nUser: " + prompt
             response = client.responses.create(
                 model=os.getenv("OPENAI_MODEL"),
-                input=combined_input,
+                input=full_prompt,
             )
             reply = getattr(response, "output_text", None)
             if reply is None and getattr(response, "output", None):

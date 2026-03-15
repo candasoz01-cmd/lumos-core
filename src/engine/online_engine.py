@@ -47,10 +47,20 @@ class OnlineEngineV1:
             self.signer = None
             self.lumos_id = ""
 
-    def process(self, message: str, short_context: str = "") -> dict:
+    def process(
+        self,
+        message: str,
+        short_context: str = "",
+        *,
+        mode: str = "—",
+        presence: str = "—",
+        consent: str = "—",
+        lock: str = "—",
+    ) -> dict:
+        state_kw = {"mode": mode, "presence": presence, "consent": consent, "lock": lock}
         if not self.signer:
             if getattr(self.client, "is_openai_available", lambda: False)():
-                raw = self.client.generate(message)
+                raw = self.client.generate(message, **state_kw)
                 safe = (raw or "").strip() or "Yanıt yok."
                 if len(safe) > 200:
                     safe = safe[:200].rstrip() + "…"
@@ -69,7 +79,7 @@ class OnlineEngineV1:
         signed = self.signer.sign(payload)
         wire = json.dumps(signed.__dict__, ensure_ascii=False)
 
-        raw = self.client.generate(wire)
+        raw = self.client.generate(wire, **state_kw)
 
         safe_raw = (raw or "").strip() or "Yanıt yok."
         try:
