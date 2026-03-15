@@ -35,6 +35,7 @@ class Lumos:
         print(f"Version: {VERSION} | Mod: {self.mode}")
 
     def respond(self, ctx: Context) -> Optional[str]:
+        """PolicyRules path: used by scripts/tests. CLI free-text uses live_brain path (on_live_brain → handle_live_brain → online_engine.process), not this."""
         # 0) Lock state
         ctx.is_unlocked = bool(getattr(self.lock_state, 'unlocked', False))
 

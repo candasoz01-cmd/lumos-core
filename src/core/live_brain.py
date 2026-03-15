@@ -3,6 +3,9 @@
 When CLI receives unknown input and online mode is enabled, this module handles
 the input via the online engine (LLM) and optionally creates a task through Brain.
 Safe: no bypass of consent/lock/profile; task creation goes through Planner/TaskEngine.
+
+Active response path: CLI (unknown) → router on_live_brain → handle_live_brain
+→ online_engine.process (state injected) → model_client.generate → user output.
 """
 from __future__ import annotations
 
@@ -12,6 +15,7 @@ from typing import TYPE_CHECKING, Any
 from core.brain import run as brain_run
 
 if TYPE_CHECKING:
+    from core.state import CoreState
     from task_engine.observation import ObservationEngine
 
 
@@ -41,10 +45,14 @@ def handle_live_brain(
     permission_profile: str,
     general_approval: bool,
     observation_engine: "ObservationEngine | None" = None,
+    state: "CoreState | None" = None,
 ) -> str:
     """
     Handle free-text input in online mode: ask online engine for response;
     if the engine returns create_task + task_goal, run Brain and merge result.
+
+    When state is provided, mode/presence/consent/lock are injected into the
+    engine so the model receives current runtime state (Lumos identity prompt).
 
     Returns a single string to print (natural Turkish, concise).
     """
@@ -53,8 +61,28 @@ def handle_live_brain(
         return "Boş giriş; işlem yapılmadı."
 
     short_context = ""
+    mode = "—"
+    presence = "—"
+    consent = "—"
+    lock = "—"
+    if state is not None:
+        mode = state.mode_str()
+        lock = state.lock_status()
+        try:
+            presence = state.presence_display()
+        except Exception:
+            presence = "—"
+        consent = "kayıtlı" if general_approval else "yok"
+
     if hasattr(online_engine, "process"):
-        result = online_engine.process(raw, short_context=short_context)
+        result = online_engine.process(
+            raw,
+            short_context=short_context,
+            mode=mode,
+            presence=presence,
+            consent=consent,
+            lock=lock,
+        )
     else:
         return "Online motor hazır değil."
 

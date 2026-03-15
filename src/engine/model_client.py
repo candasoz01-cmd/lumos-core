@@ -1,3 +1,4 @@
+import logging
 import os
 import json
 import time
@@ -5,6 +6,19 @@ from typing import Any, Tuple
 
 from security.crypto import b64d
 from security.request_signer import RequestSigner
+
+logger = logging.getLogger(__name__)
+
+# Optional: in development (LUMOS_DEBUG=1), ensure token_usage logs are visible if nothing else configured.
+def _ensure_token_logging_visible() -> None:
+    if os.getenv("LUMOS_DEBUG", "0") != "1":
+        return
+    if logger.handlers:
+        return
+    logger.setLevel(logging.INFO)
+    h = logging.StreamHandler()
+    h.setLevel(logging.INFO)
+    logger.addHandler(h)
 
 
 class ModelClient:
@@ -110,9 +124,10 @@ class ModelClient:
             return self._generate_openai(prompt, mode=mode, presence=presence, consent=consent, lock=lock)
         return "Yanındayım."
 
-    # System prompt template: identity, runtime state placeholders, behavior, anti-drift.
-    # Runtime state is injected in _generate_openai() via .format(mode=..., presence=..., consent=..., lock=...).
-    _LUMOS_SYSTEM_PROMPT_TEMPLATE = (
+    # System prompt: single source of truth. Split into static prefix, state block, static suffix
+    # so only the small state block is formatted per request (reduces repeated format overhead).
+    # Full template = _LUMOS_SYSTEM_STATIC_PREFIX + _LUMOS_SYSTEM_STATE_BLOCK + _LUMOS_SYSTEM_STATIC_SUFFIX.
+    _LUMOS_SYSTEM_STATIC_PREFIX = (
         "You are Lumos.\n"
         "Lumos is a local AI system running inside Lumos Core.\n"
         "You are NOT ChatGPT. Do NOT identify yourself as ChatGPT.\n"
@@ -120,21 +135,48 @@ class ModelClient:
         "System state (you may reference if relevant):\n"
         "- Runtime: Lumos Core\n"
         "- Version: 0.1.0-secure-core\n"
+    )
+    _LUMOS_SYSTEM_STATE_BLOCK = (
         "- Mode: {mode}\n"
         "- Presence: {presence}\n"
         "- Consent: {consent}\n"
         "- Lock: {lock}\n\n"
+    )
+    _LUMOS_SYSTEM_STATIC_SUFFIX = (
         "Behavior:\n"
         "- Be concise, practical, clear, and system-assistant-like.\n"
         "- Default language is Turkish.\n"
         "- You interact through a command-line interface.\n"
         "- You help the user think, plan, and understand things.\n\n"
+        "Intervention reporting (when the user asks where intervention is needed or what to check):\n"
+        "- Analyze the current system context (mode, presence, consent, lock above) and infer likely issues.\n"
+        "- Reply with a concise, structured list. Use this structure when listing potential intervention areas:\n"
+        "  Possible intervention areas:\n"
+        "  1. Configuration issues\n"
+        "  2. Permission or access boundaries\n"
+        "  3. External system integration limits\n"
+        "  4. Tasks requiring manual confirmation\n"
+        "- For each category that applies, give one short line; omit categories that do not apply.\n"
+        "- If you cannot inspect a specific system area, say exactly: \"Bu alanı doğrudan inceleyemiyorum ancak şu kontrolleri yapabilirsin...\" and then list concrete checks the user can do.\n"
+        "- Do NOT reply with generic requests like \"Lütfen detay paylaş.\" Instead: infer from context, propose likely intervention points, and ask at most one or two targeted follow-up questions if needed.\n\n"
         "Anti-drift (strict):\n"
         "- Reply as Lumos.\n"
         "- Do not mention ChatGPT.\n"
         "- Do not mention OpenAI unless directly relevant to the question.\n"
         "- Respond concisely in Turkish unless the user switches language."
     )
+    # Full template (for tests and any code that needs the whole template with placeholders).
+    _LUMOS_SYSTEM_PROMPT_TEMPLATE = (
+        _LUMOS_SYSTEM_STATIC_PREFIX + _LUMOS_SYSTEM_STATE_BLOCK + _LUMOS_SYSTEM_STATIC_SUFFIX
+    )
+
+    @staticmethod
+    def _build_system_prompt(mode: str, presence: str, consent: str, lock: str) -> str:
+        """Build full system prompt: static prefix + formatted state block + static suffix. Single place for construction."""
+        state_block = ModelClient._LUMOS_SYSTEM_STATE_BLOCK.format(
+            mode=mode, presence=presence, consent=consent, lock=lock
+        )
+        return ModelClient._LUMOS_SYSTEM_STATIC_PREFIX + state_block + ModelClient._LUMOS_SYSTEM_STATIC_SUFFIX
 
     def _generate_openai(
         self,
@@ -150,16 +192,33 @@ class ModelClient:
             from openai import OpenAI
 
             client = OpenAI(api_key=self._openai_key)
-            # Build system prompt from template and inject runtime state (mode, presence, consent, lock).
-            system_prompt = self._LUMOS_SYSTEM_PROMPT_TEMPLATE.format(
-                mode=mode, presence=presence, consent=consent, lock=lock
-            )
+            # Centralized build: static prefix + state block + static suffix (only state block formatted per request).
+            system_prompt = self._build_system_prompt(mode, presence, consent, lock)
             # Combined prompt: system identity + state first, then user message (Responses API single input).
             full_prompt = system_prompt + "\n\nUser: " + prompt
+            model = (os.getenv("OPENAI_MODEL") or "").strip() or "gpt-4o"
             response = client.responses.create(
-                model=os.getenv("OPENAI_MODEL"),
+                model=model,
                 input=full_prompt,
             )
+            # Token usage: safe extraction after successful Responses API call. No crash if missing.
+            usage = getattr(response, "usage", None) or getattr(response, "usage_metadata", None)
+            if usage is not None:
+                try:
+                    inp = getattr(usage, "input_tokens", None) or getattr(usage, "prompt_tokens", None)
+                    out_tok = getattr(usage, "output_tokens", None) or getattr(usage, "completion_tokens", None)
+                    total = getattr(usage, "total_tokens", None)
+                    if inp is not None or out_tok is not None or total is not None:
+                        _ensure_token_logging_visible()
+                        logger.info(
+                            "token_usage model=%s input_tokens=%s output_tokens=%s total_tokens=%s",
+                            model,
+                            inp,
+                            out_tok,
+                            total,
+                        )
+                except Exception:
+                    pass
             reply = getattr(response, "output_text", None)
             if reply is None and getattr(response, "output", None):
                 out = response.output
@@ -168,7 +227,5 @@ class ModelClient:
             reply = (reply or "").strip() or "Yanıt yok."
             return reply
         except Exception as e:
-            import traceback
-            print("LLM ERROR:", e)
-            traceback.print_exc()
+            logger.exception("LLM error: %s", e)
             return "Model hatası oluştu."
