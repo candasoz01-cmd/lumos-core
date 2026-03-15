@@ -1,9 +1,9 @@
 """CLI command routing and dispatch for Lumos core.
 
 Extracted from main.py for stabilization. Owns command normalization, dispatch
-table, and the main CLI loop; routes only to existing CLI modules. Integrates
-observation task layer (gorev_kuyruk) when runtime provides observation_engine.
-No bootstrap, security, lock, presence, or workspace contract logic.
+table, and the main CLI loop; routes only to existing CLI modules.
+No observation logic here; routing only. No bootstrap, security, lock,
+presence, or workspace contract logic.
 """
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from cli.cli_parse import (
     get_fallback_message,
     normalize_command,
 )
-from cli.cli_readonly import ReadOnlyContext, handle_readonly
+from cli.cli_readonly import ReadOnlyContext, handle_gorev_kuyruk, handle_readonly
 from cli.cli_tasks_mutation import TaskMutationContext, handle_task_mutation
 from task_engine import ALL_PROFILES, get_profile_display_name
 
@@ -128,15 +128,7 @@ def run_cli_loop(router_ctx: RouterContext) -> None:
         if handle_task_mutation(route, args, router_ctx.mut_ctx):
             continue
         if route == "gorev_kuyruk":
-            if getattr(router_ctx, "observation_engine", None) is not None:
-                tasks = router_ctx.observation_engine.queue.list_tasks()
-                if not tasks:
-                    print("İç görev kuyruğu boş.")
-                else:
-                    for t in tasks:
-                        print(f"  [{t.priority.value}] {t.description} (kaynak: {t.source})")
-            else:
-                print("Görev kuyruğu kullanılmıyor.")
+            handle_gorev_kuyruk(getattr(router_ctx, "observation_engine", None))
             continue
         if route == "exit":
             print("OK")
