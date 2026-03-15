@@ -60,8 +60,8 @@ def format_block_for_display(reason_code: str, detail_message: str | None = None
     """Single line for görev durumu / görev özeti: Engel: <label> [— detail]."""
     label = BLOCK_LABELS.get(reason_code, reason_code)
     if detail_message and detail_message.strip():
-        return f"Engel: {label} — {detail_message.strip()}"
-    return f"Engel: {label}"
+        return "Engel: {} — {}".format(label, detail_message.strip())
+    return "Engel: {}".format(label)
 
 
 def format_task_block_line(task: Any) -> str | None:
