@@ -262,7 +262,7 @@ def test_list_files_intent_asks_clarification():
 
     pending_intent_ref = [None]
     mock_engine = MagicMock()
-    with patch("core.live_brain.tool_available", return_value=True):
+    with patch("core.live_brain._tool_available", return_value=True):
         with tempfile.TemporaryDirectory() as d:
             from task_engine import TaskStore, PROFILE_RAPOR
 
@@ -298,7 +298,7 @@ def test_list_files_clarification_then_reply_resumes_intent():
     mock_pl.is_running.return_value = False
     state = CoreState(mock_lumos, mock_pl, "online")
 
-    with patch("core.live_brain.tool_available", return_value=True):
+    with patch("core.live_brain._tool_available", return_value=True):
         with tempfile.TemporaryDirectory() as d:
             from task_engine import TaskStore, PROFILE_RAPOR
 
