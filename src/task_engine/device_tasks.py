@@ -18,7 +18,6 @@ from __future__ import annotations
 from typing import Any
 
 from task_engine.models import Task, TaskPriority
-from task_engine.queue import TaskQueue
 from task_engine.observation_engine import ObservationTaskEngine
 
 # Optional device-layer dependency; engine still works without it (no tasks from policy).

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections import deque
 
-from task_engine.models import Task, TaskPriority
+from task_engine.models import Task
 
 
 class TaskQueue:
