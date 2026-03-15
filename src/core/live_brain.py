@@ -39,6 +39,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from core.brain import run as brain_run
+from core.intent_params import extract_intent_params
 from core.next_step import (
     REASON_CLARIFICATION_NEEDED,
     REASON_CONSENT_MISSING,
@@ -95,11 +96,12 @@ def _tool_available(name: str) -> bool:
     return False
 
 
-def _reject_intent(intent: str, raw: str = "") -> str:
+def _reject_intent(intent: str, raw: str = "", folder: str | None = None) -> str:
     """Reject message when tool is not available; use next-step guidance."""
     g = suggest_next_step(intent, None, REASON_TOOL_UNAVAILABLE, None)
-    if intent == "list_files" and raw:
-        return f"{raw.strip()} klasörü için listeleme istedin. {g['message']}"
+    if intent == "list_files" and (folder or raw):
+        display = (folder or raw).strip()
+        return f"{display} klasörü için listeleme istedin. {g['message']}"
     return g["message"] if not raw else f"Niyet: {intent}. Yanıt: {raw!r}. {g['message']}"
 
 
@@ -123,6 +125,13 @@ def _resume_pending_intent(
             return "Hangi klasör demek istemiştim; lütfen klasör adı yaz.", False
         return "Lütfen önceki soruya yanıt ver (ör. parametre veya değer yaz).", False
 
+    # Capture params before clearing (e.g. folder from pending_params or ref)
+    _params: dict = {}
+    if state is not None:
+        _params = dict(getattr(state, "pending_params", None) or {})
+    if not _params and pending_intent_ref and len(pending_intent_ref) > 0 and pending_intent_ref[0]:
+        _params = dict((pending_intent_ref[0].get("params") or {}))
+
     # Valid clarification reply: clear state, then intent → tool check → execute / reject
     if pending_intent_ref is not None and len(pending_intent_ref) > 0:
         pending_intent_ref[0] = None
@@ -132,10 +141,12 @@ def _resume_pending_intent(
         state.pending_action = None
 
     if not _tool_available(intent):
-        return _reject_intent(intent, raw), True  # message includes next_step from suggest_next_step
+        _folder = _params.get("folder") or raw
+        return _reject_intent(intent, raw, folder=_folder), True
     # Tool available; execute (real implementation not wired yet — no filesystem)
     if intent == "list_files":
-        return f"{raw.strip()} klasörü için listeleme istedin; dosya erişimi henüz bağlanmadı.", True
+        _folder = _params.get("folder") or raw
+        return f"{_folder.strip()} klasörü için listeleme istedin; dosya erişimi henüz bağlanmadı.", True
     return f"Niyet: {intent}. Yanıt: {raw!r}. Dosya erişimi henüz bağlanmadı.", True
 
 
@@ -157,14 +168,18 @@ def _lookup_deterministic_intent(normalized: str) -> str | None:
 
 def _detect_list_files_intent(text: str) -> dict | None:
     """
-    Detect "list files in folder" / "klasördeki dosyaları listele" style intent.
-    Returns a pending_intent dict if we need to ask for folder; else None.
+    Detect "list files in folder" / "klasördeki dosyaları listele" or "X klasörünü listele" style intent.
+    Returns a pending_intent dict; if folder can be extracted from same message, params has "folder" and no missing_param.
     Does not fake filesystem: we only store intent; when user answers, we continue
     (engine or handler will state clearly if the tool does not exist).
     """
     t = (text or "").strip().lower()
     if not t:
         return None
+    # If we can extract folder from this message, return list_files with params and no clarification
+    params = extract_intent_params("list_files", text)
+    if params.get("folder"):
+        return {"intent": "list_files", "params": params, "missing_param": None, "user_message": text}
     # Turkish: klasördeki dosyaları listele (folder implied). Use ASCII+unicode for portability.
     if re.search(r"(klas[o\u00f6]r(deki)?\s*(dosya(lar[\u0131i])?\s*listele?|dosya))", t):
         return {"intent": "list_files", "params": {}, "missing_param": "folder", "user_message": text}
@@ -272,6 +287,12 @@ def handle_live_brain(
     intent_name = _lookup_deterministic_intent(normalized)
     if intent_name:
         if intent_name == "list_files":
+            params = extract_intent_params("list_files", raw)
+            if params.get("folder"):
+                # Folder present in same message: no clarification; go to reject/next-step with folder
+                if not _tool_available("list_files"):
+                    return _reject_intent("list_files", raw, folder=params["folder"])
+                return f"{params['folder']} klasörü için listeleme istedin; dosya erişimi henüz bağlanmadı."
             if not _tool_available("list_files"):
                 g = suggest_next_step("list_files", state, REASON_TOOL_UNAVAILABLE, None)
                 return g["message"]
@@ -299,11 +320,16 @@ def handle_live_brain(
     detected = _detect_list_files_intent(raw)
     if detected:
         intent_name = (detected.get("intent") or "").strip() or "unknown"
+        params = dict(detected.get("params") or {})
+        missing_param = (detected.get("missing_param") or "").strip()
+        if params.get("folder"):
+            # Folder extracted from same message: no clarification; reject/next-step with folder
+            if not _tool_available(intent_name):
+                return _reject_intent(intent_name, raw, folder=params["folder"])
+            return f"{params['folder']} klasörü için listeleme istedin; dosya erişimi henüz bağlanmadı."
         if not _tool_available(intent_name):
             g = suggest_next_step(intent_name, state, REASON_TOOL_UNAVAILABLE, None)
             return g["message"]
-        missing_param = (detected.get("missing_param") or "").strip()
-        params = dict(detected.get("params") or {})
         if missing_param:
             params["_missing_param"] = missing_param
         if state is not None:

@@ -454,3 +454,113 @@ def test_pending_state_clears_after_completion():
     assert state.pending_params == {}
     assert state.pending_action is None
     assert pending_intent_ref[0] is None
+
+
+def test_list_files_with_folder_no_clarification_work_2026_klasorunu():
+    """WORK_2026 klasörünü listele -> no clarification, folder extracted, message mentions resolved folder."""
+    from core.live_brain import handle_live_brain
+
+    pending_intent_ref = [None]
+    mock_engine = MagicMock()
+    with tempfile.TemporaryDirectory() as d:
+        from task_engine import TaskStore, PROFILE_RAPOR
+
+        store = TaskStore(d)
+        out = handle_live_brain(
+            "WORK_2026 klasörünü listele",
+            mock_engine,
+            store,
+            d,
+            PROFILE_RAPOR,
+            False,
+            observation_engine=None,
+            pending_intent_ref=pending_intent_ref,
+        )
+    assert "Hangi klasör" not in out
+    assert "WORK_2026" in out
+    assert "listeleme istedin" in out
+    assert "mevcut değil" in out
+    assert pending_intent_ref[0] is None
+    mock_engine.process.assert_not_called()
+
+
+def test_list_files_with_folder_no_clarification_work_2026_listele():
+    """work_2026 listele -> no clarification, folder extracted."""
+    from core.live_brain import handle_live_brain
+
+    pending_intent_ref = [None]
+    mock_engine = MagicMock()
+    with tempfile.TemporaryDirectory() as d:
+        from task_engine import TaskStore, PROFILE_RAPOR
+
+        store = TaskStore(d)
+        out = handle_live_brain(
+            "work_2026 listele",
+            mock_engine,
+            store,
+            d,
+            PROFILE_RAPOR,
+            False,
+            observation_engine=None,
+            pending_intent_ref=pending_intent_ref,
+        )
+    assert "Hangi klasör" not in out
+    assert "work_2026" in out
+    assert "listeleme istedin" in out
+    assert pending_intent_ref[0] is None
+    mock_engine.process.assert_not_called()
+
+
+def test_list_files_dosyalari_listele_still_asks_clarification():
+    """dosyaları listele (no folder in message) -> clarification still required when tool available."""
+    from core.live_brain import handle_live_brain
+
+    pending_intent_ref = [None]
+    mock_engine = MagicMock()
+    with patch("core.live_brain._tool_available", return_value=True):
+        with tempfile.TemporaryDirectory() as d:
+            from task_engine import TaskStore, PROFILE_RAPOR
+
+            store = TaskStore(d)
+            out = handle_live_brain(
+                "dosyaları listele",
+                mock_engine,
+                store,
+                d,
+                PROFILE_RAPOR,
+                False,
+                observation_engine=None,
+                pending_intent_ref=pending_intent_ref,
+            )
+    assert "Hangi klasör" in out
+    assert pending_intent_ref[0] is not None
+    assert pending_intent_ref[0].get("intent") == "list_files"
+    assert pending_intent_ref[0].get("missing_param") == "folder"
+    mock_engine.process.assert_not_called()
+
+
+def test_list_files_extracted_folder_survives_reject_message():
+    """When folder is extracted, reject message mentions the resolved folder (feature still not available)."""
+    from core.live_brain import handle_live_brain
+
+    pending_intent_ref = [None]
+    mock_engine = MagicMock()
+    with tempfile.TemporaryDirectory() as d:
+        from task_engine import TaskStore, PROFILE_RAPOR
+
+        store = TaskStore(d)
+        out = handle_live_brain(
+            "lumos-core dosyaları listele",
+            mock_engine,
+            store,
+            d,
+            PROFILE_RAPOR,
+            False,
+            observation_engine=None,
+            pending_intent_ref=pending_intent_ref,
+        )
+    assert "lumos-core" in out
+    assert "listeleme istedin" in out
+    assert "mevcut değil" in out
+    assert pending_intent_ref[0] is None
+    mock_engine.process.assert_not_called()
