@@ -276,3 +276,17 @@ def handle_readonly(route: str, args: list[str], ctx: ReadOnlyContext) -> bool:
         return True
 
     return False
+
+
+def handle_gorev_kuyruk(observation_engine: Any) -> bool:
+    """Display observation task queue. No observation logic; only list. Returns True."""
+    if observation_engine is None:
+        print("Görev kuyruğu kullanılmıyor.")
+        return True
+    tasks = observation_engine.queue.list_tasks()
+    if not tasks:
+        print("İç görev kuyruğu boş.")
+    else:
+        for t in tasks:
+            print(f"  [{t.priority.value}] {t.description} (kaynak: {t.source})")
+    return True

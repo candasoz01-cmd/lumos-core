@@ -13,8 +13,9 @@ from task_engine.models import Task, TaskPriority
 from task_engine.queue import TaskQueue
 
 # Default thresholds for signal-based triggers (system_monitor / device_perception shape).
+# First autonomous observation rule: high CPU → task suggestion only (read-only).
 TRIGGER_EFFICIENCY_BELOW = 70
-TRIGGER_HIGH_CPU_PERCENT = 80.0
+TRIGGER_HIGH_CPU_PERCENT = 85.0
 TRIGGER_HIGH_MEMORY_PERCENT = 85.0
 TRIGGER_PROCESS_COUNT_ABOVE = 200
 TRIGGER_HIGH_CPU_PROCESS_COUNT = 5
@@ -33,8 +34,8 @@ def _evaluate_triggers(signal: dict[str, Any]) -> list[tuple[str, TaskPriority]]
     cpu = signal.get("cpu_percent")
     mem = signal.get("memory_percent")
     process_count = signal.get("process_count")
-    if cpu is not None and float(cpu) >= TRIGGER_HIGH_CPU_PERCENT:
-        out.append(("Review high CPU usage", TaskPriority.HIGH))
+    if cpu is not None and float(cpu) > TRIGGER_HIGH_CPU_PERCENT:
+        out.append(("High CPU usage detected", TaskPriority.HIGH))
     if mem is not None and float(mem) >= TRIGGER_HIGH_MEMORY_PERCENT:
         out.append(("Review high memory usage", TaskPriority.HIGH))
     if process_count is not None and int(process_count) >= TRIGGER_PROCESS_COUNT_ABOVE:
