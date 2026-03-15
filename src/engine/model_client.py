@@ -103,19 +103,24 @@ class ModelClient:
         return "Yanındayım."
 
     def _generate_openai(self, prompt: str) -> str:
-        """Call OpenAI Chat Completions with the given prompt. Returns response text or error fallback."""
+        """Call OpenAI Responses API with the given prompt. Returns response text or error fallback."""
         try:
             from openai import OpenAI
 
             client = OpenAI(api_key=self._openai_key)
-            response = client.chat.completions.create(
-                model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=int(os.getenv("OPENAI_MAX_TOKENS", "512")),
+            response = client.responses.create(
+                model=os.getenv("OPENAI_MODEL"),
+                input=prompt,
             )
-            if response.choices:
-                content = (response.choices[0].message.content or "").strip()
-                return content if content else "Yanıt yok."
-            return "Yanıt yok."
-        except Exception:
-            return "Yanıt üretilirken hata oluştu."
+            reply = getattr(response, "output_text", None)
+            if reply is None and getattr(response, "output", None):
+                out = response.output
+                if out and len(out) > 0 and getattr(out[0], "content", None) and len(out[0].content) > 0:
+                    reply = getattr(out[0].content[0], "text", None)
+            reply = (reply or "").strip() or "Yanıt yok."
+            return reply
+        except Exception as e:
+            import traceback
+            print("LLM ERROR:", e)
+            traceback.print_exc()
+            return "Model hatası oluştu."
