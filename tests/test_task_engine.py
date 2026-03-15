@@ -288,6 +288,103 @@ def test_runtime_step_enforcement_analyze_allowed_rapor_without_approval():
         assert may_execute_step_at_runtime(PROFILE_RAPOR, STEP_TYPE_SAFE_LOCAL, False) is False
 
 
+# --- Kind-based execution: dispatch by step.kind, verification semantics ---
+
+
+def test_execute_by_kind_read_verified():
+    """kind=read with base_dir and tasks.json yields verified_count=1 and read output."""
+    with tempfile.TemporaryDirectory() as d:
+        store = TaskStore(d)
+        t = store.create("Oku", "desc", PROFILE_GUVENLI_YURUT)
+        t.steps = [TaskStep("Veriyi oku", kind=STEP_TYPE_READ)]
+        store.update(t)
+        engine = TaskEngine(store, PROFILE_GUVENLI_YURUT, True, base_dir=d)
+        ok, msg = engine.run_task(t.task_id)
+        assert ok is True
+        t2 = store.get(t.task_id)
+        assert t2.verified_count == 1
+        step = next(s for s in t2.steps if s.status == "tamamlandi")
+        assert "Görev" in step.output or "Kayıtlı" in step.output or "görev" in step.output.lower()
+
+
+def test_execute_by_kind_analyze_simulation():
+    """kind=analyze runs and returns analiz message; verified=0 (simulation)."""
+    with tempfile.TemporaryDirectory() as d:
+        store = TaskStore(d)
+        t = store.create("Analiz", "desc", PROFILE_RAPOR)
+        t.steps = [TaskStep("Analiz et", kind=STEP_TYPE_ANALYZE)]
+        store.update(t)
+        engine = TaskEngine(store, PROFILE_RAPOR, False, base_dir=d)
+        ok, _ = engine.run_task(t.task_id)
+        assert ok is True
+        t2 = store.get(t.task_id)
+        assert t2.verified_count == 0
+        step = next(s for s in t2.steps if s.status == "tamamlandi")
+        assert "Analiz tamamlandı" in step.output
+
+
+def test_execute_by_kind_plan_simulation():
+    """kind=plan runs and returns plan message; verified=0."""
+    with tempfile.TemporaryDirectory() as d:
+        store = TaskStore(d)
+        t = store.create("Plan", "desc", PROFILE_RAPOR)
+        t.steps = [TaskStep("Adımları planla", kind=STEP_TYPE_PLAN)]
+        store.update(t)
+        engine = TaskEngine(store, PROFILE_RAPOR, False, base_dir=d)
+        ok, _ = engine.run_task(t.task_id)
+        assert ok is True
+        t2 = store.get(t.task_id)
+        assert t2.verified_count == 0
+        step = next(s for s in t2.steps if s.status == "tamamlandi")
+        assert "Adımlar planlandı" in step.output
+
+
+def test_execute_by_kind_safe_local_completes():
+    """kind=safe_local (with approval) completes with safe local message; no destructive action."""
+    with tempfile.TemporaryDirectory() as d:
+        store = TaskStore(d)
+        t = store.create("Yerel", "desc", PROFILE_KISITLI_OTONOM)
+        t.steps = [TaskStep("Güvenli yerel iş", kind=STEP_TYPE_SAFE_LOCAL)]
+        store.update(t)
+        engine = TaskEngine(store, PROFILE_KISITLI_OTONOM, general_approval=True, base_dir=d)
+        ok, _ = engine.run_task(t.task_id)
+        assert ok is True
+        t2 = store.get(t.task_id)
+        step = next(s for s in t2.steps if s.status == "tamamlandi")
+        assert "Güvenli yerel iş tamamlandı" in step.output
+        assert t2.verified_count == 0
+
+
+def test_execute_by_kind_write_local_completes_safe():
+    """kind=write_local with approval completes with same safe local semantics (no destructive)."""
+    with tempfile.TemporaryDirectory() as d:
+        store = TaskStore(d)
+        t = store.create("Yaz", "desc", PROFILE_KISITLI_OTONOM)
+        t.steps = [TaskStep("Yerel yaz", kind=STEP_TYPE_WRITE_LOCAL)]
+        store.update(t)
+        engine = TaskEngine(store, PROFILE_KISITLI_OTONOM, general_approval=True, base_dir=d)
+        ok, _ = engine.run_task(t.task_id)
+        assert ok is True
+        t2 = store.get(t.task_id)
+        step = next(s for s in t2.steps if s.status == "tamamlandi")
+        assert "Güvenli yerel iş tamamlandı" in step.output
+
+
+def test_execute_by_kind_unknown_treated_as_analyze():
+    """Unknown or empty kind is treated as analyze (safe default)."""
+    with tempfile.TemporaryDirectory() as d:
+        store = TaskStore(d)
+        t = store.create("Bilinmeyen", "desc", PROFILE_RAPOR)
+        t.steps = [TaskStep("Bilinmeyen adım", kind="unknown_kind")]
+        store.update(t)
+        engine = TaskEngine(store, PROFILE_RAPOR, False, base_dir=d)
+        ok, _ = engine.run_task(t.task_id)
+        assert ok is True
+        t2 = store.get(t.task_id)
+        step = next(s for s in t2.steps if s.status == "tamamlandi")
+        assert "Adım tamamlandı" in step.output
+
+
 def test_task_persistence_after_reload():
     """Görev oluştur, kaydet; aynı dizinde yeni TaskStore ile açınca görev korunur (kapat-aç simülasyonu)."""
     with tempfile.TemporaryDirectory() as d:

@@ -13,9 +13,14 @@ from typing import Any
 from core.workspace_contract import may_perform_permanent_delete, save_task_store_json
 from task_engine.diagnostics import get_step_block_reason
 from task_engine.profiles import (
-    STEP_TYPE_ANALYZE,
-    STEP_TYPE_READ,
     PROFILE_RAPOR,
+    STEP_TYPE_ANALYZE,
+    STEP_TYPE_CRITICAL,
+    STEP_TYPE_EXTERNAL,
+    STEP_TYPE_PLAN,
+    STEP_TYPE_READ,
+    STEP_TYPE_SAFE_LOCAL,
+    STEP_TYPE_WRITE_LOCAL,
     may_execute_step_at_runtime,
 )
 
@@ -181,7 +186,7 @@ def _break_into_steps(description: str) -> list[TaskStep]:
     # Genel "sistem kontrol" veya boş
     if not steps:
         steps.append(TaskStep("Görevi analiz et", kind=STEP_TYPE_ANALYZE))
-        steps.append(TaskStep("Adımları planla", kind=STEP_TYPE_ANALYZE))
+        steps.append(TaskStep("Adımları planla", kind=STEP_TYPE_PLAN))
         steps.append(TaskStep("Sonucu raporla", kind=STEP_TYPE_ANALYZE))
     return steps
 
@@ -547,20 +552,24 @@ class TaskEngine:
 
     def _execute_step(self, step: TaskStep, task: TaskRecord) -> tuple[bool, str, str, bool]:
         """
-        Tek adımı yürüt. Son değer: gerçekten doğrulama yapıldı mı (veri okuma/komut sonucu)?
-        Sadece metin parçalayıp rapor döndürmek doğrulama sayılmaz.
+        Tek adımı step.kind ile yürüt. Son değer: (ok, output, error, verified).
+        read → gerçek okuma (verified when data read); analyze/plan → simülasyon; safe_local/write_local → güvenli yerel (no destructive).
+        external/critical buraya gelmemeli (policy block); gelirse yürütülmez.
         """
-        title = (step.title or "").lower()
-        # Not sistemi / kontrol: gerçek okuma yapılabiliyorsa verified=True
-        if "not" in title or ("kontrol" in title and "sistem" in title):
+        kind = (step.kind or STEP_TYPE_ANALYZE).strip().lower()
+        # Defensive: external/critical must never be executed (policy should block before here)
+        if kind in (STEP_TYPE_EXTERNAL, STEP_TYPE_CRITICAL):
+            return False, "", "Bu adım türü yürütülmez (güvenlik).", False
+        if kind == STEP_TYPE_READ:
             verified, msg = _read_notes_or_tasks_verified(self.base_dir)
             return True, msg, "", verified
-        if "analiz" in title:
+        if kind == STEP_TYPE_ANALYZE:
             return True, "Analiz tamamlandı.", "", False
-        if "planla" in title:
+        if kind == STEP_TYPE_PLAN:
             return True, "Adımlar planlandı.", "", False
-        if "özet" in title or "ozet" in title or "raporla" in title:
-            return True, "Kısa özet hazırlandı.", "", False
+        if kind in (STEP_TYPE_SAFE_LOCAL, STEP_TYPE_WRITE_LOCAL):
+            return True, "Güvenli yerel iş tamamlandı.", "", False
+        # Unknown kind: treat as analyze (safe)
         return True, "Adım tamamlandı.", "", False
 
     def _make_summary(self, task: TaskRecord, completed: int, elapsed: float) -> str:
