@@ -24,6 +24,7 @@ class TaskMutationContext:
     today_actions: list
     last_task_create_fingerprint: list
     record_today_action: Callable[[str], None]
+    event_recording_engine: Any = None  # ObservationEngine | None: record execution/verification events
 
 
 def handle_task_mutation(route: str, args: list[str], ctx: TaskMutationContext) -> bool:
@@ -48,7 +49,8 @@ def handle_task_mutation(route: str, args: list[str], ctx: TaskMutationContext) 
         t = ctx.task_store.create(title=desc[:80], description=desc, permission_profile=profile)
         print(f"Görev {t.task_id} oluşturuldu: {t.title}")
         task_engine = TaskEngine(
-            ctx.task_store, profile, ctx.general_approval[0], base_dir=ctx.base_dir
+            ctx.task_store, profile, ctx.general_approval[0], base_dir=ctx.base_dir,
+            observation_engine=getattr(ctx, "event_recording_engine", None),
         )
         ctx.current_task[0] = "görev yürütülüyor."
         try:
@@ -75,6 +77,7 @@ def handle_task_mutation(route: str, args: list[str], ctx: TaskMutationContext) 
             ctx.current_permission_profile[0],
             ctx.general_approval[0],
             base_dir=ctx.base_dir,
+            observation_engine=getattr(ctx, "event_recording_engine", None),
         )
         ok, msg = task_engine.cancel_task(tid)
         print(msg)

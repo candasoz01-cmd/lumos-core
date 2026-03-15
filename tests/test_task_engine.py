@@ -26,10 +26,25 @@ from task_engine.profiles import (
     get_decision_layer,
     requires_explicit_approval,
 )
+from task_engine.action_registry import ActionRegistry, ExecutionContext
 from task_engine.engine import (
+    TaskRecord,
     TaskStep,
     compute_task_stats,
     find_recent_similar_task,
+    get_default_action_registry,
+)
+from task_engine.verification import get_default_verification_engine
+from task_engine.planner import plan as planner_plan, get_default_planner
+from task_engine.observation import (
+    ObservationEngine,
+    ObservationMemory,
+    make_event,
+    EVENT_ACTION_EXECUTED,
+    EVENT_POLICY_BLOCKED,
+    EVENT_STEP_FAILED,
+    EVENT_STEP_VERIFIED,
+    EVENT_TASK_CREATED,
 )
 
 
@@ -243,7 +258,8 @@ def test_engine_kisitli_otonom_with_approval_allows_write_local():
         ok, msg = engine.run_task(t.task_id)
         assert ok is True
         t2 = store.get(t.task_id)
-        assert t2.status == "dogrulanamadi"
+        # With verification layer, write_local uses safe_local_verifier; success output is confirmed → tamamlandi
+        assert t2.status == "tamamlandi"
 
 
 # --- Runtime step enforcement paketi: adım türü + profil + onay runtime'da zorlanır ---
@@ -352,7 +368,8 @@ def test_execute_by_kind_safe_local_completes():
         t2 = store.get(t.task_id)
         step = next(s for s in t2.steps if s.status == "tamamlandi")
         assert "Güvenli yerel iş tamamlandı" in step.output
-        assert t2.verified_count == 0
+        # Verification layer: safe_local_verifier confirms success output → verified
+        assert t2.verified_count == 1
 
 
 def test_execute_by_kind_write_local_completes_safe():
@@ -386,6 +403,288 @@ def test_execute_by_kind_unknown_blocked_as_unsupported():
         step = next(s for s in t2.steps if s.title == "Bilinmeyen adım")
         assert step.status == "durdu"
         assert "Desteklenmeyen adım" in (step.error or "") or "Desteklenmeyen adım" in (t2.error_summary or "")
+
+
+# --- ActionRegistry: dispatch by step.kind, default executor, policy guard ---
+
+
+def test_action_registry_get_executor_returns_registered_and_default():
+    """Registry returns registered executor for known kind and default for unregistered when default set."""
+    def default_fn(step, task, ctx):
+        return True, "default out", "", False
+    reg = ActionRegistry(default_executor=default_fn)
+    reg.register(STEP_TYPE_ANALYZE, default_fn)
+    reg.register(STEP_TYPE_READ, default_fn)
+    assert reg.get_executor(STEP_TYPE_ANALYZE) is default_fn
+    assert reg.get_executor(STEP_TYPE_READ) is default_fn
+    assert reg.get_executor("other_kind") is default_fn
+    reg_no_default = ActionRegistry(default_executor=None)
+    reg_no_default.register(STEP_TYPE_ANALYZE, default_fn)
+    assert reg_no_default.get_executor(STEP_TYPE_ANALYZE) is default_fn
+    assert reg_no_default.get_executor("unknown") is None
+
+
+def test_action_registry_execute_dispatches_by_kind():
+    """Registry.execute dispatches to correct executor; default registry analyze/plan/read/safe_local."""
+    reg = get_default_action_registry()
+    step_a = TaskStep("Analiz", kind=STEP_TYPE_ANALYZE)
+    step_p = TaskStep("Plan", kind=STEP_TYPE_PLAN)
+    step_r = TaskStep("Oku", kind=STEP_TYPE_READ)
+    step_s = TaskStep("Yerel", kind=STEP_TYPE_SAFE_LOCAL)
+    task = TaskRecord(task_id=1, title="T", description="D", created_at="2020-01-01T00:00:00")
+    ctx = ExecutionContext(base_dir=None)
+    ok_a, out_a, err_a, ver_a = reg.execute(step_a, task, ctx)
+    ok_p, out_p, err_p, ver_p = reg.execute(step_p, task, ctx)
+    ok_r, out_r, err_r, ver_r = reg.execute(step_r, task, ctx)
+    ok_s, out_s, err_s, ver_s = reg.execute(step_s, task, ctx)
+    assert ok_a is True and "Analiz tamamlandı" in out_a and ver_a is False
+    assert ok_p is True and "Adımlar planlandı" in out_p and ver_p is False
+    assert ok_r is True and err_r == "" and ver_r is False  # no base_dir -> unverified
+    assert ok_s is True and "Güvenli yerel iş tamamlandı" in out_s and ver_s is False
+
+
+def test_action_registry_execute_blocks_external_critical():
+    """Registry.execute returns error for external/critical kinds (defensive guard)."""
+    reg = get_default_action_registry()
+    step_ext = TaskStep("Dış", kind=STEP_TYPE_EXTERNAL)
+    step_crit = TaskStep("Kritik", kind=STEP_TYPE_CRITICAL)
+    task = TaskRecord(task_id=1, title="T", description="D", created_at="2020-01-01T00:00:00")
+    ctx = ExecutionContext(base_dir=None)
+    ok_e, _, err_e, _ = reg.execute(step_ext, task, ctx)
+    ok_c, _, err_c, _ = reg.execute(step_crit, task, ctx)
+    assert ok_e is False and "yürütülmez" in err_e
+    assert ok_c is False and "yürütülmez" in err_c
+
+
+def test_task_engine_uses_custom_registry():
+    """TaskEngine with custom ActionRegistry uses injected registry for dispatch."""
+    def custom_exec(step, task, ctx):
+        return True, "Özel çıktı", "", False
+    reg = ActionRegistry(default_executor=custom_exec)
+    reg.register(STEP_TYPE_ANALYZE, custom_exec)
+    with tempfile.TemporaryDirectory() as d:
+        store = TaskStore(d)
+        t = store.create("Özel", "desc", PROFILE_RAPOR)
+        t.steps = [TaskStep("Adım", kind=STEP_TYPE_ANALYZE)]
+        store.update(t)
+        engine = TaskEngine(store, PROFILE_RAPOR, False, base_dir=d, action_registry=reg)
+        ok, _ = engine.run_task(t.task_id)
+        assert ok is True
+        t2 = store.get(t.task_id)
+        step = next(s for s in t2.steps if s.status == "tamamlandi")
+        assert "Özel çıktı" in step.output
+
+
+# --- VerificationEngine: verifier dispatch, verified vs simulation, blocked kinds, summary counters ---
+
+
+def test_verification_verifier_dispatch_by_kind():
+    """VerificationEngine.verify dispatches to correct verifier per step.kind."""
+    eng = get_default_verification_engine()
+    task = TaskRecord(task_id=1, title="T", description="D", created_at="2020-01-01T00:00:00")
+    ctx = ExecutionContext(base_dir=None)
+    # read: verified only when verified_from_executor=True (real data read)
+    step_r = TaskStep("Oku", kind=STEP_TYPE_READ)
+    res_r_yes = eng.verify(step_r, task, ctx, True, "Okundu.", "", True)
+    res_r_no = eng.verify(step_r, task, ctx, True, "Simülasyon", "", False)
+    assert res_r_yes.verified is True and res_r_yes.reason == "data_read"
+    assert res_r_no.verified is False and res_r_no.reason == "no_data"
+    # analyze: always simulation
+    step_a = TaskStep("Analiz", kind=STEP_TYPE_ANALYZE)
+    res_a = eng.verify(step_a, task, ctx, True, "Analiz tamamlandı.", "", False)
+    assert res_a.verified is False and "simulation" in res_a.reason
+    # plan: always simulation
+    step_p = TaskStep("Plan", kind=STEP_TYPE_PLAN)
+    res_p = eng.verify(step_p, task, ctx, True, "Planlandı.", "", False)
+    assert res_p.verified is False and "simulation" in res_p.reason
+    # safe_local: verified when output confirms completion
+    step_s = TaskStep("Yerel", kind=STEP_TYPE_SAFE_LOCAL)
+    res_s = eng.verify(step_s, task, ctx, True, "Güvenli yerel iş tamamlandı.", "", False)
+    assert res_s.verified is True and res_s.reason == "local_confirmed"
+
+
+def test_verification_verified_vs_simulation_vs_unverifiable():
+    """Read step with real data → verified; analyze/plan → simulation; failed step → not verified."""
+    with tempfile.TemporaryDirectory() as d:
+        store = TaskStore(d)
+        # Task: read (with data) + analyze
+        t = store.create("Karışık", "desc", PROFILE_GUVENLI_YURUT)
+        t.steps = [
+            TaskStep("Oku", kind=STEP_TYPE_READ),
+            TaskStep("Analiz et", kind=STEP_TYPE_ANALYZE),
+        ]
+        store.update(t)
+        engine = TaskEngine(store, PROFILE_GUVENLI_YURUT, True, base_dir=d)
+        ok, _ = engine.run_task(t.task_id)
+        assert ok is True
+        t2 = store.get(t.task_id)
+        assert t2.verified_count == 1
+        assert t2.unverified_count == 1
+        assert t2.simulation_count == 1
+        read_step = next(s for s in t2.steps if s.kind == STEP_TYPE_READ)
+        analyze_step = next(s for s in t2.steps if s.kind == STEP_TYPE_ANALYZE)
+        assert read_step.result_kind == "tamamlandi"
+        assert analyze_step.result_kind == "simulasyon"
+
+
+def test_verification_blocked_kinds_remain_blocked():
+    """External/critical never run executor; VerificationEngine.verify returns not verified for them."""
+    eng = get_default_verification_engine()
+    task = TaskRecord(task_id=1, title="T", description="D", created_at="2020-01-01T00:00:00")
+    ctx = ExecutionContext(base_dir=None)
+    for kind in (STEP_TYPE_EXTERNAL, STEP_TYPE_CRITICAL):
+        step = TaskStep("X", kind=kind)
+        res = eng.verify(step, task, ctx, False, "", "Blocked", False)
+        assert res.verified is False and res.reason == "blocked"
+    # Runtime: blocked kinds never reach verification (policy stops first)
+    with tempfile.TemporaryDirectory() as d:
+        store = TaskStore(d)
+        t = store.create("Dış", "desc", PROFILE_RAPOR)
+        t.steps = [TaskStep("Dış iş", kind=STEP_TYPE_EXTERNAL)]
+        store.update(t)
+        engine = TaskEngine(store, PROFILE_RAPOR, False, base_dir=d)
+        ok, _ = engine.run_task(t.task_id)
+        assert ok is False
+        t2 = store.get(t.task_id)
+        assert t2.status == "durdu"
+        assert t2.block_reason == "unsupported_action"
+
+
+def test_verification_task_summary_counters_after_run():
+    """Task summary verified_count, unverified_count, simulation_count match verification outcome."""
+    with tempfile.TemporaryDirectory() as d:
+        store = TaskStore(d)
+        t = store.create("Özet test", "desc", PROFILE_GUVENLI_YURUT)
+        t.steps = [
+            TaskStep("Oku", kind=STEP_TYPE_READ),
+            TaskStep("Analiz", kind=STEP_TYPE_ANALYZE),
+            TaskStep("Yerel", kind=STEP_TYPE_SAFE_LOCAL),
+        ]
+        store.update(t)
+        engine = TaskEngine(store, PROFILE_GUVENLI_YURUT, True, base_dir=d)
+        ok, msg = engine.run_task(t.task_id)
+        assert ok is True
+        t2 = store.get(t.task_id)
+        assert "Doğrulanan adım: 2" in t2.summary  # read + safe_local
+        assert "Doğrulanamayan adım: 1" in t2.summary  # analyze
+        assert "Simülasyon adım: 1" in t2.summary
+        assert t2.verified_count == 2
+        assert t2.unverified_count == 1
+        assert t2.simulation_count == 1
+
+
+# --- Planner: goal → list[TaskStep], safe defaults, task creation integration ---
+
+
+def test_planner_plan_returns_safe_steps():
+    """planner.plan(goal) returns list[TaskStep] with only read/analyze/plan kinds."""
+    # Goal with not/özet/kontrol → read + analyze + analyze
+    steps_not = planner_plan("not sistemini kontrol et ve özet ver")
+    assert len(steps_not) == 3
+    assert steps_not[0].kind == STEP_TYPE_READ
+    assert steps_not[1].kind == STEP_TYPE_ANALYZE
+    assert steps_not[2].kind == STEP_TYPE_ANALYZE
+    # Generic goal → analyze + plan + analyze
+    steps_gen = planner_plan("genel bir şey yap")
+    assert len(steps_gen) == 3
+    assert steps_gen[0].kind == STEP_TYPE_ANALYZE
+    assert steps_gen[1].kind == STEP_TYPE_PLAN
+    assert steps_gen[2].kind == STEP_TYPE_ANALYZE
+    # No destructive kinds
+    for s in steps_not + steps_gen:
+        assert s.kind in (STEP_TYPE_READ, STEP_TYPE_ANALYZE, STEP_TYPE_PLAN)
+
+
+def test_task_creation_uses_planner():
+    """TaskStore.create uses planner to generate steps from description."""
+    with tempfile.TemporaryDirectory() as d:
+        store = TaskStore(d)
+        t = store.create("Özet görev", "not kontrol ve kısa özet ver", PROFILE_RAPOR)
+        assert len(t.steps) == 3
+        assert t.steps[0].kind == STEP_TYPE_READ
+        assert "kontrol" in t.steps[0].title.lower() or "not" in t.steps[0].title.lower()
+        t2 = store.create("Genel", "rastgele açıklama", PROFILE_RAPOR)
+        assert len(t2.steps) == 3
+        assert t2.steps[1].kind == STEP_TYPE_PLAN
+
+
+# --- Observation: events, memory, TaskEngine emission, StepVerified/StepFailed ---
+
+
+def test_observation_record_and_retrieve_events():
+    """ObservationMemory and ObservationEngine record events and return recent."""
+    mem = ObservationMemory(maxlen=20)
+    obs = ObservationEngine(memory=mem)
+    obs.record_event(make_event(1, EVENT_TASK_CREATED, payload={"title": "T1"}))
+    obs.record_event(make_event(1, EVENT_ACTION_EXECUTED, step_id=0, payload={"kind": "analyze"}))
+    obs.record_event(make_event(1, EVENT_STEP_VERIFIED, step_id=0, payload={"verified": True}))
+    recent = obs.get_recent_events(limit=10)
+    assert len(recent) == 3
+    assert recent[0].event_type == EVENT_TASK_CREATED
+    assert recent[1].event_type == EVENT_ACTION_EXECUTED
+    assert recent[2].event_type == EVENT_STEP_VERIFIED
+    assert recent[1].step_id == 0
+
+
+def test_observation_task_engine_emits_events():
+    """TaskEngine with ObservationEngine records TaskCreated, ActionExecuted, StepVerified/StepFailed."""
+    mem = ObservationMemory(maxlen=100)
+    obs = ObservationEngine(memory=mem)
+    with tempfile.TemporaryDirectory() as d:
+        store = TaskStore(d)
+        t = store.create("Gözlem", "not kontrol ve özet", PROFILE_GUVENLI_YURUT)
+        engine = TaskEngine(store, PROFILE_GUVENLI_YURUT, True, base_dir=d, observation_engine=obs)
+        ok, _ = engine.run_task(t.task_id)
+        assert ok is True
+    recent = obs.get_recent_events(limit=50)
+    types = [e.event_type for e in recent]
+    assert EVENT_TASK_CREATED in types
+    assert EVENT_ACTION_EXECUTED in types
+    assert EVENT_STEP_VERIFIED in types or EVENT_STEP_FAILED in types
+    task_created = next(e for e in recent if e.event_type == EVENT_TASK_CREATED)
+    assert task_created.task_id == t.task_id
+
+
+def test_observation_policy_blocked_emits_event():
+    """When policy blocks a step, TaskEngine records PolicyBlocked."""
+    mem = ObservationMemory(maxlen=50)
+    obs = ObservationEngine(memory=mem)
+    with tempfile.TemporaryDirectory() as d:
+        store = TaskStore(d)
+        t = store.create("Engel", "desc", PROFILE_RAPOR)
+        t.steps = [TaskStep("Yasak", kind=STEP_TYPE_EXTERNAL)]
+        store.update(t)
+        engine = TaskEngine(store, PROFILE_RAPOR, False, base_dir=d, observation_engine=obs)
+        ok, _ = engine.run_task(t.task_id)
+        assert ok is False
+    recent = obs.get_recent_events(limit=20)
+    blocked = [e for e in recent if e.event_type == EVENT_POLICY_BLOCKED]
+    assert len(blocked) >= 1
+    assert blocked[0].step_id == 0
+
+
+def test_observation_verification_produces_step_verified_or_failed():
+    """Run task with read (verified) + analyze (simulation); events include StepVerified and StepFailed."""
+    mem = ObservationMemory(maxlen=50)
+    obs = ObservationEngine(memory=mem)
+    with tempfile.TemporaryDirectory() as d:
+        store = TaskStore(d)
+        t = store.create("Doğrula", "desc", PROFILE_GUVENLI_YURUT)
+        t.steps = [
+            TaskStep("Oku", kind=STEP_TYPE_READ),
+            TaskStep("Analiz", kind=STEP_TYPE_ANALYZE),
+        ]
+        store.update(t)
+        engine = TaskEngine(store, PROFILE_GUVENLI_YURUT, True, base_dir=d, observation_engine=obs)
+        ok, _ = engine.run_task(t.task_id)
+        assert ok is True
+    recent = obs.get_recent_events(limit=20)
+    verified_events = [e for e in recent if e.event_type == EVENT_STEP_VERIFIED]
+    failed_events = [e for e in recent if e.event_type == EVENT_STEP_FAILED]
+    assert len(verified_events) >= 1
+    assert verified_events[0].payload.get("verified") is True
+    assert len(failed_events) >= 1
+    assert failed_events[0].payload.get("verified") is False
 
 
 def test_task_persistence_after_reload():
