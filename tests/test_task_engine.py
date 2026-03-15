@@ -264,7 +264,14 @@ def test_runtime_step_enforcement_external_and_critical_always_rejected():
                 t2 = store.get(t.task_id)
                 assert t2.status == "durdu"
                 step = next(s for s in t2.steps if s.status == "durdu")
-                assert "yetki" in step.error.lower() or "onay" in step.error.lower() or "kapsam" in step.error.lower()
+                # unsupported_action: "Desteklenmeyen adım türü (bu adım güvenlik politikası gereği çalıştırılamaz)."
+                assert (
+                    "güvenlik politikası" in step.error.lower()
+                    or "çalıştırılamaz" in step.error.lower()
+                    or "yetki" in step.error.lower()
+                    or "onay" in step.error.lower()
+                    or "kapsam" in step.error.lower()
+                )
 
 
 def test_runtime_step_enforcement_analyze_allowed_rapor_without_approval():
