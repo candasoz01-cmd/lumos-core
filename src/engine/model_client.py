@@ -229,7 +229,8 @@ class ModelClient:
                         or getattr(usage, "completion_tokens", None)
                     )
                     total_tokens = _safe_int(
-                        getattr(usage, "total_tokens", input_tokens + output_tokens)
+                        getattr(usage, "total_tokens", None)
+                        or (input_tokens + output_tokens)
                     )
                     _ensure_token_logging_visible()
                     logger.info(
