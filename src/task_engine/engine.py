@@ -241,6 +241,29 @@ class TaskStore:
         self._save()
         return task
 
+    def create_from_steps(
+        self,
+        title: str,
+        description: str,
+        steps: list[TaskStep],
+        permission_profile: str,
+    ) -> TaskRecord:
+        """Create a task with pre-planned steps (e.g. from Brain/Planner). No internal planning."""
+        task = TaskRecord(
+            task_id=self._next_id,
+            title=title or (description[:80] if description else "Görev"),
+            description=description,
+            created_at=_now_iso(),
+            permission_profile=permission_profile,
+            mode=permission_profile,
+            steps=list(steps),
+            status=TASK_PENDING,
+        )
+        self._next_id += 1
+        self._tasks.append(task)
+        self._save()
+        return task
+
     def get(self, task_id: int) -> TaskRecord | None:
         for t in self._tasks:
             if t.task_id == task_id:

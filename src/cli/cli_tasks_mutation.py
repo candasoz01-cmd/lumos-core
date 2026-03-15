@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
+from core.brain import run as brain_run
 from task_engine import TaskEngine, find_recent_similar_task
 
 
@@ -46,17 +47,18 @@ def handle_task_mutation(route: str, args: list[str], ctx: TaskMutationContext) 
             )
             return True
         ctx.last_task_create_fingerprint[0] = None
-        t = ctx.task_store.create(title=desc[:80], description=desc, permission_profile=profile)
-        print(f"Görev {t.task_id} oluşturuldu: {t.title}")
-        task_engine = TaskEngine(
-            ctx.task_store, profile, ctx.general_approval[0], base_dir=ctx.base_dir,
-            observation_engine=getattr(ctx, "event_recording_engine", None),
-        )
         ctx.current_task[0] = "görev yürütülüyor."
         try:
-            ok, msg = task_engine.run_task(t.task_id)
-            print(msg)
-            ctx.last_action[0] = f"Görev {t.task_id} oluşturulup yürütüldü: {t.title}"
+            result = brain_run(
+                desc,
+                ctx.task_store,
+                ctx.base_dir,
+                profile,
+                ctx.general_approval[0],
+                observation_engine=getattr(ctx, "event_recording_engine", None),
+            )
+            print(result.human_readable_summary)
+            ctx.last_action[0] = f"Görev {result.task_id} oluşturulup yürütüldü: {result.goal[:80]}"
             ctx.record_today_action(ctx.last_action[0])
         finally:
             ctx.current_task[0] = None
