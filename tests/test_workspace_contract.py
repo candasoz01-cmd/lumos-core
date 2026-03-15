@@ -57,10 +57,10 @@ def test_sandbox_dirname_is_fixed():
 
 
 def test_sandbox_base_path_under_live_base():
-    """sandbox_base_path(live_base) her zaman live_base/sandbox döner."""
+    """sandbox_base_path(live_base) her zaman (resolve edilmiş) live_base/sandbox döner."""
     with tempfile.TemporaryDirectory() as d:
         p = sandbox_base_path(d)
-        assert p == Path(d) / LUMOS_SANDBOX_DIRNAME
+        assert p == Path(d).resolve() / LUMOS_SANDBOX_DIRNAME
         assert p.name == "sandbox"
         assert p.parent == Path(d).resolve()
 

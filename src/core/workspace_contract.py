@@ -42,18 +42,20 @@ def sandbox_base_path(live_base_dir: Path | str) -> Path:
     """
     Canlı çalışma köküne göre tek sandbox kök path.
     Sandbox modunda yazım hedefi bu base altındadır; canlı çekirdek path'e yazılmaz (allow_write_to_core).
+    Dönüş her zaman resolve edilir (platform tutarlılığı: örn. macOS /var vs /private/var).
     """
-    return Path(live_base_dir) / LUMOS_SANDBOX_DIRNAME
+    return Path(live_base_dir).resolve() / LUMOS_SANDBOX_DIRNAME
 
 
 def writing_base_dir(live_base_dir: Path | str, is_sandbox_mode: bool) -> Path:
     """
     Yazım hedefi base: sandbox kapalıyken canlı base, açıkken sandbox base.
     Tek kaynak; sistem keyfi hedef seçemez. Canlı çekirdek koruması allow_write_to_core ile aynen kalır.
+    Dönüş her zaman resolve edilir (platform tutarlılığı).
     """
     if is_sandbox_mode:
         return sandbox_base_path(live_base_dir)
-    return Path(live_base_dir)
+    return Path(live_base_dir).resolve()
 
 
 def alias_file_path(base_dir: Path | str) -> Path:

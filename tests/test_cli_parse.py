@@ -1,6 +1,6 @@
 """CLI komut parse testleri: verilen komut dizisinin doğru route/args üretmesi.
 Komut toleransı ve fallback mesajı testleri dahil.
-Tam bağımlılık (cryptography vb.) yüklü ortamda çalıştır: PYTHONPATH=src pytest tests/test_cli_parse.py -v
+cli.cli_parse import edilir (pytest.ini pythonpath=src ile çalışır).
 """
 import tempfile
 from pathlib import Path
@@ -10,9 +10,9 @@ import pytest
 
 def _norm(cmd: str, aliases: dict | None = None):
     try:
-        from main import normalize_command
+        from cli.cli_parse import normalize_command
     except Exception:
-        pytest.skip("main import failed (need full deps, e.g. cryptography)")
+        pytest.skip("cli_parse import failed (need PYTHONPATH=src)")
     base = Path(tempfile.gettempdir()) / "lumos_parse_test"
     base.mkdir(parents=True, exist_ok=True)
     return normalize_command(cmd, base, aliases)
@@ -20,9 +20,9 @@ def _norm(cmd: str, aliases: dict | None = None):
 
 def _fallback(raw: str, last_route: str | None = None):
     try:
-        from main import get_fallback_message
+        from cli.cli_parse import get_fallback_message
     except Exception:
-        pytest.skip("main import failed (need full deps)")
+        pytest.skip("cli_parse import failed (need PYTHONPATH=src)")
     return get_fallback_message(raw, last_route)
 
 
