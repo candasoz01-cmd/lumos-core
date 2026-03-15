@@ -3,6 +3,12 @@ from cli.cli_router import run_cli_loop
 from core.lumos_runtime import create_runtime
 
 
+def _sandbox_mode_from_env() -> bool:
+    """Compatibility wrapper for tests; delegates to core.lumos_runtime."""
+    from core.lumos_runtime import _sandbox_mode_from_env as _impl
+    return _impl()
+
+
 def main(sandbox_mode: bool | None = None) -> None:
     runtime = create_runtime(sandbox_mode)
     if runtime.ui_consumed:
