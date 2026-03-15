@@ -1,7 +1,7 @@
 """Live brain mode: routing unknown input to Brain when online; fallback when offline."""
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 
 def test_known_command_uses_cli_path():
@@ -231,8 +231,8 @@ def test_no_pending_intent_safe_generic_follow_up():
     assert mock_engine.process.call_args[0][0] == "saat kaç"
 
 
-def test_list_files_intent_asks_clarification():
-    """User says 'klasördeki dosyaları listele' -> we ask 'Hangi klasör?' and store pending_intent."""
+def test_list_files_intent_rejected_when_tool_unavailable():
+    """Intent → tool check → reject: when tool not available we reject at detection (no clarification)."""
     from core.live_brain import handle_live_brain
 
     pending_intent_ref = [None]
@@ -251,6 +251,32 @@ def test_list_files_intent_asks_clarification():
             observation_engine=None,
             pending_intent_ref=pending_intent_ref,
         )
+    assert "mevcut değil" in out
+    assert pending_intent_ref[0] is None
+    mock_engine.process.assert_not_called()
+
+
+def test_list_files_intent_asks_clarification():
+    """When tool is available: user says 'klasördeki dosyaları listele' -> we ask 'Hangi klasör?' and store pending_intent."""
+    from core.live_brain import handle_live_brain
+
+    pending_intent_ref = [None]
+    mock_engine = MagicMock()
+    with patch("core.live_brain.tool_available", return_value=True):
+        with tempfile.TemporaryDirectory() as d:
+            from task_engine import TaskStore, PROFILE_RAPOR
+
+            store = TaskStore(d)
+            out = handle_live_brain(
+                "klasördeki dosyaları listele",
+                mock_engine,
+                store,
+                d,
+                PROFILE_RAPOR,
+                False,
+                observation_engine=None,
+                pending_intent_ref=pending_intent_ref,
+            )
     assert out.strip() == "Hangi klasör?"
     assert pending_intent_ref[0] is not None
     assert pending_intent_ref[0].get("intent") == "list_files"
@@ -259,13 +285,12 @@ def test_list_files_intent_asks_clarification():
 
 
 def test_list_files_clarification_then_reply_resumes_intent():
-    """list_files -> 'Hangi klasör?' -> user replies 'WORK_2026' -> original intent resumes (continuation path)."""
+    """When tool available: list_files -> 'Hangi klasör?' -> user replies 'WORK_2026' -> intent → tool check → execute path."""
     from core.live_brain import handle_live_brain
     from core.state import CoreState
 
     pending_intent_ref = [None]
     mock_engine = MagicMock()
-    mock_engine.process.return_value = {"response": "Bu özellik şu an mevcut değil."}
     mock_lumos = MagicMock()
     mock_lumos.lock_state.unlocked = True
     mock_pl = MagicMock()
@@ -273,44 +298,46 @@ def test_list_files_clarification_then_reply_resumes_intent():
     mock_pl.is_running.return_value = False
     state = CoreState(mock_lumos, mock_pl, "online")
 
-    with tempfile.TemporaryDirectory() as d:
-        from task_engine import TaskStore, PROFILE_RAPOR
+    with patch("core.live_brain.tool_available", return_value=True):
+        with tempfile.TemporaryDirectory() as d:
+            from task_engine import TaskStore, PROFILE_RAPOR
 
-        store = TaskStore(d)
-        # 1) User: list files in folder -> we ask which folder and store pending on state + ref
-        out1 = handle_live_brain(
-            "klasördeki dosyaları listele",
-            mock_engine,
-            store,
-            d,
-            PROFILE_RAPOR,
-            False,
-            observation_engine=None,
-            state=state,
-            pending_intent_ref=pending_intent_ref,
-        )
-        assert out1.strip() == "Hangi klasör?"
-        assert state.pending_intent == "list_files"
-        assert state.pending_params.get("_missing_param") == "folder"
-        mock_engine.process.assert_not_called()
+            store = TaskStore(d)
+            # 1) User: list files in folder -> tool check pass -> we ask which folder and store pending
+            out1 = handle_live_brain(
+                "klasördeki dosyaları listele",
+                mock_engine,
+                store,
+                d,
+                PROFILE_RAPOR,
+                False,
+                observation_engine=None,
+                state=state,
+                pending_intent_ref=pending_intent_ref,
+            )
+            assert out1.strip() == "Hangi klasör?"
+            assert state.pending_intent == "list_files"
+            assert state.pending_params.get("_missing_param") == "folder"
+            mock_engine.process.assert_not_called()
 
-        # 2) User replies with folder name -> pending intent handler only (no LLM); clear state
-        out2 = handle_live_brain(
-            "WORK_2026",
-            mock_engine,
-            store,
-            d,
-            PROFILE_RAPOR,
-            False,
-            observation_engine=None,
-            state=state,
-            pending_intent_ref=pending_intent_ref,
-        )
-        assert "WORK_2026" in out2 and "listeleme istedin" in out2 and "mevcut değil" in out2
-        assert state.pending_intent is None
-        assert state.pending_params == {}
-        assert pending_intent_ref[0] is None
-        mock_engine.process.assert_not_called()
+            # 2) User replies with folder name -> intent → tool check → execute (placeholder: henüz bağlanmadı)
+            out2 = handle_live_brain(
+                "WORK_2026",
+                mock_engine,
+                store,
+                d,
+                PROFILE_RAPOR,
+                False,
+                observation_engine=None,
+                state=state,
+                pending_intent_ref=pending_intent_ref,
+            )
+            assert "WORK_2026" in out2 and "listeleme istedin" in out2
+            assert "mevcut değil" in out2 or "henüz bağlanmadı" in out2
+            assert state.pending_intent is None
+            assert state.pending_params == {}
+            assert pending_intent_ref[0] is None
+            mock_engine.process.assert_not_called()
 
 
 def test_pending_intent_reply_routed_before_llm():
