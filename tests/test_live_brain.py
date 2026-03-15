@@ -1,7 +1,7 @@
 """Live brain mode: routing unknown input to Brain when online; fallback when offline."""
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 
 def test_known_command_uses_cli_path():
