@@ -1,6 +1,7 @@
 """
 Core state: single source for lock/presence and mode.
 CLI/TUI read from CoreState only.
+Pending intent/params/action persist conversational intent between clarification steps.
 """
 from __future__ import annotations
 
@@ -9,7 +10,9 @@ from typing import Any
 
 
 class CoreState:
-    """Read-only view over lumos lock state, presence status, and mode."""
+    """Read-only view over lumos lock state, presence status, and mode.
+    Also holds pending_intent, pending_params, pending_action for conversational intent.
+    """
 
     def __init__(
         self,
@@ -25,6 +28,10 @@ class CoreState:
         self._mode = (mode or "offline").strip().lower()
         self._base_dir = Path(base_dir) if base_dir is not None else None
         self._sandbox_mode = sandbox_mode
+        # Conversational intent between clarification steps (engine/live_brain read/write)
+        self.pending_intent: str | None = None
+        self.pending_params: dict[str, Any] = {}
+        self.pending_action: str | None = None
 
     def lock_status(self) -> str:
         """LOCKED or UNLOCKED."""
