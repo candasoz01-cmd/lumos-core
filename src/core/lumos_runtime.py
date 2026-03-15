@@ -760,6 +760,10 @@ def create_runtime(sandbox_mode: bool | None = None) -> RuntimeResult:
     last_note_undo: list[tuple[str, Any] | None] = [None]
     note_ops_history: list[list[str]] = [[]]
     last_task_create_fingerprint: list[tuple[str, str] | None] = [None]
+    # Pending intent: clarification flow — when we asked e.g. "Hangi klasör?", store intent + missing param.
+    pending_intent: list[dict | None] = [None]
+    # Pending action: consent flow — when a task was blocked due to genel onay, store so we can resume after "onaylıyorum".
+    pending_action: list[dict | None] = [None]
 
     ctx = ReadOnlyContext()
     ctx.base_dir = base_dir
@@ -797,6 +801,8 @@ def create_runtime(sandbox_mode: bool | None = None) -> RuntimeResult:
     mut_ctx.last_task_create_fingerprint = last_task_create_fingerprint
     mut_ctx.record_today_action = ctx.record_today_action
     mut_ctx.event_recording_engine = event_recording_engine
+    mut_ctx.pending_intent = pending_intent
+    mut_ctx.pending_action = pending_action
 
     def get_raw_input() -> str:
         try:
@@ -856,6 +862,9 @@ def create_runtime(sandbox_mode: bool | None = None) -> RuntimeResult:
                 general_approval[0],
                 observation_engine=event_recording_engine,
                 state=state,
+                general_approval_ref=general_approval,
+                pending_intent_ref=pending_intent,
+                pending_action_ref=pending_action,
             )
             print(msg)
 

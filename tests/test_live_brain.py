@@ -144,3 +144,119 @@ def test_live_brain_creates_task_when_needed():
     # Task should exist
     all_tasks = store.list_all()
     assert len(all_tasks) >= 1
+
+
+def test_clarification_answer_resumes_intent():
+    """Clarification -> user answers -> resumed intent: pending_intent set, then user answer continues intent."""
+    from core.live_brain import handle_live_brain
+
+    pending_intent_ref = [{"intent": "list_files", "params": {}, "missing_param": "folder", "user_message": "klasördeki dosyaları listele"}]
+    mock_engine = MagicMock()
+    mock_engine.process.return_value = {"response": "Bu özellik şu an mevcut değil. Desteklenen komutlar için yardım yaz."}
+    with tempfile.TemporaryDirectory() as d:
+        from task_engine import TaskStore, PROFILE_RAPOR
+
+        store = TaskStore(d)
+        out = handle_live_brain(
+            "/tmp",
+            mock_engine,
+            store,
+            d,
+            PROFILE_RAPOR,
+            False,
+            observation_engine=None,
+            pending_intent_ref=pending_intent_ref,
+        )
+    assert "mevcut değil" in out or "yardım" in out
+    assert pending_intent_ref[0] is None
+    mock_engine.process.assert_called_once()
+    kwargs = mock_engine.process.call_args[1]
+    assert "list_files" in (kwargs.get("short_context") or "")
+    assert "folder" in (kwargs.get("short_context") or "")
+    assert "/tmp" in (kwargs.get("short_context") or "")
+
+
+def test_consent_approval_resumes_pending_action():
+    """Consent phrase -> set general_approval and propose next action when pending_action is set."""
+    from core.live_brain import handle_live_brain
+
+    general_approval_ref = [False]
+    pending_action_ref = [{"task_id": 1, "goal": "notları dışa aktar", "block_reason": "genel onay kapalı"}]
+    mock_engine = MagicMock()
+    with tempfile.TemporaryDirectory() as d:
+        from task_engine import TaskStore, PROFILE_RAPOR
+
+        store = TaskStore(d)
+        out = handle_live_brain(
+            "onaylıyorum",
+            mock_engine,
+            store,
+            d,
+            PROFILE_RAPOR,
+            False,
+            observation_engine=None,
+            general_approval_ref=general_approval_ref,
+            pending_action_ref=pending_action_ref,
+        )
+    assert general_approval_ref[0] is True
+    assert pending_action_ref[0] is None
+    assert "Genel onay açıldı" in out
+    assert "notları dışa aktar" in out or "yapabilirim" in out
+    mock_engine.process.assert_not_called()
+
+
+def test_no_pending_intent_safe_generic_follow_up():
+    """No pending intent/action -> normal engine call, no mutation of refs."""
+    from core.live_brain import handle_live_brain
+
+    pending_intent_ref = [None]
+    pending_action_ref = [None]
+    mock_engine = MagicMock()
+    mock_engine.process.return_value = {"response": "Tamam, başka bir şey?"}
+    with tempfile.TemporaryDirectory() as d:
+        from task_engine import TaskStore, PROFILE_RAPOR
+
+        store = TaskStore(d)
+        out = handle_live_brain(
+            "saat kaç",
+            mock_engine,
+            store,
+            d,
+            PROFILE_RAPOR,
+            False,
+            observation_engine=None,
+            pending_intent_ref=pending_intent_ref,
+            pending_action_ref=pending_action_ref,
+        )
+    assert "Tamam" in out or "başka" in out
+    assert pending_intent_ref[0] is None
+    assert pending_action_ref[0] is None
+    mock_engine.process.assert_called_once()
+    assert mock_engine.process.call_args[0][0] == "saat kaç"
+
+
+def test_list_files_intent_asks_clarification():
+    """User says 'klasördeki dosyaları listele' -> we ask 'Hangi klasör?' and store pending_intent."""
+    from core.live_brain import handle_live_brain
+
+    pending_intent_ref = [None]
+    mock_engine = MagicMock()
+    with tempfile.TemporaryDirectory() as d:
+        from task_engine import TaskStore, PROFILE_RAPOR
+
+        store = TaskStore(d)
+        out = handle_live_brain(
+            "klasördeki dosyaları listele",
+            mock_engine,
+            store,
+            d,
+            PROFILE_RAPOR,
+            False,
+            observation_engine=None,
+            pending_intent_ref=pending_intent_ref,
+        )
+    assert out.strip() == "Hangi klasör?"
+    assert pending_intent_ref[0] is not None
+    assert pending_intent_ref[0].get("intent") == "list_files"
+    assert pending_intent_ref[0].get("missing_param") == "folder"
+    mock_engine.process.assert_not_called()
