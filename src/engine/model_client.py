@@ -220,18 +220,22 @@ class ModelClient:
             if usage is not None:
                 try:
                     # Supported usage field names: input_tokens, prompt_tokens, output_tokens, completion_tokens, total_tokens
-                    input_tokens = _safe_int(
-                        getattr(usage, "input_tokens", None)
-                        or getattr(usage, "prompt_tokens", None)
-                    )
-                    output_tokens = _safe_int(
-                        getattr(usage, "output_tokens", None)
-                        or getattr(usage, "completion_tokens", None)
-                    )
-                    total_tokens = _safe_int(
-                        getattr(usage, "total_tokens", None)
-                        or (input_tokens + output_tokens)
-                    )
+                    in_raw = getattr(usage, "input_tokens", None)
+                    if in_raw is None:
+                        in_raw = getattr(usage, "prompt_tokens", None)
+
+                    out_raw = getattr(usage, "output_tokens", None)
+                    if out_raw is None:
+                        out_raw = getattr(usage, "completion_tokens", None)
+
+                    input_tokens = _safe_int(in_raw)
+                    output_tokens = _safe_int(out_raw)
+
+                    total_raw = getattr(usage, "total_tokens", None)
+                    if total_raw is None:
+                        total_raw = input_tokens + output_tokens
+
+                    total_tokens = _safe_int(total_raw)
                     _ensure_token_logging_visible()
                     logger.info(
                         "token_usage model=%s input_tokens=%s output_tokens=%s total_tokens=%s",
