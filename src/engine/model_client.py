@@ -221,18 +221,18 @@ class ModelClient:
                 try:
                     # Supported usage field names: input_tokens, prompt_tokens, output_tokens, completion_tokens, total_tokens
                     in_raw = getattr(usage, "input_tokens", None)
-                    if in_raw is None:
+                    if not isinstance(in_raw, (int, float)):
                         in_raw = getattr(usage, "prompt_tokens", None)
 
                     out_raw = getattr(usage, "output_tokens", None)
-                    if out_raw is None:
+                    if not isinstance(out_raw, (int, float)):
                         out_raw = getattr(usage, "completion_tokens", None)
 
                     input_tokens = _safe_int(in_raw)
                     output_tokens = _safe_int(out_raw)
 
                     total_raw = getattr(usage, "total_tokens", None)
-                    if total_raw is None:
+                    if not isinstance(total_raw, (int, float)):
                         total_raw = input_tokens + output_tokens
 
                     total_tokens = _safe_int(total_raw)
