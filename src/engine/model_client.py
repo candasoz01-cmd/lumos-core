@@ -11,14 +11,16 @@ logger = logging.getLogger(__name__)
 
 
 def _safe_int(value: Any) -> int:
-    """Convert usage fields to int; handles MagicMock and missing values in tests."""
-    try:
+    """Convert usage fields to int; strict so MagicMock/unknown types become 0, never 1."""
+    if isinstance(value, bool):
+        return 0
+    if type(value) is int:
+        return value
+    if type(value) is float:
         return int(value)
-    except Exception:
-        try:
-            return int(str(value))
-        except Exception:
-            return 0
+    if isinstance(value, str) and value.strip().isdigit():
+        return int(value.strip())
+    return 0
 
 
 # Optional: in development (LUMOS_DEBUG=1), ensure token_usage logs are visible if nothing else configured.
@@ -213,23 +215,28 @@ class ModelClient:
                 model=model,
                 input=full_prompt,
             )
-            # Token usage: safe extraction after successful Responses API call. No crash if missing.
+            # Token usage: strict extraction; only real int/float/digit-string count (MagicMock -> 0).
             usage = getattr(response, "usage", None) or getattr(response, "usage_metadata", None)
             if usage is not None:
                 try:
+                    # Supported usage field names: input_tokens, prompt_tokens, output_tokens, completion_tokens, total_tokens
                     inp = getattr(usage, "input_tokens", None) or getattr(usage, "prompt_tokens", None)
                     out_tok = getattr(usage, "output_tokens", None) or getattr(usage, "completion_tokens", None)
-                    if inp is not None or out_tok is not None:
-                        _ensure_token_logging_visible()
-                        input_tokens = _safe_int(inp)
-                        output_tokens = _safe_int(out_tok)
-                        logger.info(
-                            "token_usage model=%s input_tokens=%d output_tokens=%d total_tokens=%d",
-                            model,
-                            input_tokens,
-                            output_tokens,
-                            input_tokens + output_tokens,
-                        )
+                    input_tokens = _safe_int(inp)
+                    output_tokens = _safe_int(out_tok)
+                    total_raw = getattr(usage, "total_tokens", None)
+                    if type(total_raw) is int or type(total_raw) is float:
+                        total_tokens = int(total_raw)
+                    else:
+                        total_tokens = input_tokens + output_tokens
+                    _ensure_token_logging_visible()
+                    logger.info(
+                        "token_usage model=%s input_tokens=%d output_tokens=%d total_tokens=%d",
+                        model,
+                        input_tokens,
+                        output_tokens,
+                        total_tokens,
+                    )
                 except Exception:
                     pass
             reply = getattr(response, "output_text", None)
