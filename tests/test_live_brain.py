@@ -3,8 +3,6 @@ import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock
 
-import pytest
-
 
 def test_known_command_uses_cli_path():
     """Registered commands must not be treated as unknown; CLI path is used."""
