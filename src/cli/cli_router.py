@@ -45,6 +45,7 @@ class RouterContext:
     on_alias_menu: Callable[[list], None]
     # Observation task layer: internal tasks from system_monitor signals (set by runtime).
     observation_engine: Any = None  # ObservationTaskEngine | None
+    queue_watcher_tick: Callable[[], None] | None = None  # optional; prints new tasks to CLI
 
 
 def run_cli_loop(router_ctx: RouterContext) -> None:
@@ -54,6 +55,11 @@ def run_cli_loop(router_ctx: RouterContext) -> None:
             router_ctx.watchdog_tick()
         except Exception:
             pass
+        if router_ctx.queue_watcher_tick is not None:
+            try:
+                router_ctx.queue_watcher_tick()
+            except Exception:
+                pass
         if router_ctx.pending_ref[0] is not None:
             raw = router_ctx.pending_ref[0]
             router_ctx.pending_ref[0] = None
