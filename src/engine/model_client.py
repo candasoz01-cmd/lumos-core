@@ -9,6 +9,18 @@ from security.request_signer import RequestSigner
 
 logger = logging.getLogger(__name__)
 
+
+def _safe_int(value: Any) -> int:
+    """Convert usage fields to int; handles MagicMock and missing values in tests."""
+    try:
+        return int(value)
+    except Exception:
+        try:
+            return int(str(value))
+        except Exception:
+            return 0
+
+
 # Optional: in development (LUMOS_DEBUG=1), ensure token_usage logs are visible if nothing else configured.
 def _ensure_token_logging_visible() -> None:
     if os.getenv("LUMOS_DEBUG", "0") != "1":
@@ -207,15 +219,16 @@ class ModelClient:
                 try:
                     inp = getattr(usage, "input_tokens", None) or getattr(usage, "prompt_tokens", None)
                     out_tok = getattr(usage, "output_tokens", None) or getattr(usage, "completion_tokens", None)
-                    total = getattr(usage, "total_tokens", None)
-                    if inp is not None or out_tok is not None or total is not None:
+                    if inp is not None or out_tok is not None:
                         _ensure_token_logging_visible()
+                        input_tokens = _safe_int(inp)
+                        output_tokens = _safe_int(out_tok)
                         logger.info(
-                            "token_usage model=%s input_tokens=%s output_tokens=%s total_tokens=%s",
+                            "token_usage model=%s input_tokens=%d output_tokens=%d total_tokens=%d",
                             model,
-                            inp,
-                            out_tok,
-                            total,
+                            input_tokens,
+                            output_tokens,
+                            input_tokens + output_tokens,
                         )
                 except Exception:
                     pass
