@@ -1,5 +1,57 @@
 # Lumos-core
 
+**Lumos Core** is the CLI and core library for Lumos: task/state handling, decision pipeline, patch pipeline, and workspace contract. It does not apply changes to files automatically; proposals are validated and optionally run in a sandbox first.
+
+---
+
+## Project overview
+
+### What Lumos Core is
+
+Lumos Core provides:
+
+- Interactive CLI and read-only web status.
+- **Decision pipeline**: goal + target paths → candidate options → simulation → ranking → chosen option → patch proposals (no apply).
+- **Patch pipeline**: propose → validate (fingerprint) → optional sandbox → apply only when explicitly gated.
+- **Workspace contract**: fixed `.lumos/` layout, trash rules, core-state protection.
+
+### Main components
+
+| Component | Role |
+|-----------|------|
+| **Decision pipeline** | Explorer generates options; simulator and ranker (using adaptive weights) pick the best; runner turns it into proposals and runs validation/sandbox. No file writes. |
+| **Patch pipeline** | Creates `PatchProposal`s, validates against current file fingerprint, optionally runs sandbox validation. Apply is a separate, guarded step. |
+| **Sandbox validation** | Writes proposed content to a temp file only; real target path is never touched. Used for extra checks (e.g. parse, tests). |
+| **Adaptive weights** | Ranking weights (success, risk, impact) live in `.lumos/weights.json`; strategy updater can adjust them from decision-feedback log. |
+| **Logs and history** | `logs/lumos_evolution.jsonl` (lifecycle events), `logs/lumos_decision_feedback.jsonl` (run outcomes for weights), `logs/lumos_decision_history.jsonl` (readable decision audit). |
+
+### Demo decision script
+
+From the repo root:
+
+```bash
+PYTHONPATH=src python scripts/demo_decision.py
+```
+
+Uses goal `"test decision"` and target `src/core/state.py`; prints proposal preview. No file changes; use `update_weights_after_run=False` in the script so no weights are written.
+
+### Where logs and weights are stored
+
+- **Logs:** Under `logs/` (repo root): `lumos_evolution.jsonl`, `lumos_decision_feedback.jsonl`, `lumos_decision_history.jsonl`. Runtime log: `.lumos/logs/log.txt`.
+- **Weights and state:** `.lumos/weights.json` (ranking weights), `.lumos/strategy_updater_state.json`, `.lumos/strategy_feedback_state.json`. Tasks: `.lumos/tasks/` (e.g. `tasks.json`).
+
+### Safety design
+
+- **No automatic apply:** The decision pipeline only produces proposals and runs validation/sandbox. Applying to the real filesystem requires an explicit call to `apply_patch` with the right flags; protected/core targets require `allow_protected_apply` and review.
+- **Sandbox validation:** Proposed content is written to a temporary file for checks; the actual target file is not modified in this step.
+- **Protected targets:** When `base_dir` is set, core paths (e.g. under `.lumos/`) are marked `protected_target`; apply remains blocked unless explicitly allowed.
+
+See `docs/ARCHITECTURE.md` for more detail.
+
+---
+
+## Lumos karakteri
+
 Lumos tek bir karaktere sahiptir.
 
 - Emin olmadığı yerde konuşmaz.
