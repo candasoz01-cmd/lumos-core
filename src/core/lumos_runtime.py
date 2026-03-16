@@ -25,6 +25,7 @@ from cli.cli_router import RouterContext
 from cli.cli_tasks_mutation import TaskMutationContext
 from core.config import load_config
 from core.engine import CoreEngine
+from core.health_check import run_health_check
 from core.live_brain import handle_live_brain
 from core.logfmt import logfmt
 from core.lumos import Lumos
@@ -413,6 +414,8 @@ def create_runtime(sandbox_mode: bool | None = None) -> RuntimeResult:
     )
 
     print("Lumos başlatılıyor.")
+    health = run_health_check()
+    print(f"health_check: {health.get('overall', 'unknown')}")
     run_startup_self_check(base_dir, state, lumos, aliases, sandbox_mode=sandbox_mode)
 
     _GLOBAL_CMDS = {"kilit", "lock", "kamera", "presence", "alias", "self", "exit", "quit"}
