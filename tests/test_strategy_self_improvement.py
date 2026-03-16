@@ -8,7 +8,6 @@ import pytest
 
 from core.strategy_updater import (
     DEFAULT_DECISION_HISTORY_LOG_PATH,
-    DEFAULT_WEIGHTS_PATH,
     apply_self_improvement_cycle,
 )
 
