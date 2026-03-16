@@ -10,7 +10,6 @@ from core.strategy_updater import (
     MAX_TOTAL_DRIFT,
     RECENT_FEEDBACK_WINDOW,
     SUCCESS_RATE_FREEZE_THRESHOLD,
-    SUCCESS_RATE_ROLLBACK_THRESHOLD,
     apply_decision_feedback_updates,
     apply_self_improvement_cycle,
     evaluate_weight_update_safety,
