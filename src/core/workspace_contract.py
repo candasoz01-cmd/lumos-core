@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from core.guard_audit import GuardEvent, GuardDecision, GuardAction, record_guard_event
+
 # Sözleşme: tek çöp dizin adı; yeni trash/deleted vb. eklenmez.
 LUMOS_TRASH_DIRNAME = "trash"
 
@@ -442,19 +444,70 @@ def allow_write_to_core(
 ) -> bool:
     """
     Sandbox modunda canlı çekirdek state path'e yazmayı reddet.
-    is_sandbox_mode=False ise her zaman True (mevcut davranış).
-    is_sandbox_mode=True ise: target_path live_base_dir altında ve çekirdek state ise False.
+
+    Davranış modeli:
+    - is_sandbox_mode=False ise: mevcut davranış korunur, her zaman True döner.
+      Bu, canlı modda core state'e yazmanın guard tarafından kısıtlanmadığı
+      (sadece üst katman politika ile sınırlı olduğu) anlamına gelir.
+    - is_sandbox_mode=True ise: target_path live_base_dir altında ve çekirdek state ise False.
+      Bu durumda audit kaydı da üretilir.
     """
-    if not is_sandbox_mode:
-        return True
     live = Path(live_base_dir).resolve()
     target = Path(target_path).resolve()
+
+    if not is_sandbox_mode:
+        # Mevcut davranışı koru; yine de audit için allow kararı log'lanabilir.
+        record_guard_event(
+            GuardEvent(
+                action="write",
+                decision="allow",
+                path=target,
+                sandbox_mode=False,
+                reason="sandbox_disabled",
+                caller="workspace_contract.allow_write_to_core",
+            ),
+        )
+        return True
+
     try:
         target.relative_to(live)
     except ValueError:
-        return True  # hedef canlı base altında değil, izin ver
+        # Hedef canlı base altında değil; sandbox guard kapsamı dışında.
+        record_guard_event(
+            GuardEvent(
+                action="write",
+                decision="allow",
+                path=target,
+                sandbox_mode=True,
+                reason="outside_live_base",
+                caller="workspace_contract.allow_write_to_core",
+            ),
+        )
+        return True
+
     if is_core_state_path(live, target):
+        record_guard_event(
+            GuardEvent(
+                action="write",
+                decision="deny",
+                path=target,
+                sandbox_mode=True,
+                reason="core_state_under_live_base",
+                caller="workspace_contract.allow_write_to_core",
+            ),
+        )
         return False
+
+    record_guard_event(
+        GuardEvent(
+            action="write",
+            decision="allow",
+            path=target,
+            sandbox_mode=True,
+            reason="non_core_under_live_base",
+            caller="workspace_contract.allow_write_to_core",
+        ),
+    )
     return True
 
 
