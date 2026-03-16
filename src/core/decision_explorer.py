@@ -15,13 +15,14 @@ goal/request
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, List, Tuple
+from typing import Iterable, List, Optional, Tuple
 import uuid
 
 from core.change_sensitivity import ChangeSensitivity, classify_sensitivity
 from core.decision_model import MutationOption
 from core.evolution_log import record_event
 from core.change_plan import ChangePlan
+from core.patch_model import PatchProposal
 
 
 @dataclass(frozen=True)
@@ -31,6 +32,73 @@ class DecisionExplorerConfig:
 
 def _summarize_sensitivity(target_paths: Iterable[Path]) -> List[ChangeSensitivity]:
     return [classify_sensitivity(p) for p in target_paths]
+
+
+def _file_exists(path: Path) -> bool:
+    return path.exists() and path.is_file()
+
+
+def _line_count(path: Path) -> int:
+    if not _file_exists(path):
+        return 0
+    try:
+        with path.open(encoding="utf-8", errors="replace") as f:
+            return sum(1 for _ in f)
+    except OSError:
+        return 0
+
+
+def _file_size_bytes(path: Path) -> int:
+    if not _file_exists(path):
+        return 0
+    try:
+        return path.stat().st_size
+    except OSError:
+        return 0
+
+
+def _is_python_file(path: Path) -> bool:
+    return path.suffix == ".py"
+
+
+def _compute_file_based_deltas(paths: List[Path]) -> Tuple[float, float, float]:
+    """
+    Hedef dosyaların basit analizine göre risk, complexity, success için
+    küçük delta değerleri döndür. (risk_delta, complexity_delta, success_delta)
+    """
+    risk_delta = 0.0
+    complexity_delta = 0.0
+    success_delta = 0.0
+
+    if not paths:
+        return risk_delta, complexity_delta, success_delta
+
+    any_missing = False
+    any_large = False
+    any_non_py = False
+    all_small = True
+    for p in paths:
+        if not _file_exists(p):
+            any_missing = True
+        else:
+            lines = _line_count(p)
+            if lines > 500:
+                any_large = True
+            if lines >= 50:
+                all_small = False
+            if not _is_python_file(p):
+                any_non_py = True
+
+    if any_missing:
+        risk_delta += 0.3
+    if all_small and not any_missing:
+        risk_delta -= 0.05
+    if any_large:
+        complexity_delta += 0.1
+    if any_non_py:
+        success_delta -= 0.1
+
+    return risk_delta, complexity_delta, success_delta
 
 
 def _compute_score(
@@ -107,6 +175,8 @@ def generate_candidate_options(
     if not paths:
         return []
 
+    risk_delta, complexity_delta, success_delta = _compute_file_based_deltas(paths)
+
     options: List[MutationOption] = []
 
     options.append(
@@ -114,9 +184,9 @@ def generate_candidate_options(
             kind="minimal",
             description=f"Minimal, dar kapsamlı değişiklik: {goal_description}",
             target_paths=paths,
-            risk=0.1,
-            complexity=0.2,
-            success=0.9,
+            risk=min(1.0, max(0.0, 0.1 + risk_delta)),
+            complexity=min(1.0, max(0.0, 0.2 + complexity_delta)),
+            success=min(1.0, max(0.0, 0.9 + success_delta)),
             impact=0.4,
         ),
     )
@@ -125,9 +195,9 @@ def generate_candidate_options(
             kind="medium",
             description=f"Orta seviye iyileştirme: {goal_description}",
             target_paths=paths,
-            risk=0.3,
-            complexity=0.4,
-            success=0.8,
+            risk=min(1.0, max(0.0, 0.3 + risk_delta)),
+            complexity=min(1.0, max(0.0, 0.4 + complexity_delta)),
+            success=min(1.0, max(0.0, 0.8 + success_delta)),
             impact=0.6,
         ),
     )
@@ -136,9 +206,9 @@ def generate_candidate_options(
             kind="aggressive",
             description=f"Daha kapsamlı ama riskli iyileştirme: {goal_description}",
             target_paths=paths,
-            risk=0.6,
-            complexity=0.7,
-            success=0.6,
+            risk=min(1.0, max(0.0, 0.6 + risk_delta)),
+            complexity=min(1.0, max(0.0, 0.7 + complexity_delta)),
+            success=min(1.0, max(0.0, 0.6 + success_delta)),
             impact=0.9,
         ),
     )
@@ -184,14 +254,15 @@ def select_best_option(options: List[MutationOption]) -> Tuple[MutationOption, L
 def create_plan_from_option(
     goal_description: str,
     option: MutationOption,
-) -> ChangePlan:
+    patches: Optional[List[PatchProposal]] = None,
+) -> Optional[ChangePlan]:
     """
-    Seçilen seçenekten minimal bir ChangePlan üret.
+    Seçilen seçenekten ChangePlan üret.
 
-    Not: Şu an için sadece target_paths'i taşıyan boş patch listesi ile plan oluşturmak,
-    ileride gerçek PatchProposal listesiyle doldurulmak üzere bir iskelet sağlar.
+    patches verilmezse veya boşsa None döner (ChangePlan en az bir patch gerektirir).
+    Üst katman gerçek patch listesini üretip buraya geçirebilir.
     """
-    # Boş patch listesi ile plan oluşturmak RFC'si: call site gerçek patch'leri ekleyecek.
-    plan = ChangePlan.new(goal_description, [])
-    return plan
+    if not patches:
+        return None
+    return ChangePlan.new(goal_description, patches)
 
