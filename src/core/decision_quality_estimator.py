@@ -9,12 +9,16 @@ import json
 from pathlib import Path
 from collections import defaultdict
 
+from core.log_window import read_recent_jsonl_records
+
 # Default paths (relative to CWD)
 DEFAULT_DECISION_HISTORY_PATH: Path = Path("logs") / "lumos_decision_history.jsonl"
 DEFAULT_DECISION_FEEDBACK_PATH: Path = Path("logs") / "lumos_decision_feedback.jsonl"
 DEFAULT_MEMORY_PATTERNS_PATH: Path = Path(".lumos") / "memory_patterns.json"
 
 MIN_HISTORY_RECORDS = 20
+# Bounded recent-history: max records from history + feedback combined
+QUALITY_ESTIMATOR_RECENT_LIMIT = 200
 NEUTRAL_SUCCESS = 0.5
 NEUTRAL_RISK = 0.5
 NEUTRAL_CONFIDENCE = 0.2
@@ -27,23 +31,6 @@ def _clamp01(x: float) -> float:
     return max(0.0, min(1.0, x))
 
 
-def _read_jsonl(path: Path) -> list[dict]:
-    if not path.resolve().exists():
-        return []
-    records: list[dict] = []
-    try:
-        with path.open(encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    records.append(json.loads(line))
-                except json.JSONDecodeError:
-                    continue
-    except OSError:
-        pass
-    return records
 
 
 def _strategy_from_option_id(option_id: str) -> str:
@@ -122,8 +109,9 @@ def estimate_decision_quality(
         feed_p = Path(feedback_path) if feedback_path is not None else DEFAULT_DECISION_FEEDBACK_PATH
         mem_p = Path(memory_patterns_path) if memory_patterns_path is not None else DEFAULT_MEMORY_PATTERNS_PATH
 
-        history = _read_jsonl(hist_p.resolve())
-        feedback = _read_jsonl(feed_p.resolve())
+        per_source = max(1, QUALITY_ESTIMATOR_RECENT_LIMIT // 2)
+        history = read_recent_jsonl_records(hist_p.resolve(), per_source)
+        feedback = read_recent_jsonl_records(feed_p.resolve(), per_source)
         total_records = len(history) + len(feedback)
 
         if total_records < MIN_HISTORY_RECORDS:
