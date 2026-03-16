@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from core.decision_runner import DecisionExecutionResult
+from core.log_rotation import append_jsonl_with_rotation, DEFAULT_KEEP, DEFAULT_MAX_BYTES
 
 DECISION_HISTORY_LOG_PATH: Path = Path("logs") / "lumos_decision_history.jsonl"
 
@@ -45,8 +46,11 @@ def record_decision_history(
         "notes": result.notes or "",
     }
     try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+        append_jsonl_with_rotation(
+            path,
+            record,
+            max_bytes=DEFAULT_MAX_BYTES,
+            keep=DEFAULT_KEEP,
+        )
     except Exception:
         return

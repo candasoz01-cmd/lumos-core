@@ -17,6 +17,8 @@ from typing import Iterable, List, Optional
 import json
 import uuid
 
+from core.log_rotation import append_jsonl_with_rotation, DEFAULT_KEEP, DEFAULT_MAX_BYTES
+
 
 # Varsayılan log path; testler LOG_PATH değerini override edebilir.
 LOG_PATH: Path = Path("logs") / "lumos_evolution.jsonl"
@@ -69,9 +71,12 @@ def record_event(
         conflict_detected=conflict_detected,
     )
     try:
-        LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
-        with LOG_PATH.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(asdict(event), ensure_ascii=False) + "\n")
+        append_jsonl_with_rotation(
+            LOG_PATH,
+            asdict(event),
+            max_bytes=DEFAULT_MAX_BYTES,
+            keep=DEFAULT_KEEP,
+        )
     except Exception:
         # Evolution log hiçbir zaman ana akışı bozmaz.
         return
