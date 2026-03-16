@@ -14,6 +14,8 @@ from pathlib import Path
 import json
 from datetime import datetime, timezone
 
+from core.log_window import read_recent_jsonl_records
+
 
 # Varsayılan log path (evolution_log ile aynı dosya)
 DEFAULT_EVOLUTION_LOG_PATH: Path = Path("logs") / "lumos_evolution.jsonl"
@@ -57,6 +59,8 @@ MAX_TOTAL_DRIFT = 0.35  # max sum of |proposed - baseline| over the three weight
 SUCCESS_RATE_FREEZE_THRESHOLD = 0.4  # freeze updates if recent success rate below this
 SUCCESS_RATE_ROLLBACK_THRESHOLD = 0.35  # rollback to previous weights if below this
 RECENT_FEEDBACK_WINDOW = 20  # last N feedback records for success rate
+# Bounded recent-history: max records read for decision/feedback and evolution analysis
+STRATEGY_RECENT_RECORDS_LIMIT = 200
 
 # Sensitivity → risk skoru (decision ranking için proxy)
 _SENSITIVITY_RISK = {"CRITICAL": 3, "HIGH": 2, "LOW": 1}
@@ -313,24 +317,24 @@ def update_weights_from_outcome(
 
 
 def _load_strategy_state(state_path: Path) -> dict:
-    """Son işlenen satır numarasını oku."""
+    """Load state dict (last_processed_line and/or last_processed_timestamp)."""
     if not state_path.resolve().exists():
         return {"last_processed_line": -1}
     try:
         data = json.loads(state_path.read_text(encoding="utf-8"))
-        if isinstance(data, dict) and "last_processed_line" in data:
+        if isinstance(data, dict):
             return data
     except (OSError, json.JSONDecodeError):
         pass
     return {"last_processed_line": -1}
 
 
-def _save_strategy_state(state_path: Path, last_processed_line: int) -> None:
-    """State dosyasına son işlenen satırı yaz."""
+def _save_strategy_state(state_path: Path, state: dict) -> None:
+    """State dosyasına state dict yaz (last_processed_line ve/veya last_processed_timestamp)."""
     state_path = state_path.resolve()
     state_path.parent.mkdir(parents=True, exist_ok=True)
     state_path.write_text(
-        json.dumps({"last_processed_line": last_processed_line}, ensure_ascii=False),
+        json.dumps(state, ensure_ascii=False),
         encoding="utf-8",
     )
 
@@ -343,7 +347,8 @@ def apply_evolution_updates(
     """
     Evolution log'daki yeni DECISION_OPTION_SELECTED event'lerini işle;
     her biri için başarı/başarısızlığa göre weights'ı güncelle.
-    Her event yalnızca bir kez işlenir (last_processed_line ile takip).
+    Yalnızca son STRATEGY_RECENT_RECORDS_LIMIT kayıt okunur; her event
+    last_processed_timestamp ile yalnızca bir kez işlenir.
 
     Dönen değer: bu çağrıda güncelleme uygulanan event sayısı.
     """
@@ -355,44 +360,35 @@ def apply_evolution_updates(
     state_p = state_p.resolve()
 
     state = _load_strategy_state(state_p)
-    last_line = state["last_processed_line"]
+    last_ts = state.get("last_processed_timestamp") or ""
     data = _load_weights_dict(weights_p)
     updates = 0
-    current_line = -1
+    processed_ts: list[str] = []
 
-    if not log_p.exists():
-        return 0
-    try:
-        with log_p.open("r", encoding="utf-8") as f:
-            for line in f:
-                current_line += 1
-                if current_line <= last_line:
-                    continue
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    obj = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                if obj.get("action_type") != "DECISION_OPTION_SELECTED":
-                    continue
-                success = _is_success_result(obj.get("result", ""))
-                if success:
-                    data["success_weight"] = _clamp01(data["success_weight"] + REWARD_DELTA)
-                    data["risk_weight"] = _clamp01(data["risk_weight"] - REWARD_DELTA)
-                else:
-                    data["risk_weight"] = _clamp01(data["risk_weight"] + PENALTY_DELTA)
-                data["success_weight"] = _clamp01(data["success_weight"])
-                data["risk_weight"] = _clamp01(data["risk_weight"])
-                data["impact_weight"] = _clamp01(data["impact_weight"])
-                updates += 1
-    except OSError:
-        return 0
+    records = read_recent_jsonl_records(log_p, STRATEGY_RECENT_RECORDS_LIMIT)
+    for obj in records:
+        if obj.get("action_type") != "DECISION_OPTION_SELECTED":
+            continue
+        ts = obj.get("timestamp") or ""
+        if ts <= last_ts:
+            continue
+        success = _is_success_result(obj.get("result", ""))
+        if success:
+            data["success_weight"] = _clamp01(data["success_weight"] + REWARD_DELTA)
+            data["risk_weight"] = _clamp01(data["risk_weight"] - REWARD_DELTA)
+        else:
+            data["risk_weight"] = _clamp01(data["risk_weight"] + PENALTY_DELTA)
+        data["success_weight"] = _clamp01(data["success_weight"])
+        data["risk_weight"] = _clamp01(data["risk_weight"])
+        data["impact_weight"] = _clamp01(data["impact_weight"])
+        updates += 1
+        processed_ts.append(ts)
 
     if updates > 0:
         _save_weights_dict(weights_p, data)
-    _save_strategy_state(state_p, current_line)
+    if processed_ts:
+        state["last_processed_timestamp"] = max(processed_ts)
+    _save_strategy_state(state_p, state)
     return updates
 
 
@@ -405,8 +401,8 @@ def apply_decision_feedback_updates(
     """
     logs/lumos_decision_feedback.jsonl dosyasındaki yeni kayıtları işle;
     her biri için success alanına göre weights'ı küçük adımla güncelle.
-    EvolutionRecord şeması: option_id, success, risk, timestamp, notes.
-    Her satır yalnızca bir kez işlenir (state_path ile last_processed_line takibi).
+    Yalnızca son STRATEGY_RECENT_RECORDS_LIMIT kayıt okunur; her kayıt
+    last_processed_timestamp ile yalnızca bir kez işlenir.
     Safety governor: if safety check fails, weights are not updated (or rollback applied).
 
     Dönen değer: bu çağrıda güncelleme uygulanan kayıt sayısı.
@@ -427,45 +423,34 @@ def apply_decision_feedback_updates(
     hist_p = hist_p.resolve()
 
     state = _load_strategy_state(state_p)
-    last_line = state["last_processed_line"]
+    last_ts = state.get("last_processed_timestamp") or ""
     data = _load_weights_dict(weights_p)
     current_weights = dict(data)
     updates = 0
-    current_line = -1
+    processed_ts: list[str] = []
 
-    if not log_p.exists():
-        return 0
-    try:
-        with log_p.open("r", encoding="utf-8") as f:
-            for line in f:
-                current_line += 1
-                if current_line <= last_line:
-                    continue
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    obj = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                success = bool(obj.get("success", False))
-                if success:
-                    data["success_weight"] = _clamp01(
-                        data["success_weight"] + REWARD_DELTA
-                    )
-                    data["risk_weight"] = _clamp01(
-                        data["risk_weight"] - REWARD_DELTA
-                    )
-                else:
-                    data["risk_weight"] = _clamp01(
-                        data["risk_weight"] + PENALTY_DELTA
-                    )
-                data["success_weight"] = _clamp01(data["success_weight"])
-                data["risk_weight"] = _clamp01(data["risk_weight"])
-                data["impact_weight"] = _clamp01(data["impact_weight"])
-                updates += 1
-    except OSError:
-        return 0
+    records = read_recent_jsonl_records(log_p, STRATEGY_RECENT_RECORDS_LIMIT)
+    for obj in records:
+        ts = obj.get("timestamp") or ""
+        if ts <= last_ts:
+            continue
+        success = bool(obj.get("success", False))
+        if success:
+            data["success_weight"] = _clamp01(
+                data["success_weight"] + REWARD_DELTA
+            )
+            data["risk_weight"] = _clamp01(
+                data["risk_weight"] - REWARD_DELTA
+            )
+        else:
+            data["risk_weight"] = _clamp01(
+                data["risk_weight"] + PENALTY_DELTA
+            )
+        data["success_weight"] = _clamp01(data["success_weight"])
+        data["risk_weight"] = _clamp01(data["risk_weight"])
+        data["impact_weight"] = _clamp01(data["impact_weight"])
+        updates += 1
+        processed_ts.append(ts)
 
     if updates > 0:
         proposed = dict(data)
@@ -481,7 +466,9 @@ def apply_decision_feedback_updates(
         elif safety["reason"] == "rollback_worse_outcomes" and safety["report"].get("previous_weights"):
             _save_weights_dict(weights_p, safety["report"]["previous_weights"])
         # else: freeze or drift_cap — do not apply
-    _save_strategy_state(state_p, current_line)
+    if processed_ts:
+        state["last_processed_timestamp"] = max(processed_ts)
+    _save_strategy_state(state_p, state)
     return updates
 
 
@@ -489,10 +476,10 @@ def analyze_evolution_log(
     log_path: Path | str | None = None,
 ) -> StrategyReport:
     """
-    logs/lumos_evolution.jsonl dosyasını okuyup success oranları, risk–success
-    ilişkisi ve basit bir rapor üretir.
+    logs/lumos_evolution.jsonl dosyasının son STRATEGY_RECENT_RECORDS_LIMIT
+    kaydını okuyup success oranları, risk–success ilişkisi ve basit bir rapor üretir.
 
-    - total_runs: toplam event sayısı
+    - total_runs: toplam event sayısı (en fazla STRATEGY_RECENT_RECORDS_LIMIT)
     - success_rate: başarılı sonuç (ok/applied/rolled_back) oranı [0, 1]
     - avg_risk: ortalama risk skoru (sensitivity_levels'tan türetilir)
     - rollback_rate: result == "rolled_back" oranı [0, 1]
@@ -504,47 +491,22 @@ def analyze_evolution_log(
     path = Path(log_path) if log_path is not None else DEFAULT_EVOLUTION_LOG_PATH
     path = path.resolve()
 
+    records = read_recent_jsonl_records(path, STRATEGY_RECENT_RECORDS_LIMIT)
     total_runs = 0
     success_count = 0
     rollback_count = 0
     risk_sum = 0.0
 
-    if not path.exists():
-        return StrategyReport(
-            total_runs=0,
-            success_rate=0.0,
-            avg_risk=0.0,
-            rollback_rate=0.0,
-            notes="Log dosyası bulunamadı.",
-        )
-
-    try:
-        with path.open("r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    obj = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                total_runs += 1
-                result = obj.get("result", "")
-                if _is_success_result(result):
-                    success_count += 1
-                if result == "rolled_back":
-                    rollback_count += 1
-                levels = obj.get("sensitivity_levels") or []
-                risk_sum += _risk_from_sensitivity_levels(
-                    levels if isinstance(levels, list) else []
-                )
-    except OSError:
-        return StrategyReport(
-            total_runs=0,
-            success_rate=0.0,
-            avg_risk=0.0,
-            rollback_rate=0.0,
-            notes="Log dosyası okunamadı.",
+    for obj in records:
+        total_runs += 1
+        result = obj.get("result", "")
+        if _is_success_result(result):
+            success_count += 1
+        if result == "rolled_back":
+            rollback_count += 1
+        levels = obj.get("sensitivity_levels") or []
+        risk_sum += _risk_from_sensitivity_levels(
+            levels if isinstance(levels, list) else []
         )
 
     if total_runs == 0:
@@ -792,27 +754,10 @@ def apply_self_improvement_cycle(
         "weights_after": None,
     }
 
-    # Load history
-    if not history_p.exists():
+    # Load history (bounded to recent STRATEGY_RECENT_RECORDS_LIMIT)
+    records = read_recent_jsonl_records(history_p, STRATEGY_RECENT_RECORDS_LIMIT)
+    if not records and not history_p.exists():
         report["reason_skipped"] = "decision_history_log_missing"
-        return report
-
-    records: list[dict] = []
-    try:
-        with history_p.open("r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    obj = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                if not isinstance(obj, dict):
-                    continue
-                records.append(obj)
-    except OSError:
-        report["reason_skipped"] = "decision_history_read_error"
         return report
 
     report["records_read"] = len(records)

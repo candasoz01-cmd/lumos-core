@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 from collections import defaultdict
 
+from core.log_window import read_recent_jsonl_records
 from core.memory_patterns import MemoryPattern
 
 
@@ -20,30 +21,14 @@ DEFAULT_EVOLUTION_PATH: Path = Path("logs") / "lumos_evolution.jsonl"
 DEFAULT_OUTPUT_PATH: Path = Path(".lumos") / "memory_patterns.json"
 
 MIN_COMBINED_RECORDS = 20
+# Bounded recent-history: max combined records from the three log sources
+MEMORY_COMPRESSOR_RECENT_LIMIT = 300
 MAX_PATTERNS = 10
 MIN_EVIDENCE_FOR_PATTERN = 5
 MIN_CONFIDENCE = 0.6
 BIAS_DELTA = 0.01
 
 
-def _read_jsonl(path: Path) -> list[dict]:
-    """Read JSONL file; return list of parsed records. Never raise."""
-    if not path.resolve().exists():
-        return []
-    records: list[dict] = []
-    try:
-        with path.open(encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    records.append(json.loads(line))
-                except json.JSONDecodeError:
-                    continue
-    except OSError:
-        pass
-    return records
 
 
 def _decision_type_from_option_id(option_id: str) -> str:
@@ -266,9 +251,11 @@ def compress_runtime_memory(
     evol_path = evolution_path or DEFAULT_EVOLUTION_PATH
     out_path = output_path or DEFAULT_OUTPUT_PATH
 
-    history = _read_jsonl(hist_path)
-    feedback = _read_jsonl(feed_path)
-    evolution = _read_jsonl(evol_path)
+    # Read at most MEMORY_COMPRESSOR_RECENT_LIMIT total (100 per source)
+    per_source = max(1, MEMORY_COMPRESSOR_RECENT_LIMIT // 3)
+    history = read_recent_jsonl_records(hist_path, per_source)
+    feedback = read_recent_jsonl_records(feed_path, per_source)
+    evolution = read_recent_jsonl_records(evol_path, per_source)
 
     records_read = len(history) + len(feedback) + len(evolution)
 
