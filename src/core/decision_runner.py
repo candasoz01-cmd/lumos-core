@@ -31,6 +31,11 @@ class DecisionExecutionResult:
     proposal_diff: str = ""
     decision_explanation: str = ""
 
+    @property
+    def proposal_diff_preview(self) -> str:
+        """Kısa diff görünürlüğü; uygulama yapılmaz. proposal_diff ile aynı içerik."""
+        return self.proposal_diff
+
 
 def explain_decision(option: MutationOption) -> str:
     """
@@ -69,6 +74,9 @@ def explain_decision(option: MutationOption) -> str:
 
 
 def _is_protected(base_dir: Optional[Path], target_path: Path) -> bool:
+    # When base_dir is None, we cannot resolve core state; protected is treated as False.
+    # TODO: Before autonomous apply is enabled, base_dir must be made mandatory so
+    # protected_target is correctly set for core paths.
     if base_dir is None:
         return False
     return is_core_state_path(base_dir, target_path)
