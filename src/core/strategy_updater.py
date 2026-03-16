@@ -12,6 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 import json
+from datetime import datetime, timezone
 
 
 # Varsayılan log path (evolution_log ile aynı dosya)
@@ -48,6 +49,14 @@ PENALTY_DELTA = 0.02
 SELF_IMPROVE_MAX_DELTA = 0.03
 SELF_IMPROVE_STEP = 0.01
 SELF_IMPROVE_MIN_RECORDS = 10
+
+# Safety governor: prevent self-reinforcing bad updates
+DEFAULT_WEIGHTS_HISTORY_PATH: Path = Path(".lumos") / "weights_history.json"
+WEIGHTS_HISTORY_MAX_ENTRIES = 50
+MAX_TOTAL_DRIFT = 0.35  # max sum of |proposed - baseline| over the three weights
+SUCCESS_RATE_FREEZE_THRESHOLD = 0.4  # freeze updates if recent success rate below this
+SUCCESS_RATE_ROLLBACK_THRESHOLD = 0.35  # rollback to previous weights if below this
+RECENT_FEEDBACK_WINDOW = 20  # last N feedback records for success rate
 
 # Sensitivity → risk skoru (decision ranking için proxy)
 _SENSITIVITY_RISK = {"CRITICAL": 3, "HIGH": 2, "LOW": 1}
@@ -114,28 +123,193 @@ def _save_weights_dict(weights_path: Path, data: dict) -> None:
     weights_path.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def _load_weights_history(weights_history_path: Path) -> list[dict]:
+    """Load weights history; return list of {timestamp, weights}."""
+    path = weights_history_path.resolve()
+    if not path.exists():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    if not isinstance(data, dict):
+        return []
+    entries = data.get("entries")
+    if not isinstance(entries, list):
+        return []
+    return [e for e in entries if isinstance(e, dict) and "weights" in e and "timestamp" in e]
+
+
+def _append_weights_to_history(
+    weights_history_path: Path,
+    weights: dict,
+    *,
+    max_entries: int = WEIGHTS_HISTORY_MAX_ENTRIES,
+) -> None:
+    """Append a weights snapshot to history; trim to max_entries."""
+    path = weights_history_path.resolve()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    entry = {
+        "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+        "weights": {
+            "success_weight": float(weights.get("success_weight", 0.4)),
+            "risk_weight": float(weights.get("risk_weight", 0.3)),
+            "impact_weight": float(weights.get("impact_weight", 0.3)),
+        },
+    }
+    history = _load_weights_history(path)
+    history.append(entry)
+    if len(history) > max_entries:
+        history = history[-max_entries:]
+    path.write_text(
+        json.dumps({"entries": history}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
+def _recent_success_rate(feedback_log_path: Path, window: int = RECENT_FEEDBACK_WINDOW) -> float:
+    """Last N feedback records: success rate in [0, 1]. If no records, return 1.0 (allow)."""
+    path = feedback_log_path.resolve()
+    if not path.exists() or window <= 0:
+        return 1.0
+    lines: list[str] = []
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    lines.append(line)
+    except OSError:
+        return 1.0
+    recent = lines[-window:] if len(lines) >= window else lines
+    if not recent:
+        return 1.0
+    success_count = 0
+    for line in recent:
+        try:
+            obj = json.loads(line)
+            if isinstance(obj, dict) and obj.get("success") is True:
+                success_count += 1
+        except json.JSONDecodeError:
+            continue
+    return success_count / len(recent)
+
+
+def evaluate_weight_update_safety(
+    current_weights: dict,
+    proposed_weights: dict,
+    *,
+    feedback_log_path: Path | str | None = None,
+    weights_history_path: Path | str | None = None,
+) -> dict:
+    """
+    Evaluate whether applying proposed_weights is safe. Prevents drift, freeze, and enables rollback.
+
+    Returns dict with:
+      - safe: bool
+      - reason: str | None (e.g. "freeze_success_rate_below_threshold", "drift_cap_exceeded", "rollback_worse_outcomes")
+      - report: dict with drift, recent_success_rate, previous_weights (if rollback), baseline_weights
+    If safe is False, do not apply proposed_weights; if reason is rollback_worse_outcomes, apply previous_weights instead.
+    """
+    feed_p = Path(feedback_log_path) if feedback_log_path is not None else DEFAULT_DECISION_FEEDBACK_LOG_PATH
+    hist_p = Path(weights_history_path) if weights_history_path is not None else DEFAULT_WEIGHTS_HISTORY_PATH
+    feed_p = feed_p.resolve()
+    hist_p = hist_p.resolve()
+
+    report: dict = {
+        "drift": 0.0,
+        "drift_cap": MAX_TOTAL_DRIFT,
+        "recent_success_rate": 1.0,
+        "freeze_threshold": SUCCESS_RATE_FREEZE_THRESHOLD,
+        "rollback_threshold": SUCCESS_RATE_ROLLBACK_THRESHOLD,
+        "baseline_weights": {"success_weight": 0.4, "risk_weight": 0.3, "impact_weight": 0.3},
+        "previous_weights": None,
+    }
+
+    # Baseline from first history entry or default
+    history = _load_weights_history(hist_p)
+    if history:
+        report["baseline_weights"] = dict(history[0]["weights"])
+        report["previous_weights"] = dict(history[-1]["weights"])
+    keys = ("success_weight", "risk_weight", "impact_weight")
+    baseline = report["baseline_weights"]
+    total_drift = sum(
+        abs(float(proposed_weights.get(k, 0)) - float(baseline.get(k, 0)))
+        for k in keys
+    )
+    report["drift"] = round(total_drift, 6)
+
+    recent_rate = _recent_success_rate(feed_p, RECENT_FEEDBACK_WINDOW)
+    report["recent_success_rate"] = round(recent_rate, 4)
+
+    # 1) Drift cap
+    if total_drift > MAX_TOTAL_DRIFT:
+        return {
+            "safe": False,
+            "reason": "drift_cap_exceeded",
+            "report": report,
+        }
+
+    # 2) Freeze: success rate below threshold
+    if recent_rate < SUCCESS_RATE_FREEZE_THRESHOLD:
+        return {
+            "safe": False,
+            "reason": "freeze_success_rate_below_threshold",
+            "report": report,
+        }
+
+    # 3) Rollback: success rate very low and we have previous snapshot
+    if recent_rate < SUCCESS_RATE_ROLLBACK_THRESHOLD and report["previous_weights"] is not None:
+        return {
+            "safe": False,
+            "reason": "rollback_worse_outcomes",
+            "report": report,
+        }
+
+    return {"safe": True, "reason": None, "report": report}
+
+
 def update_weights_from_outcome(
     success: bool,
     weights_path: Path | str | None = None,
+    feedback_log_path: Path | str | None = None,
+    weights_history_path: Path | str | None = None,
 ) -> None:
     """
     Tek bir karar sonucuna göre strateji ağırlıklarını küçük adımla güncelle.
 
     - Başarılı ise: success_weight artır, risk_weight azalt (risk tolerance ödülü).
     - Başarısız ise: risk_weight artır (risk penalty).
+    - Safety governor: drift cap, freeze, rollback apply; may skip or rollback.
 
     Tüm değerler [0, 1] aralığında kalır.
     """
     path = Path(weights_path) if weights_path is not None else DEFAULT_WEIGHTS_PATH
     path = path.resolve()
     data = _load_weights_dict(path)
+    current = dict(data)
     if success:
         data["success_weight"] = _clamp01(data["success_weight"] + REWARD_DELTA)
         data["risk_weight"] = _clamp01(data["risk_weight"] - REWARD_DELTA)
     else:
         data["risk_weight"] = _clamp01(data["risk_weight"] + PENALTY_DELTA)
     data["impact_weight"] = _clamp01(data["impact_weight"])
-    _save_weights_dict(path, data)
+    proposed = dict(data)
+    hist_path = Path(weights_history_path) if weights_history_path is not None else path.parent / "weights_history.json"
+    safety = evaluate_weight_update_safety(
+        current,
+        proposed,
+        feedback_log_path=feedback_log_path or DEFAULT_DECISION_FEEDBACK_LOG_PATH,
+        weights_history_path=hist_path,
+    )
+    if safety["safe"]:
+        _append_weights_to_history(hist_path, current)
+        _save_weights_dict(path, proposed)
+        return
+    if safety["reason"] == "rollback_worse_outcomes" and safety["report"].get("previous_weights"):
+        _save_weights_dict(path, safety["report"]["previous_weights"])
+        return
+    # freeze or drift_cap: do not apply
 
 
 def _load_strategy_state(state_path: Path) -> dict:
@@ -226,12 +400,14 @@ def apply_decision_feedback_updates(
     feedback_log_path: Path | str | None = None,
     weights_path: Path | str | None = None,
     state_path: Path | str | None = None,
+    weights_history_path: Path | str | None = None,
 ) -> int:
     """
     logs/lumos_decision_feedback.jsonl dosyasındaki yeni kayıtları işle;
     her biri için success alanına göre weights'ı küçük adımla güncelle.
     EvolutionRecord şeması: option_id, success, risk, timestamp, notes.
     Her satır yalnızca bir kez işlenir (state_path ile last_processed_line takibi).
+    Safety governor: if safety check fails, weights are not updated (or rollback applied).
 
     Dönen değer: bu çağrıda güncelleme uygulanan kayıt sayısı.
     """
@@ -244,13 +420,16 @@ def apply_decision_feedback_updates(
     state_p = (
         Path(state_path) if state_path is not None else DEFAULT_FEEDBACK_STATE_PATH
     )
+    hist_p = Path(weights_history_path) if weights_history_path is not None else weights_p.parent / "weights_history.json"
     log_p = log_p.resolve()
     weights_p = weights_p.resolve()
     state_p = state_p.resolve()
+    hist_p = hist_p.resolve()
 
     state = _load_strategy_state(state_p)
     last_line = state["last_processed_line"]
     data = _load_weights_dict(weights_p)
+    current_weights = dict(data)
     updates = 0
     current_line = -1
 
@@ -289,7 +468,19 @@ def apply_decision_feedback_updates(
         return 0
 
     if updates > 0:
-        _save_weights_dict(weights_p, data)
+        proposed = dict(data)
+        safety = evaluate_weight_update_safety(
+            current_weights,
+            proposed,
+            feedback_log_path=log_p,
+            weights_history_path=hist_p,
+        )
+        if safety["safe"]:
+            _append_weights_to_history(hist_p, current_weights)
+            _save_weights_dict(weights_p, proposed)
+        elif safety["reason"] == "rollback_worse_outcomes" and safety["report"].get("previous_weights"):
+            _save_weights_dict(weights_p, safety["report"]["previous_weights"])
+        # else: freeze or drift_cap — do not apply
     _save_strategy_state(state_p, current_line)
     return updates
 
@@ -472,6 +663,85 @@ def apply_memory_bias(
     return report
 
 
+# Max absolute memory bias score added per option (so ranking stays stable)
+MEMORY_BIAS_SCORE_CAP = 0.1
+
+
+def _pattern_matches_strategy_for_bias(summary: str, strategy: str) -> bool:
+    """True if pattern summary is about this strategy (for per-option bias score)."""
+    if not summary or not strategy:
+        return False
+    s = summary.lower()
+    if strategy == "minimal" and "minimal" in s:
+        return True
+    if strategy == "aggressive" and "aggressive" in s:
+        return True
+    if strategy == "medium" and "medium" in s:
+        return True
+    return False
+
+
+def get_memory_bias_score_for_option(
+    option_id: str,
+    memory_patterns_path: Path | str | None = None,
+) -> float:
+    """
+    Return a scalar bias score for this option based on memory patterns.
+    Uses same eligibility as apply_memory_bias (confidence >= 0.65, evidence >= 5).
+    Only patterns whose summary matches the option's strategy contribute.
+    Capped to [-MEMORY_BIAS_SCORE_CAP, MEMORY_BIAS_SCORE_CAP]. Never raises; returns 0 on missing data.
+    """
+    path = (
+        Path(memory_patterns_path)
+        if memory_patterns_path is not None
+        else DEFAULT_MEMORY_PATTERNS_PATH
+    )
+    path = path.resolve()
+    if not path.exists():
+        return 0.0
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return 0.0
+    if not isinstance(data, dict):
+        return 0.0
+    patterns = data.get("patterns")
+    if not isinstance(patterns, list):
+        return 0.0
+    strategy = _option_type_from_id(option_id)
+    if strategy == "other":
+        return 0.0
+    total = 0.0
+    for item in patterns:
+        if not isinstance(item, dict):
+            continue
+        conf = item.get("confidence")
+        evidence = item.get("evidence_count")
+        bias = item.get("recommended_bias")
+        if not isinstance(bias, dict):
+            continue
+        try:
+            c = float(conf)
+            e = int(evidence)
+        except (TypeError, ValueError):
+            continue
+        if c < MEMORY_BIAS_MIN_CONFIDENCE or e < MEMORY_BIAS_MIN_EVIDENCE:
+            continue
+        summary = str(item.get("summary") or "")
+        if not _pattern_matches_strategy_for_bias(summary, strategy):
+            continue
+        for key, val in bias.items():
+            if key in ("success_weight", "risk_weight", "impact_weight"):
+                try:
+                    total += float(val)
+                except (TypeError, ValueError):
+                    pass
+    return max(
+        -MEMORY_BIAS_SCORE_CAP,
+        min(MEMORY_BIAS_SCORE_CAP, total),
+    )
+
+
 def _option_type_from_id(option_id: str) -> str:
     """Extract option type from option_id (e.g. minimal-xxx -> minimal)."""
     if not option_id or "-" not in option_id:
@@ -491,6 +761,7 @@ def apply_self_improvement_cycle(
     history_log_path: Path | str | None = None,
     feedback_log_path: Path | str | None = None,
     weights_path: Path | str | None = None,
+    weights_history_path: Path | str | None = None,
 ) -> dict:
     """
     Read decision history (and feedback if needed), measure success rate by option
@@ -617,16 +888,39 @@ def apply_self_improvement_cycle(
     data["risk_weight"] = _clamp01(data["risk_weight"] + delta_risk)
     data["impact_weight"] = _clamp01(data["impact_weight"] + delta_impact)
 
+    weights_after_cycle = dict(data)
+    hist_p = Path(weights_history_path) if weights_history_path is not None else weights_p.parent / "weights_history.json"
+    hist_p = hist_p.resolve()
+    feedback_p = Path(feedback_log_path) if feedback_log_path is not None else DEFAULT_DECISION_FEEDBACK_LOG_PATH
+    feedback_p = feedback_p.resolve()
+    safety = evaluate_weight_update_safety(
+        report["weights_before"],
+        weights_after_cycle,
+        feedback_log_path=feedback_p,
+        weights_history_path=hist_p,
+    )
+    if not safety["safe"]:
+        report["changed"] = False
+        report["reason_skipped"] = safety["reason"]
+        report["safety_report"] = safety["report"]
+        if safety["reason"] == "rollback_worse_outcomes" and safety["report"].get("previous_weights"):
+            weights_p.parent.mkdir(parents=True, exist_ok=True)
+            _save_weights_dict(weights_p, safety["report"]["previous_weights"])
+            report["rollback_applied"] = True
+            report["weights_after"] = dict(safety["report"]["previous_weights"])
+        return report
+
     report["changed"] = True
     report["adjustments_applied"] = {
         "success_weight": delta_success,
         "risk_weight": delta_risk,
         "impact_weight": delta_impact,
     }
-    report["weights_after"] = dict(data)
+    report["weights_after"] = weights_after_cycle
     report["reason_skipped"] = None
 
     weights_p.parent.mkdir(parents=True, exist_ok=True)
+    _append_weights_to_history(hist_p, report["weights_before"])
     _save_weights_dict(weights_p, data)
 
     # Apply memory bias from compressed patterns (if any) after self-improvement
