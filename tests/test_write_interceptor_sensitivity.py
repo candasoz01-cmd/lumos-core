@@ -2,11 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
 
-from core.change_sensitivity import ChangeSensitivity
 from core.write_interceptor import WriteRequest, intercept_write
-from core.workspace_contract import CoreWriteForbidden
 
 
 def _make_req(tmp_path: Path, rel: str, *, content: str = "x") -> WriteRequest:
