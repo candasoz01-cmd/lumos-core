@@ -5,7 +5,6 @@ Stored in logs/lumos_decision_history.jsonl. Best-effort append; never raises.
 """
 from __future__ import annotations
 
-import json
 from datetime import datetime, timezone
 from pathlib import Path
 
