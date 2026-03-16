@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from core.decision_runner import DecisionExecutionResult
+from core.log_rotation import append_jsonl_with_rotation, DEFAULT_KEEP, DEFAULT_MAX_BYTES
 
 # Decision execution feedback için ayrı log (evolution_log ile şema farkı; karışıklığı önlemek için ayrı dosya)
 DECISION_FEEDBACK_LOG_PATH: Path = Path("logs") / "lumos_decision_feedback.jsonl"
@@ -39,8 +40,11 @@ def record_execution(result: DecisionExecutionResult) -> None:
         notes=result.notes or "",
     )
     try:
-        DECISION_FEEDBACK_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
-        with DECISION_FEEDBACK_LOG_PATH.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(asdict(record), ensure_ascii=False) + "\n")
+        append_jsonl_with_rotation(
+            DECISION_FEEDBACK_LOG_PATH,
+            asdict(record),
+            max_bytes=DEFAULT_MAX_BYTES,
+            keep=DEFAULT_KEEP,
+        )
     except Exception:
         return
