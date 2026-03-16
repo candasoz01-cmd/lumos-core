@@ -4,8 +4,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 from core.log_window import read_recent_jsonl_records, read_recent_jsonl_matching
 
 
