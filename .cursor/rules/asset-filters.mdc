@@ -1,0 +1,40 @@
+## Asset filtreleri — analiz kapsamı
+
+Amaç: Cursor içindeki audit / scan / code analysis görevlerinde resim ve medya dosyalarının analiz edilmemesi; kod analizi için metin tabanlı dosya tiplerine odaklanmak.
+
+### Analiz dışı bırakılacak dosya tipleri
+
+Aşağıdaki uzantılar **kod analizi ve arama** sırasında **yok sayılmalıdır**:
+
+- `*.png`
+- `*.jpg`
+- `*.jpeg`
+- `*.gif`
+- `*.webp`
+- `*.mp4`
+- `*.mov`
+
+### Analiz dışı bırakılacak klasörler
+
+Aşağıdaki klasörler (varsa) **tamamen analiz dışı** kabul edilir:
+
+- `screenshots/`
+- `images/`
+- `assets/`
+
+Bu klasörler altındaki dosyalar, türlerinden bağımsız olarak audit / scan / code analysis kapsamına alınmaz.
+
+### Kod analizi için izinli dosya tipleri
+
+Kod analizi, mümkün olduğunda yalnızca şu dosya tipleri üzerinde çalışmalıdır:
+
+- `*.py`
+- `*.json`
+- `*.yaml`
+- `*.yml`
+- `*.toml`
+- `*.md`
+- `*.txt`
+
+Bu uzantılar dışındaki metin dosyaları, ancak özel olarak gerekliyse ve açıkça istenirse analiz edilir.
+
