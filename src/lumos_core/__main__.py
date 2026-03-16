@@ -45,6 +45,9 @@ def main() -> None:
     sub = parser.add_subparsers(dest="cmd", help="subcommand")
     sub.add_parser("cli", help="run interactive CLI (default)")
     sub.add_parser("web", help="run Web v1 server")
+    decision_p = sub.add_parser("decision", help="run decision pipeline, show proposal diff (no apply)")
+    decision_p.add_argument("--goal", required=True, help="goal description")
+    decision_p.add_argument("--paths", required=True, nargs="+", help="target paths")
     args = parser.parse_args()
 
     if args.version:
@@ -52,6 +55,17 @@ def main() -> None:
         sys.exit(0)
     if args.cmd == "web":
         _run_web()
+    elif args.cmd == "decision":
+        from pathlib import Path
+        from core.decision_pipeline import run_decision_pipeline
+        from core.decision_runner import format_result_preview
+        paths = [Path(p) for p in args.paths]
+        result = run_decision_pipeline(args.goal, paths)
+        if result is None:
+            print("No result (no options generated).")
+            sys.exit(1)
+        print(format_result_preview(result))
+        sys.exit(0 if result.success else 1)
     else:
         # default or explicit cli; --sandbox overrides env
         sandbox_override = True if args.sandbox else None
