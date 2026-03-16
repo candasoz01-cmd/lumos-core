@@ -12,7 +12,6 @@ from core.decision_ranker import (
     compute_base_score,
     compute_final_score,
     rank_options,
-    RankedOption,
 )
 from core.decision_runner import (
     DecisionExecutionResult,
