@@ -6,10 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from core.strategy_updater import (
-    DEFAULT_DECISION_HISTORY_LOG_PATH,
-    apply_self_improvement_cycle,
-)
+from core.strategy_updater import apply_self_improvement_cycle
 
 
 def _history_line(

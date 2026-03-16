@@ -6,13 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from core.memory_compressor import (
-    DEFAULT_DECISION_HISTORY_PATH,
-    DEFAULT_DECISION_FEEDBACK_PATH,
-    DEFAULT_EVOLUTION_PATH,
-    DEFAULT_OUTPUT_PATH,
-    compress_runtime_memory,
-)
+from core.memory_compressor import compress_runtime_memory
 from core.memory_patterns import MemoryPattern
 
 
