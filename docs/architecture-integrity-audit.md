@@ -18,7 +18,7 @@ Kural: Kanıtlanamayan ifadeler kesinmiş gibi yazılmadı; “muhtemel”, “s
 | **decision_simulator** | MutationOption → SimulationResult (stub: sadece option alanlarını kopyalar). |
 | **decision_ranker** | options + simulations → final_score ile sıralı RankedOption listesi; sabit 0.4/0.3/0.3 ağırlık; adaptive_weights kullanmıyor. |
 | **decision_runner** | MutationOption → DecisionExecutionResult (stub: sadece target_paths varlık kontrolü; gerçek apply yok). |
-| **evolution_tracker** | DecisionExecutionResult → EvolutionRecord’a çevirip `logs/lumos_evolution.jsonl`’a append eder; evolution_log ile **aynı dosya, farklı şema**. |
+| **evolution_tracker** | DecisionExecutionResult → EvolutionRecord’a çevirip `logs/lumos_decision_feedback.jsonl`’a append eder (evolution_log’dan ayrı dosya; şema farkı). |
 | **evolution_log** | Plan/patch/transaction lifecycle event’lerini EvolutionEvent şemasıyla `logs/lumos_evolution.jsonl`’a append eder; get_recent_events, get_failed_patches, get_rollbacks, get_conflict_stats. |
 | **strategy_updater** | Aynı JSONL’ı okur; success oranı, ortalama risk, StrategyReport üretir; hiçbir modüle yazmaz; **hiçbir modül tarafından çağrılmıyor**. |
 | **adaptive_weights** | `.lumos/weights.json`’dan DecisionWeights okur; yoksa varsayılan döner; **hiçbir modül tarafından kullanılmıyor**. |
@@ -100,7 +100,7 @@ lumos_evolution.jsonl → strategy_updater.analyze_evolution_log → StrategyRep
 | **decision_simulator** | Stub | Sadece option alanlarını SimulationResult’a kopyalıyor; gerçek simülasyon yok. |
 | **decision_ranker** | Pipeline’a bağlı değil | Hiçbir modül veya test `rank_options` çağırmıyor. Explorer kendi _compute_score ile sıralıyor. |
 | **decision_runner** | Stub | Sadece target_paths kontrolü; patch apply veya evolution_tracker çağrısı yok. |
-| **evolution_tracker** | Bağlı değil | `record_execution` hiçbir yerde çağrılmıyor. Aynı JSONL dosyasına farklı şema yazacak (risk). |
+| **evolution_tracker** | Bağlı değil | `record_execution` hiçbir yerde çağrılmıyor. Yazım ayrı dosyaya (lumos_decision_feedback.jsonl); şema çakışması kaldırıldı. |
 | **evolution_log** | Aktif | change_plan, patch_*, write_interceptor, decision_explorer event yazıyor. |
 | **strategy_updater** | Bağlı değil | Hiçbir modül `analyze_evolution_log` veya StrategyReport kullanmıyor. |
 | **adaptive_weights** | Bağlı değil | Hiçbir modül `load_weights` kullanmıyor; decision_ranker sabit 0.4/0.3/0.3 kullanıyor. |
@@ -130,10 +130,7 @@ lumos_evolution.jsonl → strategy_updater.analyze_evolution_log → StrategyRep
   Hayır. decision_ranker sabit 0.4/0.3/0.3 kullanıyor; adaptive_weights hiç import edilmiyor.
 
 - **evolution_tracker ile evolution_log rolleri çakışıyor mu?**  
-  Evet: **aynı dosyaya farklı şema yazıyorlar.**  
-  - evolution_log: `event_id`, `plan_id`, `patch_ids`, `action_type`, `result`, `affected_paths`, `sensitivity_levels`, `rollback_occurred`, `conflict_detected`.  
-  - evolution_tracker: `option_id`, `success`, `risk`, `timestamp`, `notes` (EvolutionRecord).  
-  Tracker şu an çağrılmadığı için dosyada sadece evolution_log şeması var. Tracker kullanıma alınırsa aynı JSONL’da iki şema karışır; strategy_updater `result` ve `sensitivity_levels` beklediği için tracker satırlarını yanlış yorumlar.
+  Hayır (düzeltildi). evolution_tracker artık ayrı dosyaya yazıyor: `logs/lumos_decision_feedback.jsonl`. evolution_log `logs/lumos_evolution.jsonl`’da kalıyor. Şemalar farklı (EvolutionEvent vs EvolutionRecord) ama dosyalar ayrı; strategy_updater yalnızca lumos_evolution.jsonl’ı okumaya devam edebilir.
 
 - **Patch/mutation ile decision birleşmiş mi?**  
   Hayır. Decision tarafı seçenek üretip (testte) plan iskeleti üretmeye çalışıyor ama create_plan_from_option boş patch ile kırık. apply_patch / patch_transaction sadece patch_pipeline ve write_interceptor üzerinden; decision_runner apply yapmıyor.
@@ -142,7 +139,7 @@ lumos_evolution.jsonl → strategy_updater.analyze_evolution_log → StrategyRep
 
 ## 5. Fazlalık / çakışma / tekrar
 
-- **Aynı JSONL’da iki şema:** evolution_log ve evolution_tracker aynı `logs/lumos_evolution.jsonl`’ı kullanıyor; şemalar farklı. **Şema çakışması riski.**
+- **Aynı JSONL’da iki şema:** Kaldırıldı. evolution_tracker `logs/lumos_decision_feedback.jsonl`’a yazıyor; evolution_log `logs/lumos_evolution.jsonl`’da.
 
 - **İki skorlama formülü:** decision_explorer._compute_score (0.4 success, 0.3 impact, 0.2 risk, 0.1 complexity + penalty) ve decision_ranker final_score (0.4 success, 0.3 (1-risk), 0.3 impact). Ranker kullanılmadığı için şu an tekrara düşmüyor; ileride tek kaynak (örn. adaptive_weights) ve tek skorlama yeri olmalı.
 
@@ -166,8 +163,8 @@ lumos_evolution.jsonl → strategy_updater.analyze_evolution_log → StrategyRep
 
 ## 7. Teknik borç listesi (öncelik sırasıyla)
 
-1. **Aynı JSONL’da iki şema (evolution_log vs evolution_tracker):**  
-   Tracker kullanıma alınmadan önce ya ayrı dosya (örn. `logs/lumos_decision_feedback.jsonl`) ya da tek ortak şema (event_type ile ayrım); strategy_updater hangi satır tipini okuyacağını bilmeli.
+1. ~~**Aynı JSONL’da iki şema (evolution_log vs evolution_tracker):**~~  
+   **Yapıldı.** Tracker ayrı dosyaya yazıyor: `logs/lumos_decision_feedback.jsonl`. strategy_updater lumos_evolution.jsonl’ı okumaya devam eder.
 
 2. **decision_ranker + adaptive_weights bağlı değil:**  
    Ranker sabit ağırlık kullanıyor; strategy_updater/adaptive_weights hiç kullanılmıyor. İleride tek skorlama kaynağı (adaptive_weights) ve tek skorlama yeri (ranker veya explorer) olmalı.
@@ -207,17 +204,12 @@ lumos_evolution.jsonl → strategy_updater.analyze_evolution_log → StrategyRep
 - **Stabilite:**  
   Patch/mutation + evolution_log tarafı testlerle kullanılıyor; decision tarafı stub/test-only. Bu haliyle commit edilebilir (denetim dokümanı güncellenmiş durumda).
 
-- **Küçük temizlik önerisi (otomatik büyük refactor yapma kuralına uygun):**  
-  - evolution_tracker’ın yazdığı dosyayı evolution_log’dan ayırmak (örn. `logs/lumos_decision_feedback.jsonl`) ve EVOLUTION_LOG_PATH’i oraya çekmek.  
-  - Veya evolution_tracker’da evolution_log ile uyumlu şemada (ör. action_type="DECISION_EXECUTED", result, sensitivity_levels) yazmak; strategy_updater’ın bu satırları doğru işlemesi.  
-  Bu, büyük refactor değil; dosya veya şema seçimi + birkaç satır değişiklik.
+- **Küçük temizlik (yapıldı):**  
+  evolution_tracker ayrı dosyaya yazıyor: `DECISION_FEEDBACK_LOG_PATH = logs/lumos_decision_feedback.jsonl`. evolution_log lumos_evolution.jsonl’da kaldı.
 
 ---
 
 ## Sonraki tek adım önerisi
 
-**Şu an en doğru sonraki tek adım:**  
-Evolution log ile evolution_tracker’ın **aynı dosyaya farklı şema yazma** riskini kaldırmak.  
-**(A)** evolution_tracker için ayrı log dosyası tanımlamak (örn. `logs/lumos_decision_feedback.jsonl`) ve `record_execution`’ın oraya yazması.  
-**(B)** Tracker şu an hiç kullanılmadığı için sadece dokümante edip “tracker kullanıma alınacaksa önce şema veya dosya ayrımı yapılacak” notunu korumak.  
-Büyük refactor yapmadan, ileride strategy_updater ve decision feedback’in aynı log’u doğru okuyabilmesi için bu ayrımın netleştirilmesi yeterli.
+**Sonraki tek adım (önceki öneri uygulandı):**  
+Decision feedback log ayrımı yapıldı: evolution_tracker `logs/lumos_decision_feedback.jsonl`’a yazıyor. Sıradaki öneri: create_plan_from_option / ChangePlan.new uyumunu düzeltmek veya decision_ranker’da adaptive_weights kullanımı.
