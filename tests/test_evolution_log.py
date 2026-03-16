@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from core.evolution_log import (
-    LOG_PATH,
     get_conflict_stats,
     get_failed_patches,
     get_recent_events,

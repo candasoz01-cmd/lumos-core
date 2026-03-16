@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from core.guard_audit import GuardEvent, GuardDecision, GuardAction, record_guard_event
+from core.guard_audit import GuardEvent, record_guard_event
 
 # Sözleşme: tek çöp dizin adı; yeni trash/deleted vb. eklenmez.
 LUMOS_TRASH_DIRNAME = "trash"

@@ -2,14 +2,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
 
 from core.change_plan import ChangePlan, validate_plan
 from core.change_sensitivity import ChangeSensitivity
 from core.patch_model import PatchFingerprint, PatchMetadata, PatchProposal
 from core.plan_registry import (
     clear_plans,
-    get_plan,
     mark_applied,
     mark_executing,
     mark_ready,

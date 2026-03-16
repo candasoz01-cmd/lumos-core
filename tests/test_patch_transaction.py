@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import threading
 from pathlib import Path
-from time import sleep
 
-import pytest
 
 from core.patch_model import PatchMetadata, PatchProposal, PatchFingerprint
 from core.patch_registry import clear_registry, get_record
