@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# ruff: noqa: E402
+
 """
 Write interceptor: core/protected path'ler için direct write yerine patch lifecycle kullanımı.
 
@@ -18,7 +20,6 @@ Notlar:
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
 
 from core.guard_audit import GuardEvent, record_guard_event
 from core.change_sensitivity import ChangeSensitivity, classify_sensitivity

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# ruff: noqa: E402
+
 """
 Patch transaction ve atomic apply katmanı.
 
@@ -20,13 +22,9 @@ from typing import Dict
 from core.guard_audit import GuardEvent, record_guard_event
 from core.patch_model import PatchFingerprint, PatchProposal
 from core.patch_registry import (
-    PatchRecord,
-    PatchState,
     get_record,
     record_apply_error,
-    record_apply_success,
     register_proposal,
-    set_state,
 )
 from core.evolution_log import record_event
 

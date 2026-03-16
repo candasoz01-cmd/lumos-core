@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# ruff: noqa: E402
+
 """
 Plan registry: ChangePlan lifecycle state yönetimi.
 
