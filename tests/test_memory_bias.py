@@ -8,8 +8,10 @@ import pytest
 
 from core.strategy_updater import (
     MEMORY_BIAS_MAX_TOTAL_DELTA,
+    MEMORY_BIAS_SCORE_CAP,
     apply_memory_bias,
     apply_self_improvement_cycle,
+    get_memory_bias_score_for_option,
 )
 
 
@@ -144,6 +146,65 @@ def test_valid_patterns_apply_bias(tmp_path: Path) -> None:
     # Total adjustment per key should be at most MEMORY_BIAS_MAX_TOTAL_DELTA
     assert abs(w["success_weight"] - 0.4) <= MEMORY_BIAS_MAX_TOTAL_DELTA
     assert abs(w["risk_weight"] - 0.3) <= MEMORY_BIAS_MAX_TOTAL_DELTA
+
+
+def test_get_memory_bias_score_for_option_missing_path(tmp_path: Path) -> None:
+    """When memory_patterns path does not exist, get_memory_bias_score_for_option returns 0."""
+    score = get_memory_bias_score_for_option(
+        "minimal-abc", memory_patterns_path=tmp_path / "nonexistent.json"
+    )
+    assert score == 0.0
+
+
+def test_get_memory_bias_score_for_option_other_strategy(tmp_path: Path) -> None:
+    """Option id without strategy prefix (e.g. 'other') gets 0 bias score."""
+    patterns = {
+        "patterns": [
+            {
+                "pattern_id": "p0",
+                "source": "test",
+                "summary": "minimal decisions succeed often",
+                "confidence": 0.9,
+                "evidence_count": 10,
+                "recommended_bias": {"success_weight": 0.02},
+            },
+        ],
+        "version": 1,
+    }
+    (tmp_path / "memory_patterns.json").write_text(
+        json.dumps(patterns, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    score = get_memory_bias_score_for_option(
+        "other-id", memory_patterns_path=tmp_path / "memory_patterns.json"
+    )
+    assert score == 0.0
+
+
+def test_get_memory_bias_score_for_option_matching_pattern(tmp_path: Path) -> None:
+    """When pattern matches option strategy, returns capped non-zero score."""
+    patterns = {
+        "patterns": [
+            {
+                "pattern_id": "p0",
+                "source": "test",
+                "summary": "minimal decisions succeed often",
+                "confidence": 0.9,
+                "evidence_count": 10,
+                "recommended_bias": {"success_weight": 0.02, "impact_weight": 0.01},
+            },
+        ],
+        "version": 1,
+    }
+    (tmp_path / "memory_patterns.json").write_text(
+        json.dumps(patterns, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    score = get_memory_bias_score_for_option(
+        "minimal-xyz", memory_patterns_path=tmp_path / "memory_patterns.json"
+    )
+    assert score > 0
+    assert score <= MEMORY_BIAS_SCORE_CAP
 
 
 def test_report_shape() -> None:

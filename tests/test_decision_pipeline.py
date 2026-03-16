@@ -8,7 +8,7 @@ from core.adaptive_weights import DecisionWeights
 from core.change_sensitivity import ChangeSensitivity
 from core.decision_model import MutationOption
 from core.decision_pipeline import run_decision_pipeline
-from core.decision_ranker import rank_options
+from core.decision_ranker import rank_options, RankedOption
 from core.decision_runner import (
     DecisionExecutionResult,
     explain_decision,
@@ -16,7 +16,10 @@ from core.decision_runner import (
 )
 from core.decision_simulator import SimulationResult
 from core.evolution_tracker import record_execution
-from core.strategy_updater import update_weights_from_outcome
+from core.strategy_updater import (
+    MEMORY_BIAS_SCORE_CAP,
+    update_weights_from_outcome,
+)
 
 
 def test_run_decision_pipeline_end_to_end(tmp_path: Path) -> None:
@@ -129,6 +132,312 @@ def test_decision_ranker_uses_adaptive_weights(monkeypatch: pytest.MonkeyPatch) 
     assert len(ranked) == 2
     assert ranked[0].option.option_id == "a"
     assert ranked[0].final_score >= ranked[1].final_score
+
+
+def test_decision_ranker_quality_and_memory_default_to_zero() -> None:
+    """With no history/feedback/memory paths, quality_score and memory_bias are 0; ranking by base only."""
+    opt_a = MutationOption(
+        option_id="minimal-a",
+        description="A",
+        target_paths=[Path("x.py")],
+        estimated_risk=0.1,
+        estimated_complexity=0.1,
+        estimated_success_probability=0.8,
+        estimated_impact=0.5,
+        sensitivity_summary=[],
+        score=0.5,
+        rationale="",
+    )
+    opt_b = MutationOption(
+        option_id="minimal-b",
+        description="B",
+        target_paths=[Path("x.py")],
+        estimated_risk=0.1,
+        estimated_complexity=0.1,
+        estimated_success_probability=0.4,
+        estimated_impact=0.5,
+        sensitivity_summary=[],
+        score=0.4,
+        rationale="",
+    )
+    sims = [
+        SimulationResult(success_probability=0.8, estimated_risk=0.1, notes=""),
+        SimulationResult(success_probability=0.4, estimated_risk=0.1, notes=""),
+    ]
+    ranked = rank_options([opt_a, opt_b], sims)
+    assert len(ranked) == 2
+    assert ranked[0].option.option_id == "minimal-a"
+    assert ranked[0].final_score > ranked[1].final_score
+
+
+def test_decision_ranker_final_score_is_base_plus_quality_plus_memory(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """final_score = base_score + quality_score + memory_bias; estimator/memory unavailable -> 0."""
+    def capture_weights(*a, **k):
+        return DecisionWeights(success_weight=0.4, risk_weight=0.3, impact_weight=0.3)
+
+    def fake_estimate(option: dict, context: dict, **kwargs):
+        return {"predicted_success": 0.9, "predicted_risk": 0.2, "confidence": 0.8, "explanation": ""}
+
+    def fake_memory_bias(option_id: str, **kwargs):
+        return 0.05
+
+    monkeypatch.setattr("core.decision_ranker.load_weights", capture_weights)
+    monkeypatch.setattr(
+        "core.decision_ranker.estimate_decision_quality",
+        fake_estimate,
+    )
+    monkeypatch.setattr(
+        "core.decision_ranker.get_memory_bias_score_for_option",
+        fake_memory_bias,
+    )
+    opt = MutationOption(
+        option_id="minimal-x",
+        description="X",
+        target_paths=[Path("x.py")],
+        estimated_risk=0.2,
+        estimated_complexity=0.1,
+        estimated_success_probability=0.7,
+        estimated_impact=0.5,
+        sensitivity_summary=[],
+        score=0.5,
+        rationale="",
+    )
+    sim = SimulationResult(success_probability=0.7, estimated_risk=0.2, notes="")
+    ranked = rank_options([opt], [sim])
+    assert len(ranked) == 1
+    base_score = (
+        0.7 * 0.4 + (1 - 0.2) * 0.3 + 0.5 * 0.3
+    )
+    quality_score = (0.9 - 0.2) * 0.2
+    memory_bias = 0.05
+    expected = base_score + quality_score + memory_bias
+    assert abs(ranked[0].final_score - expected) < 1e-6
+
+
+def _base_score(
+    success: float, risk: float, impact: float, weights: DecisionWeights
+) -> float:
+    """Same formula as decision_ranker: base_score for one option."""
+    return (
+        success * weights.success_weight
+        + (1 - risk) * weights.risk_weight
+        + impact * weights.impact_weight
+    )
+
+
+def test_ranking_backward_safe_when_quality_estimator_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When quality estimator raises or is unavailable, ranking equals base-only (old) behavior."""
+    weights = DecisionWeights(success_weight=0.4, risk_weight=0.3, impact_weight=0.3)
+    monkeypatch.setattr("core.decision_ranker.load_weights", lambda *a, **k: weights)
+    # Estimator raises every time
+    def raise_estimator(*a, **k):
+        raise RuntimeError("estimator unavailable")
+    monkeypatch.setattr("core.decision_ranker.estimate_decision_quality", raise_estimator)
+    # Memory can return 0 (no path) or we force 0 for baseline
+    monkeypatch.setattr(
+        "core.decision_ranker.get_memory_bias_score_for_option",
+        lambda *a, **k: 0.0,
+    )
+    opt_a = MutationOption(
+        option_id="minimal-a",
+        description="A",
+        target_paths=[Path("x.py")],
+        estimated_risk=0.1,
+        estimated_complexity=0.1,
+        estimated_success_probability=0.9,
+        estimated_impact=0.4,
+        sensitivity_summary=[],
+        score=0.5,
+        rationale="",
+    )
+    opt_b = MutationOption(
+        option_id="minimal-b",
+        description="B",
+        target_paths=[Path("x.py")],
+        estimated_risk=0.2,
+        estimated_complexity=0.1,
+        estimated_success_probability=0.4,
+        estimated_impact=0.4,
+        sensitivity_summary=[],
+        score=0.4,
+        rationale="",
+    )
+    options = [opt_a, opt_b]
+    sims = [
+        SimulationResult(success_probability=0.9, estimated_risk=0.1, notes=""),
+        SimulationResult(success_probability=0.4, estimated_risk=0.2, notes=""),
+    ]
+    ranked = rank_options(options, sims)
+    # Old behavior: A has higher base score than B; order must be A first
+    base_a = _base_score(0.9, 0.1, 0.4, weights)
+    base_b = _base_score(0.4, 0.2, 0.4, weights)
+    assert base_a > base_b
+    assert ranked[0].option.option_id == "minimal-a"
+    assert ranked[1].option.option_id == "minimal-b"
+    # Scores are base-only (quality=0, memory=0)
+    assert abs(ranked[0].final_score - base_a) < 1e-9
+    assert abs(ranked[1].final_score - base_b) < 1e-9
+
+
+def test_ranking_backward_safe_when_memory_bias_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When memory bias raises or is unavailable, ranking equals base-only (old) behavior."""
+    weights = DecisionWeights(success_weight=0.4, risk_weight=0.3, impact_weight=0.3)
+    monkeypatch.setattr("core.decision_ranker.load_weights", lambda *a, **k: weights)
+    monkeypatch.setattr(
+        "core.decision_ranker.estimate_decision_quality",
+        lambda *a, **k: {"predicted_success": 0.5, "predicted_risk": 0.5},
+    )
+    # Memory raises every time
+    def raise_memory(*a, **k):
+        raise OSError("memory patterns missing")
+    monkeypatch.setattr("core.decision_ranker.get_memory_bias_score_for_option", raise_memory)
+    opt_a = MutationOption(
+        option_id="minimal-a",
+        description="A",
+        target_paths=[Path("x.py")],
+        estimated_risk=0.1,
+        estimated_complexity=0.1,
+        estimated_success_probability=0.85,
+        estimated_impact=0.5,
+        sensitivity_summary=[],
+        score=0.5,
+        rationale="",
+    )
+    opt_b = MutationOption(
+        option_id="minimal-b",
+        description="B",
+        target_paths=[Path("x.py")],
+        estimated_risk=0.1,
+        estimated_complexity=0.1,
+        estimated_success_probability=0.35,
+        estimated_impact=0.5,
+        sensitivity_summary=[],
+        score=0.35,
+        rationale="",
+    )
+    options = [opt_a, opt_b]
+    sims = [
+        SimulationResult(success_probability=0.85, estimated_risk=0.1, notes=""),
+        SimulationResult(success_probability=0.35, estimated_risk=0.1, notes=""),
+    ]
+    ranked = rank_options(options, sims)
+    base_a = _base_score(0.85, 0.1, 0.5, weights)
+    base_b = _base_score(0.35, 0.1, 0.5, weights)
+    assert base_a > base_b
+    assert ranked[0].option.option_id == "minimal-a"
+    assert ranked[1].option.option_id == "minimal-b"
+    # Quality from (0.5-0.5)*0.2 = 0 for both; memory = 0
+    assert abs(ranked[0].final_score - base_a) < 1e-9
+    assert abs(ranked[1].final_score - base_b) < 1e-9
+
+
+# Quality additive cap 0.2 (from (success-risk)*0.2); memory cap MEMORY_BIAS_SCORE_CAP.
+QUALITY_ADDITIVE_CAP = 0.2
+
+
+def test_ranking_quality_and_memory_contribution_capped(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Quality and memory contributions to final_score stay within caps; total additive is bounded."""
+    weights = DecisionWeights(success_weight=0.4, risk_weight=0.3, impact_weight=0.3)
+    monkeypatch.setattr("core.decision_ranker.load_weights", lambda *a, **k: weights)
+    # Estimator returns values that would yield +0.2 and -0.2 at the formula (success-risk)*0.2
+    def extreme_high(*a, **k):
+        return {"predicted_success": 1.0, "predicted_risk": 0.0}
+    def extreme_low(*a, **k):
+        return {"predicted_success": 0.0, "predicted_risk": 1.0}
+    # Memory returns at cap
+    def memory_plus(*a, **k):
+        return MEMORY_BIAS_SCORE_CAP
+    def memory_minus(*a, **k):
+        return -MEMORY_BIAS_SCORE_CAP
+    opt = MutationOption(
+        option_id="minimal-x",
+        description="X",
+        target_paths=[Path("x.py")],
+        estimated_risk=0.2,
+        estimated_complexity=0.1,
+        estimated_success_probability=0.6,
+        estimated_impact=0.4,
+        sensitivity_summary=[],
+        score=0.5,
+        rationale="",
+    )
+    sim = SimulationResult(success_probability=0.6, estimated_risk=0.2, notes="")
+    base = _base_score(0.6, 0.2, 0.4, weights)
+    # Max additive: quality 0.2 + memory 0.1
+    monkeypatch.setattr("core.decision_ranker.estimate_decision_quality", extreme_high)
+    monkeypatch.setattr("core.decision_ranker.get_memory_bias_score_for_option", memory_plus)
+    ranked_high = rank_options([opt], [sim])
+    additive_high = ranked_high[0].final_score - base
+    assert additive_high <= QUALITY_ADDITIVE_CAP + MEMORY_BIAS_SCORE_CAP + 1e-9
+    # Min additive: quality -0.2 + memory -0.1
+    monkeypatch.setattr("core.decision_ranker.estimate_decision_quality", extreme_low)
+    monkeypatch.setattr("core.decision_ranker.get_memory_bias_score_for_option", memory_minus)
+    ranked_low = rank_options([opt], [sim])
+    additive_low = ranked_low[0].final_score - base
+    assert additive_low >= -(QUALITY_ADDITIVE_CAP + MEMORY_BIAS_SCORE_CAP) - 1e-9
+
+
+def test_ranking_order_changes_only_when_added_score_meaningfully_differs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Rank order cannot be reversed when base_score gap is larger than max possible additive delta."""
+    weights = DecisionWeights(success_weight=0.4, risk_weight=0.3, impact_weight=0.3)
+    monkeypatch.setattr("core.decision_ranker.load_weights", lambda *a, **k: weights)
+    max_additive_delta = 2 * (QUALITY_ADDITIVE_CAP + MEMORY_BIAS_SCORE_CAP)
+    # Option A: high base; Option B: low base, gap > max_additive_delta
+    opt_high = MutationOption(
+        option_id="minimal-high",
+        description="High base",
+        target_paths=[Path("x.py")],
+        estimated_risk=0.05,
+        estimated_complexity=0.1,
+        estimated_success_probability=0.95,
+        estimated_impact=0.5,
+        sensitivity_summary=[],
+        score=0.9,
+        rationale="",
+    )
+    opt_low = MutationOption(
+        option_id="minimal-low",
+        description="Low base",
+        target_paths=[Path("x.py")],
+        estimated_risk=0.7,
+        estimated_complexity=0.1,
+        estimated_success_probability=0.15,
+        estimated_impact=0.1,
+        sensitivity_summary=[],
+        score=0.15,
+        rationale="",
+    )
+    sim_high = SimulationResult(success_probability=0.95, estimated_risk=0.05, notes="")
+    sim_low = SimulationResult(success_probability=0.15, estimated_risk=0.7, notes="")
+    base_high = _base_score(0.95, 0.05, 0.5, weights)
+    base_low = _base_score(0.15, 0.7, 0.1, weights)
+    assert base_high - base_low > max_additive_delta
+    # Give low option max additive, high option min additive
+    call_count = [0]
+    def estimator_high_then_low(*a, **k):
+        call_count[0] += 1
+        if call_count[0] == 1:
+            return {"predicted_success": 0.0, "predicted_risk": 1.0}
+        return {"predicted_success": 1.0, "predicted_risk": 0.0}
+    def memory_high_then_low(option_id: str, **k):
+        return -MEMORY_BIAS_SCORE_CAP if "high" in option_id else MEMORY_BIAS_SCORE_CAP
+    monkeypatch.setattr("core.decision_ranker.estimate_decision_quality", estimator_high_then_low)
+    monkeypatch.setattr("core.decision_ranker.get_memory_bias_score_for_option", memory_high_then_low)
+    ranked = rank_options([opt_high, opt_low], [sim_high, sim_low])
+    # Order must remain high first: added score cannot overcome base gap
+    assert ranked[0].option.option_id == "minimal-high"
+    assert ranked[1].option.option_id == "minimal-low"
+    assert ranked[0].final_score > ranked[1].final_score
 
 
 def test_strategy_updater_writes_weights(tmp_path: Path) -> None:
