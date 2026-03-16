@@ -5,10 +5,7 @@ from pathlib import Path
 import pytest
 
 from core.change_sensitivity import ChangeSensitivity
-from core.decision_history import (
-    DECISION_HISTORY_LOG_PATH,
-    record_decision_history,
-)
+from core.decision_history import record_decision_history
 from core.decision_model import MutationOption
 from core.decision_runner import DecisionExecutionResult
 
