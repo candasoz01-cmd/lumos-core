@@ -17,11 +17,17 @@ import json
 # Varsayılan log path (evolution_log ile aynı dosya)
 DEFAULT_EVOLUTION_LOG_PATH: Path = Path("logs") / "lumos_evolution.jsonl"
 
+# Decision execution feedback log (evolution_tracker yazar; ayrı şema)
+DEFAULT_DECISION_FEEDBACK_LOG_PATH: Path = Path("logs") / "lumos_decision_feedback.jsonl"
+
 # Weights dosyası (decision_ranker / adaptive_weights ile aynı path)
 DEFAULT_WEIGHTS_PATH: Path = Path(".lumos") / "weights.json"
 
-# Strateji güncelleme state (hangi satırlara kadar işlendi)
+# Strateji güncelleme state (evolution log için; hangi satırlara kadar işlendi)
 DEFAULT_STRATEGY_STATE_PATH: Path = Path(".lumos") / "strategy_updater_state.json"
+
+# Decision feedback log için ayrı state (çift işlemeyi önlemek için)
+DEFAULT_FEEDBACK_STATE_PATH: Path = Path(".lumos") / "strategy_feedback_state.json"
 
 # Küçük güncelleme adımları (0.01–0.05); değerler 0–1 aralığında kalır
 REWARD_DELTA = 0.02
@@ -187,6 +193,78 @@ def apply_evolution_updates(
                     data["risk_weight"] = _clamp01(data["risk_weight"] - REWARD_DELTA)
                 else:
                     data["risk_weight"] = _clamp01(data["risk_weight"] + PENALTY_DELTA)
+                data["success_weight"] = _clamp01(data["success_weight"])
+                data["risk_weight"] = _clamp01(data["risk_weight"])
+                data["impact_weight"] = _clamp01(data["impact_weight"])
+                updates += 1
+    except OSError:
+        return 0
+
+    if updates > 0:
+        _save_weights_dict(weights_p, data)
+    _save_strategy_state(state_p, current_line)
+    return updates
+
+
+def apply_decision_feedback_updates(
+    feedback_log_path: Path | str | None = None,
+    weights_path: Path | str | None = None,
+    state_path: Path | str | None = None,
+) -> int:
+    """
+    logs/lumos_decision_feedback.jsonl dosyasındaki yeni kayıtları işle;
+    her biri için success alanına göre weights'ı küçük adımla güncelle.
+    EvolutionRecord şeması: option_id, success, risk, timestamp, notes.
+    Her satır yalnızca bir kez işlenir (state_path ile last_processed_line takibi).
+
+    Dönen değer: bu çağrıda güncelleme uygulanan kayıt sayısı.
+    """
+    log_p = (
+        Path(feedback_log_path)
+        if feedback_log_path is not None
+        else DEFAULT_DECISION_FEEDBACK_LOG_PATH
+    )
+    weights_p = Path(weights_path) if weights_path is not None else DEFAULT_WEIGHTS_PATH
+    state_p = (
+        Path(state_path) if state_path is not None else DEFAULT_FEEDBACK_STATE_PATH
+    )
+    log_p = log_p.resolve()
+    weights_p = weights_p.resolve()
+    state_p = state_p.resolve()
+
+    state = _load_strategy_state(state_p)
+    last_line = state["last_processed_line"]
+    data = _load_weights_dict(weights_p)
+    updates = 0
+    current_line = -1
+
+    if not log_p.exists():
+        return 0
+    try:
+        with log_p.open("r", encoding="utf-8") as f:
+            for line in f:
+                current_line += 1
+                if current_line <= last_line:
+                    continue
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    obj = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                success = bool(obj.get("success", False))
+                if success:
+                    data["success_weight"] = _clamp01(
+                        data["success_weight"] + REWARD_DELTA
+                    )
+                    data["risk_weight"] = _clamp01(
+                        data["risk_weight"] - REWARD_DELTA
+                    )
+                else:
+                    data["risk_weight"] = _clamp01(
+                        data["risk_weight"] + PENALTY_DELTA
+                    )
                 data["success_weight"] = _clamp01(data["success_weight"])
                 data["risk_weight"] = _clamp01(data["risk_weight"])
                 data["impact_weight"] = _clamp01(data["impact_weight"])
