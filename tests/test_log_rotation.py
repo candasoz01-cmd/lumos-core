@@ -85,7 +85,7 @@ def test_rotate_jsonl_log_missing_file_never_raises(tmp_path: Path) -> None:
 
 def test_evolution_log_still_writes(tmp_path: Path, monkeypatch) -> None:
     """Integration: evolution log record_event still writes via rotation."""
-    from core.evolution_log import LOG_PATH, record_event, get_recent_events
+    from core.evolution_log import record_event, get_recent_events
 
     monkeypatch.setattr("core.evolution_log.LOG_PATH", tmp_path / "lumos_evolution.jsonl")
     record_event(
