@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional
 
-from core.adaptive_weights import load_weights
+from core.adaptive_weights import DecisionWeights, load_weights
 from core.decision_model import MutationOption
 from core.decision_simulator import SimulationResult
 from core.decision_quality_estimator import estimate_decision_quality
@@ -41,6 +41,49 @@ def _quality_score_from_estimate(estimate: dict) -> float:
         return 0.0
 
 
+def _compute_base_score(
+    option: MutationOption,
+    simulation: SimulationResult,
+    weights: DecisionWeights,
+) -> float:
+    """Base ranking score from option and simulation. Single place for this formula."""
+    return (
+        option.estimated_success_probability * weights.success_weight
+        + (1 - simulation.estimated_risk) * weights.risk_weight
+        + option.estimated_impact * weights.impact_weight
+    )
+
+
+def _compute_final_score(
+    base_score: float,
+    quality_contribution: float,
+    memory_bias_contribution: float,
+) -> float:
+    """
+    Combine base score with quality and memory contributions.
+    This is the ONLY place where final ranking score math lives.
+    """
+    return base_score + quality_contribution + memory_bias_contribution
+
+
+def compute_base_score(
+    option: MutationOption,
+    simulation: SimulationResult,
+    weights: DecisionWeights,
+) -> float:
+    """Stable helper for tests: same as _compute_base_score. Do not duplicate formula elsewhere."""
+    return _compute_base_score(option, simulation, weights)
+
+
+def compute_final_score(
+    base_score: float,
+    quality_contribution: float,
+    memory_bias_contribution: float,
+) -> float:
+    """Stable helper for tests: same as _compute_final_score. Do not duplicate formula elsewhere."""
+    return _compute_final_score(base_score, quality_contribution, memory_bias_contribution)
+
+
 def rank_options(
     options: List[MutationOption],
     simulations: List[SimulationResult],
@@ -58,11 +101,7 @@ def rank_options(
     weights = load_weights()
     ranked: List[RankedOption] = []
     for option, simulation in zip(options, simulations):
-        base_score = (
-            option.estimated_success_probability * weights.success_weight
-            + (1 - simulation.estimated_risk) * weights.risk_weight
-            + option.estimated_impact * weights.impact_weight
-        )
+        base_score = _compute_base_score(option, simulation, weights)
         quality_score = 0.0
         try:
             opt_dict = _option_dict_for_estimator(option)
@@ -84,7 +123,7 @@ def rank_options(
             )
         except Exception:
             memory_bias = 0.0
-        final_score = base_score + quality_score + memory_bias
+        final_score = _compute_final_score(base_score, quality_score, memory_bias)
         ranked.append(RankedOption(option=option, simulation=simulation, final_score=final_score))
     ranked.sort(key=lambda r: r.final_score, reverse=True)
     return ranked

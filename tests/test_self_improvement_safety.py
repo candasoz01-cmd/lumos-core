@@ -87,8 +87,15 @@ def test_evaluate_weight_update_safety_freeze_mode(tmp_path: Path) -> None:
     assert result["report"]["recent_success_rate"] < SUCCESS_RATE_FREEZE_THRESHOLD
 
 
-def test_evaluate_weight_update_safety_rollback_mode(tmp_path: Path) -> None:
-    """When success rate is very low and history exists, safety fails with rollback_worse_outcomes and report has previous_weights."""
+def test_evaluate_weight_update_safety_rollback_mode(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """When success rate is above freeze but below rollback and history exists, safety fails with rollback_worse_outcomes."""
+    # Rollback threshold above freeze (0.4) so rollback path is reachable: rate in (0.4, 0.5) triggers rollback only.
+    monkeypatch.setattr(
+        "core.strategy_updater.SUCCESS_RATE_ROLLBACK_THRESHOLD",
+        0.5,
+    )
     previous = {"success_weight": 0.38, "risk_weight": 0.32, "impact_weight": 0.3}
     current = {"success_weight": 0.4, "risk_weight": 0.3, "impact_weight": 0.3}
     proposed = {"success_weight": 0.42, "risk_weight": 0.28, "impact_weight": 0.3}
@@ -103,9 +110,10 @@ def test_evaluate_weight_update_safety_rollback_mode(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     feedback_file = tmp_path / "feedback.jsonl"
+    # 9/20 = 0.45: above freeze (0.4), below patched rollback (0.5) -> rollback path
     with feedback_file.open("w", encoding="utf-8") as f:
         for i in range(RECENT_FEEDBACK_WINDOW):
-            f.write(_feedback_line(success=(i < 6)) + "\n")  # 6/20 = 0.3 < 0.35
+            f.write(_feedback_line(success=(i < 9)) + "\n")
     result = evaluate_weight_update_safety(
         current,
         proposed,
@@ -216,6 +224,11 @@ def test_apply_self_improvement_cycle_rollback_applies_previous(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """When safety fails with rollback_worse_outcomes, previous weights are written."""
+    # Rollback threshold above freeze (0.4) so rollback path is reachable: rate in (0.4, 0.5) triggers rollback only.
+    monkeypatch.setattr(
+        "core.strategy_updater.SUCCESS_RATE_ROLLBACK_THRESHOLD",
+        0.5,
+    )
     history = tmp_path / "logs" / "lumos_decision_history.jsonl"
     weights_file = tmp_path / ".lumos" / "weights.json"
     feedback_log = tmp_path / "logs" / "lumos_decision_feedback.jsonl"
@@ -239,9 +252,11 @@ def test_apply_self_improvement_cycle_rollback_applies_previous(
         }),
         encoding="utf-8",
     )
+    # Last RECENT_FEEDBACK_WINDOW (20) entries must have rate in (0.4, 0.5). 9/20 = 0.45.
+    # So last 20 = indices 5..24; need 9 successes there -> success for i in 5..13 -> success=(i < 14).
     with feedback_log.open("w", encoding="utf-8") as f:
         for i in range(25):
-            f.write(_feedback_line(success=(i < 7)) + "\n")  # 0.28 < 0.35
+            f.write(_feedback_line(success=(i < 14)) + "\n")
     with history.open("w", encoding="utf-8") as f:
         for i in range(12):
             f.write(_history_line(f"minimal-{i}", success=True) + "\n")
