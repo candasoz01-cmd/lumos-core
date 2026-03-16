@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# ruff: noqa: E402
+
 """
 Evolution log: Lumos'un kendi gelişim geçmişini üst seviyede kaydeden katman.
 

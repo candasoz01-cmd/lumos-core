@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# ruff: noqa: E402
+
 """
 Patch pipeline: proposal → validation → (sandbox) → controlled apply.
 
@@ -20,12 +22,11 @@ from pathlib import Path
 from typing import Literal
 import tempfile
 
-from core.guard_audit import GuardEvent, GuardDecision, GuardAction, record_guard_event
+from core.guard_audit import GuardEvent, record_guard_event
 from core.patch_model import PatchProposal, PatchMetadata
 from core.evolution_log import record_event
 from core.patch_registry import (
     PatchRecord,
-    mark_ready_for_apply,
     mark_validated,
     record_apply_error,
     record_sandbox_result,

@@ -2,13 +2,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import tempfile
 
 import pytest
 
-from core.patch_registry import clear_registry, get_record, rollback_patch
+from core.patch_registry import clear_registry
 from core.write_interceptor import WriteRequest, intercept_write, is_protected_core_path
-from core.workspace_contract import CORE_STATE_PATH_NAMES, CoreWriteForbidden
+from core.workspace_contract import CoreWriteForbidden
 
 
 def test_is_protected_core_path_uses_workspace_contract(tmp_path: Path):
@@ -58,7 +57,6 @@ def test_protected_path_write_goes_through_patch_and_does_not_direct_write(tmp_p
 
     # Lifecycle gate apply'ı engellediği için içerik hemen değişmeyebilir.
     intercept_write(req)
-    recs = [r for r in (get_record(patch_id) for patch_id in [rec_id for rec_id in []]) if r]
     # Registry'yi spesifik id'ler üzerinden test_patch_pipeline zaten doğruluyor; burada
     # sadece protected path'in direct write ile güncellenmediğini kontrol ediyoruz.
     assert core_file.read_text(encoding="utf-8") == "{}"

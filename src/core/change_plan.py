@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# ruff: noqa: E402
+
 """
 Change plan modeli: deterministik, çok patch'li değişiklik planları.
 
@@ -11,7 +13,7 @@ Amaç:
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 import uuid
 
 from core.change_sensitivity import ChangeSensitivity, classify_sensitivity
