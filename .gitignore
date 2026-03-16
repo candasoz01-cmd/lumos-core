@@ -7,8 +7,10 @@ __pycache__/
 .ruff_cache/
 .venv/
 .lumos/
+.lumos/logs/
 *.log
 logs/
+logs/*.jsonl
 *.jsonl
 
 .data/
