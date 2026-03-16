@@ -21,7 +21,7 @@ import uuid
 from core.change_sensitivity import ChangeSensitivity, classify_sensitivity
 from core.decision_model import MutationOption
 from core.evolution_log import record_event
-from core.patch_model import PatchMetadata, PatchProposal
+from core.patch_model import PatchMetadata
 from core.change_plan import ChangePlan
 
 
