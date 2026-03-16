@@ -14,6 +14,7 @@ from core.decision_explorer import generate_candidate_options
 from core.decision_ranker import rank_options
 from core.decision_runner import DecisionExecutionResult, execute_decision
 from core.decision_simulator import simulate_option
+from core.decision_history import record_decision_history
 from core.evolution_tracker import DECISION_FEEDBACK_LOG_PATH, record_execution
 from core.strategy_updater import apply_decision_feedback_updates
 
@@ -48,6 +49,7 @@ def run_decision_pipeline(
 
     result = execute_decision(best_option, base_dir=base_dir)
     record_execution(result)
+    record_decision_history(result, goal)
     if update_weights_after_run:
         apply_decision_feedback_updates(feedback_log_path=DECISION_FEEDBACK_LOG_PATH)
     return result
