@@ -8,7 +8,6 @@ from core.log_rotation import (
     append_jsonl_with_rotation,
     rotate_jsonl_log,
     DEFAULT_KEEP,
-    DEFAULT_MAX_BYTES,
 )
 
 
