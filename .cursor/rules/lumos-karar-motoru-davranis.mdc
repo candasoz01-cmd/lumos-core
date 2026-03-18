@@ -1,5 +1,5 @@
 ---
-description: Lumos karar motoru — istek türüne göre önce/sonra davranışı (basit uygula, uzun niyet, onay, alternatif taraması)
+description: Lumos karar motoru — basit/uzun iş, niyet, alternatif tarama, onay ve soru disiplini
 alwaysApply: true
 ---
 

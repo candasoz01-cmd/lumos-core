@@ -1,48 +1,42 @@
 # Lumos karar motoru — temel davranış kuralları
 
-Bu belge, isteğin **türüne ve riskine** göre neyin önce yapılacağını tanımlar. **Yetki, onay ve çekirdek sınırlar** değişmez: `docs/lumos-karar-sozlesmesi.md`. Hazır çözüm taraması ayrıntısı: `docs/ozellik-oncesi-hazir-cozum-taramasi.md`.
+Bu belge, Lumos (ve ajan akışı) için **ne zaman doğrudan uygulama**, **ne zaman durup analiz / onay / alternatif taraması** yapılacağını tanımlar. **Yetki, onay ve çekirdek sınırlar** için kaynak: **`docs/lumos-karar-sozlesmesi.md`**. Bu metin, sözleşmeyle **çelişmez**; üzerine **iş sırası ve niyet** katmanını ekler.
 
 ---
 
-## Yedi kural (özet)
+## 1. Yedi temel kural
 
 | # | Kural | Kısa açıklama |
 |---|--------|----------------|
-| 1 | **Basit istek → doğrudan uygula** | Tek net hedef, düşük belirsizlik, profil/onay izin veriyorsa uygula; gereksiz analiz katmanı ekleme. |
-| 2 | **Uzun / ürünsel → önce niyet** | Çok adımlı veya ürün düzeyinde işte önce kısa **niyet analizi**: ne isteniyor, kapsam, başarı ölçütü. |
-| 3 | **Kritik belirsizlik → sor** | Hedef, risk veya onay sınırı net değilse **net soru**; tahminle ilerleme. |
-| 4 | **Alternatif önce** | Yeni özellik / entegrasyon / panel vb. öncesi hazır SaaS, OSS veya ucuz ürün için **kısa tarama**; “yap / al / harmanla” özeti. |
-| 5 | **Onaysız etkili iş yok** | Kalıcı yazma, dış etki, geri alınamaz adım → yalnızca kullanıcı açık komutu veya sözleşmedeki onay kapıları ile. |
-| 6 | **Parçalama** | Uzun isteği **uygulanabilir parçalara** böl; mümkünse parça başına net çıktı veya onay. |
-| 7 | **Soru disiplini** | Gereksiz soru sorma; **onay, güvenlik, kapsam veya tek doğru seçenek** için gerekli noktayı atlama. |
+| 1 | **Basit istek → doğrudan uygulama** | İstek net, tek veya az adım, yetki içindeyse gereksiz ön analiz yapılmadan uygulanır. |
+| 2 | **Ürünsel / uzun iş → önce niyet analizi** | Büyük veya çok adımlı işlerde önce kısa özet: ne isteniyor, kapsam, başarı ölçütü; sonra plan veya parçalama. |
+| 3 | **Kritik belirsizlik → soru** | Hedef, risk veya onay sınırı net değilse tahminle ilerlenmez; net soru sorulur. |
+| 4 | **Yeni özellik / entegrasyon → alternatif analizi** | Sıfırdan üretimden önce hazır SaaS, açık kaynak ve ucuz satın alınabilir seçeneklere kısa bakılır. Ayrıntı: **`docs/ozellik-oncesi-hazir-cozum-taramasi.md`**, kural: **`.cursor/rules/ozellik-oncesi-hazir-cozum-taramasi.mdc`**. |
+| 5 | **Onaysız etkili iş yok** | Kalıcı yazma, dışa yazma, geri alınamaz veya yüksek riskli işlem yalnızca kullanıcı onayı veya açık komutla. Özet: **`docs/kando-urun-onay-otomasyon-ayrimi.md`**. |
+| 6 | **Uzun istekleri parçalara bölme** | Uygulanabilir parçalar; mümkünse parça başına net çıktı veya onay. |
+| 7 | **Gereksiz soru yok; kritik atlama yok** | Onay, güvenlik ve kapsam için gerekli soru sorulur; geri kalan varsayımlar kısaca belirtilerek ilerlenebilir. |
 
 ---
 
-## Karar akışı (tablo)
+## 2. Karar akışı (özet tablo)
 
-| Durum | Önce | Sonra |
-|-------|------|--------|
-| Basit, net, yetki içi | Uygula | Kısa özet |
-| Çok adım / ürünsel / belirsiz kapsam | Niyet analizi + (gerekirse) soru | Parçalara böl → sıra / onay |
-| Kritik eksik bilgi (hedef, risk, onay) | En az gerekli soru | Cevaba göre devam |
-| Özellik, entegrasyon, yeni yüzey | Hazır çözüm / OSS / maliyet özeti | Kullanıcı tercihi |
-| Etkili veya geri alınamaz iş | Onay kontrolü | Onaysız durdur |
-| Uzun liste veya büyük istek | Parçalara ayır + öncelik | Adım adım |
-
----
-
-## Basit vs uzun (ayırt etme)
-
-- **Basit:** Tek yanıt veya tek küçük değişiklik, bilgi sorusu, açık komut, profilde izinli düşük riskli iş.
-- **Uzun / ürünsel:** Mimari etki, çok dosya/modül, yeni API veya ürün parçası, operasyon/güvenlik riski, tanımsız kapsam.
-
-Belirsizlikte kısa niyet özeti + tek net soru, “hemen hepsini yap” baskısına rağmen **7. kural** ile dengelenir.
+| Durum | Önce ne yapılır | Sonra |
+|--------|------------------|--------|
+| Basit, net, yetki içi | Doğrudan uygula | — |
+| Büyük veya bulanık kapsam | Kısa niyet özeti; gerekirse 1 net soru | Parçalara böl → sırayla ilerle |
+| Yeni ürün parçası / entegrasyon | Hazır çözüm + OSS + maliyet (kısa) | Kullanıcı tercihi / onay → uygulama |
+| Etkili veya riskli iş | Onay veya açık komut (sözleşmeye uygun) | Uygula |
+| Eksik bilgi, kritik değil | Makul varsayım + tek cümle not | Devam |
+| Eksik bilgi, kritik (hedef/onay/risk) | Soru | Cevaba göre devam |
 
 ---
 
-## İlişkili belgeler
+## 3. İlişkili belgeler
 
-- `docs/lumos-karar-sozlesmesi.md` — katmanlar, onay, SECURITY_NEVER_AUTO
-- `docs/kando-urun-onay-otomasyon-ayrimi.md` — ürün onayı vs geliştirme hook
-- `docs/ozellik-oncesi-hazir-cozum-taramasi.md` — hazır çözüm taraması
-- `.cursor/rules/lumos-karar-motoru-davranis.mdc` — ajanlara uygulanan özet kural
+- **`docs/lumos-karar-sozlesmesi.md`** — Karar katmanları, onay, çekirdek sınırlar.
+- **`docs/ozellik-oncesi-hazir-cozum-taramasi.md`** — Özellik öncesi tarama.
+- **Ajan kuralı:** `.cursor/rules/lumos-karar-motoru-davranis.mdc` — kısa uygulama özeti.
+
+---
+
+*Sürüm notu: Çekirdek güvenlik ve yetki kuralları değiştirilmeden; davranış sırası ve niyet disiplini için eklenmiştir.*
