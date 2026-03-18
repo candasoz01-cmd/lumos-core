@@ -118,8 +118,16 @@ Aşağıdakilerden **en az biri** yoksa kullanıcıya piyasa listesi dökülmez:
 
 ---
 
-## 7. İlgili belgeler
+## 7. Karar listesi ve panel test
 
+Sıralı uygulama / alınan kararlar: **`docs/lumos-karar-ve-uygulama-listesi.md`**. Panel açma ve manuel test: **`docs/panel-manuel-test.md`**, **`panel/README.md`**.
+
+---
+
+## 8. İlgili belgeler
+
+- `docs/lumos-karar-ve-uygulama-listesi.md`
+- `docs/panel-manuel-test.md`
 - `docs/lumos-karar-sozlesmesi.md`
 - `docs/lumos-karar-motoru.md`
 - `docs/lumos-konusmadan-gorev-cikarma.md`

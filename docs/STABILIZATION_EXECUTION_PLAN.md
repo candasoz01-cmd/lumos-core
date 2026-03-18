@@ -112,6 +112,7 @@ Run the interactive CLI (e.g. `python -m lumos_core` or `python src/main.py`) an
 ### 5.4 Panel
 
 - [ ] **Without --write** — Open panel (e.g. index.html); fixture or default state_inject.js loads; all screens render without JS errors.
+- [ ] **Kartlı sonuç (`#yanit`)** — Follow **`docs/panel-manuel-test.md`**: from `panel/` run `python3 -m http.server 8080`, open **http://127.0.0.1:8080/#yanit**; verify lead summary card, stacked peek cards, click-to-expand, three action buttons.
 - [ ] **With --write** — Run `panel/scripts/read_backend_state.py --write` from repo root (with LUMOS_BASE_DIR pointing to a test .lumos if needed); reload panel; Dashboard, System, Tasks, Trash, Logs show backend-derived data where applicable. After tasks 3–4, tasks list and trash/logs paths should match real layout.
 
 ### 5.5 Sandbox mode (if applicable)
