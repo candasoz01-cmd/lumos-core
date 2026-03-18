@@ -92,7 +92,19 @@ Basit/orta taleplerde tarama **kısa** tutulabilir; ürünselde **tam eksen** (O
 
 ---
 
-## 7. Özet akış (ajan / geliştirme)
+## 7. Tam iş; yarım bırakma; belirsizlikte doğrudan sor
+
+| İlke | Uygulama |
+|------|----------|
+| **Gereksiz plan katmanı yok** | İstek net ve basit/orta sınıftaysa uzun “önce plan” metni üretmek zorunlu değil; **doğrudan yap**. Ürünselde analiz gerekir; basitte planı işin yerine koyma. |
+| **Yarım iş / çift kaynak bırakma yok** | Aynı işte dosya değişimi, silme, yeniden adlandırma veya referans güncellemesi varsa **aynı turda tamamla**: eski+yeni yan yana bırakma, “sonra commitleriz” diye yarım silme/yarım ekleme bırakma. |
+| **Karışıklık → doğrudan sor** | Emin değilsen varsayarak ilerleme veya arkada yarım dosya bırakma; **tek net soru** ile kullanıcıdan seçim al. |
+
+Bu bölüm, çalışma ağacında ve dokümanda **kasıtlı yarım bırakılmış** durumların birikmesini önler.
+
+---
+
+## 8. Özet akış (ajan / geliştirme)
 
 ```
 İstek → Sınıf (Basit / Orta / Ürünsel)
@@ -106,4 +118,4 @@ Basit/orta taleplerde tarama **kısa** tutulabilir; ürünselde **tam eksen** (O
 
 ---
 
-*Belge sürümü: karar motoru v1 — çekirdek sözleşme değişmeden operasyonel rehber olarak güncellenebilir.*
+*Belge sürümü: karar motoru — çekirdek sözleşme değişmeden operasyonel rehber olarak güncellenebilir.*
