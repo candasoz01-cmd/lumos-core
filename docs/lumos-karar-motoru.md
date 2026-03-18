@@ -4,6 +4,8 @@
 
 **Üst sınır:** Bu belge, **`docs/lumos-karar-sozlesmesi.md`** ile çelişemez. Güvenlik, yetki profilleri, kalıcı silme, `SECURITY_NEVER_AUTO` ve açık onay gerektiren işler — karar motorunun “direkt uygula” veya “implicit onay” ile **bypass edilemez**. Hazır çözüm taraması: **`.cursor/rules/ozellik-oncesi-hazir-cozum-taramasi.mdc`** ve **`docs/ozellik-oncesi-hazir-cozum-taramasi.md`**.
 
+**Uzun veya dağınık kullanıcı mesajı:** **`docs/lumos-uzun-istek-isleme.md`** — ayrıştırma, parçalama, soru stratejisi, çıktı şablonu (`.cursor/rules/lumos-uzun-istek-isleme.mdc`).
+
 ---
 
 ## 1. İstek sınıflandırma
@@ -120,7 +122,8 @@ Basit/orta taleplerde tarama **kısa** tutulabilir; ürünselde **tam eksen** (O
 ## 7. Özet akış (ajan / geliştirme)
 
 ```
-İstek → Sınıf (Basit / Orta / Ürünsel)
+İstek → Uzun/dağınık? → ayrıştır + (gerekirse) uzun-istek çıktı formatı (lumos-uzun-istek-isleme.md)
+       → Sınıf (Basit / Orta / Ürünsel)
        → Karışıklık? → doğrudan net soru (plan turu şart değil)
        → Güçlü OSS/SaaS/ucuz var mı? → §3b (kısa analiz, 2–3 alt, sıfırdan mantıklı mı; varsayılan öner; isterse uygula)
        → Ürünsel? → Hazır çözüm taraması + kullanıcı seçimi
@@ -129,7 +132,17 @@ Basit/orta taleplerde tarama **kısa** tutulabilir; ürünselde **tam eksen** (O
        → Uygula → yarım dosya / çift kural bırakma
 ```
 
-**İlgili kurallar:** `lumos-karar-ozet.mdc`, `kando-lumos-multi-agent.mdc`, `commit-oncesi-zincir.mdc`, `kando-urun-onay-otomasyon.mdc`.
+**İlgili kurallar:** `lumos-karar-ozet.mdc`, `lumos-uzun-istek-isleme.mdc`, `kando-lumos-multi-agent.mdc`, `commit-oncesi-zincir.mdc`, `kando-urun-onay-otomasyon.mdc`.
+
+---
+
+## 8. Uzun / dağınık istek (özet)
+
+1. **Ayrıştır:** ana amaç, özellikler, kısıtlar, örtük beklenti, belirsizlik, riskli karar alanları.
+2. **Sınıf** (§1); **ürünsel** ise **parça + bağımlılık**; tek turda tümünü kodlama.
+3. **Soru:** yalnızca kritik belirsizlikler, **toplu** (ör. 3 madde); net kısım **hemen uygulanabilir**.
+
+Tam tarif ve çıktı şablonu: **`docs/lumos-uzun-istek-isleme.md`**.
 
 ---
 

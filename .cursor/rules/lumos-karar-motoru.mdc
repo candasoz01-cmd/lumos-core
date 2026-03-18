@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Lumos karar motoru — kısa
 
-**Tam metin:** `docs/lumos-karar-motoru.md`. **Üst sınır:** `docs/lumos-karar-sozlesmesi.md` (güvenlik, kalıcı silme, açık onay gereken işler bypass edilmez).
+**Tam metin:** `docs/lumos-karar-motoru.md`. **Üst sınır:** `docs/lumos-karar-sozlesmesi.md` (güvenlik, kalıcı silme, açık onay gereken işler bypass edilmez). **Uzun/dağınık istek:** `lumos-uzun-istek-isleme.mdc`.
 
 ## Sınıf
 
