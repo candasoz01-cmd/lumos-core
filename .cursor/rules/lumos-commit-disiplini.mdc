@@ -1,0 +1,88 @@
+---
+description: Commit parçalama, logs/artifact dışı, PLAN→onay→seçici stage; asla git add .
+alwaysApply: true
+---
+
+# Lumos commit disiplini (final)
+
+Kalite zinciri: **`commit-oncesi-zincir.mdc`** (RUN → VERIFY → LINT → GIT → CI risk).  
+Bu kural: **ne commitlenecek, nasıl bölünecek, ne zaman stage edilecek.**
+
+---
+
+## 1) Commit öncesi ağaç analizi
+
+Önce durumu **ayrı ayrı** listele:
+
+- **modified** (çalışma ağacı, staged değil)
+- **untracked**
+- **staged** (`git diff --cached --name-only`)
+
+Kullanıcıya veya plana yansıt; tek satırda karıştırma.
+
+---
+
+## 2) Mantıksal bloklar
+
+- Aynı **feature / fix / docs** hikayesine ait dosyalar → **aynı commit adayı**
+- Alakasız dosyalar → **asla aynı commit’e koyma**
+- Tek commit = tek anlamlı değişiklik
+
+---
+
+## 3) Varsayılan commit dışı
+
+Commit’e **almadan** bırak (kullanıcı açıkça istemedikçe):
+
+- `logs/**` (ör. `logs/lumos_evolution.jsonl`)
+- geçici çıktı, debug çıktısı, artifact içerikleri
+- `.venv`, cache, yerel-only config
+
+---
+
+## 4) Yapısal / araç dosyaları
+
+`.cursor/`, `.githooks/`, ilgili `docs/` değişiklikleri:
+
+- Core uygulama kodu ile **aynı commit’e karıştırma**
+- Aynı işin parçasıysa (ör. tek “commit guard” paketi) → **ayrı anlamlı bir commit bloğu** olarak grupla
+
+---
+
+## 5) Commit akışı (zorunlu sıra)
+
+1. **PLAN** — Hangi dosya hangi commit’e girecek, **madde madde** listele.
+2. **WAIT** — Kullanıcı **onayı** olmadan stage/commit yapma.
+3. **Onay sonrası** — Yalnızca o bloktaki dosyaları `git add <dosya>…` ile stage et; commit at.
+
+---
+
+## 6) Asla
+
+- `git add .` veya tüm değişiklikleri otomatik stage etme
+- Onaysız toplu commit
+- Belirsiz / “emin değilim” dosyayı commit’e dahil etme
+
+---
+
+## 7) Commit mesajı
+
+Kısa, anlamlı; örnekler:
+
+- `feat: align post card with backend feed response`
+- `fix: correct commit guard hook behavior`
+- `docs: update contract and usage examples`
+- `chore(cursor): add commit discipline rules`
+
+---
+
+## 8) Commit sonrası rapor
+
+- Hangi dosyaların commitlendiğini özetle
+- Çalışma ağacında **kalan** modified/untracked/staged ne var belirt
+
+---
+
+## Amaç
+
+Temiz, okunabilir, geri alınabilir geçmiş; hız biraz düşebilir, kalite önceliklidir.
