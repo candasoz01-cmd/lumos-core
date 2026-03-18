@@ -34,11 +34,12 @@ Her gelen iş (kullanıcı isteği / görev) önce **tek bir sınıfa** atanır:
 
 ### C) Ürünsel
 
-1. **Önce analiz** — kapsam, bağımlılıklar, risk.
-2. **Gerekli noktaları çıkar** — karar gerektiren maddeler listesi.
+1. **Analiz** — kapsam, bağımlılıklar, risk; **ayrı bir “sadece plan” teslimi veya yarım taslak dosya zorunlu değil**; analiz, uygulama veya net soru ile aynı akışta bağlanır.
+2. **Gerekli noktaları çıkar** — karar gerektiren maddeler; belirsizlikte **doğrudan net soru** (varsayımda kalma).
 3. **Gerekirse net sorular** — çok değil; her soru bir kararı kilitleyecek şekilde.
 4. **İşi parçalara böl** — her parça tek sorumluluk.
 5. **Her parça ayrı commit** — bkz. `lumos-commit-disiplini.mdc`, tek commit = tek anlamlı değişiklik.
+6. **Yarım iş bırakma** — iş kapanana kadar ilgili dosyalar tamamlanır veya geri alınır; arkada “yarım kural / çift doküman / taslak-only” bırakılmaz.
 
 ---
 
@@ -87,35 +88,26 @@ Basit/orta taleplerde tarama **kısa** tutulabilir; ürünselde **tam eksen** (O
 ## 6. Gereksiz davranışlar (yasak)
 
 - **Gereksiz soru sorma** — özellikle basit istekte; onay avı veya tekrarlayan netleştirme.
+- **Karışıklıkta varsayım** — iki yol, çakışan kural veya belirsiz kapsam varsa **doğrudan sor**; sessizce yarım bırakma.
+- **Yarım iş / yarım dosya** — istek kapsamındaki değişiklikler bitmeden “plan yazdım, dosyayı yarım bıraktım” ile çıkılmaz; ya tamamla ya geri al.
 - **Kör kopyalama** — anlamadan yapıştırma, lisans kontrolsüz OSS önerisi.
 - **Aşırı mühendislik** — istenmeyen soyutlama, kapsam genişletme, “hazır girmişken şunu da”.
 
 ---
 
-## 7. Tam iş; yarım bırakma; belirsizlikte doğrudan sor
-
-| İlke | Uygulama |
-|------|----------|
-| **Gereksiz plan katmanı yok** | İstek net ve basit/orta sınıftaysa uzun “önce plan” metni üretmek zorunlu değil; **doğrudan yap**. Ürünselde analiz gerekir; basitte planı işin yerine koyma. |
-| **Yarım iş / çift kaynak bırakma yok** | Aynı işte dosya değişimi, silme, yeniden adlandırma veya referans güncellemesi varsa **aynı turda tamamla**: eski+yeni yan yana bırakma, “sonra commitleriz” diye yarım silme/yarım ekleme bırakma. |
-| **Karışıklık → doğrudan sor** | Emin değilsen varsayarak ilerleme veya arkada yarım dosya bırakma; **tek net soru** ile kullanıcıdan seçim al. |
-
-Bu bölüm, çalışma ağacında ve dokümanda **kasıtlı yarım bırakılmış** durumların birikmesini önler.
-
----
-
-## 8. Özet akış (ajan / geliştirme)
+## 7. Özet akış (ajan / geliştirme)
 
 ```
 İstek → Sınıf (Basit / Orta / Ürünsel)
+       → Karışıklık? → doğrudan net soru (plan turu şart değil)
        → Ürünsel? → Hazır çözüm taraması + kullanıcı seçimi
        → Risk / parça / commit disiplini
        → Onay katmanı (direkt / implicit / açık) + karar sözleşmesi kontrolü
-       → Uygula
+       → Uygula → yarım dosya / çift kural bırakma
 ```
 
 **İlgili kurallar:** `lumos-karar-ozet.mdc`, `kando-lumos-multi-agent.mdc`, `commit-oncesi-zincir.mdc`, `kando-urun-onay-otomasyon.mdc`.
 
 ---
 
-*Belge sürümü: karar motoru — çekirdek sözleşme değişmeden operasyonel rehber olarak güncellenebilir.*
+*Belge sürümü: karar motoru v1 — çekirdek sözleşme değişmeden operasyonel rehber olarak güncellenebilir.*

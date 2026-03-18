@@ -19,7 +19,8 @@ alwaysApply: true
 
 - **Basit:** Direkt uygula; gereksiz soru sorma.
 - **Orta:** Gerekirse **1 kısa soru**; sonra uygula.
-- **Ürünsel:** Analiz → net noktalar → gerekirse sorular → parçala → **parça başına ayrı commit**.
+- **Ürünsel:** Analiz (ayrı “sadece plan” / yarım taslak şart değil) → net noktalar → karışıklıkta **doğrudan sor** → parçala → **parça başına ayrı commit**.
+- **Yarım iş yok:** Kapsamdaki dosyalar tamamlanır veya geri alınır; çift kural / yarım doküman bırakılmaz.
 
 ## Ürünsel: hazır çözüm
 
@@ -37,10 +38,6 @@ OSS / SaaS / ucuz hazır var mı? Varsa kısa karşılaştırma + kullanıcı se
 | Orta | Implicit onay (net istek, düşük risk); sözleşme açık onay istiyorsa istisna. |
 | Büyük (ürünsel) | Açık onay + hazır çözüm seçimi gerekirse. |
 
-## Tam iş
-
-Net basit/orta işte **gereksiz plan katmanı yok** — doğrudan yap. Aynı işte **yarım dosya / çift kaynak bırakma**; sil-referans-güncelle tek turda bitsin. **Karışıklıkta sessizce varsayma** — doğrudan sor.
-
 ## Yasak
 
-Gereksiz soru; kör kopyalama; aşırı mühendislik; kapsam kayması; iş bitmeden yarım bırakılan değişiklik.
+Gereksiz soru; **karışıklıkta varsayma — doğrudan sor**; kör kopyalama; aşırı mühendislik; kapsam kayması; **yarım dosya / yarım iş**.
