@@ -95,6 +95,6 @@ Bu sözleşme, mevcut Lumos çekirdeği (profiles, policy, workspace sözleşmes
 
 ---
 
-## 8. Karar motoru davranış akışı (niyet ve sıra)
+## 8. Karar motoru (istek sınıfı, onay, tam iş)
 
-Çekirdek katmanlar (yukarıdaki bölümler) aynı kalır. **İş sırası** (basitte doğrudan uygulama, uzun işte niyet analizi, özellik öncesi alternatif tarama, onaysız etkili iş yapmama, parçalama, soru disiplini) için ayrıntılı ve tablolu metin: **`docs/lumos-karar-motoru-davranis-kurallari.md`**. Ajan özeti: **`.cursor/rules/lumos-karar-motoru-davranis.mdc`**.
+Çekirdek katmanlar (yukarıdaki bölümler) aynı kalır. İstek sınıflandırma, ürünselde hazır çözüm taraması, risk, onay ve **yarım iş bırakmama**: **`docs/lumos-karar-motoru.md`**. Cursor özeti: **`.cursor/rules/lumos-karar-motoru.mdc`**.
