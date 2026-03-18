@@ -94,6 +94,8 @@ Açılışta önce "Lumos başlatılıyor." yazılır, ardından **self-check** 
 - **Sürüm:** `lumos --version`
 - **Mod:** `LUMOS_MODE=online lumos` veya `LUMOS_MODE=offline lumos` (varsayılan: offline)
 
+**Demo Express API (`backend/`):** Gönderi, rating (Bearer token), feed, soft delete. Kurulum ve endpoint’ler: `backend/README.md`. Sunucu çalışırken repo kökünde `./test_api.sh` veya `make test-api`.
+
 ---
 
 ## Self-check
