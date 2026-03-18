@@ -1,0 +1,63 @@
+---
+description: Özellik öncesi hazır SaaS / açık kaynak / ucuz çözüm taraması; lisans ve minimal entegrasyon
+alwaysApply: true
+---
+
+# Özellik öncesi hazır çözüm taraması
+
+**İlke:** Sıfırdan özellik veya ürün parçası tasarlamadan önce mevcut çözüm, açık kaynak ve ucuz hazır ürün taranır.
+
+---
+
+## 1) Ne zaman tarama?
+
+Kullanıcı **ürün veya özellik** istediğinde (yeni akış, entegrasyon, panel, otomasyon vb.) önce şunlar kontrol edilir:
+
+- **Piyasada hazır SaaS** var mı (benzer ihtiyacı karşılayan)?
+- **Açık kaynak eşdeğer** var mı?
+- **Çok ucuz ve doğrudan satın alınabilir** çözüm var mı?
+
+---
+
+## 2) Yüksek benzerlikte çözüm bulunursa
+
+- Kullanıcıya **kısa karşılaştırma** sun (kendi yapmak vs hazır / OSS).
+- Açıkça sor: **“Yine de kendimiz mi yapalım?”**
+- **Gereksiz geliştirme yükünü** (bakım, güvenlik, süre) net yaz; abartmadan, somut tut.
+
+---
+
+## 2b) Aynı iş için piyasada güçlü açık kaynak varsa
+
+İstek değerlendirilir; **aynı problemi iyi çözen, olgun bir OSS** tespit edilirse:
+
+1. **Öner** — proje adı / ne işe yaradığı (kısa).
+2. **Neden sıfırdan yapmaması gerektiğini açıkla** — somut: bakım yükü, güvenlik güncellemeleri, edge case’ler, süre, topluluk testi; abartısız.
+3. **Seçenek sun** — örn. OSS’i kullan / entegre et / harmanla **veya** yine de sıfırdan (kendi kodumuz).
+
+**Kullanıcı ısrar ederse** (“yine de kendimiz yapalım”, “sıfırdan devam” vb. net ifade): **Engelleme yok** — kullanıcının istediği şekilde **uygulamaya devam et** (OSS önerisi kayda geçmiş olsun yeter).
+
+---
+
+## 3) Açık kaynaktan parça kullanımı
+
+- **Lisansı kontrol et** (uyumluluk, türev eser, ticari kullanım, attribution).
+- Uyumluysa **ancak o zaman** öner; uyumsuz veya belirsizse kör öneri verme.
+- **Kör kopyalama yapma**; anlama + ihtiyaca göre sınırlı kullanım.
+- **Minimal ve anlaşılır entegrasyon** tercih et (tek sorumluluk, net sınır).
+
+---
+
+## 4) Kapsam
+
+| Durum | Tarama derinliği |
+|-------|------------------|
+| **Basit / risksiz** talep | Kısa tarama yeterli (birkaç madde, net sonuç). |
+| **Ürünsel / uzun iş** | Bu analiz **zorunlu**; SaaS + OSS + maliyet ekseninde özet. |
+
+---
+
+## 5) Ajan davranışı
+
+- Tarama sonucu **“yap / al / harmanla”** önerisini ayırt et; kullanıcı kararını bekleyebilir.
+- Lumos çekirdek / güvenlik / onay kuralları bu kuralın üstündedir; hazır çözüm önerisi **onaysız dış yazma veya kalıcı silme** anlamına gelmez.

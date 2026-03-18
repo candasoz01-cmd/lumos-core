@@ -54,7 +54,9 @@ Her gelen iş (kullanıcı isteği / görev) önce **tek bir sınıfa** atanır:
 **Bulunursa:**
 
 - **Kısa karşılaştırma** sun (kendin yap / hazır / harman).
-- **Kullanıcıya seçim bırak** — “Yine de kendimiz mi yapalım?” net sorulsun.
+- **Güçlü açık kaynak** varsa: **öner**; **neden sıfırdan yapmaması gerektiğini** (bakım, güvenlik, süre, olgunluk) somut yaz; **seçenek sun** (OSS / harman / kendi kodumuz).
+- **Kullanıcı ısrar ederse** (“yine de kendimiz yapalım” vb.): **uygulamaya devam et** — OSS önerisi zorunlu kılınmaz.
+- **Kullanıcıya seçim bırak** — “Yine de kendimiz mi yapalım?” net sorulsun (ısrar öncesi).
 - Lisans ve kör kopyalama kuralları: hazır çözüm kural dosyasına uy.
 
 Basit/orta taleplerde tarama **kısa** tutulabilir; ürünselde **tam eksen** (OSS + SaaS + maliyet) beklenir.
