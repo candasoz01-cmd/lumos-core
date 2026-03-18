@@ -12,6 +12,7 @@
 
 - Yüksek benzerlik varsa: kısa karşılaştırma, **“yine de kendimiz mi yapalım?”** ve geliştirme/bakım yükünü net yaz.
 - **Güçlü açık kaynak** aynı işi karşılıyorsa: **öner** → **neden kendi yapmaması gerektiğini** (bakım, güvenlik, süre, olgunluk) açıkla → **seçenek sun** (OSS / entegrasyon / sıfırdan).
+- **Gereksiz iş reddetme (karar motoru):** Güçlü OSS / SaaS / çok ucuz hazır varken: **kısa analiz** → **2–3 alternatif** → **“Sıfırdan mantıklı mı?”** açık cevap → **varsayılan önce öner**; kullanıcı **isterse yine uygula**; bilinçli sıfırdan için **gereksiz build = zaman kaybı riski** işaretle.
 - Kullanıcı **ısrar ederse** sıfırdan veya kendi yoluyla: **yine uygula**; öneri kayıtlı kalsın, engelleme yok.
 - OSS kullanımında: **lisans uyumu** şart; kör kopyalama yok; **minimal, anlaşılır entegrasyon**.
 
