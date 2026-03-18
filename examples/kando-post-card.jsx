@@ -1,8 +1,46 @@
 /**
  * Kando post kartı: yalnızca içerik + puan satırı.
  * Etiket yok, emoji yok, algoritma açıklaması yok.
- * API: content, ratingAvg (null olabilir), ratingCount, createdAt (ISO string)
+ *
+ * Backend uyumu: GET /posts, GET /posts/feed, rated-high/low aynı post gövdesini
+ * döner (feed’de ekstra feedScore). Tam sözleşme: docs/kando-post-feed-contract.md
+ *
+ * @typedef {Object} LumosApiPost
+ * @property {string} id
+ * @property {string} content
+ * @property {string} createdAt
+ * @property {string} userId
+ * @property {{ username: string }} [user]
+ * @property {number} ratingCount
+ * @property {number|null} ratingAvg
+ * @property {number} [feedScore]
  */
+
+/**
+ * API post nesnesinden karta giden alanları ayırır (feedScore, user, id kartta kullanılmaz).
+ * @param {LumosApiPost|Record<string, unknown>|null|undefined} post
+ */
+export function pickPostCardProps(post) {
+  if (!post || typeof post !== "object") {
+    return { content: "", ratingAvg: null, ratingCount: 0, createdAt: "" };
+  }
+  const p = /** @type {LumosApiPost} */ (post);
+  const createdAt =
+    p.createdAt instanceof Date
+      ? p.createdAt.toISOString()
+      : p.createdAt != null
+        ? String(p.createdAt)
+        : "";
+  return {
+    content: p.content != null ? String(p.content) : "",
+    ratingAvg:
+      p.ratingAvg != null && p.ratingAvg !== ""
+        ? Number(p.ratingAvg)
+        : null,
+    ratingCount: Number(p.ratingCount) || 0,
+    createdAt,
+  };
+}
 
 export function formatRelativeTime(iso) {
   const t = new Date(iso).getTime();

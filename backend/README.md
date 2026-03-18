@@ -37,6 +37,8 @@ npm start
 
 UI örneği: `⭐ 4.3` + `(27 oy)` → `ratingAvg` + `ratingCount`.
 
+Ürün kartı ↔ API alan eşlemesi: **`docs/kando-post-feed-contract.md`** (`pickPostCardProps` → `examples/kando-post-card.jsx`).
+
 ### POST /posts/:id/rate cevabı
 
 `rating` satırı + güncel `ratingCount`, `ratingAvg`, `lowRatingCount`, `highRatingCount` (o post için).
