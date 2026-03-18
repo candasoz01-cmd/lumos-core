@@ -2,6 +2,11 @@
 
 **Lumos Core** is the CLI and core library for Lumos: task/state handling, decision pipeline, patch pipeline, and workspace contract. It does not apply changes to files automatically; proposals are validated and optionally run in a sandbox first.
 
+### Operator panel (web UI)
+
+- **Open (Kartlı sonuç):** from repo: `cd panel && python3 -m http.server 8080` → **http://127.0.0.1:8080/#yanit**
+- Full steps: **`docs/panel-manuel-test.md`** · Decision backlog: **`docs/lumos-karar-ve-uygulama-listesi.md`** · Details: **`panel/README.md`**
+
 ---
 
 ## Project overview

@@ -1,5 +1,34 @@
 # Lumos Panel v1
 
+---
+
+## Paneli aç — adres (önce bunu oku)
+
+| Ne | Değer |
+|----|--------|
+| **Kartlı sonuç ekranı** | **http://127.0.0.1:8080/#yanit** |
+| **Sunucuyu nereden** | `panel` klasörünün içinde: aşağıdaki komut |
+
+Sunucuyu **panel** dizininde başlat (böylece adres kökte kalır, `/panel/` gerekmez):
+
+```bash
+cd panel
+python3 -m http.server 8080
+```
+
+**Alternatif:** Repo kökünden `python3 -m http.server 8080` → panel için **http://127.0.0.1:8080/panel/#yanit**
+
+**Akış (`#feed`) için** ayrı terminalde backend:
+
+```bash
+cd backend
+npm start
+```
+
+Manuel test adımları (beklenen görünüm dahil): **`docs/panel-manuel-test.md`**. Karar listesi: **`docs/lumos-karar-ve-uygulama-listesi.md`**.
+
+---
+
 **Kapsam:** Çoğu ekran mock tabanlı (`mockState`). **Akış** ekranı (`#feed`) ise doğrudan Express API **GET /posts/feed** çağırır (CORS açık); taban: `LUMOS_POSTS_API_BASE` veya `localStorage.lumos_posts_api_base`, yoksa `http://127.0.0.1:3000`. Backend: `cd backend && npm start`. Hash routing ile ekranlar arası geçiş.
 
 **Veri katmanı:** Ekranlar doğrudan ham mock nesneleri okumaz; `getDashboardData()`, `getTasksData()`, `getSandboxData()` vb. adapter fonksiyonları normalize veri döner. Panel hâlâ mock tabanlıdır; veri akışı adapter üzerinden olduğu için gerçek backend entegrasyonu bir sonraki aşamada bu katman üzerinden kolayca eklenebilir.
