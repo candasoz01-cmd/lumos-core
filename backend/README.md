@@ -1,5 +1,11 @@
 # Backend (Express + Prisma + SQLite)
 
+## HTTP güvenlik başlıkları (Helmet)
+
+- **[helmet](https://github.com/helmetjs/helmet)** (MIT): `X-Content-Type-Options`, `X-DNS-Prefetch-Control`, `X-Download-Options`, `X-Frame-Options`, `X-Permitted-Cross-Domain-Policies`, `Strict-Transport-Security` (HTTPS’te), `Origin-Agent-Cluster` vb.
+- **CSP kapalı:** API yalnızca JSON döndürür; CSP HTML sayfaları içindir.
+- **Cross-Origin-Resource-Policy: cross-origin:** Mevcut `Access-Control-Allow-Origin: *` ile panel/tarayıcı çapraz köken isteklerinin bozulmaması için (varsayılan `same-origin` bazı istemcilerde çakışabilir).
+
 ## Setup
 
 ```bash
