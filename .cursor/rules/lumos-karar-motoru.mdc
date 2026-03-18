@@ -1,0 +1,42 @@
+---
+description: İstek sınıfı (basit/orta/ürünsel), davranış, hazır çözüm, risk ve onay — karar sözleşmesi üstünde değildir
+alwaysApply: true
+---
+
+# Lumos karar motoru — kısa
+
+**Tam metin:** `docs/lumos-karar-motoru.md`. **Üst sınır:** `docs/lumos-karar-sozlesmesi.md` (güvenlik, kalıcı silme, açık onay gereken işler bypass edilmez).
+
+## Sınıf
+
+| Sınıf | Ne zaman |
+|-------|----------|
+| **Basit** | Tek adım, düşük risk, net istek. |
+| **Orta** | Birkaç adım, sınırlı belirsizlik. |
+| **Ürünsel** | Çok adım, yüksek etki / belirsizlik. |
+
+## Davranış
+
+- **Basit:** Direkt uygula; gereksiz soru sorma.
+- **Orta:** Gerekirse **1 kısa soru**; sonra uygula.
+- **Ürünsel:** Analiz → net noktalar → gerekirse sorular → parçala → **parça başına ayrı commit**.
+
+## Ürünsel: hazır çözüm
+
+OSS / SaaS / ucuz hazır var mı? Varsa kısa karşılaştırma + kullanıcı seçimi. Detay: `ozellik-oncesi-hazir-cozum-taramasi.mdc`.
+
+## Risk
+
+Çalışanı bozma; büyük işi parçala; **tek commit = tek sorumluluk**.
+
+## Onay
+
+| İş | Onay |
+|----|------|
+| Küçük (basit) | Direkt (profil uygunsa). |
+| Orta | Implicit onay (net istek, düşük risk); sözleşme açık onay istiyorsa istisna. |
+| Büyük (ürünsel) | Açık onay + hazır çözüm seçimi gerekirse. |
+
+## Yasak
+
+Gereksiz soru; kör kopyalama; aşırı mühendislik; kapsam kayması.
