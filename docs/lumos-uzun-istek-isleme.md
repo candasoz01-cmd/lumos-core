@@ -65,7 +65,7 @@ Yalnızca **ürünsel** (veya açıkça çok parçalı orta) için:
 
 ## 7. Çıktı formatı (özet şablonu)
 
-Uzun istek işlendikten sonra (iç veya kullanıcıya kısa özet):
+Uzun istek işlendikten sonra (iç veya kullanıcıya kısa özet). **Panel / operatör görünümünde** kullanıcıya giderken sunum: **`docs/lumos-panel-dili-rehberi.md`**.
 
 ```
 • Anladığım ana amaç: …
