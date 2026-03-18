@@ -1,0 +1,39 @@
+---
+description: Cursor standart görev akışı — RUN/VERIFY/FAIL/PATCH/RE-VERIFY temel davranış (ayrı görev değil)
+alwaysApply: true
+---
+
+# Cursor standart görev akışı (temel davranış)
+
+Komut çalıştırma, doğrulama ve düzeltme **tek seferlik görev değil**; her uygun oturumda bu sırayı izle.
+
+## RUN
+
+- Komutu **doğru proje kökünde** çalıştır (monorepo ise ilgili alt paket kökü).
+- Gerekliyse **backend/server önce** ayağa kaldır; sonra istemci/test komutunu çalıştır.
+
+## VERIFY
+
+- Çıktıda **başarı kriterlerini** kontrol et.
+- Beklenen **endpoint/akış gerçekten tamamlandı mı** doğrula (sadece komutun 0 çıkması yetmezse açıkça kontrol et).
+
+## FAIL
+
+- Hata çıktısını analiz et.
+- **Kırılan ilk adımı** belirle (zincirde en erken gerçek hata).
+- Hata tipini sınıflandır: **bağlantı** / **validation** / **server** / **db** / **yanlış klasör-komut** (veya uygun alt tür).
+
+## PATCH
+
+- Yalnızca **minimal düzeltme** öner veya uygula.
+- Gereksiz refactor yapma.
+- **Tek dosya, tek neden, en küçük değişiklik** tercih et; kapsam büyütme.
+
+## RE-VERIFY
+
+- Düzeltmeden sonra **aynı testi / aynı akışı** tekrar çalıştır.
+- Sorunun **gerçekten çözüldüğünü** doğrula; sahte başarı (yan etki, farklı test) riskine dikkat et.
+
+---
+
+Bu akış, workspace’teki CI teşhis ve çok-ajan sırası kurallarıyla çelişirse: **CI/log önceliği** ve **teşhis olmadan geniş cerrahi yok** ilkesi geçerlidir; buradaki PATCH yine **dar** kalmalıdır.

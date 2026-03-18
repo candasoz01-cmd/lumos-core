@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  /// POST /posts/:id/rate için; body userId kabul edilmez, yalnızca Bearer token
+  ratingToken  String?  @unique
+  createdAt    DateTime @default(now())
+  posts        Post[]
+  ratings      Rating[]
+}
+
+model Post {
+  id        String    @id @default(cuid())
+  content   String
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ratings   Rating[]
+}
+
+/// Aynı user aynı post için tek satır; puan değişince upsert/update (yeni satır yok)
+model Rating {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  value     Int
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([postId])
+}
