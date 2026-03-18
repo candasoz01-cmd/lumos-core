@@ -2,8 +2,6 @@
 
 Bu belge, Lumos’un neyi yapıp yapamayacağını, ne zaman duracağını ve kullanıcıdan ne zaman açık onay isteyeceğini tanımlar. Ürün tarafındaki sıkı kurallara referans verir; mevcut çekirdeğe uygulanabilir **minimum omurga** hedeflenir. Kando (geliştirme süreci) kurallarından ayrıdır. **Geliştirme commit guard** (ruff/pytest) ürün onayı değildir; ayrım: `docs/kando-urun-onay-otomasyon-ayrimi.md`.
 
-**İstek türüne göre sıra (karar motoru):** Basitte doğrudan uygulama, uzun işte niyet analizi, kritik belirsizlikte soru, özellik öncesi alternatif taraması, parçalama ve soru disiplini — `docs/lumos-karar-motoru-davranis-kurallari.md`.
-
 ---
 
 ## 1. Karar katmanları
@@ -94,3 +92,9 @@ Lumos kendi üzerinde deneme yapacaksa (ör. gelecekte taslak/deneme özelliği)
 - **Cevap disiplini:** Veri yoksa boşluk doldurma; belirsizlikte “anlamadım” + örnek; riskte uyarı; tamamlanmamış işte açık status/result_kind.
 
 Bu sözleşme, mevcut Lumos çekirdeği (profiles, policy, workspace sözleşmesi, CLI akışı) ile uyumlu minimum omurgadır; genişletme yapılırken dokümantasyon güncellenir.
+
+---
+
+## 8. Karar motoru davranış akışı (niyet ve sıra)
+
+Çekirdek katmanlar (yukarıdaki bölümler) aynı kalır. **İş sırası** (basitte doğrudan uygulama, uzun işte niyet analizi, özellik öncesi alternatif tarama, onaysız etkili iş yapmama, parçalama, soru disiplini) için ayrıntılı ve tablolu metin: **`docs/lumos-karar-motoru-davranis-kurallari.md`**. Ajan özeti: **`.cursor/rules/lumos-karar-motoru-davranis.mdc`**.
