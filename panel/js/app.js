@@ -771,62 +771,54 @@
 
   function renderYanit() {
     var d = YANIT_SAMPLE;
-    var heroBody =
-      '<p class="lumos-card-hero-lead">' + escapeHtmlYanit(d.summary) + "</p>" +
+    var leadBody =
+      '<p class="lumos-result-lead">' + escapeHtmlYanit(d.summary) + "</p>" +
       (d.exampleLine
-        ? '<p class="lumos-card-hero-example">' + escapeHtmlYanit(d.exampleLine) + "</p>"
+        ? '<p class="lumos-result-muted">' + escapeHtmlYanit(d.exampleLine) + "</p>"
         : "");
-    var ulUnderstood =
-      "<ul>" +
-      d.understood.map(function (x) {
-        return "<li>" + escapeHtmlYanit(x) + "</li>";
-      }).join("") +
-      "</ul>";
-    var ulRec =
-      "<ul>" +
-      d.recommendation.map(function (x) {
-        return "<li>" + escapeHtmlYanit(x) + "</li>";
-      }).join("") +
-      "</ul>";
-    var supportBlock = "";
-    if (d.questions && d.questions.length) {
-      supportBlock =
-        '<div class="lumos-card lumos-card--support lumos-card-deck-layer" role="region" aria-label="Netleştirme">' +
-        '<h3 class="lumos-card-title">Birkaç soru</h3><ul class="lumos-card-questions">' +
-        d.questions
-          .map(function (q) {
-            return "<li>" + escapeHtmlYanit(q) + "</li>";
+    var ul = function (items) {
+      return (
+        "<ul class=\"lumos-result-list\">" +
+        items
+          .map(function (x) {
+            return "<li>" + escapeHtmlYanit(x) + "</li>";
           })
           .join("") +
-        "</ul></div>";
+        "</ul>"
+      );
+    };
+    var cards =
+      '<article class="lumos-result-card lumos-result-card--lead" aria-labelledby="yanit-ozet">' +
+      '<h2 id="yanit-ozet" class="lumos-result-card-title lumos-result-card-title--lead">Kısa özet</h2>' +
+      leadBody +
+      "</article>" +
+      '<article class="lumos-result-card" aria-labelledby="yanit-anladim">' +
+      '<h3 id="yanit-anladim" class="lumos-result-card-title">Ne anladım</h3>' +
+      ul(d.understood) +
+      "</article>" +
+      '<article class="lumos-result-card" aria-labelledby="yanit-oneri">' +
+      '<h3 id="yanit-oneri" class="lumos-result-card-title">Ne öneriyorum</h3>' +
+      ul(d.recommendation) +
+      "</article>";
+    if (d.questions && d.questions.length) {
+      cards +=
+        '<article class="lumos-result-card" aria-labelledby="yanit-soru">' +
+        '<h3 id="yanit-soru" class="lumos-result-card-title">Sorular</h3>' +
+        ul(d.questions) +
+        "</article>";
     }
     var noteLine = yanitActionNote
-      ? '<p class="lumos-deck-action-feedback" role="status">' + escapeHtmlYanit(yanitActionNote) + "</p>"
+      ? '<p class="lumos-yanit-feedback" role="status">' + escapeHtmlYanit(yanitActionNote) + "</p>"
       : "";
     return (
-      ViewHeader("Yanıt", "Katmanlı özet; tek bakışta net") +
-      '<div class="lumos-deck">' +
-      '<div class="lumos-deck-hero-wrap">' +
-      '<article class="lumos-card lumos-card--hero lumos-card-deck-layer" aria-labelledby="yanit-hero-title">' +
-      '<h2 id="yanit-hero-title" class="lumos-card-title lumos-card-title--hero">Kısa özet</h2>' +
-      heroBody +
-      "</article></div>" +
-      '<div class="lumos-deck-row">' +
-      '<article class="lumos-card lumos-card--secondary lumos-card-deck-layer">' +
-      '<h3 class="lumos-card-title">Ne anladım</h3>' +
-      ulUnderstood +
-      "</article>" +
-      '<article class="lumos-card lumos-card--secondary lumos-card-deck-layer">' +
-      '<h3 class="lumos-card-title">Ne öneriyorum</h3>' +
-      ulRec +
-      "</article></div>" +
-      supportBlock +
+      ViewHeader("Yanıt", "Sonuçlar kartlar halinde") +
+      '<div class="lumos-yanit-stack">' +
+      cards +
       noteLine +
-      '<div class="lumos-deck-actions">' +
-      '<button type="button" class="lumos-deck-action" data-yanit-action="devam">Devam et</button>' +
-      '<button type="button" class="lumos-deck-action lumos-deck-action--ghost" data-yanit-action="sade">Daha sade anlat</button>' +
-      '<button type="button" class="lumos-deck-action lumos-deck-action--ghost" data-yanit-action="teknik">Teknik detaya gir</button>' +
-      '<button type="button" class="lumos-deck-action lumos-deck-action--primary" data-yanit-action="uygula">Uygulamaya başla</button>' +
+      '<div class="lumos-yanit-actions">' +
+      '<button type="button" class="lumos-yanit-btn" data-yanit-action="devam">Devam et</button>' +
+      '<button type="button" class="lumos-yanit-btn lumos-yanit-btn--ghost" data-yanit-action="sade">Daha sade anlat</button>' +
+      '<button type="button" class="lumos-yanit-btn lumos-yanit-btn--primary" data-yanit-action="uygula">Uygulamaya başla</button>' +
       "</div></div>"
     );
   }
@@ -969,7 +961,6 @@
       var labels = {
         devam: "Tamam — bir sonraki adıma geçebiliriz.",
         sade: "Daha sade: kök + alt satırlar; iki düğme yeter.",
-        teknik: "Teknik tarafta: veri modeli kök ve katkı listesi; arayüz bunları okur.",
         uygula: "Uygulama tarafında ilk adım: ekran taslağı ve en küçük veri şekli.",
       };
       yanitActionNote = labels[ya] || "Seçildi.";
