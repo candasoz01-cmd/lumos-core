@@ -75,7 +75,9 @@ Basit/orta taleplerde tarama **kısa** tutulabilir; ürünselde **tam eksen** (O
 | **2** | **2–3 alternatif** sun (ör. güçlü OSS, SaaS, ucuz hazır veya harman / entegrasyon). |
 | **3** | **“Sıfırdan yapmak mantıklı mı?”** sorusuna **açık cevap** ver (çoğu durumda hayır + gerekçe; gerçekten evet ise istisnayı net yaz). |
 | **4** | Kullanıcı **sıfırdan / kendi yolumuz** derse: **yine uygula** — öneri geçmişe yazılmış olsun yeter. |
-| **5** | **Gereksiz sıfırdan build** (hazır güçlü alternatif varken bilinçli sıfırdan): açıkça **zaman kaybı riski** olarak **işaretle** (cevapta/raporda kısa etiket veya cümle: örn. *gereksiz build riski: zaman kaybı*). |
+| **5** | **Varsayılan davranış:** sıfırdan koda **atlamadan önce** 1–3’ü yap; **önce önermek** default. |
+
+**Ek:** Güçlü alternatif varken bilinçli sıfırdan build → **gereksiz build = zaman kaybı** (veya *zaman kaybı riski*) olarak **işaretle** (cevap/raporda kısa etiket).
 
 **Özet:** Önce öner ve netleştir; sonra kullanıcı kararı. Detaylı OSS akışı: hazır çözüm kural dosyası (`ozellik-oncesi-hazir-cozum-taramasi.mdc`).
 
