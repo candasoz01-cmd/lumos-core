@@ -528,3 +528,262 @@ body {
 .inline-link:hover {
   text-decoration: underline;
 }
+
+/* ——— Akış (GET /posts/feed) ——— */
+.feed-toolbar {
+  margin: var(--spacing) 0;
+}
+
+.feed-loading {
+  padding: 2rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.post-feed-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing);
+  max-width: 40rem;
+}
+
+.post-feed-card {
+  background: var(--bg-card);
+  border: var(--border);
+  border-radius: var(--card-radius);
+  padding: var(--card-padding);
+}
+
+.post-feed-content {
+  color: var(--text);
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.post-feed-meta {
+  margin-top: var(--spacing-sm);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ——— Yanıt: iskambil deste hissi (katmanlı kartlar) ——— */
+.lumos-deck {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 0.25rem 0 1.5rem;
+}
+
+.lumos-deck-hero-wrap {
+  position: relative;
+  z-index: 4;
+  margin-bottom: 0;
+}
+
+.lumos-card-deck-layer {
+  background: linear-gradient(165deg, #2f2f2f 0%, #262626 48%, #222 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 1.15rem 1.35rem;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 12px 40px rgba(0, 0, 0, 0.45),
+    0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.lumos-card--hero.lumos-card-deck-layer {
+  padding: 1.35rem 1.5rem 1.45rem;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 16px 48px rgba(0, 0, 0, 0.5),
+    0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.lumos-card-title {
+  margin: 0 0 0.65rem 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #c8c8c8;
+  letter-spacing: 0.01em;
+}
+
+.lumos-card-title--hero {
+  font-size: 1.05rem;
+  color: #e8e8e8;
+  margin-bottom: 0.75rem;
+}
+
+.lumos-card-hero-lead {
+  margin: 0;
+  line-height: 1.55;
+  font-size: 1.02rem;
+  color: var(--text);
+}
+
+.lumos-card-hero-example {
+  margin: 0.85rem 0 0 0;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: #b0b0b0;
+  font-style: normal;
+}
+
+.lumos-deck-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  position: relative;
+  z-index: 2;
+  margin-top: -6px;
+  padding-top: 2px;
+}
+
+.lumos-card--secondary {
+  padding: 1rem 1.15rem;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.03) inset,
+    0 8px 28px rgba(0, 0, 0, 0.38),
+    0 2px 8px rgba(0, 0, 0, 0.28);
+}
+
+.lumos-deck-row .lumos-card--secondary:first-child {
+  transform: translate(3px, 2px);
+}
+
+.lumos-deck-row .lumos-card--secondary:last-child {
+  transform: translate(-3px, 4px);
+}
+
+.lumos-card--secondary .lumos-card-title {
+  font-size: 0.88rem;
+  text-transform: none;
+  color: #aaa;
+}
+
+.lumos-card--secondary ul {
+  margin: 0;
+  padding-left: 1.15rem;
+  line-height: 1.5;
+  font-size: 0.9rem;
+  color: #d4d4d4;
+}
+
+.lumos-card--secondary li {
+  margin-bottom: 0.4rem;
+}
+
+.lumos-card--secondary li:last-child {
+  margin-bottom: 0;
+}
+
+.lumos-card--support {
+  max-width: 92%;
+  margin: 1rem auto 0;
+  position: relative;
+  z-index: 1;
+  padding: 0.85rem 1.1rem;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.025) inset,
+    0 6px 20px rgba(0, 0, 0, 0.32);
+  transform: translateY(2px);
+}
+
+.lumos-card-questions {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: #c0c0c0;
+}
+
+.lumos-card-questions li {
+  margin-bottom: 0.35rem;
+}
+
+.lumos-deck-action-feedback {
+  margin: 1rem 0 0;
+  padding: 0.65rem 0.85rem;
+  background: rgba(126, 184, 255, 0.08);
+  border: 1px solid rgba(126, 184, 255, 0.15);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: #c5d8f0;
+}
+
+.lumos-deck-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.lumos-deck-action {
+  font-family: inherit;
+  font-size: 0.85rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid #4a4a4a;
+  background: #333;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.lumos-deck-action:hover {
+  background: #3d3d3d;
+  border-color: #5a5a5a;
+}
+
+.lumos-deck-action--ghost {
+  background: transparent;
+  border-color: #444;
+  color: #bbb;
+}
+
+.lumos-deck-action--ghost:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+}
+
+.lumos-deck-action--primary {
+  background: #3d5a80;
+  border-color: #4a6a8f;
+  color: #f0f4f8;
+}
+
+.lumos-deck-action--primary:hover {
+  background: #4a6a95;
+  border-color: #5a7a9f;
+}
+
+@media (max-width: 640px) {
+  .lumos-deck-row {
+    grid-template-columns: 1fr;
+    margin-top: 0.5rem;
+  }
+
+  .lumos-deck-row .lumos-card--secondary:first-child,
+  .lumos-deck-row .lumos-card--secondary:last-child {
+    transform: none;
+  }
+
+  .lumos-card--support {
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .lumos-deck-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .lumos-deck-action {
+    text-align: center;
+  }
+}

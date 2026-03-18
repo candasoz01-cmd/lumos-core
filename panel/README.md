@@ -1,6 +1,6 @@
 # Lumos Panel v1
 
-**Kapsam:** Mock tabanlı operatör paneli. Backend veya canlı API yok; tüm veri `js/app.js` içindeki `mockState` ile beslenir. Hash routing ile tek sayfada ekranlar arası geçiş yapılır.
+**Kapsam:** Çoğu ekran mock tabanlı (`mockState`). **Akış** ekranı (`#feed`) ise doğrudan Express API **GET /posts/feed** çağırır (CORS açık); taban: `LUMOS_POSTS_API_BASE` veya `localStorage.lumos_posts_api_base`, yoksa `http://127.0.0.1:3000`. Backend: `cd backend && npm start`. Hash routing ile ekranlar arası geçiş.
 
 **Veri katmanı:** Ekranlar doğrudan ham mock nesneleri okumaz; `getDashboardData()`, `getTasksData()`, `getSandboxData()` vb. adapter fonksiyonları normalize veri döner. Panel hâlâ mock tabanlıdır; veri akışı adapter üzerinden olduğu için gerçek backend entegrasyonu bir sonraki aşamada bu katman üzerinden kolayca eklenebilir.
 
@@ -48,13 +48,15 @@
 
 - **Doğrudan:** `panel/index.html` açın (`file://`).
 - **HTTP ile:** Repo kökünden `python3 -m http.server 8080` → `http://localhost:8080/panel/`
-- **Yönlendirme:** `#dashboard`, `#tasks`, `#sandbox`, `#config`, `#identity`, `#keystore`, `#trash`, `#logs`, `#system`
+- **Yönlendirme:** `#dashboard`, `#yanit` (katmanlı yanıt kartları), `#feed`, `#tasks`, … `#system`
 
 ## Hazır ekranlar
 
 | Ekran           | Hash         |
 |-----------------|--------------|
 | Gösterge Paneli | `#dashboard` |
+| Yanıt           | `#yanit`     |
+| Akış            | `#feed`      |
 | Görevler        | `#tasks`     |
 | Korumalı Alan   | `#sandbox`   |
 | Yapılandırma    | `#config`    |
@@ -73,4 +75,4 @@ Ortak bileşenler: Sidebar, Topbar, StatusBadge, MetricCard, SectionCard, EmptyS
 - **Kapsam:** Tüm veri mock/stub ile; hash routing ile ekran geçişi. Backend, auth, WebSocket yok.
 - **Bilinçli sınırlar:** Canlı API, yeni ekran veya büyük modül bu sürümde açılmaz; sadece mock tabanlı operatör görünümü.
 - **Adapter / contract:** Ekran verisi contract şemasına göre; stub üreticileri (`buildXxxStub`) state → contract şekli, normalizer'lar eksik alanları güvenli varsayılana çeker. Ekranlar `getXxxData()` çıktısından beslenir. Gerçek backend entegrasyonunda sadece mapping katmanı (API → contract) değiştirilecek; contract referans alınacak.
-- **Çalıştırma:** `panel/index.html` doğrudan açılır veya repo kökünden `python3 -m http.server 8080` ile `http://localhost:8080/panel/`. Hash: `#dashboard`, `#tasks`, `#sandbox`, `#config`, `#identity`, `#keystore`, `#trash`, `#logs`, `#system`.
+- **Çalıştırma:** `panel/index.html` doğrudan açılır veya repo kökünden `python3 -m http.server 8080` ile `http://localhost:8080/panel/`. Hash listesi: hazır ekranlar tablosu (`#yanit` katmanlı yanıt örneği).

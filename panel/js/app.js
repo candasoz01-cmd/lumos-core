@@ -11,6 +11,8 @@
 
   var SCREENS = {
     dashboard: { id: "dashboard", label: "Gösterge Paneli", hash: "#dashboard" },
+    yanit: { id: "yanit", label: "Yanıt", hash: "#yanit" },
+    feed: { id: "feed", label: "Akış", hash: "#feed" },
     tasks: { id: "tasks", label: "Görevler", hash: "#tasks" },
     sandbox: { id: "sandbox", label: "Korumalı Alan", hash: "#sandbox" },
     config: { id: "config", label: "Yapılandırma", hash: "#config" },
@@ -592,7 +594,7 @@
       buildSection("Son Olaylar", EventList(data.sections[0].events)) +
       buildSection("Uyarılar ve notlar", warningsHtml) +
       buildSection("Durum ve rehber", guidanceHtml) +
-      buildSection("Hızlı geçişler", '<p><a href="#tasks" class="inline-link">Görevler</a> · <a href="#sandbox" class="inline-link">Korumalı Alan</a> · <a href="#config" class="inline-link">Yapılandırma</a> · <a href="#logs" class="inline-link">Kayıtlar</a></p><p class="text-muted-small">Hash ile sayfa yenilenmeden geçiş.</p>');
+      buildSection("Hızlı geçişler", '<p><a href="#feed" class="inline-link">Akış</a> (API) · <a href="#tasks" class="inline-link">Görevler</a> · <a href="#sandbox" class="inline-link">Korumalı Alan</a> · <a href="#config" class="inline-link">Yapılandırma</a> · <a href="#logs" class="inline-link">Kayıtlar</a></p><p class="text-muted-small">Hash ile sayfa yenilenmeden geçiş.</p>');
     return ViewHeader(data.title, data.subtitle) + '<div class="cards-grid">' + cards + "</div>" + sections;
   }
 
@@ -736,8 +738,184 @@
     return ViewHeader(data.title, data.subtitle) + '<div class="cards-grid">' + cards + "</div>";
   }
 
+  function escapeHtmlYanit(s) {
+    if (s == null) return "";
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  /** Örnek yanıt kartları (panel dili); gerçek entegrasyonda adapter besler. */
+  var YANIT_SAMPLE = {
+    summary:
+      "Tek yönlü akış değil: biri kök bırakır, başkaları altına kısa katkı ekler. Arayüz sade kalsın; ilk sürüm hızlı hissetsin.",
+    exampleLine:
+      "Şöyle düşünebiliriz: ortak not defteri — üstte bir cümle, altta herkes yeni satır ekler.",
+    understood: [
+      "Klasik sosyal medya (sadece akış, yarış) istemiyorsun.",
+      "Kök paylaşım + altına eklenen katkılar düşünüyorsun; karmaşık menü istemiyorsun.",
+    ],
+    recommendation: [
+      "Bir kök kayıt ve ona bağlı sıralı katkılar; ekranda net iki iş: «Yeni kök» ve «Katkı ekle».",
+      "İlk sürümde az alan, az buton; liste sayfa sayfa yüklensin, detaylar sonra.",
+    ],
+    questions: [
+      "Katkılar hemen herkese görünsün mü, yoksa kök sahibi onaylasın mı?",
+      "Paylaşım çoğunlukla yazı mı; başta sadece yazı yeter mi?",
+    ],
+  };
+
+  var yanitActionNote = "";
+
+  function renderYanit() {
+    var d = YANIT_SAMPLE;
+    var heroBody =
+      '<p class="lumos-card-hero-lead">' + escapeHtmlYanit(d.summary) + "</p>" +
+      (d.exampleLine
+        ? '<p class="lumos-card-hero-example">' + escapeHtmlYanit(d.exampleLine) + "</p>"
+        : "");
+    var ulUnderstood =
+      "<ul>" +
+      d.understood.map(function (x) {
+        return "<li>" + escapeHtmlYanit(x) + "</li>";
+      }).join("") +
+      "</ul>";
+    var ulRec =
+      "<ul>" +
+      d.recommendation.map(function (x) {
+        return "<li>" + escapeHtmlYanit(x) + "</li>";
+      }).join("") +
+      "</ul>";
+    var supportBlock = "";
+    if (d.questions && d.questions.length) {
+      supportBlock =
+        '<div class="lumos-card lumos-card--support lumos-card-deck-layer" role="region" aria-label="Netleştirme">' +
+        '<h3 class="lumos-card-title">Birkaç soru</h3><ul class="lumos-card-questions">' +
+        d.questions
+          .map(function (q) {
+            return "<li>" + escapeHtmlYanit(q) + "</li>";
+          })
+          .join("") +
+        "</ul></div>";
+    }
+    var noteLine = yanitActionNote
+      ? '<p class="lumos-deck-action-feedback" role="status">' + escapeHtmlYanit(yanitActionNote) + "</p>"
+      : "";
+    return (
+      ViewHeader("Yanıt", "Katmanlı özet; tek bakışta net") +
+      '<div class="lumos-deck">' +
+      '<div class="lumos-deck-hero-wrap">' +
+      '<article class="lumos-card lumos-card--hero lumos-card-deck-layer" aria-labelledby="yanit-hero-title">' +
+      '<h2 id="yanit-hero-title" class="lumos-card-title lumos-card-title--hero">Kısa özet</h2>' +
+      heroBody +
+      "</article></div>" +
+      '<div class="lumos-deck-row">' +
+      '<article class="lumos-card lumos-card--secondary lumos-card-deck-layer">' +
+      '<h3 class="lumos-card-title">Ne anladım</h3>' +
+      ulUnderstood +
+      "</article>" +
+      '<article class="lumos-card lumos-card--secondary lumos-card-deck-layer">' +
+      '<h3 class="lumos-card-title">Ne öneriyorum</h3>' +
+      ulRec +
+      "</article></div>" +
+      supportBlock +
+      noteLine +
+      '<div class="lumos-deck-actions">' +
+      '<button type="button" class="lumos-deck-action" data-yanit-action="devam">Devam et</button>' +
+      '<button type="button" class="lumos-deck-action lumos-deck-action--ghost" data-yanit-action="sade">Daha sade anlat</button>' +
+      '<button type="button" class="lumos-deck-action lumos-deck-action--ghost" data-yanit-action="teknik">Teknik detaya gir</button>' +
+      '<button type="button" class="lumos-deck-action lumos-deck-action--primary" data-yanit-action="uygula">Uygulamaya başla</button>' +
+      "</div></div>"
+    );
+  }
+
+  /** GET /posts/feed — canlı API; mock yok */
+  var feedViewState = { status: "idle", posts: [], error: "", baseUsed: "" };
+
+  function renderFeed() {
+    var F = window.LumosFeedApi;
+    if (!F) return renderEmptyState("Akış", "feed-api.js yüklenmedi.");
+
+    if (feedViewState.status === "idle") {
+      feedViewState.status = "loading";
+      feedViewState.error = "";
+      feedViewState.baseUsed = F.getBase();
+      var url = feedViewState.baseUsed + "/posts/feed?limit=50";
+      fetch(url)
+        .then(function (r) {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.json();
+        })
+        .then(function (data) {
+          feedViewState.posts = Array.isArray(data) ? data : [];
+          feedViewState.status = "ok";
+          if (getCurrentScreen().id === "feed") renderMain();
+        })
+        .catch(function (e) {
+          feedViewState.error = e.message || String(e);
+          feedViewState.status = "error";
+          if (getCurrentScreen().id === "feed") renderMain();
+        });
+      return (
+        ViewHeader("Akış", "GET /posts/feed") +
+        '<p class="text-muted-small">Kaynak: ' +
+        F.escapeHtml(feedViewState.baseUsed) +
+        '</p><div class="feed-loading">Yükleniyor…</div>'
+      );
+    }
+
+    if (feedViewState.status === "loading") {
+      return (
+        ViewHeader("Akış", "GET /posts/feed") +
+        '<p class="text-muted-small">' +
+        F.escapeHtml(feedViewState.baseUsed) +
+        '</p><div class="feed-loading">Yükleniyor…</div>'
+      );
+    }
+
+    if (feedViewState.status === "error") {
+      return (
+        ViewHeader("Akış", "Bağlantı hatası") +
+        '<div class="feed-toolbar"><button type="button" class="log-tab active" data-feed-refresh="1">Yenile</button></div>' +
+        '<p class="empty-desc">' +
+        F.escapeHtml(feedViewState.error) +
+        '</p><p class="text-muted-small">Express API çalışıyor olmalı (<code>cd backend && npm start</code>). İsteğe bağlı: konsolda <code>LUMOS_POSTS_API_BASE = "http://127.0.0.1:3000"</code> veya localStorage <code>lumos_posts_api_base</code>.</p>'
+      );
+    }
+
+    var toolbar =
+      '<div class="feed-toolbar"><button type="button" class="log-tab" data-feed-refresh="1">Yenile</button></div>';
+    var cards = "";
+    if (feedViewState.posts.length === 0) {
+      cards = EmptyState("Henüz gönderi yok", "Backend’de POST /posts ile içerik ekleyin.");
+    } else {
+      for (var i = 0; i < feedViewState.posts.length; i++) {
+        var p = F.pickPostCardProps(feedViewState.posts[i]);
+        cards +=
+          '<article class="post-feed-card"><div class="post-feed-content">' +
+          F.escapeHtml(p.content) +
+          '</div><div class="post-feed-meta">' +
+          F.escapeHtml(F.formatMeta(p)) +
+          "</div></article>";
+      }
+    }
+    return (
+      ViewHeader("Akış", feedViewState.posts.length + " gönderi") +
+      toolbar +
+      '<p class="text-muted-small">API: ' +
+      F.escapeHtml(feedViewState.baseUsed) +
+      '</p><div class="post-feed-list">' +
+      cards +
+      "</div>"
+    );
+  }
+
   var renderers = {
     dashboard: renderDashboard,
+    yanit: renderYanit,
+    feed: renderFeed,
     tasks: renderTasks,
     sandbox: renderSandbox,
     config: renderConfig,
@@ -777,6 +955,25 @@
     if (t.dataset && t.dataset.logFilter) {
       mockState.logFilter = t.dataset.logFilter;
       renderMain();
+      return;
+    }
+    if (t.dataset && t.dataset.feedRefresh) {
+      feedViewState.status = "idle";
+      feedViewState.posts = [];
+      feedViewState.error = "";
+      renderMain();
+    }
+    var yanitBtn = t.closest && t.closest("[data-yanit-action]");
+    if (yanitBtn && yanitBtn.dataset && yanitBtn.dataset.yanitAction) {
+      var ya = yanitBtn.dataset.yanitAction;
+      var labels = {
+        devam: "Tamam — bir sonraki adıma geçebiliriz.",
+        sade: "Daha sade: kök + alt satırlar; iki düğme yeter.",
+        teknik: "Teknik tarafta: veri modeli kök ve katkı listesi; arayüz bunları okur.",
+        uygula: "Uygulama tarafında ilk adım: ekran taslağı ve en küçük veri şekli.",
+      };
+      yanitActionNote = labels[ya] || "Seçildi.";
+      renderMain();
     }
   }
 
@@ -787,6 +984,7 @@
   }
 
   function onHashChange() {
+    if (getCurrentScreen().id !== "yanit") yanitActionNote = "";
     refresh();
   }
 
