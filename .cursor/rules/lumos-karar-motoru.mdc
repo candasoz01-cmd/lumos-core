@@ -22,9 +22,16 @@ alwaysApply: true
 - **Ürünsel:** Analiz (ayrı “sadece plan” / yarım taslak şart değil) → net noktalar → karışıklıkta **doğrudan sor** → parçala → **parça başına ayrı commit**.
 - **Yarım iş yok:** Kapsamdaki dosyalar tamamlanır veya geri alınır; çift kural / yarım doküman bırakılmaz.
 
-## Ürünsel: hazır çözüm
+## Gereksiz iş reddetme (varsayılan: önce öner)
 
-OSS / SaaS / ucuz hazır var mı? **Güçlü OSS** ise: öner + neden kendi yapmaması + seçenek; **kullanıcı ısrar ederse yine uygula**. Detay: `ozellik-oncesi-hazir-cozum-taramasi.mdc`.
+**Güçlü** OSS **veya** SaaS **veya** çok ucuz hazır varsa:
+
+1. **Kısa analiz** → **2–3 alternatif** → **“Sıfırdan mantıklı mı?”** açık cevap.
+2. **Varsayılan:** önce önermek; sıfırdan atlamadan önce bu adım.
+3. Kullanıcı **isterse yine uygula** (engelleme yok).
+4. Bilinçli sıfırdan (alternatif varken): **gereksiz build = zaman kaybı riski** diye işaretle.
+
+Detay: `docs/lumos-karar-motoru.md` §3b, `ozellik-oncesi-hazir-cozum-taramasi.mdc`.
 
 ## Risk
 

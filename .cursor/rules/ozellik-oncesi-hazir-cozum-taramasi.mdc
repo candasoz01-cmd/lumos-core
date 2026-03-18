@@ -57,6 +57,16 @@ Kullanıcı **ürün veya özellik** istediğinde (yeni akış, entegrasyon, pan
 
 ---
 
+## 2c) Gereksiz sıfır-build (karar motoru ile hizalı)
+
+Güçlü **OSS**, **SaaS** veya **çok düşük maliyetli** hazır varken:
+
+1. **Kısa analiz** → **2–3 alternatif** → **“Sıfırdan yapmak mantıklı mı?”** açık cevap.
+2. **Varsayılan:** önce önermek; kullanıcı **isterse** yine sıfırdan uygula.
+3. Alternatif varken bilinçli sıfırdan: **gereksiz build = zaman kaybı riski** olarak işaretle.
+
+---
+
 ## 5) Ajan davranışı
 
 - Tarama sonucu **“yap / al / harmanla”** önerisini ayırt et; kullanıcı kararını bekleyebilir.

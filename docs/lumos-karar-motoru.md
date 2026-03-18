@@ -63,6 +63,24 @@ Basit/orta taleplerde tarama **kısa** tutulabilir; ürünselde **tam eksen** (O
 
 ---
 
+## 3b. Gereksiz iş reddetme (varsayılan: önce öner)
+
+**Tetikleyici:** İstenen özellik piyasada **güçlü şekilde** zaten varsa — **en az bir** kanal: olgun **açık kaynak**, uygun **SaaS**, **çok düşük maliyetli** hazır çözüm.
+
+**Varsayılan davranış:** Sıfırdan koda **atlamadan önce** aşağıdaki akış; kullanıcıyı **engellemez**, bilgilendirir.
+
+| Adım | Davranış |
+|------|----------|
+| **1** | **Kısa analiz** — istek ile piyasadaki karşılıklar (birkaç cümle, somut). |
+| **2** | **2–3 alternatif** sun (ör. güçlü OSS, SaaS, ucuz hazır veya harman / entegrasyon). |
+| **3** | **“Sıfırdan yapmak mantıklı mı?”** sorusuna **açık cevap** ver (çoğu durumda hayır + gerekçe; gerçekten evet ise istisnayı net yaz). |
+| **4** | Kullanıcı **sıfırdan / kendi yolumuz** derse: **yine uygula** — öneri geçmişe yazılmış olsun yeter. |
+| **5** | **Gereksiz sıfırdan build** (hazır güçlü alternatif varken bilinçli sıfırdan): açıkça **zaman kaybı riski** olarak **işaretle** (cevapta/raporda kısa etiket veya cümle: örn. *gereksiz build riski: zaman kaybı*). |
+
+**Özet:** Önce öner ve netleştir; sonra kullanıcı kararı. Detaylı OSS akışı: hazır çözüm kural dosyası (`ozellik-oncesi-hazir-cozum-taramasi.mdc`).
+
+---
+
 ## 4. Risk kontrolü
 
 | İlke | Uygulama |
@@ -102,6 +120,7 @@ Basit/orta taleplerde tarama **kısa** tutulabilir; ürünselde **tam eksen** (O
 ```
 İstek → Sınıf (Basit / Orta / Ürünsel)
        → Karışıklık? → doğrudan net soru (plan turu şart değil)
+       → Güçlü OSS/SaaS/ucuz var mı? → §3b (kısa analiz, 2–3 alt, sıfırdan mantıklı mı; varsayılan öner; isterse uygula)
        → Ürünsel? → Hazır çözüm taraması + kullanıcı seçimi
        → Risk / parça / commit disiplini
        → Onay katmanı (direkt / implicit / açık) + karar sözleşmesi kontrolü
