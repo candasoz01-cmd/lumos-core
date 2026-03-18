@@ -8,6 +8,8 @@
 
 **Konuşmadan görev çıkarma (örtük niyet):** **`docs/lumos-konusmadan-gorev-cikarma.md`** — açık komut yokken “yapalım / eksik / lazım” vb. sinyallerle potansiyel görev; net + düşük riskte kısa bilgi ile başlatma; riskli/belirsizde “Bunu uygulayayım mı?”; sessiz başlama yok; sözleşme üst sınırı aşılmaz.
 
+**Uzun vadeli vizyon + araştırma disiplini:** **`docs/lumos-urun-vizyon-ve-arastirma-cercevesi.md`** — ürün karakteri ve vaat özeti; piyasa/OSS notları sessiz; kullanıcıya yalnız güçlü sinyalde öneri; sessiz uygulama yok.
+
 ---
 
 ## 1. İstek sınıflandırma
