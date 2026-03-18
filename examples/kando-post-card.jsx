@@ -6,14 +6,18 @@
  * döner (feed’de ekstra feedScore). Tam sözleşme: docs/kando-post-feed-contract.md
  *
  * @typedef {Object} LumosApiPost
+ * Backend serializePost (GET /posts, /posts/feed, rated-high/low) — docs/kando-post-feed-contract.md
  * @property {string} id
  * @property {string} content
- * @property {string} createdAt
+ * @property {string} createdAt — ISO 8601
  * @property {string} userId
- * @property {{ username: string }} [user]
+ * @property {{ username: string }} user
+ * @property {string|null} deletedAt — listede genelde null
  * @property {number} ratingCount
  * @property {number|null} ratingAvg
- * @property {number} [feedScore]
+ * @property {number} lowRatingCount
+ * @property {number} highRatingCount
+ * @property {number} [feedScore] — yalnız GET /posts/feed; karta verilmez
  */
 
 /**

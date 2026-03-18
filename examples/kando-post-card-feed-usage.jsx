@@ -8,7 +8,24 @@
 
 import KandoPostCard, { pickPostCardProps } from "./kando-post-card.jsx";
 
-/** @param {{ posts: Array<{ id: string } & Record<string, unknown>> }} props */
+/**
+ * GET /posts veya /posts/feed öğesi (serializePost); feed’de ek: feedScore.
+ * Kart: KandoPostCard + spread pickPostCardProps(post)
+ */
+export const examplePostFromBackend = {
+  id: "clexample01post",
+  content: "Örnek gönderi metni.",
+  createdAt: "2025-03-18T10:00:00.000Z",
+  userId: "cluser01",
+  user: { username: "ornek_kullanici" },
+  deletedAt: null,
+  ratingCount: 3,
+  ratingAvg: 4.3,
+  lowRatingCount: 0,
+  highRatingCount: 2,
+};
+
+/** @param {{ posts: ReadonlyArray<{ id: string } & Record<string, unknown>> }} props */
 export function FeedPostListExample({ posts }) {
   return (
     <>
@@ -20,9 +37,11 @@ export function FeedPostListExample({ posts }) {
 }
 
 /*
- * --- Fetch örneği ---
- * const base = "http://127.0.0.1:3000";
- * const res = await fetch(`${base}/posts/feed?limit=50`);
- * const posts = await res.json();
- * // posts.forEach(...) veya <FeedPostListExample posts={posts} />
+ * Tek kart (örnek nesne):
+ *   <KandoPostCard {...pickPostCardProps(examplePostFromBackend)} />
+ *
+ * Fetch:
+ *   const res = await fetch(`${base}/posts`); // veya /posts/feed?limit=50
+ *   const posts = await res.json();
+ *   <FeedPostListExample posts={posts} />
  */
