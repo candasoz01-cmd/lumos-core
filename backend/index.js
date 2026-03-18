@@ -1,0 +1,326 @@
+const crypto = require("crypto");
+const express = require("express");
+const { PrismaClient, Prisma } = require("@prisma/client");
+
+const prisma = new PrismaClient();
+
+/** Aynı user+post için kısa pencerede çok fazla yazmayı sınırlar (bellek içi, süreç bazlı) */
+const RATING_BURST_WINDOW_MS = Number(process.env.RATING_BURST_WINDOW_MS || 10000);
+const RATING_BURST_MAX = Math.max(1, Number(process.env.RATING_BURST_MAX || 3));
+const ratingBurstTimestamps = new Map();
+
+function ratingBurstKey(userId, postId) {
+  return `${userId}:${postId}`;
+}
+
+function checkRatingBurst(userId, postId) {
+  const key = ratingBurstKey(userId, postId);
+  const now = Date.now();
+  const cutoff = now - RATING_BURST_WINDOW_MS;
+  const ts = (ratingBurstTimestamps.get(key) || []).filter((t) => t > cutoff);
+  return ts.length < RATING_BURST_MAX;
+}
+
+function recordRatingBurst(userId, postId) {
+  const key = ratingBurstKey(userId, postId);
+  const now = Date.now();
+  const cutoff = now - RATING_BURST_WINDOW_MS;
+  let ts = (ratingBurstTimestamps.get(key) || []).filter((t) => t > cutoff);
+  ts.push(now);
+  ratingBurstTimestamps.set(key, ts);
+}
+const app = express();
+app.use(express.json());
+
+const PORT = process.env.PORT || 3000;
+
+const postUserInclude = {
+  user: { select: { username: true } },
+};
+
+const emptyRatingStats = {
+  ratingCount: 0,
+  ratingAvg: null,
+  lowRatingCount: 0,
+  highRatingCount: 0,
+};
+
+/** @param {string[]} postIds */
+async function getRatingStatsMap(postIds) {
+  const map = new Map();
+  if (postIds.length === 0) return map;
+  const rows = await prisma.$queryRaw`
+    SELECT
+      "postId",
+      COUNT(*) AS "ratingCount",
+      AVG("value") AS "ratingAvg",
+      SUM(CASE WHEN "value" IN (1, 2) THEN 1 ELSE 0 END) AS "lowRatingCount",
+      SUM(CASE WHEN "value" IN (4, 5) THEN 1 ELSE 0 END) AS "highRatingCount"
+    FROM "Rating"
+    WHERE "postId" IN (${Prisma.join(postIds)})
+    GROUP BY "postId"
+  `;
+  for (const r of rows) {
+    map.set(r.postId, {
+      ratingCount: Number(r.ratingCount),
+      ratingAvg: r.ratingAvg != null ? Math.round(Number(r.ratingAvg) * 10) / 10 : null,
+      lowRatingCount: Number(r.lowRatingCount),
+      highRatingCount: Number(r.highRatingCount),
+    });
+  }
+  return map;
+}
+
+function serializePost(p, statsMap) {
+  const stats = statsMap.get(p.id) || emptyRatingStats;
+  return { ...p, ...stats };
+}
+
+/** feedScore = taban + taze bonus − (yaşSaat × çarpan); avg zayıf, decay güçlü → daha “canlı” */
+const FEED_AVG_MULTIPLIER = Number(process.env.FEED_AVG_MULTIPLIER || 1.2);
+const FEED_TIME_DECAY_PER_H = Number(
+  process.env.FEED_TIME_DECAY_PER_H || process.env.FEED_AGE_PENALTY_PER_H || 0.4
+);
+const FEED_FRESH_BOOST = Number(process.env.FEED_FRESH_BOOST || 3);
+const FEED_FRESH_HOURS = Number(process.env.FEED_FRESH_HOURS || 2);
+
+function computeFeedScore(post, stats, nowMs = Date.now()) {
+  const ageInHours = Math.max(0, (nowMs - new Date(post.createdAt).getTime()) / 3600000);
+  const avg = stats.ratingAvg != null ? stats.ratingAvg : 3;
+  const base = avg * FEED_AVG_MULTIPLIER + Math.log(stats.ratingCount + 1);
+  const freshBonus = ageInHours < FEED_FRESH_HOURS ? FEED_FRESH_BOOST : 0;
+  const timeDecay = ageInHours * FEED_TIME_DECAY_PER_H;
+  const score = base + freshBonus - timeDecay;
+  return Math.round(score * 100) / 100;
+}
+
+async function postsWithRatings(where, orderBy) {
+  const posts = await prisma.post.findMany({
+    where,
+    include: postUserInclude,
+    orderBy,
+  });
+  const ids = posts.map((p) => p.id);
+  const statsMap = await getRatingStatsMap(ids);
+  return posts.map((p) => serializePost(p, statsMap));
+}
+
+/** rated-high / rated-low: sırayı koruyarak post + rating özetleri */
+async function orderedPostsWithRatingStats(postIds) {
+  const posts = await prisma.post.findMany({
+    where: { id: { in: postIds }, deletedAt: null },
+    include: postUserInclude,
+  });
+  const statsMap = await getRatingStatsMap(postIds);
+  const byId = new Map(posts.map((p) => [p.id, p]));
+  return postIds.map((id) => byId.get(id)).filter(Boolean).map((p) => serializePost(p, statsMap));
+}
+
+// --- Users ---
+app.post("/users", async (req, res) => {
+  try {
+    const { username } = req.body;
+    if (!username) return res.status(400).json({ error: "username required" });
+    const ratingToken = crypto.randomBytes(32).toString("hex");
+    const user = await prisma.user.create({ data: { username, ratingToken } });
+    res.status(201).json(user);
+  } catch (e) {
+    if (e.code === "P2002") return res.status(409).json({ error: "username taken" });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// --- Posts: create ---
+app.post("/posts", async (req, res) => {
+  try {
+    const { content, userId } = req.body;
+    if (!content || !userId) return res.status(400).json({ error: "content and userId required" });
+    const post = await prisma.post.create({
+      data: { content, userId },
+      include: postUserInclude,
+    });
+    const statsMap = await getRatingStatsMap([post.id]);
+    res.status(201).json(serializePost(post, statsMap));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// --- Posts: rated-high (yüksek ortalama) ---
+app.get("/posts/rated-high", async (req, res) => {
+  try {
+    const minVotes = Math.max(1, parseInt(String(req.query.minVotes || "1"), 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit || "50"), 10) || 50));
+
+    const rows = await prisma.$queryRaw`
+      SELECT r."postId",
+        COUNT(*) AS "ratingCount",
+        AVG(r."value") AS "ratingAvg"
+      FROM "Rating" r
+      INNER JOIN "Post" p ON p.id = r."postId" AND p."deletedAt" IS NULL
+      GROUP BY r."postId"
+      HAVING COUNT(*) >= ${minVotes}
+      ORDER BY AVG(r."value") DESC, COUNT(*) DESC
+      LIMIT ${limit}
+    `;
+
+    const postIds = rows.map((r) => r.postId);
+    if (postIds.length === 0) return res.json([]);
+    res.json(await orderedPostsWithRatingStats(postIds));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// --- Posts: rated-low (1–2★ yoğunluğu) ---
+app.get("/posts/rated-low", async (req, res) => {
+  try {
+    const minVotes = Math.max(2, parseInt(String(req.query.minVotes || "2"), 10) || 2);
+    const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit || "50"), 10) || 50));
+
+    const rows = await prisma.$queryRaw`
+      SELECT
+        r."postId",
+        COUNT(*) AS "ratingCount",
+        SUM(CASE WHEN r."value" IN (1, 2) THEN 1 ELSE 0 END) AS "lowRatingCount"
+      FROM "Rating" r
+      INNER JOIN "Post" p ON p.id = r."postId" AND p."deletedAt" IS NULL
+      GROUP BY r."postId"
+      HAVING COUNT(*) >= ${minVotes}
+      ORDER BY
+        (CAST(SUM(CASE WHEN r."value" IN (1, 2) THEN 1 ELSE 0 END) AS REAL) / COUNT(*)) DESC,
+        SUM(CASE WHEN r."value" IN (1, 2) THEN 1 ELSE 0 END) DESC
+      LIMIT ${limit}
+    `;
+
+    const postIds = rows.map((r) => r.postId);
+    if (postIds.length === 0) return res.json([]);
+    res.json(await orderedPostsWithRatingStats(postIds));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// --- Posts: feed (skor: ortalama + oy sayısı + tazelik − yaş çürümesi) ---
+app.get("/posts/feed", async (req, res) => {
+  try {
+    const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit || "50"), 10) || 50));
+    const posts = await prisma.post.findMany({
+      where: { deletedAt: null },
+      include: postUserInclude,
+    });
+    const statsMap = await getRatingStatsMap(posts.map((p) => p.id));
+    const now = Date.now();
+    const rows = posts.map((p) => {
+      const base = serializePost(p, statsMap);
+      const st = statsMap.get(p.id) || emptyRatingStats;
+      const feedScore = computeFeedScore(p, st, now);
+      return { ...base, feedScore };
+    });
+    rows.sort((a, b) => b.feedScore - a.feedScore);
+    res.json(rows.slice(0, limit));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// --- Posts: list (silinmemişler, createdAt desc) ---
+app.get("/posts", async (req, res) => {
+  try {
+    const list = await postsWithRatings({ deletedAt: null }, { createdAt: "desc" });
+    res.json(list);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// --- Soft delete / trash / restore ---
+app.delete("/posts/:id", async (req, res) => {
+  try {
+    const post = await prisma.post.updateMany({
+      where: { id: req.params.id, deletedAt: null },
+      data: { deletedAt: new Date() },
+    });
+    if (post.count === 0) return res.status(404).json({ error: "post not found or already deleted" });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get("/posts/trash", async (req, res) => {
+  try {
+    const list = await postsWithRatings({ deletedAt: { not: null } }, { deletedAt: "desc" });
+    res.json(list);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.patch("/posts/:id/restore", async (req, res) => {
+  try {
+    const post = await prisma.post.updateMany({
+      where: { id: req.params.id, deletedAt: { not: null } },
+      data: { deletedAt: null },
+    });
+    if (post.count === 0) return res.status(404).json({ error: "post not found or not deleted" });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// --- Rate post (1–5); Bearer <ratingToken>; body’de userId yok ---
+app.post("/posts/:id/rate", async (req, res) => {
+  try {
+    const body = req.body || {};
+    if (body.userId != null) {
+      return res.status(400).json({
+        error: "userId in body is not accepted; use Authorization: Bearer <ratingToken> from POST /users",
+      });
+    }
+    const auth = req.headers.authorization;
+    if (!auth || typeof auth !== "string" || !auth.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Authorization: Bearer <ratingToken> required" });
+    }
+    const token = auth.slice(7).trim();
+    if (!token) return res.status(401).json({ error: "missing Bearer token" });
+
+    const { value } = body;
+    const postId = req.params.id;
+    const v = Number(value);
+
+    if (!Number.isInteger(v) || v < 1 || v > 5) {
+      return res.status(400).json({ error: "value must be integer 1–5" });
+    }
+
+    const post = await prisma.post.findFirst({
+      where: { id: postId, deletedAt: null },
+    });
+    if (!post) return res.status(404).json({ error: "post not found" });
+
+    const user = await prisma.user.findUnique({ where: { ratingToken: token } });
+    if (!user || !user.ratingToken) return res.status(401).json({ error: "invalid or expired rating token" });
+
+    if (!checkRatingBurst(user.id, postId)) {
+      return res.status(429).json({
+        error: "too many rating updates for this post; try again later",
+      });
+    }
+
+    const rating = await prisma.rating.upsert({
+      where: { userId_postId: { userId: user.id, postId } },
+      create: { userId: user.id, postId, value: v },
+      update: { value: v },
+    });
+    recordRatingBurst(user.id, postId);
+
+    const statsMap = await getRatingStatsMap([postId]);
+    const stats = statsMap.get(postId) || emptyRatingStats;
+    res.json({ rating, ...stats });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
