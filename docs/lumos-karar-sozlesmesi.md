@@ -2,6 +2,8 @@
 
 Bu belge, Lumos’un neyi yapıp yapamayacağını, ne zaman duracağını ve kullanıcıdan ne zaman açık onay isteyeceğini tanımlar. Ürün tarafındaki sıkı kurallara referans verir; mevcut çekirdeğe uygulanabilir **minimum omurga** hedeflenir. Kando (geliştirme süreci) kurallarından ayrıdır. **Geliştirme commit guard** (ruff/pytest) ürün onayı değildir; ayrım: `docs/kando-urun-onay-otomasyon-ayrimi.md`.
 
+**İstek türüne göre sıra (karar motoru):** Basitte doğrudan uygulama, uzun işte niyet analizi, kritik belirsizlikte soru, özellik öncesi alternatif taraması, parçalama ve soru disiplini — `docs/lumos-karar-motoru-davranis-kurallari.md`.
+
 ---
 
 ## 1. Karar katmanları
