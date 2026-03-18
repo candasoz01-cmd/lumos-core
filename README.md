@@ -134,6 +134,17 @@ make check
 make run
 ```
 
+### Commit guard (geliştirme — ürün onayından ayrı)
+
+Commit atmadan önce **otomatik** `ruff check .` ve `pytest -q`; geçmezse commit **olamaz**. Tam açıklama: **`docs/dev-commit-guard.md`**.
+
+```bash
+make setup-commit-guard    # tek kurulum komutu (repo kökü)
+pip install -e . && pip install -U pytest ruff   # venv içinde
+```
+
+Atlama (istisna): `git commit --no-verify`. Ürün tarafında onay modeli: **`docs/kando-urun-onay-otomasyon-ayrimi.md`**.
+
 ## Make hedefleri
 
 | Hedef | Açıklama |
@@ -146,6 +157,7 @@ make run
 | `make web` | `bash scripts/smoke_web.sh` |
 | `make run` | `lumos` (veya `python -m lumos_core`) — etkileşimli CLI |
 | `make cleanlog` | `.lumos/logs/log.txt` dosyasını temizler |
+| `make setup-commit-guard` | Commit öncesi `ruff` + `pytest` hook (bir kez); `install-git-hooks` aynı iş |
 
 ---
 

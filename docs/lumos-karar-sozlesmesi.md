@@ -1,6 +1,6 @@
 # Lumos karar mekanizması ve çekirdek sınırları — minimum uygulanabilir sözleşme
 
-Bu belge, Lumos’un neyi yapıp yapamayacağını, ne zaman duracağını ve kullanıcıdan ne zaman açık onay isteyeceğini tanımlar. Ürün tarafındaki sıkı kurallara referans verir; mevcut çekirdeğe uygulanabilir **minimum omurga** hedeflenir. Kando (geliştirme süreci) kurallarından ayrıdır.
+Bu belge, Lumos’un neyi yapıp yapamayacağını, ne zaman duracağını ve kullanıcıdan ne zaman açık onay isteyeceğini tanımlar. Ürün tarafındaki sıkı kurallara referans verir; mevcut çekirdeğe uygulanabilir **minimum omurga** hedeflenir. Kando (geliştirme süreci) kurallarından ayrıdır. **Geliştirme commit guard** (ruff/pytest) ürün onayı değildir; ayrım: `docs/kando-urun-onay-otomasyon-ayrimi.md`.
 
 ---
 

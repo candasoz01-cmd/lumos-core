@@ -1,0 +1,44 @@
+---
+description: Commit/push öncesi kalıcı zincir — RUN→VERIFY→LINT→GIT→CI risk→commit→push (tek seferlik değil, sürekli düzen)
+alwaysApply: true
+---
+
+# Commit öncesi zincir — kalıcı çalışma düzeni
+
+Bu akış **tek satırlık veya tek seferlik bir komut değildir**. Kod değişikliği, “hazır” veya “commit at” denildiğinde bu sıra **sürekli** esas alınır; atlama gereksiz CI kırmızıları ve regresyon riskini artırır.
+
+`cursor-run-verify-akisi.mdc` içindeki **RUN / VERIFY / RE-VERIFY** ile uyumludur; burada zincir commit ve push’a kadar uzatılır.
+
+---
+
+## Tam sıra (bozulmaz)
+
+1. **RUN** — İlgili özelliği/akışı gerçekten çalıştır. Backend gerekiyorsa önce ayağa kaldır; ilgili endpoint veya CLI akışı uçtan uca işliyor mu bak.
+2. **VERIFY** — Beklenen çıktı / davranış doğru mu; daha önce çalışan bir şey bozuldu mu.
+3. **LINT** — Kalite kapısı: örn. `ruff check .`; Python: `pytest` (veya `make test`). Projede Node kullanılıyorsa ilgili dizinde `npm test` vb. CI ile aynı hizada tut.
+4. **GIT** — `git status`: gereksiz dosya, istemeden değişen dosya, commit’e girmemesi gereken şey (`.venv`, cache, yerel config) var mı.
+5. **CI RISK** — Kendine sor: import sildim mi, test dosyasına dokundum mu, environment / bağımlılık etkiledim mi, kullanılmayan import veya lint şüphesi var mı? Şüphe varsa **3. adımı tekrarla**.
+6. **COMMIT** — Yalnızca 1–5 tatmin edici olduktan sonra. Mesaj **kısa, net, tek blok iş**: örn. `fix: clean unused imports and pass ruff`, `feat: …`, `ui: …`.
+7. **PUSH SONRASI** — GitHub Actions’ta **en üstteki son workflow run**; alttaki eski kırmızı run’lara bakıp yanlış sonuç çıkarma.
+
+---
+
+## Ajan için net beklenti
+
+- Bu zincir **“hepsini bir komutta yap” demek değildir**; **adım adım kontrol ve doğrulama düzeni** demektir.
+- Dar bir düzeltme bile yapsan, işi bitmiş saymadan önce **VERIFY + LINT** (mümkünse komutla) hatırlat veya uygula.
+- Commit/push önerilirken **GIT + CI RISK** kontrolünü atlama.
+
+---
+
+## Kısa mantra
+
+**RUN → VERIFY → LINT → GIT → CI RISK → COMMIT → PUSH**
+
+Bunu atlarsak saçma kırmızılar geri gelir; uygularsak proje daha temiz akar.
+
+---
+
+## Tek komut yaklaşımı (yerel zorlama)
+
+**Geliştirme** tarafında pre-commit hook: `make setup-commit-guard` → her `git commit` öncesi `ruff check .` ve `pytest -q`. Ürün onay kurallarından ayrıdır; bkz. `docs/dev-commit-guard.md` ve `kando-urun-onay-otomasyon.mdc`.
