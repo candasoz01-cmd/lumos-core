@@ -1,13 +1,14 @@
 PYTHON := python
 PYTEST := pytest
 
-.PHONY: help install compile test smoke cli web check run cleanlog
+.PHONY: help install compile test test-api smoke cli web check run cleanlog
 
 help:
 	@echo "Targets:"
 	@echo "  make install   -> pip install -e ."
 	@echo "  make compile   -> py_compile"
 	@echo "  make test      -> pytest -q"
+	@echo "  make test-api  -> ./test_api.sh (Express backend ayakta olmalı)"
 	@echo "  make smoke     -> bash scripts/smoke_presence.sh"
 	@echo "  make cli       -> bash scripts/smoke_cli.sh"
 	@echo "  make web       -> bash scripts/smoke_web.sh"
@@ -23,6 +24,9 @@ compile:
 
 test:
 	$(PYTEST) -q
+
+test-api:
+	./test_api.sh
 
 smoke:
 	bash scripts/smoke_presence.sh
