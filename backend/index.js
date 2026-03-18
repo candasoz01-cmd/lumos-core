@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const express = require("express");
+const helmet = require("helmet");
 const { PrismaClient, Prisma } = require("@prisma/client");
 
 const prisma = new PrismaClient();
@@ -30,7 +31,21 @@ function recordRatingBurst(userId, postId) {
   ratingBurstTimestamps.set(key, ts);
 }
 const app = express();
+// MIT; güvenlik başlıkları. CSP kapalı (JSON API); CORS ile uyum için CORP cross-origin.
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
 app.use(express.json());
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
 
 const PORT = process.env.PORT || 3000;
 
