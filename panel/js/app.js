@@ -768,6 +768,8 @@
   };
 
   var yanitActionNote = "";
+  /** Açık deste kartı: anladim | oneri | soru | null */
+  var yanitDeckOpen = null;
 
   function renderYanit() {
     var d = YANIT_SAMPLE;
@@ -787,33 +789,75 @@
         "</ul>"
       );
     };
-    var cards =
-      '<article class="lumos-result-card lumos-result-card--lead" aria-labelledby="yanit-ozet">' +
-      '<h2 id="yanit-ozet" class="lumos-result-card-title lumos-result-card-title--lead">Kısa özet</h2>' +
-      leadBody +
-      "</article>" +
-      '<article class="lumos-result-card" aria-labelledby="yanit-anladim">' +
-      '<h3 id="yanit-anladim" class="lumos-result-card-title">Ne anladım</h3>' +
-      ul(d.understood) +
-      "</article>" +
-      '<article class="lumos-result-card" aria-labelledby="yanit-oneri">' +
-      '<h3 id="yanit-oneri" class="lumos-result-card-title">Ne öneriyorum</h3>' +
-      ul(d.recommendation) +
-      "</article>";
+    var slots = [
+      { id: "anladim", title: "Ne anladım", items: d.understood },
+      { id: "oneri", title: "Ne öneriyorum", items: d.recommendation },
+    ];
     if (d.questions && d.questions.length) {
-      cards +=
-        '<article class="lumos-result-card" aria-labelledby="yanit-soru">' +
-        '<h3 id="yanit-soru" class="lumos-result-card-title">Sorular</h3>' +
-        ul(d.questions) +
-        "</article>";
+      slots.push({ id: "soru", title: "Sorular", items: d.questions });
     }
+    var validOpen = false;
+    for (var vi = 0; vi < slots.length; vi++) {
+      if (yanitDeckOpen === slots[vi].id) validOpen = true;
+    }
+    if (!validOpen) yanitDeckOpen = null;
+
+    var deckHtml = "";
+    for (var si = 0; si < slots.length; si++) {
+      var slot = slots[si];
+      var prev = si > 0 ? slots[si - 1] : null;
+      var prevOpen = prev && yanitDeckOpen === prev.id;
+      var marginTop = si === 0 ? "14px" : prevOpen ? "12px" : "-36px";
+      var z = 7 - si;
+      var isOpen = yanitDeckOpen === slot.id;
+      var expanded = isOpen ? "true" : "false";
+      if (isOpen) {
+        deckHtml +=
+          '<article class="lumos-deck-card lumos-deck-card--open" style="margin-top:' +
+          marginTop +
+          ";z-index:" +
+          z +
+          '">' +
+          '<button type="button" class="lumos-deck-tab lumos-deck-tab--open" data-yanit-deck="' +
+          slot.id +
+          '" aria-expanded="' +
+          expanded +
+          '">' +
+          escapeHtmlYanit(slot.title) +
+          "</button>" +
+          '<div class="lumos-deck-open-body">' +
+          ul(slot.items) +
+          "</div></article>";
+      } else {
+        deckHtml +=
+          '<article class="lumos-deck-card lumos-deck-card--peek" style="margin-top:' +
+          marginTop +
+          ";z-index:" +
+          z +
+          '">' +
+          '<button type="button" class="lumos-deck-tab" data-yanit-deck="' +
+          slot.id +
+          '" aria-expanded="' +
+          expanded +
+          '" title="Açmak için tıklayın">' +
+          escapeHtmlYanit(slot.title) +
+          '<span class="lumos-deck-cue" aria-hidden="true"> ···</span></button></article>';
+      }
+    }
+
     var noteLine = yanitActionNote
       ? '<p class="lumos-yanit-feedback" role="status">' + escapeHtmlYanit(yanitActionNote) + "</p>"
       : "";
     return (
-      ViewHeader("Yanıt", "Sonuçlar kartlar halinde") +
-      '<div class="lumos-yanit-stack">' +
-      cards +
+      ViewHeader("Yanıt", "Deste gibi katmanlı; başlığa tıklayınca açılır") +
+      '<div class="lumos-yanit-stack lumos-yanit-stack--deck">' +
+      '<article class="lumos-result-card lumos-result-card--lead" aria-labelledby="yanit-ozet">' +
+      '<h2 id="yanit-ozet" class="lumos-result-card-title lumos-result-card-title--lead">Kısa özet</h2>' +
+      leadBody +
+      "</article>" +
+      '<div class="lumos-yanit-deck" role="group" aria-label="Ayrıntı kartları">' +
+      deckHtml +
+      "</div>" +
       noteLine +
       '<div class="lumos-yanit-actions">' +
       '<button type="button" class="lumos-yanit-btn" data-yanit-action="devam">Devam et</button>' +
@@ -966,6 +1010,12 @@
       yanitActionNote = labels[ya] || "Seçildi.";
       renderMain();
     }
+    var deckBtn = t.closest && t.closest("[data-yanit-deck]");
+    if (deckBtn && deckBtn.dataset && deckBtn.dataset.yanitDeck) {
+      var did = deckBtn.dataset.yanitDeck;
+      yanitDeckOpen = yanitDeckOpen === did ? null : did;
+      renderMain();
+    }
   }
 
   function refresh() {
@@ -975,7 +1025,10 @@
   }
 
   function onHashChange() {
-    if (getCurrentScreen().id !== "yanit") yanitActionNote = "";
+    if (getCurrentScreen().id !== "yanit") {
+      yanitActionNote = "";
+      yanitDeckOpen = null;
+    }
     refresh();
   }
 
