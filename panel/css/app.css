@@ -567,7 +567,19 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* ——— Yanıt: özet + elde deste ——— */
+/* ——— Kartlı sonuç ekranı ——— */
+.lumos-yanit-intro {
+  max-width: 40rem;
+  margin: 0 0 1rem 0;
+  padding: 0.65rem 0.85rem;
+  line-height: 1.5;
+  font-size: 0.88rem;
+  color: #a8a8a8;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border-left: 3px solid #555;
+}
+
 .lumos-yanit-stack {
   max-width: 40rem;
   display: flex;

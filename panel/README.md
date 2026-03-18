@@ -48,14 +48,14 @@
 
 - **Doğrudan:** `panel/index.html` açın (`file://`).
 - **HTTP ile:** Repo kökünden `python3 -m http.server 8080` → `http://localhost:8080/panel/`
-- **Yönlendirme:** `#dashboard`, `#yanit` (katmanlı yanıt kartları), `#feed`, `#tasks`, … `#system`
+- **Yönlendirme:** `#dashboard`, `#yanit` (kartlı sonuç / örnek özet + deste kartları), `#feed`, …
 
 ## Hazır ekranlar
 
 | Ekran           | Hash         |
 |-----------------|--------------|
 | Gösterge Paneli | `#dashboard` |
-| Yanıt           | `#yanit`     |
+| Kartlı sonuç    | `#yanit`     |
 | Akış            | `#feed`      |
 | Görevler        | `#tasks`     |
 | Korumalı Alan   | `#sandbox`   |

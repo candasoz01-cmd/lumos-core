@@ -11,7 +11,7 @@
 
   var SCREENS = {
     dashboard: { id: "dashboard", label: "Gösterge Paneli", hash: "#dashboard" },
-    yanit: { id: "yanit", label: "Yanıt", hash: "#yanit" },
+    yanit: { id: "yanit", label: "Kartlı sonuç", hash: "#yanit" },
     feed: { id: "feed", label: "Akış", hash: "#feed" },
     tasks: { id: "tasks", label: "Görevler", hash: "#tasks" },
     sandbox: { id: "sandbox", label: "Korumalı Alan", hash: "#sandbox" },
@@ -849,7 +849,11 @@
       ? '<p class="lumos-yanit-feedback" role="status">' + escapeHtmlYanit(yanitActionNote) + "</p>"
       : "";
     return (
-      ViewHeader("Yanıt", "Deste gibi katmanlı; başlığa tıklayınca açılır") +
+      ViewHeader(
+        "Kartlı sonuç",
+        "Uzun cevap tek parça değil: özet üstte, ayrıntılar altta kartlarda."
+      ) +
+      '<p class="lumos-yanit-intro">Alttaki <strong>başlık şeritlerine</strong> tıklayınca o bölüm açılır; tekrar tıklayınca kapanır. Şimdilik örnek metin — ileride gerçek Lumos cevabı burada gösterilebilir.</p>' +
       '<div class="lumos-yanit-stack lumos-yanit-stack--deck">' +
       '<article class="lumos-result-card lumos-result-card--lead" aria-labelledby="yanit-ozet">' +
       '<h2 id="yanit-ozet" class="lumos-result-card-title lumos-result-card-title--lead">Kısa özet</h2>' +
