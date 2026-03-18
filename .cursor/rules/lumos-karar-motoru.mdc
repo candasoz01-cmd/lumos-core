@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Lumos karar motoru — kısa
 
-**Tam metin:** `docs/lumos-karar-motoru.md`. **Üst sınır:** `docs/lumos-karar-sozlesmesi.md` (güvenlik, kalıcı silme, açık onay gereken işler bypass edilmez). **Uzun/dağınık istek:** `lumos-uzun-istek-isleme.mdc`.
+**Tam metin:** `docs/lumos-karar-motoru.md`. **Üst sınır:** `docs/lumos-karar-sozlesmesi.md` (güvenlik, kalıcı silme, açık onay gereken işler bypass edilmez). **Uzun/dağınık istek:** `lumos-uzun-istek-isleme.mdc`. **Konuşmadan görev:** `docs/lumos-konusmadan-gorev-cikarma.md` — net+düşük riskte kısa bilgi ile başlat; riskli/belirsizde sor; sessiz başlama yok.
 
 ## Sınıf
 

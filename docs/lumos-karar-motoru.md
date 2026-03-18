@@ -6,6 +6,8 @@
 
 **Uzun veya dağınık kullanıcı mesajı:** **`docs/lumos-uzun-istek-isleme.md`** — ayrıştırma, parçalama, soru stratejisi, çıktı şablonu (`.cursor/rules/lumos-uzun-istek-isleme.mdc`).
 
+**Konuşmadan görev çıkarma (örtük niyet):** **`docs/lumos-konusmadan-gorev-cikarma.md`** — açık komut yokken “yapalım / eksik / lazım” vb. sinyallerle potansiyel görev; net + düşük riskte kısa bilgi ile başlatma; riskli/belirsizde “Bunu uygulayayım mı?”; sessiz başlama yok; sözleşme üst sınırı aşılmaz.
+
 ---
 
 ## 1. İstek sınıflandırma
@@ -122,7 +124,8 @@ Basit/orta taleplerde tarama **kısa** tutulabilir; ürünselde **tam eksen** (O
 ## 7. Özet akış (ajan / geliştirme)
 
 ```
-İstek → Uzun/dağınık? → ayrıştır + (gerekirse) uzun-istek çıktı formatı (lumos-uzun-istek-isleme.md)
+İstek → Örtük görev sinyali? (lumos-konusmadan-gorev-cikarma.md) → niyet çıkar; net+düşük risk + bilgi satırı ile başlat VEYA onay sor
+       → Uzun/dağınık? → ayrıştır + (gerekirse) uzun-istek çıktı formatı (lumos-uzun-istek-isleme.md)
        → Sınıf (Basit / Orta / Ürünsel)
        → Karışıklık? → doğrudan net soru (plan turu şart değil)
        → Güçlü OSS/SaaS/ucuz var mı? → §3b (kısa analiz, 2–3 alt, sıfırdan mantıklı mı; varsayılan öner; isterse uygula)
@@ -143,6 +146,20 @@ Basit/orta taleplerde tarama **kısa** tutulabilir; ürünselde **tam eksen** (O
 3. **Soru:** yalnızca kritik belirsizlikler, **toplu** (ör. 3 madde); net kısım **hemen uygulanabilir**.
 
 Tam tarif ve çıktı şablonu: **`docs/lumos-uzun-istek-isleme.md`**.
+
+---
+
+## 9. Konuşmadan görev çıkarma (kısa)
+
+Komutta “görev oluştur” denmese bile, konuşma **yapılacak işi** net gösteriyorsa:
+
+1. **Tetik örnekleri:** “yapalım”, “ekleyelim”, “şu eksik”, “yapmamız lazım” vb. — **bağlamla** birlikte değerlendirilir (`docs/lumos-konusmadan-gorev-cikarma.md` §1).
+2. **Niyet:** ne, hangi parça, aciliyet, sınıf (Basit/Orta/Ürünsel).
+3. **Direkt başlat:** iş net + risk düşük + sözleşme/ profil uygun → **önce kısa bilgi** (“Bunu uygulamaya başlıyorum: …”), sonra uygula.
+4. **Onay:** riskli / belirsiz / ürünsel / sözleşme dışı → **“Bunu uygulayayım mı?”** veya netleştirici soru.
+5. **Sessiz başlama yok.**
+
+Örnek senaryolar: **`examples/lumos-konusmadan-gorev-senaryolari.md`**.
 
 ---
 
