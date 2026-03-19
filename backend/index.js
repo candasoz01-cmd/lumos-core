@@ -122,14 +122,15 @@ function computePostsOrderFeedScore(post, stats, nowMs = Date.now()) {
   const lowRatingCount = stats.lowRatingCount ?? 0;
   const ageInHours = Math.max(0, (nowMs - new Date(post.createdAt).getTime()) / 3600000);
   const recency = 1 / (1 + ageInHours / 24);
-  if (ratingAvg == null) return -100000 + recency;
-  return (
-    ratingAvg * 100 +
-    ratingCount * 10 +
-    highRatingCount * 5 -
-    lowRatingCount * 5 +
-    recency
-  );
+  if (ratingAvg == null) return -1000000 + recency;
+
+  const qualityScore = ratingAvg * FEED_AVG_MULTIPLIER;
+  const volumeScore = Math.log(ratingCount + 1);
+  const sentimentScore = highRatingCount * 0.6 - lowRatingCount * 0.8;
+  const freshBonus = ageInHours < FEED_FRESH_HOURS ? FEED_FRESH_BOOST : 0;
+  const timeDecay = ageInHours * FEED_TIME_DECAY_PER_H;
+
+  return qualityScore + volumeScore + sentimentScore + freshBonus + recency - timeDecay;
 }
 
 async function postsWithRatings(where, orderBy) {
