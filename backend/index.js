@@ -143,6 +143,141 @@ function computePostsOrderFeedScore(post, stats, nowMs = Date.now()) {
   );
 }
 
+/** Küçük kişiselleştirme skoru; explorationBonus'tan her zaman küçük (exploration>0 iken oranla sınırlı). */
+function computePersonalBoost(post, stats, tasteProfile, nowMs = Date.now()) {
+  if (!tasteProfile || stats.ratingAvg == null) return 0;
+  const {
+    tasteAvg,
+    tasteRatingCountAvg,
+    tasteSentiment,
+    tasteEngagementAgeH,
+    userRatingEntropy,
+    userMeanRating,
+    meanInterRatingHours,
+  } = tasteProfile;
+  const ratingCount = stats.ratingCount ?? 0;
+  const ageInHours = Math.max(0, (nowMs - new Date(post.createdAt).getTime()) / 3600000);
+  const recency = 1 / (1 + ageInHours / 24);
+  const explorationBonus = ratingCount <= 1 ? recency * 1.2 : 0;
+
+  const avgDiff = Math.abs(stats.ratingAvg - tasteAvg);
+  const logP = Math.log(ratingCount + 1);
+  const logT = Math.log(Math.max(0, tasteRatingCountAvg) + 1);
+  const countDiff = Math.abs(logP - logT);
+
+  const postSent = (stats.highRatingCount ?? 0) - (stats.lowRatingCount ?? 0);
+  const sentDiff = Math.abs(postSent - tasteSentiment) / (10 + Math.abs(tasteSentiment));
+
+  const logAgeP = Math.log(1 + ageInHours);
+  const logAgeT = Math.log(1 + Math.max(0, tasteEngagementAgeH));
+  const agePatternDiff = Math.abs(logAgeP - logAgeT) / 2.5;
+  const agePatternWeight =
+    0.4 * Math.min(1, 24 / ((meanInterRatingHours ?? 24) + 24));
+
+  const personalBoostScale = Number(process.env.FEED_PERSONAL_BOOST_SCALE || 300);
+  const personalBoostCap = Number(process.env.FEED_PERSONAL_BOOST_CAP || 230);
+
+  let dist =
+    3 * (avgDiff / 1.5) * (avgDiff / 1.5) +
+    (countDiff / 3) * (countDiff / 3) +
+    sentDiff * sentDiff * 0.45 +
+    agePatternDiff * agePatternDiff * agePatternWeight;
+  const ent = userRatingEntropy ?? 1;
+  const focus = 0.85 + Math.min(0.35, Math.max(0, 1.61 - ent) * 0.25);
+  dist *= focus;
+  const leniency = Math.max(0, Math.min(1, ((userMeanRating ?? 3) - 2) / 3));
+  dist /= 1 + leniency * 0.1;
+
+  const sim = Math.exp(-dist);
+  const rawBoost = sim * personalBoostScale;
+  const explorationCap =
+    explorationBonus > 0 ? explorationBonus * 90 + personalBoostCap * 0.35 : personalBoostCap;
+  const qualityScore = stats.ratingAvg * 100;
+  const qualityCapRatio = Number(process.env.FEED_PERSONAL_QUALITY_CAP_RATIO || 0.3);
+  let boost = Math.min(rawBoost, explorationCap);
+  boost = Math.min(boost, qualityScore * qualityCapRatio);
+  return boost;
+}
+
+async function loadUserFeedTasteProfile(userId) {
+  const ratings = await prisma.rating.findMany({
+    where: { userId },
+    select: { postId: true, value: true, createdAt: true },
+    orderBy: { createdAt: "asc" },
+  });
+  if (ratings.length === 0) return null;
+  const uniqueIds = [...new Set(ratings.map((r) => r.postId))];
+  const posts = await prisma.post.findMany({
+    where: { id: { in: uniqueIds }, deletedAt: null },
+    select: { id: true, createdAt: true },
+  });
+  const postById = new Map(posts.map((p) => [p.id, p]));
+  if (postById.size === 0) return null;
+  const aliveIds = posts.map((p) => p.id);
+  const statsMap = await getRatingStatsMap(aliveIds);
+
+  const hist = [0, 0, 0, 0, 0];
+  const times = [];
+  let wSum = 0;
+  let sumAvg = 0;
+  let sumCnt = 0;
+  let sumSent = 0;
+  let sumEngAge = 0;
+
+  for (const r of ratings) {
+    const p = postById.get(r.postId);
+    if (!p) continue;
+    times.push(new Date(r.createdAt).getTime());
+    const vi = r.value - 1;
+    if (vi >= 0 && vi < 5) hist[vi] += 1;
+
+    const st = statsMap.get(r.postId);
+    if (!st || st.ratingAvg == null) continue;
+    const affinity = Math.max(0, (r.value - 2) / 3);
+    if (affinity <= 0) continue;
+    sumAvg += affinity * st.ratingAvg;
+    sumCnt += affinity * st.ratingCount;
+    sumSent += affinity * ((st.highRatingCount ?? 0) - (st.lowRatingCount ?? 0));
+    sumEngAge +=
+      affinity *
+      Math.max(0, (new Date(r.createdAt).getTime() - new Date(p.createdAt).getTime()) / 3600000);
+    wSum += affinity;
+  }
+
+  if (wSum === 0) return null;
+
+  const totalH = hist.reduce((a, b) => a + b, 0);
+  let entropy = 0;
+  if (totalH > 0) {
+    for (const c of hist) {
+      if (c === 0) continue;
+      const pp = c / totalH;
+      entropy -= pp * Math.log(pp + 1e-12);
+    }
+  }
+
+  let meanInterRatingHours = 0;
+  if (times.length >= 2) {
+    times.sort((a, b) => a - b);
+    let gapSum = 0;
+    for (let i = 1; i < times.length; i++) gapSum += (times[i] - times[i - 1]) / 3600000;
+    meanInterRatingHours = gapSum / (times.length - 1);
+  }
+
+  return {
+    tasteAvg: sumAvg / wSum,
+    tasteRatingCountAvg: sumCnt / wSum,
+    tasteSentiment: sumSent / wSum,
+    tasteEngagementAgeH: sumEngAge / wSum,
+    userMeanRating:
+      totalH > 0
+        ? (hist[0] + 2 * hist[1] + 3 * hist[2] + 4 * hist[3] + 5 * hist[4]) / totalH
+        : 3,
+    userRatingEntropy: entropy,
+    meanInterRatingHours,
+  };
+}
+
 async function postsWithRatings(where, orderBy) {
   const posts = await prisma.post.findMany({
     where,
@@ -376,20 +511,29 @@ app.get("/posts", async (req, res) => {
             return st.ratingAvg != null && st.ratingAvg >= minRating;
           });
     const nowMs = Date.now();
+    let feedTasteProfile = null;
+    if (rawOrderValue === "feed") {
+      const auth = req.headers.authorization;
+      if (auth && typeof auth === "string" && auth.startsWith("Bearer ")) {
+        const token = auth.slice(7).trim();
+        if (token) {
+          const authUser = await prisma.user.findUnique({ where: { ratingToken: token } });
+          if (authUser) feedTasteProfile = await loadUserFeedTasteProfile(authUser.id);
+        }
+      }
+    }
     const sortedPosts = [...filteredPosts].sort((a, b) => {
       if (rawOrderValue === "feed") {
         const aStats = statsMap.get(a.id) || emptyRatingStats;
         const bStats = statsMap.get(b.id) || emptyRatingStats;
-        const aScore = computePostsOrderFeedScore(
-          { ...a, createdAt: a.createdAt || new Date(nowMs).toISOString() },
-          aStats,
-          nowMs
-        );
-        const bScore = computePostsOrderFeedScore(
-          { ...b, createdAt: b.createdAt || new Date(nowMs).toISOString() },
-          bStats,
-          nowMs
-        );
+        const aPost = { ...a, createdAt: a.createdAt || new Date(nowMs).toISOString() };
+        const bPost = { ...b, createdAt: b.createdAt || new Date(nowMs).toISOString() };
+        let aScore = computePostsOrderFeedScore(aPost, aStats, nowMs);
+        let bScore = computePostsOrderFeedScore(bPost, bStats, nowMs);
+        if (feedTasteProfile) {
+          aScore += computePersonalBoost(aPost, aStats, feedTasteProfile, nowMs);
+          bScore += computePersonalBoost(bPost, bStats, feedTasteProfile, nowMs);
+        }
         return bScore - aScore;
       }
       if (rawOrderValue === "ratingAvg:desc") {
@@ -558,4 +702,16 @@ app.post("/posts/:id/rate", async (req, res) => {
   }
 });
 
-app.listen(PORT, "0.0.0.0", () => console.log(`Server running at http://localhost:${PORT}`));
+function startServer() {
+  return app.listen(PORT, "0.0.0.0", () => console.log(`Server running at http://localhost:${PORT}`));
+}
+if (require.main === module) startServer();
+
+module.exports = {
+  app,
+  prisma,
+  startServer,
+  computePersonalBoost,
+  loadUserFeedTasteProfile,
+  getRatingStatsMap,
+};
