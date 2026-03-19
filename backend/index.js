@@ -50,7 +50,7 @@ app.use((req, res, next) => {
 const PORT = process.env.PORT || 3000;
 
 /** Sağlık kontrolü: sunucu ayaktaysa 200. "Backend temel ayakta" = aşağıdaki checkpoint'lerin hepsi 200 dönmeli. */
-const HEALTH_CHECKPOINTS = ["/posts/feed", "/posts/rated-high", "/posts/rated-low"];
+const HEALTH_CHECKPOINTS = ["/posts?order=feed&limit=1", "/posts/rated-high", "/posts/rated-low"];
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
@@ -197,6 +197,94 @@ function computePersonalBoost(post, stats, tasteProfile, nowMs = Date.now()) {
   let boost = Math.min(rawBoost, explorationCap);
   boost = Math.min(boost, qualityScore * qualityCapRatio);
   return boost;
+}
+
+/** Basit CF: aynı postlara 4–5 veren kullanıcıların diğer yüksek oylarına küçük skor; personalBoost'tan düşük, kalite tavanı ile sınırlı. */
+/** Komşu sinyali; taban skordaki volumeScore (ln(count+1)×40) ile yarışabilmeli — çok düşükse CF pratikte görünmez. */
+const FEED_COLLAB_SCALE = Number(process.env.FEED_COLLAB_SCALE || 22);
+const FEED_COLLAB_NEIGHBOR_CAP = Math.max(8, Number(process.env.FEED_COLLAB_NEIGHBOR_CAP || 40));
+const FEED_COLLAB_ANCHOR_CAP = Math.max(5, Number(process.env.FEED_COLLAB_ANCHOR_CAP || 25));
+
+async function loadCollaborativePostWeights(userId, candidatePostIds) {
+  const out = new Map();
+  if (candidatePostIds.length === 0) return out;
+
+  const myRatings = await prisma.rating.findMany({
+    where: { userId, value: { gte: 4 } },
+    select: { postId: true, value: true },
+    orderBy: { createdAt: "desc" },
+    take: FEED_COLLAB_ANCHOR_CAP,
+  });
+  if (myRatings.length === 0) return out;
+
+  const anchorIds = [...new Set(myRatings.map((r) => r.postId))];
+  const anchorStrength = new Map();
+  for (const r of myRatings) {
+    const w = (r.value - 3) / 2;
+    anchorStrength.set(r.postId, (anchorStrength.get(r.postId) || 0) + w);
+  }
+
+  const anchorNeighborRatings = await prisma.rating.findMany({
+    where: { postId: { in: anchorIds }, userId: { not: userId }, value: { gte: 4 } },
+    select: { userId: true, postId: true, value: true },
+  });
+  const matchWByUser = new Map();
+  for (const r of anchorNeighborRatings) {
+    const aw = anchorStrength.get(r.postId) || 0;
+    const add = ((r.value - 3) / 2) * aw;
+    matchWByUser.set(r.userId, (matchWByUser.get(r.userId) || 0) + add);
+  }
+  const neighborIds = [...matchWByUser.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, FEED_COLLAB_NEIGHBOR_CAP)
+    .map(([uid]) => uid);
+  if (neighborIds.length === 0) return out;
+
+  const myAnyPostIds = (
+    await prisma.rating.findMany({
+      where: { userId },
+      select: { postId: true },
+      distinct: ["postId"],
+    })
+  ).map((r) => r.postId);
+  const myRated = new Set(myAnyPostIds);
+
+  const candSet = new Set(candidatePostIds);
+  const neighborHigh = await prisma.rating.findMany({
+    where: {
+      userId: { in: neighborIds },
+      value: { gte: 4 },
+      postId: { in: candidatePostIds },
+    },
+    select: { postId: true, value: true, userId: true },
+  });
+
+  for (const r of neighborHigh) {
+    if (myRated.has(r.postId)) continue;
+    if (!candSet.has(r.postId)) continue;
+    const nw = matchWByUser.get(r.userId) || 0;
+    const valW = (r.value - 3) / 2;
+    const add = nw * valW * FEED_COLLAB_SCALE;
+    out.set(r.postId, (out.get(r.postId) || 0) + add);
+  }
+
+  return out;
+}
+
+function computeCollaborativeBoost(post, stats, collabMap, personalBoost) {
+  if (!collabMap || stats.ratingAvg == null) return 0;
+  const raw = collabMap.get(post.id);
+  if (raw == null || raw <= 0) return 0;
+
+  const qualityScore = stats.ratingAvg * 100;
+  const qualityCapRatio = Number(process.env.FEED_PERSONAL_QUALITY_CAP_RATIO || 0.3);
+
+  const headroom = Math.max(0, qualityScore * qualityCapRatio - personalBoost);
+  if (headroom <= 0) return 0;
+
+  const vsPersonal =
+    personalBoost > 0 ? personalBoost * 0.45 : qualityScore * qualityCapRatio * 0.2;
+  return Math.round(Math.min(raw, vsPersonal, headroom) * 1000) / 1000;
 }
 
 async function loadUserFeedTasteProfile(userId) {
@@ -414,27 +502,9 @@ app.get("/posts/rated-low", async (req, res) => {
   }
 });
 
-// --- Posts: feed (skor: ortalama + oy sayısı + tazelik − yaş çürümesi) ---
-app.get("/posts/feed", async (req, res) => {
-  try {
-    const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit || "50"), 10) || 50));
-    const posts = await prisma.post.findMany({
-      where: { deletedAt: null },
-      include: postUserInclude,
-    });
-    const statsMap = await getRatingStatsMap(posts.map((p) => p.id));
-    const now = Date.now();
-    const rows = posts.map((p) => {
-      const base = serializePost(p, statsMap);
-      const st = statsMap.get(p.id) || emptyRatingStats;
-      const feedScore = computeFeedScore(p, st, now);
-      return { ...base, feedScore };
-    });
-    rows.sort((a, b) => b.feedScore - a.feedScore);
-    res.json(rows.slice(0, limit));
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
+// --- Posts: feed (deprecated → GET /posts?order=feed) ---
+app.get("/posts/feed", (req, res) => {
+  res.status(410).json({ error: "deprecated", message: "use /posts?order=feed" });
 });
 
 // --- Posts: list (silinmemişler, createdAt desc) ---
@@ -512,15 +582,34 @@ app.get("/posts", async (req, res) => {
           });
     const nowMs = Date.now();
     let feedTasteProfile = null;
+    let feedAuthUserId = null;
+    /** Oylanmış postlara tekrar “taste” boost’u vermeyelim; aksi halde CF komşu önerisi (henüz oylanmamış) ile yarışamaz. */
+    let feedRatedPostIds = new Set();
     if (rawOrderValue === "feed") {
       const auth = req.headers.authorization;
       if (auth && typeof auth === "string" && auth.startsWith("Bearer ")) {
         const token = auth.slice(7).trim();
         if (token) {
           const authUser = await prisma.user.findUnique({ where: { ratingToken: token } });
-          if (authUser) feedTasteProfile = await loadUserFeedTasteProfile(authUser.id);
+          if (authUser) {
+            feedAuthUserId = authUser.id;
+            feedTasteProfile = await loadUserFeedTasteProfile(authUser.id);
+            const ratedRows = await prisma.rating.findMany({
+              where: { userId: authUser.id },
+              select: { postId: true },
+              distinct: ["postId"],
+            });
+            feedRatedPostIds = new Set(ratedRows.map((r) => r.postId));
+          }
         }
       }
+    }
+    let collabMap = null;
+    if (rawOrderValue === "feed" && feedAuthUserId) {
+      collabMap = await loadCollaborativePostWeights(
+        feedAuthUserId,
+        filteredPosts.map((p) => p.id)
+      );
     }
     const sortedPosts = [...filteredPosts].sort((a, b) => {
       if (rawOrderValue === "feed") {
@@ -530,9 +619,19 @@ app.get("/posts", async (req, res) => {
         const bPost = { ...b, createdAt: b.createdAt || new Date(nowMs).toISOString() };
         let aScore = computePostsOrderFeedScore(aPost, aStats, nowMs);
         let bScore = computePostsOrderFeedScore(bPost, bStats, nowMs);
-        if (feedTasteProfile) {
-          aScore += computePersonalBoost(aPost, aStats, feedTasteProfile, nowMs);
-          bScore += computePersonalBoost(bPost, bStats, feedTasteProfile, nowMs);
+        const aPersonal =
+          feedTasteProfile && !feedRatedPostIds.has(a.id)
+            ? computePersonalBoost(aPost, aStats, feedTasteProfile, nowMs)
+            : 0;
+        const bPersonal =
+          feedTasteProfile && !feedRatedPostIds.has(b.id)
+            ? computePersonalBoost(bPost, bStats, feedTasteProfile, nowMs)
+            : 0;
+        aScore += aPersonal;
+        bScore += bPersonal;
+        if (collabMap && collabMap.size > 0) {
+          aScore += computeCollaborativeBoost(aPost, aStats, collabMap, aPersonal);
+          bScore += computeCollaborativeBoost(bPost, bStats, collabMap, bPersonal);
         }
         return bScore - aScore;
       }
