@@ -1,5 +1,5 @@
 /**
- * GET /posts/feed için panel yardımcıları (vanilla).
+ * GET /posts?order=feed için panel yardımcıları (vanilla).
  * Taban: window.LUMOS_POSTS_API_BASE veya localStorage lumos_posts_api_base → yoksa http://127.0.0.1:3000
  */
 (function (global) {
@@ -15,6 +15,26 @@
       if (ls && String(ls).trim()) return String(ls).replace(/\/$/, "");
     } catch (_) {}
     return DEFAULT_BASE;
+  }
+
+  /** ratingToken (Bearer) — window.LUMOS_AUTH_TOKEN veya localStorage lumos_rating_token / lumos_auth_token */
+  function getAuthToken() {
+    try {
+      if (global.LUMOS_AUTH_TOKEN != null && String(global.LUMOS_AUTH_TOKEN).trim())
+        return String(global.LUMOS_AUTH_TOKEN).trim();
+      var ls =
+        global.localStorage &&
+        (global.localStorage.getItem("lumos_rating_token") ||
+          global.localStorage.getItem("lumos_auth_token"));
+      if (ls && String(ls).trim()) return String(ls).trim();
+    } catch (_) {}
+    return "";
+  }
+
+  function feedFetchInit() {
+    var token = getAuthToken();
+    if (!token) return {};
+    return { headers: { Authorization: "Bearer " + token } };
   }
 
   function escapeHtml(s) {
@@ -75,8 +95,17 @@
     formatRelativeTime: formatRelativeTime,
     pickPostCardProps: pickPostCardProps,
     formatMeta: formatMeta,
-    feedUrl: function (limit) {
-      return getBase() + "/posts/feed?limit=" + (limit || 50);
+    feedUrl: function (limit, offset) {
+      var lim = limit == null || limit === "" ? 50 : Number(limit);
+      if (!Number.isFinite(lim) || lim < 1) lim = 50;
+      lim = Math.min(100, Math.max(1, Math.floor(lim)));
+      var q = "/posts?order=feed&limit=" + lim;
+      if (offset != null && offset !== "") {
+        var off = Number(offset);
+        if (Number.isFinite(off) && off >= 0) q += "&offset=" + Math.floor(off);
+      }
+      return getBase() + q;
     },
+    feedFetchInit: feedFetchInit,
   };
 })(typeof window !== "undefined" ? window : globalThis);

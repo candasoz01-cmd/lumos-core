@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 /**
- * Gerçek test: Kullanıcı oluştur → Post oluştur → GET /posts/feed
+ * Gerçek test: Kullanıcı oluştur → Post oluştur → GET /posts?order=feed (+ Bearer)
  * Kullanım: node scripts/seed-feed-test.js [BASE_URL]
  * Örnek:   node scripts/seed-feed-test.js http://localhost:3000
  */
 const BASE = process.argv[2] || "http://localhost:3000";
 
-async function request(method, path, body) {
+async function request(method, path, body, extraHeaders) {
   const url = `${BASE}${path}`;
   const opts = {
     method,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(extraHeaders || {}) },
   };
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch(url, opts);
@@ -41,10 +41,12 @@ async function main() {
   console.log("2) POST /posts →", post.id, post.content?.slice(0, 40) + "...");
 
   // 3) Feed al
-  const feed = await request("GET", "/posts/feed?limit=50");
-  console.log("3) GET /posts/feed →", feed.length, "gönderi");
+  const feed = await request("GET", "/posts?order=feed&limit=50", undefined, {
+    Authorization: `Bearer ${user.ratingToken}`,
+  });
+  console.log("3) GET /posts?order=feed →", feed.length, "gönderi");
   const ours = feed.find((p) => p.id === post.id);
-  if (ours) console.log("   Yeni gönderi feed'de:", ours.id, "feedScore:", ours.feedScore);
+  if (ours) console.log("   Yeni gönderi feed'de:", ours.id, ours.feedScore != null ? "feedScore:" + ours.feedScore : "");
   else console.log("   (Yeni gönderi listede görünmüyor olabilir)");
 
   console.log("Bitti.");
