@@ -49,6 +49,12 @@ app.use((req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 
+/** Sağlık kontrolü: sunucu ayaktaysa 200. "Backend temel ayakta" = aşağıdaki checkpoint'lerin hepsi 200 dönmeli. */
+const HEALTH_CHECKPOINTS = ["/posts/feed", "/posts/rated-high", "/posts/rated-low"];
+app.get("/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
 const postUserInclude = {
   user: { select: { username: true } },
 };
@@ -148,10 +154,39 @@ app.post("/users", async (req, res) => {
 // --- Posts: create ---
 app.post("/posts", async (req, res) => {
   try {
-    const { content, userId } = req.body;
-    if (!content || !userId) return res.status(400).json({ error: "content and userId required" });
+    const { content, userId, username } = req.body;
+    let normalizedContent = content;
+    if (typeof normalizedContent === "string") normalizedContent = normalizedContent.trim();
+    if (!normalizedContent) return res.status(400).json({ error: "content required" });
+    let normalizedUsername = username;
+    if (typeof normalizedUsername === "string") normalizedUsername = normalizedUsername.trim();
+    if (normalizedUsername === "") normalizedUsername = undefined;
+    const hasUserId = userId !== undefined && userId !== null && userId !== "";
+    if (!hasUserId && !normalizedUsername) {
+      return res.status(400).json({ error: "userId or username required" });
+    }
+
+    let user;
+    if (hasUserId) {
+      user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user) return res.status(400).json({ error: "invalid userId" });
+    } else {
+      user = await prisma.user.findUnique({ where: { username: normalizedUsername } });
+      if (!user) {
+        const ratingToken = crypto.randomBytes(32).toString("hex");
+        try {
+          user = await prisma.user.create({ data: { username: normalizedUsername, ratingToken } });
+        } catch (e) {
+          if (e.code === "P2002") {
+            user = await prisma.user.findUnique({ where: { username: normalizedUsername } });
+          }
+          if (!user) throw e;
+        }
+      }
+    }
+
     const post = await prisma.post.create({
-      data: { content, userId },
+      data: { content: normalizedContent, userId: user.id },
       include: postUserInclude,
     });
     const statsMap = await getRatingStatsMap([post.id]);
@@ -242,7 +277,93 @@ app.get("/posts/feed", async (req, res) => {
 // --- Posts: list (silinmemişler, createdAt desc) ---
 app.get("/posts", async (req, res) => {
   try {
-    const list = await postsWithRatings({ deletedAt: null }, { createdAt: "desc" });
+    const rawLimit = req.query.limit;
+    const rawLimitValue = Array.isArray(rawLimit) ? rawLimit[0] : rawLimit;
+    let limit;
+    if (rawLimitValue !== undefined) {
+      const n = Number(rawLimitValue);
+      if (Number.isFinite(n) && Number.isInteger(n) && n >= 0) limit = n;
+    }
+    const rawOffset = req.query.offset;
+    const rawOffsetValue = Array.isArray(rawOffset) ? rawOffset[0] : rawOffset;
+    let offset;
+    if (rawOffsetValue !== undefined) {
+      const n = Number(rawOffsetValue);
+      if (Number.isFinite(n) && Number.isInteger(n) && n >= 0) offset = n;
+    }
+    const rawOrder = req.query.order;
+    const rawOrderValue = Array.isArray(rawOrder) ? rawOrder[0] : rawOrder;
+    const createdAtOrder =
+      rawOrderValue === "asc" ? "asc" : rawOrderValue === "desc" ? "desc" : "desc";
+    const rawUsername = req.query.username;
+    const rawUsernameValue = Array.isArray(rawUsername) ? rawUsername[0] : rawUsername;
+    let normalizedUsername = rawUsernameValue;
+    if (typeof normalizedUsername === "string") normalizedUsername = normalizedUsername.trim();
+    if (normalizedUsername === "") normalizedUsername = undefined;
+
+    const rawFields = req.query.fields;
+    const rawFieldsValue = Array.isArray(rawFields) ? rawFields[0] : rawFields;
+    const allowedFields = new Set(["id", "content", "createdAt", "user", "ratingAvg", "ratingCount"]);
+    const requestedFields =
+      typeof rawFieldsValue === "string"
+        ? rawFieldsValue
+            .split(",")
+            .map((s) => s.trim())
+            .filter((s) => allowedFields.has(s))
+        : null;
+    const normalizedRequestedFields = requestedFields && requestedFields.length > 0 ? requestedFields : null;
+
+    const rawMinRating = req.query.minRating;
+    const rawMinRatingValue = Array.isArray(rawMinRating) ? rawMinRating[0] : rawMinRating;
+    let minRating;
+    if (rawMinRatingValue !== undefined) {
+      const n = Number(rawMinRatingValue);
+      if (Number.isFinite(n)) minRating = n;
+    }
+
+    let where = { deletedAt: null };
+    if (normalizedUsername) {
+      const user = await prisma.user.findUnique({ where: { username: normalizedUsername } });
+      if (!user) return res.json([]);
+      where = { ...where, userId: user.id };
+    }
+    const shouldUseFields = normalizedRequestedFields !== null;
+    const posts = await prisma.post.findMany({
+      where,
+      ...(shouldUseFields
+        ? {
+            select: {
+              id: true,
+              ...(normalizedRequestedFields.includes("content") ? { content: true } : {}),
+              ...(normalizedRequestedFields.includes("createdAt") ? { createdAt: true } : {}),
+              ...(normalizedRequestedFields.includes("user") ? { user: postUserInclude.user } : {}),
+            },
+          }
+        : { include: postUserInclude }),
+      orderBy: { createdAt: createdAtOrder },
+      ...(limit !== undefined ? { take: limit } : {}),
+      ...(offset !== undefined ? { skip: offset } : {}),
+    });
+    const statsMap = await getRatingStatsMap(posts.map((p) => p.id));
+    const filteredPosts =
+      minRating === undefined
+        ? posts
+        : posts.filter((p) => {
+            const st = statsMap.get(p.id) || emptyRatingStats;
+            return st.ratingAvg != null && st.ratingAvg >= minRating;
+          });
+    const list = filteredPosts.map((p) => {
+      const serialized = serializePost(p, statsMap);
+      if (!shouldUseFields) return serialized;
+      const out = {};
+      if (normalizedRequestedFields.includes("id")) out.id = serialized.id;
+      if (normalizedRequestedFields.includes("content")) out.content = serialized.content;
+      if (normalizedRequestedFields.includes("createdAt")) out.createdAt = serialized.createdAt;
+      if (normalizedRequestedFields.includes("user")) out.user = serialized.user;
+      if (normalizedRequestedFields.includes("ratingAvg")) out.ratingAvg = serialized.ratingAvg;
+      if (normalizedRequestedFields.includes("ratingCount")) out.ratingCount = serialized.ratingCount;
+      return out;
+    });
     res.json(list);
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -338,4 +459,4 @@ app.post("/posts/:id/rate", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
+app.listen(PORT, "0.0.0.0", () => console.log(`Server running at http://localhost:${PORT}`));

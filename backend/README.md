@@ -23,6 +23,7 @@ npm start
 
 | Method | Path | Description |
 |--------|------|-------------|
+| GET | /health | Sağlık: 200 + `{ ok, checkpoints }`. Tam kontrol için checkpoint’lere GET atılır — bkz. `docs/STABILIZASYON_LISTESI.md`. |
 | POST | /users | Create user `{ "username": "alice" }` |
 | POST | /posts | Create post `{ "content": "...", "userId": "..." }` |
 | GET | /posts | List non-deleted posts, **createdAt desc** (+ rating özetleri) |

@@ -92,9 +92,3 @@ Lumos kendi üzerinde deneme yapacaksa (ör. gelecekte taslak/deneme özelliği)
 - **Cevap disiplini:** Veri yoksa boşluk doldurma; belirsizlikte “anlamadım” + örnek; riskte uyarı; tamamlanmamış işte açık status/result_kind.
 
 Bu sözleşme, mevcut Lumos çekirdeği (profiles, policy, workspace sözleşmesi, CLI akışı) ile uyumlu minimum omurgadır; genişletme yapılırken dokümantasyon güncellenir.
-
----
-
-## 8. Karar motoru (istek sınıfı, onay, tam iş)
-
-Çekirdek katmanlar (yukarıdaki bölümler) aynı kalır. İstek sınıflandırma, ürünselde hazır çözüm taraması, risk, onay ve **yarım iş bırakmama**: **`docs/lumos-karar-motoru.md`**. Cursor özeti: **`.cursor/rules/lumos-karar-motoru.mdc`**.

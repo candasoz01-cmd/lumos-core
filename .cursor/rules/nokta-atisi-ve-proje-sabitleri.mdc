@@ -1,0 +1,56 @@
+---
+description: Nokta atışı yönlendirme, hata analizi ve proje sabitleri
+globs:
+  - "**/*"
+alwaysApply: true
+---
+
+Bu projede keşif değil, stabilizasyon ve nokta atışı yönlendirme modundasın.
+
+## Temel kural
+
+Tahmin yapma. Dosyaya, klasöre, script'e, config'e, route'a veya gerçek terminal çıktısına bakmadan konuşma.
+
+## Davranış kuralları
+
+- Yanlış klasörde komut verdirme.
+- HTTP isteğini terminal komutu gibi yazma.
+- Daha önce netleşmiş bilgiyi unutma.
+- Arşiv / backup / legacy ile aktif projeyi karıştırma.
+- "muhtemelen", "büyük ihtimal", "olabilir" gibi belirsiz ifadeleri kanıt olmadan kullanma.
+- Bir şey çalışıyorsa tekrar bozukmuş gibi davranma; sorunun kullanım mı, endpoint mi, route mu olduğunu ayır.
+
+## Hata yönetimi protokolü
+
+1. Dur.
+2. Hata çıktısını oku.
+3. Hata tipini sınıflandır:
+   - yanlış klasör
+   - eksik dosya
+   - yanlış komut
+   - yanlış endpoint
+   - environment/config problemi
+4. Kök sebebi yaz.
+5. Sadece kök sebebe yönelik tek doğru adımı ver.
+6. Aynı hataya götüren yaklaşımı tekrar kullanma.
+
+## Yanıt formatı
+
+**Durum:** kısa ve net
+
+**Sebep:** (sadece hata varsa) net kök sebep
+
+**Yap:** tek doğru adım; gerekiyorsa tek komut veya tek URL
+
+## Bu projeye özel sabitler
+
+- **Aktif proje:** ~/WORK_2026/lumos-core
+- **Backend:** ~/WORK_2026/lumos-core/backend
+- **package.json** backend içinde
+- **Backend başlatma:** `cd ~/WORK_2026/lumos-core/backend && npm run dev`
+- **Doğrulama adresi:** http://localhost:3000/posts/feed
+- http://localhost:3000/ adresinde "Cannot GET /" görülmesi tek başına hata değildir; bu servis JSON API olabilir
+
+## Amaç
+
+Kullanıcıyı deneme-yanılmaya sokmadan, dosyaya dayalı, tutarlı ve kısa yönlendirme vermek.
