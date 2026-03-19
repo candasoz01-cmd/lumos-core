@@ -449,6 +449,12 @@ app.patch("/posts/:id/restore", async (req, res) => {
 });
 
 // --- Rate post (1–5); Bearer <ratingToken>; body’de userId yok ---
+const RATE_ENDPOINT_COOLDOWN_MS = Number(process.env.RATE_ENDPOINT_COOLDOWN_MS || 5000);
+const RATE_ENDPOINT_VELOCITY_WINDOW_MS = Number(
+  process.env.RATE_ENDPOINT_VELOCITY_WINDOW_MS || 10000
+);
+const RATE_ENDPOINT_VELOCITY_MAX = Number(process.env.RATE_ENDPOINT_VELOCITY_MAX || 5);
+
 app.post("/posts/:id/rate", async (req, res) => {
   try {
     const body = req.body || {};
@@ -481,6 +487,19 @@ app.post("/posts/:id/rate", async (req, res) => {
     if (!user || !user.ratingToken) return res.status(401).json({ error: "invalid or expired rating token" });
 
     const userId = user.id;
+    const windowStart = new Date(Date.now() - RATE_ENDPOINT_VELOCITY_WINDOW_MS);
+    const recentRatingsCount = await prisma.rating.count({
+      where: {
+        postId,
+        createdAt: {
+          gte: windowStart,
+        },
+      },
+    });
+    if (recentRatingsCount >= RATE_ENDPOINT_VELOCITY_MAX) {
+      return res.status(429).json({ error: "Rate limit exceeded" });
+    }
+
     const lastRating = await prisma.rating.findFirst({
       where: {
         userId,
@@ -493,7 +512,7 @@ app.post("/posts/:id/rate", async (req, res) => {
 
     if (lastRating) {
       const diff = Date.now() - new Date(lastRating.createdAt).getTime();
-      if (diff < 5000) {
+      if (diff < RATE_ENDPOINT_COOLDOWN_MS) {
         return res.status(429).json({ error: "Too fast" });
       }
     }
