@@ -9,7 +9,7 @@ POST_ID=$(echo "$CREATE_RESP" | jq -r '.id')
 
 echo
 echo "2) get rating token"
-TOKEN=$(curl -s -X POST "$BASE/users" -H "Content-Type: application/json" -d '{"username":"kando_rate_voter"}' | jq -r '.ratingToken')
+TOKEN=$(curl -s -X POST "$BASE/users" -H "Content-Type: application/json" -d '{"username":"kando_rate_voter_1773943156"}' | jq -r '.ratingToken')
 echo "$TOKEN"
 
 echo
