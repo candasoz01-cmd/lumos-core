@@ -115,6 +115,23 @@ function computeFeedScore(post, stats, nowMs = Date.now()) {
   return Math.round(score * 100) / 100;
 }
 
+function computePostsOrderFeedScore(post, stats, nowMs = Date.now()) {
+  const ratingAvg = stats.ratingAvg;
+  const ratingCount = stats.ratingCount ?? 0;
+  const highRatingCount = stats.highRatingCount ?? 0;
+  const lowRatingCount = stats.lowRatingCount ?? 0;
+  const ageInHours = Math.max(0, (nowMs - new Date(post.createdAt).getTime()) / 3600000);
+  const recency = 1 / (1 + ageInHours / 24);
+  if (ratingAvg == null) return -100000 + recency;
+  return (
+    ratingAvg * 100 +
+    ratingCount * 10 +
+    highRatingCount * 5 -
+    lowRatingCount * 5 +
+    recency
+  );
+}
+
 async function postsWithRatings(where, orderBy) {
   const posts = await prisma.post.findMany({
     where,
@@ -347,7 +364,23 @@ app.get("/posts", async (req, res) => {
             const st = statsMap.get(p.id) || emptyRatingStats;
             return st.ratingAvg != null && st.ratingAvg >= minRating;
           });
+    const nowMs = Date.now();
     const sortedPosts = [...filteredPosts].sort((a, b) => {
+      if (rawOrderValue === "feed") {
+        const aStats = statsMap.get(a.id) || emptyRatingStats;
+        const bStats = statsMap.get(b.id) || emptyRatingStats;
+        const aScore = computePostsOrderFeedScore(
+          { ...a, createdAt: a.createdAt || new Date(nowMs).toISOString() },
+          aStats,
+          nowMs
+        );
+        const bScore = computePostsOrderFeedScore(
+          { ...b, createdAt: b.createdAt || new Date(nowMs).toISOString() },
+          bStats,
+          nowMs
+        );
+        return bScore - aScore;
+      }
       if (rawOrderValue === "ratingAvg:desc") {
         const aStats = statsMap.get(a.id) || emptyRatingStats;
         const bStats = statsMap.get(b.id) || emptyRatingStats;
