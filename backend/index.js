@@ -453,11 +453,20 @@ app.post("/posts/:id/rate", async (req, res) => {
       });
     }
 
-    const rating = await prisma.rating.upsert({
-      where: { userId_postId: { userId: user.id, postId } },
-      create: { userId: user.id, postId, value: v },
-      update: { value: v },
+    let rating = await prisma.rating.findFirst({
+      where: { userId: user.id, postId },
+      orderBy: { createdAt: "desc" },
     });
+    if (rating) {
+      rating = await prisma.rating.update({
+        where: { id: rating.id },
+        data: { value: v },
+      });
+    } else {
+      rating = await prisma.rating.create({
+        data: { userId: user.id, postId, value: v },
+      });
+    }
     recordRatingBurst(user.id, postId);
 
     const statsMap = await getRatingStatsMap([postId]);
