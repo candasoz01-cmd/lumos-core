@@ -480,6 +480,24 @@ app.post("/posts/:id/rate", async (req, res) => {
     const user = await prisma.user.findUnique({ where: { ratingToken: token } });
     if (!user || !user.ratingToken) return res.status(401).json({ error: "invalid or expired rating token" });
 
+    const userId = user.id;
+    const lastRating = await prisma.rating.findFirst({
+      where: {
+        userId,
+        postId,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    if (lastRating) {
+      const diff = Date.now() - new Date(lastRating.createdAt).getTime();
+      if (diff < 5000) {
+        return res.status(429).json({ error: "Too fast" });
+      }
+    }
+
     if (!checkRatingBurst(user.id, postId)) {
       return res.status(429).json({
         error: "too many rating updates for this post; try again later",
