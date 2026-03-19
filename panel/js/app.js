@@ -871,7 +871,7 @@
     );
   }
 
-  /** GET /posts/feed — canlı API; mock yok */
+  /** GET /posts?order=feed — canlı API; mock yok */
   var feedViewState = { status: "idle", posts: [], error: "", baseUsed: "" };
 
   function renderFeed() {
@@ -882,8 +882,8 @@
       feedViewState.status = "loading";
       feedViewState.error = "";
       feedViewState.baseUsed = F.getBase();
-      var url = feedViewState.baseUsed + "/posts/feed?limit=50";
-      fetch(url)
+      var url = F.feedUrl(50);
+      fetch(url, F.feedFetchInit())
         .then(function (r) {
           if (!r.ok) throw new Error("HTTP " + r.status);
           return r.json();
@@ -899,7 +899,7 @@
           if (getCurrentScreen().id === "feed") renderMain();
         });
       return (
-        ViewHeader("Akış", "GET /posts/feed") +
+        ViewHeader("Akış", "GET /posts?order=feed") +
         '<p class="text-muted-small">Kaynak: ' +
         F.escapeHtml(feedViewState.baseUsed) +
         '</p><div class="feed-loading">Yükleniyor…</div>'
@@ -908,7 +908,7 @@
 
     if (feedViewState.status === "loading") {
       return (
-        ViewHeader("Akış", "GET /posts/feed") +
+        ViewHeader("Akış", "GET /posts?order=feed") +
         '<p class="text-muted-small">' +
         F.escapeHtml(feedViewState.baseUsed) +
         '</p><div class="feed-loading">Yükleniyor…</div>'

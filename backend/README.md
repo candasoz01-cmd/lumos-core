@@ -26,8 +26,8 @@ npm start
 | GET | /health | Sağlık: 200 + `{ ok, checkpoints }`. Tam kontrol için checkpoint’lere GET atılır — bkz. `docs/STABILIZASYON_LISTESI.md`. |
 | POST | /users | Create user `{ "username": "alice" }` |
 | POST | /posts | Create post `{ "content": "...", "userId": "..." }` |
-| GET | /posts | List non-deleted posts, **createdAt desc** (+ rating özetleri) |
-| GET | /posts/feed | **feedScore** = `ratingAvg×1.2 + ln(ratingCount+1)` + taze (**+3** / 2 saat) − `ageInHours×0.4`. Env: `FEED_AVG_MULTIPLIER`, `FEED_TIME_DECAY_PER_H` (eski ad: `FEED_AGE_PENALTY_PER_H`), `FEED_FRESH_BOOST`, `FEED_FRESH_HOURS`. |
+| GET | /posts | List non-deleted posts (+ rating özetleri). **`order=feed`** → feed sıralaması (taban skor + isteğe bağlı kişisel/CF için **`Authorization: Bearer <ratingToken>`**). Kimlik yoksa yalnızca taban sıralama. `limit` / `offset` ile sayfalama. Env: `FEED_*`, `FEED_COLLAB_*`. |
+| GET | /posts/feed | **Kullanımdan kaldırıldı:** **410** + `message: use /posts?order=feed` — bunun yerine **`GET /posts?order=feed`** kullanın. |
 | GET | /posts/rated-high | İyi postlar: yüksek ortalama (`minVotes`, `limit`) |
 | GET | /posts/rated-low | Kötü postlar: 1–2 yıldız oranı yüksek (`minVotes`≥2, `limit`) |
 | DELETE | /posts/:id | Soft delete post |
