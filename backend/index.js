@@ -293,8 +293,6 @@ app.get("/posts", async (req, res) => {
     }
     const rawOrder = req.query.order;
     const rawOrderValue = Array.isArray(rawOrder) ? rawOrder[0] : rawOrder;
-    const createdAtOrder =
-      rawOrderValue === "asc" ? "asc" : rawOrderValue === "desc" ? "desc" : "desc";
     const rawUsername = req.query.username;
     const rawUsernameValue = Array.isArray(rawUsername) ? rawUsername[0] : rawUsername;
     let normalizedUsername = rawUsernameValue;
@@ -340,9 +338,6 @@ app.get("/posts", async (req, res) => {
             },
           }
         : { include: postUserInclude }),
-      orderBy: { createdAt: createdAtOrder },
-      ...(limit !== undefined ? { take: limit } : {}),
-      ...(offset !== undefined ? { skip: offset } : {}),
     });
     const statsMap = await getRatingStatsMap(posts.map((p) => p.id));
     const filteredPosts =
@@ -352,7 +347,21 @@ app.get("/posts", async (req, res) => {
             const st = statsMap.get(p.id) || emptyRatingStats;
             return st.ratingAvg != null && st.ratingAvg >= minRating;
           });
-    const list = filteredPosts.map((p) => {
+    const sortedPosts = [...filteredPosts].sort((a, b) => {
+      if (rawOrderValue === "ratingAvg:desc") {
+        const aStats = statsMap.get(a.id) || emptyRatingStats;
+        const bStats = statsMap.get(b.id) || emptyRatingStats;
+        return (bStats.ratingAvg ?? -1) - (aStats.ratingAvg ?? -1);
+      }
+      const aCreatedAt = new Date(a.createdAt).getTime();
+      const bCreatedAt = new Date(b.createdAt).getTime();
+      if (rawOrderValue === "asc") return aCreatedAt - bCreatedAt;
+      return bCreatedAt - aCreatedAt;
+    });
+    let pagedPosts = sortedPosts;
+    if (offset) pagedPosts = pagedPosts.slice(offset);
+    if (limit) pagedPosts = pagedPosts.slice(0, limit);
+    const list = pagedPosts.map((p) => {
       const serialized = serializePost(p, statsMap);
       if (!shouldUseFields) return serialized;
       const out = {};
