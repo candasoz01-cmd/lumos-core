@@ -521,6 +521,18 @@
     if (meta) meta.textContent = "Dal: " + data.branchName + " · Mod: DEV";
   }
 
+  /** Veri kaynağı (tek satır); teknik endpoint listesi yok */
+  function renderPostsApiBaseLine(F) {
+    if (!F || !F.getBase) return "";
+    return (
+      '<p class="posts-api-base-line">' +
+      '<span class="posts-api-base-label">Bağlantı</span> ' +
+      '<code>' +
+      F.escapeHtml(F.getBase()) +
+      "</code></p>"
+    );
+  }
+
   // ——— Topbar (adapter verisi + demo senaryo seçici) ———
   function renderTopbar() {
     var screen = getCurrentScreen();
@@ -528,7 +540,13 @@
     if (titleEl) titleEl.textContent = screen.label || "—";
     var data = getTopbarData();
     var baseEl = document.getElementById("topbar-base-label");
-    if (baseEl) baseEl.textContent = "Temel: " + data.basePath;
+    if (baseEl) {
+      var apiPart = "";
+      if (typeof window.LumosFeedApi !== "undefined" && window.LumosFeedApi.getBase) {
+        apiPart = " · API: " + window.LumosFeedApi.getBase();
+      }
+      baseEl.textContent = "Temel: " + data.basePath + apiPart;
+    }
     var wrap = document.getElementById("topbar-badges");
     if (wrap) {
       var html = "";
@@ -554,11 +572,25 @@
   }
 
   // ——— Routing ———
+  /** #feed | #rated-high | #rated-low → Akış ekranı + sekme (SCREENS.feed ile aynı view) */
+  function feedTabFromLocationHash() {
+    var raw = window.location.hash || "";
+    var h = raw.toLowerCase();
+    if (h === "#rated-high" || h === "#rated_high") return "rated-high";
+    if (h === "#rated-low" || h === "#rated_low") return "rated-low";
+    if (h === "#feed") return "feed";
+    return null;
+  }
+
   function getCurrentScreen() {
     var hash = (window.location.hash || DEFAULT_HASH).toLowerCase();
     if (hash.length <= 1) return SCREENS.dashboard;
     var id = hash.slice(1);
     if (SCREENS[id]) return SCREENS[id];
+    var ft = feedTabFromLocationHash();
+    if (ft) {
+      return { id: "feed", label: SCREENS.feed.label, hash: window.location.hash || "#feed", feedTab: ft };
+    }
     return { id: "_empty", label: "", hash: hash };
   }
 
@@ -683,33 +715,331 @@
     return ViewHeader(data.title, data.subtitle) + '<div class="cards-grid">' + cards + "</div>" + sectionsHtml;
   }
 
+  /** GET /posts/trash — yalnızca backend yanıtı (trashPosts); başka kaynak yok */
+  var trashViewState = {
+    status: "idle",
+    trashPosts: [],
+    error: "",
+    loadId: 0,
+    actionBusyByPostId: {},
+    actionBusyAll: false,
+    flash: null,
+  };
+
+  function trashPreviewText(s) {
+    var t = s == null ? "" : String(s).trim();
+    if (t.length <= 70) return t;
+    return t.slice(0, 67) + "…";
+  }
+
+  /** Trash için API teknik mesajları (seçim/liste uyumsuzluğunda) kullanıcıya gösterme */
+  function isTrashFlashTechnicalNotFound(msg) {
+    var low = String(msg || "").toLowerCase();
+    return low.indexOf("post not found in trash") !== -1 || low.indexOf("not found in trash") !== -1;
+  }
+
+  /** @param {*} F LumosFeedApi */
+  function trashFlashHtml(F, ctx) {
+    ctx = ctx || {};
+    if (!trashViewState.flash || !trashViewState.flash.text) return "";
+    if (trashViewState.flash.kind === "error") {
+      var msg = trashViewState.flash.text;
+      if (isTrashFlashTechnicalNotFound(msg)) {
+        if (ctx.isLoading) return "";
+        if (typeof ctx.postsLength === "number" && ctx.postsLength > 0) return "";
+      }
+    }
+    var kind = trashViewState.flash.kind === "error" ? "error" : "ok";
+    return (
+      '<p class="feed-action-flash feed-action-flash--' +
+      kind +
+      '" role="' +
+      (kind === "error" ? "alert" : "status") +
+      '">' +
+      F.escapeHtml(trashViewState.flash.text) +
+      "</p>"
+    );
+  }
+
+  /** Seçili id listede yoksa null; otomatik ilk öğe seçilmez */
+  function syncTrashSelectionToList(trashPosts) {
+    var safePosts = Array.isArray(trashPosts) ? trashPosts : [];
+    if (safePosts.length === 0) {
+      mockState.selectedTrashId = null;
+      return;
+    }
+    var selectedId = String(mockState.selectedTrashId || "");
+    if (!selectedId) return;
+    var exists = false;
+    for (var i = 0; i < safePosts.length; i++) {
+      if (String(safePosts[i].id) === selectedId) {
+        exists = true;
+        break;
+      }
+    }
+    if (!exists) mockState.selectedTrashId = null;
+  }
+
+  /** API /posts/trash gövdesini panel trash satırına çevir; en yeni taşınan üstte */
+  function mapTrashItemsFromApiData(data) {
+    var rawItems = Array.isArray(data)
+      ? data
+      : data && Array.isArray(data.items)
+        ? data.items
+        : [];
+    var rows = rawItems.map(function (item) {
+      return {
+        id: item && item.id != null ? String(item.id) : "",
+        content: item && item.content != null ? String(item.content) : "",
+        username:
+          item &&
+          item.user &&
+          typeof item.user === "object" &&
+          item.user.username != null
+            ? String(item.user.username)
+            : "",
+        deletedAt:
+          item && item.deletedAt != null
+            ? String(item.deletedAt)
+            : item && item.deleted_at != null
+              ? String(item.deleted_at)
+              : "",
+      };
+    });
+    rows.sort(function (a, b) {
+      var ta = new Date(a.deletedAt || 0).getTime();
+      var tb = new Date(b.deletedAt || 0).getTime();
+      if (Number.isNaN(ta)) ta = 0;
+      if (Number.isNaN(tb)) tb = 0;
+      return tb - ta;
+    });
+    return rows;
+  }
+
+  /**
+   * Çöpü Boşalt: DELETE → fetchTrash → fetchFeed; state yalnızca GET yanıtlarıyla dolar.
+   */
+  function handleEmptyTrash() {
+    var F = window.LumosFeedApi;
+    if (!F || !F.getBase) {
+      return;
+    }
+    if (trashViewState.actionBusyAll) {
+      return;
+    }
+    if (!window.confirm("Çöpteki tüm kayıtlar kalıcı silinecek. Emin misin?")) return;
+    trashViewState.actionBusyAll = true;
+    trashViewState.flash = null;
+    renderMain();
+
+    if (!F.emptyTrash || typeof F.emptyTrash !== "function" || !F.getTrashList) {
+      trashViewState.actionBusyAll = false;
+      trashViewState.flash = { kind: "error", text: "Çöp boşaltılamadı (istemci güncel değil)" };
+      renderMain();
+      return;
+    }
+    F.emptyTrash()
+      .then(function () {
+        console.log("ACTION_EMPTY", { url: F.getBase() + "/posts/trash" });
+        return fetchTrash();
+      })
+      .then(function () {
+        return fetchFeed({ forceTab: "feed" });
+      })
+      .then(function () {
+        trashViewState.actionBusyAll = false;
+        mockState.selectedTrashId = null;
+        trashViewState.flash = { kind: "ok", text: "Çöp boşaltıldı" };
+        renderMain();
+      })
+      .catch(function (err) {
+        trashViewState.actionBusyAll = false;
+        trashViewState.flash = {
+          kind: "error",
+          text: "Çöp boşaltılamadı: " + ((err && err.message) || String(err)),
+        };
+        renderMain();
+      });
+  }
+
+  /**
+   * GET /posts/trash — tam replace; trashPosts yalnızca bu yanıt.
+   * @returns {Promise<void>}
+   */
+  function fetchTrash() {
+    var F = window.LumosFeedApi;
+    if (!F || !F.getTrashList) {
+      return Promise.reject(new Error("feed-api yok"));
+    }
+    var url = F.getBase() + "/posts/trash";
+    trashViewState.loadId = (trashViewState.loadId || 0) + 1;
+    var myLoad = trashViewState.loadId;
+    trashViewState.status = "loading";
+    trashViewState.error = "";
+    trashViewState.trashPosts = [];
+    console.log("FETCH_TRASH", { url: url });
+    return F.getTrashList()
+      .then(function (data) {
+        if (myLoad !== trashViewState.loadId) return;
+        trashViewState.trashPosts = mapTrashItemsFromApiData(data);
+        syncTrashSelectionToList(trashViewState.trashPosts);
+        if (trashViewState.flash && trashViewState.flash.kind === "error") trashViewState.flash = null;
+        trashViewState.status = "ok";
+        if (getCurrentScreen().id === "trash") renderMain();
+      })
+      .catch(function (e) {
+        if (myLoad !== trashViewState.loadId) return;
+        trashViewState.error = e.message || String(e);
+        trashViewState.status = "error";
+        trashViewState.trashPosts = [];
+        if (getCurrentScreen().id === "trash") renderMain();
+      });
+  }
+
   // ——— Ekran: Silinenler (adapter + build) ———
   function renderTrash() {
-    var data = getTrashData();
-    var summary = buildMetricCards(data.summaryMetrics);
-    var scopeNoteLine = data.trashScopeFallbackNote ? '<p class="text-muted-small">' + data.trashScopeFallbackNote + "</p>" : "";
+    var F = window.LumosFeedApi;
+    if (!F) return renderEmptyState("Silinenler", "feed-api.js yüklenmedi.");
+
+    if (trashViewState.status === "idle") {
+      fetchTrash();
+    }
+
+    if (trashViewState.status === "loading") {
+      return (
+        ViewHeader("Silinenler", "Liste yükleniyor") +
+        renderPostsApiBaseLine(F) +
+        trashFlashHtml(F, { isLoading: true }) +
+        '<div class="feed-loading">Yükleniyor…</div>'
+      );
+    }
+
+    if (trashViewState.status === "error") {
+      return (
+        ViewHeader("Silinenler", "Bağlantı sorunu") +
+        renderPostsApiBaseLine(F) +
+        trashFlashHtml(F, { postsLength: 0 }) +
+        '<div class="feed-panel-error" role="alert">' +
+        '<p class="feed-panel-error-title">İstek tamamlanamadı</p>' +
+        '<p class="feed-panel-error-detail">' +
+        F.escapeHtml(trashViewState.error) +
+        "</p>" +
+        "</div>"
+      );
+    }
+
+    var posts = trashViewState.trashPosts || [];
+    syncTrashSelectionToList(posts);
+    var allActionDisabled = posts.length === 0 || trashViewState.actionBusyAll;
+    var emptyTrashBtnDisabledAttr = allActionDisabled ? " disabled" : "";
+    var topActionsHtml =
+      '<div class="feed-toolbar log-tabs">' +
+      '<button type="button" id="lumos-trash-empty-all" class="log-tab" data-trash-action-all="empty"' +
+      emptyTrashBtnDisabledAttr +
+      ">Çöpü Boşalt</button>" +
+      "</div>";
+    var latestDeletedAt = "";
+    for (var i = 0; i < posts.length; i++) {
+        var d = posts[i] && posts[i].deletedAt ? String(posts[i].deletedAt) : "";
+      if (!d) continue;
+      if (!latestDeletedAt || new Date(d).getTime() > new Date(latestDeletedAt).getTime()) {
+        latestDeletedAt = d;
+      }
+    }
+    var metrics = [
+      { title: "Öğe Sayısı", value: String(posts.length), note: "Çöp kutusunda" },
+      {
+        title: "Son Taşıma",
+        value: latestDeletedAt ? feedFormatCreatedAtReadable(latestDeletedAt) : "—",
+        note: "En son taşınan",
+      },
+    ];
+    var summary = buildMetricCards(metrics);
+
+    var selectedId = mockState.selectedTrashId;
+    var selectedPost = null;
+    if (selectedId) {
+      for (var si = 0; si < posts.length; si++) {
+        if (String(posts[si].id) === String(selectedId)) {
+          selectedPost = posts[si];
+          break;
+        }
+      }
+    }
+
     var listSection;
-    if (data.listItems.length === 0) {
-      listSection = buildSection("Liste", buildEmptyState(data.emptyListTitle, data.emptyListDesc));
+    if (posts.length === 0) {
+      listSection = buildSection(
+        "Liste",
+        buildEmptyState("Silinen kayıt yok", "Çöp kutusu boş.")
+      );
     } else {
       var listHtml = "";
-      data.listItems.forEach(function (item) {
-        var sel = data.selectedId === item.id ? " selected" : "";
-        listHtml += '<li class="list-item' + sel + '" data-trash-id="' + item.id + '">' + (item.name || item.id) + " — " + formatTime(item.movedAt) + "</li>";
-      });
+      for (var li = 0; li < posts.length; li++) {
+        var p = posts[li] || {};
+        var pid = p.id != null ? String(p.id) : "";
+        var uname = p.username ? String(p.username) : "—";
+        var movedAt = p.deletedAt ? feedFormatCreatedAtReadable(p.deletedAt) : "—";
+        var preview = trashPreviewText(p.content || "");
+        var sel = selectedPost && String(selectedPost.id) === pid ? " selected" : "";
+        var busy = !!trashViewState.actionBusyByPostId[pid] || trashViewState.actionBusyAll;
+        var disabledAttr = busy ? " disabled" : "";
+        listHtml +=
+          '<li class="list-item' +
+          sel +
+          '" data-trash-id="' +
+          F.escapeHtml(pid) +
+          '">@' +
+          F.escapeHtml(uname) +
+          " · " +
+          F.escapeHtml(preview) +
+          " · " +
+          F.escapeHtml(movedAt) +
+          '<div class="trash-item-actions">' +
+          '<button type="button" class="post-feed-action-btn post-feed-action-btn--restore" data-trash-action="restore" data-trash-post-id="' +
+          F.escapeHtml(pid) +
+          '"' +
+          disabledAttr +
+          ">Geri Yükle</button>" +
+          '<button type="button" class="post-feed-action-btn post-feed-action-btn--danger" data-trash-action="permanent-delete" data-trash-post-id="' +
+          F.escapeHtml(pid) +
+          '"' +
+          disabledAttr +
+          ">Kalıcı Sil</button>" +
+          "</div>" +
+          "</li>";
+      }
       listSection = buildSection("Liste", '<ul class="list-selectable" id="trash-list">' + listHtml + "</ul>");
     }
-    var detailBody = data.selectedItem
+
+    var detailBody = selectedPost
       ? buildDetailRows([
-          { label: "Ad", value: data.selectedItem.name },
-          { label: "Orijinal yol", value: data.selectedItem.originalPath },
-          { label: "Çöp yolu", value: data.selectedItem.trashPath },
-          { label: "Taşınma", value: formatTime(data.selectedItem.movedAt) },
-          { label: "Kapsam", value: data.selectedItem.scope },
+          {
+            label: "Kullanıcı",
+            value: selectedPost.username ? String(selectedPost.username) : "—",
+          },
+          { label: "İçerik", value: selectedPost.content != null ? String(selectedPost.content) : "—" },
+          {
+            label: "Taşınma",
+            value: selectedPost.deletedAt ? feedFormatCreatedAtReadable(selectedPost.deletedAt) : "—",
+          },
+          { label: "Post ID", value: selectedPost.id != null ? String(selectedPost.id) : "—" },
         ])
-      : "<p class=\"screen-placeholder\">" + data.emptyDetailPlaceholder + "</p>";
-    var detail = buildDetailPanel(data.detailTitle, detailBody);
-    return ViewHeader(data.title, data.subtitle) + '<div class="cards-grid">' + summary + "</div>" + (scopeNoteLine ? scopeNoteLine : "") + '<div class="split-view">' + listSection + detail + "</div>";
+      : "<p class=\"screen-placeholder\">Detay için listeden bir kayıt seçin.</p>";
+    var detail = buildDetailPanel("Kayıt Detayı", detailBody);
+    return (
+      ViewHeader("Silinenler", posts.length ? posts.length + " kayıt" : "Silinen gönderiler") +
+      renderPostsApiBaseLine(F) +
+      topActionsHtml +
+      trashFlashHtml(F, { postsLength: posts.length }) +
+      '<div class="cards-grid">' +
+      summary +
+      "</div>" +
+      '<div class="split-view">' +
+      listSection +
+      detail +
+      "</div>"
+    );
   }
 
   // ——— Ekran: Kayıtlar (adapter + build) ———
@@ -871,82 +1201,299 @@
     );
   }
 
-  /** GET /posts?order=feed — canlı API; mock yok */
-  var feedViewState = { status: "idle", posts: [], error: "", baseUsed: "" };
+  /**
+   * Sekmeye göre tek GET: feed → feedUrl; rated-high → ratedHighUrl; rated-low → ratedLowUrl (tam replace).
+   */
+  var feedViewState = {
+    status: "idle",
+    /** Son başarılı feed GET → normalize + dedupe tam liste */
+    posts: [],
+    error: "",
+    tab: "feed",
+    loadId: 0,
+    actionBusyByPostId: {},
+    flash: null,
+  };
+
+  function feedFlashHtml(F) {
+    if (!feedViewState.flash || !feedViewState.flash.text) return "";
+    var kind = feedViewState.flash.kind === "error" ? "error" : "ok";
+    return (
+      '<p class="feed-action-flash feed-action-flash--' +
+      kind +
+      '" role="' +
+      (kind === "error" ? "alert" : "status") +
+      '">' +
+      F.escapeHtml(feedViewState.flash.text) +
+      "</p>"
+    );
+  }
+
+  function feedTabLabel(tab) {
+    if (tab === "rated-high") return "Rated High";
+    if (tab === "rated-low") return "Rated Low";
+    return "Feed";
+  }
+
+  function normalizeFeedListPayload(data) {
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.items)) return data.items;
+    if (data && Array.isArray(data.posts)) return data.posts;
+    return [];
+  }
+
+  /** Aynı post id ikinci kez listelenmesin (backend feed bileşimi veya hatalı yanıtta mümkün) */
+  function dedupeFeedPostsByIdPreserveOrder(arr) {
+    var seen = new Set();
+    var out = [];
+    for (var i = 0; i < arr.length; i++) {
+      var row = arr[i];
+      if (!row || typeof row !== "object") continue;
+      var id = row.id != null ? String(row.id) : "";
+      if (!id) {
+        out.push(row);
+        continue;
+      }
+      if (seen.has(id)) continue;
+      seen.add(id);
+      out.push(row);
+    }
+    return out;
+  }
+
+  /** Tek normalize katmanı: GET → dedupe → LumosFeedApi.normalizePostForPanel */
+  function buildFeedDisplayListFromResponse(data, F) {
+    var list = dedupeFeedPostsByIdPreserveOrder(normalizeFeedListPayload(data));
+    if (!F || typeof F.normalizePostForPanel !== "function") {
+      return list;
+    }
+    var mapped = [];
+    for (var j = 0; j < list.length; j++) {
+      mapped.push(F.normalizePostForPanel(list[j]));
+    }
+    return mapped;
+  }
+
+  /**
+   * Aktif sekmeye göre tek GET: feed | /posts/rated-high | /posts/rated-low (tam replace; client süzgeç yok).
+   * @param {{ forceTab?: string }} [opts] — trash/restore sonrası feed listesini tazelemek için forceTab: "feed"
+   * @returns {Promise<void>}
+   */
+  function fetchFeed(opts) {
+    var F = window.LumosFeedApi;
+    if (!F) {
+      return Promise.reject(new Error("feed-api yok"));
+    }
+    var tab = opts && opts.forceTab != null ? opts.forceTab : feedViewState.tab || "feed";
+    var url;
+    if (tab === "rated-high" && typeof F.ratedHighUrl === "function") {
+      url = F.ratedHighUrl(20);
+    } else if (tab === "rated-low" && typeof F.ratedLowUrl === "function") {
+      url = F.ratedLowUrl(20);
+    } else {
+      url = F.feedUrl(20);
+    }
+    feedViewState.loadId = (feedViewState.loadId || 0) + 1;
+    var myLoad = feedViewState.loadId;
+    feedViewState.status = "loading";
+    feedViewState.error = "";
+    feedViewState.posts = [];
+    if (typeof console !== "undefined" && console.log) {
+      console.log("FETCH_FEED", { tab: tab, url: url });
+    }
+    if (getCurrentScreen().id === "feed") renderMain();
+    return fetch(url, F.feedFetchInit())
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        if (myLoad !== feedViewState.loadId) return;
+        feedViewState.posts = buildFeedDisplayListFromResponse(data, F);
+        feedViewState.status = "ok";
+        if (getCurrentScreen().id === "feed") renderMain();
+      })
+      .catch(function (e) {
+        if (myLoad !== feedViewState.loadId) return;
+        feedViewState.error = e.message || String(e);
+        feedViewState.status = "error";
+        feedViewState.posts = [];
+        if (getCurrentScreen().id === "feed") renderMain();
+      });
+  }
+
+  /** Okunur tarih (feed-api’ye dokunmadan; yalnız panel) */
+  function feedFormatCreatedAtReadable(iso) {
+    if (iso == null || iso === "") return "—";
+    var d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return String(iso);
+    try {
+      return d.toLocaleString("tr-TR", { dateStyle: "medium", timeStyle: "short" });
+    } catch (e2) {
+      return d.toISOString().replace("T", " ").replace(/\.\d{3}Z$/, "").replace("Z", "");
+    }
+  }
+
+  function feedToolbarHtml(activeTab) {
+    function tabButton(id, label) {
+      var active = activeTab === id ? " active" : "";
+      return (
+        '<button type="button" class="log-tab' +
+        active +
+        '" data-feed-tab="' +
+        id +
+        '" aria-pressed="' +
+        (activeTab === id ? "true" : "false") +
+        '">' +
+        label +
+        "</button>"
+      );
+    }
+    return (
+      '<div class="feed-toolbar log-tabs feed-source-tabs" role="tablist" aria-label="Liste kaynağı">' +
+      tabButton("feed", "Feed") +
+      tabButton("rated-high", "Rated High") +
+      tabButton("rated-low", "Rated Low") +
+      '<button type="button" class="log-tab" data-feed-refresh="1">Yenile</button>' +
+      "</div>"
+    );
+  }
+
+  function renderPostFeedCard(F, rawPost) {
+    var p =
+      F.normalizePostForPanel && typeof F.normalizePostForPanel === "function"
+        ? F.normalizePostForPanel(rawPost)
+        : F.pickPostCardProps(rawPost);
+    var busy = !!feedViewState.actionBusyByPostId[p.id];
+    var avgStr =
+      p.ratingAvg != null && !Number.isNaN(Number(p.ratingAvg))
+        ? Number(p.ratingAvg).toFixed(1)
+        : "—";
+    var idFooter = p.id
+      ? '<div class="post-feed-id post-feed-id--footer"><code>' + F.escapeHtml(p.id) + "</code></div>"
+      : "";
+    var actionDisabled = busy ? " disabled" : "";
+    var actionBusyClass = busy ? " is-busy" : "";
+    return (
+      '<article class="post-feed-card' + actionBusyClass + '">' +
+      '<div class="post-feed-user">@' +
+      F.escapeHtml(p.username || "—") +
+      "</div>" +
+      '<div class="post-feed-content">' +
+      F.escapeHtml(p.content) +
+      "</div>" +
+      '<div class="post-feed-meta">' +
+      '<div class="post-feed-badges" aria-label="Oylama özeti">' +
+      '<span class="post-feed-badge post-feed-badge--avg" title="ratingAvg">⭐ ' +
+      F.escapeHtml(avgStr) +
+      "</span>" +
+      '<span class="post-feed-badge post-feed-badge--count" title="ratingCount">' +
+      F.escapeHtml(String(p.ratingCount)) +
+      " oy</span>" +
+      '<span class="post-feed-badge post-feed-badge--high" title="highRatingCount">' +
+      F.escapeHtml(String(p.highRatingCount)) +
+      "</span>" +
+      '<span class="post-feed-badge post-feed-badge--low" title="lowRatingCount">' +
+      F.escapeHtml(String(p.lowRatingCount)) +
+      "</span>" +
+      "</div>" +
+      '<div class="post-feed-time">' +
+      '<span class="post-feed-time-full">' +
+      F.escapeHtml(feedFormatCreatedAtReadable(p.createdAt)) +
+      "</span>" +
+      '<span class="post-feed-time-rel"> · ' +
+      F.escapeHtml(F.formatRelativeTime(p.createdAt)) +
+      "</span>" +
+      "</div>" +
+      "</div>" +
+      '<div class="post-feed-actions" aria-label="Hızlı aksiyonlar">' +
+      '<button type="button" class="post-feed-action-btn post-feed-action-btn--high" data-post-action="rate-high" data-post-id="' +
+      F.escapeHtml(p.id) +
+      '"' +
+      actionDisabled +
+      ">Yüksek Puan</button>" +
+      '<button type="button" class="post-feed-action-btn post-feed-action-btn--low" data-post-action="rate-low" data-post-id="' +
+      F.escapeHtml(p.id) +
+      '"' +
+      actionDisabled +
+      ">Düşük Puan</button>" +
+      '<button type="button" class="post-feed-action-btn post-feed-action-btn--trash" data-post-action="trash" data-post-id="' +
+      F.escapeHtml(p.id) +
+      '"' +
+      actionDisabled +
+      ">Çöpe Taşı</button>" +
+      "</div>" +
+      idFooter +
+      "</article>"
+    );
+  }
 
   function renderFeed() {
     var F = window.LumosFeedApi;
     if (!F) return renderEmptyState("Akış", "feed-api.js yüklenmedi.");
 
+    var tab = feedViewState.tab || "feed";
+
     if (feedViewState.status === "idle") {
-      feedViewState.status = "loading";
-      feedViewState.error = "";
-      feedViewState.baseUsed = F.getBase();
-      var url = F.feedUrl(50);
-      fetch(url, F.feedFetchInit())
-        .then(function (r) {
-          if (!r.ok) throw new Error("HTTP " + r.status);
-          return r.json();
-        })
-        .then(function (data) {
-          feedViewState.posts = Array.isArray(data) ? data : [];
-          feedViewState.status = "ok";
-          if (getCurrentScreen().id === "feed") renderMain();
-        })
-        .catch(function (e) {
-          feedViewState.error = e.message || String(e);
-          feedViewState.status = "error";
-          if (getCurrentScreen().id === "feed") renderMain();
-        });
+      fetchFeed();
       return (
-        ViewHeader("Akış", "GET /posts?order=feed") +
-        '<p class="text-muted-small">Kaynak: ' +
-        F.escapeHtml(feedViewState.baseUsed) +
-        '</p><div class="feed-loading">Yükleniyor…</div>'
+        ViewHeader("Akış", feedTabLabel(tab)) +
+        feedToolbarHtml(tab) +
+        feedFlashHtml(F) +
+        renderPostsApiBaseLine(F) +
+        '<div class="feed-loading">Yükleniyor…</div>'
       );
     }
 
     if (feedViewState.status === "loading") {
       return (
-        ViewHeader("Akış", "GET /posts?order=feed") +
-        '<p class="text-muted-small">' +
-        F.escapeHtml(feedViewState.baseUsed) +
-        '</p><div class="feed-loading">Yükleniyor…</div>'
+        ViewHeader("Akış", feedTabLabel(tab)) +
+        feedToolbarHtml(tab) +
+        feedFlashHtml(F) +
+        renderPostsApiBaseLine(F) +
+        '<div class="feed-loading">Yükleniyor…</div>'
       );
     }
 
     if (feedViewState.status === "error") {
       return (
-        ViewHeader("Akış", "Bağlantı hatası") +
-        '<div class="feed-toolbar"><button type="button" class="log-tab active" data-feed-refresh="1">Yenile</button></div>' +
-        '<p class="empty-desc">' +
+        ViewHeader("Akış", "Bağlantı hatası · " + feedTabLabel(tab)) +
+        feedToolbarHtml(tab) +
+        feedFlashHtml(F) +
+        renderPostsApiBaseLine(F) +
+        '<div class="feed-panel-error" role="alert">' +
+        '<p class="feed-panel-error-title">İstek tamamlanamadı</p>' +
+        '<p class="feed-panel-error-detail">' +
         F.escapeHtml(feedViewState.error) +
-        '</p><p class="text-muted-small">Express API çalışıyor olmalı (<code>cd backend && npm start</code>). İsteğe bağlı: konsolda <code>LUMOS_POSTS_API_BASE = "http://127.0.0.1:3000"</code> veya localStorage <code>lumos_posts_api_base</code>.</p>'
+        "</p>" +
+        '<div class="feed-panel-error-hint">' +
+        "<p><strong>Ne kontrol edilir?</strong> Backend çalışıyor mu (<code>cd backend && npm run dev</code>), adres doğru mu.</p>" +
+        "<p class=\"feed-panel-error-hint-sub\">Özel taban için konsol: <code>LUMOS_POSTS_API_BASE</code> veya <code>localStorage.lumos_posts_api_base</code>.</p>" +
+        "</div></div>"
       );
     }
 
-    var toolbar =
-      '<div class="feed-toolbar"><button type="button" class="log-tab" data-feed-refresh="1">Yenile</button></div>';
+    var displayPosts = feedViewState.posts || [];
     var cards = "";
-    if (feedViewState.posts.length === 0) {
-      cards = EmptyState("Henüz gönderi yok", "Backend’de POST /posts ile içerik ekleyin.");
+    if (displayPosts.length === 0) {
+      cards =
+        '<div class="empty-state feed-panel-empty" role="status">' +
+        '<p class="empty-title">Hiç içerik yok</p>' +
+        '<p class="empty-desc"><strong>' +
+        F.escapeHtml(feedTabLabel(tab)) +
+        "</strong> için şu an gösterilecek gönderi yok (bu sekme kendi GET yanıtıyla dolar).</p>" +
+        "</div>";
     } else {
-      for (var i = 0; i < feedViewState.posts.length; i++) {
-        var p = F.pickPostCardProps(feedViewState.posts[i]);
-        cards +=
-          '<article class="post-feed-card"><div class="post-feed-content">' +
-          F.escapeHtml(p.content) +
-          '</div><div class="post-feed-meta">' +
-          F.escapeHtml(F.formatMeta(p)) +
-          "</div></article>";
+      for (var i = 0; i < displayPosts.length; i++) {
+        cards += renderPostFeedCard(F, displayPosts[i]);
       }
     }
     return (
-      ViewHeader("Akış", feedViewState.posts.length + " gönderi") +
-      toolbar +
-      '<p class="text-muted-small">API: ' +
-      F.escapeHtml(feedViewState.baseUsed) +
-      '</p><div class="post-feed-list">' +
+      ViewHeader("Akış", displayPosts.length + " gönderi · " + feedTabLabel(tab)) +
+      feedToolbarHtml(tab) +
+      feedFlashHtml(F) +
+      renderPostsApiBaseLine(F) +
+      '<div class="post-feed-list">' +
       cards +
       "</div>"
     );
@@ -976,7 +1523,31 @@
 
   // ——— Etkileşimler (delegation) ———
   function onMainClick(e) {
-    var t = e.target;
+    var rawTarget = e.target;
+    var t = rawTarget && rawTarget.nodeType === 1 ? rawTarget : rawTarget && rawTarget.parentElement;
+    var F = window.LumosFeedApi;
+    function closestByDataAttr(el, attrName) {
+      var cur = el;
+      while (cur && cur !== document && cur !== null) {
+        if (cur.dataset && cur.dataset[attrName] != null) return cur;
+        cur = cur.parentElement;
+      }
+      return null;
+    }
+    if (!t) return;
+    // Önce: Çöpü Boşalt (liste satırındaki data-trash-id ile çakışmasın)
+    var emptyTrashBtn =
+      (t.id === "lumos-trash-empty-all" && t) ||
+      (t.closest && t.closest("#lumos-trash-empty-all")) ||
+      (t.closest && t.closest("[data-trash-action-all]"));
+    if (emptyTrashBtn) {
+      var emptyAttr =
+        emptyTrashBtn.getAttribute && emptyTrashBtn.getAttribute("data-trash-action-all");
+      if (emptyAttr === "empty" || emptyTrashBtn.id === "lumos-trash-empty-all") {
+        handleEmptyTrash();
+        return;
+      }
+    }
     if (t.dataset && t.dataset.taskId) {
       mockState.selectedTaskId = t.dataset.taskId;
       renderMain();
@@ -992,16 +1563,159 @@
       renderMain();
       return;
     }
+    var trashActionBtn = t.closest && t.closest("[data-trash-action][data-trash-post-id]");
+    if (trashActionBtn && trashActionBtn.dataset) {
+      if (!F) return;
+      var trashPostId = trashActionBtn.dataset.trashPostId || "";
+      var trashAction = trashActionBtn.dataset.trashAction || "";
+      if (
+        !trashPostId ||
+        !trashAction ||
+        trashViewState.actionBusyByPostId[trashPostId] ||
+        trashViewState.actionBusyAll
+      ) return;
+      trashViewState.actionBusyByPostId[trashPostId] = true;
+      trashViewState.flash = null;
+      renderMain();
+      var trashActionPromise;
+      if (trashAction === "restore") {
+        trashActionPromise = F.restorePost(trashPostId);
+      } else if (trashAction === "permanent-delete") {
+        trashActionPromise = F.permanentDeletePost(trashPostId);
+      } else {
+        trashActionPromise = Promise.reject(new Error("unsupported trash action"));
+      }
+
+      trashActionPromise
+        .then(function () {
+          if (trashAction === "restore") {
+            console.log("ACTION_RESTORE", { postId: trashPostId });
+          }
+          if (trashAction === "restore") {
+            return fetchTrash().then(function () {
+              return fetchFeed({ forceTab: "feed" });
+            });
+          }
+          return fetchTrash();
+        })
+        .then(function () {
+          delete trashViewState.actionBusyByPostId[trashPostId];
+          trashViewState.flash = {
+            kind: "ok",
+            text: trashAction === "restore" ? "Gönderi geri yüklendi" : "Kalıcı olarak silindi",
+          };
+          renderMain();
+        })
+        .catch(function (err) {
+          delete trashViewState.actionBusyByPostId[trashPostId];
+          var rawErr = (err && err.message) || "İşlem başarısız.";
+          if (isTrashFlashTechnicalNotFound(rawErr)) {
+            trashViewState.flash = null;
+            fetchTrash()
+              .then(function () {
+                renderMain();
+              })
+              .catch(function () {
+                renderMain();
+              });
+          } else {
+            trashViewState.flash = { kind: "error", text: rawErr };
+            renderMain();
+          }
+        });
+      return;
+    }
     if (t.dataset && t.dataset.logFilter) {
       mockState.logFilter = t.dataset.logFilter;
       renderMain();
       return;
     }
+    var feedTabBtn = t.closest && t.closest("[data-feed-tab]");
+    if (feedTabBtn && feedTabBtn.dataset && feedTabBtn.dataset.feedTab) {
+      var nextTab = feedTabBtn.dataset.feedTab;
+      if (nextTab !== feedViewState.tab) {
+        feedViewState.tab = nextTab;
+        feedViewState.flash = null;
+        feedViewState.status = "idle";
+        feedViewState.posts = [];
+        try {
+          if (window.history && window.history.replaceState) {
+            var frag = nextTab === "feed" ? "feed" : nextTab;
+            window.history.replaceState(null, "", "#" + frag);
+          }
+        } catch (e1) {}
+        renderMain();
+      }
+      return;
+    }
     if (t.dataset && t.dataset.feedRefresh) {
+      feedViewState.flash = null;
       feedViewState.status = "idle";
       feedViewState.posts = [];
-      feedViewState.error = "";
       renderMain();
+      return;
+    }
+    var postActionBtn = null;
+    if (t && t.closest) {
+      postActionBtn = t.closest("[data-post-action][data-post-id]");
+    }
+    if (!postActionBtn) {
+      var byAction = closestByDataAttr(t, "postAction");
+      if (byAction && byAction.dataset && byAction.dataset.postId != null) {
+        postActionBtn = byAction;
+      }
+    }
+    if (postActionBtn && postActionBtn.dataset) {
+      if (!F) return;
+      var postId = postActionBtn.dataset.postId || "";
+      var action = postActionBtn.dataset.postAction || "";
+      if (!postId || !action || feedViewState.actionBusyByPostId[postId]) return;
+      feedViewState.actionBusyByPostId[postId] = true;
+      feedViewState.flash = null;
+      renderMain();
+      var actionPromise;
+      if (action === "rate-high") actionPromise = F.rateHigh(postId);
+      else if (action === "rate-low") actionPromise = F.rateLow(postId);
+      else if (action === "trash") actionPromise = (F.moveToTrash || F.trashPost).call(F, postId);
+      else actionPromise = Promise.reject(new Error("unsupported action"));
+
+      actionPromise
+        .then(function () {
+          if (action === "rate-high" && typeof console !== "undefined" && console.log) {
+            console.log("ACTION_RATE_HIGH", { postId: postId });
+          }
+          if (action === "rate-low" && typeof console !== "undefined" && console.log) {
+            console.log("ACTION_RATE_LOW", { postId: postId });
+          }
+          if (action === "trash") {
+            console.log("ACTION_TRASH", { postId: postId });
+            return fetchFeed().then(function () {
+              return fetchTrash();
+            });
+          }
+          return fetchFeed();
+        })
+        .then(function () {
+          delete feedViewState.actionBusyByPostId[postId];
+          if (action === "trash") {
+            feedViewState.flash = { kind: "ok", text: "Çöpe taşındı" };
+          } else {
+            feedViewState.flash = {
+              kind: "ok",
+              text: action === "rate-high" ? "Yüksek oy kaydedildi" : "Düşük oy kaydedildi",
+            };
+          }
+          renderMain();
+        })
+        .catch(function (err) {
+          delete feedViewState.actionBusyByPostId[postId];
+          feedViewState.flash = {
+            kind: "error",
+            text: (err && err.message) || "İşlem başarısız.",
+          };
+          renderMain();
+        });
+      return;
     }
     var yanitBtn = t.closest && t.closest("[data-yanit-action]");
     if (yanitBtn && yanitBtn.dataset && yanitBtn.dataset.yanitAction) {
@@ -1022,7 +1736,30 @@
     }
   }
 
+  var _lastRouteScreenId = "";
+
   function refresh() {
+    var cur = getCurrentScreen();
+    if (_lastRouteScreenId === "feed" && cur.id !== "feed") {
+      feedViewState.flash = null;
+    }
+    if (_lastRouteScreenId === "trash" && cur.id !== "trash") {
+      trashViewState.flash = null;
+    }
+    _lastRouteScreenId = cur.id;
+
+    if (cur.id === "trash") {
+      trashViewState.status = "idle";
+      trashViewState.trashPosts = [];
+      trashViewState.flash = null;
+    }
+    if (cur.id === "feed") {
+      feedViewState.flash = null;
+      var tabFromRoute = cur.feedTab != null ? cur.feedTab : feedTabFromLocationHash();
+      feedViewState.tab = tabFromRoute != null ? tabFromRoute : "feed";
+      feedViewState.status = "idle";
+      feedViewState.posts = [];
+    }
     renderSidebar();
     renderTopbar();
     renderMain();
@@ -1045,4 +1782,5 @@
   } else {
     refresh();
   }
+
 })();
