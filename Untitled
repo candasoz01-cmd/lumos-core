@@ -1,0 +1,35 @@
+“Çöpü Boşalt” butonunda confirm sonrası hiçbir işlem yapılmıyor.
+
+Düzelt:
+
+1) Buton click handler:
+- confirm(true) sonrası mutlaka API çağrısı yapılmalı
+
+2) API:
+DELETE /posts/trash
+
+3) Örnek:
+await fetch(F.getBase() + "/posts/trash", {
+  method: "DELETE"
+});
+
+4) Başarılı response sonrası:
+- trashViewState.posts = []
+- selectedPostId = null
+- sayaç = 0
+- detay paneli temizlensin
+
+5) Ardından:
+- renderTrash() çağır
+- backend’den tekrar fetch ile doğrula
+
+6) Debug için console.log ekle:
+- EMPTY_TRASH_CLICK
+- EMPTY_TRASH_CONFIRMED
+- EMPTY_TRASH_API_CALLED
+
+7) Mevcut restore / kalıcı sil akışını bozma
+
+İstenen:
+- kısa diff
+- handler fonksiyon adı

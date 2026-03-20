@@ -31,6 +31,9 @@ function recordRatingBurst(userId, postId) {
   ratingBurstTimestamps.set(key, ts);
 }
 const app = express();
+app.get("/", (req, res) => {
+  res.send("Lumos backend running");
+});
 // MIT; güvenlik başlıkları. CSP kapalı (JSON API); CORS ile uyum için CORP cross-origin.
 app.use(
   helmet({
@@ -122,25 +125,203 @@ function computePostsOrderFeedScore(post, stats, nowMs = Date.now()) {
   const lowRatingCount = stats.lowRatingCount ?? 0;
   const ageInHours = Math.max(0, (nowMs - new Date(post.createdAt).getTime()) / 3600000);
   const recency = 1 / (1 + ageInHours / 24);
-  if (ratingAvg == null) return -1000000 + recency;
+  const safeRatingAvg = ratingAvg == null ? 3 : ratingAvg;
 
-  const qualityScore = ratingAvg * 100;
-  const volumeScore = Math.log(ratingCount + 1) * 40;
-  const sentimentScore = highRatingCount * 0.6 - lowRatingCount * 0.8;
-  const freshBonus = ageInHours < FEED_FRESH_HOURS ? FEED_FRESH_BOOST * 0.2 : 0;
-  const recencyBonus = recency * 2;
-  const explorationBonus = ratingCount <= 1 ? recency * 1.2 : 0;
-  const timeDecay = ageInHours * FEED_TIME_DECAY_PER_H;
+  const trustMultiplier =
+    ratingCount <= 0
+      ? 0.05
+      : ratingCount === 1
+      ? 0.2
+      : ratingCount === 2
+      ? 0.5
+      : ratingCount === 3
+      ? 0.7
+      : ratingCount >= 5
+      ? 1.0
+      : 0.85;
 
-  return (
-    qualityScore +
-    volumeScore +
-    sentimentScore +
-    freshBonus +
+  const volumeScore = Math.log(ratingCount + 1) * 2.2;
+  const sentimentBalance = (highRatingCount - lowRatingCount) / Math.max(1, ratingCount);
+  const sentimentScore = sentimentBalance * 5.5;
+  let qualityScore = safeRatingAvg * 18 + volumeScore + sentimentScore;
+  if (ratingCount === 0) qualityScore *= 0.1;
+
+  const recencyBonus = recency * 6;
+  const rawFreshBonus = ageInHours < FEED_FRESH_HOURS ? FEED_FRESH_BOOST * 0.8 : 0;
+  const rawExplorationBonus = ratingCount < 2 ? 2.2 + recency * 1.6 : 0.4;
+  let limitedFreshBonus = rawFreshBonus;
+  let limitedExplorationBonus = rawExplorationBonus;
+  if (ratingCount === 0) {
+    limitedFreshBonus = Math.min(limitedFreshBonus, 1.5);
+    limitedExplorationBonus = Math.min(limitedExplorationBonus, 1.5);
+  } else if (ratingCount === 1) {
+    limitedFreshBonus = Math.min(limitedFreshBonus, 2);
+    limitedExplorationBonus = Math.min(limitedExplorationBonus, 2);
+  }
+
+  const timeDecay =
+    FEED_TIME_DECAY_PER_H * (Math.log1p(ageInHours) * 2.1 + ageInHours * 0.08);
+
+  let feedScore =
+    qualityScore * trustMultiplier +
     recencyBonus +
-    explorationBonus -
-    timeDecay
-  );
+    limitedFreshBonus +
+    limitedExplorationBonus -
+    timeDecay;
+  if (ratingCount === 0) {
+    feedScore = Math.max(feedScore, 0.01);
+  }
+  return feedScore;
+}
+
+/**
+ * Feed skoru, kaliteyi güven katsayısı ile çarparak düşük oy hacimli postları doğal olarak geri iter.
+ * ratingCount < 2 içerikler keşif amaçlı tutulur; bonusları sınırlıdır ve ana sıralamayı domine edemez.
+ * Yaş etkisi log-eğrisiyle yumuşatılır; böylece kaliteli ama eski içerikler tamamen gömülmez.
+ * Sonuçta feed, güvenilir içerik ağırlıklı kalırken kontrollü bir keşif bandı da korunur.
+ */
+
+function computePostsOrderFeedScoreBreakdown(post, stats, nowMs = Date.now()) {
+  const ratingAvg = stats.ratingAvg;
+  const ratingCount = stats.ratingCount ?? 0;
+  const highRatingCount = stats.highRatingCount ?? 0;
+  const lowRatingCount = stats.lowRatingCount ?? 0;
+  const ageInHours = Math.max(0, (nowMs - new Date(post.createdAt).getTime()) / 3600000);
+  const recency = 1 / (1 + ageInHours / 24);
+  const safeRatingAvg = ratingAvg == null ? 3 : ratingAvg;
+
+  const trustMultiplier =
+    ratingCount <= 0
+      ? 0.05
+      : ratingCount === 1
+      ? 0.2
+      : ratingCount === 2
+      ? 0.5
+      : ratingCount === 3
+      ? 0.7
+      : ratingCount >= 5
+      ? 1.0
+      : 0.85;
+
+  const volumeScore = Math.log(ratingCount + 1) * 2.2;
+  const sentimentBalance = (highRatingCount - lowRatingCount) / Math.max(1, ratingCount);
+  const sentimentScore = sentimentBalance * 5.5;
+  let qualityScore = safeRatingAvg * 18 + volumeScore + sentimentScore;
+  if (ratingCount === 0) qualityScore *= 0.1;
+
+  const recencyBonus = recency * 6;
+  const rawFreshBonus = ageInHours < FEED_FRESH_HOURS ? FEED_FRESH_BOOST * 0.8 : 0;
+  const rawExplorationBonus = ratingCount < 2 ? 2.2 + recency * 1.6 : 0.4;
+  let limitedFreshBonus = rawFreshBonus;
+  let limitedExplorationBonus = rawExplorationBonus;
+  if (ratingCount === 0) {
+    limitedFreshBonus = Math.min(limitedFreshBonus, 1.5);
+    limitedExplorationBonus = Math.min(limitedExplorationBonus, 1.5);
+  } else if (ratingCount === 1) {
+    limitedFreshBonus = Math.min(limitedFreshBonus, 2);
+    limitedExplorationBonus = Math.min(limitedExplorationBonus, 2);
+  }
+
+  const timeDecay =
+    FEED_TIME_DECAY_PER_H * (Math.log1p(ageInHours) * 2.1 + ageInHours * 0.08);
+  const qualityWithTrust = qualityScore * trustMultiplier;
+  const recencyScore = recencyBonus + limitedFreshBonus - timeDecay;
+  let baseFinal = qualityWithTrust + recencyBonus + limitedFreshBonus + limitedExplorationBonus - timeDecay;
+  if (ratingCount === 0) baseFinal *= 0.05;
+
+  return {
+    quality: qualityWithTrust,
+    volume: volumeScore + sentimentScore,
+    recency: recencyScore,
+    exploration: limitedExplorationBonus,
+    baseFinal,
+  };
+}
+
+function computeColdStartBoost(post, stats, nowMs = Date.now()) {
+  const ratingCount = stats.ratingCount ?? 0;
+  if (ratingCount !== 0) return 0;
+  const ageInHours = Math.max(0, (nowMs - new Date(post.createdAt).getTime()) / 3600000);
+  const coldStartWindowHours = 1.5;
+  if (ageInHours > coldStartWindowHours) return 0;
+  const freshnessRatio = 1 - ageInHours / coldStartWindowHours;
+  return Math.max(0, freshnessRatio) * 0.9;
+}
+
+function applyAuthorDiversity(feedItems, windowSize = 15) {
+  const safeWindow = Math.max(1, windowSize);
+  const head = feedItems.slice(0, safeWindow);
+  const tail = feedItems.slice(safeWindow);
+  const selected = [];
+  const pool = [...head];
+  while (pool.length > 0) {
+    let bestIdx = 0;
+    let bestAdjusted = -Infinity;
+    for (let i = 0; i < pool.length; i++) {
+      const item = pool[i];
+      const authorId = item.post.userId || item.post.user?.username || item.post.id;
+      const last = selected[selected.length - 1];
+      const prev = selected[selected.length - 2];
+      const lastAuthor = last ? last.post.userId || last.post.user?.username || last.post.id : null;
+      const prevAuthor = prev ? prev.post.userId || prev.post.user?.username || prev.post.id : null;
+      const ageMs = new Date(item.post.createdAt).getTime();
+      let penalty = 0;
+      if (lastAuthor && authorId === lastAuthor) penalty += 1.8;
+      if (prevAuthor && authorId === prevAuthor) penalty += 0.9;
+      if (last && lastAuthor && authorId === lastAuthor) {
+        const lastAgeMs = new Date(last.post.createdAt).getTime();
+        const deltaMinutes = Math.abs(ageMs - lastAgeMs) / 60000;
+        if (deltaMinutes < 45) penalty += 0.5;
+      }
+      const adjusted = item.score - penalty;
+      if (adjusted > bestAdjusted) {
+        bestAdjusted = adjusted;
+        bestIdx = i;
+      }
+    }
+    selected.push(pool.splice(bestIdx, 1)[0]);
+  }
+  return [...selected, ...tail];
+}
+
+function composeFeedItems(trustedItems, lowTrustItems, windowSize = 20, trustedRatio = 0.85) {
+  const limit = Math.max(1, windowSize);
+  const explorationSlot = Math.max(1, Math.floor(limit * 0.15));
+  const trustedQuota = limit - explorationSlot;
+  const lowTrustQuota = explorationSlot;
+
+  let finalResult = [
+    ...trustedItems.slice(0, trustedQuota),
+    ...lowTrustItems.slice(0, lowTrustQuota),
+  ];
+
+  if (finalResult.length < limit) {
+    const missingTrusted = Math.max(0, trustedQuota - trustedItems.length);
+    const missingLowTrust = Math.max(0, lowTrustQuota - lowTrustItems.length);
+
+    if (missingTrusted > 0) {
+      finalResult = [
+        ...finalResult,
+        ...lowTrustItems.slice(lowTrustQuota, lowTrustQuota + missingTrusted),
+      ];
+    }
+    if (missingLowTrust > 0) {
+      finalResult = [
+        ...finalResult,
+        ...trustedItems.slice(trustedQuota, trustedQuota + missingLowTrust),
+      ];
+    }
+
+    if (finalResult.length < limit) {
+      finalResult = [
+        ...finalResult,
+        ...trustedItems.slice(trustedQuota + missingLowTrust),
+        ...lowTrustItems.slice(lowTrustQuota + missingTrusted),
+      ].slice(0, limit);
+    }
+  }
+
+  return finalResult;
 }
 
 /** Küçük kişiselleştirme skoru; explorationBonus'tan her zaman küçük (exploration>0 iken oranla sınırlı). */
@@ -447,8 +628,7 @@ app.post("/posts", async (req, res) => {
   }
 });
 
-// --- Posts: rated-high (yüksek ortalama) ---
-app.get("/posts/rated-high", async (req, res) => {
+async function handleRatedHigh(req, res) {
   try {
     const minVotes = Math.max(1, parseInt(String(req.query.minVotes || "1"), 10) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit || "50"), 10) || 50));
@@ -471,10 +651,14 @@ app.get("/posts/rated-high", async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
-});
+}
 
-// --- Posts: rated-low (1–2★ yoğunluğu) ---
-app.get("/posts/rated-low", async (req, res) => {
+// --- Posts: rated-high (yüksek ortalama) ---
+app.get("/posts/rated-high", handleRatedHigh);
+// Alias: farklı yazım kullanan istemcilerde 404 olmasın.
+app.get("/posts/rated_high", handleRatedHigh);
+
+async function handleRatedLow(req, res) {
   try {
     const minVotes = Math.max(2, parseInt(String(req.query.minVotes || "2"), 10) || 2);
     const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit || "50"), 10) || 50));
@@ -500,7 +684,12 @@ app.get("/posts/rated-low", async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
-});
+}
+
+// --- Posts: rated-low (1–2★ yoğunluğu) ---
+app.get("/posts/rated-low", handleRatedLow);
+// Alias: farklı yazım kullanan istemcilerde 404 olmasın.
+app.get("/posts/rated_low", handleRatedLow);
 
 // --- Posts: feed (deprecated → GET /posts?order=feed) ---
 app.get("/posts/feed", (req, res) => {
@@ -526,6 +715,9 @@ app.get("/posts", async (req, res) => {
     }
     const rawOrder = req.query.order;
     const rawOrderValue = Array.isArray(rawOrder) ? rawOrder[0] : rawOrder;
+    const rawDebug = req.query.debug;
+    const rawDebugValue = Array.isArray(rawDebug) ? rawDebug[0] : rawDebug;
+    const shouldIncludeFeedDebugScores = rawOrderValue === "feed" && String(rawDebugValue) === "1";
     const rawUsername = req.query.username;
     const rawUsernameValue = Array.isArray(rawUsername) ? rawUsername[0] : rawUsername;
     let normalizedUsername = rawUsernameValue;
@@ -611,46 +803,95 @@ app.get("/posts", async (req, res) => {
         filteredPosts.map((p) => p.id)
       );
     }
-    const sortedPosts = [...filteredPosts].sort((a, b) => {
-      if (rawOrderValue === "feed") {
-        const aStats = statsMap.get(a.id) || emptyRatingStats;
-        const bStats = statsMap.get(b.id) || emptyRatingStats;
-        const aPost = { ...a, createdAt: a.createdAt || new Date(nowMs).toISOString() };
-        const bPost = { ...b, createdAt: b.createdAt || new Date(nowMs).toISOString() };
-        let aScore = computePostsOrderFeedScore(aPost, aStats, nowMs);
-        let bScore = computePostsOrderFeedScore(bPost, bStats, nowMs);
-        const aPersonal =
-          feedTasteProfile && !feedRatedPostIds.has(a.id)
-            ? computePersonalBoost(aPost, aStats, feedTasteProfile, nowMs)
+    let sortedPosts;
+    if (rawOrderValue === "feed") {
+      const trustedMinRatingCount = 2;
+      const feedWindowSize = Math.max(1, limit ?? 20);
+      const feedItems = filteredPosts.map((p) => {
+        const stats = statsMap.get(p.id) || emptyRatingStats;
+        const normalizedPost = {
+          ...p,
+          createdAt: p.createdAt || new Date(nowMs).toISOString(),
+        };
+        let score = computePostsOrderFeedScore(normalizedPost, stats, nowMs);
+        const personal =
+          feedTasteProfile && !feedRatedPostIds.has(p.id)
+            ? computePersonalBoost(normalizedPost, stats, feedTasteProfile, nowMs)
             : 0;
-        const bPersonal =
-          feedTasteProfile && !feedRatedPostIds.has(b.id)
-            ? computePersonalBoost(bPost, bStats, feedTasteProfile, nowMs)
-            : 0;
-        aScore += aPersonal;
-        bScore += bPersonal;
+        score += personal;
         if (collabMap && collabMap.size > 0) {
-          aScore += computeCollaborativeBoost(aPost, aStats, collabMap, aPersonal);
-          bScore += computeCollaborativeBoost(bPost, bStats, collabMap, bPersonal);
+          score += computeCollaborativeBoost(normalizedPost, stats, collabMap, personal);
         }
-        return bScore - aScore;
-      }
-      if (rawOrderValue === "ratingAvg:desc") {
+        const coldStartBoost = computeColdStartBoost(normalizedPost, stats, nowMs);
+        return {
+          post: p,
+          score,
+          ratingCount: stats.ratingCount ?? 0,
+          coldStartBoost,
+        };
+      });
+      const compareFeedItems = (a, b) => {
+        const aSortScore = a.score + (a.ratingCount < trustedMinRatingCount ? a.coldStartBoost : 0);
+        const bSortScore = b.score + (b.ratingCount < trustedMinRatingCount ? b.coldStartBoost : 0);
+        if (bSortScore !== aSortScore) return bSortScore - aSortScore;
+        return new Date(b.post.createdAt).getTime() - new Date(a.post.createdAt).getTime();
+      };
+      const sortedFeedItems = feedItems.sort(compareFeedItems);
+      const trustedItems = applyAuthorDiversity(
+        sortedFeedItems.filter((x) => x.ratingCount >= trustedMinRatingCount),
+        Math.min(feedWindowSize, 15)
+      );
+      const lowTrustItems = sortedFeedItems.filter((x) => x.ratingCount < trustedMinRatingCount);
+      const orderedItems = composeFeedItems(trustedItems, lowTrustItems, feedWindowSize, 0.85);
+      sortedPosts = orderedItems.map((x) => x.post);
+    } else {
+      sortedPosts = [...filteredPosts].sort((a, b) => {
+        if (rawOrderValue === "ratingAvg:desc") {
         const aStats = statsMap.get(a.id) || emptyRatingStats;
         const bStats = statsMap.get(b.id) || emptyRatingStats;
         return (bStats.ratingAvg ?? -1) - (aStats.ratingAvg ?? -1);
-      }
-      const aCreatedAt = new Date(a.createdAt).getTime();
-      const bCreatedAt = new Date(b.createdAt).getTime();
-      if (rawOrderValue === "asc") return aCreatedAt - bCreatedAt;
-      return bCreatedAt - aCreatedAt;
-    });
+        }
+        const aCreatedAt = new Date(a.createdAt).getTime();
+        const bCreatedAt = new Date(b.createdAt).getTime();
+        if (rawOrderValue === "asc") return aCreatedAt - bCreatedAt;
+        return bCreatedAt - aCreatedAt;
+      });
+    }
     let pagedPosts = sortedPosts;
     if (offset) pagedPosts = pagedPosts.slice(offset);
     if (limit) pagedPosts = pagedPosts.slice(0, limit);
     const list = pagedPosts.map((p) => {
       const serialized = serializePost(p, statsMap);
-      if (!shouldUseFields) return serialized;
+      const stats = statsMap.get(p.id) || emptyRatingStats;
+      const normalizedPost = {
+        ...p,
+        createdAt: p.createdAt || new Date(nowMs).toISOString(),
+      };
+      const scoreBreakdown = shouldIncludeFeedDebugScores
+        ? computePostsOrderFeedScoreBreakdown(normalizedPost, stats, nowMs)
+        : null;
+      const personalScore =
+        shouldIncludeFeedDebugScores && feedTasteProfile && !feedRatedPostIds.has(p.id)
+          ? computePersonalBoost(normalizedPost, stats, feedTasteProfile, nowMs)
+          : 0;
+      const collaborativeScore =
+        shouldIncludeFeedDebugScores && collabMap && collabMap.size > 0
+          ? computeCollaborativeBoost(normalizedPost, stats, collabMap, personalScore)
+          : 0;
+      if (!shouldUseFields) {
+        if (!shouldIncludeFeedDebugScores) return serialized;
+        return {
+          ...serialized,
+          _scoreQuality: Math.round(scoreBreakdown.quality * 1000) / 1000,
+          _scoreVolume: Math.round(scoreBreakdown.volume * 1000) / 1000,
+          _scoreRecency: Math.round(scoreBreakdown.recency * 1000) / 1000,
+          _scoreExploration: Math.round(scoreBreakdown.exploration * 1000) / 1000,
+          _scorePersonal: Math.round(personalScore * 1000) / 1000,
+          _scoreCollaborative: Math.round(collaborativeScore * 1000) / 1000,
+          _scoreFinal:
+            Math.round((scoreBreakdown.baseFinal + personalScore + collaborativeScore) * 1000) / 1000,
+        };
+      }
       const out = {};
       if (normalizedRequestedFields.includes("id")) out.id = serialized.id;
       if (normalizedRequestedFields.includes("content")) out.content = serialized.content;
@@ -658,6 +899,16 @@ app.get("/posts", async (req, res) => {
       if (normalizedRequestedFields.includes("user")) out.user = serialized.user;
       if (normalizedRequestedFields.includes("ratingAvg")) out.ratingAvg = serialized.ratingAvg;
       if (normalizedRequestedFields.includes("ratingCount")) out.ratingCount = serialized.ratingCount;
+      if (shouldIncludeFeedDebugScores) {
+        out._scoreQuality = Math.round(scoreBreakdown.quality * 1000) / 1000;
+        out._scoreVolume = Math.round(scoreBreakdown.volume * 1000) / 1000;
+        out._scoreRecency = Math.round(scoreBreakdown.recency * 1000) / 1000;
+        out._scoreExploration = Math.round(scoreBreakdown.exploration * 1000) / 1000;
+        out._scorePersonal = Math.round(personalScore * 1000) / 1000;
+        out._scoreCollaborative = Math.round(collaborativeScore * 1000) / 1000;
+        out._scoreFinal =
+          Math.round((scoreBreakdown.baseFinal + personalScore + collaborativeScore) * 1000) / 1000;
+      }
       return out;
     });
     res.json(list);
@@ -667,13 +918,33 @@ app.get("/posts", async (req, res) => {
 });
 
 // --- Soft delete / trash / restore ---
+app.delete("/posts/trash", async (req, res) => {
+  try {
+    const deleted = await prisma.post.deleteMany({
+      where: { deletedAt: { not: null } },
+    });
+    res.json({ ok: true, deletedCount: deleted.count });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.delete("/posts/:id", async (req, res) => {
   try {
-    const post = await prisma.post.updateMany({
-      where: { id: req.params.id, deletedAt: null },
-      data: { deletedAt: new Date() },
+    // "trash" yanlışlıkla :id olarak yakalanırsa (route sırası / eski süreç) toplu boşalt ile aynı davranış
+    if (String(req.params.id) === "trash") {
+      const deleted = await prisma.post.deleteMany({
+        where: { deletedAt: { not: null } },
+      });
+      return res.json({ ok: true, deletedCount: deleted.count });
+    }
+    // Permanent delete sadece trash/deleted postlar için geçerli.
+    const deleted = await prisma.post.deleteMany({
+      where: { id: req.params.id, deletedAt: { not: null } },
     });
-    if (post.count === 0) return res.status(404).json({ error: "post not found or already deleted" });
+    if (deleted.count === 0) {
+      return res.status(404).json({ error: "post not found in trash" });
+    }
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -689,7 +960,7 @@ app.get("/posts/trash", async (req, res) => {
   }
 });
 
-app.patch("/posts/:id/restore", async (req, res) => {
+async function restorePostHandler(req, res) {
   try {
     const post = await prisma.post.updateMany({
       where: { id: req.params.id, deletedAt: { not: null } },
@@ -699,6 +970,80 @@ app.patch("/posts/:id/restore", async (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+}
+
+app.post("/posts/:id/restore", restorePostHandler);
+app.patch("/posts/:id/restore", restorePostHandler);
+
+async function createPanelRatingActor() {
+  const suffix = crypto.randomBytes(6).toString("hex");
+  const username = `panel_rater_${Date.now()}_${suffix}`;
+  const ratingToken = crypto.randomBytes(32).toString("hex");
+  return prisma.user.create({
+    data: { username, ratingToken },
+    select: { id: true },
+  });
+}
+
+async function createQuickRating(req, res, value) {
+  const postId = req.params.id;
+  if (!Number.isInteger(value) || value < 1 || value > 5) {
+    return res.status(400).json({ error: "invalid rating value" });
+  }
+  const post = await prisma.post.findFirst({ where: { id: postId, deletedAt: null } });
+  if (!post) return res.status(404).json({ error: "post not found" });
+  const actor = await createPanelRatingActor();
+  await prisma.rating.create({
+    data: {
+      userId: actor.id,
+      postId,
+      value,
+    },
+  });
+  const statsMap = await getRatingStatsMap([postId]);
+  const stats = statsMap.get(postId) || emptyRatingStats;
+  return res.json({ ok: true, ...stats });
+}
+
+app.post("/posts/:id/rate-high", async (req, res) => {
+  try {
+    return await createQuickRating(req, res, 5);
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+app.post("/posts/:id/rate-low", async (req, res) => {
+  try {
+    return await createQuickRating(req, res, 1);
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+app.post("/posts/:id/trash", async (req, res) => {
+  try {
+    const existing = await prisma.post.findUnique({
+      where: { id: req.params.id },
+      include: postUserInclude,
+    });
+    if (!existing) return res.status(404).json({ error: "post not found" });
+    if (existing.deletedAt != null) {
+      return res.status(409).json({ error: "post already in trash" });
+    }
+    const updated = await prisma.post.update({
+      where: { id: req.params.id },
+      data: { deletedAt: new Date() },
+      include: postUserInclude,
+    });
+    const statsMap = await getRatingStatsMap([updated.id]);
+    return res.json({
+      ok: true,
+      post: serializePost(updated, statsMap),
+    });
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
   }
 });
 
