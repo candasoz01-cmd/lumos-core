@@ -10,8 +10,8 @@
   var DEFAULT_HASH = "#dashboard";
 
   var SCREENS = {
+    chat: { id: "chat", label: "Chat", hash: "#chat" },
     dashboard: { id: "dashboard", label: "Gösterge Paneli", hash: "#dashboard" },
-    yanit: { id: "yanit", label: "Kartlı sonuç", hash: "#yanit" },
     feed: { id: "feed", label: "Akış", hash: "#feed" },
     tasks: { id: "tasks", label: "Görevler", hash: "#tasks" },
     sandbox: { id: "sandbox", label: "Korumalı Alan", hash: "#sandbox" },
@@ -96,6 +96,16 @@
       { id: "t5", title: "Dış API çağrısı", status: "engellenen", updated: "2025-03-14T07:30:00", lastRun: null, guardResult: "Engelli", outputSummary: "Profil dışı; işlem yapılmadı." },
     ],
     taskFilter: "all",
+    /**
+     * Merkezi görev motoru durumu (chat komutları; tek kaynak — görev ekranı buradan).
+     * Şekil: { id, title, status: "active"|"done", createdAt, completedAt }
+     */
+    engineTasks: [],
+    /**
+     * Tek kaynak (chat → panel): saf olaylar { id, type, taskId, text, ts }.
+     * Kayıt / dashboard bu hattı okur; görev güncel durumu engineTasks’tır.
+     */
+    chatTaskCreations: [],
     selectedTaskId: null,
     selectedTrashId: null,
     logFilter: "all",
@@ -320,25 +330,343 @@
     return { type: "demo", data: getEffectiveState().guidance || { mode: "offline", lock: "LOCKED", consent: false, blocked_reason: null, next_step: null } };
   }
 
-  // ——— Adapter (contract'a hizalı; kaynak: backend → mapper, yoksa fixture/demo → mapper/stub) ———
+  /**
+   * Minimum task engine — stability contract (execution layer hooks here later):
+   * - Görev güncel durumu: mockState.engineTasks (status "active" | "done"). UI satırı toTaskRow ile; olaydan türetilmez.
+   * - Denetim zaman çizelgesi: append-only mockState.chatTaskCreations (task_created | task_completed);
+   *   taskId + text (başlık) mutasyondaki görevle hizalı olmalı; yazım yolu: appendPanelEngineEvent (persist dahil).
+   * - Birleşik olay okuma (Kayıtlar + Dashboard Son Olaylar): yalnızca getMergedPanelEventsList().
+   * - Görevler ekranı: demo’da fullList = motor satırları; backend/fixture’da mergeBackendTaskRowsWithEngine (çakışan id’de backend öncelikli).
+   * - Kalıcılık: localStorage `lumos_panel_min_task_engine_v1` (v:1); hydratePanelEngineFromStorage yüklemede, persistPanelEngineState olay eklendikten sonra.
+   */
+  // ——— Adapter + minimum görev motoru ———
+  var PANEL_ENGINE_STORAGE_KEY = "lumos_panel_min_task_engine_v1";
+
+  function persistPanelEngineState() {
+    try {
+      if (typeof localStorage === "undefined") return;
+      localStorage.setItem(
+        PANEL_ENGINE_STORAGE_KEY,
+        JSON.stringify({
+          v: 1,
+          engineTasks: mockState.engineTasks,
+          chatTaskCreations: mockState.chatTaskCreations,
+        })
+      );
+    } catch (_) {
+      /* quota / private mode */
+    }
+  }
+
+  function newEngineEventId() {
+    return "ev_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9);
+  }
+
+  function newEngineTaskId() {
+    return "tsk_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9);
+  }
+
+  function isPanelMotorEventType(type) {
+    return type === "task_created" || type === "task_completed";
+  }
+
+  function hydratePanelEngineFromStorage() {
+    try {
+      if (typeof localStorage === "undefined") return;
+      var raw = localStorage.getItem(PANEL_ENGINE_STORAGE_KEY);
+      if (!raw) return;
+      var o = JSON.parse(raw);
+      if (!o || typeof o !== "object" || o.v !== 1) return;
+      if (Array.isArray(o.engineTasks)) {
+        var tasks = [];
+        for (var i = 0; i < o.engineTasks.length; i++) {
+          var t = o.engineTasks[i];
+          if (!t || typeof t !== "object") continue;
+          if (t.id == null || String(t.id) === "") continue;
+          if (t.status !== "active" && t.status !== "done") continue;
+          tasks.push({
+            id: String(t.id),
+            title: t.title != null ? String(t.title) : "—",
+            status: t.status,
+            createdAt: t.createdAt != null ? String(t.createdAt) : "",
+            completedAt: t.completedAt != null && t.completedAt !== "" ? String(t.completedAt) : null,
+          });
+        }
+        mockState.engineTasks = tasks;
+      }
+      if (Array.isArray(o.chatTaskCreations)) {
+        var evs = [];
+        for (var j = 0; j < o.chatTaskCreations.length; j++) {
+          var e = o.chatTaskCreations[j];
+          if (!e || typeof e !== "object") continue;
+          if (!isPanelMotorEventType(e.type)) continue;
+          evs.push({
+            id: e.id != null ? String(e.id) : newEngineEventId(),
+            type: e.type,
+            taskId: String(e.taskId || ""),
+            text: e.text != null ? String(e.text) : "",
+            ts: e.ts != null ? String(e.ts) : new Date().toISOString(),
+          });
+        }
+        mockState.chatTaskCreations = evs;
+      }
+    } catch (_) {
+      /* corrupt JSON */
+    }
+  }
+
+  function buildPanelTaskEvent(type, taskId, taskTitle) {
+    return {
+      id: newEngineEventId(),
+      type: type,
+      taskId: String(taskId || ""),
+      text: String(taskTitle || "").trim(),
+      ts: new Date().toISOString(),
+    };
+  }
+
+  function findActiveEngineTaskByRef(ref) {
+    var r = String(ref || "").trim();
+    var tasks = mockState.engineTasks || [];
+    var rLow = r.toLowerCase();
+    var i;
+    var t;
+    for (i = 0; i < tasks.length; i++) {
+      t = tasks[i];
+      if (t.status !== "active") continue;
+      if (String(t.id) === r) return t;
+    }
+    for (i = 0; i < tasks.length; i++) {
+      t = tasks[i];
+      if (t.status !== "active") continue;
+      if (String(t.title).toLowerCase() === rLow) return t;
+    }
+    return null;
+  }
+
+  function appendPanelEngineEvent(ev) {
+    if (!ev || !isPanelMotorEventType(ev.type)) return;
+    mockState.chatTaskCreations.push(ev);
+    persistPanelEngineState();
+  }
+
+  var LumosMinTaskEngine = {
+    createTask: function (title) {
+      var t = String(title || "").trim();
+      if (!t) return null;
+      var now = new Date().toISOString();
+      var task = {
+        id: newEngineTaskId(),
+        title: t,
+        status: "active",
+        createdAt: now,
+        completedAt: null,
+      };
+      mockState.engineTasks.push(task);
+      return task;
+    },
+    completeTask: function (ref) {
+      var r = String(ref || "").trim();
+      if (!r) return { ok: false, reason: "empty" };
+      var task = findActiveEngineTaskByRef(r);
+      if (!task) return { ok: false, reason: "not_found" };
+      task.status = "done";
+      task.completedAt = new Date().toISOString();
+      return { ok: true, task: task };
+    },
+    getTasksData: function () {
+      return (mockState.engineTasks || []).slice();
+    },
+  };
+
+  function createTaskCreatedEvent(taskId, taskTitle) {
+    return buildPanelTaskEvent("task_created", taskId, taskTitle);
+  }
+
+  function createTaskCompletedEvent(taskId, taskTitle) {
+    return buildPanelTaskEvent("task_completed", taskId, taskTitle);
+  }
+
+  /** Eski oturumlarda kalan `time` alanını okurken ts ile hizala (yazmada yalnız ts). */
+  function eventTimestamp(ev) {
+    if (!ev) return null;
+    if (ev.ts != null) return ev.ts;
+    if (ev.time != null) return ev.time;
+    return null;
+  }
+
+  function isTaskCreatedEvent(ev) {
+    return !!(ev && (ev.type === "task_created" || ev.kind === "task_created"));
+  }
+
+  function isTaskCompletedEvent(ev) {
+    return !!(ev && (ev.type === "task_completed" || ev.kind === "task_completed"));
+  }
+
+  // ——— UI adapter: motor görevi → Görevler stub satırı (filterTaskList: aktif / tamamlandı) ———
+  function toTaskRow(task) {
+    if (!task || task.id == null) return null;
+    var done = task.status === "done";
+    return {
+      id: String(task.id),
+      title: task.title || "—",
+      status: done ? "tamamlandı" : "aktif",
+      updated: done && task.completedAt ? task.completedAt : task.createdAt || null,
+      lastRun: null,
+      guardResult: "—",
+      outputSummary: done ? "Tamamlandı." : "—",
+    };
+  }
+
+  /** Kayıtlar / EventList için { ts, kind, text } */
+  function toLogRow(event) {
+    if (!event) return null;
+    var ts = eventTimestamp(event);
+    var kind = event.kind != null ? event.kind : "";
+    if (!kind && event.type === "task_created") kind = "task_created";
+    if (!kind && event.type === "task_completed") kind = "task_completed";
+    if (!kind && event.type != null) kind = String(event.type);
+    var text = event.text != null ? String(event.text) : "";
+    if (!kind && text === "") return null;
+    return { ts: ts, kind: kind, text: text };
+  }
+
+  function toDashboardItem(event) {
+    return toLogRow(event);
+  }
+
+  function toActivityNote(event) {
+    if (!event) return "Henüz kayıt yok.";
+    if (isTaskCreatedEvent(event)) return "Görev oluşturuldu: " + (event.text || "—");
+    if (isTaskCompletedEvent(event)) return "Görev tamamlandı: " + (event.text || "—");
+    return event.text || "—";
+  }
+
+  /**
+   * Birleşik liste tabanı: backend/fixture log yükü. Demo’da boş; panel olayları chatTaskCreations ile eklenir.
+   */
+  function getBasePanelEventsFromSource() {
+    var src = getLogsSourceData();
+    if ((src.type === "backend" || src.type === "fixture") && window.LumosFixtures && LC.normalizeLogs) {
+      var data = LC.normalizeLogs(LumosFixtures.mapLogsPayloadToPanelData(src.data), {});
+      return Array.isArray(data.events) ? data.events.slice() : [];
+    }
+    return [];
+  }
+
+  /** Chat motor olayları: birleşik listede en yeni üstte. */
+  function chatEngineEventsNewestFirst(chatList) {
+    var arr = chatList || [];
+    var out = [];
+    for (var j = arr.length - 1; j >= 0; j--) {
+      var rec = arr[j];
+      if (!rec || !isPanelMotorEventType(rec.type)) continue;
+      out.push(rec);
+    }
+    return out;
+  }
+
+  /**
+   * Kayıtlar + Dashboard: ham olay nesneleri. Sıra: chat motor olayları (en yeni üstte) + backend/fixture log.
+   */
+  function getMergedPanelEventsList() {
+    var base = getBasePanelEventsFromSource();
+    var fromChat = chatEngineEventsNewestFirst(mockState.chatTaskCreations);
+    return fromChat.concat(base);
+  }
+
+  /** Demo: Görevler yalnızca engineTasks (kayıt olaylarından türetilmez). */
+  function getEngineTaskRowsForTasksScreen() {
+    return (mockState.engineTasks || []).map(toTaskRow).filter(Boolean);
+  }
+
+  /** Son Olaylar = toDashboardItem; Son Aktivite = ham listedeki ilk olay + toActivityNote. */
+  function applyDashboardFromMergedEvents(data) {
+    if (!data || !data.sections) return data;
+    if (!data.sections[0]) data.sections[0] = { title: "Son Olaylar", events: [] };
+    var merged = getMergedPanelEventsList();
+    data.sections[0].events = merged.map(toDashboardItem).filter(Boolean);
+    var lastEv = merged[0] || null;
+    if (data.metrics && data.metrics.length) {
+      for (var mi = 0; mi < data.metrics.length; mi++) {
+        if (data.metrics[mi].title === "Son Aktivite") {
+          data.metrics[mi].value = lastEv ? formatTime(eventTimestamp(lastEv)) : "—";
+          data.metrics[mi].note = toActivityNote(lastEv);
+          break;
+        }
+      }
+    }
+    return data;
+  }
+
   function getDashboardData() {
     var src = getDashboardSourceData();
-    if ((src.type === "backend" || src.type === "fixture") && window.LumosFixtures && LC.normalizeDashboard) return LC.normalizeDashboard(LumosFixtures.mapDashboardPayloadToPanelData(src.data), {});
-    return LC.normalizeDashboard(LC.buildDashboardStub(src.data), src.data);
+    var data;
+    if ((src.type === "backend" || src.type === "fixture") && window.LumosFixtures && LC.normalizeDashboard) {
+      data = LC.normalizeDashboard(LumosFixtures.mapDashboardPayloadToPanelData(src.data), {});
+    } else {
+      data = LC.normalizeDashboard(LC.buildDashboardStub(src.data), src.data);
+    }
+    return applyDashboardFromMergedEvents(data);
   }
-  function getTasksData() {
+  /** Görevler: backend/fixture = API listesi; demo = yalnızca engineTasks satırları. Seçim fullList üzerinden. */
+  function taskIdEquals(a, b) {
+    return String(a == null ? "" : a) === String(b == null ? "" : b);
+  }
+
+  function applyTasksViewFromMergedFullList(data, fullList, activeFilter) {
+    var af = activeFilter || "all";
+    var filtered = LC.filterTaskList ? LC.filterTaskList(fullList, af) : fullList;
+    var selId = mockState.selectedTaskId != null ? mockState.selectedTaskId : data.selectedId;
+    data.activeFilter = af;
+    data.listItems = filtered;
+    data.taskCount = filtered.length;
+    data.selectedId = selId;
+    data.selectedTask =
+      selId != null && selId !== ""
+        ? (fullList.filter(function (t) { return taskIdEquals(t.id, selId); })[0] || null)
+        : null;
+    return data;
+  }
+
+  /** Backend/fixture satırlarına motor görevlerini ekle (aynı id varsa backend satırı kalır). */
+  function mergeBackendTaskRowsWithEngine(backendRows) {
+    var fromBackend = Array.isArray(backendRows) ? backendRows.slice() : [];
+    var ids = {};
+    var bi;
+    for (bi = 0; bi < fromBackend.length; bi++) {
+      if (fromBackend[bi] && fromBackend[bi].id != null) ids[String(fromBackend[bi].id)] = true;
+    }
+    var fullList = fromBackend.slice();
+    var eng = getEngineTaskRowsForTasksScreen();
+    var ei;
+    for (ei = 0; ei < eng.length; ei++) {
+      var er = eng[ei];
+      if (!er || er.id == null) continue;
+      var sid = String(er.id);
+      if (ids[sid]) continue;
+      fullList.push(er);
+      ids[sid] = true;
+    }
+    return fullList;
+  }
+
+  function getTasksViewData() {
     var src = getTasksSourceData();
     if ((src.type === "backend" || src.type === "fixture") && window.LumosFixtures && LC.normalizeTasks) {
       var data = LC.normalizeTasks(LumosFixtures.mapTasksPayloadToPanelData(src.data), {});
-      var fullList = data.listItems || [];
-      data.activeFilter = mockState.taskFilter || data.activeFilter;
-      data.listItems = LC.filterTaskList ? LC.filterTaskList(fullList, mockState.taskFilter || data.activeFilter) : fullList;
-      data.selectedId = mockState.selectedTaskId || data.selectedId;
-      data.selectedTask = fullList.filter(function (t) { return t.id === (mockState.selectedTaskId || data.selectedId); })[0] || data.selectedTask;
-      return data;
+      var fullList = mergeBackendTaskRowsWithEngine(data.listItems || []);
+      var af = mockState.taskFilter || data.activeFilter || "all";
+      return applyTasksViewFromMergedFullList(data, fullList, af);
     }
     var s = getEffectiveState();
-    return LC.normalizeTasks(LC.buildTasksStub(s), s);
+    var fullList = getEngineTaskRowsForTasksScreen();
+    var sMerged = {};
+    for (var sk in s) sMerged[sk] = s[sk];
+    sMerged.taskList = fullList;
+    var data = LC.normalizeTasks(LC.buildTasksStub(sMerged), sMerged);
+    var af = mockState.taskFilter || data.activeFilter || "all";
+    return applyTasksViewFromMergedFullList(data, fullList, af);
   }
   function getSandboxData() {
     var src = getSandboxSourceData();
@@ -371,21 +699,50 @@
     var s = getEffectiveState();
     return LC.normalizeTrash(LC.buildTrashStub(s), s);
   }
+
+  /** Sekme süzgeci: Görevler sekmesi task_created ve task_completed satırlarını da gösterir. */
+  function filterMergedLogEventsForKayitlar(merged, activeFilterId) {
+    if (!activeFilterId || activeFilterId === "all") return merged;
+    var logFilters = LC.LOG_FILTERS || [];
+    var kf = null;
+    for (var fi = 0; fi < logFilters.length; fi++) {
+      if (logFilters[fi].id === activeFilterId) {
+        kf = logFilters[fi].kind;
+        break;
+      }
+    }
+    if (kf == null) return merged;
+    return merged.filter(function (e) {
+      if (!e) return false;
+      if (e.kind === kf) return true;
+      if (kf !== "görev") return false;
+      return e.kind === "task_created" || e.kind === "task_completed";
+    });
+  }
+
+  /** Kayıtlar: birleşik olaylar → toLogRow → sekme süzgeci → görünen liste. */
+  function applyLogsViewFromMerged(data, mergedEvents, activeFilterId) {
+    var logRows = mergedEvents.map(toLogRow).filter(Boolean);
+    var af = activeFilterId || "all";
+    var shown = filterMergedLogEventsForKayitlar(logRows, af);
+    data.activeFilter = af;
+    data.events = shown;
+    data.logLineCount = shown.length;
+    return data;
+  }
+
   function getLogsData() {
     var src = getLogsSourceData();
+    var mergedEvents = getMergedPanelEventsList();
     if ((src.type === "backend" || src.type === "fixture") && window.LumosFixtures && LC.normalizeLogs) {
       var data = LC.normalizeLogs(LumosFixtures.mapLogsPayloadToPanelData(src.data), {});
-      data.activeFilter = mockState.logFilter || data.activeFilter;
-      var logFilters = LC.LOG_FILTERS || [];
-      var kindForFilter = null;
-      for (var fi = 0; fi < logFilters.length; fi++) {
-        if (logFilters[fi].id === data.activeFilter) { kindForFilter = logFilters[fi].kind; break; }
-      }
-      data.events = kindForFilter ? (data.events || []).filter(function (e) { return e.kind === kindForFilter; }) : (data.events || []);
-      return data;
+      var af = mockState.logFilter || data.activeFilter || "all";
+      return applyLogsViewFromMerged(data, mergedEvents, af);
     }
     var s = getEffectiveState();
-    return LC.normalizeLogs(LC.buildLogsStub(s), s);
+    var data = LC.normalizeLogs(LC.buildLogsStub(s), s);
+    var af = mockState.logFilter || data.activeFilter || "all";
+    return applyLogsViewFromMerged(data, mergedEvents, af);
   }
   function getSystemStatusData() {
     var src = getSystemSourceData();
@@ -561,9 +918,14 @@
       }).join("");
       var dataSourceOpts = '<option value="demo"' + (useFixtureData ? '' : ' selected') + '>Demo</option><option value="fixture"' + (useFixtureData ? ' selected' : '') + '>Fixture</option>';
       actionsEl.innerHTML =
+        '<div class="topbar-actions-dev">' +
         '<span class="topbar-demo-label">DEV</span>' +
-        '<select id="demo-scenario-select" class="demo-scenario-select" aria-label="Demo senaryosu">' + opts + '</select>' +
-        '<select id="data-source-select" class="demo-scenario-select" aria-label="Veri kaynağı" title="Veri kaynağı">' + dataSourceOpts + '</select>';
+        '<select id="demo-scenario-select" class="demo-scenario-select" aria-label="Demo senaryosu">' +
+        opts +
+        "</select>" +
+        '<select id="data-source-select" class="demo-scenario-select" aria-label="Veri kaynağı" title="Veri kaynağı">' +
+        dataSourceOpts +
+        "</select></div>";
       var sel = document.getElementById("demo-scenario-select");
       if (sel) sel.addEventListener("change", function () { currentScenario = sel.value; refresh(); });
       var dataSel = document.getElementById("data-source-select");
@@ -632,7 +994,7 @@
 
   // ——— Ekran: Görevler (adapter + build) ———
   function renderTasks() {
-    var data = getTasksData();
+    var data = getTasksViewData();
     var listUpdatedLine = (data.listUpdatedText || (data.listUpdated ? formatTime(data.listUpdated) : null))
       ? '<p class="text-muted-small">' + (data.listUpdatedText || ("Liste son güncelleme: " + formatTime(data.listUpdated))) + "</p>" : "";
     var taskCountLine = (data.taskCount != null && data.taskCount !== undefined) ? '<p class="text-muted-small">Görev sayısı: ' + data.taskCount + "</p>" : "";
@@ -1077,127 +1439,243 @@
       .replace(/"/g, "&quot;");
   }
 
-  /** Örnek yanıt kartları (panel dili); gerçek entegrasyonda adapter besler. */
-  var YANIT_SAMPLE = {
-    summary:
-      "Tek yönlü akış değil: biri kök bırakır, başkaları altına kısa katkı ekler. Arayüz sade kalsın; ilk sürüm hızlı hissetsin.",
-    exampleLine:
-      "Şöyle düşünebiliriz: ortak not defteri — üstte bir cümle, altta herkes yeni satır ekler.",
-    understood: [
-      "Klasik sosyal medya (sadece akış, yarış) istemiyorsun.",
-      "Kök paylaşım + altına eklenen katkılar düşünüyorsun; karmaşık menü istemiyorsun.",
-    ],
-    recommendation: [
-      "Bir kök kayıt ve ona bağlı sıralı katkılar; ekranda net iki iş: «Yeni kök» ve «Katkı ekle».",
-      "İlk sürümde az alan, az buton; liste sayfa sayfa yüklensin, detaylar sonra.",
-    ],
-    questions: [
-      "Katkılar hemen herkese görünsün mü, yoksa kök sahibi onaylasın mı?",
-      "Paylaşım çoğunlukla yazı mı; başta sadece yazı yeter mi?",
-    ],
+  /** Oturum içi sohbet (sayfa yenilenene kadar bellekte; hash değişince sıfırlanmaz). */
+  var chatViewState = {
+    messages: [],
   };
 
-  var yanitActionNote = "";
-  /** Açık deste kartı: anladim | oneri | soru | null */
-  var yanitDeckOpen = null;
+  /** Sadece "görev oluştur" komutu (sonrasında boşluk, iki nokta veya satır sonu); "görev oluşturum" eşleşmez. */
+  var GOREV_OLUSTUR_PREFIX_RE = /^görev oluştur(?=\s|:|$)/i;
+  var GOREV_TAMAMLA_PREFIX_RE = /^görev tamamla(?=\s|:|$)/i;
 
-  function renderYanit() {
-    var d = YANIT_SAMPLE;
-    var leadBody =
-      '<p class="lumos-result-lead">' + escapeHtmlYanit(d.summary) + "</p>" +
-      (d.exampleLine
-        ? '<p class="lumos-result-muted">' + escapeHtmlYanit(d.exampleLine) + "</p>"
-        : "");
-    var ul = function (items) {
-      return (
-        "<ul class=\"lumos-result-list\">" +
-        items
-          .map(function (x) {
-            return "<li>" + escapeHtmlYanit(x) + "</li>";
-          })
-          .join("") +
-        "</ul>"
-      );
+  /**
+   * @returns {{ taskName: string } | null} null = bu bir görev oluştur komutu değil; taskName = önek çıkarılmış ad (boş olabilir)
+   */
+  function parseGorevOlusturCommand(raw) {
+    var t = String(raw || "").trim();
+    var m = GOREV_OLUSTUR_PREFIX_RE.exec(t);
+    if (!m) return null;
+    var rest = t.slice(m[0].length).replace(/^\s*:?\s*/, "").trim();
+    return { taskName: rest };
+  }
+
+  /**
+   * @returns {{ ref: string } | null} ref = id veya başlık (boş olabilir)
+   */
+  function parseGorevTamamlaCommand(raw) {
+    var t = String(raw || "").trim();
+    var m = GOREV_TAMAMLA_PREFIX_RE.exec(t);
+    if (!m) return null;
+    var rest = t.slice(m[0].length).replace(/^\s*:?\s*/, "").trim();
+    return { ref: rest };
+  }
+
+  /**
+   * Görev motoru komutları: state + olay kuyruğu.
+   * @returns {{ text: string, depth?: string, blocks?: object } | null} null → genel asistan yanıtına düş
+   */
+  function tryHandleTaskEngineChatCommand(userText) {
+    var trimmed = String(userText || "").trim();
+    var parsedCreate = parseGorevOlusturCommand(trimmed);
+    if (parsedCreate) {
+      if (!parsedCreate.taskName) {
+        return { text: "Görev adı eksik. Örnek: görev oluştur alışveriş", depth: "simple" };
+      }
+      var task = LumosMinTaskEngine.createTask(parsedCreate.taskName);
+      if (!task) {
+        return { text: "Görev adı eksik. Örnek: görev oluştur alışveriş", depth: "simple" };
+      }
+      appendPanelEngineEvent(createTaskCreatedEvent(task.id, task.title));
+      return { text: 'Görev oluşturuldu: "' + task.title + '".', depth: "simple" };
+    }
+    var parsedDone = parseGorevTamamlaCommand(trimmed);
+    if (parsedDone) {
+      if (!parsedDone.ref) {
+        return { text: "Görev adı eksik. Örnek: görev tamamla alışveriş", depth: "simple" };
+      }
+      var result = LumosMinTaskEngine.completeTask(parsedDone.ref);
+      if (!result.ok) {
+        return { text: "Tamamlanacak görev bulunamadı.", depth: "simple" };
+      }
+      appendPanelEngineEvent(createTaskCompletedEvent(result.task.id, result.task.title));
+      return { text: 'Görev tamamlandı: "' + result.task.title + '".', depth: "simple" };
+    }
+    return null;
+  }
+
+  /**
+   * @param {string} userText
+   * @returns {{ text: string, depth?: string, blocks?: object }}
+   */
+  function buildAssistantReply(userText) {
+    var trimmed = String(userText || "").trim();
+    var lower = trimmed.toLowerCase();
+    var engineReply = tryHandleTaskEngineChatCommand(trimmed);
+    if (engineReply) return engineReply;
+    if (lower.indexOf("görev") !== -1) {
+      return {
+        text: "Görevler ekranından listeyi görebilirsin. Yeni görev eklemek için mesajın tam olarak görev oluştur ile başlamalı (ör. görev oluştur başlık).",
+        depth: "simple",
+      };
+    }
+    if (lower.indexOf("kayıt") !== -1) {
+      return {
+        text: "Kayıtlar ekranına geçip son çıktıyı inceleyebilirsin.",
+        depth: "simple",
+      };
+    }
+    if (lower.indexOf("akış") !== -1) {
+      return {
+        text: "Akış ekranına geçip güncel listeyi görebilirsin.",
+        depth: "simple",
+      };
+    }
+    return {
+      text: "Görevler, Kayıtlar veya Akış ekranlarından durumu kontrol edebilirsin; burada yalnızca sohbet var.",
+      depth: "simple",
     };
-    var slots = [
-      { id: "anladim", title: "Ne anladım", items: d.understood },
-      { id: "oneri", title: "Ne öneriyorum", items: d.recommendation },
-    ];
-    if (d.questions && d.questions.length) {
-      slots.push({ id: "soru", title: "Sorular", items: d.questions });
-    }
-    var validOpen = false;
-    for (var vi = 0; vi < slots.length; vi++) {
-      if (yanitDeckOpen === slots[vi].id) validOpen = true;
-    }
-    if (!validOpen) yanitDeckOpen = null;
+  }
 
-    var deckHtml = "";
-    for (var si = 0; si < slots.length; si++) {
-      var slot = slots[si];
-      var prev = si > 0 ? slots[si - 1] : null;
-      var prevOpen = prev && yanitDeckOpen === prev.id;
-      var marginTop = si === 0 ? "14px" : prevOpen ? "12px" : "-36px";
-      var z = 7 - si;
-      var isOpen = yanitDeckOpen === slot.id;
-      var expanded = isOpen ? "true" : "false";
-      if (isOpen) {
-        deckHtml +=
-          '<article class="lumos-deck-card lumos-deck-card--open" style="margin-top:' +
-          marginTop +
-          ";z-index:" +
-          z +
-          '">' +
-          '<button type="button" class="lumos-deck-tab lumos-deck-tab--open" data-yanit-deck="' +
-          slot.id +
-          '" aria-expanded="' +
-          expanded +
-          '">' +
-          escapeHtmlYanit(slot.title) +
-          "</button>" +
-          '<div class="lumos-deck-open-body">' +
-          ul(slot.items) +
-          "</div></article>";
+  function submitChatFromComposer() {
+    var ta = document.getElementById("lumos-chat-input");
+    if (!ta) return;
+    var text = ta.value != null ? String(ta.value).trim() : "";
+    if (!text) return;
+    ta.value = "";
+    chatViewState.messages.push({ role: "user", text: text });
+    var reply = buildAssistantReply(text);
+    chatViewState.messages.push({
+      role: "assistant",
+      text: reply.text,
+      depth: reply.depth,
+      blocks: reply.blocks,
+    });
+    renderMain();
+    requestAnimationFrame(function () {
+      var t2 = document.getElementById("lumos-chat-input");
+      if (t2) {
+        t2.focus();
+        try {
+          var len = t2.value.length;
+          t2.setSelectionRange(len, len);
+        } catch (e2) {
+          /* ignore */
+        }
+      }
+    });
+  }
+
+  function renderChatUl(items) {
+    return (
+      "<ul class=\"lumos-msg-block-list\">" +
+      items
+        .map(function (x) {
+          return "<li>" + escapeHtmlYanit(x) + "</li>";
+        })
+        .join("") +
+      "</ul>"
+    );
+  }
+
+  /**
+   * Yardımcı bloklar. depth: simple = hiçbiri; medium = tek blok (öneri > özet > anladım sırası);
+   * complex veya yok = dolu alanların tamamı.
+   */
+  function renderLumosBlocksHtml(b, depth) {
+    if (!b || typeof b !== "object") return "";
+    var d = depth || "complex";
+    if (d === "simple") return "";
+
+    /** Yalnızca trim sonrası dolu satırlar; boş / null / anlamsız liste → blok yok */
+    function recommendationItemsForRender() {
+      if (!Array.isArray(b.recommendation)) return [];
+      var out = [];
+      for (var ri = 0; ri < b.recommendation.length; ri++) {
+        var raw = b.recommendation[ri];
+        if (raw == null) continue;
+        var t = String(raw).trim();
+        if (t) out.push(t);
+      }
+      return out;
+    }
+
+    function blockSummary() {
+      if (!b.summary || !String(b.summary).trim()) return "";
+      return (
+        '<div class="lumos-msg-block">' +
+        '<div class="lumos-msg-block-title">Kısa özet</div>' +
+        '<div class="lumos-msg-block-body">' +
+        escapeHtmlYanit(String(b.summary).trim()) +
+        "</div></div>"
+      );
+    }
+    function blockUnderstood() {
+      if (!b.understood || !b.understood.length) return "";
+      return (
+        '<div class="lumos-msg-block">' +
+        '<div class="lumos-msg-block-title">Ne anladım</div>' +
+        renderChatUl(b.understood) +
+        "</div>"
+      );
+    }
+    function blockRecommendation() {
+      var recItems = recommendationItemsForRender();
+      if (!recItems.length) return "";
+      return (
+        '<div class="lumos-msg-block">' +
+        '<div class="lumos-msg-block-title">Ne öneriyorum</div>' +
+        renderChatUl(recItems) +
+        "</div>"
+      );
+    }
+
+    if (d === "medium") {
+      var one = "";
+      if (recommendationItemsForRender().length) one = blockRecommendation();
+      else if (b.summary && String(b.summary).trim()) one = blockSummary();
+      else if (b.understood && b.understood.length) one = blockUnderstood();
+      return one ? '<div class="lumos-msg-blocks" style="margin-top:0.85rem">' + one + "</div>" : "";
+    }
+
+    var parts = blockSummary() + blockUnderstood() + blockRecommendation();
+    return parts ? '<div class="lumos-msg-blocks" style="margin-top:0.85rem">' + parts + "</div>" : "";
+  }
+
+  function renderChat() {
+    var msgs = chatViewState.messages;
+    var logHtml = "";
+    if (msgs.length === 0) {
+      logHtml =
+        '<div class="lumos-chat-empty" role="status">' +
+        '<p class="lumos-chat-empty-hint">Henüz mesaj yok. Aşağıya yazıp Gönder’e basın veya Enter ile gönderin.</p>' +
+        "</div>";
+    }
+    for (var i = 0; i < msgs.length; i++) {
+      var m = msgs[i];
+      if (m.role === "user") {
+        logHtml +=
+          '<div class="lumos-chat-msg lumos-chat-msg--user">' +
+          '<div class="lumos-chat-bubble">' +
+          escapeHtmlYanit(m.text) +
+          "</div></div>";
       } else {
-        deckHtml +=
-          '<article class="lumos-deck-card lumos-deck-card--peek" style="margin-top:' +
-          marginTop +
-          ";z-index:" +
-          z +
-          '">' +
-          '<button type="button" class="lumos-deck-tab" data-yanit-deck="' +
-          slot.id +
-          '" aria-expanded="' +
-          expanded +
-          '" title="Açmak için tıklayın">' +
-          escapeHtmlYanit(slot.title) +
-          '<span class="lumos-deck-cue" aria-hidden="true"> ···</span></button></article>';
+        var plain = m.text != null ? String(m.text).trim() : "";
+        var bubbleHtml = plain ? '<div class="lumos-chat-bubble">' + escapeHtmlYanit(plain) + "</div>" : "";
+        var blocksHtml = renderLumosBlocksHtml(m.blocks, m.depth);
+        if (!bubbleHtml && !blocksHtml) continue;
+        logHtml += '<div class="lumos-chat-msg lumos-chat-msg--assistant">' + bubbleHtml + blocksHtml + "</div>";
       }
     }
-
-    var noteLine = yanitActionNote
-      ? '<p class="lumos-yanit-feedback" role="status">' + escapeHtmlYanit(yanitActionNote) + "</p>"
-      : "";
     return (
-      ViewHeader(
-        "Kartlı sonuç",
-        "Uzun cevap tek parça değil: özet üstte, ayrıntılar altta kartlarda."
-      ) +
-      '<p class="lumos-yanit-intro">Alttaki <strong>başlık şeritlerine</strong> tıklayınca o bölüm açılır; tekrar tıklayınca kapanır. Şimdilik örnek metin — ileride gerçek Lumos cevabı burada gösterilebilir.</p>' +
-      '<div class="lumos-yanit-stack lumos-yanit-stack--deck">' +
-      '<article class="lumos-result-card lumos-result-card--lead" aria-labelledby="yanit-ozet">' +
-      '<h2 id="yanit-ozet" class="lumos-result-card-title lumos-result-card-title--lead">Kısa özet</h2>' +
-      leadBody +
-      "</article>" +
-      '<div class="lumos-yanit-deck" role="group" aria-label="Ayrıntı kartları">' +
-      deckHtml +
+      '<div class="lumos-chat-root">' +
+      '<div class="lumos-chat-log" role="log" aria-live="polite">' +
+      logHtml +
       "</div>" +
-      noteLine +
-      '<div class="lumos-yanit-actions">' +
-      '<button type="button" class="lumos-yanit-btn" data-yanit-action="devam">Devam et</button>' +
-      '<button type="button" class="lumos-yanit-btn lumos-yanit-btn--ghost" data-yanit-action="sade">Daha sade anlat</button>' +
-      '<button type="button" class="lumos-yanit-btn lumos-yanit-btn--primary" data-yanit-action="uygula">Uygulamaya başla</button>' +
-      "</div></div>"
+      '<div class="lumos-chat-composer">' +
+      '<div class="lumos-chat-composer-row">' +
+      '<textarea id="lumos-chat-input" class="lumos-chat-input" rows="2" placeholder="Mesaj yazın…" aria-label="Mesaj girişi"></textarea>' +
+      '<button type="button" id="lumos-chat-send" class="lumos-chat-send">Gönder</button>' +
+      "</div></div></div>"
     );
   }
 
@@ -1500,8 +1978,8 @@
   }
 
   var renderers = {
+    chat: renderChat,
     dashboard: renderDashboard,
-    yanit: renderYanit,
     feed: renderFeed,
     tasks: renderTasks,
     sandbox: renderSandbox,
@@ -1526,6 +2004,11 @@
     var rawTarget = e.target;
     var t = rawTarget && rawTarget.nodeType === 1 ? rawTarget : rawTarget && rawTarget.parentElement;
     var F = window.LumosFeedApi;
+    if (t && (t.id === "lumos-chat-send" || (t.closest && t.closest("#lumos-chat-send")))) {
+      e.preventDefault();
+      submitChatFromComposer();
+      return;
+    }
     function closestByDataAttr(el, attrName) {
       var cur = el;
       while (cur && cur !== document && cur !== null) {
@@ -1717,23 +2200,6 @@
         });
       return;
     }
-    var yanitBtn = t.closest && t.closest("[data-yanit-action]");
-    if (yanitBtn && yanitBtn.dataset && yanitBtn.dataset.yanitAction) {
-      var ya = yanitBtn.dataset.yanitAction;
-      var labels = {
-        devam: "Tamam — bir sonraki adıma geçebiliriz.",
-        sade: "Daha sade: kök + alt satırlar; iki düğme yeter.",
-        uygula: "Uygulama tarafında ilk adım: ekran taslağı ve en küçük veri şekli.",
-      };
-      yanitActionNote = labels[ya] || "Seçildi.";
-      renderMain();
-    }
-    var deckBtn = t.closest && t.closest("[data-yanit-deck]");
-    if (deckBtn && deckBtn.dataset && deckBtn.dataset.yanitDeck) {
-      var did = deckBtn.dataset.yanitDeck;
-      yanitDeckOpen = yanitDeckOpen === did ? null : did;
-      renderMain();
-    }
   }
 
   var _lastRouteScreenId = "";
@@ -1766,15 +2232,25 @@
   }
 
   function onHashChange() {
-    if (getCurrentScreen().id !== "yanit") {
-      yanitActionNote = "";
-      yanitDeckOpen = null;
-    }
     refresh();
   }
 
+  function onMainKeydown(e) {
+    var t = e.target;
+    if (!t || t.id !== "lumos-chat-input") return;
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      submitChatFromComposer();
+    }
+  }
+
   var mainEl = document.getElementById("main-content");
-  if (mainEl) mainEl.addEventListener("click", onMainClick);
+  if (mainEl) {
+    mainEl.addEventListener("click", onMainClick);
+    mainEl.addEventListener("keydown", onMainKeydown);
+  }
+
+  hydratePanelEngineFromStorage();
 
   window.addEventListener("hashchange", onHashChange);
   if (!window.location.hash) {
