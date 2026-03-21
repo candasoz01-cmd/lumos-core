@@ -38,7 +38,8 @@ body {
     "topbar topbar"
     "sidebar main";
   grid-template-columns: var(--sidebar-width) 1fr;
-  grid-template-rows: var(--topbar-height) 1fr;
+  /* Üst bar tek/çok satır olabilsin; sabit 2.5rem satır seçicileri sıkıştırıp bindirirdi */
+  grid-template-rows: minmax(var(--topbar-height), auto) 1fr;
   min-height: 100vh;
 }
 
@@ -46,9 +47,12 @@ body {
 .topbar {
   grid-area: topbar;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 1rem;
-  padding: 0 var(--spacing);
+  align-content: center;
+  row-gap: 0.4rem;
+  column-gap: 1rem;
+  padding: 0.25rem var(--spacing);
   background: var(--bg-topbar);
   border-bottom: var(--border);
   min-height: var(--topbar-height);
@@ -137,6 +141,21 @@ body {
   gap: 0.5rem;
   font-size: 0.8rem;
   color: var(--text-muted);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/** Sağ üst DEV + iki select: dar genişlikte alt satıra iner, üst üste binmez */
+.topbar-actions-dev {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .topbar-demo-label {
@@ -150,7 +169,11 @@ body {
   border: var(--border);
   border-radius: 4px;
   color: var(--text);
-  min-width: 8rem;
+  /* Dar satırda alt alta inerken okunabilir alt sınır; tek satırda taşmayı azaltır */
+  min-width: min(100%, 8rem);
+  flex: 1 1 9rem;
+  max-width: 100%;
+  width: auto;
 }
 
 .badge {
@@ -233,6 +256,165 @@ body {
   padding: var(--spacing);
   background: var(--bg-main);
   overflow: auto;
+}
+
+/* ——— Lumos sohbet (ana deneyim; kartlar mesaj içi blok) ——— */
+.lumos-chat-root {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: min(36rem, calc(100vh - 5.5rem));
+  max-width: 40rem;
+  margin: 0 auto;
+}
+
+.lumos-chat-log {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0.15rem 0 0.5rem;
+}
+
+.lumos-chat-msg {
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+}
+
+.lumos-chat-msg--user {
+  align-self: flex-end;
+}
+
+.lumos-chat-msg--assistant {
+  align-self: flex-start;
+}
+
+.lumos-chat-bubble {
+  border-radius: 12px;
+  padding: 0.65rem 0.85rem;
+  line-height: 1.45;
+  font-size: 0.92rem;
+  max-width: min(100%, 28rem);
+}
+
+.lumos-chat-msg--user .lumos-chat-bubble {
+  background: #2a3540;
+  border: 1px solid #3a4a55;
+}
+
+.lumos-chat-msg--assistant .lumos-chat-bubble {
+  background: #262626;
+  border: 1px solid #3a3a3a;
+}
+
+.lumos-msg-blocks {
+  margin-top: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-width: min(100%, 28rem);
+}
+
+.lumos-msg-block {
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.lumos-msg-block-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 0.35rem 0;
+}
+
+.lumos-msg-block-body {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.lumos-msg-block-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.lumos-chat-composer {
+  flex-shrink: 0;
+  padding-top: 0.75rem;
+  margin-top: auto;
+  border-top: 1px solid #333;
+}
+
+.lumos-chat-empty {
+  align-self: center;
+  text-align: center;
+  padding: 1rem 0.5rem;
+  max-width: 22rem;
+}
+
+.lumos-chat-empty-hint {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.lumos-chat-composer-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+.lumos-chat-composer-row .lumos-chat-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.lumos-chat-send {
+  flex-shrink: 0;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.88rem;
+  font-family: inherit;
+  border-radius: 8px;
+  border: var(--border);
+  background: #2a3540;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.lumos-chat-send:hover {
+  background: #354555;
+}
+
+.lumos-chat-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  line-height: 1.4;
+  border-radius: 8px;
+  border: var(--border);
+  background: #1a1a1a;
+  color: var(--text);
+  resize: vertical;
+  min-height: 2.75rem;
+  opacity: 0.9;
+}
+
+.lumos-chat-input::placeholder {
+  color: var(--text-muted);
 }
 
 /* Başlık hiyerarşisi: sayfa h1 → bölüm h2 → detay başlık */
@@ -863,6 +1045,13 @@ body {
   background: rgba(255, 255, 255, 0.03);
   border-radius: 8px;
   border-left: 3px solid #555;
+}
+
+.lumos-yanit-intro .inline-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82em;
+  color: #c4c4c4;
+  word-break: break-all;
 }
 
 .lumos-yanit-stack {

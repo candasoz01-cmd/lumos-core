@@ -4,7 +4,7 @@ Read-only backend state for panel Phase 1 bridge.
 Uses only: workspace_contract (paths, writing_base_dir, sandbox_base_path, LUMOS_SANDBOX_DIRNAME)
 and startup_health.consent_ok. No main.py, no write flows, no guard change.
 Output: JSON in fixture-compatible shape for Dashboard, Sandbox, System, Config (config.json mtime only),
-Identity, Keystore, Tasks, Trash, Logs.
+Identity, Keystore, Tasks, Trash, Logs, Guidance, Kartlı sonuç (yanit).
 Env: LUMOS_BASE_DIR (default .lumos), LUMOS_SANDBOX_MODE (default false), LUMOS_PROFILE (optional).
 """
 from __future__ import annotations
@@ -222,6 +222,140 @@ def _iso_to_display_text(iso: str | None) -> str | None:
         return None
 
 
+def _last_jsonl_record(path: Path) -> dict | None:
+    """JSONL dosyasının son geçerli satırını dict olarak döndür; yoksa None."""
+    if not path.is_file():
+        return None
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    for line in reversed(text.splitlines()):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            rec = json.loads(line)
+            return rec if isinstance(rec, dict) else None
+        except json.JSONDecodeError:
+            continue
+    return None
+
+
+def _build_yanit_card_payload(
+    *,
+    repo_root: Path,
+    guidance: dict,
+    system_health: dict,
+    tasks_payload: dict,
+    identity_payload: dict,
+    keystore_payload: dict,
+    config_payload: dict,
+    sandbox: dict,
+) -> dict:
+    """
+    Kartlı sonuç ekranı (#yanit): workspace + guidance + isteğe bağlı son karar kaydı.
+    Okuma: salt-okunur; karar motoruna yazmaz.
+    """
+    mode = (guidance.get("mode") or "offline").strip().lower()
+    mode_tr = "çevrimiçi" if mode == "online" else "çevrimdışı"
+    writing = (sandbox.get("writing_base_dir") or "canlı") or "canlı"
+    writing_tr = "korunmuş alan (sandbox)" if str(writing).lower() == "sandbox" else "canlı çalışma alanı"
+    consent = bool(guidance.get("consent"))
+    consent_tr = (
+        "Genel onay (consent) kayıtlı; keystore görünümü buna göre."
+        if consent
+        else "Genel onay henüz kayıtlı değil; hassas yazım ve keystore akışı kısıtlı kalır."
+    )
+    gen = system_health.get("general") if isinstance(system_health.get("general"), dict) else {}
+    gen_note = (gen.get("note") or "").strip()
+    summary = (
+        f"Şu an mod {mode_tr}. Yazım hedefi {writing_tr}. {consent_tr}"
+    )
+    if gen_note:
+        summary += f" Sistem özeti: {gen_note}"
+
+    context_line: str | None = None
+    hist = _last_jsonl_record(repo_root / "logs" / "lumos_decision_history.jsonl")
+    if hist:
+        g_goal = str(hist.get("goal") or "").strip()
+        g_opt = str(hist.get("option_description") or "").strip()
+        if g_goal or g_opt:
+            g_goal = g_goal[:160] + ("…" if len(g_goal) > 160 else "")
+            g_opt = g_opt[:160] + ("…" if len(g_opt) > 160 else "")
+            context_line = "Son karar kaydı: " + g_goal + (" — " + g_opt if g_opt else "") + "."
+    if not context_line and tasks_payload.get("list_updated_text"):
+        tc = tasks_payload.get("task_count") or 0
+        context_line = str(tasks_payload.get("list_updated_text")) + f" Görev sayısı: {tc}."
+    if not context_line:
+        snap = config_payload.get("config_snapshot") if isinstance(config_payload.get("config_snapshot"), dict) else {}
+        lat = snap.get("last_activity_text") or ""
+        if str(lat).strip():
+            context_line = str(lat).strip()
+
+    lock = str(guidance.get("lock") or "LOCKED").upper()
+    lock_tr = "Kilit açık (onay akışına göre)." if lock == "UNLOCKED" else "Kilit kapalı; koruma aktif."
+
+    iden = str(identity_payload.get("identity_state") or "—").strip()
+    ks = str(keystore_payload.get("keystore_state") or "—").strip()
+    te = system_health.get("task_engine") if isinstance(system_health.get("task_engine"), dict) else {}
+    te_note = str(te.get("note") or "—").strip()
+    tc = int(tasks_payload.get("task_count") or 0)
+    tfe = bool(tasks_payload.get("tasks_file_exists"))
+
+    understood: list[str] = [
+        f"Mod: {mode_tr}.",
+        lock_tr,
+        f"Genel onay: {'açık' if consent else 'kapalı'}.",
+        f"Kimlik dosyası: {iden}.",
+        f"Anahtar kasası: {ks}.",
+        f"Görev motoru: {te_note}",
+    ]
+    if tfe:
+        understood.append(f"tasks.json içinde {tc} görev kaydı var.")
+    else:
+        understood.append("tasks.json bulunamadı veya okunamadı; görev listesi boş sayılır.")
+
+    recommendation: list[str] = []
+    br = guidance.get("blocked_reason")
+    if br and str(br).strip():
+        recommendation.append(f"Engel: {str(br).strip()} — bağlı işlemler bunun giderilmesini bekleyebilir.")
+    ns = guidance.get("next_step")
+    if ns and str(ns).strip():
+        recommendation.append(f"Önerilen sonraki adım: {str(ns).strip()}")
+    if not consent:
+        recommendation.append("Çalışmaya devam için consent kaydını tamamlayın (startup_health; hassas yüzeyler kapalı kalır).")
+    te_st = str(te.get("status") or "").strip()
+    if te_st and te_st not in ("ok", "—"):
+        recommendation.append(f"Görev listesini doğrulayın: {te_note}")
+    wc = system_health.get("workspace_contract") if isinstance(system_health.get("workspace_contract"), dict) else {}
+    if str(wc.get("status") or "").strip() not in ("", "ok"):
+        wn = str(wc.get("note") or "Workspace sözleşmesini doğrulayın.").strip()
+        recommendation.append(wn)
+    if not recommendation:
+        recommendation.append(
+            "Görevler, Kayıtlar ve Sistem Durumu ekranlarını düzenli kontrol edin; veri salt-okunur köprüden gelir."
+        )
+
+    questions: list[str] = []
+    if tfe and tc == 0:
+        questions.append("Görev kuyruğu boş; ilk görevi hangi kanaldan oluşturacaksınız?")
+    if iden == "mevcut değil":
+        questions.append("Kimlik dosyası yok; bu ortamda kimlik kurulumu gerekiyor mu?")
+
+    snap2 = config_payload.get("config_snapshot") if isinstance(config_payload.get("config_snapshot"), dict) else {}
+    updated_at = tasks_payload.get("list_updated") or snap2.get("last_activity")
+
+    return {
+        "summary": summary,
+        "context_line": context_line,
+        "understood": understood,
+        "recommendation": recommendation,
+        "questions": questions,
+        "updated_at": updated_at,
+    }
+
+
 def _safe_resolve_path(path: Path | None) -> str | None:
     """Path çözümle; hata veya yoksa None (panel fallback '—' kullanır)."""
     if path is None:
@@ -383,6 +517,17 @@ def _build_state() -> dict:
         "next_step": None,
     }
 
+    yanit_payload = _build_yanit_card_payload(
+        repo_root=_repo_root,
+        guidance=guidance,
+        system_health=system_health,
+        tasks_payload=tasks_payload,
+        identity_payload=identity_payload,
+        keystore_payload=keystore_payload,
+        config_payload=config_payload,
+        sandbox=sandbox,
+    )
+
     return {
         "dashboard": dashboard,
         "sandbox": sandbox,
@@ -394,6 +539,7 @@ def _build_state() -> dict:
         "trash": trash_payload,
         "logs": logs_payload,
         "guidance": guidance,
+        "yanit": yanit_payload,
     }
 
 def main() -> None:

@@ -1,7 +1,7 @@
 /**
  * Lumos Panel v1 — operatör paneli.
- * Veri adapter katmanı: ekranlar normalize veri ile beslenir; kaynak şu an mockState (backend yok).
- * Ortak bileşenler, hash routing. Gerçek API entegrasyonu sonraki aşamada adapter üzerinden eklenecek.
+ * Görev doğruluk kaynağı: mockState.engineTasks + tasks.json eşleniği (kalıcı depo, aşağıdaki TASKS_JSON_STORAGE_KEY).
+ * Denetim olayları: mockState.chatTaskCreations (task_created | task_completed | task_deleted); görev satırı olaydan türetilmez.
  */
 
 (function () {
@@ -88,17 +88,12 @@
       keystore_sink: { status: "uyarı", note: "Keystore kilitli; hassas yazım kapalı." },
       general: { status: "ok", note: "Çekirdek parçalar operasyonel; 2 uyarı (identity, keystore)." },
     },
-    taskList: [
-      { id: "t1", title: "Panel iskeleti genişlet", status: "aktif", updated: "2025-03-14T10:00:00", lastRun: "2025-03-14T10:05:00", guardResult: "İzinli", outputSummary: "Panel bileşenleri güncellendi; test geçti." },
-      { id: "t2", title: "Mock state birleştir", status: "bekleyen", updated: "2025-03-14T09:30:00", lastRun: null, guardResult: "—", outputSummary: "—" },
-      { id: "t3", title: "README güncelle", status: "tamamlandı", updated: "2025-03-13T16:00:00", lastRun: "2025-03-13T16:00:00", guardResult: "İzinli", outputSummary: "README güncellendi." },
-      { id: "t4", title: "Guard kuralı doğrula", status: "başarısız", updated: "2025-03-14T08:00:00", lastRun: "2025-03-14T08:00:00", guardResult: "Reddedildi", outputSummary: "Hedef path sözleşme dışı; çalıştırma durduruldu." },
-      { id: "t5", title: "Dış API çağrısı", status: "engellenen", updated: "2025-03-14T07:30:00", lastRun: null, guardResult: "Engelli", outputSummary: "Profil dışı; işlem yapılmadı." },
-    ],
+    /** Eski stub; Görevler ekranı yalnızca engineTasks (kalıcı depo). Boş bırakılır. */
+    taskList: [],
     taskFilter: "all",
     /**
      * Merkezi görev motoru durumu (chat komutları; tek kaynak — görev ekranı buradan).
-     * Şekil: { id, title, status: "active"|"done", createdAt, completedAt }
+     * Şekil: { id, title, status: "active"|"done"|"deleted", createdAt, completedAt }
      */
     engineTasks: [],
     /**
@@ -109,6 +104,11 @@
     selectedTaskId: null,
     selectedTrashId: null,
     logFilter: "all",
+    /**
+     * REST görev API modunda (GET /tasks): null (ilk yükleme öncesi) | "online" | "offline-cache".
+     * Yerel / legacy doküman modunda kullanılmaz (null kalır).
+     */
+    taskSourceState: null,
     guidance: {
       mode: "offline",
       lock: "LOCKED",
@@ -118,7 +118,7 @@
     },
   };
 
-  // ——— Demo senaryolar (override; adapter tek kaynak olarak getEffectiveState kullanır) ———
+  // ——— Demo senaryolar (görev satırı taşımaz; getEffectiveState ile diğer mock alanlar) ———
   var currentScenario = "normal_operasyon";
   var useFixtureData = false;
   var DEMO_SCENARIOS = {
@@ -155,14 +155,6 @@
         { id: "L3", kind: "guard", text: "Dış API çağrısı engelli", ts: "2025-03-14T09:00:00" },
         { id: "L4", kind: "config", text: "config okundu", ts: "2025-03-14T08:55:00" },
         { id: "L5", kind: "guard", text: "Guard: yazım hedefi kontrolü başarısız", ts: "2025-03-14T08:00:00" },
-      ],
-      taskList: [
-        { id: "t1", title: "Panel iskeleti genişlet", status: "aktif", updated: "2025-03-14T10:00:00", lastRun: "2025-03-14T10:05:00", guardResult: "İzinli", outputSummary: "Panel bileşenleri güncellendi." },
-        { id: "t2", title: "Mock state birleştir", status: "bekleyen", updated: "2025-03-14T09:30:00", lastRun: null, guardResult: "—", outputSummary: "—" },
-        { id: "t3", title: "README güncelle", status: "tamamlandı", updated: "2025-03-13T16:00:00", lastRun: "2025-03-13T16:00:00", guardResult: "İzinli", outputSummary: "README güncellendi." },
-        { id: "t4", title: "Guard kuralı doğrula", status: "başarısız", updated: "2025-03-14T08:00:00", lastRun: "2025-03-14T08:00:00", guardResult: "Reddedildi", outputSummary: "Hedef path sözleşme dışı; çalıştırma durduruldu." },
-        { id: "t5", title: "Dış API çağrısı", status: "engellenen", updated: "2025-03-14T07:30:00", lastRun: null, guardResult: "Engelli", outputSummary: "Profil dışı; işlem yapılmadı." },
-        { id: "t6", title: "Dış dizine yaz", status: "engellenen", updated: "2025-03-14T07:00:00", lastRun: null, guardResult: "Engelli", outputSummary: "Guard: hedef sözleşme dışı." },
       ],
       systemHealth: {
         workspace_contract: { status: "ok", note: "Sözleşme yüklü." },
@@ -216,11 +208,47 @@
     },
   };
 
+  /**
+   * __LUMOS_READ_STATE__ (read_backend_state.py) → panel alanları: mod, kilit, consent, keystore.
+   * Böylece Sistem Durumu / rozetler ile politika aynı kaynağı okur.
+   */
+  function mergeReadStateIntoEffective(out) {
+    try {
+      var w = typeof window !== "undefined" ? window : null;
+      var rs = w && w.__LUMOS_READ_STATE__;
+      if (!rs || typeof rs !== "object") return out;
+      var g = rs.guidance;
+      if (g && typeof g === "object") {
+        out.guidance = {
+          mode: g.mode != null ? String(g.mode) : out.guidance.mode,
+          lock: g.lock != null ? String(g.lock) : out.guidance.lock,
+          consent: !!g.consent,
+          blocked_reason: g.blocked_reason != null ? g.blocked_reason : out.guidance.blocked_reason,
+          next_step: g.next_step != null ? g.next_step : out.guidance.next_step,
+        };
+        out.appMode = String(out.guidance.mode).toLowerCase() === "online" ? "online" : "offline";
+      }
+      var ks = rs.keystore;
+      if (ks && typeof ks === "object") {
+        if (ks.keystore_state != null) out.keystoreState = String(ks.keystore_state);
+        if (typeof ks.keystore_ready === "boolean") out.keystoreReady = ks.keystore_ready;
+      }
+      var dash = rs.dashboard;
+      if (dash && typeof dash === "object" && dash.guard_status != null) {
+        out.guardStatus = String(dash.guard_status);
+      }
+    } catch (_) {
+      /* ignore */
+    }
+    return out;
+  }
+
   function getEffectiveState() {
     var out = {};
     for (var k in mockState) out[k] = mockState[k];
     var over = DEMO_SCENARIOS[currentScenario];
     if (over) for (var k in over) out[k] = over[k];
+    mergeReadStateIntoEffective(out);
     return out;
   }
 
@@ -331,30 +359,329 @@
   }
 
   /**
-   * Minimum task engine — stability contract (execution layer hooks here later):
-   * - Görev güncel durumu: mockState.engineTasks (status "active" | "done"). UI satırı toTaskRow ile; olaydan türetilmez.
-   * - Denetim zaman çizelgesi: append-only mockState.chatTaskCreations (task_created | task_completed);
-   *   taskId + text (başlık) mutasyondaki görevle hizalı olmalı; yazım yolu: appendPanelEngineEvent (persist dahil).
-   * - Birleşik olay okuma (Kayıtlar + Dashboard Son Olaylar): yalnızca getMergedPanelEventsList().
-   * - Görevler ekranı: demo’da fullList = motor satırları; backend/fixture’da mergeBackendTaskRowsWithEngine (çakışan id’de backend öncelikli).
-   * - Kalıcılık: localStorage `lumos_panel_min_task_engine_v1` (v:1); hydratePanelEngineFromStorage yüklemede, persistPanelEngineState olay eklendikten sonra.
+   * Minimum task engine — stability contract:
+   * - Görev güncel durumu: mockState.engineTasks (status "active" | "done" | "deleted"). UI satırı toTaskRow ile; deleted listede yok; olaydan türetilmez.
+   * - Denetim: append-only mockState.chatTaskCreations (task_created | task_completed | task_deleted); finalize ile tasks.json events ile aynı; tek yazım hattı.
+   * - Kayıtlar + Dashboard: görev motoru satırları yalnızca kalıcı depodaki events’ten okunur; dosya/fixture log_items yalnızca task_* dışı satırlar (çift kaynak yok).
+   * - Görevler ekranı: yalnızca engineTasks → toTaskRow.
+   * - Kalıcılık: `panel/scripts/panel_tasks_server.py` + localStorage yansı.
+   *   Varsayılan: API (`LUMOS_PANEL_TASKS_MODE` / `LUMOS_PANEL_TASKS_PERSISTENCE` yoksa "api") → GET `/tasks` + POST mutasyonlar.
+   *   Local/legacy: mod `local` | `demo` | `legacy` | `put` → GET/PUT `/tasks.json` (tam doküman), sohbet komutları bellek+PUT.
+   *   `LUMOS_PANEL_TASKS_API_BASE === false` → tam çevrimdışı (HTTP yok, yalnız localStorage / inject).
+   *   Sunucu yoksa: hydrate GET başarısız → localStorage. Boş motor + inject: __LUMOS_READ_STATE__ task_list.
    */
   // ——— Adapter + minimum görev motoru ———
-  var PANEL_ENGINE_STORAGE_KEY = "lumos_panel_min_task_engine_v1";
+  var TASKS_JSON_STORAGE_KEY = "lumos_dot_lumos_tasks_json_v1";
+  var LEGACY_PANEL_ENGINE_STORAGE_KEY = "lumos_panel_min_task_engine_v1";
+  var PANEL_TASKS_FETCH_MS = 1200;
+  /** Açıkça set edilmezse görev ana yolu REST API. */
+  var PANEL_TASKS_MODE_DEFAULT = "api";
 
-  function persistPanelEngineState() {
+  /**
+   * Tek yapılandırma girişi: görev HTTP tabanı, doküman URL’leri, sohbet mutasyon yolu.
+   * @returns {{ apiBase: string, documentGetUrl: string, legacyPutUrl: string, chatCommands: "api"|"local" }}
+   */
+  function getPanelTasksPersistenceConfig() {
+    var w = typeof window !== "undefined" ? window : null;
+    if (!w) {
+      return { apiBase: "", documentGetUrl: "", legacyPutUrl: "", chatCommands: "local" };
+    }
+    if (w.LUMOS_PANEL_TASKS_API_BASE === false) {
+      return { apiBase: "", documentGetUrl: "", legacyPutUrl: "", chatCommands: "local" };
+    }
+    var custom = w.LUMOS_PANEL_TASKS_API_BASE;
+    var apiBase;
+    if (custom != null && String(custom).trim() !== "") {
+      apiBase = String(custom).replace(/\/$/, "");
+    } else {
+      apiBase = "http://127.0.0.1:8766";
+    }
+    var rawMode = w.LUMOS_PANEL_TASKS_PERSISTENCE != null ? w.LUMOS_PANEL_TASKS_PERSISTENCE : w.LUMOS_PANEL_TASKS_MODE;
+    var mode =
+      rawMode != null && String(rawMode).trim() !== ""
+        ? String(rawMode).trim().toLowerCase()
+        : PANEL_TASKS_MODE_DEFAULT;
+    var useLegacyDocument =
+      mode === "local" || mode === "demo" || mode === "legacy" || mode === "put";
+    if (useLegacyDocument) {
+      return {
+        apiBase: apiBase,
+        documentGetUrl: apiBase + "/tasks.json",
+        legacyPutUrl: apiBase + "/tasks.json",
+        chatCommands: "local",
+      };
+    }
+    return {
+      apiBase: apiBase,
+      documentGetUrl: apiBase + "/tasks",
+      legacyPutUrl: "",
+      chatCommands: "api",
+    };
+  }
+
+  function getPanelTasksApiBaseResolved() {
+    return getPanelTasksPersistenceConfig().apiBase;
+  }
+
+  function getPanelTasksDocumentGetUrl() {
+    return getPanelTasksPersistenceConfig().documentGetUrl;
+  }
+
+  /** GET /tasks REST modu; yerel tasks.json doküman yolu değil. */
+  function isPanelTasksApiRestMode() {
+    return getPanelTasksPersistenceConfig().chatCommands === "api" && !!getPanelTasksApiBaseResolved();
+  }
+
+  function setTaskSourceDomAttribute() {
+    try {
+      if (!isPanelTasksApiRestMode()) {
+        document.documentElement.removeAttribute("data-lumos-task-source");
+        return;
+      }
+      var s = mockState.taskSourceState;
+      if (s === "online" || s === "offline-cache") {
+        document.documentElement.setAttribute("data-lumos-task-source", s);
+      } else {
+        document.documentElement.setAttribute("data-lumos-task-source", "");
+      }
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
+  /** Canlı GET başarılı: bellek + localStorage önbellek; çakışmada sunucu doc esas. */
+  function applyTasksApiOnlineSuccess(doc) {
+    if (!isPanelTasksApiRestMode()) return;
+    mockState.taskSourceState = "online";
+    applyHydratedTasksAndEventsFromDoc(doc);
+    persistTasksJsonDocumentLocalOnly();
+    syncTaskSelectionAfterMutation();
+    setTaskSourceDomAttribute();
+  }
+
+  /** GET başarısız / zaman aşımı: salt okunur önbellek. */
+  function applyTasksApiOfflineFallback() {
+    if (!isPanelTasksApiRestMode()) return;
+    mockState.taskSourceState = "offline-cache";
+    hydrateTasksJsonPersistenceSyncFallback();
+    syncTaskSelectionAfterMutation();
+    setTaskSourceDomAttribute();
+  }
+
+  function syncTasksDocumentFromApi() {
+    var url = getPanelTasksDocumentGetUrl();
+    if (!url) return Promise.reject(new Error("Görev dokümanı URL yok"));
+    return fetchWithTimeout(url, { method: "GET", headers: { Accept: "application/json" } })
+      .then(function (r) {
+        if (!r.ok) return Promise.reject(new Error("GET görev dokümanı " + r.status));
+        return r.json();
+      })
+      .then(function (doc) {
+        if (!doc || typeof doc !== "object") return Promise.reject(new Error("geçersiz görev JSON"));
+        applyTasksApiOnlineSuccess(doc);
+      })
+      .catch(function (err) {
+        if (isPanelTasksApiRestMode()) applyTasksApiOfflineFallback();
+        return Promise.reject(err);
+      });
+  }
+
+  function findEngineTaskTitleForReply(titleOrRef, preferStatus) {
+    var tasks = mockState.engineTasks || [];
+    var hint = normalizeTaskCommandWhitespace(titleOrRef);
+    var i;
+    var t;
+    for (i = tasks.length - 1; i >= 0; i--) {
+      t = tasks[i];
+      if (!t) continue;
+      if (preferStatus && t.status !== preferStatus) continue;
+      if (normalizeTaskCommandWhitespace(t.title) === hint || taskTitleMatchesRef(titleOrRef, t.title)) {
+        return String(t.title || "").trim() || hint;
+      }
+    }
+    for (i = tasks.length - 1; i >= 0; i--) {
+      t = tasks[i];
+      if (!t || t.status === "deleted") continue;
+      if (taskTitleMatchesRef(titleOrRef, t.title)) return String(t.title || "").trim() || hint;
+    }
+    return hint;
+  }
+
+  function findDeletedEngineTaskTitleForReply(ref) {
+    var tasks = mockState.engineTasks || [];
+    var r0 = normalizeTaskCommandWhitespace(ref);
+    var i;
+    for (i = tasks.length - 1; i >= 0; i--) {
+      var t = tasks[i];
+      if (!t || t.status !== "deleted") continue;
+      if (String(t.id) === r0 || taskTitleMatchesRef(ref, t.title)) return String(t.title || "").trim() || r0;
+    }
+    return r0;
+  }
+
+  function tryHandleTaskEngineChatCommandViaApi(parsed) {
+    var Adapter = typeof LumosTasksApiAdapter !== "undefined" ? LumosTasksApiAdapter : null;
+    var base = getPanelTasksApiBaseResolved();
+    if (!base) {
+      return Promise.resolve({
+        text: "API modu açık ama LUMOS_PANEL_TASKS_API_BASE tanımlı değil.",
+        depth: "simple",
+      });
+    }
+    var apiPolicyBlock = runPanelTaskPolicyOrNull(parsed);
+    if (apiPolicyBlock) {
+      return Promise.resolve(apiPolicyBlock);
+    }
+    if (isPanelTasksApiRestMode() && mockState.taskSourceState !== "online") {
+      if (typeof console !== "undefined" && console.log) {
+        console.log("LUMOS_TASK_MUTATION_BLOCKED_OFFLINE", { verb: parsed && parsed.verb });
+      }
+      return Promise.resolve({
+        text:
+          "Görev API’sine ulaşılamıyor; liste önbellekten gösteriliyor (salt okunur). Oluşturma / tamamlama / silme gönderilmedi.",
+        depth: "simple",
+      });
+    }
+    if (!Adapter) {
+      return Promise.resolve({
+        text: "Görev API bağlayıcısı yüklenmedi (tasks-api-adapter.js).",
+        depth: "simple",
+      });
+    }
+    var api = new Adapter({
+      baseUrl: base,
+      fetchImpl: function (url, opts) {
+        return fetchWithTimeout(url, opts, PANEL_TASKS_FETCH_MS);
+      },
+    });
+    if (parsed.verb === "olustur") {
+      if (!parsed.taskName) {
+        return Promise.resolve({ text: "Görev adı eksik. Örnek: görev oluştur alışveriş", depth: "simple" });
+      }
+      return api.postTasksCreate({ title: parsed.taskName }).then(function (res) {
+        if (!res.ok) {
+          var er = res.body && res.body.error ? String(res.body.error) : "HTTP " + res.status;
+          throw new Error(er);
+        }
+        return syncTasksDocumentFromApi();
+      }).then(function () {
+        var tit = findEngineTaskTitleForReply(parsed.taskName, "active");
+        return { text: 'Görev oluşturuldu: "' + tit + '".', depth: "simple" };
+      });
+    }
+    if (parsed.verb === "tamamla") {
+      if (!parsed.ref) {
+        return Promise.resolve({ text: "Görev adı eksik. Örnek: görev tamamla alışveriş", depth: "simple" });
+      }
+      return api.postTasksComplete({ ref: parsed.ref }).then(function (res) {
+        if (res.status === 409 || (res.body && res.body.error === "already_done")) {
+          return { text: "Görev zaten tamamlanmış.", depth: "simple" };
+        }
+        if (res.status === 404 || (res.body && res.body.error === "not_found")) {
+          return { text: "Tamamlanacak görev bulunamadı.", depth: "simple" };
+        }
+        if (!res.ok) {
+          var er2 = res.body && res.body.error ? String(res.body.error) : "HTTP " + res.status;
+          throw new Error(er2);
+        }
+        return syncTasksDocumentFromApi().then(function () {
+          var tit2 = findEngineTaskTitleForReply(parsed.ref, "done");
+          return { text: 'Görev tamamlandı: "' + tit2 + '".', depth: "simple" };
+        });
+      });
+    }
+    if (parsed.verb === "sil") {
+      if (!parsed.ref) {
+        return Promise.resolve({ text: "Görev adı eksik. Örnek: görev sil alışveriş", depth: "simple" });
+      }
+      return api.postTasksDelete({ ref: parsed.ref }).then(function (res) {
+        if (res.status === 404 || (res.body && res.body.error === "not_found")) {
+          return { text: "Silinecek görev bulunamadı.", depth: "simple" };
+        }
+        if (!res.ok) {
+          var er3 = res.body && res.body.error ? String(res.body.error) : "HTTP " + res.status;
+          throw new Error(er3);
+        }
+        return syncTasksDocumentFromApi().then(function () {
+          var tit3 = findDeletedEngineTaskTitleForReply(parsed.ref);
+          return { text: 'Görev silindi (listeden kaldırıldı): "' + tit3 + '".', depth: "simple" };
+        });
+      });
+    }
+    return Promise.resolve({ text: "Görev komutu API üzerinde tanımsız.", depth: "simple" });
+  }
+
+  function fetchWithTimeout(url, options, timeoutMs) {
+    var ms = timeoutMs != null ? timeoutMs : PANEL_TASKS_FETCH_MS;
+    if (typeof fetch !== "function") return Promise.reject(new Error("fetch yok"));
+    var ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    var timer = null;
+    var opts = options ? Object.assign({}, options) : {};
+    if (ctrl) {
+      opts.signal = ctrl.signal;
+      timer = setTimeout(function () {
+        try {
+          ctrl.abort();
+        } catch (_) {}
+      }, ms);
+    }
+    return Promise.resolve(fetch(url, opts)).finally(function () {
+      if (timer) clearTimeout(timer);
+    });
+  }
+
+  function buildPersistDoc() {
+    var raw = mockState.chatTaskCreations || [];
+    var evs = raw.filter(function (e) {
+      return e && e.type !== "policy_blocked";
+    });
+    return {
+      v: 1,
+      tasks: mockState.engineTasks || [],
+      events: evs,
+    };
+  }
+
+  function persistTasksJsonDocumentLocalOnly() {
     try {
       if (typeof localStorage === "undefined") return;
+      localStorage.setItem(TASKS_JSON_STORAGE_KEY, JSON.stringify(buildPersistDoc()));
+    } catch (_) {
+      /* quota / private mode */
+    }
+  }
+
+  function persistTasksJsonDocument() {
+    persistTasksJsonDocumentLocalOnly();
+    var url = getPanelTasksPersistenceConfig().legacyPutUrl;
+    if (!url) return;
+    fetchWithTimeout(url, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(buildPersistDoc()),
+    }).catch(function () {
+      /* sunucu kapalı; localStorage güncel */
+    });
+  }
+
+  function migrateLegacyEngineStorageToTasksJson() {
+    try {
+      if (typeof localStorage === "undefined") return;
+      if (localStorage.getItem(TASKS_JSON_STORAGE_KEY)) return;
+      var raw = localStorage.getItem(LEGACY_PANEL_ENGINE_STORAGE_KEY);
+      if (!raw) return;
+      var o = JSON.parse(raw);
+      if (!o || typeof o !== "object" || o.v !== 1) return;
       localStorage.setItem(
-        PANEL_ENGINE_STORAGE_KEY,
+        TASKS_JSON_STORAGE_KEY,
         JSON.stringify({
           v: 1,
-          engineTasks: mockState.engineTasks,
-          chatTaskCreations: mockState.chatTaskCreations,
+          tasks: Array.isArray(o.engineTasks) ? o.engineTasks : [],
+          events: Array.isArray(o.chatTaskCreations) ? o.chatTaskCreations : [],
         })
       );
     } catch (_) {
-      /* quota / private mode */
+      /* ignore */
     }
   }
 
@@ -367,52 +694,161 @@
   }
 
   function isPanelMotorEventType(type) {
-    return type === "task_created" || type === "task_completed";
+    return (
+      type === "task_created" ||
+      type === "task_completed" ||
+      type === "task_deleted" ||
+      type === "policy_blocked"
+    );
   }
 
-  function hydratePanelEngineFromStorage() {
+  /** Backend/fixture task_list satırı → engine task (salt okunur inject; boş depoda tohum). */
+  function panelTaskRowToEngineTask(row) {
+    if (!row || row.id == null || String(row.id) === "") return null;
+    var st = String(row.status || "").toLowerCase();
+    var done = st === "tamamlandı" || st === "tamamlandi";
+    var updated = row.updated != null ? String(row.updated) : "";
+    var lastRun = row.lastRun != null ? String(row.lastRun) : "";
+    return {
+      id: String(row.id),
+      title: row.title != null ? String(row.title) : "—",
+      status: done ? "done" : "active",
+      createdAt: updated || new Date().toISOString(),
+      completedAt: done ? (lastRun || updated || new Date().toISOString()) : null,
+    };
+  }
+
+  function applyHydratedTasksAndEventsFromDoc(o) {
+    if (!o || typeof o !== "object") return;
+    if (Array.isArray(o.tasks)) {
+      var tasks = [];
+      for (var i = 0; i < o.tasks.length; i++) {
+        var t = o.tasks[i];
+        if (!t || typeof t !== "object") continue;
+        if (t.id == null || String(t.id) === "") continue;
+        if (t.status !== "active" && t.status !== "done" && t.status !== "deleted") continue;
+        tasks.push({
+          id: String(t.id),
+          title: t.title != null ? String(t.title) : "—",
+          status: t.status,
+          createdAt: t.createdAt != null ? String(t.createdAt) : "",
+          completedAt: t.completedAt != null && t.completedAt !== "" ? String(t.completedAt) : null,
+          deletedAt: t.deletedAt != null && t.deletedAt !== "" ? String(t.deletedAt) : null,
+        });
+      }
+      mockState.engineTasks = tasks;
+    }
+    if (Array.isArray(o.events)) {
+      var evs = [];
+      for (var j = 0; j < o.events.length; j++) {
+        var e = o.events[j];
+        if (!e || typeof e !== "object") continue;
+        if (!isPanelMotorEventType(e.type)) continue;
+        evs.push({
+          id: e.id != null ? String(e.id) : newEngineEventId(),
+          type: e.type,
+          taskId: String(e.taskId || ""),
+          text: e.text != null ? String(e.text) : "",
+          ts: e.ts != null ? String(e.ts) : new Date().toISOString(),
+        });
+      }
+      mockState.chatTaskCreations = evs;
+    }
+  }
+
+  /** read_backend_state inject: task_list varsa ve motor boşsa engine’i doldur; dosyaya yansıt. */
+  function hydrateEngineTasksFromInjectedBackendIfEmpty() {
+    var cur = mockState.engineTasks || [];
+    if (cur.length > 0) return;
+    var backend = Bridge.readBackendTasksState && Bridge.readBackendTasksState();
+    if (!backend || !Array.isArray(backend.task_list) || !backend.task_list.length) return;
+    var out = [];
+    for (var i = 0; i < backend.task_list.length; i++) {
+      var eng = panelTaskRowToEngineTask(backend.task_list[i]);
+      if (eng) out.push(eng);
+    }
+    if (!out.length) return;
+    mockState.engineTasks = out;
+    persistTasksJsonDocument();
+  }
+
+  /** Sunucu yok / hata: yalnızca localStorage (+ legacy migrate). */
+  function hydrateTasksJsonPersistenceSyncFallback() {
     try {
       if (typeof localStorage === "undefined") return;
-      var raw = localStorage.getItem(PANEL_ENGINE_STORAGE_KEY);
+      migrateLegacyEngineStorageToTasksJson();
+      var raw = localStorage.getItem(TASKS_JSON_STORAGE_KEY);
       if (!raw) return;
       var o = JSON.parse(raw);
-      if (!o || typeof o !== "object" || o.v !== 1) return;
-      if (Array.isArray(o.engineTasks)) {
-        var tasks = [];
-        for (var i = 0; i < o.engineTasks.length; i++) {
-          var t = o.engineTasks[i];
-          if (!t || typeof t !== "object") continue;
-          if (t.id == null || String(t.id) === "") continue;
-          if (t.status !== "active" && t.status !== "done") continue;
-          tasks.push({
-            id: String(t.id),
-            title: t.title != null ? String(t.title) : "—",
-            status: t.status,
-            createdAt: t.createdAt != null ? String(t.createdAt) : "",
-            completedAt: t.completedAt != null && t.completedAt !== "" ? String(t.completedAt) : null,
-          });
-        }
-        mockState.engineTasks = tasks;
-      }
-      if (Array.isArray(o.chatTaskCreations)) {
-        var evs = [];
-        for (var j = 0; j < o.chatTaskCreations.length; j++) {
-          var e = o.chatTaskCreations[j];
-          if (!e || typeof e !== "object") continue;
-          if (!isPanelMotorEventType(e.type)) continue;
-          evs.push({
-            id: e.id != null ? String(e.id) : newEngineEventId(),
-            type: e.type,
-            taskId: String(e.taskId || ""),
-            text: e.text != null ? String(e.text) : "",
-            ts: e.ts != null ? String(e.ts) : new Date().toISOString(),
-          });
-        }
-        mockState.chatTaskCreations = evs;
+      if (o && typeof o === "object" && o.v === 1) {
+        applyHydratedTasksAndEventsFromDoc(o);
       }
     } catch (_) {
-      /* corrupt JSON */
+      /* corrupt */
     }
+  }
+
+  /** Açılış: önce .lumos/tasks.json (panel_tasks_server); başarılı yanıtta dosya tek kaynak, sonra localStorage eşlenir. */
+  function hydrateTasksJsonPersistenceAsync(done) {
+    var url = getPanelTasksDocumentGetUrl();
+    function finish() {
+      hydrateEngineTasksFromInjectedBackendIfEmpty();
+      if (typeof done === "function") done();
+    }
+    if (!url) {
+      hydrateTasksJsonPersistenceSyncFallback();
+      finish();
+      return;
+    }
+    fetchWithTimeout(url, { method: "GET", headers: { Accept: "application/json" } })
+      .then(function (r) {
+        if (!r.ok) return Promise.reject(new Error("GET tasks.json"));
+        return r.json();
+      })
+      .then(function (doc) {
+        if (!doc || typeof doc !== "object") return Promise.reject(new Error("geçersiz JSON"));
+        if (isPanelTasksApiRestMode()) {
+          applyTasksApiOnlineSuccess(doc);
+        } else {
+          applyHydratedTasksAndEventsFromDoc(doc);
+          persistTasksJsonDocumentLocalOnly();
+          syncTaskSelectionAfterMutation();
+        }
+      })
+      .catch(function () {
+        if (isPanelTasksApiRestMode()) {
+          applyTasksApiOfflineFallback();
+        } else {
+          hydrateTasksJsonPersistenceSyncFallback();
+        }
+      })
+      .then(function () {
+        finish();
+      });
+  }
+
+  /**
+   * Hash değişiminde tek GET: API geri geldiyse online + canlı doc; yoksa offline-cache + localStorage.
+   * Tekrar deneme döngüsü yok; tek istek.
+   */
+  function scheduleTasksApiRevalidate() {
+    if (!isPanelTasksApiRestMode()) return;
+    var url = getPanelTasksDocumentGetUrl();
+    if (!url) return;
+    fetchWithTimeout(url, { method: "GET", headers: { Accept: "application/json" } })
+      .then(function (r) {
+        if (!r.ok) return Promise.reject(new Error("GET tasks"));
+        return r.json();
+      })
+      .then(function (doc) {
+        if (!doc || typeof doc !== "object") return Promise.reject(new Error("geçersiz JSON"));
+        applyTasksApiOnlineSuccess(doc);
+        refreshCurrentView();
+      })
+      .catch(function () {
+        applyTasksApiOfflineFallback();
+        refreshCurrentView();
+      });
   }
 
   function buildPanelTaskEvent(type, taskId, taskTitle) {
@@ -425,34 +861,100 @@
     };
   }
 
-  function findActiveEngineTaskByRef(ref) {
-    var r = String(ref || "").trim();
+  /** Görev sohbet komutları: trim, çoklu boşluk, unicode space / nbsp. */
+  function normalizeTaskCommandWhitespace(s) {
+    return String(s || "")
+      .replace(/[\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000\ufeff]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  /** Başlık/ref karşılaştırması için (lower-case + whitespace normalize). */
+  function normalizeTaskCommandCompareKey(s) {
+    return normalizeTaskCommandWhitespace(s).toLowerCase();
+  }
+
+  function taskTitleMatchesRef(ref, title) {
+    var rKey = normalizeTaskCommandCompareKey(ref);
+    var tKey = normalizeTaskCommandCompareKey(title);
+    if (!rKey || !tKey) return false;
+    if (tKey === rKey) return true;
+    if (tKey.replace(/-/g, " ") === rKey.replace(/-/g, " ")) return true;
+    if (tKey.replace(/\s+/g, "-") === rKey.replace(/\s+/g, "-")) return true;
+    return false;
+  }
+
+  /**
+   * active + done; deleted hariç. Önce tam id, sonra başlık (normalize + esnek tire).
+   */
+  function resolveEngineTaskByRef(ref) {
+    var rTrim = normalizeTaskCommandWhitespace(ref);
+    if (!rTrim) return null;
     var tasks = mockState.engineTasks || [];
-    var rLow = r.toLowerCase();
     var i;
     var t;
     for (i = 0; i < tasks.length; i++) {
       t = tasks[i];
-      if (t.status !== "active") continue;
-      if (String(t.id) === r) return t;
+      if (!t || t.status === "deleted") continue;
+      if (t.status !== "active" && t.status !== "done") continue;
+      if (String(t.id) === rTrim) return t;
     }
     for (i = 0; i < tasks.length; i++) {
       t = tasks[i];
-      if (t.status !== "active") continue;
-      if (String(t.title).toLowerCase() === rLow) return t;
+      if (!t || t.status === "deleted") continue;
+      if (t.status !== "active" && t.status !== "done") continue;
+      if (taskTitleMatchesRef(rTrim, t.title)) return t;
     }
     return null;
   }
 
+  /**
+   * Aktif veya tamamlanmış görevi soft siler (status = deleted). Kalıcılık + UI: finalizeTaskMutation.
+   */
+  function softDeleteTask(ref) {
+    var r = normalizeTaskCommandWhitespace(ref);
+    if (!r) return { ok: false, reason: "empty" };
+    var task = resolveEngineTaskByRef(r);
+    if (!task) return { ok: false, reason: "not_found" };
+    task.status = "deleted";
+    task.deletedAt = new Date().toISOString();
+    return { ok: true, task: task };
+  }
+
+  /**
+   * Aktif görevi tamamlar; aynı ref tamamlanmışsa already_done. Kalıcılık + UI: finalizeTaskMutation.
+   */
+  function completeTask(ref) {
+    var r = normalizeTaskCommandWhitespace(ref);
+    if (!r) return { ok: false, reason: "empty" };
+    var task = resolveEngineTaskByRef(r);
+    if (!task) return { ok: false, reason: "not_found" };
+    if (task.status === "done") return { ok: false, reason: "already_done" };
+    var now = new Date().toISOString();
+    task.status = "done";
+    task.completedAt = now;
+    return { ok: true, task: task, completedAt: now };
+  }
+
+  /**
+   * Motor olayını kuyruğa ekler (persist yok; görev mutasyonunda finalizeTaskMutation ile kapanır).
+   * Minimal çağrı: { type: "task_completed", text, ts } — eksik id/taskId otomatik tamamlanır.
+   */
   function appendPanelEngineEvent(ev) {
     if (!ev || !isPanelMotorEventType(ev.type)) return;
-    mockState.chatTaskCreations.push(ev);
-    persistPanelEngineState();
+    var normalized = {
+      id: ev.id != null ? String(ev.id) : newEngineEventId(),
+      type: ev.type,
+      taskId: ev.taskId != null ? String(ev.taskId) : "",
+      text: ev.text != null ? String(ev.text).trim() : "",
+      ts: ev.ts != null ? String(ev.ts) : new Date().toISOString(),
+    };
+    mockState.chatTaskCreations.push(normalized);
   }
 
   var LumosMinTaskEngine = {
     createTask: function (title) {
-      var t = String(title || "").trim();
+      var t = normalizeTaskCommandWhitespace(title);
       if (!t) return null;
       var now = new Date().toISOString();
       var task = {
@@ -465,15 +967,7 @@
       mockState.engineTasks.push(task);
       return task;
     },
-    completeTask: function (ref) {
-      var r = String(ref || "").trim();
-      if (!r) return { ok: false, reason: "empty" };
-      var task = findActiveEngineTaskByRef(r);
-      if (!task) return { ok: false, reason: "not_found" };
-      task.status = "done";
-      task.completedAt = new Date().toISOString();
-      return { ok: true, task: task };
-    },
+    completeTask: completeTask,
     getTasksData: function () {
       return (mockState.engineTasks || []).slice();
     },
@@ -481,10 +975,6 @@
 
   function createTaskCreatedEvent(taskId, taskTitle) {
     return buildPanelTaskEvent("task_created", taskId, taskTitle);
-  }
-
-  function createTaskCompletedEvent(taskId, taskTitle) {
-    return buildPanelTaskEvent("task_completed", taskId, taskTitle);
   }
 
   /** Eski oturumlarda kalan `time` alanını okurken ts ile hizala (yazmada yalnız ts). */
@@ -503,9 +993,14 @@
     return !!(ev && (ev.type === "task_completed" || ev.kind === "task_completed"));
   }
 
+  function isTaskDeletedEvent(ev) {
+    return !!(ev && (ev.type === "task_deleted" || ev.kind === "task_deleted"));
+  }
+
   // ——— UI adapter: motor görevi → Görevler stub satırı (filterTaskList: aktif / tamamlandı) ———
   function toTaskRow(task) {
     if (!task || task.id == null) return null;
+    if (task.status === "deleted") return null;
     var done = task.status === "done";
     return {
       id: String(task.id),
@@ -525,6 +1020,7 @@
     var kind = event.kind != null ? event.kind : "";
     if (!kind && event.type === "task_created") kind = "task_created";
     if (!kind && event.type === "task_completed") kind = "task_completed";
+    if (!kind && event.type === "task_deleted") kind = "task_deleted";
     if (!kind && event.type != null) kind = String(event.type);
     var text = event.text != null ? String(event.text) : "";
     if (!kind && text === "") return null;
@@ -539,19 +1035,65 @@
     if (!event) return "Henüz kayıt yok.";
     if (isTaskCreatedEvent(event)) return "Görev oluşturuldu: " + (event.text || "—");
     if (isTaskCompletedEvent(event)) return "Görev tamamlandı: " + (event.text || "—");
+    if (isTaskDeletedEvent(event)) return "Görev silindi (soft): " + (event.text || "—");
     return event.text || "—";
   }
 
+  function isTaskMotorKindInLogRow(kind) {
+    var k = kind != null ? String(kind) : "";
+    return k === "task_created" || k === "task_completed" || k === "task_deleted";
+  }
+
   /**
-   * Birleşik liste tabanı: backend/fixture log yükü. Demo’da boş; panel olayları chatTaskCreations ile eklenir.
+   * Backend/fixture log satırları (log.txt → log_items). task_* burada tekrarlanmasın; motor olayları yalnızca tasks.json events.
    */
   function getBasePanelEventsFromSource() {
     var src = getLogsSourceData();
     if ((src.type === "backend" || src.type === "fixture") && window.LumosFixtures && LC.normalizeLogs) {
       var data = LC.normalizeLogs(LumosFixtures.mapLogsPayloadToPanelData(src.data), {});
-      return Array.isArray(data.events) ? data.events.slice() : [];
+      var evs = Array.isArray(data.events) ? data.events.slice() : [];
+      var out = [];
+      var i;
+      for (i = 0; i < evs.length; i++) {
+        var e = evs[i];
+        if (!e) continue;
+        var k = e.kind != null ? String(e.kind) : "";
+        if (isTaskMotorKindInLogRow(k)) continue;
+        out.push(e);
+      }
+      return out;
     }
     return [];
+  }
+
+  /**
+   * Görev motoru log satırları: tek okuma kaynağı tasks.json (localStorage / PUT ile aynı events dizisi).
+   * Bellek ile tutarsızlık penceresinde mockState.chatTaskCreations yedek.
+   */
+  function getTaskMotorEventsLedgerNewestFirst() {
+    var list = [];
+    try {
+      if (typeof localStorage !== "undefined") {
+        var raw = localStorage.getItem(TASKS_JSON_STORAGE_KEY);
+        if (raw) {
+          var o = JSON.parse(raw);
+          if (o && o.v === 1 && Array.isArray(o.events)) list = o.events.slice();
+        }
+      }
+    } catch (_) {
+      list = [];
+    }
+    if (!list || !list.length) {
+      list = (mockState.chatTaskCreations || []).slice();
+    } else {
+      var mem = mockState.chatTaskCreations || [];
+      var mi;
+      for (mi = 0; mi < mem.length; mi++) {
+        var me = mem[mi];
+        if (me && me.type === "policy_blocked") list.push(me);
+      }
+    }
+    return chatEngineEventsNewestFirst(list);
   }
 
   /** Chat motor olayları: birleşik listede en yeni üstte. */
@@ -567,17 +1109,20 @@
   }
 
   /**
-   * Kayıtlar + Dashboard: ham olay nesneleri. Sıra: chat motor olayları (en yeni üstte) + backend/fixture log.
+   * Kayıtlar + Dashboard: ham olay nesneleri. Sıra: kalıcı events (motor) en yeni üstte + dosya/fixture (task_* hariç).
    */
   function getMergedPanelEventsList() {
-    var base = getBasePanelEventsFromSource();
-    var fromChat = chatEngineEventsNewestFirst(mockState.chatTaskCreations);
-    return fromChat.concat(base);
+    return getTaskMotorEventsLedgerNewestFirst().concat(getBasePanelEventsFromSource());
   }
 
-  /** Demo: Görevler yalnızca engineTasks (kayıt olaylarından türetilmez). */
+  /** Demo: Görevler yalnızca engineTasks (kayıt olaylarından türetilmez). deleted hiçbir filtrede listelenmez. */
   function getEngineTaskRowsForTasksScreen() {
-    return (mockState.engineTasks || []).map(toTaskRow).filter(Boolean);
+    return (mockState.engineTasks || [])
+      .filter(function (t) {
+        return t && t.status !== "deleted";
+      })
+      .map(toTaskRow)
+      .filter(Boolean);
   }
 
   /** Son Olaylar = toDashboardItem; Son Aktivite = ham listedeki ilk olay + toActivityNote. */
@@ -629,42 +1174,26 @@
     return data;
   }
 
-  /** Backend/fixture satırlarına motor görevlerini ekle (aynı id varsa backend satırı kalır). */
-  function mergeBackendTaskRowsWithEngine(backendRows) {
-    var fromBackend = Array.isArray(backendRows) ? backendRows.slice() : [];
-    var ids = {};
-    var bi;
-    for (bi = 0; bi < fromBackend.length; bi++) {
-      if (fromBackend[bi] && fromBackend[bi].id != null) ids[String(fromBackend[bi].id)] = true;
-    }
-    var fullList = fromBackend.slice();
-    var eng = getEngineTaskRowsForTasksScreen();
-    var ei;
-    for (ei = 0; ei < eng.length; ei++) {
-      var er = eng[ei];
-      if (!er || er.id == null) continue;
-      var sid = String(er.id);
-      if (ids[sid]) continue;
-      fullList.push(er);
-      ids[sid] = true;
-    }
-    return fullList;
-  }
-
   function getTasksViewData() {
     var src = getTasksSourceData();
-    if ((src.type === "backend" || src.type === "fixture") && window.LumosFixtures && LC.normalizeTasks) {
-      var data = LC.normalizeTasks(LumosFixtures.mapTasksPayloadToPanelData(src.data), {});
-      var fullList = mergeBackendTaskRowsWithEngine(data.listItems || []);
-      var af = mockState.taskFilter || data.activeFilter || "all";
-      return applyTasksViewFromMergedFullList(data, fullList, af);
-    }
-    var s = getEffectiveState();
     var fullList = getEngineTaskRowsForTasksScreen();
-    var sMerged = {};
-    for (var sk in s) sMerged[sk] = s[sk];
-    sMerged.taskList = fullList;
-    var data = LC.normalizeTasks(LC.buildTasksStub(sMerged), sMerged);
+    var data;
+    if ((src.type === "backend" || src.type === "fixture") && window.LumosFixtures && LC.normalizeTasks) {
+      data = LC.normalizeTasks(LumosFixtures.mapTasksPayloadToPanelData(src.data), {});
+    } else {
+      var s = getEffectiveState();
+      var sMerged = {};
+      for (var sk in s) sMerged[sk] = s[sk];
+      sMerged.taskList = fullList;
+      data = LC.normalizeTasks(LC.buildTasksStub(sMerged), sMerged);
+    }
+    if (isPanelTasksApiRestMode()) {
+      if (mockState.taskSourceState === "online") {
+        data.subtitle = "Görev kaynağı: çevrimiçi (GET /tasks); önbellek güncel.";
+      } else if (mockState.taskSourceState === "offline-cache") {
+        data.subtitle = "Görev kaynağı: offline-cache (salt okunur); API yok veya yanıt vermedi.";
+      }
+    }
     var af = mockState.taskFilter || data.activeFilter || "all";
     return applyTasksViewFromMergedFullList(data, fullList, af);
   }
@@ -700,7 +1229,7 @@
     return LC.normalizeTrash(LC.buildTrashStub(s), s);
   }
 
-  /** Sekme süzgeci: Görevler sekmesi task_created ve task_completed satırlarını da gösterir. */
+  /** Sekme süzgeci: Görevler sekmesi task_created / task_completed / task_deleted satırlarını da gösterir. */
   function filterMergedLogEventsForKayitlar(merged, activeFilterId) {
     if (!activeFilterId || activeFilterId === "all") return merged;
     var logFilters = LC.LOG_FILTERS || [];
@@ -716,7 +1245,7 @@
       if (!e) return false;
       if (e.kind === kf) return true;
       if (kf !== "görev") return false;
-      return e.kind === "task_created" || e.kind === "task_completed";
+      return e.kind === "task_created" || e.kind === "task_completed" || e.kind === "task_deleted";
     });
   }
 
@@ -734,13 +1263,13 @@
   function getLogsData() {
     var src = getLogsSourceData();
     var mergedEvents = getMergedPanelEventsList();
+    var data;
     if ((src.type === "backend" || src.type === "fixture") && window.LumosFixtures && LC.normalizeLogs) {
-      var data = LC.normalizeLogs(LumosFixtures.mapLogsPayloadToPanelData(src.data), {});
-      var af = mockState.logFilter || data.activeFilter || "all";
-      return applyLogsViewFromMerged(data, mergedEvents, af);
+      data = LC.normalizeLogs(LumosFixtures.mapLogsPayloadToPanelData(src.data), {});
+    } else {
+      var s = getEffectiveState();
+      data = LC.normalizeLogs(LC.buildLogsStub(s), s);
     }
-    var s = getEffectiveState();
-    var data = LC.normalizeLogs(LC.buildLogsStub(s), s);
     var af = mockState.logFilter || data.activeFilter || "all";
     return applyLogsViewFromMerged(data, mergedEvents, af);
   }
@@ -1258,6 +1787,33 @@
       });
   }
 
+  /** Feed çöpü ayrı; soft-delete görevleri panel motorunda kalır — burada görünür. */
+  function buildSoftDeletedTasksTrashSectionHtml(F) {
+    if (!F || !F.escapeHtml) return "";
+    var softDel = (mockState.engineTasks || []).filter(function (t) {
+      return t && t.status === "deleted";
+    });
+    if (!softDel.length) return "";
+    var rows = "";
+    var si;
+    for (si = 0; si < softDel.length; si++) {
+      var st = softDel[si];
+      var stitle = st.title != null ? String(st.title) : "—";
+      var dAt = st.deletedAt ? feedFormatCreatedAtReadable(String(st.deletedAt)) : "—";
+      rows +=
+        '<li class="list-item lumos-soft-deleted-task" data-soft-deleted-task="1">' +
+        '<span class="soft-del-title">' +
+        F.escapeHtml(stitle) +
+        "</span> · " +
+        F.escapeHtml(dAt) +
+        "</li>";
+    }
+    return buildSection(
+      "Soft silinen görevler (panel motoru)",
+      '<ul class="list-selectable lumos-soft-deleted-task-list">' + rows + "</ul>"
+    );
+  }
+
   // ——— Ekran: Silinenler (adapter + build) ———
   function renderTrash() {
     var F = window.LumosFeedApi;
@@ -1272,7 +1828,8 @@
         ViewHeader("Silinenler", "Liste yükleniyor") +
         renderPostsApiBaseLine(F) +
         trashFlashHtml(F, { isLoading: true }) +
-        '<div class="feed-loading">Yükleniyor…</div>'
+        '<div class="feed-loading">Yükleniyor…</div>' +
+        buildSoftDeletedTasksTrashSectionHtml(F)
       );
     }
 
@@ -1286,7 +1843,8 @@
         '<p class="feed-panel-error-detail">' +
         F.escapeHtml(trashViewState.error) +
         "</p>" +
-        "</div>"
+        "</div>" +
+        buildSoftDeletedTasksTrashSectionHtml(F)
       );
     }
 
@@ -1400,7 +1958,8 @@
       '<div class="split-view">' +
       listSection +
       detail +
-      "</div>"
+      "</div>" +
+      buildSoftDeletedTasksTrashSectionHtml(F)
     );
   }
 
@@ -1439,73 +1998,220 @@
       .replace(/"/g, "&quot;");
   }
 
-  /** Oturum içi sohbet (sayfa yenilenene kadar bellekte; hash değişince sıfırlanmaz). */
+  /** Sohbet: bellek + tek kalıcı kaynak CHAT_PANEL_STORAGE_KEY (localStorage). Hash değişince sıfırlanmaz. */
   var chatViewState = {
     messages: [],
   };
 
-  /** Sadece "görev oluştur" komutu (sonrasında boşluk, iki nokta veya satır sonu); "görev oluşturum" eşleşmez. */
-  var GOREV_OLUSTUR_PREFIX_RE = /^görev oluştur(?=\s|:|$)/i;
-  var GOREV_TAMAMLA_PREFIX_RE = /^görev tamamla(?=\s|:|$)/i;
+  /** Chat geçmişi — görev tasks.json hattından ayrı; tek anahtar, dağınık yazım yok. */
+  var CHAT_PANEL_STORAGE_KEY = "lumos_panel_chat_messages_v1";
 
-  /**
-   * @returns {{ taskName: string } | null} null = bu bir görev oluştur komutu değil; taskName = önek çıkarılmış ad (boş olabilir)
-   */
-  function parseGorevOlusturCommand(raw) {
-    var t = String(raw || "").trim();
-    var m = GOREV_OLUSTUR_PREFIX_RE.exec(t);
-    if (!m) return null;
-    var rest = t.slice(m[0].length).replace(/^\s*:?\s*/, "").trim();
-    return { taskName: rest };
+  function normalizeChatMessageForStorage(m) {
+    if (!m || typeof m !== "object") return null;
+    var role = m.role === "user" || m.role === "assistant" ? m.role : null;
+    if (!role) return null;
+    var text = m.text != null ? String(m.text).trim() : "";
+    var depth = m.depth != null && String(m.depth).trim() !== "" ? String(m.depth) : null;
+    var blocks = m.blocks != null && typeof m.blocks === "object" ? m.blocks : null;
+    if (role === "user") {
+      if (!text) return null;
+      return { role: "user", text: text };
+    }
+    var hasBlocks = blocks && Object.keys(blocks).length > 0;
+    if (!text && !hasBlocks) return null;
+    var o = { role: "assistant", text: text };
+    if (depth) o.depth = depth;
+    if (hasBlocks) o.blocks = blocks;
+    return o;
   }
 
+  function persistChatMessagesToStorage() {
+    try {
+      if (typeof localStorage === "undefined") return;
+      var arr = chatViewState.messages || [];
+      var out = [];
+      for (var ci = 0; ci < arr.length; ci++) {
+        var n = normalizeChatMessageForStorage(arr[ci]);
+        if (n) out.push(n);
+      }
+      localStorage.setItem(CHAT_PANEL_STORAGE_KEY, JSON.stringify({ v: 1, messages: out }));
+    } catch (_) {
+      /* quota / private mode */
+    }
+  }
+
+  function hydrateChatMessagesFromStorage() {
+    try {
+      if (typeof localStorage === "undefined") return;
+      var raw = localStorage.getItem(CHAT_PANEL_STORAGE_KEY);
+      if (!raw) return;
+      var doc = JSON.parse(raw);
+      if (!doc || doc.v !== 1 || !Array.isArray(doc.messages)) return;
+      var list = [];
+      for (var hi = 0; hi < doc.messages.length; hi++) {
+        var n = normalizeChatMessageForStorage(doc.messages[hi]);
+        if (n) list.push(n);
+      }
+      chatViewState.messages = list;
+    } catch (_) {
+      /* corrupt / yok */
+    }
+  }
+
+  hydrateChatMessagesFromStorage();
+
   /**
-   * @returns {{ ref: string } | null} ref = id veya başlık (boş olabilir)
+   * Tek giriş noktası: görev oluştur | tamamla | sil (normalize edilmiş satır üzerinde).
+   * @returns {{ verb: 'olustur', taskName: string } | { verb: 'tamamla'|'sil', ref: string } | null}
    */
-  function parseGorevTamamlaCommand(raw) {
-    var t = String(raw || "").trim();
-    var m = GOREV_TAMAMLA_PREFIX_RE.exec(t);
-    if (!m) return null;
-    var rest = t.slice(m[0].length).replace(/^\s*:?\s*/, "").trim();
-    return { ref: rest };
+  function parseGorevMotorCommand(raw) {
+    var t = normalizeTaskCommandWhitespace(raw);
+    if (!t) return null;
+    var m = /^(?:görev|gorev)\s+oluştur(?=\s|:|$)/i.exec(t);
+    if (m) {
+      var taskName = normalizeTaskCommandWhitespace(
+        t.slice(m[0].length).replace(/^\s*:?\s*/, "")
+      );
+      return { verb: "olustur", taskName: taskName };
+    }
+    m = /^(?:görev|gorev)\s+tamamla\b/i.exec(t);
+    if (m) {
+      var refDone = normalizeTaskCommandWhitespace(t.slice(m[0].length).replace(/^\s*:+\s*/, ""));
+      return { verb: "tamamla", ref: refDone };
+    }
+    m = /^(?:görev|gorev)\s+sil(?=\s|:|$)/i.exec(t);
+    if (m) {
+      var refSil = normalizeTaskCommandWhitespace(t.slice(m[0].length).replace(/^\s*:+\s*/, ""));
+      return { verb: "sil", ref: refSil };
+    }
+    return null;
+  }
+
+  function mapParsedVerbToPolicyAction(verb) {
+    if (verb === "olustur") return "create_task";
+    if (verb === "tamamla") return "complete_task";
+    if (verb === "sil") return "delete_task";
+    return null;
+  }
+
+  function buildPanelPolicyContextPayload() {
+    var s = getEffectiveState();
+    var g = s.guidance || {};
+    var modeStr = g.mode != null ? String(g.mode).toLowerCase() : "";
+    var online = modeStr === "online" || String(s.appMode || "").toLowerCase() === "online";
+    var lockVal = g.lock != null ? String(g.lock) : "";
+    var koruma = lockVal === "LOCKED";
+    if (!koruma && s.keystoreState != null) {
+      var ks = String(s.keystoreState).toLowerCase();
+      if (ks.indexOf("kilit") !== -1) koruma = true;
+    }
+    return { online: online, korumaAktif: koruma, consent: !!g.consent };
+  }
+
+  function runPanelTaskPolicyOrNull(parsed) {
+    var action = mapParsedVerbToPolicyAction(parsed.verb);
+    if (!action) return null;
+    var Engine = typeof LumosPolicyEngine !== "undefined" ? LumosPolicyEngine : null;
+    if (!Engine || typeof Engine.checkPolicy !== "function") return null;
+    var pr = Engine.checkPolicy(action, buildPanelPolicyContextPayload());
+    if (pr.allow) return null;
+    var tsIso = new Date().toISOString();
+    var logSummary =
+      Engine.formatPolicyBlockedShort && typeof Engine.formatPolicyBlockedShort === "function"
+        ? Engine.formatPolicyBlockedShort(action, pr.reason)
+        : Engine.buildPolicyBlockedMessage && typeof Engine.buildPolicyBlockedMessage === "function"
+          ? Engine.buildPolicyBlockedMessage(action, pr.reason).split("\n")[0]
+          : "İşlem engellendi.";
+    var chatText =
+      Engine.buildPolicyBlockedMessage && typeof Engine.buildPolicyBlockedMessage === "function"
+        ? Engine.buildPolicyBlockedMessage(action, pr.reason)
+        : Engine.formatPolicyBlockedChatDisplay && typeof Engine.formatPolicyBlockedChatDisplay === "function"
+          ? Engine.formatPolicyBlockedChatDisplay(action, pr.reason)
+          : logSummary;
+    appendPanelEngineEvent({
+      type: "policy_blocked",
+      text:
+        logSummary +
+        " | ts=" +
+        tsIso +
+        " | actionCode=" +
+        (Engine.toLogActionCode && typeof Engine.toLogActionCode === "function"
+          ? Engine.toLogActionCode(action)
+          : String(action || "")) +
+        " | reasonCode=" +
+        String(pr.reason || ""),
+      ts: tsIso,
+    });
+    return { text: chatText, depth: "simple" };
   }
 
   /**
    * Görev motoru komutları: state + olay kuyruğu.
-   * @returns {{ text: string, depth?: string, blocks?: object } | null} null → genel asistan yanıtına düş
+   * @returns {Promise<{ text: string, depth?: string, blocks?: object }>|{ text: string, depth?: string, blocks?: object } | null}
    */
   function tryHandleTaskEngineChatCommand(userText) {
-    var trimmed = String(userText || "").trim();
-    var parsedCreate = parseGorevOlusturCommand(trimmed);
-    if (parsedCreate) {
-      if (!parsedCreate.taskName) {
+    var parsed = parseGorevMotorCommand(userText);
+    if (!parsed) return null;
+    if (getPanelTasksPersistenceConfig().chatCommands === "api") {
+      return tryHandleTaskEngineChatCommandViaApi(parsed);
+    }
+    var blocked = runPanelTaskPolicyOrNull(parsed);
+    if (blocked) return blocked;
+    if (parsed.verb === "olustur") {
+      if (!parsed.taskName) {
         return { text: "Görev adı eksik. Örnek: görev oluştur alışveriş", depth: "simple" };
       }
-      var task = LumosMinTaskEngine.createTask(parsedCreate.taskName);
+      var task = LumosMinTaskEngine.createTask(parsed.taskName);
       if (!task) {
         return { text: "Görev adı eksik. Örnek: görev oluştur alışveriş", depth: "simple" };
       }
       appendPanelEngineEvent(createTaskCreatedEvent(task.id, task.title));
+      finalizeTaskMutation();
       return { text: 'Görev oluşturuldu: "' + task.title + '".', depth: "simple" };
     }
-    var parsedDone = parseGorevTamamlaCommand(trimmed);
-    if (parsedDone) {
-      if (!parsedDone.ref) {
+    if (parsed.verb === "tamamla") {
+      if (!parsed.ref) {
         return { text: "Görev adı eksik. Örnek: görev tamamla alışveriş", depth: "simple" };
       }
-      var result = LumosMinTaskEngine.completeTask(parsedDone.ref);
+      var result = completeTask(parsed.ref);
       if (!result.ok) {
+        if (result.reason === "empty") {
+          return { text: "Görev adı eksik. Örnek: görev tamamla alışveriş", depth: "simple" };
+        }
+        if (result.reason === "already_done") {
+          return { text: "Görev zaten tamamlanmış.", depth: "simple" };
+        }
         return { text: "Tamamlanacak görev bulunamadı.", depth: "simple" };
       }
-      appendPanelEngineEvent(createTaskCompletedEvent(result.task.id, result.task.title));
+      appendPanelEngineEvent({
+        type: "task_completed",
+        text: String(result.task.title || "").trim(),
+        ts: result.completedAt,
+      });
+      finalizeTaskMutation();
       return { text: 'Görev tamamlandı: "' + result.task.title + '".', depth: "simple" };
+    }
+    if (parsed.verb === "sil") {
+      if (!parsed.ref) {
+        return { text: "Görev adı eksik. Örnek: görev sil alışveriş", depth: "simple" };
+      }
+      var delResult = softDeleteTask(parsed.ref);
+      if (!delResult.ok) {
+        if (delResult.reason === "empty") {
+          return { text: "Görev adı eksik. Örnek: görev sil alışveriş", depth: "simple" };
+        }
+        return { text: "Silinecek görev bulunamadı.", depth: "simple" };
+      }
+      appendPanelEngineEvent(buildPanelTaskEvent("task_deleted", delResult.task.id, delResult.task.title));
+      finalizeTaskMutation();
+      return { text: 'Görev silindi (listeden kaldırıldı): "' + delResult.task.title + '".', depth: "simple" };
     }
     return null;
   }
 
   /**
    * @param {string} userText
-   * @returns {{ text: string, depth?: string, blocks?: object }}
+   * @returns {Promise<{ text: string, depth?: string, blocks?: object }>|{ text: string, depth?: string, blocks?: object }}
    */
   function buildAssistantReply(userText) {
     var trimmed = String(userText || "").trim();
@@ -1536,21 +2242,7 @@
     };
   }
 
-  function submitChatFromComposer() {
-    var ta = document.getElementById("lumos-chat-input");
-    if (!ta) return;
-    var text = ta.value != null ? String(ta.value).trim() : "";
-    if (!text) return;
-    ta.value = "";
-    chatViewState.messages.push({ role: "user", text: text });
-    var reply = buildAssistantReply(text);
-    chatViewState.messages.push({
-      role: "assistant",
-      text: reply.text,
-      depth: reply.depth,
-      blocks: reply.blocks,
-    });
-    renderMain();
+  function focusChatInputAfterSend() {
     requestAnimationFrame(function () {
       var t2 = document.getElementById("lumos-chat-input");
       if (t2) {
@@ -1563,6 +2255,43 @@
         }
       }
     });
+  }
+
+  function submitChatFromComposer() {
+    var ta = document.getElementById("lumos-chat-input");
+    if (!ta) return;
+    var text = ta.value != null ? String(ta.value).trim() : "";
+    if (!text) return;
+    ta.value = "";
+    chatViewState.messages.push({ role: "user", text: text });
+    persistChatMessagesToStorage();
+    refreshCurrentView();
+
+    function pushAssistantAndRefresh(reply) {
+      var r = reply && typeof reply === "object" ? reply : { text: String(reply || ""), depth: "simple" };
+      chatViewState.messages.push({
+        role: "assistant",
+        text: r.text != null ? String(r.text) : "",
+        depth: r.depth,
+        blocks: r.blocks,
+      });
+      persistChatMessagesToStorage();
+      refreshCurrentView();
+      focusChatInputAfterSend();
+    }
+
+    var replyOrPromise = buildAssistantReply(text);
+    if (replyOrPromise && typeof replyOrPromise.then === "function") {
+      replyOrPromise.then(pushAssistantAndRefresh).catch(function (err) {
+        pushAssistantAndRefresh({
+          text: "Görev API veya ağ hatası: " + (err && err.message ? err.message : String(err)),
+          depth: "simple",
+        });
+      });
+      focusChatInputAfterSend();
+      return;
+    }
+    pushAssistantAndRefresh(replyOrPromise);
   }
 
   function renderChatUl(items) {
@@ -1991,12 +2720,76 @@
     system: renderSystem,
   };
 
+  /** Merkezi route → HTML (mockState her çağrıda render* içinden okunur; önbellek yok). */
+  function renderRouteHtml() {
+    var screen = getCurrentScreen();
+    var fn = renderers[screen.id];
+    return fn ? fn() : renderEmptyState("Geçersiz sayfa", "Menüden bir ekran seçin.");
+  }
+
   function renderMain() {
     var main = document.getElementById("main-content");
     if (!main) return;
-    var screen = getCurrentScreen();
-    var fn = renderers[screen.id];
-    main.innerHTML = fn ? fn() : renderEmptyState("Geçersiz sayfa", "Menüden bir ekran seçin.");
+    main.innerHTML = renderRouteHtml();
+  }
+
+  /**
+   * Aktif hash için doğrudan ilgili render* çalıştırır (tasks/logs/dashboard/chat açık adres).
+   * Diğer rotalar: renderRouteHtml ile renderMain ile aynı zincir.
+   */
+  function refreshCurrentView() {
+    var main = document.getElementById("main-content");
+    if (!main) return;
+    var h = (window.location.hash || DEFAULT_HASH).toLowerCase();
+    if (h.length <= 1) h = DEFAULT_HASH.toLowerCase();
+    if (h === "#tasks") {
+      main.innerHTML = renderTasks();
+      return;
+    }
+    if (h === "#logs") {
+      main.innerHTML = renderLogs();
+      return;
+    }
+    if (h === "#dashboard") {
+      main.innerHTML = renderDashboard();
+      return;
+    }
+    if (h === "#chat") {
+      main.innerHTML = renderChat();
+      return;
+    }
+    if (feedTabFromLocationHash()) {
+      main.innerHTML = renderFeed();
+      return;
+    }
+    main.innerHTML = renderRouteHtml();
+  }
+
+  /** Seçili görev, aktif filtrenin listesinde yoksa detay paneli için seçimi kaldır. */
+  function syncTaskSelectionAfterMutation() {
+    var selId = mockState.selectedTaskId;
+    if (selId == null || selId === "") return;
+    var fullList = getEngineTaskRowsForTasksScreen();
+    var af = mockState.taskFilter || "all";
+    var filtered = LC.filterTaskList ? LC.filterTaskList(fullList, af) : fullList;
+    var visible = false;
+    var i;
+    for (i = 0; i < filtered.length; i++) {
+      if (taskIdEquals(filtered[i].id, selId)) {
+        visible = true;
+        break;
+      }
+    }
+    if (!visible) mockState.selectedTaskId = null;
+  }
+
+  /**
+   * Görev motoru mutasyonu kapanışı: tek persist + seçim senkronu + aktif route ana içerik yenilemesi.
+   */
+  function finalizeTaskMutation() {
+    persistTasksJsonDocument();
+    syncTaskSelectionAfterMutation();
+    refreshCurrentView();
   }
 
   // ——— Etkileşimler (delegation) ———
@@ -2229,10 +3022,16 @@
     renderSidebar();
     renderTopbar();
     renderMain();
+    setTaskSourceDomAttribute();
   }
 
   function onHashChange() {
     refresh();
+    if (suppressNextTasksApiRevalidate) {
+      suppressNextTasksApiRevalidate = false;
+      return;
+    }
+    scheduleTasksApiRevalidate();
   }
 
   function onMainKeydown(e) {
@@ -2250,13 +3049,17 @@
     mainEl.addEventListener("keydown", onMainKeydown);
   }
 
-  hydratePanelEngineFromStorage();
+  /** İlk `location.hash` atamasının hashchange ile çift GET /tasks tetiklemesini engeller. */
+  var suppressNextTasksApiRevalidate = false;
 
-  window.addEventListener("hashchange", onHashChange);
-  if (!window.location.hash) {
-    window.location.hash = DEFAULT_HASH;
-  } else {
-    refresh();
-  }
+  hydrateTasksJsonPersistenceAsync(function () {
+    window.addEventListener("hashchange", onHashChange);
+    if (!window.location.hash) {
+      suppressNextTasksApiRevalidate = true;
+      window.location.hash = DEFAULT_HASH;
+    } else {
+      refresh();
+    }
+  });
 
 })();

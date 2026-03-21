@@ -79,6 +79,13 @@
     return state.guidance;
   }
 
+  /** Kartlı sonuç (#yanit): summary, context_line, understood[], recommendation[], questions[], updated_at. */
+  function readBackendYanitState() {
+    var state = getReadState();
+    if (!state || !state.yanit || typeof state.yanit.summary !== "string") return null;
+    return state.yanit;
+  }
+
   global.LumosBackendBridge = {
     readBackendDashboardState: readBackendDashboardState,
     readBackendSandboxState: readBackendSandboxState,
@@ -90,5 +97,6 @@
     readBackendTrashState: readBackendTrashState,
     readBackendLogsState: readBackendLogsState,
     readBackendGuidanceState: readBackendGuidanceState,
+    readBackendYanitState: readBackendYanitState,
   };
 })(typeof window !== "undefined" ? window : this);

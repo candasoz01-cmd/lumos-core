@@ -1,0 +1,16 @@
+{
+  "name": "lumos-panel",
+  "private": true,
+  "scripts": {
+    "e2e:cross": "node e2e/run-cross.mjs",
+    "e2e:soft-delete": "node e2e/run-soft-delete.mjs",
+    "e2e:package": "node e2e/run-package.mjs",
+    "e2e:package:api": "node e2e/run-package-api.mjs && node e2e/run-tasks-offline-online.mjs",
+    "e2e:tasks-offline-online": "node e2e/run-tasks-offline-online.mjs",
+    "e2e:verify-api-field": "node e2e/run-verify-api-field.mjs",
+    "e2e:policy": "node e2e/run-policy-gate.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.1"
+  }
+}

@@ -46,6 +46,23 @@ window.__LUMOS_READ_STATE__ = {
         "status": "uyarı",
         "note": "Consent alınmadı."
       }
+    },
+    "system_paths": {
+      "writing_base": "/Users/candasoz/WORK_2026/lumos-core/.lumos",
+      "trash": "/Users/candasoz/WORK_2026/lumos-core/.lumos/trash",
+      "sandbox_base": "/Users/candasoz/WORK_2026/lumos-core/.lumos/sandbox",
+      "config": "/Users/candasoz/WORK_2026/lumos-core/.lumos/config.json",
+      "logs": "/Users/candasoz/WORK_2026/lumos-core/.lumos/logs",
+      "tasks": "/Users/candasoz/WORK_2026/lumos-core/.lumos/tasks.json"
+    },
+    "system_summary": {
+      "config_exists": false,
+      "tasks_file_exists": false,
+      "task_count": 0,
+      "trash_dir_exists": true,
+      "trash_item_count": 0,
+      "log_file_exists": true,
+      "log_line_count": 0
     }
   },
   "config": {
@@ -73,18 +90,28 @@ window.__LUMOS_READ_STATE__ = {
     "task_list": [],
     "task_filter": "all",
     "selected_task_id": null,
-    "list_updated": null
+    "list_updated": null,
+    "list_updated_text": null,
+    "tasks_file_path": null,
+    "tasks_file_exists": false,
+    "task_count": 0
   },
   "trash": {
     "trash_location": "/Users/candasoz/WORK_2026/lumos-core/.lumos/trash",
     "trash_last_move": null,
-    "trash_items": []
+    "trash_items": [],
+    "trash_dir_exists": true,
+    "trash_item_count": 0,
+    "trash_scope_fallback_note": "original_path ve scope dosya sisteminden okunamadı; meta yoksa — gösterilir."
   },
   "logs": {
     "log_items": [],
     "log_filter": "all",
-    "log_file_updated": "2026-03-13T22:16:18",
-    "log_location": "/Users/candasoz/WORK_2026/lumos-core/.lumos/logs/log.txt"
+    "log_file_updated": "2026-03-20T19:14:46",
+    "log_updated_text": "Son güncelleme: 20.03.2026 19:14",
+    "log_location": "/Users/candasoz/WORK_2026/lumos-core/.lumos/logs/log.txt",
+    "log_file_exists": true,
+    "log_line_count": 0
   },
   "guidance": {
     "mode": "offline",
@@ -92,5 +119,25 @@ window.__LUMOS_READ_STATE__ = {
     "consent": false,
     "blocked_reason": null,
     "next_step": null
+  },
+  "yanit": {
+    "summary": "Şu an mod çevrimdışı. Yazım hedefi canlı çalışma alanı. Genel onay henüz kayıtlı değil; hassas yazım ve keystore akışı kısıtlı kalır. Sistem özeti: Consent alınmadı.",
+    "context_line": "Son karar kaydı: goal — Minimal, dar kapsamlı değişiklik: goal.",
+    "understood": [
+      "Mod: çevrimdışı.",
+      "Kilit kapalı; koruma aktif.",
+      "Genel onay: kapalı.",
+      "Kimlik dosyası: mevcut değil.",
+      "Anahtar kasası: Kilitli.",
+      "Görev motoru: Görev listesi yok.",
+      "tasks.json bulunamadı veya okunamadı; görev listesi boş sayılır."
+    ],
+    "recommendation": [
+      "Çalışmaya devam için consent kaydını tamamlayın (startup_health; hassas yüzeyler kapalı kalır)."
+    ],
+    "questions": [
+      "Kimlik dosyası yok; bu ortamda kimlik kurulumu gerekiyor mu?"
+    ],
+    "updated_at": null
   }
 };
