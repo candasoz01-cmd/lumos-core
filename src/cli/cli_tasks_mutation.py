@@ -9,6 +9,14 @@ from __future__ import annotations
 from typing import Any, Callable
 
 from core.brain import run as brain_run
+from policy.action_policy import (
+    CANCEL_TASK,
+    CREATE_TASK,
+    DELETE_TASK,
+    check_policy,
+    log_policy_blocked,
+    policy_user_message,
+)
 from task_engine import TaskEngine, find_recent_similar_task
 
 
@@ -28,6 +36,32 @@ class TaskMutationContext:
     event_recording_engine: Any = None  # ObservationEngine | None: record execution/verification events
     pending_intent: list = None  # [dict | None]: clarification flow — intent + missing_param
     pending_action: list = None  # [dict | None]: consent flow — blocked task_id + goal
+    # Policy snapshot (set by lumos_runtime.create_runtime)
+    policy_runtime_mode: str = "offline"
+    policy_is_locked: Any = None  # Callable[[], bool] | None
+
+
+def _task_mutation_policy_context(ctx: TaskMutationContext):
+    online = getattr(ctx, "policy_runtime_mode", "offline") == "online"
+    locked = True
+    fn = getattr(ctx, "policy_is_locked", None)
+    if callable(fn):
+        try:
+            locked = bool(fn())
+        except Exception:
+            locked = True
+    consent = bool(ctx.general_approval[0])
+    return {"online": online, "koruma_active": locked, "consent": consent}
+
+
+def _enforce_task_policy(ctx: TaskMutationContext, action: str) -> bool:
+    """Returns True if allowed; False if blocked (already printed + logged)."""
+    pr = check_policy(action, _task_mutation_policy_context(ctx))
+    if pr.allowed:
+        return True
+    print(policy_user_message(action, pr.reason))
+    log_policy_blocked(ctx.base_dir, action, pr.reason)
+    return False
 
 
 def handle_task_mutation(route: str, args: list[str], ctx: TaskMutationContext) -> bool:
@@ -36,6 +70,8 @@ def handle_task_mutation(route: str, args: list[str], ctx: TaskMutationContext) 
         desc = (args[0] if args else "").strip()
         if not desc:
             print("Kullanım: görev oluştur <açıklama>")
+            return True
+        if not _enforce_task_policy(ctx, CREATE_TASK):
             return True
         profile = ctx.current_permission_profile[0]
         fingerprint = (profile, desc)
@@ -70,6 +106,8 @@ def handle_task_mutation(route: str, args: list[str], ctx: TaskMutationContext) 
         id_str = (args[0] if args else "").strip()
         if not id_str:
             print("Kullanım: görev iptal <id>")
+            return True
+        if not _enforce_task_policy(ctx, CANCEL_TASK):
             return True
         try:
             tid = int(id_str)
@@ -123,6 +161,8 @@ def handle_task_mutation(route: str, args: list[str], ctx: TaskMutationContext) 
         id_str = (args[0] if args else "").strip()
         if not id_str:
             print("Kullanım: görev sil <id>")
+            return True
+        if not _enforce_task_policy(ctx, DELETE_TASK):
             return True
         try:
             tid = int(id_str)

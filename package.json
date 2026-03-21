@@ -1,0 +1,9 @@
+{
+  "name": "lumos-core",
+  "private": true,
+  "scripts": {
+    "e2e:package": "npm run e2e:package --prefix panel",
+    "e2e:package:api": "npm run e2e:package:api --prefix panel",
+    "e2e:tasks-offline-online": "npm run e2e:tasks-offline-online --prefix panel"
+  }
+}

@@ -806,6 +806,8 @@ def create_runtime(sandbox_mode: bool | None = None) -> RuntimeResult:
     mut_ctx.event_recording_engine = event_recording_engine
     mut_ctx.pending_intent = pending_intent
     mut_ctx.pending_action = pending_action
+    mut_ctx.policy_runtime_mode = mode
+    mut_ctx.policy_is_locked = state.is_locked
 
     def get_raw_input() -> str:
         try:
