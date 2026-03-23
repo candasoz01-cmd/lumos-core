@@ -1,10 +1,25 @@
 /**
  * Lumos Panel v1 — operatör paneli.
- * Görev doğruluk kaynağı: mockState.engineTasks + tasks.json eşleniği (kalıcı depo, aşağıdaki TASKS_JSON_STORAGE_KEY).
- * Denetim olayları: mockState.chatTaskCreations (task_created | task_completed | task_deleted); görev satırı olaydan türetilmez.
+ *
+ * Mock vs localStorage (görev dokümanı TASKS_JSON_STORAGE_KEY, v:1):
+ * 1) localStorage’ta geçerli v:1 var → kalıcı görev/events yalnız oradan okunur (motor ledger); demo stub recentEvents/logItems devreye girmez.
+ * 2) yok → mockState (+ istenirse DEMO_SCENARIOS) başlangıç/fallback; runtime mutasyonları mockState’e yazılır, persist ile v:1 oluşunca (1) geçerli olur.
+ * 3) policy_blocked yalnız bellekte; v:1 varken ledger’a LS events + bu satırlar (kalıcı değil) eklenir.
  */
 
 (function () {
+  var TASK_STATUS = {
+    ACTIVE: "active",
+    DONE: "done",
+    PENDING_DELETE: "pending_delete",
+    DELETED: "deleted",
+    PERMANENTLY_DELETED: "task_permanently_deleted",
+  };
+  var SOURCE_STATUS = {
+    ONLINE: "online",
+    OFFLINE_CACHE: "offline-cache",
+    UNREACHABLE: "unreachable",
+  };
   "use strict";
 
   var DEFAULT_HASH = "#dashboard";
@@ -93,7 +108,7 @@
     taskFilter: "all",
     /**
      * Merkezi görev motoru durumu (chat komutları; tek kaynak — görev ekranı buradan).
-     * Şekil: { id, title, status: "active"|"done"|"deleted", createdAt, completedAt }
+     * Şekil: { id, title, status: "active"|"done"|"deleted"|"pending_delete", createdAt, completedAt, expireAt?, restoreStatus? }
      */
     engineTasks: [],
     /**
@@ -103,10 +118,13 @@
     chatTaskCreations: [],
     selectedTaskId: null,
     selectedTrashId: null,
+    /** Kayıtlar: timeline ana satır seçimi (group key, decodeURIComponent ile). */
+    selectedKayitlarTimelineKey: null,
     logFilter: "all",
     /**
-     * REST görev API modunda (GET /tasks): null (ilk yükleme öncesi) | "online" | "offline-cache".
-     * Yerel / legacy doküman modunda kullanılmaz (null kalır).
+     * REST görev API modunda (GET /tasks): null (ilk yükleme öncesi) | "online" | "offline-cache" | "unreachable".
+     * Sunum: getPanelWorkModeKind() — online→canlı, offline-cache→yerel, unreachable→erişim sorunu; null→kontrol.
+     * Yerel / legacy doküman modunda kullanılmaz (null kalır; mod her zaman yerel).
      */
     taskSourceState: null,
     guidance: {
@@ -226,7 +244,7 @@
           blocked_reason: g.blocked_reason != null ? g.blocked_reason : out.guidance.blocked_reason,
           next_step: g.next_step != null ? g.next_step : out.guidance.next_step,
         };
-        out.appMode = String(out.guidance.mode).toLowerCase() === "online" ? "online" : "offline";
+        out.appMode = String(out.guidance.mode).toLowerCase() === SOURCE_STATUS.ONLINE ? "online" : "offline";
       }
       var ks = rs.keystore;
       if (ks && typeof ks === "object") {
@@ -248,6 +266,11 @@
     for (var k in mockState) out[k] = mockState[k];
     var over = DEMO_SCENARIOS[currentScenario];
     if (over) for (var k in over) out[k] = over[k];
+    /** v:1 görev önbelleği varken demo recentEvents/logItems karışmasın; motor + dosya/bridge kayıtları esas. */
+    if (hasLocalTasksJsonCache()) {
+      out.recentEvents = [];
+      out.logItems = [];
+    }
     mergeReadStateIntoEffective(out);
     return out;
   }
@@ -279,14 +302,21 @@
   }
 
   function getBadgeLabel(key, value) {
-    if (key === "mode") return value === "online" ? "CANLI" : "Çevrimdışı";
+    if (key === "mode") return value === SOURCE_STATUS.ONLINE ? "CANLI" : "Çevrimdışı";
     if (key === "lock") return value === "LOCKED" ? "KORUMA AKTİF" : "Açık";
     if (key === "sandbox") return "KORUMALI ALAN";
     return value;
   }
 
   function getTaskStatusVariant(status) {
-    var v = { aktif: "badge-live", bekleyen: "badge-offline", tamamlandı: "badge-live", başarısız: "badge-warning", engellenen: "badge-blocked" };
+    var v = {
+      aktif: "badge-live",
+      bekleyen: "badge-offline",
+      tamamlandı: "badge-live",
+      başarısız: "badge-warning",
+      engellenen: "badge-blocked",
+      Siliniyor: "badge-warning",
+    };
     return v[status] || "badge-mode";
   }
 
@@ -360,11 +390,12 @@
 
   /**
    * Minimum task engine — stability contract:
-   * - Görev güncel durumu: mockState.engineTasks (status "active" | "done" | "deleted"). UI satırı toTaskRow ile; deleted listede yok; olaydan türetilmez.
-   * - Denetim: append-only mockState.chatTaskCreations (task_created | task_completed | task_deleted); finalize ile tasks.json events ile aynı; tek yazım hattı.
+   * - Görev güncel durumu: mockState.engineTasks (active | done | deleted | pending_delete). UI: toTaskRow; deleted listede yok; pending_delete "Siliniyor" satırı; kalıcı silmede kayıt task_permanently_deleted.
+   * - Denetim: append-only mockState.chatTaskCreations (task_* + post_permanently_deleted); finalize ile tasks.json events ile aynı; tek yazım hattı.
    * - Kayıtlar + Dashboard: görev motoru satırları yalnızca kalıcı depodaki events’ten okunur; dosya/fixture log_items yalnızca task_* dışı satırlar (çift kaynak yok).
    * - Görevler ekranı: yalnızca engineTasks → toTaskRow.
-   * - Kalıcılık: `panel/scripts/panel_tasks_server.py` + localStorage yansı.
+   * - Kalıcılık: `panel/scripts/panel_tasks_server.py` + localStorage yansı (v:1 tek önbellek anahtarı).
+   *   Okuma sırası (ledger): v:1 LS var → events oradan; yok → mockState.chatTaskCreations. Demo stub log satırları v:1 varken getEffectiveState’ten düşer.
    *   Varsayılan: API (`LUMOS_PANEL_TASKS_MODE` / `LUMOS_PANEL_TASKS_PERSISTENCE` yoksa "api") → GET `/tasks` + POST mutasyonlar.
    *   Local/legacy: mod `local` | `demo` | `legacy` | `put` → GET/PUT `/tasks.json` (tam doküman), sohbet komutları bellek+PUT.
    *   `LUMOS_PANEL_TASKS_API_BASE === false` → tam çevrimdışı (HTTP yok, yalnız localStorage / inject).
@@ -374,6 +405,17 @@
   var TASKS_JSON_STORAGE_KEY = "lumos_dot_lumos_tasks_json_v1";
   var LEGACY_PANEL_ENGINE_STORAGE_KEY = "lumos_panel_min_task_engine_v1";
   var PANEL_TASKS_FETCH_MS = 1200;
+  /** Silinenler ekranı: panel kayıtlarından kalıcı silinenler özeti (çöp API listesi değil). */
+  var RECENT_PERMANENT_DELETES_LIMIT = 15;
+  /** Silme onayı: bu süre sonunda kalıcı silme + task_permanently_deleted kaydı. */
+  var PENDING_DELETE_GRACE_MS = 5000;
+  /** Liste + detay + satır özeti: tek görünen durum etiketi (pending_delete UI kuralı). */
+  var TASK_PENDING_DELETE_UI_LABEL = "Siliniyor…";
+
+  function pendingDeleteGraceSecondsRounded() {
+    return Math.max(1, Math.round(PENDING_DELETE_GRACE_MS / 1000));
+  }
+  var pendingDeleteTickerId = null;
   /** Açıkça set edilmezse görev ana yolu REST API. */
   var PANEL_TASKS_MODE_DEFAULT = "api";
 
@@ -439,7 +481,7 @@
         return;
       }
       var s = mockState.taskSourceState;
-      if (s === "online" || s === "offline-cache") {
+      if (s === SOURCE_STATUS.ONLINE || s === SOURCE_STATUS.OFFLINE_CACHE || s === SOURCE_STATUS.UNREACHABLE) {
         document.documentElement.setAttribute("data-lumos-task-source", s);
       } else {
         document.documentElement.setAttribute("data-lumos-task-source", "");
@@ -449,21 +491,80 @@
     }
   }
 
+  /** Geçerli v:1 tasks.json localStorage’ta mı (GET başarısızken önbellek var mı). */
+  function hasLocalTasksJsonCache() {
+    try {
+      if (typeof localStorage === "undefined") return false;
+      migrateLegacyEngineStorageToTasksJson();
+      var raw = localStorage.getItem(TASKS_JSON_STORAGE_KEY);
+      if (!raw || !String(raw).trim()) return false;
+      var o = JSON.parse(raw);
+      return !!(o && typeof o === "object" && o.v === 1);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /**
+   * Panel çalışma modu — tek türetim kaynağı (REST görev API + mockState.taskSourceState).
+   * REST dışı (yerel doküman / API tabanı yok): her zaman yerel mod.
+   * @returns {"live"|"local"|"access_issue"|"checking"}
+   */
+  function getPanelWorkModeKind() {
+    if (isPanelTasksApiRestMode()) {
+      var s = mockState.taskSourceState;
+      if (s === SOURCE_STATUS.ONLINE) return "live";
+      if (s === SOURCE_STATUS.OFFLINE_CACHE) return "local";
+      if (s === SOURCE_STATUS.UNREACHABLE) return "access_issue";
+      return "checking";
+    }
+    return "local";
+  }
+
+  /**
+   * Üst çubuk / kenar çubuğu rozet metni + sınıfı (getPanelWorkModeKind ile uyumlu).
+   * @returns {{ label: string, variant: string }}
+   */
+  function getPanelWorkModePresentation() {
+    var k = getPanelWorkModeKind();
+    if (k === "live") return { label: "Canlı mod", variant: "badge-live" };
+    if (k === "local") return { label: "Yerel mod", variant: "badge-warning" };
+    if (k === "access_issue") return { label: "API erişilemiyor", variant: "badge-blocked" };
+    return { label: "Bağlantı kontrol ediliyor", variant: "badge-offline" };
+  }
+
+  /**
+   * Ekran alt başlığı — tüm ana ekranlarda aynı kısa durum cümlesi.
+   */
+  function getPanelWorkModeStatusLine() {
+    var k = getPanelWorkModeKind();
+    if (k === "live") return "Canlı modda çalışıyor.";
+    if (k === "local") return "Yerel modda çalışıyor.";
+    if (k === "access_issue") return "API'ye ulaşılamıyor.";
+    return "Bağlantı kontrol ediliyor…";
+  }
+
+  function applyPanelWorkModeSubtitle(data) {
+    if (data && typeof data === "object") data.subtitle = getPanelWorkModeStatusLine();
+    return data;
+  }
+
   /** Canlı GET başarılı: bellek + localStorage önbellek; çakışmada sunucu doc esas. */
   function applyTasksApiOnlineSuccess(doc) {
     if (!isPanelTasksApiRestMode()) return;
-    mockState.taskSourceState = "online";
+    mockState.taskSourceState = SOURCE_STATUS.ONLINE;
     applyHydratedTasksAndEventsFromDoc(doc);
     persistTasksJsonDocumentLocalOnly();
     syncTaskSelectionAfterMutation();
+    runPendingDeleteSweep();
     setTaskSourceDomAttribute();
   }
 
-  /** GET başarısız / zaman aşımı: salt okunur önbellek. */
+  /** GET başarısız / zaman aşımı: yerel önbellek varsa offline-cache, yoksa unreachable. */
   function applyTasksApiOfflineFallback() {
     if (!isPanelTasksApiRestMode()) return;
-    mockState.taskSourceState = "offline-cache";
     hydrateTasksJsonPersistenceSyncFallback();
+    mockState.taskSourceState = hasLocalTasksJsonCache() ? "offline-cache" : "unreachable";
     syncTaskSelectionAfterMutation();
     setTaskSourceDomAttribute();
   }
@@ -501,22 +602,10 @@
     }
     for (i = tasks.length - 1; i >= 0; i--) {
       t = tasks[i];
-      if (!t || t.status === "deleted") continue;
+      if (!t || t.status === TASK_STATUS.DELETED) continue;
       if (taskTitleMatchesRef(titleOrRef, t.title)) return String(t.title || "").trim() || hint;
     }
     return hint;
-  }
-
-  function findDeletedEngineTaskTitleForReply(ref) {
-    var tasks = mockState.engineTasks || [];
-    var r0 = normalizeTaskCommandWhitespace(ref);
-    var i;
-    for (i = tasks.length - 1; i >= 0; i--) {
-      var t = tasks[i];
-      if (!t || t.status !== "deleted") continue;
-      if (String(t.id) === r0 || taskTitleMatchesRef(ref, t.title)) return String(t.title || "").trim() || r0;
-    }
-    return r0;
   }
 
   function tryHandleTaskEngineChatCommandViaApi(parsed) {
@@ -524,7 +613,7 @@
     var base = getPanelTasksApiBaseResolved();
     if (!base) {
       return Promise.resolve({
-        text: "API modu açık ama LUMOS_PANEL_TASKS_API_BASE tanımlı değil.",
+        text: "Canlı mod için API adresi tanımlı değil; işlem yapılamadı.",
         depth: "simple",
       });
     }
@@ -537,14 +626,13 @@
         console.log("LUMOS_TASK_MUTATION_BLOCKED_OFFLINE", { verb: parsed && parsed.verb });
       }
       return Promise.resolve({
-        text:
-          "Görev API’sine ulaşılamıyor; liste önbellekten gösteriliyor (salt okunur). Oluşturma / tamamlama / silme gönderilmedi.",
+        text: "API'ye ulaşılamıyor; işlem gönderilmedi.",
         depth: "simple",
       });
     }
     if (!Adapter) {
       return Promise.resolve({
-        text: "Görev API bağlayıcısı yüklenmedi (tasks-api-adapter.js).",
+        text: "Bağlantı modülü yüklenmedi; işlem yapılamadı.",
         depth: "simple",
       });
     }
@@ -603,8 +691,38 @@
           throw new Error(er3);
         }
         return syncTasksDocumentFromApi().then(function () {
-          var tit3 = findDeletedEngineTaskTitleForReply(parsed.ref);
-          return { text: 'Görev silindi (listeden kaldırıldı): "' + tit3 + '".', depth: "simple" };
+          runPendingDeleteSweep();
+          var tit3 = findEngineTaskTitleForReply(parsed.ref, null);
+          var secApi = pendingDeleteGraceSecondsRounded();
+          return {
+            text:
+              TASK_PENDING_DELETE_UI_LABEL +
+              " " +
+              secApi +
+              " sn içinde kalıcı silinecek. İptal: listede veya detayda «Geri al» — \"" +
+              tit3 +
+              '".',
+            depth: "simple",
+          };
+        });
+      });
+    }
+    if (parsed.verb === "geri_al") {
+      if (!parsed.ref) {
+        return Promise.resolve({ text: "Görev adı eksik. Örnek: görev geri al alışveriş", depth: "simple" });
+      }
+      return api.postTasksUndoPendingDelete({ ref: parsed.ref }).then(function (res) {
+        if (res.status === 404 || (res.body && res.body.error === "not_found")) {
+          return { text: "Geri alınacak silme bekleyen görev bulunamadı.", depth: "simple" };
+        }
+        if (!res.ok) {
+          var er4 = res.body && res.body.error ? String(res.body.error) : "HTTP " + res.status;
+          throw new Error(er4);
+        }
+        return syncTasksDocumentFromApi().then(function () {
+          clearPendingDeleteTickerIfIdle();
+          var tit4 = findEngineTaskTitleForReply(parsed.ref, null);
+          return { text: 'Silme iptal edildi: "' + tit4 + '".', depth: "simple" };
         });
       });
     }
@@ -698,7 +816,9 @@
       type === "task_created" ||
       type === "task_completed" ||
       type === "task_deleted" ||
-      type === "policy_blocked"
+      type === "task_permanently_deleted" ||
+      type === "policy_blocked" ||
+      type === "post_permanently_deleted"
     );
   }
 
@@ -726,17 +846,32 @@
         var t = o.tasks[i];
         if (!t || typeof t !== "object") continue;
         if (t.id == null || String(t.id) === "") continue;
-        if (t.status !== "active" && t.status !== "done" && t.status !== "deleted") continue;
-        tasks.push({
+        if (
+          t.status !== TASK_STATUS.ACTIVE &&
+          t.status !== TASK_STATUS.DONE &&
+          t.status !== TASK_STATUS.DELETED &&
+          t.status !== TASK_STATUS.PENDING_DELETE
+        ) {
+          continue;
+        }
+        var expRaw = t.expireAt != null ? t.expireAt : t.expire_at;
+        var rsRaw = t.restoreStatus != null ? t.restoreStatus : t.restore_status;
+        var row = {
           id: String(t.id),
           title: t.title != null ? String(t.title) : "—",
           status: t.status,
           createdAt: t.createdAt != null ? String(t.createdAt) : "",
           completedAt: t.completedAt != null && t.completedAt !== "" ? String(t.completedAt) : null,
           deletedAt: t.deletedAt != null && t.deletedAt !== "" ? String(t.deletedAt) : null,
-        });
+        };
+        if (t.status === TASK_STATUS.PENDING_DELETE) {
+          row.restoreStatus = rsRaw === "done" || rsRaw === "active" ? rsRaw : row.completedAt ? "done" : "active";
+          row.expireAt = expRaw != null && String(expRaw) !== "" ? String(expRaw) : new Date(Date.now() + PENDING_DELETE_GRACE_MS).toISOString();
+        }
+        tasks.push(row);
       }
       mockState.engineTasks = tasks;
+      runPendingDeleteSweep();
     }
     if (Array.isArray(o.events)) {
       var evs = [];
@@ -752,7 +887,25 @@
           ts: e.ts != null ? String(e.ts) : new Date().toISOString(),
         });
       }
-      mockState.chatTaskCreations = evs;
+      var prevMem = mockState.chatTaskCreations || [];
+      var feedTrashKeep = [];
+      var fk;
+      for (fk = 0; fk < prevMem.length; fk++) {
+        var pfe = prevMem[fk];
+        if (pfe && pfe.type === "post_permanently_deleted") feedTrashKeep.push(pfe);
+      }
+      var seenIds = {};
+      var si;
+      for (si = 0; si < evs.length; si++) {
+        if (evs[si] && evs[si].id) seenIds[evs[si].id] = true;
+      }
+      var mergedExtra = [];
+      var mx;
+      for (mx = 0; mx < feedTrashKeep.length; mx++) {
+        var fe = feedTrashKeep[mx];
+        if (fe && fe.id && !seenIds[fe.id]) mergedExtra.push(fe);
+      }
+      mockState.chatTaskCreations = evs.concat(mergedExtra);
     }
   }
 
@@ -885,7 +1038,7 @@
   }
 
   /**
-   * active + done; deleted hariç. Önce tam id, sonra başlık (normalize + esnek tire).
+   * active + done; deleted / pending_delete hariç. Önce tam id, sonra başlık (normalize + esnek tire).
    */
   function resolveEngineTaskByRef(ref) {
     var rTrim = normalizeTaskCommandWhitespace(ref);
@@ -895,29 +1048,65 @@
     var t;
     for (i = 0; i < tasks.length; i++) {
       t = tasks[i];
-      if (!t || t.status === "deleted") continue;
-      if (t.status !== "active" && t.status !== "done") continue;
+      if (!t || t.status === TASK_STATUS.DELETED) continue;
+      if (t.status !== TASK_STATUS.ACTIVE && t.status !== TASK_STATUS.DONE) continue;
       if (String(t.id) === rTrim) return t;
     }
     for (i = 0; i < tasks.length; i++) {
       t = tasks[i];
-      if (!t || t.status === "deleted") continue;
-      if (t.status !== "active" && t.status !== "done") continue;
+      if (!t || t.status === TASK_STATUS.DELETED) continue;
+      if (t.status !== TASK_STATUS.ACTIVE && t.status !== TASK_STATUS.DONE) continue;
+      if (taskTitleMatchesRef(rTrim, t.title)) return t;
+    }
+    return null;
+  }
+
+  /** pending_delete; geri alma için ref çözümü. */
+  function resolvePendingDeleteTaskByRef(ref) {
+    var rTrim = normalizeTaskCommandWhitespace(ref);
+    if (!rTrim) return null;
+    var tasks = mockState.engineTasks || [];
+    var i;
+    var t;
+    for (i = 0; i < tasks.length; i++) {
+      t = tasks[i];
+      if (!t || t.status !== TASK_STATUS.PENDING_DELETE) continue;
+      if (String(t.id) === rTrim) return t;
+    }
+    for (i = 0; i < tasks.length; i++) {
+      t = tasks[i];
+      if (!t || t.status !== TASK_STATUS.PENDING_DELETE) continue;
       if (taskTitleMatchesRef(rTrim, t.title)) return t;
     }
     return null;
   }
 
   /**
-   * Aktif veya tamamlanmış görevi soft siler (status = deleted). Kalıcılık + UI: finalizeTaskMutation.
+   * Sil: kalıcı değil; pending_delete + expireAt. Kayıtta task_deleted yok; süre dolunca task_permanently_deleted.
    */
-  function softDeleteTask(ref) {
+  function schedulePendingDeleteTask(ref) {
     var r = normalizeTaskCommandWhitespace(ref);
     if (!r) return { ok: false, reason: "empty" };
     var task = resolveEngineTaskByRef(r);
     if (!task) return { ok: false, reason: "not_found" };
-    task.status = "deleted";
-    task.deletedAt = new Date().toISOString();
+    var prev = task.status === TASK_STATUS.DONE ? "done" : "active";
+    task.status = TASK_STATUS.PENDING_DELETE;
+    task.restoreStatus = prev;
+    task.expireAt = new Date(Date.now() + PENDING_DELETE_GRACE_MS).toISOString();
+    delete task.deletedAt;
+    return { ok: true, task: task };
+  }
+
+  function undoPendingDeleteTask(ref) {
+    var r = normalizeTaskCommandWhitespace(ref);
+    if (!r) return { ok: false, reason: "empty" };
+    var task = resolvePendingDeleteTaskByRef(r);
+    if (!task) return { ok: false, reason: "not_found" };
+    var rs = task.restoreStatus === "done" ? "done" : "active";
+    task.status = rs;
+    delete task.restoreStatus;
+    delete task.expireAt;
+    if (rs === TASK_STATUS.ACTIVE) task.completedAt = null;
     return { ok: true, task: task };
   }
 
@@ -929,9 +1118,9 @@
     if (!r) return { ok: false, reason: "empty" };
     var task = resolveEngineTaskByRef(r);
     if (!task) return { ok: false, reason: "not_found" };
-    if (task.status === "done") return { ok: false, reason: "already_done" };
+    if (task.status === TASK_STATUS.DONE) return { ok: false, reason: "already_done" };
     var now = new Date().toISOString();
-    task.status = "done";
+    task.status = TASK_STATUS.DONE;
     task.completedAt = now;
     return { ok: true, task: task, completedAt: now };
   }
@@ -985,6 +1174,32 @@
     return null;
   }
 
+  function twoDigitNum(n) {
+    n = Math.floor(Number(n));
+    if (isNaN(n)) return "00";
+    return n < 10 ? "0" + n : String(n);
+  }
+
+  /** Liste satırları: DD.MM HH:mm (yalnız görünüm; ham timestamp aynı kalır). */
+  function formatUiListTimestamp(s) {
+    if (s == null || s === "" || s === "—") return "—";
+    try {
+      var d = new Date(s);
+      if (isNaN(d.getTime())) return formatTime(s);
+      return (
+        twoDigitNum(d.getDate()) +
+        "." +
+        twoDigitNum(d.getMonth() + 1) +
+        " " +
+        twoDigitNum(d.getHours()) +
+        ":" +
+        twoDigitNum(d.getMinutes())
+      );
+    } catch (_e) {
+      return formatTime(s);
+    }
+  }
+
   function isTaskCreatedEvent(ev) {
     return !!(ev && (ev.type === "task_created" || ev.kind === "task_created"));
   }
@@ -997,15 +1212,69 @@
     return !!(ev && (ev.type === "task_deleted" || ev.kind === "task_deleted"));
   }
 
+  /** ISO 8601 bitiş → kalan tam saniye (0 altına düşmez). */
+  function secondsRemainingUntilIso(iso) {
+    var t = Date.parse(String(iso || ""));
+    if (isNaN(t)) return 0;
+    return Math.max(0, Math.ceil((t - Date.now()) / 1000));
+  }
+
+  /** Motor: en az bir pending_delete (ticker / görev notu / #tasks yenileme tek kaynak). */
+  function engineHasPendingDeleteTasks() {
+    var tasks = mockState.engineTasks || [];
+    var i;
+    for (i = 0; i < tasks.length; i++) {
+      if (tasks[i] && tasks[i].status === TASK_STATUS.PENDING_DELETE) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Pending silme UI tek kuralı: yalnızca toTaskRow çıktısı (status Siliniyor + pendingExpireAt).
+   * Liste, detay ipucu, meta; Geri al görünürlüğü busy dışında aynı row üzerinden.
+   */
+  function pendingDeleteUiFromRow(row) {
+    if (!row || String(row.status || "") !== "Siliniyor") {
+      return { active: false, secondsLeft: 0, expireAtIso: "", expireDisp: "—" };
+    }
+    var iso = row.pendingExpireAt != null && String(row.pendingExpireAt) !== "" ? String(row.pendingExpireAt) : "";
+    var sec = iso ? secondsRemainingUntilIso(iso) : 0;
+    return {
+      active: true,
+      secondsLeft: sec,
+      expireAtIso: iso,
+      expireDisp: iso ? formatTime(iso) : "—",
+    };
+  }
+
   // ——— UI adapter: motor görevi → Görevler stub satırı (filterTaskList: aktif / tamamlandı) ———
   function toTaskRow(task) {
     if (!task || task.id == null) return null;
-    if (task.status === "deleted") return null;
-    var done = task.status === "done";
+    if (task.status === TASK_STATUS.DELETED) return null;
+    if (task.status === TASK_STATUS.PENDING_DELETE) {
+      var exp = task.expireAt != null ? String(task.expireAt) : "";
+      var fromDone = task.restoreStatus === "done";
+      return {
+        id: String(task.id),
+        title: task.title || "—",
+        status: "Siliniyor",
+        createdAt: task.createdAt || null,
+        completedAt: fromDone && task.completedAt ? String(task.completedAt) : null,
+        updated: task.expireAt || task.createdAt || null,
+        lastRun: null,
+        guardResult: "—",
+        outputSummary: TASK_PENDING_DELETE_UI_LABEL,
+        pendingExpireAt: exp || null,
+        pendingSourceStatus: fromDone ? "tamamlandı" : "aktif",
+      };
+    }
+    var done = task.status === TASK_STATUS.DONE;
     return {
       id: String(task.id),
       title: task.title || "—",
       status: done ? "tamamlandı" : "aktif",
+      createdAt: task.createdAt || null,
+      completedAt: done ? task.completedAt || null : null,
       updated: done && task.completedAt ? task.completedAt : task.createdAt || null,
       lastRun: null,
       guardResult: "—",
@@ -1021,6 +1290,8 @@
     if (!kind && event.type === "task_created") kind = "task_created";
     if (!kind && event.type === "task_completed") kind = "task_completed";
     if (!kind && event.type === "task_deleted") kind = "task_deleted";
+    if (!kind && event.type === "task_permanently_deleted") kind = "permanently_deleted";
+    if (!kind && event.type === "post_permanently_deleted") kind = "permanently_deleted";
     if (!kind && event.type != null) kind = String(event.type);
     var text = event.text != null ? String(event.text) : "";
     if (!kind && text === "") return null;
@@ -1036,6 +1307,8 @@
     if (isTaskCreatedEvent(event)) return "Görev oluşturuldu: " + (event.text || "—");
     if (isTaskCompletedEvent(event)) return "Görev tamamlandı: " + (event.text || "—");
     if (isTaskDeletedEvent(event)) return "Görev silindi (soft): " + (event.text || "—");
+    if (event.type === "task_permanently_deleted") return event.text || "Görev kalıcı silindi";
+    if (event.type === "post_permanently_deleted") return event.text || "Gönderi kalıcı silindi";
     return event.text || "—";
   }
 
@@ -1067,31 +1340,31 @@
   }
 
   /**
-   * Görev motoru log satırları: tek okuma kaynağı tasks.json (localStorage / PUT ile aynı events dizisi).
-   * Bellek ile tutarsızlık penceresinde mockState.chatTaskCreations yedek.
+   * Görev motoru ledger: v:1 localStorage varsa events yalnız oradan (+ kalıcı olmayan policy_blocked bellekten).
+   * v:1 yoksa mockState.chatTaskCreations (başlangıç []); mock ile LS aynı anda birleştirilmez.
    */
   function getTaskMotorEventsLedgerNewestFirst() {
     var list = [];
-    try {
-      if (typeof localStorage !== "undefined") {
-        var raw = localStorage.getItem(TASKS_JSON_STORAGE_KEY);
-        if (raw) {
-          var o = JSON.parse(raw);
-          if (o && o.v === 1 && Array.isArray(o.events)) list = o.events.slice();
+    var mem = mockState.chatTaskCreations || [];
+    if (hasLocalTasksJsonCache()) {
+      try {
+        if (typeof localStorage !== "undefined") {
+          var raw = localStorage.getItem(TASKS_JSON_STORAGE_KEY);
+          if (raw) {
+            var o = JSON.parse(raw);
+            if (o && o.v === 1 && Array.isArray(o.events)) list = o.events.slice();
+          }
         }
+      } catch (_) {
+        list = [];
       }
-    } catch (_) {
-      list = [];
-    }
-    if (!list || !list.length) {
-      list = (mockState.chatTaskCreations || []).slice();
-    } else {
-      var mem = mockState.chatTaskCreations || [];
       var mi;
       for (mi = 0; mi < mem.length; mi++) {
         var me = mem[mi];
         if (me && me.type === "policy_blocked") list.push(me);
       }
+    } else {
+      list = mem.slice();
     }
     return chatEngineEventsNewestFirst(list);
   }
@@ -1109,17 +1382,38 @@
   }
 
   /**
-   * Kayıtlar + Dashboard: ham olay nesneleri. Sıra: kalıcı events (motor) en yeni üstte + dosya/fixture (task_* hariç).
+   * Kayıtlar (tümü) + Dashboard Son Olaylar: aynı birleşik liste.
+   * Motor: tasks.json events (task_* , task_permanently_deleted, post_permanently_deleted, …) + fixture/backend (task_* satırları hariç).
    */
   function getMergedPanelEventsList() {
     return getTaskMotorEventsLedgerNewestFirst().concat(getBasePanelEventsFromSource());
+  }
+
+  /**
+   * Silinenler → «Kalıcı silinenler»: motor ledger’dan post_ + task_permanently_deleted (Kayıtlar’daki permanently_deleted ile aynı kaynak).
+   */
+  function getRecentPermanentDeleteMotorEvents(limit) {
+    var n =
+      typeof limit === "number" && limit > 0 ? Math.floor(limit) : RECENT_PERMANENT_DELETES_LIMIT;
+    var ledger = getTaskMotorEventsLedgerNewestFirst();
+    var out = [];
+    var i;
+    for (i = 0; i < ledger.length && out.length < n; i++) {
+      if (
+        ledger[i] &&
+        (ledger[i].type === "post_permanently_deleted" || ledger[i].type === "task_permanently_deleted")
+      ) {
+        out.push(ledger[i]);
+      }
+    }
+    return out;
   }
 
   /** Demo: Görevler yalnızca engineTasks (kayıt olaylarından türetilmez). deleted hiçbir filtrede listelenmez. */
   function getEngineTaskRowsForTasksScreen() {
     return (mockState.engineTasks || [])
       .filter(function (t) {
-        return t && t.status !== "deleted";
+        return t && t.status !== TASK_STATUS.DELETED;
       })
       .map(toTaskRow)
       .filter(Boolean);
@@ -1152,7 +1446,7 @@
     } else {
       data = LC.normalizeDashboard(LC.buildDashboardStub(src.data), src.data);
     }
-    return applyDashboardFromMergedEvents(data);
+    return applyPanelWorkModeSubtitle(applyDashboardFromMergedEvents(data));
   }
   /** Görevler: backend/fixture = API listesi; demo = yalnızca engineTasks satırları. Seçim fullList üzerinden. */
   function taskIdEquals(a, b) {
@@ -1171,6 +1465,10 @@
       selId != null && selId !== ""
         ? (fullList.filter(function (t) { return taskIdEquals(t.id, selId); })[0] || null)
         : null;
+    if (selId != null && selId !== "" && !data.selectedTask) {
+      mockState.selectedTaskId = null;
+      data.selectedId = null;
+    }
     return data;
   }
 
@@ -1187,15 +1485,17 @@
       sMerged.taskList = fullList;
       data = LC.normalizeTasks(LC.buildTasksStub(sMerged), sMerged);
     }
-    if (isPanelTasksApiRestMode()) {
-      if (mockState.taskSourceState === "online") {
-        data.subtitle = "Görev kaynağı: çevrimiçi (GET /tasks); önbellek güncel.";
-      } else if (mockState.taskSourceState === "offline-cache") {
-        data.subtitle = "Görev kaynağı: offline-cache (salt okunur); API yok veya yanıt vermedi.";
-      }
-    }
+    data.subtitle = getPanelWorkModeStatusLine();
     var af = mockState.taskFilter || data.activeFilter || "all";
-    return applyTasksViewFromMergedFullList(data, fullList, af);
+    applyTasksViewFromMergedFullList(data, fullList, af);
+    if (engineHasPendingDeleteTasks()) {
+      var baseNote = (data.runNoteBody || "").trim();
+      data.runNoteBody =
+        baseNote +
+        (baseNote ? " " : "") +
+        "Silme bekleyen görevler listede kalır (sayaç + Geri al); süre dolunca kalıcı silinir ve Kayıtlar’da izlenebilir.";
+    }
+    return data;
   }
   function getSandboxData() {
     var src = getSandboxSourceData();
@@ -1223,13 +1523,645 @@
       var data = LC.normalizeTrash(LumosFixtures.mapTrashPayloadToPanelData(src.data), {});
       data.selectedId = mockState.selectedTrashId || data.selectedId;
       data.selectedItem = (data.listItems || []).filter(function (i) { return i.id === (mockState.selectedTrashId || data.selectedId); })[0] || data.selectedItem;
-      return data;
+      return applyPanelWorkModeSubtitle(data);
     }
     var s = getEffectiveState();
-    return LC.normalizeTrash(LC.buildTrashStub(s), s);
+    return applyPanelWorkModeSubtitle(LC.normalizeTrash(LC.buildTrashStub(s), s));
   }
 
-  /** Sekme süzgeci: Görevler sekmesi task_created / task_completed / task_deleted satırlarını da gösterir. */
+  function mergedEventToLogKind(ev) {
+    var lr = toLogRow(ev);
+    return lr && lr.kind != null ? String(lr.kind) : "";
+  }
+
+  function compareKayitlarEventTsAsc(a, b) {
+    var ta = Date.parse(String(eventTimestamp(a) || ""));
+    var tb = Date.parse(String(eventTimestamp(b) || ""));
+    if (isNaN(ta)) ta = 0;
+    if (isNaN(tb)) tb = 0;
+    return ta - tb;
+  }
+
+  /**
+   * Motor gruplama: kalıcı silme satırındaki görev adını çıkar (ham metin ≠ oluşturma başlığı eşleşmesi).
+   * Aynı görevin 5 event’i tek `task:<id>` altında toplansın diye title anahtarı buradan üretilir.
+   */
+  function extractTitleForMotorEventGrouping(ev) {
+    if (!ev) return "";
+    var typ = ev.type != null ? String(ev.type) : "";
+    var raw = ev.text != null ? String(ev.text).trim() : "";
+    if (typ === "task_permanently_deleted") {
+      var ex = extractPermanentDeleteLogTitle(raw);
+      if (ex && !logEventTitleIsMissing(ex)) return ex;
+    }
+    return raw;
+  }
+
+  /** Ledger’daki task_created: aynı ada son oluşturulan görev id’si (tek satır hedefi). */
+  function buildTitleToTaskIdFromLedger(events) {
+    var map = {};
+    if (!events || !events.length) return map;
+    var asc = events.slice().sort(compareKayitlarEventTsAsc);
+    var i;
+    for (i = 0; i < asc.length; i++) {
+      var e = asc[i];
+      if (!e || e.type !== "task_created") continue;
+      var id = e.taskId != null ? String(e.taskId).trim() : "";
+      if (!id) continue;
+      var k = normalizeTaskCommandCompareKey(extractTitleForMotorEventGrouping(e));
+      if (k) map[k] = id;
+    }
+    return map;
+  }
+
+  /**
+   * task_completed vb. bazı kayıtlarda taskId boş; başlıktan engineTasks ile eşleştirip task:id ile birleştir.
+   */
+  function resolveMotorTaskGroupIdFromEvent(ev) {
+    if (!ev) return "";
+    var tid = ev.taskId != null ? String(ev.taskId).trim() : "";
+    if (tid) return tid;
+    var typ = ev.type != null ? String(ev.type) : "";
+    if (
+      typ !== "task_completed" &&
+      typ !== "task_deleted" &&
+      typ !== "task_permanently_deleted"
+    ) {
+      return "";
+    }
+    var title = extractTitleForMotorEventGrouping(ev);
+    if (!title) return "";
+    var keyCmp = normalizeTaskCommandCompareKey(title);
+    if (!keyCmp) return "";
+    var tasks = mockState.engineTasks || [];
+    var i;
+    var found = null;
+    for (i = 0; i < tasks.length; i++) {
+      var t = tasks[i];
+      if (!t || t.id == null || String(t.id) === "") continue;
+      if (normalizeTaskCommandCompareKey(t.title) === keyCmp) {
+        if (found) return "";
+        found = String(t.id);
+      }
+    }
+    return found || "";
+  }
+
+  /**
+   * Aynı görev / öğe satırı: motor taskId (+ başlıktan çözülen id); yoksa başlık anahtarı.
+   * Diğer kayıtlar: tek satır = tek grup.
+   */
+  function kayitlarTimelineGroupKey(ev, titleToTaskIdMap) {
+    if (!ev) return "single:empty";
+    var typ = ev.type != null ? String(ev.type) : "";
+    var knd = ev.kind != null ? String(ev.kind) : "";
+    var tid = ev.taskId != null ? String(ev.taskId).trim() : "";
+    if (
+      typ === "task_created" ||
+      typ === "task_completed" ||
+      typ === "task_deleted" ||
+      typ === "task_permanently_deleted"
+    ) {
+      if (tid) return "task:" + tid;
+      var resolved = resolveMotorTaskGroupIdFromEvent(ev);
+      if (resolved) return "task:" + resolved;
+      var titleKey = normalizeTaskCommandCompareKey(extractTitleForMotorEventGrouping(ev));
+      if (titleKey && titleToTaskIdMap && titleToTaskIdMap[titleKey]) {
+        return "task:" + titleToTaskIdMap[titleKey];
+      }
+      if (titleKey) return "tasktitle:" + titleKey;
+      return "task_evt:" + String(ev.id != null ? ev.id : eventTimestamp(ev));
+    }
+    if (typ === "post_permanently_deleted") {
+      return "post:" + (tid || String(ev.id != null ? ev.id : eventTimestamp(ev)));
+    }
+    if (typ === "policy_blocked") {
+      return "policy:" + String(ev.id != null ? ev.id : eventTimestamp(ev));
+    }
+    if (typ === "" && knd) {
+      return (
+        "log:" +
+        knd +
+        ":" +
+        String(ev.id != null ? ev.id : eventTimestamp(ev)) +
+        ":" +
+        String(ev.text != null ? ev.text : "").slice(0, 32)
+      );
+    }
+    return "single:" + String(ev.id != null ? ev.id : eventTimestamp(ev));
+  }
+
+  function kayitlarTimelineGroupTitle(events) {
+    if (!events || !events.length) return "—";
+    var j;
+    for (j = 0; j < events.length; j++) {
+      var ev = events[j];
+      if (ev && ev.type === "task_created" && ev.text != null && String(ev.text).trim() !== "") {
+        return String(ev.text).trim();
+      }
+    }
+    var last = events[events.length - 1];
+    if (last && last.type === "policy_blocked" && last.text) {
+      return String(last.text);
+    }
+    var lr = toLogRow(last);
+    var raw = last && last.text != null ? String(last.text) : "";
+    if (lr && lr.kind === "permanently_deleted") {
+      var ext = extractPermanentDeleteLogTitle(raw);
+      if (ext && !logEventTitleIsMissing(ext)) return ext;
+    }
+    if (raw && !logEventTitleIsMissing(raw)) {
+      var oneLine = raw.replace(/\s+/g, " ").trim();
+      return oneLine.length > 100 ? oneLine.slice(0, 97) + "…" : oneLine;
+    }
+    return formatLogEventListBody(lr ? lr.kind : "", raw) || "—";
+  }
+
+  function kayitlarTimelineGroupStatus(lastEv) {
+    if (!lastEv) return { label: "Güncellendi", variant: "default" };
+    var typ = lastEv.type != null ? String(lastEv.type) : "";
+    var lr = toLogRow(lastEv);
+    var lk = lr ? lr.kind : "";
+    if (typ === "task_permanently_deleted" || lk === "permanently_deleted") {
+      return { label: "Kalıcı silindi", variant: "permanently_deleted" };
+    }
+    if (typ === "post_permanently_deleted") {
+      return { label: "Kalıcı silindi", variant: "permanently_deleted" };
+    }
+    if (typ === "task_deleted" || lk === "task_deleted") {
+      return { label: "Çöpte", variant: "deleted" };
+    }
+    if (typ === "task_completed" || lk === "task_completed") {
+      return { label: "Tamamlandı", variant: "completed" };
+    }
+    if (typ === "task_created" || lk === "task_created") {
+      return { label: "Aktif", variant: "created" };
+    }
+    if (typ === "policy_blocked") {
+      return { label: "Engellendi", variant: "default" };
+    }
+    if (lk === "trash") {
+      return { label: "Çöpte", variant: "trash" };
+    }
+    if (lk === "görev") {
+      return { label: "Güncellendi", variant: "completed" };
+    }
+    if (lk === "sandbox" || lk === "config" || lk === "identity" || lk === "keystore" || lk === "guard") {
+      return { label: "Güncellendi", variant: "default" };
+    }
+    return { label: "Güncellendi", variant: "default" };
+  }
+
+  /** Kayıtlar detay zaman çizelgesi: sabit Türkçe adımlar (teknik kind/type kullanıcıya yansımaz). */
+  function kayitlarTimelineStepLabel(ev) {
+    if (!ev) return "güncellendi";
+    var typ = ev.type != null ? String(ev.type) : "";
+    if (typ === "task_created") return "oluşturuldu";
+    if (typ === "task_completed") return "tamamlandı";
+    if (typ === "task_deleted") return "çöpe taşındı";
+    if (typ === "task_permanently_deleted") return "kalıcı silindi";
+    if (typ === "post_permanently_deleted") return "kalıcı silindi";
+    if (typ === "policy_blocked") return "engellendi";
+    var k = ev.kind != null ? String(ev.kind) : "";
+    var lr = toLogRow(ev);
+    var lk = lr ? lr.kind : k;
+    if (lk === "task_created") return "oluşturuldu";
+    if (lk === "task_completed") return "tamamlandı";
+    if (lk === "task_deleted") return "çöpe taşındı";
+    if (lk === "permanently_deleted") return "kalıcı silindi";
+    if (lk === "trash") return "çöpe taşındı";
+    if (lk === "görev") return "güncellendi";
+    if (lk === "sandbox" || lk === "config" || lk === "identity" || lk === "keystore" || lk === "guard") {
+      return "güncellendi";
+    }
+    return "güncellendi";
+  }
+
+  /** Detay timeline’da gösterim: ilk harf büyük (tr-TR). */
+  function kayitlarStepLabelTitleCase(lowerLabel) {
+    var s = lowerLabel != null ? String(lowerLabel).trim() : "";
+    if (!s) return "";
+    try {
+      return s.charAt(0).toLocaleUpperCase("tr-TR") + s.slice(1);
+    } catch (_e) {
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+  }
+
+  /** Özet başlık: son durum (ör. TAMAMLANDI). */
+  function kayitlarTimelineSummaryHeadline(statusLabel) {
+    if (statusLabel == null || statusLabel === "") return "";
+    try {
+      return String(statusLabel).toLocaleUpperCase("tr-TR");
+    } catch (_e) {
+      return String(statusLabel).toUpperCase();
+    }
+  }
+
+  /** Zaman çizelgesi alt satırı: yalnızca ek bağlam (ad, dosya); üstteki adım etiketi tekrarlanmaz. */
+  function kayitlarTimelineStepDetailText(ev) {
+    if (!ev) return "";
+    var typ = ev.type != null ? String(ev.type) : "";
+    var raw = ev.text != null ? String(ev.text).trim() : "";
+    if (typ === "task_created" || typ === "task_completed" || typ === "task_deleted") {
+      if (!raw || logEventTitleIsMissing(raw)) return "";
+      return raw;
+    }
+    if (typ === "task_permanently_deleted" || typ === "post_permanently_deleted") {
+      var ext = extractPermanentDeleteLogTitle(raw);
+      if (ext && !logEventTitleIsMissing(ext)) return ext;
+      return "";
+    }
+    if (typ === "policy_blocked") {
+      return raw && !logEventTitleIsMissing(raw) ? raw : "";
+    }
+    var lr = toLogRow(ev);
+    var lk = lr ? lr.kind : "";
+    if (lk === "permanently_deleted") {
+      var ex = extractPermanentDeleteLogTitle(raw);
+      if (ex && !logEventTitleIsMissing(ex)) return ex;
+      return "";
+    }
+    if (lk === "trash") {
+      var tr = extractTrashLogTitle(raw);
+      if (tr && !logEventTitleIsMissing(tr)) return tr;
+      return "";
+    }
+    if (lk === "task_created" || lk === "task_completed" || lk === "task_deleted") {
+      if (!raw || logEventTitleIsMissing(raw)) return "";
+      return raw;
+    }
+    if (raw && !logEventTitleIsMissing(raw)) {
+      var oneLine = raw.replace(/\s+/g, " ").trim();
+      return oneLine.length > 120 ? oneLine.slice(0, 117) + "…" : oneLine;
+    }
+    return "";
+  }
+
+  function kayitlarStatusIconHtml(variant) {
+    var v = variant != null ? String(variant) : "default";
+    if (v === "permanently_deleted") {
+      return '<span class="kayitlar-status-badge__icon" aria-hidden="true">\uD83D\uDDD1\uFE0F\u274C</span>';
+    }
+    if (v === "deleted" || v === "trash") {
+      return '<span class="kayitlar-status-badge__icon" aria-hidden="true">\uD83D\uDDD1\uFE0F</span>';
+    }
+    if (v === "completed") {
+      return '<span class="kayitlar-status-badge__icon kayitlar-status-badge__icon--symbol" aria-hidden="true">\u2713</span>';
+    }
+    if (v === "created") {
+      return '<span class="kayitlar-status-badge__icon kayitlar-status-badge__icon--symbol" aria-hidden="true">\u25CF</span>';
+    }
+    return '<span class="kayitlar-status-badge__icon kayitlar-status-badge__icon--symbol" aria-hidden="true">\u25CB</span>';
+  }
+
+  /** Aynı olay id’si tekrar ledger’da görünürse tek satırda çift adım oluşmasın. */
+  function dedupeKayitlarEventsById(events) {
+    if (!events || !events.length) return events;
+    var seen = {};
+    var out = [];
+    var i;
+    for (i = 0; i < events.length; i++) {
+      var e = events[i];
+      if (!e) continue;
+      var eid = e.id != null ? String(e.id) : "";
+      if (eid) {
+        if (seen[eid]) continue;
+        seen[eid] = true;
+      }
+      out.push(e);
+    }
+    return out;
+  }
+
+  /**
+   * tasktitle:* ile kalan kovalar, aynı başlıklı task:* kovasına taşınır (çift satır önleme).
+   */
+  function mergeKayitlarOrphanTitleBuckets(map, order) {
+    var toRemove = [];
+    var ri;
+    for (ri = 0; ri < order.length; ri++) {
+      var k = order[ri];
+      if (k.indexOf("tasktitle:") !== 0) continue;
+      var tk = k.slice("tasktitle:".length);
+      var bucket = map[k];
+      if (!bucket || !bucket.events.length) continue;
+      var mergeInto = null;
+      var oi;
+      for (oi = 0; oi < order.length; oi++) {
+        var ok = order[oi];
+        if (ok === k || ok.indexOf("task:") !== 0) continue;
+        var ob = map[ok];
+        if (!ob || !ob.events.length) continue;
+        var ej;
+        for (ej = 0; ej < ob.events.length; ej++) {
+          if (
+            normalizeTaskCommandCompareKey(extractTitleForMotorEventGrouping(ob.events[ej])) === tk
+          ) {
+            mergeInto = ok;
+            break;
+          }
+        }
+        if (mergeInto) break;
+      }
+      if (mergeInto) {
+        map[mergeInto].events = map[mergeInto].events.concat(bucket.events);
+        delete map[k];
+        toRemove.push(k);
+      }
+    }
+    if (!toRemove.length) return order;
+    return order.filter(function (x) {
+      return toRemove.indexOf(x) === -1;
+    });
+  }
+
+  /**
+   * Kayıtlar sunum modeli: event dizisi değil, öğe (kayıt) listesi.
+   * Her kayıt = { key, title, statusLabel, statusVariant, lastTs, events } — events yalnız detay timeline’da.
+   */
+  function buildKayitlarTimelineGroups(filteredEvents) {
+    var titleToTaskIdMap = buildTitleToTaskIdFromLedger(filteredEvents);
+    var map = {};
+    var order = [];
+    var i;
+    for (i = 0; i < filteredEvents.length; i++) {
+      var ev = filteredEvents[i];
+      if (!ev) continue;
+      if (!toLogRow(ev)) continue;
+      var key = kayitlarTimelineGroupKey(ev, titleToTaskIdMap);
+      if (!map[key]) {
+        map[key] = { key: key, events: [] };
+        order.push(key);
+      }
+      map[key].events.push(ev);
+    }
+    order = mergeKayitlarOrphanTitleBuckets(map, order);
+    var groups = [];
+    for (var oi = 0; oi < order.length; oi++) {
+      var g = map[order[oi]];
+      if (!g) continue;
+      g.events.sort(compareKayitlarEventTsAsc);
+      g.events = dedupeKayitlarEventsById(g.events);
+      var lastEv = g.events[g.events.length - 1];
+      g.title = kayitlarTimelineGroupTitle(g.events);
+      var st = kayitlarTimelineGroupStatus(lastEv);
+      g.statusLabel = st.label;
+      g.statusVariant = st.variant;
+      g.lastTs = eventTimestamp(lastEv);
+      groups.push(g);
+    }
+    groups.sort(function (a, b) {
+      var da = Date.parse(String(a.lastTs || ""));
+      var db = Date.parse(String(b.lastTs || ""));
+      if (isNaN(da)) da = 0;
+      if (isNaN(db)) db = 0;
+      return db - da;
+    });
+    return groups;
+  }
+
+  /** Kayıt grubu → gösterilecek kimlik (veri modeli değişmez; yalnız görünüm). */
+  function kayitlarRecordDisplayId(g) {
+    if (!g || g.key == null || String(g.key) === "") return "—";
+    var k = String(g.key);
+    if (k.indexOf("task:") === 0) return k.slice("task:".length);
+    if (k.indexOf("post:") === 0) return k.slice("post:".length);
+    if (k.indexOf("policy:") === 0) return k.slice("policy:".length);
+    var evs = g.events || [];
+    var ei;
+    for (ei = 0; ei < evs.length; ei++) {
+      var ev = evs[ei];
+      if (ev && ev.taskId != null && String(ev.taskId).trim() !== "") return String(ev.taskId).trim();
+    }
+    for (ei = 0; ei < evs.length; ei++) {
+      var e2 = evs[ei];
+      if (e2 && e2.id != null && String(e2.id).trim() !== "") return String(e2.id).trim();
+    }
+    return k;
+  }
+
+  /**
+   * Olay dizisinden meta zamanları (oluşturma = ilk olay, güncelleme = son olay;
+   * tamamlanma / silinme = ilgili türlerin son eşlemesi).
+   */
+  function kayitlarRecordMetaFromEvents(events) {
+    var out = {
+      created: null,
+      updated: null,
+      completed: null,
+      movedToTrash: null,
+      permanentDeleted: null,
+    };
+    if (!events || !events.length) return out;
+    out.created = eventTimestamp(events[0]);
+    out.updated = eventTimestamp(events[events.length - 1]);
+    var i;
+    for (i = 0; i < events.length; i++) {
+      var ev = events[i];
+      if (!ev) continue;
+      var typ = ev.type != null ? String(ev.type) : "";
+      var lr = toLogRow(ev);
+      var lk = lr ? lr.kind : "";
+      var ts = eventTimestamp(ev);
+      if (typ === "task_completed" || lk === "task_completed") {
+        out.completed = ts;
+      }
+      if (typ === "task_deleted" || lk === "task_deleted") {
+        out.movedToTrash = ts;
+      }
+      if (typ === "task_permanently_deleted" || typ === "post_permanently_deleted" || lk === "permanently_deleted") {
+        out.permanentDeleted = ts;
+      }
+    }
+    return out;
+  }
+
+  function wrapKayitlarDetailPanel(bodyInner) {
+    return (
+      '<div class="detail-panel kayitlar-timeline-detail">' +
+      '<div class="detail-title">Detay</div>' +
+      '<div class="detail-body kayitlar-timeline-detail-body">' +
+      bodyInner +
+      "</div></div>"
+    );
+  }
+
+  function buildKayitlarTimelineDetailHtml(groups, selectedKey) {
+    if (!selectedKey) {
+      return wrapKayitlarDetailPanel(
+        '<p class="text-muted-small kayitlar-detail-placeholder">' +
+          escapeHtmlYanit(
+            "Henüz seçim yok. Soldaki listeden bir kayda tıklayın; süreç zaman çizelgesi ve temel bilgiler burada görünür."
+          ) +
+          "</p>"
+      );
+    }
+    var g = null;
+    var gi;
+    for (gi = 0; gi < groups.length; gi++) {
+      if (groups[gi] && groups[gi].key === selectedKey) {
+        g = groups[gi];
+        break;
+      }
+    }
+    if (!g) {
+      return wrapKayitlarDetailPanel(
+        '<p class="text-muted-small kayitlar-detail-placeholder">' +
+          escapeHtmlYanit(
+            "Bu seçim artık listede yok (ör. sekme değişti). Soldan geçerli bir kayıt seçin."
+          ) +
+          "</p>"
+      );
+    }
+    var lastEv = g.events[g.events.length - 1];
+    var st = kayitlarTimelineGroupStatus(lastEv);
+    var summaryTimeUi = formatUiListTimestamp(eventTimestamp(lastEv));
+    var summaryHead = kayitlarTimelineSummaryHeadline(st.label);
+    var summaryClasses =
+      "kayitlar-timeline-summary kayitlar-timeline-summary--" +
+      String(st.variant || "default") +
+      (st.variant === "created" ? " kayitlar-timeline-summary--pulse" : "");
+    var summaryHtml =
+      '<div class="' +
+      summaryClasses +
+      '">' +
+      '<div class="kayitlar-timeline-summary-state">' +
+      escapeHtmlYanit(summaryHead) +
+      "</div>" +
+      '<div class="kayitlar-timeline-summary-time">' +
+      escapeHtmlYanit(summaryTimeUi) +
+      "</div></div>";
+
+    var lastIdx = g.events.length - 1;
+    var ul = '<ul class="kayitlar-timeline-process">';
+    var j;
+    for (j = 0; j < g.events.length; j++) {
+      var ev = g.events[j];
+      var stepRaw = kayitlarTimelineStepLabel(ev);
+      var stepDisp = kayitlarStepLabelTitleCase(stepRaw);
+      var tsUi = formatUiListTimestamp(eventTimestamp(ev));
+      var detailLine = kayitlarTimelineStepDetailText(ev);
+      var stepClasses = "kayitlar-timeline-process-step";
+      if (j === lastIdx) stepClasses += " kayitlar-timeline-process-step--latest";
+      else stepClasses += " kayitlar-timeline-process-step--past";
+      ul +=
+        '<li class="' +
+        stepClasses +
+        '">' +
+        '<div class="kayitlar-timeline-process-rail">' +
+        '<span class="kayitlar-timeline-process-dot" aria-hidden="true">\u25CF</span></div>' +
+        '<div class="kayitlar-timeline-process-body">' +
+        '<div class="kayitlar-timeline-process-line">' +
+        '<span class="kayitlar-timeline-process-label">' +
+        escapeHtmlYanit(stepDisp) +
+        "</span>" +
+        '<span class="kayitlar-timeline-process-sep"> \u2014 </span>' +
+        '<span class="kayitlar-timeline-process-time">' +
+        escapeHtmlYanit(tsUi) +
+        "</span></div>";
+      if (detailLine) {
+        ul +=
+          '<div class="kayitlar-timeline-process-detail text-muted-small">' +
+          escapeHtmlYanit(detailLine) +
+          "</div>";
+      }
+      ul += "</div></li>";
+    }
+    ul += "</ul>";
+    var meta = kayitlarRecordMetaFromEvents(g.events);
+    var idDisp = kayitlarRecordDisplayId(g);
+    var metaRows = [
+      {
+        label: "Kimlik",
+        value: '<small class="task-detail-id-wrap"><code>' + escapeHtmlYanit(idDisp) + "</code></small>",
+      },
+      { label: "Oluşturulma", value: meta.created ? formatTime(meta.created) : "—" },
+      { label: "Son güncelleme", value: meta.updated ? formatTime(meta.updated) : "—" },
+    ];
+    if (meta.completed) {
+      metaRows.push({ label: "Tamamlanma", value: formatTime(meta.completed) });
+    }
+    if (meta.movedToTrash) {
+      metaRows.push({ label: "Çöpe taşınma", value: formatTime(meta.movedToTrash) });
+    }
+    if (meta.permanentDeleted) {
+      metaRows.push({ label: "Kalıcı silinme", value: formatTime(meta.permanentDeleted) });
+    }
+    var metaHtml =
+      '<p class="kayitlar-detail-meta-heading">Temel bilgiler</p>' + buildDetailRows(metaRows);
+    return wrapKayitlarDetailPanel(
+      summaryHtml +
+        '<div class="detail-title kayitlar-timeline-detail-record-title">' +
+        escapeHtmlYanit(g.title) +
+        "</div>" +
+        '<div class="kayitlar-timeline-process-wrap kayitlar-timeline-process-wrap--secondary">' +
+        ul +
+        "</div>" +
+        '<div class="kayitlar-detail-meta-block">' +
+        metaHtml +
+        "</div>"
+    );
+  }
+
+  function KayitlarTimelineView(groups, selectedKey) {
+    if (!groups || groups.length === 0) {
+      return buildEmptyState("Henüz kayıt yok", "Bu sekme için gösterilecek satır yok.");
+    }
+    var listHtml = '<ul class="kayitlar-timeline-master list-selectable">';
+    var i;
+    for (i = 0; i < groups.length; i++) {
+      var g = groups[i];
+      var sel = selectedKey && g.key === selectedKey ? " selected" : "";
+      var badgeClass = "kayitlar-status-badge kayitlar-status-badge--" + g.statusVariant;
+      var lastTsUi = formatUiListTimestamp(g.lastTs);
+      listHtml +=
+        '<li class="kayitlar-timeline-row' +
+        sel +
+        '" data-kayitlar-timeline-key="' +
+        escapeHtmlYanit(g.key) +
+        '" role="button" tabindex="0">';
+      listHtml +=
+        '<span class="kayitlar-timeline-row-summary">' +
+        '<span class="kayitlar-timeline-title">' +
+        escapeHtmlYanit(g.title) +
+        '</span><span class="kayitlar-timeline-row-trail">' +
+        '<span class="' +
+        badgeClass +
+        '">' +
+        kayitlarStatusIconHtml(g.statusVariant) +
+        '<span class="kayitlar-status-badge__label">' +
+        escapeHtmlYanit(g.statusLabel) +
+        '</span></span><span class="kayitlar-timeline-date">' +
+        escapeHtmlYanit(lastTsUi) +
+        "</span></span></span>";
+      listHtml += "</li>";
+    }
+    listHtml += "</ul>";
+    var detailHtml = buildKayitlarTimelineDetailHtml(groups, selectedKey);
+    return (
+      '<div class="split-view kayitlar-timeline-split">' +
+      '<div class="kayitlar-timeline-list-col">' +
+      listHtml +
+      "</div>" +
+      '<div class="kayitlar-timeline-detail-col">' +
+      detailHtml +
+      "</div></div>"
+    );
+  }
+
+  /** Ham birleşik olaylar → sekme süzgeci (Kayıtlar timeline; toLogRow + mevcut sekme kuralı). */
+  function filterRawMergedEventsForKayitlar(merged, activeFilterId) {
+    if (!activeFilterId || activeFilterId === "all") return merged.slice();
+    return merged.filter(function (ev) {
+      if (!ev) return false;
+      var lr = toLogRow(ev);
+      if (!lr) return false;
+      return filterMergedLogEventsForKayitlar([lr], activeFilterId).length > 0;
+    });
+  }
+
+  /** Sekme süzgeci: Görevler = task_* + görev kaynaklı kalıcı silme (permanently_deleted + metin). */
   function filterMergedLogEventsForKayitlar(merged, activeFilterId) {
     if (!activeFilterId || activeFilterId === "all") return merged;
     var logFilters = LC.LOG_FILTERS || [];
@@ -1244,19 +2176,25 @@
     return merged.filter(function (e) {
       if (!e) return false;
       if (e.kind === kf) return true;
+      if (kf === "trash" && e.kind === "permanently_deleted") return true;
       if (kf !== "görev") return false;
-      return e.kind === "task_created" || e.kind === "task_completed" || e.kind === "task_deleted";
+      if (e.kind === "task_created" || e.kind === "task_completed" || e.kind === "task_deleted") return true;
+      if (e.kind === "permanently_deleted") {
+        return String(e.text || "").indexOf("Görev kalıcı") !== -1;
+      }
+      return false;
     });
   }
 
-  /** Kayıtlar: birleşik olaylar → toLogRow → sekme süzgeci → görünen liste. */
+  /** Kayıtlar: ham olaylar → sekme → kayitRecords (öğe bazlı sunum; events yalnız detayda). */
   function applyLogsViewFromMerged(data, mergedEvents, activeFilterId) {
-    var logRows = mergedEvents.map(toLogRow).filter(Boolean);
     var af = activeFilterId || "all";
-    var shown = filterMergedLogEventsForKayitlar(logRows, af);
+    var filteredRaw = filterRawMergedEventsForKayitlar(mergedEvents, af);
+    var records = buildKayitlarTimelineGroups(filteredRaw);
     data.activeFilter = af;
-    data.events = shown;
-    data.logLineCount = shown.length;
+    data.kayitRecords = records;
+    data.logLineCount = records.length;
+    data.events = [];
     return data;
   }
 
@@ -1271,20 +2209,28 @@
       data = LC.normalizeLogs(LC.buildLogsStub(s), s);
     }
     var af = mockState.logFilter || data.activeFilter || "all";
-    return applyLogsViewFromMerged(data, mergedEvents, af);
+    return applyPanelWorkModeSubtitle(applyLogsViewFromMerged(data, mergedEvents, af));
   }
   function getSystemStatusData() {
     var src = getSystemSourceData();
-    if ((src.type === "backend" || src.type === "fixture") && window.LumosFixtures && LC.normalizeSystem) return LC.normalizeSystem(LumosFixtures.mapSystemPayloadToPanelData(src.data), {});
-    return LC.normalizeSystem(LC.buildSystemStub(src.data), src.data);
+    var data;
+    if ((src.type === "backend" || src.type === "fixture") && window.LumosFixtures && LC.normalizeSystem) {
+      data = LC.normalizeSystem(LumosFixtures.mapSystemPayloadToPanelData(src.data), {});
+    } else {
+      data = LC.normalizeSystem(LC.buildSystemStub(src.data), src.data);
+    }
+    return applyPanelWorkModeSubtitle(data);
   }
 
   function getTopbarData() {
     var m = getEffectiveState();
-    var badges = [
-      { label: getBadgeLabel("mode", m.appMode), variant: getBadgeVariant(getBadgeLabel("mode", m.appMode)) },
-      { label: getBadgeLabel("lock", m.keystoreState === "Kilitli" ? "LOCKED" : "UNLOCKED"), variant: getBadgeVariant(getBadgeLabel("lock", m.keystoreState === "Kilitli" ? "LOCKED" : "UNLOCKED")) },
-    ];
+    var badges = [];
+    var modePres = getPanelWorkModePresentation();
+    badges.push({ label: modePres.label, variant: modePres.variant });
+    badges.push({
+      label: getBadgeLabel("lock", m.keystoreState === "Kilitli" ? "LOCKED" : "UNLOCKED"),
+      variant: getBadgeVariant(getBadgeLabel("lock", m.keystoreState === "Kilitli" ? "LOCKED" : "UNLOCKED")),
+    });
     if (m.sandboxMode) badges.push({ label: "KORUMALI ALAN", variant: "badge-sandbox" });
     return { basePath: m.basePath || "—", badges: badges };
   }
@@ -1374,14 +2320,185 @@
     return '<div class="section-card"><h2 class="section-title">' + title + "</h2><div class=\"section-body\">" + bodyHtml + "</div></div>";
   }
 
+  /** Kayıtlar / Son Olaylar: kind → rozet sınıfı (yalnızca görünüm). */
+  function logKayitEventBadgeVariant(kind) {
+    var k = kind != null ? String(kind) : "";
+    if (k === "task_created") return "created";
+    if (k === "task_completed") return "completed";
+    if (k === "task_deleted") return "deleted";
+    if (k === "trash") return "trash";
+    if (k === "permanently_deleted") return "permanently_deleted";
+    return "default";
+  }
+
+  /** Kısa etiket: [created], [completed], … */
+  function logKayitEventBadgeLabel(kind) {
+    var k = kind != null ? String(kind) : "";
+    if (k === "task_created") return "created";
+    if (k === "task_completed") return "completed";
+    if (k === "task_deleted") return "deleted";
+    if (k === "trash") return "trash";
+    if (k === "permanently_deleted") return "permanently_deleted";
+    return k || "event";
+  }
+
+  function logEventTitleIsMissing(title) {
+    var t = title != null ? String(title).trim() : "";
+    return t === "" || t === "—" || t === "-" || t === "–";
+  }
+
+  function logEventFallbackLine(kind) {
+    var k = kind != null ? String(kind).trim() : "";
+    return "İşlem: " + (k || "event");
+  }
+
+  /** permanently_deleted: ham metinden başlık parçası (UI öncesi). */
+  function extractPermanentDeleteLogTitle(raw) {
+    var s = raw != null ? String(raw).trim() : "";
+    if (!s) return "";
+    var m;
+    if ((m = /^Gönderi\s+kalıcı\s+silindi:\s*(.*)$/i.exec(s))) {
+      return m[1].trim();
+    }
+    if ((m = /^Görev\s+kalıcı\s+silindi:\s*(.*)$/i.exec(s))) {
+      return m[1].trim();
+    }
+    if (/^Gönderi\s+kalıcı\s+silindi$/i.test(s)) return "";
+    if (/^Görev\s+kalıcı\s+silindi$/i.test(s)) return "";
+    if ((m = /^Çöpteki\s+(\d+)\s+gönderi\s+kalıcı\s+silindi$/i.exec(s))) return m[1] + " gönderi";
+    if (/^Çöpteki\s+gönderi\s+kalıcı\s+silindi$/i.test(s)) return "1 gönderi";
+    if ((m = /^Kalıcı\s+silindi:\s*(.*)$/i.exec(s))) return m[1].trim();
+    return s;
+  }
+
+  function extractTrashLogTitle(raw) {
+    var s = raw != null ? String(raw).trim() : "";
+    if (!s) return "";
+    var m = /^Öğe\s+taşındı:\s*(.+)$/i.exec(s);
+    if (m) return m[1].trim();
+    return s;
+  }
+
+  /**
+   * Kayıtlar / Son Olaylar: tek tip satır metni (yalnızca UI).
+   */
+  function formatLogEventListBody(kind, raw) {
+    var k = kind != null ? String(kind) : "";
+    var title;
+
+    if (k === "task_created" || k === "task_completed" || k === "task_deleted") {
+      title = raw != null ? String(raw).trim() : "";
+      if (logEventTitleIsMissing(title)) return logEventFallbackLine(k);
+      if (k === "task_created") return "Oluşturuldu: " + title;
+      if (k === "task_completed") return "Tamamlandı: " + title;
+      return "Çöpe taşındı: " + title;
+    }
+
+    if (k === "permanently_deleted") {
+      title = extractPermanentDeleteLogTitle(raw);
+      if (logEventTitleIsMissing(title)) return logEventFallbackLine("permanently_deleted");
+      return "Kalıcı silindi: " + title;
+    }
+
+    if (k === "trash") {
+      title = extractTrashLogTitle(raw);
+      if (logEventTitleIsMissing(title)) return logEventFallbackLine("trash");
+      return "Çöpe taşındı: " + title;
+    }
+
+    title = raw != null ? String(raw).trim() : "";
+    if (logEventTitleIsMissing(title)) return logEventFallbackLine(k);
+    return logEventFallbackLine(k) + ": " + title;
+  }
+
   function EventList(events) {
     if (!events || events.length === 0) return '<ul class="event-list"><li>—</li></ul>';
     var html = '<ul class="event-list">';
     for (var i = 0; i < events.length; i++) {
       var e = events[i];
-      html += "<li><span class=\"event-time\">" + formatTime(e.ts) + "</span> [" + (e.kind || "") + "] " + (e.text || "") + "</li>";
+      var kind = e.kind != null ? String(e.kind) : "";
+      var mod = logKayitEventBadgeVariant(kind);
+      var shortLabel = logKayitEventBadgeLabel(kind);
+      var iconHtml = "";
+      if (mod === "permanently_deleted") {
+        iconHtml = '<span class="log-event-badge__icon" aria-hidden="true">🗑️\uFE0F❌</span>';
+      } else if (mod === "deleted") {
+        iconHtml = '<span class="log-event-badge__icon" aria-hidden="true">⚠️</span>';
+      } else if (mod === "trash") {
+        iconHtml = '<span class="log-event-badge__icon" aria-hidden="true">🗑️\uFE0F</span>';
+      }
+      var bodyRaw = e.text != null ? String(e.text) : "";
+      var bodyForList = formatLogEventListBody(kind, bodyRaw);
+      var bodyClass = "log-event-body" + (mod === "permanently_deleted" ? " log-event-body--permanent_delete" : "");
+      var tooltipText = String(bodyForList).replace(/\s+/g, " ").trim();
+      var titleAttr = tooltipText !== "" ? ' title="' + escapeHtmlYanit(tooltipText) + '"' : "";
+      html +=
+        '<li class="log-event-row log-event-row--' +
+        mod +
+        '">' +
+        '<span class="log-event-badge log-event-badge--' +
+        mod +
+        '">' +
+        iconHtml +
+        '<span class="log-event-badge__label">[' +
+        escapeHtmlYanit(shortLabel) +
+        "]</span></span>" +
+        '<span class="event-time">' +
+        escapeHtmlYanit(formatTime(e.ts)) +
+        "</span>" +
+        '<span class="' +
+        bodyClass +
+        '"' +
+        titleAttr +
+        ">" +
+        escapeHtmlYanit(bodyForList) +
+        "</span></li>";
     }
     return html + "</ul>";
+  }
+
+  /** Silinenler altı: yalnızca son kalıcı silinenler (salt okunur özet). */
+  function humanPermanentDeleteLine(lr) {
+    if (!lr) return "—";
+    var raw = lr.text != null ? String(lr.text) : "";
+    var title = extractPermanentDeleteLogTitle(raw);
+    if (title && !logEventTitleIsMissing(title)) return title;
+    var oneLine = raw.replace(/\s+/g, " ").trim();
+    if (!oneLine) return "—";
+    return oneLine.length > 100 ? oneLine.slice(0, 97) + "…" : oneLine;
+  }
+
+  function buildRecentPermanentDeletesSectionHtml() {
+    var evs = getRecentPermanentDeleteMotorEvents(RECENT_PERMANENT_DELETES_LIMIT);
+    var note = '<p class="text-muted-small trash-recent-permanent-note">Kayıtlar ekranında tüm geçmişe ulaşılır.</p>';
+    if (evs.length === 0) {
+      return buildSection(
+        "Son kalıcı silinenler",
+        note + '<p class="screen-placeholder">Henüz kayıt yok.</p>'
+      );
+    }
+    var rows = "";
+    var j;
+    for (j = 0; j < evs.length; j++) {
+      var lr = toLogRow(evs[j]);
+      if (!lr) continue;
+      var line = humanPermanentDeleteLine(lr);
+      var tip = String(line).replace(/\s+/g, " ").trim();
+      var titleAttr = tip !== "" ? ' title="' + escapeHtmlYanit(tip) + '"' : "";
+      var tsUi = formatUiListTimestamp(lr.ts);
+      rows +=
+        '<li class="trash-recent-permanent-row">' +
+        '<span class="trash-recent-permanent-stack">' +
+        '<span class="trash-recent-permanent-name"' +
+        titleAttr +
+        ">" +
+        escapeHtmlYanit(line) +
+        "</span>" +
+        '<span class="trash-recent-permanent-meta">Kalıcı silindi \u2022 ' +
+        escapeHtmlYanit(tsUi) +
+        "</span></span></li>";
+    }
+    return buildSection("Son kalıcı silinenler", note + '<ul class="trash-recent-permanent-list">' + rows + "</ul>");
   }
 
   function DetailPanel(title, bodyHtml) {
@@ -1404,7 +2521,10 @@
     var ws = document.getElementById("sidebar-workspace");
     if (ws) ws.textContent = "Çalışma Alanı: " + data.workspaceName;
     var meta = document.getElementById("sidebar-meta");
-    if (meta) meta.textContent = "Dal: " + data.branchName + " · Mod: DEV";
+    if (meta) {
+      var wm = getPanelWorkModePresentation();
+      meta.textContent = "Dal: " + data.branchName + " · " + wm.label;
+    }
   }
 
   /** Veri kaynağı (tek satır); teknik endpoint listesi yok */
@@ -1412,7 +2532,7 @@
     if (!F || !F.getBase) return "";
     return (
       '<p class="posts-api-base-line">' +
-      '<span class="posts-api-base-label">Bağlantı</span> ' +
+      '<span class="posts-api-base-label">Akış tabanı</span> ' +
       '<code>' +
       F.escapeHtml(F.getBase()) +
       "</code></p>"
@@ -1427,11 +2547,11 @@
     var data = getTopbarData();
     var baseEl = document.getElementById("topbar-base-label");
     if (baseEl) {
-      var apiPart = "";
+      var feedHint = "";
       if (typeof window.LumosFeedApi !== "undefined" && window.LumosFeedApi.getBase) {
-        apiPart = " · API: " + window.LumosFeedApi.getBase();
+        feedHint = " · Akış bağlantısı ayarlı";
       }
-      baseEl.textContent = "Temel: " + data.basePath + apiPart;
+      baseEl.textContent = "Çalışma alanı: " + data.basePath + feedHint;
     }
     var wrap = document.getElementById("topbar-badges");
     if (wrap) {
@@ -1445,14 +2565,18 @@
       var opts = list.map(function (s) {
         return '<option value="' + s.id + '"' + (s.id === currentScenario ? ' selected' : '') + ">" + s.label + "</option>";
       }).join("");
-      var dataSourceOpts = '<option value="demo"' + (useFixtureData ? '' : ' selected') + '>Demo</option><option value="fixture"' + (useFixtureData ? ' selected' : '') + '>Fixture</option>';
+      var dataSourceOpts =
+        '<option value="demo"' +
+        (useFixtureData ? '' : ' selected') +
+        '>Yerel durum</option><option value="fixture"' +
+        (useFixtureData ? ' selected' : '') +
+        '>Sabit örnek</option>';
       actionsEl.innerHTML =
         '<div class="topbar-actions-dev">' +
-        '<span class="topbar-demo-label">DEV</span>' +
-        '<select id="demo-scenario-select" class="demo-scenario-select" aria-label="Demo senaryosu">' +
+        '<select id="demo-scenario-select" class="demo-scenario-select" aria-label="Örnek panel durumu" title="Örnek panel durumu">' +
         opts +
         "</select>" +
-        '<select id="data-source-select" class="demo-scenario-select" aria-label="Veri kaynağı" title="Veri kaynağı">' +
+        '<select id="data-source-select" class="demo-scenario-select" aria-label="Veri kaynağı" title="Yerel durum veya sabit örnek veri">' +
         dataSourceOpts +
         "</select></div>";
       var sel = document.getElementById("demo-scenario-select");
@@ -1489,7 +2613,7 @@
   function buildGuidanceCard() {
     var g = getGuidanceSourceData().data;
     if (!g) g = { mode: "—", lock: "—", consent: false, blocked_reason: null, next_step: null };
-    var modeLabel = g.mode === "online" ? "Çevrimiçi" : "Çevrimdışı";
+    var modeLabel = g.mode === SOURCE_STATUS.ONLINE ? "Çevrimiçi" : "Çevrimdışı";
     var lockLabel = (g.lock || "").toUpperCase() === "UNLOCKED" ? "Açık" : "Kilitli";
     var consentLabel = g.consent ? "Açık" : "Kapalı";
     var durumHtml = "<p class=\"text-muted-small\"><strong>Mod:</strong> " + modeLabel + " · <strong>Kilit:</strong> " + lockLabel + " · <strong>Genel onay:</strong> " + consentLabel + "</p>";
@@ -1521,6 +2645,182 @@
     return ViewHeader(data.title, data.subtitle) + '<div class="cards-grid">' + cards + "</div>" + sections;
   }
 
+  function escapeHtmlYanit(s) {
+    if (s == null) return "";
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function inferTaskPanelActionFromCmd(cmd) {
+    var c = String(cmd || "").trim().toLowerCase();
+    if (/^görev\s+tamamla\b/.test(c) || /^gorev\s+tamamla\b/.test(c)) return "complete";
+    if (/^görev\s+sil\b/.test(c) || /^gorev\s+sil\b/.test(c)) return "delete";
+    if (/^görev\s+geri\s+al\b/.test(c) || /^gorev\s+geri\s+al\b/.test(c)) return "undo";
+    if (/^görev\s+oluştur\b/.test(c) || /^gorev\s+olustur\b/.test(c)) return "create";
+    return "";
+  }
+
+  function inferTaskPanelActionFromErrorText(s) {
+    var t = String(s || "").toLowerCase();
+    if (t.indexOf("görev tamamlama") !== -1 || t.indexOf("tamamlanacak görev") !== -1) return "complete";
+    if (t.indexOf("görev silme") !== -1 || t.indexOf("silinecek görev") !== -1) return "delete";
+    if (t.indexOf("geri alınacak") !== -1 || t.indexOf("silme iptal") !== -1) return "undo";
+    if (t.indexOf("görev oluşturma") !== -1) return "create";
+    return "";
+  }
+
+  /**
+   * Görev Detay paneli flash — yalnızca gösterim (motor/chat ham metni aynı kalır).
+   * Hata: [aksiyon] + (sebep); tek satır.
+   */
+  function formatTaskDetailPanelFlashText(raw, panelAction) {
+    var s = String(raw || "")
+      .replace(/\r\n/g, "\n")
+      .trim();
+    if (!s) return s;
+
+    if (s.indexOf("Görev tamamlandı") === 0) {
+      var m = s.match(/^Görev tamamlandı:\s*"([^"]*)"\s*\./);
+      if (m) return "Tamamlandı: " + m[1] + ".";
+      return "Tamamlandı.";
+    }
+    if (s.indexOf("Görev silindi") === 0) {
+      var m2 = s.match(/^Görev silindi \(listeden kaldırıldı\):\s*"([^"]*)"\s*\./);
+      if (m2) return "Silindi: " + m2[1] + ".";
+      return "Silindi.";
+    }
+    if (s.indexOf("Siliniyor") === 0) return "Siliniyor…";
+    if (s.indexOf("Silme iptal edildi") === 0) {
+      var mu = s.match(/^Silme iptal edildi:\s*"([^"]*)"\s*\./);
+      if (mu) return "Geri alındı: " + mu[1] + ".";
+      return "Geri alındı.";
+    }
+    if (s.indexOf("Görev zaten tamamlanmış") === 0) return "Zaten tamamlanmış.";
+
+    var act = panelAction || inferTaskPanelActionFromErrorText(s);
+    if (!act) act = "complete";
+
+    var sLow = s.toLowerCase();
+
+    function policySebep() {
+      if (sLow.indexOf("çevrimdışı") !== -1 || sLow.indexOf("offline") !== -1 || sLow.indexOf("önbellek") !== -1) {
+        return "çevrimdışı";
+      }
+      if (sLow.indexOf("koruma") !== -1 || sLow.indexOf("korumalı") !== -1) return "koruma aktif";
+      if (sLow.indexOf("onay") !== -1 || sLow.indexOf("consent") !== -1) return "onay gerekli";
+      return "engelli";
+    }
+
+    function errComplete(sebep) {
+      return "Görev tamamlanamadı (" + sebep + ")";
+    }
+    function errDelete(sebep) {
+      if (sebep === "çevrimdışı") {
+        return "Çevrimdışı modda görev silme kapalı.";
+      }
+      return "Görev silinemedi (" + sebep + ")";
+    }
+    function errCreate(sebep) {
+      return "Görev oluşturulamadı (" + sebep + ")";
+    }
+    function errUndo(sebep) {
+      return "Geri alınamadı (" + sebep + ")";
+    }
+    function errPolicyBlock(sebep) {
+      if (act === "complete") return "Tamamlama engellendi (" + sebep + ")";
+      if (act === "delete") return errDelete(sebep);
+      if (act === "undo") return errUndo(sebep);
+      if (act === "create") return errCreate(sebep);
+      return errComplete(sebep);
+    }
+
+    if (s.indexOf("Ne yapabilirsin:") !== -1 || s.indexOf("şu anda engellendi") !== -1) {
+      return errPolicyBlock(policySebep());
+    }
+
+    if (s.indexOf(" engellendi.") !== -1) {
+      return errPolicyBlock(policySebep());
+    }
+
+    if (s === "İşlem engellendi.") {
+      return errPolicyBlock(policySebep());
+    }
+
+    if (
+      (s.indexOf("API'ye ulaşılamıyor") !== -1 && s.indexOf("gönderilmedi") !== -1) ||
+      (s.indexOf("Görev API") !== -1 && s.indexOf("ulaşılamıyor") !== -1)
+    ) {
+      if (act === "complete") return errComplete("çevrimdışı");
+      if (act === "delete") return errDelete("çevrimdışı");
+      if (act === "undo") return errUndo("çevrimdışı");
+      return errCreate("çevrimdışı");
+    }
+    if (s.indexOf("Bağlantı modülü yüklenmedi") !== -1 || s.indexOf("Görev API bağlayıcısı yüklenmedi") !== -1) {
+      if (act === "create") return errCreate("API kapalı");
+      if (act === "complete") return errComplete("API kapalı");
+      if (act === "undo") return errUndo("API kapalı");
+      return errDelete("API kapalı");
+    }
+    if (s.indexOf("API adresi tanımlı değil") !== -1 || s.indexOf("LUMOS_PANEL_TASKS_API_BASE") !== -1) {
+      if (act === "complete") return errComplete("yapılandırma eksik");
+      if (act === "delete") return errDelete("yapılandırma eksik");
+      if (act === "undo") return errUndo("yapılandırma eksik");
+      return errCreate("yapılandırma eksik");
+    }
+    if (s.indexOf("Tamamlanacak görev bulunamadı") !== -1) {
+      return errComplete("bulunamadı");
+    }
+    if (s.indexOf("Silinecek görev bulunamadı") !== -1) {
+      return errDelete("bulunamadı");
+    }
+    if (s.indexOf("Geri alınacak silme bekleyen görev bulunamadı") !== -1) {
+      return errUndo("bulunamadı");
+    }
+    if (s.indexOf("Görev komutu API üzerinde tanımsız") !== -1) {
+      if (act === "complete") return errComplete("desteklenmiyor");
+      if (act === "delete") return errDelete("desteklenmiyor");
+      if (act === "undo") return errUndo("desteklenmiyor");
+      return errCreate("desteklenmiyor");
+    }
+
+    if (
+      s.indexOf("Bağlantı hatası") === 0 ||
+      s.indexOf("Görev API veya ağ hatası") === 0 ||
+      s === "İşlem tamamlanamadı." ||
+      s.indexOf("İşlem tamamlanamadı") === 0
+    ) {
+      if (act === "complete") return errComplete("bağlantı");
+      if (act === "delete") return errDelete("bağlantı");
+      if (act === "undo") return errUndo("bağlantı");
+      return errCreate("bağlantı");
+    }
+
+    if (/^http\s*\d/i.test(s) || sLow.indexOf("failed to fetch") !== -1 || sLow.indexOf("networkerror") !== -1) {
+      if (act === "complete") return errComplete("bağlantı");
+      if (act === "delete") return errDelete("bağlantı");
+      if (act === "undo") return errUndo("bağlantı");
+      return errCreate("bağlantı");
+    }
+    if (sLow.indexOf("abort") !== -1 && s.length < 80) {
+      if (act === "complete") return errComplete("zaman aşımı");
+      if (act === "delete") return errDelete("zaman aşımı");
+      if (act === "undo") return errUndo("zaman aşımı");
+      return errCreate("zaman aşımı");
+    }
+
+    if (s.length > 160) {
+      if (act === "complete") return errComplete("bilinmeyen");
+      if (act === "delete") return errDelete("bilinmeyen");
+      if (act === "undo") return errUndo("bilinmeyen");
+      return errCreate("bilinmeyen");
+    }
+
+    return s;
+  }
+
   // ——— Ekran: Görevler (adapter + build) ———
   function renderTasks() {
     var data = getTasksViewData();
@@ -1538,9 +2838,42 @@
     } else {
       var listItems = "";
       data.listItems.forEach(function (t) {
-        var sel = data.selectedId === t.id ? " selected" : "";
+        var sel = taskIdEquals(data.selectedId, t.id) ? " selected" : "";
         var badge = buildBadge(t.status, getTaskStatusVariant(t.status));
-        listItems += '<li class="list-item' + sel + '" data-task-id="' + t.id + '"><span class="task-list-badge">' + badge + "</span> " + t.title + "</li>";
+        var tid = escapeHtmlYanit(t.id);
+        var pdui = pendingDeleteUiFromRow(t);
+        var isPendingRow = pdui.active;
+        var pendingStrip = "";
+        if (isPendingRow) {
+          var btnDisList = taskDetailViewState.detailActionBusy ? " disabled" : "";
+          pendingStrip =
+            '<span class="task-list-pending-strip">' +
+            '<span class="task-list-pending-msg">' +
+            escapeHtmlYanit(TASK_PENDING_DELETE_UI_LABEL) +
+            "</span>" +
+            '<span class="task-list-pending-sec" aria-live="polite">' +
+            String(pdui.secondsLeft) +
+            " sn</span>" +
+            '<button type="button" class="task-list-undo-btn" data-task-list-undo="1" data-task-ref="' +
+            tid +
+            '"' +
+            btnDisList +
+            ">Geri al</button>" +
+            "</span>";
+        }
+        listItems +=
+          '<li class="list-item' +
+          sel +
+          (isPendingRow ? " list-item--pending-delete" : "") +
+          '" data-task-id="' +
+          tid +
+          '"><span class="task-list-row-main"><span class="task-list-badge">' +
+          badge +
+          '</span> <span class="task-list-title-text">' +
+          escapeHtmlYanit(t.title) +
+          "</span></span>" +
+          pendingStrip +
+          "</li>";
       });
       listBody += '<ul class="list-selectable" id="task-list">' + listItems + "</ul>";
     }
@@ -1548,22 +2881,152 @@
 
     var detailContent;
     if (!data.selectedTask) {
-      detailContent = buildEmptyState("Görev seçilmedi", "Listeden bir görev seçin.");
+      detailContent = buildEmptyState("Görev seçin", "Soldaki listeden bir satıra tıklayın.");
     } else {
       var t = data.selectedTask;
-      var lastRunVal = t.lastRun ? formatTime(t.lastRun) : "—";
-      var lastRunNote = t.lastRun ? "Son çalıştırma (mock)." : "Henüz çalıştırılmadı.";
-      var outVal = (t.outputSummary || "—").slice(0, 120);
-      if ((t.outputSummary || "").length > 120) outVal += "…";
-      var metricRows = buildMetricCards([
-        { title: "Son çalıştırma", value: lastRunVal, note: lastRunNote },
-        { title: "Guard sonucu", value: t.guardResult || "—", note: "Guard: izinli / reddedildi / engelli." },
-        { title: "Çıktı özeti", value: outVal, note: "Çıktı özeti." },
-      ]);
+      var st = String(t.status || "").toLowerCase();
+      var createdDisp = t.createdAt ? formatTime(t.createdAt) : "—";
+      var completedDisp = t.completedAt ? formatTime(t.completedAt) : "—";
+      var updatedDisp = t.updated ? formatTime(t.updated) : "—";
+      var refAttr = escapeHtmlYanit(t.id);
+      var btnDis = taskDetailViewState.detailActionBusy ? " disabled" : "";
+      var detailBtns = "";
+      var pendingDeleteNote = "";
+      if (st === "siliniyor") {
+        var pduDetail = pendingDeleteUiFromRow(t);
+        pendingDeleteNote =
+          '<p class="text-muted-small task-pending-delete-hint" role="status">' +
+          '<span class="task-pending-delete-hint__msg">' +
+          escapeHtmlYanit(TASK_PENDING_DELETE_UI_LABEL) +
+          "</span>" +
+          ' <span class="task-pending-countdown" aria-live="polite">' +
+          String(pduDetail.secondsLeft) +
+          " sn kaldı</span>; tahmini kalıcı silinme <strong>" +
+          escapeHtmlYanit(pduDetail.expireDisp) +
+          "</strong>." +
+          " İptal: listedeki veya buradaki <strong>Geri al</strong> (aynı komut)." +
+          "</p>";
+        detailBtns +=
+          '<button type="button" class="task-detail-action-btn task-detail-action-btn--primary" data-task-detail-action="undo-pending" data-task-ref="' +
+          refAttr +
+          '"' +
+          btnDis +
+          ">Geri al</button>";
+      } else {
+        if (st === "aktif") {
+          detailBtns +=
+            '<button type="button" class="task-detail-action-btn task-detail-action-btn--primary" data-task-detail-action="complete" data-task-ref="' +
+            refAttr +
+            '"' +
+            btnDis +
+            ">Tamamla</button>";
+        }
+        if (st === "aktif" || st === "tamamlandı" || st === "tamamlandi") {
+          detailBtns +=
+            '<button type="button" class="task-detail-action-btn task-detail-action-btn--secondary" data-task-detail-action="delete" data-task-ref="' +
+            refAttr +
+            '"' +
+            btnDis +
+            ">Sil</button>";
+        }
+      }
+      var detailActionsRow =
+        detailBtns !== ""
+          ? '<div class="task-detail-actions"' +
+            (taskDetailViewState.detailActionBusy ? ' aria-busy="true"' : "") +
+            ">" +
+            detailBtns +
+            "</div>"
+          : "";
+      var busyRow = "";
+      if (taskDetailViewState.detailActionBusy) {
+        busyRow =
+          '<p class="task-detail-progress" aria-live="polite">' +
+          '<span class="task-detail-progress-dot" aria-hidden="true"></span>' +
+          "Uygulanıyor…" +
+          "</p>";
+      }
+      var flashRow = "";
+      if (taskDetailViewState.flash && taskDetailViewState.flash.text) {
+        var fr = taskDetailViewState.flash;
+        var fk =
+          fr.kind === "error" ? "error" : fr.kind === "ok" ? "ok" : "info";
+        var live = fr.kind === "error" ? "alert" : "status";
+        flashRow =
+          '<p class="task-detail-flash task-detail-flash--' +
+          fk +
+          '" role="' +
+          live +
+          '">' +
+          escapeHtmlYanit(formatTaskDetailPanelFlashText(fr.text, fr.panelAction)) +
+          "</p>";
+      }
+      var actionsHint = "";
+      if (st === "siliniyor") {
+        actionsHint = "";
+      } else if (st === "aktif") {
+        actionsHint = "Tamamla veya sil.";
+      } else if (st === "tamamlandı" || st === "tamamlandi") {
+        actionsHint = "Kalıcı olarak kaldırmak için sil.";
+      } else {
+        actionsHint = "";
+      }
+      var primaryBlock =
+        detailBtns !== ""
+          ? '<div class="task-detail-primary">' +
+            '<p class="task-detail-actions-label">İşlemler</p>' +
+            (pendingDeleteNote || "") +
+            detailActionsRow +
+            (actionsHint
+              ? '<p class="text-muted-small task-detail-actions-hint">' + actionsHint + "</p>"
+              : "") +
+            "</div>"
+          : "";
+      var noActionsNote =
+        detailBtns === ""
+          ? '<p class="text-muted-small task-detail-no-actions">Bu görev için kullanılabilir işlem yok.</p>'
+          : "";
+      var metaRows;
+      if (st === "siliniyor") {
+        var pduMeta = pendingDeleteUiFromRow(t);
+        metaRows = [
+          {
+            label: "Kimlik",
+            value: '<small class="task-detail-id-wrap"><code>' + escapeHtmlYanit(t.id) + "</code></small>",
+          },
+          { label: "Oluşturulma", value: createdDisp },
+          {
+            label: "Kalan süre",
+            value: String(pduMeta.secondsLeft) + " sn",
+          },
+          { label: "Kalıcı silinme (hedef)", value: pduMeta.expireDisp },
+          {
+            label: "Tamamlanma",
+            value: completedDisp !== "—" ? completedDisp : "—",
+          },
+        ];
+      } else {
+        metaRows = [
+          {
+            label: "Kimlik",
+            value: '<small class="task-detail-id-wrap"><code>' + escapeHtmlYanit(t.id) + "</code></small>",
+          },
+          { label: "Oluşturulma", value: createdDisp },
+          { label: "Güncelleme", value: updatedDisp },
+          { label: "Tamamlanma", value: st.indexOf("tamam") !== -1 ? completedDisp : "—" },
+        ];
+      }
       detailContent =
-        "<p><strong>" + t.title + "</strong></p>" +
-        "<p>Durum: " + buildBadge(t.status, getTaskStatusVariant(t.status)) + " · Güncelleme: " + formatTime(t.updated) + "</p>" +
-        '<div class="detail-metrics">' + metricRows + "</div>";
+        busyRow +
+        flashRow +
+        "<p><strong>" + escapeHtmlYanit(t.title) + "</strong></p>" +
+        "<p>Durum: " +
+        buildBadge(t.status, getTaskStatusVariant(t.status)) +
+        "</p>" +
+        primaryBlock +
+        noActionsNote +
+        '<p class="task-detail-meta-heading">Ayrıntılar</p>' +
+        buildDetailRows(metaRows);
     }
     var detail = buildDetailPanel(data.detailTitle, detailContent);
     var runNoteSection = buildSection(data.runNoteTitle, "<p class=\"text-muted-small\">" + data.runNoteBody + "</p>");
@@ -1616,6 +3079,37 @@
     actionBusyAll: false,
     flash: null,
   };
+
+  /** Görevler detay paneli: API beklerken buton kilidi; aksiyon sonrası görsel geri bildirim */
+  var taskDetailViewState = {
+    flash: null,
+    detailActionBusy: false,
+  };
+  var taskDetailFlashTimer = null;
+  var taskDetailFlashTicket = 0;
+  /** Son detay komutu: complete | delete | create — flash [aksiyon](sebep) için */
+  var taskDetailPanelLastCmdAction = "";
+
+  function clearTaskDetailFlashTimer() {
+    if (taskDetailFlashTimer) {
+      clearTimeout(taskDetailFlashTimer);
+      taskDetailFlashTimer = null;
+    }
+  }
+
+  /** Başarı flash’ını bir süre sonra kaldır (detay sadeleşsin). */
+  function scheduleTaskDetailOkFlashAutoClear() {
+    clearTaskDetailFlashTimer();
+    var ticket = ++taskDetailFlashTicket;
+    taskDetailFlashTimer = setTimeout(function () {
+      taskDetailFlashTimer = null;
+      if (taskDetailFlashTicket !== ticket) return;
+      if (taskDetailViewState.flash && taskDetailViewState.flash.kind === "ok") {
+        taskDetailViewState.flash = null;
+        if (getCurrentScreen().id === "tasks") refreshCurrentView();
+      }
+    }, 3200);
+  }
 
   function trashPreviewText(s) {
     var t = s == null ? "" : String(s).trim();
@@ -1719,6 +3213,7 @@
       return;
     }
     if (!window.confirm("Çöpteki tüm kayıtlar kalıcı silinecek. Emin misin?")) return;
+    var emptiedTrashCount = (trashViewState.trashPosts || []).length;
     trashViewState.actionBusyAll = true;
     trashViewState.flash = null;
     renderMain();
@@ -1741,6 +3236,18 @@
         trashViewState.actionBusyAll = false;
         mockState.selectedTrashId = null;
         trashViewState.flash = { kind: "ok", text: "Çöp boşaltıldı" };
+        if (emptiedTrashCount > 0) {
+          appendPanelEngineEvent({
+            type: "post_permanently_deleted",
+            taskId: "",
+            text:
+              emptiedTrashCount === 1
+                ? "Çöpteki gönderi kalıcı silindi"
+                : "Çöpteki " + emptiedTrashCount + " gönderi kalıcı silindi",
+            ts: new Date().toISOString(),
+          });
+          persistTasksJsonDocument();
+        }
         renderMain();
       })
       .catch(function (err) {
@@ -1787,37 +3294,11 @@
       });
   }
 
-  /** Feed çöpü ayrı; soft-delete görevleri panel motorunda kalır — burada görünür. */
-  function buildSoftDeletedTasksTrashSectionHtml(F) {
-    if (!F || !F.escapeHtml) return "";
-    var softDel = (mockState.engineTasks || []).filter(function (t) {
-      return t && t.status === "deleted";
-    });
-    if (!softDel.length) return "";
-    var rows = "";
-    var si;
-    for (si = 0; si < softDel.length; si++) {
-      var st = softDel[si];
-      var stitle = st.title != null ? String(st.title) : "—";
-      var dAt = st.deletedAt ? feedFormatCreatedAtReadable(String(st.deletedAt)) : "—";
-      rows +=
-        '<li class="list-item lumos-soft-deleted-task" data-soft-deleted-task="1">' +
-        '<span class="soft-del-title">' +
-        F.escapeHtml(stitle) +
-        "</span> · " +
-        F.escapeHtml(dAt) +
-        "</li>";
-    }
-    return buildSection(
-      "Soft silinen görevler (panel motoru)",
-      '<ul class="list-selectable lumos-soft-deleted-task-list">' + rows + "</ul>"
-    );
-  }
-
   // ——— Ekran: Silinenler (adapter + build) ———
   function renderTrash() {
     var F = window.LumosFeedApi;
     if (!F) return renderEmptyState("Silinenler", "feed-api.js yüklenmedi.");
+    var recentPermanentHtml = buildRecentPermanentDeletesSectionHtml();
 
     if (trashViewState.status === "idle") {
       fetchTrash();
@@ -1825,26 +3306,33 @@
 
     if (trashViewState.status === "loading") {
       return (
-        ViewHeader("Silinenler", "Liste yükleniyor") +
-        renderPostsApiBaseLine(F) +
-        trashFlashHtml(F, { isLoading: true }) +
-        '<div class="feed-loading">Yükleniyor…</div>' +
-        buildSoftDeletedTasksTrashSectionHtml(F)
+        '<div class="trash-deletion-hub">' +
+        ViewHeader("Silinenler", "Çöp kutusu yükleniyor…") +
+        buildSection(
+          "Çöp kutusu",
+          trashFlashHtml(F, { isLoading: true }) + '<div class="feed-loading">Yükleniyor…</div>'
+        ) +
+        recentPermanentHtml +
+        "</div>"
       );
     }
 
     if (trashViewState.status === "error") {
       return (
-        ViewHeader("Silinenler", "Bağlantı sorunu") +
-        renderPostsApiBaseLine(F) +
-        trashFlashHtml(F, { postsLength: 0 }) +
-        '<div class="feed-panel-error" role="alert">' +
-        '<p class="feed-panel-error-title">İstek tamamlanamadı</p>' +
-        '<p class="feed-panel-error-detail">' +
-        F.escapeHtml(trashViewState.error) +
-        "</p>" +
-        "</div>" +
-        buildSoftDeletedTasksTrashSectionHtml(F)
+        '<div class="trash-deletion-hub">' +
+        ViewHeader("Silinenler", "Liste alınamadı") +
+        buildSection(
+          "Çöp kutusu",
+          trashFlashHtml(F, { postsLength: 0 }) +
+            '<div class="feed-panel-error" role="alert">' +
+            '<p class="feed-panel-error-title">İstek tamamlanamadı</p>' +
+            '<p class="feed-panel-error-detail">' +
+            F.escapeHtml(trashViewState.error) +
+            "</p>" +
+            "</div>"
+        ) +
+        recentPermanentHtml +
+        "</div>"
       );
     }
 
@@ -1858,24 +3346,6 @@
       emptyTrashBtnDisabledAttr +
       ">Çöpü Boşalt</button>" +
       "</div>";
-    var latestDeletedAt = "";
-    for (var i = 0; i < posts.length; i++) {
-        var d = posts[i] && posts[i].deletedAt ? String(posts[i].deletedAt) : "";
-      if (!d) continue;
-      if (!latestDeletedAt || new Date(d).getTime() > new Date(latestDeletedAt).getTime()) {
-        latestDeletedAt = d;
-      }
-    }
-    var metrics = [
-      { title: "Öğe Sayısı", value: String(posts.length), note: "Çöp kutusunda" },
-      {
-        title: "Son Taşıma",
-        value: latestDeletedAt ? feedFormatCreatedAtReadable(latestDeletedAt) : "—",
-        note: "En son taşınan",
-      },
-    ];
-    var summary = buildMetricCards(metrics);
-
     var selectedId = mockState.selectedTrashId;
     var selectedPost = null;
     if (selectedId) {
@@ -1887,34 +3357,37 @@
       }
     }
 
-    var listSection;
+    var listPaneHtml;
     if (posts.length === 0) {
-      listSection = buildSection(
-        "Liste",
-        buildEmptyState("Silinen kayıt yok", "Çöp kutusu boş.")
-      );
+      listPaneHtml = buildEmptyState("Silinen kayıt yok", "Çöp kutusu boş.");
     } else {
       var listHtml = "";
       for (var li = 0; li < posts.length; li++) {
         var p = posts[li] || {};
         var pid = p.id != null ? String(p.id) : "";
         var uname = p.username ? String(p.username) : "—";
-        var movedAt = p.deletedAt ? feedFormatCreatedAtReadable(p.deletedAt) : "—";
+        var movedAtUi = p.deletedAt ? formatUiListTimestamp(p.deletedAt) : "—";
         var preview = trashPreviewText(p.content || "");
+        var tip = String("@" + uname + (preview && preview !== "—" ? " · " + preview : "")).replace(/\s+/g, " ").trim();
+        var titleAttr = tip !== "" ? ' title="' + escapeHtmlYanit(tip) + '"' : "";
         var sel = selectedPost && String(selectedPost.id) === pid ? " selected" : "";
         var busy = !!trashViewState.actionBusyByPostId[pid] || trashViewState.actionBusyAll;
         var disabledAttr = busy ? " disabled" : "";
         listHtml +=
-          '<li class="list-item' +
+          '<li class="list-item trash-post-list-item' +
           sel +
           '" data-trash-id="' +
           F.escapeHtml(pid) +
-          '">@' +
+          '"><div class="trash-post-list-text">' +
+          '<div class="trash-list-item-title"' +
+          titleAttr +
+          ">@" +
           F.escapeHtml(uname) +
-          " · " +
-          F.escapeHtml(preview) +
-          " · " +
-          F.escapeHtml(movedAt) +
+          (preview && preview !== "—" ? " · " + F.escapeHtml(preview) : "") +
+          "</div>" +
+          '<div class="trash-list-item-meta">Çöpe taşındı \u2022 ' +
+          F.escapeHtml(movedAtUi) +
+          "</div></div>" +
           '<div class="trash-item-actions">' +
           '<button type="button" class="post-feed-action-btn post-feed-action-btn--restore" data-trash-action="restore" data-trash-post-id="' +
           F.escapeHtml(pid) +
@@ -1929,7 +3402,7 @@
           "</div>" +
           "</li>";
       }
-      listSection = buildSection("Liste", '<ul class="list-selectable" id="trash-list">' + listHtml + "</ul>");
+      listPaneHtml = '<ul class="list-selectable" id="trash-list">' + listHtml + "</ul>";
     }
 
     var detailBody = selectedPost
@@ -1943,23 +3416,27 @@
             label: "Taşınma",
             value: selectedPost.deletedAt ? feedFormatCreatedAtReadable(selectedPost.deletedAt) : "—",
           },
-          { label: "Post ID", value: selectedPost.id != null ? String(selectedPost.id) : "—" },
         ])
       : "<p class=\"screen-placeholder\">Detay için listeden bir kayıt seçin.</p>";
-    var detail = buildDetailPanel("Kayıt Detayı", detailBody);
-    return (
-      ViewHeader("Silinenler", posts.length ? posts.length + " kayıt" : "Silinen gönderiler") +
-      renderPostsApiBaseLine(F) +
+    var detail = buildDetailPanel("Detay", detailBody);
+    var inboxSectionBody =
       topActionsHtml +
       trashFlashHtml(F, { postsLength: posts.length }) +
-      '<div class="cards-grid">' +
-      summary +
+      '<div class="split-view trash-inbox-split">' +
+      '<div class="trash-inbox-list-col">' +
+      listPaneHtml +
       "</div>" +
-      '<div class="split-view">' +
-      listSection +
       detail +
-      "</div>" +
-      buildSoftDeletedTasksTrashSectionHtml(F)
+      "</div>";
+    return (
+      '<div class="trash-deletion-hub">' +
+      ViewHeader(
+        "Silinenler",
+        posts.length ? String(posts.length) + " öğe çöp kutusunda." : "Çöp kutusu boş."
+      ) +
+      buildSection("Çöp kutusu", inboxSectionBody) +
+      recentPermanentHtml +
+      "</div>"
     );
   }
 
@@ -1967,14 +3444,24 @@
   function renderLogs() {
     var data = getLogsData();
     var metaLine = "";
-    if (data.logUpdatedText || data.logFileUpdated) metaLine += '<p class="text-muted-small">' + (data.logUpdatedText || ("Kayıt dosyası son güncelleme: " + formatTime(data.logFileUpdated))) + "</p>";
-    if (data.logLocation) metaLine += '<p class="text-muted-small">Dosya: ' + (data.logLocation || "") + "</p>";
-    if (data.logLineCount != null && data.logLineCount !== undefined) metaLine += '<p class="text-muted-small">Görüntülenen satır: ' + data.logLineCount + "</p>";
+    if (data.logUpdatedText || data.logFileUpdated) {
+      metaLine +=
+        '<p class="text-muted-small">' +
+        (data.logUpdatedText || "Son güncelleme: " + formatTime(data.logFileUpdated)) +
+        "</p>";
+    }
     var tabsHtml = data.filters.map(function (f) {
       var active = f.id === data.activeFilter ? " active" : "";
       return '<button type="button" class="log-tab' + active + '" data-log-filter="' + f.id + '">' + f.label + "</button>";
     }).join("");
-    return ViewHeader(data.title, data.subtitle) + (metaLine ? metaLine : "") + '<div class="log-tabs" id="log-tabs">' + tabsHtml + "</div>" + buildSection(data.sectionTitle, EventList(data.events));
+    return (
+      ViewHeader(data.title, data.subtitle) +
+      (metaLine ? metaLine : "") +
+      '<div class="log-tabs" id="log-tabs">' +
+      tabsHtml +
+      "</div>" +
+      buildSection("Kayıtlar", KayitlarTimelineView(data.kayitRecords || [], mockState.selectedKayitlarTimelineKey))
+    );
   }
 
   // ——— Ekran: Sistem Durumu (adapter + build) ———
@@ -1987,15 +3474,6 @@
       cards += MetricCard(c.title, value, c.note);
     }
     return ViewHeader(data.title, data.subtitle) + '<div class="cards-grid">' + cards + "</div>";
-  }
-
-  function escapeHtmlYanit(s) {
-    if (s == null) return "";
-    return String(s)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
   }
 
   /** Sohbet: bellek + tek kalıcı kaynak CHAT_PANEL_STORAGE_KEY (localStorage). Hash değişince sıfırlanmaz. */
@@ -2084,6 +3562,11 @@
       var refSil = normalizeTaskCommandWhitespace(t.slice(m[0].length).replace(/^\s*:+\s*/, ""));
       return { verb: "sil", ref: refSil };
     }
+    m = /^(?:görev|gorev)\s+geri\s+al\b/i.exec(t);
+    if (m) {
+      var refUndo = normalizeTaskCommandWhitespace(t.slice(m[0].length).replace(/^\s*:+\s*/, ""));
+      return { verb: "geri_al", ref: refUndo };
+    }
     return null;
   }
 
@@ -2091,6 +3574,7 @@
     if (verb === "olustur") return "create_task";
     if (verb === "tamamla") return "complete_task";
     if (verb === "sil") return "delete_task";
+    if (verb === "geri_al") return "undo_pending_delete";
     return null;
   }
 
@@ -2098,7 +3582,7 @@
     var s = getEffectiveState();
     var g = s.guidance || {};
     var modeStr = g.mode != null ? String(g.mode).toLowerCase() : "";
-    var online = modeStr === "online" || String(s.appMode || "").toLowerCase() === "online";
+    var online = modeStr === SOURCE_STATUS.ONLINE || String(s.appMode || "").toLowerCase() === SOURCE_STATUS.ONLINE;
     var lockVal = g.lock != null ? String(g.lock) : "";
     var koruma = lockVal === "LOCKED";
     if (!koruma && s.keystoreState != null) {
@@ -2195,18 +3679,113 @@
       if (!parsed.ref) {
         return { text: "Görev adı eksik. Örnek: görev sil alışveriş", depth: "simple" };
       }
-      var delResult = softDeleteTask(parsed.ref);
+      var delResult = schedulePendingDeleteTask(parsed.ref);
       if (!delResult.ok) {
         if (delResult.reason === "empty") {
           return { text: "Görev adı eksik. Örnek: görev sil alışveriş", depth: "simple" };
         }
         return { text: "Silinecek görev bulunamadı.", depth: "simple" };
       }
-      appendPanelEngineEvent(buildPanelTaskEvent("task_deleted", delResult.task.id, delResult.task.title));
+      runPendingDeleteSweep();
       finalizeTaskMutation();
-      return { text: 'Görev silindi (listeden kaldırıldı): "' + delResult.task.title + '".', depth: "simple" };
+      var secLocal = pendingDeleteGraceSecondsRounded();
+      return {
+        text:
+          TASK_PENDING_DELETE_UI_LABEL +
+          " " +
+          secLocal +
+          " sn içinde kalıcı silinecek. İptal: listede veya detayda «Geri al» — \"" +
+          delResult.task.title +
+          '".',
+        depth: "simple",
+      };
+    }
+    if (parsed.verb === "geri_al") {
+      if (!parsed.ref) {
+        return { text: "Görev adı eksik. Örnek: görev geri al alışveriş", depth: "simple" };
+      }
+      var uResult = undoPendingDeleteTask(parsed.ref);
+      if (!uResult.ok) {
+        if (uResult.reason === "empty") {
+          return { text: "Görev adı eksik. Örnek: görev geri al alışveriş", depth: "simple" };
+        }
+        return { text: "Geri alınacak silme bekleyen görev bulunamadı.", depth: "simple" };
+      }
+      clearPendingDeleteTickerIfIdle();
+      finalizeTaskMutation();
+      return { text: 'Silme iptal edildi: "' + uResult.task.title + '".', depth: "simple" };
     }
     return null;
+  }
+
+  /** Yanıt metnine göre flash türü: ok | info | error (buton → aksiyon → geri bildirim). */
+  function taskDetailFlashKindFromReply(msg) {
+    if (!msg || !String(msg).trim()) return "info";
+    var s = String(msg);
+    if (s.indexOf("Görev tamamlandı") === 0 || s.indexOf("Görev silindi") === 0) return "ok";
+    if (s.indexOf("Siliniyor") === 0 || s.indexOf("Silme iptal edildi") === 0) return "ok";
+    if (s.indexOf("Görev zaten tamamlanmış") === 0) return "info";
+    return "error";
+  }
+
+  function applyTaskDetailFlashFromReplyText(txt) {
+    if (!txt || !String(txt).trim()) {
+      taskDetailViewState.flash = null;
+      clearTaskDetailFlashTimer();
+      return;
+    }
+    var kind = taskDetailFlashKindFromReply(txt);
+    taskDetailViewState.flash = {
+      kind: kind,
+      text: String(txt),
+      panelAction: taskDetailPanelLastCmdAction || undefined,
+    };
+    if (kind === "ok") scheduleTaskDetailOkFlashAutoClear();
+    else clearTaskDetailFlashTimer();
+  }
+
+  /**
+   * Detay paneli butonları → sohbetle aynı tryHandleTaskEngineChatCommand metin komutu.
+   * @param {string} cmd örn. görev tamamla ref
+   */
+  function handleTaskDetailPanelCommand(cmd) {
+    clearTaskDetailFlashTimer();
+    taskDetailViewState.flash = null;
+    taskDetailPanelLastCmdAction = inferTaskPanelActionFromCmd(cmd);
+    var res = tryHandleTaskEngineChatCommand(cmd);
+    if (res && typeof res.then === "function") {
+      taskDetailViewState.detailActionBusy = true;
+      refreshCurrentView();
+      res
+        .then(function (r) {
+          taskDetailViewState.detailActionBusy = false;
+          var txt = r && r.text != null ? String(r.text) : "";
+          if (txt) applyTaskDetailFlashFromReplyText(txt);
+          else {
+            taskDetailViewState.flash = null;
+            clearTaskDetailFlashTimer();
+          }
+          refreshCurrentView();
+        })
+        .catch(function (err) {
+          taskDetailViewState.detailActionBusy = false;
+          clearTaskDetailFlashTimer();
+          taskDetailViewState.flash = {
+            kind: "error",
+            text: "İşlem tamamlanamadı.",
+            panelAction: taskDetailPanelLastCmdAction || undefined,
+          };
+          refreshCurrentView();
+        });
+      return;
+    }
+    taskDetailViewState.detailActionBusy = false;
+    if (res && res.text != null) applyTaskDetailFlashFromReplyText(String(res.text));
+    else {
+      taskDetailViewState.flash = null;
+      clearTaskDetailFlashTimer();
+    }
+    refreshCurrentView();
   }
 
   /**
@@ -2284,7 +3863,7 @@
     if (replyOrPromise && typeof replyOrPromise.then === "function") {
       replyOrPromise.then(pushAssistantAndRefresh).catch(function (err) {
         pushAssistantAndRefresh({
-          text: "Görev API veya ağ hatası: " + (err && err.message ? err.message : String(err)),
+          text: "Bağlantı hatası; tekrar deneyin.",
           depth: "simple",
         });
       });
@@ -2792,6 +4371,120 @@
     refreshCurrentView();
   }
 
+  function clearPendingDeleteTickerIfIdle() {
+    if (engineHasPendingDeleteTasks()) return;
+    if (pendingDeleteTickerId != null) {
+      clearInterval(pendingDeleteTickerId);
+      pendingDeleteTickerId = null;
+    }
+  }
+
+  function refreshTasksViewIfPendingCountdownNeeded() {
+    try {
+      if ((window.location.hash || "").toLowerCase() !== "#tasks") return;
+      if (engineHasPendingDeleteTasks()) refreshCurrentView();
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
+  function ensurePendingDeleteTicker() {
+    if (pendingDeleteTickerId != null) return;
+    pendingDeleteTickerId = setInterval(function () {
+      tickPendingDeleteExpiry();
+      refreshTasksViewIfPendingCountdownNeeded();
+    }, 400);
+  }
+
+  function finalizeEngineTaskPermanentDelete(taskId) {
+    var idStr = taskId != null ? String(taskId) : "";
+    if (!idStr) return;
+    var tasks = mockState.engineTasks || [];
+    var task = null;
+    var ti;
+    for (ti = 0; ti < tasks.length; ti++) {
+      var t = tasks[ti];
+      if (t && String(t.id) === idStr && t.status === TASK_STATUS.PENDING_DELETE) {
+        task = t;
+        break;
+      }
+    }
+    if (!task) return;
+
+    function doLocalPermanentRemove() {
+      var arr = mockState.engineTasks || [];
+      var idx = -1;
+      var ij;
+      for (ij = 0; ij < arr.length; ij++) {
+        if (arr[ij] && String(arr[ij].id) === idStr && arr[ij].status === TASK_STATUS.PENDING_DELETE) {
+          idx = ij;
+          break;
+        }
+      }
+      if (idx < 0) return;
+      var removed = arr.splice(idx, 1)[0];
+      var title = removed && removed.title != null ? String(removed.title).trim() : "";
+      appendPanelEngineEvent({
+        type: "task_permanently_deleted",
+        taskId: String(removed.id),
+        text: title ? "Görev kalıcı silindi: " + title : "Görev kalıcı silindi",
+        ts: new Date().toISOString(),
+      });
+      finalizeTaskMutation();
+      clearPendingDeleteTickerIfIdle();
+    }
+
+    if (isPanelTasksApiRestMode() && mockState.taskSourceState === SOURCE_STATUS.ONLINE) {
+      var Adapter = typeof LumosTasksApiAdapter !== "undefined" ? LumosTasksApiAdapter : null;
+      var base = getPanelTasksApiBaseResolved();
+      if (Adapter && base) {
+        var api = new Adapter({
+          baseUrl: base,
+          fetchImpl: function (url, opts) {
+            return fetchWithTimeout(url, opts, PANEL_TASKS_FETCH_MS);
+          },
+        });
+        api
+          .postTasksPermanentDelete({ ref: idStr })
+          .then(function (res) {
+            if (res.ok || res.status === 404) return syncTasksDocumentFromApi();
+            return Promise.reject(new Error("permanent-delete"));
+          })
+          .then(function () {
+            clearPendingDeleteTickerIfIdle();
+            refreshCurrentView();
+          })
+          .catch(function () {
+            /* API hatası: bir sonraki tick tekrar dener */
+          });
+        return;
+      }
+    }
+    doLocalPermanentRemove();
+  }
+
+  function tickPendingDeleteExpiry() {
+    var now = Date.now();
+    var tasks = mockState.engineTasks || [];
+    var ids = [];
+    var i;
+    for (i = 0; i < tasks.length; i++) {
+      var t = tasks[i];
+      if (!t || t.status !== TASK_STATUS.PENDING_DELETE) continue;
+      var exp = t.expireAt != null ? Date.parse(String(t.expireAt)) : NaN;
+      if (!isNaN(exp) && exp <= now) ids.push(String(t.id));
+    }
+    for (i = 0; i < ids.length; i++) {
+      finalizeEngineTaskPermanentDelete(ids[i]);
+    }
+    clearPendingDeleteTickerIfIdle();
+  }
+
+  function runPendingDeleteSweep() {
+    tickPendingDeleteExpiry();
+    ensurePendingDeleteTicker();
+  }
+
   // ——— Etkileşimler (delegation) ———
   function onMainClick(e) {
     var rawTarget = e.target;
@@ -2824,13 +4517,57 @@
         return;
       }
     }
-    if (t.dataset && t.dataset.taskId) {
-      mockState.selectedTaskId = t.dataset.taskId;
+    var listUndoBtn = t.closest && t.closest("[data-task-list-undo]");
+    if (
+      listUndoBtn &&
+      listUndoBtn.dataset &&
+      listUndoBtn.dataset.taskRef != null &&
+      String(listUndoBtn.dataset.taskRef) !== ""
+    ) {
+      if (taskDetailViewState.detailActionBusy) return;
+      e.preventDefault();
+      e.stopPropagation();
+      taskDetailPanelLastCmdAction = "undo";
+      handleTaskDetailPanelCommand("görev geri al " + String(listUndoBtn.dataset.taskRef));
+      return;
+    }
+    var detailActBtn = t.closest && t.closest("[data-task-detail-action]");
+    if (
+      detailActBtn &&
+      detailActBtn.dataset &&
+      detailActBtn.dataset.taskDetailAction &&
+      detailActBtn.dataset.taskRef != null &&
+      String(detailActBtn.dataset.taskRef) !== ""
+    ) {
+      if (taskDetailViewState.detailActionBusy) return;
+      e.preventDefault();
+      var dref = String(detailActBtn.dataset.taskRef);
+      var dact = String(detailActBtn.dataset.taskDetailAction);
+      var dcmd =
+        dact === "complete"
+          ? "görev tamamla " + dref
+          : dact === "delete"
+            ? "görev sil " + dref
+            : dact === "undo-pending"
+              ? "görev geri al " + dref
+              : "";
+      if (dcmd) handleTaskDetailPanelCommand(dcmd);
+      return;
+    }
+    var taskRow =
+      (t.closest && t.closest("[data-task-id]")) || closestByDataAttr(t, "taskId");
+    if (taskRow && taskRow.dataset && taskRow.dataset.taskId) {
+      clearTaskDetailFlashTimer();
+      taskDetailViewState.flash = null;
+      mockState.selectedTaskId = taskRow.dataset.taskId;
       renderMain();
       return;
     }
     if (t.dataset && t.dataset.taskFilter) {
+      clearTaskDetailFlashTimer();
+      taskDetailViewState.flash = null;
       mockState.taskFilter = t.dataset.taskFilter;
+      syncTaskSelectionAfterMutation();
       renderMain();
       return;
     }
@@ -2864,6 +4601,24 @@
 
       trashActionPromise
         .then(function () {
+          if (trashAction === "permanent-delete") {
+            var previewLine = "";
+            var tposts = trashViewState.trashPosts || [];
+            var pi;
+            for (pi = 0; pi < tposts.length; pi++) {
+              if (String(tposts[pi].id) === String(trashPostId)) {
+                previewLine = trashPreviewText(tposts[pi].content || "");
+                break;
+              }
+            }
+            appendPanelEngineEvent({
+              type: "post_permanently_deleted",
+              taskId: String(trashPostId),
+              text: previewLine ? "Gönderi kalıcı silindi: " + previewLine : "Gönderi kalıcı silindi",
+              ts: new Date().toISOString(),
+            });
+            persistTasksJsonDocument();
+          }
           if (trashAction === "restore") {
             console.log("ACTION_RESTORE", { postId: trashPostId });
           }
@@ -2901,8 +4656,15 @@
         });
       return;
     }
+    var kayTl = t.closest && t.closest("[data-kayitlar-timeline-key]");
+    if (kayTl && kayTl.dataset && kayTl.dataset.kayitlarTimelineKey != null && kayTl.dataset.kayitlarTimelineKey !== "") {
+      mockState.selectedKayitlarTimelineKey = String(kayTl.dataset.kayitlarTimelineKey);
+      renderMain();
+      return;
+    }
     if (t.dataset && t.dataset.logFilter) {
       mockState.logFilter = t.dataset.logFilter;
+      mockState.selectedKayitlarTimelineKey = null;
       renderMain();
       return;
     }
@@ -3006,6 +4768,12 @@
       trashViewState.flash = null;
     }
     _lastRouteScreenId = cur.id;
+
+    if (cur.id !== "tasks") {
+      clearTaskDetailFlashTimer();
+      taskDetailViewState.flash = null;
+      taskDetailViewState.detailActionBusy = false;
+    }
 
     if (cur.id === "trash") {
       trashViewState.status = "idle";
