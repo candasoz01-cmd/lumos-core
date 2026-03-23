@@ -3680,6 +3680,7 @@ function canTransition(from, to) {
       }
       appendPanelEngineEvent({
         type: "task_completed",
+        taskId: result.task.id,
         text: String(result.task.title || "").trim(),
         ts: result.completedAt,
       });
