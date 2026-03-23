@@ -1,3 +1,14 @@
+
+function canTransition(from, to) {
+  const allowed = {
+    active: ["done", "pending_delete"],
+    done: [],
+    pending_delete: ["deleted"],
+    deleted: []
+  };
+  return (allowed[from] || []).includes(to);
+}
+
 /**
  * Lumos Panel v1 — operatör paneli.
  *
