@@ -827,6 +827,7 @@ function canTransition(from, to) {
       type === "task_created" ||
       type === "task_completed" ||
       type === "task_deleted" ||
+      type === "task_restored" ||
       type === "task_permanently_deleted" ||
       type === "policy_blocked" ||
       type === "post_permanently_deleted"
@@ -1118,6 +1119,11 @@ function canTransition(from, to) {
     delete task.restoreStatus;
     delete task.expireAt;
     if (rs === TASK_STATUS.ACTIVE) task.completedAt = null;
+    appendPanelEngineEvent({
+      type: "task_restored",
+      taskId: task.id,
+      text: "Silme geri alındı",
+    });
     return { ok: true, task: task };
   }
 
@@ -1596,7 +1602,8 @@ function canTransition(from, to) {
     if (
       typ !== "task_completed" &&
       typ !== "task_deleted" &&
-      typ !== "task_permanently_deleted"
+      typ !== "task_permanently_deleted" &&
+      typ !== "task_restored"
     ) {
       return "";
     }
@@ -1631,6 +1638,7 @@ function canTransition(from, to) {
       typ === "task_created" ||
       typ === "task_completed" ||
       typ === "task_deleted" ||
+      typ === "task_restored" ||
       typ === "task_permanently_deleted"
     ) {
       if (tid) return "task:" + tid;
@@ -1705,6 +1713,9 @@ function canTransition(from, to) {
     if (typ === "task_completed" || lk === "task_completed") {
       return { label: "Tamamlandı", variant: "completed" };
     }
+    if (typ === "task_restored" || lk === "task_restored") {
+      return { label: "Geri alındı", variant: "created" };
+    }
     if (typ === "task_created" || lk === "task_created") {
       return { label: "Aktif", variant: "created" };
     }
@@ -1729,6 +1740,7 @@ function canTransition(from, to) {
     var typ = ev.type != null ? String(ev.type) : "";
     if (typ === "task_created") return "oluşturuldu";
     if (typ === "task_completed") return "tamamlandı";
+    if (typ === "task_restored") return "geri alındı";
     if (typ === "task_deleted") return "çöpe taşındı";
     if (typ === "task_permanently_deleted") return "kalıcı silindi";
     if (typ === "post_permanently_deleted") return "kalıcı silindi";
@@ -1738,6 +1750,7 @@ function canTransition(from, to) {
     var lk = lr ? lr.kind : k;
     if (lk === "task_created") return "oluşturuldu";
     if (lk === "task_completed") return "tamamlandı";
+    if (lk === "task_restored") return "geri alındı";
     if (lk === "task_deleted") return "çöpe taşındı";
     if (lk === "permanently_deleted") return "kalıcı silindi";
     if (lk === "trash") return "çöpe taşındı";
@@ -1774,7 +1787,7 @@ function canTransition(from, to) {
     if (!ev) return "";
     var typ = ev.type != null ? String(ev.type) : "";
     var raw = ev.text != null ? String(ev.text).trim() : "";
-    if (typ === "task_created" || typ === "task_completed" || typ === "task_deleted") {
+    if (typ === "task_created" || typ === "task_completed" || typ === "task_deleted" || typ === "task_restored") {
       if (!raw || logEventTitleIsMissing(raw)) return "";
       return raw;
     }
@@ -1798,7 +1811,7 @@ function canTransition(from, to) {
       if (tr && !logEventTitleIsMissing(tr)) return tr;
       return "";
     }
-    if (lk === "task_created" || lk === "task_completed" || lk === "task_deleted") {
+    if (lk === "task_created" || lk === "task_completed" || lk === "task_deleted" || lk === "task_restored") {
       if (!raw || logEventTitleIsMissing(raw)) return "";
       return raw;
     }
