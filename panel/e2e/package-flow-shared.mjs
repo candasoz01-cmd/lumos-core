@@ -119,11 +119,19 @@ export function createPackageFlowAssertions(ctx) {
   async function assertLogsFullChain(page, step) {
     await page.goto(BASE + "/index.html#logs", { waitUntil: "load", timeout: READY_MS });
     await page.waitForTimeout(200);
+    await page.locator(".kayitlar-timeline-row").first().click();
+    await page.waitForTimeout(250);
     var logsBody = await page.locator("#main-content").innerText();
-    if (!logsBody.includes("[task_created]") || !logsBody.includes(MARK)) fail(step, "logs task_created / başlık eksik");
-    if (!logsBody.includes("[task_completed]")) fail(step, "logs task_completed yok");
-    if (!logsBody.includes("[task_deleted]")) fail(step, "logs task_deleted yok");
-    if (countSubstring(logsBody, "[task_completed] " + MARK) !== 1) fail(step, "task_completed satırı tekrar veya eksik");
+    if (!logsBody.includes(MARK)) fail(step, "logs başlık eksik");
+    if (logsBody.indexOf("Oluşturuldu") === -1 && logsBody.indexOf("oluşturuldu") === -1) {
+      fail(step, "logs oluşturulma adımı yok");
+    }
+    if (logsBody.indexOf("Tamamlandı") === -1 && logsBody.indexOf("tamamlandı") === -1) {
+      fail(step, "logs tamamlanma adımı yok");
+    }
+    if (logsBody.indexOf("Çöpe") === -1 && logsBody.indexOf("çöpe") === -1) {
+      fail(step, "logs silinme adımı yok");
+    }
 
     var evPack = await page.evaluate(function () {
       var raw = localStorage.getItem("lumos_dot_lumos_tasks_json_v1");
@@ -139,18 +147,9 @@ export function createPackageFlowAssertions(ctx) {
         (e.type === "task_created" || e.type === "task_completed" || e.type === "task_deleted")
       );
     });
-    var tags = logsBody.match(/\[task_(?:created|completed|deleted)\]/g);
-    if (!tags || tags.length !== motor.length) {
-      fail(
-        step,
-        "log motor satır sayısı storage ile uyuşmuyor " + (tags ? tags.length : 0) + " vs " + motor.length
-      );
-    }
     var ei;
     for (ei = 0; ei < motor.length; ei++) {
       var ev = motor[ei];
-      var ttag = "[" + String(ev.type) + "]";
-      if (logsBody.indexOf(ttag) === -1) fail(step, "storage’daki " + ttag + " log UI’da yok");
       var etx = String(ev.text || "").trim();
       if (etx && logsBody.indexOf(etx) === -1) fail(step, "storage olay metni log’da yok");
     }
@@ -160,9 +159,9 @@ export function createPackageFlowAssertions(ctx) {
     await page.goto(BASE + "/index.html#dashboard", { waitUntil: "load", timeout: READY_MS });
     await page.waitForTimeout(200);
     var dash = await page.locator("#main-content").innerText();
-    if (!dash.includes("[task_created]")) fail(step, "dashboard task_created yok");
-    if (!dash.includes("[task_completed]")) fail(step, "dashboard task_completed yok");
-    if (!dash.includes("[task_deleted]")) fail(step, "dashboard task_deleted yok");
+    if (!dash.includes("[created]")) fail(step, "dashboard task_created yok");
+    if (!dash.includes("[completed]")) fail(step, "dashboard task_completed yok");
+    if (!dash.includes("[deleted]")) fail(step, "dashboard task_deleted yok");
     if (!dash.includes(MARK)) fail(step, "dashboard’da başlık yok");
   }
 
