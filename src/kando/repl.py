@@ -1,4 +1,3 @@
-from kando.cli_patch import enrich_prompt
 from kando.llm import llm
 
 EXIT_WORDS = {"exit", "quit", "q", "çık", "cik"}
@@ -18,8 +17,7 @@ def main() -> None:
             print("OK")
             break
 
-        final_prompt = enrich_prompt(user_input)
-        response = llm(final_prompt)
+        response = llm(user_input)
         print(response)
 
 if __name__ == "__main__":

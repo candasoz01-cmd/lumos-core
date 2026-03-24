@@ -1,49 +1,33 @@
 
-import os
-
-def _response_text(response):
+def _response_text(resp):
     try:
-        txt = getattr(response, "output_text", None)
-        if txt:
-            return txt.strip()
+        txt = getattr(resp, "output_text", None)
+        if txt is not None:
+            return txt
     except Exception:
         pass
     try:
-        return str(response)
+        return str(resp)
     except Exception:
-        return "Model hatası"
-
-def _valid(resp: str) -> bool:
-    if not resp:
-        return False
-    keys = ["PATCH_TARGET:", "CHANGE:", "COMMAND:", "VERIFY:"]
-    return all(k in resp for k in keys)
+        return ""
 
 def llm(prompt: str) -> str:
-    key = os.getenv("OPENAI_API_KEY")
-    if not key:
-        return "OPENAI_API_KEY yok"
+    p = prompt.strip()
+    lower = p.lower()
 
-    try:
-        from openai import OpenAI
-        client = OpenAI(api_key=key)
+    if lower.startswith("repo:"):
+        from kando.tools_repo import repo_search
 
-        for _ in range(3):
-            response = client.responses.create(
-                model="gpt-4.1-mini",
-                input=prompt,
-            )
-            resp = _response_text(response)
-            s = (resp or "").strip()
-            if not s or len(s) < 5:
-                return "Geçerli yanıt alınamadı"
+        query = p.split("repo:", 1)[1].strip()
+        return repo_search(query)
 
-            if _valid(resp):
-                return resp
+    from engine.online_engine import OnlineEngineV1
 
-            prompt = prompt + "\n\nSADECE FORMATTA YANIT VER. EKSİKSİZ."
+    engine = OnlineEngineV1()
+    result = engine.process(p)
 
-        return resp
+    resp = (result.get("response") or "").strip()
+    if not resp:
+        return "Geçerli yanıt yok"
 
-    except Exception as e:
-        return f"Model hatası: {e}"
+    return resp
