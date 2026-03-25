@@ -16,6 +16,25 @@ def _context_file() -> Path:
     return base / "context.json"
 
 
+def context_reuse_gate() -> dict[str, str | bool]:
+    p = _context_file()
+    try:
+        capability = os.access(str(p.parent), os.W_OK)
+    except Exception:
+        capability = False
+    if not capability:
+        return {"capability": False, "health": "fail", "mode": "disabled"}
+    if not p.is_file():
+        return {"capability": True, "health": "ok", "mode": "persistent"}
+    try:
+        raw = json.loads(p.read_text(encoding="utf-8"))
+        if isinstance(raw, dict):
+            return {"capability": True, "health": "ok", "mode": "persistent"}
+    except Exception:
+        pass
+    return {"capability": True, "health": "fail", "mode": "session_only"}
+
+
 def load_context() -> dict[str, Any]:
     p = _context_file()
     if not p.is_file():

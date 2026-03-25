@@ -38,14 +38,17 @@ def build_product_features(state: dict[str, Any]) -> list[dict[str, Any]]:
     has_live = bool(ls.get("backend_live_at")) and bool(pm.get("live_state_fresh"))
 
     # --- panel_api ---
-    panel_api_cap = True
+    panel_api_cap = bool(ls.get("panel_api_capability_ok")) if "panel_api_capability_ok" in ls else True
     panel_api_sig = get_feature_signal("panel_api")
     panel_api_last_ok = str(ctx.get("panel_api_last_ok_at") or "").strip()
     panel_api_last_err = str(ctx.get("panel_api_last_error_at") or "").strip()
     panel_api_err = str(ctx.get("panel_api_last_error") or "").strip()
     panel_api_connected = bool(panel_api_last_ok) and (not panel_api_last_err)
     panel_api_active = bool(panel_api_last_ok) and bool(panel_api_last_err)
-    panel_api_health = "ok" if panel_api_connected else ("fail" if panel_api_active else "unknown")
+    panel_api_runtime_health = (
+        bool(ls.get("panel_api_health_ok")) if "panel_api_health_ok" in ls else (panel_api_connected or panel_api_active)
+    )
+    panel_api_health = "ok" if panel_api_runtime_health else ("fail" if panel_api_active else "unknown")
     panel_api_state = "planned" if not panel_api_cap else ("connected" if panel_api_connected else ("active" if panel_api_active else "planned"))
 
     # --- intent_engine ---

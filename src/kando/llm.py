@@ -1,12 +1,14 @@
 from core.context_store import (
-    load_context,
-    mark_reuse_active,
-    set_repo_search_state,
-    set_repo_navigation_state,
-    set_pending_repo_waiting,
-    update_last_repo_query,
+    context_reuse_gate,
+    load_context as _store_load_context,
+    mark_reuse_active as _store_mark_reuse_active,
+    set_repo_search_state as _store_set_repo_search_state,
+    set_repo_navigation_state as _store_set_repo_navigation_state,
+    set_pending_repo_waiting as _store_set_pending_repo_waiting,
+    update_last_repo_query as _store_update_last_repo_query,
 )
-from core.runtime_state import add_runtime_event, mark_feature_signal, sync_kando_from_globals
+from core.runtime_state import add_runtime_event, get_feature_signal, mark_feature_signal, sync_kando_from_globals
+from importlib.util import find_spec
 
 
 def _response_text(resp):
@@ -46,10 +48,54 @@ from kando.tools import repo_search  # noqa: E402
 from kando.intent_engine import engine  # noqa: E402
 
 LAST_OUTPUT = ""
-CONTEXT = load_context()
+_CONTEXT_GATE = context_reuse_gate()
+CONTEXT = _store_load_context() if _CONTEXT_GATE.get("mode") == "persistent" else {}
 PENDING = {}
 LAST_REPO_RESULTS = []
 LAST_REPO_INDEX = 0
+
+
+def _context_store_enabled() -> bool:
+    return bool(_CONTEXT_GATE.get("capability")) and str(_CONTEXT_GATE.get("health")) == "ok"
+
+
+def update_last_repo_query(query: str) -> dict:
+    if _context_store_enabled():
+        return _store_update_last_repo_query(query)
+    # context_reuse gate kapalı/degrade: yazma yok
+    return CONTEXT
+
+
+def set_pending_repo_waiting(waiting: bool) -> dict:
+    if _context_store_enabled():
+        return _store_set_pending_repo_waiting(waiting)
+    # context_reuse gate kapalı/degrade: yazma yok
+    return CONTEXT
+
+
+def mark_reuse_active() -> dict:
+    if _context_store_enabled():
+        return _store_mark_reuse_active()
+    # context_reuse gate kapalı/degrade: yazma yok
+    return CONTEXT
+
+
+def set_repo_search_state(*, query: str, has_results: bool) -> dict:
+    if _context_store_enabled():
+        return _store_set_repo_search_state(query=query, has_results=has_results)
+    # context_reuse gate kapalı/degrade: yazma yok
+    return CONTEXT
+
+
+def set_repo_navigation_state(*, results_count: int, cursor_index: int, action: str | None = None) -> dict:
+    if _context_store_enabled():
+        return _store_set_repo_navigation_state(
+            results_count=results_count,
+            cursor_index=cursor_index,
+            action=action,
+        )
+    # context_reuse gate kapalı/degrade: yazma yok
+    return CONTEXT
 
 
 def _help_text() -> str:
@@ -129,6 +175,68 @@ def _log_event(event_type: str, detail: str) -> None:
     add_runtime_event(event_type, detail)
 
 
+def _repo_search_capability_ok() -> bool:
+    try:
+        return find_spec("kando.tools") is not None
+    except Exception:
+        return False
+
+
+def _repo_search_health_ok() -> bool:
+    # Backend signal modeli: repo_search sinyali varsa sağlıklı kabul edilir.
+    sig = get_feature_signal("repo_search")
+    return bool((sig or "").strip())
+
+
+def _run_repo_search_with_gate(query: str) -> tuple[str, bool]:
+    q = (query or "").strip()
+    if not _repo_search_capability_ok():
+        return "Repo arama şu anda devre dışı.", False
+
+    if not _repo_search_health_ok():
+        # Degrade: yalnızca son bilinen session/context verisini kullan.
+        if LAST_OUTPUT and LAST_REPO_RESULTS:
+            return LAST_OUTPUT, False
+        last_q = (CONTEXT.get("last_repo_query") or "").strip()
+        if last_q:
+            return f"Repo arama degrade modda. Son sorgu: {last_q}", False
+        return "Repo arama geçici olarak hazır değil.", False
+
+    return repo_search(q), True
+
+
+def _repo_navigation_capability_ok() -> bool:
+    try:
+        return find_spec("kando.tools") is not None
+    except Exception:
+        return False
+
+
+def _repo_navigation_health_ok() -> bool:
+    if bool((get_feature_signal("repo_navigation") or "").strip()):
+        return True
+    return bool(LAST_REPO_RESULTS)
+
+
+def _repo_navigation_degrade_output() -> str:
+    if LAST_OUTPUT and LAST_REPO_RESULTS:
+        return LAST_OUTPUT
+    if LAST_REPO_RESULTS:
+        return LAST_REPO_RESULTS[0]
+    return "Repo gezinme geçici olarak hazır değil."
+
+
+def _pending_completion_capability_ok() -> bool:
+    try:
+        return find_spec("core.context_store") is not None
+    except Exception:
+        return False
+
+
+def _pending_completion_health_ok() -> bool:
+    return _context_store_enabled()
+
+
 def _llm_impl(prompt: str) -> str:
     global LAST_OUTPUT
     global CONTEXT
@@ -150,6 +258,12 @@ def _llm_impl(prompt: str) -> str:
     lower = normalize(last)
 
     if lower.startswith("sec ") or lower.startswith("seç "):
+        if not _repo_navigation_capability_ok():
+            LAST_OUTPUT = "Repo gezinme kullanılamıyor."
+            return LAST_OUTPUT
+        if not _repo_navigation_health_ok():
+            LAST_OUTPUT = _repo_navigation_degrade_output()
+            return LAST_OUTPUT
         try:
             idx = int(lower.split()[1]) - 1
             if 0 <= idx < len(LAST_REPO_RESULTS):
@@ -187,6 +301,12 @@ def _llm_impl(prompt: str) -> str:
 
     if PENDING.get("followup") == "next":
         PENDING.pop("followup", None)
+        if not _repo_navigation_capability_ok():
+            LAST_OUTPUT = "Repo gezinme kullanılamıyor."
+            return LAST_OUTPUT
+        if not _repo_navigation_health_ok():
+            LAST_OUTPUT = _repo_navigation_degrade_output()
+            return LAST_OUTPUT
         if LAST_REPO_RESULTS:
             if LAST_REPO_INDEX + 1 < len(LAST_REPO_RESULTS):
                 LAST_REPO_INDEX += 1
@@ -208,6 +328,12 @@ def _llm_impl(prompt: str) -> str:
 
     if PENDING.get("followup") == "prev":
         PENDING.pop("followup", None)
+        if not _repo_navigation_capability_ok():
+            LAST_OUTPUT = "Repo gezinme kullanılamıyor."
+            return LAST_OUTPUT
+        if not _repo_navigation_health_ok():
+            LAST_OUTPUT = _repo_navigation_degrade_output()
+            return LAST_OUTPUT
         if LAST_REPO_RESULTS:
             if LAST_REPO_INDEX - 1 >= 0:
                 LAST_REPO_INDEX -= 1
@@ -229,23 +355,33 @@ def _llm_impl(prompt: str) -> str:
 
     # pending flow (yarım komut tamamlama)
     if PENDING.get("intent") == "repo":
-        q = lower.strip()
-        PENDING.clear()
-        CONTEXT = set_pending_repo_waiting(False)
-        CONTEXT = update_last_repo_query(q)
-        LAST_OUTPUT = repo_search(q)
-        LAST_REPO_RESULTS = [x for x in LAST_OUTPUT.split("\n\n") if x.strip()]
-        LAST_REPO_INDEX = 0
-        CONTEXT = set_repo_search_state(query=q, has_results=bool(LAST_REPO_RESULTS))
-        CONTEXT = set_repo_navigation_state(
-            results_count=len(LAST_REPO_RESULTS),
-            cursor_index=LAST_REPO_INDEX,
-            action="search",
-        )
-        mark_feature_signal("repo_search")
-        _log_event("pending_repo_complete", f"Pending repo sorgusu tamamlandı: {q or '—'}")
-        mark_feature_signal("pending_completion")
-        return LAST_OUTPUT
+        if not _pending_completion_capability_ok():
+            PENDING.clear()
+        elif not _pending_completion_health_ok():
+            PENDING.clear()
+            CONTEXT = set_pending_repo_waiting(False)
+            LAST_OUTPUT = "Bekleyen işlem sıfırlandı. Komutu tekrar yaz."
+            return LAST_OUTPUT
+        else:
+            q = lower.strip()
+            PENDING.clear()
+            CONTEXT = set_pending_repo_waiting(False)
+            CONTEXT = update_last_repo_query(q)
+            repo_out, repo_ok = _run_repo_search_with_gate(q)
+            LAST_OUTPUT = repo_out
+            if repo_ok:
+                LAST_REPO_RESULTS = [x for x in LAST_OUTPUT.split("\n\n") if x.strip()]
+                LAST_REPO_INDEX = 0
+                CONTEXT = set_repo_search_state(query=q, has_results=bool(LAST_REPO_RESULTS))
+                CONTEXT = set_repo_navigation_state(
+                    results_count=len(LAST_REPO_RESULTS),
+                    cursor_index=LAST_REPO_INDEX,
+                    action="search",
+                )
+                mark_feature_signal("repo_search")
+            _log_event("pending_repo_complete", f"Pending repo sorgusu tamamlandı: {q or '—'}")
+            mark_feature_signal("pending_completion")
+            return LAST_OUTPUT
 
     intent = engine.match(lower)
 
@@ -253,6 +389,14 @@ def _llm_impl(prompt: str) -> str:
     if "repo:" in lower:
         q = lower.split("repo:", 1)[1].strip()
         if not q:
+            if not _pending_completion_capability_ok():
+                LAST_OUTPUT = "repo: <arama> yaz."
+                return LAST_OUTPUT
+            if not _pending_completion_health_ok():
+                PENDING.clear()
+                CONTEXT = set_pending_repo_waiting(False)
+                LAST_OUTPUT = "Pending geçici olarak kapalı. repo: <arama> yaz."
+                return LAST_OUTPUT
             PENDING["intent"] = "repo"
             CONTEXT = set_pending_repo_waiting(True)
             LAST_OUTPUT = "Ne arıyorsun?"
@@ -285,34 +429,36 @@ def _llm_impl(prompt: str) -> str:
                 if lower.startswith("repo:"):
                     q = lower.split("repo:", 1)[1].strip()
                     if q:
-                        repo_out = fn(q)
+                        repo_out, repo_ok = _run_repo_search_with_gate(q)
                         outputs.append(repo_out)
-                        LAST_REPO_RESULTS = [x for x in repo_out.split("\n\n") if x.strip()]
-                        LAST_REPO_INDEX = 0
-                        CONTEXT = set_repo_search_state(query=q, has_results=bool(LAST_REPO_RESULTS))
-                        CONTEXT = set_repo_navigation_state(
-                            results_count=len(LAST_REPO_RESULTS),
-                            cursor_index=LAST_REPO_INDEX,
-                            action="search",
-                        )
-                        mark_feature_signal("repo_search")
-                        _log_event("repo_search", f"Repo araması yapıldı: {q}")
+                        if repo_ok:
+                            LAST_REPO_RESULTS = [x for x in repo_out.split("\n\n") if x.strip()]
+                            LAST_REPO_INDEX = 0
+                            CONTEXT = set_repo_search_state(query=q, has_results=bool(LAST_REPO_RESULTS))
+                            CONTEXT = set_repo_navigation_state(
+                                results_count=len(LAST_REPO_RESULTS),
+                                cursor_index=LAST_REPO_INDEX,
+                                action="search",
+                            )
+                            mark_feature_signal("repo_search")
+                            _log_event("repo_search", f"Repo araması yapıldı: {q}")
                 else:
                     q = CONTEXT.get("last_repo_query")
                     if q:
-                        repo_out = fn(q)
+                        repo_out, repo_ok = _run_repo_search_with_gate(q)
                         outputs.append(repo_out)
-                        LAST_REPO_RESULTS = [x for x in repo_out.split("\n\n") if x.strip()]
-                        LAST_REPO_INDEX = 0
-                        CONTEXT = set_repo_search_state(query=q, has_results=bool(LAST_REPO_RESULTS))
-                        CONTEXT = set_repo_navigation_state(
-                            results_count=len(LAST_REPO_RESULTS),
-                            cursor_index=LAST_REPO_INDEX,
-                            action="search",
-                        )
-                        mark_feature_signal("repo_search")
-                        CONTEXT = mark_reuse_active()
-                        _log_event("repo_search", f"Repo araması context ile tekrarlandı: {q}")
+                        if repo_ok:
+                            LAST_REPO_RESULTS = [x for x in repo_out.split("\n\n") if x.strip()]
+                            LAST_REPO_INDEX = 0
+                            CONTEXT = set_repo_search_state(query=q, has_results=bool(LAST_REPO_RESULTS))
+                            CONTEXT = set_repo_navigation_state(
+                                results_count=len(LAST_REPO_RESULTS),
+                                cursor_index=LAST_REPO_INDEX,
+                                action="search",
+                            )
+                            mark_feature_signal("repo_search")
+                            CONTEXT = mark_reuse_active()
+                            _log_event("repo_search", f"Repo araması context ile tekrarlandı: {q}")
                 continue
 
             outputs.append(fn())
@@ -327,33 +473,35 @@ def _llm_impl(prompt: str) -> str:
         if intent == "repo":
             if lower.startswith("repo:"):
                 q = lower.split("repo:", 1)[1].strip()
-                LAST_OUTPUT = fn(q)
-                LAST_REPO_RESULTS = [x for x in LAST_OUTPUT.split("\n\n") if x.strip()]
-                LAST_REPO_INDEX = 0
-                CONTEXT = set_repo_search_state(query=q, has_results=bool(LAST_REPO_RESULTS))
-                CONTEXT = set_repo_navigation_state(
-                    results_count=len(LAST_REPO_RESULTS),
-                    cursor_index=LAST_REPO_INDEX,
-                    action="search",
-                )
-                mark_feature_signal("repo_search")
-                _log_event("repo_search", f"Repo araması yapıldı: {q or '—'}")
+                LAST_OUTPUT, repo_ok = _run_repo_search_with_gate(q)
+                if repo_ok:
+                    LAST_REPO_RESULTS = [x for x in LAST_OUTPUT.split("\n\n") if x.strip()]
+                    LAST_REPO_INDEX = 0
+                    CONTEXT = set_repo_search_state(query=q, has_results=bool(LAST_REPO_RESULTS))
+                    CONTEXT = set_repo_navigation_state(
+                        results_count=len(LAST_REPO_RESULTS),
+                        cursor_index=LAST_REPO_INDEX,
+                        action="search",
+                    )
+                    mark_feature_signal("repo_search")
+                    _log_event("repo_search", f"Repo araması yapıldı: {q or '—'}")
                 mark_feature_signal("intent_engine")
                 return LAST_OUTPUT
             q = CONTEXT.get("last_repo_query")
             if q:
-                LAST_OUTPUT = fn(q)
-                LAST_REPO_RESULTS = [x for x in LAST_OUTPUT.split("\n\n") if x.strip()]
-                LAST_REPO_INDEX = 0
-                CONTEXT = set_repo_search_state(query=q, has_results=bool(LAST_REPO_RESULTS))
-                CONTEXT = set_repo_navigation_state(
-                    results_count=len(LAST_REPO_RESULTS),
-                    cursor_index=LAST_REPO_INDEX,
-                    action="search",
-                )
-                mark_feature_signal("repo_search")
-                CONTEXT = mark_reuse_active()
-                _log_event("repo_search", f"Repo araması context ile tekrarlandı: {q}")
+                LAST_OUTPUT, repo_ok = _run_repo_search_with_gate(q)
+                if repo_ok:
+                    LAST_REPO_RESULTS = [x for x in LAST_OUTPUT.split("\n\n") if x.strip()]
+                    LAST_REPO_INDEX = 0
+                    CONTEXT = set_repo_search_state(query=q, has_results=bool(LAST_REPO_RESULTS))
+                    CONTEXT = set_repo_navigation_state(
+                        results_count=len(LAST_REPO_RESULTS),
+                        cursor_index=LAST_REPO_INDEX,
+                        action="search",
+                    )
+                    mark_feature_signal("repo_search")
+                    CONTEXT = mark_reuse_active()
+                    _log_event("repo_search", f"Repo araması context ile tekrarlandı: {q}")
                 mark_feature_signal("intent_engine")
                 return LAST_OUTPUT
             LAST_OUTPUT = "repo: <arama> yaz."
@@ -363,18 +511,19 @@ def _llm_impl(prompt: str) -> str:
         if intent in ("continue", "devam"):
             q = (CONTEXT.get("last_repo_query") or "").strip()
             if q:
-                LAST_OUTPUT = repo_search(q)
-                LAST_REPO_RESULTS = [x for x in LAST_OUTPUT.split("\n\n") if x.strip()]
-                LAST_REPO_INDEX = 0
-                CONTEXT = set_repo_search_state(query=q, has_results=bool(LAST_REPO_RESULTS))
-                CONTEXT = set_repo_navigation_state(
-                    results_count=len(LAST_REPO_RESULTS),
-                    cursor_index=LAST_REPO_INDEX,
-                    action="search",
-                )
-                mark_feature_signal("repo_search")
-                CONTEXT = mark_reuse_active()
-                _log_event("repo_search", f"Repo araması devam ile tekrarlandı: {q}")
+                LAST_OUTPUT, repo_ok = _run_repo_search_with_gate(q)
+                if repo_ok:
+                    LAST_REPO_RESULTS = [x for x in LAST_OUTPUT.split("\n\n") if x.strip()]
+                    LAST_REPO_INDEX = 0
+                    CONTEXT = set_repo_search_state(query=q, has_results=bool(LAST_REPO_RESULTS))
+                    CONTEXT = set_repo_navigation_state(
+                        results_count=len(LAST_REPO_RESULTS),
+                        cursor_index=LAST_REPO_INDEX,
+                        action="search",
+                    )
+                    mark_feature_signal("repo_search")
+                    CONTEXT = mark_reuse_active()
+                    _log_event("repo_search", f"Repo araması devam ile tekrarlandı: {q}")
                 mark_feature_signal("intent_engine")
                 return LAST_OUTPUT
         mark_feature_signal("intent_engine")

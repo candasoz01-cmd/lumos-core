@@ -140,6 +140,8 @@ def _send_json(handler: BaseHTTPRequestHandler, code: int, obj: dict) -> None:
 
 
 class Handler(BaseHTTPRequestHandler):
+    _last_good_lumos_state: dict[str, Any] | None = None
+
     def log_message(self, fmt: str, *args) -> None:
         sys.stderr.write("%s - %s\n" % (self.address_string(), fmt % args))
 
@@ -174,13 +176,32 @@ class Handler(BaseHTTPRequestHandler):
     def _get_lumos_read_state(self) -> None:
         repo_root = Path(__file__).resolve().parent.parent.parent
         src = repo_root / "src"
-        if src.is_dir() and str(src) not in sys.path:
+        panel_api_capability_ok = src.is_dir()
+        if panel_api_capability_ok and str(src) not in sys.path:
             sys.path.insert(0, str(src))
+        if not panel_api_capability_ok:
+            fallback = Handler._last_good_lumos_state or {
+                "lumos_status": {},
+                "panel_meta": {"server_time_utc": _now_iso(), "live_state_fresh": False},
+            }
+            ls = fallback.get("lumos_status")
+            if not isinstance(ls, dict):
+                ls = {}
+                fallback["lumos_status"] = ls
+            ls["panel_api_capability_ok"] = False
+            ls["panel_api_health_ok"] = False
+            _send_json(self, 200, fallback)
+            return
         try:
             from core.context_store import set_panel_api_health
             from core.panel_runtime import get_live_read_state
 
             state = get_live_read_state(repo_root=repo_root)
+            ls = state.get("lumos_status")
+            if isinstance(ls, dict):
+                ls["panel_api_capability_ok"] = True
+                ls["panel_api_health_ok"] = True
+            Handler._last_good_lumos_state = state
             set_panel_api_health(ok=True)
             _send_json(self, 200, state)
         except Exception as e:
@@ -190,7 +211,17 @@ class Handler(BaseHTTPRequestHandler):
                 set_panel_api_health(ok=False, error=str(e))
             except Exception:
                 pass
-            _send_json(self, 500, {"ok": False, "error": str(e)})
+            fallback = Handler._last_good_lumos_state or {
+                "lumos_status": {},
+                "panel_meta": {"server_time_utc": _now_iso(), "live_state_fresh": False},
+            }
+            ls = fallback.get("lumos_status")
+            if not isinstance(ls, dict):
+                ls = {}
+                fallback["lumos_status"] = ls
+            ls["panel_api_capability_ok"] = True
+            ls["panel_api_health_ok"] = False
+            _send_json(self, 200, fallback)
 
     def do_GET(self) -> None:
         p = self._parse_path()
