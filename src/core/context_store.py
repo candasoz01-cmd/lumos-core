@@ -44,6 +44,8 @@ def update_last_repo_query(query: str) -> dict[str, Any]:
     ctx = load_context()
     ctx["last_repo_query"] = (query or "").strip()
     ctx["updated_at"] = _now_iso()
+    ctx.pop("pending_repo", None)
+    ctx.pop("pending_repo_since", None)
     if "reuse_active_at" in ctx:
         ctx.pop("reuse_active_at", None)
     return save_context(ctx)
@@ -56,6 +58,18 @@ def mark_reuse_active() -> dict[str, Any]:
         ctx["updated_at"] = _now_iso()
         return save_context(ctx)
     return ctx
+
+
+def set_pending_repo_waiting(waiting: bool) -> dict[str, Any]:
+    ctx = load_context()
+    if waiting:
+        ctx["pending_repo"] = True
+        ctx["pending_repo_since"] = _now_iso()
+    else:
+        ctx.pop("pending_repo", None)
+        ctx.pop("pending_repo_since", None)
+    ctx["updated_at"] = _now_iso()
+    return save_context(ctx)
 
 
 def context_reuse_state(ctx: dict[str, Any] | None = None) -> str:

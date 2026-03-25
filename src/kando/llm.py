@@ -1,4 +1,9 @@
-from core.context_store import load_context, mark_reuse_active, update_last_repo_query
+from core.context_store import (
+    load_context,
+    mark_reuse_active,
+    set_pending_repo_waiting,
+    update_last_repo_query,
+)
 from core.runtime_state import add_runtime_event, mark_feature_signal, sync_kando_from_globals
 
 
@@ -206,11 +211,13 @@ def _llm_impl(prompt: str) -> str:
     if PENDING.get("intent") == "repo":
         q = lower.strip()
         PENDING.clear()
+        CONTEXT = set_pending_repo_waiting(False)
         CONTEXT = update_last_repo_query(q)
         LAST_OUTPUT = repo_search(q)
         LAST_REPO_RESULTS = [x for x in LAST_OUTPUT.split("\n\n") if x.strip()]
         LAST_REPO_INDEX = 0
         _log_event("pending_repo_complete", f"Pending repo sorgusu tamamlandı: {q or '—'}")
+        mark_feature_signal("pending_completion")
         return LAST_OUTPUT
 
     intent = engine.match(lower)
@@ -220,8 +227,10 @@ def _llm_impl(prompt: str) -> str:
         q = lower.split("repo:", 1)[1].strip()
         if not q:
             PENDING["intent"] = "repo"
+            CONTEXT = set_pending_repo_waiting(True)
             LAST_OUTPUT = "Ne arıyorsun?"
             _log_event("pending_repo_wait", "Repo için sorgu bekleniyor.")
+            mark_feature_signal("pending_completion")
             return LAST_OUTPUT
         CONTEXT = update_last_repo_query(q)
 

@@ -25,6 +25,7 @@ def _build_product_features_state(state: dict[str, Any], kando: dict[str, Any]) 
     dash = state.get("dashboard") if isinstance(state.get("dashboard"), dict) else {}
     ls = state.get("lumos_status") if isinstance(state.get("lumos_status"), dict) else {}
     pm = state.get("panel_meta") if isinstance(state.get("panel_meta"), dict) else {}
+    ctx = load_context()
     events = kando.get("recent_events") or []
     event_types = {str(ev.get("type") or "").strip() for ev in events if isinstance(ev, dict)}
     has_live = bool(ls.get("backend_live_at")) and bool(pm.get("live_state_fresh"))
@@ -34,13 +35,13 @@ def _build_product_features_state(state: dict[str, Any], kando: dict[str, Any]) 
     has_intent = bool(intent_signal_at)
     has_repo_search = bool(kando.get("last_repo_query")) or "repo_search" in event_types
     context_state = str(ls.get("context_reuse_state") or "boş")
-    pend = kando.get("pending") if isinstance(kando.get("pending"), dict) else {}
-    has_pending_wait = "pending_repo_wait" in event_types or bool(pend.get("intent") == "repo")
-    has_pending_complete = "pending_repo_complete" in event_types
+    pending_sig = get_feature_signal("pending_completion")
+    has_pending_wait = bool(ctx.get("pending_repo")) is True
+    has_pending_complete = bool(pending_sig)
     nav = kando.get("repo_nav") if isinstance(kando.get("repo_nav"), dict) else {}
     has_nav_event = bool(event_types & {"repo_select", "repo_next", "repo_prev"})
     has_nav_results = bool(nav.get("results_count", 0))
-    pending_state = "connected" if (has_pending_wait and has_pending_complete) else ("active" if (has_pending_wait or has_pending_complete) else "planned")
+    pending_state = "connected" if has_pending_wait else ("active" if has_pending_complete else "planned")
     nav_state = "connected" if (has_nav_results and has_nav_event) else ("active" if (has_nav_results or has_nav_event) else "planned")
     bridge_state = "connected" if (has_bridge and has_live) else ("active" if has_bridge else "planned")
     live_state = "connected" if has_live else "in_progress"
@@ -72,7 +73,7 @@ def _build_product_features_state(state: dict[str, Any], kando: dict[str, Any]) 
             "ad": "Pending Completion",
             "durum": pending_state,
             "panelde_gorunuyor": True,
-            "aciklama": "Pending repo bekleme/tamamlama sinyaliyle doğrulanır.",
+            "aciklama": ("Bekleyen repo sorgusu var." if has_pending_wait else (("Kalıcı sinyal: " + pending_sig) if pending_sig else "Sinyal yok.")),
         },
         {
             "key": "repo_navigation",
