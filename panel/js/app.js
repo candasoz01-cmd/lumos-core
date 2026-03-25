@@ -2646,6 +2646,63 @@ function canTransition(from, to) {
     return SectionCard("Durum", durumHtml) + SectionCard("Engel", engelHtml) + SectionCard("Sonraki adım", nextHtml);
   }
 
+  function buildLumosStatusCard() {
+    var B = typeof LumosBackendBridge !== "undefined" ? LumosBackendBridge : {};
+    var ls = B.readBackendLumosStatusState && B.readBackendLumosStatusState();
+    var rs = typeof window !== "undefined" && window.__LUMOS_READ_STATE__ && window.__LUMOS_READ_STATE__.panel_meta;
+    if (!ls) {
+      return "<p class=\"text-muted-small\">Çekirdek durum köprüsü yok. <code>python panel/scripts/read_backend_state.py --write</code> çalıştırıp sayfayı yenileyin.</p>";
+    }
+    function esc(s) {
+      if (s == null) return "";
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+    var apiOk = ls.panel_api_reachable;
+    var apiLine =
+      apiOk === true
+        ? "Var (GET /lumos-read-state)"
+        : apiOk === false
+          ? "Yok — " + esc(ls.panel_api_error || "bağlantı hatası")
+          : "Bilinmiyor (ilk yanıt bekleniyor)";
+    var modeTr = ls.online_mode === "online" ? "Çevrimiçi" : "Çevrimdışı";
+    var coreTr = ls.core_active === true ? "Evet" : ls.core_active === false ? "Hayır" : "—";
+    var sbTr = ls.sandbox_mode ? "Açık" : "Kapalı";
+    var html = "";
+    html += "<p><strong>API erişimi:</strong> " + apiLine + "</p>";
+    html += "<p><strong>Çekirdek aktif:</strong> " + esc(coreTr) + " · <strong>Mod:</strong> " + esc(modeTr) + " · <strong>Sandbox:</strong> " + esc(sbTr) + " · <strong>Yazım:</strong> " + esc(ls.writing_base_dir) + "</p>";
+    html += "<p class=\"text-muted-small\"><strong>Koruma (köprü):</strong> " + esc((window.__LUMOS_READ_STATE__ && window.__LUMOS_READ_STATE__.dashboard && window.__LUMOS_READ_STATE__.dashboard.guard_status) || "—") + "</p>";
+    html += "<p class=\"text-muted-small\"><strong>Köprü zamanı:</strong> " + esc(ls.panel_bridge_built_at) + (ls.backend_live_at ? " · <strong>Backend canlı:</strong> " + esc(ls.backend_live_at) : "") + "</p>";
+    if (rs && rs.server_time_utc) {
+      html += "<p class=\"text-muted-small\"><strong>Sunucu zamanı (UTC):</strong> " + esc(rs.server_time_utc) + "</p>";
+    }
+    html += "<p class=\"text-muted-small\">" + esc(ls.state_inject_note) + "</p>";
+    return html;
+  }
+
+  function buildProductFeaturesSection() {
+    var B = typeof LumosBackendBridge !== "undefined" ? LumosBackendBridge : {};
+    var items = B.readBackendProductFeaturesState && B.readBackendProductFeaturesState();
+    if (!items || !items.length) return "<p class=\"text-muted-small\">Ürün özellik durumu henüz gelmedi.</p>";
+    var html = '<div class="guidance-cards">';
+    for (var i = 0; i < items.length; i++) {
+      var f = items[i] || {};
+      var ad = String(f.ad || f.key || "özellik");
+      var durum = String(f.durum || "planned");
+      var gor = f.panelde_gorunuyor ? "Evet" : "Hayır";
+      var aciklama = String(f.aciklama || "Açıklama yok.");
+      var body =
+        "<p><strong>Durum:</strong> " + ad + " · <strong>State:</strong> " + durum + " · <strong>Panel:</strong> " + gor + "</p>" +
+        "<p class=\"text-muted-small\">" + aciklama + "</p>";
+      html += SectionCard(ad, body);
+    }
+    html += "</div>";
+    return html;
+  }
+
   // ——— Ekran: Gösterge Paneli (adapter + build) ———
   function renderDashboard() {
     var data = getDashboardData();
@@ -2661,9 +2718,13 @@ function canTransition(from, to) {
       warningsHtml = "<p class=\"text-muted-small\">Uyarı veya not yok.</p>";
     }
     var guidanceHtml = '<div class="guidance-cards">' + buildGuidanceCard() + "</div>";
+    var lumosStatusHtml = buildLumosStatusCard();
+    var productFeaturesHtml = buildProductFeaturesSection();
     var sections =
       buildSection("Son Olaylar", EventList(data.sections[0].events)) +
       buildSection("Uyarılar ve notlar", warningsHtml) +
+      buildSection("Canlı Sistem Durumu", lumosStatusHtml) +
+      buildSection("Ürün Özellikleri", productFeaturesHtml) +
       buildSection("Durum ve rehber", guidanceHtml) +
       buildSection("Hızlı geçişler", '<p><a href="#feed" class="inline-link">Akış</a> (API) · <a href="#tasks" class="inline-link">Görevler</a> · <a href="#sandbox" class="inline-link">Korumalı Alan</a> · <a href="#config" class="inline-link">Yapılandırma</a> · <a href="#logs" class="inline-link">Kayıtlar</a></p><p class="text-muted-small">Hash ile sayfa yenilenmeden geçiş.</p>');
     return ViewHeader(data.title, data.subtitle) + '<div class="cards-grid">' + cards + "</div>" + sections;
@@ -4845,6 +4906,62 @@ function canTransition(from, to) {
   /** İlk `location.hash` atamasının hashchange ile çift GET /tasks tetiklemesini engeller. */
   var suppressNextTasksApiRevalidate = false;
 
+  function resolveLumosLiveStateUrl() {
+    var w = typeof window !== "undefined" ? window : null;
+    if (w && w.LUMOS_PANEL_LIVE_STATE_URL != null && String(w.LUMOS_PANEL_LIVE_STATE_URL).trim() !== "") {
+      return String(w.LUMOS_PANEL_LIVE_STATE_URL).trim();
+    }
+    var base = getPanelTasksApiBaseResolved();
+    if (!base || String(base).trim() === "") base = "http://127.0.0.1:8766";
+    return String(base).replace(/\/$/, "") + "/lumos-read-state";
+  }
+
+  function pollLumosReadState() {
+    var url = resolveLumosLiveStateUrl();
+    fetch(url, { method: "GET", credentials: "omit", cache: "no-store" })
+      .then(function (r) {
+        return r.ok ? r.json() : Promise.reject(new Error("http_" + r.status));
+      })
+      .then(function (data) {
+        if (!data || typeof data !== "object") return;
+        if (!data.lumos_status) data.lumos_status = {};
+        if (typeof data.lumos_status === "object") {
+          data.lumos_status.panel_api_reachable = true;
+          try {
+            delete data.lumos_status.panel_api_error;
+          } catch (_) {}
+        }
+        window.__LUMOS_READ_STATE__ = data;
+        refreshCurrentView();
+        renderSidebar();
+        renderTopbar();
+      })
+      .catch(function () {
+        var prev =
+          typeof window !== "undefined" && window.__LUMOS_READ_STATE__ && typeof window.__LUMOS_READ_STATE__ === "object"
+            ? window.__LUMOS_READ_STATE__
+            : {};
+        var ls = prev.lumos_status && typeof prev.lumos_status === "object" ? prev.lumos_status : {};
+        ls.panel_api_reachable = false;
+        var reason = "GET /lumos-read-state yanıt vermedi (panel_tasks_server 8766 çalışıyor mu?)";
+        try {
+          if (typeof window !== "undefined" && window.location && window.location.protocol === "file:") {
+            reason = "Sayfa file:// ile açılmış; http sunucusu kullanın (ör. python -m http.server) ve CORS/ mixed origin engelini aşın.";
+          }
+        } catch (_) {}
+        ls.panel_api_error = reason;
+        prev.lumos_status = ls;
+        if (typeof window !== "undefined") window.__LUMOS_READ_STATE__ = prev;
+        refreshCurrentView();
+        renderSidebar();
+        renderTopbar();
+      });
+  }
+
+  setTimeout(function () {
+    pollLumosReadState();
+  }, 0);
+
   hydrateTasksJsonPersistenceAsync(function () {
     window.addEventListener("hashchange", onHashChange);
     if (!window.location.hash) {
@@ -4853,6 +4970,7 @@ function canTransition(from, to) {
     } else {
       refresh();
     }
+    setInterval(pollLumosReadState, 3000);
   });
 
 })();

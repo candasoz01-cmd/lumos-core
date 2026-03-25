@@ -153,7 +153,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_OPTIONS(self) -> None:
         p = self._parse_path()
-        if p not in ("/tasks.json", "/tasks", "/tasks/complete", "/tasks/delete"):
+        if p not in ("/tasks.json", "/tasks", "/tasks/complete", "/tasks/delete", "/lumos-read-state"):
             self.send_error(404)
             return
         self.send_response(204)
@@ -171,8 +171,24 @@ class Handler(BaseHTTPRequestHandler):
         except Exception:
             return None
 
+    def _get_lumos_read_state(self) -> None:
+        repo_root = Path(__file__).resolve().parent.parent.parent
+        src = repo_root / "src"
+        if src.is_dir() and str(src) not in sys.path:
+            sys.path.insert(0, str(src))
+        try:
+            from core.panel_runtime import get_live_read_state
+
+            state = get_live_read_state(repo_root=repo_root)
+            _send_json(self, 200, state)
+        except Exception as e:
+            _send_json(self, 500, {"ok": False, "error": str(e)})
+
     def do_GET(self) -> None:
         p = self._parse_path()
+        if p == "/lumos-read-state":
+            self._get_lumos_read_state()
+            return
         if p not in ("/tasks.json", "/tasks"):
             self.send_error(404)
             return
@@ -331,7 +347,7 @@ def main() -> None:
     host = os.environ.get("LUMOS_PANEL_TASKS_HOST", "127.0.0.1")
     httpd = HTTPServer((host, port), Handler)
     sys.stderr.write(
-        "panel_tasks_server: %s\n  GET/PUT /tasks.json | GET /tasks | POST /tasks /tasks/complete /tasks/delete\n  → %s\n"
+        "panel_tasks_server: %s\n  GET /lumos-read-state | GET/PUT /tasks.json | GET /tasks | POST /tasks /tasks/complete /tasks/delete\n  → %s\n"
         % (f"http://{host}:{port}", _tasks_file())
     )
     try:

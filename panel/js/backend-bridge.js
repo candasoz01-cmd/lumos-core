@@ -86,6 +86,19 @@
     return state.yanit;
   }
 
+  /** Tek durum kaynağı: çekirdek + ENV + kando runtime (kısmi nesne de geçerli). */
+  function readBackendLumosStatusState() {
+    var state = getReadState();
+    if (!state || !state.lumos_status || typeof state.lumos_status !== "object") return null;
+    return state.lumos_status;
+  }
+
+  function readBackendProductFeaturesState() {
+    var state = getReadState();
+    if (!state || !Array.isArray(state.product_features)) return null;
+    return state.product_features;
+  }
+
   global.LumosBackendBridge = {
     readBackendDashboardState: readBackendDashboardState,
     readBackendSandboxState: readBackendSandboxState,
@@ -98,5 +111,7 @@
     readBackendLogsState: readBackendLogsState,
     readBackendGuidanceState: readBackendGuidanceState,
     readBackendYanitState: readBackendYanitState,
+    readBackendLumosStatusState: readBackendLumosStatusState,
+    readBackendProductFeaturesState: readBackendProductFeaturesState,
   };
 })(typeof window !== "undefined" ? window : this);
