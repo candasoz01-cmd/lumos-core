@@ -3,6 +3,20 @@ import shutil
 import subprocess
 
 
+def summarize_hits(lines: list[str]) -> str:
+    files = {}
+    for line in lines:
+        path = line.split(":")[0]
+        files.setdefault(path, 0)
+        files[path] += 1
+
+    out = []
+    for path, count in files.items():
+        out.append(f"- {path} ({count} kullanım)")
+
+    return "\n".join(out)
+
+
 def repo_search(query: str) -> str:
     try:
         q = query.strip()
@@ -43,6 +57,6 @@ def repo_search(query: str) -> str:
                 continue
             lines.append(line)
 
-        return "\n".join(lines[:15])
+        return summarize_hits(lines)
     except Exception as e:
         return f"Hata: {e}"

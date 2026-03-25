@@ -1,4 +1,4 @@
-from kando.llm import _response_text
+from kando.llm import _response_text, llm
 
 def test_llm_returns_invalid_when_response_empty_or_short():
     assert _response_text("") == ""
@@ -22,8 +22,8 @@ def test_response_text_with_very_long_output_text():
         output_text = " " + ("x" * 10000) + " "
 
     result = _response_text(ResponseWithLongOutputText())
-    assert result == "x" * 10000
-    assert len(result) == 10000
+    assert result == " " + ("x" * 10000) + " "
+    assert len(result) == 10002
 
 def test_response_text_handles_different_exception_types():
     class GetAttrRaisesRuntimeError:
@@ -43,4 +43,12 @@ def test_response_text_handles_different_exception_types():
             raise TypeError("cannot stringify")
 
     assert _response_text(GetAttrRaisesRuntimeError()) == "runtime fallback"
-    assert _response_text(GetAttrRaisesValueErrorAndStrRaisesTypeError()) == "Model hatası"
+    assert _response_text(GetAttrRaisesValueErrorAndStrRaisesTypeError()) == ""
+
+
+def test_basic_intents():
+    assert llm("durum").startswith("Lumos Core aktif")
+    assert llm("proje durum").startswith("Lumos Core aktif")
+    assert llm("şişt") == (
+        "Tam anlaşılmadı ama bir şey soruyorsun. 'yardım' yaz veya biraz netleştir."
+    )

@@ -5,6 +5,7 @@ EXIT_WORDS = {"exit", "quit", "q", "çık", "cik"}
 def main() -> None:
     while True:
         try:
+            history = globals().get("_hist", [])
             user_input = input(">> ").strip()
         except (EOFError, KeyboardInterrupt):
             print()
@@ -17,7 +18,11 @@ def main() -> None:
             print("OK")
             break
 
-        response = llm(user_input)
+        history.append(user_input)
+        history = history[-2:]
+        globals()["_hist"] = history
+        context = "\n".join(history)
+        response = llm(context)
         print(response)
 
 if __name__ == "__main__":

@@ -19,6 +19,11 @@ def _events_file() -> Path:
     return base / "runtime_events.jsonl"
 
 
+def _signals_file() -> Path:
+    base = Path(os.environ.get("LUMOS_BASE_DIR", ".lumos"))
+    return base / "feature_signals.json"
+
+
 def _read_file_events() -> list[dict[str, Any]]:
     p = _events_file()
     if not p.is_file():
@@ -41,6 +46,36 @@ def _read_file_events() -> list[dict[str, Any]]:
         if len(out) >= _MAX_EVENTS:
             break
     return out
+
+
+def _read_signals() -> dict[str, Any]:
+    p = _signals_file()
+    if not p.is_file():
+        return {}
+    try:
+        d = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return d if isinstance(d, dict) else {}
+
+
+def mark_feature_signal(key: str) -> None:
+    if not (key or "").strip():
+        return
+    d = _read_signals()
+    d[str(key).strip()] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    p = _signals_file()
+    try:
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps(d, ensure_ascii=False, indent=2), encoding="utf-8")
+    except OSError:
+        pass
+
+
+def get_feature_signal(key: str) -> str | None:
+    d = _read_signals()
+    v = d.get(key)
+    return str(v) if isinstance(v, str) and v.strip() else None
 
 
 def sync_kando_from_globals(

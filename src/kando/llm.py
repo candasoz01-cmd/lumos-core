@@ -1,5 +1,5 @@
 from core.context_store import load_context, mark_reuse_active, update_last_repo_query
-from core.runtime_state import add_runtime_event, sync_kando_from_globals
+from core.runtime_state import add_runtime_event, mark_feature_signal, sync_kando_from_globals
 
 
 def _response_text(resp):
@@ -268,6 +268,8 @@ def _llm_impl(prompt: str) -> str:
             outputs.append(fn())
 
         LAST_OUTPUT = "\n".join(outputs)
+        if outputs:
+            mark_feature_signal("intent_engine")
         return LAST_OUTPUT
 
     fn = ACTION_MAP.get(intent)
@@ -300,6 +302,7 @@ def _llm_impl(prompt: str) -> str:
                 CONTEXT = mark_reuse_active()
                 _log_event("repo_search", f"Repo araması devam ile tekrarlandı: {q}")
                 return LAST_OUTPUT
+        mark_feature_signal("intent_engine")
         LAST_OUTPUT = fn()
         if intent in ("status", "project"):
             _log_event("status_query", "Durum sorgusu yapıldı.")

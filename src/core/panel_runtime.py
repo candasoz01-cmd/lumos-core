@@ -10,7 +10,7 @@ from typing import Any
 
 from core.context_store import context_reuse_state, load_context
 from core.panel_bridge_state import build_panel_read_state
-from core.runtime_state import get_kando_runtime
+from core.runtime_state import get_feature_signal, get_kando_runtime
 
 
 def _status(flag_active: bool, flag_connected: bool = False) -> str:
@@ -30,7 +30,8 @@ def _build_product_features_state(state: dict[str, Any], kando: dict[str, Any]) 
     has_live = bool(ls.get("backend_live_at")) and bool(pm.get("live_state_fresh"))
     has_bridge = isinstance(state.get("dashboard"), dict) and isinstance(state.get("system"), dict) and isinstance(state.get("lumos_status"), dict)
     has_activity = bool(dash.get("recent_events")) and str((dash.get("recent_events") or [{}])[0].get("text") or "") != "Henüz aktivite yok."
-    has_intent = bool(kando.get("updated_at")) or bool(event_types & {"status_query", "help_call", "intent"})
+    intent_signal_at = get_feature_signal("intent_engine")
+    has_intent = bool(intent_signal_at)
     has_repo_search = bool(kando.get("last_repo_query")) or "repo_search" in event_types
     context_state = str(ls.get("context_reuse_state") or "boş")
     pend = kando.get("pending") if isinstance(kando.get("pending"), dict) else {}
@@ -48,9 +49,9 @@ def _build_product_features_state(state: dict[str, Any], kando: dict[str, Any]) 
         {
             "key": "intent_engine",
             "ad": "Intent Engine",
-            "durum": _status(has_intent),
+            "durum": "connected" if (has_intent and has_live) else ("active" if has_intent else "planned"),
             "panelde_gorunuyor": True,
-            "aciklama": "Niyet eşleme motoru komut işleme sinyaliyle doğrulanır.",
+            "aciklama": ("Kalıcı kullanım sinyali: " + intent_signal_at) if has_intent else "Kullanım sinyali yok.",
         },
         {
             "key": "repo_search",

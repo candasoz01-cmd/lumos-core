@@ -210,11 +210,21 @@ class ModelClient:
             system_prompt = self._build_system_prompt(mode, presence, consent, lock)
             # Combined prompt: system identity + state first, then user message (Responses API single input).
             full_prompt = system_prompt + "\n\nUser: " + prompt
-            model = (os.getenv("OPENAI_MODEL") or "").strip() or "gpt-4o"
-            response = client.responses.create(
-                model=model,
-                input=full_prompt,
-            )
+            model = (os.getenv("OPENAI_MODEL") or "").strip() or "gpt-4.1-mini"
+            try:
+                try:
+                    response = client.responses.create(
+                        model=model,
+                        input=full_prompt,
+                        timeout=10,
+                    )
+                except TypeError:
+                    response = client.responses.create(
+                        model=model,
+                        input=full_prompt,
+                    )
+            except Exception:
+                return "Model yanıt vermedi"
             # Token usage: strict extraction; only real int/float/digit-string count (MagicMock -> 0).
             usage = getattr(response, "usage", None) or getattr(response, "usage_metadata", None)
             if usage is not None:
