@@ -27,7 +27,13 @@ def _build_product_features_state(state: dict[str, Any], kando: dict[str, Any]) 
     pm = state.get("panel_meta") if isinstance(state.get("panel_meta"), dict) else {}
     ctx = load_context()
     has_live = bool(ls.get("backend_live_at")) and bool(pm.get("live_state_fresh"))
-    has_bridge = isinstance(state.get("dashboard"), dict) and isinstance(state.get("system"), dict) and isinstance(state.get("lumos_status"), dict)
+    panel_bridge_sig = get_feature_signal("panel_bridge")
+    has_bridge_sig = bool(panel_bridge_sig)
+    has_bridge_payload = (
+        isinstance(state.get("dashboard"), dict)
+        and isinstance(state.get("system"), dict)
+        and isinstance(state.get("lumos_status"), dict)
+    )
     has_activity = bool(dash.get("recent_events")) and str((dash.get("recent_events") or [{}])[0].get("text") or "") != "Henüz aktivite yok."
     intent_signal_at = get_feature_signal("intent_engine")
     has_intent = bool(intent_signal_at)
@@ -56,7 +62,11 @@ def _build_product_features_state(state: dict[str, Any], kando: dict[str, Any]) 
     has_nav_used = bool(nav_action) or has_nav_sig
     pending_state = "connected" if has_pending_wait else ("active" if has_pending_complete else "planned")
     nav_state = "connected" if (has_nav_results and has_nav_used) else ("active" if (has_nav_results or has_nav_used) else "planned")
-    bridge_state = "connected" if (has_bridge and has_live) else ("active" if has_bridge else "planned")
+    bridge_state = (
+        "connected"
+        if (has_live and has_bridge_payload and has_bridge_sig)
+        else ("active" if (has_bridge_payload or has_bridge_sig) else "planned")
+    )
     live_sig = get_feature_signal("live_backend_state")
     live_state = "connected" if (has_live and live_sig) else ("active" if live_sig else "planned")
     activity_state = "connected" if has_activity else ("active" if bool(dash.get("last_activity")) else "planned")
@@ -114,7 +124,7 @@ def _build_product_features_state(state: dict[str, Any], kando: dict[str, Any]) 
             "ad": "Panel Bridge",
             "durum": bridge_state,
             "panelde_gorunuyor": True,
-            "aciklama": "__LUMOS_READ_STATE__ köprüsü backend payload alanlarıyla doğrulanır.",
+            "aciklama": ("Kalıcı sinyal: " + panel_bridge_sig) if panel_bridge_sig else "Sinyal yok.",
         },
         {
             "key": "last_activity_card",
@@ -139,7 +149,15 @@ def get_live_read_state(*, repo_root: Path | None = None) -> dict[str, Any]:
         ls["backend_live_at"] = t
         ls["backend_runtime_ok"] = True
         ls["backend_live_signal_at"] = t
+        ls["panel_bridge_payload_ok"] = bool(
+            isinstance(state.get("dashboard"), dict)
+            and isinstance(state.get("system"), dict)
+            and isinstance(state.get("sandbox"), dict)
+        )
     mark_feature_signal("live_backend_state")
+    if isinstance(ls, dict) and ls.get("panel_bridge_payload_ok"):
+        mark_feature_signal("panel_bridge")
+        ls["panel_bridge_signal_at"] = get_feature_signal("panel_bridge")
     kando = get_kando_runtime()
     ctx = load_context()
     if isinstance(ls, dict):
