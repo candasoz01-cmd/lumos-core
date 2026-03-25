@@ -177,11 +177,19 @@ class Handler(BaseHTTPRequestHandler):
         if src.is_dir() and str(src) not in sys.path:
             sys.path.insert(0, str(src))
         try:
+            from core.context_store import set_panel_api_health
             from core.panel_runtime import get_live_read_state
 
             state = get_live_read_state(repo_root=repo_root)
+            set_panel_api_health(ok=True)
             _send_json(self, 200, state)
         except Exception as e:
+            try:
+                from core.context_store import set_panel_api_health
+
+                set_panel_api_health(ok=False, error=str(e))
+            except Exception:
+                pass
             _send_json(self, 500, {"ok": False, "error": str(e)})
 
     def do_GET(self) -> None:

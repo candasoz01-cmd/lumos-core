@@ -116,6 +116,20 @@ def set_last_activity_state(*, has_activity: bool, ts: str | None, source: str) 
     return save_context(ctx)
 
 
+def set_panel_api_health(*, ok: bool, error: str | None = None, ts: str | None = None) -> dict[str, Any]:
+    ctx = load_context()
+    t = str(ts or "").strip() or _now_iso()
+    if ok:
+        ctx["panel_api_last_ok_at"] = t
+        ctx.pop("panel_api_last_error_at", None)
+        ctx.pop("panel_api_last_error", None)
+    else:
+        ctx["panel_api_last_error_at"] = t
+        ctx["panel_api_last_error"] = (str(error or "").strip() or "—")[:240]
+    ctx["updated_at"] = _now_iso()
+    return save_context(ctx)
+
+
 def context_reuse_state(ctx: dict[str, Any] | None = None) -> str:
     c = ctx if isinstance(ctx, dict) else load_context()
     if not (c.get("last_repo_query") or "").strip():

@@ -134,7 +134,7 @@ function canTransition(from, to) {
     logFilter: "all",
     /**
      * REST görev API modunda (GET /tasks): null (ilk yükleme öncesi) | "online" | "offline-cache" | "unreachable".
-     * Sunum: getPanelWorkModeKind() — online→canlı, offline-cache→yerel, unreachable→erişim sorunu; null→kontrol.
+   * Sunum: backend `product_features.panel_api` üzerinden.
      * Yerel / legacy doküman modunda kullanılmaz (null kalır; mod her zaman yerel).
      */
     taskSourceState: null,
@@ -516,43 +516,36 @@ function canTransition(from, to) {
     }
   }
 
-  /**
-   * Panel çalışma modu — tek türetim kaynağı (REST görev API + mockState.taskSourceState).
-   * REST dışı (yerel doküman / API tabanı yok): her zaman yerel mod.
-   * @returns {"live"|"local"|"access_issue"|"checking"}
-   */
-  function getPanelWorkModeKind() {
-    if (isPanelTasksApiRestMode()) {
-      var s = mockState.taskSourceState;
-      if (s === SOURCE_STATUS.ONLINE) return "live";
-      if (s === SOURCE_STATUS.OFFLINE_CACHE) return "local";
-      if (s === SOURCE_STATUS.UNREACHABLE) return "access_issue";
-      return "checking";
+  function readPanelApiFeatureOrNull() {
+    try {
+      var B = typeof LumosBackendBridge !== "undefined" ? LumosBackendBridge : {};
+      var pf = B.readBackendProductFeaturesState && B.readBackendProductFeaturesState();
+      if (!pf || !pf.length) return null;
+      for (var i = 0; i < pf.length; i++) {
+        if (pf[i] && pf[i].key === "panel_api") return pf[i];
+      }
+      return null;
+    } catch (_) {
+      return null;
     }
-    return "local";
   }
 
   /**
-   * Üst çubuk / kenar çubuğu rozet metni + sınıfı (getPanelWorkModeKind ile uyumlu).
+   * Üst çubuk / kenar çubuğu rozet metni + sınıfı.
+   * Panel state üretmez: sadece backend `product_features.panel_api` okur.
    * @returns {{ label: string, variant: string }}
    */
   function getPanelWorkModePresentation() {
-    var k = getPanelWorkModeKind();
-    if (k === "live") return { label: "Canlı mod", variant: "badge-live" };
-    if (k === "local") return { label: "Yerel mod", variant: "badge-warning" };
-    if (k === "access_issue") return { label: "API erişilemiyor", variant: "badge-blocked" };
-    return { label: "Bağlantı kontrol ediliyor", variant: "badge-offline" };
+    var f = readPanelApiFeatureOrNull();
+    return { label: (f && f.durum) ? String(f.durum) : "—", variant: "badge-mode" };
   }
 
   /**
    * Ekran alt başlığı — tüm ana ekranlarda aynı kısa durum cümlesi.
    */
   function getPanelWorkModeStatusLine() {
-    var k = getPanelWorkModeKind();
-    if (k === "live") return "Canlı modda çalışıyor.";
-    if (k === "local") return "Yerel modda çalışıyor.";
-    if (k === "access_issue") return "API'ye ulaşılamıyor.";
-    return "Bağlantı kontrol ediliyor…";
+    var f = readPanelApiFeatureOrNull();
+    return (f && f.aciklama) ? String(f.aciklama) : "";
   }
 
   function applyPanelWorkModeSubtitle(data) {
@@ -2661,18 +2654,17 @@ function canTransition(from, to) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;");
     }
-    var apiOk = ls.panel_api_reachable;
-    var apiLine =
-      apiOk === true
-        ? "Var (GET /lumos-read-state)"
-        : apiOk === false
-          ? "Yok — " + esc(ls.panel_api_error || "bağlantı hatası")
-          : "Bilinmiyor (ilk yanıt bekleniyor)";
+    var pf = (B.readBackendProductFeaturesState && B.readBackendProductFeaturesState()) || [];
+    var apiFeat = null;
+    for (var i = 0; i < pf.length; i++) {
+      if (pf[i] && pf[i].key === "panel_api") { apiFeat = pf[i]; break; }
+    }
+    var apiLine = apiFeat ? (String(apiFeat.durum || "") + (apiFeat.aciklama ? (" — " + String(apiFeat.aciklama)) : "")) : "—";
     var modeTr = ls.online_mode === "online" ? "Çevrimiçi" : "Çevrimdışı";
     var coreTr = ls.core_active === true ? "Evet" : ls.core_active === false ? "Hayır" : "—";
     var sbTr = ls.sandbox_mode ? "Açık" : "Kapalı";
     var html = "";
-    html += "<p><strong>API erişimi:</strong> " + apiLine + "</p>";
+    html += "<p><strong>API erişimi:</strong> " + esc(apiLine) + "</p>";
     html += "<p><strong>Çekirdek aktif:</strong> " + esc(coreTr) + " · <strong>Mod:</strong> " + esc(modeTr) + " · <strong>Sandbox:</strong> " + esc(sbTr) + " · <strong>Yazım:</strong> " + esc(ls.writing_base_dir) + "</p>";
     html += "<p class=\"text-muted-small\"><strong>Koruma (köprü):</strong> " + esc((window.__LUMOS_READ_STATE__ && window.__LUMOS_READ_STATE__.dashboard && window.__LUMOS_READ_STATE__.dashboard.guard_status) || "—") + "</p>";
     html += "<p class=\"text-muted-small\"><strong>Köprü zamanı:</strong> " + esc(ls.panel_bridge_built_at) + (ls.backend_live_at ? " · <strong>Backend canlı:</strong> " + esc(ls.backend_live_at) : "") + "</p>";
@@ -2690,10 +2682,10 @@ function canTransition(from, to) {
     var html = '<div class="guidance-cards">';
     for (var i = 0; i < items.length; i++) {
       var f = items[i] || {};
-      var ad = String(f.ad || f.key || "özellik");
-      var durum = String(f.durum || "planned");
-      var gor = f.panelde_gorunuyor ? "Evet" : "Hayır";
-      var aciklama = String(f.aciklama || "Açıklama yok.");
+      var ad = String(f.ad || f.key || "");
+      var durum = typeof f.durum === "string" ? f.durum : "";
+      var gor = typeof f.panelde_gorunuyor === "boolean" ? (f.panelde_gorunuyor ? "Evet" : "Hayır") : "—";
+      var aciklama = typeof f.aciklama === "string" ? f.aciklama : "";
       var body =
         "<p><strong>Durum:</strong> " + ad + " · <strong>State:</strong> " + durum + " · <strong>Panel:</strong> " + gor + "</p>" +
         "<p class=\"text-muted-small\">" + aciklama + "</p>";
@@ -4924,37 +4916,13 @@ function canTransition(from, to) {
       })
       .then(function (data) {
         if (!data || typeof data !== "object") return;
-        if (!data.lumos_status) data.lumos_status = {};
-        if (typeof data.lumos_status === "object") {
-          data.lumos_status.panel_api_reachable = true;
-          try {
-            delete data.lumos_status.panel_api_error;
-          } catch (_) {}
-        }
         window.__LUMOS_READ_STATE__ = data;
         refreshCurrentView();
         renderSidebar();
         renderTopbar();
       })
       .catch(function () {
-        var prev =
-          typeof window !== "undefined" && window.__LUMOS_READ_STATE__ && typeof window.__LUMOS_READ_STATE__ === "object"
-            ? window.__LUMOS_READ_STATE__
-            : {};
-        var ls = prev.lumos_status && typeof prev.lumos_status === "object" ? prev.lumos_status : {};
-        ls.panel_api_reachable = false;
-        var reason = "GET /lumos-read-state yanıt vermedi (panel_tasks_server 8766 çalışıyor mu?)";
-        try {
-          if (typeof window !== "undefined" && window.location && window.location.protocol === "file:") {
-            reason = "Sayfa file:// ile açılmış; http sunucusu kullanın (ör. python -m http.server) ve CORS/ mixed origin engelini aşın.";
-          }
-        } catch (_) {}
-        ls.panel_api_error = reason;
-        prev.lumos_status = ls;
-        if (typeof window !== "undefined") window.__LUMOS_READ_STATE__ = prev;
-        refreshCurrentView();
-        renderSidebar();
-        renderTopbar();
+        // Panel state üretmez; hata durumunda mevcut backend state ekranda kalır.
       });
   }
 

@@ -44,6 +44,7 @@ def get_live_read_state(*, repo_root: Path | None = None) -> dict[str, Any]:
     if isinstance(ls, dict) and ls.get("panel_bridge_payload_ok"):
         mark_feature_signal("panel_bridge")
         ls["panel_bridge_signal_at"] = get_feature_signal("panel_bridge")
+    mark_feature_signal("panel_api")
     kando = get_kando_runtime()
     ctx = load_context()
     if isinstance(ls, dict):

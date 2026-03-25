@@ -338,6 +338,7 @@ def _llm_impl(prompt: str) -> str:
                 )
                 mark_feature_signal("repo_search")
                 _log_event("repo_search", f"Repo araması yapıldı: {q or '—'}")
+                mark_feature_signal("intent_engine")
                 return LAST_OUTPUT
             q = CONTEXT.get("last_repo_query")
             if q:
@@ -353,9 +354,11 @@ def _llm_impl(prompt: str) -> str:
                 mark_feature_signal("repo_search")
                 CONTEXT = mark_reuse_active()
                 _log_event("repo_search", f"Repo araması context ile tekrarlandı: {q}")
+                mark_feature_signal("intent_engine")
                 return LAST_OUTPUT
             LAST_OUTPUT = "repo: <arama> yaz."
             _log_event("repo_search", "Repo araması için sorgu eksik.")
+            mark_feature_signal("intent_engine")
             return LAST_OUTPUT
         if intent in ("continue", "devam"):
             q = (CONTEXT.get("last_repo_query") or "").strip()
@@ -372,6 +375,7 @@ def _llm_impl(prompt: str) -> str:
                 mark_feature_signal("repo_search")
                 CONTEXT = mark_reuse_active()
                 _log_event("repo_search", f"Repo araması devam ile tekrarlandı: {q}")
+                mark_feature_signal("intent_engine")
                 return LAST_OUTPUT
         mark_feature_signal("intent_engine")
         LAST_OUTPUT = fn()
