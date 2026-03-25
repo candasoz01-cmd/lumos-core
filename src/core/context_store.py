@@ -106,6 +106,16 @@ def set_repo_search_state(*, query: str, has_results: bool) -> dict[str, Any]:
     return save_context(ctx)
 
 
+def set_last_activity_state(*, has_activity: bool, ts: str | None, source: str) -> dict[str, Any]:
+    ctx = load_context()
+    ctx["last_activity_has_activity"] = bool(has_activity)
+    ctx["last_activity_ts"] = str(ts or "").strip() or None
+    ctx["last_activity_source"] = (source or "").strip() or "—"
+    ctx["last_activity_updated_at"] = _now_iso()
+    ctx["updated_at"] = _now_iso()
+    return save_context(ctx)
+
+
 def context_reuse_state(ctx: dict[str, Any] | None = None) -> str:
     c = ctx if isinstance(ctx, dict) else load_context()
     if not (c.get("last_repo_query") or "").strip():
