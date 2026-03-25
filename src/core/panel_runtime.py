@@ -26,14 +26,17 @@ def _build_product_features_state(state: dict[str, Any], kando: dict[str, Any]) 
     ls = state.get("lumos_status") if isinstance(state.get("lumos_status"), dict) else {}
     pm = state.get("panel_meta") if isinstance(state.get("panel_meta"), dict) else {}
     ctx = load_context()
-    events = kando.get("recent_events") or []
-    event_types = {str(ev.get("type") or "").strip() for ev in events if isinstance(ev, dict)}
     has_live = bool(ls.get("backend_live_at")) and bool(pm.get("live_state_fresh"))
     has_bridge = isinstance(state.get("dashboard"), dict) and isinstance(state.get("system"), dict) and isinstance(state.get("lumos_status"), dict)
     has_activity = bool(dash.get("recent_events")) and str((dash.get("recent_events") or [{}])[0].get("text") or "") != "Henüz aktivite yok."
     intent_signal_at = get_feature_signal("intent_engine")
     has_intent = bool(intent_signal_at)
-    has_repo_search = bool(kando.get("last_repo_query")) or "repo_search" in event_types
+    repo_search_sig = get_feature_signal("repo_search")
+    has_repo_search_sig = bool(repo_search_sig)
+    repo_search_query = str(ctx.get("repo_search_last_query") or "").strip()
+    repo_search_has_results = bool(ctx.get("repo_search_has_results"))
+    repo_search_last_at = str(ctx.get("repo_search_last_at") or "").strip()
+    has_repo_search = bool(repo_search_query) or has_repo_search_sig
     context_state = str(ls.get("context_reuse_state") or "boş")
     pending_sig = get_feature_signal("pending_completion")
     has_pending_wait = bool(ctx.get("pending_repo")) is True
@@ -67,9 +70,12 @@ def _build_product_features_state(state: dict[str, Any], kando: dict[str, Any]) 
         {
             "key": "repo_search",
             "ad": "Repo Search",
-            "durum": _status(has_repo_search),
+            "durum": "connected" if (has_repo_search and repo_search_has_results and has_repo_search_sig) else ("active" if has_repo_search else "planned"),
             "panelde_gorunuyor": True,
-            "aciklama": "Repo arama sinyali son repo sorgusu veya arama olayıyla doğrulanır.",
+            "aciklama": (
+                f"Son sorgu: {repo_search_query or '—'}; sonuç: {'var' if repo_search_has_results else 'yok'}; "
+                + (f"zaman: {repo_search_last_at or '—'}")
+            ),
         },
         {
             "key": "context_reuse",

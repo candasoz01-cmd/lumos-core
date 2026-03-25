@@ -96,6 +96,16 @@ def set_repo_navigation_state(*, results_count: int, cursor_index: int, action: 
     return save_context(ctx)
 
 
+def set_repo_search_state(*, query: str, has_results: bool) -> dict[str, Any]:
+    ctx = load_context()
+    q = (query or "").strip()
+    ctx["repo_search_last_query"] = q
+    ctx["repo_search_has_results"] = bool(has_results)
+    ctx["repo_search_last_at"] = _now_iso()
+    ctx["updated_at"] = _now_iso()
+    return save_context(ctx)
+
+
 def context_reuse_state(ctx: dict[str, Any] | None = None) -> str:
     c = ctx if isinstance(ctx, dict) else load_context()
     if not (c.get("last_repo_query") or "").strip():
