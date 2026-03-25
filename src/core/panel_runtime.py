@@ -38,11 +38,21 @@ def _build_product_features_state(state: dict[str, Any], kando: dict[str, Any]) 
     pending_sig = get_feature_signal("pending_completion")
     has_pending_wait = bool(ctx.get("pending_repo")) is True
     has_pending_complete = bool(pending_sig)
-    nav = kando.get("repo_nav") if isinstance(kando.get("repo_nav"), dict) else {}
-    has_nav_event = bool(event_types & {"repo_select", "repo_next", "repo_prev"})
-    has_nav_results = bool(nav.get("results_count", 0))
+    nav_sig = get_feature_signal("repo_navigation")
+    has_nav_sig = bool(nav_sig)
+    try:
+        nav_results = int(ctx.get("repo_nav_results_count") or 0)
+    except Exception:
+        nav_results = 0
+    try:
+        nav_cursor = int(ctx.get("repo_nav_cursor_index") or 0)
+    except Exception:
+        nav_cursor = 0
+    nav_action = str(ctx.get("repo_nav_last_action") or "").strip()
+    has_nav_results = nav_results > 0
+    has_nav_used = bool(nav_action) or has_nav_sig
     pending_state = "connected" if has_pending_wait else ("active" if has_pending_complete else "planned")
-    nav_state = "connected" if (has_nav_results and has_nav_event) else ("active" if (has_nav_results or has_nav_event) else "planned")
+    nav_state = "connected" if (has_nav_results and has_nav_used) else ("active" if (has_nav_results or has_nav_used) else "planned")
     bridge_state = "connected" if (has_bridge and has_live) else ("active" if has_bridge else "planned")
     live_state = "connected" if has_live else "in_progress"
     activity_state = "connected" if has_activity else ("active" if bool(dash.get("last_activity")) else "planned")
@@ -80,7 +90,10 @@ def _build_product_features_state(state: dict[str, Any], kando: dict[str, Any]) 
             "ad": "Repo Select/Next/Prev",
             "durum": nav_state,
             "panelde_gorunuyor": True,
-            "aciklama": "Repo sonuç seti ve gezinme sinyalleriyle doğrulanır.",
+            "aciklama": (
+                f"Sonuç: {nav_results}, imleç: {nav_cursor + 1 if nav_results else 0}/{nav_results}. "
+                + (("Kalıcı sinyal: " + nav_sig) if nav_sig else ("Son aksiyon: " + (nav_action or "—")))
+            ),
         },
         {
             "key": "live_backend_state",

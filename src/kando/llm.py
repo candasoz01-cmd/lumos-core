@@ -1,6 +1,7 @@
 from core.context_store import (
     load_context,
     mark_reuse_active,
+    set_repo_navigation_state,
     set_pending_repo_waiting,
     update_last_repo_query,
 )
@@ -153,6 +154,12 @@ def _llm_impl(prompt: str) -> str:
             if 0 <= idx < len(LAST_REPO_RESULTS):
                 LAST_REPO_INDEX = idx
                 LAST_OUTPUT = LAST_REPO_RESULTS[idx]
+                CONTEXT = set_repo_navigation_state(
+                    results_count=len(LAST_REPO_RESULTS),
+                    cursor_index=LAST_REPO_INDEX,
+                    action="select",
+                )
+                mark_feature_signal("repo_navigation")
                 _log_event("repo_select", f"Repo sonucu seçildi: {idx + 1}")
                 return LAST_OUTPUT
         except Exception:
@@ -183,6 +190,12 @@ def _llm_impl(prompt: str) -> str:
             if LAST_REPO_INDEX + 1 < len(LAST_REPO_RESULTS):
                 LAST_REPO_INDEX += 1
                 LAST_OUTPUT = LAST_REPO_RESULTS[LAST_REPO_INDEX]
+                CONTEXT = set_repo_navigation_state(
+                    results_count=len(LAST_REPO_RESULTS),
+                    cursor_index=LAST_REPO_INDEX,
+                    action="next",
+                )
+                mark_feature_signal("repo_navigation")
                 _log_event("repo_next", "Repo sonucu sonraki kayda ilerledi.")
                 return LAST_OUTPUT
             LAST_OUTPUT = "Sonraki sonuç yok."
@@ -198,6 +211,12 @@ def _llm_impl(prompt: str) -> str:
             if LAST_REPO_INDEX - 1 >= 0:
                 LAST_REPO_INDEX -= 1
                 LAST_OUTPUT = LAST_REPO_RESULTS[LAST_REPO_INDEX]
+                CONTEXT = set_repo_navigation_state(
+                    results_count=len(LAST_REPO_RESULTS),
+                    cursor_index=LAST_REPO_INDEX,
+                    action="prev",
+                )
+                mark_feature_signal("repo_navigation")
                 _log_event("repo_prev", "Repo sonucu önceki kayda döndü.")
                 return LAST_OUTPUT
             LAST_OUTPUT = "Önceki sonuç yok."
@@ -216,6 +235,11 @@ def _llm_impl(prompt: str) -> str:
         LAST_OUTPUT = repo_search(q)
         LAST_REPO_RESULTS = [x for x in LAST_OUTPUT.split("\n\n") if x.strip()]
         LAST_REPO_INDEX = 0
+        CONTEXT = set_repo_navigation_state(
+            results_count=len(LAST_REPO_RESULTS),
+            cursor_index=LAST_REPO_INDEX,
+            action="search",
+        )
         _log_event("pending_repo_complete", f"Pending repo sorgusu tamamlandı: {q or '—'}")
         mark_feature_signal("pending_completion")
         return LAST_OUTPUT
@@ -262,6 +286,11 @@ def _llm_impl(prompt: str) -> str:
                         outputs.append(repo_out)
                         LAST_REPO_RESULTS = [x for x in repo_out.split("\n\n") if x.strip()]
                         LAST_REPO_INDEX = 0
+                        CONTEXT = set_repo_navigation_state(
+                            results_count=len(LAST_REPO_RESULTS),
+                            cursor_index=LAST_REPO_INDEX,
+                            action="search",
+                        )
                         _log_event("repo_search", f"Repo araması yapıldı: {q}")
                 else:
                     q = CONTEXT.get("last_repo_query")
@@ -270,6 +299,11 @@ def _llm_impl(prompt: str) -> str:
                         outputs.append(repo_out)
                         LAST_REPO_RESULTS = [x for x in repo_out.split("\n\n") if x.strip()]
                         LAST_REPO_INDEX = 0
+                        CONTEXT = set_repo_navigation_state(
+                            results_count=len(LAST_REPO_RESULTS),
+                            cursor_index=LAST_REPO_INDEX,
+                            action="search",
+                        )
                         CONTEXT = mark_reuse_active()
                         _log_event("repo_search", f"Repo araması context ile tekrarlandı: {q}")
                 continue
@@ -289,6 +323,11 @@ def _llm_impl(prompt: str) -> str:
                 LAST_OUTPUT = fn(q)
                 LAST_REPO_RESULTS = [x for x in LAST_OUTPUT.split("\n\n") if x.strip()]
                 LAST_REPO_INDEX = 0
+                CONTEXT = set_repo_navigation_state(
+                    results_count=len(LAST_REPO_RESULTS),
+                    cursor_index=LAST_REPO_INDEX,
+                    action="search",
+                )
                 _log_event("repo_search", f"Repo araması yapıldı: {q or '—'}")
                 return LAST_OUTPUT
             q = CONTEXT.get("last_repo_query")
@@ -296,6 +335,11 @@ def _llm_impl(prompt: str) -> str:
                 LAST_OUTPUT = fn(q)
                 LAST_REPO_RESULTS = [x for x in LAST_OUTPUT.split("\n\n") if x.strip()]
                 LAST_REPO_INDEX = 0
+                CONTEXT = set_repo_navigation_state(
+                    results_count=len(LAST_REPO_RESULTS),
+                    cursor_index=LAST_REPO_INDEX,
+                    action="search",
+                )
                 CONTEXT = mark_reuse_active()
                 _log_event("repo_search", f"Repo araması context ile tekrarlandı: {q}")
                 return LAST_OUTPUT
@@ -308,6 +352,11 @@ def _llm_impl(prompt: str) -> str:
                 LAST_OUTPUT = repo_search(q)
                 LAST_REPO_RESULTS = [x for x in LAST_OUTPUT.split("\n\n") if x.strip()]
                 LAST_REPO_INDEX = 0
+                CONTEXT = set_repo_navigation_state(
+                    results_count=len(LAST_REPO_RESULTS),
+                    cursor_index=LAST_REPO_INDEX,
+                    action="search",
+                )
                 CONTEXT = mark_reuse_active()
                 _log_event("repo_search", f"Repo araması devam ile tekrarlandı: {q}")
                 return LAST_OUTPUT

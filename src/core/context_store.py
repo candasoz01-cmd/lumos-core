@@ -72,6 +72,30 @@ def set_pending_repo_waiting(waiting: bool) -> dict[str, Any]:
     return save_context(ctx)
 
 
+def set_repo_navigation_state(*, results_count: int, cursor_index: int, action: str | None = None) -> dict[str, Any]:
+    ctx = load_context()
+    try:
+        rc = int(results_count)
+    except Exception:
+        rc = 0
+    try:
+        ci = int(cursor_index)
+    except Exception:
+        ci = 0
+    if rc < 0:
+        rc = 0
+    if ci < 0:
+        ci = 0
+    ctx["repo_nav_results_count"] = rc
+    ctx["repo_nav_cursor_index"] = ci
+    ctx["repo_nav_updated_at"] = _now_iso()
+    if action:
+        ctx["repo_nav_last_action"] = str(action)
+        ctx["repo_nav_last_action_at"] = _now_iso()
+    ctx["updated_at"] = _now_iso()
+    return save_context(ctx)
+
+
 def context_reuse_state(ctx: dict[str, Any] | None = None) -> str:
     c = ctx if isinstance(ctx, dict) else load_context()
     if not (c.get("last_repo_query") or "").strip():
