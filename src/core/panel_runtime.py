@@ -10,7 +10,7 @@ from typing import Any
 
 from core.context_store import context_reuse_state, load_context
 from core.panel_bridge_state import build_panel_read_state
-from core.runtime_state import get_feature_signal, get_kando_runtime
+from core.runtime_state import get_feature_signal, get_kando_runtime, mark_feature_signal
 
 
 def _status(flag_active: bool, flag_connected: bool = False) -> str:
@@ -57,7 +57,8 @@ def _build_product_features_state(state: dict[str, Any], kando: dict[str, Any]) 
     pending_state = "connected" if has_pending_wait else ("active" if has_pending_complete else "planned")
     nav_state = "connected" if (has_nav_results and has_nav_used) else ("active" if (has_nav_results or has_nav_used) else "planned")
     bridge_state = "connected" if (has_bridge and has_live) else ("active" if has_bridge else "planned")
-    live_state = "connected" if has_live else "in_progress"
+    live_sig = get_feature_signal("live_backend_state")
+    live_state = "connected" if (has_live and live_sig) else ("active" if live_sig else "planned")
     activity_state = "connected" if has_activity else ("active" if bool(dash.get("last_activity")) else "planned")
     return [
         {
@@ -106,7 +107,7 @@ def _build_product_features_state(state: dict[str, Any], kando: dict[str, Any]) 
             "ad": "Live Backend State",
             "durum": live_state,
             "panelde_gorunuyor": True,
-            "aciklama": "Panel canlı state endpointinden periyodik veri çekiyor.",
+            "aciklama": ("Kalıcı sağlık sinyali: " + live_sig) if live_sig else "Sağlık sinyali yok.",
         },
         {
             "key": "panel_bridge",
@@ -136,6 +137,9 @@ def get_live_read_state(*, repo_root: Path | None = None) -> dict[str, Any]:
     ls = state.get("lumos_status")
     if isinstance(ls, dict):
         ls["backend_live_at"] = t
+        ls["backend_runtime_ok"] = True
+        ls["backend_live_signal_at"] = t
+    mark_feature_signal("live_backend_state")
     kando = get_kando_runtime()
     ctx = load_context()
     if isinstance(ls, dict):
