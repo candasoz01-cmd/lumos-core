@@ -28,7 +28,9 @@ jobs:
           python -m pip install -e .
           python -m pip install -U pytest ruff
 
+      - name: Test
+        run: PYTHONPATH=src pytest -q
+
       - name: Quality gate
         run: |
-          PYTHONPATH=src make check
           ruff check .

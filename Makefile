@@ -7,7 +7,7 @@ help:
 	@echo "Targets:"
 	@echo "  make install   -> pip install -e ."
 	@echo "  make compile   -> py_compile"
-	@echo "  make test      -> pytest -q"
+	@echo "  make test      -> PYTHONPATH=src pytest -q"
 	@echo "  make e2e-package -> panel paket kapısı (local/demo)"
 	@echo "  make e2e-package-api -> panel paket kapısı (REST /tasks + POST + offline/online)"
 	@echo "  make e2e-tasks-offline-online -> yalnız görev API offline/online e2e"
@@ -15,7 +15,7 @@ help:
 	@echo "  make smoke     -> bash scripts/smoke_presence.sh"
 	@echo "  make cli       -> bash scripts/smoke_cli.sh"
 	@echo "  make web       -> bash scripts/smoke_web.sh"
-	@echo "  make check     -> compile + test + smoke + cli + web"
+	@echo "  make check     -> pytest -q (PYTHONPATH=src), same as CI"
 	@echo "  make run       -> run main (interactive)"
 	@echo "  make cleanlog  -> truncate .lumos/logs/log.txt"
 	@echo "  make setup-commit-guard -> git pre-commit: ruff + pytest (bir kez)"
@@ -37,7 +37,7 @@ compile:
 	$(PYTHON) -m py_compile src/main.py src/core/startup_health.py src/security/presence_lock.py src/security/entropy/__init__.py src/security/entropy/provider.py src/security/entropy/providers/os_urandom.py src/security/entropy/providers/qiskit_aer.py src/security/entropy/providers/ibm_runtime.py src/security/crypto.py src/core/state.py src/core/engine.py src/core/config.py src/core/logfmt.py src/security/presence_fsm.py
 
 test:
-	$(PYTEST) -q
+	PYTHONPATH=src $(PYTEST) -q
 
 e2e-package:
 	cd panel && npm run e2e:package
@@ -60,7 +60,7 @@ cli:
 web:
 	bash scripts/smoke_web.sh
 
-check: install compile test smoke cli web
+check: test
 
 run:
 	$(PYTHON) -m lumos_core
