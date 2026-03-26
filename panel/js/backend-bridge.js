@@ -1,7 +1,7 @@
 /**
  * Lumos Panel v1 — Backend bridge (Phase 1).
- * Read-only: okunabilir kaynak varsa (window.__LUMOS_READ_STATE__) backend şeklini (snake_case) döner;
- * yoksa null → panel fixture/demo fallback kullanır.
+ * Read-only: okunabilir kaynak varsa (window.__LUMOS_READ_STATE__) backend şeklini döner;
+ * yoksa null. Trash: readBackendTrashState → { items: state.trash.trash_items }.
  * Bridge çıktısı panel veri şekline fixtures.js map*PayloadToPanelData ile dönüştürülür (contract: js/contracts.js).
  * Kaynak: panel/scripts/read_backend_state.py.
  */
@@ -62,8 +62,11 @@
 
   function readBackendTrashState() {
     var state = getReadState();
-    if (!state || !state.trash || !Array.isArray(state.trash.trash_items)) return null;
-    return state.trash;
+    if (!state || !state.trash || typeof state.trash !== "object") return null;
+    var ti = state.trash.trash_items;
+    if (ti == null) ti = [];
+    else if (!Array.isArray(ti)) ti = [];
+    return { items: ti };
   }
 
   function readBackendLogsState() {

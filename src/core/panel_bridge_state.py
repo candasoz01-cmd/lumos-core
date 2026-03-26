@@ -13,8 +13,7 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 
-def _base_dir() -> Path:
-    return Path(os.environ.get("LUMOS_BASE_DIR", ".lumos"))
+from core.lumos_base_dir import lumos_base_dir as _base_dir
 
 def _is_sandbox_mode() -> bool:
     v = os.environ.get("LUMOS_SANDBOX_MODE", "false").lower()
@@ -98,10 +97,10 @@ def _read_tasks_payload(base: Path) -> dict:
     return out
 
 def _read_trash_payload(base: Path) -> dict:
-    """Read-only: base/trash dizin listesi → trash_location, trash_last_move, trash_items, trash_dir_exists, trash_item_count, trash_scope_fallback_note.
-    Güvenli sinyaller: trash konumu (çözülmüş), dizin var/yok, öğe sayısı. original_path/scope dosya sisteminden türetilmediği için —; fallback notu eklenir."""
+    """Read-only: base/trash/*.json → trash_items (UI: state.trash.trash_items; tek şema, eksik alan yok)."""
     base_resolved = base.resolve()
     trash_dir = base_resolved / "trash"
+    print("TRASH READ DIR:", str(trash_dir), flush=True)
     trash_dir_exists = trash_dir.is_dir()
     out = {
         "trash_location": str(trash_dir),
@@ -113,30 +112,78 @@ def _read_trash_payload(base: Path) -> dict:
     }
     if not trash_dir_exists:
         return out
-    last_mtime = None
-    items = []
-    for i, p in enumerate(sorted(trash_dir.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True)):
+
+    def _mtime_iso(st) -> str:
         try:
-            st = p.stat()
-            mtime = st.st_mtime
-            if last_mtime is None or mtime > last_mtime:
-                last_mtime = mtime
+            return datetime.fromtimestamp(st.st_mtime, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+        except Exception:
+            return "—"
+
+    last_mtime = None
+    items: list[dict] = []
+    try:
+        paths = sorted(trash_dir.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True)
+    except OSError:
+        paths = []
+    for p in paths:
+        try:
+            if not p.is_file():
+                continue
+            if p.name.endswith(".tmp"):
+                continue
+            if p.suffix.lower() != ".json":
+                continue
             try:
-                ts = datetime.fromtimestamp(mtime, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+                raw = json.loads(p.read_text(encoding="utf-8"))
             except Exception:
-                ts = "—"
-            try:
-                rel = p.relative_to(base_resolved)
-            except ValueError:
-                rel = p
-            items.append({
-                "id": "tr" + str(i + 1),
-                "name": p.name,
-                "original_path": "—",
-                "trash_path": str(rel),
-                "moved_at": ts,
-                "scope": "—",
-            })
+                continue
+            if not isinstance(raw, dict):
+                continue
+            pl = raw.get("payload")
+            payload = pl if isinstance(pl, dict) else None
+            if payload is not None:
+                tid = str(payload.get("id") or raw.get("id") or p.stem).strip() or p.stem
+                name = str(payload.get("title") or payload.get("name") or "").strip()
+                status = str(payload.get("status") or "").strip()
+            else:
+                tid = str(raw.get("id") or p.stem).strip() or p.stem
+                name = str(raw.get("title") or raw.get("name") or "").strip()
+                status = str(raw.get("status") or "").strip()
+            if not name:
+                name = p.stem
+            st = p.stat()
+            mtime_iso = _mtime_iso(st)
+            if last_mtime is None or st.st_mtime > last_mtime:
+                last_mtime = st.st_mtime
+            top_del = str(raw.get("deleted_at", "")).strip()
+            if not top_del and payload is not None and payload.get("deletedAt") is not None:
+                top_del = str(payload.get("deletedAt")).strip()
+            deleted_at = top_del if top_del else mtime_iso
+            moved_at = top_del if top_del else mtime_iso
+            original_path = "—"
+            if payload is not None:
+                op = payload.get("original_path")
+                if op is None:
+                    op = payload.get("originalPath")
+                if op is not None and str(op).strip():
+                    original_path = str(op).strip()
+            if not status:
+                status = "—"
+            item = {
+                "id": tid,
+                "name": name,
+                "status": status,
+                "deleted_at": deleted_at,
+                "original_path": original_path,
+                "trash_path": str(p.resolve()),
+                "moved_at": moved_at,
+                "scope": "tasks",
+            }
+            if payload is not None:
+                item["payload"] = payload
+            item["raw_record"] = raw
+            print("TRASH ITEM:", json.dumps(item, ensure_ascii=False), flush=True)
+            items.append(item)
         except OSError:
             continue
     out["trash_items"] = items

@@ -138,6 +138,7 @@ function canTransition(from, to) {
      * Yerel / legacy doküman modunda kullanılmaz (null kalır; mod her zaman yerel).
      */
     taskSourceState: null,
+    taskActionGate: null,
     guidance: {
       mode: "offline",
       lock: "LOCKED",
@@ -384,8 +385,7 @@ function canTransition(from, to) {
   function getTrashSourceData() {
     var backend = Bridge.readBackendTrashState && Bridge.readBackendTrashState();
     if (backend != null) return { type: "backend", data: backend };
-    if (useFixtureData && window.LumosFixtures && window.LumosFixtures.payloads) return { type: "fixture", data: window.LumosFixtures.payloads.trash };
-    return { type: "demo", data: getEffectiveState() };
+    return { type: "none", data: null };
   }
   function getLogsSourceData() {
     var backend = Bridge.readBackendLogsState && Bridge.readBackendLogsState();
@@ -416,6 +416,7 @@ function canTransition(from, to) {
   var TASKS_JSON_STORAGE_KEY = "lumos_dot_lumos_tasks_json_v1";
   var LEGACY_PANEL_ENGINE_STORAGE_KEY = "lumos_panel_min_task_engine_v1";
   var PANEL_TASKS_FETCH_MS = 1200;
+  var TASKS_API_BASE = "http://127.0.0.1:8766";
   /** Silinenler ekranı: panel kayıtlarından kalıcı silinenler özeti (çöp API listesi değil). */
   var RECENT_PERMANENT_DELETES_LIMIT = 15;
   /** Silme onayı: bu süre sonunda kalıcı silme + task_permanently_deleted kaydı. */
@@ -447,7 +448,18 @@ function canTransition(from, to) {
     if (custom != null && String(custom).trim() !== "") {
       apiBase = String(custom).replace(/\/$/, "");
     } else {
-      apiBase = "http://127.0.0.1:8766";
+      /* Aynı süreçte statik panel + API (panel_tasks_server): taban = sayfa origin (port dahil).
+         API başka host/port’taysa LUMOS_PANEL_TASKS_API_BASE verin (ör. statik sunucu + 8766 API). */
+      try {
+        var loc = w.location;
+        if (loc && /^https?:$/i.test(String(loc.protocol || ""))) {
+          apiBase = String(loc.origin || "").replace(/\/$/, "");
+        } else {
+          apiBase = "http://127.0.0.1:8766";
+        }
+      } catch (_) {
+        apiBase = "http://127.0.0.1:8766";
+      }
     }
     var rawMode = w.LUMOS_PANEL_TASKS_PERSISTENCE != null ? w.LUMOS_PANEL_TASKS_PERSISTENCE : w.LUMOS_PANEL_TASKS_MODE;
     var mode =
@@ -591,6 +603,19 @@ function canTransition(from, to) {
       });
   }
 
+  function refreshTasksDocumentFromApiStrict() {
+    var url = TASKS_API_BASE + "/tasks";
+    return fetchWithTimeout(url, { method: "GET", headers: { Accept: "application/json" } })
+      .then(function (r) {
+        if (!r.ok) return Promise.reject(new Error("GET görev dokümanı " + r.status));
+        return r.json();
+      })
+      .then(function (doc) {
+        if (!doc || typeof doc !== "object") return Promise.reject(new Error("geçersiz görev JSON"));
+        applyTasksApiOnlineSuccess(doc);
+      });
+  }
+
   function findEngineTaskTitleForReply(titleOrRef, preferStatus) {
     var tasks = mockState.engineTasks || [];
     var hint = normalizeTaskCommandWhitespace(titleOrRef);
@@ -624,15 +649,6 @@ function canTransition(from, to) {
     var apiPolicyBlock = runPanelTaskPolicyOrNull(parsed);
     if (apiPolicyBlock) {
       return Promise.resolve(apiPolicyBlock);
-    }
-    if (isPanelTasksApiRestMode() && mockState.taskSourceState !== "online") {
-      if (typeof console !== "undefined" && console.log) {
-        console.log("LUMOS_TASK_MUTATION_BLOCKED_OFFLINE", { verb: parsed && parsed.verb });
-      }
-      return Promise.resolve({
-        text: "API'ye ulaşılamıyor; işlem gönderilmedi.",
-        depth: "simple",
-      });
     }
     if (!Adapter) {
       return Promise.resolve({
@@ -676,7 +692,7 @@ function canTransition(from, to) {
           var er2 = res.body && res.body.error ? String(res.body.error) : "HTTP " + res.status;
           throw new Error(er2);
         }
-        return syncTasksDocumentFromApi().then(function () {
+        return refreshTasksDocumentFromApiStrict().then(function () {
           var tit2 = findEngineTaskTitleForReply(parsed.ref, "done");
           return { text: 'Görev tamamlandı: "' + tit2 + '".', depth: "simple" };
         });
@@ -715,20 +731,43 @@ function canTransition(from, to) {
       if (!parsed.ref) {
         return Promise.resolve({ text: "Görev adı eksik. Örnek: görev geri al alışveriş", depth: "simple" });
       }
-      return api.postTasksUndoPendingDelete({ ref: parsed.ref }).then(function (res) {
-        if (res.status === 404 || (res.body && res.body.error === "not_found")) {
-          return { text: "Geri alınacak silme bekleyen görev bulunamadı.", depth: "simple" };
-        }
-        if (!res.ok) {
-          var er4 = res.body && res.body.error ? String(res.body.error) : "HTTP " + res.status;
-          throw new Error(er4);
-        }
-        return syncTasksDocumentFromApi().then(function () {
-          clearPendingDeleteTickerIfIdle();
-          var tit4 = findEngineTaskTitleForReply(parsed.ref, null);
-          return { text: 'Silme iptal edildi: "' + tit4 + '".', depth: "simple" };
+      var pendForRestore = resolvePendingDeleteTaskByRef(parsed.ref);
+      if (!pendForRestore || pendForRestore.id == null || String(pendForRestore.id).trim() === "") {
+        return Promise.resolve({ text: "Geri alınacak silme bekleyen görev bulunamadı.", depth: "simple" });
+      }
+      var restoreBase = String(API_BASE).replace(/\/$/, "");
+      var restoreUrl = restoreBase + "/tasks/restore";
+      return panelTasksTrashDirectPost(restoreUrl, { id: String(pendForRestore.id) })
+        .then(function (r) {
+          return r.text().then(function (txt) {
+            var jj = null;
+            try {
+              jj = txt && String(txt).trim() ? JSON.parse(txt) : null;
+            } catch (_) {
+              jj = null;
+            }
+            return { ok: r.ok, status: r.status, j: jj && typeof jj === "object" ? jj : {} };
+          });
+        })
+        .then(function (x) {
+          var ej = x.j && x.j.error != null ? String(x.j.error) : "";
+          if (
+            x.status === 404 ||
+            ej === "not_found" ||
+            ej === "missing_trash_file"
+          ) {
+            return { text: "Geri alınacak silme bekleyen görev bulunamadı.", depth: "simple" };
+          }
+          if (!x.ok || !x.j.ok) {
+            var er4 = ej || "HTTP " + x.status;
+            throw new Error(er4);
+          }
+          return syncTasksDocumentFromApi().then(function () {
+            clearPendingDeleteTickerIfIdle();
+            var tit4 = findEngineTaskTitleForReply(parsed.ref, null);
+            return { text: 'Silme iptal edildi: "' + tit4 + '".', depth: "simple" };
+          });
         });
-      });
     }
     return Promise.resolve({ text: "Görev komutu API üzerinde tanımsız.", depth: "simple" });
   }
@@ -749,6 +788,20 @@ function canTransition(from, to) {
     }
     return Promise.resolve(fetch(url, opts)).finally(function () {
       if (timer) clearTimeout(timer);
+    });
+  }
+
+  /** Çöp geri yükle / kalıcı sil: doğrudan global fetch; konsolda yalnızca URL + HTTP status. */
+  function panelTasksTrashDirectPost(url, bodyObj) {
+    return fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(bodyObj != null ? bodyObj : {}),
+    }).then(function (r) {
+      if (typeof console !== "undefined" && console.log) {
+        console.log("[LUMOS] panel_tasks POST url:", url, "response status:", r.status);
+      }
+      return r;
     });
   }
 
@@ -845,6 +898,9 @@ function canTransition(from, to) {
 
   function applyHydratedTasksAndEventsFromDoc(o) {
     if (!o || typeof o !== "object") return;
+    if (o.action_gate && typeof o.action_gate === "object") {
+      mockState.taskActionGate = o.action_gate;
+    }
     if (Array.isArray(o.tasks)) {
       var tasks = [];
       for (var i = 0; i < o.tasks.length; i++) {
@@ -868,6 +924,11 @@ function canTransition(from, to) {
           createdAt: t.createdAt != null ? String(t.createdAt) : "",
           completedAt: t.completedAt != null && t.completedAt !== "" ? String(t.completedAt) : null,
           deletedAt: t.deletedAt != null && t.deletedAt !== "" ? String(t.deletedAt) : null,
+          summary: t.summary != null ? String(t.summary) : "",
+          result: t.result != null ? String(t.result) : "",
+          actions: {
+            complete: !!(t.actions && t.actions.complete === true),
+          },
         };
         if (t.status === TASK_STATUS.PENDING_DELETE) {
           row.restoreStatus = rsRaw === "done" || rsRaw === "active" ? rsRaw : row.completedAt ? "done" : "active";
@@ -887,7 +948,13 @@ function canTransition(from, to) {
         evs.push({
           id: e.id != null ? String(e.id) : newEngineEventId(),
           type: e.type,
-          taskId: String(e.taskId || ""),
+          taskId: String(
+            e.taskId != null && String(e.taskId).trim() !== ""
+              ? e.taskId
+              : e.task_id != null && String(e.task_id).trim() !== ""
+                ? e.task_id
+                : ""
+          ),
           text: e.text != null ? String(e.text) : "",
           ts: e.ts != null ? String(e.ts) : new Date().toISOString(),
         });
@@ -1289,6 +1356,11 @@ function canTransition(from, to) {
       lastRun: null,
       guardResult: "—",
       outputSummary: done ? "Tamamlandı." : "—",
+      summary: task.summary != null ? String(task.summary) : "",
+      result: task.result != null ? String(task.result) : "",
+      actions: {
+        complete: !!(task.actions && task.actions.complete === true),
+      },
     };
   }
 
@@ -1463,6 +1535,66 @@ function canTransition(from, to) {
     return String(a == null ? "" : a) === String(b == null ? "" : b);
   }
 
+  /**
+   * Silinenler satırı → POST /tasks/restore|delete-permanent gövdesindeki gerçek görev id'si.
+   * Köprü: payload.id; yoksa task_id / taskId; son çare liste id (köprü ile aynı olmalı).
+   */
+  function resolveTrashListItemBackendTaskId(it) {
+    if (!it || typeof it !== "object") return "";
+    var pl = it.payload;
+    if (pl && typeof pl === "object" && pl.id != null && String(pl.id).trim() !== "") {
+      return String(pl.id).trim();
+    }
+    if (it.task_id != null && String(it.task_id).trim() !== "") return String(it.task_id).trim();
+    if (it.taskId != null && String(it.taskId).trim() !== "") return String(it.taskId).trim();
+    if (it.id != null && String(it.id).trim() !== "") return String(it.id).trim();
+    return "";
+  }
+
+  /** Liste seçimi + POST { id }: sunucunun trash JSON payload.id ile aynı string. */
+  function trashListRowKey(it) {
+    var r = resolveTrashListItemBackendTaskId(it);
+    if (r) return r;
+    if (it && it.id != null && String(it.id).trim() !== "") return String(it.id).trim();
+    return "";
+  }
+
+  /** Geri yükle / kalıcı sil: seçili satırdan backend id; buton dataset yalnız yedek. */
+  function resolveTrashActionTaskIdForRequest(buttonDatasetId) {
+    var data = getTrashData();
+    var items = (data && data.listItems) || [];
+    var sel = mockState.selectedTrashId != null ? String(mockState.selectedTrashId).trim() : "";
+    var btn = buttonDatasetId != null ? String(buttonDatasetId).trim() : "";
+    var row = null;
+    var i;
+    for (i = 0; i < items.length; i++) {
+      var it = items[i];
+      if (!it) continue;
+      var key = trashListRowKey(it);
+      if (sel && (taskIdEquals(it.id, sel) || taskIdEquals(key, sel))) {
+        row = it;
+        break;
+      }
+    }
+    if (!row && btn) {
+      for (i = 0; i < items.length; i++) {
+        var it2 = items[i];
+        if (!it2) continue;
+        var k2 = trashListRowKey(it2);
+        if (taskIdEquals(it2.id, btn) || taskIdEquals(k2, btn)) {
+          row = it2;
+          break;
+        }
+      }
+    }
+    if (row) {
+      var tid = resolveTrashListItemBackendTaskId(row);
+      if (tid) return tid;
+      if (row.id != null && String(row.id).trim() !== "") return String(row.id).trim();
+    }
+    return btn;
+  }
+
   function applyTasksViewFromMergedFullList(data, fullList, activeFilter) {
     var af = activeFilter || "all";
     var filtered = LC.filterTaskList ? LC.filterTaskList(fullList, af) : fullList;
@@ -1505,7 +1637,15 @@ function canTransition(from, to) {
         (baseNote ? " " : "") +
         "Silme bekleyen görevler listede kalır (sayaç + Geri al); süre dolunca kalıcı silinir ve Kayıtlar’da izlenebilir.";
     }
+    data.taskActionGate = mockState.taskActionGate;
     return data;
+  }
+
+  function getTaskActionGate(data, action) {
+    var g = data && data.taskActionGate && typeof data.taskActionGate === "object" ? data.taskActionGate : null;
+    var row = g && g[action] && typeof g[action] === "object" ? g[action] : null;
+    if (!row) return { enabled: false, reason: "Aksiyon durumu alınamadı" };
+    return { enabled: row.enabled === true, reason: row.reason ? String(row.reason) : "İşlem şu anda kullanılamıyor" };
   }
   function getSandboxData() {
     var src = getSandboxSourceData();
@@ -1527,16 +1667,196 @@ function canTransition(from, to) {
     if ((src.type === "backend" || src.type === "fixture") && window.LumosFixtures && LC.normalizeKeystore) return LC.normalizeKeystore(LumosFixtures.mapKeystorePayloadToPanelData(src.data), {});
     return LC.normalizeKeystore(LC.buildKeystoreStub(src.data), src.data);
   }
+
+  function trashTimestampRawIsParsable(s) {
+    if (s == null) return false;
+    var t = String(s).trim();
+    if (t === "" || t === "—") return false;
+    var ms = Date.parse(t);
+    return !isNaN(ms);
+  }
+
+  /** moved_at / deleted_at: "—" placeholder'ı atla; her iki alanı da dene (|| tek alanda hata yapıyordu). */
+  function trashLatestTimestampFromListItems(list) {
+    var arr = list || [];
+    var best = null;
+    var bestMs = -1;
+    var i;
+    for (i = 0; i < arr.length; i++) {
+      var it = arr[i];
+      if (!it) continue;
+      var cand = [it.movedAt, it.deletedAt, it.moved_at, it.deleted_at];
+      var c;
+      for (c = 0; c < cand.length; c++) {
+        var s = cand[c];
+        if (!trashTimestampRawIsParsable(s)) continue;
+        var ms = Date.parse(String(s).trim());
+        if (!isNaN(ms) && ms > bestMs) {
+          bestMs = ms;
+          best = String(s).trim();
+        }
+      }
+    }
+    return best;
+  }
+
+  /** lumos-read-state: çöp dizini (dosya listesi boş veya satırlarda trashPath yokken tek doğru kaynak). */
+  function readTrashDirectoryPathFromLumosState() {
+    var w = typeof window !== "undefined" ? window : null;
+    var rs = w && w.__LUMOS_READ_STATE__;
+    if (!rs) return "";
+    var tr = rs.trash;
+    if (tr && tr.trash_location != null) {
+      var a = String(tr.trash_location).trim();
+      if (a && a !== "—") return a;
+    }
+    var sp = rs.system && rs.system.system_paths;
+    if (sp && sp.trash != null) {
+      var b = String(sp.trash).trim();
+      if (b && b !== "—") return b;
+    }
+    return "";
+  }
+
+  function trashFilePathToParentDir(tp) {
+    var s = tp != null ? String(tp).trim() : "";
+    if (!s || s === "—") return "";
+    var slash = Math.max(s.lastIndexOf("/"), s.lastIndexOf("\\"));
+    return slash >= 0 ? s.slice(0, slash) : s;
+  }
+
+  /** Önce köprü trash_location / system_paths.trash; yoksa liste öğelerindeki trashPath üst dizini. */
+  function resolveTrashLocationMetric(trashDirectoryFromBridge, listItems) {
+    var hint = trashDirectoryFromBridge != null ? String(trashDirectoryFromBridge).trim() : "";
+    if (hint && hint !== "—") return hint;
+    var list = Array.isArray(listItems) ? listItems : [];
+    var pi;
+    for (pi = 0; pi < list.length; pi++) {
+      var dir = trashFilePathToParentDir(list[pi] && list[pi].trashPath);
+      if (dir) return dir;
+    }
+    return "—";
+  }
+
+  /** Üç üst metrik: sayım ve tarih listItems; çöp konumu köprü + liste yolu. */
+  function buildTrashSummaryMetricsFromListItems(listItems, trashDirectoryFromBridge) {
+    var list = Array.isArray(listItems) ? listItems : [];
+    var n = list.length;
+    var latestRaw = n > 0 ? trashLatestTimestampFromListItems(list) : null;
+    var hint = trashDirectoryFromBridge != null ? String(trashDirectoryFromBridge).trim() : "";
+    var loc = resolveTrashLocationMetric(hint, list);
+    return [
+      { title: "Çöp konumu", value: loc },
+      { title: "Son taşıma", value: latestRaw ? formatTime(latestRaw) : "—" },
+      { title: "Öğe sayısı", value: String(n) },
+    ];
+  }
+
+  function trashItemRowTimestampFormatted(it) {
+    if (!it) return "—";
+    var cand = [it.movedAt, it.deletedAt, it.moved_at, it.deleted_at];
+    var c;
+    for (c = 0; c < cand.length; c++) {
+      var s = cand[c];
+      if (!trashTimestampRawIsParsable(s)) continue;
+      return formatTime(String(s).trim());
+    }
+    return "—";
+  }
+
+  function applyTrashLedgerMerge(data) {
+    if (!data) return data;
+    if (!Array.isArray(data.listItems)) data.listItems = [];
+    var n = data.listItems.length;
+    data.trashItemCount = n;
+    var selTrashKey = mockState.selectedTrashId || data.selectedId;
+    data.selectedItem =
+      (data.listItems || []).filter(function (i) {
+        return (
+          taskIdEquals(i.id, selTrashKey) || taskIdEquals(trashListRowKey(i), selTrashKey)
+        );
+      })[0] || null;
+    var bridgeTrashDir =
+      data.trashDirectoryPath != null && String(data.trashDirectoryPath).trim() !== ""
+        ? String(data.trashDirectoryPath).trim()
+        : readTrashDirectoryPathFromLumosState();
+    data.trashDirectoryPath = bridgeTrashDir;
+    data.summaryMetrics = buildTrashSummaryMetricsFromListItems(data.listItems, bridgeTrashDir);
+    return data;
+  }
+
+  function resolveTrashOpenPathForAction(data, metricDisplayValue) {
+    var v = metricDisplayValue != null ? String(metricDisplayValue).trim() : "";
+    if (v && v !== "—") return v;
+    if (data && data.trashDirectoryPath != null) {
+      var d = String(data.trashDirectoryPath).trim();
+      if (d && d !== "—") return d;
+    }
+    return "";
+  }
+
   function getTrashData() {
     var src = getTrashSourceData();
-    if ((src.type === "backend" || src.type === "fixture") && window.LumosFixtures && LC.normalizeTrash) {
-      var data = LC.normalizeTrash(LumosFixtures.mapTrashPayloadToPanelData(src.data), {});
+    if (src.type === "backend" && src.data && window.LumosFixtures && LC.normalizeTrash) {
+      var w = typeof window !== "undefined" ? window : null;
+      var rs = w && w.__LUMOS_READ_STATE__;
+      var tr = rs && rs.trash ? rs.trash : {};
+      var br = src.data;
+      var items = Array.isArray(br.items) ? br.items : [];
+      if ((!items || items.length === 0) && tr && Array.isArray(tr.trash_items) && tr.trash_items.length > 0) {
+        items = tr.trash_items;
+      }
+      var payload = {
+        items: items,
+        trash_items: items,
+        trash_location: tr.trash_location,
+        trash_last_move: tr.trash_last_move,
+        trash_item_count: items.length,
+        trash_dir_exists: tr.trash_dir_exists === true,
+        trash_scope_fallback_note: tr.trash_scope_fallback_note != null ? String(tr.trash_scope_fallback_note) : "",
+      };
+      var data = LC.normalizeTrash(LumosFixtures.mapTrashPayloadToPanelData(payload), {});
+      var td =
+        tr.trash_location != null && String(tr.trash_location).trim() !== "" && String(tr.trash_location).trim() !== "—"
+          ? String(tr.trash_location).trim()
+          : "";
+      if (!td && rs && rs.system && rs.system.system_paths && rs.system.system_paths.trash != null) {
+        var tps = String(rs.system.system_paths.trash).trim();
+        if (tps && tps !== "—") td = tps;
+      }
+      data.trashDirectoryPath = td;
       data.selectedId = mockState.selectedTrashId || data.selectedId;
-      data.selectedItem = (data.listItems || []).filter(function (i) { return i.id === (mockState.selectedTrashId || data.selectedId); })[0] || data.selectedItem;
-      return applyPanelWorkModeSubtitle(data);
+      var selK = mockState.selectedTrashId || data.selectedId;
+      data.selectedItem =
+        (data.listItems || []).filter(function (i) {
+          return taskIdEquals(i.id, selK) || taskIdEquals(trashListRowKey(i), selK);
+        })[0] || data.selectedItem;
+      return applyPanelWorkModeSubtitle(applyTrashLedgerMerge(data));
     }
-    var s = getEffectiveState();
-    return applyPanelWorkModeSubtitle(LC.normalizeTrash(LC.buildTrashStub(s), s));
+    var empty = {
+      items: [],
+      trash_items: [],
+      trash_location: null,
+      trash_last_move: null,
+      trash_item_count: 0,
+      trash_dir_exists: false,
+      trash_scope_fallback_note: "",
+    };
+    var rs2 = typeof window !== "undefined" && window.__LUMOS_READ_STATE__ && window.__LUMOS_READ_STATE__.trash;
+    if (rs2) {
+      empty.trash_location = rs2.trash_location;
+      empty.trash_last_move = rs2.trash_last_move;
+      empty.trash_item_count = rs2.trash_item_count;
+      empty.trash_dir_exists = rs2.trash_dir_exists === true;
+      empty.trash_scope_fallback_note = rs2.trash_scope_fallback_note != null ? String(rs2.trash_scope_fallback_note) : "";
+      if (Array.isArray(rs2.trash_items) && rs2.trash_items.length > 0) {
+        empty.items = rs2.trash_items;
+        empty.trash_items = rs2.trash_items;
+        empty.trash_item_count = rs2.trash_item_count != null ? rs2.trash_item_count : rs2.trash_items.length;
+      }
+    }
+    var dataNone = LC.normalizeTrash(LumosFixtures.mapTrashPayloadToPanelData(empty), {});
+    return applyPanelWorkModeSubtitle(applyTrashLedgerMerge(dataNone));
   }
 
   function mergedEventToLogKind(ev) {
@@ -2333,6 +2653,28 @@ function canTransition(from, to) {
     return '<div class="metric-card"><div class="metric-title">' + title + "</div><div class=\"metric-value\">" + value + "</div>" + note + "</div>";
   }
 
+  /** Silinenler: Çöp konumu kartı — POST /open-folder ile sistemde klasör açar. */
+  function TrashLocationOpenMetricCard(title, displayValue, openPath) {
+    var disp = displayValue != null ? String(displayValue) : "—";
+    var op = openPath != null ? String(openPath).trim() : "";
+    if (!op || op === "—" || disp === "—") {
+      return MetricCard(title != null ? String(title) : "Çöp konumu", disp, null);
+    }
+    return (
+      '<button type="button" class="metric-card metric-card--open-folder" data-lumos-open-folder="1" data-open-path="' +
+      escapeHtmlYanit(op) +
+      '" aria-label="Çöp klasörünü dosya yöneticisinde aç">' +
+      '<div class="metric-title">' +
+      escapeHtmlYanit(title != null ? String(title) : "Çöp konumu") +
+      "</div>" +
+      '<div class="metric-value">' +
+      escapeHtmlYanit(disp) +
+      "</div>" +
+      '<p class="text-muted-small">Tıklayınca klasör açılır</p>' +
+      "</button>"
+    );
+  }
+
   function SectionCard(title, bodyHtml) {
     return '<div class="section-card"><h2 class="section-title">' + title + "</h2><div class=\"section-body\">" + bodyHtml + "</div></div>";
   }
@@ -2784,7 +3126,7 @@ function canTransition(from, to) {
 
     function policySebep() {
       if (sLow.indexOf("çevrimdışı") !== -1 || sLow.indexOf("offline") !== -1 || sLow.indexOf("önbellek") !== -1) {
-        return "çevrimdışı";
+        return "bağlantı";
       }
       if (sLow.indexOf("koruma") !== -1 || sLow.indexOf("korumalı") !== -1) return "koruma aktif";
       if (sLow.indexOf("onay") !== -1 || sLow.indexOf("consent") !== -1) return "onay gerekli";
@@ -2795,9 +3137,6 @@ function canTransition(from, to) {
       return "Görev tamamlanamadı (" + sebep + ")";
     }
     function errDelete(sebep) {
-      if (sebep === "çevrimdışı") {
-        return "Çevrimdışı modda görev silme kapalı.";
-      }
       return "Görev silinemedi (" + sebep + ")";
     }
     function errCreate(sebep) {
@@ -2830,10 +3169,10 @@ function canTransition(from, to) {
       (s.indexOf("API'ye ulaşılamıyor") !== -1 && s.indexOf("gönderilmedi") !== -1) ||
       (s.indexOf("Görev API") !== -1 && s.indexOf("ulaşılamıyor") !== -1)
     ) {
-      if (act === "complete") return errComplete("çevrimdışı");
-      if (act === "delete") return errDelete("çevrimdışı");
-      if (act === "undo") return errUndo("çevrimdışı");
-      return errCreate("çevrimdışı");
+      if (act === "complete") return errComplete("bağlantı");
+      if (act === "delete") return errDelete("bağlantı");
+      if (act === "undo") return errUndo("bağlantı");
+      return errCreate("bağlantı");
     }
     if (s.indexOf("Bağlantı modülü yüklenmedi") !== -1 || s.indexOf("Görev API bağlayıcısı yüklenmedi") !== -1) {
       if (act === "create") return errCreate("API kapalı");
@@ -2922,7 +3261,9 @@ function canTransition(from, to) {
         var isPendingRow = pdui.active;
         var pendingStrip = "";
         if (isPendingRow) {
-          var btnDisList = taskDetailViewState.detailActionBusy ? " disabled" : "";
+          var undoGate = getTaskActionGate(data, "undo_pending");
+          var btnDisList = taskDetailViewState.detailActionBusy || !undoGate.enabled ? " disabled" : "";
+          var btnTitle = !undoGate.enabled && undoGate.reason ? (' title="' + escapeHtmlYanit(undoGate.reason) + '"') : "";
           pendingStrip =
             '<span class="task-list-pending-strip">' +
             '<span class="task-list-pending-msg">' +
@@ -2935,6 +3276,7 @@ function canTransition(from, to) {
             tid +
             '"' +
             btnDisList +
+            btnTitle +
             ">Geri al</button>" +
             "</span>";
         }
@@ -2990,20 +3332,24 @@ function canTransition(from, to) {
           btnDis +
           ">Geri al</button>";
       } else {
+        var canComplete = true;
+        var canDelete = true;
         if (st === "aktif") {
           detailBtns +=
             '<button type="button" class="task-detail-action-btn task-detail-action-btn--primary" data-task-detail-action="complete" data-task-ref="' +
             refAttr +
             '"' +
-            btnDis +
-            ">Tamamla</button>";
+            ((taskDetailViewState.detailActionBusy || !canComplete) ? " disabled" : "") +
+            ">" +
+            (canComplete ? "Tamamla" : "Tamamla (pasif)") +
+            "</button>";
         }
         if (st === "aktif" || st === "tamamlandı" || st === "tamamlandi") {
           detailBtns +=
             '<button type="button" class="task-detail-action-btn task-detail-action-btn--secondary" data-task-detail-action="delete" data-task-ref="' +
             refAttr +
             '"' +
-            btnDis +
+            ((taskDetailViewState.detailActionBusy || !canDelete) ? " disabled" : "") +
             ">Sil</button>";
         }
       }
@@ -3100,6 +3446,8 @@ function canTransition(from, to) {
         "<p>Durum: " +
         buildBadge(t.status, getTaskStatusVariant(t.status)) +
         "</p>" +
+        (t.summary ? ('<p class="text-muted-small">' + escapeHtmlYanit(t.summary) + "</p>") : "") +
+        (t.result ? ('<p class="text-muted-small"><strong>Sonuç:</strong> ' + escapeHtmlYanit(t.result) + "</p>") : "") +
         primaryBlock +
         noActionsNote +
         '<p class="task-detail-meta-heading">Ayrıntılar</p>' +
@@ -3155,7 +3503,211 @@ function canTransition(from, to) {
     actionBusyByPostId: {},
     actionBusyAll: false,
     flash: null,
+    taskTrashBusy: false,
   };
+
+  /**
+   * Geri yükle / kalıcı sil tek kaynak (panel_tasks_server).
+   * Varsayılan: http://127.0.0.1:8766 — window.LUMOS_PANEL_TRASH_ACTION_API_BASE ile değiştirilebilir.
+   */
+  const API_BASE =
+    typeof window !== "undefined" &&
+    window.LUMOS_PANEL_TRASH_ACTION_API_BASE != null &&
+    String(window.LUMOS_PANEL_TRASH_ACTION_API_BASE).trim() !== ""
+      ? String(window.LUMOS_PANEL_TRASH_ACTION_API_BASE).replace(/\/$/, "")
+      : "http://127.0.0.1:8766";
+
+  /** lumos-read-state ile aynı HTTP kökü; aksi halde open-folder yanlış porta gider ve tarayıcı "Failed to fetch" verir. */
+  function getLumosPanelOpenFolderUrl() {
+    var live = resolveLumosLiveStateUrl();
+    if (!live || typeof live !== "string") return "";
+    var u = live.trim();
+    var marker = "/lumos-read-state";
+    var idx = u.indexOf(marker);
+    var base = idx >= 0 ? u.slice(0, idx) : u;
+    base = String(base).replace(/\/$/, "");
+    if (!base) return "";
+    return base + "/open-folder";
+  }
+
+  /** Disk çöpündeki görev: POST …/tasks/restore | POST …/tasks/delete-permanent. */
+  function handleTrashTaskServerAction(action, taskId) {
+    if (trashViewState.taskTrashBusy) return;
+    var tid = resolveTrashActionTaskIdForRequest(taskId);
+    if (!tid) return;
+    if (typeof console !== "undefined" && console.log) {
+      console.log("[LUMOS] trash POST body id:", tid);
+    }
+    var base = String(API_BASE).replace(/\/$/, "");
+    var url =
+      action === "restore" ? base + "/tasks/restore" : base + "/tasks/delete-permanent";
+    var reqBody = { id: tid };
+    trashViewState.taskTrashBusy = true;
+    trashViewState.flash = { kind: "ok", source: "trash-task", text: "İşleniyor…" };
+    refreshCurrentView();
+    panelTasksTrashDirectPost(url, reqBody)
+      .then(function (r) {
+        return r.text().then(function (txt) {
+          var j = null;
+          try {
+            j = txt && String(txt).trim() !== "" ? JSON.parse(txt) : null;
+          } catch (_) {
+            j = null;
+          }
+          return { ok: r.ok, status: r.status, j: j, rawPreview: txt != null ? String(txt).slice(0, 200) : "" };
+        });
+      })
+      .then(function (x) {
+        trashViewState.taskTrashBusy = false;
+        var j = x.j && typeof x.j === "object" ? x.j : {};
+        var code = j.error != null ? String(j.error) : "";
+        var map = {
+          missing_trash_file: "missing_trash_file: Çöp dosyası bulunamadı.",
+          task_already_exists: "task_already_exists: Görev zaten listede.",
+          empty_id: "empty_id: Geçersiz kimlik.",
+          invalid_trash_file: "invalid_trash_file: Çöp dosyası okunamadı.",
+          invalid_payload: "invalid_payload: Çöp kaydı geçersiz.",
+          invalid_json: "invalid_json: İstek gövdesi geçersiz.",
+        };
+        if (!x.ok || !j.ok) {
+          var errText;
+          if (code === "not_found") {
+            errText =
+              action === "restore"
+                ? "restore route yok — beklenen: POST " + API_BASE + "/tasks/restore"
+                : "delete-permanent route yok — beklenen: POST " + API_BASE + "/tasks/delete-permanent";
+          } else if (code && map[code]) {
+            errText = map[code];
+          } else if (code) {
+            errText = code;
+          } else if (x.status === 404) {
+            errText =
+              action === "restore"
+                ? "restore route yok veya 404 — beklenen: POST " + API_BASE + "/tasks/restore"
+                : "delete-permanent route yok veya 404 — beklenen: POST " + API_BASE + "/tasks/delete-permanent";
+          } else if (x.status === 405) {
+            errText = "HTTP 405: Yöntem bu yol için izinli değil (" + url + ").";
+          } else if (x.status) {
+            errText =
+              "HTTP " +
+              x.status +
+              (x.rawPreview && x.rawPreview.indexOf("{") === -1 ? ": " + x.rawPreview : "") +
+              (j && j.error ? " — " + String(j.error) : "");
+          } else {
+            errText = "İşlem başarısız (yanıt okunamadı).";
+          }
+          trashViewState.flash = {
+            kind: "error",
+            source: "trash-task",
+            text: errText,
+          };
+        } else {
+          trashViewState.flash = {
+            kind: "ok",
+            source: "trash-task",
+            text: action === "restore" ? "Görev geri yüklendi." : "Çöpten kalıcı silindi.",
+          };
+          mockState.selectedTrashId = null;
+        }
+        return syncTasksDocumentFromApi().catch(function () {
+          return null;
+        });
+      })
+      .then(function () {
+        refreshCurrentView();
+        pollLumosReadState();
+        return null;
+      })
+      .catch(function (err) {
+        trashViewState.taskTrashBusy = false;
+        var raw = (err && err.message) || String(err);
+        if (typeof console !== "undefined" && console.warn) {
+          console.warn("[LUMOS] trash-task fetch ağ hatası", { url: url, method: "POST", body: reqBody, error: raw });
+        }
+        var netFail =
+          raw === "Failed to fetch" ||
+          raw === "Load failed" ||
+          raw === "NetworkError when attempting to fetch resource." ||
+          (err && err.name === "AbortError");
+        trashViewState.flash = {
+          kind: "error",
+          source: "trash-task",
+          text: netFail ? "Sunucuya ulaşılamadı. (" + API_BASE + " ayakta mı?)" : raw,
+        };
+        refreshCurrentView();
+        pollLumosReadState();
+      });
+  }
+
+  function lumosOpenWorkspaceFolder(absPath) {
+    var pathStr = absPath != null ? String(absPath).trim() : "";
+    if (!pathStr || pathStr === "—") return;
+    var url = getLumosPanelOpenFolderUrl();
+    if (!url) {
+      trashViewState.flash = {
+        kind: "error",
+        source: "open-folder",
+        text: "Klasörü açmak için panel görev sunucusunu çalıştırın (örn. python3 panel/scripts/panel_tasks_server.py).",
+      };
+      if (getCurrentScreen().id === "trash") renderMain();
+      return;
+    }
+    fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: pathStr }),
+    })
+      .then(function (r) {
+        if (typeof console !== "undefined" && console.log) {
+          console.log("[LUMOS] panel_tasks POST url:", url, "response status:", r.status);
+        }
+        return r.text().then(function (txt) {
+          var j = null;
+          try {
+            j = txt && String(txt).trim() !== "" ? JSON.parse(txt) : null;
+          } catch (_) {
+            j = null;
+          }
+          return { ok: r.ok, status: r.status, j: j, raw: txt };
+        });
+      })
+      .then(function (x) {
+        var j = x.j && typeof x.j === "object" ? x.j : {};
+        if (!x.ok || !j.ok) {
+          var code = j.error != null ? String(j.error) : "";
+          var map = {
+            path_not_allowed: "Bu yol güvenlik nedeniyle açılamıyor.",
+            not_a_directory: "Klasör bulunamadı.",
+            empty_path: "Geçerli bir yol yok.",
+            bad_path: "Geçersiz yol.",
+            not_found: "open-folder uç noktası bulunamadı; panel sunucusunu güncelleyin.",
+            http_404: "open-folder bulunamadı (404).",
+          };
+          var baseMsg = map[code] || (code ? code : "Klasör açılamadı.");
+          if (!map[code] && x.status) baseMsg += " (HTTP " + x.status + ")";
+          trashViewState.flash = {
+            kind: "error",
+            source: "open-folder",
+            text: baseMsg,
+          };
+        } else {
+          trashViewState.flash = { kind: "ok", source: "open-folder", text: "Çöp klasörü açıldı." };
+        }
+        if (getCurrentScreen().id === "trash") renderMain();
+      })
+      .catch(function (err) {
+        var raw = (err && err.message) || String(err);
+        if (typeof console !== "undefined" && console.warn) {
+          console.warn("[LUMOS] open-folder fetch hatası (ağ/CORS/sunucu yok)", url, raw);
+        }
+        var friendly =
+          raw === "Failed to fetch"
+            ? "Çöp klasörü için sunucuya ulaşılamadı. lumos-read-state ile aynı adresin ayakta ve panel_tasks_server sürümünde /open-folder olduğundan emin olun."
+            : "Sunucuya bağlanılamadı: " + raw;
+        trashViewState.flash = { kind: "error", source: "open-folder", text: friendly };
+        if (getCurrentScreen().id === "trash") renderMain();
+      });
+  }
 
   /** Görevler detay paneli: API beklerken buton kilidi; aksiyon sonrası görsel geri bildirim */
   var taskDetailViewState = {
@@ -3371,147 +3923,151 @@ function canTransition(from, to) {
       });
   }
 
-  // ——— Ekran: Silinenler (adapter + build) ———
+  // ——— Ekran: Silinenler (köprü: window.__LUMOS_READ_STATE__.trash.trash_items → getTrashData) ———
   function renderTrash() {
-    var F = window.LumosFeedApi;
-    if (!F) return renderEmptyState("Silinenler", "feed-api.js yüklenmedi.");
-    var recentPermanentHtml = buildRecentPermanentDeletesSectionHtml();
-
-    if (trashViewState.status === "idle") {
-      fetchTrash();
-    }
-
-    if (trashViewState.status === "loading") {
-      return (
-        '<div class="trash-deletion-hub">' +
-        ViewHeader("Silinenler", "Çöp kutusu yükleniyor…") +
-        buildSection(
-          "Çöp kutusu",
-          trashFlashHtml(F, { isLoading: true }) + '<div class="feed-loading">Yükleniyor…</div>'
-        ) +
-        recentPermanentHtml +
-        "</div>"
-      );
-    }
-
-    if (trashViewState.status === "error") {
-      return (
-        '<div class="trash-deletion-hub">' +
-        ViewHeader("Silinenler", "Liste alınamadı") +
-        buildSection(
-          "Çöp kutusu",
-          trashFlashHtml(F, { postsLength: 0 }) +
-            '<div class="feed-panel-error" role="alert">' +
-            '<p class="feed-panel-error-title">İstek tamamlanamadı</p>' +
-            '<p class="feed-panel-error-detail">' +
-            F.escapeHtml(trashViewState.error) +
-            "</p>" +
-            "</div>"
-        ) +
-        recentPermanentHtml +
-        "</div>"
-      );
-    }
-
-    var posts = trashViewState.trashPosts || [];
-    syncTrashSelectionToList(posts);
-    var allActionDisabled = posts.length === 0 || trashViewState.actionBusyAll;
-    var emptyTrashBtnDisabledAttr = allActionDisabled ? " disabled" : "";
-    var topActionsHtml =
-      '<div class="feed-toolbar log-tabs">' +
-      '<button type="button" id="lumos-trash-empty-all" class="log-tab" data-trash-action-all="empty"' +
-      emptyTrashBtnDisabledAttr +
-      ">Çöpü Boşalt</button>" +
-      "</div>";
-    var selectedId = mockState.selectedTrashId;
-    var selectedPost = null;
-    if (selectedId) {
-      for (var si = 0; si < posts.length; si++) {
-        if (String(posts[si].id) === String(selectedId)) {
-          selectedPost = posts[si];
+    var data = getTrashData();
+    var items = data.listItems || [];
+    if (items.length > 0) {
+      var sel = mockState.selectedTrashId != null ? String(mockState.selectedTrashId) : "";
+      var found = false;
+      var si;
+      for (si = 0; si < items.length; si++) {
+        var it0 = items[si];
+        var k0 = trashListRowKey(it0);
+        if (taskIdEquals(it0 && it0.id, sel) || taskIdEquals(k0, sel)) {
+          found = true;
           break;
         }
       }
+      if (!sel || !found) {
+        mockState.selectedTrashId = items[0] ? trashListRowKey(items[0]) || items[0].id : null;
+        data = getTrashData();
+        items = data.listItems || [];
+      }
+    } else {
+      mockState.selectedTrashId = null;
     }
-
+    var recentPermanentHtml = buildRecentPermanentDeletesSectionHtml();
+    var flashLine = "";
+    if (trashViewState.flash && trashViewState.flash.text) {
+      if (window.LumosFeedApi && trashViewState.flash.source !== "trash-task") {
+        flashLine = trashFlashHtml(window.LumosFeedApi, { isLoading: false, postsLength: items.length });
+      } else {
+        var fk = trashViewState.flash.kind === "error" ? "error" : "ok";
+        flashLine =
+          '<p class="feed-action-flash feed-action-flash--' +
+          fk +
+          '" role="' +
+          (fk === "error" ? "alert" : "status") +
+          '">' +
+          escapeHtmlYanit(trashViewState.flash.text) +
+          "</p>";
+      }
+    }
+    var metricsHtml = "";
+    if (data.summaryMetrics && data.summaryMetrics.length) {
+      var mcHtml = "";
+      for (var mi = 0; mi < data.summaryMetrics.length; mi++) {
+        var sm = data.summaryMetrics[mi];
+        if (mi === 0 && sm && sm.title === "Çöp konumu") {
+          mcHtml += TrashLocationOpenMetricCard(
+            sm.title,
+            sm.value,
+            resolveTrashOpenPathForAction(data, sm.value)
+          );
+        } else {
+          mcHtml += buildMetric({ title: sm.title, value: sm.value, note: sm.note || null });
+        }
+      }
+      metricsHtml = '<div class="cards-grid">' + mcHtml + "</div>";
+    }
+    if (typeof console !== "undefined" && console.log) {
+      console.log("renderTrash listItems", items);
+    }
     var listPaneHtml;
-    if (posts.length === 0) {
-      listPaneHtml = buildEmptyState("Silinen kayıt yok", "Çöp kutusu boş.");
+    if (items.length === 0) {
+      listPaneHtml = buildEmptyState(data.emptyListTitle || "Çöp listesi boş", data.emptyListDesc || "");
     } else {
       var listHtml = "";
-      for (var li = 0; li < posts.length; li++) {
-        var p = posts[li] || {};
-        var pid = p.id != null ? String(p.id) : "";
-        var uname = p.username ? String(p.username) : "—";
-        var movedAtUi = p.deletedAt ? formatUiListTimestamp(p.deletedAt) : "—";
-        var preview = trashPreviewText(p.content || "");
-        var tip = String("@" + uname + (preview && preview !== "—" ? " · " + preview : "")).replace(/\s+/g, " ").trim();
-        var titleAttr = tip !== "" ? ' title="' + escapeHtmlYanit(tip) + '"' : "";
-        var sel = selectedPost && String(selectedPost.id) === pid ? " selected" : "";
-        var busy = !!trashViewState.actionBusyByPostId[pid] || trashViewState.actionBusyAll;
-        var disabledAttr = busy ? " disabled" : "";
+      for (var li = 0; li < items.length; li++) {
+        var it = items[li] || {};
+        var iid = trashListRowKey(it) || (it.id != null ? String(it.id) : "");
+        var sel =
+          mockState.selectedTrashId != null ? (taskIdEquals(mockState.selectedTrashId, iid) ? " selected" : "") : "";
+        var nm = it.name != null ? String(it.name) : "—";
+        var mv = trashItemRowTimestampFormatted(it);
         listHtml +=
-          '<li class="list-item trash-post-list-item' +
+          '<li class="list-item' +
           sel +
           '" data-trash-id="' +
-          F.escapeHtml(pid) +
-          '"><div class="trash-post-list-text">' +
-          '<div class="trash-list-item-title"' +
-          titleAttr +
-          ">@" +
-          F.escapeHtml(uname) +
-          (preview && preview !== "—" ? " · " + F.escapeHtml(preview) : "") +
-          "</div>" +
-          '<div class="trash-list-item-meta">Çöpe taşındı \u2022 ' +
-          F.escapeHtml(movedAtUi) +
-          "</div></div>" +
-          '<div class="trash-item-actions">' +
-          '<button type="button" class="post-feed-action-btn post-feed-action-btn--restore" data-trash-action="restore" data-trash-post-id="' +
-          F.escapeHtml(pid) +
-          '"' +
-          disabledAttr +
-          ">Geri Yükle</button>" +
-          '<button type="button" class="post-feed-action-btn post-feed-action-btn--danger" data-trash-action="permanent-delete" data-trash-post-id="' +
-          F.escapeHtml(pid) +
-          '"' +
-          disabledAttr +
-          ">Kalıcı Sil</button>" +
-          "</div>" +
-          "</li>";
+          escapeHtmlYanit(iid) +
+          '"><span class="task-list-row-main"><span class="task-list-title-text">' +
+          escapeHtmlYanit(nm) +
+          '</span></span><span class="text-muted-small">' +
+          escapeHtmlYanit(mv) +
+          "</span></li>";
       }
       listPaneHtml = '<ul class="list-selectable" id="trash-list">' + listHtml + "</ul>";
     }
-
-    var detailBody = selectedPost
-      ? buildDetailRows([
-          {
-            label: "Kullanıcı",
-            value: selectedPost.username ? String(selectedPost.username) : "—",
-          },
-          { label: "İçerik", value: selectedPost.content != null ? String(selectedPost.content) : "—" },
-          {
-            label: "Taşınma",
-            value: selectedPost.deletedAt ? feedFormatCreatedAtReadable(selectedPost.deletedAt) : "—",
-          },
-        ])
-      : "<p class=\"screen-placeholder\">Detay için listeden bir kayıt seçin.</p>";
-    var detail = buildDetailPanel("Detay", detailBody);
-    var inboxSectionBody =
-      topActionsHtml +
-      trashFlashHtml(F, { postsLength: posts.length }) +
+    var selectedItem = data.selectedItem;
+    var detailBody;
+    if (selectedItem && items.length) {
+      var st = selectedItem.status != null ? String(selectedItem.status) : "—";
+      var delAt = selectedItem.deletedAt != null && String(selectedItem.deletedAt) !== "—" ? String(selectedItem.deletedAt) : "";
+      if (!delAt && selectedItem.movedAt) delAt = String(selectedItem.movedAt);
+      if (!delAt) delAt = "—";
+      detailBody = buildDetailRows([
+        { label: "Ad", value: selectedItem.name != null ? String(selectedItem.name) : "—" },
+        { label: "Durum", value: st },
+        { label: "Silinme", value: delAt },
+        { label: "Orijinal yol", value: selectedItem.originalPath != null ? String(selectedItem.originalPath) : "—" },
+        { label: "Çöp yolu", value: selectedItem.trashPath != null ? String(selectedItem.trashPath) : "—" },
+        { label: "Kapsam", value: selectedItem.scope != null ? String(selectedItem.scope) : "—" },
+      ]);
+      if (selectedItem.rawRecord && typeof selectedItem.rawRecord === "object") {
+        detailBody +=
+          '<pre class="trash-json-pre">' +
+          escapeHtmlYanit(JSON.stringify(selectedItem.rawRecord, null, 2)) +
+          "</pre>";
+      }
+    } else {
+      detailBody = "<p class=\"screen-placeholder\">" + (data.emptyDetailPlaceholder || "Listeden bir öğe seçin.") + "</p>";
+    }
+    var detail = buildDetailPanel(data.detailTitle || "Detay", detailBody);
+    var hasSel = !!(data.selectedItem && items.length);
+    var tbBusy = trashViewState.taskTrashBusy === true;
+    var btnDis = !hasSel || tbBusy ? " disabled" : "";
+    var selForBtn = hasSel && data.selectedItem ? trashListRowKey(data.selectedItem) : "";
+    var trashToolbar =
+      '<div class="trash-task-toolbar" role="toolbar" aria-label="Çöp görev işlemleri">' +
+      '<button type="button" class="task-detail-action-btn task-detail-action-btn--primary"' +
+      (hasSel && !tbBusy ? ' data-trash-task-id="' + escapeHtmlYanit(selForBtn) + '"' : "") +
+      ' data-trash-task-action="restore"' +
+      btnDis +
+      ">Geri yükle</button>" +
+      '<button type="button" class="task-detail-action-btn task-detail-action-btn--secondary"' +
+      (hasSel && !tbBusy ? ' data-trash-task-id="' + escapeHtmlYanit(selForBtn) + '"' : "") +
+      ' data-trash-task-action="delete-permanent"' +
+      btnDis +
+      ">Kalıcı sil</button>" +
+      '<span class="text-muted-small trash-task-toolbar-hint">İstek: ' +
+      escapeHtmlYanit(API_BASE) +
+      "/tasks/…</span>" +
+      "</div>";
+    var inboxBody =
       '<div class="split-view trash-inbox-split">' +
       '<div class="trash-inbox-list-col">' +
+      trashToolbar +
       listPaneHtml +
       "</div>" +
       detail +
       "</div>";
     return (
       '<div class="trash-deletion-hub">' +
-      ViewHeader(
-        "Silinenler",
-        posts.length ? String(posts.length) + " öğe çöp kutusunda." : "Çöp kutusu boş."
-      ) +
-      buildSection("Çöp kutusu", inboxSectionBody) +
+      ViewHeader(data.title || "Silinenler", data.subtitle || "") +
+      flashLine +
+      metricsHtml +
+      buildSection("Silinen kayıtlar", inboxBody) +
       recentPermanentHtml +
       "</div>"
     );
@@ -3556,10 +4112,148 @@ function canTransition(from, to) {
   /** Sohbet: bellek + tek kalıcı kaynak CHAT_PANEL_STORAGE_KEY (localStorage). Hash değişince sıfırlanmaz. */
   var chatViewState = {
     messages: [],
+    /** Composer: polling/rerender innerHTML öncesi korunur (textarea yok edilmeden snapshot). */
+    draft: "",
+    /** Yeniden çizimden sonra log’u alta kaydır (kullanıcı yukarıda değilse). */
+    stickToBottom: true,
+    /** Bir sonraki render’da alta zorla (kullanıcı mesajı / kilit yanıtı). */
+    userForcedScrollToBottom: false,
+    /** renderChatMainInto sonunda textarea’ya focus (preventScroll ile). */
+    focusComposerAfterRender: false,
+    /** Unlock isteği devam ederken tekrar gönderimi engelle. */
+    kilitAcUnlockInFlight: false,
   };
+
+  var KILIT_AC_MSG_UNLOCK_OK = "Kilit açıldı";
+  var KILIT_AC_MSG_UNLOCK_ERR = "Kilit açılamadı";
+
+  function normalizeUnlockResult(out) {
+    return out != null && typeof out === "object" && out.ok === true ? { ok: true } : { ok: false };
+  }
+
+  function applyUnlockChatAssistantMessage(result) {
+    var r = result != null && typeof result === "object" ? result : { ok: false };
+    if (r.ok === true) {
+      chatViewState.messages.push({
+        role: "assistant",
+        text: KILIT_AC_MSG_UNLOCK_OK,
+        depth: "simple",
+      });
+    } else {
+      chatViewState.messages.push({
+        role: "assistant",
+        text: KILIT_AC_MSG_UNLOCK_ERR,
+        depth: "simple",
+      });
+    }
+    persistChatMessagesToStorage();
+    refreshCurrentView();
+  }
+
+  function closeUnlockModal() {
+    var root = document.getElementById("lumos-unlock-modal-root");
+    if (root && root._lumosUnlockEsc) {
+      document.removeEventListener("keydown", root._lumosUnlockEsc);
+      root._lumosUnlockEsc = null;
+    }
+    if (root && root.parentNode) {
+      root.parentNode.removeChild(root);
+    }
+  }
+
+  function openUnlockModal() {
+    if (chatViewState.kilitAcUnlockInFlight) {
+      return;
+    }
+    closeUnlockModal();
+    var root = document.createElement("div");
+    root.id = "lumos-unlock-modal-root";
+    root.className = "lumos-unlock-modal-root";
+    root.setAttribute("role", "dialog");
+    root.setAttribute("aria-modal", "true");
+    root.setAttribute("aria-labelledby", "lumos-unlock-title");
+    root.innerHTML =
+      '<div class="lumos-unlock-modal-backdrop" data-unlock-dismiss="1">' +
+      '<div class="lumos-unlock-modal-panel" data-unlock-panel="1">' +
+      '<h2 class="lumos-unlock-modal-title" id="lumos-unlock-title">Kilit aç</h2>' +
+      '<label class="lumos-unlock-modal-label" for="unlock-pass">Şifre</label>' +
+      '<input type="password" id="unlock-pass" class="lumos-unlock-modal-input" autocomplete="off" autocapitalize="off" spellcheck="false" />' +
+      '<div class="lumos-unlock-modal-actions">' +
+      '<button type="button" class="lumos-unlock-modal-btn lumos-unlock-modal-btn--primary" id="lumos-unlock-submit">Onayla</button>' +
+      '<button type="button" class="lumos-unlock-modal-btn" id="lumos-unlock-cancel">İptal</button>' +
+      "</div></div></div>";
+    document.body.appendChild(root);
+
+    root._lumosUnlockEsc = function (e) {
+      if (e.key === "Escape") {
+        closeUnlockModal();
+      }
+    };
+    document.addEventListener("keydown", root._lumosUnlockEsc);
+
+    function onBackdrop(e) {
+      if (e.target && e.target.getAttribute && e.target.getAttribute("data-unlock-dismiss") === "1") {
+        closeUnlockModal();
+      }
+    }
+    root.addEventListener("click", onBackdrop);
+
+    var panel = root.querySelector("[data-unlock-panel]");
+    if (panel) {
+      panel.addEventListener("click", function (ev) {
+        ev.stopPropagation();
+      });
+    }
+
+    document.getElementById("lumos-unlock-cancel").addEventListener("click", function () {
+      closeUnlockModal();
+    });
+
+    document.getElementById("lumos-unlock-submit").addEventListener("click", function () {
+      var inp = document.getElementById("unlock-pass");
+      var v = inp && inp.value != null ? String(inp.value).trim() : "";
+      runKilitAcUnlockFromUI(v);
+    });
+
+    var passEl = document.getElementById("unlock-pass");
+    if (passEl) {
+      passEl.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+          e.preventDefault();
+          var v = passEl.value != null ? String(passEl.value).trim() : "";
+          runKilitAcUnlockFromUI(v);
+        }
+      });
+      try {
+        passEl.focus({ preventScroll: true });
+      } catch (_) {
+        passEl.focus();
+      }
+    }
+  }
+
+  function runKilitAcUnlockFromUI(pass) {
+    var p = pass != null ? String(pass).trim() : "";
+    if (!p) {
+      return;
+    }
+    closeUnlockModal();
+    chatViewState.kilitAcUnlockInFlight = true;
+    runKilitAcUnlockFromChat(p)
+      .then(applyUnlockChatAssistantMessage)
+      .catch(function () {
+        applyUnlockChatAssistantMessage({ ok: false });
+      })
+      .finally(function () {
+        chatViewState.kilitAcUnlockInFlight = false;
+        chatViewState.focusComposerAfterRender = true;
+        refreshCurrentView();
+      });
+  }
 
   /** Chat geçmişi — görev tasks.json hattından ayrı; tek anahtar, dağınık yazım yok. */
   var CHAT_PANEL_STORAGE_KEY = "lumos_panel_chat_messages_v1";
+  /* Geçmişi sıfırlamak (test): localStorage.removeItem("lumos_panel_chat_messages_v1") veya DevTools → Application → Local Storage. */
 
   function normalizeChatMessageForStorage(m) {
     if (!m || typeof m !== "object") return null;
@@ -3615,6 +4309,92 @@ function canTransition(from, to) {
 
   hydrateChatMessagesFromStorage();
 
+  /** Chat intent eşlemesi: tr-TR küçük harf + boşluk normalize. */
+  function normalizeChatIntentKey(s) {
+    return normalizeTaskCommandWhitespace(s).toLocaleLowerCase("tr-TR");
+  }
+
+  function normalizeKilitAcCommandKey(s) {
+    return normalizeChatIntentKey(String(s || ""))
+      .replace(/[.?!…]+$/g, "")
+      .trim();
+  }
+
+  /** «kilit aç» ve birleşik yazımlar — unlock; yalnızca «kilit» burada değil (normal sohbet). */
+  function isKilitAcChatCommand(key) {
+    var k = String(key || "").trim();
+    if (!k) return false;
+    if (/^(kilit\s+aç|kilit\s+ac|kilidi\s+aç|kilidi\s+ac)$/.test(k)) return true;
+    if (/^(kilitaç|kilitac|kilidiac)$/.test(k)) return true;
+    return false;
+  }
+
+  function onChatLogScroll() {
+    var log = this;
+    var threshold = 72;
+    var dist = log.scrollHeight - log.scrollTop - log.clientHeight;
+    chatViewState.stickToBottom = dist <= threshold;
+  }
+
+  function navigateChatToHashIfDifferent(hash) {
+    try {
+      var want = String(hash || "").trim();
+      if (!want) return;
+      var cur = ((window.location && window.location.hash) || "").split("?")[0].toLowerCase();
+      if (cur !== want.toLowerCase()) {
+        window.location.hash = want;
+      }
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
+  function buildLiveSystemStatusChatLine() {
+    var s = getEffectiveState();
+    var g = s.guidance || {};
+    var mode = g.mode != null ? String(g.mode) : "—";
+    var lock = g.lock != null ? String(g.lock) : "—";
+    var rs = typeof window !== "undefined" ? window.__LUMOS_READ_STATE__ : null;
+    var fresh = rs && rs.panel_meta && rs.panel_meta.live_state_fresh === true;
+    return (
+      "Canlı durum özeti — mod: " +
+      mode +
+      ", kilit: " +
+      lock +
+      (fresh ? " (köprü güncel)." : " (köprü yüklemesiyle güncellenir).")
+    );
+  }
+
+  /**
+   * Tek ekran / kısayol komutları (görev motorundan önce).
+   * @returns {{ text: string, depth?: string } | null}
+   */
+  function tryChatPanelNavigationIntent(trimmed) {
+    var k = normalizeChatIntentKey(trimmed)
+      .replace(/[.?!…]+$/g, "")
+      .trim();
+    if (!k) return null;
+    if (/^(görevler|gorevler)$/.test(k)) {
+      navigateChatToHashIfDifferent(SCREENS.tasks.hash);
+      return {
+        text: "Görevler ekranına geçtim; listeden görevleri görebilir veya detaydan işlem yapabilirsin.",
+        depth: "simple",
+      };
+    }
+    if (/^(durum|sistem|sistem durumu|system)$/.test(k)) {
+      navigateChatToHashIfDifferent(SCREENS.system.hash);
+      return { text: buildLiveSystemStatusChatLine(), depth: "simple" };
+    }
+    if (/^(anahtar\s+kasası|anahtar\s+kasasi|keystore)$/.test(k)) {
+      navigateChatToHashIfDifferent(SCREENS.keystore.hash);
+      return {
+        text: "Anahtar Kasası ekranına geçtim; kilit ve hassas yazım kapsamını buradan yönetebilirsin.",
+        depth: "simple",
+      };
+    }
+    return null;
+  }
+
   /**
    * Tek giriş noktası: görev oluştur | tamamla | sil (normalize edilmiş satır üzerinde).
    * @returns {{ verb: 'olustur', taskName: string } | { verb: 'tamamla'|'sil', ref: string } | null}
@@ -3622,7 +4402,7 @@ function canTransition(from, to) {
   function parseGorevMotorCommand(raw) {
     var t = normalizeTaskCommandWhitespace(raw);
     if (!t) return null;
-    var m = /^(?:görev|gorev)\s+oluştur(?=\s|:|$)/i.exec(t);
+    var m = /^(?:görev|gorev)\s+(?:oluştur|olustur)(?=\s|:|$)/i.exec(t);
     if (m) {
       var taskName = normalizeTaskCommandWhitespace(
         t.slice(m[0].length).replace(/^\s*:?\s*/, "")
@@ -3660,6 +4440,12 @@ function canTransition(from, to) {
     var g = s.guidance || {};
     var modeStr = g.mode != null ? String(g.mode).toLowerCase() : "";
     var online = modeStr === SOURCE_STATUS.ONLINE || String(s.appMode || "").toLowerCase() === SOURCE_STATUS.ONLINE;
+    if (!online && getPanelTasksPersistenceConfig().chatCommands === "api") {
+      var apiB = getPanelTasksApiBaseResolved();
+      if (apiB && String(apiB).trim() !== "") {
+        online = true;
+      }
+    }
     var lockVal = g.lock != null ? String(g.lock) : "";
     var koruma = lockVal === "LOCKED";
     if (!koruma && s.keystoreState != null) {
@@ -3866,28 +4652,119 @@ function canTransition(from, to) {
     refreshCurrentView();
   }
 
+  function handleTaskDetailCompleteDirect(taskRef) {
+    taskDetailViewState.detailActionBusy = true;
+    taskDetailPanelLastCmdAction = "complete";
+    clearTaskDetailFlashTimer();
+    taskDetailViewState.flash = null;
+    refreshCurrentView();
+    fetchWithTimeout(
+      TASKS_API_BASE + "/tasks/complete",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ref: String(taskRef || "") }),
+      },
+      PANEL_TASKS_FETCH_MS
+    )
+      .then(function (res) {
+        if (res.status === 404) {
+          return Promise.reject(new Error("Tamamlanacak görev bulunamadı."));
+        }
+        if (!res.ok && res.status !== 409) {
+          return Promise.reject(new Error("İşlem tamamlanamadı."));
+        }
+        return refreshTasksDocumentFromApiStrict();
+      })
+      .then(function () {
+        taskDetailViewState.detailActionBusy = false;
+        taskDetailViewState.flash = { kind: "ok", text: "Görev tamamlandı.", panelAction: "complete" };
+        scheduleTaskDetailOkFlashAutoClear();
+        refreshCurrentView();
+      })
+      .catch(function (err) {
+        taskDetailViewState.detailActionBusy = false;
+        clearTaskDetailFlashTimer();
+        taskDetailViewState.flash = {
+          kind: "error",
+          text: (err && err.message) || "İşlem tamamlanamadı.",
+          panelAction: "complete",
+        };
+        refreshCurrentView();
+      });
+  }
+
+  function handleTaskDetailDeleteDirect(taskId) {
+    taskDetailViewState.detailActionBusy = true;
+    taskDetailPanelLastCmdAction = "delete";
+    clearTaskDetailFlashTimer();
+    taskDetailViewState.flash = null;
+    refreshCurrentView();
+    fetchWithTimeout(
+      TASKS_API_BASE + "/tasks/delete",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: String(taskId || "") }),
+      },
+      PANEL_TASKS_FETCH_MS
+    )
+      .then(function (res) {
+        if (!res.ok) {
+          return Promise.reject(new Error("İşlem tamamlanamadı."));
+        }
+        return refreshTasksDocumentFromApiStrict();
+      })
+      .then(function () {
+        taskDetailViewState.detailActionBusy = false;
+        taskDetailViewState.flash = { kind: "ok", text: "Görev silindi.", panelAction: "delete" };
+        scheduleTaskDetailOkFlashAutoClear();
+        refreshCurrentView();
+        pollLumosReadState();
+      })
+      .catch(function (err) {
+        taskDetailViewState.detailActionBusy = false;
+        clearTaskDetailFlashTimer();
+        taskDetailViewState.flash = {
+          kind: "error",
+          text: (err && err.message) || "İşlem tamamlanamadı.",
+          panelAction: "delete",
+        };
+        refreshCurrentView();
+      });
+  }
+
   /**
    * @param {string} userText
    * @returns {Promise<{ text: string, depth?: string, blocks?: object }>|{ text: string, depth?: string, blocks?: object }}
    */
   function buildAssistantReply(userText) {
     var trimmed = String(userText || "").trim();
-    var lower = trimmed.toLowerCase();
+    if (!trimmed) {
+      return { text: "Bir mesaj yazın.", depth: "simple" };
+    }
+    var nav = tryChatPanelNavigationIntent(trimmed);
+    if (nav) return nav;
     var engineReply = tryHandleTaskEngineChatCommand(trimmed);
     if (engineReply) return engineReply;
-    if (lower.indexOf("görev") !== -1) {
+    var keyTr = normalizeChatIntentKey(trimmed);
+    var keyAscii = keyTr.replace(/ğ/g, "g").replace(/ü/g, "u").replace(/ş/g, "s").replace(/ı/g, "i").replace(/ö/g, "o").replace(/ç/g, "c");
+    if (
+      keyTr.indexOf("görev") !== -1 ||
+      keyAscii.indexOf("gorev") !== -1
+    ) {
       return {
-        text: "Görevler ekranından listeyi görebilirsin. Yeni görev eklemek için mesajın tam olarak görev oluştur ile başlamalı (ör. görev oluştur başlık).",
+        text: "Görevler ekranından listeyi görebilirsin. Yeni görev için: «görev oluştur başlık» (ör. görev oluştur alışveriş).",
         depth: "simple",
       };
     }
-    if (lower.indexOf("kayıt") !== -1) {
+    if (keyTr.indexOf("kayıt") !== -1 || keyAscii.indexOf("kayit") !== -1) {
       return {
         text: "Kayıtlar ekranına geçip son çıktıyı inceleyebilirsin.",
         depth: "simple",
       };
     }
-    if (lower.indexOf("akış") !== -1) {
+    if (keyTr.indexOf("akış") !== -1 || keyAscii.indexOf("akis") !== -1) {
       return {
         text: "Akış ekranına geçip güncel listeyi görebilirsin.",
         depth: "simple",
@@ -3899,32 +4776,41 @@ function canTransition(from, to) {
     };
   }
 
-  function focusChatInputAfterSend() {
-    requestAnimationFrame(function () {
-      var t2 = document.getElementById("lumos-chat-input");
-      if (t2) {
-        t2.focus();
-        try {
-          var len = t2.value.length;
-          t2.setSelectionRange(len, len);
-        } catch (e2) {
-          /* ignore */
-        }
-      }
-    });
-  }
-
   function submitChatFromComposer() {
     var ta = document.getElementById("lumos-chat-input");
     if (!ta) return;
     var text = ta.value != null ? String(ta.value).trim() : "";
-    if (!text) return;
+
+    if (!text) {
+      return;
+    }
+    var cmdKey = normalizeKilitAcCommandKey(text);
+    var isUnlockCmd = isKilitAcChatCommand(cmdKey);
+
+    if (isUnlockCmd) {
+      if (chatViewState.kilitAcUnlockInFlight) {
+        return;
+      }
+      ta.value = "";
+      chatViewState.draft = "";
+      chatViewState.userForcedScrollToBottom = true;
+      chatViewState.focusComposerAfterRender = true;
+      chatViewState.messages.push({ role: "user", text: text });
+      persistChatMessagesToStorage();
+      refreshCurrentView();
+      openUnlockModal();
+      return;
+    }
     ta.value = "";
+    chatViewState.draft = "";
+    chatViewState.userForcedScrollToBottom = true;
+    chatViewState.focusComposerAfterRender = true;
     chatViewState.messages.push({ role: "user", text: text });
     persistChatMessagesToStorage();
     refreshCurrentView();
 
     function pushAssistantAndRefresh(reply) {
+      chatViewState.focusComposerAfterRender = true;
       var r = reply && typeof reply === "object" ? reply : { text: String(reply || ""), depth: "simple" };
       chatViewState.messages.push({
         role: "assistant",
@@ -3934,7 +4820,6 @@ function canTransition(from, to) {
       });
       persistChatMessagesToStorage();
       refreshCurrentView();
-      focusChatInputAfterSend();
     }
 
     var replyOrPromise = buildAssistantReply(text);
@@ -3945,7 +4830,6 @@ function canTransition(from, to) {
           depth: "simple",
         });
       });
-      focusChatInputAfterSend();
       return;
     }
     pushAssistantAndRefresh(replyOrPromise);
@@ -4025,6 +4909,67 @@ function canTransition(from, to) {
 
     var parts = blockSummary() + blockUnderstood() + blockRecommendation();
     return parts ? '<div class="lumos-msg-blocks" style="margin-top:0.85rem">' + parts + "</div>" : "";
+  }
+
+  /** Chat ana içeriği: önce mevcut yazıyı draft’a al, sonra HTML bas, sonra draft geri yükle. */
+  function renderChatMainInto(mainEl) {
+    if (!mainEl) return;
+    var prev = document.getElementById("lumos-chat-input");
+    if (prev) {
+      chatViewState.draft = prev.value != null ? String(prev.value) : "";
+    }
+    var prevLog = mainEl.querySelector(".lumos-chat-log");
+    var savedScroll = null;
+    if (prevLog) {
+      savedScroll = {
+        scrollTop: prevLog.scrollTop,
+        scrollHeight: prevLog.scrollHeight,
+        clientHeight: prevLog.clientHeight,
+      };
+    }
+    mainEl.innerHTML = renderChat();
+    var next = document.getElementById("lumos-chat-input");
+    if (next) {
+      next.value = chatViewState.draft;
+    }
+    var logEl = mainEl.querySelector(".lumos-chat-log");
+    if (logEl) {
+      logEl.onscroll = onChatLogScroll;
+    }
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        var log = mainEl.querySelector(".lumos-chat-log");
+        if (!log) return;
+        if (chatViewState.userForcedScrollToBottom || chatViewState.stickToBottom) {
+          log.scrollTop = log.scrollHeight;
+        } else if (savedScroll && savedScroll.scrollHeight > 0) {
+          var oldBottom = savedScroll.scrollHeight - savedScroll.scrollTop - savedScroll.clientHeight;
+          log.scrollTop = Math.max(0, log.scrollHeight - log.clientHeight - oldBottom);
+        }
+        chatViewState.userForcedScrollToBottom = false;
+        if (chatViewState.focusComposerAfterRender) {
+          var inp = document.getElementById("lumos-chat-input");
+          if (inp) {
+            try {
+              if (typeof inp.focus === "function") {
+                inp.focus({ preventScroll: true });
+              } else {
+                inp.focus();
+              }
+            } catch (e2) {
+              inp.focus();
+            }
+            try {
+              var len = inp.value.length;
+              inp.setSelectionRange(len, len);
+            } catch (e3) {
+              /* ignore */
+            }
+          }
+          chatViewState.focusComposerAfterRender = false;
+        }
+      });
+    });
   }
 
   function renderChat() {
@@ -4387,6 +5332,11 @@ function canTransition(from, to) {
   function renderMain() {
     var main = document.getElementById("main-content");
     if (!main) return;
+    var screen = getCurrentScreen();
+    if (screen && screen.id === "chat") {
+      renderChatMainInto(main);
+      return;
+    }
     main.innerHTML = renderRouteHtml();
   }
 
@@ -4412,7 +5362,7 @@ function canTransition(from, to) {
       return;
     }
     if (h === "#chat") {
-      main.innerHTML = renderChat();
+      renderChatMainInto(main);
       return;
     }
     if (feedTabFromLocationHash()) {
@@ -4489,56 +5439,28 @@ function canTransition(from, to) {
     }
     if (!task) return;
 
-    function doLocalPermanentRemove() {
-      var arr = mockState.engineTasks || [];
-      var idx = -1;
-      var ij;
-      for (ij = 0; ij < arr.length; ij++) {
-        if (arr[ij] && String(arr[ij].id) === idStr && arr[ij].status === TASK_STATUS.PENDING_DELETE) {
-          idx = ij;
-          break;
-        }
-      }
-      if (idx < 0) return;
-      var removed = arr.splice(idx, 1)[0];
-      var title = removed && removed.title != null ? String(removed.title).trim() : "";
-      appendPanelEngineEvent({
-        type: "task_permanently_deleted",
-        taskId: String(removed.id),
-        text: title ? "Görev kalıcı silindi: " + title : "Görev kalıcı silindi",
-        ts: new Date().toISOString(),
-      });
-      finalizeTaskMutation();
-      clearPendingDeleteTickerIfIdle();
-    }
-
-    if (isPanelTasksApiRestMode() && mockState.taskSourceState === SOURCE_STATUS.ONLINE) {
-      var Adapter = typeof LumosTasksApiAdapter !== "undefined" ? LumosTasksApiAdapter : null;
-      var base = getPanelTasksApiBaseResolved();
-      if (Adapter && base) {
-        var api = new Adapter({
-          baseUrl: base,
-          fetchImpl: function (url, opts) {
-            return fetchWithTimeout(url, opts, PANEL_TASKS_FETCH_MS);
-          },
+    var delBase = String(API_BASE).replace(/\/$/, "");
+    var delUrl = delBase + "/tasks/delete-permanent";
+    panelTasksTrashDirectPost(delUrl, { id: idStr })
+      .then(function (r) {
+        return r.text().then(function (txt) {
+          var j = null;
+          try {
+            j = txt && String(txt).trim() ? JSON.parse(txt) : null;
+          } catch (_) {
+            j = null;
+          }
+          return { ok: r.ok, j: j && typeof j === "object" ? j : {} };
         });
-        api
-          .postTasksPermanentDelete({ ref: idStr })
-          .then(function (res) {
-            if (res.ok || res.status === 404) return syncTasksDocumentFromApi();
-            return Promise.reject(new Error("permanent-delete"));
-          })
-          .then(function () {
-            clearPendingDeleteTickerIfIdle();
-            refreshCurrentView();
-          })
-          .catch(function () {
-            /* API hatası: bir sonraki tick tekrar dener */
-          });
-        return;
-      }
-    }
-    doLocalPermanentRemove();
+      })
+      .then(function (x) {
+        if (!x.ok || !x.j.ok) return;
+        return syncTasksDocumentFromApi().then(function () {
+          clearPendingDeleteTickerIfIdle();
+          refreshCurrentView();
+        });
+      })
+      .catch(function () {});
   }
 
   function tickPendingDeleteExpiry() {
@@ -4595,6 +5517,21 @@ function canTransition(from, to) {
         return;
       }
     }
+    var trashTaskBtnEarly = t.closest && t.closest("[data-trash-task-action]");
+    if (trashTaskBtnEarly && trashTaskBtnEarly.dataset && trashTaskBtnEarly.dataset.trashTaskAction) {
+      if (!trashTaskBtnEarly.disabled) {
+        e.preventDefault();
+        e.stopPropagation();
+        var ttidE = trashTaskBtnEarly.dataset.trashTaskId != null ? String(trashTaskBtnEarly.dataset.trashTaskId).trim() : "";
+        if (ttidE) {
+          var tactE = String(trashTaskBtnEarly.dataset.trashTaskAction);
+          if (tactE === "restore" || tactE === "delete-permanent") {
+            handleTrashTaskServerAction(tactE, ttidE);
+          }
+        }
+      }
+      return;
+    }
     var listUndoBtn = t.closest && t.closest("[data-task-list-undo]");
     if (
       listUndoBtn &&
@@ -4621,12 +5558,16 @@ function canTransition(from, to) {
       e.preventDefault();
       var dref = String(detailActBtn.dataset.taskRef);
       var dact = String(detailActBtn.dataset.taskDetailAction);
+      if (dact === "complete") {
+        handleTaskDetailCompleteDirect(dref);
+        return;
+      }
+      if (dact === "delete") {
+        handleTaskDetailDeleteDirect(dref);
+        return;
+      }
       var dcmd =
-        dact === "complete"
-          ? "görev tamamla " + dref
-          : dact === "delete"
-            ? "görev sil " + dref
-            : dact === "undo-pending"
+        dact === "undo-pending"
               ? "görev geri al " + dref
               : "";
       if (dcmd) handleTaskDetailPanelCommand(dcmd);
@@ -4649,8 +5590,21 @@ function canTransition(from, to) {
       renderMain();
       return;
     }
-    if (t.dataset && t.dataset.trashId) {
-      mockState.selectedTrashId = t.dataset.trashId;
+    var openTrashDirBtn = t.closest && t.closest("[data-lumos-open-folder]");
+    if (
+      openTrashDirBtn &&
+      openTrashDirBtn.dataset &&
+      openTrashDirBtn.dataset.openPath != null &&
+      String(openTrashDirBtn.dataset.openPath).trim() !== ""
+    ) {
+      e.preventDefault();
+      e.stopPropagation();
+      lumosOpenWorkspaceFolder(String(openTrashDirBtn.dataset.openPath));
+      return;
+    }
+    var trashListRow = t.closest && t.closest("[data-trash-id]");
+    if (trashListRow && trashListRow.dataset && trashListRow.dataset.trashId != null && String(trashListRow.dataset.trashId) !== "") {
+      mockState.selectedTrashId = trashListRow.dataset.trashId;
       renderMain();
       return;
     }
@@ -4844,6 +5798,7 @@ function canTransition(from, to) {
     }
     if (_lastRouteScreenId === "trash" && cur.id !== "trash") {
       trashViewState.flash = null;
+      trashViewState.taskTrashBusy = false;
     }
     _lastRouteScreenId = cur.id;
 
@@ -4883,16 +5838,24 @@ function canTransition(from, to) {
   function onMainKeydown(e) {
     var t = e.target;
     if (!t || t.id !== "lumos-chat-input") return;
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
       e.preventDefault();
+      e.stopPropagation();
       submitChatFromComposer();
     }
+  }
+
+  function onMainInput(e) {
+    var t = e.target;
+    if (!t || t.id !== "lumos-chat-input") return;
+    chatViewState.draft = t.value != null ? String(t.value) : "";
   }
 
   var mainEl = document.getElementById("main-content");
   if (mainEl) {
     mainEl.addEventListener("click", onMainClick);
     mainEl.addEventListener("keydown", onMainKeydown);
+    mainEl.addEventListener("input", onMainInput);
   }
 
   /** İlk `location.hash` atamasının hashchange ile çift GET /tasks tetiklemesini engeller. */
@@ -4908,6 +5871,123 @@ function canTransition(from, to) {
     return String(base).replace(/\/$/, "") + "/lumos-read-state";
   }
 
+  /** panel_tasks_server POST /lumos-consent; görev API tabanı ile aynı host. */
+  function buildKilitAcConsentPostUrl() {
+    var w = typeof window !== "undefined" ? window : null;
+    if (!w || !w.location) return "";
+    if (w.LUMOS_PANEL_TASKS_API_BASE === false) {
+      return "";
+    }
+    var base = getPanelTasksApiBaseResolved();
+    var baseTrim = base && String(base).trim() !== "" ? String(base).replace(/\/$/, "") : "";
+    if (baseTrim) {
+      try {
+        var apiOrigin = new URL(baseTrim).origin;
+        if (apiOrigin === w.location.origin) {
+          return "/lumos-consent";
+        }
+        return new URL(baseTrim + "/lumos-consent").href;
+      } catch (_) {
+        return "";
+      }
+    }
+    try {
+      var proto = String(w.location.protocol || "");
+      if (proto === "http:" || proto === "https:") {
+        return "/lumos-consent";
+      }
+    } catch (_) {}
+    try {
+      return "http://127.0.0.1:8766/lumos-consent";
+    } catch (_) {
+      return "";
+    }
+  }
+
+  /**
+   * Gerçek host (fn var, _lumosStub değil) → unlock; aksi halde POST /lumos-consent.
+   * Yalnızca { ok: true/false } döner; reject etmez (sonuç mesajı çağıran basar).
+   */
+  function runKilitAcUnlockFromChat(passphrase) {
+    var w = typeof window !== "undefined" ? window : null;
+    var fn = w && w.LUMOS_PANEL_KEYSTORE_UNLOCK;
+    var pass = passphrase != null ? String(passphrase).trim() : "";
+
+    function postConsentApi() {
+      var postUrl;
+      try {
+        postUrl = buildKilitAcConsentPostUrl();
+      } catch (_) {
+        return Promise.resolve({ ok: false });
+      }
+      if (!postUrl || !pass) {
+        return Promise.resolve({ ok: false });
+      }
+      return fetch(postUrl, {
+        method: "POST",
+        credentials: "omit",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ passphrase: pass }),
+      })
+        .then(function (r) {
+          return r.text().then(function (txt) {
+            var j = null;
+            try {
+              j = txt && String(txt).trim() ? JSON.parse(txt) : null;
+            } catch (_) {
+              j = null;
+            }
+            if (r.ok && j && j.ok === true) {
+              try {
+                pollLumosReadState();
+              } catch (_) {}
+              return { ok: true };
+            }
+            return { ok: false };
+          });
+        })
+        .catch(function () {
+          return { ok: false };
+        });
+    }
+
+    var chain;
+    try {
+      if (typeof fn === "function" && fn._lumosStub !== true) {
+        chain = Promise.resolve()
+          .then(function () {
+            return fn(pass);
+          })
+          .then(function (result) {
+            if (result && typeof result === "object" && result.ok === false) {
+              return { ok: false };
+            }
+            if (result && typeof result === "object" && result.ok === true) {
+              try {
+                pollLumosReadState();
+              } catch (_) {}
+              return { ok: true };
+            }
+            try {
+              pollLumosReadState();
+            } catch (_) {}
+            return { ok: true };
+          })
+          .catch(function () {
+            return { ok: false };
+          });
+      } else {
+        chain = postConsentApi();
+      }
+    } catch (_) {
+      chain = Promise.resolve({ ok: false });
+    }
+    return chain.then(normalizeUnlockResult).catch(function () {
+      return { ok: false };
+    });
+  }
+
   function pollLumosReadState() {
     var url = resolveLumosLiveStateUrl();
     fetch(url, { method: "GET", credentials: "omit", cache: "no-store" })
@@ -4916,8 +5996,29 @@ function canTransition(from, to) {
       })
       .then(function (data) {
         if (!data || typeof data !== "object") return;
-        window.__LUMOS_READ_STATE__ = data;
-        refreshCurrentView();
+        var trashResp = data.trash;
+        var snapshot;
+        try {
+          snapshot = JSON.parse(JSON.stringify(data));
+        } catch (_) {
+          snapshot = data;
+        }
+        window.__LUMOS_READ_STATE__ = snapshot;
+        if (trashResp != null && typeof trashResp === "object") {
+          try {
+            window.__LUMOS_READ_STATE__.trash = JSON.parse(JSON.stringify(trashResp));
+          } catch (_) {
+            window.__LUMOS_READ_STATE__.trash = trashResp;
+          }
+        }
+        if (typeof console !== "undefined" && console.log) {
+          console.log("RESPONSE.trash", data.trash);
+          console.log("STATE.trash", window.__LUMOS_READ_STATE__ && window.__LUMOS_READ_STATE__.trash);
+        }
+        var pollHash = (window.location.hash || "").toLowerCase();
+        if (pollHash !== "#chat") {
+          refreshCurrentView();
+        }
         renderSidebar();
         renderTopbar();
       })

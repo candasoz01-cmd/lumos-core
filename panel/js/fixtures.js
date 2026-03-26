@@ -76,15 +76,6 @@
       keystore_last_update: "2025-03-14T07:55:00",
       keystore_write_scope: "Kilit açılmadan hassas yazım yapılmaz",
     },
-    trash: {
-      trash_location: ".lumos/trash",
-      trash_last_move: "2025-03-12T14:00:00",
-      trash_scope_fallback_note: "original_path ve scope dosya sisteminden okunamadı; meta yoksa — gösterilir.",
-      trash_items: [
-        { id: "tr1", name: "eski_tasks_backup.json", original_path: ".lumos/tasks_backup.json", trash_path: ".lumos/trash/eski_tasks_backup.json", moved_at: "2025-03-12T14:00:00", scope: "tasks" },
-        { id: "tr2", name: "notlar_eski.md", original_path: ".lumos/notlar_eski.md", trash_path: ".lumos/trash/notlar_eski.md", moved_at: "2025-03-11T11:00:00", scope: "notes" },
-      ],
-    },
     logs: {
       log_items: [
         { id: "L1", kind: "görev", text: "Görev t2 güncellendi", ts: "2025-03-14T10:05:00" },
@@ -213,28 +204,64 @@
   }
 
   function mapTrashPayloadToPanelData(payload) {
-    if (!payload) return applyFallback("trash", { title: "Silinenler", subtitle: "Çöp konumu ve liste", summaryMetrics: [], listItems: [], selectedId: null, selectedItem: null, detailTitle: "Seçilen öğe", emptyListTitle: "Çöp listesi boş", emptyListDesc: "Silinen öğe yok. " + EMPTY_DESC, emptyDetailPlaceholder: "Listeden bir öğe seçin.", trashItemCount: 0, trashDirExists: false });
-    var items = arr(payload.trash_items).map(function (t) {
-      return { id: t.id, name: t.name || t.id, originalPath: t.original_path || "—", trashPath: t.trash_path || "—", movedAt: t.moved_at || "—", scope: t.scope || "—" };
+    if (!payload) {
+      return applyFallback("trash", {
+        title: "Silinenler",
+        subtitle: "",
+        summaryMetrics: [],
+        listItems: [],
+        selectedId: null,
+        selectedItem: null,
+        detailTitle: "Seçilen öğe",
+        emptyListTitle: "Silinen kayıt yok",
+        emptyListDesc: "Henüz silinen görev yok.",
+        emptyDetailPlaceholder: "Listeden bir öğe seçin.",
+        trashItemCount: 0,
+        trashDirExists: false,
+        trashScopeFallbackNote: "",
+      });
+    }
+    var raw = arr(payload.items).length ? arr(payload.items) : arr(payload.trash_items);
+    var items = raw.map(function (t) {
+      var tid =
+        t.id != null && String(t.id).trim() !== ""
+          ? String(t.id).trim()
+          : t.task_id != null && String(t.task_id).trim() !== ""
+            ? String(t.task_id).trim()
+            : t.taskId != null && String(t.taskId).trim() !== ""
+              ? String(t.taskId).trim()
+              : "";
+      var row = {
+        id: tid,
+        name: t.name || tid || t.id || "—",
+        originalPath: t.original_path || "—",
+        trashPath: t.trash_path || "—",
+        movedAt: t.moved_at || "—",
+        scope: t.scope || "—",
+        status: t.status != null && String(t.status) !== "" ? String(t.status) : "—",
+        deletedAt: t.deleted_at != null && String(t.deleted_at) !== "" ? String(t.deleted_at) : "—",
+      };
+      if (t.payload && typeof t.payload === "object") row.payload = t.payload;
+      if (t.raw_record != null && typeof t.raw_record === "object") row.rawRecord = t.raw_record;
+      return row;
     });
     var trashItemCount = payload.trash_item_count != null ? payload.trash_item_count : items.length;
     var trashDirExists = payload.trash_dir_exists === true;
     var trashScopeFallbackNote = payload.trash_scope_fallback_note != null ? str(payload.trash_scope_fallback_note) : "";
     return applyFallback("trash", {
       title: "Silinenler",
-      subtitle: "Çöp konumu ve liste",
+      subtitle: "",
       summaryMetrics: [
-        { title: "Çöp Konumu", value: str(payload.trash_location) },
-        { title: "Son Taşıma", value: formatTime(payload.trash_last_move) },
-        { title: "Öğe Sayısı", value: String(trashItemCount) },
-        { title: "Kapsam", value: ".lumos/trash — aktif state kaynağı değildir" },
+        { title: "Çöp konumu", value: str(payload.trash_location) },
+        { title: "Son taşıma", value: formatTime(payload.trash_last_move) },
+        { title: "Öğe sayısı", value: String(trashItemCount) },
       ],
       listItems: items,
       selectedId: null,
       selectedItem: null,
       detailTitle: "Seçilen öğe",
-      emptyListTitle: "Çöp listesi boş",
-      emptyListDesc: "Silinen öğe yok. " + EMPTY_DESC,
+      emptyListTitle: "Silinen kayıt yok",
+      emptyListDesc: "Henüz silinen görev yok.",
       emptyDetailPlaceholder: "Listeden bir öğe seçin.",
       trashItemCount: trashItemCount,
       trashDirExists: trashDirExists,
@@ -291,6 +318,7 @@
       tasksFilePath: tasksFilePath,
       taskCount: taskCount,
       tasksFileExists: tasksFileExists,
+      taskActionGate: payload.action_gate || null,
       emptyListTitle: "Bu filtrede görev yok",
       emptyListDesc: "Farklı filtre seçin. " + EMPTY_DESC,
       detailTitle: "Görev Detayı",

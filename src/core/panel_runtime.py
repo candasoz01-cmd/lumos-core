@@ -5,12 +5,12 @@ llm/repl sürecinden bağımsız; disk + ENV + (varsa) kando runtime belleği.
 from __future__ import annotations
 
 import json
-import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from core.context_store import context_reuse_state, load_context, set_last_activity_state
+from core.lumos_base_dir import lumos_base_dir
 from core.product_features import build_product_features
 from core.panel_bridge_state import build_panel_read_state
 from core.runtime_state import get_feature_signal, get_kando_runtime, mark_feature_signal
@@ -25,8 +25,7 @@ def _status(flag_active: bool, flag_connected: bool = False) -> str:
 
 
 def _live_backend_cache_file() -> Path:
-    base = Path(os.environ.get("LUMOS_BASE_DIR", ".lumos"))
-    return base / "live_read_state_cache.json"
+    return lumos_base_dir() / "live_read_state_cache.json"
 
 
 def _live_backend_capability_ok(repo: Path) -> bool:
