@@ -48,6 +48,9 @@ from kando.tools import repo_search  # noqa: E402
 from kando.intent_engine import engine  # noqa: E402
 
 LAST_OUTPUT = ""
+
+# Tek dönüş: `repo:` ile sorgu yokken pending bekleme (yalnızca _llm_impl repo: prefix dalı).
+_REPO_COLON_PENDING_WAIT_MSG = "Repo arama geçici olarak hazır değil."
 _CONTEXT_GATE = context_reuse_gate()
 CONTEXT = _store_load_context() if _CONTEXT_GATE.get("mode") == "persistent" else {}
 PENDING = {}
@@ -200,7 +203,7 @@ def _run_repo_search_with_gate(query: str) -> tuple[str, bool]:
         last_q = (CONTEXT.get("last_repo_query") or "").strip()
         if last_q:
             return f"Repo arama degrade modda. Son sorgu: {last_q}", False
-        return "Repo arama geçici olarak hazır değil.", False
+        return "Repo arama degrade modda sonuç yok.", False
 
     return repo_search(q), True
 
@@ -385,8 +388,8 @@ def _llm_impl(prompt: str) -> str:
 
     intent = engine.match(lower)
 
-    # basit context yakalama (repo:)
-    if "repo:" in lower:
+    # Tek repo: prefix dalı: boş sorguda pending bekleme veya sorgu ile devam.
+    if lower.startswith("repo:"):
         q = lower.split("repo:", 1)[1].strip()
         if not q:
             if not _pending_completion_capability_ok():
@@ -399,7 +402,8 @@ def _llm_impl(prompt: str) -> str:
                 return LAST_OUTPUT
             PENDING["intent"] = "repo"
             CONTEXT = set_pending_repo_waiting(True)
-            LAST_OUTPUT = "Repo arama geçici olarak hazır değil."
+            print("DEBUG REPO PATH HIT")
+            LAST_OUTPUT = _REPO_COLON_PENDING_WAIT_MSG
             _log_event("pending_repo_wait", "Repo için sorgu bekleniyor.")
             mark_feature_signal("pending_completion")
             return LAST_OUTPUT
