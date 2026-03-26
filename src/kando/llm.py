@@ -399,7 +399,7 @@ def _llm_impl(prompt: str) -> str:
                 return LAST_OUTPUT
             PENDING["intent"] = "repo"
             CONTEXT = set_pending_repo_waiting(True)
-            LAST_OUTPUT = "Ne arıyorsun?"
+            LAST_OUTPUT = "Repo arama geçici olarak hazır değil."
             _log_event("pending_repo_wait", "Repo için sorgu bekleniyor.")
             mark_feature_signal("pending_completion")
             return LAST_OUTPUT
