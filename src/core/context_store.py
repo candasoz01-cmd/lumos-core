@@ -19,7 +19,9 @@ def _context_file() -> Path:
 def context_reuse_gate() -> dict[str, str | bool]:
     p = _context_file()
     try:
-        capability = os.access(str(p.parent), os.W_OK)
+        lumos_dir = p.parent
+        lumos_dir.mkdir(parents=True, exist_ok=True)
+        capability = os.access(str(lumos_dir), os.W_OK)
     except Exception:
         capability = False
     if not capability:

@@ -9,6 +9,8 @@ from core.context_store import (
 )
 from core.runtime_state import add_runtime_event, get_feature_signal, mark_feature_signal, sync_kando_from_globals
 from importlib.util import find_spec
+import os
+from pathlib import Path
 
 
 def _response_text(resp):
@@ -188,7 +190,14 @@ def _repo_search_capability_ok() -> bool:
 def _repo_search_health_ok() -> bool:
     # Backend signal modeli: repo_search sinyali varsa sağlıklı kabul edilir.
     sig = get_feature_signal("repo_search")
-    return bool((sig or "").strip())
+    if (sig or "").strip():
+        return True
+    # Soğuk başlangıç (CI / taze clone): sinyal dosyası yokken tam aramaya izin ver.
+    try:
+        p = Path(os.environ.get("LUMOS_BASE_DIR", ".lumos")) / "feature_signals.json"
+        return not p.is_file()
+    except OSError:
+        return True
 
 
 def _run_repo_search_with_gate(query: str) -> tuple[str, bool]:
@@ -402,7 +411,6 @@ def _llm_impl(prompt: str) -> str:
                 return LAST_OUTPUT
             PENDING["intent"] = "repo"
             CONTEXT = set_pending_repo_waiting(True)
-            print("DEBUG REPO PATH HIT")
             LAST_OUTPUT = _REPO_COLON_PENDING_WAIT_MSG
             _log_event("pending_repo_wait", "Repo için sorgu bekleniyor.")
             mark_feature_signal("pending_completion")
