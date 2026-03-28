@@ -3,28 +3,21 @@
 Lokal HTTP köprüsü: dış istemci (ChatGPT eklentisi, curl, relay vb.) metni alır,
 `.lumos/inbox/request.txt` dosyasına yazar; `kando_watch` aynı dosyayı izleyerek Kando zincirini çalıştırır.
 
-`kando.patch_scope.extract_file_task` için repo `src` yolu eklenir; ağda varsayılan yalnızca 127.0.0.1.
+Kütüphane yolu: köprü `PYTHONPATH=src` (veya eşdeğer) ile çalıştırılmalı; ağda varsayılan yalnızca 127.0.0.1.
 """
 from __future__ import annotations
 
 import argparse
-import importlib
 import json
 import os
-import sys
-import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
+
+from kando.agent_runner import get_job_status, start_agent_job
+from kando.patch_scope import extract_file_task
 
 ROOT = Path(__file__).resolve().parents[1]
-_SRC = ROOT / "src"
-if str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
-_kando_agent = importlib.import_module("kando.agent_runner")
-_kando_patch = importlib.import_module("kando.patch_scope")
-get_job_status = _kando_agent.get_job_status
-start_agent_job = _kando_agent.start_agent_job
-extract_file_task = _kando_patch.extract_file_task
 
 REQUEST_FILE = ROOT / ".lumos" / "inbox" / "request.txt"
 DIRECT_PATCH_META_FILE = REQUEST_FILE.parent / "direct_patch_meta.json"
@@ -33,6 +26,16 @@ AGENT_LAST_FILE = OUTBOX_DIR / "agent_last.json"
 LAST_RESULT_FILE = OUTBOX_DIR / "last_result.json"
 LAST_EXECUTION_FILE = OUTBOX_DIR / "last_execution.json"
 _ALLOWED_BIND_HOSTS = frozenset({"127.0.0.1", "::1", "localhost"})
+
+
+def _stderr_write(line: str) -> None:
+    try:
+        b = line.encode("utf-8", errors="replace")
+        if not b.endswith(b"\n"):
+            b += b"\n"
+        os.write(2, b)
+    except OSError:
+        pass
 
 
 def _normalize_request_path(path: str) -> str:
@@ -115,7 +118,7 @@ def _extract_task_text(content_type: str | None, raw: bytes) -> tuple[str | None
         return None, "json gövdesi nesne olmalı"
 
     if ct == "application/x-www-form-urlencoded":
-        qs = urllib.parse.parse_qs(dec, keep_blank_values=True)
+        qs = parse_qs(dec, keep_blank_values=True)
         vals = qs.get("text") or qs.get("goal") or qs.get("task") or []
         if vals:
             return (vals[0] or "").strip(), None
@@ -140,7 +143,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
     server_version = "KandoBridge/1.0"
 
     def log_message(self, fmt: str, *args: object) -> None:
-        sys.stderr.write("%s - - [%s] %s\n" % (self.client_address[0], self.log_date_time_string(), fmt % args))
+        _stderr_write("%s - - [%s] %s" % (self.client_address[0], self.log_date_time_string(), fmt % args))
 
     def _send_json(self, status: int, payload: dict) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -212,7 +215,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         if not self._check_loopback():
             return
-        parsed = urllib.parse.urlparse(self.path)
+        parsed = urlparse(self.path)
         req_path = _normalize_request_path(parsed.path)
         if req_path in ("/last-result", "/last-execution"):
             if not self._check_secret():
@@ -228,7 +231,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
         if req_path == "/agent-status":
             if not self._check_secret():
                 return
-            q = urllib.parse.parse_qs(parsed.query or "")
+            q = parse_qs(parsed.query or "")
             jid = (q.get("id") or [""])[0].strip()
             if not jid:
                 self._send_json(400, {"error": "query id gerekli"})
@@ -295,7 +298,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
         if not self._check_secret():
             return
 
-        parsed = urllib.parse.urlparse(self.path)
+        parsed = urlparse(self.path)
         req_path = _normalize_request_path(parsed.path)
         if req_path == "/agent-run":
             self._handle_agent_run()
@@ -349,9 +352,8 @@ def main() -> None:
     args = ap.parse_args()
 
     if args.host not in _ALLOWED_BIND_HOSTS:
-        print(
+        _stderr_write(
             "Hata: bind adresi yalnızca 127.0.0.1, ::1 veya localhost olabilir.",
-            file=sys.stderr,
         )
         raise SystemExit(2)
 
