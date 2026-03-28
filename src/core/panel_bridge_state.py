@@ -657,3 +657,5 @@ def build_panel_read_state(*, repo_root: Path | None = None) -> dict:
             bridge_built_at=bridge_built_at,
         ),
     }
+
+# lumos:instruction-pipeline safe touch
