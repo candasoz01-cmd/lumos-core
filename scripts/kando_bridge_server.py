@@ -1,30 +1,37 @@
 #!/usr/bin/env python3
 """
-Lokal HTTP köprüsü: dış istemci (ChatGPT eklentisi, curl, relay vb.) metni alır,
-`.lumos/inbox/request.txt` dosyasına yazar; `kando_watch` aynı dosyayı izleyerek Kando zincirini çalıştırır.
-
-Kütüphane yolu: köprü `PYTHONPATH=src` (veya eşdeğer) ile çalıştırılmalı; ağda varsayılan yalnızca 127.0.0.1.
+Lokal orkestratör: POST /task → doğrudan direct patch (TARGET:) veya agent job.
+request.txt / kando_watch kuyruğu yok.
 """
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 import os
+import re
+import shutil
+import subprocess
+import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from kando.agent_runner import get_job_status, start_agent_job
-from kando.patch_scope import extract_file_task
-
 ROOT = Path(__file__).resolve().parents[1]
-
-REQUEST_FILE = ROOT / ".lumos" / "inbox" / "request.txt"
-DIRECT_PATCH_META_FILE = REQUEST_FILE.parent / "direct_patch_meta.json"
+_SRC = str(ROOT / "src")
+if _SRC not in sys.path:
+    sys.path.insert(0, _SRC)
+_agent = importlib.import_module("kando.agent_runner")
+_patch = importlib.import_module("kando.patch_scope")
+get_job_status = _agent.get_job_status
+start_agent_job = _agent.start_agent_job
+extract_file_task = _patch.extract_file_task
 OUTBOX_DIR = ROOT / ".lumos" / "outbox"
+CURSOR_BRIDGE_DIR = ROOT / ".lumos" / "cursor_bridge"
 AGENT_LAST_FILE = OUTBOX_DIR / "agent_last.json"
 LAST_RESULT_FILE = OUTBOX_DIR / "last_result.json"
 LAST_EXECUTION_FILE = OUTBOX_DIR / "last_execution.json"
+DIRECT_PATCH_META_FILE = ROOT / ".lumos" / "inbox" / "direct_patch_meta.json"
 _ALLOWED_BIND_HOSTS = frozenset({"127.0.0.1", "::1", "localhost"})
 
 
@@ -39,7 +46,6 @@ def _stderr_write(line: str) -> None:
 
 
 def _normalize_request_path(path: str) -> str:
-    """GET /foo/ ve /foo aynı rotaya düşsün (curl/tarayıcı farkı)."""
     p = path or "/"
     if len(p) > 1 and p.endswith("/"):
         p = p.rstrip("/")
@@ -81,62 +87,153 @@ def _persist_direct_patch_meta(obj: dict) -> None:
         pass
 
 
-def _extract_task_text(content_type: str | None, raw: bytes) -> tuple[str | None, str | None]:
-    """(text, error_message) — text None ise hata."""
+def _build_target_instruction(rel_path: str, task_body: str) -> str:
+    r = rel_path.strip().replace("\\", "/")
+    t = task_body.strip()
+    return f"TARGET: {r}\n{t}\n"
+
+
+_RE_PIPE_FILE_TASK = re.compile(
+    r"file:\s*(?P<file>[^|]+?)\s*\|\s*task:\s*(?P<task>.+)",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def _parse_pipe_file_task(text: str) -> tuple[str, str] | None:
+    m = _RE_PIPE_FILE_TASK.search(text.strip())
+    if not m:
+        return None
+    f = m.group("file").strip()
+    t = m.group("task").strip()
+    if f and t:
+        return f, t
+    return None
+
+
+def _cursor_bridge_env() -> dict[str, str]:
+    env = os.environ.copy()
+    env["PYTHONPATH"] = _SRC
+    env.setdefault("LUMOS_BASE_DIR", str((ROOT / ".lumos").resolve()))
+    env.setdefault("LUMOS_REPO_ROOT", str(ROOT.resolve()))
+    return env
+
+
+def _copy_bridge_outputs_to_outbox() -> None:
+    OUTBOX_DIR.mkdir(parents=True, exist_ok=True)
+    for name in ("last_result.json", "last_execution.json"):
+        src = CURSOR_BRIDGE_DIR / name
+        dst = OUTBOX_DIR / name
+        if src.is_file():
+            shutil.copy2(src, dst)
+
+
+def _summarize_execution_from_outbox() -> str:
+    try:
+        raw = LAST_EXECUTION_FILE.read_text(encoding="utf-8")
+        d = json.loads(raw)
+        ex = (d.get("constraints") or {}).get("execution") or {}
+        if isinstance(ex, dict):
+            er = ex.get("execution_result")
+            det = ex.get("detail")
+            if er:
+                return str(er) + (f" — {det[:200]}" if det else "")
+        return "ok"
+    except (OSError, json.JSONDecodeError, TypeError):
+        return "unknown"
+
+
+def _run_cursor_bridge(instruction: str) -> tuple[int, str]:
+    """cursor_bridge subprocess; sonuçları .lumos/cursor_bridge → outbox kopyalanır."""
+    CURSOR_BRIDGE_DIR.mkdir(parents=True, exist_ok=True)
+    OUTBOX_DIR.mkdir(parents=True, exist_ok=True)
+    cmd = [sys.executable, "-m", "kando.cursor_bridge", instruction]
+    proc = subprocess.run(
+        cmd,
+        cwd=str(ROOT),
+        env=_cursor_bridge_env(),
+        capture_output=True,
+        text=True,
+        timeout=600,
+    )
+    _copy_bridge_outputs_to_outbox()
+    summary = _summarize_execution_from_outbox()
+    if proc.returncode != 0:
+        tail = (proc.stderr or proc.stdout or "")[:500]
+        summary = f"exit={proc.returncode} {summary} {tail}".strip()
+    return proc.returncode, summary
+
+
+def _resolve_task_routing(
+    content_type: str | None,
+    raw: bytes,
+) -> tuple[str | None, str | None, str | None]:
+    """
+    (error, mode, payload)
+    mode: 'direct_patch' → TARGET gövdesi; 'agent' → serbest goal metni.
+    """
     ct = (content_type or "").split(";")[0].strip().lower()
     try:
         dec = raw.decode("utf-8")
     except UnicodeDecodeError:
-        return None, "body utf-8 değil"
+        return "body utf-8 değil", None, None
 
+    # --- JSON ---
     if ct == "application/json" or dec.strip().startswith("{"):
         try:
             obj = json.loads(dec)
         except json.JSONDecodeError as e:
-            return None, f"json: {e}"
-        if isinstance(obj, dict):
-            if obj.get("mode") == "direct_patch":
-                fv = obj.get("file")
-                tv = obj.get("task")
-                if not isinstance(fv, str) or not isinstance(tv, str):
-                    return None, "direct_patch: file ve task string olmalı"
-                fv, tv = fv.strip(), tv.strip()
-                if not fv or not tv:
-                    return None, "direct_patch: file ve task boş olamaz"
-                _persist_direct_patch_meta(obj)
-                return f"file: {fv}\ntask: {tv}\n", None
-            t = None
-            if "text" in obj:
-                t = obj.get("text")
-            elif "goal" in obj:
-                t = obj.get("goal")
-            if t is not None:
-                if isinstance(t, str):
-                    return t.strip(), None
-                return None, "json içinde 'text' veya 'goal' string olmalı"
-            return None, "json gövdesinde 'text' veya 'goal' alanı gerekli"
-        return None, "json gövdesi nesne olmalı"
+            return f"json: {e}", None, None
+        if not isinstance(obj, dict):
+            return "json gövdesi nesne olmalı", None, None
 
+        fv = obj.get("file")
+        tv = obj.get("task")
+        if isinstance(fv, str) and isinstance(tv, str) and fv.strip() and tv.strip():
+            if obj.get("auto_approve_safe") is not None:
+                _persist_direct_patch_meta(obj)
+            inst = _build_target_instruction(fv, tv)
+            return None, "direct_patch", inst
+
+        blob = None
+        if isinstance(obj.get("text"), str):
+            blob = obj["text"].strip()
+        elif isinstance(obj.get("goal"), str):
+            blob = obj["goal"].strip()
+        if blob:
+            pipe = _parse_pipe_file_task(blob)
+            if pipe:
+                inst = _build_target_instruction(pipe[0], pipe[1])
+                return None, "direct_patch", inst
+            return None, "agent", blob
+
+        return "json: file+task veya text/goal gerekli", None, None
+
+    # --- form ---
     if ct == "application/x-www-form-urlencoded":
         qs = parse_qs(dec, keep_blank_values=True)
-        vals = qs.get("text") or qs.get("goal") or qs.get("task") or []
-        if vals:
-            return (vals[0] or "").strip(), None
-        return None, "form: text veya task alanı yok"
+        vals = qs.get("text") or qs.get("goal") or []
+        if not vals:
+            return "form: text veya goal yok", None, None
+        blob = (vals[0] or "").strip()
+        pipe = _parse_pipe_file_task(blob)
+        if pipe:
+            return None, "direct_patch", _build_target_instruction(pipe[0], pipe[1])
+        ef, et = extract_file_task(blob)
+        if ef and et:
+            return None, "direct_patch", _build_target_instruction(ef, et)
+        return None, "agent", blob
 
-    if not ct or ct == "text/plain":
-        return dec.strip(), None
-
-    # Bilinmeyen content-type: düz metin kabul et
-    return dec.strip(), None
-
-
-def _structured_goal_incomplete(goal: str) -> bool:
-    """file: veya task: satırı var ama ikisi de dolu değil."""
-    file_p, task_p = extract_file_task(goal)
-    if file_p is None and task_p is None:
-        return False
-    return not (file_p and task_p)
+    # --- düz metin ---
+    blob = dec.strip()
+    if not blob:
+        return "boş gövde", None, None
+    pipe = _parse_pipe_file_task(blob)
+    if pipe:
+        return None, "direct_patch", _build_target_instruction(pipe[0], pipe[1])
+    ef, et = extract_file_task(blob)
+    if ef and et:
+        return None, "direct_patch", _build_target_instruction(ef, et)
+    return None, "agent", blob
 
 
 class BridgeHandler(BaseHTTPRequestHandler):
@@ -154,30 +251,11 @@ class BridgeHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _reject(self, status: int, msg: str) -> None:
-        path = str(REQUEST_FILE.resolve())
         self._send_json(
             status,
             {
                 "accepted": False,
-                "request_path": path,
-                "queued_text": None,
                 "error": msg,
-            },
-        )
-
-    def _reject_no_target_structured(self) -> None:
-        path = str(REQUEST_FILE.resolve())
-        detail = "instruction içinde hedef dosya yolu çıkarılamadı"
-        self._send_json(
-            400,
-            {
-                "accepted": False,
-                "request_path": path,
-                "queued_text": None,
-                "error": detail,
-                "status": "partial",
-                "execution": "no_target_detected",
-                "detail": detail,
             },
         )
 
@@ -248,10 +326,12 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 {
                     "ok": True,
                     "service": "kando_bridge_server",
-                    "post_task": "POST /task",
+                    "post_task": "POST /task (direct_patch | agent)",
                     "post_agent_run": "POST /agent-run",
                     "get_agent_status": "GET /agent-status?id=<job_id>",
                     "get_agent_last": "GET /agent-last",
+                    "get_last_result": "GET /last-result",
+                    "get_last_execution": "GET /last-execution",
                 },
             )
             return
@@ -311,38 +391,48 @@ class BridgeHandler(BaseHTTPRequestHandler):
         raw = self.rfile.read(length) if length > 0 else b""
         _clear_direct_patch_meta()
 
-        text, err = _extract_task_text(self.headers.get("Content-Type"), raw)
+        err, mode, payload = _resolve_task_routing(self.headers.get("Content-Type"), raw)
         if err:
             self._reject(400, err)
             return
-        if text is None or not text.strip():
-            self._reject(400, "boş gövde veya metin yok")
+        assert mode is not None and payload is not None
+
+        if mode == "direct_patch":
+            rc, execution_summary = _run_cursor_bridge(payload)
+            result_path = str(LAST_RESULT_FILE.resolve())
+            self._send_json(
+                200,
+                {
+                    "accepted": True,
+                    "mode": "direct_patch",
+                    "execution": execution_summary,
+                    "result_path": result_path,
+                    "cursor_bridge_exit": rc,
+                },
+            )
             return
 
-        if _structured_goal_incomplete(text):
-            self._reject_no_target_structured()
-            return
-
-        try:
-            REQUEST_FILE.parent.mkdir(parents=True, exist_ok=True)
-            REQUEST_FILE.write_text(text.strip(), encoding="utf-8")
-        except OSError as e:
-            self._reject(500, f"yazılamadı: {e}")
-            return
-
-        path = str(REQUEST_FILE.resolve())
+        # agent
+        job_id = start_agent_job(
+            payload,
+            True,
+            repo_root=ROOT,
+            outbox_dir=OUTBOX_DIR,
+        )
         self._send_json(
             200,
             {
                 "accepted": True,
-                "request_path": path,
-                "queued_text": text.strip(),
+                "mode": "agent",
+                "job_id": job_id,
             },
         )
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Kando inbox HTTP bridge (POST /task → request.txt)")
+    ap = argparse.ArgumentParser(
+        description="Kando köprü orkestratörü: POST /task (direct_patch | agent), GET outbox",
+    )
     ap.add_argument(
         "--host",
         default="127.0.0.1",
@@ -358,9 +448,8 @@ def main() -> None:
         raise SystemExit(2)
 
     httpd = ThreadingHTTPServer((args.host, args.port), BridgeHandler)
-    print(f"kando_bridge_server: http://{args.host}:{args.port}/task | /agent-run (POST)", flush=True)
-    print(f"  → {REQUEST_FILE.resolve()}", flush=True)
-    print(f"  → agent outbox: {OUTBOX_DIR.resolve()}", flush=True)
+    print(f"kando_bridge_server: http://{args.host}:{args.port}/task (POST)", flush=True)
+    print(f"  → outbox: {OUTBOX_DIR.resolve()}", flush=True)
     sec = _read_secret()
     print(f"  token: {'ayarlı (KANDO_BRIDGE_SECRET)' if sec else 'kapalı'}", flush=True)
     try:
