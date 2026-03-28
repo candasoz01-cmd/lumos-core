@@ -10,6 +10,7 @@ from task_engine.profiles import (
     STEP_TYPE_ANALYZE,
     STEP_TYPE_PLAN,
     STEP_TYPE_READ,
+    STEP_TYPE_SAFE_LOCAL,
 )
 
 if TYPE_CHECKING:
@@ -29,6 +30,15 @@ class DefaultPlanner:
         from task_engine.engine import TaskStep
         d = (goal or "").strip().lower()
         steps: list[TaskStep] = []
+        # patch: → minimum kapsam patch_pipeline (tek veya çok dosya) tek adım
+        if d.startswith("patch:"):
+            steps.append(
+                TaskStep(
+                    "Dosya patch uygula (patch_pipeline)",
+                    kind=STEP_TYPE_SAFE_LOCAL,
+                ),
+            )
+            return steps
         # Not sistemi / özet talebi
         if "not" in d or "özet" in d or "ozet" in d or "kontrol" in d:
             steps.append(TaskStep("Not sistemini kontrol et", kind=STEP_TYPE_READ))

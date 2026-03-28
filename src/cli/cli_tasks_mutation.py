@@ -96,6 +96,11 @@ def handle_task_mutation(route: str, args: list[str], ctx: TaskMutationContext) 
                 observation_engine=getattr(ctx, "event_recording_engine", None),
             )
             print(result.human_readable_summary)
+            pl = getattr(result, "pipeline", None)
+            if pl:
+                from core.patch_pipeline_lifecycle import format_pipeline_summary_line
+
+                print(format_pipeline_summary_line(pl))
             ctx.last_action[0] = f"Görev {result.task_id} oluşturulup yürütüldü: {result.goal[:80]}"
             ctx.record_today_action(ctx.last_action[0])
         finally:

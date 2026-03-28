@@ -84,6 +84,8 @@ def sync_kando_from_globals(
     pending: dict,
     last_repo_results: list,
     last_repo_index: int,
+    *,
+    cursor_bridge: dict | None = None,
 ) -> None:
     global _KANDO
     ctx = dict(context) if context else {}
@@ -100,6 +102,7 @@ def sync_kando_from_globals(
         "context_summary": str(ctx) if ctx else "",
         "repo_nav": nav,
         "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "cursor_bridge": cursor_bridge if isinstance(cursor_bridge, dict) else None,
     }
 
 
@@ -124,7 +127,10 @@ def add_runtime_event(event_type: str, summary: str) -> None:
 
 def get_kando_runtime() -> dict[str, Any]:
     recent_events = _read_file_events() or list(_EVENTS)
-    last_activity = recent_events[0]["ts"] if recent_events else None
+    last_activity = None
+    if recent_events:
+        ts = recent_events[0].get("ts")
+        last_activity = ts if isinstance(ts, str) and ts.strip() else None
     if not _KANDO:
         return {
             "last_repo_query": "",
@@ -133,6 +139,7 @@ def get_kando_runtime() -> dict[str, Any]:
             "context_summary": "",
             "repo_nav": {"results_count": 0, "cursor_index": 0, "has_results": False},
             "updated_at": None,
+            "cursor_bridge": None,
             "recent_events": recent_events,
             "last_activity": last_activity,
         }
@@ -140,3 +147,51 @@ def get_kando_runtime() -> dict[str, Any]:
     out["recent_events"] = recent_events
     out["last_activity"] = last_activity
     return out
+
+# lumos:instruction-pipeline safe touch
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)

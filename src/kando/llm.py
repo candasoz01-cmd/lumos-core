@@ -58,6 +58,7 @@ CONTEXT = _store_load_context() if _CONTEXT_GATE.get("mode") == "persistent" els
 PENDING = {}
 LAST_REPO_RESULTS = []
 LAST_REPO_INDEX = 0
+_CURSOR_BRIDGE: dict | None = None
 
 
 def _context_store_enabled() -> bool:
@@ -109,6 +110,9 @@ def _help_text() -> str:
         "- durum\n"
         "- proje durum\n"
         "- repo: <arama>\n"
+        "- görev: <hedef> (patch önerisi; onay: görev: onayla)\n"
+        "- görev: onayla (bekleyen patch'i uygula + VERIFY)\n"
+        "- bridge: .lumos/cursor_bridge/*.json\n"
         "- stabil\n"
         "- devam\n"
         "- yardım"
@@ -256,6 +260,8 @@ def _llm_impl(prompt: str) -> str:
     global LAST_REPO_RESULTS
     global LAST_REPO_INDEX
     global CONTEXT
+    global _CURSOR_BRIDGE
+    _CURSOR_BRIDGE = None
 
     lines = prompt.strip().splitlines()
     if not lines:
@@ -394,6 +400,57 @@ def _llm_impl(prompt: str) -> str:
             _log_event("pending_repo_complete", f"Pending repo sorgusu tamamlandı: {q or '—'}")
             mark_feature_signal("pending_completion")
             return LAST_OUTPUT
+
+    # görev: → Brain (Planner → TaskStore → TaskEngine → doğrulama / gözlem) + Cursor bridge
+    if lower.startswith("gorev:"):
+        goal = lower.split("gorev:", 1)[1].strip()
+        if not goal:
+            LAST_OUTPUT = "görev: <hedef> yaz."
+            _log_event("brain_task", "Görev hedefi boş.")
+            return LAST_OUTPUT
+        if goal in ("onayla", "approve", "onay"):
+            try:
+                from kando.patch_pending import apply_pending_after_approval
+
+                ok, msg = apply_pending_after_approval()
+                LAST_OUTPUT = msg
+                _CURSOR_BRIDGE = None
+                _log_event(
+                    "patch_approve",
+                    "Bekleyen patch uygulandı." if ok else "Patch onay/verify başarısız.",
+                )
+                mark_feature_signal("intent_engine")
+            except Exception as e:
+                LAST_OUTPUT = f"Onay uygulanamadı: {e}"
+                _log_event("patch_approve", f"Onay hata: {e!s}")
+            return LAST_OUTPUT
+        try:
+            from kando.cursor_bridge import run_brain_and_persist_bridge, short_bridge_footer
+            from task_engine import PROFILE_GUVENLI_YURUT
+
+            p_exec, p_res, result, exe, res_pkt = run_brain_and_persist_bridge(
+                goal,
+                permission_profile=PROFILE_GUVENLI_YURUT,
+                general_approval=True,
+            )
+            from core.patch_pipeline_lifecycle import format_pipeline_summary_line
+
+            LAST_OUTPUT = result.human_readable_summary
+            pl = exe.constraints.get("pipeline") or getattr(result, "pipeline", None)
+            if pl:
+                LAST_OUTPUT = LAST_OUTPUT + "\n" + format_pipeline_summary_line(pl)
+            LAST_OUTPUT = LAST_OUTPUT + "\n---\n" + short_bridge_footer(p_exec, p_res)
+            _CURSOR_BRIDGE = {
+                "execution": exe.to_json_dict(),
+                "result": res_pkt.to_json_dict(),
+                "paths": [str(p_exec.resolve()), str(p_res.resolve())],
+            }
+            _log_event("brain_task", f"Görev yürütüldü: id={result.task_id}")
+            mark_feature_signal("intent_engine")
+        except Exception as e:
+            LAST_OUTPUT = f"Görev yürütülemedi: {e}"
+            _log_event("brain_task", f"Görev hata: {e!s}")
+        return LAST_OUTPUT
 
     intent = engine.match(lower)
 
@@ -573,5 +630,12 @@ def _llm_impl(prompt: str) -> str:
 
 def llm(prompt: str) -> str:
     out = _llm_impl(prompt)
-    sync_kando_from_globals(LAST_OUTPUT, CONTEXT, PENDING, LAST_REPO_RESULTS, LAST_REPO_INDEX)
+    sync_kando_from_globals(
+        LAST_OUTPUT,
+        CONTEXT,
+        PENDING,
+        LAST_REPO_RESULTS,
+        LAST_REPO_INDEX,
+        cursor_bridge=_CURSOR_BRIDGE,
+    )
     return out

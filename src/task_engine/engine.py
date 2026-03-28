@@ -623,6 +623,12 @@ class TaskEngine:
         if task.error_summary:
             parts.append(f"Hata: {task.error_summary}")
         parts.append("Sonuç: " + (task.description[:80] + ("..." if len(task.description) > 80 else "")))
+        if (task.description or "").strip().lower().startswith("patch:"):
+            for s in reversed(task.steps):
+                out = (getattr(s, "output", "") or "").strip()
+                if out:
+                    parts.append("Son adım çıktısı:\n" + out[:4000])
+                    break
         return "\n".join(parts)
 
     def cancel_task(self, task_id: int) -> tuple[bool, str]:

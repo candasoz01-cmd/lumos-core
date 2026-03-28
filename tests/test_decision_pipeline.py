@@ -7,7 +7,7 @@ import pytest
 from core.adaptive_weights import DecisionWeights
 from core.change_sensitivity import ChangeSensitivity
 from core.decision_model import MutationOption
-from core.decision_pipeline import run_decision_pipeline
+from core.decision_pipeline import infer_lumos_base_for_decision, run_decision_pipeline
 from core.decision_ranker import (
     compute_base_score,
     compute_final_score,
@@ -24,6 +24,25 @@ from core.strategy_updater import (
     MEMORY_BIAS_SCORE_CAP,
     update_weights_from_outcome,
 )
+
+
+def test_run_decision_pipeline_empty_target_paths_returns_none() -> None:
+    assert run_decision_pipeline("g", [], update_weights_after_run=False) is None
+
+
+def test_infer_lumos_base_for_decision_finds_dot_lumos(tmp_path: Path) -> None:
+    lumos = tmp_path / ".lumos"
+    f = lumos / "config" / "x.json"
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text("{}", encoding="utf-8")
+    assert infer_lumos_base_for_decision([f]) == lumos.resolve()
+
+
+def test_infer_lumos_base_for_decision_none_without_lumos_ancestor(tmp_path: Path) -> None:
+    p = tmp_path / "src" / "a.py"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text("x = 1\n", encoding="utf-8")
+    assert infer_lumos_base_for_decision([p]) is None
 
 
 def test_run_decision_pipeline_end_to_end(tmp_path: Path) -> None:

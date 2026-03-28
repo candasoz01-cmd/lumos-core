@@ -73,6 +73,17 @@ def test_keep_only_three_rotated_files(tmp_path: Path) -> None:
     assert not Path(str(p) + ".4").exists()
 
 
+def test_non_positive_max_bytes_clamped_to_default(tmp_path: Path) -> None:
+    """max_bytes <= 0 is invalid; treat as DEFAULT_MAX_BYTES so rotation logic is safe."""
+    p = tmp_path / "clamp.jsonl"
+    p.write_text('{"n": 1}\n', encoding="utf-8")
+    out = rotate_jsonl_log(p, max_bytes=0, keep=3)
+    assert out["rotated"] is False
+    out2 = append_jsonl_with_rotation(p, {"n": 2}, max_bytes=-1, keep=3)
+    assert out2["appended"] is True
+    assert out2["rotated"] is False
+
+
 def test_rotate_jsonl_log_missing_file_never_raises(tmp_path: Path) -> None:
     """rotate_jsonl_log on missing file returns rotated=False, does not raise."""
     p = tmp_path / "missing.jsonl"

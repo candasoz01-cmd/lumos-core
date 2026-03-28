@@ -878,3 +878,5 @@ def create_runtime(sandbox_mode: bool | None = None) -> RuntimeResult:
         router_ctx.on_live_brain = None
 
     return RuntimeResult(ui_consumed=False, router_ctx=router_ctx)
+
+# lumos:instruction-pipeline safe touch

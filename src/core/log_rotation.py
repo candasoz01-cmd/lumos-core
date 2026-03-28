@@ -43,6 +43,8 @@ def rotate_jsonl_log(
         "files_removed": [],
         "error": None,
     }
+    if max_bytes <= 0:
+        max_bytes = DEFAULT_MAX_BYTES
     if keep <= 0:
         return result
     try:
@@ -93,6 +95,8 @@ def append_jsonl_with_rotation(
         "path": str(path),
         "error": None,
     }
+    if max_bytes <= 0:
+        max_bytes = DEFAULT_MAX_BYTES
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         if path.exists() and path.is_file() and path.stat().st_size >= max_bytes:

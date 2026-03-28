@@ -4,6 +4,8 @@ Brain / Orchestrator: single high-level flow from user request to final response
 Connects Planner → TaskStore (create_from_steps) → TaskEngine (run_task) →
 Verification (inside TaskEngine) → Observation (events) → response builder.
 
+Özet akış: run_task sonrası cursor_bridge persist; boru hattı (core.patch_pipeline_lifecycle): intent → plan → patch_produce → apply → verify.
+
 Responsibilities stay separated:
 - Planner: generates steps from goal
 - TaskEngine: orchestrates step execution
@@ -27,6 +29,7 @@ from task_engine.observation import (
     ObservationEngine,
 )
 from task_engine.observation.events import ObservationEvent
+from core.patch_pipeline_lifecycle import build_pipeline_snapshot
 from task_engine.planner import plan as planner_plan
 from task_engine.engine import TaskEngine, TaskStore
 
@@ -48,6 +51,8 @@ class BrainResult:
     success: bool
     message: str
     human_readable_summary: str
+    # intent → plan → patch_produce → apply → verify anlık görünümü (lumos.pipeline.v1)
+    pipeline: dict | None = None
 
 
 def parse_request_to_goal(user_request: str) -> str:
@@ -147,6 +152,7 @@ def run(
             success=False,
             message="Hedef boş.",
             human_readable_summary="Hedef boş; işlem yapılmadı.",
+            pipeline=None,
         )
 
     steps = planner_plan(goal)
@@ -182,6 +188,7 @@ def run(
             success=False,
             message=message,
             human_readable_summary=f"Hedef: {goal[:200]}\nGörev {task.task_id} yürütüldü ancak kayıt sonradan bulunamadı.",
+            pipeline=build_pipeline_snapshot(goal, None, False),
         )
     task = task_after
 
@@ -191,6 +198,23 @@ def run(
 
     block_or_obs = _most_relevant_reason_or_observation(task, events)
     summary = build_response(goal, task, events)
+    pipeline = build_pipeline_snapshot(goal, task, ok)
+
+    try:
+        from kando.cursor_bridge import persist_bridge_after_brain, resolve_lumos_base_for_bridge
+
+        lumos_base = resolve_lumos_base_for_bridge(base_dir)
+        persist_bridge_after_brain(
+            goal=goal,
+            task=task,
+            brain_success=ok,
+            pipeline=pipeline,
+            permission_profile=permission_profile,
+            general_approval=general_approval,
+            lumos_base=lumos_base,
+        )
+    except Exception:
+        pass
 
     return BrainResult(
         goal=goal,
@@ -203,4 +227,5 @@ def run(
         success=ok,
         message=message,
         human_readable_summary=summary,
+        pipeline=pipeline,
     )

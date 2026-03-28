@@ -266,3 +266,5 @@ def create_plan_from_option(
         return None
     return ChangePlan.new(goal_description, patches)
 
+
+# lumos:instruction-pipeline safe touch

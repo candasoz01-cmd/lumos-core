@@ -417,6 +417,11 @@ def handle_live_brain(
                 observation_engine=observation_engine,
             )
             summary = getattr(brain_result, "human_readable_summary", "") or ""
+            pl = getattr(brain_result, "pipeline", None)
+            if pl:
+                from core.patch_pipeline_lifecycle import format_pipeline_summary_line
+
+                summary = summary + "\n" + format_pipeline_summary_line(pl)
             block = getattr(brain_result, "block_reason_or_observation", "") or ""
             # Store pending_action when blocked due to consent / genel onay; add next-step message
             if pending_action_ref is not None and len(pending_action_ref) > 0:

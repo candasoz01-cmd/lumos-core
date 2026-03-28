@@ -98,24 +98,39 @@ def safe_local_verifier(
     error: str,
     verified_from_executor: bool,
 ) -> VerificationResult:
-    """verified only if expected local non-destructive result can be confirmed (success + no error)."""
+    """
+    patch_apply_executor tek dosya başarısında verified_from_executor=True döner (apply+verify bitti).
+    Çok dosya pending çıktısı False döner — onay beklenir, burada doğrulanmış sayılmaz.
+    """
     if not ok or error:
         return VerificationResult(
             verified=False,
             reason="safe_local_failed",
             details=error or "Yerel işlem tamamlanamadı.",
         )
-    # Non-destructive success: output indicates completion
-    if output and "tamamlandı" in output.lower():
+    out = output or ""
+    if "patch_pending_approval" in out or "patch_multi_pending" in out:
+        return VerificationResult(
+            verified=False,
+            reason="patch_pending_approval",
+            details="Çok dosya / onay bekleniyor; henüz uygulanmış sayılmaz.",
+        )
+    if verified_from_executor:
+        return VerificationResult(
+            verified=True,
+            reason="patch_applied_verified",
+            details=out[:2000] or "Patch uygulandı ve doğrulandı.",
+        )
+    if "tamamlandı" in out.lower():
         return VerificationResult(
             verified=True,
             reason="local_confirmed",
-            details=output or "Güvenli yerel iş doğrulandı.",
+            details=out or "Güvenli yerel iş doğrulandı.",
         )
     return VerificationResult(
         verified=False,
         reason="simulation",
-        details=output or "Yerel iş çıktısı doğrulanamadı.",
+        details=out or "Yerel iş çıktısı doğrulanamadı.",
     )
 
 

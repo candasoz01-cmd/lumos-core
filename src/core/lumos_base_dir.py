@@ -6,4 +6,9 @@ from pathlib import Path
 
 
 def lumos_base_dir() -> Path:
-    return Path(os.environ.get("LUMOS_BASE_DIR", ".lumos")).resolve()
+    # Boş veya yalnızca boşluk: get(..., ".lumos") devreye girmez (env anahtarı vardır);
+    # Path("") resolve edilince cwd olur — bunu engelle.
+    raw = (os.environ.get("LUMOS_BASE_DIR") or ".lumos").strip()
+    if not raw:
+        raw = ".lumos"
+    return Path(raw).expanduser().resolve()
