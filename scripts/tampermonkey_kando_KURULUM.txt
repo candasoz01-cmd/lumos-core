@@ -1,0 +1,28 @@
+================================================================================
+Tampermonkey + Kando Agent — kopyala-yapıştır kurulum
+================================================================================
+
+1) Köprüyü çalıştır (repo kökünde):
+   cd /path/to/lumos-core
+   .venv/bin/python scripts/kando_bridge_server.py
+
+2) Tampermonkey → “Create a new script” → AÇ: scripts/tampermonkey_kando_agent.user.js
+   Dosyanın TÜM içeriğini kopyalayıp editöre yapıştır → File → Save.
+
+3) Token kullanıyorsan (KANDO_BRIDGE_SECRET), betik içinde şu satırı bul:
+      var TOKEN = GM_getValue("kando_token", "");
+   İkinci argümanı doldur: GM_getValue("kando_token", "SIRREN_BURAYA");
+   veya boş bırakıp köprüde secret kapalı tut.
+
+4) ChatGPT sayfasını yenile. Sağ altta “Kando agent” düğmesi görünür.
+   Composer’a isteğini yaz → düğmeye tıkla → rapor composer’a yazılır.
+
+5) Köprü adresini değiştirmek için (TEK SATIR): betikte şunu bul:
+      var BASE = GM_getValue("kando_bridge_base", "http://127.0.0.1:8765");
+   Varsayılanı değiştir: "http://127.0.0.1:8765" kısmını kendi portuna göre düzenle.
+
+================================================================================
+“Her koşulda %100 başarı” mümkün değildir (internet, git kimliği, çakışan commit).
+Betik: yeniden deneme, zaman aşımında agent-last yedek okuma, hata sonrası yine
+agent-last dener — mümkün olan en yüksek tamamlanma oranı için.
+================================================================================

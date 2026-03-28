@@ -1,0 +1,72 @@
+cat << 'EOF' > scripts/chatgpt_client.py
+import os
+import json
+import urllib.request
+from openai import OpenAI
+
+BRIDGE_URL = "http://127.0.0.1:8766"
+MODEL = "gpt-4.1-mini"
+
+SYSTEM = """You are NOT a chat assistant.
+
+You ONLY produce a single actionable task for a code agent.
+
+Rules:
+- No questions
+- No explanations
+- No conversation
+- Output ONLY one task
+- Task must be small, safe, single-file
+- Must be directly applicable
+
+Format:
+src/... file: <what to fix>
+"""
+
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+def call_llm(user_text: str) -> str:
+    resp = client.responses.create(
+        model=MODEL,
+        input=[
+            {"role": "system", "content": SYSTEM},
+            {"role": "user", "content": user_text},
+        ],
+    )
+    return resp.output_text.strip()
+
+def post_goal(goal: str):
+    data = json.dumps({"goal": goal}).encode("utf-8")
+    req = urllib.request.Request(
+        BRIDGE_URL,
+        data=data,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req) as r:
+        print("[relay]:", r.read().decode())
+
+def main():
+    print("ChatGPT client hazır. Yaz ve enter.")
+    while True:
+        try:
+            user = input("> ").strip()
+            if not user:
+                continue
+
+            goal = call_llm(user)
+            print("[goal]:", goal)
+
+            post_goal(goal)
+
+        except KeyboardInterrupt:
+            print("\nçıkıldı")
+            break
+        except Exception as e:
+            print("hata:", e)
+
+if __name__ == "__main__":
+    main()
+EOF
+
+pkill -f chatgpt_client.py; sleep 1 && python scripts/chatgpt_client.py
