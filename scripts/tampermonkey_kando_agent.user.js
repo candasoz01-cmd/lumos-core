@@ -133,7 +133,7 @@
     var r0 = await gmRequest(
       "POST",
       runUrl,
-      JSON.stringify({ goal: g, text: g, auto_approve_safe: true })
+      JSON.stringify({ goal: g })
     );
     if (r0.status < 200 || r0.status >= 300) {
       throw new Error("agent-run HTTP " + r0.status + " " + r0.text.slice(0, 400));
