@@ -513,3 +513,5 @@ def allow_write_to_core(
 
 class CoreWriteForbidden(Exception):
     """Sandbox modunda canlı çekirdek state path'e yazma girişimi."""
+
+# lumos:instruction-pipeline safe touch
