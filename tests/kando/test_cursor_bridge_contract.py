@@ -145,6 +145,35 @@ def test_atomic_write_no_partial_file(monkeypatch, tmp_path):
         clear_registry()
 
 
+def test_file_lock_prevents_parallel_write(monkeypatch, tmp_path):
+    """Önceden oluşturulmuş .lock varken patch yazmaz; execution_result=locked."""
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
+    (tmp_path / ".lumos").mkdir()
+    fp = tmp_path / "bridge_lock.py"
+    original = "x = 0\n"
+    fp.write_text(original, encoding="utf-8")
+    lock_path = tmp_path / "bridge_lock.py.lock"
+    lock_path.write_text("", encoding="utf-8")
+    goal = "TARGET: bridge_lock.py\nx = 1\n"
+
+    from core.patch_registry import clear_registry
+
+    clear_registry()
+    try:
+        _, _, _, exe, _ = run_brain_and_persist_bridge(
+            goal,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        assert exe.constraints["execution"]["execution_result"] == "locked"
+        assert exe.constraints["execution"]["detail"] == "file is locked"
+        assert fp.read_text(encoding="utf-8") == original
+        assert lock_path.is_file()
+    finally:
+        clear_registry()
+
+
 def test_instruction_target_line_patch_applies(monkeypatch, tmp_path):
     monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
     monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))

@@ -429,7 +429,16 @@ def _instruction_apply_one(
     if _deadline_exceeded():
         return False, {"detail": "patch timeout", "kind": "timeout"}
     mutated = False
+    lock_path = target.parent / (target.name + ".lock")
+    lock_acquired = False
     try:
+        try:
+            lock_path.parent.mkdir(parents=True, exist_ok=True)
+            lock_path.touch(exist_ok=False)
+            lock_acquired = True
+        except FileExistsError:
+            return False, {"kind": "locked", "detail": "file is locked"}
+
         proposal = propose_text_patch(
             target,
             body,
@@ -673,6 +682,12 @@ def _instruction_apply_one(
             "detail": f"patch başarısız: beklenmeyen hata ({rel}) — {e}"[:800],
             "kind": "exception",
         }
+    finally:
+        if lock_acquired:
+            try:
+                lock_path.unlink(missing_ok=True)
+            except OSError:
+                pass
 
 
 def _instruction_apply_one_with_retry(
@@ -701,7 +716,7 @@ def _instruction_apply_one_with_retry(
     )
     if ok:
         return True, info, 0
-    if info.get("kind") in ("timeout", "timeout_total"):
+    if info.get("kind") in ("timeout", "timeout_total", "locked"):
         return False, info, 0
     ok2, info2 = _instruction_apply_one(
         repo_root=repo_root,
@@ -716,7 +731,7 @@ def _instruction_apply_one_with_retry(
     )
     if ok2:
         return True, info2, 1
-    if info2.get("kind") in ("timeout", "timeout_total"):
+    if info2.get("kind") in ("timeout", "timeout_total", "locked"):
         return False, info2, 1
     return False, info2, 1
 
@@ -822,6 +837,18 @@ def _run_instruction_apply_to_exe(
             {
                 "execution_result": "timeout",
                 "detail": "patch timeout",
+                "error_type": "write_failed",
+                "retry_count": retry_count,
+                "failed_path": rel,
+            },
+        )
+        return False
+    if kind == "locked":
+        _store_execution_and_log(
+            exe,
+            {
+                "execution_result": "locked",
+                "detail": "file is locked",
                 "error_type": "write_failed",
                 "retry_count": retry_count,
                 "failed_path": rel,
