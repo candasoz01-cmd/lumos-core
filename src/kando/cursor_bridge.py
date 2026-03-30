@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import re
 from pathlib import Path
@@ -21,6 +22,11 @@ from kando.cursor_packet import (
 from task_engine.profiles import may_execute_step_at_runtime
 
 _SRC_PY_PATH_RE = re.compile(r"(src/[a-zA-Z0-9_/.\-]+\.py)")
+
+logger = logging.getLogger(__name__)
+
+# Bridge JSON / memory: tam dosya yedeği üst sınırı (disk .bak kullanılmaz)
+_MAX_PREVIOUS_CONTENT_IN_EXECUTION = 512_000
 
 
 def _explicit_single_lock_path(text: str) -> str | None:
@@ -214,7 +220,19 @@ def _instruction_apply_one(
 
     target = (repo_root / rel).resolve()
     if is_core_state_path(lumos_base, target):
-        return False, {"detail": "hedef çekirdek state kapsamında", "kind": "core_state"}
+        return False, {
+            "detail": "patch başarısız: hedef .lumos çekirdek state yolunda (yazma yasak)",
+            "kind": "core_state",
+        }
+    previous_text = ""
+    if target.is_file():
+        try:
+            previous_text = target.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as e:
+            return False, {
+                "detail": f"patch başarısız: hedef okunamadı ({rel}): {e}",
+                "kind": "read_error",
+            }
     try:
         proposal = propose_text_patch(
             target,
@@ -227,7 +245,11 @@ def _instruction_apply_one(
         )
         val = validate_proposal_against_filesystem(proposal)
         if val.status != "ok":
-            return False, {"detail": val.message, "kind": "validate", "patch_id": proposal.id}
+            return False, {
+                "detail": f"patch başarısız: öneri dosya sistemi doğrulamasında reddedildi — {val.message}",
+                "kind": "validate",
+                "patch_id": proposal.id,
+            }
 
         apply_patch(proposal, assume_reviewed=True, allow_protected_apply=False)
         try:
@@ -240,17 +262,40 @@ def _instruction_apply_one(
         v_ok, v_msg = run_post_apply_verify(target, verify_cmd)
         if not v_ok:
             return False, {
-                "detail": f"apply_ok_verify_failed: {v_msg}"[:2000],
+                "detail": f"patch başarısız: dosya yazıldı ancak doğrulama komutu başarısız — {v_msg}"[:2000],
                 "verify_detail": v_msg[:1500],
                 "patch_id": proposal.id,
                 "kind": "verify",
                 "source": source,
             }
-        return True, {"patch_id": proposal.id, "verify_msg": v_msg, "source": source}
+        prev_for_exec = previous_text
+        truncated = False
+        if len(prev_for_exec) > _MAX_PREVIOUS_CONTENT_IN_EXECUTION:
+            prev_for_exec = prev_for_exec[:_MAX_PREVIOUS_CONTENT_IN_EXECUTION]
+            truncated = True
+        logger.info(
+            "Instruction patch applied: relative_path=%s patch_id=%s verify_ok",
+            rel,
+            proposal.id,
+        )
+        return True, {
+            "patch_id": proposal.id,
+            "verify_msg": v_msg,
+            "source": source,
+            "applied_path": rel,
+            "previous_content": prev_for_exec,
+            "previous_content_truncated": truncated,
+        }
     except ProtectedApplyForbidden as e:
-        return False, {"detail": str(e)[:500], "kind": "protected"}
+        return False, {
+            "detail": f"patch başarısız: korumalı hedefe yazma reddedildi — {e}"[:800],
+            "kind": "protected",
+        }
     except Exception as e:
-        return False, {"detail": str(e)[:500], "kind": "exception"}
+        return False, {
+            "detail": f"patch başarısız: beklenmeyen hata ({rel}) — {e}"[:800],
+            "kind": "exception",
+        }
 
 
 def _run_instruction_apply_to_exe(
@@ -281,21 +326,27 @@ def _run_instruction_apply_to_exe(
             "verify_detail": v_msg[:1500],
             "source": source,
             "patch_id": info.get("patch_id", ""),
+            "applied_path": rel,
+            "previous_content": info.get("previous_content", ""),
+            "previous_content_truncated": bool(info.get("previous_content_truncated")),
         }
         return True
     kind = info.get("kind", "")
+    detail = str(info.get("detail", "")).strip() or f"patch başarısız (sebep: {kind or 'bilinmiyor'})"
     if kind == "verify":
         exe.constraints["execution"] = {
             "execution_result": "patch_failed",
-            "detail": str(info.get("detail", "")),
+            "detail": detail,
             "verify_detail": info.get("verify_detail", ""),
             "source": source,
             "patch_id": info.get("patch_id", ""),
+            "failed_path": rel,
         }
     else:
         exe.constraints["execution"] = {
             "execution_result": "patch_failed",
-            "detail": str(info.get("detail", "")),
+            "detail": detail,
+            "failed_path": rel,
         }
     return False
 
@@ -369,6 +420,9 @@ def _run_multi_instruction_fallback(
                 "ok": True,
                 "patch_id": pid,
                 "verify_detail": vmsg,
+                "applied_path": info.get("applied_path", rel),
+                "previous_content": info.get("previous_content", ""),
+                "previous_content_truncated": bool(info.get("previous_content_truncated")),
             }
         )
 
@@ -458,7 +512,7 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
     if not rel:
         exe.constraints["execution"] = {
             "execution_result": "target_required",
-            "detail": "TARGET ZORUNLU: instruction içinde hedef dosya yolu çıkarılamadı",
+            "detail": "patch uygulanamadı: TARGET ZORUNLU — instruction içinden hedef dosya yolu çıkarılamadı",
         }
         return
 
@@ -466,7 +520,8 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
     if not target.is_file():
         exe.constraints["execution"] = {
             "execution_result": "patch_failed",
-            "detail": f"hedef dosya yok veya okunamıyor: {rel}",
+            "detail": f"patch başarısız: hedef dosya repo kökünde yok veya dosya değil — {rel}",
+            "failed_path": rel,
         }
         return
 
@@ -474,7 +529,8 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
     if body_fb is None:
         exe.constraints["execution"] = {
             "execution_result": "patch_failed",
-            "detail": "güvenli minimal yama üretilemedi (boyut/tür)",
+            "detail": f"patch başarısız: güvenli minimal yama üretilemedi (dosya boyutu veya uzantı desteklenmiyor) — {rel}",
+            "failed_path": rel,
         }
         return
 
@@ -491,6 +547,10 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
     if exe.patch is None:
         return
 
+    ex_existing = exe.constraints.get("execution")
+    if isinstance(ex_existing, dict) and ex_existing.get("execution_result") == "patch_applied":
+        return
+
     patch_step = None
     for s in getattr(task, "steps", []) or []:
         if getattr(s, "kind", "") == "safe_local":
@@ -502,7 +562,7 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
     if patch_step is None:
         exe.constraints["execution"] = {
             "execution_result": "patch_failed",
-            "detail": "patch adımı bulunamadı",
+            "detail": "patch başarısız: görev kaydında 'safe_local' patch adımı bulunamadı",
         }
         return
 
@@ -511,19 +571,29 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
     st = getattr(patch_step, "status", "")
 
     if st == STEP_ERROR or err:
+        tail = (err or out or "çıktı boş").strip()
         exe.constraints["execution"] = {
             "execution_result": "patch_failed",
-            "detail": err or out[:800],
+            "detail": f"patch başarısız: patch adımı hata ile bitti — {tail[:800]}",
         }
         return
+
+    hint_rel = ""
+    if isinstance(exe.patch, dict):
+        hint_rel = str(exe.patch.get("target_relative") or "").strip()
 
     if (
         st == STEP_COMPLETED
         and "patch_result=patch_applied" in out
     ):
+        logger.info(
+            "TaskEngine patch step applied: relative_path=%s",
+            hint_rel or (exe.target_file or ""),
+        )
         exe.constraints["execution"] = {
             "execution_result": "patch_applied",
             "detail": out[:2000],
+            "applied_path": hint_rel or (exe.target_file or ""),
         }
         return
 
@@ -575,15 +645,23 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
         return
 
     if st == STEP_COMPLETED and "Patch uygulaması tamamlandı" in out and "durum: applied" in out:
+        logger.info(
+            "TaskEngine patch step applied (localized output): relative_path=%s",
+            hint_rel or (exe.target_file or ""),
+        )
         exe.constraints["execution"] = {
             "execution_result": "patch_applied",
             "detail": out[:2000],
+            "applied_path": hint_rel or (exe.target_file or ""),
         }
         return
 
+    tail = (out or err or "").strip()[:800]
     exe.constraints["execution"] = {
         "execution_result": "patch_failed",
-        "detail": (out or err)[:800] or "patch adımı beklenen çıktıda değil",
+        "detail": tail
+        and f"patch başarısız: adım tamamlandı ancak patch sonucu tanınmadı — {tail}"
+        or "patch başarısız: adım tamamlandı ancak çıktıda patch_applied / onay bekleyici işareti yok",
     }
 
 

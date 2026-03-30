@@ -441,17 +441,35 @@ def _build_trace_dict(routed_task: RoutedTask, result: ToolResult, problems: Lis
     }
 
 
-def _build_execution_dict(result: ToolResult, problems: List[str]) -> Dict[str, str]:
-    """exe.constraints['execution'] ile aynı şema: tek alan execution_result (cursor_bridge sözlükleriyle uyumlu)."""
+def _build_execution_dict(result: ToolResult, problems: List[str]) -> Dict[str, Any]:
+    """exe.constraints['execution'] ile uyumlu: execution_result + patch sonrası gözlemlenebilir alanlar."""
     ok = len(problems) == 0
     det_failed = any(
         isinstance(n, str) and n == "deterministic apply failed" for n in (result.notes or [])
     )
     if not ok or det_failed:
-        return {"execution_result": "patch_failed"}
+        msg_parts = list(problems)
+        for n in result.notes or []:
+            if isinstance(n, str) and n == "deterministic apply failed":
+                if result.summary:
+                    msg_parts.append(result.summary)
+                break
+        detail = "; ".join(msg_parts) if msg_parts else (result.summary or "doğrulama veya deterministik uygulama başarısız")
+        return {
+            "execution_result": "patch_failed",
+            "detail": f"patch başarısız: {detail}"[:2000],
+        }
     if result.changed_files:
-        return {"execution_result": "patch_applied"}
-    return {"execution_result": "no_change"}
+        applied = _normalize_repo_path(result.changed_files[0])
+        return {
+            "execution_result": "patch_applied",
+            "applied_path": applied,
+            "detail": (result.summary or f"patch uygulandı: {applied}")[:2000],
+        }
+    return {
+        "execution_result": "no_change",
+        "detail": (result.summary or "değişiklik yok")[:2000],
+    }
 
 
 def _enforce_single_target(routed_task: RoutedTask, result: ToolResult) -> ToolResult:
