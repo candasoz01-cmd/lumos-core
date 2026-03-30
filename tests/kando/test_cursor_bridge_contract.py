@@ -1,5 +1,6 @@
 """Cursor bridge packet + persist."""
 import json
+import os
 import time
 
 import core.patch_pipeline as patch_pipeline
@@ -103,6 +104,43 @@ def test_patch_already_applied_returns_no_change(monkeypatch, tmp_path):
         assert exe.constraints["execution"]["execution_result"] == "no_change"
         assert exe.constraints["execution"]["detail"] == "patch already applied"
         assert fp.read_text(encoding="utf-8") == "x = 1"
+    finally:
+        clear_registry()
+
+
+def test_atomic_write_no_partial_file(monkeypatch, tmp_path):
+    """Atomic yazım hata verirse hedef bozulmaz, .tmp kalıntısı olmaz, execution_result=write_failed."""
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
+    (tmp_path / ".lumos").mkdir()
+    fp = tmp_path / "bridge_atomic.py"
+    original = "x = 0\n"
+    fp.write_text(original, encoding="utf-8")
+    goal = "TARGET: bridge_atomic.py\nx = 1\n"
+
+    def _apply_leave_wrong(proposal, **kwargs):
+        fp.write_text("partial", encoding="utf-8")
+
+    monkeypatch.setattr(patch_pipeline, "apply_patch", _apply_leave_wrong)
+
+    def _replace_always_fail(a, b, *args, **kwargs):
+        raise OSError("simulated atomic replace failure")
+
+    monkeypatch.setattr(os, "replace", _replace_always_fail)
+
+    from core.patch_registry import clear_registry
+
+    clear_registry()
+    try:
+        _, _, _, exe, _ = run_brain_and_persist_bridge(
+            goal,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        assert exe.constraints["execution"]["execution_result"] == "write_failed"
+        assert exe.constraints["execution"]["detail"] == "atomic write failed"
+        assert fp.read_text(encoding="utf-8") == original
+        assert not (fp.parent / "bridge_atomic.py.tmp").exists()
     finally:
         clear_registry()
 

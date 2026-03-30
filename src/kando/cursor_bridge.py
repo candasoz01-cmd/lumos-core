@@ -177,6 +177,28 @@ def rollback_patch_file(
         return False, str(e)
 
 
+def _atomic_write_text_utf8(target: Path, text: str) -> bool:
+    """
+    Hedef dosyaya doğrudan yazmak yerine aynı klasörde *.tmp + os.replace.
+    Hata: temp silinir, False döner.
+    """
+    tp = target.resolve()
+    parent = tp.parent
+    temp_path = parent / (tp.name + ".tmp")
+    try:
+        parent.mkdir(parents=True, exist_ok=True)
+        temp_path.write_text(text, encoding="utf-8")
+        os.replace(temp_path, tp)
+    except OSError:
+        try:
+            if temp_path.is_file():
+                temp_path.unlink()
+        except OSError:
+            pass
+        return False
+    return True
+
+
 def _explicit_single_lock_path(text: str) -> str | None:
     """Metinde tam bir adet src/...py yolu varsa döndür (kando_core ile aynı kural)."""
     ms = _SRC_PY_PATH_RE.findall(text or "")
@@ -521,8 +543,27 @@ def _instruction_apply_one(
         except OSError:
             on_disk = ""
         if on_disk != proposal.proposed_text:
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(proposal.proposed_text, encoding="utf-8")
+            if not _atomic_write_text_utf8(target, proposal.proposed_text):
+                rb_ok, rb_msg = rollback_patch_file(
+                    target,
+                    previous_text,
+                    file_existed_before=file_existed_before,
+                )
+                if rb_ok:
+                    return False, {
+                        "detail": "atomic write failed",
+                        "kind": "atomic_write",
+                        "patch_id": proposal.id,
+                        "source": source,
+                        "rollback_applied": True,
+                        "rollback_detail": rb_msg,
+                    }
+                return False, {
+                    "detail": "atomic write failed",
+                    "kind": "atomic_write",
+                    "patch_id": proposal.id,
+                    "source": source,
+                }
         if _total_budget_exceeded():
             return False, {"detail": "total patch timeout", "kind": "timeout_total"}
         if _deadline_exceeded():
@@ -784,6 +825,27 @@ def _run_instruction_apply_to_exe(
                 "error_type": "write_failed",
                 "retry_count": retry_count,
                 "failed_path": rel,
+            },
+        )
+        return False
+    if kind == "atomic_write":
+        rd = str(info.get("rollback_detail") or "")
+        extra: dict[str, Any] = {}
+        if info.get("rollback_applied"):
+            extra["rollback_applied"] = True
+        if rd:
+            extra["rollback_detail"] = rd
+        _store_execution_and_log(
+            exe,
+            {
+                "execution_result": "write_failed",
+                "detail": "atomic write failed",
+                "error_type": "write_failed",
+                "retry_count": retry_count,
+                "failed_path": rel,
+                "patch_id": info.get("patch_id", ""),
+                "source": info.get("source", source),
+                **extra,
             },
         )
         return False
