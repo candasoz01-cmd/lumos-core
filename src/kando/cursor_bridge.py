@@ -6,7 +6,6 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import re
 from pathlib import Path
 from typing import Any
 
@@ -20,12 +19,11 @@ from kando.cursor_packet import (
 )
 from task_engine.profiles import may_execute_step_at_runtime
 
-INSTRUCTION_SRC_PY_RE = re.compile(r"(src/[a-zA-Z0-9_/.-]+\.py)")
-
 
 def _extract_src_py_from_instruction(goal: str) -> str | None:
-    m = INSTRUCTION_SRC_PY_RE.search(goal or "")
-    return m.group(1) if m else None
+    from kando.kando_core import extract_explicit_target
+
+    return extract_explicit_target(goal or "")
 
 
 # brain.run → persist_bridge_after_brain sonrası paketler (run_brain_and_persist_bridge / llm okur)
@@ -389,11 +387,18 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
         select_instruction_multi_pair,
     )
     from task_engine.executors.patch_apply_executor import _repo_root
+    from kando.kando_core import explicit_single_lock_path
 
     repo_root = _repo_root()
+    explicit_rel = explicit_single_lock_path(goal or "")
+    if explicit_rel:
+        er = explicit_rel.replace("\\", "/").strip()
+        if er and not _path_blocked(er) and (repo_root / er).is_file():
+            exe.target_file = er
+
     ft_path, ft_task = extract_file_task(goal)
     explicit_file_task = bool(ft_path and ft_task)
-    if ft_path and ft_task:
+    if ft_path and ft_task and not explicit_rel:
         rel0 = ft_path.strip().replace("\\", "/")
         if rel0 and not _path_blocked(rel0):
             exe.target_file = rel0
@@ -412,18 +417,19 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
         return
 
     pair: list[str] | None = None
-    tf = getattr(exe, "target_files", None) or []
-    if isinstance(tf, list) and len(tf) >= 2:
-        pair = [str(x).strip() for x in tf[:2] if str(x).strip()]
-        if len(pair) < 2:
-            pair = None
-    if pair is None and not explicit_file_task:
-        paths_ordered = extract_instruction_paths_ordered(goal, repo_root)
-        pair = select_instruction_multi_pair(paths_ordered, repo_root)
+    if not explicit_rel:
+        tf = getattr(exe, "target_files", None) or []
+        if isinstance(tf, list) and len(tf) >= 2:
+            pair = [str(x).strip() for x in tf[:2] if str(x).strip()]
+            if len(pair) < 2:
+                pair = None
+        if pair is None and not explicit_file_task:
+            paths_ordered = extract_instruction_paths_ordered(goal, repo_root)
+            pair = select_instruction_multi_pair(paths_ordered, repo_root)
 
-    if pair is not None and len(pair) >= 2:
-        _run_multi_instruction_fallback(pair, exe, repo_root=repo_root, lumos_base=lumos_base)
-        return
+        if pair is not None and len(pair) >= 2:
+            _run_multi_instruction_fallback(pair, exe, repo_root=repo_root, lumos_base=lumos_base)
+            return
 
     rel = (exe.target_file or "").strip()
     if not rel:

@@ -101,6 +101,20 @@ def select_target_and_task(goal: str, repo_root: Path) -> tuple[str, str, dict[s
     """
     goal = (goal or "").strip()
     tokens = _tokenize_goal(goal)
+
+    from kando.kando_core import explicit_single_lock_path
+
+    lock_path = explicit_single_lock_path(goal)
+    if lock_path:
+        rel = lock_path.replace("\\", "/").strip()
+        if rel and _allowed_agent_target(rel) and (repo_root / rel).is_file():
+            return rel, goal, {
+                "candidates_considered": 0,
+                "tokens": tokens[:20],
+                "explicit_target": True,
+                "top_scores": [],
+            }
+
     files = _list_src_core_py_files(repo_root)
     meta: dict[str, Any] = {"candidates_considered": len(files), "tokens": tokens[:20]}
 
@@ -141,6 +155,36 @@ def _git_cmd(repo: Path, *args: str, timeout: float = 120.0) -> tuple[int, str, 
         return r.returncode, out.strip(), out.strip()
     except Exception as e:
         return 1, "", str(e)[:2000]
+
+
+def _filter_changed_to_explicit(goal: str, paths: list[str]) -> list[str]:
+    """Görev metninde tek explicit src/...py varsa changed_files yalnızca o yol (veya [])."""
+    from kando.kando_core import explicit_single_lock_path
+
+    ex = explicit_single_lock_path(goal or "")
+    if not ex:
+        return paths
+    exn = ex.replace("\\", "/").strip()
+    out: list[str] = []
+    for p in paths:
+        pn = p.replace("\\", "/").strip()
+        if pn == exn:
+            out.append(exn)
+    return list(dict.fromkeys(out))
+
+
+def _apply_explicit_target_final(report: dict[str, Any], goal: str) -> None:
+    from kando.kando_core import explicit_single_lock_path
+
+    explicit_target = explicit_single_lock_path(goal or "")
+    if not explicit_target:
+        return
+    et = explicit_target.replace("\\", "/").strip()
+    report["selected_target"] = et
+    cf = report.get("changed_files") or []
+    report["changed_files"] = [
+        f for f in cf if f.replace("\\", "/").strip() == et
+    ]
 
 
 def _git_uncommitted_paths(repo: Path) -> list[str]:
@@ -276,12 +320,16 @@ def run_agent_pipeline(
         if on_phase:
             on_phase(name)
 
+    def _done() -> dict[str, Any]:
+        _apply_explicit_target_final(report, goal)
+        return report
+
     phase("repo_scan")
     risky = _is_risky_goal(goal)
     if risky:
         report["status"] = "failed"
         report["errors"] = [f"blocked:{risky}"]
-        return report
+        return _done()
 
     phase("issue_discovery")
     phase("target_selection")
@@ -293,7 +341,7 @@ def run_agent_pipeline(
         report["status"] = "failed"
         report["errors"] = ["no_safe_target_in_src_core"]
         report["next_focus"] = "src/core altında .py hedefi seçilemedi"
-        return report
+        return _done()
 
     goal_body = f"file: {rel}\ntask: {task}\n"
     if auto_approve_safe:
@@ -307,22 +355,22 @@ def run_agent_pipeline(
     except Exception as e:
         report["status"] = "failed"
         report["errors"] = [f"executor:{e!s}"[:2000]]
-        return report
+        return _done()
 
     if ex_out.get("execution_result") == "no_target_detected":
         report["status"] = "failed"
         report["errors"] = ["executor_returned_no_target_detected"]
-        return report
+        return _done()
 
     phase("verify")
-    changed = _git_uncommitted_paths(rr)
+    changed = _filter_changed_to_explicit(goal, _git_uncommitted_paths(rr))
     if not changed:
         report["status"] = "failed"
         report["errors"].append("no_worktree_changes_after_patch")
         report["next_focus"] = "Executor çıktısı git diff üretmedi"
         report["changed_files"] = []
         report["verify"] = {"ok": False, "detail": "değişen dosya yok"}
-        return report
+        return _done()
 
     report["changed_files"] = changed
 
@@ -337,7 +385,7 @@ def run_agent_pipeline(
         report["status"] = "partial"
         report["errors"].append("verify_failed")
         report["next_focus"] = "py_compile hatalarını gider"
-        return report
+        return _done()
 
     phase("commit")
     cm = _commit_files(rr, changed, f"agent: {task[:72]}")
@@ -349,7 +397,7 @@ def run_agent_pipeline(
     if not cm.get("ok"):
         report["status"] = "partial"
         report["errors"].append("commit_failed")
-        return report
+        return _done()
 
     phase("push_if_possible")
     pu = _push_repo(rr)
@@ -358,7 +406,7 @@ def run_agent_pipeline(
     report["status"] = "ok" if pu["ok"] else "partial"
     report["next_focus"] = "Push başarısızsa uzak depo/branch kontrol et" if not pu["ok"] else ""
     phase("final_report")
-    return report
+    return _done()
 
 
 def start_agent_job(
