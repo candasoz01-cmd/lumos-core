@@ -76,6 +76,37 @@ def test_persist_roundtrip(tmp_path):
     assert "verify" in ex
 
 
+def test_patch_already_applied_returns_no_change(monkeypatch, tmp_path):
+    """Dosya zaten hedef içerikteyse tekrar patch no-op; execution_result=no_change, apply_patch çağrılmaz."""
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
+    (tmp_path / ".lumos").mkdir()
+    fp = tmp_path / "bridge_idem.py"
+    # Instruction gövdesi strip("\n") ile bittiği için proposed_text tam olarak "x = 1" (EOF newline yok).
+    fp.write_text("x = 1", encoding="utf-8")
+    goal = "TARGET: bridge_idem.py\nx = 1\n"
+
+    def _apply_must_not_run(*args, **kwargs):
+        raise AssertionError("apply_patch must not run when disk already matches proposed_text")
+
+    monkeypatch.setattr(patch_pipeline, "apply_patch", _apply_must_not_run)
+
+    from core.patch_registry import clear_registry
+
+    clear_registry()
+    try:
+        _, _, _, exe, _ = run_brain_and_persist_bridge(
+            goal,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        assert exe.constraints["execution"]["execution_result"] == "no_change"
+        assert exe.constraints["execution"]["detail"] == "patch already applied"
+        assert fp.read_text(encoding="utf-8") == "x = 1"
+    finally:
+        clear_registry()
+
+
 def test_instruction_target_line_patch_applies(monkeypatch, tmp_path):
     monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
     monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))

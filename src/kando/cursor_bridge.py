@@ -472,6 +472,48 @@ def _instruction_apply_one(
         if _deadline_exceeded():
             return False, {"detail": "patch timeout", "kind": "timeout"}
 
+        if previous_text == proposal.proposed_text:
+            if _total_budget_exceeded():
+                return False, {"detail": "total patch timeout", "kind": "timeout_total"}
+            if _deadline_exceeded():
+                return False, {"detail": "patch timeout", "kind": "timeout"}
+            v_ok, v_msg = run_post_apply_verify(target, verify_cmd)
+            if not v_ok:
+                fail_detail = (
+                    f"patch başarısız: doğrulama başarısız — {v_msg}"[:2000]
+                )
+                return False, {
+                    "detail": fail_detail,
+                    "verify_detail": v_msg[:1500],
+                    "patch_id": proposal.id,
+                    "kind": "verify",
+                    "source": source,
+                }
+            prev_for_exec = previous_text
+            truncated = False
+            if len(prev_for_exec) > _MAX_PREVIOUS_CONTENT_IN_EXECUTION:
+                prev_for_exec = prev_for_exec[:_MAX_PREVIOUS_CONTENT_IN_EXECUTION]
+                truncated = True
+            logger.info(
+                "Instruction patch no-op (already applied): relative_path=%s patch_id=%s",
+                rel,
+                proposal.id,
+            )
+            if _total_budget_exceeded():
+                return False, {"detail": "total patch timeout", "kind": "timeout_total"}
+            if _deadline_exceeded():
+                return False, {"detail": "patch timeout", "kind": "timeout"}
+            return True, {
+                "patch_id": proposal.id,
+                "verify_msg": v_msg,
+                "source": source,
+                "applied_path": rel,
+                "previous_content": prev_for_exec,
+                "previous_content_truncated": truncated,
+                "diff_preview": diff_preview,
+                "already_applied": True,
+            }
+
         apply_patch(proposal, assume_reviewed=True, allow_protected_apply=False)
         mutated = True
         try:
@@ -677,6 +719,24 @@ def _run_instruction_apply_to_exe(
                     "dry_run": True,
                     "proposed_text": info.get("proposed_text", ""),
                     "proposed_text_truncated": bool(info.get("proposed_text_truncated")),
+                    "previous_content": info.get("previous_content", ""),
+                    "previous_content_truncated": bool(info.get("previous_content_truncated")),
+                    "diff_preview": str(info.get("diff_preview") or ""),
+                    "error_type": "",
+                    "retry_count": retry_count,
+                },
+            )
+            return True
+        if info.get("already_applied"):
+            _store_execution_and_log(
+                exe,
+                {
+                    "execution_result": "no_change",
+                    "detail": "patch already applied",
+                    "verify_detail": v_msg[:1500],
+                    "source": source,
+                    "patch_id": info.get("patch_id", ""),
+                    "applied_path": rel,
                     "previous_content": info.get("previous_content", ""),
                     "previous_content_truncated": bool(info.get("previous_content_truncated")),
                     "diff_preview": str(info.get("diff_preview") or ""),
@@ -1125,6 +1185,7 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
     if isinstance(ex_existing, dict) and ex_existing.get("execution_result") in (
         "patch_applied",
         "dry_run_success",
+        "no_change",
     ):
         return
 
