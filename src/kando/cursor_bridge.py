@@ -27,6 +27,8 @@ logger = logging.getLogger(__name__)
 
 # Bridge JSON / memory: tam dosya yedeği üst sınırı (disk .bak kullanılmaz)
 _MAX_PREVIOUS_CONTENT_IN_EXECUTION = 512_000
+# dry_run: last_execution JSON içinde önerilen tam içerik üst sınırı
+_MAX_DRY_RUN_PROPOSED_TEXT = 512_000
 
 
 def rollback_patch_file(
@@ -103,6 +105,7 @@ def persist_bridge_after_brain(
     permission_profile: str,
     general_approval: bool,
     lumos_base: Path,
+    dry_run: bool = False,
 ) -> tuple[Path, Path, CursorExecutionPacketV1, CursorResultPacketV1]:
     """
     TaskEngine.run_task sonrası: execution paketi + last_execution/last_result + cursor_executor kancası.
@@ -119,6 +122,8 @@ def persist_bridge_after_brain(
         general_approval=general_approval,
     )
     exe.constraints["lumos_base_resolved"] = str(base)
+    if dry_run:
+        exe.constraints["dry_run"] = True
     try_instruction_patch_apply(goal, exe)
     record_bridge_execution(exe, task)
     from core.patch_pipeline_lifecycle import (
@@ -230,8 +235,9 @@ def _instruction_apply_one(
     body: str,
     verify_cmd: str | None,
     source: str,
+    dry_run: bool = False,
 ) -> tuple[bool, dict[str, Any]]:
-    """Tek dosya: propose → apply → verify. (True, {patch_id, verify_msg}) veya (False, {detail, ...})."""
+    """Tek dosya: propose → apply → verify. dry_run=True iken disk yazılmaz, doğrulama atlanır."""
     from core.patch_pipeline import (
         ProtectedApplyForbidden,
         apply_patch,
@@ -274,6 +280,36 @@ def _instruction_apply_one(
                 "detail": f"patch başarısız: öneri dosya sistemi doğrulamasında reddedildi — {val.message}",
                 "kind": "validate",
                 "patch_id": proposal.id,
+            }
+
+        if dry_run:
+            prop_full = proposal.proposed_text
+            prop_exec = prop_full
+            prop_trunc = False
+            if len(prop_exec) > _MAX_DRY_RUN_PROPOSED_TEXT:
+                prop_exec = prop_exec[:_MAX_DRY_RUN_PROPOSED_TEXT]
+                prop_trunc = True
+            prev_for_exec = previous_text
+            prev_trunc = False
+            if len(prev_for_exec) > _MAX_PREVIOUS_CONTENT_IN_EXECUTION:
+                prev_for_exec = prev_for_exec[:_MAX_PREVIOUS_CONTENT_IN_EXECUTION]
+                prev_trunc = True
+            v_msg = "dry_run: disk yazılmadı, doğrulama atlandı"
+            logger.info(
+                "Instruction patch dry-run: relative_path=%s patch_id=%s",
+                rel,
+                proposal.id,
+            )
+            return True, {
+                "patch_id": proposal.id,
+                "verify_msg": v_msg,
+                "source": source,
+                "applied_path": rel,
+                "previous_content": prev_for_exec,
+                "previous_content_truncated": prev_trunc,
+                "dry_run": True,
+                "proposed_text": prop_exec,
+                "proposed_text_truncated": prop_trunc,
             }
 
         apply_patch(proposal, assume_reviewed=True, allow_protected_apply=False)
@@ -396,6 +432,7 @@ def _run_instruction_apply_to_exe(
     *,
     repo_root: Path,
     lumos_base: Path,
+    dry_run: bool = False,
 ) -> bool:
     """exe.constraints['execution'] yazar. Başarıda True."""
     exe.target_file = rel
@@ -406,9 +443,25 @@ def _run_instruction_apply_to_exe(
         body=body,
         verify_cmd=verify_cmd,
         source=source,
+        dry_run=dry_run,
     )
     if ok:
         v_msg = str(info.get("verify_msg") or "")
+        if info.get("dry_run"):
+            exe.constraints["execution"] = {
+                "execution_result": "dry_run_success",
+                "detail": f"{source}; {v_msg}"[:2000],
+                "verify_detail": v_msg[:1500],
+                "source": source,
+                "patch_id": info.get("patch_id", ""),
+                "applied_path": rel,
+                "dry_run": True,
+                "proposed_text": info.get("proposed_text", ""),
+                "proposed_text_truncated": bool(info.get("proposed_text_truncated")),
+                "previous_content": info.get("previous_content", ""),
+                "previous_content_truncated": bool(info.get("previous_content_truncated")),
+            }
+            return True
         exe.constraints["execution"] = {
             "execution_result": "patch_applied",
             "detail": f"{source}; {v_msg}"[:2000],
@@ -451,6 +504,7 @@ def _run_multi_instruction_fallback(
     *,
     repo_root: Path,
     lumos_base: Path,
+    dry_run: bool = False,
 ) -> None:
     """En fazla 2 dosya; sıralı apply+verify; bir hata → dur, execution_result=partial."""
     file_results: list[dict[str, Any]] = []
@@ -482,6 +536,7 @@ def _run_multi_instruction_fallback(
             body=body_fb,
             verify_cmd=None,
             source="instruction_multi_fallback",
+            dry_run=dry_run,
         )
         if not ok:
             fr: dict[str, Any] = {
@@ -511,28 +566,33 @@ def _run_multi_instruction_fallback(
         vmsg = str(info.get("verify_msg") or "")
         patch_ids.append(pid)
         verify_parts.append(f"{rel}: {vmsg}")
-        file_results.append(
-            {
-                "path": rel,
-                "ok": True,
-                "patch_id": pid,
-                "verify_detail": vmsg,
-                "applied_path": info.get("applied_path", rel),
-                "previous_content": info.get("previous_content", ""),
-                "previous_content_truncated": bool(info.get("previous_content_truncated")),
-            }
-        )
+        fr_ok: dict[str, Any] = {
+            "path": rel,
+            "ok": True,
+            "patch_id": pid,
+            "verify_detail": vmsg,
+            "applied_path": info.get("applied_path", rel),
+            "previous_content": info.get("previous_content", ""),
+            "previous_content_truncated": bool(info.get("previous_content_truncated")),
+        }
+        if dry_run and info.get("dry_run"):
+            fr_ok["dry_run"] = True
+            fr_ok["proposed_text"] = info.get("proposed_text", "")
+            fr_ok["proposed_text_truncated"] = bool(info.get("proposed_text_truncated"))
+        file_results.append(fr_ok)
 
     exe.target_files = list(pair)
     summary = " | ".join(verify_parts)
+    ex_res_multi = "dry_run_success" if dry_run else "patch_applied"
     exe.constraints["execution"] = {
-        "execution_result": "patch_applied",
+        "execution_result": ex_res_multi,
         "multi_file": True,
         "file_results": file_results,
         "detail": f"instruction_multi_fallback; {summary}"[:2000],
         "verify_detail": summary[:2000],
         "patch_ids": patch_ids,
         "source": "instruction_multi_fallback",
+        **({"dry_run": True} if dry_run else {}),
     }
 
 
@@ -543,9 +603,12 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
     - İki açık dosya (src/core, max 2) → sıralı çoklu fallback
     - Tek dosya: instruction yolu + güvenli fallback içerik
     Tek yol net ise çoklu hedef keşfi yapılmaz; tek dosya apply. Hedef yoksa: target_required.
+    opsiyonel: exe.constraints["dry_run"]=True → disk yazılmaz, execution_result=dry_run_success.
     """
     if exe.patch is not None:
         return
+
+    dry_run = bool(exe.constraints.get("dry_run"))
 
     from kando.patch_scope import (
         _path_blocked,
@@ -579,7 +642,14 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
     if parsed:
         rel, body, verify_cmd = parsed
         _run_instruction_apply_to_exe(
-            exe, rel, body, verify_cmd, "instruction_target_line", repo_root=repo_root, lumos_base=lumos_base
+            exe,
+            rel,
+            body,
+            verify_cmd,
+            "instruction_target_line",
+            repo_root=repo_root,
+            lumos_base=lumos_base,
+            dry_run=dry_run,
         )
         return
 
@@ -595,7 +665,9 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
             pair = select_instruction_multi_pair(paths_ordered, repo_root)
 
         if pair is not None and len(pair) >= 2:
-            _run_multi_instruction_fallback(pair, exe, repo_root=repo_root, lumos_base=lumos_base)
+            _run_multi_instruction_fallback(
+                pair, exe, repo_root=repo_root, lumos_base=lumos_base, dry_run=dry_run
+            )
             return
 
     rel = (exe.target_file or "").strip()
@@ -632,7 +704,14 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
         return
 
     _run_instruction_apply_to_exe(
-        exe, rel, body_fb, None, "instruction_path_fallback", repo_root=repo_root, lumos_base=lumos_base
+        exe,
+        rel,
+        body_fb,
+        None,
+        "instruction_path_fallback",
+        repo_root=repo_root,
+        lumos_base=lumos_base,
+        dry_run=dry_run,
     )
 
 
@@ -645,7 +724,10 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
         return
 
     ex_existing = exe.constraints.get("execution")
-    if isinstance(ex_existing, dict) and ex_existing.get("execution_result") == "patch_applied":
+    if isinstance(ex_existing, dict) and ex_existing.get("execution_result") in (
+        "patch_applied",
+        "dry_run_success",
+    ):
         return
 
     patch_step = None
@@ -922,6 +1004,8 @@ def build_result_packet(
         outcome = "partial"
     elif ex_result == "rollback_applied" and brain_success:
         outcome = "partial"
+    elif ex_result == "dry_run_success" and brain_success:
+        outcome = "simulation"
     elif ex_result == "patch_applied" and brain_success:
         outcome = "applied"
     elif status in ("tamamlandi",) and brain_success:
@@ -1003,6 +1087,7 @@ def _write_minimal_bridge_files(
     general_approval: bool,
     brain_success: bool,
     task: Any,
+    dry_run: bool = False,
 ) -> tuple[Path, Path, CursorExecutionPacketV1, CursorResultPacketV1]:
     """Tam persist_bridge_after_brain başarısızsa: paket üret + last_execution/last_result yaz."""
     base = lumos_base.resolve()
@@ -1014,6 +1099,8 @@ def _write_minimal_bridge_files(
         general_approval=general_approval,
     )
     exe.constraints["lumos_base_resolved"] = str(base)
+    if dry_run:
+        exe.constraints["dry_run"] = True
     try_instruction_patch_apply(goal, exe)
     record_bridge_execution(exe, task)
     ex_payload = exe.constraints.get("execution") if isinstance(exe.constraints.get("execution"), dict) else None
@@ -1094,6 +1181,7 @@ def run_brain_and_persist_bridge(
     *,
     permission_profile: str,
     general_approval: bool,
+    dry_run: bool = False,
 ):
     """
     Brain.run (içinde TaskEngine + cursor_bridge persist) + son paketi döndürür.
@@ -1139,6 +1227,7 @@ def run_brain_and_persist_bridge(
                 permission_profile=permission_profile,
                 general_approval=general_approval,
                 lumos_base=lumos_base,
+                dry_run=dry_run,
             )
             pkt = pop_last_bridge_packets()
         except Exception:
@@ -1153,6 +1242,7 @@ def run_brain_and_persist_bridge(
                 general_approval=general_approval,
                 brain_success=result.success,
                 task=task,
+                dry_run=dry_run,
             )
             pkt = (p_exec, p_res, exe, res_pkt)
         except Exception:
