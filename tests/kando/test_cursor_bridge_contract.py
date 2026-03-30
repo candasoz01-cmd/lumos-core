@@ -217,6 +217,42 @@ def test_patch_timeout_returns_timeout(monkeypatch, tmp_path):
         clear_registry()
 
 
+def test_patch_total_timeout(monkeypatch, tmp_path):
+    """Çoklu patch akışında toplam süre aşılınca execution_result=timeout_total."""
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
+    (tmp_path / ".lumos").mkdir()
+    a = tmp_path / "src" / "core" / "ma.py"
+    b = tmp_path / "src" / "core" / "mb.py"
+    a.parent.mkdir(parents=True)
+    a.write_text("a=1\n", encoding="utf-8")
+    b.write_text("b=1\n", encoding="utf-8")
+
+    _orig_propose = patch_pipeline.propose_text_patch
+
+    def _slow_propose(*args, **kwargs):
+        time.sleep(0.06)
+        return _orig_propose(*args, **kwargs)
+
+    monkeypatch.setattr(cursor_bridge, "MAX_TOTAL_PATCH_SECONDS", 0.1)
+    monkeypatch.setattr(cursor_bridge, "MAX_PATCH_SECONDS", 30.0)
+    monkeypatch.setattr(patch_pipeline, "propose_text_patch", _slow_propose)
+
+    from core.patch_registry import clear_registry
+
+    clear_registry()
+    try:
+        _, _, _, exe, _ = run_brain_and_persist_bridge(
+            "görev: src/core/ma.py ve src/core/mb.py güvenlik dokunuşu",
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        assert exe.constraints["execution"]["execution_result"] == "timeout_total"
+        assert exe.constraints["execution"]["detail"] == "total patch timeout"
+    finally:
+        clear_registry()
+
+
 def test_instruction_embedded_path_requires_target_body(monkeypatch, tmp_path):
     """Metinde gömülü repo yolu → tek hedef; deterministic patch_applied."""
     monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))

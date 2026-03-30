@@ -39,6 +39,7 @@ _DIFF_PREVIEW_MAX_TOTAL_BYTES = 2 * 1024 * 1024
 _PATCH_APPLY_LOG_MAX_DETAIL = 800
 _PATCH_APPLY_LOG_FILENAME = "patch_apply.jsonl"
 MAX_PATCH_SECONDS = 5
+MAX_TOTAL_PATCH_SECONDS = 10
 
 
 def _lumos_base_path_for_log(exe: CursorExecutionPacketV1) -> Path | None:
@@ -120,6 +121,8 @@ def _error_type_from_instruction_kind(kind: str) -> str:
     if k == "validate":
         return "parse_error"
     if k == "timeout":
+        return "write_failed"
+    if k == "timeout_total":
         return "write_failed"
     return "write_failed"
 
@@ -357,6 +360,7 @@ def _instruction_apply_one(
     source: str,
     dry_run: bool = False,
     deadline_abs: float | None = None,
+    patch_flow_start: float | None = None,
 ) -> tuple[bool, dict[str, Any]]:
     """Tek dosya: propose → apply → verify. dry_run=True iken disk yazılmaz, doğrulama atlanır."""
     from core.patch_pipeline import (
@@ -373,12 +377,19 @@ def _instruction_apply_one(
     def _deadline_exceeded() -> bool:
         return time.time() > dline
 
+    def _total_budget_exceeded() -> bool:
+        if patch_flow_start is None:
+            return False
+        return time.time() - patch_flow_start > MAX_TOTAL_PATCH_SECONDS
+
     target = (repo_root / rel).resolve()
     if is_core_state_path(lumos_base, target):
         return False, {
             "detail": "patch başarısız: hedef .lumos çekirdek state yolunda (yazma yasak)",
             "kind": "core_state",
         }
+    if _total_budget_exceeded():
+        return False, {"detail": "total patch timeout", "kind": "timeout_total"}
     if _deadline_exceeded():
         return False, {"detail": "patch timeout", "kind": "timeout"}
     file_existed_before = target.is_file()
@@ -391,6 +402,8 @@ def _instruction_apply_one(
                 "detail": f"patch başarısız: hedef okunamadı ({rel}): {e}",
                 "kind": "read_error",
             }
+    if _total_budget_exceeded():
+        return False, {"detail": "total patch timeout", "kind": "timeout_total"}
     if _deadline_exceeded():
         return False, {"detail": "patch timeout", "kind": "timeout"}
     mutated = False
@@ -412,6 +425,8 @@ def _instruction_apply_one(
                 "patch_id": proposal.id,
             }
 
+        if _total_budget_exceeded():
+            return False, {"detail": "total patch timeout", "kind": "timeout_total"}
         if _deadline_exceeded():
             return False, {"detail": "patch timeout", "kind": "timeout"}
 
@@ -435,6 +450,8 @@ def _instruction_apply_one(
                 rel,
                 proposal.id,
             )
+            if _total_budget_exceeded():
+                return False, {"detail": "total patch timeout", "kind": "timeout_total"}
             if _deadline_exceeded():
                 return False, {"detail": "patch timeout", "kind": "timeout"}
             return True, {
@@ -450,6 +467,8 @@ def _instruction_apply_one(
                 "diff_preview": diff_preview,
             }
 
+        if _total_budget_exceeded():
+            return False, {"detail": "total patch timeout", "kind": "timeout_total"}
         if _deadline_exceeded():
             return False, {"detail": "patch timeout", "kind": "timeout"}
 
@@ -462,6 +481,8 @@ def _instruction_apply_one(
         if on_disk != proposal.proposed_text:
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(proposal.proposed_text, encoding="utf-8")
+        if _total_budget_exceeded():
+            return False, {"detail": "total patch timeout", "kind": "timeout_total"}
         if _deadline_exceeded():
             return False, {"detail": "patch timeout", "kind": "timeout"}
         v_ok, v_msg = run_post_apply_verify(target, verify_cmd)
@@ -506,6 +527,8 @@ def _instruction_apply_one(
             rel,
             proposal.id,
         )
+        if _total_budget_exceeded():
+            return False, {"detail": "total patch timeout", "kind": "timeout_total"}
         if _deadline_exceeded():
             return False, {"detail": "patch timeout", "kind": "timeout"}
         return True, {
@@ -579,6 +602,7 @@ def _instruction_apply_one_with_retry(
     source: str,
     dry_run: bool = False,
     deadline_abs: float | None = None,
+    patch_flow_start: float | None = None,
 ) -> tuple[bool, dict[str, Any], int]:
     """İlk deneme başarısızsa yalnızca bir kez daha dener. retry_count: 0 veya 1."""
     ok, info = _instruction_apply_one(
@@ -590,10 +614,11 @@ def _instruction_apply_one_with_retry(
         source=source,
         dry_run=dry_run,
         deadline_abs=deadline_abs,
+        patch_flow_start=patch_flow_start,
     )
     if ok:
         return True, info, 0
-    if info.get("kind") == "timeout":
+    if info.get("kind") in ("timeout", "timeout_total"):
         return False, info, 0
     ok2, info2 = _instruction_apply_one(
         repo_root=repo_root,
@@ -604,10 +629,11 @@ def _instruction_apply_one_with_retry(
         source=source,
         dry_run=dry_run,
         deadline_abs=deadline_abs,
+        patch_flow_start=patch_flow_start,
     )
     if ok2:
         return True, info2, 1
-    if info2.get("kind") == "timeout":
+    if info2.get("kind") in ("timeout", "timeout_total"):
         return False, info2, 1
     return False, info2, 1
 
@@ -622,6 +648,7 @@ def _run_instruction_apply_to_exe(
     repo_root: Path,
     lumos_base: Path,
     dry_run: bool = False,
+    patch_flow_start: float | None = None,
 ) -> bool:
     """exe.constraints['execution'] yazar. Başarıda True."""
     exe.target_file = rel
@@ -633,6 +660,7 @@ def _run_instruction_apply_to_exe(
         verify_cmd=verify_cmd,
         source=source,
         dry_run=dry_run,
+        patch_flow_start=patch_flow_start,
     )
     if ok:
         v_msg = str(info.get("verify_msg") or "")
@@ -675,6 +703,18 @@ def _run_instruction_apply_to_exe(
         )
         return True
     kind = info.get("kind", "")
+    if kind == "timeout_total":
+        _store_execution_and_log(
+            exe,
+            {
+                "execution_result": "timeout_total",
+                "detail": "total patch timeout",
+                "error_type": "write_failed",
+                "retry_count": retry_count,
+                "failed_path": rel,
+            },
+        )
+        return False
     if kind == "timeout":
         _store_execution_and_log(
             exe,
@@ -731,6 +771,7 @@ def _run_multi_instruction_fallback(
     repo_root: Path,
     lumos_base: Path,
     dry_run: bool = False,
+    patch_flow_start: float | None = None,
 ) -> None:
     """En fazla 2 dosya; sıralı apply+verify; bir hata → dur, execution_result=partial."""
     file_results: list[dict[str, Any]] = []
@@ -740,6 +781,25 @@ def _run_multi_instruction_fallback(
     multi_deadline = time.time() + MAX_PATCH_SECONDS
 
     for rel in pair:
+        if patch_flow_start is not None and time.time() - patch_flow_start > MAX_TOTAL_PATCH_SECONDS:
+            exe.target_file = rel
+            exe.target_files = list(pair)
+            _store_execution_and_log(
+                exe,
+                {
+                    "execution_result": "timeout_total",
+                    "detail": "total patch timeout",
+                    "error_type": "write_failed",
+                    "retry_count": multi_retry_used,
+                    "failed_path": rel,
+                    "multi_file": True,
+                    "stopped_at": rel,
+                    "file_results": file_results,
+                    "patch_ids": patch_ids,
+                    "verify_detail": " | ".join(verify_parts)[:2000] if verify_parts else "",
+                },
+            )
+            return
         if time.time() > multi_deadline:
             exe.target_file = rel
             exe.target_files = list(pair)
@@ -790,6 +850,7 @@ def _run_multi_instruction_fallback(
             source="instruction_multi_fallback",
             dry_run=dry_run,
             deadline_abs=multi_deadline,
+            patch_flow_start=patch_flow_start,
         )
         if not ok:
             fr: dict[str, Any] = {
@@ -804,6 +865,24 @@ def _run_multi_instruction_fallback(
                     fr["rollback_detail"] = info.get("rollback_detail")
             file_results.append(fr)
             exe.target_files = list(pair)
+            if info.get("kind") == "timeout_total":
+                _store_execution_and_log(
+                    exe,
+                    {
+                        "execution_result": "timeout_total",
+                        "detail": "total patch timeout",
+                        "multi_file": True,
+                        "stopped_at": rel,
+                        "file_results": file_results,
+                        "patch_ids": patch_ids,
+                        "error_type": "write_failed",
+                        "retry_count": max(multi_retry_used, rtry),
+                        "verify_detail": " | ".join(verify_parts)[:2000]
+                        if verify_parts
+                        else str(info.get("verify_detail", ""))[:1500],
+                    },
+                )
+                return
             if info.get("kind") == "timeout":
                 _store_execution_and_log(
                     exe,
@@ -904,6 +983,7 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
     if exe.patch is not None:
         return
 
+    patch_flow_start = time.time()
     dry_run = bool(exe.constraints.get("dry_run"))
 
     from kando.patch_scope import (
@@ -946,6 +1026,7 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
             repo_root=repo_root,
             lumos_base=lumos_base,
             dry_run=dry_run,
+            patch_flow_start=patch_flow_start,
         )
         return
 
@@ -962,7 +1043,12 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
 
         if pair is not None and len(pair) >= 2:
             _run_multi_instruction_fallback(
-                pair, exe, repo_root=repo_root, lumos_base=lumos_base, dry_run=dry_run
+                pair,
+                exe,
+                repo_root=repo_root,
+                lumos_base=lumos_base,
+                dry_run=dry_run,
+                patch_flow_start=patch_flow_start,
             )
             return
 
@@ -1023,6 +1109,7 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
         repo_root=repo_root,
         lumos_base=lumos_base,
         dry_run=dry_run,
+        patch_flow_start=patch_flow_start,
     )
 
 
@@ -1353,7 +1440,7 @@ def build_result_packet(
         outcome = "partial"
     elif ex_result == "dry_run_success" and brain_success:
         outcome = "simulation"
-    elif ex_result == "timeout":
+    elif ex_result in ("timeout", "timeout_total"):
         outcome = "failed"
     elif ex_result == "patch_applied" and brain_success:
         outcome = "applied"
