@@ -158,7 +158,7 @@ def test_instruction_multi_two_files_applied(monkeypatch, tmp_path):
 
 
 def test_file_task_lines_requires_target_body(monkeypatch, tmp_path):
-    """file:/task: ile hedef varsa bile instruction_path_fallback yok; TARGET ZORUNLU."""
+    """file: + task ile hedef yolu çıkar; tek dosya deterministic instruction_path_fallback."""
     monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
     monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
     (tmp_path / ".lumos").mkdir()
@@ -175,13 +175,14 @@ def test_file_task_lines_requires_target_body(monkeypatch, tmp_path):
             permission_profile=PROFILE_GUVENLI_YURUT,
             general_approval=True,
         )
-        assert exe.constraints["execution"]["execution_result"] == "target_required"
-        assert "TARGET ZORUNLU" in exe.constraints["execution"]["detail"]
+        assert exe.constraints["execution"]["execution_result"] == "patch_applied"
+        assert "instruction_path_fallback" in exe.constraints["execution"].get("detail", "")
     finally:
         clear_registry()
 
 
 def test_instruction_embedded_path_requires_target_body(monkeypatch, tmp_path):
+    """Metinde gömülü repo yolu → tek hedef; deterministic patch_applied."""
     monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
     monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
     (tmp_path / ".lumos").mkdir()
@@ -197,7 +198,7 @@ def test_instruction_embedded_path_requires_target_body(monkeypatch, tmp_path):
             permission_profile=PROFILE_GUVENLI_YURUT,
             general_approval=True,
         )
-        assert exe.constraints["execution"]["execution_result"] == "target_required"
-        assert "TARGET ZORUNLU" in exe.constraints["execution"]["detail"]
+        assert exe.constraints["execution"]["execution_result"] == "patch_applied"
+        assert "instruction_path_fallback" in exe.constraints["execution"].get("detail", "")
     finally:
         clear_registry()

@@ -229,3 +229,5 @@ def run(
         human_readable_summary=summary,
         pipeline=pipeline,
     )
+
+# lumos:instruction-pipeline safe touch

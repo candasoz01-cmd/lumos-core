@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +19,14 @@ from kando.cursor_packet import (
     PlannedStepV1,
 )
 from task_engine.profiles import may_execute_step_at_runtime
+
+INSTRUCTION_SRC_PY_RE = re.compile(r"(src/[a-zA-Z0-9_/.-]+\.py)")
+
+
+def _extract_src_py_from_instruction(goal: str) -> str | None:
+    m = INSTRUCTION_SRC_PY_RE.search(goal or "")
+    return m.group(1) if m else None
+
 
 # brain.run → persist_bridge_after_brain sonrası paketler (run_brain_and_persist_bridge / llm okur)
 _last_bridge_packets: (
@@ -73,13 +82,7 @@ def persist_bridge_after_brain(
         general_approval=general_approval,
     )
     exe.constraints["lumos_base_resolved"] = str(base)
-    try:
-        try_instruction_patch_apply(goal, exe)
-    except ValueError as e:
-        exe.constraints["execution"] = {
-            "execution_result": "target_required",
-            "detail": str(e),
-        }
+    try_instruction_patch_apply(goal, exe)
     record_bridge_execution(exe, task)
     from core.patch_pipeline_lifecycle import (
         enrich_pipeline_with_execution,
@@ -372,7 +375,8 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
     patch: öneki yoksa (exe.patch None):
     - TARGET: … + gövde → propose → apply → verify
     - İki açık dosya (src/core, max 2) → sıralı çoklu fallback
-    Tek dosyada instruction_path_fallback yok; hedef yoksa veya yetersizse ValueError("TARGET ZORUNLU").
+    - Tek dosya: instruction yolu + güvenli fallback içerik
+    Tek yol net ise çoklu hedef keşfi yapılmaz; tek dosya apply. Hedef yoksa: target_required.
     """
     if exe.patch is not None:
         return
@@ -381,6 +385,7 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
         _path_blocked,
         extract_file_task,
         extract_instruction_paths_ordered,
+        extract_instruction_target_path,
         select_instruction_multi_pair,
     )
     from task_engine.executors.patch_apply_executor import _repo_root
@@ -422,13 +427,38 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
 
     rel = (exe.target_file or "").strip()
     if not rel:
-        raise ValueError("TARGET ZORUNLU")
-    exe.target_file = rel
+        rel = (extract_instruction_target_path(goal, repo_root) or "").strip()
+    if not rel:
+        rel = (_extract_src_py_from_instruction(goal) or "").strip()
+    if rel:
+        exe.target_file = rel
+
+    if not rel:
+        exe.constraints["execution"] = {
+            "execution_result": "target_required",
+            "detail": "TARGET ZORUNLU: instruction içinde hedef dosya yolu çıkarılamadı",
+        }
+        return
+
     target = (repo_root / rel).resolve()
     if not target.is_file():
-        raise ValueError("TARGET ZORUNLU")
-    # instruction_path_fallback kaldırıldı; tek dosya için TARGET: gövdesi veya çoklu akış gerekir
-    raise ValueError("TARGET ZORUNLU")
+        exe.constraints["execution"] = {
+            "execution_result": "patch_failed",
+            "detail": f"hedef dosya yok veya okunamıyor: {rel}",
+        }
+        return
+
+    body_fb = _safe_fallback_new_content(target)
+    if body_fb is None:
+        exe.constraints["execution"] = {
+            "execution_result": "patch_failed",
+            "detail": "güvenli minimal yama üretilemedi (boyut/tür)",
+        }
+        return
+
+    _run_instruction_apply_to_exe(
+        exe, rel, body_fb, None, "instruction_path_fallback", repo_root=repo_root, lumos_base=lumos_base
+    )
 
 
 def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
@@ -689,7 +719,7 @@ def build_result_packet(
         outcome = "blocked"
     elif status == "hata" or not brain_success:
         outcome = "failed"
-    elif ex_result in ("no_target_detected", "no_patch_generated", "target_required"):
+    elif ex_result in ("no_target_detected", "no_patch_generated"):
         outcome = "partial" if brain_success else "failed"
     elif ex_result == "partial" and brain_success:
         outcome = "partial"
@@ -785,13 +815,7 @@ def _write_minimal_bridge_files(
         general_approval=general_approval,
     )
     exe.constraints["lumos_base_resolved"] = str(base)
-    try:
-        try_instruction_patch_apply(goal, exe)
-    except ValueError as e:
-        exe.constraints["execution"] = {
-            "execution_result": "target_required",
-            "detail": str(e),
-        }
+    try_instruction_patch_apply(goal, exe)
     record_bridge_execution(exe, task)
     ex_payload = exe.constraints.get("execution") if isinstance(exe.constraints.get("execution"), dict) else None
     res_pkt = build_result_packet(

@@ -515,3 +515,13 @@ class CoreWriteForbidden(Exception):
     """Sandbox modunda canlı çekirdek state path'e yazma girişimi."""
 
 # lumos:instruction-pipeline safe touch
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)

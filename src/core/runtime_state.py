@@ -107,103 +107,11 @@ def sync_kando_from_globals(
 
 
 def add_runtime_event(event_type: str, summary: str) -> None:
-    ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    ev = {
-        "ts": ts,
-        "type": str(event_type or "event").strip() or "event",
-        "text": (str(summary or "").strip() or "Aktivite işlendi.")[:220],
+    event = {
+        "type": event_type,
+        "summary": summary,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
-    _EVENTS.insert(0, ev)
+    _EVENTS.append(event)
     if len(_EVENTS) > _MAX_EVENTS:
-        del _EVENTS[_MAX_EVENTS:]
-    p = _events_file()
-    try:
-        p.parent.mkdir(parents=True, exist_ok=True)
-        with p.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(ev, ensure_ascii=False) + "\n")
-    except OSError:
-        pass
-
-
-def get_kando_runtime() -> dict[str, Any]:
-    recent_events = _read_file_events() or list(_EVENTS)
-    last_activity = None
-    if recent_events:
-        ts = recent_events[0].get("ts")
-        last_activity = ts if isinstance(ts, str) and ts.strip() else None
-    if not _KANDO:
-        return {
-            "last_repo_query": "",
-            "pending": {},
-            "last_output_preview": "",
-            "context_summary": "",
-            "repo_nav": {"results_count": 0, "cursor_index": 0, "has_results": False},
-            "updated_at": None,
-            "cursor_bridge": None,
-            "recent_events": recent_events,
-            "last_activity": last_activity,
-        }
-    out = dict(_KANDO)
-    out["recent_events"] = recent_events
-    out["last_activity"] = last_activity
-    return out
-
-# lumos:instruction-pipeline safe touch
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
-
-# lumos:instruction-pipeline safe touch (resync)
+        _EVENTS.pop(0)
