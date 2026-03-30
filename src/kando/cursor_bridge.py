@@ -3,6 +3,7 @@ Kando görev akışından Cursor bridge dosyaları + paket üretimi.
 """
 from __future__ import annotations
 
+import difflib
 import hashlib
 import json
 import logging
@@ -29,6 +30,37 @@ logger = logging.getLogger(__name__)
 _MAX_PREVIOUS_CONTENT_IN_EXECUTION = 512_000
 # dry_run: last_execution JSON içinde önerilen tam içerik üst sınırı
 _MAX_DRY_RUN_PROPOSED_TEXT = 512_000
+# diff_preview: çıktı satırı ve diff girdisi üst sınırı (performans)
+_DIFF_PREVIEW_MAX_OUT_LINES = 30
+_DIFF_PREVIEW_MAX_SIDE_LINES = 3000
+_DIFF_PREVIEW_MAX_TOTAL_BYTES = 2 * 1024 * 1024
+
+
+def _diff_preview_short(before: str, after: str) -> str:
+    """Önce/sonra kısa unified diff; patch uygulanmadan önceki önizleme."""
+    if len(before) + len(after) > _DIFF_PREVIEW_MAX_TOTAL_BYTES:
+        return "diff_preview: (içerik çok büyük, atlandı)\n"
+    a = before.splitlines(keepends=True)
+    b = after.splitlines(keepends=True)
+    if len(a) > _DIFF_PREVIEW_MAX_SIDE_LINES:
+        omitted = len(a) - _DIFF_PREVIEW_MAX_SIDE_LINES
+        a = a[:_DIFF_PREVIEW_MAX_SIDE_LINES] + [
+            f"... ({omitted} satır before tarafında atlandı)\n"
+        ]
+    if len(b) > _DIFF_PREVIEW_MAX_SIDE_LINES:
+        omitted_b = len(b) - _DIFF_PREVIEW_MAX_SIDE_LINES
+        b = b[:_DIFF_PREVIEW_MAX_SIDE_LINES] + [
+            f"... ({omitted_b} satır after tarafında atlandı)\n"
+        ]
+    lines: list[str] = []
+    for i, line in enumerate(
+        difflib.unified_diff(a, b, fromfile="before", tofile="after", n=2)
+    ):
+        if i >= _DIFF_PREVIEW_MAX_OUT_LINES:
+            lines.append("... (diff önizlemesi kısaltıldı)\n")
+            break
+        lines.append(line if line.endswith("\n") else line + "\n")
+    return "".join(lines) if lines else "(değişiklik yok)\n"
 
 
 def rollback_patch_file(
@@ -282,6 +314,8 @@ def _instruction_apply_one(
                 "patch_id": proposal.id,
             }
 
+        diff_preview = _diff_preview_short(previous_text, proposal.proposed_text)
+
         if dry_run:
             prop_full = proposal.proposed_text
             prop_exec = prop_full
@@ -310,6 +344,7 @@ def _instruction_apply_one(
                 "dry_run": True,
                 "proposed_text": prop_exec,
                 "proposed_text_truncated": prop_trunc,
+                "diff_preview": diff_preview,
             }
 
         apply_patch(proposal, assume_reviewed=True, allow_protected_apply=False)
@@ -370,6 +405,7 @@ def _instruction_apply_one(
             "applied_path": rel,
             "previous_content": prev_for_exec,
             "previous_content_truncated": truncated,
+            "diff_preview": diff_preview,
         }
     except ProtectedApplyForbidden as e:
         if mutated:
@@ -460,6 +496,7 @@ def _run_instruction_apply_to_exe(
                 "proposed_text_truncated": bool(info.get("proposed_text_truncated")),
                 "previous_content": info.get("previous_content", ""),
                 "previous_content_truncated": bool(info.get("previous_content_truncated")),
+                "diff_preview": str(info.get("diff_preview") or ""),
             }
             return True
         exe.constraints["execution"] = {
@@ -471,6 +508,7 @@ def _run_instruction_apply_to_exe(
             "applied_path": rel,
             "previous_content": info.get("previous_content", ""),
             "previous_content_truncated": bool(info.get("previous_content_truncated")),
+            "diff_preview": str(info.get("diff_preview") or ""),
         }
         return True
     kind = info.get("kind", "")
@@ -574,6 +612,7 @@ def _run_multi_instruction_fallback(
             "applied_path": info.get("applied_path", rel),
             "previous_content": info.get("previous_content", ""),
             "previous_content_truncated": bool(info.get("previous_content_truncated")),
+            "diff_preview": str(info.get("diff_preview") or ""),
         }
         if dry_run and info.get("dry_run"):
             fr_ok["dry_run"] = True
@@ -584,6 +623,16 @@ def _run_multi_instruction_fallback(
     exe.target_files = list(pair)
     summary = " | ".join(verify_parts)
     ex_res_multi = "dry_run_success" if dry_run else "patch_applied"
+    dp_chunks: list[str] = []
+    for fr in file_results:
+        if fr.get("ok"):
+            dpp = str(fr.get("diff_preview") or "").strip()
+            if dpp:
+                dp_chunks.append(f"=== {fr.get('path', '')} ===\n{dpp}")
+    merged_dp = "\n".join(dp_chunks)
+    merged_lines = merged_dp.splitlines(keepends=True)
+    if len(merged_lines) > _DIFF_PREVIEW_MAX_OUT_LINES:
+        merged_dp = "".join(merged_lines[:_DIFF_PREVIEW_MAX_OUT_LINES]) + "... (diff_preview kısaltıldı)\n"
     exe.constraints["execution"] = {
         "execution_result": ex_res_multi,
         "multi_file": True,
@@ -592,6 +641,7 @@ def _run_multi_instruction_fallback(
         "verify_detail": summary[:2000],
         "patch_ids": patch_ids,
         "source": "instruction_multi_fallback",
+        "diff_preview": merged_dp,
         **({"dry_run": True} if dry_run else {}),
     }
 
