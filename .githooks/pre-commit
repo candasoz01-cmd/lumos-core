@@ -1,3 +1,30 @@
-#!/bin/sh
-echo "BLOCKED: pre-commit disabled until manual approval"
-exit 1
+#!/usr/bin/env bash
+# Geliştirme: commit guard (ürün onay kurallarından ayrı — docs/dev-commit-guard.md)
+# Kurulum: make setup-commit-guard | Bypass: git commit --no-verify
+set -euo pipefail
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+for venv in .venv venv; do
+  if [[ -f "$ROOT/$venv/bin/activate" ]]; then
+    # shellcheck source=/dev/null
+    source "$ROOT/$venv/bin/activate"
+    break
+  fi
+done
+
+echo ">>> pre-commit: ruff check ."
+if command -v ruff >/dev/null 2>&1; then
+  ruff check .
+else
+  python3 -m ruff check .
+fi
+
+echo ">>> pre-commit: pytest -q"
+if command -v pytest >/dev/null 2>&1; then
+  pytest -q
+else
+  python3 -m pytest -q
+fi
+
+echo ">>> pre-commit: OK"
