@@ -5,8 +5,6 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from kando.smart_apply import run_task as smart_apply_run_task
-
 
 class TaskType(str, Enum):
     CODE_CHANGE = "CODE_CHANGE"
@@ -517,6 +515,8 @@ class KandoCore:
                     and _import_cleanup_keywords_present(kw_text)
                 ):
                     sa_task = task_text if task_text else routed_task.packed_instruction
+                    from kando.smart_apply import run_task as smart_apply_run_task
+
                     sa_out = smart_apply_run_task(file_path, sa_task)
                     ok = bool(sa_out.get("ok"))
                     changed = bool(sa_out.get("changed"))

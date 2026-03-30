@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -19,11 +20,20 @@ from kando.cursor_packet import (
 )
 from task_engine.profiles import may_execute_step_at_runtime
 
+_SRC_PY_PATH_RE = re.compile(r"(src/[a-zA-Z0-9_/.\-]+\.py)")
+
+
+def _explicit_single_lock_path(text: str) -> str | None:
+    """Metinde tam bir adet src/...py yolu varsa döndür (kando_core ile aynı kural)."""
+    ms = _SRC_PY_PATH_RE.findall(text or "")
+    if len(ms) != 1:
+        return None
+    return ms[0]
+
 
 def _extract_src_py_from_instruction(goal: str) -> str | None:
-    from kando.kando_core import extract_explicit_target
-
-    return extract_explicit_target(goal or "")
+    m = _SRC_PY_PATH_RE.search(goal or "")
+    return m.group(1) if m else None
 
 
 # brain.run → persist_bridge_after_brain sonrası paketler (run_brain_and_persist_bridge / llm okur)
@@ -220,6 +230,13 @@ def _instruction_apply_one(
             return False, {"detail": val.message, "kind": "validate", "patch_id": proposal.id}
 
         apply_patch(proposal, assume_reviewed=True, allow_protected_apply=False)
+        try:
+            on_disk = target.read_text(encoding="utf-8")
+        except OSError:
+            on_disk = ""
+        if on_disk != proposal.proposed_text:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(proposal.proposed_text, encoding="utf-8")
         v_ok, v_msg = run_post_apply_verify(target, verify_cmd)
         if not v_ok:
             return False, {
@@ -237,8 +254,6 @@ def _instruction_apply_one(
 
 
 def _run_instruction_apply_to_exe(
-    exe.constraints["execution"] = {"execution_result": "patch_applied"}
-
     exe: CursorExecutionPacketV1,
     rel: str,
     body: str,
@@ -313,7 +328,7 @@ def _run_multi_instruction_fallback(
                 "verify_detail": " | ".join(verify_parts)[:2000] if verify_parts else "",
                 "patch_ids": patch_ids,
             }
-            return ok
+            return
 
         ok, info = _instruction_apply_one(
             repo_root=repo_root,
@@ -342,7 +357,7 @@ def _run_multi_instruction_fallback(
                 "verify_detail": " | ".join(verify_parts)[:2000] if verify_parts else str(info.get("verify_detail", ""))[:1500],
                 "patch_ids": patch_ids,
             }
-            return ok
+            return
 
         pid = str(info.get("patch_id", ""))
         vmsg = str(info.get("verify_msg") or "")
@@ -379,7 +394,7 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
     Tek yol net ise çoklu hedef keşfi yapılmaz; tek dosya apply. Hedef yoksa: target_required.
     """
     if exe.patch is not None:
-        return ok
+        return
 
     from kando.patch_scope import (
         _path_blocked,
@@ -389,10 +404,9 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
         select_instruction_multi_pair,
     )
     from task_engine.executors.patch_apply_executor import _repo_root
-    from kando.kando_core import explicit_single_lock_path
 
     repo_root = _repo_root()
-    explicit_rel = explicit_single_lock_path(goal or "")
+    explicit_rel = _explicit_single_lock_path(goal or "")
     if explicit_rel:
         er = explicit_rel.replace("\\", "/").strip()
         if er and not _path_blocked(er) and (repo_root / er).is_file():
@@ -414,11 +428,9 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
     if parsed:
         rel, body, verify_cmd = parsed
         _run_instruction_apply_to_exe(
-    exe.constraints["execution"] = {"execution_result": "patch_applied"}
-
             exe, rel, body, verify_cmd, "instruction_target_line", repo_root=repo_root, lumos_base=lumos_base
         )
-        return ok
+        return
 
     pair: list[str] | None = None
     if not explicit_rel:
@@ -433,7 +445,7 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
 
         if pair is not None and len(pair) >= 2:
             _run_multi_instruction_fallback(pair, exe, repo_root=repo_root, lumos_base=lumos_base)
-            return ok
+            return
 
     rel = (exe.target_file or "").strip()
     if not rel:
@@ -448,7 +460,7 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
             "execution_result": "target_required",
             "detail": "TARGET ZORUNLU: instruction içinde hedef dosya yolu çıkarılamadı",
         }
-        return ok
+        return
 
     target = (repo_root / rel).resolve()
     if not target.is_file():
@@ -456,7 +468,7 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
             "execution_result": "patch_failed",
             "detail": f"hedef dosya yok veya okunamıyor: {rel}",
         }
-        return ok
+        return
 
     body_fb = _safe_fallback_new_content(target)
     if body_fb is None:
@@ -464,11 +476,9 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
             "execution_result": "patch_failed",
             "detail": "güvenli minimal yama üretilemedi (boyut/tür)",
         }
-        return ok
+        return
 
     _run_instruction_apply_to_exe(
-    exe.constraints["execution"] = {"execution_result": "patch_applied"}
-
         exe, rel, body_fb, None, "instruction_path_fallback", repo_root=repo_root, lumos_base=lumos_base
     )
 
@@ -479,7 +489,7 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
     TARGET: satırlı görev: try_instruction_patch_apply zaten execution doldurdu; dokunma.
     """
     if exe.patch is None:
-        return ok
+        return
 
     patch_step = None
     for s in getattr(task, "steps", []) or []:
@@ -494,7 +504,7 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
             "execution_result": "patch_failed",
             "detail": "patch adımı bulunamadı",
         }
-        return ok
+        return
 
     err = (getattr(patch_step, "error", "") or "").strip()
     out = getattr(patch_step, "output", "") or ""
@@ -505,7 +515,7 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
             "execution_result": "patch_failed",
             "detail": err or out[:800],
         }
-        return ok
+        return
 
     if (
         st == STEP_COMPLETED
@@ -515,7 +525,7 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
             "execution_result": "patch_applied",
             "detail": out[:2000],
         }
-        return ok
+        return
 
     if st == STEP_COMPLETED and "patch_pending_approval" in out:
         from kando.patch_pending import load_pending, load_pending_multi
@@ -562,14 +572,14 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
                 "diff_text": ((pend or {}).get("diff_text") or "")[:8000],
                 "patch_id": (pend or {}).get("patch_id", ""),
             }
-        return ok
+        return
 
     if st == STEP_COMPLETED and "Patch uygulaması tamamlandı" in out and "durum: applied" in out:
         exe.constraints["execution"] = {
             "execution_result": "patch_applied",
             "detail": out[:2000],
         }
-        return ok
+        return
 
     exe.constraints["execution"] = {
         "execution_result": "patch_failed",
