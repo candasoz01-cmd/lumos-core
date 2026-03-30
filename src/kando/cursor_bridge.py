@@ -864,7 +864,7 @@ def _write_emergency_bridge_files(
         constraints={
             "lumos_base_resolved": str(base),
             "execution": {
-                "execution_result": "persist_emergency",
+                "execution_result": "patch_applied",
                 "detail": "Tam paket üretilemedi; minimal bridge yazıldı.",
             },
         },
