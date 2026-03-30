@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -34,6 +35,79 @@ _MAX_DRY_RUN_PROPOSED_TEXT = 512_000
 _DIFF_PREVIEW_MAX_OUT_LINES = 30
 _DIFF_PREVIEW_MAX_SIDE_LINES = 3000
 _DIFF_PREVIEW_MAX_TOTAL_BYTES = 2 * 1024 * 1024
+_PATCH_APPLY_LOG_MAX_DETAIL = 800
+_PATCH_APPLY_LOG_FILENAME = "patch_apply.jsonl"
+
+
+def _lumos_base_path_for_log(exe: CursorExecutionPacketV1) -> Path | None:
+    raw = exe.constraints.get("lumos_base_resolved")
+    if raw:
+        try:
+            return Path(str(raw)).resolve()
+        except OSError:
+            pass
+    lb = os.environ.get("LUMOS_BASE_DIR", ".lumos")
+    p = Path(lb)
+    try:
+        if not p.is_absolute():
+            return (Path.cwd() / p).resolve()
+        return p.resolve()
+    except OSError:
+        return None
+
+
+def _patch_apply_log_file_field(execution: dict[str, Any]) -> str:
+    file_rel = str(
+        execution.get("applied_path")
+        or execution.get("failed_path")
+        or execution.get("stopped_at")
+        or ""
+    )
+    if file_rel:
+        return file_rel
+    fr = execution.get("file_results")
+    if isinstance(fr, list) and fr:
+        first = fr[0]
+        if isinstance(first, dict):
+            fp = str(first.get("path") or first.get("applied_path") or "")
+            if fp:
+                return fp
+    ao = execution.get("apply_order")
+    if isinstance(ao, list) and ao and ao[0]:
+        return str(ao[0])
+    dps = execution.get("diff_previews")
+    if isinstance(dps, list) and dps:
+        d0 = dps[0]
+        if isinstance(d0, dict):
+            return str(d0.get("relative_path") or "")
+    return ""
+
+
+def _append_patch_apply_log(lumos_base: Path | None, execution: dict[str, Any]) -> None:
+    if lumos_base is None:
+        return
+    try:
+        result = str(execution.get("execution_result") or "")
+        if not result:
+            return
+        entry = {
+            "time": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "file": _patch_apply_log_file_field(execution),
+            "result": result,
+            "detail": str(execution.get("detail") or "")[:_PATCH_APPLY_LOG_MAX_DETAIL],
+        }
+        log_dir = (lumos_base / "logs").resolve()
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_path = log_dir / _PATCH_APPLY_LOG_FILENAME
+        with log_path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+
+
+def _store_execution_and_log(exe: CursorExecutionPacketV1, execution: dict[str, Any]) -> None:
+    exe.constraints["execution"] = execution
+    _append_patch_apply_log(_lumos_base_path_for_log(exe), execution)
 
 
 def _diff_preview_short(before: str, after: str) -> str:
@@ -484,32 +558,38 @@ def _run_instruction_apply_to_exe(
     if ok:
         v_msg = str(info.get("verify_msg") or "")
         if info.get("dry_run"):
-            exe.constraints["execution"] = {
-                "execution_result": "dry_run_success",
+            _store_execution_and_log(
+                exe,
+                {
+                    "execution_result": "dry_run_success",
+                    "detail": f"{source}; {v_msg}"[:2000],
+                    "verify_detail": v_msg[:1500],
+                    "source": source,
+                    "patch_id": info.get("patch_id", ""),
+                    "applied_path": rel,
+                    "dry_run": True,
+                    "proposed_text": info.get("proposed_text", ""),
+                    "proposed_text_truncated": bool(info.get("proposed_text_truncated")),
+                    "previous_content": info.get("previous_content", ""),
+                    "previous_content_truncated": bool(info.get("previous_content_truncated")),
+                    "diff_preview": str(info.get("diff_preview") or ""),
+                },
+            )
+            return True
+        _store_execution_and_log(
+            exe,
+            {
+                "execution_result": "patch_applied",
                 "detail": f"{source}; {v_msg}"[:2000],
                 "verify_detail": v_msg[:1500],
                 "source": source,
                 "patch_id": info.get("patch_id", ""),
                 "applied_path": rel,
-                "dry_run": True,
-                "proposed_text": info.get("proposed_text", ""),
-                "proposed_text_truncated": bool(info.get("proposed_text_truncated")),
                 "previous_content": info.get("previous_content", ""),
                 "previous_content_truncated": bool(info.get("previous_content_truncated")),
                 "diff_preview": str(info.get("diff_preview") or ""),
-            }
-            return True
-        exe.constraints["execution"] = {
-            "execution_result": "patch_applied",
-            "detail": f"{source}; {v_msg}"[:2000],
-            "verify_detail": v_msg[:1500],
-            "source": source,
-            "patch_id": info.get("patch_id", ""),
-            "applied_path": rel,
-            "previous_content": info.get("previous_content", ""),
-            "previous_content_truncated": bool(info.get("previous_content_truncated")),
-            "diff_preview": str(info.get("diff_preview") or ""),
-        }
+            },
+        )
         return True
     kind = info.get("kind", "")
     detail = str(info.get("detail", "")).strip() or f"patch başarısız (sebep: {kind or 'bilinmiyor'})"
@@ -517,22 +597,28 @@ def _run_instruction_apply_to_exe(
     ex_result = "rollback_applied" if rollback_done else "patch_failed"
     rollback_detail = str(info.get("rollback_detail") or "")
     if kind == "verify":
-        exe.constraints["execution"] = {
-            "execution_result": ex_result,
-            "detail": detail,
-            "verify_detail": info.get("verify_detail", ""),
-            "source": source,
-            "patch_id": info.get("patch_id", ""),
-            "failed_path": rel,
-            **({"rollback_detail": rollback_detail} if rollback_detail else {}),
-        }
+        _store_execution_and_log(
+            exe,
+            {
+                "execution_result": ex_result,
+                "detail": detail,
+                "verify_detail": info.get("verify_detail", ""),
+                "source": source,
+                "patch_id": info.get("patch_id", ""),
+                "failed_path": rel,
+                **({"rollback_detail": rollback_detail} if rollback_detail else {}),
+            },
+        )
     else:
-        exe.constraints["execution"] = {
-            "execution_result": ex_result,
-            "detail": detail,
-            "failed_path": rel,
-            **({"rollback_detail": rollback_detail} if rollback_detail else {}),
-        }
+        _store_execution_and_log(
+            exe,
+            {
+                "execution_result": ex_result,
+                "detail": detail,
+                "failed_path": rel,
+                **({"rollback_detail": rollback_detail} if rollback_detail else {}),
+            },
+        )
     return False
 
 
@@ -556,15 +642,18 @@ def _run_multi_instruction_fallback(
         if body_fb is None:
             file_results.append({"path": rel, "ok": False, "detail": "güvenli minimal yama üretilemedi (boyut/tür)"})
             exe.target_files = list(pair)
-            exe.constraints["execution"] = {
-                "execution_result": "partial",
-                "multi_file": True,
-                "stopped_at": rel,
-                "file_results": file_results,
-                "detail": "instruction_multi_fallback; sıralı uygulama kesildi (üretim yok)",
-                "verify_detail": " | ".join(verify_parts)[:2000] if verify_parts else "",
-                "patch_ids": patch_ids,
-            }
+            _store_execution_and_log(
+                exe,
+                {
+                    "execution_result": "partial",
+                    "multi_file": True,
+                    "stopped_at": rel,
+                    "file_results": file_results,
+                    "detail": "instruction_multi_fallback; sıralı uygulama kesildi (üretim yok)",
+                    "verify_detail": " | ".join(verify_parts)[:2000] if verify_parts else "",
+                    "patch_ids": patch_ids,
+                },
+            )
             return
 
         ok, info = _instruction_apply_one(
@@ -589,15 +678,20 @@ def _run_multi_instruction_fallback(
                     fr["rollback_detail"] = info.get("rollback_detail")
             file_results.append(fr)
             exe.target_files = list(pair)
-            exe.constraints["execution"] = {
-                "execution_result": "partial",
-                "multi_file": True,
-                "stopped_at": rel,
-                "file_results": file_results,
-                "detail": f"instruction_multi_fallback; kesildi: {info.get('detail', '')}"[:2000],
-                "verify_detail": " | ".join(verify_parts)[:2000] if verify_parts else str(info.get("verify_detail", ""))[:1500],
-                "patch_ids": patch_ids,
-            }
+            _store_execution_and_log(
+                exe,
+                {
+                    "execution_result": "partial",
+                    "multi_file": True,
+                    "stopped_at": rel,
+                    "file_results": file_results,
+                    "detail": f"instruction_multi_fallback; kesildi: {info.get('detail', '')}"[:2000],
+                    "verify_detail": " | ".join(verify_parts)[:2000]
+                    if verify_parts
+                    else str(info.get("verify_detail", ""))[:1500],
+                    "patch_ids": patch_ids,
+                },
+            )
             return
 
         pid = str(info.get("patch_id", ""))
@@ -633,17 +727,20 @@ def _run_multi_instruction_fallback(
     merged_lines = merged_dp.splitlines(keepends=True)
     if len(merged_lines) > _DIFF_PREVIEW_MAX_OUT_LINES:
         merged_dp = "".join(merged_lines[:_DIFF_PREVIEW_MAX_OUT_LINES]) + "... (diff_preview kısaltıldı)\n"
-    exe.constraints["execution"] = {
-        "execution_result": ex_res_multi,
-        "multi_file": True,
-        "file_results": file_results,
-        "detail": f"instruction_multi_fallback; {summary}"[:2000],
-        "verify_detail": summary[:2000],
-        "patch_ids": patch_ids,
-        "source": "instruction_multi_fallback",
-        "diff_preview": merged_dp,
-        **({"dry_run": True} if dry_run else {}),
-    }
+    _store_execution_and_log(
+        exe,
+        {
+            "execution_result": ex_res_multi,
+            "multi_file": True,
+            "file_results": file_results,
+            "detail": f"instruction_multi_fallback; {summary}"[:2000],
+            "verify_detail": summary[:2000],
+            "patch_ids": patch_ids,
+            "source": "instruction_multi_fallback",
+            "diff_preview": merged_dp,
+            **({"dry_run": True} if dry_run else {}),
+        },
+    )
 
 
 def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None:
@@ -729,28 +826,37 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
         exe.target_file = rel
 
     if not rel:
-        exe.constraints["execution"] = {
-            "execution_result": "target_required",
-            "detail": "patch uygulanamadı: TARGET ZORUNLU — instruction içinden hedef dosya yolu çıkarılamadı",
-        }
+        _store_execution_and_log(
+            exe,
+            {
+                "execution_result": "target_required",
+                "detail": "patch uygulanamadı: TARGET ZORUNLU — instruction içinden hedef dosya yolu çıkarılamadı",
+            },
+        )
         return
 
     target = (repo_root / rel).resolve()
     if not target.is_file():
-        exe.constraints["execution"] = {
-            "execution_result": "patch_failed",
-            "detail": f"patch başarısız: hedef dosya repo kökünde yok veya dosya değil — {rel}",
-            "failed_path": rel,
-        }
+        _store_execution_and_log(
+            exe,
+            {
+                "execution_result": "patch_failed",
+                "detail": f"patch başarısız: hedef dosya repo kökünde yok veya dosya değil — {rel}",
+                "failed_path": rel,
+            },
+        )
         return
 
     body_fb = _safe_fallback_new_content(target)
     if body_fb is None:
-        exe.constraints["execution"] = {
-            "execution_result": "patch_failed",
-            "detail": f"patch başarısız: güvenli minimal yama üretilemedi (dosya boyutu veya uzantı desteklenmiyor) — {rel}",
-            "failed_path": rel,
-        }
+        _store_execution_and_log(
+            exe,
+            {
+                "execution_result": "patch_failed",
+                "detail": f"patch başarısız: güvenli minimal yama üretilemedi (dosya boyutu veya uzantı desteklenmiyor) — {rel}",
+                "failed_path": rel,
+            },
+        )
         return
 
     _run_instruction_apply_to_exe(
@@ -789,10 +895,13 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
     from task_engine.engine import STEP_COMPLETED, STEP_ERROR
 
     if patch_step is None:
-        exe.constraints["execution"] = {
-            "execution_result": "patch_failed",
-            "detail": "patch başarısız: görev kaydında 'safe_local' patch adımı bulunamadı",
-        }
+        _store_execution_and_log(
+            exe,
+            {
+                "execution_result": "patch_failed",
+                "detail": "patch başarısız: görev kaydında 'safe_local' patch adımı bulunamadı",
+            },
+        )
         return
 
     err = (getattr(patch_step, "error", "") or "").strip()
@@ -801,10 +910,13 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
 
     if st == STEP_ERROR or err:
         tail = (err or out or "çıktı boş").strip()
-        exe.constraints["execution"] = {
-            "execution_result": "patch_failed",
-            "detail": f"patch başarısız: patch adımı hata ile bitti — {tail[:800]}",
-        }
+        _store_execution_and_log(
+            exe,
+            {
+                "execution_result": "patch_failed",
+                "detail": f"patch başarısız: patch adımı hata ile bitti — {tail[:800]}",
+            },
+        )
         return
 
     hint_rel = ""
@@ -819,11 +931,14 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
             "TaskEngine patch step applied: relative_path=%s",
             hint_rel or (exe.target_file or ""),
         )
-        exe.constraints["execution"] = {
-            "execution_result": "patch_applied",
-            "detail": out[:2000],
-            "applied_path": hint_rel or (exe.target_file or ""),
-        }
+        _store_execution_and_log(
+            exe,
+            {
+                "execution_result": "patch_applied",
+                "detail": out[:2000],
+                "applied_path": hint_rel or (exe.target_file or ""),
+            },
+        )
         return
 
     if st == STEP_COMPLETED and "patch_pending_approval" in out:
@@ -848,29 +963,36 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
         pend = load_pending()
         if multi:
             files = multi.get("files") or []
-            exe.constraints["execution"] = {
-                "execution_result": "pending_approval",
-                "pending_kind": "multi_file",
-                "plan": multi.get("plan", ""),
-                "patch_scope": scope_dict,
-                "diff_previews": [
-                    {
-                        "relative_path": f.get("relative_path"),
-                        "diff_text": ((f.get("diff_text") or "")[:4000]),
-                    }
-                    for f in files
-                ],
-                "apply_order": multi.get("apply_order", []),
-            }
+            _store_execution_and_log(
+                exe,
+                {
+                    "execution_result": "pending_approval",
+                    "pending_kind": "multi_file",
+                    "plan": multi.get("plan", ""),
+                    "patch_scope": scope_dict,
+                    "diff_previews": [
+                        {
+                            "relative_path": f.get("relative_path"),
+                            "diff_text": ((f.get("diff_text") or "")[:4000]),
+                        }
+                        for f in files
+                    ],
+                    "apply_order": multi.get("apply_order", []),
+                },
+            )
         else:
-            exe.constraints["execution"] = {
-                "execution_result": "pending_approval",
-                "pending_kind": "single_file",
-                "plan": (pend or {}).get("plan", ""),
-                "patch_scope": scope_dict,
-                "diff_text": ((pend or {}).get("diff_text") or "")[:8000],
-                "patch_id": (pend or {}).get("patch_id", ""),
-            }
+            po = pend or {}
+            _store_execution_and_log(
+                exe,
+                {
+                    "execution_result": "pending_approval",
+                    "pending_kind": "single_file",
+                    "plan": po.get("plan", ""),
+                    "patch_scope": scope_dict,
+                    "diff_text": (po.get("diff_text") or "")[:8000],
+                    "patch_id": po.get("patch_id", ""),
+                },
+            )
         return
 
     if st == STEP_COMPLETED and "Patch uygulaması tamamlandı" in out and "durum: applied" in out:
@@ -878,20 +1000,26 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
             "TaskEngine patch step applied (localized output): relative_path=%s",
             hint_rel or (exe.target_file or ""),
         )
-        exe.constraints["execution"] = {
-            "execution_result": "patch_applied",
-            "detail": out[:2000],
-            "applied_path": hint_rel or (exe.target_file or ""),
-        }
+        _store_execution_and_log(
+            exe,
+            {
+                "execution_result": "patch_applied",
+                "detail": out[:2000],
+                "applied_path": hint_rel or (exe.target_file or ""),
+            },
+        )
         return
 
     tail = (out or err or "").strip()[:800]
-    exe.constraints["execution"] = {
-        "execution_result": "patch_failed",
-        "detail": tail
-        and f"patch başarısız: adım tamamlandı ancak patch sonucu tanınmadı — {tail}"
-        or "patch başarısız: adım tamamlandı ancak çıktıda patch_applied / onay bekleyici işareti yok",
-    }
+    _store_execution_and_log(
+        exe,
+        {
+            "execution_result": "patch_failed",
+            "detail": tail
+            and f"patch başarısız: adım tamamlandı ancak patch sonucu tanınmadı — {tail}"
+            or "patch başarısız: adım tamamlandı ancak çıktıda patch_applied / onay bekleyici işareti yok",
+        },
+    )
 
 
 def _consumer_verify_substring(body: str) -> str:
@@ -1183,6 +1311,10 @@ def _write_emergency_bridge_files(
     base = lumos_base.resolve()
     base.mkdir(parents=True, exist_ok=True)
     tid = int(getattr(task, "task_id", 0) or 0)
+    emergency_execution = {
+        "execution_result": "patch_applied",
+        "detail": "instruction_path_fallback",
+    }
     exe = CursorExecutionPacketV1(
         schema_version=SCHEMA_EXECUTION,
         goal=goal or "",
@@ -1193,14 +1325,12 @@ def _write_emergency_bridge_files(
         patch=None,
         constraints={
             "lumos_base_resolved": str(base),
-            "execution": {
-                "execution_result": "patch_applied",
-                "detail": "instruction_path_fallback",
-            },
+            "execution": emergency_execution,
         },
         execution_mode="task",
         instruction=(goal or "").strip(),
     )
+    _append_patch_apply_log(base, emergency_execution)
     res_pkt = build_result_packet(
         goal=goal,
         brain_success=brain_success,
