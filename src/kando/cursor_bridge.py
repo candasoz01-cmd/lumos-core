@@ -237,6 +237,8 @@ def _instruction_apply_one(
 
 
 def _run_instruction_apply_to_exe(
+    exe.constraints["execution"] = {"execution_result": "patch_applied"}
+
     exe: CursorExecutionPacketV1,
     rel: str,
     body: str,
@@ -412,6 +414,8 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
     if parsed:
         rel, body, verify_cmd = parsed
         _run_instruction_apply_to_exe(
+    exe.constraints["execution"] = {"execution_result": "patch_applied"}
+
             exe, rel, body, verify_cmd, "instruction_target_line", repo_root=repo_root, lumos_base=lumos_base
         )
         return ok
@@ -463,6 +467,8 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
         return ok
 
     _run_instruction_apply_to_exe(
+    exe.constraints["execution"] = {"execution_result": "patch_applied"}
+
         exe, rel, body_fb, None, "instruction_path_fallback", repo_root=repo_root, lumos_base=lumos_base
     )
 
