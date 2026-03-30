@@ -110,6 +110,16 @@ def _store_execution_and_log(exe: CursorExecutionPacketV1, execution: dict[str, 
     _append_patch_apply_log(_lumos_base_path_for_log(exe), execution)
 
 
+def _error_type_from_instruction_kind(kind: str) -> str:
+    """_instruction_apply_one hata kind → execution error_type."""
+    k = (kind or "").strip()
+    if k == "verify":
+        return "verification_failed"
+    if k == "validate":
+        return "parse_error"
+    return "write_failed"
+
+
 def _diff_preview_short(before: str, after: str) -> str:
     """Önce/sonra kısa unified diff; patch uygulanmadan önceki önizleme."""
     if len(before) + len(after) > _DIFF_PREVIEW_MAX_TOTAL_BYTES:
@@ -573,6 +583,7 @@ def _run_instruction_apply_to_exe(
                     "previous_content": info.get("previous_content", ""),
                     "previous_content_truncated": bool(info.get("previous_content_truncated")),
                     "diff_preview": str(info.get("diff_preview") or ""),
+                    "error_type": "",
                 },
             )
             return True
@@ -588,6 +599,7 @@ def _run_instruction_apply_to_exe(
                 "previous_content": info.get("previous_content", ""),
                 "previous_content_truncated": bool(info.get("previous_content_truncated")),
                 "diff_preview": str(info.get("diff_preview") or ""),
+                "error_type": "",
             },
         )
         return True
@@ -596,12 +608,16 @@ def _run_instruction_apply_to_exe(
     rollback_done = bool(info.get("rollback_applied"))
     ex_result = "rollback_applied" if rollback_done else "patch_failed"
     rollback_detail = str(info.get("rollback_detail") or "")
+    err_type = (
+        "verification_failed" if kind == "verify" else _error_type_from_instruction_kind(str(kind))
+    )
     if kind == "verify":
         _store_execution_and_log(
             exe,
             {
                 "execution_result": ex_result,
                 "detail": detail,
+                "error_type": err_type,
                 "verify_detail": info.get("verify_detail", ""),
                 "source": source,
                 "patch_id": info.get("patch_id", ""),
@@ -615,6 +631,7 @@ def _run_instruction_apply_to_exe(
             {
                 "execution_result": ex_result,
                 "detail": detail,
+                "error_type": err_type,
                 "failed_path": rel,
                 **({"rollback_detail": rollback_detail} if rollback_detail else {}),
             },
@@ -652,6 +669,7 @@ def _run_multi_instruction_fallback(
                     "detail": "instruction_multi_fallback; sıralı uygulama kesildi (üretim yok)",
                     "verify_detail": " | ".join(verify_parts)[:2000] if verify_parts else "",
                     "patch_ids": patch_ids,
+                    "error_type": "write_failed",
                 },
             )
             return
@@ -690,6 +708,7 @@ def _run_multi_instruction_fallback(
                     if verify_parts
                     else str(info.get("verify_detail", ""))[:1500],
                     "patch_ids": patch_ids,
+                    "error_type": _error_type_from_instruction_kind(str(info.get("kind") or "")),
                 },
             )
             return
@@ -738,6 +757,7 @@ def _run_multi_instruction_fallback(
             "patch_ids": patch_ids,
             "source": "instruction_multi_fallback",
             "diff_preview": merged_dp,
+            "error_type": "",
             **({"dry_run": True} if dry_run else {}),
         },
     )
@@ -831,6 +851,7 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
             {
                 "execution_result": "target_required",
                 "detail": "patch uygulanamadı: TARGET ZORUNLU — instruction içinden hedef dosya yolu çıkarılamadı",
+                "error_type": "parse_error",
             },
         )
         return
@@ -843,6 +864,7 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
                 "execution_result": "patch_failed",
                 "detail": f"patch başarısız: hedef dosya repo kökünde yok veya dosya değil — {rel}",
                 "failed_path": rel,
+                "error_type": "file_not_found",
             },
         )
         return
@@ -855,6 +877,7 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
                 "execution_result": "patch_failed",
                 "detail": f"patch başarısız: güvenli minimal yama üretilemedi (dosya boyutu veya uzantı desteklenmiyor) — {rel}",
                 "failed_path": rel,
+                "error_type": "write_failed",
             },
         )
         return
@@ -900,6 +923,7 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
             {
                 "execution_result": "patch_failed",
                 "detail": "patch başarısız: görev kaydında 'safe_local' patch adımı bulunamadı",
+                "error_type": "parse_error",
             },
         )
         return
@@ -915,6 +939,7 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
             {
                 "execution_result": "patch_failed",
                 "detail": f"patch başarısız: patch adımı hata ile bitti — {tail[:800]}",
+                "error_type": "write_failed",
             },
         )
         return
@@ -937,6 +962,7 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
                 "execution_result": "patch_applied",
                 "detail": out[:2000],
                 "applied_path": hint_rel or (exe.target_file or ""),
+                "error_type": "",
             },
         )
         return
@@ -978,6 +1004,7 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
                         for f in files
                     ],
                     "apply_order": multi.get("apply_order", []),
+                    "error_type": "",
                 },
             )
         else:
@@ -991,6 +1018,7 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
                     "patch_scope": scope_dict,
                     "diff_text": (po.get("diff_text") or "")[:8000],
                     "patch_id": po.get("patch_id", ""),
+                    "error_type": "",
                 },
             )
         return
@@ -1006,6 +1034,7 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
                 "execution_result": "patch_applied",
                 "detail": out[:2000],
                 "applied_path": hint_rel or (exe.target_file or ""),
+                "error_type": "",
             },
         )
         return
@@ -1018,6 +1047,7 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
             "detail": tail
             and f"patch başarısız: adım tamamlandı ancak patch sonucu tanınmadı — {tail}"
             or "patch başarısız: adım tamamlandı ancak çıktıda patch_applied / onay bekleyici işareti yok",
+            "error_type": "write_failed",
         },
     )
 
@@ -1314,6 +1344,7 @@ def _write_emergency_bridge_files(
     emergency_execution = {
         "execution_result": "patch_applied",
         "detail": "instruction_path_fallback",
+        "error_type": "",
     }
     exe = CursorExecutionPacketV1(
         schema_version=SCHEMA_EXECUTION,
