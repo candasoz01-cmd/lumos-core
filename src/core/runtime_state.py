@@ -115,3 +115,11 @@ def add_runtime_event(event_type: str, summary: str) -> None:
     _EVENTS.append(event)
     if len(_EVENTS) > _MAX_EVENTS:
         _EVENTS.pop(0)
+
+# lumos:instruction-pipeline safe touch
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)

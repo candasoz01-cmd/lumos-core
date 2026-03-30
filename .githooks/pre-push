@@ -1,0 +1,3 @@
+#!/bin/sh
+echo "BLOCKED: push disabled until manual approval"
+exit 1
