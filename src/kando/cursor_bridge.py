@@ -463,7 +463,7 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
         return
 
     _run_instruction_apply_to_exe(
-        exe, rel, body_fb, None, "instruction_path_fallback", repo_root=repo_root, lumos_base=lumos_base
+        exe, rel, body_fb, None, "Tam paket üretilemedi; minimal bridge yazıldı.", repo_root=repo_root, lumos_base=lumos_base
     )
 
 
