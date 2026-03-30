@@ -543,6 +543,42 @@ def _instruction_apply_one(
         }
 
 
+def _instruction_apply_one_with_retry(
+    *,
+    repo_root: Path,
+    lumos_base: Path,
+    rel: str,
+    body: str,
+    verify_cmd: str | None,
+    source: str,
+    dry_run: bool = False,
+) -> tuple[bool, dict[str, Any], int]:
+    """İlk deneme başarısızsa yalnızca bir kez daha dener. retry_count: 0 veya 1."""
+    ok, info = _instruction_apply_one(
+        repo_root=repo_root,
+        lumos_base=lumos_base,
+        rel=rel,
+        body=body,
+        verify_cmd=verify_cmd,
+        source=source,
+        dry_run=dry_run,
+    )
+    if ok:
+        return True, info, 0
+    ok2, info2 = _instruction_apply_one(
+        repo_root=repo_root,
+        lumos_base=lumos_base,
+        rel=rel,
+        body=body,
+        verify_cmd=verify_cmd,
+        source=source,
+        dry_run=dry_run,
+    )
+    if ok2:
+        return True, info2, 1
+    return False, info2, 1
+
+
 def _run_instruction_apply_to_exe(
     exe: CursorExecutionPacketV1,
     rel: str,
@@ -556,7 +592,7 @@ def _run_instruction_apply_to_exe(
 ) -> bool:
     """exe.constraints['execution'] yazar. Başarıda True."""
     exe.target_file = rel
-    ok, info = _instruction_apply_one(
+    ok, info, retry_count = _instruction_apply_one_with_retry(
         repo_root=repo_root,
         lumos_base=lumos_base,
         rel=rel,
@@ -584,6 +620,7 @@ def _run_instruction_apply_to_exe(
                     "previous_content_truncated": bool(info.get("previous_content_truncated")),
                     "diff_preview": str(info.get("diff_preview") or ""),
                     "error_type": "",
+                    "retry_count": retry_count,
                 },
             )
             return True
@@ -600,6 +637,7 @@ def _run_instruction_apply_to_exe(
                 "previous_content_truncated": bool(info.get("previous_content_truncated")),
                 "diff_preview": str(info.get("diff_preview") or ""),
                 "error_type": "",
+                "retry_count": retry_count,
             },
         )
         return True
@@ -618,6 +656,7 @@ def _run_instruction_apply_to_exe(
                 "execution_result": ex_result,
                 "detail": detail,
                 "error_type": err_type,
+                "retry_count": retry_count,
                 "verify_detail": info.get("verify_detail", ""),
                 "source": source,
                 "patch_id": info.get("patch_id", ""),
@@ -632,6 +671,7 @@ def _run_instruction_apply_to_exe(
                 "execution_result": ex_result,
                 "detail": detail,
                 "error_type": err_type,
+                "retry_count": retry_count,
                 "failed_path": rel,
                 **({"rollback_detail": rollback_detail} if rollback_detail else {}),
             },
@@ -651,6 +691,7 @@ def _run_multi_instruction_fallback(
     file_results: list[dict[str, Any]] = []
     verify_parts: list[str] = []
     patch_ids: list[str] = []
+    multi_retry_used = 0
 
     for rel in pair:
         target = (repo_root / rel).resolve()
@@ -670,11 +711,12 @@ def _run_multi_instruction_fallback(
                     "verify_detail": " | ".join(verify_parts)[:2000] if verify_parts else "",
                     "patch_ids": patch_ids,
                     "error_type": "write_failed",
+                    "retry_count": multi_retry_used,
                 },
             )
             return
 
-        ok, info = _instruction_apply_one(
+        ok, info, rtry = _instruction_apply_one_with_retry(
             repo_root=repo_root,
             lumos_base=lumos_base,
             rel=rel,
@@ -709,10 +751,12 @@ def _run_multi_instruction_fallback(
                     else str(info.get("verify_detail", ""))[:1500],
                     "patch_ids": patch_ids,
                     "error_type": _error_type_from_instruction_kind(str(info.get("kind") or "")),
+                    "retry_count": max(multi_retry_used, rtry),
                 },
             )
             return
 
+        multi_retry_used = max(multi_retry_used, rtry)
         pid = str(info.get("patch_id", ""))
         vmsg = str(info.get("verify_msg") or "")
         patch_ids.append(pid)
@@ -758,6 +802,7 @@ def _run_multi_instruction_fallback(
             "source": "instruction_multi_fallback",
             "diff_preview": merged_dp,
             "error_type": "",
+            "retry_count": multi_retry_used,
             **({"dry_run": True} if dry_run else {}),
         },
     )
@@ -852,6 +897,7 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
                 "execution_result": "target_required",
                 "detail": "patch uygulanamadı: TARGET ZORUNLU — instruction içinden hedef dosya yolu çıkarılamadı",
                 "error_type": "parse_error",
+                "retry_count": 0,
             },
         )
         return
@@ -865,6 +911,7 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
                 "detail": f"patch başarısız: hedef dosya repo kökünde yok veya dosya değil — {rel}",
                 "failed_path": rel,
                 "error_type": "file_not_found",
+                "retry_count": 0,
             },
         )
         return
@@ -878,6 +925,7 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
                 "detail": f"patch başarısız: güvenli minimal yama üretilemedi (dosya boyutu veya uzantı desteklenmiyor) — {rel}",
                 "failed_path": rel,
                 "error_type": "write_failed",
+                "retry_count": 0,
             },
         )
         return
@@ -924,6 +972,7 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
                 "execution_result": "patch_failed",
                 "detail": "patch başarısız: görev kaydında 'safe_local' patch adımı bulunamadı",
                 "error_type": "parse_error",
+                "retry_count": 0,
             },
         )
         return
@@ -940,6 +989,7 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
                 "execution_result": "patch_failed",
                 "detail": f"patch başarısız: patch adımı hata ile bitti — {tail[:800]}",
                 "error_type": "write_failed",
+                "retry_count": 0,
             },
         )
         return
@@ -963,6 +1013,7 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
                 "detail": out[:2000],
                 "applied_path": hint_rel or (exe.target_file or ""),
                 "error_type": "",
+                "retry_count": 0,
             },
         )
         return
@@ -1005,6 +1056,7 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
                     ],
                     "apply_order": multi.get("apply_order", []),
                     "error_type": "",
+                    "retry_count": 0,
                 },
             )
         else:
@@ -1019,6 +1071,7 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
                     "diff_text": (po.get("diff_text") or "")[:8000],
                     "patch_id": po.get("patch_id", ""),
                     "error_type": "",
+                    "retry_count": 0,
                 },
             )
         return
@@ -1035,6 +1088,7 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
                 "detail": out[:2000],
                 "applied_path": hint_rel or (exe.target_file or ""),
                 "error_type": "",
+                "retry_count": 0,
             },
         )
         return
@@ -1048,6 +1102,7 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
             and f"patch başarısız: adım tamamlandı ancak patch sonucu tanınmadı — {tail}"
             or "patch başarısız: adım tamamlandı ancak çıktıda patch_applied / onay bekleyici işareti yok",
             "error_type": "write_failed",
+            "retry_count": 0,
         },
     )
 
@@ -1345,6 +1400,7 @@ def _write_emergency_bridge_files(
         "execution_result": "patch_applied",
         "detail": "instruction_path_fallback",
         "error_type": "",
+        "retry_count": 0,
     }
     exe = CursorExecutionPacketV1(
         schema_version=SCHEMA_EXECUTION,
