@@ -29,6 +29,29 @@ logger = logging.getLogger(__name__)
 _MAX_PREVIOUS_CONTENT_IN_EXECUTION = 512_000
 
 
+def rollback_patch_file(
+    target: Path,
+    previous_text: str,
+    *,
+    file_existed_before: bool,
+) -> tuple[bool, str]:
+    """
+    Bellekte tutulan patch öncesi içeriği geri yazar. .bak dosyası kullanılmaz.
+    Patch sırasında yeni oluşturulmuş dosya için (patch öncesi yoktu) hedef dosyayı siler.
+    """
+    try:
+        tp = target.resolve()
+        if not file_existed_before:
+            if tp.is_file():
+                tp.unlink()
+            return True, "patch ile oluşturulmuş dosya kaldırıldı"
+        tp.parent.mkdir(parents=True, exist_ok=True)
+        tp.write_text(previous_text, encoding="utf-8")
+        return True, "önceki içerik geri yazıldı"
+    except OSError as e:
+        return False, str(e)
+
+
 def _explicit_single_lock_path(text: str) -> str | None:
     """Metinde tam bir adet src/...py yolu varsa döndür (kando_core ile aynı kural)."""
     ms = _SRC_PY_PATH_RE.findall(text or "")
@@ -224,8 +247,9 @@ def _instruction_apply_one(
             "detail": "patch başarısız: hedef .lumos çekirdek state yolunda (yazma yasak)",
             "kind": "core_state",
         }
+    file_existed_before = target.is_file()
     previous_text = ""
-    if target.is_file():
+    if file_existed_before:
         try:
             previous_text = target.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError) as e:
@@ -233,6 +257,7 @@ def _instruction_apply_one(
                 "detail": f"patch başarısız: hedef okunamadı ({rel}): {e}",
                 "kind": "read_error",
             }
+    mutated = False
     try:
         proposal = propose_text_patch(
             target,
@@ -252,6 +277,7 @@ def _instruction_apply_one(
             }
 
         apply_patch(proposal, assume_reviewed=True, allow_protected_apply=False)
+        mutated = True
         try:
             on_disk = target.read_text(encoding="utf-8")
         except OSError:
@@ -261,8 +287,31 @@ def _instruction_apply_one(
             target.write_text(proposal.proposed_text, encoding="utf-8")
         v_ok, v_msg = run_post_apply_verify(target, verify_cmd)
         if not v_ok:
+            fail_detail = (
+                f"patch başarısız: doğrulama başarısız — {v_msg}"[:2000]
+            )
+            rb_ok, rb_msg = rollback_patch_file(
+                target,
+                previous_text,
+                file_existed_before=file_existed_before,
+            )
+            if rb_ok:
+                logger.info(
+                    "Instruction patch rolled back after verify failure: relative_path=%s (%s)",
+                    rel,
+                    rb_msg,
+                )
+                return False, {
+                    "detail": f"{fail_detail}; disk geri alındı — {rb_msg}",
+                    "verify_detail": v_msg[:1500],
+                    "patch_id": proposal.id,
+                    "kind": "verify",
+                    "source": source,
+                    "rollback_applied": True,
+                    "rollback_detail": rb_msg,
+                }
             return False, {
-                "detail": f"patch başarısız: dosya yazıldı ancak doğrulama komutu başarısız — {v_msg}"[:2000],
+                "detail": f"{fail_detail}; geri alma başarısız — {rb_msg}"[:2000],
                 "verify_detail": v_msg[:1500],
                 "patch_id": proposal.id,
                 "kind": "verify",
@@ -287,11 +336,51 @@ def _instruction_apply_one(
             "previous_content_truncated": truncated,
         }
     except ProtectedApplyForbidden as e:
+        if mutated:
+            rb_ok, rb_msg = rollback_patch_file(
+                target,
+                previous_text,
+                file_existed_before=file_existed_before,
+            )
+            if rb_ok:
+                logger.info(
+                    "Instruction patch rolled back after protected error: relative_path=%s (%s)",
+                    rel,
+                    rb_msg,
+                )
+                return False, {
+                    "detail": f"patch başarısız: korumalı hedefe yazma reddedildi — {e}; disk geri alındı — {rb_msg}"[
+                        :2000
+                    ],
+                    "kind": "protected",
+                    "rollback_applied": True,
+                    "rollback_detail": rb_msg,
+                }
         return False, {
             "detail": f"patch başarısız: korumalı hedefe yazma reddedildi — {e}"[:800],
             "kind": "protected",
         }
     except Exception as e:
+        if mutated:
+            rb_ok, rb_msg = rollback_patch_file(
+                target,
+                previous_text,
+                file_existed_before=file_existed_before,
+            )
+            if rb_ok:
+                logger.info(
+                    "Instruction patch rolled back after error relative_path=%s (%s)",
+                    rel,
+                    rb_msg,
+                )
+                return False, {
+                    "detail": f"patch başarısız: beklenmeyen hata ({rel}) — {e}; disk geri alındı — {rb_msg}"[
+                        :2000
+                    ],
+                    "kind": "exception",
+                    "rollback_applied": True,
+                    "rollback_detail": rb_msg,
+                }
         return False, {
             "detail": f"patch başarısız: beklenmeyen hata ({rel}) — {e}"[:800],
             "kind": "exception",
@@ -333,20 +422,25 @@ def _run_instruction_apply_to_exe(
         return True
     kind = info.get("kind", "")
     detail = str(info.get("detail", "")).strip() or f"patch başarısız (sebep: {kind or 'bilinmiyor'})"
+    rollback_done = bool(info.get("rollback_applied"))
+    ex_result = "rollback_applied" if rollback_done else "patch_failed"
+    rollback_detail = str(info.get("rollback_detail") or "")
     if kind == "verify":
         exe.constraints["execution"] = {
-            "execution_result": "patch_failed",
+            "execution_result": ex_result,
             "detail": detail,
             "verify_detail": info.get("verify_detail", ""),
             "source": source,
             "patch_id": info.get("patch_id", ""),
             "failed_path": rel,
+            **({"rollback_detail": rollback_detail} if rollback_detail else {}),
         }
     else:
         exe.constraints["execution"] = {
-            "execution_result": "patch_failed",
+            "execution_result": ex_result,
             "detail": detail,
             "failed_path": rel,
+            **({"rollback_detail": rollback_detail} if rollback_detail else {}),
         }
     return False
 
@@ -390,14 +484,17 @@ def _run_multi_instruction_fallback(
             source="instruction_multi_fallback",
         )
         if not ok:
-            file_results.append(
-                {
-                    "path": rel,
-                    "ok": False,
-                    "detail": str(info.get("detail", "")),
-                    "verify_detail": info.get("verify_detail"),
-                }
-            )
+            fr: dict[str, Any] = {
+                "path": rel,
+                "ok": False,
+                "detail": str(info.get("detail", "")),
+                "verify_detail": info.get("verify_detail"),
+            }
+            if info.get("rollback_applied"):
+                fr["rollback_applied"] = True
+                if info.get("rollback_detail"):
+                    fr["rollback_detail"] = info.get("rollback_detail")
+            file_results.append(fr)
             exe.target_files = list(pair)
             exe.constraints["execution"] = {
                 "execution_result": "partial",
@@ -822,6 +919,8 @@ def build_result_packet(
     elif ex_result in ("no_target_detected", "no_patch_generated"):
         outcome = "partial" if brain_success else "failed"
     elif ex_result == "partial" and brain_success:
+        outcome = "partial"
+    elif ex_result == "rollback_applied" and brain_success:
         outcome = "partial"
     elif ex_result == "patch_applied" and brain_success:
         outcome = "applied"

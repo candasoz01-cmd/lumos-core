@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -470,6 +471,18 @@ def _build_execution_dict(result: ToolResult, problems: List[str]) -> Dict[str, 
         "execution_result": "no_change",
         "detail": (result.summary or "değişiklik yok")[:2000],
     }
+
+
+def rollback_patch_from_memory_backup(
+    target: str | Path,
+    previous_content: str,
+    *,
+    file_existed_before: bool,
+) -> tuple[bool, str]:
+    """Patch öncesi bellekte tutulan içeriği diske geri yazar (.bak kullanılmaz)."""
+    from kando.cursor_bridge import rollback_patch_file
+
+    return rollback_patch_file(Path(target), previous_content, file_existed_before=file_existed_before)
 
 
 def _enforce_single_target(routed_task: RoutedTask, result: ToolResult) -> ToolResult:
