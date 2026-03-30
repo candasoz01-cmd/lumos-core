@@ -1,6 +1,9 @@
 """Cursor bridge packet + persist."""
 import json
+import time
 
+import core.patch_pipeline as patch_pipeline
+from kando import cursor_bridge
 from kando.cursor_bridge import (
     build_execution_packet,
     build_result_packet,
@@ -177,6 +180,39 @@ def test_file_task_lines_requires_target_body(monkeypatch, tmp_path):
         )
         assert exe.constraints["execution"]["execution_result"] == "patch_applied"
         assert "instruction_path_fallback" in exe.constraints["execution"].get("detail", "")
+    finally:
+        clear_registry()
+
+
+def test_patch_timeout_returns_timeout(monkeypatch, tmp_path):
+    """Ağır patch adımı süreyi aşınca execution_result=timeout."""
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
+    (tmp_path / ".lumos").mkdir()
+    fp = tmp_path / "timeout_tgt.py"
+    fp.write_text("a = 1\n", encoding="utf-8")
+    goal = "TARGET: timeout_tgt.py\na = 2\n"
+
+    _orig_propose = patch_pipeline.propose_text_patch
+
+    def _slow_propose(*args, **kwargs):
+        time.sleep(0.15)
+        return _orig_propose(*args, **kwargs)
+
+    monkeypatch.setattr(cursor_bridge, "MAX_PATCH_SECONDS", 0.05)
+    monkeypatch.setattr(patch_pipeline, "propose_text_patch", _slow_propose)
+
+    from core.patch_registry import clear_registry
+
+    clear_registry()
+    try:
+        _, _, _, exe, _ = run_brain_and_persist_bridge(
+            goal,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        assert exe.constraints["execution"]["execution_result"] == "timeout"
+        assert exe.constraints["execution"]["detail"] == "patch timeout"
     finally:
         clear_registry()
 
