@@ -663,3 +663,5 @@ def build_panel_read_state(*, repo_root: Path | None = None) -> dict:
 # lumos:instruction-pipeline safe touch (resync)
 
 # lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
