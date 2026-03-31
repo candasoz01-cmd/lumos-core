@@ -45,6 +45,8 @@ MAX_TOTAL_PATCH_SECONDS = 10
 # Bellek içi patch geçmişi (disk yedeği değil); rollback_patch_file ile çakışmaz.
 _MAX_PATCH_MEMORY_ENTRIES = 50
 _PATCH_MEMORY: OrderedDict[str, dict[str, Any]] = OrderedDict()
+# Rollback sırasında True; eşzamanlı patch girişleri blocked_by_rollback ile reddedilir.
+_is_rollback = False
 
 
 def _record_patch_memory(rel: str, previous_content: str | None) -> None:
@@ -69,64 +71,69 @@ def _handle_rollback_last_goal(goal: str, exe: CursorExecutionPacketV1) -> bool:
     """
     if "ROLLBACK_LAST" not in (goal or ""):
         return False
-    from task_engine.executors.patch_apply_executor import _repo_root
+    global _is_rollback
+    _is_rollback = True
+    try:
+        from task_engine.executors.patch_apply_executor import _repo_root
 
-    repo_root = _repo_root()
-    if not _PATCH_MEMORY:
-        exe.target_file = ""
-        _store_execution_and_log(
-            exe,
-            {
-                "execution_result": "rollback_not_possible",
-                "detail": "patch belleğinde geri alınacak kayıt yok",
-                "error_type": "",
-                "retry_count": 0,
-            },
-        )
+        repo_root = _repo_root()
+        if not _PATCH_MEMORY:
+            exe.target_file = ""
+            _store_execution_and_log(
+                exe,
+                {
+                    "execution_result": "rollback_not_possible",
+                    "detail": "patch belleğinde geri alınacak kayıt yok",
+                    "error_type": "",
+                    "retry_count": 0,
+                },
+            )
+            return True
+        rel = next(reversed(_PATCH_MEMORY))
+        entry = _PATCH_MEMORY[rel]
+        prev = entry.get("previous_content")
+        exe.target_file = rel
+        if prev is None:
+            del _PATCH_MEMORY[rel]
+            _store_execution_and_log(
+                exe,
+                {
+                    "execution_result": "rollback_not_possible",
+                    "detail": "önceki içerik yok (yeni oluşturulan dosya için bellekte tam metin yok)",
+                    "error_type": "",
+                    "retry_count": 0,
+                    "failed_path": rel,
+                },
+            )
+            return True
+        target = (repo_root / rel).resolve()
+        ok, msg = rollback_patch_file(target, prev, file_existed_before=True)
+        if ok:
+            del _PATCH_MEMORY[rel]
+            _store_execution_and_log(
+                exe,
+                {
+                    "execution_result": "rollback_applied",
+                    "detail": (msg or "önceki içerik geri yazıldı")[:2000],
+                    "applied_path": rel,
+                    "error_type": "",
+                    "retry_count": 0,
+                },
+            )
+        else:
+            _store_execution_and_log(
+                exe,
+                {
+                    "execution_result": "rollback_failed",
+                    "detail": (msg or "geri alma yazımı başarısız")[:2000],
+                    "failed_path": rel,
+                    "error_type": "write_failed",
+                    "retry_count": 0,
+                },
+            )
         return True
-    rel = next(reversed(_PATCH_MEMORY))
-    entry = _PATCH_MEMORY[rel]
-    prev = entry.get("previous_content")
-    exe.target_file = rel
-    if prev is None:
-        del _PATCH_MEMORY[rel]
-        _store_execution_and_log(
-            exe,
-            {
-                "execution_result": "rollback_not_possible",
-                "detail": "önceki içerik yok (yeni oluşturulan dosya için bellekte tam metin yok)",
-                "error_type": "",
-                "retry_count": 0,
-                "failed_path": rel,
-            },
-        )
-        return True
-    target = (repo_root / rel).resolve()
-    ok, msg = rollback_patch_file(target, prev, file_existed_before=True)
-    if ok:
-        del _PATCH_MEMORY[rel]
-        _store_execution_and_log(
-            exe,
-            {
-                "execution_result": "rollback_applied",
-                "detail": (msg or "önceki içerik geri yazıldı")[:2000],
-                "applied_path": rel,
-                "error_type": "",
-                "retry_count": 0,
-            },
-        )
-    else:
-        _store_execution_and_log(
-            exe,
-            {
-                "execution_result": "rollback_failed",
-                "detail": (msg or "geri alma yazımı başarısız")[:2000],
-                "failed_path": rel,
-                "error_type": "write_failed",
-                "retry_count": 0,
-            },
-        )
-    return True
+    finally:
+        _is_rollback = False
 
 
 def _lumos_base_path_for_log(exe: CursorExecutionPacketV1) -> Path | None:
@@ -1246,6 +1253,17 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
     opsiyonel: exe.constraints["dry_run"]=True → disk yazılmaz, execution_result=dry_run_success.
     """
     if _handle_rollback_last_goal(goal, exe):
+        return
+    if _is_rollback:
+        _store_execution_and_log(
+            exe,
+            {
+                "execution_result": "blocked_by_rollback",
+                "detail": "rollback devam ederken yeni patch uygulanmadı",
+                "error_type": "",
+                "retry_count": 0,
+            },
+        )
         return
     if exe.patch is not None:
         return

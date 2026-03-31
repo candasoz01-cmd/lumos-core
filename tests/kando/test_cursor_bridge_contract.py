@@ -1,7 +1,9 @@
 """Cursor bridge packet + persist."""
 import json
 import os
+import threading
 import time
+from typing import Any
 
 import core.patch_pipeline as patch_pipeline
 from kando import cursor_bridge
@@ -11,6 +13,7 @@ from kando.cursor_bridge import (
     get_patch_memory_entry,
     persist_cursor_bridge,
     run_brain_and_persist_bridge,
+    try_instruction_patch_apply,
 )
 from task_engine import PROFILE_GUVENLI_YURUT
 from task_engine.engine import TaskRecord, TaskStep
@@ -286,6 +289,86 @@ def test_rollback_restores_previous_content(monkeypatch, tmp_path):
         assert exe2.constraints["execution"]["execution_result"] == "rollback_applied"
         assert fp.read_text(encoding="utf-8") == previous
         assert cursor_bridge.get_patch_memory_entry("bridge_rollback.py") is None
+    finally:
+        clear_registry()
+
+
+def test_no_patch_during_rollback(monkeypatch, tmp_path):
+    """Rollback sürerken başka bir iş parçacığı patch denerse uygulanmaz (blocked_by_rollback)."""
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
+    (tmp_path / ".lumos").mkdir()
+    fp = tmp_path / "bridge_rb_guard.py"
+    fp.write_text("x = 0\n", encoding="utf-8")
+    goal_patch = "TARGET: bridge_rb_guard.py\nx = 1\n"
+    goal_rollback = "ROLLBACK_LAST"
+    from core.patch_registry import clear_registry
+
+    clear_registry()
+    try:
+        cursor_bridge._PATCH_MEMORY.clear()
+        _, _, _, exe_patch, _ = run_brain_and_persist_bridge(
+            goal_patch,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        assert exe_patch.constraints["execution"]["execution_result"] == "patch_applied"
+        assert "x = 1" in fp.read_text(encoding="utf-8")
+
+        rollback_entered = threading.Event()
+        patch_can_continue = threading.Event()
+        patch_out: dict[str, Any] = {}
+
+        orig_rb = cursor_bridge.rollback_patch_file
+
+        def _hold_rollback(*args, **kwargs):
+            rollback_entered.set()
+            assert patch_can_continue.wait(timeout=10.0)
+            return orig_rb(*args, **kwargs)
+
+        monkeypatch.setattr(cursor_bridge, "rollback_patch_file", _hold_rollback)
+
+        t = TaskRecord(
+            task_id=501,
+            title="t",
+            description="d",
+            created_at="2025-01-01T00:00:00",
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            steps=[],
+        )
+        lumos_resolved = str((tmp_path / ".lumos").resolve())
+
+        def _try_patch_while_rollback():
+            rollback_entered.wait(timeout=10.0)
+            exe2 = build_execution_packet(
+                goal_patch,
+                t,
+                permission_profile=PROFILE_GUVENLI_YURUT,
+                general_approval=True,
+            )
+            exe2.constraints["lumos_base_resolved"] = lumos_resolved
+            try_instruction_patch_apply(goal_patch, exe2)
+            patch_out["execution"] = dict(exe2.constraints.get("execution") or {})
+            patch_can_continue.set()
+
+        th = threading.Thread(target=_try_patch_while_rollback)
+        th.start()
+
+        exe_rb = build_execution_packet(
+            goal_rollback,
+            t,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        exe_rb.constraints["lumos_base_resolved"] = lumos_resolved
+        try_instruction_patch_apply(goal_rollback, exe_rb)
+
+        th.join(timeout=5.0)
+        assert not th.is_alive()
+
+        assert patch_out["execution"].get("execution_result") == "blocked_by_rollback"
+        assert exe_rb.constraints["execution"]["execution_result"] == "rollback_applied"
+        assert fp.read_text(encoding="utf-8") == "x = 0\n"
     finally:
         clear_registry()
 
