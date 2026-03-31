@@ -177,6 +177,7 @@ def _handle_rollback_preview_goal(goal: str, exe: CursorExecutionPacketV1) -> bo
                 "retry_count": 0,
                 "applied_path": rel,
                 "diff_preview": dp,
+                "risk_level": _rollback_preview_risk_level_from_diff(dp),
             },
         )
         return True
@@ -192,6 +193,7 @@ def _handle_rollback_preview_goal(goal: str, exe: CursorExecutionPacketV1) -> bo
                 "retry_count": 0,
                 "failed_path": rel,
                 "diff_preview": "",
+                "risk_level": "low",
             },
         )
         return True
@@ -205,6 +207,7 @@ def _handle_rollback_preview_goal(goal: str, exe: CursorExecutionPacketV1) -> bo
             "retry_count": 0,
             "applied_path": rel,
             "diff_preview": dp,
+            "risk_level": _rollback_preview_risk_level_from_diff(dp),
         },
     )
     return True
@@ -320,6 +323,34 @@ def _diff_preview_short(before: str, after: str) -> str:
             break
         lines.append(line if line.endswith("\n") else line + "\n")
     return "".join(lines) if lines else "(değişiklik yok)\n"
+
+
+def _count_unified_diff_changed_lines(diff_text: str) -> int:
+    """diff_preview (unified diff) içinde ekleme/silme satırları; ---/+++ başlıkları sayılmaz."""
+    n = 0
+    for line in diff_text.splitlines():
+        if line.startswith("@@"):
+            continue
+        if line.startswith("---") or line.startswith("+++"):
+            continue
+        if line.startswith("+"):
+            n += 1
+        elif line.startswith("-") and not line.startswith("--"):
+            n += 1
+    return n
+
+
+def _risk_level_from_changed_line_count(n: int) -> str:
+    """>20 high, 5–20 medium, <5 low."""
+    if n > 20:
+        return "high"
+    if n >= 5:
+        return "medium"
+    return "low"
+
+
+def _rollback_preview_risk_level_from_diff(diff_text: str) -> str:
+    return _risk_level_from_changed_line_count(_count_unified_diff_changed_lines(diff_text))
 
 
 def rollback_patch_file(

@@ -332,6 +332,74 @@ def test_rollback_preview_does_not_modify_file(monkeypatch, tmp_path):
         clear_registry()
 
 
+def test_rollback_preview_risk_level(monkeypatch, tmp_path):
+    """rollback_preview: değişen satır sayısına göre risk_level low / medium / high."""
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
+    (tmp_path / ".lumos").mkdir()
+    goal_preview = "ROLLBACK_PREVIEW"
+    from core.patch_registry import clear_registry
+
+    clear_registry()
+    try:
+        # low: tek satırlık fark (birkaç +/- satırı, toplam < 5)
+        cursor_bridge._PATCH_MEMORY.clear()
+        fp_lo = tmp_path / "rl_low.py"
+        fp_lo.write_text("x = 0\n", encoding="utf-8")
+        _, _, _, ex_lo1, _ = run_brain_and_persist_bridge(
+            "TARGET: rl_low.py\nx = 1\n",
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        assert ex_lo1.constraints["execution"]["execution_result"] == "patch_applied"
+        _, _, _, ex_lo2, _ = run_brain_and_persist_bridge(
+            goal_preview,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        assert ex_lo2.constraints["execution"]["risk_level"] == "low"
+
+        # medium: 5 satır tamamen değişir → 10 +/- satırı (5–20)
+        cursor_bridge._PATCH_MEMORY.clear()
+        before_m = "\n".join([f"line{i}" for i in range(5)]) + "\n"
+        after_m = "\n".join([f"new{i}" for i in range(5)]) + "\n"
+        fp_m = tmp_path / "rl_med.py"
+        fp_m.write_text(before_m, encoding="utf-8")
+        _, _, _, ex_m1, _ = run_brain_and_persist_bridge(
+            f"TARGET: rl_med.py\n{after_m}\n",
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        assert ex_m1.constraints["execution"]["execution_result"] == "patch_applied"
+        _, _, _, ex_m2, _ = run_brain_and_persist_bridge(
+            goal_preview,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        assert ex_m2.constraints["execution"]["risk_level"] == "medium"
+
+        # high: 11 satır tamamen değişir → 22 +/- satırı (>20)
+        cursor_bridge._PATCH_MEMORY.clear()
+        before_h = "\n".join([f"h{i}" for i in range(11)]) + "\n"
+        after_h = "\n".join([f"z{i}" for i in range(11)]) + "\n"
+        fp_h = tmp_path / "rl_high.py"
+        fp_h.write_text(before_h, encoding="utf-8")
+        _, _, _, ex_h1, _ = run_brain_and_persist_bridge(
+            f"TARGET: rl_high.py\n{after_h}\n",
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        assert ex_h1.constraints["execution"]["execution_result"] == "patch_applied"
+        _, _, _, ex_h2, _ = run_brain_and_persist_bridge(
+            goal_preview,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        assert ex_h2.constraints["execution"]["risk_level"] == "high"
+    finally:
+        clear_registry()
+
+
 def test_no_patch_during_rollback(monkeypatch, tmp_path):
     """Rollback sürerken başka bir iş parçacığı patch denerse uygulanmaz (blocked_by_rollback)."""
     monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
