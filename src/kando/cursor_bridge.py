@@ -65,9 +65,20 @@ _SHOW_HISTORY_FILTER_RE = re.compile(
     re.IGNORECASE,
 )
 
-# Bellek içi patch geçmişi (disk yedeği değil); rollback_patch_file ile çakışmaz.
-_MAX_PATCH_MEMORY_ENTRIES = 50
-_PATCH_MEMORY: OrderedDict[str, dict[str, Any]] = OrderedDict()
+# Kalıcı patch geçmişi: kando.patch_memory_sqlite (repo/.lumos/patch_memory.sqlite).
+# Runtime: rollback_patch_file ile çakışmaz; _is_rollback yalnızca süreç içi kilidi.
+class _PatchMemoryTestProxy:
+    """Testler: cursor_bridge._PATCH_MEMORY.clear() — mevcut repo için DB kayıtlarını siler."""
+
+    __slots__ = ()
+
+    def clear(self) -> None:
+        from kando import patch_memory_sqlite as pms
+
+        pms.clear_for_repo(None)
+
+
+_PATCH_MEMORY = _PatchMemoryTestProxy()
 # Rollback sırasında True; eşzamanlı patch girişleri blocked_by_rollback ile reddedilir.
 _is_rollback = False
 
@@ -113,28 +124,16 @@ def _record_patch_memory(
     *,
     repo_root: Path | str | None = None,
 ) -> None:
-    ts = time.time()
-    if rel in _PATCH_MEMORY:
-        del _PATCH_MEMORY[rel]
-    rr: str | None = None
-    if repo_root is not None:
-        try:
-            rr = str(Path(repo_root).resolve())
-        except OSError:
-            rr = None
-    _PATCH_MEMORY[rel] = {
-        "previous_content": previous_content,
-        "timestamp": ts,
-        "repo_root": rr,
-    }
-    while len(_PATCH_MEMORY) > _MAX_PATCH_MEMORY_ENTRIES:
-        _PATCH_MEMORY.popitem(last=False)
+    from kando import patch_memory_sqlite as pms
+
+    pms.record_patch_memory(rel, previous_content, repo_root=repo_root)
 
 
 def get_patch_memory_entry(repo_relative_path: str) -> dict[str, Any] | None:
-    """Test / okuyucular için: bellekteki son patch öncesi kayıt (yoksa None)."""
-    e = _PATCH_MEMORY.get(repo_relative_path)
-    return None if e is None else dict(e)
+    """Test / okuyucular için: kalıcı store’daki son patch öncesi kayıt (yoksa None)."""
+    from kando import patch_memory_sqlite as pms
+
+    return pms.get_entry(repo_relative_path, repo_root=None)
 
 
 def _handle_rollback_last_goal(goal: str, exe: CursorExecutionPacketV1) -> bool:
@@ -147,10 +146,11 @@ def _handle_rollback_last_goal(goal: str, exe: CursorExecutionPacketV1) -> bool:
     global _is_rollback
     _is_rollback = True
     try:
+        from kando import patch_memory_sqlite as pms
         from task_engine.executors.patch_apply_executor import _repo_root
 
         repo_root = _repo_root()
-        if not _PATCH_MEMORY:
+        if not pms.has_active_paths(repo_root):
             exe.target_file = ""
             _store_execution_and_log(
                 exe,
@@ -162,12 +162,23 @@ def _handle_rollback_last_goal(goal: str, exe: CursorExecutionPacketV1) -> bool:
                 },
             )
             return True
-        rel = next(reversed(_PATCH_MEMORY))
-        entry = _PATCH_MEMORY[rel]
+        rel, entry = pms.get_last_record_for_rollback(repo_root)
+        if not rel or entry is None:
+            exe.target_file = ""
+            _store_execution_and_log(
+                exe,
+                {
+                    "execution_result": "rollback_not_possible",
+                    "detail": "patch belleğinde geri alınacak kayıt yok",
+                    "error_type": "",
+                    "retry_count": 0,
+                },
+            )
+            return True
         prev = entry.get("previous_content")
         exe.target_file = rel
         if prev is None:
-            del _PATCH_MEMORY[rel]
+            pms.invalidate_path(rel, repo_root=repo_root)
             _store_execution_and_log(
                 exe,
                 {
@@ -182,7 +193,7 @@ def _handle_rollback_last_goal(goal: str, exe: CursorExecutionPacketV1) -> bool:
         target = (repo_root / rel).resolve()
         ok, msg = rollback_patch_file(target, prev, file_existed_before=True)
         if ok:
-            del _PATCH_MEMORY[rel]
+            pms.invalidate_path(rel, repo_root=repo_root)
             _store_execution_and_log(
                 exe,
                 {
@@ -216,10 +227,11 @@ def _handle_rollback_preview_goal(goal: str, exe: CursorExecutionPacketV1) -> bo
     """
     if "ROLLBACK_PREVIEW" not in (goal or ""):
         return False
+    from kando import patch_memory_sqlite as pms
     from task_engine.executors.patch_apply_executor import _repo_root
 
     repo_root = _repo_root()
-    if not _PATCH_MEMORY:
+    if not pms.has_active_paths(repo_root):
         exe.target_file = ""
         _store_execution_and_log(
             exe,
@@ -232,8 +244,20 @@ def _handle_rollback_preview_goal(goal: str, exe: CursorExecutionPacketV1) -> bo
             },
         )
         return True
-    rel = next(reversed(_PATCH_MEMORY))
-    entry = _PATCH_MEMORY[rel]
+    rel, entry = pms.get_last_record_for_rollback(repo_root)
+    if not rel or entry is None:
+        exe.target_file = ""
+        _store_execution_and_log(
+            exe,
+            {
+                "execution_result": "rollback_not_possible",
+                "detail": "patch belleğinde önizleme için kayıt yok",
+                "error_type": "",
+                "retry_count": 0,
+                "diff_preview": "",
+            },
+        )
+        return True
     prev = entry.get("previous_content")
     if prev is None:
         prev = ""
@@ -765,9 +789,11 @@ def _should_block_execution(exe: CursorExecutionPacketV1) -> tuple[bool, str]:
     except Exception:
         rroot = None
     if rels and rroot and _POLICY_SPAM_SECONDS > 0:
+        from kando import patch_memory_sqlite as pms
+
         now = time.time()
         for r in rels:
-            mem = _PATCH_MEMORY.get(r)
+            mem = pms.get_entry(r, repo_root=rroot)
             if mem is None:
                 continue
             stored_rr = mem.get("repo_root")
