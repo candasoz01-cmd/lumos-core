@@ -293,6 +293,45 @@ def test_rollback_restores_previous_content(monkeypatch, tmp_path):
         clear_registry()
 
 
+def test_rollback_preview_does_not_modify_file(monkeypatch, tmp_path):
+    """Patch sonrası ROLLBACK_PREVIEW yalnızca diff üretir; dosyaya yazmaz, bellek silinmez."""
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
+    (tmp_path / ".lumos").mkdir()
+    fp = tmp_path / "bridge_rb_preview.py"
+    fp.write_text("x = 0\n", encoding="utf-8")
+    goal_patch = "TARGET: bridge_rb_preview.py\nx = 1\n"
+    goal_preview = "ROLLBACK_PREVIEW"
+    from core.patch_registry import clear_registry
+
+    clear_registry()
+    try:
+        cursor_bridge._PATCH_MEMORY.clear()
+        _, _, _, exe1, _ = run_brain_and_persist_bridge(
+            goal_patch,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        assert exe1.constraints["execution"]["execution_result"] == "patch_applied"
+        after_patch = fp.read_text(encoding="utf-8")
+        assert "x = 1" in after_patch
+
+        _, _, _, exe2, _ = run_brain_and_persist_bridge(
+            goal_preview,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        ex2 = exe2.constraints["execution"]
+        assert ex2["execution_result"] == "rollback_preview"
+        dp = str(ex2.get("diff_preview") or "").strip()
+        assert len(dp) > 0
+        assert "x = 1" in dp or "x = 0" in dp or "---" in dp
+        assert fp.read_text(encoding="utf-8") == after_patch
+        assert cursor_bridge.get_patch_memory_entry("bridge_rb_preview.py") is not None
+    finally:
+        clear_registry()
+
+
 def test_no_patch_during_rollback(monkeypatch, tmp_path):
     """Rollback sürerken başka bir iş parçacığı patch denerse uygulanmaz (blocked_by_rollback)."""
     monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))

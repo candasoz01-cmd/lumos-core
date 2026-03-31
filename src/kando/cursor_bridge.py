@@ -136,6 +136,80 @@ def _handle_rollback_last_goal(goal: str, exe: CursorExecutionPacketV1) -> bool:
         _is_rollback = False
 
 
+def _handle_rollback_preview_goal(goal: str, exe: CursorExecutionPacketV1) -> bool:
+    """
+    goal içinde ROLLBACK_PREVIEW varsa: diske yazmadan, son patch belleğine göre
+    mevcut dosya ile previous_content arasında diff önizlemesi üretir.
+    """
+    if "ROLLBACK_PREVIEW" not in (goal or ""):
+        return False
+    from task_engine.executors.patch_apply_executor import _repo_root
+
+    repo_root = _repo_root()
+    if not _PATCH_MEMORY:
+        exe.target_file = ""
+        _store_execution_and_log(
+            exe,
+            {
+                "execution_result": "rollback_not_possible",
+                "detail": "patch belleğinde önizleme için kayıt yok",
+                "error_type": "",
+                "retry_count": 0,
+                "diff_preview": "",
+            },
+        )
+        return True
+    rel = next(reversed(_PATCH_MEMORY))
+    entry = _PATCH_MEMORY[rel]
+    prev = entry.get("previous_content")
+    if prev is None:
+        prev = ""
+    exe.target_file = rel
+    target = (repo_root / rel).resolve()
+    if not target.is_file():
+        dp = _diff_preview_short("", prev) if prev else "(dosya yok; geri alma dosyayı kaldırır)\n"
+        _store_execution_and_log(
+            exe,
+            {
+                "execution_result": "rollback_preview",
+                "detail": f"rollback önizlemesi (disk yazılmadı); hedef şu an yok — {rel}",
+                "error_type": "",
+                "retry_count": 0,
+                "applied_path": rel,
+                "diff_preview": dp,
+            },
+        )
+        return True
+    try:
+        cur = target.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as e:
+        _store_execution_and_log(
+            exe,
+            {
+                "execution_result": "rollback_preview",
+                "detail": f"rollback önizlemesi; hedef okunamadı — {e}"[:2000],
+                "error_type": "parse_error",
+                "retry_count": 0,
+                "failed_path": rel,
+                "diff_preview": "",
+            },
+        )
+        return True
+    dp = _diff_preview_short(cur, prev)
+    _store_execution_and_log(
+        exe,
+        {
+            "execution_result": "rollback_preview",
+            "detail": "rollback önizlemesi (disk yazılmadı)",
+            "error_type": "",
+            "retry_count": 0,
+            "applied_path": rel,
+            "diff_preview": dp,
+        },
+    )
+    return True
+
+
 def _lumos_base_path_for_log(exe: CursorExecutionPacketV1) -> Path | None:
     raw = exe.constraints.get("lumos_base_resolved")
     if raw:
@@ -1252,6 +1326,8 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
     Tek yol net ise çoklu hedef keşfi yapılmaz; tek dosya apply. Hedef yoksa: target_required.
     opsiyonel: exe.constraints["dry_run"]=True → disk yazılmaz, execution_result=dry_run_success.
     """
+    if _handle_rollback_preview_goal(goal, exe):
+        return
     if _handle_rollback_last_goal(goal, exe):
         return
     if _is_rollback:
@@ -1725,6 +1801,8 @@ def build_result_packet(
     elif ex_result == "rollback_applied" and brain_success:
         outcome = "partial"
     elif ex_result == "dry_run_success" and brain_success:
+        outcome = "simulation"
+    elif ex_result == "rollback_preview" and brain_success:
         outcome = "simulation"
     elif ex_result in ("timeout", "timeout_total"):
         outcome = "failed"
