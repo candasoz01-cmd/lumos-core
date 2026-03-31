@@ -8,10 +8,10 @@ from typing import Any
 
 import core.patch_pipeline as patch_pipeline
 from kando import cursor_bridge
+from kando import patch_memory_sqlite
 from kando.cursor_bridge import (
     build_execution_packet,
     build_result_packet,
-    get_patch_memory_entry,
     persist_cursor_bridge,
     read_filtered_patch_apply_history,
     read_recent_patch_apply_history,
@@ -330,7 +330,7 @@ def test_patch_memory_records_previous_content(monkeypatch, tmp_path):
         )
         assert exe.constraints["execution"]["execution_result"] == "patch_applied"
         assert exe.constraints["execution"].get("had_previous") is True
-        entry = get_patch_memory_entry("bridge_mem.py")
+        entry = patch_memory_sqlite.get_entry("bridge_mem.py")
         assert entry is not None
         assert entry["previous_content"] == previous
         assert isinstance(entry["timestamp"], float)
@@ -352,7 +352,7 @@ def test_rollback_restores_previous_content(monkeypatch, tmp_path):
 
     clear_registry()
     try:
-        cursor_bridge._PATCH_MEMORY.clear()
+        patch_memory_sqlite.clear_for_repo(tmp_path)
         _, _, _, exe1, _ = run_brain_and_persist_bridge(
             goal_patch,
             permission_profile=PROFILE_GUVENLI_YURUT,
@@ -368,7 +368,7 @@ def test_rollback_restores_previous_content(monkeypatch, tmp_path):
         )
         assert exe2.constraints["execution"]["execution_result"] == "rollback_applied"
         assert fp.read_text(encoding="utf-8") == previous
-        assert cursor_bridge.get_patch_memory_entry("bridge_rollback.py") is None
+        assert patch_memory_sqlite.get_entry("bridge_rollback.py") is None
     finally:
         clear_registry()
 
@@ -386,7 +386,7 @@ def test_rollback_preview_does_not_modify_file(monkeypatch, tmp_path):
 
     clear_registry()
     try:
-        cursor_bridge._PATCH_MEMORY.clear()
+        patch_memory_sqlite.clear_for_repo(tmp_path)
         _, _, _, exe1, _ = run_brain_and_persist_bridge(
             goal_patch,
             permission_profile=PROFILE_GUVENLI_YURUT,
@@ -407,7 +407,7 @@ def test_rollback_preview_does_not_modify_file(monkeypatch, tmp_path):
         assert len(dp) > 0
         assert "x = 1" in dp or "x = 0" in dp or "---" in dp
         assert fp.read_text(encoding="utf-8") == after_patch
-        assert cursor_bridge.get_patch_memory_entry("bridge_rb_preview.py") is not None
+        assert patch_memory_sqlite.get_entry("bridge_rb_preview.py") is not None
     finally:
         clear_registry()
 
@@ -423,7 +423,7 @@ def test_rollback_preview_risk_level(monkeypatch, tmp_path):
     clear_registry()
     try:
         # low: tek satırlık fark (birkaç +/- satırı, toplam < 5)
-        cursor_bridge._PATCH_MEMORY.clear()
+        patch_memory_sqlite.clear_for_repo(tmp_path)
         fp_lo = tmp_path / "rl_low.py"
         fp_lo.write_text("x = 0\n", encoding="utf-8")
         _, _, _, ex_lo1, _ = run_brain_and_persist_bridge(
@@ -440,7 +440,7 @@ def test_rollback_preview_risk_level(monkeypatch, tmp_path):
         assert ex_lo2.constraints["execution"]["risk_level"] == "low"
 
         # medium: 5 satır tamamen değişir → 10 +/- satırı (5–20)
-        cursor_bridge._PATCH_MEMORY.clear()
+        patch_memory_sqlite.clear_for_repo(tmp_path)
         before_m = "\n".join([f"line{i}" for i in range(5)]) + "\n"
         after_m = "\n".join([f"new{i}" for i in range(5)]) + "\n"
         fp_m = tmp_path / "rl_med.py"
@@ -459,7 +459,7 @@ def test_rollback_preview_risk_level(monkeypatch, tmp_path):
         assert ex_m2.constraints["execution"]["risk_level"] == "medium"
 
         # high: 11 satır tamamen değişir → 22 +/- satırı (>20)
-        cursor_bridge._PATCH_MEMORY.clear()
+        patch_memory_sqlite.clear_for_repo(tmp_path)
         before_h = "\n".join([f"h{i}" for i in range(11)]) + "\n"
         after_h = "\n".join([f"z{i}" for i in range(11)]) + "\n"
         fp_h = tmp_path / "rl_high.py"
@@ -642,7 +642,7 @@ def test_high_risk_blocked_without_force(monkeypatch, tmp_path):
 
     clear_registry()
     try:
-        cursor_bridge._PATCH_MEMORY.clear()
+        patch_memory_sqlite.clear_for_repo(tmp_path)
         cursor_bridge._PENDING_APPROVALS.clear()
         exe = build_execution_packet(
             goal,
@@ -683,7 +683,7 @@ def test_high_risk_goes_to_pending(monkeypatch, tmp_path):
 
     clear_registry()
     try:
-        cursor_bridge._PATCH_MEMORY.clear()
+        patch_memory_sqlite.clear_for_repo(tmp_path)
         cursor_bridge._PENDING_APPROVALS.clear()
         exe = build_execution_packet(
             goal,
@@ -727,7 +727,7 @@ def test_approve_executes_patch(monkeypatch, tmp_path):
 
     clear_registry()
     try:
-        cursor_bridge._PATCH_MEMORY.clear()
+        patch_memory_sqlite.clear_for_repo(tmp_path)
         cursor_bridge._PENDING_APPROVALS.clear()
         exe1 = build_execution_packet(
             goal,
@@ -777,7 +777,7 @@ def test_reject_blocks_execution(monkeypatch, tmp_path):
 
     clear_registry()
     try:
-        cursor_bridge._PATCH_MEMORY.clear()
+        patch_memory_sqlite.clear_for_repo(tmp_path)
         cursor_bridge._PENDING_APPROVALS.clear()
         exe1 = build_execution_packet(
             goal,
@@ -827,7 +827,7 @@ def test_policy_allows_safe_patch(monkeypatch, tmp_path):
 
     clear_registry()
     try:
-        cursor_bridge._PATCH_MEMORY.clear()
+        patch_memory_sqlite.clear_for_repo(tmp_path)
         exe = build_execution_packet(
             goal,
             t,
@@ -866,7 +866,7 @@ def test_force_override_bypasses_policy(monkeypatch, tmp_path):
 
     clear_registry()
     try:
-        cursor_bridge._PATCH_MEMORY.clear()
+        patch_memory_sqlite.clear_for_repo(tmp_path)
         exe = build_execution_packet(
             goal,
             t,
@@ -905,7 +905,7 @@ def test_force_override_allows_execution(monkeypatch, tmp_path):
 
     clear_registry()
     try:
-        cursor_bridge._PATCH_MEMORY.clear()
+        patch_memory_sqlite.clear_for_repo(tmp_path)
         exe = build_execution_packet(
             goal,
             t,
@@ -935,7 +935,7 @@ def test_no_patch_during_rollback(monkeypatch, tmp_path):
 
     clear_registry()
     try:
-        cursor_bridge._PATCH_MEMORY.clear()
+        patch_memory_sqlite.clear_for_repo(tmp_path)
         _, _, _, exe_patch, _ = run_brain_and_persist_bridge(
             goal_patch,
             permission_profile=PROFILE_GUVENLI_YURUT,

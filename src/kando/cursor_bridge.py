@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from kando import patch_memory_sqlite
 from kando.cursor_packet import (
     SCHEMA_EXECUTION,
     SCHEMA_RESULT,
@@ -65,21 +66,8 @@ _SHOW_HISTORY_FILTER_RE = re.compile(
     re.IGNORECASE,
 )
 
-# Kalıcı patch geçmişi: kando.patch_memory_sqlite (repo/.lumos/patch_memory.sqlite).
-# Runtime: rollback_patch_file ile çakışmaz; _is_rollback yalnızca süreç içi kilidi.
-class _PatchMemoryTestProxy:
-    """Testler: cursor_bridge._PATCH_MEMORY.clear() — mevcut repo için DB kayıtlarını siler."""
-
-    __slots__ = ()
-
-    def clear(self) -> None:
-        from kando import patch_memory_sqlite as pms
-
-        pms.clear_for_repo(None)
-
-
-_PATCH_MEMORY = _PatchMemoryTestProxy()
-# Rollback sırasında True; eşzamanlı patch girişleri blocked_by_rollback ile reddedilir.
+# Patch öncesi içerik: yalnızca patch_memory_sqlite (repo/.lumos/patch_memory.sqlite).
+# Rollback sırasında True; eşzamanlı patch girişleri blocked_by_rollback ile reddedilir (runtime).
 _is_rollback = False
 
 # Yüksek risk policy → pending_approval; APPROVE <audit_id> ile goal tekrar oynatılır.
@@ -118,24 +106,6 @@ def _bounded_ordered_set(
         od.popitem(last=False)
 
 
-def _record_patch_memory(
-    rel: str,
-    previous_content: str | None,
-    *,
-    repo_root: Path | str | None = None,
-) -> None:
-    from kando import patch_memory_sqlite as pms
-
-    pms.record_patch_memory(rel, previous_content, repo_root=repo_root)
-
-
-def get_patch_memory_entry(repo_relative_path: str) -> dict[str, Any] | None:
-    """Test / okuyucular için: kalıcı store’daki son patch öncesi kayıt (yoksa None)."""
-    from kando import patch_memory_sqlite as pms
-
-    return pms.get_entry(repo_relative_path, repo_root=None)
-
-
 def _handle_rollback_last_goal(goal: str, exe: CursorExecutionPacketV1) -> bool:
     """
     goal içinde ROLLBACK_LAST varsa: bellekteki en son patch kaydını tek adımda geri alır.
@@ -146,11 +116,10 @@ def _handle_rollback_last_goal(goal: str, exe: CursorExecutionPacketV1) -> bool:
     global _is_rollback
     _is_rollback = True
     try:
-        from kando import patch_memory_sqlite as pms
         from task_engine.executors.patch_apply_executor import _repo_root
 
         repo_root = _repo_root()
-        if not pms.has_active_paths(repo_root):
+        if not patch_memory_sqlite.has_active_paths(repo_root):
             exe.target_file = ""
             _store_execution_and_log(
                 exe,
@@ -162,7 +131,7 @@ def _handle_rollback_last_goal(goal: str, exe: CursorExecutionPacketV1) -> bool:
                 },
             )
             return True
-        rel, entry = pms.get_last_record_for_rollback(repo_root)
+        rel, entry = patch_memory_sqlite.get_last_record_for_rollback(repo_root)
         if not rel or entry is None:
             exe.target_file = ""
             _store_execution_and_log(
@@ -178,7 +147,7 @@ def _handle_rollback_last_goal(goal: str, exe: CursorExecutionPacketV1) -> bool:
         prev = entry.get("previous_content")
         exe.target_file = rel
         if prev is None:
-            pms.invalidate_path(rel, repo_root=repo_root)
+            patch_memory_sqlite.invalidate_path(rel, repo_root=repo_root)
             _store_execution_and_log(
                 exe,
                 {
@@ -193,7 +162,7 @@ def _handle_rollback_last_goal(goal: str, exe: CursorExecutionPacketV1) -> bool:
         target = (repo_root / rel).resolve()
         ok, msg = rollback_patch_file(target, prev, file_existed_before=True)
         if ok:
-            pms.invalidate_path(rel, repo_root=repo_root)
+            patch_memory_sqlite.invalidate_path(rel, repo_root=repo_root)
             _store_execution_and_log(
                 exe,
                 {
@@ -227,11 +196,10 @@ def _handle_rollback_preview_goal(goal: str, exe: CursorExecutionPacketV1) -> bo
     """
     if "ROLLBACK_PREVIEW" not in (goal or ""):
         return False
-    from kando import patch_memory_sqlite as pms
     from task_engine.executors.patch_apply_executor import _repo_root
 
     repo_root = _repo_root()
-    if not pms.has_active_paths(repo_root):
+    if not patch_memory_sqlite.has_active_paths(repo_root):
         exe.target_file = ""
         _store_execution_and_log(
             exe,
@@ -244,7 +212,7 @@ def _handle_rollback_preview_goal(goal: str, exe: CursorExecutionPacketV1) -> bo
             },
         )
         return True
-    rel, entry = pms.get_last_record_for_rollback(repo_root)
+    rel, entry = patch_memory_sqlite.get_last_record_for_rollback(repo_root)
     if not rel or entry is None:
         exe.target_file = ""
         _store_execution_and_log(
@@ -789,11 +757,9 @@ def _should_block_execution(exe: CursorExecutionPacketV1) -> tuple[bool, str]:
     except Exception:
         rroot = None
     if rels and rroot and _POLICY_SPAM_SECONDS > 0:
-        from kando import patch_memory_sqlite as pms
-
         now = time.time()
         for r in rels:
-            mem = pms.get_entry(r, repo_root=rroot)
+            mem = patch_memory_sqlite.get_entry(r, repo_root=rroot)
             if mem is None:
                 continue
             stored_rr = mem.get("repo_root")
@@ -1224,7 +1190,7 @@ def _instruction_apply_one(
         return False, {"kind": "locked", "detail": "file is locked", "had_previous": had_previous}
 
     try:
-        _record_patch_memory(
+        patch_memory_sqlite.record_patch_memory(
             rel,
             previous_text if file_existed_before else None,
             repo_root=repo_root,
