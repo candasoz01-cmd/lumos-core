@@ -14,7 +14,6 @@ logs/*.jsonl
 
 .data/
 *.db
-.venv/
 venv/
 *.egg-info/
 src/*.egg-info/
