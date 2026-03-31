@@ -255,6 +255,41 @@ def test_patch_memory_records_previous_content(monkeypatch, tmp_path):
         clear_registry()
 
 
+def test_rollback_restores_previous_content(monkeypatch, tmp_path):
+    """Patch uygula, ROLLBACK_LAST ile bellekten tek adım geri al; dosya önceki içeriğe döner."""
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
+    (tmp_path / ".lumos").mkdir()
+    fp = tmp_path / "bridge_rollback.py"
+    previous = "x = 0\n"
+    fp.write_text(previous, encoding="utf-8")
+    goal_patch = "TARGET: bridge_rollback.py\nx = 1\n"
+    goal_rollback = "ROLLBACK_LAST"
+    from core.patch_registry import clear_registry
+
+    clear_registry()
+    try:
+        cursor_bridge._PATCH_MEMORY.clear()
+        _, _, _, exe1, _ = run_brain_and_persist_bridge(
+            goal_patch,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        assert exe1.constraints["execution"]["execution_result"] == "patch_applied"
+        assert "x = 1" in fp.read_text(encoding="utf-8")
+
+        _, _, _, exe2, _ = run_brain_and_persist_bridge(
+            goal_rollback,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        assert exe2.constraints["execution"]["execution_result"] == "rollback_applied"
+        assert fp.read_text(encoding="utf-8") == previous
+        assert cursor_bridge.get_patch_memory_entry("bridge_rollback.py") is None
+    finally:
+        clear_registry()
+
+
 def test_instruction_without_target_target_required(monkeypatch, tmp_path):
     monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
     (tmp_path / ".lumos").mkdir()

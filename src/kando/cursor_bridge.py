@@ -62,6 +62,73 @@ def get_patch_memory_entry(repo_relative_path: str) -> dict[str, Any] | None:
     return None if e is None else dict(e)
 
 
+def _handle_rollback_last_goal(goal: str, exe: CursorExecutionPacketV1) -> bool:
+    """
+    goal içinde ROLLBACK_LAST varsa: bellekteki en son patch kaydını tek adımda geri alır.
+    Disk üzerinde ayrı yedek kullanılmaz; başarıda ilgili bellek girişi silinir.
+    """
+    if "ROLLBACK_LAST" not in (goal or ""):
+        return False
+    from task_engine.executors.patch_apply_executor import _repo_root
+
+    repo_root = _repo_root()
+    if not _PATCH_MEMORY:
+        exe.target_file = ""
+        _store_execution_and_log(
+            exe,
+            {
+                "execution_result": "rollback_not_possible",
+                "detail": "patch belleğinde geri alınacak kayıt yok",
+                "error_type": "",
+                "retry_count": 0,
+            },
+        )
+        return True
+    rel = next(reversed(_PATCH_MEMORY))
+    entry = _PATCH_MEMORY[rel]
+    prev = entry.get("previous_content")
+    exe.target_file = rel
+    if prev is None:
+        del _PATCH_MEMORY[rel]
+        _store_execution_and_log(
+            exe,
+            {
+                "execution_result": "rollback_not_possible",
+                "detail": "önceki içerik yok (yeni oluşturulan dosya için bellekte tam metin yok)",
+                "error_type": "",
+                "retry_count": 0,
+                "failed_path": rel,
+            },
+        )
+        return True
+    target = (repo_root / rel).resolve()
+    ok, msg = rollback_patch_file(target, prev, file_existed_before=True)
+    if ok:
+        del _PATCH_MEMORY[rel]
+        _store_execution_and_log(
+            exe,
+            {
+                "execution_result": "rollback_applied",
+                "detail": (msg or "önceki içerik geri yazıldı")[:2000],
+                "applied_path": rel,
+                "error_type": "",
+                "retry_count": 0,
+            },
+        )
+    else:
+        _store_execution_and_log(
+            exe,
+            {
+                "execution_result": "rollback_failed",
+                "detail": (msg or "geri alma yazımı başarısız")[:2000],
+                "failed_path": rel,
+                "error_type": "write_failed",
+                "retry_count": 0,
+            },
+        )
+    return True
+
+
 def _lumos_base_path_for_log(exe: CursorExecutionPacketV1) -> Path | None:
     raw = exe.constraints.get("lumos_base_resolved")
     if raw:
@@ -1178,6 +1245,8 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
     Tek yol net ise çoklu hedef keşfi yapılmaz; tek dosya apply. Hedef yoksa: target_required.
     opsiyonel: exe.constraints["dry_run"]=True → disk yazılmaz, execution_result=dry_run_success.
     """
+    if _handle_rollback_last_goal(goal, exe):
+        return
     if exe.patch is not None:
         return
 
