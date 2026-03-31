@@ -214,6 +214,36 @@ def _handle_rollback_preview_goal(goal: str, exe: CursorExecutionPacketV1) -> bo
     return True
 
 
+def _handle_show_history_goal(goal: str, exe: CursorExecutionPacketV1) -> bool:
+    """goal içinde SHOW_HISTORY varsa: patch_apply.jsonl son kayıtlarını listeler (yazma yok)."""
+    if "SHOW_HISTORY" not in (goal or ""):
+        return False
+    lumos_base = _lumos_base_path_for_log(exe)
+    history = read_recent_patch_apply_history(lumos_base, limit=10)
+    exe.target_file = ""
+    if not history:
+        _set_execution_without_patch_log(
+            exe,
+            {
+                "execution_result": "history_empty",
+                "history": [],
+                "error_type": "",
+                "retry_count": 0,
+            },
+        )
+    else:
+        _set_execution_without_patch_log(
+            exe,
+            {
+                "execution_result": "history_listed",
+                "history": history,
+                "error_type": "",
+                "retry_count": 0,
+            },
+        )
+    return True
+
+
 def _lumos_base_path_for_log(exe: CursorExecutionPacketV1) -> Path | None:
     raw = exe.constraints.get("lumos_base_resolved")
     if raw:
@@ -260,6 +290,58 @@ def _patch_apply_log_file_field(execution: dict[str, Any]) -> str:
 
 def _ensure_audit_id(execution: dict[str, Any]) -> None:
     execution.setdefault("audit_id", str(uuid.uuid4()))
+
+
+def read_recent_patch_apply_history(
+    lumos_base: Path | None, *, limit: int = 10
+) -> list[dict[str, Any]]:
+    """
+    logs/patch_apply.jsonl içinden en son `limit` kaydı okur (yalnızca okuma).
+    Her öğe: audit_id, execution_result, target_file, risk_level, timestamp.
+    """
+    if lumos_base is None or limit <= 0:
+        return []
+    log_path = (lumos_base / "logs" / _PATCH_APPLY_LOG_FILENAME).resolve()
+    if not log_path.is_file():
+        return []
+    try:
+        text = log_path.read_text(encoding="utf-8")
+    except OSError:
+        return []
+    parsed: list[dict[str, Any]] = []
+    for ln in text.splitlines():
+        ln = ln.strip()
+        if not ln:
+            continue
+        try:
+            row = json.loads(ln)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(row, dict):
+            parsed.append(row)
+    tail = parsed[-limit:] if len(parsed) > limit else parsed
+    out: list[dict[str, Any]] = []
+    for row in tail:
+        rl = row.get("risk_level")
+        risk_level = str(rl) if rl is not None and str(rl).strip() else "unknown"
+        out.append(
+            {
+                "audit_id": str(row.get("audit_id") or ""),
+                "execution_result": str(row.get("result") or ""),
+                "target_file": str(row.get("file") or ""),
+                "risk_level": risk_level,
+                "timestamp": str(row.get("time") or ""),
+            }
+        )
+    return out
+
+
+def _set_execution_without_patch_log(
+    exe: CursorExecutionPacketV1, execution: dict[str, Any]
+) -> None:
+    """Yalnızca exe.constraints['execution'] günceller; patch_apply.jsonl'e yazmaz."""
+    _ensure_audit_id(execution)
+    exe.constraints["execution"] = execution
 
 
 def _append_patch_apply_log(lumos_base: Path | None, execution: dict[str, Any]) -> None:
@@ -1459,6 +1541,8 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
         return
     if _handle_rollback_last_goal(goal, exe):
         return
+    if _handle_show_history_goal(goal, exe):
+        return
     if _is_rollback:
         _store_execution_and_log(
             exe,
@@ -1936,6 +2020,8 @@ def build_result_packet(
     elif ex_result == "dry_run_success" and brain_success:
         outcome = "simulation"
     elif ex_result == "rollback_preview" and brain_success:
+        outcome = "simulation"
+    elif ex_result in ("history_listed", "history_empty") and brain_success:
         outcome = "simulation"
     elif ex_result in ("timeout", "timeout_total"):
         outcome = "failed"

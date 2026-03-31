@@ -13,6 +13,7 @@ from kando.cursor_bridge import (
     build_result_packet,
     get_patch_memory_entry,
     persist_cursor_bridge,
+    read_recent_patch_apply_history,
     run_brain_and_persist_bridge,
     try_instruction_patch_apply,
 )
@@ -852,6 +853,64 @@ def test_patch_total_timeout(monkeypatch, tmp_path):
         assert exe.constraints["execution"]["detail"] == "total patch timeout"
     finally:
         clear_registry()
+
+
+def test_show_history_returns_recent_entries(monkeypatch, tmp_path):
+    """SHOW_HISTORY: patch_apply.jsonl son kayıtlarını execution.history içinde döndürür."""
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
+    (tmp_path / ".lumos").mkdir()
+    log_dir = tmp_path / ".lumos" / "logs"
+    log_dir.mkdir(parents=True)
+    log_path = log_dir / "patch_apply.jsonl"
+    rows = [
+        {"time": "2026-01-01T00:00:00Z", "audit_id": "a1", "file": "f1.py", "result": "patch_applied", "detail": "x"},
+        {"time": "2026-01-02T00:00:00Z", "audit_id": "a2", "file": "f2.py", "result": "no_change", "detail": "y", "risk_level": "low"},
+    ]
+    log_path.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n", encoding="utf-8")
+
+    t = TaskRecord(
+        task_id=700,
+        title="h",
+        description="SHOW_HISTORY",
+        created_at="2026-01-01T00:00:00Z",
+        permission_profile=PROFILE_GUVENLI_YURUT,
+        steps=[],
+    )
+    lumos_resolved = str((tmp_path / ".lumos").resolve())
+    exe = build_execution_packet(
+        "SHOW_HISTORY",
+        t,
+        permission_profile=PROFILE_GUVENLI_YURUT,
+        general_approval=True,
+    )
+    exe.constraints["lumos_base_resolved"] = lumos_resolved
+    try_instruction_patch_apply("SHOW_HISTORY", exe)
+    ex = exe.constraints["execution"]
+    assert ex["execution_result"] == "history_listed"
+    assert "history" in ex
+    hist = ex["history"]
+    assert len(hist) == 2
+    assert hist[0]["audit_id"] == "a1"
+    assert hist[0]["execution_result"] == "patch_applied"
+    assert hist[0]["target_file"] == "f1.py"
+    assert hist[0]["risk_level"] == "unknown"
+    assert hist[0]["timestamp"] == "2026-01-01T00:00:00Z"
+    assert hist[1]["audit_id"] == "a2"
+    assert hist[1]["risk_level"] == "low"
+
+    assert read_recent_patch_apply_history(tmp_path / ".lumos", limit=1) == [hist[1]]
+
+    exe_empty = build_execution_packet(
+        "SHOW_HISTORY",
+        t,
+        permission_profile=PROFILE_GUVENLI_YURUT,
+        general_approval=True,
+    )
+    exe_empty.constraints["lumos_base_resolved"] = str((tmp_path / ".lumos_empty").resolve())
+    try_instruction_patch_apply("SHOW_HISTORY", exe_empty)
+    assert exe_empty.constraints["execution"]["execution_result"] == "history_empty"
+    assert exe_empty.constraints["execution"]["history"] == []
 
 
 def test_instruction_embedded_path_requires_target_body(monkeypatch, tmp_path):
