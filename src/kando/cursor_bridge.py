@@ -10,6 +10,7 @@ import logging
 import os
 import re
 import time
+from collections import OrderedDict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -40,6 +41,25 @@ _PATCH_APPLY_LOG_MAX_DETAIL = 800
 _PATCH_APPLY_LOG_FILENAME = "patch_apply.jsonl"
 MAX_PATCH_SECONDS = 5
 MAX_TOTAL_PATCH_SECONDS = 10
+
+# Bellek içi patch geçmişi (disk yedeği değil); rollback_patch_file ile çakışmaz.
+_MAX_PATCH_MEMORY_ENTRIES = 50
+_PATCH_MEMORY: OrderedDict[str, dict[str, Any]] = OrderedDict()
+
+
+def _record_patch_memory(rel: str, previous_content: str | None) -> None:
+    ts = time.time()
+    if rel in _PATCH_MEMORY:
+        del _PATCH_MEMORY[rel]
+    _PATCH_MEMORY[rel] = {"previous_content": previous_content, "timestamp": ts}
+    while len(_PATCH_MEMORY) > _MAX_PATCH_MEMORY_ENTRIES:
+        _PATCH_MEMORY.popitem(last=False)
+
+
+def get_patch_memory_entry(repo_relative_path: str) -> dict[str, Any] | None:
+    """Test / okuyucular için: bellekteki son patch öncesi kayıt (yoksa None)."""
+    e = _PATCH_MEMORY.get(repo_relative_path)
+    return None if e is None else dict(e)
 
 
 def _lumos_base_path_for_log(exe: CursorExecutionPacketV1) -> Path | None:
@@ -409,11 +429,12 @@ def _instruction_apply_one(
         return False, {
             "detail": "patch başarısız: hedef .lumos çekirdek state yolunda (yazma yasak)",
             "kind": "core_state",
+            "had_previous": False,
         }
     if _total_budget_exceeded():
-        return False, {"detail": "total patch timeout", "kind": "timeout_total"}
+        return False, {"detail": "total patch timeout", "kind": "timeout_total", "had_previous": False}
     if _deadline_exceeded():
-        return False, {"detail": "patch timeout", "kind": "timeout"}
+        return False, {"detail": "patch timeout", "kind": "timeout", "had_previous": False}
     file_existed_before = target.is_file()
     previous_text = ""
     if file_existed_before:
@@ -423,11 +444,13 @@ def _instruction_apply_one(
             return False, {
                 "detail": f"patch başarısız: hedef okunamadı ({rel}): {e}",
                 "kind": "read_error",
+                "had_previous": True,
             }
     if _total_budget_exceeded():
-        return False, {"detail": "total patch timeout", "kind": "timeout_total"}
+        return False, {"detail": "total patch timeout", "kind": "timeout_total", "had_previous": file_existed_before}
     if _deadline_exceeded():
-        return False, {"detail": "patch timeout", "kind": "timeout"}
+        return False, {"detail": "patch timeout", "kind": "timeout", "had_previous": file_existed_before}
+    had_previous = file_existed_before
     mutated = False
     lock_path = target.parent / (target.name + ".lock")
     lock_acquired = False
@@ -436,9 +459,10 @@ def _instruction_apply_one(
         lock_path.touch(exist_ok=False)
         lock_acquired = True
     except FileExistsError:
-        return False, {"kind": "locked", "detail": "file is locked"}
+        return False, {"kind": "locked", "detail": "file is locked", "had_previous": had_previous}
 
     try:
+        _record_patch_memory(rel, previous_text if file_existed_before else None)
         proposal = propose_text_patch(
             target,
             body,
@@ -454,12 +478,13 @@ def _instruction_apply_one(
                 "detail": f"patch başarısız: öneri dosya sistemi doğrulamasında reddedildi — {val.message}",
                 "kind": "validate",
                 "patch_id": proposal.id,
+                "had_previous": had_previous,
             }
 
         if _total_budget_exceeded():
-            return False, {"detail": "total patch timeout", "kind": "timeout_total"}
+            return False, {"detail": "total patch timeout", "kind": "timeout_total", "had_previous": had_previous}
         if _deadline_exceeded():
-            return False, {"detail": "patch timeout", "kind": "timeout"}
+            return False, {"detail": "patch timeout", "kind": "timeout", "had_previous": had_previous}
 
         diff_preview = _diff_preview_short(previous_text, proposal.proposed_text)
 
@@ -482,9 +507,9 @@ def _instruction_apply_one(
                 proposal.id,
             )
             if _total_budget_exceeded():
-                return False, {"detail": "total patch timeout", "kind": "timeout_total"}
+                return False, {"detail": "total patch timeout", "kind": "timeout_total", "had_previous": had_previous}
             if _deadline_exceeded():
-                return False, {"detail": "patch timeout", "kind": "timeout"}
+                return False, {"detail": "patch timeout", "kind": "timeout", "had_previous": had_previous}
             return True, {
                 "patch_id": proposal.id,
                 "verify_msg": v_msg,
@@ -496,18 +521,19 @@ def _instruction_apply_one(
                 "proposed_text": prop_exec,
                 "proposed_text_truncated": prop_trunc,
                 "diff_preview": diff_preview,
+                "had_previous": had_previous,
             }
 
         if _total_budget_exceeded():
-            return False, {"detail": "total patch timeout", "kind": "timeout_total"}
+            return False, {"detail": "total patch timeout", "kind": "timeout_total", "had_previous": had_previous}
         if _deadline_exceeded():
-            return False, {"detail": "patch timeout", "kind": "timeout"}
+            return False, {"detail": "patch timeout", "kind": "timeout", "had_previous": had_previous}
 
         if previous_text == proposal.proposed_text:
             if _total_budget_exceeded():
-                return False, {"detail": "total patch timeout", "kind": "timeout_total"}
+                return False, {"detail": "total patch timeout", "kind": "timeout_total", "had_previous": had_previous}
             if _deadline_exceeded():
-                return False, {"detail": "patch timeout", "kind": "timeout"}
+                return False, {"detail": "patch timeout", "kind": "timeout", "had_previous": had_previous}
             v_ok, v_msg = run_post_apply_verify(target, verify_cmd)
             if not v_ok:
                 fail_detail = (
@@ -519,6 +545,7 @@ def _instruction_apply_one(
                     "patch_id": proposal.id,
                     "kind": "verify",
                     "source": source,
+                    "had_previous": had_previous,
                 }
             prev_for_exec = previous_text
             truncated = False
@@ -531,9 +558,9 @@ def _instruction_apply_one(
                 proposal.id,
             )
             if _total_budget_exceeded():
-                return False, {"detail": "total patch timeout", "kind": "timeout_total"}
+                return False, {"detail": "total patch timeout", "kind": "timeout_total", "had_previous": had_previous}
             if _deadline_exceeded():
-                return False, {"detail": "patch timeout", "kind": "timeout"}
+                return False, {"detail": "patch timeout", "kind": "timeout", "had_previous": had_previous}
             return True, {
                 "patch_id": proposal.id,
                 "verify_msg": v_msg,
@@ -543,6 +570,7 @@ def _instruction_apply_one(
                 "previous_content_truncated": truncated,
                 "diff_preview": diff_preview,
                 "already_applied": True,
+                "had_previous": had_previous,
             }
 
         apply_patch(proposal, assume_reviewed=True, allow_protected_apply=False)
@@ -566,17 +594,19 @@ def _instruction_apply_one(
                         "source": source,
                         "rollback_applied": True,
                         "rollback_detail": rb_msg,
+                        "had_previous": had_previous,
                     }
                 return False, {
                     "detail": "atomic write failed",
                     "kind": "atomic_write",
                     "patch_id": proposal.id,
                     "source": source,
+                    "had_previous": had_previous,
                 }
         if _total_budget_exceeded():
-            return False, {"detail": "total patch timeout", "kind": "timeout_total"}
+            return False, {"detail": "total patch timeout", "kind": "timeout_total", "had_previous": had_previous}
         if _deadline_exceeded():
-            return False, {"detail": "patch timeout", "kind": "timeout"}
+            return False, {"detail": "patch timeout", "kind": "timeout", "had_previous": had_previous}
         v_ok, v_msg = run_post_apply_verify(target, verify_cmd)
         if not v_ok:
             fail_detail = (
@@ -601,6 +631,7 @@ def _instruction_apply_one(
                     "source": source,
                     "rollback_applied": True,
                     "rollback_detail": rb_msg,
+                    "had_previous": had_previous,
                 }
             return False, {
                 "detail": f"{fail_detail}; geri alma başarısız — {rb_msg}"[:2000],
@@ -608,6 +639,7 @@ def _instruction_apply_one(
                 "patch_id": proposal.id,
                 "kind": "verify",
                 "source": source,
+                "had_previous": had_previous,
             }
         prev_for_exec = previous_text
         truncated = False
@@ -620,9 +652,9 @@ def _instruction_apply_one(
             proposal.id,
         )
         if _total_budget_exceeded():
-            return False, {"detail": "total patch timeout", "kind": "timeout_total"}
+            return False, {"detail": "total patch timeout", "kind": "timeout_total", "had_previous": had_previous}
         if _deadline_exceeded():
-            return False, {"detail": "patch timeout", "kind": "timeout"}
+            return False, {"detail": "patch timeout", "kind": "timeout", "had_previous": had_previous}
         return True, {
             "patch_id": proposal.id,
             "verify_msg": v_msg,
@@ -631,6 +663,7 @@ def _instruction_apply_one(
             "previous_content": prev_for_exec,
             "previous_content_truncated": truncated,
             "diff_preview": diff_preview,
+            "had_previous": had_previous,
         }
     except ProtectedApplyForbidden as e:
         if mutated:
@@ -652,10 +685,12 @@ def _instruction_apply_one(
                     "kind": "protected",
                     "rollback_applied": True,
                     "rollback_detail": rb_msg,
+                    "had_previous": had_previous,
                 }
         return False, {
             "detail": f"patch başarısız: korumalı hedefe yazma reddedildi — {e}"[:800],
             "kind": "protected",
+            "had_previous": had_previous,
         }
     except Exception as e:
         if mutated:
@@ -677,10 +712,12 @@ def _instruction_apply_one(
                     "kind": "exception",
                     "rollback_applied": True,
                     "rollback_detail": rb_msg,
+                    "had_previous": had_previous,
                 }
         return False, {
             "detail": f"patch başarısız: beklenmeyen hata ({rel}) — {e}"[:800],
             "kind": "exception",
+            "had_previous": had_previous,
         }
     finally:
         if lock_acquired:
@@ -760,6 +797,7 @@ def _run_instruction_apply_to_exe(
         dry_run=dry_run,
         patch_flow_start=patch_flow_start,
     )
+    hp = bool(info.get("had_previous"))
     if ok:
         v_msg = str(info.get("verify_msg") or "")
         if info.get("dry_run"):
@@ -780,6 +818,7 @@ def _run_instruction_apply_to_exe(
                     "diff_preview": str(info.get("diff_preview") or ""),
                     "error_type": "",
                     "retry_count": retry_count,
+                    "had_previous": hp,
                 },
             )
             return True
@@ -798,6 +837,7 @@ def _run_instruction_apply_to_exe(
                     "diff_preview": str(info.get("diff_preview") or ""),
                     "error_type": "",
                     "retry_count": retry_count,
+                    "had_previous": hp,
                 },
             )
             return True
@@ -815,6 +855,7 @@ def _run_instruction_apply_to_exe(
                 "diff_preview": str(info.get("diff_preview") or ""),
                 "error_type": "",
                 "retry_count": retry_count,
+                "had_previous": hp,
             },
         )
         return True
@@ -828,6 +869,7 @@ def _run_instruction_apply_to_exe(
                 "error_type": "write_failed",
                 "retry_count": retry_count,
                 "failed_path": rel,
+                "had_previous": hp,
             },
         )
         return False
@@ -840,6 +882,7 @@ def _run_instruction_apply_to_exe(
                 "error_type": "write_failed",
                 "retry_count": retry_count,
                 "failed_path": rel,
+                "had_previous": hp,
             },
         )
         return False
@@ -852,6 +895,7 @@ def _run_instruction_apply_to_exe(
                 "error_type": "write_failed",
                 "retry_count": retry_count,
                 "failed_path": rel,
+                "had_previous": hp,
             },
         )
         return False
@@ -872,6 +916,7 @@ def _run_instruction_apply_to_exe(
                 "failed_path": rel,
                 "patch_id": info.get("patch_id", ""),
                 "source": info.get("source", source),
+                "had_previous": hp,
                 **extra,
             },
         )
@@ -895,6 +940,7 @@ def _run_instruction_apply_to_exe(
                 "source": source,
                 "patch_id": info.get("patch_id", ""),
                 "failed_path": rel,
+                "had_previous": hp,
                 **({"rollback_detail": rollback_detail} if rollback_detail else {}),
             },
         )
@@ -907,6 +953,7 @@ def _run_instruction_apply_to_exe(
                 "error_type": err_type,
                 "retry_count": retry_count,
                 "failed_path": rel,
+                "had_previous": hp,
                 **({"rollback_detail": rollback_detail} if rollback_detail else {}),
             },
         )
@@ -1082,6 +1129,7 @@ def _run_multi_instruction_fallback(
             "previous_content": info.get("previous_content", ""),
             "previous_content_truncated": bool(info.get("previous_content_truncated")),
             "diff_preview": str(info.get("diff_preview") or ""),
+            "had_previous": bool(info.get("had_previous")),
         }
         if dry_run and info.get("dry_run"):
             fr_ok["dry_run"] = True
@@ -1115,6 +1163,7 @@ def _run_multi_instruction_fallback(
             "diff_preview": merged_dp,
             "error_type": "",
             "retry_count": multi_retry_used,
+            "had_previous": any(bool(fr.get("had_previous")) for fr in file_results if fr.get("ok")),
             **({"dry_run": True} if dry_run else {}),
         },
     )

@@ -8,6 +8,7 @@ from kando import cursor_bridge
 from kando.cursor_bridge import (
     build_execution_packet,
     build_result_packet,
+    get_patch_memory_entry,
     persist_cursor_bridge,
     run_brain_and_persist_bridge,
 )
@@ -222,6 +223,34 @@ def test_instruction_target_line_patch_applies(monkeypatch, tmp_path):
         )
         assert exe.constraints["execution"]["execution_result"] == "patch_applied"
         assert "x = 1" in fp.read_text(encoding="utf-8")
+    finally:
+        clear_registry()
+
+
+def test_patch_memory_records_previous_content(monkeypatch, tmp_path):
+    """Patch sonrası bellekte repo göreli yol için önceki içerik tutulur (rollback zemini)."""
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
+    (tmp_path / ".lumos").mkdir()
+    fp = tmp_path / "bridge_mem.py"
+    previous = "x = 0\n"
+    fp.write_text(previous, encoding="utf-8")
+    goal = "TARGET: bridge_mem.py\nx = 1\n"
+    from core.patch_registry import clear_registry
+
+    clear_registry()
+    try:
+        _, _, _, exe, _ = run_brain_and_persist_bridge(
+            goal,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        assert exe.constraints["execution"]["execution_result"] == "patch_applied"
+        assert exe.constraints["execution"].get("had_previous") is True
+        entry = get_patch_memory_entry("bridge_mem.py")
+        assert entry is not None
+        assert entry["previous_content"] == previous
+        assert isinstance(entry["timestamp"], float)
     finally:
         clear_registry()
 
