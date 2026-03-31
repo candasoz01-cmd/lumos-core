@@ -77,6 +77,35 @@ _PENDING_APPROVALS: OrderedDict[str, dict[str, Any]] = OrderedDict()
 _APPROVE_GOAL_RE = re.compile(r"(?i)^APPROVE\s+([a-f0-9\-]{36})\s*$")
 _REJECT_GOAL_RE = re.compile(r"(?i)^REJECT\s+([a-f0-9\-]{36})\s*$")
 
+# Bridge execution_result / error_type (policy, decision, approval)
+EXEC_RESULT_BLOCKED = "blocked"
+EXEC_RESULT_PENDING_APPROVAL = "pending_approval"
+EXEC_RESULT_APPROVED_AND_EXECUTED = "approved_and_executed"
+EXEC_RESULT_PATCH_FAILED = "patch_failed"
+EXEC_RESULT_REJECTED = "rejected"
+
+EXEC_ERROR_POLICY_BLOCK = "policy_block"
+EXEC_ERROR_APPROVAL_REQUIRED = "approval_required"
+EXEC_ERROR_APPROVAL_NOT_FOUND = "approval_not_found"
+EXEC_ERROR_APPROVAL_REJECTED = "approval_rejected"
+
+_PATCH_APPLY_SUCCESS_RESULTS = frozenset({"patch_applied", "dry_run_success", "no_change"})
+
+
+def _bounded_ordered_set(
+    od: OrderedDict[str, Any],
+    key: str,
+    value: Any,
+    *,
+    max_size: int,
+) -> None:
+    """Sıra korunur; kapasite aşımında en eski kayıt düşer."""
+    if key in od:
+        del od[key]
+    od[key] = value
+    while len(od) > max_size:
+        od.popitem(last=False)
+
 
 def _record_patch_memory(
     rel: str,
@@ -510,11 +539,12 @@ def _lookup_pending_approval_key(aid: str) -> str | None:
 
 
 def _register_pending_approval(audit_id: str, goal: str) -> None:
-    if audit_id in _PENDING_APPROVALS:
-        del _PENDING_APPROVALS[audit_id]
-    _PENDING_APPROVALS[audit_id] = {"goal": goal}
-    while len(_PENDING_APPROVALS) > _MAX_PENDING_APPROVALS:
-        _PENDING_APPROVALS.popitem(last=False)
+    _bounded_ordered_set(
+        _PENDING_APPROVALS,
+        audit_id,
+        {"goal": goal},
+        max_size=_MAX_PENDING_APPROVALS,
+    )
 
 
 def _finalize_approved_execution(exe: CursorExecutionPacketV1, approved_audit_id: str) -> None:
@@ -523,11 +553,30 @@ def _finalize_approved_execution(exe: CursorExecutionPacketV1, approved_audit_id
         ex = {}
     else:
         ex = dict(ex)
-    ex["execution_result"] = "approved_and_executed"
+    ex["execution_result"] = EXEC_RESULT_APPROVED_AND_EXECUTED
     ex["error_type"] = ""
     ex["detail"] = f"onaylandı ve uygulandı (audit_id={approved_audit_id})"[:2000]
     ex["approved_audit_id"] = approved_audit_id
     _store_execution_and_log(exe, ex)
+
+
+def _store_execution_outcome(
+    exe: CursorExecutionPacketV1,
+    *,
+    execution_result: str,
+    error_type: str,
+    detail: str,
+    retry_count: int = 0,
+) -> None:
+    _store_execution_and_log(
+        exe,
+        {
+            "execution_result": execution_result,
+            "error_type": error_type,
+            "detail": detail,
+            "retry_count": retry_count,
+        },
+    )
 
 
 def _handle_approve_goal(goal: str, exe: CursorExecutionPacketV1) -> bool:
@@ -538,28 +587,22 @@ def _handle_approve_goal(goal: str, exe: CursorExecutionPacketV1) -> bool:
     aid_raw = m.group(1)
     aid_key = _lookup_pending_approval_key(aid_raw)
     if aid_key is None:
-        _store_execution_and_log(
+        _store_execution_outcome(
             exe,
-            {
-                "execution_result": "patch_failed",
-                "error_type": "approval_not_found",
-                "detail": f"bekleyen onay kaydı yok: {aid_raw}",
-                "retry_count": 0,
-            },
+            execution_result=EXEC_RESULT_PATCH_FAILED,
+            error_type=EXEC_ERROR_APPROVAL_NOT_FOUND,
+            detail=f"bekleyen onay kaydı yok: {aid_raw}",
         )
         exe.target_file = ""
         return True
     rec = _PENDING_APPROVALS.pop(aid_key)
     sub_goal = str(rec.get("goal") or "")
     if not sub_goal:
-        _store_execution_and_log(
+        _store_execution_outcome(
             exe,
-            {
-                "execution_result": "patch_failed",
-                "error_type": "approval_not_found",
-                "detail": "onay kaydında goal eksik",
-                "retry_count": 0,
-            },
+            execution_result=EXEC_RESULT_PATCH_FAILED,
+            error_type=EXEC_ERROR_APPROVAL_NOT_FOUND,
+            detail="onay kaydında goal eksik",
         )
         _PENDING_APPROVALS[aid_key] = rec
         exe.target_file = ""
@@ -569,7 +612,7 @@ def _handle_approve_goal(goal: str, exe: CursorExecutionPacketV1) -> bool:
     exe.constraints.pop("policy_gate_audit", None)
     try_instruction_patch_apply(sub_goal, exe)
     er = str((exe.constraints.get("execution") or {}).get("execution_result") or "")
-    if er in ("patch_applied", "dry_run_success", "no_change"):
+    if er in _PATCH_APPLY_SUCCESS_RESULTS:
         _finalize_approved_execution(exe, aid_key)
     else:
         _PENDING_APPROVALS[aid_key] = rec
@@ -585,17 +628,49 @@ def _handle_reject_goal(goal: str, exe: CursorExecutionPacketV1) -> bool:
     aid_key = _lookup_pending_approval_key(aid_raw)
     if aid_key is not None:
         _PENDING_APPROVALS.pop(aid_key, None)
-    _store_execution_and_log(
+    _store_execution_outcome(
         exe,
-        {
-            "execution_result": "rejected",
-            "error_type": "approval_rejected",
-            "detail": f"onay reddedildi (audit_id={aid_raw})",
-            "retry_count": 0,
-        },
+        execution_result=EXEC_RESULT_REJECTED,
+        error_type=EXEC_ERROR_APPROVAL_REJECTED,
+        detail=f"onay reddedildi (audit_id={aid_raw})",
     )
     exe.target_file = ""
     return True
+
+
+def _policy_gate_set_force_bypass_audit(exe: CursorExecutionPacketV1) -> None:
+    exe.constraints.pop("policy_gate_audit", None)
+    exe.constraints["policy_gate_audit"] = {
+        "layer": "policy_gate",
+        "result": "bypass",
+        "reason": "force",
+        "audit_id": str((exe.constraints.get("execution") or {}).get("audit_id") or uuid.uuid4()),
+    }
+
+
+def _policy_gate_store_pending_high_risk(
+    exe: CursorExecutionPacketV1,
+    goal: str,
+    *,
+    aid: str,
+    retry_count: int,
+    audit_meta: dict[str, Any],
+    detail: str,
+) -> None:
+    _store_execution_and_log(
+        exe,
+        {
+            "audit_id": aid,
+            "execution_result": EXEC_RESULT_PENDING_APPROVAL,
+            "error_type": EXEC_ERROR_APPROVAL_REQUIRED,
+            "detail": detail,
+            "retry_count": retry_count,
+            "forced": False,
+            "risk_level": "high",
+            "policy_gate": audit_meta,
+        },
+    )
+    _register_pending_approval(aid, goal)
 
 
 def _apply_policy_gate(goal: str, exe: CursorExecutionPacketV1) -> bool:
@@ -605,14 +680,7 @@ def _apply_policy_gate(goal: str, exe: CursorExecutionPacketV1) -> bool:
     _constraint_force True ise bypass (blok yok).
     """
     if _constraint_force(exe):
-        exe.constraints.pop("policy_gate_audit", None)
-        audit = {
-            "layer": "policy_gate",
-            "result": "bypass",
-            "reason": "force",
-            "audit_id": str((exe.constraints.get("execution") or {}).get("audit_id") or uuid.uuid4()),
-        }
-        exe.constraints["policy_gate_audit"] = audit
+        _policy_gate_set_force_bypass_audit(exe)
         return False
 
     ex = exe.constraints.get("execution")
@@ -645,20 +713,14 @@ def _apply_policy_gate(goal: str, exe: CursorExecutionPacketV1) -> bool:
             )
             audit_meta["result"] = "pending"
             audit_meta["assessment"] = "high_risk_approval_required"
-        _store_execution_and_log(
+        _policy_gate_store_pending_high_risk(
             exe,
-            {
-                "audit_id": aid,
-                "execution_result": "pending_approval",
-                "error_type": "approval_required",
-                "detail": detail,
-                "retry_count": int(ex.get("retry_count") or 0),
-                "forced": False,
-                "risk_level": "high",
-                "policy_gate": audit_meta,
-            },
+            goal,
+            aid=aid,
+            retry_count=int(ex.get("retry_count") or 0),
+            audit_meta=audit_meta,
+            detail=detail,
         )
-        _register_pending_approval(aid, goal)
         return True
 
     if rk in ("", "unknown") or rk not in ("low", "medium", "high"):
@@ -724,18 +786,11 @@ def _should_block_execution(exe: CursorExecutionPacketV1) -> tuple[bool, str]:
     return False, ""
 
 
-def _decision_gate_apply(exe: CursorExecutionPacketV1) -> bool:
-    """
-    Decision gate (mevcut): retry / spam / risk / force — patch apply öncesi.
-    True dönerse execution yazıldı ve patch çalıştırılmamalı.
-    """
-    block, detail = _should_block_execution(exe)
-    if not block:
-        return False
+def _decision_gate_blocked_payload(exe: CursorExecutionPacketV1, detail: str) -> dict[str, Any]:
     prev = exe.constraints.get("execution")
     payload: dict[str, Any] = {
-        "execution_result": "blocked",
-        "error_type": "policy_block",
+        "execution_result": EXEC_RESULT_BLOCKED,
+        "error_type": EXEC_ERROR_POLICY_BLOCK,
         "detail": detail,
         "retry_count": int((prev or {}).get("retry_count") or 0) if isinstance(prev, dict) else 0,
         "forced": False,
@@ -749,8 +804,28 @@ def _decision_gate_apply(exe: CursorExecutionPacketV1) -> bool:
     pga = exe.constraints.get("policy_gate_audit")
     if isinstance(pga, dict) and pga.get("result") == "allow":
         payload["policy_gate"] = dict(pga)
-    _store_execution_and_log(exe, payload)
+    return payload
+
+
+def _decision_gate_apply(exe: CursorExecutionPacketV1) -> bool:
+    """
+    Decision gate (mevcut): retry / spam / risk / force — patch apply öncesi.
+    True dönerse execution yazıldı ve patch çalıştırılmamalı.
+    """
+    block, detail = _should_block_execution(exe)
+    if not block:
+        return False
+    _store_execution_and_log(exe, _decision_gate_blocked_payload(exe, detail))
     return True
+
+
+def _apply_patch_instruction_gates(goal: str, exe: CursorExecutionPacketV1) -> bool:
+    """Policy + decision gate. True = patch akışını durdur."""
+    if _apply_policy_gate(goal, exe):
+        return True
+    if _decision_gate_apply(exe):
+        return True
+    return False
 
 
 def _store_execution_and_log(exe: CursorExecutionPacketV1, execution: dict[str, Any]) -> None:
@@ -1983,9 +2058,7 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
         rel, body, verify_cmd = parsed
         exe.target_file = rel
         exe.target_files = [rel]
-        if _apply_policy_gate(goal, exe):
-            return
-        if _decision_gate_apply(exe):
+        if _apply_patch_instruction_gates(goal, exe):
             return
         _run_instruction_apply_to_exe(
             exe,
@@ -2015,9 +2088,7 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
         if pair is not None and len(pair) >= 2:
             exe.target_file = pair[0]
             exe.target_files = list(pair)
-            if _apply_policy_gate(goal, exe):
-                return
-            if _decision_gate_apply(exe):
+            if _apply_patch_instruction_gates(goal, exe):
                 return
             _run_multi_instruction_fallback(
                 pair,
@@ -2079,9 +2150,7 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
         return
 
     exe.target_files = [rel]
-    if _apply_policy_gate(goal, exe):
-        return
-    if _decision_gate_apply(exe):
+    if _apply_patch_instruction_gates(goal, exe):
         return
 
     _run_instruction_apply_to_exe(
@@ -2200,7 +2269,7 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
             _store_execution_and_log(
                 exe,
                 {
-                    "execution_result": "pending_approval",
+                    "execution_result": EXEC_RESULT_PENDING_APPROVAL,
                     "pending_kind": "multi_file",
                     "plan": multi.get("plan", ""),
                     "patch_scope": scope_dict,
@@ -2221,7 +2290,7 @@ def record_bridge_execution(exe: CursorExecutionPacketV1, task: Any) -> None:
             _store_execution_and_log(
                 exe,
                 {
-                    "execution_result": "pending_approval",
+                    "execution_result": EXEC_RESULT_PENDING_APPROVAL,
                     "pending_kind": "single_file",
                     "plan": po.get("plan", ""),
                     "patch_scope": scope_dict,
@@ -2430,16 +2499,16 @@ def build_result_packet(
         outcome = "simulation"
     elif ex_result in ("history_listed", "history_empty") and brain_success:
         outcome = "simulation"
-    elif ex_result == "approved_and_executed" and brain_success:
+    elif ex_result == EXEC_RESULT_APPROVED_AND_EXECUTED and brain_success:
         outcome = "applied"
-    elif ex_result == "rejected":
+    elif ex_result == EXEC_RESULT_REJECTED:
         outcome = "partial" if brain_success else "failed"
     elif ex_result in ("timeout", "timeout_total"):
         outcome = "failed"
     elif ex_result == "patch_applied" and brain_success:
         outcome = "applied"
     elif status in ("tamamlandi",) and brain_success:
-        if ex_result == "pending_approval":
+        if ex_result == EXEC_RESULT_PENDING_APPROVAL:
             outcome = "partial"
         else:
             outcome = "applied"
