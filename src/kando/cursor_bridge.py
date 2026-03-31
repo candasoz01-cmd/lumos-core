@@ -303,6 +303,8 @@ def _error_type_from_instruction_kind(kind: str) -> str:
         return "write_failed"
     if k == "timeout_total":
         return "write_failed"
+    if k == "high_risk_blocked":
+        return "high_risk_blocked"
     return "write_failed"
 
 
@@ -716,6 +718,17 @@ def _instruction_apply_one(
         if _deadline_exceeded():
             return False, {"detail": "patch timeout", "kind": "timeout", "had_previous": had_previous}
 
+        risk_level = _rollback_preview_risk_level_from_diff(diff_preview)
+        if risk_level == "high":
+            return False, {
+                "kind": "high_risk_blocked",
+                "detail": "yüksek riskli yama uygulanmadı (önizleme diff risk_level=high)",
+                "patch_id": proposal.id,
+                "diff_preview": diff_preview,
+                "risk_level": "high",
+                "had_previous": had_previous,
+            }
+
         if previous_text == proposal.proposed_text:
             if _total_budget_exceeded():
                 return False, {"detail": "total patch timeout", "kind": "timeout_total", "had_previous": had_previous}
@@ -940,7 +953,7 @@ def _instruction_apply_one_with_retry(
     )
     if ok:
         return True, info, 0
-    if info.get("kind") in ("timeout", "timeout_total", "locked"):
+    if info.get("kind") in ("timeout", "timeout_total", "locked", "high_risk_blocked"):
         return False, info, 0
     ok2, info2 = _instruction_apply_one(
         repo_root=repo_root,
@@ -955,7 +968,7 @@ def _instruction_apply_one_with_retry(
     )
     if ok2:
         return True, info2, 1
-    if info2.get("kind") in ("timeout", "timeout_total", "locked"):
+    if info2.get("kind") in ("timeout", "timeout_total", "locked", "high_risk_blocked"):
         return False, info2, 1
     return False, info2, 1
 
@@ -985,6 +998,23 @@ def _run_instruction_apply_to_exe(
         patch_flow_start=patch_flow_start,
     )
     hp = bool(info.get("had_previous"))
+    if not ok and info.get("kind") == "high_risk_blocked":
+        _store_execution_and_log(
+            exe,
+            {
+                "execution_result": "blocked",
+                "error_type": "high_risk_blocked",
+                "risk_level": "high",
+                "detail": str(info.get("detail") or "yüksek riskli yama uygulanmadı")[:2000],
+                "diff_preview": str(info.get("diff_preview") or ""),
+                "patch_id": info.get("patch_id", ""),
+                "source": source,
+                "failed_path": rel,
+                "retry_count": retry_count,
+                "had_previous": hp,
+            },
+        )
+        return False
     if ok:
         v_msg = str(info.get("verify_msg") or "")
         if info.get("dry_run"):
@@ -1281,6 +1311,26 @@ def _run_multi_instruction_fallback(
                         "verify_detail": " | ".join(verify_parts)[:2000]
                         if verify_parts
                         else str(info.get("verify_detail", ""))[:1500],
+                    },
+                )
+                return
+            if info.get("kind") == "high_risk_blocked":
+                _store_execution_and_log(
+                    exe,
+                    {
+                        "execution_result": "blocked",
+                        "error_type": "high_risk_blocked",
+                        "risk_level": "high",
+                        "detail": str(info.get("detail") or "yüksek riskli yama uygulanmadı")[:2000],
+                        "diff_preview": str(info.get("diff_preview") or ""),
+                        "multi_file": True,
+                        "stopped_at": rel,
+                        "file_results": file_results,
+                        "patch_ids": patch_ids,
+                        "retry_count": max(multi_retry_used, rtry),
+                        "verify_detail": " | ".join(verify_parts)[:2000]
+                        if verify_parts
+                        else "",
                     },
                 )
                 return

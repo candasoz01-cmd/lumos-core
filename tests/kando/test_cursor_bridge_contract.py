@@ -467,13 +467,84 @@ def test_rollback_preview_risk_level(monkeypatch, tmp_path):
             permission_profile=PROFILE_GUVENLI_YURUT,
             general_approval=True,
         )
-        assert ex_h1.constraints["execution"]["execution_result"] == "patch_applied"
+        assert ex_h1.constraints["execution"]["execution_result"] == "blocked"
+        fp_h.write_text(after_h, encoding="utf-8")
         _, _, _, ex_h2, _ = run_brain_and_persist_bridge(
             goal_preview,
             permission_profile=PROFILE_GUVENLI_YURUT,
             general_approval=True,
         )
         assert ex_h2.constraints["execution"]["risk_level"] == "high"
+    finally:
+        clear_registry()
+
+
+def test_high_risk_patch_blocked(monkeypatch, tmp_path):
+    """Apply: yüksek risk engellenir; low/medium patch_applied; dry_run önizlemesi engellenmez."""
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
+    (tmp_path / ".lumos").mkdir()
+    from core.patch_registry import clear_registry
+
+    clear_registry()
+    try:
+        before_h = "\n".join([f"h{i}" for i in range(11)]) + "\n"
+        after_h = "\n".join([f"z{i}" for i in range(11)]) + "\n"
+        fp_h = tmp_path / "hr_block.py"
+        fp_h.write_text(before_h, encoding="utf-8")
+        _, _, _, ex_high, _ = run_brain_and_persist_bridge(
+            f"TARGET: hr_block.py\n{after_h}\n",
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        assert ex_high.constraints["execution"]["execution_result"] == "blocked"
+        assert ex_high.constraints["execution"]["error_type"] == "high_risk_blocked"
+        assert ex_high.constraints["execution"]["risk_level"] == "high"
+        assert fp_h.read_text(encoding="utf-8") == before_h
+
+        fp_lo = tmp_path / "hr_low.py"
+        fp_lo.write_text("x = 0\n", encoding="utf-8")
+        _, _, _, ex_lo, _ = run_brain_and_persist_bridge(
+            "TARGET: hr_low.py\nx = 1\n",
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        assert ex_lo.constraints["execution"]["execution_result"] == "patch_applied"
+        assert "x = 1" in fp_lo.read_text(encoding="utf-8")
+
+        before_m = "\n".join([f"line{i}" for i in range(5)]) + "\n"
+        after_m = "\n".join([f"new{i}" for i in range(5)]) + "\n"
+        fp_m = tmp_path / "hr_med.py"
+        fp_m.write_text(before_m, encoding="utf-8")
+        _, _, _, ex_m, _ = run_brain_and_persist_bridge(
+            f"TARGET: hr_med.py\n{after_m}\n",
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        assert ex_m.constraints["execution"]["execution_result"] == "patch_applied"
+
+        fp_dry = tmp_path / "hr_dry.py"
+        fp_dry.write_text(before_h, encoding="utf-8")
+        goal_dry = f"TARGET: hr_dry.py\n{after_h}\n"
+        t_dry = TaskRecord(
+            task_id=902,
+            title="dry",
+            description=goal_dry,
+            created_at="2025-01-01T00:00:00",
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            steps=[],
+        )
+        exe_dry = build_execution_packet(
+            goal_dry,
+            t_dry,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        exe_dry.constraints["lumos_base_resolved"] = str((tmp_path / ".lumos").resolve())
+        exe_dry.constraints["dry_run"] = True
+        try_instruction_patch_apply(goal_dry, exe_dry)
+        assert exe_dry.constraints["execution"]["execution_result"] == "dry_run_success"
+        assert fp_dry.read_text(encoding="utf-8") == before_h
     finally:
         clear_registry()
 
