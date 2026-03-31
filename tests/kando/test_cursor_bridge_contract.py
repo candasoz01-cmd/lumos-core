@@ -500,6 +500,7 @@ def test_high_risk_patch_blocked(monkeypatch, tmp_path):
         assert ex_high.constraints["execution"]["execution_result"] == "blocked"
         assert ex_high.constraints["execution"]["error_type"] == "high_risk_blocked"
         assert ex_high.constraints["execution"]["risk_level"] == "high"
+        assert ex_high.constraints["execution"]["forced"] is False
         assert fp_h.read_text(encoding="utf-8") == before_h
 
         fp_lo = tmp_path / "hr_low.py"
@@ -522,6 +523,7 @@ def test_high_risk_patch_blocked(monkeypatch, tmp_path):
             general_approval=True,
         )
         assert ex_m.constraints["execution"]["execution_result"] == "patch_applied"
+        assert ex_m.constraints["execution"]["forced"] is False
 
         fp_dry = tmp_path / "hr_dry.py"
         fp_dry.write_text(before_h, encoding="utf-8")
@@ -545,6 +547,74 @@ def test_high_risk_patch_blocked(monkeypatch, tmp_path):
         try_instruction_patch_apply(goal_dry, exe_dry)
         assert exe_dry.constraints["execution"]["execution_result"] == "dry_run_success"
         assert fp_dry.read_text(encoding="utf-8") == before_h
+    finally:
+        clear_registry()
+
+
+def test_high_risk_requires_force(monkeypatch, tmp_path):
+    """Yüksek risk: force yoksa block; execution.force veya constraints.force ile apply + forced=True."""
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
+    (tmp_path / ".lumos").mkdir()
+    from core.patch_registry import clear_registry
+
+    clear_registry()
+    try:
+        before_h = "\n".join([f"h{i}" for i in range(11)]) + "\n"
+        after_h = "\n".join([f"z{i}" for i in range(11)]) + "\n"
+        goal = f"TARGET: hr_force.py\n{after_h}\n"
+        fp = tmp_path / "hr_force.py"
+        fp.write_text(before_h, encoding="utf-8")
+        t = TaskRecord(
+            task_id=903,
+            title="t",
+            description=goal,
+            created_at="2025-01-01T00:00:00",
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            steps=[],
+        )
+        lumos_resolved = str((tmp_path / ".lumos").resolve())
+
+        exe_no = build_execution_packet(
+            goal,
+            t,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        exe_no.constraints["lumos_base_resolved"] = lumos_resolved
+        try_instruction_patch_apply(goal, exe_no)
+        assert exe_no.constraints["execution"]["execution_result"] == "blocked"
+        assert exe_no.constraints["execution"]["forced"] is False
+        assert fp.read_text(encoding="utf-8") == before_h
+
+        exe_in = build_execution_packet(
+            goal,
+            t,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        exe_in.constraints["lumos_base_resolved"] = lumos_resolved
+        exe_in.constraints["execution"] = {"force": True}
+        try_instruction_patch_apply(goal, exe_in)
+        assert exe_in.constraints["execution"]["execution_result"] == "patch_applied"
+        assert exe_in.constraints["execution"]["forced"] is True
+        assert fp.read_text(encoding="utf-8").rstrip("\n") == after_h.rstrip("\n")
+
+        fp_b = tmp_path / "hr_force_b.py"
+        fp_b.write_text(before_h, encoding="utf-8")
+        goal_b = f"TARGET: hr_force_b.py\n{after_h}\n"
+        exe_top = build_execution_packet(
+            goal_b,
+            t,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        exe_top.constraints["lumos_base_resolved"] = lumos_resolved
+        exe_top.constraints["force"] = True
+        try_instruction_patch_apply(goal_b, exe_top)
+        assert exe_top.constraints["execution"]["execution_result"] == "patch_applied"
+        assert exe_top.constraints["execution"]["forced"] is True
+        assert fp_b.read_text(encoding="utf-8").rstrip("\n") == after_h.rstrip("\n")
     finally:
         clear_registry()
 

@@ -286,6 +286,14 @@ def _append_patch_apply_log(lumos_base: Path | None, execution: dict[str, Any]) 
         pass
 
 
+def _constraint_force(exe: CursorExecutionPacketV1) -> bool:
+    """Instruction apply: constraints['execution'] veya constraints['force'] ile force override."""
+    ex = exe.constraints.get("execution")
+    if isinstance(ex, dict) and "force" in ex:
+        return bool(ex.get("force"))
+    return bool(exe.constraints.get("force"))
+
+
 def _store_execution_and_log(exe: CursorExecutionPacketV1, execution: dict[str, Any]) -> None:
     _ensure_audit_id(execution)
     exe.constraints["execution"] = execution
@@ -590,6 +598,7 @@ def _instruction_apply_one(
     verify_cmd: str | None,
     source: str,
     dry_run: bool = False,
+    force: bool = False,
     deadline_abs: float | None = None,
     patch_flow_start: float | None = None,
 ) -> tuple[bool, dict[str, Any]]:
@@ -711,6 +720,7 @@ def _instruction_apply_one(
                 "proposed_text_truncated": prop_trunc,
                 "diff_preview": diff_preview,
                 "had_previous": had_previous,
+                "forced": False,
             }
 
         if _total_budget_exceeded():
@@ -719,7 +729,7 @@ def _instruction_apply_one(
             return False, {"detail": "patch timeout", "kind": "timeout", "had_previous": had_previous}
 
         risk_level = _rollback_preview_risk_level_from_diff(diff_preview)
-        if risk_level == "high":
+        if risk_level == "high" and not force:
             return False, {
                 "kind": "high_risk_blocked",
                 "detail": "yüksek riskli yama uygulanmadı (önizleme diff risk_level=high)",
@@ -728,6 +738,7 @@ def _instruction_apply_one(
                 "risk_level": "high",
                 "had_previous": had_previous,
             }
+        forced_apply = bool(risk_level == "high" and force)
 
         if previous_text == proposal.proposed_text:
             if _total_budget_exceeded():
@@ -771,6 +782,7 @@ def _instruction_apply_one(
                 "diff_preview": diff_preview,
                 "already_applied": True,
                 "had_previous": had_previous,
+                "forced": False,
             }
 
         apply_patch(proposal, assume_reviewed=True, allow_protected_apply=False)
@@ -864,6 +876,7 @@ def _instruction_apply_one(
             "previous_content_truncated": truncated,
             "diff_preview": diff_preview,
             "had_previous": had_previous,
+            "forced": forced_apply,
         }
     except ProtectedApplyForbidden as e:
         if mutated:
@@ -936,6 +949,7 @@ def _instruction_apply_one_with_retry(
     verify_cmd: str | None,
     source: str,
     dry_run: bool = False,
+    force: bool = False,
     deadline_abs: float | None = None,
     patch_flow_start: float | None = None,
 ) -> tuple[bool, dict[str, Any], int]:
@@ -948,6 +962,7 @@ def _instruction_apply_one_with_retry(
         verify_cmd=verify_cmd,
         source=source,
         dry_run=dry_run,
+        force=force,
         deadline_abs=deadline_abs,
         patch_flow_start=patch_flow_start,
     )
@@ -963,6 +978,7 @@ def _instruction_apply_one_with_retry(
         verify_cmd=verify_cmd,
         source=source,
         dry_run=dry_run,
+        force=force,
         deadline_abs=deadline_abs,
         patch_flow_start=patch_flow_start,
     )
@@ -983,6 +999,7 @@ def _run_instruction_apply_to_exe(
     repo_root: Path,
     lumos_base: Path,
     dry_run: bool = False,
+    force: bool = False,
     patch_flow_start: float | None = None,
 ) -> bool:
     """exe.constraints['execution'] yazar. Başarıda True."""
@@ -995,6 +1012,7 @@ def _run_instruction_apply_to_exe(
         verify_cmd=verify_cmd,
         source=source,
         dry_run=dry_run,
+        force=force,
         patch_flow_start=patch_flow_start,
     )
     hp = bool(info.get("had_previous"))
@@ -1012,6 +1030,7 @@ def _run_instruction_apply_to_exe(
                 "failed_path": rel,
                 "retry_count": retry_count,
                 "had_previous": hp,
+                "forced": False,
             },
         )
         return False
@@ -1036,6 +1055,7 @@ def _run_instruction_apply_to_exe(
                     "error_type": "",
                     "retry_count": retry_count,
                     "had_previous": hp,
+                    "forced": bool(info.get("forced")),
                 },
             )
             return True
@@ -1055,6 +1075,7 @@ def _run_instruction_apply_to_exe(
                     "error_type": "",
                     "retry_count": retry_count,
                     "had_previous": hp,
+                    "forced": bool(info.get("forced")),
                 },
             )
             return True
@@ -1073,6 +1094,7 @@ def _run_instruction_apply_to_exe(
                 "error_type": "",
                 "retry_count": retry_count,
                 "had_previous": hp,
+                "forced": bool(info.get("forced")),
             },
         )
         return True
@@ -1087,6 +1109,7 @@ def _run_instruction_apply_to_exe(
                 "retry_count": retry_count,
                 "failed_path": rel,
                 "had_previous": hp,
+                "forced": False,
             },
         )
         return False
@@ -1100,6 +1123,7 @@ def _run_instruction_apply_to_exe(
                 "retry_count": retry_count,
                 "failed_path": rel,
                 "had_previous": hp,
+                "forced": False,
             },
         )
         return False
@@ -1113,6 +1137,7 @@ def _run_instruction_apply_to_exe(
                 "retry_count": retry_count,
                 "failed_path": rel,
                 "had_previous": hp,
+                "forced": False,
             },
         )
         return False
@@ -1134,6 +1159,7 @@ def _run_instruction_apply_to_exe(
                 "patch_id": info.get("patch_id", ""),
                 "source": info.get("source", source),
                 "had_previous": hp,
+                "forced": False,
                 **extra,
             },
         )
@@ -1158,6 +1184,7 @@ def _run_instruction_apply_to_exe(
                 "patch_id": info.get("patch_id", ""),
                 "failed_path": rel,
                 "had_previous": hp,
+                "forced": False,
                 **({"rollback_detail": rollback_detail} if rollback_detail else {}),
             },
         )
@@ -1171,6 +1198,7 @@ def _run_instruction_apply_to_exe(
                 "retry_count": retry_count,
                 "failed_path": rel,
                 "had_previous": hp,
+                "forced": False,
                 **({"rollback_detail": rollback_detail} if rollback_detail else {}),
             },
         )
@@ -1184,6 +1212,7 @@ def _run_multi_instruction_fallback(
     repo_root: Path,
     lumos_base: Path,
     dry_run: bool = False,
+    force: bool = False,
     patch_flow_start: float | None = None,
 ) -> None:
     """En fazla 2 dosya; sıralı apply+verify; bir hata → dur, execution_result=partial."""
@@ -1210,6 +1239,7 @@ def _run_multi_instruction_fallback(
                     "file_results": file_results,
                     "patch_ids": patch_ids,
                     "verify_detail": " | ".join(verify_parts)[:2000] if verify_parts else "",
+                    "forced": False,
                 },
             )
             return
@@ -1229,6 +1259,7 @@ def _run_multi_instruction_fallback(
                     "file_results": file_results,
                     "patch_ids": patch_ids,
                     "verify_detail": " | ".join(verify_parts)[:2000] if verify_parts else "",
+                    "forced": False,
                 },
             )
             return
@@ -1250,6 +1281,7 @@ def _run_multi_instruction_fallback(
                     "patch_ids": patch_ids,
                     "error_type": "write_failed",
                     "retry_count": multi_retry_used,
+                    "forced": False,
                 },
             )
             return
@@ -1262,6 +1294,7 @@ def _run_multi_instruction_fallback(
             verify_cmd=None,
             source="instruction_multi_fallback",
             dry_run=dry_run,
+            force=force,
             deadline_abs=multi_deadline,
             patch_flow_start=patch_flow_start,
         )
@@ -1293,6 +1326,7 @@ def _run_multi_instruction_fallback(
                         "verify_detail": " | ".join(verify_parts)[:2000]
                         if verify_parts
                         else str(info.get("verify_detail", ""))[:1500],
+                        "forced": False,
                     },
                 )
                 return
@@ -1311,6 +1345,7 @@ def _run_multi_instruction_fallback(
                         "verify_detail": " | ".join(verify_parts)[:2000]
                         if verify_parts
                         else str(info.get("verify_detail", ""))[:1500],
+                        "forced": False,
                     },
                 )
                 return
@@ -1331,6 +1366,7 @@ def _run_multi_instruction_fallback(
                         "verify_detail": " | ".join(verify_parts)[:2000]
                         if verify_parts
                         else "",
+                        "forced": False,
                     },
                 )
                 return
@@ -1348,6 +1384,7 @@ def _run_multi_instruction_fallback(
                     "patch_ids": patch_ids,
                     "error_type": _error_type_from_instruction_kind(str(info.get("kind") or "")),
                     "retry_count": max(multi_retry_used, rtry),
+                    "forced": False,
                 },
             )
             return
@@ -1367,6 +1404,7 @@ def _run_multi_instruction_fallback(
             "previous_content_truncated": bool(info.get("previous_content_truncated")),
             "diff_preview": str(info.get("diff_preview") or ""),
             "had_previous": bool(info.get("had_previous")),
+            "forced": bool(info.get("forced")),
         }
         if dry_run and info.get("dry_run"):
             fr_ok["dry_run"] = True
@@ -1387,6 +1425,7 @@ def _run_multi_instruction_fallback(
     merged_lines = merged_dp.splitlines(keepends=True)
     if len(merged_lines) > _DIFF_PREVIEW_MAX_OUT_LINES:
         merged_dp = "".join(merged_lines[:_DIFF_PREVIEW_MAX_OUT_LINES]) + "... (diff_preview kısaltıldı)\n"
+    forced_multi = any(bool(fr.get("forced")) for fr in file_results if fr.get("ok"))
     _store_execution_and_log(
         exe,
         {
@@ -1401,6 +1440,7 @@ def _run_multi_instruction_fallback(
             "error_type": "",
             "retry_count": multi_retry_used,
             "had_previous": any(bool(fr.get("had_previous")) for fr in file_results if fr.get("ok")),
+            "forced": forced_multi,
             **({"dry_run": True} if dry_run else {}),
         },
     )
@@ -1435,6 +1475,7 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
 
     patch_flow_start = time.time()
     dry_run = bool(exe.constraints.get("dry_run"))
+    force = _constraint_force(exe)
 
     from kando.patch_scope import (
         _path_blocked,
@@ -1476,6 +1517,7 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
             repo_root=repo_root,
             lumos_base=lumos_base,
             dry_run=dry_run,
+            force=force,
             patch_flow_start=patch_flow_start,
         )
         return
@@ -1498,6 +1540,7 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
                 repo_root=repo_root,
                 lumos_base=lumos_base,
                 dry_run=dry_run,
+                force=force,
                 patch_flow_start=patch_flow_start,
             )
             return
@@ -1559,6 +1602,7 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
         repo_root=repo_root,
         lumos_base=lumos_base,
         dry_run=dry_run,
+        force=force,
         patch_flow_start=patch_flow_start,
     )
 

@@ -37,6 +37,8 @@ class CursorExecutionPacketV1:
     general_approval: bool
     steps: list[PlannedStepV1]
     patch: dict[str, Any] | None
+    # constraints["execution"] veya constraints["force"]: instruction patch için giriş;
+    # execution input ör. {"force": true} → yüksek riskli yamayı manuel zorla uygula.
     constraints: dict[str, Any] = field(default_factory=dict)
     # Harici tüketici sözleşmesi (cursor --apply vb.)
     execution_mode: str = "task"  # "patch" | "task"
