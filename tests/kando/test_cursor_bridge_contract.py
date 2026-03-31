@@ -13,6 +13,7 @@ from kando.cursor_bridge import (
     build_result_packet,
     get_patch_memory_entry,
     persist_cursor_bridge,
+    read_filtered_patch_apply_history,
     read_recent_patch_apply_history,
     run_brain_and_persist_bridge,
     try_instruction_patch_apply,
@@ -911,6 +912,84 @@ def test_show_history_returns_recent_entries(monkeypatch, tmp_path):
     try_instruction_patch_apply("SHOW_HISTORY", exe_empty)
     assert exe_empty.constraints["execution"]["execution_result"] == "history_empty"
     assert exe_empty.constraints["execution"]["history"] == []
+
+
+def test_show_history_filters_results(monkeypatch, tmp_path):
+    """SHOW_HISTORY: result/risk/file filtreleri birlikte; eşleşme yoksa history_empty."""
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
+    (tmp_path / ".lumos").mkdir()
+    log_dir = tmp_path / ".lumos" / "logs"
+    log_dir.mkdir(parents=True)
+    log_path = log_dir / "patch_apply.jsonl"
+    rows = [
+        {"time": "2026-01-01T00:00:00Z", "audit_id": "a1", "file": "src/a.py", "result": "patch_applied", "detail": ""},
+        {"time": "2026-01-02T00:00:00Z", "audit_id": "a2", "file": "src/b.py", "result": "blocked", "detail": ""},
+        {"time": "2026-01-03T00:00:00Z", "audit_id": "a3", "file": "src/c.py", "result": "patch_failed", "detail": ""},
+        {
+            "time": "2026-01-04T00:00:00Z",
+            "audit_id": "a4",
+            "file": "src/d.py",
+            "result": "patch_applied",
+            "detail": "",
+            "risk_level": "high",
+        },
+    ]
+    log_path.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n", encoding="utf-8")
+
+    t = TaskRecord(
+        task_id=701,
+        title="h",
+        description="SHOW_HISTORY",
+        created_at="2026-01-01T00:00:00Z",
+        permission_profile=PROFILE_GUVENLI_YURUT,
+        steps=[],
+    )
+    lumos_resolved = str((tmp_path / ".lumos").resolve())
+
+    def _exe(goal: str):
+        exe = build_execution_packet(
+            goal,
+            t,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        exe.constraints["lumos_base_resolved"] = lumos_resolved
+        try_instruction_patch_apply(goal, exe)
+        return exe
+
+    ex_blocked = _exe("SHOW_HISTORY result=blocked")
+    assert ex_blocked.constraints["execution"]["execution_result"] == "history_listed"
+    assert len(ex_blocked.constraints["execution"]["history"]) == 1
+    assert ex_blocked.constraints["execution"]["history"][0]["audit_id"] == "a2"
+
+    ex_failed = _exe("SHOW_HISTORY result=failed")
+    assert len(ex_failed.constraints["execution"]["history"]) == 1
+    assert ex_failed.constraints["execution"]["history"][0]["execution_result"] == "patch_failed"
+
+    ex_risk = _exe("SHOW_HISTORY risk=high")
+    assert len(ex_risk.constraints["execution"]["history"]) == 1
+    assert ex_risk.constraints["execution"]["history"][0]["audit_id"] == "a4"
+
+    ex_file = _exe("SHOW_HISTORY file=src/b.py")
+    assert len(ex_file.constraints["execution"]["history"]) == 1
+    assert ex_file.constraints["execution"]["history"][0]["target_file"] == "src/b.py"
+
+    ex_and = _exe("SHOW_HISTORY result=failed file=src/c.py")
+    assert len(ex_and.constraints["execution"]["history"]) == 1
+    assert ex_and.constraints["execution"]["history"][0]["audit_id"] == "a3"
+
+    ex_or_result = _exe("SHOW_HISTORY result=failed result=blocked")
+    ids = {h["audit_id"] for h in ex_or_result.constraints["execution"]["history"]}
+    assert ids == {"a2", "a3"}
+
+    ex_none = _exe("SHOW_HISTORY result=failed risk=high")
+    assert ex_none.constraints["execution"]["execution_result"] == "history_empty"
+    assert ex_none.constraints["execution"]["history"] == []
+
+    base = tmp_path / ".lumos"
+    f_or = {"result": ["failed", "blocked"], "risk": [], "file": []}
+    assert len(read_filtered_patch_apply_history(base, f_or, limit=10)) == 2
 
 
 def test_instruction_embedded_path_requires_target_body(monkeypatch, tmp_path):

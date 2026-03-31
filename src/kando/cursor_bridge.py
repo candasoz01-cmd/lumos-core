@@ -43,6 +43,26 @@ _PATCH_APPLY_LOG_FILENAME = "patch_apply.jsonl"
 MAX_PATCH_SECONDS = 5
 MAX_TOTAL_PATCH_SECONDS = 10
 
+# SHOW_HISTORY: result=failed eşlemesi (blocked hariç yaygın başarısızlık sonuçları)
+_HISTORY_RESULT_FAILED = frozenset(
+    {
+        "patch_failed",
+        "write_failed",
+        "rollback_failed",
+        "timeout",
+        "timeout_total",
+        "locked",
+        "target_required",
+        "partial",
+        "blocked_by_rollback",
+        "rollback_not_possible",
+    }
+)
+_SHOW_HISTORY_FILTER_RE = re.compile(
+    r"\b(result|risk|file)=([^\s]+)",
+    re.IGNORECASE,
+)
+
 # Bellek içi patch geçmişi (disk yedeği değil); rollback_patch_file ile çakışmaz.
 _MAX_PATCH_MEMORY_ENTRIES = 50
 _PATCH_MEMORY: OrderedDict[str, dict[str, Any]] = OrderedDict()
@@ -214,36 +234,6 @@ def _handle_rollback_preview_goal(goal: str, exe: CursorExecutionPacketV1) -> bo
     return True
 
 
-def _handle_show_history_goal(goal: str, exe: CursorExecutionPacketV1) -> bool:
-    """goal içinde SHOW_HISTORY varsa: patch_apply.jsonl son kayıtlarını listeler (yazma yok)."""
-    if "SHOW_HISTORY" not in (goal or ""):
-        return False
-    lumos_base = _lumos_base_path_for_log(exe)
-    history = read_recent_patch_apply_history(lumos_base, limit=10)
-    exe.target_file = ""
-    if not history:
-        _set_execution_without_patch_log(
-            exe,
-            {
-                "execution_result": "history_empty",
-                "history": [],
-                "error_type": "",
-                "retry_count": 0,
-            },
-        )
-    else:
-        _set_execution_without_patch_log(
-            exe,
-            {
-                "execution_result": "history_listed",
-                "history": history,
-                "error_type": "",
-                "retry_count": 0,
-            },
-        )
-    return True
-
-
 def _lumos_base_path_for_log(exe: CursorExecutionPacketV1) -> Path | None:
     raw = exe.constraints.get("lumos_base_resolved")
     if raw:
@@ -292,14 +282,21 @@ def _ensure_audit_id(execution: dict[str, Any]) -> None:
     execution.setdefault("audit_id", str(uuid.uuid4()))
 
 
-def read_recent_patch_apply_history(
-    lumos_base: Path | None, *, limit: int = 10
-) -> list[dict[str, Any]]:
-    """
-    logs/patch_apply.jsonl içinden en son `limit` kaydı okur (yalnızca okuma).
-    Her öğe: audit_id, execution_result, target_file, risk_level, timestamp.
-    """
-    if lumos_base is None or limit <= 0:
+def _normalize_patch_apply_row_to_history_entry(row: dict[str, Any]) -> dict[str, Any]:
+    rl = row.get("risk_level")
+    risk_level = str(rl) if rl is not None and str(rl).strip() else "unknown"
+    return {
+        "audit_id": str(row.get("audit_id") or ""),
+        "execution_result": str(row.get("result") or ""),
+        "target_file": str(row.get("file") or ""),
+        "risk_level": risk_level,
+        "timestamp": str(row.get("time") or ""),
+    }
+
+
+def _load_patch_apply_history_entries(lumos_base: Path | None) -> list[dict[str, Any]]:
+    """logs/patch_apply.jsonl tüm satırları (dosya sırası, yalnızca okuma)."""
+    if lumos_base is None:
         return []
     log_path = (lumos_base / "logs" / _PATCH_APPLY_LOG_FILENAME).resolve()
     if not log_path.is_file():
@@ -308,7 +305,7 @@ def read_recent_patch_apply_history(
         text = log_path.read_text(encoding="utf-8")
     except OSError:
         return []
-    parsed: list[dict[str, Any]] = []
+    out: list[dict[str, Any]] = []
     for ln in text.splitlines():
         ln = ln.strip()
         if not ln:
@@ -318,22 +315,127 @@ def read_recent_patch_apply_history(
         except json.JSONDecodeError:
             continue
         if isinstance(row, dict):
-            parsed.append(row)
-    tail = parsed[-limit:] if len(parsed) > limit else parsed
-    out: list[dict[str, Any]] = []
-    for row in tail:
-        rl = row.get("risk_level")
-        risk_level = str(rl) if rl is not None and str(rl).strip() else "unknown"
-        out.append(
-            {
-                "audit_id": str(row.get("audit_id") or ""),
-                "execution_result": str(row.get("result") or ""),
-                "target_file": str(row.get("file") or ""),
-                "risk_level": risk_level,
-                "timestamp": str(row.get("time") or ""),
-            }
-        )
+            out.append(_normalize_patch_apply_row_to_history_entry(row))
     return out
+
+
+def _parse_show_history_filters(goal: str) -> dict[str, list[str]]:
+    """SHOW_HISTORY için result=…, risk=…, file=… (boşlukla ayrılmış, çoklu AND grupları)."""
+    out: dict[str, list[str]] = {"result": [], "risk": [], "file": []}
+    if "SHOW_HISTORY" not in (goal or ""):
+        return out
+    for m in _SHOW_HISTORY_FILTER_RE.finditer(goal):
+        k = m.group(1).lower()
+        v = m.group(2).strip()
+        if k == "result":
+            out["result"].append(v)
+        elif k == "risk":
+            out["risk"].append(v.lower())
+        elif k == "file":
+            out["file"].append(v)
+    return out
+
+
+def _has_show_history_filters(filters: dict[str, list[str]]) -> bool:
+    return bool(filters["result"]) or bool(filters["risk"]) or bool(filters["file"])
+
+
+def _matches_show_history_result_filter(execution_result: str, token: str) -> bool:
+    er = (execution_result or "").strip()
+    t = (token or "").strip().lower()
+    if t == "blocked":
+        return er == "blocked"
+    if t == "failed":
+        return er in _HISTORY_RESULT_FAILED
+    return er == token.strip()
+
+
+def _file_path_matches_history_filter(target_file: str, pattern: str) -> bool:
+    t = target_file.replace("\\", "/").strip()
+    p = pattern.replace("\\", "/").strip()
+    if not p:
+        return True
+    return t == p or t.endswith("/" + p.lstrip("/")) or t.endswith(p)
+
+
+def _entry_matches_show_history_filters(
+    entry: dict[str, Any], filters: dict[str, list[str]]
+) -> bool:
+    """Aynı anahtar içinde OR; anahtarlar arasında AND."""
+    er = str(entry.get("execution_result") or "")
+    rl = str(entry.get("risk_level") or "").lower()
+    tf = str(entry.get("target_file") or "")
+    if filters["result"]:
+        if not any(_matches_show_history_result_filter(er, r) for r in filters["result"]):
+            return False
+    if filters["risk"]:
+        if not any(rl == x for x in filters["risk"]):
+            return False
+    if filters["file"]:
+        if not any(_file_path_matches_history_filter(tf, fp) for fp in filters["file"]):
+            return False
+    return True
+
+
+def read_filtered_patch_apply_history(
+    lumos_base: Path | None,
+    filters: dict[str, list[str]],
+    *,
+    limit: int = 10,
+) -> list[dict[str, Any]]:
+    """Filtrelere uyan kayıtların en son `limit` tanesi (dosya sırası korunur)."""
+    if lumos_base is None or limit <= 0:
+        return []
+    all_e = _load_patch_apply_history_entries(lumos_base)
+    filtered = [e for e in all_e if _entry_matches_show_history_filters(e, filters)]
+    return filtered[-limit:] if len(filtered) > limit else filtered
+
+
+def read_recent_patch_apply_history(
+    lumos_base: Path | None, *, limit: int = 10
+) -> list[dict[str, Any]]:
+    """
+    logs/patch_apply.jsonl içinden en son `limit` kaydı okur (yalnızca okuma).
+    Her öğe: audit_id, execution_result, target_file, risk_level, timestamp.
+    """
+    if lumos_base is None or limit <= 0:
+        return []
+    all_e = _load_patch_apply_history_entries(lumos_base)
+    return all_e[-limit:] if len(all_e) > limit else all_e
+
+
+def _handle_show_history_goal(goal: str, exe: CursorExecutionPacketV1) -> bool:
+    """goal içinde SHOW_HISTORY varsa: patch_apply.jsonl son kayıtlarını listeler (yazma yok)."""
+    if "SHOW_HISTORY" not in (goal or ""):
+        return False
+    lumos_base = _lumos_base_path_for_log(exe)
+    filters = _parse_show_history_filters(goal)
+    if _has_show_history_filters(filters):
+        history = read_filtered_patch_apply_history(lumos_base, filters, limit=10)
+    else:
+        history = read_recent_patch_apply_history(lumos_base, limit=10)
+    exe.target_file = ""
+    if not history:
+        _set_execution_without_patch_log(
+            exe,
+            {
+                "execution_result": "history_empty",
+                "history": [],
+                "error_type": "",
+                "retry_count": 0,
+            },
+        )
+    else:
+        _set_execution_without_patch_log(
+            exe,
+            {
+                "execution_result": "history_listed",
+                "history": history,
+                "error_type": "",
+                "retry_count": 0,
+            },
+        )
+    return True
 
 
 def _set_execution_without_patch_log(
