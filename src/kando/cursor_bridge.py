@@ -10,6 +10,7 @@ import logging
 import os
 import re
 import time
+import uuid
 from collections import OrderedDict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -257,15 +258,21 @@ def _patch_apply_log_file_field(execution: dict[str, Any]) -> str:
     return ""
 
 
+def _ensure_audit_id(execution: dict[str, Any]) -> None:
+    execution.setdefault("audit_id", str(uuid.uuid4()))
+
+
 def _append_patch_apply_log(lumos_base: Path | None, execution: dict[str, Any]) -> None:
     if lumos_base is None:
         return
     try:
+        _ensure_audit_id(execution)
         result = str(execution.get("execution_result") or "")
         if not result:
             return
         entry = {
             "time": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "audit_id": str(execution.get("audit_id") or ""),
             "file": _patch_apply_log_file_field(execution),
             "result": result,
             "detail": str(execution.get("detail") or "")[:_PATCH_APPLY_LOG_MAX_DETAIL],
@@ -280,6 +287,7 @@ def _append_patch_apply_log(lumos_base: Path | None, execution: dict[str, Any]) 
 
 
 def _store_execution_and_log(exe: CursorExecutionPacketV1, execution: dict[str, Any]) -> None:
+    _ensure_audit_id(execution)
     exe.constraints["execution"] = execution
     _append_patch_apply_log(_lumos_base_path_for_log(exe), execution)
 

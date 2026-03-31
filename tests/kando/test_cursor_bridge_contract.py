@@ -3,6 +3,7 @@ import json
 import os
 import threading
 import time
+import uuid
 from typing import Any
 
 import core.patch_pipeline as patch_pipeline
@@ -79,6 +80,83 @@ def test_persist_roundtrip(tmp_path):
     assert ex.get("target_file") == "f.txt"
     assert ex.get("instruction", "").startswith("patch:")
     assert "verify" in ex
+
+
+def test_execution_has_audit_id(monkeypatch, tmp_path):
+    """Patch apply sonuçlarında audit_id execution ve patch_apply.jsonl içinde UUID olarak bulunur."""
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
+    (tmp_path / ".lumos").mkdir()
+
+    from core.patch_registry import clear_registry
+
+    executions: list[dict[str, Any]] = []
+
+    fp1 = tmp_path / "bridge_audit.py"
+    fp1.write_text("x = 1", encoding="utf-8")
+    goal_no_change = "TARGET: bridge_audit.py\nx = 1\n"
+
+    def _apply_must_not_run(*args, **kwargs):
+        raise AssertionError("apply_patch must not run when disk already matches proposed_text")
+
+    monkeypatch.setattr(patch_pipeline, "apply_patch", _apply_must_not_run)
+    clear_registry()
+    try:
+        _, _, _, exe1, _ = run_brain_and_persist_bridge(
+            goal_no_change,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        executions.append(exe1.constraints["execution"])
+    finally:
+        clear_registry()
+
+    fp2 = tmp_path / "bridge_audit_w.py"
+    fp2.write_text("x = 0\n", encoding="utf-8")
+    goal_write_fail = "TARGET: bridge_audit_w.py\nx = 1\n"
+
+    def _apply_leave_wrong(proposal, **kwargs):
+        fp2.write_text("partial", encoding="utf-8")
+
+    monkeypatch.setattr(patch_pipeline, "apply_patch", _apply_leave_wrong)
+
+    def _replace_always_fail(a, b, *args, **kwargs):
+        raise OSError("simulated atomic replace failure")
+
+    monkeypatch.setattr(os, "replace", _replace_always_fail)
+
+    clear_registry()
+    try:
+        _, _, _, exe2, _ = run_brain_and_persist_bridge(
+            goal_write_fail,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        executions.append(exe2.constraints["execution"])
+    finally:
+        clear_registry()
+
+    audit_ids: list[str] = []
+    for ex in executions:
+        aid = ex.get("audit_id")
+        assert isinstance(aid, str) and aid
+        uuid.UUID(aid)
+        audit_ids.append(aid)
+    assert audit_ids[0] != audit_ids[1]
+
+    log_path = tmp_path / ".lumos" / "logs" / "patch_apply.jsonl"
+    assert log_path.is_file()
+    log_audit_ids: list[str] = []
+    for ln in log_path.read_text(encoding="utf-8").splitlines():
+        ln = ln.strip()
+        if not ln:
+            continue
+        row = json.loads(ln)
+        la = row.get("audit_id")
+        assert isinstance(la, str) and la
+        uuid.UUID(la)
+        log_audit_ids.append(la)
+    assert set(audit_ids).issubset(set(log_audit_ids))
 
 
 def test_patch_already_applied_returns_no_change(monkeypatch, tmp_path):
