@@ -174,6 +174,36 @@ def test_file_lock_prevents_parallel_write(monkeypatch, tmp_path):
         clear_registry()
 
 
+def test_file_lock_cleanup_on_failure(monkeypatch, tmp_path):
+    """Kilit alındıktan sonra patch hata verirse .lock dosyası silinir (stale kalmaz)."""
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
+    (tmp_path / ".lumos").mkdir()
+    fp = tmp_path / "bridge_lock_fail.py"
+    fp.write_text("x = 0\n", encoding="utf-8")
+    goal = "TARGET: bridge_lock_fail.py\nx = 1\n"
+    lock_path = tmp_path / "bridge_lock_fail.py.lock"
+
+    def _boom(*args, **kwargs):
+        raise RuntimeError("simulated patch failure")
+
+    monkeypatch.setattr(patch_pipeline, "propose_text_patch", _boom)
+
+    from core.patch_registry import clear_registry
+
+    clear_registry()
+    try:
+        _, _, _, exe, _ = run_brain_and_persist_bridge(
+            goal,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        assert exe.constraints["execution"]["execution_result"] == "patch_failed"
+        assert not lock_path.exists()
+    finally:
+        clear_registry()
+
+
 def test_instruction_target_line_patch_applies(monkeypatch, tmp_path):
     monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
     monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))

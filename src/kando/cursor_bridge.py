@@ -432,13 +432,13 @@ def _instruction_apply_one(
     lock_path = target.parent / (target.name + ".lock")
     lock_acquired = False
     try:
-        try:
-            lock_path.parent.mkdir(parents=True, exist_ok=True)
-            lock_path.touch(exist_ok=False)
-            lock_acquired = True
-        except FileExistsError:
-            return False, {"kind": "locked", "detail": "file is locked"}
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        lock_path.touch(exist_ok=False)
+        lock_acquired = True
+    except FileExistsError:
+        return False, {"kind": "locked", "detail": "file is locked"}
 
+    try:
         proposal = propose_text_patch(
             target,
             body,
