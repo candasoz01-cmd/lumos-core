@@ -621,6 +621,307 @@ def test_high_risk_requires_force(monkeypatch, tmp_path):
         clear_registry()
 
 
+def test_high_risk_blocked_without_force(monkeypatch, tmp_path):
+    """Karar katmanı: risk_level=high iken policy gate → pending_approval (direkt block değil)."""
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
+    (tmp_path / ".lumos").mkdir()
+    fp = tmp_path / "policy_gate_hr.py"
+    fp.write_text("x = 0\n", encoding="utf-8")
+    goal = "TARGET: policy_gate_hr.py\nx = 1\n"
+    t = TaskRecord(
+        task_id=880,
+        title="t",
+        description=goal,
+        created_at="2025-01-01T00:00:00",
+        permission_profile=PROFILE_GUVENLI_YURUT,
+        steps=[],
+    )
+    lumos_resolved = str((tmp_path / ".lumos").resolve())
+    from core.patch_registry import clear_registry
+
+    clear_registry()
+    try:
+        cursor_bridge._PATCH_MEMORY.clear()
+        cursor_bridge._PENDING_APPROVALS.clear()
+        exe = build_execution_packet(
+            goal,
+            t,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        exe.constraints["lumos_base_resolved"] = lumos_resolved
+        exe.constraints["execution"] = {"risk_level": "high"}
+        try_instruction_patch_apply(goal, exe)
+        assert exe.constraints["execution"]["execution_result"] == "pending_approval"
+        assert exe.constraints["execution"]["error_type"] == "approval_required"
+        assert "yüksek risk" in exe.constraints["execution"].get("detail", "").lower()
+        assert exe.constraints["execution"].get("policy_gate", {}).get("assessment") == "high_risk_approval_required"
+        assert fp.read_text(encoding="utf-8") == "x = 0\n"
+    finally:
+        clear_registry()
+
+
+def test_high_risk_goes_to_pending(monkeypatch, tmp_path):
+    """Üst policy gate: risk_level=high → pending_approval + bekleyen kayıt (audit_id)."""
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
+    (tmp_path / ".lumos").mkdir()
+    fp = tmp_path / "policy_block_hr.py"
+    fp.write_text("a = 1\n", encoding="utf-8")
+    goal = "TARGET: policy_block_hr.py\na = 2\n"
+    t = TaskRecord(
+        task_id=882,
+        title="t",
+        description=goal,
+        created_at="2025-01-01T00:00:00",
+        permission_profile=PROFILE_GUVENLI_YURUT,
+        steps=[],
+    )
+    lumos_resolved = str((tmp_path / ".lumos").resolve())
+    from core.patch_registry import clear_registry
+
+    clear_registry()
+    try:
+        cursor_bridge._PATCH_MEMORY.clear()
+        cursor_bridge._PENDING_APPROVALS.clear()
+        exe = build_execution_packet(
+            goal,
+            t,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        exe.constraints["lumos_base_resolved"] = lumos_resolved
+        exe.constraints["execution"] = {"risk_level": "high"}
+        try_instruction_patch_apply(goal, exe)
+        ex = exe.constraints["execution"]
+        assert ex["execution_result"] == "pending_approval"
+        assert ex["error_type"] == "approval_required"
+        assert ex.get("policy_gate", {}).get("result") == "pending"
+        aid = ex.get("audit_id")
+        assert aid and aid in cursor_bridge._PENDING_APPROVALS
+        assert cursor_bridge._PENDING_APPROVALS[aid]["goal"] == goal
+        assert fp.read_text(encoding="utf-8") == "a = 1\n"
+    finally:
+        clear_registry()
+
+
+def test_approve_executes_patch(monkeypatch, tmp_path):
+    """APPROVE <audit_id> bekleyen hedefi force ile uygular → approved_and_executed."""
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
+    (tmp_path / ".lumos").mkdir()
+    fp = tmp_path / "approve_exec.py"
+    fp.write_text("x = 0\n", encoding="utf-8")
+    goal = "TARGET: approve_exec.py\nx = 1\n"
+    t = TaskRecord(
+        task_id=885,
+        title="t",
+        description=goal,
+        created_at="2025-01-01T00:00:00",
+        permission_profile=PROFILE_GUVENLI_YURUT,
+        steps=[],
+    )
+    lumos_resolved = str((tmp_path / ".lumos").resolve())
+    from core.patch_registry import clear_registry
+
+    clear_registry()
+    try:
+        cursor_bridge._PATCH_MEMORY.clear()
+        cursor_bridge._PENDING_APPROVALS.clear()
+        exe1 = build_execution_packet(
+            goal,
+            t,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        exe1.constraints["lumos_base_resolved"] = lumos_resolved
+        exe1.constraints["execution"] = {"risk_level": "high"}
+        try_instruction_patch_apply(goal, exe1)
+        aid = exe1.constraints["execution"]["audit_id"]
+        assert exe1.constraints["execution"]["execution_result"] == "pending_approval"
+
+        exe2 = build_execution_packet(
+            f"APPROVE {aid}",
+            t,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        exe2.constraints["lumos_base_resolved"] = lumos_resolved
+        try_instruction_patch_apply(f"APPROVE {aid}", exe2)
+        assert exe2.constraints["execution"]["execution_result"] == "approved_and_executed"
+        assert "x = 1" in fp.read_text(encoding="utf-8")
+        assert aid not in cursor_bridge._PENDING_APPROVALS
+    finally:
+        clear_registry()
+
+
+def test_reject_blocks_execution(monkeypatch, tmp_path):
+    """REJECT <audit_id> bekleyen kaydı siler ve rejected döner."""
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
+    (tmp_path / ".lumos").mkdir()
+    fp = tmp_path / "reject_t.py"
+    fp.write_text("z = 1\n", encoding="utf-8")
+    goal = "TARGET: reject_t.py\nz = 2\n"
+    t = TaskRecord(
+        task_id=886,
+        title="t",
+        description=goal,
+        created_at="2025-01-01T00:00:00",
+        permission_profile=PROFILE_GUVENLI_YURUT,
+        steps=[],
+    )
+    lumos_resolved = str((tmp_path / ".lumos").resolve())
+    from core.patch_registry import clear_registry
+
+    clear_registry()
+    try:
+        cursor_bridge._PATCH_MEMORY.clear()
+        cursor_bridge._PENDING_APPROVALS.clear()
+        exe1 = build_execution_packet(
+            goal,
+            t,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        exe1.constraints["lumos_base_resolved"] = lumos_resolved
+        exe1.constraints["execution"] = {"risk_level": "high"}
+        try_instruction_patch_apply(goal, exe1)
+        aid = exe1.constraints["execution"]["audit_id"]
+
+        exe2 = build_execution_packet(
+            f"REJECT {aid}",
+            t,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        exe2.constraints["lumos_base_resolved"] = lumos_resolved
+        try_instruction_patch_apply(f"REJECT {aid}", exe2)
+        assert exe2.constraints["execution"]["execution_result"] == "rejected"
+        assert exe2.constraints["execution"]["error_type"] == "approval_rejected"
+        assert aid not in cursor_bridge._PENDING_APPROVALS
+        assert fp.read_text(encoding="utf-8") == "z = 1\n"
+    finally:
+        clear_registry()
+
+
+def test_policy_allows_safe_patch(monkeypatch, tmp_path):
+    """Üst policy gate: low/medium risk veya bilinmeyen → patch; policy_gate_audit işaretli."""
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
+    (tmp_path / ".lumos").mkdir()
+    fp = tmp_path / "policy_safe.py"
+    fp.write_text("x = 0\n", encoding="utf-8")
+    goal = "TARGET: policy_safe.py\nx = 1\n"
+    t = TaskRecord(
+        task_id=883,
+        title="t",
+        description=goal,
+        created_at="2025-01-01T00:00:00",
+        permission_profile=PROFILE_GUVENLI_YURUT,
+        steps=[],
+    )
+    lumos_resolved = str((tmp_path / ".lumos").resolve())
+    from core.patch_registry import clear_registry
+
+    clear_registry()
+    try:
+        cursor_bridge._PATCH_MEMORY.clear()
+        exe = build_execution_packet(
+            goal,
+            t,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        exe.constraints["lumos_base_resolved"] = lumos_resolved
+        exe.constraints["execution"] = {"risk_level": "low"}
+        try_instruction_patch_apply(goal, exe)
+        assert exe.constraints["execution"]["execution_result"] == "patch_applied"
+        assert exe.constraints["execution"].get("policy_gate", {}).get("result") == "allow"
+        assert exe.constraints["execution"].get("policy_gate", {}).get("assessment") == "known_risk"
+        assert "x = 1" in fp.read_text(encoding="utf-8")
+    finally:
+        clear_registry()
+
+
+def test_force_override_bypasses_policy(monkeypatch, tmp_path):
+    """force=True: üst policy gate yüksek riski bypass eder (decision gate dahil)."""
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
+    (tmp_path / ".lumos").mkdir()
+    fp = tmp_path / "policy_force_bypass.py"
+    fp.write_text("x = 0\n", encoding="utf-8")
+    goal = "TARGET: policy_force_bypass.py\nx = 1\n"
+    t = TaskRecord(
+        task_id=884,
+        title="t",
+        description=goal,
+        created_at="2025-01-01T00:00:00",
+        permission_profile=PROFILE_GUVENLI_YURUT,
+        steps=[],
+    )
+    lumos_resolved = str((tmp_path / ".lumos").resolve())
+    from core.patch_registry import clear_registry
+
+    clear_registry()
+    try:
+        cursor_bridge._PATCH_MEMORY.clear()
+        exe = build_execution_packet(
+            goal,
+            t,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        exe.constraints["lumos_base_resolved"] = lumos_resolved
+        exe.constraints["force"] = True
+        exe.constraints["execution"] = {"risk_level": "high", "force": True}
+        try_instruction_patch_apply(goal, exe)
+        assert exe.constraints["execution"]["execution_result"] == "patch_applied"
+        assert exe.constraints.get("policy_gate_audit", {}).get("result") == "bypass"
+        assert "x = 1" in fp.read_text(encoding="utf-8")
+    finally:
+        clear_registry()
+
+
+def test_force_override_allows_execution(monkeypatch, tmp_path):
+    """Karar katmanı: force True iken risk_level=high önceden gelse bile patch uygulanır."""
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
+    (tmp_path / ".lumos").mkdir()
+    fp = tmp_path / "policy_gate_force.py"
+    fp.write_text("x = 0\n", encoding="utf-8")
+    goal = "TARGET: policy_gate_force.py\nx = 1\n"
+    t = TaskRecord(
+        task_id=881,
+        title="t",
+        description=goal,
+        created_at="2025-01-01T00:00:00",
+        permission_profile=PROFILE_GUVENLI_YURUT,
+        steps=[],
+    )
+    lumos_resolved = str((tmp_path / ".lumos").resolve())
+    from core.patch_registry import clear_registry
+
+    clear_registry()
+    try:
+        cursor_bridge._PATCH_MEMORY.clear()
+        exe = build_execution_packet(
+            goal,
+            t,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        exe.constraints["lumos_base_resolved"] = lumos_resolved
+        exe.constraints["force"] = True
+        exe.constraints["execution"] = {"risk_level": "high", "force": True}
+        try_instruction_patch_apply(goal, exe)
+        assert exe.constraints["execution"]["execution_result"] == "patch_applied"
+        assert "x = 1" in fp.read_text(encoding="utf-8")
+    finally:
+        clear_registry()
+
+
 def test_no_patch_during_rollback(monkeypatch, tmp_path):
     """Rollback sürerken başka bir iş parçacığı patch denerse uygulanmaz (blocked_by_rollback)."""
     monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))

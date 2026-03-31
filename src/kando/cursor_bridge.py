@@ -42,6 +42,8 @@ _PATCH_APPLY_LOG_MAX_DETAIL = 800
 _PATCH_APPLY_LOG_FILENAME = "patch_apply.jsonl"
 MAX_PATCH_SECONDS = 5
 MAX_TOTAL_PATCH_SECONDS = 10
+# Policy gate: aynı dosyaya tekrar patch (spam) penceresi (saniye)
+_POLICY_SPAM_SECONDS = 3.0
 
 # SHOW_HISTORY: result=failed eşlemesi (blocked hariç yaygın başarısızlık sonuçları)
 _HISTORY_RESULT_FAILED = frozenset(
@@ -69,12 +71,33 @@ _PATCH_MEMORY: OrderedDict[str, dict[str, Any]] = OrderedDict()
 # Rollback sırasında True; eşzamanlı patch girişleri blocked_by_rollback ile reddedilir.
 _is_rollback = False
 
+# Yüksek risk policy → pending_approval; APPROVE <audit_id> ile goal tekrar oynatılır.
+_MAX_PENDING_APPROVALS = 50
+_PENDING_APPROVALS: OrderedDict[str, dict[str, Any]] = OrderedDict()
+_APPROVE_GOAL_RE = re.compile(r"(?i)^APPROVE\s+([a-f0-9\-]{36})\s*$")
+_REJECT_GOAL_RE = re.compile(r"(?i)^REJECT\s+([a-f0-9\-]{36})\s*$")
 
-def _record_patch_memory(rel: str, previous_content: str | None) -> None:
+
+def _record_patch_memory(
+    rel: str,
+    previous_content: str | None,
+    *,
+    repo_root: Path | str | None = None,
+) -> None:
     ts = time.time()
     if rel in _PATCH_MEMORY:
         del _PATCH_MEMORY[rel]
-    _PATCH_MEMORY[rel] = {"previous_content": previous_content, "timestamp": ts}
+    rr: str | None = None
+    if repo_root is not None:
+        try:
+            rr = str(Path(repo_root).resolve())
+        except OSError:
+            rr = None
+    _PATCH_MEMORY[rel] = {
+        "previous_content": previous_content,
+        "timestamp": ts,
+        "repo_root": rr,
+    }
     while len(_PATCH_MEMORY) > _MAX_PATCH_MEMORY_ENTRIES:
         _PATCH_MEMORY.popitem(last=False)
 
@@ -478,8 +501,264 @@ def _constraint_force(exe: CursorExecutionPacketV1) -> bool:
     return bool(exe.constraints.get("force"))
 
 
+def _lookup_pending_approval_key(aid: str) -> str | None:
+    a = aid.strip().lower()
+    for k in _PENDING_APPROVALS:
+        if k.lower() == a:
+            return k
+    return None
+
+
+def _register_pending_approval(audit_id: str, goal: str) -> None:
+    if audit_id in _PENDING_APPROVALS:
+        del _PENDING_APPROVALS[audit_id]
+    _PENDING_APPROVALS[audit_id] = {"goal": goal}
+    while len(_PENDING_APPROVALS) > _MAX_PENDING_APPROVALS:
+        _PENDING_APPROVALS.popitem(last=False)
+
+
+def _finalize_approved_execution(exe: CursorExecutionPacketV1, approved_audit_id: str) -> None:
+    ex = exe.constraints.get("execution")
+    if not isinstance(ex, dict):
+        ex = {}
+    else:
+        ex = dict(ex)
+    ex["execution_result"] = "approved_and_executed"
+    ex["error_type"] = ""
+    ex["detail"] = f"onaylandı ve uygulandı (audit_id={approved_audit_id})"[:2000]
+    ex["approved_audit_id"] = approved_audit_id
+    _store_execution_and_log(exe, ex)
+
+
+def _handle_approve_goal(goal: str, exe: CursorExecutionPacketV1) -> bool:
+    """GOAL: APPROVE <audit_id> — bekleyen yüksek risk patch'ini force ile yeniden dener."""
+    m = _APPROVE_GOAL_RE.match((goal or "").strip())
+    if not m:
+        return False
+    aid_raw = m.group(1)
+    aid_key = _lookup_pending_approval_key(aid_raw)
+    if aid_key is None:
+        _store_execution_and_log(
+            exe,
+            {
+                "execution_result": "patch_failed",
+                "error_type": "approval_not_found",
+                "detail": f"bekleyen onay kaydı yok: {aid_raw}",
+                "retry_count": 0,
+            },
+        )
+        exe.target_file = ""
+        return True
+    rec = _PENDING_APPROVALS.pop(aid_key)
+    sub_goal = str(rec.get("goal") or "")
+    if not sub_goal:
+        _store_execution_and_log(
+            exe,
+            {
+                "execution_result": "patch_failed",
+                "error_type": "approval_not_found",
+                "detail": "onay kaydında goal eksik",
+                "retry_count": 0,
+            },
+        )
+        _PENDING_APPROVALS[aid_key] = rec
+        exe.target_file = ""
+        return True
+    exe.constraints["force"] = True
+    exe.constraints["execution"] = {"force": True, "audit_id": aid_key}
+    exe.constraints.pop("policy_gate_audit", None)
+    try_instruction_patch_apply(sub_goal, exe)
+    er = str((exe.constraints.get("execution") or {}).get("execution_result") or "")
+    if er in ("patch_applied", "dry_run_success", "no_change"):
+        _finalize_approved_execution(exe, aid_key)
+    else:
+        _PENDING_APPROVALS[aid_key] = rec
+    return True
+
+
+def _handle_reject_goal(goal: str, exe: CursorExecutionPacketV1) -> bool:
+    """GOAL: REJECT <audit_id> — bekleyen onayı reddeder."""
+    m = _REJECT_GOAL_RE.match((goal or "").strip())
+    if not m:
+        return False
+    aid_raw = m.group(1)
+    aid_key = _lookup_pending_approval_key(aid_raw)
+    if aid_key is not None:
+        _PENDING_APPROVALS.pop(aid_key, None)
+    _store_execution_and_log(
+        exe,
+        {
+            "execution_result": "rejected",
+            "error_type": "approval_rejected",
+            "detail": f"onay reddedildi (audit_id={aid_raw})",
+            "retry_count": 0,
+        },
+    )
+    exe.target_file = ""
+    return True
+
+
+def _apply_policy_gate(goal: str, exe: CursorExecutionPacketV1) -> bool:
+    """
+    Üst politika katmanı (pre-check): profil-benzeri risk sınıflandırma.
+    True = patch durduruldu (execution yazıldı). False = alt decision gate + execution.
+    _constraint_force True ise bypass (blok yok).
+    """
+    if _constraint_force(exe):
+        exe.constraints.pop("policy_gate_audit", None)
+        audit = {
+            "layer": "policy_gate",
+            "result": "bypass",
+            "reason": "force",
+            "audit_id": str((exe.constraints.get("execution") or {}).get("audit_id") or uuid.uuid4()),
+        }
+        exe.constraints["policy_gate_audit"] = audit
+        return False
+
+    ex = exe.constraints.get("execution")
+    if not isinstance(ex, dict):
+        ex = {}
+    _ensure_audit_id(ex)
+    exe.constraints["execution"] = ex
+    aid = str(ex.get("audit_id") or "")
+
+    rk = str(ex.get("risk_level") or "").strip().lower()
+    er = str(ex.get("execution_result") or "")
+    et = str(ex.get("execution_type") or "").strip().lower()
+
+    audit_meta: dict[str, Any] = {
+        "layer": "policy_gate",
+        "audit_id": aid,
+    }
+
+    if rk == "high":
+        if et == "rollback" or er in ("rollback_preview", "rollback_applied"):
+            detail = (
+                "yüksek risk + rollback bağlamı; açık onay gerekli — "
+                "APPROVE <audit_id> ile onaylayın"
+            )
+            audit_meta["result"] = "pending"
+            audit_meta["assessment"] = "rollback_high_risk"
+        else:
+            detail = (
+                "yüksek risk; açık onay gerekli — APPROVE <audit_id> ile onaylayın"
+            )
+            audit_meta["result"] = "pending"
+            audit_meta["assessment"] = "high_risk_approval_required"
+        _store_execution_and_log(
+            exe,
+            {
+                "audit_id": aid,
+                "execution_result": "pending_approval",
+                "error_type": "approval_required",
+                "detail": detail,
+                "retry_count": int(ex.get("retry_count") or 0),
+                "forced": False,
+                "risk_level": "high",
+                "policy_gate": audit_meta,
+            },
+        )
+        _register_pending_approval(aid, goal)
+        return True
+
+    if rk in ("", "unknown") or rk not in ("low", "medium", "high"):
+        audit_meta["result"] = "allow"
+        audit_meta["assessment"] = "unknown_risk_proceed"
+        audit_meta["detail"] = "risk sınıfı bilinmiyor; alt karar katmanına iletildi"
+        exe.constraints["policy_gate_audit"] = audit_meta
+        return False
+
+    audit_meta["result"] = "allow"
+    audit_meta["assessment"] = "known_risk"
+    audit_meta["risk_level"] = rk
+    exe.constraints["policy_gate_audit"] = audit_meta
+    return False
+
+
+def _should_block_execution(exe: CursorExecutionPacketV1) -> tuple[bool, str]:
+    """
+    Karar katmanı: risk / tekrar / retry politikası.
+    Dönüş: (True, gerekçe) patch uygulanmamalı; force True ise (False, '').
+    """
+    if _constraint_force(exe):
+        return False, ""
+    ex = exe.constraints.get("execution")
+    if not isinstance(ex, dict):
+        ex = {}
+    if int(ex.get("retry_count") or 0) > 1:
+        return True, "policy_block: retry_count > 1"
+    rels: list[str] = []
+    tf = getattr(exe, "target_files", None) or []
+    if isinstance(tf, list) and len(tf) >= 2:
+        rels = [str(x).strip().replace("\\", "/") for x in tf[:2] if str(x).strip()]
+    else:
+        r = (exe.target_file or "").strip()
+        if r:
+            rels.append(r.replace("\\", "/"))
+    rroot: str | None = None
+    try:
+        from task_engine.executors.patch_apply_executor import _repo_root
+
+        rroot = str(_repo_root().resolve())
+    except Exception:
+        rroot = None
+    if rels and rroot and _POLICY_SPAM_SECONDS > 0:
+        now = time.time()
+        for r in rels:
+            mem = _PATCH_MEMORY.get(r)
+            if mem is None:
+                continue
+            stored_rr = mem.get("repo_root")
+            if stored_rr is None or stored_rr != rroot:
+                continue
+            ts = float(mem.get("timestamp") or 0)
+            if now - ts < _POLICY_SPAM_SECONDS:
+                return True, "policy_block: aynı dosyaya kısa sürede tekrar patch"
+    risk = str(ex.get("risk_level") or "").strip().lower()
+    er = str(ex.get("execution_result") or "")
+    et = str(ex.get("execution_type") or "").strip().lower()
+    if risk == "high":
+        if et == "rollback" or er in ("rollback_preview", "rollback_applied"):
+            return True, "policy_block: rollback + yüksek risk"
+        return True, "policy_block: risk_level=high"
+    return False, ""
+
+
+def _decision_gate_apply(exe: CursorExecutionPacketV1) -> bool:
+    """
+    Decision gate (mevcut): retry / spam / risk / force — patch apply öncesi.
+    True dönerse execution yazıldı ve patch çalıştırılmamalı.
+    """
+    block, detail = _should_block_execution(exe)
+    if not block:
+        return False
+    prev = exe.constraints.get("execution")
+    payload: dict[str, Any] = {
+        "execution_result": "blocked",
+        "error_type": "policy_block",
+        "detail": detail,
+        "retry_count": int((prev or {}).get("retry_count") or 0) if isinstance(prev, dict) else 0,
+        "forced": False,
+    }
+    if isinstance(prev, dict):
+        if prev.get("risk_level") is not None:
+            payload["risk_level"] = prev.get("risk_level")
+        fp = (exe.target_file or "").strip() or prev.get("failed_path")
+        if fp:
+            payload["failed_path"] = fp
+    pga = exe.constraints.get("policy_gate_audit")
+    if isinstance(pga, dict) and pga.get("result") == "allow":
+        payload["policy_gate"] = dict(pga)
+    _store_execution_and_log(exe, payload)
+    return True
+
+
 def _store_execution_and_log(exe: CursorExecutionPacketV1, execution: dict[str, Any]) -> None:
     _ensure_audit_id(execution)
+    pga = exe.constraints.get("policy_gate_audit")
+    if isinstance(pga, dict) and pga.get("result") == "allow":
+        execution = dict(execution)
+        execution["policy_gate"] = pga
     exe.constraints["execution"] = execution
     _append_patch_apply_log(_lumos_base_path_for_log(exe), execution)
 
@@ -844,7 +1123,11 @@ def _instruction_apply_one(
         return False, {"kind": "locked", "detail": "file is locked", "had_previous": had_previous}
 
     try:
-        _record_patch_memory(rel, previous_text if file_existed_before else None)
+        _record_patch_memory(
+            rel,
+            previous_text if file_existed_before else None,
+            repo_root=repo_root,
+        )
         proposal = propose_text_patch(
             target,
             body,
@@ -1645,6 +1928,10 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
         return
     if _handle_show_history_goal(goal, exe):
         return
+    if _handle_approve_goal(goal, exe):
+        return
+    if _handle_reject_goal(goal, exe):
+        return
     if _is_rollback:
         _store_execution_and_log(
             exe,
@@ -1694,6 +1981,12 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
     parsed = _parse_target_instruction_patch(goal)
     if parsed:
         rel, body, verify_cmd = parsed
+        exe.target_file = rel
+        exe.target_files = [rel]
+        if _apply_policy_gate(goal, exe):
+            return
+        if _decision_gate_apply(exe):
+            return
         _run_instruction_apply_to_exe(
             exe,
             rel,
@@ -1720,6 +2013,12 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
             pair = select_instruction_multi_pair(paths_ordered, repo_root)
 
         if pair is not None and len(pair) >= 2:
+            exe.target_file = pair[0]
+            exe.target_files = list(pair)
+            if _apply_policy_gate(goal, exe):
+                return
+            if _decision_gate_apply(exe):
+                return
             _run_multi_instruction_fallback(
                 pair,
                 exe,
@@ -1777,6 +2076,12 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
                 "retry_count": 0,
             },
         )
+        return
+
+    exe.target_files = [rel]
+    if _apply_policy_gate(goal, exe):
+        return
+    if _decision_gate_apply(exe):
         return
 
     _run_instruction_apply_to_exe(
@@ -2125,6 +2430,10 @@ def build_result_packet(
         outcome = "simulation"
     elif ex_result in ("history_listed", "history_empty") and brain_success:
         outcome = "simulation"
+    elif ex_result == "approved_and_executed" and brain_success:
+        outcome = "applied"
+    elif ex_result == "rejected":
+        outcome = "partial" if brain_success else "failed"
     elif ex_result in ("timeout", "timeout_total"):
         outcome = "failed"
     elif ex_result == "patch_applied" and brain_success:
