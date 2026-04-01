@@ -87,9 +87,11 @@ def _persist_direct_patch_meta(obj: dict) -> None:
         pass
 
 
-def _build_target_instruction(rel_path: str, task_body: str) -> str:
-    r = rel_path.strip().replace("\\", "/")
-    t = task_body.strip()
+def _build_target_instruction(rel_path: str | None, task_body: str | None) -> str:
+    r = (rel_path or "").strip().replace("\\", "/")
+    t = (task_body or "").strip()
+    if not r or not t:
+        raise ValueError("file/task boş geldi")
     return f"TARGET: {r}\n{t}\n"
 
 
@@ -188,6 +190,8 @@ def _resolve_task_routing(
 
         fv = obj.get("file")
         tv = obj.get("task") or obj.get("goal")
+        if isinstance(tv, str):
+            tv = tv.replace("TARGET:", "").strip()
         if isinstance(fv, str):
             fv = fv.strip()
         else:
