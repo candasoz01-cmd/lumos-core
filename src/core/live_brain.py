@@ -438,3 +438,5 @@ def handle_live_brain(
             return response_text + "\nGörev oluşturulurken hata oluştu."
 
     return _format_live_direct(response_text)
+
+# lumos:instruction-pipeline safe touch
