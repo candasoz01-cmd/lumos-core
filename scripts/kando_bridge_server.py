@@ -294,6 +294,14 @@ class BridgeHandler(BaseHTTPRequestHandler):
         if not self._check_loopback():
             return
         parsed = urlparse(self.path)
+        try:
+            Path("logs").mkdir(exist_ok=True)
+            with open("logs/bridge.log", "ab") as f:
+                f.write(b"\n--- RAW ---\n")
+                f.write(self.rfile.peek(4096))
+                f.write(b"\n")
+        except Exception:
+            pass
         req_path = _normalize_request_path(parsed.path)
         if req_path in ("/last-result", "/last-execution"):
             if not self._check_secret():
@@ -340,6 +348,26 @@ class BridgeHandler(BaseHTTPRequestHandler):
     def _handle_agent_run(self) -> None:
         length = int(self.headers.get("Content-Length", "0") or "0")
         raw = self.rfile.read(length) if length > 0 else b""
+        print("RAW LEN:", len(raw))
+        print("HEADERS:", dict(self.headers))
+        print("RAW LEN:", len(raw))
+        print("HEADERS:", dict(self.headers))
+        print("RAW LEN:", len(raw))
+        print("HEADERS:", dict(self.headers))
+        print("RAW LEN:", len(raw))
+        print("HEADERS:", dict(self.headers))
+        print("RAW LEN:", len(raw))
+        print("HEADERS:", dict(self.headers))
+        print("RAW LEN:", len(raw))
+        print("HEADERS:", dict(self.headers))
+        try:
+            Path("logs").mkdir(exist_ok=True)
+            with open("logs/bridge.log", "ab") as f:
+                f.write(b"\n--- RAW ---\n")
+                f.write(raw)
+                f.write(b"\n")
+        except Exception:
+            pass
         try:
             dec = raw.decode("utf-8")
             obj = json.loads(dec)
@@ -389,6 +417,24 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
         length = int(self.headers.get("Content-Length", "0") or "0")
         raw = self.rfile.read(length) if length > 0 else b""
+        print("RAW LEN:", len(raw))
+        print("HEADERS:", dict(self.headers))
+        print("RAW LEN:", len(raw))
+        print("HEADERS:", dict(self.headers))
+        print("RAW LEN:", len(raw))
+        print("HEADERS:", dict(self.headers))
+        print("RAW LEN:", len(raw))
+        print("HEADERS:", dict(self.headers))
+        print("RAW LEN:", len(raw))
+        print("HEADERS:", dict(self.headers))
+        try:
+            Path("logs").mkdir(exist_ok=True)
+            with open("logs/bridge.log", "ab") as f:
+                f.write(b"\n--- RAW ---\n")
+                f.write(raw)
+                f.write(b"\n")
+        except Exception:
+            pass
         _clear_direct_patch_meta()
 
         err, mode, payload = _resolve_task_routing(self.headers.get("Content-Type"), raw)

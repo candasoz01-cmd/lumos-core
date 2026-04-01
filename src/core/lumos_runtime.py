@@ -880,3 +880,5 @@ def create_runtime(sandbox_mode: bool | None = None) -> RuntimeResult:
     return RuntimeResult(ui_consumed=False, router_ctx=router_ctx)
 
 # lumos:instruction-pipeline safe touch
+
+# lumos:instruction-pipeline safe touch (resync)
