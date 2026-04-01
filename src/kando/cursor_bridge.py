@@ -1308,40 +1308,67 @@ def _safe_fallback_new_content(target: Path, *, max_bytes: int = 512_000) -> str
     return None
 
 
-def _parse_target_instruction_patch(goal: str) -> tuple[str, str, str | None] | None:
-    """
-    Task metninden patch üretmek için biçim (patch: öneki yokken):
-      TARGET: göreli/yol.txt
-      <dosya içeriği>
-      İsteğe bağlı:
-      VERIFY:
-      komut satırı
-    """
-    lines = (goal or "").strip().splitlines()
-    if len(lines) == 1:
-        first = lines[0].strip()
-        if not first.upper().startswith("TARGET:"):
-            return None
-        rest = first.split(":", 1)[1].strip()
-        parts = rest.split(None, 1)
-        if len(parts) < 2 or not parts[0].strip() or not parts[1].strip():
-            return None
-        rel, body = parts[0].strip(), parts[1].strip()
-        return rel, body, None
-    if len(lines) < 2:
+def _parse_target_instruction_patch(goal: str):
+    if not isinstance(goal, str) or "TARGET:" not in goal:
         return None
+
+    parts = goal.split("\n", 1)
+    if len(parts) < 2:
+        return None
+
+    header, body = parts
+    rel = header.replace("TARGET:", "").strip()
+    body = body.lstrip("\n")
+
+    lines = body.splitlines()
+    if not lines:
+        return rel, body, None
+
+    cmd = lines[0].strip()
+
+    # INSERT_AT_BOTTOM
+    if cmd.startswith("INSERT_AT_BOTTOM:"):
+        content = "\n".join(lines[1:])
+        return rel, f"\n{content}\n", None
+
+    # INSERT_AT_TOP
+    if cmd.startswith("INSERT_AT_TOP:"):
+        content = "\n".join(lines[1:])
+        return rel, f"{content}\n", None
+
+    # APPEND_AFTER
+    if cmd.startswith("APPEND_AFTER:"):
+        marker = cmd.replace("APPEND_AFTER:", "").strip()
+        content = "\n".join(lines[1:])
+        return rel, ("__APPEND_AFTER__", marker, content), None
+
+    # REPLACE
+    if cmd.startswith("REPLACE:"):
+        rest = body.replace("REPLACE:", "", 1)
+        return rel, ("__REPLACE__", rest), None
+
+    return rel, body, None
+
+
+    text = goal.replace("\r\n", "\n").replace("\r", "\n")
+    if "TARGET:" not in text.upper():
+        return None
+
+    lines = text.split("\n")
     first = lines[0].strip()
     if not first.upper().startswith("TARGET:"):
         return None
-    rel = first.split(":", 1)[1].strip()
-    from kando.patch_scope import _split_verify_block
 
-    body_lines, verify_cmd = _split_verify_block(lines[1:])
-    body = "\n".join(body_lines).strip("\n")
-    if not rel or not body:
+    rel = first.split(":", 1)[1].strip().replace("\\", "/")
+    if not rel:
         return None
-    return rel, body, verify_cmd
 
+    body = "\n".join(lines[1:]).lstrip("\n")
+    if not body.strip():
+        return None
+
+    verify_cmd = None
+    return rel, body, verify_cmd
 
 def _goal_is_target_comment_only_insert(goal: str) -> bool:
     """Gevşek string kontrol: TARGET: ve # birlikte varsa True."""

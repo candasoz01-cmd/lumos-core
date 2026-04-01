@@ -1,3 +1,4 @@
+# TEST_OK
 """
 Process-wide Kando runtime (kando.llm ile senkron; llm çağrısı olmadan boş/varsayılan).
 """
@@ -119,3 +120,17 @@ def add_runtime_event(event_type: str, summary: str) -> None:
 # lumos:instruction-pipeline safe touch
 
 # lumos:instruction-pipeline safe touch (resync)
+
+
+def lumos_test_ping():
+    print("LOCK")
+    print("PING_OK")
+    return "pong_ok"
+
+# FINAL_OK
+
+# MULTI_OK
+
+# PARTIAL_OK
+# FINAL_OK
+# TEST_LOCK

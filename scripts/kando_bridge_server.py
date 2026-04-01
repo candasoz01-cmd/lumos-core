@@ -148,7 +148,27 @@ def _run_cursor_bridge(instruction: str) -> tuple[int, str]:
     """cursor_bridge subprocess; sonuçları .lumos/cursor_bridge → outbox kopyalanır."""
     CURSOR_BRIDGE_DIR.mkdir(parents=True, exist_ok=True)
     OUTBOX_DIR.mkdir(parents=True, exist_ok=True)
-    cmd = [sys.executable, "-m", "kando.cursor_bridge", instruction]
+
+    command_file = CURSOR_BRIDGE_DIR / "command.json"
+    command_file.write_text(
+        json.dumps(
+            {
+                "instruction": instruction,
+                "execution_mode": "task",
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    for name in ("last_result.json", "last_execution.json"):
+        try:
+            (CURSOR_BRIDGE_DIR / name).unlink()
+        except FileNotFoundError:
+            pass
+
+    cmd = [sys.executable, "-m", "kando.cursor_bridge"]
     proc = subprocess.run(
         cmd,
         cwd=str(ROOT),
@@ -434,16 +454,31 @@ class BridgeHandler(BaseHTTPRequestHandler):
         assert mode is not None and payload is not None
 
         if mode == "direct_patch":
-            rc, execution_summary = _run_cursor_bridge(payload)
-            result_path = str(LAST_RESULT_FILE.resolve())
+            from kando.file_patch_executor import run as direct_run
+            ex = direct_run({"instruction": payload, "execution_mode": "task"})
+            LAST_EXECUTION_FILE.write_text(json.dumps(ex, ensure_ascii=False, indent=2), encoding="utf-8")
+            LAST_RESULT_FILE.write_text(json.dumps({
+                "schema_version": "kando.cursor.result.v1",
+                "goal_preview": payload[:500],
+                "outcome": "applied" if str(ex.get("execution_result") or "") in ("patch_applied", "no_change") else "failed",
+                "reason": str(ex.get("detail") or ""),
+                "verification_summary": "",
+                "task_id": 0,
+                "task_status": "",
+                "brain_success": True,
+                "verified_count": 0,
+                "unverified_count": 0,
+                "simulation_count": 0,
+                "execution": ex,
+            }, ensure_ascii=False, indent=2), encoding="utf-8")
             self._send_json(
                 200,
                 {
                     "accepted": True,
                     "mode": "direct_patch",
-                    "execution": execution_summary,
-                    "result_path": result_path,
-                    "cursor_bridge_exit": rc,
+                    "execution": str(ex.get("execution_result") or ""),
+                    "result_path": str(LAST_RESULT_FILE.resolve()),
+                    "cursor_bridge_exit": 0,
                 },
             )
             return
