@@ -187,8 +187,16 @@ def _resolve_task_routing(
             return "json gövdesi nesne olmalı", None, None
 
         fv = obj.get("file")
-        tv = obj.get("task")
-        if isinstance(fv, str) and isinstance(tv, str) and fv.strip() and tv.strip():
+        tv = obj.get("task") or obj.get("goal")
+        if isinstance(fv, str):
+            fv = fv.strip()
+        else:
+            fv = ""
+        if isinstance(tv, str):
+            tv = tv.strip()
+        else:
+            tv = ""
+        if fv and tv:
             if obj.get("auto_approve_safe") is not None:
                 _persist_direct_patch_meta(obj)
             inst = _build_target_instruction(fv, tv)
