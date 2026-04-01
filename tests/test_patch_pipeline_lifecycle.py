@@ -31,6 +31,20 @@ def test_enrich_instruction_pending():
     assert snap["variant"] == "instruction_target"
 
 
+def test_enrich_high_risk_blocked_approve_hint_uses_audit_id():
+    aid = "550e8400-e29b-41d4-a716-446655440000"
+    snap = enrich_pipeline_with_execution(
+        None,
+        {
+            "execution_result": "blocked",
+            "error_type": "high_risk_blocked",
+            "audit_id": aid,
+        },
+        "TARGET: a.py\nx",
+    )
+    assert snap.get("awaiting_user_action") == f"APPROVE {aid}"
+
+
 def test_format_line_contains_stages():
     snap = build_pipeline_snapshot("patch: f\nc", None, False)
     line = format_pipeline_summary_line(snap)

@@ -128,6 +128,47 @@ def test_parse_patch_goal_verify_inline():
     assert "python" in (v or "")
 
 
+def test_brain_patch_goal_insert_at_top_prepends_comment_not_literal(tmp_path, monkeypatch):
+    """patch: gövdesi INSERT_AT_TOP:# ... → TaskEngine patch_apply_executor propose öncesi genişle."""
+    monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
+    lumos = tmp_path / ".lumos"
+    lumos.mkdir()
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(lumos))
+    tasks_dir = lumos / "tasks"
+    tasks_dir.mkdir()
+
+    target_rel = "patch_insert_top.py"
+    f = tmp_path / target_rel
+    f.write_text("x = 0\n", encoding="utf-8")
+
+    clear_registry()
+    try:
+        store = TaskStore(tasks_dir)
+        obs = ObservationEngine()
+        exe = __import__("sys").executable
+        goal = (
+            f"patch: {target_rel}\n"
+            "INSERT_AT_TOP:# TEST_OK\n"
+            "\n"
+            f"VERIFY:\n{exe} -c \"print('ok')\""
+        )
+        result = brain_run(
+            goal,
+            store,
+            tasks_dir,
+            PROFILE_GUVENLI_YURUT,
+            True,
+            observation_engine=obs,
+        )
+        assert result.success is True
+        text = f.read_text(encoding="utf-8")
+        assert text.startswith("# TEST_OK\n")
+        assert "INSERT_AT_TOP" not in text
+        assert "x = 0" in text
+    finally:
+        clear_registry()
+
+
 def test_brain_multi_file_patch_pending_then_apply(tmp_path, monkeypatch):
     monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
     lumos = tmp_path / ".lumos"

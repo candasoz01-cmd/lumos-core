@@ -211,6 +211,184 @@ def merge_pipeline_into_execution(execution: dict[str, Any], snapshot: dict[str,
     execution["pipeline_model"] = snapshot.get("model", "")
 
 
+def _goal_has_target_instruction(goal: str) -> bool:
+    """İlk anlamlı satır TARGET: ile başlıyorsa (instruction patch apply yolu)."""
+    for line in (goal or "").splitlines():
+        s = line.strip()
+        if s:
+            return s.upper().startswith("TARGET:")
+    return False
+
+
+def _instruction_target_pipeline_from_execution(execution: dict[str, Any]) -> dict[str, Any]:
+    """
+    try_instruction_patch_apply sonucu: generic boru hattında apply=skipped yerine
+    gerçek apply/verify aşamalarını yansıtır.
+    """
+    er = str(execution.get("execution_result") or "")
+    et = str(execution.get("error_type") or "")
+    detail = str(execution.get("detail") or "")[:200]
+    vdet = (execution.get("verify_detail") or "")[:160]
+    variant = "instruction_target_multi" if execution.get("multi_file") else "instruction_target"
+    stop = (execution.get("stopped_at") or execution.get("detail") or "")[:120]
+
+    common_top = [
+        _stage("intent", "done", detail="hedef parse"),
+        _stage("plan", "done", detail="planner → TaskStep dizisi"),
+        _stage("patch_produce", "done", detail="propose+validate"),
+    ]
+
+    if er == "dry_run_success":
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "model": "intent_plan_patch_produce_apply_verify",
+            "variant": variant,
+            "stages": common_top
+            + [
+                _stage("apply", "done", detail="dry_run (disk yazılmadı)"),
+                _stage("verify", "skipped", detail="dry_run"),
+            ],
+            "current_stage": "verify",
+        }
+
+    if er == "no_change":
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "model": "intent_plan_patch_produce_apply_verify",
+            "variant": variant,
+            "stages": common_top
+            + [
+                _stage("apply", "done", detail="değişiklik yok"),
+                _stage("verify", "done", detail="—"),
+            ],
+            "current_stage": "verify",
+        }
+
+    if er == "blocked":
+        if et == "high_risk_blocked":
+            aid = str(execution.get("audit_id") or "").strip()
+            wua = f"APPROVE {aid}" if aid else "APPROVE <audit_id>"
+            return {
+                "schema_version": SCHEMA_VERSION,
+                "model": "intent_plan_patch_produce_apply_verify",
+                "variant": variant,
+                "stages": common_top
+                + [
+                    _stage("apply", "pending", detail="yüksek risk; onay"),
+                    _stage("verify", "pending", detail="—"),
+                ],
+                "current_stage": "apply",
+                "awaiting_user_action": wua,
+            }
+        if et == "policy_block":
+            return {
+                "schema_version": SCHEMA_VERSION,
+                "model": "intent_plan_patch_produce_apply_verify",
+                "variant": variant,
+                "stages": common_top
+                + [
+                    _stage("apply", "blocked", detail=detail[:120] if detail else "policy_block"),
+                    _stage("verify", "blocked", detail="—"),
+                ],
+                "current_stage": "apply",
+            }
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "model": "intent_plan_patch_produce_apply_verify",
+            "variant": variant,
+            "stages": common_top
+            + [
+                _stage("apply", "blocked", detail=detail[:120] if detail else "blocked"),
+                _stage("verify", "blocked", detail="—"),
+            ],
+            "current_stage": "apply",
+        }
+
+    if er == "partial":
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "model": "intent_plan_patch_produce_apply_verify",
+            "variant": variant,
+            "stages": common_top
+            + [
+                _stage("apply", "failed", detail=f"kısmi: {stop}" if stop else "kısmi"),
+                _stage("verify", "skipped", detail="sıralı akış kesildi"),
+            ],
+            "current_stage": "apply",
+            "notes": detail,
+        }
+
+    if er == "rollback_applied":
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "model": "intent_plan_patch_produce_apply_verify",
+            "variant": variant,
+            "stages": common_top
+            + [
+                _stage("apply", "failed", detail="apply/verify sonrası rollback"),
+                _stage("verify", "failed", detail=vdet or detail[:120]),
+            ],
+            "current_stage": "verify",
+            "notes": detail[:200],
+        }
+
+    if er in ("write_failed", "timeout", "timeout_total", "locked"):
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "model": "intent_plan_patch_produce_apply_verify",
+            "variant": variant,
+            "stages": common_top
+            + [
+                _stage("apply", "failed", detail=detail[:120] if detail else er),
+                _stage("verify", "skipped", detail="—"),
+            ],
+            "current_stage": "apply",
+        }
+
+    if er == "target_required":
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "model": "intent_plan_patch_produce_apply_verify",
+            "variant": "instruction_target",
+            "stages": [
+                _stage("intent", "done", detail="hedef parse"),
+                _stage("plan", "done", detail="planner → TaskStep dizisi"),
+                _stage("patch_produce", "done", detail="hedef çıkarılamadı"),
+                _stage("apply", "skipped", detail="TARGET gerekli"),
+                _stage("verify", "skipped", detail="—"),
+            ],
+            "current_stage": "verify",
+            "notes": detail[:200],
+        }
+
+    if er == "blocked_by_rollback":
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "model": "intent_plan_patch_produce_apply_verify",
+            "variant": variant,
+            "stages": common_top
+            + [
+                _stage("apply", "blocked", detail="rollback sırasında patch yok"),
+                _stage("verify", "blocked", detail="—"),
+            ],
+            "current_stage": "apply",
+        }
+
+    # Varsayılan: instruction apply denendi; apply artık not_applicable değil
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "model": "intent_plan_patch_produce_apply_verify",
+        "variant": variant,
+        "stages": common_top
+        + [
+            _stage("apply", "pending", detail=detail[:120] if detail else er or "execution"),
+            _stage("verify", "pending", detail="—"),
+        ],
+        "current_stage": "apply",
+        "notes": detail[:200],
+    }
+
+
 def enrich_pipeline_with_execution(
     snapshot: dict[str, Any] | None,
     execution: dict[str, Any] | None,
@@ -236,6 +414,8 @@ def enrich_pipeline_with_execution(
             var = "patch"
         else:
             var = "instruction_target"
+        aid = str(execution.get("audit_id") or "").strip()
+        wua = f"APPROVE {aid}" if aid else "görev: onayla"
         return {
             "schema_version": SCHEMA_VERSION,
             "model": "intent_plan_patch_produce_apply_verify",
@@ -248,7 +428,7 @@ def enrich_pipeline_with_execution(
                 _stage("verify", "pending", detail="apply sonrası"),
             ],
             "current_stage": "apply",
-            "awaiting_user_action": "görev: onayla",
+            "awaiting_user_action": wua,
         }
 
     if er == "no_target_detected":
@@ -335,5 +515,11 @@ def enrich_pipeline_with_execution(
             ],
             "current_stage": "patch_produce",
         }
+
+    # TARGET: … instruction patch apply (try_instruction_patch_apply) — generic snapshot'ta apply skipped görünmesin
+    if _goal_has_target_instruction(goal) and (
+        snapshot is None or snapshot.get("variant") == "generic"
+    ):
+        return _instruction_target_pipeline_from_execution(execution)
 
     return snapshot or {}

@@ -6,6 +6,7 @@ Tek dosya (single_file_safe): her zaman apply + verify (VERIFY veya .py py_compi
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -30,6 +31,43 @@ if TYPE_CHECKING:
 
 # Geriye dönük: tests / cursor_bridge
 parse_patch_goal = parse_patch_goal_legacy
+
+
+def expand_insert_at_top_body(body: str, previous_text: str) -> str | None:
+    """
+    patch: gövdesi INSERT_AT_TOP:# ... ise tam dosya içeriği: yorumlar + mevcut içerik.
+    propose_text_patch tam dosya beklediği için yalnızca bu executor içinde (ve onay sonrası
+    patch_pending lazy import ile) kullanılır.
+    """
+    raw = (body or "").strip()
+    if raw.startswith("\ufeff"):
+        raw = raw.lstrip("\ufeff")
+    if not raw.upper().startswith("INSERT_AT_TOP:"):
+        return None
+    m = re.match(r"(?is)^INSERT_AT_TOP:\s*(.*)\Z", raw)
+    if not m:
+        return None
+    block = m.group(1).strip()
+    if not block:
+        return None
+    for ln in block.splitlines():
+        if not ln.strip():
+            continue
+        if not ln.lstrip().startswith("#"):
+            return None
+    if not any(ln.lstrip().startswith("#") for ln in block.splitlines() if ln.strip()):
+        return None
+    prefix = block.rstrip() + "\n"
+    return prefix + previous_text
+
+
+def _read_utf8_or_empty(path: Path) -> str:
+    if not path.is_file():
+        return ""
+    try:
+        return path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return ""
 
 
 def _repo_root() -> Path:
@@ -83,6 +121,8 @@ def patch_apply_executor(
                 False,
             )
         try:
+            prev = _read_utf8_or_empty(target)
+            body = expand_insert_at_top_body(body, prev) or body
             proposal = propose_text_patch(
                 target,
                 body,
@@ -135,6 +175,8 @@ def patch_apply_executor(
                 False,
             )
         try:
+            prev = _read_utf8_or_empty(target)
+            body = expand_insert_at_top_body(body, prev) or body
             proposal = propose_text_patch(
                 target,
                 body,

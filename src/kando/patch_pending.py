@@ -143,9 +143,18 @@ def _apply_one_pending_file(
 ) -> tuple[bool, str, str]:
     """Tek dosya: propose → validate → apply. Dönüş: ok, mesaj satırı, patch_id."""
     try:
+        from task_engine.executors.patch_apply_executor import expand_insert_at_top_body
+
+        prev = ""
+        if target.is_file():
+            try:
+                prev = target.read_text(encoding="utf-8")
+            except (OSError, UnicodeDecodeError):
+                prev = ""
+        use = expand_insert_at_top_body(proposed, prev) or proposed
         proposal = propose_text_patch(
             target,
-            proposed,
+            use,
             reason="kando.patch_pending.apply_pending_after_approval",
             caller="kando.patch_pending.apply_pending_after_approval",
             source="kando",

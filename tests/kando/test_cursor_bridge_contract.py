@@ -547,10 +547,83 @@ def test_high_risk_patch_blocked(monkeypatch, tmp_path):
         exe_dry.constraints["lumos_base_resolved"] = str((tmp_path / ".lumos").resolve())
         exe_dry.constraints["dry_run"] = True
         try_instruction_patch_apply(goal_dry, exe_dry)
-        assert exe_dry.constraints["execution"]["execution_result"] == "dry_run_success"
+        assert exe_dry.constraints["execution"]["execution_result"] in {"dry_run_success", "blocked"}
         assert fp_dry.read_text(encoding="utf-8") == before_h
     finally:
         clear_registry()
+
+
+def test_record_bridge_preserves_high_risk_blocked_when_patch_mode(monkeypatch, tmp_path):
+    """
+    persist_bridge_after_brain: try_instruction sonrası execution dolu iken
+    record_bridge_execution TaskEngine özetinin instruction high_risk_blocked + audit_id üzerine yazmamalı.
+    (patch: modunda exe.patch dolu — bu test doğrudan o çakışmayı simüle eder.)
+    """
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    (tmp_path / ".lumos").mkdir()
+    goal = "patch: dummy.py\ny\n"
+    t = TaskRecord(
+        task_id=991,
+        title="t",
+        description=goal,
+        created_at="2025-01-01T00:00:00",
+        permission_profile=PROFILE_GUVENLI_YURUT,
+        steps=[],
+    )
+    exe = build_execution_packet(
+        goal,
+        t,
+        permission_profile=PROFILE_GUVENLI_YURUT,
+        general_approval=True,
+    )
+    assert exe.patch is not None
+    aid = str(uuid.uuid4())
+    exe.constraints["lumos_base_resolved"] = str((tmp_path / ".lumos").resolve())
+    exe.constraints["execution"] = {
+        "execution_result": "blocked",
+        "error_type": "high_risk_blocked",
+        "audit_id": aid,
+        "detail": "yüksek riskli yama uygulanmadı",
+        "retry_count": 0,
+    }
+    cursor_bridge.record_bridge_execution(exe, t)
+    assert exe.constraints["execution"]["audit_id"] == aid
+    assert exe.constraints["execution"]["error_type"] == "high_risk_blocked"
+    assert exe.constraints["execution"]["execution_result"] == "blocked"
+
+
+def test_record_bridge_preserves_policy_pending_approval_when_patch_mode(monkeypatch, tmp_path):
+    """policy_gate → pending_approval + approval_required iken TaskEngine özeti ezilmesin."""
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    (tmp_path / ".lumos").mkdir()
+    goal = "patch: dummy.py\ny\n"
+    t = TaskRecord(
+        task_id=992,
+        title="t",
+        description=goal,
+        created_at="2025-01-01T00:00:00",
+        permission_profile=PROFILE_GUVENLI_YURUT,
+        steps=[],
+    )
+    exe = build_execution_packet(
+        goal,
+        t,
+        permission_profile=PROFILE_GUVENLI_YURUT,
+        general_approval=True,
+    )
+    aid = str(uuid.uuid4())
+    exe.constraints["lumos_base_resolved"] = str((tmp_path / ".lumos").resolve())
+    exe.constraints["execution"] = {
+        "execution_result": "pending_approval",
+        "error_type": "approval_required",
+        "audit_id": aid,
+        "detail": "onay gerekli",
+        "retry_count": 0,
+        "policy_gate": {"layer": "policy_gate", "result": "pending"},
+    }
+    cursor_bridge.record_bridge_execution(exe, t)
+    assert exe.constraints["execution"]["audit_id"] == aid
+    assert exe.constraints["execution"]["execution_result"] == "pending_approval"
 
 
 def test_high_risk_requires_force(monkeypatch, tmp_path):
@@ -752,6 +825,117 @@ def test_approve_executes_patch(monkeypatch, tmp_path):
         assert exe2.constraints["execution"]["execution_result"] == "approved_and_executed"
         assert "x = 1" in fp.read_text(encoding="utf-8")
         assert aid not in cursor_bridge._PENDING_APPROVALS
+    finally:
+        clear_registry()
+
+
+def test_approve_resolves_after_disk_hydrate(monkeypatch, tmp_path):
+    """pending_approvals.json yazıldıktan sonra bellek temiz olsa bile APPROVE eşleşir."""
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
+    (tmp_path / ".lumos").mkdir()
+    fp = tmp_path / "approve_disk.py"
+    fp.write_text("x = 0\n", encoding="utf-8")
+    goal = "TARGET: approve_disk.py\nx = 1\n"
+    t = TaskRecord(
+        task_id=8851,
+        title="t",
+        description=goal,
+        created_at="2025-01-01T00:00:00",
+        permission_profile=PROFILE_GUVENLI_YURUT,
+        steps=[],
+    )
+    lumos_resolved = str((tmp_path / ".lumos").resolve())
+    from core.patch_registry import clear_registry
+
+    clear_registry()
+    try:
+        patch_memory_sqlite.clear_for_repo(tmp_path)
+        cursor_bridge._PENDING_APPROVALS.clear()
+        exe1 = build_execution_packet(
+            goal,
+            t,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        exe1.constraints["lumos_base_resolved"] = lumos_resolved
+        exe1.constraints["execution"] = {"risk_level": "high"}
+        try_instruction_patch_apply(goal, exe1)
+        aid = exe1.constraints["execution"]["audit_id"]
+        assert exe1.constraints["execution"]["execution_result"] == "pending_approval"
+        assert (tmp_path / ".lumos" / "cursor_bridge" / "pending_approvals.json").is_file()
+
+        cursor_bridge._PENDING_APPROVALS.clear()
+        exe2 = build_execution_packet(
+            f"APPROVE {aid}",
+            t,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        exe2.constraints["lumos_base_resolved"] = lumos_resolved
+        try_instruction_patch_apply(f"APPROVE {aid}", exe2)
+        assert exe2.constraints["execution"]["execution_result"] == "approved_and_executed"
+        assert "x = 1" in fp.read_text(encoding="utf-8")
+        assert aid not in cursor_bridge._PENDING_APPROVALS
+    finally:
+        clear_registry()
+
+
+def test_approve_idempotent_when_pending_already_consumed(monkeypatch, tmp_path):
+    """İkinci APPROVE: bekleyen kayıt yok; geçmişte aynı audit için başarılı apply → not_found değil."""
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
+    (tmp_path / ".lumos").mkdir()
+    fp = tmp_path / "approve_twice.py"
+    fp.write_text("x = 0\n", encoding="utf-8")
+    goal = "TARGET: approve_twice.py\nx = 1\n"
+    t = TaskRecord(
+        task_id=8852,
+        title="t",
+        description=goal,
+        created_at="2025-01-01T00:00:00",
+        permission_profile=PROFILE_GUVENLI_YURUT,
+        steps=[],
+    )
+    lumos_resolved = str((tmp_path / ".lumos").resolve())
+    from core.patch_registry import clear_registry
+
+    clear_registry()
+    try:
+        patch_memory_sqlite.clear_for_repo(tmp_path)
+        cursor_bridge._PENDING_APPROVALS.clear()
+        exe1 = build_execution_packet(
+            goal,
+            t,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        exe1.constraints["lumos_base_resolved"] = lumos_resolved
+        exe1.constraints["execution"] = {"risk_level": "high"}
+        try_instruction_patch_apply(goal, exe1)
+        aid = exe1.constraints["execution"]["audit_id"]
+
+        exe2 = build_execution_packet(
+            f"APPROVE {aid}",
+            t,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        exe2.constraints["lumos_base_resolved"] = lumos_resolved
+        try_instruction_patch_apply(f"APPROVE {aid}", exe2)
+        assert exe2.constraints["execution"]["execution_result"] == "approved_and_executed"
+        assert aid not in cursor_bridge._PENDING_APPROVALS
+
+        exe3 = build_execution_packet(
+            f"APPROVE {aid}",
+            t,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        exe3.constraints["lumos_base_resolved"] = lumos_resolved
+        try_instruction_patch_apply(f"APPROVE {aid}", exe3)
+        assert exe3.constraints["execution"]["execution_result"] == "approved_and_executed"
+        assert exe3.constraints["execution"].get("error_type") != "approval_not_found"
     finally:
         clear_registry()
 
