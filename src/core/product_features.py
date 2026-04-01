@@ -252,3 +252,5 @@ def build_product_features(state: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 # lumos:instruction-pipeline safe touch
+
+# lumos:instruction-pipeline safe touch (resync)
