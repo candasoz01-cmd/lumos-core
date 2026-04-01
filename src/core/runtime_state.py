@@ -117,3 +117,5 @@ def add_runtime_event(event_type: str, summary: str) -> None:
         _EVENTS.pop(0)
 
 # lumos:instruction-pipeline safe touch
+
+# lumos:instruction-pipeline safe touch (resync)
