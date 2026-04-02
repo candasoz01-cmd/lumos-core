@@ -12,7 +12,7 @@ import os
 import re
 import time
 import uuid
-from collections import OrderedDict
+from collections import Counter, OrderedDict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -638,7 +638,7 @@ def _append_patch_apply_log(lumos_base: Path | None, execution: dict[str, Any]) 
         with log_path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
     except Exception:
-        pass
+        logger.exception("patch apply log write failed")
 
 
 def _constraint_force(exe: CursorExecutionPacketV1) -> bool:
@@ -2293,6 +2293,23 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
     if exe.patch is not None:
         return
 
+    prev_ex = exe.constraints.get("execution")
+    et_block = _repeated_error_type_blocks_apply(prev_ex if isinstance(prev_ex, dict) else None)
+    if et_block is not None:
+        rc = 0
+        if isinstance(prev_ex, dict):
+            rc = int(prev_ex.get("retry_count") or 0)
+        _store_execution_and_log(
+            exe,
+            {
+                "execution_result": "blocked_repeated_failure",
+                "detail": f"son 5 adımda aynı hata ({et_block}) 3+ tekrar; patch apply iptal"[:2000],
+                "error_type": et_block,
+                "retry_count": rc,
+            },
+        )
+        return
+
     patch_flow_start = time.time()
     if "TARGET:" in (goal or "").upper():
         exe.constraints.pop("dry_run", None)
@@ -2734,6 +2751,147 @@ def build_execution_packet(
     )
 
 
+_HISTORY_DEBUG_LIMIT = 5
+
+_EXEC_HISTORY_SUCCESS = frozenset(
+    {
+        "patch_applied",
+        EXEC_RESULT_APPROVED_AND_EXECUTED,
+        "no_change",
+        "dry_run_success",
+        "history_listed",
+        "history_empty",
+    }
+)
+_EXEC_HISTORY_FAIL = frozenset(
+    {
+        "patch_failed",
+        EXEC_RESULT_BLOCKED,
+        EXEC_RESULT_REJECTED,
+        "timeout",
+        "timeout_total",
+        "rollback_failed",
+        "rollback_not_possible",
+        "write_failed",
+        "no_target_detected",
+        "no_patch_generated",
+        "target_required",
+        "blocked_by_rollback",
+        "rollback_applied",
+        "blocked_repeated_failure",
+    }
+)
+
+
+def _repeated_error_type_blocks_apply(execution: dict[str, Any] | None) -> str | None:
+    """history son 5 kayıtta aynı error_type (boş değil) 3+ → o error_type."""
+    if not isinstance(execution, dict):
+        return None
+    h = execution.get("history")
+    if not isinstance(h, list) or len(h) < 3:
+        return None
+    snaps = [dict(x) for x in h[-5:] if isinstance(x, dict)]
+    counts: Counter[str] = Counter()
+    for s in snaps:
+        et = str(s.get("error_type") or "").strip()
+        if et:
+            counts[et] += 1
+    for et, c in counts.items():
+        if c >= 3:
+            return et
+    return None
+
+
+def get_last_execution(execution: dict[str, Any] | None) -> dict[str, Any] | None:
+    """history dışındaki güncel execution durumu (son state)."""
+    if not isinstance(execution, dict):
+        return None
+    out = dict(execution)
+    out.pop("history", None)
+    return out
+
+
+def _iter_execution_history_snapshots(execution: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if not isinstance(execution, dict):
+        return []
+    h = execution.get("history")
+    out: list[dict[str, Any]] = []
+    if isinstance(h, list):
+        for x in h:
+            if isinstance(x, dict):
+                out.append(dict(x))
+    last = get_last_execution(execution)
+    if last:
+        out.append(last)
+    return out
+
+
+def execution_history_success_fail_ratio(execution: dict[str, Any] | None) -> dict[str, int]:
+    """history + son state üzerinden success / fail / other sayıları."""
+    snaps = _iter_execution_history_snapshots(execution)
+    success = 0
+    failure = 0
+    other = 0
+    for s in snaps:
+        er = str(s.get("execution_result") or "").strip()
+        if er in _EXEC_HISTORY_SUCCESS:
+            success += 1
+        elif er in _EXEC_HISTORY_FAIL:
+            failure += 1
+        else:
+            other += 1
+    return {"success": success, "fail": failure, "other": other, "total": len(snaps)}
+
+
+def execution_history_repeated_errors(execution: dict[str, Any] | None) -> list[dict[str, Any]]:
+    """Aynı (execution_result, error_type) ikilisinin tekrarları; count > 1."""
+    snaps = _iter_execution_history_snapshots(execution)
+    counts: Counter[tuple[str, str]] = Counter()
+    for s in snaps:
+        er = str(s.get("execution_result") or "")
+        et = str(s.get("error_type") or "")
+        counts[(er, et)] += 1
+    out: list[dict[str, Any]] = []
+    for (er, et), n in counts.items():
+        if n > 1 and (er or et):
+            out.append({"execution_result": er, "error_type": et, "count": n})
+    out.sort(key=lambda x: int(x.get("count") or 0), reverse=True)
+    return out
+
+
+def _execution_history_debug_from_execution(
+    execution: dict[str, Any] | None,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """last_result: son N execution özeti + audit_id zinciri (debug)."""
+    if not isinstance(execution, dict):
+        return [], []
+    raw = execution.get("history")
+    if not isinstance(raw, list) or len(raw) == 0:
+        aid = str(execution.get("audit_id") or "")
+        row = {
+            "audit_id": aid,
+            "execution_result": str(execution.get("execution_result") or ""),
+            "error_type": str(execution.get("error_type") or ""),
+        }
+        return [row], ([aid] if aid else [])
+    summary: list[dict[str, Any]] = []
+    aids: list[str] = []
+    for snap in raw[-_HISTORY_DEBUG_LIMIT:]:
+        if not isinstance(snap, dict):
+            continue
+        aid = str(snap.get("audit_id") or "")
+        summary.append(
+            {
+                "audit_id": aid,
+                "execution_result": str(snap.get("execution_result") or ""),
+                "error_type": str(snap.get("error_type") or ""),
+            }
+        )
+        if aid:
+            aids.append(aid)
+    return summary, aids
+
+
 def build_result_packet(
     *,
     goal: str,
@@ -2793,6 +2951,8 @@ def build_result_packet(
     outcome: Outcome
     if status == "durdu" or block:
         outcome = "blocked"
+    elif ex_result == "blocked_repeated_failure":
+        outcome = "blocked"
     elif bridge_apply_ok:
         outcome = "simulation" if ex_result == "dry_run_success" else "applied"
     elif status == "hata" or not brain_success:
@@ -2825,6 +2985,9 @@ def build_result_packet(
     else:
         outcome = "partial" if brain_success else "failed"
 
+    sum_h, chain_aids = _execution_history_debug_from_execution(
+        execution_out if isinstance(execution_out, dict) else None
+    )
     return CursorResultPacketV1(
         schema_version=SCHEMA_RESULT,
         goal_preview=goal_preview,
@@ -2838,6 +3001,8 @@ def build_result_packet(
         unverified_count=u,
         simulation_count=sim,
         execution=execution_out,
+        execution_history_summary=sum_h,
+        audit_id_chain=chain_aids,
     )
 
 
