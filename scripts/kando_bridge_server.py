@@ -192,21 +192,32 @@ AGENT_AUTO_ACTIONS: tuple[tuple[tuple[str, ...], str], ...] = (
 )
 
 
-def _maybe_agent_auto_patch(blob: str) -> None:
-    """Basit yerel agent aksiyonlari icin kucuk aksiyon tablosu."""
-    try:
-        s = (blob or "").strip().lower()
-        fp = ROOT / "src" / "core" / "lumos_runtime.py"
-        txt = fp.read_text(encoding="utf-8")
+def _parse_agent_file_action(blob: str) -> tuple[Path, str] | None:
+    """Blob metninden hedef dosya ve eklenecek satırı çıkarır."""
+    low = (blob or "").strip().lower()
+    # Şimdilik tek hedef; ileride low içindeki path ipucuna göre genişletilebilir.
+    fp = ROOT / "src" / "core" / "lumos_runtime.py"
 
-        for triggers, line in AGENT_AUTO_ACTIONS:
-            if not any(trigger in s for trigger in triggers):
-                continue
-            if line in txt:
-                return
-            txt += f"\n\n{line}\n"
-            fp.write_text(txt, encoding="utf-8")
+    for triggers, line in AGENT_AUTO_ACTIONS:
+        if any(trigger in low for trigger in triggers):
+            return fp, line
+
+    return None
+
+
+def _maybe_agent_auto_patch(blob: str) -> None:
+    """Basit yerel agent aksiyonlari icin dosya+aksiyon ayrıştırma."""
+    try:
+        parsed = _parse_agent_file_action(blob)
+        if not parsed:
             return
+
+        fp, line = parsed
+        txt = fp.read_text(encoding="utf-8")
+        if line in txt:
+            return
+        txt += f"\n\n{line}\n"
+        fp.write_text(txt, encoding="utf-8")
 
     except OSError:
         pass
