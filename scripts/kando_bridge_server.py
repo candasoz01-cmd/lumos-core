@@ -243,6 +243,17 @@ def generate_comment_from_code(txt: str) -> str:
     return "# agent auto comment"
 
 
+def insert_above_definition(lines: list[str], line: str) -> list[str]:
+    for i, ln in enumerate(lines):
+        s = ln.strip()
+        if s.startswith("def ") or s.startswith("class "):
+            if i > 0 and lines[i - 1].strip() == line.strip():
+                return lines
+            lines.insert(i, line)
+            return lines
+    return lines
+
+
 def smart_insert(txt: str, line: str) -> str:
     s = line.strip()
     if s.startswith("class ") or s.startswith("def "):
@@ -250,6 +261,11 @@ def smart_insert(txt: str, line: str) -> str:
     lines = txt.splitlines()
     if any(line.strip() == ln.strip() for ln in lines):
         return txt
+
+    n0 = len(lines)
+    lines = insert_above_definition(list(lines), line)
+    if len(lines) != n0:
+        return "\n".join(lines)
 
     ctx = detect_context(txt)
 
