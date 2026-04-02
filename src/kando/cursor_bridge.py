@@ -985,9 +985,15 @@ def _apply_patch_instruction_gates(goal: str, exe: CursorExecutionPacketV1) -> b
 
 def _store_execution_and_log(exe: CursorExecutionPacketV1, execution: dict[str, Any]) -> None:
     _ensure_audit_id(execution)
+    prev = exe.constraints.get("execution")
+    history: list[dict[str, Any]] = []
+    if isinstance(prev, dict):
+        history = list(prev.get("history") or [])
+    history.append(dict(execution))
+    execution = dict(execution)
+    execution["history"] = history
     pga = exe.constraints.get("policy_gate_audit")
     if isinstance(pga, dict) and pga.get("result") == "allow":
-        execution = dict(execution)
         execution["policy_gate"] = pga
     exe.constraints["execution"] = execution
     _append_patch_apply_log(_lumos_base_path_for_log(exe), execution)
