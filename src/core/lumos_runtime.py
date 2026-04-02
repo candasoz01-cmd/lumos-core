@@ -914,3 +914,5 @@ print("agent auto")
 # lumos:agent-auto safe touch
 
 # lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
