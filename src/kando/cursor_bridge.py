@@ -1887,24 +1887,24 @@ def _run_instruction_apply_to_exe(
                 },
             )
             return True
-        _store_execution_and_log(
-            exe,
-            {
-                "execution_result": "patch_applied",
-                "detail": f"{source}; {v_msg}"[:2000],
-                "verify_detail": v_msg[:1500],
-                "source": source,
-                "patch_id": info.get("patch_id", ""),
-                "applied_path": rel,
-                "previous_content": info.get("previous_content", ""),
-                "previous_content_truncated": bool(info.get("previous_content_truncated")),
-                "diff_preview": str(info.get("diff_preview") or ""),
-                "error_type": "",
-                "retry_count": retry_count,
-                "had_previous": hp,
-                "forced": bool(info.get("forced")),
-            },
-        )
+        execution_payload = {
+            "execution_result": "patch_applied",
+            "detail": f"{source}; {v_msg}"[:2000],
+            "verify_detail": v_msg[:1500],
+            "source": source,
+            "patch_id": info.get("patch_id", ""),
+            "applied_path": rel,
+            "previous_content": info.get("previous_content", ""),
+            "previous_content_truncated": bool(info.get("previous_content_truncated")),
+            "diff_preview": str(info.get("diff_preview") or ""),
+            "error_type": "",
+            "retry_count": retry_count,
+            "had_previous": hp,
+            "forced": bool(info.get("forced")),
+        }
+        execution_payload["history"] = exe.constraints.get("history", [])
+        execution_payload["audit_id_chain"] = exe.constraints.get("audit_id_chain", [])
+        _store_execution_and_log(exe, execution_payload)
         return True
     kind = info.get("kind", "")
     if kind == "timeout_total":
