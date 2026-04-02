@@ -984,15 +984,32 @@ def _apply_patch_instruction_gates(goal: str, exe: CursorExecutionPacketV1) -> b
     return False
 
 
+def _audit_id_chain_from_history(history: list[dict[str, Any]]) -> list[str]:
+    out: list[str] = []
+    for x in history:
+        if not isinstance(x, dict):
+            continue
+        aid = str(x.get("audit_id") or "").strip()
+        if aid:
+            out.append(aid)
+    return out
+
+
 def _store_execution_and_log(exe: CursorExecutionPacketV1, execution: dict[str, Any]) -> None:
     _ensure_audit_id(execution)
     prev = exe.constraints.get("execution")
     history: list[dict[str, Any]] = []
     if isinstance(prev, dict):
         history = list(prev.get("history") or [])
-    history.append(dict(execution))
+    snap = dict(execution)
+    snap.pop("history", None)
+    snap.pop("audit_id_chain", None)
+    history.append(snap)
     execution = dict(execution)
+    execution.pop("history", None)
+    execution.pop("audit_id_chain", None)
     execution["history"] = history
+    execution["audit_id_chain"] = _audit_id_chain_from_history(history)
     pga = exe.constraints.get("policy_gate_audit")
     if isinstance(pga, dict) and pga.get("result") == "allow":
         execution["policy_gate"] = pga
@@ -1817,8 +1834,13 @@ def _run_instruction_apply_to_exe(
         patch_flow_start=patch_flow_start,
     )
     if isinstance(info, dict):
-        info["history"] = exe.constraints.get("history", [])
-        info["audit_id_chain"] = exe.constraints.get("audit_id_chain", [])
+        prev_ex = exe.constraints.get("execution")
+        if isinstance(prev_ex, dict):
+            info["history"] = list(prev_ex.get("history") or [])
+            info["audit_id_chain"] = list(prev_ex.get("audit_id_chain") or [])
+        else:
+            info["history"] = []
+            info["audit_id_chain"] = []
     hp = bool(info.get("had_previous"))
     if not ok and info.get("kind") == "high_risk_blocked":
         _store_execution_and_log(
@@ -1905,8 +1927,6 @@ def _run_instruction_apply_to_exe(
             "had_previous": hp,
             "forced": bool(info.get("forced")),
         }
-        execution_payload["history"] = exe.constraints.get("history", [])
-        execution_payload["audit_id_chain"] = exe.constraints.get("audit_id_chain", [])
         _store_execution_and_log(exe, execution_payload)
         return True
     kind = info.get("kind", "")

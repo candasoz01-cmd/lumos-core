@@ -7,7 +7,6 @@ from __future__ import annotations
 import json
 import os
 import re
-import shutil
 import subprocess
 import threading
 import uuid
@@ -19,6 +18,10 @@ from typing import Any, Callable
 MAX_CANDIDATE_FILES = 2
 PREFERRED_PREFIX = "src/core/"
 SKIP_TEST_PATHS = True
+
+# _run_executor_goal dönüşündeki execution_result için sık kullanılan üçlü (tam sözlük cursor_bridge).
+# Örnek: assert result["execution_result"] in EXECUTION_RESULT_PATCH_TRIPLET
+EXECUTION_RESULT_PATCH_TRIPLET = ("patch_applied", "no_change", "blocked")
 
 
 def _repo_root(explicit: Path | None = None) -> Path:
@@ -198,7 +201,12 @@ def _git_uncommitted_paths(repo: Path) -> list[str]:
 
 
 def _run_executor_goal(goal_multiline: str, repo_root: Path) -> dict[str, Any]:
-    """Brain + cursor bridge; LUMOS env repo köküne ayarlı olmalı."""
+    """
+    Brain + cursor bridge; LUMOS env repo köküne ayarlı olmalı.
+
+    ``execution_result`` köprü ``constraints.execution`` ile aynıdır (``outcome`` alanından farklıdır).
+    Dar senaryolarda: ``assert result["execution_result"] in EXECUTION_RESULT_PATCH_TRIPLET``.
+    """
     os.environ["LUMOS_REPO_ROOT"] = str(repo_root)
     lumos = repo_root / ".lumos"
     os.environ["LUMOS_BASE_DIR"] = str(lumos)
@@ -290,17 +298,34 @@ def _write_json(path: Path, data: dict[str, Any]) -> None:
     tmp.replace(path)
 
 
+def _cursor_bridge_source_dir(repo_root: Path) -> Path:
+    """
+    Bridge yazımı LUMOS_BASE_DIR altındadır; outbox sync aynı kökü kullanmalı (repo_root/.lumos ile drift olmasın).
+    """
+    raw = (os.environ.get("LUMOS_BASE_DIR") or "").strip()
+    if raw:
+        base = Path(raw).expanduser()
+        base = base.resolve() if base.is_absolute() else (Path.cwd() / base).resolve()
+    else:
+        base = (repo_root / ".lumos").resolve()
+    return base / "cursor_bridge"
+
+
 def _copy_cursor_bridge_snapshots_to_outbox(repo_root: Path, outbox_dir: Path) -> None:
-    """`.lumos/cursor_bridge/last_*.json` → outbox (agent tamamlanınca güncel execution/history)."""
+    """`.lumos/cursor_bridge/last_*.json` → outbox (bayt birebir; json.loads/dumps yok)."""
     try:
-        src_dir = (repo_root / ".lumos" / "cursor_bridge").resolve()
+        src_dir = _cursor_bridge_source_dir(repo_root)
         dst_dir = outbox_dir.resolve()
         dst_dir.mkdir(parents=True, exist_ok=True)
         for name in ("last_result.json", "last_execution.json"):
             src = src_dir / name
             dst = dst_dir / name
-            if src.is_file():
-                shutil.copy2(src, dst)
+            if not src.is_file():
+                continue
+            data = src.read_bytes()
+            tmp = dst.with_suffix(dst.suffix + ".tmp")
+            tmp.write_bytes(data)
+            tmp.replace(dst)
     except OSError:
         pass
 
