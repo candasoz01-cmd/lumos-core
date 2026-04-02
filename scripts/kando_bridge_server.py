@@ -193,7 +193,7 @@ INTENT_SYNONYMS = {
 
 AGENT_AUTO_ACTIONS: tuple[tuple[tuple[str, ...], str], ...] = (
     (("print ekle", "print"), 'print("agent auto")'),
-    (("yorum ekle", "comment"), "# agent auto comment"),
+    (("yorum ekle", "comment"), "# handles logging"),
     (("safe touch", "dokun", "safe_touch"), "# lumos:agent-auto safe touch"),
 )
 
@@ -240,7 +240,7 @@ def generate_comment_from_code(txt: str) -> str:
     if m:
         return f"# class {m.group(1)}"
 
-    return "# agent auto comment"
+    return "# handles logging"
 
 
 def insert_above_definition(lines: list[str], line: str) -> list[str]:
@@ -333,7 +333,7 @@ def _parse_agent_file_action(blob: str) -> tuple[Path, str] | None:
         if any(trigger in expanded for trigger in triggers):
             out = (
                 generate_comment_from_code(file_txt)
-                if line == "# agent auto comment"
+                if line == "# handles logging"
                 else line
             )
             return fp, out
@@ -364,7 +364,7 @@ def _maybe_agent_auto_patch(blob: str) -> None:
                     continue
                 insert_line = (
                     generate_comment_from_code(txt)
-                    if line == "# agent auto comment"
+                    if line == "# handles logging"
                     else line
                 )
                 new_txt = smart_insert(txt, insert_line)
