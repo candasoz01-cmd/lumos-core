@@ -208,6 +208,25 @@ def _expand_intent_blob(blob: str) -> str:
     return expanded
 
 
+def _parse_agent_file_action(blob: str) -> tuple[Path, str] | None:
+    """Tek hedef dosya + tek satır (ilk eşleşme veya eş anlamlı fallback)."""
+    fp = ROOT / "src" / "core" / "lumos_runtime.py"
+    expanded = _expand_intent_blob(blob)
+
+    for triggers, line in AGENT_AUTO_ACTIONS:
+        if any(trigger in expanded for trigger in triggers):
+            return fp, line
+
+    if "print" in expanded:
+        return fp, 'print("agent auto debug")'
+    if "comment" in expanded:
+        return fp, "# agent auto comment"
+    if "safe_touch" in expanded:
+        return fp, "# lumos:agent-auto safe touch"
+
+    return None
+
+
 def _maybe_agent_auto_patch(blob: str) -> None:
     """Blob içinde geçen tüm tanımlı aksiyonları aynı dosyaya uygular (sırayla, tekrarsız)."""
     try:
