@@ -892,3 +892,11 @@ def create_runtime(sandbox_mode: bool | None = None) -> RuntimeResult:
 # lumos:instruction-pipeline safe touch (resync)
 
 # lumos:instruction-pipeline safe touch (resync)
+
+
+print("agent test")
+
+
+print("agent auto")
+
+# lumos:instruction-pipeline safe touch (resync)
