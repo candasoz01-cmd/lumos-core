@@ -223,6 +223,26 @@ def detect_context(txt: str) -> str:
     return "top"
 
 
+def generate_comment_from_code(txt: str) -> str:
+    low = txt.lower()
+    if "log" in low:
+        return "# handles logging"
+    if "memory" in low:
+        return "# manages memory state"
+    if "context" in low:
+        return "# holds execution context"
+
+    m = re.search(r"def\s+(\w+)", txt)
+    if m:
+        return f"# function {m.group(1)}"
+
+    m = re.search(r"class\s+(\w+)", txt)
+    if m:
+        return f"# class {m.group(1)}"
+
+    return "# agent auto comment"
+
+
 def smart_insert(txt: str, line: str) -> str:
     s = line.strip()
     if s.startswith("class ") or s.startswith("def "):
@@ -286,15 +306,24 @@ def _parse_agent_file_action(blob: str) -> tuple[Path, str] | None:
     targets = _extract_target_files(blob)
     fp = targets[0] if targets else (ROOT / "src" / "core" / "lumos_runtime.py")
     expanded = _expand_intent_blob(blob)
+    try:
+        file_txt = fp.read_text(encoding="utf-8")
+    except OSError:
+        file_txt = ""
 
     for triggers, line in AGENT_AUTO_ACTIONS:
         if any(trigger in expanded for trigger in triggers):
-            return fp, line
+            out = (
+                generate_comment_from_code(file_txt)
+                if line == "# agent auto comment"
+                else line
+            )
+            return fp, out
 
     if "print" in expanded:
         return fp, 'print("agent auto debug")'
     if "comment" in expanded:
-        return fp, "# agent auto comment"
+        return fp, generate_comment_from_code(file_txt)
     if "safe_touch" in expanded:
         return fp, "# lumos:agent-auto safe touch"
 
@@ -315,7 +344,12 @@ def _maybe_agent_auto_patch(blob: str) -> None:
             for triggers, line in AGENT_AUTO_ACTIONS:
                 if not any(trigger in expanded for trigger in triggers):
                     continue
-                new_txt = smart_insert(txt, line)
+                insert_line = (
+                    generate_comment_from_code(txt)
+                    if line == "# agent auto comment"
+                    else line
+                )
+                new_txt = smart_insert(txt, insert_line)
                 if new_txt != txt:
                     updated = True
                     txt = new_txt
