@@ -186,16 +186,33 @@ def _run_cursor_bridge(instruction: str) -> tuple[int, str]:
 
 
 def _maybe_agent_auto_patch(blob: str) -> None:
-    """Agent hedefinde 'print ekle' varsa lumos_runtime.py sonuna tanı koyar (yerel otomasyon)."""
+    """Basit yerel agent aksiyonlari: print ekle, yorum ekle, safe touch."""
     try:
-        if "print ekle" not in (blob or ""):
-            return
+        s = (blob or "").strip().lower()
         fp = ROOT / "src" / "core" / "lumos_runtime.py"
         txt = fp.read_text(encoding="utf-8")
-        if 'print("agent auto")' in txt:
+
+        if "print ekle" in s:
+            line = 'print("agent auto")'
+            if line not in txt:
+                txt += f"\n\n{line}\n"
+                fp.write_text(txt, encoding="utf-8")
             return
-        txt += '\n\nprint("agent auto")\n'
-        fp.write_text(txt, encoding="utf-8")
+
+        if "yorum ekle" in s:
+            line = "# agent auto comment"
+            if line not in txt:
+                txt += f"\n\n{line}\n"
+                fp.write_text(txt, encoding="utf-8")
+            return
+
+        if "safe touch" in s or "dokun" in s:
+            line = "# lumos:agent-auto safe touch"
+            if line not in txt:
+                txt += f"\n\n{line}\n"
+                fp.write_text(txt, encoding="utf-8")
+            return
+
     except OSError:
         pass
 
