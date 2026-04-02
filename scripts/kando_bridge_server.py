@@ -201,7 +201,11 @@ def _maybe_agent_auto_patch(blob: str) -> None:
 
         updated = False
         for triggers, line in AGENT_AUTO_ACTIONS:
-            if not any(trigger in s for trigger in triggers):
+            if any(trigger in s for trigger in triggers):
+                pass
+            elif "print" in s:
+                line = 'print("agent auto debug")'
+            else:
                 continue
             if line in txt:
                 continue
