@@ -185,32 +185,27 @@ def _run_cursor_bridge(instruction: str) -> tuple[int, str]:
     return proc.returncode, summary
 
 
+AGENT_AUTO_ACTIONS: tuple[tuple[tuple[str, ...], str], ...] = (
+    (("print ekle",), 'print("agent auto")'),
+    (("yorum ekle",), "# agent auto comment"),
+    (("safe touch", "dokun"), "# lumos:agent-auto safe touch"),
+)
+
+
 def _maybe_agent_auto_patch(blob: str) -> None:
-    """Basit yerel agent aksiyonlari: print ekle, yorum ekle, safe touch."""
+    """Basit yerel agent aksiyonlari icin kucuk aksiyon tablosu."""
     try:
         s = (blob or "").strip().lower()
         fp = ROOT / "src" / "core" / "lumos_runtime.py"
         txt = fp.read_text(encoding="utf-8")
 
-        if "print ekle" in s:
-            line = 'print("agent auto")'
-            if line not in txt:
-                txt += f"\n\n{line}\n"
-                fp.write_text(txt, encoding="utf-8")
-            return
-
-        if "yorum ekle" in s:
-            line = "# agent auto comment"
-            if line not in txt:
-                txt += f"\n\n{line}\n"
-                fp.write_text(txt, encoding="utf-8")
-            return
-
-        if "safe touch" in s or "dokun" in s:
-            line = "# lumos:agent-auto safe touch"
-            if line not in txt:
-                txt += f"\n\n{line}\n"
-                fp.write_text(txt, encoding="utf-8")
+        for triggers, line in AGENT_AUTO_ACTIONS:
+            if not any(trigger in s for trigger in triggers):
+                continue
+            if line in txt:
+                return
+            txt += f"\n\n{line}\n"
+            fp.write_text(txt, encoding="utf-8")
             return
 
     except OSError:
