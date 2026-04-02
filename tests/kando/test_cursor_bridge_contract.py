@@ -10,6 +10,7 @@ import core.patch_pipeline as patch_pipeline
 from kando import cursor_bridge
 from kando import patch_memory_sqlite
 from kando.cursor_bridge import (
+    _store_execution_and_log,
     build_execution_packet,
     build_result_packet,
     persist_cursor_bridge,
@@ -43,6 +44,44 @@ def test_execution_packet_guard_flags():
     assert p.schema_version == "kando.cursor.execution.v1"
     assert len(p.steps) == 1
     assert p.steps[0].guard_allowed is True
+
+
+def test_store_execution_accumulates_history_and_audit_chain(monkeypatch, tmp_path):
+    """Art arda _store_execution_and_log: history + audit_id_chain; build_result_packet ile uyumlu."""
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    (tmp_path / ".lumos").mkdir()
+    t = TaskRecord(
+        task_id=77001,
+        title="t",
+        description="x",
+        created_at="2025-01-01T00:00:00",
+        permission_profile=PROFILE_GUVENLI_YURUT,
+        steps=[],
+    )
+    exe = build_execution_packet(
+        "TARGET: a.py\nx\n",
+        t,
+        permission_profile=PROFILE_GUVENLI_YURUT,
+        general_approval=True,
+    )
+    exe.constraints["lumos_base_resolved"] = str((tmp_path / ".lumos").resolve())
+    for i in range(3):
+        _store_execution_and_log(
+            exe,
+            {
+                "execution_result": "patch_applied",
+                "detail": f"step {i}",
+                "error_type": "",
+                "retry_count": i,
+            },
+        )
+    ex = exe.constraints["execution"]
+    assert len(ex["history"]) == 3
+    assert len(ex["audit_id_chain"]) == 3
+    assert len(set(ex["audit_id_chain"])) == 3
+    res = build_result_packet(goal="g", brain_success=True, task=t, execution=ex)
+    assert len(res.execution_history_summary) == 3
+    assert res.audit_id_chain == ex["audit_id_chain"]
 
 
 def test_persist_roundtrip(tmp_path):
