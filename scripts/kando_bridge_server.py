@@ -215,8 +215,24 @@ def _extract_target_files(blob: str) -> list[Path]:
     return found
 
 
+def detect_context(txt: str) -> str:
+    if "class " in txt:
+        return "class"
+    if "def " in txt:
+        return "function"
+    return "top"
+
+
 def smart_insert(txt: str, line: str) -> str:
+    if any(line.strip() == ln.strip() for ln in txt.splitlines()):
+        return txt
+
+    s = line.strip()
+    if s.startswith("class ") or s.startswith("def "):
+        return txt
     lines = txt.splitlines()
+
+    ctx = detect_context(txt)
 
     last_import = -1
     for i, ln in enumerate(lines):
@@ -234,6 +250,14 @@ def smart_insert(txt: str, line: str) -> str:
             indent = " " * (base_indent + 4)
             lines.insert(i + 1, indent + line)
             return "\n".join(lines)
+
+    if ctx == "function":
+        for i, ln in enumerate(lines):
+            if ln.strip().startswith("def "):
+                base_indent = len(ln) - len(ln.lstrip())
+                indent = " " * (base_indent + 4)
+                lines.insert(i + 1, indent + line)
+                return "\n".join(lines)
 
     return txt + "\n\n" + line + "\n"
 
@@ -292,10 +316,10 @@ def _maybe_agent_auto_patch(blob: str) -> None:
             for triggers, line in AGENT_AUTO_ACTIONS:
                 if not any(trigger in expanded for trigger in triggers):
                     continue
-                if line.strip() in txt:
-                    continue
-                txt = smart_insert(txt, line)
-                updated = True
+                new_txt = smart_insert(txt, line)
+                if new_txt != txt:
+                    updated = True
+                    txt = new_txt
             if updated:
                 fp.write_text(txt, encoding="utf-8")
 
