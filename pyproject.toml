@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [tool.setuptools.dynamic]
-version = {attr = "lumos_core.version.VERSION"}
+version = {attr = "core.version.VERSION"}
 
 [project.scripts]
 lumos = "lumos_core.__main__:main"
