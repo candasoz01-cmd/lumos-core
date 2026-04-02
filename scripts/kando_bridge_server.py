@@ -227,7 +227,7 @@ def generate_comment_from_code(txt: str) -> str:
     low = txt.lower()
     if "log" in low:
         return "# handles logging"
-    if "memory" in low:
+    if "memory" in low or "sessionmemory" in low:
         return "# manages memory state"
     if "context" in low:
         return "# holds execution context"
