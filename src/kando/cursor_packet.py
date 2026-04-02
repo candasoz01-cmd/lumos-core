@@ -11,6 +11,20 @@ from typing import Any, Literal
 
 Outcome = Literal["applied", "blocked", "failed", "partial", "simulation"]
 
+EXECUTION_TO_OUTCOME: dict[str, str] = {
+    "patch_applied": "applied",
+    "no_change": "applied",
+    "blocked": "blocked",
+    "patch_failed": "failed",
+    "error": "failed",
+}
+
+
+def map_execution_to_outcome(execution_result: str) -> str:
+    """Köprü ``execution_result`` → sonuç paketi ``outcome`` özet eşlemesi (bilinmeyen: ``unknown``)."""
+    key = (execution_result or "").strip()
+    return EXECUTION_TO_OUTCOME.get(key, "unknown")
+
 
 @dataclass
 class PlannedStepV1:
