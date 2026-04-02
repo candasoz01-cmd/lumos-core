@@ -4,6 +4,7 @@ from typing import List
 
 from context.context import Context
 from memory.schema import MemoryNote
+# manages memory state
 
 
 @dataclass
