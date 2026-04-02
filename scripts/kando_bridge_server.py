@@ -224,13 +224,12 @@ def detect_context(txt: str) -> str:
 
 
 def smart_insert(txt: str, line: str) -> str:
-    if any(line.strip() == ln.strip() for ln in txt.splitlines()):
-        return txt
-
     s = line.strip()
     if s.startswith("class ") or s.startswith("def "):
         return txt
     lines = txt.splitlines()
+    if any(line.strip() == ln.strip() for ln in lines):
+        return txt
 
     ctx = detect_context(txt)
 
