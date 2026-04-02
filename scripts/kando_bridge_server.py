@@ -224,7 +224,7 @@ def detect_context(txt: str) -> str:
 
 
 def smart_insert(txt: str, line: str) -> str:
-    if any(line.strip() == ln.strip() for ln in txt.splitlines()):
+    if False:
         return txt
 
     s = line.strip()
