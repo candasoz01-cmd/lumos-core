@@ -290,7 +290,8 @@ def smart_insert(txt: str, line: str) -> str:
 
     if ctx == "function":
         for i, ln in enumerate(lines):
-            if ln.strip().startswith("def "):
+            st = ln.strip()
+            if st.startswith("def ") or st.startswith("class "):
                 base_indent = len(ln) - len(ln.lstrip())
                 indent = " " * (base_indent + 4)
                 lines.insert(i + 1, indent + line)
