@@ -198,6 +198,22 @@ AGENT_AUTO_ACTIONS: tuple[tuple[tuple[str, ...], str], ...] = (
 )
 
 
+def _extract_target_file(blob: str) -> Path | None:
+    s = (blob or "").lower()
+
+    mapping = {
+        "lumos_runtime.py": ROOT / "src/core/lumos_runtime.py",
+        "logfmt.py": ROOT / "src/core/logfmt.py",
+        "memory.py": ROOT / "src/memory/memory.py",
+    }
+
+    for name, path in mapping.items():
+        if name in s:
+            return path
+
+    return None
+
+
 def _expand_intent_blob(blob: str) -> str:
     """Metne kanonik intent anahtarlarını ekler (INTENT_SYNONYMS eşleşmeleri)."""
     low = (blob or "").strip().lower()
@@ -220,7 +236,7 @@ def _expand_intent_blob(blob: str) -> str:
 
 def _parse_agent_file_action(blob: str) -> tuple[Path, str] | None:
     """Tek hedef dosya + tek satır (ilk eşleşme veya eş anlamlı fallback)."""
-    fp = ROOT / "src" / "core" / "lumos_runtime.py"
+    fp = _extract_target_file(blob) or (ROOT / "src" / "core" / "lumos_runtime.py")
     expanded = _expand_intent_blob(blob)
 
     for triggers, line in AGENT_AUTO_ACTIONS:
@@ -241,7 +257,7 @@ def _maybe_agent_auto_patch(blob: str) -> None:
     """Multi-action: aynı istekte birden fazla aksiyon; INTENT_SYNONYMS ile genişletilmiş eşleşme."""
     try:
         expanded = _expand_intent_blob(blob)
-        fp = ROOT / "src" / "core" / "lumos_runtime.py"
+        fp = _extract_target_file(blob) or (ROOT / "src" / "core" / "lumos_runtime.py")
         txt = fp.read_text(encoding="utf-8")
 
         updated = False
