@@ -298,3 +298,5 @@ def clear_registry() -> None:
     """
     _REGISTRY.clear()
 
+
+# lumos:instruction-pipeline safe touch
