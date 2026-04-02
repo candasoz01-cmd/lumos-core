@@ -2317,6 +2317,11 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
                         "error_type": et_prev,
                         "detail": f"aynı hata tekrarlandı: {et_prev}",
                         "retry_count": 0,
+                        "hint": {
+                            "action": "review_patch_or_logic",
+                            "reason": "same error repeated",
+                            "error_type": et_prev,
+                        },
                     },
                 )
                 return
@@ -2762,8 +2767,6 @@ def build_execution_packet(
     )
 
 
-_HISTORY_DEBUG_LIMIT = 5
-
 _EXEC_HISTORY_SUCCESS = frozenset(
     {
         "patch_applied",
@@ -2849,39 +2852,6 @@ def execution_history_repeated_errors(execution: dict[str, Any] | None) -> list[
             out.append({"execution_result": er, "error_type": et, "count": n})
     out.sort(key=lambda x: int(x.get("count") or 0), reverse=True)
     return out
-
-
-def _execution_history_debug_from_execution(
-    execution: dict[str, Any] | None,
-) -> tuple[list[dict[str, Any]], list[str]]:
-    """last_result: son N execution özeti + audit_id zinciri (debug)."""
-    if not isinstance(execution, dict):
-        return [], []
-    raw = execution.get("history")
-    if not isinstance(raw, list) or len(raw) == 0:
-        aid = str(execution.get("audit_id") or "")
-        row = {
-            "audit_id": aid,
-            "execution_result": str(execution.get("execution_result") or ""),
-            "error_type": str(execution.get("error_type") or ""),
-        }
-        return [row], ([aid] if aid else [])
-    summary: list[dict[str, Any]] = []
-    aids: list[str] = []
-    for snap in raw[-_HISTORY_DEBUG_LIMIT:]:
-        if not isinstance(snap, dict):
-            continue
-        aid = str(snap.get("audit_id") or "")
-        summary.append(
-            {
-                "audit_id": aid,
-                "execution_result": str(snap.get("execution_result") or ""),
-                "error_type": str(snap.get("error_type") or ""),
-            }
-        )
-        if aid:
-            aids.append(aid)
-    return summary, aids
 
 
 def build_result_packet(
@@ -2977,9 +2947,16 @@ def build_result_packet(
     else:
         outcome = "partial" if brain_success else "failed"
 
-    sum_h, chain_aids = _execution_history_debug_from_execution(
-        execution_out if isinstance(execution_out, dict) else None
-    )
+    if isinstance(execution_out, dict):
+        execution_history_summary = execution_out.get("history", [])
+        if not isinstance(execution_history_summary, list):
+            execution_history_summary = []
+        audit_id_chain = execution_out.get("audit_id_chain", [])
+        if not isinstance(audit_id_chain, list):
+            audit_id_chain = []
+    else:
+        execution_history_summary = []
+        audit_id_chain = []
     return CursorResultPacketV1(
         schema_version=SCHEMA_RESULT,
         goal_preview=goal_preview,
@@ -2993,8 +2970,8 @@ def build_result_packet(
         unverified_count=u,
         simulation_count=sim,
         execution=execution_out,
-        execution_history_summary=sum_h,
-        audit_id_chain=chain_aids,
+        execution_history_summary=execution_history_summary,
+        audit_id_chain=audit_id_chain,
     )
 
 
