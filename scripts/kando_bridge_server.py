@@ -228,7 +228,7 @@ def _parse_agent_file_action(blob: str) -> tuple[Path, str] | None:
 
 
 def _maybe_agent_auto_patch(blob: str) -> None:
-    """Blob içinde geçen tüm tanımlı aksiyonları aynı dosyaya uygular (sırayla, tekrarsız)."""
+    """Multi-action: aynı istekte birden fazla aksiyon; INTENT_SYNONYMS ile genişletilmiş eşleşme."""
     try:
         expanded = _expand_intent_blob(blob)
         fp = ROOT / "src" / "core" / "lumos_runtime.py"
