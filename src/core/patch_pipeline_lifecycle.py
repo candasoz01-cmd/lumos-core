@@ -527,3 +527,5 @@ def enrich_pipeline_with_execution(
 # lumos:instruction-pipeline safe touch
 
 # lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
