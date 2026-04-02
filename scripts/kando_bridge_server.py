@@ -185,6 +185,12 @@ def _run_cursor_bridge(instruction: str) -> tuple[int, str]:
     return proc.returncode, summary
 
 
+INTENT_SYNONYMS = {
+    "print": ["print", "yazdır", "log", "debug"],
+    "comment": ["yorum", "aciklama", "not"],
+    "safe_touch": ["safe touch", "dokun", "guvenli dokun"],
+}
+
 AGENT_AUTO_ACTIONS: tuple[tuple[tuple[str, ...], str], ...] = (
     (("print ekle",), 'print("agent auto")'),
     (("yorum ekle",), "# agent auto comment"),
@@ -201,11 +207,7 @@ def _maybe_agent_auto_patch(blob: str) -> None:
 
         updated = False
         for triggers, line in AGENT_AUTO_ACTIONS:
-            if any(trigger in s for trigger in triggers):
-                pass
-            elif "print" in s:
-                line = 'print("agent auto debug")'
-            else:
+            if not any(trigger in s for trigger in triggers):
                 continue
             if line in txt:
                 continue
