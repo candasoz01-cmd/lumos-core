@@ -192,22 +192,32 @@ INTENT_SYNONYMS = {
 }
 
 AGENT_AUTO_ACTIONS: tuple[tuple[tuple[str, ...], str], ...] = (
-    (("print ekle",), 'print("agent auto")'),
-    (("yorum ekle",), "# agent auto comment"),
-    (("safe touch", "dokun"), "# lumos:agent-auto safe touch"),
+    (("print ekle", "print"), 'print("agent auto")'),
+    (("yorum ekle", "comment"), "# agent auto comment"),
+    (("safe touch", "dokun", "safe_touch"), "# lumos:agent-auto safe touch"),
 )
+
+
+def _expand_intent_blob(blob: str) -> str:
+    """Metne kanonik intent anahtarlarını ekler (INTENT_SYNONYMS eşleşmeleri)."""
+    low = (blob or "").strip().lower()
+    expanded = low
+    for canon, words in INTENT_SYNONYMS.items():
+        if any(word in low for word in words):
+            expanded += f" {canon}"
+    return expanded
 
 
 def _maybe_agent_auto_patch(blob: str) -> None:
     """Blob içinde geçen tüm tanımlı aksiyonları aynı dosyaya uygular (sırayla, tekrarsız)."""
     try:
-        s = (blob or "").strip().lower()
+        expanded = _expand_intent_blob(blob)
         fp = ROOT / "src" / "core" / "lumos_runtime.py"
         txt = fp.read_text(encoding="utf-8")
 
         updated = False
         for triggers, line in AGENT_AUTO_ACTIONS:
-            if not any(trigger in s for trigger in triggers):
+            if not any(trigger in expanded for trigger in triggers):
                 continue
             if line in txt:
                 continue
