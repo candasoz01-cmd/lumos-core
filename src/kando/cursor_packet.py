@@ -7,23 +7,44 @@ patch / guard / profil semantiği ile uyumlu alanlar (hedef, adım türü, verif
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 Outcome = Literal["applied", "blocked", "failed", "partial", "simulation"]
 
-EXECUTION_TO_OUTCOME: dict[str, str] = {
+# Tek kaynak: köprü ``execution_result`` (ayrıntılı durum) → sonuç paketi ``outcome`` (özet).
+# Görev durumu / brain_success gerektiren durumlar (ör. pending_approval, history_*) tabloda yok;
+# ``map_execution_to_outcome`` bunlar için ``unknown`` döner — tam sınıflandırma ``cursor_bridge.build_result_packet`` içindedir.
+EXECUTION_TO_OUTCOME: dict[str, Outcome] = {
     "patch_applied": "applied",
     "no_change": "applied",
+    "approved_and_executed": "applied",
+
     "blocked": "blocked",
+    "locked": "blocked",
+    "blocked_by_rollback": "blocked",
+    "blocked_repeated_failure": "blocked",
+    "target_required": "blocked",
+
     "patch_failed": "failed",
+    "write_failed": "failed",
+    "parse_error": "failed",
     "error": "failed",
 }
 
 
-def map_execution_to_outcome(execution_result: str) -> str:
-    """Köprü ``execution_result`` → sonuç paketi ``outcome`` özet eşlemesi (bilinmeyen: ``unknown``)."""
+
+def map_execution_to_outcome(execution_result: str | None) -> str:
+    """``execution_result`` → ``outcome`` özeti; tabloda yoksa ``unknown`` (bağlam ``cursor_bridge.build_result_packet``)."""
     key = (execution_result or "").strip()
     return EXECUTION_TO_OUTCOME.get(key, "unknown")
+
+
+def packet_outcome_from_execution_result(execution_result: str | None) -> Outcome:
+    """Sonuç JSON / ince köprü: yalnızca ``execution_result`` varken ``outcome`` (unknown → failed)."""
+    o = map_execution_to_outcome(execution_result)
+    if o == "unknown":
+        return "failed"
+    return cast(Outcome, o)
 
 
 @dataclass
