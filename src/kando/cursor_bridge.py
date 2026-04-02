@@ -2295,21 +2295,31 @@ def try_instruction_patch_apply(goal: str, exe: CursorExecutionPacketV1) -> None
         return
 
     prev_ex = exe.constraints.get("execution")
-    et_block = _repeated_error_type_blocks_apply(prev_ex if isinstance(prev_ex, dict) else None)
-    if et_block is not None:
-        rc = 0
-        if isinstance(prev_ex, dict):
-            rc = int(prev_ex.get("retry_count") or 0)
-        _store_execution_and_log(
-            exe,
-            {
-                "execution_result": "blocked_repeated_failure",
-                "detail": f"son 5 adımda aynı hata ({et_block}) 3+ tekrar; patch apply iptal"[:2000],
-                "error_type": et_block,
-                "retry_count": rc,
-            },
-        )
-        return
+    if isinstance(prev_ex, dict):
+        er_prev = str(prev_ex.get("execution_result") or "")
+        et_prev = str(prev_ex.get("error_type") or "")
+
+        if er_prev and et_prev:
+            history = prev_ex.get("history") or []
+            same_error_count = sum(
+                1
+                for h in history
+                if isinstance(h, dict)
+                and str(h.get("execution_result") or "") == er_prev
+                and str(h.get("error_type") or "") == et_prev
+            )
+
+            if same_error_count >= 2:
+                _store_execution_and_log(
+                    exe,
+                    {
+                        "execution_result": "blocked_repeated_failure",
+                        "error_type": et_prev,
+                        "detail": f"aynı hata tekrarlandı: {et_prev}",
+                        "retry_count": 0,
+                    },
+                )
+                return
 
     patch_flow_start = time.time()
     if "TARGET:" in (goal or "").upper():
@@ -2782,25 +2792,6 @@ _EXEC_HISTORY_FAIL = frozenset(
         "blocked_repeated_failure",
     }
 )
-
-
-def _repeated_error_type_blocks_apply(execution: dict[str, Any] | None) -> str | None:
-    """history son 5 kayıtta aynı error_type (boş değil) 3+ → o error_type."""
-    if not isinstance(execution, dict):
-        return None
-    h = execution.get("history")
-    if not isinstance(h, list) or len(h) < 3:
-        return None
-    snaps = [dict(x) for x in h[-5:] if isinstance(x, dict)]
-    counts: Counter[str] = Counter()
-    for s in snaps:
-        et = str(s.get("error_type") or "").strip()
-        if et:
-            counts[et] += 1
-    for et, c in counts.items():
-        if c >= 3:
-            return et
-    return None
 
 
 def get_last_execution(execution: dict[str, Any] | None) -> dict[str, Any] | None:
