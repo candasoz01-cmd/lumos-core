@@ -247,6 +247,8 @@ def insert_above_definition(lines: list[str], line: str) -> list[str]:
     for i, ln in enumerate(lines):
         s = ln.strip()
         if s.startswith("def ") or s.startswith("class "):
+            if not (s.startswith("class SessionMemory") or s.startswith("def logfmt")):
+                continue
             if i > 0 and lines[i - 1].strip() == line.strip():
                 return lines
             lines.insert(i, line)
