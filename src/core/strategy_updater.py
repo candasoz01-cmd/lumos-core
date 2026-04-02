@@ -882,3 +882,5 @@ def apply_self_improvement_cycle(
     return report
 
 # lumos:instruction-pipeline safe touch
+
+# lumos:instruction-pipeline safe touch (resync)
