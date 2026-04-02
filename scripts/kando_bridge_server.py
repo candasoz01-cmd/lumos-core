@@ -198,7 +198,7 @@ AGENT_AUTO_ACTIONS: tuple[tuple[tuple[str, ...], str], ...] = (
 )
 
 
-def _extract_target_file(blob: str) -> Path | None:
+def _extract_target_files(blob: str) -> list[Path]:
     s = (blob or "").lower()
 
     mapping = {
@@ -207,11 +207,12 @@ def _extract_target_file(blob: str) -> Path | None:
         "memory.py": ROOT / "src/memory/memory.py",
     }
 
+    found: list[Path] = []
     for name, path in mapping.items():
         if name in s:
-            return path
+            found.append(path)
 
-    return None
+    return found
 
 
 def _expand_intent_blob(blob: str) -> str:
@@ -236,7 +237,8 @@ def _expand_intent_blob(blob: str) -> str:
 
 def _parse_agent_file_action(blob: str) -> tuple[Path, str] | None:
     """Tek hedef dosya + tek satır (ilk eşleşme veya eş anlamlı fallback)."""
-    fp = _extract_target_file(blob) or (ROOT / "src" / "core" / "lumos_runtime.py")
+    targets = _extract_target_files(blob)
+    fp = targets[0] if targets else (ROOT / "src" / "core" / "lumos_runtime.py")
     expanded = _expand_intent_blob(blob)
 
     for triggers, line in AGENT_AUTO_ACTIONS:
@@ -257,20 +259,22 @@ def _maybe_agent_auto_patch(blob: str) -> None:
     """Multi-action: aynı istekte birden fazla aksiyon; INTENT_SYNONYMS ile genişletilmiş eşleşme."""
     try:
         expanded = _expand_intent_blob(blob)
-        fp = _extract_target_file(blob) or (ROOT / "src" / "core" / "lumos_runtime.py")
-        txt = fp.read_text(encoding="utf-8")
+        targets = _extract_target_files(blob)
+        if not targets:
+            targets = [ROOT / "src" / "core" / "lumos_runtime.py"]
 
-        updated = False
-        for triggers, line in AGENT_AUTO_ACTIONS:
-            if not any(trigger in expanded for trigger in triggers):
-                continue
-            if line in txt:
-                continue
-            txt += f"\n\n{line}\n"
-            updated = True
-
-        if updated:
-            fp.write_text(txt, encoding="utf-8")
+        for fp in targets:
+            txt = fp.read_text(encoding="utf-8")
+            updated = False
+            for triggers, line in AGENT_AUTO_ACTIONS:
+                if not any(trigger in expanded for trigger in triggers):
+                    continue
+                if line in txt:
+                    continue
+                txt += f"\n\n{line}\n"
+                updated = True
+            if updated:
+                fp.write_text(txt, encoding="utf-8")
 
     except OSError:
         pass
