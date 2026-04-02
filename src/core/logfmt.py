@@ -13,4 +13,3 @@ def logfmt(event: str, **kwargs: Any) -> str:
     return " | ".join(parts)
 
 
-# agent auto comment

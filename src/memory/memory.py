@@ -40,4 +40,3 @@ class Memory:
         self.notes.append(note)
 
 
-# agent auto comment
