@@ -1816,6 +1816,9 @@ def _run_instruction_apply_to_exe(
         force=force,
         patch_flow_start=patch_flow_start,
     )
+    if isinstance(info, dict):
+        info["history"] = exe.constraints.get("history", [])
+        info["audit_id_chain"] = exe.constraints.get("audit_id_chain", [])
     hp = bool(info.get("had_previous"))
     if not ok and info.get("kind") == "high_risk_blocked":
         _store_execution_and_log(
