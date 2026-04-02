@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import subprocess
 import threading
 import uuid
@@ -289,6 +290,21 @@ def _write_json(path: Path, data: dict[str, Any]) -> None:
     tmp.replace(path)
 
 
+def _copy_cursor_bridge_snapshots_to_outbox(repo_root: Path, outbox_dir: Path) -> None:
+    """`.lumos/cursor_bridge/last_*.json` → outbox (agent tamamlanınca güncel execution/history)."""
+    try:
+        src_dir = (repo_root / ".lumos" / "cursor_bridge").resolve()
+        dst_dir = outbox_dir.resolve()
+        dst_dir.mkdir(parents=True, exist_ok=True)
+        for name in ("last_result.json", "last_execution.json"):
+            src = src_dir / name
+            dst = dst_dir / name
+            if src.is_file():
+                shutil.copy2(src, dst)
+    except OSError:
+        pass
+
+
 @dataclass
 class AgentJobState:
     job_id: str
@@ -464,6 +480,7 @@ def start_agent_job(
             _write_json(path_status, done_payload)
             last_path = outbox_dir / "agent_last.json"
             _write_json(last_path, fr)
+            _copy_cursor_bridge_snapshots_to_outbox(rr, outbox_dir)
         except Exception as e:
             state.status = "failed"
             state.errors.append(str(e)[:2000])
