@@ -185,6 +185,21 @@ def _run_cursor_bridge(instruction: str) -> tuple[int, str]:
     return proc.returncode, summary
 
 
+def _maybe_agent_auto_patch(blob: str) -> None:
+    """Agent hedefinde 'print ekle' varsa lumos_runtime.py sonuna tanı koyar (yerel otomasyon)."""
+    try:
+        if "print ekle" not in (blob or ""):
+            return
+        fp = ROOT / "src" / "core" / "lumos_runtime.py"
+        txt = fp.read_text(encoding="utf-8")
+        if 'print("agent auto")' in txt:
+            return
+        txt += '\n\nprint("agent auto")\n'
+        fp.write_text(txt, encoding="utf-8")
+    except OSError:
+        pass
+
+
 def _resolve_task_routing(
     content_type: str | None,
     raw: bytes,
@@ -236,6 +251,7 @@ def _resolve_task_routing(
             if pipe:
                 inst = _build_target_instruction(pipe[0], pipe[1])
                 return None, "direct_patch", inst
+            _maybe_agent_auto_patch(blob)
             return None, "agent", blob
 
         return "json: file+task veya text/goal gerekli", None, None
@@ -253,6 +269,7 @@ def _resolve_task_routing(
         ef, et = extract_file_task(blob)
         if ef and et:
             return None, "direct_patch", _build_target_instruction(ef, et)
+        _maybe_agent_auto_patch(blob)
         return None, "agent", blob
 
     # --- düz metin ---
@@ -265,6 +282,7 @@ def _resolve_task_routing(
     ef, et = extract_file_task(blob)
     if ef and et:
         return None, "direct_patch", _build_target_instruction(ef, et)
+    _maybe_agent_auto_patch(blob)
     return None, "agent", blob
 
 
