@@ -202,9 +202,19 @@ def _expand_intent_blob(blob: str) -> str:
     """Metne kanonik intent anahtarlarını ekler (INTENT_SYNONYMS eşleşmeleri)."""
     low = (blob or "").strip().lower()
     expanded = low
+    tokens = re.findall(r"[a-zA-Z0-9_çğıöşüÇĞİÖŞÜ]+", low)
+
     for canon, words in INTENT_SYNONYMS.items():
-        if any(word in low for word in words):
-            expanded += f" {canon}"
+        for word in words:
+            w = word.lower()
+            if " " in w:
+                if w in low:
+                    expanded += f" {canon}"
+                    break
+            else:
+                if w in tokens:
+                    expanded += f" {canon}"
+                    break
     return expanded
 
 
