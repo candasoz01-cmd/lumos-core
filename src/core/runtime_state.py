@@ -136,3 +136,5 @@ def lumos_test_ping():
 # TEST_LOCK
 
 # lumos:instruction-pipeline safe touch (resync)
+
+# lumos:instruction-pipeline safe touch (resync)
