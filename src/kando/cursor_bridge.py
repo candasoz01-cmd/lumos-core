@@ -618,6 +618,7 @@ def _set_execution_without_patch_log(
 
 
 def _append_patch_apply_log(lumos_base: Path | None, execution: dict[str, Any]) -> None:
+    logger.info(f"LOG DEBUG execution={execution}")
     if lumos_base is None:
         return
     try:

@@ -67,6 +67,8 @@ class CursorResultPacketV1:
     unverified_count: int
     simulation_count: int
     execution: dict[str, Any] | None = None
+    execution_history_summary: list[dict[str, Any]] = field(default_factory=list)
+    audit_id_chain: list[str] = field(default_factory=list)
 
     def to_json_dict(self) -> dict[str, Any]:
         return asdict(self)

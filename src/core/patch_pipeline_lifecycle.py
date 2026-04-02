@@ -523,3 +523,5 @@ def enrich_pipeline_with_execution(
         return _instruction_target_pipeline_from_execution(execution)
 
     return snapshot or {}
+
+# lumos:instruction-pipeline safe touch
