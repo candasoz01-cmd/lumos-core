@@ -215,6 +215,29 @@ def _extract_target_files(blob: str) -> list[Path]:
     return found
 
 
+def smart_insert(txt: str, line: str) -> str:
+    lines = txt.splitlines()
+
+    last_import = -1
+    for i, ln in enumerate(lines):
+        s = ln.strip()
+        if s.startswith("import ") or s.startswith("from "):
+            last_import = i
+
+    if last_import != -1:
+        lines.insert(last_import + 1, line)
+        return "\n".join(lines)
+
+    for i, ln in enumerate(lines):
+        if ln.strip().startswith("class "):
+            base_indent = len(ln) - len(ln.lstrip())
+            indent = " " * (base_indent + 4)
+            lines.insert(i + 1, indent + line)
+            return "\n".join(lines)
+
+    return txt + "\n\n" + line + "\n"
+
+
 def _expand_intent_blob(blob: str) -> str:
     """Metne kanonik intent anahtarlarını ekler (INTENT_SYNONYMS eşleşmeleri)."""
     low = (blob or "").strip().lower()
@@ -269,9 +292,9 @@ def _maybe_agent_auto_patch(blob: str) -> None:
             for triggers, line in AGENT_AUTO_ACTIONS:
                 if not any(trigger in expanded for trigger in triggers):
                     continue
-                if line in txt:
+                if line.strip() in txt:
                     continue
-                txt += f"\n\n{line}\n"
+                txt = smart_insert(txt, line)
                 updated = True
             if updated:
                 fp.write_text(txt, encoding="utf-8")
