@@ -1,0 +1,68 @@
+from __future__ import annotations
+
+import json
+from dataclasses import asdict, is_dataclass
+from pathlib import Path
+from typing import List, Any
+
+from core.workspace_contract import save_notes_enc_json
+from security.crypto import aesgcm_encrypt, aesgcm_decrypt, b64e, b64d
+
+
+class SecureNotesStore:
+    """
+    Notları diske şifreli yaz/oku.
+    - key: 32 byte root_key
+    - AES-GCM
+    - Format versionlu (ileride migrate kolay)
+    - is_sandbox_mode: merkezi sink'e iletilir; sandbox açıkken canlı çekirdek path'e yazma guard'da reddedilir.
+    """
+    def __init__(
+        self,
+        base_dir: str = "src/.lumos",
+        filename: str = "notes.enc.json",
+        *,
+        is_sandbox_mode: bool = False,
+    ):
+        self.base = Path(base_dir)
+        self.base.mkdir(parents=True, exist_ok=True)
+        self.path = self.base / filename
+        self.aad = b"lumos-notes-v1"
+        self._is_sandbox_mode = is_sandbox_mode
+
+    def _to_plain(self, notes: List[Any]) -> bytes:
+        out = []
+        for n in notes:
+            if is_dataclass(n):
+                out.append(asdict(n))
+            elif isinstance(n, dict):
+                out.append(n)
+            else:
+                out.append(getattr(n, "__dict__", {"value": str(n)}))
+        return json.dumps({"v": 1, "notes": out}, ensure_ascii=False).encode("utf-8")
+
+    def _from_plain(self, b: bytes) -> List[dict]:
+        data = json.loads(b.decode("utf-8"))
+        return list(data.get("notes", []))
+
+    def load(self, root_key: bytes) -> List[dict]:
+        if not self.path.exists():
+            return []
+        data = json.loads(self.path.read_text(encoding="utf-8"))
+        nonce = b64d(data["nonce_b64"])
+        ct = b64d(data["ct_b64"])
+        plain = aesgcm_decrypt(root_key, nonce, ct, aad=self.aad)
+        return self._from_plain(plain)
+
+    def save(self, root_key: bytes, notes: List[Any]) -> None:
+        plain = self._to_plain(notes)
+        nonce, ct = aesgcm_encrypt(root_key, plain, aad=self.aad)
+        data = {
+            "v": 1,
+            "cipher": "aesgcm",
+            "aad": "lumos-notes-v1",
+            "nonce_b64": b64e(nonce),
+            "ct_b64": b64e(ct),
+        }
+        # notes.enc.json yazımı merkezi sink üzerinden; guard korunur.
+        save_notes_enc_json(self.base, data, is_sandbox_mode=self._is_sandbox_mode)

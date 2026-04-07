@@ -22,23 +22,30 @@ def read_verifier(
     error: str,
     verified_from_executor: bool,
 ) -> VerificationResult:
-    """verified=True only if real data was actually read (executor confirmed read success)."""
+    """verified=True only if disk read succeeded, executor onayladı ve stdout boş değil."""
     if not ok or error:
         return VerificationResult(
             verified=False,
             reason="read_failed",
             details=error or "Okuma tamamlanamadı.",
         )
+    out = (output or "").strip()
+    if not out:
+        return VerificationResult(
+            verified=False,
+            reason="no_data",
+            details="Okuma çıktısı boş; başarılı sayılmaz.",
+        )
     if verified_from_executor:
         return VerificationResult(
             verified=True,
             reason="data_read",
-            details=output or "Veri okundu.",
+            details=out,
         )
     return VerificationResult(
         verified=False,
         reason="no_data",
-        details=output or "Veri okunamadı (simülasyon).",
+        details=out or "Okuma doğrulanamadı.",
     )
 
 

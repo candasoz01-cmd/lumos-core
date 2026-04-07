@@ -27,3 +27,12 @@ KURATOR*.md
 
 KURATOR_GIT_TALIMAT.md
 KURATOR_SON_RAPOR.md
+.env
+
+*.bak
+*.heic
+
+test.py
+file
+kando-ai/*.jpg
+kando-ai/*.png

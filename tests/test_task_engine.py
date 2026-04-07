@@ -439,7 +439,8 @@ def test_action_registry_execute_dispatches_by_kind():
     ok_s, out_s, err_s, ver_s = reg.execute(step_s, task, ctx)
     assert ok_a is True and "Analiz tamamlandı" in out_a and ver_a is False
     assert ok_p is True and "Adımlar planlandı" in out_p and ver_p is False
-    assert ok_r is True and err_r == "" and ver_r is False  # no base_dir -> unverified
+    assert ok_r is False and out_r == "" and ver_r is False  # no base_dir -> okunamadı
+    assert err_r
     assert ok_s is True and "Güvenli yerel iş tamamlandı" in out_s and ver_s is False
 
 
@@ -487,8 +488,10 @@ def test_verification_verifier_dispatch_by_kind():
     step_r = TaskStep("Oku", kind=STEP_TYPE_READ)
     res_r_yes = eng.verify(step_r, task, ctx, True, "Okundu.", "", True)
     res_r_no = eng.verify(step_r, task, ctx, True, "Simülasyon", "", False)
+    res_r_empty = eng.verify(step_r, task, ctx, True, "", "", True)
     assert res_r_yes.verified is True and res_r_yes.reason == "data_read"
     assert res_r_no.verified is False and res_r_no.reason == "no_data"
+    assert res_r_empty.verified is False and res_r_empty.reason == "no_data"
     # analyze: always simulation
     step_a = TaskStep("Analiz", kind=STEP_TYPE_ANALYZE)
     res_a = eng.verify(step_a, task, ctx, True, "Analiz tamamlandı.", "", False)

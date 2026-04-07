@@ -17,7 +17,7 @@ def _read_notes_or_tasks_verified(base_dir: Path | None) -> tuple[bool, str]:
     """
     Gerçekten görev deposu (tasks.json) okunabildiyse doğrulanmış sayılır.
     TaskStore aynı base_dir ile base_dir/tasks.json kullanır; burada da onu okuyoruz.
-    base_dir yoksa veya okuma yapılamadıysa (simülasyon) verified=False.
+    base_dir yoksa veya okuma yapılamadıysa verified=False.
     """
     if not base_dir:
         return False, "Veri okunamadı (bağlam yok)."
@@ -26,10 +26,11 @@ def _read_notes_or_tasks_verified(base_dir: Path | None) -> tuple[bool, str]:
         try:
             data = json.loads(tasks_file.read_text(encoding="utf-8"))
             n = len(data.get("tasks", []))
-            return True, f"Görev listesi okundu. Kayıtlı görev sayısı: {n}."
+            out = f"Görev listesi okundu. Kayıtlı görev sayısı: {n}."
+            return True, out
         except Exception:
             pass
-    return False, "Kayıtlı veri okunamadı (simülasyon)."
+    return False, "Kayıtlı veri okunamadı."
 
 
 def read_executor(
@@ -37,6 +38,8 @@ def read_executor(
     task: "TaskRecord",
     context: ExecutionContext,
 ) -> tuple[bool, str, str, bool]:
-    """Run read step; verified when base_dir and tasks.json read successfully."""
+    """Run read step; ok yalnızca diskten gerçek okuma ve anlamlı stdout olduğunda."""
     verified, msg = _read_notes_or_tasks_verified(context.base_dir)
-    return True, msg, "", verified
+    if verified:
+        return True, msg, "", True
+    return False, "", msg, False

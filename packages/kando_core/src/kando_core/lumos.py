@@ -1,0 +1,71 @@
+import os
+from dataclasses import dataclass, field
+from typing import Optional
+from context.context import Context
+from policy.rules import PolicyRules
+from memory.memory import Memory
+from memory.session_memory import SessionMemory
+from engine.base_engine import BaseEngine
+from policy.offline_engine import OfflineEngineV1
+from core.version import VERSION
+from security.lock import LockState
+
+@dataclass
+class Lumos:
+    mode: str = "offline"
+    confidence_threshold: float = 0.70
+
+    note_memory: Memory = field(default_factory=Memory)
+    session_memory: SessionMemory = field(default_factory=SessionMemory)
+
+    engine: BaseEngine = field(default_factory=OfflineEngineV1)
+
+    lock_state: LockState = field(default_factory=LockState)
+
+    def boot(self) -> None:
+        print("LUMOS CORE")
+        print("secure runtime link...")
+        print("policy guard online")
+        print("memory channel linked")
+        print("planner ready")
+        print("task engine ready")
+        print("verification ready")
+        print("observation ready")
+        print("system stable")
+        print(f"Version: {VERSION} | Mod: {self.mode}")
+
+    def respond(self, ctx: Context) -> Optional[str]:
+        """PolicyRules path: used by scripts/tests. CLI free-text uses live_brain path (on_live_brain → handle_live_brain → online_engine.process), not this."""
+        # 0) Lock state
+        ctx.is_unlocked = bool(getattr(self.lock_state, 'unlocked', False))
+
+        # 1) Session short_context
+        ctx = self.session_memory.enrich(ctx)
+
+        # 2) Note memory (TTL / notes)
+        ctx = self.note_memory.enrich(ctx)
+
+        decision = PolicyRules.evaluate(
+            ctx=ctx,
+            mode=self.mode,
+            confidence_threshold=self.confidence_threshold,
+            engine=self.engine
+        )
+
+        if not decision.allow:
+            return None
+
+        debug_on = os.getenv("LUMOS_DEBUG", "0") == "1"
+
+        if decision.payload:
+            r = decision.payload.get("response", "")
+            reason = decision.payload.get("reason", "")
+            follow = decision.payload.get("follow_up", "")
+            debug = decision.payload.get("debug", "")
+
+            parts = [p for p in [r, reason, follow] if p]
+            if debug_on and debug:
+                parts.append(debug)
+            return " | ".join(parts)
+
+        return "Lumos burada."
