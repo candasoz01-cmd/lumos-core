@@ -261,6 +261,21 @@
     .chat-composer--unclear .composer-field button:hover:not(:disabled) {
       background: #4a4a4a;
     }
+    .creative-send-task-row {
+      padding: 0.45rem 0 0;
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      max-width: 768px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    .creative-send-task-row.hidden {
+      display: none !important;
+    }
+    .creative-send-task-row .secondary {
+      font-size: 0.9rem;
+    }
     .chat-intent-hint {
       display: flex;
       flex-direction: column;
@@ -1399,6 +1414,11 @@
               <textarea id="chatInput" placeholder="Ne yapmak istiyorsun?" rows="1"></textarea>
               <button type="button" id="btnChat">Gönder</button>
             </div>
+            <div id="creativeSendTaskRow" class="creative-send-task-row hidden" aria-live="polite">
+              <button type="button" class="secondary" id="btnCreativeSendTask">
+                Görev olarak gönder
+              </button>
+            </div>
             <div id="chatGateHint" class="chat-gate-hint hidden" aria-live="polite"></div>
             <div id="chatIntentHint" class="chat-intent-hint hidden" aria-live="polite">
               <span class="chat-intent-micro" id="chatIntentMicro" aria-hidden="true"></span>
@@ -1591,6 +1611,64 @@
 
   let creativeStarterChosen = false;
 
+  /**
+   * Yönlendirilmiş sohbet: his / sahne / detay — görev yalnızca «Görev olarak gönder» ile.
+   */
+  const creativeFlowState = {
+    emotion: "",
+    scene: "",
+    detail: "",
+  };
+
+  function resetCreativeFlowState() {
+    creativeFlowState.emotion = "";
+    creativeFlowState.scene = "";
+    creativeFlowState.detail = "";
+  }
+
+  function isCreativeFlowReady() {
+    return !!(
+      String(creativeFlowState.emotion || "").trim() &&
+      String(creativeFlowState.scene || "").trim() &&
+      String(creativeFlowState.detail || "").trim()
+    );
+  }
+
+  function showSendTaskButton() {
+    const row = $("creativeSendTaskRow");
+    if (row) row.classList.remove("hidden");
+  }
+
+  function hideSendTaskButton() {
+    const row = $("creativeSendTaskRow");
+    if (row) row.classList.add("hidden");
+  }
+
+  /**
+   * Yaratıcı akış: POST /task yalnızca «Görev olarak gönder» ile.
+   * Sohbet sırasında asla çağrılmaz; yalnızca «Görev olarak gönder» düğmesi createTask() çağırır.
+   */
+  async function createTask() {
+    if (!isCreativeFlowReady()) return;
+    const summary = [
+      "[Yaratıcı özet — sohbetten]",
+      "His: " + String(creativeFlowState.emotion).trim(),
+      "İlk sahne: " + String(creativeFlowState.scene).trim(),
+      "Kritik detay: " + String(creativeFlowState.detail).trim(),
+    ].join("\n");
+    hideSendTaskButton();
+    setTaskCategory("text");
+    const tf = $("taskFile");
+    const tt = $("taskText");
+    if (tf) tf.value = "";
+    if (tt) tt.value = summary;
+    setActivePanel("task");
+    await submitTaskFormFromPanel();
+    resetCreativeFlowState();
+    flowEngineResetSoft();
+    updateCreativeEntryVisibility();
+  }
+
   /** Oturum bazlı yaratıcı akış motoru (tek soru / tek cevap; brief birikimi). */
   function createLumosFlowState() {
     return {
@@ -1626,8 +1704,10 @@
   const LUMOS_CREATIVE_GUIDED = [
     "Bu iş sana nasıl hissettirmeli?",
     "İlk sahnede ne kesin olmalı? İlk aklına geleni yaz.",
-    "Burada toparlayıp görev tarafına mı geçelim, yoksa biraz daha mı inelim?",
   ];
+
+  const LUMOS_CREATIVE_GUIDED_DETAIL =
+    "Burada tek kritik detay ne?";
 
   const LUMOS_CREATIVE_DEEP = [
     "Ortam: nerede, nasıl bir mekân? Geçmek için «geç» yaz.",
@@ -1800,6 +1880,7 @@
     const lines = [];
     if (b.feeling) lines.push("• His / ton: " + b.feeling);
     if (b.first_scene) lines.push("• İlk sahne / kare: " + b.first_scene);
+    if (b.user_intent) lines.push("• Kritik detay / niyet: " + b.user_intent);
     if (b.world) lines.push("• Ortam: " + b.world);
     if (b.center) lines.push("• Merkez: " + b.center);
     if (b.flow) lines.push("• Akış: " + b.flow);
@@ -1808,7 +1889,13 @@
 
   function buildSuggestedTaskLine() {
     const b = lumosFlow.brief;
-    const parts = [b.first_scene, b.feeling, b.world, b.center].filter(Boolean);
+    const parts = [
+      b.first_scene,
+      b.feeling,
+      b.user_intent,
+      b.world,
+      b.center,
+    ].filter(Boolean);
     return parts.join(" · ").replace(/\s+/g, " ").trim().slice(0, 280);
   }
 
@@ -1821,6 +1908,7 @@
       flow: "",
       user_intent: "",
     };
+    resetCreativeFlowState();
   }
 
   function flowEngineResetSoft() {
@@ -1829,6 +1917,7 @@
     lumosFlow.current_stage = "idle";
     lumosFlow.pending_question = null;
     lumosFlow.task_type = null;
+    hideSendTaskButton();
     flowEngineResetBrief();
     updateCreativeEntryVisibility();
   }
@@ -1889,7 +1978,8 @@
     const flowHandledStage =
       stage === "guided_feeling" ||
       stage === "guided_scene" ||
-      stage === "guided_branch" ||
+      stage === "guided_detail" ||
+      stage === "guided_pending_task" ||
       stage === "deep_world" ||
       stage === "deep_center" ||
       stage === "deep_flow";
@@ -1907,41 +1997,51 @@
     chatHistory.push({ role: "user", content: msg });
 
     if (lumosFlow.current_stage === "guided_feeling") {
-      if (!skip) lumosFlow.brief.feeling = msg.trim();
+      if (!skip) {
+        const v = msg.trim();
+        lumosFlow.brief.feeling = v;
+        creativeFlowState.emotion = v;
+      }
       lumosFlow.current_stage = "guided_scene";
       lumosFlow.pending_question = "first_scene";
       emitFlowAssistant(LUMOS_CREATIVE_GUIDED[1], null, LUMOS_MSG.guide, "guided");
       return true;
     }
     if (lumosFlow.current_stage === "guided_scene") {
-      if (!skip) lumosFlow.brief.first_scene = msg.trim();
-      lumosFlow.current_stage = "guided_branch";
-      lumosFlow.pending_question = "branch";
-      emitFlowAssistant(
-        LUMOS_CREATIVE_GUIDED[2],
-        [
-          { label: "Burada toparlayalım", onCreative: "guided-fast" },
-          { label: "Biraz daha inelim", onCreative: "guided-deep" },
-        ],
-        LUMOS_MSG.choice,
-        "guided"
-      );
+      if (!skip) {
+        const v = msg.trim();
+        lumosFlow.brief.first_scene = v;
+        creativeFlowState.scene = v;
+      }
+      lumosFlow.current_stage = "guided_detail";
+      lumosFlow.pending_question = "detail";
+      emitFlowAssistant(LUMOS_CREATIVE_GUIDED_DETAIL, null, LUMOS_MSG.guide, "guided");
       return true;
     }
-    if (lumosFlow.current_stage === "guided_branch") {
-      const goFast =
-        /burada\s*topar|hızlı|toparlay|görev\s*taraf|panel|yeter|bitsin/.test(t);
-      const goDeep =
-        /derin|daha\s*ine|biraz\s*daha|sahne|adım\s*adım|birlikte\s*ine/.test(t);
-      if (goFast) {
-        flowEmitSummaryAndPanels();
-        return true;
+    if (lumosFlow.current_stage === "guided_detail") {
+      if (!skip) {
+        const v = msg.trim();
+        lumosFlow.brief.user_intent = v;
+        creativeFlowState.detail = v;
       }
-      if (goDeep) {
-        flowOnChoiceDeep();
-        return true;
-      }
-      flowEmitSummaryAndPanels();
+      lumosFlow.current_stage = "guided_pending_task";
+      lumosFlow.pending_question = "pending_send";
+      emitFlowAssistant(
+        "Tamam, bunu görev haline getirebilirim. İstersen aşağıdan gönderebilirsin.",
+        null,
+        LUMOS_MSG.guide,
+        "guided"
+      );
+      showSendTaskButton();
+      return true;
+    }
+    if (lumosFlow.current_stage === "guided_pending_task") {
+      emitFlowAssistant(
+        "Görevi sunucuya göndermek için alttaki «Görev olarak gönder» düğmesine bas.",
+        null,
+        LUMOS_MSG.guide,
+        "guided"
+      );
       return true;
     }
     if (lumosFlow.current_stage === "deep_world") {
@@ -4536,7 +4636,7 @@
     if (activityFeed.length !== before) renderFeed();
   }
 
-  /** Görev yaşam döngüsü satırı id — sendTask ile aynı ackBase. */
+  /** Görev yaşam döngüsü satırı id — submitTaskFormFromPanel ile aynı ackBase. */
   function taskLifecycleFeedId(ackBase) {
     return "task-lifecycle-" + String(ackBase || "");
   }
@@ -6750,7 +6850,7 @@
     return "Görev alındı: " + summary;
   }
 
-  async function sendTask() {
+  async function submitTaskFormFromPanel() {
     const built = buildTaskBodyFromCategory();
     const file = built.file;
     const task = built.task;
@@ -7537,7 +7637,13 @@
 
   $("btnHealth").addEventListener("click", fetchHealth);
   $("btnChat").addEventListener("click", sendChat);
-  $("btnTask").addEventListener("click", sendTask);
+  const btnCreativeSendTask = $("btnCreativeSendTask");
+  if (btnCreativeSendTask) {
+    btnCreativeSendTask.addEventListener("click", function () {
+      createTask();
+    });
+  }
+  $("btnTask").addEventListener("click", submitTaskFormFromPanel);
   $("btnOutbox").addEventListener("click", loadOutbox);
   $("btnPending").addEventListener("click", loadPending);
 
@@ -7566,7 +7672,7 @@
     if (el) el.addEventListener("click", closeVideoTaskDrawer);
   });
   if ($("btnVideoDrawerSubmit")) {
-    $("btnVideoDrawerSubmit").addEventListener("click", sendTask);
+    $("btnVideoDrawerSubmit").addEventListener("click", submitTaskFormFromPanel);
   }
 
   $("chatInput").addEventListener("keydown", function (ev) {
