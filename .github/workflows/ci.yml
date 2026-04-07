@@ -28,6 +28,9 @@ jobs:
           python -m pip install -e .
           python -m pip install pytest ruff
 
+      - name: Set PYTHONPATH
+        run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)/packages/kando_runtime/src" >> $GITHUB_ENV
+
       - name: Test
         run: pytest -q
 
