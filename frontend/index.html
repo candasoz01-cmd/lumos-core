@@ -1554,7 +1554,7 @@
       position: fixed;
       inset: 0;
       z-index: 250;
-      background: #0a0a0a;
+      background: transparent;
     }
     .video-fullscreen {
       width: 100%;
@@ -5226,10 +5226,10 @@
       const r = res && typeof res === "object" ? res : {};
       video.src = r.output?.url || "/out.mp4";
       video.addEventListener("waiting", function () {
-        video.style.opacity = 0.3;
+        video.style.opacity = "0.3";
       });
       video.addEventListener("playing", function () {
-        video.style.opacity = 1;
+        video.style.opacity = "1";
       });
     }
   }
