@@ -712,6 +712,13 @@ def dispatch_task(task: dict[str, Any]) -> dict[str, Any]:
     Dönüş: task_type, dispatch_execution_plan, execution_dispatch (executor, queue);
     file/shell için plan ok ve execution_permitted ise gerçek yürütme; aksi halde atlanmış kayıt.
     """
+    task_type = task.get("task_type")
+
+    if task_type == "text.generate":
+        from kando_runtime.executors.text_executor import run
+
+        return run(task)
+
     task_type = task.get("task_type") or task.get("type")
     if task_type:
         task["task_type"] = task_type
@@ -751,11 +758,6 @@ def dispatch_task(task: dict[str, Any]) -> dict[str, Any]:
                 ]
             },
         }
-
-    if task_type == "text.generate":
-        from kando_runtime.executors.text_executor import run
-
-        return run(task)
 
     execution_mode = str(out.get("execution_mode") or "").lower()
     hb = out.get("http_body") if isinstance(out.get("http_body"), dict) else {}
