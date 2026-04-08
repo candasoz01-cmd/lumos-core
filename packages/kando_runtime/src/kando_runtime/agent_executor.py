@@ -7,12 +7,11 @@ def run(task_ctx):
     api_key = os.getenv("OPENAI_API_KEY")
 
     if not api_key:
-        result = f"[AGENT fallback] {prompt}"
         return {
             "status": "done",
             "output": {
                 "type": "text",
-                "value": result
+                "value": f"[AGENT fallback] {prompt}"
             }
         }
 
@@ -28,13 +27,13 @@ def run(task_ctx):
             ]
         )
 
-        result = response.choices[0].message.content or ""
+        text = response.choices[0].message.content
 
         return {
             "status": "done",
             "output": {
                 "type": "text",
-                "value": result
+                "value": text
             }
         }
 

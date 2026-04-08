@@ -299,11 +299,14 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
     intent = _parse_intent(prompt)
     if intent.get("type") == "fıkra" or intent.get("style") == "absürt":
         return {
-            "status": "routed",
-            "target": "agent",
-            "task": {
-                "type": "agent",
-                "prompt": prompt,
+            "status": "done",
+            "output": {
+                "type": "route",
+                "target": "agent",
+                "task": {
+                    "type": "agent",
+                    "prompt": prompt,
+                },
             },
         }
     system = _build_system_layer(intent)
