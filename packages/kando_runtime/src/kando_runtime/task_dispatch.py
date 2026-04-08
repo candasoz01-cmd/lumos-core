@@ -100,6 +100,22 @@ _EXECUTOR_FOR_TYPE: dict[TaskType, str | None] = {
 }
 
 
+def generate_id() -> str:
+    return f"task_{int(time.time() * 1000)}_{secrets.token_hex(4)}"
+
+
+approval_store: dict[str, str] = {}
+
+
+def is_approved(task_id: str) -> bool:
+    return approval_store.get(task_id) == "approved"
+
+
+def infer_risk(task: dict[str, Any]) -> str:
+    out = task.get("out") or task.get("gate_out") or {}
+    return _dispatch_risk_from_out(out if isinstance(out, dict) else {})
+
+
 def infer_media_subtype(text: str) -> Literal["video", "image", "audio"]:
     """Açık ipucu yoksa video kuyruğu (geniş medya varsayılanı)."""
     low = (text or "").strip().lower()
@@ -381,7 +397,9 @@ def execute_approved_dispatch_pending(
         queue = cast(QueueName, "shell_executor_pending")
         label_tr = "Shell yürütücüsüne yönlendirildi"
 
+    task_id = str(loaded.get("task_id") or generate_id())
     result: dict[str, Any] = {
+        "task_id": task_id,
         "task_type": task_type,
         "dispatch_execution_plan": plan_out,
         "execution_dispatch": {
@@ -466,6 +484,7 @@ def _persist_medium_dispatch_pending(
     dispatch_execution_plan_snapshot: dict[str, Any],
     task_type_snapshot: str,
     execution_dispatch_snapshot: dict[str, Any],
+    task_id: str,
 ) -> None:
     """Orta risk file/shell için .lumos/pending_approvals kaydı + out alanları."""
     hb = out.get("http_body") if isinstance(out.get("http_body"), dict) else {}
@@ -491,6 +510,7 @@ def _persist_medium_dispatch_pending(
             "explicit_task_type": explicit,
         },
         "dispatch_execution_plan_snapshot": dict(dispatch_execution_plan_snapshot),
+        "task_id": str(task_id or ""),
         "task_type_snapshot": str(task_type_snapshot),
         "execution_dispatch_snapshot": dict(execution_dispatch_snapshot),
         "gate_http_body_snapshot": hb_snap,
@@ -502,6 +522,11 @@ def _persist_medium_dispatch_pending(
         "approval_file": approval_rel,
         "approval_token": secrets.token_hex(16),
         "used": False,
+        "approval": {
+            "task_id": str(task_id or ""),
+            "risk": "medium",
+            "status": "pending",
+        },
     }
     rs = hb_snap.get("reasoning_snapshot") if isinstance(hb_snap.get("reasoning_snapshot"), dict) else {}
     summ = str(rs.get("summary") or "").strip()
@@ -686,6 +711,8 @@ def dispatch_task(task: dict[str, Any]) -> dict[str, Any]:
     task_type = task.get("task_type") or task.get("type")
     if task_type:
         task["task_type"] = task_type
+    task_id = str(task.get("id") or generate_id())
+    task["id"] = task_id
     text = str(task.get("text") or "").strip()
     if not text:
         text = extract_text_for_dispatch(task.get("out") or task.get("gate_out") or {})
@@ -696,10 +723,28 @@ def dispatch_task(task: dict[str, Any]) -> dict[str, Any]:
         text, str(explicit).strip() if explicit else None, out
     )
     if task_type == "video.generate":
+        task_id = task.get("id") or generate_id()
+        task["id"] = task_id
+
+        risk = infer_risk(task)
+
+        if risk != "low":
+            if not is_approved(task_id):
+                return {
+                    "status": "waiting_approval",
+                    "task_id": task_id,
+                    "risk": risk,
+                }
+
         result = run_video_executor(task)
-        if not isinstance(result, dict):
-            result = {"output": result}
-        return {"status": "done", "output": result.get("output", result)}
+        output = (
+            result.get("output", result) if isinstance(result, dict) else result
+        )
+        return {
+            "status": "done",
+            "output": output,
+            "task_id": task_id,
+        }
 
     execution_mode = str(out.get("execution_mode") or "").lower()
     hb = out.get("http_body") if isinstance(out.get("http_body"), dict) else {}
@@ -772,6 +817,7 @@ def dispatch_task(task: dict[str, Any]) -> dict[str, Any]:
     )
 
     result: dict[str, Any] = {
+        "task_id": task_id,
         "task_type": task_type,
         "dispatch_execution_plan": plan,
         "execution_dispatch": {
@@ -932,4 +978,5 @@ def attach_execution_dispatch_to_out(
             dispatch_execution_plan_snapshot=dict(disp["dispatch_execution_plan"]),
             task_type_snapshot=str(disp["task_type"]),
             execution_dispatch_snapshot=dict(disp["execution_dispatch"]),
+            task_id=str(disp.get("task_id") or ""),
         )

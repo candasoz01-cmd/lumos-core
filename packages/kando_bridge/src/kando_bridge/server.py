@@ -1034,6 +1034,7 @@ def build_pending_approvals_list() -> list[dict]:
             raw_g = str(data.get("raw_text") or title_g or "").strip()
             items.append(
                 {
+                    "task_id": str(data.get("task_id") or ""),
                     "approval_file": str(rel).replace("\\", "/"),
                     "approval_token": str(data.get("approval_token") or ""),
                     "risk_level": str(data.get("risk_level") or "high"),
@@ -1050,6 +1051,24 @@ def build_pending_approvals_list() -> list[dict]:
     except OSError:
         pass
     return items
+
+
+def _find_pending_approval_by_task_id(task_id: str) -> Path | None:
+    tid = str(task_id or "").strip()
+    if not tid:
+        return None
+    try:
+        PENDING_APPROVALS_DIR.mkdir(parents=True, exist_ok=True)
+        for p in sorted(PENDING_APPROVALS_DIR.glob("*.json")):
+            try:
+                data = json.loads(p.read_text(encoding="utf-8"))
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                continue
+            if str(data.get("task_id") or "").strip() == tid:
+                return p
+    except OSError:
+        return None
+    return None
 
 
 class BridgeHandler(BaseHTTPRequestHandler):
@@ -1726,17 +1745,24 @@ class BridgeHandler(BaseHTTPRequestHandler):
             self._reject(400, "json nesne olmalı")
             return
         rel = obj.get("approval_file")
-        if not isinstance(rel, str) or not rel.strip():
-            self._reject(400, "approval_file string gerekli")
+        task_id = obj.get("task_id")
+        if (not isinstance(rel, str) or not rel.strip()) and (
+            not isinstance(task_id, str) or not task_id.strip()
+        ):
+            self._reject(400, "approval_file veya task_id gerekli")
             return
         if not isinstance(obj.get("approved"), bool):
             self._reject(400, "approved boolean gerekli")
             return
         approved = bool(obj["approved"])
 
-        path = _safe_pending_approval_path(ROOT, rel.strip())
+        path: Path | None = None
+        if isinstance(rel, str) and rel.strip():
+            path = _safe_pending_approval_path(ROOT, rel.strip())
+        elif isinstance(task_id, str) and task_id.strip():
+            path = _find_pending_approval_by_task_id(task_id.strip())
         if path is None:
-            self._reject(400, "geçersiz veya bulunamayan approval_file")
+            self._reject(400, "geçersiz veya bulunamayan approval kaydı")
             return
 
         token_in = obj.get("approval_token")
