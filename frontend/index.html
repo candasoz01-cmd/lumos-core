@@ -313,6 +313,40 @@
     .creative-send-task-row .secondary {
       font-size: 0.9rem;
     }
+    .chat-need-input-chips {
+      max-width: 768px;
+      width: 100%;
+      margin: 0.5rem auto 0;
+      padding: 0 0.15rem;
+    }
+    .chat-need-input-chips.hidden {
+      display: none !important;
+    }
+    .chat-need-input-chips-row {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.4rem 0.5rem;
+    }
+    button.chat-need-input-chip {
+      display: inline-flex;
+      align-items: center;
+      max-width: 100%;
+      padding: 0.32rem 0.65rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.78rem;
+      line-height: 1.35;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    button.chat-need-input-chip:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.14);
+    }
     .chat-intent-hint {
       display: flex;
       flex-direction: column;
@@ -1760,6 +1794,12 @@
               <textarea id="chatInput" placeholder="Ne yapmak istiyorsun?" rows="1"></textarea>
               <button type="button" id="btnChat">Gönder</button>
             </div>
+            <div
+              id="chatNeedInputChips"
+              class="chat-need-input-chips hidden"
+              aria-live="polite"
+              aria-hidden="true"
+            ></div>
             <div id="creativeSendTaskRow" class="creative-send-task-row hidden" aria-live="polite">
               <button type="button" class="secondary" id="btnCreativeSendTask">
                 Görev olarak gönder
@@ -7054,9 +7094,99 @@
     });
   }
 
+  /**
+   * dispatch need_input + seçenekler: üst düzey veya task_result.http_body.lumos_dispatch_need_input
+   */
+  function extractNeedInputFromResponse(res) {
+    if (!res || typeof res !== "object") return null;
+    if (
+      res.status === "need_input" &&
+      Array.isArray(res.options) &&
+      res.options.length
+    ) {
+      return {
+        message: res.message,
+        question: res.question,
+        options: res.options,
+        reason: res.reason,
+      };
+    }
+    function fromHb(hb) {
+      if (!hb || typeof hb !== "object") return null;
+      const ni = hb.lumos_dispatch_need_input;
+      if (
+        ni &&
+        typeof ni === "object" &&
+        ni.status === "need_input" &&
+        Array.isArray(ni.options) &&
+        ni.options.length
+      ) {
+        return {
+          message: ni.message,
+          question: ni.question,
+          options: ni.options,
+          reason: ni.reason,
+        };
+      }
+      return null;
+    }
+    const tr =
+      res.task_result && typeof res.task_result === "object"
+        ? res.task_result
+        : null;
+    let got = fromHb(tr && tr.http_body);
+    if (got) return got;
+    got = fromHb(res.http_body);
+    if (got) return got;
+    const lg =
+      res.lumos_gate && typeof res.lumos_gate === "object"
+        ? res.lumos_gate
+        : null;
+    return fromHb(lg && lg.http_body);
+  }
+
+  function clearChatNeedInputChips() {
+    const wrap = $("chatNeedInputChips");
+    if (!wrap) return;
+    wrap.innerHTML = "";
+    wrap.classList.add("hidden");
+    wrap.setAttribute("aria-hidden", "true");
+  }
+
+  function showChatNeedInputChips(options) {
+    const wrap = $("chatNeedInputChips");
+    if (!wrap || !Array.isArray(options) || !options.length) return;
+    wrap.innerHTML = "";
+    wrap.classList.remove("hidden");
+    wrap.setAttribute("aria-hidden", "false");
+    const row = document.createElement("div");
+    row.className = "chat-need-input-chips-row";
+    options.forEach(function (opt) {
+      const t = String(opt || "").trim();
+      if (!t) return;
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "chat-need-input-chip";
+      b.textContent = t;
+      b.addEventListener("click", function () {
+        clearChatNeedInputChips();
+        $("chatInput").value = t;
+        sendChat();
+      });
+      row.appendChild(b);
+    });
+    if (!row.childNodes.length) {
+      wrap.classList.add("hidden");
+      wrap.setAttribute("aria-hidden", "true");
+      return;
+    }
+    wrap.appendChild(row);
+  }
+
   async function sendChat() {
     const message = $("chatInput").value.trim();
     if (!message) return;
+    clearChatNeedInputChips();
     if (latestChatAnalysisDoneDecision() === "blocked") return;
 
     if (message.trim().toLowerCase() === "film aç") {
@@ -7136,6 +7266,15 @@
       const data = await r.json().catch(() => ({ error: "JSON parse hatası" }));
 
       const res = data;
+      const needIn = extractNeedInputFromResponse(res);
+      if (
+        !needIn ||
+        !Array.isArray(needIn.options) ||
+        !needIn.options.length
+      ) {
+        clearChatNeedInputChips();
+      }
+
       if (res.output?.type === "ask") {
         addMessage("assistant", res.output.message);
         renderFeed();
@@ -7144,6 +7283,17 @@
       if (res.task_result?.output?.type === "ask" && res.task_result.output.message != null) {
         addMessage("assistant", res.task_result.output.message);
         renderFeed();
+        return;
+      }
+
+      if (needIn && Array.isArray(needIn.options) && needIn.options.length) {
+        const msg = String(needIn.message || needIn.question || "").trim();
+        if (msg) {
+          addMessage("assistant", msg);
+        }
+        renderFeed();
+        showChatNeedInputChips(needIn.options);
+        $("chatInput").value = "";
         return;
       }
 
