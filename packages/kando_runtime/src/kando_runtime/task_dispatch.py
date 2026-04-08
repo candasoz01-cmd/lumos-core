@@ -740,14 +740,16 @@ def dispatch_task(task: dict[str, Any]) -> dict[str, Any]:
                     "risk": risk,
                 }
 
-        result = run_video_executor(task)
-        output = (
-            result.get("output", result) if isinstance(result, dict) else result
-        )
         return {
-            "status": "done",
-            "output": output,
-            "task_id": task_id,
+            "status": "planned",
+            "execution_plan": {
+                "steps": [
+                    {
+                        "type": "video.generate",
+                        "params": task,
+                    }
+                ]
+            },
         }
 
     execution_mode = str(out.get("execution_mode") or "").lower()
