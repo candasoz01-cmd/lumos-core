@@ -304,7 +304,7 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
                 "type": "route",
                 "target": "agent",
                 "task": {
-                    "type": "agent",
+                    "type": "text.agent",
                     "prompt": prompt,
                 },
             },

@@ -1,5 +1,6 @@
 ROUTES = {
     "text.generate": "text_executor",
+    "text.agent": "agent_executor",
     "video.generate": "video_executor",
     "agent": "agent_executor",
 }
