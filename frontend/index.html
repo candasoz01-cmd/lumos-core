@@ -156,40 +156,77 @@
     .chat-start-panel {
       display: flex;
       justify-content: center;
-      padding: clamp(1.25rem, 7vh, 3rem) 1.25rem 1rem;
+      align-items: stretch;
+      padding: 0.75rem 1.25rem 1rem;
     }
     .chat-start-panel.hidden {
       display: none;
     }
-    .chat-start-panel-inner {
+    .chat-idle-canvas {
+      position: relative;
       width: 100%;
-      max-width: 22rem;
       margin: 0 auto;
-      text-align: center;
-      padding: 1.2rem 1.35rem 1.15rem;
-      border-radius: 16px;
-      background: rgba(255, 255, 255, 0.028);
-      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 14px;
+      overflow: hidden;
+      min-height: min(44vh, 340px);
+      background: var(--bg);
     }
-    .chat-start-copy p {
-      margin: 0 0 0.38rem;
-      font-size: 0.875rem;
-      color: var(--muted);
-      line-height: 1.48;
+    .chat-idle-canvas__layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
     }
-    .chat-start-copy p:last-of-type {
-      margin-bottom: 1.05rem;
+    .chat-idle-canvas__layer--bg {
+      background:
+        radial-gradient(ellipse 85% 60% at 18% 28%, rgba(16, 163, 127, 0.1), transparent 58%),
+        radial-gradient(ellipse 75% 55% at 88% 78%, rgba(59, 130, 246, 0.07), transparent 52%),
+        linear-gradient(
+          168deg,
+          rgba(255, 255, 255, 0.03) 0%,
+          transparent 42%,
+          rgba(0, 0, 0, 0.18) 100%
+        );
     }
-    .chat-start-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      justify-content: center;
+    .chat-idle-canvas__layer--glow {
+      mix-blend-mode: screen;
+      opacity: 0.55;
+      filter: blur(28px);
+      animation: chatIdleGlowDrift 26s ease-in-out infinite;
     }
-    .chat-start-actions button {
-      font-size: 0.8rem;
-      padding: 0.4rem 0.95rem;
-      border-radius: 999px;
+    .chat-idle-canvas__layer--glow::before {
+      content: "";
+      position: absolute;
+      width: 55%;
+      height: 55%;
+      left: 8%;
+      top: 18%;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(16, 163, 127, 0.22) 0%, transparent 68%);
+    }
+    .chat-idle-canvas__layer--glow::after {
+      content: "";
+      position: absolute;
+      width: 45%;
+      height: 45%;
+      right: 6%;
+      bottom: 12%;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.12) 0%, transparent 70%);
+    }
+    @keyframes chatIdleGlowDrift {
+      0%,
+      100% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.5;
+      }
+      33% {
+        transform: translate(2.5%, -1.2%) scale(1.04);
+        opacity: 0.62;
+      }
+      66% {
+        transform: translate(-1.8%, 2%) scale(0.98);
+        opacity: 0.55;
+      }
     }
     .chat-composer {
       flex-shrink: 0;
@@ -697,6 +734,14 @@
       white-space: pre-wrap;
       word-break: break-word;
     }
+    .feed-exec-result-line {
+      font-size: 0.9rem;
+      font-weight: 600;
+      line-height: 1.4;
+      margin-top: 0.35rem;
+      letter-spacing: 0.02em;
+      color: rgba(230, 232, 235, 0.94);
+    }
     .feed-task-lifecycle-stdout {
       font-size: 0.76rem;
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -842,8 +887,7 @@
     }
     .feed-result-analysis-card {
       box-sizing: border-box;
-      padding: 16px;
-      padding-left: 14px;
+      padding: 20px 18px 20px 16px;
       border-radius: 10px;
       border: 1px solid rgba(255, 255, 255, 0.07);
       border-left: 4px solid rgba(139, 148, 158, 0.45);
@@ -890,6 +934,100 @@
       box-shadow:
         inset 0 1px 0 rgba(210, 153, 34, 0.08),
         0 6px 28px rgba(210, 153, 34, 0.08);
+    }
+    .feed-result-analysis-strip {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+    .feed-result-analysis-strip-row {
+      display: grid;
+      grid-template-columns: 6.5rem minmax(0, 1fr);
+      gap: 0.45rem 1rem;
+      align-items: start;
+      margin-bottom: 0.85rem;
+    }
+    .feed-result-analysis-strip-label {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      line-height: 1.35;
+      padding-top: 0.2rem;
+    }
+    .feed-result-analysis-strip-value {
+      font-weight: 600;
+      font-size: 0.95rem;
+      line-height: 1.38;
+      word-break: break-word;
+    }
+    .feed-result-analysis-strip-yorum {
+      font-weight: 500;
+      font-size: 0.88rem;
+      line-height: 1.45;
+      color: rgba(230, 232, 235, 0.94);
+    }
+    .feed-result-analysis-strip-action {
+      margin-top: 0.35rem;
+      margin-bottom: 0.15rem;
+    }
+    .feed-result-analysis-strip-action .feed-result-analysis-cta {
+      width: 100%;
+      max-width: 16rem;
+      padding: 10px 14px;
+      font-size: 0.88rem;
+    }
+    .feed-result-analysis-risk-pill {
+      display: inline-block;
+      padding: 0.22rem 0.55rem;
+      border-radius: 7px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+    }
+    .feed-result-analysis-risk-pill--low {
+      background: rgba(63, 185, 80, 0.18);
+      color: #9ee6a8;
+      border: 1px solid rgba(63, 185, 80, 0.35);
+    }
+    .feed-result-analysis-risk-pill--medium {
+      background: rgba(210, 153, 34, 0.16);
+      color: #f0d080;
+      border: 1px solid rgba(210, 153, 34, 0.38);
+    }
+    .feed-result-analysis-risk-pill--high {
+      background: rgba(248, 81, 73, 0.14);
+      color: #ffb4ae;
+      border: 1px solid rgba(248, 81, 73, 0.38);
+    }
+    .feed-result-analysis-risk-pill--unknown {
+      opacity: 0.75;
+      border: 1px solid rgba(139, 148, 158, 0.35);
+    }
+    .feed-result-analysis-detail-wrap {
+      margin-top: 1.1rem;
+      padding-top: 0.65rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .feed-result-analysis-detail-wrap summary {
+      cursor: pointer;
+      list-style-position: outside;
+      font-weight: 600;
+      font-size: 0.82rem;
+      color: rgba(180, 188, 197, 0.95);
+      padding: 0.35rem 0;
+    }
+    .feed-result-analysis-detail-wrap summary:hover {
+      color: var(--text);
+    }
+    .feed-result-analysis-detail-inner {
+      margin-top: 0.55rem;
+    }
+    .feed-result-analysis-detail-inner .feed-result-analysis-technical-details {
+      border-top: none;
+      padding-top: 0;
+      margin-top: 0.65rem;
     }
     .feed-result-analysis-head-row {
       display: flex;
@@ -1258,6 +1396,160 @@
       border-radius: 999px;
       font-weight: 600;
     }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .video-generation-view {
+      position: fixed;
+      inset: 0;
+      z-index: 190;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.35s ease, visibility 0.35s ease;
+    }
+    .video-generation-view.video-generation-view--open {
+      pointer-events: auto;
+      opacity: 1;
+      visibility: visible;
+    }
+    .video-generation-view__bg {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(
+        ellipse 120% 80% at 50% 40%,
+        rgba(35, 45, 62, 0.95) 0%,
+        #0d0f12 55%,
+        #050607 100%
+      );
+      filter: blur(0px);
+      animation: videoGenBgDrift 14s ease-in-out infinite alternate;
+    }
+    .video-generation-view__bg::before,
+    .video-generation-view__bg::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(48px);
+      opacity: 0.45;
+      animation: videoGenOrbFloat 10s ease-in-out infinite;
+    }
+    .video-generation-view__bg::before {
+      width: min(55vw, 420px);
+      height: min(55vw, 420px);
+      left: 15%;
+      top: 20%;
+      background: radial-gradient(circle, rgba(88, 166, 255, 0.35) 0%, transparent 70%);
+    }
+    .video-generation-view__bg::after {
+      width: min(45vw, 360px);
+      height: min(45vw, 360px);
+      right: 12%;
+      bottom: 18%;
+      background: radial-gradient(circle, rgba(163, 113, 247, 0.28) 0%, transparent 70%);
+      animation-delay: -4s;
+    }
+    @keyframes videoGenBgDrift {
+      0% {
+        transform: scale(1) translate(0, 0);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(1.04) translate(0.5%, -0.8%);
+        opacity: 0.92;
+      }
+    }
+    @keyframes videoGenOrbFloat {
+      0%,
+      100% {
+        transform: translate(0, 0) scale(1);
+      }
+      50% {
+        transform: translate(2%, -3%) scale(1.08);
+      }
+    }
+    .video-generation-view__particles {
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(
+          1.5px 1.5px at 20% 30%,
+          rgba(255, 255, 255, 0.12) 50%,
+          transparent 52%
+        ),
+        radial-gradient(
+          1px 1px at 70% 60%,
+          rgba(255, 255, 255, 0.08) 50%,
+          transparent 52%
+        ),
+        radial-gradient(
+          1px 1px at 45% 80%,
+          rgba(255, 255, 255, 0.1) 50%,
+          transparent 52%
+        );
+      background-size: 100% 100%;
+      opacity: 0.55;
+      animation: videoGenParticles 18s linear infinite;
+    }
+    @keyframes videoGenParticles {
+      0% {
+        opacity: 0.35;
+        transform: translateY(0);
+      }
+      50% {
+        opacity: 0.65;
+      }
+      100% {
+        opacity: 0.35;
+        transform: translateY(-12px);
+      }
+    }
+    .video-generation-view__content {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      padding: 2rem;
+    }
+    .video-generation-view__status {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      color: rgba(230, 235, 240, 0.88);
+      text-shadow: 0 0 24px rgba(88, 166, 255, 0.25);
+      animation: videoGenStatusPulse 2.4s ease-in-out infinite;
+    }
+    @keyframes videoGenStatusPulse {
+      0%,
+      100% {
+        opacity: 0.75;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+    .feed-item.feed-analysis_done.feed-analysis_done--video-gen {
+      min-height: 0;
+      padding: 0.35rem 0.5rem;
+      border-style: dashed;
+      opacity: 0.85;
+    }
+    .feed-video-gen-feed-marker {
+      font-size: 0.72rem;
+      color: var(--muted);
+      padding: 0.15rem 0;
+    }
+
     .task-video-drawer-trigger {
       margin-top: 0.65rem;
     }
@@ -1393,18 +1685,13 @@
       <section id="viewChat" class="view active" data-panel="chat" aria-label="Sohbet">
         <div class="chat-view-wrap">
           <div class="chat-messages-scroll">
-            <div id="chatCreativeEntry" class="chat-start-panel" aria-label="Başlangıç">
-              <div class="chat-start-panel-inner">
-                <div class="chat-start-copy">
-                  <p>Bir şey yapmak istiyorsun.</p>
-                  <p>Hızlı ilerleyebiliriz.</p>
-                  <p>İstersen birlikte kurarız.</p>
-                </div>
-                <div class="chat-start-actions">
-                  <button type="button" class="secondary" id="btnCreativeQuick">Hızlı başla</button>
-                  <button type="button" class="secondary" id="btnCreativeGuided">Birlikte kuralım</button>
-                </div>
-              </div>
+            <div
+              id="chatCreativeEntry"
+              class="chat-start-panel chat-idle-canvas"
+              aria-hidden="true"
+            >
+              <div class="chat-idle-canvas__layer chat-idle-canvas__layer--bg" aria-hidden="true"></div>
+              <div class="chat-idle-canvas__layer chat-idle-canvas__layer--glow" aria-hidden="true"></div>
             </div>
             <div class="feed-stream chat-transcript" id="feedStreamChat" aria-live="polite"></div>
           </div>
@@ -1571,6 +1858,20 @@
         <button type="button" id="btnVideoDrawerSubmit">Gönder</button>
       </div>
     </aside>
+  </div>
+
+  <div
+    id="videoGenerationView"
+    class="video-generation-view"
+    aria-hidden="true"
+    role="status"
+    aria-live="polite"
+  >
+    <div class="video-generation-view__bg" aria-hidden="true"></div>
+    <div class="video-generation-view__particles" aria-hidden="true"></div>
+    <div class="video-generation-view__content">
+      <p class="video-generation-view__status">oluşturuluyor...</p>
+    </div>
   </div>
 
   <script>
@@ -2380,11 +2681,11 @@
     "Görevi netleştir veya Onaylar bölümünü kontrol et";
   const ANALYSIS_CARD_FALLBACK_CONFIDENCE = "orta";
 
-  /** Ana kartta «Yön»: ham `direction_hint` yok; yalnızca kapı türüne göre kısa metin. */
+  /** Genişletilmiş panelde «Yön» (ana kartta gösterilmez). */
   const ANALYSIS_CARD_DIRECTION_SUMMARY_BY_KIND = {
-    blocked: "Akış durduruldu; sunucu önerisi teknik özet altında.",
-    unclear: "Görev netleştirilmeli; sunucu önerisi teknik özet altında.",
-    proceed: "İşleme devam edilebilir; sunucu önerisi teknik özet altında.",
+    blocked: "Akış durduruldu.",
+    unclear: "Görev netleştirilmeli.",
+    proceed: "İşleme devam edilebilir.",
   };
 
   function analysisCardLineFromRaw(raw, fallback, maxLen) {
@@ -4147,9 +4448,9 @@
   }
 
   /**
-   * Ham sunucu alanları — yalnızca «Teknik özet» (details); ana kartta kullanılmaz.
+   * Ham sunucu alanları — detaylı analiz paneline eklenir (ana kartta gösterilmez).
    */
-  function appendAnalysisDoneCardTechnicalDetails(wrap, p) {
+  function appendAnalysisTechnicalDetailChunks(container, p) {
     const pl = p && typeof p === "object" ? p : {};
     const rows = [];
     const d1 = String(pl.critical_detail_text == null ? "" : pl.critical_detail_text).trim();
@@ -4187,11 +4488,6 @@
     if (rows.length === 0) {
       return;
     }
-    const det = document.createElement("details");
-    det.className = "feed-result-analysis-technical-details";
-    const sum = document.createElement("summary");
-    sum.textContent = "Teknik özet ve sunucu metni";
-    det.appendChild(sum);
     const body = document.createElement("div");
     body.className = "feed-result-analysis-technical-body";
     for (let i = 0; i < rows.length; i++) {
@@ -4204,8 +4500,66 @@
       chunk.appendChild(document.createTextNode(row.text));
       body.appendChild(chunk);
     }
-    det.appendChild(body);
-    wrap.appendChild(det);
+    container.appendChild(body);
+  }
+
+  function analysisCardRiskTier(p) {
+    const pl = p && typeof p === "object" ? p : {};
+    const hb = pl.http_body && typeof pl.http_body === "object" ? pl.http_body : {};
+    const lg = pl.lumos_gate && typeof pl.lumos_gate === "object" ? pl.lumos_gate : {};
+    let raw = String(
+      pl.risk_level || hb.risk_level || lg.risk_level || pl.risk || ""
+    )
+      .trim()
+      .toLowerCase();
+    if (raw === "low" || raw === "düşük") {
+      return { label: "LOW", cls: "low" };
+    }
+    if (raw === "medium" || raw === "orta" || raw === "med") {
+      return { label: "MEDIUM", cls: "medium" };
+    }
+    if (raw === "high" || raw === "yüksek" || raw === "blocked") {
+      return { label: "HIGH", cls: "high" };
+    }
+    const num = Number(pl.outcome_effective_risk);
+    if (Number.isFinite(num)) {
+      if (num > 0.65) {
+        return { label: "HIGH", cls: "high" };
+      }
+      if (num > 0.35) {
+        return { label: "MEDIUM", cls: "medium" };
+      }
+      if (num > 0) {
+        return { label: "LOW", cls: "low" };
+      }
+    }
+    return { label: "—", cls: "unknown" };
+  }
+
+  function analysisCardStatusHeadline(p, decisionKind) {
+    if (isFailedPayload(p)) {
+      return "HATA";
+    }
+    if (decisionKind === "blocked") {
+      return "ENGELLENDİ";
+    }
+    if (decisionKind === "unclear") {
+      return "NETLİK GEREKLİ";
+    }
+    return "ANALİZ TAMAMLANDI";
+  }
+
+  function analysisCardActionLabel(decisionKind, p) {
+    if (isFailedPayload(p)) {
+      return "Kayıtlar";
+    }
+    if (decisionKind === "blocked") {
+      return "İncele";
+    }
+    if (decisionKind === "unclear") {
+      return "Onay gerekli";
+    }
+    return "Devam et";
   }
 
   /**
@@ -4461,7 +4815,7 @@
       }
     }
     const decisionKind = analysisDonePayloadDecisionKind(p);
-    let directionSummary = "Ayrıntı teknik özet altında.";
+    let directionSummary = ANALYSIS_CARD_DIRECTION_SUMMARY_BY_KIND.proceed;
     if (decisionKind === "blocked") {
       directionSummary = ANALYSIS_CARD_DIRECTION_SUMMARY_BY_KIND.blocked;
     } else if (decisionKind === "unclear") {
@@ -4470,61 +4824,83 @@
       directionSummary = ANALYSIS_CARD_DIRECTION_SUMMARY_BY_KIND.proceed;
     }
     const trustVis = analysisConfidenceVisualFromDecisionKind(decisionKind);
-    const decisionUi = {
-      blocked: {
-        glyph: "⛔",
-        cls: "feed-result-analysis-decision-badge--blocked",
-        aria: "Durum: işlem engellendi",
-      },
-      proceed: {
-        glyph: "✅",
-        cls: "feed-result-analysis-decision-badge--proceed",
-        aria: "Durum: devam edilebilir",
-      },
-      unclear: {
-        glyph: "⚠️",
-        cls: "feed-result-analysis-decision-badge--unclear",
-        aria: "Durum: netlik gerekli",
-      },
-    };
-    let du = decisionUi.unclear;
-    if (decisionKind === "blocked") {
-      du = decisionUi.blocked;
-    } else if (decisionKind === "proceed") {
-      du = decisionUi.proceed;
-    } else if (decisionKind === "unclear") {
-      du = decisionUi.unclear;
-    }
+    const riskTier = analysisCardRiskTier(p);
+    const statusHead = analysisCardStatusHeadline(p, decisionKind);
+    const oneLiner = getCriticalUserTextVariant(getCriticalUserLabel(p), p);
+    const actionLabel = analysisCardActionLabel(decisionKind, p);
 
     const wrap = document.createElement("div");
     wrap.className =
       "feed-result-analysis-card feed-result-analysis-card--" + decisionKind;
 
-    const headRow = document.createElement("div");
-    headRow.className = "feed-result-analysis-head-row";
-    const titleEl = document.createElement("span");
-    titleEl.className = "feed-result-analysis-head-title";
-    titleEl.textContent = "✔ ANALİZ TAMAMLANDI";
-    const badge = document.createElement("span");
-    badge.className =
-      "feed-result-analysis-decision-badge " + du.cls;
-    badge.textContent = du.glyph;
-    badge.setAttribute("role", "status");
-    badge.setAttribute("aria-label", du.aria);
-    badge.setAttribute("title", du.aria);
-    headRow.appendChild(titleEl);
-    headRow.appendChild(badge);
-    wrap.appendChild(headRow);
+    const strip = document.createElement("div");
+    strip.className = "feed-result-analysis-strip";
+
+    function appendStripRow(labelText, valueNode) {
+      const row = document.createElement("div");
+      row.className = "feed-result-analysis-strip-row";
+      const lab = document.createElement("div");
+      lab.className = "feed-result-analysis-strip-label";
+      lab.textContent = labelText;
+      const val = document.createElement("div");
+      val.className = "feed-result-analysis-strip-value";
+      if (typeof valueNode === "string") {
+        val.textContent = valueNode;
+      } else {
+        val.appendChild(valueNode);
+      }
+      row.appendChild(lab);
+      row.appendChild(val);
+      strip.appendChild(row);
+    }
+
+    appendStripRow("DURUM", statusHead);
+
+    const riskPill = document.createElement("span");
+    riskPill.className =
+      "feed-result-analysis-risk-pill feed-result-analysis-risk-pill--" + riskTier.cls;
+    riskPill.textContent = riskTier.label;
+    appendStripRow("RİSK", riskPill);
+
+    const yorumEl = document.createElement("div");
+    yorumEl.className = "feed-result-analysis-strip-yorum";
+    yorumEl.textContent = oneLiner;
+    appendStripRow("YORUM", yorumEl);
+
+    const actionRow = document.createElement("div");
+    actionRow.className = "feed-result-analysis-strip-action";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "feed-result-analysis-cta";
+    btn.textContent = actionLabel;
+    btn.addEventListener("click", () => setActivePanel("approvals"));
+    actionRow.appendChild(btn);
+    strip.appendChild(actionRow);
+
+    wrap.appendChild(strip);
+
+    const details = document.createElement("details");
+    details.className = "feed-result-analysis-detail-wrap";
+    const dSum = document.createElement("summary");
+    dSum.textContent = "Detaylı analiz";
+    details.appendChild(dSum);
+
+    const detailInner = document.createElement("div");
+    detailInner.className = "feed-result-analysis-detail-inner";
+
+    const when = document.createElement("div");
+    when.className = "feed-result-analysis-when";
+    when.setAttribute("data-analysis-completed-at", String(completedAt));
+    when.textContent = analysisCompletedWhenLabel(completedAt);
+    detailInner.appendChild(when);
+    ensureAnalysisDoneTimeTicker();
 
     if (p.execution_dispatch_label_tr && String(p.execution_dispatch_label_tr).trim()) {
       const exRow = document.createElement("div");
       exRow.className = "feed-result-analysis-execution-dispatch";
-      exRow.style.fontSize = "0.88rem";
-      exRow.style.marginTop = "0.4rem";
-      exRow.style.lineHeight = "1.35";
       exRow.textContent =
         "Yürütme: " + String(p.execution_dispatch_label_tr).trim();
-      wrap.appendChild(exRow);
+      detailInner.appendChild(exRow);
     }
 
     const se =
@@ -4545,7 +4921,7 @@
       ob.textContent = systemExecutorTaskOutputBody(se);
       outBox.appendChild(ot);
       outBox.appendChild(ob);
-      wrap.appendChild(outBox);
+      detailInner.appendChild(outBox);
     }
 
     if (decisionKind === "blocked") {
@@ -4562,7 +4938,7 @@
           "Bu görevde daha önce engelleme vardı; otomatik proceed uygulanmadı";
       }
       gateBanner.textContent = gateText;
-      wrap.appendChild(gateBanner);
+      detailInner.appendChild(gateBanner);
     }
 
     if (decisionKind === "unclear" && p.lumos_escalation === "double_unclear") {
@@ -4571,19 +4947,8 @@
       escBanner.setAttribute("role", "note");
       escBanner.textContent =
         "Zorunlu netleştirme: bir sonraki görev requires_clarification ile gönderilecek.";
-      wrap.appendChild(escBanner);
+      detailInner.appendChild(escBanner);
     }
-
-    const when = document.createElement("div");
-    when.className = "feed-result-analysis-when";
-    when.setAttribute("data-analysis-completed-at", String(completedAt));
-    when.textContent = analysisCompletedWhenLabel(completedAt);
-    wrap.appendChild(when);
-    ensureAnalysisDoneTimeTicker();
-
-    const base = getCriticalUserLabel(p);
-    const text = getCriticalUserTextVariant(base, p);
-    wrap.appendChild(renderCriticalText(text));
 
     const b2 = document.createElement("div");
     b2.className = "feed-result-analysis-block feed-result-analysis-block--dir";
@@ -4592,7 +4957,7 @@
     b2.appendChild(k2);
     b2.appendChild(document.createElement("br"));
     b2.appendChild(document.createTextNode(directionSummary));
-    wrap.appendChild(b2);
+    detailInner.appendChild(b2);
 
     const b3 = document.createElement("div");
     b3.className =
@@ -4613,16 +4978,17 @@
     trustLine.appendChild(document.createTextNode(" "));
     trustLine.appendChild(document.createTextNode(trustVis.label));
     b3.appendChild(trustLine);
-    wrap.appendChild(b3);
+    detailInner.appendChild(b3);
 
-    appendAnalysisDoneCardTechnicalDetails(wrap, p);
+    const techWrap = document.createElement("div");
+    techWrap.className = "feed-result-analysis-technical-details";
+    appendAnalysisTechnicalDetailChunks(techWrap, p);
+    if (techWrap.firstChild) {
+      detailInner.appendChild(techWrap);
+    }
 
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "feed-result-analysis-cta";
-    btn.textContent = "Detaylı analizi aç →";
-    btn.addEventListener("click", () => setActivePanel("approvals"));
-    wrap.appendChild(btn);
+    details.appendChild(detailInner);
+    wrap.appendChild(details);
 
     container.appendChild(wrap);
   }
@@ -4950,14 +5316,6 @@
       });
       chatHistory.push({ role: "assistant", content: line });
     }
-  }
-
-  function appendAnalysisDoneStreamHint(body) {
-    const hint = document.createElement("div");
-    hint.className = "hint-muted";
-    hint.style.fontSize = "0.85rem";
-    hint.textContent = "Analiz özeti sohbet akışında.";
-    body.appendChild(hint);
   }
 
   function humanReasonFromPayload(p) {
@@ -5466,7 +5824,7 @@
         const statusLine = phaseTr[ph] || ph || "—";
         body.appendChild(
           buildTaskCardHeaderEl(
-            pl.summary ? String(pl.summary).slice(0, 200) : "Görev",
+            "İşlem sonucu",
             statusLine,
             ph === "awaiting_approval" ? "awaiting_approval" : ph
           )
@@ -5474,16 +5832,6 @@
         const cardBody = document.createElement("div");
         cardBody.className = "feed-task-card-body";
         appendTaskLifecycleTimelineDom(cardBody, pl.lifecycle_events);
-        if (pl.detail && String(pl.detail).trim()) {
-          const t3 = document.createElement("div");
-          t3.className = "feed-task-lifecycle-detail";
-          if (ph === "failed" || pl.result_error === true) {
-            t3.style.color = "#ffb4af";
-            t3.style.fontWeight = "600";
-          }
-          t3.textContent = String(pl.detail).trim();
-          cardBody.appendChild(t3);
-        }
         if (pl.executor_stdout && String(pl.executor_stdout).trim()) {
           const so = document.createElement("pre");
           so.className = "feed-task-lifecycle-stdout";
@@ -5591,6 +5939,21 @@
       } else if (item.type === "analysis_done") {
         const apl =
           item.payload && typeof item.payload === "object" ? item.payload : {};
+        if (isVideoGenerationAnalysisPayload(apl)) {
+          wrap.classList.add("feed-analysis_done--video-gen");
+          const sr = document.createElement("div");
+          sr.className = "sr-only";
+          sr.textContent = "Video oluşturuluyor.";
+          body.appendChild(sr);
+          const marker = document.createElement("div");
+          marker.className = "feed-video-gen-feed-marker";
+          marker.setAttribute("aria-hidden", "true");
+          marker.textContent = "·";
+          body.appendChild(marker);
+          wrap.appendChild(body);
+          container.appendChild(wrap);
+          return;
+        }
         const adk = analysisDonePayloadDecisionKind(apl);
         wrap.classList.add("feed-analysis_done--" + adk);
         const kindLabel =
@@ -5758,44 +6121,21 @@
             failOpen ? "Sistem · Hata / engel" : "Sistem · Sonuç"
           );
           if (item.payload != null && typeof item.payload === "object") {
-            if (stRender === "error" || isFailedPayload(item.payload)) {
-              const ht = document.createElement("div");
-              ht.style.fontWeight = "700";
-              ht.style.marginBottom = "0.35rem";
-              ht.textContent = "İşlem engellendi";
-              body.appendChild(ht);
-              const desc = document.createElement("div");
-              desc.className = "hint-muted";
-              desc.style.fontSize = "0.85rem";
-              desc.textContent = nonEmptyDesc(
-                humanReasonFromPayload(item.payload),
-                INTERNAL_FALLBACK_SUBTITLE
-              );
-              body.appendChild(desc);
-              const diffFail = formatDiffStatsHuman(item.payload.diff_stats);
-              if (diffFail) {
-                const df = document.createElement("div");
-                df.style.fontSize = "0.8rem";
-                df.style.marginTop = "0.35rem";
-                df.textContent = diffFail;
-                body.appendChild(df);
-              }
-            } else {
-              appendAnalysisDoneStreamHint(body);
-            }
+            appendExecutionResultSummaryLine(body, item.payload);
           } else if (item.payload != null) {
-            body.appendChild(
-              document.createTextNode(shortReasonText(String(item.payload), 400))
-            );
+            const el = document.createElement("div");
+            el.className = "feed-exec-result-line";
+            el.textContent = shortReasonText(String(item.payload), 160);
+            body.appendChild(el);
           } else if (stRender === "done") {
-            appendAnalysisDoneStreamHint(body);
+            appendExecutionResultSummaryLine(body, null);
           }
           if (
             stRender === "done" &&
-            !body.firstChild &&
+            !body.querySelector(".feed-exec-result-line") &&
             item.type === "execution_result"
           ) {
-            appendAnalysisDoneStreamHint(body);
+            appendExecutionResultSummaryLine(body, null);
           }
           wrap.appendChild(body);
           container.appendChild(wrap);
@@ -5837,41 +6177,16 @@
           execFail ? "⚠" : "⎘",
           execFail ? "Sistem · Yürütme hatası" : "Sistem · Yürütme sonucu"
         );
-        if (j && typeof j === "object" && isFailedPayload(j)) {
-          const ht = document.createElement("div");
-          ht.style.fontWeight = "700";
-          ht.style.marginBottom = "0.35rem";
-          ht.textContent = "İşlem engellendi";
-          body.appendChild(ht);
-          const desc = document.createElement("div");
-          desc.className = "hint-muted";
-          desc.style.fontSize = "0.85rem";
-          desc.textContent = nonEmptyDesc(
-            humanReasonFromPayload(j),
-            INTERNAL_FALLBACK_SUBTITLE
-          );
-          body.appendChild(desc);
-          const diffFail = formatDiffStatsHuman(j.diff_stats);
-          if (diffFail) {
-            const df = document.createElement("div");
-            df.style.fontSize = "0.8rem";
-            df.style.marginTop = "0.35rem";
-            df.textContent = diffFail;
-            body.appendChild(df);
-          }
-        } else if (j && typeof j === "object") {
-          appendAnalysisDoneStreamHint(body);
+        if (j && typeof j === "object") {
+          appendExecutionResultSummaryLine(body, j);
         } else if (j) {
-          const ht = document.createElement("div");
-          ht.style.fontWeight = "700";
-          ht.style.marginBottom = "0.35rem";
-          ht.textContent = "İşlem tamamlandı";
-          body.appendChild(ht);
-          body.appendChild(
-            document.createTextNode(nonEmptyDesc(String(j), "Görev"))
-          );
+          appendExecutionResultSummaryLine(body, {
+            outcome: "failed",
+            failed: true,
+            detail: String(j).slice(0, 200),
+          });
         } else {
-          appendAnalysisDoneStreamHint(body);
+          appendExecutionResultSummaryLine(body, null);
         }
         wrap.appendChild(body);
         container.appendChild(wrap);
@@ -5948,6 +6263,81 @@
     updateCreativeEntryVisibility();
   }
 
+  let videoGenOverlayDismissedForId = null;
+
+  function isVideoGenerationAnalysisPayload(pl) {
+    const p = pl && typeof pl === "object" ? pl : {};
+    const labTr = String(p.execution_dispatch_label_tr || "").toLowerCase();
+    if (labTr.indexOf("video") !== -1) return true;
+    const q = String(p.execution_dispatch_queue || "").toLowerCase();
+    if (q.indexOf("video") !== -1) return true;
+    const hb = p.http_body && typeof p.http_body === "object" ? p.http_body : {};
+    const tt = String(hb.task_type || p.task_type || "").toLowerCase();
+    if (tt === "video" || tt === "video.generate") return true;
+    const plan = hb.execution_plan || p.execution_plan;
+    if (plan && typeof plan === "object" && Array.isArray(plan.steps)) {
+      for (let i = 0; i < plan.steps.length; i++) {
+        const st = String((plan.steps[i] && plan.steps[i].type) || "").toLowerCase();
+        if (st.indexOf("video") !== -1) return true;
+      }
+    }
+    const dep = p.dispatch_execution_plan || hb.dispatch_execution_plan;
+    if (dep && typeof dep === "object") {
+      const act = String(dep.action || "").toLowerCase();
+      if (act === "media_video" || act.indexOf("video") !== -1) return true;
+    }
+    const ed =
+      p.execution_dispatch && typeof p.execution_dispatch === "object"
+        ? p.execution_dispatch
+        : {};
+    const exq = String(ed.queue || "").toLowerCase();
+    if (exq.indexOf("video") !== -1) return true;
+    return false;
+  }
+
+  function showVideoGenerationView() {
+    const el = $("videoGenerationView");
+    if (!el) return;
+    el.classList.add("video-generation-view--open");
+    el.setAttribute("aria-hidden", "false");
+  }
+
+  function hideVideoGenerationView() {
+    const el = $("videoGenerationView");
+    if (!el) return;
+    el.classList.remove("video-generation-view--open");
+    el.setAttribute("aria-hidden", "true");
+  }
+
+  function dismissVideoGenerationView() {
+    const chatItems = activityFeed.filter(isChatFeedItem).sort((a, b) => (a.ts || 0) - (b.ts || 0));
+    const analyses = chatItems.filter((x) => x.type === "analysis_done");
+    const last = analyses[analyses.length - 1];
+    if (last && last.id != null) {
+      videoGenOverlayDismissedForId = String(last.id);
+    }
+    hideVideoGenerationView();
+  }
+
+  function syncVideoGenerationViewFromFeed() {
+    const chatItems = activityFeed.filter(isChatFeedItem).sort((a, b) => (a.ts || 0) - (b.ts || 0));
+    const analyses = chatItems.filter((x) => x.type === "analysis_done");
+    const last = analyses[analyses.length - 1];
+    if (!last || !isVideoGenerationAnalysisPayload(last.payload)) {
+      videoGenOverlayDismissedForId = null;
+      hideVideoGenerationView();
+      return;
+    }
+    if (
+      videoGenOverlayDismissedForId != null &&
+      String(last.id) === String(videoGenOverlayDismissedForId)
+    ) {
+      hideVideoGenerationView();
+      return;
+    }
+    showVideoGenerationView();
+  }
+
   function renderFeed() {
     dedupeActivityFeed();
     const chatScroll = getChatScrollParent();
@@ -5973,6 +6363,7 @@
     opsEl.scrollTop = 0;
     applyChatScrollAfterRender(followChatBottom);
     syncChatComposerGate();
+    syncVideoGenerationViewFromFeed();
   }
 
   function refreshOutboxEmptyHint() {
@@ -6076,40 +6467,62 @@
     return "fp:" + parts.map((x) => String(x == null ? "" : x)).join("|").slice(0, 500);
   }
 
-  function formatOutboxChatMessage(j) {
-    const o = outboxEffectivePayload(j);
-    if (!o || typeof o !== "object") return "Sonuç (outbox): veri yok.";
-    const lines = ["Sonuç (outbox):"];
+  function outboxRiskTierWord(o) {
+    if (!o || typeof o !== "object") return "MEDIUM";
+    const hb = o.http_body && typeof o.http_body === "object" ? o.http_body : {};
+    const lg = o.lumos_gate && typeof o.lumos_gate === "object" ? o.lumos_gate : {};
+    const raw = String(o.risk_level || hb.risk_level || lg.risk_level || "")
+      .trim()
+      .toLowerCase();
+    if (raw === "low" || raw === "düşük") return "LOW";
+    if (raw === "medium" || raw === "orta" || raw === "med") return "MEDIUM";
+    if (raw === "high" || raw === "yüksek" || raw === "blocked") return "HIGH";
+    return "MEDIUM";
+  }
+
+  /**
+   * Outbox / yürütme özeti — tek satır, tekrar yok.
+   */
+  function outboxOutcomeOneLine(o) {
+    if (!o || typeof o !== "object") return "veri yok";
     const failed = isFailedPayload(o);
     const negOutcome =
       String(o.outcome || "").toLowerCase() === "failed" || o.failed === true;
+    const tier = outboxRiskTierWord(o);
+    const hb = o.http_body && typeof o.http_body === "object" ? o.http_body : {};
+    const lg = o.lumos_gate && typeof o.lumos_gate === "object" ? o.lumos_gate : {};
+    const ex = String(o.execution_mode || hb.execution_mode || "").toLowerCase();
+    const exLg = String(lg.execution_mode || "").toLowerCase();
+    const pendingApproval =
+      ex === "pending_approval" ||
+      exLg === "pending_approval" ||
+      hb.requires_approval === true ||
+      o.requires_approval === true;
+
     if (failed || negOutcome || o.accepted === false) {
-      lines.push("işlem: uygulanmadı veya başarısız");
-      const reason =
-        humanReasonFromPayload(o) ||
-        (typeof o.error === "string" && o.error) ||
-        o.message ||
-        o.detail ||
-        "—";
-      lines.push("sebep: " + shortReasonText(String(reason), 420));
+      return tier + " RISK — işlem tamamlanamadı";
+    }
+    if (pendingApproval) {
+      return tier + " RISK — kullanıcı onayı gerekli";
+    }
+    return tier + " RISK — tamamlandı";
+  }
+
+  function formatOutboxChatMessage(j) {
+    const o = outboxEffectivePayload(j);
+    if (!o || typeof o !== "object") return "Sonuç (outbox): veri yok.";
+    return "Sonuç (outbox): " + outboxOutcomeOneLine(o);
+  }
+
+  function appendExecutionResultSummaryLine(body, payload) {
+    const line = document.createElement("div");
+    line.className = "feed-exec-result-line";
+    if (payload && typeof payload === "object") {
+      line.textContent = outboxOutcomeOneLine(payload);
     } else {
-      lines.push("işlem: tamamlandı");
-      const sum =
-        firstNonInternalString([
-          o.summary,
-          o.reasoning_summary,
-          o.lumos_gate && o.lumos_gate.reasoning_summary,
-          o.goal_preview,
-        ]) || "";
-      if (sum) lines.push("özet: " + shortReasonText(sum, 420));
-      const ds = formatDiffStatsHuman(o.diff_stats);
-      if (ds) lines.push(ds);
+      line.textContent = "MEDIUM RISK — tamamlandı";
     }
-    const files = o.files_changed;
-    if (Array.isArray(files) && files.length) {
-      lines.push("dosyalar: " + files.slice(0, 10).join(", "));
-    }
-    return lines.join("\n");
+    body.appendChild(line);
   }
 
   function pushOutboxSummaryToChatIfNew(j, opts) {
@@ -6850,6 +7263,47 @@
     return "Görev alındı: " + summary;
   }
 
+  const _VIDEO_VAGUE_RE =
+    /\b(bilinmeyen|bilinmez|garip|tuhaf|acayip|saçma|bir\s*şey|birşey|bi\s*şey|şeyler|rastgele|fark\s*etmez|herhangi|ne\s+olursa|soyut|belirsiz|anlamsız|falan|filan|vs\.?|karmaşa|kaos|random)\b/i;
+  const _VIDEO_ANALYSIS_RE =
+    /\b(özet|özetle|transkript|altyazı|kesit|analiz|incele|çıkar|tanı|tanımla|sesi|görüntüyü|frame|konu\s*konu)\b/i;
+  const _VIDEO_SCENE_RE =
+    /\b(sahne|nesne|karakter|diyalog|kamera|açı|ışık|renk|gece|gündüz|içeride|dışarıda|yürü|koş|konuş|arabada|evde|ofiste|sokak|oda|kişi|adam|kadın|çocuk|storyboard|plan|çekim|montaj|açılış|kapanış|youtube|tiktok|güneş|batım|deniz|masa|kapı|pencere)\b/i;
+
+  function videoPromptHasMediaRefInTaskBlob(taskBlob) {
+    const s = String(taskBlob || "").trim();
+    if (!s) return false;
+    if (/https?:\/\/\S+/.test(s)) return true;
+    if (/\b[\w./\\-]+\.(mp4|mov|webm|mkv|m4v)\b/i.test(s)) return true;
+    if (/(?:dosya\s*yolu|kaynak\s*url)\s*:/i.test(s)) return true;
+    return false;
+  }
+
+  function isVideoTaskPromptAmbiguous(prompt, hasMediaRef) {
+    const p = String(prompt || "").trim();
+    if (!p) return false;
+    if (p.length >= 52 && !_VIDEO_VAGUE_RE.test(p)) return false;
+    if (_VIDEO_ANALYSIS_RE.test(p) && hasMediaRef) return false;
+    if (_VIDEO_VAGUE_RE.test(p)) return true;
+    const wc = p.split(/\s+/).filter(Boolean).length;
+    if (p.length < 22 && wc <= 5 && !_VIDEO_SCENE_RE.test(p)) return true;
+    if (wc <= 3 && p.length < 36 && !_VIDEO_SCENE_RE.test(p)) return true;
+    return false;
+  }
+
+  function videoPromptClarificationQuestionTr(prompt) {
+    const p = String(prompt || "").trim();
+    const excerpt =
+      p.length <= 44 ? p : p.slice(0, 41).replace(/\s+$/, "") + "…";
+    const q = excerpt.replace(/'/g, "’");
+    if (q) {
+      return (
+        "'" + q + "' derken nasıl bir sahne, nesne veya aksiyon düşünüyorsun?"
+      );
+    }
+    return "Hangi sahneyi, nesneyi veya aksiyonu üretmek istediğini bir cümleyle tarif eder misin?";
+  }
+
   async function submitTaskFormFromPanel() {
     const built = buildTaskBodyFromCategory();
     const file = built.file;
@@ -6868,6 +7322,23 @@
     const gatePl = latestChatAnalysisDonePayload();
     const forceClarify =
       gatePl && gatePl.lumos_force_requires_clarification === true;
+    if (built.cat === "video" && built.videoExtra) {
+      const taskBlob = String(built.task || "");
+      const hasRef = videoPromptHasMediaRefInTaskBlob(taskBlob);
+      const vp = String(built.videoExtra.prompt || "").trim();
+      if (isVideoTaskPromptAmbiguous(vp, hasRef)) {
+        const q = videoPromptClarificationQuestionTr(vp);
+        setTaskFormHint("Talimat netleşince tekrar gönderebilirsin.");
+        setActivePanel("chat");
+        addFeedItem("assistant_reply", {
+          text: q,
+          dedupeKey: "video-clarify-" + Date.now(),
+        });
+        chatHistory.push({ role: "assistant", content: q });
+        renderFeed();
+        return;
+      }
+    }
     setTaskFormHint("");
     closeVideoTaskDrawer();
     const display = built.display;
@@ -6941,10 +7412,24 @@
       }
       removeFeedItemById(loadingId);
       if (j && typeof j === "object") {
-        handleTaskLikeResponse(j, body.raw_text || taskSubmitDisplaySummary(file, task), {
-          skipTaskRouted: true,
-          taskRunId: ackBase,
-        });
+        if (j.video_prompt_clarification && j.reply != null && String(j.reply).trim() !== "") {
+          upsertTaskLifecycleItem(ackBase, {
+            phase: "failed",
+            summary: display,
+            detail: "Talimat belirsiz; görev yürütülmedi.",
+          });
+          addFeedItem("assistant_reply", {
+            text: String(j.reply).trim(),
+            dedupeKey: ackBase + "-vclarify",
+          });
+          chatHistory.push({ role: "assistant", content: String(j.reply).trim() });
+          clearPendingRunTaskHistory();
+        } else {
+          handleTaskLikeResponse(j, body.raw_text || taskSubmitDisplaySummary(file, task), {
+            skipTaskRouted: true,
+            taskRunId: ackBase,
+          });
+        }
       } else if (lastSubmittedTaskRunKey) {
         upsertTaskLifecycleItem(ackBase, {
           phase: "failed",
@@ -7416,13 +7901,13 @@
 
   function fastWorkFeedbackLine(intentType) {
     if (intentType === "visual") {
-      return "Tamam. Bunu görsel olarak başlatabiliriz.";
+      return "Bunu görsel olarak başlatabiliriz.";
     }
     if (intentType === "video") {
-      return "Tamam. Bunu video olarak başlatabiliriz.";
+      return "Bunu video olarak başlatabiliriz.";
     }
     if (intentType === "task") {
-      return "Tamam. Bu görev olarak ilerlemeli.";
+      return "Bu görev olarak ilerlemeli.";
     }
     return "";
   }
@@ -7467,6 +7952,7 @@
     const len = raw.length;
     const lower = raw.toLowerCase();
     const words = raw.split(/\s+/).filter(Boolean).length;
+    const hintType = detectIntent(raw).type;
 
     const exploratory =
       /\?/.test(raw) ||
@@ -7481,7 +7967,9 @@
     if (exploratory) return "Görüyorum.";
 
     const shortAndClear = len <= 30 && words <= 6 && !/[;]/.test(raw);
-    if (shortAndClear) return "Tamam.";
+    if (shortAndClear) return "";
+
+    if (!hintType) return "";
 
     return "Anladım.";
   }
@@ -7647,19 +8135,6 @@
   $("btnOutbox").addEventListener("click", loadOutbox);
   $("btnPending").addEventListener("click", loadPending);
 
-  const btnCreativeQuick = $("btnCreativeQuick");
-  if (btnCreativeQuick) {
-    btnCreativeQuick.addEventListener("click", () => {
-      flowEngineStartQuickAck();
-    });
-  }
-  const btnCreativeGuided = $("btnCreativeGuided");
-  if (btnCreativeGuided) {
-    btnCreativeGuided.addEventListener("click", () => {
-      flowEngineStartGuided();
-    });
-  }
-
   const videoDrawerOverlay = $("videoTaskDrawerOverlay");
   if ($("btnVideoDrawerOpen")) {
     $("btnVideoDrawerOpen").addEventListener("click", openVideoTaskDrawer);
@@ -7698,6 +8173,27 @@
 
   fetchHealth();
   setInterval(fetchHealth, 15000);
+
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key !== "Escape") return;
+    const v = $("videoGenerationView");
+    if (v && v.classList.contains("video-generation-view--open")) {
+      ev.preventDefault();
+      dismissVideoGenerationView();
+    }
+  });
+  const vgRoot = $("videoGenerationView");
+  if (vgRoot) {
+    const vgContent = vgRoot.querySelector(".video-generation-view__content");
+    if (vgContent) {
+      vgContent.addEventListener("click", function (e) {
+        e.stopPropagation();
+      });
+    }
+    vgRoot.addEventListener("click", function () {
+      dismissVideoGenerationView();
+    });
+  }
 })();
   </script>
 

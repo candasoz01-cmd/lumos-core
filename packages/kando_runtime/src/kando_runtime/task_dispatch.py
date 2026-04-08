@@ -815,6 +815,46 @@ def dispatch_task(task):
     executor = _EXECUTOR_FOR_TYPE[task_type]
 
     if task_type == "video":
+        prompt = str(task.get("prompt", "")).lower()
+
+        belirsiz_kelimeler = [
+            "bir şey",
+            "birsey",
+            "şey",
+            "garip",
+            "bilinmeyen",
+            "ilginç",
+            "farklı",
+            "bir şeyler",
+            "bi şey",
+        ]
+
+        netlik_indikatörleri = [
+            "adam",
+            "kadın",
+            "çocuk",
+            "uçuyor",
+            "koşuyor",
+            "deniz",
+            "çöl",
+            "orman",
+            "şehir",
+            "gece",
+            "gündüz",
+        ]
+
+        is_vague = any(k in prompt for k in belirsiz_kelimeler)
+        has_structure = any(k in prompt for k in netlik_indikatörleri)
+
+        if is_vague and not has_structure:
+            return {
+                "status": "done",
+                "output": {
+                    "type": "ask",
+                    "message": f"'{prompt}' biraz belirsiz. Nasıl bir sahne hayal ediyorsun?",
+                },
+            }
+
         queue = "video_executor_pending"
         label_tr = "Video yürütücüsüne gönderildi"
     elif task_type == "image":

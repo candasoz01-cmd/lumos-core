@@ -70,7 +70,9 @@ except ImportError:
 
     def format_chat_prompt_prefix(_repo_root: Path) -> str:
         return (
-            "Sen Lumos'sun; kendini Lumos olarak tanıt; kısa ve doğal Türkçe konuş.\n\n"
+            "Sen Lumos'sun; kendini Lumos olarak tanıt; kısa ve doğal Türkçe konuş.\n"
+            "İstek belirsizse varsayım yapma; tek cümlelik netleştirme sorusu sor. "
+            "Yanıtı «Tamam.» veya «Anladım.» ile başlatma.\n\n"
             "---\n\n"
         )
 
@@ -554,6 +556,26 @@ def _raw_json_task_type(raw: bytes) -> str | None:
     return str(tt).strip()
 
 
+def _video_task_prompt_fields_for_clarity(raw: bytes) -> tuple[str, bool] | None:
+    """Video JSON görevinde (prompt, medya_ref_var) veya video değilse None."""
+    try:
+        obj = json.loads(raw.decode("utf-8"))
+    except Exception:
+        return None
+    if not isinstance(obj, dict):
+        return None
+    if str(obj.get("task_type") or "").strip().lower() != "video":
+        return None
+    prompt = str(obj.get("prompt") or "").strip()
+    task_blob = "\n".join(
+        str(x or "") for x in (obj.get("task"), obj.get("goal"), obj.get("raw_text"))
+    )
+    from core.video_prompt_clarity import video_prompt_has_media_ref_in_task_blob
+
+    has_ref = video_prompt_has_media_ref_in_task_blob(task_blob)
+    return (prompt, has_ref)
+
+
 def _approval_payload_display_text(rec: dict) -> str:
     """Disk + API onay kaydında title/raw_text için görünen görev metni."""
     if not isinstance(rec, dict):
@@ -758,6 +780,23 @@ def _chat_input_for_llm(
     return (prefix + body) if prefix else body
 
 
+def _augment_chat_input_for_user_clarity(message: str, input_text: str) -> str:
+    """Belirsiz isteklerde LLM'e netleştirme önceliği ve 'Tamam.' giriş yasağı hatırlatması."""
+    try:
+        from core.user_intent_classifier import classify_user_message_intent
+
+        ui = classify_user_message_intent((message or "").strip())
+        if ui.label != "UNCERTAIN" and not ui.clarification_needed:
+            return input_text
+    except Exception:
+        return input_text
+    return (
+        input_text
+        + "\n\n[Görev — öncelik] Bu kullanıcı mesajı belirsiz sayıldı. Ana nesne, sahne veya amaç net değilse varsayım yapma; "
+        "tek cümlelik kısa bir netleştirme sorusu sor. Yanıtı «Tamam.», «Anladım.» veya benzeri onay dolgusuyla başlatma."
+    )
+
+
 def build_chat_reply(message: str, history: list | None = None) -> dict:
     """POST /chat: Lumos/task pipeline dışında doğrudan OpenAI yanıtı."""
     from openai import OpenAI
@@ -765,6 +804,7 @@ def build_chat_reply(message: str, history: list | None = None) -> dict:
     turns = _coerce_chat_history(history)
     mem_prefix = format_chat_prompt_prefix(ROOT)
     input_text = _chat_input_for_llm(message, turns, prefix=mem_prefix)
+    input_text = _augment_chat_input_for_user_clarity(message, input_text)
     client = OpenAI()
     model = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
     r = client.responses.create(
@@ -1946,6 +1986,30 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 },
             )
             return
+        try:
+            from core.video_prompt_clarity import (
+                is_video_task_prompt_ambiguous,
+                video_prompt_clarification_question_tr,
+            )
+
+            vf = _video_task_prompt_fields_for_clarity(raw)
+            if vf is not None:
+                vprompt, vref = vf
+                if vprompt and is_video_task_prompt_ambiguous(
+                    vprompt, has_media_ref=vref
+                ):
+                    self._send_json(
+                        200,
+                        {
+                            "accepted": False,
+                            "video_prompt_clarification": True,
+                            "reply": video_prompt_clarification_question_tr(vprompt),
+                            "mode": "clarify_video_prompt",
+                        },
+                    )
+                    return
+        except Exception:
+            pass
         client_tt = _raw_json_task_type(raw)
         out = self._complete_through_gate(
             mode,

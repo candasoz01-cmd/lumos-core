@@ -690,6 +690,7 @@ def create_runtime(sandbox_mode: bool | None = None) -> RuntimeResult:
     def run_panel() -> None:
         try:
             from ui.tui import run_tui, tui_available
+# handles logging
         except ImportError:
             print("Bu terminal panel desteklemiyor (curses yok).")
             return
