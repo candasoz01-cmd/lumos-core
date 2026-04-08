@@ -769,6 +769,18 @@ def dispatch_task(task: dict[str, Any]) -> dict[str, Any]:
     if os.getenv("KANDO_MOCK") == "1":
         task["mock"] = True
         result["mock"] = True
+    for step in task["execution_plan"].get("steps", []):
+        if (
+            isinstance(step, dict)
+            and step.get("type") == "video.generate"
+            and task.get("mock")
+        ):
+            from kando_runtime.video_executor import run
+
+            params = step.get("params") if isinstance(step.get("params"), dict) else {}
+            task["prompt"] = str(params.get("prompt") or task.get("prompt") or text).strip()
+            result["system_execution"] = run(task)
+            return result
 
     if task_type == "file" and plan_ok and run_system_executor:
         from kando_runtime.file_executor import run as file_run
