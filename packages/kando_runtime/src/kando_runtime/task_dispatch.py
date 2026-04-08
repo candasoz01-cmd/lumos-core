@@ -752,6 +752,19 @@ def dispatch_task(task: dict[str, Any]) -> dict[str, Any]:
             },
         }
 
+    if task_type == "text.generate":
+        return {
+            "status": "planned",
+            "execution_plan": {
+                "steps": [
+                    {
+                        "type": "text.generate",
+                        "params": task,
+                    }
+                ]
+            },
+        }
+
     execution_mode = str(out.get("execution_mode") or "").lower()
     hb = out.get("http_body") if isinstance(out.get("http_body"), dict) else {}
     lg = hb.get("lumos_gate") if isinstance(hb.get("lumos_gate"), dict) else {}
