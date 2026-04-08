@@ -712,16 +712,14 @@ def dispatch_task(task):
     task_type = task.get("task_type")
 
     if task_type == "text.generate" and "plan" in str(task.get("prompt", "")).lower():
-        from kando_runtime.agent_executor import run
-
-        result = run(task)
-
-        # route çıktısı varsa yeniden dispatch et
-        if isinstance(result, dict) and result.get("output", {}).get("type") == "route":
-            new_task = result["output"]["task"]
-            return dispatch_task(new_task)
-
-        return result
+        return {
+            "status": "routed",
+            "target": "agent",
+            "task": {
+                "type": "text.agent",
+                "prompt": task.get("prompt"),
+            },
+        }
 
     if "text" in str(task_type or ""):
         return {
