@@ -1419,6 +1419,16 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      background: radial-gradient(circle, #000 20%, #050505 100%);
+      animation: fadeIn 0.6s ease;
+    }
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
     }
     #videoOverlay .video-fullscreen video {
       max-width: 100%;
@@ -6609,7 +6619,7 @@
     });
   }
 
-  function openVideoOverlay() {
+  function openVideoOverlay(res) {
     const existing = document.getElementById("videoOverlay");
     if (existing) existing.remove();
     const el = document.createElement("div");
@@ -6619,6 +6629,17 @@
       '<video id="genVideo" autoplay controls></video>' +
       "</div>";
     document.body.appendChild(el);
+    const video = document.getElementById("genVideo");
+    if (video) {
+      const r = res && typeof res === "object" ? res : {};
+      video.src = r.output?.url || "/out.mp4";
+      video.addEventListener("waiting", function () {
+        video.style.opacity = "0.3";
+      });
+      video.addEventListener("playing", function () {
+        video.style.opacity = "1";
+      });
+    }
   }
 
   /**
@@ -6663,7 +6684,7 @@
       const task = Object.assign({}, top, top.task_result || {}, hbTr);
       const tt0 = String(task.task_type || task.type || "").toLowerCase();
       if (tt0 === "video" || tt0 === "video.generate") {
-        openVideoOverlay();
+        openVideoOverlay(res);
       } else {
         const trdKey =
           "task:" +
@@ -6905,7 +6926,7 @@
       const task = Object.assign({}, top, tr, hb);
       const tt1 = String(task.task_type || task.type || "").toLowerCase();
       if (tt1 === "video" || tt1 === "video.generate") {
-        openVideoOverlay();
+        openVideoOverlay(res);
       } else {
         pushAnalysisDoneChatCard(
           analysisChatDedupe,
