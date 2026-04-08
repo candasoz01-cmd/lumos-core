@@ -6914,6 +6914,20 @@
     return p;
   }
 
+  function addMessage(role, text) {
+    const t = String(text ?? "");
+    if (role === "assistant") {
+      addFeedItem("assistant_reply", {
+        text: t,
+        dedupeKey: "msg-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8),
+      });
+      chatHistory.push({ role: "assistant", content: t });
+    } else if (role === "user") {
+      addFeedItem("user_message", { text: t });
+      chatHistory.push({ role: "user", content: t });
+    }
+  }
+
   function chatHistoryForApi() {
     return chatHistory.map((m) => {
       if (m && m.type === "action") {
@@ -6993,7 +7007,6 @@
 
     addFeedItem("user_message", { text: message });
     chatHistory.push({ role: "user", content: message });
-    $("chatInput").value = "";
     setLoading("loadChat", true);
     $("btnChat").disabled = true;
     try {
@@ -7007,6 +7020,20 @@
         }),
       });
       const data = await r.json().catch(() => ({ error: "JSON parse hatası" }));
+
+      const res = data;
+      if (res.output?.type === "ask") {
+        addMessage("assistant", res.output.message);
+        renderFeed();
+        return;
+      }
+      if (res.task_result?.output?.type === "ask" && res.task_result.output.message != null) {
+        addMessage("assistant", res.task_result.output.message);
+        renderFeed();
+        return;
+      }
+
+      $("chatInput").value = "";
 
       if (data.mode === "chat") {
         const acts = Array.isArray(data.actions) ? data.actions : [];
