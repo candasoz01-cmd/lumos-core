@@ -1,8 +1,8 @@
 def run(task_ctx):
-    prompt = task_ctx.get("prompt", "")
+    prompt = str(task_ctx.get("prompt", "")).strip()
     return {
-        "outcome": "applied",
-        "result": {
+        "status": "done",
+        "output": {
             "type": "video",
             "url": "mock://video/generated.mp4",
             "prompt": prompt,
