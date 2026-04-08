@@ -1,14 +1,11 @@
 def run(task_ctx):
-    """Gerçek video dosyası üretilmedikçe sahte URL veya örnek medya dönülmez."""
-    _ = task_ctx  # İleride gerçek üretim bağlandığında kullanılacak.
+    """Video yürütücü çıktısı: type video + url + title (üretim bağlandığında url güncellenir)."""
+    _ = task_ctx
     return {
         "status": "done",
         "output": {
-            "type": "text",
-            "value": (
-                "Gerçek bir video dosyası üretilmedi: "
-                "video oluşturma bu ortamda bağlı değil veya henüz çalıştırılmadı. "
-                "Sahte veya örnek video adresi gösterilmiyor."
-            ),
+            "type": "video",
+            "url": "/out.mp4",
+            "title": "generated_video",
         },
     }
