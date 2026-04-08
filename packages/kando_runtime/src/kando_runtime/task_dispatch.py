@@ -898,10 +898,13 @@ def dispatch_task(task):
 
                 result = run(task)
 
-                # route çıktısı varsa yeniden dispatch et
-                if isinstance(result, dict) and result.get("output", {}).get("type") == "route":
-                    new_task = result["output"]["task"]
-                    return dispatch_task(new_task)
+                # ROUTE çıktıysa → yeniden dispatch et
+                if isinstance(result, dict):
+                    output = result.get("output", {})
+                    if output.get("type") == "route":
+                        new_task = output.get("task")
+                        if new_task:
+                            return dispatch_task(new_task)
 
                 return result
 
@@ -910,11 +913,29 @@ def dispatch_task(task):
                 from kando_runtime.executors.text_executor import run
 
                 out = run(step.get("params") or {})
+
+                # ROUTE çıktıysa → yeniden dispatch et
+                if isinstance(out, dict):
+                    output = out.get("output", {})
+                    if output.get("type") == "route":
+                        new_task = output.get("task")
+                        if new_task:
+                            return dispatch_task(new_task)
+
                 return {**result, **out} if isinstance(out, dict) else result
             elif executor_name == "video_executor":
                 from kando_runtime.executors.video_executor import run
 
                 out = run(step.get("params") or {})
+
+                # ROUTE çıktıysa → yeniden dispatch et
+                if isinstance(out, dict):
+                    output = out.get("output", {})
+                    if output.get("type") == "route":
+                        new_task = output.get("task")
+                        if new_task:
+                            return dispatch_task(new_task)
+
                 return {**result, **out} if isinstance(out, dict) else result
 
     if os.getenv("KANDO_MOCK") == "1":
