@@ -670,14 +670,21 @@ def build_execution_plan(task: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def run_video_executor(task: dict[str, Any]) -> Any:
+    from kando_runtime.video_executor import run
+
+    params = task.get("params") if isinstance(task.get("params"), dict) else {}
+    return run({"prompt": params.get("prompt", "")})
+
+
 def dispatch_task(task: dict[str, Any]) -> dict[str, Any]:
     """
     task: «text», gate «out», isteğe bağlı repo_root (Path), explicit_task_type (str).
     Dönüş: task_type, dispatch_execution_plan, execution_dispatch (executor, queue);
     file/shell için plan ok ve execution_permitted ise gerçek yürütme; aksi halde atlanmış kayıt.
     """
-    task_type = task.get("task_type") or task.get("type") or "unknown"
-    if "task_type" not in task:
+    task_type = task.get("task_type") or task.get("type")
+    if task_type:
         task["task_type"] = task_type
     text = str(task.get("text") or "").strip()
     if not text:
@@ -688,6 +695,11 @@ def dispatch_task(task: dict[str, Any]) -> dict[str, Any]:
     task_type: TaskType = resolve_task_type(
         text, str(explicit).strip() if explicit else None, out
     )
+    if task_type == "video.generate":
+        result = run_video_executor(task)
+        if not isinstance(result, dict):
+            result = {"output": result}
+        return {"status": "done", "output": result.get("output", result)}
 
     execution_mode = str(out.get("execution_mode") or "").lower()
     hb = out.get("http_body") if isinstance(out.get("http_body"), dict) else {}
