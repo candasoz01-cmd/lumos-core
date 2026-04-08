@@ -1,0 +1,5 @@
+# CI / local test deps (install order: kando_runtime before kando-bridge)
+-e ./packages/kando_runtime
+-e ./packages/kando_bridge
+-e .
+pytest

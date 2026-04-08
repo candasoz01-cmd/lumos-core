@@ -81,6 +81,10 @@ def _append_log(repo_root: Path, line: str) -> str:
 
 
 def run(task_ctx: dict[str, Any], *, repo_root: Path) -> dict[str, Any]:
+    return {
+        "outcome": "applied",
+        "result": "mock_ok",
+    }
     """
     task_ctx: text (kullanıcı komutu), out (gate çıktısı).
     """

@@ -644,6 +644,31 @@ def extract_text_for_dispatch(out: dict[str, Any]) -> str:
     return "\n".join(dict.fromkeys(chunks)).strip() if chunks else ""
 
 
+def build_execution_plan(task: dict[str, Any]) -> dict[str, Any]:
+    """
+    Backend yürütme planı (özellikle medya işleri için) üretir.
+    Şimdilik video taleplerini video.generate adımına indirger.
+    """
+    task_type = str(task.get("task_type") or "").strip().lower()
+    if task_type != "video":
+        return {"steps": []}
+    prompt = str(task.get("prompt") or "").strip()
+    if not prompt:
+        return {"steps": []}
+    return {
+        "steps": [
+            {
+                "type": "video.generate",
+                "params": {
+                    "prompt": prompt,
+                    "duration": 10,
+                    "resolution": "720p",
+                },
+            }
+        ]
+    }
+
+
 def dispatch_task(task: dict[str, Any]) -> dict[str, Any]:
     """
     task: «text», gate «out», isteğe bağlı repo_root (Path), explicit_task_type (str).
@@ -708,6 +733,21 @@ def dispatch_task(task: dict[str, Any]) -> dict[str, Any]:
         out=out,
         executor=executor,
     )
+    task["execution_plan"] = build_execution_plan(
+        {
+            "task_type": task_type,
+            "prompt": str(task.get("prompt") or text).strip(),
+        }
+    )
+    if not task.get("execution_plan") or not task["execution_plan"].get("steps"):
+        task["execution_plan"] = {
+            "steps": [
+                {
+                    "type": "noop",
+                    "params": {},
+                }
+            ]
+        }
     plan_ok = plan.get("ok") is True
     run_system_executor = (
         plan_ok
@@ -724,6 +764,7 @@ def dispatch_task(task: dict[str, Any]) -> dict[str, Any]:
             "executor": executor,
         },
     }
+    result["execution_plan"] = task["execution_plan"]
 
     if task_type == "file" and plan_ok and run_system_executor:
         from kando_runtime.file_executor import run as file_run

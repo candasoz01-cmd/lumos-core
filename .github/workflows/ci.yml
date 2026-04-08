@@ -8,6 +8,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ github.workspace }}
 
     steps:
       - uses: actions/checkout@v4
@@ -27,4 +30,4 @@ jobs:
           echo "PYTHONPATH=$(pwd)/src:$(pwd)/packages/kando_runtime/src:$(pwd)/packages/kando_bridge/src" >> $GITHUB_ENV
 
       - name: Run tests
-        run: pytest -q
+        run: pytest
