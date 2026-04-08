@@ -913,6 +913,10 @@ def dispatch_task(task):
 
                 result = run(task)
 
+                if isinstance(result, dict):
+                    if "risk" in result:
+                        risk = max(risk, result.get("risk", 0))
+
                 trace = task.get("_trace", [])
                 trace = trace + [task.get("type")]
                 task["_trace"] = trace
@@ -939,6 +943,10 @@ def dispatch_task(task):
 
                 out = run(step.get("params") or {})
 
+                if isinstance(out, dict):
+                    if "risk" in out:
+                        risk = max(risk, out.get("risk", 0))
+
                 trace = task.get("_trace", [])
                 trace = trace + [task.get("type")]
                 task["_trace"] = trace
@@ -962,6 +970,10 @@ def dispatch_task(task):
                 from kando_runtime.executors.video_executor import run
 
                 out = run(step.get("params") or {})
+
+                if isinstance(out, dict):
+                    if "risk" in out:
+                        risk = max(risk, out.get("risk", 0))
 
                 trace = task.get("_trace", [])
                 trace = trace + [task.get("type")]
