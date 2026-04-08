@@ -708,6 +708,149 @@ def run_video_executor(task: dict[str, Any]) -> Any:
     return run({"prompt": params.get("prompt", "")})
 
 
+_VIDEO_VAGUE_TOKENS: tuple[str, ...] = (
+    "bir şey",
+    "birsey",
+    "şey",
+    "garip",
+    "bilinmeyen",
+    "ilginç",
+    "farklı",
+    "bir şeyler",
+    "bi şey",
+)
+_VIDEO_STRUCTURE_TOKENS: tuple[str, ...] = (
+    "adam",
+    "kadın",
+    "çocuk",
+    "uçuyor",
+    "koşuyor",
+    "deniz",
+    "çöl",
+    "orman",
+    "şehir",
+    "gece",
+    "gündüz",
+)
+
+
+def _normalize_prompt(task: dict[str, Any]) -> str:
+    """task içinden prompt / yüzey metnini güvenli şekilde çıkarır."""
+    raw = task.get("prompt")
+    if isinstance(raw, str) and raw.strip():
+        return raw.strip()
+    return str(task.get("text") or "").strip()
+
+
+def _risk_for_snapshot(task: dict[str, Any], out: dict[str, Any]) -> str:
+    """Gate risk öncelikli; yoksa infer_risk."""
+    if isinstance(out, dict) and out:
+        r = _dispatch_risk_from_out(out).strip().lower()
+        if r and r != "unknown":
+            return r
+    return infer_risk(task)
+
+
+def _is_vague_request(task_type: TaskType, prompt: str) -> bool:
+    """Belirsiz istek (video vague listesi tek merkezde)."""
+    if task_type != "video":
+        return False
+    pl = (prompt or "").lower()
+    if not pl:
+        return False
+    vague = any(k in pl for k in _VIDEO_VAGUE_TOKENS)
+    has_structure = any(k in pl for k in _VIDEO_STRUCTURE_TOKENS)
+    return vague and not has_structure
+
+
+def _is_feasible_request(
+    task_type: TaskType,
+    prompt: str,
+    task: dict[str, Any],
+    out: dict[str, Any],
+) -> bool:
+    """Açıkça yapılamaz / eksik / hedefsiz işler → False."""
+    p = (prompt or "").strip()
+    norm = _normalized_task_dict_from_out(out)
+    rel = str(norm.get("target_rel") or "").strip()
+
+    if task_type == "video":
+        return bool(p)
+
+    if task_type == "file":
+        if rel:
+            return True
+        if str(norm.get("target_body") or "").strip():
+            return True
+        if re.search(r"\b[\w./\\-]+\.\w{2,16}\b", p):
+            return True
+        if _FILE_HINT_RE.search(p):
+            return True
+        return bool(p)
+
+    if task_type == "shell":
+        return bool(p)
+
+    if task_type in ("image", "audio"):
+        return bool(p)
+
+    return True
+
+
+def _needs_user_clarification(
+    task_type: TaskType,
+    prompt: str,
+    _task: dict[str, Any],
+    _out: dict[str, Any],
+) -> str | None:
+    """Netleştirme gerekiyorsa kısa soru; yoksa None."""
+    if task_type == "video" and _is_vague_request(task_type, prompt):
+        excerpt = (prompt or "").strip()[:120]
+        return f"'{excerpt}' biraz belirsiz. Nasıl bir sahne hayal ediyorsun?"
+    return None
+
+
+def _decision_snapshot(
+    task_type: TaskType,
+    prompt: str,
+    risk: str,
+    *,
+    task: dict[str, Any],
+    out: dict[str, Any],
+    needs_clarification: bool,
+) -> dict[str, Any]:
+    return {
+        "task_type": task_type,
+        "is_vague": _is_vague_request(task_type, prompt),
+        "is_feasible": _is_feasible_request(task_type, prompt, task, out),
+        "risk": risk,
+        "needs_clarification": needs_clarification,
+    }
+
+
+def _decision_layer_dispatch_shell(
+    task_type: TaskType, *, reason: str
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Karar katmanı erken dönüşü için minimal plan + execution_dispatch."""
+    plan: dict[str, Any] = {
+        "schema_version": "lumos.dispatch_execution_plan.v1",
+        "ok": False,
+        "action": "none",
+        "target": "",
+        "executor_type": _EXECUTOR_FOR_TYPE.get(task_type),
+        "risk": "low",
+        "execution_permitted": False,
+        "requires_dispatch_approval": False,
+        "reason": reason,
+    }
+    exec_disp: dict[str, Any] = {
+        "queue": "clarification_pending",
+        "label_tr": "Karar katmanı: netlik / uygulanabilirlik",
+        "executor": _EXECUTOR_FOR_TYPE.get(task_type),
+    }
+    return plan, exec_disp
+
+
 def dispatch_task(task):
     depth = int(task.get("_depth", 0))
 
@@ -764,6 +907,48 @@ def dispatch_task(task):
     else:
         executor_name = resolve_executor(task_type)
 
+    prompt = _normalize_prompt(task)
+    risk_snap = _risk_for_snapshot(task, out)
+    clarify_msg = _needs_user_clarification(task_type, prompt, task, out)
+    decision_snapshot = _decision_snapshot(
+        task_type,
+        prompt,
+        risk_snap,
+        task=task,
+        out=out,
+        needs_clarification=clarify_msg is not None,
+    )
+    if clarify_msg:
+        plan, exec_disp = _decision_layer_dispatch_shell(
+            task_type, reason="needs_clarification"
+        )
+        return {
+            "status": "done",
+            "output": {"type": "ask", "message": clarify_msg},
+            "decision": decision_snapshot,
+            "task_id": task_id,
+            "task_type": task_type,
+            "dispatch_execution_plan": plan,
+            "execution_dispatch": exec_disp,
+        }
+
+    if not _is_feasible_request(task_type, prompt, task, out):
+        plan, exec_disp = _decision_layer_dispatch_shell(
+            task_type, reason="not_feasible"
+        )
+        return {
+            "status": "done",
+            "output": {
+                "type": "text",
+                "value": "Bu görev şu haliyle net veya uygulanabilir görünmüyor.",
+            },
+            "decision": decision_snapshot,
+            "task_id": task_id,
+            "task_type": task_type,
+            "dispatch_execution_plan": plan,
+            "execution_dispatch": exec_disp,
+        }
+
     if task_type == "video.generate":
         task_id = task.get("id") or generate_id()
         task["id"] = task_id
@@ -815,46 +1000,6 @@ def dispatch_task(task):
     executor = _EXECUTOR_FOR_TYPE[task_type]
 
     if task_type == "video":
-        prompt = str(task.get("prompt", "")).lower()
-
-        belirsiz_kelimeler = [
-            "bir şey",
-            "birsey",
-            "şey",
-            "garip",
-            "bilinmeyen",
-            "ilginç",
-            "farklı",
-            "bir şeyler",
-            "bi şey",
-        ]
-
-        netlik_indikatörleri = [
-            "adam",
-            "kadın",
-            "çocuk",
-            "uçuyor",
-            "koşuyor",
-            "deniz",
-            "çöl",
-            "orman",
-            "şehir",
-            "gece",
-            "gündüz",
-        ]
-
-        is_vague = any(k in prompt for k in belirsiz_kelimeler)
-        has_structure = any(k in prompt for k in netlik_indikatörleri)
-
-        if is_vague and not has_structure:
-            return {
-                "status": "done",
-                "output": {
-                    "type": "ask",
-                    "message": f"'{prompt}' biraz belirsiz. Nasıl bir sahne hayal ediyorsun?",
-                },
-            }
-
         queue = "video_executor_pending"
         label_tr = "Video yürütücüsüne gönderildi"
     elif task_type == "image":

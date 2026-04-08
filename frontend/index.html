@@ -5238,6 +5238,7 @@
   }
 
   function openVideoOverlay(res) {
+    console.log(res);
     const prevScatter = document.getElementById("audioScatter");
     if (prevScatter) prevScatter.remove();
     const fx = document.createElement("div");
@@ -5261,9 +5262,21 @@
       document.body.appendChild(el);
 
       const video = document.getElementById("genVideo");
+      const shell = el.querySelector(".video-fullscreen");
+      if (shell) {
+        shell.addEventListener("click", function (e) {
+          if (e.target === shell) el.remove();
+        });
+      }
       if (video) {
         const r = res && typeof res === "object" ? res : {};
         video.src = r.output?.url || "/out.mp4";
+        video.addEventListener("click", function (e) {
+          e.stopPropagation();
+        });
+        video.addEventListener("ended", function () {
+          el.remove();
+        });
         video.addEventListener("waiting", () => {
           video.style.opacity = 0.3;
         });
