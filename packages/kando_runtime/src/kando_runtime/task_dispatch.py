@@ -709,7 +709,7 @@ def run_video_executor(task: dict[str, Any]) -> Any:
 def dispatch_task(task):
     task_type = task.get("task_type")
 
-    if task_type == "text.generate":
+    if "text" in str(task_type or ""):
         return {
             "status": "done",
             "output": {
@@ -738,7 +738,7 @@ def dispatch_task(task):
 
         task_type = task.get("task_type")
 
-        if task_type == "text.generate":
+        if "text" in str(task_type or ""):
             return {
                 "status": "done",
                 "output": {
