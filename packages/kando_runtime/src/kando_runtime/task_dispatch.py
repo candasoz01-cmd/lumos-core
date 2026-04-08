@@ -112,8 +112,12 @@ def is_approved(task_id: str) -> bool:
 
 
 def infer_risk(task: dict[str, Any]) -> str:
-    out = task.get("out") or task.get("gate_out") or {}
-    return _dispatch_risk_from_out(out if isinstance(out, dict) else {})
+    task_type = task.get("task_type") or task.get("type")
+
+    if task_type == "video.generate":
+        return "low"
+
+    return "medium"
 
 
 def infer_media_subtype(text: str) -> Literal["video", "image", "audio"]:
