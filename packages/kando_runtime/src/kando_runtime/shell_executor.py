@@ -82,10 +82,11 @@ def _append_log(repo_root: Path, line: str) -> str:
 
 
 def run(task_ctx: dict[str, Any], *, repo_root: Path) -> dict[str, Any]:
-    return {
-        "outcome": "applied",
-        "result": "mock_ok",
-    }
+    if task_ctx.get("mock"):
+        return {
+            "outcome": "applied",
+            "result": "mock_ok",
+        }
     text = str(task_ctx.get("text") or "").strip()
     out = task_ctx.get("out") or {}
     repo_root = repo_root.resolve()
