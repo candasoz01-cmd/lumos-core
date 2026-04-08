@@ -753,17 +753,9 @@ def dispatch_task(task: dict[str, Any]) -> dict[str, Any]:
         }
 
     if task_type == "text.generate":
-        return {
-            "status": "planned",
-            "execution_plan": {
-                "steps": [
-                    {
-                        "type": "text.generate",
-                        "params": task,
-                    }
-                ]
-            },
-        }
+        from kando_runtime.executors.text_executor import run
+
+        return run(task)
 
     execution_mode = str(out.get("execution_mode") or "").lower()
     hb = out.get("http_body") if isinstance(out.get("http_body"), dict) else {}
