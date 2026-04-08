@@ -846,30 +846,26 @@ def dispatch_task(task: dict[str, Any]) -> dict[str, Any]:
         },
     }
     result["execution_plan"] = task["execution_plan"]
+    exec_plan = result.get("execution_plan")
+    if exec_plan and isinstance(exec_plan, dict) and "steps" in exec_plan:
+        for step in exec_plan["steps"]:
+            if not isinstance(step, dict):
+                continue
+            st = step.get("type")
+            if st == "text.generate":
+                from kando_runtime.executors.text_executor import run
+
+                out = run(step.get("params") or {})
+                return {**result, **out} if isinstance(out, dict) else result
+            if st == "video.generate":
+                from kando_runtime.executors.video_executor import run
+
+                out = run(step.get("params") or {})
+                return {**result, **out} if isinstance(out, dict) else result
+
     if os.getenv("KANDO_MOCK") == "1":
         task["mock"] = True
         result["mock"] = True
-    for step in task["execution_plan"].get("steps", []):
-        if (
-            isinstance(step, dict)
-            and step.get("type") == "video.generate"
-            and task.get("mock")
-        ):
-            from kando_runtime.video_executor import run
-
-            result = run({"prompt": step.get("params", {}).get("prompt", "")})
-            if isinstance(result, dict) and "status" in result and "output" in result:
-                return result
-
-            if isinstance(result, dict):
-                return {"status": "done", "output": result}
-
-            return {"status": "done", "output": {"type": "text", "value": str(result)}}
-
-        if isinstance(step, dict) and step.get("type") == "text.generate":
-            from kando_runtime.executors.text_executor import run
-
-            return run(step["params"])
 
     if task_type == "file" and plan_ok and run_system_executor:
         from kando_runtime.file_executor import run as file_run
