@@ -725,7 +725,7 @@ def dispatch_task(task):
             "reason": "MAX_TRACE_EXCEEDED",
         }
 
-    task_type = task.get("task_type")
+    task_type = task.get("task_type") or task.get("type")
 
     if task_type == "text.generate" and "plan" in str(task.get("prompt", "")).lower():
         return {
@@ -746,7 +746,6 @@ def dispatch_task(task):
             },
         }
 
-    task_type = task.get("task_type") or task.get("type")
     if task_type:
         task["task_type"] = task_type
     task_id = str(task.get("id") or generate_id())
@@ -926,6 +925,12 @@ def dispatch_task(task):
                         if new_task:
                             return dispatch_task(new_task)
 
+                if isinstance(result, dict):
+                    result["risk"] = risk
+                    output = result.get("output")
+                    if isinstance(output, dict):
+                        output["risk"] = risk
+
                 return result
 
             # low ise devam
@@ -946,6 +951,12 @@ def dispatch_task(task):
                         if new_task:
                             return dispatch_task(new_task)
 
+                if isinstance(out, dict):
+                    out["risk"] = risk
+                    output = out.get("output")
+                    if isinstance(output, dict):
+                        output["risk"] = risk
+
                 return {**result, **out} if isinstance(out, dict) else result
             elif executor_name == "video_executor":
                 from kando_runtime.executors.video_executor import run
@@ -963,6 +974,12 @@ def dispatch_task(task):
                         new_task = output.get("task")
                         if new_task:
                             return dispatch_task(new_task)
+
+                if isinstance(out, dict):
+                    out["risk"] = risk
+                    output = out.get("output")
+                    if isinstance(output, dict):
+                        output["risk"] = risk
 
                 return {**result, **out} if isinstance(out, dict) else result
 
