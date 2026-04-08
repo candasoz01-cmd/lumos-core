@@ -873,6 +873,55 @@ def _video_need_input_reason(prompt: str) -> str | None:
     return None
 
 
+_VIDEO_SOURCE_URL_RE = re.compile(r"https?://\S+", re.I)
+_VIDEO_SOURCE_FILE_EXT_RE = re.compile(
+    r"\b[\w./\\-]+\.(?:mp4|mov|webm|mkv|m4v|avi)\b",
+    re.I,
+)
+_VIDEO_SOURCE_LABEL_RE = re.compile(
+    r"(?:dosya\s*yolu|kaynak\s*url)\s*:",
+    re.I,
+)
+# API / uç nokta (URL olmadan seyrek)
+_VIDEO_SOURCE_API_HINT_RE = re.compile(
+    r"\b(?:api\.[a-z0-9.-]+|/v\d+/|graphql|webhook|endpoint|rest\s*api)\b",
+    re.I,
+)
+
+
+def _video_task_has_external_source(
+    *,
+    text: str,
+    prompt: str,
+    task: dict[str, Any],
+) -> bool:
+    """
+    YouTube / URL, yerel dosya yolu veya API ipucu — gerçek medya veya dış kaynak yoksa False.
+    """
+    chunks = [
+        str(text or ""),
+        str(prompt or ""),
+        str(task.get("prompt") or ""),
+    ]
+    blob = "\n".join(c for c in chunks if (c or "").strip())
+    if not blob.strip():
+        return False
+    low = blob.lower()
+    if "youtube.com" in low or "youtu.be/" in low or "m.youtube.com" in low:
+        return True
+    if _VIDEO_SOURCE_URL_RE.search(blob):
+        return True
+    if _VIDEO_SOURCE_FILE_EXT_RE.search(blob):
+        return True
+    if _VIDEO_SOURCE_LABEL_RE.search(blob):
+        return True
+    if blob.strip().startswith("file://"):
+        return True
+    if _VIDEO_SOURCE_API_HINT_RE.search(blob):
+        return True
+    return False
+
+
 def _decision_snapshot(
     task_type: TaskType,
     prompt: str,
@@ -1022,8 +1071,16 @@ def dispatch_task(task):
         _video_need_input_reason(prompt) if task_type == "video" else None
     )
     clarity_sc = float(task["_meta"]["clarity_score"])
+    video_needs_source = (
+        task_type == "video"
+        and not _video_task_has_external_source(
+            text=text, prompt=prompt, task=task
+        )
+    )
     needs_clarification = (
-        vni_reason is not None or clarity_sc < _CLARITY_NEED_INPUT_THRESHOLD
+        vni_reason is not None
+        or clarity_sc < _CLARITY_NEED_INPUT_THRESHOLD
+        or video_needs_source
     )
     decision_snapshot = _decision_snapshot(
         task_type,
@@ -1056,6 +1113,24 @@ def dispatch_task(task):
             "status": "need_input",
             "reason": "LOW_CLARITY",
             "question": "Ne yapmak istediğinizi biraz daha açık yazar mısınız?",
+            "decision": decision_snapshot,
+            "task_id": task_id,
+            "task_type": task_type,
+            "dispatch_execution_plan": plan,
+            "execution_dispatch": exec_disp,
+        }
+
+    if video_needs_source:
+        plan, exec_disp = _decision_layer_dispatch_shell(
+            task_type, reason="NO_VIDEO_SOURCE"
+        )
+        return {
+            "status": "need_source",
+            "reason": "NO_VIDEO_SOURCE",
+            "message": (
+                "Gerçek video için kaynak gerekli. "
+                "Üreteyim mi yoksa dış kaynak mı kullanayım?"
+            ),
             "decision": decision_snapshot,
             "task_id": task_id,
             "task_type": task_type,
@@ -1436,6 +1511,12 @@ def attach_execution_dispatch_to_out(
             "status": "need_input",
             "reason": disp.get("reason"),
             "question": disp.get("question"),
+        }
+    if disp.get("status") == "need_source":
+        hb["lumos_dispatch_need_source"] = {
+            "status": "need_source",
+            "reason": disp.get("reason"),
+            "message": disp.get("message"),
         }
 
     plan = disp.get("dispatch_execution_plan") or {}

@@ -253,7 +253,14 @@ def test_dispatch_video_queue():
         "execution_mode": "restricted",
         "http_body": {"lumos_gate": {"execution_mode": "restricted"}},
     }
-    d = dispatch_task({"text": "720p video üret", "out": out, "repo_root": Path(".")})
+    # Dış kaynak (URL) olmadan saf üretim metni → need_source; kuyruk için kaynak eklenir
+    d = dispatch_task(
+        {
+            "text": "720p video üret https://youtu.be/abc123",
+            "out": out,
+            "repo_root": Path("."),
+        }
+    )
     assert d["task_type"] == "video"
     assert d["dispatch_execution_plan"]["ok"] is True
     assert d["dispatch_execution_plan"]["execution_permitted"] is False
@@ -261,6 +268,19 @@ def test_dispatch_video_queue():
     assert d["execution_dispatch"]["queue"] == "video_executor_pending"
     assert d["execution_dispatch"]["executor"] == "video_executor"
     assert "system_execution" not in d
+
+
+def test_dispatch_video_need_source_without_external_ref():
+    out = {
+        "execution_mode": "restricted",
+        "http_body": {"lumos_gate": {"execution_mode": "restricted"}},
+    }
+    d = dispatch_task(
+        {"text": "720p video üret", "out": out, "repo_root": Path(".")}
+    )
+    assert d["status"] == "need_source"
+    assert d["reason"] == "NO_VIDEO_SOURCE"
+    assert "kaynak" in (d.get("message") or "").lower()
 
 
 def test_dispatch_video_need_input_short_prompt():
