@@ -706,12 +706,7 @@ def run_video_executor(task: dict[str, Any]) -> Any:
     return run({"prompt": params.get("prompt", "")})
 
 
-def dispatch_task(task: dict[str, Any]) -> dict[str, Any]:
-    """
-    task: «text», gate «out», isteğe bağlı repo_root (Path), explicit_task_type (str).
-    Dönüş: task_type, dispatch_execution_plan, execution_dispatch (executor, queue);
-    file/shell için plan ok ve execution_permitted ise gerçek yürütme; aksi halde atlanmış kayıt.
-    """
+def dispatch_task(task):
     task_type = task.get("task_type")
 
     if task_type == "text.generate":
