@@ -905,6 +905,17 @@ def dispatch_task(task):
 
                 return result
 
+            # video için de aynı pattern hazır
+            if task_type == "video.generate" and "plan" in str(task.get("prompt", "")).lower():
+                return {
+                    "status": "routed",
+                    "target": "agent",
+                    "task": {
+                        "type": "text.agent",
+                        "prompt": task.get("prompt"),
+                    },
+                }
+
             # low ise devam
             if executor_name == "text_executor":
                 from kando_runtime.executors.text_executor import run
