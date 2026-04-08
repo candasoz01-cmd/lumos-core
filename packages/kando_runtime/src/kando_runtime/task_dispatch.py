@@ -737,6 +737,57 @@ _VIDEO_VAGUE_SINGLE_WORDS: frozenset[str] = frozenset(
     w for phrase in _VIDEO_VAGUE_TOKENS for w in phrase.split()
 ) | frozenset({"birsey"})
 
+# Genel belirsizlik ipuçları (clarity skoru): video listesi + kısa genel ifadeler
+_DISPATCH_VAGUE_HINTS: tuple[str, ...] = _VIDEO_VAGUE_TOKENS + (
+    "falan",
+    "filan",
+    "herhangi",
+    "ne olursa",
+    "bilmem",
+    "falan filan",
+    "falan fistan",
+    "rastgele",
+)
+
+# Niyet sinyali: anahtar kelime varlığı (hafif sezgisel liste)
+_INTENT_KEYWORD_HINTS: tuple[str, ...] = (
+    "oluştur",
+    "olustur",
+    "üret",
+    "uret",
+    "sil",
+    "çalıştır",
+    "calistir",
+    "yap",
+    "göster",
+    "goster",
+    "patch",
+    "run",
+    "komut",
+    "dosya",
+    "klasör",
+    "klasor",
+    "video",
+    "klip",
+    "film",
+    "resim",
+    "ses",
+    "audio",
+    "shell",
+    "terminal",
+    "düzenle",
+    "duzenle",
+    "ekle",
+    "kaldır",
+    "kaldir",
+    "oku",
+    "yaz",
+    "target",
+    "ffmpeg",
+)
+
+_CLARITY_NEED_INPUT_THRESHOLD = 0.4
+
 
 def _normalize_prompt(task: dict[str, Any]) -> str:
     """task içinden prompt / yüzey metnini güvenli şekilde çıkarır."""
@@ -863,6 +914,45 @@ def _decision_layer_dispatch_shell(
     return plan, exec_disp
 
 
+def now() -> str:
+    """UTC ISO-8601 zaman damgası (dispatch meta)."""
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _dispatch_vague_hit_count(prompt: str) -> int:
+    pl = (prompt or "").lower()
+    return sum(1 for h in _DISPATCH_VAGUE_HINTS if h in pl)
+
+
+def estimate_intent(task: dict[str, Any]) -> float:
+    """0.0–1.0: anahtar kelime varlığına dayalı hafif niyet skoru (harici model yok)."""
+    text = str(task.get("text") or "").strip()
+    if not text:
+        text = extract_text_for_dispatch(task.get("out") or task.get("gate_out") or {})
+    t = text.lower().strip()
+    if not t:
+        return 0.0
+    hits = sum(1 for k in _INTENT_KEYWORD_HINTS if k in t)
+    explicit_bonus = 0.14 if str(task.get("explicit_task_type") or "").strip() else 0.0
+    return float(min(1.0, 0.06 + 0.1 * hits + explicit_bonus))
+
+
+def estimate_clarity(task: dict[str, Any]) -> float:
+    """0.0–1.0: prompt uzunluğu + belirsiz kelime/öbek isabeti (hafif sezgisel)."""
+    p = (_normalize_prompt(task) or "").strip()
+    if not p:
+        return 0.0
+    # Uzunluk bileşeni (kısa talimatlar doğal olarak daha düşük)
+    len_norm = min(len(p), 220) / 220.0
+    hits = _dispatch_vague_hit_count(p)
+    vague_component = max(0.0, 1.0 - 0.13 * hits)
+    combined = 0.58 * len_norm + 0.42 * vague_component
+    # Çok kısa metin ek cezası (12 altı; ~14 karakterlik net dosya talimatı 0.4 üstünde kalsın)
+    if len(p) < 12:
+        combined *= len(p) / 12.0
+    return float(max(0.0, min(1.0, combined)))
+
+
 def dispatch_task(task):
     depth = int(task.get("_depth", 0))
 
@@ -908,21 +998,32 @@ def dispatch_task(task):
     text = str(task.get("text") or "").strip()
     if not text:
         text = extract_text_for_dispatch(task.get("out") or task.get("gate_out") or {})
+    task["text"] = text
     out = task.get("out") or task.get("gate_out") or {}
     repo_root = task.get("repo_root")
     explicit = task.get("explicit_task_type")
     task_type: TaskType = resolve_task_type(
         text, str(explicit).strip() if explicit else None, out
     )
+    task["task_type"] = task_type
     if task_type == "agent":
         executor_name = resolve_executor("agent")
     else:
         executor_name = resolve_executor(task_type)
 
     prompt = _normalize_prompt(task)
+    task["_meta"] = {
+        "received_at": now(),
+        "user_intent_score": estimate_intent(task),
+        "clarity_score": estimate_clarity(task),
+    }
     risk_snap = _risk_for_snapshot(task, out)
     vni_reason = (
         _video_need_input_reason(prompt) if task_type == "video" else None
+    )
+    clarity_sc = float(task["_meta"]["clarity_score"])
+    needs_clarification = (
+        vni_reason is not None or clarity_sc < _CLARITY_NEED_INPUT_THRESHOLD
     )
     decision_snapshot = _decision_snapshot(
         task_type,
@@ -930,7 +1031,7 @@ def dispatch_task(task):
         risk_snap,
         task=task,
         out=out,
-        needs_clarification=vni_reason is not None,
+        needs_clarification=needs_clarification,
     )
     if vni_reason:
         plan, exec_disp = _decision_layer_dispatch_shell(
@@ -940,6 +1041,21 @@ def dispatch_task(task):
             "status": "need_input",
             "reason": vni_reason,
             "question": "Nasıl bir sahne istiyorsun?",
+            "decision": decision_snapshot,
+            "task_id": task_id,
+            "task_type": task_type,
+            "dispatch_execution_plan": plan,
+            "execution_dispatch": exec_disp,
+        }
+
+    if clarity_sc < _CLARITY_NEED_INPUT_THRESHOLD:
+        plan, exec_disp = _decision_layer_dispatch_shell(
+            task_type, reason="LOW_CLARITY"
+        )
+        return {
+            "status": "need_input",
+            "reason": "LOW_CLARITY",
+            "question": "Ne yapmak istediğinizi biraz daha açık yazar mısınız?",
             "decision": decision_snapshot,
             "task_id": task_id,
             "task_type": task_type,

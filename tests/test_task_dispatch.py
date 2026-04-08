@@ -294,6 +294,24 @@ def test_dispatch_video_need_input_vague_only():
     assert d["reason"] == "VIDEO_PROMPT_VAGUE"
 
 
+def test_dispatch_need_input_low_clarity_threshold():
+    """clarity < 0.4 → LOW_CLARITY (video özel nedeni yoksa)."""
+    out = {
+        "execution_mode": "restricted",
+        "http_body": {"lumos_gate": {"execution_mode": "restricted"}},
+    }
+    d = dispatch_task(
+        {
+            "text": "x",
+            "out": out,
+            "repo_root": Path("."),
+            "explicit_task_type": "generic",
+        }
+    )
+    assert d["status"] == "need_input"
+    assert d["reason"] == "LOW_CLARITY"
+
+
 def test_attach_execution_dispatch_need_input_on_http_body(tmp_path: Path) -> None:
     out = {
         "execution_mode": "restricted",
