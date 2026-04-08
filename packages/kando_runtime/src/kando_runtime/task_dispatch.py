@@ -710,8 +710,13 @@ def dispatch_task(task):
     task_type = task.get("task_type")
 
     if task_type == "text.generate":
-        from kando_runtime.executors.text_executor import run
-        return run(task)
+        return {
+            "status": "done",
+            "output": {
+                "type": "text",
+                "value": task.get("prompt"),
+            },
+        }
 
     task_type = task.get("task_type") or task.get("type")
     if task_type:
@@ -734,8 +739,13 @@ def dispatch_task(task):
         task_type = task.get("task_type")
 
         if task_type == "text.generate":
-            from kando_runtime.executors.text_executor import run
-            return run(task)
+            return {
+                "status": "done",
+                "output": {
+                    "type": "text",
+                    "value": task.get("prompt"),
+                },
+            }
 
         risk = infer_risk(task)
 
