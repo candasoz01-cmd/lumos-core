@@ -719,6 +719,12 @@ def dispatch_task(task):
 
     task["_depth"] = depth + 1
 
+    if len(task.get("_trace", [])) > 5:
+        return {
+            "status": "error",
+            "reason": "MAX_TRACE_EXCEEDED",
+        }
+
     task_type = task.get("task_type")
 
     if task_type == "text.generate" and "plan" in str(task.get("prompt", "")).lower():
