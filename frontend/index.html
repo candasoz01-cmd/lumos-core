@@ -1550,6 +1550,33 @@
       padding: 0.15rem 0;
     }
 
+    #audioScatter {
+      position: fixed;
+      inset: 0;
+      background: black;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 3000;
+    }
+    #audioScatter .pulse {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #0f0 10%, transparent 60%);
+      animation: pulse 0.8s ease-out;
+    }
+    @keyframes pulse {
+      from {
+        transform: scale(0.5);
+        opacity: 1;
+      }
+      to {
+        transform: scale(2.5);
+        opacity: 0;
+      }
+    }
+
     #videoOverlay {
       position: fixed;
       inset: 0;
@@ -5211,6 +5238,16 @@
   }
 
   function openVideoOverlay(res) {
+    const prevScatter = document.getElementById("audioScatter");
+    if (prevScatter) prevScatter.remove();
+    const fx = document.createElement("div");
+    fx.id = "audioScatter";
+    fx.innerHTML = `<div class="pulse"></div>`;
+    document.body.appendChild(fx);
+    setTimeout(() => {
+      fx.remove();
+    }, 800);
+
     const prev = document.getElementById("videoOverlay");
     if (prev) prev.remove();
     const el = document.createElement("div");
@@ -8264,6 +8301,12 @@
 
   document.addEventListener("keydown", function (ev) {
     if (ev.key !== "Escape") return;
+    const sc = document.getElementById("audioScatter");
+    if (sc) {
+      ev.preventDefault();
+      sc.remove();
+      return;
+    }
     const vo = document.getElementById("videoOverlay");
     if (vo) {
       ev.preventDefault();
