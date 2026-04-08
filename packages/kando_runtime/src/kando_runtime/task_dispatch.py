@@ -27,6 +27,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal, cast
 
+from kando_runtime.router import ROUTES, resolve_executor
+
 DISPATCH_PENDING_APPROVAL_SCHEMA = "lumos.dispatch_pending_approval.v1"
 
 TaskType = Literal["video", "image", "audio", "file", "shell", "generic"]
@@ -709,6 +711,10 @@ def run_video_executor(task: dict[str, Any]) -> Any:
 def dispatch_task(task):
     task_type = task.get("task_type")
 
+    if task_type == "text.generate" and "plan" in str(task.get("prompt", "")).lower():
+        from kando_runtime.agent_executor import run
+        return run(task)
+
     if "text" in str(task_type or ""):
         return {
             "status": "done",
@@ -732,6 +738,11 @@ def dispatch_task(task):
     task_type: TaskType = resolve_task_type(
         text, str(explicit).strip() if explicit else None, out
     )
+    if task_type == "agent":
+        executor_name = resolve_executor("agent")
+    else:
+        executor_name = resolve_executor(task_type)
+
     if task_type == "video.generate":
         task_id = task.get("id") or generate_id()
         task["id"] = task_id
@@ -858,12 +869,35 @@ def dispatch_task(task):
             if not isinstance(step, dict):
                 continue
             st = step.get("type")
-            if st == "text.generate":
+            st_str = str(st or "")
+            if st_str not in ROUTES:
+                continue
+            executor_name = resolve_executor(st_str)
+            risk = infer_risk(task)
+
+            if risk == "high":
+                return {
+                    "status": "blocked",
+                    "reason": "HIGH_RISK",
+                }
+
+            if risk == "unknown":
+                return {
+                    "status": "needs_review",
+                    "reason": "UNKNOWN_RISK",
+                }
+
+            if executor_name == "agent_executor":
+                from kando_runtime.agent_executor import run
+                return run(task)
+
+            # low ise devam
+            if executor_name == "text_executor":
                 from kando_runtime.executors.text_executor import run
 
                 out = run(step.get("params") or {})
                 return {**result, **out} if isinstance(out, dict) else result
-            if st == "video.generate":
+            elif executor_name == "video_executor":
                 from kando_runtime.executors.video_executor import run
 
                 out = run(step.get("params") or {})
