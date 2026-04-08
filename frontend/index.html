@@ -1563,6 +1563,16 @@
       align-items: center;
       justify-content: center;
       box-sizing: border-box;
+      background: radial-gradient(circle, #000 20%, #050505 100%);
+      animation: fadeIn 0.6s ease;
+    }
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
     }
     .video-fullscreen video {
       max-width: 100%;
@@ -5200,7 +5210,7 @@
     renderFeed();
   }
 
-  function openVideoOverlay() {
+  function openVideoOverlay(res) {
     const prev = document.getElementById("videoOverlay");
     if (prev) prev.remove();
     const el = document.createElement("div");
@@ -5211,6 +5221,17 @@
     </div>
   `;
     document.body.appendChild(el);
+    const video = document.getElementById("genVideo");
+    if (video) {
+      const r = res && typeof res === "object" ? res : {};
+      video.src = r.output?.url || "/out.mp4";
+      video.addEventListener("waiting", () => {
+        video.style.opacity = 0.3;
+      });
+      video.addEventListener("playing", () => {
+        video.style.opacity = 1;
+      });
+    }
   }
 
   /** Sonuç geldiğinde sohbet akışına analiz kartı ekler (yalnızca olay işleyicilerinden çağrılmalı). */
@@ -5253,7 +5274,7 @@
     const kind = ev.kind;
     const task = { type: merged.task_type };
     if (task.type === "video") {
-      openVideoOverlay();
+      openVideoOverlay(merged);
       return;
     }
     const reasonFromEv =
