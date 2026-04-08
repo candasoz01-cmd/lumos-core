@@ -908,6 +908,10 @@ def dispatch_task(task):
 
                 result = run(task)
 
+                trace = task.get("_trace", [])
+                trace = trace + [task.get("type")]
+                task["_trace"] = trace
+
                 # ROUTE çıktıysa → yeniden dispatch et
                 if isinstance(result, dict):
                     output = result.get("output", {})
@@ -924,6 +928,10 @@ def dispatch_task(task):
 
                 out = run(step.get("params") or {})
 
+                trace = task.get("_trace", [])
+                trace = trace + [task.get("type")]
+                task["_trace"] = trace
+
                 # ROUTE çıktıysa → yeniden dispatch et
                 if isinstance(out, dict):
                     output = out.get("output", {})
@@ -937,6 +945,10 @@ def dispatch_task(task):
                 from kando_runtime.executors.video_executor import run
 
                 out = run(step.get("params") or {})
+
+                trace = task.get("_trace", [])
+                trace = trace + [task.get("type")]
+                task["_trace"] = trace
 
                 # ROUTE çıktıysa → yeniden dispatch et
                 if isinstance(out, dict):
