@@ -5244,31 +5244,34 @@
     fx.id = "audioScatter";
     fx.innerHTML = `<div class="pulse"></div>`;
     document.body.appendChild(fx);
+
     setTimeout(() => {
       fx.remove();
-    }, 800);
 
-    const prev = document.getElementById("videoOverlay");
-    if (prev) prev.remove();
-    const el = document.createElement("div");
-    el.id = "videoOverlay";
-    el.innerHTML = `
+      const prev = document.getElementById("videoOverlay");
+      if (prev) prev.remove();
+
+      const el = document.createElement("div");
+      el.id = "videoOverlay";
+      el.innerHTML = `
     <div class="video-fullscreen">
       <video id="genVideo" autoplay controls></video>
     </div>
   `;
-    document.body.appendChild(el);
-    const video = document.getElementById("genVideo");
-    if (video) {
-      const r = res && typeof res === "object" ? res : {};
-      video.src = r.output?.url || "/out.mp4";
-      video.addEventListener("waiting", () => {
-        video.style.opacity = 0.3;
-      });
-      video.addEventListener("playing", () => {
-        video.style.opacity = 1;
-      });
-    }
+      document.body.appendChild(el);
+
+      const video = document.getElementById("genVideo");
+      if (video) {
+        const r = res && typeof res === "object" ? res : {};
+        video.src = r.output?.url || "/out.mp4";
+        video.addEventListener("waiting", () => {
+          video.style.opacity = 0.3;
+        });
+        video.addEventListener("playing", () => {
+          video.style.opacity = 1;
+        });
+      }
+    }, 800);
   }
 
   /** Sonuç geldiğinde sohbet akışına analiz kartı ekler (yalnızca olay işleyicilerinden çağrılmalı). */
