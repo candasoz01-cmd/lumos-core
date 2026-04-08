@@ -1407,6 +1407,25 @@
       white-space: nowrap;
       border: 0;
     }
+    #videoOverlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: #0a0a0a;
+    }
+    #videoOverlay .video-fullscreen {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #videoOverlay .video-fullscreen video {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+    }
     .video-generation-view {
       position: fixed;
       inset: 0;
@@ -6590,6 +6609,18 @@
     });
   }
 
+  function openVideoOverlay() {
+    const existing = document.getElementById("videoOverlay");
+    if (existing) existing.remove();
+    const el = document.createElement("div");
+    el.id = "videoOverlay";
+    el.innerHTML =
+      '<div class="video-fullscreen">' +
+      '<video id="genVideo" autoplay controls></video>' +
+      "</div>";
+    document.body.appendChild(el);
+  }
+
   /**
    * Chat veya POST /task yanıtını feed öğelerine çevirir.
    * @param {object} res — API JSON
@@ -6627,22 +6658,30 @@
       (executionMode === "pending_approval" || requiresApproval);
 
     if (!o.skipTaskRouted && top.mode === "task_routed") {
-      const trdKey =
-        "task:" +
-        (approvalFile || outboxDedupeKey(tr) || outboxDedupeKey(top) || "tr-" + Date.now());
-      if (!taskRunId) {
-        addFeedItem("task_routed", {
-          userMessage: sourceMessage,
-          reply: top.reply || "",
-          taskResult: top.task_result,
-          dedupeKey: trdKey,
-        });
+      const hbTr =
+        tr.http_body && typeof tr.http_body === "object" ? tr.http_body : {};
+      const task = Object.assign({}, top, top.task_result || {}, hbTr);
+      const tt0 = String(task.task_type || task.type || "").toLowerCase();
+      if (tt0 === "video" || tt0 === "video.generate") {
+        openVideoOverlay();
+      } else {
+        const trdKey =
+          "task:" +
+          (approvalFile || outboxDedupeKey(tr) || outboxDedupeKey(top) || "tr-" + Date.now());
+        if (!taskRunId) {
+          addFeedItem("task_routed", {
+            userMessage: sourceMessage,
+            reply: top.reply || "",
+            taskResult: top.task_result,
+            dedupeKey: trdKey,
+          });
+        }
+        analysisChatDedupe = "tr|" + trdKey;
+        analysisPayloadForCard =
+          top.task_result && typeof top.task_result === "object"
+            ? Object.assign({}, top, top.task_result)
+            : top;
       }
-      analysisChatDedupe = "tr|" + trdKey;
-      analysisPayloadForCard =
-        top.task_result && typeof top.task_result === "object"
-          ? Object.assign({}, top, top.task_result)
-          : top;
     }
 
     if (tr.routing_error != null && String(tr.routing_error).length) {
@@ -6863,10 +6902,16 @@
       });
     }
     if (analysisChatDedupe) {
-      pushAnalysisDoneChatCard(
-        analysisChatDedupe,
-        analysisPayloadForCard != null ? analysisPayloadForCard : top
-      );
+      const task = Object.assign({}, top, tr, hb);
+      const tt1 = String(task.task_type || task.type || "").toLowerCase();
+      if (tt1 === "video" || tt1 === "video.generate") {
+        openVideoOverlay();
+      } else {
+        pushAnalysisDoneChatCard(
+          analysisChatDedupe,
+          analysisPayloadForCard != null ? analysisPayloadForCard : top
+        );
+      }
     } else if (lastSubmittedTaskRunKey) {
       clearPendingRunTaskHistory();
     }
@@ -8203,6 +8248,12 @@
 
   document.addEventListener("keydown", function (ev) {
     if (ev.key !== "Escape") return;
+    const vo = document.getElementById("videoOverlay");
+    if (vo) {
+      ev.preventDefault();
+      vo.remove();
+      return;
+    }
     const v = $("videoGenerationView");
     if (v && v.classList.contains("video-generation-view--open")) {
       ev.preventDefault();
