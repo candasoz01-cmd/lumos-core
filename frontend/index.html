@@ -1615,7 +1615,7 @@
       position: fixed;
       inset: 0;
       z-index: 250;
-      background: #0a0a0a;
+      background: #000;
     }
     .video-fullscreen {
       width: 100%;
@@ -1624,16 +1624,7 @@
       align-items: center;
       justify-content: center;
       box-sizing: border-box;
-      background: radial-gradient(circle, #000 20%, #050505 100%);
-      animation: fadeIn 0.6s ease;
-    }
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-      }
-      to {
-        opacity: 1;
-      }
+      background: #000;
     }
     .video-fullscreen video {
       max-width: 100%;
@@ -5277,54 +5268,66 @@
     renderFeed();
   }
 
-  function openVideoOverlay(res) {
-    console.log(res);
-    const prevScatter = document.getElementById("audioScatter");
-    if (prevScatter) prevScatter.remove();
-    const fx = document.createElement("div");
-    fx.id = "audioScatter";
-    fx.innerHTML = `<div class="pulse"></div>`;
-    document.body.appendChild(fx);
+  function resolveVideoPlaybackSrc(url) {
+    const u = String(url || "").trim();
+    if (!u) return "";
+    if (/^https?:\/\//i.test(u) || u.startsWith("blob:") || u.startsWith("data:")) {
+      return u;
+    }
+    const base = apiBase().replace(/\/$/, "");
+    return u.startsWith("/") ? base + u : base + "/" + u;
+  }
 
-    setTimeout(() => {
-      fx.remove();
+  /**
+   * Tam ekran video: string URL veya { output: { url } } (geri uyumluluk).
+   * Arka plan siyah; ESC ile kapanır (global dinleyici + kabuk tıklaması).
+   */
+  function openVideoOverlay(urlOrRes) {
+    let raw = "";
+    if (typeof urlOrRes === "string") {
+      raw = urlOrRes.trim();
+    } else if (urlOrRes && typeof urlOrRes === "object") {
+      const o =
+        urlOrRes.output && typeof urlOrRes.output === "object"
+          ? urlOrRes.output
+          : null;
+      raw = (o && o.url) || urlOrRes.url || "";
+      raw = String(raw || "").trim();
+    }
+    const src = resolveVideoPlaybackSrc(raw || "/out.mp4");
 
-      const prev = document.getElementById("videoOverlay");
-      if (prev) prev.remove();
+    const prev = document.getElementById("videoOverlay");
+    if (prev) prev.remove();
 
-      const el = document.createElement("div");
-      el.id = "videoOverlay";
-      el.innerHTML = `
-    <div class="video-fullscreen">
-      <video id="genVideo" autoplay controls></video>
-    </div>
-  `;
-      document.body.appendChild(el);
+    const el = document.createElement("div");
+    el.id = "videoOverlay";
+    el.setAttribute("role", "dialog");
+    el.setAttribute("aria-modal", "true");
+    el.innerHTML =
+      '<div class="video-fullscreen">' +
+      '<video class="lumos-video-playback-el" autoplay controls playsinline></video>' +
+      "</div>";
+    document.body.appendChild(el);
 
-      const video = document.getElementById("genVideo");
-      const shell = el.querySelector(".video-fullscreen");
-      if (shell) {
-        shell.addEventListener("click", function (e) {
-          if (e.target === shell) el.remove();
-        });
-      }
-      if (video) {
-        const r = res && typeof res === "object" ? res : {};
-        video.src = r.output?.url || "/out.mp4";
-        video.addEventListener("click", function (e) {
-          e.stopPropagation();
-        });
-        video.addEventListener("ended", function () {
-          el.remove();
-        });
-        video.addEventListener("waiting", () => {
-          video.style.opacity = 0.3;
-        });
-        video.addEventListener("playing", () => {
-          video.style.opacity = 1;
-        });
-      }
-    }, 800);
+    const video = el.querySelector("video");
+    const shell = el.querySelector(".video-fullscreen");
+    if (video) {
+      video.src = src;
+      video.addEventListener("click", function (e) {
+        e.stopPropagation();
+      });
+      video.addEventListener("waiting", function () {
+        video.style.opacity = "0.85";
+      });
+      video.addEventListener("playing", function () {
+        video.style.opacity = "1";
+      });
+    }
+    if (shell) {
+      shell.addEventListener("click", function (e) {
+        if (e.target === shell) el.remove();
+      });
+    }
   }
 
   /** Sonuç geldiğinde sohbet akışına analiz kartı ekler (yalnızca olay işleyicilerinden çağrılmalı). */
@@ -6756,6 +6759,12 @@
     let analysisChatDedupe = null;
     let analysisPayloadForCard = null;
     const top = res && typeof res === "object" ? res : {};
+    const outTop = top.output && typeof top.output === "object" ? top.output : null;
+    if (outTop && outTop.type === "video" && outTop.url) {
+      openVideoOverlay(String(outTop.url));
+      if (taskRunId) finalizeTaskRunLifecycle(taskRunId, {});
+      return;
+    }
     const trFromResult =
       top.task_result && typeof top.task_result === "object" ? top.task_result : null;
     const trFromGate =
