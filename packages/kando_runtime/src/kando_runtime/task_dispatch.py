@@ -709,6 +709,16 @@ def run_video_executor(task: dict[str, Any]) -> Any:
 
 
 def dispatch_task(task):
+    depth = int(task.get("_depth", 0))
+
+    if depth > 3:
+        return {
+            "status": "error",
+            "reason": "MAX_DEPTH_EXCEEDED",
+        }
+
+    task["_depth"] = depth + 1
+
     task_type = task.get("task_type")
 
     if task_type == "text.generate" and "plan" in str(task.get("prompt", "")).lower():
