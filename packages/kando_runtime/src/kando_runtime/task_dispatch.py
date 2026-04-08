@@ -866,6 +866,11 @@ def dispatch_task(task: dict[str, Any]) -> dict[str, Any]:
 
             return {"status": "done", "output": {"type": "text", "value": str(result)}}
 
+        if isinstance(step, dict) and step.get("type") == "text.generate":
+            from kando_runtime.executors.text_executor import run
+
+            return run(step["params"])
+
     if task_type == "file" and plan_ok and run_system_executor:
         from kando_runtime.file_executor import run as file_run
 
