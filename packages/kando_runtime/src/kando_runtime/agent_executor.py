@@ -4,6 +4,19 @@ import os
 def run(task_ctx):
     prompt = str(task_ctx.get("prompt", ""))
 
+    if "video plan" in prompt.lower() or "video oluşturma planı" in prompt.lower():
+        return {
+            "status": "done",
+            "output": {
+                "type": "route",
+                "target": "video_executor",
+                "task": {
+                    "type": "video.generate",
+                    "prompt": prompt,
+                },
+            },
+        }
+
     api_key = os.getenv("OPENAI_API_KEY")
 
     if not api_key:
