@@ -733,6 +733,10 @@ _VIDEO_STRUCTURE_TOKENS: tuple[str, ...] = (
     "gündüz",
 )
 
+_VIDEO_VAGUE_SINGLE_WORDS: frozenset[str] = frozenset(
+    w for phrase in _VIDEO_VAGUE_TOKENS for w in phrase.split()
+) | frozenset({"birsey"})
+
 
 def _normalize_prompt(task: dict[str, Any]) -> str:
     """task içinden prompt / yüzey metnini güvenli şekilde çıkarır."""
@@ -761,6 +765,15 @@ def _is_vague_request(task_type: TaskType, prompt: str) -> bool:
     vague = any(k in pl for k in _VIDEO_VAGUE_TOKENS)
     has_structure = any(k in pl for k in _VIDEO_STRUCTURE_TOKENS)
     return vague and not has_structure
+
+
+def _video_prompt_only_vague_words(prompt: str) -> bool:
+    """Tüm anlamlı kelimeler yalnızca video belirsizlik sözlüğündeyse True."""
+    pl = (prompt or "").lower()
+    words = re.findall(r"\w+", pl)
+    if not words:
+        return False
+    return all(w in _VIDEO_VAGUE_SINGLE_WORDS for w in words)
 
 
 def _is_feasible_request(
@@ -797,16 +810,15 @@ def _is_feasible_request(
     return True
 
 
-def _needs_user_clarification(
-    task_type: TaskType,
-    prompt: str,
-    _task: dict[str, Any],
-    _out: dict[str, Any],
-) -> str | None:
-    """Netleştirme gerekiyorsa kısa soru; yoksa None."""
-    if task_type == "video" and _is_vague_request(task_type, prompt):
-        excerpt = (prompt or "").strip()[:120]
-        return f"'{excerpt}' biraz belirsiz. Nasıl bir sahne hayal ediyorsun?"
+def _video_need_input_reason(prompt: str) -> str | None:
+    """Video: kısa / boş / yalnızca belirsiz kelimeler → netleştirme; executor yok."""
+    p = (prompt or "").strip()
+    if not p or len(p) < 10:
+        return "VIDEO_PROMPT_VAGUE"
+    if _video_prompt_only_vague_words(p):
+        return "VIDEO_PROMPT_VAGUE"
+    if _is_vague_request("video", p):
+        return "VIDEO_PROMPT_VAGUE"
     return None
 
 
@@ -909,22 +921,25 @@ def dispatch_task(task):
 
     prompt = _normalize_prompt(task)
     risk_snap = _risk_for_snapshot(task, out)
-    clarify_msg = _needs_user_clarification(task_type, prompt, task, out)
+    vni_reason = (
+        _video_need_input_reason(prompt) if task_type == "video" else None
+    )
     decision_snapshot = _decision_snapshot(
         task_type,
         prompt,
         risk_snap,
         task=task,
         out=out,
-        needs_clarification=clarify_msg is not None,
+        needs_clarification=vni_reason is not None,
     )
-    if clarify_msg:
+    if vni_reason:
         plan, exec_disp = _decision_layer_dispatch_shell(
-            task_type, reason="needs_clarification"
+            task_type, reason="VIDEO_PROMPT_VAGUE"
         )
         return {
-            "status": "done",
-            "output": {"type": "ask", "message": clarify_msg},
+            "status": "need_input",
+            "reason": vni_reason,
+            "question": "Nasıl bir sahne istiyorsun?",
             "decision": decision_snapshot,
             "task_id": task_id,
             "task_type": task_type,
@@ -1300,6 +1315,12 @@ def attach_execution_dispatch_to_out(
     hb["execution_dispatch"] = disp["execution_dispatch"]
     if "system_execution" in disp:
         hb["system_execution"] = disp["system_execution"]
+    if disp.get("status") == "need_input":
+        hb["lumos_dispatch_need_input"] = {
+            "status": "need_input",
+            "reason": disp.get("reason"),
+            "question": disp.get("question"),
+        }
 
     plan = disp.get("dispatch_execution_plan") or {}
     if (

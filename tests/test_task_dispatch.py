@@ -263,6 +263,55 @@ def test_dispatch_video_queue():
     assert "system_execution" not in d
 
 
+def test_dispatch_video_need_input_short_prompt():
+    out = {
+        "execution_mode": "restricted",
+        "http_body": {"lumos_gate": {"execution_mode": "restricted"}},
+    }
+    d = dispatch_task(
+        {"text": "kısa klip", "out": out, "repo_root": Path("."), "explicit_task_type": "video"}
+    )
+    assert d["status"] == "need_input"
+    assert d["reason"] == "VIDEO_PROMPT_VAGUE"
+    assert d["question"] == "Nasıl bir sahne istiyorsun?"
+    assert d["dispatch_execution_plan"]["execution_permitted"] is False
+
+
+def test_dispatch_video_need_input_vague_only():
+    out = {
+        "execution_mode": "restricted",
+        "http_body": {"lumos_gate": {"execution_mode": "restricted"}},
+    }
+    d = dispatch_task(
+        {
+            "text": "garip farklı ilginç bilinmeyen şeyler",
+            "out": out,
+            "repo_root": Path("."),
+            "explicit_task_type": "video",
+        }
+    )
+    assert d["status"] == "need_input"
+    assert d["reason"] == "VIDEO_PROMPT_VAGUE"
+
+
+def test_attach_execution_dispatch_need_input_on_http_body(tmp_path: Path) -> None:
+    out = {
+        "execution_mode": "restricted",
+        "http_body": {
+            "lumos_gate": {"execution_mode": "restricted"},
+            "message": "kısa",
+        },
+        "_client_task_type": "video",
+    }
+    attach_execution_dispatch_to_out(out, repo_root=tmp_path)
+    hb = out["http_body"]
+    assert hb.get("task_type") == "video"
+    ni = hb["lumos_dispatch_need_input"]
+    assert ni["status"] == "need_input"
+    assert ni["reason"] == "VIDEO_PROMPT_VAGUE"
+    assert ni["question"] == "Nasıl bir sahne istiyorsun?"
+
+
 def test_dispatch_file_approval():
     out = {
         "execution_mode": "pending_approval",
