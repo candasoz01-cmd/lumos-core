@@ -737,6 +737,13 @@ def dispatch_task(task: dict[str, Any]) -> dict[str, Any]:
         task_id = task.get("id") or generate_id()
         task["id"] = task_id
 
+        task_type = task.get("task_type")
+
+        if task_type == "text.generate":
+            from kando_runtime.executors.text_executor import run
+
+            return run(task)
+
         risk = infer_risk(task)
 
         if risk != "low":
