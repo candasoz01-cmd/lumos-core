@@ -778,7 +778,13 @@ def dispatch_task(task: dict[str, Any]) -> dict[str, Any]:
             from kando_runtime.video_executor import run
 
             result = run({"prompt": step.get("params", {}).get("prompt", "")})
-            return {"status": "done", "output": result.get("output", result)}
+            if isinstance(result, dict) and "status" in result and "output" in result:
+                return result
+
+            if isinstance(result, dict):
+                return {"status": "done", "output": result}
+
+            return {"status": "done", "output": {"type": "text", "value": str(result)}}
 
     if task_type == "file" and plan_ok and run_system_executor:
         from kando_runtime.file_executor import run as file_run
