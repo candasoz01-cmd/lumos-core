@@ -1554,6 +1554,7 @@
       position: fixed;
       inset: 0;
       z-index: 250;
+      background: #0a0a0a;
     }
     .video-fullscreen {
       width: 100%;
@@ -5216,20 +5217,21 @@
     el.id = "videoOverlay";
     el.innerHTML = `
     <div class="video-fullscreen">
-      <video id="genVideo" autoplay controls playsinline></video>
+      <video id="genVideo" autoplay controls></video>
     </div>
   `;
     document.body.appendChild(el);
     const video = document.getElementById("genVideo");
-    if (!video) return;
-    const r = res && typeof res === "object" ? res : {};
-    video.src = r.output?.url || "/out.mp4";
-    video.addEventListener("waiting", () => {
-      video.style.opacity = 0.3;
-    });
-    video.addEventListener("playing", () => {
-      video.style.opacity = 1;
-    });
+    if (video) {
+      const r = res && typeof res === "object" ? res : {};
+      video.src = r.output?.url || "/out.mp4";
+      video.addEventListener("waiting", () => {
+        video.style.opacity = 0.3;
+      });
+      video.addEventListener("playing", () => {
+        video.style.opacity = 1;
+      });
+    }
   }
 
   /** Sonuç geldiğinde sohbet akışına analiz kartı ekler (yalnızca olay işleyicilerinden çağrılmalı). */
