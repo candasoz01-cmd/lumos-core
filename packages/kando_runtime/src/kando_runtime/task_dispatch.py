@@ -19,6 +19,7 @@ yeniden çalıştırılır.
 from __future__ import annotations
 
 import json
+import os
 import re
 import secrets
 import time
@@ -739,7 +740,6 @@ def dispatch_task(task: dict[str, Any]) -> dict[str, Any]:
             "prompt": str(task.get("prompt") or text).strip(),
         }
     )
-    task["mock"] = True
     if not task.get("execution_plan") or not task["execution_plan"].get("steps"):
         task["execution_plan"] = {
             "steps": [
@@ -766,7 +766,9 @@ def dispatch_task(task: dict[str, Any]) -> dict[str, Any]:
         },
     }
     result["execution_plan"] = task["execution_plan"]
-    result["mock"] = True
+    if os.getenv("KANDO_MOCK") == "1":
+        task["mock"] = True
+        result["mock"] = True
 
     if task_type == "file" and plan_ok and run_system_executor:
         from kando_runtime.file_executor import run as file_run

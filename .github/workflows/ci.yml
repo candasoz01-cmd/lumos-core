@@ -31,3 +31,5 @@ jobs:
 
       - name: Run tests
         run: pytest
+        env:
+          KANDO_MOCK: "1"
