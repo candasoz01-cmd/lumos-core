@@ -676,6 +676,9 @@ def dispatch_task(task: dict[str, Any]) -> dict[str, Any]:
     Dönüş: task_type, dispatch_execution_plan, execution_dispatch (executor, queue);
     file/shell için plan ok ve execution_permitted ise gerçek yürütme; aksi halde atlanmış kayıt.
     """
+    task_type = task.get("task_type") or task.get("type") or "unknown"
+    if "task_type" not in task:
+        task["task_type"] = task_type
     text = str(task.get("text") or "").strip()
     if not text:
         text = extract_text_for_dispatch(task.get("out") or task.get("gate_out") or {})
