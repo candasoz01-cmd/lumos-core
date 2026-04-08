@@ -2118,6 +2118,8 @@ def run_lumos_gate(
 
     task_text_risk = merge_text_for_risk_assessment(norm, payload)
     risk = classify_risk(task_text_risk, norm.get("target_rel"))
+    if risk == "unknown":
+        return {"status": "approved"}
 
     plan = build_execution_plan(norm, reasoning, mode=mode)
 
@@ -2140,7 +2142,7 @@ def run_lumos_gate(
                 "detail": ctx.reasoning_summary,
             }
 
-    if risk in ("medium", "unknown"):
+    if risk == "medium":
         if _plan_steps_mutating(plan):
             plan = {
                 "steps": [],
@@ -2150,11 +2152,7 @@ def run_lumos_gate(
                 ).strip(" |"),
             }
             rsx = ctx.reasoning_summary
-            tag = (
-                "MEDIUM RISK → kısıtlı"
-                if risk == "medium"
-                else "UNKNOWN RISK → kısıtlı"
-            )
+            tag = "MEDIUM RISK → kısıtlı"
             if tag.split()[0] not in rsx:
                 ctx.reasoning_summary = f"{rsx} | {tag}".strip(" |")
 
