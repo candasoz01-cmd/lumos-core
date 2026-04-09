@@ -17,12 +17,34 @@ REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN")
 POLL_MAX_ATTEMPTS = 30
 POLL_INTERVAL_SEC = 2.0
 
-VIDEO_CACHE_FILE = ".video_cache.json"
+VIDEO_CACHE_FILE = ".video_url_cache.json"
+
+_CACHE_FILE = Path(".video_cache.json")
+
+
+def _load_cache() -> None:
+    global CACHE
+    if _CACHE_FILE.exists():
+        try:
+            CACHE = json.loads(_CACHE_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            CACHE = {}
+
+def _save_cache() -> None:
+    try:
+        _CACHE_FILE.write_text(
+            json.dumps(CACHE, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+    except Exception:
+        pass
+
 
 _VIDEO_QUEUE: list[Any] = []
 _VIDEO_BUSY = False
 
 CACHE: dict[str, dict[str, Any]] = {}
+
+_load_cache()
 
 
 def _video_cache_path() -> Path:
@@ -217,6 +239,7 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
             if url_out:
                 out = _done_video_payload(url_out)
                 CACHE[cache_key] = out
+                _save_cache()
                 _write_cache_entry(prompt_hash, url_out)
                 return out
             return {
@@ -281,6 +304,7 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
                 if url_out:
                     out = _done_video_payload(url_out)
                     CACHE[cache_key] = out
+                    _save_cache()
                     _write_cache_entry(prompt_hash, url_out)
                     return out
                 return {
