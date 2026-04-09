@@ -22,6 +22,8 @@ VIDEO_CACHE_FILE = ".video_cache.json"
 _VIDEO_QUEUE: list[Any] = []
 _VIDEO_BUSY = False
 
+CACHE: dict[str, dict[str, Any]] = {}
+
 
 def _video_cache_path() -> Path:
     return Path(os.getcwd()) / VIDEO_CACHE_FILE
@@ -111,10 +113,16 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
     prompt_norm = prompt_norm.replace(".", "")
     prompt_hash = hashlib.sha256(prompt_norm.encode()).hexdigest()
 
+    cache_key = "video:" + prompt_hash
+    if cache_key in CACHE:
+        return CACHE[cache_key]
+
     cache = _load_video_cache()
     cached_url = cache.get(prompt_hash, "")
     if cached_url:
-        return _done_video_payload(cached_url)
+        out = _done_video_payload(cached_url)
+        CACHE[cache_key] = out
+        return out
 
     if not REPLICATE_API_TOKEN:
         return {
