@@ -6756,7 +6756,30 @@
    */
   window.__lastVideoState = null;
 
+  function pushChatCard(o) {
+    const title = o && o.title != null ? String(o.title) : "";
+    const content = o && o.content != null ? String(o.content) : "";
+    addFeedItem("assistant_reply", {
+      text: title ? title + "\n\n" + content : content,
+      dedupeKey: "chat-card-" + Date.now(),
+    });
+  }
+
   function handleTaskLikeResponse(res, sourceMessage, opts) {
+    if (res.status === "pending" && res.queue === true) {
+      pushChatCard({
+        title: "Lumos meşgul",
+        content: "Video işleniyor, sıraya alındı...",
+      });
+
+      document.body.classList.add("video-queue");
+
+      setTimeout(function () {
+        document.body.classList.remove("video-queue");
+      }, 600);
+
+      return;
+    }
     if (res && res.output && res.output.type === "video") {
       const vo = res.output;
       if (vo.source === "youtube") {
@@ -8513,6 +8536,9 @@
 }
 .video-from-generate {
   background: rgba(0, 150, 255, 0.04);
+}
+.video-queue {
+  background: rgba(255, 180, 0, 0.05);
 }
 </style>
 </body>
