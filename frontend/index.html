@@ -6763,15 +6763,6 @@
         appendMetaDebugBadgeIfAny(res);
         return;
       }
-      if (vo.meta?.cache_hit) {
-        console.log("VIDEO CACHE HIT");
-      }
-      if (vo.meta?.cache_hit) {
-        document.body.classList.add("instant-video");
-        setTimeout(function () {
-          document.body.classList.remove("instant-video");
-        }, 300);
-      }
       openVideoOverlay(vo.url);
       appendMetaDebugBadgeIfAny(res);
       return;
@@ -8503,10 +8494,6 @@
   align-self: center;
   background: transparent;
   padding: 4px 8px;
-}
-.instant-video {
-  transition: background 0.2s ease;
-  background: rgba(0, 255, 120, 0.03);
 }
 </style>
 </body>

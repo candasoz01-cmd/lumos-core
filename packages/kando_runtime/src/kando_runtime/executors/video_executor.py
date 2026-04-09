@@ -115,7 +115,17 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
 
     cache_key = "video:" + prompt_hash
     if cache_key in CACHE:
-        return CACHE[cache_key]
+        cached = CACHE[cache_key]
+        return {
+            **cached,
+            "output": {
+                **cached.get("output", {}),
+                "meta": {
+                    **cached.get("output", {}).get("meta", {}),
+                    "cache_hit": True,
+                },
+            },
+        }
 
     cache = _load_video_cache()
     cached_url = cache.get(prompt_hash, "")
@@ -216,6 +226,10 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
             url_out = _first_video_url_from_output(data.get("output"))
             if url_out:
                 out = _done_video_payload(url_out)
+                out["output"]["meta"] = {
+                    **out["output"].get("meta", {}),
+                    "cache_hit": False,
+                }
                 CACHE[cache_key] = out
                 _write_cache_entry(prompt_hash, url_out)
                 return out
@@ -280,6 +294,10 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
                 url_out = _first_video_url_from_output(pbody.get("output"))
                 if url_out:
                     out = _done_video_payload(url_out)
+                    out["output"]["meta"] = {
+                        **out["output"].get("meta", {}),
+                        "cache_hit": False,
+                    }
                     CACHE[cache_key] = out
                     _write_cache_entry(prompt_hash, url_out)
                     return out
