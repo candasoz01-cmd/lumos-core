@@ -1,11 +1,8 @@
-"""Video executor: Replicate üzerinden video; yapılandırılmış çıktı."""
+"""Video executor: Replicate üzerinden video (önbellek task_dispatch katmanında)."""
 from __future__ import annotations
 
-import hashlib
-import json
 import os
 import time
-from pathlib import Path
 from typing import Any
 
 import requests
@@ -17,16 +14,9 @@ REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN")
 POLL_MAX_ATTEMPTS = 30
 POLL_INTERVAL_SEC = 2.0
 
-VIDEO_CACHE_FILE = ".video_cache.json"
 PROVIDER_REPLICATE = "replicate"
 
 _VIDEO_BUSY = False
-
-CACHE: dict[str, dict[str, Any]] = {}
-
-
-def _video_cache_path() -> Path:
-    return Path(os.getcwd()) / VIDEO_CACHE_FILE
 
 
 def _normalize_prompt(prompt: Any) -> str:
@@ -35,66 +25,7 @@ def _normalize_prompt(prompt: Any) -> str:
     return p.replace(".", "")
 
 
-def _make_video_cache_key(prompt_norm: str) -> tuple[str, str]:
-    prompt_hash = hashlib.sha256(prompt_norm.encode()).hexdigest()
-    cache_key = "video:" + prompt_hash
-    return cache_key, prompt_hash
-
-
-def _load_cache() -> dict[str, str]:
-    p = _video_cache_path()
-    if not p.is_file():
-        return {}
-    try:
-        data = json.loads(p.read_text(encoding="utf-8"))
-        if not isinstance(data, dict):
-            return {}
-        out: dict[str, str] = {}
-        for k, v in data.items():
-            if isinstance(k, str) and isinstance(v, str) and v.strip():
-                out[k] = v.strip()
-        return out
-    except (OSError, json.JSONDecodeError, TypeError, ValueError):
-        return {}
-
-
-def _save_cache(prompt_hash: str, video_url: str) -> None:
-    if not prompt_hash or not (video_url and str(video_url).strip()):
-        return
-    p = _video_cache_path()
-    cache = _load_cache()
-    cache[prompt_hash] = str(video_url).strip()
-    try:
-        p.write_text(
-            json.dumps(cache, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
-    except OSError:
-        pass
-
-
-def _mark_cache_hit(cached: dict[str, Any]) -> dict[str, Any]:
-    return {
-        **cached,
-        "output": {
-            **cached.get("output", {}),
-            "meta": {
-                **cached.get("output", {}).get("meta", {}),
-                "cache_hit": True,
-            },
-        },
-    }
-
-
-def _mark_cache_miss(out: dict[str, Any]) -> None:
-    out.setdefault("output", {})
-    om = out["output"].setdefault("meta", {})
-    if isinstance(om, dict):
-        om["cache_hit"] = False
-
-
-def _pending_payload(_cache_key: str) -> dict[str, Any]:
-    """Replicate meşgul veya sıra: mevcut API şekli (meta isteğe bağlı genişletilebilir)."""
+def _pending_payload() -> dict[str, Any]:
     return {
         "status": "pending",
         "output": {
@@ -162,27 +93,18 @@ def _replicate_error_message(data: dict[str, Any], fallback: str) -> str:
 
 
 def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
+    """Yalnızca Replicate çağrısı / durum; önbellek yok."""
     global _VIDEO_BUSY
 
+    if not isinstance(task_ctx, dict):
+        task_ctx = {"prompt": str(task_ctx)}
     prompt_norm = _normalize_prompt(task_ctx.get("prompt", ""))
-    cache_key, prompt_hash = _make_video_cache_key(prompt_norm)
-
-    if cache_key in CACHE:
-        cached = CACHE[cache_key]
-        return _mark_cache_hit(cached)
-
-    cache = _load_cache()
-    cached_url = cache.get(prompt_hash, "")
-    if cached_url:
-        out = _done_video_payload(cached_url)
-        CACHE[cache_key] = out
-        return out
 
     if not REPLICATE_API_TOKEN:
         return _error_video_payload("missing REPLICATE_API_TOKEN")
 
     if _VIDEO_BUSY:
-        return _pending_payload(cache_key)
+        return _pending_payload()
 
     _VIDEO_BUSY = True
     try:
@@ -233,11 +155,7 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
         if initial_status == "succeeded":
             url_out = _first_video_url_from_output(data.get("output"))
             if url_out:
-                out = _done_video_payload(url_out)
-                _mark_cache_miss(out)
-                CACHE[cache_key] = out
-                _save_cache(prompt_hash, url_out)
-                return out
+                return _done_video_payload(url_out)
             return _error_video_payload(
                 _replicate_error_message(
                     data,
@@ -270,11 +188,7 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
             if status == "succeeded":
                 url_out = _first_video_url_from_output(pbody.get("output"))
                 if url_out:
-                    out = _done_video_payload(url_out)
-                    _mark_cache_miss(out)
-                    CACHE[cache_key] = out
-                    _save_cache(prompt_hash, url_out)
-                    return out
+                    return _done_video_payload(url_out)
                 return _error_video_payload(
                     _replicate_error_message(
                         pbody,
