@@ -18,8 +18,8 @@ POLL_MAX_ATTEMPTS = 30
 POLL_INTERVAL_SEC = 2.0
 
 VIDEO_CACHE_FILE = ".video_cache.json"
+PROVIDER_REPLICATE = "replicate"
 
-_VIDEO_QUEUE: list[Any] = []
 _VIDEO_BUSY = False
 
 CACHE: dict[str, dict[str, Any]] = {}
@@ -29,7 +29,19 @@ def _video_cache_path() -> Path:
     return Path(os.getcwd()) / VIDEO_CACHE_FILE
 
 
-def _load_video_cache() -> dict[str, str]:
+def _normalize_prompt(prompt: Any) -> str:
+    p = str(prompt or "").strip().lower()
+    p = " ".join(p.split())
+    return p.replace(".", "")
+
+
+def _make_video_cache_key(prompt_norm: str) -> tuple[str, str]:
+    prompt_hash = hashlib.sha256(prompt_norm.encode()).hexdigest()
+    cache_key = "video:" + prompt_hash
+    return cache_key, prompt_hash
+
+
+def _load_cache() -> dict[str, str]:
     p = _video_cache_path()
     if not p.is_file():
         return {}
@@ -46,11 +58,11 @@ def _load_video_cache() -> dict[str, str]:
         return {}
 
 
-def _write_cache_entry(prompt_hash: str, video_url: str) -> None:
+def _save_cache(prompt_hash: str, video_url: str) -> None:
     if not prompt_hash or not (video_url and str(video_url).strip()):
         return
     p = _video_cache_path()
-    cache = _load_video_cache()
+    cache = _load_cache()
     cache[prompt_hash] = str(video_url).strip()
     try:
         p.write_text(
@@ -61,13 +73,58 @@ def _write_cache_entry(prompt_hash: str, video_url: str) -> None:
         pass
 
 
-def _done_video_payload(url: str) -> dict[str, Any]:
+def _mark_cache_hit(cached: dict[str, Any]) -> dict[str, Any]:
+    return {
+        **cached,
+        "output": {
+            **cached.get("output", {}),
+            "meta": {
+                **cached.get("output", {}).get("meta", {}),
+                "cache_hit": True,
+            },
+        },
+    }
+
+
+def _mark_cache_miss(out: dict[str, Any]) -> None:
+    out.setdefault("output", {})
+    om = out["output"].setdefault("meta", {})
+    if isinstance(om, dict):
+        om["cache_hit"] = False
+
+
+def _pending_payload(_cache_key: str) -> dict[str, Any]:
+    """Replicate meşgul veya sıra: mevcut API şekli (meta isteğe bağlı genişletilebilir)."""
+    return {
+        "status": "pending",
+        "output": {
+            "type": "video",
+            "url": "",
+            "provider": PROVIDER_REPLICATE,
+            "message": "sırada bekliyor",
+        },
+    }
+
+
+def _done_video_payload(url: str, provider: str = PROVIDER_REPLICATE) -> dict[str, Any]:
     return {
         "status": "done",
         "output": {
             "type": "video",
             "url": url,
-            "provider": "replicate",
+            "provider": provider,
+        },
+    }
+
+
+def _error_video_payload(message: str) -> dict[str, Any]:
+    return {
+        "status": "error",
+        "output": {
+            "type": "video",
+            "url": "",
+            "provider": PROVIDER_REPLICATE,
+            "error": message,
         },
     }
 
@@ -107,27 +164,14 @@ def _replicate_error_message(data: dict[str, Any], fallback: str) -> str:
 def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
     global _VIDEO_BUSY
 
-    prompt = task_ctx.get("prompt", "")
-    prompt_norm = prompt.strip().lower()
-    prompt_norm = " ".join(prompt_norm.split())
-    prompt_norm = prompt_norm.replace(".", "")
-    prompt_hash = hashlib.sha256(prompt_norm.encode()).hexdigest()
+    prompt_norm = _normalize_prompt(task_ctx.get("prompt", ""))
+    cache_key, prompt_hash = _make_video_cache_key(prompt_norm)
 
-    cache_key = "video:" + prompt_hash
     if cache_key in CACHE:
         cached = CACHE[cache_key]
-        return {
-            **cached,
-            "output": {
-                **cached.get("output", {}),
-                "meta": {
-                    **cached.get("output", {}).get("meta", {}),
-                    "cache_hit": True,
-                },
-            },
-        }
+        return _mark_cache_hit(cached)
 
-    cache = _load_video_cache()
+    cache = _load_cache()
     cached_url = cache.get(prompt_hash, "")
     if cached_url:
         out = _done_video_payload(cached_url)
@@ -135,26 +179,10 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
         return out
 
     if not REPLICATE_API_TOKEN:
-        return {
-            "status": "error",
-            "output": {
-                "type": "video",
-                "url": "",
-                "provider": "replicate",
-                "error": "missing REPLICATE_API_TOKEN",
-            },
-        }
+        return _error_video_payload("missing REPLICATE_API_TOKEN")
 
     if _VIDEO_BUSY:
-        return {
-            "status": "pending",
-            "output": {
-                "type": "video",
-                "url": "",
-                "provider": "replicate",
-                "message": "sırada bekliyor",
-            },
-        }
+        return _pending_payload(cache_key)
 
     _VIDEO_BUSY = True
     try:
@@ -176,29 +204,17 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
         try:
             data = response.json()
         except Exception:
-            return {
-                "status": "error",
-                "output": {
-                    "type": "video",
-                    "url": "",
-                    "provider": "replicate",
-                    "error": response.text[:500] if response.text else "invalid JSON from Replicate",
-                },
-            }
+            return _error_video_payload(
+                response.text[:500] if response.text else "invalid JSON from Replicate"
+            )
 
         if not response.ok:
-            return {
-                "status": "error",
-                "output": {
-                    "type": "video",
-                    "url": "",
-                    "provider": "replicate",
-                    "error": _replicate_error_message(
-                        data if isinstance(data, dict) else {},
-                        response.text[:500] if response.text else f"HTTP {response.status_code}",
-                    ),
-                },
-            }
+            return _error_video_payload(
+                _replicate_error_message(
+                    data if isinstance(data, dict) else {},
+                    response.text[:500] if response.text else f"HTTP {response.status_code}",
+                )
+            )
 
         pred_id = data.get("id") if isinstance(data, dict) else None
         poll_url = (
@@ -211,50 +227,25 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
             poll_url = f"https://api.replicate.com/v1/predictions/{pred_id}"
 
         if not poll_url:
-            return {
-                "status": "error",
-                "output": {
-                    "type": "video",
-                    "url": "",
-                    "provider": "replicate",
-                    "error": "missing prediction id and urls.get",
-                },
-            }
+            return _error_video_payload("missing prediction id and urls.get")
 
         initial_status = str(data.get("status") or "").lower()
         if initial_status == "succeeded":
             url_out = _first_video_url_from_output(data.get("output"))
             if url_out:
                 out = _done_video_payload(url_out)
-                out["output"]["meta"] = {
-                    **out["output"].get("meta", {}),
-                    "cache_hit": False,
-                }
+                _mark_cache_miss(out)
                 CACHE[cache_key] = out
-                _write_cache_entry(prompt_hash, url_out)
+                _save_cache(prompt_hash, url_out)
                 return out
-            return {
-                "status": "error",
-                "output": {
-                    "type": "video",
-                    "url": "",
-                    "provider": "replicate",
-                    "error": _replicate_error_message(
-                        data,
-                        "replicate output missing video url",
-                    ),
-                },
-            }
+            return _error_video_payload(
+                _replicate_error_message(
+                    data,
+                    "replicate output missing video url",
+                )
+            )
         if initial_status in ("failed", "canceled"):
-            return {
-                "status": "error",
-                "output": {
-                    "type": "video",
-                    "url": "",
-                    "provider": "replicate",
-                    "error": _replicate_error_message(data, initial_status),
-                },
-            }
+            return _error_video_payload(_replicate_error_message(data, initial_status))
 
         headers = {
             "Authorization": f"Token {REPLICATE_API_TOKEN}",
@@ -267,26 +258,12 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
             try:
                 pbody = pr.json()
             except Exception:
-                return {
-                    "status": "error",
-                    "output": {
-                        "type": "video",
-                        "url": "",
-                        "provider": "replicate",
-                        "error": pr.text[:500] if pr.text else "invalid JSON polling prediction",
-                    },
-                }
+                return _error_video_payload(
+                    pr.text[:500] if pr.text else "invalid JSON polling prediction"
+                )
 
             if not isinstance(pbody, dict):
-                return {
-                    "status": "error",
-                    "output": {
-                        "type": "video",
-                        "url": "",
-                        "provider": "replicate",
-                        "error": "invalid prediction response",
-                    },
-                }
+                return _error_video_payload("invalid prediction response")
 
             status = str(pbody.get("status") or "").lower()
 
@@ -294,46 +271,31 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
                 url_out = _first_video_url_from_output(pbody.get("output"))
                 if url_out:
                     out = _done_video_payload(url_out)
-                    out["output"]["meta"] = {
-                        **out["output"].get("meta", {}),
-                        "cache_hit": False,
-                    }
+                    _mark_cache_miss(out)
                     CACHE[cache_key] = out
-                    _write_cache_entry(prompt_hash, url_out)
+                    _save_cache(prompt_hash, url_out)
                     return out
-                return {
-                    "status": "error",
-                    "output": {
-                        "type": "video",
-                        "url": "",
-                        "provider": "replicate",
-                        "error": _replicate_error_message(
-                            pbody,
-                            "replicate output missing video url",
-                        ),
-                    },
-                }
+                return _error_video_payload(
+                    _replicate_error_message(
+                        pbody,
+                        "replicate output missing video url",
+                    )
+                )
 
             if status in ("failed", "canceled"):
-                return {
-                    "status": "error",
-                    "output": {
-                        "type": "video",
-                        "url": "",
-                        "provider": "replicate",
-                        "error": _replicate_error_message(
-                            pbody,
-                            status,
-                        ),
-                    },
-                }
+                return _error_video_payload(
+                    _replicate_error_message(
+                        pbody,
+                        status,
+                    )
+                )
 
         return {
             "status": "pending",
             "output": {
                 "type": "video",
                 "url": "",
-                "provider": "replicate",
+                "provider": PROVIDER_REPLICATE,
                 "message": "video hazırlanıyor",
             },
         }

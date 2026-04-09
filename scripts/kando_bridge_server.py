@@ -799,24 +799,71 @@ def _augment_chat_input_for_user_clarity(message: str, input_text: str) -> str:
     )
 
 
+_CHAT_INTENT_ONLY_SUFFIX = """
+[Adım 1 — yalnızca iç karar]
+Son kullanıcı ihtiyacını tek cümleyle özetle. Çıktın tam olarak tek satır olsun ve tam biçim:
+INTENT: <buraya tek cümle>
+
+Açıklama ekleme, kullanıcıya cevap yazma, ikinci satır kullanma.
+""".strip()
+
+_CHAT_REPLY_WITH_LOCKED_INTENT_SUFFIX = """
+[Adım 2 — kilit INTENT]
+Yukarıdaki sohbet bağlamı geçerlidir. Aşağıdaki iç karar bu turda sabittir; yeniden yazma, genişletme veya değiştirme.
+
+Kilit INTENT:
+INTENT: __INTENT_PLACEHOLDER__
+
+Görev: Bu INTENT’e uygun olarak yalnızca kullanıcıya göstereceğin doğal Türkçe cevabı yaz.
+INTENT satırı veya başlık kullanma; doğrudan cevap metni.
+""".strip()
+
+_INTENT_FALLBACK = "Kullanıcıya mesajına uygun kısa ve yardımcı cevap vermek."
+
+
+def _parse_intent_only(raw: str) -> str:
+    """İlk çağrı çıktısından INTENT tek satırını alır."""
+    t = (raw or "").strip()
+    if not t:
+        return ""
+    first = t.split("\n", 1)[0].strip()
+    if first.upper().startswith("INTENT:"):
+        return first.split(":", 1)[1].strip()
+    return first
+
+
 def build_chat_reply(message: str, history: list | None = None) -> dict:
-    """POST /chat: Lumos/task pipeline dışında doğrudan OpenAI yanıtı."""
+    """POST /chat: önce tek satır INTENT, sonra bu INTENT'e bağlı cevap (iki ayrı LLM çağrısı)."""
     from openai import OpenAI
 
     turns = _coerce_chat_history(history)
     mem_prefix = format_chat_prompt_prefix(ROOT)
-    input_text = _chat_input_for_llm(message, turns, prefix=mem_prefix)
-    input_text = _augment_chat_input_for_user_clarity(message, input_text)
+    input_base = _chat_input_for_llm(message, turns, prefix=mem_prefix)
+    input_base = _augment_chat_input_for_user_clarity(message, input_base)
+
+    step1_input = input_base.rstrip() + "\n\n" + _CHAT_INTENT_ONLY_SUFFIX + "\n"
     client = OpenAI()
     model = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
-    r = client.responses.create(
-        model=model,
-        input=input_text,
+
+    r1 = client.responses.create(model=model, input=step1_input)
+    intent = _parse_intent_only(getattr(r1, "output_text", None) or "")
+    if not intent:
+        intent = _INTENT_FALLBACK
+
+    step2_input = (
+        input_base.rstrip()
+        + "\n\n"
+        + _CHAT_REPLY_WITH_LOCKED_INTENT_SUFFIX.replace("__INTENT_PLACEHOLDER__", intent, 1)
+        + "\n"
     )
+    r2 = client.responses.create(model=model, input=step2_input)
+    reply = (getattr(r2, "output_text", None) or "").strip()
+
     return {
-        "reply": (r.output_text or "").strip(),
+        "reply": reply,
         "blocked": False,
         "mode": "chat",
+        "intent": intent,
     }
 
 
@@ -1680,7 +1727,22 @@ class BridgeHandler(BaseHTTPRequestHandler):
             return
 
         try:
-            self._send_json(200, build_chat_reply(message, hist))
+            chat_out = build_chat_reply(message, hist)
+            try:
+                from kando_runtime.lumos_audit import append_chat_turn_telemetry
+
+                append_chat_turn_telemetry(
+                    ROOT,
+                    user_message=message,
+                    intent=str(chat_out.get("intent") or ""),
+                    reply=str(chat_out.get("reply") or ""),
+                    model=os.environ.get("OPENAI_MODEL", "gpt-4.1-mini"),
+                    blocked=bool(chat_out.get("blocked")),
+                )
+            except Exception:
+                pass
+            pub = {k: v for k, v in chat_out.items() if k != "intent"}
+            self._send_json(200, pub)
         except Exception as e:
             self._send_json(
                 200,

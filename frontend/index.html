@@ -1344,6 +1344,17 @@
       display: none;
     }
     .loading-bar.on { display: block; }
+    .bridge-busy-label {
+      font-size: 0.65rem;
+      font-weight: 500;
+      color: var(--loading);
+      margin: 0.1rem 0.35rem 0;
+      line-height: 1.35;
+      display: none;
+    }
+    .bridge-busy-label.on {
+      display: block;
+    }
     .loading-bar::after {
       content: "";
       display: block;
@@ -1738,6 +1749,10 @@
         </div>
         <div class="loading-bar" id="loadHealth"></div>
         <div class="loading-bar" id="loadApproval" style="margin-top:0.25rem"></div>
+        <div class="loading-bar" id="loadBridgeGlobal" style="margin-top:0.35rem"></div>
+        <div class="bridge-busy-label" id="bridgeBusyLabel" role="status" aria-live="polite">
+          Köprü: işleniyor…
+        </div>
         <label for="apiBase">Bridge URL</label>
         <input type="url" id="apiBase" value="http://127.0.0.1:8766" />
         <label for="token" style="margin-top:0.5rem">X-Kando-Token</label>
@@ -2485,6 +2500,23 @@
       userMsgs > 0 ||
       hasTaskOrAnalysisThread;
     el.classList.toggle("hidden", hide);
+  }
+
+  const LUMOS_OPENING_WELCOME_TEXT =
+    "Ben Lumos. Sana nasıl yardımcı olabilirim?";
+  const LUMOS_OPENING_WELCOME_DEDUPE = "lumos-opening-welcome";
+
+  function seedOpeningWelcomeIfNeeded() {
+    const hasChat = activityFeed.some((item) => isChatFeedItem(item));
+    if (hasChat) return;
+    addFeedItem("assistant_reply", {
+      text: LUMOS_OPENING_WELCOME_TEXT,
+      dedupeKey: LUMOS_OPENING_WELCOME_DEDUPE,
+    });
+    chatHistory.push({
+      role: "assistant",
+      content: LUMOS_OPENING_WELCOME_TEXT,
+    });
   }
 
   function esc(s) {
@@ -5254,8 +5286,7 @@
     if (/^https?:\/\//i.test(u) || u.startsWith("blob:") || u.startsWith("data:")) {
       return u;
     }
-    const base = apiBase().replace(/\/$/, "");
-    return u.startsWith("/") ? base + u : base + "/" + u;
+    return bridgeUrlForPath(u);
   }
 
   /**
@@ -6521,8 +6552,15 @@
     hint.classList.toggle("hidden", t.length > 0);
   }
 
-  function apiBase() {
+  function bridgeBaseUrl() {
     return $("apiBase").value.replace(/\/$/, "");
+  }
+
+  /** bridgeFetch ve göreli medya URL’leri için: köprü kökü + normalize path (tek / ile). */
+  function bridgeUrlForPath(path) {
+    let p = String(path || "").trim();
+    if (!p.startsWith("/")) p = "/" + p;
+    return bridgeBaseUrl() + p;
   }
 
   function apiHeaders(json) {
@@ -6533,9 +6571,96 @@
     return h;
   }
 
+  function bridgeResponseErrorKind(status) {
+    const s = Number(status) || 0;
+    if (s === 401) return "unauthorized";
+    if (s === 403) return "forbidden";
+    if (s >= 500 && s <= 599) return "server_error";
+    return null;
+  }
+
+  /**
+   * Tüm köprü istekleri buradan geçer. Yanıtta bridgeErrorKind: unauthorized | forbidden | server_error (401/403/5xx).
+   * userInit.json === true → apiHeaders(true) ile Content-Type: application/json (+ token).
+   */
+  async function bridgeFetch(path, userInit) {
+    bridgeFetchActivityBegin();
+    try {
+      const ui = userInit || {};
+      const url = bridgeUrlForPath(path);
+      const wantJson = ui.json === true;
+      const userHeaders = ui.headers;
+      const fetchRest = { ...ui };
+      delete fetchRest.json;
+      delete fetchRest.headers;
+      const headers = Object.assign({}, apiHeaders(wantJson), userHeaders || {});
+      const r = await fetch(url, Object.assign({}, fetchRest, { headers }));
+      const kind = bridgeResponseErrorKind(r.status);
+      if (kind) {
+        try {
+          Object.defineProperty(r, "bridgeErrorKind", {
+            value: kind,
+            enumerable: false,
+            configurable: true,
+          });
+        } catch (e) {
+          r.bridgeErrorKind = kind;
+        }
+      }
+      return r;
+    } finally {
+      bridgeFetchActivityEnd();
+    }
+  }
+
+  const BRIDGE_USER_EMPTY = "Henüz veri yok.";
+  const BRIDGE_USER_NETWORK = "Bağlantı kurulamadı.";
+  const BRIDGE_USER_GENERIC = "İstek başarısız.";
+  const BRIDGE_USER_BODY_ERROR = "İşlem tamamlanamadı.";
+
+  /** HTTP durumuna göre sabit kullanıcı metni (ham sunucu metni yok). */
+  function bridgeUserFacingHttpLine(status) {
+    const s = Number(status) || 0;
+    if (s === 401) return "Yetki gerekli. Token kontrol et.";
+    if (s === 403) return "Erişim reddedildi.";
+    if (s >= 500 && s <= 599) return "Sunucu hatası.";
+    return "";
+  }
+
+  function bridgeUserFacingHttpLineOrGeneric(status) {
+    return bridgeUserFacingHttpLine(status) || BRIDGE_USER_GENERIC;
+  }
+
+  /** Outbox: 404 / not found → boş veri mesajı. */
+  function bridgeOutboxIsEmptyNotFound(r, j) {
+    if (r && r.status === 404) return true;
+    if (j && typeof j === "object" && j.error === "not found") return true;
+    return false;
+  }
+
   function setLoading(id, on) {
     const el = $(id);
     if (el) el.classList.toggle("on", on);
+  }
+
+  /** Eşzamanlı bridgeFetch sayısı; >0 iken global köprü işleniyor göstergesi. */
+  let __bridgeFetchInFlight = 0;
+
+  function bridgeFetchActivityBegin() {
+    __bridgeFetchInFlight++;
+    syncBridgeGlobalBusyUI();
+  }
+
+  function bridgeFetchActivityEnd() {
+    __bridgeFetchInFlight = Math.max(0, __bridgeFetchInFlight - 1);
+    syncBridgeGlobalBusyUI();
+  }
+
+  function syncBridgeGlobalBusyUI() {
+    const on = __bridgeFetchInFlight > 0;
+    setLoading("loadBridgeGlobal", on);
+    const lab = $("bridgeBusyLabel");
+    if (lab) lab.classList.toggle("on", on);
   }
 
   async function fetchHealth() {
@@ -6546,10 +6671,12 @@
     let ok = false;
     let detail = "";
     try {
-      const r = await fetch(apiBase() + "/health", { headers: apiHeaders(false) });
+      const r = await bridgeFetch("/health", { json: false });
       const data = await r.json().catch(() => ({}));
       ok = r.ok && data.status === "ok";
-      detail = JSON.stringify(data);
+      detail = ok
+        ? "ok"
+        : bridgeUserFacingHttpLine(r.status) || "Köprü yanıtı beklenenden farklı.";
       if (ok) {
         $("healthLabel").textContent = "durum: ok";
         $("healthLabel").className = "status-pill status-ok";
@@ -6560,7 +6687,7 @@
     } catch (e) {
       $("healthLabel").textContent = "durum: kapalı";
       $("healthLabel").className = "status-pill status-down";
-      detail = e.message;
+      detail = BRIDGE_USER_NETWORK;
     } finally {
       setLoading("loadHealth", false);
       $("btnHealth").disabled = false;
@@ -6568,7 +6695,7 @@
     if (!healthFeedOnce) {
       healthFeedOnce = true;
       addFeedItem("system_status", {
-        text: ok ? "Bridge /health: ok" : "Bridge /health: kapalı veya hata · " + detail,
+        text: ok ? "Bridge /health: ok" : "Bridge /health: " + detail,
         dedupeKey: "bootstrap-health",
       });
     }
@@ -6692,7 +6819,7 @@
 
   async function fetchOutboxJsonSilent() {
     try {
-      const r = await fetch(apiBase() + "/outbox", { headers: apiHeaders(false) });
+      const r = await bridgeFetch("/outbox", { json: false });
       const raw = await r.text();
       let j = null;
       try {
@@ -6759,6 +6886,140 @@
    */
   window.__lastVideoState = null;
 
+  const VIDEO_BODY_CLASS_QUEUE = "video-queue";
+  const VIDEO_BODY_CLASS_CACHE = "video-from-cache";
+  const VIDEO_BODY_CLASS_GENERATE = "video-from-generate";
+
+  function clearPendingVideoState() {
+    window.__pendingVideo = false;
+    document.body.classList.remove(VIDEO_BODY_CLASS_QUEUE);
+    window.__lastPendingKey = null;
+  }
+
+  /** @param {"cache"|"generated"|"queue"} kind */
+  function applyVideoStateFeedback(kind) {
+    if (kind === "cache") {
+      document.body.classList.add(VIDEO_BODY_CLASS_CACHE);
+      setTimeout(function () {
+        document.body.classList.remove(VIDEO_BODY_CLASS_CACHE);
+        document.body.classList.remove(VIDEO_BODY_CLASS_GENERATE);
+      }, 400);
+      return;
+    }
+    if (kind === "generated") {
+      document.body.classList.add(VIDEO_BODY_CLASS_GENERATE);
+      setTimeout(function () {
+        document.body.classList.remove(VIDEO_BODY_CLASS_CACHE);
+        document.body.classList.remove(VIDEO_BODY_CLASS_GENERATE);
+      }, 400);
+      return;
+    }
+    if (kind === "queue") {
+      document.body.classList.add(VIDEO_BODY_CLASS_QUEUE);
+      setTimeout(function () {
+        document.body.classList.remove(VIDEO_BODY_CLASS_QUEUE);
+      }, 600);
+    }
+  }
+
+  function handlePendingVideoResponse(res) {
+    if (!res || res.status !== "pending" || res.queue !== true) {
+      return false;
+    }
+    const pendingKey = res.output?.meta?.pending_key;
+
+    if (pendingKey && window.__lastPendingKey === pendingKey) {
+      pushChatCard({
+        title: "Zaten sırada",
+        content: "Bu video zaten işleniyor",
+      });
+    } else {
+      window.__lastPendingKey = pendingKey;
+      window.__pendingVideo = true;
+      pushChatCard({
+        title: "Lumos meşgul",
+        content: "Video işleniyor ⏳",
+      });
+
+      const el = document.querySelector(
+        "#feedStreamChat .feed-item:last-child .lumos-msg-body-text"
+      );
+      if (el) {
+        let dots = 0;
+        const interval = setInterval(function () {
+          dots = (dots + 1) % 4;
+          el.textContent = "Video işleniyor" + ".".repeat(dots);
+        }, 400);
+
+        setTimeout(function () {
+          clearInterval(interval);
+        }, 5000);
+      }
+    }
+
+    applyVideoStateFeedback("queue");
+    return true;
+  }
+
+  function handleYoutubeContentResponse(res) {
+    const vo = res && res.output;
+    if (!vo || vo.source !== "youtube") return;
+    const u = String(vo.url || "").trim();
+    if (u) window.open(u, "_blank", "noopener,noreferrer");
+    appendMetaDebugBadgeIfAny(res);
+  }
+
+  function handleVideoResponse(res) {
+    if (!res || !res.output || res.output.type !== "video" || res.status === "pending") {
+      return false;
+    }
+    const vo = res.output;
+    if (vo.source === "youtube") {
+      handleYoutubeContentResponse(res);
+      return true;
+    }
+    const hadPending = window.__pendingVideo;
+    clearPendingVideoState();
+    if (hadPending) {
+      const el = document.querySelector(
+        "#feedStreamChat .feed-item:last-child .lumos-msg-body-text"
+      );
+      if (el) {
+        el.textContent = "Hazır.";
+      }
+    }
+    const isCache = vo.meta?.cache_hit === true;
+    window.__lastVideoState = isCache ? "cache" : "generated";
+    if (isCache) {
+      applyVideoStateFeedback("cache");
+    } else {
+      applyVideoStateFeedback("generated");
+    }
+    openVideoOverlay(vo.url);
+    appendMetaDebugBadgeIfAny(res);
+    return true;
+  }
+
+  function handleContentListResponse(res, sourceMessage) {
+    if (!res || !res.output || res.output.type !== "content_list") {
+      return false;
+    }
+    const cl = res.output;
+    const items = Array.isArray(cl.items) ? cl.items : [];
+    const first = items[0] || {};
+    const lineTitle = String(first.title || "").trim() || "—";
+    const lineUrl = String(first.url || "").trim();
+    const cardText =
+      "İzlemek için öneri\n\n" + lineTitle + (lineUrl ? "\n\n" + lineUrl : "");
+    addFeedItem("assistant_reply", {
+      text: cardText,
+      lumosMsgType: "guide",
+      dedupeKey: "content-list-" + String(cl.query || sourceMessage || "").slice(0, 96),
+    });
+    appendMetaDebugBadgeIfAny(res);
+    return true;
+  }
+
   function pushChatCard(o) {
     const title = o && o.title != null ? String(o.title) : "";
     const content = o && o.content != null ? String(o.content) : "";
@@ -6769,99 +7030,10 @@
   }
 
   function handleTaskLikeResponse(res, sourceMessage, opts) {
-    if (res && res.status === "pending" && res.queue === true) {
-      const pendingKey = res.output?.meta?.pending_key;
-
-      if (pendingKey && window.__lastPendingKey === pendingKey) {
-        pushChatCard({
-          title: "Zaten sırada",
-          content: "Bu video zaten işleniyor",
-        });
-      } else {
-        window.__lastPendingKey = pendingKey;
-        window.__pendingVideo = true;
-        pushChatCard({
-          title: "Lumos meşgul",
-          content: "Video işleniyor ⏳",
-        });
-
-        const el = document.querySelector(
-          "#feedStreamChat .feed-item:last-child .lumos-msg-body-text"
-        );
-        if (el) {
-          let dots = 0;
-          const interval = setInterval(function () {
-            dots = (dots + 1) % 4;
-            el.textContent = "Video işleniyor" + ".".repeat(dots);
-          }, 400);
-
-          setTimeout(function () {
-            clearInterval(interval);
-          }, 5000);
-        }
-      }
-
-      document.body.classList.add("video-queue");
-
-      setTimeout(function () {
-        document.body.classList.remove("video-queue");
-      }, 600);
-
-      return;
-    }
-    if (res && res.output && res.output.type === "video") {
-      const vo = res.output;
-      if (vo.source === "youtube") {
-        if (window.__pendingVideo) {
-          window.__pendingVideo = false;
-          pushChatCard({
-            title: "Hazır",
-            content: "Video tamamlandı",
-          });
-        }
-        const u = String(vo.url || "").trim();
-        if (u) window.open(u, "_blank", "noopener,noreferrer");
-        appendMetaDebugBadgeIfAny(res);
-        return;
-      }
-      if (window.__pendingVideo) {
-        window.__pendingVideo = false;
-        pushChatCard({
-          title: "Hazır",
-          content: "Video tamamlandı",
-        });
-      }
-      const isCache = vo.meta?.cache_hit === true;
-      window.__lastVideoState = isCache ? "cache" : "generated";
-      if (isCache) {
-        document.body.classList.add("video-from-cache");
-      } else {
-        document.body.classList.add("video-from-generate");
-      }
-      setTimeout(function () {
-        document.body.classList.remove("video-from-cache");
-        document.body.classList.remove("video-from-generate");
-      }, 400);
-      openVideoOverlay(vo.url);
-      appendMetaDebugBadgeIfAny(res);
-      return;
-    }
-    if (res && res.output && res.output.type === "content_list") {
-      const cl = res.output;
-      const items = Array.isArray(cl.items) ? cl.items : [];
-      const first = items[0] || {};
-      const lineTitle = String(first.title || "").trim() || "—";
-      const lineUrl = String(first.url || "").trim();
-      const cardText =
-        "İzlemek için öneri\n\n" + lineTitle + (lineUrl ? "\n\n" + lineUrl : "");
-      addFeedItem("assistant_reply", {
-        text: cardText,
-        lumosMsgType: "guide",
-        dedupeKey: "content-list-" + String(cl.query || sourceMessage || "").slice(0, 96),
-      });
-      appendMetaDebugBadgeIfAny(res);
-      return;
-    }
+    if (!res) return;
+    if (handlePendingVideoResponse(res)) return;
+    if (handleVideoResponse(res)) return;
+    if (handleContentListResponse(res, sourceMessage)) return;
     const o = opts || {};
     const taskRunId = o.taskRunId != null ? String(o.taskRunId).trim() : "";
     let analysisChatDedupe = null;
@@ -7334,15 +7506,34 @@
     $("btnChat").disabled = true;
     try {
       const historyPayload = chatHistoryForApi();
-      const r = await fetch(apiBase() + "/chat", {
+      const r = await bridgeFetch("/chat", {
         method: "POST",
-        headers: apiHeaders(true),
+        json: true,
         body: JSON.stringify({
           message: message,
           history: historyPayload,
         }),
       });
-      const data = await r.json().catch(() => ({ error: "JSON parse hatası" }));
+      if (!r.ok) {
+        const httpMsg = bridgeUserFacingHttpLineOrGeneric(r.status);
+        addFeedItem("error", {
+          text: httpMsg,
+          dedupeKey: "chat-http-" + Date.now(),
+        });
+        addMessage("assistant", httpMsg);
+        renderFeed();
+        return;
+      }
+      const data = await r.json().catch(() => null);
+      if (data == null || (typeof data === "object" && !Array.isArray(data) && Object.keys(data).length === 0)) {
+        addFeedItem("assistant_reply", {
+          text: BRIDGE_USER_EMPTY,
+          dedupeKey: "chat-empty-" + Date.now(),
+        });
+        chatHistory.push({ role: "assistant", content: BRIDGE_USER_EMPTY });
+        renderFeed();
+        return;
+      }
 
       const res = data;
       const needIn = extractNeedInputFromResponse(res);
@@ -7405,12 +7596,14 @@
           );
           chatHistory.push({ role: "assistant", content: String(data.reply) });
         } else if (data.error) {
-          addFeedItem("error", { text: "Hata: " + data.error, dedupeKey: "chat-err-" + Date.now() });
-          chatHistory.push({ role: "assistant", content: "Hata: " + data.error });
+          addFeedItem("error", { text: BRIDGE_USER_BODY_ERROR, dedupeKey: "chat-err-" + Date.now() });
+          chatHistory.push({ role: "assistant", content: BRIDGE_USER_BODY_ERROR });
         } else {
-          const raw = JSON.stringify(data, null, 2);
-          addFeedItem("assistant_reply", assistantReplyPayloadFromApi(data, raw));
-          chatHistory.push({ role: "assistant", content: raw });
+          addFeedItem("assistant_reply", {
+            text: BRIDGE_USER_EMPTY,
+            dedupeKey: "chat-fallback-" + Date.now(),
+          });
+          chatHistory.push({ role: "assistant", content: BRIDGE_USER_EMPTY });
         }
       } else if (data.mode === "task_routed") {
         const chatAck =
@@ -7429,8 +7622,8 @@
           content: String(data.reply || "") + " [görev]",
         });
       } else if (data.error) {
-        addFeedItem("error", { text: "Hata: " + data.error, dedupeKey: "chat-err-" + Date.now() });
-        chatHistory.push({ role: "assistant", content: "Hata: " + data.error });
+        addFeedItem("error", { text: BRIDGE_USER_BODY_ERROR, dedupeKey: "chat-err-" + Date.now() });
+        chatHistory.push({ role: "assistant", content: BRIDGE_USER_BODY_ERROR });
       } else if (data.reply != null && data.reply !== "") {
         addFeedItem(
           "assistant_reply",
@@ -7438,13 +7631,15 @@
         );
         chatHistory.push({ role: "assistant", content: String(data.reply) });
       } else {
-        const raw = JSON.stringify(data, null, 2);
-        addFeedItem("assistant_reply", assistantReplyPayloadFromApi(data, raw));
-        chatHistory.push({ role: "assistant", content: raw });
+        addFeedItem("assistant_reply", {
+          text: BRIDGE_USER_EMPTY,
+          dedupeKey: "chat-fallback2-" + Date.now(),
+        });
+        chatHistory.push({ role: "assistant", content: BRIDGE_USER_EMPTY });
       }
     } catch (e) {
-      addFeedItem("error", { text: "Ağ hatası: " + e.message, dedupeKey: "net-" + Date.now() });
-      chatHistory.push({ role: "assistant", content: "Ağ hatası: " + e.message });
+      addFeedItem("error", { text: BRIDGE_USER_NETWORK, dedupeKey: "net-" + Date.now() });
+      chatHistory.push({ role: "assistant", content: BRIDGE_USER_NETWORK });
     } finally {
       setLoading("loadChat", false);
       syncChatComposerGate();
@@ -7763,13 +7958,12 @@
         body.raw_text &&
         String(body.raw_text).startsWith("TARGET:");
       const taskHeaders = usePlainTarget
-        ? Object.assign({}, apiHeaders(false), {
-            "Content-Type": "text/plain; charset=utf-8",
-          })
-        : apiHeaders(true);
+        ? { "Content-Type": "text/plain; charset=utf-8" }
+        : undefined;
       const taskFetchBody = usePlainTarget ? body.raw_text : JSON.stringify(body);
-      const r = await fetch(apiBase() + "/task", {
+      const r = await bridgeFetch("/task", {
         method: "POST",
+        json: !usePlainTarget,
         headers: taskHeaders,
         body: taskFetchBody,
       });
@@ -7781,7 +7975,20 @@
         j = null;
       }
       removeFeedItemById(loadingId);
-      if (j && typeof j === "object") {
+      if (!r.ok) {
+        const httpMsg = bridgeUserFacingHttpLineOrGeneric(r.status);
+        upsertTaskLifecycleItem(ackBase, {
+          phase: "failed",
+          summary: display,
+          detail: httpMsg,
+        });
+        addFeedItem("assistant_reply", {
+          text: httpMsg,
+          dedupeKey: ackBase + "-http",
+        });
+        chatHistory.push({ role: "assistant", content: httpMsg });
+        clearPendingRunTaskHistory();
+      } else if (j && typeof j === "object") {
         if (j.video_prompt_clarification && j.reply != null && String(j.reply).trim() !== "") {
           upsertTaskLifecycleItem(ackBase, {
             phase: "failed",
@@ -7801,14 +8008,17 @@
           });
         }
       } else if (lastSubmittedTaskRunKey) {
+        const failDetail = BRIDGE_USER_EMPTY;
         upsertTaskLifecycleItem(ackBase, {
           phase: "failed",
           summary: display,
-          detail:
-            "Geçersiz yanıt veya HTTP " +
-            String(r.status) +
-            (raw && raw.length < 160 ? ": " + raw.slice(0, 160) : ""),
+          detail: failDetail,
         });
+        addFeedItem("assistant_reply", {
+          text: failDetail,
+          dedupeKey: ackBase + "-parse",
+        });
+        chatHistory.push({ role: "assistant", content: failDetail });
         clearPendingRunTaskHistory();
       }
       setTaskFormHint("");
@@ -7817,22 +8027,22 @@
       upsertTaskLifecycleItem(ackBase, {
         phase: "failed",
         summary: display,
-        detail: "Ağ hatası: " + String(e.message || e),
+        detail: BRIDGE_USER_NETWORK,
       });
       clearPendingRunTaskHistory();
-      setTaskFormHint("Hata: " + e.message);
+      setTaskFormHint(BRIDGE_USER_NETWORK);
       addFeedItem("error", {
-        text: "Görev gönderilemedi: " + e.message,
+        text: BRIDGE_USER_NETWORK,
         dedupeKey: "task-err-" + Date.now(),
       });
       addFeedItem("assistant_reply", {
-        text: "Görev gönderilemedi: " + e.message,
+        text: BRIDGE_USER_NETWORK,
         err: true,
         dedupeKey: "task-chat-err-" + Date.now(),
       });
       chatHistory.push({
         role: "assistant",
-        content: "Görev gönderilemedi: " + e.message,
+        content: BRIDGE_USER_NETWORK,
       });
       setActivePanel("chat");
     } finally {
@@ -7847,7 +8057,7 @@
     setLoading("loadApproval", true);
     $("btnOutbox").disabled = true;
     try {
-      const r = await fetch(apiBase() + "/outbox", { headers: apiHeaders(false) });
+      const r = await bridgeFetch("/outbox", { json: false });
       const raw = await r.text();
       let j = null;
       try {
@@ -7855,12 +8065,22 @@
       } catch {
         j = null;
       }
-      try {
-        $("outboxOut").textContent = j ? JSON.stringify(j, null, 2) : raw || "(boş)";
-      } catch {
-        $("outboxOut").textContent = raw || "(boş)";
+      if (!r.ok) {
+        try {
+          $("outboxOut").textContent = bridgeUserFacingHttpLineOrGeneric(r.status);
+        } catch (e2) {}
+      } else if (bridgeOutboxIsEmptyNotFound(r, j)) {
+        try {
+          $("outboxOut").textContent = BRIDGE_USER_EMPTY;
+        } catch (e2) {}
+      } else {
+        try {
+          $("outboxOut").textContent = j ? JSON.stringify(j, null, 2) : raw || BRIDGE_USER_EMPTY;
+        } catch {
+          $("outboxOut").textContent = raw || BRIDGE_USER_EMPTY;
+        }
       }
-      if (j && typeof j === "object" && !j.error) {
+      if (j && typeof j === "object" && !j.error && r.ok) {
         const dk = outboxDedupeKey(j);
         addFeedItem("execution_result", {
           title: "GET /outbox",
@@ -7868,11 +8088,11 @@
           dedupeKey: dk || "outbox-" + String(raw).slice(0, 120),
         });
       }
-      if (j && typeof j === "object") {
+      if (r.ok && j && typeof j === "object" && !bridgeOutboxIsEmptyNotFound(r, j)) {
         pushOutboxSummaryToChatIfNew(j, { focusChat: false });
       }
     } catch (e) {
-      $("outboxOut").textContent = "Hata: " + e.message;
+      $("outboxOut").textContent = BRIDGE_USER_NETWORK;
     } finally {
       setLoading("loadApproval", false);
       $("btnOutbox").disabled = false;
@@ -7888,16 +8108,27 @@
       "<p class='hint-muted'>Kayıtlar yukarıdaki onay akışına eklenir.</p>";
     try {
       let list = [];
-      const r = await fetch(apiBase() + "/pending_approvals", { headers: apiHeaders(false) });
+      let r2 = null;
+      const r = await bridgeFetch("/pending_approvals", { json: false });
       const data = await r.json().catch(() => null);
       if (r.ok && Array.isArray(data)) {
         list = data;
       } else if (r.ok && data && Array.isArray(data.pending)) {
         list = data.pending;
       } else {
-        const r2 = await fetch(apiBase() + "/pending-approvals", { headers: apiHeaders(false) });
+        r2 = await bridgeFetch("/pending-approvals", { json: false });
         const d2 = await r2.json().catch(() => ({}));
         if (r2.ok) list = d2.pending || [];
+      }
+      const pendingErr =
+        list.length === 0 && !r.ok
+          ? bridgeUserFacingHttpLineOrGeneric(r.status)
+          : list.length === 0 && r2 && !r2.ok
+            ? bridgeUserFacingHttpLineOrGeneric(r2.status)
+            : "";
+      if (pendingErr) {
+        host.innerHTML =
+          "<p style='color:var(--err)'>" + esc(pendingErr) + "</p>";
       }
       list.forEach((p) => {
         if (!p.approval_file) return;
@@ -7920,7 +8151,8 @@
         });
       });
     } catch (e) {
-      host.innerHTML = "<p style='color:var(--err)'>" + esc(e.message) + "</p>";
+      host.innerHTML =
+        "<p style='color:var(--err)'>" + esc(BRIDGE_USER_NETWORK) + "</p>";
     } finally {
       setLoading("loadApproval", false);
       $("btnPending").disabled = false;
@@ -7983,9 +8215,9 @@
     }
     setLoading("loadApproval", true);
     try {
-      const r = await fetch(apiBase() + "/approve", {
+      const r = await bridgeFetch("/approve", {
         method: "POST",
-        headers: apiHeaders(true),
+        json: true,
         body: JSON.stringify({
           approval_file: p.approval_file,
           approval_token: p.approval_token,
@@ -7999,7 +8231,11 @@
       } catch {
         j = { raw };
       }
-      $("outboxOut").textContent = JSON.stringify(j, null, 2);
+      if (!r.ok) {
+        $("outboxOut").textContent = bridgeUserFacingHttpLineOrGeneric(r.status);
+      } else {
+        $("outboxOut").textContent = JSON.stringify(j, null, 2);
+      }
       if (approved) {
         const rawOnly =
           j &&
@@ -8174,11 +8410,11 @@
         }
       }
     } catch (e) {
-      $("outboxOut").textContent = "Onay hatası: " + e.message;
+      $("outboxOut").textContent = BRIDGE_USER_NETWORK;
       if (runId) {
         upsertTaskLifecycleItem(runId, {
           phase: "failed",
-          detail: "Onay hatası: " + String(e.message || e).slice(0, 600),
+          detail: BRIDGE_USER_NETWORK,
           result_error: true,
           clear_approval_fields: true,
         });
@@ -8188,7 +8424,7 @@
           type: "execution_result",
           title: "İşlem başarısız",
           approval_file: af,
-          payload: { error: e.message },
+          payload: { error: BRIDGE_USER_NETWORK },
           record: p,
         });
       }
@@ -8532,6 +8768,7 @@
     });
   }
 
+  seedOpeningWelcomeIfNeeded();
   updateCreativeEntryVisibility();
   refreshOutboxEmptyHint();
   syncChatComposerGate();

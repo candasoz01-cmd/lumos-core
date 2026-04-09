@@ -180,6 +180,40 @@ def append_audit_log(repo_root: Path, entry: dict[str, Any]) -> None:
         f.write(line)
 
 
+CHAT_TURN_TELEMETRY_SCHEMA = "lumos.chat_turn.v1"
+_CHAT_USER_MESSAGE_MAX = 10_000
+
+
+def append_chat_turn_telemetry(
+    repo_root: Path,
+    *,
+    user_message: str,
+    intent: str,
+    reply: str,
+    model: str = "",
+    blocked: bool = False,
+) -> str:
+    """POST /chat iki adımlı akış: üretilen INTENT ile cevabı tek JSONL satırında birleştirir.
+
+    HTTP yanıtında `intent` gönderilmez; yalnızca bu günlükte izlenir.
+    """
+    log_id = uuid.uuid4().hex
+    entry: dict[str, Any] = {
+        "schema_version": CHAT_TURN_TELEMETRY_SCHEMA,
+        "log_id": log_id,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "user_message": (user_message or "")[:_CHAT_USER_MESSAGE_MAX],
+        "intent": intent or "",
+        "reply": reply or "",
+        "mode": "chat",
+        "blocked": bool(blocked),
+    }
+    if model:
+        entry["model"] = model
+    append_audit_log(repo_root, entry)
+    return log_id
+
+
 def find_audit_entry(repo_root: Path, log_id: str) -> dict[str, Any] | None:
     root = repo_root / ".lumos" / "logs"
     if not root.is_dir():
