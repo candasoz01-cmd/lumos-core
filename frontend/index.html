@@ -5332,10 +5332,10 @@
 
   /** Sonuç geldiğinde sohbet akışına analiz kartı ekler (yalnızca olay işleyicilerinden çağrılmalı). */
   function pushAnalysisDoneChatCard(dedupeSuffix, responsePayload, reasonOpt) {
-    const srcPre = responsePayload && typeof responsePayload === "object" ? responsePayload : {};
-    if (srcPre.output && srcPre.output.type === "video") {
-      openVideoOverlay(srcPre.output.url);
-      return;
+    const merged =
+      responsePayload && typeof responsePayload === "object" ? Object.assign({}, responsePayload) : {};
+    if (merged?.output?.type === "video") {
+      return; // video varsa analiz kartı ASLA basılmayacak
     }
     const s =
       dedupeSuffix != null && String(dedupeSuffix).trim() !== ""
@@ -5348,7 +5348,7 @@
       lastSubmittedTaskRunKey = "";
     }
     const priorHist = taskKey ? getTaskDecisionHistory(taskKey).slice() : [];
-    const merged = Object.assign({}, src, {
+    Object.assign(merged, src, {
       decision_history: priorHist,
       lumos_task_history_key: taskKey || "",
     });
@@ -6902,6 +6902,7 @@
           approval_file: approvalFile,
           record: pendingRecordBase,
         });
+        if (res?.output?.type === "video") return;
         pushAnalysisDoneChatCard(
           "pending|" + approvalFile,
           Object.assign({}, top, tr, {
@@ -6947,6 +6948,7 @@
         text: String(msg),
         dedupeKey: "blocked-" + (approvalFile || outboxDedupeKey(tr) || Date.now()),
       });
+      if (res?.output?.type === "video") return;
       pushAnalysisDoneChatCard(
         "blocked|" + (approvalFile || outboxDedupeKey(tr) || "t-" + Date.now()),
         Object.assign({}, top, tr, hb, {
@@ -7024,6 +7026,7 @@
       });
     }
     if (analysisChatDedupe) {
+      if (res?.output?.type === "video") return;
       pushAnalysisDoneChatCard(
         analysisChatDedupe,
         analysisPayloadForCard != null ? analysisPayloadForCard : top
@@ -7991,6 +7994,7 @@
               payload: j,
               record: p,
             });
+            if (j?.output?.type === "video") return;
             pushAnalysisDoneChatCard(
               "approve-blocked|" + af,
               Object.assign({}, j, {
@@ -8046,6 +8050,7 @@
               payload: j,
               record: p,
             });
+            if (j?.output?.type === "video") return;
             pushAnalysisDoneChatCard(
               "approve|" + af,
               j && typeof j === "object" ? j : {},
