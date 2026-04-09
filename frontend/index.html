@@ -6785,23 +6785,20 @@
           content: "Video işleniyor ⏳",
         });
 
-        let dots = 0;
-        const interval = setInterval(function () {
-          dots = (dots + 1) % 4;
+        const el = document.querySelector(
+          "#feedStreamChat .feed-item:last-child .lumos-msg-body-text"
+        );
+        if (el) {
+          let dots = 0;
+          const interval = setInterval(function () {
+            dots = (dots + 1) % 4;
+            el.textContent = "Video işleniyor" + ".".repeat(dots);
+          }, 400);
 
-          const text = "Video işleniyor " + ".".repeat(dots);
-
-          const last = document.querySelector(
-            "#feedStreamChat > .feed-item:last-child .lumos-msg-body-text"
-          );
-          if (last) {
-            last.textContent = "Lumos meşgul\n\n" + text;
-          }
-        }, 400);
-
-        setTimeout(function () {
-          clearInterval(interval);
-        }, 5000);
+          setTimeout(function () {
+            clearInterval(interval);
+          }, 5000);
+        }
       }
 
       document.body.classList.add("video-queue");
@@ -8584,7 +8581,8 @@
   background: rgba(0, 150, 255, 0.04);
 }
 .video-queue {
-  background: rgba(255, 180, 0, 0.05);
+  background: rgba(255, 180, 0, 0.08);
+  border-left: 2px solid rgba(255, 180, 0, 0.4);
 }
 </style>
 </body>
