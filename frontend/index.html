@@ -6797,7 +6797,14 @@
    */
   function handleTaskLikeResponse(res, sourceMessage, opts) {
     if (res && res.output && res.output.type === "video") {
-      openVideoOverlay(res.output.url);
+      const vo = res.output;
+      if (vo.source === "youtube") {
+        const u = String(vo.url || "").trim();
+        if (u) window.open(u, "_blank", "noopener,noreferrer");
+        appendMetaDebugBadgeIfAny(res);
+        return;
+      }
+      openVideoOverlay(vo.url);
       appendMetaDebugBadgeIfAny(res);
       return;
     }
