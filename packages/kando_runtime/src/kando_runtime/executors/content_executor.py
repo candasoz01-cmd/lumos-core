@@ -29,7 +29,7 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
     global _CACHE_HITS, _CACHE_MISSES
 
     prompt = str(task_ctx.get("prompt") or "").strip()
-    key = _hash(prompt)
+    key = "content:" + _hash(prompt)
     if key in _CACHE:
         ts, val = _CACHE[key]
         if time.time() - ts < _TTL:
