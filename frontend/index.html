@@ -1943,6 +1943,8 @@
 
   <script>
 (function () {
+  window.__pendingVideo = false;
+
   const $ = (id) => document.getElementById(id);
 
   function setTaskFormHint(msg) {
@@ -6766,7 +6768,8 @@
   }
 
   function handleTaskLikeResponse(res, sourceMessage, opts) {
-    if (res.status === "pending" && res.queue === true) {
+    if (res && res.status === "pending" && res.queue === true) {
+      window.__pendingVideo = true;
       pushChatCard({
         title: "Lumos meşgul",
         content: "Video işleniyor, sıraya alındı...",
@@ -6783,10 +6786,24 @@
     if (res && res.output && res.output.type === "video") {
       const vo = res.output;
       if (vo.source === "youtube") {
+        if (window.__pendingVideo) {
+          window.__pendingVideo = false;
+          pushChatCard({
+            title: "Hazır",
+            content: "Video tamamlandı",
+          });
+        }
         const u = String(vo.url || "").trim();
         if (u) window.open(u, "_blank", "noopener,noreferrer");
         appendMetaDebugBadgeIfAny(res);
         return;
+      }
+      if (window.__pendingVideo) {
+        window.__pendingVideo = false;
+        pushChatCard({
+          title: "Hazır",
+          content: "Video tamamlandı",
+        });
       }
       const isCache = vo.meta?.cache_hit === true;
       window.__lastVideoState = isCache ? "cache" : "generated";
