@@ -215,8 +215,10 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
         if initial_status == "succeeded":
             url_out = _first_video_url_from_output(data.get("output"))
             if url_out:
+                out = _done_video_payload(url_out)
+                CACHE[cache_key] = out
                 _write_cache_entry(prompt_hash, url_out)
-                return _done_video_payload(url_out)
+                return out
             return {
                 "status": "error",
                 "output": {
@@ -277,8 +279,10 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
             if status == "succeeded":
                 url_out = _first_video_url_from_output(pbody.get("output"))
                 if url_out:
+                    out = _done_video_payload(url_out)
+                    CACHE[cache_key] = out
                     _write_cache_entry(prompt_hash, url_out)
-                    return _done_video_payload(url_out)
+                    return out
                 return {
                     "status": "error",
                     "output": {
