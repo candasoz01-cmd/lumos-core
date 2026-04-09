@@ -19,6 +19,9 @@ POLL_INTERVAL_SEC = 2.0
 
 VIDEO_CACHE_FILE = ".video_cache.json"
 
+_VIDEO_QUEUE: list[Any] = []
+_VIDEO_BUSY = False
+
 
 def _video_cache_path() -> Path:
     return Path(os.getcwd()) / VIDEO_CACHE_FILE
@@ -104,9 +107,6 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
     prompt_norm = prompt.strip().lower()
     prompt_norm = " ".join(prompt_norm.split())
     prompt_norm = prompt_norm.replace(".", "")
-    prompt_norm = prompt_norm.replace(",", "")
-    prompt_norm = prompt_norm.replace("!", "")
-    prompt_norm = prompt_norm.replace("?", "")
     prompt_hash = hashlib.sha256(prompt_norm.encode()).hexdigest()
 
     cache = _load_video_cache()
@@ -125,108 +125,38 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
             },
         }
 
-    response = requests.post(
-        "https://api.replicate.com/v1/predictions",
-        headers={
-            "Authorization": f"Token {REPLICATE_API_TOKEN}",
-            "Content-Type": "application/json",
-        },
-        json={
-            "version": "a40e1d8b0c...MODEL_ID...",
-            "input": {
-                "prompt": prompt_norm,
-            },
-        },
-        timeout=120,
-    )
+    global _VIDEO_BUSY
 
+    if _VIDEO_BUSY:
+        return {
+            "status": "pending",
+            "output": {
+                "type": "video",
+                "url": "",
+                "provider": "replicate",
+                "message": "sırada bekliyor",
+            },
+        }
+
+    _VIDEO_BUSY = True
     try:
-        data = response.json()
-    except Exception:
-        return {
-            "status": "error",
-            "output": {
-                "type": "video",
-                "url": "",
-                "provider": "replicate",
-                "error": response.text[:500] if response.text else "invalid JSON from Replicate",
+        response = requests.post(
+            "https://api.replicate.com/v1/predictions",
+            headers={
+                "Authorization": f"Token {REPLICATE_API_TOKEN}",
+                "Content-Type": "application/json",
             },
-        }
-
-    if not response.ok:
-        return {
-            "status": "error",
-            "output": {
-                "type": "video",
-                "url": "",
-                "provider": "replicate",
-                "error": _replicate_error_message(
-                    data if isinstance(data, dict) else {},
-                    response.text[:500] if response.text else f"HTTP {response.status_code}",
-                ),
+            json={
+                "version": "a40e1d8b0c...MODEL_ID...",
+                "input": {
+                    "prompt": prompt_norm,
+                },
             },
-        }
+            timeout=120,
+        )
 
-    pred_id = data.get("id") if isinstance(data, dict) else None
-    poll_url = (
-        data.get("urls", {}).get("get", "")
-        if isinstance(data, dict)
-        else ""
-    )
-    poll_url = str(poll_url or "").strip()
-    if not poll_url and pred_id:
-        poll_url = f"https://api.replicate.com/v1/predictions/{pred_id}"
-
-    if not poll_url:
-        return {
-            "status": "error",
-            "output": {
-                "type": "video",
-                "url": "",
-                "provider": "replicate",
-                "error": "missing prediction id and urls.get",
-            },
-        }
-
-    initial_status = str(data.get("status") or "").lower()
-    if initial_status == "succeeded":
-        url_out = _first_video_url_from_output(data.get("output"))
-        if url_out:
-            _write_cache_entry(prompt_hash, url_out)
-            return _done_video_payload(url_out)
-        return {
-            "status": "error",
-            "output": {
-                "type": "video",
-                "url": "",
-                "provider": "replicate",
-                "error": _replicate_error_message(
-                    data,
-                    "replicate output missing video url",
-                ),
-            },
-        }
-    if initial_status in ("failed", "canceled"):
-        return {
-            "status": "error",
-            "output": {
-                "type": "video",
-                "url": "",
-                "provider": "replicate",
-                "error": _replicate_error_message(data, initial_status),
-            },
-        }
-
-    headers = {
-        "Authorization": f"Token {REPLICATE_API_TOKEN}",
-        "Content-Type": "application/json",
-    }
-
-    for _ in range(POLL_MAX_ATTEMPTS):
-        time.sleep(POLL_INTERVAL_SEC)
-        pr = requests.get(poll_url, headers=headers, timeout=120)
         try:
-            pbody = pr.json()
+            data = response.json()
         except Exception:
             return {
                 "status": "error",
@@ -234,25 +164,48 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
                     "type": "video",
                     "url": "",
                     "provider": "replicate",
-                    "error": pr.text[:500] if pr.text else "invalid JSON polling prediction",
+                    "error": response.text[:500] if response.text else "invalid JSON from Replicate",
                 },
             }
 
-        if not isinstance(pbody, dict):
+        if not response.ok:
             return {
                 "status": "error",
                 "output": {
                     "type": "video",
                     "url": "",
                     "provider": "replicate",
-                    "error": "invalid prediction response",
+                    "error": _replicate_error_message(
+                        data if isinstance(data, dict) else {},
+                        response.text[:500] if response.text else f"HTTP {response.status_code}",
+                    ),
                 },
             }
 
-        status = str(pbody.get("status") or "").lower()
+        pred_id = data.get("id") if isinstance(data, dict) else None
+        poll_url = (
+            data.get("urls", {}).get("get", "")
+            if isinstance(data, dict)
+            else ""
+        )
+        poll_url = str(poll_url or "").strip()
+        if not poll_url and pred_id:
+            poll_url = f"https://api.replicate.com/v1/predictions/{pred_id}"
 
-        if status == "succeeded":
-            url_out = _first_video_url_from_output(pbody.get("output"))
+        if not poll_url:
+            return {
+                "status": "error",
+                "output": {
+                    "type": "video",
+                    "url": "",
+                    "provider": "replicate",
+                    "error": "missing prediction id and urls.get",
+                },
+            }
+
+        initial_status = str(data.get("status") or "").lower()
+        if initial_status == "succeeded":
+            url_out = _first_video_url_from_output(data.get("output"))
             if url_out:
                 _write_cache_entry(prompt_hash, url_out)
                 return _done_video_payload(url_out)
@@ -263,32 +216,96 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
                     "url": "",
                     "provider": "replicate",
                     "error": _replicate_error_message(
-                        pbody,
+                        data,
                         "replicate output missing video url",
                     ),
                 },
             }
-
-        if status in ("failed", "canceled"):
+        if initial_status in ("failed", "canceled"):
             return {
                 "status": "error",
                 "output": {
                     "type": "video",
                     "url": "",
                     "provider": "replicate",
-                    "error": _replicate_error_message(
-                        pbody,
-                        status,
-                    ),
+                    "error": _replicate_error_message(data, initial_status),
                 },
             }
 
-    return {
-        "status": "pending",
-        "output": {
-            "type": "video",
-            "url": "",
-            "provider": "replicate",
-            "message": "video hazırlanıyor",
-        },
-    }
+        headers = {
+            "Authorization": f"Token {REPLICATE_API_TOKEN}",
+            "Content-Type": "application/json",
+        }
+
+        for _ in range(POLL_MAX_ATTEMPTS):
+            time.sleep(POLL_INTERVAL_SEC)
+            pr = requests.get(poll_url, headers=headers, timeout=120)
+            try:
+                pbody = pr.json()
+            except Exception:
+                return {
+                    "status": "error",
+                    "output": {
+                        "type": "video",
+                        "url": "",
+                        "provider": "replicate",
+                        "error": pr.text[:500] if pr.text else "invalid JSON polling prediction",
+                    },
+                }
+
+            if not isinstance(pbody, dict):
+                return {
+                    "status": "error",
+                    "output": {
+                        "type": "video",
+                        "url": "",
+                        "provider": "replicate",
+                        "error": "invalid prediction response",
+                    },
+                }
+
+            status = str(pbody.get("status") or "").lower()
+
+            if status == "succeeded":
+                url_out = _first_video_url_from_output(pbody.get("output"))
+                if url_out:
+                    _write_cache_entry(prompt_hash, url_out)
+                    return _done_video_payload(url_out)
+                return {
+                    "status": "error",
+                    "output": {
+                        "type": "video",
+                        "url": "",
+                        "provider": "replicate",
+                        "error": _replicate_error_message(
+                            pbody,
+                            "replicate output missing video url",
+                        ),
+                    },
+                }
+
+            if status in ("failed", "canceled"):
+                return {
+                    "status": "error",
+                    "output": {
+                        "type": "video",
+                        "url": "",
+                        "provider": "replicate",
+                        "error": _replicate_error_message(
+                            pbody,
+                            status,
+                        ),
+                    },
+                }
+
+        return {
+            "status": "pending",
+            "output": {
+                "type": "video",
+                "url": "",
+                "provider": "replicate",
+                "message": "video hazırlanıyor",
+            },
+        }
+    finally:
+        _VIDEO_BUSY = False
