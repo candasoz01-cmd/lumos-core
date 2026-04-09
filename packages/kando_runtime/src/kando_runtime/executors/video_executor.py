@@ -19,7 +19,7 @@ POLL_INTERVAL_SEC = 2.0
 
 VIDEO_CACHE_FILE = ".video_cache.json"
 
-_VIDEO_QUEUE: list[Any] = []
+_VIDEO_QUEUE = []
 _VIDEO_BUSY = False
 
 CACHE: dict[str, dict[str, Any]] = {}
@@ -148,12 +148,8 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
     if _VIDEO_BUSY:
         return {
             "status": "pending",
-            "output": {
-                "type": "video",
-                "url": "",
-                "provider": "replicate",
-                "message": "sırada bekliyor",
-            },
+            "message": "video sırada bekliyor",
+            "queue": True,
         }
 
     _VIDEO_BUSY = True
