@@ -6754,6 +6754,8 @@
    * @param {string} sourceMessage — kullanıcı görev/konuşma metni
    * @param {{ skipTaskRouted?: boolean, taskRunId?: string }} opts
    */
+  window.__lastVideoState = null;
+
   function handleTaskLikeResponse(res, sourceMessage, opts) {
     if (res && res.output && res.output.type === "video") {
       const vo = res.output;
@@ -6763,6 +6765,17 @@
         appendMetaDebugBadgeIfAny(res);
         return;
       }
+      const isCache = vo.meta?.cache_hit === true;
+      window.__lastVideoState = isCache ? "cache" : "generated";
+      if (isCache) {
+        document.body.classList.add("video-from-cache");
+      } else {
+        document.body.classList.add("video-from-generate");
+      }
+      setTimeout(function () {
+        document.body.classList.remove("video-from-cache");
+        document.body.classList.remove("video-from-generate");
+      }, 400);
       openVideoOverlay(vo.url);
       appendMetaDebugBadgeIfAny(res);
       return;
@@ -8494,6 +8507,12 @@
   align-self: center;
   background: transparent;
   padding: 4px 8px;
+}
+.video-from-cache {
+  background: rgba(0, 255, 120, 0.04);
+}
+.video-from-generate {
+  background: rgba(0, 150, 255, 0.04);
 }
 </style>
 </body>
