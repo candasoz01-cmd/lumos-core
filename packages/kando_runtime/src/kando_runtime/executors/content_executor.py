@@ -3,13 +3,15 @@ from __future__ import annotations
 
 import hashlib
 import re
+import time
 from typing import Any
 
 import requests
 
 __all__ = ["run"]
 
-_CACHE: dict[str, dict[str, Any]] = {}
+_CACHE = {}
+_TTL = 300
 
 
 def _hash(prompt: str) -> str:
@@ -25,7 +27,11 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
     prompt = str(task_ctx.get("prompt") or "").strip()
     key = _hash(prompt)
     if key in _CACHE:
-        return _CACHE[key]
+        ts, val = _CACHE[key]
+        if time.time() - ts < _TTL:
+            return val
+        else:
+            del _CACHE[key]
 
     q = prompt.replace(" ", "+")
 
@@ -50,5 +56,5 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
             "title": prompt or "video",
         },
     }
-    _CACHE[key] = result
+    _CACHE[key] = (time.time(), result)
     return result
