@@ -18,6 +18,8 @@ yeniden çalıştırılır.
 """
 from __future__ import annotations
 
+import copy
+import hashlib
 import json
 import os
 import re
@@ -100,6 +102,133 @@ _EXECUTOR_FOR_TYPE: dict[TaskType, str | None] = {
     "shell": "shell_executor",
     "generic": None,
 }
+
+# --- video_executor: bellek + disk önbellek (yalnızca task_dispatch) ---
+VIDEO_DISK_CACHE_FILE = ".video_cache.json"
+_VIDEO_MEMORY_CACHE: dict[str, dict[str, Any]] = {}
+
+
+def _video_normalize_prompt(prompt: Any) -> str:
+    p = str(prompt or "").strip().lower()
+    p = " ".join(p.split())
+    return p.replace(".", "")
+
+
+def _video_disk_prompt_hash(prompt_norm: str) -> str:
+    return hashlib.sha256(prompt_norm.encode()).hexdigest()
+
+
+def _video_disk_cache_path() -> Path:
+    return Path(os.getcwd()) / VIDEO_DISK_CACHE_FILE
+
+
+def _load_video_disk_cache() -> dict[str, str]:
+    p = _video_disk_cache_path()
+    if not p.is_file():
+        return {}
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            return {}
+        out: dict[str, str] = {}
+        for k, v in data.items():
+            if isinstance(k, str) and isinstance(v, str) and v.strip():
+                out[k] = v.strip()
+        return out
+    except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        return {}
+
+
+def _save_video_disk_cache(prompt_hash: str, video_url: str) -> None:
+    if not prompt_hash or not (video_url and str(video_url).strip()):
+        return
+    p = _video_disk_cache_path()
+    cache = _load_video_disk_cache()
+    cache[prompt_hash] = str(video_url).strip()
+    try:
+        p.write_text(
+            json.dumps(cache, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+    except OSError:
+        pass
+
+
+def _apply_video_cache_meta(result: dict[str, Any], hit: bool) -> None:
+    result["meta"] = {"cache_hit": hit}
+    out = result.get("output")
+    if isinstance(out, dict):
+        om = out.setdefault("meta", {})
+        if isinstance(om, dict):
+            om["cache_hit"] = hit
+
+
+def _video_memory_store_strip_meta(key: str, result: dict[str, Any]) -> None:
+    stored: dict[str, Any] = dict(result)
+    if isinstance(stored.get("output"), dict):
+        stored["output"] = copy.deepcopy(stored["output"])
+    stored.pop("meta", None)
+    if isinstance(stored.get("output"), dict):
+        stored["output"].pop("meta", None)
+    _VIDEO_MEMORY_CACHE[key] = stored
+
+
+def _video_done_payload(url: str) -> dict[str, Any]:
+    return {
+        "status": "done",
+        "output": {
+            "type": "video",
+            "url": url,
+            "provider": "replicate",
+        },
+    }
+
+
+def _run_video_executor_with_cache(
+    params: dict[str, Any],
+    video_run: Any,
+) -> dict[str, Any]:
+    """Anahtar json.dumps(params, sort_keys=True); bellek + disk; video_run saf çıktı."""
+    if not isinstance(params, dict):
+        params = {"prompt": str(params)}
+    key = json.dumps(params, sort_keys=True, ensure_ascii=False)
+
+    if key in _VIDEO_MEMORY_CACHE:
+        result = dict(_VIDEO_MEMORY_CACHE[key])
+        if isinstance(result.get("output"), dict):
+            result["output"] = copy.deepcopy(result["output"])
+        _apply_video_cache_meta(result, True)
+        return result
+
+    pn = _video_normalize_prompt(params.get("prompt", ""))
+    ph = _video_disk_prompt_hash(pn)
+    disk = _load_video_disk_cache()
+    cu = disk.get(ph, "")
+    if cu:
+        out = _video_done_payload(cu)
+        _video_memory_store_strip_meta(key, out)
+        result = dict(_VIDEO_MEMORY_CACHE[key])
+        if isinstance(result.get("output"), dict):
+            result["output"] = copy.deepcopy(result["output"])
+        _apply_video_cache_meta(result, True)
+        return result
+
+    out = video_run(params)
+    if not isinstance(out, dict):
+        return out
+    if out.get("status") == "done" and isinstance(out.get("output"), dict):
+        u = str(out["output"].get("url") or "").strip()
+        if u:
+            _video_memory_store_strip_meta(key, out)
+            _apply_video_cache_meta(out, False)
+            _save_video_disk_cache(ph, u)
+    return out
+
+
+def _video_params_from_task(task: dict[str, Any]) -> dict[str, Any]:
+    params = task.get("params") if isinstance(task.get("params"), dict) else {}
+    p = str(params.get("prompt") or task.get("prompt") or "").strip()
+    return {"prompt": p}
 
 
 def generate_id() -> str:
@@ -704,9 +833,7 @@ def build_execution_plan(task: dict[str, Any]) -> dict[str, Any]:
 def run_video_executor(task: dict[str, Any]) -> Any:
     from kando_runtime.video_executor import run
 
-    params = task.get("params") if isinstance(task.get("params"), dict) else {}
-    p = str(params.get("prompt") or task.get("prompt") or "").strip()
-    return run({"prompt": p})
+    return _run_video_executor_with_cache(_video_params_from_task(task), run)
 
 
 def _video_keyword_bypass_dispatch_return(
@@ -722,7 +849,7 @@ def _video_keyword_bypass_dispatch_return(
     except Exception:
         from kando_runtime.executors.video_executor import run as _video_run
 
-        exec_out = _video_run(task)
+        exec_out = _run_video_executor_with_cache(_video_params_from_task(task), _video_run)
     if not isinstance(exec_out, dict):
         exec_out = {"status": "done", "output": exec_out}
     executor = _EXECUTOR_FOR_TYPE.get("video")
@@ -1509,9 +1636,9 @@ def dispatch_task(task):
 
                 return {**result, **out} if isinstance(out, dict) else result
             elif executor_name == "video_executor":
-                from kando_runtime.executors.video_executor import run
+                from kando_runtime.executors.video_executor import run as video_run
 
-                out = run(step.get("params") or {})
+                out = _run_video_executor_with_cache(step.get("params") or {}, video_run)
 
                 if isinstance(out, dict):
                     if "risk" in out:
