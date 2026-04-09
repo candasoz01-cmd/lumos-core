@@ -1633,6 +1633,12 @@
       height: auto;
       background: #000;
     }
+    .video-overlay-preparing {
+      color: rgba(255, 255, 255, 0.92);
+      font-size: 1.1rem;
+      text-align: center;
+      padding: 1rem;
+    }
 
     .task-video-drawer-trigger {
       margin-top: 0.65rem;
@@ -5294,7 +5300,8 @@
       raw = (o && o.url) || urlOrRes.url || "";
       raw = String(raw || "").trim();
     }
-    const src = resolveVideoPlaybackSrc(raw || "/out.mp4");
+    const hasUrl = raw.length > 0;
+    const src = hasUrl ? resolveVideoPlaybackSrc(raw) : "";
 
     const prev = document.getElementById("videoOverlay");
     if (prev) prev.remove();
@@ -5303,15 +5310,18 @@
     el.id = "videoOverlay";
     el.setAttribute("role", "dialog");
     el.setAttribute("aria-modal", "true");
-    el.innerHTML =
-      '<div class="video-fullscreen">' +
-      '<video class="lumos-video-playback-el" autoplay controls playsinline></video>' +
-      "</div>";
+    el.innerHTML = hasUrl
+      ? '<div class="video-fullscreen">' +
+        '<video class="lumos-video-playback-el" autoplay controls playsinline></video>' +
+        "</div>"
+      : '<div class="video-fullscreen">' +
+        '<div class="video-overlay-preparing">video hazırlanıyor...</div>' +
+        "</div>";
     document.body.appendChild(el);
 
     const video = el.querySelector("video");
     const shell = el.querySelector(".video-fullscreen");
-    if (video) {
+    if (video && hasUrl) {
       video.src = src;
       video.addEventListener("click", function (e) {
         e.stopPropagation();
