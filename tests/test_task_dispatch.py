@@ -468,9 +468,9 @@ def test_dispatch_content_watch_ready_to_watch():
     )
     assert d["status"] == "done"
     assert d["task_type"] == "content.watch"
-    assert d["output"]["type"] == "content_list"
-    assert d["output"]["mode"] == "watch"
-    assert d["output"]["items"][0]["source"] == "youtube"
+    assert d["output"]["type"] == "video"
+    assert d["output"]["source"] == "youtube"
+    assert "youtube.com" in (d["output"].get("url") or "")
     assert d["execution_dispatch"]["executor"] == "content_executor"
 
 
