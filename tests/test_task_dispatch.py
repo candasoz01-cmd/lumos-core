@@ -270,7 +270,8 @@ def test_dispatch_video_queue():
     assert "system_execution" not in d
 
 
-def test_dispatch_video_need_source_without_external_ref():
+def test_dispatch_video_production_intent_bypasses_need_source():
+    """video + üretim niyeti (video/üret) → need_source atlanır, kuyruğa gider."""
     out = {
         "execution_mode": "restricted",
         "http_body": {"lumos_gate": {"execution_mode": "restricted"}},
@@ -278,9 +279,9 @@ def test_dispatch_video_need_source_without_external_ref():
     d = dispatch_task(
         {"text": "720p video üret", "out": out, "repo_root": Path(".")}
     )
-    assert d["status"] == "need_source"
-    assert d["reason"] == "NO_VIDEO_SOURCE"
-    assert "kaynak" in (d.get("message") or "").lower()
+    assert d["task_type"] == "video"
+    assert d.get("status") != "need_source"
+    assert d["execution_dispatch"]["queue"] == "video_executor_pending"
 
 
 def test_dispatch_video_need_input_short_prompt():

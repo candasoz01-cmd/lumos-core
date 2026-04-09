@@ -705,7 +705,52 @@ def run_video_executor(task: dict[str, Any]) -> Any:
     from kando_runtime.video_executor import run
 
     params = task.get("params") if isinstance(task.get("params"), dict) else {}
-    return run({"prompt": params.get("prompt", "")})
+    p = str(params.get("prompt") or task.get("prompt") or "").strip()
+    return run({"prompt": p})
+
+
+def _video_keyword_bypass_dispatch_return(
+    task: dict[str, Any],
+    *,
+    text: str,
+    out: dict[str, Any],
+    task_id: str,
+) -> dict[str, Any]:
+    """Anahtar kelime ile clarity/vague atlanır; video_executor çıktısı + dispatch zarfı."""
+    try:
+        exec_out = run_video_executor(task)
+    except Exception:
+        from kando_runtime.executors.video_executor import run as _video_run
+
+        exec_out = _video_run(task)
+    if not isinstance(exec_out, dict):
+        exec_out = {"status": "done", "output": exec_out}
+    executor = _EXECUTOR_FOR_TYPE.get("video")
+    plan = build_dispatch_execution_plan(
+        task_type="video",
+        text=text,
+        out=out,
+        executor=executor,
+    )
+    task["execution_plan"] = build_execution_plan(
+        {
+            "task_type": "video",
+            "prompt": str(task.get("prompt") or text).strip(),
+        }
+    )
+    return {
+        "status": exec_out.get("status", "done"),
+        "output": exec_out.get("output"),
+        "task_id": task_id,
+        "task_type": "video",
+        "dispatch_execution_plan": plan,
+        "execution_dispatch": {
+            "queue": "video_executor_pending",
+            "label_tr": "Video yürütücüsüne gönderildi",
+            "executor": executor,
+        },
+        "execution_plan": task.get("execution_plan"),
+    }
 
 
 _VIDEO_VAGUE_TOKENS: tuple[str, ...] = (
@@ -922,6 +967,21 @@ def _video_task_has_external_source(
     return False
 
 
+def _video_has_production_intent(*, text: str, prompt: str) -> bool:
+    """Üret / göster / video niyeti — vague ve clarity kaynaklı durdurmayı bypass etmek için."""
+    blob = f"{prompt or ''}\n{text or ''}".lower()
+    return any(
+        k in blob
+        for k in (
+            "oluştur",
+            "olustur",
+            "video",
+            "göster",
+            "goster",
+        )
+    )
+
+
 def _decision_snapshot(
     task_type: TaskType,
     prompt: str,
@@ -1055,6 +1115,18 @@ def dispatch_task(task):
         text, str(explicit).strip() if explicit else None, out
     )
     task["task_type"] = task_type
+
+    if task_type == "video":
+        pl = str(task.get("prompt", "") or "").lower()
+        if not pl.strip():
+            pl = str(task.get("text") or "").lower()
+        if pl.strip() and any(
+            k in pl for k in ("video", "oluştur", "üret", "göster")
+        ):
+            return _video_keyword_bypass_dispatch_return(
+                task, text=text, out=out, task_id=task_id
+            )
+
     if task_type == "agent":
         executor_name = resolve_executor("agent")
     else:
@@ -1067,20 +1139,30 @@ def dispatch_task(task):
         "clarity_score": estimate_clarity(task),
     }
     risk_snap = _risk_for_snapshot(task, out)
+    prompt_stripped = (prompt or "").strip()
+    bypass_video_gates = (
+        task_type == "video"
+        and bool(prompt_stripped)
+        and _video_has_production_intent(text=text, prompt=prompt)
+    )
     vni_reason = (
-        _video_need_input_reason(prompt) if task_type == "video" else None
+        None
+        if bypass_video_gates
+        else (_video_need_input_reason(prompt) if task_type == "video" else None)
     )
     clarity_sc = float(task["_meta"]["clarity_score"])
+    clarity_blocks = clarity_sc < _CLARITY_NEED_INPUT_THRESHOLD
+    if task_type == "video" and bypass_video_gates:
+        clarity_blocks = False
     video_needs_source = (
         task_type == "video"
+        and not bypass_video_gates
         and not _video_task_has_external_source(
             text=text, prompt=prompt, task=task
         )
     )
     needs_clarification = (
-        vni_reason is not None
-        or clarity_sc < _CLARITY_NEED_INPUT_THRESHOLD
-        or video_needs_source
+        vni_reason is not None or clarity_blocks or video_needs_source
     )
     decision_snapshot = _decision_snapshot(
         task_type,
@@ -1105,7 +1187,7 @@ def dispatch_task(task):
             "execution_dispatch": exec_disp,
         }
 
-    if clarity_sc < _CLARITY_NEED_INPUT_THRESHOLD:
+    if clarity_blocks:
         plan, exec_disp = _decision_layer_dispatch_shell(
             task_type, reason="LOW_CLARITY"
         )
