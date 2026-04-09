@@ -1,12 +1,19 @@
 """Hazır izlenecek içerik: YouTube arama sayfasından ilk video kimliğini çıkarır."""
 from __future__ import annotations
 
+import hashlib
 import re
 from typing import Any
 
 import requests
 
 __all__ = ["run"]
+
+_CACHE: dict[str, dict[str, Any]] = {}
+
+
+def _hash(prompt: str) -> str:
+    return hashlib.sha256(prompt.encode()).hexdigest()
 
 
 def _extract_video_id(html: str) -> str | None:
@@ -16,6 +23,10 @@ def _extract_video_id(html: str) -> str | None:
 
 def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
     prompt = str(task_ctx.get("prompt") or "").strip()
+    key = _hash(prompt)
+    if key in _CACHE:
+        return _CACHE[key]
+
     q = prompt.replace(" ", "+")
 
     search_url = f"https://www.youtube.com/results?search_query={q}"
@@ -30,7 +41,7 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
     except Exception:
         video_url = search_url
 
-    return {
+    result: dict[str, Any] = {
         "status": "done",
         "output": {
             "type": "video",
@@ -39,3 +50,5 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
             "title": prompt or "video",
         },
     }
+    _CACHE[key] = result
+    return result
