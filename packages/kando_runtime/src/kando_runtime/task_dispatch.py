@@ -1160,7 +1160,7 @@ def dispatch_task(task):
         _cr = _content_run({"prompt": prompt})
         _out = _cr.get("output") if isinstance(_cr, dict) else {}
         risk_snap_cw = _dispatch_risk_from_out(out)
-        return {
+        cw_ret: dict[str, Any] = {
             "status": "done",
             "task_id": task_id,
             "task_type": "content.watch",
@@ -1182,6 +1182,9 @@ def dispatch_task(task):
                 "executor": "content_executor",
             },
         }
+        if isinstance(_cr, dict) and isinstance(_cr.get("meta"), dict):
+            cw_ret["meta"] = _cr["meta"]
+        return cw_ret
 
     if task_type == "video":
         pl = str(task.get("prompt", "") or "").lower()

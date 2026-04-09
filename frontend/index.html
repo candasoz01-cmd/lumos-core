@@ -500,6 +500,18 @@
     .feed-lane-chat.feed-assistant_reply:not(.err) {
       border-color: rgba(121, 192, 255, 0.22);
     }
+    .feed-item.feed-assistant_reply.feed-assistant_reply--meta-debug {
+      padding: 0.2rem 0.45rem;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      max-width: 100%;
+    }
+    .feed-item.feed-assistant_reply.feed-assistant_reply--meta-debug .lumos-msg-body-text {
+      font-size: 0.72rem;
+      color: var(--muted);
+      opacity: 0.88;
+    }
     /* Görev kartları — lane: task */
     .feed-lane-task .feed-tag {
       display: none !important;
@@ -5949,7 +5961,13 @@
         container.appendChild(wrap);
         return;
       } else if (item.type === "assistant_reply") {
-        const kind = lumosAssistantKindLabel(item.payload);
+        if (item.payload && item.payload.lumosMetaDebug) {
+          wrap.classList.add("feed-assistant_reply--meta-debug");
+        }
+        const kind =
+          item.payload && item.payload.lumosMetaDebug
+            ? null
+            : lumosAssistantKindLabel(item.payload);
         if (kind) {
           const kindEl = document.createElement("span");
           kindEl.className = "lumos-msg-kind";
@@ -6757,6 +6775,20 @@
     });
   }
 
+  function appendMetaDebugBadgeIfAny(obj) {
+    if (!obj || !obj.meta || typeof obj.meta !== "object") return;
+    const h = obj.meta.cache_hits;
+    const m = obj.meta.cache_misses;
+    if (h == null && m == null) return;
+    const hits = h != null ? Number(h) : 0;
+    const miss = m != null ? Number(m) : 0;
+    addFeedItem("assistant_reply", {
+      text: "[cache: " + hits + " hit / " + miss + " miss]",
+      lumosMetaDebug: true,
+      dedupeKey: "lumos-meta-dbg-" + hits + "-" + miss + "-" + Date.now(),
+    });
+  }
+
   /**
    * Chat veya POST /task yanıtını feed öğelerine çevirir.
    * @param {object} res — API JSON
@@ -6766,6 +6798,7 @@
   function handleTaskLikeResponse(res, sourceMessage, opts) {
     if (res && res.output && res.output.type === "video") {
       openVideoOverlay(res.output.url);
+      appendMetaDebugBadgeIfAny(res);
       return;
     }
     if (res && res.output && res.output.type === "content_list") {
@@ -6781,6 +6814,7 @@
         lumosMsgType: "guide",
         dedupeKey: "content-list-" + String(cl.query || sourceMessage || "").slice(0, 96),
       });
+      appendMetaDebugBadgeIfAny(res);
       return;
     }
     const o = opts || {};
@@ -6788,6 +6822,7 @@
     let analysisChatDedupe = null;
     let analysisPayloadForCard = null;
     const top = res && typeof res === "object" ? res : {};
+    appendMetaDebugBadgeIfAny(res);
     const trFromResult =
       top.task_result && typeof top.task_result === "object" ? top.task_result : null;
     const trFromGate =
