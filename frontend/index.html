@@ -1944,6 +1944,7 @@
   <script>
 (function () {
   window.__pendingVideo = false;
+  window.__lastPendingKey = undefined;
 
   const $ = (id) => document.getElementById(id);
 
@@ -6769,11 +6770,39 @@
 
   function handleTaskLikeResponse(res, sourceMessage, opts) {
     if (res && res.status === "pending" && res.queue === true) {
-      window.__pendingVideo = true;
-      pushChatCard({
-        title: "Lumos meşgul",
-        content: "Video işleniyor, sıraya alındı...",
-      });
+      const pendingKey = res.output?.meta?.pending_key;
+
+      if (pendingKey && window.__lastPendingKey === pendingKey) {
+        pushChatCard({
+          title: "Zaten sırada",
+          content: "Bu video zaten işleniyor",
+        });
+      } else {
+        window.__lastPendingKey = pendingKey;
+        window.__pendingVideo = true;
+        pushChatCard({
+          title: "Lumos meşgul",
+          content: "Video işleniyor ⏳",
+        });
+
+        let dots = 0;
+        const interval = setInterval(function () {
+          dots = (dots + 1) % 4;
+
+          const text = "Video işleniyor " + ".".repeat(dots);
+
+          const last = document.querySelector(
+            "#feedStreamChat > .feed-item:last-child .lumos-msg-body-text"
+          );
+          if (last) {
+            last.textContent = "Lumos meşgul\n\n" + text;
+          }
+        }, 400);
+
+        setTimeout(function () {
+          clearInterval(interval);
+        }, 5000);
+      }
 
       document.body.classList.add("video-queue");
 
