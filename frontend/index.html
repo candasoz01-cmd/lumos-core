@@ -5332,6 +5332,11 @@
 
   /** Sonuç geldiğinde sohbet akışına analiz kartı ekler (yalnızca olay işleyicilerinden çağrılmalı). */
   function pushAnalysisDoneChatCard(dedupeSuffix, responsePayload, reasonOpt) {
+    const srcPre = responsePayload && typeof responsePayload === "object" ? responsePayload : {};
+    if (srcPre.output && srcPre.output.type === "video") {
+      openVideoOverlay(srcPre.output.url);
+      return;
+    }
     const s =
       dedupeSuffix != null && String(dedupeSuffix).trim() !== ""
         ? String(dedupeSuffix)
@@ -5368,11 +5373,6 @@
     }
     const ev = computeDecisionKindPipeline(merged);
     const kind = ev.kind;
-    const task = { type: merged.task_type };
-    if (task.type === "video") {
-      openVideoOverlay(merged);
-      return;
-    }
     const reasonFromEv =
       ev.clarificationMessage != null && String(ev.clarificationMessage).trim() !== ""
         ? String(ev.clarificationMessage).trim().slice(0, 500)
@@ -6754,17 +6754,15 @@
    * @param {{ skipTaskRouted?: boolean, taskRunId?: string }} opts
    */
   function handleTaskLikeResponse(res, sourceMessage, opts) {
+    if (res && res.output && res.output.type === "video") {
+      openVideoOverlay(res.output.url);
+      return;
+    }
     const o = opts || {};
     const taskRunId = o.taskRunId != null ? String(o.taskRunId).trim() : "";
     let analysisChatDedupe = null;
     let analysisPayloadForCard = null;
     const top = res && typeof res === "object" ? res : {};
-    const outTop = top.output && typeof top.output === "object" ? top.output : null;
-    if (outTop && outTop.type === "video" && outTop.url) {
-      openVideoOverlay(String(outTop.url));
-      if (taskRunId) finalizeTaskRunLifecycle(taskRunId, {});
-      return;
-    }
     const trFromResult =
       top.task_result && typeof top.task_result === "object" ? top.task_result : null;
     const trFromGate =
