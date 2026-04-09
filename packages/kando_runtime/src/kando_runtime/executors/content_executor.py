@@ -12,6 +12,8 @@ __all__ = ["run"]
 
 _CACHE = {}
 _TTL = 300
+_CACHE_HITS = 0
+_CACHE_MISSES = 0
 
 
 def _hash(prompt: str) -> str:
@@ -24,14 +26,26 @@ def _extract_video_id(html: str) -> str | None:
 
 
 def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
+    global _CACHE_HITS, _CACHE_MISSES
+
     prompt = str(task_ctx.get("prompt") or "").strip()
     key = _hash(prompt)
     if key in _CACHE:
         ts, val = _CACHE[key]
         if time.time() - ts < _TTL:
-            return val
+            _CACHE_HITS += 1
+            return {
+                **val,
+                "meta": {
+                    "cache_hits": _CACHE_HITS,
+                    "cache_misses": _CACHE_MISSES,
+                },
+            }
         else:
             del _CACHE[key]
+            _CACHE_MISSES += 1
+    else:
+        _CACHE_MISSES += 1
 
     q = prompt.replace(" ", "+")
 
@@ -57,4 +71,10 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
         },
     }
     _CACHE[key] = (time.time(), result)
-    return result
+    return {
+        **result,
+        "meta": {
+            "cache_hits": _CACHE_HITS,
+            "cache_misses": _CACHE_MISSES,
+        },
+    }
