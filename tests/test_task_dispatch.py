@@ -452,3 +452,39 @@ def test_dispatch_explicit_task_type_json_path(tmp_path: Path) -> None:
     )
     assert d["task_type"] == "shell"
     assert d["system_execution"]["action"] == "unhandled"
+
+
+def test_dispatch_content_watch_ready_to_watch():
+    out = {
+        "execution_mode": "restricted",
+        "http_body": {"lumos_gate": {"execution_mode": "restricted"}},
+    }
+    d = dispatch_task(
+        {
+            "text": "sen seç bir şey izlemek istiyorum",
+            "out": out,
+            "repo_root": Path("."),
+        }
+    )
+    assert d["status"] == "done"
+    assert d["task_type"] == "content.watch"
+    assert d["output"]["type"] == "content_list"
+    assert d["output"]["mode"] == "watch"
+    assert d["output"]["items"][0]["source"] == "youtube"
+    assert d["execution_dispatch"]["executor"] == "content_executor"
+
+
+def test_dispatch_content_watch_skipped_when_production_keyword():
+    out = {
+        "execution_mode": "restricted",
+        "http_body": {"lumos_gate": {"execution_mode": "restricted"}},
+    }
+    d = dispatch_task(
+        {
+            "text": "720p video üret izlemek istiyorum",
+            "out": out,
+            "repo_root": Path("."),
+        }
+    )
+    assert d["task_type"] == "video"
+    assert d["task_type"] != "content.watch"

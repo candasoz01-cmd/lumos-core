@@ -842,6 +842,43 @@ def _normalize_prompt(task: dict[str, Any]) -> str:
     return str(task.get("text") or "").strip()
 
 
+_CONTENT_WATCH_POSITIVE_PHRASES: tuple[str, ...] = (
+    "izlemek istiyorum",
+    "bir şey aç",
+    "bir şey izlet",
+    "seyredeceğim bir şey",
+    "gerçekten seyredeceğim bir şey",
+    "sen seç",
+    "farketmez",
+    "ne olduğu önemli değil",
+    "bir şey sun",
+    "bir şey öner",
+    "bir video aç",
+)
+_CONTENT_WATCH_NEGATIVE_KEYWORDS: tuple[str, ...] = (
+    "oluştur",
+    "üret",
+    "generate",
+    "hazırla",
+    "render",
+    "video yap",
+)
+
+
+def _is_content_watch_request(prompt: str) -> bool:
+    """Hazır izlenecek içerik niyeti (üretim anahtar kelimesi yoksa True)."""
+    p = (prompt or "").strip().lower()
+    if not p:
+        return False
+    for neg in _CONTENT_WATCH_NEGATIVE_KEYWORDS:
+        if neg in p:
+            return False
+    for pos in _CONTENT_WATCH_POSITIVE_PHRASES:
+        if pos in p:
+            return True
+    return False
+
+
 def _risk_for_snapshot(task: dict[str, Any], out: dict[str, Any]) -> str:
     """Gate risk öncelikli; yoksa infer_risk."""
     if isinstance(out, dict) and out:
@@ -1116,6 +1153,36 @@ def dispatch_task(task):
     )
     task["task_type"] = task_type
 
+    prompt = _normalize_prompt(task)
+    if _is_content_watch_request(prompt):
+        from kando_runtime.executors.content_executor import run as _content_run
+
+        _cr = _content_run({"prompt": prompt})
+        _out = _cr.get("output") if isinstance(_cr, dict) else {}
+        risk_snap_cw = _dispatch_risk_from_out(out)
+        return {
+            "status": "done",
+            "task_id": task_id,
+            "task_type": "content.watch",
+            "output": _out,
+            "dispatch_execution_plan": {
+                "schema_version": "lumos.dispatch_execution_plan.v1",
+                "ok": True,
+                "action": "content_watch",
+                "target": "content",
+                "executor_type": "content_executor",
+                "risk": risk_snap_cw,
+                "execution_permitted": False,
+                "requires_dispatch_approval": False,
+                "reason": "",
+            },
+            "execution_dispatch": {
+                "queue": "generic_pending",
+                "label_tr": "İzlenecek içerik önerisi",
+                "executor": "content_executor",
+            },
+        }
+
     if task_type == "video":
         pl = str(task.get("prompt", "") or "").lower()
         if not pl.strip():
@@ -1132,7 +1199,6 @@ def dispatch_task(task):
     else:
         executor_name = resolve_executor(task_type)
 
-    prompt = _normalize_prompt(task)
     task["_meta"] = {
         "received_at": now(),
         "user_intent_score": estimate_intent(task),
@@ -1453,6 +1519,33 @@ def dispatch_task(task):
                 task["_trace"] = trace
 
                 # ROUTE çıktıysa → yeniden dispatch et
+                if isinstance(out, dict):
+                    output = out.get("output", {})
+                    if output.get("type") == "route":
+                        new_task = output.get("task")
+                        if new_task:
+                            return dispatch_task(new_task)
+
+                if isinstance(out, dict):
+                    out["risk"] = risk
+                    output = out.get("output")
+                    if isinstance(output, dict):
+                        output["risk"] = risk
+
+                return {**result, **out} if isinstance(out, dict) else result
+            elif executor_name == "content_executor":
+                from kando_runtime.executors.content_executor import run as content_run
+
+                out = content_run(step.get("params") or {})
+
+                if isinstance(out, dict):
+                    if "risk" in out:
+                        risk = max(risk, out.get("risk", 0))
+
+                trace = task.get("_trace", [])
+                trace = trace + [task.get("type")]
+                task["_trace"] = trace
+
                 if isinstance(out, dict):
                     output = out.get("output", {})
                     if output.get("type") == "route":

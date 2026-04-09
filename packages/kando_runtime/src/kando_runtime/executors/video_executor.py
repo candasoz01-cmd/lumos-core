@@ -103,6 +103,8 @@ def _replicate_error_message(data: dict[str, Any], fallback: str) -> str:
 
 
 def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
+    global _VIDEO_BUSY
+
     prompt = task_ctx.get("prompt", "")
     prompt_norm = prompt.strip().lower()
     prompt_norm = " ".join(prompt_norm.split())
@@ -124,8 +126,6 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
                 "error": "missing REPLICATE_API_TOKEN",
             },
         }
-
-    global _VIDEO_BUSY
 
     if _VIDEO_BUSY:
         return {

@@ -6768,6 +6768,21 @@
       openVideoOverlay(res.output.url);
       return;
     }
+    if (res && res.output && res.output.type === "content_list") {
+      const cl = res.output;
+      const items = Array.isArray(cl.items) ? cl.items : [];
+      const first = items[0] || {};
+      const lineTitle = String(first.title || "").trim() || "—";
+      const lineUrl = String(first.url || "").trim();
+      const cardText =
+        "İzlemek için öneri\n\n" + lineTitle + (lineUrl ? "\n\n" + lineUrl : "");
+      addFeedItem("assistant_reply", {
+        text: cardText,
+        lumosMsgType: "guide",
+        dedupeKey: "content-list-" + String(cl.query || sourceMessage || "").slice(0, 96),
+      });
+      return;
+    }
     const o = opts || {};
     const taskRunId = o.taskRunId != null ? String(o.taskRunId).trim() : "";
     let analysisChatDedupe = null;
