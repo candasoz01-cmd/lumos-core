@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 
 import pytest
@@ -23,7 +24,10 @@ def test_memory_cache_hit_sets_meta_true(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.delenv("REPLICATE_API_TOKEN", raising=False)
     td._VIDEO_MEMORY_CACHE.clear()
     ck = json.dumps({"prompt": "hello"}, sort_keys=True, ensure_ascii=False)
-    td._VIDEO_MEMORY_CACHE[ck] = td._video_done_payload("https://cached")
+    td._VIDEO_MEMORY_CACHE[ck] = {
+        "stored_at": time.time(),
+        "result": td._video_done_payload("https://cached"),
+    }
     out = td.run_video_executor({"prompt": "hello"})
     assert out["meta"]["cache_hit"] is True
     assert out["output"]["meta"]["cache_hit"] is True
@@ -33,7 +37,10 @@ def test_same_input_twice_equals_and_cache_flag(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.delenv("REPLICATE_API_TOKEN", raising=False)
     td._VIDEO_MEMORY_CACHE.clear()
     ck = json.dumps({"prompt": "same_input"}, sort_keys=True, ensure_ascii=False)
-    td._VIDEO_MEMORY_CACHE[ck] = td._video_done_payload("https://same")
+    td._VIDEO_MEMORY_CACHE[ck] = {
+        "stored_at": time.time(),
+        "result": td._video_done_payload("https://same"),
+    }
     first = td.run_video_executor({"prompt": "same_input"})
     second = td.run_video_executor({"prompt": "same_input"})
     assert first == second

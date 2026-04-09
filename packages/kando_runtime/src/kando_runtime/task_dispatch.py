@@ -105,6 +105,7 @@ _EXECUTOR_FOR_TYPE: dict[TaskType, str | None] = {
 
 # --- video_executor: bellek + disk önbellek (yalnızca task_dispatch) ---
 VIDEO_DISK_CACHE_FILE = ".video_cache.json"
+VIDEO_CACHE_TTL_SECONDS = int(os.getenv("VIDEO_CACHE_TTL_SECONDS", "3600"))
 _VIDEO_MEMORY_CACHE: dict[str, dict[str, Any]] = {}
 
 
@@ -170,7 +171,28 @@ def _video_memory_store_strip_meta(key: str, result: dict[str, Any]) -> None:
     stored.pop("meta", None)
     if isinstance(stored.get("output"), dict):
         stored["output"].pop("meta", None)
-    _VIDEO_MEMORY_CACHE[key] = stored
+    _VIDEO_MEMORY_CACHE[key] = {
+        "stored_at": time.time(),
+        "result": stored,
+    }
+
+
+def _video_memory_cache_get(key: str) -> dict[str, Any] | None:
+    entry = _VIDEO_MEMORY_CACHE.get(key)
+    if not isinstance(entry, dict):
+        return None
+    stored_at = entry.get("stored_at")
+    result = entry.get("result")
+    if not isinstance(stored_at, (int, float)) or not isinstance(result, dict):
+        _VIDEO_MEMORY_CACHE.pop(key, None)
+        return None
+    if time.time() - float(stored_at) > VIDEO_CACHE_TTL_SECONDS:
+        _VIDEO_MEMORY_CACHE.pop(key, None)
+        return None
+    out = dict(result)
+    if isinstance(out.get("output"), dict):
+        out["output"] = copy.deepcopy(out["output"])
+    return out
 
 
 def _video_done_payload(url: str) -> dict[str, Any]:
@@ -193,10 +215,8 @@ def _run_video_executor_with_cache(
         params = {"prompt": str(params)}
     key = json.dumps(params, sort_keys=True, ensure_ascii=False)
 
-    if key in _VIDEO_MEMORY_CACHE:
-        result = dict(_VIDEO_MEMORY_CACHE[key])
-        if isinstance(result.get("output"), dict):
-            result["output"] = copy.deepcopy(result["output"])
+    result = _video_memory_cache_get(key)
+    if result is not None:
         _apply_video_cache_meta(result, True)
         return result
 
@@ -207,9 +227,9 @@ def _run_video_executor_with_cache(
     if cu:
         out = _video_done_payload(cu)
         _video_memory_store_strip_meta(key, out)
-        result = dict(_VIDEO_MEMORY_CACHE[key])
-        if isinstance(result.get("output"), dict):
-            result["output"] = copy.deepcopy(result["output"])
+        result = _video_memory_cache_get(key)
+        if result is None:
+            result = _video_done_payload(cu)
         _apply_video_cache_meta(result, True)
         return result
 
