@@ -1,8 +1,11 @@
 """Video executor: Replicate üzerinden video; yapılandırılmış çıktı."""
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 import time
+from pathlib import Path
 from typing import Any
 
 import requests
@@ -13,6 +16,55 @@ REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN")
 
 POLL_MAX_ATTEMPTS = 30
 POLL_INTERVAL_SEC = 2.0
+
+VIDEO_CACHE_FILE = ".video_cache.json"
+
+
+def _video_cache_path() -> Path:
+    return Path(os.getcwd()) / VIDEO_CACHE_FILE
+
+
+def _load_video_cache() -> dict[str, str]:
+    p = _video_cache_path()
+    if not p.is_file():
+        return {}
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            return {}
+        out: dict[str, str] = {}
+        for k, v in data.items():
+            if isinstance(k, str) and isinstance(v, str) and v.strip():
+                out[k] = v.strip()
+        return out
+    except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        return {}
+
+
+def _write_cache_entry(prompt_hash: str, video_url: str) -> None:
+    if not prompt_hash or not (video_url and str(video_url).strip()):
+        return
+    p = _video_cache_path()
+    cache = _load_video_cache()
+    cache[prompt_hash] = str(video_url).strip()
+    try:
+        p.write_text(
+            json.dumps(cache, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+    except OSError:
+        pass
+
+
+def _done_video_payload(url: str) -> dict[str, Any]:
+    return {
+        "status": "done",
+        "output": {
+            "type": "video",
+            "url": url,
+            "provider": "replicate",
+        },
+    }
 
 
 def _first_video_url_from_output(output: Any) -> str:
@@ -49,6 +101,18 @@ def _replicate_error_message(data: dict[str, Any], fallback: str) -> str:
 
 def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
     prompt = task_ctx.get("prompt", "")
+    prompt_norm = prompt.strip().lower()
+    prompt_norm = " ".join(prompt_norm.split())
+    prompt_norm = prompt_norm.replace(".", "")
+    prompt_norm = prompt_norm.replace(",", "")
+    prompt_norm = prompt_norm.replace("!", "")
+    prompt_norm = prompt_norm.replace("?", "")
+    prompt_hash = hashlib.sha256(prompt_norm.encode()).hexdigest()
+
+    cache = _load_video_cache()
+    cached_url = cache.get(prompt_hash, "")
+    if cached_url:
+        return _done_video_payload(cached_url)
 
     if not REPLICATE_API_TOKEN:
         return {
@@ -70,7 +134,7 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
         json={
             "version": "a40e1d8b0c...MODEL_ID...",
             "input": {
-                "prompt": prompt,
+                "prompt": prompt_norm,
             },
         },
         timeout=120,
@@ -128,14 +192,8 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
     if initial_status == "succeeded":
         url_out = _first_video_url_from_output(data.get("output"))
         if url_out:
-            return {
-                "status": "done",
-                "output": {
-                    "type": "video",
-                    "url": url_out,
-                    "provider": "replicate",
-                },
-            }
+            _write_cache_entry(prompt_hash, url_out)
+            return _done_video_payload(url_out)
         return {
             "status": "error",
             "output": {
@@ -196,14 +254,8 @@ def run(task_ctx: dict[str, Any]) -> dict[str, Any]:
         if status == "succeeded":
             url_out = _first_video_url_from_output(pbody.get("output"))
             if url_out:
-                return {
-                    "status": "done",
-                    "output": {
-                        "type": "video",
-                        "url": url_out,
-                        "provider": "replicate",
-                    },
-                }
+                _write_cache_entry(prompt_hash, url_out)
+                return _done_video_payload(url_out)
             return {
                 "status": "error",
                 "output": {
