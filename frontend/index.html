@@ -1323,17 +1323,6 @@
       max-height: 200px;
       color: var(--muted);
     }
-    .debug-panel-wrap.hidden {
-      display: none;
-    }
-    button.debug-toggle {
-      font-size: 0.72rem;
-      padding: 0.25rem 0.55rem;
-      margin-top: 0.35rem;
-      background: #21262d;
-      color: var(--muted);
-      font-weight: 600;
-    }
     .feed-debug-details {
       margin-top: 0.5rem;
       font-size: 0.75rem;
@@ -1596,33 +1585,6 @@
       padding: 0.15rem 0;
     }
 
-    #audioScatter {
-      position: fixed;
-      inset: 0;
-      background: black;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 3000;
-    }
-    #audioScatter .pulse {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      background: radial-gradient(circle, #0f0 10%, transparent 60%);
-      animation: pulse 0.8s ease-out;
-    }
-    @keyframes pulse {
-      from {
-        transform: scale(0.5);
-        opacity: 1;
-      }
-      to {
-        transform: scale(2.5);
-        opacity: 0;
-      }
-    }
-
     #videoOverlay {
       position: fixed;
       inset: 0;
@@ -1757,9 +1719,250 @@
     .task-drawer-foot button {
       font-size: 0.82rem;
     }
+
+    /* —— First boot: tam ekran karşılama (lumos_boot_completed yoksa) —— */
+    html.lumos-first-boot-pending .app {
+      display: none !important;
+    }
+    #lumosFirstBoot {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 2147483000;
+      opacity: 1;
+      transition: opacity 0.85s ease;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: radial-gradient(ellipse 120% 80% at 50% 100%, #0d1518 0%, #060708 45%, #030304 100%);
+      color: #e8ebe9;
+      font-family: inherit;
+      -webkit-font-smoothing: antialiased;
+    }
+    html.lumos-first-boot-pending #lumosFirstBoot {
+      display: flex;
+    }
+    #lumosFirstBoot.lumos-first-boot--exit {
+      opacity: 0;
+      transition: opacity 0.85s ease;
+      pointer-events: none;
+    }
+    .lumos-first-boot__layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .lumos-first-boot__veil {
+      background: #000;
+      animation: lumosBootVeilLift 2.4s ease forwards;
+    }
+    @keyframes lumosBootVeilLift {
+      0% {
+        opacity: 1;
+      }
+      55% {
+        opacity: 0.35;
+      }
+      100% {
+        opacity: 0;
+      }
+    }
+    .lumos-first-boot__ambient {
+      background: radial-gradient(
+        circle at 50% 42%,
+        rgba(16, 120, 110, 0.14) 0%,
+        transparent 55%
+      );
+      animation: lumosBootAmbientPulse 11s ease-in-out infinite;
+    }
+    @keyframes lumosBootAmbientPulse {
+      0%,
+      100% {
+        opacity: 0.65;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.06);
+      }
+    }
+    .lumos-first-boot__wave {
+      left: 50%;
+      top: 44%;
+      width: 140vmax;
+      height: 140vmax;
+      margin-left: -70vmax;
+      margin-top: -70vmax;
+      border-radius: 50%;
+      background: radial-gradient(
+        circle,
+        rgba(18, 160, 140, 0.07) 0%,
+        rgba(12, 90, 82, 0.03) 38%,
+        transparent 62%
+      );
+      animation: lumosBootWave 2.8s ease-out forwards;
+    }
+    @keyframes lumosBootWave {
+      0% {
+        transform: scale(0.08);
+        opacity: 0;
+      }
+      18% {
+        opacity: 0.85;
+      }
+      100% {
+        transform: scale(1);
+        opacity: 0.2;
+      }
+    }
+    .lumos-first-boot__inner {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      max-width: 22rem;
+      padding: 2rem 1.5rem;
+    }
+    .lumos-first-boot__sigil {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.42em;
+      text-transform: uppercase;
+      color: rgba(180, 210, 200, 0.45);
+      margin-bottom: 1.75rem;
+      opacity: 0;
+      animation: lumosBootFadeUp 1s ease 0.85s forwards;
+    }
+    .lumos-first-boot__sigil span {
+      display: inline-block;
+      background: linear-gradient(135deg, #c4e8df 0%, #5fb89f 50%, #2d6a5c 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      letter-spacing: 0.28em;
+      font-size: 1.65rem;
+      font-weight: 600;
+      text-transform: none;
+    }
+    @keyframes lumosBootFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .lumos-first-boot__line1 {
+      font-size: 1.45rem;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      line-height: 1.25;
+      margin: 0 0 0.65rem;
+      color: #eef3f1;
+      opacity: 0;
+      animation: lumosBootFadeUp 1s ease 1.55s forwards;
+    }
+    .lumos-first-boot__line2 {
+      font-size: 0.98rem;
+      font-weight: 450;
+      color: rgba(200, 212, 206, 0.88);
+      margin: 0 0 0.5rem;
+      opacity: 0;
+      animation: lumosBootFadeUp 1s ease 2.05s forwards;
+    }
+    .lumos-first-boot__line3 {
+      font-size: 0.78rem;
+      color: rgba(140, 160, 152, 0.75);
+      margin: 0 0 2.25rem;
+      letter-spacing: 0.02em;
+      opacity: 0;
+      animation: lumosBootFadeUp 1s ease 2.45s forwards;
+    }
+    .lumos-first-boot__cta {
+      appearance: none;
+      border: 1px solid rgba(90, 150, 135, 0.45);
+      background: rgba(12, 42, 38, 0.55);
+      color: #e4f0ec;
+      font-size: 0.92rem;
+      font-weight: 600;
+      padding: 0.65rem 2.25rem;
+      border-radius: 999px;
+      cursor: pointer;
+      letter-spacing: 0.06em;
+      opacity: 0;
+      animation: lumosBootFadeUp 1s ease 2.95s forwards;
+      transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 0 0 1px rgba(16, 120, 110, 0.12);
+    }
+    .lumos-first-boot__cta:hover {
+      background: rgba(18, 72, 64, 0.65);
+      border-color: rgba(120, 190, 170, 0.55);
+      box-shadow: 0 0 24px rgba(16, 140, 120, 0.18);
+    }
+    .lumos-first-boot__cta:focus-visible {
+      outline: 2px solid rgba(100, 200, 175, 0.6);
+      outline-offset: 3px;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .lumos-first-boot__veil {
+        animation: none;
+        opacity: 0;
+      }
+      .lumos-first-boot__wave {
+        animation: none;
+        opacity: 0.12;
+        transform: scale(1);
+      }
+      .lumos-first-boot__ambient {
+        animation: none;
+        opacity: 0.85;
+      }
+      .lumos-first-boot__sigil,
+      .lumos-first-boot__line1,
+      .lumos-first-boot__line2,
+      .lumos-first-boot__line3,
+      .lumos-first-boot__cta {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+    }
   </style>
+  <script>
+    (function () {
+      try {
+        if (!localStorage.getItem("lumos_boot_completed")) {
+          document.documentElement.classList.add("lumos-first-boot-pending");
+        }
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body>
+  <div
+    id="lumosFirstBoot"
+    class="lumos-first-boot"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="lumosFirstBootTitle"
+    aria-describedby="lumosFirstBootDesc"
+  >
+    <div class="lumos-first-boot__layer lumos-first-boot__veil" aria-hidden="true"></div>
+    <div class="lumos-first-boot__layer lumos-first-boot__ambient" aria-hidden="true"></div>
+    <div class="lumos-first-boot__layer lumos-first-boot__wave" aria-hidden="true"></div>
+    <div class="lumos-first-boot__inner">
+      <div class="lumos-first-boot__sigil" aria-hidden="true"><span>Lumos</span></div>
+      <h1 id="lumosFirstBootTitle" class="lumos-first-boot__line1">Lumos hazır.</h1>
+      <p id="lumosFirstBootDesc" class="lumos-first-boot__line2">Bu cihazda aktif.</p>
+      <p class="lumos-first-boot__line3">Bağlantı kuruldu.</p>
+      <button type="button" class="lumos-first-boot__cta" id="lumosFirstBootStart">
+        Başla
+      </button>
+    </div>
+    <audio id="lumosFirstBootAudio" preload="none" playsinline></audio>
+  </div>
   <div class="app">
     <aside class="sidebar">
       <div class="brand">Lumos</div>
@@ -1898,17 +2101,14 @@
         <div class="view-inner wide">
           <p class="view-head">Outbox</p>
           <h1>Outbox &amp; ham yanıtlar</h1>
-          <p class="hint-muted">GET /outbox ve onay API ham çıktıları. Debug varsayılan kapalı.</p>
+          <p class="hint-muted">GET /outbox ve onay API ham çıktıları.</p>
           <div class="row" style="margin-top:0.75rem">
             <button type="button" class="secondary" id="btnOutbox">Outbox yükle</button>
           </div>
           <div id="outboxEmpty" class="view-empty">
-            Ham yanıt henüz yok. «Outbox yükle» ile GET /outbox alın veya bir onay işleminden sonra ham JSON bölümünü açın.
+            Ham yanıt henüz yok. «Outbox yükle» ile GET /outbox alın veya bir onay işleminden sonra akışı kontrol edin.
           </div>
-          <button type="button" class="debug-toggle secondary" id="btnToggleOutboxDebug">Ham JSON göster</button>
-          <div id="outboxDebugWrap" class="debug-panel-wrap hidden">
-            <pre class="out" id="outboxOut"></pre>
-          </div>
+          <pre class="out" id="outboxOut" hidden aria-hidden="true"></pre>
         </div>
       </section>
     </div>
@@ -7266,42 +7466,6 @@
     clearChatNeedInputChips();
     if (latestChatAnalysisDoneDecision() === "blocked") return;
 
-    if (message.trim().toLowerCase() === "film aç") {
-      addFeedItem("user_message", { text: message });
-      chatHistory.push({ role: "user", content: message });
-      $("chatInput").value = "";
-      setLoading("loadChat", true);
-      $("btnChat").disabled = true;
-      const act = {
-        title: "Video bulundu",
-        description: "John Wick · YouTube",
-        actions: [
-          {
-            label: "Aç",
-            url: "https://www.youtube.com/results?search_query=John+Wick",
-          },
-          { label: "Detay", url: "https://www.imdb.com/title/tt2911666/" },
-        ],
-      };
-      addFeedItem("action", {
-        title: act.title,
-        description: act.description,
-        actions: act.actions,
-        dedupeKey: "mock-film-ac-" + Date.now(),
-      });
-      chatHistory.push({
-        role: "assistant",
-        type: "action",
-        title: act.title,
-        description: act.description,
-        actions: act.actions,
-      });
-      renderFeed();
-      setLoading("loadChat", false);
-      syncChatComposerGate();
-      return;
-    }
-
     if (lumosFlow.mode === "creative") {
       if (flowEngineConsumeUserMessage(message)) {
         $("chatInput").value = "";
@@ -8197,13 +8361,6 @@
     }
   }
 
-  $("btnToggleOutboxDebug").addEventListener("click", function () {
-    const w = $("outboxDebugWrap");
-    if (!w) return;
-    w.classList.toggle("hidden");
-    this.textContent = w.classList.contains("hidden") ? "Ham JSON göster" : "Ham JSON gizle";
-  });
-
   function setActivePanel(panel) {
     document.querySelectorAll(".main .view").forEach((v) => {
       v.classList.toggle("active", v.getAttribute("data-panel") === panel);
@@ -8541,17 +8698,51 @@
   refreshOutboxEmptyHint();
   syncChatComposerGate();
 
+  (function initLumosFirstBoot() {
+    const root = document.getElementById("lumosFirstBoot");
+    const btn = document.getElementById("lumosFirstBootStart");
+    const audioEl = document.getElementById("lumosFirstBootAudio");
+    if (!root || !btn) return;
+    if (typeof window !== "undefined") {
+      window.lumosFirstBootAudio = audioEl || null;
+      window.lumosFirstBootPlayAmbient = function () {
+        /* İleride Web Audio / clip; sistem sessiz kalabilir */
+      };
+    }
+    if (!document.documentElement.classList.contains("lumos-first-boot-pending")) {
+      return;
+    }
+    setTimeout(function () {
+      try {
+        btn.focus();
+      } catch (e) {}
+    }, 3200);
+    btn.addEventListener("click", function () {
+      try {
+        localStorage.setItem("lumos_boot_completed", "true");
+      } catch (e) {}
+      root.classList.add("lumos-first-boot--exit");
+      document.documentElement.classList.remove("lumos-first-boot-pending");
+      function finish() {
+        root.style.display = "none";
+        root.classList.remove("lumos-first-boot--exit");
+      }
+      root.addEventListener(
+        "transitionend",
+        function (ev) {
+          if (ev.propertyName === "opacity") finish();
+        },
+        { once: true }
+      );
+      setTimeout(finish, 1100);
+    });
+  })();
+
   fetchHealth();
   setInterval(fetchHealth, 15000);
 
   document.addEventListener("keydown", function (ev) {
     if (ev.key !== "Escape") return;
-    const sc = document.getElementById("audioScatter");
-    if (sc) {
-      ev.preventDefault();
-      sc.remove();
-      return;
-    }
     const vo = document.getElementById("videoOverlay");
     if (vo) {
       ev.preventDefault();
