@@ -1,0 +1,124 @@
+LUMOS USER PATTERN MEMORY — ADAPTİF BAŞLANGIÇ MODU
+
+AMAÇ:
+Kullanıcının davranışına göre Lumos'un başlangıç modunu otomatik belirlemek.
+
+---
+
+1. TEMEL MANTIK
+
+Lumos her kullanıcı için basit bir davranış profili tutar.
+
+Bu profil:
+- son mesajlara bakar
+- kullanıcının tarzını çıkarır
+
+---
+
+2. TAKİP EDİLEN VERİ
+
+Her mesaj için:
+
+- mode_detected:
+  - fast
+  - deep
+
+- sinyaller:
+  - mesaj uzunluğu
+  - sıfat yoğunluğu
+  - hayal/duygu var mı
+
+---
+
+3. BASİT SKOR SİSTEMİ
+
+Son 10 mesaj alınır.
+
+Örnek:
+
+fast_count = 7  
+deep_count = 3  
+
+---
+
+4. BAŞLANGIÇ KARARI
+
+Eğer:
+
+fast_count > deep_count
+→ varsayılan = FAST
+
+deep_count > fast_count
+→ varsayılan = DEEP
+
+eşitse:
+→ FAST başla (güvenli seçim)
+
+---
+
+5. GERÇEK ZAMAN GÜNCELLEME
+
+Her yeni mesaj:
+
+- listeye eklenir
+- eski mesaj düşer (max 10)
+
+---
+
+6. KRİTİK DAVRANIŞ
+
+Lumos:
+
+- kullanıcıyı zorlamaz
+- sadece başlangıç tonunu ayarlar
+
+Yani:
+→ sistem hâlâ flow_transition kurallarına uyar
+
+---
+
+7. ÖRNEK
+
+Kullanıcı sürekli:
+
+"şöyle hayal et"
+"karanlık atmosfer"
+"duygu yoğun olsun"
+
+→ Lumos otomatik DEEP başlar
+
+---
+
+Kullanıcı:
+
+"yap"
+"gönder"
+"hızlı olsun"
+
+→ Lumos otomatik FAST başlar
+
+---
+
+8. GÖRÜNMEZLİK KURALI
+
+- kullanıcıya ASLA gösterilmez
+- "sen hep böyle yazıyorsun" denmez
+- sadece hissedilir
+
+---
+
+9. FELSEFE
+
+Lumos:
+- kullanıcıyı değiştirmez
+- kullanıcıya uyum sağlar
+
+---
+
+SONUÇ:
+
+Bu sistem ile:
+
+- Lumos kişisel hale gelir
+- her kullanıcı farklı Lumos deneyimler
+- adaptasyon başlar

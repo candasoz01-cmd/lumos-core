@@ -1,0 +1,138 @@
+LUMOS PROJECT MEMORY — PROJE BAZLI DAVRANIŞ
+
+AMAÇ:
+Aynı kullanıcının farklı projelerde farklı davranabilmesini sağlamak.
+
+---
+
+1. PROBLEM
+
+Şu an:
+- kullanıcı tek profil
+
+Ama gerçek hayatta:
+- iş projesi → hızlı
+- yaratıcı proje → derin
+
+Tek profil yeterli değil.
+
+---
+
+2. ÇÖZÜM
+
+Her proje için ayrı pattern tutulur.
+
+Yani:
+
+user_pattern_global (opsiyonel)
+user_pattern_project = {
+  "video_proje": [...],
+  "kod_proje": [...],
+  "hikaye_proje": [...]
+}
+
+---
+
+3. PROJE KİMLİĞİ
+
+Her task/chat için:
+
+project_id belirlenir
+
+Kaynak:
+- repo adı
+- dosya yolu
+- manuel etiket
+- yoksa "default"
+
+---
+
+4. KAYIT
+
+Mesaj geldiğinde:
+
+recordUserPattern(project_id, mode)
+
+---
+
+5. OKUMA
+
+Başlangıçta:
+
+getUserDefaultMode(project_id)
+
+Varsa:
+→ proje bazlı kullan
+
+Yoksa:
+→ global fallback
+
+---
+
+6. BASİT MODEL
+
+Her proje için max 10 kayıt
+
+---
+
+7. PSEUDO
+
+function recordUserPattern(projectId, mode) {
+  if (!memory[projectId]) memory[projectId] = []
+
+  memory[projectId].push(mode)
+
+  if (memory[projectId].length > 10)
+    memory[projectId].shift()
+}
+
+---
+
+function getUserDefaultMode(projectId) {
+  const list = memory[projectId] || []
+
+  const fast = list.filter(x => x === "fast").length
+  const deep = list.filter(x => x === "deep").length
+
+  if (deep > fast) return "deep"
+  return "fast"
+}
+
+---
+
+8. DAVRANIŞ
+
+Aynı kullanıcı:
+
+Proje A:
+→ deep
+
+Proje B:
+→ fast
+
+Lumos bunu karıştırmaz
+
+---
+
+9. GÖRÜNMEZLİK
+
+- kullanıcıya gösterilmez
+- sadece hissedilir
+
+---
+
+10. FELSEFE
+
+Kullanıcı tek kişi değildir
+→ bağlama göre değişir
+
+Lumos:
+→ kişiyi değil, bağlamı öğrenir
+
+---
+
+SONUÇ
+
+- Lumos bağlama duyarlı olur
+- kullanıcıyı yormaz
+- gerçek "asistan" hissi başlar

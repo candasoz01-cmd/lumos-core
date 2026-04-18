@@ -1,0 +1,98 @@
+LUMOS PROJECT STATE MEMORY — SEÇİCİ HAFIZA
+
+AMAÇ:
+Projede sadece kritik kararları, stili ve yapıyı saklamak.
+
+---
+
+1. KAYIT TÜRLERİ
+
+Sadece 3 şey tutulur:
+
+- decisions (kararlar)
+- style (stil)
+- structure (yapı)
+
+---
+
+2. FİLTRE
+
+Her mesaj kaydedilmez.
+
+Sadece şu tip cümleler:
+
+- "şöyle olsun"
+- "bunu böyle yapalım"
+- "stil … olsun"
+- "ilk sahne …"
+
+---
+
+3. VERİ YAPISI
+
+project_memory = {
+  project_id: {
+    decisions: [],
+    style: [],
+    structure: []
+  }
+}
+
+---
+
+4. KAYIT
+
+function saveProjectState(projectId, type, value) {
+  if (!memory[projectId]) {
+    memory[projectId] = {
+      decisions: [],
+      style: [],
+      structure: []
+    }
+  }
+
+  const arr = memory[projectId][type]
+
+  if (!arr.includes(value)) {
+    arr.push(value)
+  }
+}
+
+---
+
+5. OKUMA
+
+function getProjectContext(projectId) {
+  return memory[projectId] || null
+}
+
+---
+
+6. KULLANIM
+
+Mesaj üretmeden önce:
+
+- project context alınır
+- prompt içine eklenir
+
+---
+
+7. SINIR
+
+- max 10 kayıt / kategori
+- eski kayıt düşer
+
+---
+
+8. FELSEFE
+
+Her şeyi hatırlama
+→ sadece önemli olanı tut
+
+---
+
+SONUÇ
+
+- Lumos projeyi hatırlar
+- kullanıcı tekrar anlatmaz
+- ama sistem ağırlaşmaz
