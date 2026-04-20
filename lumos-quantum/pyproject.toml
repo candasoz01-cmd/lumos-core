@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lumos-quantum"
+version = "0.1.0"
+description = "Quantum entropy provider for Lumos (optional backend)"
+readme = "README.md"
+requires-python = ">=3.10"
+
+dependencies = []
+
+[project.optional-dependencies]
+qiskit = ["qiskit>=1.0", "qiskit-aer"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["lumos_quantum*"]
