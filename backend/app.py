@@ -4,27 +4,34 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-def lumos(text):
-    t = text.lower()
+def lumos(t):
+    t = t.lower()
 
-    if "açılmıyor" in t:
+    if any(x in t for x in ["açılmıyor", "çalışmıyor"]):
         return {
             "type": "analysis",
-            "message": "Giriş yok. Güç hattına bak.",
-            "next": "Sigorta sağlam mı?"
+            "message": "Güç hattını kontrol et.",
+            "next": "Hiç tepki yok mu?"
         }
 
-    if "sigorta" in t:
+    if any(x in t for x in ["sigorta", "atıyor"]):
         return {
             "type": "analysis",
             "message": "Kısa devre ihtimali var.",
-            "next": "Köprü diyotu ölçtün mü?"
+            "next": "Köprü diyot ölçtün mü?"
+        }
+
+    if any(x in t for x in ["diyot", "yanık"]):
+        return {
+            "type": "analysis",
+            "message": "Diyot hattını kontrol et.",
+            "next": "Tek yön iletimi var mı ölçtün mü?"
         }
 
     return {
         "type": "clarify",
         "message": "Yetersiz veri.",
-        "next": "Ne oluyor? Belirtiyi net yaz."
+        "next": "Belirtiyi daha net yaz."
     }
 
 @app.route("/analyze", methods=["POST"])
