@@ -4,29 +4,42 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-def lumos(t):
-    t = t.lower()
+RULES = [
+    {
+        "patterns": ["açılmıyor", "calismiyor", "çalışmıyor", "hiç açılmıyor", "tepki yok"],
+        "message": "Güç hattını kontrol et.",
+        "next": "Hiç tepki yok mu?"
+    },
+    {
+        "patterns": ["sigorta", "atıyor", "atiyor", "sigorta atıyor", "sigorta atiyor"],
+        "message": "Kısa devre ihtimali var.",
+        "next": "Köprü diyot ölçtün mü?"
+    },
+    {
+        "patterns": ["diyot", "yanık", "yanik", "diyot yandı", "diyot yandi"],
+        "message": "Diyot hattını kontrol et.",
+        "next": "Tek yön iletimi var mı ölçtün mü?"
+    },
+    {
+        "patterns": ["lumos", "hazır mısın", "hazir misin", "burada mısın", "burda mısın"],
+        "message": "Hazırım.",
+        "next": "Belirtiyi yaz."
+    }
+]
 
-    if any(x in t for x in ["açılmıyor", "çalışmıyor"]):
-        return {
-            "type": "analysis",
-            "message": "Güç hattını kontrol et.",
-            "next": "Hiç tepki yok mu?"
-        }
+def normalize(text: str) -> str:
+    return text.lower().strip()
 
-    if any(x in t for x in ["sigorta", "atıyor"]):
-        return {
-            "type": "analysis",
-            "message": "Kısa devre ihtimali var.",
-            "next": "Köprü diyot ölçtün mü?"
-        }
+def lumos(text: str):
+    t = normalize(text)
 
-    if any(x in t for x in ["diyot", "yanık"]):
-        return {
-            "type": "analysis",
-            "message": "Diyot hattını kontrol et.",
-            "next": "Tek yön iletimi var mı ölçtün mü?"
-        }
+    for rule in RULES:
+        if any(p in t for p in rule["patterns"]):
+            return {
+                "type": "analysis",
+                "message": rule["message"],
+                "next": rule["next"]
+            }
 
     return {
         "type": "clarify",
@@ -36,7 +49,7 @@ def lumos(t):
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
-    data = request.json
+    data = request.json or {}
     result = lumos(data.get("text", ""))
     return jsonify(result)
 
