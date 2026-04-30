@@ -2,15 +2,14 @@
 ---
 
 <html>
-  <body style="background:#0b1020;color:white;font-family:sans-serif;text-align:center;margin-top:100px;">
-    
+  <body style="background:#0b1020;color:white;text-align:center;margin-top:100px;">
     <h1>Lumos Panel</h1>
 
     <input id="msg" style="width:400px;padding:10px;" placeholder="Sorunu yaz">
     <br><br>
     <button onclick="send()">Gönder</button>
 
-    <pre id="out" style="margin-top:20px;"></pre>
+    <pre id="out"></pre>
 
     <script>
       async function send(){
@@ -29,6 +28,5 @@
         document.getElementById("out").innerText = j.reply || j.error;
       }
     </script>
-
   </body>
 </html>
