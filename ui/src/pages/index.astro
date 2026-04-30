@@ -2,19 +2,16 @@
 ---
 
 <html>
-  <body style="background:#0b1020;color:white;text-align:center;margin-top:100px;">
+  <body style="background:#0b1020;color:white;text-align:center;margin-top:100px;font-family:sans-serif;">
     <h1>Lumos Panel</h1>
-
     <input id="msg" style="width:400px;padding:10px;" placeholder="Sorunu yaz">
     <br><br>
     <button onclick="send()">Gönder</button>
-
-    <pre id="out"></pre>
+    <pre id="out" style="margin-top:20px;"></pre>
 
     <script>
       async function send(){
         let m = document.getElementById("msg").value;
-
         let r = await fetch("http://127.0.0.1:8765/chat", {
           method:"POST",
           headers:{
@@ -23,7 +20,6 @@
           },
           body: JSON.stringify({message:m})
         });
-
         let j = await r.json();
         document.getElementById("out").innerText = j.reply || j.error;
       }
