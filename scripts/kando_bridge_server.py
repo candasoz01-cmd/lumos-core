@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
+# ruff: noqa: E402 — sys.path bootstrap before remaining imports
 """
 Lokal orkestratör: POST /task → doğrudan direct patch (TARGET:) veya agent job.
 request.txt / kando_watch kuyruğu yok.
 """
 from __future__ import annotations
 
-import sys, os
+import os
+import sys
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(BASE, "packages/kando_runtime/src"))
 sys.path.insert(0, os.path.join(BASE, "kando-ai/packages/kando_runtime/src"))
