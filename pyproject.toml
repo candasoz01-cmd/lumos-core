@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lumos-core"
-dynamic = ["version"]
+version = "0.1.0"
 description = "Lumos core CLI and read-only web"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -13,9 +13,6 @@ dependencies = [
   "cryptography>=42",
   "openai>=1.0",
 ]
-
-[tool.setuptools.dynamic]
-version = {attr = "core.version.VERSION"}
 
 [project.scripts]
 lumos = "lumos_core.__main__:main"
