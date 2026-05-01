@@ -1996,7 +1996,17 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
         self._send_lumos_pipeline_out(out, approval_path=None)
 
-    def do_POST(self) -> None:
+    def _cors(self):
+    self.send_header("Access-Control-Allow-Origin", "*")
+    self.send_header("Access-Control-Allow-Headers", "*")
+    self.send_header("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+
+def do_OPTIONS(self):
+    self.send_response(200)
+    self._cors()
+    self.end_headers()
+
+def do_POST(self) -> None:
         if not self._check_loopback():
             return
         if not self._check_secret():
