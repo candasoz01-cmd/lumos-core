@@ -141,9 +141,9 @@ def _normalize_request_path(path: str) -> str:
 
 def _is_loopback(host: str) -> bool:
     h = (host or "").strip()
-    if h in ("127.0.0.1", "::1", "localhost"):
+    if h in ("0.0.0.0", "::1", "localhost"):
         return True
-    if h.startswith("::ffff:") and h.rsplit(":", 1)[-1] == "127.0.0.1":
+    if h.startswith("::ffff:") and h.rsplit(":", 1)[-1] == "0.0.0.0":
         return True
     return False
 
