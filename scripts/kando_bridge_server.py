@@ -5,17 +5,19 @@ request.txt / kando_watch kuyruğu yok.
 """
 from __future__ import annotations
 
-import argparse
+import sys, os
+BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(BASE, "packages/kando_runtime/src"))
+sys.path.insert(0, os.path.join(BASE, "kando-ai/packages/kando_runtime/src"))
+
 import difflib
 import importlib
 import json
-import os
 import secrets
 import time
 import re
 import shutil
 import subprocess
-import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -36,7 +38,7 @@ LAST_RESULT_FILE = OUTBOX_DIR / "last_result.json"
 LAST_EXECUTION_FILE = OUTBOX_DIR / "last_execution.json"
 DIRECT_PATCH_META_FILE = ROOT / ".lumos" / "inbox" / "direct_patch_meta.json"
 PENDING_APPROVALS_DIR = ROOT / ".lumos" / "pending_approvals"
-_ALLOWED_BIND_HOSTS = frozenset({"127.0.0.1", "::1", "localhost"})
+_bridge_public_bind = False
 
 
 def _safe_pending_approval_path(repo_root: Path, rel: str) -> Path | None:
@@ -1193,6 +1195,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
         )
 
     def _check_loopback(self) -> bool:
+        if _bridge_public_bind:
+            return True
         host = self.client_address[0]
         if not _is_loopback(host):
             self._reject(403, "yalnızca localhost")
@@ -2088,26 +2092,13 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(
-        description="Kando köprü orkestratörü: POST /task | /chat, GET outbox",
-    )
-    ap.add_argument(
-        "--host",
-        default="127.0.0.1",
-        help="yalnızca 127.0.0.1 | ::1 | localhost (0.0.0.0 vb. yasak)",
-    )
-    ap.add_argument("--port", type=int, default=int(os.environ.get("KANDO_BRIDGE_PORT", "8765")))
-    args = ap.parse_args()
-
-    if args.host not in _ALLOWED_BIND_HOSTS:
-        _stderr_write(
-            "Hata: bind adresi yalnızca 127.0.0.1, ::1 veya localhost olabilir.",
-        )
-        raise SystemExit(2)
-
-    httpd = ThreadingHTTPServer((args.host, args.port), BridgeHandler)
+    global _bridge_public_bind
+    host = "0.0.0.0"
+    port = int(os.environ.get("PORT", os.environ.get("KANDO_BRIDGE_PORT", "8765")))
+    _bridge_public_bind = True
+    httpd = ThreadingHTTPServer((host, port), BridgeHandler)
     print(
-        f"kando_bridge_server: http://{args.host}:{args.port}/task | /chat | /approve (POST)",
+        f"kando_bridge_server: http://{host}:{port}/task | /chat | /approve (POST)",
         flush=True,
     )
     print(f"  → outbox: {OUTBOX_DIR.resolve()}", flush=True)
