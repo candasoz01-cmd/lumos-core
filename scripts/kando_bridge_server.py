@@ -1161,13 +1161,13 @@ def build_pending_approvals_list() -> list[dict]:
 class BridgeHandler(BaseHTTPRequestHandler):
     server_version = "KandoBridge/1.0"
 
-    def end_headers(self) -> None:
+    def _cors(self) -> None:
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header(
-            "Access-Control-Allow-Headers",
-            "Content-Type, X-Kando-Token, Authorization",
-        )
+        self.send_header("Access-Control-Allow-Headers", "*")
+        self.send_header("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+
+    def end_headers(self) -> None:
+        self._cors()
         super().end_headers()
 
     def log_message(self, fmt: str, *args: object) -> None:
@@ -1176,8 +1176,9 @@ class BridgeHandler(BaseHTTPRequestHandler):
     def do_OPTIONS(self) -> None:
         if not self._check_loopback():
             return
-        self.send_response(204)
-        self.end_headers()
+        self.send_response(200)
+        self._cors()
+        BaseHTTPRequestHandler.end_headers(self)
 
     def _send_json(self, status: int, payload: dict) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -1996,17 +1997,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
         self._send_lumos_pipeline_out(out, approval_path=None)
 
-    def _cors(self):
-    self.send_header("Access-Control-Allow-Origin", "*")
-    self.send_header("Access-Control-Allow-Headers", "*")
-    self.send_header("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
-
-def do_OPTIONS(self):
-    self.send_response(200)
-    self._cors()
-    self.end_headers()
-
-def do_POST(self) -> None:
+    def do_POST(self) -> None:
         if not self._check_loopback():
             return
         if not self._check_secret():
