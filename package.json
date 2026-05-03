@@ -2,6 +2,7 @@
   "name": "lumos-core",
   "private": true,
   "scripts": {
+    "build": "rm -rf dist && mkdir -p dist && cp frontend/index.html dist/index.html && cp -R frontend/public/assets dist/assets",
     "e2e:package": "npm run e2e:package --prefix panel",
     "e2e:package:api": "npm run e2e:package:api --prefix panel",
     "e2e:tasks-offline-online": "npm run e2e:tasks-offline-online --prefix panel"
