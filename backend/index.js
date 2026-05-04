@@ -1,7 +1,17 @@
 const crypto = require("crypto");
 const express = require("express");
 const helmet = require("helmet");
+const OpenAI = require("openai");
 const { PrismaClient, Prisma } = require("@prisma/client");
+
+/** OpenAI istemcisi; yalnızca OPENAI_API_KEY tanımlıyken oluşturulur. */
+let openaiClient;
+function getOpenAI() {
+  const key = process.env.OPENAI_API_KEY;
+  if (key == null || String(key).trim() === "") return null;
+  if (!openaiClient) openaiClient = new OpenAI({ apiKey: key });
+  return openaiClient;
+}
 
 const prisma = new PrismaClient();
 
@@ -50,16 +60,24 @@ app.use((req, res, next) => {
   next();
 });
 
-/** Basit sohbet köprüsü: Vercel UI’dan canlı bağlantı testi için (LLM yok, yanıt onayı). */
-app.post("/chat", (req, res) => {
+/** Sohbet köprüsü: Vercel UI’dan canlı bağlantı; OpenAI Responses API ile yanıt. */
+app.post("/chat", async (req, res) => {
   try {
     const message = req.body?.message;
     if (message == null || (typeof message === "string" && message.trim() === "")) {
       return res.status(400).json({ error: "message required" });
     }
-    const text = typeof message === "string" ? message : String(message);
-    const preview = text.length > 500 ? `${text.slice(0, 500)}…` : text;
-    res.json({ reply: `Alındı: ${preview}` });
+    const client = getOpenAI();
+    if (!client) {
+      return res.status(503).json({ error: "OPENAI_API_KEY missing" });
+    }
+    const input = typeof message === "string" ? message : String(message);
+    const response = await client.responses.create({
+      model: "gpt-5.5",
+      input,
+    });
+    const reply = response.output_text ?? "";
+    res.json({ reply });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
