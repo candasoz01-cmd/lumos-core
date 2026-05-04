@@ -168,7 +168,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         padding: 1rem 1rem 0.85rem;
         display: flex;
         flex-direction: column;
-        gap: 1.05rem;
+        gap: 1.2rem;
         scrollbar-width: thin;
         scrollbar-color: rgba(184, 148, 96, 0.35) rgba(0, 0, 0, 0.2);
       }
@@ -215,23 +215,27 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
       .chat-msg--user {
         max-width: min(100%, 22rem, 82%);
         margin-left: clamp(1.5rem, 8vw, 3.5rem);
+        padding: 0.62rem 0.82rem 0.72rem;
         background: linear-gradient(165deg, rgba(52, 78, 130, 0.55) 0%, rgba(36, 52, 92, 0.72) 100%);
-        border: 1px solid rgba(130, 160, 220, 0.28);
+        border: 1px solid rgba(130, 160, 220, 0.32);
         border-radius: 14px 14px 5px 14px;
         color: #f4f7ff;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(255, 255, 255, 0.04);
       }
       .chat-msg--lumos {
         max-width: min(100%, 46rem, 94%);
         margin-right: clamp(0.75rem, 5vw, 2.5rem);
+        padding: 0.65rem 0.92rem 0.78rem;
         background: linear-gradient(
           168deg,
           rgba(18, 22, 34, 0.95) 0%,
           rgba(14, 16, 26, 0.92) 50%,
           rgba(12, 14, 22, 0.96) 100%
         );
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.12);
         border-radius: 14px 14px 14px 5px;
         color: #e2e8f5;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(255, 255, 255, 0.03);
       }
       .chat-msg--error {
         max-width: min(100%, 40rem, 92%);
@@ -265,6 +269,14 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         font-size: 0.9rem;
         line-height: 1.68;
         letter-spacing: -0.01em;
+      }
+      .chat-msg--lumos .chat-msg-body {
+        white-space: pre-wrap;
+        line-height: 1.75;
+      }
+      .chat-msg--lumos .chat-msg-body strong {
+        font-weight: 700;
+        color: #f0e8d8;
       }
       .chat-compose-bar {
         flex-shrink: 0;
@@ -554,7 +566,26 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         }
 
         function formatAssistantHtml(raw) {
-          return escapeHtml(raw).replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+          let s = escapeHtml(String(raw));
+          s = s.replace(/\*\*([\s\S]+?)\*\*/g, "<strong>$1</strong>");
+          s = s.replace(/\*\*/g, "");
+          s = s.replace(/\n/g, "<br />");
+          return s;
+        }
+
+        /** Lumos gövdesinden (strong, br) backend geçmişi için düz metin üretir. */
+        function lumosBodyToPlainText(root) {
+          const out = [];
+          function walk(n) {
+            if (n.nodeType === Node.TEXT_NODE) out.push(n.textContent);
+            else if (n.nodeType === Node.ELEMENT_NODE) {
+              const el = /** @type {Element} */ (n);
+              if (el.tagName === "BR") out.push("\n");
+              else el.childNodes.forEach(walk);
+            }
+          }
+          walk(root);
+          return out.join("").trim();
         }
 
         /** Mevcut iplikten (yeni kullanıcı mesajı eklenmeden önce) son N mesajı role/content olarak döner. */
@@ -567,7 +598,12 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             else if (wrap.classList.contains("chat-msg--lumos")) role = "assistant";
             else continue;
             const body = wrap.querySelector(".chat-msg-body");
-            const text = (body && body.textContent ? body.textContent : "").trim();
+            let text = "";
+            if (role === "assistant" && body) {
+              text = lumosBodyToPlainText(body);
+            } else if (body && body.textContent) {
+              text = body.textContent.trim();
+            }
             if (!text) continue;
             items.push({ role, content: text });
           }
