@@ -378,6 +378,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
                 (replyBody.trim()
                   ? replyBody
                   : "Bu sefer boş bir yanıt geldi. Sorunu biraz açıp yeniden deneyebilirsin.");
+              input.value = "";
             } else {
               let errHuman = "";
               if (data && typeof data === "object" && data.error != null) {
