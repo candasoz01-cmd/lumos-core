@@ -1,8 +1,7 @@
 ---
-const apiBase = (import.meta.env.PUBLIC_LUMOS_API_URL || "https://lumos-core-1.onrender.com").replace(
-  /\/$/,
-  ""
-);
+/** Canlı köprü testi: istek adresi sabit (deploy ortamı yanlış env ile kırılmasın). */
+const CHAT_URL = "https://lumos-core-1.onrender.com/chat";
+const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
 ---
 
 <html lang="tr">
@@ -86,9 +85,9 @@ const apiBase = (import.meta.env.PUBLIC_LUMOS_API_URL || "https://lumos-core-1.o
           API bağlantı testi
         </p>
         <p style="margin:0 0 0.65rem;line-height:1.5;">
-          Canlı backend için kısa bir istek atabilirsiniz. URL:
-          <code style="color:#b8c0d4;">https://lumos-core-1.onrender.com</code>
-          (ortam değişkeni <code style="color:#b8c0d4;">PUBLIC_LUMOS_API_URL</code> ile değiştirilebilir.)
+          Canlı backend için kısa bir istek atabilirsiniz. İstek adresi:
+          <code style="color:#b8c0d4;">https://lumos-core-1.onrender.com/chat</code>
+          (token için isteğe bağlı <code style="color:#b8c0d4;">PUBLIC_KANDO_TOKEN</code> build ortam değişkeni.)
         </p>
         <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;">
           <input
@@ -99,7 +98,7 @@ const apiBase = (import.meta.env.PUBLIC_LUMOS_API_URL || "https://lumos-core-1.o
           />
           <button
             type="button"
-            onclick="send()"
+            id="api-test-send"
             style="padding:0.45rem 0.85rem;border-radius:8px;border:none;background:#2a3f6d;color:#fff;font-size:0.8rem;cursor:pointer;"
           >
             Gönder
@@ -107,24 +106,66 @@ const apiBase = (import.meta.env.PUBLIC_LUMOS_API_URL || "https://lumos-core-1.o
         </div>
         <pre
           id="out"
-          style="margin:0.65rem 0 0;white-space:pre-wrap;word-break:break-word;font-size:0.75rem;color:#aeb6c8;"
+          role="status"
+          aria-live="polite"
+          aria-relevant="additions text"
+          style="margin:0.65rem 0 0;padding:0.65rem 0.75rem;border-radius:10px;border:1px solid rgba(255,255,255,0.12);background:rgba(0,0,0,0.25);min-height:2.75rem;white-space:pre-wrap;word-break:break-word;font-size:0.8rem;color:#dce3f0;"
         ></pre>
       </section>
     </main>
-    <script define:vars={{ apiBase }}>
-      async function send() {
-        const m = document.getElementById("msg").value;
-        const r = await fetch(apiBase + "/chat", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Kando-Token": "test123",
-          },
-          body: JSON.stringify({ message: m }),
+    <script define:vars={{ CHAT_URL, kandoToken }}>
+      function apiTestWire() {
+        const btn = document.getElementById("api-test-send");
+        const input = document.getElementById("msg");
+        const out = document.getElementById("out");
+        if (!btn || !input || !out) return;
+
+        btn.addEventListener("click", async () => {
+          const label = btn.textContent;
+          btn.disabled = true;
+          btn.textContent = "Gönderiliyor...";
+          out.textContent = "";
+          try {
+            const raw = input.value;
+            const message = raw.trim();
+            const r = await fetch(CHAT_URL, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-Kando-Token": kandoToken,
+              },
+              body: JSON.stringify({ message }),
+            });
+            const text = await r.text();
+            let data = null;
+            try {
+              data = text ? JSON.parse(text) : null;
+            } catch {
+              data = null;
+            }
+            if (r.ok) {
+              const body =
+                data && typeof data === "object"
+                  ? JSON.stringify(data, null, 2)
+                  : text || "(boş yanıt)";
+              out.textContent = "Backend cevabı: " + body;
+            } else {
+              const detail =
+                data && typeof data === "object"
+                  ? JSON.stringify(data, null, 2)
+                  : text || r.statusText;
+              out.textContent = "Bağlantı hatası: HTTP " + r.status + " — " + detail;
+            }
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            out.textContent = "Bağlantı hatası: " + msg;
+          } finally {
+            btn.disabled = false;
+            btn.textContent = label;
+          }
         });
-        const j = await r.json().catch(() => ({}));
-        document.getElementById("out").innerText = j.reply || j.error || "HTTP " + r.status;
       }
+      apiTestWire();
     </script>
   </body>
 </html>
