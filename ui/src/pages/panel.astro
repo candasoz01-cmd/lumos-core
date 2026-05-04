@@ -478,11 +478,11 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
               <div class="chat-compose-stack">
                 <div class="chat-compose-bar">
                   <div class="chat-compose">
-                    <label for="panel-msg" class="visually-hidden">Mesaj</label>
                     <textarea
                       id="panel-msg"
                       rows="2"
                       placeholder="Mesajını yaz…"
+                      aria-label="Mesajını yaz…"
                       autocomplete="off"
                     ></textarea>
                     <button type="button" id="panel-send">Gönder</button>
@@ -561,19 +561,6 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         </main>
       </div>
     </div>
-    <style is:global>
-      .visually-hidden {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        padding: 0;
-        margin: -1px;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
-        white-space: nowrap;
-        border: 0;
-      }
-    </style>
     <script define:vars={{ CHAT_URL, kandoToken }}>
       function wirePanel() {
         const nav = document.querySelector(".panel-nav");
