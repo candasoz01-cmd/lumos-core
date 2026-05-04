@@ -6,31 +6,124 @@ const apiBase = (import.meta.env.PUBLIC_LUMOS_API_URL || "https://lumos-core-1.o
 ---
 
 <html lang="tr">
-  <body style="background:#0b1020;color:white;text-align:center;margin-top:100px;font-family:sans-serif;">
-    <h1>Lumos</h1>
-    <p style="max-width:32rem;margin:1rem auto 0;padding:0 1rem;color:#e8e8e8;font-size:1rem;line-height:1.6;text-align:center;">
-      Merhaba. Bu satırlar Kıbrıs’tan dünyaya uzanan bir çağrı: akıllı sesi ve medyayı, insanı küçültmeden, abartısız ve net bir dille bir araya getirmek istiyoruz.
-    </p>
-    <p style="max-width:32rem;margin:0.85rem auto 0;padding:0 1rem;color:#c8c8c8;font-size:0.95rem;line-height:1.55;text-align:center;">
-      Lumos, sihirli bir vaat değil; birlikte düşünmek, dinlemek ve üretmek için bir kapı. Ne yüklediğini, neyi çözmek istediğini aşağıya yaz — adım adım ilerleyelim.
-    </p>
-    <input id="msg" style="width:400px;padding:10px;" placeholder="Ne üzerinde çalışalım?">
-    <br><br>
-    <button onclick="send()">Gönder</button>
-    <pre id="out" style="margin-top:20px;"></pre>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lumos — Açık mektup</title>
+  </head>
+  <body
+    style="margin:0;background:#0b1020;color:#f2f2f2;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,sans-serif;line-height:1.6;"
+  >
+    <main style="max-width:42rem;margin:0 auto;padding:2rem 1.25rem 3rem;">
+      <header style="text-align:center;margin-bottom:1.75rem;">
+        <h1 style="margin:0 0 0.35rem;font-size:1.75rem;font-weight:600;letter-spacing:-0.02em;">Lumos</h1>
+        <p style="margin:0;font-size:0.85rem;color:#9aa3b2;">Açık mektup</p>
+      </header>
+
+      <div
+        style="border-radius:14px;overflow:hidden;background:rgba(255,255,255,0.04);margin-bottom:2rem;"
+      >
+        <img
+          src="/assets/lumos/lumos-last.png"
+          alt="Lumos"
+          width="1536"
+          height="1024"
+          loading="eager"
+          decoding="async"
+          style="display:block;width:100%;height:auto;max-height:min(46vh,440px);object-fit:contain;"
+        />
+      </div>
+
+      <article style="text-align:left;color:#e4e7ef;">
+        <p style="margin:0 0 1rem;font-size:1.05rem;">
+          Merhaba. Bu satırlar Kıbrıs’tan dünyaya uzanan bir çağrı: akıllı sesi ve medyayı, insanı küçültmeden,
+          abartısız ve net bir dille bir araya getirmek istiyoruz.
+        </p>
+        <p style="margin:0 0 1.75rem;color:#c5cad6;font-size:0.98rem;">
+          Lumos, sihirli bir vaat değil; birlikte düşünmek, dinlemek ve üretmek için bir kapı. Aşağıda ne
+          kurduğumuzu ve hangi ilkelerle ilerlediğimizi özetliyoruz.
+        </p>
+
+        <h2 style="margin:1.75rem 0 0.5rem;font-size:1.1rem;font-weight:600;color:#fff;">Lumos nedir?</h2>
+        <p style="margin:0 0 1rem;color:#c5cad6;font-size:0.98rem;">
+          Lumos; ses, görüntü ve metni aynı sohbet akışında bir araya getiren, cihaz üzerinde ve güvenilir
+          köprülerle çalışan bir yardımcı sistemdir. Amacımız “daha çok özellik” değil; anlaşılır akış, net
+          geri bildirim ve insanı merkeze alan bir deneyim sunmaktır.
+        </p>
+
+        <h2 style="margin:1.75rem 0 0.5rem;font-size:1.1rem;font-weight:600;color:#fff;">
+          Kurulu olduğu cihazda ne sağlar?
+        </h2>
+        <p style="margin:0 0 1rem;color:#c5cad6;font-size:0.98rem;">
+          Kurulum yapılan cihazda yerel arayüz ve görevler çalışır; gerektiğinde uzak hizmetlere yalnızca
+          sizin başlattığınız isteklerle bağlanır. Böylece medya işleme, sohbet ve yönlendirilmiş görevler
+          tek yerden yürür; neyin cihazda kaldığı, neyin köprüden geçtiği şeffaf kalır.
+        </p>
+
+        <h2 style="margin:1.75rem 0 0.5rem;font-size:1.1rem;font-weight:600;color:#fff;">
+          Kullanıcı Lumos ile ne kazanır?
+        </h2>
+        <p style="margin:0 0 1rem;color:#c5cad6;font-size:0.98rem;">
+          Daha az dağınıklık: tek panelden üretmek, dinlemek ve düzenlemek. Abartılı vaatler yerine adım adım
+          ilerleme; “şimdi ne olacak?” sorusuna net yanıtlar. Ses ve görsel iş yükünüzü, sizi küçültmeden
+          hafifletmek için tasarlanmış bir yol arkadaşı.
+        </p>
+
+        <h2 style="margin:1.75rem 0 0.5rem;font-size:1.1rem;font-weight:600;color:#fff;">Temel ilkeler</h2>
+        <ul style="margin:0;padding-left:1.15rem;color:#c5cad6;font-size:0.98rem;">
+          <li style="margin-bottom:0.45rem">İnsan ölçeği: dil sade, ton saygılı.</li>
+          <li style="margin-bottom:0.45rem">Gizlilik ve kontrol: paylaşım kullanıcı tetiklemeli ve izlenebilir.</li>
+          <li style="margin-bottom:0.45rem">Şeffaflık: sınırlar ve riskler gizlenmez.</li>
+          <li style="margin-bottom:0.45rem">Birlikte gelişim: geri bildirimle ürünü açıkça evtiririz.</li>
+        </ul>
+      </article>
+
+      <section
+        style="margin-top:2.75rem;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,0.1);font-size:0.78rem;color:#8b93a7;text-align:left;"
+        aria-label="API bağlantı testi"
+      >
+        <p style="margin:0 0 0.6rem;font-weight:600;color:#9aa3b2;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;">
+          API bağlantı testi
+        </p>
+        <p style="margin:0 0 0.65rem;line-height:1.5;">
+          Canlı backend için kısa bir istek atabilirsiniz. URL:
+          <code style="color:#b8c0d4;">https://lumos-core-1.onrender.com</code>
+          (ortam değişkeni <code style="color:#b8c0d4;">PUBLIC_LUMOS_API_URL</code> ile değiştirilebilir.)
+        </p>
+        <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;">
+          <input
+            id="msg"
+            type="text"
+            placeholder="Kısa bir test mesajı"
+            style="flex:1;min-width:12rem;max-width:100%;padding:0.45rem 0.55rem;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:#12182a;color:#f2f2f2;font-size:0.8rem;"
+          />
+          <button
+            type="button"
+            onclick="send()"
+            style="padding:0.45rem 0.85rem;border-radius:8px;border:none;background:#2a3f6d;color:#fff;font-size:0.8rem;cursor:pointer;"
+          >
+            Gönder
+          </button>
+        </div>
+        <pre
+          id="out"
+          style="margin:0.65rem 0 0;white-space:pre-wrap;word-break:break-word;font-size:0.75rem;color:#aeb6c8;"
+        ></pre>
+      </section>
+    </main>
     <script define:vars={{ apiBase }}>
-      async function send(){
-        let m = document.getElementById("msg").value;
-        let r = await fetch(apiBase + "/chat", {
-          method:"POST",
-          headers:{
-            "Content-Type":"application/json",
-            "X-Kando-Token":"test123"
+      async function send() {
+        const m = document.getElementById("msg").value;
+        const r = await fetch(apiBase + "/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Kando-Token": "test123",
           },
-          body: JSON.stringify({message:m})
+          body: JSON.stringify({ message: m }),
         });
-        let j = await r.json().catch(() => ({}));
-        document.getElementById("out").innerText = j.reply || j.error || ("HTTP " + r.status);
+        const j = await r.json().catch(() => ({}));
+        document.getElementById("out").innerText = j.reply || j.error || "HTTP " + r.status;
       }
     </script>
   </body>
