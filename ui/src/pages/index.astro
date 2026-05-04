@@ -98,53 +98,38 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         color: #e8d4b4;
         line-height: 1.3;
       }
-      .lumos-chat-log {
-        margin: 0.65rem 0 0;
+      .lumos-reply-panel {
+        margin: 0.75rem 0 0;
+      }
+      .lumos-reply-heading {
+        margin: 0 0 0.4rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        color: #e8ecf4;
+      }
+      .lumos-reply-body {
+        box-sizing: border-box;
+        margin: 0;
         padding: 0.65rem 0.75rem;
         border-radius: 10px;
         border: 1px solid rgba(255, 255, 255, 0.12);
         background: rgba(0, 0, 0, 0.25);
         min-height: 2.75rem;
-        max-height: min(50vh, 22rem);
-        overflow-y: auto;
         font-size: 0.8rem;
         color: #dce3f0;
         text-align: left;
-      }
-      .lumos-chat-log:empty::before {
-        content: "Henüz mesaj yok.";
-        color: #8b95ab;
-      }
-      .lumos-chat-turn {
-        margin: 0 0 0.75rem;
-      }
-      .lumos-chat-turn:last-child {
-        margin-bottom: 0;
-      }
-      .lumos-chat-label {
-        display: block;
-        font-weight: 600;
-        font-size: 0.72rem;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        color: #b8c0d4;
-        margin-bottom: 0.25rem;
-      }
-      .lumos-chat-label--you {
-        color: #9ec8ff;
-      }
-      .lumos-chat-label--lumos {
-        color: #c9a86a;
-      }
-      .lumos-chat-body {
-        margin: 0;
         white-space: pre-wrap;
         word-break: break-word;
         line-height: 1.55;
-        color: #dce3f0;
       }
-      .lumos-chat-turn--error .lumos-chat-body {
+      .lumos-reply-body:empty::before {
+        content: "Henüz cevap yok.";
+        color: #8b95ab;
+      }
+      .lumos-reply-body--error {
         color: #f0b4b4;
+        border-color: rgba(240, 180, 180, 0.28);
       }
     </style>
   </head>
@@ -364,44 +349,33 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             Gönder
           </button>
         </div>
-        <div
-          id="chat-history"
-          class="lumos-chat-log"
-          role="log"
-          aria-live="polite"
-          aria-relevant="additions"
-          aria-label="Lumos sohbet geçmişi"
-        ></div>
+        <div class="lumos-reply-panel">
+          <p class="lumos-reply-heading">Lumos cevabı</p>
+          <div
+            id="lumos-reply"
+            class="lumos-reply-body"
+            role="region"
+            aria-live="polite"
+            aria-label="Son Lumos cevabı"
+          ></div>
+        </div>
       </section>
     </main>
     <script define:vars={{ CHAT_URL, kandoToken }}>
       function apiTestWire() {
         const btn = document.getElementById("api-test-send");
         const input = document.getElementById("msg");
-        const chatHistory = document.getElementById("chat-history");
-        if (!btn || !input || !chatHistory) return;
+        const replyEl = document.getElementById("lumos-reply");
+        if (!btn || !input || !replyEl) return;
 
         const sendLabel = "Gönder";
         const loadingLabel = "Gönderiliyor...";
         let sending = false;
 
-        function appendTurn(labelText, bodyText, opts) {
-          const isYou = opts && opts.role === "you";
+        function setLumosReply(bodyText, opts) {
           const isError = opts && opts.error;
-          const wrap = document.createElement("div");
-          wrap.className = "lumos-chat-turn" + (isError ? " lumos-chat-turn--error" : "");
-          const label = document.createElement("span");
-          label.className =
-            "lumos-chat-label" +
-            (isYou ? " lumos-chat-label--you" : " lumos-chat-label--lumos");
-          label.textContent = labelText;
-          const body = document.createElement("p");
-          body.className = "lumos-chat-body";
-          body.textContent = bodyText;
-          wrap.appendChild(label);
-          wrap.appendChild(body);
-          chatHistory.appendChild(wrap);
-          chatHistory.scrollTop = chatHistory.scrollHeight;
+          replyEl.textContent = bodyText;
+          replyEl.classList.toggle("lumos-reply-body--error", !!isError);
         }
 
         async function runApiTest() {
@@ -412,7 +386,6 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
           sending = true;
           btn.disabled = true;
           btn.textContent = loadingLabel;
-          appendTurn("Sen", message, { role: "you" });
           try {
             const r = await fetch(CHAT_URL, {
               method: "POST",
@@ -444,7 +417,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
               const lumosText = replyBody.trim()
                 ? replyBody
                 : "Bu sefer boş bir yanıt geldi. Sorunu biraz açıp yeniden deneyebilirsin.";
-              appendTurn("Lumos", lumosText, { role: "lumos" });
+              setLumosReply(lumosText, { error: false });
               input.value = "";
             } else {
               let errHuman = "";
@@ -460,16 +433,12 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
               } else if (errHuman === "message required") {
                 errHuman = "Önce kısa bir mesaj yazman gerekiyor.";
               }
-              appendTurn("Lumos", "Şimdilik yanıt veremedik. " + errHuman, {
-                role: "lumos",
-                error: true,
-              });
+              setLumosReply("Şimdilik yanıt veremedik. " + errHuman, { error: true });
             }
           } catch {
-            appendTurn(
-              "Lumos",
+            setLumosReply(
               "Bağlantıda kısa bir kesinti oldu. İnternetini kontrol edip biraz sonra yeniden deneyebilirsin.",
-              { role: "lumos", error: true }
+              { error: true }
             );
           } finally {
             sending = false;
