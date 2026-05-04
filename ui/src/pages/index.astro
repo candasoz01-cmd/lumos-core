@@ -15,10 +15,10 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
   >
     <section
       aria-label="Lumos görseli"
-      style="box-sizing:border-box;width:100%;padding:clamp(0.6rem, 2.2vw, 1rem) clamp(0.15rem, 0.65vw, 0.4rem) clamp(1rem, 3.2vw, 1.65rem);"
+      style="box-sizing:border-box;width:100%;padding:clamp(0.55rem, 2vw, 0.95rem) clamp(0.12rem, 0.55vw, 0.35rem) clamp(0.95rem, 3vw, 1.5rem);"
     >
       <div
-        style="box-sizing:border-box;width:100%;max-width:100%;margin:0 auto;border-radius:14px;padding:clamp(0.18rem, 0.45vw, 0.4rem);background:rgba(255,255,255,0.03);border:1px solid rgba(130, 200, 190, 0.22);box-shadow:inset 0 1px 0 rgba(255,255,255,0.05),0 0 0 1px rgba(212, 175, 100, 0.08),0 0 28px rgba(45, 165, 155, 0.14),0 0 56px rgba(200, 165, 90, 0.07);display:flex;justify-content:center;align-items:center;min-height:0;"
+        style="box-sizing:border-box;width:100%;margin:0 auto;border-radius:12px;padding:0;overflow:hidden;background:linear-gradient(165deg,#070b14 0%,#0c1424 42%,#0a1620 100%);border:1px solid rgba(82, 148, 158, 0.38);box-shadow:inset 0 1px 0 rgba(190, 165, 115, 0.14),0 0 0 1px rgba(45, 110, 105, 0.25),0 6px 28px rgba(0,0,0,0.45),0 0 40px rgba(40, 120, 115, 0.1);display:flex;justify-content:center;align-items:center;min-height:0;"
       >
         <img
           src="/assets/lumos/lumos-last.png"
@@ -27,69 +27,73 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
           height="1024"
           loading="eager"
           decoding="async"
-          style="display:block;width:100%;max-width:100%;height:auto;max-height:min(58vh, 560px);object-fit:contain;margin:0 auto;"
+          style="display:block;margin:0;max-width:100%;width:auto;height:auto;max-height:min(60vh, 580px);object-fit:contain;"
         />
       </div>
     </section>
 
     <main style="max-width:40rem;margin:0 auto;padding:0 clamp(1rem, 4vw, 1.5rem) 3rem;">
       <article style="text-align:left;color:#e4e7ef;">
-        <p style="margin:0 0 1rem;font-size:1.05rem;">
-          Merhaba. Bu satırlar Kıbrıs’tan dünyaya uzanan bir çağrı: akıllı sesi ve medyayı, insanı küçültmeden,
-          abartısız ve net bir dille yan yana getirmek istiyoruz. Burada bir “ürün duvarı” okumuyorsunuz;
-          niyetimizi ve sınırlarımızı insanî bir sesle paylaşmak istedik.
+        <p style="margin:0 0 1rem;font-size:1.05rem;line-height:1.65;">
+          Merhaba. Kıbrıs’tan dünyaya uzanan bu satırlar, akıllı ses ve medyayı insanı küçültmeden, abartısız
+          ve net bir dille bir araya getirme niyetimizin özeti. Karşınızda broşür değil, açık bir mektup var:
+          neye inanıyoruz, nerede duruyoruz, bunu paylaşmak istedik.
         </p>
-        <p style="margin:0 0 1.75rem;color:#c5cad6;font-size:0.98rem;">
-          Lumos sihirli bir vaat değil; birlikte düşünmek, dinlemek ve üretmek için açık duran bir kapı.
-          Aşağıda, bu kapının arkasında ne olduğunu ve yürürken hangi pusulayı kullandığımızı, kısacık ama
-          içten bir dille anlatmak istedik.
-        </p>
-
-        <h2 style="margin:1.75rem 0 0.5rem;font-size:1.1rem;font-weight:600;color:#fff;">Lumos nedir?</h2>
-        <p style="margin:0 0 1rem;color:#c5cad6;font-size:0.98rem;">
-          Lumos; sesi, görüntüyü ve metni aynı sohbet akışında buluşturan, önce cihazınızda duran, gerektiğinde
-          güvendiğiniz köprülerden geçen bir yardımcıdır. “Daha çok düğme” peşinde değiliz; anlaşılır akış,
-          net geri bildirim ve insanı merkeze alan, sakin bir tempo arıyoruz.
+        <p style="margin:0 0 1.75rem;color:#c5cad6;font-size:0.98rem;line-height:1.65;">
+          Lumos sihirli bir vaat değil; birlikte düşünmek, dinlemek ve üretmek için açık bir kapı. Aşağıda
+          bu kapının ardındakileri ve yol alırken tuttuğumuz pusulayı, kısa ve içten bir dille anlatıyoruz.
         </p>
 
-        <h2 style="margin:1.75rem 0 0.5rem;font-size:1.1rem;font-weight:600;color:#fff;">
+        <h2 style="margin:1.75rem 0 0.5rem;font-size:1.1rem;font-weight:600;color:#e8ecf4;letter-spacing:-0.01em;">
+          Lumos nedir?
+        </h2>
+        <p style="margin:0 0 1rem;color:#c5cad6;font-size:0.98rem;line-height:1.65;">
+          Ses, görüntü ve metni aynı sohbet akışında buluşturan bir yardımcı: önce sizin cihazınızda durur,
+          gerektiğinde güvendiğiniz köprülerden geçer. Amacımız daha çok düğme değil; anlaşılır akış, net geri
+          bildirim ve insanı merkeze alan sakin bir tempo.
+        </p>
+
+        <h2 style="margin:1.75rem 0 0.5rem;font-size:1.1rem;font-weight:600;color:#e8ecf4;letter-spacing:-0.01em;">
           Kurulu olduğu cihazda ne sağlar?
         </h2>
-        <p style="margin:0 0 1rem;color:#c5cad6;font-size:0.98rem;">
-          Kurduğunuz cihazda arayüz ve günlük işler yerel çalışır; uzak tarafa ancak siz bir adım attığınızda
-          gider. Medya, sohbet ve yönlendirilmiş küçük görevler tek nefeste yan yana durur; neyin evde
-          kaldığını, neyin köprüden geçtiğini gizlemeden görmek isteriz.
+        <p style="margin:0 0 1rem;color:#c5cad6;font-size:0.98rem;line-height:1.65;">
+          Arayüz ve günlük işler cihazda yerel çalışır; uzak hizmetlere yalnızca siz adım attığınızda gidilir.
+          Medya, sohbet ve küçük görevler aynı yerde toplanır; neyin cihazda kaldığı, neyin köprüden geçtiği
+          gizlenmez.
         </p>
 
-        <h2 style="margin:1.75rem 0 0.5rem;font-size:1.1rem;font-weight:600;color:#fff;">
+        <h2 style="margin:1.75rem 0 0.5rem;font-size:1.1rem;font-weight:600;color:#e8ecf4;letter-spacing:-0.01em;">
           Kullanıcı Lumos ile ne kazanır?
         </h2>
-        <p style="margin:0 0 1rem;color:#c5cad6;font-size:0.98rem;">
+        <p style="margin:0 0 1rem;color:#c5cad6;font-size:0.98rem;line-height:1.65;">
           Biraz daha az dağınıklık: üretmek, dinlemek ve düzenlemek için tek bir sakin köşe. Abartılı sözler
-          yerine küçük adımlar; “şimdi ne olacak?” sorusuna düz ve dürüst yanıtlar. Ses ve görsel yükünüzü
-          hafifletmeye çalışırken sizi küçültmeden yanınızda olmak istiyoruz.
+          yerine küçük adımlar; “şimdi ne olacak?” sorusuna düz yanıtlar. Ses ve görsel yükünüzü hafifletmeye
+          çalışırken sizi küçültmeden yanınızda olmayı umuyoruz.
         </p>
 
-        <h2 style="margin:1.75rem 0 0.5rem;font-size:1.1rem;font-weight:600;color:#fff;">Temel ilkeler</h2>
-        <ul style="margin:0;padding-left:1.15rem;color:#c5cad6;font-size:0.98rem;">
-          <li style="margin-bottom:0.45rem">İnsan ölçeği: dil sade, ton saygılı.</li>
-          <li style="margin-bottom:0.45rem">Gizlilik ve kontrol: paylaşım sizin elinizde başlar; izi görünür kılınır.</li>
-          <li style="margin-bottom:0.45rem">Şeffaflık: sınırlar ve riskler saklanmaz.</li>
-          <li style="margin-bottom:0.45rem">Birlikte gelişim: duyduğumuzu açıkça işler, ürünü paylaşarak ilerletiriz.</li>
+        <h2 style="margin:1.75rem 0 0.5rem;font-size:1.1rem;font-weight:600;color:#e8ecf4;letter-spacing:-0.01em;">
+          Temel ilkeler
+        </h2>
+        <ul style="margin:0;padding-left:1.15rem;color:#c5cad6;font-size:0.98rem;line-height:1.55;">
+          <li style="margin-bottom:0.5rem">İnsan ölçeği: dil sade, ton saygılı.</li>
+          <li style="margin-bottom:0.5rem">Gizlilik ve kontrol: paylaşım sizinle başlar; izi görünür tutarız.</li>
+          <li style="margin-bottom:0.5rem">Şeffaflık: sınırlar ve riskler saklanmaz.</li>
+          <li style="margin-bottom:0.5rem">Birlikte gelişim: dinlediğimizi işe döker, ürünü paylaşarak ilerletiriz.</li>
         </ul>
       </article>
 
       <section
-        style="margin-top:2.75rem;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,0.1);font-size:0.78rem;color:#8b93a7;text-align:left;"
+        style="margin-top:2.75rem;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,0.1);font-size:0.8rem;color:#9aa4b5;text-align:left;line-height:1.55;"
         aria-label="API bağlantı testi"
       >
-        <p style="margin:0 0 0.6rem;font-weight:600;color:#9aa3b2;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;">
+        <p style="margin:0 0 0.6rem;font-weight:600;color:#aeb6c8;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;">
           API bağlantı testi
         </p>
-        <p style="margin:0 0 0.65rem;line-height:1.5;">
-          Canlı backend için kısa bir istek atabilirsiniz. İstek adresi:
-          <code style="color:#b8c0d4;">https://lumos-core-1.onrender.com/chat</code>
-          (token için isteğe bağlı <code style="color:#b8c0d4;">PUBLIC_KANDO_TOKEN</code> build ortam değişkeni.)
+        <p style="margin:0 0 0.7rem;">
+          Canlı sunucuya tek bir mesaj gönderip yanıtı burada görebilirsiniz. Adres:
+          <code style="color:#c8d0e0;font-size:0.78rem;">https://lumos-core-1.onrender.com/chat</code>
+          — özel token kullanacaksanız build sırasında
+          <code style="color:#c8d0e0;font-size:0.78rem;">PUBLIC_KANDO_TOKEN</code> tanımlayın.
         </p>
         <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;">
           <input
