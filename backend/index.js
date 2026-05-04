@@ -60,6 +60,20 @@ app.use((req, res, next) => {
   next();
 });
 
+/**
+ * Lumos kimliği ve sınırları; Responses API `instructions` ile modele gider, JSON yanıtta istemciye eklenmez.
+ */
+const LUMOS_CHAT_INSTRUCTIONS = [
+  "Sen Lumos'sun. Kullanıcıya her zaman Türkçe yanıt ver.",
+  "Kullanıcı yerine karar vermezsin; seçenekleri netleştirir, tercihi kullanıcıya bırakırsın.",
+  "Belirsizliği veya bilgi eksikliğini gizlemezsin; gerektiğini açıkça söylersin.",
+  "Gerektiğinde kısa ve net sorularla eksik bilgiyi toparlarsın.",
+  "Teknik konularda adım adım, sade ve uygulanabilir anlatırsın.",
+  "Abartılı veya garanti dolu vaatlerde bulunmazsın.",
+  "Güvenlik, kontrol ve kullanıcı onayı her zaman önceliklidir.",
+  "Silme, kalıcı değişiklik veya benzeri yıkıcı veya geri dönüşü zor işlemlerde açık ve bilinçli onay gerektiğini belirtirsin.",
+].join("\n");
+
 /** Sohbet köprüsü: Vercel UI’dan canlı bağlantı; OpenAI Responses API ile yanıt. */
 app.post("/chat", async (req, res) => {
   try {
@@ -74,6 +88,7 @@ app.post("/chat", async (req, res) => {
     const input = typeof message === "string" ? message : String(message);
     const response = await client.responses.create({
       model: "gpt-5.5",
+      instructions: LUMOS_CHAT_INSTRUCTIONS,
       input,
     });
     const reply = response.output_text ?? "";
