@@ -15,29 +15,34 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
   >
     <section
       aria-label="Lumos görseli"
-      style="box-sizing:border-box;width:100%;max-width:100%;padding:clamp(0.4rem, 1.4vw, 0.75rem) 0 clamp(0.8rem, 2.4vw, 1.35rem);"
+      style="box-sizing:border-box;width:100%;max-width:100%;padding:clamp(0.4rem, 1.4vw, 0.75rem) clamp(0.65rem, 2vw, 1.25rem) clamp(0.8rem, 2.4vw, 1.35rem);display:flex;justify-content:center;"
     >
       <div
-        style="box-sizing:border-box;width:100%;max-width:100%;margin:0;border-radius:10px;padding:0;overflow:hidden;background:linear-gradient(165deg,#080a10 0%,#121018 44%,#0f0d0a 100%);border:1px solid rgba(200, 158, 92, 0.4);box-shadow:inset 0 1px 0 rgba(230, 195, 130, 0.12),0 0 0 1px rgba(165, 125, 70, 0.22),0 8px 32px rgba(0,0,0,0.52),0 0 40px rgba(38, 105, 100, 0.09),0 0 64px rgba(185, 138, 72, 0.08);display:block;min-height:0;"
+        style="box-sizing:border-box;width:100%;max-width:1240px;margin:0 auto;min-width:0;"
       >
-        <img
-          src="/assets/lumos/lumos-last.png"
-          alt="Lumos"
-          width="1536"
-          height="1024"
-          loading="eager"
-          decoding="async"
-          style="display:block;margin:0;width:100%;max-width:none;height:auto;object-fit:contain;"
-        />
+        <div
+          style="box-sizing:border-box;width:100%;margin:0;border-radius:12px;padding:0;overflow:hidden;background:linear-gradient(165deg,#0a0c12 0%,#141118 42%,#120f0a 100%);border:1px solid rgba(148, 112, 68, 0.52);box-shadow:inset 0 1px 0 rgba(188, 148, 92, 0.14),0 0 0 1px rgba(98, 72, 44, 0.38),0 10px 36px rgba(0,0,0,0.55),0 0 22px rgba(32, 88, 86, 0.04),0 0 40px rgba(130, 96, 56, 0.07);display:block;min-height:0;"
+        >
+          <img
+            src="/assets/lumos/lumos-last.png"
+            alt="Lumos"
+            width="1536"
+            height="1024"
+            loading="eager"
+            decoding="async"
+            style="display:block;margin:0 auto;width:100%;max-width:100%;height:auto;object-fit:contain;"
+          />
+        </div>
       </div>
     </section>
 
     <main style="max-width:40rem;margin:0 auto;padding:0 clamp(1rem, 4vw, 1.5rem) 3rem;">
       <article style="text-align:left;color:#e4e7ef;">
         <p style="margin:0 0 1rem;font-size:1.05rem;line-height:1.65;">
-          Kıbrıs’tan dünyaya uzanan bu çağrı, sesi, medyayı ve akıllı araçları insanı küçültmeden bir araya
-          getirme niyetidir. Lumos; abartılı vaatlerin değil, daha anlaşılır, daha kontrollü ve daha insani
-          bir dijital düzenin kapısını aralamak için doğdu.
+          Kıbrıs’tan dünyaya uzanan bu çağrı, sesi, medyayı, yapay zekâyı ve yönlendirilmiş görevleri tek akışta
+          toplama niyetidir. Lumos; kullanıcı ile dijital dünya arasında bilinçli bir kontrol katmanı olarak
+          tasarlanır: abartılı vaatlerin değil, daha görünür, daha sakin ve daha insani bir düzenin yolunu
+          açmak için.
         </p>
         <p style="margin:0 0 1.75rem;color:#c5cad6;font-size:0.98rem;line-height:1.65;">
           Bu açık mektup, ne kurduğumuzu olduğu kadar neyi reddettiğimizi de anlatır: belirsizliği,
@@ -48,37 +53,43 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
           Lumos nedir?
         </h2>
         <p style="margin:0 0 1rem;color:#c5cad6;font-size:0.98rem;line-height:1.65;">
-          Ses, görüntü ve metni aynı sohbet akışında buluşturan bir yardımcı: önce sizin cihazınızda durur,
-          gerektiğinde güvendiğiniz köprülerden geçer. Amacımız daha çok düğme değil; anlaşılır akış, net geri
-          bildirim ve insanı merkeze alan sakin bir tempo.
+          Lumos; ses, metin, medya, kimlik, güvenlik ve yapay zekâ destekli görevleri tek bir akışta
+          buluşturmayı hedefleyen bir kontrol katmanıdır. Kullanıcının yerine sahiplik iddia etmez; cihazın,
+          verinin ve dış bağlantıların kullanıcı tarafından daha anlaşılır yönetilmesini sağlar. Amaç, çok
+          özellik göstermek değil; karmaşık dijital işlemleri daha görünür, daha kontrollü ve daha insani bir
+          düzene taşımaktır.
         </p>
 
         <h2 style="margin:1.75rem 0 0.5rem;font-size:1.1rem;font-weight:600;color:#e8ecf4;letter-spacing:-0.01em;">
           Kurulu olduğu cihazda ne sağlar?
         </h2>
         <p style="margin:0 0 1rem;color:#c5cad6;font-size:0.98rem;line-height:1.65;">
-          Arayüz ve günlük işler cihazda yerel çalışır; uzak hizmetlere yalnızca siz adım attığınızda gidilir.
-          Medya, sohbet ve küçük görevler aynı yerde toplanır; neyin cihazda kaldığı, neyin köprüden geçtiği
-          gizlenmez.
+          Kurulu olduğu cihazda Lumos, yerel arayüz ve görev akışlarını toparlayan bir merkez gibi davranır.
+          Gerektiğinde medya işleme, sohbet, yönlendirme, kimlik ve servis bağlantılarını güvenli köprülerle
+          dış dünyaya açar. Silme, değiştirme, paylaşma veya dış servise gönderme gibi etkili işlemlerde
+          kontrolün kullanıcıda kalmasını esas alır.
         </p>
 
         <h2 style="margin:1.75rem 0 0.5rem;font-size:1.1rem;font-weight:600;color:#e8ecf4;letter-spacing:-0.01em;">
           Kullanıcı Lumos ile ne kazanır?
         </h2>
         <p style="margin:0 0 1rem;color:#c5cad6;font-size:0.98rem;line-height:1.65;">
-          Biraz daha az dağınıklık: üretmek, dinlemek ve düzenlemek için tek bir sakin köşe. Abartılı sözler
-          yerine küçük adımlar; “şimdi ne olacak?” sorusuna düz yanıtlar. Ses ve görsel yükünüzü hafifletmeye
-          çalışırken sizi küçültmeden yanınızda olmayı umuyoruz.
+          Kullanıcı, dağınık araçlar arasında kaybolmak yerine tek bir sakin çalışma alanı kazanır. Ne yaptığını,
+          neyin cihazda kaldığını, neyin dış servise gittiğini ve hangi adımda onay gerektiğini daha açık görür.
+          Lumos’un değeri, insanı hızın peşinde ezmek değil; hızı, kontrol ve sorumlulukla birlikte kullanılabilir
+          hale getirmektir.
         </p>
 
         <h2 style="margin:1.75rem 0 0.5rem;font-size:1.1rem;font-weight:600;color:#e8ecf4;letter-spacing:-0.01em;">
           Temel ilkeler
         </h2>
         <ul style="margin:0;padding-left:1.15rem;color:#c5cad6;font-size:0.98rem;line-height:1.55;">
-          <li style="margin-bottom:0.5rem">İnsan ölçeği: dil sade, ton saygılı.</li>
-          <li style="margin-bottom:0.5rem">Gizlilik ve kontrol: paylaşım sizinle başlar; izi görünür tutarız.</li>
-          <li style="margin-bottom:0.5rem">Şeffaflık: sınırlar ve riskler saklanmaz.</li>
-          <li style="margin-bottom:0.5rem">Birlikte gelişim: dinlediğimizi işe döker, ürünü paylaşarak ilerletiriz.</li>
+          <li style="margin-bottom:0.5rem">Karar kullanıcıdadır.</li>
+          <li style="margin-bottom:0.5rem">Güven görünür davranışla kurulur.</li>
+          <li style="margin-bottom:0.5rem">Hız, kontrolün önüne geçmez.</li>
+          <li style="margin-bottom:0.5rem">Dış bağlantılar gizlenmez; kullanıcı neyin nereye gittiğini bilmelidir.</li>
+          <li style="margin-bottom:0.5rem">Yıkıcı veya kalıcı işlemler açık onay gerektirir.</li>
+          <li style="margin-bottom:0.5rem">Teknoloji insanı küçültmek için değil, insanın alanını genişletmek için kullanılır.</li>
         </ul>
       </article>
 
