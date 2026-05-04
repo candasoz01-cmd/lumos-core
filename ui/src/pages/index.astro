@@ -13,15 +13,12 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
   <body
     style="margin:0;background:#0b1020;color:#f2f2f2;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,sans-serif;line-height:1.6;"
   >
-    <main style="max-width:40rem;margin:0 auto;padding:2rem clamp(1rem, 4vw, 1.5rem) 3rem;">
-      <header style="text-align:center;margin-bottom:1.75rem;">
-        <h1 style="margin:0 0 0.35rem;font-size:1.75rem;font-weight:600;letter-spacing:-0.02em;">Lumos</h1>
-        <p style="margin:0;font-size:0.85rem;color:#9aa3b2;">Açık mektup</p>
-      </header>
-
+    <section
+      aria-label="Lumos görseli"
+      style="box-sizing:border-box;width:100%;padding:clamp(0.75rem, 3vw, 1.35rem) clamp(0.5rem, 2vw, 1rem) clamp(1.25rem, 4vw, 2rem);"
+    >
       <div
-        style="border-radius:14px;background:rgba(255,255,255,0.04);margin:0 auto 2rem;max-width:min(100%, 34rem);padding:clamp(0.65rem, 2.5vw, 1.1rem) clamp(0.75rem, 3vw, 1.35rem);box-sizing:border-box;display:flex;justify-content:center;align-items:center;min-height:0;"
-        aria-label="Lumos görseli"
+        style="box-sizing:border-box;width:100%;max-width:min(100%, 120rem);margin:0 auto;border-radius:16px;padding:clamp(0.5rem, 1.8vw, 1rem);background:rgba(255,255,255,0.03);border:1px solid rgba(130, 200, 190, 0.22);box-shadow:inset 0 1px 0 rgba(255,255,255,0.05),0 0 0 1px rgba(212, 175, 100, 0.08),0 0 28px rgba(45, 165, 155, 0.14),0 0 56px rgba(200, 165, 90, 0.07);display:flex;justify-content:center;align-items:center;min-height:0;"
       >
         <img
           src="/assets/lumos/lumos-last.png"
@@ -30,10 +27,12 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
           height="1024"
           loading="eager"
           decoding="async"
-          style="display:block;margin:0 auto;max-width:100%;width:auto;height:auto;max-height:min(48vh, 460px);object-fit:contain;"
+          style="display:block;width:100%;max-width:100%;height:auto;max-height:min(58vh, 560px);object-fit:contain;margin:0 auto;"
         />
       </div>
+    </section>
 
+    <main style="max-width:40rem;margin:0 auto;padding:0 clamp(1rem, 4vw, 1.5rem) 3rem;">
       <article style="text-align:left;color:#e4e7ef;">
         <p style="margin:0 0 1rem;font-size:1.05rem;">
           Merhaba. Bu satırlar Kıbrıs’tan dünyaya uzanan bir çağrı: akıllı sesi ve medyayı, insanı küçültmeden,
