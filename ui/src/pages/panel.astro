@@ -31,7 +31,10 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
       }
       body {
         margin: 0;
-        height: 100%;
+        height: 100vh;
+        height: 100dvh;
+        max-height: 100vh;
+        max-height: 100dvh;
         overflow: hidden;
         background: var(--lumos-bg);
         color: var(--lumos-text);
@@ -43,6 +46,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         flex-direction: column;
         height: 100%;
         min-height: 0;
+        max-height: 100%;
       }
       .panel-header {
         flex-shrink: 0;
@@ -68,23 +72,16 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         min-height: 0;
         overflow: hidden;
       }
-      .panel-nav-column {
+      .panel-nav {
         flex: 0 0 clamp(10rem, 22vw, 12.75rem);
-        min-width: 0;
+        align-self: stretch;
         min-height: 0;
-        display: flex;
-        flex-direction: column;
+        padding: 0.65rem 0.4rem 0.85rem 0;
         border-right: 1px solid rgba(255, 255, 255, 0.08);
         background: linear-gradient(180deg, rgba(0, 0, 0, 0.28) 0%, rgba(8, 10, 18, 0.35) 100%);
-      }
-      .panel-nav {
-        flex: 1;
-        min-height: 0;
         overflow-y: auto;
         overflow-x: hidden;
-        padding: 0.65rem 0.4rem 0.85rem 0;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(184, 148, 96, 0.28) rgba(0, 0, 0, 0.15);
+        -webkit-overflow-scrolling: touch;
       }
       .lumos-soon-badge {
         display: inline-block;
@@ -160,14 +157,13 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         flex: 1;
         flex-direction: column;
         min-height: 0;
-        overflow: hidden;
       }
       .module-panel[data-active="true"] {
         display: flex;
       }
-      .module-panel[data-module-panel]:not([data-module-panel="sohbet"]) {
+      .module-panel:not(#panel-sohbet)[data-active="true"] {
         overflow-y: auto;
-        overflow-x: hidden;
+        min-height: 0;
       }
       .module-panel h2 {
         margin: 0 0 0.75rem;
@@ -466,22 +462,19 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
           flex-direction: column;
           min-height: 0;
         }
-        .panel-nav-column {
-          flex: 0 0 auto;
-          max-height: min(42vh, 13.5rem);
-          min-height: 0;
-          border-right: none;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        }
         .panel-nav {
-          flex: 1 1 auto;
-          min-height: 0;
-          max-height: min(42vh, 13.5rem);
+          flex: 0 0 auto;
+          align-self: stretch;
+          max-height: min(38vh, 11.5rem);
           display: flex;
           flex-wrap: wrap;
           gap: 0.25rem;
-          align-content: flex-start;
           padding: 0.5rem;
+          border-right: none;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          overflow-y: auto;
+          overflow-x: auto;
+          overscroll-behavior: contain;
         }
         .panel-nav button {
           flex: 1 1 auto;
@@ -503,6 +496,10 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             rgba(236, 207, 147, 0.04) 100%
           );
         }
+        .panel-main {
+          flex: 1;
+          min-height: 0;
+        }
       }
     </style>
   </head>
@@ -513,41 +510,39 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         <p>Çalışma alanı</p>
       </header>
       <div class="panel-body">
-        <aside class="panel-nav-column">
-          <nav class="panel-nav" aria-label="Modüller">
-            <button type="button" data-module="sohbet" aria-current="true">
-              <span class="panel-nav-label">Sohbet</span>
-            </button>
-            <button type="button" data-module="gorevler">
-              <span class="panel-nav-label">Görevler</span>
-              <span class="lumos-soon-badge">Yakında</span>
-            </button>
-            <button type="button" data-module="ses">
-              <span class="panel-nav-label">Ses</span>
-              <span class="lumos-soon-badge">Yakında</span>
-            </button>
-            <button type="button" data-module="medya">
-              <span class="panel-nav-label">Medya</span>
-              <span class="lumos-soon-badge">Yakında</span>
-            </button>
-            <button type="button" data-module="sosyal">
-              <span class="panel-nav-label">Sosyal</span>
-              <span class="lumos-soon-badge">Yakında</span>
-            </button>
-            <button type="button" data-module="dosyalar">
-              <span class="panel-nav-label">Dosyalar</span>
-              <span class="lumos-soon-badge">Yakında</span>
-            </button>
-            <button type="button" data-module="guvenlik">
-              <span class="panel-nav-label">Güvenlik</span>
-              <span class="lumos-soon-badge">Yakında</span>
-            </button>
-            <button type="button" data-module="ayarlar">
-              <span class="panel-nav-label">Ayarlar</span>
-              <span class="lumos-soon-badge">Yakında</span>
-            </button>
-          </nav>
-        </aside>
+        <nav class="panel-nav" aria-label="Modüller">
+          <button type="button" data-module="sohbet" aria-current="true">
+            <span class="panel-nav-label">Sohbet</span>
+          </button>
+          <button type="button" data-module="gorevler">
+            <span class="panel-nav-label">Görevler</span>
+            <span class="lumos-soon-badge">Yakında</span>
+          </button>
+          <button type="button" data-module="ses">
+            <span class="panel-nav-label">Ses</span>
+            <span class="lumos-soon-badge">Yakında</span>
+          </button>
+          <button type="button" data-module="medya">
+            <span class="panel-nav-label">Medya</span>
+            <span class="lumos-soon-badge">Yakında</span>
+          </button>
+          <button type="button" data-module="sosyal">
+            <span class="panel-nav-label">Sosyal</span>
+            <span class="lumos-soon-badge">Yakında</span>
+          </button>
+          <button type="button" data-module="dosyalar">
+            <span class="panel-nav-label">Dosyalar</span>
+            <span class="lumos-soon-badge">Yakında</span>
+          </button>
+          <button type="button" data-module="guvenlik">
+            <span class="panel-nav-label">Güvenlik</span>
+            <span class="lumos-soon-badge">Yakında</span>
+          </button>
+          <button type="button" data-module="ayarlar">
+            <span class="panel-nav-label">Ayarlar</span>
+            <span class="lumos-soon-badge">Yakında</span>
+          </button>
+        </nav>
         <main class="panel-main">
           <section
             id="panel-sohbet"
@@ -647,7 +642,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
               Sosyal <span class="lumos-soon-badge">Yakında</span>
             </h2>
             <div class="placeholder-block">
-              <p>Lumos’un kendi sosyal alanı ve diğer sosyal platform bağlantıları burada toplanacak.</p>
+              <p>Lumos'un kendi sosyal alanı ve diğer sosyal platform bağlantıları burada toplanacak.</p>
               <p>Paylaşım, görünürlük, yorum ve dış platform geçişleri kullanıcı onayıyla ilerleyecek.</p>
             </div>
           </section>
