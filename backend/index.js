@@ -7,6 +7,38 @@ import OpenAI from "openai";
 import { PrismaClient, Prisma } from "@prisma/client";
 import { LUMOS_CHAT_INSTRUCTIONS } from "./lumosInstructions.js";
 
+/** Panel /chat: geçmiş boyutu ve içerik tavanı (token maliyetini sınırlar). */
+const PANEL_CHAT_HISTORY_MAX_MESSAGES = 12;
+const PANEL_CHAT_MAX_CONTENT_CHARS = 6000;
+
+/**
+ * İstemciden gelen history dizisini güvenli biçimde { role, content } listesine indirger.
+ * @param {unknown} raw
+ * @returns {{ role: 'user' | 'assistant', content: string }[]}
+ */
+function normalizePanelChatHistory(raw) {
+  if (!Array.isArray(raw)) return [];
+  const cleaned = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const role = item.role;
+    if (role !== "user" && role !== "assistant") continue;
+    const c = item.content;
+    if (typeof c !== "string") continue;
+    const trimmed = c.trim();
+    if (!trimmed) continue;
+    const content =
+      trimmed.length > PANEL_CHAT_MAX_CONTENT_CHARS
+        ? trimmed.slice(0, PANEL_CHAT_MAX_CONTENT_CHARS)
+        : trimmed;
+    cleaned.push({ role, content });
+  }
+  if (cleaned.length > PANEL_CHAT_HISTORY_MAX_MESSAGES) {
+    return cleaned.slice(-PANEL_CHAT_HISTORY_MAX_MESSAGES);
+  }
+  return cleaned;
+}
+
 /** OpenAI istemcisi; yalnızca OPENAI_API_KEY tanımlıyken oluşturulur. */
 let openaiClient;
 function getOpenAI() {
@@ -74,7 +106,23 @@ app.post("/chat", async (req, res) => {
     if (!client) {
       return res.status(503).json({ error: "OPENAI_API_KEY missing" });
     }
-    const input = typeof message === "string" ? message : String(message);
+    const currentText =
+      typeof message === "string" ? message.trim() : String(message).trim();
+    if (!currentText) {
+      return res.status(400).json({ error: "message required" });
+    }
+    const historyMessages = normalizePanelChatHistory(req.body?.history);
+    let userContent = currentText;
+    if (userContent.length > PANEL_CHAT_MAX_CONTENT_CHARS) {
+      userContent = userContent.slice(0, PANEL_CHAT_MAX_CONTENT_CHARS);
+    }
+    const input =
+      historyMessages.length === 0
+        ? userContent
+        : [
+            ...historyMessages.map((m) => ({ role: m.role, content: m.content })),
+            { role: "user", content: userContent },
+          ];
     const response = await client.responses.create({
       model: "gpt-5.5",
       instructions: LUMOS_CHAT_INSTRUCTIONS,
