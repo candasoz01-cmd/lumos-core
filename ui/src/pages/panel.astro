@@ -1,0 +1,499 @@
+---
+/** Canlı köprü: ana sayfa ile aynı sabit adres. */
+const CHAT_URL = "https://lumos-core-1.onrender.com/chat";
+const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
+---
+
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lumos Panel — Çalışma alanı</title>
+    <style>
+      :root {
+        --lumos-bg: #0b1020;
+        --lumos-surface: rgba(9, 11, 18, 0.97);
+        --lumos-border: rgba(184, 148, 96, 0.22);
+        --lumos-gold: #eccf93;
+        --lumos-text: #e4e7ef;
+        --lumos-muted: #9aa4b5;
+        --lumos-input-bg: #12182a;
+        --lumos-accent: #2a3f6d;
+        --lumos-user-bubble: rgba(42, 63, 109, 0.45);
+        --lumos-lumos-bubble: rgba(0, 0, 0, 0.28);
+        --lumos-error: #f0b4b4;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--lumos-bg);
+        color: var(--lumos-text);
+        font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+        line-height: 1.55;
+      }
+      .panel-shell {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      .panel-header {
+        flex-shrink: 0;
+        padding: clamp(0.85rem, 2vw, 1.15rem) clamp(1rem, 3vw, 1.5rem);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        background: linear-gradient(168deg, rgba(9, 11, 18, 0.98) 0%, rgba(11, 10, 14, 0.95) 100%);
+      }
+      .panel-header h1 {
+        margin: 0;
+        font-size: clamp(1.05rem, 2.2vw, 1.25rem);
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        color: #e8d4b4;
+      }
+      .panel-header p {
+        margin: 0.35rem 0 0;
+        font-size: 0.88rem;
+        color: var(--lumos-muted);
+      }
+      .panel-body {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+      }
+      .panel-nav {
+        flex: 0 0 clamp(10rem, 22vw, 12.5rem);
+        padding: 0.85rem 0;
+        border-right: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(0, 0, 0, 0.2);
+      }
+      .panel-nav button {
+        display: block;
+        width: 100%;
+        margin: 0;
+        padding: 0.55rem 1rem;
+        border: none;
+        background: transparent;
+        color: #c9ced9;
+        font-size: 0.86rem;
+        text-align: left;
+        cursor: pointer;
+        border-left: 3px solid transparent;
+      }
+      .panel-nav button:hover {
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--lumos-text);
+      }
+      .panel-nav button[aria-current="true"] {
+        color: var(--lumos-gold);
+        border-left-color: rgba(236, 207, 147, 0.65);
+        background: rgba(236, 207, 147, 0.06);
+      }
+      .panel-main {
+        flex: 1;
+        min-width: 0;
+        padding: clamp(0.85rem, 2vw, 1.25rem);
+        display: flex;
+        flex-direction: column;
+      }
+      .module-panel {
+        display: none;
+        flex: 1;
+        flex-direction: column;
+        min-height: 0;
+      }
+      .module-panel[data-active="true"] {
+        display: flex;
+      }
+      .module-panel h2 {
+        margin: 0 0 0.75rem;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #e8ecf4;
+        letter-spacing: -0.01em;
+      }
+      .placeholder-block {
+        padding: 1rem 1.05rem;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: var(--lumos-surface);
+        color: var(--lumos-muted);
+        font-size: 0.86rem;
+        max-width: 32rem;
+      }
+      .chat-thread {
+        flex: 1;
+        overflow-y: auto;
+        margin-bottom: 0.75rem;
+        padding: 0.25rem 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+        max-height: min(52vh, 520px);
+      }
+      .chat-msg {
+        max-width: min(100%, 36rem);
+        padding: 0.55rem 0.7rem;
+        border-radius: 10px;
+        font-size: 0.84rem;
+        white-space: pre-wrap;
+        word-break: break-word;
+        line-height: 1.55;
+      }
+      .chat-msg--user {
+        align-self: flex-end;
+        background: var(--lumos-user-bubble);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: #eef2fb;
+      }
+      .chat-msg--lumos {
+        align-self: flex-start;
+        background: var(--lumos-lumos-bubble);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: #dce3f0;
+      }
+      .chat-msg--error {
+        align-self: flex-start;
+        border-color: rgba(240, 180, 180, 0.35);
+        color: var(--lumos-error);
+        background: rgba(60, 20, 20, 0.25);
+      }
+      .chat-msg-role {
+        display: block;
+        font-size: 0.68rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--lumos-muted);
+        margin-bottom: 0.25rem;
+      }
+      .chat-compose {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: flex-end;
+      }
+      .chat-compose textarea {
+        flex: 1;
+        min-width: 12rem;
+        min-height: 2.5rem;
+        max-height: 8rem;
+        padding: 0.5rem 0.6rem;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: var(--lumos-input-bg);
+        color: #f2f2f2;
+        font-size: 0.84rem;
+        font-family: inherit;
+        resize: vertical;
+      }
+      .chat-compose button {
+        padding: 0.5rem 0.9rem;
+        border-radius: 8px;
+        border: none;
+        background: var(--lumos-accent);
+        color: #fff;
+        font-size: 0.84rem;
+        cursor: pointer;
+      }
+      .chat-compose button:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+      }
+      .lumos-security-note {
+        position: fixed;
+        right: clamp(0.5rem, 2vw, 1rem);
+        bottom: clamp(0.5rem, 2vw, 1rem);
+        max-width: 16rem;
+        padding: 0.4rem 0.55rem;
+        border-radius: 8px;
+        font-size: 0.72rem;
+        line-height: 1.45;
+        color: var(--lumos-muted);
+        background: rgba(11, 16, 32, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        z-index: 10;
+      }
+      @media (max-width: 639.98px) {
+        .panel-body {
+          flex-direction: column;
+        }
+        .panel-nav {
+          flex: 0 0 auto;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.25rem;
+          padding: 0.5rem;
+          border-right: none;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .panel-nav button {
+          flex: 1 1 auto;
+          min-width: calc(50% - 0.25rem);
+          border-left: none;
+          border-bottom: 2px solid transparent;
+          text-align: center;
+          padding: 0.45rem 0.5rem;
+        }
+        .panel-nav button[aria-current="true"] {
+          border-left-color: transparent;
+          border-bottom-color: rgba(236, 207, 147, 0.65);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="panel-shell">
+      <header class="panel-header">
+        <h1>Lumos Panel</h1>
+        <p>Çalışma alanı</p>
+      </header>
+      <div class="panel-body">
+        <nav class="panel-nav" aria-label="Modüller">
+          <button type="button" data-module="sohbet" aria-current="true">Sohbet</button>
+          <button type="button" data-module="gorevler">Görevler</button>
+          <button type="button" data-module="ses">Ses</button>
+          <button type="button" data-module="medya">Medya</button>
+          <button type="button" data-module="dosyalar">Dosyalar</button>
+          <button type="button" data-module="guvenlik">Güvenlik</button>
+          <button type="button" data-module="ayarlar">Ayarlar</button>
+        </nav>
+        <main class="panel-main">
+          <section
+            id="panel-sohbet"
+            class="module-panel"
+            data-module-panel="sohbet"
+            data-active="true"
+            aria-labelledby="panel-sohbet-title"
+          >
+            <h2 id="panel-sohbet-title">Sohbet</h2>
+            <div
+              id="chat-thread"
+              class="chat-thread"
+              role="log"
+              aria-live="polite"
+              aria-relevant="additions"
+            >
+            </div>
+            <div class="chat-compose">
+              <label for="panel-msg" class="visually-hidden">Mesaj</label>
+              <textarea
+                id="panel-msg"
+                rows="2"
+                placeholder="Mesajını yaz…"
+                autocomplete="off"
+              ></textarea>
+              <button type="button" id="panel-send">Gönder</button>
+            </div>
+          </section>
+
+          <section
+            id="panel-gorevler"
+            class="module-panel"
+            data-module-panel="gorevler"
+            data-active="false"
+            aria-labelledby="panel-gorevler-title"
+          >
+            <h2 id="panel-gorevler-title">Görevler</h2>
+            <p class="placeholder-block">Görev listesi bu taslakta henüz yok; sonraki sürümlerde eklenecek.</p>
+          </section>
+
+          <section
+            id="panel-ses"
+            class="module-panel"
+            data-module-panel="ses"
+            data-active="false"
+            aria-labelledby="panel-ses-title"
+          >
+            <h2 id="panel-ses-title">Ses</h2>
+            <p class="placeholder-block">Ses katmanı daha sonra eklenecek. Şimdilik yalnızca yer tutucu.</p>
+          </section>
+
+          <section
+            id="panel-medya"
+            class="module-panel"
+            data-module-panel="medya"
+            data-active="false"
+            aria-labelledby="panel-medya-title"
+          >
+            <h2 id="panel-medya-title">Medya</h2>
+            <p class="placeholder-block">Medya modülü bu taslakta kapalı.</p>
+          </section>
+
+          <section
+            id="panel-dosyalar"
+            class="module-panel"
+            data-module-panel="dosyalar"
+            data-active="false"
+            aria-labelledby="panel-dosyalar-title"
+          >
+            <h2 id="panel-dosyalar-title">Dosyalar</h2>
+            <p class="placeholder-block">Dosya yönetimi bu taslakta kapalı.</p>
+          </section>
+
+          <section
+            id="panel-guvenlik"
+            class="module-panel"
+            data-module-panel="guvenlik"
+            data-active="false"
+            aria-labelledby="panel-guvenlik-title"
+          >
+            <h2 id="panel-guvenlik-title">Güvenlik</h2>
+            <p class="placeholder-block">Güvenlik merkezi bu taslakta kapalı.</p>
+          </section>
+
+          <section
+            id="panel-ayarlar"
+            class="module-panel"
+            data-module-panel="ayarlar"
+            data-active="false"
+            aria-labelledby="panel-ayarlar-title"
+          >
+            <h2 id="panel-ayarlar-title">Ayarlar</h2>
+            <p class="placeholder-block">Ayarlar bu taslakta kapalı.</p>
+          </section>
+        </main>
+      </div>
+    </div>
+    <p class="lumos-security-note">Kalıcı ve yıkıcı işlemler açık onay gerektirir.</p>
+    <style is:global>
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+    </style>
+    <script define:vars={{ CHAT_URL, kandoToken }}>
+      function wirePanel() {
+        const nav = document.querySelector(".panel-nav");
+        const panels = document.querySelectorAll("[data-module-panel]");
+        const sendBtn = document.getElementById("panel-send");
+        const input = document.getElementById("panel-msg");
+        const thread = document.getElementById("chat-thread");
+        if (!nav || !sendBtn || !input || !thread) return;
+
+        nav.addEventListener("click", (e) => {
+          const t = e.target;
+          if (!(t instanceof HTMLElement)) return;
+          const btn = t.closest("button[data-module]");
+          if (!btn) return;
+          const id = btn.getAttribute("data-module");
+          if (!id) return;
+          nav.querySelectorAll("button[data-module]").forEach((b) => {
+            b.setAttribute("aria-current", b === btn ? "true" : "false");
+          });
+          panels.forEach((p) => {
+            p.setAttribute("data-active", p.getAttribute("data-module-panel") === id ? "true" : "false");
+          });
+        });
+
+        const sendLabel = "Gönder";
+        const loadingLabel = "Gönderiliyor…";
+        let sending = false;
+
+        function appendBubble(kind, text) {
+          const wrap = document.createElement("div");
+          wrap.className =
+            "chat-msg " +
+            (kind === "user" ? "chat-msg--user" : kind === "error" ? "chat-msg--error" : "chat-msg--lumos");
+          const role = document.createElement("span");
+          role.className = "chat-msg-role";
+          role.textContent = kind === "user" ? "Sen" : kind === "error" ? "Uyarı" : "Lumos";
+          const body = document.createElement("div");
+          body.textContent = text;
+          wrap.appendChild(role);
+          wrap.appendChild(body);
+          thread.appendChild(wrap);
+          thread.scrollTop = thread.scrollHeight;
+        }
+
+        async function runSend() {
+          const message = input.value.trim();
+          if (!message || sending) return;
+
+          sending = true;
+          sendBtn.disabled = true;
+          sendBtn.textContent = loadingLabel;
+          appendBubble("user", message);
+
+          try {
+            const r = await fetch(CHAT_URL, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-Kando-Token": kandoToken,
+              },
+              body: JSON.stringify({ message }),
+            });
+            const text = await r.text();
+            let data = null;
+            try {
+              data = text ? JSON.parse(text) : null;
+            } catch {
+              data = null;
+            }
+            if (r.ok) {
+              let replyBody = "";
+              if (data && typeof data === "object" && "reply" in data) {
+                const raw = data.reply;
+                replyBody = raw == null ? "" : String(raw);
+              }
+              if (!replyBody.trim() && text && text.trim()) {
+                replyBody =
+                  data && typeof data === "object" && "reply" in data
+                    ? ""
+                    : "Bu kez yanıtı okuyamadık. Biraz sonra yeniden denebilirsin.";
+              }
+              const lumosText = replyBody.trim()
+                ? replyBody
+                : "Bu sefer boş bir yanıt geldi. Sorunu biraz açıp yeniden deneyebilirsin.";
+              appendBubble("lumos", lumosText);
+              input.value = "";
+            } else {
+              let errHuman = "";
+              if (data && typeof data === "object" && data.error != null) {
+                errHuman = String(data.error);
+              } else if (text && text.trim()) {
+                errHuman = text.trim();
+              } else {
+                errHuman = r.statusText || "Beklenmeyen bir durum oluştu.";
+              }
+              if (errHuman === "OPENAI_API_KEY missing") {
+                errHuman = "Şu an yanıt üretilemiyor; kısa süre içinde yeniden denebilirsin.";
+              } else if (errHuman === "message required") {
+                errHuman = "Önce kısa bir mesaj yazman gerekiyor.";
+              }
+              appendBubble("error", "Şimdilik yanıt veremedik. " + errHuman);
+            }
+          } catch {
+            appendBubble(
+              "error",
+              "Bağlantıda kısa bir kesinti oldu. İnternetini kontrol edip biraz sonra yeniden deneyebilirsin."
+            );
+          } finally {
+            sending = false;
+            sendBtn.disabled = false;
+            sendBtn.textContent = sendLabel;
+          }
+        }
+
+        sendBtn.addEventListener("click", () => {
+          void runSend();
+        });
+        input.addEventListener("keydown", (e) => {
+          if (e.key !== "Enter" || e.shiftKey) return;
+          e.preventDefault();
+          void runSend();
+        });
+      }
+      wirePanel();
+    </script>
+  </body>
+</html>
