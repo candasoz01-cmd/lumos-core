@@ -292,26 +292,19 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
 
       <section
         style="margin-top:2.75rem;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,0.1);font-size:0.8rem;color:#9aa4b5;text-align:left;line-height:1.55;"
-        aria-label="Lumos'a kısa bir mesaj gönder"
+        aria-label="Lumos'a bir şey söyle"
       >
         <p style="margin:0 0 0.6rem;font-weight:600;color:#e8ecf4;font-size:0.88rem;letter-spacing:-0.01em;">
-          Lumos'a kısa bir mesaj gönder
+          Lumos'a bir şey söyle
         </p>
-        <p style="margin:0 0 0.55rem;color:#aeb6c8;font-size:0.82rem;line-height:1.55;">
-          Bu alan canlı Lumos backend bağlantısını test eder. Kısa bir mesaj yazın; yanıt doğrudan aşağıda
-          görünür.
-        </p>
-        <p style="margin:0 0 0.7rem;font-size:0.78rem;color:#9aa4b5;">
-          Adres:
-          <code style="color:#c8d0e0;font-size:0.78rem;">https://lumos-core-1.onrender.com/chat</code>
-          — özel token kullanacaksanız build sırasında
-          <code style="color:#c8d0e0;font-size:0.78rem;">PUBLIC_KANDO_TOKEN</code> tanımlayın.
+        <p style="margin:0 0 0.7rem;color:#aeb6c8;font-size:0.82rem;line-height:1.55;">
+          Kısa bir düşünce, soru ya da görev yazın. Lumos, cevabı doğrudan burada gösterecek.
         </p>
         <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;">
           <input
             id="msg"
             type="text"
-            placeholder="Kısa bir test mesajı"
+            placeholder="Ne üzerinde düşünelim?"
             style="flex:1;min-width:12rem;max-width:100%;padding:0.45rem 0.55rem;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:#12182a;color:#f2f2f2;font-size:0.8rem;"
           />
           <button
