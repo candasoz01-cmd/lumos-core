@@ -68,11 +68,28 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         border-right: 1px solid rgba(255, 255, 255, 0.08);
         background: linear-gradient(180deg, rgba(0, 0, 0, 0.28) 0%, rgba(8, 10, 18, 0.35) 100%);
       }
+      .lumos-soon-badge {
+        display: inline-block;
+        flex-shrink: 0;
+        font-size: 0.56rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: rgba(200, 178, 132, 0.78);
+        background: rgba(90, 72, 44, 0.22);
+        border: 1px solid rgba(184, 148, 96, 0.2);
+        padding: 0.1rem 0.34rem;
+        border-radius: 4px;
+        line-height: 1.2;
+      }
       .panel-nav button {
-        display: block;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.35rem;
         width: calc(100% - 0.35rem);
         margin: 0.12rem 0 0.12rem 0.35rem;
-        padding: 0.58rem 0.85rem 0.58rem 0.95rem;
+        padding: 0.58rem 0.75rem 0.58rem 0.95rem;
         border: none;
         background: rgba(255, 255, 255, 0.02);
         color: #aeb6c8;
@@ -86,6 +103,9 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
           background 0.15s ease,
           color 0.15s ease,
           border-color 0.15s ease;
+      }
+      .panel-nav-label {
+        min-width: 0;
       }
       .panel-nav button:hover {
         background: rgba(255, 255, 255, 0.06);
@@ -131,6 +151,17 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         font-weight: 600;
         color: #e8ecf4;
         letter-spacing: -0.01em;
+      }
+      .module-panel h2.module-title-row {
+        display: flex;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 0.45rem 0.55rem;
+      }
+      .module-panel h2.module-title-row .lumos-soon-badge {
+        font-size: 0.52rem;
+        padding: 0.08rem 0.32rem;
+        opacity: 0.92;
       }
       .placeholder-block {
         padding: 1rem 1.05rem;
@@ -427,7 +458,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
           border-left: none;
           border-bottom: 2px solid transparent;
           border-radius: 10px;
-          text-align: center;
+          justify-content: center;
           padding: 0.45rem 0.5rem;
         }
         .panel-nav button[aria-current="true"] {
@@ -450,13 +481,33 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
       </header>
       <div class="panel-body">
         <nav class="panel-nav" aria-label="Modüller">
-          <button type="button" data-module="sohbet" aria-current="true">Sohbet</button>
-          <button type="button" data-module="gorevler">Görevler</button>
-          <button type="button" data-module="ses">Ses</button>
-          <button type="button" data-module="medya">Medya</button>
-          <button type="button" data-module="dosyalar">Dosyalar</button>
-          <button type="button" data-module="guvenlik">Güvenlik</button>
-          <button type="button" data-module="ayarlar">Ayarlar</button>
+          <button type="button" data-module="sohbet" aria-current="true">
+            <span class="panel-nav-label">Sohbet</span>
+          </button>
+          <button type="button" data-module="gorevler">
+            <span class="panel-nav-label">Görevler</span>
+            <span class="lumos-soon-badge">Yakında</span>
+          </button>
+          <button type="button" data-module="ses">
+            <span class="panel-nav-label">Ses</span>
+            <span class="lumos-soon-badge">Yakında</span>
+          </button>
+          <button type="button" data-module="medya">
+            <span class="panel-nav-label">Medya</span>
+            <span class="lumos-soon-badge">Yakında</span>
+          </button>
+          <button type="button" data-module="dosyalar">
+            <span class="panel-nav-label">Dosyalar</span>
+            <span class="lumos-soon-badge">Yakında</span>
+          </button>
+          <button type="button" data-module="guvenlik">
+            <span class="panel-nav-label">Güvenlik</span>
+            <span class="lumos-soon-badge">Yakında</span>
+          </button>
+          <button type="button" data-module="ayarlar">
+            <span class="panel-nav-label">Ayarlar</span>
+            <span class="lumos-soon-badge">Yakında</span>
+          </button>
         </nav>
         <main class="panel-main">
           <section
@@ -506,7 +557,9 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-gorevler-title"
           >
-            <h2 id="panel-gorevler-title">Görevler</h2>
+            <h2 id="panel-gorevler-title" class="module-title-row">
+              Görevler <span class="lumos-soon-badge">Yakında</span>
+            </h2>
             <div class="placeholder-block">
               <p>Görev akışları burada toplanacak.</p>
               <p>Henüz aktif görev sistemi yok.</p>
@@ -520,7 +573,9 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-ses-title"
           >
-            <h2 id="panel-ses-title">Ses</h2>
+            <h2 id="panel-ses-title" class="module-title-row">
+              Ses <span class="lumos-soon-badge">Yakında</span>
+            </h2>
             <div class="placeholder-block">
               <p>Ses katmanı daha sonra eklenecek.</p>
               <p>Sesli konuşma araya kaynamayacak; bu alan takipte.</p>
@@ -534,7 +589,9 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-medya-title"
           >
-            <h2 id="panel-medya-title">Medya</h2>
+            <h2 id="panel-medya-title" class="module-title-row">
+              Medya <span class="lumos-soon-badge">Yakında</span>
+            </h2>
             <div class="placeholder-block">
               <p>Ses, görüntü ve dosya işleme akışları burada düzenlenecek.</p>
             </div>
@@ -547,7 +604,9 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-dosyalar-title"
           >
-            <h2 id="panel-dosyalar-title">Dosyalar</h2>
+            <h2 id="panel-dosyalar-title" class="module-title-row">
+              Dosyalar <span class="lumos-soon-badge">Yakında</span>
+            </h2>
             <div class="placeholder-block">
               <p>Dosya işlemleri burada görünecek.</p>
               <p>Kalıcı silme varsayılan değildir; önce silinenler/çöp akışı kullanılır.</p>
@@ -561,7 +620,9 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-guvenlik-title"
           >
-            <h2 id="panel-guvenlik-title">Güvenlik</h2>
+            <h2 id="panel-guvenlik-title" class="module-title-row">
+              Güvenlik <span class="lumos-soon-badge">Yakında</span>
+            </h2>
             <div class="placeholder-block">
               <p>Kalıcı ve yıkıcı işlemler açık onay gerektirir.</p>
               <p>Dış bağlantılar ve izinler kullanıcıdan gizlenmez.</p>
@@ -575,7 +636,9 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-ayarlar-title"
           >
-            <h2 id="panel-ayarlar-title">Ayarlar</h2>
+            <h2 id="panel-ayarlar-title" class="module-title-row">
+              Ayarlar <span class="lumos-soon-badge">Yakında</span>
+            </h2>
             <div class="placeholder-block">
               <p>Kullanıcı tercihleri ve Lumos davranış ayarları burada yer alacak.</p>
             </div>
