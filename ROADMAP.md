@@ -38,3 +38,9 @@
 
 ## Not
 Bu dosya işlev eklemez; yalnızca ürün yönünü ve unutulmaması gereken başlıkları takip eder.
+
+### Sıradaki
+**Sıradaki ilk gerçek modül: Görevler**
+
+- Görevler modülü ilk aşamada yalnızca görünür takip alanıdır.
+- Onay, risk ve durum mantığı ileride genişletilecek.
