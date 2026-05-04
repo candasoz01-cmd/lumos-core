@@ -390,6 +390,17 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         line-height: 1.45;
         color: var(--lumos-muted);
       }
+      .chat-panel-arch {
+        margin: 0.38rem 0 0;
+        max-width: 38rem;
+        padding-left: 0.55rem;
+        border-left: 2px solid rgba(72, 118, 116, 0.42);
+        font-size: 0.68rem;
+        line-height: 1.5;
+        letter-spacing: 0.015em;
+        color: rgba(154, 168, 178, 0.88);
+        background: linear-gradient(90deg, rgba(236, 207, 147, 0.06) 0%, transparent 55%);
+      }
       /** Sohbet: (1) üst başlık+durum, (2) yalnızca kaydırılan geçmiş, (3) altta sabit compose — birbirine yapışmaz. */
       .chat-workspace {
         flex: 1;
@@ -840,6 +851,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             <div class="chat-panel-top">
               <h2 id="panel-sohbet-title">Sohbet</h2>
               <p class="chat-panel-status">Aşağıdaki alanda yalnızca konuşma geçmişi kayar; mesajını en alttan gönder.</p>
+              <p class="chat-panel-arch" role="note">Lumos, göreve göre doğru çalışma alanını açar; cihaz yerel merkez, dış servisler güvenli köprüdür.</p>
             </div>
             <div class="chat-workspace">
               <div class="chat-history-shell" aria-label="Mesaj geçmişi">
