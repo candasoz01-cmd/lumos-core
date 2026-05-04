@@ -141,6 +141,12 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         font-size: 0.86rem;
         max-width: 32rem;
       }
+      .placeholder-block p {
+        margin: 0;
+      }
+      .placeholder-block p + p {
+        margin-top: 0.65rem;
+      }
       #panel-sohbet {
         gap: 0;
       }
@@ -501,7 +507,10 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             aria-labelledby="panel-gorevler-title"
           >
             <h2 id="panel-gorevler-title">Görevler</h2>
-            <p class="placeholder-block">Görev listesi bu taslakta henüz yok; sonraki sürümlerde eklenecek.</p>
+            <div class="placeholder-block">
+              <p>Görev akışları burada toplanacak.</p>
+              <p>Henüz aktif görev sistemi yok.</p>
+            </div>
           </section>
 
           <section
@@ -512,7 +521,10 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             aria-labelledby="panel-ses-title"
           >
             <h2 id="panel-ses-title">Ses</h2>
-            <p class="placeholder-block">Ses katmanı daha sonra eklenecek. Şimdilik yalnızca yer tutucu.</p>
+            <div class="placeholder-block">
+              <p>Ses katmanı daha sonra eklenecek.</p>
+              <p>Sesli konuşma araya kaynamayacak; bu alan takipte.</p>
+            </div>
           </section>
 
           <section
@@ -523,7 +535,9 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             aria-labelledby="panel-medya-title"
           >
             <h2 id="panel-medya-title">Medya</h2>
-            <p class="placeholder-block">Medya modülü bu taslakta kapalı.</p>
+            <div class="placeholder-block">
+              <p>Ses, görüntü ve dosya işleme akışları burada düzenlenecek.</p>
+            </div>
           </section>
 
           <section
@@ -534,7 +548,10 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             aria-labelledby="panel-dosyalar-title"
           >
             <h2 id="panel-dosyalar-title">Dosyalar</h2>
-            <p class="placeholder-block">Dosya yönetimi bu taslakta kapalı.</p>
+            <div class="placeholder-block">
+              <p>Dosya işlemleri burada görünecek.</p>
+              <p>Kalıcı silme varsayılan değildir; önce silinenler/çöp akışı kullanılır.</p>
+            </div>
           </section>
 
           <section
@@ -545,7 +562,10 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             aria-labelledby="panel-guvenlik-title"
           >
             <h2 id="panel-guvenlik-title">Güvenlik</h2>
-            <p class="placeholder-block">Güvenlik merkezi bu taslakta kapalı.</p>
+            <div class="placeholder-block">
+              <p>Kalıcı ve yıkıcı işlemler açık onay gerektirir.</p>
+              <p>Dış bağlantılar ve izinler kullanıcıdan gizlenmez.</p>
+            </div>
           </section>
 
           <section
@@ -556,7 +576,9 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             aria-labelledby="panel-ayarlar-title"
           >
             <h2 id="panel-ayarlar-title">Ayarlar</h2>
-            <p class="placeholder-block">Ayarlar bu taslakta kapalı.</p>
+            <div class="placeholder-block">
+              <p>Kullanıcı tercihleri ve Lumos davranış ayarları burada yer alacak.</p>
+            </div>
           </section>
         </main>
       </div>
