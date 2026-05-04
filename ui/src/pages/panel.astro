@@ -787,6 +787,10 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
                 <span class="panel-nav-label">Sosyal</span>
                 <span class="lumos-soon-badge">Yakında</span>
               </button>
+              <button type="button" data-module="posta">
+                <span class="panel-nav-label">Posta</span>
+                <span class="lumos-soon-badge">Yakında</span>
+              </button>
               <button type="button" data-module="dosyalar">
                 <span class="panel-nav-label">Dosyalar</span>
                 <span class="lumos-soon-badge">Yakında</span>
@@ -946,6 +950,22 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             <div class="placeholder-block">
               <p>Lumos'un kendi sosyal alanı ve diğer sosyal platform bağlantıları burada toplanacak.</p>
               <p>Paylaşım, görünürlük, yorum ve dış platform geçişleri kullanıcı onayıyla ilerleyecek.</p>
+            </div>
+          </section>
+
+          <section
+            id="panel-posta"
+            class="module-panel"
+            data-module-panel="posta"
+            data-active="false"
+            aria-labelledby="panel-posta-title"
+          >
+            <h2 id="panel-posta-title" class="module-title-row">
+              Posta <span class="lumos-soon-badge">Yakında</span>
+            </h2>
+            <div class="placeholder-block">
+              <p>Bağlı e-posta hesaplarından önemli, şüpheli veya işlem gerektiren mesajlar burada görünür hale getirilecek.</p>
+              <p>Posta akışı kullanıcı izniyle çalışacak; bağlantılar Entegrasyon, riskli içerikler Güvenlik, yapılacak işlemler Görevler alanına bağlanacak.</p>
             </div>
           </section>
 
