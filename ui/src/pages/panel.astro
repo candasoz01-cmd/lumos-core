@@ -190,6 +190,19 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         background: linear-gradient(180deg, rgba(220, 190, 130, 0.55) 0%, rgba(160, 130, 90, 0.45) 100%);
         background-clip: padding-box;
       }
+      .chat-turn {
+        display: flex;
+        width: 100%;
+        flex-shrink: 0;
+        justify-content: flex-start;
+      }
+      .chat-turn--user {
+        justify-content: flex-end;
+      }
+      .chat-turn--lumos,
+      .chat-turn--error {
+        justify-content: flex-start;
+      }
       .chat-msg {
         display: flex;
         flex-direction: column;
@@ -200,7 +213,6 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
       }
       .chat-msg--user {
-        align-self: flex-end;
         max-width: min(100%, 22rem, 82%);
         margin-left: clamp(1.5rem, 8vw, 3.5rem);
         background: linear-gradient(165deg, rgba(52, 78, 130, 0.55) 0%, rgba(36, 52, 92, 0.72) 100%);
@@ -209,7 +221,6 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         color: #f4f7ff;
       }
       .chat-msg--lumos {
-        align-self: flex-start;
         max-width: min(100%, 46rem, 94%);
         margin-right: clamp(0.75rem, 5vw, 2.5rem);
         background: linear-gradient(
@@ -223,7 +234,6 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         color: #e2e8f5;
       }
       .chat-msg--error {
-        align-self: flex-start;
         max-width: min(100%, 40rem, 92%);
         margin-right: clamp(0.75rem, 5vw, 2.25rem);
         border: 1px solid rgba(240, 180, 180, 0.32);
@@ -535,6 +545,18 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         const CHAT_HISTORY_LIMIT = 12;
         let sending = false;
 
+        function escapeHtml(s) {
+          return String(s)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+        }
+
+        function formatAssistantHtml(raw) {
+          return escapeHtml(raw).replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+        }
+
         /** Mevcut iplikten (yeni kullanıcı mesajı eklenmeden önce) son N mesajı role/content olarak döner. */
         function collectThreadHistory(threadEl) {
           const nodes = threadEl.querySelectorAll(".chat-msg");
@@ -554,6 +576,11 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         }
 
         function appendBubble(kind, text) {
+          const turn = document.createElement("div");
+          turn.className =
+            "chat-turn " +
+            (kind === "user" ? "chat-turn--user" : kind === "error" ? "chat-turn--error" : "chat-turn--lumos");
+
           const wrap = document.createElement("div");
           wrap.className =
             "chat-msg " +
@@ -563,10 +590,15 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
           role.textContent = kind === "user" ? "Sen" : kind === "error" ? "Uyarı" : "Lumos";
           const body = document.createElement("div");
           body.className = "chat-msg-body";
-          body.textContent = text;
+          if (kind === "lumos") {
+            body.innerHTML = formatAssistantHtml(text);
+          } else {
+            body.textContent = text;
+          }
           wrap.appendChild(role);
           wrap.appendChild(body);
-          thread.appendChild(wrap);
+          turn.appendChild(wrap);
+          thread.appendChild(turn);
           requestAnimationFrame(() => {
             thread.scrollTop = thread.scrollHeight;
           });
