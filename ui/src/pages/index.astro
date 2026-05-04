@@ -298,7 +298,8 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
           Lumos'a bir şey söyle
         </p>
         <p style="margin:0 0 0.7rem;color:#aeb6c8;font-size:0.82rem;line-height:1.55;">
-          Kısa bir düşünce, soru ya da görev yazın. Lumos, cevabı doğrudan burada gösterecek.
+          Kısa bir düşünce, soru ya da görev yazın. Lumos yanıtı burada gösterecek; belirsiz yerlerde açık
+          konuşacak.
         </p>
         <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;">
           <input
@@ -331,13 +332,18 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         const out = document.getElementById("out");
         if (!btn || !input || !out) return;
 
+        const sendLabel = "Gönder";
+        const loadingLabel = "Gönderiliyor...";
+        let sending = false;
+
         async function runApiTest() {
           const message = input.value.trim();
           if (!message) return;
+          if (sending) return;
 
-          const label = btn.textContent;
+          sending = true;
           btn.disabled = true;
-          btn.textContent = "Gönderiliyor...";
+          btn.textContent = loadingLabel;
           out.textContent = "";
           try {
             const r = await fetch(CHAT_URL, {
@@ -365,10 +371,13 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
                 replyBody =
                   data && typeof data === "object" && "reply" in data
                     ? ""
-                    : "Yanıt okunamadı; lütfen bir süre sonra yeniden deneyin.";
+                    : "Bu kez yanıtı okuyamadık. Biraz sonra yeniden denebilirsin.";
               }
               out.textContent =
-                "Lumos cevabı\n\n" + (replyBody.trim() ? replyBody : "Şu an için boş bir yanıt geldi.");
+                "Lumos cevabı\n\n" +
+                (replyBody.trim()
+                  ? replyBody
+                  : "Bu sefer boş bir yanıt geldi. Sorunu biraz açıp yeniden deneyebilirsin.");
             } else {
               let errHuman = "";
               if (data && typeof data === "object" && data.error != null) {
@@ -376,24 +385,22 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
               } else if (text && text.trim()) {
                 errHuman = text.trim();
               } else {
-                errHuman = r.statusText || "Bilinmeyen bir hata oluştu.";
+                errHuman = r.statusText || "Beklenmeyen bir durum oluştu.";
               }
               if (errHuman === "OPENAI_API_KEY missing") {
-                errHuman = "Sunucu tarafında yapılandırma eksik; şu an yanıt üretilemiyor.";
+                errHuman = "Şu an yanıt üretilemiyor; kısa süre içinde yeniden denebilirsin.";
               } else if (errHuman === "message required") {
-                errHuman = "Mesaj metni gerekli.";
+                errHuman = "Önce kısa bir mesaj yazman gerekiyor.";
               }
-              out.textContent =
-                "Şu an yanıt alınamadı: " +
-                errHuman +
-                (r.status ? " (kod: " + r.status + ")" : "");
+              out.textContent = "Şimdilik yanıt veremedik. " + errHuman;
             }
-          } catch (e) {
-            const msg = e instanceof Error ? e.message : String(e);
-            out.textContent = "Bağlantı kurulurken bir sorun oluştu: " + msg;
+          } catch {
+            out.textContent =
+              "Bağlantıda kısa bir kesinti oldu. İnternetini kontrol edip biraz sonra yeniden deneyebilirsin.";
           } finally {
+            sending = false;
             btn.disabled = false;
-            btn.textContent = label;
+            btn.textContent = sendLabel;
           }
         }
 
