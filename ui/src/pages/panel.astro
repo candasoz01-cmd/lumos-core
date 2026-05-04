@@ -475,15 +475,15 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
                 >
                 </div>
               </div>
-              <div class="chat-compose-stack" aria-label="Mesaj yazma">
+              <div class="chat-compose-stack">
                 <div class="chat-compose-bar">
                   <div class="chat-compose">
+                    <label for="panel-msg" class="visually-hidden">Mesaj</label>
                     <textarea
                       id="panel-msg"
                       rows="2"
                       placeholder="Mesajını yaz…"
                       autocomplete="off"
-                      aria-label="Mesajını yaz"
                     ></textarea>
                     <button type="button" id="panel-send">Gönder</button>
                   </div>
