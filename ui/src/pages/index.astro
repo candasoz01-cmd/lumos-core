@@ -38,6 +38,62 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
           display: none;
         }
       }
+      .lumos-cap {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 0 clamp(0.65rem, 2vw, 1.25rem) clamp(1.1rem, 2.8vw, 1.85rem);
+      }
+      .lumos-cap-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem 1.15rem;
+      }
+      @media (min-width: 640px) {
+        .lumos-cap-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (min-width: 1024px) {
+        .lumos-cap-grid {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+      }
+      .lumos-cap-card {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0.85rem 0.95rem;
+        border-radius: 10px;
+        border: 1px solid rgba(148, 112, 68, 0.38);
+        background: linear-gradient(165deg, rgba(12, 14, 22, 0.92) 0%, rgba(14, 12, 10, 0.88) 100%);
+        box-shadow: inset 0 1px 0 rgba(188, 148, 92, 0.08), 0 6px 20px rgba(0, 0, 0, 0.35);
+      }
+      .lumos-cap-card h3 {
+        margin: 0 0 0.45rem;
+        font-size: 0.95rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        color: #e0c49a;
+        line-height: 1.25;
+      }
+      .lumos-cap-card p {
+        margin: 0;
+        font-size: 0.88rem;
+        line-height: 1.55;
+        color: #c5cad6;
+      }
+      .lumos-cap-sronly {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
     </style>
   </head>
   <body
@@ -103,6 +159,68 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             </aside>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section class="lumos-cap" aria-labelledby="lumos-cap-sr-title">
+      <h2 id="lumos-cap-sr-title" class="lumos-cap-sronly">Modül açıklamaları</h2>
+      <div class="lumos-cap-grid">
+        <article class="lumos-cap-card">
+          <h3>Yayıncılık</h3>
+          <p>
+            Canlı ve kayıtlı yayın akışlarını tek çatıda toplar; hangi kaynağın nereye gittiği ve hangi adımda
+            onay gerektiği sayfa üzerinde net görünür.
+          </p>
+        </article>
+        <article class="lumos-cap-card">
+          <h3>Medya</h3>
+          <p>
+            Ses, görüntü ve dosya işlerini cihazda düzenli tutar; önizleme ve dönüşümlerde küçük, kontrollü
+            adımlarla dağınıklığı azaltır.
+          </p>
+        </article>
+        <article class="lumos-cap-card">
+          <h3>Yapay Zekâ</h3>
+          <p>
+            Metin ve görevlerde yardımcı öneriler sunar; nihai karar ve onay kullanıcıda kalır, süreç izlenebilir
+            olur.
+          </p>
+        </article>
+        <article class="lumos-cap-card">
+          <h3>Kuantum</h3>
+          <p>
+            İleri güvenlik ve kriptografi yollarına uzun vadeli hazırlık düşüncesi taşır; bugünkü iş akışlarını
+            süslemeden köprü rolünü vurgular.
+          </p>
+        </article>
+        <article class="lumos-cap-card">
+          <h3>Entegrasyon</h3>
+          <p>
+            Dış servislerle bağlantıları güvenli köprüler üzerinden kurar; sınırlar ve veri akışı gizlenmez,
+            gerektiğinde durdurulabilir.
+          </p>
+        </article>
+        <article class="lumos-cap-card">
+          <h3>Kimlik</h3>
+          <p>
+            Oturum ve kimlik bilgilerini anlaşılır bir merkezde toplar; paylaşım ve yetki her zaman kullanıcı
+            kontrolüyle başlar.
+          </p>
+        </article>
+        <article class="lumos-cap-card">
+          <h3>Güvenlik</h3>
+          <p>
+            Riskli veya kalıcı işlemlerde ek doğrulama ister; varsayılanı gizlilik ve minimum yüzey olarak
+            ele alır.
+          </p>
+        </article>
+        <article class="lumos-cap-card">
+          <h3>Dünya</h3>
+          <p>
+            Dil, zaman dilimi ve küresel uç noktalarla uyumlu çalışır; tek cihazdan farklı bağlamlara erişimi
+            düzenli tutmayı hedefler.
+          </p>
+        </article>
       </div>
     </section>
 
