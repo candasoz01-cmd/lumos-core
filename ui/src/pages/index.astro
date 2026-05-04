@@ -1,4 +1,8 @@
 ---
+const apiBase = (import.meta.env.PUBLIC_LUMOS_API_URL || "https://lumos-core-1.onrender.com").replace(
+  /\/$/,
+  ""
+);
 ---
 
 <html lang="tr">
@@ -14,10 +18,10 @@
     <br><br>
     <button onclick="send()">Gönder</button>
     <pre id="out" style="margin-top:20px;"></pre>
-    <script>
+    <script define:vars={{ apiBase }}>
       async function send(){
         let m = document.getElementById("msg").value;
-        let r = await fetch("http://127.0.0.1:8765/chat", {
+        let r = await fetch(apiBase + "/chat", {
           method:"POST",
           headers:{
             "Content-Type":"application/json",
@@ -25,8 +29,8 @@
           },
           body: JSON.stringify({message:m})
         });
-        let j = await r.json();
-        document.getElementById("out").innerText = j.reply || j.error;
+        let j = await r.json().catch(() => ({}));
+        document.getElementById("out").innerText = j.reply || j.error || ("HTTP " + r.status);
       }
     </script>
   </body>

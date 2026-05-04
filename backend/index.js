@@ -45,9 +45,24 @@ app.use(express.json());
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Kando-Token");
   if (req.method === "OPTIONS") return res.sendStatus(204);
   next();
+});
+
+/** Basit sohbet köprüsü: Vercel UI’dan canlı bağlantı testi için (LLM yok, yanıt onayı). */
+app.post("/chat", (req, res) => {
+  try {
+    const message = req.body?.message;
+    if (message == null || (typeof message === "string" && message.trim() === "")) {
+      return res.status(400).json({ error: "message required" });
+    }
+    const text = typeof message === "string" ? message : String(message);
+    const preview = text.length > 500 ? `${text.slice(0, 500)}…` : text;
+    res.json({ reply: `Alındı: ${preview}` });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 const PORT = process.env.PORT || 3000;
