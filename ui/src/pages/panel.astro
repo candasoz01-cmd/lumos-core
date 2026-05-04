@@ -54,6 +54,49 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         background: linear-gradient(168deg, rgba(9, 11, 18, 0.98) 0%, rgba(11, 10, 14, 0.95) 100%);
       }
+      .panel-header-title-row {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+      }
+      .lumos-mark {
+        position: relative;
+        width: 1.42rem;
+        height: 1.42rem;
+        flex-shrink: 0;
+        border-radius: 50%;
+        background:
+          radial-gradient(circle at 32% 30%, rgba(245, 252, 255, 0.92) 0%, rgba(200, 230, 235, 0.2) 18%, transparent 38%),
+          radial-gradient(circle at 50% 52%, rgba(42, 95, 105, 0.55) 0%, rgba(12, 22, 34, 0.94) 100%);
+        border: 1px solid rgba(212, 185, 130, 0.4);
+        box-shadow:
+          inset 0 0 0 1px rgba(0, 0, 0, 0.42),
+          inset 0 1px 0 rgba(255, 255, 255, 0.1),
+          0 1px 3px rgba(0, 0, 0, 0.32);
+      }
+      .lumos-mark::before {
+        content: "";
+        position: absolute;
+        inset: 2px;
+        border-radius: 50%;
+        border: 1px solid rgba(55, 120, 125, 0.38);
+        pointer-events: none;
+      }
+      .lumos-mark::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 0.26rem;
+        height: 0.34rem;
+        margin: -0.19rem 0 0 -0.13rem;
+        box-sizing: border-box;
+        border-left: 1.5px solid rgba(236, 207, 147, 0.4);
+        border-bottom: 1.5px solid rgba(236, 207, 147, 0.4);
+        border-radius: 0 0 0 1px;
+        opacity: 0.88;
+        pointer-events: none;
+      }
       .panel-header h1 {
         margin: 0;
         font-size: clamp(1.05rem, 2.2vw, 1.25rem);
@@ -102,6 +145,19 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
       .panel-nav::-webkit-scrollbar-thumb:hover {
         background: linear-gradient(180deg, rgba(130, 112, 82, 0.58) 0%, rgba(88, 76, 56, 0.62) 100%);
         background-clip: padding-box;
+      }
+      .panel-nav-sig {
+        margin: 0.15rem 0.35rem 0.45rem 0.45rem;
+        padding: 0;
+        font-size: 0.62rem;
+        font-weight: 600;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: rgba(154, 164, 181, 0.45);
+      }
+      .panel-nav-sig span {
+        color: rgba(200, 185, 150, 0.42);
+        letter-spacing: 0.12em;
       }
       .panel-nav-group {
         display: flex;
@@ -343,6 +399,39 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         gap: 1rem;
         scrollbar-width: thin;
         scrollbar-color: rgba(184, 148, 96, 0.35) rgba(0, 0, 0, 0.2);
+      }
+      .chat-thread:not(:has(> .chat-turn)) {
+        justify-content: center;
+      }
+      .chat-empty-hint {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.2rem;
+        align-self: center;
+        max-width: 14rem;
+        padding: 0.5rem 0.75rem;
+        text-align: center;
+        font-size: 0.72rem;
+        line-height: 1.45;
+        letter-spacing: 0.04em;
+        color: rgba(154, 164, 181, 0.26);
+        user-select: none;
+        pointer-events: none;
+      }
+      .chat-empty-hint__line {
+        font-weight: 500;
+        color: rgba(180, 175, 160, 0.22);
+      }
+      .chat-empty-hint__sub {
+        font-size: 0.68rem;
+        font-weight: 400;
+        letter-spacing: 0.08em;
+        color: rgba(154, 164, 181, 0.2);
+      }
+      .chat-thread:has(> .chat-turn) > .chat-empty-hint {
+        display: none;
       }
       .chat-thread::-webkit-scrollbar {
         width: 7px;
@@ -620,11 +709,15 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
   <body>
     <div class="panel-shell">
       <header class="panel-header">
-        <h1>Lumos Panel</h1>
+        <div class="panel-header-title-row">
+          <span class="lumos-mark" aria-hidden="true"></span>
+          <h1>Lumos Panel</h1>
+        </div>
         <p>Çalışma alanı</p>
       </header>
       <div class="panel-body">
         <nav class="panel-nav" aria-label="Modüller">
+          <p class="panel-nav-sig">Lumos <span>panel</span></p>
           <div class="panel-nav-collapsible" data-nav-group="calisma">
             <button
               type="button"
@@ -730,6 +823,10 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
                   aria-live="polite"
                   aria-relevant="additions"
                 >
+                  <div class="chat-empty-hint" aria-hidden="true">
+                    <span class="chat-empty-hint__line">Lumos hazır</span>
+                    <span class="chat-empty-hint__sub">Dinliyor</span>
+                  </div>
                 </div>
               </div>
               <div class="chat-compose-stack">
