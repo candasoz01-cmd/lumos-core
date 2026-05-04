@@ -43,45 +43,52 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         width: 100%;
         max-width: 1240px;
         margin: 0 auto;
-        padding: 0 clamp(0.65rem, 2vw, 1.25rem) clamp(1.1rem, 2.8vw, 1.85rem);
+        padding: 0.35rem clamp(0.65rem, 2vw, 1.25rem) clamp(1.25rem, 3vw, 2rem);
       }
       .lumos-cap-grid {
         display: grid;
         grid-template-columns: 1fr;
-        gap: 1rem 1.15rem;
+        gap: 1.1rem 1.2rem;
       }
       @media (min-width: 640px) {
         .lumos-cap-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 1.15rem 1.25rem;
         }
       }
       @media (min-width: 1024px) {
         .lumos-cap-grid {
           grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 1.2rem 1.3rem;
         }
       }
       .lumos-cap-card {
         box-sizing: border-box;
         margin: 0;
-        padding: 0.85rem 0.95rem;
-        border-radius: 10px;
-        border: 1px solid rgba(148, 112, 68, 0.38);
-        background: linear-gradient(165deg, rgba(12, 14, 22, 0.92) 0%, rgba(14, 12, 10, 0.88) 100%);
-        box-shadow: inset 0 1px 0 rgba(188, 148, 92, 0.08), 0 6px 20px rgba(0, 0, 0, 0.35);
+        padding: 1rem 1.05rem;
+        border-radius: 14px;
+        border: 1px solid rgba(184, 148, 96, 0.22);
+        background: linear-gradient(
+          168deg,
+          rgba(9, 11, 18, 0.97) 0%,
+          rgba(11, 10, 14, 0.94) 48%,
+          rgba(10, 9, 12, 0.96) 100%
+        );
+        box-shadow: inset 0 1px 0 rgba(200, 165, 110, 0.06), 0 4px 18px rgba(0, 0, 0, 0.28);
       }
       .lumos-cap-card h3 {
-        margin: 0 0 0.45rem;
-        font-size: 0.95rem;
+        margin: 0 0 0.5rem;
+        font-size: 1rem;
         font-weight: 600;
-        letter-spacing: -0.01em;
-        color: #e0c49a;
-        line-height: 1.25;
+        letter-spacing: -0.015em;
+        color: #eccf93;
+        line-height: 1.28;
       }
       .lumos-cap-card p {
         margin: 0;
-        font-size: 0.88rem;
-        line-height: 1.55;
-        color: #c5cad6;
+        font-size: 0.9rem;
+        line-height: 1.62;
+        color: #c9ced9;
       }
       .lumos-cap-sronly {
         position: absolute;
@@ -101,7 +108,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
   >
     <section
       aria-label="Lumos görseli"
-      style="box-sizing:border-box;width:100%;max-width:100%;padding:clamp(0.4rem, 1.4vw, 0.75rem) clamp(0.65rem, 2vw, 1.25rem) clamp(0.8rem, 2.4vw, 1.35rem);display:flex;justify-content:center;"
+      style="box-sizing:border-box;width:100%;max-width:100%;padding:clamp(0.4rem, 1.4vw, 0.75rem) clamp(0.65rem, 2vw, 1.25rem) clamp(0.65rem, 2vw, 1.15rem);display:flex;justify-content:center;"
     >
       <div
         style="box-sizing:border-box;width:100%;max-width:1240px;margin:0 auto;min-width:0;"
@@ -168,84 +175,86 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         <article class="lumos-cap-card">
           <h3>Yayıncılık</h3>
           <p>
-            Canlı ve kayıtlı yayın akışlarını tek çatıda toplar; hangi kaynağın nereye gittiği ve hangi adımda
-            onay gerektiği sayfa üzerinde net görünür.
+            Canlı ve kayıtlı yayın akışlarını tek çatı altında toplar; kaynağın nereye gittiğini, hangi adımda
+            onay gerektiğini ve yayının nasıl dağıldığını görünür kılar.
           </p>
         </article>
         <article class="lumos-cap-card">
           <h3>Medya</h3>
           <p>
-            Ses, görüntü ve dosya işlerini cihazda düzenli tutar; önizleme ve dönüşümlerde küçük, kontrollü
-            adımlarla dağınıklığı azaltır.
+            Ses, görüntü ve dosya akışlarını düzenli tutar; önizleme, dönüştürme ve paylaşım adımlarını
+            kontrollü bir sıraya alır.
           </p>
         </article>
         <article class="lumos-cap-card">
           <h3>Yapay Zekâ</h3>
           <p>
-            Metin ve görevlerde yardımcı öneriler sunar; nihai karar ve onay kullanıcıda kalır, süreç izlenebilir
-            olur.
+            Yapay zekâyı kullanıcının yerine karar veren bir güç gibi değil, düşünmeyi hızlandıran ve
+            seçenekleri görünür kılan yardımcı katman olarak konumlandırır.
           </p>
         </article>
         <article class="lumos-cap-card">
           <h3>Kuantum</h3>
           <p>
-            İleri güvenlik ve kriptografi yollarına uzun vadeli hazırlık düşüncesi taşır; bugünkü iş akışlarını
-            süslemeden köprü rolünü vurgular.
+            Bugünün sistemi içinde araştırma, hesaplama ve gelecek teknolojilerine açık bir hazırlık alanı olarak
+            durur; iddia değil, yön ve kapasite alanıdır.
           </p>
         </article>
         <article class="lumos-cap-card">
           <h3>Entegrasyon</h3>
           <p>
-            Dış servislerle bağlantıları güvenli köprüler üzerinden kurar; sınırlar ve veri akışı gizlenmez,
-            gerektiğinde durdurulabilir.
+            Dış servislerle bağlantıları güvenli köprüler üzerinden kurar; veri akışı, sınırlar ve izinler
+            kullanıcıdan gizlenmez.
           </p>
         </article>
         <article class="lumos-cap-card">
           <h3>Kimlik</h3>
           <p>
-            Oturum ve kimlik bilgilerini anlaşılır bir merkezde toplar; paylaşım ve yetki her zaman kullanıcı
-            kontrolüyle başlar.
+            Oturum, yetki ve kimlik bilgilerini anlaşılır bir merkezde toplar; erişim kararlarında kullanıcı
+            kontrolünü temel alır.
           </p>
         </article>
         <article class="lumos-cap-card">
           <h3>Güvenlik</h3>
           <p>
-            Riskli veya kalıcı işlemlerde ek doğrulama ister; varsayılanı gizlilik ve minimum yüzey olarak
-            ele alır.
+            Riskli, kalıcı veya geri dönüşü zor işlemlerde ek dikkat ister; güvenliği görünmez bir engel değil,
+            açık bir koruma katmanı olarak ele alır.
           </p>
         </article>
         <article class="lumos-cap-card">
           <h3>Dünya</h3>
           <p>
-            Dil, zaman dilimi ve küresel uç noktalarla uyumlu çalışır; tek cihazdan farklı bağlamlara erişimi
-            düzenli tutmayı hedefler.
+            Yerel cihazdan küresel bağlantılara uzanan akışı düzenli tutar; farklı servisler, zamanlar ve
+            bağlamlar arasında kontrollü geçiş hedefler.
           </p>
         </article>
       </div>
     </section>
 
-    <main style="max-width:40rem;margin:0 auto;padding:0 clamp(1rem, 4vw, 1.5rem) 3rem;">
+    <main style="max-width:40rem;margin:0 auto;padding:clamp(1.35rem,3.2vw,1.85rem) clamp(1rem, 4vw, 1.5rem) 3rem;">
       <article style="text-align:left;color:#e4e7ef;">
-        <p style="margin:0 0 1rem;font-size:1.05rem;line-height:1.65;">
-          Kıbrıs’tan dünyaya uzanan bu çağrı, sesi, medyayı, yapay zekâyı ve yönlendirilmiş görevleri tek akışta
-          toplama niyetidir. Lumos; kullanıcı ile dijital dünya arasında bilinçli bir kontrol katmanı olarak
-          tasarlanır: abartılı vaatlerin değil, daha görünür, daha sakin ve daha insani bir düzenin yolunu
-          açmak için.
+        <p style="margin:0 0 1rem;font-size:1.06rem;line-height:1.68;">
+          Yukarıdaki modüller, Lumos’un tek bir çatı altında neyi toparladığının kısa haritasıdır. Kıbrıs’tan
+          dünyaya uzanan bu açık mektup ise niyetimizi net söyler: ses, medya, kimlik, güvenlik, entegrasyon ve
+          yapay zekâyı aynı akışta düşünmek; kullanıcı ile dijital dünya arasına bilinçli bir kontrol katmanı
+          koymak; cihaz içindeki işleri dış servislere bağlarken güvenli köprülerle ilerlemek. Lumos, yerinize
+          karar vermez; kararınızın izini, onayınızı ve sınırlarınızı daha görünür ve güçlü kılar.
         </p>
-        <p style="margin:0 0 1.75rem;color:#c5cad6;font-size:0.98rem;line-height:1.65;">
-          Bu açık mektup, ne kurduğumuzu olduğu kadar neyi reddettiğimizi de anlatır: belirsizliği,
-          kontrolsüzlüğü ve insanı kendi aracının gerisine düşüren teknoloji anlayışını.
+        <p style="margin:0 0 1.85rem;color:#c5cad6;font-size:0.99rem;line-height:1.68;">
+          Bu metin, ne kurduğumuzu olduğu kadar neyi reddettiğimizi de anlatır: belirsizliği, kontrolsüzlüğü ve
+          insanı kendi aracının gerisine düşüren teknoloji anlayışını. Abartılı vaat değil; daha anlaşılır tempo,
+          daha sakin bir çalışma yüzeyi ve daha insani bir düzen arayışıdır.
         </p>
 
         <h2 style="margin:1.75rem 0 0.5rem;font-size:1.1rem;font-weight:600;color:#e8ecf4;letter-spacing:-0.01em;">
           Lumos nedir?
         </h2>
-        <p style="margin:0 0 1rem;color:#c5cad6;font-size:0.98rem;line-height:1.65;">
-          Lumos; ses, metin, medya, kimlik, güvenlik ve yapay zekâ destekli görevleri tek bir akışta
-          buluşturmayı hedefleyen bir kontrol katmanıdır. Kullanıcının yerine sahiplik iddia etmez; cihazın,
-          verinin ve dış bağlantıların kullanıcı tarafından daha anlaşılır yönetilmesini sağlar. Amaç, çok
-          özellik göstermek değil; karmaşık dijital işlemleri daha görünür, daha kontrollü ve daha insani bir
-          düzene taşımaktır.
+        <p style="margin:0 0 1rem;color:#c5cad6;font-size:0.98rem;line-height:1.68;">
+          Lumos; kullanıcı ile dijital dünya arasında bilinçli bir kontrol katmanıdır. Cihaz içi görevler ile
+          dış servisler arasında güvenli köprüler kurar; ses, medya, kimlik, güvenlik, entegrasyon ve yapay zekâyı
+          tek akışta toplamayı hedefler. Kullanıcının yerine karar vermez; kararınızı netleştiren, adımları
+          görünür kılan ve onay gerektiren noktaları saklamayan bir yardımcı yapıdır. Amaç, daha çok düğme
+          göstermek değil; karmaşık işlemleri daha kontrollü, daha okunur ve daha sakin bir düzene taşımaktır.
         </p>
 
         <h2 style="margin:1.75rem 0 0.5rem;font-size:1.1rem;font-weight:600;color:#e8ecf4;letter-spacing:-0.01em;">
