@@ -692,6 +692,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
 
           sending = true;
           sendBtn.disabled = true;
+          sendBtn.setAttribute("aria-busy", "true");
           sendBtn.textContent = loadingLabel;
           const history = collectThreadHistory(thread);
           appendBubble("user", message);
@@ -753,6 +754,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
           } finally {
             sending = false;
             sendBtn.disabled = false;
+            sendBtn.removeAttribute("aria-busy");
             sendBtn.textContent = sendLabel;
           }
         }
