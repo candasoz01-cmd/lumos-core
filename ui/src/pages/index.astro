@@ -98,6 +98,54 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         color: #e8d4b4;
         line-height: 1.3;
       }
+      .lumos-chat-log {
+        margin: 0.65rem 0 0;
+        padding: 0.65rem 0.75rem;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(0, 0, 0, 0.25);
+        min-height: 2.75rem;
+        max-height: min(50vh, 22rem);
+        overflow-y: auto;
+        font-size: 0.8rem;
+        color: #dce3f0;
+        text-align: left;
+      }
+      .lumos-chat-log:empty::before {
+        content: "Henüz mesaj yok.";
+        color: #8b95ab;
+      }
+      .lumos-chat-turn {
+        margin: 0 0 0.75rem;
+      }
+      .lumos-chat-turn:last-child {
+        margin-bottom: 0;
+      }
+      .lumos-chat-label {
+        display: block;
+        font-weight: 600;
+        font-size: 0.72rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #b8c0d4;
+        margin-bottom: 0.25rem;
+      }
+      .lumos-chat-label--you {
+        color: #9ec8ff;
+      }
+      .lumos-chat-label--lumos {
+        color: #c9a86a;
+      }
+      .lumos-chat-body {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        line-height: 1.55;
+        color: #dce3f0;
+      }
+      .lumos-chat-turn--error .lumos-chat-body {
+        color: #f0b4b4;
+      }
     </style>
   </head>
   <body
@@ -316,25 +364,45 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             Gönder
           </button>
         </div>
-        <pre
-          id="out"
-          role="status"
+        <div
+          id="chat-history"
+          class="lumos-chat-log"
+          role="log"
           aria-live="polite"
-          aria-relevant="additions text"
-          style="margin:0.65rem 0 0;padding:0.65rem 0.75rem;border-radius:10px;border:1px solid rgba(255,255,255,0.12);background:rgba(0,0,0,0.25);min-height:2.75rem;white-space:pre-wrap;word-break:break-word;font-size:0.8rem;color:#dce3f0;"
-        ></pre>
+          aria-relevant="additions"
+          aria-label="Lumos sohbet geçmişi"
+        ></div>
       </section>
     </main>
     <script define:vars={{ CHAT_URL, kandoToken }}>
       function apiTestWire() {
         const btn = document.getElementById("api-test-send");
         const input = document.getElementById("msg");
-        const out = document.getElementById("out");
-        if (!btn || !input || !out) return;
+        const chatHistory = document.getElementById("chat-history");
+        if (!btn || !input || !chatHistory) return;
 
         const sendLabel = "Gönder";
         const loadingLabel = "Gönderiliyor...";
         let sending = false;
+
+        function appendTurn(labelText, bodyText, opts) {
+          const isYou = opts && opts.role === "you";
+          const isError = opts && opts.error;
+          const wrap = document.createElement("div");
+          wrap.className = "lumos-chat-turn" + (isError ? " lumos-chat-turn--error" : "");
+          const label = document.createElement("span");
+          label.className =
+            "lumos-chat-label" +
+            (isYou ? " lumos-chat-label--you" : " lumos-chat-label--lumos");
+          label.textContent = labelText;
+          const body = document.createElement("p");
+          body.className = "lumos-chat-body";
+          body.textContent = bodyText;
+          wrap.appendChild(label);
+          wrap.appendChild(body);
+          chatHistory.appendChild(wrap);
+          chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
 
         async function runApiTest() {
           const message = input.value.trim();
@@ -344,7 +412,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
           sending = true;
           btn.disabled = true;
           btn.textContent = loadingLabel;
-          out.textContent = "";
+          appendTurn("Sen", message, { role: "you" });
           try {
             const r = await fetch(CHAT_URL, {
               method: "POST",
@@ -373,11 +441,10 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
                     ? ""
                     : "Bu kez yanıtı okuyamadık. Biraz sonra yeniden denebilirsin.";
               }
-              out.textContent =
-                "Lumos cevabı\n\n" +
-                (replyBody.trim()
-                  ? replyBody
-                  : "Bu sefer boş bir yanıt geldi. Sorunu biraz açıp yeniden deneyebilirsin.");
+              const lumosText = replyBody.trim()
+                ? replyBody
+                : "Bu sefer boş bir yanıt geldi. Sorunu biraz açıp yeniden deneyebilirsin.";
+              appendTurn("Lumos", lumosText, { role: "lumos" });
               input.value = "";
             } else {
               let errHuman = "";
@@ -393,11 +460,17 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
               } else if (errHuman === "message required") {
                 errHuman = "Önce kısa bir mesaj yazman gerekiyor.";
               }
-              out.textContent = "Şimdilik yanıt veremedik. " + errHuman;
+              appendTurn("Lumos", "Şimdilik yanıt veremedik. " + errHuman, {
+                role: "lumos",
+                error: true,
+              });
             }
           } catch {
-            out.textContent =
-              "Bağlantıda kısa bir kesinti oldu. İnternetini kontrol edip biraz sonra yeniden deneyebilirsin.";
+            appendTurn(
+              "Lumos",
+              "Bağlantıda kısa bir kesinti oldu. İnternetini kontrol edip biraz sonra yeniden deneyebilirsin.",
+              { role: "lumos", error: true }
+            );
           } finally {
             sending = false;
             btn.disabled = false;
