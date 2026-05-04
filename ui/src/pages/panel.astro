@@ -372,6 +372,70 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
       .placeholder-block p:last-child {
         margin-bottom: 0;
       }
+      .gorevler-intro {
+        margin: 0 0 1rem;
+        max-width: 36rem;
+        font-size: 0.88rem;
+        line-height: 1.55;
+        color: var(--lumos-muted);
+      }
+      .gorevler-task-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+        max-width: 32rem;
+      }
+      .gorevler-task-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        padding: 0.85rem 1rem;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: var(--lumos-surface);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      }
+      .gorevler-task-title {
+        font-size: 0.9rem;
+        color: var(--lumos-text);
+        font-weight: 500;
+        min-width: 0;
+        flex: 1 1 auto;
+        letter-spacing: -0.01em;
+        line-height: 1.45;
+      }
+      .task-status-badge {
+        flex-shrink: 0;
+        display: inline-block;
+        font-size: 0.56rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 0.1rem 0.34rem;
+        border-radius: 4px;
+        line-height: 1.2;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+      .task-status-badge--done {
+        color: rgba(170, 220, 200, 0.95);
+        background: rgba(42, 88, 72, 0.28);
+        border-color: rgba(100, 160, 140, 0.35);
+      }
+      .task-status-badge--waiting {
+        color: rgba(200, 188, 160, 0.92);
+        background: rgba(90, 72, 44, 0.22);
+        border-color: rgba(184, 148, 96, 0.28);
+      }
+      .task-status-badge--approval {
+        color: rgba(236, 210, 175, 0.95);
+        background: rgba(110, 72, 48, 0.32);
+        border-color: rgba(200, 140, 100, 0.38);
+      }
       #panel-sohbet {
         gap: 0;
       }
@@ -773,7 +837,6 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
               </button>
               <button type="button" data-module="gorevler">
                 <span class="panel-nav-label">Görevler</span>
-                <span class="lumos-soon-badge">Yakında</span>
               </button>
               <button type="button" data-module="ses">
                 <span class="panel-nav-label">Ses</span>
@@ -897,13 +960,28 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-gorevler-title"
           >
-            <h2 id="panel-gorevler-title" class="module-title-row">
-              Görevler <span class="lumos-soon-badge">Yakında</span>
-            </h2>
-            <div class="placeholder-block">
-              <p>Görev akışları burada toplanacak.</p>
-              <p>Henüz aktif görev sistemi yok.</p>
-            </div>
+            <h2 id="panel-gorevler-title">Görevler</h2>
+            <p class="gorevler-intro">
+              Lumos’un takip ettiği işler ve onay bekleyen adımlar burada görünür olacak.
+            </p>
+            <ul class="gorevler-task-list">
+              <li class="gorevler-task-card">
+                <span class="gorevler-task-title">Panel ilk iskeleti tamamlandı</span>
+                <span class="task-status-badge task-status-badge--done">Tamamlandı</span>
+              </li>
+              <li class="gorevler-task-card">
+                <span class="gorevler-task-title">Ses katmanı planlanacak</span>
+                <span class="task-status-badge task-status-badge--waiting">Bekliyor</span>
+              </li>
+              <li class="gorevler-task-card">
+                <span class="gorevler-task-title">Posta bağlantıları tasarlanacak</span>
+                <span class="task-status-badge task-status-badge--waiting">Bekliyor</span>
+              </li>
+              <li class="gorevler-task-card">
+                <span class="gorevler-task-title">Kalıcı işlem güvenlik akışı korunacak</span>
+                <span class="task-status-badge task-status-badge--approval">Onay gerekli</span>
+              </li>
+            </ul>
           </section>
 
           <section
