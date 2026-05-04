@@ -363,21 +363,41 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
               data = null;
             }
             if (r.ok) {
-              const body =
-                data && typeof data === "object"
-                  ? JSON.stringify(data, null, 2)
-                  : text || "(boş yanıt)";
-              out.textContent = "Backend cevabı: " + body;
+              let replyBody = "";
+              if (data && typeof data === "object" && "reply" in data) {
+                const raw = data.reply;
+                replyBody = raw == null ? "" : String(raw);
+              }
+              if (!replyBody.trim() && text && text.trim()) {
+                replyBody =
+                  data && typeof data === "object" && "reply" in data
+                    ? ""
+                    : "Yanıt okunamadı; lütfen bir süre sonra yeniden deneyin.";
+              }
+              out.textContent =
+                "Lumos cevabı\n\n" + (replyBody.trim() ? replyBody : "Şu an için boş bir yanıt geldi.");
             } else {
-              const detail =
-                data && typeof data === "object"
-                  ? JSON.stringify(data, null, 2)
-                  : text || r.statusText;
-              out.textContent = "Bağlantı hatası: HTTP " + r.status + " — " + detail;
+              let errHuman = "";
+              if (data && typeof data === "object" && data.error != null) {
+                errHuman = String(data.error);
+              } else if (text && text.trim()) {
+                errHuman = text.trim();
+              } else {
+                errHuman = r.statusText || "Bilinmeyen bir hata oluştu.";
+              }
+              if (errHuman === "OPENAI_API_KEY missing") {
+                errHuman = "Sunucu tarafında yapılandırma eksik; şu an yanıt üretilemiyor.";
+              } else if (errHuman === "message required") {
+                errHuman = "Mesaj metni gerekli.";
+              }
+              out.textContent =
+                "Şu an yanıt alınamadı: " +
+                errHuman +
+                (r.status ? " (kod: " + r.status + ")" : "");
             }
           } catch (e) {
             const msg = e instanceof Error ? e.message : String(e);
-            out.textContent = "Bağlantı hatası: " + msg;
+            out.textContent = "Bağlantı kurulurken bir sorun oluştu: " + msg;
           } finally {
             btn.disabled = false;
             btn.textContent = label;
