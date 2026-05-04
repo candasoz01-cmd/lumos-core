@@ -83,6 +83,27 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
       }
+      .panel-nav-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        margin-bottom: 0.5rem;
+      }
+      .panel-nav-group:last-child {
+        margin-bottom: 0;
+      }
+      .panel-nav-heading {
+        margin: 0.4rem 0 0.18rem 0.55rem;
+        padding: 0;
+        font-size: 0.62rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: rgba(154, 164, 181, 0.72);
+      }
+      .panel-nav-group:first-child > .panel-nav-heading:first-of-type {
+        margin-top: 0;
+      }
       .lumos-soon-badge {
         display: inline-block;
         flex-shrink: 0;
@@ -465,27 +486,40 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         .panel-nav {
           flex: 0 0 auto;
           align-self: stretch;
-          max-height: min(38vh, 11.5rem);
+          max-height: min(44vh, 15rem);
           display: flex;
-          flex-wrap: wrap;
-          gap: 0.25rem;
-          padding: 0.5rem;
+          flex-direction: column;
+          flex-wrap: nowrap;
+          gap: 0.15rem;
+          padding: 0.45rem 0.5rem 0.5rem;
           border-right: none;
           border-bottom: 1px solid rgba(255, 255, 255, 0.08);
           overflow-y: auto;
-          overflow-x: auto;
+          overflow-x: hidden;
           overscroll-behavior: contain;
+        }
+        .panel-nav-group {
+          flex-direction: row;
+          flex-wrap: wrap;
+          align-items: center;
+          align-content: flex-start;
+          margin-bottom: 0.35rem;
+          gap: 0.2rem;
+        }
+        .panel-nav-heading {
+          flex: 1 0 100%;
+          margin: 0.2rem 0.35rem 0.1rem;
         }
         .panel-nav button {
           flex: 1 1 auto;
-          min-width: calc(50% - 0.25rem);
+          min-width: calc(33.333% - 0.35rem);
           width: auto;
-          margin: 0.15rem;
+          margin: 0.1rem;
           border-left: none;
           border-bottom: 2px solid transparent;
           border-radius: 10px;
           justify-content: center;
-          padding: 0.45rem 0.5rem;
+          padding: 0.4rem 0.45rem;
         }
         .panel-nav button[aria-current="true"] {
           border-left-color: transparent;
@@ -511,37 +545,67 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
       </header>
       <div class="panel-body">
         <nav class="panel-nav" aria-label="Modüller">
-          <button type="button" data-module="sohbet" aria-current="true">
-            <span class="panel-nav-label">Sohbet</span>
-          </button>
-          <button type="button" data-module="gorevler">
-            <span class="panel-nav-label">Görevler</span>
-            <span class="lumos-soon-badge">Yakında</span>
-          </button>
-          <button type="button" data-module="ses">
-            <span class="panel-nav-label">Ses</span>
-            <span class="lumos-soon-badge">Yakında</span>
-          </button>
-          <button type="button" data-module="medya">
-            <span class="panel-nav-label">Medya</span>
-            <span class="lumos-soon-badge">Yakında</span>
-          </button>
-          <button type="button" data-module="sosyal">
-            <span class="panel-nav-label">Sosyal</span>
-            <span class="lumos-soon-badge">Yakında</span>
-          </button>
-          <button type="button" data-module="dosyalar">
-            <span class="panel-nav-label">Dosyalar</span>
-            <span class="lumos-soon-badge">Yakında</span>
-          </button>
-          <button type="button" data-module="guvenlik">
-            <span class="panel-nav-label">Güvenlik</span>
-            <span class="lumos-soon-badge">Yakında</span>
-          </button>
-          <button type="button" data-module="ayarlar">
-            <span class="panel-nav-label">Ayarlar</span>
-            <span class="lumos-soon-badge">Yakında</span>
-          </button>
+          <div class="panel-nav-group">
+            <p class="panel-nav-heading">Çalışma</p>
+            <button type="button" data-module="sohbet" aria-current="true">
+              <span class="panel-nav-label">Sohbet</span>
+            </button>
+            <button type="button" data-module="gorevler">
+              <span class="panel-nav-label">Görevler</span>
+              <span class="lumos-soon-badge">Yakında</span>
+            </button>
+            <button type="button" data-module="ses">
+              <span class="panel-nav-label">Ses</span>
+              <span class="lumos-soon-badge">Yakında</span>
+            </button>
+            <button type="button" data-module="medya">
+              <span class="panel-nav-label">Medya</span>
+              <span class="lumos-soon-badge">Yakında</span>
+            </button>
+            <button type="button" data-module="sosyal">
+              <span class="panel-nav-label">Sosyal</span>
+              <span class="lumos-soon-badge">Yakında</span>
+            </button>
+            <button type="button" data-module="dosyalar">
+              <span class="panel-nav-label">Dosyalar</span>
+              <span class="lumos-soon-badge">Yakında</span>
+            </button>
+          </div>
+          <div class="panel-nav-group">
+            <p class="panel-nav-heading">Lumos çekirdeği</p>
+            <button type="button" data-module="yayincilik">
+              <span class="panel-nav-label">Yayıncılık</span>
+              <span class="lumos-soon-badge">Yakında</span>
+            </button>
+            <button type="button" data-module="yapayzeka">
+              <span class="panel-nav-label">Yapay Zekâ</span>
+              <span class="lumos-soon-badge">Yakında</span>
+            </button>
+            <button type="button" data-module="kuantum">
+              <span class="panel-nav-label">Kuantum</span>
+              <span class="lumos-soon-badge">Yakında</span>
+            </button>
+            <button type="button" data-module="entegrasyon">
+              <span class="panel-nav-label">Entegrasyon</span>
+              <span class="lumos-soon-badge">Yakında</span>
+            </button>
+            <button type="button" data-module="kimlik">
+              <span class="panel-nav-label">Kimlik</span>
+              <span class="lumos-soon-badge">Yakında</span>
+            </button>
+            <button type="button" data-module="guvenlik">
+              <span class="panel-nav-label">Güvenlik</span>
+              <span class="lumos-soon-badge">Yakında</span>
+            </button>
+            <button type="button" data-module="dunya">
+              <span class="panel-nav-label">Dünya</span>
+              <span class="lumos-soon-badge">Yakında</span>
+            </button>
+            <button type="button" data-module="ayarlar">
+              <span class="panel-nav-label">Ayarlar</span>
+              <span class="lumos-soon-badge">Yakında</span>
+            </button>
+          </div>
         </nav>
         <main class="panel-main">
           <section
@@ -664,6 +728,86 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
           </section>
 
           <section
+            id="panel-yayincilik"
+            class="module-panel"
+            data-module-panel="yayincilik"
+            data-active="false"
+            aria-labelledby="panel-yayincilik-title"
+          >
+            <h2 id="panel-yayincilik-title" class="module-title-row">
+              Yayıncılık <span class="lumos-soon-badge">Yakında</span>
+            </h2>
+            <div class="placeholder-block">
+              <p>Canlı ve kayıtlı yayın akışları burada yönetilecek.</p>
+              <p>Kaynak, hedef, onay ve dağıtım adımları görünür tutulacak.</p>
+            </div>
+          </section>
+
+          <section
+            id="panel-yapayzeka"
+            class="module-panel"
+            data-module-panel="yapayzeka"
+            data-active="false"
+            aria-labelledby="panel-yapayzeka-title"
+          >
+            <h2 id="panel-yapayzeka-title" class="module-title-row">
+              Yapay Zekâ <span class="lumos-soon-badge">Yakında</span>
+            </h2>
+            <div class="placeholder-block">
+              <p>Yapay zekâ destekli yönlendirme ve karar destek akışları burada toplanacak.</p>
+              <p>Lumos kullanıcı yerine karar vermez; seçenekleri ve riskleri görünür kılar.</p>
+            </div>
+          </section>
+
+          <section
+            id="panel-kuantum"
+            class="module-panel"
+            data-module-panel="kuantum"
+            data-active="false"
+            aria-labelledby="panel-kuantum-title"
+          >
+            <h2 id="panel-kuantum-title" class="module-title-row">
+              Kuantum <span class="lumos-soon-badge">Yakında</span>
+            </h2>
+            <div class="placeholder-block">
+              <p>Kuantum ve ileri hesaplama başlıkları burada araştırma alanı olarak izlenecek.</p>
+              <p>Bu bölüm iddia değil, yön ve kapasite alanıdır.</p>
+            </div>
+          </section>
+
+          <section
+            id="panel-entegrasyon"
+            class="module-panel"
+            data-module-panel="entegrasyon"
+            data-active="false"
+            aria-labelledby="panel-entegrasyon-title"
+          >
+            <h2 id="panel-entegrasyon-title" class="module-title-row">
+              Entegrasyon <span class="lumos-soon-badge">Yakında</span>
+            </h2>
+            <div class="placeholder-block">
+              <p>Dış servis bağlantıları ve güvenli köprüler burada yönetilecek.</p>
+              <p>Veri akışı, izinler ve bağlantı sınırları kullanıcıdan gizlenmeyecek.</p>
+            </div>
+          </section>
+
+          <section
+            id="panel-kimlik"
+            class="module-panel"
+            data-module-panel="kimlik"
+            data-active="false"
+            aria-labelledby="panel-kimlik-title"
+          >
+            <h2 id="panel-kimlik-title" class="module-title-row">
+              Kimlik <span class="lumos-soon-badge">Yakında</span>
+            </h2>
+            <div class="placeholder-block">
+              <p>Oturum, yetki ve kimlik akışları burada toplanacak.</p>
+              <p>Erişim kararlarında kullanıcı kontrolü temel alınacak.</p>
+            </div>
+          </section>
+
+          <section
             id="panel-guvenlik"
             class="module-panel"
             data-module-panel="guvenlik"
@@ -676,6 +820,22 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             <div class="placeholder-block">
               <p>Kalıcı ve yıkıcı işlemler açık onay gerektirir.</p>
               <p>Dış bağlantılar ve izinler kullanıcıdan gizlenmez.</p>
+            </div>
+          </section>
+
+          <section
+            id="panel-dunya"
+            class="module-panel"
+            data-module-panel="dunya"
+            data-active="false"
+            aria-labelledby="panel-dunya-title"
+          >
+            <h2 id="panel-dunya-title" class="module-title-row">
+              Dünya <span class="lumos-soon-badge">Yakında</span>
+            </h2>
+            <div class="placeholder-block">
+              <p>Yerel cihazdan küresel bağlantılara uzanan akış burada izlenecek.</p>
+              <p>Farklı servisler, zamanlar ve bağlamlar arasında kontrollü geçiş hedeflenecek.</p>
             </div>
           </section>
 
