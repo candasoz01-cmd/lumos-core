@@ -13,14 +13,15 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
   <body
     style="margin:0;background:#0b1020;color:#f2f2f2;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,sans-serif;line-height:1.6;"
   >
-    <main style="max-width:42rem;margin:0 auto;padding:2rem 1.25rem 3rem;">
+    <main style="max-width:40rem;margin:0 auto;padding:2rem clamp(1rem, 4vw, 1.5rem) 3rem;">
       <header style="text-align:center;margin-bottom:1.75rem;">
         <h1 style="margin:0 0 0.35rem;font-size:1.75rem;font-weight:600;letter-spacing:-0.02em;">Lumos</h1>
         <p style="margin:0;font-size:0.85rem;color:#9aa3b2;">Açık mektup</p>
       </header>
 
       <div
-        style="border-radius:14px;overflow:hidden;background:rgba(255,255,255,0.04);margin-bottom:2rem;"
+        style="border-radius:14px;background:rgba(255,255,255,0.04);margin:0 auto 2rem;max-width:min(100%, 34rem);padding:clamp(0.65rem, 2.5vw, 1.1rem) clamp(0.75rem, 3vw, 1.35rem);box-sizing:border-box;display:flex;justify-content:center;align-items:center;min-height:0;"
+        aria-label="Lumos görseli"
       >
         <img
           src="/assets/lumos/lumos-last.png"
@@ -29,51 +30,53 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
           height="1024"
           loading="eager"
           decoding="async"
-          style="display:block;width:100%;height:auto;max-height:min(46vh,440px);object-fit:contain;"
+          style="display:block;margin:0 auto;max-width:100%;width:auto;height:auto;max-height:min(48vh, 460px);object-fit:contain;"
         />
       </div>
 
       <article style="text-align:left;color:#e4e7ef;">
         <p style="margin:0 0 1rem;font-size:1.05rem;">
           Merhaba. Bu satırlar Kıbrıs’tan dünyaya uzanan bir çağrı: akıllı sesi ve medyayı, insanı küçültmeden,
-          abartısız ve net bir dille bir araya getirmek istiyoruz.
+          abartısız ve net bir dille yan yana getirmek istiyoruz. Burada bir “ürün duvarı” okumuyorsunuz;
+          niyetimizi ve sınırlarımızı insanî bir sesle paylaşmak istedik.
         </p>
         <p style="margin:0 0 1.75rem;color:#c5cad6;font-size:0.98rem;">
-          Lumos, sihirli bir vaat değil; birlikte düşünmek, dinlemek ve üretmek için bir kapı. Aşağıda ne
-          kurduğumuzu ve hangi ilkelerle ilerlediğimizi özetliyoruz.
+          Lumos sihirli bir vaat değil; birlikte düşünmek, dinlemek ve üretmek için açık duran bir kapı.
+          Aşağıda, bu kapının arkasında ne olduğunu ve yürürken hangi pusulayı kullandığımızı, kısacık ama
+          içten bir dille anlatmak istedik.
         </p>
 
         <h2 style="margin:1.75rem 0 0.5rem;font-size:1.1rem;font-weight:600;color:#fff;">Lumos nedir?</h2>
         <p style="margin:0 0 1rem;color:#c5cad6;font-size:0.98rem;">
-          Lumos; ses, görüntü ve metni aynı sohbet akışında bir araya getiren, cihaz üzerinde ve güvenilir
-          köprülerle çalışan bir yardımcı sistemdir. Amacımız “daha çok özellik” değil; anlaşılır akış, net
-          geri bildirim ve insanı merkeze alan bir deneyim sunmaktır.
+          Lumos; sesi, görüntüyü ve metni aynı sohbet akışında buluşturan, önce cihazınızda duran, gerektiğinde
+          güvendiğiniz köprülerden geçen bir yardımcıdır. “Daha çok düğme” peşinde değiliz; anlaşılır akış,
+          net geri bildirim ve insanı merkeze alan, sakin bir tempo arıyoruz.
         </p>
 
         <h2 style="margin:1.75rem 0 0.5rem;font-size:1.1rem;font-weight:600;color:#fff;">
           Kurulu olduğu cihazda ne sağlar?
         </h2>
         <p style="margin:0 0 1rem;color:#c5cad6;font-size:0.98rem;">
-          Kurulum yapılan cihazda yerel arayüz ve görevler çalışır; gerektiğinde uzak hizmetlere yalnızca
-          sizin başlattığınız isteklerle bağlanır. Böylece medya işleme, sohbet ve yönlendirilmiş görevler
-          tek yerden yürür; neyin cihazda kaldığı, neyin köprüden geçtiği şeffaf kalır.
+          Kurduğunuz cihazda arayüz ve günlük işler yerel çalışır; uzak tarafa ancak siz bir adım attığınızda
+          gider. Medya, sohbet ve yönlendirilmiş küçük görevler tek nefeste yan yana durur; neyin evde
+          kaldığını, neyin köprüden geçtiğini gizlemeden görmek isteriz.
         </p>
 
         <h2 style="margin:1.75rem 0 0.5rem;font-size:1.1rem;font-weight:600;color:#fff;">
           Kullanıcı Lumos ile ne kazanır?
         </h2>
         <p style="margin:0 0 1rem;color:#c5cad6;font-size:0.98rem;">
-          Daha az dağınıklık: tek panelden üretmek, dinlemek ve düzenlemek. Abartılı vaatler yerine adım adım
-          ilerleme; “şimdi ne olacak?” sorusuna net yanıtlar. Ses ve görsel iş yükünüzü, sizi küçültmeden
-          hafifletmek için tasarlanmış bir yol arkadaşı.
+          Biraz daha az dağınıklık: üretmek, dinlemek ve düzenlemek için tek bir sakin köşe. Abartılı sözler
+          yerine küçük adımlar; “şimdi ne olacak?” sorusuna düz ve dürüst yanıtlar. Ses ve görsel yükünüzü
+          hafifletmeye çalışırken sizi küçültmeden yanınızda olmak istiyoruz.
         </p>
 
         <h2 style="margin:1.75rem 0 0.5rem;font-size:1.1rem;font-weight:600;color:#fff;">Temel ilkeler</h2>
         <ul style="margin:0;padding-left:1.15rem;color:#c5cad6;font-size:0.98rem;">
           <li style="margin-bottom:0.45rem">İnsan ölçeği: dil sade, ton saygılı.</li>
-          <li style="margin-bottom:0.45rem">Gizlilik ve kontrol: paylaşım kullanıcı tetiklemeli ve izlenebilir.</li>
-          <li style="margin-bottom:0.45rem">Şeffaflık: sınırlar ve riskler gizlenmez.</li>
-          <li style="margin-bottom:0.45rem">Birlikte gelişim: geri bildirimle ürünü açıkça evtiririz.</li>
+          <li style="margin-bottom:0.45rem">Gizlilik ve kontrol: paylaşım sizin elinizde başlar; izi görünür kılınır.</li>
+          <li style="margin-bottom:0.45rem">Şeffaflık: sınırlar ve riskler saklanmaz.</li>
+          <li style="margin-bottom:0.45rem">Birlikte gelişim: duyduğumuzu açıkça işler, ürünü paylaşarak ilerletiriz.</li>
         </ul>
       </article>
 
@@ -120,14 +123,15 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         const out = document.getElementById("out");
         if (!btn || !input || !out) return;
 
-        btn.addEventListener("click", async () => {
+        async function runApiTest() {
+          const message = input.value.trim();
+          if (!message) return;
+
           const label = btn.textContent;
           btn.disabled = true;
           btn.textContent = "Gönderiliyor...";
           out.textContent = "";
           try {
-            const raw = input.value;
-            const message = raw.trim();
             const r = await fetch(CHAT_URL, {
               method: "POST",
               headers: {
@@ -163,6 +167,15 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             btn.disabled = false;
             btn.textContent = label;
           }
+        }
+
+        btn.addEventListener("click", () => {
+          void runApiTest();
+        });
+        input.addEventListener("keydown", (e) => {
+          if (e.key !== "Enter") return;
+          e.preventDefault();
+          void runApiTest();
         });
       }
       apiTestWire();
