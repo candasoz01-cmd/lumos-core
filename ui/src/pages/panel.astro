@@ -15,10 +15,17 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         --lumos-surface: rgba(9, 11, 18, 0.97);
         --lumos-border: rgba(184, 148, 96, 0.22);
         --lumos-gold: #eccf93;
+        --lumos-gold-soft: rgba(236, 207, 147, 0.55);
+        --lumos-frame: rgba(148, 112, 68, 0.48);
+        --lumos-frame-inner: rgba(98, 72, 44, 0.32);
+        --lumos-teal: rgba(72, 188, 184, 0.22);
+        --lumos-teal-deep: rgba(32, 88, 86, 0.38);
+        --lumos-teal-glow: rgba(32, 88, 86, 0.06);
         --lumos-text: #e4e7ef;
         --lumos-muted: #9aa4b5;
-        --lumos-input-bg: #12182a;
-        --lumos-accent: #2a3f6d;
+        --lumos-input-bg: #101a24;
+        --lumos-accent: #2a4a5a;
+        --lumos-accent-deep: #1e3544;
         --lumos-user-bubble: rgba(42, 63, 109, 0.45);
         --lumos-lumos-bubble: rgba(0, 0, 0, 0.28);
         --lumos-error: #f0b4b4;
@@ -36,7 +43,12 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         max-height: 100vh;
         max-height: 100dvh;
         overflow: hidden;
-        background: var(--lumos-bg);
+        background-color: var(--lumos-bg);
+        background-image:
+          radial-gradient(125% 100% at 0% 0%, rgba(32, 88, 86, 0.14) 0%, transparent 42%),
+          radial-gradient(90% 70% at 100% 8%, rgba(72, 188, 184, 0.06) 0%, transparent 48%),
+          radial-gradient(80% 55% at 50% 100%, rgba(20, 48, 52, 0.2) 0%, transparent 55%),
+          linear-gradient(168deg, #0a0c12 0%, #0b1020 38%, #090b10 100%);
         color: var(--lumos-text);
         font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
         line-height: 1.55;
@@ -50,21 +62,33 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
       }
       .panel-header {
         flex-shrink: 0;
-        padding: clamp(0.85rem, 2vw, 1.15rem) clamp(1rem, 3vw, 1.5rem);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        background: linear-gradient(168deg, rgba(9, 11, 18, 0.98) 0%, rgba(11, 10, 14, 0.95) 100%);
+        position: relative;
+        padding: clamp(0.95rem, 2.2vw, 1.25rem) clamp(1rem, 3vw, 1.5rem) clamp(1rem, 2.2vw, 1.2rem);
+        border-bottom: none;
+        background: linear-gradient(
+          168deg,
+          rgba(10, 12, 18, 0.99) 0%,
+          rgba(14, 18, 24, 0.96) 42%,
+          rgba(11, 10, 14, 0.97) 100%
+        );
+        box-shadow:
+          inset 0 -1px 0 rgba(184, 148, 96, 0.22),
+          inset 0 -3px 0 rgba(32, 88, 86, 0.12),
+          inset 0 1px 0 rgba(72, 188, 184, 0.06);
       }
       .panel-header h1 {
         margin: 0;
-        font-size: clamp(1.05rem, 2.2vw, 1.25rem);
+        font-size: clamp(1.12rem, 2.4vw, 1.32rem);
         font-weight: 600;
-        letter-spacing: -0.02em;
-        color: #e8d4b4;
+        letter-spacing: -0.025em;
+        color: #eccf93;
+        line-height: 1.2;
       }
       .panel-header p {
-        margin: 0.35rem 0 0;
+        margin: 0.42rem 0 0;
         font-size: 0.88rem;
-        color: var(--lumos-muted);
+        letter-spacing: 0.01em;
+        color: rgba(154, 172, 180, 0.95);
       }
       .panel-body {
         display: flex;
@@ -76,12 +100,44 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         flex: 0 0 clamp(10rem, 22vw, 12.75rem);
         align-self: stretch;
         min-height: 0;
-        padding: 0.65rem 0.4rem 0.85rem 0;
-        border-right: 1px solid rgba(255, 255, 255, 0.08);
-        background: linear-gradient(180deg, rgba(0, 0, 0, 0.28) 0%, rgba(8, 10, 18, 0.35) 100%);
+        margin: 0.5rem 0 0.5rem 0.35rem;
+        padding: 0.55rem 0.35rem 0.75rem 0.15rem;
+        border-radius: 0 14px 14px 0;
+        border: 1px solid rgba(184, 148, 96, 0.2);
+        border-left: 1px solid rgba(32, 88, 86, 0.14);
+        background: linear-gradient(
+          168deg,
+          rgba(12, 16, 22, 0.94) 0%,
+          rgba(8, 14, 20, 0.9) 48%,
+          rgba(10, 12, 18, 0.95) 100%
+        );
+        box-shadow:
+          inset 0 1px 0 rgba(200, 165, 110, 0.07),
+          inset 1px 0 0 rgba(72, 188, 184, 0.05),
+          4px 0 22px rgba(0, 0, 0, 0.22);
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(184, 148, 96, 0.35) rgba(0, 0, 0, 0.2);
+      }
+      .panel-nav::-webkit-scrollbar {
+        width: 7px;
+      }
+      .panel-nav::-webkit-scrollbar-track {
+        margin: 6px 0;
+        background: rgba(0, 0, 0, 0.18);
+        border-radius: 999px;
+      }
+      .panel-nav::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, rgba(200, 170, 120, 0.45) 0%, rgba(148, 120, 80, 0.35) 100%);
+        border-radius: 999px;
+        border: 2px solid transparent;
+        background-clip: padding-box;
+      }
+      .panel-nav::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(180deg, rgba(220, 190, 130, 0.55) 0%, rgba(160, 130, 90, 0.45) 100%);
+        background-clip: padding-box;
       }
       .panel-nav-group {
         display: flex;
@@ -92,33 +148,94 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
       .panel-nav-group:last-child {
         margin-bottom: 0;
       }
-      .panel-nav-heading {
-        margin: 0.4rem 0 0.18rem 0.55rem;
-        padding: 0;
+      .panel-nav-group--collapsible.panel-nav-group:first-child {
+        margin-top: 0;
+      }
+      .panel-nav-group-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.45rem;
+        width: calc(100% - 0.35rem);
+        margin: 0.35rem 0 0.2rem 0.35rem;
+        padding: 0.45rem 0.65rem 0.45rem 0.55rem;
+        border: 1px solid rgba(72, 188, 184, 0.08);
+        border-radius: 0 9px 9px 0;
+        background: rgba(255, 255, 255, 0.035);
+        color: rgba(150, 175, 175, 0.9);
         font-size: 0.62rem;
         font-weight: 600;
         letter-spacing: 0.1em;
         text-transform: uppercase;
-        color: rgba(154, 164, 181, 0.72);
+        text-align: left;
+        cursor: pointer;
+        transition:
+          background 0.15s ease,
+          color 0.15s ease,
+          border-color 0.15s ease;
       }
-      .panel-nav-group:first-child > .panel-nav-heading:first-of-type {
+      .panel-nav-group-toggle:hover {
+        background: rgba(72, 188, 184, 0.07);
+        border-color: rgba(184, 148, 96, 0.15);
+        color: #d8e4e4;
+      }
+      .panel-nav-group-toggle:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 1px rgba(184, 148, 96, 0.38);
+      }
+      .panel-nav-group--collapsible:first-child > .panel-nav-group-toggle {
         margin-top: 0;
+      }
+      .panel-nav-chevron {
+        flex-shrink: 0;
+        display: grid;
+        place-items: center;
+        width: 1rem;
+        height: 1rem;
+        opacity: 0.72;
+      }
+      .panel-nav-chevron::after {
+        content: "";
+        width: 0.32rem;
+        height: 0.32rem;
+        margin-top: -0.06rem;
+        border-right: 1.5px solid currentColor;
+        border-bottom: 1.5px solid currentColor;
+        transform: rotate(45deg);
+        transition: transform 0.18s ease;
+      }
+      .panel-nav-group-toggle[aria-expanded="false"] .panel-nav-chevron::after {
+        transform: rotate(-45deg);
+        margin-top: 0;
+      }
+      .panel-nav-group-items {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+      .panel-nav-group-toggle[aria-expanded="false"] + .panel-nav-group-items {
+        display: none;
       }
       .lumos-soon-badge {
         display: inline-block;
         flex-shrink: 0;
-        font-size: 0.56rem;
+        font-size: 0.58rem;
         font-weight: 600;
-        letter-spacing: 0.06em;
+        letter-spacing: 0.07em;
         text-transform: uppercase;
-        color: rgba(200, 178, 132, 0.78);
-        background: rgba(90, 72, 44, 0.22);
-        border: 1px solid rgba(184, 148, 96, 0.2);
-        padding: 0.1rem 0.34rem;
-        border-radius: 4px;
-        line-height: 1.2;
+        color: rgba(220, 198, 150, 0.92);
+        background: linear-gradient(
+          165deg,
+          rgba(28, 52, 52, 0.45) 0%,
+          rgba(42, 36, 24, 0.38) 100%
+        );
+        border: 1px solid rgba(184, 148, 96, 0.28);
+        padding: 0.14rem 0.4rem;
+        border-radius: 5px;
+        line-height: 1.25;
+        box-shadow: inset 0 1px 0 rgba(200, 175, 120, 0.08);
       }
-      .panel-nav button {
+      .panel-nav button[data-module] {
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -126,9 +243,9 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         width: calc(100% - 0.35rem);
         margin: 0.12rem 0 0.12rem 0.35rem;
         padding: 0.58rem 0.75rem 0.58rem 0.95rem;
-        border: none;
-        background: rgba(255, 255, 255, 0.02);
-        color: #aeb6c8;
+        border: 1px solid transparent;
+        background: rgba(255, 255, 255, 0.025);
+        color: #b4bccf;
         font-size: 0.86rem;
         font-weight: 500;
         text-align: left;
@@ -138,29 +255,34 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         transition:
           background 0.15s ease,
           color 0.15s ease,
-          border-color 0.15s ease;
+          border-color 0.15s ease,
+          box-shadow 0.15s ease;
       }
       .panel-nav-label {
         min-width: 0;
       }
-      .panel-nav button:hover {
-        background: rgba(255, 255, 255, 0.06);
-        color: #e4e8f2;
+      .panel-nav button[data-module]:hover {
+        background: rgba(72, 188, 184, 0.06);
+        border-color: rgba(72, 188, 184, 0.12);
+        color: #e8ecf4;
       }
-      .panel-nav button[aria-current="false"] {
+      .panel-nav button[data-module][aria-current="false"] {
         opacity: 0.92;
       }
-      .panel-nav button[aria-current="true"] {
-        color: #f2e6c8;
+      .panel-nav button[data-module][aria-current="true"] {
+        color: #f6ebd4;
         font-weight: 600;
-        border-left-color: rgba(236, 207, 147, 0.85);
+        border-left-color: rgba(236, 207, 147, 0.95);
+        border-color: rgba(184, 148, 96, 0.14);
         background: linear-gradient(
           90deg,
-          rgba(236, 207, 147, 0.14) 0%,
-          rgba(236, 207, 147, 0.04) 55%,
+          rgba(236, 207, 147, 0.16) 0%,
+          rgba(32, 88, 86, 0.08) 42%,
           rgba(255, 255, 255, 0.02) 100%
         );
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.06),
+          inset 0 0 0 1px rgba(184, 148, 96, 0.08);
       }
       .panel-main {
         flex: 1;
@@ -170,8 +292,10 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         padding: clamp(0.85rem, 2vw, 1.35rem);
         display: flex;
         flex-direction: column;
-        background: radial-gradient(120% 80% at 10% 0%, rgba(72, 88, 120, 0.12) 0%, transparent 55%),
-          radial-gradient(90% 60% at 100% 20%, rgba(130, 96, 56, 0.06) 0%, transparent 50%);
+        background:
+          radial-gradient(120% 85% at 8% 0%, rgba(32, 88, 86, 0.1) 0%, transparent 52%),
+          radial-gradient(100% 70% at 100% 15%, rgba(72, 188, 184, 0.05) 0%, transparent 50%),
+          radial-gradient(90% 60% at 100% 20%, rgba(130, 96, 56, 0.07) 0%, transparent 50%);
       }
       .module-panel {
         display: none;
@@ -190,7 +314,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         margin: 0 0 0.75rem;
         font-size: 0.95rem;
         font-weight: 600;
-        color: #e8ecf4;
+        color: #e8d4b4;
         letter-spacing: -0.01em;
       }
       .module-panel h2.module-title-row {
@@ -206,10 +330,19 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
       }
       .placeholder-block {
         padding: 1rem 1.05rem;
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        background: var(--lumos-surface);
-        color: var(--lumos-muted);
+        border-radius: 14px;
+        border: 1px solid rgba(184, 148, 96, 0.22);
+        background: linear-gradient(
+          168deg,
+          rgba(9, 11, 18, 0.97) 0%,
+          rgba(11, 14, 20, 0.94) 48%,
+          rgba(10, 12, 18, 0.96) 100%
+        );
+        box-shadow:
+          inset 0 1px 0 rgba(200, 165, 110, 0.06),
+          inset 0 0 0 1px rgba(32, 88, 86, 0.06),
+          0 4px 18px rgba(0, 0, 0, 0.28);
+        color: #c9ced9;
         font-size: 0.86rem;
         max-width: 32rem;
       }
@@ -226,16 +359,18 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         flex-shrink: 0;
         margin-bottom: 0.65rem;
         padding-bottom: 0.55rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        border-bottom: 1px solid rgba(184, 148, 96, 0.16);
+        box-shadow: 0 1px 0 rgba(32, 88, 86, 0.08);
       }
       .chat-panel-top h2 {
         margin: 0 0 0.28rem;
+        color: #eccf93;
       }
       .chat-panel-status {
         margin: 0;
         font-size: 0.8rem;
         line-height: 1.45;
-        color: var(--lumos-muted);
+        color: rgba(154, 172, 180, 0.95);
       }
       /** Sohbet: (1) üst başlık+durum, (2) yalnızca kaydırılan geçmiş, (3) altta sabit compose — birbirine yapışmaz. */
       .chat-workspace {
@@ -252,14 +387,18 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         display: flex;
         flex-direction: column;
         border-radius: 14px;
-        border: 1px solid rgba(184, 148, 96, 0.2);
+        border: 1px solid rgba(148, 112, 68, 0.42);
         background: linear-gradient(
           165deg,
-          rgba(9, 11, 18, 0.92) 0%,
-          rgba(12, 14, 22, 0.88) 45%,
-          rgba(10, 12, 20, 0.94) 100%
+          rgba(10, 12, 18, 0.96) 0%,
+          rgba(12, 16, 22, 0.92) 45%,
+          rgba(9, 11, 16, 0.96) 100%
         );
-        box-shadow: inset 0 1px 0 rgba(200, 165, 110, 0.06), 0 8px 28px rgba(0, 0, 0, 0.35);
+        box-shadow:
+          inset 0 1px 0 rgba(188, 148, 92, 0.1),
+          inset 0 0 0 1px rgba(32, 88, 86, 0.05),
+          0 0 0 1px rgba(72, 60, 48, 0.22),
+          0 10px 32px rgba(0, 0, 0, 0.38);
         overflow: hidden;
       }
       .chat-thread {
@@ -322,11 +461,17 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         max-width: min(100%, 22rem, 82%);
         margin-left: clamp(1.5rem, 8vw, 3.5rem);
         padding: 0.62rem 0.82rem 0.72rem;
-        background: linear-gradient(165deg, rgba(52, 78, 130, 0.55) 0%, rgba(36, 52, 92, 0.72) 100%);
-        border: 1px solid rgba(130, 160, 220, 0.32);
+        background: linear-gradient(
+          165deg,
+          rgba(36, 62, 88, 0.62) 0%,
+          rgba(28, 48, 72, 0.78) 100%
+        );
+        border: 1px solid rgba(100, 150, 165, 0.28);
         border-radius: 14px 14px 5px 14px;
         color: #f4f7ff;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(255, 255, 255, 0.04);
+        box-shadow:
+          0 2px 12px rgba(0, 0, 0, 0.22),
+          0 0 0 1px rgba(72, 188, 184, 0.06);
       }
       .chat-msg--lumos {
         max-width: min(100%, 46rem, 94%);
@@ -398,9 +543,16 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         flex-shrink: 0;
         padding: 0.75rem 0.9rem 0.85rem;
         border-radius: 14px;
-        border: 1px solid rgba(184, 148, 96, 0.18);
-        background: linear-gradient(180deg, rgba(12, 14, 22, 0.95) 0%, rgba(8, 10, 18, 0.92) 100%);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 4px 18px rgba(0, 0, 0, 0.28);
+        border: 1px solid rgba(148, 112, 68, 0.38);
+        background: linear-gradient(
+          180deg,
+          rgba(12, 16, 22, 0.96) 0%,
+          rgba(8, 12, 18, 0.93) 100%
+        );
+        box-shadow:
+          inset 0 1px 0 rgba(200, 165, 110, 0.07),
+          inset 0 0 0 1px rgba(32, 88, 86, 0.05),
+          0 4px 20px rgba(0, 0, 0, 0.3);
       }
       .chat-compose {
         display: flex;
@@ -424,19 +576,21 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         max-height: 9rem;
         padding: 0.58rem 0.72rem;
         border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        background: rgba(18, 24, 42, 0.95);
+        border: 1px solid rgba(72, 188, 184, 0.14);
+        background: linear-gradient(180deg, rgba(14, 22, 30, 0.98) 0%, rgba(12, 18, 28, 0.95) 100%);
         color: #f2f2f2;
         font-size: 0.88rem;
         font-family: inherit;
         line-height: 1.5;
         resize: vertical;
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        box-shadow: inset 0 1px 0 rgba(200, 175, 120, 0.04);
       }
       .chat-compose textarea:focus {
         outline: none;
-        border-color: rgba(184, 148, 96, 0.45);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 0 0 1px rgba(184, 148, 96, 0.2);
+        border-color: rgba(184, 148, 96, 0.42);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.05),
+          0 0 0 1px rgba(32, 88, 86, 0.18);
       }
       .chat-compose button {
         flex: 0 0 auto;
@@ -445,14 +599,14 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         min-height: 2.65rem;
         padding: 0 1.1rem;
         border-radius: 10px;
-        border: none;
-        background: linear-gradient(180deg, #35508a 0%, var(--lumos-accent) 100%);
+        border: 1px solid rgba(72, 188, 184, 0.12);
+        background: linear-gradient(180deg, #2e4f62 0%, var(--lumos-accent) 45%, var(--lumos-accent-deep) 100%);
         color: #fff;
         font-size: 0.86rem;
         font-weight: 600;
         letter-spacing: 0.02em;
         cursor: pointer;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.28);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -469,14 +623,19 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         margin: 0;
         align-self: flex-start;
         max-width: 100%;
-        padding: 0.4rem 0.65rem;
-        border-radius: 10px;
+        padding: 0.42rem 0.72rem;
+        border-radius: 9px;
         font-size: 0.68rem;
         line-height: 1.45;
-        letter-spacing: 0.02em;
-        color: rgba(170, 180, 198, 0.98);
-        background: rgba(8, 11, 20, 0.75);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        letter-spacing: 0.03em;
+        color: rgba(190, 200, 198, 0.95);
+        background: linear-gradient(
+          165deg,
+          rgba(18, 32, 34, 0.55) 0%,
+          rgba(12, 14, 22, 0.82) 100%
+        );
+        border: 1px solid rgba(184, 148, 96, 0.22);
+        box-shadow: inset 0 1px 0 rgba(72, 188, 184, 0.06);
       }
       @media (max-width: 639.98px) {
         .panel-body {
@@ -498,7 +657,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
           overflow-x: hidden;
           overscroll-behavior: contain;
         }
-        .panel-nav-group {
+        .panel-nav-group--collapsible {
           flex-direction: row;
           flex-wrap: wrap;
           align-items: center;
@@ -506,11 +665,19 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
           margin-bottom: 0.35rem;
           gap: 0.2rem;
         }
-        .panel-nav-heading {
+        .panel-nav-group-toggle {
           flex: 1 0 100%;
+          width: auto;
           margin: 0.2rem 0.35rem 0.1rem;
         }
-        .panel-nav button {
+        .panel-nav-group-items {
+          flex: 1 0 100%;
+          flex-direction: row;
+          flex-wrap: wrap;
+          align-content: flex-start;
+          gap: 0.2rem;
+        }
+        .panel-nav button[data-module] {
           flex: 1 1 auto;
           min-width: calc(33.333% - 0.35rem);
           width: auto;
@@ -521,7 +688,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
           justify-content: center;
           padding: 0.4rem 0.45rem;
         }
-        .panel-nav button[aria-current="true"] {
+        .panel-nav button[data-module][aria-current="true"] {
           border-left-color: transparent;
           border-bottom-color: rgba(236, 207, 147, 0.75);
           background: linear-gradient(
@@ -545,66 +712,90 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
       </header>
       <div class="panel-body">
         <nav class="panel-nav" aria-label="Modüller">
-          <div class="panel-nav-group">
-            <p class="panel-nav-heading">Çalışma</p>
-            <button type="button" data-module="sohbet" aria-current="true">
-              <span class="panel-nav-label">Sohbet</span>
+          <div class="panel-nav-group panel-nav-group--collapsible">
+            <button
+              type="button"
+              class="panel-nav-group-toggle"
+              data-nav-group="calisma"
+              aria-expanded="true"
+              aria-controls="nav-group-calisma"
+              id="nav-toggle-calisma"
+            >
+              <span>Çalışma</span>
+              <span class="panel-nav-chevron" aria-hidden="true"></span>
             </button>
-            <button type="button" data-module="gorevler">
-              <span class="panel-nav-label">Görevler</span>
-              <span class="lumos-soon-badge">Yakında</span>
-            </button>
-            <button type="button" data-module="ses">
-              <span class="panel-nav-label">Ses</span>
-              <span class="lumos-soon-badge">Yakında</span>
-            </button>
-            <button type="button" data-module="medya">
-              <span class="panel-nav-label">Medya</span>
-              <span class="lumos-soon-badge">Yakında</span>
-            </button>
-            <button type="button" data-module="sosyal">
-              <span class="panel-nav-label">Sosyal</span>
-              <span class="lumos-soon-badge">Yakında</span>
-            </button>
-            <button type="button" data-module="dosyalar">
-              <span class="panel-nav-label">Dosyalar</span>
-              <span class="lumos-soon-badge">Yakında</span>
-            </button>
+            <div class="panel-nav-group-items" id="nav-group-calisma" role="group" aria-labelledby="nav-toggle-calisma">
+              <button type="button" data-module="sohbet" aria-current="true">
+                <span class="panel-nav-label">Sohbet</span>
+              </button>
+              <button type="button" data-module="gorevler">
+                <span class="panel-nav-label">Görevler</span>
+                <span class="lumos-soon-badge">Yakında</span>
+              </button>
+              <button type="button" data-module="ses">
+                <span class="panel-nav-label">Ses</span>
+                <span class="lumos-soon-badge">Yakında</span>
+              </button>
+              <button type="button" data-module="medya">
+                <span class="panel-nav-label">Medya</span>
+                <span class="lumos-soon-badge">Yakında</span>
+              </button>
+              <button type="button" data-module="sosyal">
+                <span class="panel-nav-label">Sosyal</span>
+                <span class="lumos-soon-badge">Yakında</span>
+              </button>
+              <button type="button" data-module="dosyalar">
+                <span class="panel-nav-label">Dosyalar</span>
+                <span class="lumos-soon-badge">Yakında</span>
+              </button>
+            </div>
           </div>
-          <div class="panel-nav-group">
-            <p class="panel-nav-heading">Lumos çekirdeği</p>
-            <button type="button" data-module="yayincilik">
-              <span class="panel-nav-label">Yayıncılık</span>
-              <span class="lumos-soon-badge">Yakında</span>
+          <div class="panel-nav-group panel-nav-group--collapsible">
+            <button
+              type="button"
+              class="panel-nav-group-toggle"
+              data-nav-group="lumos"
+              aria-expanded="false"
+              aria-controls="nav-group-lumos"
+              id="nav-toggle-lumos"
+            >
+              <span>Lumos çekirdeği</span>
+              <span class="panel-nav-chevron" aria-hidden="true"></span>
             </button>
-            <button type="button" data-module="yapayzeka">
-              <span class="panel-nav-label">Yapay Zekâ</span>
-              <span class="lumos-soon-badge">Yakında</span>
-            </button>
-            <button type="button" data-module="kuantum">
-              <span class="panel-nav-label">Kuantum</span>
-              <span class="lumos-soon-badge">Yakında</span>
-            </button>
-            <button type="button" data-module="entegrasyon">
-              <span class="panel-nav-label">Entegrasyon</span>
-              <span class="lumos-soon-badge">Yakında</span>
-            </button>
-            <button type="button" data-module="kimlik">
-              <span class="panel-nav-label">Kimlik</span>
-              <span class="lumos-soon-badge">Yakında</span>
-            </button>
-            <button type="button" data-module="guvenlik">
-              <span class="panel-nav-label">Güvenlik</span>
-              <span class="lumos-soon-badge">Yakında</span>
-            </button>
-            <button type="button" data-module="dunya">
-              <span class="panel-nav-label">Dünya</span>
-              <span class="lumos-soon-badge">Yakında</span>
-            </button>
-            <button type="button" data-module="ayarlar">
-              <span class="panel-nav-label">Ayarlar</span>
-              <span class="lumos-soon-badge">Yakında</span>
-            </button>
+            <div class="panel-nav-group-items" id="nav-group-lumos" role="group" aria-labelledby="nav-toggle-lumos">
+              <button type="button" data-module="yayincilik">
+                <span class="panel-nav-label">Yayıncılık</span>
+                <span class="lumos-soon-badge">Yakında</span>
+              </button>
+              <button type="button" data-module="yapayzeka">
+                <span class="panel-nav-label">Yapay Zekâ</span>
+                <span class="lumos-soon-badge">Yakında</span>
+              </button>
+              <button type="button" data-module="kuantum">
+                <span class="panel-nav-label">Kuantum</span>
+                <span class="lumos-soon-badge">Yakında</span>
+              </button>
+              <button type="button" data-module="entegrasyon">
+                <span class="panel-nav-label">Entegrasyon</span>
+                <span class="lumos-soon-badge">Yakında</span>
+              </button>
+              <button type="button" data-module="kimlik">
+                <span class="panel-nav-label">Kimlik</span>
+                <span class="lumos-soon-badge">Yakında</span>
+              </button>
+              <button type="button" data-module="guvenlik">
+                <span class="panel-nav-label">Güvenlik</span>
+                <span class="lumos-soon-badge">Yakında</span>
+              </button>
+              <button type="button" data-module="dunya">
+                <span class="panel-nav-label">Dünya</span>
+                <span class="lumos-soon-badge">Yakında</span>
+              </button>
+              <button type="button" data-module="ayarlar">
+                <span class="panel-nav-label">Ayarlar</span>
+                <span class="lumos-soon-badge">Yakında</span>
+              </button>
+            </div>
           </div>
         </nav>
         <main class="panel-main">
@@ -865,13 +1056,57 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         const thread = document.getElementById("chat-thread");
         if (!nav || !sendBtn || !input || !thread) return;
 
+        const LUMOS_MODULE_IDS = new Set([
+          "yayincilik",
+          "yapayzeka",
+          "kuantum",
+          "entegrasyon",
+          "kimlik",
+          "guvenlik",
+          "dunya",
+          "ayarlar",
+        ]);
+
+        function setGroupExpanded(toggleEl, expanded) {
+          toggleEl.setAttribute("aria-expanded", expanded ? "true" : "false");
+        }
+
+        function expandGroupContainingActive() {
+          const cur = nav.querySelector('button[data-module][aria-current="true"]');
+          if (!cur) return;
+          const items = cur.closest(".panel-nav-group-items");
+          if (!items) return;
+          const toggle = items.previousElementSibling;
+          if (toggle && toggle.classList.contains("panel-nav-group-toggle")) {
+            setGroupExpanded(toggle, true);
+          }
+        }
+
         nav.addEventListener("click", (e) => {
           const t = e.target;
           if (!(t instanceof HTMLElement)) return;
+
+          const groupToggle = t.closest("button.panel-nav-group-toggle");
+          if (groupToggle) {
+            const isOpen = groupToggle.getAttribute("aria-expanded") === "true";
+            if (isOpen) {
+              const items = groupToggle.nextElementSibling;
+              if (items && items.querySelector('button[data-module][aria-current="true"]')) return;
+            }
+            setGroupExpanded(groupToggle, !isOpen);
+            return;
+          }
+
           const btn = t.closest("button[data-module]");
           if (!btn) return;
           const id = btn.getAttribute("data-module");
           if (!id) return;
+
+          if (LUMOS_MODULE_IDS.has(id)) {
+            const lumosToggle = nav.querySelector('.panel-nav-group-toggle[data-nav-group="lumos"]');
+            if (lumosToggle) setGroupExpanded(lumosToggle, true);
+          }
+
           nav.querySelectorAll("button[data-module]").forEach((b) => {
             b.setAttribute("aria-current", b === btn ? "true" : "false");
           });
@@ -879,6 +1114,8 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             p.setAttribute("data-active", p.getAttribute("data-module-panel") === id ? "true" : "false");
           });
         });
+
+        expandGroupContainingActive();
 
         const sendLabel = "Gönder";
         const loadingLabel = "Gönderiliyor…";
