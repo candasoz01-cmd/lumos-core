@@ -24,7 +24,7 @@
 - Lumos Posta görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
 - Dosyalar modülü placeholder durumundan görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
 - Entegrasyon modülü placeholder durumundan görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
-- Kimlik ve yetki
+- Kimlik modülü placeholder durumundan görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
 - Güvenlik kontrolleri
 - Ayarlar
 
