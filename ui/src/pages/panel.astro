@@ -923,7 +923,6 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
               </button>
               <button type="button" data-module="dunya">
                 <span class="panel-nav-label">Dünya</span>
-                <span class="lumos-soon-badge">Yakında</span>
               </button>
               <button type="button" data-module="ayarlar">
                 <span class="panel-nav-label">Ayarlar</span>
@@ -1393,13 +1392,38 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-dunya-title"
           >
-            <h2 id="panel-dunya-title" class="module-title-row">
-              Dünya <span class="lumos-soon-badge">Yakında</span>
-            </h2>
-            <div class="placeholder-block">
-              <p>Yerel cihazdan küresel bağlantılara uzanan akış burada izlenecek.</p>
-              <p>Farklı servisler, zamanlar ve bağlamlar arasında kontrollü geçiş hedeflenecek.</p>
-            </div>
+            <h2 id="panel-dunya-title">Dünya</h2>
+            <p class="medya-intro">
+              Dünya alanı, Lumos’un bulunduğu bağlamda hukuk, insan hakları ve yerel sınırları gözeten bir çalışma zemini
+              kurması için ayrılmıştır.
+            </p>
+            <ul class="medya-card-list">
+              <li class="medya-card">
+                <h3>Yerel Bağlam</h3>
+                <p>
+                  Lumos, kullanıcının bulunduğu ülke ve kullanım ortamını dikkate alan sınırlı bir bağlam içinde konumlanır.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Hukuk Sınırı</h3>
+                <p>
+                  Lumos hukuki otorite gibi davranmaz; yasal risklerde belirsizliği açıkça belirtir ve kullanıcıyı dikkatli
+                  ilerlemeye yönlendirir.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>İnsan Hakları Zemini</h3>
+                <p>
+                  Ülke, paket veya kullanım türü değişse bile insan onuru ve temel haklar çekirdek sınır olarak korunur.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Değiştirilemez Çekirdek</h3>
+                <p>
+                  Yerel bağlam uygulamayı şekillendirir; mahremiyet, insan onuru ve kullanıcı iradesi çekirdekten çıkarılamaz.
+                </p>
+              </li>
+            </ul>
           </section>
 
           <section

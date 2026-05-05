@@ -26,6 +26,7 @@
 - Entegrasyon modülü placeholder durumundan görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
 - Kimlik modülü placeholder durumundan görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
 - Güvenlik modülü placeholder durumundan görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
+- Dünya modülü placeholder durumundan görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
 - Ayarlar
 
 ## Temel ürün ilkeleri
