@@ -10,11 +10,12 @@
 - Kısa cevap davranışı
 - Muğlak ifadede bağlam sorma
 - Silme/kalıcı işlem güvenlik kuralı
-- Posta, Sosyal, Ses ve çekirdek modül yerlerinin açılması
+- Posta, Sosyal ve çekirdek modül yerlerinin açılması
+- Ses modülünün placeholder durumundan temel görünür iskelete taşınması
 
 ## Yakında / Takipte
 - Görevler
-- Sesli konuşma
+- Sesli konuşma akışının işlevselleştirilmesi
 - Medya akışları
 - Sosyal alan
 - Lumos Posta

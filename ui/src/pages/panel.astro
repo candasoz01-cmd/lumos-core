@@ -840,7 +840,6 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
               </button>
               <button type="button" data-module="ses">
                 <span class="panel-nav-label">Ses</span>
-                <span class="lumos-soon-badge">Yakında</span>
               </button>
               <button type="button" data-module="medya">
                 <span class="panel-nav-label">Medya</span>
@@ -991,13 +990,24 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-ses-title"
           >
-            <h2 id="panel-ses-title" class="module-title-row">
-              Ses <span class="lumos-soon-badge">Yakında</span>
-            </h2>
-            <div class="placeholder-block">
-              <p>Ses katmanı daha sonra eklenecek.</p>
-              <p>Sesli konuşma araya kaynamayacak; bu alan takipte.</p>
-            </div>
+            <h2 id="panel-ses-title">Ses</h2>
+            <p class="gorevler-intro">
+              Ses temel yapı hazır. Oturum ve adım durumları bu alanda görünür.
+            </p>
+            <ul class="gorevler-task-list">
+              <li class="gorevler-task-card">
+                <span class="gorevler-task-title">Dinleme oturumu</span>
+                <span class="task-status-badge task-status-badge--done">Hazır</span>
+              </li>
+              <li class="gorevler-task-card">
+                <span class="gorevler-task-title">Konuşma akışı</span>
+                <span class="task-status-badge task-status-badge--waiting">Taslak</span>
+              </li>
+              <li class="gorevler-task-card">
+                <span class="gorevler-task-title">Onay bekleyen ses adımı</span>
+                <span class="task-status-badge task-status-badge--approval">Onay bekliyor</span>
+              </li>
+            </ul>
           </section>
 
           <section
