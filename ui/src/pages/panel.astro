@@ -914,7 +914,6 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
               </button>
               <button type="button" data-module="entegrasyon">
                 <span class="panel-nav-label">Entegrasyon</span>
-                <span class="lumos-soon-badge">Yakında</span>
               </button>
               <button type="button" data-module="kimlik">
                 <span class="panel-nav-label">Kimlik</span>
@@ -1292,13 +1291,31 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-entegrasyon-title"
           >
-            <h2 id="panel-entegrasyon-title" class="module-title-row">
-              Entegrasyon <span class="lumos-soon-badge">Yakında</span>
-            </h2>
-            <div class="placeholder-block">
-              <p>Cihaz bağlantıları, dış servisler ve API entegrasyonları burada güvenli köprüler olarak yönetilecek.</p>
-              <p>Veri akışı, izinler, tokenlar ve bağlantı sınırları kullanıcıdan gizlenmeyecek.</p>
-            </div>
+            <h2 id="panel-entegrasyon-title">Entegrasyon</h2>
+            <p class="medya-intro">
+              Entegrasyon alanı, Lumos’un dış servisler ve sistemlerle ilişki kurarken kullanıcı iznini, veri sınırını ve güvenli
+              geçiş ilkesini koruması için ayrılmıştır.
+            </p>
+            <ul class="medya-card-list">
+              <li class="medya-card">
+                <h3>Bağlantı Sınırı</h3>
+                <p>Lumos’un dış sistemlerle kuracağı her ilişki, açık amaç ve sınırlı kapsam içinde değerlendirilir.</p>
+              </li>
+              <li class="medya-card">
+                <h3>Kullanıcı İzni</h3>
+                <p>Dış servislerle temas, kullanıcı iradesi ve onayı dışında genişletilmez.</p>
+              </li>
+              <li class="medya-card">
+                <h3>Veri Geçişi</h3>
+                <p>Sistemler arasında taşınacak bilgi, yalnızca gerekli bağlam ve güvenli sınırlar içinde ele alınır.</p>
+              </li>
+              <li class="medya-card">
+                <h3>Güvenli Köprü</h3>
+                <p>
+                  Entegrasyon, Lumos’un kontrolsüz erişim alanı değil; kullanıcıyı ve sistemi koruyan kontrollü geçiş katmanıdır.
+                </p>
+              </li>
+            </ul>
           </section>
 
           <section

@@ -23,7 +23,7 @@
 - Yapay Zekâ modülü placeholder durumundan görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
 - Lumos Posta görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
 - Dosyalar modülü placeholder durumundan görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
-- Entegrasyonlar
+- Entegrasyon modülü placeholder durumundan görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
 - Kimlik ve yetki
 - Güvenlik kontrolleri
 - Ayarlar
