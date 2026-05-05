@@ -881,7 +881,6 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
               </button>
               <button type="button" data-module="sosyal">
                 <span class="panel-nav-label">Sosyal</span>
-                <span class="lumos-soon-badge">Yakında</span>
               </button>
               <button type="button" data-module="posta">
                 <span class="panel-nav-label">Posta</span>
@@ -1090,13 +1089,37 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-sosyal-title"
           >
-            <h2 id="panel-sosyal-title" class="module-title-row">
-              Sosyal <span class="lumos-soon-badge">Yakında</span>
-            </h2>
-            <div class="placeholder-block">
-              <p>Lumos'un kendi sosyal alanı ve diğer sosyal platform bağlantıları burada toplanacak.</p>
-              <p>Paylaşım, görünürlük, yorum ve dış platform geçişleri kullanıcı onayıyla ilerleyecek.</p>
-            </div>
+            <h2 id="panel-sosyal-title">Sosyal</h2>
+            <p class="medya-intro">
+              Sosyal alan, kullanıcının dışarıya açılan içeriklerinde sesini, tonunu ve kararını koruması için ayrılmıştır.
+            </p>
+            <ul class="medya-card-list">
+              <li class="medya-card">
+                <h3>İçerik Düzeni</h3>
+                <p>
+                  Taslaklar ve gönderiler, kullanıcının içerik sürecini dağınıklığa düşmeden takip edebilmesi için ayrı bir
+                  alanda konumlanır.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Kullanıcı Sesi</h3>
+                <p>İçeriğin tonu, biçimi ve son kararı kullanıcıda kalır.</p>
+              </li>
+              <li class="medya-card">
+                <h3>Mahremiyet Sınırı</h3>
+                <p>
+                  Sosyal içerikler ve taslaklar, paket ya da kullanım türünden bağımsız olarak çekirdek mahremiyet ilkesiyle
+                  ele alınır.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Çalışma Bağlamı</h3>
+                <p>
+                  Bu alan, içeriklere bağlı notların, kararların ve sonraki adımların bağlam içinde tutulması için
+                  tasarlanır.
+                </p>
+              </li>
+            </ul>
           </section>
 
           <section

@@ -18,7 +18,7 @@
 - Görevler
 - Sesli konuşma akışının işlevselleştirilmesi
 - Medya akışlarının temel görünür iskeletinin geliştirilmesi
-- Sosyal alan
+- Sosyal alanın görünür temel iskeletinin geliştirilmesi
 - Lumos Posta
 - Dosya işlemleri
 - Entegrasyonlar
