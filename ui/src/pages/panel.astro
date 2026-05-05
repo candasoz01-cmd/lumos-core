@@ -887,7 +887,6 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
               </button>
               <button type="button" data-module="dosyalar">
                 <span class="panel-nav-label">Dosyalar</span>
-                <span class="lumos-soon-badge">Yakında</span>
               </button>
             </div>
           </div>
@@ -1168,13 +1167,35 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-dosyalar-title"
           >
-            <h2 id="panel-dosyalar-title" class="module-title-row">
-              Dosyalar <span class="lumos-soon-badge">Yakında</span>
-            </h2>
-            <div class="placeholder-block">
-              <p>Dosya işlemleri burada görünecek.</p>
-              <p>Kalıcı silme varsayılan değildir; önce silinenler/çöp akışı kullanılır.</p>
-            </div>
+            <h2 id="panel-dosyalar-title">Dosyalar</h2>
+            <p class="medya-intro">
+              Dosyalar alanı, kullanıcının belgelerle çalışırken düzeni, mahremiyeti ve kontrolü koruması için ayrılmıştır.
+            </p>
+            <ul class="medya-card-list">
+              <li class="medya-card">
+                <h3>Belge Düzeni</h3>
+                <p>
+                  Dosyalar, kullanıcının çalışma materyallerini dağınıklığa düşmeden takip edebilmesi için ayrı bir alan
+                  olarak konumlanır.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Kullanıcı Kontrolü</h3>
+                <p>Belgeler üzerindeki yön, seçim ve nihai karar kullanıcıda kalır.</p>
+              </li>
+              <li class="medya-card">
+                <h3>Mahremiyet Sınırı</h3>
+                <p>
+                  Dosya içerikleri, paket ya da kullanım türünden bağımsız olarak çekirdek mahremiyet ilkesiyle ele alınır.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Çalışma Bağlamı</h3>
+                <p>
+                  Bu alan, belgeyle ilgili notların, kararların ve sonraki adımların bağlam içinde tutulması için tasarlanır.
+                </p>
+              </li>
+            </ul>
           </section>
 
           <section

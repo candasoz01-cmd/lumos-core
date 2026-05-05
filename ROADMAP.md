@@ -20,7 +20,7 @@
 - Medya akışlarının temel görünür iskeletinin geliştirilmesi
 - Sosyal alanın görünür temel iskeletinin geliştirilmesi
 - Lumos Posta görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
-- Dosya işlemleri
+- Dosyalar modülü placeholder durumundan görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
 - Entegrasyonlar
 - Kimlik ve yetki
 - Güvenlik kontrolleri
