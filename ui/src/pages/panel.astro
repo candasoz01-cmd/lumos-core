@@ -920,7 +920,6 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
               </button>
               <button type="button" data-module="guvenlik">
                 <span class="panel-nav-label">Güvenlik</span>
-                <span class="lumos-soon-badge">Yakında</span>
               </button>
               <button type="button" data-module="dunya">
                 <span class="panel-nav-label">Dünya</span>
@@ -1359,13 +1358,32 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-guvenlik-title"
           >
-            <h2 id="panel-guvenlik-title" class="module-title-row">
-              Güvenlik <span class="lumos-soon-badge">Yakında</span>
-            </h2>
-            <div class="placeholder-block">
-              <p>Kalıcı ve yıkıcı işlemler açık onay gerektirir.</p>
-              <p>Dış bağlantılar ve izinler kullanıcıdan gizlenmez.</p>
-            </div>
+            <h2 id="panel-guvenlik-title">Güvenlik</h2>
+            <p class="medya-intro">
+              Güvenlik alanı, Lumos’un kullanıcıyı, cihazı ve sistemi korurken yetki sınırlarını ve açık onay ilkesini görünür
+              tutması için ayrılmıştır.
+            </p>
+            <ul class="medya-card-list">
+              <li class="medya-card">
+                <h3>Açık Onay</h3>
+                <p>Kalıcı, maliyetli, hassas veya başkalarını etkileyen işlemler kullanıcı onayı olmadan ilerletilmez.</p>
+              </li>
+              <li class="medya-card">
+                <h3>Risk Sınırı</h3>
+                <p>Lumos risk gördüğünde bunu kısa ve net biçimde belirtir; nihai karar kullanıcıda kalır.</p>
+              </li>
+              <li class="medya-card">
+                <h3>Kontrollü Erişim</h3>
+                <p>Sistem, cihaz ve dış servislerle temas yalnızca gerekli bağlam ve sınırlı yetki içinde ele alınır.</p>
+              </li>
+              <li class="medya-card">
+                <h3>Koruma Dengesi</h3>
+                <p>
+                  Güvenlik, kullanıcı iradesini devralmak için değil; kullanıcıyı ve sistemi koruyan sınırları açık tutmak için
+                  konumlanır.
+                </p>
+              </li>
+            </ul>
           </section>
 
           <section
