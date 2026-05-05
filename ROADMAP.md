@@ -28,6 +28,7 @@
 - Güvenlik modülü placeholder durumundan görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
 - Dünya modülü placeholder durumundan görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
 - Ayarlar modülü placeholder durumundan görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
+- Kuantum modülü placeholder durumundan görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
 
 ## Temel ürün ilkeleri
 - Kullanıcı yerine karar verilmez.
