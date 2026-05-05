@@ -379,6 +379,41 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         line-height: 1.55;
         color: var(--lumos-muted);
       }
+      .medya-intro {
+        margin: 0 0 1rem;
+        max-width: 36rem;
+        font-size: 0.88rem;
+        line-height: 1.55;
+        color: var(--lumos-muted);
+      }
+      .medya-card-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 0.65rem;
+        max-width: 42rem;
+      }
+      .medya-card {
+        padding: 0.85rem 1rem;
+        border-radius: 12px;
+        border: 1px solid var(--lumos-border);
+        background: linear-gradient(165deg, rgba(9, 11, 18, 0.98) 0%, rgba(12, 14, 22, 0.94) 100%);
+        box-shadow: inset 0 1px 0 rgba(200, 165, 110, 0.05), 0 2px 12px rgba(0, 0, 0, 0.2);
+      }
+      .medya-card h3 {
+        margin: 0 0 0.35rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--lumos-text);
+        letter-spacing: -0.01em;
+      }
+      .medya-card p {
+        margin: 0;
+        font-size: 0.84rem;
+        line-height: 1.5;
+        color: var(--lumos-muted);
+      }
       .gorevler-task-list {
         list-style: none;
         margin: 0;
@@ -843,7 +878,6 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
               </button>
               <button type="button" data-module="medya">
                 <span class="panel-nav-label">Medya</span>
-                <span class="lumos-soon-badge">Yakında</span>
               </button>
               <button type="button" data-module="sosyal">
                 <span class="panel-nav-label">Sosyal</span>
@@ -1017,12 +1051,36 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-medya-title"
           >
-            <h2 id="panel-medya-title" class="module-title-row">
-              Medya <span class="lumos-soon-badge">Yakında</span>
-            </h2>
-            <div class="placeholder-block">
-              <p>Ses, görüntü ve dosya işleme akışları burada düzenlenecek.</p>
-            </div>
+            <h2 id="panel-medya-title">Medya</h2>
+            <p class="medya-intro">
+              Medya alanı, kullanıcının görsel içeriklerle çalışırken düzeni, mahremiyeti ve kontrolü koruması için ayrılmıştır.
+            </p>
+            <ul class="medya-card-list">
+              <li class="medya-card">
+                <h3>Görsel Düzeni</h3>
+                <p>
+                  Görseller, kullanıcının medya materyallerini dağınıklığa düşmeden takip edebilmesi için ayrı bir alanda
+                  konumlanır.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Kullanıcı Kontrolü</h3>
+                <p>Görsel içerikle ilgili tercih, kullanım sınırı ve son karar kullanıcıda kalır.</p>
+              </li>
+              <li class="medya-card">
+                <h3>Mahremiyet Sınırı</h3>
+                <p>
+                  Görsel içerikler, paket ya da kullanım türünden bağımsız olarak çekirdek mahremiyet ilkesiyle ele alınır.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Çalışma Bağlamı</h3>
+                <p>
+                  Bu alan, görsellerle ilgili notların, kararların ve sonraki adımların bağlam içinde tutulması için
+                  tasarlanır.
+                </p>
+              </li>
+            </ul>
           </section>
 
           <section

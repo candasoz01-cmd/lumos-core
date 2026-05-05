@@ -12,11 +12,12 @@
 - Silme/kalıcı işlem güvenlik kuralı
 - Posta, Sosyal ve çekirdek modül yerlerinin açılması
 - Ses modülünün placeholder durumundan temel görünür iskelete taşınması
+- Medya modülünün placeholder durumundan görünür temel iskelete taşınması
 
 ## Yakında / Takipte
 - Görevler
 - Sesli konuşma akışının işlevselleştirilmesi
-- Medya akışları
+- Medya akışlarının temel görünür iskeletinin geliştirilmesi
 - Sosyal alan
 - Lumos Posta
 - Dosya işlemleri
