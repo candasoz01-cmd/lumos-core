@@ -926,7 +926,6 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
               </button>
               <button type="button" data-module="ayarlar">
                 <span class="panel-nav-label">Ayarlar</span>
-                <span class="lumos-soon-badge">Yakında</span>
               </button>
             </div>
           </div>
@@ -1433,12 +1432,37 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-ayarlar-title"
           >
-            <h2 id="panel-ayarlar-title" class="module-title-row">
-              Ayarlar <span class="lumos-soon-badge">Yakında</span>
-            </h2>
-            <div class="placeholder-block">
-              <p>Kullanıcı tercihleri ve Lumos davranış ayarları burada yer alacak.</p>
-            </div>
+            <h2 id="panel-ayarlar-title">Ayarlar</h2>
+            <p class="medya-intro">
+              Ayarlar alanı, Lumos’un kullanıcı tercihlerini düzenlerken çekirdek ilkelerin değiştirilemez sınırlarını görünür
+              tutması için ayrılmıştır.
+            </p>
+            <ul class="medya-card-list">
+              <li class="medya-card">
+                <h3>Tercih Alanı</h3>
+                <p>
+                  Kullanıcı deneyimi, görünüm ve çalışma biçimi tercihleri çekirdek ilkeler korunarak şekillenir.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Çekirdek Sınırı</h3>
+                <p>
+                  Mahremiyet, insan onuru, kullanıcı iradesi ve güvenlik ilkeleri ayar tercihiyle kapatılamaz.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Açık Kontrol</h3>
+                <p>
+                  Değiştirilebilir seçenekler kullanıcıya açık, anlaşılır ve geri alınabilir biçimde sunulmalıdır.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Sorumlu Esneklik</h3>
+                <p>
+                  Ayarlar esneklik sağlar; ancak Lumos’un hukuki, etik ve güvenlik çekirdeğini zayıflatmaz.
+                </p>
+              </li>
+            </ul>
           </section>
         </main>
       </div>

@@ -27,7 +27,7 @@
 - Kimlik modülü placeholder durumundan görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
 - Güvenlik modülü placeholder durumundan görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
 - Dünya modülü placeholder durumundan görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
-- Ayarlar
+- Ayarlar modülü placeholder durumundan görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
 
 ## Temel ürün ilkeleri
 - Kullanıcı yerine karar verilmez.
