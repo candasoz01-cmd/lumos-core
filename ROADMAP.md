@@ -19,7 +19,7 @@
 - Sesli konuşma akışının işlevselleştirilmesi
 - Medya akışlarının temel görünür iskeletinin geliştirilmesi
 - Sosyal alanın görünür temel iskeletinin geliştirilmesi
-- Lumos Posta
+- Lumos Posta görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
 - Dosya işlemleri
 - Entegrasyonlar
 - Kimlik ve yetki

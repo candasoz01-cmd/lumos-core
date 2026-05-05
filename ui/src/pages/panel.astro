@@ -884,7 +884,6 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
               </button>
               <button type="button" data-module="posta">
                 <span class="panel-nav-label">Posta</span>
-                <span class="lumos-soon-badge">Yakında</span>
               </button>
               <button type="button" data-module="dosyalar">
                 <span class="panel-nav-label">Dosyalar</span>
@@ -1129,13 +1128,37 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-posta-title"
           >
-            <h2 id="panel-posta-title" class="module-title-row">
-              Posta <span class="lumos-soon-badge">Yakında</span>
-            </h2>
-            <div class="placeholder-block">
-              <p>Bağlı e-posta hesaplarından önemli, şüpheli veya işlem gerektiren mesajlar burada görünür hale getirilecek.</p>
-              <p>Posta akışı kullanıcı izniyle çalışacak; bağlantılar Entegrasyon, riskli içerikler Güvenlik, yapılacak işlemler Görevler alanına bağlanacak.</p>
-            </div>
+            <h2 id="panel-posta-title">Posta</h2>
+            <p class="medya-intro">
+              Posta alanı, kullanıcının yazışmalarını hazırlarken niyetini, tonunu ve kararını başkasına devretmeden
+              ilerleyebilmesi için ayrılmıştır.
+            </p>
+            <ul class="medya-card-list">
+              <li class="medya-card">
+                <h3>Yazışma Düzeni</h3>
+                <p>
+                  E-postalar ve taslaklar, kullanıcının yazışma sürecini dağınıklığa düşmeden takip edebilmesi için ayrı bir
+                  alanda konumlanır.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Kullanıcı Niyeti</h3>
+                <p>Yazışmanın yönü, tonu ve son kararı kullanıcıda kalır.</p>
+              </li>
+              <li class="medya-card">
+                <h3>Mahremiyet Sınırı</h3>
+                <p>
+                  Yazışma içerikleri, paket ya da kullanım türünden bağımsız olarak çekirdek mahremiyet ilkesiyle ele alınır.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Dijital Temsil Sınırı</h3>
+                <p>
+                  Lumos, kullanıcının yerine kimlik veya yetki sahibi gibi davranmaz; yazışma sürecinde kullanıcı iradesini
+                  koruyan destek alanı olarak konumlanır.
+                </p>
+              </li>
+            </ul>
           </section>
 
           <section
