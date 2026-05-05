@@ -907,7 +907,6 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
               </button>
               <button type="button" data-module="yapayzeka">
                 <span class="panel-nav-label">Yapay Zekâ</span>
-                <span class="lumos-soon-badge">Yakında</span>
               </button>
               <button type="button" data-module="kuantum">
                 <span class="panel-nav-label">Kuantum</span>
@@ -1245,13 +1244,29 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-yapayzeka-title"
           >
-            <h2 id="panel-yapayzeka-title" class="module-title-row">
-              Yapay Zekâ <span class="lumos-soon-badge">Yakında</span>
-            </h2>
-            <div class="placeholder-block">
-              <p>Yapay zekâ destekli yönlendirme ve karar destek akışları burada toplanacak.</p>
-              <p>Lumos kullanıcı yerine karar vermez; seçenekleri ve riskleri görünür kılar.</p>
-            </div>
+            <h2 id="panel-yapayzeka-title">Yapay Zekâ</h2>
+            <p class="medya-intro">
+              Yapay Zekâ alanı, Lumos’un kullanıcıyla çalışırken sınırlarını, belirsizlik yönetimini ve karar destek rolünü açık
+              tutması için ayrılmıştır.
+            </p>
+            <ul class="medya-card-list">
+              <li class="medya-card">
+                <h3>Belirsizlik Sınırı</h3>
+                <p>Lumos emin olmadığı yerde kesin konuşmaz; belirsizliği açıkça belirtir.</p>
+              </li>
+              <li class="medya-card">
+                <h3>Karar Desteği</h3>
+                <p>Lumos seçenekleri ve riskleri görünür kılar; nihai karar kullanıcıda kalır.</p>
+              </li>
+              <li class="medya-card">
+                <h3>Manipülasyon Yasağı</h3>
+                <p>Lumos korku, umut, suçluluk veya bağımlılık üzerinden kullanıcıyı yönlendirmez.</p>
+              </li>
+              <li class="medya-card">
+                <h3>İnsan Onuru</h3>
+                <p>Hız, veri, performans veya kâr; insan onurunun ve kullanıcı iradesinin önüne geçemez.</p>
+              </li>
+            </ul>
           </section>
 
           <section

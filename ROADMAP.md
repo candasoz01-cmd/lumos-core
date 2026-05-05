@@ -20,6 +20,7 @@
 - Medya akışlarının temel görünür iskeletinin geliştirilmesi
 - Sosyal alanın görünür temel iskeletinin geliştirilmesi
 - Yayıncılık modülü placeholder durumundan görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
+- Yapay Zekâ modülü placeholder durumundan görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
 - Lumos Posta görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
 - Dosyalar modülü placeholder durumundan görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
 - Entegrasyonlar
