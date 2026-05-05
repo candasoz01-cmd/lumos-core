@@ -904,7 +904,6 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             <div class="panel-nav-group-items" id="panel-nav-items-lumos" hidden>
               <button type="button" data-module="yayincilik">
                 <span class="panel-nav-label">Yayıncılık</span>
-                <span class="lumos-soon-badge">Yakında</span>
               </button>
               <button type="button" data-module="yapayzeka">
                 <span class="panel-nav-label">Yapay Zekâ</span>
@@ -1205,13 +1204,38 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-yayincilik-title"
           >
-            <h2 id="panel-yayincilik-title" class="module-title-row">
-              Yayıncılık <span class="lumos-soon-badge">Yakında</span>
-            </h2>
-            <div class="placeholder-block">
-              <p>Canlı ve kayıtlı yayın akışları burada yönetilecek.</p>
-              <p>Kaynak, hedef, onay ve dağıtım adımları görünür tutulacak.</p>
-            </div>
+            <h2 id="panel-yayincilik-title">Yayıncılık</h2>
+            <p class="medya-intro">
+              Yayıncılık alanı, kullanıcının dış dünyaya açılan içeriklerinde niyetini, sınırını ve sorumluluğunu koruması
+              için ayrılmıştır.
+            </p>
+            <ul class="medya-card-list">
+              <li class="medya-card">
+                <h3>Yayın Sınırı</h3>
+                <p>
+                  İçeriğin nerede, nasıl ve hangi bağlamda görünür olacağına dair son karar kullanıcıda kalır.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Kullanıcı İmzası</h3>
+                <p>
+                  Lumos ile hazırlanan çıktıların imzası Lumos’a değil, kullanıcının yönüne ve kararına aittir.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Sorumluluk Alanı</h3>
+                <p>
+                  Yayına çıkacak içeriklerde niyet, risk ve etki açık biçimde kullanıcı kontrolünde tutulur.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Temsil Dengesi</h3>
+                <p>
+                  Lumos, kullanıcı adına yetki sahibi gibi davranmaz; yayın sürecinde kullanıcı iradesini koruyan destek
+                  alanı olarak konumlanır.
+                </p>
+              </li>
+            </ul>
           </section>
 
           <section
