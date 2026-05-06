@@ -12,7 +12,7 @@
     <script>
       async function send(){
         let m = document.getElementById("msg").value;
-        let r = await fetch("http://127.0.0.1:8765/chat", {
+        let r = await fetch("https://lumos-core.onrender.com/chat", {
           method:"POST",
           headers:{
             "Content-Type":"application/json",
