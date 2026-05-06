@@ -52,3 +52,19 @@ Planned development areas include:
 - Adaptive workflow engines
 
 Additional documentation, public modules, and ecosystem components will be released progressively as development continues.
+## Open Source Status
+
+Lumos Core is currently kept private during its early development phase.
+
+This is intentional. Some parts of the system are still experimental, incomplete, or under active structural change. The project also contains early architecture decisions, internal flow logic, and unfinished modules that are not yet ready for public use.
+
+When the project is opened to the public, the goal is to provide:
+
+- Clear documentation
+- Safe and usable public modules
+- Transparent development history
+- Contribution guidelines
+- Separated experimental and stable components
+- A more understandable structure for external developers
+
+Until then, Lumos Core remains in private development to protect the integrity, direction, and stability of the project.
