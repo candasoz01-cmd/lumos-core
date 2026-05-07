@@ -1,6 +1,6 @@
 # Lumos
 Lumos is a human-centered AI control layer designed to help users understand, control and safely manage actions across devices, digital workflows and connected systems.
-It does not replace the user’s judgment.  
+It does not replace the user’s judgment.
 It makes context, risk and next steps more visible.
 ## What is Lumos?
 Lumos helps users interact with devices, digital actions, home automation, vehicles, applications and connected systems through a clearer and safer control layer.
@@ -22,6 +22,7 @@ The current version includes:
 - A static panel structure
 - Product-language module definitions
 - Core principles for user control, privacy, identity, consent and safety
+- Early backend foundations for memory, state and orchestration
 The current panel defines visible modules and product direction without claiming unfinished active functionality.
 ## Modules
 ### Work Modules
@@ -41,6 +42,26 @@ The current panel defines visible modules and product direction without claiming
 - Security
 - World
 - Settings
+## Technical Foundations
+The system includes early working foundations for:
+- Contextual memory handling
+- State persistence
+- Modular backend orchestration
+- Feed and interaction infrastructure
+- Panel and control systems
+- Experimental workflow coordination
+## Architecture Overview
+User
+↓
+Lumos Gateway Layer
+↓
+Context Engine
+↓
+Memory / State Layer
+↓
+Workflow Orchestrator
+↓
+Modules / UI / Feed / Automation / External Systems
 ## Philosophy
 Lumos is built around a simple idea:
 AI should not become an invisible authority between humans and their own decisions.
@@ -55,8 +76,9 @@ Current focus areas:
 - Landing page clarity
 - Public presentation
 - GitHub and LinkedIn readiness
+- Safe orchestration foundations
 ## Status
-Early active development.  
-Public-facing text and interface structure are being shaped before deeper functional implementation.
+Early active development.
+Public-facing text, interface structure and core orchestration foundations are being shaped before deeper functional implementation.
 ## License
 License information will be added later.
