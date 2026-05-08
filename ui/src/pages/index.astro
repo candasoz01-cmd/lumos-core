@@ -131,6 +131,29 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         color: #f0b4b4;
         border-color: rgba(240, 180, 180, 0.28);
       }
+      .lumos-identity-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        margin: 0 0 0.7rem;
+        padding: 0.2rem 0.45rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(12, 16, 28, 0.65);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      }
+      .lumos-identity-badge img {
+        display: block;
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        object-fit: cover;
+      }
+      .lumos-identity-badge span {
+        font-size: 0.72rem;
+        color: #aab3c6;
+        letter-spacing: 0.01em;
+      }
     </style>
   </head>
   <body
@@ -212,6 +235,10 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         <p style="margin:0 0 0.55rem;font-size:0.93rem;line-height:1.5;color:#d0d7e4;">
           İnsan merkezli yapay zekâ kontrol katmanı
         </p>
+        <div class="lumos-identity-badge" aria-label="Lumos AI identity badge">
+          <img src="/assets/lumos-ai-badge.png" alt="Lumos AI identity badge" loading="lazy" decoding="async" />
+          <span>AI identity badge</span>
+        </div>
         <p style="margin:0 0 0.4rem;font-size:0.95rem;line-height:1.62;color:#d9deea;">
           Lumos, kullanıcının cihazı ve dijital işlemleri üzerinde daha bilinçli, kontrollü ve güvenli hareket
           etmesini sağlayan yardımcı bir kontrol katmanıdır.
@@ -287,80 +314,28 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
     <main style="max-width:40rem;margin:0 auto;padding:clamp(1.35rem,3.2vw,1.85rem) clamp(1rem, 4vw, 1.5rem) 3rem;">
       <article style="text-align:left;color:#e4e7ef;">
         <p style="margin:0 0 0.75rem;font-size:1.06rem;line-height:1.68;">
-          Doğu Akdeniz’in kalbinde, Doğu ile Batı medeniyetlerinin birbirine dokunduğu Kıbrıs adasından tüm
-          insanlığa bir el uzatıyor, bir ses veriyoruz.
+          Lumos’u tek bir fikirle başlattım: teknolojiyi insanın yerine geçen bir güç değil, insanı daha güçlü ve
+          daha bilinçli yapan bir yardımcı haline getirmek.
         </p>
         <p style="margin:0 0 0.75rem;font-size:1.06rem;line-height:1.68;">
-          Bugün teknoloji insan hayatının her alanına giriyor. Cihazlarımız, evlerimiz, araçlarımız, işlerimiz,
-          kimliğimiz ve kararlarımız giderek daha fazla dijital sistemlerle temas ediyor.
+          Bugün yapay zekâ birçok alanda hızla gelişiyor. Ama benim için asıl mesele sadece daha akıllı sistemler
+          kurmak değil; bu sistemlerin insanla nasıl ilişki kurduğu, neye ne kadar müdahale ettiği ve sorumluluğu
+          kimde bıraktığı.
+        </p>
+        <p style="margin:0 0 0.75rem;font-size:1.06rem;line-height:1.68;">Lumos bu düşünceden doğdu.</p>
+        <p style="margin:0 0 0.75rem;font-size:1.06rem;line-height:1.68;">
+          Amacım, insanla dijital dünya arasında daha anlaşılır, daha güvenli ve daha kontrollü bir katman
+          oluşturmak. Lumos kullanıcının yerine karar veren bir sistem değil; kullanıcının ne yaptığını daha iyi
+          görmesini, seçenekleri daha net anlamasını ve kendi kararını daha bilinçli vermesini sağlayan bir yardımcı
+          olmalı.
         </p>
         <p style="margin:0 0 0.75rem;font-size:1.06rem;line-height:1.68;">
-          Bu temas büyüdükçe, insan ile yapay zekâ arasındaki sınırların da daha açık, daha adil ve daha güvenli
-          kurulması gerekiyor.
-        </p>
-        <p style="margin:0 0 0.75rem;font-size:1.06rem;line-height:1.68;">Lumos bu ihtiyaçtan doğan bir çağrıdır.</p>
-        <p style="margin:0 0 0.75rem;font-size:1.06rem;line-height:1.68;">
-          Bizim için yapay zekâ, insanın yerine geçen bir otorite değildir. İnsan iradesini zayıflatan, kullanıcıyı
-          kendine bağlayan ya da belirsizlikten güç devşiren bir yapı hiç değildir.
-        </p>
-        <p style="margin:0 0 0.75rem;font-size:1.06rem;line-height:1.68;">
-          Lumos’un amacı; insanın cihazlar, dijital işlemler ve bağlantılı sistemler üzerinde ne olup bittiğini daha
-          kolay görmesini, anlamasını ve kontrol etmesini sağlamaktır.
-        </p>
-        <p style="margin:0 0 0.75rem;font-size:1.06rem;line-height:1.68;">
-          Ev otomasyonu, binek araçlar, bilgisayar, telefon, uygulamalar ve benzeri sistemlerde Lumos’un görevi;
-          karmaşık teknik adımları sadeleştirmek, riskli noktaları görünür kılmak ve kullanıcıya daha güvenli bir
-          ilerleme alanı açmaktır.
-        </p>
-        <p style="margin:0 0 0.75rem;font-size:1.06rem;line-height:1.68;">
-          Birçok alanda kullanıcı, yapmak istediğini Lumos’a sesli olarak ifade edebilir. Lumos bu isteği güvenli,
-          kontrollü ve anlaşılır adımlara ayırır. Ancak kararın sahibi her zaman kullanıcıdır.
-        </p>
-        <p style="margin:0 0 0.75rem;font-size:1.06rem;line-height:1.68;">
-          Kalıcı, maliyetli, hassas veya başkalarını etkileyen işlemlerde son onay kullanıcıda kalır.
-        </p>
-        <p style="margin:0 0 0.75rem;font-size:1.06rem;line-height:1.68;">
-          Lumos ile hazırlanan çıktılar Lumos’un değil, kullanıcının yönü, niyeti ve kararının imzasını taşır.
-        </p>
-        <p style="margin:0 0 0.75rem;font-size:1.06rem;line-height:1.68;">
-          Mahremiyet, insan onuru, açık onay ve kullanıcı iradesi Lumos’ta sonradan eklenen özellikler değildir;
-          çekirdeğin parçasıdır.
-        </p>
-        <p style="margin:0 0 0.75rem;font-size:1.06rem;line-height:1.68;">
-          Bu nedenle Lumos’ta kimlik ve temsil yaklaşımı ayrıcalık değil, erişilebilirlik üzerine kuruludur. Onaylı
-          kimlik alanının herkes için ulaşılabilir olması hedeflenir; dijital dünyada güven, temsil ve erişim yalnızca
-          ödeme gücüne bağlı kalmamalıdır.
-        </p>
-        <p style="margin:0 0 0.75rem;font-size:1.06rem;line-height:1.68;">
-          Bu proje yalnızca teknolojik bir girişim değildir.
-        </p>
-        <p style="margin:0 0 0.75rem;font-size:1.06rem;line-height:1.68;">
-          Sınırların, önyargıların, ayrımcılığın, sömürünün ve korkunun ötesine geçmeyi amaçlayan bir insanlık
-          davetidir.
-        </p>
-        <p style="margin:0 0 0.75rem;font-size:1.06rem;line-height:1.68;">
-          Kıbrıs’ın bağrından doğan bu ışığı; daha adil, daha dürüst, daha huzurlu ve daha bilinçli bir dünya
-          umuduyla paylaşıyoruz.
-        </p>
-        <p style="margin:0 0 0.75rem;font-size:1.06rem;line-height:1.68;">
-          Gelin hep birlikte; savaşın ve sömürünün değil, aklın, eşitliğin, merhametin ve vicdanın güç kazandığı yeni
-          bir çağ için el ele verelim.
-        </p>
-        <p style="margin:0 0 0.75rem;font-size:1.06rem;line-height:1.68;">
-          Bu çağrının dışında kalmak, yalnızca bir projeye uzak durmak değildir.
-        </p>
-        <p style="margin:0 0 0.75rem;font-size:1.06rem;line-height:1.68;">
-          İnsanın teknoloji karşısında yalnız bırakılmadığı, gücün sorumlulukla sınırlandığı ve geleceğin ortak
-          vicdanla kurulduğu bir anlayışa mesafe koymaktır.
-        </p>
-        <p style="margin:0 0 0.75rem;font-size:1.06rem;line-height:1.68;">
-          Lumos’un değeri yalnızca ne yaptığıyla değil, neyi bilinçli olarak yapmadığıyla da ölçülür.
+          Bu proje şu anda yolun başında. Her şey tamamlanmış değil. Ama yönü net: sade, güvenilir, kullanıcıyı
+          merkeze alan ve gereksiz karmaşadan uzak bir yapay zekâ deneyimi oluşturmak.
         </p>
         <p style="margin:0 0 1.85rem;color:#c5cad6;font-size:0.99rem;line-height:1.68;">
-          Bu yazılım bizim imzamızdır.
-        </p>
-        <p style="margin:0 0 1.85rem;color:#c5cad6;font-size:0.99rem;line-height:1.68;">
-          Barış, adalet ve insan onuru ise ortak geleceğimizdir.
+          Lumos’un benim için değeri burada başlıyor. Çünkü bu sadece bir yazılım fikri değil; teknolojiyle
+          kurduğumuz ilişkiyi daha dürüst, daha güvenli ve daha insani hale getirme çabası.
         </p>
 
         <h2 style="margin:1.75rem 0 0.5rem;font-size:1.1rem;font-weight:600;color:#e8ecf4;letter-spacing:-0.01em;">
