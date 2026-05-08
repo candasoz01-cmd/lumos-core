@@ -10,6 +10,9 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Lumos — Açık mektup</title>
     <style>
+      html {
+        scroll-behavior: smooth;
+      }
       .lumos-hero-row {
         display: flex;
         align-items: stretch;
@@ -76,6 +79,18 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         );
         box-shadow: inset 0 1px 0 rgba(200, 165, 110, 0.06), 0 4px 18px rgba(0, 0, 0, 0.28);
       }
+      .lumos-cap-card-link {
+        display: block;
+        text-decoration: none;
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+      .lumos-cap-card-link:hover,
+      .lumos-cap-card-link:focus-visible {
+        border-color: rgba(93, 201, 197, 0.42);
+        box-shadow: inset 0 1px 0 rgba(200, 165, 110, 0.1), 0 8px 24px rgba(0, 0, 0, 0.34),
+          0 0 0 1px rgba(93, 201, 197, 0.15);
+        transform: translateY(-2px);
+      }
       .lumos-cap-card h3 {
         margin: 0 0 0.5rem;
         font-size: 1rem;
@@ -97,6 +112,40 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         letter-spacing: -0.02em;
         color: #e8d4b4;
         line-height: 1.3;
+      }
+      .lumos-modules {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 0 clamp(0.65rem, 2vw, 1.25rem) clamp(1.2rem, 3vw, 2rem);
+      }
+      .lumos-modules-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.8rem;
+      }
+      @media (min-width: 920px) {
+        .lumos-modules-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      .lumos-module-item {
+        padding: 0.85rem 0.95rem;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: linear-gradient(165deg, rgba(11, 16, 32, 0.96) 0%, rgba(13, 13, 18, 0.95) 100%);
+      }
+      .lumos-module-item h3 {
+        margin: 0 0 0.35rem;
+        font-size: 0.97rem;
+        color: #e8d4b4;
+      }
+      .lumos-module-item p {
+        margin: 0;
+        font-size: 0.89rem;
+        line-height: 1.58;
+        color: #c9ced9;
       }
       .lumos-reply-panel {
         margin: 0.75rem 0 0;
@@ -253,60 +302,93 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
     <section class="lumos-cap" aria-labelledby="lumos-cap-title">
       <h2 id="lumos-cap-title" class="lumos-cap-title">Lumos'un ana modülleri</h2>
       <div class="lumos-cap-grid">
-        <article class="lumos-cap-card">
+        <a class="lumos-cap-card lumos-cap-card-link" href="#publishing" aria-label="Yayıncılık modülüne git">
+          <h3>Yayıncılık</h3>
+          <p>Yayın akışlarını görünür ve kontrollü hale getirir.</p>
+        </a>
+        <a class="lumos-cap-card lumos-cap-card-link" href="#media" aria-label="Medya modülüne git">
+          <h3>Medya</h3>
+          <p>Ses, görüntü ve dosya akışlarını düzenli tutar.</p>
+        </a>
+        <a class="lumos-cap-card lumos-cap-card-link" href="#ai" aria-label="Yapay Zekâ modülüne git">
+          <h3>Yapay Zekâ</h3>
+          <p>Karar desteği sunan insan merkezli bir katman sunar.</p>
+        </a>
+        <a class="lumos-cap-card lumos-cap-card-link" href="#quantum" aria-label="Kuantum modülüne git">
+          <h3>Kuantum</h3>
+          <p>Araştırma ve geleceğe açık hesaplama alanını temsil eder.</p>
+        </a>
+        <a class="lumos-cap-card lumos-cap-card-link" href="#integration" aria-label="Entegrasyon modülüne git">
+          <h3>Entegrasyon</h3>
+          <p>Servisleri tek bir kontrollü akışta birleştirir.</p>
+        </a>
+        <a class="lumos-cap-card lumos-cap-card-link" href="#identity" aria-label="Kimlik modülüne git">
+          <h3>Kimlik</h3>
+          <p>Dijital kimlik ve tercihleri daha yönetilebilir kılar.</p>
+        </a>
+        <a class="lumos-cap-card lumos-cap-card-link" href="#security" aria-label="Güvenlik modülüne git">
+          <h3>Güvenlik</h3>
+          <p>Riskli işlemlerde onay ve görünürlüğü önceliklendirir.</p>
+        </a>
+        <a class="lumos-cap-card lumos-cap-card-link" href="#world" aria-label="Dünya modülüne git">
+          <h3>Dünya</h3>
+          <p>Farklı kullanıcı ve çalışma biçimlerine uyumu temsil eder.</p>
+        </a>
+      </div>
+    </section>
+    <section class="lumos-modules" aria-labelledby="lumos-module-detail-title">
+      <h2 id="lumos-module-detail-title" class="lumos-cap-title">Modül açıklamaları</h2>
+      <div class="lumos-modules-grid">
+        <article id="publishing" class="lumos-module-item">
           <h3>Yayıncılık</h3>
           <p>
-            Canlı ve kayıtlı yayın akışlarını tek çatı altında toplar; kaynağın nereye gittiğini, hangi adımda
-            onay gerektiğini ve yayının nasıl dağıldığını görünür kılar.
+            Canlı ve kayıtlı yayın akışlarında kullanıcının neyin, nereye ve hangi onayla yayıldığını daha net
+            görmesini hedefler.
           </p>
         </article>
-        <article class="lumos-cap-card">
+        <article id="media" class="lumos-module-item">
           <h3>Medya</h3>
           <p>
-            Ses, görüntü ve dosya akışlarını düzenli tutar; önizleme, dönüştürme ve paylaşım adımlarını
-            kontrollü bir sıraya alır.
+            Ses, görüntü ve dosya akışlarını daha düzenli, izlenebilir ve kontrollü hale getirmeyi amaçlar.
           </p>
         </article>
-        <article class="lumos-cap-card">
+        <article id="ai" class="lumos-module-item">
           <h3>Yapay Zekâ</h3>
           <p>
-            Yapay zekâyı kullanıcının yerine karar veren bir güç gibi değil, düşünmeyi hızlandıran ve
-            seçenekleri görünür kılan yardımcı katman olarak konumlandırır.
+            Kullanıcının yerine geçen değil, kullanıcının kararını daha bilinçli vermesine yardımcı olan yapay zekâ
+            katmanıdır.
           </p>
         </article>
-        <article class="lumos-cap-card">
+        <article id="quantum" class="lumos-module-item">
           <h3>Kuantum</h3>
           <p>
-            Bugünün sistemi içinde araştırma, hesaplama ve gelecek teknolojilerine açık bir hazırlık alanı olarak
-            durur; iddia değil, yön ve kapasite alanıdır.
+            Gelecekteki ileri hesaplama ve güvenlik yaklaşımlarına açık, araştırma odaklı bir alan olarak düşünülür.
           </p>
         </article>
-        <article class="lumos-cap-card">
+        <article id="integration" class="lumos-module-item">
           <h3>Entegrasyon</h3>
           <p>
-            Dış servislerle bağlantıları güvenli köprüler üzerinden kurar; veri akışı, sınırlar ve izinler
-            kullanıcıdan gizlenmez.
+            Farklı uygulama ve servisleri tek bir kontrollü akış içinde bir araya getirmeyi hedefler.
           </p>
         </article>
-        <article class="lumos-cap-card">
+        <article id="identity" class="lumos-module-item">
           <h3>Kimlik</h3>
           <p>
-            Oturum, yetki ve kimlik bilgilerini anlaşılır bir merkezde toplar; erişim kararlarında kullanıcı
-            kontrolünü temel alır.
+            Kullanıcının dijital kimliğini, tercihlerini ve sınırlarını daha görünür ve yönetilebilir hale getirmeyi
+            amaçlar.
           </p>
         </article>
-        <article class="lumos-cap-card">
+        <article id="security" class="lumos-module-item">
           <h3>Güvenlik</h3>
           <p>
-            Riskli, kalıcı veya geri dönüşü zor işlemlerde ek dikkat ister; güvenliği görünmez bir engel değil,
-            açık bir koruma katmanı olarak ele alır.
+            Riskli, kalıcı veya geri dönüşü zor işlemlerde kullanıcı onayını ve görünürlüğü öncelikli tutar.
           </p>
         </article>
-        <article class="lumos-cap-card">
+        <article id="world" class="lumos-module-item">
           <h3>Dünya</h3>
           <p>
-            Yerel cihazdan küresel bağlantılara uzanan akışı düzenli tutar; farklı servisler, zamanlar ve
-            bağlamlar arasında kontrollü geçiş hedefler.
+            Lumos’un farklı kullanıcılar, diller ve çalışma biçimleriyle uyumlu büyüyebilmesi için genel yönünü temsil
+            eder.
           </p>
         </article>
       </div>
