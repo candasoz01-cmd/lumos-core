@@ -294,6 +294,32 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         color: #f0b4b4;
         border-color: rgba(240, 180, 180, 0.28);
       }
+      .lumos-source-strip {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 0.55rem clamp(0.65rem, 2vw, 1.25rem) 0.15rem;
+      }
+      .lumos-source-strip-inner {
+        margin: 0;
+        padding: 0.65rem 0.85rem;
+        border-radius: 10px;
+        border: 1px solid rgba(148, 112, 68, 0.28);
+        background: linear-gradient(165deg, rgba(12, 14, 22, 0.92) 0%, rgba(9, 11, 18, 0.94) 100%);
+        box-shadow: inset 0 1px 0 rgba(188, 148, 92, 0.06);
+        font-size: 0.84rem;
+        line-height: 1.55;
+        color: #c9ced9;
+      }
+      .lumos-source-strip-inner a {
+        color: #5dc9c5;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+      .lumos-source-strip-inner a:hover {
+        color: #7dd9d5;
+      }
     </style>
   </head>
   <body
@@ -358,6 +384,15 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
           </div>
         </div>
       </div>
+    </section>
+
+    <section class="lumos-source-strip" aria-label="Kaynak kodu ve geliştirme">
+      <p class="lumos-source-strip-inner">
+        Lumos şu an
+        <a href="https://github.com/candasoz01-cmd/lumos-core" rel="noopener noreferrer">kaynak kodu</a>
+        olarak geliştirme ve inceleme için sunuluyor; paketlenmiş bir kurulum dosyası henüz yok. Kurulum ve çalıştırma
+        için depodaki geliştirici talimatlarına bakın.
+      </p>
     </section>
 
     <section

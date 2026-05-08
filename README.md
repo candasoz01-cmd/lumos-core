@@ -80,5 +80,35 @@ Current focus areas:
 ## Status
 Early active development.
 Public-facing text, interface structure and core orchestration foundations are being shaped before deeper functional implementation.
+## Developer setup
+
+Lumos is currently available as **source code** for development and review. A packaged end-user installer is **not** available yet.
+
+### Prerequisites
+
+- **Node.js** >= 22.12.0 (see `ui/package.json` `engines`)
+
+### Web UI
+
+```bash
+cd ui
+npm install
+npm run dev
+```
+
+The default dev URL is typically http://localhost:4321 (Astro’s default unless overridden).
+
+### Production UI build (from repo root)
+
+```bash
+npm run build
+```
+
+### Backend API (optional)
+
+```bash
+cd backend && npm install && npm run dev
+```
+
 ## License
 License information will be added later.
