@@ -1,14 +1,12 @@
 ---
-/** Canlı köprü testi: istek adresi sabit (deploy ortamı yanlış env ile kırılmasın). */
-const CHAT_URL = "https://lumos-core-1.onrender.com/chat";
-const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
+const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
 ---
 
 <html lang="tr">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Lumos — Açık mektup</title>
+    <title>Lumos — Yerel kontrollü akıllı asistan altyapısı</title>
     <style>
       html {
         scroll-behavior: smooth;
@@ -53,37 +51,57 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
       .lumos-hero-copy {
         max-width: 920px;
       }
-      .lumos-hero-kicker {
+      .lumos-hero-title-page {
         margin: 0 0 0.65rem;
-        font-size: clamp(1.25rem, 4.4vw, 2.3rem);
-        line-height: 1.08;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        color: #5dc9c5;
-      }
-      .lumos-hero-title {
-        margin: 0 0 0.75rem;
-        font-size: clamp(2.05rem, 9.1vw, 5rem);
-        line-height: 0.95;
+        font-size: clamp(2rem, 6vw, 3.25rem);
+        line-height: 1.05;
         font-weight: 800;
-        letter-spacing: 0.04em;
+        letter-spacing: -0.02em;
         color: #eccf93;
-        text-shadow: 0 0 22px rgba(201, 161, 98, 0.2);
+        text-shadow: 0 0 18px rgba(201, 161, 98, 0.18);
       }
       .lumos-hero-subtitle {
         margin: 0 0 0.85rem;
-        max-width: 32ch;
-        font-size: clamp(1.02rem, 2.6vw, 1.5rem);
-        line-height: 1.35;
+        max-width: 42ch;
+        font-size: clamp(1.02rem, 2.6vw, 1.45rem);
+        line-height: 1.4;
         font-weight: 500;
         color: #d9deea;
+      }
+      .lumos-hero-lead {
+        margin: 0 0 1.1rem;
+        max-width: 52ch;
+        font-size: clamp(0.95rem, 2vw, 1.08rem);
+        line-height: 1.62;
+        color: #c9ced9;
+      }
+      .lumos-hero-markrow {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.65rem 1rem;
+        margin-top: 0.25rem;
+      }
+      .lumos-hero-markrow-kicker {
+        margin: 0;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        color: rgba(93, 201, 197, 0.88);
+      }
+      .lumos-hero-wordmark {
+        margin: 0;
+        font-size: clamp(1.15rem, 3vw, 1.55rem);
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        color: rgba(236, 207, 147, 0.92);
+        line-height: 1;
       }
       .lumos-hero-badge {
         display: inline-flex;
         align-items: center;
-        gap: 0.45rem;
         margin: 0;
-        padding: 0.28rem 0.55rem 0.28rem 0.38rem;
+        padding: 0.22rem;
         border-radius: 8px;
         border: 1px solid rgba(148, 112, 68, 0.38);
         background: linear-gradient(
@@ -103,18 +121,85 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         object-fit: cover;
         opacity: 0.92;
       }
-      .lumos-hero-badge span {
-        font-size: 0.68rem;
-        font-weight: 500;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        color: rgba(201, 206, 217, 0.82);
-        line-height: 1.2;
-      }
       @media (max-width: 559.98px) {
         .lumos-hero-dna {
           display: none;
         }
+      }
+      .lumos-shell {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 0 clamp(0.65rem, 2vw, 1.25rem);
+      }
+      .lumos-section {
+        scroll-margin-top: 1.25rem;
+        padding: clamp(1rem, 2.5vw, 1.55rem) 0;
+      }
+      .lumos-section--tight-top {
+        padding-top: clamp(0.45rem, 1.2vw, 0.75rem);
+      }
+      .lumos-section h2 {
+        margin: 0 0 0.75rem;
+        font-size: clamp(1.12rem, 2.4vw, 1.28rem);
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: #f0e6d4;
+        line-height: 1.28;
+        padding-bottom: 0.45rem;
+        border-bottom: 1px solid rgba(184, 148, 96, 0.28);
+      }
+      .lumos-section p {
+        margin: 0 0 0.85rem;
+        font-size: 0.95rem;
+        line-height: 1.62;
+        color: #d9deea;
+        max-width: 62ch;
+      }
+      .lumos-section p:last-child {
+        margin-bottom: 0;
+      }
+      .lumos-section ul {
+        margin: 0;
+        padding-left: 1.15rem;
+        color: #c9ced9;
+        font-size: 0.95rem;
+        line-height: 1.58;
+        max-width: 62ch;
+      }
+      .lumos-section li {
+        margin-bottom: 0.45rem;
+      }
+      .lumos-section li:last-child {
+        margin-bottom: 0;
+      }
+      .lumos-github-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 0.85rem;
+        padding: 0.55rem 1.1rem;
+        border-radius: 10px;
+        border: 1px solid rgba(93, 201, 197, 0.42);
+        background: linear-gradient(165deg, rgba(18, 28, 42, 0.95) 0%, rgba(14, 18, 30, 0.92) 100%);
+        color: #7dd9d5;
+        font-size: 0.88rem;
+        font-weight: 600;
+        text-decoration: none;
+        letter-spacing: 0.02em;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease, transform 0.2s ease;
+      }
+      .lumos-github-btn:hover,
+      .lumos-github-btn:focus-visible {
+        border-color: rgba(93, 201, 197, 0.65);
+        color: #9fe8e4;
+        box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(93, 201, 197, 0.12);
+        transform: translateY(-1px);
+      }
+      .lumos-github-btn:focus-visible {
+        outline: 2px solid rgba(93, 201, 197, 0.55);
+        outline-offset: 3px;
       }
       .lumos-cap {
         box-sizing: border-box;
@@ -261,481 +346,266 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         line-height: 1.58;
         color: #c9ced9;
       }
-      .lumos-reply-panel {
-        margin: 0.75rem 0 0;
-      }
-      .lumos-reply-heading {
-        margin: 0 0 0.4rem;
-        font-size: 0.82rem;
-        font-weight: 600;
-        letter-spacing: -0.01em;
-        color: #e8ecf4;
-      }
-      .lumos-reply-body {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0.65rem 0.75rem;
-        border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        background: rgba(0, 0, 0, 0.25);
-        min-height: 2.75rem;
-        font-size: 0.8rem;
-        color: #dce3f0;
-        text-align: left;
-        white-space: pre-wrap;
-        word-break: break-word;
-        line-height: 1.55;
-      }
-      .lumos-reply-body:empty::before {
-        content: "Henüz cevap yok.";
-        color: #8b95ab;
-      }
-      .lumos-reply-body--error {
-        color: #f0b4b4;
-        border-color: rgba(240, 180, 180, 0.28);
-      }
-      .lumos-source-strip {
-        box-sizing: border-box;
-        width: 100%;
-        max-width: 1240px;
-        margin: 0 auto;
-        padding: 0.55rem clamp(0.65rem, 2vw, 1.25rem) 0.15rem;
-      }
-      .lumos-source-strip-inner {
-        margin: 0;
-        padding: 0.65rem 0.85rem;
-        border-radius: 10px;
-        border: 1px solid rgba(148, 112, 68, 0.28);
-        background: linear-gradient(165deg, rgba(12, 14, 22, 0.92) 0%, rgba(9, 11, 18, 0.94) 100%);
-        box-shadow: inset 0 1px 0 rgba(188, 148, 92, 0.06);
-        font-size: 0.84rem;
-        line-height: 1.55;
-        color: #c9ced9;
-      }
-      .lumos-source-strip-inner a {
-        color: #5dc9c5;
-        text-decoration: underline;
-        text-underline-offset: 2px;
-      }
-      .lumos-source-strip-inner a:hover {
-        color: #7dd9d5;
-      }
     </style>
   </head>
   <body
     style="margin:0;background:#0b1020;color:#f2f2f2;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,sans-serif;line-height:1.6;"
   >
     <section
-      aria-label="Lumos görseli"
-      style="box-sizing:border-box;width:100%;max-width:100%;padding:clamp(0.4rem, 1.4vw, 0.75rem) clamp(0.65rem, 2vw, 1.25rem) clamp(0.65rem, 2vw, 1.15rem);display:flex;justify-content:center;"
+      id="giris"
+      class="lumos-shell lumos-section lumos-section--tight-top"
+      aria-labelledby="lumos-giris-baslik"
     >
-      <div
-        style="box-sizing:border-box;width:100%;max-width:1240px;margin:0 auto;min-width:0;"
-      >
-        <div class="lumos-hero-brand">
-          <div class="lumos-hero-row">
-            <aside class="lumos-hero-dna" aria-hidden="true">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 320" preserveAspectRatio="none" focusable="false">
-                <path
-                  fill="none"
-                  stroke="rgba(72, 188, 184, 0.16)"
-                  stroke-width="0.55"
-                  stroke-linecap="round"
-                  d="M5.2 0c-2.8 28 5.2 56 2.2 84s-4.8 56-1.8 84 5.8 56 2.8 84-4.8 56-1.8 84"
-                ></path>
-                <path
-                  fill="none"
-                  stroke="rgba(72, 188, 184, 0.11)"
-                  stroke-width="0.5"
-                  stroke-linecap="round"
-                  d="M10.8 0c2.8 28-5.2 56-2.2 84s4.8 56 1.8 84-5.8 56-2.8 84 4.8 56 1.8 84"
-                ></path>
-              </svg>
-            </aside>
-            <div class="lumos-hero-imgwrap">
-              <div class="lumos-hero-copy">
-                <p class="lumos-hero-kicker">WE LOCK AI</p>
-                <h1 class="lumos-hero-title">LUMOS</h1>
-                <p class="lumos-hero-subtitle">İnsan merkezli yapay zekâ kontrol katmanı</p>
-                <div class="lumos-hero-badge" aria-label="Lumos AI kimlik rozeti">
+      <div class="lumos-hero-brand">
+        <div class="lumos-hero-row">
+          <aside class="lumos-hero-dna" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 320" preserveAspectRatio="none" focusable="false">
+              <path
+                fill="none"
+                stroke="rgba(72, 188, 184, 0.16)"
+                stroke-width="0.55"
+                stroke-linecap="round"
+                d="M5.2 0c-2.8 28 5.2 56 2.2 84s-4.8 56-1.8 84 5.8 56 2.8 84-4.8 56-1.8 84"
+              ></path>
+              <path
+                fill="none"
+                stroke="rgba(72, 188, 184, 0.11)"
+                stroke-width="0.5"
+                stroke-linecap="round"
+                d="M10.8 0c2.8 28-5.2 56-2.2 84s4.8 56 1.8 84-5.8 56-2.8 84 4.8 56 1.8 84"
+              ></path>
+            </svg>
+          </aside>
+          <div class="lumos-hero-imgwrap">
+            <div class="lumos-hero-copy">
+              <h1 id="lumos-giris-baslik" class="lumos-hero-title-page">Lumos</h1>
+              <p class="lumos-hero-subtitle">
+                Ses, medya ve yapay zekâyı tek akışta birleştiren yerel kontrollü akıllı asistan altyapısı.
+              </p>
+              <p class="lumos-hero-lead">
+                Lumos; kullanıcının cihazı, verisi ve dijital işlemleri üzerinde daha bilinçli, kontrollü ve güvenli
+                hareket etmesini hedefleyen bir yapay zekâ kontrol katmanıdır. Karar kullanıcıda kalır; Lumos riski,
+                bağlamı ve sonraki adımı görünür kılar.
+              </p>
+              <div class="lumos-hero-markrow" aria-label="Lumos markası">
+                <p class="lumos-hero-markrow-kicker">WE LOCK AI</p>
+                <p class="lumos-hero-wordmark" aria-hidden="true">LUMOS</p>
+                <div class="lumos-hero-badge" aria-hidden="true" title="Lumos">
                   <img src="/assets/lumos-ai-badge.png" alt="" width="22" height="22" loading="eager" decoding="async" />
-                  <span>Lumos AI</span>
                 </div>
               </div>
             </div>
-            <aside class="lumos-hero-dna" aria-hidden="true" style="transform:scaleX(-1);">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 320" preserveAspectRatio="none" focusable="false">
-                <path
-                  fill="none"
-                  stroke="rgba(72, 188, 184, 0.16)"
-                  stroke-width="0.55"
-                  stroke-linecap="round"
-                  d="M5.2 0c-2.8 28 5.2 56 2.2 84s-4.8 56-1.8 84 5.8 56 2.8 84-4.8 56-1.8 84"
-                ></path>
-                <path
-                  fill="none"
-                  stroke="rgba(72, 188, 184, 0.11)"
-                  stroke-width="0.5"
-                  stroke-linecap="round"
-                  d="M10.8 0c2.8 28-5.2 56-2.2 84s4.8 56 1.8 84-5.8 56-2.8 84 4.8 56 1.8 84"
-                ></path>
-              </svg>
-            </aside>
           </div>
+          <aside class="lumos-hero-dna" aria-hidden="true" style="transform:scaleX(-1);">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 320" preserveAspectRatio="none" focusable="false">
+              <path
+                fill="none"
+                stroke="rgba(72, 188, 184, 0.16)"
+                stroke-width="0.55"
+                stroke-linecap="round"
+                d="M5.2 0c-2.8 28 5.2 56 2.2 84s-4.8 56-1.8 84 5.8 56 2.8 84-4.8 56-1.8 84"
+              ></path>
+              <path
+                fill="none"
+                stroke="rgba(72, 188, 184, 0.11)"
+                stroke-width="0.5"
+                stroke-linecap="round"
+                d="M10.8 0c2.8 28-5.2 56-2.2 84s4.8 56 1.8 84-5.8 56-2.8 84 4.8 56 1.8 84"
+              ></path>
+            </svg>
+          </aside>
         </div>
       </div>
     </section>
 
-    <section class="lumos-source-strip" aria-label="Kaynak kodu ve geliştirme">
-      <p class="lumos-source-strip-inner">
-        Lumos şu an
-        <a href="https://github.com/candasoz01-cmd/lumos-core" rel="noopener noreferrer">kaynak kodu</a>
-        olarak geliştirme ve inceleme için sunuluyor; paketlenmiş bir kurulum dosyası henüz yok. Kurulum ve çalıştırma
-        için depodaki geliştirici talimatlarına bakın.
-      </p>
-    </section>
+    <div class="lumos-shell">
+      <section id="lumos-nedir" class="lumos-section" aria-labelledby="lumos-nedir-baslik">
+        <h2 id="lumos-nedir-baslik">Lumos nedir?</h2>
+        <p>
+          Lumos; sesli komutlar, medya işlemleri ve yapay zekâ destekli yardımları yerelde veya sizin tanımladığınız
+          güven sınırları içinde tek bir akışta toparlamayı hedefleyen bir kontrol katmanıdır. Uygulamalar, dosyalar ve
+          harici servisler arasında köprü kurarak dağınık görevleri daha izlenebilir adımlara böler.
+        </p>
+        <p>
+          Amaç, karmaşık teknik detayların arkasında kalan işlemleri sadeleştirmek; hangi verinin nerede işlendiğini ve
+          bir sonraki adımın olası sonuçlarını daha okunur kılmaktır. Lumos “otomatik pilot” değildir; kullanıcıyı
+          bilgilendiren ve onay kritik noktalarında duraklatan bir ara yüz sunmayı amaçlar.
+        </p>
+        <p>
+          Bugün itibarıyla proje geliştirme aşamasındadır; özellikler ve entegrasyonlar kademeli olarak netleşecektir.
+        </p>
+      </section>
 
-    <section
-      aria-label="Lumos kimliği"
-      style="box-sizing:border-box;width:100%;max-width:100%;padding:0 clamp(0.65rem, 2vw, 1.25rem) clamp(0.9rem, 2.4vw, 1.2rem);display:flex;justify-content:center;"
-    >
-      <div style="box-sizing:border-box;width:100%;max-width:1240px;margin:0 auto;min-width:0;">
-        <p
-          style="margin:0 0 0.1rem;font-size:clamp(1.05rem, 2.1vw, 1.3rem);line-height:1.25;font-weight:600;letter-spacing:-0.015em;color:#f2f4fa;"
-        >
-          Lumos Açık Mektup
+      <section id="ne-yapar" class="lumos-section" aria-labelledby="ne-yapar-baslik">
+        <h2 id="ne-yapar-baslik">Ne yapar?</h2>
+        <ul>
+          <li>Ses ve doğal dil ile iletilen görevleri güvenli ve izlenebilir alt adımlara ayırmayı hedefler.</li>
+          <li>Medya ve dosya akışlarını düzenler; paylaşım veya dış servise aktarımda şeffaflığı artırmayı amaçlar.</li>
+          <li>Yapay zekâ önerilerini bağlam ve risk bilgisiyle birlikte sunar; kalıcı sonuç doğuran işlemlerde onayı kullanıcıya bırakır.</li>
+          <li>Kimlik ve servis bağlantılarını daha yönetilebilir tek bir çatı altında toplamayı hedefler.</li>
+          <li>Riski yüksek veya geri alınması güç işlemlerde ek uyarı ve onay akışlarını önceliklendirir.</li>
+        </ul>
+      </section>
+
+      <section id="neden-gerekli" class="lumos-section" aria-labelledby="neden-gerekli-baslik">
+        <h2 id="neden-gerekli-baslik">Neden gerekli?</h2>
+        <p>
+          Araç ve servis sayısı arttıkça bağlam dağılıyor; kullanıcı neyin nerede çalıştığını ve hangi iznin neyi
+          etkinleştirdiğini takip etmekte zorlanabiliyor. Lumos, bu dağınıklığı tek bir kontrol katmanında görünür kılarak
+          yanlış onay ve gereksiz veri aktarımı riskini azaltmayı hedefler.
         </p>
-        <p style="margin:0 0 0.55rem;font-size:0.93rem;line-height:1.5;color:#d0d7e4;">
-          Lumos’un neden geliştirildiğini, hangi sınırlarla ilerlediğini ve kullanıcıya nasıl bir kontrol alanı sunmayı hedeflediğini anlatan kısa açıklama.
+      </section>
+
+      <section id="kazanimlar" class="lumos-section" aria-labelledby="kazanimlar-baslik">
+        <h2 id="kazanimlar-baslik">Kullanıcı ne kazanır?</h2>
+        <ul>
+          <li>Yapılan işlemler ve sıradaki adımlar hakkında daha net bir özet ve bağlam.</li>
+          <li>Verinin cihazda mı kaldığı yoksa dış servise mi aktarıldığı konusunda daha fazla şeffaflık.</li>
+          <li>Hız ile kontrol arasında daha dengeli bir çalışma düzeni.</li>
+          <li>Kalıcı veya maliyetli sonuçlar doğurabilecek işlemlerde bilinçli onay.</li>
+        </ul>
+      </section>
+
+      <section id="ilkeler" class="lumos-section" aria-labelledby="ilkeler-baslik">
+        <h2 id="ilkeler-baslik">Temel ilkeler</h2>
+        <ul>
+          <li><strong>Kullanıcı kontrolü:</strong> Son karar kullanıcıdadır; Lumos yerine geçmez.</li>
+          <li><strong>Görünürlük:</strong> Risk, bağlam ve veri yolu mümkün olduğunca açık gösterilir.</li>
+          <li><strong>Kararı devretme yok:</strong> Sistem kullanıcı adına nihai karar vermez; seçenekleri netleştirir.</li>
+          <li>
+            <strong>Gizlilik çerçevesi:</strong> Gerçekçi bir yaklaşım — mutlak anonimlik vaadi yerine veri minimizasyonu,
+            yerel işlem önceliği ve açık veri akışı hedeflenir.
+          </li>
+        </ul>
+      </section>
+
+      <section id="gelistirici" class="lumos-section" aria-labelledby="gelistirici-baslik">
+        <h2 id="gelistirici-baslik">Geliştirici erişimi</h2>
+        <p>
+          Lumos şu anda geliştirici incelemesine açık kaynak kod aşamasındadır. Son kullanıcı kurulum paketi henüz
+          yayınlanmamıştır. Geliştiriciler kaynak kodunu GitHub üzerinden inceleyebilir ve projeyi yerel ortamda
+          çalıştırabilir.
         </p>
-        <p style="margin:0 0 0.4rem;font-size:0.95rem;line-height:1.62;color:#d9deea;">
-          Lumos, kullanıcının cihazı ve dijital işlemleri üzerinde daha bilinçli, kontrollü ve güvenli hareket
-          etmesini sağlayan yardımcı bir kontrol katmanıdır.
+        <a class="lumos-github-btn" href={GITHUB_REPO_URL} rel="noopener noreferrer">GitHub'da incele</a>
+      </section>
+
+      <section id="vizyon" class="lumos-section" aria-labelledby="vizyon-baslik">
+        <h2 id="vizyon-baslik">Vizyon</h2>
+        <p>
+          Lumos’u farklı cihaz ve kullanım senaryolarında tutarlı, sade ve güvenilir bir kontrol katmanı haline getirmeyi
+          hedefliyoruz. Özellikler ölçülü ve artımlı biçimde genişleyecek; her adımda kullanıcı kontrolü ve şeffaflık ön
+          planda kalacaktır.
         </p>
-        <p style="margin:0;font-size:0.95rem;line-height:1.62;color:#d9deea;">
-          Kararı kullanıcı verir. Lumos; riski, bağlamı ve sonraki adımı görünür kılar.
-        </p>
-      </div>
-    </section>
+      </section>
+    </div>
 
     <section class="lumos-cap" aria-labelledby="lumos-cap-title">
-      <h2 id="lumos-cap-title" class="lumos-cap-title">Lumos'un ana modülleri</h2>
+      <h2 id="lumos-cap-title">Modül özeti</h2>
       <div class="lumos-cap-grid">
-        <a class="lumos-cap-card lumos-cap-card-link" href="#publishing" aria-label="Yayıncılık modülüne git">
+        <a class="lumos-cap-card lumos-cap-card-link" href="#publishing" aria-label="Yayıncılık bölümüne git">
           <h3>Yayıncılık</h3>
           <p>Yayın akışlarını görünür ve kontrollü hale getirir.</p>
-          <span class="lumos-cap-card-cta">Detaya git</span>
+          <span class="lumos-cap-card-cta">Bölüme git</span>
         </a>
-        <a class="lumos-cap-card lumos-cap-card-link" href="#media" aria-label="Medya modülüne git">
+        <a class="lumos-cap-card lumos-cap-card-link" href="#media" aria-label="Medya bölümüne git">
           <h3>Medya</h3>
           <p>Ses, görüntü ve dosya akışlarını düzenli tutar.</p>
-          <span class="lumos-cap-card-cta">Detaya git</span>
+          <span class="lumos-cap-card-cta">Bölüme git</span>
         </a>
-        <a class="lumos-cap-card lumos-cap-card-link" href="#ai" aria-label="Yapay Zekâ modülüne git">
+        <a class="lumos-cap-card lumos-cap-card-link" href="#ai" aria-label="Yapay Zekâ bölümüne git">
           <h3>Yapay Zekâ</h3>
-          <p>Karar desteği sunan insan merkezli bir katman sunar.</p>
-          <span class="lumos-cap-card-cta">Detaya git</span>
+          <p>Önerileri bağlamla sunar; kararı kullanıcıya bırakır.</p>
+          <span class="lumos-cap-card-cta">Bölüme git</span>
         </a>
-        <a class="lumos-cap-card lumos-cap-card-link" href="#quantum" aria-label="Kuantum modülüne git">
+        <a class="lumos-cap-card lumos-cap-card-link" href="#quantum" aria-label="Kuantum bölümüne git">
           <h3>Kuantum</h3>
-          <p>Araştırma ve geleceğe açık hesaplama alanını temsil eder.</p>
-          <span class="lumos-cap-card-cta">Detaya git</span>
+          <p>İleri hesaplama ve güvenlik araştırmalarına açık alan.</p>
+          <span class="lumos-cap-card-cta">Bölüme git</span>
         </a>
-        <a class="lumos-cap-card lumos-cap-card-link" href="#integration" aria-label="Entegrasyon modülüne git">
+        <a class="lumos-cap-card lumos-cap-card-link" href="#integration" aria-label="Entegrasyon bölümüne git">
           <h3>Entegrasyon</h3>
-          <p>Servisleri tek bir kontrollü akışta birleştirir.</p>
-          <span class="lumos-cap-card-cta">Detaya git</span>
+          <p>Servisleri tek kontrollü akışta birleştirir.</p>
+          <span class="lumos-cap-card-cta">Bölüme git</span>
         </a>
-        <a class="lumos-cap-card lumos-cap-card-link" href="#identity" aria-label="Kimlik modülüne git">
+        <a class="lumos-cap-card lumos-cap-card-link" href="#identity" aria-label="Kimlik bölümüne git">
           <h3>Kimlik</h3>
           <p>Dijital kimlik ve tercihleri daha yönetilebilir kılar.</p>
-          <span class="lumos-cap-card-cta">Detaya git</span>
+          <span class="lumos-cap-card-cta">Bölüme git</span>
         </a>
-        <a class="lumos-cap-card lumos-cap-card-link" href="#security" aria-label="Güvenlik modülüne git">
+        <a class="lumos-cap-card lumos-cap-card-link" href="#security" aria-label="Güvenlik bölümüne git">
           <h3>Güvenlik</h3>
           <p>Riskli işlemlerde onay ve görünürlüğü önceliklendirir.</p>
-          <span class="lumos-cap-card-cta">Detaya git</span>
+          <span class="lumos-cap-card-cta">Bölüme git</span>
         </a>
-        <a class="lumos-cap-card lumos-cap-card-link" href="#world" aria-label="Dünya modülüne git">
+        <a class="lumos-cap-card lumos-cap-card-link" href="#world" aria-label="Dünya bölümüne git">
           <h3>Dünya</h3>
-          <p>Farklı kullanıcı ve çalışma biçimlerine uyumu temsil eder.</p>
-          <span class="lumos-cap-card-cta">Detaya git</span>
+          <p>Farklı kullanıcı ve çalışma biçimlerine uyumu hedefler.</p>
+          <span class="lumos-cap-card-cta">Bölüme git</span>
         </a>
       </div>
     </section>
+
     <section class="lumos-modules" aria-labelledby="lumos-module-detail-title">
-      <h2 id="lumos-module-detail-title" class="lumos-cap-title">Modül açıklamaları</h2>
+      <h2 id="lumos-module-detail-title">Modül açıklamaları</h2>
       <div class="lumos-modules-grid">
         <article id="publishing" class="lumos-module-item">
           <h3>Yayıncılık</h3>
           <p>
-            Canlı ve kayıtlı yayın akışlarında kullanıcının neyin, nereye ve hangi onayla yayıldığını daha net
-            görmesini hedefler.
+            Canlı ve kayıtlı yayın akışlarında hangi içeriğin hangi kanala gittiğini, hangi izinlerin geçerli olduğunu ve
+            onay gerektiren noktaları daha net göstermeyi hedefler. Yayını kesme, kayda alma veya paylaşım gibi kalıcı
+            etkileri olan davranışlarda kullanıcıyı bilgilendirir.
           </p>
         </article>
         <article id="media" class="lumos-module-item">
           <h3>Medya</h3>
           <p>
-            Ses, görüntü ve dosya akışlarını daha düzenli, izlenebilir ve kontrollü hale getirmeyi amaçlar.
+            Ses, görüntü ve dosya aktarımlarını düzenler; yerelde işlenen ile dışarı gönderilen içeriği ayırt etmeyi
+            kolaylaştırmayı amaçlar. Dönüştürme, birleştirme veya paylaşım adımlarında izlenebilir bir sıra sunar.
           </p>
         </article>
         <article id="ai" class="lumos-module-item">
           <h3>Yapay Zekâ</h3>
           <p>
-            Kullanıcının yerine geçen değil, kullanıcının kararını daha bilinçli vermesine yardımcı olan yapay zekâ
-            katmanıdır.
+            Metin ve görev özetleri üretirken kaynak bağlamını ve belirsizlikleri görünür kılmayı; otomatik yürütme yerine
+            öneri ve kontrol listesi sunmayı hedefler. Risk taşıyan işlemlerde insan onayını varsayılan kabul eder.
           </p>
         </article>
         <article id="quantum" class="lumos-module-item">
           <h3>Kuantum</h3>
           <p>
-            Gelecekteki ileri hesaplama ve güvenlik yaklaşımlarına açık, araştırma odaklı bir alan olarak düşünülür.
+            Geleneksel şifreleme ve hesaplama sınırlarının ötesindeki yaklaşımları izlemek için ayrılmış bir araştırma
+            alanıdır. Ürünleştirme vaadi yerine deneysel modüller ve güvenlik perspektifi için hazırlık düşünülür.
           </p>
         </article>
         <article id="integration" class="lumos-module-item">
           <h3>Entegrasyon</h3>
           <p>
-            Farklı uygulama ve servisleri tek bir kontrollü akış içinde bir araya getirmeyi hedefler.
+            Üçüncü taraf API’ler, bulut servisleri ve yerel uygulamalar arasında tek bir orchestrasyon yüzeyi sunmayı
+            amaçlar. Her bağlantı için kapsam, süre ve veri paylaşımı mümkün olduğunca sözleşmeli ve görünür tutulur.
           </p>
         </article>
         <article id="identity" class="lumos-module-item">
           <h3>Kimlik</h3>
           <p>
-            Kullanıcının dijital kimliğini, tercihlerini ve sınırlarını daha görünür ve yönetilebilir hale getirmeyi
-            amaçlar.
+            Oturumlar, roller ve cihaz güvenini tek yerden gözden geçirmeyi hedefler. Profil ve izin değişikliklerinde
+            kullanıcıya net geri bildirim verir; kimlik bilgisinin nerede kullanıldığını anlamayı kolaylaştırır.
           </p>
         </article>
         <article id="security" class="lumos-module-item">
           <h3>Güvenlik</h3>
           <p>
-            Riskli, kalıcı veya geri dönüşü zor işlemlerde kullanıcı onayını ve görünürlüğü öncelikli tutar.
+            Silme, ödeme, içerik yayını veya hesap ayarı gibi geri dönüşü zor işlemlerde ek doğrulama ve günlük izlenebilirlik
+            sağlamayı amaçlar. Şüpheli veya tekrarlayan isteklerde kullanıcıyı uyarır.
           </p>
         </article>
         <article id="world" class="lumos-module-item">
           <h3>Dünya</h3>
           <p>
-            Lumos’un farklı kullanıcılar, diller ve çalışma biçimleriyle uyumlu büyüyebilmesi için genel yönünü temsil
-            eder.
+            Dil, bölge ve erişilebilirlik farklarını gözeterek arayüz ve akışların geniş bir kullanıcı yelpazesine uyumunu
+            hedefler. Yerelleştirme, klavye ve ses erişimi gibi konularda tutarlı bir çerçeve sunmayı amaçlar.
           </p>
         </article>
       </div>
     </section>
-
-    <main style="max-width:40rem;margin:0 auto;padding:clamp(1.35rem,3.2vw,1.85rem) clamp(1rem, 4vw, 1.5rem) 3rem;">
-      <article style="text-align:left;color:#e4e7ef;">
-        <p style="margin:0 0 0.75rem;font-size:1.06rem;line-height:1.68;">
-          Lumos’u tek bir fikirle başlattım: teknolojiyi insanın yerine geçen bir güç değil, insanı daha güçlü ve
-          daha bilinçli yapan bir yardımcı haline getirmek.
-        </p>
-        <p style="margin:0 0 0.75rem;font-size:1.06rem;line-height:1.68;">
-          Bugün yapay zekâ birçok alanda hızla gelişiyor. Ama benim için asıl mesele sadece daha akıllı sistemler
-          kurmak değil; bu sistemlerin insanla nasıl ilişki kurduğu, neye ne kadar müdahale ettiği ve sorumluluğu
-          kimde bıraktığı.
-        </p>
-        <p style="margin:0 0 0.75rem;font-size:1.06rem;line-height:1.68;">Lumos bu düşünceden doğdu.</p>
-        <p style="margin:0 0 0.75rem;font-size:1.06rem;line-height:1.68;">
-          Amacım, insanla dijital dünya arasında daha anlaşılır, daha güvenli ve daha kontrollü bir katman
-          oluşturmak. Lumos kullanıcının yerine karar veren bir sistem değil; kullanıcının ne yaptığını daha iyi
-          görmesini, seçenekleri daha net anlamasını ve kendi kararını daha bilinçli vermesini sağlayan bir yardımcı
-          olmalı.
-        </p>
-        <p style="margin:0 0 0.75rem;font-size:1.06rem;line-height:1.68;">
-          Bu proje şu anda yolun başında. Her şey tamamlanmış değil. Ama yönü net: sade, güvenilir, kullanıcıyı
-          merkeze alan ve gereksiz karmaşadan uzak bir yapay zekâ deneyimi oluşturmak.
-        </p>
-        <p style="margin:0 0 1.85rem;color:#c5cad6;font-size:0.99rem;line-height:1.68;">
-          Lumos’un benim için değeri burada başlıyor. Çünkü bu sadece bir yazılım fikri değil; teknolojiyle
-          kurduğumuz ilişkiyi daha dürüst, daha güvenli ve daha insani hale getirme çabası.
-        </p>
-
-        <h2 style="margin:1.75rem 0 0.5rem;font-size:1.1rem;font-weight:600;color:#e8ecf4;letter-spacing:-0.01em;">
-          Lumos nedir?
-        </h2>
-        <p style="margin:0 0 1rem;color:#c5cad6;font-size:0.98rem;line-height:1.68;">
-          Lumos, kullanıcının cihazlar, dijital işlemler ve bağlantılı sistemlerle çalışırken ne olup bittiğini daha
-          kolay görmesini, anlamasını ve kontrol etmesini sağlayan yardımcı bir kontrol katmanıdır.
-        </p>
-        <p style="margin:0 0 1rem;color:#c5cad6;font-size:0.98rem;line-height:1.68;">
-          Ev otomasyonu, binek araçlar, bilgisayar, telefon, uygulamalar ve benzeri sistemlerde amaç; işlemleri
-          karmaşık teknik detaylara boğmadan sadeleştirmek, riskli adımları görünür kılmak ve kullanıcıya daha
-          güvenli ilerleme alanı açmaktır.
-        </p>
-        <p style="margin:0 0 1rem;color:#c5cad6;font-size:0.98rem;line-height:1.68;">
-          Birçok alanda kullanıcı, yapmak istediğini Lumos’a sesli olarak ifade edebilir. Lumos bu isteği güvenli,
-          kontrollü ve anlaşılır adımlara ayırarak işlemin daha kolay ilerlemesini sağlar.
-        </p>
-        <p style="margin:0 0 1rem;color:#c5cad6;font-size:0.98rem;line-height:1.68;">
-          Lumos kullanıcının yerine karar vermez; seçenekleri, bağlamı, riskleri ve olası sonuçları anlaşılır hale
-          getirir. Kalıcı, maliyetli veya başkalarını etkileyen işlemlerde son onay kullanıcıda kalır.
-        </p>
-
-        <h2 style="margin:1.75rem 0 0.5rem;font-size:1.1rem;font-weight:600;color:#e8ecf4;letter-spacing:-0.01em;">
-          Kurulu olduğu cihazda ne sağlar?
-        </h2>
-        <p style="margin:0 0 1rem;color:#c5cad6;font-size:0.98rem;line-height:1.65;">
-          Kurulu olduğu cihazda Lumos, yerel arayüz ve görev akışlarını toparlayan bir merkez gibi davranır.
-          Gerektiğinde medya işleme, sohbet, yönlendirme, kimlik ve servis bağlantılarını güvenli köprülerle
-          dış dünyaya açar. Silme, değiştirme, paylaşma veya dış servise gönderme gibi etkili işlemlerde
-          kontrolün kullanıcıda kalmasını esas alır.
-        </p>
-
-        <h2 style="margin:1.75rem 0 0.5rem;font-size:1.1rem;font-weight:600;color:#e8ecf4;letter-spacing:-0.01em;">
-          Kullanıcı Lumos ile ne kazanır?
-        </h2>
-        <p style="margin:0 0 1rem;color:#c5cad6;font-size:0.98rem;line-height:1.65;">
-          Kullanıcı, dağınık araçlar arasında kaybolmak yerine tek bir sakin çalışma alanı kazanır. Ne yaptığını,
-          neyin cihazda kaldığını, neyin dış servise gittiğini ve hangi adımda onay gerektiğini daha açık görür.
-          Lumos’un değeri, insanı hızın peşinde ezmek değil; hızı, kontrol ve sorumlulukla birlikte kullanılabilir
-          hale getirmektir.
-        </p>
-
-        <h2 style="margin:1.75rem 0 0.5rem;font-size:1.1rem;font-weight:600;color:#e8ecf4;letter-spacing:-0.01em;">
-          Temel ilkeler
-        </h2>
-        <ul style="margin:0;padding-left:1.15rem;color:#c5cad6;font-size:0.98rem;line-height:1.55;">
-          <li style="margin-bottom:0.5rem">Karar kullanıcıdadır.</li>
-          <li style="margin-bottom:0.5rem">Güven görünür davranışla kurulur.</li>
-          <li style="margin-bottom:0.5rem">Hız, kontrolün önüne geçmez.</li>
-          <li style="margin-bottom:0.5rem">Dış bağlantılar gizlenmez; kullanıcı neyin nereye gittiğini bilmelidir.</li>
-          <li style="margin-bottom:0.5rem">Yıkıcı veya kalıcı işlemler açık onay gerektirir.</li>
-          <li style="margin-bottom:0.5rem">Teknoloji insanı küçültmek için değil, insanın alanını genişletmek için kullanılır.</li>
-        </ul>
-      </article>
-
-      <section
-        style="margin-top:2.75rem;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,0.1);font-size:0.8rem;color:#9aa4b5;text-align:left;line-height:1.55;"
-        aria-label="Lumos'a bir şey söyle"
-      >
-        <p style="margin:0 0 0.6rem;font-weight:600;color:#e8ecf4;font-size:0.88rem;letter-spacing:-0.01em;">
-          Lumos'a bir şey söyle
-        </p>
-        <p style="margin:0 0 0.7rem;color:#aeb6c8;font-size:0.82rem;line-height:1.55;">
-          Kısa bir düşünce, soru ya da görev yazın. Lumos yanıtı burada gösterecek; belirsiz yerlerde açık
-          konuşacak.
-        </p>
-        <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;">
-          <input
-            id="msg"
-            type="text"
-            placeholder="Ne üzerinde düşünelim?"
-            style="flex:1;min-width:12rem;max-width:100%;padding:0.45rem 0.55rem;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:#12182a;color:#f2f2f2;font-size:0.8rem;"
-          />
-          <button
-            type="button"
-            id="api-test-send"
-            style="padding:0.45rem 0.85rem;border-radius:8px;border:none;background:#2a3f6d;color:#fff;font-size:0.8rem;cursor:pointer;"
-          >
-            Gönder
-          </button>
-        </div>
-        <div class="lumos-reply-panel">
-          <p class="lumos-reply-heading">Lumos cevabı</p>
-          <div
-            id="lumos-reply"
-            class="lumos-reply-body"
-            role="region"
-            aria-live="polite"
-            aria-label="Son Lumos cevabı"
-          ></div>
-        </div>
-      </section>
-    </main>
-    <script define:vars={{ CHAT_URL, kandoToken }}>
-      function apiTestWire() {
-        const btn = document.getElementById("api-test-send");
-        const input = document.getElementById("msg");
-        const replyEl = document.getElementById("lumos-reply");
-        if (!btn || !input || !replyEl) return;
-
-        const sendLabel = "Gönder";
-        const loadingLabel = "Gönderiliyor...";
-        let sending = false;
-
-        function setLumosReply(bodyText, opts) {
-          const isError = opts && opts.error;
-          replyEl.textContent = bodyText;
-          replyEl.classList.toggle("lumos-reply-body--error", !!isError);
-        }
-
-        async function runApiTest() {
-          const message = input.value.trim();
-          if (!message) return;
-          if (sending) return;
-
-          sending = true;
-          btn.disabled = true;
-          btn.textContent = loadingLabel;
-          try {
-            const r = await fetch(CHAT_URL, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "X-Kando-Token": kandoToken,
-              },
-              body: JSON.stringify({ message }),
-            });
-            const text = await r.text();
-            let data = null;
-            try {
-              data = text ? JSON.parse(text) : null;
-            } catch {
-              data = null;
-            }
-            if (r.ok) {
-              let replyBody = "";
-              if (data && typeof data === "object" && "reply" in data) {
-                const raw = data.reply;
-                replyBody = raw == null ? "" : String(raw);
-              }
-              if (!replyBody.trim() && text && text.trim()) {
-                replyBody =
-                  data && typeof data === "object" && "reply" in data
-                    ? ""
-                    : "Bu kez yanıtı okuyamadık. Biraz sonra yeniden denebilirsin.";
-              }
-              const lumosText = replyBody.trim()
-                ? replyBody
-                : "Bu sefer boş bir yanıt geldi. Sorunu biraz açıp yeniden deneyebilirsin.";
-              setLumosReply(lumosText, { error: false });
-              input.value = "";
-            } else {
-              let errHuman = "";
-              if (data && typeof data === "object" && data.error != null) {
-                errHuman = String(data.error);
-              } else if (text && text.trim()) {
-                errHuman = text.trim();
-              } else {
-                errHuman = r.statusText || "Beklenmeyen bir durum oluştu.";
-              }
-              if (errHuman === "OPENAI_API_KEY missing") {
-                errHuman = "Şu an yanıt üretilemiyor; kısa süre içinde yeniden denebilirsin.";
-              } else if (errHuman === "message required") {
-                errHuman = "Önce kısa bir mesaj yazman gerekiyor.";
-              }
-              setLumosReply("Şimdilik yanıt veremedik. " + errHuman, { error: true });
-            }
-          } catch {
-            setLumosReply(
-              "Bağlantıda kısa bir kesinti oldu. İnternetini kontrol edip biraz sonra yeniden deneyebilirsin.",
-              { error: true }
-            );
-          } finally {
-            sending = false;
-            btn.disabled = false;
-            btn.textContent = sendLabel;
-          }
-        }
-
-        btn.addEventListener("click", () => {
-          void runApiTest();
-        });
-        input.addEventListener("keydown", (e) => {
-          if (e.key !== "Enter") return;
-          e.preventDefault();
-          void runApiTest();
-        });
-      }
-      apiTestWire();
-    </script>
   </body>
 </html>
