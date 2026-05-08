@@ -36,6 +36,48 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         flex: 1 1 auto;
         min-width: 0;
       }
+      .lumos-hero-brand {
+        box-sizing: border-box;
+        width: 100%;
+        margin: 0;
+        border-radius: 12px;
+        padding: clamp(1.2rem, 3vw, 2.2rem) clamp(1rem, 3vw, 2.1rem);
+        overflow: hidden;
+        background: radial-gradient(circle at 12% 18%, rgba(61, 169, 164, 0.16), transparent 42%),
+          radial-gradient(circle at 85% 78%, rgba(201, 161, 98, 0.16), transparent 44%),
+          linear-gradient(165deg, #0a0c12 0%, #141118 42%, #120f0a 100%);
+        border: 1px solid rgba(148, 112, 68, 0.52);
+        box-shadow: inset 0 1px 0 rgba(188, 148, 92, 0.14), 0 0 0 1px rgba(98, 72, 44, 0.38),
+          0 10px 36px rgba(0, 0, 0, 0.55), 0 0 26px rgba(32, 88, 86, 0.08), 0 0 44px rgba(130, 96, 56, 0.1);
+      }
+      .lumos-hero-copy {
+        max-width: 920px;
+      }
+      .lumos-hero-kicker {
+        margin: 0 0 0.65rem;
+        font-size: clamp(1.25rem, 4.4vw, 2.3rem);
+        line-height: 1.08;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        color: #5dc9c5;
+      }
+      .lumos-hero-title {
+        margin: 0 0 0.75rem;
+        font-size: clamp(2.05rem, 9.1vw, 5rem);
+        line-height: 0.95;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        color: #eccf93;
+        text-shadow: 0 0 22px rgba(201, 161, 98, 0.2);
+      }
+      .lumos-hero-subtitle {
+        margin: 0;
+        max-width: 32ch;
+        font-size: clamp(1.02rem, 2.6vw, 1.5rem);
+        line-height: 1.35;
+        font-weight: 500;
+        color: #d9deea;
+      }
       @media (max-width: 559.98px) {
         .lumos-hero-dna {
           display: none;
@@ -216,9 +258,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
       <div
         style="box-sizing:border-box;width:100%;max-width:1240px;margin:0 auto;min-width:0;"
       >
-        <div
-          style="box-sizing:border-box;width:100%;margin:0;border-radius:12px;padding:0;overflow:hidden;background:linear-gradient(165deg,#0a0c12 0%,#141118 42%,#120f0a 100%);border:1px solid rgba(148, 112, 68, 0.52);box-shadow:inset 0 1px 0 rgba(188, 148, 92, 0.14),0 0 0 1px rgba(98, 72, 44, 0.38),0 10px 36px rgba(0,0,0,0.55),0 0 22px rgba(32, 88, 86, 0.04),0 0 40px rgba(130, 96, 56, 0.07);display:block;min-height:0;"
-        >
+        <div class="lumos-hero-brand">
           <div class="lumos-hero-row">
             <aside class="lumos-hero-dna" aria-hidden="true">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 320" preserveAspectRatio="none" focusable="false">
@@ -239,15 +279,11 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
               </svg>
             </aside>
             <div class="lumos-hero-imgwrap">
-              <img
-                src="/assets/lumos/lumos-last.png"
-                alt="Lumos"
-                width="1536"
-                height="1024"
-                loading="eager"
-                decoding="async"
-                style="display:block;margin:0 auto;width:100%;max-width:100%;height:auto;object-fit:contain;"
-              />
+              <div class="lumos-hero-copy">
+                <p class="lumos-hero-kicker">WE LOCK AI</p>
+                <h1 class="lumos-hero-title">LUMOS</h1>
+                <p class="lumos-hero-subtitle">İnsan merkezli yapay zekâ kontrol katmanı</p>
+              </div>
             </div>
             <aside class="lumos-hero-dna" aria-hidden="true" style="transform:scaleX(-1);">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 320" preserveAspectRatio="none" focusable="false">
