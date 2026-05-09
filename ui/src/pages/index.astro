@@ -127,6 +127,30 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       .lumos-hero-copy {
         max-width: 920px;
       }
+      .lumos-hero-title-stack {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.55rem;
+        margin: 0 0 0.45rem;
+      }
+      @media (min-width: 480px) {
+        .lumos-hero-title-stack {
+          flex-direction: row;
+          align-items: center;
+          gap: clamp(0.65rem, 2vw, 0.95rem);
+        }
+      }
+      .lumos-hero-title-stack .lumos-hero-title-page {
+        margin-bottom: 0;
+      }
+      .lumos-hero-logo {
+        width: clamp(48px, 3.5vw + 38px, 64px);
+        height: clamp(48px, 3.5vw + 38px, 64px);
+        flex-shrink: 0;
+        object-fit: contain;
+        border-radius: 10px;
+      }
       .lumos-hero-title-page {
         margin: 0 0 0.45rem;
         font-size: clamp(2.35rem, 7vw, 3.85rem);
@@ -628,7 +652,18 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
           </aside>
           <div class="lumos-hero-imgwrap">
             <div class="lumos-hero-copy">
-              <h1 id="lumos-giris-baslik" class="lumos-hero-title-page">Lumos</h1>
+              <div class="lumos-hero-title-stack">
+                <img
+                  class="lumos-hero-logo"
+                  src="/lumos-paradise-icon.png"
+                  alt="Lumos"
+                  width="260"
+                  height="260"
+                  loading="eager"
+                  decoding="async"
+                />
+                <h1 id="lumos-giris-baslik" class="lumos-hero-title-page">Lumos</h1>
+              </div>
               <p class="lumos-hero-subtitle">İnsan merkezli yapay zekâ kontrol katmanı</p>
               <p class="lumos-hero-lead">
                 We Lock AI çatısı altında geliştirilen Lumos; ses, medya ve yapay zekâyı tek akışta birleştiren yerel
