@@ -1142,17 +1142,43 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-gorevler-title"
           >
-            <div class="panel-module-state">
-              <h2 id="panel-gorevler-title">Görevler</h2>
-              <p class="panel-module-state__desc">
-                İş listesi, onay bekleyen adımlar ve ilerleme özetleri bu sekmede toplanacak.
-              </p>
-              <p class="panel-module-state__status">
-                <span class="panel-module-state__status-label">Durum:</span>
-                <span class="panel-module-state__badge panel-module-state__badge--tasarim">Tasarım aşamasında</span>
-              </p>
-              <p class="panel-module-state__note">Bu alan Lumos’un ilerleyen modüllerinden biridir.</p>
-            </div>
+            <h2 id="panel-gorevler-title">Görevler</h2>
+            <p class="medya-intro">
+              Bu sekme, Lumos’un işleri daha küçük ve izlenebilir adımlara bölmeyi, öncelik ve bağlamı görünür tutmayı ve onay
+              gerektiren noktaları kullanıcıyla paylaşmayı hedefleyen yaklaşımını özetler.
+            </p>
+            <ul class="medya-card-list">
+              <li class="medya-card">
+                <h3>Parçalara Ayırma</h3>
+                <p>
+                  Büyük istekler tek hamlede çözülmez; daha net alt görevlere bölünerek takip edilebilir hale getirilir.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Öncelik ve Bağlam</h3>
+                <p>
+                  Hangi işin önce geldiği ve hangi çalışma alanına bağlı olduğu daha okunaklı gösterilmeyi hedefler.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Onay Bekleyen Adımlar</h3>
+                <p>
+                  Riskli veya geri alınması zor adımlar otomatik tamamlanmak yerine kullanıcıya açıkça sorulmalıdır.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Tamamlanan ve Bekleyen İşler</h3>
+                <p>
+                  İlerleme durumu sade bir görünümde tutulabilir; kullanıcı neyin bittiğini ve neyin sırada olduğunu kolayca görebilir.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Karar Kullanıcıda</h3>
+                <p>
+                  Lumos sırayı ve seçenekleri düzenleyebilir; nihai yön ve onay kullanıcının iradesinde kalmalıdır.
+                </p>
+              </li>
+            </ul>
           </section>
 
           <section
@@ -1162,17 +1188,43 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-ses-title"
           >
-            <div class="panel-module-state">
-              <h2 id="panel-ses-title">Ses</h2>
-              <p class="panel-module-state__desc">
-                Dinleme ve konuşma oturumları bu modülde yönetilecek.
-              </p>
-              <p class="panel-module-state__status">
-                <span class="panel-module-state__status-label">Durum:</span>
-                <span class="panel-module-state__badge panel-module-state__badge--hazirlaniyor">Hazırlanıyor</span>
-              </p>
-              <p class="panel-module-state__note">Bu alan Lumos’un ilerleyen modüllerinden biridir.</p>
-            </div>
+            <h2 id="panel-ses-title">Ses</h2>
+            <p class="medya-intro">
+              Bu sekme, sesli girdinin metne ve komutlara dönüşürken arayüz katmanında kalması ve kararın yine kullanıcıda
+              tutulması için tasarlanan yaklaşımı özetler.
+            </p>
+            <ul class="medya-card-list">
+              <li class="medya-card">
+                <h3>Sesten Metne</h3>
+                <p>
+                  Sesli ifade, metin ve komut adımlarına aktarılarak ekranda izlenebilir hale getirilebilir.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Arayüz Katmanı</h3>
+                <p>
+                  Ses, doğrudan yerine geçen bir otorite değil; kullanıcının gördüğü ve düzeltebildiği bir katman olarak ele alınır.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Karar Kullanıcıda</h3>
+                <p>
+                  Özetlenen komut veya metin uygulanmadan önce kullanıcı net biçimde kontrol edebilmelidir.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Yanlış Anlama ve Onay</h3>
+                <p>
+                  Belirsiz veya düşük güvenli algılarda Lumos duraklatmayı ve netleştirmeyi hedefler; tek başına ilerlemez.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Yerel İşlem Önceliği</h3>
+                <p>
+                  Mümkün olduğunda ilk işlem cihaz içinde kalır; dış servise çıkış gerekiyorsa bu görünür tutulmalıdır.
+                </p>
+              </li>
+            </ul>
           </section>
 
           <section
@@ -1182,17 +1234,43 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-medya-title"
           >
-            <div class="panel-module-state">
-              <h2 id="panel-medya-title">Medya</h2>
-              <p class="panel-module-state__desc">
-                Görseller ve medya dosyaları düzenli biçimde bu sekmede yer alacak.
-              </p>
-              <p class="panel-module-state__status">
-                <span class="panel-module-state__status-label">Durum:</span>
-                <span class="panel-module-state__badge panel-module-state__badge--yakinda">Yakında</span>
-              </p>
-              <p class="panel-module-state__note">Bu alan Lumos’un ilerleyen modüllerinden biridir.</p>
-            </div>
+            <h2 id="panel-medya-title">Medya</h2>
+            <p class="medya-intro">
+              Bu sekme, görsel, ses, video ve dosya akışlarının düzenlenmesinde paylaşım öncesi kontrol, veri yolu görünürlüğü ve
+              kaynak ile çıktının ayrılması ilkelerini özetler.
+            </p>
+            <ul class="medya-card-list">
+              <li class="medya-card">
+                <h3>Akışlar ve Türler</h3>
+                <p>
+                  Farklı medya türleri tek çalışma düzeninde izlenebilir; hangi dosyanın nerede kullanıldığı daha okunaklı olabilir.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Paylaşım Öncesi Kontrol</h3>
+                <p>
+                  Dışarıya çıkmadan önce içerik özeti ve hedef kullanım kullanıcıya gösterilmeyi hedefler.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Dış Servise Aktarım</h3>
+                <p>
+                  Bir dosyanın veya önizlemenin harici işleme gönderildiği adımlar gizlenmez; bağlantı ve amaç daha net tutulur.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Düzenleme ve Dönüştürme</h3>
+                <p>
+                  Kırpma, biçim değişimi veya dönüştürme gibi adımlar sıralı ve geri alınabilir bir akışta önerilir.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Kaynak ve Çıktı</h3>
+                <p>
+                  Orijinal materyal ile üretilen çıktı birbirinden ayırt edilir; kullanıcı hangisinin paylaşıldığını net görebilir.
+                </p>
+              </li>
+            </ul>
           </section>
 
           <section
@@ -1202,17 +1280,43 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-sosyal-title"
           >
-            <div class="panel-module-state">
-              <h2 id="panel-sosyal-title">Sosyal</h2>
-              <p class="panel-module-state__desc">
-                Taslaklar ve dışa açılan içerikler için çalışma alanı hazırlanıyor.
-              </p>
-              <p class="panel-module-state__status">
-                <span class="panel-module-state__status-label">Durum:</span>
-                <span class="panel-module-state__badge panel-module-state__badge--tasarim">Tasarım aşamasında</span>
-              </p>
-              <p class="panel-module-state__note">Bu alan Lumos’un ilerleyen modüllerinden biridir.</p>
-            </div>
+            <h2 id="panel-sosyal-title">Sosyal</h2>
+            <p class="medya-intro">
+              Bu sekme, dışa açılan içeriklerde taslağı kullanıcıda tutmayı, platform farkındalığını artırmayı ve kalıcı paylaşımlarda
+              açık onayı öncelemeyi hedefleyen yaklaşımı özetler.
+            </p>
+            <ul class="medya-card-list">
+              <li class="medya-card">
+                <h3>Paylaşım Öncesi Kontrol</h3>
+                <p>
+                  Gönderi yayınlanmadan önce özet, hedef ve görünürlük kullanıcıya son kez gösterilmeyi hedefler.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Hedef Platform</h3>
+                <p>
+                  İçeriğin hangi ortamda nasıl görüneceği ve hangi kurallara tabi olduğu daha görünür tutulabilir.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Gönderi Taslağı</h3>
+                <p>
+                  Metin ve ekler taslak halinde saklanır; kullanıcı düzenlemeden yayına çıkmaz.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Riskli Paylaşımda Onay</h3>
+                <p>
+                  Kalıcı, geniş kitleye açık veya geri alınması zor paylaşımlarda ek onay istenmesi hedeflenir.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Otomatik Yayın Yok</h3>
+                <p>
+                  Lumos kullanıcı adına sessizce paylaşım yapmaz; gönderme kararı kullanıcıda kalır.
+                </p>
+              </li>
+            </ul>
           </section>
 
           <section
@@ -1222,17 +1326,43 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-posta-title"
           >
-            <div class="panel-module-state">
-              <h2 id="panel-posta-title">Posta</h2>
-              <p class="panel-module-state__desc">
-                Yazışma taslağı ve ileti düzeni ileride bu sekmede olacak.
-              </p>
-              <p class="panel-module-state__status">
-                <span class="panel-module-state__status-label">Durum:</span>
-                <span class="panel-module-state__badge panel-module-state__badge--hazirlaniyor">Hazırlanıyor</span>
-              </p>
-              <p class="panel-module-state__note">Bu alan Lumos’un ilerleyen modüllerinden biridir.</p>
-            </div>
+            <h2 id="panel-posta-title">Posta</h2>
+            <p class="medya-intro">
+              Bu sekme, e-posta taslağı hazırlama, ek ve alıcı doğrulaması ile gönderim öncesi açık onayı merkeze alan yaklaşımı
+              özetler.
+            </p>
+            <ul class="medya-card-list">
+              <li class="medya-card">
+                <h3>Taslak Odaklı Çalışma</h3>
+                <p>
+                  Mesajlar önce taslak olarak düzenlenir; kullanıcı içeriği gözden geçirmeden iletim beklenmez.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Ek ve Alıcı Kontrolü</h3>
+                <p>
+                  Eklerin listesi ve alıcı alanları gönderim öncesi okunaklı biçimde özetlenmeyi hedefler.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Gönderim Öncesi Onay</h3>
+                <p>
+                  “Gönder” adımı bilinçli bir onay gerektirir; tek tıkla görünmez iletim hedeflenmez.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Yanlış Alıcı ve Hassas Bilgi</h3>
+                <p>
+                  Şüpheli alıcı eşleşmeleri veya hassas içerik için uyarı gösterilmesi amaçlanır.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Otomatik Gönderim Yok</h3>
+                <p>
+                  Lumos kullanıcı yerine postayı tek başına iletmez; son gönderme kararı kullanıcıdadır.
+                </p>
+              </li>
+            </ul>
           </section>
 
           <section
@@ -1242,17 +1372,43 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-dosyalar-title"
           >
-            <div class="panel-module-state">
-              <h2 id="panel-dosyalar-title">Dosyalar</h2>
-              <p class="panel-module-state__desc">
-                Belgeler ve ekler tek yerden takip edilebilecek.
-              </p>
-              <p class="panel-module-state__status">
-                <span class="panel-module-state__status-label">Durum:</span>
-                <span class="panel-module-state__badge panel-module-state__badge--yakinda">Yakında</span>
-              </p>
-              <p class="panel-module-state__note">Bu alan Lumos’un ilerleyen modüllerinden biridir.</p>
-            </div>
+            <h2 id="panel-dosyalar-title">Dosyalar</h2>
+            <p class="medya-intro">
+              Bu sekme, dosya düzenleme, taşıma ve silme gibi işlemlerde onayı önceleyen; veri yolunu ve kalıcı silme kararını
+              kullanıcıda tutan yaklaşımı özetler.
+            </p>
+            <ul class="medya-card-list">
+              <li class="medya-card">
+                <h3>Düzenleme ve İzlenebilirlik</h3>
+                <p>
+                  Dosya üzerinde yapılan değişiklikler mümkün olduğunca sıralı ve geri alınabilir bir çerçevede tutulmayı hedefler.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Taşıma ve Silmede Onay</h3>
+                <p>
+                  Özellikle toplu silme veya konum değişimi gibi adımlarda kullanıcıdan açık onay istenmesi amaçlanır.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Veri Yolu Görünürlüğü</h3>
+                <p>
+                  Dosyanın cihazda mı, bulutta mı veya başka bir yerde mi olduğu kullanıcıya daha anlaşılır gösterilir.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Çöp ve Kurtarma</h3>
+                <p>
+                  Silinen öğeler için ara bir alan düşünülebilir; kalıcı silme ayrı ve bilinçli bir adım olarak kalır.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Kalıcı Silme Kararı</h3>
+                <p>
+                  Geri dönüşü olmayan silme işlemi kullanıcı iradesine bağlıdır; Lumos tek başına son kararı vermez.
+                </p>
+              </li>
+            </ul>
           </section>
 
           <section
@@ -1262,17 +1418,44 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-yayincilik-title"
           >
-            <div class="panel-module-state">
-              <h2 id="panel-yayincilik-title">Yayıncılık</h2>
-              <p class="panel-module-state__desc">
-                Yayın öncesi içerik ve sınır bilgisi bu sekmede görünecek.
-              </p>
-              <p class="panel-module-state__status">
-                <span class="panel-module-state__status-label">Durum:</span>
-                <span class="panel-module-state__badge panel-module-state__badge--tasarim">Tasarım aşamasında</span>
-              </p>
-              <p class="panel-module-state__note">Bu alan Lumos’un ilerleyen modüllerinden biridir.</p>
-            </div>
+            <h2 id="panel-yayincilik-title">Yayıncılık</h2>
+            <p class="medya-intro">
+              Bu sekme, canlı veya kayıtlı yayın akışlarında hangi içeriğin hangi kanala gittiğinin görünür olması; yayına alma
+              öncesi kontrol ve kayıt paylaşımında onayı önceleyen yaklaşımı özetler.
+            </p>
+            <ul class="medya-card-list">
+              <li class="medya-card">
+                <h3>Canlı ve Kayıtlı Akış</h3>
+                <p>
+                  Yayının canlı mı yoksa kayıt tabanlı mı olduğu ve izleyici bağlamı kullanıcıya net gösterilmeyi hedefler.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>İçerik ve Kanal Eşlemesi</h3>
+                <p>
+                  Hangi görüntü veya sesin hangi çıkışa gittiği düzenli bir özetle izlenebilir hale getirilebilir.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Yayına Alma Öncesi Kontrol</h3>
+                <p>
+                  Yayına çıkmadan önce önizleme ve son uyarı adımları atlanmamalıdır.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Kayıt ve Paylaşım Onayı</h3>
+                <p>
+                  Oturum kaydı veya klibin dışarı paylaşılması ayrı onay gerektiren işlemler olarak ele alınır.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Yayın Riskleri</h3>
+                <p>
+                  Görünürlük, telif ve özel hayat gibi riskler kısa ve anlaşılır biçimde hatırlatılmayı hedefler; kesin hukuki sonuç
+                  vaadi verilmez.
+                </p>
+              </li>
+            </ul>
           </section>
 
           <section
@@ -1537,17 +1720,44 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-dunya-title"
           >
-            <div class="panel-module-state">
-              <h2 id="panel-dunya-title">Dünya</h2>
-              <p class="panel-module-state__desc">
-                Yerel bağlam ve uyumluluk notları için alan ayrıldı.
-              </p>
-              <p class="panel-module-state__status">
-                <span class="panel-module-state__status-label">Durum:</span>
-                <span class="panel-module-state__badge panel-module-state__badge--yakinda">Yakında</span>
-              </p>
-              <p class="panel-module-state__note">Bu alan Lumos’un ilerleyen modüllerinden biridir.</p>
-            </div>
+            <h2 id="panel-dunya-title">Dünya</h2>
+            <p class="medya-intro">
+              Bu sekme, Lumos’un farklı dillere, bölgelere ve erişilebilirlik ihtiyaçlarına daha duyarlı; tek bir kültüre kapanmayan
+              ve ölçülü bir küresel kullanım tasarımını özetler.
+            </p>
+            <ul class="medya-card-list">
+              <li class="medya-card">
+                <h3>Dil, Bölge ve Erişilebilirlik</h3>
+                <p>
+                  Arayüz ve içerik sunumunda dil seçimi, yerel biçimler ve erişilebilirlik seçenekleri daha görünür tutulmayı hedefler.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Kullanım Biçimlerine Uyum</h3>
+                <p>
+                  Farklı cihaz, bağlantı ve çalışma ortamlarında deneyimin aşırıya kaçmadan uyarlanması amaçlanır.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Yerelleştirme</h3>
+                <p>
+                  Metin ve tarih gibi öğeler yerel normlara göre düzenlenebilir; çeviri ve bağlam hatalarında şeffaflık korunur.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Küresel ve Çoğul Yaklaşım</h3>
+                <p>
+                  Tek bir merkezin bakış açısına kilitlenmeden, çeşitli kullanıcıların ihtiyaçlarına saygılı bir çerçeve hedeflenir.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>İnsan Odaklı Teknoloji</h3>
+                <p>
+                  Lumos, teknolojiyi insanın yerine koymak yerine; karar ve mahremiyet sınırını kullanıcıda tutmayı önceleyen bir çizgiyi
+                  benimsemeyi hedefler.
+                </p>
+              </li>
+            </ul>
           </section>
 
           <section
@@ -1557,17 +1767,44 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-ayarlar-title"
           >
-            <div class="panel-module-state">
-              <h2 id="panel-ayarlar-title">Ayarlar</h2>
-              <p class="panel-module-state__desc">
-                Tercihler çekirdek ilkelere uygun şekilde bu sekmede düzenlenecek.
-              </p>
-              <p class="panel-module-state__status">
-                <span class="panel-module-state__status-label">Durum:</span>
-                <span class="panel-module-state__badge panel-module-state__badge--hazirlaniyor">Hazırlanıyor</span>
-              </p>
-              <p class="panel-module-state__note">Bu alan Lumos’un ilerleyen modüllerinden biridir.</p>
-            </div>
+            <h2 id="panel-ayarlar-title">Ayarlar</h2>
+            <p class="medya-intro">
+              Bu sekme, kullanıcı tercihlerinin, bağlantı ve izin sınırlarının ve varsayılan davranışların kullanıcı kontrolünde ve
+              görünür kalması için tasarlanan yaklaşımı özetler.
+            </p>
+            <ul class="medya-card-list">
+              <li class="medya-card">
+                <h3>Kullanıcı Tercihleri</h3>
+                <p>
+                  Dil, tema, bildirim yoğunluğu gibi seçenekler anlaşılır gruplarda sunulmayı hedefler.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Sınırlar ve İzinler</h3>
+                <p>
+                  Hangi özelliğin hangi izne bağlı olduğu kısa özetlerle gösterilir; kapalı tutulan izinler sessizce açılmaz.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Bağlantı Ayarları</h3>
+                <p>
+                  Harici servis ve hesap bağlantıları tek yerden görülebilir; gerektiğinde kesme ve yeniden bağlanma kullanıcıdadır.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Görünürlük ve Güvenlik Tercihleri</h3>
+                <p>
+                  Paylaşım, günlük veya veri saklama ile ilgili seçenekler birbirinden ayrılır; her biri net bir açıklamayla sunulur.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Varsayılanlar ve Kontrol</h3>
+                <p>
+                  Öntanımlı davranışlar kabul edilmeden önce kullanıcıya gösterilir; değişiklikler geri alınabilir biçimde tutulmayı
+                  hedefler.
+                </p>
+              </li>
+            </ul>
           </section>
         </main>
       </div>
