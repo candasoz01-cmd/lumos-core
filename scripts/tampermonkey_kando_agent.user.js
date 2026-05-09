@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Lumos Kando Agent (localhost bridge)
-// @namespace   https://github.com/lumos-core
+// @namespace   https://github.com/candasoz01-cmd/lumos-core
 // @version     1.0.0
 // @description ChatGPT / web: serbest metni POST /agent-run ile gönderir; raporu sayfaya yazar. GM_xmlhttpRequest ile mixed-content/CORS aşılır.
 // @author      lumos-core
