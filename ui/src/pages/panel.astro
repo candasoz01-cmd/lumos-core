@@ -362,6 +362,69 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
       .placeholder-block p:last-child {
         margin-bottom: 0;
       }
+      /** Panel modül sekmeleri: boş kalmayan sade durum kartı */
+      .panel-module-state {
+        max-width: 36rem;
+        padding: 1rem 1.15rem 1.05rem;
+        border-radius: 12px;
+        border: 1px solid var(--lumos-border);
+        background: linear-gradient(165deg, rgba(9, 11, 18, 0.98) 0%, rgba(12, 14, 22, 0.94) 100%);
+        box-shadow: inset 0 1px 0 rgba(200, 165, 110, 0.05), 0 2px 12px rgba(0, 0, 0, 0.2);
+      }
+      .module-panel .panel-module-state > h2 {
+        margin: 0 0 0.55rem;
+      }
+      .panel-module-state__desc {
+        margin: 0 0 0.85rem;
+        font-size: 0.88rem;
+        line-height: 1.55;
+        color: var(--lumos-muted);
+      }
+      .panel-module-state__status {
+        margin: 0 0 0.75rem;
+        font-size: 0.84rem;
+        line-height: 1.5;
+        color: var(--lumos-text);
+      }
+      .panel-module-state__status-label {
+        color: var(--lumos-muted);
+        margin-right: 0.35rem;
+      }
+      .panel-module-state__badge {
+        display: inline-block;
+        font-size: 0.62rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 0.18rem 0.42rem;
+        border-radius: 4px;
+        line-height: 1.2;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        vertical-align: middle;
+      }
+      .panel-module-state__badge--hazirlaniyor {
+        color: rgba(200, 188, 160, 0.92);
+        background: rgba(90, 72, 44, 0.22);
+        border-color: rgba(184, 148, 96, 0.28);
+      }
+      .panel-module-state__badge--tasarim {
+        color: rgba(236, 210, 175, 0.95);
+        background: rgba(110, 72, 48, 0.28);
+        border-color: rgba(200, 140, 100, 0.35);
+      }
+      .panel-module-state__badge--yakinda {
+        color: rgba(168, 198, 218, 0.92);
+        background: rgba(42, 63, 109, 0.35);
+        border-color: rgba(130, 160, 200, 0.28);
+      }
+      .panel-module-state__note {
+        margin: 0;
+        padding-top: 0.65rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        font-size: 0.78rem;
+        line-height: 1.45;
+        color: rgba(154, 164, 181, 0.92);
+      }
       .gorevler-intro {
         margin: 0 0 1rem;
         max-width: 36rem;
@@ -1079,28 +1142,17 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-gorevler-title"
           >
-            <h2 id="panel-gorevler-title">Görevler</h2>
-            <p class="gorevler-intro">
-              Lumos’un takip ettiği işler ve onay bekleyen adımlar burada görünür olacak.
-            </p>
-            <ul class="gorevler-task-list">
-              <li class="gorevler-task-card">
-                <span class="gorevler-task-title">Panel ilk iskeleti tamamlandı</span>
-                <span class="task-status-badge task-status-badge--done">Tamamlandı</span>
-              </li>
-              <li class="gorevler-task-card">
-                <span class="gorevler-task-title">Çekirdek modül geçişleri tamamlandı</span>
-                <span class="task-status-badge task-status-badge--done">Tamamlandı</span>
-              </li>
-              <li class="gorevler-task-card">
-                <span class="gorevler-task-title">Kuantum katkı ölçümü eklendi</span>
-                <span class="task-status-badge task-status-badge--done">Tamamlandı</span>
-              </li>
-              <li class="gorevler-task-card">
-                <span class="gorevler-task-title">Kalıcı işlem güvenlik akışı korunacak</span>
-                <span class="task-status-badge task-status-badge--approval">Onay gerekli</span>
-              </li>
-            </ul>
+            <div class="panel-module-state">
+              <h2 id="panel-gorevler-title">Görevler</h2>
+              <p class="panel-module-state__desc">
+                İş listesi, onay bekleyen adımlar ve ilerleme özetleri bu sekmede toplanacak.
+              </p>
+              <p class="panel-module-state__status">
+                <span class="panel-module-state__status-label">Durum:</span>
+                <span class="panel-module-state__badge panel-module-state__badge--tasarim">Tasarım aşamasında</span>
+              </p>
+              <p class="panel-module-state__note">Bu alan Lumos’un ilerleyen modüllerinden biridir.</p>
+            </div>
           </section>
 
           <section
@@ -1110,24 +1162,17 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-ses-title"
           >
-            <h2 id="panel-ses-title">Ses</h2>
-            <p class="gorevler-intro">
-              Ses temel yapı hazır. Oturum ve adım durumları bu alanda görünür.
-            </p>
-            <ul class="gorevler-task-list">
-              <li class="gorevler-task-card">
-                <span class="gorevler-task-title">Dinleme oturumu</span>
-                <span class="task-status-badge task-status-badge--done">Hazır</span>
-              </li>
-              <li class="gorevler-task-card">
-                <span class="gorevler-task-title">Konuşma akışı</span>
-                <span class="task-status-badge task-status-badge--waiting">Taslak</span>
-              </li>
-              <li class="gorevler-task-card">
-                <span class="gorevler-task-title">Onay bekleyen ses adımı</span>
-                <span class="task-status-badge task-status-badge--approval">Onay bekliyor</span>
-              </li>
-            </ul>
+            <div class="panel-module-state">
+              <h2 id="panel-ses-title">Ses</h2>
+              <p class="panel-module-state__desc">
+                Dinleme ve konuşma oturumları bu modülde yönetilecek.
+              </p>
+              <p class="panel-module-state__status">
+                <span class="panel-module-state__status-label">Durum:</span>
+                <span class="panel-module-state__badge panel-module-state__badge--hazirlaniyor">Hazırlanıyor</span>
+              </p>
+              <p class="panel-module-state__note">Bu alan Lumos’un ilerleyen modüllerinden biridir.</p>
+            </div>
           </section>
 
           <section
@@ -1137,36 +1182,17 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-medya-title"
           >
-            <h2 id="panel-medya-title">Medya</h2>
-            <p class="medya-intro">
-              Medya alanı, kullanıcının görsel içeriklerle çalışırken düzeni, mahremiyeti ve kontrolü koruması için ayrılmıştır.
-            </p>
-            <ul class="medya-card-list">
-              <li class="medya-card">
-                <h3>Görsel Düzeni</h3>
-                <p>
-                  Görseller, kullanıcının medya materyallerini dağınıklığa düşmeden takip edebilmesi için ayrı bir alanda
-                  konumlanır.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3>Kullanıcı Kontrolü</h3>
-                <p>Görsel içerikle ilgili tercih, kullanım sınırı ve son karar kullanıcıda kalır.</p>
-              </li>
-              <li class="medya-card">
-                <h3>Mahremiyet Sınırı</h3>
-                <p>
-                  Görsel içerikler, paket ya da kullanım türünden bağımsız olarak çekirdek mahremiyet ilkesiyle ele alınır.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3>Çalışma Bağlamı</h3>
-                <p>
-                  Bu alan, görsellerle ilgili notların, kararların ve sonraki adımların bağlam içinde tutulması için
-                  tasarlanır.
-                </p>
-              </li>
-            </ul>
+            <div class="panel-module-state">
+              <h2 id="panel-medya-title">Medya</h2>
+              <p class="panel-module-state__desc">
+                Görseller ve medya dosyaları düzenli biçimde bu sekmede yer alacak.
+              </p>
+              <p class="panel-module-state__status">
+                <span class="panel-module-state__status-label">Durum:</span>
+                <span class="panel-module-state__badge panel-module-state__badge--yakinda">Yakında</span>
+              </p>
+              <p class="panel-module-state__note">Bu alan Lumos’un ilerleyen modüllerinden biridir.</p>
+            </div>
           </section>
 
           <section
@@ -1176,37 +1202,17 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-sosyal-title"
           >
-            <h2 id="panel-sosyal-title">Sosyal</h2>
-            <p class="medya-intro">
-              Sosyal alan, kullanıcının dışarıya açılan içeriklerinde sesini, tonunu ve kararını koruması için ayrılmıştır.
-            </p>
-            <ul class="medya-card-list">
-              <li class="medya-card">
-                <h3>İçerik Düzeni</h3>
-                <p>
-                  Taslaklar ve gönderiler, kullanıcının içerik sürecini dağınıklığa düşmeden takip edebilmesi için ayrı bir
-                  alanda konumlanır.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3>Kullanıcı Sesi</h3>
-                <p>İçeriğin tonu, biçimi ve son kararı kullanıcıda kalır.</p>
-              </li>
-              <li class="medya-card">
-                <h3>Mahremiyet Sınırı</h3>
-                <p>
-                  Sosyal içerikler ve taslaklar, paket ya da kullanım türünden bağımsız olarak çekirdek mahremiyet ilkesiyle
-                  ele alınır.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3>Çalışma Bağlamı</h3>
-                <p>
-                  Bu alan, içeriklere bağlı notların, kararların ve sonraki adımların bağlam içinde tutulması için
-                  tasarlanır.
-                </p>
-              </li>
-            </ul>
+            <div class="panel-module-state">
+              <h2 id="panel-sosyal-title">Sosyal</h2>
+              <p class="panel-module-state__desc">
+                Taslaklar ve dışa açılan içerikler için çalışma alanı hazırlanıyor.
+              </p>
+              <p class="panel-module-state__status">
+                <span class="panel-module-state__status-label">Durum:</span>
+                <span class="panel-module-state__badge panel-module-state__badge--tasarim">Tasarım aşamasında</span>
+              </p>
+              <p class="panel-module-state__note">Bu alan Lumos’un ilerleyen modüllerinden biridir.</p>
+            </div>
           </section>
 
           <section
@@ -1216,37 +1222,17 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-posta-title"
           >
-            <h2 id="panel-posta-title">Posta</h2>
-            <p class="medya-intro">
-              Posta alanı, kullanıcının yazışmalarını hazırlarken niyetini, tonunu ve kararını başkasına devretmeden
-              ilerleyebilmesi için ayrılmıştır.
-            </p>
-            <ul class="medya-card-list">
-              <li class="medya-card">
-                <h3>Yazışma Düzeni</h3>
-                <p>
-                  E-postalar ve taslaklar, kullanıcının yazışma sürecini dağınıklığa düşmeden takip edebilmesi için ayrı bir
-                  alanda konumlanır.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3>Kullanıcı Niyeti</h3>
-                <p>Yazışmanın yönü, tonu ve son kararı kullanıcıda kalır.</p>
-              </li>
-              <li class="medya-card">
-                <h3>Mahremiyet Sınırı</h3>
-                <p>
-                  Yazışma içerikleri, paket ya da kullanım türünden bağımsız olarak çekirdek mahremiyet ilkesiyle ele alınır.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3>Dijital Temsil Sınırı</h3>
-                <p>
-                  Lumos, kullanıcının yerine kimlik veya yetki sahibi gibi davranmaz; yazışma sürecinde kullanıcı iradesini
-                  koruyan destek alanı olarak konumlanır.
-                </p>
-              </li>
-            </ul>
+            <div class="panel-module-state">
+              <h2 id="panel-posta-title">Posta</h2>
+              <p class="panel-module-state__desc">
+                Yazışma taslağı ve ileti düzeni ileride bu sekmede olacak.
+              </p>
+              <p class="panel-module-state__status">
+                <span class="panel-module-state__status-label">Durum:</span>
+                <span class="panel-module-state__badge panel-module-state__badge--hazirlaniyor">Hazırlanıyor</span>
+              </p>
+              <p class="panel-module-state__note">Bu alan Lumos’un ilerleyen modüllerinden biridir.</p>
+            </div>
           </section>
 
           <section
@@ -1256,35 +1242,17 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-dosyalar-title"
           >
-            <h2 id="panel-dosyalar-title">Dosyalar</h2>
-            <p class="medya-intro">
-              Dosyalar alanı, kullanıcının belgelerle çalışırken düzeni, mahremiyeti ve kontrolü koruması için ayrılmıştır.
-            </p>
-            <ul class="medya-card-list">
-              <li class="medya-card">
-                <h3>Belge Düzeni</h3>
-                <p>
-                  Dosyalar, kullanıcının çalışma materyallerini dağınıklığa düşmeden takip edebilmesi için ayrı bir alan
-                  olarak konumlanır.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3>Kullanıcı Kontrolü</h3>
-                <p>Belgeler üzerindeki yön, seçim ve nihai karar kullanıcıda kalır.</p>
-              </li>
-              <li class="medya-card">
-                <h3>Mahremiyet Sınırı</h3>
-                <p>
-                  Dosya içerikleri, paket ya da kullanım türünden bağımsız olarak çekirdek mahremiyet ilkesiyle ele alınır.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3>Çalışma Bağlamı</h3>
-                <p>
-                  Bu alan, belgeyle ilgili notların, kararların ve sonraki adımların bağlam içinde tutulması için tasarlanır.
-                </p>
-              </li>
-            </ul>
+            <div class="panel-module-state">
+              <h2 id="panel-dosyalar-title">Dosyalar</h2>
+              <p class="panel-module-state__desc">
+                Belgeler ve ekler tek yerden takip edilebilecek.
+              </p>
+              <p class="panel-module-state__status">
+                <span class="panel-module-state__status-label">Durum:</span>
+                <span class="panel-module-state__badge panel-module-state__badge--yakinda">Yakında</span>
+              </p>
+              <p class="panel-module-state__note">Bu alan Lumos’un ilerleyen modüllerinden biridir.</p>
+            </div>
           </section>
 
           <section
@@ -1294,38 +1262,17 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-yayincilik-title"
           >
-            <h2 id="panel-yayincilik-title">Yayıncılık</h2>
-            <p class="medya-intro">
-              Yayıncılık alanı, kullanıcının dış dünyaya açılan içeriklerinde niyetini, sınırını ve sorumluluğunu koruması
-              için ayrılmıştır.
-            </p>
-            <ul class="medya-card-list">
-              <li class="medya-card">
-                <h3>Yayın Sınırı</h3>
-                <p>
-                  İçeriğin nerede, nasıl ve hangi bağlamda görünür olacağına dair son karar kullanıcıda kalır.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3>Kullanıcı İmzası</h3>
-                <p>
-                  Lumos ile hazırlanan çıktıların imzası Lumos’a değil, kullanıcının yönüne ve kararına aittir.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3>Sorumluluk Alanı</h3>
-                <p>
-                  Yayına çıkacak içeriklerde niyet, risk ve etki açık biçimde kullanıcı kontrolünde tutulur.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3>Temsil Dengesi</h3>
-                <p>
-                  Lumos, kullanıcı adına yetki sahibi gibi davranmaz; yayın sürecinde kullanıcı iradesini koruyan destek
-                  alanı olarak konumlanır.
-                </p>
-              </li>
-            </ul>
+            <div class="panel-module-state">
+              <h2 id="panel-yayincilik-title">Yayıncılık</h2>
+              <p class="panel-module-state__desc">
+                Yayın öncesi içerik ve sınır bilgisi bu sekmede görünecek.
+              </p>
+              <p class="panel-module-state__status">
+                <span class="panel-module-state__status-label">Durum:</span>
+                <span class="panel-module-state__badge panel-module-state__badge--tasarim">Tasarım aşamasında</span>
+              </p>
+              <p class="panel-module-state__note">Bu alan Lumos’un ilerleyen modüllerinden biridir.</p>
+            </div>
           </section>
 
           <section
@@ -1335,29 +1282,17 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-yapayzeka-title"
           >
-            <h2 id="panel-yapayzeka-title">Yapay Zekâ</h2>
-            <p class="medya-intro">
-              Yapay Zekâ alanı, Lumos’un kullanıcıyla çalışırken sınırlarını, belirsizlik yönetimini ve karar destek rolünü açık
-              tutması için ayrılmıştır.
-            </p>
-            <ul class="medya-card-list">
-              <li class="medya-card">
-                <h3>Belirsizlik Sınırı</h3>
-                <p>Lumos emin olmadığı yerde kesin konuşmaz; belirsizliği açıkça belirtir.</p>
-              </li>
-              <li class="medya-card">
-                <h3>Karar Desteği</h3>
-                <p>Lumos seçenekleri ve riskleri görünür kılar; nihai karar kullanıcıda kalır.</p>
-              </li>
-              <li class="medya-card">
-                <h3>Manipülasyon Yasağı</h3>
-                <p>Lumos korku, umut, suçluluk veya bağımlılık üzerinden kullanıcıyı yönlendirmez.</p>
-              </li>
-              <li class="medya-card">
-                <h3>İnsan Onuru</h3>
-                <p>Hız, veri, performans veya kâr; insan onurunun ve kullanıcı iradesinin önüne geçemez.</p>
-              </li>
-            </ul>
+            <div class="panel-module-state">
+              <h2 id="panel-yapayzeka-title">Yapay Zekâ</h2>
+              <p class="panel-module-state__desc">
+                Yardımcı öneriler ve çalışma sınırları bu modülde özetlenecek.
+              </p>
+              <p class="panel-module-state__status">
+                <span class="panel-module-state__status-label">Durum:</span>
+                <span class="panel-module-state__badge panel-module-state__badge--hazirlaniyor">Hazırlanıyor</span>
+              </p>
+              <p class="panel-module-state__note">Bu alan Lumos’un ilerleyen modüllerinden biridir.</p>
+            </div>
           </section>
 
           <section
@@ -1369,10 +1304,17 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
           >
             <h2 id="panel-kuantum-title">Kuantum</h2>
             <p class="medya-intro">
-              Kuantum alanı, Lumos’un belirsiz durumlarda kesinlik iddiası kurmadan çoklu ihtimalleri, katkı değerini ve karar
-              sınırlarını görünür tutması için ayrılmıştır.
+              Bu sekmede olasılık, belirsizlik ve güvenlik araştırması birlikte ele alınır; kesin vaatler yerine şeffaf sınırlar
+              önceliklidir.
             </p>
             <ul class="medya-card-list">
+              <li class="medya-card">
+                <h3>Kuantum Güvenlik Araştırması</h3>
+                <p>
+                  Bu bölüm, Lumos’un gelecekte kuantum dayanıklı şifreleme ve ileri güvenlik yaklaşımlarını değerlendireceği
+                  araştırma alanıdır. Mevcut sistem, kuantum şifreleme kullandığını iddia etmez.
+                </p>
+              </li>
               <li class="medya-card">
                 <h3>Çoklu İhtimal</h3>
                 <p>
@@ -1382,12 +1324,6 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
               <li class="medya-card">
                 <h3>Belirsizlik Dengesi</h3>
                 <p>Veri eksik olduğunda Lumos boşluk doldurmaz; neyin bilindiğini ve neyin bilinmediğini ayırır.</p>
-              </li>
-              <li class="medya-card">
-                <h3>Katkı Ölçümü</h3>
-                <p>
-                  Olası kuantum veya kuantum esinli yaklaşımlar; gerçek fayda, maliyet, güvenlik ve doğruluk açısından değerlendirilir.
-                </p>
               </li>
               <li class="medya-card">
                 <h3>Karar Sınırı</h3>
@@ -1405,31 +1341,17 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-entegrasyon-title"
           >
-            <h2 id="panel-entegrasyon-title">Entegrasyon</h2>
-            <p class="medya-intro">
-              Entegrasyon alanı, Lumos’un dış servisler ve sistemlerle ilişki kurarken kullanıcı iznini, veri sınırını ve güvenli
-              geçiş ilkesini koruması için ayrılmıştır.
-            </p>
-            <ul class="medya-card-list">
-              <li class="medya-card">
-                <h3>Bağlantı Sınırı</h3>
-                <p>Lumos’un dış sistemlerle kuracağı her ilişki, açık amaç ve sınırlı kapsam içinde değerlendirilir.</p>
-              </li>
-              <li class="medya-card">
-                <h3>Kullanıcı İzni</h3>
-                <p>Dış servislerle temas, kullanıcı iradesi ve onayı dışında genişletilmez.</p>
-              </li>
-              <li class="medya-card">
-                <h3>Veri Geçişi</h3>
-                <p>Sistemler arasında taşınacak bilgi, yalnızca gerekli bağlam ve güvenli sınırlar içinde ele alınır.</p>
-              </li>
-              <li class="medya-card">
-                <h3>Güvenli Köprü</h3>
-                <p>
-                  Entegrasyon, Lumos’un kontrolsüz erişim alanı değil; kullanıcıyı ve sistemi koruyan kontrollü geçiş katmanıdır.
-                </p>
-              </li>
-            </ul>
+            <div class="panel-module-state">
+              <h2 id="panel-entegrasyon-title">Entegrasyon</h2>
+              <p class="panel-module-state__desc">
+                Dış servis bağlantıları kontrollü biçimde bu sekmede listelenecek.
+              </p>
+              <p class="panel-module-state__status">
+                <span class="panel-module-state__status-label">Durum:</span>
+                <span class="panel-module-state__badge panel-module-state__badge--tasarim">Tasarım aşamasında</span>
+              </p>
+              <p class="panel-module-state__note">Bu alan Lumos’un ilerleyen modüllerinden biridir.</p>
+            </div>
           </section>
 
           <section
@@ -1439,32 +1361,17 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-kimlik-title"
           >
-            <h2 id="panel-kimlik-title">Kimlik</h2>
-            <p class="medya-intro">
-              Kimlik alanı, Lumos’un kullanıcıyla ilişkisinde temsil sınırını, kullanıcı iradesini ve yetki ayrımını açık tutması
-              için ayrılmıştır.
-            </p>
-            <ul class="medya-card-list">
-              <li class="medya-card">
-                <h3>Kullanıcı İradesi</h3>
-                <p>Lumos’un yönü, kullanıcının açık niyeti ve kararı dışında genişletilmez.</p>
-              </li>
-              <li class="medya-card">
-                <h3>Temsil Sınırı</h3>
-                <p>
-                  Lumos, kullanıcı adına kimlik veya yetki sahibi gibi davranmaz; kullanıcı iradesini koruyan destek alanı
-                  olarak konumlanır.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3>İmza Ayrımı</h3>
-                <p>Lumos ile hazırlanan çıktıların sahipliği ve imzası Lumos’a değil, kullanıcıya aittir.</p>
-              </li>
-              <li class="medya-card">
-                <h3>Yetki Dengesi</h3>
-                <p>Kalıcı, maliyetli veya başkalarını etkileyen işlemler açık kullanıcı onayı gerektirir.</p>
-              </li>
-            </ul>
+            <div class="panel-module-state">
+              <h2 id="panel-kimlik-title">Kimlik</h2>
+              <p class="panel-module-state__desc">
+                Oturum ve temsil sınırları bu modülde yönetilecek.
+              </p>
+              <p class="panel-module-state__status">
+                <span class="panel-module-state__status-label">Durum:</span>
+                <span class="panel-module-state__badge panel-module-state__badge--hazirlaniyor">Hazırlanıyor</span>
+              </p>
+              <p class="panel-module-state__note">Bu alan Lumos’un ilerleyen modüllerinden biridir.</p>
+            </div>
           </section>
 
           <section
@@ -1474,32 +1381,17 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-guvenlik-title"
           >
-            <h2 id="panel-guvenlik-title">Güvenlik</h2>
-            <p class="medya-intro">
-              Güvenlik alanı, Lumos’un kullanıcıyı, cihazı ve sistemi korurken yetki sınırlarını ve açık onay ilkesini görünür
-              tutması için ayrılmıştır.
-            </p>
-            <ul class="medya-card-list">
-              <li class="medya-card">
-                <h3>Açık Onay</h3>
-                <p>Kalıcı, maliyetli, hassas veya başkalarını etkileyen işlemler kullanıcı onayı olmadan ilerletilmez.</p>
-              </li>
-              <li class="medya-card">
-                <h3>Risk Sınırı</h3>
-                <p>Lumos risk gördüğünde bunu kısa ve net biçimde belirtir; nihai karar kullanıcıda kalır.</p>
-              </li>
-              <li class="medya-card">
-                <h3>Kontrollü Erişim</h3>
-                <p>Sistem, cihaz ve dış servislerle temas yalnızca gerekli bağlam ve sınırlı yetki içinde ele alınır.</p>
-              </li>
-              <li class="medya-card">
-                <h3>Koruma Dengesi</h3>
-                <p>
-                  Güvenlik, kullanıcı iradesini devralmak için değil; kullanıcıyı ve sistemi koruyan sınırları açık tutmak için
-                  konumlanır.
-                </p>
-              </li>
-            </ul>
+            <div class="panel-module-state">
+              <h2 id="panel-guvenlik-title">Güvenlik</h2>
+              <p class="panel-module-state__desc">
+                Onay gerektiren işlemler ve uyarılar bu sekmede özetlenecek.
+              </p>
+              <p class="panel-module-state__status">
+                <span class="panel-module-state__status-label">Durum:</span>
+                <span class="panel-module-state__badge panel-module-state__badge--tasarim">Tasarım aşamasında</span>
+              </p>
+              <p class="panel-module-state__note">Bu alan Lumos’un ilerleyen modüllerinden biridir.</p>
+            </div>
           </section>
 
           <section
@@ -1509,38 +1401,17 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-dunya-title"
           >
-            <h2 id="panel-dunya-title">Dünya</h2>
-            <p class="medya-intro">
-              Dünya alanı, Lumos’un bulunduğu bağlamda hukuk, insan hakları ve yerel sınırları gözeten bir çalışma zemini
-              kurması için ayrılmıştır.
-            </p>
-            <ul class="medya-card-list">
-              <li class="medya-card">
-                <h3>Yerel Bağlam</h3>
-                <p>
-                  Lumos, kullanıcının bulunduğu ülke ve kullanım ortamını dikkate alan sınırlı bir bağlam içinde konumlanır.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3>Hukuk Sınırı</h3>
-                <p>
-                  Lumos hukuki otorite gibi davranmaz; yasal risklerde belirsizliği açıkça belirtir ve kullanıcıyı dikkatli
-                  ilerlemeye yönlendirir.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3>İnsan Hakları Zemini</h3>
-                <p>
-                  Ülke, paket veya kullanım türü değişse bile insan onuru ve temel haklar çekirdek sınır olarak korunur.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3>Değiştirilemez Çekirdek</h3>
-                <p>
-                  Yerel bağlam uygulamayı şekillendirir; mahremiyet, insan onuru ve kullanıcı iradesi çekirdekten çıkarılamaz.
-                </p>
-              </li>
-            </ul>
+            <div class="panel-module-state">
+              <h2 id="panel-dunya-title">Dünya</h2>
+              <p class="panel-module-state__desc">
+                Yerel bağlam ve uyumluluk notları için alan ayrıldı.
+              </p>
+              <p class="panel-module-state__status">
+                <span class="panel-module-state__status-label">Durum:</span>
+                <span class="panel-module-state__badge panel-module-state__badge--yakinda">Yakında</span>
+              </p>
+              <p class="panel-module-state__note">Bu alan Lumos’un ilerleyen modüllerinden biridir.</p>
+            </div>
           </section>
 
           <section
@@ -1550,37 +1421,17 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-ayarlar-title"
           >
-            <h2 id="panel-ayarlar-title">Ayarlar</h2>
-            <p class="medya-intro">
-              Ayarlar alanı, Lumos’un kullanıcı tercihlerini düzenlerken çekirdek ilkelerin değiştirilemez sınırlarını görünür
-              tutması için ayrılmıştır.
-            </p>
-            <ul class="medya-card-list">
-              <li class="medya-card">
-                <h3>Tercih Alanı</h3>
-                <p>
-                  Kullanıcı deneyimi, görünüm ve çalışma biçimi tercihleri çekirdek ilkeler korunarak şekillenir.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3>Çekirdek Sınırı</h3>
-                <p>
-                  Mahremiyet, insan onuru, kullanıcı iradesi ve güvenlik ilkeleri ayar tercihiyle kapatılamaz.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3>Açık Kontrol</h3>
-                <p>
-                  Değiştirilebilir seçenekler kullanıcıya açık, anlaşılır ve geri alınabilir biçimde sunulmalıdır.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3>Sorumlu Esneklik</h3>
-                <p>
-                  Ayarlar esneklik sağlar; ancak Lumos’un hukuki, etik ve güvenlik çekirdeğini zayıflatmaz.
-                </p>
-              </li>
-            </ul>
+            <div class="panel-module-state">
+              <h2 id="panel-ayarlar-title">Ayarlar</h2>
+              <p class="panel-module-state__desc">
+                Tercihler çekirdek ilkelere uygun şekilde bu sekmede düzenlenecek.
+              </p>
+              <p class="panel-module-state__status">
+                <span class="panel-module-state__status-label">Durum:</span>
+                <span class="panel-module-state__badge panel-module-state__badge--hazirlaniyor">Hazırlanıyor</span>
+              </p>
+              <p class="panel-module-state__note">Bu alan Lumos’un ilerleyen modüllerinden biridir.</p>
+            </div>
           </section>
         </main>
       </div>
