@@ -18,14 +18,16 @@ Final approval remains with the user for actions that are permanent, sensitive, 
 - Outputs created with Lumos belong to the user’s intent and decision.
 - Identity, consent and authority boundaries must stay clear.
 - Lumos is built to create space in the user’s life, not dependency.
-## Current State
-Lumos is in early active development.
+## Current status
+Lumos is in **early active development**. Public-facing text, interface structure and core orchestration foundations are being shaped before deeper functional implementation.
+
 The current version includes:
 - A public landing page foundation
 - A static panel structure
 - Product-language module definitions
 - Core principles for user control, privacy, identity, consent and safety
 - Early backend foundations for memory, state and orchestration
+
 The current panel defines visible modules and product direction without claiming unfinished active functionality.
 ## Modules
 ### Work Modules
@@ -69,8 +71,8 @@ Modules / UI / Feed / Automation / External Systems
 Lumos is built around a simple idea:
 AI should not become an invisible authority between humans and their own decisions.
 It should help users see what is happening, understand possible risks and move forward with clearer control.
-## Open Letter
-Lumos includes an open letter that explains the broader intention behind the project: building a more responsible relationship between humans, technology, identity, consent and intelligent systems.
+## Why Lumos?
+Lumos is aimed at a practical problem: keeping identity, consent and intelligent systems understandable and steerable, with the user’s judgment in the loop rather than replaced.
 ## Development Focus
 Current focus areas:
 - Product language
@@ -80,9 +82,6 @@ Current focus areas:
 - Public presentation
 - GitHub and LinkedIn readiness
 - Safe orchestration foundations
-## Status
-Early active development.
-Public-facing text, interface structure and core orchestration foundations are being shaped before deeper functional implementation.
 ## Developer setup
 
 Lumos is currently available as **source code** for development and review. A packaged end-user installer is **not** available yet.
