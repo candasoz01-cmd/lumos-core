@@ -1341,17 +1341,56 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="false"
             aria-labelledby="panel-entegrasyon-title"
           >
-            <div class="panel-module-state">
-              <h2 id="panel-entegrasyon-title">Entegrasyon</h2>
-              <p class="panel-module-state__desc">
-                Dış servis bağlantıları kontrollü biçimde bu sekmede listelenecek.
-              </p>
-              <p class="panel-module-state__status">
-                <span class="panel-module-state__status-label">Durum:</span>
-                <span class="panel-module-state__badge panel-module-state__badge--tasarim">Tasarım aşamasında</span>
-              </p>
-              <p class="panel-module-state__note">Bu alan Lumos’un ilerleyen modüllerinden biridir.</p>
-            </div>
+            <h2 id="panel-entegrasyon-title">Entegrasyon</h2>
+            <p class="medya-intro">
+              Bu sekme, Lumos’un yerel araçlar, harici servisler, API bağlantıları ve uygulamalar arasında kontrollü bir köprü
+              kurma yaklaşımını özetler. Amaç her şeyi sınırsız bağlamak değil; bağlantı kapsamını, veri akışını ve kullanıcı
+              onayını görünür tutmaktır.
+            </p>
+            <ul class="medya-card-list">
+              <li class="medya-card">
+                <h3>Servis Bağlantıları</h3>
+                <p>
+                  Lumos, farklı servis ve uygulamaların tek bir akışta daha düzenli çalışmasını hedefler. Her bağlantının ne için
+                  kullanıldığı ve hangi işlemi etkilediği açık olmalıdır.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>API Köprüsü</h3>
+                <p>
+                  API entegrasyonları, Lumos’un dış sistemlerle kontrollü biçimde iletişim kurmasını sağlar. Bu bağlantılar sınırsız
+                  yetki değil, belirlenmiş kapsam ve açık amaç üzerinden düşünülür.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Yerel ve Dış Servis Ayrımı</h3>
+                <p>
+                  Lumos, cihaz içinde kalan işlemlerle dış servise aktarılan işlemleri birbirinden ayırmayı hedefler. Kullanıcı
+                  hangi adımın yerel, hangi adımın harici olduğunu daha net görebilmelidir.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Kapsam ve Onay</h3>
+                <p>
+                  Bir bağlantı kullanılmadan önce neye erişeceği, hangi işlemde devreye gireceği ve kullanıcıdan hangi onayın
+                  gerektiği açık tutulmalıdır.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Veri Akışı Görünürlüğü</h3>
+                <p>
+                  Dosya, metin, medya veya görev bilgisinin hangi servisle paylaşıldığı ve hangi adımda işlendiği daha izlenebilir
+                  hale getirilir.
+                </p>
+              </li>
+              <li class="medya-card">
+                <h3>Sınırsız Yetki Yok</h3>
+                <p>
+                  Lumos entegrasyonları otomatik ve sınırsız yetki anlamına gelmez. Her bağlantı, kullanıcı kontrolü ve güvenlik
+                  sınırları içinde çalışacak şekilde tasarlanmalıdır.
+                </p>
+              </li>
+            </ul>
           </section>
 
           <section
