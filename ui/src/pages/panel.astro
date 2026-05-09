@@ -474,7 +474,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         display: flex;
         flex-direction: column;
         gap: 0.65rem;
-        max-width: 32rem;
+        max-width: 36rem;
       }
       .gorevler-task-card {
         display: flex;
@@ -523,6 +523,116 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         color: rgba(236, 210, 175, 0.95);
         background: rgba(110, 72, 48, 0.32);
         border-color: rgba(200, 140, 100, 0.38);
+      }
+      .task-priority-badge {
+        flex-shrink: 0;
+        display: inline-block;
+        font-size: 0.56rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 0.1rem 0.34rem;
+        border-radius: 4px;
+        line-height: 1.2;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+      .task-priority-badge--dusuk {
+        color: rgba(168, 198, 218, 0.92);
+        background: rgba(42, 63, 109, 0.28);
+        border-color: rgba(130, 160, 200, 0.26);
+      }
+      .task-priority-badge--orta {
+        color: rgba(200, 188, 160, 0.92);
+        background: rgba(90, 72, 44, 0.22);
+        border-color: rgba(184, 148, 96, 0.28);
+      }
+      .task-priority-badge--yuksek {
+        color: rgba(244, 210, 190, 0.95);
+        background: rgba(120, 52, 42, 0.32);
+        border-color: rgba(200, 120, 100, 0.38);
+      }
+      .gorevler-proto {
+        max-width: 36rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .gorevler-form-panel {
+        padding: 0.85rem 1rem;
+        border-radius: 12px;
+        border: 1px solid var(--lumos-border);
+        background: linear-gradient(165deg, rgba(9, 11, 18, 0.98) 0%, rgba(12, 14, 22, 0.94) 100%);
+        box-shadow: inset 0 1px 0 rgba(200, 165, 110, 0.05), 0 2px 12px rgba(0, 0, 0, 0.2);
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+      .gorevler-field label {
+        display: block;
+        font-size: 0.62rem;
+        font-weight: 600;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: rgba(188, 196, 210, 0.88);
+        margin-bottom: 0.32rem;
+      }
+      .gorevler-field input,
+      .gorevler-field select {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 0.52rem 0.65rem;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: var(--lumos-input-bg);
+        color: var(--lumos-text);
+        font-size: 0.88rem;
+        font-family: inherit;
+        line-height: 1.45;
+      }
+      .gorevler-field input:focus,
+      .gorevler-field select:focus {
+        outline: none;
+        border-color: rgba(184, 148, 96, 0.45);
+        box-shadow: 0 0 0 1px rgba(184, 148, 96, 0.2);
+      }
+      .gorevler-add-btn {
+        align-self: flex-start;
+        margin-top: 0.15rem;
+        padding: 0.52rem 1.1rem;
+        border-radius: 10px;
+        border: none;
+        background: linear-gradient(180deg, #35508a 0%, var(--lumos-accent) 100%);
+        color: #fff;
+        font-size: 0.86rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        cursor: pointer;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+      }
+      .gorevler-add-btn:hover {
+        filter: brightness(1.06);
+      }
+      .gorevler-hint {
+        margin: 0;
+        font-size: 0.72rem;
+        line-height: 1.45;
+        color: var(--lumos-error);
+      }
+      .gorevler-list-heading {
+        margin: 0;
+        font-size: 0.62rem;
+        font-weight: 600;
+        letter-spacing: 0.11em;
+        text-transform: uppercase;
+        color: rgba(188, 196, 210, 0.9);
+      }
+      .gorevler-task-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        align-items: center;
+        justify-content: flex-end;
+        flex-shrink: 0;
       }
       #panel-sohbet {
         gap: 0;
@@ -1143,42 +1253,44 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             aria-labelledby="panel-gorevler-title"
           >
             <h2 id="panel-gorevler-title">Görevler</h2>
-            <p class="medya-intro">
-              Bu sekme, Lumos’un işleri daha küçük ve izlenebilir adımlara bölmeyi, öncelik ve bağlamı görünür tutmayı ve onay
-              gerektiren noktaları kullanıcıyla paylaşmayı hedefleyen yaklaşımını özetler.
+            <p class="gorevler-intro">
+              Yerel prototip: liste bu sekme açıkken bellekte tutulur; sayfa yenilenince sıfırlanır. Kayıt veya sunucu yoktur.
             </p>
-            <ul class="medya-card-list">
-              <li class="medya-card">
-                <h3>Parçalara Ayırma</h3>
-                <p>
-                  Büyük istekler tek hamlede çözülmez; daha net alt görevlere bölünerek takip edilebilir hale getirilir.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3>Öncelik ve Bağlam</h3>
-                <p>
-                  Hangi işin önce geldiği ve hangi çalışma alanına bağlı olduğu daha okunaklı gösterilmeyi hedefler.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3>Onay Bekleyen Adımlar</h3>
-                <p>
-                  Riskli veya geri alınması zor adımlar otomatik tamamlanmak yerine kullanıcıya açıkça sorulmalıdır.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3>Tamamlanan ve Bekleyen İşler</h3>
-                <p>
-                  İlerleme durumu sade bir görünümde tutulabilir; kullanıcı neyin bittiğini ve neyin sırada olduğunu kolayca görebilir.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3>Karar Kullanıcıda</h3>
-                <p>
-                  Lumos sırayı ve seçenekleri düzenleyebilir; nihai yön ve onay kullanıcının iradesinde kalmalıdır.
-                </p>
-              </li>
-            </ul>
+            <div class="gorevler-proto">
+              <div class="gorevler-form-panel">
+                <div class="gorevler-field">
+                  <label for="gorevler-title-input">Görev adı</label>
+                  <input
+                    id="gorevler-title-input"
+                    type="text"
+                    name="gorevler-title"
+                    maxlength="200"
+                    autocomplete="off"
+                    placeholder="Kısa bir başlık yazın…"
+                  />
+                </div>
+                <div class="gorevler-field">
+                  <label for="gorevler-priority">Öncelik</label>
+                  <select id="gorevler-priority" name="gorevler-priority">
+                    <option value="dusuk">Düşük</option>
+                    <option value="orta" selected>Orta</option>
+                    <option value="yuksek">Yüksek</option>
+                  </select>
+                </div>
+                <div class="gorevler-field">
+                  <label for="gorevler-status">Durum</label>
+                  <select id="gorevler-status" name="gorevler-status">
+                    <option value="bekliyor" selected>Bekliyor</option>
+                    <option value="onay_bekliyor">Onay bekliyor</option>
+                    <option value="tamamlandi">Tamamlandı</option>
+                  </select>
+                </div>
+                <button type="button" id="gorevler-add" class="gorevler-add-btn">Görev ekle</button>
+                <p id="gorevler-hint" class="gorevler-hint" role="status" aria-live="polite" hidden></p>
+              </div>
+              <h3 class="gorevler-list-heading">Görev listesi</h3>
+              <ul id="gorevler-list" class="gorevler-task-list" aria-label="Görev listesi"></ul>
+            </div>
           </section>
 
           <section
@@ -2035,7 +2147,106 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
           void runSend();
         });
       }
+
+      function wireGorevlerPrototype() {
+        const listEl = document.getElementById("gorevler-list");
+        const titleInput = document.getElementById("gorevler-title-input");
+        const prioritySel = document.getElementById("gorevler-priority");
+        const statusSel = document.getElementById("gorevler-status");
+        const addBtn = document.getElementById("gorevler-add");
+        const hintEl = document.getElementById("gorevler-hint");
+        if (!listEl || !titleInput || !prioritySel || !statusSel || !addBtn || !hintEl) return;
+
+        const tasks = [
+          { title: "Panel API durumunu kontrol et", priority: "orta", status: "onay_bekliyor" },
+          { title: "Güvenlik sekmesini gözden geçir", priority: "dusuk", status: "tamamlandi" },
+        ];
+
+        const priorityLabels = { dusuk: "Düşük", orta: "Orta", yuksek: "Yüksek" };
+        const statusLabels = {
+          bekliyor: "Bekliyor",
+          onay_bekliyor: "Onay bekliyor",
+          tamamlandi: "Tamamlandı",
+        };
+        const statusBadgeClass = {
+          bekliyor: "task-status-badge--waiting",
+          onay_bekliyor: "task-status-badge--approval",
+          tamamlandi: "task-status-badge--done",
+        };
+        const priorityBadgeClass = {
+          dusuk: "task-priority-badge--dusuk",
+          orta: "task-priority-badge--orta",
+          yuksek: "task-priority-badge--yuksek",
+        };
+
+        function render() {
+          listEl.replaceChildren();
+          for (const t of tasks) {
+            const li = document.createElement("li");
+            li.className = "gorevler-task-card";
+
+            const titleSpan = document.createElement("span");
+            titleSpan.className = "gorevler-task-title";
+            titleSpan.textContent = t.title;
+
+            const badges = document.createElement("div");
+            badges.className = "gorevler-task-badges";
+
+            const st = document.createElement("span");
+            st.className = "task-status-badge " + statusBadgeClass[t.status];
+            st.textContent = statusLabels[t.status];
+
+            const pr = document.createElement("span");
+            pr.className = "task-priority-badge " + priorityBadgeClass[t.priority];
+            pr.textContent = priorityLabels[t.priority];
+
+            badges.appendChild(st);
+            badges.appendChild(pr);
+            li.appendChild(titleSpan);
+            li.appendChild(badges);
+            listEl.appendChild(li);
+          }
+        }
+
+        function showHint(msg) {
+          hintEl.textContent = msg;
+          hintEl.hidden = false;
+        }
+
+        function hideHint() {
+          hintEl.hidden = true;
+          hintEl.textContent = "";
+        }
+
+        function addTask() {
+          const title = titleInput.value.trim();
+          if (!title) {
+            showHint("Görev adı boş olamaz.");
+            titleInput.focus();
+            return;
+          }
+          hideHint();
+          tasks.push({
+            title,
+            priority: prioritySel.value,
+            status: statusSel.value,
+          });
+          titleInput.value = "";
+          render();
+        }
+
+        addBtn.addEventListener("click", addTask);
+        titleInput.addEventListener("keydown", (e) => {
+          if (e.key !== "Enter") return;
+          e.preventDefault();
+          addTask();
+        });
+
+        render();
+      }
+
       wirePanel();
+      wireGorevlerPrototype();
 
       void (async function checkChatApiHealth() {
         const apiEl = document.getElementById("chat-sys-api");
