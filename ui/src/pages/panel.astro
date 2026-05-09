@@ -895,12 +895,107 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
       .chat-compose--gpt {
         align-items: center;
       }
+      .chat-compose-camera-btn {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        align-self: center;
+        width: 2.25rem;
+        height: 2.25rem;
+        padding: 0;
+        margin: 0;
+        border: none;
+        border-radius: 999px;
+        background: transparent;
+        color: rgba(212, 182, 128, 0.72);
+        cursor: pointer;
+        transition:
+          color 0.15s ease,
+          background 0.15s ease,
+          box-shadow 0.15s ease;
+      }
+      .chat-compose-camera-btn:hover {
+        color: rgba(236, 207, 147, 0.92);
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .chat-compose-camera-btn:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(184, 148, 96, 0.45);
+      }
+      .chat-compose-camera-btn--active {
+        color: rgba(248, 236, 210, 0.98);
+        background: rgba(212, 182, 128, 0.14);
+        box-shadow: inset 0 0 0 1px rgba(212, 182, 128, 0.38);
+      }
+      .chat-compose-camera-btn svg {
+        width: 1.15rem;
+        height: 1.15rem;
+      }
+      .chat-camera-preview-wrap {
+        display: block;
+        padding: 0.45rem 0.5rem;
+        border-radius: 12px;
+        border: 1px solid var(--lumos-border);
+        background: #050505;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.03),
+          0 3px 16px rgba(0, 0, 0, 0.45);
+        max-width: 100%;
+        min-width: 0;
+      }
+      .chat-camera-video {
+        display: block;
+        width: 100%;
+        max-width: 13rem;
+        max-height: 10rem;
+        border-radius: 10px;
+        background: #000;
+        object-fit: cover;
+      }
+      .chat-compose-voice-btn {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        align-self: center;
+        width: 2.25rem;
+        height: 2.25rem;
+        padding: 0;
+        margin: 0;
+        border: none;
+        border-radius: 999px;
+        background: transparent;
+        color: rgba(212, 182, 128, 0.72);
+        cursor: pointer;
+        transition:
+          color 0.15s ease,
+          background 0.15s ease,
+          box-shadow 0.15s ease;
+      }
+      .chat-compose-voice-btn:hover {
+        color: rgba(236, 207, 147, 0.92);
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .chat-compose-voice-btn:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(184, 148, 96, 0.45);
+      }
+      .chat-compose-voice-btn--listening {
+        color: rgba(248, 236, 210, 0.98);
+        background: rgba(212, 182, 128, 0.14);
+        box-shadow: inset 0 0 0 1px rgba(212, 182, 128, 0.38);
+      }
+      .chat-compose-voice-btn svg {
+        width: 1.15rem;
+        height: 1.15rem;
+      }
       .chat-compose--gpt textarea {
         flex: 1;
         min-width: 0;
         min-height: 2.35rem;
         max-height: 9rem;
-        padding: 0.48rem 0.5rem 0.48rem 0.6rem;
+        padding: 0.48rem 0.5rem 0.48rem 0.45rem;
         border-radius: 0;
         border: none;
         background: transparent;
@@ -980,11 +1075,36 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         .chat-compose {
           gap: 0.28rem;
         }
+        .chat-compose-camera-btn {
+          width: 2.05rem;
+          height: 2.05rem;
+        }
+        .chat-compose-camera-btn svg {
+          width: 1.05rem;
+          height: 1.05rem;
+        }
+        .chat-compose-voice-btn {
+          width: 2.05rem;
+          height: 2.05rem;
+        }
+        .chat-compose-voice-btn svg {
+          width: 1.05rem;
+          height: 1.05rem;
+        }
         .chat-compose-send {
           min-height: 2.15rem;
           padding: 0.32rem 0.55rem;
           font-size: 0.72rem;
         }
+      }
+      .chat-voice-hint,
+      .chat-camera-hint {
+        margin: 0;
+        padding: 0 0.4rem;
+        font-size: 0.68rem;
+        line-height: 1.45;
+        letter-spacing: 0.01em;
+        color: rgba(184, 160, 130, 0.88);
       }
       .lumos-security-note {
         margin: 0;
@@ -1179,8 +1299,48 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
                 </div>
               </div>
               <div class="chat-compose-stack">
+                <div id="panel-camera-preview-wrap" class="chat-camera-preview-wrap" hidden>
+                  <video
+                    id="panel-camera-video"
+                    class="chat-camera-video"
+                    playsinline
+                    muted
+                    autoplay
+                  ></video>
+                </div>
                 <div class="chat-compose-bar">
                   <div class="chat-compose chat-compose--gpt">
+                    <button
+                      type="button"
+                      id="panel-camera-input"
+                      class="chat-compose-camera-btn"
+                      title="Kamera / görsel giriş"
+                      aria-label="Kamera / görsel giriş"
+                      aria-pressed="false"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path
+                          d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        ></path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      id="panel-voice-input"
+                      class="chat-compose-voice-btn"
+                      title="Sesli giriş"
+                      aria-label="Sesli giriş"
+                      aria-pressed="false"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3z"></path>
+                        <path d="M19 11a7 7 0 0 1-14 0"></path>
+                        <path d="M12 18v3"></path>
+                      </svg>
+                    </button>
                     <textarea
                       id="panel-msg"
                       rows="1"
@@ -1193,6 +1353,8 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
                     </button>
                   </div>
                 </div>
+                <p id="panel-voice-hint" class="chat-voice-hint" role="status" aria-live="polite" hidden></p>
+                <p id="panel-camera-hint" class="chat-camera-hint" role="status" aria-live="polite" hidden></p>
                 <p class="lumos-security-note">Kalıcı işlemler için onay ister.</p>
               </div>
             </div>
@@ -2105,6 +2267,156 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
           if (e.key !== "Enter" || e.shiftKey) return;
           e.preventDefault();
           void runSend();
+        });
+
+        const voiceBtn = document.getElementById("panel-voice-input");
+        const voiceHint = document.getElementById("panel-voice-hint");
+        let voiceRec = null;
+        let voiceListening = false;
+
+        function setVoiceHint(msg) {
+          if (!voiceHint) return;
+          voiceHint.textContent = msg;
+          voiceHint.hidden = !msg;
+        }
+
+        function stopVoiceListeningUi() {
+          voiceListening = false;
+          if (voiceBtn) {
+            voiceBtn.classList.remove("chat-compose-voice-btn--listening");
+            voiceBtn.setAttribute("aria-pressed", "false");
+          }
+        }
+
+        function appendVoiceTranscript(chunk) {
+          const t = String(chunk || "").trim();
+          if (!t) return;
+          const cur = input.value;
+          const sep = cur && !/\s$/.test(cur) ? " " : "";
+          input.value = cur + sep + t;
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+
+        voiceBtn?.addEventListener("click", () => {
+          const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+          if (!SR) {
+            setVoiceHint("Bu tarayıcıda sesli giriş desteklenmiyor.");
+            return;
+          }
+
+          if (voiceListening && voiceRec) {
+            try {
+              voiceRec.stop();
+            } catch {
+              /* ignore */
+            }
+            return;
+          }
+
+          voiceRec = new SR();
+          voiceRec.lang = "tr-TR";
+          voiceRec.interimResults = false;
+          voiceRec.continuous = false;
+          voiceRec.maxAlternatives = 1;
+
+          voiceListening = true;
+          voiceBtn.classList.add("chat-compose-voice-btn--listening");
+          voiceBtn.setAttribute("aria-pressed", "true");
+          setVoiceHint("");
+
+          voiceRec.onresult = (ev) => {
+            let spoken = "";
+            for (let i = ev.resultIndex; i < ev.results.length; i++) {
+              spoken += ev.results[i][0].transcript;
+            }
+            appendVoiceTranscript(spoken);
+            if (voiceHint) voiceHint.hidden = true;
+          };
+
+          voiceRec.onerror = (ev) => {
+            if (ev.error === "not-allowed" || ev.error === "service-not-allowed") {
+              setVoiceHint("Mikrofon izni verilmedi.");
+            }
+            stopVoiceListeningUi();
+          };
+
+          voiceRec.onend = () => {
+            stopVoiceListeningUi();
+          };
+
+          try {
+            voiceRec.start();
+          } catch {
+            stopVoiceListeningUi();
+            setVoiceHint("Bu tarayıcıda sesli giriş desteklenmiyor.");
+          }
+        });
+
+        const cameraBtn = document.getElementById("panel-camera-input");
+        const cameraHint = document.getElementById("panel-camera-hint");
+        const cameraPreviewWrap = document.getElementById("panel-camera-preview-wrap");
+        const cameraVideo = /** @type {HTMLVideoElement | null} */ (document.getElementById("panel-camera-video"));
+        let cameraStream = null;
+
+        function setCameraHint(msg) {
+          if (!cameraHint) return;
+          cameraHint.textContent = msg;
+          cameraHint.hidden = !msg;
+        }
+
+        function stopCameraStream() {
+          if (cameraStream) {
+            cameraStream.getTracks().forEach((tr) => tr.stop());
+            cameraStream = null;
+          }
+          if (cameraVideo) cameraVideo.srcObject = null;
+          if (cameraPreviewWrap) cameraPreviewWrap.hidden = true;
+          if (cameraBtn) {
+            cameraBtn.classList.remove("chat-compose-camera-btn--active");
+            cameraBtn.setAttribute("aria-pressed", "false");
+          }
+        }
+
+        function onDocVisibilityForCamera() {
+          if (document.hidden) stopCameraStream();
+        }
+
+        document.addEventListener("visibilitychange", onDocVisibilityForCamera);
+        window.addEventListener("pagehide", stopCameraStream);
+
+        cameraBtn?.addEventListener("click", () => {
+          if (cameraStream) {
+            stopCameraStream();
+            setCameraHint("");
+            return;
+          }
+
+          if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== "function") {
+            setCameraHint("Bu tarayıcıda kamera girişi desteklenmiyor.");
+            return;
+          }
+
+          setCameraHint("");
+          navigator.mediaDevices
+            .getUserMedia({ video: true, audio: false })
+            .then((stream) => {
+              cameraStream = stream;
+              if (cameraVideo) cameraVideo.srcObject = stream;
+              if (cameraPreviewWrap) cameraPreviewWrap.hidden = false;
+              if (cameraBtn) {
+                cameraBtn.classList.add("chat-compose-camera-btn--active");
+                cameraBtn.setAttribute("aria-pressed", "true");
+              }
+            })
+            .catch((err) => {
+              const name = err && err.name;
+              if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+                setCameraHint("Kamera izni verilmedi.");
+              } else {
+                setCameraHint("Bu tarayıcıda kamera girişi desteklenmiyor.");
+              }
+              stopCameraStream();
+            });
         });
       }
 
