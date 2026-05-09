@@ -1654,15 +1654,18 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             }
             if (r.ok) {
               let replyBody = "";
-              if (data && typeof data === "object" && "reply" in data) {
-                const raw = data.reply;
+              if (data && typeof data === "object") {
+                const raw = data.reply ?? data.content ?? data.message;
                 replyBody = raw == null ? "" : String(raw);
               }
+              const hasChatBodyKey =
+                data &&
+                typeof data === "object" &&
+                ("reply" in data || "content" in data || "message" in data);
               if (!replyBody.trim() && text && text.trim()) {
-                replyBody =
-                  data && typeof data === "object" && "reply" in data
-                    ? ""
-                    : "Bu kez yanıtı okuyamadık. Biraz sonra yeniden denebilirsin.";
+                replyBody = hasChatBodyKey
+                  ? ""
+                  : "Bu kez yanıtı okuyamadık. Biraz sonra yeniden denebilirsin.";
               }
               const lumosText = replyBody.trim()
                 ? replyBody
