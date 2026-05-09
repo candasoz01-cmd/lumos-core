@@ -1646,52 +1646,56 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
               body: JSON.stringify({ message, history }),
             });
             const text = await r.text();
-            let data = null;
-            try {
-              data = text ? JSON.parse(text) : null;
-            } catch {
-              data = null;
-            }
-            if (r.ok) {
-              let replyBody = "";
-              if (data && typeof data === "object") {
-                const raw = data.reply ?? data.content ?? data.message;
-                replyBody = raw == null ? "" : String(raw);
-              }
-              const hasChatBodyKey =
-                data &&
-                typeof data === "object" &&
-                ("reply" in data || "content" in data || "message" in data);
-              if (!replyBody.trim() && text && text.trim()) {
-                replyBody = hasChatBodyKey
-                  ? ""
-                  : "Bu kez yanıtı okuyamadık. Biraz sonra yeniden denebilirsin.";
-              }
-              const lumosText = replyBody.trim()
-                ? replyBody
-                : "Bu sefer boş bir yanıt geldi. Sorunu biraz açıp yeniden deneyebilirsin.";
-              appendBubble("lumos", lumosText);
-              input.value = "";
+
+            if (!r.ok) {
+              console.warn("[Lumos panel chat] HTTP error", r.status);
+              appendBubble(
+                "error",
+                "Sunucu şu anda yanıtı işleyemedi. Biraz sonra tekrar deneyebilirsin."
+              );
             } else {
-              let errHuman = "";
-              if (data && typeof data === "object" && data.error != null) {
-                errHuman = String(data.error);
-              } else if (text && text.trim()) {
-                errHuman = text.trim();
+              const INVALID_FORMAT_MSG =
+                "Sunucu yanıtı beklenen formatta değil. Biraz sonra tekrar deneyebilirsin.";
+              const EMPTY_REPLY_MSG =
+                "Bu sefer boş bir yanıt geldi. Sorunu biraz açıp yeniden deneyebilirsin.";
+
+              let data = null;
+              let parsed = false;
+              if (text && text.trim()) {
+                try {
+                  data = JSON.parse(text);
+                  parsed = true;
+                } catch {
+                  appendBubble("error", INVALID_FORMAT_MSG);
+                }
               } else {
-                errHuman = r.statusText || "Beklenmeyen bir durum oluştu.";
+                appendBubble("error", INVALID_FORMAT_MSG);
               }
-              if (errHuman === "OPENAI_API_KEY missing") {
-                errHuman = "Şu an yanıt üretilemiyor; kısa süre içinde yeniden denebilirsin.";
-              } else if (errHuman === "message required") {
-                errHuman = "Önce kısa bir mesaj yazman gerekiyor.";
+
+              if (parsed) {
+                const isPlainObject =
+                  data !== null && typeof data === "object" && !Array.isArray(data);
+                const hasChatBodyKey =
+                  isPlainObject &&
+                  ("reply" in data || "content" in data || "message" in data);
+                if (!isPlainObject || !hasChatBodyKey) {
+                  appendBubble("error", INVALID_FORMAT_MSG);
+                } else {
+                  const raw = data.reply ?? data.content ?? data.message;
+                  const replyBody = raw == null ? "" : String(raw);
+                  if (replyBody.trim()) {
+                    appendBubble("lumos", replyBody);
+                    input.value = "";
+                  } else {
+                    appendBubble("lumos", EMPTY_REPLY_MSG);
+                  }
+                }
               }
-              appendBubble("error", "Şimdilik yanıt veremedik. " + errHuman);
             }
           } catch {
             appendBubble(
               "error",
-              "Bağlantıda kısa bir kesinti oldu. İnternetini kontrol edip biraz sonra yeniden deneyebilirsin."
+              "Sunucuya ulaşılamadı. Bağlantıyı veya servis durumunu kontrol edip tekrar deneyebilirsin."
             );
           } finally {
             sending = false;
