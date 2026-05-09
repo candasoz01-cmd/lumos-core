@@ -11,15 +11,16 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
     <title>Lumos Panel — Çalışma alanı</title>
     <style>
       :root {
-        --lumos-bg: #0b1020;
-        --lumos-surface: rgba(9, 11, 18, 0.97);
-        --lumos-border: rgba(184, 148, 96, 0.22);
+        --lumos-bg: #0a1315;
+        --lumos-surface: rgba(8, 13, 15, 0.97);
+        --lumos-border: rgba(200, 168, 118, 0.26);
         --lumos-gold: #eccf93;
-        --lumos-text: #e4e7ef;
-        --lumos-muted: #9aa4b5;
-        --lumos-input-bg: #12182a;
-        --lumos-accent: #2a3f6d;
-        --lumos-user-bubble: rgba(42, 63, 109, 0.45);
+        --lumos-text: #e6eae9;
+        --lumos-muted: #96a5a3;
+        --lumos-input-bg: #0f1a1c;
+        --lumos-accent: #143638;
+        --lumos-accent-mid: #2a5856;
+        --lumos-user-bubble: rgba(28, 62, 64, 0.52);
         --lumos-lumos-bubble: rgba(0, 0, 0, 0.28);
         --lumos-error: #f0b4b4;
       }
@@ -56,8 +57,65 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
       }
       .panel-header-title-row {
         display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        column-gap: 0.65rem;
+        row-gap: 0.45rem;
+      }
+      .panel-header-brand {
+        display: flex;
         align-items: center;
         gap: 0.7rem;
+        min-width: 0;
+        flex: 1 1 12rem;
+      }
+      .panel-conn-badge {
+        flex: 0 0 auto;
+        margin-left: auto;
+        font-size: 0.58rem;
+        font-weight: 600;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        padding: 0.2rem 0.48rem;
+        border-radius: 999px;
+        line-height: 1.25;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        white-space: nowrap;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      }
+      .panel-conn-badge[data-state="pending"] {
+        color: rgba(200, 188, 160, 0.95);
+        background: rgba(90, 72, 44, 0.28);
+        border-color: rgba(184, 148, 96, 0.35);
+      }
+      .panel-conn-badge[data-state="ok"] {
+        color: rgba(178, 236, 218, 0.96);
+        background: rgba(18, 58, 54, 0.42);
+        border-color: rgba(72, 178, 158, 0.42);
+      }
+      .panel-conn-badge[data-state="bad"] {
+        color: rgba(240, 195, 195, 0.96);
+        background: rgba(92, 42, 42, 0.32);
+        border-color: rgba(200, 120, 110, 0.38);
+      }
+      @media (max-width: 520px) {
+        .panel-conn-badge {
+          margin-left: 0;
+          flex-basis: auto;
+          width: auto;
+          max-width: 100%;
+          align-self: flex-start;
+        }
+        .panel-header-title-row {
+          align-items: flex-start;
+        }
+        /* Rozet, işaret + başlık satırının altında hizalı */
+        .panel-header-brand {
+          flex: 1 1 100%;
+        }
+        .panel-conn-badge {
+          margin-left: calc(clamp(1.75rem, 4.2vw, 2.125rem) + 0.7rem);
+        }
       }
       .lumos-mark {
         position: relative;
@@ -114,7 +172,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
         pointer-events: none;
       }
-      .panel-header h1 {
+      .panel-header-brand h1 {
         margin: 0;
         font-size: clamp(1.05rem, 2.2vw, 1.25rem);
         font-weight: 600;
@@ -271,7 +329,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         padding: 0.58rem 0.75rem 0.58rem 0.95rem;
         border: none;
         background: rgba(255, 255, 255, 0.02);
-        color: #aeb6c8;
+        color: #a8b5b3;
         font-size: 0.86rem;
         font-weight: 500;
         text-align: left;
@@ -288,7 +346,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
       }
       .panel-nav button[data-module]:hover {
         background: rgba(255, 255, 255, 0.06);
-        color: #e4e8f2;
+        color: #e6ebe9;
       }
       .panel-nav button[data-module][aria-current="false"] {
         opacity: 0.92;
@@ -313,7 +371,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         padding: clamp(0.85rem, 2vw, 1.35rem);
         display: flex;
         flex-direction: column;
-        background: radial-gradient(120% 80% at 10% 0%, rgba(72, 88, 120, 0.12) 0%, transparent 55%),
+        background: radial-gradient(120% 80% at 10% 0%, rgba(48, 108, 102, 0.11) 0%, transparent 55%),
           radial-gradient(90% 60% at 100% 20%, rgba(130, 96, 56, 0.06) 0%, transparent 50%);
       }
       .module-panel {
@@ -333,7 +391,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         margin: 0 0 0.75rem;
         font-size: 0.95rem;
         font-weight: 600;
-        color: #e8ecf4;
+        color: #e8ebe9;
         letter-spacing: -0.01em;
       }
       .module-panel h2.module-title-row {
@@ -413,9 +471,9 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         border-color: rgba(200, 140, 100, 0.35);
       }
       .panel-module-state__badge--yakinda {
-        color: rgba(168, 198, 218, 0.92);
-        background: rgba(42, 63, 109, 0.35);
-        border-color: rgba(130, 160, 200, 0.28);
+        color: rgba(176, 222, 212, 0.9);
+        background: rgba(22, 56, 56, 0.38);
+        border-color: rgba(82, 150, 142, 0.32);
       }
       .panel-module-state__note {
         margin: 0;
@@ -510,9 +568,9 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         border: 1px solid rgba(255, 255, 255, 0.12);
       }
       .task-status-badge--done {
-        color: rgba(170, 220, 200, 0.95);
-        background: rgba(42, 88, 72, 0.28);
-        border-color: rgba(100, 160, 140, 0.35);
+        color: rgba(172, 236, 216, 0.96);
+        background: rgba(18, 58, 54, 0.38);
+        border-color: rgba(72, 178, 158, 0.4);
       }
       .task-status-badge--waiting {
         color: rgba(200, 188, 160, 0.92);
@@ -537,9 +595,9 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         border: 1px solid rgba(255, 255, 255, 0.12);
       }
       .task-priority-badge--dusuk {
-        color: rgba(168, 198, 218, 0.92);
-        background: rgba(42, 63, 109, 0.28);
-        border-color: rgba(130, 160, 200, 0.26);
+        color: rgba(172, 216, 208, 0.88);
+        background: rgba(22, 52, 54, 0.34);
+        border-color: rgba(78, 138, 132, 0.3);
       }
       .task-priority-badge--orta {
         color: rgba(200, 188, 160, 0.92);
@@ -600,14 +658,16 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         margin-top: 0.15rem;
         padding: 0.52rem 1.1rem;
         border-radius: 10px;
-        border: none;
-        background: linear-gradient(180deg, #35508a 0%, var(--lumos-accent) 100%);
-        color: #fff;
+        border: 1px solid rgba(200, 172, 120, 0.38);
+        background: linear-gradient(180deg, var(--lumos-accent-mid) 0%, var(--lumos-accent) 100%);
+        color: #f4f2eb;
         font-size: 0.86rem;
         font-weight: 600;
         letter-spacing: 0.02em;
         cursor: pointer;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+        box-shadow:
+          0 2px 12px rgba(0, 0, 0, 0.32),
+          inset 0 1px 0 rgba(212, 188, 140, 0.18);
       }
       .gorevler-add-btn:hover {
         filter: brightness(1.06);
@@ -637,109 +697,15 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
       #panel-sohbet {
         gap: 0;
       }
-      .chat-panel-top {
+      .chat-panel-title {
         flex-shrink: 0;
-        margin-bottom: 0.65rem;
         padding-bottom: 0.55rem;
         border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0.6rem;
-        min-height: 0;
-        overflow: visible;
       }
-      .chat-panel-top h2 {
-        margin: 0 0 0.28rem;
+      .module-panel h2.chat-panel-title {
+        margin: 0 0 0.65rem;
       }
-      .chat-panel-status {
-        margin: 0;
-        font-size: 0.8rem;
-        line-height: 1.45;
-        color: var(--lumos-muted);
-      }
-      .chat-panel-arch {
-        margin: 0.38rem 0 0;
-        max-width: 38rem;
-        padding-left: 0.55rem;
-        border-left: 2px solid rgba(72, 118, 116, 0.42);
-        font-size: 0.68rem;
-        line-height: 1.5;
-        letter-spacing: 0.015em;
-        color: rgba(154, 168, 178, 0.88);
-        background: linear-gradient(90deg, rgba(236, 207, 147, 0.06) 0%, transparent 55%);
-      }
-      /** Sol: başlık+açıklama — Sağ: kompakt durum kartı (sohbet kutusunun dışında). */
-      .chat-panel-head-row {
-        display: flex;
-        flex-direction: row;
-        flex-wrap: wrap;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 0.55rem 0.85rem;
-        width: 100%;
-        min-width: 0;
-        flex-shrink: 0;
-      }
-      .chat-panel-head-main {
-        flex: 1 1 11rem;
-        min-width: 0;
-      }
-      .chat-sys-status {
-        flex: 0 1 auto;
-        width: clamp(16.25rem, 32vw, 20rem);
-        max-width: 20rem;
-        min-width: 0;
-        box-sizing: border-box;
-        padding: 0.48rem 0.62rem 0.52rem;
-        border-radius: 9px;
-        border: 1px solid rgba(184, 148, 96, 0.26);
-        background: linear-gradient(165deg, rgba(14, 18, 30, 0.98) 0%, rgba(10, 12, 22, 0.96) 100%);
-        box-shadow:
-          inset 0 1px 0 rgba(200, 165, 110, 0.06),
-          0 2px 10px rgba(0, 0, 0, 0.22);
-      }
-      .chat-sys-status__head {
-        font-size: 0.58rem;
-        font-weight: 600;
-        letter-spacing: 0.11em;
-        text-transform: uppercase;
-        color: rgba(188, 196, 210, 0.9);
-        margin-bottom: 0.35rem;
-      }
-      .chat-sys-status__rows {
-        display: flex;
-        flex-direction: column;
-        gap: 0.2rem;
-      }
-      .chat-sys-status__row {
-        display: flex;
-        justify-content: space-between;
-        align-items: baseline;
-        gap: 0.5rem;
-        font-size: 0.7rem;
-        line-height: 1.32;
-      }
-      .chat-sys-status__k {
-        color: var(--lumos-muted);
-        flex-shrink: 0;
-      }
-      .chat-sys-status__v {
-        color: var(--lumos-text);
-        text-align: right;
-        min-width: 0;
-        word-break: break-word;
-      }
-      .chat-sys-status__api[data-state="ok"] {
-        color: rgba(170, 220, 200, 0.95);
-      }
-      .chat-sys-status__api[data-state="bad"] {
-        color: var(--lumos-error);
-      }
-      .chat-sys-status__api[data-state="pending"] {
-        color: rgba(200, 188, 160, 0.88);
-      }
-      /** Sohbet: (1) üst başlık+durum, (2) yalnızca kaydırılan geçmiş, (3) altta sabit compose — birbirine yapışmaz. */
+      /** Sohbet: başlık, kaydırılan geçmiş, altta compose. */
       .chat-workspace {
         flex: 1;
         display: flex;
@@ -781,30 +747,22 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
       }
       .chat-empty-hint {
         display: flex;
-        flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 0.2rem;
         align-self: center;
-        max-width: 14rem;
-        padding: 0.5rem 0.75rem;
+        max-width: min(22rem, 92%);
+        padding: 0.65rem 1rem;
         text-align: center;
-        font-size: 0.72rem;
-        line-height: 1.45;
-        letter-spacing: 0.04em;
-        color: rgba(168, 178, 198, 0.44);
         user-select: none;
         pointer-events: none;
+        transition: color 0.35s ease, opacity 0.35s ease;
       }
-      .chat-empty-hint__line {
-        font-weight: 500;
-        color: rgba(210, 200, 175, 0.46);
-      }
-      .chat-empty-hint__sub {
-        font-size: 0.68rem;
-        font-weight: 400;
-        letter-spacing: 0.08em;
-        color: rgba(150, 168, 188, 0.4);
+      .chat-empty-hint__text {
+        font-size: 0.88rem;
+        font-weight: 600;
+        letter-spacing: -0.015em;
+        line-height: 1.5;
+        color: rgba(232, 218, 188, 0.82);
       }
       .chat-thread:has(> .chat-turn) > .chat-empty-hint {
         display: none;
@@ -857,11 +815,14 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         max-width: min(100%, 22rem, 82%);
         margin-left: clamp(1.5rem, 8vw, 3.5rem);
         padding: 0.62rem 0.82rem 0.72rem;
-        background: linear-gradient(165deg, rgba(52, 78, 130, 0.55) 0%, rgba(36, 52, 92, 0.72) 100%);
-        border: 1px solid rgba(130, 160, 220, 0.32);
+        background: linear-gradient(165deg, rgba(38, 88, 86, 0.58) 0%, rgba(22, 48, 50, 0.78) 100%);
+        border: 1px solid rgba(120, 185, 175, 0.28);
         border-radius: 14px 14px 5px 14px;
-        color: #f4f7ff;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(255, 255, 255, 0.04);
+        color: #eef6f4;
+        box-shadow:
+          0 2px 12px rgba(0, 0, 0, 0.24),
+          0 0 0 1px rgba(212, 182, 128, 0.08),
+          inset 0 1px 0 rgba(255, 255, 255, 0.06);
       }
       .chat-msg--lumos {
         max-width: min(100%, 46rem, 94%);
@@ -869,14 +830,17 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         padding: 0.65rem 0.92rem 0.78rem;
         background: linear-gradient(
           168deg,
-          rgba(18, 22, 34, 0.95) 0%,
-          rgba(14, 16, 26, 0.92) 50%,
-          rgba(12, 14, 22, 0.96) 100%
+          rgba(12, 22, 24, 0.96) 0%,
+          rgba(10, 18, 22, 0.93) 50%,
+          rgba(8, 14, 18, 0.97) 100%
         );
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(184, 148, 96, 0.16);
         border-radius: 14px 14px 14px 5px;
-        color: #e2e8f5;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(255, 255, 255, 0.03);
+        color: #e8eceb;
+        box-shadow:
+          0 2px 12px rgba(0, 0, 0, 0.22),
+          0 0 0 1px rgba(52, 118, 112, 0.14),
+          inset 0 1px 0 rgba(255, 255, 255, 0.04);
       }
       .chat-msg--error {
         max-width: min(100%, 40rem, 92%);
@@ -896,7 +860,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         opacity: 0.88;
       }
       .chat-msg--user .chat-msg-role {
-        color: rgba(200, 215, 255, 0.75);
+        color: rgba(188, 228, 218, 0.78);
         text-align: right;
       }
       .chat-msg--lumos .chat-msg-role {
@@ -959,9 +923,9 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         max-height: 9rem;
         padding: 0.58rem 0.72rem;
         border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        background: rgba(18, 24, 42, 0.95);
-        color: #f2f2f2;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(12, 22, 24, 0.96);
+        color: #f0f4f3;
         font-size: 0.88rem;
         font-family: inherit;
         line-height: 1.5;
@@ -980,14 +944,16 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         min-height: 2.65rem;
         padding: 0 1.1rem;
         border-radius: 10px;
-        border: none;
-        background: linear-gradient(180deg, #35508a 0%, var(--lumos-accent) 100%);
-        color: #fff;
+        border: 1px solid rgba(200, 172, 120, 0.38);
+        background: linear-gradient(180deg, var(--lumos-accent-mid) 0%, var(--lumos-accent) 100%);
+        color: #f4f2eb;
         font-size: 0.86rem;
         font-weight: 600;
         letter-spacing: 0.02em;
         cursor: pointer;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+        box-shadow:
+          0 2px 12px rgba(0, 0, 0, 0.32),
+          inset 0 1px 0 rgba(212, 188, 140, 0.18);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -1004,14 +970,14 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         margin: 0;
         align-self: flex-start;
         max-width: 100%;
-        padding: 0.4rem 0.65rem;
+        padding: 0.35rem 0.55rem;
         border-radius: 10px;
-        font-size: 0.68rem;
+        font-size: 0.72rem;
         line-height: 1.45;
         letter-spacing: 0.02em;
-        color: rgba(170, 180, 198, 0.98);
-        background: rgba(8, 11, 20, 0.75);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: rgba(168, 182, 180, 0.96);
+        background: rgba(8, 14, 16, 0.78);
+        border: 1px solid rgba(184, 148, 96, 0.14);
       }
       @media (max-width: 639.98px) {
         .panel-body {
@@ -1079,14 +1045,6 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
           flex: 1;
           min-height: 0;
         }
-        .chat-panel-head-row {
-          flex-direction: column;
-          align-items: stretch;
-        }
-        .chat-sys-status {
-          width: 100%;
-          max-width: none;
-        }
       }
     </style>
   </head>
@@ -1094,8 +1052,17 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
     <div class="panel-shell">
       <header class="panel-header">
         <div class="panel-header-title-row">
-          <span class="lumos-mark" aria-hidden="true"></span>
-          <h1>Lumos Panel</h1>
+          <div class="panel-header-brand">
+            <span class="lumos-mark" aria-hidden="true"></span>
+            <h1>Lumos Panel</h1>
+          </div>
+          <span
+            id="panel-conn-badge"
+            class="panel-conn-badge"
+            data-state="pending"
+            role="status"
+            aria-live="polite"
+          >Bağlanıyor</span>
         </div>
         <p>Çalışma alanı</p>
       </header>
@@ -1182,36 +1149,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             data-active="true"
             aria-labelledby="panel-sohbet-title"
           >
-            <div class="chat-panel-top">
-              <div class="chat-panel-head-row">
-                <div class="chat-panel-head-main">
-                  <h2 id="panel-sohbet-title">Sohbet</h2>
-                  <p class="chat-panel-status">Aşağıdaki alanda yalnızca konuşma geçmişi kayar; mesajını en alttan gönder.</p>
-                </div>
-                <aside class="chat-sys-status" aria-label="Sistem durumu" role="region">
-                  <div class="chat-sys-status__head">Sistem Durumu</div>
-                  <div class="chat-sys-status__rows">
-                    <div class="chat-sys-status__row">
-                      <span class="chat-sys-status__k">Servis:</span>
-                      <span class="chat-sys-status__v">Lumos chat</span>
-                    </div>
-                    <div class="chat-sys-status__row">
-                      <span class="chat-sys-status__k">API durumu:</span>
-                      <span
-                        id="chat-sys-api"
-                        class="chat-sys-status__v chat-sys-status__api"
-                        data-state="pending"
-                      >Kontrol ediliyor…</span>
-                    </div>
-                    <div class="chat-sys-status__row">
-                      <span class="chat-sys-status__k">Son kontrol:</span>
-                      <span id="chat-sys-time" class="chat-sys-status__v">—</span>
-                    </div>
-                  </div>
-                </aside>
-              </div>
-              <p class="chat-panel-arch" role="note">Lumos, göreve göre doğru çalışma alanını açar; cihaz yerel merkez, dış servisler güvenli köprüdür.</p>
-            </div>
+            <h2 id="panel-sohbet-title" class="chat-panel-title">Sohbet</h2>
             <div class="chat-workspace">
               <div class="chat-history-shell" aria-label="Mesaj geçmişi">
                 <div
@@ -1222,8 +1160,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
                   aria-relevant="additions"
                 >
                   <div class="chat-empty-hint" aria-hidden="true">
-                    <span class="chat-empty-hint__line">Lumos hazır</span>
-                    <span class="chat-empty-hint__sub">Dinliyor</span>
+                    <span class="chat-empty-hint__text">Lumos hazır · Dinliyor</span>
                   </div>
                 </div>
               </div>
@@ -1240,7 +1177,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
                     <button type="button" id="panel-send">Gönder</button>
                   </div>
                 </div>
-                <p class="lumos-security-note">Kalıcı ve yıkıcı işlemler açık onay gerektirir.</p>
+                <p class="lumos-security-note">Kalıcı işlemler için onay ister.</p>
               </div>
             </div>
           </section>
@@ -2248,24 +2185,21 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
       wirePanel();
       wireGorevlerPrototype();
 
+      function setPanelConnBadge(state) {
+        const badge = document.getElementById("panel-conn-badge");
+        if (!badge) return;
+        badge.setAttribute("data-state", state);
+        if (state === "ok") {
+          badge.textContent = "Bağlı";
+        } else if (state === "bad") {
+          badge.textContent = "Çevrimdışı";
+        } else {
+          badge.textContent = "Bağlanıyor";
+        }
+      }
+
       void (async function checkChatApiHealth() {
-        const apiEl = document.getElementById("chat-sys-api");
-        const timeEl = document.getElementById("chat-sys-time");
-        if (!apiEl || !timeEl) return;
-
-        function stampTime() {
-          timeEl.textContent = new Date().toLocaleTimeString("tr-TR", {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-          });
-        }
-
-        function setApi(ok) {
-          apiEl.textContent = ok ? "Bağlı" : "Ulaşılamıyor";
-          apiEl.setAttribute("data-state", ok ? "ok" : "bad");
-        }
-
+        setPanelConnBadge("pending");
         try {
           const r = await fetch(CHAT_URL, {
             method: "POST",
@@ -2293,11 +2227,9 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
               ok = false;
             }
           }
-          setApi(ok);
-          stampTime();
+          setPanelConnBadge(ok ? "ok" : "bad");
         } catch {
-          setApi(false);
-          stampTime();
+          setPanelConnBadge("bad");
         }
       })();
     </script>
