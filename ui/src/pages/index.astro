@@ -18,6 +18,7 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       .lumos-hero-row {
         display: flex;
         align-items: stretch;
+        flex: 1 1 auto;
         width: 100%;
         min-height: 0;
       }
@@ -100,12 +101,21 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       #modules {
         scroll-margin-top: 1.25rem;
       }
+      #giris.lumos-section {
+        padding-bottom: clamp(1.75rem, 4.2vw, 2.85rem);
+      }
+      #giris.lumos-section--tight-top {
+        padding-top: clamp(0.8rem, 2vw, 1.15rem);
+      }
       .lumos-hero-brand {
         box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
         width: 100%;
         margin: 0;
         border-radius: 12px;
-        padding: clamp(1.2rem, 3vw, 2.2rem) clamp(1rem, 3vw, 2.1rem);
+        padding: clamp(1.5rem, 3.6vw, 2.65rem) clamp(1rem, 3vw, 2.1rem);
+        min-height: clamp(400px, 54svh, 680px);
         overflow: hidden;
         background: radial-gradient(circle at 12% 18%, rgba(61, 169, 164, 0.16), transparent 42%),
           radial-gradient(circle at 85% 78%, rgba(201, 161, 98, 0.16), transparent 44%),
@@ -118,7 +128,7 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         max-width: 920px;
       }
       .lumos-hero-title-page {
-        margin: 0 0 0.35rem;
+        margin: 0 0 0.45rem;
         font-size: clamp(2.35rem, 7vw, 3.85rem);
         line-height: 1.04;
         font-weight: 800;
@@ -127,7 +137,7 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         text-shadow: 0 0 18px rgba(201, 161, 98, 0.18);
       }
       .lumos-hero-subtitle {
-        margin: 0 0 0.85rem;
+        margin: 0 0 1.05rem;
         max-width: 42ch;
         font-size: clamp(1.05rem, 2.65vw, 1.42rem);
         line-height: 1.42;
@@ -135,7 +145,7 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         color: #d9deea;
       }
       .lumos-hero-lead {
-        margin: 0 0 1.1rem;
+        margin: 0 0 1.35rem;
         max-width: 52ch;
         font-size: clamp(0.95rem, 2vw, 1.08rem);
         line-height: 1.62;
@@ -144,6 +154,13 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       @media (max-width: 559.98px) {
         .lumos-hero-dna {
           display: none;
+        }
+        #giris.lumos-section {
+          padding-bottom: clamp(1.85rem, 5vw, 2.65rem);
+        }
+        .lumos-hero-brand {
+          min-height: min(82svh, 720px);
+          padding: clamp(1.35rem, 4.5vw, 1.95rem) clamp(0.95rem, 3.5vw, 1.25rem);
         }
       }
       .lumos-shell {
@@ -673,10 +690,6 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
           Benim için Lumos, sadece bir yazılım fikri değil. İnsanla teknoloji arasındaki ilişkiyi daha dürüst, daha kontrollü
           ve daha insani kurma çabasının adı.
         </p>
-        <div class="lumos-founder-signblock">
-          <p class="lumos-founder-name">Candaş Öz</p>
-          <p class="lumos-founder-meta">Fikir ve vizyon sahibi</p>
-        </div>
       </section>
 
       <aside class="lumos-may19-card lumos-may19-card--sideline" aria-labelledby="lumos-may19-heading">
