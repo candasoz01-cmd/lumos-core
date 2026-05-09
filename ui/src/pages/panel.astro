@@ -963,17 +963,22 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
       }
       .chat-compose-send {
         flex: 0 0 auto;
-        display: flex;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 2.35rem;
-        height: 2.35rem;
-        padding: 0;
+        align-self: center;
+        min-height: 2.35rem;
+        padding: 0.38rem 0.72rem;
         margin: 0;
-        border-radius: 50%;
+        border-radius: 999px;
         border: 1px solid rgba(212, 182, 128, 0.46);
         background: linear-gradient(180deg, #161413 0%, #0a0908 100%);
         color: var(--lumos-gold);
+        font-size: 0.76rem;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        line-height: 1.2;
+        white-space: nowrap;
         cursor: pointer;
         box-shadow:
           0 2px 14px rgba(0, 0, 0, 0.65),
@@ -984,9 +989,8 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
           border-color 0.15s ease,
           box-shadow 0.15s ease;
       }
-      .chat-compose-send svg {
-        width: 1.12rem;
-        height: 1.12rem;
+      .chat-compose-send__label {
+        display: block;
       }
       .chat-compose-send:hover:not(:disabled) {
         filter: brightness(1.06);
@@ -997,7 +1001,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         cursor: not-allowed;
         filter: none;
       }
-      .chat-compose-send--busy svg {
+      .chat-compose-send--busy .chat-compose-send__label {
         animation: chat-compose-send-pulse 0.9s ease-in-out infinite;
       }
       @keyframes chat-compose-send-pulse {
@@ -1021,8 +1025,9 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
           height: 1.05rem;
         }
         .chat-compose-send {
-          width: 2.2rem;
-          height: 2.2rem;
+          min-height: 2.15rem;
+          padding: 0.32rem 0.55rem;
+          font-size: 0.72rem;
         }
       }
       .lumos-security-note {
@@ -1249,9 +1254,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
                       autocomplete="off"
                     ></textarea>
                     <button type="button" id="panel-send" class="chat-compose-send" title="Gönder" aria-label="Gönder">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
-                        <path d="M12 18V9m0 0l-4 4m4-4l4 4" stroke-linecap="round" stroke-linejoin="round"></path>
-                      </svg>
+                      <span class="chat-compose-send__label">Gönder</span>
                     </button>
                   </div>
                 </div>
@@ -1941,6 +1944,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         const nav = document.querySelector(".panel-nav");
         const panels = document.querySelectorAll("[data-module-panel]");
         const sendBtn = document.getElementById("panel-send");
+        const sendLabelEl = sendBtn?.querySelector(".chat-compose-send__label");
         const input = document.getElementById("panel-msg");
         const thread = document.getElementById("chat-thread");
         if (!nav || !sendBtn || !input || !thread) return;
@@ -2083,6 +2087,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
           sendBtn.setAttribute("aria-label", loadingLabel);
           sendBtn.setAttribute("title", loadingLabel);
           sendBtn.classList.add("chat-compose-send--busy");
+          if (sendLabelEl) sendLabelEl.textContent = loadingLabel;
           const history = collectThreadHistory(thread);
           appendBubble("user", message);
 
@@ -2154,6 +2159,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             sendBtn.setAttribute("aria-label", sendLabel);
             sendBtn.setAttribute("title", sendLabel);
             sendBtn.classList.remove("chat-compose-send--busy");
+            if (sendLabelEl) sendLabelEl.textContent = sendLabel;
           }
         }
 
