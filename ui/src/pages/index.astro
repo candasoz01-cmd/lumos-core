@@ -64,14 +64,6 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         color: #eccf93;
         text-shadow: 0 0 18px rgba(201, 161, 98, 0.18);
       }
-      .lumos-hero-byline {
-        margin: 0 0 0.55rem;
-        font-size: clamp(0.82rem, 1.85vw, 0.98rem);
-        line-height: 1.35;
-        font-weight: 500;
-        letter-spacing: 0.04em;
-        color: rgba(147, 188, 186, 0.62);
-      }
       .lumos-hero-subtitle {
         margin: 0 0 0.85rem;
         max-width: 42ch;
@@ -471,13 +463,23 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       .lumos-section--founder p {
         max-width: 68ch;
       }
-      .lumos-founder-sign {
+      .lumos-founder-signblock {
         margin: 1.35rem 0 0;
-        font-size: 0.98rem;
-        font-style: italic;
-        font-weight: 500;
-        color: rgba(236, 207, 147, 0.88);
         max-width: 62ch;
+      }
+      .lumos-founder-name {
+        margin: 0;
+        font-size: 0.95rem;
+        font-style: normal;
+        font-weight: 600;
+        color: rgba(236, 207, 147, 0.82);
+      }
+      .lumos-founder-meta {
+        margin: 0.35rem 0 0;
+        font-size: 0.78rem;
+        font-weight: 400;
+        letter-spacing: 0.03em;
+        color: rgba(158, 168, 184, 0.72);
       }
       .lumos-may19-card--sideline {
         margin-top: clamp(0.35rem, 1.2vw, 0.65rem);
@@ -525,10 +527,10 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
           <div class="lumos-hero-imgwrap">
             <div class="lumos-hero-copy">
               <h1 id="lumos-giris-baslik" class="lumos-hero-title-page">Lumos</h1>
-              <p class="lumos-hero-byline">by We Lock AI</p>
               <p class="lumos-hero-subtitle">İnsan merkezli yapay zekâ kontrol katmanı</p>
               <p class="lumos-hero-lead">
-                Ses, medya ve yapay zekâyı tek akışta birleştiren yerel kontrollü akıllı asistan altyapısı.
+                We Lock AI çatısı altında geliştirilen Lumos; ses, medya ve yapay zekâyı tek akışta birleştiren yerel
+                kontrollü akıllı asistan altyapısıdır.
               </p>
               <p class="lumos-hero-lead">
                 Lumos; kullanıcının cihazı, verisi ve dijital işlemleri üzerinde daha bilinçli, kontrollü ve güvenli
@@ -607,7 +609,10 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
           Bugün elimde tamamlanmış büyük bir sistemden çok, yönü belli bir başlangıç var. Ama bu başlangıcın değerli
           olduğuna inanıyorum.
         </p>
-        <p class="lumos-founder-sign">Cando Huhu</p>
+        <div class="lumos-founder-signblock">
+          <p class="lumos-founder-name">Candaş Öz</p>
+          <p class="lumos-founder-meta">Fikir ve vizyon sahibi</p>
+        </div>
       </section>
 
       <aside class="lumos-may19-card lumos-may19-card--sideline" aria-labelledby="lumos-may19-heading">
