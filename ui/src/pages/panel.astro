@@ -180,11 +180,6 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         letter-spacing: -0.02em;
         color: #e8d4b4;
       }
-      .panel-header p {
-        margin: 0.35rem 0 0;
-        font-size: 0.88rem;
-        color: var(--lumos-muted);
-      }
       .panel-body {
         display: flex;
         flex: 1;
@@ -700,18 +695,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         gap: 0;
         background: transparent;
       }
-      .chat-panel-title {
-        flex-shrink: 0;
-        padding: 0.5rem 0.75rem 0.58rem;
-        border-radius: 12px;
-        border: 1px solid var(--lumos-border);
-        background: var(--lumos-chat-head-bg);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
-      }
-      .module-panel h2.chat-panel-title {
-        margin: 0 0 0.65rem;
-      }
-      /** Sohbet: başlık, kaydırılan geçmiş, altta compose. */
+      /** Sohbet: kaydırılan geçmiş, altta compose. */
       .chat-workspace {
         flex: 1;
         display: flex;
@@ -892,8 +876,8 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
       }
       .chat-compose-bar {
         flex-shrink: 0;
-        padding: 0.75rem 0.9rem 0.85rem;
-        border-radius: 14px;
+        padding: 0.45rem 0.55rem 0.45rem 0.5rem;
+        border-radius: 999px;
         border: 1px solid var(--lumos-border);
         background: var(--lumos-compose-bg);
         box-shadow:
@@ -903,73 +887,143 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
       .chat-compose {
         display: flex;
         flex-wrap: nowrap;
-        gap: 0.6rem;
-        align-items: stretch;
+        gap: 0.35rem;
+        align-items: flex-end;
         max-width: 100%;
+        min-width: 0;
       }
-      @media (max-width: 479.98px) {
-        .chat-compose {
-          flex-wrap: wrap;
-        }
-        .chat-compose button {
-          width: 100%;
-        }
+      .chat-compose--gpt {
+        align-items: center;
       }
-      .chat-compose textarea {
+      .chat-compose-leading {
+        display: flex;
+        align-items: center;
+        gap: 0.08rem;
+        flex-shrink: 0;
+      }
+      .chat-compose-icon-btn {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.25rem;
+        height: 2.25rem;
+        padding: 0;
+        margin: 0;
+        border: none;
+        border-radius: 999px;
+        background: transparent;
+        color: rgba(212, 182, 128, 0.72);
+        cursor: pointer;
+        transition:
+          color 0.15s ease,
+          background 0.15s ease;
+      }
+      .chat-compose-icon-btn:hover {
+        color: rgba(236, 207, 147, 0.92);
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .chat-compose-icon-btn:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(184, 148, 96, 0.45);
+      }
+      .chat-compose-icon-btn svg {
+        width: 1.15rem;
+        height: 1.15rem;
+      }
+      .chat-compose--gpt textarea {
         flex: 1;
         min-width: 0;
-        min-height: 2.65rem;
+        min-height: 2.35rem;
         max-height: 9rem;
-        padding: 0.58rem 0.72rem;
-        border-radius: 10px;
-        border: 1px solid rgba(115, 95, 68, 0.26);
-        background: var(--lumos-chat-input-bg);
+        padding: 0.48rem 0.35rem;
+        border-radius: 0;
+        border: none;
+        background: transparent;
         color: #f4efe8;
         font-size: 0.88rem;
         font-family: inherit;
-        line-height: 1.5;
-        resize: vertical;
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        line-height: 1.45;
+        resize: none;
+        field-sizing: content;
+        box-shadow: none;
       }
-      .chat-compose textarea:focus {
+      .chat-compose--gpt textarea::placeholder {
+        color: rgba(148, 142, 132, 0.75);
+      }
+      .chat-compose--gpt textarea:focus {
         outline: none;
-        border-color: rgba(184, 148, 96, 0.45);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 0 0 1px rgba(184, 148, 96, 0.2);
       }
-      .chat-compose button {
+      .chat-compose-bar:focus-within {
+        border-color: rgba(184, 148, 96, 0.42);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.04),
+          0 4px 22px rgba(0, 0, 0, 0.65),
+          0 0 0 1px rgba(184, 148, 96, 0.18);
+      }
+      .chat-compose-send {
         flex: 0 0 auto;
-        align-self: stretch;
-        min-width: 10.5rem;
-        min-height: 2.65rem;
-        padding: 0 1.1rem;
-        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.35rem;
+        height: 2.35rem;
+        padding: 0;
+        margin: 0;
+        border-radius: 50%;
         border: 1px solid rgba(212, 182, 128, 0.46);
         background: linear-gradient(180deg, #161413 0%, #0a0908 100%);
         color: var(--lumos-gold);
-        font-size: 0.86rem;
-        font-weight: 600;
-        letter-spacing: 0.02em;
         cursor: pointer;
         box-shadow:
-          0 2px 18px rgba(0, 0, 0, 0.72),
-          inset 0 1px 0 rgba(236, 207, 147, 0.11),
+          0 2px 14px rgba(0, 0, 0, 0.65),
+          inset 0 1px 0 rgba(236, 207, 147, 0.1),
           inset 0 -1px 0 rgba(22, 20, 18, 0.95);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        transition:
+          filter 0.15s ease,
+          border-color 0.15s ease,
+          box-shadow 0.15s ease;
       }
-      .chat-compose button:hover:not(:disabled) {
-        filter: brightness(1.05);
+      .chat-compose-send svg {
+        width: 1.12rem;
+        height: 1.12rem;
+      }
+      .chat-compose-send:hover:not(:disabled) {
+        filter: brightness(1.06);
         border-color: rgba(228, 198, 138, 0.55);
-        box-shadow:
-          0 2px 22px rgba(0, 0, 0, 0.74),
-          inset 0 1px 0 rgba(236, 207, 147, 0.14),
-          inset 0 -1px 0 rgba(22, 20, 18, 0.95);
       }
-      .chat-compose button:disabled {
-        opacity: 0.62;
+      .chat-compose-send:disabled {
+        opacity: 0.55;
         cursor: not-allowed;
         filter: none;
+      }
+      .chat-compose-send--busy svg {
+        animation: chat-compose-send-pulse 0.9s ease-in-out infinite;
+      }
+      @keyframes chat-compose-send-pulse {
+        50% {
+          opacity: 0.35;
+        }
+      }
+      @media (max-width: 479.98px) {
+        .chat-compose-bar {
+          padding: 0.38rem 0.42rem 0.38rem 0.38rem;
+        }
+        .chat-compose {
+          gap: 0.2rem;
+        }
+        .chat-compose-icon-btn {
+          width: 2.05rem;
+          height: 2.05rem;
+        }
+        .chat-compose-icon-btn svg {
+          width: 1.05rem;
+          height: 1.05rem;
+        }
+        .chat-compose-send {
+          width: 2.2rem;
+          height: 2.2rem;
+        }
       }
       .lumos-security-note {
         margin: 0;
@@ -1065,7 +1119,6 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             aria-live="polite"
           >Bağlanıyor</span>
         </div>
-        <p>Çalışma alanı</p>
       </header>
       <div class="panel-body">
         <nav class="panel-nav" aria-label="Modüller">
@@ -1148,9 +1201,8 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             class="module-panel"
             data-module-panel="sohbet"
             data-active="true"
-            aria-labelledby="panel-sohbet-title"
+            aria-label="Sohbet"
           >
-            <h2 id="panel-sohbet-title" class="chat-panel-title">Sohbet</h2>
             <div class="chat-workspace">
               <div class="chat-history-shell" aria-label="Mesaj geçmişi">
                 <div
@@ -1167,15 +1219,40 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
               </div>
               <div class="chat-compose-stack">
                 <div class="chat-compose-bar">
-                  <div class="chat-compose">
+                  <div class="chat-compose chat-compose--gpt">
+                    <div class="chat-compose-leading" role="toolbar" aria-label="Mesaj araçları">
+                      <button type="button" class="chat-compose-icon-btn" title="Ekle" aria-label="Ekle">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                          <path d="M12 5v14M5 12h14" stroke-linecap="round"></path>
+                        </svg>
+                      </button>
+                      <button type="button" class="chat-compose-icon-btn" title="Görsel ekle" aria-label="Görsel ekle">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                          <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                          <path d="M21 15l-5-5L5 21"></path>
+                        </svg>
+                      </button>
+                      <button type="button" class="chat-compose-icon-btn" title="Sesli giriş" aria-label="Sesli giriş">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                          <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3z"></path>
+                          <path d="M19 11a7 7 0 0 1-14 0"></path>
+                          <path d="M12 18v3"></path>
+                        </svg>
+                      </button>
+                    </div>
                     <textarea
                       id="panel-msg"
-                      rows="2"
+                      rows="1"
                       placeholder="Mesajını yaz…"
                       aria-label="Mesajını yaz…"
                       autocomplete="off"
                     ></textarea>
-                    <button type="button" id="panel-send">Gönder</button>
+                    <button type="button" id="panel-send" class="chat-compose-send" title="Gönder" aria-label="Gönder">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                        <path d="M12 18V9m0 0l-4 4m4-4l4 4" stroke-linecap="round" stroke-linejoin="round"></path>
+                      </svg>
+                    </button>
                   </div>
                 </div>
                 <p class="lumos-security-note">Kalıcı işlemler için onay ister.</p>
@@ -2003,7 +2080,9 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
           sending = true;
           sendBtn.disabled = true;
           sendBtn.setAttribute("aria-busy", "true");
-          sendBtn.textContent = loadingLabel;
+          sendBtn.setAttribute("aria-label", loadingLabel);
+          sendBtn.setAttribute("title", loadingLabel);
+          sendBtn.classList.add("chat-compose-send--busy");
           const history = collectThreadHistory(thread);
           appendBubble("user", message);
 
@@ -2072,7 +2151,9 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             sending = false;
             sendBtn.disabled = false;
             sendBtn.removeAttribute("aria-busy");
-            sendBtn.textContent = sendLabel;
+            sendBtn.setAttribute("aria-label", sendLabel);
+            sendBtn.setAttribute("title", sendLabel);
+            sendBtn.classList.remove("chat-compose-send--busy");
           }
         }
 
