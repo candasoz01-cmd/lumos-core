@@ -6,7 +6,11 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Lumos — Yerel kontrollü akıllı asistan altyapısı</title>
+    <title>Lumos by We Lock AI — İnsan merkezli yapay zekâ kontrol katmanı</title>
+    <meta
+      name="description"
+      content="Lumos, We Lock AI çatısı altında insan merkezli yapay zekâ kontrol katmanıdır; ses, medya ve yapay zekâyı yerelde kontrollü tek akışta birleştirmeyi hedefler."
+    />
     <style>
       html {
         scroll-behavior: smooth;
@@ -52,20 +56,28 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         max-width: 920px;
       }
       .lumos-hero-title-page {
-        margin: 0 0 0.65rem;
-        font-size: clamp(2rem, 6vw, 3.25rem);
-        line-height: 1.05;
+        margin: 0 0 0.35rem;
+        font-size: clamp(2.35rem, 7vw, 3.85rem);
+        line-height: 1.04;
         font-weight: 800;
-        letter-spacing: -0.02em;
+        letter-spacing: -0.03em;
         color: #eccf93;
         text-shadow: 0 0 18px rgba(201, 161, 98, 0.18);
+      }
+      .lumos-hero-byline {
+        margin: 0 0 0.55rem;
+        font-size: clamp(0.82rem, 1.85vw, 0.98rem);
+        line-height: 1.35;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+        color: rgba(147, 188, 186, 0.62);
       }
       .lumos-hero-subtitle {
         margin: 0 0 0.85rem;
         max-width: 42ch;
-        font-size: clamp(1.02rem, 2.6vw, 1.45rem);
-        line-height: 1.4;
-        font-weight: 500;
+        font-size: clamp(1.05rem, 2.65vw, 1.42rem);
+        line-height: 1.42;
+        font-weight: 600;
         color: #d9deea;
       }
       .lumos-hero-lead {
@@ -74,52 +86,6 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         font-size: clamp(0.95rem, 2vw, 1.08rem);
         line-height: 1.62;
         color: #c9ced9;
-      }
-      .lumos-hero-markrow {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 0.65rem 1rem;
-        margin-top: 0.25rem;
-      }
-      .lumos-hero-markrow-kicker {
-        margin: 0;
-        font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 0.14em;
-        color: rgba(93, 201, 197, 0.88);
-      }
-      .lumos-hero-wordmark {
-        margin: 0;
-        font-size: clamp(1.15rem, 3vw, 1.55rem);
-        font-weight: 800;
-        letter-spacing: 0.12em;
-        color: rgba(236, 207, 147, 0.92);
-        line-height: 1;
-      }
-      .lumos-hero-badge {
-        display: inline-flex;
-        align-items: center;
-        margin: 0;
-        padding: 0.22rem;
-        border-radius: 8px;
-        border: 1px solid rgba(148, 112, 68, 0.38);
-        background: linear-gradient(
-          165deg,
-          rgba(18, 15, 22, 0.72) 0%,
-          rgba(12, 14, 22, 0.55) 100%
-        );
-        box-shadow: inset 0 1px 0 rgba(188, 148, 92, 0.08), 0 1px 0 rgba(0, 0, 0, 0.22);
-        max-width: 100%;
-      }
-      .lumos-hero-badge img {
-        display: block;
-        width: 22px;
-        height: 22px;
-        flex-shrink: 0;
-        border-radius: 5px;
-        object-fit: cover;
-        opacity: 0.92;
       }
       @media (max-width: 559.98px) {
         .lumos-hero-dna {
@@ -535,7 +501,9 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
           <div class="lumos-hero-imgwrap">
             <div class="lumos-hero-copy">
               <h1 id="lumos-giris-baslik" class="lumos-hero-title-page">Lumos</h1>
-              <p class="lumos-hero-subtitle">
+              <p class="lumos-hero-byline">by We Lock AI</p>
+              <p class="lumos-hero-subtitle">İnsan merkezli yapay zekâ kontrol katmanı</p>
+              <p class="lumos-hero-lead">
                 Ses, medya ve yapay zekâyı tek akışta birleştiren yerel kontrollü akıllı asistan altyapısı.
               </p>
               <p class="lumos-hero-lead">
@@ -543,13 +511,6 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
                 hareket etmesini hedefleyen bir yapay zekâ kontrol katmanıdır. Karar kullanıcıda kalır; Lumos riski,
                 bağlamı ve sonraki adımı görünür kılar.
               </p>
-              <div class="lumos-hero-markrow" aria-label="Lumos markası">
-                <p class="lumos-hero-markrow-kicker">WE LOCK AI</p>
-                <p class="lumos-hero-wordmark" aria-hidden="true">LUMOS</p>
-                <div class="lumos-hero-badge" aria-hidden="true" title="Lumos">
-                  <img src="/assets/lumos-ai-badge.png" alt="" width="22" height="22" loading="eager" decoding="async" />
-                </div>
-              </div>
             </div>
           </div>
           <aside class="lumos-hero-dna" aria-hidden="true" style="transform:scaleX(-1);">

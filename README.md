@@ -1,4 +1,7 @@
 # Lumos
+
+**Lumos** is the primary product. **We Lock AI** is the umbrella publisher ([welockai.com](https://welockai.com)).
+
 Lumos is a human-centered AI control layer designed to help users understand, control and safely manage actions across devices, digital workflows and connected systems.
 It does not replace the user’s judgment.
 It makes context, risk and next steps more visible.
