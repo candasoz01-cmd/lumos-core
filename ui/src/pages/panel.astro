@@ -479,6 +479,12 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         margin-bottom: 0.65rem;
         padding-bottom: 0.55rem;
         border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.6rem;
+        min-height: 0;
+        overflow: visible;
       }
       .chat-panel-top h2 {
         margin: 0 0 0.28rem;
@@ -499,6 +505,74 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         letter-spacing: 0.015em;
         color: rgba(154, 168, 178, 0.88);
         background: linear-gradient(90deg, rgba(236, 207, 147, 0.06) 0%, transparent 55%);
+      }
+      /** Başlık + sistem kartı: dikey yığın; kart sohbet kutusundan ayrı ve her genişlikte görünür. */
+      .chat-panel-head-row {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.55rem;
+        width: 100%;
+        min-width: 0;
+        flex-shrink: 0;
+      }
+      .chat-panel-head-main {
+        flex: 0 0 auto;
+        width: 100%;
+        min-width: 0;
+      }
+      .chat-sys-status {
+        flex: 0 0 auto;
+        width: 100%;
+        max-width: 22rem;
+        align-self: flex-start;
+        padding: 0.62rem 0.78rem 0.68rem;
+        border-radius: 10px;
+        border: 1px solid rgba(184, 148, 96, 0.28);
+        background: linear-gradient(165deg, rgba(14, 18, 30, 0.98) 0%, rgba(10, 12, 22, 0.96) 100%);
+        box-shadow:
+          inset 0 1px 0 rgba(200, 165, 110, 0.07),
+          0 2px 14px rgba(0, 0, 0, 0.28);
+      }
+      .chat-sys-status__head {
+        font-size: 0.68rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(200, 208, 220, 0.92);
+        margin-bottom: 0.48rem;
+      }
+      .chat-sys-status__rows {
+        display: flex;
+        flex-direction: column;
+        gap: 0.28rem;
+      }
+      .chat-sys-status__row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 0.65rem;
+        font-size: 0.78rem;
+        line-height: 1.4;
+      }
+      .chat-sys-status__k {
+        color: var(--lumos-muted);
+        flex-shrink: 0;
+      }
+      .chat-sys-status__v {
+        color: var(--lumos-text);
+        text-align: right;
+        min-width: 0;
+        word-break: break-word;
+      }
+      .chat-sys-status__api[data-state="ok"] {
+        color: rgba(170, 220, 200, 0.95);
+      }
+      .chat-sys-status__api[data-state="bad"] {
+        color: var(--lumos-error);
+      }
+      .chat-sys-status__api[data-state="pending"] {
+        color: rgba(200, 188, 160, 0.88);
       }
       /** Sohbet: (1) üst başlık+durum, (2) yalnızca kaydırılan geçmiş, (3) altta sabit compose — birbirine yapışmaz. */
       .chat-workspace {
@@ -938,8 +1012,33 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             aria-labelledby="panel-sohbet-title"
           >
             <div class="chat-panel-top">
-              <h2 id="panel-sohbet-title">Sohbet</h2>
-              <p class="chat-panel-status">Aşağıdaki alanda yalnızca konuşma geçmişi kayar; mesajını en alttan gönder.</p>
+              <div class="chat-panel-head-row">
+                <div class="chat-panel-head-main">
+                  <h2 id="panel-sohbet-title">Sohbet</h2>
+                  <p class="chat-panel-status">Aşağıdaki alanda yalnızca konuşma geçmişi kayar; mesajını en alttan gönder.</p>
+                </div>
+                <aside class="chat-sys-status" aria-label="Sistem durumu" role="region">
+                  <div class="chat-sys-status__head">Sistem Durumu</div>
+                  <div class="chat-sys-status__rows">
+                    <div class="chat-sys-status__row">
+                      <span class="chat-sys-status__k">Servis:</span>
+                      <span class="chat-sys-status__v">Lumos chat</span>
+                    </div>
+                    <div class="chat-sys-status__row">
+                      <span class="chat-sys-status__k">API durumu:</span>
+                      <span
+                        id="chat-sys-api"
+                        class="chat-sys-status__v chat-sys-status__api"
+                        data-state="pending"
+                      >Kontrol ediliyor…</span>
+                    </div>
+                    <div class="chat-sys-status__row">
+                      <span class="chat-sys-status__k">Son kontrol:</span>
+                      <span id="chat-sys-time" class="chat-sys-status__v">—</span>
+                    </div>
+                  </div>
+                </aside>
+              </div>
               <p class="chat-panel-arch" role="note">Lumos, göreve göre doğru çalışma alanını açar; cihaz yerel merkez, dış servisler güvenli köprüdür.</p>
             </div>
             <div class="chat-workspace">
@@ -1715,6 +1814,59 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         });
       }
       wirePanel();
+
+      void (async function checkChatApiHealth() {
+        const apiEl = document.getElementById("chat-sys-api");
+        const timeEl = document.getElementById("chat-sys-time");
+        if (!apiEl || !timeEl) return;
+
+        function stampTime() {
+          timeEl.textContent = new Date().toLocaleTimeString("tr-TR", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+        }
+
+        function setApi(ok) {
+          apiEl.textContent = ok ? "Bağlı" : "Ulaşılamıyor";
+          apiEl.setAttribute("data-state", ok ? "ok" : "bad");
+        }
+
+        try {
+          const r = await fetch(CHAT_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Kando-Token": kandoToken,
+            },
+            body: JSON.stringify({ message: "ping", history: [] }),
+          });
+          const text = await r.text();
+          let ok = false;
+          if (r.ok && text && text.trim()) {
+            try {
+              const data = JSON.parse(text);
+              const isPlainObject =
+                data !== null && typeof data === "object" && !Array.isArray(data);
+              const hasChatBodyKey =
+                isPlainObject &&
+                ("reply" in data || "content" in data || "message" in data);
+              if (hasChatBodyKey) {
+                const raw = data.reply ?? data.content ?? data.message;
+                ok = raw != null && String(raw).trim() !== "";
+              }
+            } catch {
+              ok = false;
+            }
+          }
+          setApi(ok);
+          stampTime();
+        } catch {
+          setApi(false);
+          stampTime();
+        }
+      })();
     </script>
   </body>
 </html>
