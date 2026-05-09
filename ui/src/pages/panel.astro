@@ -1,6 +1,6 @@
 ---
 /** Canlı köprü: ana sayfa ile aynı sabit adres. */
-const CHAT_URL = "https://lumos-core-1.onrender.com/chat";
+const CHAT_URL = import.meta.env.PUBLIC_LUMOS_CHAT_URL || "https://lumos-core-1.onrender.com/chat";
 const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
 ---
 
