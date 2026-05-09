@@ -38,6 +38,68 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         flex: 1 1 auto;
         min-width: 0;
       }
+      .lumos-site-nav {
+        margin: 0 0 clamp(0.65rem, 1.8vw, 1rem);
+        padding-bottom: clamp(0.5rem, 1.3vw, 0.72rem);
+        border-bottom: 1px solid rgba(148, 112, 68, 0.38);
+        box-shadow: 0 1px 0 rgba(93, 201, 197, 0.12);
+      }
+      .lumos-site-nav__list {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: 0.25rem 0.65rem;
+        margin: 0;
+        padding: 0 0 2px;
+        list-style: none;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(93, 201, 197, 0.38) transparent;
+      }
+      .lumos-site-nav__list::-webkit-scrollbar {
+        height: 4px;
+      }
+      .lumos-site-nav__list::-webkit-scrollbar-thumb {
+        background: rgba(93, 201, 197, 0.4);
+        border-radius: 4px;
+      }
+      .lumos-site-nav__link {
+        display: inline-block;
+        flex-shrink: 0;
+        padding: 0.32rem 0.48rem;
+        font-size: clamp(0.7rem, 2.35vw, 0.85rem);
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: rgba(147, 188, 186, 0.9);
+        text-decoration: none;
+        white-space: nowrap;
+        border-radius: 8px;
+        border: 1px solid transparent;
+        transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+      }
+      .lumos-site-nav__link:hover,
+      .lumos-site-nav__link:focus-visible {
+        color: #9fe8e4;
+        border-color: rgba(93, 201, 197, 0.38);
+        background: rgba(14, 22, 32, 0.55);
+      }
+      .lumos-site-nav__link:focus-visible {
+        outline: 2px solid rgba(93, 201, 197, 0.45);
+        outline-offset: 2px;
+      }
+      .lumos-site-nav__link--accent {
+        color: rgba(236, 207, 147, 0.92);
+      }
+      .lumos-site-nav__link--accent:hover,
+      .lumos-site-nav__link--accent:focus-visible {
+        color: #f0dcb8;
+        border-color: rgba(184, 148, 96, 0.42);
+        background: rgba(24, 18, 12, 0.45);
+      }
+      #modules {
+        scroll-margin-top: 1.25rem;
+      }
       .lumos-hero-brand {
         box-sizing: border-box;
         width: 100%;
@@ -505,6 +567,29 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       aria-labelledby="lumos-giris-baslik"
     >
       <div class="lumos-hero-brand">
+        <nav class="lumos-site-nav" aria-label="Sayfa içi gezinme">
+          <ul class="lumos-site-nav__list">
+            <li>
+              <a class="lumos-site-nav__link" href="#neden-lumos">Neden Lumos?</a>
+            </li>
+            <li>
+              <a class="lumos-site-nav__link" href="#modules">Modüller</a>
+            </li>
+            <li>
+              <a class="lumos-site-nav__link" href="#developer-access">Geliştirici</a>
+            </li>
+            <li>
+              <a class="lumos-site-nav__link lumos-site-nav__link--accent" href="/panel">Panel</a>
+            </li>
+            <li>
+              <a
+                class="lumos-site-nav__link"
+                href={GITHUB_REPO_URL}
+                target="_blank"
+                rel="noopener noreferrer">GitHub</a>
+            </li>
+          </ul>
+        </nav>
         <div class="lumos-hero-row">
           <aside class="lumos-hero-dna" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 320" preserveAspectRatio="none" focusable="false">
@@ -677,7 +762,7 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         </ul>
       </section>
 
-      <section id="gelistirici" class="lumos-section" aria-labelledby="gelistirici-baslik">
+      <section id="developer-access" class="lumos-section" aria-labelledby="gelistirici-baslik">
         <h2 id="gelistirici-baslik">Geliştirici erişimi</h2>
         <p>
           Lumos şu anda geliştirici incelemesine açık kaynak kod aşamasındadır. Son kullanıcı kurulum paketi henüz
@@ -697,7 +782,7 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       </section>
     </div>
 
-    <section class="lumos-cap" aria-labelledby="lumos-cap-title">
+    <section id="modules" class="lumos-cap" aria-labelledby="lumos-cap-title">
       <h2 id="lumos-cap-title">Modül özeti</h2>
       <div class="lumos-cap-grid">
         <a class="lumos-cap-card lumos-cap-card-link" href="#publishing" aria-label="Yayıncılık bölümüne git">
