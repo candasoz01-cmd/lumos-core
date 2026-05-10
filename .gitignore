@@ -39,3 +39,5 @@ test.py
 file
 kando-ai/*.jpg
 kando-ai/*.png
+
+.tmp-upload-test/
