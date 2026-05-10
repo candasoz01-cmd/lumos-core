@@ -17,30 +17,6 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       html {
         scroll-behavior: smooth;
       }
-      .lumos-hero-row {
-        display: flex;
-        align-items: stretch;
-        flex: 1 1 auto;
-        width: 100%;
-        min-height: 0;
-      }
-      .lumos-hero-dna {
-        flex: 0 0 13px;
-        width: 13px;
-        min-width: 13px;
-        position: relative;
-        pointer-events: none;
-        opacity: 1;
-      }
-      .lumos-hero-dna svg {
-        display: block;
-        width: 100%;
-        height: 100%;
-      }
-      .lumos-hero-imgwrap {
-        flex: 1 1 auto;
-        min-width: 0;
-      }
       .lumos-site-nav {
         margin: 0 0 clamp(0.65rem, 1.8vw, 1rem);
         padding-bottom: clamp(0.5rem, 1.3vw, 0.72rem);
@@ -103,12 +79,11 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       #modules {
         scroll-margin-top: 1.25rem;
       }
-      /** İlk ekran: çok hafif arka plan dokusu (harita SVG yok). */
+      /** Giriş: geniş Lumos kartı — sol metin, sağda düşük baskınlıkta dekoratif görsel */
       #giris.lumos-section {
         position: relative;
         isolation: isolate;
-        padding-bottom: clamp(1.75rem, 4.2vw, 2.85rem);
-        min-height: min(100svh, 920px);
+        padding-bottom: clamp(1.5rem, 3.5vw, 2.25rem);
       }
       #giris.lumos-section::before {
         content: "";
@@ -129,6 +104,30 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       #giris.lumos-section--tight-top {
         padding-top: clamp(0.8rem, 2vw, 1.15rem);
       }
+      .lumos-hero-row {
+        display: flex;
+        align-items: stretch;
+        flex: 1 1 auto;
+        width: 100%;
+        min-height: 0;
+      }
+      .lumos-hero-dna {
+        flex: 0 0 13px;
+        width: 13px;
+        min-width: 13px;
+        position: relative;
+        pointer-events: none;
+        opacity: 1;
+      }
+      .lumos-hero-dna svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      .lumos-hero-imgwrap {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
       .lumos-hero-brand {
         box-sizing: border-box;
         display: flex;
@@ -148,6 +147,8 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       }
       .lumos-hero-copy {
         max-width: 920px;
+        flex: 1 1 auto;
+        min-width: 0;
       }
       .lumos-hero-title-stack {
         display: flex;
@@ -197,16 +198,150 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         line-height: 1.62;
         color: #c9ced9;
       }
+      .lumos-hero-imgwrap--split {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: clamp(1rem, 2.5vw, 1.5rem);
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      /** Sağ dekor: kart içi, sağa hizalı; masaüstünde sabit ölçü, mobilde metin altı küçük dekor */
+      .lumos-hero-visual {
+        position: relative;
+        flex: 0 0 auto;
+        align-self: center;
+        width: 100%;
+        max-width: min(280px, 88vw);
+        overflow: hidden;
+        pointer-events: none;
+      }
+      .lumos-hero-visual::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 10px;
+        background: radial-gradient(
+          ellipse 75% 70% at 78% 48%,
+          rgba(61, 169, 164, 0.07),
+          transparent 65%
+        );
+        mix-blend-mode: screen;
+        opacity: 0.55;
+        pointer-events: none;
+      }
+      .lumos-hero-visual__img {
+        display: block;
+        width: 100%;
+        height: auto;
+        max-height: 140px;
+        margin: 0 auto;
+        object-fit: contain;
+        object-position: center;
+        opacity: 0.32;
+        border-radius: 10px;
+        filter: saturate(0.92) contrast(1.02);
+        -webkit-mask-image: radial-gradient(
+          ellipse 95% 88% at 50% 50%,
+          #000 42%,
+          rgba(0, 0, 0, 0.65) 72%,
+          transparent 100%
+        );
+        mask-image: radial-gradient(
+          ellipse 95% 88% at 50% 50%,
+          #000 42%,
+          rgba(0, 0, 0, 0.65) 72%,
+          transparent 100%
+        );
+      }
+      @media (min-width: 768px) {
+        .lumos-hero-imgwrap--split {
+          flex-direction: row;
+          align-items: center;
+          justify-content: space-between;
+          gap: clamp(1.25rem, 3vw, 2rem);
+        }
+        .lumos-hero-visual {
+          order: 0;
+          flex: 0 0 clamp(260px, 24vw, 340px);
+          width: clamp(260px, 24vw, 340px);
+          max-width: clamp(260px, 24vw, 340px);
+          align-self: center;
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+        }
+        .lumos-hero-visual__img {
+          width: 100%;
+          max-width: 100%;
+          height: auto;
+          max-height: clamp(180px, 18vh, 220px);
+          margin: 0;
+          object-fit: contain;
+          object-position: center right;
+          opacity: 0.34;
+          border-radius: 10px;
+          -webkit-mask-image: linear-gradient(
+            to right,
+            transparent 0%,
+            rgba(0, 0, 0, 0.35) 14%,
+            rgba(0, 0, 0, 0.92) 36%,
+            #000 100%
+          );
+          mask-image: linear-gradient(
+            to right,
+            transparent 0%,
+            rgba(0, 0, 0, 0.35) 14%,
+            rgba(0, 0, 0, 0.92) 36%,
+            #000 100%
+          );
+        }
+      }
+      @media (max-width: 767.98px) {
+        .lumos-hero-visual {
+          order: 2;
+          max-width: min(240px, 78vw);
+          margin-left: auto;
+          margin-right: auto;
+        }
+        .lumos-hero-visual__img {
+          max-height: 120px;
+          opacity: 0.3;
+          object-fit: contain;
+          object-position: center;
+          -webkit-mask-image: radial-gradient(
+            ellipse 90% 85% at 50% 45%,
+            #000 50%,
+            rgba(0, 0, 0, 0.55) 78%,
+            transparent 100%
+          );
+          mask-image: radial-gradient(
+            ellipse 90% 85% at 50% 45%,
+            #000 50%,
+            rgba(0, 0, 0, 0.55) 78%,
+            transparent 100%
+          );
+        }
+      }
       @media (max-width: 559.98px) {
         .lumos-hero-dna {
           display: none;
         }
         #giris.lumos-section {
-          padding-bottom: clamp(1.85rem, 5vw, 2.65rem);
+          padding-bottom: clamp(1.5rem, 3.8vw, 2.35rem);
         }
-        .lumos-hero-brand {
+        #giris .lumos-hero-brand {
           min-height: min(82svh, 720px);
           padding: clamp(1.35rem, 4.5vw, 1.95rem) clamp(0.95rem, 3.5vw, 1.25rem);
+        }
+      }
+      @media (max-width: 479.98px) {
+        .lumos-hero-visual {
+          max-width: min(200px, 70vw);
+        }
+        .lumos-hero-visual__img {
+          max-height: 100px;
+          opacity: 0.28;
         }
       }
       .lumos-shell {
@@ -673,15 +808,15 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
               ></path>
             </svg>
           </aside>
-          <div class="lumos-hero-imgwrap">
+          <div class="lumos-hero-imgwrap lumos-hero-imgwrap--split">
             <div class="lumos-hero-copy">
               <div class="lumos-hero-title-stack">
                 <img
                   class="lumos-hero-logo"
-                  src="/lumos-paradise-icon.png"
+                  src="/assets/radialse-icon.png"
                   alt="Lumos"
-                  width="260"
-                  height="260"
+                  width="64"
+                  height="64"
                   loading="eager"
                   decoding="async"
                 />
@@ -697,6 +832,17 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
                 hareket etmesini hedefleyen bir yapay zekâ kontrol katmanıdır. Karar kullanıcıda kalır; Lumos riski,
                 bağlamı ve sonraki adımı görünür kılar.
               </p>
+            </div>
+            <div class="lumos-hero-visual" aria-hidden="true">
+              <img
+                class="lumos-hero-visual__img"
+                src="/assets/lumos-last.png"
+                alt=""
+                width="800"
+                height="800"
+                loading="lazy"
+                decoding="async"
+              />
             </div>
           </div>
           <aside class="lumos-hero-dna" aria-hidden="true" style="transform:scaleX(-1);">

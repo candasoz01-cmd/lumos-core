@@ -1,10 +1,4 @@
 ---
-/**
- * İlk oturumda geniş kutunun otomatik göründüğü süre (ms).
- * Oturum içinde bir kez uygulanır (sessionStorage).
- */
-const MAY19_INITIAL_EXPAND_MS = 4800;
-
 /** `ui/public` → kök URL (`/assets/...`). Kaynak/atıf: `ui/public/assets/flags/README.md`. */
 const FLAG_TR_SRC = "/assets/flags/tr.svg";
 const FLAG_KKTC_SRC = "/assets/flags/kktc.svg";
@@ -13,7 +7,6 @@ const FLAG_KKTC_SRC = "/assets/flags/kktc.svg";
 <div
   id="lumos-m19-global"
   class="lumos-m19g"
-  data-expand-ms={String(MAY19_INITIAL_EXPAND_MS)}
   role="region"
   aria-label="19 Mayıs anması"
 >
@@ -43,7 +36,7 @@ const FLAG_KKTC_SRC = "/assets/flags/kktc.svg";
       </span>
     </div>
     <div class="lumos-m19g__text">
-      <p class="lumos-m19g__line">19 Mayıs kutlu olsun.</p>
+      <p class="lumos-m19g__line">19 Mayıs Atatürk’ü Anma, Gençlik ve Spor Bayramı kutlu olsun.</p>
       <p class="lumos-m19g__sub">Atatürk’ü saygı ve minnetle anıyoruz.</p>
     </div>
     <button type="button" class="lumos-m19g__minimize" id="lumos-m19g-minimize" aria-label="Küçült">✕</button>
@@ -98,17 +91,18 @@ const FLAG_KKTC_SRC = "/assets/flags/kktc.svg";
   }
   .lumos-m19g__panel {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.65rem;
-    max-width: min(20rem, calc(100vw - 1.5rem));
-    padding: 0.6rem 2.1rem 0.6rem 0.65rem;
+    max-width: min(22rem, calc(100vw - 1rem));
+    max-height: min(85vh, 28rem);
+    padding: 0.65rem 2.35rem 0.65rem 0.68rem;
     border-radius: 12px;
-    background: linear-gradient(152deg, rgba(20, 22, 32, 0.98), rgba(9, 11, 18, 0.99));
-    border: 1px solid rgba(160, 128, 86, 0.32);
+    background: linear-gradient(152deg, rgba(22, 24, 34, 0.99), rgba(10, 12, 20, 0.99));
+    border: 1px solid rgba(175, 145, 95, 0.42);
     box-shadow:
-      0 10px 32px rgba(0, 0, 0, 0.58),
-      0 0 0 1px rgba(0, 0, 0, 0.35),
-      inset 0 1px 0 rgba(200, 170, 120, 0.1);
+      0 12px 40px rgba(0, 0, 0, 0.62),
+      0 0 0 1px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(210, 185, 135, 0.12);
     position: relative;
     transition:
       opacity 0.35s ease,
@@ -152,22 +146,32 @@ const FLAG_KKTC_SRC = "/assets/flags/kktc.svg";
   .lumos-m19g__text {
     min-width: 0;
     flex: 1;
+    max-height: min(78vh, 24rem);
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding-right: 0.15rem;
   }
   .lumos-m19g__line {
     margin: 0;
-    font-size: clamp(0.76rem, 1.65vw, 0.8rem);
+    font-size: clamp(0.88rem, 2.8vw, 0.98rem);
     font-weight: 600;
-    line-height: 1.38;
-    letter-spacing: 0.015em;
-    color: rgba(235, 228, 214, 0.96);
+    line-height: 1.42;
+    letter-spacing: 0.01em;
+    color: #f2ebe0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .lumos-m19g__sub {
-    margin: 0.2rem 0 0;
-    font-size: clamp(0.64rem, 1.5vw, 0.7rem);
-    font-weight: 400;
-    line-height: 1.45;
-    letter-spacing: 0.035em;
-    color: rgba(168, 164, 156, 0.92);
+    margin: 0.35rem 0 0;
+    font-size: clamp(0.78rem, 2.4vw, 0.88rem);
+    font-weight: 500;
+    line-height: 1.48;
+    letter-spacing: 0.02em;
+    color: rgba(205, 200, 190, 0.96);
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .lumos-m19g__minimize {
     position: absolute;
@@ -246,6 +250,11 @@ const FLAG_KKTC_SRC = "/assets/flags/kktc.svg";
   }
 
   @media (max-width: 480px) {
+    .lumos-m19g {
+      right: max(0.5rem, env(safe-area-inset-right));
+      bottom: max(0.5rem, env(safe-area-inset-bottom));
+      left: auto;
+    }
     .lumos-m19g__flag {
       width: clamp(1.4rem, 7vw, 1.75rem);
     }
@@ -253,32 +262,28 @@ const FLAG_KKTC_SRC = "/assets/flags/kktc.svg";
       width: clamp(1.05rem, 5.5vw, 1.25rem);
     }
     .lumos-m19g__panel {
-      padding: 0.55rem 2rem 0.55rem 0.55rem;
-      gap: 0.5rem;
+      flex-direction: column;
+      align-items: stretch;
+      max-width: calc(100vw - 1rem);
+      max-height: min(88vh, 26rem);
+      padding: 0.58rem 2.15rem 0.58rem 0.58rem;
+      gap: 0.55rem;
+    }
+    .lumos-m19g__flags {
+      align-self: flex-start;
+    }
+    .lumos-m19g__text {
+      max-height: min(72vh, 22rem);
     }
   }
 </style>
 
 <script is:inline>
   (function () {
-    var root = document.getElementById("lumos-m19-global");
     var panel = document.getElementById("lumos-m19g-panel");
     var fab = document.getElementById("lumos-m19g-fab");
     var minBtn = document.getElementById("lumos-m19g-minimize");
-    if (!root || !panel || !fab || !minBtn) return;
-
-    var expandMs = parseInt(root.getAttribute("data-expand-ms") || "4800", 10);
-    if (!Number.isFinite(expandMs) || expandMs < 0) expandMs = 4800;
-
-    var peekKey = "lumos_m19_peek_done";
-    var peekDone = false;
-    try {
-      peekDone = sessionStorage.getItem(peekKey) === "1";
-    } catch {
-      peekDone = false;
-    }
-
-    var collapseTimer = null;
+    if (!panel || !fab || !minBtn) return;
 
     function showPanel(userOpened) {
       panel.removeAttribute("hidden");
@@ -293,44 +298,13 @@ const FLAG_KKTC_SRC = "/assets/flags/kktc.svg";
       fab.setAttribute("aria-expanded", "false");
     }
 
-    function scheduleAutoCollapse() {
-      if (collapseTimer !== null) {
-        clearTimeout(collapseTimer);
-        collapseTimer = null;
-      }
-      collapseTimer = window.setTimeout(function () {
-        collapseTimer = null;
-        showFab();
-      }, expandMs);
-    }
-
-    function startSessionPeek() {
-      showPanel(false);
-      scheduleAutoCollapse();
-      try {
-        sessionStorage.setItem(peekKey, "1");
-      } catch {}
-    }
-
-    if (!peekDone) {
-      startSessionPeek();
-    } else {
-      showFab();
-    }
+    showFab();
 
     fab.addEventListener("click", function () {
-      if (collapseTimer !== null) {
-        clearTimeout(collapseTimer);
-        collapseTimer = null;
-      }
       showPanel(true);
     });
 
     minBtn.addEventListener("click", function () {
-      if (collapseTimer !== null) {
-        clearTimeout(collapseTimer);
-        collapseTimer = null;
-      }
       showFab();
       fab.focus();
     });
@@ -338,10 +312,6 @@ const FLAG_KKTC_SRC = "/assets/flags/kktc.svg";
     document.addEventListener("keydown", function (e) {
       if (e.key !== "Escape") return;
       if (panel.hasAttribute("hidden")) return;
-      if (collapseTimer !== null) {
-        clearTimeout(collapseTimer);
-        collapseTimer = null;
-      }
       showFab();
     });
   })();

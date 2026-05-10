@@ -1384,7 +1384,8 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
           >
             <h2 id="panel-gorevler-title">Görevler</h2>
             <p class="gorevler-intro">
-              Yerel prototip: liste bu sekme açıkken bellekte tutulur; sayfa yenilenince sıfırlanır. Kayıt veya sunucu yoktur.
+              Görevler bu tarayıcıda <strong>localStorage</strong> ile saklanır; sayfa yenilense de kalır. Sunucu veya veritabanı
+              yoktur — veriyi silmek için tarayıcı site verilerini temizlemeniz gerekir.
             </p>
             <div class="gorevler-proto">
               <div class="gorevler-form-panel">
@@ -2052,11 +2053,61 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
       </div>
     </div>
     <script define:vars={{ CHAT_URL, kandoToken }}>
-      /** Görevler sekmesi ile sohbet görev komutları tek diziyi paylaşır (wireGorevlerPrototype). */
-      const panelGorevlerTasks = [
+      /** Görevler sekmesi ile sohbet görev komutları tek diziyi paylaşır (wireGorevlerPrototype). Kalıcılık: tarayıcı localStorage. */
+      const PANEL_GOREVLER_LS_KEY = "lumos_panel_gorevler_list_v1";
+
+      const defaultGorevlerSeed = [
         { title: "Panel API durumunu kontrol et", priority: "orta", status: "onay_bekliyor" },
         { title: "Güvenlik sekmesini gözden geçir", priority: "dusuk", status: "tamamlandi" },
       ];
+
+      function sanitizeGorevlerRow(x) {
+        if (!x || typeof x !== "object") return null;
+        const title = String(x.title || "").trim();
+        if (!title) return null;
+        const pr = ["dusuk", "orta", "yuksek"].includes(x.priority) ? x.priority : "orta";
+        const st = ["bekliyor", "onay_bekliyor", "tamamlandi"].includes(x.status) ? x.status : "bekliyor";
+        const row = { title, priority: pr, status: st };
+        const w = x.when != null ? String(x.when).trim() : "";
+        if (w) row.when = w;
+        return row;
+      }
+
+      function loadPanelGorevlerTasksFromStorage() {
+        try {
+          if (typeof localStorage === "undefined") return undefined;
+          const raw = localStorage.getItem(PANEL_GOREVLER_LS_KEY);
+          if (raw == null || raw === "") return undefined;
+          const a = JSON.parse(raw);
+          if (!Array.isArray(a)) return [];
+          const out = [];
+          for (let i = 0; i < a.length; i++) {
+            const r = sanitizeGorevlerRow(a[i]);
+            if (r) out.push(r);
+          }
+          return out;
+        } catch {
+          return [];
+        }
+      }
+
+      function persistPanelGorevlerTasks() {
+        try {
+          if (typeof localStorage === "undefined") return;
+          localStorage.setItem(PANEL_GOREVLER_LS_KEY, JSON.stringify(panelGorevlerTasks));
+        } catch (_) {
+          /* kota / gizli mod */
+        }
+      }
+
+      const storedGorevler = loadPanelGorevlerTasksFromStorage();
+      const panelGorevlerTasks =
+        storedGorevler === undefined ? defaultGorevlerSeed.slice() : storedGorevler;
+
+      if (storedGorevler === undefined) {
+        persistPanelGorevlerTasks();
+      }
+
       let panelGorevlerTasksRender = null;
 
       /** @typedef {{ title: string, whenSummary: string | null }} PanelGorevKomut */
@@ -2240,6 +2291,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         };
         if (cmd.whenSummary) row.when = cmd.whenSummary;
         panelGorevlerTasks.push(row);
+        persistPanelGorevlerTasks();
         if (typeof panelGorevlerTasksRender === "function") panelGorevlerTasksRender();
       }
 
@@ -2740,6 +2792,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             status: statusSel.value,
           });
           titleInput.value = "";
+          persistPanelGorevlerTasks();
           render();
         }
 
