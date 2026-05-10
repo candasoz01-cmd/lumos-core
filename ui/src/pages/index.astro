@@ -1,6 +1,5 @@
 ---
 import GlobalMay19Corner from "../components/GlobalMay19Corner.astro";
-import HomeMapHero from "../components/HomeMapHero.astro";
 
 const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
 ---
@@ -104,8 +103,28 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       #modules {
         scroll-margin-top: 1.25rem;
       }
+      /** İlk ekran: çok hafif arka plan dokusu (harita SVG yok). */
       #giris.lumos-section {
+        position: relative;
+        isolation: isolate;
         padding-bottom: clamp(1.75rem, 4.2vw, 2.85rem);
+        min-height: min(100svh, 920px);
+      }
+      #giris.lumos-section::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        opacity: 0.42;
+        background:
+          radial-gradient(ellipse 95% 55% at 48% 38%, rgba(61, 169, 164, 0.07), transparent 58%),
+          radial-gradient(ellipse 70% 45% at 82% 72%, rgba(201, 161, 98, 0.055), transparent 52%),
+          radial-gradient(circle at 18% 62%, rgba(93, 201, 197, 0.04), transparent 42%);
+      }
+      #giris.lumos-section > * {
+        position: relative;
+        z-index: 1;
       }
       #giris.lumos-section--tight-top {
         padding-top: clamp(0.8rem, 2vw, 1.15rem);
@@ -606,7 +625,6 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
     style="margin:0;background:#0b1020;color:#f2f2f2;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,sans-serif;line-height:1.6;"
   >
     <GlobalMay19Corner />
-    <HomeMapHero githubUrl={GITHUB_REPO_URL} />
     <section
       id="giris"
       class="lumos-shell lumos-section lumos-section--tight-top"
