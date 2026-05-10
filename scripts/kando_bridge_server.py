@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.join(BASE, "kando-ai/packages/kando_runtime/src"))
 import difflib
 import importlib
 import json
+import mimetypes
 import secrets
 import time
 import re
@@ -1158,6 +1159,197 @@ def build_pending_approvals_list() -> list[dict]:
     return items
 
 
+PANEL_TEXT_EXTENSIONS = frozenset({".txt", ".md", ".json", ".csv"})
+PANEL_BINARY_DOC_EXTENSIONS = frozenset(
+    {
+        ".pdf",
+        ".doc",
+        ".docx",
+        ".xls",
+        ".xlsx",
+        ".ppt",
+        ".pptx",
+        ".rtf",
+        ".odt",
+        ".ods",
+        ".odp",
+    }
+)
+
+PANEL_IMAGE_EXTENSIONS = frozenset(
+    {
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".gif",
+        ".webp",
+        ".bmp",
+        ".tif",
+        ".tiff",
+        ".svg",
+        ".ico",
+        ".heic",
+        ".heif",
+        ".avif",
+        ".jxl",
+    }
+)
+
+
+def _panel_sniff_image_magic(data: bytes) -> bool:
+    if len(data) < 12:
+        return False
+    if data.startswith(b"\xff\xd8\xff"):
+        return True
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return True
+    if data.startswith(b"GIF87a") or data.startswith(b"GIF89a"):
+        return True
+    if data.startswith(b"RIFF") and data[8:12] == b"WEBP":
+        return True
+    if data.startswith(b"BM") and len(data) > 14:
+        return True
+    return False
+
+
+def _panel_upload_max_bytes() -> int:
+    raw = (os.environ.get("LUMOS_PANEL_UPLOAD_MAX_BYTES") or "").strip()
+    if raw.isdigit():
+        return max(1024, int(raw))
+    return 1024 * 1024
+
+
+def _multipart_extract_file(
+    content_type: str, body: bytes
+) -> tuple[str | None, bytes | None, str | None]:
+    ct = content_type or ""
+    if "multipart/form-data" not in ct.lower():
+        return None, None, "multipart/form-data bekleniyor."
+    m = re.search(r"boundary=([^;\s]+)", ct, flags=re.I)
+    if not m:
+        return None, None, "boundary eksik."
+    boundary = m.group(1).strip().strip('"').strip("'")
+    if not boundary:
+        return None, None, "boundary boş."
+    try:
+        b_prefix = b"--" + boundary.encode("ascii")
+    except UnicodeEncodeError:
+        return None, None, "boundary geçersiz."
+    chunks = body.split(b_prefix)
+    for chunk in chunks[1:]:
+        if chunk.startswith(b"--"):
+            break
+        if chunk.startswith(b"\r\n"):
+            chunk = chunk[2:]
+        elif chunk.startswith(b"\n"):
+            chunk = chunk[1:]
+        sep = b"\r\n\r\n"
+        idx = chunk.find(sep)
+        hdr_end = idx
+        payload_off = idx + 4
+        if idx < 0:
+            sep = b"\n\n"
+            idx = chunk.find(sep)
+            if idx < 0:
+                continue
+            hdr_end = idx
+            payload_off = idx + 2
+        headers_txt = chunk[:hdr_end].decode("latin-1", errors="replace")
+        payload = chunk[payload_off:]
+        if payload.endswith(b"\r\n"):
+            payload = payload[:-2]
+        elif payload.endswith(b"\n"):
+            payload = payload[:-1]
+        fn_m = re.search(r'filename="([^"]*)"', headers_txt)
+        if not fn_m:
+            fn_m = re.search(r"filename=([^;\r\n]+)", headers_txt)
+        filename = (fn_m.group(1).strip() if fn_m else "") or ""
+        name_m = re.search(r'name="([^"]+)"', headers_txt)
+        field_name = name_m.group(1) if name_m else ""
+        if filename or field_name == "file":
+            base = Path(filename or "upload.bin").name
+            if not base:
+                base = "upload.bin"
+            return base, payload, None
+    return None, None, 'Dosya alanı bulunamadı (input adı "file" olmalı).'
+
+
+def _decode_text_file(data: bytes) -> tuple[str | None, str | None]:
+    for enc in ("utf-8-sig", "utf-8", "cp1254", "iso-8859-9", "latin-1"):
+        try:
+            return data.decode(enc), None
+        except UnicodeDecodeError:
+            continue
+    return None, "Metin olarak çözülemedi."
+
+
+def _summarize_plain_text(text: str, max_chars: int = 480) -> str:
+    t = " ".join(str(text).split())
+    if len(t) <= max_chars:
+        return t
+    return t[: max_chars - 1].rstrip() + "…"
+
+
+def _panel_upload_json_response(filename: str, data: bytes) -> dict:
+    ext = Path(filename).suffix.lower()
+    guessed, _ = mimetypes.guess_type(filename)
+    kind = guessed or "application/octet-stream"
+    size = len(data)
+    base = {
+        "ok": True,
+        "filename": filename,
+        "size": size,
+        "kind": kind,
+        "extension": ext,
+    }
+    if size == 0:
+        return {
+            **base,
+            "summary": None,
+            "unsupported": "Dosya boş.",
+        }
+    if data.startswith(b"%PDF") or ext == ".pdf":
+        return {
+            **base,
+            "kind": "application/pdf",
+            "summary": None,
+            "unsupported": "PDF henüz desteklenmiyor.",
+        }
+    if ext in PANEL_BINARY_DOC_EXTENSIONS or (
+        data.startswith(b"PK\x03\x04") and ext in {".docx", ".xlsx", ".pptx", ".odt", ".ods", ".odp"}
+    ):
+        label = "Bu ikili belge biçimi henüz desteklenmiyor."
+        if ext in {".docx", ".doc"}:
+            label = "Word (DOC/DOCX) henüz desteklenmiyor."
+        elif ext == ".pdf":
+            label = "PDF henüz desteklenmiyor."
+        return {**base, "summary": None, "unsupported": label}
+    if (
+        ext in PANEL_IMAGE_EXTENSIONS
+        or (guessed and str(guessed).lower().startswith("image/"))
+        or _panel_sniff_image_magic(data)
+    ):
+        return {
+            **base,
+            "summary": None,
+            "unsupported": "Resim analizi sonraki fazda eklenecek.",
+        }
+    if ext and ext not in PANEL_TEXT_EXTENSIONS:
+        return {
+            **base,
+            "summary": None,
+            "unsupported": "Bu fazda yalnızca .txt, .md, .json ve .csv dosyaları özetlenir.",
+        }
+    text, err = _decode_text_file(data)
+    if err or text is None:
+        return {
+            **base,
+            "summary": None,
+            "unsupported": err or "Metin okunamadı.",
+        }
+    return {**base, "summary": _summarize_plain_text(text), "unsupported": None}
+
+
 class BridgeHandler(BaseHTTPRequestHandler):
     server_version = "KandoBridge/1.0"
 
@@ -1380,6 +1572,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
                     "service": "kando_bridge_server",
                     "post_task": "POST /task (direct_patch | agent)",
                     "post_chat": "POST /chat {message} → gate + execute",
+                    "post_panel_upload": "POST /panel/upload multipart/form-data field=file",
                     "post_replay": "POST /replay (dry_run audit)",
                     "post_approve": "POST /approve (pending high-risk)",
                     "post_agent_run": "POST /agent-run (lumos_gate zorunlu)",
@@ -1756,6 +1949,31 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 {"accepted": False, "error": f"chat llm error: {e}"},
             )
 
+    def _handle_panel_upload(self) -> None:
+        max_b = _panel_upload_max_bytes()
+        try:
+            cl = int(self.headers.get("Content-Length", "0") or "0")
+        except ValueError:
+            self._reject(400, "Content-Length geçersiz.")
+            return
+        if cl <= 0:
+            self._reject(400, "Content-Length gerekli.")
+            return
+        if cl > max_b:
+            self._reject(413, "Dosya boyutu bu faz için fazla büyük.")
+            return
+        ct = self.headers.get("Content-Type") or ""
+        raw = self.rfile.read(cl)
+        fn, data, err = _multipart_extract_file(ct, raw)
+        if err:
+            self._reject(400, err)
+            return
+        if not fn or data is None:
+            self._reject(400, "Dosya okunamadı.")
+            return
+        out = _panel_upload_json_response(fn, data)
+        self._send_json(200, out)
+
     def _finish_out_after_gate(self, out: dict) -> None:
         body = out.get("http_body") or {}
         st = int(out.get("http_status") or 200)
@@ -2017,6 +2235,9 @@ class BridgeHandler(BaseHTTPRequestHandler):
         if req_path == "/chat":
             self._handle_chat()
             return
+        if req_path == "/panel/upload":
+            self._handle_panel_upload()
+            return
         if req_path != "/task":
             self.send_error(404)
             return
@@ -2101,7 +2322,7 @@ def main() -> None:
     _bridge_public_bind = True
     httpd = ThreadingHTTPServer((host, port), BridgeHandler)
     print(
-        f"kando_bridge_server: http://{host}:{port}/task | /chat | /approve (POST)",
+        f"kando_bridge_server: http://{host}:{port}/task | /chat | /panel/upload | /approve (POST)",
         flush=True,
     )
     print(f"  → outbox: {OUTBOX_DIR.resolve()}", flush=True)

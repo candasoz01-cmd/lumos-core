@@ -4,6 +4,16 @@ import GlobalMay19Corner from "../components/GlobalMay19Corner.astro";
 /** Canlı köprü: ana sayfa ile aynı sabit adres. */
 const CHAT_URL = import.meta.env.PUBLIC_LUMOS_CHAT_URL || "https://lumos-core-1.onrender.com/chat";
 const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
+const UPLOAD_URL =
+  import.meta.env.PUBLIC_LUMOS_PANEL_UPLOAD_URL ||
+  String(CHAT_URL).replace(/\/chat\/?$/i, "") + "/panel/upload";
+/** Köprü tabanı: upload ile aynı origin (CHAT farklı host olsa bile rozet yerel bridge’e baksın). */
+const BRIDGE_BASE_URL = String(UPLOAD_URL).replace(/\/panel\/upload\/?$/i, "");
+/** Rozet: önce açık health URL; yoksa BRIDGE_BASE + /health (PUBLIC_LUMOS_PANEL_HEALTH_URL ve BRIDGE_HEALTH_URL birlikte desteklenir). */
+const HEALTH_URL =
+  import.meta.env.PUBLIC_LUMOS_PANEL_HEALTH_URL ||
+  import.meta.env.PUBLIC_LUMOS_BRIDGE_HEALTH_URL ||
+  BRIDGE_BASE_URL + "/health";
 ---
 
 <html lang="tr">
@@ -689,6 +699,50 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         font-size: 0.72rem;
         line-height: 1.45;
         color: var(--lumos-error);
+      }
+      .dosyalar-result {
+        max-width: 36rem;
+        margin-top: 0.5rem;
+        padding: 0.85rem 1rem;
+        border-radius: 12px;
+        border: 1px solid var(--lumos-border);
+        background: #0b0b0b;
+        font-size: 0.84rem;
+        line-height: 1.5;
+        color: var(--lumos-text);
+      }
+      .dosyalar-result-meta {
+        margin: 0 0 0.5rem;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 0.25rem;
+      }
+      .dosyalar-result-meta li {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      .dosyalar-result-meta span:first-child {
+        color: var(--lumos-muted);
+        min-width: 5.5rem;
+      }
+      .dosyalar-result-summary-label {
+        margin: 0.65rem 0 0.25rem;
+        font-size: 0.62rem;
+        font-weight: 600;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: rgba(176, 170, 162, 0.88);
+      }
+      .dosyalar-result-summary {
+        margin: 0;
+        color: var(--lumos-muted);
+        word-break: break-word;
+      }
+      .dosyalar-result-unsupported {
+        margin: 0.5rem 0 0;
+        color: rgba(200, 175, 140, 0.95);
       }
       .gorevler-list-heading {
         margin: 0;
@@ -1616,42 +1670,21 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
             aria-labelledby="panel-dosyalar-title"
           >
             <h2 id="panel-dosyalar-title">Dosyalar</h2>
-            <p class="medya-intro">
-              Bu sekme, dosya düzenleme, taşıma ve silme gibi işlemlerde onayı önceleyen; veri yolunu ve kalıcı silme kararını
-              kullanıcıda tutan yaklaşımı özetler.
+            <p class="gorevler-intro">
+              Dosyayı cihazınızdan seçin; Lumos köprüsü dosyayı alır, adı/türü/boyutu döner. Metin dosyalarında (.txt, .md,
+              .json, .csv) kısa özet üretilir. PDF ve Word (DOCX) gibi biçimler bu fazda işlenmez.
             </p>
-            <ul class="medya-card-list">
-              <li class="medya-card">
-                <h3>Düzenleme ve İzlenebilirlik</h3>
-                <p>
-                  Dosya üzerinde yapılan değişiklikler mümkün olduğunca sıralı ve geri alınabilir bir çerçevede tutulmayı hedefler.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3>Taşıma ve Silmede Onay</h3>
-                <p>
-                  Özellikle toplu silme veya konum değişimi gibi adımlarda kullanıcıdan açık onay istenmesi amaçlanır.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3>Veri Yolu Görünürlüğü</h3>
-                <p>
-                  Dosyanın cihazda mı, bulutta mı veya başka bir yerde mi olduğu kullanıcıya daha anlaşılır gösterilir.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3>Çöp ve Kurtarma</h3>
-                <p>
-                  Silinen öğeler için ara bir alan düşünülebilir; kalıcı silme ayrı ve bilinçli bir adım olarak kalır.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3>Kalıcı Silme Kararı</h3>
-                <p>
-                  Geri dönüşü olmayan silme işlemi kullanıcı iradesine bağlıdır; Lumos tek başına son kararı vermez.
-                </p>
-              </li>
-            </ul>
+            <div class="gorevler-proto">
+              <div class="gorevler-form-panel">
+                <div class="gorevler-field">
+                  <label for="dosyalar-file-input">Dosya seç</label>
+                  <input id="dosyalar-file-input" type="file" name="file" autocomplete="off" />
+                </div>
+                <button type="button" id="dosyalar-upload-btn" class="gorevler-add-btn">Yükle ve analiz et</button>
+                <p id="dosyalar-hint" class="gorevler-hint" role="status" aria-live="polite" hidden></p>
+              </div>
+              <div id="dosyalar-result" class="dosyalar-result" hidden aria-live="polite"></div>
+            </div>
           </section>
 
           <section
@@ -2052,7 +2085,7 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         </main>
       </div>
     </div>
-    <script define:vars={{ CHAT_URL, kandoToken }}>
+    <script define:vars={{ CHAT_URL, kandoToken, UPLOAD_URL, HEALTH_URL, BRIDGE_BASE_URL }}>
       /** Görevler sekmesi ile sohbet görev komutları tek diziyi paylaşır (wireGorevlerPrototype). Kalıcılık: tarayıcı localStorage. */
       const PANEL_GOREVLER_LS_KEY = "lumos_panel_gorevler_list_v1";
 
@@ -2810,6 +2843,111 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
 
       wirePanel();
       wireGorevlerPrototype();
+      wireDosyalarUpload();
+
+      function wireDosyalarUpload() {
+        const input = document.getElementById("dosyalar-file-input");
+        const btn = document.getElementById("dosyalar-upload-btn");
+        const hint = document.getElementById("dosyalar-hint");
+        const result = document.getElementById("dosyalar-result");
+        if (!input || !btn || !hint || !result) return;
+
+        function showHint(msg) {
+          hint.textContent = msg;
+          hint.hidden = false;
+        }
+
+        function hideHint() {
+          hint.hidden = true;
+          hint.textContent = "";
+        }
+
+        function renderResult(data) {
+          result.replaceChildren();
+          const ul = document.createElement("ul");
+          ul.className = "dosyalar-result-meta";
+          const rows = [
+            ["Dosya adı", String(data.filename ?? "")],
+            ["Boyut", String(data.size ?? "") + " bayt"],
+            ["Tür", String(data.kind ?? "")],
+            ["Uzantı", data.extension ? String(data.extension) : "—"],
+          ];
+          for (const [k, v] of rows) {
+            const li = document.createElement("li");
+            const a = document.createElement("span");
+            a.textContent = k;
+            const b = document.createElement("span");
+            b.textContent = v;
+            li.appendChild(a);
+            li.appendChild(b);
+            ul.appendChild(li);
+          }
+          result.appendChild(ul);
+          const unsup = data.unsupported != null ? String(data.unsupported).trim() : "";
+          if (unsup) {
+            const p = document.createElement("p");
+            p.className = "dosyalar-result-unsupported";
+            p.textContent = unsup;
+            result.appendChild(p);
+          } else if (data.summary != null && String(data.summary).trim()) {
+            const lab = document.createElement("p");
+            lab.className = "dosyalar-result-summary-label";
+            lab.textContent = "Kısa özet";
+            result.appendChild(lab);
+            const sum = document.createElement("p");
+            sum.className = "dosyalar-result-summary";
+            sum.textContent = String(data.summary);
+            result.appendChild(sum);
+          }
+          result.hidden = false;
+        }
+
+        btn.addEventListener("click", async () => {
+          const file = input.files && input.files[0];
+          if (!file) {
+            showHint("Önce bir dosya seçin.");
+            return;
+          }
+          hideHint();
+          result.hidden = true;
+          btn.disabled = true;
+          btn.setAttribute("aria-busy", "true");
+          const fd = new FormData();
+          fd.append("file", file, file.name);
+          try {
+            const r = await fetch(UPLOAD_URL, {
+              method: "POST",
+              headers: { "X-Kando-Token": kandoToken },
+              body: fd,
+            });
+            const text = await r.text();
+            let data = null;
+            try {
+              data = text && text.trim() ? JSON.parse(text) : null;
+            } catch {
+              data = null;
+            }
+            if (!r.ok) {
+              const err =
+                data && typeof data === "object" && data.error != null
+                  ? String(data.error)
+                  : "Yükleme başarısız.";
+              showHint(err);
+              return;
+            }
+            if (!data || typeof data !== "object" || data.ok !== true) {
+              showHint("Sunucu yanıtı beklenen formatta değil.");
+              return;
+            }
+            renderResult(data);
+          } catch {
+            showHint("Sunucuya ulaşılamadı. Köprü adresini veya bağlantıyı kontrol edin.");
+          } finally {
+            btn.disabled = false;
+            btn.removeAttribute("aria-busy");
+          }
+        });
+      }
 
       function setPanelConnBadge(state) {
         const badge = document.getElementById("panel-conn-badge");
@@ -2824,33 +2962,43 @@ const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
         }
       }
 
-      void (async function checkChatApiHealth() {
-        setPanelConnBadge("pending");
+      async function probeBridgeHealthJson(url) {
+        const r = await fetch(url, {
+          method: "GET",
+          cache: "no-store",
+          mode: "cors",
+          credentials: "omit",
+        });
+        const text = await r.text();
+        if (!r.ok || !text || !String(text).trim()) return false;
         try {
-          const r = await fetch(CHAT_URL, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Kando-Token": kandoToken,
-            },
-            body: JSON.stringify({ message: "ping", history: [] }),
-          });
-          const text = await r.text();
+          const data = JSON.parse(text);
+          if (data === null || typeof data !== "object" || Array.isArray(data)) return false;
+          if (String(data.status || "").toLowerCase() === "ok") return true;
+          if (data.ok === true) return true;
+          return false;
+        } catch {
+          return false;
+        }
+      }
+
+      void (async function checkBridgeHealth() {
+        setPanelConnBadge("pending");
+        const candidates = [
+          HEALTH_URL,
+          BRIDGE_BASE_URL + "/health",
+          BRIDGE_BASE_URL + "/",
+        ];
+        const seen = new Set();
+        try {
           let ok = false;
-          if (r.ok && text && text.trim()) {
-            try {
-              const data = JSON.parse(text);
-              const isPlainObject =
-                data !== null && typeof data === "object" && !Array.isArray(data);
-              const hasChatBodyKey =
-                isPlainObject &&
-                ("reply" in data || "content" in data || "message" in data);
-              if (hasChatBodyKey) {
-                const raw = data.reply ?? data.content ?? data.message;
-                ok = raw != null && String(raw).trim() !== "";
-              }
-            } catch {
-              ok = false;
+          for (let i = 0; i < candidates.length; i++) {
+            const u = candidates[i];
+            if (!u || seen.has(u)) continue;
+            seen.add(u);
+            if (await probeBridgeHealthJson(u)) {
+              ok = true;
+              break;
             }
           }
           setPanelConnBadge(ok ? "ok" : "bad");
