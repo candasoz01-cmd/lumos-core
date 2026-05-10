@@ -768,6 +768,57 @@ const HEALTH_URL =
         line-height: 1.55;
         color: rgba(220, 200, 168, 0.96);
       }
+      .dosyalar-history-wrap {
+        max-width: 36rem;
+        margin-top: 0.75rem;
+      }
+      .dosyalar-history-wrap .gorevler-list-heading {
+        margin-bottom: 0.45rem;
+      }
+      .dosyalar-history-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+      }
+      .dosyalar-history-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 0.35rem 0.65rem;
+        padding: 0.55rem 0.75rem;
+        border-radius: 10px;
+        border: 1px solid var(--lumos-border);
+        background: #0b0b0b;
+        box-shadow:
+          inset 0 1px 0 rgba(236, 207, 147, 0.035),
+          0 2px 12px rgba(0, 0, 0, 0.45);
+        font-size: 0.8rem;
+        line-height: 1.45;
+      }
+      .dosyalar-history-name {
+        flex: 1 1 10rem;
+        min-width: 0;
+        font-weight: 500;
+        color: var(--lumos-text);
+        word-break: break-word;
+      }
+      .dosyalar-history-meta {
+        color: var(--lumos-muted);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .dosyalar-history-status {
+        flex: 1 1 100%;
+        margin: 0;
+        padding-top: 0.2rem;
+        border-top: 1px solid rgba(212, 182, 128, 0.12);
+        font-size: 0.72rem;
+        color: rgba(200, 188, 168, 0.92);
+      }
       .gorevler-list-heading {
         margin: 0;
         font-size: 0.62rem;
@@ -1708,6 +1759,10 @@ const HEALTH_URL =
                 <p id="dosyalar-hint" class="gorevler-hint" role="status" aria-live="polite" hidden></p>
               </div>
               <div id="dosyalar-result" class="dosyalar-result-stack" hidden aria-live="polite"></div>
+              <div id="dosyalar-history-wrap" class="dosyalar-history-wrap" hidden>
+                <h3 id="dosyalar-history-heading" class="gorevler-list-heading">Son yüklemeler</h3>
+                <ul id="dosyalar-history-list" class="dosyalar-history-list" aria-labelledby="dosyalar-history-heading"></ul>
+              </div>
             </div>
           </section>
 
@@ -2874,7 +2929,68 @@ const HEALTH_URL =
         const btn = document.getElementById("dosyalar-upload-btn");
         const hint = document.getElementById("dosyalar-hint");
         const result = document.getElementById("dosyalar-result");
+        const historyWrap = document.getElementById("dosyalar-history-wrap");
+        const historyList = document.getElementById("dosyalar-history-list");
         if (!input || !btn || !hint || !result) return;
+
+        /** Bellek içi; sayfa yenilenince sıfırlanır. En fazla 5 kayıt, en yeni üstte. */
+        const dosyalarUploadHistory = [];
+
+        function dosyalarHistoryShortStatus(data) {
+          const u = data.unsupported != null ? String(data.unsupported).trim() : "";
+          if (u) return "Uyarı";
+          const s = data.summary != null ? String(data.summary).trim() : "";
+          if (s) return "Özet hazır";
+          return "Tamamlandı";
+        }
+
+        function renderDosyalarHistory() {
+          if (!historyWrap || !historyList) return;
+          historyList.replaceChildren();
+          if (dosyalarUploadHistory.length === 0) {
+            historyWrap.hidden = true;
+            return;
+          }
+          historyWrap.hidden = false;
+          for (const row of dosyalarUploadHistory) {
+            const li = document.createElement("li");
+            li.className = "dosyalar-history-row";
+
+            const nameEl = document.createElement("span");
+            nameEl.className = "dosyalar-history-name";
+            nameEl.textContent = row.filename || "—";
+
+            const sizeEl = document.createElement("span");
+            sizeEl.className = "dosyalar-history-meta";
+            sizeEl.textContent =
+              row.size != null && row.size !== "" ? String(row.size) + " bayt" : "—";
+
+            const extEl = document.createElement("span");
+            extEl.className = "dosyalar-history-meta";
+            extEl.textContent = row.extension || "—";
+
+            const stEl = document.createElement("p");
+            stEl.className = "dosyalar-history-status";
+            stEl.textContent = row.status || "—";
+
+            li.appendChild(nameEl);
+            li.appendChild(sizeEl);
+            li.appendChild(extEl);
+            li.appendChild(stEl);
+            historyList.appendChild(li);
+          }
+        }
+
+        function pushDosyalarHistory(data) {
+          dosyalarUploadHistory.unshift({
+            filename: String(data.filename ?? ""),
+            size: data.size,
+            extension: data.extension != null && String(data.extension).trim() ? String(data.extension) : "—",
+            status: dosyalarHistoryShortStatus(data),
+          });
+          if (dosyalarUploadHistory.length > 5) dosyalarUploadHistory.length = 5;
+          renderDosyalarHistory();
+        }
 
         function showHint(msg) {
           hint.textContent = msg;
@@ -2995,6 +3111,7 @@ const HEALTH_URL =
               return;
             }
             renderResult(data);
+            pushDosyalarHistory(data);
           } catch {
             showHint("Sunucuya ulaşılamadı. Köprü adresini veya bağlantıyı kontrol edin.");
           } finally {
