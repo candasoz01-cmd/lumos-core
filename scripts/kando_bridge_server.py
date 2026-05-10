@@ -12,6 +12,7 @@ BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(BASE, "packages/kando_runtime/src"))
 sys.path.insert(0, os.path.join(BASE, "kando-ai/packages/kando_runtime/src"))
 
+import csv
 import difflib
 import importlib
 import json
@@ -22,6 +23,7 @@ import re
 import shutil
 import subprocess
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from io import StringIO
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -1290,6 +1292,78 @@ def _summarize_plain_text(text: str, max_chars: int = 480) -> str:
     return t[: max_chars - 1].rstrip() + "…"
 
 
+def _summarize_txt_md_lines(text: str, *, max_lines: int = 6, max_chars: int = 560) -> str:
+    raw = str(text).replace("\r\n", "\n")
+    lines = raw.split("\n")
+    take = lines[:max_lines]
+    body = "\n".join(take).rstrip()
+    truncated_lines = len(lines) > max_lines
+    if truncated_lines:
+        body = body + "\n…"
+    if len(body) > max_chars:
+        body = body[: max_chars - 1].rstrip() + "…"
+    return body if body.strip() else "(İlk satırlar boş.)"
+
+
+def _summarize_json_struct(text: str) -> str:
+    try:
+        obj = json.loads(text)
+    except json.JSONDecodeError as e:
+        col = getattr(e, "colno", None)
+        pos = f", konum sütun {col}" if isinstance(col, int) else ""
+        return f"JSON geçerli değil ({e.msg}{pos})."
+    parts = ["Geçerli JSON."]
+    if obj is None:
+        parts.append("Kök: null.")
+    elif isinstance(obj, dict):
+        parts.append(f"Kök: nesne; anahtar sayısı: {len(obj)}.")
+    elif isinstance(obj, list):
+        parts.append(f"Kök: dizi; eleman sayısı: {len(obj)}.")
+    elif isinstance(obj, str):
+        parts.append(f"Kök: metin; uzunluk: {len(obj)} karakter.")
+    elif isinstance(obj, bool):
+        parts.append(f"Kök: mantıksal ({obj}).")
+    elif isinstance(obj, int):
+        parts.append(f"Kök: tam sayı ({obj}).")
+    elif isinstance(obj, float):
+        parts.append(f"Kök: kayan nokta ({obj}).")
+    else:
+        parts.append(f"Kök: {type(obj).__name__}.")
+    return " ".join(parts)
+
+
+def _summarize_csv_struct(text: str) -> str:
+    buf = StringIO(str(text))
+    try:
+        rows = list(csv.reader(buf))
+    except csv.Error as e:
+        return f"CSV ayrıştırılamadı: {e}."
+    if not rows:
+        return "CSV içeriği boş."
+    nrows = len(rows)
+    header = rows[0]
+    heads = [str(h).strip() for h in header[:24]]
+    head_txt = ", ".join(heads)
+    if len(header) > 24:
+        head_txt += ", …"
+    data_rows = max(0, nrows - 1)
+    return (
+        f"Satır sayısı: {nrows} (veri satırı: {data_rows}). "
+        f"Sütun sayısı (ilk satıra göre): {len(header)}. "
+        f"Başlıklar: {head_txt}"
+    )
+
+
+def _panel_text_summary_for_extension(ext: str, text: str) -> str:
+    if ext == ".json":
+        return _summarize_json_struct(text)
+    if ext == ".csv":
+        return _summarize_csv_struct(text)
+    if ext in (".txt", ".md"):
+        return _summarize_txt_md_lines(text)
+    return _summarize_plain_text(text)
+
+
 def _panel_upload_json_response(filename: str, data: bytes) -> dict:
     ext = Path(filename).suffix.lower()
     guessed, _ = mimetypes.guess_type(filename)
@@ -1347,7 +1421,8 @@ def _panel_upload_json_response(filename: str, data: bytes) -> dict:
             "summary": None,
             "unsupported": err or "Metin okunamadı.",
         }
-    return {**base, "summary": _summarize_plain_text(text), "unsupported": None}
+    summary = _panel_text_summary_for_extension(ext, text)
+    return {**base, "summary": summary, "unsupported": None}
 
 
 class BridgeHandler(BaseHTTPRequestHandler):

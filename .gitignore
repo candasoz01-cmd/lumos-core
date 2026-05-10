@@ -41,3 +41,4 @@ kando-ai/*.jpg
 kando-ai/*.png
 
 .tmp-upload-test/
+.tmp-panel-samples/
