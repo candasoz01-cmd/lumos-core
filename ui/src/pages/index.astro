@@ -1,4 +1,7 @@
 ---
+import GlobalMay19Corner from "../components/GlobalMay19Corner.astro";
+import HomeMapHero from "../components/HomeMapHero.astro";
+
 const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
 ---
 
@@ -602,6 +605,8 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
   <body
     style="margin:0;background:#0b1020;color:#f2f2f2;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,sans-serif;line-height:1.6;"
   >
+    <GlobalMay19Corner />
+    <HomeMapHero githubUrl={GITHUB_REPO_URL} />
     <section
       id="giris"
       class="lumos-shell lumos-section lumos-section--tight-top"

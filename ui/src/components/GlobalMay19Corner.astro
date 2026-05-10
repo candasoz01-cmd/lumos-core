@@ -1,0 +1,304 @@
+---
+/**
+ * İlk oturumda geniş kutunun otomatik göründüğü süre (ms).
+ * Oturum içinde bir kez uygulanır (sessionStorage).
+ */
+const MAY19_INITIAL_EXPAND_MS = 4800;
+---
+
+<div
+  id="lumos-m19-global"
+  class="lumos-m19g"
+  data-expand-ms={String(MAY19_INITIAL_EXPAND_MS)}
+  role="region"
+  aria-label="19 Mayıs anması"
+>
+  <div class="lumos-m19g__panel" id="lumos-m19g-panel" hidden>
+    <div class="lumos-m19g__flags" aria-hidden="true">
+      <span class="lumos-m19g__flag">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 20" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <rect width="30" height="20" fill="#e30a17"></rect>
+          <circle cx="11.25" cy="10" r="5.5" fill="#fff"></circle>
+          <circle cx="12.55" cy="10" r="4.45" fill="#e30a17"></circle>
+          <path
+            fill="#fff"
+            d="M17.8 10l2.9 1.9-1.1-3.4 2.9-2.1h-3.6L17.8 3l-1.1 3.4h-3.6l2.9 2.1-1.1 3.4z"></path>
+        </svg>
+      </span>
+      <span class="lumos-m19g__flag">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 20" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <rect width="30" height="20" fill="#f4f2ef"></rect>
+          <circle cx="11.25" cy="10" r="5.5" fill="#e30a17"></circle>
+          <circle cx="12.55" cy="10" r="4.45" fill="#f4f2ef"></circle>
+          <path
+            fill="#e30a17"
+            d="M17.8 10l2.9 1.9-1.1-3.4 2.9-2.1h-3.6L17.8 3l-1.1 3.4h-3.6l2.9 2.1-1.1 3.4z"></path>
+        </svg>
+      </span>
+    </div>
+    <div class="lumos-m19g__text">
+      <p class="lumos-m19g__line">19 Mayıs kutlu olsun.</p>
+      <p class="lumos-m19g__sub">Atatürk’ü saygı ve minnetle anıyoruz.</p>
+    </div>
+    <button type="button" class="lumos-m19g__minimize" id="lumos-m19g-minimize" aria-label="Küçült">✕</button>
+  </div>
+
+  <button
+    type="button"
+    class="lumos-m19g__fab"
+    id="lumos-m19g-fab"
+    aria-label="19 Mayıs anmasını aç"
+    aria-expanded="false"
+    aria-controls="lumos-m19g-panel"
+  >
+    <span class="lumos-m19g__fab-flags" aria-hidden="true">
+      <span class="lumos-m19g__fab-flag">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 20" preserveAspectRatio="xMidYMid meet">
+          <rect width="30" height="20" fill="#e30a17"></rect>
+          <circle cx="11.25" cy="10" r="5.5" fill="#fff"></circle>
+          <circle cx="12.55" cy="10" r="4.45" fill="#e30a17"></circle>
+          <path fill="#fff" d="M17.8 10l2.9 1.9-1.1-3.4 2.9-2.1h-3.6L17.8 3l-1.1 3.4h-3.6l2.9 2.1-1.1 3.4z"></path>
+        </svg>
+      </span>
+      <span class="lumos-m19g__fab-flag">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 20" preserveAspectRatio="xMidYMid meet">
+          <rect width="30" height="20" fill="#f4f2ef"></rect>
+          <circle cx="11.25" cy="10" r="5.5" fill="#e30a17"></circle>
+          <circle cx="12.55" cy="10" r="4.45" fill="#f4f2ef"></circle>
+          <path fill="#e30a17" d="M17.8 10l2.9 1.9-1.1-3.4 2.9-2.1h-3.6L17.8 3l-1.1 3.4h-3.6l2.9 2.1-1.1 3.4z"></path>
+        </svg>
+      </span>
+    </span>
+  </button>
+</div>
+
+<style is:global>
+  .lumos-m19g {
+    position: fixed;
+    z-index: 2147483000;
+    right: max(0.65rem, env(safe-area-inset-right));
+    bottom: max(0.65rem, env(safe-area-inset-bottom));
+    font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+    pointer-events: none;
+  }
+  .lumos-m19g * {
+    pointer-events: auto;
+  }
+  .lumos-m19g__panel {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    max-width: min(18rem, calc(100vw - 1.5rem));
+    padding: 0.55rem 2rem 0.55rem 0.6rem;
+    border-radius: 10px;
+    background: linear-gradient(155deg, rgba(18, 20, 28, 0.97), rgba(10, 12, 18, 0.98));
+    border: 1px solid rgba(148, 112, 68, 0.38);
+    box-shadow:
+      0 8px 28px rgba(0, 0, 0, 0.55),
+      inset 0 1px 0 rgba(188, 148, 92, 0.12);
+    position: relative;
+    transition:
+      opacity 0.35s ease,
+      transform 0.35s ease;
+  }
+  .lumos-m19g__panel[hidden] {
+    display: none !important;
+  }
+  .lumos-m19g__flags {
+    display: flex;
+    align-items: center;
+    gap: 0.32rem;
+    flex-shrink: 0;
+    padding-top: 0.08rem;
+  }
+  .lumos-m19g__flag {
+    width: 1.45rem;
+    height: 0.98rem;
+    border-radius: 2px;
+    overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+  }
+  .lumos-m19g__flag svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .lumos-m19g__text {
+    min-width: 0;
+    flex: 1;
+  }
+  .lumos-m19g__line {
+    margin: 0;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.35;
+    letter-spacing: 0.02em;
+    color: rgba(228, 220, 206, 0.94);
+  }
+  .lumos-m19g__sub {
+    margin: 0.18rem 0 0;
+    font-size: 0.68rem;
+    font-weight: 400;
+    line-height: 1.4;
+    letter-spacing: 0.04em;
+    color: rgba(160, 156, 148, 0.9);
+  }
+  .lumos-m19g__minimize {
+    position: absolute;
+    top: 0.28rem;
+    right: 0.28rem;
+    width: 1.6rem;
+    height: 1.6rem;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(200, 192, 176, 0.85);
+    font-size: 0.85rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .lumos-m19g__minimize:hover,
+  .lumos-m19g__minimize:focus-visible {
+    background: rgba(255, 255, 255, 0.1);
+    color: #f0e8d8;
+  }
+  .lumos-m19g__minimize:focus-visible {
+    outline: 2px solid rgba(93, 201, 197, 0.45);
+    outline-offset: 2px;
+  }
+  .lumos-m19g__fab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.55rem;
+    height: 2.55rem;
+    padding: 0;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 112, 68, 0.42);
+    background: linear-gradient(160deg, rgba(22, 24, 32, 0.98), rgba(8, 10, 16, 0.99));
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+  .lumos-m19g__fab[hidden] {
+    display: none !important;
+  }
+  .lumos-m19g__fab:hover,
+  .lumos-m19g__fab:focus-visible {
+    border-color: rgba(93, 201, 197, 0.35);
+    box-shadow: 0 6px 26px rgba(0, 0, 0, 0.55), 0 0 14px rgba(55, 145, 132, 0.12);
+  }
+  .lumos-m19g__fab:focus-visible {
+    outline: 2px solid rgba(93, 201, 197, 0.45);
+    outline-offset: 3px;
+  }
+  .lumos-m19g__fab-flags {
+    display: flex;
+    align-items: center;
+    gap: 0.12rem;
+  }
+  .lumos-m19g__fab-flag {
+    width: 0.95rem;
+    height: 0.64rem;
+    border-radius: 1px;
+    overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+  }
+  .lumos-m19g__fab-flag svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    var root = document.getElementById("lumos-m19-global");
+    var panel = document.getElementById("lumos-m19g-panel");
+    var fab = document.getElementById("lumos-m19g-fab");
+    var minBtn = document.getElementById("lumos-m19g-minimize");
+    if (!root || !panel || !fab || !minBtn) return;
+
+    var expandMs = parseInt(root.getAttribute("data-expand-ms") || "4800", 10);
+    if (!Number.isFinite(expandMs) || expandMs < 0) expandMs = 4800;
+
+    var peekKey = "lumos_m19_peek_done";
+    var peekDone = false;
+    try {
+      peekDone = sessionStorage.getItem(peekKey) === "1";
+    } catch {
+      peekDone = false;
+    }
+
+    var collapseTimer = null;
+
+    function showPanel(userOpened) {
+      panel.removeAttribute("hidden");
+      fab.setAttribute("hidden", "");
+      fab.setAttribute("aria-expanded", "true");
+      if (userOpened) minBtn.focus();
+    }
+
+    function showFab() {
+      panel.setAttribute("hidden", "");
+      fab.removeAttribute("hidden");
+      fab.setAttribute("aria-expanded", "false");
+    }
+
+    function scheduleAutoCollapse() {
+      if (collapseTimer !== null) {
+        clearTimeout(collapseTimer);
+        collapseTimer = null;
+      }
+      collapseTimer = window.setTimeout(function () {
+        collapseTimer = null;
+        showFab();
+      }, expandMs);
+    }
+
+    function startSessionPeek() {
+      showPanel(false);
+      scheduleAutoCollapse();
+      try {
+        sessionStorage.setItem(peekKey, "1");
+      } catch {}
+    }
+
+    if (!peekDone) {
+      startSessionPeek();
+    } else {
+      showFab();
+    }
+
+    fab.addEventListener("click", function () {
+      if (collapseTimer !== null) {
+        clearTimeout(collapseTimer);
+        collapseTimer = null;
+      }
+      showPanel(true);
+    });
+
+    minBtn.addEventListener("click", function () {
+      if (collapseTimer !== null) {
+        clearTimeout(collapseTimer);
+        collapseTimer = null;
+      }
+      showFab();
+      fab.focus();
+    });
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key !== "Escape") return;
+      if (panel.hasAttribute("hidden")) return;
+      if (collapseTimer !== null) {
+        clearTimeout(collapseTimer);
+        collapseTimer = null;
+      }
+      showFab();
+    });
+  })();
+</script>
