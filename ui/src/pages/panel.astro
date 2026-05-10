@@ -700,50 +700,73 @@ const HEALTH_URL =
         line-height: 1.45;
         color: var(--lumos-error);
       }
-      .dosyalar-result {
+      .dosyalar-result-stack {
         max-width: 36rem;
         margin-top: 0.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+      }
+      .dosyalar-result-card {
         padding: 0.85rem 1rem;
         border-radius: 12px;
         border: 1px solid var(--lumos-border);
         background: #0b0b0b;
-        font-size: 0.84rem;
-        line-height: 1.5;
-        color: var(--lumos-text);
+        box-shadow:
+          inset 0 1px 0 rgba(236, 207, 147, 0.04),
+          0 3px 18px rgba(0, 0, 0, 0.52);
       }
-      .dosyalar-result-meta {
-        margin: 0 0 0.5rem;
-        padding: 0;
-        list-style: none;
-        display: grid;
-        gap: 0.25rem;
-      }
-      .dosyalar-result-meta li {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-      }
-      .dosyalar-result-meta span:first-child {
-        color: var(--lumos-muted);
-        min-width: 5.5rem;
-      }
-      .dosyalar-result-summary-label {
-        margin: 0.65rem 0 0.25rem;
+      .dosyalar-result-card__title {
+        margin: 0 0 0.55rem;
         font-size: 0.62rem;
         font-weight: 600;
         letter-spacing: 0.09em;
         text-transform: uppercase;
         color: rgba(176, 170, 162, 0.88);
       }
-      .dosyalar-result-summary {
+      .dosyalar-result-card--alert {
+        border-color: rgba(212, 182, 128, 0.38);
+        box-shadow:
+          inset 0 1px 0 rgba(236, 207, 147, 0.06),
+          0 3px 18px rgba(0, 0, 0, 0.52);
+      }
+      .dosyalar-result-card--alert .dosyalar-result-card__title {
+        color: rgba(236, 210, 175, 0.92);
+      }
+      .dosyalar-result-meta {
         margin: 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 0.35rem;
+      }
+      .dosyalar-result-meta li {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        align-items: baseline;
+        font-size: 0.84rem;
+        line-height: 1.45;
+        color: var(--lumos-text);
+      }
+      .dosyalar-result-meta span:first-child {
+        color: var(--lumos-muted);
+        min-width: 5.5rem;
+        flex-shrink: 0;
+      }
+      .dosyalar-result-summary-body {
+        margin: 0;
+        font-size: 0.84rem;
+        line-height: 1.55;
         color: var(--lumos-muted);
         word-break: break-word;
         white-space: pre-wrap;
       }
-      .dosyalar-result-unsupported {
-        margin: 0.5rem 0 0;
-        color: rgba(200, 175, 140, 0.95);
+      .dosyalar-result-alert-body {
+        margin: 0;
+        font-size: 0.84rem;
+        line-height: 1.55;
+        color: rgba(220, 200, 168, 0.96);
       }
       .gorevler-list-heading {
         margin: 0;
@@ -1684,7 +1707,7 @@ const HEALTH_URL =
                 <button type="button" id="dosyalar-upload-btn" class="gorevler-add-btn">Yükle ve analiz et</button>
                 <p id="dosyalar-hint" class="gorevler-hint" role="status" aria-live="polite" hidden></p>
               </div>
-              <div id="dosyalar-result" class="dosyalar-result" hidden aria-live="polite"></div>
+              <div id="dosyalar-result" class="dosyalar-result-stack" hidden aria-live="polite"></div>
             </div>
           </section>
 
@@ -2865,6 +2888,17 @@ const HEALTH_URL =
 
         function renderResult(data) {
           result.replaceChildren();
+          result.className = "dosyalar-result-stack";
+
+          const metaCard = document.createElement("section");
+          metaCard.className = "dosyalar-result-card dosyalar-result-card--meta";
+          metaCard.setAttribute("aria-labelledby", "dosyalar-result-meta-title");
+          const metaTitle = document.createElement("h3");
+          metaTitle.id = "dosyalar-result-meta-title";
+          metaTitle.className = "dosyalar-result-card__title";
+          metaTitle.textContent = "Dosya bilgisi";
+          metaCard.appendChild(metaTitle);
+
           const ul = document.createElement("ul");
           ul.className = "dosyalar-result-meta";
           const rows = [
@@ -2883,23 +2917,43 @@ const HEALTH_URL =
             li.appendChild(b);
             ul.appendChild(li);
           }
-          result.appendChild(ul);
+          metaCard.appendChild(ul);
+          result.appendChild(metaCard);
+
           const unsup = data.unsupported != null ? String(data.unsupported).trim() : "";
           if (unsup) {
-            const p = document.createElement("p");
-            p.className = "dosyalar-result-unsupported";
-            p.textContent = unsup;
-            result.appendChild(p);
-          } else if (data.summary != null && String(data.summary).trim()) {
-            const lab = document.createElement("p");
-            lab.className = "dosyalar-result-summary-label";
-            lab.textContent = "Kısa özet";
-            result.appendChild(lab);
-            const sum = document.createElement("p");
-            sum.className = "dosyalar-result-summary";
-            sum.textContent = String(data.summary);
-            result.appendChild(sum);
+            const alertCard = document.createElement("section");
+            alertCard.className = "dosyalar-result-card dosyalar-result-card--alert";
+            alertCard.setAttribute("aria-labelledby", "dosyalar-result-alert-title");
+            alertCard.setAttribute("role", "region");
+            const alertTitle = document.createElement("h3");
+            alertTitle.id = "dosyalar-result-alert-title";
+            alertTitle.className = "dosyalar-result-card__title";
+            alertTitle.textContent = "Uyarı";
+            const alertBody = document.createElement("p");
+            alertBody.className = "dosyalar-result-alert-body";
+            alertBody.textContent = unsup;
+            alertCard.appendChild(alertTitle);
+            alertCard.appendChild(alertBody);
+            result.appendChild(alertCard);
           }
+
+          if (data.summary != null && String(data.summary).trim()) {
+            const sumCard = document.createElement("section");
+            sumCard.className = "dosyalar-result-card dosyalar-result-card--summary";
+            sumCard.setAttribute("aria-labelledby", "dosyalar-result-summary-title");
+            const sumTitle = document.createElement("h3");
+            sumTitle.id = "dosyalar-result-summary-title";
+            sumTitle.className = "dosyalar-result-card__title";
+            sumTitle.textContent = "Kısa özet";
+            const sumBody = document.createElement("p");
+            sumBody.className = "dosyalar-result-summary-body";
+            sumBody.textContent = String(data.summary);
+            sumCard.appendChild(sumTitle);
+            sumCard.appendChild(sumBody);
+            result.appendChild(sumCard);
+          }
+
           result.hidden = false;
         }
 
