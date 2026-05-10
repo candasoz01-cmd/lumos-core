@@ -797,6 +797,20 @@ const HEALTH_URL =
           0 2px 12px rgba(0, 0, 0, 0.45);
         font-size: 0.8rem;
         line-height: 1.45;
+        cursor: pointer;
+        text-align: left;
+        width: 100%;
+        box-sizing: border-box;
+        font-family: inherit;
+      }
+      .dosyalar-history-row:hover {
+        filter: brightness(1.05);
+        border-color: rgba(212, 182, 128, 0.32);
+      }
+      .dosyalar-history-row:focus-visible {
+        outline: none;
+        border-color: rgba(184, 148, 96, 0.45);
+        box-shadow: 0 0 0 1px rgba(184, 148, 96, 0.22);
       }
       .dosyalar-history-name {
         flex: 1 1 10rem;
@@ -2944,6 +2958,17 @@ const HEALTH_URL =
           return "Tamamlandı";
         }
 
+        function replayDosyalarSnapshot(snapshot) {
+          if (!snapshot || typeof snapshot !== "object") return;
+          renderResult(snapshot);
+          result.hidden = false;
+          try {
+            result.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          } catch (_) {
+            /* eski tarayıcı */
+          }
+        }
+
         function renderDosyalarHistory() {
           if (!historyWrap || !historyList) return;
           historyList.replaceChildren();
@@ -2953,41 +2978,61 @@ const HEALTH_URL =
           }
           historyWrap.hidden = false;
           for (const row of dosyalarUploadHistory) {
+            const snap = row.snapshot;
+            if (!snap || typeof snap !== "object") continue;
+
             const li = document.createElement("li");
             li.className = "dosyalar-history-row";
+            li.setAttribute("role", "button");
+            li.setAttribute("tabindex", "0");
+            const fn = String(snap.filename ?? "");
+            li.setAttribute(
+              "aria-label",
+              fn ? `Sonuçları yeniden göster: ${fn}` : "Sonuçları yeniden göster",
+            );
 
             const nameEl = document.createElement("span");
             nameEl.className = "dosyalar-history-name";
-            nameEl.textContent = row.filename || "—";
+            nameEl.textContent = fn || "—";
 
             const sizeEl = document.createElement("span");
             sizeEl.className = "dosyalar-history-meta";
             sizeEl.textContent =
-              row.size != null && row.size !== "" ? String(row.size) + " bayt" : "—";
+              snap.size != null && snap.size !== "" ? String(snap.size) + " bayt" : "—";
 
             const extEl = document.createElement("span");
             extEl.className = "dosyalar-history-meta";
-            extEl.textContent = row.extension || "—";
+            extEl.textContent =
+              snap.extension != null && String(snap.extension).trim()
+                ? String(snap.extension)
+                : "—";
 
             const stEl = document.createElement("p");
             stEl.className = "dosyalar-history-status";
-            stEl.textContent = row.status || "—";
+            stEl.textContent = dosyalarHistoryShortStatus(snap);
 
             li.appendChild(nameEl);
             li.appendChild(sizeEl);
             li.appendChild(extEl);
             li.appendChild(stEl);
+
+            const open = () => replayDosyalarSnapshot(snap);
+            li.addEventListener("click", open);
+            li.addEventListener("keydown", (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                open();
+              }
+            });
+
             historyList.appendChild(li);
           }
         }
 
         function pushDosyalarHistory(data) {
-          dosyalarUploadHistory.unshift({
-            filename: String(data.filename ?? ""),
-            size: data.size,
-            extension: data.extension != null && String(data.extension).trim() ? String(data.extension) : "—",
-            status: dosyalarHistoryShortStatus(data),
-          });
+          if (!data || typeof data !== "object") return;
+          const snapshot = { ...data };
+          dosyalarUploadHistory.unshift({ snapshot });
           if (dosyalarUploadHistory.length > 5) dosyalarUploadHistory.length = 5;
           renderDosyalarHistory();
         }
