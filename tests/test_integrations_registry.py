@@ -37,3 +37,27 @@ def test_default_integrations_web_search_not_configured():
     assert result.data["query"] == "lumos"
     assert result.data["results"] == []
     assert [e["name"] for e in result.data["engines"]] == ["brave", "google", "bing", "duckduckgo"]
+
+
+def test_web_search_payload_routing_and_engines():
+    reg = register_default_integrations()
+    result = reg.run(
+        IntegrationRequest(
+            provider="web",
+            action="search",
+            payload={
+                "query": "conta nerede",
+                "country": "TR",
+                "language": "tr",
+                "engines": ["brave", "google", "bing"],
+                "vertical": "repair_parts",
+            },
+        )
+    )
+    assert result.ok is False
+    assert result.error == "web_search_provider_not_configured"
+    assert result.data["query"] == "conta nerede"
+    assert result.data["country"] == "TR"
+    assert result.data["language"] == "tr"
+    assert result.data["vertical"] == "repair_parts"
+    assert [e["name"] for e in result.data["engines"]] == ["brave", "google", "bing"]

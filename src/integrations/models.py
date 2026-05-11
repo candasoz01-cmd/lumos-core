@@ -6,6 +6,10 @@ class IntegrationRequest:
     provider: str
     action: str
     payload: dict[str, Any]
+    region: str = ""
+    language: str = ""
+    risk_level: str = "normal"
+    requires_approval: bool = False
 @dataclass(frozen=True)
 class IntegrationResult:
     ok: bool
