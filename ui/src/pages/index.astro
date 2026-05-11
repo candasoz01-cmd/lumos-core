@@ -154,25 +154,44 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         display: flex;
         flex-direction: column;
         align-items: flex-start;
-        gap: 0.55rem;
+        gap: clamp(0.58rem, 1.6vw, 0.72rem);
         margin: 0 0 0.45rem;
       }
       @media (min-width: 480px) {
         .lumos-hero-title-stack {
           flex-direction: row;
           align-items: center;
-          gap: clamp(0.65rem, 2vw, 0.95rem);
+          gap: clamp(0.95rem, 2.3vw, 1.25rem);
         }
       }
       .lumos-hero-title-stack .lumos-hero-title-page {
         margin-bottom: 0;
       }
-      .lumos-hero-logo {
-        width: clamp(48px, 3.5vw + 38px, 64px);
-        height: clamp(48px, 3.5vw + 38px, 64px);
+      .lumos-hero-logo-box {
         flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        width: clamp(72px, 8.4vw, 86px);
+        height: clamp(72px, 8.4vw, 86px);
+        padding: 2px;
+        border-radius: 14px;
+        border: 1px solid rgba(201, 161, 98, 0.22);
+        background: linear-gradient(152deg, rgba(22, 24, 32, 0.88), rgba(11, 13, 19, 0.72));
+        box-shadow:
+          inset 0 1px 0 rgba(255, 246, 224, 0.05),
+          0 3px 14px rgba(0, 0, 0, 0.22),
+          0 12px 36px rgba(0, 0, 0, 0.18);
+      }
+      .lumos-hero-logo {
+        width: 100%;
+        height: 100%;
+        flex-shrink: 0;
+        display: block;
         object-fit: contain;
-        border-radius: 10px;
+        object-position: center;
+        border-radius: 14px;
       }
       .lumos-hero-title-page {
         margin: 0 0 0.45rem;
@@ -665,8 +684,8 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         width: min(100%, 380px);
         max-height: min(88vh, 520px);
         overflow: auto;
-        padding: clamp(1.25rem, 3vw, 1.75rem);
-        border-radius: 18px;
+        padding: clamp(1.1rem, 3vw, 1.45rem);
+        border-radius: 14px;
         border: 1px solid rgba(148, 112, 68, 0.42);
         background: linear-gradient(
           165deg,
@@ -811,15 +830,17 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
           <div class="lumos-hero-imgwrap lumos-hero-imgwrap--split">
             <div class="lumos-hero-copy">
               <div class="lumos-hero-title-stack">
-                <img
-                  class="lumos-hero-logo"
-                  src="/assets/lumos-github-avatar.jpg"
-                  alt="Lumos"
-                  width="64"
-                  height="64"
-                  loading="eager"
-                  decoding="async"
-                />
+                <span class="lumos-hero-logo-box">
+                  <img
+                    class="lumos-hero-logo"
+                    src="/assets/lumos-github-avatar.jpg"
+                    alt="Lumos"
+                    width="72"
+                    height="72"
+                    loading="eager"
+                    decoding="async"
+                  />
+                </span>
                 <h1 id="lumos-giris-baslik" class="lumos-hero-title-page">Lumos</h1>
               </div>
               <p class="lumos-hero-subtitle">İnsan merkezli yapay zekâ kontrol katmanı</p>
