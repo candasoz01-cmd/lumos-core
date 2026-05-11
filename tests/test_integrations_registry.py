@@ -27,3 +27,13 @@ def test_default_integrations_register_openai_actions():
         result = reg.run(IntegrationRequest(provider="openai", action=action, payload={}))
         assert result.ok is False
         assert result.error == "prompt_required"
+
+
+def test_default_integrations_web_search_not_configured():
+    reg = register_default_integrations()
+    result = reg.run(IntegrationRequest(provider="web", action="search", payload={"query": "lumos"}))
+    assert result.ok is False
+    assert result.error == "web_search_provider_not_configured"
+    assert result.data["query"] == "lumos"
+    assert result.data["results"] == []
+    assert [e["name"] for e in result.data["engines"]] == ["brave", "google", "bing", "duckduckgo"]

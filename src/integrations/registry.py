@@ -27,5 +27,8 @@ registry = IntegrationRegistry()
 
 def register_default_integrations() -> IntegrationRegistry:
     from integrations.providers.openai_provider import register_openai_provider
+    from integrations.providers.web_search_provider import register_web_search_provider
+
     register_openai_provider(registry.register)
+    register_web_search_provider(registry.register)
     return registry
