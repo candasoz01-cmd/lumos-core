@@ -39,6 +39,69 @@ def test_default_integrations_web_search_not_configured():
     assert [e["name"] for e in result.data["engines"]] == ["brave", "google", "bing", "duckduckgo"]
 
 
+def test_brave_api_called_when_engine_brave_and_key_set(monkeypatch):
+    import integrations.providers.web_search_provider as wsp
+
+    class FakeResp:
+        def read(self):
+            import json
+
+            return json.dumps(
+                {
+                    "web": {
+                        "results": [
+                            {"title": "T", "url": "https://u.test", "description": "D"},
+                        ],
+                    },
+                },
+            ).encode()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return None
+
+    monkeypatch.setenv("BRAVE_SEARCH_API_KEY", "k-test")
+    monkeypatch.setattr(wsp.urllib.request, "urlopen", lambda *a, **k: FakeResp())
+    reg = register_default_integrations()
+    r = reg.run(
+        IntegrationRequest(
+            provider="web",
+            action="search",
+            payload={"query": "lumos", "engine": "brave"},
+        ),
+    )
+    assert r.ok is True
+    assert r.error == ""
+    assert len(r.data["results"]) == 1
+    assert r.data["results"][0]["engine"] == "brave"
+    assert r.data["results"][0]["items"][0]["url"] == "https://u.test"
+
+
+def test_brave_api_skipped_for_multi_engine_even_with_key(monkeypatch):
+    import integrations.providers.web_search_provider as wsp
+
+    calls: list[int] = []
+
+    def boom(*a, **k):
+        calls.append(1)
+        raise AssertionError("Brave HTTP should not run for multi-engine list")
+
+    monkeypatch.setenv("BRAVE_SEARCH_API_KEY", "k-test")
+    monkeypatch.setattr(wsp.urllib.request, "urlopen", boom)
+    reg = register_default_integrations()
+    r = reg.run(
+        IntegrationRequest(
+            provider="web",
+            action="search",
+            payload={"query": "x", "engines": ["brave", "google"]},
+        ),
+    )
+    assert calls == []
+    assert r.ok is False
+
+
 def test_web_search_payload_routing_and_engines():
     reg = register_default_integrations()
     result = reg.run(
