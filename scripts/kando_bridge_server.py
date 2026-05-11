@@ -662,7 +662,10 @@ def _resolve_task_routing(
                     break
             if not tv and lines:
                 tv = lines[-1]
-        if not fv and tv:
+        # Panel Görevler listesi: başlıkta "foo.py" geçse bile doğrudan patch sanılmasın.
+        src = obj.get("source")
+        panel_gorevler = isinstance(src, str) and src.strip() == "panel_gorevler"
+        if not fv and tv and not panel_gorevler:
             fv = _extract_first_repo_path_fragment(tv)
         if fv and tv:
             if obj.get("auto_approve_safe") is not None:

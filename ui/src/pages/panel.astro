@@ -2904,7 +2904,12 @@ const HEALTH_URL =
           hintEl.textContent = "";
         }
 
-        function addTask() {
+        /**
+         * Görevler sekmesi: önce yerel liste (panelGorevlerTasks + localStorage),
+         * sonra köprü POST /task. Köprü hatası listeyi geri almaz.
+         * Köprü JSON: goal (metin), source panel_gorevler; token sohbet/yükleme ile aynı.
+         */
+        async function addTask() {
           const title = titleInput.value.trim();
           if (!title) {
             showHint("Görev adı boş olamaz.");
@@ -2912,14 +2917,56 @@ const HEALTH_URL =
             return;
           }
           hideHint();
+
+          const priority = prioritySel.value;
+          const status = statusSel.value;
+
           panelGorevlerTasks.push({
             title,
-            priority: prioritySel.value,
-            status: statusSel.value,
+            priority,
+            status,
           });
           titleInput.value = "";
           persistPanelGorevlerTasks();
           render();
+
+          try {
+            const r = await fetch(`${BRIDGE_BASE_URL}/task`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-Kando-Token": kandoToken,
+              },
+              body: JSON.stringify({
+                goal: title,
+                source: "panel_gorevler",
+                priority,
+                status,
+              }),
+            });
+            const text = await r.text();
+            let data = null;
+            try {
+              data = text && String(text).trim() ? JSON.parse(text) : null;
+            } catch {
+              data = null;
+            }
+            if (!r.ok) {
+              const err =
+                data && typeof data === "object" && data.error != null
+                  ? String(data.error)
+                  : "Köprü yanıtı başarısız (" + r.status + ").";
+              showHint("Görev yerel listeye eklendi; " + err);
+              return;
+            }
+            if (data && typeof data === "object" && data.accepted === false) {
+              const err =
+                data.error != null ? String(data.error) : "Görev köprü tarafından kabul edilmedi.";
+              showHint("Görev yerel listeye eklendi; " + err);
+            }
+          } catch (_) {
+            showHint("Görev yerel listeye eklendi; bridge bağlantısı başarısız.");
+          }
         }
 
         panelGorevlerTasksRender = render;
