@@ -61,3 +61,40 @@ def test_web_search_payload_routing_and_engines():
     assert result.data["language"] == "tr"
     assert result.data["vertical"] == "repair_parts"
     assert [e["name"] for e in result.data["engines"]] == ["brave", "google", "bing"]
+def test_device_unlock_requires_approval():
+    reg = register_default_integrations()
+    result = reg.run(
+        IntegrationRequest(
+            provider="device",
+            action="unlock",
+            payload={"device_id": "front-door", "vendor": "welock"},
+        )
+    )
+    assert result.ok is False
+    assert result.error == "approval_required"
+    assert result.data["risk_level"] == "high"
+    assert result.data["requires_approval"] is True
+def test_device_status_requires_device_id():
+    reg = register_default_integrations()
+    result = reg.run(
+        IntegrationRequest(
+            provider="device",
+            action="lock_status",
+            payload={},
+        )
+    )
+    assert result.ok is False
+    assert result.error == "device_id_required"
+def test_device_unlock_with_approval_is_not_configured_without_vendor_adapter():
+    reg = register_default_integrations()
+    result = reg.run(
+        IntegrationRequest(
+            provider="device",
+            action="unlock",
+            payload={"device_id": "front-door", "vendor": "welock"},
+            risk_level="high",
+            requires_approval=True,
+        )
+    )
+    assert result.ok is False
+    assert result.error == "device_provider_not_configured"
