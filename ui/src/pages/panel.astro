@@ -28,6 +28,9 @@ const HEALTH_URL =
         --lumos-surface: rgba(11, 11, 11, 0.98);
         /** Çok koyu bronz çizgi — renk yayılımı az */
         --lumos-border: rgba(115, 95, 68, 0.22);
+        /** Kart çerçevesi: saç teli, koyu zeminde biraz daha okunur */
+        --lumos-card-border: rgba(132, 112, 86, 0.38);
+        --lumos-card-inset: rgba(255, 255, 255, 0.042);
         --lumos-gold: #e8c98c;
         /** Elektrik mavisi — landing ile ortak isim; panel kromu şimdilik kullanmıyor */
         --lumos-accent-blue: #0ea5e9;
@@ -50,6 +53,13 @@ const HEALTH_URL =
         --lumos-user-bubble: rgba(12, 12, 12, 0.92);
         --lumos-lumos-bubble: rgba(0, 0, 0, 0.4);
         --lumos-error: #f0b4b4;
+        /** Operasyon paneli — yüzey / köşe / gölge (tek ritim) */
+        --panel-radius: 10px;
+        --panel-radius-lg: 12px;
+        --panel-strip-bg: linear-gradient(180deg, #070707 0%, #050505 100%);
+        --panel-surface-raised: rgba(12, 12, 12, 0.92);
+        --panel-edge-inset: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+        --panel-shadow-ambient: 0 1px 3px rgba(0, 0, 0, 0.35);
       }
       * {
         box-sizing: border-box;
@@ -64,10 +74,12 @@ const HEALTH_URL =
         max-height: 100vh;
         max-height: 100dvh;
         overflow: hidden;
+        overflow-x: hidden;
         background: var(--lumos-bg);
         color: var(--lumos-text);
         font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
         line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
       }
       .panel-shell {
         display: flex;
@@ -75,12 +87,15 @@ const HEALTH_URL =
         height: 100%;
         min-height: 0;
         max-height: 100%;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
       }
       .panel-header {
         flex-shrink: 0;
         padding: clamp(0.85rem, 2vw, 1.15rem) clamp(1rem, 3vw, 1.5rem);
-        border-bottom: 1px solid rgba(115, 95, 68, 0.2);
-        background: var(--lumos-bg);
+        border-bottom: 1px solid var(--lumos-border);
+        background: var(--panel-strip-bg);
       }
       .panel-header-title-row {
         display: flex;
@@ -119,9 +134,7 @@ const HEALTH_URL =
         color: rgba(200, 238, 226, 0.94);
         background: #0a0a0a;
         border-color: rgba(145, 118, 82, 0.38);
-        box-shadow:
-          inset 0 1px 0 var(--lumos-tq-badge-inset),
-          0 0 12px var(--lumos-tq-badge-glow);
+        box-shadow: inset 0 1px 0 var(--lumos-tq-badge-inset);
       }
       .panel-conn-badge[data-state="bad"] {
         color: rgba(240, 195, 195, 0.96);
@@ -150,16 +163,20 @@ const HEALTH_URL =
       }
       .gorevler-task-bridge {
         margin: 0;
-        font-size: 14px;
-        line-height: 1.4;
-        color: var(--lumos-text-soft);
+        margin-top: 0.12rem;
+        font-size: 0.72rem;
+        font-weight: 400;
+        line-height: 1.45;
+        letter-spacing: 0.01em;
+        color: rgba(198, 194, 186, 0.78);
       }
       .medya-outbox-wrap {
         margin: 0.75rem 0 1.25rem;
         padding: 0.65rem 0.75rem;
-        border: 1px solid var(--lumos-border);
-        border-radius: 10px;
+        border: 1px solid var(--lumos-card-border);
+        border-radius: var(--panel-radius-lg);
         background: var(--lumos-surface);
+        box-shadow: var(--panel-edge-inset);
       }
       .medya-outbox-actions {
         display: flex;
@@ -239,9 +256,8 @@ const HEALTH_URL =
         border: 2px solid rgba(212, 182, 128, 0.62);
         box-shadow:
           inset 0 0 0 1px rgba(0, 0, 0, 0.55),
-          inset 0 1px 0 rgba(255, 255, 255, 0.06),
-          inset 0 -2px 6px rgba(0, 0, 0, 0.45),
-          0 1px 4px rgba(0, 0, 0, 0.55);
+          inset 0 1px 0 rgba(255, 255, 255, 0.05),
+          inset 0 -1px 4px rgba(0, 0, 0, 0.35);
       }
       .lumos-mark::before {
         content: "";
@@ -270,15 +286,16 @@ const HEALTH_URL =
       }
       .panel-header-brand h1 {
         margin: 0;
-        font-size: clamp(1.05rem, 2.2vw, 1.25rem);
+        font-size: clamp(1rem, 2vw, 1.2rem);
         font-weight: 600;
-        letter-spacing: -0.02em;
+        letter-spacing: -0.018em;
         color: #e8d4b4;
       }
       .panel-body {
         display: flex;
         flex: 1;
         min-height: 0;
+        min-width: 0;
         overflow: hidden;
       }
       .panel-nav {
@@ -427,9 +444,9 @@ const HEALTH_URL =
         min-width: 0;
       }
       .panel-nav button[data-module]:hover {
-        background: rgba(255, 255, 255, 0.045);
+        background: rgba(255, 255, 255, 0.05);
         color: #f2ebe6;
-        box-shadow: inset 0 0 0 1px rgba(145, 118, 82, 0.16);
+        box-shadow: none;
       }
       .panel-nav button[data-module][aria-current="false"] {
         opacity: 0.92;
@@ -446,9 +463,11 @@ const HEALTH_URL =
         min-width: 0;
         min-height: 0;
         overflow: hidden;
-        padding: clamp(0.85rem, 2vw, 1.35rem);
+        overflow-x: hidden;
+        padding: clamp(0.75rem, 1.8vw, 1.25rem) clamp(0.85rem, 2vw, 1.35rem);
         display: flex;
         flex-direction: column;
+        gap: 0;
         background: var(--lumos-main-bg);
       }
       .module-panel {
@@ -456,20 +475,33 @@ const HEALTH_URL =
         flex: 1;
         flex-direction: column;
         min-height: 0;
+        min-width: 0;
+        max-width: 100%;
       }
       .module-panel[data-active="true"] {
         display: flex;
       }
       .module-panel:not(#panel-sohbet)[data-active="true"] {
         overflow-y: auto;
+        overflow-x: hidden;
         min-height: 0;
+        padding: clamp(0.65rem, 1.6vw, 1rem);
+        border: 1px solid var(--lumos-border);
+        border-radius: var(--panel-radius-lg);
+        background: var(--panel-surface-raised);
       }
       .module-panel h2 {
         margin: 0 0 0.75rem;
-        font-size: 0.95rem;
+        font-size: 0.94rem;
         font-weight: 600;
         color: #eae8e4;
-        letter-spacing: -0.01em;
+        letter-spacing: -0.012em;
+        line-height: 1.35;
+      }
+      .module-panel:not(#panel-sohbet) > h2 {
+        margin: 0 0 0.85rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid rgba(115, 95, 68, 0.14);
       }
       .module-panel h2.module-title-row {
         display: flex;
@@ -484,9 +516,10 @@ const HEALTH_URL =
       }
       .placeholder-block {
         padding: 1rem 1.05rem;
-        border-radius: 12px;
-        border: 1px solid var(--lumos-border);
+        border-radius: var(--panel-radius-lg);
+        border: 1px solid var(--lumos-card-border);
         background: #0b0b0b;
+        box-shadow: var(--panel-edge-inset);
         color: var(--lumos-muted);
         font-size: 0.86rem;
         max-width: 32rem;
@@ -501,12 +534,14 @@ const HEALTH_URL =
       .panel-module-state {
         max-width: 36rem;
         padding: 1rem 1.15rem 1.05rem;
-        border-radius: 12px;
-        border: 1px solid var(--lumos-border);
+        border-radius: var(--panel-radius-lg);
+        border: 1px solid var(--lumos-card-border);
         background: #0b0b0b;
-        box-shadow:
-          inset 0 1px 0 rgba(236, 207, 147, 0.04),
-          0 3px 20px rgba(0, 0, 0, 0.55);
+        box-shadow: var(--panel-edge-inset);
+        transition: border-color 0.14s ease;
+      }
+      .panel-module-state:hover {
+        border-color: rgba(184, 158, 118, 0.46);
       }
       .module-panel .panel-module-state > h2 {
         margin: 0 0 0.55rem;
@@ -562,6 +597,14 @@ const HEALTH_URL =
         line-height: 1.45;
         color: rgba(156, 152, 146, 0.92);
       }
+      .gorevler-eyebrow {
+        margin: 0 0 0.35rem;
+        font-size: 0.62rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(156, 152, 146, 0.72);
+      }
       .gorevler-intro {
         margin: 0 0 1rem;
         max-width: 36rem;
@@ -586,12 +629,14 @@ const HEALTH_URL =
       }
       .medya-card {
         padding: 0.85rem 1rem;
-        border-radius: 12px;
-        border: 1px solid var(--lumos-border);
+        border-radius: var(--panel-radius-lg);
+        border: 1px solid var(--lumos-card-border);
         background: #0b0b0b;
-        box-shadow:
-          inset 0 1px 0 rgba(236, 207, 147, 0.035),
-          0 3px 18px rgba(0, 0, 0, 0.52);
+        box-shadow: var(--panel-edge-inset);
+        transition: border-color 0.14s ease;
+      }
+      .medya-card:hover {
+        border-color: rgba(184, 158, 118, 0.46);
       }
       .medya-card h3 {
         margin: 0 0 0.35rem;
@@ -612,7 +657,7 @@ const HEALTH_URL =
         padding: 0;
         display: flex;
         flex-direction: column;
-        gap: 0.65rem;
+        gap: 0.9rem;
         max-width: 36rem;
       }
       .gorevler-task-card {
@@ -621,48 +666,64 @@ const HEALTH_URL =
         justify-content: space-between;
         gap: 0.75rem;
         flex-wrap: wrap;
-        padding: 0.85rem 1rem;
-        border-radius: 12px;
-        border: 1px solid var(--lumos-border);
+        padding: 0.92rem 1.05rem;
+        border-radius: var(--panel-radius-lg);
+        border: 1px solid var(--lumos-card-border);
         background: #0b0b0b;
-        box-shadow:
-          inset 0 1px 0 rgba(236, 207, 147, 0.035),
-          0 3px 18px rgba(0, 0, 0, 0.52);
+        box-shadow: var(--panel-edge-inset);
         cursor: pointer;
         text-align: left;
+        transition: border-color 0.14s ease;
       }
       .gorevler-task-card:hover {
-        border-color: rgba(212, 182, 128, 0.28);
+        border-color: rgba(196, 170, 128, 0.52);
       }
       .gorevler-task-card:focus {
         outline: none;
-        border-color: rgba(184, 148, 96, 0.45);
-        box-shadow:
-          inset 0 1px 0 rgba(236, 207, 147, 0.06),
-          0 0 0 1px rgba(184, 148, 96, 0.22),
-          0 3px 18px rgba(0, 0, 0, 0.52);
+        border-color: rgba(184, 148, 96, 0.48);
+        box-shadow: var(--panel-edge-inset), 0 0 0 1px rgba(184, 148, 96, 0.2);
       }
       .gorevler-task-card:focus:not(:focus-visible) {
-        border-color: var(--lumos-border);
-        box-shadow:
-          inset 0 1px 0 rgba(236, 207, 147, 0.035),
-          0 3px 18px rgba(0, 0, 0, 0.52);
+        border-color: var(--lumos-card-border);
+        box-shadow: var(--panel-edge-inset);
       }
       .gorevler-task-card:focus-visible {
         outline: none;
-        border-color: rgba(184, 148, 96, 0.45);
+        border-color: rgba(184, 148, 96, 0.48);
+        box-shadow: var(--panel-edge-inset), 0 0 0 1px rgba(184, 148, 96, 0.2);
+      }
+      .gorevler-task-card.gorevler-task-card--has-bridge {
+        border-color: rgba(168, 148, 118, 0.44);
         box-shadow:
-          inset 0 1px 0 rgba(236, 207, 147, 0.06),
-          0 0 0 1px rgba(184, 148, 96, 0.22),
-          0 3px 18px rgba(0, 0, 0, 0.52);
+          var(--panel-edge-inset),
+          0 0 0 1px rgba(212, 182, 128, 0.1);
+      }
+      .gorevler-task-card.gorevler-task-card--has-bridge:hover {
+        border-color: rgba(200, 176, 138, 0.55);
+      }
+      .gorevler-task-card.gorevler-task-card--has-bridge:focus:not(:focus-visible) {
+        border-color: rgba(168, 148, 118, 0.44);
+        box-shadow:
+          inset 0 1px 0 var(--lumos-card-inset),
+          0 0 0 1px rgba(212, 182, 128, 0.12),
+          0 0 14px rgba(212, 182, 128, 0.06),
+          0 0 18px rgba(14, 165, 233, 0.045);
+      }
+      .gorevler-task-card.gorevler-task-card--has-bridge:focus-visible {
+        border-color: rgba(184, 148, 96, 0.5);
+        box-shadow:
+          inset 0 1px 0 var(--lumos-card-inset),
+          0 0 0 1px rgba(184, 148, 96, 0.26),
+          0 0 14px rgba(212, 182, 128, 0.055),
+          0 0 18px rgba(14, 165, 233, 0.045);
       }
       .gorevler-task-title {
         display: block;
         width: 100%;
         margin: 0;
-        font-size: 20px;
+        font-size: 1.06rem;
         color: var(--lumos-text);
-        font-weight: 700;
+        font-weight: 600;
         min-width: 0;
         flex: 0 0 auto;
         letter-spacing: -0.01em;
@@ -674,25 +735,94 @@ const HEALTH_URL =
         display: flex;
         flex-direction: column;
         align-items: stretch;
-        gap: 6px;
+        gap: 0.45rem;
+      }
+      .gorevler-task-meta {
+        margin: 0;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        line-height: 1.42;
+        color: rgba(214, 210, 202, 0.76);
+      }
+      .gorevler-task-badges {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.35rem 0.45rem;
+        margin: 0;
+        padding: 0.05rem 0 0;
+      }
+      .gorevler-task-badge-sep {
+        font-size: 0.65rem;
+        color: rgba(148, 142, 132, 0.55);
+        line-height: 1;
+        user-select: none;
+        pointer-events: none;
+      }
+      .gorevler-task-badge {
+        display: inline-block;
+        font-size: 0.65rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        line-height: 1.2;
+        padding: 0.28rem 0.55rem;
+        border-radius: 999px;
+        border: 1px solid rgba(115, 95, 68, 0.32);
+        background: rgba(18, 17, 15, 0.92);
+        color: rgba(200, 194, 186, 0.95);
+        pointer-events: none;
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+      .gorevler-task-badge--status-bekliyor {
+        border-color: rgba(115, 105, 90, 0.38);
+        color: rgba(198, 190, 176, 0.95);
+        box-shadow: inset 0 1px 0 rgba(236, 207, 147, 0.04);
+      }
+      .gorevler-task-badge--status-onay-bekliyor {
+        border-color: rgba(184, 148, 96, 0.38);
+        color: rgba(212, 188, 150, 0.96);
+        box-shadow: inset 0 1px 0 rgba(236, 207, 147, 0.06);
+      }
+      .gorevler-task-badge--status-tamamlandi {
+        border-color: rgba(95, 130, 108, 0.42);
+        color: rgba(168, 206, 182, 0.92);
+        background: rgba(12, 22, 16, 0.65);
+      }
+      .gorevler-task-badge--status-unknown {
+        border-color: rgba(115, 95, 68, 0.28);
+        color: rgba(176, 170, 162, 0.88);
+      }
+      .gorevler-task-badge--priority-dusuk {
+        border-color: rgba(100, 118, 128, 0.35);
+        color: rgba(168, 184, 192, 0.9);
+        background: rgba(10, 14, 18, 0.75);
+      }
+      .gorevler-task-badge--priority-orta {
+        border-color: rgba(160, 132, 88, 0.38);
+        color: rgba(204, 184, 140, 0.94);
+        background: rgba(20, 16, 10, 0.72);
+      }
+      .gorevler-task-badge--priority-yuksek {
+        border-color: rgba(150, 96, 88, 0.4);
+        color: rgba(220, 170, 158, 0.92);
+        background: rgba(22, 12, 10, 0.72);
+      }
+      .gorevler-task-badge--priority-unknown {
+        border-color: rgba(115, 95, 68, 0.28);
+        color: rgba(176, 170, 162, 0.88);
       }
       .gorevler-task-when {
-        margin: 0;
-        font-size: 0.78rem;
-        line-height: 1.4;
+        margin: 0.15rem 0 0;
+        font-size: 0.74rem;
+        font-weight: 400;
+        line-height: 1.42;
         color: var(--lumos-muted);
       }
       .gorevler-task-when[data-gorevler-when-empty] {
         color: transparent;
         user-select: none;
-      }
-      .gorevler-task-meta {
-        margin: 0;
-        font-size: 14px;
-        line-height: 1.4;
-        color: var(--lumos-text-soft);
-        display: block;
-        flex: 0 0 auto;
       }
       .gorevler-list-heading-row {
         display: flex;
@@ -731,15 +861,17 @@ const HEALTH_URL =
       }
       .gorevler-form-panel {
         padding: 0.85rem 1rem;
-        border-radius: 12px;
-        border: 1px solid var(--lumos-border);
+        border-radius: var(--panel-radius-lg);
+        border: 1px solid var(--lumos-card-border);
         background: #0b0b0b;
-        box-shadow:
-          inset 0 1px 0 rgba(236, 207, 147, 0.04),
-          0 3px 18px rgba(0, 0, 0, 0.52);
+        box-shadow: var(--panel-edge-inset);
         display: flex;
         flex-direction: column;
         gap: 0.75rem;
+        transition: border-color 0.14s ease;
+      }
+      .gorevler-form-panel:hover {
+        border-color: rgba(184, 158, 118, 0.44);
       }
       .gorevler-field label {
         display: block;
@@ -773,7 +905,7 @@ const HEALTH_URL =
         align-self: flex-start;
         margin-top: 0.15rem;
         padding: 0.52rem 1.1rem;
-        border-radius: 10px;
+        border-radius: var(--panel-radius);
         border: 1px solid rgba(212, 182, 128, 0.44);
         background: linear-gradient(180deg, #161413 0%, #0a0908 100%);
         color: var(--lumos-gold);
@@ -781,18 +913,12 @@ const HEALTH_URL =
         font-weight: 600;
         letter-spacing: 0.02em;
         cursor: pointer;
-        box-shadow:
-          0 2px 18px rgba(0, 0, 0, 0.72),
-          inset 0 1px 0 rgba(236, 207, 147, 0.09),
-          inset 0 -1px 0 rgba(22, 20, 18, 0.95);
+        box-shadow: var(--panel-edge-inset), inset 0 -1px 0 rgba(22, 20, 18, 0.95);
       }
       .gorevler-add-btn:hover {
         filter: brightness(1.05);
         border-color: rgba(228, 198, 138, 0.52);
-        box-shadow:
-          0 2px 22px rgba(0, 0, 0, 0.74),
-          inset 0 1px 0 rgba(236, 207, 147, 0.12),
-          inset 0 -1px 0 rgba(22, 20, 18, 0.95);
+        box-shadow: var(--panel-edge-inset), inset 0 -1px 0 rgba(22, 20, 18, 0.95);
       }
       .gorevler-hint {
         margin: 0;
@@ -806,7 +932,7 @@ const HEALTH_URL =
         margin-top: 0.35rem;
         padding: 0;
         border: none;
-        border-radius: 12px;
+        border-radius: var(--panel-radius-lg);
         background: transparent;
         color: inherit;
         box-sizing: border-box;
@@ -816,12 +942,10 @@ const HEALTH_URL =
         backdrop-filter: blur(2px);
       }
       #gorevler-detail.gorevler-detail[open] {
-        box-shadow: 0 12px 48px rgba(0, 0, 0, 0.65);
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.42);
       }
       .gorevler-detail--fallback#gorevler-detail.gorevler-detail {
-        box-shadow:
-          inset 0 1px 0 rgba(236, 207, 147, 0.04),
-          0 3px 18px rgba(0, 0, 0, 0.52);
+        box-shadow: var(--panel-edge-inset), var(--panel-shadow-ambient);
       }
       #gorevler-detail.gorevler-detail--fallback:not([hidden]) {
         display: block;
@@ -830,12 +954,10 @@ const HEALTH_URL =
         display: none !important;
       }
       .gorevler-detail-shell {
-        border-radius: 12px;
+        border-radius: var(--panel-radius-lg);
         border: 1px solid rgba(212, 182, 128, 0.22);
         background: #0b0b0b;
-        box-shadow:
-          inset 0 1px 0 rgba(236, 207, 147, 0.04),
-          0 3px 18px rgba(0, 0, 0, 0.52);
+        box-shadow: var(--panel-edge-inset);
         overflow: hidden;
         max-height: min(88vh, 32rem);
         display: flex;
@@ -951,12 +1073,10 @@ const HEALTH_URL =
       }
       .dosyalar-result-card {
         padding: 0.85rem 1rem;
-        border-radius: 12px;
-        border: 1px solid var(--lumos-border);
+        border-radius: var(--panel-radius-lg);
+        border: 1px solid var(--lumos-card-border);
         background: #0b0b0b;
-        box-shadow:
-          inset 0 1px 0 rgba(236, 207, 147, 0.04),
-          0 3px 18px rgba(0, 0, 0, 0.52);
+        box-shadow: var(--panel-edge-inset);
       }
       .dosyalar-result-card__title {
         margin: 0 0 0.55rem;
@@ -968,9 +1088,7 @@ const HEALTH_URL =
       }
       .dosyalar-result-card--alert {
         border-color: rgba(212, 182, 128, 0.38);
-        box-shadow:
-          inset 0 1px 0 rgba(236, 207, 147, 0.06),
-          0 3px 18px rgba(0, 0, 0, 0.52);
+        box-shadow: var(--panel-edge-inset);
       }
       .dosyalar-result-card--alert .dosyalar-result-card__title {
         color: rgba(236, 210, 175, 0.92);
@@ -1031,12 +1149,10 @@ const HEALTH_URL =
         align-items: baseline;
         gap: 0.35rem 0.65rem;
         padding: 0.55rem 0.75rem;
-        border-radius: 10px;
-        border: 1px solid var(--lumos-border);
+        border-radius: var(--panel-radius);
+        border: 1px solid var(--lumos-card-border);
         background: #0b0b0b;
-        box-shadow:
-          inset 0 1px 0 rgba(236, 207, 147, 0.035),
-          0 2px 12px rgba(0, 0, 0, 0.45);
+        box-shadow: var(--panel-edge-inset);
         font-size: 0.8rem;
         line-height: 1.45;
         cursor: pointer;
@@ -1093,6 +1209,7 @@ const HEALTH_URL =
         display: flex;
         flex-direction: column;
         min-height: 0;
+        min-width: 0;
         gap: 0.75rem;
         background: transparent;
       }
@@ -1102,12 +1219,10 @@ const HEALTH_URL =
         min-width: 0;
         display: flex;
         flex-direction: column;
-        border-radius: 14px;
+        border-radius: var(--panel-radius-lg);
         border: 1px solid var(--lumos-border);
         background: var(--lumos-chat-history-bg);
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.025),
-          0 8px 28px rgba(0, 0, 0, 0.72);
+        box-shadow: var(--panel-edge-inset);
         overflow: hidden;
       }
       .chat-thread {
@@ -1185,11 +1300,11 @@ const HEALTH_URL =
         min-width: 0;
         max-width: 100%;
         padding: 0.55rem 0.78rem 0.65rem;
-        border-radius: 14px;
+        border-radius: var(--panel-radius-lg);
         white-space: pre-wrap;
         word-break: break-word;
         overflow-wrap: anywhere;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
+        box-shadow: none;
       }
       .chat-msg--user {
         max-width: min(100%, 22rem, 82%);
@@ -1197,11 +1312,9 @@ const HEALTH_URL =
         padding: 0.62rem 0.82rem 0.72rem;
         background: #050505;
         border: 1px solid var(--lumos-border);
-        border-radius: 14px 14px 5px 14px;
+        border-radius: var(--panel-radius-lg) var(--panel-radius-lg) 5px var(--panel-radius-lg);
         color: #f5efe6;
-        box-shadow:
-          0 2px 14px rgba(0, 0, 0, 0.58),
-          inset 0 1px 0 rgba(255, 255, 255, 0.03);
+        box-shadow: var(--panel-edge-inset);
       }
       .chat-msg--lumos {
         max-width: min(100%, 46rem, 94%);
@@ -1209,11 +1322,9 @@ const HEALTH_URL =
         padding: 0.65rem 0.92rem 0.78rem;
         background: #080808;
         border: 1px solid var(--lumos-border);
-        border-radius: 14px 14px 14px 5px;
+        border-radius: var(--panel-radius-lg) var(--panel-radius-lg) var(--panel-radius-lg) 5px;
         color: #ebe8e2;
-        box-shadow:
-          0 2px 14px rgba(0, 0, 0, 0.55),
-          inset 0 1px 0 rgba(255, 255, 255, 0.028);
+        box-shadow: var(--panel-edge-inset);
       }
       .chat-msg--error {
         max-width: min(100%, 40rem, 92%);
@@ -1221,7 +1332,7 @@ const HEALTH_URL =
         border: 1px solid rgba(240, 180, 180, 0.32);
         color: #ffd6d6;
         background: linear-gradient(165deg, rgba(48, 22, 28, 0.55) 0%, rgba(32, 16, 20, 0.65) 100%);
-        border-radius: 14px 14px 14px 5px;
+        border-radius: var(--panel-radius-lg) var(--panel-radius-lg) var(--panel-radius-lg) 5px;
       }
       .chat-msg-role {
         display: block;
@@ -1272,9 +1383,7 @@ const HEALTH_URL =
         border-radius: 999px;
         border: 1px solid var(--lumos-border);
         background: var(--lumos-compose-bg);
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.03),
-          0 4px 22px rgba(0, 0, 0, 0.65);
+        box-shadow: var(--panel-edge-inset);
       }
       .chat-compose {
         display: flex;
@@ -1327,12 +1436,10 @@ const HEALTH_URL =
       .chat-camera-preview-wrap {
         display: block;
         padding: 0.45rem 0.5rem;
-        border-radius: 12px;
+        border-radius: var(--panel-radius-lg);
         border: 1px solid var(--lumos-border);
         background: #050505;
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.03),
-          0 3px 16px rgba(0, 0, 0, 0.45);
+        box-shadow: var(--panel-edge-inset);
         max-width: 100%;
         min-width: 0;
       }
@@ -1407,10 +1514,7 @@ const HEALTH_URL =
       }
       .chat-compose-bar:focus-within {
         border-color: rgba(184, 148, 96, 0.42);
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.04),
-          0 4px 22px rgba(0, 0, 0, 0.65),
-          0 0 0 1px rgba(184, 148, 96, 0.18);
+        box-shadow: var(--panel-edge-inset), 0 0 0 1px rgba(184, 148, 96, 0.16);
       }
       .chat-compose-send {
         flex: 0 0 auto;
@@ -1431,10 +1535,7 @@ const HEALTH_URL =
         line-height: 1.2;
         white-space: nowrap;
         cursor: pointer;
-        box-shadow:
-          0 2px 14px rgba(0, 0, 0, 0.65),
-          inset 0 1px 0 rgba(236, 207, 147, 0.1),
-          inset 0 -1px 0 rgba(22, 20, 18, 0.95);
+        box-shadow: var(--panel-edge-inset), inset 0 -1px 0 rgba(22, 20, 18, 0.95);
         transition:
           filter 0.15s ease,
           border-color 0.15s ease,
@@ -1555,12 +1656,13 @@ const HEALTH_URL =
         }
         .panel-nav button[data-module] {
           flex: 1 1 auto;
-          min-width: calc(33.333% - 0.35rem);
+          min-width: 0;
+          max-width: calc(100% - 0.2rem);
           width: auto;
           margin: 0.1rem;
           border-left: none;
           border-bottom: 2px solid transparent;
-          border-radius: 10px;
+          border-radius: var(--panel-radius);
           justify-content: center;
           padding: 0.4rem 0.45rem;
         }
@@ -1572,6 +1674,8 @@ const HEALTH_URL =
         .panel-main {
           flex: 1;
           min-height: 0;
+          min-width: 0;
+          overflow-x: hidden;
         }
       }
     </style>
@@ -1762,9 +1866,10 @@ const HEALTH_URL =
             data-active="false"
             aria-labelledby="panel-gorevler-title"
           >
+            <p class="gorevler-eyebrow">Operasyon</p>
             <h2 id="panel-gorevler-title">Görevler</h2>
             <p class="gorevler-intro">
-              Görevler bu tarayıcıda <strong>localStorage</strong> ile saklanır; sayfa yenilense de kalır. Sunucu veya veritabanı
+              Görev akışınızı panel içinde buradan yürütüp izlersiniz. Görevler bu tarayıcıda <strong>localStorage</strong> ile saklanır; sayfa yenilense de kalır. Sunucu veya veritabanı
               yoktur — veriyi silmek için tarayıcı site verilerini temizlemeniz gerekir.
             </p>
             <div class="gorevler-proto">
@@ -3418,6 +3523,12 @@ const HEALTH_URL =
           return "Köprü: henüz yok";
         }
 
+        function gorevlerTaskBadgeSlug(v) {
+          const s = v != null ? String(v).trim().toLowerCase() : "";
+          const slug = s.replace(/_/g, "-").replace(/[^a-z0-9-]/g, "") || "unknown";
+          return slug;
+        }
+
         function render() {
           closeGorevlerDetail(false);
           listEl.replaceChildren();
@@ -3464,6 +3575,10 @@ const HEALTH_URL =
             bridgeEl.className = "gorevler-task-bridge";
             bridgeEl.textContent = formatGorevlerTaskBridgeLine(blRow);
             main.appendChild(bridgeEl);
+
+            if (sanitizeBridgeLast(blRow)) {
+              li.classList.add("gorevler-task-card--has-bridge");
+            }
 
             li.appendChild(main);
             listEl.appendChild(li);
