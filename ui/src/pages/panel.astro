@@ -549,7 +549,7 @@ const HEALTH_URL =
       .gorevler-task-title {
         font-size: 0.9rem;
         color: var(--lumos-text);
-        font-weight: 500;
+        font-weight: 600;
         min-width: 0;
         flex: 1 1 auto;
         letter-spacing: -0.01em;
@@ -568,60 +568,13 @@ const HEALTH_URL =
         line-height: 1.4;
         color: var(--lumos-muted);
       }
-      .task-status-badge {
-        flex-shrink: 0;
-        display: inline-block;
-        font-size: 0.56rem;
-        font-weight: 600;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        padding: 0.1rem 0.34rem;
-        border-radius: 4px;
-        line-height: 1.2;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-      }
-      .task-status-badge--done {
-        color: rgba(238, 228, 206, 0.96);
-        background: rgba(12, 11, 10, 0.82);
-        border-color: rgba(165, 138, 92, 0.32);
-        box-shadow: inset 0 1px 0 rgba(236, 207, 147, 0.07);
-      }
-      .task-status-badge--waiting {
-        color: rgba(200, 188, 160, 0.92);
-        background: rgba(90, 72, 44, 0.22);
-        border-color: rgba(184, 148, 96, 0.28);
-      }
-      .task-status-badge--approval {
-        color: rgba(236, 210, 175, 0.95);
-        background: rgba(110, 72, 48, 0.32);
-        border-color: rgba(200, 140, 100, 0.38);
-      }
-      .task-priority-badge {
-        flex-shrink: 0;
-        display: inline-block;
-        font-size: 0.56rem;
-        font-weight: 600;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        padding: 0.1rem 0.34rem;
-        border-radius: 4px;
-        line-height: 1.2;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-      }
-      .task-priority-badge--dusuk {
-        color: rgba(168, 164, 158, 0.9);
-        background: rgba(20, 20, 20, 0.55);
-        border-color: rgba(212, 182, 128, 0.16);
-      }
-      .task-priority-badge--orta {
-        color: rgba(200, 188, 160, 0.92);
-        background: rgba(90, 72, 44, 0.22);
-        border-color: rgba(184, 148, 96, 0.28);
-      }
-      .task-priority-badge--yuksek {
-        color: rgba(244, 210, 190, 0.95);
-        background: rgba(120, 52, 42, 0.32);
-        border-color: rgba(200, 120, 100, 0.38);
+      .gorevler-task-meta {
+        margin: 0;
+        margin-top: 0.12rem;
+        font-size: 0.78rem;
+        line-height: 1.4;
+        color: var(--lumos-muted);
+        display: block;
       }
       .gorevler-proto {
         max-width: 36rem;
@@ -840,14 +793,6 @@ const HEALTH_URL =
         letter-spacing: 0.11em;
         text-transform: uppercase;
         color: rgba(172, 168, 160, 0.9);
-      }
-      .gorevler-task-badges {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.35rem;
-        align-items: center;
-        justify-content: flex-end;
-        flex-shrink: 0;
       }
       #panel-sohbet {
         gap: 0;
@@ -2843,17 +2788,6 @@ const HEALTH_URL =
           onay_bekliyor: "Onay bekliyor",
           tamamlandi: "Tamamlandı",
         };
-        const statusBadgeClass = {
-          bekliyor: "task-status-badge--waiting",
-          onay_bekliyor: "task-status-badge--approval",
-          tamamlandi: "task-status-badge--done",
-        };
-        const priorityBadgeClass = {
-          dusuk: "task-priority-badge--dusuk",
-          orta: "task-priority-badge--orta",
-          yuksek: "task-priority-badge--yuksek",
-        };
-
         function render() {
           listEl.replaceChildren();
           for (const t of panelGorevlerTasks) {
@@ -2863,10 +2797,19 @@ const HEALTH_URL =
             const main = document.createElement("div");
             main.className = "gorevler-task-main";
 
-            const titleSpan = document.createElement("span");
-            titleSpan.className = "gorevler-task-title";
-            titleSpan.textContent = t.title;
-            main.appendChild(titleSpan);
+            const titleStrong = document.createElement("strong");
+            titleStrong.className = "gorevler-task-title";
+            titleStrong.textContent = t.title;
+            main.appendChild(titleStrong);
+
+            const metaSpan = document.createElement("span");
+            metaSpan.className = "gorevler-task-meta";
+            metaSpan.textContent =
+              "Durum: " +
+              (statusLabels[t.status] != null ? statusLabels[t.status] : String(t.status)) +
+              " · Öncelik: " +
+              (priorityLabels[t.priority] != null ? priorityLabels[t.priority] : String(t.priority));
+            main.appendChild(metaSpan);
 
             if (t.when) {
               const whenEl = document.createElement("p");
@@ -2875,21 +2818,7 @@ const HEALTH_URL =
               main.appendChild(whenEl);
             }
 
-            const badges = document.createElement("div");
-            badges.className = "gorevler-task-badges";
-
-            const st = document.createElement("span");
-            st.className = "task-status-badge " + statusBadgeClass[t.status];
-            st.textContent = statusLabels[t.status];
-
-            const pr = document.createElement("span");
-            pr.className = "task-priority-badge " + priorityBadgeClass[t.priority];
-            pr.textContent = priorityLabels[t.priority];
-
-            badges.appendChild(st);
-            badges.appendChild(pr);
             li.appendChild(main);
-            li.appendChild(badges);
             listEl.appendChild(li);
           }
         }
