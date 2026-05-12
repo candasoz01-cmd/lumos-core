@@ -2,6 +2,10 @@
 """
 Lokal orkestratör: POST /task → doğrudan direct patch (TARGET:) veya agent job.
 request.txt / kando_watch kuyruğu yok.
+
+Kaynak dosya: bu modül (`kando_bridge.server`) köprünün tek doğru uygulamasıdır.
+Çalıştırma: `python -m kando_bridge` veya `python scripts/kando_bridge_server.py`
+(repodaki script yalnızca `sys.path` ayarlayıp burayı çağırır).
 """
 from __future__ import annotations
 
@@ -12,6 +16,7 @@ import json
 import os
 import secrets
 import time
+from datetime import datetime, timezone
 import re
 import shutil
 import subprocess
@@ -1163,6 +1168,200 @@ def _find_pending_approval_by_task_id(task_id: str) -> Path | None:
     return None
 
 
+def _parse_task_source_from_request_raw(raw: bytes | bytearray) -> str | None:
+    try:
+        obj = json.loads(bytes(raw).decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError):
+        return None
+    if not isinstance(obj, dict):
+        return None
+    s = obj.get("source")
+    if isinstance(s, str) and s.strip():
+        return s.strip()
+    return None
+
+
+def merge_post_task_http_envelope(
+    *,
+    status: int,
+    payload: dict,
+    envelope_meta: dict | None,
+) -> dict:
+    """POST /task yanıtlarına sabit alanlar ekler (panel ve CLI için okunur)."""
+    if envelope_meta is None:
+        return payload
+    raw = envelope_meta.get("raw")
+    route = envelope_meta.get("route")
+    source = (
+        _parse_task_source_from_request_raw(raw)
+        if isinstance(raw, (bytes, bytearray))
+        else None
+    )
+    merged = dict(payload)
+    merged["ok"] = 200 <= int(status) < 400
+    merged["source"] = source
+    merged["route"] = route
+    merged["requires_approval"] = bool(
+        merged.get("requires_approval") or merged.get("requires_clarification")
+    )
+    if "accepted" not in merged:
+        merged["accepted"] = bool(
+            merged["ok"]
+            and not merged.get("destructive_command")
+            and not merged.get("video_prompt_clarification")
+        )
+    try:
+        if LAST_RESULT_FILE.is_file():
+            merged.setdefault("result_file", str(LAST_RESULT_FILE.resolve()))
+        if LAST_EXECUTION_FILE.is_file():
+            merged.setdefault("execution_file", str(LAST_EXECUTION_FILE.resolve()))
+    except OSError:
+        pass
+    return merged
+
+
+POST_TASK_LAST_EXEC_SCHEMA = "lumos.bridge.post_task.last_execution.v1"
+POST_TASK_LAST_RESULT_SCHEMA = "lumos.bridge.post_task.last_result.v1"
+_MAX_OUTBOX_SNAPSHOT_JSON_CHARS = 250_000
+
+
+def _task_goal_preview_from_raw(raw: bytes | bytearray, *, max_len: int = 4000) -> str:
+    if not raw:
+        return ""
+    try:
+        dec = bytes(raw).decode("utf-8")
+    except UnicodeDecodeError:
+        return ""
+    dec_st = dec.strip()
+    if not dec_st:
+        return ""
+    if dec_st.startswith("{"):
+        try:
+            obj = json.loads(dec_st)
+        except json.JSONDecodeError:
+            return dec_st[:max_len]
+        if not isinstance(obj, dict):
+            return dec_st[:max_len]
+        for key in (
+            "task",
+            "goal",
+            "text",
+            "raw_text",
+            "title",
+            "instruction",
+            "prompt",
+        ):
+            v = obj.get(key)
+            if isinstance(v, str) and v.strip():
+                return v.strip()[:max_len]
+        return dec_st[:max_len]
+    return dec_st[:max_len]
+
+
+def _shrink_lumos_http_response_for_outbox(resp: dict) -> dict:
+    """Çok büyük lumos_gate gövdelerinde outbox JSON boyutunu sınırlar."""
+    try:
+        if len(json.dumps(resp, ensure_ascii=False)) <= _MAX_OUTBOX_SNAPSHOT_JSON_CHARS:
+            return dict(resp)
+    except (TypeError, ValueError):
+        return {"_error": "payload_not_json_serializable"}
+    r2 = dict(resp)
+    r2.pop("lumos_gate", None)
+    r2["_lumos_gate_omitted"] = True
+    try:
+        if len(json.dumps(r2, ensure_ascii=False)) <= _MAX_OUTBOX_SNAPSHOT_JSON_CHARS:
+            return r2
+    except (TypeError, ValueError):
+        pass
+    return {
+        "ok": resp.get("ok"),
+        "source": resp.get("source"),
+        "route": resp.get("route"),
+        "accepted": resp.get("accepted"),
+        "error": str(resp.get("error") or "")[:4000],
+        "message": str(resp.get("message") or "")[:4000],
+        "requires_approval": resp.get("requires_approval"),
+        "_truncated": True,
+        "_note": "lumos_http_response shrunk: payload exceeded max size",
+    }
+
+
+def persist_post_task_outbox_snapshots(
+    envelope_meta: dict,
+    snapshot: dict | None,
+) -> None:
+    """POST /task sonrası her durumda last_execution / last_result dosyalarına özet yazar."""
+    raw = envelope_meta.get("raw")
+    if not isinstance(raw, (bytes, bytearray)):
+        raw = b""
+    route_o = envelope_meta.get("route")
+    route = str(route_o) if route_o is not None else None
+    source = _parse_task_source_from_request_raw(raw)
+    goal_preview = _task_goal_preview_from_raw(raw)
+    captured_at = datetime.now(timezone.utc).isoformat()
+    if snapshot is None:
+        http_status: int | None = None
+        lumos_resp: dict | None = None
+        incomplete = "no_json_response_sent"
+    else:
+        http_status = snapshot.get("http_status")
+        if http_status is not None:
+            try:
+                http_status = int(http_status)
+            except (TypeError, ValueError):
+                http_status = None
+        resp_o = snapshot.get("response")
+        if isinstance(resp_o, dict):
+            lumos_resp = _shrink_lumos_http_response_for_outbox(resp_o)
+            incomplete = None
+        else:
+            lumos_resp = {
+                "accepted": False,
+                "error": "invalid_or_missing_response_snapshot",
+            }
+            incomplete = "response_not_dict"
+    last_ex: dict = {
+        "schema_version": POST_TASK_LAST_EXEC_SCHEMA,
+        "captured_at": captured_at,
+        "http_status": http_status,
+        "route": route,
+        "source": source,
+        "goal_preview": goal_preview,
+        "lumos_http_response": lumos_resp,
+    }
+    if incomplete:
+        last_ex["snapshot_incomplete"] = incomplete
+    acc = lumos_resp.get("accepted") if isinstance(lumos_resp, dict) else None
+    ok = lumos_resp.get("ok") if isinstance(lumos_resp, dict) else None
+    err = lumos_resp.get("error") if isinstance(lumos_resp, dict) else None
+    last_res: dict = {
+        "schema_version": POST_TASK_LAST_RESULT_SCHEMA,
+        "captured_at": captured_at,
+        "http_status": http_status,
+        "route": route,
+        "source": source,
+        "goal_preview": goal_preview,
+        "accepted": acc,
+        "ok": ok,
+        "error": err,
+        "lumos_http_response": lumos_resp,
+    }
+    if incomplete:
+        last_res["snapshot_incomplete"] = incomplete
+    try:
+        OUTBOX_DIR.mkdir(parents=True, exist_ok=True)
+        LAST_EXECUTION_FILE.write_text(
+            json.dumps(last_ex, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        LAST_RESULT_FILE.write_text(
+            json.dumps(last_res, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+    except OSError:
+        pass
+
+
 class BridgeHandler(BaseHTTPRequestHandler):
     server_version = "KandoBridge/1.0"
 
@@ -1185,6 +1384,17 @@ class BridgeHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def _send_json(self, status: int, payload: dict) -> None:
+        meta = getattr(self, "_post_task_envelope_meta", None)
+        if meta is not None:
+            payload = merge_post_task_http_envelope(
+                status=status,
+                payload=payload,
+                envelope_meta=meta,
+            )
+            self._post_task_outbox_snapshot = {
+                "http_status": int(status),
+                "response": dict(payload),
+            }
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -1770,12 +1980,14 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
         attach_execution_dispatch_to_out(out, repo_root=ROOT)
         if _is_dispatch_medium_pending(out):
-            persist_last_result_from_out(out)
+            if getattr(self, "_post_task_envelope_meta", None) is None:
+                persist_last_result_from_out(out)
             merge_execution_enrichment_into_out(out, ROOT)
             self._send_medium_dispatch_pending_http_response(out)
             return
 
-        persist_last_result_from_out(out)
+        if getattr(self, "_post_task_envelope_meta", None) is None:
+            persist_last_result_from_out(out)
         merge_execution_enrichment_into_out(out, ROOT)
 
         resp = dict(body) if isinstance(body, dict) else {}
@@ -2030,77 +2242,110 @@ class BridgeHandler(BaseHTTPRequestHandler):
             self.send_error(404)
             return
 
-        length = int(self.headers.get("Content-Length", "0") or "0")
-        raw = self.rfile.read(length) if length > 0 else b""
+        self._post_task_envelope_meta: dict | None = {"raw": b"", "route": None}
+        self._post_task_outbox_snapshot = None
         try:
-            Path("logs").mkdir(exist_ok=True)
-            with open("logs/bridge.log", "ab") as f:
-                f.write(b"\n--- RAW ---\n")
-                f.write(raw)
-                f.write(b"\n")
-        except Exception:
-            pass
-        _clear_direct_patch_meta()
+            try:
+                length = int(self.headers.get("Content-Length", "0") or "0")
+                raw = self.rfile.read(length) if length > 0 else b""
+                try:
+                    Path("logs").mkdir(exist_ok=True)
+                    with open("logs/bridge.log", "ab") as f:
+                        f.write(b"\n--- RAW ---\n")
+                        f.write(raw)
+                        f.write(b"\n")
+                except Exception:
+                    pass
+                _clear_direct_patch_meta()
 
-        raw = _inject_task_obj_title_fields(self.headers.get("Content-Type"), raw)
-        req_clar = _raw_json_requires_clarification(raw)
-        err, mode, payload, umsg = _resolve_task_routing(
-            self.headers.get("Content-Type"), raw
-        )
-        if err:
-            self._reject(400, err)
-            return
-        assert mode is not None and payload is not None
+                raw = _inject_task_obj_title_fields(self.headers.get("Content-Type"), raw)
+                self._post_task_envelope_meta["raw"] = raw
+                req_clar = _raw_json_requires_clarification(raw)
+                err, mode, payload, umsg = _resolve_task_routing(
+                    self.headers.get("Content-Type"), raw
+                )
+                if err:
+                    self._reject(400, err)
+                    return
+                assert mode is not None and payload is not None
+                self._post_task_envelope_meta["route"] = mode
 
-        ingest = (umsg or "").strip() or None
-        surf = _task_surface_for_destructive_scan(mode, payload, ingest)
-        d_block, d_code = destructive_surface_blocks_task(surf)
-        if d_block:
-            self._send_json(
-                200,
-                {
-                    "accepted": False,
-                    "error": destructive_command_user_message_tr(),
-                    "destructive_command": True,
-                    "destructive_code": d_code or "",
-                },
-            )
-            return
-        try:
-            from core.video_prompt_clarity import (
-                is_video_task_prompt_ambiguous,
-                video_prompt_clarification_question_tr,
-            )
-
-            vf = _video_task_prompt_fields_for_clarity(raw)
-            if vf is not None:
-                vprompt, vref = vf
-                if vprompt and is_video_task_prompt_ambiguous(
-                    vprompt, has_media_ref=vref
-                ):
+                ingest = (umsg or "").strip() or None
+                surf = _task_surface_for_destructive_scan(mode, payload, ingest)
+                d_block, d_code = destructive_surface_blocks_task(surf)
+                if d_block:
                     self._send_json(
                         200,
                         {
                             "accepted": False,
-                            "video_prompt_clarification": True,
-                            "reply": video_prompt_clarification_question_tr(vprompt),
-                            "mode": "clarify_video_prompt",
+                            "error": destructive_command_user_message_tr(),
+                            "destructive_command": True,
+                            "destructive_code": d_code or "",
                         },
                     )
                     return
-        except Exception:
-            pass
-        client_tt = _raw_json_task_type(raw)
-        out = self._complete_through_gate(
-            mode,
-            payload,
-            approval_granted=False,
-            ingest_user_message=ingest,
-            client_requires_clarification=req_clar,
-        )
-        if client_tt:
-            out["_client_task_type"] = client_tt
-        self._send_lumos_pipeline_out(out, approval_path=None)
+                try:
+                    from core.video_prompt_clarity import (
+                        is_video_task_prompt_ambiguous,
+                        video_prompt_clarification_question_tr,
+                    )
+
+                    vf = _video_task_prompt_fields_for_clarity(raw)
+                    if vf is not None:
+                        vprompt, vref = vf
+                        if vprompt and is_video_task_prompt_ambiguous(
+                            vprompt, has_media_ref=vref
+                        ):
+                            self._send_json(
+                                200,
+                                {
+                                    "accepted": False,
+                                    "video_prompt_clarification": True,
+                                    "reply": video_prompt_clarification_question_tr(vprompt),
+                                    "mode": "clarify_video_prompt",
+                                },
+                            )
+                            return
+                except Exception:
+                    pass
+                client_tt = _raw_json_task_type(raw)
+                out = self._complete_through_gate(
+                    mode,
+                    payload,
+                    approval_granted=False,
+                    ingest_user_message=ingest,
+                    client_requires_clarification=req_clar,
+                )
+                if client_tt:
+                    out["_client_task_type"] = client_tt
+                self._send_lumos_pipeline_out(out, approval_path=None)
+            except Exception as e:
+                _stderr_write(f"POST /task internal error: {e}\n")
+                try:
+                    self._send_json(
+                        500,
+                        {"accepted": False, "error": "internal_error", "detail": str(e)},
+                    )
+                except Exception:
+                    self._post_task_outbox_snapshot = {
+                        "http_status": 500,
+                        "response": {
+                            "accepted": False,
+                            "error": "internal_error",
+                            "detail": str(e),
+                        },
+                    }
+                return
+        finally:
+            meta_fc = getattr(self, "_post_task_envelope_meta", None)
+            snap_fc = getattr(self, "_post_task_outbox_snapshot", None)
+            if isinstance(meta_fc, dict):
+                try:
+                    persist_post_task_outbox_snapshots(meta_fc, snap_fc)
+                except Exception:
+                    pass
+            self._post_task_envelope_meta = None
+            self._post_task_outbox_snapshot = None
 
 
 def main() -> None:

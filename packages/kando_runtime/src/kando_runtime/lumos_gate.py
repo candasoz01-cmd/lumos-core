@@ -2351,6 +2351,64 @@ def _build_result_after_execute(
                 "policy_ok": ctx.policy_ok,
             },
         }
+    elif kind == "agent":
+        # Async agent: anında tam sonuç yok; köprü persist_last_result_from_out için dict gerekir.
+        goal_text = str(
+            plan.get("goal")
+            or norm.get("ingest_raw_text")
+            or norm.get("raw_payload")
+            or payload
+            or ""
+        ).strip()
+        preview = goal_text[:500]
+        jid = str(job_id or "").strip()
+        last_ex = {
+            "schema_version": "kando.cursor.execution.v1",
+            "goal": goal_text,
+            "task_id": 0,
+            "permission_profile": "",
+            "general_approval": False,
+            "steps": [],
+            "patch": None,
+            "constraints": {},
+            "execution_mode": "agent",
+            "target_file": "",
+            "target_files": [],
+            "instruction": goal_text,
+            "verify": "",
+            "job_id": jid or None,
+            "execution_result": "agent_job_started",
+        }
+        reason = (
+            f"Agent işi başlatıldı (job_id={jid})."
+            if jid
+            else "Agent işi başlatıldı (job_id atanmadı)."
+        )
+        last_res = {
+            "schema_version": "kando.cursor.result.v1",
+            "goal_preview": preview,
+            "outcome": "pending",
+            "reason": reason,
+            "verification_summary": ctx.verification_summary,
+            "task_id": 0,
+            "task_status": "agent_running",
+            "brain_success": True,
+            "verified_count": 0,
+            "unverified_count": 0,
+            "simulation_count": 0,
+            "execution": {
+                "execution_result": "agent_job_started",
+                "detail": jid or "no_job_id",
+                "error_type": "",
+                "retry_count": 0,
+                "audit_id": "",
+            },
+            "lumos_gate": {
+                "reasoning_source": reasoning.get("source"),
+                "reasoning_summary": ctx.reasoning_summary,
+                "policy_ok": ctx.policy_ok,
+            },
+        }
     elif kind == "plan" and ex is not None:
         last_patch = ex.get("last_patch")
         preview = str(ex.get("last_instruction_preview") or "")[:500]

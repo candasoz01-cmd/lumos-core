@@ -1,5 +1,10 @@
 # UI paneli — Görevler sekmesi ve `POST /task`
 
+## Aktif köprü kaynağı (tek doğru uygulama)
+
+- **Modül:** `packages/kando_bridge/src/kando_bridge/server.py` (`kando_bridge.server`); testler buradan import eder.
+- **Çalıştırma:** `python -m kando_bridge` (paket kurulu venv) veya repoda `python3 scripts/kando_bridge_server.py` — script yalnızca `sys.path` ekleyip aynı `main()` çağrısını yapar; kopya sunucu kodu yok.
+
 ## Önceki davranış (yalnız yerel)
 
 - Görevler listesi `localStorage` (`lumos_panel_gorevler_list_v1`) ve bellekteki `panelGorevlerTasks` ile tutulur.
@@ -22,6 +27,6 @@
 
 ## Manuel test
 
-1. `python3 scripts/kando_bridge_server.py` (veya mevcut köprü süreci).
+1. `python3 scripts/kando_bridge_server.py` veya `python -m kando_bridge` (aynı sunucu).
 2. `npm --prefix ui run dev` → panelde Görevler’den görev ekle.
 3. `.lumos/outbox` altında `last_result.json` / `last_execution.json` veya ilgili çıktıların güncellenmesini kontrol et (ortam ve gate’e bağlı).

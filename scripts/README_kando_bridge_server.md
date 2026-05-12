@@ -1,5 +1,8 @@
 # Kando lokal HTTP bridge (`kando_bridge_server.py`)
 
+**Kaynak kod:** `packages/kando_bridge/src/kando_bridge/server.py` (`python -m kando_bridge`).
+`scripts/kando_bridge_server.py` aynı `main()` girişine ince bir sarmalayıcıdır.
+
 ChatGPT, tarayıcı eklentisi veya başka bir istemci **bu makinede** çalışan küçük bir HTTP sunucusuna istek atar; sunucu metni `.lumos/inbox/request.txt` dosyasına yazar. **`kando_watch.py`** bu dosyayı tetikleyici olarak kullanıp Kando zincirini (bridge / patch / apply) çalıştırır.
 
 ## Önkoşullar
@@ -18,7 +21,9 @@ Depo kökünden:
 
 ```bash
 cd /path/to/lumos-core
-PYTHONPATH=src python scripts/kando_bridge_server.py
+PYTHONPATH=src python -m kando_bridge
+# veya eşdeğer:
+PYTHONPATH=src python3 scripts/kando_bridge_server.py
 ```
 
 Varsayılan: **`127.0.0.1:8765`**. Bind adresi **yalnızca** `127.0.0.1`, `::1` veya `localhost` olabilir (`0.0.0.0` reddedilir). İstemci adresi de loopback değilse **403**.
