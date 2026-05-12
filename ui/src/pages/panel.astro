@@ -2895,13 +2895,46 @@ const HEALTH_URL =
         }
 
         function showHint(msg) {
-          hintEl.textContent = msg;
+          const s = msg != null ? String(msg) : "";
+          hintEl.textContent = s;
           hintEl.hidden = false;
+          hintEl.style.whiteSpace = s.indexOf("\n") >= 0 ? "pre-line" : "";
         }
 
         function hideHint() {
           hintEl.hidden = true;
           hintEl.textContent = "";
+          hintEl.style.whiteSpace = "";
+        }
+
+        function lumosOutboxPathBasename(p) {
+          const s = p != null ? String(p).trim() : "";
+          if (!s) return "";
+          const parts = s.replace(/\\/g, "/").split("/");
+          return parts[parts.length - 1] || s;
+        }
+
+        /**
+         * POST /task 200 ve accepted !== false: ham JSON yerine kısa özet (üst hint).
+         * @param {Record<string, unknown>} data
+         */
+        function buildTaskBridgeSuccessReadableHint(data) {
+          const route =
+            data.route != null && String(data.route).trim() ? String(data.route).trim() : "—";
+          const source =
+            data.source != null && String(data.source).trim() ? String(data.source).trim() : "—";
+          const head =
+            data.accepted === true || data.ok === true ? "kabul edildi" : "yanıt alındı";
+          const main = "Köprü: " + head + " · route: " + route + " · source: " + source;
+          const rf = data.result_file != null ? String(data.result_file).trim() : "";
+          const ef = data.execution_file != null ? String(data.execution_file).trim() : "";
+          const extra = [];
+          const rfBn = lumosOutboxPathBasename(rf);
+          if (rfBn) extra.push("result_file: " + rfBn);
+          const efBn = lumosOutboxPathBasename(ef);
+          if (efBn) extra.push("execution_file: " + efBn);
+          if (extra.length === 0) return main;
+          return main + "\n" + extra.join(" · ");
         }
 
         /**
@@ -2951,6 +2984,7 @@ const HEALTH_URL =
             } catch {
               data = null;
             }
+
             if (!r.ok) {
               const err =
                 data && typeof data === "object" && data.error != null
@@ -2963,6 +2997,12 @@ const HEALTH_URL =
               const err =
                 data.error != null ? String(data.error) : "Görev köprü tarafından kabul edilmedi.";
               showHint("Görev yerel listeye eklendi; " + err);
+              return;
+            }
+            if (data && typeof data === "object") {
+              showHint(buildTaskBridgeSuccessReadableHint(data));
+            } else {
+              hideHint();
             }
           } catch (_) {
             showHint("Görev yerel listeye eklendi; bridge bağlantısı başarısız.");
