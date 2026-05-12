@@ -545,8 +545,39 @@ const HEALTH_URL =
         box-shadow:
           inset 0 1px 0 rgba(236, 207, 147, 0.035),
           0 3px 18px rgba(0, 0, 0, 0.52);
+        cursor: pointer;
+        text-align: left;
+      }
+      .gorevler-task-card:hover {
+        border-color: rgba(212, 182, 128, 0.28);
+      }
+      .gorevler-task-card:focus {
+        outline: none;
+        border-color: rgba(184, 148, 96, 0.45);
+        box-shadow:
+          inset 0 1px 0 rgba(236, 207, 147, 0.06),
+          0 0 0 1px rgba(184, 148, 96, 0.22),
+          0 3px 18px rgba(0, 0, 0, 0.52);
+      }
+      .gorevler-task-card:focus:not(:focus-visible) {
+        border-color: var(--lumos-border);
+        box-shadow:
+          inset 0 1px 0 rgba(236, 207, 147, 0.035),
+          0 3px 18px rgba(0, 0, 0, 0.52);
+      }
+      .gorevler-task-card:focus-visible {
+        outline: none;
+        border-color: rgba(184, 148, 96, 0.45);
+        box-shadow:
+          inset 0 1px 0 rgba(236, 207, 147, 0.06),
+          0 0 0 1px rgba(184, 148, 96, 0.22),
+          0 3px 18px rgba(0, 0, 0, 0.52);
       }
       .gorevler-task-title {
+      display: block;
+        display: block;
+        width: 100%;
+        margin-bottom: 0.2rem;
         font-size: 0.9rem;
         color: var(--lumos-text);
         font-weight: 600;
@@ -569,6 +600,10 @@ const HEALTH_URL =
         color: var(--lumos-muted);
       }
       .gorevler-task-meta {
+      display: inline-block;
+      margin-top: 0.2rem;
+      display: inline-block;
+      margin-top: 0.2rem;
         margin: 0;
         margin-top: 0.12rem;
         font-size: 0.78rem;
@@ -652,6 +687,63 @@ const HEALTH_URL =
         font-size: 0.72rem;
         line-height: 1.45;
         color: var(--lumos-error);
+      }
+      .gorevler-detail {
+        max-width: 36rem;
+        margin-top: 0.35rem;
+        padding: 0.85rem 1rem;
+        border-radius: 12px;
+        border: 1px solid rgba(212, 182, 128, 0.22);
+        background: #0b0b0b;
+        box-shadow:
+          inset 0 1px 0 rgba(236, 207, 147, 0.04),
+          0 3px 18px rgba(0, 0, 0, 0.52);
+      }
+      .gorevler-detail-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-bottom: 0.65rem;
+      }
+      .gorevler-detail-header .gorevler-list-heading {
+        margin: 0;
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      .gorevler-detail-close {
+        flex: 0 0 auto;
+        padding: 0.35rem 0.65rem;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(22, 20, 18, 0.85);
+        color: var(--lumos-muted);
+        font-size: 0.72rem;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .gorevler-detail-close:hover {
+        color: var(--lumos-text);
+        border-color: rgba(212, 182, 128, 0.28);
+      }
+      .gorevler-detail-dl {
+        margin: 0;
+        display: grid;
+        grid-template-columns: minmax(6rem, max-content) 1fr;
+        gap: 0.35rem 0.85rem;
+        font-size: 0.8rem;
+        line-height: 1.45;
+      }
+      .gorevler-detail-dl dt {
+        margin: 0;
+        font-weight: 600;
+        color: rgba(176, 170, 162, 0.92);
+      }
+      .gorevler-detail-dl dd {
+        margin: 0;
+        color: var(--lumos-text);
+        word-break: break-word;
       }
       .dosyalar-result-stack {
         max-width: 36rem;
@@ -1285,7 +1377,67 @@ const HEALTH_URL =
           min-height: 0;
         }
       }
-    </style>
+    
+    /* Görev listesi: başlık ve meta bilgiyi zorla ayrı satıra al */
+    #gorevler-list strong,
+    #gorevler-list .gorevler-task-title {
+      display: block !important;
+      margin: 0 0 0.22rem 0;
+      line-height: 1.25;
+    }
+    #gorevler-list .gorevler-task-meta,
+    #gorevler-list .task-status-badge,
+    #gorevler-list .task-priority-badge {
+      display: inline-block;
+      margin-top: 0.08rem;
+      font-size: 0.92rem;
+      color: var(--lumos-muted);
+      font-weight: 500;
+    }
+
+  
+    /* Görev listesi: başlık ve meta aynı satırda sıkışmasın */
+    #gorevler-list .gorevler-task-main {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      gap: 0.16rem;
+      min-width: 0;
+    }
+    #gorevler-list .gorevler-task-title {
+      display: block !important;
+      line-height: 1.25;
+    }
+    #gorevler-list .gorevler-task-meta {
+      display: block !important;
+      margin-top: 0.08rem;
+      color: var(--lumos-muted);
+      font-size: 0.92rem;
+      font-weight: 500;
+      line-height: 1.35;
+    }
+
+  
+    /* Dinamik görev listesi: Astro scoped CSS dışına çıkar */
+    :global(#gorevler-list strong),
+    :global(#gorevler-list .gorevler-task-title) {
+      display: block !important;
+      margin: 0 0 0.22rem 0 !important;
+      line-height: 1.25 !important;
+      font-weight: 700 !important;
+    }
+    :global(#gorevler-list .gorevler-task-meta),
+    :global(#gorevler-list .task-status-badge),
+    :global(#gorevler-list .task-priority-badge) {
+      display: block !important;
+      margin-top: 0.08rem !important;
+      color: var(--lumos-muted) !important;
+      font-size: 0.92rem !important;
+      font-weight: 500 !important;
+      line-height: 1.35 !important;
+    }
+
+  </style>
   </head>
   <body>
     <div class="panel-shell">
@@ -1509,6 +1661,13 @@ const HEALTH_URL =
               </div>
               <h3 class="gorevler-list-heading">Görev listesi</h3>
               <ul id="gorevler-list" class="gorevler-task-list" aria-label="Görev listesi"></ul>
+              <div id="gorevler-detail" class="gorevler-detail" hidden tabindex="-1">
+                <div class="gorevler-detail-header">
+                  <h3 id="gorevler-detail-title" class="gorevler-list-heading">Görev detayı</h3>
+                  <button type="button" id="gorevler-detail-close" class="gorevler-detail-close">Kapat</button>
+                </div>
+                <dl id="gorevler-detail-dl" class="gorevler-detail-dl"></dl>
+              </div>
             </div>
           </section>
 
@@ -2126,11 +2285,33 @@ const HEALTH_URL =
     <script define:vars={{ CHAT_URL, kandoToken, UPLOAD_URL, HEALTH_URL, BRIDGE_BASE_URL }}>
       /** Görevler sekmesi ile sohbet görev komutları tek diziyi paylaşır (wireGorevlerPrototype). Kalıcılık: tarayıcı localStorage. */
       const PANEL_GOREVLER_LS_KEY = "lumos_panel_gorevler_list_v1";
+      const GOREVLER_FIELD_MAX_LEN = 2048;
+
+      function truncateGorevlerField(s) {
+        const t = String(s || "").trim();
+        if (!t) return "";
+        return t.length > GOREVLER_FIELD_MAX_LEN
+          ? t.slice(0, GOREVLER_FIELD_MAX_LEN) + "…"
+          : t;
+      }
 
       const defaultGorevlerSeed = [
         { title: "Panel API durumunu kontrol et", priority: "orta", status: "onay_bekliyor" },
         { title: "Güvenlik sekmesini gözden geçir", priority: "dusuk", status: "tamamlandi" },
       ];
+
+      function sanitizeBridgeLast(bl) {
+        if (!bl || typeof bl !== "object") return null;
+        const iso = String(bl.lastBridgeAt || "").trim();
+        if (!iso || Number.isNaN(Date.parse(iso))) return null;
+        const out = { lastBridgeAt: iso };
+        for (const k of ["route", "source", "result_file", "execution_file"]) {
+          const v = truncateGorevlerField(bl[k]);
+          if (v) out[k] = v;
+        }
+        if (bl.accepted === true || bl.accepted === false) out.accepted = bl.accepted;
+        return out;
+      }
 
       function sanitizeGorevlerRow(x) {
         if (!x || typeof x !== "object") return null;
@@ -2141,6 +2322,8 @@ const HEALTH_URL =
         const row = { title, priority: pr, status: st };
         const w = x.when != null ? String(x.when).trim() : "";
         if (w) row.when = w;
+        const bridge = sanitizeBridgeLast(x.bridgeLast);
+        if (bridge) row.bridgeLast = bridge;
         return row;
       }
 
@@ -2770,7 +2953,22 @@ const HEALTH_URL =
         const statusSel = document.getElementById("gorevler-status");
         const addBtn = document.getElementById("gorevler-add");
         const hintEl = document.getElementById("gorevler-hint");
-        if (!listEl || !titleInput || !prioritySel || !statusSel || !addBtn || !hintEl) {
+        const detailEl = document.getElementById("gorevler-detail");
+        const detailTitleEl = document.getElementById("gorevler-detail-title");
+        const detailDl = document.getElementById("gorevler-detail-dl");
+        const detailCloseBtn = document.getElementById("gorevler-detail-close");
+        if (
+          !listEl ||
+          !titleInput ||
+          !prioritySel ||
+          !statusSel ||
+          !addBtn ||
+          !hintEl ||
+          !detailEl ||
+          !detailTitleEl ||
+          !detailDl ||
+          !detailCloseBtn
+        ) {
           console.warn("[Lumos panel görev] wireGorevlerPrototype erken çıkış — görev listesi bağlanmadı.", {
             listEl: !!listEl,
             titleInput: !!titleInput,
@@ -2778,6 +2976,10 @@ const HEALTH_URL =
             statusSel: !!statusSel,
             addBtn: !!addBtn,
             hintEl: !!hintEl,
+            detailEl: !!detailEl,
+            detailTitleEl: !!detailTitleEl,
+            detailDl: !!detailDl,
+            detailCloseBtn: !!detailCloseBtn,
           });
           return;
         }
@@ -2788,11 +2990,160 @@ const HEALTH_URL =
           onay_bekliyor: "Onay bekliyor",
           tamamlandi: "Tamamlandı",
         };
+
+        let gorevlerEscapeHandler = null;
+        let lastGorevlerOpenedIndex = -1;
+
+        function closeGorevlerDetail(restoreFocus) {
+          detailEl.hidden = true;
+          detailDl.replaceChildren();
+          detailTitleEl.textContent = "Görev detayı";
+          listEl.querySelectorAll(".gorevler-task-card").forEach((node) => {
+            node.setAttribute("aria-expanded", "false");
+          });
+          if (gorevlerEscapeHandler) {
+            document.removeEventListener("keydown", gorevlerEscapeHandler);
+            gorevlerEscapeHandler = null;
+          }
+          if (restoreFocus && lastGorevlerOpenedIndex >= 0) {
+            const li = listEl.querySelector(
+              '[data-task-index="' + String(lastGorevlerOpenedIndex) + '"]',
+            );
+            if (li && typeof li.focus === "function") li.focus({ preventScroll: true });
+          }
+          lastGorevlerOpenedIndex = -1;
+        }
+
+        function formatTrDateTime(iso) {
+          const s = String(iso || "").trim();
+          if (!s) return "—";
+          const d = new Date(s);
+          if (Number.isNaN(d.getTime())) return "—";
+          try {
+            return d.toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "medium" });
+          } catch {
+            return s;
+          }
+        }
+
+        /** Köprü JSON alanları (detay + kalıcılık). */
+        function bridgeFieldsFromJson(data) {
+          const empty = {
+            route: null,
+            source: null,
+            accepted: null,
+            result_file: null,
+            execution_file: null,
+          };
+          if (!data || typeof data !== "object") return empty;
+          const route =
+            data.route != null && String(data.route).trim() ? String(data.route).trim() : null;
+          const source =
+            data.source != null && String(data.source).trim() ? String(data.source).trim() : null;
+          let accepted = null;
+          if (data.accepted === true || data.accepted === false) accepted = data.accepted;
+          const result_file =
+            data.result_file != null && String(data.result_file).trim()
+              ? String(data.result_file).trim()
+              : null;
+          const execution_file =
+            data.execution_file != null && String(data.execution_file).trim()
+              ? String(data.execution_file).trim()
+              : null;
+          return { route, source, accepted, result_file, execution_file };
+        }
+
+        function assignTaskBridgeLast(taskRef, data, acceptedOverride) {
+          const ts = new Date().toISOString();
+          const f = bridgeFieldsFromJson(data);
+          const snap = { ...f, lastBridgeAt: ts };
+          if (acceptedOverride === true || acceptedOverride === false) snap.accepted = acceptedOverride;
+          const sane = sanitizeBridgeLast(snap) || { lastBridgeAt: ts };
+          taskRef.bridgeLast = sane;
+          persistPanelGorevlerTasks();
+        }
+
+        function lumosOutboxPathBasename(p) {
+          const s = p != null ? String(p).trim() : "";
+          if (!s) return "";
+          const parts = s.replace(/\\/g, "/").split("/");
+          return parts[parts.length - 1] || s;
+        }
+
+        function appendDetailRow(label, value) {
+          const dt = document.createElement("dt");
+          dt.textContent = label;
+          const dd = document.createElement("dd");
+          dd.textContent = value != null && String(value).trim() ? String(value).trim() : "—";
+          detailDl.appendChild(dt);
+          detailDl.appendChild(dd);
+        }
+
+        function openGorevlerDetail(taskIndex) {
+          const t = panelGorevlerTasks[taskIndex];
+          if (!t) return;
+          lastGorevlerOpenedIndex = taskIndex;
+          const bl = t.bridgeLast && typeof t.bridgeLast === "object" ? t.bridgeLast : null;
+          detailTitleEl.textContent = "Görev detayı — " + t.title;
+          detailDl.replaceChildren();
+
+          let route = "—";
+          let source = "—";
+          let acceptedTxt = "—";
+          let resultFile = "—";
+          let execFile = "—";
+          let lastOp = "—";
+
+          if (bl) {
+            lastOp = formatTrDateTime(bl.lastBridgeAt);
+            if (bl.route) route = bl.route;
+            if (bl.source) source = bl.source;
+            if (bl.accepted === true) acceptedTxt = "Evet";
+            else if (bl.accepted === false) acceptedTxt = "Hayır";
+            if (bl.result_file) {
+              const raw = String(bl.result_file).trim();
+              const bn = lumosOutboxPathBasename(raw);
+              resultFile = bn || raw;
+            }
+            if (bl.execution_file) {
+              const raw = String(bl.execution_file).trim();
+              const bn = lumosOutboxPathBasename(raw);
+              execFile = bn || raw;
+            }
+          }
+
+          appendDetailRow("route", route);
+          appendDetailRow("source", source);
+          appendDetailRow("accepted", acceptedTxt);
+          appendDetailRow("result_file", resultFile);
+          appendDetailRow("execution_file", execFile);
+          appendDetailRow("Son işlem zamanı", lastOp);
+
+          detailEl.hidden = false;
+          if (!gorevlerEscapeHandler) {
+            gorevlerEscapeHandler = (ev) => {
+              if (ev.key !== "Escape" || detailEl.hidden) return;
+              ev.preventDefault();
+              closeGorevlerDetail(true);
+            };
+            document.addEventListener("keydown", gorevlerEscapeHandler);
+          }
+          if (typeof detailEl.focus === "function") detailEl.focus({ preventScroll: true });
+        }
+
         function render() {
+          closeGorevlerDetail(false);
           listEl.replaceChildren();
-          for (const t of panelGorevlerTasks) {
+          for (let i = 0; i < panelGorevlerTasks.length; i++) {
+            const t = panelGorevlerTasks[i];
             const li = document.createElement("li");
             li.className = "gorevler-task-card";
+            li.tabIndex = 0;
+            li.setAttribute("role", "button");
+            li.setAttribute("data-task-index", String(i));
+            li.setAttribute("aria-expanded", "false");
+            li.setAttribute("aria-controls", "gorevler-detail");
+            li.setAttribute("aria-label", "Görev: " + t.title + "; ayrıntıları göster");
 
             const main = document.createElement("div");
             main.className = "gorevler-task-main";
@@ -2834,13 +3185,6 @@ const HEALTH_URL =
           hintEl.hidden = true;
           hintEl.textContent = "";
           hintEl.style.whiteSpace = "";
-        }
-
-        function lumosOutboxPathBasename(p) {
-          const s = p != null ? String(p).trim() : "";
-          if (!s) return "";
-          const parts = s.replace(/\\/g, "/").split("/");
-          return parts[parts.length - 1] || s;
         }
 
         /**
@@ -2888,6 +3232,7 @@ const HEALTH_URL =
             priority,
             status,
           });
+          const taskRef = panelGorevlerTasks[panelGorevlerTasks.length - 1];
           titleInput.value = "";
           persistPanelGorevlerTasks();
           render();
@@ -2915,6 +3260,7 @@ const HEALTH_URL =
             }
 
             if (!r.ok) {
+              assignTaskBridgeLast(taskRef, data, null);
               const err =
                 data && typeof data === "object" && data.error != null
                   ? String(data.error)
@@ -2923,17 +3269,21 @@ const HEALTH_URL =
               return;
             }
             if (data && typeof data === "object" && data.accepted === false) {
+              assignTaskBridgeLast(taskRef, data, false);
               const err =
                 data.error != null ? String(data.error) : "Görev köprü tarafından kabul edilmedi.";
               showHint("Görev yerel listeye eklendi; " + err);
               return;
             }
             if (data && typeof data === "object") {
+              assignTaskBridgeLast(taskRef, data, null);
               showHint(buildTaskBridgeSuccessReadableHint(data));
             } else {
+              assignTaskBridgeLast(taskRef, null, null);
               hideHint();
             }
           } catch (_) {
+            assignTaskBridgeLast(taskRef, null, null);
             showHint("Görev yerel listeye eklendi; bridge bağlantısı başarısız.");
           }
         }
@@ -2946,6 +3296,34 @@ const HEALTH_URL =
           e.preventDefault();
           addTask();
         });
+
+        listEl.addEventListener("click", (e) => {
+          const li = e.target && e.target.closest ? e.target.closest("li.gorevler-task-card") : null;
+          if (!li || !listEl.contains(li)) return;
+          const idx = Number(li.getAttribute("data-task-index"));
+          if (Number.isNaN(idx) || idx < 0) return;
+          listEl.querySelectorAll(".gorevler-task-card").forEach((node) => {
+            node.setAttribute("aria-expanded", "false");
+          });
+          li.setAttribute("aria-expanded", "true");
+          openGorevlerDetail(idx);
+        });
+
+        listEl.addEventListener("keydown", (e) => {
+          const li = e.target && e.target.closest ? e.target.closest("li.gorevler-task-card") : null;
+          if (!li || !listEl.contains(li)) return;
+          if (e.key !== "Enter" && e.key !== " ") return;
+          e.preventDefault();
+          const idx = Number(li.getAttribute("data-task-index"));
+          if (Number.isNaN(idx) || idx < 0) return;
+          listEl.querySelectorAll(".gorevler-task-card").forEach((node) => {
+            node.setAttribute("aria-expanded", "false");
+          });
+          li.setAttribute("aria-expanded", "true");
+          openGorevlerDetail(idx);
+        });
+
+        detailCloseBtn.addEventListener("click", () => closeGorevlerDetail(true));
 
         render();
       }
