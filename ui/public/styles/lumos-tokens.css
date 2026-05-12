@@ -1,0 +1,15 @@
+/**
+ * Landing-only tokens (panel.astro keeps its own :root).
+ * Navy depth, electric blue, gold tuned for blue pairing.
+ */
+:root {
+  --lumos-base: #04060d;
+  --lumos-surface: #0a1020;
+  --lumos-text: #eceef4;
+  --lumos-text-muted: #c5cad6;
+  --lumos-accent-gold: #e2c275;
+  --lumos-accent-blue: #0ea5e9;
+  --lumos-accent-blue-bright: #38bdf8;
+  --lumos-accent-blue-soft: rgba(14, 165, 233, 0.42);
+  --lumos-accent-gold-soft: rgba(226, 194, 117, 0.38);
+}
