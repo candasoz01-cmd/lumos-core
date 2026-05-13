@@ -1,7 +1,10 @@
 ---
 import GlobalMay19Corner from "../components/GlobalMay19Corner.astro";
 
-/** Canlı köprü: ana sayfa ile aynı sabit adres. */
+/**
+ * POST /chat tam URL (örn. `https://host/chat`).
+ * GET /status: aynı origin’de `.../status` — `PUBLIC_LUMOS_PANEL_STATUS_URL` ile ayrı host verilmezse CHAT_URL’den türetilir.
+ */
 const CHAT_URL = import.meta.env.PUBLIC_LUMOS_CHAT_URL || "https://lumos-core-1.onrender.com/chat";
 const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
 const UPLOAD_URL =
@@ -14,7 +17,7 @@ const HEALTH_URL =
   import.meta.env.PUBLIC_LUMOS_PANEL_HEALTH_URL ||
   import.meta.env.PUBLIC_LUMOS_BRIDGE_HEALTH_URL ||
   BRIDGE_BASE_URL + "/health";
-/** Backend "Sistem Durumu": CHAT_URL ile aynı origin, /chat yerine /status. Yan etkisizdir; POST yapmaz. */
+/** Backend "Sistem Durumu" (GET): varsayılan olarak CHAT_URL’deki `/chat` → `/status` ile aynı host. */
 const STATUS_URL =
   import.meta.env.PUBLIC_LUMOS_PANEL_STATUS_URL ||
   String(CHAT_URL).replace(/\/chat\/?$/i, "") + "/status";
@@ -4024,6 +4027,14 @@ const STATUS_URL =
           document.body.scrollLeft = 0;
         }
 
+        function summarizeClientFetchError(err) {
+          if (err == null) return "Bilinmeyen hata";
+          if (typeof err === "object" && err !== null && typeof err.message === "string" && err.message) {
+            return err.message;
+          }
+          return String(err);
+        }
+
         async function runSend() {
           const message = input.value.trim();
           const photoFile =
@@ -4290,17 +4301,24 @@ const STATUS_URL =
                 }
               }
             }
-          } catch {
-            setSendHint("Ağ hatası. Tekrar dene.");
+          } catch (err) {
+            const netMsg = summarizeClientFetchError(err);
+            setSendHint("İstek hatası: " + netMsg.slice(0, 140));
             appendBubble(
               "error",
-              "Sunucuya ulaşılamadı (ağ veya CORS). CHAT_URL ve servis erişimini kontrol edip tekrar deneyebilirsin.",
+              "Sunucuya ulaşılamadı (istemci tarafında istek tamamlanmadı).\n" +
+                "URL: " +
+                String(CHAT_URL) +
+                "\nHata: " +
+                netMsg +
+                "\nHTTP kodu yok (ağ kesintisi, engel veya sunucunun CORS/413 yanıtı tarayıcıda buna benzer görünebilir).",
             );
             if (photoTelemetry) {
               const visionGuess =
                 photoTelemetry.hasInline && !!photoFile && /^image\//i.test(photoFile.type || "");
               showPanelChatPhotoTech(
                 buildPhotoTechBlock({
+                  requestUrl: CHAT_URL,
                   httpStatus: "—",
                   reachedBackend: false,
                   imageDataSent: photoTelemetry.hasInline,
@@ -4309,7 +4327,7 @@ const STATUS_URL =
                   fallbackExact: false,
                   fallbackRegex: false,
                   networkError: true,
-                  extraReason: "İstek tamamlanamadı (ağ veya CORS)",
+                  extraReason: "Ağ veya istemci: " + netMsg,
                 }),
               );
               void loadPanelBackendStatus();
@@ -5235,6 +5253,9 @@ const STATUS_URL =
 
       function buildPhotoTechBlock(o) {
         const lines = [];
+        if (o.requestUrl != null && String(o.requestUrl).trim()) {
+          lines.push("İstek URL: " + String(o.requestUrl).trim());
+        }
         lines.push("HTTP: " + String(o.httpStatus != null ? o.httpStatus : "—"));
         lines.push("Fotoğraf backend'e ulaştı: " + (o.reachedBackend ? "evet" : "hayır"));
         lines.push("imageData gönderildi: " + (o.imageDataSent ? "evet" : "hayır"));

@@ -183,7 +183,7 @@ app.use(
     crossOriginResourcePolicy: { policy: "cross-origin" },
   })
 );
-app.use(express.json());
+/** CORS önce: gövde ayrıştırma hatası (ör. 413) yanıtlarında da ACAO gelsin; tarayıcı bunu aksi halde “CORS” sanır. */
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
@@ -191,6 +191,8 @@ app.use((req, res, next) => {
   if (req.method === "OPTIONS") return res.sendStatus(204);
   next();
 });
+/** Panel /chat: inline base64 (~256 KiB ham) + JSON sarmalayıcı; varsayılan 100kb altında 413 + sahte CORS. */
+app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || "1mb" }));
 
 /** Sohbet köprüsü: Vercel UI’dan canlı bağlantı; OpenAI Responses API ile yanıt. */
 app.post("/chat", async (req, res) => {
