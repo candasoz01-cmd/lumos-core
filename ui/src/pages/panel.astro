@@ -3768,6 +3768,15 @@ const HEALTH_URL =
          */
         const PANEL_CHAT_IMAGE_INLINE_MAX_BYTES = 256 * 1024;
 
+        /** Sunucunun `Buffer.from(b64, "base64")` uzunluğu ile aynı: ham bayt sayısı. */
+        function decodedByteLengthFromBase64(b64) {
+          if (!b64) return 0;
+          let pad = 0;
+          if (b64.endsWith("==")) pad = 2;
+          else if (b64.endsWith("=")) pad = 1;
+          return Math.floor((b64.length * 3) / 4) - pad;
+        }
+
         /** Yerel önizleme (data URL); sunucuya ayrıca şartlara uygunsa imageData olarak gider. */
         function readFileAsDataUrl(file) {
           return new Promise((resolve, reject) => {
@@ -3786,7 +3795,113 @@ const HEALTH_URL =
           const i = dataUrl.indexOf(marker);
           if (i < 0) return null;
           const b64 = dataUrl.slice(i + marker.length).replace(/\s/g, "");
-          return b64 || null;
+          if (!b64) return null;
+          if (decodedByteLengthFromBase64(b64) > PANEL_CHAT_IMAGE_INLINE_MAX_BYTES) return null;
+          return b64;
+        }
+
+        /**
+         * Orijinal dosyayı sıkıştırıp ham base64 (data: öneki yok) üretir; `PANEL_CHAT_IMAGE_INLINE_MAX_BYTES` altına indiremezse null.
+         * null iken mevcut davranış: `photo*` metadata gider, `imageData` gönderilmez.
+         */
+        async function compressPhotoFileForChat(file) {
+          if (!file || !/^image\//.test(file.type)) return null;
+          const cap = PANEL_CHAT_IMAGE_INLINE_MAX_BYTES;
+          const maxSide = 1024;
+
+          let bmp;
+          try {
+            bmp = await createImageBitmap(file);
+          } catch {
+            return null;
+          }
+
+          const iw = bmp.width;
+          const ih = bmp.height;
+          if (!iw || !ih) {
+            try {
+              bmp.close();
+            } catch {
+              /* ignore */
+            }
+            return null;
+          }
+
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            try {
+              bmp.close();
+            } catch {
+              /* ignore */
+            }
+            return null;
+          }
+
+          let dimScale = Math.min(1, maxSide / Math.max(iw, ih));
+          let quality = 0.7;
+          const minQuality = 0.25;
+          const maxAttempts = 28;
+
+          for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            const w = Math.max(1, Math.round(iw * dimScale));
+            const h = Math.max(1, Math.round(ih * dimScale));
+            canvas.width = w;
+            canvas.height = h;
+            ctx.drawImage(bmp, 0, 0, w, h);
+
+            const blob = await new Promise((resolve) => {
+              canvas.toBlob((b) => resolve(b), "image/jpeg", quality);
+            });
+            if (blob && blob.size <= cap) {
+              let b64 = "";
+              try {
+                b64 = await new Promise((resolve, reject) => {
+                  const fr = new FileReader();
+                  fr.onload = () => {
+                    const s = String(fr.result || "");
+                    const marker = "base64,";
+                    const j = s.indexOf(marker);
+                    resolve(j >= 0 ? s.slice(j + marker.length).replace(/\s/g, "") : "");
+                  };
+                  fr.onerror = () => reject(new Error("blob read"));
+                  fr.readAsDataURL(blob);
+                });
+              } catch {
+                b64 = "";
+              }
+              try {
+                bmp.close();
+              } catch {
+                /* ignore */
+              }
+              /* blob.size = decode edilen JPEG baytı; backend tavanı ile aynı ölçü. */
+              if (b64 && decodedByteLengthFromBase64(b64) <= cap) return b64;
+              return null;
+            }
+
+            if (quality > minQuality) {
+              quality = Math.max(minQuality, quality - 0.08);
+            } else {
+              dimScale *= 0.9;
+              quality = 0.55;
+            }
+            if (Math.round(iw * dimScale) < 8 || Math.round(ih * dimScale) < 8) {
+              try {
+                bmp.close();
+              } catch {
+                /* ignore */
+              }
+              return null;
+            }
+          }
+
+          try {
+            bmp.close();
+          } catch {
+            /* ignore */
+          }
+          return null;
         }
 
         /** Kullanıcı balonu: düz metin ve isteğe bağlı yerel görsel (sunucu ikili almaz). */
@@ -3907,9 +4022,19 @@ const HEALTH_URL =
                 typeof photoFile.size === "number" && Number.isFinite(photoFile.size)
                   ? photoFile.size
                   : 0;
-              const inlineB64 =
+              let inlineB64 =
                 imageDataUrlForBubble && dataUrlToInlineBase64ForChat(imageDataUrlForBubble, photoFile);
+              let sentCompressedJpeg = false;
+              if (!inlineB64) {
+                inlineB64 = await compressPhotoFileForChat(photoFile);
+                sentCompressedJpeg = !!inlineB64;
+              }
               if (inlineB64) chatBody.imageData = inlineB64;
+              if (sentCompressedJpeg) {
+                chatBody.photoType = "image/jpeg";
+                const rawName = photoFile.name || "photo";
+                chatBody.photoName = rawName.replace(/\.[^/.]+$/, "") + ".jpg";
+              }
             }
             const r = await fetch(CHAT_URL, {
               method: "POST",
