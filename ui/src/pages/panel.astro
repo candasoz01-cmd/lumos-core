@@ -1692,22 +1692,24 @@ const HEALTH_URL =
       }
       @media (max-width: 767.98px) {
         html {
-          width: 100vw;
-          max-width: none;
+          width: 100%;
+          max-width: 100%;
           margin: 0;
           min-height: 100vh;
           min-height: 100dvh;
           min-height: -webkit-fill-available;
           overflow-x: hidden;
+          box-sizing: border-box;
         }
         body {
-          width: 100vw;
-          max-width: none;
+          width: 100%;
+          max-width: 100%;
           margin: 0;
           min-height: 100vh;
           min-height: 100dvh;
           min-height: -webkit-fill-available;
           overflow-x: hidden;
+          box-sizing: border-box;
         }
         .panel-shell {
           flex: 1 1 auto;
@@ -1715,7 +1717,7 @@ const HEALTH_URL =
           min-height: 100dvh;
           min-height: -webkit-fill-available;
           width: 100%;
-          max-width: none;
+          max-width: 100%;
           margin: 0;
           margin-inline: 0;
           align-self: stretch;
@@ -1737,7 +1739,7 @@ const HEALTH_URL =
           min-height: 0;
           min-width: 0;
           width: 100%;
-          max-width: none;
+          max-width: 100%;
           margin: 0;
           margin-inline: 0;
           align-self: stretch;
@@ -1867,7 +1869,7 @@ const HEALTH_URL =
           min-height: 0;
           min-width: 0;
           width: 100%;
-          max-width: none;
+          max-width: 100%;
           margin: 0;
           margin-inline: 0;
           align-self: stretch;
@@ -1889,16 +1891,18 @@ const HEALTH_URL =
         }
         #panel-sohbet {
           width: 100%;
-          max-width: none;
+          max-width: 100%;
           margin: 0;
           margin-inline: 0;
           padding-inline: 0;
+          box-sizing: border-box;
         }
         #panel-sohbet[data-active="true"] {
           flex: 1 1 auto;
           min-height: 0;
+          min-width: 0;
           width: 100%;
-          max-width: none;
+          max-width: 100%;
           margin: 0;
           margin-inline: 0;
           padding-inline: 0;
@@ -1912,7 +1916,7 @@ const HEALTH_URL =
           min-width: 0;
           overflow: hidden;
           width: 100%;
-          max-width: none;
+          max-width: 100%;
           margin: 0;
           margin-inline: 0;
           padding-inline: 0;
@@ -1929,7 +1933,7 @@ const HEALTH_URL =
           flex-direction: column;
           overflow: hidden;
           width: 100%;
-          max-width: none;
+          max-width: 100%;
           margin: 0;
           margin-inline: 0;
           padding-inline: 0;
@@ -1939,25 +1943,33 @@ const HEALTH_URL =
         #panel-sohbet .chat-thread {
           flex: 1 1 auto;
           min-height: 0;
+          min-width: 0;
+          width: 100%;
+          max-width: 100%;
           max-height: 32vh;
           max-height: 32dvh;
           overflow-y: auto;
           overflow-x: hidden;
           -webkit-overflow-scrolling: touch;
           padding-inline: 0;
+          box-sizing: border-box;
         }
-        /* "Lumos hazır · Dinliyor" durum kartı tek satırda kalır; gerekirse
-         * yazı tipi ve harf aralığı küçülür. */
+        /* "Lumos hazır · Dinliyor": dar ekranda taşmayı önlemek için satır kırılır. */
         #panel-sohbet .chat-empty-hint {
           width: 100%;
-          max-width: none;
+          max-width: 100%;
+          min-width: 0;
           align-self: stretch;
+          box-sizing: border-box;
           padding: 0.55rem 0.85rem;
         }
         #panel-sohbet .chat-empty-hint__text {
-          display: inline-block;
-          white-space: nowrap;
-          font-size: clamp(0.7rem, 2.85vw, 0.84rem);
+          display: block;
+          max-width: 100%;
+          white-space: normal;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+          font-size: clamp(0.64rem, 2.5vw, 0.78rem);
           letter-spacing: -0.025em;
           line-height: 1.28;
         }
@@ -1969,7 +1981,8 @@ const HEALTH_URL =
           z-index: 24;
           align-self: stretch;
           width: 100%;
-          max-width: none;
+          max-width: 100%;
+          min-width: 0;
           margin: 0;
           margin-inline: 0;
           box-sizing: border-box;
@@ -1978,13 +1991,41 @@ const HEALTH_URL =
           background: var(--lumos-main-bg);
           box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.55);
         }
-        #panel-sohbet .chat-camera-preview-wrap,
+        #panel-sohbet .chat-camera-preview-wrap {
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+          align-self: stretch;
+          box-sizing: border-box;
+        }
+        #panel-sohbet .chat-camera-photo-row {
+          display: flex;
+          align-items: center;
+          width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
+        }
+        #panel-sohbet .chat-camera-photo-status {
+          flex: 1 1 auto;
+          min-width: 0;
+          max-width: 100%;
+          font-size: clamp(0.58rem, 2.4vw, 0.66rem);
+          line-height: 1.35;
+          overflow: hidden;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+          white-space: normal;
+        }
         #panel-sohbet .chat-voice-hint,
         #panel-sohbet .chat-camera-hint,
         #panel-sohbet .lumos-security-note {
           width: 100%;
-          max-width: none;
+          max-width: 100%;
+          min-width: 0;
           align-self: stretch;
+          box-sizing: border-box;
         }
         #panel-sohbet .chat-camera-photo-preview-img:not([hidden]) {
           max-width: min(100%, 13rem);
@@ -1992,31 +2033,35 @@ const HEALTH_URL =
         }
         #panel-sohbet .chat-compose-bar {
           width: 100%;
-          max-width: none;
+          max-width: 100%;
+          min-width: 0;
           box-sizing: border-box;
         }
         #panel-sohbet .chat-compose.chat-compose--gpt {
           display: flex;
           flex-wrap: nowrap;
           align-items: center;
-          gap: 0.25rem;
+          gap: 0.2rem;
+          min-width: 0;
           width: 100%;
-          max-width: none;
+          max-width: 100%;
           margin: 0;
           margin-inline: 0;
           align-self: stretch;
+          box-sizing: border-box;
         }
         #panel-sohbet .chat-compose {
           display: flex;
           flex-wrap: nowrap;
           align-items: center;
-          gap: 0.25rem;
+          gap: 0.2rem;
           min-width: 0;
           width: 100%;
-          max-width: none;
+          max-width: 100%;
           margin: 0;
           margin-inline: 0;
           align-self: stretch;
+          box-sizing: border-box;
         }
         #panel-sohbet .chat-compose--gpt textarea {
           flex: 1 1 auto;
