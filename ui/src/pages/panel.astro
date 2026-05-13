@@ -2293,6 +2293,7 @@ const HEALTH_URL =
                 </div>
                 <p id="panel-voice-hint" class="chat-voice-hint" role="status" aria-live="polite" hidden></p>
                 <p id="panel-camera-hint" class="chat-camera-hint" role="status" aria-live="polite" hidden></p>
+                <p id="panel-send-hint" class="chat-camera-hint" role="status" aria-live="polite" hidden></p>
                 <p class="lumos-security-note">Kalıcı işlemler için onay ister.</p>
               </div>
             </div>
@@ -3382,6 +3383,7 @@ const HEALTH_URL =
 
         const cameraBtn = document.getElementById("panel-camera-input");
         const cameraHint = document.getElementById("panel-camera-hint");
+        const sendHint = document.getElementById("panel-send-hint");
         const cameraPhotoInput = /** @type {HTMLInputElement | null} */ (document.getElementById("panel-camera-photo-input"));
         const cameraPhotoPreview = /** @type {HTMLImageElement | null} */ (document.getElementById("panel-camera-photo-preview"));
         const cameraPhotoStatus = document.getElementById("panel-camera-photo-status");
@@ -3394,6 +3396,12 @@ const HEALTH_URL =
           if (!cameraHint) return;
           cameraHint.textContent = msg;
           cameraHint.hidden = !msg;
+        }
+
+        function setSendHint(msg) {
+          if (!sendHint) return;
+          sendHint.textContent = msg;
+          sendHint.hidden = !msg;
         }
 
         function revokeCameraPhotoObjectUrl() {
@@ -3547,10 +3555,80 @@ const HEALTH_URL =
           });
         }
 
+        /** /chat JSON-only; iplikte görsel için yerel önizleme (data URL). */
+        function readFileAsDataUrl(file) {
+          return new Promise((resolve, reject) => {
+            const fr = new FileReader();
+            fr.onload = () => resolve(String(fr.result || ""));
+            fr.onerror = () => reject(new Error("read failed"));
+            fr.readAsDataURL(file);
+          });
+        }
+
+        /** Kullanıcı balonu: düz metin ve isteğe bağlı yerel görsel (sunucu ikili almaz). */
+        function appendUserComposeBubble(plainText, imageDataUrl) {
+          const turn = document.createElement("div");
+          turn.className = "chat-turn chat-turn--user";
+          const wrap = document.createElement("div");
+          wrap.className = "chat-msg chat-msg--user";
+          const role = document.createElement("span");
+          role.className = "chat-msg-role";
+          role.textContent = "Sen";
+          const body = document.createElement("div");
+          body.className = "chat-msg-body";
+          const trimmed = plainText && String(plainText).trim();
+          if (trimmed) {
+            const textEl = document.createElement("div");
+            textEl.textContent = trimmed;
+            body.appendChild(textEl);
+          }
+          if (imageDataUrl) {
+            if (!trimmed) {
+              const cap = document.createElement("div");
+              cap.textContent = "Fotoğraf eklendi";
+              body.appendChild(cap);
+            }
+            const img = document.createElement("img");
+            img.src = imageDataUrl;
+            img.alt = "";
+            img.decoding = "async";
+            img.style.maxWidth = "100%";
+            img.style.borderRadius = "8px";
+            img.style.display = "block";
+            img.style.marginTop = trimmed ? "8px" : "6px";
+            body.appendChild(img);
+          }
+          wrap.appendChild(role);
+          wrap.appendChild(body);
+          turn.appendChild(wrap);
+          thread.appendChild(turn);
+          requestAnimationFrame(() => {
+            thread.scrollTop = thread.scrollHeight;
+          });
+        }
+
         async function runSend() {
           const message = input.value.trim();
-          if (!message || sending) return;
+          const photoFile =
+            cameraPhotoInput && cameraPhotoInput.files && cameraPhotoInput.files[0]
+              ? cameraPhotoInput.files[0]
+              : null;
+          const hasPhoto = !!(photoFile && /^image\//.test(photoFile.type));
+          if ((!message && !hasPhoto) || sending) return;
 
+          setSendHint("");
+
+          let imageDataUrlForBubble = null;
+          if (hasPhoto) {
+            try {
+              imageDataUrlForBubble = await readFileAsDataUrl(photoFile);
+            } catch {
+              setSendHint("Fotoğraf okunamadı.");
+              return;
+            }
+          }
+
+          const outgoingMessage = message || (hasPhoto ? "Fotoğraf eklendi." : "");
           const panelGorevCmd = parsePanelGorevKomutu(message);
 
           sending = true;
@@ -3561,7 +3639,11 @@ const HEALTH_URL =
           sendBtn.classList.add("chat-compose-send--busy");
           if (sendLabelEl) sendLabelEl.textContent = loadingLabel;
           const history = collectThreadHistory(thread);
-          appendBubble("user", message);
+          if (imageDataUrlForBubble) {
+            appendUserComposeBubble(message, imageDataUrlForBubble);
+          } else {
+            appendBubble("user", message);
+          }
 
           /** Liste + onay: fetch’ten önce; aksi halde uzayan / takılan istek zinciri burada kopar (runSend hiç ilerlemez). */
           if (panelGorevCmd) {
@@ -3569,6 +3651,7 @@ const HEALTH_URL =
             appendBubble("lumos", buildPanelGorevConfirmation(panelGorevCmd));
             input.value = "";
             clearPanelCameraPhotoSelection();
+            setSendHint("");
           }
 
           try {
@@ -3578,12 +3661,13 @@ const HEALTH_URL =
                 "Content-Type": "application/json",
                 "X-Kando-Token": kandoToken,
               },
-              body: JSON.stringify({ message, history }),
+              body: JSON.stringify({ message: outgoingMessage, history }),
             });
             const text = await r.text();
 
             if (!r.ok) {
               console.warn("[Lumos panel chat] HTTP error", r.status);
+              setSendHint("Gönderilemedi (HTTP " + r.status + "). Tekrar dene.");
               appendBubble(
                 "error",
                 "Sunucu yanıtı başarısız (HTTP " +
@@ -3603,9 +3687,11 @@ const HEALTH_URL =
                   data = JSON.parse(text);
                   parsed = true;
                 } catch {
+                  setSendHint("Yanıt okunamadı.");
                   appendBubble("error", INVALID_FORMAT_MSG);
                 }
               } else {
+                setSendHint("Yanıt okunamadı.");
                 appendBubble("error", INVALID_FORMAT_MSG);
               }
 
@@ -3616,6 +3702,7 @@ const HEALTH_URL =
                   isPlainObject &&
                   ("reply" in data || "content" in data || "message" in data);
                 if (!isPlainObject || !hasChatBodyKey) {
+                  setSendHint("Yanıt okunamadı.");
                   appendBubble("error", INVALID_FORMAT_MSG);
                 } else {
                   const raw = data.reply ?? data.content ?? data.message;
@@ -3624,23 +3711,28 @@ const HEALTH_URL =
                     const { lumosText } = ingestAssistantPanelGorev(replyBody);
                     if (panelGorevCmd) {
                       appendBubble("lumos", "Sunucu yanıtı:\n" + lumosText);
+                      setSendHint("");
                     } else {
                       appendBubble("lumos", lumosText);
                       input.value = "";
                       clearPanelCameraPhotoSelection();
+                      setSendHint("");
                     }
                   } else if (panelGorevCmd) {
                     appendBubble(
                       "lumos",
                       "Sunucu bu istek için ek metin dönmedi (görev zaten yerelde kayıtlı).",
                     );
+                    setSendHint("");
                   } else {
                     appendBubble("lumos", EMPTY_REPLY_MSG);
+                    setSendHint("");
                   }
                 }
               }
             }
           } catch {
+            setSendHint("Ağ hatası. Tekrar dene.");
             appendBubble(
               "error",
               "Sunucuya ulaşılamadı (ağ veya CORS). CHAT_URL ve servis erişimini kontrol edip tekrar deneyebilirsin.",
