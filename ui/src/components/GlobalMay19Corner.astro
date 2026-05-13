@@ -6,7 +6,7 @@ const FLAG_KKTC_SRC = "/assets/flags/kktc.svg";
 
 <div
   id="lumos-m19-global"
-  class="lumos-m19g"
+  class="lumos-m19g lumos-m19g--dock-header"
   role="region"
   aria-label="19 Mayıs anması"
 >
@@ -78,11 +78,20 @@ const FLAG_KKTC_SRC = "/assets/flags/kktc.svg";
 </div>
 
 <style is:global>
-  .lumos-m19g {
-    position: fixed;
-    z-index: 2147483000;
-    right: max(0.65rem, env(safe-area-inset-right));
-    bottom: max(0.65rem, env(safe-area-inset-bottom));
+  /**
+   * Üst şerit / panel başlığında satır içi köşe: sabit alt-sağ yok.
+   * Açık panel, üst konteynerin altına mutlak konumlanır (akışı şişirmez).
+   */
+  .lumos-m19g.lumos-m19g--dock-header {
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+    align-self: center;
+    flex: 0 0 auto;
+    z-index: 300;
+    margin: 0;
+    padding: 0;
     font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
     pointer-events: none;
   }
@@ -103,7 +112,11 @@ const FLAG_KKTC_SRC = "/assets/flags/kktc.svg";
       0 12px 40px rgba(0, 0, 0, 0.62),
       0 0 0 1px rgba(0, 0, 0, 0.4),
       inset 0 1px 0 rgba(210, 185, 135, 0.12);
-    position: relative;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.35rem);
+    left: auto;
+    z-index: 301;
     transition:
       opacity 0.35s ease,
       transform 0.35s ease;
@@ -198,15 +211,15 @@ const FLAG_KKTC_SRC = "/assets/flags/kktc.svg";
     outline: 2px solid rgba(93, 201, 197, 0.45);
     outline-offset: 2px;
   }
-  .lumos-m19g__fab {
+  .lumos-m19g--dock-header .lumos-m19g__fab {
     display: flex;
     align-items: center;
     justify-content: center;
     width: auto;
-    min-width: 3.25rem;
+    min-width: 2.85rem;
     height: auto;
-    min-height: 2.65rem;
-    padding: 0.42rem 0.52rem;
+    min-height: 2.35rem;
+    padding: 0.36rem 0.45rem;
     border-radius: 12px;
     border: 1px solid rgba(155, 125, 82, 0.38);
     background: linear-gradient(158deg, rgba(24, 26, 34, 0.99), rgba(8, 10, 16, 0.99));
@@ -250,10 +263,17 @@ const FLAG_KKTC_SRC = "/assets/flags/kktc.svg";
   }
 
   @media (max-width: 480px) {
-    .lumos-m19g {
-      right: max(0.5rem, env(safe-area-inset-right));
-      bottom: max(0.5rem, env(safe-area-inset-bottom));
-      left: auto;
+    .lumos-m19g--dock-header .lumos-m19g__fab {
+      min-width: 2.45rem;
+      min-height: 2.05rem;
+      padding: 0.28rem 0.38rem;
+      border-radius: 10px;
+    }
+    .lumos-m19g--dock-header .lumos-m19g__fab-flags {
+      gap: 0.16rem;
+    }
+    .lumos-m19g--dock-header .lumos-m19g__fab-flag {
+      width: clamp(1.05rem, 5.5vw, 1.3rem);
     }
     .lumos-m19g__flag {
       width: clamp(1.4rem, 7vw, 1.75rem);

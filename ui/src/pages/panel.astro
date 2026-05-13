@@ -2359,40 +2359,6 @@ const STATUS_URL =
         }
       }
     </style>
-    <!--
-      May19 köşesi `GlobalMay19Corner` ayrı bileşen; sayfa `<style>` scoped olduğu için
-      `#lumos-m19-global` kuralları DOM'a uygulanmıyordu → `.lumos-m19g` global fixed kalıyordu.
-      Mobil panelde yalnızca `body.panel-page` altında global override.
-    -->
-    <style is:global>
-      @media (max-width: 767.98px) {
-        body.panel-page #lumos-m19-global.lumos-m19g {
-          position: static !important;
-          right: auto !important;
-          bottom: auto !important;
-          left: auto !important;
-          top: auto !important;
-          transform: none !important;
-          flex: 0 0 auto;
-          flex-shrink: 0;
-          margin-left: auto;
-          align-self: center;
-          z-index: 4;
-        }
-        body.panel-page #lumos-m19-global.lumos-m19g .lumos-m19g__fab {
-          min-width: 2.45rem;
-          min-height: 2.05rem;
-          padding: 0.28rem 0.38rem;
-          border-radius: 10px;
-        }
-        body.panel-page #lumos-m19-global.lumos-m19g .lumos-m19g__fab-flags {
-          gap: 0.16rem;
-        }
-        body.panel-page #lumos-m19-global.lumos-m19g .lumos-m19g__fab .lumos-m19g__fab-flag {
-          width: clamp(1.05rem, 4.2vw, 1.35rem);
-        }
-      }
-    </style>
   </head>
   <body class="panel-page">
     <div class="panel-shell">
@@ -2401,7 +2367,6 @@ const STATUS_URL =
           <div class="panel-header-brand">
             <span class="lumos-mark" aria-hidden="true"></span>
             <h1>Lumos Panel</h1>
-            <GlobalMay19Corner />
           </div>
           <div class="panel-health-row">
             <span
@@ -2412,6 +2377,7 @@ const STATUS_URL =
               aria-live="polite"
             >Bağlanıyor</span>
             <span id="panel-health-detail" class="panel-health-detail" aria-live="polite"></span>
+            <GlobalMay19Corner />
           </div>
         </div>
       </header>
