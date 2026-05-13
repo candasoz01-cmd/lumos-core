@@ -72,7 +72,8 @@ const REPLY_PHOTO_NO_VISION = "Fotoğraf eklendi; görsel analiz henüz aktif de
 /** POST /chat fotoğraf dalı sonucu; yalnızca bellek (GET /status ile okunur). */
 let visionLastStatus = "not-tested";
 
-const PANEL_CHAT_VISION_EMPTY_TEXT_PROMPT = "Bu görseli kısaca açıkla.";
+const PANEL_CHAT_VISION_EMPTY_TEXT_PROMPT =
+  "Bu görseli kısa yanıtla analiz et: önce ön plandaki ana konu, sonra arka plan bağlamı; teknik cihaz/parça ise netlik ve belirsizlikleri açıkça belirt; gerekirse bir sonraki faydalı çekim öner.";
 
 /**
  * Panel fotoğrafı için data URL (Responses API input_image.image_url).
