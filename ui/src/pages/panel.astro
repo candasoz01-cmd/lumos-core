@@ -1853,6 +1853,10 @@ const HEALTH_URL =
           margin-inline: 0;
           box-sizing: border-box;
           padding: 0.28rem 0.35rem;
+          /** Dil/bayrak FAB (fixed, üst sağ) ile başlık / BAĞLI / health metninin çakışmasını önler. */
+          padding-inline-end: calc(3.35rem + max(0.35rem, env(safe-area-inset-right, 0px)));
+          position: relative;
+          z-index: 1;
         }
         .panel-header-title-row {
           column-gap: 0.3rem;
@@ -2028,7 +2032,7 @@ const HEALTH_URL =
           padding-inline: 0;
           padding-top: 0.2rem;
           padding-bottom: calc(
-            0.35rem + 2.85rem + max(0.65rem, env(safe-area-inset-bottom, 0px))
+            0.35rem + max(0.65rem, env(safe-area-inset-bottom, 0px))
           );
           background: linear-gradient(180deg, transparent 0%, var(--lumos-main-bg) 28%);
           background-color: var(--lumos-main-bg);
@@ -2199,14 +2203,14 @@ const HEALTH_URL =
           max-height: 7.5rem;
         }
         /**
-         * Köşe dil/bayrak FAB: compose + güvenli alan üstünde kalır; boyut küçültülür.
+         * Dil/bayrak FAB: mobilde üst sağ (panel başlık hizası); compose / önizleme alanını sıkıştırmaz.
          */
         #lumos-m19-global.lumos-m19g {
           position: fixed;
           right: max(0.45rem, env(safe-area-inset-right, 0px));
-          bottom: calc(4.35rem + env(safe-area-inset-bottom, 0px));
+          top: calc(env(safe-area-inset-top, 0px) + 0.26rem);
+          bottom: auto;
           left: auto;
-          top: auto;
         }
         #lumos-m19-global.lumos-m19g .lumos-m19g__fab {
           min-width: 2.45rem;
