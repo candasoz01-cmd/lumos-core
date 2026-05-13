@@ -284,7 +284,7 @@ app.post("/chat", async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8765;
 
 /** Sağlık kontrolü: sunucu ayaktaysa 200. "Backend temel ayakta" = aşağıdaki checkpoint'lerin hepsi 200 dönmeli. */
 const HEALTH_CHECKPOINTS = ["/posts?order=feed&limit=1", "/posts/rated-high", "/posts/rated-low"];
