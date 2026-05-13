@@ -1480,6 +1480,10 @@ const STATUS_URL =
         max-width: 100%;
         min-width: 0;
       }
+      /** `display:flex` (özellikle mobil #panel-sohbet) [hidden]’ı ezebilir; önizleme çubuğu kapalıyken yer kaplamasın. */
+      #panel-camera-preview-wrap[hidden] {
+        display: none !important;
+      }
       .chat-camera-photo-input {
         position: absolute;
         width: 1px;
@@ -1506,6 +1510,9 @@ const STATUS_URL =
         border: 1px solid rgba(115, 95, 68, 0.38);
         object-fit: cover;
         background: rgba(0, 0, 0, 0.35);
+      }
+      #panel-camera-photo-preview[hidden] {
+        display: none !important;
       }
       .chat-camera-photo-status {
         flex: 1 1 auto;
@@ -2387,7 +2394,8 @@ const STATUS_URL =
                       id="panel-camera-photo-status"
                       class="chat-camera-photo-status"
                       aria-live="polite"
-                    >Fotoğraf bekleniyor</span>
+                      hidden
+                    ></span>
                   </div>
                 </div>
                 <div class="chat-compose-bar">
@@ -3600,7 +3608,10 @@ const STATUS_URL =
             cameraPhotoPreview.hidden = true;
           }
           if (cameraPhotoInput) cameraPhotoInput.value = "";
-          if (cameraPhotoStatus) cameraPhotoStatus.textContent = "Fotoğraf bekleniyor";
+          if (cameraPhotoStatus) {
+            cameraPhotoStatus.textContent = "";
+            cameraPhotoStatus.hidden = true;
+          }
           if (cameraBtn) {
             cameraBtn.classList.remove("chat-compose-camera-btn--active");
             cameraBtn.setAttribute("aria-pressed", "false");
@@ -3634,6 +3645,7 @@ const STATUS_URL =
           }
           if (cameraPhotoStatus) {
             cameraPhotoStatus.textContent = name ? name : "Fotoğraf alındı";
+            syncCameraPhotoStatusVisibilityForViewport();
           }
           if (cameraBtn) {
             cameraBtn.classList.add("chat-compose-camera-btn--active");
@@ -4334,7 +4346,15 @@ const STATUS_URL =
           }
         });
 
-        mqPanelCameraMobile.addEventListener("change", syncPanelCameraPhotoBarVisibility);
+        function syncCameraPhotoStatusVisibilityForViewport() {
+          if (!cameraPhotoStatus || !cameraPhotoObjectUrl) return;
+          cameraPhotoStatus.hidden = mqPanelCameraMobile.matches;
+        }
+
+        mqPanelCameraMobile.addEventListener("change", () => {
+          syncPanelCameraPhotoBarVisibility();
+          syncCameraPhotoStatusVisibilityForViewport();
+        });
         syncPanelCameraPhotoBarVisibility();
 
         cameraBtn?.addEventListener("click", () => {
