@@ -3691,7 +3691,13 @@ const HEALTH_URL =
           });
         }
 
-        /** /chat JSON-only; iplikte görsel için yerel önizleme (data URL). */
+        /**
+         * /chat: JSON gövdesi; isteğe bağlı küçük görsel base64 (tavan backend ile uyumlu).
+         * Ham bayt tavanı 256 KiB — üzerinde yalnızca photo* metadata gider.
+         */
+        const PANEL_CHAT_IMAGE_INLINE_MAX_BYTES = 256 * 1024;
+
+        /** Yerel önizleme (data URL); sunucuya ayrıca şartlara uygunsa imageData olarak gider. */
         function readFileAsDataUrl(file) {
           return new Promise((resolve, reject) => {
             const fr = new FileReader();
@@ -3699,6 +3705,17 @@ const HEALTH_URL =
             fr.onerror = () => reject(new Error("read failed"));
             fr.readAsDataURL(file);
           });
+        }
+
+        /** data:image/...;base64, sonrası — tavan ve MIME image/ iken kullanılır. */
+        function dataUrlToInlineBase64ForChat(dataUrl, file) {
+          if (!dataUrl || !file || !/^image\//.test(file.type)) return null;
+          if (file.size > PANEL_CHAT_IMAGE_INLINE_MAX_BYTES) return null;
+          const marker = "base64,";
+          const i = dataUrl.indexOf(marker);
+          if (i < 0) return null;
+          const b64 = dataUrl.slice(i + marker.length).replace(/\s/g, "");
+          return b64 || null;
         }
 
         /** Kullanıcı balonu: düz metin ve isteğe bağlı yerel görsel (sunucu ikili almaz). */
@@ -3764,7 +3781,7 @@ const HEALTH_URL =
             }
           }
 
-          const outgoingMessage = message || (hasPhoto ? "Fotoğraf eklendi." : "");
+          const outgoingMessage = message;
           const panelGorevCmd = parsePanelGorevKomutu(message);
 
           sending = true;
@@ -3791,13 +3808,26 @@ const HEALTH_URL =
           }
 
           try {
+            const chatBody = { message: outgoingMessage, history };
+            if (hasPhoto && photoFile) {
+              chatBody.photoAttached = true;
+              chatBody.photoName = photoFile.name || "";
+              chatBody.photoType = photoFile.type || "";
+              chatBody.photoSize =
+                typeof photoFile.size === "number" && Number.isFinite(photoFile.size)
+                  ? photoFile.size
+                  : 0;
+              const inlineB64 =
+                imageDataUrlForBubble && dataUrlToInlineBase64ForChat(imageDataUrlForBubble, photoFile);
+              if (inlineB64) chatBody.imageData = inlineB64;
+            }
             const r = await fetch(CHAT_URL, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
                 "X-Kando-Token": kandoToken,
               },
-              body: JSON.stringify({ message: outgoingMessage, history }),
+              body: JSON.stringify(chatBody),
             });
             const text = await r.text();
 

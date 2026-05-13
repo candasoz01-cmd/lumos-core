@@ -12,6 +12,54 @@ const PANEL_CHAT_HISTORY_MAX_MESSAGES = 12;
 const PANEL_CHAT_MAX_CONTENT_CHARS = 6000;
 
 /**
+ * İsteğe bağlı JSON gövdesindeki küçük görsel (base64) üst tavanı — ham bayt (decode sonrası).
+ * Daha büyük dosyalarda panel yalnızca photo* metadata gönderir; görsel analiz yoktur.
+ */
+const PANEL_CHAT_IMAGE_INLINE_MAX_BYTES = 256 * 1024;
+
+/**
+ * @param {Record<string, unknown>} body
+ * @returns {{
+ *   photoAttached: boolean;
+ *   photoName: string;
+ *   photoType: string;
+ *   photoSize: number | null;
+ *   imageDataBase64: string | null;
+ * }}
+ */
+function parsePanelChatPhotoFields(body) {
+  const photoAttached = body?.photoAttached === true;
+  const photoName =
+    typeof body?.photoName === "string" ? body.photoName.slice(0, 2048) : "";
+  const photoType =
+    typeof body?.photoType === "string" ? body.photoType.slice(0, 256) : "";
+  const rawSize = body?.photoSize;
+  const photoSize =
+    typeof rawSize === "number" && Number.isFinite(rawSize) && rawSize >= 0
+      ? Math.min(Math.floor(rawSize), 1e12)
+      : null;
+  let imageDataBase64 = null;
+  const raw = body?.imageData;
+  if (typeof raw === "string") {
+    let b64 = raw.trim();
+    const dataUrl = /^data:image\/[^;]+;base64,(.+)$/is.exec(b64);
+    if (dataUrl) b64 = dataUrl[1];
+    b64 = b64.replace(/\s+/g, "");
+    if (b64.length > 0) {
+      try {
+        const buf = Buffer.from(b64, "base64");
+        if (buf.length > 0 && buf.length <= PANEL_CHAT_IMAGE_INLINE_MAX_BYTES) {
+          imageDataBase64 = b64;
+        }
+      } catch {
+        /* geçersiz base64 — yok say */
+      }
+    }
+  }
+  return { photoAttached, photoName, photoType, photoSize, imageDataBase64 };
+}
+
+/**
  * İstemciden gelen history dizisini güvenli biçimde { role, content } listesine indirger.
  * @param {unknown} raw
  * @returns {{ role: 'user' | 'assistant', content: string }[]}
@@ -98,20 +146,37 @@ app.use((req, res, next) => {
 /** Sohbet köprüsü: Vercel UI’dan canlı bağlantı; OpenAI Responses API ile yanıt. */
 app.post("/chat", async (req, res) => {
   try {
-    const message = req.body?.message;
-    if (message == null || (typeof message === "string" && message.trim() === "")) {
+    const body = req.body && typeof req.body === "object" ? req.body : {};
+    const photo = parsePanelChatPhotoFields(body);
+    const message = body?.message;
+    const currentText =
+      typeof message === "string" ? message.trim() : String(message ?? "").trim();
+
+    if (!currentText && !photo.photoAttached) {
       return res.status(400).json({ error: "message required" });
     }
+
+    const REPLY_PHOTO_NO_VISION = "Fotoğraf eklendi; görsel analiz henüz aktif değil.";
+    const REPLY_PHOTO_INLINE_STUB = "Görsel alındı, analiz yakında";
+
+    if (photo.photoAttached) {
+      const mimeOk = String(photo.photoType || "")
+        .toLowerCase()
+        .startsWith("image/");
+      if (mimeOk && photo.imageDataBase64) {
+        return res.json({ reply: REPLY_PHOTO_INLINE_STUB });
+      }
+      return res.json({ reply: REPLY_PHOTO_NO_VISION });
+    }
+
     const client = getOpenAI();
     if (!client) {
       return res.status(503).json({ error: "OPENAI_API_KEY missing" });
     }
-    const currentText =
-      typeof message === "string" ? message.trim() : String(message).trim();
     if (!currentText) {
       return res.status(400).json({ error: "message required" });
     }
-    const historyMessages = normalizePanelChatHistory(req.body?.history);
+    const historyMessages = normalizePanelChatHistory(body?.history);
     let userContent = currentText;
     if (userContent.length > PANEL_CHAT_MAX_CONTENT_CHARS) {
       userContent = userContent.slice(0, PANEL_CHAT_MAX_CONTENT_CHARS);
