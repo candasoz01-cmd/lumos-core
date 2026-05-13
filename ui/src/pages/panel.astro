@@ -1298,6 +1298,16 @@ const STATUS_URL =
       .chat-thread:has(> .chat-turn) > .chat-empty-hint {
         display: none;
       }
+      .chat-empty-hint + .lumos-security-note {
+        margin-top: -0.35rem;
+      }
+      .chat-thread:has(> .chat-turn) > .lumos-security-note {
+        margin-top: 0;
+        margin-bottom: 0.35rem;
+        align-self: stretch;
+        max-width: none;
+        margin-inline: 0.35rem;
+      }
       .chat-thread::-webkit-scrollbar {
         width: 7px;
       }
@@ -1691,17 +1701,20 @@ const STATUS_URL =
         color: rgba(184, 160, 130, 0.88);
       }
       .lumos-security-note {
-        margin: 0;
-        align-self: flex-start;
-        max-width: 100%;
-        padding: 0.35rem 0.55rem;
-        border-radius: 10px;
-        font-size: 0.72rem;
-        line-height: 1.45;
-        letter-spacing: 0.02em;
-        color: rgba(164, 160, 154, 0.94);
-        background: #050505;
-        border: 1px solid rgba(115, 95, 68, 0.18);
+        margin: 0 auto;
+        align-self: center;
+        max-width: min(22rem, 96%);
+        padding: 0.2rem 0.5rem 0.22rem;
+        border-radius: 6px;
+        font-size: 0.62rem;
+        font-weight: 500;
+        line-height: 1.38;
+        letter-spacing: 0.04em;
+        text-align: center;
+        color: rgba(148, 142, 132, 0.95);
+        background: rgba(6, 6, 6, 0.42);
+        border: 1px solid rgba(115, 95, 68, 0.22);
+        flex-shrink: 0;
       }
       @media (max-width: 767.98px) {
         html {
@@ -2157,7 +2170,11 @@ const STATUS_URL =
           padding: 0.12rem 0;
         }
         #panel-sohbet .lumos-security-note {
-          display: none;
+          max-width: min(100%, 20rem);
+          margin-inline: 0.5rem;
+          padding: 0.16rem 0.4rem 0.18rem;
+          font-size: clamp(0.54rem, 2.2vw, 0.6rem);
+          line-height: 1.32;
         }
         #panel-sohbet .chat-camera-photo-preview-img:not([hidden]) {
           width: 3.25rem;
@@ -2367,6 +2384,7 @@ const STATUS_URL =
                   <div class="chat-empty-hint" aria-hidden="true">
                     <span class="chat-empty-hint__text">Lumos hazır · Dinliyor</span>
                   </div>
+                  <p class="lumos-security-note">Kalıcı işlemler için onay ister.</p>
                 </div>
               </div>
               <div class="chat-compose-stack">
@@ -2446,7 +2464,6 @@ const STATUS_URL =
                 <p id="panel-voice-hint" class="chat-voice-hint" role="status" aria-live="polite" hidden></p>
                 <p id="panel-camera-hint" class="chat-camera-hint" role="status" aria-live="polite" hidden></p>
                 <p id="panel-send-hint" class="chat-camera-hint" role="status" aria-live="polite" hidden></p>
-                <p class="lumos-security-note">Kalıcı işlemler için onay ister.</p>
               </div>
             </div>
           </section>
