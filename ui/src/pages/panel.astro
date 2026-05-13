@@ -19,7 +19,10 @@ const HEALTH_URL =
 <html lang="tr">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no"
+    />
     <title>Lumos Panel — Çalışma alanı</title>
     <style>
       :root {
@@ -1715,6 +1718,13 @@ const HEALTH_URL =
           -webkit-text-size-adjust: 100%;
           text-size-adjust: 100%;
         }
+        /** iOS Safari: odak yakınlaştırmasını önlemek için panel içi tüm form denetimlerinde ≥16px taban. */
+        .panel-shell input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+        .panel-shell textarea,
+        .panel-shell select,
+        .panel-shell button {
+          font-size: max(16px, 1em);
+        }
         /** Görevler / dosyalar: iOS odak yakınlaştırması için ≥16px (compose #panel-sohbet’te ayrı). */
         .gorevler-field input,
         .gorevler-field select,
@@ -1848,7 +1858,7 @@ const HEALTH_URL =
           border-radius: 999px;
           justify-content: center;
           padding: 0.18rem 0.52rem;
-          font-size: 0.64rem;
+          font-size: max(16px, 0.64rem);
           letter-spacing: 0.02em;
         }
         .panel-nav__primary .panel-nav-label {
@@ -2195,8 +2205,13 @@ const HEALTH_URL =
           line-height: 1.5;
           box-sizing: border-box;
         }
-        #panel-sohbet .chat-compose--gpt textarea:focus {
+        #panel-sohbet .chat-compose--gpt textarea:focus,
+        #panel-sohbet .chat-compose--gpt textarea:focus-visible,
+        #panel-sohbet .chat-compose--gpt textarea:active {
           transform: none;
+          zoom: normal;
+          scale: none;
+          font-size: max(16px, 0.88rem);
         }
         #panel-sohbet .chat-compose-camera-btn,
         #panel-sohbet .chat-compose-voice-btn,
@@ -2213,7 +2228,7 @@ const HEALTH_URL =
           display: inline-flex;
           min-height: 2.05rem;
           padding: 0.3rem 0.58rem;
-          font-size: 0.7rem;
+          font-size: max(16px, 0.7rem);
           letter-spacing: 0.02em;
         }
         #panel-sohbet .chat-compose-camera-btn,
@@ -2247,7 +2262,7 @@ const HEALTH_URL =
           overflow-y: hidden;
           text-overflow: clip;
           text-align: start;
-          font-size: max(16px, 0.78rem);
+          font-size: max(16px, 0.88rem);
           line-height: 1.5;
           min-height: calc(0.42rem * 2 + 1em * 1.5);
           max-height: calc(0.42rem * 2 + 1em * 1.5);
@@ -3514,6 +3529,32 @@ const HEALTH_URL =
         }
         expandNavGroupIfActiveHidden();
 
+        const vv = window.visualViewport;
+        if (vv) {
+          let vvTimer = 0;
+          const onVisualViewportMove = () => {
+            if (vvTimer) return;
+            vvTimer = window.setTimeout(() => {
+              vvTimer = 0;
+              const se = document.scrollingElement;
+              const docSl = Math.max(
+                document.documentElement.scrollLeft || 0,
+                document.body.scrollLeft || 0,
+                se ? se.scrollLeft || 0 : 0,
+              );
+              const offL = vv.offsetLeft;
+              if ((offL !== 0 && Number.isFinite(offL)) || docSl > 0) {
+                window.scrollTo(0, window.scrollY);
+                if (se) se.scrollLeft = 0;
+                document.documentElement.scrollLeft = 0;
+                document.body.scrollLeft = 0;
+              }
+            }, 100);
+          };
+          vv.addEventListener("resize", onVisualViewportMove, { passive: true });
+          vv.addEventListener("scroll", onVisualViewportMove, { passive: true });
+        }
+
         nav.addEventListener("click", (e) => {
           const t = e.target;
           if (!(t instanceof HTMLElement)) return;
@@ -3790,6 +3831,23 @@ const HEALTH_URL =
           });
         }
 
+        function resetPanelHorizontalScrollAfterInputBlur() {
+          const y = window.scrollY;
+          try {
+            window.scrollTo({ left: 0, top: y, behavior: "instant" });
+          } catch {
+            try {
+              window.scrollTo({ left: 0, top: y, behavior: "auto" });
+            } catch {
+              window.scrollTo(0, y);
+            }
+          }
+          const se = document.scrollingElement;
+          if (se) se.scrollLeft = 0;
+          document.documentElement.scrollLeft = 0;
+          document.body.scrollLeft = 0;
+        }
+
         async function runSend() {
           const message = input.value.trim();
           const photoFile =
@@ -3836,6 +3894,7 @@ const HEALTH_URL =
             clearPanelCameraPhotoSelection();
             setSendHint("");
             input.blur();
+            resetPanelHorizontalScrollAfterInputBlur();
           }
 
           try {
@@ -3915,6 +3974,7 @@ const HEALTH_URL =
                       clearPanelCameraPhotoSelection();
                       setSendHint("");
                       input.blur();
+                      resetPanelHorizontalScrollAfterInputBlur();
                     }
                   } else if (panelGorevCmd) {
                     appendBubble(
