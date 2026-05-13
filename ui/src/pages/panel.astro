@@ -162,15 +162,6 @@ const STATUS_URL =
         flex: 0 1 auto;
         max-width: 100%;
       }
-      .panel-health-detail {
-        font-size: 0.62rem;
-        font-weight: 500;
-        color: var(--lumos-muted);
-        line-height: 1.35;
-        max-width: min(100%, 28rem);
-        text-align: right;
-        word-break: break-word;
-      }
       .gorevler-task-bridge {
         margin: 0;
         margin-top: 0.12rem;
@@ -249,9 +240,6 @@ const STATUS_URL =
           margin-left: 0;
           width: 100%;
           flex-basis: 100%;
-        }
-        .panel-health-detail {
-          text-align: left;
         }
       }
       .lumos-mark {
@@ -1251,129 +1239,6 @@ const STATUS_URL =
         gap: 0;
         background: transparent;
       }
-      /** Varsayılan kapalı: yalnızca “Durum” özeti; açılınca eski Sistem Durumu + isteğe bağlı foto teknik özeti. */
-      .panel-chat-status-drawer {
-        flex: 0 0 auto;
-        min-width: 0;
-        margin: 0 0 0.35rem;
-      }
-      .panel-chat-status-drawer__summary {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        width: fit-content;
-        max-width: 100%;
-        margin: 0;
-        padding: 0.2rem 0.45rem 0.22rem;
-        list-style: none;
-        font-size: 0.62rem;
-        font-weight: 600;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-        color: rgba(158, 152, 140, 0.95);
-        cursor: pointer;
-        border-radius: 6px;
-        border: 1px solid rgba(115, 95, 68, 0.3);
-        background: rgba(8, 8, 8, 0.72);
-        box-shadow: var(--panel-edge-inset);
-        user-select: none;
-      }
-      .panel-chat-status-drawer__summary::-webkit-details-marker {
-        display: none;
-      }
-      .panel-chat-status-drawer__summary::marker {
-        content: "";
-      }
-      .panel-chat-status-drawer__summary:hover {
-        color: rgba(210, 198, 178, 0.98);
-        border-color: rgba(148, 124, 92, 0.42);
-      }
-      .panel-chat-status-drawer__summary:focus-visible {
-        outline: none;
-        box-shadow: 0 0 0 2px rgba(184, 148, 96, 0.38);
-      }
-      .panel-chat-status-drawer__body {
-        margin-top: 0.4rem;
-        min-width: 0;
-      }
-      .panel-chat-status-drawer .panel-sistem-durumu {
-        margin: 0 0 0.45rem;
-      }
-      .panel-chat-photo-tech--in-drawer {
-        margin-top: 0;
-      }
-      /** Kompakt durum kutusu (çekmece içi): flex-shrink 0. */
-      .panel-sistem-durumu {
-        flex: 0 0 auto;
-        min-width: 0;
-        margin: 0 0 0.55rem;
-        padding: 0.45rem 0.55rem 0.5rem;
-        border-radius: var(--panel-radius);
-        border: 1px solid var(--lumos-card-border);
-        background: rgba(8, 8, 8, 0.88);
-        box-shadow: var(--panel-edge-inset);
-      }
-      .panel-sistem-durumu__title {
-        margin: 0 0 0.35rem;
-        font-size: 0.62rem;
-        font-weight: 600;
-        letter-spacing: 0.09em;
-        text-transform: uppercase;
-        color: rgba(172, 168, 160, 0.95);
-      }
-      .panel-sistem-durumu__scroll {
-        max-height: 5.75rem;
-        overflow-y: auto;
-        overflow-x: hidden;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(184, 148, 96, 0.3) rgba(5, 5, 5, 0.35);
-      }
-      .panel-sistem-durumu__cors {
-        margin: 0 0 0.35rem;
-        font-size: 0.68rem;
-        line-height: 1.4;
-        color: var(--lumos-error);
-      }
-      .panel-sistem-durumu__dl {
-        margin: 0;
-        display: grid;
-        gap: 0.22rem 0.5rem;
-        grid-template-columns: auto minmax(0, 1fr);
-        font-size: 0.68rem;
-        line-height: 1.35;
-        color: var(--lumos-text-soft);
-      }
-      .panel-sistem-durumu__dl dt {
-        margin: 0;
-        font-weight: 600;
-        color: rgba(198, 192, 180, 0.88);
-        grid-column: 1;
-      }
-      .panel-sistem-durumu__dl dd {
-        margin: 0;
-        min-width: 0;
-        word-break: break-word;
-        grid-column: 2;
-      }
-      .panel-chat-photo-tech {
-        flex: 0 0 auto;
-        margin: 0.35rem 0 0;
-        padding: 0.35rem 0.45rem;
-        border-radius: 8px;
-        border: 1px dashed rgba(115, 95, 68, 0.35);
-        background: rgba(5, 5, 5, 0.45);
-        max-height: 6rem;
-        overflow: auto;
-      }
-      .panel-chat-photo-tech__pre {
-        margin: 0;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-size: 0.62rem;
-        line-height: 1.45;
-        white-space: pre-wrap;
-        word-break: break-word;
-        color: rgba(200, 194, 184, 0.9);
-      }
       /** Sohbet: kaydırılan geçmiş, altta compose. */
       .chat-workspace {
         flex: 1;
@@ -1641,14 +1506,6 @@ const STATUS_URL =
         border: 1px solid rgba(115, 95, 68, 0.38);
         object-fit: cover;
         background: rgba(0, 0, 0, 0.35);
-      }
-      @media (min-width: 768px) {
-        .chat-camera-photo-preview-img:not([hidden]) {
-          width: auto;
-          height: auto;
-          max-width: 13rem;
-          max-height: 10rem;
-        }
       }
       .chat-camera-photo-status {
         flex: 1 1 auto;
@@ -2052,11 +1909,6 @@ const STATUS_URL =
         .panel-health-row {
           gap: 0.1rem 0.24rem;
         }
-        .panel-health-detail {
-          max-width: none;
-          font-size: 0.5rem;
-          line-height: 1.22;
-        }
         .panel-conn-badge {
           font-size: 0.46rem;
           padding: 0.08rem 0.28rem;
@@ -2301,10 +2153,10 @@ const STATUS_URL =
           display: none;
         }
         #panel-sohbet .chat-camera-photo-preview-img:not([hidden]) {
-          width: 4rem;
-          height: 4rem;
-          max-width: 7.5rem;
-          max-height: 7.5rem;
+          width: 3.25rem;
+          height: 3.25rem;
+          max-width: 4rem;
+          max-height: 4rem;
           flex-shrink: 0;
           object-fit: cover;
           object-position: center;
@@ -2446,7 +2298,6 @@ const STATUS_URL =
               role="status"
               aria-live="polite"
             >Bağlanıyor</span>
-            <span id="panel-health-detail" class="panel-health-detail" aria-live="polite"></span>
             <GlobalMay19Corner />
           </div>
         </div>
@@ -2497,36 +2348,6 @@ const STATUS_URL =
             data-active="true"
             aria-label="Sohbet"
           >
-            <details class="panel-chat-status-drawer" id="panel-chat-status-drawer">
-              <summary class="panel-chat-status-drawer__summary" title="Bağlantı, API ve son görsel gönderim özeti">
-                Durum
-              </summary>
-              <div class="panel-chat-status-drawer__body">
-                <div class="panel-sistem-durumu" id="panel-sistem-durumu" aria-labelledby="panel-sistem-durumu-heading">
-                  <p class="panel-sistem-durumu__title" id="panel-sistem-durumu-heading">Sistem Durumu</p>
-                  <div class="panel-sistem-durumu__scroll" id="panel-sistem-durumu-scroll">
-                    <p class="panel-sistem-durumu__cors" id="panel-sistem-durumu-cors" hidden></p>
-                    <dl class="panel-sistem-durumu__dl" id="panel-sistem-durumu-dl">
-                      <dt>Bağlantı</dt>
-                      <dd id="panel-sistem-durumu-baglanti">—</dd>
-                      <dt>Chat API</dt>
-                      <dd id="panel-sistem-durumu-chat">—</dd>
-                      <dt>Görsel analiz</dt>
-                      <dd id="panel-sistem-durumu-vision">—</dd>
-                      <dt>Son vision</dt>
-                      <dd id="panel-sistem-durumu-vision-last">—</dd>
-                    </dl>
-                  </div>
-                </div>
-                <div
-                  id="panel-chat-photo-tech"
-                  class="panel-chat-photo-tech panel-chat-photo-tech--in-drawer"
-                  hidden
-                >
-                  <pre id="panel-chat-photo-tech-pre" class="panel-chat-photo-tech__pre"></pre>
-                </div>
-              </div>
-            </details>
             <div class="chat-workspace">
               <div class="chat-history-shell" aria-label="Mesaj geçmişi">
                 <div
@@ -5296,12 +5117,6 @@ const STATUS_URL =
         }
       }
 
-      function setPanelHealthDetail(text) {
-        const el = document.getElementById("panel-health-detail");
-        if (!el) return;
-        el.textContent = text != null ? String(text) : "";
-      }
-
       function formatBytesShort(n) {
         const v = Number(n);
         if (!Number.isFinite(v) || v <= 0) return "—";
@@ -5511,7 +5326,6 @@ const STATUS_URL =
 
       void (async function checkBridgeHealth() {
         setPanelConnBadge("pending");
-        setPanelHealthDetail("Köprü deneniyor…");
         bridgeHealthLine = "deneniyor…";
         paintSistemDurumuPanel();
         const candidates = [
@@ -5531,22 +5345,18 @@ const STATUS_URL =
             last = res;
             if (res.ok) {
               ok = true;
-              setPanelHealthDetail("Health: OK · " + res.url);
               bridgeHealthLine = "OK · " + res.url;
               break;
             }
           }
           setPanelConnBadge(ok ? "ok" : "bad");
           if (!ok && last) {
-            setPanelHealthDetail("Health: erişilemedi (" + last.detail + ") · " + last.url);
             bridgeHealthLine = "erişilemedi (" + last.detail + ")";
           } else if (!ok) {
-            setPanelHealthDetail("Health: uygun URL yok (PUBLIC_LUMOS_PANEL_HEALTH_URL ayarlayın).");
             bridgeHealthLine = "uygun URL yok";
           }
         } catch {
           setPanelConnBadge("bad");
-          setPanelHealthDetail("Health: istisna (köprü kapalı olabilir).");
           bridgeHealthLine = "istisna (köprü kapalı olabilir)";
         }
         paintSistemDurumuPanel();
