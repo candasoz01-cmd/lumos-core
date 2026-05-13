@@ -66,6 +66,12 @@ const PANEL_CHAT_TEXT_MODEL = "gpt-5.5";
  */
 const PANEL_CHAT_VISION_MODEL = "gpt-4o";
 
+/** Panel fotoğrafı: vision yok / hata / boş yanıtta dönülen sabit metin (istemci ile eşleşmeli). */
+const REPLY_PHOTO_NO_VISION = "Fotoğraf eklendi; görsel analiz henüz aktif değil.";
+
+/** POST /chat fotoğraf dalı sonucu; yalnızca bellek (GET /status ile okunur). */
+let visionLastStatus = "not-tested";
+
 const PANEL_CHAT_VISION_EMPTY_TEXT_PROMPT = "Bu görseli kısaca açıkla.";
 
 /**
@@ -199,8 +205,6 @@ app.post("/chat", async (req, res) => {
       return res.status(400).json({ error: "message required" });
     }
 
-    const REPLY_PHOTO_NO_VISION = "Fotoğraf eklendi; görsel analiz henüz aktif değil.";
-
     if (photo.photoAttached) {
       const mimeOk = String(photo.photoType || "")
         .toLowerCase()
@@ -208,6 +212,7 @@ app.post("/chat", async (req, res) => {
       if (mimeOk && photo.imageDataBase64) {
         const client = getOpenAI();
         if (!client) {
+          visionLastStatus = "fallback";
           return res.json({ reply: REPLY_PHOTO_NO_VISION });
         }
         const historyMessages = normalizePanelChatHistory(body?.history);
@@ -230,11 +235,19 @@ app.post("/chat", async (req, res) => {
             input,
           });
           const reply = response.output_text ?? "";
+          const trimmed = String(reply).trim();
+          if (trimmed && trimmed !== REPLY_PHOTO_NO_VISION) {
+            visionLastStatus = "success";
+          } else {
+            visionLastStatus = "fallback";
+          }
           return res.json({ reply });
         } catch {
+          visionLastStatus = "error";
           return res.json({ reply: REPLY_PHOTO_NO_VISION });
         }
       }
+      visionLastStatus = "fallback";
       return res.json({ reply: REPLY_PHOTO_NO_VISION });
     }
 
@@ -275,6 +288,28 @@ const PORT = process.env.PORT || 3000;
 const HEALTH_CHECKPOINTS = ["/posts?order=feed&limit=1", "/posts/rated-high", "/posts/rated-low"];
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
+});
+
+/**
+ * Panel "Sistem Durumu" için yan-etkisiz JSON. Anahtar sırrı dönmez (yalnızca var/yok).
+ * `chat`: OpenAI anahtarı olsa da olmasa da "ok" — /chat rotası her zaman tanımlıdır (erişilebilirlik sinyali).
+ */
+app.get("/status", (req, res) => {
+  const keyPresent =
+    typeof process.env.OPENAI_API_KEY === "string"
+    && process.env.OPENAI_API_KEY.trim().length > 0;
+  res.json({
+    health: "ok",
+    chat: "ok",
+    openaiKey: keyPresent ? "var" : "yok",
+    visionConfigured: keyPresent,
+    visionLastStatus,
+    buildCommit:
+      process.env.RENDER_GIT_COMMIT
+      || process.env.VERCEL_GIT_COMMIT_SHA
+      || process.env.GITHUB_SHA
+      || null,
+  });
 });
 
 const postUserInclude = {

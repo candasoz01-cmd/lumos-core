@@ -14,6 +14,10 @@ const HEALTH_URL =
   import.meta.env.PUBLIC_LUMOS_PANEL_HEALTH_URL ||
   import.meta.env.PUBLIC_LUMOS_BRIDGE_HEALTH_URL ||
   BRIDGE_BASE_URL + "/health";
+/** Backend "Sistem Durumu": CHAT_URL ile aynı origin, /chat yerine /status. Yan etkisizdir; POST yapmaz. */
+const STATUS_URL =
+  import.meta.env.PUBLIC_LUMOS_PANEL_STATUS_URL ||
+  String(CHAT_URL).replace(/\/chat\/?$/i, "") + "/status";
 ---
 
 <html lang="tr">
@@ -1244,6 +1248,78 @@ const HEALTH_URL =
         gap: 0;
         background: transparent;
       }
+      /** Kompakt durum şeridi: #panel-sohbet içinde flex-shrink 0; geçmiş alanını büyütmez. */
+      .panel-sistem-durumu {
+        flex: 0 0 auto;
+        min-width: 0;
+        margin: 0 0 0.55rem;
+        padding: 0.45rem 0.55rem 0.5rem;
+        border-radius: var(--panel-radius);
+        border: 1px solid var(--lumos-card-border);
+        background: rgba(8, 8, 8, 0.88);
+        box-shadow: var(--panel-edge-inset);
+      }
+      .panel-sistem-durumu__title {
+        margin: 0 0 0.35rem;
+        font-size: 0.62rem;
+        font-weight: 600;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: rgba(172, 168, 160, 0.95);
+      }
+      .panel-sistem-durumu__scroll {
+        max-height: 5.75rem;
+        overflow-y: auto;
+        overflow-x: hidden;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(184, 148, 96, 0.3) rgba(5, 5, 5, 0.35);
+      }
+      .panel-sistem-durumu__cors {
+        margin: 0 0 0.35rem;
+        font-size: 0.68rem;
+        line-height: 1.4;
+        color: var(--lumos-error);
+      }
+      .panel-sistem-durumu__dl {
+        margin: 0;
+        display: grid;
+        gap: 0.22rem 0.5rem;
+        grid-template-columns: auto minmax(0, 1fr);
+        font-size: 0.68rem;
+        line-height: 1.35;
+        color: var(--lumos-text-soft);
+      }
+      .panel-sistem-durumu__dl dt {
+        margin: 0;
+        font-weight: 600;
+        color: rgba(198, 192, 180, 0.88);
+        grid-column: 1;
+      }
+      .panel-sistem-durumu__dl dd {
+        margin: 0;
+        min-width: 0;
+        word-break: break-word;
+        grid-column: 2;
+      }
+      .panel-chat-photo-tech {
+        flex: 0 0 auto;
+        margin: 0.35rem 0 0;
+        padding: 0.35rem 0.45rem;
+        border-radius: 8px;
+        border: 1px dashed rgba(115, 95, 68, 0.35);
+        background: rgba(5, 5, 5, 0.45);
+        max-height: 6rem;
+        overflow: auto;
+      }
+      .panel-chat-photo-tech__pre {
+        margin: 0;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.62rem;
+        line-height: 1.45;
+        white-space: pre-wrap;
+        word-break: break-word;
+        color: rgba(200, 194, 184, 0.9);
+      }
       /** Sohbet: kaydırılan geçmiş, altta compose. */
       .chat-workspace {
         flex: 1;
@@ -2385,6 +2461,22 @@ const HEALTH_URL =
             data-active="true"
             aria-label="Sohbet"
           >
+            <div class="panel-sistem-durumu" id="panel-sistem-durumu" aria-labelledby="panel-sistem-durumu-heading">
+              <p class="panel-sistem-durumu__title" id="panel-sistem-durumu-heading">Sistem Durumu</p>
+              <div class="panel-sistem-durumu__scroll" id="panel-sistem-durumu-scroll">
+                <p class="panel-sistem-durumu__cors" id="panel-sistem-durumu-cors" hidden></p>
+                <dl class="panel-sistem-durumu__dl" id="panel-sistem-durumu-dl">
+                  <dt>Bağlantı</dt>
+                  <dd id="panel-sistem-durumu-baglanti">—</dd>
+                  <dt>Chat API</dt>
+                  <dd id="panel-sistem-durumu-chat">—</dd>
+                  <dt>Görsel analiz</dt>
+                  <dd id="panel-sistem-durumu-vision">—</dd>
+                  <dt>Son vision</dt>
+                  <dd id="panel-sistem-durumu-vision-last">—</dd>
+                </dl>
+              </div>
+            </div>
             <div class="chat-workspace">
               <div class="chat-history-shell" aria-label="Mesaj geçmişi">
                 <div
@@ -2475,6 +2567,9 @@ const HEALTH_URL =
                 <p id="panel-voice-hint" class="chat-voice-hint" role="status" aria-live="polite" hidden></p>
                 <p id="panel-camera-hint" class="chat-camera-hint" role="status" aria-live="polite" hidden></p>
                 <p id="panel-send-hint" class="chat-camera-hint" role="status" aria-live="polite" hidden></p>
+                <div id="panel-chat-photo-tech" class="panel-chat-photo-tech" hidden>
+                  <pre id="panel-chat-photo-tech-pre" class="panel-chat-photo-tech__pre"></pre>
+                </div>
                 <p class="lumos-security-note">Kalıcı işlemler için onay ister.</p>
               </div>
             </div>
@@ -3215,7 +3310,7 @@ const HEALTH_URL =
         </nav>
       </div>
     </div>
-    <script define:vars={{ CHAT_URL, kandoToken, UPLOAD_URL, HEALTH_URL, BRIDGE_BASE_URL }}>
+    <script define:vars={{ CHAT_URL, kandoToken, UPLOAD_URL, HEALTH_URL, BRIDGE_BASE_URL, STATUS_URL }}>
       /** Görevler sekmesi ile sohbet görev komutları tek diziyi paylaşır (wireGorevlerPrototype). Kalıcılık: tarayıcı localStorage. */
       const PANEL_GOREVLER_LS_KEY = "lumos_panel_gorevler_list_v1";
       const GOREVLER_FIELD_MAX_LEN = 2048;
@@ -3973,6 +4068,9 @@ const HEALTH_URL =
           if ((!message && !hasPhoto) || sending) return;
 
           setSendHint("");
+          if (!hasPhoto) {
+            showPanelChatPhotoTech("");
+          }
 
           let imageDataUrlForBubble = null;
           if (hasPhoto) {
@@ -4012,6 +4110,21 @@ const HEALTH_URL =
             resetPanelHorizontalScrollAfterInputBlur();
           }
 
+          /**
+           * Sistem Durumu için fotoğraf gönderim özeti; backend'e gönderilmez, yalnızca
+           * istemcide görsel analiz durumunu (aktif/fallback/hata) çıkarmak ve panele yazmak için tutulur.
+           */
+          const photoTelemetry = hasPhoto && photoFile
+            ? {
+                photoAttached: true,
+                photoSize:
+                  typeof photoFile.size === "number" && Number.isFinite(photoFile.size)
+                    ? photoFile.size
+                    : 0,
+                inlineBytes: 0,
+                hasInline: false,
+              }
+            : null;
           try {
             const chatBody = { message: outgoingMessage, history };
             if (hasPhoto && photoFile) {
@@ -4035,6 +4148,12 @@ const HEALTH_URL =
                 const rawName = photoFile.name || "photo";
                 chatBody.photoName = rawName.replace(/\.[^/.]+$/, "") + ".jpg";
               }
+              if (photoTelemetry) {
+                photoTelemetry.hasInline = !!inlineB64;
+                photoTelemetry.inlineBytes = inlineB64
+                  ? decodedByteLengthFromBase64(inlineB64)
+                  : 0;
+              }
             }
             const r = await fetch(CHAT_URL, {
               method: "POST",
@@ -4055,6 +4174,41 @@ const HEALTH_URL =
                   r.status +
                   "). Biraz sonra tekrar deneyebilir veya CHAT_URL / token ayarlarını kontrol edebilirsin.",
               );
+              if (photoTelemetry) {
+                let reason = "HTTP " + r.status;
+                let missingKey = "";
+                if (text) {
+                  try {
+                    const errJson = JSON.parse(text);
+                    if (errJson && typeof errJson === "object") {
+                      if (typeof errJson.error === "string") {
+                        if (/OPENAI_API_KEY/i.test(errJson.error)) {
+                          missingKey = " · OPENAI_API_KEY eksik";
+                        }
+                        reason = "HTTP " + r.status + " · " + errJson.error.slice(0, 80);
+                      }
+                    }
+                  } catch {
+                    /* ham metin */
+                  }
+                }
+                const visionGuess =
+                  photoTelemetry.hasInline && !!photoFile && /^image\//i.test(photoFile.type || "");
+                showPanelChatPhotoTech(
+                  buildPhotoTechBlock({
+                    httpStatus: r.status,
+                    reachedBackend: true,
+                    imageDataSent: photoTelemetry.hasInline,
+                    visionTriedGuess: visionGuess,
+                    replyPreview: text ? String(text).trim().slice(0, 120) : "",
+                    fallbackExact: false,
+                    fallbackRegex: false,
+                    networkError: false,
+                    extraReason: reason + missingKey,
+                  }),
+                );
+                void loadPanelBackendStatus();
+              }
             } else {
               const INVALID_FORMAT_MSG =
                 "Sunucu yanıtı beklenen formatta değil (JSON veya reply/content/message alanı). Biraz sonra tekrar deneyebilirsin.";
@@ -4088,6 +4242,62 @@ const HEALTH_URL =
                 } else {
                   const raw = data.reply ?? data.content ?? data.message;
                   const replyBody = raw == null ? "" : String(raw);
+                  if (photoTelemetry) {
+                    const trimmedReply = replyBody.trim();
+                    const fallbackExact = trimmedReply === REPLY_PHOTO_NO_VISION_TR;
+                    const fallbackRegex = PANEL_REPLY_PHOTO_NO_VISION_RE.test(trimmedReply);
+                    const visionGuess =
+                      photoTelemetry.hasInline && !!photoFile && /^image\//i.test(photoFile.type || "");
+                    if (fallbackRegex || fallbackExact) {
+                      const extra =
+                        !photoTelemetry.hasInline
+                          ? "Görsel veri gitmedi (tavan veya sıkıştırma) · dosya ≈ "
+                            + formatBytesShort(photoTelemetry.photoSize)
+                          : "";
+                      showPanelChatPhotoTech(
+                        buildPhotoTechBlock({
+                          httpStatus: r.status,
+                          reachedBackend: true,
+                          imageDataSent: photoTelemetry.hasInline,
+                          visionTriedGuess: visionGuess,
+                          replyPreview: trimmedReply.slice(0, 140),
+                          fallbackExact,
+                          fallbackRegex: fallbackRegex && !fallbackExact,
+                          networkError: false,
+                          extraReason: extra,
+                        }),
+                      );
+                    } else if (trimmedReply) {
+                      showPanelChatPhotoTech(
+                        buildPhotoTechBlock({
+                          httpStatus: r.status,
+                          reachedBackend: true,
+                          imageDataSent: photoTelemetry.hasInline,
+                          visionTriedGuess: visionGuess,
+                          replyPreview: trimmedReply.slice(0, 140),
+                          fallbackExact: false,
+                          fallbackRegex: false,
+                          networkError: false,
+                          extraReason: "",
+                        }),
+                      );
+                    } else {
+                      showPanelChatPhotoTech(
+                        buildPhotoTechBlock({
+                          httpStatus: r.status,
+                          reachedBackend: true,
+                          imageDataSent: photoTelemetry.hasInline,
+                          visionTriedGuess: visionGuess,
+                          replyPreview: "",
+                          fallbackExact: false,
+                          fallbackRegex: false,
+                          networkError: false,
+                          extraReason: "Boş yanıt",
+                        }),
+                      );
+                    }
+                    void loadPanelBackendStatus();
+                  }
                   if (replyBody.trim()) {
                     const { lumosText } = ingestAssistantPanelGorev(replyBody);
                     if (panelGorevCmd) {
@@ -4120,6 +4330,24 @@ const HEALTH_URL =
               "error",
               "Sunucuya ulaşılamadı (ağ veya CORS). CHAT_URL ve servis erişimini kontrol edip tekrar deneyebilirsin.",
             );
+            if (photoTelemetry) {
+              const visionGuess =
+                photoTelemetry.hasInline && !!photoFile && /^image\//i.test(photoFile.type || "");
+              showPanelChatPhotoTech(
+                buildPhotoTechBlock({
+                  httpStatus: "—",
+                  reachedBackend: false,
+                  imageDataSent: photoTelemetry.hasInline,
+                  visionTriedGuess: visionGuess,
+                  replyPreview: "",
+                  fallbackExact: false,
+                  fallbackRegex: false,
+                  networkError: true,
+                  extraReason: "İstek tamamlanamadı (ağ veya CORS)",
+                }),
+              );
+              void loadPanelBackendStatus();
+            }
           } finally {
             sending = false;
             sendBtn.disabled = false;
@@ -5012,6 +5240,175 @@ const HEALTH_URL =
         el.textContent = text != null ? String(text) : "";
       }
 
+      function formatBytesShort(n) {
+        const v = Number(n);
+        if (!Number.isFinite(v) || v <= 0) return "—";
+        if (v < 1024) return v + " B";
+        if (v < 1024 * 1024) return (v / 1024).toFixed(1) + " KB";
+        return (v / (1024 * 1024)).toFixed(2) + " MB";
+      }
+
+      const REPLY_PHOTO_NO_VISION_TR =
+        "Fotoğraf eklendi; görsel analiz henüz aktif değil.";
+      const PANEL_REPLY_PHOTO_NO_VISION_RE =
+        /Fotoğraf eklendi;\s*görsel analiz henüz aktif değil\.?$/i;
+
+      function showPanelChatPhotoTech(text) {
+        const wrap = document.getElementById("panel-chat-photo-tech");
+        const pre = document.getElementById("panel-chat-photo-tech-pre");
+        if (!wrap || !pre) return;
+        const t = text == null ? "" : String(text).trim();
+        if (!t) {
+          wrap.hidden = true;
+          pre.textContent = "";
+          return;
+        }
+        wrap.hidden = false;
+        pre.textContent = t;
+      }
+
+      function buildPhotoTechBlock(o) {
+        const lines = [];
+        lines.push("HTTP: " + String(o.httpStatus != null ? o.httpStatus : "—"));
+        lines.push("Fotoğraf backend'e ulaştı: " + (o.reachedBackend ? "evet" : "hayır"));
+        lines.push("imageData gönderildi: " + (o.imageDataSent ? "evet" : "hayır"));
+        lines.push("Vision (istemci tahmini): " + (o.visionTriedGuess ? "evet" : "hayır"));
+        if (o.networkError) lines.push("Ağ/CORS (istemci): evet");
+        let fb = "—";
+        if (o.fallbackExact) fb = REPLY_PHOTO_NO_VISION_TR;
+        else if (o.fallbackRegex) fb = "Türkçe fallback metni (regex eşleşmesi)";
+        else if (o.extraReason) fb = o.extraReason;
+        lines.push("Fallback nedeni: " + fb);
+        if (o.extraReason && String(o.extraReason).trim() && (o.fallbackExact || o.fallbackRegex)) {
+          lines.push("Ek not: " + String(o.extraReason).trim());
+        }
+        if (o.replyPreview) lines.push("Yanıt özeti: " + o.replyPreview);
+        return lines.join("\n");
+      }
+
+      let bridgeHealthLine = "bekleniyor…";
+      let lastStatusJson = /** @type {Record<string, unknown> | null} */ (null);
+      let lastStatusCorsError = false;
+      let lastChatOptionsPingLine = "—";
+
+      function setSistemDurumuDd(id, t) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = t == null ? "" : String(t);
+      }
+
+      function paintSistemDurumuPanel() {
+        const corsEl = document.getElementById("panel-sistem-durumu-cors");
+        const dl = document.getElementById("panel-sistem-durumu-dl");
+        if (lastStatusCorsError) {
+          if (corsEl) {
+            corsEl.hidden = false;
+            corsEl.textContent = "Bu bilgi panelden okunamıyor (CORS).";
+          }
+          if (dl) dl.hidden = false;
+          setSistemDurumuDd("panel-sistem-durumu-baglanti", "Köprü: " + bridgeHealthLine);
+          setSistemDurumuDd("panel-sistem-durumu-chat", "—");
+          setSistemDurumuDd("panel-sistem-durumu-vision", "—");
+          setSistemDurumuDd("panel-sistem-durumu-vision-last", "—");
+          return;
+        }
+        if (corsEl) {
+          corsEl.hidden = true;
+          corsEl.textContent = "";
+        }
+        if (dl) dl.hidden = false;
+        const j = lastStatusJson;
+        if (!j) {
+          setSistemDurumuDd("panel-sistem-durumu-baglanti", "Köprü: " + bridgeHealthLine);
+          setSistemDurumuDd("panel-sistem-durumu-chat", "—");
+          setSistemDurumuDd("panel-sistem-durumu-vision", "—");
+          setSistemDurumuDd("panel-sistem-durumu-vision-last", "—");
+          return;
+        }
+        const health = j.health != null ? String(j.health) : "—";
+        const chatS = j.chat != null ? String(j.chat) : "—";
+        const visionLast = j.visionLastStatus != null ? String(j.visionLastStatus) : "—";
+        const visionCfg = j.visionConfigured === true;
+        setSistemDurumuDd("panel-sistem-durumu-baglanti", health + " · köprü: " + bridgeHealthLine);
+        setSistemDurumuDd("panel-sistem-durumu-chat", chatS + " · " + lastChatOptionsPingLine);
+        setSistemDurumuDd("panel-sistem-durumu-vision", visionCfg ? "Evet (OpenAI anahtarı var)" : "Hayır");
+        setSistemDurumuDd("panel-sistem-durumu-vision-last", visionLast);
+      }
+
+      async function probeChatOptionsPingLine() {
+        try {
+          const r = await fetch(CHAT_URL, {
+            method: "OPTIONS",
+            cache: "no-store",
+            mode: "cors",
+            credentials: "omit",
+          });
+          if (r.ok || r.status === 204) return "OPTIONS OK (" + r.status + ")";
+          return "OPTIONS HTTP " + r.status;
+        } catch {
+          return "OPTIONS hata (ağ/CORS)";
+        }
+      }
+
+      async function loadPanelBackendStatus() {
+        if (typeof STATUS_URL !== "string" || !String(STATUS_URL).trim()) {
+          lastStatusJson = null;
+          lastStatusCorsError = false;
+          lastChatOptionsPingLine = await probeChatOptionsPingLine();
+          paintSistemDurumuPanel();
+          setSistemDurumuDd("panel-sistem-durumu-chat", "STATUS_URL yok · " + lastChatOptionsPingLine);
+          return;
+        }
+        try {
+          const r = await fetch(STATUS_URL, {
+            method: "GET",
+            cache: "no-store",
+            mode: "cors",
+            credentials: "omit",
+            headers: { Accept: "application/json" },
+          });
+          if (!r.ok) {
+            lastStatusJson = null;
+            lastStatusCorsError = false;
+            lastChatOptionsPingLine = await probeChatOptionsPingLine();
+            paintSistemDurumuPanel();
+            setSistemDurumuDd(
+              "panel-sistem-durumu-chat",
+              "/status HTTP " + r.status + " · " + lastChatOptionsPingLine,
+            );
+            return;
+          }
+          const text = await r.text();
+          let data = null;
+          try {
+            data = text && String(text).trim() ? JSON.parse(text) : null;
+          } catch {
+            data = null;
+          }
+          if (!data || typeof data !== "object") {
+            lastStatusJson = null;
+            lastStatusCorsError = false;
+            lastChatOptionsPingLine = await probeChatOptionsPingLine();
+            paintSistemDurumuPanel();
+            setSistemDurumuDd("panel-sistem-durumu-chat", "JSON okunamadı · " + lastChatOptionsPingLine);
+            return;
+          }
+          lastStatusJson = data;
+          lastStatusCorsError = false;
+          lastChatOptionsPingLine = await probeChatOptionsPingLine();
+          paintSistemDurumuPanel();
+        } catch {
+          lastStatusJson = null;
+          lastStatusCorsError = true;
+          lastChatOptionsPingLine = "—";
+          paintSistemDurumuPanel();
+        }
+      }
+
+      void loadPanelBackendStatus();
+      setInterval(() => {
+        void loadPanelBackendStatus();
+      }, 15000);
+
       async function probeBridgeHealthOnce(url) {
         try {
           const r = await fetch(url, {
@@ -5050,6 +5447,8 @@ const HEALTH_URL =
       void (async function checkBridgeHealth() {
         setPanelConnBadge("pending");
         setPanelHealthDetail("Köprü deneniyor…");
+        bridgeHealthLine = "deneniyor…";
+        paintSistemDurumuPanel();
         const candidates = [
           HEALTH_URL,
           BRIDGE_BASE_URL + "/health",
@@ -5068,19 +5467,24 @@ const HEALTH_URL =
             if (res.ok) {
               ok = true;
               setPanelHealthDetail("Health: OK · " + res.url);
+              bridgeHealthLine = "OK · " + res.url;
               break;
             }
           }
           setPanelConnBadge(ok ? "ok" : "bad");
           if (!ok && last) {
             setPanelHealthDetail("Health: erişilemedi (" + last.detail + ") · " + last.url);
+            bridgeHealthLine = "erişilemedi (" + last.detail + ")";
           } else if (!ok) {
             setPanelHealthDetail("Health: uygun URL yok (PUBLIC_LUMOS_PANEL_HEALTH_URL ayarlayın).");
+            bridgeHealthLine = "uygun URL yok";
           }
         } catch {
           setPanelConnBadge("bad");
           setPanelHealthDetail("Health: istisna (köprü kapalı olabilir).");
+          bridgeHealthLine = "istisna (köprü kapalı olabilir)";
         }
+        paintSistemDurumuPanel();
       })();
 
       function wireMedyaOutbox() {
