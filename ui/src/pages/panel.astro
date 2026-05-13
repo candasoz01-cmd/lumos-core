@@ -1251,7 +1251,58 @@ const STATUS_URL =
         gap: 0;
         background: transparent;
       }
-      /** Kompakt durum şeridi: #panel-sohbet içinde flex-shrink 0; geçmiş alanını büyütmez. */
+      /** Varsayılan kapalı: yalnızca “Durum” özeti; açılınca eski Sistem Durumu + isteğe bağlı foto teknik özeti. */
+      .panel-chat-status-drawer {
+        flex: 0 0 auto;
+        min-width: 0;
+        margin: 0 0 0.35rem;
+      }
+      .panel-chat-status-drawer__summary {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        width: fit-content;
+        max-width: 100%;
+        margin: 0;
+        padding: 0.2rem 0.45rem 0.22rem;
+        list-style: none;
+        font-size: 0.62rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: rgba(158, 152, 140, 0.95);
+        cursor: pointer;
+        border-radius: 6px;
+        border: 1px solid rgba(115, 95, 68, 0.3);
+        background: rgba(8, 8, 8, 0.72);
+        box-shadow: var(--panel-edge-inset);
+        user-select: none;
+      }
+      .panel-chat-status-drawer__summary::-webkit-details-marker {
+        display: none;
+      }
+      .panel-chat-status-drawer__summary::marker {
+        content: "";
+      }
+      .panel-chat-status-drawer__summary:hover {
+        color: rgba(210, 198, 178, 0.98);
+        border-color: rgba(148, 124, 92, 0.42);
+      }
+      .panel-chat-status-drawer__summary:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(184, 148, 96, 0.38);
+      }
+      .panel-chat-status-drawer__body {
+        margin-top: 0.4rem;
+        min-width: 0;
+      }
+      .panel-chat-status-drawer .panel-sistem-durumu {
+        margin: 0 0 0.45rem;
+      }
+      .panel-chat-photo-tech--in-drawer {
+        margin-top: 0;
+      }
+      /** Kompakt durum kutusu (çekmece içi): flex-shrink 0. */
       .panel-sistem-durumu {
         flex: 0 0 auto;
         min-width: 0;
@@ -1607,6 +1658,22 @@ const STATUS_URL =
         letter-spacing: 0.01em;
         color: rgba(184, 160, 130, 0.92);
         word-break: break-word;
+      }
+      @media (max-width: 767.98px) {
+        .chat-camera-photo-status {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border: 0;
+        }
+        .chat-camera-photo-row {
+          position: relative;
+        }
       }
       .chat-compose-voice-btn {
         flex: 0 0 auto;
@@ -2430,22 +2497,36 @@ const STATUS_URL =
             data-active="true"
             aria-label="Sohbet"
           >
-            <div class="panel-sistem-durumu" id="panel-sistem-durumu" aria-labelledby="panel-sistem-durumu-heading">
-              <p class="panel-sistem-durumu__title" id="panel-sistem-durumu-heading">Sistem Durumu</p>
-              <div class="panel-sistem-durumu__scroll" id="panel-sistem-durumu-scroll">
-                <p class="panel-sistem-durumu__cors" id="panel-sistem-durumu-cors" hidden></p>
-                <dl class="panel-sistem-durumu__dl" id="panel-sistem-durumu-dl">
-                  <dt>Bağlantı</dt>
-                  <dd id="panel-sistem-durumu-baglanti">—</dd>
-                  <dt>Chat API</dt>
-                  <dd id="panel-sistem-durumu-chat">—</dd>
-                  <dt>Görsel analiz</dt>
-                  <dd id="panel-sistem-durumu-vision">—</dd>
-                  <dt>Son vision</dt>
-                  <dd id="panel-sistem-durumu-vision-last">—</dd>
-                </dl>
+            <details class="panel-chat-status-drawer" id="panel-chat-status-drawer">
+              <summary class="panel-chat-status-drawer__summary" title="Bağlantı, API ve son görsel gönderim özeti">
+                Durum
+              </summary>
+              <div class="panel-chat-status-drawer__body">
+                <div class="panel-sistem-durumu" id="panel-sistem-durumu" aria-labelledby="panel-sistem-durumu-heading">
+                  <p class="panel-sistem-durumu__title" id="panel-sistem-durumu-heading">Sistem Durumu</p>
+                  <div class="panel-sistem-durumu__scroll" id="panel-sistem-durumu-scroll">
+                    <p class="panel-sistem-durumu__cors" id="panel-sistem-durumu-cors" hidden></p>
+                    <dl class="panel-sistem-durumu__dl" id="panel-sistem-durumu-dl">
+                      <dt>Bağlantı</dt>
+                      <dd id="panel-sistem-durumu-baglanti">—</dd>
+                      <dt>Chat API</dt>
+                      <dd id="panel-sistem-durumu-chat">—</dd>
+                      <dt>Görsel analiz</dt>
+                      <dd id="panel-sistem-durumu-vision">—</dd>
+                      <dt>Son vision</dt>
+                      <dd id="panel-sistem-durumu-vision-last">—</dd>
+                    </dl>
+                  </div>
+                </div>
+                <div
+                  id="panel-chat-photo-tech"
+                  class="panel-chat-photo-tech panel-chat-photo-tech--in-drawer"
+                  hidden
+                >
+                  <pre id="panel-chat-photo-tech-pre" class="panel-chat-photo-tech__pre"></pre>
+                </div>
               </div>
-            </div>
+            </details>
             <div class="chat-workspace">
               <div class="chat-history-shell" aria-label="Mesaj geçmişi">
                 <div
@@ -2536,9 +2617,6 @@ const STATUS_URL =
                 <p id="panel-voice-hint" class="chat-voice-hint" role="status" aria-live="polite" hidden></p>
                 <p id="panel-camera-hint" class="chat-camera-hint" role="status" aria-live="polite" hidden></p>
                 <p id="panel-send-hint" class="chat-camera-hint" role="status" aria-live="polite" hidden></p>
-                <div id="panel-chat-photo-tech" class="panel-chat-photo-tech" hidden>
-                  <pre id="panel-chat-photo-tech-pre" class="panel-chat-photo-tech__pre"></pre>
-                </div>
                 <p class="lumos-security-note">Kalıcı işlemler için onay ister.</p>
               </div>
             </div>
@@ -3686,14 +3764,9 @@ const STATUS_URL =
         }
 
         function syncPanelCameraPhotoBarVisibility() {
-          const mobile = mqPanelCameraMobile.matches;
           const has = !!cameraPhotoObjectUrl;
           if (!cameraPreviewWrap) return;
-          if (mobile) {
-            cameraPreviewWrap.hidden = false;
-          } else {
-            cameraPreviewWrap.hidden = !has;
-          }
+          cameraPreviewWrap.hidden = !has;
         }
 
         function clearPanelCameraPhotoSelection() {
@@ -3701,6 +3774,8 @@ const STATUS_URL =
           if (cameraPhotoPreview) {
             cameraPhotoPreview.onload = null;
             cameraPhotoPreview.removeAttribute("src");
+            cameraPhotoPreview.removeAttribute("title");
+            cameraPhotoPreview.alt = "";
             cameraPhotoPreview.hidden = true;
           }
           if (cameraPhotoInput) cameraPhotoInput.value = "";
@@ -3725,15 +3800,18 @@ const STATUS_URL =
             setCameraHint("Önizleme oluşturulamadı.");
             return;
           }
+          const name = file.name && String(file.name).trim();
           if (cameraPhotoPreview) {
             cameraPhotoPreview.hidden = true;
+            const label = name ? name : "Seçilen görsel";
+            cameraPhotoPreview.alt = label;
+            cameraPhotoPreview.title = label;
             cameraPhotoPreview.onload = () => {
               cameraPhotoPreview.hidden = false;
             };
             cameraPhotoPreview.src = cameraPhotoObjectUrl;
           }
           if (cameraPhotoStatus) {
-            const name = file.name && String(file.name).trim();
             cameraPhotoStatus.textContent = name ? name : "Fotoğraf alındı";
           }
           if (cameraBtn) {
