@@ -3,6 +3,19 @@
   "installCommand": "cd ui && npm install",
   "buildCommand": "cd ui && npm run build",
   "outputDirectory": "ui/dist",
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.welockai.com"
+        }
+      ],
+      "destination": "https://welockai.com/$1",
+      "permanent": true
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
