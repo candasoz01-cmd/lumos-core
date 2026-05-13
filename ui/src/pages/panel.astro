@@ -1301,12 +1301,9 @@ const STATUS_URL =
       .chat-empty-hint + .lumos-security-note {
         margin-top: -0.35rem;
       }
+      /** İlk mesaj veya ilk Lumos/uyarı balonu geldikten sonra (geçmiş varsa) güvenlik notu kalkar. */
       .chat-thread:has(> .chat-turn) > .lumos-security-note {
-        margin-top: 0;
-        margin-bottom: 0.35rem;
-        align-self: stretch;
-        max-width: none;
-        margin-inline: 0.35rem;
+        display: none;
       }
       .chat-thread::-webkit-scrollbar {
         width: 7px;
