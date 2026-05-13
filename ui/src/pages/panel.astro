@@ -19,7 +19,7 @@ const HEALTH_URL =
 <html lang="tr">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Lumos Panel — Çalışma alanı</title>
     <style>
       :root {
@@ -1714,6 +1714,17 @@ const HEALTH_URL =
           box-sizing: border-box;
           -webkit-text-size-adjust: 100%;
           text-size-adjust: 100%;
+        }
+        /** Görevler / dosyalar: iOS odak yakınlaştırması için ≥16px (compose #panel-sohbet’te ayrı). */
+        .gorevler-field input,
+        .gorevler-field select,
+        #dosyalar-file-input {
+          font-size: max(16px, 0.88rem);
+        }
+        .gorevler-field input:focus,
+        .gorevler-field select:focus,
+        #dosyalar-file-input:focus {
+          transform: none;
         }
         .panel-shell {
           flex: 1 1 auto;
