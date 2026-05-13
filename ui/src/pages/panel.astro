@@ -1700,6 +1700,8 @@ const HEALTH_URL =
           min-height: -webkit-fill-available;
           overflow-x: hidden;
           box-sizing: border-box;
+          -webkit-text-size-adjust: 100%;
+          text-size-adjust: 100%;
         }
         body {
           width: 100%;
@@ -1710,6 +1712,8 @@ const HEALTH_URL =
           min-height: -webkit-fill-available;
           overflow-x: hidden;
           box-sizing: border-box;
+          -webkit-text-size-adjust: 100%;
+          text-size-adjust: 100%;
         }
         .panel-shell {
           flex: 1 1 auto;
@@ -2176,8 +2180,12 @@ const HEALTH_URL =
           min-width: 0;
           max-width: 100%;
           padding: 0.42rem 0.45rem;
-          line-height: 1.45;
+          font-size: max(16px, 0.88rem);
+          line-height: 1.5;
           box-sizing: border-box;
+        }
+        #panel-sohbet .chat-compose--gpt textarea:focus {
+          transform: none;
         }
         #panel-sohbet .chat-compose-camera-btn,
         #panel-sohbet .chat-compose-voice-btn,
@@ -2210,6 +2218,17 @@ const HEALTH_URL =
           width: 0.98rem;
           height: 0.98rem;
         }
+        #panel-sohbet .chat-compose-camera-btn:focus,
+        #panel-sohbet .chat-compose-camera-btn:focus-visible,
+        #panel-sohbet .chat-compose-camera-btn:active,
+        #panel-sohbet .chat-compose-voice-btn:focus,
+        #panel-sohbet .chat-compose-voice-btn:focus-visible,
+        #panel-sohbet .chat-compose-voice-btn:active,
+        #panel-sohbet .chat-compose-send:focus,
+        #panel-sohbet .chat-compose-send:focus-visible,
+        #panel-sohbet .chat-compose-send:active {
+          transform: none;
+        }
         #panel-sohbet .chat-compose--gpt textarea:placeholder-shown {
           /* "Mesajını yaz" tek satırda tam görünür; kontroller küçük + flex min-width ile sığdırılır. */
           white-space: nowrap;
@@ -2217,10 +2236,10 @@ const HEALTH_URL =
           overflow-y: hidden;
           text-overflow: clip;
           text-align: start;
-          font-size: clamp(0.68rem, 2.85vw, 0.78rem);
-          line-height: 1.45;
-          min-height: calc(0.42rem * 2 + 1em * 1.45);
-          max-height: calc(0.42rem * 2 + 1em * 1.45);
+          font-size: max(16px, 0.78rem);
+          line-height: 1.5;
+          min-height: calc(0.42rem * 2 + 1em * 1.5);
+          max-height: calc(0.42rem * 2 + 1em * 1.5);
         }
         #panel-sohbet .chat-compose--gpt textarea:not(:placeholder-shown) {
           white-space: pre-wrap;
@@ -3805,6 +3824,7 @@ const HEALTH_URL =
             input.value = "";
             clearPanelCameraPhotoSelection();
             setSendHint("");
+            input.blur();
           }
 
           try {
@@ -3883,6 +3903,7 @@ const HEALTH_URL =
                       input.value = "";
                       clearPanelCameraPhotoSelection();
                       setSendHint("");
+                      input.blur();
                     }
                   } else if (panelGorevCmd) {
                     appendBubble(

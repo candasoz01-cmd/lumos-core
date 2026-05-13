@@ -59,6 +59,49 @@ function parsePanelChatPhotoFields(body) {
   return { photoAttached, photoName, photoType, photoSize, imageDataBase64 };
 }
 
+/** Metin sohbeti: Responses API ile kullanılan model. */
+const PANEL_CHAT_TEXT_MODEL = "gpt-5.5";
+/**
+ * gpt-5.5 bu uçta görsel (input_image) kabul etmediği için yalnızca fotoğraflı turlarda gpt-4o kullanılır.
+ */
+const PANEL_CHAT_VISION_MODEL = "gpt-4o";
+
+const PANEL_CHAT_VISION_EMPTY_TEXT_PROMPT = "Bu görseli kısaca açıkla.";
+
+/**
+ * Panel fotoğrafı için data URL (Responses API input_image.image_url).
+ * @param {string} photoType
+ * @param {string} imageDataBase64
+ */
+function panelChatImageDataUrl(photoType, imageDataBase64) {
+  const raw = String(photoType || "image/jpeg")
+    .toLowerCase()
+    .trim()
+    .slice(0, 256);
+  const mime = raw.startsWith("image/") ? raw : "image/jpeg";
+  return `data:${mime};base64,${imageDataBase64}`;
+}
+
+/**
+ * @param {string} currentText zaten trimlenmiş kullanıcı metni
+ * @param {string} photoType
+ * @param {string} imageDataBase64 saf base64
+ */
+function buildPanelChatVisionUserContent(currentText, photoType, imageDataBase64) {
+  let textForModel = currentText;
+  if (textForModel.length > PANEL_CHAT_MAX_CONTENT_CHARS) {
+    textForModel = textForModel.slice(0, PANEL_CHAT_MAX_CONTENT_CHARS);
+  }
+  if (textForModel.length === 0) {
+    textForModel = PANEL_CHAT_VISION_EMPTY_TEXT_PROMPT;
+  }
+  const imageUrl = panelChatImageDataUrl(photoType, imageDataBase64);
+  return [
+    { type: "input_text", text: textForModel },
+    { type: "input_image", image_url: imageUrl },
+  ];
+}
+
 /**
  * İstemciden gelen history dizisini güvenli biçimde { role, content } listesine indirger.
  * @param {unknown} raw
@@ -157,14 +200,40 @@ app.post("/chat", async (req, res) => {
     }
 
     const REPLY_PHOTO_NO_VISION = "Fotoğraf eklendi; görsel analiz henüz aktif değil.";
-    const REPLY_PHOTO_INLINE_STUB = "Görsel alındı, analiz yakında";
 
     if (photo.photoAttached) {
       const mimeOk = String(photo.photoType || "")
         .toLowerCase()
         .startsWith("image/");
       if (mimeOk && photo.imageDataBase64) {
-        return res.json({ reply: REPLY_PHOTO_INLINE_STUB });
+        const client = getOpenAI();
+        if (!client) {
+          return res.json({ reply: REPLY_PHOTO_NO_VISION });
+        }
+        const historyMessages = normalizePanelChatHistory(body?.history);
+        const visionUserContent = buildPanelChatVisionUserContent(
+          currentText,
+          photo.photoType,
+          photo.imageDataBase64
+        );
+        const input =
+          historyMessages.length === 0
+            ? [{ role: "user", content: visionUserContent }]
+            : [
+                ...historyMessages.map((m) => ({ role: m.role, content: m.content })),
+                { role: "user", content: visionUserContent },
+              ];
+        try {
+          const response = await client.responses.create({
+            model: PANEL_CHAT_VISION_MODEL,
+            instructions: LUMOS_CHAT_INSTRUCTIONS,
+            input,
+          });
+          const reply = response.output_text ?? "";
+          return res.json({ reply });
+        } catch {
+          return res.json({ reply: REPLY_PHOTO_NO_VISION });
+        }
       }
       return res.json({ reply: REPLY_PHOTO_NO_VISION });
     }
@@ -189,7 +258,7 @@ app.post("/chat", async (req, res) => {
             { role: "user", content: userContent },
           ];
     const response = await client.responses.create({
-      model: "gpt-5.5",
+      model: PANEL_CHAT_TEXT_MODEL,
       instructions: LUMOS_CHAT_INSTRUCTIONS,
       input,
     });
