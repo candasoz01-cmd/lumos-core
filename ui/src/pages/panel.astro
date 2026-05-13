@@ -1758,7 +1758,7 @@ const HEALTH_URL =
           flex: 0 0 auto;
           align-self: stretch;
           width: 100%;
-          max-width: none;
+          max-width: 100%;
           margin: 0;
           margin-inline: 0;
           max-height: min(34vh, 11.25rem);
@@ -1883,7 +1883,7 @@ const HEALTH_URL =
         }
         .panel-main > .module-panel {
           width: 100%;
-          max-width: none;
+          max-width: 100%;
           margin: 0;
           margin-inline: 0;
           align-self: stretch;
@@ -2066,7 +2066,10 @@ const HEALTH_URL =
         #panel-sohbet .chat-compose--gpt textarea {
           flex: 1 1 auto;
           min-width: 0;
+          max-width: 100%;
+          padding: 0.42rem 0.45rem;
           line-height: 1.45;
+          box-sizing: border-box;
         }
         #panel-sohbet .chat-compose-camera-btn,
         #panel-sohbet .chat-compose-voice-btn,
@@ -2099,14 +2102,6 @@ const HEALTH_URL =
           width: 0.98rem;
           height: 0.98rem;
         }
-        @supports (field-sizing: content) {
-          #panel-sohbet .chat-compose--gpt textarea {
-            field-sizing: fixed;
-          }
-        }
-        #panel-sohbet .chat-compose--gpt textarea {
-          padding: 0.42rem 0.45rem;
-        }
         #panel-sohbet .chat-compose--gpt textarea:placeholder-shown {
           /* "Mesajını yaz" tek satırda tam görünür; kontroller küçük + flex min-width ile sığdırılır. */
           white-space: nowrap;
@@ -2137,6 +2132,12 @@ const HEALTH_URL =
           bottom: max(0.65rem, env(safe-area-inset-bottom, 0px));
           left: auto;
           top: auto;
+        }
+        @media (max-width: 540px) {
+          #gorevler-detail.gorevler-detail {
+            width: 100%;
+            max-width: 100%;
+          }
         }
       }
     </style>
