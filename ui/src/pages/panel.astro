@@ -33,43 +33,67 @@ const STATUS_URL =
     <title>Lumos Panel — Çalışma alanı</title>
     <style>
       :root {
-        /** Ana kömür çizgisi: #050505 → #080808 → #0b0b0b */
-        --lumos-bg: #050505;
-        --lumos-surface: rgba(11, 11, 11, 0.98);
-        /** Çok koyu bronz çizgi — renk yayılımı az */
-        --lumos-border: rgba(115, 95, 68, 0.22);
-        /** Kart çerçevesi: saç teli, koyu zeminde biraz daha okunur */
-        --lumos-card-border: rgba(132, 112, 86, 0.38);
-        --lumos-card-inset: rgba(255, 255, 255, 0.042);
-        --lumos-gold: #e8c98c;
-        /** Elektrik mavisi — landing ile ortak isim; panel kromu şimdilik kullanmıyor */
-        --lumos-accent-blue: #0ea5e9;
-        --lumos-text: #eceae6;
-        --lumos-text-soft: rgba(236, 234, 230, 0.72);
-        --lumos-muted: #928f89;
-        --lumos-input-bg: #050505;
-        /** Panel bölgeleri — nötr siyah/kömür (petrol yok) */
-        --lumos-sidebar-bg: #000000;
-        --lumos-main-bg: #080808;
-        --lumos-chat-head-bg: #080808;
-        --lumos-chat-history-bg: #0b0b0b;
-        --lumos-compose-bg: #080808;
-        --lumos-chat-input-bg: #050505;
-        /** Turkuaz yalnızca Bağlı rozeti (çok düşük doz) */
-        --lumos-tq-badge-inset: rgba(95, 185, 170, 0.1);
-        --lumos-tq-badge-glow: rgba(55, 145, 132, 0.07);
-        --lumos-btn-a: #141312;
-        --lumos-btn-b: #080808;
-        --lumos-user-bubble: rgba(12, 12, 12, 0.92);
-        --lumos-lumos-bubble: rgba(0, 0, 0, 0.4);
+        /**
+         * Landing ile aynı kanal (index.astro :root — salt okunur referans).
+         * Panel: koyu lacivert zemin, elektrik cyan-mavi, kontrollü sıcak altın.
+         */
+        --lumos-land-teal: 56 206 255;
+        --lumos-land-teal-deep: 8 52 108;
+        --lumos-land-warm: 186 148 88;
+        --lumos-land-warm-deep: 128 96 54;
+        --lumos-teal-12: rgb(var(--lumos-land-teal) / 0.12);
+        --lumos-teal-14: rgb(var(--lumos-land-teal) / 0.14);
+        --lumos-teal-16: rgb(var(--lumos-land-teal) / 0.16);
+        --lumos-teal-18: rgb(var(--lumos-land-teal) / 0.18);
+        --lumos-teal-22: rgb(var(--lumos-land-teal) / 0.22);
+        --lumos-teal-28: rgb(var(--lumos-land-teal) / 0.28);
+        --lumos-teal-32: rgb(var(--lumos-land-teal) / 0.32);
+        --lumos-teal-35: rgb(var(--lumos-land-teal) / 0.35);
+        --lumos-teal-38: rgb(var(--lumos-land-teal) / 0.38);
+        --lumos-teal-40: rgb(var(--lumos-land-teal) / 0.4);
+        --lumos-teal-42: rgb(var(--lumos-land-teal) / 0.42);
+        --lumos-teal-48: rgb(var(--lumos-land-teal) / 0.48);
+        --lumos-gold-soft: rgb(var(--lumos-land-warm) / 0.22);
+        --lumos-gold-line: rgb(var(--lumos-land-warm) / 0.32);
+        --lumos-bg: #030714;
+        --lumos-surface: rgba(4, 8, 18, 0.96);
+        --lumos-border: var(--lumos-teal-22);
+        --lumos-card-border: rgb(var(--lumos-land-teal) / 0.28);
+        --lumos-card-inset: rgba(255, 255, 255, 0.04);
+        --lumos-gold: #c6a66a;
+        --lumos-accent-blue: rgb(130 206 255 / 0.92);
+        --lumos-text: #d4dae8;
+        --lumos-text-soft: rgb(212 218 232 / 0.82);
+        --lumos-muted: #aeb6c8;
+        --lumos-input-bg: #020511;
+        --lumos-sidebar-bg: #020511;
+        --lumos-main-bg: #030714;
+        --lumos-chat-head-bg: #030714;
+        --lumos-chat-history-bg: #040a14;
+        --lumos-compose-bg: rgba(3, 7, 20, 0.92);
+        --lumos-chat-input-bg: #020511;
+        --lumos-tq-badge-inset: rgb(var(--lumos-land-teal) / 0.14);
+        --lumos-tq-badge-glow: rgb(var(--lumos-land-teal) / 0.1);
+        --lumos-btn-a: rgba(12, 20, 36, 0.96);
+        --lumos-btn-b: #030714;
+        --lumos-user-bubble: rgba(8, 14, 28, 0.92);
+        --lumos-lumos-bubble: rgba(4, 10, 22, 0.55);
         --lumos-error: #f0b4b4;
-        /** Operasyon paneli — yüzey / köşe / gölge (tek ritim) */
         --panel-radius: 10px;
         --panel-radius-lg: 12px;
-        --panel-strip-bg: linear-gradient(180deg, #070707 0%, #050505 100%);
-        --panel-surface-raised: rgba(12, 12, 12, 0.92);
-        --panel-edge-inset: inset 0 1px 0 rgba(255, 255, 255, 0.03);
-        --panel-shadow-ambient: 0 1px 3px rgba(0, 0, 0, 0.35);
+        --panel-strip-bg: linear-gradient(178deg, #010308 0%, #061022 52%, #030714 100%);
+        --panel-surface-raised: rgba(6, 12, 26, 0.94);
+        --panel-edge-inset: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        --panel-shadow-ambient: 0 1px 3px rgba(0, 0, 0, 0.45);
+        --panel-body-wash:
+          radial-gradient(ellipse 130% 88% at 50% -6%, rgb(12 40 88 / 0.42), transparent 54%),
+          radial-gradient(ellipse 88% 52% at 94% 38%, rgb(var(--lumos-land-teal) / 0.06), transparent 46%),
+          radial-gradient(ellipse 72% 48% at 10% 72%, rgb(var(--lumos-land-warm) / 0.028), transparent 50%),
+          linear-gradient(178deg, #010308 0%, #061022 44%, #030714 100%);
+        --panel-chat-wash:
+          radial-gradient(ellipse 120% 100% at 50% 0%, rgb(var(--lumos-land-teal-deep) / 0.42), transparent 55%),
+          radial-gradient(ellipse 90% 70% at 100% 100%, rgb(var(--lumos-land-teal) / 0.07), transparent 50%),
+          linear-gradient(180deg, rgb(2 5 17) 0%, rgb(4 10 22) 52%, rgb(3 8 18) 100%);
       }
       * {
         box-sizing: border-box;
@@ -85,7 +109,9 @@ const STATUS_URL =
         max-height: 100dvh;
         overflow: hidden;
         overflow-x: hidden;
-        background: var(--lumos-bg);
+        background-color: var(--lumos-bg);
+        background-image: var(--panel-body-wash);
+        background-attachment: fixed;
         color: var(--lumos-text);
         font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
         line-height: 1.55;
@@ -104,7 +130,8 @@ const STATUS_URL =
       .panel-header {
         flex-shrink: 0;
         padding: clamp(0.85rem, 2vw, 1.15rem) clamp(1rem, 3vw, 1.5rem);
-        border-bottom: 1px solid var(--lumos-border);
+        border-bottom: 1px solid var(--lumos-teal-38);
+        box-shadow: 0 1px 0 rgb(var(--lumos-land-warm-deep) / 0.14);
         background: var(--panel-strip-bg);
       }
       .panel-header-title-row {
@@ -120,6 +147,7 @@ const STATUS_URL =
         gap: 0.7rem;
         min-width: 0;
         flex: 1 1 12rem;
+        overflow: visible;
       }
       .panel-conn-badge {
         flex: 0 0 auto;
@@ -141,10 +169,13 @@ const STATUS_URL =
         border-color: rgba(184, 148, 96, 0.35);
       }
       .panel-conn-badge[data-state="ok"] {
-        color: rgba(200, 238, 226, 0.94);
-        background: #0a0a0a;
-        border-color: rgba(145, 118, 82, 0.38);
-        box-shadow: inset 0 1px 0 var(--lumos-tq-badge-inset);
+        color: rgb(196 234 255 / 0.96);
+        background: linear-gradient(180deg, rgb(6 16 36 / 0.96) 0%, rgb(2 6 18 / 0.98) 100%);
+        border-color: var(--lumos-teal-38);
+        box-shadow:
+          inset 0 1px 0 var(--lumos-tq-badge-inset),
+          0 0 14px rgb(var(--lumos-land-teal) / 0.14),
+          0 0 0 1px rgb(var(--lumos-land-warm) / 0.18);
       }
       .panel-conn-badge[data-state="bad"] {
         color: rgba(240, 195, 195, 0.96);
@@ -191,13 +222,13 @@ const STATUS_URL =
         font-size: 0.78rem;
         padding: 0.35rem 0.65rem;
         border-radius: 8px;
-        border: 1px solid rgba(115, 95, 68, 0.35);
+        border: 1px solid var(--lumos-teal-35);
         background: var(--lumos-btn-a);
         color: var(--lumos-text);
         cursor: pointer;
       }
       .medya-outbox-refresh:hover {
-        border-color: rgba(212, 182, 128, 0.45);
+        border-color: rgb(var(--lumos-land-teal) / 0.4);
       }
       .medya-outbox-refresh:disabled {
         opacity: 0.55;
@@ -213,7 +244,7 @@ const STATUS_URL =
         white-space: pre-wrap;
         word-break: break-word;
         background: var(--lumos-main-bg);
-        border: 1px solid rgba(115, 95, 68, 0.18);
+        border: 1px solid var(--lumos-teal-18);
         border-radius: 8px;
         color: var(--lumos-muted);
       }
@@ -249,13 +280,15 @@ const STATUS_URL =
         flex-shrink: 0;
         border-radius: 50%;
         background:
-          radial-gradient(circle at 32% 22%, rgba(255, 248, 238, 0.14) 0%, transparent 40%),
-          linear-gradient(155deg, #141312 0%, #0c0c0c 42%, #050505 100%);
-        border: 2px solid rgba(212, 182, 128, 0.62);
+          radial-gradient(circle at 32% 22%, rgb(var(--lumos-land-teal) / 0.12) 0%, transparent 42%),
+          radial-gradient(circle at 70% 78%, rgb(var(--lumos-land-warm) / 0.06) 0%, transparent 45%),
+          linear-gradient(155deg, #0c1428 0%, #080f1e 42%, #030714 100%);
+        border: 2px solid rgb(var(--lumos-land-warm) / 0.55);
         box-shadow:
-          inset 0 0 0 1px rgba(0, 0, 0, 0.55),
-          inset 0 1px 0 rgba(255, 255, 255, 0.05),
-          inset 0 -1px 4px rgba(0, 0, 0, 0.35);
+          inset 0 0 0 1px rgb(var(--lumos-land-teal) / 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.06),
+          inset 0 -1px 4px rgba(0, 0, 0, 0.4),
+          0 0 0 1px rgb(var(--lumos-land-teal) / 0.08);
       }
       .lumos-mark::before {
         content: "";
@@ -263,8 +296,8 @@ const STATUS_URL =
         inset: 4px;
         border-radius: 50%;
         box-sizing: border-box;
-        border: 1px solid rgba(236, 207, 147, 0.28);
-        background: rgba(8, 8, 8, 0.55);
+        border: 1px solid rgb(var(--lumos-land-warm) / 0.28);
+        background: rgba(4, 8, 18, 0.62);
         pointer-events: none;
       }
       .lumos-mark::after {
@@ -287,7 +320,7 @@ const STATUS_URL =
         font-size: clamp(1rem, 2vw, 1.2rem);
         font-weight: 600;
         letter-spacing: -0.018em;
-        color: #e8d4b4;
+        color: #e9eef5;
       }
       /**
        * Masaüstü: sol sütunda üstte Çalışma, altta Lumos çekirdeği; sağda `main` iki satırı kaplar.
@@ -310,14 +343,14 @@ const STATUS_URL =
         align-self: stretch;
         min-height: 0;
         padding: 0.65rem 0.4rem 0.45rem 0;
-        border-right: 1px solid rgba(115, 95, 68, 0.18);
-        border-bottom: 1px solid rgba(115, 95, 68, 0.12);
+        border-right: 1px solid var(--lumos-teal-18);
+        border-bottom: 1px solid var(--lumos-teal-12);
         background: var(--lumos-sidebar-bg);
         overflow-x: hidden;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: thin;
-        scrollbar-color: rgba(148, 118, 78, 0.45) rgba(8, 8, 8, 0.9);
+        scrollbar-color: var(--lumos-teal-40) rgba(2, 5, 17, 0.85);
         display: flex;
         flex-direction: column;
         min-width: 0;
@@ -327,13 +360,13 @@ const STATUS_URL =
         align-self: stretch;
         min-height: 0;
         padding: 0.45rem 0.4rem 0.85rem 0;
-        border-right: 1px solid rgba(115, 95, 68, 0.18);
+        border-right: 1px solid var(--lumos-teal-18);
         background: var(--lumos-sidebar-bg);
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: thin;
-        scrollbar-color: rgba(148, 118, 78, 0.45) rgba(8, 8, 8, 0.9);
+        scrollbar-color: var(--lumos-teal-40) rgba(2, 5, 17, 0.85);
         display: flex;
         flex-direction: column;
         min-width: 0;
@@ -345,19 +378,19 @@ const STATUS_URL =
       .panel-nav__primary::-webkit-scrollbar-track,
       .panel-nav__lumos::-webkit-scrollbar-track {
         margin: 4px 0;
-        background: rgba(5, 5, 5, 0.95);
+        background: rgba(2, 5, 17, 0.95);
         border-radius: 999px;
       }
       .panel-nav__primary::-webkit-scrollbar-thumb,
       .panel-nav__lumos::-webkit-scrollbar-thumb {
-        background: rgba(115, 95, 68, 0.4);
+        background: var(--lumos-teal-40);
         border-radius: 999px;
         border: 1px solid rgba(0, 0, 0, 0.35);
         background-clip: padding-box;
       }
       .panel-nav__primary::-webkit-scrollbar-thumb:hover,
       .panel-nav__lumos::-webkit-scrollbar-thumb:hover {
-        background: rgba(145, 118, 82, 0.46);
+        background: var(--lumos-teal-48);
         background-clip: padding-box;
       }
       .panel-nav-sig {
@@ -417,11 +450,11 @@ const STATUS_URL =
       .panel-nav-group-toggle:hover {
         background: rgba(255, 255, 255, 0.035);
         color: rgba(228, 218, 198, 0.88);
-        box-shadow: inset 0 0 0 1px rgba(145, 118, 82, 0.14);
+        box-shadow: inset 0 0 0 1px rgb(var(--lumos-land-warm-deep) / 0.14);
       }
       .panel-nav-group-toggle:focus-visible {
         outline: none;
-        box-shadow: 0 0 0 2px rgba(184, 148, 96, 0.35);
+        box-shadow: 0 0 0 2px rgb(var(--lumos-land-teal) / 0.42);
       }
       .panel-nav-group-toggle-label {
         min-width: 0;
@@ -460,7 +493,7 @@ const STATUS_URL =
         padding: 0.58rem 0.75rem 0.58rem 0.95rem;
         border: none;
         background: rgba(255, 255, 255, 0.02);
-        color: #c8c2b8;
+        color: var(--lumos-muted);
         font-size: 0.86rem;
         font-weight: 500;
         text-align: left;
@@ -477,8 +510,8 @@ const STATUS_URL =
       }
       .panel-nav__primary button[data-module]:hover,
       .panel-nav__lumos button[data-module]:hover {
-        background: rgba(255, 255, 255, 0.05);
-        color: #f2ebe6;
+        background: rgb(var(--lumos-land-teal) / 0.06);
+        color: #e9eef5;
         box-shadow: none;
       }
       .panel-nav__primary button[data-module][aria-current="false"],
@@ -487,11 +520,14 @@ const STATUS_URL =
       }
       .panel-nav__primary button[data-module][aria-current="true"],
       .panel-nav__lumos button[data-module][aria-current="true"] {
-        color: #f0e4c4;
+        color: #f2efe6;
         font-weight: 600;
         border-left-color: rgba(236, 207, 147, 0.88);
-        background: #0b0b0b;
-        box-shadow: none;
+        background: rgba(8, 14, 28, 0.88);
+        box-shadow:
+          inset 0 0 0 1px rgb(var(--lumos-land-teal) / 0.1),
+          6px 0 22px rgb(var(--lumos-land-teal) / 0.14),
+          2px 0 12px rgb(var(--lumos-land-teal) / 0.08);
       }
       .panel-main {
         grid-area: main;
@@ -503,7 +539,8 @@ const STATUS_URL =
         display: flex;
         flex-direction: column;
         gap: 0;
-        background: var(--lumos-main-bg);
+        background-color: var(--lumos-main-bg);
+        background-image: radial-gradient(ellipse 100% 80% at 50% 0%, rgb(12 40 88 / 0.18), transparent 55%);
       }
       .module-panel {
         display: none;
@@ -536,7 +573,7 @@ const STATUS_URL =
       .module-panel:not(#panel-sohbet) > h2 {
         margin: 0 0 0.85rem;
         padding-bottom: 0.5rem;
-        border-bottom: 1px solid rgba(115, 95, 68, 0.14);
+        border-bottom: 1px solid var(--lumos-teal-14);
       }
       .module-panel h2.module-title-row {
         display: flex;
@@ -803,7 +840,7 @@ const STATUS_URL =
         line-height: 1.2;
         padding: 0.28rem 0.55rem;
         border-radius: 999px;
-        border: 1px solid rgba(115, 95, 68, 0.32);
+        border: 1px solid var(--lumos-teal-32);
         background: rgba(18, 17, 15, 0.92);
         color: rgba(200, 194, 186, 0.95);
         pointer-events: none;
@@ -826,7 +863,7 @@ const STATUS_URL =
         background: rgba(12, 22, 16, 0.65);
       }
       .gorevler-task-badge--status-unknown {
-        border-color: rgba(115, 95, 68, 0.28);
+        border-color: var(--lumos-teal-28);
         color: rgba(176, 170, 162, 0.88);
       }
       .gorevler-task-badge--priority-dusuk {
@@ -845,7 +882,7 @@ const STATUS_URL =
         background: rgba(22, 12, 10, 0.72);
       }
       .gorevler-task-badge--priority-unknown {
-        border-color: rgba(115, 95, 68, 0.28);
+        border-color: var(--lumos-teal-28);
         color: rgba(176, 170, 162, 0.88);
       }
       .gorevler-task-when {
@@ -877,7 +914,7 @@ const STATUS_URL =
         font-weight: 500;
         padding: 0.22rem 0.45rem;
         border-radius: 6px;
-        border: 1px solid rgba(115, 95, 68, 0.28);
+        border: 1px solid var(--lumos-teal-28);
         background: transparent;
         color: rgba(168, 162, 152, 0.92);
         cursor: pointer;
@@ -1257,8 +1294,12 @@ const STATUS_URL =
         flex-direction: column;
         border-radius: var(--panel-radius-lg);
         border: 1px solid var(--lumos-border);
-        background: var(--lumos-chat-history-bg);
-        box-shadow: var(--panel-edge-inset);
+        background-color: var(--lumos-chat-history-bg);
+        background-image: var(--panel-chat-wash);
+        box-shadow:
+          var(--panel-edge-inset),
+          inset 0 0 0 1px rgb(var(--lumos-land-teal) / 0.06),
+          inset 0 1px 48px rgb(var(--lumos-land-teal-deep) / 0.22);
         overflow: hidden;
       }
       .chat-thread {
@@ -1271,7 +1312,8 @@ const STATUS_URL =
         flex-direction: column;
         gap: 1rem;
         scrollbar-width: thin;
-        scrollbar-color: rgba(184, 148, 96, 0.35) rgba(5, 5, 5, 0.35);
+        scrollbar-color: var(--lumos-teal-40) rgba(2, 5, 17, 0.35);
+        box-shadow: inset 0 0 72px rgb(var(--lumos-land-teal-deep) / 0.2);
       }
       .chat-thread:not(:has(> .chat-turn)) {
         justify-content: center;
@@ -1293,7 +1335,7 @@ const STATUS_URL =
         font-weight: 600;
         letter-spacing: -0.015em;
         line-height: 1.5;
-        color: rgba(232, 218, 188, 0.82);
+        color: rgb(200 226 248 / 0.88);
       }
       .chat-thread:has(> .chat-turn) > .chat-empty-hint {
         display: none;
@@ -1310,17 +1352,17 @@ const STATUS_URL =
       }
       .chat-thread::-webkit-scrollbar-track {
         margin: 6px 0;
-        background: rgba(0, 0, 0, 0.18);
+        background: rgba(2, 5, 17, 0.35);
         border-radius: 999px;
       }
       .chat-thread::-webkit-scrollbar-thumb {
-        background: rgba(115, 95, 68, 0.42);
+        background: var(--lumos-teal-42);
         border-radius: 999px;
         border: 2px solid transparent;
         background-clip: padding-box;
       }
       .chat-thread::-webkit-scrollbar-thumb:hover {
-        background: rgba(145, 118, 82, 0.48);
+        background: var(--lumos-teal-48);
         background-clip: padding-box;
       }
       .chat-turn {
@@ -1353,20 +1395,20 @@ const STATUS_URL =
         max-width: min(100%, 22rem, 82%);
         margin-left: clamp(1.5rem, 8vw, 3.5rem);
         padding: 0.62rem 0.82rem 0.72rem;
-        background: #050505;
+        background: rgba(6, 12, 26, 0.92);
         border: 1px solid var(--lumos-border);
         border-radius: var(--panel-radius-lg) var(--panel-radius-lg) 5px var(--panel-radius-lg);
-        color: #f5efe6;
+        color: #f0f4fa;
         box-shadow: var(--panel-edge-inset);
       }
       .chat-msg--lumos {
         max-width: min(100%, 46rem, 94%);
         margin-right: clamp(0.75rem, 5vw, 2.5rem);
         padding: 0.65rem 0.92rem 0.78rem;
-        background: #080808;
+        background: rgba(4, 10, 22, 0.88);
         border: 1px solid var(--lumos-border);
         border-radius: var(--panel-radius-lg) var(--panel-radius-lg) var(--panel-radius-lg) 5px;
-        color: #ebe8e2;
+        color: #e9eef5;
         box-shadow: var(--panel-edge-inset);
       }
       .chat-msg--error {
@@ -1387,11 +1429,11 @@ const STATUS_URL =
         opacity: 0.88;
       }
       .chat-msg--user .chat-msg-role {
-        color: rgba(212, 182, 128, 0.72);
+        color: rgb(var(--lumos-land-warm) / 0.78);
         text-align: right;
       }
       .chat-msg--lumos .chat-msg-role {
-        color: rgba(236, 207, 147, 0.85);
+        color: rgb(168 214 236 / 0.88);
         text-align: left;
       }
       .chat-msg--error .chat-msg-role {
@@ -1452,7 +1494,7 @@ const STATUS_URL =
         border: none;
         border-radius: 999px;
         background: transparent;
-        color: rgba(212, 182, 128, 0.72);
+        color: rgb(130 200 240 / 0.92);
         cursor: pointer;
         transition:
           color 0.15s ease,
@@ -1460,17 +1502,19 @@ const STATUS_URL =
           box-shadow 0.15s ease;
       }
       .chat-compose-camera-btn:hover {
-        color: rgba(236, 207, 147, 0.92);
-        background: rgba(255, 255, 255, 0.05);
+        color: rgb(184 240 255 / 0.98);
+        background: rgb(var(--lumos-land-teal) / 0.08);
       }
       .chat-compose-camera-btn:focus-visible {
         outline: none;
-        box-shadow: 0 0 0 2px rgba(184, 148, 96, 0.45);
+        box-shadow: 0 0 0 2px rgb(var(--lumos-land-teal) / 0.45);
       }
       .chat-compose-camera-btn--active {
-        color: rgba(248, 236, 210, 0.98);
-        background: rgba(212, 182, 128, 0.14);
-        box-shadow: inset 0 0 0 1px rgba(212, 182, 128, 0.38);
+        color: rgb(220 248 255 / 0.99);
+        background: rgb(var(--lumos-land-teal) / 0.12);
+        box-shadow:
+          inset 0 0 0 1px rgb(var(--lumos-land-teal) / 0.38),
+          0 0 12px rgb(var(--lumos-land-warm) / 0.08);
       }
       .chat-compose-camera-btn svg {
         width: 1.15rem;
@@ -1482,7 +1526,7 @@ const STATUS_URL =
         padding: 0.45rem 0.5rem;
         border-radius: var(--panel-radius-lg);
         border: 1px solid var(--lumos-border);
-        background: #050505;
+        background: rgba(4, 8, 18, 0.92);
         box-shadow: var(--panel-edge-inset);
         max-width: 100%;
         min-width: 0;
@@ -1514,7 +1558,7 @@ const STATUS_URL =
         width: 3.25rem;
         height: 3.25rem;
         border-radius: 10px;
-        border: 1px solid rgba(115, 95, 68, 0.38);
+        border: 1px solid var(--lumos-teal-38);
         object-fit: cover;
         background: rgba(0, 0, 0, 0.35);
       }
@@ -1559,7 +1603,7 @@ const STATUS_URL =
         border: none;
         border-radius: 999px;
         background: transparent;
-        color: rgba(212, 182, 128, 0.72);
+        color: rgb(130 200 240 / 0.92);
         cursor: pointer;
         transition:
           color 0.15s ease,
@@ -1567,17 +1611,19 @@ const STATUS_URL =
           box-shadow 0.15s ease;
       }
       .chat-compose-voice-btn:hover {
-        color: rgba(236, 207, 147, 0.92);
-        background: rgba(255, 255, 255, 0.05);
+        color: rgb(184 240 255 / 0.98);
+        background: rgb(var(--lumos-land-teal) / 0.08);
       }
       .chat-compose-voice-btn:focus-visible {
         outline: none;
-        box-shadow: 0 0 0 2px rgba(184, 148, 96, 0.45);
+        box-shadow: 0 0 0 2px rgb(var(--lumos-land-teal) / 0.45);
       }
       .chat-compose-voice-btn--listening {
-        color: rgba(248, 236, 210, 0.98);
-        background: rgba(212, 182, 128, 0.14);
-        box-shadow: inset 0 0 0 1px rgba(212, 182, 128, 0.38);
+        color: rgb(220 248 255 / 0.99);
+        background: rgb(var(--lumos-land-teal) / 0.12);
+        box-shadow:
+          inset 0 0 0 1px rgb(var(--lumos-land-teal) / 0.38),
+          0 0 12px rgb(var(--lumos-land-warm) / 0.08);
       }
       .chat-compose-voice-btn svg {
         width: 1.15rem;
@@ -1592,7 +1638,7 @@ const STATUS_URL =
         border-radius: 0;
         border: none;
         background: transparent;
-        color: #f4efe8;
+        color: #e9eef5;
         font-size: 0.88rem;
         font-family: inherit;
         line-height: 1.45;
@@ -1605,14 +1651,18 @@ const STATUS_URL =
         }
       }
       .chat-compose--gpt textarea::placeholder {
-        color: rgba(148, 142, 132, 0.75);
+        color: rgb(138 152 172 / 0.72);
       }
       .chat-compose--gpt textarea:focus {
         outline: none;
       }
       .chat-compose-bar:focus-within {
-        border-color: rgba(184, 148, 96, 0.42);
-        box-shadow: var(--panel-edge-inset), 0 0 0 1px rgba(184, 148, 96, 0.16);
+        border-color: rgb(var(--lumos-land-teal) / 0.42);
+        box-shadow:
+          var(--panel-edge-inset),
+          0 0 0 1px rgb(var(--lumos-land-teal) / 0.2),
+          0 0 20px rgb(var(--lumos-land-teal) / 0.08),
+          0 0 1px rgb(var(--lumos-land-warm) / 0.12);
       }
       .chat-compose-send {
         flex: 0 0 auto;
@@ -1624,8 +1674,8 @@ const STATUS_URL =
         padding: 0.38rem 0.72rem;
         margin: 0;
         border-radius: 999px;
-        border: 1px solid rgba(212, 182, 128, 0.46);
-        background: linear-gradient(180deg, #161413 0%, #0a0908 100%);
+        border: 1px solid rgb(var(--lumos-land-warm) / 0.46);
+        background: linear-gradient(180deg, rgb(14 22 40) 0%, rgb(6 10 22) 100%);
         color: var(--lumos-gold);
         font-size: 0.76rem;
         font-weight: 600;
@@ -1633,18 +1683,36 @@ const STATUS_URL =
         line-height: 1.2;
         white-space: nowrap;
         cursor: pointer;
-        box-shadow: var(--panel-edge-inset), inset 0 -1px 0 rgba(22, 20, 18, 0.95);
+        box-shadow:
+          var(--panel-edge-inset),
+          inset 0 -1px 0 rgba(4, 8, 18, 0.95),
+          0 0 0 1px rgb(var(--lumos-land-teal) / 0.06);
         transition:
           filter 0.15s ease,
           border-color 0.15s ease,
-          box-shadow 0.15s ease;
+          box-shadow 0.15s ease,
+          color 0.15s ease;
       }
       .chat-compose-send__label {
         display: block;
       }
       .chat-compose-send:hover:not(:disabled) {
-        filter: brightness(1.06);
-        border-color: rgba(228, 198, 138, 0.55);
+        filter: brightness(1.08);
+        border-color: rgb(var(--lumos-land-teal) / 0.42);
+        color: rgb(184 240 255 / 0.95);
+        box-shadow:
+          var(--panel-edge-inset),
+          inset 0 -1px 0 rgba(4, 8, 18, 0.95),
+          0 0 18px rgb(var(--lumos-land-teal) / 0.16),
+          0 0 0 1px rgb(var(--lumos-land-warm) / 0.22);
+      }
+      .chat-compose-send:focus-visible {
+        outline: none;
+        border-color: rgb(var(--lumos-land-teal) / 0.55);
+        box-shadow:
+          var(--panel-edge-inset),
+          0 0 0 2px rgb(var(--lumos-land-teal) / 0.35),
+          0 0 22px rgb(var(--lumos-land-teal) / 0.12);
       }
       .chat-compose-send:disabled {
         opacity: 0.55;
@@ -1710,7 +1778,7 @@ const STATUS_URL =
         text-align: center;
         color: rgba(148, 142, 132, 0.95);
         background: rgba(6, 6, 6, 0.42);
-        border: 1px solid rgba(115, 95, 68, 0.22);
+        border: 1px solid var(--lumos-teal-22);
         flex-shrink: 0;
       }
       @media (max-width: 767.98px) {
@@ -1814,7 +1882,7 @@ const STATUS_URL =
           gap: 0.35rem;
           padding: 0.22rem 0 0.28rem;
           border-right: none;
-          border-bottom: 1px solid rgba(115, 95, 68, 0.16);
+          border-bottom: 1px solid var(--lumos-teal-16);
           overflow-x: auto;
           overflow-y: hidden;
           overscroll-behavior-x: contain;
@@ -2015,8 +2083,9 @@ const STATUS_URL =
           box-sizing: border-box;
           border: none;
           border-radius: 0;
-          background: var(--lumos-main-bg);
-          box-shadow: none;
+          background-color: var(--lumos-main-bg);
+          background-image: var(--panel-chat-wash);
+          box-shadow: inset 0 0 64px rgb(var(--lumos-land-teal-deep) / 0.18);
         }
         #panel-sohbet .chat-thread {
           flex: 1 1 auto;
@@ -3960,6 +4029,124 @@ const STATUS_URL =
           return String(err);
         }
 
+        const PANEL_CHAT_LOG_MAX = 8000;
+        function truncatePanelChatLog(s) {
+          const t = s == null ? "" : String(s);
+          if (t.length <= PANEL_CHAT_LOG_MAX) return t;
+          return (
+            t.slice(0, PANEL_CHAT_LOG_MAX) + "\n… (" + (t.length - PANEL_CHAT_LOG_MAX) + " karakter daha)"
+          );
+        }
+
+        /** Sohbet/LLM hatalarında kullanıcıya; teknik ayrıntı panelChatSanitizeUserVisibleChatFailureText içinde ayrılır. */
+        const PANEL_CHAT_GENERIC_UPSTREAM_FAIL_TR =
+          "Lumos yanıt üretirken bağlantı katmanında sorun yaşadı. Biraz sonra tekrar deneyebilirsin.";
+
+        const PANEL_CHAT_TECH_LEAK_RE = new RegExp(
+          [
+            "openai",
+            "api_key",
+            "apikey",
+            "anthropic",
+            "gemini",
+            "supabase",
+            "database_url",
+            "traceback",
+            "modulenotfound",
+            "no\\s+module\\s+named",
+            "json\\s*parse",
+            "\\bsecret\\b",
+            "\\btoken\\b",
+            "\\bstack\\b",
+            "\\bimport\\b",
+            "\\bmodule\\b",
+            "chat\\s*llm\\s*error",
+          ].join("|"),
+          "i",
+        );
+
+        /**
+         * Sohbetten gelen asistan/hata balonu metni: teknik sızıntı kalıplarında kullanıcıya sabit Türkçe mesaj.
+         * Ham metin console.error ile kalır; tek seferlik balon akışı çağıran tarafta korunur.
+         */
+        function panelChatSanitizeUserVisibleChatFailureText(raw) {
+          const original = String(raw ?? "").trim();
+          if (!original) return "";
+          if (!PANEL_CHAT_TECH_LEAK_RE.test(original)) return original;
+          console.error(
+            "[Lumos panel chat] User-visible text matched technical patterns; raw upstream:",
+            truncatePanelChatLog(original),
+          );
+          return PANEL_CHAT_GENERIC_UPSTREAM_FAIL_TR;
+        }
+
+        function parsePanelChatJsonBody(trimmed) {
+          try {
+            let v = JSON.parse(trimmed);
+            if (typeof v === "string") {
+              const inner = v.trim();
+              if (
+                inner.length > 1
+                && ((inner.startsWith("{") && inner.endsWith("}"))
+                  || (inner.startsWith("[") && inner.endsWith("]")))
+              ) {
+                try {
+                  v = JSON.parse(inner);
+                } catch {
+                  /* kök JSON string = asistan metni */
+                }
+              }
+            }
+            return { ok: true, value: v };
+          } catch {
+            return { ok: false, value: null };
+          }
+        }
+
+        function extractAssistantFromChatPayload(data) {
+          if (data == null) return "";
+          if (typeof data === "string") return String(data).trim();
+          if (typeof data !== "object") return "";
+          const keys = ["reply", "content", "message", "answer", "text", "response"];
+          function fromObj(o) {
+            if (!o || typeof o !== "object" || Array.isArray(o)) return "";
+            for (let i = 0; i < keys.length; i++) {
+              const k = keys[i];
+              if (Object.prototype.hasOwnProperty.call(o, k) && o[k] != null) {
+                const s = String(o[k]).trim();
+                if (s) return s;
+              }
+            }
+            return "";
+          }
+          let out = fromObj(data);
+          if (out) return out;
+          out = fromObj(data.data);
+          if (out) return out;
+          const choices = data.choices;
+          if (Array.isArray(choices) && choices.length) {
+            const c0 = choices[0];
+            if (c0 && typeof c0 === "object") {
+              const msg = c0.message;
+              if (msg && typeof msg === "object" && typeof msg.content === "string") {
+                const s = msg.content.trim();
+                if (s) return s;
+              }
+              if (typeof c0.text === "string" && c0.text.trim()) return c0.text.trim();
+            }
+          }
+          if (typeof data.error === "string" && data.error.trim()) return data.error.trim();
+          return "";
+        }
+
+        function looksLikePanelChatPlainText(trimmed) {
+          if (!trimmed || trimmed.length > 100000) return false;
+          const c0 = trimmed.charCodeAt(0);
+          if (c0 === 0x7b || c0 === 0x5b) return false;
+          if (/^<!DOCTYPE\b/i.test(trimmed) || /^<html\b/i.test(trimmed)) return false;
+          return true;
+        }
+
         async function runSend() {
           const message = input.value.trim();
           const photoFile =
@@ -4085,7 +4272,7 @@ const STATUS_URL =
                     if (errJson && typeof errJson === "object") {
                       if (typeof errJson.error === "string") {
                         if (/OPENAI_API_KEY/i.test(errJson.error)) {
-                          missingKey = " · OPENAI_API_KEY eksik";
+                          missingKey = " · Görsel analiz için API anahtarı eksik";
                         }
                         reason = "HTTP " + r.status + " · " + errJson.error.slice(0, 80);
                       }
@@ -4096,148 +4283,167 @@ const STATUS_URL =
                 }
                 const visionGuess =
                   photoTelemetry.hasInline && !!photoFile && /^image\//i.test(photoFile.type || "");
+                const replyHttpErrRaw = text ? String(text).trim() : "";
                 showPanelChatPhotoTech(
                   buildPhotoTechBlock({
                     httpStatus: r.status,
                     reachedBackend: true,
                     imageDataSent: photoTelemetry.hasInline,
                     visionTriedGuess: visionGuess,
-                    replyPreview: text ? String(text).trim().slice(0, 120) : "",
+                    replyPreview: panelChatSanitizeUserVisibleChatFailureText(replyHttpErrRaw).slice(
+                      0,
+                      120,
+                    ),
                     fallbackExact: false,
                     fallbackRegex: false,
                     networkError: false,
-                    extraReason: reason + missingKey,
+                    extraReason: panelChatSanitizeUserVisibleChatFailureText(reason + missingKey),
                   }),
                 );
                 void loadPanelBackendStatus();
               }
             } else {
-              const INVALID_FORMAT_MSG =
-                "Sunucu yanıtı beklenen formatta değil (JSON veya reply/content/message alanı). Biraz sonra tekrar deneyebilirsin.";
               const EMPTY_REPLY_MSG =
                 "Bu sefer boş bir yanıt geldi. Sorunu biraz açıp yeniden deneyebilirsin.";
+              const CHAT_BODY_UNUSABLE_HINT = "Yanıt okunamadı.";
+              const CHAT_BODY_UNUSABLE_BUBBLE =
+                "Sunucudan gelen yanıtı işleyemedik. Biraz sonra yeniden deneyebilirsin.";
 
-              let data = null;
-              let parsed = false;
-              if (text && text.trim()) {
-                try {
-                  data = JSON.parse(text);
-                  parsed = true;
-                } catch {
-                  setSendHint("Yanıt okunamadı.");
-                  appendBubble("error", INVALID_FORMAT_MSG);
-                }
-              } else {
-                setSendHint("Yanıt okunamadı.");
-                appendBubble("error", INVALID_FORMAT_MSG);
+              let chatFailureReported = false;
+              function reportChatBodyFailure() {
+                if (chatFailureReported) return;
+                chatFailureReported = true;
+                setSendHint(CHAT_BODY_UNUSABLE_HINT);
+                appendBubble("error", CHAT_BODY_UNUSABLE_BUBBLE);
               }
 
-              if (parsed) {
-                const isPlainObject =
-                  data !== null && typeof data === "object" && !Array.isArray(data);
-                const hasChatBodyKey =
-                  isPlainObject &&
-                  ("reply" in data || "content" in data || "message" in data);
-                if (!isPlainObject || !hasChatBodyKey) {
-                  setSendHint("Yanıt okunamadı.");
-                  appendBubble("error", INVALID_FORMAT_MSG);
+              const trimmedBody = text == null ? "" : String(text).trim();
+              let parsedPayload = null;
+              let havePayload = false;
+
+              if (!trimmedBody) {
+                console.debug("[Lumos panel chat] Boş gövde (HTTP 200)");
+                reportChatBodyFailure();
+              } else {
+                const jr = parsePanelChatJsonBody(trimmedBody);
+                if (jr.ok) {
+                  havePayload = true;
+                  parsedPayload = jr.value;
                 } else {
-                  const raw = data.reply ?? data.content ?? data.message;
-                  const replyBody = raw == null ? "" : String(raw);
-                  if (photoTelemetry) {
-                    const trimmedReply = replyBody.trim();
-                    const fallbackExact = trimmedReply === REPLY_PHOTO_NO_VISION_TR;
-                    const fallbackRegex = PANEL_REPLY_PHOTO_NO_VISION_RE.test(trimmedReply);
-                    const visionGuess =
-                      photoTelemetry.hasInline && !!photoFile && /^image\//i.test(photoFile.type || "");
-                    if (fallbackRegex || fallbackExact) {
-                      const extra =
-                        !photoTelemetry.hasInline
-                          ? "Görsel veri gitmedi (tavan veya sıkıştırma) · dosya ≈ "
-                            + formatBytesShort(photoTelemetry.photoSize)
-                          : "";
-                      showPanelChatPhotoTech(
-                        buildPhotoTechBlock({
-                          httpStatus: r.status,
-                          reachedBackend: true,
-                          imageDataSent: photoTelemetry.hasInline,
-                          visionTriedGuess: visionGuess,
-                          replyPreview: trimmedReply.slice(0, 140),
-                          fallbackExact,
-                          fallbackRegex: fallbackRegex && !fallbackExact,
-                          networkError: false,
-                          extraReason: extra,
-                        }),
-                      );
-                    } else if (trimmedReply) {
-                      showPanelChatPhotoTech(
-                        buildPhotoTechBlock({
-                          httpStatus: r.status,
-                          reachedBackend: true,
-                          imageDataSent: photoTelemetry.hasInline,
-                          visionTriedGuess: visionGuess,
-                          replyPreview: trimmedReply.slice(0, 140),
-                          fallbackExact: false,
-                          fallbackRegex: false,
-                          networkError: false,
-                          extraReason: "",
-                        }),
-                      );
-                    } else {
-                      showPanelChatPhotoTech(
-                        buildPhotoTechBlock({
-                          httpStatus: r.status,
-                          reachedBackend: true,
-                          imageDataSent: photoTelemetry.hasInline,
-                          visionTriedGuess: visionGuess,
-                          replyPreview: "",
-                          fallbackExact: false,
-                          fallbackRegex: false,
-                          networkError: false,
-                          extraReason: "Boş yanıt",
-                        }),
-                      );
-                    }
-                    void loadPanelBackendStatus();
+                  console.error(
+                    "[Lumos panel chat] JSON ayrıştırılamadı, ham yanıt:",
+                    truncatePanelChatLog(text),
+                  );
+                  if (looksLikePanelChatPlainText(trimmedBody)) {
+                    havePayload = true;
+                    parsedPayload = trimmedBody;
+                  } else {
+                    reportChatBodyFailure();
                   }
-                  if (replyBody.trim()) {
-                    const { lumosText } = ingestAssistantPanelGorev(replyBody);
-                    if (panelGorevCmd) {
-                      appendBubble("lumos", "Sunucu yanıtı:\n" + lumosText);
-                      setSendHint("");
-                    } else {
-                      appendBubble("lumos", lumosText);
-                      input.value = "";
-                      clearPanelCameraPhotoSelection();
-                      setSendHint("");
-                      input.blur();
-                      resetPanelHorizontalScrollAfterInputBlur();
-                    }
-                  } else if (panelGorevCmd) {
-                    appendBubble(
-                      "lumos",
-                      "Sunucu bu istek için ek metin dönmedi (görev zaten yerelde kayıtlı).",
+                }
+              }
+
+              if (havePayload) {
+                const replyBody = extractAssistantFromChatPayload(parsedPayload);
+                if (photoTelemetry) {
+                  const trimmedReply = replyBody.trim();
+                  const fallbackExact = trimmedReply === REPLY_PHOTO_NO_VISION_TR;
+                  const fallbackRegex = PANEL_REPLY_PHOTO_NO_VISION_RE.test(trimmedReply);
+                  const visionGuess =
+                    photoTelemetry.hasInline && !!photoFile && /^image\//i.test(photoFile.type || "");
+                  if (fallbackRegex || fallbackExact) {
+                    const extra =
+                      !photoTelemetry.hasInline
+                        ? "Görsel veri gitmedi (tavan veya sıkıştırma) · dosya ≈ "
+                          + formatBytesShort(photoTelemetry.photoSize)
+                        : "";
+                    showPanelChatPhotoTech(
+                      buildPhotoTechBlock({
+                        httpStatus: r.status,
+                        reachedBackend: true,
+                        imageDataSent: photoTelemetry.hasInline,
+                        visionTriedGuess: visionGuess,
+                        replyPreview: panelChatSanitizeUserVisibleChatFailureText(trimmedReply).slice(
+                          0,
+                          140,
+                        ),
+                        fallbackExact,
+                        fallbackRegex: fallbackRegex && !fallbackExact,
+                        networkError: false,
+                        extraReason: extra,
+                      }),
                     );
+                  } else if (trimmedReply) {
+                    showPanelChatPhotoTech(
+                      buildPhotoTechBlock({
+                        httpStatus: r.status,
+                        reachedBackend: true,
+                        imageDataSent: photoTelemetry.hasInline,
+                        visionTriedGuess: visionGuess,
+                        replyPreview: panelChatSanitizeUserVisibleChatFailureText(trimmedReply).slice(
+                          0,
+                          140,
+                        ),
+                        fallbackExact: false,
+                        fallbackRegex: false,
+                        networkError: false,
+                        extraReason: "",
+                      }),
+                    );
+                  } else {
+                    showPanelChatPhotoTech(
+                      buildPhotoTechBlock({
+                        httpStatus: r.status,
+                        reachedBackend: true,
+                        imageDataSent: photoTelemetry.hasInline,
+                        visionTriedGuess: visionGuess,
+                        replyPreview: "",
+                        fallbackExact: false,
+                        fallbackRegex: false,
+                        networkError: false,
+                        extraReason: "Boş yanıt",
+                      }),
+                    );
+                  }
+                  void loadPanelBackendStatus();
+                }
+                if (replyBody.trim()) {
+                  const { lumosText } = ingestAssistantPanelGorev(replyBody);
+                  const safeLumos = panelChatSanitizeUserVisibleChatFailureText(lumosText);
+                  if (panelGorevCmd) {
+                    appendBubble("lumos", "Sunucu yanıtı:\n" + safeLumos);
                     setSendHint("");
                   } else {
-                    appendBubble("lumos", EMPTY_REPLY_MSG);
+                    appendBubble("lumos", safeLumos);
+                    input.value = "";
+                    clearPanelCameraPhotoSelection();
                     setSendHint("");
+                    input.blur();
+                    resetPanelHorizontalScrollAfterInputBlur();
                   }
+                } else if (panelGorevCmd) {
+                  appendBubble(
+                    "lumos",
+                    "Sunucu bu istek için ek metin dönmedi (görev zaten yerelde kayıtlı).",
+                  );
+                  setSendHint("");
+                } else {
+                  appendBubble("lumos", EMPTY_REPLY_MSG);
+                  setSendHint("");
                 }
               }
             }
           } catch (err) {
             const netMsg = summarizeClientFetchError(err);
             setSendHint("İstek hatası: " + netMsg.slice(0, 140));
-            appendBubble(
-              "error",
+            const netBubbleRaw =
               "Sunucuya ulaşılamadı (istemci tarafında istek tamamlanmadı).\n" +
-                "URL: " +
-                String(CHAT_URL) +
-                "\nHata: " +
-                netMsg +
-                "\nHTTP kodu yok (ağ kesintisi, engel veya sunucunun CORS/413 yanıtı tarayıcıda buna benzer görünebilir).",
-            );
+              "URL: " +
+              String(CHAT_URL) +
+              "\nHata: " +
+              netMsg +
+              "\nHTTP kodu yok (ağ kesintisi, engel veya sunucunun CORS/413 yanıtı tarayıcıda buna benzer görünebilir).";
+            appendBubble("error", panelChatSanitizeUserVisibleChatFailureText(netBubbleRaw));
             if (photoTelemetry) {
               const visionGuess =
                 photoTelemetry.hasInline && !!photoFile && /^image\//i.test(photoFile.type || "");
@@ -5244,7 +5450,10 @@ const STATUS_URL =
         const visionCfg = j.visionConfigured === true;
         setSistemDurumuDd("panel-sistem-durumu-baglanti", health + " · köprü: " + bridgeHealthLine);
         setSistemDurumuDd("panel-sistem-durumu-chat", chatS + " · " + lastChatOptionsPingLine);
-        setSistemDurumuDd("panel-sistem-durumu-vision", visionCfg ? "Evet (OpenAI anahtarı var)" : "Hayır");
+        setSistemDurumuDd(
+          "panel-sistem-durumu-vision",
+          visionCfg ? "Evet (görsel analiz için anahtar tanımlı)" : "Hayır",
+        );
         setSistemDurumuDd("panel-sistem-durumu-vision-last", visionLast);
       }
 

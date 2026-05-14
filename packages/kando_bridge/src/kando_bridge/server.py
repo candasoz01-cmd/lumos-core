@@ -21,6 +21,7 @@ import re
 import shutil
 import subprocess
 import sys
+import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -1809,7 +1810,11 @@ class BridgeHandler(BaseHTTPRequestHandler):
         if not message:
             self._send_json(
                 200,
-                {"accepted": False, "error": "message string gerekli"},
+                {
+                    "accepted": False,
+                    "error": "message string gerekli",
+                    "reply": "Mesaj metni gerekli.",
+                },
             )
             return
         hist = body.get("history")
@@ -1963,9 +1968,15 @@ class BridgeHandler(BaseHTTPRequestHandler):
             pub = {k: v for k, v in chat_out.items() if k != "intent"}
             self._send_json(200, pub)
         except Exception as e:
+            _stderr_write("POST /chat build_chat_reply failed: " + repr(e))
+            _stderr_write(traceback.format_exc())
             self._send_json(
                 200,
-                {"accepted": False, "error": f"chat llm error: {e}"},
+                {
+                    "accepted": False,
+                    "error": f"chat llm error: {e}",
+                    "reply": "Lumos yanıt üretirken bağlantı katmanında sorun yaşadı. Biraz sonra tekrar deneyebilirsin.",
+                },
             )
 
     def _finish_out_after_gate(self, out: dict) -> None:
