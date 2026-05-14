@@ -22,10 +22,10 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
     <meta property="og:url" content="https://welockai.com/" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="tr_TR" />
-    <meta property="og:image" content="https://welockai.com/lumos-hero.jpg" />
+    <meta property="og:image" content="https://welockai.com/lumos-world-map.jpg" />
     <meta property="og:image:type" content="image/jpeg" />
-    <link rel="icon" href="/lumos-logo-mark.png" type="image/png" sizes="any" />
-    <link rel="apple-touch-icon" href="/lumos-logo-mark.png" />
+    <link rel="icon" href="/lumos-logo-mark.svg" type="image/svg+xml" sizes="any" />
+    <link rel="apple-touch-icon" href="/lumos-logo-mark.svg" />
     <link rel="stylesheet" href="/styles/lumos-tokens.css" />
     <style>
       /**
@@ -37,7 +37,7 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         --lumos-land-teal-deep: 22 108 168;
         --lumos-land-warm: 218 188 124;
         --lumos-land-warm-deep: 176 142 88;
-        /** Harita (lumos-hero) ile aynı zemin — logo pad / kutu rengi */
+        /** Harita (lumos-world-map) ile aynı zemin — logo pad / kutu rengi */
         --lumos-map-canvas: #03060d;
         --lumos-land-page: #05070d;
         --lumos-land-title: #e8edf5;
@@ -158,17 +158,13 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         outline: 2px solid rgb(var(--lumos-land-teal) / 0.45);
         outline-offset: 2px;
       }
-      /** Lumos site logosu: harita infografiği ile aynı altın + camgöbeği parlama */
+      /** Lumos site logosu: özgün SVG marka (lumos-logo-mark.svg); hafif derinlik */
       .lumos-logo-mark {
         display: block;
         box-sizing: border-box;
         flex-shrink: 0;
         object-fit: contain;
-        filter: saturate(1.08) contrast(1.03)
-          drop-shadow(0 0 4px rgb(var(--lumos-land-warm) / 0.32))
-          drop-shadow(0 0 12px rgb(var(--lumos-land-teal) / 0.22))
-          drop-shadow(0 0 1px rgb(var(--lumos-land-teal) / 0.45))
-          drop-shadow(0 1px 2px rgb(0 0 0 / 0.5));
+        filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.45));
       }
       .lumos-site-nav__logo .lumos-logo-mark {
         width: 1.65rem;
@@ -350,7 +346,7 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         line-height: 1.62;
         color: #c9ced9;
       }
-      /** Sağ: Project Lumos infografiği (lumos-hero.jpg) — tam görünüm, kırpma yok */
+      /** Sağ: Project Lumos harita infografiği (lumos-world-map.jpg) — tam görünüm, kırpma yok */
       @media (min-width: 768px) {
         .lumos-hero-imgwrap {
           display: grid;
@@ -569,8 +565,9 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         border-radius: 16px;
         overflow: hidden;
         border: 1px solid transparent;
-        background:
-          linear-gradient(145deg, var(--lumos-accent-blue-soft), rgb(var(--lumos-land-warm) / 0.28)) border-box;
+        background: var(--lumos-map-canvas);
+        background-image:
+          linear-gradient(145deg, var(--lumos-accent-blue-soft), rgb(var(--lumos-land-warm) / 0.28));
         box-shadow:
           inset 0 1px 0 rgba(255, 255, 255, 0.06),
           inset 0 0 60px rgba(0, 0, 0, 0.28),
@@ -581,9 +578,9 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         display: block;
         width: 100%;
         height: auto;
-        aspect-ratio: 4 / 3;
-        object-fit: cover;
-        object-position: 48% 42%;
+        aspect-ratio: 3 / 2;
+        object-fit: contain;
+        object-position: center center;
       }
       .lumos-shell {
         box-sizing: border-box;
@@ -1290,7 +1287,7 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
                 <a class="lumos-site-nav__logo" href="#giris" aria-label="Lumos — girişe dön">
                   <img
                     class="lumos-logo-mark"
-                    src="/lumos-logo-mark.png"
+                    src="/lumos-logo-mark.svg"
                     alt=""
                     width="32"
                     height="32"
@@ -1351,7 +1348,7 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
                 <span class="lumos-hero-logo-box" aria-hidden="true">
                   <img
                     class="lumos-logo-mark"
-                    src="/lumos-logo-mark.png"
+                    src="/lumos-logo-mark.svg"
                     alt=""
                     width="32"
                     height="32"
@@ -1375,8 +1372,8 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
               <picture>
                 <img
                   class="lumos-hero-visual__img"
-                  src="/lumos-hero.jpg"
-                  alt="Project Lumos: Kıbrıs merkezli dünya haritası ve modül özeti içeren infografik görsel"
+                  src="/lumos-world-map.jpg"
+                  alt="Project Lumos: Kıbrıs merkezli dünya haritası ve alt modül ikonları içeren infografik görsel"
                   width="1536"
                   height="1024"
                   loading="eager"
@@ -1428,17 +1425,14 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
           </p>
         </div>
         <figure class="lumos-dunya-hero__figure">
-          <picture>
-            <source srcset="/images/lumos-world-hero.jpg" type="image/jpeg" />
-            <img
-              src="/assets/lumos-last.png"
-              alt="Lumos dünya modülü: küresel ve insani ölçekte uyum vizyonunu çağrıştıran görsel"
-              width="1200"
-              height="1200"
-              loading="lazy"
-              decoding="async"
-            />
-          </picture>
+          <img
+            src="/lumos-world-map.jpg"
+            alt="Project Lumos: Kıbrıs merkezli dünya haritası ve modül ikonları ile aynı referans görsel"
+            width="1536"
+            height="1024"
+            loading="lazy"
+            decoding="async"
+          />
         </figure>
       </div>
     </section>
