@@ -1,69 +1,62 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Lumos logo mark: original vector (not cropped from map, no skull).
-  Palette aligned with Project Lumos map: deep navy field, gold tree, cyan glow.
-  Twin micro-mark at roots (symbolic); at favicon size reads as soft root detail.
+  Lumos logo mark: symmetric tree-of-life silhouette (not antenna, tower, or candle).
+  Navy disk, gold strokes, subtle cyan rim. No map crop, no Cyprus detail.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="lumos-logo-title">
   <title id="lumos-logo-title">Lumos</title>
   <defs>
-    <radialGradient id="lumos-core-glow" cx="32" cy="34" r="23" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.42"/>
-      <stop offset="45%" stop-color="#38bdf8" stop-opacity="0.16"/>
-      <stop offset="100%" stop-color="#020617" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="lumos-gold" x1="22" y1="10" x2="42" y2="50" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#fce9a8"/>
-      <stop offset="0.45" stop-color="#e8c46a"/>
-      <stop offset="1" stop-color="#b8892f"/>
+    <linearGradient id="lumos-gold" x1="20" y1="8" x2="44" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fce9a6"/>
+      <stop offset="0.5" stop-color="#e4bc5c"/>
+      <stop offset="100%" stop-color="#b8892f"/>
     </linearGradient>
+    <radialGradient id="lumos-edge-glow" cx="32" cy="32" r="32" gradientUnits="userSpaceOnUse">
+      <stop offset="72%" stop-color="#020617" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#22d3ee" stop-opacity="0.12"/>
+    </radialGradient>
   </defs>
 
-  <rect width="64" height="64" rx="12" fill="#020617"/>
+  <rect width="64" height="64" fill="#020617"/>
 
-  <circle cx="32" cy="34" r="25" fill="url(#lumos-core-glow)"/>
-
+  <circle cx="32" cy="32" r="30" fill="#071824"/>
+  <circle cx="32" cy="32" r="30" fill="url(#lumos-edge-glow)"/>
   <circle
     cx="32"
     cy="32"
-    r="27.5"
-    fill="none"
-    stroke="#22d3ee"
-    stroke-width="0.7"
-    stroke-opacity="0.5"
-  />
-  <path
-    d="M 8 32 H 14 M 50 32 H 56 M 32 8 V 14 M 32 50 V 56"
+    r="30"
     fill="none"
     stroke="#38bdf8"
-    stroke-width="0.55"
-    stroke-opacity="0.35"
-    stroke-linecap="round"
+    stroke-width="0.5"
+    stroke-opacity="0.28"
   />
 
   <g
     fill="none"
     stroke="url(#lumos-gold)"
-    stroke-width="1.55"
+    stroke-width="1.45"
     stroke-linecap="round"
     stroke-linejoin="round"
   >
-    <path d="M 30 46 Q 31 34 32 24"/>
-    <path d="M 34 46 Q 33 34 32 24"/>
-    <path d="M 32 24 L 22 16 M 32 24 L 42 16"/>
-    <path d="M 32 28 L 16 22 M 32 28 L 48 22"/>
-    <path d="M 30 26 L 20 14 M 34 26 L 44 14"/>
-    <path d="M 32 44 L 24 52 M 32 44 L 40 52 M 28 48 L 36 48"/>
-  </g>
+    <path d="M 30.2 47 Q 30.8 38 31.2 30.5"/>
+    <path d="M 33.8 47 Q 33.2 38 32.8 30.5"/>
 
-  <path
-    d="M 28 49.5 Q 30 47.5 32 48.5 Q 34 47.5 36 49.5"
-    fill="none"
-    stroke="#c9a15a"
-    stroke-width="0.42"
-    stroke-linecap="round"
-    stroke-opacity="0.72"
-  />
-  <circle cx="29.2" cy="49.8" r="0.55" fill="#38bdf8" fill-opacity="0.55"/>
-  <circle cx="34.8" cy="49.8" r="0.55" fill="#38bdf8" fill-opacity="0.55"/>
+    <path d="M 31.5 30 Q 24 22 17 14"/>
+    <path d="M 31.8 28 Q 26 16 20 10"/>
+    <path d="M 32 26 Q 28 12 24 8"/>
+    <path d="M 31.2 31 Q 22 26 12 20"/>
+
+    <path d="M 32.5 30 Q 40 22 47 14"/>
+    <path d="M 32.2 28 Q 38 16 44 10"/>
+    <path d="M 32 26 Q 36 12 40 8"/>
+    <path d="M 32.8 31 Q 42 26 52 20"/>
+
+    <path d="M 32 24 Q 28 12 25 8"/>
+    <path d="M 32 24 Q 36 12 39 8"/>
+
+    <path d="M 31 45 Q 25 51 19 55"/>
+    <path d="M 33 45 Q 39 51 45 55"/>
+    <path d="M 31.5 46 Q 28 51 26 54"/>
+    <path d="M 32.5 46 Q 36 51 38 54"/>
+  </g>
 </svg>
