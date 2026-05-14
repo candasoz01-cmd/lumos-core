@@ -24,8 +24,8 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
     <meta property="og:locale" content="tr_TR" />
     <meta property="og:image" content="https://welockai.com/lumos-world-map.jpg" />
     <meta property="og:image:type" content="image/jpeg" />
-    <link rel="icon" href="/lumos-tree-logo.png" type="image/png" sizes="any" />
-    <link rel="apple-touch-icon" href="/lumos-tree-logo.png" type="image/png" />
+    <link rel="icon" href="/lumos-tree-logo.svg" type="image/svg+xml" sizes="any" />
+    <link rel="apple-touch-icon" href="/lumos-tree-logo.svg" />
     <link rel="stylesheet" href="/styles/lumos-tokens.css" />
     <style>
       /**
@@ -184,14 +184,14 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         outline: 2px solid rgb(var(--lumos-land-teal) / 0.45);
         outline-offset: 2px;
       }
-      /** Lumos site logosu: raster ağaç işareti (lumos-tree-logo.png); hafif derinlik */
+      /** Lumos site logosu: vektör ağaç işareti (lumos-tree-logo.svg); hafif derinlik + çok hafif mavi parlama */
       .lumos-logo-mark {
         display: block;
         box-sizing: border-box;
         flex-shrink: 0;
         object-fit: contain;
         object-position: center center;
-        filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.45));
+        filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.45)) drop-shadow(0 0 7px rgb(90 170 255 / 0.1));
       }
       .lumos-site-nav__logo .lumos-logo-mark {
         width: 1.65rem;
@@ -204,27 +204,127 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         align-items: center;
         gap: clamp(0.45rem, 1.6vw, 0.65rem);
         margin: 0 0 0.45rem;
+        overflow: visible;
+        min-width: 0;
       }
       .lumos-hero-title-lockup .lumos-hero-title-mark {
         width: clamp(2rem, 5.5vw, 2.75rem);
         height: clamp(2rem, 5.5vw, 2.75rem);
         margin-top: 0.12em;
         flex-shrink: 0;
+        max-width: 100%;
+        box-sizing: border-box;
       }
       .lumos-hero-title-lockup .lumos-hero-title-page {
         margin: 0;
       }
       .lumos-hero-actions {
         display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 0.55rem 0.75rem;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.55rem;
         margin: 0.35rem 0 0;
+      }
+      /** Lumos'a sor: hero altında tam genişlik ince şerit — hero metin/sahne sıkışması yok */
+      .lumos-hero-ask-band {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: min(44rem, 100%);
+        margin: clamp(0.85rem, 2.2vw, 1.35rem) auto 0;
+        padding: 0;
+      }
+      .lumos-hero-ask {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: stretch;
+        gap: 0.45rem 0.55rem;
+        margin: 0;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .lumos-hero-ask__field {
+        flex: 1 1 12rem;
+        min-width: 0;
+        box-sizing: border-box;
+        padding: 0.38rem 0.55rem;
+        border-radius: 8px;
+        border: 1px solid rgb(var(--lumos-land-teal) / 0.42);
+        background: rgba(4, 10, 22, 0.88);
+        color: var(--lumos-text-body);
+        font-size: clamp(0.8rem, 1.85vw, 0.9rem);
+        line-height: 1.35;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+      }
+      .lumos-hero-ask__field::placeholder {
+        color: rgb(174 182 200 / 0.55);
+      }
+      .lumos-hero-ask__field:hover {
+        border-color: rgb(var(--lumos-land-teal) / 0.58);
+        box-shadow: 0 0 0 1px rgb(var(--lumos-land-warm-deep) / 0.12);
+      }
+      .lumos-hero-ask__field:focus {
+        outline: none;
+        border-color: rgb(var(--lumos-land-warm) / 0.45);
+        box-shadow: 0 0 0 1px rgb(var(--lumos-land-warm) / 0.22), 0 0 0 3px rgb(var(--lumos-land-teal) / 0.12);
+        color: var(--lumos-land-title);
+      }
+      .lumos-hero-ask__field:focus-visible {
+        outline: 2px solid rgb(var(--lumos-land-warm) / 0.42);
+        outline-offset: 2px;
+      }
+      .lumos-hero-ask__submit {
+        flex: 0 0 auto;
+        flex-shrink: 0;
+        box-sizing: border-box;
+        min-height: 40px;
+        padding: 0.38rem 0.95rem;
+        border-radius: 8px;
+        border: 1px solid rgb(118 198 238 / 0.52);
+        background: linear-gradient(
+          152deg,
+          rgb(26 108 168) 0%,
+          rgb(12 72 132) 46%,
+          rgb(7 48 102) 100%
+        );
+        color: #f2f7fb;
+        text-shadow: 0 1px 0 rgb(0 0 0 / 0.22);
+        font-size: clamp(0.78rem, 1.75vw, 0.88rem);
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        white-space: nowrap;
+        cursor: pointer;
+        box-shadow:
+          inset 0 1px 0 rgb(255 255 255 / 0.14),
+          0 2px 10px rgb(0 0 0 / 0.32);
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease, background 0.2s ease;
+      }
+      .lumos-hero-ask__submit:hover {
+        border-color: rgb(168 220 248 / 0.78);
+        color: #ffffff;
+        box-shadow:
+          inset 0 1px 0 rgb(255 255 255 / 0.18),
+          0 0 0 1px rgb(var(--lumos-land-teal) / 0.32),
+          0 0 20px rgb(var(--lumos-land-teal) / 0.26),
+          0 0 32px rgb(var(--lumos-land-warm) / 0.14),
+          0 4px 14px rgb(0 0 0 / 0.38);
+      }
+      .lumos-hero-ask__submit:focus-visible {
+        outline: 2px solid rgb(var(--lumos-land-warm) / 0.48);
+        outline-offset: 2px;
+        border-color: rgb(188 228 255 / 0.88);
+        color: #ffffff;
+        box-shadow:
+          inset 0 1px 0 rgb(255 255 255 / 0.2),
+          0 0 0 1px rgb(var(--lumos-land-teal) / 0.42),
+          0 0 22px rgb(var(--lumos-land-teal) / 0.34),
+          0 0 40px rgb(var(--lumos-land-warm) / 0.2),
+          0 4px 16px rgb(0 0 0 / 0.4);
       }
       .lumos-hero-btn {
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        box-sizing: border-box;
         min-height: 44px;
         padding: 0.52rem 1.05rem;
         border-radius: 10px;
@@ -232,6 +332,7 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         font-weight: 600;
         letter-spacing: 0.02em;
         text-decoration: none;
+        white-space: nowrap;
         transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease, transform 0.2s ease;
       }
       .lumos-hero-btn--primary {
@@ -262,94 +363,191 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         outline: 2px solid rgb(var(--lumos-land-teal) / 0.5);
         outline-offset: 3px;
       }
-      #modules,
-      #dunya-hero,
-      #dunya-vizyon {
+      #ilkeler.lumos-section--post-hero {
+        margin-top: clamp(0.25rem, 1vw, 0.5rem);
+      }
+      #moduller,
+      #ilkeler,
+      #dunya,
+      #dunya-vizyon,
+      #gelistirici,
+      #neden-lumos {
         scroll-margin-top: 1.25rem;
       }
-      /** Giriş: geniş Lumos kartı — sol metin, sağda düşük baskınlıkta dekoratif görsel */
-      #giris.lumos-section {
+      /** Giriş: sinematik şerit — metin solda, sağda Atatürk sınıf sahnesi (kırpılmış raster, mockup UI yok) */
+      #top.lumos-section {
         position: relative;
         isolation: isolate;
-        padding-bottom: clamp(1.5rem, 3.5vw, 2.25rem);
-      }
-      #giris.lumos-section::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        z-index: 0;
-        pointer-events: none;
-        opacity: 0.5;
-        background:
-          repeating-linear-gradient(90deg, rgb(var(--lumos-land-teal) / 0.028) 0 1px, transparent 1px 72px),
-          repeating-linear-gradient(0deg, rgb(var(--lumos-land-teal) / 0.022) 0 1px, transparent 1px 72px),
-          radial-gradient(ellipse 52% 44% at 59% 32%, rgb(var(--lumos-land-teal-deep) / 0.16), transparent 62%),
-          radial-gradient(ellipse 95% 55% at 48% 38%, rgb(var(--lumos-land-teal-deep) / 0.09), transparent 58%),
-          radial-gradient(ellipse 70% 45% at 82% 72%, rgb(var(--lumos-land-warm) / 0.032), transparent 52%),
-          radial-gradient(circle at 18% 62%, rgb(var(--lumos-land-teal) / 0.045), transparent 42%);
-      }
-      #giris.lumos-section > * {
-        position: relative;
-        z-index: 1;
-      }
-      #giris.lumos-section--tight-top {
-        padding-top: clamp(0.8rem, 2vw, 1.15rem);
-      }
-      .lumos-hero-row {
-        display: flex;
-        align-items: stretch;
-        flex: 1 1 auto;
+        margin: 0;
         width: 100%;
+        max-width: 100%;
+        padding-left: 0;
+        padding-right: 0;
+        padding-bottom: clamp(1.35rem, 3.2vw, 2.15rem);
+        overflow: visible;
         min-height: 0;
+        border-radius: 0;
+        background: radial-gradient(ellipse 120% 80% at 18% 20%, rgb(12 40 88 / 0.35), transparent 55%), #020511;
       }
-      .lumos-hero-dna {
-        flex: 0 0 13px;
-        width: 13px;
-        min-width: 13px;
+      #top.lumos-section--tight-top {
+        padding-top: 0;
+      }
+      .lumos-site-nav--sticky {
+        position: sticky;
+        top: 0;
+        z-index: 24;
+        margin: 0 calc(-1 * clamp(0.65rem, 2vw, 1.25rem));
+        padding: clamp(0.35rem, 1vw, 0.55rem) clamp(0.65rem, 2vw, 1.25rem) clamp(0.45rem, 1.1vw, 0.65rem);
+        background: rgb(2 5 17 / 0.82);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgb(var(--lumos-land-teal) / 0.28);
+      }
+      .lumos-site-nav__brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.48rem;
+        text-decoration: none;
+        color: inherit;
+      }
+      .lumos-site-nav__brand-text {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.08rem;
+        line-height: 1.05;
+      }
+      .lumos-site-nav__brand-title {
+        font-size: clamp(0.82rem, 2.1vw, 0.98rem);
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--lumos-land-title);
+      }
+      .lumos-site-nav__brand-sub {
+        font-size: clamp(0.58rem, 1.35vw, 0.68rem);
+        font-weight: 650;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgb(var(--lumos-land-warm) / 0.9);
+      }
+      .lumos-hero-cinematic__inner {
         position: relative;
-        pointer-events: none;
-        opacity: 1;
-      }
-      .lumos-hero-dna svg {
-        display: block;
-        width: 100%;
-        height: 100%;
-      }
-      .lumos-hero-imgwrap {
-        flex: 1 1 auto;
-        min-width: 0;
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: clamp(1.1rem, 2.8vw, 1.75rem);
-        align-items: start;
-      }
-      .lumos-hero-brand {
+        z-index: 2;
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
+        justify-content: flex-start;
+        padding-top: clamp(0.35rem, 1vw, 0.55rem);
+        padding-bottom: clamp(1.1rem, 2.8vw, 1.75rem);
+      }
+      /** Tek hero şeridi: metin + sahne aynı ızgarada; sahne ayrı “kart” gibi görünmesin */
+      .lumos-hero-layout {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: clamp(0.75rem, 2vw, 1.25rem);
+        align-items: center;
         width: 100%;
-        margin: 0;
+        min-height: 0;
+        padding-top: clamp(0.35rem, 1.2vw, 0.75rem);
+      }
+      @media (min-width: 768px) {
+        .lumos-hero-layout {
+          grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.95fr);
+          gap: clamp(0.85rem, 2.2vw, 1.65rem);
+          align-items: stretch;
+        }
+        .lumos-hero-actions {
+          flex-direction: row;
+          flex-wrap: nowrap;
+          align-items: center;
+          justify-content: flex-start;
+          gap: 0.55rem 0.75rem;
+        }
+        .lumos-hero-btn {
+          width: auto;
+          flex: 0 0 auto;
+        }
+      }
+      .lumos-hero-scene {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        min-width: 0;
+        padding: clamp(0.12rem, 0.45vw, 0.35rem);
         border-radius: 12px;
-        padding: clamp(1.5rem, 3.6vw, 2.65rem) clamp(1rem, 3vw, 2.1rem);
-        min-height: clamp(360px, 50vh, 620px);
-        min-height: clamp(360px, 50svh, 620px);
         overflow: hidden;
+        border: 1px solid rgb(var(--lumos-land-teal) / 0.14);
+        background-color: #020511;
+        background-image:
+          radial-gradient(ellipse 95% 72% at 82% 22%, rgb(56 206 255 / 0.12), transparent 58%),
+          radial-gradient(ellipse 70% 55% at 18% 78%, rgb(56 206 255 / 0.05), transparent 52%),
+          radial-gradient(ellipse 50% 42% at 48% 48%, rgb(255 255 255 / 0.03), transparent 55%),
+          radial-gradient(ellipse 58% 50% at 12% 92%, rgb(var(--lumos-land-warm) / 0.05), transparent 54%),
+          linear-gradient(168deg, #020511 0%, #061022 55%, #01040d 100%);
+        background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+        box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+        min-height: clamp(260px, 46vmin, 620px);
+      }
+      .lumos-hero-scene__img {
+        position: relative;
+        z-index: 2;
+        display: block;
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+        max-height: clamp(240px, min(56vmin, 68vh), 640px);
+        object-fit: contain;
+        object-position: center center;
+        margin-inline: auto;
+        pointer-events: none;
+        user-select: none;
+      }
+      .lumos-hero-scene::before {
+        content: "";
+        position: absolute;
+        inset: -35% -20%;
+        z-index: 0;
+        pointer-events: none;
+        opacity: 0.35;
+        background: radial-gradient(ellipse 55% 90% at 88% 32%, rgb(160 210 255 / 0.14), transparent 62%);
+      }
+      .lumos-hero-scene::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
         background:
-          radial-gradient(ellipse 55% 48% at 58% 36%, rgb(var(--lumos-land-teal-deep) / 0.16), transparent 58%),
-          radial-gradient(circle at 12% 18%, rgb(var(--lumos-land-teal-deep) / 0.2), transparent 42%),
-          radial-gradient(circle at 85% 78%, rgb(var(--lumos-land-warm) / 0.06), transparent 44%),
-          linear-gradient(165deg, #020510 0%, #081428 38%, #04060e 100%);
-        border: 1px solid rgb(var(--lumos-land-teal) / 0.34);
-        box-shadow:
-          inset 0 1px 0 rgb(var(--lumos-land-warm) / 0.05),
-          0 0 0 1px rgb(var(--lumos-land-teal-deep) / 0.35),
-          0 10px 36px rgba(0, 0, 0, 0.58),
-          0 0 32px rgb(var(--lumos-land-teal-deep) / 0.18),
-          0 0 52px rgb(var(--lumos-land-teal) / 0.1);
+          linear-gradient(198deg, rgb(1 3 10 / 0.22) 0%, rgb(1 3 10 / 0.05) 44%, transparent 62%),
+          radial-gradient(ellipse 72% 58% at 90% 24%, rgb(56 206 255 / 0.04), transparent 58%),
+          linear-gradient(160deg, rgb(2 5 17 / 0.18) 0%, transparent 52%);
+      }
+      @media (max-width: 767.98px) {
+        .lumos-hero-scene {
+          min-height: clamp(200px, 48vw, 380px);
+        }
+        .lumos-hero-scene__img {
+          max-height: clamp(200px, min(56vw, 50vh), 420px);
+        }
+      }
+      /** Masaüstü: sahne sütunu metin yüksekliğine gerilmesin; görsel daha büyük, dikey lacivert şerit azalsın */
+      @media (min-width: 768px) {
+        .lumos-hero-scene {
+          align-self: start;
+          padding: clamp(0.08rem, 0.35vw, 0.22rem) clamp(0.18rem, 0.55vw, 0.38rem);
+          min-height: clamp(280px, 42vmin, 560px);
+        }
+        .lumos-hero-scene__img {
+          max-height: clamp(300px, min(64vmin, 80vh), 720px);
+        }
       }
       .lumos-hero-copy {
-        max-width: min(56rem, 100%);
-        flex: 1 1 auto;
+        max-width: min(38rem, 100%);
+        flex: 0 1 auto;
         min-width: 0;
       }
       .lumos-hero-eyebrow {
@@ -394,7 +592,7 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       }
       .lumos-hero-subtitle {
         margin: 0 0 1.05rem;
-        max-width: 42ch;
+        max-width: min(48ch, 100%);
         font-size: clamp(1.05rem, 2.65vw, 1.42rem);
         line-height: 1.42;
         font-weight: 600;
@@ -402,7 +600,7 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       }
       .lumos-hero-lead {
         margin: 0 0 1.35rem;
-        max-width: 52ch;
+        max-width: min(58ch, 100%);
         font-size: clamp(0.95rem, 2vw, 1.08rem);
         line-height: 1.62;
         color: var(--lumos-text-muted);
@@ -413,137 +611,21 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         font-size: clamp(0.92rem, 1.85vw, 1.02rem);
         line-height: 1.55;
         font-weight: 650;
-        letter-spacing: 0.06em;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
         color: rgb(var(--lumos-land-teal) / 0.88);
         overflow-wrap: break-word;
       }
-      /** Sağ: dünya haritası hero (lumos-world-map.jpg) */
       @media (min-width: 768px) {
-        .lumos-hero-imgwrap {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) minmax(220px, 40vw);
-          align-items: center;
-          gap: clamp(1.35rem, 3vw, 2.5rem);
-        }
         .lumos-hero-pillar {
           max-width: none;
-          white-space: nowrap;
+          white-space: normal;
           font-size: clamp(0.78rem, 1.35vw, 0.96rem);
           letter-spacing: 0.04em;
         }
       }
-      @media (min-width: 1024px) {
-        .lumos-hero-imgwrap {
-          grid-template-columns: minmax(0, 1.02fr) minmax(260px, min(42vw, 460px));
-          gap: clamp(1.5rem, 3.2vw, 2.75rem);
-        }
-      }
-      @media (min-width: 1200px) {
-        .lumos-hero-imgwrap {
-          grid-template-columns: minmax(0, 1fr) minmax(300px, min(44vw, 480px));
-        }
-      }
-      .lumos-hero-visual {
-        position: relative;
-        width: 100%;
-        max-width: min(100%, 28rem);
-        margin-left: auto;
-        margin-right: auto;
-        overflow: visible;
-        pointer-events: none;
-      }
-      .lumos-hero-visual::before {
-        content: "";
-        position: absolute;
-        inset: -5% -3% -3% -3%;
-        border-radius: 50%;
-        border: 1px solid rgb(var(--lumos-land-teal) / 0.18);
-        box-shadow:
-          0 0 0 1px rgb(var(--lumos-land-teal-deep) / 0.08),
-          0 0 24px rgb(var(--lumos-land-teal-deep) / 0.06);
-        opacity: 0.65;
-        transform: rotate(-10deg);
-        pointer-events: none;
-        z-index: 0;
-      }
-      .lumos-hero-visual::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        border-radius: 18px;
-        background:
-          radial-gradient(ellipse 70% 58% at 52% 38%, rgb(var(--lumos-land-teal) / 0.06), transparent 62%),
-          radial-gradient(ellipse 55% 48% at 70% 72%, rgb(var(--lumos-land-warm) / 0.032), transparent 58%);
-        mix-blend-mode: screen;
-        opacity: 0.28;
-        pointer-events: none;
-        z-index: 2;
-      }
-      .lumos-hero-visual picture {
-        display: block;
-        position: relative;
-        z-index: 1;
-        width: 100%;
-        aspect-ratio: 3 / 2;
-        max-height: min(52vh, 520px);
-        border-radius: 18px;
-        overflow: hidden;
-        border: 1px solid rgb(var(--lumos-land-teal) / 0.28);
-        box-shadow:
-          inset 0 0 0 1px rgb(var(--lumos-land-teal-deep) / 0.14),
-          0 12px 40px rgba(0, 0, 0, 0.45),
-          0 0 32px rgb(var(--lumos-land-teal-deep) / 0.1);
-        background: var(--lumos-map-canvas);
-      }
-      .lumos-hero-visual__img {
-        display: block;
-        position: relative;
-        z-index: 1;
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        object-position: center center;
-        opacity: 1;
-        border-radius: 0;
-        filter: saturate(1.05) contrast(1.04);
-        -webkit-mask-image: none;
-        mask-image: none;
-      }
-      @media (min-width: 768px) {
-        .lumos-hero-visual {
-          max-width: none;
-          width: 100%;
-          margin: 0;
-          justify-self: end;
-        }
-        .lumos-hero-visual picture {
-          aspect-ratio: 3 / 2;
-          max-height: min(58vh, 560px);
-        }
-      }
-      @media (max-width: 767.98px) {
-        .lumos-hero-visual {
-          order: 2;
-          width: 100%;
-          max-width: min(26rem, 100%);
-          margin-left: auto;
-          margin-right: auto;
-          overflow: hidden;
-        }
-        .lumos-hero-visual picture {
-          max-height: min(72vw, 22rem);
-        }
-      }
-      @media (max-width: 479.98px) {
-        .lumos-hero-visual {
-          max-width: min(100%, 24rem);
-        }
-      }
       @media (max-width: 559.98px) {
-        .lumos-hero-dna {
-          display: none;
-        }
-        #giris.lumos-section {
+        #top.lumos-section {
           padding-bottom: clamp(1.15rem, 3.2vw, 1.85rem);
         }
       }
@@ -637,27 +719,157 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         color: var(--lumos-interactive-fg-hover);
         border-bottom-color: rgb(var(--lumos-land-teal) / 0.42);
       }
-      .lumos-dunya-hero__figure {
+      .lumos-dunya-hero__vizyon-card {
+        position: relative;
+        isolation: isolate;
+        box-sizing: border-box;
         margin: 0;
+        padding: clamp(1.2rem, 2.6vw, 1.65rem) clamp(1.05rem, 2.3vw, 1.45rem);
         border-radius: 16px;
         overflow: hidden;
-        border: 1px solid transparent;
-        background: var(--lumos-map-canvas);
+        border: 1px solid rgb(var(--lumos-land-teal) / 0.45);
+        outline: 1px solid rgb(var(--lumos-land-warm) / 0.22);
+        outline-offset: 2px;
+        background-color: var(--lumos-map-canvas);
         background-image:
-          linear-gradient(145deg, var(--lumos-accent-blue-soft), rgb(var(--lumos-land-warm) / 0.14));
+          radial-gradient(ellipse 92% 72% at 78% 18%, rgb(var(--lumos-land-teal) / 0.14), transparent 58%),
+          radial-gradient(ellipse 70% 55% at 12% 88%, rgb(var(--lumos-land-warm) / 0.07), transparent 52%),
+          linear-gradient(168deg, #01040d 0%, #061022 48%, #020511 100%);
         box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.06),
-          inset 0 0 60px rgba(0, 0, 0, 0.28),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05),
+          inset 0 0 72px rgba(0, 0, 0, 0.32),
           0 12px 40px rgba(0, 0, 0, 0.48),
-          0 0 0 1px rgb(var(--lumos-land-teal-deep) / 0.2);
+          0 0 0 1px rgb(var(--lumos-land-teal-deep) / 0.28),
+          0 0 32px rgb(var(--lumos-land-teal) / 0.12),
+          0 0 60px rgb(var(--lumos-land-teal) / 0.05);
       }
-      .lumos-dunya-hero__figure img {
+      .lumos-dunya-hero__vizyon-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        opacity: 0.42;
+        background:
+          repeating-linear-gradient(90deg, rgb(var(--lumos-land-teal) / 0.055) 0 1px, transparent 1px 44px),
+          repeating-linear-gradient(0deg, rgb(var(--lumos-land-teal) / 0.045) 0 1px, transparent 1px 44px);
+      }
+      .lumos-dunya-hero__vizyon-card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        opacity: 0.55;
+        background: linear-gradient(125deg, transparent 40%, rgb(var(--lumos-land-teal) / 0.04) 52%, transparent 64%);
+      }
+      /** Sağ yarı: dünya haritası dekor — büyük başlık / alt ikon şeridi kadraj dışı; Kıbrıs hattı için cyan-altın parlama */
+      .lumos-dunya-hero__vizyon-card-map {
+        position: absolute;
+        inset: 0;
+        left: auto;
+        width: clamp(48%, 16.5rem, 56%);
+        z-index: 1;
+        pointer-events: none;
+        overflow: hidden;
+        border-radius: inherit;
+        background-color: transparent;
+        background-image:
+          radial-gradient(ellipse 52% 44% at 74% 40%, rgb(var(--lumos-land-teal) / 0.34), transparent 62%),
+          radial-gradient(ellipse 34% 30% at 66% 46%, rgb(var(--lumos-land-warm) / 0.16), transparent 58%),
+          url("/lumos-world-map.jpg");
+        background-repeat: no-repeat;
+        background-size: 100% 100%, 100% 100%, 268% auto;
+        background-position: center, center, 58% 34%;
+        opacity: 0.52;
+        filter: saturate(1.12) contrast(1.05);
+        mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.35) 18%, #000000 44%);
+        -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.35) 18%, #000000 44%);
+      }
+      @media (max-width: 879.98px) {
+        .lumos-dunya-hero__vizyon-card-map {
+          width: 100%;
+          opacity: 0.26;
+          background-size: 100% 100%, 100% 100%, 198% auto;
+          background-position: center, center, 52% 30%;
+          mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, #000000 38%, #000000 100%);
+          -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, #000000 38%, #000000 100%);
+        }
+      }
+      /** Sağ kenar: ince ızgara + diyagonal “ağ” çizgileri; çok hafif doğu Akdeniz merkez parıltısı (görsel dosyası yok) */
+      .lumos-dunya-hero__vizyon-card-deco {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        overflow: hidden;
+        border-radius: inherit;
+        background:
+          radial-gradient(circle 52px at 78% 44%, rgb(var(--lumos-land-teal) / 0.07), transparent 72%),
+          radial-gradient(circle 120px at 88% 52%, rgb(var(--lumos-land-warm) / 0.04), transparent 70%),
+          repeating-linear-gradient(
+            105deg,
+            transparent 0,
+            transparent 13px,
+            rgb(var(--lumos-land-teal) / 0.045) 13px,
+            rgb(var(--lumos-land-teal) / 0.045) 14px,
+            transparent 14px,
+            transparent 28px
+          ),
+          repeating-linear-gradient(
+            -18deg,
+            transparent 0,
+            transparent 19px,
+            rgb(var(--lumos-land-teal) / 0.038) 19px,
+            rgb(var(--lumos-land-teal) / 0.038) 20px,
+            transparent 20px,
+            transparent 40px
+          ),
+          repeating-linear-gradient(90deg, rgb(var(--lumos-land-teal) / 0.05) 0 1px, transparent 1px 22px),
+          repeating-linear-gradient(0deg, rgb(var(--lumos-land-teal) / 0.04) 0 1px, transparent 1px 22px),
+          linear-gradient(270deg, rgb(var(--lumos-land-teal) / 0.09) 0%, transparent 46%);
+        opacity: 0.38;
+        mask-image: linear-gradient(270deg, #000 0%, #000 52%, transparent 88%);
+        -webkit-mask-image: linear-gradient(270deg, #000 0%, #000 52%, transparent 88%);
+      }
+      .lumos-dunya-hero__vizyon-card-inner {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+        min-width: 0;
+      }
+      .lumos-dunya-hero__vizyon-card-icon {
+        flex-shrink: 0;
+        width: 2.65rem;
+        height: 2.65rem;
+        color: rgb(var(--lumos-land-teal) / 0.88);
+        filter: drop-shadow(0 0 10px rgb(var(--lumos-land-teal) / 0.2));
+      }
+      .lumos-dunya-hero__vizyon-card-icon svg {
         display: block;
         width: 100%;
         height: auto;
-        aspect-ratio: 3 / 2;
-        object-fit: contain;
-        object-position: center center;
+      }
+      .lumos-dunya-hero__vizyon-card-title {
+        margin: 0;
+        padding: 0 0 0.5rem;
+        font-size: clamp(1.15rem, 2.5vw, 1.38rem);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+        color: var(--lumos-land-title);
+        border-bottom: 1px solid rgb(var(--lumos-land-teal) / 0.26);
+        box-shadow: 0 1px 0 rgb(var(--lumos-land-warm-deep) / 0.12);
+      }
+      .lumos-dunya-hero__vizyon-card-body {
+        margin: 0;
+        font-size: clamp(0.92rem, 1.9vw, 1.02rem);
+        line-height: 1.62;
+        font-weight: 500;
+        color: var(--lumos-text-body);
+        max-width: 52ch;
       }
       .lumos-shell {
         box-sizing: border-box;
@@ -938,6 +1150,9 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         border-bottom: 1px solid rgb(var(--lumos-land-teal) / 0.22);
         box-shadow: 0 1px 0 rgb(var(--lumos-land-warm-deep) / 0.1);
       }
+      .lumos-cap-title--follow {
+        margin-top: clamp(1.25rem, 3vw, 2rem);
+      }
       .lumos-cap-deck {
         margin: -0.35rem 0 1.1rem;
         max-width: 62ch;
@@ -971,9 +1186,74 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         margin: 0;
         padding: 0.88rem 0.95rem;
         border-radius: 12px;
-        border: 1px solid rgb(var(--lumos-land-teal) / 0.14);
+        border: 1px solid rgb(var(--lumos-land-teal) / 0.22);
         background: linear-gradient(168deg, rgba(10, 14, 26, 0.96) 0%, rgba(8, 10, 18, 0.94) 100%);
-        box-shadow: inset 0 1px 0 rgb(var(--lumos-land-warm) / 0.05), 0 3px 14px rgba(0, 0, 0, 0.22);
+        box-shadow:
+          inset 0 1px 0 rgb(var(--lumos-land-warm) / 0.06),
+          inset 0 0 0 1px rgb(var(--lumos-land-teal) / 0.06),
+          0 3px 14px rgba(0, 0, 0, 0.22);
+      }
+      /** Lumos Modülleri: yalnızca kapsam kartı ikon sarmalayıcı + SVG — neon/cyan + kontrollü altın halo */
+      .lumos-scope-card__icon {
+        position: relative;
+        isolation: isolate;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.72rem;
+        height: 2.72rem;
+        color: rgb(120 228 255 / 0.98);
+        filter: drop-shadow(0 0 1px rgb(56 206 255 / 0.55)) drop-shadow(0 0 14px rgb(56 206 255 / 0.42))
+          drop-shadow(0 0 26px rgb(56 206 255 / 0.18));
+      }
+      .lumos-scope-card__icon::before {
+        content: "";
+        position: absolute;
+        inset: -5px;
+        z-index: 0;
+        border-radius: 50%;
+        pointer-events: none;
+        background:
+          radial-gradient(circle at 50% 38%, rgb(56 206 255 / 0.32) 0%, rgb(56 206 255 / 0.08) 52%, transparent 72%),
+          radial-gradient(circle at 50% 50%, rgb(198 166 106 / 0.12) 0%, transparent 58%);
+        box-shadow:
+          inset 0 0 0 1px rgb(56 206 255 / 0.28),
+          inset 0 0 22px rgb(56 206 255 / 0.12),
+          0 0 0 1px rgb(198 166 106 / 0.14),
+          0 0 28px rgb(56 206 255 / 0.2),
+          0 0 48px rgb(56 206 255 / 0.08);
+      }
+      .lumos-scope-card__icon svg {
+        position: relative;
+        z-index: 1;
+        display: block;
+        width: 78%;
+        height: 78%;
+      }
+      .lumos-scope-card__icon svg .lumos-mod-ico__stroke {
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .lumos-scope-card__icon svg .lumos-mod-ico__fill-cyan {
+        fill: rgb(56 206 255 / 0.22);
+        stroke: currentColor;
+        stroke-width: 1.85;
+        stroke-linejoin: round;
+      }
+      .lumos-scope-card__icon svg .lumos-mod-ico__gold {
+        stroke: rgb(198 166 106 / 0.95);
+        fill: rgb(198 166 106 / 0.92);
+      }
+      .lumos-scope-card__icon svg .lumos-mod-ico__gold-stroke {
+        stroke: rgb(198 166 106 / 0.95);
+        fill: none;
+        stroke-width: 1.85;
+        stroke-linecap: round;
+        stroke-linejoin: round;
       }
       .lumos-scope-card h3 {
         margin: 0 0 0.42rem;
@@ -988,6 +1268,51 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         font-size: 0.86rem;
         line-height: 1.55;
         color: var(--lumos-text-muted);
+      }
+      a.lumos-scope-card-link {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.42rem;
+        box-sizing: border-box;
+        margin: 0;
+        text-decoration: none;
+        color: inherit;
+        cursor: pointer;
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+      a.lumos-scope-card-link:hover,
+      a.lumos-scope-card-link:focus-visible {
+        border-color: rgb(var(--lumos-land-teal) / 0.38);
+        box-shadow:
+          inset 0 1px 0 rgb(var(--lumos-land-warm) / 0.05),
+          0 6px 22px rgba(0, 0, 0, 0.32),
+          0 0 0 1px rgb(var(--lumos-land-teal) / 0.35);
+        transform: translateY(-2px);
+      }
+      a.lumos-scope-card-link:focus-visible {
+        outline: 2px solid rgb(var(--lumos-land-teal) / 0.55);
+        outline-offset: 3px;
+      }
+      .lumos-modul-back {
+        display: inline-block;
+        margin-top: 0.72rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: rgb(var(--lumos-land-teal) / 0.88);
+        text-decoration: none;
+        border-bottom: 1px solid rgb(var(--lumos-land-teal) / 0.3);
+        transition: color 0.2s ease, border-color 0.2s ease;
+      }
+      .lumos-modul-back:hover,
+      .lumos-modul-back:focus-visible {
+        color: var(--lumos-interactive-fg-hover);
+        border-bottom-color: rgb(var(--lumos-land-teal) / 0.52);
+      }
+      .lumos-modul-back:focus-visible {
+        outline: 2px solid rgb(var(--lumos-land-teal) / 0.45);
+        outline-offset: 2px;
       }
       .lumos-modules {
         box-sizing: border-box;
@@ -1228,9 +1553,37 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       .lumos-may19-card--sideline {
         margin-top: clamp(0.35rem, 1.2vw, 0.65rem);
       }
-      .lumos-may19-card--sideline h2 {
+      .lumos-may19-card h2.lumos-may19-card__heading--inline {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem 0.65rem;
+        margin: 0 0 0.65rem;
+        padding: 0;
+        border: none;
+        box-shadow: none;
         font-size: clamp(1.02rem, 2.2vw, 1.14rem);
-        margin-bottom: 0.65rem;
+        font-weight: 650;
+        letter-spacing: -0.015em;
+        color: rgb(var(--lumos-land-warm) / 0.9);
+        line-height: 1.3;
+      }
+      .lumos-may19-card__flag-badges {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.32rem;
+        flex-shrink: 0;
+      }
+      .lumos-may19-card__flag-badge {
+        display: block;
+        width: 1.38rem;
+        height: auto;
+        aspect-ratio: 3 / 2;
+        object-fit: cover;
+        border-radius: 2px;
+        box-shadow:
+          0 0 0 1px rgb(255 255 255 / 0.14),
+          0 1px 3px rgba(0, 0, 0, 0.35);
       }
       .lumos-may19-card--sideline p {
         font-size: 0.875rem;
@@ -1294,15 +1647,9 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
           min-height: 40px;
           padding: 0.28rem;
         }
-        #giris .lumos-hero-brand {
-          min-height: 0;
-          padding: clamp(0.62rem, 2.6vw, 1.05rem) clamp(0.55rem, 2.5vw, 0.95rem);
-        }
-        .lumos-hero-imgwrap {
-          display: flex;
-          flex-direction: column;
-          align-items: stretch;
-          gap: clamp(0.65rem, 2vw, 1.05rem);
+        .lumos-hero-cinematic__inner {
+          padding-top: clamp(0.45rem, 1.4vw, 0.72rem);
+          padding-bottom: clamp(0.85rem, 2.4vw, 1.35rem);
         }
         .lumos-hero-copy {
           min-width: 0;
@@ -1327,6 +1674,12 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
           margin: 0 0 1rem;
           font-size: clamp(0.8rem, 1.7vw, 0.93rem);
         }
+        .lumos-hero-scene {
+          min-height: clamp(200px, 52vw, 360px);
+        }
+        .lumos-hero-scene__img {
+          max-height: clamp(180px, min(60vw, 46vh), 360px);
+        }
         .lumos-shell {
           padding: 0 clamp(0.5rem, 3.6vw, 1rem);
         }
@@ -1345,8 +1698,8 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         .lumos-section--tight-top {
           padding-top: clamp(0.32rem, 1vw, 0.55rem);
         }
-        #giris.lumos-section--tight-top {
-          padding-top: clamp(0.55rem, 1.6vw, 0.85rem);
+        #top.lumos-section--tight-top {
+          padding-top: 0;
         }
         .lumos-dunya-hero {
           padding-top: clamp(0.35rem, 1.1vw, 0.65rem);
@@ -1427,38 +1780,38 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
     </style>
   </head>
   <body class="lumos-landing">
-    <section
-      id="giris"
-      class="lumos-shell lumos-section lumos-section--tight-top"
-      aria-labelledby="lumos-giris-baslik"
-    >
-      <div class="lumos-hero-brand">
-        <nav class="lumos-site-nav" aria-label="Sayfa içi gezinme">
+    <section id="top" class="lumos-section lumos-section--tight-top" aria-labelledby="lumos-giris-baslik">
+      <div class="lumos-shell lumos-hero-cinematic__inner">
+        <nav class="lumos-site-nav lumos-site-nav--sticky" aria-label="Sayfa içi gezinme">
           <div class="lumos-site-nav__bar">
             <div class="lumos-site-nav__brand-left">
-              <a class="lumos-site-nav__logo" href="#giris" aria-label="Lumos — girişe dön">
+              <a class="lumos-site-nav__logo lumos-site-nav__brand" href="#top" aria-label="Lumos — sayfa başı">
                 <img
                   class="lumos-logo-mark"
-                  src="/lumos-tree-logo.png"
+                  src="/lumos-tree-logo.svg"
                   alt=""
                   width="64"
                   height="64"
                   decoding="async"
                 />
+                <span class="lumos-site-nav__brand-text">
+                  <span class="lumos-site-nav__brand-title">Lumos</span>
+                  <span class="lumos-site-nav__brand-sub">WE LOCK AI</span>
+                </span>
               </a>
             </div>
             <ul class="lumos-site-nav__list">
               <li>
-                <a class="lumos-site-nav__link" href="#dunya-hero">Dünya</a>
+                <a class="lumos-site-nav__link" href="#dunya">Dünya</a>
               </li>
               <li>
                 <a class="lumos-site-nav__link" href="#neden-lumos">Neden Lumos?</a>
               </li>
               <li>
-                <a class="lumos-site-nav__link" href="#modules">Modüller</a>
+                <a class="lumos-site-nav__link" href="#moduller">Modüller</a>
               </li>
               <li>
-                <a class="lumos-site-nav__link" href="#developer-access">Geliştirici</a>
+                <a class="lumos-site-nav__link" href="#gelistirici">Geliştirici</a>
               </li>
               <li>
                 <a class="lumos-site-nav__link lumos-site-nav__link--accent" href="/panel">Panel</a>
@@ -1476,93 +1829,103 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
             </div>
           </div>
         </nav>
-        <div class="lumos-hero-row">
-          <aside class="lumos-hero-dna" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 320" preserveAspectRatio="none" focusable="false">
-              <path
-                fill="none"
-                stroke="rgba(56, 206, 255, 0.16)"
-                stroke-width="0.55"
-                stroke-linecap="round"
-                d="M5.2 0c-2.8 28 5.2 56 2.2 84s-4.8 56-1.8 84 5.8 56 2.8 84-4.8 56-1.8 84"
-              ></path>
-              <path
-                fill="none"
-                stroke="rgba(56, 206, 255, 0.11)"
-                stroke-width="0.5"
-                stroke-linecap="round"
-                d="M10.8 0c2.8 28-5.2 56-2.2 84s4.8 56 1.8 84-5.8 56-2.8 84 4.8 56 1.8 84"
-              ></path>
-            </svg>
-          </aside>
-          <div class="lumos-hero-imgwrap">
-            <div class="lumos-hero-copy">
-              <p class="lumos-hero-eyebrow">WE LOCK AI · LUMOS</p>
-              <div class="lumos-hero-title-lockup">
-                <img
-                  class="lumos-logo-mark lumos-hero-title-mark"
-                  src="/lumos-tree-logo.png"
-                  alt=""
-                  width="64"
-                  height="64"
-                  decoding="async"
-                  aria-hidden="true"
-                />
-                <h1 id="lumos-giris-baslik" class="lumos-hero-title-page">Lumos</h1>
-              </div>
-              <p class="lumos-hero-subtitle">Yapay zekâ kontrol katmanı</p>
-              <p class="lumos-hero-lead">
-                Ses, medya, görsel analiz, görevler, dosyalar, kimlik ve güvenlik akışlarını tek panelde birleştiren
-                akıllı asistan altyapısı.
-              </p>
-              <p class="lumos-hero-lead">
-                Karar kullanıcıda kalır. Lumos riski, bağlamı ve sonraki adımı görünür kılar.
-              </p>
-              <p class="lumos-hero-pillar">TEK PANEL · ÇOKLU AKIŞ · KULLANICI KONTROLÜ</p>
-              <div class="lumos-hero-actions">
-                <a class="lumos-hero-btn lumos-hero-btn--primary" href="/panel">Lumos Panel'e Git</a>
-                <a class="lumos-hero-btn lumos-hero-btn--ghost" href="#dunya-hero">Dünyayı Keşfet</a>
-              </div>
+        <div class="lumos-hero-layout">
+          <div class="lumos-hero-copy">
+            <p class="lumos-hero-eyebrow">WE LOCK AI · LUMOS</p>
+            <div class="lumos-hero-title-lockup">
+              <img
+                class="lumos-logo-mark lumos-hero-title-mark"
+                src="/lumos-tree-logo.svg"
+                alt=""
+                width="64"
+                height="64"
+                decoding="async"
+              />
+              <h1 id="lumos-giris-baslik" class="lumos-hero-title-page">Lumos</h1>
             </div>
-            <div class="lumos-hero-visual lumos-hero-visual--giris" aria-hidden="true">
-              <picture>
-                <img
-                  class="lumos-hero-visual__img"
-                  src="/lumos-world-map.jpg"
-                  alt="Lumos dünya haritası — Kıbrıs merkezli küresel görünüm ve modül ikonları"
-                  width="1536"
-                  height="1024"
-                  loading="eager"
-                  decoding="async"
-                  fetchpriority="high"
-                />
-              </picture>
+            <p class="lumos-hero-subtitle">Yapay zekâ kontrol katmanı</p>
+            <p class="lumos-hero-lead">
+              Ses, medya, görsel analiz, görevler, dosyalar, kimlik ve güvenlik akışlarını tek panelde birleştiren akıllı asistan altyapısı.
+            </p>
+            <p class="lumos-hero-lead">
+              Karar kullanıcıda kalır. Lumos riski, bağlamı ve sonraki adımı görünür kılar.
+            </p>
+            <p class="lumos-hero-pillar">Tek panel · Çoklu akış · Kullanıcı kontrolü</p>
+            <div class="lumos-hero-actions">
+              <a class="lumos-hero-btn lumos-hero-btn--primary" href="/panel">Lumos Panel’e Git</a>
+              <a class="lumos-hero-btn lumos-hero-btn--ghost" href="#dunya">Dünyayı Keşfet</a>
             </div>
           </div>
-          <aside class="lumos-hero-dna" aria-hidden="true" style="transform:scaleX(-1);">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 320" preserveAspectRatio="none" focusable="false">
-              <path
-                fill="none"
-                stroke="rgba(56, 206, 255, 0.16)"
-                stroke-width="0.55"
-                stroke-linecap="round"
-                d="M5.2 0c-2.8 28 5.2 56 2.2 84s-4.8 56-1.8 84 5.8 56 2.8 84-4.8 56-1.8 84"
-              ></path>
-              <path
-                fill="none"
-                stroke="rgba(56, 206, 255, 0.11)"
-                stroke-width="0.5"
-                stroke-linecap="round"
-                d="M10.8 0c2.8 28-5.2 56-2.2 84s4.8 56 1.8 84-5.8 56-2.8 84 4.8 56 1.8 84"
-              ></path>
-            </svg>
-          </aside>
+          <div class="lumos-hero-scene" aria-hidden="true">
+            <img
+              class="lumos-hero-scene__img"
+              src="/lumos-hero-ata-scene.png"
+              alt=""
+              width="900"
+              height="448"
+              decoding="async"
+              fetchpriority="high"
+            />
+          </div>
+        </div>
+        <div class="lumos-hero-ask-band">
+          <form class="lumos-hero-ask" id="lumos-hero-ask" action="/panel" method="get" autocomplete="off" aria-label="Lumos’a sor">
+            <input
+              class="lumos-hero-ask__field"
+              id="lumos-hero-ask-input"
+              type="text"
+              inputmode="text"
+              placeholder="Lumos’a sor: &quot;Bu modül ne işe yarıyor?&quot;"
+            />
+            <button class="lumos-hero-ask__submit" type="submit">Sor</button>
+          </form>
         </div>
       </div>
     </section>
 
+    <section id="ilkeler" class="lumos-shell lumos-section lumos-section--post-hero" aria-labelledby="temel-ilkeler-baslik">
+      <h2 id="temel-ilkeler-baslik" class="lumos-cap-title">Temel ilkeler</h2>
+      <div class="lumos-cap-grid">
+        <a class="lumos-cap-card-link" href="#ilkeler">
+          <article class="lumos-cap-card">
+            <h3>Kullanıcı Kontrolü</h3>
+            <p>Nihai seçim her zaman sizdedir; Lumos yerine geçmez.</p>
+          </article>
+        </a>
+        <a class="lumos-cap-card-link" href="#ilkeler">
+          <article class="lumos-cap-card">
+            <h3>Risk Görünürlüğü</h3>
+            <p>Olası sonuçlar ve yan etkiler özetlenerek gösterilir.</p>
+          </article>
+        </a>
+        <a class="lumos-cap-card-link" href="#ilkeler">
+          <article class="lumos-cap-card">
+            <h3>Veri Farkındalığı</h3>
+            <p>Verinin nerede işlendiği ve hangi sınırların geçerli olduğu okunur biçimde sunulur.</p>
+          </article>
+        </a>
+        <a class="lumos-cap-card-link" href="#ilkeler">
+          <article class="lumos-cap-card">
+            <h3>Açık Onay İlkesi</h3>
+            <p>Kalıcı veya riskli adımlarda net, geri alınabilir onay akışları.</p>
+          </article>
+        </a>
+      </div>
+      <h2 id="ilkeler-baslik" class="lumos-cap-title lumos-cap-title--follow">Çalışma ilkeleri</h2>
+      <p>
+        We Lock AI çatısındaki Lumos; hız uğruna şeffaflığı feda etmeden, aşağıdaki dört eksende tutarlı kalmayı
+        hedefler.
+      </p>
+      <ul>
+        <li><strong>Kullanıcı kararı:</strong> Nihai seçim her zaman sizdedir; Lumos yerine geçmez.</li>
+        <li><strong>Açık onay:</strong> Kalıcı veya riskli adımlarda net, geri alınabilir onay akışları.</li>
+        <li><strong>Risk görünürlüğü:</strong> Olası sonuçlar ve yan etkiler özetlenerek gösterilir.</li>
+        <li><strong>Veri farkındalığı:</strong> Verinin nerede işlendiği ve hangi sınırların geçerli olduğu okunur biçimde sunulur.</li>
+      </ul>
+    </section>
+
     <section
-      id="dunya-hero"
+      id="dunya"
       class="lumos-shell lumos-section lumos-dunya-hero"
       aria-labelledby="lumos-dunya-hero-heading"
     >
@@ -1571,25 +1934,51 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
           <h2 id="lumos-dunya-hero-heading">Dünya</h2>
           <p>
             Lumos; dil, bölge ve erişilebilirlik farklarını gözeterek arayüz ve akışların geniş bir kullanıcı yelpazesine
-            uyumunu hedefler. Bu görsel, “dünya” modülünün tek bir küçük simgeyle değil; insani ölçekte bir vizyonla
+            uyumunu hedefler. Yandaki kart, “dünya” modülünün tek bir küçük simgeyle değil; insani ölçekte bir vizyonla
             bağlanmasını vurgular.
           </p>
           <p class="lumos-dunya-hero__meta">
-            <a class="lumos-dunya-hero__link" href="#world">Dünya modülü</a>
+            <a class="lumos-dunya-hero__link" href="#dunya-vizyon">Dünya vizyonu</a>
             <span class="lumos-dunya-hero__sep" aria-hidden="true">·</span>
-            <a class="lumos-dunya-hero__link lumos-dunya-hero__link--subtle" href="#dunya-vizyon">Vizyon metni</a>
+            <a class="lumos-dunya-hero__link lumos-dunya-hero__link--subtle" href="#moduller">Modül ızgarası</a>
           </p>
         </div>
-        <figure class="lumos-dunya-hero__figure">
-          <img
-            src="/lumos-world-map.jpg"
-            alt="Project Lumos: Kıbrıs merkezli dünya haritası ve modül ikonları ile aynı referans görsel"
-            width="1536"
-            height="1024"
-            loading="lazy"
-            decoding="async"
-          />
-        </figure>
+        <div
+          class="lumos-dunya-hero__vizyon-card"
+          role="complementary"
+          aria-labelledby="lumos-dunya-hero-vizyon-card-title"
+        >
+          <div class="lumos-dunya-hero__vizyon-card-map" aria-hidden="true"></div>
+          <div class="lumos-dunya-hero__vizyon-card-deco" aria-hidden="true"></div>
+          <div class="lumos-dunya-hero__vizyon-card-inner">
+            <div class="lumos-dunya-hero__vizyon-card-icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" fill="none">
+                <circle cx="24" cy="24" r="15" stroke="currentColor" stroke-opacity="0.45" stroke-width="1.25" />
+                <ellipse cx="24" cy="24" rx="15" ry="5.5" stroke="currentColor" stroke-opacity="0.28" stroke-width="1" />
+                <path
+                  d="M9 24h30M24 9c-4 5.2-6 10.1-6 15s2 9.8 6 15c4-5.2 6-10.1 6-15s-2-9.8-6-15Z"
+                  stroke="currentColor"
+                  stroke-opacity="0.32"
+                  stroke-width="1"
+                />
+                <circle cx="24" cy="14" r="2.25" fill="rgb(198 166 106 / 0.9)" stroke="currentColor" stroke-width="0.75" />
+                <circle cx="34" cy="28" r="2" fill="currentColor" fill-opacity="0.35" stroke="currentColor" stroke-width="0.75" />
+                <circle cx="14" cy="30" r="2" fill="currentColor" fill-opacity="0.35" stroke="currentColor" stroke-width="0.75" />
+                <path
+                  d="M24 16.25L33.5 27M24 16.25 14.5 28"
+                  stroke="currentColor"
+                  stroke-opacity="0.5"
+                  stroke-width="1.1"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </div>
+            <h3 id="lumos-dunya-hero-vizyon-card-title" class="lumos-dunya-hero__vizyon-card-title">Dünya vizyonu</h3>
+            <p class="lumos-dunya-hero__vizyon-card-body">
+              Kıbrıs’tan başlayan akıllı ses, medya ve yapay zekâ ağı; insan merkezli kontrol anlayışıyla dünyaya açılır.
+            </p>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -1622,7 +2011,27 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       </section>
 
       <aside class="lumos-may19-card lumos-may19-card--sideline" aria-labelledby="lumos-may19-heading">
-        <h2 id="lumos-may19-heading">19 Mayıs’a Saygıyla</h2>
+        <h2 id="lumos-may19-heading" class="lumos-may19-card__heading--inline">
+          <span class="lumos-may19-card__flag-badges" aria-hidden="true">
+            <img
+              class="lumos-may19-card__flag-badge"
+              src="/assets/flags/tr.svg"
+              alt=""
+              width="24"
+              height="16"
+              decoding="async"
+            />
+            <img
+              class="lumos-may19-card__flag-badge"
+              src="/assets/flags/kktc.svg"
+              alt=""
+              width="24"
+              height="16"
+              decoding="async"
+            />
+          </span>
+          <span>19 Mayıs’a Saygıyla</span>
+        </h2>
         <p>
           Bu metni 19 Mayıs gibi anlamlı bir güne yakın yayımlamak benim için ayrıca değerli.
         </p>
@@ -1713,21 +2122,7 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         </ul>
       </section>
 
-      <section id="ilkeler" class="lumos-section" aria-labelledby="ilkeler-baslik">
-        <h2 id="ilkeler-baslik">Çalışma ilkeleri</h2>
-        <p>
-          We Lock AI çatısındaki Lumos; hız uğruna şeffaflığı feda etmeden, aşağıdaki dört eksende tutarlı kalmayı
-          hedefler.
-        </p>
-        <ul>
-          <li><strong>Kullanıcı kararı:</strong> Nihai seçim her zaman sizdedir; Lumos yerine geçmez.</li>
-          <li><strong>Açık onay:</strong> Kalıcı veya riskli adımlarda net, geri alınabilir onay akışları.</li>
-          <li><strong>Risk görünürlüğü:</strong> Olası sonuçlar ve yan etkiler özetlenerek gösterilir.</li>
-          <li><strong>Veri farkındalığı:</strong> Verinin nerede işlendiği ve hangi sınırların geçerli olduğu okunur biçimde sunulur.</li>
-        </ul>
-      </section>
-
-      <section id="developer-access" class="lumos-section" aria-labelledby="gelistirici-baslik">
+      <section id="gelistirici" class="lumos-section" aria-labelledby="gelistirici-baslik">
         <h2 id="gelistirici-baslik">Geliştirici erişimi</h2>
         <p>
           Lumos şu anda geliştirici incelemesine açık kaynak kod aşamasındadır. Son kullanıcı kurulum paketi henüz
@@ -1740,117 +2135,273 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
 
     <div class="lumos-modules-stack">
       <div class="lumos-modules-stack__banner" aria-hidden="true"></div>
-      <section id="modules" class="lumos-cap" aria-labelledby="lumos-cap-title">
-        <h2 id="lumos-cap-title">Kapsam modülleri</h2>
+      <section id="moduller" class="lumos-cap" aria-labelledby="lumos-cap-title">
+        <h2 id="lumos-cap-title" class="lumos-cap-title">Lumos Modülleri</h2>
         <p class="lumos-cap-deck">
           Aşağıdaki başlıklar ürün kapsamının özünü özetler; ayrıntılı modül notları sayfanın devamında yer alır.
         </p>
         <div class="lumos-scope-grid">
-          <article class="lumos-scope-card">
+          <a class="lumos-scope-card lumos-scope-card-link" href="#modul-sohbet">
+            <span class="lumos-scope-card__icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                <path
+                  class="lumos-mod-ico__fill-cyan"
+                  opacity="0.45"
+                  d="M15.5 5.5h9c1.38 0 2.5 1.12 2.5 2.5v5.2c0 1.38-1.12 2.5-2.5 2.5h-3.1l-2.4 2.1V15.7H15.5A2.5 2.5 0 0 1 13 13.2V8c0-1.38 1.12-2.5 2.5-2.5Z"
+                />
+                <path
+                  class="lumos-mod-ico__stroke"
+                  opacity="0.75"
+                  d="M15.5 5.5h9c1.38 0 2.5 1.12 2.5 2.5v5.2c0 1.38-1.12 2.5-2.5 2.5h-3.1l-2.4 2.1V15.7H15.5A2.5 2.5 0 0 1 13 13.2V8c0-1.38 1.12-2.5 2.5-2.5Z"
+                />
+                <path
+                  class="lumos-mod-ico__fill-cyan"
+                  d="M6.5 9.5c0-1.38 1.12-2.5 2.5-2.5h9c1.38 0 2.5 1.12 2.5 2.5v6.5c0 1.38-1.12 2.5-2.5 2.5h-4.2L9 22.5V18h-.5A2.5 2.5 0 0 1 6 16V9.5Z"
+                />
+                <path
+                  class="lumos-mod-ico__stroke"
+                  d="M6.5 9.5c0-1.38 1.12-2.5 2.5-2.5h9c1.38 0 2.5 1.12 2.5 2.5v6.5c0 1.38-1.12 2.5-2.5 2.5h-4.2L9 22.5V18h-.5A2.5 2.5 0 0 1 6 16V9.5Z"
+                />
+                <path class="lumos-mod-ico__gold-stroke" d="M10.5 12.5h7M10.5 15h5" />
+              </svg>
+            </span>
             <h3>Sohbet</h3>
             <p>Metin tabanlı görevleri şeffaf adımlarla yönetilen bir diyalog yüzeyinde toplar.</p>
-          </article>
-          <article class="lumos-scope-card">
-            <h3>Görsel analiz</h3>
+          </a>
+          <a class="lumos-scope-card lumos-scope-card-link" href="#modul-gorsel-analiz">
+            <span class="lumos-scope-card__icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                <rect class="lumos-mod-ico__fill-cyan" x="4.5" y="7" width="15" height="13" rx="2.2" />
+                <rect class="lumos-mod-ico__stroke" x="4.5" y="7" width="15" height="13" rx="2.2" />
+                <circle class="lumos-mod-ico__stroke" cx="11.5" cy="13.5" r="3.4" />
+                <circle class="lumos-mod-ico__gold-stroke" cx="20.5" cy="20.5" r="4.6" />
+                <path class="lumos-mod-ico__gold-stroke" d="M23.8 23.8 27.5 27.5" />
+              </svg>
+            </span>
+            <h3>Görsel Analiz</h3>
             <p>Görüntü ve ekran bağlamını okunur özetlerle sunar; nihai yorumu size bırakır.</p>
-          </article>
-          <article class="lumos-scope-card">
+          </a>
+          <a class="lumos-scope-card lumos-scope-card-link" href="#modul-ses">
+            <span class="lumos-scope-card__icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                <path
+                  class="lumos-mod-ico__stroke"
+                  d="M4 19.5v-7M8 21.5v-11M12 22.5v-13M16 21.5v-11M20 19.5v-7M24 18.5v-5"
+                />
+                <path class="lumos-mod-ico__gold-stroke" d="M9 24.5h14" />
+              </svg>
+            </span>
             <h3>Ses</h3>
             <p>Sesli komut ve yanıtları kontrollü bir akışta işler; izin ve sınırlar görünür kalır.</p>
-          </article>
-          <article class="lumos-scope-card">
+          </a>
+          <a class="lumos-scope-card lumos-scope-card-link" href="#modul-medya">
+            <span class="lumos-scope-card__icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                <rect class="lumos-mod-ico__fill-cyan" x="4" y="8" width="24" height="16" rx="2.5" />
+                <rect class="lumos-mod-ico__stroke" x="4" y="8" width="24" height="16" rx="2.5" />
+                <path class="lumos-mod-ico__stroke" d="M4 11h24" opacity="0.35" />
+                <path class="lumos-mod-ico__gold" d="M13 12.5 21.5 16 13 19.5z" stroke="none" />
+                <path class="lumos-mod-ico__gold-stroke" d="M13 12.5 21.5 16 13 19.5z" fill="none" stroke-width="1.6" />
+              </svg>
+            </span>
             <h3>Medya</h3>
             <p>Ses, görüntü ve dosya hareketlerini tek panelden izlenebilir tutar.</p>
-          </article>
-          <article class="lumos-scope-card">
+          </a>
+          <a class="lumos-scope-card lumos-scope-card-link" href="#modul-gorevler">
+            <span class="lumos-scope-card__icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                <rect class="lumos-mod-ico__fill-cyan" x="7" y="5.5" width="18" height="21" rx="2.2" />
+                <rect class="lumos-mod-ico__stroke" x="7" y="5.5" width="18" height="21" rx="2.2" />
+                <path class="lumos-mod-ico__stroke" d="M10.5 11h11M10.5 16h11M10.5 21h8" opacity="0.4" />
+                <path class="lumos-mod-ico__gold-stroke" d="M9.2 10.8 10.8 12.4 13.6 9.6M9.2 15.8 10.8 17.4 13.6 14.6M9.2 20.8 10.8 22.4 13.6 19.6" />
+              </svg>
+            </span>
             <h3>Görevler</h3>
             <p>Dağınık işleri modüller arasında görünür bir sıraya dönüştürür.</p>
-          </article>
-          <article class="lumos-scope-card">
+          </a>
+          <a class="lumos-scope-card lumos-scope-card-link" href="#modul-posta">
+            <span class="lumos-scope-card__icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                <path
+                  class="lumos-mod-ico__fill-cyan"
+                  d="M5.5 10.5c0-1.38 1.12-2.5 2.5-2.5h16c1.38 0 2.5 1.12 2.5 2.5v11c0 1.38-1.12 2.5-2.5 2.5H8c-1.38 0-2.5-1.12-2.5-2.5v-11Z"
+                />
+                <path
+                  class="lumos-mod-ico__stroke"
+                  d="M5.5 10.5c0-1.38 1.12-2.5 2.5-2.5h16c1.38 0 2.5 1.12 2.5 2.5v11c0 1.38-1.12 2.5-2.5 2.5H8c-1.38 0-2.5-1.12-2.5-2.5v-11Z"
+                />
+                <path class="lumos-mod-ico__gold-stroke" d="M5.5 10.5 16 18.5 26.5 10.5" />
+              </svg>
+            </span>
             <h3>Posta</h3>
             <p>Mesaj ve hesap etkileşimlerinde bağlamı ve riski öne çıkarır.</p>
-          </article>
-          <article class="lumos-scope-card">
+          </a>
+          <a class="lumos-scope-card lumos-scope-card-link" href="#modul-dosyalar">
+            <span class="lumos-scope-card__icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                <path
+                  class="lumos-mod-ico__fill-cyan"
+                  d="M6.5 10.5 11 10.5 12.8 8h9.7c1.38 0 2.5 1.12 2.5 2.5v13c0 1.38-1.12 2.5-2.5 2.5H9c-1.38 0-2.5-1.12-2.5-2.5v-13Z"
+                />
+                <path
+                  class="lumos-mod-ico__stroke"
+                  d="M6.5 10.5 11 10.5 12.8 8h9.7c1.38 0 2.5 1.12 2.5 2.5v13c0 1.38-1.12 2.5-2.5 2.5H9c-1.38 0-2.5-1.12-2.5-2.5v-13Z"
+                />
+                <path class="lumos-mod-ico__gold-stroke" d="M11 15.5h10M11 19h7" />
+              </svg>
+            </span>
             <h3>Dosyalar</h3>
             <p>Yerel ve uzak dosya akışlarında veri yolunu anlaşılır kılar.</p>
-          </article>
-          <article class="lumos-scope-card">
+          </a>
+          <a class="lumos-scope-card lumos-scope-card-link" href="#modul-kimlik">
+            <span class="lumos-scope-card__icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                <path
+                  class="lumos-mod-ico__fill-cyan"
+                  d="M16 4.5c-5.2 0-9.5 4-9.5 9.2 0 2.6 1 5 2.7 6.8L7.5 27l5.8-3.2c0.8 0.2 1.7 0.3 2.7 0.3 5.2 0 9.5-4 9.5-9.2S21.2 4.5 16 4.5Z"
+                />
+                <path
+                  class="lumos-mod-ico__stroke"
+                  d="M16 4.5c-5.2 0-9.5 4-9.5 9.2 0 2.6 1 5 2.7 6.8L7.5 27l5.8-3.2c0.8 0.2 1.7 0.3 2.7 0.3 5.2 0 9.5-4 9.5-9.2S21.2 4.5 16 4.5Z"
+                />
+                <path
+                  class="lumos-mod-ico__stroke"
+                  d="M11.5 12.5c2.2-3.2 6.8-3.2 9 0M10.5 16.5c2.8-2.8 8.2-2.8 11 0M10 20.5c3-2 9-2 12 0"
+                  opacity="0.55"
+                />
+                <path
+                  class="lumos-mod-ico__gold-stroke"
+                  d="M19 8.5h4.5v4.5M19 8.5 23.5 13"
+                />
+              </svg>
+            </span>
             <h3>Kimlik</h3>
             <p>Oturum, rol ve cihaz güvenini tek çatı altında yönetilebilir sunar.</p>
-          </article>
-          <article class="lumos-scope-card">
+          </a>
+          <a class="lumos-scope-card lumos-scope-card-link" href="#modul-guvenlik">
+            <span class="lumos-scope-card__icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                <path
+                  class="lumos-mod-ico__fill-cyan"
+                  d="M16 4.5 7.5 8.2v7.3c0 5.8 3.8 10.6 8.5 12 4.7-1.4 8.5-6.2 8.5-12V8.2L16 4.5Z"
+                />
+                <path
+                  class="lumos-mod-ico__stroke"
+                  d="M16 4.5 7.5 8.2v7.3c0 5.8 3.8 10.6 8.5 12 4.7-1.4 8.5-6.2 8.5-12V8.2L16 4.5Z"
+                />
+                <path class="lumos-mod-ico__gold-stroke" d="M12.5 16.2 15 18.7 20.5 13.2" />
+              </svg>
+            </span>
             <h3>Güvenlik</h3>
             <p>Yüksek riskli işlemlerde ek doğrulama ve denetlenebilirlik sağlar.</p>
-          </article>
-          <article class="lumos-scope-card">
+          </a>
+          <a class="lumos-scope-card lumos-scope-card-link" href="#modul-entegrasyon">
+            <span class="lumos-scope-card__icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                <path
+                  class="lumos-mod-ico__stroke"
+                  d="M7.5 11.5h6c0.8 0 1.5 0.7 1.5 1.5v6c0 0.8-0.7 1.5-1.5 1.5h-6c-0.8 0-1.5-0.7-1.5-1.5V13c0-0.8 0.7-1.5 1.5-1.5Z"
+                />
+                <path
+                  class="lumos-mod-ico__stroke"
+                  d="M18.5 11.5h6c0.8 0 1.5 0.7 1.5 1.5v6c0 0.8-0.7 1.5-1.5 1.5h-6c-0.8 0-1.5-0.7-1.5-1.5V13c0-0.8 0.7-1.5 1.5-1.5Z"
+                  opacity="0.88"
+                />
+                <path class="lumos-mod-ico__gold-stroke" d="M14.5 16h3M16 14.5v3" />
+                <path class="lumos-mod-ico__stroke" d="M13.5 8.5 16 11l2.5-2.5M13.5 23.5 16 21l2.5 2.5" opacity="0.55" />
+              </svg>
+            </span>
             <h3>Entegrasyon</h3>
             <p>Harici servisleri aynı kontrol katmanında birleştirir; kapsam sözleşmeli kalır.</p>
-          </article>
+          </a>
         </div>
       </section>
 
       <section class="lumos-modules" aria-labelledby="lumos-module-detail-title">
-      <h2 id="lumos-module-detail-title">Modül açıklamaları</h2>
-      <div class="lumos-modules-grid">
-        <article id="publishing" class="lumos-module-item">
-          <h3>Yayıncılık</h3>
-          <p>
-            Canlı ve kayıtlı yayın akışlarında hangi içeriğin hangi kanala gittiğini, hangi izinlerin geçerli olduğunu ve
-            onay gerektiren noktaları daha net göstermeyi hedefler. Yayını kesme, kayda alma veya paylaşım gibi kalıcı
-            etkileri olan davranışlarda kullanıcıyı bilgilendirir.
-          </p>
-        </article>
-        <article id="media" class="lumos-module-item">
-          <h3>Medya</h3>
-          <p>
-            Ses, görüntü ve dosya aktarımlarını düzenler; yerelde işlenen ile dışarı gönderilen içeriği ayırt etmeyi
-            kolaylaştırmayı amaçlar. Dönüştürme, birleştirme veya paylaşım adımlarında izlenebilir bir sıra sunar.
-          </p>
-        </article>
-        <article id="ai" class="lumos-module-item">
-          <h3>Yapay Zekâ</h3>
-          <p>
-            Metin ve görev özetleri üretirken kaynak bağlamını ve belirsizlikleri görünür kılmayı; otomatik yürütme yerine
-            öneri ve kontrol listesi sunmayı hedefler. Risk taşıyan işlemlerde insan onayını varsayılan kabul eder.
-          </p>
-        </article>
-        <article id="quantum" class="lumos-module-item">
-          <h3>Kuantum</h3>
-          <p>
-            Geleneksel şifreleme ve hesaplama sınırlarının ötesindeki yaklaşımları izlemek için ayrılmış bir araştırma
-            alanıdır. Ürünleştirme vaadi yerine deneysel modüller ve güvenlik perspektifi için hazırlık düşünülür.
-          </p>
-        </article>
-        <article id="integration" class="lumos-module-item">
-          <h3>Entegrasyon</h3>
-          <p>
-            Üçüncü taraf API’ler, bulut servisleri ve yerel uygulamalar arasında tek bir orchestrasyon yüzeyi sunmayı
-            amaçlar. Her bağlantı için kapsam, süre ve veri paylaşımı mümkün olduğunca sözleşmeli ve görünür tutulur.
-          </p>
-        </article>
-        <article id="identity" class="lumos-module-item">
-          <h3>Kimlik</h3>
-          <p>
-            Oturumlar, roller ve cihaz güvenini tek yerden gözden geçirmeyi hedefler. Profil ve izin değişikliklerinde
-            kullanıcıya net geri bildirim verir; kimlik bilgisinin nerede kullanıldığını anlamayı kolaylaştırır.
-          </p>
-        </article>
-        <article id="security" class="lumos-module-item">
-          <h3>Güvenlik</h3>
-          <p>
-            Silme, ödeme, içerik yayını veya hesap ayarı gibi geri dönüşü zor işlemlerde ek doğrulama ve günlük izlenebilirlik
-            sağlamayı amaçlar. Şüpheli veya tekrarlayan isteklerde kullanıcıyı uyarır.
-          </p>
-        </article>
-        <article id="world" class="lumos-module-item lumos-module-item--world-slot">
-          <h3>Dünya</h3>
-          <p>
-            Bu modül, üst bölümde anlatılan dünya vizyonunun uygulama tarafını hedefler: arayüz ve akışların farklı dil,
-            bölge ve erişilebilirlik ihtiyaçlarına göre yapılandırılması, yerelleştirme ile klavye ve ses erişiminde tutarlı
-            davranışlar sunulması.
-          </p>
-        </article>
-      </div>
+        <h2 id="lumos-module-detail-title">Modül açıklamaları</h2>
+        <div class="lumos-modules-grid">
+          <article id="modul-sohbet" class="lumos-module-item">
+            <h3>Sohbet</h3>
+            <p>
+              Metin tabanlı görevleri şeffaf adımlarla yönetilen bir diyalog yüzeyinde toplar. Özet ve önerilerde kaynak
+              bağlamını ve belirsizlikleri görünür kılmayı; otomatik yürütme yerine kontrol listesi ve insan onayını
+              önceliklendirmeyi hedefler.
+            </p>
+            <a class="lumos-modul-back" href="#top">Yukarı dön</a>
+          </article>
+          <article id="modul-gorsel-analiz" class="lumos-module-item">
+            <h3>Görsel Analiz</h3>
+            <p>
+              Görüntü ve ekran bağlamını okunur özetlerle sunar; nihai yorumu size bırakır. Riskli veya yanlış yönlendirici
+              çıkarımlarda duraklatma ve onay noktalarını görünür tutmayı amaçlar.
+            </p>
+            <a class="lumos-modul-back" href="#top">Yukarı dön</a>
+          </article>
+          <article id="modul-ses" class="lumos-module-item">
+            <h3>Ses</h3>
+            <p>
+              Sesli komut ve yanıtları kontrollü bir akışta işler; izin ve sınırlar görünür kalır. Yerel işleme ile dış
+              servise aktarım ayrımını anlaşılır kılmayı hedefler.
+            </p>
+            <a class="lumos-modul-back" href="#top">Yukarı dön</a>
+          </article>
+          <article id="modul-medya" class="lumos-module-item">
+            <h3>Medya</h3>
+            <p>
+              Ses, görüntü ve dosya aktarımlarını düzenler; yerelde işlenen ile dışarı gönderilen içeriği ayırt etmeyi
+              kolaylaştırmayı amaçlar. Dönüştürme, birleştirme veya paylaşım adımlarında izlenebilir bir sıra sunar.
+            </p>
+            <a class="lumos-modul-back" href="#top">Yukarı dön</a>
+          </article>
+          <article id="modul-gorevler" class="lumos-module-item">
+            <h3>Görevler</h3>
+            <p>
+              Dağınık işleri modüller arasında görünür bir sıraya dönüştürür. Görevin hangi modülde hangi adımda olduğunu
+              takip etmeyi kolaylaştırmayı hedefler.
+            </p>
+            <a class="lumos-modul-back" href="#top">Yukarı dön</a>
+          </article>
+          <article id="modul-posta" class="lumos-module-item">
+            <h3>Posta</h3>
+            <p>
+              Mesaj ve hesap etkileşimlerinde bağlamı ve riski öne çıkarır. Kalıcı veya dışarı aktarım doğuran adımlarda
+              net onay akışlarını önceliklendirmeyi amaçlar.
+            </p>
+            <a class="lumos-modul-back" href="#top">Yukarı dön</a>
+          </article>
+          <article id="modul-dosyalar" class="lumos-module-item">
+            <h3>Dosyalar</h3>
+            <p>
+              Yerel ve uzak dosya akışlarında veri yolunu anlaşılır kılar. Paylaşım, dönüştürme veya silme gibi geri
+              dönüşü zor işlemlerde ek uyarı ve özet sunmayı hedefler.
+            </p>
+            <a class="lumos-modul-back" href="#top">Yukarı dön</a>
+          </article>
+          <article id="modul-kimlik" class="lumos-module-item">
+            <h3>Kimlik</h3>
+            <p>
+              Oturumlar, roller ve cihaz güvenini tek yerden gözden geçirmeyi hedefler. Profil ve izin değişikliklerinde
+              kullanıcıya net geri bildirim verir; kimlik bilgisinin nerede kullanıldığını anlamayı kolaylaştırır.
+            </p>
+            <a class="lumos-modul-back" href="#top">Yukarı dön</a>
+          </article>
+          <article id="modul-guvenlik" class="lumos-module-item">
+            <h3>Güvenlik</h3>
+            <p>
+              Silme, ödeme, içerik yayını veya hesap ayarı gibi geri dönüşü zor işlemlerde ek doğrulama ve günlük
+              izlenebilirlik sağlamayı amaçlar. Şüpheli veya tekrarlayan isteklerde kullanıcıyı uyarır.
+            </p>
+            <a class="lumos-modul-back" href="#top">Yukarı dön</a>
+          </article>
+          <article id="modul-entegrasyon" class="lumos-module-item">
+            <h3>Entegrasyon</h3>
+            <p>
+              Üçüncü taraf API’ler, bulut servisleri ve yerel uygulamalar arasında tek bir orchestrasyon yüzeyi sunmayı
+              amaçlar. Her bağlantı için kapsam, süre ve veri paylaşımı mümkün olduğunca sözleşmeli ve görünür tutulur.
+            </p>
+            <a class="lumos-modul-back" href="#top">Yukarı dön</a>
+          </article>
+        </div>
       </section>
     </div>
 
@@ -1875,6 +2426,23 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       </div>
     </div>
 
+    <script is:inline>
+      (function () {
+        var form = document.getElementById("lumos-hero-ask");
+        var input = document.getElementById("lumos-hero-ask-input");
+        if (form && input) {
+          form.addEventListener("submit", function (e) {
+            e.preventDefault();
+            var q = String(input.value || "").trim();
+            if (q) {
+              window.location.href = "/panel?q=" + encodeURIComponent(q);
+            } else {
+              window.location.href = "/panel";
+            }
+          });
+        }
+      })();
+    </script>
     <script is:inline>
       (function () {
         var openBtn = document.getElementById("lumos-may19-open");
