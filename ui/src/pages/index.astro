@@ -24,8 +24,8 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
     <meta property="og:locale" content="tr_TR" />
     <meta property="og:image" content="https://welockai.com/lumos-hero.jpg" />
     <meta property="og:image:type" content="image/jpeg" />
-    <link rel="icon" href="/lumos-tree-icon.png" type="image/png" sizes="any" />
-    <link rel="apple-touch-icon" href="/lumos-tree-icon.png" />
+    <link rel="icon" href="/lumos-logo-mark.png" type="image/png" sizes="any" />
+    <link rel="apple-touch-icon" href="/lumos-logo-mark.png" />
     <link rel="stylesheet" href="/styles/lumos-tokens.css" />
     <style>
       /**
@@ -37,6 +37,8 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         --lumos-land-teal-deep: 22 108 168;
         --lumos-land-warm: 218 188 124;
         --lumos-land-warm-deep: 176 142 88;
+        /** Harita (lumos-hero) ile aynı zemin — logo pad / kutu rengi */
+        --lumos-map-canvas: #03060d;
         --lumos-land-page: #05070d;
         --lumos-land-title: #e8edf5;
       }
@@ -156,20 +158,23 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         outline: 2px solid rgb(var(--lumos-land-teal) / 0.45);
         outline-offset: 2px;
       }
-      /** Lumos kimlik: ağaç sembolü (/lumos-tree-icon.png, lumos-paradise-icon.png ile aynı görsel) */
-      .lumos-tree-mark {
+      /** Lumos site logosu: harita infografiği ile aynı altın + camgöbeği parlama */
+      .lumos-logo-mark {
         display: block;
         box-sizing: border-box;
         flex-shrink: 0;
         object-fit: contain;
-        filter: drop-shadow(0 0 5px rgb(var(--lumos-land-teal) / 0.2))
-          drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+        filter: saturate(1.08) contrast(1.03)
+          drop-shadow(0 0 4px rgb(var(--lumos-land-warm) / 0.32))
+          drop-shadow(0 0 12px rgb(var(--lumos-land-teal) / 0.22))
+          drop-shadow(0 0 1px rgb(var(--lumos-land-teal) / 0.45))
+          drop-shadow(0 1px 2px rgb(0 0 0 / 0.5));
       }
-      .lumos-site-nav__logo .lumos-tree-mark {
+      .lumos-site-nav__logo .lumos-logo-mark {
         width: 1.65rem;
         height: 1.65rem;
       }
-      .lumos-hero-logo-box .lumos-tree-mark {
+      .lumos-hero-logo-box .lumos-logo-mark {
         width: clamp(3rem, 7vw, 3.45rem);
         height: clamp(3rem, 7vw, 3.45rem);
       }
@@ -280,20 +285,29 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       .lumos-hero-title-stack .lumos-hero-title-page {
         margin-bottom: 0;
       }
-      /** Başlık yanı: geniş dokunma alanı; Lumos ağaç markası */
+      /** Başlık yanı: harita ile aynı zemin + hafif altın/camgöbeği hale */
       .lumos-hero-logo-box {
+        box-sizing: border-box;
         width: clamp(72px, 8.5vw, 96px);
         height: clamp(72px, 8.5vw, 96px);
         display: inline-flex;
         align-items: center;
         justify-content: center;
         flex: 0 0 auto;
-        padding: 0;
+        padding: 0.12rem;
         border-radius: 50%;
-        border: 0;
-        background: transparent;
-        box-shadow: none;
-        box-sizing: border-box;
+        border: 1px solid rgb(var(--lumos-land-teal) / 0.22);
+        background:
+          radial-gradient(
+            circle at 50% 42%,
+            rgb(var(--lumos-land-teal) / 0.14) 0%,
+            rgb(var(--lumos-land-teal-deep) / 0.06) 52%,
+            var(--lumos-map-canvas) 100%
+          );
+        box-shadow:
+          inset 0 0 0 1px rgb(var(--lumos-land-warm-deep) / 0.12),
+          0 0 14px rgb(var(--lumos-land-teal) / 0.12),
+          0 0 22px rgb(var(--lumos-land-warm) / 0.06);
       }
       .lumos-hero-title-page {
         margin: 0 0 0.45rem;
@@ -336,30 +350,30 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         line-height: 1.62;
         color: #c9ced9;
       }
-      /** Sağ: dünya fotoğrafı — net okuma; metin sütunu ile ızgara dengesi (~900–1200px) */
+      /** Sağ: Project Lumos infografiği (lumos-hero.jpg) — tam görünüm, kırpma yok */
       @media (min-width: 768px) {
         .lumos-hero-imgwrap {
           display: grid;
-          grid-template-columns: minmax(0, 1fr) minmax(200px, 34vw);
+          grid-template-columns: minmax(0, 1fr) minmax(220px, 40vw);
           align-items: center;
           gap: clamp(1.35rem, 3vw, 2.5rem);
         }
       }
       @media (min-width: 1024px) {
         .lumos-hero-imgwrap {
-          grid-template-columns: minmax(0, 1.06fr) minmax(240px, min(32vw, 360px));
+          grid-template-columns: minmax(0, 1.02fr) minmax(260px, min(42vw, 460px));
           gap: clamp(1.5rem, 3.2vw, 2.75rem);
         }
       }
       @media (min-width: 1200px) {
         .lumos-hero-imgwrap {
-          grid-template-columns: minmax(0, 1.05fr) minmax(260px, 340px);
+          grid-template-columns: minmax(0, 1fr) minmax(300px, min(44vw, 480px));
         }
       }
       .lumos-hero-visual {
         position: relative;
         width: 100%;
-        max-width: min(320px, 86vw);
+        max-width: min(100%, 28rem);
         margin-left: auto;
         margin-right: auto;
         overflow: visible;
@@ -397,8 +411,8 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         position: relative;
         z-index: 1;
         width: 100%;
-        aspect-ratio: 4 / 3;
-        max-height: clamp(200px, 42vw, 320px);
+        aspect-ratio: 3 / 2;
+        max-height: min(52vh, 520px);
         border-radius: 18px;
         overflow: hidden;
         border: 1px solid rgb(var(--lumos-land-teal) / 0.28);
@@ -406,6 +420,7 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
           inset 0 0 0 1px rgb(var(--lumos-land-warm-deep) / 0.12),
           0 12px 40px rgba(0, 0, 0, 0.45),
           0 0 32px rgb(var(--lumos-land-teal-deep) / 0.1);
+        background: var(--lumos-map-canvas);
       }
       .lumos-hero-visual__img {
         display: block;
@@ -413,8 +428,8 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         z-index: 1;
         width: 100%;
         height: 100%;
-        object-fit: cover;
-        object-position: 56% 40%;
+        object-fit: contain;
+        object-position: center center;
         opacity: 1;
         border-radius: 0;
         filter: saturate(1.05) contrast(1.04);
@@ -429,32 +444,26 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
           justify-self: end;
         }
         .lumos-hero-visual picture {
-          aspect-ratio: 5 / 4;
-          max-height: min(420px, 52vh);
-        }
-        .lumos-hero-visual__img {
-          object-position: 58% 38%;
+          aspect-ratio: 3 / 2;
+          max-height: min(58vh, 560px);
         }
       }
       @media (max-width: 767.98px) {
         .lumos-hero-visual {
           order: 2;
           width: 100%;
-          max-width: min(18.5rem, 100%);
+          max-width: min(26rem, 100%);
           margin-left: auto;
           margin-right: auto;
           overflow: hidden;
         }
         .lumos-hero-visual picture {
-          max-height: min(42vw, 12.5rem);
-        }
-        .lumos-hero-visual__img {
-          object-position: 50% 42%;
+          max-height: min(72vw, 22rem);
         }
       }
       @media (max-width: 479.98px) {
         .lumos-hero-visual {
-          max-width: min(17rem, 94vw);
+          max-width: min(100%, 24rem);
         }
       }
       @media (max-width: 559.98px) {
@@ -1280,8 +1289,8 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
               <li class="lumos-site-nav__brand">
                 <a class="lumos-site-nav__logo" href="#giris" aria-label="Lumos — girişe dön">
                   <img
-                    class="lumos-tree-mark"
-                    src="/lumos-tree-icon.png"
+                    class="lumos-logo-mark"
+                    src="/lumos-logo-mark.png"
                     alt=""
                     width="32"
                     height="32"
@@ -1341,8 +1350,8 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
               <div class="lumos-hero-title-stack">
                 <span class="lumos-hero-logo-box" aria-hidden="true">
                   <img
-                    class="lumos-tree-mark"
-                    src="/lumos-tree-icon.png"
+                    class="lumos-logo-mark"
+                    src="/lumos-logo-mark.png"
                     alt=""
                     width="32"
                     height="32"
@@ -1367,7 +1376,7 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
                 <img
                   class="lumos-hero-visual__img"
                   src="/lumos-hero.jpg"
-                  alt="Lumos giriş bölümü için dünya temalı dekoratif görsel"
+                  alt="Project Lumos: Kıbrıs merkezli dünya haritası ve modül özeti içeren infografik görsel"
                   width="1536"
                   height="1024"
                   loading="eager"
