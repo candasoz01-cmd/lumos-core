@@ -22,6 +22,10 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
     <meta property="og:url" content="https://welockai.com/" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="tr_TR" />
+    <meta property="og:image" content="https://welockai.com/lumos-skull-mark.svg" />
+    <meta property="og:image:type" content="image/svg+xml" />
+    <link rel="icon" href="/lumos-skull-mark.svg" type="image/svg+xml" sizes="any" />
+    <link rel="apple-touch-icon" href="/lumos-skull-mark.svg" />
     <link rel="stylesheet" href="/styles/lumos-tokens.css" />
     <style>
       /**
@@ -152,47 +156,20 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         outline: 2px solid rgb(var(--lumos-land-teal) / 0.45);
         outline-offset: 2px;
       }
-      /** Wordmark ailesiyle uyumlu: altın halka + merkez nokta (harf yok) */
-      .lumos-ring-mark {
-        position: relative;
+      /** Lumos kimlik markası: özgün vektör kafatası (lumos-skull-mark.svg) */
+      .lumos-skull-mark {
         display: block;
         box-sizing: border-box;
         flex-shrink: 0;
-        border-radius: 50%;
-        border: 2px solid rgb(var(--lumos-land-warm) / 0.55);
-        background:
-          radial-gradient(circle at 50% 40%, rgb(var(--lumos-land-warm) / 0.2) 0%, transparent 52%),
-          radial-gradient(circle at 30% 26%, rgba(255, 248, 238, 0.09) 0%, transparent 40%),
-          linear-gradient(155deg, #121a1c 0%, #0c1214 46%, #080c0e 100%);
-        box-shadow:
-          inset 0 0 0 1px rgba(0, 0, 0, 0.5),
-          inset 0 1px 0 rgba(255, 255, 255, 0.04),
-          0 1px 3px rgba(0, 0, 0, 0.45),
-          0 0 0 1px rgb(var(--lumos-land-teal-deep) / 0.12);
+        object-fit: contain;
+        filter: drop-shadow(0 0 5px rgb(var(--lumos-land-teal) / 0.2))
+          drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
       }
-      .lumos-ring-mark::after {
-        content: "";
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        width: 0.48rem;
-        height: 0.48rem;
-        margin: -0.24rem 0 0 -0.24rem;
-        border-radius: 50%;
-        background: radial-gradient(
-          circle at 32% 28%,
-          #fff8ee 0%,
-          rgb(var(--lumos-land-warm) / 0.95) 45%,
-          rgb(var(--lumos-land-warm-deep) / 0.9) 100%
-        );
-        box-shadow: 0 0 10px rgb(var(--lumos-land-warm) / 0.38);
-        pointer-events: none;
-      }
-      .lumos-site-nav__logo .lumos-ring-mark {
+      .lumos-site-nav__logo .lumos-skull-mark {
         width: 1.65rem;
         height: 1.65rem;
       }
-      .lumos-hero-logo-box .lumos-ring-mark {
+      .lumos-hero-logo-box .lumos-skull-mark {
         width: clamp(3rem, 7vw, 3.45rem);
         height: clamp(3rem, 7vw, 3.45rem);
       }
@@ -303,7 +280,7 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       .lumos-hero-title-stack .lumos-hero-title-page {
         margin-bottom: 0;
       }
-      /** Başlık yanı: geniş dokunma alanı; görsel yalnızca halka+nokta */
+      /** Başlık yanı: geniş dokunma alanı; Lumos kafatası markası */
       .lumos-hero-logo-box {
         width: clamp(72px, 8.5vw, 96px);
         height: clamp(72px, 8.5vw, 96px);
@@ -462,7 +439,14 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       @media (max-width: 767.98px) {
         .lumos-hero-visual {
           order: 2;
-          max-width: min(260px, 82vw);
+          width: 100%;
+          max-width: min(18.5rem, 100%);
+          margin-left: auto;
+          margin-right: auto;
+          overflow: hidden;
+        }
+        .lumos-hero-visual picture {
+          max-height: min(42vw, 12.5rem);
         }
         .lumos-hero-visual__img {
           object-position: 50% 42%;
@@ -470,7 +454,7 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       }
       @media (max-width: 479.98px) {
         .lumos-hero-visual {
-          max-width: min(220px, 78vw);
+          max-width: min(17rem, 94vw);
         }
       }
       @media (max-width: 559.98px) {
@@ -1128,23 +1112,45 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         html {
           -webkit-text-size-adjust: 100%;
           text-size-adjust: 100%;
+          overflow-x: hidden;
+          max-width: 100%;
         }
         body.lumos-landing {
           -webkit-text-size-adjust: 100%;
           text-size-adjust: 100%;
+          overflow-x: hidden;
+          max-width: 100%;
         }
         .lumos-site-nav {
+          position: relative;
+          z-index: 8;
+          isolation: isolate;
           margin: 0 0 clamp(0.45rem, 1.4vw, 0.72rem);
           padding-bottom: clamp(0.35rem, 1vw, 0.55rem);
         }
+        .lumos-site-nav__bar {
+          flex-wrap: nowrap;
+          align-items: center;
+          gap: 0.32rem;
+          min-width: 0;
+        }
         .lumos-site-nav__list {
-          flex-wrap: wrap;
-          gap: 0.2rem 0.42rem;
-          row-gap: 0.28rem;
+          flex-wrap: nowrap;
+          gap: 0.2rem 0.38rem;
+          overflow-x: auto;
+          overflow-y: hidden;
+          overscroll-behavior-x: contain;
+          min-width: 0;
+          flex: 1 1 auto;
+          padding-bottom: 3px;
+        }
+        .lumos-site-nav__corner {
+          flex-shrink: 0;
+          align-self: center;
         }
         .lumos-site-nav__link {
           padding: 0.26rem 0.38rem;
-          font-size: clamp(0.68rem, 2.15vw, 0.8rem);
+          font-size: clamp(0.66rem, 2.05vw, 0.78rem);
         }
         .lumos-site-nav__logo {
           min-width: 40px;
@@ -1152,29 +1158,40 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
           padding: 0.28rem;
         }
         #giris .lumos-hero-brand {
-          min-height: clamp(220px, 46vh, 400px);
-          min-height: clamp(220px, 46svh, 400px);
-          padding: clamp(0.75rem, 3.2vw, 1.25rem) clamp(0.65rem, 2.8vw, 1rem);
+          min-height: 0;
+          padding: clamp(0.62rem, 2.6vw, 1.05rem) clamp(0.55rem, 2.5vw, 0.95rem);
         }
         .lumos-hero-imgwrap {
-          gap: clamp(0.75rem, 2.2vw, 1.2rem);
+          display: flex;
+          flex-direction: column;
+          align-items: stretch;
+          gap: clamp(0.65rem, 2vw, 1.05rem);
+        }
+        .lumos-hero-copy {
+          min-width: 0;
         }
         .lumos-hero-title-page {
-          font-size: clamp(1.85rem, 7.5vw, 2.65rem);
+          font-size: clamp(1.52rem, 6.5vw, 2.35rem);
         }
         .lumos-hero-subtitle {
           margin: 0 0 0.75rem;
-          font-size: clamp(0.92rem, 2.45vw, 1.22rem);
+          font-size: clamp(0.86rem, 2.2vw, 1.1rem);
         }
         .lumos-hero-lead {
           margin: 0 0 1rem;
-          font-size: clamp(0.86rem, 1.85vw, 0.98rem);
-        }
-        .lumos-hero-visual picture {
-          max-height: clamp(160px, 36vw, 240px);
+          font-size: clamp(0.8rem, 1.7vw, 0.93rem);
         }
         .lumos-shell {
           padding: 0 clamp(0.5rem, 3.6vw, 1rem);
+        }
+        .lumos-modules-stack__banner {
+          width: 100%;
+          max-width: 100%;
+          margin-left: 0;
+          margin-right: 0;
+        }
+        body.lumos-landing .lumos-site-nav .lumos-m19g--dock-header .lumos-m19g__panel {
+          max-width: min(19rem, calc(100vw - 1.25rem));
         }
         .lumos-section {
           padding: clamp(0.7rem, 2vw, 1.12rem) 0;
@@ -1262,7 +1279,14 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
             <ul class="lumos-site-nav__list">
               <li class="lumos-site-nav__brand">
                 <a class="lumos-site-nav__logo" href="#giris" aria-label="Lumos — girişe dön">
-                  <span class="lumos-ring-mark" aria-hidden="true"></span>
+                  <img
+                    class="lumos-skull-mark"
+                    src="/lumos-skull-mark.svg"
+                    alt=""
+                    width="32"
+                    height="32"
+                    decoding="async"
+                  />
                 </a>
               </li>
               <li>
@@ -1316,7 +1340,14 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
             <div class="lumos-hero-copy">
               <div class="lumos-hero-title-stack">
                 <span class="lumos-hero-logo-box" aria-hidden="true">
-                  <span class="lumos-ring-mark"></span>
+                  <img
+                    class="lumos-skull-mark"
+                    src="/lumos-skull-mark.svg"
+                    alt=""
+                    width="32"
+                    height="32"
+                    decoding="async"
+                  />
                 </span>
                 <h1 id="lumos-giris-baslik" class="lumos-hero-title-page">Lumos</h1>
               </div>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Lumos skull mark: original vector art, not traced from project raster assets. -->
+  <path
+    fill="#070b12"
+    stroke="#ecd08c"
+    stroke-width="1.15"
+    stroke-linejoin="round"
+    d="M16 3.5C9.8 3.5 5 8.1 5 14c0 3.4 1.5 6.4 3.8 8.3L7 27.5h5.2l.9-2h5.8l.9 2H25l-1.8-5.2c2.3-1.9 3.8-4.9 3.8-8.3 0-5.9-4.8-10.5-11-10.5z"
+  />
+  <ellipse cx="11.8" cy="13.2" rx="2.4" ry="2.8" fill="#03050a" stroke="#c9a86a" stroke-width="0.65" />
+  <ellipse cx="20.2" cy="13.2" rx="2.4" ry="2.8" fill="#03050a" stroke="#c9a86a" stroke-width="0.65" />
+  <path fill="none" stroke="#d4b87a" stroke-width="0.85" stroke-linecap="round" d="M16 16v3.2" />
+  <path
+    fill="none"
+    stroke="#b89258"
+    stroke-width="0.7"
+    stroke-linecap="round"
+    d="M10.5 22.5h2.2m3.6 0h2.2m3.6 0h2.2"
+  />
+</svg>
