@@ -39,6 +39,28 @@ The current version includes:
 
 The current panel defines visible modules and product direction without claiming unfinished active functionality.
 
+## Kurulum
+
+```bash
+git clone https://github.com/candasoz01-cmd/lumos-core
+cd lumos-core
+cd ui
+npm install
+npm run dev
+```
+
+## Sürümler
+
+### Açık kaynak geliştirme sürümü
+
+Lumos’un kaynak kodu geliştiriciler tarafından yerelde incelenebilir, çalıştırılabilir ve katkıya açık biçimde geliştirilebilir. Bu sürüm yerel geliştirme ve deneme amaçlıdır.
+
+### Resmi / profesyonel sürüm
+
+We Lock AI çatısı altında sunulacak resmi Lumos sürümü; panel, servis bağlantıları, güvenli API erişimleri, entegrasyonlar ve kullanıcı izin akışlarıyla kontrollü biçimde çalışacaktır. Bu sürüm hazır olduğunda indirme, erişim ve kullanım koşulları ayrıca duyurulacaktır.
+
+Ücretli veya resmi servis erişimi; açık kaynak koddan bağımsız olarak kimlik doğrulama, kullanıcı onayı ve tanımlı kullanım sınırlarıyla yönetilir.
+
 ## Modules
 
 ### Work Modules

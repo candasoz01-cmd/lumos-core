@@ -383,6 +383,7 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       #dunya,
       #dunya-vizyon,
       #gelistirici,
+      #kurulum,
       #neden-lumos {
         scroll-margin-top: 1.25rem;
       }
@@ -975,6 +976,150 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       .lumos-github-btn:focus-visible {
         outline: 2px solid rgb(var(--lumos-land-teal) / 0.55);
         outline-offset: 3px;
+      }
+      /** İndirme ve Kurulum: kompakt adım kartları */
+      .lumos-install-section {
+        padding-top: clamp(0.35rem, 1vw, 0.55rem);
+      }
+      .lumos-install-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.62rem;
+        margin-top: 0.75rem;
+      }
+      @media (min-width: 560px) {
+        .lumos-install-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (min-width: 900px) {
+        .lumos-install-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+      .lumos-install-step {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0.72rem 0.82rem;
+        border-radius: 12px;
+        border: 1px solid rgb(var(--lumos-land-teal) / 0.22);
+        background: linear-gradient(168deg, rgba(10, 14, 26, 0.96) 0%, rgba(8, 10, 18, 0.94) 100%);
+        box-shadow:
+          inset 0 1px 0 rgb(var(--lumos-land-warm) / 0.06),
+          inset 0 0 0 1px rgb(var(--lumos-land-teal) / 0.06),
+          0 3px 14px rgba(0, 0, 0, 0.22);
+      }
+      .lumos-install-step h3 {
+        margin: 0 0 0.45rem;
+        font-size: 0.88rem;
+        font-weight: 650;
+        letter-spacing: -0.012em;
+        color: rgb(226 232 244 / 0.92);
+        line-height: 1.25;
+      }
+      .lumos-install-pre {
+        margin: 0;
+        padding: 0.45rem 0.5rem;
+        border-radius: 8px;
+        border: 1px solid rgb(var(--lumos-land-teal) / 0.2);
+        background: rgba(4, 10, 22, 0.78);
+        font-size: 0.76rem;
+        line-height: 1.42;
+        overflow-x: auto;
+        color: rgb(186 214 236 / 0.94);
+      }
+      .lumos-install-pre code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .lumos-install-note {
+        margin: 0.75rem 0 0;
+        font-size: 0.78rem;
+        line-height: 1.52;
+        color: rgb(var(--lumos-land-teal-deep) / 0.52);
+        max-width: 62ch;
+      }
+      .lumos-install-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem 0.65rem;
+        margin-top: 0.95rem;
+      }
+      .lumos-install-actions--versions {
+        margin-top: 0.85rem;
+      }
+      .lumos-install-actions .lumos-hero-btn {
+        min-height: 42px;
+        padding: 0.45rem 0.95rem;
+        font-size: 0.86rem;
+      }
+      .lumos-install-versions {
+        margin-top: 1rem;
+        padding: 0.85rem 0.95rem;
+        border-radius: 12px;
+        border: 1px solid rgb(var(--lumos-land-teal) / 0.18);
+        background: linear-gradient(168deg, rgba(10, 14, 26, 0.55) 0%, rgba(8, 10, 18, 0.5) 100%);
+      }
+      .lumos-install-versions__heading {
+        margin: 0 0 0.65rem;
+        font-size: 0.95rem;
+        font-weight: 650;
+        letter-spacing: -0.012em;
+        color: rgb(226 232 244 / 0.94);
+        line-height: 1.25;
+      }
+      .lumos-install-versions__sub {
+        margin: 0;
+        padding: 0;
+      }
+      .lumos-install-versions__sub + .lumos-install-versions__sub {
+        margin-top: 0.65rem;
+        padding-top: 0.65rem;
+        border-top: 1px solid rgb(var(--lumos-land-teal) / 0.12);
+      }
+      .lumos-install-versions__sub h4 {
+        margin: 0 0 0.38rem;
+        font-size: 0.86rem;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+        color: rgb(226 232 244 / 0.9);
+        line-height: 1.28;
+      }
+      .lumos-install-versions__sub p {
+        margin: 0;
+        font-size: 0.8rem;
+        line-height: 1.55;
+        color: rgb(var(--lumos-land-teal-deep) / 0.62);
+        max-width: 68ch;
+      }
+      .lumos-install-versions__footnote {
+        margin: 0.75rem 0 0;
+        font-size: 0.76rem;
+        line-height: 1.52;
+        color: rgb(var(--lumos-land-teal-deep) / 0.52);
+        max-width: 68ch;
+      }
+      .lumos-install-actions .lumos-hero-btn[disabled],
+      .lumos-install-actions .lumos-hero-btn[aria-disabled='true'] {
+        cursor: not-allowed;
+        opacity: 0.62;
+        transform: none;
+        pointer-events: none;
+      }
+      .lumos-install-soon-badge {
+        display: inline-flex;
+        align-items: center;
+        margin-inline-start: 0.4rem;
+        padding: 0.12rem 0.38rem;
+        border-radius: 6px;
+        font-size: 0.68rem;
+        font-weight: 650;
+        letter-spacing: 0.02em;
+        border: 1px solid rgb(var(--lumos-land-teal) / 0.28);
+        background: rgba(6, 12, 22, 0.75);
+        color: rgb(var(--lumos-land-teal) / 0.75);
       }
       /** Modüller bölümü: tam genişlik üst şerit — elektrik mavisi çizgi motifi + ince altın vurgu */
       .lumos-modules-stack {
@@ -1847,6 +1992,9 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
                 <a class="lumos-site-nav__link" href="#gelistirici">Geliştirici</a>
               </li>
               <li>
+                <a class="lumos-site-nav__link" href="#kurulum">Kurulum</a>
+              </li>
+              <li>
                 <a class="lumos-site-nav__link lumos-site-nav__link--accent" href="/panel">Panel</a>
               </li>
               <li>
@@ -1908,7 +2056,7 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
               id="lumos-hero-ask-input"
               type="text"
               inputmode="text"
-              placeholder="Lumos’a sor: &quot;Bu modül ne işe yarıyor?&quot;"
+              placeholder="Lumos’a sor: “Bir görevi güvenli adımlara ayır…”"
             />
             <button class="lumos-hero-ask__submit" type="submit">Sor</button>
           </form>
@@ -2166,6 +2314,73 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         <p class="lumos-may19-card__caption" style="margin-top: 1.1rem; margin-bottom: 0">
           Lumos açık ve katkıya uygun bir proje olarak geliştirilmektedir. Ancak We Lock AI çatısı altındaki Lumos ürün kimliği, görsel marka unsurları, resmi servisler, API erişimleri ve kullanıcı verileri kontrollü izin yapısıyla korunur.
         </p>
+      </section>
+
+      <section id="kurulum" class="lumos-section lumos-install-section" aria-labelledby="kurulum-baslik">
+        <h2 id="kurulum-baslik">İndirme ve Kurulum</h2>
+        <p>
+          Lumos şu anda aktif geliştirilen açık kaynaklı bir kontrol katmanıdır. Yerelde denemek isteyen geliştiriciler kaynak kodu GitHub üzerinden indirip kendi ortamında çalıştırabilir.
+        </p>
+        <div class="lumos-install-grid">
+          <article class="lumos-install-step">
+            <h3>Adım 1 — Kaynak kodu indir</h3>
+            <pre class="lumos-install-pre"><code>git clone {GITHUB_REPO_URL}</code></pre>
+          </article>
+          <article class="lumos-install-step">
+            <h3>Adım 2 — Proje klasörüne gir</h3>
+            <pre class="lumos-install-pre"><code>cd lumos-core</code></pre>
+          </article>
+          <article class="lumos-install-step">
+            <h3>Adım 3 — UI bağımlılıklarını kur</h3>
+            <pre class="lumos-install-pre"><code>cd ui
+npm install</code></pre>
+          </article>
+          <article class="lumos-install-step">
+            <h3>Adım 4 — Yerelde çalıştır</h3>
+            <pre class="lumos-install-pre"><code>npm run dev</code></pre>
+          </article>
+          <article class="lumos-install-step">
+            <h3>Adım 5 — Tarayıcıda aç</h3>
+            <pre class="lumos-install-pre"><code>http://localhost:4321</code></pre>
+          </article>
+        </div>
+        <p class="lumos-install-note">
+          Komutlar yerel geliştirme ortamı içindir. Resmi servisler, API erişimleri ve kullanıcı verileri kontrollü izin yapısıyla korunur.
+        </p>
+        <div class="lumos-install-actions">
+          <a
+            class="lumos-hero-btn lumos-hero-btn--primary"
+            href={GITHUB_REPO_URL}
+            target="_blank"
+            rel="noopener noreferrer">GitHub'da aç</a>
+          <a class="lumos-hero-btn lumos-hero-btn--ghost" href="/panel">Paneli dene</a>
+        </div>
+        <div class="lumos-install-versions">
+          <h3 class="lumos-install-versions__heading">Sürümler</h3>
+          <div class="lumos-install-versions__sub">
+            <h4>Açık kaynak geliştirme sürümü:</h4>
+            <p>
+              Lumos’un kaynak kodu geliştiriciler tarafından yerelde incelenebilir, çalıştırılabilir ve katkıya açık biçimde geliştirilebilir. Bu sürüm yerel geliştirme ve deneme amaçlıdır.
+            </p>
+          </div>
+          <div class="lumos-install-versions__sub">
+            <h4>Resmi / profesyonel sürüm:</h4>
+            <p>
+              We Lock AI çatısı altında sunulacak resmi Lumos sürümü; panel, servis bağlantıları, güvenli API erişimleri, entegrasyonlar ve kullanıcı izin akışlarıyla kontrollü biçimde çalışacaktır. Bu sürüm hazır olduğunda indirme, erişim ve kullanım koşulları ayrıca duyurulacaktır.
+            </p>
+          </div>
+          <p class="lumos-install-versions__footnote">
+            Ücretli veya resmi servis erişimi; açık kaynak koddan bağımsız olarak kimlik doğrulama, kullanıcı onayı ve
+            tanımlı kullanım sınırlarıyla yönetilir.
+          </p>
+          <div class="lumos-install-actions lumos-install-actions--versions">
+            <button
+              type="button"
+              class="lumos-hero-btn lumos-hero-btn--ghost"
+              disabled
+              aria-disabled="true">Resmi sürüm bildirimi<span class="lumos-install-soon-badge">Yakında</span></button>
+          </div>
+        </div>
       </section>
     </div>
 
