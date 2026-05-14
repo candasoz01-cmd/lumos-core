@@ -1,42 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Lumos tree mark: symmetric tree-of-life silhouette (core symbol, not skull).
-  Palette: near-black navy field, warm antique gold strokes, cool blue/cyan rim glow (not green-teal).
+  Lumos tree mark: symmetric tree-of-life silhouette (core symbol).
+  Quiet presentation: transparent canvas, no circular backplate; soft cyan read, antique gold strokes.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="lumos-tree-logo-title">
   <title id="lumos-tree-logo-title">Lumos</title>
   <defs>
     <linearGradient id="lumos-tree-gold" x1="22" y1="9" x2="42" y2="52" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#f2eadc"/>
-      <stop offset="42%" stop-color="#c6a66a"/>
-      <stop offset="100%" stop-color="#7d5a28"/>
+      <stop offset="0%" stop-color="#f2ead8"/>
+      <stop offset="45%" stop-color="#c9a86e"/>
+      <stop offset="100%" stop-color="#7a5a28"/>
     </linearGradient>
-    <radialGradient id="lumos-tree-rim" cx="32" cy="32" r="31" gradientUnits="userSpaceOnUse">
-      <stop offset="70%" stop-color="#020611" stop-opacity="0"/>
-      <stop offset="100%" stop-color="#5aa6ff" stop-opacity="0.14"/>
+    <radialGradient id="lumos-tree-soft" cx="32" cy="30" r="22" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6ec8ff" stop-opacity="0.11"/>
+      <stop offset="55%" stop-color="#56ceff" stop-opacity="0.045"/>
+      <stop offset="100%" stop-color="#56ceff" stop-opacity="0"/>
     </radialGradient>
   </defs>
 
-  <rect width="64" height="64" fill="#01030a"/>
-
-  <circle cx="32" cy="32" r="30" fill="#030818"/>
-  <circle cx="32" cy="32" r="30" fill="url(#lumos-tree-rim)"/>
-  <circle
-    cx="32"
-    cy="32"
-    r="30"
-    fill="none"
-    stroke="#7eb8ff"
-    stroke-width="0.55"
-    stroke-opacity="0.26"
-  />
+  <rect width="64" height="64" fill="none"/>
+  <circle cx="32" cy="30" r="22" fill="url(#lumos-tree-soft)"/>
 
   <g
     fill="none"
     stroke="url(#lumos-tree-gold)"
-    stroke-width="1.58"
+    stroke-width="1.35"
     stroke-linecap="round"
     stroke-linejoin="round"
+    opacity="0.97"
   >
     <path d="M 30.2 47 Q 30.8 38 31.2 30.5"/>
     <path d="M 33.8 47 Q 33.2 38 32.8 30.5"/>

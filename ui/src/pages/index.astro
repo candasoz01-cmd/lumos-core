@@ -167,53 +167,65 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         justify-content: center;
         min-width: 44px;
         min-height: 44px;
-        padding: 0.35rem;
+        padding: 0.28rem 0.32rem;
         overflow: visible;
-        border-radius: 10px;
+        border-radius: 999px;
         border: 1px solid transparent;
         text-decoration: none;
-        transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+        transition: border-color 0.2s ease, background 0.2s ease;
       }
       .lumos-site-nav__logo:hover,
       .lumos-site-nav__logo:focus-visible {
-        border-color: rgb(var(--lumos-land-teal) / 0.35);
-        background: rgba(8, 14, 28, 0.48);
-        box-shadow: 0 0 0 1px rgb(var(--lumos-land-warm-deep) / 0.1);
+        border-color: rgb(var(--lumos-land-teal) / 0.22);
+        background: rgba(8, 14, 28, 0.28);
       }
       .lumos-site-nav__logo:focus-visible {
         outline: 2px solid rgb(var(--lumos-land-teal) / 0.45);
         outline-offset: 2px;
       }
-      /** Lumos site logosu: vektör ağaç işareti (lumos-tree-logo.svg); hafif derinlik + çok hafif mavi parlama */
+      /** Lumos site logosu: vektör ağaç işareti (lumos-tree-logo.svg); filtre bağlamda (nav / hero) ayrı */
       .lumos-logo-mark {
         display: block;
         box-sizing: border-box;
         flex-shrink: 0;
         object-fit: contain;
         object-position: center center;
-        filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.45)) drop-shadow(0 0 7px rgb(90 170 255 / 0.1));
       }
       .lumos-site-nav__logo .lumos-logo-mark {
-        width: 1.65rem;
-        height: 1.65rem;
+        width: 1.42rem;
+        height: 1.42rem;
         max-width: none;
         max-height: none;
+        opacity: 1;
+        filter: brightness(1.06) saturate(1.08) contrast(1.04)
+          drop-shadow(0 0 1px rgb(56 206 255 / 0.22))
+          drop-shadow(0 0 10px rgb(56 206 255 / 0.08))
+          drop-shadow(0 0 18px rgb(56 206 255 / 0.04));
       }
       .lumos-hero-title-lockup {
         display: flex;
         align-items: center;
-        gap: clamp(0.45rem, 1.6vw, 0.65rem);
+        gap: clamp(0.28rem, 1vw, 0.48rem);
         margin: 0 0 0.45rem;
         overflow: visible;
         min-width: 0;
       }
       .lumos-hero-title-lockup .lumos-hero-title-mark {
-        width: clamp(2rem, 5.5vw, 2.75rem);
-        height: clamp(2rem, 5.5vw, 2.75rem);
-        margin-top: 0.12em;
+        width: clamp(1.36rem, 3.4vw, 1.82rem);
+        height: clamp(1.36rem, 3.4vw, 1.82rem);
+        margin-top: 0.04em;
+        margin-right: 0;
         flex-shrink: 0;
         max-width: 100%;
         box-sizing: border-box;
+        border-radius: 0;
+        background: none;
+        opacity: 1;
+        filter: brightness(1.07) saturate(1.1) contrast(1.04)
+          drop-shadow(0 0 1px rgb(var(--lumos-land-teal) / 0.28))
+          drop-shadow(0 0 12px rgb(var(--lumos-land-teal) / 0.1))
+          drop-shadow(0 0 22px rgb(var(--lumos-land-teal) / 0.05));
+        box-shadow: none;
       }
       .lumos-hero-title-lockup .lumos-hero-title-page {
         margin: 0;
@@ -406,7 +418,7 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       .lumos-site-nav__brand {
         display: inline-flex;
         align-items: center;
-        gap: 0.48rem;
+        gap: 0.42rem;
         text-decoration: none;
         color: inherit;
       }
@@ -565,9 +577,18 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         font-weight: 800;
         letter-spacing: -0.03em;
         color: var(--lumos-land-title);
+        -webkit-tap-highlight-color: transparent;
         text-shadow:
           0 0 26px rgb(var(--lumos-land-teal) / 0.14),
           0 1px 0 rgb(255 255 255 / 0.14);
+      }
+      .lumos-hero-title-page::selection {
+        background-color: rgb(var(--lumos-land-teal) / 0.32);
+        color: var(--lumos-land-title);
+      }
+      .lumos-hero-title-page::-moz-selection {
+        background-color: rgb(var(--lumos-land-teal) / 0.32);
+        color: var(--lumos-land-title);
       }
       .lumos-hero-title-page--manifesto {
         max-width: min(38rem, 100%);
@@ -578,6 +599,7 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       @supports ((-webkit-background-clip: text) or (background-clip: text)) {
         .lumos-hero-title-page {
           color: transparent;
+          -webkit-text-fill-color: transparent;
           background-image: linear-gradient(
             168deg,
             #f7f9fc 0%,
@@ -588,6 +610,13 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
           -webkit-background-clip: text;
           background-clip: text;
           text-shadow: none;
+        }
+        .lumos-hero-title-page::selection {
+          -webkit-text-fill-color: var(--lumos-land-title);
+          color: var(--lumos-land-title);
+        }
+        .lumos-hero-title-page::-moz-selection {
+          color: var(--lumos-land-title);
         }
       }
       .lumos-hero-subtitle {
@@ -1645,7 +1674,11 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         .lumos-site-nav__logo {
           min-width: 40px;
           min-height: 40px;
-          padding: 0.28rem;
+          padding: 0.22rem 0.26rem;
+        }
+        .lumos-site-nav__logo .lumos-logo-mark {
+          width: 1.32rem;
+          height: 1.32rem;
         }
         .lumos-hero-cinematic__inner {
           padding-top: clamp(0.45rem, 1.4vw, 0.72rem);
@@ -2130,6 +2163,9 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
           çalıştırabilir.
         </p>
         <a class="lumos-github-btn" href={GITHUB_REPO_URL} rel="noopener noreferrer">GitHub'da incele</a>
+        <p class="lumos-may19-card__caption" style="margin-top: 1.1rem; margin-bottom: 0">
+          Lumos açık ve katkıya uygun bir proje olarak geliştirilmektedir. Ancak We Lock AI çatısı altındaki Lumos ürün kimliği, görsel marka unsurları, resmi servisler, API erişimleri ve kullanıcı verileri kontrollü izin yapısıyla korunur.
+        </p>
       </section>
     </div>
 
