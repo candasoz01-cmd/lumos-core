@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   Lumos logo mark: symmetric tree-of-life silhouette (not antenna, tower, or candle).
-  Navy disk, gold strokes, subtle cyan rim. No map crop, no Cyprus detail.
+  Colors: Lumos landing / map palette - navy field, warm gold, subtle sky-cyan rim.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="lumos-logo-title">
   <title id="lumos-logo-title">Lumos</title>
   <defs>
     <linearGradient id="lumos-gold" x1="20" y1="8" x2="44" y2="52" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#fce9a6"/>
-      <stop offset="0.5" stop-color="#e4bc5c"/>
-      <stop offset="100%" stop-color="#b8892f"/>
+      <stop offset="0%" stop-color="#f2e6cf"/>
+      <stop offset="0.45" stop-color="#d4b87a"/>
+      <stop offset="100%" stop-color="#a67c32"/>
     </linearGradient>
     <radialGradient id="lumos-edge-glow" cx="32" cy="32" r="32" gradientUnits="userSpaceOnUse">
-      <stop offset="72%" stop-color="#020617" stop-opacity="0"/>
-      <stop offset="100%" stop-color="#22d3ee" stop-opacity="0.12"/>
+      <stop offset="74%" stop-color="#03060d" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.1"/>
     </radialGradient>
   </defs>
 
-  <rect width="64" height="64" fill="#020617"/>
+  <rect width="64" height="64" fill="#03060d"/>
 
-  <circle cx="32" cy="32" r="30" fill="#071824"/>
+  <circle cx="32" cy="32" r="30" fill="#050810"/>
   <circle cx="32" cy="32" r="30" fill="url(#lumos-edge-glow)"/>
   <circle
     cx="32"
@@ -27,14 +27,14 @@
     r="30"
     fill="none"
     stroke="#38bdf8"
-    stroke-width="0.5"
-    stroke-opacity="0.28"
+    stroke-width="0.55"
+    stroke-opacity="0.24"
   />
 
   <g
     fill="none"
     stroke="url(#lumos-gold)"
-    stroke-width="1.45"
+    stroke-width="1.5"
     stroke-linecap="round"
     stroke-linejoin="round"
   >
