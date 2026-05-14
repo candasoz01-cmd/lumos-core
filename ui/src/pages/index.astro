@@ -1033,6 +1033,66 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         white-space: pre-wrap;
         word-break: break-word;
       }
+      .lumos-install-cmd {
+        display: flex;
+        flex-direction: column;
+        gap: 0.38rem;
+      }
+      .lumos-install-cmd__meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.35rem 0.5rem;
+      }
+      .lumos-install-copy-btn {
+        appearance: none;
+        margin: 0;
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.7rem;
+        font-weight: 650;
+        letter-spacing: 0.02em;
+        padding: 0.22rem 0.48rem;
+        border-radius: 6px;
+        border: 1px solid rgb(var(--lumos-land-teal) / 0.34);
+        background: rgba(5, 12, 26, 0.92);
+        color: rgb(186 214 236 / 0.92);
+        transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+      }
+      .lumos-install-copy-btn:hover,
+      .lumos-install-copy-btn:focus-visible {
+        border-color: rgb(var(--lumos-land-teal) / 0.52);
+        color: rgb(226 232 244 / 0.95);
+        background: rgba(8, 16, 32, 0.96);
+        outline: none;
+      }
+      .lumos-install-open-link {
+        font-size: 0.7rem;
+        font-weight: 650;
+        letter-spacing: 0.02em;
+        text-decoration: none;
+        padding: 0.22rem 0.48rem;
+        border-radius: 6px;
+        border: 1px solid rgb(var(--lumos-land-teal) / 0.28);
+        color: rgb(var(--lumos-land-teal-deep) / 0.88);
+        background: rgba(4, 10, 22, 0.55);
+        transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+      }
+      .lumos-install-open-link:hover,
+      .lumos-install-open-link:focus-visible {
+        border-color: rgb(var(--lumos-land-teal) / 0.48);
+        color: rgb(226 232 244 / 0.94);
+        background: rgba(8, 14, 28, 0.75);
+        outline: 2px solid rgb(var(--lumos-land-teal) / 0.35);
+        outline-offset: 2px;
+      }
+      .lumos-install-copy-disclaimer {
+        margin: 0.55rem 0 0;
+        font-size: 0.72rem;
+        line-height: 1.48;
+        color: rgb(var(--lumos-land-teal-deep) / 0.48);
+        max-width: 68ch;
+      }
       .lumos-install-note {
         margin: 0.75rem 0 0;
         font-size: 0.78rem;
@@ -2324,26 +2384,73 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         <div class="lumos-install-grid">
           <article class="lumos-install-step">
             <h3>Adım 1 — Kaynak kodu indir</h3>
-            <pre class="lumos-install-pre"><code>git clone {GITHUB_REPO_URL}</code></pre>
+            <div class="lumos-install-cmd">
+              <pre class="lumos-install-pre"><code>git clone {GITHUB_REPO_URL}</code></pre>
+              <div class="lumos-install-cmd__meta">
+                <button
+                  type="button"
+                  class="lumos-install-copy-btn"
+                  data-install-copy
+                  data-copy-text={"git clone " + GITHUB_REPO_URL}>Kopyala</button>
+              </div>
+            </div>
           </article>
           <article class="lumos-install-step">
             <h3>Adım 2 — Proje klasörüne gir</h3>
-            <pre class="lumos-install-pre"><code>cd lumos-core</code></pre>
+            <div class="lumos-install-cmd">
+              <pre class="lumos-install-pre"><code>cd lumos-core</code></pre>
+              <div class="lumos-install-cmd__meta">
+                <button type="button" class="lumos-install-copy-btn" data-install-copy data-copy-text="cd lumos-core"
+                  >Kopyala</button>
+              </div>
+            </div>
           </article>
           <article class="lumos-install-step">
             <h3>Adım 3 — UI bağımlılıklarını kur</h3>
-            <pre class="lumos-install-pre"><code>cd ui
-npm install</code></pre>
+            <div class="lumos-install-cmd">
+              <pre class="lumos-install-pre"><code>cd ui && npm install</code></pre>
+              <div class="lumos-install-cmd__meta">
+                <button
+                  type="button"
+                  class="lumos-install-copy-btn"
+                  data-install-copy
+                  data-copy-text="cd ui && npm install">Kopyala</button>
+              </div>
+            </div>
           </article>
           <article class="lumos-install-step">
             <h3>Adım 4 — Yerelde çalıştır</h3>
-            <pre class="lumos-install-pre"><code>npm run dev</code></pre>
+            <div class="lumos-install-cmd">
+              <pre class="lumos-install-pre"><code>npm run dev</code></pre>
+              <div class="lumos-install-cmd__meta">
+                <button type="button" class="lumos-install-copy-btn" data-install-copy data-copy-text="npm run dev"
+                  >Kopyala</button>
+              </div>
+            </div>
           </article>
           <article class="lumos-install-step">
             <h3>Adım 5 — Tarayıcıda aç</h3>
-            <pre class="lumos-install-pre"><code>http://localhost:4321</code></pre>
+            <div class="lumos-install-cmd">
+              <pre class="lumos-install-pre"><code>http://localhost:4321</code></pre>
+              <div class="lumos-install-cmd__meta">
+                <button
+                  type="button"
+                  class="lumos-install-copy-btn"
+                  data-install-copy
+                  data-copy-text="http://localhost:4321">Kopyala</button>
+                <a
+                  class="lumos-install-open-link"
+                  href="http://localhost:4321"
+                  target="_blank"
+                  rel="noopener noreferrer">Aç</a>
+              </div>
+            </div>
           </article>
         </div>
+        <p class="lumos-install-copy-disclaimer">
+          Bu butonlar komutları çalıştırmaz; yalnızca panoya kopyalar. Komutları Terminal’e kullanıcı kendisi yapıştırıp
+          çalıştırır.
+        </p>
         <p class="lumos-install-note">
           Komutlar yerel geliştirme ortamı içindir. Resmi servisler, API erişimleri ve kullanıcı verileri kontrollü izin yapısıyla korunur.
         </p>
@@ -2756,6 +2863,33 @@ npm install</code></pre>
 
         openBtn.addEventListener("click", openOverlay);
         closeBtn.addEventListener("click", closeOverlay);
+      })();
+    </script>
+    <script is:inline>
+      (function () {
+        var root = document.getElementById("kurulum");
+        if (!root) return;
+        var defaultLabel = "Kopyala";
+        root.addEventListener("click", function (e) {
+          var btn = e.target && e.target.closest && e.target.closest("[data-install-copy]");
+          if (!btn || !root.contains(btn)) return;
+          var text = btn.getAttribute("data-copy-text");
+          if (!text) return;
+          if (!navigator.clipboard || typeof navigator.clipboard.writeText !== "function") return;
+          e.preventDefault();
+          navigator.clipboard.writeText(text).then(
+            function () {
+              btn.textContent = "Kopyalandı";
+              if (btn.__lumosCopyTid) window.clearTimeout(btn.__lumosCopyTid);
+              btn.__lumosCopyTid = window.setTimeout(function () {
+                btn.textContent = defaultLabel;
+              }, 1800);
+            },
+            function () {
+              /* fail silently */
+            }
+          );
+        });
       })();
     </script>
   </body>
