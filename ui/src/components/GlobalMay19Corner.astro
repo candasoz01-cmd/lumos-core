@@ -9,6 +9,7 @@ const FLAG_KKTC_SRC = "/assets/flags/kktc.svg";
   class="lumos-m19g lumos-m19g--dock-header"
   role="region"
   aria-label="19 Mayıs anması"
+  data-i18n-aria-label="landing.may19.corner.regionAria"
 >
   <div class="lumos-m19g__panel" id="lumos-m19g-panel" hidden>
     <div class="lumos-m19g__flags" aria-hidden="true">
@@ -36,10 +37,20 @@ const FLAG_KKTC_SRC = "/assets/flags/kktc.svg";
       </span>
     </div>
     <div class="lumos-m19g__text">
-      <p class="lumos-m19g__line">19 Mayıs Atatürk’ü Anma, Gençlik ve Spor Bayramı kutlu olsun.</p>
-      <p class="lumos-m19g__sub">Atatürk’ü saygı ve minnetle anıyoruz.</p>
+      <p class="lumos-m19g__line" data-i18n="landing.may19.corner.line">
+        19 Mayıs Atatürk’ü Anma, Gençlik ve Spor Bayramı kutlu olsun.
+      </p>
+      <p class="lumos-m19g__sub" data-i18n="landing.may19.corner.sub">Atatürk’ü saygı ve minnetle anıyoruz.</p>
     </div>
-    <button type="button" class="lumos-m19g__minimize" id="lumos-m19g-minimize" aria-label="Küçült">✕</button>
+    <button
+      type="button"
+      class="lumos-m19g__minimize"
+      id="lumos-m19g-minimize"
+      aria-label="Küçült"
+      data-i18n-aria-label="landing.may19.corner.minimizeAria"
+    >
+      ✕
+    </button>
   </div>
 
   <button
@@ -47,6 +58,7 @@ const FLAG_KKTC_SRC = "/assets/flags/kktc.svg";
     class="lumos-m19g__fab"
     id="lumos-m19g-fab"
     aria-label="19 Mayıs anmasını aç"
+    data-i18n-aria-label="landing.may19.corner.fabAria"
     aria-expanded="false"
     aria-controls="lumos-m19g-panel"
   >
