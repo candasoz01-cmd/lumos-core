@@ -21,18 +21,21 @@ class TestLumosModelClientIdentity(unittest.TestCase):
 
         template = ModelClient._LUMOS_SYSTEM_PROMPT_TEMPLATE
         self.assertIn("You are Lumos", template)
-        self.assertIn("Lumos is a local AI system", template)
+        self.assertIn("We Lock AI", template)
         self.assertIn("Lumos Core", template)
+        self.assertIn("AI control / assistant layer", template)
 
     def test_lumos_system_prompt_template_anti_chatgpt(self):
         """System prompt must explicitly reject ChatGPT identity (anti-drift)."""
         from engine.model_client import ModelClient
 
         template = ModelClient._LUMOS_SYSTEM_PROMPT_TEMPLATE
-        self.assertIn("NOT ChatGPT", template)
-        self.assertIn("Do NOT identify yourself as ChatGPT", template)
-        self.assertIn("Do not mention ChatGPT", template)
+        self.assertIn("NOT say you are ChatGPT", template)
+        self.assertIn("Do NOT claim OpenAI built Lumos", template)
+        self.assertIn("Ben Lumos.", template)
+        self.assertIn("We Lock AI çatısı altında çalışan", template)
         self.assertIn("Reply as Lumos", template)
+        self.assertIn("OpenAI modelleri", template)
 
     def test_lumos_system_prompt_template_turkish_default(self):
         """Default language in the prompt must be Turkish."""
