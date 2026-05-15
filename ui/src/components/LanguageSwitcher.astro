@@ -1,0 +1,56 @@
+---
+/** TR / EN header control — wired by src/i18n/runtime.ts */
+---
+
+<div class="lumos-lang-switch" role="group" aria-label="" data-i18n-aria-label="lang.switchLabel">
+  <button type="button" class="lumos-lang-btn" data-set-locale="tr" data-i18n="lang.tr" aria-pressed="true">
+    TR
+  </button>
+  <button type="button" class="lumos-lang-btn" data-set-locale="en" data-i18n="lang.en" aria-pressed="false">
+    EN
+  </button>
+</div>
+
+<style>
+  .lumos-lang-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.12rem;
+    border-radius: 999px;
+    border: 1px solid rgb(56 206 255 / 0.28);
+    background: rgba(4, 10, 22, 0.72);
+  }
+  .lumos-lang-btn {
+    min-width: 2.1rem;
+    padding: 0.28rem 0.45rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: transparent;
+    color: rgb(174 182 200 / 0.88);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition:
+      color 0.15s ease,
+      background 0.15s ease,
+      border-color 0.15s ease;
+  }
+  .lumos-lang-btn:hover,
+  .lumos-lang-btn:focus-visible {
+    color: #e9f6ff;
+    border-color: rgb(56 206 255 / 0.38);
+    background: rgba(8, 14, 28, 0.55);
+  }
+  .lumos-lang-btn--active,
+  .lumos-lang-btn[aria-pressed="true"] {
+    color: #061022;
+    background: rgb(56 206 255 / 0.92);
+    border-color: rgb(130 206 255 / 0.65);
+  }
+  .lumos-lang-btn:focus-visible {
+    outline: 2px solid rgb(56 206 255 / 0.45);
+    outline-offset: 2px;
+  }
+</style>

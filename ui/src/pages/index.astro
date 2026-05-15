@@ -1,5 +1,7 @@
 ---
 import GlobalMay19Corner from "../components/GlobalMay19Corner.astro";
+import LanguageSwitcher from "../components/LanguageSwitcher.astro";
+import I18nInit from "../components/I18nInit.astro";
 
 const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
 ---
@@ -8,21 +10,27 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Lumos by We Lock AI</title>
+    <title data-i18n="meta.landingTitle">Lumos by We Lock AI</title>
     <meta
       name="description"
       content="We Lock AI çatısı altındaki Lumos: tek panelde çoklu akışı bir araya getiren, kararı kullanıcıda tutan yapay zekâ kontrol ve asistan katmanı."
+      data-i18n-content="meta.description"
     />
     <link rel="canonical" href="https://welockai.com/" />
-    <meta property="og:title" content="Lumos by We Lock AI" />
+    <meta property="og:title" content="Lumos by We Lock AI" data-i18n-content="meta.ogTitle" />
     <meta
       property="og:description"
       content="Lumos, We Lock AI çatısı altında geliştirilen insan merkezli yapay zekâ kontrol katmanıdır."
+      data-i18n-content="meta.ogDescription"
     />
     <meta property="og:url" content="https://welockai.com/" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="tr_TR" />
-    <meta property="og:image" content="https://welockai.com/lumos-world-map.jpg" />
+    <meta
+      property="og:image"
+      content="https://welockai.com/lumos-world-map.jpg"
+      data-i18n-content="landing.assets.ogImage"
+    />
     <meta property="og:image:type" content="image/jpeg" />
     <link rel="icon" href="/lumos-tree-logo.svg" type="image/svg+xml" sizes="any" />
     <link rel="apple-touch-icon" href="/lumos-tree-logo.svg" />
@@ -100,6 +108,9 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       }
       .lumos-site-nav__corner {
         flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
         padding-left: 0.35rem;
         padding-right: max(0.15rem, env(safe-area-inset-right, 0px));
       }
@@ -807,7 +818,7 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         background-image:
           radial-gradient(ellipse 52% 44% at 74% 40%, rgb(var(--lumos-land-teal) / 0.34), transparent 62%),
           radial-gradient(ellipse 34% 30% at 66% 46%, rgb(var(--lumos-land-warm) / 0.16), transparent 58%),
-          url("/lumos-world-map.jpg");
+          var(--lumos-world-map-decor, url("/lumos-world-map.jpg"));
         background-repeat: no-repeat;
         background-size: 100% 100%, 100% 100%, 268% auto;
         background-position: center, center, 58% 34%;
@@ -2020,10 +2031,15 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
   <body class="lumos-landing">
     <section id="top" class="lumos-section lumos-section--tight-top" aria-labelledby="lumos-giris-baslik">
       <div class="lumos-shell lumos-hero-cinematic__inner">
-        <nav class="lumos-site-nav lumos-site-nav--sticky" aria-label="Sayfa içi gezinme">
+        <nav class="lumos-site-nav lumos-site-nav--sticky" aria-label="Sayfa içi gezinme" data-i18n-aria-label="nav.aria">
           <div class="lumos-site-nav__bar">
             <div class="lumos-site-nav__brand-left">
-              <a class="lumos-site-nav__logo lumos-site-nav__brand" href="#top" aria-label="Lumos — sayfa başı">
+              <a
+                class="lumos-site-nav__logo lumos-site-nav__brand"
+                href="#top"
+                aria-label="Lumos — sayfa başı"
+                data-i18n-aria-label="nav.brandAria"
+              >
                 <img
                   class="lumos-logo-mark"
                   src="/lumos-tree-logo.svg"
@@ -2033,46 +2049,48 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
                   decoding="async"
                 />
                 <span class="lumos-site-nav__brand-text">
-                  <span class="lumos-site-nav__brand-title">Lumos</span>
-                  <span class="lumos-site-nav__brand-sub">WE LOCK AI</span>
+                  <span class="lumos-site-nav__brand-title" data-i18n="nav.brandTitle">Lumos</span>
+                  <span class="lumos-site-nav__brand-sub" data-i18n="nav.brandSub">WE LOCK AI</span>
                 </span>
               </a>
             </div>
             <ul class="lumos-site-nav__list">
               <li>
-                <a class="lumos-site-nav__link" href="#dunya">Dünya</a>
+                <a class="lumos-site-nav__link" href="#dunya" data-i18n="nav.world">Dünya</a>
               </li>
               <li>
-                <a class="lumos-site-nav__link" href="#neden-lumos">Neden Lumos?</a>
+                <a class="lumos-site-nav__link" href="#neden-lumos" data-i18n="nav.why">Neden Lumos?</a>
               </li>
               <li>
-                <a class="lumos-site-nav__link" href="#moduller">Modüller</a>
+                <a class="lumos-site-nav__link" href="#moduller" data-i18n="nav.modules">Modüller</a>
               </li>
               <li>
-                <a class="lumos-site-nav__link" href="#gelistirici">Geliştirici</a>
+                <a class="lumos-site-nav__link" href="#gelistirici" data-i18n="nav.developer">Geliştirici</a>
               </li>
               <li>
-                <a class="lumos-site-nav__link" href="#kurulum">Kurulum</a>
+                <a class="lumos-site-nav__link" href="#kurulum" data-i18n="nav.install">Kurulum</a>
               </li>
               <li>
-                <a class="lumos-site-nav__link lumos-site-nav__link--accent" href="/panel">Panel</a>
+                <a class="lumos-site-nav__link lumos-site-nav__link--accent" href="/panel" data-i18n="nav.panel">Panel</a>
               </li>
               <li>
                 <a
                   class="lumos-site-nav__link"
                   href={GITHUB_REPO_URL}
                   target="_blank"
-                  rel="noopener noreferrer">GitHub</a>
+                  rel="noopener noreferrer"
+                  data-i18n="nav.github">GitHub</a>
               </li>
             </ul>
             <div class="lumos-site-nav__corner">
+              <LanguageSwitcher />
               <GlobalMay19Corner />
             </div>
           </div>
         </nav>
         <div class="lumos-hero-layout">
           <div class="lumos-hero-copy">
-            <p class="lumos-hero-eyebrow">WE LOCK AI · LUMOS</p>
+            <p class="lumos-hero-eyebrow" data-i18n="hero.eyebrow">WE LOCK AI · LUMOS</p>
             <div class="lumos-hero-title-lockup">
               <img
                 class="lumos-logo-mark lumos-hero-title-mark"
@@ -2082,25 +2100,26 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
                 height="64"
                 decoding="async"
               />
-              <h1 id="lumos-giris-baslik" class="lumos-hero-title-page">Lumos</h1>
+              <h1 id="lumos-giris-baslik" class="lumos-hero-title-page" data-i18n="hero.title">Lumos</h1>
             </div>
-            <p class="lumos-hero-subtitle">Yapay zekâ kontrol katmanı</p>
-            <p class="lumos-hero-lead">
+            <p class="lumos-hero-subtitle" data-i18n="hero.subtitle">Yapay zekâ kontrol katmanı</p>
+            <p class="lumos-hero-lead" data-i18n="hero.lead1">
               Ses, medya, görsel analiz, görevler, dosyalar, kimlik ve güvenlik akışlarını tek panelde birleştiren akıllı asistan altyapısı.
             </p>
-            <p class="lumos-hero-lead">
+            <p class="lumos-hero-lead" data-i18n="hero.lead2">
               Karar kullanıcıda kalır. Lumos riski, bağlamı ve sonraki adımı görünür kılar.
             </p>
-            <p class="lumos-hero-pillar">Tek panel · Çoklu akış · Kullanıcı kontrolü</p>
+            <p class="lumos-hero-pillar" data-i18n="hero.pillar">Tek panel · Çoklu akış · Kullanıcı kontrolü</p>
             <div class="lumos-hero-actions">
-              <a class="lumos-hero-btn lumos-hero-btn--primary" href="/panel">Lumos Panel’e Git</a>
-              <a class="lumos-hero-btn lumos-hero-btn--ghost" href="#dunya">Dünyayı Keşfet</a>
+              <a class="lumos-hero-btn lumos-hero-btn--primary" href="/panel" data-i18n="hero.ctaPanel">Lumos Panel’e Git</a>
+              <a class="lumos-hero-btn lumos-hero-btn--ghost" href="#dunya" data-i18n="hero.ctaWorld">Dünyayı Keşfet</a>
             </div>
           </div>
           <div class="lumos-hero-scene" aria-hidden="true">
             <img
               class="lumos-hero-scene__img"
               src="/lumos-hero-ata-scene.png"
+              data-i18n-src="landing.assets.heroAtaScene"
               alt=""
               width="900"
               height="448"
@@ -2110,58 +2129,79 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
           </div>
         </div>
         <div class="lumos-hero-ask-band">
-          <form class="lumos-hero-ask" id="lumos-hero-ask" action="/panel" method="get" autocomplete="off" aria-label="Lumos’a sor">
+          <form
+            class="lumos-hero-ask"
+            id="lumos-hero-ask"
+            action="/panel"
+            method="get"
+            autocomplete="off"
+            aria-label="Lumos’a sor"
+            data-i18n-aria-label="hero.askAria"
+          >
             <input
               class="lumos-hero-ask__field"
               id="lumos-hero-ask-input"
               type="text"
               inputmode="text"
               placeholder="Lumos’a sor: “Bir görevi güvenli adımlara ayır…”"
+              data-i18n-placeholder="hero.askPlaceholder"
             />
-            <button class="lumos-hero-ask__submit" type="submit">Sor</button>
+            <button class="lumos-hero-ask__submit" type="submit" data-i18n="hero.askSubmit">Sor</button>
           </form>
         </div>
       </div>
     </section>
 
     <section id="ilkeler" class="lumos-shell lumos-section lumos-section--post-hero" aria-labelledby="temel-ilkeler-baslik">
-      <h2 id="temel-ilkeler-baslik" class="lumos-cap-title">Temel ilkeler</h2>
+      <h2 id="temel-ilkeler-baslik" class="lumos-cap-title" data-i18n="landing.principles.title">Temel ilkeler</h2>
       <div class="lumos-cap-grid">
         <a class="lumos-cap-card-link" href="#ilkeler">
           <article class="lumos-cap-card">
-            <h3>Kullanıcı Kontrolü</h3>
-            <p>Nihai seçim her zaman sizdedir; Lumos yerine geçmez.</p>
+            <h3 data-i18n="landing.principles.cardUserControlTitle">Kullanıcı Kontrolü</h3>
+            <p data-i18n="landing.principles.cardUserControlBody">Nihai seçim her zaman sizdedir; Lumos yerine geçmez.</p>
           </article>
         </a>
         <a class="lumos-cap-card-link" href="#ilkeler">
           <article class="lumos-cap-card">
-            <h3>Risk Görünürlüğü</h3>
-            <p>Olası sonuçlar ve yan etkiler özetlenerek gösterilir.</p>
+            <h3 data-i18n="landing.principles.cardRiskTitle">Risk Görünürlüğü</h3>
+            <p data-i18n="landing.principles.cardRiskBody">Olası sonuçlar ve yan etkiler özetlenerek gösterilir.</p>
           </article>
         </a>
         <a class="lumos-cap-card-link" href="#ilkeler">
           <article class="lumos-cap-card">
-            <h3>Veri Farkındalığı</h3>
-            <p>Verinin nerede işlendiği ve hangi sınırların geçerli olduğu okunur biçimde sunulur.</p>
+            <h3 data-i18n="landing.principles.cardDataTitle">Veri Farkındalığı</h3>
+            <p data-i18n="landing.principles.cardDataBody">Verinin nerede işlendiği ve hangi sınırların geçerli olduğu okunur biçimde sunulur.</p>
           </article>
         </a>
         <a class="lumos-cap-card-link" href="#ilkeler">
           <article class="lumos-cap-card">
-            <h3>Açık Onay İlkesi</h3>
-            <p>Kalıcı veya riskli adımlarda net, geri alınabilir onay akışları.</p>
+            <h3 data-i18n="landing.principles.cardApprovalTitle">Açık Onay İlkesi</h3>
+            <p data-i18n="landing.principles.cardApprovalBody">Kalıcı veya riskli adımlarda net, geri alınabilir onay akışları.</p>
           </article>
         </a>
       </div>
-      <h2 id="ilkeler-baslik" class="lumos-cap-title lumos-cap-title--follow">Çalışma ilkeleri</h2>
-      <p>
+      <h2 id="ilkeler-baslik" class="lumos-cap-title lumos-cap-title--follow" data-i18n="landing.principles.workTitle">Çalışma ilkeleri</h2>
+      <p data-i18n="landing.principles.workIntro">
         We Lock AI çatısındaki Lumos; hız uğruna şeffaflığı feda etmeden, aşağıdaki dört eksende tutarlı kalmayı
         hedefler.
       </p>
       <ul>
-        <li><strong>Kullanıcı kararı:</strong> Nihai seçim her zaman sizdedir; Lumos yerine geçmez.</li>
-        <li><strong>Açık onay:</strong> Kalıcı veya riskli adımlarda net, geri alınabilir onay akışları.</li>
-        <li><strong>Risk görünürlüğü:</strong> Olası sonuçlar ve yan etkiler özetlenerek gösterilir.</li>
-        <li><strong>Veri farkındalığı:</strong> Verinin nerede işlendiği ve hangi sınırların geçerli olduğu okunur biçimde sunulur.</li>
+        <li>
+          <strong data-i18n="landing.principles.listUserDecisionLabel">Kullanıcı kararı:</strong>
+          <span data-i18n="landing.principles.listUserDecisionBody">Nihai seçim her zaman sizdedir; Lumos yerine geçmez.</span>
+        </li>
+        <li>
+          <strong data-i18n="landing.principles.listApprovalLabel">Açık onay:</strong>
+          <span data-i18n="landing.principles.listApprovalBody">Kalıcı veya riskli adımlarda net, geri alınabilir onay akışları.</span>
+        </li>
+        <li>
+          <strong data-i18n="landing.principles.listRiskLabel">Risk görünürlüğü:</strong>
+          <span data-i18n="landing.principles.listRiskBody">Olası sonuçlar ve yan etkiler özetlenerek gösterilir.</span>
+        </li>
+        <li>
+          <strong data-i18n="landing.principles.listDataLabel">Veri farkındalığı:</strong>
+          <span data-i18n="landing.principles.listDataBody">Verinin nerede işlendiği ve hangi sınırların geçerli olduğu okunur biçimde sunulur.</span>
+        </li>
       </ul>
     </section>
 
@@ -2172,16 +2212,16 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
     >
       <div class="lumos-dunya-hero__grid">
         <div class="lumos-dunya-hero__copy">
-          <h2 id="lumos-dunya-hero-heading">Dünya</h2>
-          <p>
+          <h2 id="lumos-dunya-hero-heading" data-i18n="landing.world.title">Dünya</h2>
+          <p data-i18n="landing.world.lead">
             Lumos; dil, bölge ve erişilebilirlik farklarını gözeterek arayüz ve akışların geniş bir kullanıcı yelpazesine
             uyumunu hedefler. Yandaki kart, “dünya” modülünün tek bir küçük simgeyle değil; insani ölçekte bir vizyonla
             bağlanmasını vurgular.
           </p>
           <p class="lumos-dunya-hero__meta">
-            <a class="lumos-dunya-hero__link" href="#dunya-vizyon">Dünya vizyonu</a>
+            <a class="lumos-dunya-hero__link" href="#dunya-vizyon" data-i18n="landing.world.linkVision">Dünya vizyonu</a>
             <span class="lumos-dunya-hero__sep" aria-hidden="true">·</span>
-            <a class="lumos-dunya-hero__link lumos-dunya-hero__link--subtle" href="#moduller">Modül ızgarası</a>
+            <a class="lumos-dunya-hero__link lumos-dunya-hero__link--subtle" href="#moduller" data-i18n="landing.world.linkModules">Modül ızgarası</a>
           </p>
         </div>
         <div
@@ -2214,8 +2254,8 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
                 />
               </svg>
             </div>
-            <h3 id="lumos-dunya-hero-vizyon-card-title" class="lumos-dunya-hero__vizyon-card-title">Dünya vizyonu</h3>
-            <p class="lumos-dunya-hero__vizyon-card-body">
+            <h3 id="lumos-dunya-hero-vizyon-card-title" class="lumos-dunya-hero__vizyon-card-title" data-i18n="landing.world.visionCardTitle">Dünya vizyonu</h3>
+            <p class="lumos-dunya-hero__vizyon-card-body" data-i18n="landing.world.visionCardBody">
               Kıbrıs’tan başlayan akıllı ses, medya ve yapay zekâ ağı; insan merkezli kontrol anlayışıyla dünyaya açılır.
             </p>
           </div>
@@ -2225,27 +2265,27 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
 
     <div class="lumos-shell">
       <section id="neden-lumos" class="lumos-section lumos-section--founder" aria-labelledby="neden-lumos-baslik">
-        <h2 id="neden-lumos-baslik">Neden Lumos?</h2>
-        <p>Lumos’u, insanın teknoloji karşısında kontrolünü kaybetmemesi gerektiği düşüncesiyle tasarlıyorum.</p>
-        <p>
+        <h2 id="neden-lumos-baslik" data-i18n="landing.why.title">Neden Lumos?</h2>
+        <p data-i18n="landing.why.p1">Lumos’u, insanın teknoloji karşısında kontrolünü kaybetmemesi gerektiği düşüncesiyle tasarlıyorum.</p>
+        <p data-i18n="landing.why.p2">
           Bugün yapay zekâ artık uzak bir konu değil. Yazdığımız metne, aldığımız karara, kullandığımız uygulamaya ve günlük
           işlerimize kadar giriyor. Bu büyük bir güç. Ama bu güç büyüdükçe, insanın neye onay verdiğini, hangi bilginin
           nereye gittiğini ve hangi kararın nasıl alındığını görebilmesi daha da önemli hale geliyor.
         </p>
-        <p>
+        <p data-i18n="landing.why.p3">
           Ben Lumos’u insanın yerine karar veren bir sistem olarak değil; kullanıcının aklını, bilincini ve iradesini
           güçlendiren bir yardımcı katman olarak görüyorum.
         </p>
-        <p>
+        <p data-i18n="landing.why.p4">
           Lumos’un amacı yolu kısaltmak, karmaşayı azaltmak ve seçenekleri daha görünür hale getirmek. Ama son karar
           kullanıcıda kalmalı. Özellikle geri dönüşü zor, kalıcı veya riskli işlemlerde kullanıcı ne olduğunu bilmeli,
           sonucu görebilmeli ve kendi kararını kendisi vermeli.
         </p>
-        <p>
+        <p data-i18n="landing.why.p5">
           Lumos aktif geliştirilen bir kontrol katmanıdır; modüller aşamalı olarak genişler. Yön net: Lumos kullanıcının
           üstünde değil yanında durur; yerine geçmez, birlikte çalışır.
         </p>
-        <p>
+        <p data-i18n="landing.why.p6">
           Benim için Lumos, sadece bir yazılım fikri değil. İnsanla teknoloji arasındaki ilişkiyi daha dürüst, daha kontrollü
           ve daha insani kurma çabasının adı.
         </p>
@@ -2271,61 +2311,61 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
               decoding="async"
             />
           </span>
-          <span>19 Mayıs’a Saygıyla</span>
+          <span data-i18n="landing.may19.heading">19 Mayıs’a Saygıyla</span>
         </h2>
-        <p>
+        <p data-i18n="landing.may19.p1">
           Bu metni 19 Mayıs gibi anlamlı bir güne yakın yayımlamak benim için ayrıca değerli.
         </p>
-        <p>
+        <p data-i18n="landing.may19.p2">
           Gazi Mustafa Kemal Atatürk’ü saygıyla anıyor, 19 Mayıs Atatürk’ü Anma, Gençlik ve Spor Bayramı’nı kutluyorum.
         </p>
-        <p>
+        <p data-i18n="landing.may19.p3">
           19 Mayıs’ın taşıdığı gençlik, bilim, bağımsız düşünce ve gelecek fikrini yalnızca bir ülkenin sınırları içinde
           değil, insanlık için de değerli bir hatırlatma olarak görüyorum.
         </p>
-        <p>
+        <p data-i18n="landing.may19.p4">
           Lumos’u da bu anlayışla; geleceği kuracak gençlere ve teknolojiyi insan yararına kullanmak isteyen herkese küçük
           ama samimi bir armağan olarak görüyorum.
         </p>
         <div class="lumos-may19-card__actions">
-          <button type="button" class="lumos-may19-open-btn" id="lumos-may19-open">
+          <button type="button" class="lumos-may19-open-btn" id="lumos-may19-open" data-i18n="landing.may19.openBtn">
             Saygı anını başlat
           </button>
         </div>
       </aside>
 
       <section id="lumos-nedir" class="lumos-section" aria-labelledby="lumos-nedir-baslik">
-        <h2 id="lumos-nedir-baslik">Lumos nedir?</h2>
-        <p>
+        <h2 id="lumos-nedir-baslik" data-i18n="landing.whatIs.title">Lumos nedir?</h2>
+        <p data-i18n="landing.whatIs.p1">
           Lumos; sesli komutlar, medya işlemleri ve yapay zekâ destekli yardımları yerelde veya sizin tanımladığınız
           güven sınırları içinde tek bir akışta toparlamayı hedefleyen bir kontrol katmanıdır. Uygulamalar, dosyalar ve
           harici servisler arasında köprü kurarak dağınık görevleri daha izlenebilir adımlara böler.
         </p>
-        <p>
+        <p data-i18n="landing.whatIs.p2">
           Amaç, karmaşık teknik detayların arkasında kalan işlemleri sadeleştirmek; hangi verinin nerede işlendiğini ve
           bir sonraki adımın olası sonuçlarını daha okunur kılmaktır. Lumos “otomatik pilot” değildir; kullanıcıyı
           bilgilendiren ve onay kritik noktalarında duraklatan bir ara yüz sunmayı amaçlar.
         </p>
-        <p>
+        <p data-i18n="landing.whatIs.p3">
           Lumos aktif geliştirilen bir kontrol katmanıdır; modüller ve entegrasyonlar ölçülü biçimde genişler — vaat
           yerine görünür yol haritası ve kullanıcı onayı önceliklidir.
         </p>
       </section>
 
       <section id="ne-yapar" class="lumos-section" aria-labelledby="ne-yapar-baslik">
-        <h2 id="ne-yapar-baslik">Ne yapar?</h2>
+        <h2 id="ne-yapar-baslik" data-i18n="landing.whatDoes.title">Ne yapar?</h2>
         <ul>
-          <li>Ses ve doğal dil ile iletilen görevleri güvenli ve izlenebilir alt adımlara ayırmayı hedefler.</li>
-          <li>Medya ve dosya akışlarını düzenler; paylaşım veya dış servise aktarımda şeffaflığı artırmayı amaçlar.</li>
-          <li>Yapay zekâ önerilerini bağlam ve risk bilgisiyle birlikte sunar; kalıcı sonuç doğuran işlemlerde onayı kullanıcıya bırakır.</li>
-          <li>Kimlik ve servis bağlantılarını daha yönetilebilir tek bir çatı altında toplamayı hedefler.</li>
-          <li>Riski yüksek veya geri alınması güç işlemlerde ek uyarı ve onay akışlarını önceliklendirir.</li>
+          <li data-i18n="landing.whatDoes.item1">Ses ve doğal dil ile iletilen görevleri güvenli ve izlenebilir alt adımlara ayırmayı hedefler.</li>
+          <li data-i18n="landing.whatDoes.item2">Medya ve dosya akışlarını düzenler; paylaşım veya dış servise aktarımda şeffaflığı artırmayı amaçlar.</li>
+          <li data-i18n="landing.whatDoes.item3">Yapay zekâ önerilerini bağlam ve risk bilgisiyle birlikte sunar; kalıcı sonuç doğuran işlemlerde onayı kullanıcıya bırakır.</li>
+          <li data-i18n="landing.whatDoes.item4">Kimlik ve servis bağlantılarını daha yönetilebilir tek bir çatı altında toplamayı hedefler.</li>
+          <li data-i18n="landing.whatDoes.item5">Riski yüksek veya geri alınması güç işlemlerde ek uyarı ve onay akışlarını önceliklendirir.</li>
         </ul>
       </section>
 
       <section id="neden-gerekli" class="lumos-section" aria-labelledby="neden-gerekli-baslik">
-        <h2 id="neden-gerekli-baslik">Neden gerekli?</h2>
-        <p>
+        <h2 id="neden-gerekli-baslik" data-i18n="landing.whyNeeded.title">Neden gerekli?</h2>
+        <p data-i18n="landing.whyNeeded.p1">
           Araç ve servis sayısı arttıkça bağlam dağılıyor; kullanıcı neyin nerede çalıştığını ve hangi iznin neyi
           etkinleştirdiğini takip etmekte zorlanabiliyor. Lumos, bu dağınıklığı tek bir kontrol katmanında görünür kılarak
           yanlış onay ve gereksiz veri aktarımı riskini azaltmayı hedefler.
@@ -2338,14 +2378,14 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         aria-labelledby="dunya-vizyon-baslik"
       >
         <div class="lumos-dunya-vizyon-card">
-          <p class="lumos-dunya-vizyon__eyebrow">Dünya ölçeği</p>
-          <h2 id="dunya-vizyon-baslik">Dünya ve vizyon</h2>
-          <p class="lumos-dunya-vizyon__lead">
+          <p class="lumos-dunya-vizyon__eyebrow" data-i18n="landing.worldVision.eyebrow">Dünya ölçeği</p>
+          <h2 id="dunya-vizyon-baslik" data-i18n="landing.worldVision.title">Dünya ve vizyon</h2>
+          <p class="lumos-dunya-vizyon__lead" data-i18n="landing.worldVision.lead">
             Lumos’u farklı cihaz ve kullanım senaryolarında tutarlı, sade ve güvenilir bir kontrol katmanı haline getirmeyi
             hedefliyoruz. Özellikler ölçülü ve artımlı biçimde genişleyecek; her adımda kullanıcı kontrolü ve şeffaflık ön
             planda kalacaktır.
           </p>
-          <p class="lumos-dunya-vizyon__prose">
+          <p class="lumos-dunya-vizyon__prose" data-i18n="landing.worldVision.prose">
             Aynı vizyonun pratik yüzü olarak; dil, bölge ve erişilebilirlik farklarını dikkate alarak arayüz ve akışların
             geniş bir kullanıcı yelpazesine uyumunu hedefliyoruz. Yerelleştirme, klavye ve ses erişimi gibi konularda tutarlı
             bir çerçeve sunmak, Lumos’un “dünya” ölçeğinde insani kalması için omurgadır.
@@ -2354,36 +2394,36 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       </section>
 
       <section id="kazanimlar" class="lumos-section" aria-labelledby="kazanimlar-baslik">
-        <h2 id="kazanimlar-baslik">Kullanıcı ne kazanır?</h2>
+        <h2 id="kazanimlar-baslik" data-i18n="landing.benefits.title">Kullanıcı ne kazanır?</h2>
         <ul>
-          <li>Yapılan işlemler ve sıradaki adımlar hakkında daha net bir özet ve bağlam.</li>
-          <li>Verinin cihazda mı kaldığı yoksa dış servise mi aktarıldığı konusunda daha fazla şeffaflık.</li>
-          <li>Hız ile kontrol arasında daha dengeli bir çalışma düzeni.</li>
-          <li>Kalıcı veya maliyetli sonuçlar doğurabilecek işlemlerde bilinçli onay.</li>
+          <li data-i18n="landing.benefits.item1">Yapılan işlemler ve sıradaki adımlar hakkında daha net bir özet ve bağlam.</li>
+          <li data-i18n="landing.benefits.item2">Verinin cihazda mı kaldığı yoksa dış servise mi aktarıldığı konusunda daha fazla şeffaflık.</li>
+          <li data-i18n="landing.benefits.item3">Hız ile kontrol arasında daha dengeli bir çalışma düzeni.</li>
+          <li data-i18n="landing.benefits.item4">Kalıcı veya maliyetli sonuçlar doğurabilecek işlemlerde bilinçli onay.</li>
         </ul>
       </section>
 
       <section id="gelistirici" class="lumos-section" aria-labelledby="gelistirici-baslik">
-        <h2 id="gelistirici-baslik">Geliştirici erişimi</h2>
-        <p>
+        <h2 id="gelistirici-baslik" data-i18n="landing.developer.title">Geliştirici erişimi</h2>
+        <p data-i18n="landing.developer.p1">
           Lumos şu anda geliştirici incelemesine açık kaynak kod aşamasındadır. Son kullanıcı kurulum paketi henüz
           yayınlanmamıştır. Geliştiriciler kaynak kodunu GitHub üzerinden inceleyebilir ve projeyi yerel ortamda
           çalıştırabilir.
         </p>
-        <a class="lumos-github-btn" href={GITHUB_REPO_URL} rel="noopener noreferrer">GitHub'da incele</a>
-        <p class="lumos-may19-card__caption" style="margin-top: 1.1rem; margin-bottom: 0">
+        <a class="lumos-github-btn" href={GITHUB_REPO_URL} rel="noopener noreferrer" data-i18n="landing.developer.githubBtn">GitHub'da incele</a>
+        <p class="lumos-may19-card__caption" style="margin-top: 1.1rem; margin-bottom: 0" data-i18n="landing.developer.notice">
           Lumos açık ve katkıya uygun bir proje olarak geliştirilmektedir. Ancak We Lock AI çatısı altındaki Lumos ürün kimliği, görsel marka unsurları, resmi servisler, API erişimleri ve kullanıcı verileri kontrollü izin yapısıyla korunur.
         </p>
       </section>
 
       <section id="kurulum" class="lumos-section lumos-install-section" aria-labelledby="kurulum-baslik">
-        <h2 id="kurulum-baslik">İndirme ve Kurulum</h2>
-        <p>
+        <h2 id="kurulum-baslik" data-i18n="landing.install.title">İndirme ve Kurulum</h2>
+        <p data-i18n="landing.install.intro">
           Lumos şu anda aktif geliştirilen açık kaynaklı bir kontrol katmanıdır. Yerelde denemek isteyen geliştiriciler kaynak kodu GitHub üzerinden indirip kendi ortamında çalıştırabilir.
         </p>
         <div class="lumos-install-grid">
           <article class="lumos-install-step">
-            <h3>Adım 1 — Kaynak kodu indir</h3>
+            <h3 data-i18n="landing.install.step1">Adım 1 — Kaynak kodu indir</h3>
             <div class="lumos-install-cmd">
               <pre class="lumos-install-pre"><code>git clone {GITHUB_REPO_URL}</code></pre>
               <div class="lumos-install-cmd__meta">
@@ -2391,22 +2431,23 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
                   type="button"
                   class="lumos-install-copy-btn"
                   data-install-copy
-                  data-copy-text={"git clone " + GITHUB_REPO_URL}>Kopyala</button>
+                  data-copy-text={"git clone " + GITHUB_REPO_URL}
+                  data-i18n="landing.install.copy">Kopyala</button>
               </div>
             </div>
           </article>
           <article class="lumos-install-step">
-            <h3>Adım 2 — Proje klasörüne gir</h3>
+            <h3 data-i18n="landing.install.step2">Adım 2 — Proje klasörüne gir</h3>
             <div class="lumos-install-cmd">
               <pre class="lumos-install-pre"><code>cd lumos-core</code></pre>
               <div class="lumos-install-cmd__meta">
-                <button type="button" class="lumos-install-copy-btn" data-install-copy data-copy-text="cd lumos-core"
-                  >Kopyala</button>
+                <button type="button" class="lumos-install-copy-btn"                   data-install-copy data-copy-text="cd lumos-core"
+                  data-i18n="landing.install.copy">Kopyala</button>
               </div>
             </div>
           </article>
           <article class="lumos-install-step">
-            <h3>Adım 3 — UI bağımlılıklarını kur</h3>
+            <h3 data-i18n="landing.install.step3">Adım 3 — UI bağımlılıklarını kur</h3>
             <div class="lumos-install-cmd">
               <pre class="lumos-install-pre"><code>cd ui && npm install</code></pre>
               <div class="lumos-install-cmd__meta">
@@ -2414,22 +2455,23 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
                   type="button"
                   class="lumos-install-copy-btn"
                   data-install-copy
-                  data-copy-text="cd ui && npm install">Kopyala</button>
+                  data-copy-text="cd ui && npm install"
+                  data-i18n="landing.install.copy">Kopyala</button>
               </div>
             </div>
           </article>
           <article class="lumos-install-step">
-            <h3>Adım 4 — Yerelde çalıştır</h3>
+            <h3 data-i18n="landing.install.step4">Adım 4 — Yerelde çalıştır</h3>
             <div class="lumos-install-cmd">
               <pre class="lumos-install-pre"><code>npm run dev</code></pre>
               <div class="lumos-install-cmd__meta">
-                <button type="button" class="lumos-install-copy-btn" data-install-copy data-copy-text="npm run dev"
-                  >Kopyala</button>
+                <button type="button" class="lumos-install-copy-btn"                   data-install-copy data-copy-text="npm run dev"
+                  data-i18n="landing.install.copy">Kopyala</button>
               </div>
             </div>
           </article>
           <article class="lumos-install-step">
-            <h3>Adım 5 — Tarayıcıda aç</h3>
+            <h3 data-i18n="landing.install.step5">Adım 5 — Tarayıcıda aç</h3>
             <div class="lumos-install-cmd">
               <pre class="lumos-install-pre"><code>http://localhost:4321</code></pre>
               <div class="lumos-install-cmd__meta">
@@ -2437,21 +2479,23 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
                   type="button"
                   class="lumos-install-copy-btn"
                   data-install-copy
-                  data-copy-text="http://localhost:4321">Kopyala</button>
+                  data-copy-text="http://localhost:4321"
+                  data-i18n="landing.install.copy">Kopyala</button>
                 <a
                   class="lumos-install-open-link"
                   href="http://localhost:4321"
                   target="_blank"
-                  rel="noopener noreferrer">Aç</a>
+                  rel="noopener noreferrer"
+                  data-i18n="landing.install.open">Aç</a>
               </div>
             </div>
           </article>
         </div>
-        <p class="lumos-install-copy-disclaimer">
+        <p class="lumos-install-copy-disclaimer" data-i18n="landing.install.disclaimer">
           Bu butonlar komutları çalıştırmaz; yalnızca panoya kopyalar. Komutları Terminal’e kullanıcı kendisi yapıştırıp
           çalıştırır.
         </p>
-        <p class="lumos-install-note">
+        <p class="lumos-install-note" data-i18n="landing.install.note">
           Komutlar yerel geliştirme ortamı içindir. Resmi servisler, API erişimleri ve kullanıcı verileri kontrollü izin yapısıyla korunur.
         </p>
         <div class="lumos-install-actions">
@@ -2459,24 +2503,25 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
             class="lumos-hero-btn lumos-hero-btn--primary"
             href={GITHUB_REPO_URL}
             target="_blank"
-            rel="noopener noreferrer">GitHub'da aç</a>
-          <a class="lumos-hero-btn lumos-hero-btn--ghost" href="/panel">Paneli dene</a>
+            rel="noopener noreferrer"
+            data-i18n="landing.install.githubOpen">GitHub'da aç</a>
+          <a class="lumos-hero-btn lumos-hero-btn--ghost" href="/panel" data-i18n="landing.install.tryPanel">Paneli dene</a>
         </div>
         <div class="lumos-install-versions">
-          <h3 class="lumos-install-versions__heading">Sürümler</h3>
+          <h3 class="lumos-install-versions__heading" data-i18n="landing.install.versionsTitle">Sürümler</h3>
           <div class="lumos-install-versions__sub">
-            <h4>Açık kaynak geliştirme sürümü:</h4>
-            <p>
+            <h4 data-i18n="landing.install.ossHeading">Açık kaynak geliştirme sürümü:</h4>
+            <p data-i18n="landing.install.ossBody">
               Lumos’un kaynak kodu geliştiriciler tarafından yerelde incelenebilir, çalıştırılabilir ve katkıya açık biçimde geliştirilebilir. Bu sürüm yerel geliştirme ve deneme amaçlıdır.
             </p>
           </div>
           <div class="lumos-install-versions__sub">
-            <h4>Resmi / profesyonel sürüm:</h4>
-            <p>
+            <h4 data-i18n="landing.install.officialHeading">Resmi / profesyonel sürüm:</h4>
+            <p data-i18n="landing.install.officialBody">
               We Lock AI çatısı altında sunulacak resmi Lumos sürümü; panel, servis bağlantıları, güvenli API erişimleri, entegrasyonlar ve kullanıcı izin akışlarıyla kontrollü biçimde çalışacaktır. Bu sürüm hazır olduğunda indirme, erişim ve kullanım koşulları ayrıca duyurulacaktır.
             </p>
           </div>
-          <p class="lumos-install-versions__footnote">
+          <p class="lumos-install-versions__footnote" data-i18n="landing.install.footnote">
             Ücretli veya resmi servis erişimi; açık kaynak koddan bağımsız olarak kimlik doğrulama, kullanıcı onayı ve
             tanımlı kullanım sınırlarıyla yönetilir.
           </p>
@@ -2485,7 +2530,7 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
               type="button"
               class="lumos-hero-btn lumos-hero-btn--ghost"
               disabled
-              aria-disabled="true">Resmi sürüm bildirimi<span class="lumos-install-soon-badge">Yakında</span></button>
+              aria-disabled="true"><span data-i18n="landing.install.officialNotify">Resmi sürüm bildirimi</span><span class="lumos-install-soon-badge" data-i18n="landing.install.soon">Yakında</span></button>
           </div>
         </div>
       </section>
@@ -2494,8 +2539,8 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
     <div class="lumos-modules-stack">
       <div class="lumos-modules-stack__banner" aria-hidden="true"></div>
       <section id="moduller" class="lumos-cap" aria-labelledby="lumos-cap-title">
-        <h2 id="lumos-cap-title" class="lumos-cap-title">Lumos Modülleri</h2>
-        <p class="lumos-cap-deck">
+        <h2 id="lumos-cap-title" class="lumos-cap-title" data-i18n="landing.modules.title">Lumos Modülleri</h2>
+        <p class="lumos-cap-deck" data-i18n="landing.modules.deck">
           Aşağıdaki başlıklar ürün kapsamının özünü özetler; ayrıntılı modül notları sayfanın devamında yer alır.
         </p>
         <div class="lumos-scope-grid">
@@ -2523,8 +2568,8 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
                 <path class="lumos-mod-ico__gold-stroke" d="M10.5 12.5h7M10.5 15h5" />
               </svg>
             </span>
-            <h3>Sohbet</h3>
-            <p>Metin tabanlı görevleri şeffaf adımlarla yönetilen bir diyalog yüzeyinde toplar.</p>
+            <h3 data-i18n="landing.modules.chatTitle">Sohbet</h3>
+            <p data-i18n="landing.modules.chatScope">Metin tabanlı görevleri şeffaf adımlarla yönetilen bir diyalog yüzeyinde toplar.</p>
           </a>
           <a class="lumos-scope-card lumos-scope-card-link" href="#modul-gorsel-analiz">
             <span class="lumos-scope-card__icon" aria-hidden="true">
@@ -2536,8 +2581,8 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
                 <path class="lumos-mod-ico__gold-stroke" d="M23.8 23.8 27.5 27.5" />
               </svg>
             </span>
-            <h3>Görsel Analiz</h3>
-            <p>Görüntü ve ekran bağlamını okunur özetlerle sunar; nihai yorumu size bırakır.</p>
+            <h3 data-i18n="landing.modules.visionTitle">Görsel Analiz</h3>
+            <p data-i18n="landing.modules.visionScope">Görüntü ve ekran bağlamını okunur özetlerle sunar; nihai yorumu size bırakır.</p>
           </a>
           <a class="lumos-scope-card lumos-scope-card-link" href="#modul-ses">
             <span class="lumos-scope-card__icon" aria-hidden="true">
@@ -2549,8 +2594,8 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
                 <path class="lumos-mod-ico__gold-stroke" d="M9 24.5h14" />
               </svg>
             </span>
-            <h3>Ses</h3>
-            <p>Sesli komut ve yanıtları kontrollü bir akışta işler; izin ve sınırlar görünür kalır.</p>
+            <h3 data-i18n="landing.modules.voiceTitle">Ses</h3>
+            <p data-i18n="landing.modules.voiceScope">Sesli komut ve yanıtları kontrollü bir akışta işler; izin ve sınırlar görünür kalır.</p>
           </a>
           <a class="lumos-scope-card lumos-scope-card-link" href="#modul-medya">
             <span class="lumos-scope-card__icon" aria-hidden="true">
@@ -2562,8 +2607,8 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
                 <path class="lumos-mod-ico__gold-stroke" d="M13 12.5 21.5 16 13 19.5z" fill="none" stroke-width="1.6" />
               </svg>
             </span>
-            <h3>Medya</h3>
-            <p>Ses, görüntü ve dosya hareketlerini tek panelden izlenebilir tutar.</p>
+            <h3 data-i18n="landing.modules.mediaTitle">Medya</h3>
+            <p data-i18n="landing.modules.mediaScope">Ses, görüntü ve dosya hareketlerini tek panelden izlenebilir tutar.</p>
           </a>
           <a class="lumos-scope-card lumos-scope-card-link" href="#modul-gorevler">
             <span class="lumos-scope-card__icon" aria-hidden="true">
@@ -2574,8 +2619,8 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
                 <path class="lumos-mod-ico__gold-stroke" d="M9.2 10.8 10.8 12.4 13.6 9.6M9.2 15.8 10.8 17.4 13.6 14.6M9.2 20.8 10.8 22.4 13.6 19.6" />
               </svg>
             </span>
-            <h3>Görevler</h3>
-            <p>Dağınık işleri modüller arasında görünür bir sıraya dönüştürür.</p>
+            <h3 data-i18n="landing.modules.tasksTitle">Görevler</h3>
+            <p data-i18n="landing.modules.tasksScope">Dağınık işleri modüller arasında görünür bir sıraya dönüştürür.</p>
           </a>
           <a class="lumos-scope-card lumos-scope-card-link" href="#modul-posta">
             <span class="lumos-scope-card__icon" aria-hidden="true">
@@ -2591,8 +2636,8 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
                 <path class="lumos-mod-ico__gold-stroke" d="M5.5 10.5 16 18.5 26.5 10.5" />
               </svg>
             </span>
-            <h3>Posta</h3>
-            <p>Mesaj ve hesap etkileşimlerinde bağlamı ve riski öne çıkarır.</p>
+            <h3 data-i18n="landing.modules.mailTitle">Posta</h3>
+            <p data-i18n="landing.modules.mailScope">Mesaj ve hesap etkileşimlerinde bağlamı ve riski öne çıkarır.</p>
           </a>
           <a class="lumos-scope-card lumos-scope-card-link" href="#modul-dosyalar">
             <span class="lumos-scope-card__icon" aria-hidden="true">
@@ -2608,8 +2653,8 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
                 <path class="lumos-mod-ico__gold-stroke" d="M11 15.5h10M11 19h7" />
               </svg>
             </span>
-            <h3>Dosyalar</h3>
-            <p>Yerel ve uzak dosya akışlarında veri yolunu anlaşılır kılar.</p>
+            <h3 data-i18n="landing.modules.filesTitle">Dosyalar</h3>
+            <p data-i18n="landing.modules.filesScope">Yerel ve uzak dosya akışlarında veri yolunu anlaşılır kılar.</p>
           </a>
           <a class="lumos-scope-card lumos-scope-card-link" href="#modul-kimlik">
             <span class="lumos-scope-card__icon" aria-hidden="true">
@@ -2633,8 +2678,8 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
                 />
               </svg>
             </span>
-            <h3>Kimlik</h3>
-            <p>Oturum, rol ve cihaz güvenini tek çatı altında yönetilebilir sunar.</p>
+            <h3 data-i18n="landing.modules.identityTitle">Kimlik</h3>
+            <p data-i18n="landing.modules.identityScope">Oturum, rol ve cihaz güvenini tek çatı altında yönetilebilir sunar.</p>
           </a>
           <a class="lumos-scope-card lumos-scope-card-link" href="#modul-guvenlik">
             <span class="lumos-scope-card__icon" aria-hidden="true">
@@ -2650,8 +2695,8 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
                 <path class="lumos-mod-ico__gold-stroke" d="M12.5 16.2 15 18.7 20.5 13.2" />
               </svg>
             </span>
-            <h3>Güvenlik</h3>
-            <p>Yüksek riskli işlemlerde ek doğrulama ve denetlenebilirlik sağlar.</p>
+            <h3 data-i18n="landing.modules.securityTitle">Güvenlik</h3>
+            <p data-i18n="landing.modules.securityScope">Yüksek riskli işlemlerde ek doğrulama ve denetlenebilirlik sağlar.</p>
           </a>
           <a class="lumos-scope-card lumos-scope-card-link" href="#modul-entegrasyon">
             <span class="lumos-scope-card__icon" aria-hidden="true">
@@ -2669,95 +2714,95 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
                 <path class="lumos-mod-ico__stroke" d="M13.5 8.5 16 11l2.5-2.5M13.5 23.5 16 21l2.5 2.5" opacity="0.55" />
               </svg>
             </span>
-            <h3>Entegrasyon</h3>
-            <p>Harici servisleri aynı kontrol katmanında birleştirir; kapsam sözleşmeli kalır.</p>
+            <h3 data-i18n="landing.modules.integrationTitle">Entegrasyon</h3>
+            <p data-i18n="landing.modules.integrationScope">Harici servisleri aynı kontrol katmanında birleştirir; kapsam sözleşmeli kalır.</p>
           </a>
         </div>
       </section>
 
       <section class="lumos-modules" aria-labelledby="lumos-module-detail-title">
-        <h2 id="lumos-module-detail-title">Modül açıklamaları</h2>
+        <h2 id="lumos-module-detail-title" data-i18n="landing.modules.detailTitle">Modül açıklamaları</h2>
         <div class="lumos-modules-grid">
           <article id="modul-sohbet" class="lumos-module-item">
-            <h3>Sohbet</h3>
-            <p>
+            <h3 data-i18n="landing.modules.chatTitle">Sohbet</h3>
+            <p data-i18n="landing.modules.chatDetail">
               Metin tabanlı görevleri şeffaf adımlarla yönetilen bir diyalog yüzeyinde toplar. Özet ve önerilerde kaynak
               bağlamını ve belirsizlikleri görünür kılmayı; otomatik yürütme yerine kontrol listesi ve insan onayını
               önceliklendirmeyi hedefler.
             </p>
-            <a class="lumos-modul-back" href="#top">Yukarı dön</a>
+            <a class="lumos-modul-back" href="#top" data-i18n="landing.modules.backToTop">Yukarı dön</a>
           </article>
           <article id="modul-gorsel-analiz" class="lumos-module-item">
-            <h3>Görsel Analiz</h3>
-            <p>
+            <h3 data-i18n="landing.modules.visionTitle">Görsel Analiz</h3>
+            <p data-i18n="landing.modules.visionDetail">
               Görüntü ve ekran bağlamını okunur özetlerle sunar; nihai yorumu size bırakır. Riskli veya yanlış yönlendirici
               çıkarımlarda duraklatma ve onay noktalarını görünür tutmayı amaçlar.
             </p>
-            <a class="lumos-modul-back" href="#top">Yukarı dön</a>
+            <a class="lumos-modul-back" href="#top" data-i18n="landing.modules.backToTop">Yukarı dön</a>
           </article>
           <article id="modul-ses" class="lumos-module-item">
-            <h3>Ses</h3>
-            <p>
+            <h3 data-i18n="landing.modules.voiceTitle">Ses</h3>
+            <p data-i18n="landing.modules.voiceDetail">
               Sesli komut ve yanıtları kontrollü bir akışta işler; izin ve sınırlar görünür kalır. Yerel işleme ile dış
               servise aktarım ayrımını anlaşılır kılmayı hedefler.
             </p>
-            <a class="lumos-modul-back" href="#top">Yukarı dön</a>
+            <a class="lumos-modul-back" href="#top" data-i18n="landing.modules.backToTop">Yukarı dön</a>
           </article>
           <article id="modul-medya" class="lumos-module-item">
-            <h3>Medya</h3>
-            <p>
+            <h3 data-i18n="landing.modules.mediaTitle">Medya</h3>
+            <p data-i18n="landing.modules.mediaDetail">
               Ses, görüntü ve dosya aktarımlarını düzenler; yerelde işlenen ile dışarı gönderilen içeriği ayırt etmeyi
               kolaylaştırmayı amaçlar. Dönüştürme, birleştirme veya paylaşım adımlarında izlenebilir bir sıra sunar.
             </p>
-            <a class="lumos-modul-back" href="#top">Yukarı dön</a>
+            <a class="lumos-modul-back" href="#top" data-i18n="landing.modules.backToTop">Yukarı dön</a>
           </article>
           <article id="modul-gorevler" class="lumos-module-item">
-            <h3>Görevler</h3>
-            <p>
+            <h3 data-i18n="landing.modules.tasksTitle">Görevler</h3>
+            <p data-i18n="landing.modules.tasksDetail">
               Dağınık işleri modüller arasında görünür bir sıraya dönüştürür. Görevin hangi modülde hangi adımda olduğunu
               takip etmeyi kolaylaştırmayı hedefler.
             </p>
-            <a class="lumos-modul-back" href="#top">Yukarı dön</a>
+            <a class="lumos-modul-back" href="#top" data-i18n="landing.modules.backToTop">Yukarı dön</a>
           </article>
           <article id="modul-posta" class="lumos-module-item">
-            <h3>Posta</h3>
-            <p>
+            <h3 data-i18n="landing.modules.mailTitle">Posta</h3>
+            <p data-i18n="landing.modules.mailDetail">
               Mesaj ve hesap etkileşimlerinde bağlamı ve riski öne çıkarır. Kalıcı veya dışarı aktarım doğuran adımlarda
               net onay akışlarını önceliklendirmeyi amaçlar.
             </p>
-            <a class="lumos-modul-back" href="#top">Yukarı dön</a>
+            <a class="lumos-modul-back" href="#top" data-i18n="landing.modules.backToTop">Yukarı dön</a>
           </article>
           <article id="modul-dosyalar" class="lumos-module-item">
-            <h3>Dosyalar</h3>
-            <p>
+            <h3 data-i18n="landing.modules.filesTitle">Dosyalar</h3>
+            <p data-i18n="landing.modules.filesDetail">
               Yerel ve uzak dosya akışlarında veri yolunu anlaşılır kılar. Paylaşım, dönüştürme veya silme gibi geri
               dönüşü zor işlemlerde ek uyarı ve özet sunmayı hedefler.
             </p>
-            <a class="lumos-modul-back" href="#top">Yukarı dön</a>
+            <a class="lumos-modul-back" href="#top" data-i18n="landing.modules.backToTop">Yukarı dön</a>
           </article>
           <article id="modul-kimlik" class="lumos-module-item">
-            <h3>Kimlik</h3>
-            <p>
+            <h3 data-i18n="landing.modules.identityTitle">Kimlik</h3>
+            <p data-i18n="landing.modules.identityDetail">
               Oturumlar, roller ve cihaz güvenini tek yerden gözden geçirmeyi hedefler. Profil ve izin değişikliklerinde
               kullanıcıya net geri bildirim verir; kimlik bilgisinin nerede kullanıldığını anlamayı kolaylaştırır.
             </p>
-            <a class="lumos-modul-back" href="#top">Yukarı dön</a>
+            <a class="lumos-modul-back" href="#top" data-i18n="landing.modules.backToTop">Yukarı dön</a>
           </article>
           <article id="modul-guvenlik" class="lumos-module-item">
-            <h3>Güvenlik</h3>
-            <p>
+            <h3 data-i18n="landing.modules.securityTitle">Güvenlik</h3>
+            <p data-i18n="landing.modules.securityDetail">
               Silme, ödeme, içerik yayını veya hesap ayarı gibi geri dönüşü zor işlemlerde ek doğrulama ve günlük
               izlenebilirlik sağlamayı amaçlar. Şüpheli veya tekrarlayan isteklerde kullanıcıyı uyarır.
             </p>
-            <a class="lumos-modul-back" href="#top">Yukarı dön</a>
+            <a class="lumos-modul-back" href="#top" data-i18n="landing.modules.backToTop">Yukarı dön</a>
           </article>
           <article id="modul-entegrasyon" class="lumos-module-item">
-            <h3>Entegrasyon</h3>
-            <p>
+            <h3 data-i18n="landing.modules.integrationTitle">Entegrasyon</h3>
+            <p data-i18n="landing.modules.integrationDetail">
               Üçüncü taraf API’ler, bulut servisleri ve yerel uygulamalar arasında tek bir orchestrasyon yüzeyi sunmayı
               amaçlar. Her bağlantı için kapsam, süre ve veri paylaşımı mümkün olduğunca sözleşmeli ve görünür tutulur.
             </p>
-            <a class="lumos-modul-back" href="#top">Yukarı dön</a>
+            <a class="lumos-modul-back" href="#top" data-i18n="landing.modules.backToTop">Yukarı dön</a>
           </article>
         </div>
       </section>
@@ -2776,11 +2821,11 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         aria-modal="true"
         aria-labelledby="lumos-may19-dialog-label"
       >
-        <p id="lumos-may19-dialog-label" class="lumos-may19-overlay__text">
+        <p id="lumos-may19-dialog-label" class="lumos-may19-overlay__text" data-i18n="landing.may19.overlayText">
           Bilime, akla, barışa ve insan onuruna saygıyla.
         </p>
         <div id="lumos-may19-count" class="lumos-may19-overlay__count" aria-live="polite">60</div>
-        <button type="button" class="lumos-may19-close-btn" id="lumos-may19-close">Kapat</button>
+        <button type="button" class="lumos-may19-close-btn" id="lumos-may19-close" data-i18n="landing.may19.closeBtn">Kapat</button>
       </div>
     </div>
 
@@ -2869,7 +2914,12 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
       (function () {
         var root = document.getElementById("kurulum");
         if (!root) return;
-        var defaultLabel = "Kopyala";
+        function copyLabel() {
+          return window.LumosI18n ? window.LumosI18n.t("landing.install.copy") : "Kopyala";
+        }
+        function copiedLabel() {
+          return window.LumosI18n ? window.LumosI18n.t("landing.install.copied") : "Kopyalandı";
+        }
         root.addEventListener("click", function (e) {
           var btn = e.target && e.target.closest && e.target.closest("[data-install-copy]");
           if (!btn || !root.contains(btn)) return;
@@ -2879,10 +2929,10 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
           e.preventDefault();
           navigator.clipboard.writeText(text).then(
             function () {
-              btn.textContent = "Kopyalandı";
+              btn.textContent = copiedLabel();
               if (btn.__lumosCopyTid) window.clearTimeout(btn.__lumosCopyTid);
               btn.__lumosCopyTid = window.setTimeout(function () {
-                btn.textContent = defaultLabel;
+                btn.textContent = copyLabel();
               }, 1800);
             },
             function () {
@@ -2890,7 +2940,14 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
             }
           );
         });
+        window.addEventListener("lumos:localechange", function () {
+          root.querySelectorAll("[data-install-copy][data-i18n]").forEach(function (btn) {
+            if (btn.__lumosCopyTid) return;
+            btn.textContent = copyLabel();
+          });
+        });
       })();
     </script>
+    <I18nInit />
   </body>
 </html>

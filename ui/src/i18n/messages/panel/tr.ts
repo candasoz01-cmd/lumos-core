@@ -1,0 +1,237 @@
+/** Panel module copy — Turkish (from panel.astro sections) */
+const panelModules = {
+  tasks: {
+    eyebrow: "Operasyon",
+    intro:
+      "Görev akışınızı panel içinde buradan yürütüp izlersiniz. Görevler bu tarayıcıda localStorage ile saklanır; sayfa yenilense de kalır. Sunucu veya veritabanı yoktur — veriyi silmek için tarayıcı site verilerini temizlemeniz gerekir.",
+  },
+  files: {
+    intro:
+      "Dosyayı cihazınızdan seçin; Lumos köprüsü dosyayı alır, adı/türü/boyutu döner. Metin dosyalarında (.txt, .md, .json, .csv) kısa özet üretilir. PDF ve Word (DOCX) gibi biçimler bu fazda işlenmez.",
+  },
+  voice: {
+    intro:
+      "Bu sekme, sesli girdinin metne ve komutlara dönüşürken arayüz katmanında kalması ve kararın yine kullanıcıda tutulması için tasarlanan yaklaşımı özetler.",
+    c1Title: "Sesten Metne",
+    c1Body:
+      "Sesli ifade, metin ve komut adımlarına aktarılarak ekranda izlenebilir hale getirilebilir.",
+    c2Title: "Arayüz Katmanı",
+    c2Body:
+      "Ses, doğrudan yerine geçen bir otorite değil; kullanıcının gördüğü ve düzeltebildiği bir katman olarak ele alınır.",
+    c3Title: "Karar Kullanıcıda",
+    c3Body: "Özetlenen komut veya metin uygulanmadan önce kullanıcı net biçimde kontrol edebilmelidir.",
+    c4Title: "Yanlış Anlama ve Onay",
+    c4Body:
+      "Belirsiz veya düşük güvenli algılarda Lumos duraklatmayı ve netleştirmeyi hedefler; tek başına ilerlemez.",
+    c5Title: "Yerel İşlem Önceliği",
+    c5Body:
+      "Mümkün olduğunda ilk işlem cihaz içinde kalır; dış servise çıkış gerekiyorsa bu görünür tutulmalıdır.",
+  },
+  media: {
+    intro:
+      "Bu sekme, görsel, ses, video ve dosya akışlarının düzenlenmesinde paylaşım öncesi kontrol, veri yolu görünürlüğü ve kaynak ile çıktının ayrılması ilkelerini özetler.",
+    outboxTitle: "Köprü özeti (salt okunur)",
+    outboxIntro:
+      "Son görev/sohbet çıktısı için köprüdeki GET /last-result yanıtı (dosya yoksa 404 metni gösterilir). Token, görev ve dosya yükleme ile aynıdır.",
+    outboxRefresh: "Yenile",
+    c1Title: "Akışlar ve Türler",
+    c1Body:
+      "Farklı medya türleri tek çalışma düzeninde izlenebilir; hangi dosyanın nerede kullanıldığı daha okunaklı olabilir.",
+    c2Title: "Paylaşım Öncesi Kontrol",
+    c2Body: "Dışarıya çıkmadan önce içerik özeti ve hedef kullanım kullanıcıya gösterilmeyi hedefler.",
+    c3Title: "Dış Servise Aktarım",
+    c3Body:
+      "Bir dosyanın veya önizlemenin harici işleme gönderildiği adımlar gizlenmez; bağlantı ve amaç daha net tutulur.",
+    c4Title: "Düzenleme ve Dönüştürme",
+    c4Body:
+      "Kırpma, biçim değişimi veya dönüştürme gibi adımlar sıralı ve geri alınabilir bir akışta önerilir.",
+    c5Title: "Kaynak ve Çıktı",
+    c5Body:
+      "Orijinal materyal ile üretilen çıktı birbirinden ayırt edilir; kullanıcı hangisinin paylaşıldığını net görebilir.",
+  },
+  social: {
+    intro:
+      "Bu sekme, dışa açılan içeriklerde taslağı kullanıcıda tutmayı, platform farkındalığını artırmayı ve kalıcı paylaşımlarda açık onayı öncelemeyi hedefleyen yaklaşımı özetler.",
+    c1Title: "Paylaşım Öncesi Kontrol",
+    c1Body:
+      "Gönderi yayınlanmadan önce özet, hedef ve görünürlük kullanıcıya son kez gösterilmeyi hedefler.",
+    c2Title: "Hedef Platform",
+    c2Body:
+      "İçeriğin hangi ortamda nasıl görüneceği ve hangi kurallara tabi olduğu daha görünür tutulabilir.",
+    c3Title: "Gönderi Taslağı",
+    c3Body: "Metin ve ekler taslak halinde saklanır; kullanıcı düzenlemeden yayına çıkmaz.",
+    c4Title: "Riskli Paylaşımda Onay",
+    c4Body:
+      "Kalıcı, geniş kitleye açık veya geri alınması zor paylaşımlarda ek onay istenmesi hedeflenir.",
+    c5Title: "Otomatik Yayın Yok",
+    c5Body: "Lumos kullanıcı adına sessizce paylaşım yapmaz; gönderme kararı kullanıcıda kalır.",
+  },
+  mail: {
+    intro:
+      "Bu sekme, e-posta taslağı hazırlama, ek ve alıcı doğrulaması ile gönderim öncesi açık onayı merkeze alan yaklaşımı özetler.",
+    c1Title: "Taslak Odaklı Çalışma",
+    c1Body:
+      "Mesajlar önce taslak olarak düzenlenir; kullanıcı içeriği gözden geçirmeden iletim beklenmez.",
+    c2Title: "Ek ve Alıcı Kontrolü",
+    c2Body: "Eklerin listesi ve alıcı alanları gönderim öncesi okunaklı biçimde özetlenmeyi hedefler.",
+    c3Title: "Gönderim Öncesi Onay",
+    c3Body:
+      "\u201cGönder\u201d adımı bilinçli bir onay gerektirir; tek tıkla görünmez iletim hedeflenmez.",
+    c4Title: "Yanlış Alıcı ve Hassas Bilgi",
+    c4Body: "Şüpheli alıcı eşleşmeleri veya hassas içerik için uyarı gösterilmesi amaçlanır.",
+    c5Title: "Otomatik Gönderim Yok",
+    c5Body:
+      "Lumos kullanıcı yerine postayı tek başına iletmez; son gönderme kararı kullanıcıdadır.",
+  },
+  publishing: {
+    intro:
+      "Bu sekme, canlı veya kayıtlı yayın akışlarında hangi içeriğin hangi kanala gittiğinin görünür olması; yayına alma öncesi kontrol ve kayıt paylaşımında onayı önceleyen yaklaşımı özetler.",
+    c1Title: "Canlı ve Kayıtlı Akış",
+    c1Body:
+      "Yayının canlı mı yoksa kayıt tabanlı mı olduğu ve izleyici bağlamı kullanıcıya net gösterilmeyi hedefler.",
+    c2Title: "İçerik ve Kanal Eşlemesi",
+    c2Body:
+      "Hangi görüntü veya sesin hangi çıkışa gittiği düzenli bir özetle izlenebilir hale getirilebilir.",
+    c3Title: "Yayına Alma Öncesi Kontrol",
+    c3Body: "Yayına çıkmadan önce önizleme ve son uyarı adımları atlanmamalıdır.",
+    c4Title: "Kayıt ve Paylaşım Onayı",
+    c4Body:
+      "Oturum kaydı veya klibin dışarı paylaşılması ayrı onay gerektiren işlemler olarak ele alınır.",
+    c5Title: "Yayın Riskleri",
+    c5Body:
+      "Görünürlük, telif ve özel hayat gibi riskler kısa ve anlaşılır biçimde hatırlatılmayı hedefler; kesin hukuki sonuç vaadi verilmez.",
+  },
+  ai: {
+    intro:
+      "Bu sekme, Lumos’un yapay zekâyı kullanıcı adına karar veren bir otorite olarak değil; bağlamı toparlayan, seçenekleri düzenleyen ve karar sürecini daha görünür hale getiren bir yardımcı katman olarak ele alma yaklaşımını özetler.",
+    c1Title: "Bağlamı Toplama",
+    c1Body:
+      "Lumos, kullanıcının isteğini, mevcut çalışma alanını ve ilgili bilgileri birlikte değerlendirerek daha anlaşılır bir görev bağlamı oluşturmayı hedefler.",
+    c2Title: "Öneri ve Seçenekler",
+    c2Body:
+      "Yapay zekâ tek bir sonucu kesin doğru gibi dayatmaz; mümkün olan seçenekleri, belirsizlikleri ve dikkat edilmesi gereken noktaları görünür kılar.",
+    c3Title: "Karar Kullanıcıda",
+    c3Body:
+      "Lumos öneri sunabilir, yolu kısaltabilir ve karmaşayı azaltabilir; ancak nihai karar kullanıcının iradesinde kalmalıdır.",
+    c4Title: "Riskli İşlem Duraklatma",
+    c4Body:
+      "Kalıcı, maliyetli veya geri dönüşü zor işlemlerde yapay zekâ otomatik ilerlemek yerine kullanıcıyı bilgilendirmeli ve açık onay beklemelidir.",
+    c5Title: "Belirsizlik Bildirimi",
+    c5Body:
+      "Eksik veri, düşük güven veya çelişkili bilgi varsa Lumos bunu saklamaz; hangi noktada emin olmadığını kullanıcıya açıkça göstermeyi hedefler.",
+    c6Title: "Yapay Zekâ Sınırı",
+    c6Body:
+      "Lumos yapay zekânın her şeyi doğru bileceğini iddia etmez. Amaç, kullanıcıyı devre dışı bırakmak değil; daha bilinçli ve kontrollü hareket etmesine yardımcı olmaktır.",
+  },
+  quantum: {
+    intro:
+      "Bu sekmede olasılık, belirsizlik ve güvenlik araştırması birlikte ele alınır; kesin vaatler yerine şeffaf sınırlar önceliklidir.",
+    c1Title: "Kuantum Güvenlik Araştırması",
+    c1Body:
+      "Bu bölüm, Lumos’un gelecekte kuantum dayanıklı şifreleme ve ileri güvenlik yaklaşımlarını değerlendireceği araştırma alanıdır. Mevcut sistem, kuantum şifreleme kullandığını iddia etmez.",
+    c2Title: "Çoklu İhtimal",
+    c2Body:
+      "Lumos tek bir sonucu kesinmiş gibi dayatmaz; olası yolları ve belirsizlikleri birlikte görünür tutar.",
+    c3Title: "Belirsizlik Dengesi",
+    c3Body: "Veri eksik olduğunda Lumos boşluk doldurmaz; neyin bilindiğini ve neyin bilinmediğini ayırır.",
+    c4Title: "Karar Sınırı",
+    c4Body:
+      "Kuantum yaklaşımı kararın yerine geçmez; seçenekleri düzenler, son yönü kullanıcı iradesine bırakır.",
+  },
+  integration: {
+    intro:
+      "Bu sekme, Lumos’un yerel araçlar, harici servisler, API bağlantıları ve uygulamalar arasında kontrollü bir köprü kurma yaklaşımını özetler. Amaç her şeyi sınırsız bağlamak değil; bağlantı kapsamını, veri akışını ve kullanıcı onayını görünür tutmaktır.",
+    c1Title: "Servis Bağlantıları",
+    c1Body:
+      "Lumos, farklı servis ve uygulamaların tek bir akışta daha düzenli çalışmasını hedefler. Her bağlantının ne için kullanıldığı ve hangi işlemi etkilediği açık olmalıdır.",
+    c2Title: "API Köprüsü",
+    c2Body:
+      "API entegrasyonları, Lumos’un dış sistemlerle kontrollü biçimde iletişim kurmasını sağlar. Bu bağlantılar sınırsız yetki değil, belirlenmiş kapsam ve açık amaç üzerinden düşünülür.",
+    c3Title: "Yerel ve Dış Servis Ayrımı",
+    c3Body:
+      "Lumos, cihaz içinde kalan işlemlerle dış servise aktarılan işlemleri birbirinden ayırmayı hedefler. Kullanıcı hangi adımın yerel, hangi adımın harici olduğunu daha net görebilmelidir.",
+    c4Title: "Kapsam ve Onay",
+    c4Body:
+      "Bir bağlantı kullanılmadan önce neye erişeceği, hangi işlemde devreye gireceği ve kullanıcıdan hangi onayın gerektiği açık tutulmalıdır.",
+    c5Title: "Veri Akışı Görünürlüğü",
+    c5Body:
+      "Dosya, metin, medya veya görev bilgisinin hangi servisle paylaşıldığı ve hangi adımda işlendiği daha izlenebilir hale getirilir.",
+    c6Title: "Sınırsız Yetki Yok",
+    c6Body:
+      "Lumos entegrasyonları otomatik ve sınırsız yetki anlamına gelmez. Her bağlantı, kullanıcı kontrolü ve güvenlik sınırları içinde çalışacak şekilde tasarlanmalıdır.",
+  },
+  identity: {
+    intro:
+      "Bu sekme, Lumos’un kullanıcıya bağlı dijital AI kimlik yaklaşımını özetler. Amaç, kullanıcının yerine geçen bir kimlik oluşturmak değil; kullanıcının tercihlerini, sınırlarını, yetkilerini ve temsil edildiği bağlamı daha görünür ve yönetilebilir hale getirmektir.",
+    c1Title: "Dijital AI Kimlik",
+    c1Body:
+      "Lumos, kullanıcının çalışma biçimi, tercihleri ve sınırlarıyla ilişkilenen dijital AI kimlik fikrini temel alan bir yapı olarak tasarlanır. Bu kimlik, kullanıcının yerine geçmez; kullanıcının dijital işlemlerde nasıl temsil edildiğini daha anlaşılır hale getirir.",
+    c2Title: "Temsil Sınırı",
+    c2Body:
+      "Lumos’un amacı kullanıcı adına sınırsız hareket etmek değildir. Hangi işlemde, hangi bağlamda ve hangi yetkiyle hareket edildiğinin daha açık görülmesini hedefler.",
+    c3Title: "Oturum ve Servis Bağlantıları",
+    c3Body:
+      "Kullanıcının bağlı olduğu servisler, oturumlar ve çalışma alanları daha düzenli bir çerçevede izlenebilir hale getirilebilir. Böylece hangi bağlantının hangi işlem için kullanıldığı daha kolay anlaşılır.",
+    c4Title: "İzin Görünürlüğü",
+    c4Body:
+      "Uygulama, dosya veya servis bağlantılarında verilen izinlerin neye yol açabileceği kullanıcıya daha açık gösterilir. Amaç, onayın bilinçli verilmesini sağlamaktır.",
+    c5Title: "Tercih ve Hafıza Sınırları",
+    c5Body:
+      "Lumos, kullanıcının tercihlerini ve çalışma alışkanlıklarını dikkate alabilir; ancak bu bilgilerin nasıl kullanılacağı, hangi sınırlar içinde tutulacağı ve ne zaman devreye gireceği açık olmalıdır.",
+    c6Title: "Kimlik Güvenliği Sınırı",
+    c6Body:
+      "Lumos kimlik güvenliğini mutlak şekilde garanti etmez. Bunun yerine oturum, izin, temsil ve tercih bilgisini daha izlenebilir hale getirmeyi hedefler.",
+  },
+  security: {
+    c1Title: "Açık Onay",
+    c1Body: "Riskli, kalıcı veya geri dönüşü zor işlemlerde Lumos son kararı kullanıcıya bırakır.",
+    c2Title: "Risk Görünürlüğü",
+    c2Body:
+      "Lumos, işlem başlamadan önce olası sonucu, kapsamı ve dikkat edilmesi gereken noktaları görünür kılmayı hedefler.",
+    c3Title: "Veri Yolu Farkındalığı",
+    c3Body:
+      "Verinin cihazda mı kaldığı, dış servise mi aktarıldığı ve hangi adımda işlendiği daha anlaşılır hale getirilir.",
+    c4Title: "Güvenlik Sınırı",
+    c4Body:
+      "Lumos mutlak güvenlik vaadi vermez; kullanıcıya daha kontrollü, izlenebilir ve bilinçli bir işlem alanı sunmayı hedefler.",
+  },
+  world: {
+    intro:
+      "Bu sekme, Lumos’un farklı dillere, bölgelere ve erişilebilirlik ihtiyaçlarına daha duyarlı; tek bir kültüre kapanmayan ve ölçülü bir küresel kullanım tasarımını özetler.",
+    c1Title: "Dil, Bölge ve Erişilebilirlik",
+    c1Body:
+      "Arayüz ve içerik sunumunda dil seçimi, yerel biçimler ve erişilebilirlik seçenekleri daha görünür tutulmayı hedefler.",
+    c2Title: "Kullanım Biçimlerine Uyum",
+    c2Body:
+      "Farklı cihaz, bağlantı ve çalışma ortamlarında deneyimin aşırıya kaçmadan uyarlanması amaçlanır.",
+    c3Title: "Yerelleştirme",
+    c3Body:
+      "Metin ve tarih gibi öğeler yerel normlara göre düzenlenebilir; çeviri ve bağlam hatalarında şeffaflık korunur.",
+    c4Title: "Küresel ve Çoğul Yaklaşım",
+    c4Body:
+      "Tek bir merkezin bakış açısına kilitlenmeden, çeşitli kullanıcıların ihtiyaçlarına saygılı bir çerçeve hedeflenir.",
+    c5Title: "İnsan Odaklı Teknoloji",
+    c5Body:
+      "Lumos, teknolojiyi insanın yerine koymak yerine; karar ve mahremiyet sınırını kullanıcıda tutmayı önceleyen bir çizgiyi benimsemeyi hedefler.",
+  },
+  settings: {
+    intro:
+      "Bu sekme, kullanıcı tercihlerinin, bağlantı ve izin sınırlarının ve varsayılan davranışların kullanıcı kontrolünde ve görünür kalması için tasarlanan yaklaşımı özetler.",
+    c1Title: "Kullanıcı Tercihleri",
+    c1Body: "Dil, tema, bildirim yoğunluğu gibi seçenekler anlaşılır gruplarda sunulmayı hedefler.",
+    c2Title: "Sınırlar ve İzinler",
+    c2Body:
+      "Hangi özelliğin hangi izne bağlı olduğu kısa özetlerle gösterilir; kapalı tutulan izinler sessizce açılmaz.",
+    c3Title: "Bağlantı Ayarları",
+    c3Body:
+      "Harici servis ve hesap bağlantıları tek yerden görülebilir; gerektiğinde kesme ve yeniden bağlanma kullanıcıdadır.",
+    c4Title: "Görünürlük ve Güvenlik Tercihleri",
+    c4Body:
+      "Paylaşım, günlük veya veri saklama ile ilgili seçenekler birbirinden ayrılır; her biri net bir açıklamayla sunulur.",
+    c5Title: "Varsayılanlar ve Kontrol",
+    c5Body:
+      "Öntanımlı davranışlar kabul edilmeden önce kullanıcıya gösterilir; değişiklikler geri alınabilir biçimde tutulmayı hedefler.",
+  },
+} as const;
+
+export default panelModules;

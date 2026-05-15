@@ -1,0 +1,243 @@
+/** Panel module copy — English */
+import type panelTr from "./tr";
+
+const panelModules: typeof panelTr = {
+  tasks: {
+    eyebrow: "Operations",
+    intro:
+      "Run and track your task flow here in the panel. Tasks are stored in this browser using localStorage; they persist across refreshes. There is no server or database — to clear the data you must clear the site data for this site in your browser.",
+  },
+  files: {
+    intro:
+      "Pick a file from your device; the Lumos bridge ingests it and returns its name, type, and size. Plain-text formats (.txt, .md, .json, .csv) get a short summary. PDF and Word (DOCX) are not processed in this phase.",
+  },
+  voice: {
+    intro:
+      "This tab summarizes an approach where voice input stays in the interface layer as it becomes text and commands, and the decision remains with you.",
+    c1Title: "Speech to text",
+    c1Body:
+      "Spoken input can be turned into text and command steps so it can be reviewed on screen.",
+    c2Title: "Interface layer",
+    c2Body:
+      "Voice is not treated as a substitute authority; it is a layer the user can see and correct.",
+    c3Title: "Decision with the user",
+    c3Body: "Summarized commands or text should be clearly under your control before anything is applied.",
+    c4Title: "Misunderstanding and confirmation",
+    c4Body:
+      "When recognition is uncertain or low-confidence, Lumos aims to pause and clarify rather than proceed alone.",
+    c5Title: "Local processing first",
+    c5Body:
+      "Where possible the first step stays on the device; if a remote service is needed, that should remain visible.",
+  },
+  media: {
+    intro:
+      "This tab summarizes principles for organizing image, audio, video, and file flows: pre-share review, visible data paths, and separating source from output.",
+    outboxTitle: "Bridge summary (read-only)",
+    outboxIntro:
+      "For the latest task or chat output, the bridge GET /last-result response (if there is no file, a 404 message is shown). The token matches task and file upload flows.",
+    outboxRefresh: "Refresh",
+    c1Title: "Streams and types",
+    c1Body:
+      "Different media types can be followed in one working pattern; which file is used where can be easier to read.",
+    c2Title: "Pre-share review",
+    c2Body:
+      "Before anything leaves the device, content summaries and intended use are meant to be shown to you.",
+    c3Title: "Handoff to external services",
+    c3Body:
+      "Steps where a file or preview is sent for external processing are not hidden; connection and purpose stay clearer.",
+    c4Title: "Editing and conversion",
+    c4Body:
+      "Trimming, format changes, or conversion are suggested as ordered, reversible steps.",
+    c5Title: "Source and output",
+    c5Body:
+      "Original material and generated output are distinguished so you can see clearly what is being shared.",
+  },
+  social: {
+    intro:
+      "This tab summarizes keeping drafts with the user for outward-facing content, increasing platform awareness, and prioritizing explicit approval for lasting posts.",
+    c1Title: "Pre-share review",
+    c1Body:
+      "Before a post is published, summary, target, and visibility are meant to be shown to you one last time.",
+    c2Title: "Target platform",
+    c2Body:
+      "How content will appear in a given environment and which rules apply can be made more visible.",
+    c3Title: "Post draft",
+    c3Body: "Text and attachments stay in draft form; nothing goes live without your edits.",
+    c4Title: "Approval for risky sharing",
+    c4Body:
+      "Permanent, broad-audience, or hard-to-undo shares aim to require extra confirmation.",
+    c5Title: "No automatic publishing",
+    c5Body: "Lumos does not publish silently on your behalf; the send decision stays with you.",
+  },
+  mail: {
+    intro:
+      "This tab summarizes an approach centered on email drafts, attachment and recipient checks, and explicit approval before sending.",
+    c1Title: "Draft-first workflow",
+    c1Body:
+      "Messages are edited as drafts first; sending is not expected before you review the content.",
+    c2Title: "Attachments and recipients",
+    c2Body:
+      "Attachment lists and recipient fields aim to be summarized clearly before send.",
+    c3Title: "Approval before send",
+    c3Body:
+      "The Send step requires deliberate confirmation; invisible “one-click” send is not the goal.",
+    c4Title: "Wrong recipient and sensitive data",
+    c4Body:
+      "Suspicious recipient matches or sensitive content aims to surface warnings.",
+    c5Title: "No automatic send",
+    c5Body:
+      "Lumos does not deliver mail on its own; the final send decision remains yours.",
+  },
+  publishing: {
+    intro:
+      "This tab summarizes making it clear which content goes to which channel in live or recorded broadcast flows, with pre-broadcast checks and explicit approval for recording or sharing.",
+    c1Title: "Live and recorded streams",
+    c1Body:
+      "Whether a broadcast is live or recording-based and the audience context aim to be clearly indicated.",
+    c2Title: "Content and channel mapping",
+    c2Body:
+      "Which video or audio feeds which output can be made trackable with a clear summary.",
+    c3Title: "Pre-broadcast checks",
+    c3Body: "Preview and final warning steps should not be skipped before going on air.",
+    c4Title: "Recording and sharing approval",
+    c4Body:
+      "Session recording or sharing a clip outward are treated as actions that require separate approval.",
+    c5Title: "Broadcast risks",
+    c5Body:
+      "Visibility, copyright, and privacy risks aim to be recalled in short, plain language; no promise of specific legal outcomes is made.",
+  },
+  ai: {
+    intro:
+      "This tab summarizes treating AI not as an authority that decides for you, but as a helper layer that gathers context, organizes options, and makes the decision process clearer.",
+    c1Title: "Gathering context",
+    c1Body:
+      "Lumos aims to build a clearer task context by weighing your request together with the current workspace and related information.",
+    c2Title: "Suggestions and options",
+    c2Body:
+      "AI does not present a single outcome as unquestionably correct; it surfaces options, uncertainties, and points that need attention.",
+    c3Title: "Decision with the user",
+    c3Body:
+      "Lumos may suggest, shorten paths, and reduce confusion; the final decision still belongs to you.",
+    c4Title: "Pausing risky actions",
+    c4Body:
+      "For permanent, costly, or hard-to-reverse steps, AI should inform rather than auto-advance, and wait for explicit approval.",
+    c5Title: "Surfacing uncertainty",
+    c5Body:
+      "When data is missing, confidence is low, or information conflicts, Lumos aims not to hide that, but to show where it is unsure.",
+    c6Title: "Limits of AI",
+    c6Body:
+      "Lumos does not claim AI is always right. The goal is not to sideline you, but to help you act with clearer awareness and control.",
+  },
+  quantum: {
+    intro:
+      "This tab treats probability, uncertainty, and security research together; transparent limits take priority over hard promises.",
+    c1Title: "Quantum security research",
+    c1Body:
+      "This area is where Lumos will evaluate post-quantum cryptography and advanced security approaches in the future. The current system does not claim to use quantum encryption.",
+    c2Title: "Multiple possibilities",
+    c2Body:
+      "Lumos does not present one path as definitively certain; it keeps possible routes and uncertainties visible together.",
+    c3Title: "Balancing uncertainty",
+    c3Body:
+      "When data is incomplete, Lumos does not fill gaps blindly; it separates what is known from what is not.",
+    c4Title: "Boundary of decision",
+    c4Body:
+      "A quantum-oriented approach does not replace judgment; it organizes options and leaves the final direction to your will.",
+  },
+  integration: {
+    intro:
+      "This tab summarizes Lumos building a controlled bridge among local tools, external services, API connections, and applications. The goal is not to wire everything without limits, but to keep connection scope, data flow, and user approval visible.",
+    c1Title: "Service connections",
+    c1Body:
+      "Lumos aims for services and apps to work in a cleaner shared flow. Each connection’s purpose and which action it affects should be explicit.",
+    c2Title: "API bridge",
+    c2Body:
+      "API integrations let Lumos talk to external systems in a controlled way. These links mean scoped capabilities and clear intent—not unlimited privilege.",
+    c3Title: "Local vs. external",
+    c3Body:
+      "Lumos aims to separate work that stays on-device from steps sent to external services, so you can see which step is which more clearly.",
+    c4Title: "Scope and approval",
+    c4Body:
+      "Before a connection is used, what it can access, when it activates, and what approval you must give should be spelled out.",
+    c5Title: "Data-flow visibility",
+    c5Body:
+      "Where files, text, media, or task data is shared and at which step it is processed should become easier to follow.",
+    c6Title: "No unlimited power",
+    c6Body:
+      "Lumos integrations do not mean automatic, unlimited authority. Each connection should be designed to work within user control and security limits.",
+  },
+  identity: {
+    intro:
+      "This tab summarizes Lumos’s digital AI identity tied to the user. The goal is not to create an identity that replaces you, but to make your preferences, limits, permissions, and representational context easier to see and manage.",
+    c1Title: "Digital AI identity",
+    c1Body:
+      "Lumos is structured around a digital AI identity linked to how you work, your preferences, and your boundaries. That identity does not replace you; it makes how you are represented in digital actions easier to understand.",
+    c2Title: "Boundary of representation",
+    c2Body:
+      "Lumos is not meant to act without limits on your behalf. It aims to make clearer which actions run in which context and with which authority.",
+    c3Title: "Sessions and service links",
+    c3Body:
+      "Connected services, sessions, and workspaces can be framed so which link is used for which task is easier to grasp.",
+    c4Title: "Permission visibility",
+    c4Body:
+      "For apps, files, or services, what granted permissions might imply should be shown more openly so consent stays informed.",
+    c5Title: "Preferences and memory limits",
+    c5Body:
+      "Lumos may honor preferences and habits, but how that information is used, bounded, and activated must remain explicit.",
+    c6Title: "Identity security boundary",
+    c6Body:
+      "Lumos does not guarantee identity security absolutely. Instead it aims to make sessions, permissions, representation, and preferences easier to audit.",
+  },
+  security: {
+    c1Title: "Explicit approval",
+    c1Body: "For risky, permanent, or hard-to-reverse actions, Lumos leaves the final call with you.",
+    c2Title: "Risk visibility",
+    c2Body:
+      "Lumos aims to surface likely outcomes, scope, and points to watch before an action starts.",
+    c3Title: "Data-path awareness",
+    c3Body:
+      "Whether data stayed on-device, went to an external service, and where it was processed is made easier to understand.",
+    c4Title: "Security boundary",
+    c4Body:
+      "Lumos does not promise absolute security; it aims to give you a more controlled, traceable, and conscious operating space.",
+  },
+  world: {
+    intro:
+      "This tab summarizes a measured, global product stance: sensitive to different languages, regions, and accessibility needs, without collapsing into a single culture.",
+    c1Title: "Language, region, accessibility",
+    c1Body:
+      "Language choice, local formats, and accessibility options aim to be more visible in interface and content.",
+    c2Title: "Adapting to how people work",
+    c2Body:
+      "The experience aims to adapt across devices, connectivity, and environments without excess.",
+    c3Title: "Localization",
+    c3Body:
+      "Text and dates can follow local norms; translation and context issues aim to stay transparent.",
+    c4Title: "Global, plural lens",
+    c4Body:
+      "Without locking to one center’s viewpoint, the frame respects diverse user needs.",
+    c5Title: "Human-centered technology",
+    c5Body:
+      "Lumos aims to adopt a line that keeps decisions and privacy boundaries with people rather than replacing them with technology.",
+  },
+  settings: {
+    intro:
+      "This tab summarizes keeping preferences, connection and permission limits, and default behaviors under your control and visible.",
+    c1Title: "User preferences",
+    c1Body: "Options like language, theme, and notification intensity aim to be grouped clearly.",
+    c2Title: "Limits and permissions",
+    c2Body:
+      "Which feature depends on which permission is shown in short summaries; permissions you turned off are not silently re-enabled.",
+    c3Title: "Connection settings",
+    c3Body:
+      "External service and account links can be seen in one place; disconnecting and reconnecting stays with you when needed.",
+    c4Title: "Privacy and safety preferences",
+    c4Body:
+      "Choices about sharing, logging, or retention are separated, each with a clear explanation.",
+    c5Title: "Defaults and control",
+    c5Body:
+      "Default behaviors aim to be shown before you accept them; changes should remain reversible.",
+  },
+};
+
+export default panelModules;
