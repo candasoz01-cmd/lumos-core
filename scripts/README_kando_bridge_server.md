@@ -24,9 +24,28 @@ cd /path/to/lumos-core
 PYTHONPATH=src python -m kando_bridge
 # veya eşdeğer:
 PYTHONPATH=src python3 scripts/kando_bridge_server.py
+# port müsaitliği kontrolü ile (önerilen):
+./scripts/bridge_start.sh
 ```
 
 Varsayılan: **`127.0.0.1:8765`**. Bind adresi **yalnızca** `127.0.0.1`, `::1` veya `localhost` olabilir (`0.0.0.0` reddedilir). İstemci adresi de loopback değilse **403**.
+
+## Sunucuyu durdurma
+
+Ön planda çalışıyorsa terminalde **Ctrl+C**. Arka planda PID ile başlattıysanız `kill <pid>` veya `pkill -f "kando_bridge"` (dikkat: aynı ada sahip başka süreçleri de kapatabilir).
+
+## Port doluysa (`EADDRINUSE` / Address already in use)
+
+Başka bir süreç aynı portu kullanıyorsa sunucu açılmaz. Kontrol örnekleri (macOS / Linux):
+
+```bash
+export KANDO_BRIDGE_PORT=8766
+PYTHONPATH=src python3 scripts/kando_bridge_server.py
+# veya mevcut dinleyeni görmek için:
+lsof -nP -iTCP:8765 -sTCP:LISTEN
+```
+
+`./scripts/bridge_start.sh` varsayılan port meşgulse açık bir mesajla çıkar; `KANDO_BRIDGE_PORT` ile boş port verip yeniden deneyin.
 
 | Ortam değişkeni | Anlamı |
 |-----------------|--------|
@@ -101,3 +120,5 @@ curl -sS -X POST http://127.0.0.1:8765/task \
 ## Sınır
 
 ChatGPT **web/masaüstü uygulamasının** kendi başına bu porta istek atması mümkün değildir; pratik köprüler: tarayıcı eklentisi, kopyala-yapıştır relay, veya OpenAI API ile kendi istemciniz. Bu sunucu, **yerelde** çalışan istemcinin güvenli bir giriş noktasıdır.
+
+Yanıtlarda `Access-Control-Allow-Origin: *` üretilir; yine de `GET`/`POST` için istemci adresi **loopback** olmalıdır. Panel (`npm --prefix ui run dev`) ile aynı makinede `127.0.0.1` köprüsüne istek atıldığında tarayıcı CORS açısından genelde sorunsuzdur; paneli **Vercel gibi uzak bir origin**den açıp yerel `127.0.0.1` köprüsüne bağlanmak tarayıcıda engellenebilir (karma içerik / özel ağ erişimi); bu durumda köprüyü erişilebilir bir hostta ayrı yayınlamanız veya tünel kullanmanız gerekir.

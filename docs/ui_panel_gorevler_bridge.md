@@ -14,6 +14,7 @@
 ## Güncel davranış (yerel önce, köprü sonra)
 
 - Yerel akış **aynı**: görev önce listeye yazılır, kalıcı yerel kayıt ve UI güncellenir.
+- Liste satırında `bridgeLast.lastBridgeAt` varsa **“Son köprü:”** satırı (tarih + kısaltılmış route) gösterilir; detay panelinde route, source, accepted, result_file, execution_file ve son işlem zamanı yer alır; eski kayıtlarda bu alanlar **—** olur.
 - Ardından tarayıcı `POST {BRIDGE_BASE_URL}/task` çağırır (upload ile aynı köprü tabanı: `PUBLIC_LUMOS_PANEL_UPLOAD_URL` üzerinden `BRIDGE_BASE_URL`).
 - JSON gövde: `goal` (görev metni), `source: "panel_gorevler"`, `priority`, `status` (panel meta; köprü yürütmesi için zorunlu değil).
 - `X-Kando-Token`: sohbet ve dosya yükleme ile aynı başlık; `KANDO_BRIDGE_SECRET` açıksa köprü bunu doğrular.
