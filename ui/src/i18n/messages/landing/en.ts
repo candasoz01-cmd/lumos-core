@@ -34,6 +34,11 @@ const landingEn: typeof landingTr = {
     visionCardBody:
       "An intelligent voice, media, and AI network starting from Cyprus; opening to the world with a human-centered control approach.",
   },
+  heroScene: {
+    holoHeadline: "TO THE FUTURE WITH REASON AND SCIENCE",
+    quote: "“The truest guide in life is science and knowledge.”",
+    quoteAttribution: "— Atatürk",
+  },
   why: {
     title: "Why Lumos?",
     p1: "I designed Lumos with the belief that people must not lose control in the face of technology.",
@@ -175,8 +180,9 @@ const landingEn: typeof landingTr = {
     },
   },
   assets: {
+    /** Until a neutral or EN-only graphic ships, paths may match TR; swap when assets land in `public/`. */
     worldMapDecor: "/lumos-world-map.jpg",
-    heroAtaScene: "/lumos-hero-ata-scene.png",
+    heroAtaScene: "/lumos-world-map.jpg",
     ogImage: "https://welockai.com/lumos-world-map.jpg",
   },
 };

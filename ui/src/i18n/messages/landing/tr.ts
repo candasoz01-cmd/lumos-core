@@ -32,6 +32,12 @@ const landingTr = {
     visionCardBody:
       "Kıbrıs’tan başlayan akıllı ses, medya ve yapay zekâ ağı; insan merkezli kontrol anlayışıyla dünyaya açılır.",
   },
+  /** Metinler görselde gömülü olduğu sürece hero sahnesinde HTML ile üstte gösterilir; yazısız master gelince kaldırılabilir. */
+  heroScene: {
+    holoHeadline: "AKIL VE BİLİM İLE GELECEĞE",
+    quote: "“Hayatta en hakiki mürşit ilimdir, fendir.”",
+    quoteAttribution: "— K. Atatürk",
+  },
   why: {
     title: "Neden Lumos?",
     p1: "Lumos’u, insanın teknoloji karşısında kontrolünü kaybetmemesi gerektiği düşüncesiyle tasarlıyorum.",
@@ -174,8 +180,10 @@ const landingTr = {
   },
   /** Phase 2: locale-specific rasters when text-free or EN variants exist (paths may match until then). */
   assets: {
+    /** JPG içinde TR etiketleri var; yazısız raster veya `landing.assets.worldMapDecor` EN yolu ile geçiş. */
     worldMapDecor: "/lumos-world-map.jpg",
-    heroAtaScene: "/lumos-hero-ata-scene.png",
+    /** PNG içinde TR yazılar var; yazısız master ya da locale göre ayrı dosya önerilir (overlay metin `heroScene`). */
+    heroAtaScene: "/lumos-world-map.jpg",
     ogImage: "https://welockai.com/lumos-world-map.jpg",
   },
 } as const;

@@ -3,7 +3,7 @@ import en from "./messages/en";
 
 export type Locale = "tr" | "en";
 export const LOCALES: Locale[] = ["tr", "en"];
-export const DEFAULT_LOCALE: Locale = "tr";
+export const DEFAULT_LOCALE: Locale = "en";
 const STORAGE_KEY = "lumos_locale";
 
 const catalogs: Record<Locale, typeof tr> = { tr, en };
