@@ -1498,6 +1498,72 @@ const TASKS_API_URL =
       .chat-thread:has(> .chat-turn) > .chat-empty-hint {
         display: none;
       }
+      .chat-capability-card {
+        align-self: center;
+        width: 100%;
+        max-width: min(22rem, 92%);
+        min-width: 0;
+        box-sizing: border-box;
+        margin: 0 auto;
+        padding: 0.72rem 0.88rem 0.78rem;
+        border-radius: 10px;
+        background: rgba(6, 10, 22, 0.58);
+        border: 1px solid var(--lumos-teal-22);
+        flex-shrink: 0;
+        overflow-x: hidden;
+      }
+      .chat-capability-card__title {
+        margin: 0 0 0.55rem;
+        font-size: 0.82rem;
+        font-weight: 650;
+        letter-spacing: -0.02em;
+        line-height: 1.35;
+        color: rgb(210 232 252 / 0.94);
+        text-align: center;
+      }
+      .chat-capability-card__sections {
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+        min-width: 0;
+      }
+      .chat-capability-card__section {
+        min-width: 0;
+      }
+      .chat-capability-card__heading {
+        margin: 0 0 0.28rem;
+        font-size: 0.68rem;
+        font-weight: 650;
+        letter-spacing: 0.02em;
+        line-height: 1.35;
+        color: rgb(168 210 228 / 0.9);
+      }
+      .chat-capability-card__list {
+        margin: 0;
+        padding: 0 0 0 1.05rem;
+        font-size: 0.66rem;
+        font-weight: 500;
+        line-height: 1.42;
+        letter-spacing: 0.005em;
+        color: rgba(184, 206, 228, 0.86);
+      }
+      .chat-capability-card__list li {
+        margin: 0.14rem 0 0;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+      .chat-capability-card__list li:first-child {
+        margin-top: 0;
+      }
+      .chat-thread:has(> .chat-turn) > .chat-capability-card {
+        display: none;
+      }
+      .chat-empty-hint + .chat-capability-card {
+        margin-top: 0.35rem;
+      }
+      .chat-capability-card + .lumos-security-note {
+        margin-top: 0.42rem;
+      }
       .chat-empty-hint + .lumos-security-note {
         margin-top: -0.35rem;
       }
@@ -2294,6 +2360,33 @@ const TASKS_API_URL =
           letter-spacing: -0.025em;
           line-height: 1.28;
         }
+        #panel-sohbet .chat-capability-card {
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+          align-self: stretch;
+          box-sizing: border-box;
+          padding: 0.62rem 0.78rem 0.68rem;
+          overflow-x: hidden;
+        }
+        #panel-sohbet .chat-capability-card__title {
+          font-size: clamp(0.68rem, 2.8vw, 0.78rem);
+          line-height: 1.32;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+        }
+        #panel-sohbet .chat-capability-card__heading {
+          font-size: clamp(0.6rem, 2.4vw, 0.66rem);
+        }
+        #panel-sohbet .chat-capability-card__list {
+          font-size: clamp(0.56rem, 2.2vw, 0.64rem);
+          line-height: 1.38;
+          padding-left: 0.95rem;
+        }
+        #panel-sohbet .chat-capability-card__list li {
+          overflow-wrap: anywhere;
+          word-break: break-word;
+        }
         #panel-sohbet .chat-compose-stack {
           flex: 0 0 auto;
           flex-shrink: 0;
@@ -2607,6 +2700,46 @@ const TASKS_API_URL =
                 >
                   <div class="chat-empty-hint" aria-hidden="true">
                     <span class="chat-empty-hint__text">Lumos hazır · Dinliyor</span>
+                  </div>
+                  <div
+                    class="chat-capability-card"
+                    role="region"
+                    aria-labelledby="chat-capability-card-title"
+                  >
+                    <h3 id="chat-capability-card-title" class="chat-capability-card__title">
+                      Şu an ne yapabilirim?
+                    </h3>
+                    <div class="chat-capability-card__sections">
+                      <section class="chat-capability-card__section" aria-label="Yapabilirim">
+                        <h4 class="chat-capability-card__heading">Yapabilirim</h4>
+                        <ul class="chat-capability-card__list">
+                          <li>Görev kaydedebilirim.</li>
+                          <li>Görevleri listeleyebilirim.</li>
+                          <li>Düşük riskli görevlerde küçük plan çıkarabilirim.</li>
+                          <li>
+                            Düşük riskte kod, köprü veya terminal çalıştırmadan teşhis notu
+                            gösterebilirim.
+                          </li>
+                          <li>Dosya adı, türü, boyutu ve uzantısını gösterebilirim.</li>
+                          <li>
+                            Kontrollü dosya hattı üzerinden güvenli okuma/yazma akışına
+                            hazırlanabilirim.
+                          </li>
+                        </ul>
+                      </section>
+                      <section class="chat-capability-card__section" aria-label="Şu an yapmam">
+                        <h4 class="chat-capability-card__heading">Şu an yapmam</h4>
+                        <ul class="chat-capability-card__list">
+                          <li>Kendi kendime terminal çalıştırmam.</li>
+                          <li>Kod değiştirmem.</li>
+                          <li>Mac uygulamalarını açmam.</li>
+                          <li>Mail, takvim veya kişilere erişmem.</li>
+                          <li>PDF/DOCX derin analiz yapmam.</li>
+                          <li>EXE dosyası çalıştırmam.</li>
+                          <li>Kullanıcı onayı olmadan kalıcı işlem yapmam.</li>
+                        </ul>
+                      </section>
+                    </div>
                   </div>
                   <p class="lumos-security-note">Kalıcı işlemler için onay ister.</p>
                 </div>
