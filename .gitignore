@@ -43,3 +43,5 @@ kando-ai/*.png
 
 .tmp-upload-test/
 .tmp-panel-samples/
+
+ui/.env.local
