@@ -1589,21 +1589,23 @@ const TASKS_API_URL =
         background: var(--lumos-teal-48);
         background-clip: padding-box;
       }
-      .chat-turn {
+      :global(.chat-turn) {
         display: flex;
         width: 100%;
         min-width: 0;
         flex-shrink: 0;
         justify-content: flex-start;
+        margin-block: 0.1rem;
+        overflow-x: hidden;
       }
-      .chat-turn--user {
+      :global(.chat-turn--user) {
         justify-content: flex-end;
       }
-      .chat-turn--lumos,
-      .chat-turn--error {
+      :global(.chat-turn--lumos),
+      :global(.chat-turn--error) {
         justify-content: flex-start;
       }
-      .chat-msg {
+      :global(.chat-msg) {
         display: flex;
         flex-direction: column;
         min-width: 0;
@@ -1615,27 +1617,37 @@ const TASKS_API_URL =
         overflow-wrap: anywhere;
         box-shadow: none;
       }
-      .chat-msg--user {
+      :global(.chat-msg--user) {
         max-width: min(100%, 22rem, 82%);
         margin-left: clamp(1.5rem, 8vw, 3.5rem);
-        padding: 0.62rem 0.82rem 0.72rem;
-        background: rgba(6, 12, 26, 0.92);
-        border: 1px solid var(--lumos-border);
+        padding: 0.58rem 0.78rem 0.66rem;
+        background: var(--lumos-user-bubble, rgba(6, 12, 26, 0.92));
+        border: 1px solid var(--lumos-gold-line, rgb(var(--lumos-land-warm) / 0.34));
         border-radius: var(--panel-radius-lg) var(--panel-radius-lg) 5px var(--panel-radius-lg);
         color: #f0f4fa;
-        box-shadow: var(--panel-edge-inset);
+        box-shadow:
+          var(--panel-edge-inset),
+          0 0 0 1px rgb(var(--lumos-land-warm) / 0.06);
+        min-width: 0;
+        overflow-x: hidden;
+        box-sizing: border-box;
       }
-      .chat-msg--lumos {
+      :global(.chat-msg--lumos) {
         max-width: min(100%, 46rem, 94%);
         margin-right: clamp(0.75rem, 5vw, 2.5rem);
-        padding: 0.65rem 0.92rem 0.78rem;
-        background: rgba(4, 10, 22, 0.88);
-        border: 1px solid var(--lumos-border);
+        padding: 0.6rem 0.86rem 0.72rem;
+        background: var(--lumos-lumos-bubble, rgba(4, 10, 22, 0.9));
+        border: 1px solid rgb(var(--lumos-land-teal) / 0.26);
         border-radius: var(--panel-radius-lg) var(--panel-radius-lg) var(--panel-radius-lg) 5px;
         color: #e9eef5;
-        box-shadow: var(--panel-edge-inset);
+        box-shadow:
+          var(--panel-edge-inset),
+          inset 0 1px 0 rgb(var(--lumos-land-teal) / 0.08);
+        min-width: 0;
+        overflow-x: hidden;
+        box-sizing: border-box;
       }
-      .chat-msg--error {
+      :global(.chat-msg--error) {
         max-width: min(100%, 40rem, 92%);
         margin-right: clamp(0.75rem, 5vw, 2.25rem);
         border: 1px solid rgba(240, 180, 180, 0.32);
@@ -1643,39 +1655,44 @@ const TASKS_API_URL =
         background: linear-gradient(165deg, rgba(48, 22, 28, 0.55) 0%, rgba(32, 16, 20, 0.65) 100%);
         border-radius: var(--panel-radius-lg) var(--panel-radius-lg) var(--panel-radius-lg) 5px;
       }
-      .chat-msg-role {
+      :global(.chat-msg-role) {
         display: block;
         font-size: 0.62rem;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.09em;
-        margin-bottom: 0.35rem;
+        margin-bottom: 0.28rem;
         opacity: 0.88;
+        min-width: 0;
       }
-      .chat-msg--user .chat-msg-role {
+      :global(.chat-msg--user .chat-msg-role) {
         color: rgb(var(--lumos-land-warm) / 0.78);
         text-align: right;
       }
-      .chat-msg--lumos .chat-msg-role {
+      :global(.chat-msg--lumos .chat-msg-role) {
         color: rgb(168 214 236 / 0.88);
         text-align: left;
       }
-      .chat-msg--error .chat-msg-role {
+      :global(.chat-msg--error .chat-msg-role) {
         color: rgba(255, 200, 200, 0.75);
       }
-      .chat-msg-body {
+      :global(.chat-msg-body) {
         font-size: 0.9rem;
         line-height: 1.68;
         letter-spacing: -0.01em;
+        min-width: 0;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        word-break: break-word;
       }
-      .chat-msg--lumos .chat-msg-body {
+      :global(.chat-msg--lumos .chat-msg-body) {
         white-space: pre-wrap;
         line-height: 1.75;
         min-width: 0;
         overflow-wrap: anywhere;
         word-break: break-word;
       }
-      .chat-msg--lumos .chat-msg-body strong {
+      :global(.chat-msg--lumos .chat-msg-body strong) {
         font-weight: 700;
         color: #f0e8d8;
       }
@@ -2329,17 +2346,27 @@ const TASKS_API_URL =
           justify-content: flex-start;
           padding-top: 0.55rem;
         }
-        #panel-sohbet .chat-msg--user {
-          max-width: 100%;
-          margin-left: 0;
+        #panel-sohbet :global(.chat-turn) {
+          min-width: 0;
+          overflow-x: hidden;
         }
-        #panel-sohbet .chat-msg--lumos,
-        #panel-sohbet .chat-msg--error {
-          max-width: 100%;
-          margin-right: 0;
+        #panel-sohbet :global(.chat-msg--user) {
+          max-width: 88%;
+          margin-left: auto;
+          margin-right: clamp(0.28rem, 2vw, 0.55rem);
         }
-        #panel-sohbet .chat-msg-body {
+        #panel-sohbet :global(.chat-msg--lumos),
+        #panel-sohbet :global(.chat-msg--error) {
+          max-width: 94%;
+          margin-right: auto;
+          margin-left: clamp(0.28rem, 2vw, 0.55rem);
+        }
+        #panel-sohbet :global(.chat-msg-body) {
           font-size: 0.86rem;
+          min-width: 0;
+          max-width: 100%;
+          overflow-wrap: anywhere;
+          word-break: break-word;
         }
         /* "Lumos hazır · Dinliyor": dar ekranda taşmayı önlemek için satır kırılır. */
         #panel-sohbet .chat-empty-hint {
