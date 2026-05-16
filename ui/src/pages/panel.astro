@@ -21,6 +21,9 @@ const HEALTH_URL =
 const STATUS_URL =
   import.meta.env.PUBLIC_LUMOS_PANEL_STATUS_URL ||
   String(CHAT_URL).replace(/\/chat\/?$/i, "") + "/status";
+/** Görev motoru: GET/POST /tasks → `.lumos/tasks.json` (`panel/scripts/panel_tasks_server.py`, varsayılan :8766). */
+const TASKS_API_URL =
+  import.meta.env.PUBLIC_LUMOS_PANEL_TASKS_URL || "http://127.0.0.1:8766";
 ---
 
 <html lang="tr">
@@ -1045,6 +1048,14 @@ const STATUS_URL =
         border-bottom: 1px solid rgba(255, 255, 255, 0.06);
         background: rgba(12, 12, 12, 0.96);
       }
+      .gorevler-detail-header-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.35rem;
+        flex: 0 0 auto;
+      }
       .gorevler-detail-heading {
         margin: 0;
         flex: 1 1 auto;
@@ -1264,7 +1275,6 @@ const STATUS_URL =
         font-size: 0.72rem;
         color: rgba(200, 188, 168, 0.92);
       }
-      .gorevler-list-heading {
         margin: 0;
         font-size: 0.62rem;
         font-weight: 600;
@@ -2544,8 +2554,9 @@ const STATUS_URL =
             <p class="gorevler-eyebrow">Operasyon</p>
             <h2 id="panel-gorevler-title">Görevler</h2>
             <p class="gorevler-intro">
-              Görev akışınızı panel içinde buradan yürütüp izlersiniz. Görevler bu tarayıcıda <strong>localStorage</strong> ile saklanır; sayfa yenilense de kalır. Sunucu veya veritabanı
-              yoktur — veriyi silmek için tarayıcı site verilerini temizlemeniz gerekir.
+              Görevler <code>panel_tasks_server</code> üzerinden <strong>.lumos/tasks.json</strong> dosyasına yazılır
+              (<code>{TASKS_API_URL}</code>). Köprü yürütmesi ayrıca <code>POST /task</code> ile tetiklenir. Sunucu kapalıysa liste
+              tarayıcı önbelleğinden (localStorage) gösterilir.
             </p>
             <div class="gorevler-proto">
               <div class="gorevler-form-panel">
@@ -2581,6 +2592,9 @@ const STATUS_URL =
               </div>
               <div class="gorevler-list-heading-row">
                 <h3 class="gorevler-list-heading">Görev listesi</h3>
+                <button type="button" id="gorevler-restore-last" class="gorevler-clear-test-btn" hidden>
+                  Geri al
+                </button>
                 <button type="button" id="gorevler-clear-test" class="gorevler-clear-test-btn">
                   Test verilerini temizle
                 </button>
@@ -2590,7 +2604,15 @@ const STATUS_URL =
                 <div class="gorevler-detail-shell">
                   <header class="gorevler-detail-header">
                     <h3 id="gorevler-detail-title" class="gorevler-detail-heading">Görev</h3>
-                    <button type="button" id="gorevler-detail-close" class="gorevler-detail-close">Kapat</button>
+                    <div class="gorevler-detail-header-actions">
+                      <button type="button" id="gorevler-detail-complete" class="gorevler-clear-test-btn" hidden>
+                        Tamamla
+                      </button>
+                      <button type="button" id="gorevler-detail-delete" class="gorevler-clear-test-btn" hidden>
+                        Sil
+                      </button>
+                      <button type="button" id="gorevler-detail-close" class="gorevler-detail-close">Kapat</button>
+                    </div>
                   </header>
                   <div class="gorevler-detail-body">
                     <section class="gorevler-detail-section" aria-labelledby="gorevler-detail-sec-task">
@@ -3269,8 +3291,8 @@ const STATUS_URL =
         </nav>
       </div>
     </div>
-    <script define:vars={{ CHAT_URL, kandoToken, UPLOAD_URL, HEALTH_URL, BRIDGE_BASE_URL, STATUS_URL }}>
-      /** Görevler sekmesi ile sohbet görev komutları tek diziyi paylaşır (wireGorevlerPrototype). Kalıcılık: tarayıcı localStorage. */
+    <script define:vars={{ CHAT_URL, kandoToken, UPLOAD_URL, HEALTH_URL, BRIDGE_BASE_URL, STATUS_URL, TASKS_API_URL }}>
+      /** Görevler: panel_tasks_server → .lumos/tasks.json; localStorage önbellek + köprü POST /task. */
       const PANEL_GOREVLER_LS_KEY = "lumos_panel_gorevler_list_v1";
       const GOREVLER_FIELD_MAX_LEN = 2048;
 
@@ -3337,7 +3359,118 @@ const STATUS_URL =
         if (w) row.when = w;
         const bridge = sanitizeBridgeLast(x.bridgeLast);
         if (bridge) row.bridgeLast = bridge;
+        const id = x.id != null ? String(x.id).trim() : "";
+        if (id) row.id = id;
         return row;
+      }
+
+      /** Motor görevi → panel satırı (`tasks.json`: active|done). */
+      function engineTaskToPanelRow(t) {
+        if (!t || typeof t !== "object") return null;
+        const title = String(t.title || "").trim();
+        if (!title) return null;
+        const st = String(t.status || "active");
+        let status = "bekliyor";
+        if (st === "done") status = "tamamlandi";
+        const row = { title, priority: "orta", status };
+        const id = String(t.id || "").trim();
+        if (id) row.id = id;
+        const when = t.completedAt || t.createdAt;
+        if (when) row.when = String(when);
+        return row;
+      }
+
+      function mergePanelGorevlerMetaFromPrevious(nextRows) {
+        const prev = panelGorevlerTasks;
+        const byId = new Map();
+        const byTitle = new Map();
+        for (let i = 0; i < prev.length; i++) {
+          const r = prev[i];
+          if (!r) continue;
+          if (r.id) byId.set(String(r.id), r);
+          if (r.title) byTitle.set(String(r.title).trim().toLowerCase(), r);
+        }
+        for (let i = 0; i < nextRows.length; i++) {
+          const r = nextRows[i];
+          const old =
+            (r.id && byId.get(String(r.id))) ||
+            (r.title && byTitle.get(String(r.title).trim().toLowerCase()));
+          if (!old) continue;
+          if (old.priority && ["dusuk", "orta", "yuksek"].includes(old.priority)) {
+            r.priority = old.priority;
+          }
+          if (old.status === "onay_bekliyor" && r.status === "bekliyor") {
+            r.status = "onay_bekliyor";
+          }
+          const bl = sanitizeBridgeLast(old.bridgeLast);
+          if (bl) r.bridgeLast = bl;
+        }
+      }
+
+      function resolveGorevlerTasksApiBase() {
+        const w = typeof window !== "undefined" ? window : null;
+        if (w && w.LUMOS_PANEL_TASKS_API_BASE === false) return "";
+        if (w && w.LUMOS_PANEL_TASKS_API_BASE != null && String(w.LUMOS_PANEL_TASKS_API_BASE).trim()) {
+          return String(w.LUMOS_PANEL_TASKS_API_BASE).replace(/\/$/, "");
+        }
+        const fromBuild = String(TASKS_API_URL || "").replace(/\/$/, "");
+        if (fromBuild) return fromBuild;
+        try {
+          const loc = w && w.location;
+          if (loc && /^https?:$/i.test(String(loc.protocol || ""))) {
+            return String(loc.origin || "").replace(/\/$/, "");
+          }
+        } catch (_) {
+          /* ignore */
+        }
+        return "http://127.0.0.1:8766";
+      }
+
+      async function tasksApiPost(path, body) {
+        const base = resolveGorevlerTasksApiBase();
+        if (!base) throw new Error("tasks_api_disabled");
+        const p = path.charAt(0) === "/" ? path : "/" + path;
+        const r = await fetch(`${base}${p}`, {
+          method: "POST",
+          headers: { Accept: "application/json", "Content-Type": "application/json" },
+          body: JSON.stringify(body != null ? body : {}),
+        });
+        let data = null;
+        try {
+          data = await r.json();
+        } catch {
+          data = null;
+        }
+        return { ok: r.ok, status: r.status, data };
+      }
+
+      async function refreshPanelGorevlerFromTasksApi() {
+        const base = resolveGorevlerTasksApiBase();
+        if (!base) return false;
+        try {
+          const r = await fetch(`${base}/tasks`, {
+            headers: { Accept: "application/json" },
+          });
+          if (!r.ok) return false;
+          const doc = await r.json();
+          if (!doc || !Array.isArray(doc.tasks)) return false;
+          const next = [];
+          for (let i = 0; i < doc.tasks.length; i++) {
+            const t = doc.tasks[i];
+            if (!t || typeof t !== "object") continue;
+            if (String(t.status || "") === "deleted") continue;
+            const row = engineTaskToPanelRow(t);
+            if (row) next.push(row);
+          }
+          mergePanelGorevlerMetaFromPrevious(next);
+          panelGorevlerTasks.length = 0;
+          panelGorevlerTasks.push(...next);
+          persistPanelGorevlerTasks();
+          if (typeof panelGorevlerTasksRender === "function") panelGorevlerTasksRender();
+          return true;
+        } catch {
+          return false;
+        }
       }
 
       function loadPanelGorevlerTasksFromStorage() {
@@ -3367,13 +3500,7 @@ const STATUS_URL =
         }
       }
 
-      const storedGorevler = loadPanelGorevlerTasksFromStorage();
-      const panelGorevlerTasks =
-        storedGorevler === undefined ? defaultGorevlerSeed.slice() : storedGorevler;
-
-      if (storedGorevler === undefined) {
-        persistPanelGorevlerTasks();
-      }
+      let panelGorevlerTasks = defaultGorevlerSeed.slice();
 
       let panelGorevlerTasksRender = null;
 
@@ -4605,6 +4732,9 @@ const STATUS_URL =
         const detailTaskDl = document.getElementById("gorevler-detail-task-dl");
         const detailBridgeDl = document.getElementById("gorevler-detail-bridge-dl");
         const detailCloseBtn = document.getElementById("gorevler-detail-close");
+        const detailCompleteBtn = document.getElementById("gorevler-detail-complete");
+        const detailDeleteBtn = document.getElementById("gorevler-detail-delete");
+        const restoreLastBtn = document.getElementById("gorevler-restore-last");
         const clearTestBtn = document.getElementById("gorevler-clear-test");
         if (
           !listEl ||
@@ -4663,11 +4793,14 @@ const STATUS_URL =
 
         let gorevlerEscapeHandler = null;
         let lastGorevlerOpenedIndex = -1;
+        let lastGorevlerDeletedId = "";
 
         function syncGorevlerDetailUiClosed(restoreFocus) {
           detailTaskDl.replaceChildren();
           detailBridgeDl.replaceChildren();
           detailTitleEl.textContent = "Görev";
+          if (detailCompleteBtn) detailCompleteBtn.hidden = true;
+          if (detailDeleteBtn) detailDeleteBtn.hidden = true;
           listEl.querySelectorAll(".gorevler-task-card").forEach((node) => {
             node.setAttribute("aria-expanded", "false");
           });
@@ -4821,6 +4954,15 @@ const STATUS_URL =
           appendDetailRow(detailBridgeDl, "Çalıştırma dosyası", execFile);
           appendDetailRow(detailBridgeDl, "Köprü zamanı", lastOp);
 
+          const hasId = !!(t.id && String(t.id).trim());
+          const canComplete = hasId || !!(t.title && String(t.title).trim());
+          if (detailCompleteBtn) {
+            detailCompleteBtn.hidden = !canComplete || t.status === "tamamlandi";
+          }
+          if (detailDeleteBtn) {
+            detailDeleteBtn.hidden = !hasId;
+          }
+
           if (gorevlerUseDialog) {
             try {
               if (!detailEl.open) detailEl.showModal();
@@ -4962,10 +5104,20 @@ const STATUS_URL =
           return main + "\n" + extra.join(" · ");
         }
 
+        function findPanelGorevlerRow(taskId, title) {
+          const tid = taskId != null ? String(taskId).trim() : "";
+          const tt = title != null ? String(title).trim() : "";
+          for (let i = 0; i < panelGorevlerTasks.length; i++) {
+            const x = panelGorevlerTasks[i];
+            if (tid && x.id === tid) return x;
+            if (tt && x.title === tt) return x;
+          }
+          return null;
+        }
+
         /**
-         * Görevler sekmesi: önce yerel liste (panelGorevlerTasks + localStorage),
-         * sonra köprü POST /task. Köprü hatası listeyi geri almaz.
-         * Köprü JSON: goal (metin), source panel_gorevler; token sohbet/yükleme ile aynı.
+         * Görevler: POST /tasks → .lumos/tasks.json; isteğe bağlı POST /tasks/complete;
+         * ardından köprü POST /task (köprü hatası disk kaydını geri almaz).
          */
         async function addTask() {
           const title = titleInput.value.trim();
@@ -4979,15 +5131,61 @@ const STATUS_URL =
           const priority = prioritySel.value;
           const status = statusSel.value;
 
-          panelGorevlerTasks.push({
-            title,
-            priority,
-            status,
-          });
-          const taskRef = panelGorevlerTasks[panelGorevlerTasks.length - 1];
+          let createRes;
+          try {
+            createRes = await tasksApiPost("/tasks", { title });
+          } catch {
+            showHint(
+              "Görev sunucusuna ulaşılamadı. panel_tasks_server çalışıyor mu? (" +
+                resolveGorevlerTasksApiBase() +
+                ")",
+            );
+            return;
+          }
+          if (!createRes.ok || !createRes.data || !createRes.data.ok) {
+            const err =
+              createRes.data && createRes.data.error != null
+                ? String(createRes.data.error)
+                : "create_failed (" + createRes.status + ")";
+            showHint("Görev kaydedilemedi (" + err + ").");
+            return;
+          }
+
+          const taskId =
+            createRes.data.task && createRes.data.task.id != null
+              ? String(createRes.data.task.id).trim()
+              : "";
+          if (status === "tamamlandi" && taskId) {
+            await tasksApiPost("/tasks/complete", { ref: taskId });
+          }
+
+          const refreshed = await refreshPanelGorevlerFromTasksApi();
+          if (!refreshed && createRes.data.task) {
+            const row = engineTaskToPanelRow(createRes.data.task);
+            if (row) {
+              if (priority) row.priority = priority;
+              if (status === "onay_bekliyor") row.status = "onay_bekliyor";
+              else if (status === "tamamlandi") row.status = "tamamlandi";
+              panelGorevlerTasks.push(row);
+              persistPanelGorevlerTasks();
+              render();
+            }
+          }
+
+          const taskRef = findPanelGorevlerRow(taskId, title);
+          if (taskRef) {
+            if (priority) taskRef.priority = priority;
+            if (status === "onay_bekliyor") taskRef.status = "onay_bekliyor";
+            persistPanelGorevlerTasks();
+            render();
+          }
+
           titleInput.value = "";
-          persistPanelGorevlerTasks();
-          render();
+
+          if (!taskRef) {
+            hideHint();
+            return;
+          }
 
           try {
             const r = await fetch(`${BRIDGE_BASE_URL}/task`, {
@@ -5017,14 +5215,14 @@ const STATUS_URL =
                 data && typeof data === "object" && data.error != null
                   ? String(data.error)
                   : "Köprü yanıtı başarısız (" + r.status + ").";
-              showHint("Görev yerel listeye eklendi; " + err);
+              showHint("Görev kaydedildi; " + err);
               return;
             }
             if (data && typeof data === "object" && data.accepted === false) {
               assignTaskBridgeLast(taskRef, data, false);
               const err =
                 data.error != null ? String(data.error) : "Görev köprü tarafından kabul edilmedi.";
-              showHint("Görev yerel listeye eklendi; " + err);
+              showHint("Görev kaydedildi; " + err);
               return;
             }
             if (data && typeof data === "object") {
@@ -5036,8 +5234,78 @@ const STATUS_URL =
             }
           } catch (_) {
             assignTaskBridgeLast(taskRef, null, null);
-            showHint("Görev yerel listeye eklendi; bridge bağlantısı başarısız.");
+            showHint("Görev kaydedildi; köprü bağlantısı başarısız.");
           }
+        }
+
+        async function completeOpenGorevlerTask() {
+          const t = panelGorevlerTasks[lastGorevlerOpenedIndex];
+          if (!t) return;
+          const ref = t.id ? String(t.id).trim() : String(t.title || "").trim();
+          if (!ref) return;
+          hideHint();
+          let res;
+          try {
+            res = await tasksApiPost("/tasks/complete", { ref });
+          } catch {
+            showHint("Tamamlanamadı: görev sunucusuna ulaşılamadı.");
+            return;
+          }
+          if (!res.ok || !res.data || !res.data.ok) {
+            const err =
+              res.data && res.data.error != null ? String(res.data.error) : "complete_failed";
+            showHint("Tamamlanamadı (" + err + ").");
+            return;
+          }
+          await refreshPanelGorevlerFromTasksApi();
+          closeGorevlerDetail(true);
+          hideHint();
+        }
+
+        async function deleteOpenGorevlerTask() {
+          const t = panelGorevlerTasks[lastGorevlerOpenedIndex];
+          if (!t || !t.id) return;
+          if (!confirm("Görev silinsin mi?")) return;
+          hideHint();
+          let res;
+          try {
+            res = await tasksApiPost("/tasks/delete", { id: String(t.id).trim() });
+          } catch {
+            showHint("Silinemedi: görev sunucusuna ulaşılamadı.");
+            return;
+          }
+          if (!res.ok || !res.data || !res.data.ok) {
+            const err = res.data && res.data.error != null ? String(res.data.error) : "delete_failed";
+            showHint("Silinemedi (" + err + ").");
+            return;
+          }
+          lastGorevlerDeletedId = String(t.id).trim();
+          if (restoreLastBtn) restoreLastBtn.hidden = false;
+          await refreshPanelGorevlerFromTasksApi();
+          closeGorevlerDetail(true);
+          showHint("Görev silindi. Geri almak için «Geri al» düğmesine basın.");
+        }
+
+        async function restoreLastGorevlerTask() {
+          if (!lastGorevlerDeletedId) return;
+          hideHint();
+          let res;
+          try {
+            res = await tasksApiPost("/tasks/restore", { id: lastGorevlerDeletedId });
+          } catch {
+            showHint("Geri alınamadı: görev sunucusuna ulaşılamadı.");
+            return;
+          }
+          if (!res.ok || !res.data || !res.data.ok) {
+            const err =
+              res.data && res.data.error != null ? String(res.data.error) : "restore_failed";
+            showHint("Geri alınamadı (" + err + ").");
+            return;
+          }
+          lastGorevlerDeletedId = "";
+          if (restoreLastBtn) restoreLastBtn.hidden = true;
+          await refreshPanelGorevlerFromTasksApi();
+          hideHint();
         }
 
         panelGorevlerTasksRender = render;
@@ -5080,6 +5348,21 @@ const STATUS_URL =
         });
 
         detailCloseBtn.addEventListener("click", () => closeGorevlerDetail(true));
+        if (detailCompleteBtn) {
+          detailCompleteBtn.addEventListener("click", () => {
+            completeOpenGorevlerTask();
+          });
+        }
+        if (detailDeleteBtn) {
+          detailDeleteBtn.addEventListener("click", () => {
+            deleteOpenGorevlerTask();
+          });
+        }
+        if (restoreLastBtn) {
+          restoreLastBtn.addEventListener("click", () => {
+            restoreLastGorevlerTask();
+          });
+        }
 
         clearTestBtn.addEventListener("click", () => {
           if (
@@ -5109,7 +5392,19 @@ const STATUS_URL =
           render();
         });
 
-        render();
+        refreshPanelGorevlerFromTasksApi().then((ok) => {
+          if (!ok) {
+            const stored = loadPanelGorevlerTasksFromStorage();
+            panelGorevlerTasks.length = 0;
+            const rows = stored === undefined ? defaultGorevlerSeed.slice() : stored;
+            for (let i = 0; i < rows.length; i++) {
+              const r = sanitizeGorevlerRow(rows[i]);
+              if (r) panelGorevlerTasks.push(r);
+            }
+            persistPanelGorevlerTasks();
+          }
+          render();
+        });
       }
 
       wirePanel();
