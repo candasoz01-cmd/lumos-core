@@ -979,6 +979,47 @@ const TASKS_API_URL =
         flex: 1 1 auto;
         min-width: 0;
       }
+      .gorevler-list-filter {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.28rem 0.35rem;
+        flex: 1 1 100%;
+        min-width: 0;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: 1px;
+      }
+      .gorevler-list-filter::-webkit-scrollbar {
+        display: none;
+      }
+      .gorevler-list-filter-btn {
+        font: inherit;
+        font-size: 0.65rem;
+        font-weight: 500;
+        padding: 0.2rem 0.5rem;
+        border-radius: 999px;
+        border: 1px solid var(--lumos-teal-28);
+        background: transparent;
+        color: rgba(168, 162, 152, 0.92);
+        cursor: pointer;
+        flex-shrink: 0;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+        line-height: 1.25;
+      }
+      .gorevler-list-filter-btn:hover {
+        border-color: rgba(212, 182, 128, 0.32);
+        color: var(--lumos-muted);
+      }
+      .gorevler-list-filter-btn.is-active {
+        border-color: rgba(212, 182, 128, 0.42);
+        background: rgba(212, 182, 128, 0.1);
+        color: var(--lumos-muted);
+      }
       .gorevler-clear-test-btn {
         font: inherit;
         font-size: 0.65rem;
@@ -3029,6 +3070,32 @@ const TASKS_API_URL =
               </div>
               <div class="gorevler-list-heading-row">
                 <h3 class="gorevler-list-heading">Görev listesi</h3>
+                <div class="gorevler-list-filter" role="group" aria-label="Görev durumu filtresi">
+                  <button
+                    type="button"
+                    class="gorevler-list-filter-btn is-active"
+                    data-gorevler-filter="all"
+                    aria-pressed="true"
+                  >
+                    Tümü
+                  </button>
+                  <button
+                    type="button"
+                    class="gorevler-list-filter-btn"
+                    data-gorevler-filter="pending"
+                    aria-pressed="false"
+                  >
+                    Bekleyen
+                  </button>
+                  <button
+                    type="button"
+                    class="gorevler-list-filter-btn"
+                    data-gorevler-filter="done"
+                    aria-pressed="false"
+                  >
+                    Tamamlanan
+                  </button>
+                </div>
                 <button type="button" id="gorevler-restore-last" class="gorevler-clear-test-btn" hidden>
                   Geri al
                 </button>
@@ -5433,6 +5500,23 @@ const TASKS_API_URL =
         let lastGorevlerOpenedIndex = -1;
         let lastGorevlerDeletedId = "";
         let lastGorevlerPlanIndex = -1;
+        let gorevlerListFilter = "all";
+
+        function gorevlerTaskPassesListFilter(t) {
+          const st = t && t.status != null ? String(t.status).trim() : "";
+          if (gorevlerListFilter === "pending") return st !== "tamamlandi";
+          if (gorevlerListFilter === "done") return st === "tamamlandi";
+          return true;
+        }
+
+        function syncGorevlerListFilterUi() {
+          document.querySelectorAll("[data-gorevler-filter]").forEach((btn) => {
+            const v = btn.getAttribute("data-gorevler-filter");
+            const active = v === gorevlerListFilter;
+            btn.classList.toggle("is-active", active);
+            btn.setAttribute("aria-pressed", active ? "true" : "false");
+          });
+        }
 
         function syncGorevlerDetailUiClosed(restoreFocus) {
           detailTaskDl.replaceChildren();
@@ -5916,6 +6000,7 @@ const TASKS_API_URL =
           listEl.replaceChildren();
           for (let i = 0; i < panelGorevlerTasks.length; i++) {
             const t = panelGorevlerTasks[i];
+            if (!gorevlerTaskPassesListFilter(t)) continue;
             const li = document.createElement("li");
             li.className = "gorevler-task-card";
             li.tabIndex = 0;
@@ -6173,6 +6258,18 @@ const TASKS_API_URL =
         }
 
         panelGorevlerTasksRender = render;
+
+        document.querySelectorAll("[data-gorevler-filter]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const v = btn.getAttribute("data-gorevler-filter");
+            if (v !== "all" && v !== "pending" && v !== "done") return;
+            if (v === gorevlerListFilter) return;
+            gorevlerListFilter = v;
+            syncGorevlerListFilterUi();
+            render();
+          });
+        });
+        syncGorevlerListFilterUi();
 
         addBtn.addEventListener("click", addTask);
         titleInput.addEventListener("keydown", (e) => {
