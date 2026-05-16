@@ -1275,6 +1275,86 @@ const TASKS_API_URL =
         font-size: 0.72rem;
         color: rgba(200, 188, 168, 0.92);
       }
+      .lumos-capability-block {
+        max-width: 36rem;
+        margin-top: 1.25rem;
+      }
+      .lumos-capability-list {
+        margin: 0.5rem 0 0.75rem;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 0.4rem;
+      }
+      .lumos-capability-list li {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        align-items: baseline;
+        gap: 0.5rem 0.75rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: var(--panel-radius-md);
+        border: 1px solid var(--lumos-card-border);
+        background: #0b0b0b;
+        font-size: 0.84rem;
+        line-height: 1.45;
+      }
+      .lumos-capability-name {
+        color: var(--lumos-text);
+      }
+      .lumos-capability-route {
+        font-size: 0.78rem;
+        color: var(--lumos-muted);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      }
+      .lumos-capability-en {
+        font-size: 0.72em;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+        color: var(--lumos-muted);
+        text-transform: uppercase;
+      }
+      .lumos-capability-val {
+        flex-shrink: 0;
+        font-weight: 600;
+        text-align: right;
+      }
+      .lumos-capability-val[data-state="ok"] {
+        color: rgba(168, 212, 178, 0.95);
+      }
+      .lumos-capability-val[data-state="no"] {
+        color: rgba(176, 170, 162, 0.88);
+      }
+      .lumos-capability-val[data-state="pending"] {
+        color: rgba(212, 182, 128, 0.92);
+      }
+      .lumos-capability-val[data-state="kisitli"] {
+        color: rgba(212, 182, 128, 0.92);
+      }
+      .lumos-capability-val[data-state="hedef"] {
+        color: rgba(168, 198, 230, 0.92);
+      }
+      .lumos-capability-legend {
+        margin: 0 0 0.75rem;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 0.35rem;
+        font-size: 0.8rem;
+        line-height: 1.45;
+        color: var(--lumos-muted);
+      }
+      .lumos-capability-legend li {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 0.5rem;
+        align-items: baseline;
+      }
+      .lumos-capability-legend strong {
+        color: var(--lumos-text);
+        font-weight: 600;
+        min-width: 7.5rem;
+      }
+      .gorevler-list-heading {
         margin: 0;
         font-size: 0.62rem;
         font-weight: 600;
@@ -3157,6 +3237,69 @@ const TASKS_API_URL =
           </section>
 
           <section
+            id="panel-yetenekler"
+            class="module-panel"
+            data-module-panel="yetenekler"
+            data-active="false"
+            aria-labelledby="panel-yetenekler-title"
+          >
+            <h2 id="panel-yetenekler-title">
+              Yetenekler <span class="lumos-capability-en">Capability</span>
+            </h2>
+            <p class="gorevler-intro">
+              Lumos’un hangi işlemlere hangi köprü uç noktası veya panel yüzeyi üzerinden bağlandığını özetler. «Bağlantı
+              testi» yalnızca 1–3. satırlarda köprüyü doğrular; 4. satır yerel/legacy kanıtını kontrol eder.
+            </p>
+            <div class="lumos-capability-block">
+              <ul class="lumos-capability-legend" aria-label="Durum sözlüğü">
+                <li><strong>Var</strong> kanıtı var</li>
+                <li><strong>Hedef</strong> yapılacak ama bağlı değil</li>
+                <li><strong>Yok / bağlı değil</strong> şu an çalışır hat yok</li>
+                <li><strong>Kısıtlı</strong> var ama sınırlı / koşullu</li>
+              </ul>
+              <ul id="lumos-capability-list" class="lumos-capability-list" aria-live="polite">
+                <li>
+                  <span class="lumos-capability-name">1. Dosya okuma</span>
+                  <span id="cap-file-read" class="lumos-capability-val" data-state="ok">Var</span>
+                  <span class="lumos-capability-route">/controlled</span>
+                </li>
+                <li>
+                  <span class="lumos-capability-name">2. Dosya yazma</span>
+                  <span id="cap-file-write" class="lumos-capability-val" data-state="ok">Var</span>
+                  <span class="lumos-capability-route">/controlled</span>
+                </li>
+                <li>
+                  <span class="lumos-capability-name">3. Görev oluşturma</span>
+                  <span id="cap-task-create" class="lumos-capability-val" data-state="ok">Var</span>
+                  <span class="lumos-capability-route">/task</span>
+                </li>
+                <li>
+                  <span class="lumos-capability-name">4. Görev tamamlama</span>
+                  <span id="cap-task-complete" class="lumos-capability-val" data-state="kisitli">Kısıtlı</span>
+                  <span class="lumos-capability-route">legacy /tasks/complete</span>
+                </li>
+                <li>
+                  <span class="lumos-capability-name">5. Terminal komutu</span>
+                  <span id="cap-terminal" class="lumos-capability-val" data-state="kisitli">Kısıtlı</span>
+                  <span class="lumos-capability-route">panele bağlı değil</span>
+                </li>
+                <li>
+                  <span class="lumos-capability-name">6. Mac uygulaması açma</span>
+                  <span id="cap-mac-app" class="lumos-capability-val" data-state="hedef">Hedef</span>
+                  <span class="lumos-capability-route">—</span>
+                </li>
+                <li>
+                  <span class="lumos-capability-name">7. Canlı deploy</span>
+                  <span id="cap-live-deploy" class="lumos-capability-val" data-state="kisitli">Kısıtlı</span>
+                  <span class="lumos-capability-route">manuel onay sonrası</span>
+                </li>
+              </ul>
+              <button type="button" id="lumos-capability-test-btn" class="gorevler-add-btn">Bağlantı testi</button>
+              <p id="lumos-capability-hint" class="gorevler-hint" role="status" aria-live="polite" hidden></p>
+            </div>
+          </section>
+
+          <section
             id="panel-dunya"
             class="module-panel"
             data-module-panel="dunya"
@@ -3276,6 +3419,9 @@ const TASKS_API_URL =
               </button>
               <button type="button" data-module="kimlik">
                 <span class="panel-nav-label">Kimlik</span>
+              </button>
+              <button type="button" data-module="yetenekler">
+                <span class="panel-nav-label">Yetenekler</span>
               </button>
               <button type="button" data-module="guvenlik">
                 <span class="panel-nav-label">Güvenlik</span>
@@ -5771,6 +5917,84 @@ const TASKS_API_URL =
         });
       }
 
+      function wireCapabilityProbe() {
+        const btn = document.getElementById("lumos-capability-test-btn");
+        const hint = document.getElementById("lumos-capability-hint");
+        const caps = {
+          fileRead: document.getElementById("cap-file-read"),
+          fileWrite: document.getElementById("cap-file-write"),
+          taskCreate: document.getElementById("cap-task-create"),
+          taskComplete: document.getElementById("cap-task-complete"),
+        };
+        if (!btn) return;
+
+        const CAP_STATUS = {
+          var: { label: "Var", state: "ok" },
+          hedef: { label: "Hedef", state: "hedef" },
+          yok: { label: "Yok / bağlı değil", state: "no" },
+          kisitli: { label: "Kısıtlı", state: "kisitli" },
+        };
+
+        function setCap(el, key) {
+          if (!el) return;
+          const row = CAP_STATUS[key];
+          if (!row) return;
+          el.textContent = row.label;
+          el.setAttribute("data-state", row.state);
+        }
+
+        btn.addEventListener("click", async () => {
+          if (hint) {
+            hint.hidden = false;
+            hint.textContent = "Test çalışıyor…";
+          }
+          btn.disabled = true;
+          const probePath = "capability/_probe.txt";
+          const probeBody = "lumos capability probe\n";
+
+          const w = await controlledWriteFile(probePath, probeBody);
+          setCap(caps.fileWrite, w.ok ? "var" : "yok");
+
+          const rd = await controlledReadFile(probePath);
+          const readOk =
+            rd.ok &&
+            String((rd.data && rd.data.content) || "").indexOf("lumos capability") >= 0;
+          setCap(caps.fileRead, readOk ? "var" : "yok");
+
+          let taskOk = false;
+          try {
+            const r = await fetch(`${BRIDGE_BASE_URL}/task`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-Kando-Token": kandoToken,
+              },
+              body: JSON.stringify({
+                goal: "lumos capability probe",
+                source: "panel_capability_test",
+              }),
+            });
+            taskOk = r.ok;
+          } catch {
+            taskOk = false;
+          }
+          setCap(caps.taskCreate, taskOk ? "var" : "yok");
+
+          const localComplete =
+            typeof panelGorevlerTasks !== "undefined" && Array.isArray(panelGorevlerTasks);
+          setCap(caps.taskComplete, localComplete ? "kisitli" : "yok");
+
+          if (hint) {
+            hint.textContent =
+              w.ok && readOk && taskOk
+                ? "Köprü kanıtı doğrulandı. 4–7. satırlar politika özetidir."
+                : "Kısmi veya başarısız sonuç; köprü adresini ve token’ı kontrol edin.";
+          }
+          btn.disabled = false;
+        });
+      }
+
+      wireCapabilityProbe();
 
       function setPanelConnBadge(state) {
         const badge = document.getElementById("panel-conn-badge");
