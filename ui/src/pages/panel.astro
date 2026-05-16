@@ -5621,7 +5621,7 @@ const TASKS_API_URL =
 
         /**
          * Görevler: POST /tasks → .lumos/tasks.json; isteğe bağlı POST /tasks/complete;
-         * ardından köprü POST /task (köprü hatası disk kaydını geri almaz).
+         * ardından yerel plan kartı (köprü POST /task çağrılmaz).
          */
         async function addTask() {
           const title = titleInput.value.trim();
@@ -5696,59 +5696,7 @@ const TASKS_API_URL =
           const savedIdx = panelGorevlerTasks.indexOf(taskRef);
           if (savedPlan && savedIdx >= 0) showGorevlerPlanInline(savedPlan, savedIdx);
 
-          try {
-            const r = await fetch(`${BRIDGE_BASE_URL}/task`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "X-Kando-Token": kandoToken,
-              },
-              body: JSON.stringify({
-                goal: title,
-                source: "panel_gorevler",
-                priority,
-                status,
-              }),
-            });
-            const text = await r.text();
-            let data = null;
-            try {
-              data = text && String(text).trim() ? JSON.parse(text) : null;
-            } catch {
-              data = null;
-            }
-
-            if (!r.ok) {
-              assignTaskBridgeLast(taskRef, data, null);
-              if (r.status === 404) {
-                showHint("Görev kaydedildi. Köprü yürütmesi şu an bağlı değil.");
-                return;
-              }
-              const err =
-                data && typeof data === "object" && data.error != null
-                  ? String(data.error)
-                  : "Köprü yanıtı başarısız (" + r.status + ").";
-              showHint("Görev kaydedildi; " + err);
-              return;
-            }
-            if (data && typeof data === "object" && data.accepted === false) {
-              assignTaskBridgeLast(taskRef, data, false);
-              const err =
-                data.error != null ? String(data.error) : "Görev köprü tarafından kabul edilmedi.";
-              showHint("Görev kaydedildi; " + err);
-              return;
-            }
-            if (data && typeof data === "object") {
-              assignTaskBridgeLast(taskRef, data, null);
-              showHint(buildTaskBridgeSuccessReadableHint(data));
-            } else {
-              assignTaskBridgeLast(taskRef, null, null);
-              hideHint();
-            }
-          } catch (_) {
-            assignTaskBridgeLast(taskRef, null, null);
-            showHint("Görev kaydedildi. Köprü yürütmesi şu an bağlı değil.");
-          }
+          showHint("Görev kaydedildi. Plan hazırlandı.");
         }
 
         async function completeOpenGorevlerTask() {
