@@ -2621,6 +2621,109 @@ const TASKS_API_URL =
           }
         }
       }
+      /** Mobil yatay: üst bar + sekmeler + hazır ipucu + compose sonrası kartın ezilmesini önle. */
+      @media (max-height: 520px) and (orientation: landscape) {
+        #panel-sohbet[data-active="true"] {
+          min-height: 0;
+        }
+        #panel-sohbet .chat-workspace {
+          gap: 0.12rem;
+          min-height: 0;
+        }
+        #panel-sohbet .chat-history-shell {
+          flex: 1 1 0;
+          min-height: 0;
+          max-height: 100%;
+        }
+        #panel-sohbet .chat-thread {
+          flex: 1 1 auto;
+          min-height: 0;
+          gap: 0.28rem;
+          padding: 0.28rem 0 0.32rem;
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+        #panel-sohbet .chat-thread:not(:has(> .chat-turn)) {
+          justify-content: flex-start;
+          padding-top: 0.22rem;
+        }
+        #panel-sohbet .chat-empty-hint {
+          flex-shrink: 0;
+          padding: 0.22rem 0.45rem;
+        }
+        #panel-sohbet .chat-empty-hint__text {
+          font-size: 0.6rem;
+          line-height: 1.18;
+          letter-spacing: -0.02em;
+        }
+        #panel-sohbet .chat-empty-hint + .chat-capability-card {
+          margin-top: 0.14rem;
+        }
+        #panel-sohbet .chat-capability-card {
+          flex: 1 1 auto;
+          min-height: 0;
+          max-height: min(100%, calc(100dvh - 9.5rem));
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+          padding: 0.38rem 0.52rem 0.42rem;
+        }
+        #panel-sohbet .chat-capability-card__title {
+          margin-bottom: 0.32rem;
+          font-size: 0.62rem;
+          line-height: 1.24;
+        }
+        #panel-sohbet .chat-capability-card__sections {
+          gap: 0.32rem;
+        }
+        #panel-sohbet .chat-capability-card__heading {
+          margin-bottom: 0.16rem;
+          font-size: 0.54rem;
+          line-height: 1.28;
+        }
+        #panel-sohbet .chat-capability-card__list {
+          font-size: 0.52rem;
+          line-height: 1.3;
+          padding-left: 0.82rem;
+        }
+        #panel-sohbet .chat-capability-card__list li {
+          margin-top: 0.08rem;
+        }
+        #panel-sohbet .lumos-security-note {
+          flex-shrink: 0;
+          margin-top: 0.12rem;
+          padding: 0.08rem 0.32rem 0.1rem;
+          font-size: 0.5rem;
+          line-height: 1.26;
+        }
+        #panel-sohbet .chat-compose-stack {
+          flex: 0 0 auto;
+          flex-shrink: 0;
+          padding-top: 0.08rem;
+          padding-bottom: calc(
+            0.18rem + max(0.28rem, env(safe-area-inset-bottom, 0px))
+          );
+          box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.38);
+        }
+        #panel-sohbet .chat-compose--gpt textarea:placeholder-shown {
+          min-height: calc(0.34rem * 2 + 1em * 1.45);
+          max-height: calc(0.34rem * 2 + 1em * 1.45);
+        }
+        #panel-sohbet .chat-compose--gpt textarea:not(:placeholder-shown) {
+          min-height: 1.85rem;
+          max-height: 4.5rem;
+        }
+        #panel-sohbet .chat-compose-send {
+          min-height: 1.82rem;
+          padding: 0.24rem 0.48rem;
+        }
+        #panel-sohbet .chat-compose-camera-btn,
+        #panel-sohbet .chat-compose-voice-btn {
+          width: 1.78rem;
+          height: 1.78rem;
+          min-width: 1.78rem;
+          min-height: 1.78rem;
+        }
+      }
     </style>
   </head>
   <body class="panel-page">
