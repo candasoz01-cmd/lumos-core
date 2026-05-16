@@ -1191,7 +1191,10 @@ def _handle_task_return(
 
 
 def policy_check(normalized: dict[str, Any]) -> bool:
-    return True
+    from kando_runtime.controlled_bridge import policy_allows_normalized
+
+    ok, _reason = policy_allows_normalized(normalized)
+    return ok
 
 
 def reason_task_heuristic(normalized: dict[str, Any], *, llm_error: str | None) -> dict[str, Any]:
@@ -2039,6 +2042,7 @@ def run_lumos_gate(
     chat_user_text: str | None = None,
     ingest_user_message: str | None = None,
     client_requires_clarification: bool = False,
+    controlled_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
     Planlama + risk; executor çağrılmaz. Bridge tek kapı: önce bu, sonra lumos_gate_execute.
@@ -2087,6 +2091,11 @@ def run_lumos_gate(
         norm["file_content_for_reasoning"] = cut
     norm = enrich_output_language(norm)
     norm.pop("approval_granted", None)
+    if controlled_context:
+        norm = dict(norm)
+        for key in ("bridge_mode", "controlled_permission"):
+            if controlled_context.get(key) is not None:
+                norm[key] = controlled_context[key]
     ctx.normalized_task = norm.get("target_body") or norm.get("agent_blob") or ""
     ctx.policy_ok = policy_check(norm)
     if not ctx.policy_ok:

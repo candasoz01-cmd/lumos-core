@@ -555,6 +555,23 @@ def _task_surface_for_destructive_scan(
     return "\n".join(parts)
 
 
+def _raw_json_controlled_context(raw: bytes) -> dict[str, str] | None:
+    """POST gövdesi bridge_mode=controlled ise gate policy için bağlam."""
+    try:
+        obj = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    if not isinstance(obj, dict):
+        return None
+    if str(obj.get("bridge_mode") or "").strip() != "controlled":
+        return None
+    ctx: dict[str, str] = {"bridge_mode": "controlled"}
+    perm = str(obj.get("permission") or "file_rw").strip()
+    if perm:
+        ctx["controlled_permission"] = perm
+    return ctx
+
+
 def _raw_json_task_type(raw: bytes) -> str | None:
     """POST /task JSON: task_type → lumos execution_dispatch için (video|image|file|shell|generic|media|system)."""
     try:
@@ -1592,6 +1609,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
                     "ok": True,
                     "service": "kando_bridge_server",
                     "post_task": "POST /task (direct_patch | agent)",
+                    "post_controlled": "POST /controlled {permission,command,path,content}",
                     "post_chat": "POST /chat {message} → gate + execute",
                     "post_replay": "POST /replay (dry_run audit)",
                     "post_approve": "POST /approve (pending high-risk)",
@@ -1619,6 +1637,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
         chat_user_text: str | None = None,
         ingest_user_message: str | None = None,
         client_requires_clarification: bool = False,
+        controlled_context: dict[str, str] | None = None,
     ) -> dict:
         """Önce run_lumos_gate; yürütme yalnızca lumos_gate_execute ile (tek kapı)."""
         from kando.file_patch_executor import run as direct_run
@@ -1638,6 +1657,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
             chat_user_text=chat_user_text,
             ingest_user_message=ingest_user_message,
             client_requires_clarification=client_requires_clarification,
+            controlled_context=controlled_context,
         )
         if gate_result.get("_kind") != "run":
             return gate_result
@@ -2229,6 +2249,23 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
         self._send_lumos_pipeline_out(out, approval_path=None)
 
+    def _handle_controlled(self) -> None:
+        from kando_runtime.controlled_bridge import execute_controlled
+
+        try:
+            length = int(self.headers.get("Content-Length", "0") or "0")
+            raw = self.rfile.read(length) if length > 0 else b""
+            body = json.loads(raw.decode("utf-8")) if raw else {}
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            self._reject(400, "invalid_json")
+            return
+        if not isinstance(body, dict):
+            self._reject(400, "invalid_body")
+            return
+        out = execute_controlled(ROOT, body)
+        status = 200 if out.get("ok") else 403
+        self._send_json(status, out)
+
     def do_POST(self) -> None:
         if not self._check_loopback():
             return
@@ -2237,6 +2274,9 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
         parsed = urlparse(self.path)
         req_path = _normalize_request_path(parsed.path)
+        if req_path == "/controlled":
+            self._handle_controlled()
+            return
         if req_path == "/agent-run":
             self._handle_agent_run()
             return
@@ -2320,12 +2360,14 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 except Exception:
                     pass
                 client_tt = _raw_json_task_type(raw)
+                ctrl_ctx = _raw_json_controlled_context(raw)
                 out = self._complete_through_gate(
                     mode,
                     payload,
                     approval_granted=False,
                     ingest_user_message=ingest,
                     client_requires_clarification=req_clar,
+                    controlled_context=ctrl_ctx,
                 )
                 if client_tt:
                     out["_client_task_type"] = client_tt
