@@ -205,6 +205,56 @@ const TASKS_API_URL =
         letter-spacing: 0.01em;
         color: rgba(198, 194, 186, 0.78);
       }
+      .gorevler-task-plan {
+        margin: 0;
+        margin-top: 0.1rem;
+        font-size: 0.72rem;
+        font-weight: 500;
+        line-height: 1.45;
+        color: rgba(212, 188, 150, 0.88);
+      }
+      .gorevler-plan-card {
+        max-width: 36rem;
+        margin-top: 0.65rem;
+        padding: 0.85rem 1rem;
+        border-radius: var(--panel-radius-lg);
+        border: 1px solid rgba(184, 148, 96, 0.35);
+        background: rgba(14, 13, 11, 0.96);
+        box-shadow: var(--panel-edge-inset);
+      }
+      .gorevler-plan-card__title {
+        margin: 0 0 0.55rem;
+        font-size: 0.62rem;
+        font-weight: 600;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: rgba(212, 188, 150, 0.92);
+      }
+      .gorevler-plan-card__status {
+        margin: 0 0 0.45rem;
+        font-size: 0.74rem;
+        color: rgba(168, 206, 182, 0.9);
+      }
+      .gorevler-plan-card__low-risk-note {
+        margin: 0.5rem 0 0;
+        font-size: 0.74rem;
+        line-height: 1.45;
+        color: rgba(184, 200, 220, 0.9);
+      }
+      .gorevler-plan-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin-top: 0.65rem;
+      }
+      /** display:flex [hidden]'ı ezer; düşük riskte butonlar görünmesin */
+      .gorevler-plan-actions[hidden] {
+        display: none !important;
+      }
+      .gorevler-plan-actions .gorevler-add-btn {
+        flex: 1 1 auto;
+        min-width: 10rem;
+      }
       .medya-outbox-wrap {
         margin: 0.75rem 0 1.25rem;
         padding: 0.65rem 0.75rem;
@@ -2669,6 +2719,27 @@ const TASKS_API_URL =
                 </div>
                 <button type="button" id="gorevler-add" class="gorevler-add-btn">Görev ekle</button>
                 <p id="gorevler-hint" class="gorevler-hint" role="status" aria-live="polite" hidden></p>
+                <aside
+                  id="gorevler-plan-inline"
+                  class="gorevler-plan-card"
+                  hidden
+                  aria-labelledby="gorevler-plan-inline-title"
+                >
+                  <h4 id="gorevler-plan-inline-title" class="gorevler-plan-card__title">Küçük görev planı</h4>
+                  <p id="gorevler-plan-inline-status" class="gorevler-plan-card__status" hidden></p>
+                  <dl id="gorevler-plan-inline-dl" class="gorevler-detail-dl"></dl>
+                  <p id="gorevler-plan-inline-low-risk-note" class="gorevler-plan-card__low-risk-note" hidden>
+                    Düşük risk — otomatik planlandı, yürütme yapılmadı.
+                  </p>
+                  <div class="gorevler-plan-actions">
+                    <button type="button" id="gorevler-plan-inline-confirm" class="gorevler-add-btn">
+                      Onayla ve devam et
+                    </button>
+                    <button type="button" id="gorevler-plan-inline-dismiss" class="gorevler-clear-test-btn">
+                      Yalnızca kayıt
+                    </button>
+                  </div>
+                </aside>
               </div>
               <div class="gorevler-list-heading-row">
                 <h3 class="gorevler-list-heading">Görev listesi</h3>
@@ -2698,6 +2769,27 @@ const TASKS_API_URL =
                     <section class="gorevler-detail-section" aria-labelledby="gorevler-detail-sec-task">
                       <h4 id="gorevler-detail-sec-task" class="gorevler-detail-section-title">Görev</h4>
                       <dl id="gorevler-detail-task-dl" class="gorevler-detail-dl"></dl>
+                    </section>
+                    <section
+                      id="gorevler-detail-plan-section"
+                      class="gorevler-detail-section"
+                      hidden
+                      aria-labelledby="gorevler-detail-sec-plan"
+                    >
+                      <h4 id="gorevler-detail-sec-plan" class="gorevler-detail-section-title">Küçük görev planı</h4>
+                      <p id="gorevler-detail-plan-status" class="gorevler-plan-card__status" hidden></p>
+                      <dl id="gorevler-detail-plan-dl" class="gorevler-detail-dl"></dl>
+                      <p id="gorevler-detail-plan-low-risk-note" class="gorevler-plan-card__low-risk-note" hidden>
+                        Düşük risk — otomatik planlandı, yürütme yapılmadı.
+                      </p>
+                      <div class="gorevler-plan-actions">
+                        <button type="button" id="gorevler-detail-plan-confirm" class="gorevler-add-btn">
+                          Onayla ve devam et
+                        </button>
+                        <button type="button" id="gorevler-detail-plan-dismiss" class="gorevler-clear-test-btn">
+                          Yalnızca kayıt
+                        </button>
+                      </div>
                     </section>
                     <section class="gorevler-detail-section" aria-labelledby="gorevler-detail-sec-bridge">
                       <h4 id="gorevler-detail-sec-bridge" class="gorevler-detail-section-title">Köprü yanıtı</h4>
@@ -3507,7 +3599,94 @@ const TASKS_API_URL =
         if (bridge) row.bridgeLast = bridge;
         const id = x.id != null ? String(x.id).trim() : "";
         if (id) row.id = id;
+        const plan = sanitizeGorevlerTaskPlan(x.taskPlan);
+        if (plan) row.taskPlan = plan;
         return row;
+      }
+
+      /** Küçük görev planı (Faz A): localStorage ile görev satırında saklanır. */
+      function sanitizeGorevlerTaskPlan(raw) {
+        if (!raw || typeof raw !== "object") return null;
+        const src = /** @type {Record<string, unknown>} */ (raw);
+        const tur = truncateGorevlerField(src.tur);
+        const risk = truncateGorevlerField(src.risk);
+        const onerilenAlan = truncateGorevlerField(
+          src.onerilenAlan != null ? src.onerilenAlan : src.onerilen_alan,
+        );
+        const sonrakiAdim = truncateGorevlerField(
+          src.sonrakiAdim != null ? src.sonrakiAdim : src.sonraki_adim,
+        );
+        if (!tur && !risk && !onerilenAlan && !sonrakiAdim) return null;
+        const out = {
+          tur: tur || "Genel görev",
+          risk: risk || "Düşük",
+          onerilenAlan: onerilenAlan || "Görevler sekmesi",
+          sonrakiAdim: sonrakiAdim || "Görevi listede açıp detayları kontrol et.",
+          active: src.active !== false,
+        };
+        const onayDurumu =
+          src.onayDurumu != null
+            ? truncateGorevlerField(src.onayDurumu)
+            : src.onay_durumu != null
+              ? truncateGorevlerField(src.onay_durumu)
+              : "";
+        if (onayDurumu) out.onayDurumu = onayDurumu;
+        return out;
+      }
+
+      /**
+       * Kural tabanlı plan: dosya → Görevler → Köprü → UI → Genel.
+       * @param {string} title
+       */
+      function generateGorevlerTaskPlan(title) {
+        const hay = canonicalizeTaskInput(title);
+        let tur = "Genel görev";
+        let risk = "Düşük";
+        let onerilenAlan = "Görevler sekmesi";
+        let sonrakiAdim = "Görevi listede açıp detayları kontrol et.";
+
+        if (/\b(dosya|dosyalar|upload|exe|pdf|docx)\b/.test(hay)) {
+          tur = "Dosyalar";
+          onerilenAlan = "UI veya dosya akışı";
+          sonrakiAdim = "Dosyalar sekmesinde yükleme veya önizleme adımını planla.";
+          if (/\bexe\b/.test(hay)) risk = "Orta";
+        } else if (/\b(görev|task|tamamla|sil|geri al)\b/.test(hay)) {
+          tur = "Görevler";
+          onerilenAlan = "Görevler";
+          sonrakiAdim = "Listede durumu güncelle veya tamamlamayı onayla.";
+          if (/\b(sil|geri al)\b/.test(hay)) risk = "Orta";
+        } else if (/\b(bridge|köprü|kopru|koprü|controlled)\b/.test(hay)) {
+          tur = "Köprü";
+          onerilenAlan = "Köprü / controlled";
+          sonrakiAdim = "Köprü yanıtını detayda kontrol et; plan onayı köprü çalıştırmaz.";
+          risk = "Orta";
+        } else if (/\b(panel|görsel|gorsel|metin|uyarı|uyari)\b/.test(hay)) {
+          tur = "UI metin düzeltmesi";
+          onerilenAlan = "Panel arayüzü";
+          sonrakiAdim = "İlgili panel metnini düzenle ve kullanıcıya göster.";
+        }
+
+        return { tur, risk, onerilenAlan, sonrakiAdim, active: true };
+      }
+
+      /** Liste satırı için kısa plan özeti. */
+      function formatGorevlerPlanListSummary(plan) {
+        const p = sanitizeGorevlerTaskPlan(plan);
+        if (!p || !p.active) return "";
+        const onay =
+          p.onayDurumu != null && String(p.onayDurumu).trim()
+            ? " · " + String(p.onayDurumu).trim()
+            : "";
+        return "Plan: " + p.tur + " · " + p.risk + onay;
+      }
+
+      /** Başarılı kayıttan sonra göreve plan ekler ve localStorage’a yazar. */
+      function attachGorevlerTaskPlan(taskRow, title) {
+        if (!taskRow) return null;
+        const plan = generateGorevlerTaskPlan(title);
+        taskRow.taskPlan = plan;
+        persistPanelGorevlerTasks();
+        return plan;
       }
 
       /** Motor görevi → panel satırı (`tasks.json`: active|done). */
@@ -3550,6 +3729,8 @@ const TASKS_API_URL =
           }
           const bl = sanitizeBridgeLast(old.bridgeLast);
           if (bl) r.bridgeLast = bl;
+          const tp = sanitizeGorevlerTaskPlan(old.taskPlan);
+          if (tp) r.taskPlan = tp;
         }
       }
 
@@ -3831,7 +4012,7 @@ const TASKS_API_URL =
         };
         if (cmd.whenSummary) row.when = cmd.whenSummary;
         panelGorevlerTasks.push(row);
-        persistPanelGorevlerTasks();
+        attachGorevlerTaskPlan(row, cmd.title);
         if (typeof panelGorevlerTasksRender === "function") panelGorevlerTasksRender();
       }
 
@@ -4882,6 +5063,22 @@ const TASKS_API_URL =
         const detailDeleteBtn = document.getElementById("gorevler-detail-delete");
         const restoreLastBtn = document.getElementById("gorevler-restore-last");
         const clearTestBtn = document.getElementById("gorevler-clear-test");
+        const planInlineEl = document.getElementById("gorevler-plan-inline");
+        const planInlineDl = document.getElementById("gorevler-plan-inline-dl");
+        const planInlineStatusEl = document.getElementById("gorevler-plan-inline-status");
+        const planInlineConfirmBtn = document.getElementById("gorevler-plan-inline-confirm");
+        const planInlineDismissBtn = document.getElementById("gorevler-plan-inline-dismiss");
+        const planInlineLowRiskNoteEl = document.getElementById("gorevler-plan-inline-low-risk-note");
+        const planInlineActionsEl =
+          planInlineEl && planInlineEl.querySelector(".gorevler-plan-actions");
+        const detailPlanSection = document.getElementById("gorevler-detail-plan-section");
+        const detailPlanDl = document.getElementById("gorevler-detail-plan-dl");
+        const detailPlanStatusEl = document.getElementById("gorevler-detail-plan-status");
+        const detailPlanConfirmBtn = document.getElementById("gorevler-detail-plan-confirm");
+        const detailPlanDismissBtn = document.getElementById("gorevler-detail-plan-dismiss");
+        const detailPlanLowRiskNoteEl = document.getElementById("gorevler-detail-plan-low-risk-note");
+        const detailPlanActionsEl =
+          detailPlanSection && detailPlanSection.querySelector(".gorevler-plan-actions");
         if (
           !listEl ||
           !titleInput ||
@@ -4920,7 +5117,11 @@ const TASKS_API_URL =
           detailEl.hidden = true;
         } else {
           detailEl.addEventListener("close", () => {
-            if (detailTaskDl.childElementCount > 0 || detailBridgeDl.childElementCount > 0) {
+            if (
+              detailTaskDl.childElementCount > 0 ||
+              detailBridgeDl.childElementCount > 0 ||
+              (detailPlanDl && detailPlanDl.childElementCount > 0)
+            ) {
               syncGorevlerDetailUiClosed(false);
             }
           });
@@ -4940,10 +5141,17 @@ const TASKS_API_URL =
         let gorevlerEscapeHandler = null;
         let lastGorevlerOpenedIndex = -1;
         let lastGorevlerDeletedId = "";
+        let lastGorevlerPlanIndex = -1;
 
         function syncGorevlerDetailUiClosed(restoreFocus) {
           detailTaskDl.replaceChildren();
           detailBridgeDl.replaceChildren();
+          if (detailPlanDl) detailPlanDl.replaceChildren();
+          if (detailPlanSection) detailPlanSection.hidden = true;
+          if (detailPlanStatusEl) {
+            detailPlanStatusEl.hidden = true;
+            detailPlanStatusEl.textContent = "";
+          }
           detailTitleEl.textContent = "Görev";
           if (detailCompleteBtn) detailCompleteBtn.hidden = true;
           if (detailDeleteBtn) detailDeleteBtn.hidden = true;
@@ -5044,6 +5252,146 @@ const TASKS_API_URL =
           dl.appendChild(dd);
         }
 
+        function normalizeGorevlerPlanRiskToken(risk) {
+          return String(risk != null ? risk : "")
+            .trim()
+            .toLocaleLowerCase("tr-TR")
+            .replace(/ş/g, "s")
+            .replace(/ı/g, "i")
+            .replace(/ü/g, "u")
+            .replace(/ö/g, "o")
+            .replace(/ç/g, "c")
+            .replace(/ğ/g, "g");
+        }
+
+        function isGorevlerPlanLowRisk(plan) {
+          const p = sanitizeGorevlerTaskPlan(plan);
+          if (!p) return false;
+          const r = normalizeGorevlerPlanRiskToken(p.risk);
+          return r === "dusuk" || r === "low";
+        }
+
+        function applyVisibilityForPlanRisk(plan) {
+          const low = isGorevlerPlanLowRisk(plan);
+          if (planInlineActionsEl) planInlineActionsEl.hidden = low;
+          if (planInlineConfirmBtn) planInlineConfirmBtn.hidden = low;
+          if (planInlineDismissBtn) planInlineDismissBtn.hidden = low;
+          if (planInlineLowRiskNoteEl) planInlineLowRiskNoteEl.hidden = !low;
+          if (detailPlanActionsEl) detailPlanActionsEl.hidden = low;
+          if (detailPlanConfirmBtn) detailPlanConfirmBtn.hidden = low;
+          if (detailPlanDismissBtn) detailPlanDismissBtn.hidden = low;
+          if (detailPlanLowRiskNoteEl) detailPlanLowRiskNoteEl.hidden = !low;
+        }
+
+        function fillGorevlerPlanDl(dl, plan) {
+          if (!dl) return;
+          dl.replaceChildren();
+          const p = sanitizeGorevlerTaskPlan(plan);
+          if (!p) return;
+          appendDetailRow(dl, "Tür", p.tur);
+          appendDetailRow(dl, "Risk", p.risk);
+          appendDetailRow(dl, "Önerilen alan", p.onerilenAlan);
+          appendDetailRow(dl, "Sonraki adım", p.sonrakiAdim);
+        }
+
+        function renderGorevlerPlanStatusEl(statusEl, plan) {
+          if (!statusEl) return;
+          const p = sanitizeGorevlerTaskPlan(plan);
+          const od = p && p.onayDurumu != null ? String(p.onayDurumu).trim() : "";
+          if (od) {
+            statusEl.textContent = od;
+            statusEl.hidden = false;
+          } else {
+            statusEl.textContent = "";
+            statusEl.hidden = true;
+          }
+        }
+
+        function hideGorevlerPlanInline() {
+          lastGorevlerPlanIndex = -1;
+          if (!planInlineEl) return;
+          planInlineEl.hidden = true;
+          if (planInlineDl) planInlineDl.replaceChildren();
+          if (planInlineStatusEl) {
+            planInlineStatusEl.hidden = true;
+            planInlineStatusEl.textContent = "";
+          }
+          if (planInlineLowRiskNoteEl) planInlineLowRiskNoteEl.hidden = true;
+          if (planInlineActionsEl) planInlineActionsEl.hidden = false;
+          if (planInlineConfirmBtn) planInlineConfirmBtn.hidden = false;
+          if (planInlineDismissBtn) planInlineDismissBtn.hidden = false;
+        }
+
+        function showGorevlerPlanInline(plan, taskIndex) {
+          if (!planInlineEl || !planInlineDl) return;
+          const p = sanitizeGorevlerTaskPlan(plan);
+          if (!p || !p.active) {
+            hideGorevlerPlanInline();
+            return;
+          }
+          lastGorevlerPlanIndex = taskIndex;
+          fillGorevlerPlanDl(planInlineDl, p);
+          renderGorevlerPlanStatusEl(planInlineStatusEl, p);
+          applyVisibilityForPlanRisk(p);
+          planInlineEl.hidden = false;
+          if (planInlineConfirmBtn) {
+            planInlineConfirmBtn.disabled = !!(p.onayDurumu && String(p.onayDurumu).trim());
+          }
+        }
+
+        function syncGorevlerDetailPlanSection(t, taskIndex) {
+          if (!detailPlanSection || !detailPlanDl) return;
+          const p = sanitizeGorevlerTaskPlan(t && t.taskPlan);
+          if (!p || !p.active) {
+            detailPlanSection.hidden = true;
+            detailPlanDl.replaceChildren();
+            if (detailPlanStatusEl) {
+              detailPlanStatusEl.hidden = true;
+              detailPlanStatusEl.textContent = "";
+            }
+            if (detailPlanLowRiskNoteEl) detailPlanLowRiskNoteEl.hidden = true;
+            if (detailPlanActionsEl) detailPlanActionsEl.hidden = false;
+            if (detailPlanConfirmBtn) detailPlanConfirmBtn.hidden = false;
+            if (detailPlanDismissBtn) detailPlanDismissBtn.hidden = false;
+            return;
+          }
+          lastGorevlerPlanIndex = taskIndex;
+          detailPlanSection.hidden = false;
+          fillGorevlerPlanDl(detailPlanDl, p);
+          renderGorevlerPlanStatusEl(detailPlanStatusEl, p);
+          applyVisibilityForPlanRisk(p);
+          if (detailPlanConfirmBtn) {
+            detailPlanConfirmBtn.disabled = !!(p.onayDurumu && String(p.onayDurumu).trim());
+          }
+        }
+
+        /** Plan onayı: köprü çalıştırmaz; yalnızca «Onay kaydedildi» yazar. */
+        function confirmGorevlerTaskPlan(taskIndex) {
+          const t = panelGorevlerTasks[taskIndex];
+          if (!t) return;
+          const p = sanitizeGorevlerTaskPlan(t.taskPlan);
+          if (!p || !p.active) return;
+          p.onayDurumu = "Onay kaydedildi";
+          t.taskPlan = p;
+          persistPanelGorevlerTasks();
+          render();
+          if (lastGorevlerOpenedIndex === taskIndex) openGorevlerDetail(taskIndex);
+          else if (lastGorevlerPlanIndex === taskIndex) showGorevlerPlanInline(p, taskIndex);
+        }
+
+        function dismissGorevlerTaskPlan(taskIndex) {
+          const t = panelGorevlerTasks[taskIndex];
+          if (!t) return;
+          const p = sanitizeGorevlerTaskPlan(t.taskPlan);
+          if (!p) return;
+          p.active = false;
+          t.taskPlan = p;
+          persistPanelGorevlerTasks();
+          hideGorevlerPlanInline();
+          render();
+          if (lastGorevlerOpenedIndex === taskIndex) openGorevlerDetail(taskIndex);
+        }
+
         function openGorevlerDetail(taskIndex) {
           const t = panelGorevlerTasks[taskIndex];
           if (!t) return;
@@ -5099,6 +5447,8 @@ const TASKS_API_URL =
           appendDetailRow(detailBridgeDl, "Sonuç dosyası", resultFile);
           appendDetailRow(detailBridgeDl, "Çalıştırma dosyası", execFile);
           appendDetailRow(detailBridgeDl, "Köprü zamanı", lastOp);
+
+          syncGorevlerDetailPlanSection(t, taskIndex);
 
           const hasId = !!(t.id && String(t.id).trim());
           const canComplete = hasId || !!(t.title && String(t.title).trim());
@@ -5204,6 +5554,14 @@ const TASKS_API_URL =
             bridgeEl.className = "gorevler-task-bridge";
             bridgeEl.textContent = formatGorevlerTaskBridgeLine(blRow);
             main.appendChild(bridgeEl);
+
+            const planSummary = formatGorevlerPlanListSummary(t.taskPlan);
+            if (planSummary) {
+              const planEl = document.createElement("div");
+              planEl.className = "gorevler-task-plan";
+              planEl.textContent = planSummary;
+              main.appendChild(planEl);
+            }
 
             if (sanitizeBridgeLast(blRow)) {
               li.classList.add("gorevler-task-card--has-bridge");
@@ -5332,6 +5690,11 @@ const TASKS_API_URL =
             hideHint();
             return;
           }
+
+          const savedPlan = attachGorevlerTaskPlan(taskRef, title);
+          render();
+          const savedIdx = panelGorevlerTasks.indexOf(taskRef);
+          if (savedPlan && savedIdx >= 0) showGorevlerPlanInline(savedPlan, savedIdx);
 
           try {
             const r = await fetch(`${BRIDGE_BASE_URL}/task`, {
@@ -5514,6 +5877,31 @@ const TASKS_API_URL =
           });
         }
 
+        if (planInlineConfirmBtn) {
+          planInlineConfirmBtn.addEventListener("click", () => {
+            if (lastGorevlerPlanIndex < 0) return;
+            confirmGorevlerTaskPlan(lastGorevlerPlanIndex);
+          });
+        }
+        if (planInlineDismissBtn) {
+          planInlineDismissBtn.addEventListener("click", () => {
+            if (lastGorevlerPlanIndex < 0) return;
+            dismissGorevlerTaskPlan(lastGorevlerPlanIndex);
+          });
+        }
+        if (detailPlanConfirmBtn) {
+          detailPlanConfirmBtn.addEventListener("click", () => {
+            if (lastGorevlerOpenedIndex < 0) return;
+            confirmGorevlerTaskPlan(lastGorevlerOpenedIndex);
+          });
+        }
+        if (detailPlanDismissBtn) {
+          detailPlanDismissBtn.addEventListener("click", () => {
+            if (lastGorevlerOpenedIndex < 0) return;
+            dismissGorevlerTaskPlan(lastGorevlerOpenedIndex);
+          });
+        }
+
         clearTestBtn.addEventListener("click", () => {
           if (
             !confirm(
@@ -5530,6 +5918,7 @@ const TASKS_API_URL =
             /* ignore */
           }
           panelGorevlerTasks.length = 0;
+          hideGorevlerPlanInline();
           for (let s = 0; s < defaultGorevlerSeed.length; s++) {
             const row = defaultGorevlerSeed[s];
             panelGorevlerTasks.push({
