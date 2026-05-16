@@ -3033,7 +3033,7 @@ const TASKS_API_URL =
                   Geri al
                 </button>
                 <button type="button" id="gorevler-clear-test" class="gorevler-clear-test-btn">
-                  Test verilerini temizle
+                  Yerel listeyi temizle
                 </button>
               </div>
               <ul id="gorevler-list" class="gorevler-task-list" aria-label="Görev listesi"></ul>
@@ -3834,11 +3834,6 @@ const TASKS_API_URL =
           : t;
       }
 
-      const defaultGorevlerSeed = [
-        { title: "Panel API durumunu kontrol et", priority: "orta", status: "onay_bekliyor" },
-        { title: "Güvenlik sekmesini gözden geçir", priority: "dusuk", status: "tamamlandi" },
-      ];
-
       function sanitizeBridgeLast(bl) {
         if (!bl || typeof bl !== "object") return null;
         const src = /** @type {Record<string, unknown>} */ (bl);
@@ -4119,7 +4114,7 @@ const TASKS_API_URL =
         }
       }
 
-      let panelGorevlerTasks = defaultGorevlerSeed.slice();
+      let panelGorevlerTasks = [];
 
       let panelGorevlerTasksRender = null;
 
@@ -6258,14 +6253,15 @@ const TASKS_API_URL =
           });
         }
 
-        clearTestBtn.addEventListener("click", () => {
+        clearTestBtn.addEventListener("click", async () => {
           if (
             !confirm(
-              "Görev listesi test verileri sıfırlansın mı? Yerel görev kaydı silinir ve öntanımlı örnek görevlere dönülür.",
+              "Yerel görev listesi temizlensin mi? Sunucudaki görev kayıtlarına dokunulmaz.",
             )
           ) {
             return;
           }
+          hideHint();
           try {
             if (typeof localStorage !== "undefined") {
               localStorage.removeItem(PANEL_GOREVLER_LS_KEY);
@@ -6275,23 +6271,18 @@ const TASKS_API_URL =
           }
           panelGorevlerTasks.length = 0;
           hideGorevlerPlanInline();
-          for (let s = 0; s < defaultGorevlerSeed.length; s++) {
-            const row = defaultGorevlerSeed[s];
-            panelGorevlerTasks.push({
-              title: row.title,
-              priority: row.priority,
-              status: row.status,
-            });
-          }
-          persistPanelGorevlerTasks();
+          lastGorevlerDeletedId = "";
+          if (restoreLastBtn) restoreLastBtn.hidden = true;
           render();
+          await refreshPanelGorevlerFromTasksApi();
+          showHint("Yerel liste temizlendi; sunucu kayıtlarına dokunulmadı.");
         });
 
         refreshPanelGorevlerFromTasksApi().then((ok) => {
           if (!ok) {
             const stored = loadPanelGorevlerTasksFromStorage();
             panelGorevlerTasks.length = 0;
-            const rows = stored === undefined ? defaultGorevlerSeed.slice() : stored;
+            const rows = stored === undefined ? [] : stored;
             for (let i = 0; i < rows.length; i++) {
               const r = sanitizeGorevlerRow(rows[i]);
               if (r) panelGorevlerTasks.push(r);
