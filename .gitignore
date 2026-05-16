@@ -13,6 +13,7 @@ logs/
 logs/*.jsonl
 
 .data/
+workspace/
 *.db
 venv/
 *.egg-info/
