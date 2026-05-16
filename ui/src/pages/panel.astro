@@ -5357,6 +5357,10 @@ const TASKS_API_URL =
 
             if (!r.ok) {
               assignTaskBridgeLast(taskRef, data, null);
+              if (r.status === 404) {
+                showHint("Görev kaydedildi. Köprü yürütmesi şu an bağlı değil.");
+                return;
+              }
               const err =
                 data && typeof data === "object" && data.error != null
                   ? String(data.error)
@@ -5380,7 +5384,7 @@ const TASKS_API_URL =
             }
           } catch (_) {
             assignTaskBridgeLast(taskRef, null, null);
-            showHint("Görev kaydedildi; köprü bağlantısı başarısız.");
+            showHint("Görev kaydedildi. Köprü yürütmesi şu an bağlı değil.");
           }
         }
 
