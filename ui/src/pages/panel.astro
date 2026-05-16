@@ -5411,6 +5411,103 @@ const TASKS_API_URL =
       wireGorevlerPrototype();
       wireDosyalarUpload();
 
+      /** Kontrollü köprü file_rw: yalnızca POST /controlled (genel /task akışına dokunulmaz). */
+      const CONTROLLED_MAX_WRITE_BYTES = 64000;
+      const DOSYALAR_TEXT_EXT = new Set(["txt", "md", "json", "csv"]);
+
+      function dosyalarSafeUploadPath(filename) {
+        const base =
+          String(filename || "upload")
+            .replace(/\\/g, "/")
+            .split("/")
+            .pop() || "upload";
+        const safe = base.replace(/[^\w.\-()+@]/g, "_").slice(0, 120);
+        return "uploads/" + safe;
+      }
+
+      function dosyalarFileExtension(name) {
+        const m = String(name || "").match(/\.([^.]+)$/);
+        return m ? m[1].toLowerCase() : "";
+      }
+
+      async function callControlledBridge(payload) {
+        const r = await fetch(`${BRIDGE_BASE_URL}/controlled`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            "X-Kando-Token": kandoToken,
+          },
+          body: JSON.stringify(payload),
+        });
+        const text = await r.text();
+        let data = null;
+        try {
+          data = text && text.trim() ? JSON.parse(text) : null;
+        } catch {
+          data = null;
+        }
+        const ok = r.ok && data && data.ok === true;
+        return { ok, status: r.status, data };
+      }
+
+      function controlledReadFile(path) {
+        return callControlledBridge({
+          permission: "file_rw",
+          tool: "read_file",
+          action: "read_file",
+          command: "read",
+          path,
+        });
+      }
+
+      function controlledWriteFile(path, content) {
+        return callControlledBridge({
+          permission: "file_rw",
+          tool: "write_file",
+          action: "write_file",
+          command: "write",
+          path,
+          content,
+        });
+      }
+
+      function readBlobAsUtf8(file) {
+        return new Promise((resolve, reject) => {
+          const fr = new FileReader();
+          fr.onload = () => resolve(String(fr.result ?? ""));
+          fr.onerror = () => reject(new Error("read failed"));
+          fr.readAsText(file, "utf-8");
+        });
+      }
+
+      function dosyalarClientSummary(text, ext) {
+        const t = String(text || "").trim();
+        if (!t) return "";
+        if (ext === "json") {
+          try {
+            const o = JSON.parse(t);
+            if (Array.isArray(o)) return "JSON dizi: " + o.length + " öğe.";
+            if (o && typeof o === "object") {
+              return "JSON nesne: " + Object.keys(o).length + " anahtar.";
+            }
+          } catch {
+            /* geçersiz JSON — düz metin özeti */
+          }
+        }
+        if (ext === "csv") {
+          const lines = t.split(/\r?\n/).filter((l) => l.trim());
+          return "CSV: yaklaşık " + lines.length + " satır.";
+        }
+        const flat = t.replace(/\s+/g, " ").trim();
+        if (flat.length <= 320) return flat;
+        const cut = flat.slice(0, 317) + "…";
+        const sentences = cut.match(/[^.!?]+[.!?]+/g);
+        if (sentences && sentences.length >= 2) {
+          return sentences.slice(0, 3).join(" ").trim();
+        }
+        return cut;
+      }
+
       function wireDosyalarUpload() {
         const input = document.getElementById("dosyalar-file-input");
         const btn = document.getElementById("dosyalar-upload-btn");
@@ -5601,33 +5698,68 @@ const TASKS_API_URL =
           result.hidden = true;
           btn.disabled = true;
           btn.setAttribute("aria-busy", "true");
-          const fd = new FormData();
-          fd.append("file", file, file.name);
+          const ext = dosyalarFileExtension(file.name);
+          const relPath = dosyalarSafeUploadPath(file.name);
           try {
-            const r = await fetch(UPLOAD_URL, {
-              method: "POST",
-              headers: { "X-Kando-Token": kandoToken },
-              body: fd,
-            });
-            const text = await r.text();
-            let data = null;
+            let data = {
+              ok: true,
+              filename: file.name,
+              size: file.size,
+              kind: file.type || "application/octet-stream",
+              extension: ext,
+              summary: "",
+              unsupported: "",
+            };
+
+            if (!DOSYALAR_TEXT_EXT.has(ext)) {
+              data.unsupported =
+                "PDF ve Word (DOCX) gibi biçimler bu fazda işlenmez.";
+              renderResult(data);
+              pushDosyalarHistory(data);
+              return;
+            }
+
+            if (file.size > CONTROLLED_MAX_WRITE_BYTES) {
+              data.unsupported =
+                "Dosya boyutu kontrollü köprü yazma sınırını (" +
+                CONTROLLED_MAX_WRITE_BYTES +
+                " bayt) aşıyor.";
+              renderResult(data);
+              pushDosyalarHistory(data);
+              return;
+            }
+
+            let textContent = "";
             try {
-              data = text && text.trim() ? JSON.parse(text) : null;
+              textContent = await readBlobAsUtf8(file);
             } catch {
-              data = null;
+              showHint("Dosya metin olarak okunamadı.");
+              return;
             }
-            if (!r.ok) {
+
+            const w = await controlledWriteFile(relPath, textContent);
+            if (!w.ok) {
               const err =
-                data && typeof data === "object" && data.error != null
-                  ? String(data.error)
-                  : "Yükleme başarısız.";
-              showHint("HTTP " + r.status + ": " + err);
+                w.data && w.data.error != null
+                  ? String(w.data.error)
+                  : "write_file başarısız";
+              showHint("Köprü yazma (HTTP " + w.status + "): " + err);
               return;
             }
-            if (!data || typeof data !== "object" || data.ok !== true) {
-              showHint("Sunucu yanıtı beklenen formatta değil.");
+
+            const rd = await controlledReadFile(relPath);
+            if (!rd.ok) {
+              const err =
+                rd.data && rd.data.error != null
+                  ? String(rd.data.error)
+                  : "read_file başarısız";
+              showHint("Köprü okuma (HTTP " + rd.status + "): " + err);
               return;
             }
+
+            const readBack =
+              rd.data && rd.data.content != null ? String(rd.data.content) : "";
+            data.summary = dosyalarClientSummary(readBack, ext);
             renderResult(data);
             pushDosyalarHistory(data);
           } catch {
@@ -5638,6 +5770,7 @@ const TASKS_API_URL =
           }
         });
       }
+
 
       function setPanelConnBadge(state) {
         const badge = document.getElementById("panel-conn-badge");
