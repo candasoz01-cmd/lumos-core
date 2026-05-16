@@ -255,6 +255,24 @@ const TASKS_API_URL =
         flex: 1 1 auto;
         min-width: 10rem;
       }
+      .gorevler-plan-teshis-compact {
+        margin-top: 0.55rem;
+        padding-top: 0.5rem;
+        border-top: 1px dashed rgba(184, 148, 96, 0.28);
+      }
+      .gorevler-plan-teshis-compact[hidden] {
+        display: none !important;
+      }
+      .gorevler-plan-teshis-compact__line {
+        margin: 0.22rem 0 0;
+        font-size: 0.71rem;
+        line-height: 1.42;
+        color: rgba(198, 194, 186, 0.86);
+      }
+      .gorevler-plan-teshis-compact__line strong {
+        font-weight: 600;
+        color: rgba(212, 188, 150, 0.9);
+      }
       .medya-outbox-wrap {
         margin: 0.75rem 0 1.25rem;
         padding: 0.65rem 0.75rem;
@@ -2739,6 +2757,12 @@ const TASKS_API_URL =
                       Yalnızca kayıt
                     </button>
                   </div>
+                  <section
+                    id="gorevler-plan-inline-teshis"
+                    class="gorevler-plan-teshis-compact"
+                    hidden
+                    aria-live="polite"
+                  ></section>
                 </aside>
               </div>
               <div class="gorevler-list-heading-row">
@@ -2790,6 +2814,12 @@ const TASKS_API_URL =
                           Yalnızca kayıt
                         </button>
                       </div>
+                      <section
+                        id="gorevler-detail-plan-teshis"
+                        class="gorevler-plan-teshis-compact"
+                        hidden
+                        aria-live="polite"
+                      ></section>
                     </section>
                     <section class="gorevler-detail-section" aria-labelledby="gorevler-detail-sec-bridge">
                       <h4 id="gorevler-detail-sec-bridge" class="gorevler-detail-section-title">Köprü yanıtı</h4>
@@ -5079,6 +5109,8 @@ const TASKS_API_URL =
         const detailPlanLowRiskNoteEl = document.getElementById("gorevler-detail-plan-low-risk-note");
         const detailPlanActionsEl =
           detailPlanSection && detailPlanSection.querySelector(".gorevler-plan-actions");
+        const planInlineTeshisEl = document.getElementById("gorevler-plan-inline-teshis");
+        const detailPlanTeshisEl = document.getElementById("gorevler-detail-plan-teshis");
         if (
           !listEl ||
           !titleInput ||
@@ -5283,6 +5315,69 @@ const TASKS_API_URL =
           if (detailPlanLowRiskNoteEl) detailPlanLowRiskNoteEl.hidden = !low;
         }
 
+        const GOREVLER_TESHIS_LABELS = [
+          "Tespit",
+          "İlgili alan",
+          "Kök neden",
+          "Önerilen çözüm",
+          "Risk",
+          "Onay",
+        ];
+
+        function buildGorevlerLowRiskTeshisLines(_title, plan) {
+          const p = sanitizeGorevlerTaskPlan(plan);
+          const cozum =
+            p && p.sonrakiAdim
+              ? String(p.sonrakiAdim)
+              : "Görevi listede açıp detayları kontrol et.";
+          return [
+            "Bu görev düşük riskli görünüyor; plan bilgi amaçlı hazırlandı.",
+            "Plan kartı / Görevler sekmesi",
+            "Henüz gerçek kod taraması yapılmadı; bu yalnızca ilk sınıflandırmadır.",
+            cozum,
+            "Düşük",
+            "Gerekmez; kod, köprü veya terminal çalıştırılmaz.",
+          ];
+        }
+
+        function clearGorevlerTeshisEl(el) {
+          if (!el) return;
+          el.hidden = true;
+          el.replaceChildren();
+        }
+
+        function appendGorevlerTeshisCompactLine(container, label, value) {
+          const p = document.createElement("p");
+          p.className = "gorevler-plan-teshis-compact__line";
+          const strong = document.createElement("strong");
+          strong.textContent = label + ": ";
+          p.appendChild(strong);
+          p.appendChild(document.createTextNode(value != null ? String(value) : "—"));
+          container.appendChild(p);
+        }
+
+        function gorevlerPlanTitleForIndex(taskIndex) {
+          if (taskIndex >= 0 && panelGorevlerTasks[taskIndex]) {
+            const t = panelGorevlerTasks[taskIndex];
+            return t.title != null ? String(t.title).trim() : "";
+          }
+          return titleInput && titleInput.value != null ? String(titleInput.value).trim() : "";
+        }
+
+        function renderGorevlerLowRiskTeshis(el, title, plan) {
+          if (!el) return;
+          if (!isGorevlerPlanLowRisk(plan)) {
+            clearGorevlerTeshisEl(el);
+            return;
+          }
+          const lines = buildGorevlerLowRiskTeshisLines(title, plan);
+          el.replaceChildren();
+          for (let i = 0; i < GOREVLER_TESHIS_LABELS.length; i++) {
+            appendGorevlerTeshisCompactLine(el, GOREVLER_TESHIS_LABELS[i], lines[i]);
+          }
+          el.hidden = false;
+        }
+
         function fillGorevlerPlanDl(dl, plan) {
           if (!dl) return;
           dl.replaceChildren();
@@ -5320,6 +5415,7 @@ const TASKS_API_URL =
           if (planInlineActionsEl) planInlineActionsEl.hidden = false;
           if (planInlineConfirmBtn) planInlineConfirmBtn.hidden = false;
           if (planInlineDismissBtn) planInlineDismissBtn.hidden = false;
+          clearGorevlerTeshisEl(planInlineTeshisEl);
         }
 
         function showGorevlerPlanInline(plan, taskIndex) {
@@ -5337,6 +5433,11 @@ const TASKS_API_URL =
           if (planInlineConfirmBtn) {
             planInlineConfirmBtn.disabled = !!(p.onayDurumu && String(p.onayDurumu).trim());
           }
+          renderGorevlerLowRiskTeshis(
+            planInlineTeshisEl,
+            gorevlerPlanTitleForIndex(taskIndex),
+            p,
+          );
         }
 
         function syncGorevlerDetailPlanSection(t, taskIndex) {
@@ -5353,6 +5454,7 @@ const TASKS_API_URL =
             if (detailPlanActionsEl) detailPlanActionsEl.hidden = false;
             if (detailPlanConfirmBtn) detailPlanConfirmBtn.hidden = false;
             if (detailPlanDismissBtn) detailPlanDismissBtn.hidden = false;
+            clearGorevlerTeshisEl(detailPlanTeshisEl);
             return;
           }
           lastGorevlerPlanIndex = taskIndex;
@@ -5363,6 +5465,11 @@ const TASKS_API_URL =
           if (detailPlanConfirmBtn) {
             detailPlanConfirmBtn.disabled = !!(p.onayDurumu && String(p.onayDurumu).trim());
           }
+          renderGorevlerLowRiskTeshis(
+            detailPlanTeshisEl,
+            t && t.title != null ? String(t.title).trim() : "",
+            p,
+          );
         }
 
         /** Plan onayı: köprü çalıştırmaz; yalnızca «Onay kaydedildi» yazar. */
