@@ -2845,10 +2845,10 @@ const TASKS_API_URL =
                         <ul class="chat-capability-card__list">
                           <li>Görev kaydedebilirim.</li>
                           <li>Görevleri listeleyebilirim.</li>
-                          <li>Düşük riskli görevlerde küçük plan çıkarabilirim.</li>
+                          <li>Düşük riskli görevlerde kısa bir plan önerebilirim.</li>
                           <li>
-                            Düşük riskte kod, köprü veya terminal çalıştırmadan teşhis notu
-                            gösterebilirim.
+                            Düşük riskte yalnızca bilgi notu gösterebilirim (kod veya köprü
+                            çalıştırmam).
                           </li>
                           <li>Dosya adı, türü, boyutu ve uzantısını gösterebilirim.</li>
                           <li>
@@ -2965,8 +2965,8 @@ const TASKS_API_URL =
             <h2 id="panel-gorevler-title">Görevler</h2>
             <p class="gorevler-intro">
               Görevler <code>panel_tasks_server</code> üzerinden <strong>.lumos/tasks.json</strong> dosyasına yazılır
-              (<code>{TASKS_API_URL}</code>). Köprü yürütmesi ayrıca <code>POST /task</code> ile tetiklenir. Sunucu kapalıysa liste
-              tarayıcı önbelleğinden (localStorage) gösterilir.
+              (<code>{TASKS_API_URL}</code>). Görev eklerken köprü çalıştırılmaz. Sunucu kapalıysa liste tarayıcı
+              önbelleğinden (localStorage) gösterilir.
             </p>
             <div class="gorevler-proto">
               <div class="gorevler-form-panel">
@@ -3005,18 +3005,18 @@ const TASKS_API_URL =
                   hidden
                   aria-labelledby="gorevler-plan-inline-title"
                 >
-                  <h4 id="gorevler-plan-inline-title" class="gorevler-plan-card__title">Küçük görev planı</h4>
+                  <h4 id="gorevler-plan-inline-title" class="gorevler-plan-card__title">Görev planı</h4>
                   <p id="gorevler-plan-inline-status" class="gorevler-plan-card__status" hidden></p>
                   <dl id="gorevler-plan-inline-dl" class="gorevler-detail-dl"></dl>
                   <p id="gorevler-plan-inline-low-risk-note" class="gorevler-plan-card__low-risk-note" hidden>
-                    Düşük risk — otomatik planlandı, yürütme yapılmadı.
+                    Düşük risk. Otomatik plan; hiçbir şey çalıştırılmadı.
                   </p>
                   <div class="gorevler-plan-actions">
                     <button type="button" id="gorevler-plan-inline-confirm" class="gorevler-add-btn">
-                      Onayla ve devam et
+                      Planı onayla
                     </button>
                     <button type="button" id="gorevler-plan-inline-dismiss" class="gorevler-clear-test-btn">
-                      Yalnızca kayıt
+                      Sadece kaydet
                     </button>
                   </div>
                   <section
@@ -3062,18 +3062,18 @@ const TASKS_API_URL =
                       hidden
                       aria-labelledby="gorevler-detail-sec-plan"
                     >
-                      <h4 id="gorevler-detail-sec-plan" class="gorevler-detail-section-title">Küçük görev planı</h4>
+                      <h4 id="gorevler-detail-sec-plan" class="gorevler-detail-section-title">Görev planı</h4>
                       <p id="gorevler-detail-plan-status" class="gorevler-plan-card__status" hidden></p>
                       <dl id="gorevler-detail-plan-dl" class="gorevler-detail-dl"></dl>
                       <p id="gorevler-detail-plan-low-risk-note" class="gorevler-plan-card__low-risk-note" hidden>
-                        Düşük risk — otomatik planlandı, yürütme yapılmadı.
+                        Düşük risk. Otomatik plan; hiçbir şey çalıştırılmadı.
                       </p>
                       <div class="gorevler-plan-actions">
                         <button type="button" id="gorevler-detail-plan-confirm" class="gorevler-add-btn">
-                          Onayla ve devam et
+                          Planı onayla
                         </button>
                         <button type="button" id="gorevler-detail-plan-dismiss" class="gorevler-clear-test-btn">
-                          Yalnızca kayıt
+                          Sadece kaydet
                         </button>
                       </div>
                       <section
@@ -3822,7 +3822,7 @@ const TASKS_API_URL =
       </div>
     </div>
     <script define:vars={{ CHAT_URL, kandoToken, UPLOAD_URL, HEALTH_URL, BRIDGE_BASE_URL, STATUS_URL, TASKS_API_URL }}>
-      /** Görevler: panel_tasks_server → .lumos/tasks.json; localStorage önbellek + köprü POST /task. */
+      /** Görevler: panel_tasks_server → .lumos/tasks.json; localStorage önbellek (görev eklerken köprü yok). */
       const PANEL_GOREVLER_LS_KEY = "lumos_panel_gorevler_list_v1";
       const GOREVLER_FIELD_MAX_LEN = 2048;
 
@@ -3896,7 +3896,7 @@ const TASKS_API_URL =
         return row;
       }
 
-      /** Küçük görev planı (Faz A): localStorage ile görev satırında saklanır. */
+      /** Görev planı (Faz A): localStorage ile görev satırında saklanır. */
       function sanitizeGorevlerTaskPlan(raw) {
         if (!raw || typeof raw !== "object") return null;
         const src = /** @type {Record<string, unknown>} */ (raw);
@@ -3912,8 +3912,8 @@ const TASKS_API_URL =
         const out = {
           tur: tur || "Genel görev",
           risk: risk || "Düşük",
-          onerilenAlan: onerilenAlan || "Görevler sekmesi",
-          sonrakiAdim: sonrakiAdim || "Görevi listede açıp detayları kontrol et.",
+          onerilenAlan: onerilenAlan || "Görevler",
+          sonrakiAdim: sonrakiAdim || "Listeden görevi aç ve bak.",
           active: src.active !== false,
         };
         const onayDurumu =
@@ -3934,28 +3934,28 @@ const TASKS_API_URL =
         const hay = canonicalizeTaskInput(title);
         let tur = "Genel görev";
         let risk = "Düşük";
-        let onerilenAlan = "Görevler sekmesi";
-        let sonrakiAdim = "Görevi listede açıp detayları kontrol et.";
+        let onerilenAlan = "Görevler";
+        let sonrakiAdim = "Listeden görevi aç ve bak.";
 
         if (/\b(dosya|dosyalar|upload|exe|pdf|docx)\b/.test(hay)) {
-          tur = "Dosyalar";
-          onerilenAlan = "UI veya dosya akışı";
-          sonrakiAdim = "Dosyalar sekmesinde yükleme veya önizleme adımını planla.";
+          tur = "Dosya işlemi";
+          onerilenAlan = "Dosyalar";
+          sonrakiAdim = "Dosyalar'da yükle veya önizle.";
           if (/\bexe\b/.test(hay)) risk = "Orta";
         } else if (/\b(görev|task|tamamla|sil|geri al)\b/.test(hay)) {
-          tur = "Görevler";
+          tur = "Görev listesi";
           onerilenAlan = "Görevler";
-          sonrakiAdim = "Listede durumu güncelle veya tamamlamayı onayla.";
+          sonrakiAdim = "Listede durumu güncelle veya tamamla.";
           if (/\b(sil|geri al)\b/.test(hay)) risk = "Orta";
         } else if (/\b(bridge|köprü|kopru|koprü|controlled)\b/.test(hay)) {
           tur = "Köprü";
-          onerilenAlan = "Köprü / controlled";
-          sonrakiAdim = "Köprü yanıtını detayda kontrol et; plan onayı köprü çalıştırmaz.";
+          onerilenAlan = "Köprü";
+          sonrakiAdim = "Detayda köprü yanıtına bak. Onay köprü çalıştırmaz.";
           risk = "Orta";
         } else if (/\b(panel|görsel|gorsel|metin|uyarı|uyari)\b/.test(hay)) {
-          tur = "UI metin düzeltmesi";
-          onerilenAlan = "Panel arayüzü";
-          sonrakiAdim = "İlgili panel metnini düzenle ve kullanıcıya göster.";
+          tur = "Metin";
+          onerilenAlan = "Panel";
+          sonrakiAdim = "Panel metnini düzenle.";
         }
 
         return { tur, risk, onerilenAlan, sonrakiAdim, active: true };
@@ -5356,6 +5356,7 @@ const TASKS_API_URL =
         const restoreLastBtn = document.getElementById("gorevler-restore-last");
         const clearTestBtn = document.getElementById("gorevler-clear-test");
         const planInlineEl = document.getElementById("gorevler-plan-inline");
+        const planInlineTitleEl = document.getElementById("gorevler-plan-inline-title");
         const planInlineDl = document.getElementById("gorevler-plan-inline-dl");
         const planInlineStatusEl = document.getElementById("gorevler-plan-inline-status");
         const planInlineConfirmBtn = document.getElementById("gorevler-plan-inline-confirm");
@@ -5364,6 +5365,7 @@ const TASKS_API_URL =
         const planInlineActionsEl =
           planInlineEl && planInlineEl.querySelector(".gorevler-plan-actions");
         const detailPlanSection = document.getElementById("gorevler-detail-plan-section");
+        const detailPlanSecTitleEl = document.getElementById("gorevler-detail-sec-plan");
         const detailPlanDl = document.getElementById("gorevler-detail-plan-dl");
         const detailPlanStatusEl = document.getElementById("gorevler-detail-plan-status");
         const detailPlanConfirmBtn = document.getElementById("gorevler-detail-plan-confirm");
@@ -5570,35 +5572,57 @@ const TASKS_API_URL =
           if (planInlineActionsEl) planInlineActionsEl.hidden = low;
           if (planInlineConfirmBtn) planInlineConfirmBtn.hidden = low;
           if (planInlineDismissBtn) planInlineDismissBtn.hidden = low;
-          if (planInlineLowRiskNoteEl) planInlineLowRiskNoteEl.hidden = !low;
+          if (planInlineLowRiskNoteEl) planInlineLowRiskNoteEl.hidden = true;
           if (detailPlanActionsEl) detailPlanActionsEl.hidden = low;
           if (detailPlanConfirmBtn) detailPlanConfirmBtn.hidden = low;
           if (detailPlanDismissBtn) detailPlanDismissBtn.hidden = low;
-          if (detailPlanLowRiskNoteEl) detailPlanLowRiskNoteEl.hidden = !low;
+          if (detailPlanLowRiskNoteEl) detailPlanLowRiskNoteEl.hidden = true;
         }
 
         const GOREVLER_TESHIS_LABELS = [
-          "Tespit",
-          "İlgili alan",
-          "Kök neden",
-          "Önerilen çözüm",
+          "Özet",
+          "Alan",
+          "Not",
+          "Sırada",
           "Risk",
           "Onay",
         ];
 
-        function buildGorevlerLowRiskTeshisLines(_title, plan) {
+        const GOREVLER_PLAN_KOK_NEDEN_PLACEHOLDER =
+          "Kod taranmadı; ilk sınıflandırma.";
+
+        function gorevlerPlanAlanDisplay(plan) {
           const p = sanitizeGorevlerTaskPlan(plan);
+          const raw = p && p.onerilenAlan ? String(p.onerilenAlan).trim() : "";
+          if (!raw || /^görevler(\s+sekmesi)?$/i.test(raw)) return "Görevler";
+          if (/^dosyalar(\s+sekmesi)?$/i.test(raw)) return "Dosyalar";
+          return raw.replace(/\s+sekmesi$/i, "");
+        }
+
+        function updateGorevlerPlanCardTitles(_plan) {
+          const title = "Görev planı";
+          if (planInlineTitleEl) planInlineTitleEl.textContent = title;
+          if (detailPlanSecTitleEl) detailPlanSecTitleEl.textContent = title;
+        }
+
+        function buildGorevlerMediumHighRiskTeshisLines(_title, plan) {
+          const p = sanitizeGorevlerTaskPlan(plan);
+          const tespit = p && p.tur ? String(p.tur) + "." : "Plan hazır; işlem yok.";
           const cozum =
             p && p.sonrakiAdim
               ? String(p.sonrakiAdim)
-              : "Görevi listede açıp detayları kontrol et.";
+              : "Listeden görevi aç ve bak.";
+          const onay =
+            p && p.onayDurumu && String(p.onayDurumu).trim()
+              ? String(p.onayDurumu).trim()
+              : "Onay gerekir; plan onayı köprü veya kod çalıştırmaz.";
           return [
-            "Bu görev düşük riskli görünüyor; plan bilgi amaçlı hazırlandı.",
-            "Plan kartı / Görevler sekmesi",
-            "Henüz gerçek kod taraması yapılmadı; bu yalnızca ilk sınıflandırmadır.",
+            tespit,
+            gorevlerPlanAlanDisplay(p),
+            GOREVLER_PLAN_KOK_NEDEN_PLACEHOLDER,
             cozum,
-            "Düşük",
-            "Gerekmez; kod, köprü veya terminal çalıştırılmaz.",
+            p && p.risk ? String(p.risk) : "Orta",
+            onay,
           ];
         }
 
@@ -5626,13 +5650,13 @@ const TASKS_API_URL =
           return titleInput && titleInput.value != null ? String(titleInput.value).trim() : "";
         }
 
-        function renderGorevlerLowRiskTeshis(el, title, plan) {
+        function renderGorevlerPlanTeshis(el, title, plan) {
           if (!el) return;
-          if (!isGorevlerPlanLowRisk(plan)) {
+          if (isGorevlerPlanLowRisk(plan)) {
             clearGorevlerTeshisEl(el);
             return;
           }
-          const lines = buildGorevlerLowRiskTeshisLines(title, plan);
+          const lines = buildGorevlerMediumHighRiskTeshisLines(title, plan);
           el.replaceChildren();
           for (let i = 0; i < GOREVLER_TESHIS_LABELS.length; i++) {
             appendGorevlerTeshisCompactLine(el, GOREVLER_TESHIS_LABELS[i], lines[i]);
@@ -5645,10 +5669,23 @@ const TASKS_API_URL =
           dl.replaceChildren();
           const p = sanitizeGorevlerTaskPlan(plan);
           if (!p) return;
+          const low = isGorevlerPlanLowRisk(p);
+          if (low) {
+            appendDetailRow(dl, "Tür", p.tur);
+            appendDetailRow(dl, "Risk", p.risk);
+            appendDetailRow(dl, "Alan", gorevlerPlanAlanDisplay(p));
+            appendDetailRow(dl, "Sırada", p.sonrakiAdim || "Listeden görevi aç ve bak.");
+            return;
+          }
+          const durum =
+            p.onayDurumu && String(p.onayDurumu).trim()
+              ? String(p.onayDurumu).trim()
+              : "Plan hazır; onay bekleniyor.";
           appendDetailRow(dl, "Tür", p.tur);
           appendDetailRow(dl, "Risk", p.risk);
-          appendDetailRow(dl, "Önerilen alan", p.onerilenAlan);
-          appendDetailRow(dl, "Sonraki adım", p.sonrakiAdim);
+          appendDetailRow(dl, "Alan", gorevlerPlanAlanDisplay(p));
+          appendDetailRow(dl, "Sırada", p.sonrakiAdim);
+          appendDetailRow(dl, "Not", GOREVLER_PLAN_KOK_NEDEN_PLACEHOLDER);
         }
 
         function renderGorevlerPlanStatusEl(statusEl, plan) {
@@ -5688,6 +5725,7 @@ const TASKS_API_URL =
             return;
           }
           lastGorevlerPlanIndex = taskIndex;
+          updateGorevlerPlanCardTitles(p);
           fillGorevlerPlanDl(planInlineDl, p);
           renderGorevlerPlanStatusEl(planInlineStatusEl, p);
           applyVisibilityForPlanRisk(p);
@@ -5695,7 +5733,7 @@ const TASKS_API_URL =
           if (planInlineConfirmBtn) {
             planInlineConfirmBtn.disabled = !!(p.onayDurumu && String(p.onayDurumu).trim());
           }
-          renderGorevlerLowRiskTeshis(
+          renderGorevlerPlanTeshis(
             planInlineTeshisEl,
             gorevlerPlanTitleForIndex(taskIndex),
             p,
@@ -5721,13 +5759,14 @@ const TASKS_API_URL =
           }
           lastGorevlerPlanIndex = taskIndex;
           detailPlanSection.hidden = false;
+          updateGorevlerPlanCardTitles(p);
           fillGorevlerPlanDl(detailPlanDl, p);
           renderGorevlerPlanStatusEl(detailPlanStatusEl, p);
           applyVisibilityForPlanRisk(p);
           if (detailPlanConfirmBtn) {
             detailPlanConfirmBtn.disabled = !!(p.onayDurumu && String(p.onayDurumu).trim());
           }
-          renderGorevlerLowRiskTeshis(
+          renderGorevlerPlanTeshis(
             detailPlanTeshisEl,
             t && t.title != null ? String(t.title).trim() : "",
             p,
@@ -5990,7 +6029,7 @@ const TASKS_API_URL =
 
         /**
          * Görevler: POST /tasks → .lumos/tasks.json; isteğe bağlı POST /tasks/complete;
-         * ardından yerel plan kartı (köprü POST /task çağrılmaz).
+         * ardından yerel plan kartı (görev eklerken köprü yok).
          */
         async function addTask() {
           const title = titleInput.value.trim();
@@ -6065,7 +6104,7 @@ const TASKS_API_URL =
           const savedIdx = panelGorevlerTasks.indexOf(taskRef);
           if (savedPlan && savedIdx >= 0) showGorevlerPlanInline(savedPlan, savedIdx);
 
-          showHint("Görev kaydedildi. Plan hazırlandı.");
+          showHint("Görev kaydedildi; plan gösteriliyor.");
         }
 
         async function completeOpenGorevlerTask() {
