@@ -2393,19 +2393,30 @@ const TASKS_API_URL =
           min-width: 0;
           overflow-x: hidden;
         }
-        #panel-sohbet :global(.chat-msg--user) {
+        #panel-sohbet .chat-thread {
+          gap: 0.62rem;
+        }
+        #panel-sohbet :global(.chat-msg) {
+          padding: 0.75rem 0.85rem;
           max-width: 88%;
+        }
+        #panel-sohbet :global(.chat-msg--user) {
           margin-left: auto;
           margin-right: clamp(0.28rem, 2vw, 0.55rem);
         }
         #panel-sohbet :global(.chat-msg--lumos),
         #panel-sohbet :global(.chat-msg--error) {
-          max-width: 94%;
           margin-right: auto;
           margin-left: clamp(0.28rem, 2vw, 0.55rem);
         }
+        #panel-sohbet :global(.chat-msg-role) {
+          font-size: 0.56rem;
+          margin-bottom: 0.18rem;
+          letter-spacing: 0.07em;
+        }
         #panel-sohbet :global(.chat-msg-body) {
-          font-size: 0.86rem;
+          font-size: 0.9rem;
+          line-height: 1.45;
           min-width: 0;
           max-width: 100%;
           overflow-wrap: anywhere;
@@ -2418,7 +2429,7 @@ const TASKS_API_URL =
           min-width: 0;
           align-self: stretch;
           box-sizing: border-box;
-          padding: 0.55rem 0.85rem;
+          padding: 0.45rem 0.72rem;
         }
         #panel-sohbet .chat-empty-hint__text {
           display: block;
@@ -2436,7 +2447,7 @@ const TASKS_API_URL =
           min-width: 0;
           align-self: stretch;
           box-sizing: border-box;
-          padding: 0.62rem 0.78rem 0.68rem;
+          padding: 0.52rem 0.68rem 0.58rem;
           overflow-x: hidden;
         }
         #panel-sohbet .chat-capability-card__title {
@@ -2578,6 +2589,7 @@ const TASKS_API_URL =
           max-width: 100%;
           min-width: 0;
           box-sizing: border-box;
+          padding: 0.32rem 0.38rem 0.32rem 0.34rem;
         }
         #panel-sohbet .chat-compose.chat-compose--gpt {
           display: flex;
@@ -2585,10 +2597,12 @@ const TASKS_API_URL =
           align-items: center;
           gap: 0.2rem;
           min-width: 0;
+          min-height: 3.2rem;
           width: 100%;
           max-width: 100%;
           margin: 0;
           margin-inline: 0;
+          padding: 0.45rem 0.55rem;
           align-self: stretch;
           box-sizing: border-box;
         }
@@ -2609,9 +2623,9 @@ const TASKS_API_URL =
           flex: 1 1 auto;
           min-width: 0;
           max-width: 100%;
-          padding: 0.42rem 0.45rem;
-          font-size: max(16px, 0.88rem);
-          line-height: 1.5;
+          padding: 0.34rem 0.38rem;
+          font-size: max(16px, 0.84rem);
+          line-height: 1.4;
           box-sizing: border-box;
         }
         #panel-sohbet .chat-compose--gpt textarea:focus,
@@ -2620,7 +2634,7 @@ const TASKS_API_URL =
           transform: none;
           zoom: normal;
           scale: none;
-          font-size: max(16px, 0.88rem);
+          font-size: max(16px, 0.84rem);
         }
         #panel-sohbet .chat-compose-camera-btn,
         #panel-sohbet .chat-compose-voice-btn,
@@ -2635,10 +2649,10 @@ const TASKS_API_URL =
         #panel-sohbet .chat-compose-send {
           position: static;
           display: inline-flex;
-          min-width: 4.5rem;
-          min-height: 2.05rem;
-          padding: 0.3rem 0.58rem;
-          font-size: max(16px, 0.7rem);
+          min-width: 3.9rem;
+          min-height: 2.6rem;
+          padding: 0.45rem 0.85rem;
+          font-size: 0.95rem;
           letter-spacing: 0.02em;
         }
         #panel-sohbet .chat-compose-camera-btn,
@@ -2672,10 +2686,10 @@ const TASKS_API_URL =
           overflow-y: hidden;
           text-overflow: clip;
           text-align: start;
-          font-size: max(16px, 0.88rem);
-          line-height: 1.5;
-          min-height: calc(0.42rem * 2 + 1em * 1.5);
-          max-height: calc(0.42rem * 2 + 1em * 1.5);
+          font-size: max(16px, 0.84rem);
+          line-height: 1.4;
+          min-height: calc(0.34rem * 2 + 1em * 1.4);
+          max-height: calc(0.34rem * 2 + 1em * 1.4);
         }
         #panel-sohbet .chat-compose--gpt textarea:not(:placeholder-shown) {
           white-space: pre-wrap;
