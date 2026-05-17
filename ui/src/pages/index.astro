@@ -1138,7 +1138,7 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         font-size: 0.95rem;
         font-weight: 650;
         letter-spacing: -0.012em;
-        color: rgb(226 232 244 / 0.94);
+        color: var(--lumos-land-title);
         line-height: 1.25;
       }
       .lumos-install-versions__sub {
@@ -1155,21 +1155,21 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         font-size: 0.86rem;
         font-weight: 650;
         letter-spacing: -0.01em;
-        color: rgb(226 232 244 / 0.9);
+        color: var(--lumos-text-body);
         line-height: 1.28;
       }
       .lumos-install-versions__sub p {
         margin: 0;
         font-size: 0.8rem;
         line-height: 1.55;
-        color: rgb(var(--lumos-land-teal-deep) / 0.62);
+        color: var(--lumos-text-muted);
         max-width: 68ch;
       }
       .lumos-install-versions__footnote {
         margin: 0.75rem 0 0;
         font-size: 0.76rem;
         line-height: 1.52;
-        color: rgb(var(--lumos-land-teal-deep) / 0.52);
+        color: var(--lumos-text-muted);
         max-width: 68ch;
       }
       .lumos-install-actions .lumos-hero-btn[disabled],
@@ -2013,6 +2013,19 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
         }
         .lumos-dunya-vizyon__prose {
           font-size: 0.9rem;
+        }
+        /** Sürümler: mobil Safari’de yarı saydam kart üstünde kontrast. */
+        .lumos-install-versions__sub h4 {
+          color: var(--lumos-land-title);
+          -webkit-font-smoothing: antialiased;
+        }
+        .lumos-install-versions__sub p {
+          color: rgb(226 232 244 / 0.92);
+          -webkit-font-smoothing: antialiased;
+        }
+        .lumos-install-versions__footnote {
+          color: rgb(226 232 244 / 0.88);
+          -webkit-font-smoothing: antialiased;
         }
         /** iOS Safari: odak yakınlaştırmasını azaltmak için form metni en az 16px. */
         body.lumos-landing input,
