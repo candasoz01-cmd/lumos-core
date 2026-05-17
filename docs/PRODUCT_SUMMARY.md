@@ -1,65 +1,79 @@
-# Lumos ürün pusulası
+# Lumos — Ürün Özeti
+
+Kişisel yapay zekâ paneli; kontrolsüz otonom ajan değil, **kontrollü gelişen panel**. Erken aşamada odak: **Faz A** — görev ve plan.
+
+---
+
 ## Lumos'un amacı
-Lumos, kullanıcı adına kontrolsüz işlem yapan bir ajan değil; kullanıcının niyetini düzenleyen, sınırlarını açıkça gösteren ve güvenli karar katmanı oluşturan kişisel bir AI paneli olarak tasarlanır.
-Amaç, kullanıcıya yardım etmek ve yönlendirmek; kontrolü kullanıcıdan almak değildir.
+
+Lumos, kullanıcının çalışma alanında **güvenilir, şeffaf ve izinli** bir yardımcı katman olmak için tasarlanır. Görevleri ve durumu toparlar; uzun veya dağınık niyeti anlaşılır parçalara ayırır; panel ve dil ile yormadan yönlendirir. Amaç kullanıcıyı devre dışı bırakmak değil; **hizalı yardım** sunmaktır.
+
 ---
+
 ## Şu anki erken faz
-Bu aşama Faz A olarak ele alınır.
-Odak noktası:
-- Görev kaydetme
-- Görevleri listeleme
-- Düşük riskli görevlerde kısa plan çıkarma
-- İşlem yapmadan önce durumu açık göstermek
-- Kod, köprü veya terminal çalıştırmadan bilgi vermek
-- Yerel liste görünürlüğünü ve panel davranışını sadeleştirmek
-Bu fazda Lumos gerçek sistem yetkisi kullanan bir ajan gibi davranmaz.
+
+Ürün **erken faz**dadır. Omurga şu an **Faz A** ile sınırlıdır: görev listesi, planlama ve panel üzerinden okuma/yönlendirme. Avatar, derin entegrasyonlar, tam otomasyon ve geniş cihaz ekosistemi henüz ürün omurgası değildir; keşif ve not düzeyindedir.
+
 ---
+
 ## Ne yapar
-Lumos şu erken fazda şunları yapabilir:
-- Görev kaydedebilir.
-- Görevleri listeleyebilir.
-- Görevleri durumlarına göre görünür biçimde filtreleyebilir.
-- Düşük riskli görevlerde kısa plan önerebilir.
-- Kullanıcıya hangi işlemin yapılmadığını açıkça söyleyebilir.
-- Dosya adı, türü, boyutu ve uzantısı gibi temel bilgileri gösterebilir.
-- Güvenli okuma/yazma akışları için hazırlık zemini oluşturabilir.
+
+- Kullanıcı isteğini, çalışma alanı bağlamını ve mevcut bilgileri birlikte değerlendirir; özet ve öneri sunar.
+- Görev ve plan akışında (Faz A) durumu görünür kılar; düşük riskli, net işlerde kısa bilgiyle işe girişmeyi hedefler.
+- Belirsizlik, düşük güven veya eksik veri olduğunda duraklar; netleştirme sorar; boşluk doldurmaz.
+- Yerel köprü, read-only durum ve kontrollü entegrasyon hatları üzerinden bilgi toplar (politika ve katmanlara uygun).
+- Karar motoru ve guard katmanlarıyla riskli veya kalıcı adımları **öneri** düzeyinde bırakır; uygulama ayrı ve onaylıdır.
+
 ---
+
 ## Ne yapmaz
-Lumos şu aşamada şunları yapmaz:
-- Kullanıcı onayı olmadan kalıcı işlem yapmaz.
-- Kendi kendine terminal veya cihaz komutu çalıştırmaz.
-- Kod değiştirmez.
-- Köprü yürütmesini otomatik başlatmaz.
-- Mail, takvim veya kişilere erişmez.
-- PDF/DOCX gibi dosyalarda derin analiz yaptığını iddia etmez.
-- EXE veya kurulum dosyası çalıştırmaz.
-- Kullanıcıya yapmadığı bir işlemi yapmış gibi göstermez.
+
+- Kontrolsüz, sınırsız yetkili bir **ajan** gibi davranmaz.
+- Kullanıcı adına sessizce kalıcı değişiklik, silme, dış yazma veya geri dönüşsüz işlem yapmaz.
+- Emin olmadığı konuda kesin hüküm vermez veya manipülatif yönlendirme yapmaz.
+- Tek başına posta, paylaşım veya kimlik adına bağlayıcı işlem göndermez.
+- Güvenlik, kilit ve consent alanlarında otomatik müdahale iddiasında bulunmaz (`SECURITY_NEVER_AUTO` çizgisi).
+
 ---
+
 ## Kullanıcı onayı ilkesi
-Kalıcı, riskli veya dış sisteme etki eden işlemler kullanıcı onayı olmadan yapılmaz.
-Lumos'un görevi kullanıcıyı hızlandırmak ve yönlendirmektir. Karar, sorumluluk ve son onay kullanıcıda kalır.
-Onay yalnızca görsel bir formalite değildir; sistem davranışında gerçek sınır olarak ele alınmalıdır.
+
+Tüm kalıcı, riskli veya geri dönüşü zor adımlarda **son karar kullanıcıdadır**. Katmanlar: yalnızca cevap → analiz → öner, bekle → açık onayla uygula → asla dokunma. Sessiz araştırma ve not serbesttir; **sessiz uygulama yoktur** — kod, state veya dış sistemde değişiklik için açık onay veya net komut gerekir.
+
 ---
+
+## Kontrollü gelişen panel
+
+Lumos, kurallarını ve yetkilerini arka planda tek başına yenileyen bir **otomatik ajan** değildir. **Kontrollü gelişen bir panel**dir; bu ürün farkının özüdür.
+
+- **Görünürlük:** Kullanım sırasında ne yaptığını ve ne yapmadığını anlaşılır tutar; gizli “kendi kendine evrim” vaadi sunmaz.
+- **Hatırlama:** Tercihler ve bağlam, daha iyi yardım içindir; ürün kimliğini veya güvenlik çizgisini kullanıcı fark etmeden yeniden tanımlamak değildir.
+- **Geri bildirim:** Dinlenir ve ürün kararına dönüşür; tek başına “öğrendim, artık böyleyim” demez.
+- **Gelişim:** Kullanıcı onayı ve açık sürümle gelir; hızlı, ölçülü ve şeffaftır.
+
+---
+
+## Sohbet tonu
+
+- Görünen kimlik her zaman **Lumos**’tur; gereksiz marka veya altyapı tekrarı yapılmaz.
+- Kimlik yalnızca açık kimlik sorusunda, kısaca: «Ben Lumos.»
+- Yetki ve erişim sorularında doğrudan yetenek ve sınırlar anlatılır; cevap kimlik sloganıyla kapatılmaz.
+- Öneri sunulabilir; öneri kesin karar veya emir gibi dayatılmaz.
+
+---
+
 ## Cihaz bağımsız yaklaşım
-Lumos yalnızca Mac veya PC için düşünülmez.
-Ürün dili cihaz bağımsız olmalıdır:
-- mobil
-- masaüstü
-- yerel cihaz
-- uzak panel
-- ileride mini Lumos server
-Bu yüzden arayüzde platforma özel ifadeler yerine genel cihaz dili tercih edilir.
+
+Lumos, belirli bir cihaza veya markaya kilitlenmiş bir ürün olarak tanımlanmaz. Panel ve köprü mantığı **cihazdan bağımsız** bir deneyim hedefler: aynı çekirdek ilkeler (onay, şeffaflık, Faz A görev/plan) farklı ortamlarda tutarlı kalır; entegrasyonlar kontrollü ve kullanıcı onaylı genişler.
+
 ---
-## Mini Lumos server uzun vadeli notu
-İleride kullanıcının kendi ortamında çalışan küçük bir Lumos sunucusu düşünülebilir.
-Bu mini server:
-- görev senkronu,
-- güvenli köprü uçları,
-- yerel cihaz entegrasyonları,
-- kullanıcıya ait veri sınırları
-için hafif bir bağlantı katmanı olabilir.
-Bu yapı merkezi SaaS'a tamamen bağımlı olmadan, yerel öncelik ve isteğe bağlı senkron yaklaşımıyla tasarlanmalıdır.
-Mini Lumos server erken fazda zorunlu değildir; uzun vadeli mimari notudur.
+
+## Mini Lumos server — uzun vadeli notu
+
+Uzun vadede, kullanıcının kendi ortamında çalışan hafif bir **mini Lumos sunucusu** düşünülebilir: yerel görev/durum, köprü ve panel ile uyumlu, veriyi mümkün olduğunca kullanıcı kontrolünde tutan bir uç nokta. Bu, bugünkü erken fazın yerine geçen bir taahhüt değil; mimari yön notudur. Hayata geçiş aşamalı, onaylı ve güvenlik sözleşmesine bağlı olmalıdır.
+
 ---
+
 ## Tek cümlelik ürün vaadi
-**Lumos yardım eder ve yönlendirir; kalıcı veya riskli adımı kullanıcı onayı olmadan atmaz.**
+
+**Lumos yardım eder ve yönlendirir; kalıcı veya riskli adım kullanıcı onayı olmadan atmaz.**
