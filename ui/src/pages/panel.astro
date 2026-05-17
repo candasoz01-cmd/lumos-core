@@ -1887,6 +1887,27 @@ const TASKS_API_URL =
       #panel-camera-preview-wrap[hidden] {
         display: none !important;
       }
+      .chat-camera-video {
+        display: block;
+        width: 100%;
+        max-width: 13rem;
+        max-height: 10rem;
+        border-radius: 10px;
+        border: 1px solid var(--lumos-teal-38);
+        background: rgba(0, 0, 0, 0.35);
+        object-fit: cover;
+      }
+      .chat-camera-video[hidden] {
+        display: none !important;
+      }
+      @media (min-width: 768px) {
+        .chat-camera-video:not([hidden]) {
+          width: auto;
+          height: auto;
+          max-width: 13rem;
+          max-height: 10rem;
+        }
+      }
       .chat-camera-photo-input {
         position: absolute;
         width: 1px;
@@ -2544,7 +2565,9 @@ const TASKS_API_URL =
             opacity 0.18s ease,
             padding 0.18s ease;
         }
-        #panel-sohbet .chat-camera-preview-wrap:has(#panel-camera-photo-preview[hidden]) {
+        #panel-sohbet .chat-camera-preview-wrap:has(#panel-camera-photo-preview[hidden]):not(
+            .chat-camera-preview-wrap--stream
+          ) {
           max-height: 0;
           min-height: 0;
           margin: 0;
@@ -2554,7 +2577,8 @@ const TASKS_API_URL =
           opacity: 0;
           pointer-events: none;
         }
-        #panel-sohbet .chat-camera-preview-wrap:not(:has(#panel-camera-photo-preview[hidden])) {
+        #panel-sohbet .chat-camera-preview-wrap:not(:has(#panel-camera-photo-preview[hidden])),
+        #panel-sohbet .chat-camera-preview-wrap.chat-camera-preview-wrap--stream {
           flex-direction: row;
           align-items: center;
           max-height: min(8.25rem, 36vh);
@@ -2989,9 +3013,8 @@ const TASKS_API_URL =
                     id="panel-camera-photo-input"
                     class="chat-camera-photo-input"
                     accept="image/*"
-                    capture="environment"
                     tabindex="-1"
-                    aria-label="Kamera veya galeriden görsel seç"
+                    aria-label="Galeriden görsel seç"
                   />
                   <input
                     type="file"
@@ -3001,6 +3024,14 @@ const TASKS_API_URL =
                     tabindex="-1"
                     aria-label="Ses dosyası seç"
                   />
+                  <video
+                    id="panel-camera-video"
+                    class="chat-camera-video"
+                    playsinline
+                    muted
+                    autoplay
+                    hidden
+                  ></video>
                   <div class="chat-camera-photo-row">
                     <img
                       id="panel-camera-photo-preview"
@@ -4588,9 +4619,12 @@ const TASKS_API_URL =
         const cameraPhotoPreview = /** @type {HTMLImageElement | null} */ (document.getElementById("panel-camera-photo-preview"));
         const cameraPhotoStatus = document.getElementById("panel-camera-photo-status");
         const cameraPreviewWrap = document.getElementById("panel-camera-preview-wrap");
+        const cameraVideo = /** @type {HTMLVideoElement | null} */ (document.getElementById("panel-camera-video"));
         const mqPanelCameraMobile = window.matchMedia("(max-width: 767.98px)");
         /** @type {string | null} */
         let cameraPhotoObjectUrl = null;
+        /** @type {MediaStream | null} */
+        let cameraStream = null;
 
         function setCameraHint(msg) {
           if (!cameraHint) return;
@@ -4615,9 +4649,64 @@ const TASKS_API_URL =
         }
 
         function syncPanelCameraPhotoBarVisibility() {
-          const has = !!cameraPhotoObjectUrl;
+          const hasPhoto = !!cameraPhotoObjectUrl;
+          const hasStream = !!cameraStream;
           if (!cameraPreviewWrap) return;
-          cameraPreviewWrap.hidden = !has;
+          cameraPreviewWrap.hidden = !(hasPhoto || hasStream);
+          if (hasStream) cameraPreviewWrap.classList.add("chat-camera-preview-wrap--stream");
+          else cameraPreviewWrap.classList.remove("chat-camera-preview-wrap--stream");
+        }
+
+        function stopPanelCameraStream() {
+          if (cameraStream) {
+            cameraStream.getTracks().forEach((tr) => tr.stop());
+            cameraStream = null;
+          }
+          if (cameraVideo) {
+            cameraVideo.srcObject = null;
+            cameraVideo.hidden = true;
+          }
+          if (cameraBtn && !cameraPhotoObjectUrl) {
+            cameraBtn.classList.remove("chat-compose-camera-btn--active");
+            cameraBtn.setAttribute("aria-pressed", "false");
+          }
+          syncPanelCameraPhotoBarVisibility();
+        }
+
+        function togglePanelCameraStream() {
+          if (cameraStream) {
+            stopPanelCameraStream();
+            setCameraHint("");
+            return;
+          }
+          if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== "function") {
+            setCameraHint("Bu tarayıcıda kamera girişi desteklenmiyor.");
+            return;
+          }
+          setCameraHint("");
+          navigator.mediaDevices
+            .getUserMedia({ video: true, audio: false })
+            .then((stream) => {
+              cameraStream = stream;
+              if (cameraVideo) {
+                cameraVideo.srcObject = stream;
+                cameraVideo.hidden = false;
+              }
+              if (cameraBtn) {
+                cameraBtn.classList.add("chat-compose-camera-btn--active");
+                cameraBtn.setAttribute("aria-pressed", "true");
+              }
+              syncPanelCameraPhotoBarVisibility();
+            })
+            .catch((err) => {
+              const name = err && err.name;
+              if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+                setCameraHint("Kamera izni verilmedi.");
+              } else {
+                setCameraHint("Bu tarayıcıda kamera girişi desteklenmiyor.");
+              }
+              stopPanelCameraStream();
+            });
         }
 
         function clearPanelCameraPhotoSelection() {
@@ -4634,7 +4723,7 @@ const TASKS_API_URL =
             cameraPhotoStatus.textContent = "";
             cameraPhotoStatus.hidden = true;
           }
-          if (cameraBtn) {
+          if (cameraBtn && !cameraStream) {
             cameraBtn.classList.remove("chat-compose-camera-btn--active");
             cameraBtn.setAttribute("aria-pressed", "false");
           }
@@ -4642,6 +4731,7 @@ const TASKS_API_URL =
         }
 
         function bindCameraPhotoFromFile(file) {
+          stopPanelCameraStream();
           if (!file || !/^image\//.test(file.type)) {
             setCameraHint("Lütfen bir görsel dosyası seçin.");
             return;
@@ -5545,18 +5635,27 @@ const TASKS_API_URL =
         }
 
         function triggerPanelCameraPhotoInput(mode) {
+          if (mode === "camera") {
+            closePanelAttachMenu();
+            togglePanelCameraStream();
+            return;
+          }
           if (!cameraPhotoInput) {
             setCameraHint("Bu tarayıcıda görsel seçimi desteklenmiyor.");
             return;
           }
+          stopPanelCameraStream();
           setCameraHint("");
-          if (mode === "camera") {
-            cameraPhotoInput.setAttribute("capture", "environment");
-          } else {
-            cameraPhotoInput.removeAttribute("capture");
-          }
+          cameraPhotoInput.removeAttribute("capture");
           cameraPhotoInput.click();
         }
+
+        function onDocVisibilityForCamera() {
+          if (document.hidden) stopPanelCameraStream();
+        }
+
+        document.addEventListener("visibilitychange", onDocVisibilityForCamera);
+        window.addEventListener("pagehide", stopPanelCameraStream);
 
         attachToggle?.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -5631,7 +5730,8 @@ const TASKS_API_URL =
         });
 
         cameraBtn?.addEventListener("click", () => {
-          triggerPanelCameraPhotoInput("camera");
+          closePanelAttachMenu();
+          togglePanelCameraStream();
         });
 
         cameraPhotoInput?.addEventListener("change", () => {
