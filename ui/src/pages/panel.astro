@@ -1952,6 +1952,8 @@ const TASKS_API_URL =
         align-items: center;
         justify-content: center;
         align-self: center;
+        box-sizing: border-box;
+        min-width: 4.25rem;
         min-height: 2.35rem;
         padding: 0.38rem 0.72rem;
         margin: 0;
@@ -2633,6 +2635,7 @@ const TASKS_API_URL =
         #panel-sohbet .chat-compose-send {
           position: static;
           display: inline-flex;
+          min-width: 4.5rem;
           min-height: 2.05rem;
           padding: 0.3rem 0.58rem;
           font-size: max(16px, 0.7rem);
@@ -4374,7 +4377,6 @@ const TASKS_API_URL =
         const nav = document.querySelector(".panel-body");
         const panels = document.querySelectorAll("[data-module-panel]");
         const sendBtn = document.getElementById("panel-send");
-        const sendLabelEl = sendBtn?.querySelector(".chat-compose-send__label");
         const input = document.getElementById("panel-msg");
         const thread = document.getElementById("chat-thread");
         if (!nav || !sendBtn || !input || !thread) return;
@@ -4449,6 +4451,26 @@ const TASKS_API_URL =
         const loadingLabel = "Gönderiliyor…";
         const CHAT_HISTORY_LIMIT = 12;
         let sending = false;
+        const mqPanelChatFinePointer = window.matchMedia("(pointer: fine)");
+        const mqPanelChatTouchPrimary = window.matchMedia("(pointer: coarse) and (hover: none)");
+        const mqPanelChatDesktopWidth = window.matchMedia("(min-width: 768px)");
+
+        function refocusPanelChatInput() {
+          if (mqPanelChatTouchPrimary.matches) return;
+          if (!mqPanelChatFinePointer.matches && !mqPanelChatDesktopWidth.matches) return;
+          if (input.disabled || input.readOnly) return;
+          const el = input;
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              if (el.disabled || el.readOnly) return;
+              try {
+                el.focus({ preventScroll: true });
+              } catch {
+                el.focus();
+              }
+            });
+          });
+        }
 
         const cameraBtn = document.getElementById("panel-camera-input");
         const cameraHint = document.getElementById("panel-camera-hint");
@@ -4988,7 +5010,6 @@ const TASKS_API_URL =
           sendBtn.setAttribute("aria-label", loadingLabel);
           sendBtn.setAttribute("title", loadingLabel);
           sendBtn.classList.add("chat-compose-send--busy");
-          if (sendLabelEl) sendLabelEl.textContent = loadingLabel;
           const history = collectThreadHistory(thread);
           if (imageDataUrlForBubble) {
             appendUserComposeBubble(message, imageDataUrlForBubble);
@@ -5278,11 +5299,12 @@ const TASKS_API_URL =
             sendBtn.setAttribute("aria-label", sendLabel);
             sendBtn.setAttribute("title", sendLabel);
             sendBtn.classList.remove("chat-compose-send--busy");
-            if (sendLabelEl) sendLabelEl.textContent = sendLabel;
+            refocusPanelChatInput();
           }
         }
 
         sendBtn.addEventListener("click", () => {
+          sendBtn.blur();
           void runSend();
         });
         input.addEventListener("keydown", (e) => {
@@ -5750,10 +5772,11 @@ const TASKS_API_URL =
           if (!p) return;
           const low = isGorevlerPlanLowRisk(p);
           if (low) {
-            appendDetailRow(dl, "Tür", p.tur);
+            appendDetailRow(dl, "Durum", "Plan hazırlandı, işlem yapılmadı.");
             appendDetailRow(dl, "Risk", p.risk);
             appendDetailRow(dl, "Alan", gorevlerPlanAlanDisplay(p));
-            appendDetailRow(dl, "Sırada", p.sonrakiAdim || "Listeden görevi aç ve bak.");
+            appendDetailRow(dl, "Sonraki adım", "Görevi listede açıp detayları kontrol et.");
+            appendDetailRow(dl, "Not", "Kod, köprü veya terminal çalıştırılmadı.");
             return;
           }
           const durum =
