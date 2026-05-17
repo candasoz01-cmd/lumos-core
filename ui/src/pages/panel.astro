@@ -1763,7 +1763,14 @@ const TASKS_API_URL =
       .chat-compose--gpt {
         align-items: center;
       }
-      .chat-compose-camera-btn {
+      .chat-compose-attach-wrap {
+        position: relative;
+        flex: 0 0 auto;
+        align-self: center;
+      }
+      .chat-compose-camera-btn,
+      .chat-compose-voice-btn,
+      .chat-compose-attach-btn {
         flex: 0 0 auto;
         display: flex;
         align-items: center;
@@ -1783,24 +1790,87 @@ const TASKS_API_URL =
           background 0.15s ease,
           box-shadow 0.15s ease;
       }
-      .chat-compose-camera-btn:hover {
+      .chat-compose-camera-btn:hover,
+      .chat-compose-voice-btn:hover,
+      .chat-compose-attach-btn:hover {
         color: rgb(184 240 255 / 0.98);
         background: rgb(var(--lumos-land-teal) / 0.08);
       }
-      .chat-compose-camera-btn:focus-visible {
+      .chat-compose-camera-btn:focus-visible,
+      .chat-compose-voice-btn:focus-visible,
+      .chat-compose-attach-btn:focus-visible {
         outline: none;
         box-shadow: 0 0 0 2px rgb(var(--lumos-land-teal) / 0.45);
       }
-      .chat-compose-camera-btn--active {
+      .chat-compose-camera-btn--active,
+      .chat-compose-attach-btn--open {
         color: rgb(220 248 255 / 0.99);
         background: rgb(var(--lumos-land-teal) / 0.12);
         box-shadow:
           inset 0 0 0 1px rgb(var(--lumos-land-teal) / 0.38),
           0 0 12px rgb(var(--lumos-land-warm) / 0.08);
       }
-      .chat-compose-camera-btn svg {
+      .chat-compose-camera-btn svg,
+      .chat-compose-voice-btn svg,
+      .chat-compose-attach-btn svg {
         width: 1.15rem;
         height: 1.15rem;
+      }
+      .chat-compose-attach-menu {
+        position: absolute;
+        bottom: calc(100% + 0.4rem);
+        left: 0;
+        z-index: 48;
+        display: flex;
+        flex-direction: column;
+        gap: 0.12rem;
+        min-width: 11.25rem;
+        max-width: min(16.5rem, calc(100vw - 1.25rem));
+        padding: 0.35rem;
+        border-radius: 0.7rem;
+        border: 1px solid var(--lumos-border);
+        background: rgba(5, 10, 22, 0.98);
+        box-shadow:
+          0 10px 28px rgb(0 0 0 / 0.42),
+          var(--panel-edge-inset);
+      }
+      .chat-compose-attach-menu[hidden] {
+        display: none !important;
+      }
+      .chat-compose-attach-menu__item {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        width: 100%;
+        margin: 0;
+        padding: 0.42rem 0.5rem;
+        border: none;
+        border-radius: 0.45rem;
+        background: transparent;
+        color: rgb(214 232 248 / 0.96);
+        font: inherit;
+        font-size: 0.78rem;
+        line-height: 1.35;
+        text-align: start;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .chat-compose-attach-menu__item:hover,
+      .chat-compose-attach-menu__item:focus-visible {
+        background: rgb(var(--lumos-land-teal) / 0.1);
+        color: rgb(236 248 255 / 0.99);
+        outline: none;
+      }
+      .chat-compose-attach-menu__badge {
+        margin-inline-start: auto;
+        padding: 0.08rem 0.35rem;
+        border-radius: 999px;
+        background: rgb(var(--lumos-land-teal) / 0.14);
+        color: rgb(160 210 235 / 0.92);
+        font-size: 0.62rem;
+        letter-spacing: 0.02em;
+        text-transform: lowercase;
+        white-space: nowrap;
       }
       .chat-camera-preview-wrap {
         position: relative;
@@ -1872,44 +1942,12 @@ const TASKS_API_URL =
           position: relative;
         }
       }
-      .chat-compose-voice-btn {
-        flex: 0 0 auto;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        align-self: center;
-        width: 2.25rem;
-        height: 2.25rem;
-        padding: 0;
-        margin: 0;
-        border: none;
-        border-radius: 999px;
-        background: transparent;
-        color: rgb(130 200 240 / 0.92);
-        cursor: pointer;
-        transition:
-          color 0.15s ease,
-          background 0.15s ease,
-          box-shadow 0.15s ease;
-      }
-      .chat-compose-voice-btn:hover {
-        color: rgb(184 240 255 / 0.98);
-        background: rgb(var(--lumos-land-teal) / 0.08);
-      }
-      .chat-compose-voice-btn:focus-visible {
-        outline: none;
-        box-shadow: 0 0 0 2px rgb(var(--lumos-land-teal) / 0.45);
-      }
       .chat-compose-voice-btn--listening {
         color: rgb(220 248 255 / 0.99);
         background: rgb(var(--lumos-land-teal) / 0.12);
         box-shadow:
           inset 0 0 0 1px rgb(var(--lumos-land-teal) / 0.38),
           0 0 12px rgb(var(--lumos-land-warm) / 0.08);
-      }
-      .chat-compose-voice-btn svg {
-        width: 1.15rem;
-        height: 1.15rem;
       }
       .chat-compose--gpt textarea {
         flex: 1;
@@ -2018,21 +2056,24 @@ const TASKS_API_URL =
         .chat-compose {
           gap: 0.28rem;
         }
-        .chat-compose-camera-btn {
+        .chat-compose-camera-btn,
+        .chat-compose-voice-btn,
+        .chat-compose-attach-btn {
           width: 2.05rem;
           height: 2.05rem;
         }
-        .chat-compose-camera-btn svg {
+        .chat-compose-camera-btn svg,
+        .chat-compose-voice-btn svg,
+        .chat-compose-attach-btn svg {
           width: 1.05rem;
           height: 1.05rem;
         }
-        .chat-compose-voice-btn {
-          width: 2.05rem;
-          height: 2.05rem;
+        .chat-compose-attach-menu {
+          max-width: min(15rem, calc(100vw - 1rem));
         }
-        .chat-compose-voice-btn svg {
-          width: 1.05rem;
-          height: 1.05rem;
+        .chat-compose-attach-menu__item {
+          font-size: 0.74rem;
+          padding: 0.38rem 0.45rem;
         }
         .chat-compose-send {
           min-height: 2.15rem;
@@ -2638,6 +2679,7 @@ const TASKS_API_URL =
         }
         #panel-sohbet .chat-compose-camera-btn,
         #panel-sohbet .chat-compose-voice-btn,
+        #panel-sohbet .chat-compose-attach-btn,
         #panel-sohbet .chat-compose-send {
           flex-shrink: 0;
           display: flex;
@@ -2656,7 +2698,8 @@ const TASKS_API_URL =
           letter-spacing: 0.02em;
         }
         #panel-sohbet .chat-compose-camera-btn,
-        #panel-sohbet .chat-compose-voice-btn {
+        #panel-sohbet .chat-compose-voice-btn,
+        #panel-sohbet .chat-compose-attach-btn {
           width: 1.95rem;
           height: 1.95rem;
           min-width: 1.95rem;
@@ -2664,9 +2707,13 @@ const TASKS_API_URL =
           padding: 0;
         }
         #panel-sohbet .chat-compose-camera-btn svg,
-        #panel-sohbet .chat-compose-voice-btn svg {
+        #panel-sohbet .chat-compose-voice-btn svg,
+        #panel-sohbet .chat-compose-attach-btn svg {
           width: 0.98rem;
           height: 0.98rem;
+        }
+        #panel-sohbet .chat-compose-attach-menu {
+          max-width: min(14.5rem, calc(100vw - 0.85rem));
         }
         #panel-sohbet .chat-compose-camera-btn:focus,
         #panel-sohbet .chat-compose-camera-btn:focus-visible,
@@ -2674,6 +2721,9 @@ const TASKS_API_URL =
         #panel-sohbet .chat-compose-voice-btn:focus,
         #panel-sohbet .chat-compose-voice-btn:focus-visible,
         #panel-sohbet .chat-compose-voice-btn:active,
+        #panel-sohbet .chat-compose-attach-btn:focus,
+        #panel-sohbet .chat-compose-attach-btn:focus-visible,
+        #panel-sohbet .chat-compose-attach-btn:active,
         #panel-sohbet .chat-compose-send:focus,
         #panel-sohbet .chat-compose-send:focus-visible,
         #panel-sohbet .chat-compose-send:active {
@@ -2802,7 +2852,8 @@ const TASKS_API_URL =
           padding: 0.24rem 0.48rem;
         }
         #panel-sohbet .chat-compose-camera-btn,
-        #panel-sohbet .chat-compose-voice-btn {
+        #panel-sohbet .chat-compose-voice-btn,
+        #panel-sohbet .chat-compose-attach-btn {
           width: 1.78rem;
           height: 1.78rem;
           min-width: 1.78rem;
@@ -2942,6 +2993,14 @@ const TASKS_API_URL =
                     tabindex="-1"
                     aria-label="Kamera veya galeriden görsel seç"
                   />
+                  <input
+                    type="file"
+                    id="panel-attach-audio-input"
+                    class="chat-camera-photo-input"
+                    accept="audio/*"
+                    tabindex="-1"
+                    aria-label="Ses dosyası seç"
+                  />
                   <div class="chat-camera-photo-row">
                     <img
                       id="panel-camera-photo-preview"
@@ -2962,6 +3021,37 @@ const TASKS_API_URL =
                 </div>
                 <div class="chat-compose-bar">
                   <div class="chat-compose chat-compose--gpt">
+                    <div class="chat-compose-attach-wrap">
+                      <button
+                        type="button"
+                        id="panel-attach-toggle"
+                        class="chat-compose-attach-btn"
+                        title="Ekle"
+                        aria-label="Dosya veya medya ekle"
+                        aria-haspopup="menu"
+                        aria-expanded="false"
+                        aria-controls="panel-attach-menu"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                          <path d="M12 5v14M5 12h14" stroke-linecap="round"></path>
+                        </svg>
+                      </button>
+                      <div id="panel-attach-menu" class="chat-compose-attach-menu" role="menu" hidden>
+                        <button type="button" class="chat-compose-attach-menu__item" role="menuitem" data-attach-action="file">
+                          Dosya yükle
+                        </button>
+                        <button type="button" class="chat-compose-attach-menu__item" role="menuitem" data-attach-action="photo">
+                          Fotoğraf seç
+                        </button>
+                        <button type="button" class="chat-compose-attach-menu__item" role="menuitem" data-attach-action="camera">
+                          Kamera aç
+                        </button>
+                        <button type="button" class="chat-compose-attach-menu__item" role="menuitem" data-attach-action="audio">
+                          Ses dosyası yükle
+                          <span class="chat-compose-attach-menu__badge">yakında</span>
+                        </button>
+                      </div>
+                    </div>
                     <button
                       type="button"
                       id="panel-camera-input"
@@ -4486,6 +4576,11 @@ const TASKS_API_URL =
           });
         }
 
+        const attachToggle = document.getElementById("panel-attach-toggle");
+        const attachMenu = document.getElementById("panel-attach-menu");
+        const attachAudioInput = /** @type {HTMLInputElement | null} */ (
+          document.getElementById("panel-attach-audio-input")
+        );
         const cameraBtn = document.getElementById("panel-camera-input");
         const cameraHint = document.getElementById("panel-camera-hint");
         const sendHint = document.getElementById("panel-send-hint");
@@ -5421,13 +5516,122 @@ const TASKS_API_URL =
         });
         syncPanelCameraPhotoBarVisibility();
 
-        cameraBtn?.addEventListener("click", () => {
+        function closePanelAttachMenu() {
+          if (!attachMenu || !attachToggle) return;
+          attachMenu.hidden = true;
+          attachToggle.setAttribute("aria-expanded", "false");
+          attachToggle.classList.remove("chat-compose-attach-btn--open");
+        }
+
+        function openPanelAttachMenu() {
+          if (!attachMenu || !attachToggle) return;
+          attachMenu.hidden = false;
+          attachToggle.setAttribute("aria-expanded", "true");
+          attachToggle.classList.add("chat-compose-attach-btn--open");
+        }
+
+        function switchPanelModule(moduleId) {
+          const navBtn = nav.querySelector(`button[data-module="${moduleId}"]`);
+          if (navBtn instanceof HTMLButtonElement) {
+            navBtn.click();
+            return;
+          }
+          nav.querySelectorAll("button[data-module]").forEach((b) => {
+            b.setAttribute("aria-current", b.getAttribute("data-module") === moduleId ? "true" : "false");
+          });
+          panels.forEach((p) => {
+            p.setAttribute("data-active", p.getAttribute("data-module-panel") === moduleId ? "true" : "false");
+          });
+        }
+
+        function triggerPanelCameraPhotoInput(mode) {
           if (!cameraPhotoInput) {
             setCameraHint("Bu tarayıcıda görsel seçimi desteklenmiyor.");
             return;
           }
           setCameraHint("");
+          if (mode === "camera") {
+            cameraPhotoInput.setAttribute("capture", "environment");
+          } else {
+            cameraPhotoInput.removeAttribute("capture");
+          }
           cameraPhotoInput.click();
+        }
+
+        attachToggle?.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (!attachMenu) return;
+          if (attachMenu.hidden) openPanelAttachMenu();
+          else closePanelAttachMenu();
+        });
+
+        attachMenu?.addEventListener("click", (e) => {
+          const t = e.target;
+          if (!(t instanceof HTMLElement)) return;
+          const item = t.closest("[data-attach-action]");
+          if (!(item instanceof HTMLElement)) return;
+          const action = item.getAttribute("data-attach-action");
+          closePanelAttachMenu();
+          if (action === "file") {
+            switchPanelModule("dosyalar");
+            const dosyaInput = document.getElementById("dosyalar-file-input");
+            const dosyaHint = document.getElementById("dosyalar-hint");
+            if (dosyaHint) {
+              dosyaHint.textContent = "Dosyayı seçin; ardından «Yükle ve analiz et».";
+              dosyaHint.hidden = false;
+            }
+            if (dosyaInput instanceof HTMLInputElement) {
+              window.setTimeout(() => {
+                try {
+                  dosyaInput.click();
+                } catch {
+                  /* tarayıcı engeli */
+                }
+              }, 120);
+            } else {
+              setCameraHint("Dosya yükleme bu görünümde hazırlanıyor.");
+            }
+            return;
+          }
+          if (action === "photo") {
+            triggerPanelCameraPhotoInput("photo");
+            return;
+          }
+          if (action === "camera") {
+            triggerPanelCameraPhotoInput("camera");
+            return;
+          }
+          if (action === "audio") {
+            if (attachAudioInput) {
+              attachAudioInput.click();
+            } else {
+              setCameraHint("Ses dosyasını sohbete ekleme yakında.");
+            }
+          }
+        });
+
+        document.addEventListener("click", (e) => {
+          if (!attachMenu || attachMenu.hidden) return;
+          const t = e.target;
+          if (!(t instanceof Node)) return;
+          if (attachToggle?.contains(t) || attachMenu.contains(t)) return;
+          closePanelAttachMenu();
+        });
+
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") closePanelAttachMenu();
+        });
+
+        attachAudioInput?.addEventListener("change", () => {
+          const f = attachAudioInput.files && attachAudioInput.files[0];
+          attachAudioInput.value = "";
+          if (!f) return;
+          const name = f.name && String(f.name).trim() ? String(f.name).trim() : "ses dosyası";
+          setCameraHint(`«${name}» — sohbete ses ekleme yakında.`);
+        });
+
+        cameraBtn?.addEventListener("click", () => {
+          triggerPanelCameraPhotoInput("camera");
         });
 
         cameraPhotoInput?.addEventListener("change", () => {
