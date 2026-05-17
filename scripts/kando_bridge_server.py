@@ -13,6 +13,8 @@ from __future__ import annotations
 import os
 import sys
 
+PORT = int(os.environ.get("PORT", 8765))
+
 _BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 for _p in (
