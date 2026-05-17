@@ -74,6 +74,33 @@ Uzun vadede, kullanıcının kendi ortamında çalışan hafif bir **mini Lumos 
 
 ---
 
+## Lumos Pro Panel — layout yönü (not)
+
+Panel, tarayıcı ana sayfası veya tüketim akışı değil; **güvenli komuta paneli** hedeflenir.
+
+**Yapı**
+
+- **Sol:** kalıcı hızlı erişim (Sohbet, Görevler, Dosyalar, Görsel analiz, Ses, Posta, Takvim, Cihaz, Ayarlar/güvenlik).
+- **Orta:** ana çalışma alanı — büyük sohbet/komut, görev merkezi (“Bugün ne yapıyoruz?”), az sayıda panel-içi kısayol kartı.
+- **Sağ veya alt (mobilde):** operasyon özeti — aktif görevler, onay bekleyenler, son işlemler, geri alınabilir işlemler.
+- **Üst:** bağlantı, kullanıcı kimliği, dil/ülke, güvenlik seviyesi, plan/sürüm (bilgi; reklam değil).
+
+**Bilinçli olarak yok**
+
+- Reklam, alışveriş kutusu, rastgele site önerisi.
+- Kullanıcıyı dışarı dağıtan widget duvarı.
+- Kalabalık “feed / tüketim” ana ekranı.
+
+**Görsel**
+
+- Karanlık zemin; teal/amber vurgu; parlaklık yalnızca eylem ve aktif modülde (Gönder, Bağlı, seçili nav).
+
+**Uygulama**
+
+- İlk kod adımı: `ui/src/pages/panel.astro` kabuk iskeleti (Faz A); mevcut sohbet/görev/dosya köprüleri korunur.
+
+---
+
 ## Tek cümlelik ürün vaadi
 
 **Lumos yardım eder ve yönlendirir; kalıcı veya riskli adım kullanıcı onayı olmadan atmaz.**
