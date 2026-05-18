@@ -2225,16 +2225,17 @@ const TASKS_API_URL =
           flex-direction: row;
           flex-wrap: nowrap;
           align-items: center;
-          gap: 0.35rem;
-          padding: 0.22rem 0 0.28rem;
+          gap: 0.28rem;
+          padding: 0.12rem 0.28rem 0.16rem;
           border-right: none;
-          border-bottom: 1px solid var(--lumos-teal-16);
+          border-bottom: 1px solid var(--lumos-teal-14);
           overflow-x: auto;
           overflow-y: hidden;
           overscroll-behavior-x: contain;
           -webkit-overflow-scrolling: touch;
+          scroll-padding-inline: 0.4rem;
           scrollbar-width: thin;
-          background: var(--lumos-sidebar-bg);
+          background: var(--lumos-main-bg);
         }
         .panel-nav__primary::-webkit-scrollbar {
           height: 3px;
@@ -2274,10 +2275,11 @@ const TASKS_API_URL =
           display: flex;
           flex-direction: row;
           flex-wrap: nowrap;
-          gap: 0.28rem;
+          gap: 0.22rem;
           align-items: stretch;
           min-width: min-content;
           overflow: visible;
+          padding-inline: 0.02rem;
         }
         .panel-nav__primary button[data-module],
         .panel-nav__lumos button[data-module] {
@@ -2286,24 +2288,28 @@ const TASKS_API_URL =
           width: auto;
           max-width: none;
           margin: 0;
-          min-height: 1.72rem;
+          min-height: 1.24rem;
           border-left: none;
-          border-bottom: 2px solid transparent;
+          border-bottom: 1.5px solid transparent;
           border-radius: 999px;
           justify-content: center;
-          padding: 0.18rem 0.52rem;
-          font-size: max(16px, 0.64rem);
+          padding: 0.1rem 0.38rem;
+          font-size: 0.58rem;
           letter-spacing: 0.02em;
+          scroll-margin-inline: 0.35rem;
+        }
+        .panel-nav__primary button[data-module]:first-child {
+          margin-inline-start: 0;
         }
         .panel-nav__primary .panel-nav-label {
-          font-size: 0.62rem;
-          letter-spacing: 0.04em;
+          font-size: 0.56rem;
+          letter-spacing: 0.03em;
         }
         .panel-nav__primary button[data-module][aria-current="true"],
         .panel-nav__lumos button[data-module][aria-current="true"] {
           border-left-color: transparent;
-          border-bottom-color: rgba(236, 207, 147, 0.78);
-          background: #0b0b0b;
+          border-bottom-color: rgba(236, 207, 147, 0.55);
+          background: rgba(11, 11, 11, 0.78);
         }
         .panel-header {
           width: 100%;
@@ -2311,38 +2317,95 @@ const TASKS_API_URL =
           margin: 0;
           margin-inline: 0;
           box-sizing: border-box;
-          padding: 0.28rem 0.35rem;
+          padding: 0.08rem 0.24rem 0.1rem;
+          border-bottom-color: var(--lumos-teal-16);
+          box-shadow: 0 1px 0 rgb(var(--lumos-land-warm-deep) / 0.08);
           position: relative;
           z-index: 1;
         }
         .panel-header-title-row {
-          column-gap: 0.3rem;
-          row-gap: 0.14rem;
+          display: flex;
+          flex-wrap: nowrap;
+          align-items: center;
+          column-gap: 0.18rem;
+          row-gap: 0;
         }
         .panel-header-brand {
           display: flex;
           align-items: center;
           justify-content: flex-start;
+          flex: 1 1 auto;
           flex-wrap: nowrap;
-          gap: 0.32rem;
-          width: 100%;
+          gap: 0.24rem;
+          width: auto;
           min-width: 0;
+          padding-right: 2.72rem;
         }
         .panel-header-brand h1 {
           flex: 1 1 auto;
           min-width: 0;
-          font-size: clamp(0.78rem, 3.6vw, 0.94rem);
+          font-size: clamp(0.7rem, 3vw, 0.86rem);
+          line-height: 1.18;
         }
         .lumos-mark {
-          width: 1.32rem;
-          height: 1.32rem;
+          width: 1.08rem;
+          height: 1.08rem;
+          border-width: 1.5px;
+          box-shadow:
+            inset 0 0 0 1px rgb(var(--lumos-land-teal) / 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.04);
         }
         .panel-health-row {
-          gap: 0.1rem 0.24rem;
+          position: static;
+          flex: 0 0 auto;
+          flex-wrap: nowrap;
+          align-items: center;
+          align-self: center;
+          justify-content: flex-start;
+          gap: 0.06rem;
+          margin: 0;
+          margin-left: 0;
+          width: auto;
+          max-width: none;
+          flex-basis: auto;
         }
         .panel-conn-badge {
-          font-size: 0.46rem;
-          padding: 0.08rem 0.28rem;
+          flex: 0 0 auto;
+          align-self: center;
+          margin-left: 0;
+          font-size: 0.4rem;
+          line-height: 1.2;
+          padding: 0.06rem 0.2rem;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+        .panel-conn-badge[data-state="ok"] {
+          box-shadow: inset 0 1px 0 var(--lumos-tq-badge-inset);
+        }
+        /** 19 Mayıs bayrak FAB: başlık satırından çıkar, şerit sağ üst köşede sabit. */
+        .panel-health-row .lumos-m19g.lumos-m19g--dock-header {
+          position: absolute;
+          right: 0.3rem;
+          top: 0.21rem;
+          margin: 0;
+          flex: 0 0 auto;
+          align-self: auto;
+          width: auto;
+          height: 0;
+          overflow: visible;
+        }
+        .panel-health-row .lumos-m19g--dock-header .lumos-m19g__fab {
+          min-width: 1.48rem;
+          min-height: 1.08rem;
+          padding: 0.08rem 0.14rem;
+          border-radius: 6px;
+          border-color: rgba(155, 125, 82, 0.2);
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22);
+        }
+        .panel-health-row .lumos-m19g__fab-flags {
+          gap: 0.05rem;
+        }
+        .panel-health-row .lumos-m19g--dock-header .lumos-m19g__fab-flag {
+          width: 0.7rem;
         }
         .panel-main {
           flex: 1 1 auto;
@@ -2730,20 +2793,29 @@ const TASKS_API_URL =
           max-width: 100%;
           min-width: 0;
           box-sizing: border-box;
-          padding: 0.32rem 0.38rem 0.32rem 0.34rem;
+          padding: 0.22rem 0.28rem 0.22rem 0.24rem;
+          overflow: hidden;
+          border-color: var(--lumos-teal-16);
+          box-shadow: var(--panel-edge-inset);
+        }
+        #panel-sohbet .chat-compose-bar:focus-within {
+          border-color: rgb(var(--lumos-land-teal) / 0.32);
+          box-shadow:
+            var(--panel-edge-inset),
+            0 0 0 1px rgb(var(--lumos-land-teal) / 0.12);
         }
         #panel-sohbet .chat-compose.chat-compose--gpt {
           display: flex;
           flex-wrap: nowrap;
           align-items: center;
-          gap: 0.2rem;
+          gap: 0.14rem;
           min-width: 0;
-          min-height: 3.2rem;
+          min-height: 0;
           width: 100%;
           max-width: 100%;
           margin: 0;
           margin-inline: 0;
-          padding: 0.45rem 0.55rem;
+          padding: 0;
           align-self: stretch;
           box-sizing: border-box;
         }
@@ -2751,7 +2823,7 @@ const TASKS_API_URL =
           display: flex;
           flex-wrap: nowrap;
           align-items: center;
-          gap: 0.2rem;
+          gap: 0.14rem;
           min-width: 0;
           width: 100%;
           max-width: 100%;
@@ -2760,14 +2832,19 @@ const TASKS_API_URL =
           align-self: stretch;
           box-sizing: border-box;
         }
+        #panel-sohbet .chat-compose-attach-wrap,
+        #panel-sohbet .chat-compose-camera-wrap {
+          flex: 0 0 auto;
+          flex-shrink: 0;
+        }
         #panel-sohbet .chat-compose--gpt textarea {
-          flex: 1 1 0;
+          flex: 1 1 auto;
           min-width: 0;
           width: 0;
           max-width: 100%;
-          padding: 0.34rem 0.38rem;
+          padding: 0.28rem 0.3rem;
           font-size: max(16px, 0.84rem);
-          line-height: 1.4;
+          line-height: 1.38;
           box-sizing: border-box;
           overflow-wrap: normal;
           word-break: normal;
@@ -2799,29 +2876,37 @@ const TASKS_API_URL =
         #panel-sohbet .chat-compose-send {
           position: static;
           display: inline-flex;
-          min-width: 3.9rem;
-          min-height: 2.6rem;
-          padding: 0.45rem 0.85rem;
-          font-size: 0.95rem;
+          align-self: center;
+          flex-shrink: 0;
+          min-width: 2.05rem;
+          min-height: 1.8rem;
+          padding: 0.22rem 0.32rem;
+          font-size: 0.68rem;
           letter-spacing: 0.02em;
+          border-color: rgb(var(--lumos-land-warm) / 0.36);
+          box-shadow: var(--panel-edge-inset);
         }
         #panel-sohbet .chat-compose-camera-btn,
         #panel-sohbet .chat-compose-voice-btn,
         #panel-sohbet .chat-compose-attach-btn {
-          width: 1.95rem;
-          height: 1.95rem;
-          min-width: 1.95rem;
-          min-height: 1.95rem;
+          width: 1.86rem;
+          height: 1.86rem;
+          min-width: 1.86rem;
+          min-height: 1.86rem;
           padding: 0;
+          align-self: center;
         }
         #panel-sohbet .chat-compose-camera-btn svg,
         #panel-sohbet .chat-compose-voice-btn svg,
         #panel-sohbet .chat-compose-attach-btn svg {
-          width: 0.98rem;
-          height: 0.98rem;
+          width: 0.9rem;
+          height: 0.9rem;
         }
         #panel-sohbet .chat-compose-attach-menu {
           max-width: min(14.5rem, calc(100vw - 0.85rem));
+        }
+        #panel-sohbet .chat-compose-camera-info-menu {
+          max-width: min(16rem, calc(100vw - 0.85rem));
         }
         #panel-sohbet .chat-compose-camera-btn:focus,
         #panel-sohbet .chat-compose-camera-btn:focus-visible,
@@ -2845,9 +2930,9 @@ const TASKS_API_URL =
           text-overflow: clip;
           text-align: start;
           font-size: max(16px, 0.84rem);
-          line-height: 1.4;
-          min-height: calc(0.34rem * 2 + 1em * 1.4);
-          max-height: calc(0.34rem * 2 + 1em * 1.4);
+          line-height: 1.38;
+          min-height: calc(0.28rem * 2 + 16px * 1.38);
+          max-height: calc(0.28rem * 2 + 16px * 1.38);
         }
         #panel-sohbet .chat-compose--gpt textarea:not(:placeholder-shown) {
           white-space: pre-wrap;
@@ -2856,8 +2941,8 @@ const TASKS_API_URL =
           text-align: start;
           overflow-wrap: normal;
           word-break: normal;
-          min-height: 2.05rem;
-          max-height: 7.5rem;
+          min-height: 1.95rem;
+          max-height: 7rem;
         }
         @media (max-width: 540px) {
           #gorevler-detail.gorevler-detail {
