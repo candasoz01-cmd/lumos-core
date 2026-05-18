@@ -49,6 +49,8 @@ npm install
 npm run dev
 ```
 
+Ürün özeti: [`docs/PRODUCT_SUMMARY.md`](docs/PRODUCT_SUMMARY.md). GitHub / kontrollü yayın checklist: [`docs/GITHUB_RELEASE_CHECKLIST.md`](docs/GITHUB_RELEASE_CHECKLIST.md).
+
 ## Sürümler
 
 ### Açık kaynak geliştirme sürümü
@@ -177,15 +179,34 @@ Panel varsayılanları uzak bir örnek adrese işaret edebilir; yerel deneme iç
 
 Ayrıntı ve güvenlik: `scripts/README_kando_bridge_server.md`.
 
-## Deploy (tek yol: Vercel — statik UI)
+## Deploy
 
-Üretim arayüzü **Astro** ile `ui/` altında derlenir; çıktı `ui/dist/`. Önerilen yayın:
+Üretim kurulumu **iki ayrı katmandır**: statik panel (UI) ve isteğe bağlı sohbet / görev / dosya köprüsü (backend). Bunları aynı platformda birleştirmek zorunda değilsiniz.
+
+### UI — Vercel (statik Astro)
+
+Üretim arayüzü **Astro** ile `ui/` altında derlenir; çıktı `ui/dist/`.
 
 1. [Vercel](https://vercel.com) üzerinde yeni proje: **Root Directory** = `ui` (monorepo kökünde bağladıysanız), veya kökten bağlayıp bu repodaki `vercel.json` ile `outputDirectory: "ui/dist"` kullanın.
 2. Build: `npm run build` (Vercel’de `ui` kökünde varsayılan `astro build` yeterli; kökten derleme için `vercel.json` içindeki `buildCommand` kullanılır).
-3. Panelin sohbet / görev / dosya köprüsü için ortam değişkenleri: `PUBLIC_LUMOS_CHAT_URL`, `PUBLIC_LUMOS_PANEL_UPLOAD_URL`, `PUBLIC_KANDO_TOKEN`, isteğe bağlı `PUBLIC_LUMOS_PANEL_HEALTH_URL`. Yerel köprü yalnızca loopback kabul eder; uzak bir köprü ayrı barındırma ve güvenlik politikası gerektirir (ayrıntı: `scripts/README_kando_bridge_server.md`).
+3. Vercel’de yalnızca **statik UI** yayınlanır; köprü sunucusu burada çalışmaz.
 
-`render.yaml` bu repoda yok; eski “Render-only” talimatları kaldırıldıysa yerine bu bölüm geçerlidir. Sohbet için örnek uzak adres (`panel.astro` varsayılanı) ayrı bir dağıtımdır — token ve URL’leri kendi ortamınıza göre ayarlayın.
+### Sohbet / köprü — ayrı servis (ör. Render)
+
+Panelin sohbet, görev ve dosya hedefleri için **Kando köprüsü** (veya eşdeğer backend) UI’dan **ayrı** barındırılmalıdır — örneğin [Render](https://render.com), Railway, Fly.io veya kendi VPS’iniz. Yerel geliştirmede `./scripts/bridge_start.sh` yalnızca loopback kabul eder; uzak köprü için ayrı güvenlik politikası ve barındırma gerekir (ayrıntı: `scripts/README_kando_bridge_server.md`).
+
+UI tarafında köprü adreslerini Vercel (veya başka statik host) ortam değişkenleriyle verin; köprü sürecini o serviste çalıştırın. `panel.astro` içindeki örnek uzak adresler yalnızca referanstır — kendi URL ve token politikanızı kullanın.
+
+### Ortam değişkenleri (`PUBLIC_*`)
+
+Astro’da `PUBLIC_` öneki, değerin **istemci tarafına (tarayıcıya) gömülmesi** anlamına gelir. Üretim UI için tipik örnekler:
+
+- `PUBLIC_LUMOS_CHAT_URL`
+- `PUBLIC_LUMOS_PANEL_UPLOAD_URL`
+- `PUBLIC_KANDO_TOKEN` (veya benzeri `PUBLIC_*` token / ipucu alanları)
+- İsteğe bağlı: `PUBLIC_LUMOS_PANEL_HEALTH_URL`
+
+**Güvenlik uyarısı:** `PUBLIC_KANDO_TOKEN`, `PUBLIC_LUMOS_PANEL_TOKEN_HINT` veya başka `PUBLIC_*` değişkenlerine **gerçek gizli anahtar, üretim token’ı veya uzun ömürlü sırlar koymayın**. Bu değerler derleme çıktısında görülebilir ve tarayıcıdan okunabilir. Yerel deneme için geçici, düşük riskli değerler kullanın; üretimde köprüyü sunucu tarafı kimlik doğrulama, kısa ömürlü token ve ağ kısıtlarıyla koruyun. Hassas sırlar yalnızca **sunucu tarafı** ortam değişkenlerinde (köprü / backend host) tutulmalıdır.
 
 ## Açık kaynak ve resmi kullanım sınırı
 
@@ -195,4 +216,8 @@ Açık kaynak kod, resmi Lumos hizmetlerini temsil etme, We Lock AI markasını 
 
 ## License
 
-License information will be added later.
+**Source code license:** **Pending** — a formal open-source license for this repository will be added here when finalized.
+
+**Not included in the open-source release:** Lumos product identity and visual branding, official Lumos / We Lock AI **hosted services**, production **API access**, and **user data** are outside what this repository grants. Cloning, building, or self-hosting the UI does not authorize use of official branding, access to We Lock AI production APIs, or handling of user data from official services.
+
+Official integrations and services are governed separately, with explicit user consent, secure authentication, and defined usage limits. See [Açık kaynak ve resmi kullanım sınırı](#açık-kaynak-ve-resmi-kullanım-sınırı) above.
