@@ -3,12 +3,15 @@ import landing from "./landing/tr";
 
 const tr = {
   meta: {
-    landingTitle: "Lumos by We Lock AI",
+    landingTitle: "Lumos — Yapay Zekâ Kontrol Katmanı",
     description:
-      "We Lock AI çatısı altındaki Lumos: tek panelde çoklu akışı bir araya getiren, kararı kullanıcıda tutan yapay zekâ kontrol ve asistan katmanı.",
-    ogTitle: "Lumos by We Lock AI",
+      "Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştiren yapay zekâ kontrol katmanı prototipidir.",
+    ogTitle: "Lumos — Yapay Zekâ Kontrol Katmanı",
     ogDescription:
-      "Lumos, We Lock AI çatısı altında geliştirilen insan merkezli yapay zekâ kontrol katmanıdır.",
+      "Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştiren yapay zekâ kontrol katmanı prototipidir.",
+    twitterTitle: "Lumos — Yapay Zekâ Kontrol Katmanı",
+    twitterDescription:
+      "Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştiren yapay zekâ kontrol katmanı prototipidir.",
   },
   lang: {
     switchLabel: "Dil seçimi",

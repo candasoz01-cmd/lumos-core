@@ -4,11 +4,15 @@ import landing from "./landing/en";
 
 const en: MessageTree = {
   meta: {
-    landingTitle: "Lumos by We Lock AI",
+    landingTitle: "Lumos — AI Control Layer",
     description:
-      "Lumos under We Lock AI: an AI control and assistant layer that unifies multiple flows in one panel while keeping decisions with you.",
-    ogTitle: "Lumos by We Lock AI",
-    ogDescription: "Lumos is a human-centered AI control layer developed under We Lock AI.",
+      "Lumos is a prototype AI control layer that unifies voice, media, tasks, files, and multi-panel flows in one place.",
+    ogTitle: "Lumos — AI Control Layer",
+    ogDescription:
+      "Lumos is a prototype AI control layer that unifies voice, media, tasks, files, and multi-panel flows in one place.",
+    twitterTitle: "Lumos — AI Control Layer",
+    twitterDescription:
+      "Lumos is a prototype AI control layer that unifies voice, media, tasks, files, and multi-panel flows in one place.",
   },
   lang: {
     switchLabel: "Language",

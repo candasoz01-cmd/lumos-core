@@ -2127,6 +2127,9 @@ const TASKS_API_URL =
         border: 1px solid var(--lumos-teal-22);
         flex-shrink: 0;
       }
+      .lumos-security-note + .lumos-security-note {
+        margin-top: 0.28rem;
+      }
       @media (max-width: 767.98px) {
         html {
           width: 100%;
@@ -3292,6 +3295,10 @@ const TASKS_API_URL =
                     </div>
                   </div>
                   <p class="lumos-security-note">Kalıcı işlemler için onay ister.</p>
+                  <p class="lumos-security-note">
+                    Kamera ve mikrofon özellikleri cihaz, tarayıcı ve verilen izinlere bağlı olarak çalışır. Bazı
+                    tarayıcılarda desteklenmeyebilir veya ek izin isteyebilir.
+                  </p>
                 </div>
               </div>
               <div class="chat-compose-stack">
@@ -3596,7 +3603,8 @@ const TASKS_API_URL =
             <h2 id="panel-ses-title">Ses</h2>
             <p class="medya-intro">
               Bu sekme, sesli girdinin metne ve komutlara dönüşürken arayüz katmanında kalması ve kararın yine kullanıcıda
-              tutulması için tasarlanan yaklaşımı özetler.
+              tutulması için tasarlanan yaklaşımı özetler. Sohbet alt çubuğundaki mikrofon, cihaz, tarayıcı ve verilen
+              izinlere bağlıdır; bazı ortamlarda desteklenmeyebilir.
             </p>
             <ul class="medya-card-list">
               <li class="medya-card">
@@ -3642,7 +3650,8 @@ const TASKS_API_URL =
             <h2 id="panel-medya-title">Medya</h2>
             <p class="medya-intro">
               Bu sekme, görsel, ses, video ve dosya akışlarının düzenlenmesinde paylaşım öncesi kontrol, veri yolu görünürlüğü ve
-              kaynak ile çıktının ayrılması ilkelerini özetler.
+              kaynak ile çıktının ayrılması ilkelerini özetler. Sohbet alt çubuğundaki kamera da cihaz, tarayıcı ve izin
+              desteğine bağlıdır; her ortamda çalışmayabilir.
             </p>
             <div class="medya-outbox-wrap" aria-labelledby="medya-outbox-title">
               <h3 id="medya-outbox-title" class="gorevler-list-heading">Köprü özeti (salt okunur)</h3>
