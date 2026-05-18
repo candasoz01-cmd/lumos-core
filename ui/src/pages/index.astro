@@ -259,11 +259,18 @@ const GITHUB_README_URL = "https://github.com/candasoz01-cmd/lumos-core/blob/mai
       }
       .lumos-hero-ask {
         display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.38rem;
+        margin: 0;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .lumos-hero-ask__controls {
+        display: flex;
         flex-wrap: nowrap;
         align-items: stretch;
         gap: 0.45rem 0.55rem;
-        margin: 0;
-        max-width: 100%;
         min-width: 0;
       }
       .lumos-hero-ask__field {
@@ -281,6 +288,14 @@ const GITHUB_README_URL = "https://github.com/candasoz01-cmd/lumos-core/blob/mai
       }
       .lumos-hero-ask__field::placeholder {
         color: rgb(174 182 200 / 0.55);
+        opacity: 1;
+      }
+      .lumos-hero-ask__hint {
+        margin: 0;
+        padding: 0 0.1rem;
+        font-size: clamp(0.72rem, 1.65vw, 0.8rem);
+        line-height: 1.35;
+        color: rgb(174 182 200 / 0.72);
       }
       .lumos-hero-ask__field:hover {
         border-color: rgb(var(--lumos-land-teal) / 0.58);
@@ -669,6 +684,27 @@ const GITHUB_README_URL = "https://github.com/candasoz01-cmd/lumos-core/blob/mai
       @media (max-width: 559.98px) {
         #top.lumos-section {
           padding-bottom: clamp(1.15rem, 3.2vw, 1.85rem);
+        }
+        .lumos-hero-ask__field {
+          font-size: clamp(0.74rem, 3.1vw, 0.82rem);
+          padding: 0.34rem 0.42rem;
+        }
+        .lumos-hero-ask__submit {
+          padding: 0.34rem 0.62rem;
+          font-size: clamp(0.72rem, 2.8vw, 0.8rem);
+          letter-spacing: 0.03em;
+        }
+        .lumos-hero-ask__hint {
+          font-size: clamp(0.68rem, 2.9vw, 0.76rem);
+        }
+      }
+      @media (max-width: 420px) {
+        .lumos-hero-ask__controls {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .lumos-hero-ask__submit {
+          width: 100%;
         }
       }
       .lumos-dunya-hero {
@@ -2126,7 +2162,7 @@ const GITHUB_README_URL = "https://github.com/candasoz01-cmd/lumos-core/blob/mai
             <p class="lumos-hero-pillar" data-i18n="hero.pillar">Tek panel · Çoklu akış · Kullanıcı kontrolü</p>
             <div class="lumos-hero-actions">
               <a class="lumos-hero-btn lumos-hero-btn--primary" href="/panel" data-i18n="hero.ctaPanel">Lumos Panel’e Git</a>
-              <a class="lumos-hero-btn lumos-hero-btn--ghost" href="#dunya" data-i18n="hero.ctaWorld">Dünyayı Keşfet</a>
+              <a class="lumos-hero-btn lumos-hero-btn--ghost" href="#dunya" data-i18n="hero.ctaWorld">Vizyonu oku</a>
             </div>
           </div>
           <div class="lumos-hero-scene" aria-hidden="true">
@@ -2149,18 +2185,22 @@ const GITHUB_README_URL = "https://github.com/candasoz01-cmd/lumos-core/blob/mai
             action="/panel"
             method="get"
             autocomplete="off"
-            aria-label="Lumos’a sor"
+            aria-label="Lumos’a sor — panelde devam eder"
             data-i18n-aria-label="hero.askAria"
           >
-            <input
-              class="lumos-hero-ask__field"
-              id="lumos-hero-ask-input"
-              type="text"
-              inputmode="text"
-              placeholder="Lumos’a sor: “Bir görevi güvenli adımlara ayır…”"
-              data-i18n-placeholder="hero.askPlaceholder"
-            />
-            <button class="lumos-hero-ask__submit" type="submit" data-i18n="hero.askSubmit">Sor</button>
+            <div class="lumos-hero-ask__controls">
+              <input
+                class="lumos-hero-ask__field"
+                id="lumos-hero-ask-input"
+                type="text"
+                inputmode="text"
+                placeholder="Örnek: Bir görevi güvenli adımlara böl"
+                data-i18n-placeholder="hero.askPlaceholder"
+                aria-describedby="lumos-hero-ask-hint"
+              />
+              <button class="lumos-hero-ask__submit" type="submit" data-i18n="hero.askSubmit">Panelde aç</button>
+            </div>
+            <p class="lumos-hero-ask__hint" id="lumos-hero-ask-hint">Yanıt burada değil; panelde devam eder.</p>
           </form>
         </div>
       </div>
@@ -2962,6 +3002,62 @@ const GITHUB_README_URL = "https://github.com/candasoz01-cmd/lumos-core/blob/mai
         });
       })();
     </script>
+
+    <script is:inline>
+      (function () {
+        var HERO_LANDING_COPY = {
+          tr: {
+            ctaWorld: "Vizyonu oku",
+            askPlaceholder: "Örnek: Bir görevi güvenli adımlara böl",
+            askSubmit: "Panelde aç",
+            askHint: "Yanıt burada değil; panelde devam eder.",
+            askAria: "Lumos’a sor — panelde devam eder",
+          },
+          en: {
+            ctaWorld: "Read the vision",
+            askPlaceholder: "Example: Break a task into safe steps",
+            askSubmit: "Open in panel",
+            askHint: "No answer here; continue in the panel.",
+            askAria: "Ask Lumos — continue in the panel",
+          },
+        };
+
+        function applyHeroLandingCopy(locale) {
+          var pack = HERO_LANDING_COPY[locale === "en" ? "en" : "tr"];
+          var ctaWorld = document.querySelector('.lumos-hero-actions a[data-i18n="hero.ctaWorld"]');
+          var form = document.getElementById("lumos-hero-ask");
+          var input = document.getElementById("lumos-hero-ask-input");
+          var hint = document.getElementById("lumos-hero-ask-hint");
+          var submit = form && form.querySelector(".lumos-hero-ask__submit");
+          if (ctaWorld) ctaWorld.textContent = pack.ctaWorld;
+          if (input) input.placeholder = pack.askPlaceholder;
+          if (submit) submit.textContent = pack.askSubmit;
+          if (hint) hint.textContent = pack.askHint;
+          if (form) form.setAttribute("aria-label", pack.askAria);
+        }
+
+        function currentLocale() {
+          if (window.LumosI18n && typeof window.LumosI18n.getLocale === "function") {
+            return window.LumosI18n.getLocale();
+          }
+          return document.documentElement.lang === "en" ? "en" : "tr";
+        }
+
+        function syncHeroLandingCopy() {
+          applyHeroLandingCopy(currentLocale());
+        }
+
+        document.addEventListener("DOMContentLoaded", syncHeroLandingCopy);
+        window.addEventListener("lumos:localechange", function (e) {
+          var locale =
+            e && e.detail && (e.detail.locale === "en" || e.detail.locale === "tr")
+              ? e.detail.locale
+              : currentLocale();
+          applyHeroLandingCopy(locale);
+        });
+      })();
+    </script>
+
     <I18nInit />
   </body>
 </html>
