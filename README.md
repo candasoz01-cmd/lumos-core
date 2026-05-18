@@ -39,6 +39,14 @@ The current version includes:
 
 The current panel defines visible modules and product direction without claiming unfinished active functionality.
 
+## Açık kaynak durumu
+
+- Lumos Core şu anda aktif ve erken geliştirme aşamasındadır.
+- Repo açık kaynaklıdır ve Apache-2.0 lisansı altındadır.
+- Ancak proje henüz tam anlamıyla dış katkı süreci oturmuş, kararlı açık kaynak ürün değildir.
+- Görsel marka, Lumos / We Lock AI adı, resmi servisler, production API erişimi ve kullanıcı verileri Apache-2.0 lisansı kapsamında değildir; bunun için NOTICE geçerlidir.
+- Şimdilik dış katkılar kontrollü değerlendirilecektir; CONTRIBUTING.md daha sonra eklenecektir.
+
 ## Kurulum
 
 ```bash
