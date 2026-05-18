@@ -1,0 +1,25 @@
+Lumos
+Copyright 2026 We Lock AI
+
+Lumos is developed under the We Lock AI umbrella as an independent product
+direction. See https://welockai.com/
+
+Licensed source code
+--------------------
+Source code in this repository is licensed under the Apache License, Version 2.0.
+See the LICENSE file in this repository root.
+
+Not covered by the Apache License in this repository
+----------------------------------------------------
+The Apache License 2.0 applies only to source code distributed in this repo.
+It does not grant permission to use or redistribute:
+
+  - The Lumos or We Lock AI names, logos, or other brand and visual identity
+  - Official Lumos or We Lock AI hosted services
+  - Production API access for official Lumos / We Lock AI services
+  - User data held by official Lumos / We Lock AI services
+
+Cloning, building, or self-hosting this open-source code does not authorize use
+of official Lumos or We Lock AI branding, access to official production APIs,
+or access to user data from official services. Those require separate agreement
+with We Lock AI and applicable service terms.
