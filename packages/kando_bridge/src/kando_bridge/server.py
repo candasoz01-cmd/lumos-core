@@ -2015,14 +2015,22 @@ class BridgeHandler(BaseHTTPRequestHandler):
             pub = {k: v for k, v in chat_out.items() if k != "intent"}
             self._send_json(200, pub)
         except Exception as e:
+            from core.panel_chat_errors import classify_panel_chat_error, panel_chat_error_payload
+
             _stderr_write("POST /chat build_chat_reply failed: " + repr(e))
             _stderr_write(traceback.format_exc())
+            kind = classify_panel_chat_error(
+                err_name=type(e).__name__,
+                err_message=str(e),
+                upstream_text=f"chat llm error: {e}",
+            )
+            payload = panel_chat_error_payload(kind)
             self._send_json(
                 200,
                 {
                     "accepted": False,
                     "error": f"chat llm error: {e}",
-                    "reply": "Lumos yanıt üretirken bağlantı katmanında sorun yaşadı. Biraz sonra tekrar deneyebilirsin.",
+                    **payload,
                 },
             )
 

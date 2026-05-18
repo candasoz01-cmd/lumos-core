@@ -6,6 +6,11 @@ import helmet from "helmet";
 import OpenAI from "openai";
 import { PrismaClient, Prisma } from "@prisma/client";
 import { LUMOS_CHAT_INSTRUCTIONS } from "./lumosInstructions.js";
+import {
+  classifyPanelChatError,
+  panelChatErrorPayload,
+  userMessageForPanelChatError,
+} from "./panelChatErrors.js";
 
 /** Panel /chat: geçmiş boyutu ve içerik tavanı (token maliyetini sınırlar). */
 const PANEL_CHAT_HISTORY_MAX_MESSAGES = 12;
@@ -216,7 +221,12 @@ app.post("/chat", async (req, res) => {
         const client = getOpenAI();
         if (!client) {
           visionLastStatus = "fallback";
-          return res.json({ reply: REPLY_PHOTO_NO_VISION });
+          const kind = "server_error";
+          return res.json({
+            reply: userMessageForPanelChatError(kind),
+            errorKind: kind,
+            error: "OPENAI_API_KEY missing",
+          });
         }
         const historyMessages = normalizePanelChatHistory(body?.history);
         const visionUserContent = buildPanelChatVisionUserContent(
@@ -245,9 +255,13 @@ app.post("/chat", async (req, res) => {
             visionLastStatus = "fallback";
           }
           return res.json({ reply });
-        } catch {
+        } catch (visionErr) {
           visionLastStatus = "error";
-          return res.json({ reply: REPLY_PHOTO_NO_VISION });
+          const kind = classifyPanelChatError({
+            errMessage: visionErr?.message ?? String(visionErr),
+          });
+          const payload = panelChatErrorPayload(kind);
+          return res.json({ reply: REPLY_PHOTO_NO_VISION, ...payload });
         }
       }
       visionLastStatus = "fallback";
@@ -256,7 +270,12 @@ app.post("/chat", async (req, res) => {
 
     const client = getOpenAI();
     if (!client) {
-      return res.status(503).json({ error: "OPENAI_API_KEY missing" });
+      const kind = "server_error";
+      return res.status(503).json({
+        errorKind: kind,
+        error: "OPENAI_API_KEY missing",
+        reply: userMessageForPanelChatError(kind),
+      });
     }
     if (!currentText) {
       return res.status(400).json({ error: "message required" });
@@ -281,7 +300,9 @@ app.post("/chat", async (req, res) => {
     const reply = response.output_text ?? "";
     res.json({ reply });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    const kind = classifyPanelChatError({ httpStatus: 500, errMessage: e?.message ?? String(e) });
+    const payload = panelChatErrorPayload(kind);
+    res.status(500).json(payload);
   }
 });
 
