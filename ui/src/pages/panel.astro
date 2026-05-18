@@ -5153,38 +5153,88 @@ const TASKS_API_URL =
           );
         }
 
-        /** Sohbet/LLM hatalarında kullanıcıya; teknik ayrıntı panelChatSanitizeUserVisibleChatFailureText içinde ayrılır. */
-        const PANEL_CHAT_GENERIC_UPSTREAM_FAIL_TR =
-          "Lumos yanıt üretirken bağlantı katmanında sorun yaşadı. Biraz sonra tekrar deneyebilirsin.";
+        /** Panel /chat hata türleri — backend/panelChatErrors.js ile eşleşmeli. */
+        const PANEL_CHAT_ERROR_MESSAGES_TR = {
+          network_error:
+            "Sunucuya ulaşılamadı. İnternet bağlantınızı ve sohbet adresini kontrol edip tekrar deneyin.",
+          timeout: "Yanıt süresi doldu. Biraz sonra tekrar deneyin.",
+          unauthorized:
+            "Yetkilendirme hatası. Oturum veya API anahtar ayarlarınızı kontrol edin.",
+          server_error:
+            "Sohbet sunucusu geçici bir sorun bildirdi. Biraz sonra tekrar deneyin.",
+          model_error:
+            "Yapay zekâ modeli yanıt üretemedi. Biraz sonra tekrar deneyin.",
+          unknown_error: "Beklenmeyen bir hata oluştu. Biraz sonra tekrar deneyin.",
+        };
 
+        function userMessageForPanelChatFailureKind(kind) {
+          return PANEL_CHAT_ERROR_MESSAGES_TR[kind] || PANEL_CHAT_ERROR_MESSAGES_TR.unknown_error;
+        }
+
+        function classifyPanelChatFailure(ctx) {
+          const status =
+            typeof ctx.httpStatus === "number" && Number.isFinite(ctx.httpStatus)
+              ? ctx.httpStatus
+              : null;
+          const name = String(ctx.errName || "").toLowerCase();
+          const msg = String(ctx.errMessage || ctx.upstreamText || "").toLowerCase();
+          if (status === 401 || status === 403) return "unauthorized";
+          if (status != null && status >= 500) return "server_error";
+          if (status === 429) return "model_error";
+          if (/timeout|timed\s*out|etimedout|aborterror|deadline/i.test(name + " " + msg)) {
+            return "timeout";
+          }
+          if (
+            /failed to fetch|networkerror|network\s*error|econnrefused|enotfound|fetch failed|dns/i.test(
+              name + " " + msg,
+            )
+            || (status == null && /ulaşılamadı|network|cors/i.test(msg))
+          ) {
+            return "network_error";
+          }
+          if (/unauthorized|forbidden|401|403|invalid.*token|api.?key/i.test(msg)) {
+            return "unauthorized";
+          }
+          if (
+            /openai|chat\s*llm\s*error|model|responses\.create|rate.?limit|content.?policy/i.test(
+              msg,
+            )
+          ) {
+            return "model_error";
+          }
+          if (/internal server|500|502|503|504|sunucu/i.test(msg)) {
+            return "server_error";
+          }
+          return "unknown_error";
+        }
+
+        /** Gerçek hata/ayrıntı sızıntıları; normal sohbet kelimeleri (ör. token) dahil değil. */
         const PANEL_CHAT_TECH_LEAK_RE = new RegExp(
           [
-            "openai",
-            "api_key",
-            "apikey",
-            "anthropic",
-            "gemini",
-            "supabase",
-            "database_url",
             "traceback",
-            "modulenotfound",
+            "stack\\s*trace",
+            "stacktrace",
+            "OPENAI_API_KEY",
+            "process\\.env",
+            "Authorization\\s*:",
+            "\\bBearer\\s+[A-Za-z0-9._-]{8,}",
+            "\\bException\\b",
+            "\\bError:\\s",
+            "modulenotfounderror",
             "no\\s+module\\s+named",
-            "json\\s*parse",
-            "\\bsecret\\b",
-            "\\btoken\\b",
-            "\\bstack\\b",
-            "\\bimport\\b",
-            "\\bmodule\\b",
+            "node_modules[/\\\\]",
+            "[/\\\\](?:src|backend|dist)[/\\\\]",
+            "\\.(?:py|js|ts):\\d+",
             "chat\\s*llm\\s*error",
           ].join("|"),
           "i",
         );
 
         /**
-         * Sohbetten gelen asistan/hata balonu metni: teknik sızıntı kalıplarında kullanıcıya sabit Türkçe mesaj.
-         * Ham metin console.error ile kalır; tek seferlik balon akışı çağıran tarafta korunur.
+         * Hata balonu / teknik önizleme metni: sızıntı kalıplarında backend ile uyumlu Türkçe mesaj.
+         * Başarılı asistan yanıtlarında kullanılmaz.
          */
-        function panelChatSanitizeUserVisibleChatFailureText(raw) {
+        function panelChatSanitizeUserVisibleChatFailureText(raw, ctx) {
           const original = String(raw ?? "").trim();
           if (!original) return "";
           if (!PANEL_CHAT_TECH_LEAK_RE.test(original)) return original;
@@ -5192,7 +5242,13 @@ const TASKS_API_URL =
             "[Lumos panel chat] User-visible text matched technical patterns; raw upstream:",
             truncatePanelChatLog(original),
           );
-          return PANEL_CHAT_GENERIC_UPSTREAM_FAIL_TR;
+          const kind = classifyPanelChatFailure({
+            httpStatus: ctx && ctx.httpStatus,
+            errName: ctx && ctx.errName,
+            errMessage: ctx && ctx.errMessage,
+            upstreamText: original,
+          });
+          return userMessageForPanelChatFailureKind(kind);
         }
 
         function parsePanelChatJsonBody(trimmed) {
@@ -5371,12 +5427,37 @@ const TASKS_API_URL =
             if (!r.ok) {
               console.warn("[Lumos panel chat] HTTP error", r.status);
               setSendHint("Gönderilemedi (HTTP " + r.status + "). Tekrar dene.");
-              appendBubble(
-                "error",
-                "Sunucu yanıtı başarısız (HTTP " +
-                  r.status +
-                  "). Biraz sonra tekrar deneyebilir veya CHAT_URL / token ayarlarını kontrol edebilirsin.",
-              );
+              let upstreamErr = "";
+              let upstreamKind = "";
+              if (text) {
+                try {
+                  const errJson = JSON.parse(text);
+                  if (errJson && typeof errJson === "object") {
+                    if (typeof errJson.errorKind === "string" && errJson.errorKind.trim()) {
+                      upstreamKind = errJson.errorKind.trim();
+                    }
+                    if (typeof errJson.reply === "string" && errJson.reply.trim()) {
+                      upstreamErr = errJson.reply.trim();
+                    } else if (typeof errJson.error === "string") {
+                      upstreamErr = errJson.error.trim();
+                    }
+                  }
+                } catch {
+                  upstreamErr = String(text).trim().slice(0, 200);
+                }
+              }
+              const httpFailKind =
+                upstreamKind && Object.prototype.hasOwnProperty.call(PANEL_CHAT_ERROR_MESSAGES_TR, upstreamKind)
+                  ? upstreamKind
+                  : classifyPanelChatFailure({
+                      httpStatus: r.status,
+                      upstreamText: upstreamErr,
+                    });
+              const httpFailMsg =
+                upstreamErr && !PANEL_CHAT_TECH_LEAK_RE.test(upstreamErr)
+                  ? upstreamErr
+                  : userMessageForPanelChatFailureKind(httpFailKind);
+              appendBubble("error", httpFailMsg);
               if (photoTelemetry) {
                 let reason = "HTTP " + r.status;
                 let missingKey = "";
@@ -5404,14 +5485,15 @@ const TASKS_API_URL =
                     reachedBackend: true,
                     imageDataSent: photoTelemetry.hasInline,
                     visionTriedGuess: visionGuess,
-                    replyPreview: panelChatSanitizeUserVisibleChatFailureText(replyHttpErrRaw).slice(
-                      0,
-                      120,
-                    ),
+                    replyPreview: panelChatSanitizeUserVisibleChatFailureText(replyHttpErrRaw, {
+                      httpStatus: r.status,
+                    }).slice(0, 120),
                     fallbackExact: false,
                     fallbackRegex: false,
                     networkError: false,
-                    extraReason: panelChatSanitizeUserVisibleChatFailureText(reason + missingKey),
+                    extraReason: panelChatSanitizeUserVisibleChatFailureText(reason + missingKey, {
+                      httpStatus: r.status,
+                    }),
                   }),
                 );
                 void loadPanelBackendStatus();
@@ -5477,10 +5559,7 @@ const TASKS_API_URL =
                         reachedBackend: true,
                         imageDataSent: photoTelemetry.hasInline,
                         visionTriedGuess: visionGuess,
-                        replyPreview: panelChatSanitizeUserVisibleChatFailureText(trimmedReply).slice(
-                          0,
-                          140,
-                        ),
+                        replyPreview: trimmedReply.slice(0, 140),
                         fallbackExact,
                         fallbackRegex: fallbackRegex && !fallbackExact,
                         networkError: false,
@@ -5494,10 +5573,7 @@ const TASKS_API_URL =
                         reachedBackend: true,
                         imageDataSent: photoTelemetry.hasInline,
                         visionTriedGuess: visionGuess,
-                        replyPreview: panelChatSanitizeUserVisibleChatFailureText(trimmedReply).slice(
-                          0,
-                          140,
-                        ),
+                        replyPreview: trimmedReply.slice(0, 140),
                         fallbackExact: false,
                         fallbackRegex: false,
                         networkError: false,
@@ -5523,12 +5599,11 @@ const TASKS_API_URL =
                 }
                 if (replyBody.trim()) {
                   const { lumosText } = ingestAssistantPanelGorev(replyBody);
-                  const safeLumos = panelChatSanitizeUserVisibleChatFailureText(lumosText);
                   if (panelGorevCmd) {
-                    appendBubble("lumos", "Sunucu yanıtı:\n" + safeLumos);
+                    appendBubble("lumos", "Sunucu yanıtı:\n" + lumosText);
                     setSendHint("");
                   } else {
-                    appendBubble("lumos", safeLumos);
+                    appendBubble("lumos", lumosText);
                     input.value = "";
                     clearPanelCameraPhotoSelection();
                     setSendHint("");
@@ -5549,15 +5624,14 @@ const TASKS_API_URL =
             }
           } catch (err) {
             const netMsg = summarizeClientFetchError(err);
+            const errName =
+              err && typeof err === "object" && err.name ? String(err.name) : "";
             setSendHint("İstek hatası: " + netMsg.slice(0, 140));
-            const netBubbleRaw =
-              "Sunucuya ulaşılamadı (istemci tarafında istek tamamlanmadı).\n" +
-              "URL: " +
-              String(CHAT_URL) +
-              "\nHata: " +
-              netMsg +
-              "\nHTTP kodu yok (ağ kesintisi, engel veya sunucunun CORS/413 yanıtı tarayıcıda buna benzer görünebilir).";
-            appendBubble("error", panelChatSanitizeUserVisibleChatFailureText(netBubbleRaw));
+            const netKind = classifyPanelChatFailure({
+              errName,
+              errMessage: netMsg,
+            });
+            appendBubble("error", userMessageForPanelChatFailureKind(netKind));
             if (photoTelemetry) {
               const visionGuess =
                 photoTelemetry.hasInline && !!photoFile && /^image\//i.test(photoFile.type || "");
