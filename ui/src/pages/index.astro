@@ -2483,13 +2483,13 @@ const GITHUB_README_URL = "https://github.com/candasoz01-cmd/lumos-core/blob/mai
       </section>
 
       <section id="kurulum" class="lumos-section lumos-install-section" aria-labelledby="kurulum-baslik">
-        <h2 id="kurulum-baslik" data-i18n="landing.install.title">İndirme ve Kurulum</h2>
+        <h2 id="kurulum-baslik" data-i18n="landing.install.title">Yerel kurulum</h2>
         <p data-i18n="landing.install.intro">
-          Lumos şu anda aktif geliştirilen açık kaynaklı bir kontrol katmanıdır. Yerelde denemek isteyen geliştiriciler kaynak kodu GitHub üzerinden indirip kendi ortamında çalıştırabilir.
+          Lumos şu anda açık kaynak geliştirme aşamasındadır. Aşağıdaki adımlar yalnızca yerel geliştirme kurulumu içindir: kaynağı bilgisayarınıza alıp komutları Terminal’de çalıştırırsınız. Son kullanıcı kurulum paketi veya tek tıkla resmi kurulum henüz sunulmuyor.
         </p>
         <div class="lumos-install-grid">
           <article class="lumos-install-step">
-            <h3 data-i18n="landing.install.step1">Adım 1 — Kaynak kodu indir</h3>
+            <h3 data-i18n="landing.install.step1">1 — Depoyu klonla (GitHub)</h3>
             <div class="lumos-install-cmd">
               <pre class="lumos-install-pre"><code>git clone {GITHUB_REPO_URL}</code></pre>
               <div class="lumos-install-cmd__meta">
@@ -2503,7 +2503,7 @@ const GITHUB_README_URL = "https://github.com/candasoz01-cmd/lumos-core/blob/mai
             </div>
           </article>
           <article class="lumos-install-step">
-            <h3 data-i18n="landing.install.step2">Adım 2 — Proje klasörüne gir</h3>
+            <h3 data-i18n="landing.install.step2">2 — Proje kök dizinine geç</h3>
             <div class="lumos-install-cmd">
               <pre class="lumos-install-pre"><code>cd lumos-core</code></pre>
               <div class="lumos-install-cmd__meta">
@@ -2513,7 +2513,7 @@ const GITHUB_README_URL = "https://github.com/candasoz01-cmd/lumos-core/blob/mai
             </div>
           </article>
           <article class="lumos-install-step">
-            <h3 data-i18n="landing.install.step3">Adım 3 — UI bağımlılıklarını kur</h3>
+            <h3 data-i18n="landing.install.step3">3 — Arayüz bağımlılıklarını yükle</h3>
             <div class="lumos-install-cmd">
               <pre class="lumos-install-pre"><code>cd ui && npm install</code></pre>
               <div class="lumos-install-cmd__meta">
@@ -2527,7 +2527,7 @@ const GITHUB_README_URL = "https://github.com/candasoz01-cmd/lumos-core/blob/mai
             </div>
           </article>
           <article class="lumos-install-step">
-            <h3 data-i18n="landing.install.step4">Adım 4 — Yerelde çalıştır</h3>
+            <h3 data-i18n="landing.install.step4">4 — Geliştirme sunucusunu başlat</h3>
             <div class="lumos-install-cmd">
               <pre class="lumos-install-pre"><code>npm run dev</code></pre>
               <div class="lumos-install-cmd__meta">
@@ -2537,7 +2537,7 @@ const GITHUB_README_URL = "https://github.com/candasoz01-cmd/lumos-core/blob/mai
             </div>
           </article>
           <article class="lumos-install-step">
-            <h3 data-i18n="landing.install.step5">Adım 5 — Tarayıcıda aç</h3>
+            <h3 data-i18n="landing.install.step5">5 — Yerel adresi tarayıcıda aç</h3>
             <div class="lumos-install-cmd">
               <pre class="lumos-install-pre"><code>http://localhost:4321</code></pre>
               <div class="lumos-install-cmd__meta">
@@ -2558,11 +2558,10 @@ const GITHUB_README_URL = "https://github.com/candasoz01-cmd/lumos-core/blob/mai
           </article>
         </div>
         <p class="lumos-install-copy-disclaimer" data-i18n="landing.install.disclaimer">
-          Bu butonlar komutları çalıştırmaz; yalnızca panoya kopyalar. Komutları Terminal’e kullanıcı kendisi yapıştırıp
-          çalıştırır.
+          Kopyala düğmeleri komutu çalıştırmaz; metni panoya kopyalar. Komutları Terminal’e yapıştırıp kendiniz çalıştırın.
         </p>
         <p class="lumos-install-note" data-i18n="landing.install.note">
-          Komutlar yerel geliştirme ortamı içindir. Resmi servisler, API erişimleri ve kullanıcı verileri kontrollü izin yapısıyla korunur.
+          Node.js ve npm yüklü bir geliştirme ortamı gerekir. Bu akış üretim veya resmi Lumos servisleri için değildir.
         </p>
         <div class="lumos-install-actions">
           <a
@@ -2574,22 +2573,21 @@ const GITHUB_README_URL = "https://github.com/candasoz01-cmd/lumos-core/blob/mai
           <a class="lumos-hero-btn lumos-hero-btn--ghost" href="/panel" data-i18n="landing.install.tryPanel">Paneli dene</a>
         </div>
         <div class="lumos-install-versions">
-          <h3 class="lumos-install-versions__heading" data-i18n="landing.install.versionsTitle">Sürümler</h3>
+          <h3 class="lumos-install-versions__heading" data-i18n="landing.install.versionsTitle">Sürüm durumu</h3>
           <div class="lumos-install-versions__sub">
-            <h4 data-i18n="landing.install.ossHeading">Açık kaynak geliştirme sürümü:</h4>
+            <h4 data-i18n="landing.install.ossHeading">Şu an: açık kaynak geliştirme sürümü</h4>
             <p data-i18n="landing.install.ossBody">
-              Lumos’un kaynak kodu geliştiriciler tarafından yerelde incelenebilir, çalıştırılabilir ve katkıya açık biçimde geliştirilebilir. Bu sürüm yerel geliştirme ve deneme amaçlıdır.
+              Kaynak kodu GitHub’dan alınır; yerelde incelenebilir, çalıştırılabilir ve katkıya açılabilir. Yukarıdaki komutlar bu sürüm içindir.
             </p>
           </div>
           <div class="lumos-install-versions__sub">
-            <h4 data-i18n="landing.install.officialHeading">Resmi / profesyonel sürüm:</h4>
+            <h4 data-i18n="landing.install.officialHeading">Henüz yok: resmi tek tık kurulum</h4>
             <p data-i18n="landing.install.officialBody">
-              We Lock AI çatısı altında sunulacak resmi Lumos sürümü; panel, servis bağlantıları, güvenli API erişimleri, entegrasyonlar ve kullanıcı izin akışlarıyla kontrollü biçimde çalışacaktır. Bu sürüm hazır olduğunda indirme, erişim ve kullanım koşulları ayrıca duyurulacaktır.
+              We Lock AI çatısı altındaki resmi Lumos sürümü (kurulum paketi, panel, servis bağlantıları ve kontrollü API erişimi) henüz yayınlanmadı. Hazır olduğunda indirme ve erişim koşulları ayrıca duyurulacaktır.
             </p>
           </div>
           <p class="lumos-install-versions__footnote" data-i18n="landing.install.footnote">
-            Ücretli veya resmi servis erişimi; açık kaynak koddan bağımsız olarak kimlik doğrulama, kullanıcı onayı ve
-            tanımlı kullanım sınırlarıyla yönetilir.
+            Ücretli veya resmi servis erişimi, açık kaynak kodundan ayrı olarak kimlik doğrulama ve kullanıcı onayıyla yönetilir.
           </p>
           <div class="lumos-install-actions lumos-install-actions--versions">
             <button
