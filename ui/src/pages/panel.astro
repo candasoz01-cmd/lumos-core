@@ -2796,7 +2796,9 @@ const TASKS_API_URL =
           padding: 0.22rem 0.28rem 0.22rem 0.24rem;
           overflow: hidden;
           border-color: var(--lumos-teal-16);
+          background: var(--lumos-compose-bg);
           box-shadow: var(--panel-edge-inset);
+          color-scheme: dark;
         }
         #panel-sohbet .chat-compose-bar:focus-within {
           border-color: rgb(var(--lumos-land-teal) / 0.32);
@@ -2837,17 +2839,73 @@ const TASKS_API_URL =
           flex: 0 0 auto;
           flex-shrink: 0;
         }
-        #panel-sohbet .chat-compose--gpt textarea {
-          flex: 1 1 auto;
+        #panel-sohbet .chat-compose--gpt textarea,
+        #panel-sohbet .chat-compose--gpt textarea#panel-msg {
+          flex: 1 1 0%;
+          align-self: center;
           min-width: 0;
-          width: 0;
           max-width: 100%;
-          padding: 0.28rem 0.3rem;
+          margin: 0;
+          padding: 0 0.3rem;
           font-size: max(16px, 0.84rem);
-          line-height: 1.38;
+          line-height: 2.375rem;
+          color: #e9eef5;
+          background: none;
+          background-color: transparent;
+          background-image: none;
+          border: 0;
+          border-radius: 0;
+          outline: none;
+          outline-offset: 0;
+          box-shadow: none;
+          -webkit-box-shadow: none;
+          -webkit-appearance: none;
+          appearance: none;
+          -webkit-tap-highlight-color: transparent;
+          caret-color: #e9eef5;
+          accent-color: transparent;
           box-sizing: border-box;
-          overflow-wrap: normal;
-          word-break: normal;
+          resize: none;
+          height: 2.375rem;
+          min-height: 2.375rem;
+          max-height: 2.375rem;
+          overflow-x: auto;
+          overflow-y: hidden;
+          white-space: nowrap;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+          -webkit-overflow-scrolling: touch;
+        }
+        #panel-sohbet .chat-compose--gpt textarea::-webkit-scrollbar,
+        #panel-sohbet .chat-compose--gpt textarea#panel-msg::-webkit-scrollbar {
+          display: none;
+          width: 0;
+          height: 0;
+          background: transparent;
+        }
+        #panel-sohbet .chat-compose--gpt textarea::-webkit-scrollbar-track,
+        #panel-sohbet .chat-compose--gpt textarea::-webkit-scrollbar-thumb,
+        #panel-sohbet .chat-compose--gpt textarea#panel-msg::-webkit-scrollbar-track,
+        #panel-sohbet .chat-compose--gpt textarea#panel-msg::-webkit-scrollbar-thumb {
+          display: none;
+          background: transparent;
+        }
+        #panel-sohbet .chat-compose--gpt textarea::placeholder {
+          font-size: 0.75rem;
+          line-height: 2.375rem;
+          color: rgb(138 152 172 / 0.72);
+          opacity: 1;
+        }
+        /** iOS Safari: textarea iç metni varsayılan olarak alta oturur; hafif üst boşluk. */
+        @supports (-webkit-touch-callout: none) {
+          #panel-sohbet .chat-compose--gpt textarea,
+          #panel-sohbet .chat-compose--gpt textarea#panel-msg {
+            padding: 3px 0.3rem 0;
+            line-height: calc(2.375rem - 3px);
+          }
+          #panel-sohbet .chat-compose--gpt textarea::placeholder {
+            line-height: calc(2.375rem - 3px);
+          }
         }
         @supports (field-sizing: content) {
           #panel-sohbet .chat-compose--gpt textarea {
@@ -2856,11 +2914,25 @@ const TASKS_API_URL =
         }
         #panel-sohbet .chat-compose--gpt textarea:focus,
         #panel-sohbet .chat-compose--gpt textarea:focus-visible,
-        #panel-sohbet .chat-compose--gpt textarea:active {
+        #panel-sohbet .chat-compose--gpt textarea:active,
+        #panel-sohbet .chat-compose--gpt textarea#panel-msg:focus,
+        #panel-sohbet .chat-compose--gpt textarea#panel-msg:focus-visible,
+        #panel-sohbet .chat-compose--gpt textarea#panel-msg:active {
           transform: none;
           zoom: normal;
           scale: none;
           font-size: max(16px, 0.84rem);
+          color: #e9eef5;
+          background: none;
+          background-color: transparent;
+          background-image: none;
+          border: 0;
+          outline: none;
+          outline-offset: 0;
+          box-shadow: none;
+          -webkit-box-shadow: none;
+          -webkit-appearance: none;
+          appearance: none;
         }
         #panel-sohbet .chat-compose-camera-btn,
         #panel-sohbet .chat-compose-voice-btn,
@@ -2877,12 +2949,14 @@ const TASKS_API_URL =
           position: static;
           display: inline-flex;
           align-self: center;
+          flex: 0 0 auto;
           flex-shrink: 0;
           min-width: 2.05rem;
           min-height: 1.8rem;
           padding: 0.22rem 0.32rem;
           font-size: 0.68rem;
           letter-spacing: 0.02em;
+          white-space: nowrap;
           border-color: rgb(var(--lumos-land-warm) / 0.36);
           box-shadow: var(--panel-edge-inset);
         }
@@ -2923,26 +2997,69 @@ const TASKS_API_URL =
           transform: none;
         }
         #panel-sohbet .chat-compose--gpt textarea:placeholder-shown {
-          /* "Mesajını yaz" tek satırda tam görünür; kontroller küçük + flex min-width ile sığdırılır. */
-          white-space: nowrap;
-          overflow-x: hidden;
-          overflow-y: hidden;
-          text-overflow: clip;
+          /* Boşken tek satır; placeholder küçük fontla, girdi 16px (iOS zoom). */
+          overflow: hidden;
+          text-overflow: ellipsis;
           text-align: start;
-          font-size: max(16px, 0.84rem);
-          line-height: 1.38;
-          min-height: calc(0.28rem * 2 + 16px * 1.38);
-          max-height: calc(0.28rem * 2 + 16px * 1.38);
         }
         #panel-sohbet .chat-compose--gpt textarea:not(:placeholder-shown) {
-          white-space: pre-wrap;
-          overflow-x: hidden;
-          overflow-y: auto;
           text-align: start;
-          overflow-wrap: normal;
-          word-break: normal;
-          min-height: 1.95rem;
-          max-height: 7rem;
+          color: #e9eef5;
+          overflow-x: auto;
+          overflow-y: hidden;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        #panel-sohbet .chat-compose--gpt textarea:not(:placeholder-shown)::-webkit-scrollbar {
+          display: none;
+          width: 0;
+          height: 0;
+        }
+        @media (max-width: 399.98px) {
+          #panel-sohbet .chat-compose-bar {
+            padding: 0.18rem 0.22rem 0.18rem 0.2rem;
+          }
+          #panel-sohbet .chat-compose.chat-compose--gpt {
+            gap: 0.1rem;
+          }
+          #panel-sohbet .chat-compose--gpt textarea {
+            padding: 0 0.22rem;
+            line-height: 2.375rem;
+            height: 2.375rem;
+            min-height: 2.375rem;
+            max-height: 2.375rem;
+          }
+          @supports (-webkit-touch-callout: none) {
+            #panel-sohbet .chat-compose--gpt textarea {
+              padding: 3px 0.22rem 0;
+              line-height: calc(2.375rem - 3px);
+            }
+          }
+          #panel-sohbet .chat-compose--gpt textarea::placeholder {
+            font-size: 0.68rem;
+            letter-spacing: -0.01em;
+          }
+          #panel-sohbet .chat-compose-send {
+            min-width: 1.65rem;
+            min-height: 1.72rem;
+            padding: 0.2rem 0.3rem;
+            font-size: 0.62rem;
+            letter-spacing: -0.02em;
+          }
+          #panel-sohbet .chat-compose-camera-btn,
+          #panel-sohbet .chat-compose-voice-btn,
+          #panel-sohbet .chat-compose-attach-btn {
+            width: 1.72rem;
+            height: 1.72rem;
+            min-width: 1.72rem;
+            min-height: 1.72rem;
+          }
+          #panel-sohbet .chat-compose-camera-btn svg,
+          #panel-sohbet .chat-compose-voice-btn svg,
+          #panel-sohbet .chat-compose-attach-btn svg {
+            width: 0.85rem;
+            height: 0.85rem;
+          }
         }
         @media (max-width: 540px) {
           #gorevler-detail.gorevler-detail {
@@ -3034,13 +3151,13 @@ const TASKS_API_URL =
           );
           box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.38);
         }
-        #panel-sohbet .chat-compose--gpt textarea:placeholder-shown {
-          min-height: calc(0.34rem * 2 + 1em * 1.45);
-          max-height: calc(0.34rem * 2 + 1em * 1.45);
-        }
+        #panel-sohbet .chat-compose--gpt textarea:placeholder-shown,
         #panel-sohbet .chat-compose--gpt textarea:not(:placeholder-shown) {
-          min-height: 1.85rem;
-          max-height: 4.5rem;
+          height: 2.375rem;
+          min-height: 2.375rem;
+          max-height: 2.375rem;
+          overflow-y: hidden;
+          white-space: nowrap;
         }
         #panel-sohbet .chat-compose-send {
           min-height: 1.82rem;
