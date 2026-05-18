@@ -216,8 +216,8 @@ Açık kaynak kod, resmi Lumos hizmetlerini temsil etme, We Lock AI markasını 
 
 ## License
 
-**Source code license:** **Pending** — a formal open-source license for this repository will be added here when finalized.
+**Source code** in this repository is licensed under the [Apache License, Version 2.0](LICENSE). See also [NOTICE](NOTICE).
 
-**Not included in the open-source release:** Lumos product identity and visual branding, official Lumos / We Lock AI **hosted services**, production **API access**, and **user data** are outside what this repository grants. Cloning, building, or self-hosting the UI does not authorize use of official branding, access to We Lock AI production APIs, or handling of user data from official services.
+**Not covered by this license:** The Lumos and We Lock AI **names**, **logos**, and other **brand and visual identity**; official Lumos / We Lock AI **hosted services**; production **API access**; and **user data** from official services are not granted for reuse under this repository license.
 
-Official integrations and services are governed separately, with explicit user consent, secure authentication, and defined usage limits. See [Açık kaynak ve resmi kullanım sınırı](#açık-kaynak-ve-resmi-kullanım-sınırı) above.
+Cloning, building, or self-hosting this open-source code does **not** grant the right to use official Lumos or We Lock AI branding, to access official production APIs, or to use user data from official services. Official integrations and services are governed separately, with explicit user consent, secure authentication, and defined usage limits. See [Açık kaynak ve resmi kullanım sınırı](#açık-kaynak-ve-resmi-kullanım-sınırı) above.
