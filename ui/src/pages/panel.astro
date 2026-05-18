@@ -2761,13 +2761,21 @@ const TASKS_API_URL =
           box-sizing: border-box;
         }
         #panel-sohbet .chat-compose--gpt textarea {
-          flex: 1 1 auto;
+          flex: 1 1 0;
           min-width: 0;
+          width: 0;
           max-width: 100%;
           padding: 0.34rem 0.38rem;
           font-size: max(16px, 0.84rem);
           line-height: 1.4;
           box-sizing: border-box;
+          overflow-wrap: normal;
+          word-break: normal;
+        }
+        @supports (field-sizing: content) {
+          #panel-sohbet .chat-compose--gpt textarea {
+            field-sizing: fixed;
+          }
         }
         #panel-sohbet .chat-compose--gpt textarea:focus,
         #panel-sohbet .chat-compose--gpt textarea:focus-visible,
@@ -2846,6 +2854,8 @@ const TASKS_API_URL =
           overflow-x: hidden;
           overflow-y: auto;
           text-align: start;
+          overflow-wrap: normal;
+          word-break: normal;
           min-height: 2.05rem;
           max-height: 7.5rem;
         }
