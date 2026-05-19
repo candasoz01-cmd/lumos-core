@@ -32,6 +32,8 @@
   var MAX_WAIT_MS = 600000;
   var REQ_RETRIES = 4;
   var REQ_RETRY_DELAY_MS = 800;
+  var TASK_BASE = "http://127.0.0.1:8766";
+  var TASK_TITLE_MAX = 120;
 
   function sleep(ms) {
     return new Promise(function (r) {
@@ -183,6 +185,23 @@
     return lines.join("\n");
   }
 
+  function sendToTaskServer(title) {
+    var t = String(title || "").trim().slice(0, TASK_TITLE_MAX);
+    if (!t) return;
+    try {
+      GM_xmlhttpRequest({
+        method: "POST",
+        url: TASK_BASE + "/tasks",
+        data: JSON.stringify({ title: t }),
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        timeout: 5000,
+        onload: function () {},
+        onerror: function () {},
+        ontimeout: function () {},
+      });
+    } catch (_) {}
+  }
+
   function findComposer() {
     return (
       document.querySelector("textarea[data-id='root']") ||
@@ -214,6 +233,7 @@
     }
     if (!goal) goal = window.prompt("Kando goal (serbest metin):", "");
     if (!goal) return;
+    sendToTaskServer(goal);
 
     var rep;
     var errMsg = "";
