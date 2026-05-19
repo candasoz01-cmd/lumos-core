@@ -702,6 +702,9 @@ function canTransition(from, to) {
       if (!parsed.ref) {
         return Promise.resolve({ text: "Görev adı eksik. Örnek: görev sil alışveriş", depth: "simple" });
       }
+      if (!window.confirm('"' + parsed.ref + '" will be deleted. Do you confirm?')) {
+        return Promise.resolve({ text: "Delete cancelled.", depth: "simple" });
+      }
       return api.postTasksDelete({ ref: parsed.ref }).then(function (res) {
         if (res.status === 404 || (res.body && res.body.error === "not_found")) {
           return { text: "Silinecek görev bulunamadı.", depth: "simple" };
@@ -4543,6 +4546,9 @@ function canTransition(from, to) {
       if (!parsed.ref) {
         return { text: "Görev adı eksik. Örnek: görev sil alışveriş", depth: "simple" };
       }
+      if (!window.confirm('"' + parsed.ref + '" will be deleted. Do you confirm?')) {
+        return { text: "Delete cancelled.", depth: "simple" };
+      }
       var delResult = schedulePendingDeleteTask(parsed.ref);
       if (!delResult.ok) {
         if (delResult.reason === "empty") {
@@ -5563,6 +5569,7 @@ function canTransition(from, to) {
         return;
       }
       if (dact === "delete") {
+        if (!window.confirm('"' + dref + '" will be deleted. Do you confirm?')) return;
         handleTaskDetailDeleteDirect(dref);
         return;
       }
