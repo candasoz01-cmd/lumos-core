@@ -109,6 +109,7 @@ async function run() {
       { timeout: 20000 }
     );
 
+    page.on("dialog", (d) => d.accept());
     await page.fill("#lumos-chat-input", "görev sil " + MARK);
     await page.click("#lumos-chat-send");
     await page.waitForFunction(
