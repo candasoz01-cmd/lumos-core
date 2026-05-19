@@ -1,19 +1,21 @@
 # Lumos
 
+Turkish: [README.tr.md](README.tr.md) · [docs/tr/](docs/tr/)
+
 **Lumos** is the primary product focus. It is a human-centered artificial intelligence **control and assistant layer**: it helps people understand, steer, and safely manage actions across devices, digital workflows, and connected systems—without replacing their judgment.
 
-It is developed under the **We Lock AI** umbrella as an **independent** product and direction—not owned, branded, or operated by any large language model vendor as their first-party product. Learn more about the umbrella organization: **[https://welockai.com/](https://welockai.com/)**
+Developed under the **We Lock AI** umbrella as an **independent** product and direction—not owned, branded, or operated by any large language model vendor as their first-party product. Learn more: **[https://welockai.com/](https://welockai.com/)**
 
 ## Principles
 
-- **User decision** first: Lumos does not decide on behalf of the user.
+- **User decision first:** Lumos does not decide on behalf of the user.
 - **Explicit approval** for actions that are permanent, sensitive, costly, or affect other people.
 - **Risk visibility** before action: context and consequences should be easier to see, not hidden.
-- **Data awareness**: clarity about what is used, where it flows, and how it is handled; privacy as a baseline, not a paid add-on.
+- **Data awareness:** clarity about what is used, where it flows, and how it is handled; privacy as a baseline, not a paid add-on.
 - Identity, consent, and authority boundaries stay explicit.
-- Outputs align with the user’s intent and choice; the aim is useful support, not dependency.
+- Outputs align with the user's intent and choice; the aim is useful support, not dependency.
 
-Where AI-assisted reasoning is useful, Lumos may use **external model services when configured**, in a straightforward, replaceable way—without centering the product on a single vendor or overstating any provider’s role.
+Where AI-assisted reasoning is useful, Lumos may use **external model services when configured**, in a straightforward, replaceable way—without centering the product on a single vendor or overstating any provider's role.
 
 ## What is Lumos?
 
@@ -25,7 +27,7 @@ In many areas, the user may express what they want through voice. Lumos can then
 
 Final approval remains with the user for actions that are permanent, sensitive, costly, or affect other people.
 
-## Current status
+## Current Status
 
 Lumos is in **early active development**. Public-facing text, interface structure, and core orchestration foundations are being shaped before deeper functional implementation.
 
@@ -39,37 +41,35 @@ The current version includes:
 
 The current panel defines visible modules and product direction without claiming unfinished active functionality.
 
-## Açık kaynak durumu
+## Open Source Status
 
-- Lumos Core şu anda aktif ve erken geliştirme aşamasındadır.
-- Repo açık kaynaklıdır ve Apache-2.0 lisansı altındadır.
-- Ancak proje henüz tam anlamıyla dış katkı süreci oturmuş, kararlı açık kaynak ürün değildir.
-- Görsel marka, Lumos / We Lock AI adı, resmi servisler, production API erişimi ve kullanıcı verileri Apache-2.0 lisansı kapsamında değildir; bunun için NOTICE geçerlidir.
-- Şimdilik dış katkılar kontrollü değerlendirilecektir; CONTRIBUTING.md daha sonra eklenecektir.
+- Lumos Core is in early active development.
+- The repository is open source under the Apache-2.0 license.
+- The project is not yet a stable, fully contribution-ready open source product. External contributions are reviewed on a controlled basis; CONTRIBUTING.md will be added later.
+- Visual brand assets, the Lumos / We Lock AI names, official services, production API access, and user data are **not** covered by the Apache-2.0 license. See [NOTICE](NOTICE).
 
-## Kurulum
+## Quick Start
 
 ```bash
 git clone https://github.com/candasoz01-cmd/lumos-core
-cd lumos-core
-cd ui
+cd lumos-core/ui
 npm install
 npm run dev
 ```
 
-Ürün özeti: [`docs/PRODUCT_SUMMARY.md`](docs/PRODUCT_SUMMARY.md). GitHub / kontrollü yayın checklist: [`docs/GITHUB_RELEASE_CHECKLIST.md`](docs/GITHUB_RELEASE_CHECKLIST.md).
+Product summary: [`docs/PRODUCT_SUMMARY.md`](docs/PRODUCT_SUMMARY.md). Release checklist: [`docs/GITHUB_RELEASE_CHECKLIST.md`](docs/GITHUB_RELEASE_CHECKLIST.md).
 
-## Sürümler
+## Release Tracks
 
-### Açık kaynak geliştirme sürümü
+### Open-source development build
 
-Lumos’un kaynak kodu geliştiriciler tarafından yerelde incelenebilir, çalıştırılabilir ve katkıya açık biçimde geliştirilebilir. Bu sürüm yerel geliştirme ve deneme amaçlıdır.
+Source code is available for local review, running, and contribution. This track is intended for local development and experimentation only.
 
-### Resmi / profesyonel sürüm
+### Official / professional release
 
-We Lock AI çatısı altında sunulacak resmi Lumos sürümü; panel, servis bağlantıları, güvenli API erişimleri, entegrasyonlar ve kullanıcı izin akışlarıyla kontrollü biçimde çalışacaktır. Bu sürüm hazır olduğunda indirme, erişim ve kullanım koşulları ayrıca duyurulacaktır.
+The official Lumos release under We Lock AI—including the panel, service connections, secure API access, integrations, and user approval flows—is not published yet. Download and access terms will be announced when ready.
 
-Ücretli veya resmi servis erişimi; açık kaynak koddan bağımsız olarak kimlik doğrulama, kullanıcı onayı ve tanımlı kullanım sınırlarıyla yönetilir.
+Paid or official service access is managed separately from open-source code, via authentication, user consent, and defined usage limits.
 
 ## Modules
 
@@ -96,15 +96,13 @@ We Lock AI çatısı altında sunulacak resmi Lumos sürümü; panel, servis ba�
 
 ## Philosophy
 
-Lumos is built around a simple idea:
-
 AI should not become an invisible authority between humans and their own decisions.
 
 It should help users see what is happening, understand possible risks, and move forward with clearer control.
 
 ## Why Lumos?
 
-Lumos is aimed at a practical problem: keeping identity, consent, and intelligent systems understandable and steerable, with the user’s judgment in the loop rather than replaced.
+Lumos is aimed at a practical problem: keeping identity, consent, and intelligent systems understandable and steerable, with the user's judgment in the loop rather than replaced.
 
 ## Development Focus
 
@@ -131,19 +129,21 @@ The system includes early working foundations for:
 
 ## Architecture Overview
 
-User  
-↓  
-Lumos Gateway Layer  
-↓  
-Context Engine  
-↓  
-Memory / State Layer  
-↓  
-Workflow Orchestrator  
-↓  
+```
+User
+↓
+Lumos Gateway Layer
+↓
+Context Engine
+↓
+Memory / State Layer
+↓
+Workflow Orchestrator
+↓
 Modules / UI / Feed / Automation / External Systems
+```
 
-## Developer setup
+## Developer Setup
 
 Lumos is currently available as **source code** for development and review. A packaged end-user installer is **not** available yet.
 
@@ -159,7 +159,7 @@ npm install
 npm run dev
 ```
 
-The default dev URL is typically http://localhost:4321 (Astro’s default unless overridden).
+The default dev URL is typically http://localhost:4321 (Astro's default unless overridden).
 
 ### Production UI build (from repo root)
 
@@ -167,65 +167,65 @@ The default dev URL is typically http://localhost:4321 (Astro’s default unless
 npm run build
 ```
 
+Output is written to `ui/dist/`.
+
 ### Backend API (optional)
 
 ```bash
 cd backend && npm install && npm run dev
 ```
 
-### Kando (optional dev bridge)
+### Kando bridge (optional dev bridge)
 
-From the author’s perspective, **Kando** is **early-stage** helper tooling: it wires the panel toward task, file, and chat targets during local development and experiments. It is not described here as finished product infrastructure—more as a practical starting point that may evolve. Security and behavior details: `scripts/README_kando_bridge_server.md`.
+**Kando** is early-stage helper tooling that wires the panel toward task, file, and chat targets during local development and experiments. It is not finished product infrastructure—more a practical starting point that may evolve. Security and behavior details: `scripts/README_kando_bridge_server.md`.
 
-### Yerel köprü (panel görev / dosya / sohbet hedefi)
-
-Panel varsayılanları uzak bir örnek adrese işaret edebilir; yerel deneme için köprü:
+To start the local bridge:
 
 ```bash
 ./scripts/bridge_start.sh
 ```
 
-Ayrıntı ve güvenlik: `scripts/README_kando_bridge_server.md`.
+See `scripts/README_kando_bridge_server.md` for details and security notes.
 
 ## Deploy
 
-Üretim kurulumu **iki ayrı katmandır**: statik panel (UI) ve isteğe bağlı sohbet / görev / dosya köprüsü (backend). Bunları aynı platformda birleştirmek zorunda değilsiniz.
+Production setup has **two separate layers**: the static panel (UI) and the optional chat / task / file bridge (backend). These do not need to run on the same platform.
 
-### UI — Vercel (statik Astro)
+### UI — Vercel (static Astro)
 
-Üretim arayüzü **Astro** ile `ui/` altında derlenir; çıktı `ui/dist/`.
+The production UI is built with Astro under `ui/`; output goes to `ui/dist/`.
 
-1. [Vercel](https://vercel.com) üzerinde yeni proje: **Root Directory** = `ui` (monorepo kökünde bağladıysanız), veya kökten bağlayıp bu repodaki `vercel.json` ile `outputDirectory: "ui/dist"` kullanın.
-2. Build: `npm run build` (Vercel’de `ui` kökünde varsayılan `astro build` yeterli; kökten derleme için `vercel.json` içindeki `buildCommand` kullanılır).
-3. Vercel’de yalnızca **statik UI** yayınlanır; köprü sunucusu burada çalışmaz.
+1. Create a new project on [Vercel](https://vercel.com). Set **Root Directory** to `ui`, or connect from the repo root and use the `vercel.json` in this repo (`outputDirectory: "ui/dist"`).
+2. Build command: `npm run build` (in the `ui` root, `astro build` is the default; building from the repo root uses the `buildCommand` in `vercel.json`).
+3. Only the **static UI** is published on Vercel; the bridge server does not run there.
 
-### Sohbet / köprü — ayrı servis (ör. Render)
+### Chat / bridge — separate service (e.g. Render)
 
-Panelin sohbet, görev ve dosya hedefleri için **Kando köprüsü** (veya eşdeğer backend) UI’dan **ayrı** barındırılmalıdır — örneğin [Render](https://render.com), Railway, Fly.io veya kendi VPS’iniz. Yerel geliştirmede `./scripts/bridge_start.sh` yalnızca loopback kabul eder; uzak köprü için ayrı güvenlik politikası ve barındırma gerekir (ayrıntı: `scripts/README_kando_bridge_server.md`).
+The **Kando bridge** (or equivalent backend) for the panel's chat, task, and file targets must be hosted **separately** from the UI—for example on [Render](https://render.com), Railway, Fly.io, or your own VPS. In local development `./scripts/bridge_start.sh` accepts only loopback connections; a remote bridge requires a separate security policy and hosting (see `scripts/README_kando_bridge_server.md`).
 
-UI tarafında köprü adreslerini Vercel (veya başka statik host) ortam değişkenleriyle verin; köprü sürecini o serviste çalıştırın. `panel.astro` içindeki örnek uzak adresler yalnızca referanstır — kendi URL ve token politikanızı kullanın.
+Provide bridge addresses to the UI via Vercel (or other static host) environment variables; run the bridge process on that service. The example remote addresses in `panel.astro` are references only—use your own URLs and token policy.
 
-### Ortam değişkenleri (`PUBLIC_*`)
+### Environment variables (`PUBLIC_*`)
 
-Astro’da `PUBLIC_` öneki, değerin **istemci tarafına (tarayıcıya) gömülmesi** anlamına gelir. Üretim UI için tipik örnekler:
+In Astro, the `PUBLIC_` prefix means the value is **embedded into the client (browser)**. Typical examples for production UI:
 
 - `PUBLIC_LUMOS_CHAT_URL`
 - `PUBLIC_LUMOS_PANEL_UPLOAD_URL`
-- `PUBLIC_KANDO_TOKEN` (veya benzeri `PUBLIC_*` token / ipucu alanları)
-- İsteğe bağlı: `PUBLIC_LUMOS_PANEL_HEALTH_URL`
+- `PUBLIC_KANDO_TOKEN` (or similar `PUBLIC_*` token / hint fields)
+- Optional: `PUBLIC_LUMOS_PANEL_HEALTH_URL`
 
-**Güvenlik uyarısı:** `PUBLIC_KANDO_TOKEN`, `PUBLIC_LUMOS_PANEL_TOKEN_HINT` veya başka `PUBLIC_*` değişkenlerine **gerçek gizli anahtar, üretim token’ı veya uzun ömürlü sırlar koymayın**. Bu değerler derleme çıktısında görülebilir ve tarayıcıdan okunabilir. Yerel deneme için geçici, düşük riskli değerler kullanın; üretimde köprüyü sunucu tarafı kimlik doğrulama, kısa ömürlü token ve ağ kısıtlarıyla koruyun. Hassas sırlar yalnızca **sunucu tarafı** ortam değişkenlerinde (köprü / backend host) tutulmalıdır.
+**Security warning:** Do **not** put real secret keys, production tokens, or long-lived secrets into `PUBLIC_KANDO_TOKEN`, `PUBLIC_LUMOS_PANEL_TOKEN_HINT`, or any other `PUBLIC_*` variable. These values are visible in the build output and readable from the browser. Use temporary, low-risk values for local experimentation; in production, protect the bridge with server-side authentication, short-lived tokens, and network restrictions. Sensitive secrets must only be kept in **server-side** environment variables (on the bridge / backend host).
 
-## Açık kaynak ve resmi kullanım sınırı
+## Open Source and Official Use Boundary
 
-Lumos’u, geleceği kuracak gençlere ve teknolojiyi insan yararına kullanmak isteyen herkese bir başlangıç hediyesi olarak görüyoruz. Ancak We Lock AI çatısı altındaki Lumos ürün kimliği, görsel marka unsurları, resmi servisler, API erişimleri ve kullanıcı verileri kontrollü izin yapısıyla korunur.
+The open-source code in this repository does **not** grant the right to represent official Lumos services, use the We Lock AI brand, access production APIs, or reach user data from official services. Official integrations operate under explicit permission, secure authentication, and defined usage limits.
 
-Açık kaynak kod, resmi Lumos hizmetlerini temsil etme, We Lock AI markasını kullanma, üretim API’lerine erişme veya kullanıcı verilerine ulaşma yetkisi anlamına gelmez. Resmi entegrasyonlar açık izin, güvenli kimlik doğrulama ve tanımlı kullanım sınırları içinde çalışır.
+The Lumos and We Lock AI **names**, **logos**, and other **brand and visual identity**; official hosted **services**; production **API access**; and **user data** from official services are not covered by the Apache-2.0 license and are not granted for reuse under this repository. See [NOTICE](NOTICE).
 
 ## License
 
 **Source code** in this repository is licensed under the [Apache License, Version 2.0](LICENSE). See also [NOTICE](NOTICE).
 
-**Not covered by this license:** The Lumos and We Lock AI **names**, **logos**, and other **brand and visual identity**; official Lumos / We Lock AI **hosted services**; production **API access**; and **user data** from official services are not granted for reuse under this repository license.
+**Not covered by this license:** The Lumos and We Lock AI names, logos, and other brand and visual identity; official Lumos / We Lock AI hosted services; production API access; and user data from official services are not granted for reuse under this repository license.
 
-Cloning, building, or self-hosting this open-source code does **not** grant the right to use official Lumos or We Lock AI branding, to access official production APIs, or to use user data from official services. Official integrations and services are governed separately, with explicit user consent, secure authentication, and defined usage limits. See [Açık kaynak ve resmi kullanım sınırı](#açık-kaynak-ve-resmi-kullanım-sınırı) above.
+Cloning, building, or self-hosting this open-source code does **not** grant the right to use official Lumos or We Lock AI branding, to access official production APIs, or to use user data from official services. Official integrations and services are governed separately, with explicit user consent, secure authentication, and defined usage limits.
