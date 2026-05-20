@@ -98,7 +98,7 @@ const landingEn: typeof landingTr = {
       "Copy buttons do not run commands; they copy text to the clipboard. Paste into Terminal and run them yourself.",
     note: "You need Node.js and npm installed. This flow is not for production or official Lumos services.",
     githubOpen: "Open on GitHub",
-    tryPanel: "Try the panel",
+    tryPanel: "Open dev panel",
     versionsTitle: "Release status",
     ossHeading: "Available now: open-source development build",
     ossBody:
@@ -107,7 +107,7 @@ const landingEn: typeof landingTr = {
     officialBody:
       "The official Lumos release under We Lock AI (installer package, panel, service connections, and controlled API access) is not published yet. Download and access terms will be announced when ready.",
     footnote:
-      "Paid or official service access is managed separately from open-source code—via authentication and user approval.",
+      "Paid or official service access will be managed separately from open-source code—via authentication and user approval.",
     officialNotify: "Official release notification",
     soon: "Coming soon",
   },
