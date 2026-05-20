@@ -100,7 +100,7 @@ const landingTr = {
     versionsTitle: "Sürüm durumu",
     ossHeading: "Şu an: açık kaynak geliştirme sürümü",
     ossBody:
-      "Kaynak kodu GitHub’dan alınır; yerelde incelenebilir, çalıştırılabilir ve katkıya açılabilir. Yukarıdaki komutlar bu sürüm içindir.",
+      "Kaynak kodu GitHub’dan alınır; yerelde incelenebilir, çalıştırılabilir ve katkıya açık biçimde geliştirilebilir. Yukarıdaki komutlar bu sürüm içindir.",
     officialHeading: "Henüz yok: resmi tek tık kurulum",
     officialBody:
       "We Lock AI çatısı altındaki resmi Lumos sürümü (kurulum paketi, panel, servis bağlantıları ve kontrollü API erişimi) henüz yayınlanmadı. Hazır olduğunda indirme ve erişim koşulları ayrıca duyurulacaktır.",
