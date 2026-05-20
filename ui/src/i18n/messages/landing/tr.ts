@@ -3,7 +3,7 @@ const landingTr = {
   principles: {
     title: "Temel ilkeler",
     cardUserControlTitle: "Kullanıcı Kontrolü",
-    cardUserControlBody: "Nihai seçim her zaman sizdedir; Lumos yerine geçmez.",
+    cardUserControlBody: "Nihai seçim her zaman sizdedir; Lumos sizin yerinize geçmez.",
     cardRiskTitle: "Risk Görünürlüğü",
     cardRiskBody: "Olası sonuçlar ve yan etkiler özetlenerek gösterilir.",
     cardDataTitle: "Veri Farkındalığı",
@@ -14,7 +14,7 @@ const landingTr = {
     workIntro:
       "We Lock AI çatısındaki Lumos; hız uğruna şeffaflığı feda etmeden, aşağıdaki dört eksende tutarlı kalmayı hedefler.",
     listUserDecisionLabel: "Kullanıcı kararı:",
-    listUserDecisionBody: "Nihai seçim her zaman sizdedir; Lumos yerine geçmez.",
+    listUserDecisionBody: "Nihai seçim her zaman sizdedir; Lumos sizin yerinize geçmez.",
     listApprovalLabel: "Açık onay:",
     listApprovalBody: "Kalıcı veya riskli adımlarda net, geri alınabilir onay akışları.",
     listRiskLabel: "Risk görünürlüğü:",
