@@ -8,6 +8,8 @@
 // @match       *://chat.openai.com/*
 // @match       *://127.0.0.1/*
 // @match       *://localhost/*
+// @match       *://welockai.com/*
+// @match       *://www.welockai.com/*
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setValue
 // @grant       GM_getValue
