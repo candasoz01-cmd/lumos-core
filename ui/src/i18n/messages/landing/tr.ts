@@ -3,7 +3,7 @@ const landingTr = {
   principles: {
     title: "Temel ilkeler",
     cardUserControlTitle: "Kullanıcı Kontrolü",
-    cardUserControlBody: "Nihai seçim her zaman sizdedir; Lumos yerine geçmez.",
+    cardUserControlBody: "Nihai seçim her zaman sizdedir; Lumos sizin yerinize geçmez.",
     cardRiskTitle: "Risk Görünürlüğü",
     cardRiskBody: "Olası sonuçlar ve yan etkiler özetlenerek gösterilir.",
     cardDataTitle: "Veri Farkındalığı",
@@ -14,7 +14,7 @@ const landingTr = {
     workIntro:
       "We Lock AI çatısındaki Lumos; hız uğruna şeffaflığı feda etmeden, aşağıdaki dört eksende tutarlı kalmayı hedefler.",
     listUserDecisionLabel: "Kullanıcı kararı:",
-    listUserDecisionBody: "Nihai seçim her zaman sizdedir; Lumos yerine geçmez.",
+    listUserDecisionBody: "Nihai seçim her zaman sizdedir; Lumos sizin yerinize geçmez.",
     listApprovalLabel: "Açık onay:",
     listApprovalBody: "Kalıcı veya riskli adımlarda net, geri alınabilir onay akışları.",
     listRiskLabel: "Risk görünürlüğü:",
@@ -96,7 +96,7 @@ const landingTr = {
       "Kopyala düğmeleri komutu çalıştırmaz; metni panoya kopyalar. Komutları Terminal’e yapıştırıp kendiniz çalıştırın.",
     note: "Node.js ve npm yüklü bir geliştirme ortamı gerekir. Bu akış üretim veya resmi Lumos servisleri için değildir.",
     githubOpen: "GitHub'da aç",
-    tryPanel: "Paneli dene",
+    tryPanel: "Geliştirici panelini aç",
     versionsTitle: "Sürüm durumu",
     ossHeading: "Şu an: açık kaynak geliştirme sürümü",
     ossBody:
@@ -105,7 +105,7 @@ const landingTr = {
     officialBody:
       "We Lock AI çatısı altındaki resmi Lumos sürümü (kurulum paketi, panel, servis bağlantıları ve kontrollü API erişimi) henüz yayınlanmadı. Hazır olduğunda indirme ve erişim koşulları ayrıca duyurulacaktır.",
     footnote:
-      "Ücretli veya resmi servis erişimi, açık kaynak kodundan ayrı olarak kimlik doğrulama ve kullanıcı onayıyla yönetilir.",
+      "Ücretli veya resmi servis erişimi, açık kaynak kodundan ayrı olarak kimlik doğrulama ve kullanıcı onayıyla yönetilecektir.",
     officialNotify: "Resmi sürüm bildirimi",
     soon: "Yakında",
   },

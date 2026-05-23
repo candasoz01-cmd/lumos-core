@@ -14,14 +14,14 @@ const GITHUB_README_URL = "https://github.com/candasoz01-cmd/lumos-core/blob/mai
     <title data-i18n="meta.landingTitle">Lumos — Yapay Zekâ Kontrol Katmanı</title>
     <meta
       name="description"
-      content="Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştiren yapay zekâ kontrol katmanı prototipidir."
+      content="Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştirmeyi hedefleyen yapay zekâ kontrol katmanı prototipidir."
       data-i18n-content="meta.description"
     />
     <link rel="canonical" href="https://welockai.com/" />
     <meta property="og:title" content="Lumos — Yapay Zekâ Kontrol Katmanı" data-i18n-content="meta.ogTitle" />
     <meta
       property="og:description"
-      content="Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştiren yapay zekâ kontrol katmanı prototipidir."
+      content="Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştirmeyi hedefleyen yapay zekâ kontrol katmanı prototipidir."
       data-i18n-content="meta.ogDescription"
     />
     <meta name="twitter:card" content="summary_large_image" />
@@ -32,7 +32,7 @@ const GITHUB_README_URL = "https://github.com/candasoz01-cmd/lumos-core/blob/mai
     />
     <meta
       name="twitter:description"
-      content="Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştiren yapay zekâ kontrol katmanı prototipidir."
+      content="Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştirmeyi hedefleyen yapay zekâ kontrol katmanı prototipidir."
       data-i18n-content="meta.twitterDescription"
     />
     <meta name="twitter:image" content="https://welockai.com/lumos-world-map.jpg" />
@@ -1358,6 +1358,9 @@ const GITHUB_README_URL = "https://github.com/candasoz01-cmd/lumos-core/blob/mai
       }
       .lumos-cap-card {
         box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
         margin: 0;
         padding: 1rem 1.05rem;
         border-radius: 14px;
@@ -2166,14 +2169,14 @@ const GITHUB_README_URL = "https://github.com/candasoz01-cmd/lumos-core/blob/mai
             </div>
             <p class="lumos-hero-subtitle" data-i18n="hero.subtitle">Yapay zekâ kontrol katmanı</p>
             <p class="lumos-hero-lead" data-i18n="hero.lead1">
-              Ses, medya, görsel analiz, görevler, dosyalar, kimlik ve güvenlik akışlarını tek panelde birleştiren akıllı asistan altyapısı.
+              Ses, medya, görsel analiz, görevler, dosyalar, kimlik ve güvenlik akışlarını tek panelde birleştirmeyi hedefleyen akıllı asistan altyapısı.
             </p>
             <p class="lumos-hero-lead" data-i18n="hero.lead2">
               Karar kullanıcıda kalır. Lumos riski, bağlamı ve sonraki adımı görünür kılar.
             </p>
             <p class="lumos-hero-pillar" data-i18n="hero.pillar">Tek panel · Çoklu akış · Kullanıcı kontrolü</p>
             <div class="lumos-hero-actions">
-              <a class="lumos-hero-btn lumos-hero-btn--primary" href="/panel" data-i18n="hero.ctaPanel">Lumos Panel’e Git</a>
+              <a class="lumos-hero-btn lumos-hero-btn--primary" href="/panel" data-i18n="hero.ctaPanel">Geliştirici Panelini Aç</a>
               <a class="lumos-hero-btn lumos-hero-btn--ghost" href="#dunya" data-i18n="hero.ctaWorld">Vizyonu oku</a>
             </div>
           </div>
@@ -2210,9 +2213,9 @@ const GITHUB_README_URL = "https://github.com/candasoz01-cmd/lumos-core/blob/mai
                 data-i18n-placeholder="hero.askPlaceholder"
                 aria-describedby="lumos-hero-ask-hint"
               />
-              <button class="lumos-hero-ask__submit" type="submit" data-i18n="hero.askSubmit">Panelde aç</button>
+              <button class="lumos-hero-ask__submit" type="submit" data-i18n="hero.askSubmit">Geliştirici Panelini Aç</button>
             </div>
-            <p class="lumos-hero-ask__hint" id="lumos-hero-ask-hint">Yanıt burada değil; panelde devam eder.</p>
+            <p class="lumos-hero-ask__hint" id="lumos-hero-ask-hint">Yanıt burada değil; geliştirici panelinde devam eder.</p>
           </form>
         </div>
       </div>
@@ -3019,9 +3022,9 @@ const GITHUB_README_URL = "https://github.com/candasoz01-cmd/lumos-core/blob/mai
           tr: {
             ctaWorld: "Vizyonu oku",
             askPlaceholder: "Örnek: Bir görevi güvenli adımlara böl",
-            askSubmit: "Panelde aç",
-            askHint: "Yanıt burada değil; panelde devam eder.",
-            askAria: "Lumos’a sor — panelde devam eder",
+            askSubmit: "Geliştirici Panelini Aç",
+            askHint: "Yanıt burada değil; geliştirici panelinde devam eder.",
+            askAria: "Lumos’a sor — geliştirici panelinde devam eder",
           },
           en: {
             ctaWorld: "Read the vision",
