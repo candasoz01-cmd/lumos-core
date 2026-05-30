@@ -378,3 +378,26 @@ Beklenen: `api` 200 + `{"status":"ok"}`, `panel` 401; **526/525 (SSL handshake) 
 
 ### Sonraki karar notu
 Cloudflare Full / Full strict için origin'in 443'te geçerli TLS sunması gerekir; ancak 443 şu an SSH (`sshd`) tarafından kullanıldığı için, önce **SSH erişim yolu korunarak** 443'ün Nginx'e ayrılıp ayrılamayacağı planlanmalı. (Örn. SSH'ı farklı bir porta taşıma veya alternatif erişim, 443'ü Nginx'e bırakma — bu netleşmeden Adım 5.3 Nginx 443 server block uygulanmaz.)
+
+---
+
+## Adım 5.1 (ön koşul) — SSH port stratejisi notu (2026-05-30)
+
+> Yalnızca plan/not; bu adımda kod / sunucu / Nginx / DNS / Cloudflare / UFW / SSH / SSL mode **değiştirilmedi**. Canlı SSH değişikliği ayrı bir **[RİSKLİ — DUR/ONAY]** adımdır.
+
+- `443` portu şu an `sshd` tarafından kullanılıyor (Adım 5.0 bulgusu).
+- Cloudflare Full / Full strict öncesinde **443'ün Nginx'e ayrılması** gerekir (origin'in 443'te geçerli TLS sunması için).
+- **22 erişimi doğrulanmadan 443 SSH kapatılmayacak.**
+- Web Console erişimi mevcut olduğu için canlı SSH değişikliği **ayrı, dur-onay adımı** olarak yapılacak.
+- `3000` portu bu aşamada **kapatılmayacak**.
+
+### Uygulanacak sıra (özet)
+1. SSH 22 erişimi doğrula (gate). 22 sağlanmadan hiçbir değişiklik yok.
+2. `sshd_config`'te 443 dinlemesinin kaynağını tespit et (salt-okuma).
+3. 22 sağlamsa: rollback planı (sshd_config yedeği + açık 22 oturumu) yazıldıktan sonra 443'ü SSH'tan boşalt (Port satırını kaldır veya SSH'ı alternatif porta taşı), `sshd` reload — ayrı dur-onay.
+4. 443 boşalınca Nginx 443 SSL hazırlığı (Adım 5.2 → 5.3 → 5.4).
+5. Cloudflare Full → Full strict (5.5 → 5.6) yalnızca yukarısı doğrulandıktan sonra.
+6. `3000` kapatma (Adım 6) yalnızca 5 tamamen doğrulandıktan sonra.
+
+### Açık blocker
+SSH anahtar erişimi henüz yok; 22 erişim testi bile bunsuz yapılamaz. Web Console üzerinden `authorized_keys`'e anahtar eklenmesi veya 22 testinin Web Console'dan teyidi gerekiyor.
