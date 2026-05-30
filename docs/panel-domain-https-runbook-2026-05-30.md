@@ -261,3 +261,19 @@ Her **[RİSKLİ — DUR/ONAY]** adımında: uygula → doğrula → bir sonraki 
 5. Doğrula: gizli sekme → login; yetkili → panel.
 6. (Gerekirse) geçici basic auth yedeği; Access gelince kaldır.
 7. Ancak bundan sonra → Adım 5 (origin cert + Full strict) → Adım 6 (3000 kapatma).
+
+---
+
+## Adım 3B — Nginx basic auth geçici koruma doğrulama sonucu (2026-05-30)
+
+- Cloudflare Access kurulumu **ödeme/kart yetkisi** istediği için **uygulanmadı**.
+- Geçici koruma olarak **Nginx basic auth** kullanıldı.
+- Kullanıcı adı: `cando`.
+- htpasswd dosyası: `/etc/nginx/.htpasswd-panel`.
+- Nginx config testi başarılı: `nginx -t` → OK.
+- Kimliksiz istek **HTTP 401** döndü.
+- Local Host-header testi **HTTP 401** döndü.
+- Doğru kullanıcı/şifre ile `https://panel.welockai.com` açıldı ve **Lumos Panel v1** göründü.
+- Basic auth **geçici çözümdür**; kalıcı hedef **Cloudflare Access** veya eşdeğer kimlik tabanlı erişim kontrolüdür.
+- Bu doğrulama yapılmadan önce **3000 portu kapatılmadı** ve **Full strict geçişi yapılmadı**.
+- **Sonraki adım:** origin sertifikası + Cloudflare Full/Full strict geçişini **ayrı dur-onay adımı** olarak planlamak.
