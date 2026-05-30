@@ -82,6 +82,12 @@ Bu bölüm, Cloudflare DNS tarafında yalnızca okuma amaçlı yapılan inceleme
 - Billing, ödeme, abonelik veya satın alma işlemi yapılmadı.
 - DNS kaydı henüz eklenmedi; yalnızca okuma ve planlama yapıldı.
 
+## DNS kaydı eklendi (2026-05-30)
+
+- A record eklendi: `api` → `167.99.253.148`, DNS only (gri bulut), TTL Auto.
+- Cloudflare panelinden manuel olarak kaydedildi.
+- DNS yayılımı bekleniyor; `dig +short api.welockai.com` ile doğrulanabilir.
+
 ## api.welockai.com Nginx reverse proxy — uygulama adımları (2026-05-30)
 
 > **Uyarı:** Aşağıdakiler bir plan/komut listesidir. Bu komutlar bu agent tarafından sunucuda **çalıştırılmadı**; manuel olarak uygulanacaktır. Her komut tek amaçlıdır ve kopyalanıp yapıştırılabilir. Sıraya uyulması önerilir.
@@ -204,3 +210,28 @@ UFW durumunu doğrula:
 ```bash
 ufw status
 ```
+
+## Nginx reverse proxy + Cloudflare Flexible HTTPS doğrulama sonucu (2026-05-30)
+
+Bu bölüm, `api.welockai.com` için Nginx reverse proxy ve Cloudflare Flexible HTTPS kurulumunun **doğrulama sonucunu** kaydeder.
+
+### Uygulanan durum
+
+- DNS: `api.welockai.com` Cloudflare üzerinden **proxied** (turuncu bulut) olarak çalışıyor.
+- Cloudflare SSL/TLS mode **geçici olarak Flexible** yapıldı.
+- Sunucuda Nginx kuruldu; `api.welockai.com` istekleri `127.0.0.1:3000` backend'e proxy'lendi.
+- UFW'de `80/tcp` açıldı.
+
+### Doğrulama
+
+| İstek | Sonuç |
+|-------|-------|
+| `http://localhost/health` | `{"status":"ok"}` |
+| `http://api.welockai.com/health` | Cloudflare tarafından HTTPS'e `301` yönleniyor |
+| `https://api.welockai.com/health` | `{"status":"ok"}` |
+
+### Durum notları
+
+- `3000/tcp` public erişimi şimdilik **açık** bırakıldı.
+- **Not:** Flexible geçici çözümdür. Kalıcı hedef: origin sertifikası + Cloudflare **Full / Full (strict)** olmalı.
+- **Sonraki teknik adım:** panel live backend base URL'i `http://167.99.253.148:3000` yerine `https://api.welockai.com` olarak doğrulamak.
