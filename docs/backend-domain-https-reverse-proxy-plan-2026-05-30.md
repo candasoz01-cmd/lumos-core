@@ -67,3 +67,17 @@ Karar, Cloudflare aboneliği durumu ve istenen TLS sonlandırma noktasına göre
 5. HTTPS doğrula (sertifika geçerli, `https://<subdomain>` üzerinden backend yanıt veriyor).
 6. Panel base URL'i HTTPS domain'e al.
 7. Public `3000` erişimini kapat.
+
+## Mevcut DNS durumu (2026-05-30, salt okuma)
+
+Bu bölüm, Cloudflare DNS tarafında yalnızca okuma amaçlı yapılan inceleme sonucunu kaydeder. Herhangi bir değişiklik uygulanmamıştır.
+
+- Cloudflare bağlantısı okuma amaçlı doğrulandı.
+- `welockai.com` mevcut public DNS kayıtları incelendi.
+- `api` ve `lumos-api` subdomainleri boş/çakışmasız görünüyor.
+- **Önerilen subdomain:** `api.welockai.com`
+- **Planlanan kayıt:** `api` -> `A` -> `167.99.253.148`
+- Başlangıçta DNS only / gri bulut önerilir; Nginx + HTTPS doğrulandıktan sonra proxy/SSL modu değerlendirilecek.
+- Apex `welockai.com` mevcut hosting/landing sağlayıcıya bağlı görünüyor; apex kaydına dokunulmayacak.
+- Billing, ödeme, abonelik veya satın alma işlemi yapılmadı.
+- DNS kaydı henüz eklenmedi; yalnızca okuma ve planlama yapıldı.
