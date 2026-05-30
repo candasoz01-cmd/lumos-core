@@ -216,3 +216,48 @@ Her **[RİSKLİ — DUR/ONAY]** adımında: uygula → doğrula → bir sonraki 
 - API bozulmadı: `https://api.welockai.com/health` -> `{"status":"ok"}`.
 - **Açık risk:** `panel.welockai.com` şu an erişim kontrolü olmadan dışarıya açık olabilir.
 - **Sonraki zorunlu adım:** Cloudflare Access veya geçici basic auth ile panel erişimini sınırlamak.
+
+---
+
+## Adım 3 — Erişim kontrolü planı: Cloudflare Access (2026-05-30)
+
+> Yalnızca plan; bu adımda uygulama/sunucu/Cloudflare değişikliği yapılmadı. Öncelik **Cloudflare Access**; basic auth yalnızca geçici yedek.
+
+### Karar notu
+- Öncelik: **Cloudflare Access**.
+- Başlangıç IdP: **One-time PIN** (e-posta OTP).
+- Erişecek e-posta(lar): **şimdilik manuel karar bekliyor.**
+- Basic auth: yalnızca **geçici yedek** (Access gelince kaldırılır).
+- **Gate:** Access doğrulanmadan **3000 port kapatma** ve **Full strict** geçişi yapılmayacak.
+
+### A. Cloudflare Access ile uygulama/policy oluşturma
+Ön koşul: `panel.welockai.com` DNS proxied (sağlandı); Cloudflare Zero Trust etkin ve team domain (`<isim>.cloudflareaccess.com`) tanımlı.
+1. **IdP seç:** Başlangıç **One-time PIN (e-posta OTP)**. (Zero Trust → Settings → Authentication.)
+2. **Access Application (Self-hosted):** Zero Trust → Access → Applications → Add an application → Self-hosted. Name: `Lumos Panel`; Application domain: `panel.welockai.com` (path `/`); Session duration karara bağlı; en az 1 IdP (OTP).
+3. **Policy (Allow):** Action Allow; Include = kararlaştırılan e-postalar (veya domain/IdP grubu).
+4. Kaydet. Cloudflare edge'de panel önüne Access korumasını koyar; origin/Nginx değişmez.
+
+### B. Manuel karar gerektiren nokta
+- Kimler erişecek (tam e-posta listesi / `@<domain>` kuralı / IdP grubu) — manuel karar; netleşmeden policy yazılmaz.
+
+### C. Doğrulama
+- Yetkisiz (gizli sekme): `https://panel.welockai.com` → Cloudflare Access giriş ekranı; panel görünmez. `curl -I https://panel.welockai.com` → `302` + `location: .../cdn-cgi/access/login/...`.
+- Yetkili: OTP/SSO sonrası panel HTML (`<title>Lumos Panel v1</title>`) görünür.
+
+### D. Risk
+- Açık kalma: Include yanlış/çok geniş ("Everyone") veya domain/path hatalı → panel erişim kontrolsüz açık kalır.
+- Kilitlenme: Include çok dar/yanlış → kimse giremez. Önlem: önce kendi e-postanı ekle, gizli sekmede doğrula.
+- IdP doğrulanmadan policy → giriş çalışmaz.
+
+### E. Basic auth yedek planı (yalnızca geçici)
+- `htpasswd -c /etc/nginx/.htpasswd-panel <kullanici>` ve panel server block `location /` içine `auth_basic "Lumos Panel";` + `auth_basic_user_file /etc/nginx/.htpasswd-panel;`.
+- Doğrulama: parolasız `401`, doğru parola `200`. Kalıcı bırakılmaz; Access gelince satırlar kaldırılır.
+
+### F. Uygulanacak sıra
+1. IdP belirle + Zero Trust team domain hazır.
+2. Erişecek e-posta/grup kararı (manuel).
+3. Access Application (panel.welockai.com, self-hosted) oluştur.
+4. Allow policy (Include = kararlaştırılan e-postalar).
+5. Doğrula: gizli sekme → login; yetkili → panel.
+6. (Gerekirse) geçici basic auth yedeği; Access gelince kaldır.
+7. Ancak bundan sonra → Adım 5 (origin cert + Full strict) → Adım 6 (3000 kapatma).
