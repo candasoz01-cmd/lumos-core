@@ -25,3 +25,13 @@ localStorage.removeItem("LUMOS_POSTS_API_BASE")
 ```
 
 Tekrar varsayılan lokal tabana (`http://127.0.0.1:3000`) döner.
+
+## Canlı feed doğrulaması (2026-05-30)
+
+- Panel lokal olarak `http://127.0.0.1:8080` üzerinde çalıştırıldı.
+- Akış ekranı canlı backend base URL ile doğrulandı: `http://167.99.253.148:3000`
+- `localStorage` `LUMOS_POSTS_API_BASE` üzerinden canlı backend seçildi.
+- Feed endpoint: `/posts?order=feed`
+- Panelde "Lumos backend test post" görüldü.
+- Bu doğrulama panel -> canlı backend -> Prisma SQLite DB hattının çalıştığını gösterir.
+- Not: Bu bağlantı HTTP/IP üzerinden test içindir; üretim için domain + HTTPS + reverse proxy gerekir.
