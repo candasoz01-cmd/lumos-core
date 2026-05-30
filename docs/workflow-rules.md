@@ -23,3 +23,19 @@
 - Kullanıcının sürekli “şimdi ne yapıyoruz?” diye sormasına gerek kalmaması.
 - Çalışma akışının kesilmeden ilerlemesi.
 - Kontrolsüz hız değil, kontrollü devamlılık sağlanması.
+
+---
+
+## Agent-First Execution Rule
+
+**Kural:**
+
+- Kullanıcıya manuel terminal/tarayıcı adımı yaptırmadan önce, aynı işin Cursor/agent tarafından doğrudan yapılıp yapılamayacağı kontrol edilir; mümkünse önce agent ile yapılır.
+- Kullanıcıya verilecek komutlar kısa, tek hedefli ve uygulanabilir olur.
+- Gereksiz açıklama, çoklu alternatif ve sonradan çıkan sürpriz manuel adımlardan kaçınılır.
+
+**Amaç:**
+
+- Kullanıcının üzerine gereksiz manuel iş yıkılmaması.
+- Mümkün olan işin doğrudan agent tarafından tamamlanması.
+- Net, tek hedefli ve uygulanabilir yönlendirme sağlanması.
