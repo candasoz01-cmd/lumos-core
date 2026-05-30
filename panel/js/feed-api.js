@@ -1,6 +1,6 @@
 /**
  * GET /posts?order=feed için panel yardımcıları (vanilla).
- * Taban: window.LUMOS_POSTS_API_BASE veya localStorage lumos_posts_api_base → yoksa http://127.0.0.1:3000
+ * Taban: window.LUMOS_POSTS_API_BASE veya localStorage LUMOS_POSTS_API_BASE (eski: lumos_posts_api_base) → yoksa http://127.0.0.1:3000
  * Oturum içinde tek kez çözümlenir (resolvePostsApiBase); feed/trash/restore/delete aynı tabanı kullanır.
  */
 (function (global) {
@@ -18,7 +18,10 @@
         _sessionPostsApiBase = String(global.LUMOS_POSTS_API_BASE).replace(/\/$/, "");
         return _sessionPostsApiBase;
       }
-      var ls = global.localStorage && global.localStorage.getItem("lumos_posts_api_base");
+      var ls = global.localStorage && (
+        global.localStorage.getItem("LUMOS_POSTS_API_BASE") ||
+        global.localStorage.getItem("lumos_posts_api_base")
+      );
       if (ls && String(ls).trim()) {
         _sessionPostsApiBase = String(ls).replace(/\/$/, "");
         return _sessionPostsApiBase;
