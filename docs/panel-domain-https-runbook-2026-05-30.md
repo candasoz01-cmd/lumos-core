@@ -277,3 +277,86 @@ Her **[RİSKLİ — DUR/ONAY]** adımında: uygula → doğrula → bir sonraki 
 - Basic auth **geçici çözümdür**; kalıcı hedef **Cloudflare Access** veya eşdeğer kimlik tabanlı erişim kontrolüdür.
 - Bu doğrulama yapılmadan önce **3000 portu kapatılmadı** ve **Full strict geçişi yapılmadı**.
 - **Sonraki adım:** origin sertifikası + Cloudflare Full/Full strict geçişini **ayrı dur-onay adımı** olarak planlamak.
+
+---
+
+## Adım 5 (detay) — Origin cert + Cloudflare Full (strict) geçiş planı (2026-05-30)
+
+> Yalnızca plan; bu adımda kod / sunucu / Nginx / DNS / Cloudflare / SSL mode değişikliği **yapılmadı**. Her **[RİSKLİ — DUR/ONAY]** adımında: uygula → doğrula → sonraki adıma geçmeden onay.
+
+### Önemli ön tespit
+- Cloudflare **SSL/TLS modu zone genelindedir** (`welockai.com`). Full (strict)'e geçince **proxied tüm origin'ler** geçerli TLS sunmalı — yalnızca `api` değil, `panel.welockai.com` origin'i de 443/SSL ile geçerli sertifika sunmalı. Aksi halde Full strict panel'i de kırar. Plan bu yüzden **iki origin'i de** kapsar.
+- Mevcut geçici mod: **Flexible**. Hedef: **Full** ara durak → **Full (strict)**.
+- `3000/tcp` bu plan boyunca **açık kalır**; Adım 6 (port kapatma) bu plan doğrulanmadan yapılmaz.
+
+### 5.0 — Mevcut durum tespiti (risksiz, okuma)
+```bash
+ssh -p 443 root@167.99.253.148 'nginx -T 2>/dev/null | grep -E "server_name|listen|ssl_certificate"'
+```
+Beklenen: `api.welockai.com` ve `panel.welockai.com` server block'ları şu an yalnızca `listen 80`.
+
+### 5.1 — Cloudflare Origin CA sertifikası oluşturma planı (Cloudflare panel, elle)  [RİSKLİ — DUR/ONAY]
+- Cloudflare → `welockai.com` zonu → SSL/TLS → **Origin Server → Create Certificate**.
+- Hostnames: `welockai.com`, `*.welockai.com` (api + panel tek sertifikayla kapsanır).
+- Key type: RSA 2048 (veya ECDSA). Süre: 15 yıl.
+- Çıktı: **Origin Certificate (PEM)** + **Private Key**. Private key yalnızca bu ekranda görünür — güvenli kaydet.
+
+### 5.2 — Sertifikayı sunucuya koyma planı  [RİSKLİ — DUR/ONAY]
+```bash
+sudo mkdir -p /etc/nginx/ssl
+sudo nano /etc/nginx/ssl/welockai-origin.pem   # 5.1'deki certificate
+sudo nano /etc/nginx/ssl/welockai-origin.key   # 5.1'deki private key
+sudo chmod 600 /etc/nginx/ssl/welockai-origin.key
+```
+(Authenticated Origin Pull / Origin CA root güveni ayrı karar — bu plana dahil değil.)
+
+### 5.3 — Nginx 443 server block planı (api + panel)  [RİSKLİ — DUR/ONAY]
+Her iki server block'a, mevcut `location` mantığını koruyarak:
+```nginx
+listen 443 ssl;
+ssl_certificate     /etc/nginx/ssl/welockai-origin.pem;
+ssl_certificate_key /etc/nginx/ssl/welockai-origin.key;
+```
+- `api.welockai.com`: `proxy_pass http://127.0.0.1:3000;` korunur.
+- `panel.welockai.com`: root + `auth_basic` (Adım 3B koruması) korunur.
+- `listen 80` blokları şimdilik kalır (redirect ayrı karar).
+
+```bash
+sudo nginx -t
+```
+
+### 5.4 — Reload + origin TLS doğrulama (mod DEĞİŞTİRMEDEN)  [RİSKLİ — DUR/ONAY]
+```bash
+sudo systemctl reload nginx
+curl -sI --resolve api.welockai.com:443:127.0.0.1   https://api.welockai.com/health | head -n1
+curl -sI --resolve panel.welockai.com:443:127.0.0.1 https://panel.welockai.com/   | head -n1
+```
+Beklenen: origin 443 üzerinden TLS el sıkışması başarılı; `api` → 200, `panel` → 401 (basic auth). Bu adım Flexible modda da çalışır; mod değişmeden önce origin'in 443'te sağlam olduğunu kanıtlar (kritik gate).
+
+### 5.5 — Önce Full modda doğrulama (ara durak)  [RİSKLİ — DUR/ONAY]
+- Cloudflare → SSL/TLS → Overview → **Full**.
+- Doğrulama:
+```bash
+curl -sI https://api.welockai.com/health | head -n1
+curl -s  https://api.welockai.com/health
+curl -sI https://panel.welockai.com/ | head -n1
+```
+Beklenen: `api` 200 + `{"status":"ok"}`, `panel` 401; her ikisi de hatasız.
+
+### 5.6 — Sonra Full (strict)'e geçiş  [RİSKLİ — DUR/ONAY]
+- Cloudflare → SSL/TLS → **Full (strict)** (origin sertifikası Cloudflare Origin CA olduğundan strict doğrulanır).
+- Doğrulama (5.5 ile aynı):
+```bash
+curl -sI https://api.welockai.com/health | head -n1
+curl -s  https://api.welockai.com/health
+curl -sI https://panel.welockai.com/ | head -n1
+```
+Beklenen: `api` 200 + `{"status":"ok"}`, `panel` 401; **526/525 (SSL handshake) hatası YOK**.
+
+### Rollback
+- Sorun çıkarsa: Cloudflare SSL/TLS modunu **Full (strict) → Flexible**'a geri al (anında etki).
+- Nginx tarafı: `listen 80` blokları korunduğu için 443 eklentisi geri alınsa bile servis düşmez; gerekirse 443 satırlarını kaldırıp `nginx -t && systemctl reload nginx`.
+
+### Bağımlılık ve sıra notu
+- **Bu adım doğrulanmadan `3000/tcp` kapatılmayacak** (Adım 6 yalnızca 5 doğrulandıktan sonra).
+- 526/525 görülürse kök neden genelde: panel origin'inde 443/SSL eksik veya sertifika yolu/izin hatası (5.2–5.4'e dön).
