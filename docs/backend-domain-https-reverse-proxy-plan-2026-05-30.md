@@ -81,3 +81,126 @@ Bu bölüm, Cloudflare DNS tarafında yalnızca okuma amaçlı yapılan inceleme
 - Apex `welockai.com` mevcut hosting/landing sağlayıcıya bağlı görünüyor; apex kaydına dokunulmayacak.
 - Billing, ödeme, abonelik veya satın alma işlemi yapılmadı.
 - DNS kaydı henüz eklenmedi; yalnızca okuma ve planlama yapıldı.
+
+## api.welockai.com Nginx reverse proxy — uygulama adımları (2026-05-30)
+
+> **Uyarı:** Aşağıdakiler bir plan/komut listesidir. Bu komutlar bu agent tarafından sunucuda **çalıştırılmadı**; manuel olarak uygulanacaktır. Her komut tek amaçlıdır ve kopyalanıp yapıştırılabilir. Sıraya uyulması önerilir.
+
+### 1. MANUEL DNS adımı (Cloudflare panelinden, elle)
+
+Bu adım otomatik yapılmıyor; Cloudflare panelinden elle eklenmelidir:
+
+- A record: `api` -> `167.99.253.148`
+- **DNS only (gri bulut)** — proxy kapalı.
+
+Doğrulama (DNS yayıldıktan sonra), `167.99.253.148` dönmeli:
+
+```bash
+dig +short api.welockai.com
+```
+
+### 2. Sunucuya SSH (root)
+
+Port `22` Mac ağında timeout verdiği için SSH `443` üzerinden yapılır:
+
+```bash
+ssh -p 443 root@167.99.253.148
+```
+
+### 3. Nginx kurulumu (Ubuntu/Debian)
+
+Paket listesini güncelle:
+
+```bash
+apt update
+```
+
+Nginx'i kur:
+
+```bash
+apt install -y nginx
+```
+
+### 4. Reverse proxy site config
+
+Site config dosyasını oluştur: `/etc/nginx/sites-available/api.welockai.com` içeriği:
+
+```bash
+cat > /etc/nginx/sites-available/api.welockai.com <<'EOF'
+server {
+    listen 80;
+    server_name api.welockai.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOF
+```
+
+Site'ı enable et (`sites-enabled` içine symlink):
+
+```bash
+ln -s /etc/nginx/sites-available/api.welockai.com /etc/nginx/sites-enabled/api.welockai.com
+```
+
+Config sözdizimini doğrula:
+
+```bash
+nginx -t
+```
+
+Nginx'i reload et:
+
+```bash
+systemctl reload nginx
+```
+
+### 5. Health doğrulama
+
+Health endpoint beklenen yanıtı vermeli:
+
+```bash
+curl -s http://api.welockai.com/health
+```
+
+Feed endpoint beklenen yanıtı vermeli:
+
+```bash
+curl -s "http://api.welockai.com/posts?order=feed"
+```
+
+### 6. HTTPS (ayrı adım — bu bölümde sadece referans)
+
+HTTPS bu bölümün kapsamı dışındadır; ayrı bir adım olarak ele alınacaktır. İki seçenek (bkz. yukarıdaki **SSL** bölümü):
+
+- **Certbot (Let's Encrypt):** origin üzerinde TLS sonlandırması.
+- **Cloudflare proxy/SSL:** edge'de TLS sonlandırması.
+
+**Önemli:** HTTPS uçtan uca doğrulanmadan port `3000` **KAPATILMAZ**.
+
+### 7. Port 3000 public erişimini kapatma (EN SON — sadece HTTPS doğrulandıktan sonra)
+
+Bu adım **en sona** bırakılır ve **yalnızca HTTPS doğrulandıktan sonra** uygulanır.
+
+Mevcut `3000/tcp` allow kuralını kaldır:
+
+```bash
+ufw delete allow 3000/tcp
+```
+
+Alternatif olarak açıkça reddet:
+
+```bash
+ufw deny 3000/tcp
+```
+
+UFW durumunu doğrula:
+
+```bash
+ufw status
+```
