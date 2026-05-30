@@ -32,3 +32,23 @@ Yeni test droplet oluşturuldu.
 
 - Eski `project-lumos` droplet silinmedi; şimdilik park/referans durumda tutulacak.
 - Bu sunucu test/erişim doğrulama sunucusudur; 512 MB RAM + 1 GB swap ile çalışıyor. Üretim veya ağır servis için ileride 1 GB RAM üstüne resize önerilir.
+
+## Canlı API doğrulama
+
+2026-05-30 tarihinde yeni test sunucusunda backend canlı doğrulandı.
+
+Doğrulananlar:
+
+- PM2 process: `lumos-backend` online
+- Public health endpoint çalışıyor: http://167.99.253.148:3000/health
+- Prisma SQLite DB schema senkronize edildi: `npx prisma db push`
+- Test kullanıcı oluşturuldu: `username=test-user`
+- Test post oluşturuldu: "Lumos backend test post"
+- Feed endpoint çalıştı: http://167.99.253.148:3000/posts?order=feed
+- Feed endpoint test postu döndürdü.
+
+Notlar:
+
+- Root path `/` için `Cannot GET /` dönmesi normal; backend API root route tanımlı değil.
+- `/posts/feed` deprecated; doğru kullanım `/posts?order=feed`.
+- Eski `EADDRINUSE` logları manuel `npm start` sürecinden kalmıştı; eski node process sonlandırıldı ve backend PM2 üzerinden temiz çalıştırıldı.
