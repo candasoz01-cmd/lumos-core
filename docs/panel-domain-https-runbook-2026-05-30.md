@@ -360,3 +360,21 @@ Beklenen: `api` 200 + `{"status":"ok"}`, `panel` 401; **526/525 (SSL handshake) 
 ### Bağımlılık ve sıra notu
 - **Bu adım doğrulanmadan `3000/tcp` kapatılmayacak** (Adım 6 yalnızca 5 doğrulandıktan sonra).
 - 526/525 görülürse kök neden genelde: panel origin'inde 443/SSL eksik veya sertifika yolu/izin hatası (5.2–5.4'e dön).
+
+---
+
+## Adım 5.0 — Mevcut durum kontrolü sonucu (2026-05-30)
+
+> Yalnızca salt-okuma kontrolü; kod / sunucu / Nginx / DNS / Cloudflare / UFW / SSL mode **değiştirilmedi**.
+
+- `api.welockai.com` ve `panel.welockai.com` için Nginx server block'ları yalnızca `listen 80` kullanıyor.
+- `panel.welockai.com` basic auth aktif; kimliksiz HTTPS istek **HTTP 401** dönüyor.
+- `api.welockai.com` HTTPS health **HTTP 200** ve `{"status":"ok"}` dönüyor.
+- `/etc/ssl/cloudflare` yok; Origin CA sertifikası henüz sunucuda **yok**.
+- **443 portu Nginx tarafından değil `sshd` tarafından dinleniyor.**
+- Bu yüzden Nginx 443 SSL geçişi öncesinde **SSH port stratejisi netleşmeli**.
+- `3000` portu hâlâ **açık** ve bu aşamada kapatılmadı.
+- Full / Full strict canlı uygulamasına **geçilmedi**.
+
+### Sonraki karar notu
+Cloudflare Full / Full strict için origin'in 443'te geçerli TLS sunması gerekir; ancak 443 şu an SSH (`sshd`) tarafından kullanıldığı için, önce **SSH erişim yolu korunarak** 443'ün Nginx'e ayrılıp ayrılamayacağı planlanmalı. (Örn. SSH'ı farklı bir porta taşıma veya alternatif erişim, 443'ü Nginx'e bırakma — bu netleşmeden Adım 5.3 Nginx 443 server block uygulanmaz.)
