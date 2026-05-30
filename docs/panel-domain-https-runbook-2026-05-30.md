@@ -204,3 +204,15 @@ Beklenen: ham `:3000` dışarıdan erişilemez; `https://api.welockai.com/health
 5. API origin cert + Full strict → 6. `3000/tcp` kapatma (yalnızca 5 doğrulandıktan sonra).
 
 Her **[RİSKLİ — DUR/ONAY]** adımında: uygula → doğrula → bir sonraki adıma geçmeden onay al.
+
+---
+
+## Adım 2 doğrulama sonucu (2026-05-30)
+
+- Nginx server block aktif: `server_name panel.welockai.com`.
+- Root: `/opt/lumos/panel`.
+- Local Host-header testi `HTTP/1.1 200 OK` döndü.
+- Domain üzerinden panel HTML geldi: `<title>Lumos Panel v1</title>`.
+- API bozulmadı: `https://api.welockai.com/health` -> `{"status":"ok"}`.
+- **Açık risk:** `panel.welockai.com` şu an erişim kontrolü olmadan dışarıya açık olabilir.
+- **Sonraki zorunlu adım:** Cloudflare Access veya geçici basic auth ile panel erişimini sınırlamak.
