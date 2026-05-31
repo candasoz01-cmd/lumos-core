@@ -401,3 +401,36 @@ Cloudflare Full / Full strict için origin'in 443'te geçerli TLS sunması gerek
 
 ### Açık blocker
 SSH anahtar erişimi henüz yok; 22 erişim testi bile bunsuz yapılamaz. Web Console üzerinden `authorized_keys`'e anahtar eklenmesi veya 22 testinin Web Console'dan teyidi gerekiyor.
+
+---
+
+## Adım 5.1 — SSH erişim durumu uyarısı (2026-05-31)
+
+> Yalnızca durum notu; bu adımda kod / sunucu / Nginx / DNS / Cloudflare / UFW / SSH / SSL mode **değiştirilmedi**.
+
+- **SSH 443 bağlantısı kopuyor** (kararsız; oturum düşüyor).
+- **22 portu dış erişim timeout** veriyor (dışarıdan SSH 22 ile bağlanılamıyor).
+- Mevcut **API ve panel çalışıyor** (servis tarafında sorun yok; yalnızca yönetim/SSH erişimi sorunlu).
+- Cloudflare **Full / Full strict uygulanmadı** (hâlâ Flexible).
+- `3000` portu **kapatılmadı** (açık).
+
+### Etki / blocker
+SSH 443 kararsız ve 22 dışarıdan timeout olduğundan, güvenilir yönetim erişimi şu an yalnızca **DigitalOcean Web Console** üzerinden. 443'ü Nginx'e ayırma (Adım 5.2/5.3) ve Full/Full strict geçişi, **güvenilir bir SSH/erişim yolu netleşmeden** uygulanmayacak. 443 SSH'tan alınırsa mevcut tek SSH yolu (443) da kaybolacağından, önce 22 dış erişimi veya alternatif port düzeltilmeli.
+
+---
+
+## Adım 5.1 — Yönetim erişimi ek durum notu (2026-05-31)
+
+> Yalnızca durum notu; kod / sunucu / Nginx / DNS / Cloudflare / UFW / SSH / SSL mode **değiştirilmedi**.
+
+- Mac Terminal'den **22 port SSH** denemesi `Operation timed out` verdi.
+- Mac Terminal'den **443 port SSH** denemesi root login ekranına ulaştı ve giriş yaptı, ancak kısa süre sonra **`Connection reset by peer` / `Broken pipe`** ile kapandı.
+- Web Console üzerinden **ssh servisi active/running** görüldü.
+- Web Console çıktısında **sshd 22 ve 443 portlarını dinliyor** göründü.
+- `api.welockai.com/health` hâlâ `{"status":"ok"}` dönüyor.
+- `panel.welockai.com` kimliksiz istek **HTTP 401** dönüyor.
+- Bu nedenle **Full / Full strict ve Nginx 443 uygulamasına geçilmedi**.
+- `3000` portu **kapatılmadı**.
+
+### Sonraki güvenli adım
+Yönetim erişimini kalıcı hale getirmek için **DigitalOcean firewall / ağ / SSH oturum kopma sebebi ayrı incelenecek** (22 timeout + 443 reset kök nedeni). **SSL değişikliği (Full/Full strict, Nginx 443) ancak bundan sonra** yapılacak.
