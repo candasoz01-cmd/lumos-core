@@ -524,3 +524,27 @@ curl -s -o /dev/null -w "PANEL HTTP %{http_code}\n" https://panel.welockai.com/ 
 
 ### Sonraki canlı adım
 **`3000/tcp` public erişimini kapatma** (Adım 6) ve sonrasında api/panel doğrulaması. Uçtan uca HTTPS (Full strict) doğrulandığı için artık ham `3000` kapatılabilir; yönetim 2222 üzerinden korunur.
+
+---
+
+## Adım 6 — Doğrulama notu: `3000/tcp` public erişimi kapatıldı (2026-06-01)
+
+> Bu adımda yalnızca **`3000/tcp` public erişimi kapatıldı**; **kod / DNS / Nginx config / Cloudflare SSL mode / SSH ayarı değiştirilmedi**.
+
+- `ufw delete allow 3000/tcp` çalıştırıldı.
+- **`3000/tcp` ve `3000/tcp (v6)`** kuralları silindi.
+- `ufw status` çıktısında artık **`3000` görünmüyor**.
+- **`22/tcp`, `80/tcp`, `443/tcp` ve `2222/tcp`** açık kalıyor.
+- **2222** SSH yönetim kapısı korunuyor.
+- **443** Nginx tarafından kullanılmaya devam ediyor.
+- Doğrulama:
+
+```bash
+curl -s https://api.welockai.com/health                                            # {"status":"ok"}
+curl -s -o /dev/null -w "PANEL HTTP %{http_code}\n" https://panel.welockai.com/     # PANEL HTTP 401
+```
+
+- Full strict sonrası **uçtan uca HTTPS çalışıyor**.
+
+### Sonuç
+**Bu adımla runbook'taki canlı geçiş tamamlandı.** Backend artık yalnızca Nginx reverse proxy (443, Full strict) üzerinden erişilir; ham public `3000` kapalı, yönetim erişimi 2222 üzerinden korunuyor.
