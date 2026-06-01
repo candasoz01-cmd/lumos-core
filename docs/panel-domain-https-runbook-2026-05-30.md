@@ -434,3 +434,25 @@ SSH 443 kararsız ve 22 dışarıdan timeout olduğundan, güvenilir yönetim er
 
 ### Sonraki güvenli adım
 Yönetim erişimini kalıcı hale getirmek için **DigitalOcean firewall / ağ / SSH oturum kopma sebebi ayrı incelenecek** (22 timeout + 443 reset kök nedeni). **SSL değişikliği (Full/Full strict, Nginx 443) ancak bundan sonra** yapılacak.
+
+---
+
+## Adım 5.1 — Ek doğrulama notu: SSH 2222 yedek yönetim kapısı (2026-06-01)
+
+> Bu notta yalnızca **yedek SSH yönetim kapısı (2222)** eklendi ve doğrulandı; **kod / Nginx / DNS / Cloudflare / SSL mode / `3000` port ayarı değiştirilmedi**.
+
+- DigitalOcean firewall `test-ssh` içine **inbound TCP 2222 — All IPv4** eklendi.
+- Sunucuda `sshd` **2222 portunda da dinleyecek** şekilde ek config dosyası oluşturuldu.
+- UFW'ye **`2222/tcp allow`** eklendi.
+- Mac Terminal'den giriş doğrulandı:
+
+```bash
+ssh -i ~/.ssh/id_ed25519 -p 2222 root@167.99.253.148
+```
+
+- Doğrulama çıktısı: **OK / root / project-lumos-test**.
+- **443 henüz SSH'tan çıkarılmadı** (mevcut 443 SSH yolu hâlâ duruyor).
+- **Nginx 443, Origin cert, Cloudflare Full strict ve `3000` kapatma yapılmadı.**
+
+### Sonraki canlı adım
+2222 açık SSH oturumu **elde tutulurken**, 443'ü `sshd`'den çıkarıp **Nginx için boşaltma** ([RİSKLİ — DUR/ONAY]; ayrı dur-onay adımı). 2222 doğrulanmış yedek kapı olduğundan, 443 SSH yolu kaybolsa bile yönetim erişimi 2222 üzerinden korunur.
