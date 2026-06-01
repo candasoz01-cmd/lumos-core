@@ -456,3 +456,21 @@ ssh -i ~/.ssh/id_ed25519 -p 2222 root@167.99.253.148
 
 ### Sonraki canlı adım
 2222 açık SSH oturumu **elde tutulurken**, 443'ü `sshd`'den çıkarıp **Nginx için boşaltma** ([RİSKLİ — DUR/ONAY]; ayrı dur-onay adımı). 2222 doğrulanmış yedek kapı olduğundan, 443 SSH yolu kaybolsa bile yönetim erişimi 2222 üzerinden korunur.
+
+---
+
+## Adım 5.1 — Doğrulama notu: 443 `sshd`'den çıkarıldı (2026-06-01)
+
+> Bu adımda yalnızca **443'ün `sshd`'den boşaltılması** yapıldı; **kod / DNS / Cloudflare / SSL mode / `3000` port ayarı değiştirilmedi**.
+
+- 2222 SSH oturumu **açık tutulurken** `/etc/ssh/sshd_config.d/99-lumos-ssh-port.conf` yedeklendi.
+- `Port 443` satırı sshd config'ten kaldırıldı.
+- `sshd -t` **başarılı** geçti.
+- `systemctl reload ssh` uygulandı.
+- Doğrulama sonrası `ss` çıktısında **22 ve 2222** `sshd` olarak kaldı; **443 artık `sshd` tarafından dinlenmiyor**.
+- API doğrulaması: `https://api.welockai.com/health` → `{"status":"ok"}`.
+- Panel doğrulaması: `https://panel.welockai.com/` → **HTTP 401**.
+- **Nginx 443, Origin cert, Cloudflare Full strict ve `3000` kapatma henüz yapılmadı.**
+
+### Sonraki canlı adım
+**Origin certificate** oluşturma (Adım 5.1 — Origin CA) ve **Nginx 443 SSL hazırlığı** (Adım 5.2 → 5.3 → 5.4). 443 artık boşta olduğundan Nginx `listen 443 ssl` çakışmadan eklenebilir; yönetim erişimi 2222 üzerinden korunur.
