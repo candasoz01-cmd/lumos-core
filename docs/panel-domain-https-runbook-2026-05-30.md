@@ -474,3 +474,29 @@ ssh -i ~/.ssh/id_ed25519 -p 2222 root@167.99.253.148
 
 ### Sonraki canlı adım
 **Origin certificate** oluşturma (Adım 5.1 — Origin CA) ve **Nginx 443 SSL hazırlığı** (Adım 5.2 → 5.3 → 5.4). 443 artık boşta olduğundan Nginx `listen 443 ssl` çakışmadan eklenebilir; yönetim erişimi 2222 üzerinden korunur.
+
+---
+
+## Adım 5.2–5.4 — Doğrulama notu: Origin cert kuruldu + Nginx 443 SSL aktif (2026-06-01)
+
+> Bu adımda **Origin sertifikası sunucuya kuruldu** ve **Nginx 443 SSL** etkinleştirildi; **kod / DNS / Cloudflare SSL mode / `3000` port ayarı değiştirilmedi**. (Private key yalnızca sunucuda; repoya alınmadı.)
+
+- Cloudflare **Origin Certificate** ve **Private Key** sunucuda `/etc/nginx/ssl/cloudflare-origin.crt` ve `/etc/nginx/ssl/cloudflare-origin.key` olarak oluşturuldu.
+- İzinler: **key `600`**, **cert `644`**.
+- `api.welockai.com` ve `panel.welockai.com` Nginx config'lerinde **`listen 80` blokları korunarak** `listen 443 ssl` server block eklendi.
+- `nginx -t` **başarılı** geçti.
+- `systemctl reload nginx` uygulandı.
+- `ss` çıktısında **443 artık `nginx` tarafından** dinleniyor; **2222** `sshd` yönetim kapısı olarak dinlemeye devam ediyor.
+- Local origin HTTPS testleri:
+
+```bash
+curl -sk --resolve api.welockai.com:443:127.0.0.1   https://api.welockai.com/health   # {"status":"ok"}
+curl -sk --resolve panel.welockai.com:443:127.0.0.1 https://panel.welockai.com/        # HTTP 401
+```
+
+- Public testler: `https://api.welockai.com/health` → `{"status":"ok"}`; `https://panel.welockai.com/` → **HTTP 401**.
+- **Cloudflare SSL/TLS mode hâlâ değiştirilmedi** (Flexible).
+- **`3000` portu kapatılmadı.**
+
+### Sonraki canlı adım
+Cloudflare SSL/TLS mode **önce Full** (ara durak); doğrulama başarılıysa **Full (strict)** (Adım 5.5 → 5.6). Origin 443'te geçerli TLS sunduğundan strict doğrulanır; sorun çıkarsa rollback Flexible'a geri dönüş.
