@@ -500,3 +500,27 @@ curl -sk --resolve panel.welockai.com:443:127.0.0.1 https://panel.welockai.com/ 
 
 ### Sonraki canlı adım
 Cloudflare SSL/TLS mode **önce Full** (ara durak); doğrulama başarılıysa **Full (strict)** (Adım 5.5 → 5.6). Origin 443'te geçerli TLS sunduğundan strict doğrulanır; sorun çıkarsa rollback Flexible'a geri dönüş.
+
+---
+
+## Adım 5.5–5.6 — Doğrulama notu: Cloudflare Full → Full (strict) geçişi (2026-06-01)
+
+> Bu adımda **Cloudflare SSL/TLS modu Full üzerinden Full (strict)'e** geçirildi; **kod / DNS / Nginx config / `3000` port ayarı değiştirilmedi**.
+
+- Cloudflare SSL/TLS Overview ekranında **Current encryption mode: Full (strict)** görünüyor.
+- Önce **Full** modda API ve panel doğrulandı.
+- Sonra **Full (strict)** seçildi.
+- Full (strict) sonrası doğrulama:
+
+```bash
+curl -s https://api.welockai.com/health                                            # {"status":"ok"}
+curl -s -o /dev/null -w "PANEL HTTP %{http_code}\n" https://panel.welockai.com/     # PANEL HTTP 401
+```
+
+- **525/526 SSL handshake / origin certificate hatası görülmedi.**
+- **2222** SSH yönetim kapısı korunuyor.
+- **443** Nginx tarafından kullanılıyor.
+- **`3000` portu henüz kapatılmadı.**
+
+### Sonraki canlı adım
+**`3000/tcp` public erişimini kapatma** (Adım 6) ve sonrasında api/panel doğrulaması. Uçtan uca HTTPS (Full strict) doğrulandığı için artık ham `3000` kapatılabilir; yönetim 2222 üzerinden korunur.
