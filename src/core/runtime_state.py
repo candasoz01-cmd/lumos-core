@@ -107,6 +107,30 @@ def sync_kando_from_globals(
     }
 
 
+def get_kando_runtime() -> dict[str, Any]:
+    recent_events = _read_file_events() or list(_EVENTS)
+    last_activity = None
+    if recent_events:
+        ts = recent_events[0].get("ts")
+        last_activity = ts if isinstance(ts, str) and ts.strip() else None
+    if not _KANDO:
+        return {
+            "last_repo_query": "",
+            "pending": {},
+            "last_output_preview": "",
+            "context_summary": "",
+            "repo_nav": {"results_count": 0, "cursor_index": 0, "has_results": False},
+            "updated_at": None,
+            "cursor_bridge": None,
+            "recent_events": recent_events,
+            "last_activity": last_activity,
+        }
+    out = dict(_KANDO)
+    out["recent_events"] = recent_events
+    out["last_activity"] = last_activity
+    return out
+
+
 def add_runtime_event(event_type: str, summary: str) -> None:
     event = {
         "type": event_type,
