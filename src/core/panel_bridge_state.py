@@ -121,10 +121,31 @@ def _read_trash_payload(base: Path) -> dict:
 
     last_mtime = None
     items: list[dict] = []
+
+    def _collect_json_files(d: Path) -> list[Path]:
+        """Bir dizindeki *.json dosyaları (alt klasörler ve .tmp hariç)."""
+        found: list[Path] = []
+        try:
+            for entry in d.iterdir():
+                # Klasörler (örn. trash/tasks) liste öğesi olarak GÖSTERİLMEZ.
+                if entry.is_dir() or not entry.is_file():
+                    continue
+                if entry.name.endswith(".tmp") or entry.suffix.lower() != ".json":
+                    continue
+                found.append(entry)
+        except OSError:
+            pass
+        return found
+
+    # Kaynaklar: üst düzey trash/*.json + trash/tasks/*.json (task_*.json dahil).
+    collected = _collect_json_files(trash_dir)
+    tasks_subdir = trash_dir / "tasks"
+    if tasks_subdir.is_dir():
+        collected.extend(_collect_json_files(tasks_subdir))
     try:
-        paths = sorted(trash_dir.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True)
+        paths = sorted(collected, key=lambda x: x.stat().st_mtime, reverse=True)
     except OSError:
-        paths = []
+        paths = collected
     for p in paths:
         try:
             if not p.is_file():
@@ -142,12 +163,25 @@ def _read_trash_payload(base: Path) -> dict:
             pl = raw.get("payload")
             payload = pl if isinstance(pl, dict) else None
             if payload is not None:
-                tid = str(payload.get("id") or raw.get("id") or p.stem).strip() or p.stem
-                name = str(payload.get("title") or payload.get("name") or "").strip()
-                status = str(payload.get("status") or "").strip()
+                tid = str(
+                    payload.get("id")
+                    or payload.get("taskId")
+                    or raw.get("id")
+                    or raw.get("taskId")
+                    or p.stem
+                ).strip() or p.stem
+                name = str(
+                    payload.get("title")
+                    or payload.get("name")
+                    or payload.get("text")
+                    or raw.get("title")
+                    or raw.get("text")
+                    or ""
+                ).strip()
+                status = str(payload.get("status") or raw.get("status") or "").strip()
             else:
-                tid = str(raw.get("id") or p.stem).strip() or p.stem
-                name = str(raw.get("title") or raw.get("name") or "").strip()
+                tid = str(raw.get("id") or raw.get("taskId") or p.stem).strip() or p.stem
+                name = str(raw.get("title") or raw.get("name") or raw.get("text") or "").strip()
                 status = str(raw.get("status") or "").strip()
             if not name:
                 name = p.stem
@@ -155,9 +189,9 @@ def _read_trash_payload(base: Path) -> dict:
             mtime_iso = _mtime_iso(st)
             if last_mtime is None or st.st_mtime > last_mtime:
                 last_mtime = st.st_mtime
-            top_del = str(raw.get("deleted_at", "")).strip()
-            if not top_del and payload is not None and payload.get("deletedAt") is not None:
-                top_del = str(payload.get("deletedAt")).strip()
+            top_del = str(raw.get("deleted_at", "") or raw.get("deletedAt", "")).strip()
+            if not top_del and payload is not None:
+                top_del = str(payload.get("deleted_at") or payload.get("deletedAt") or "").strip()
             deleted_at = top_del if top_del else mtime_iso
             moved_at = top_del if top_del else mtime_iso
             original_path = "—"
@@ -171,6 +205,7 @@ def _read_trash_payload(base: Path) -> dict:
                 status = "—"
             item = {
                 "id": tid,
+                "task_id": tid,
                 "name": name,
                 "status": status,
                 "deleted_at": deleted_at,

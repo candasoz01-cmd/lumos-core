@@ -101,15 +101,39 @@ def _trash_dir() -> Path:
     return _base_dir() / "trash"
 
 
+def _iter_trash_json_paths(d: Path) -> list[Path]:
+    """trash/*.json + trash/tasks/*.json (task_*.json dahil). Klasörler/.tmp atlanır."""
+    out: list[Path] = []
+
+    def _scan(folder: Path) -> None:
+        try:
+            entries = list(folder.iterdir())
+        except OSError:
+            return
+        for p in entries:
+            # Klasörler (örn. trash/tasks) liste öğesi olmaz; içine ayrıca inilir.
+            if p.is_dir() or not p.is_file():
+                continue
+            if p.name.endswith(".tmp") or p.suffix.lower() != ".json":
+                continue
+            out.append(p)
+
+    _scan(d)
+    tasks_sub = d / "tasks"
+    if tasks_sub.is_dir():
+        _scan(tasks_sub)
+    return out
+
+
 def _list_trash_disk_records() -> list[dict[str, Any]]:
-    """Yalnızca trash/*.json dosyaları (Silinenler tek kaynak)."""
+    """trash/*.json ve trash/tasks/*.json dosyaları (Silinenler tek kaynak)."""
     d = _trash_dir()
     d.mkdir(parents=True, exist_ok=True)
     out: list[dict[str, Any]] = []
     try:
-        paths = sorted(d.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True)
+        paths = sorted(_iter_trash_json_paths(d), key=lambda x: x.stat().st_mtime, reverse=True)
     except OSError:
-        paths = []
+        paths = _iter_trash_json_paths(d)
     for p in paths:
         if not p.is_file() or p.name.endswith(".tmp") or p.suffix.lower() != ".json":
             continue
@@ -198,12 +222,8 @@ def _find_trash_json_for_task_id(tid: str) -> Optional[Path]:
     d = _trash_dir()
     if not d.is_dir():
         return None
-    candidates: list[Path] = []
-    try:
-        for p in d.iterdir():
-            if p.is_file() and p.suffix.lower() == ".json" and not p.name.endswith(".tmp"):
-                candidates.append(p)
-    except OSError:
+    candidates: list[Path] = _iter_trash_json_paths(d)
+    if not candidates:
         return None
 
     def _mtime(pp: Path) -> float:
@@ -223,9 +243,9 @@ def _find_trash_json_for_task_id(tid: str) -> Optional[Path]:
         pl = raw.get("payload")
         rid = ""
         if isinstance(pl, dict):
-            rid = str(pl.get("id") or "").strip()
+            rid = str(pl.get("id") or pl.get("taskId") or "").strip()
         if not rid:
-            rid = str(raw.get("id") or "").strip()
+            rid = str(raw.get("id") or raw.get("taskId") or "").strip()
         if rid == want:
             return p
     return None
@@ -234,15 +254,17 @@ def _find_trash_json_for_task_id(tid: str) -> Optional[Path]:
 def _task_from_trash_record(record: dict) -> Optional[dict]:
     """Trash kaydından tasks.json satırı; pending_delete/deleted durumlarını aktif/done'a normalize eder."""
     pl = record.get("payload")
-    if isinstance(pl, dict) and str(pl.get("id", "")).strip():
+    if isinstance(pl, dict) and str(pl.get("id", "") or pl.get("taskId", "")).strip():
         task = copy.deepcopy(pl)
+        if not str(task.get("id", "")).strip() and str(task.get("taskId", "")).strip():
+            task["id"] = str(task.get("taskId")).strip()
     else:
-        tid = str(record.get("id", "")).strip()
+        tid = str(record.get("id", "") or record.get("taskId", "")).strip()
         if not tid:
             return None
         task = {
             "id": tid,
-            "title": str(record.get("title", "")),
+            "title": str(record.get("title", "") or record.get("text", "")),
             "status": str(record.get("status", "")) or "active",
             "createdAt": record.get("createdAt"),
             "completedAt": record.get("completedAt"),
