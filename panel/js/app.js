@@ -5154,6 +5154,85 @@ function canTransition(from, to) {
       var toggle = parent && parent.querySelector ? parent.querySelector('[data-chat-action="menu"]') : null;
       if (toggle) toggle.setAttribute("aria-expanded", "false");
     }
+    closeChatAttachMenu();
+  }
+
+  function closeChatAttachMenu() {
+    var menu = document.getElementById("lumos-chat-attach-menu");
+    var toggle = document.getElementById("lumos-chat-attach-toggle");
+    if (!menu || !toggle) return;
+    menu.hidden = true;
+    menu.classList.remove("lumos-chat-attach-menu--left");
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.classList.remove("lumos-chat-attach-btn--open");
+  }
+
+  function positionChatAttachMenu(btn, menu) {
+    menu.classList.remove("lumos-chat-attach-menu--left");
+    try {
+      var pad = 6;
+      var vpRight = window.innerWidth || document.documentElement.clientWidth;
+      var menuRect = menu.getBoundingClientRect();
+      if (menuRect.right > vpRight - pad) {
+        menu.classList.add("lumos-chat-attach-menu--left");
+      }
+    } catch (e) {
+      /* varsayılan: sola hizalı */
+    }
+  }
+
+  function toggleChatAttachMenu(btn) {
+    var menu = document.getElementById("lumos-chat-attach-menu");
+    if (!menu || !btn) return;
+    if (!menu.hidden) {
+      closeChatAttachMenu();
+      return;
+    }
+    closeAllChatMenus();
+    menu.hidden = false;
+    btn.setAttribute("aria-expanded", "true");
+    btn.classList.add("lumos-chat-attach-btn--open");
+    positionChatAttachMenu(btn, menu);
+  }
+
+  /** Composer + menüsü: altyapı yok; yalnızca "Yakında" bildirimi (rozet korunur). */
+  function chatAttachPlaceholderNotice(btn) {
+    if (!btn) return;
+    var label = btn.querySelector ? btn.querySelector(".lumos-chat-attach-menu__label") : null;
+    if (!label) {
+      chatActionFlash(btn, "Yakında", "warn");
+      return;
+    }
+    if (btn._lumosFlashTimer) {
+      clearTimeout(btn._lumosFlashTimer);
+      btn._lumosFlashTimer = null;
+    }
+    if (btn._lumosOrigText == null) btn._lumosOrigText = label.textContent;
+    label.textContent = "Yakında";
+    btn.classList.add("is-flash", "is-flash--warn");
+    btn._lumosFlashTimer = setTimeout(function () {
+      if (btn._lumosOrigText != null) label.textContent = btn._lumosOrigText;
+      btn.classList.remove("is-flash", "is-flash--warn");
+      btn._lumosOrigText = null;
+      btn._lumosFlashTimer = null;
+    }, 1400);
+  }
+
+  function handleChatAttachAction(btn) {
+    if (!btn || !btn.dataset) return;
+    closeChatAttachMenu();
+    chatAttachPlaceholderNotice(btn);
+  }
+
+  function renderChatAttachMenuItem(action, label) {
+    return (
+      '<button type="button" class="lumos-chat-attach-menu__item lumos-chat-attach-menu__item--soon" role="menuitem" data-chat-attach-action="' +
+      action +
+      '" aria-disabled="true" title="Yakında — henüz kullanılamıyor">' +
+      '<span class="lumos-chat-attach-menu__label">' +
+      escapeHtmlYanit(label) +
+      '</span><span class="lumos-chat-attach-menu__badge">yakında</span></button>'
+    );
   }
 
   /**
@@ -5241,7 +5320,10 @@ function canTransition(from, to) {
   }
 
   function onDocumentKeydownCloseChatMenus(e) {
-    if (e && e.key === "Escape") closeAllChatMenus();
+    if (e && e.key === "Escape") {
+      closeAllChatMenus();
+      closeChatAttachMenu();
+    }
   }
 
   function renderChatUl(items) {
@@ -5420,6 +5502,15 @@ function canTransition(from, to) {
       "</div>" +
       '<div class="lumos-chat-composer">' +
       '<div class="lumos-chat-composer-row">' +
+      '<div class="lumos-chat-attach-wrap">' +
+      '<button type="button" id="lumos-chat-attach-toggle" class="lumos-chat-attach-btn" title="Dosya veya medya ekle" aria-label="Dosya veya medya ekle" aria-haspopup="menu" aria-expanded="false" aria-controls="lumos-chat-attach-menu">+</button>' +
+      '<div id="lumos-chat-attach-menu" class="lumos-chat-attach-menu" role="menu" hidden>' +
+      renderChatAttachMenuItem("file", "Dosya yükle") +
+      renderChatAttachMenuItem("photo", "Fotoğraf / galeri seç") +
+      renderChatAttachMenuItem("camera", "Kamera") +
+      renderChatAttachMenuItem("audio-file", "Ses dosyası yükle") +
+      renderChatAttachMenuItem("audio-record", "Ses kaydet") +
+      "</div></div>" +
       '<textarea id="lumos-chat-input" class="lumos-chat-input" rows="2" placeholder="Mesaj yazın…" aria-label="Mesaj girişi"></textarea>' +
       '<button type="button" id="lumos-chat-send" class="lumos-chat-send">Gönder</button>' +
       "</div></div></div>"
@@ -5909,6 +6000,19 @@ function canTransition(from, to) {
     if (t && (t.id === "lumos-chat-send" || (t.closest && t.closest("#lumos-chat-send")))) {
       e.preventDefault();
       submitChatFromComposer();
+      return;
+    }
+    if (t && (t.id === "lumos-chat-attach-toggle" || (t.closest && t.closest("#lumos-chat-attach-toggle")))) {
+      e.preventDefault();
+      e.stopPropagation();
+      var attachToggle = t.id === "lumos-chat-attach-toggle" ? t : t.closest("#lumos-chat-attach-toggle");
+      toggleChatAttachMenu(attachToggle);
+      return;
+    }
+    var attachItem = t && t.closest ? t.closest("[data-chat-attach-action]") : null;
+    if (attachItem && attachItem.dataset && attachItem.dataset.chatAttachAction) {
+      e.preventDefault();
+      handleChatAttachAction(attachItem);
       return;
     }
     var chatActionBtn = t && t.closest ? t.closest("[data-chat-action]") : null;

@@ -694,11 +694,153 @@ body {
   display: flex;
   gap: 0.5rem;
   align-items: flex-end;
+  min-width: 0;
 }
 
 .lumos-chat-composer-row .lumos-chat-input {
   flex: 1;
   min-width: 0;
+}
+
+.lumos-chat-attach-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.lumos-chat-attach-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1;
+  font-family: inherit;
+  border-radius: 8px;
+  border: var(--border);
+  background: #242424;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.lumos-chat-attach-btn:hover {
+  background: #2f2f2f;
+  color: var(--text);
+  border-color: #4a4a4a;
+}
+
+.lumos-chat-attach-btn:focus-visible {
+  outline: 2px solid #4a90d9;
+  outline-offset: 1px;
+}
+
+.lumos-chat-attach-btn--open {
+  background: #2f2f2f;
+  color: var(--text);
+  border-color: #4a4a4a;
+}
+
+.lumos-chat-attach-menu {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 11rem;
+  max-width: min(16.5rem, calc(100vw - 1.25rem));
+  padding: 0.3rem;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  background: #1f1f1f;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.lumos-chat-attach-menu[hidden] {
+  display: none;
+}
+
+.lumos-chat-attach-menu--left {
+  left: auto;
+  right: 0;
+}
+
+.lumos-chat-attach-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.42rem 0.5rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.lumos-chat-attach-menu__item:hover {
+  background: #2c2c2c;
+}
+
+.lumos-chat-attach-menu__item:focus-visible {
+  outline: 2px solid #4a90d9;
+  outline-offset: -1px;
+}
+
+.lumos-chat-attach-menu__item--soon {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.lumos-chat-attach-menu__item--soon:hover,
+.lumos-chat-attach-menu__item[aria-disabled="true"]:hover {
+  background: transparent;
+}
+
+.lumos-chat-attach-menu__item.is-flash--warn {
+  background: #3d3528;
+  color: #e9dccf;
+}
+
+.lumos-chat-attach-menu__badge {
+  margin-inline-start: auto;
+  padding: 0.08rem 0.35rem;
+  border-radius: 999px;
+  background: rgba(74, 144, 217, 0.14);
+  color: #a0c8e8;
+  font-size: 0.62rem;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .lumos-chat-attach-btn {
+    width: 2.35rem;
+    height: 2.35rem;
+    font-size: 1.15rem;
+  }
+
+  .lumos-chat-attach-menu {
+    min-width: 10rem;
+    max-width: calc(100vw - 1rem);
+  }
+
+  .lumos-chat-attach-menu__item {
+    font-size: 0.76rem;
+    padding: 0.38rem 0.45rem;
+  }
 }
 
 .lumos-chat-send {
