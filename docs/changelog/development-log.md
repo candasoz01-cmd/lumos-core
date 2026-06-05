@@ -6,7 +6,7 @@ Kısa kronolojik kayıt. Detaylı günlük: `docs/journal/`.
 
 ## 2026-06-05
 
-Panel sohbet akışı üzerinde ardışık iyileştirmeler (PR #60–#65 merge; #66 in review).
+Panel sohbet akışı ve Görevler/Kayıtlar görünürlüğü üzerinde ardışık iyileştirmeler (PR #60–#66 merge).
 
 | Sıra | PR | Özet |
 |------|-----|------|
@@ -16,6 +16,6 @@ Panel sohbet akışı üzerinde ardışık iyileştirmeler (PR #60–#65 merge; 
 | 4 | #63 | Kullanıcı mesajı aksiyonları |
 | 5 | #64 | Chat aksiyon feedback standardı |
 | 6 | #65 | Chat ekranı boş / bekleme / hata durum standardı |
-| 7 | #66 | Görevler/Kayıtlar görünürlüğü — **devam ediyor** (in review) |
+| 7 | #66 | Görevler/Kayıtlar görünürlüğü — merge edildi |
 
 **Not:** Jilee ürüne aktarılmadı. AI Gateway analizi beklemede.
