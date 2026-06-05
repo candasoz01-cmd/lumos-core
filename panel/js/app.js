@@ -541,6 +541,40 @@ function canTransition(from, to) {
     return html;
   }
 
+  /** Anahtar Kasası — pasif/yakında işlem düğmeleri; gerçek vault veya kilit akışı yok. */
+  function buildKeystorePassiveActionButton(actionId, label) {
+    return (
+      '<button type="button" class="lumos-panel-action lumos-panel-action--soon" data-keystore-action="' +
+      escapeHtmlYanit(actionId) +
+      '" aria-disabled="true" title="Yakında — henüz kullanılamıyor">' +
+      '<span class="lumos-panel-action__label">' +
+      escapeHtmlYanit(label) +
+      '</span><span class="lumos-panel-action__badge">yakında</span></button>'
+    );
+  }
+
+  function buildKeystoreActionsSection(ks) {
+    var locked = !!(ks && ks.locked);
+    var hintsHtml = "";
+    if (locked) {
+      hintsHtml =
+        buildPanelFeedback("info", "Kilit açılmadan hassas işlem yapılamaz.") +
+        buildPanelFeedback("info", "Bu panel hassas veriyi göstermez.");
+    }
+    var actionsHtml =
+      buildKeystorePassiveActionButton("unlock", "Kilidi aç") +
+      buildKeystorePassiveActionButton("add-key", "Anahtar ekle") +
+      buildKeystorePassiveActionButton("view-keys", "Anahtarları görüntüle") +
+      buildKeystorePassiveActionButton("secure-write", "Güvenli yazımı etkinleştir");
+    var body =
+      hintsHtml +
+      '<div class="keystore-actions-row" role="group" aria-label="Anahtar kasası işlemleri (yakında)">' +
+      actionsHtml +
+      "</div>" +
+      '<p class="text-muted-small keystore-actions-note">Bu işlemler yalnızca bilgilendirme amaçlıdır; panel üzerinden gerçek vault veya kilit işlemi yapılmaz.</p>';
+    return buildSection("İşlemler", body);
+  }
+
   // ——— Veri kaynağı soyutlaması (Phase 1: Dashboard, Sandbox, System, Config, Identity, Keystore) ———
   var Bridge = typeof LumosBackendBridge !== "undefined" ? LumosBackendBridge : {};
   function getDashboardSourceData() {
@@ -3983,6 +4017,7 @@ function canTransition(from, to) {
       ViewHeader(data.title, data.subtitle) +
       '<div class="panel-screen-keystore">' +
       overviewSection +
+      buildKeystoreActionsSection(ks) +
       '<div class="cards-grid panel-screen-cards">' +
       cards +
       "</div>" +
@@ -5602,6 +5637,7 @@ function canTransition(from, to) {
       ? btn.querySelector(".lumos-chat-action__label") ||
         btn.querySelector(".lumos-chat-user-action__label") ||
         btn.querySelector(".lumos-chat-attach-menu__label") ||
+        btn.querySelector(".lumos-panel-action__label") ||
         btn
       : btn;
     if (btn._lumosFlashTimer) {
@@ -5762,6 +5798,30 @@ function canTransition(from, to) {
   /** Kullanıcı mesajı düzenle: gerçek altyapı YOK; yalnızca "Yakında" bildirimi. */
   function chatUserEditPlaceholderNotice(btn) {
     chatActionFlash(btn, CHAT_SOON_LABEL, "warn");
+  }
+
+  /** Anahtar Kasası pasif işlem: gerçek vault/kilit yok; yalnızca info/warn geri bildirimi. */
+  function handleKeystorePassiveAction(btn) {
+    if (!btn || !btn.dataset) return;
+    var action = String(btn.dataset.keystoreAction || "");
+    var ks = getKeystorePresentation();
+    var fb;
+    if (action === "unlock") {
+      fb = ks.locked
+        ? { label: "Kilit açılmadan hassas işlem yapılamaz.", kind: "info" }
+        : { label: CHAT_SOON_LABEL_LONG, kind: "warn" };
+    } else if (action === "add-key") {
+      fb = { label: CHAT_SOON_LABEL, kind: "warn" };
+    } else if (action === "view-keys") {
+      fb = { label: "Bu panel hassas veriyi göstermez.", kind: "info" };
+    } else if (action === "secure-write") {
+      fb = ks.locked
+        ? { label: "Kilit açılmadan hassas işlem yapılamaz.", kind: "info" }
+        : { label: CHAT_SOON_LABEL, kind: "warn" };
+    } else {
+      fb = { label: CHAT_SOON_LABEL, kind: "warn" };
+    }
+    chatActionFlash(btn, fb.label, fb.kind);
   }
 
   /** Re-çalıştırmada yan etki (görev oluştur/sil, navigasyon, kilit) olur mu? */
@@ -6790,6 +6850,12 @@ function canTransition(from, to) {
     if (chatActionBtn && chatActionBtn.dataset && chatActionBtn.dataset.chatAction) {
       e.preventDefault();
       handleChatAnswerAction(chatActionBtn);
+      return;
+    }
+    var keystoreActBtn = t && t.closest ? t.closest("[data-keystore-action]") : null;
+    if (keystoreActBtn && keystoreActBtn.dataset && keystoreActBtn.dataset.keystoreAction) {
+      e.preventDefault();
+      handleKeystorePassiveAction(keystoreActBtn);
       return;
     }
     function closestByDataAttr(el, attrName) {
