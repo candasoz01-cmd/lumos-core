@@ -4845,20 +4845,55 @@ function canTransition(from, to) {
    * Yanıt kartı altındaki hızlı aksiyon çubuğu (yalnızca asistan yanıtları).
    * Butonlar delegasyonla (onMainClick) ele alınır; data-chat-action + index taşır.
    */
+  function chatIsSpeaking() {
+    try {
+      var synth = typeof window !== "undefined" ? window.speechSynthesis : null;
+      return !!(synth && (synth.speaking || synth.pending));
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function chatTtsStopMenuItemAttrs() {
+    if (chatIsSpeaking()) return "";
+    return ' class="lumos-chat-menu-item lumos-chat-menu-item--disabled" aria-disabled="true"';
+  }
+
+  function syncChatTtsStopMenuItem(menu) {
+    if (!menu || !menu.querySelector) return;
+    var item = menu.querySelector('[data-chat-action="tts-stop"]');
+    if (!item) return;
+    var speaking = chatIsSpeaking();
+    if (speaking) {
+      item.removeAttribute("aria-disabled");
+      item.classList.remove("lumos-chat-menu-item--disabled");
+    } else {
+      item.setAttribute("aria-disabled", "true");
+      item.classList.add("lumos-chat-menu-item--disabled");
+    }
+  }
+
+  function syncAllChatTtsStopMenuItems() {
+    var menus = document.querySelectorAll(".lumos-chat-actions-more .lumos-chat-menu");
+    for (var i = 0; i < menus.length; i++) syncChatTtsStopMenuItem(menus[i]);
+  }
+
   function renderAssistantActionsBar(index) {
     var idx = String(index);
+    var ttsStopAttrs = chatTtsStopMenuItemAttrs();
+    var ttsStopClass = ttsStopAttrs ? "" : ' class="lumos-chat-menu-item"';
     return (
       '<div class="lumos-chat-actions" role="toolbar" aria-label="Yanıt işlemleri" data-chat-msg-index="' + idx + '">' +
       '<button type="button" class="lumos-chat-action" data-chat-action="copy" data-chat-msg-index="' + idx + '" aria-label="Kopyala" title="Kopyala"><span class="lumos-chat-action__label">Kopyala</span></button>' +
       '<button type="button" class="lumos-chat-action" data-chat-action="regenerate" data-chat-msg-index="' + idx + '" aria-label="Yeniden üret" title="Yeniden üret"><span class="lumos-chat-action__label">Yeniden üret</span></button>' +
       '<button type="button" class="lumos-chat-action" data-chat-action="share" data-chat-msg-index="' + idx + '" aria-label="Paylaş / gönder" title="Paylaş / gönder"><span class="lumos-chat-action__label">Paylaş</span></button>' +
       '<button type="button" class="lumos-chat-action" data-chat-action="tts" data-chat-msg-index="' + idx + '" aria-label="Sesli oku" title="Sesli oku"><span class="lumos-chat-action__label">Sesli oku</span></button>' +
-      '<button type="button" class="lumos-chat-action lumos-chat-action--soon" data-chat-action="branch" data-chat-msg-index="' + idx + '" aria-disabled="true" aria-label="Yeni sohbet / branch — yakında, henüz kullanılamıyor" title="Yeni sohbet / branch — yakında (henüz kullanılamıyor)"><span class="lumos-chat-action__label">Branch</span></button>' +
+      '<button type="button" class="lumos-chat-action lumos-chat-action--soon" data-chat-action="branch" data-chat-msg-index="' + idx + '" aria-disabled="true" aria-label="Yeni sohbet / branch — yakında, henüz kullanılamıyor" title="Yeni sohbet / branch — yakında (henüz kullanılamıyor)"><span class="lumos-chat-action__label">Branch (yakında)</span></button>' +
       '<div class="lumos-chat-actions-more">' +
       '<button type="button" class="lumos-chat-action lumos-chat-action--more" data-chat-action="menu" data-chat-msg-index="' + idx + '" aria-haspopup="true" aria-expanded="false" aria-label="Diğer işlemler" title="Diğer işlemler">⋯</button>' +
       '<div class="lumos-chat-menu" role="menu" hidden>' +
       '<button type="button" class="lumos-chat-menu-item" data-chat-action="copy" data-chat-msg-index="' + idx + '" role="menuitem">Düz metni kopyala</button>' +
-      '<button type="button" class="lumos-chat-menu-item" data-chat-action="tts-stop" data-chat-msg-index="' + idx + '" role="menuitem">Sesli okumayı durdur</button>' +
+      '<button type="button"' + (ttsStopClass || ttsStopAttrs) + ' data-chat-action="tts-stop" data-chat-msg-index="' + idx + '" role="menuitem">Sesli okumayı durdur</button>' +
       '<button type="button" class="lumos-chat-menu-item lumos-chat-menu-item--soon" data-chat-action="branch" data-chat-msg-index="' + idx + '" role="menuitem" aria-disabled="true" title="Yakında — henüz kullanılamıyor">Yeni sohbet olarak aç (yakında)</button>' +
       "</div>" +
       "</div>" +
@@ -4892,8 +4927,10 @@ function canTransition(from, to) {
     return parts.join("\n\n");
   }
 
-  /** Buton üzerinde geçici geri bildirim metni; 1.4 sn sonra eski metin geri gelir. */
-  function chatActionFlash(btn, label) {
+  var CHAT_FLASH_KINDS = ["ok", "info", "warn", "error"];
+
+  /** Buton üzerinde geçici geri bildirim metni; kind: ok | info | warn | error */
+  function chatActionFlash(btn, label, kind) {
     if (!btn) return;
     /* Mobilde ikon-only modunda etiket span'ı gizli; flash sırasında is-flash ile görünür olur. */
     var target = btn.querySelector ? btn.querySelector(".lumos-chat-action__label") || btn : btn;
@@ -4903,11 +4940,18 @@ function canTransition(from, to) {
     }
     if (btn._lumosOrigText == null) btn._lumosOrigText = target.textContent;
     target.textContent = label;
+    for (var k = 0; k < CHAT_FLASH_KINDS.length; k++) {
+      btn.classList.remove("is-flash--" + CHAT_FLASH_KINDS[k]);
+    }
     btn.classList.add("is-flash");
+    if (kind && CHAT_FLASH_KINDS.indexOf(kind) >= 0) btn.classList.add("is-flash--" + kind);
     btn._lumosFlashTimer = setTimeout(function () {
       if (btn._lumosOrigText != null) target.textContent = btn._lumosOrigText;
       btn._lumosOrigText = null;
       btn.classList.remove("is-flash");
+      for (var j = 0; j < CHAT_FLASH_KINDS.length; j++) {
+        btn.classList.remove("is-flash--" + CHAT_FLASH_KINDS[j]);
+      }
       btn._lumosFlashTimer = null;
     }, 1400);
   }
@@ -4938,12 +4982,12 @@ function canTransition(from, to) {
   function chatCopyMessage(msg, btn) {
     var text = chatMessagePlainText(msg);
     if (!text) {
-      chatActionFlash(btn, "Boş");
+      chatActionFlash(btn, "Boş", "info");
       return;
     }
-    function done() { chatActionFlash(btn, "Kopyalandı"); }
+    function done() { chatActionFlash(btn, "Kopyalandı", "ok"); }
     function fail() {
-      chatActionFlash(btn, chatCopyFallback(text) ? "Kopyalandı" : "Kopyalanamadı");
+      chatActionFlash(btn, chatCopyFallback(text) ? "Kopyalandı" : "Kopyalanamadı", chatCopyFallback(text) ? "ok" : "error");
     }
     if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
       navigator.clipboard.writeText(text).then(done).catch(fail);
@@ -4953,29 +4997,34 @@ function canTransition(from, to) {
   }
 
   function chatShareFallback(text, btn) {
+    function flashShareCopy(ok) {
+      chatActionFlash(
+        btn,
+        ok ? "Paylaşım yok — panoya kopyalandı" : "Paylaşım yok",
+        ok ? "info" : "warn"
+      );
+    }
     if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
       navigator.clipboard
         .writeText(text)
-        .then(function () { chatActionFlash(btn, "Kopyalandı"); })
-        .catch(function () {
-          chatActionFlash(btn, chatCopyFallback(text) ? "Kopyalandı" : "Paylaşım yok");
-        });
+        .then(function () { flashShareCopy(true); })
+        .catch(function () { flashShareCopy(chatCopyFallback(text)); });
       return;
     }
-    chatActionFlash(btn, chatCopyFallback(text) ? "Kopyalandı" : "Paylaşım yok");
+    flashShareCopy(chatCopyFallback(text));
   }
 
   function chatShareMessage(msg, btn) {
     var text = chatMessagePlainText(msg);
     if (!text) {
-      chatActionFlash(btn, "Boş");
+      chatActionFlash(btn, "Boş", "info");
       return;
     }
     if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
       try {
         navigator
           .share({ title: "Lumos yanıtı", text: text })
-          .then(function () { chatActionFlash(btn, "Paylaşıldı"); })
+          .then(function () { chatActionFlash(btn, "Paylaşıldı", "ok"); })
           .catch(function (err) {
             if (err && err.name === "AbortError") return;
             chatShareFallback(text, btn);
@@ -4988,7 +5037,11 @@ function canTransition(from, to) {
     chatShareFallback(text, btn);
   }
 
-  function chatStopSpeaking() {
+  function chatStopSpeaking(btn) {
+    if (!chatIsSpeaking()) {
+      if (btn) chatActionFlash(btn, "Okunmuyor", "info");
+      return false;
+    }
     try {
       if (window.speechSynthesis && typeof window.speechSynthesis.cancel === "function") {
         window.speechSynthesis.cancel();
@@ -4996,31 +5049,34 @@ function canTransition(from, to) {
     } catch (e) {
       /* ignore */
     }
+    syncAllChatTtsStopMenuItems();
+    if (btn) chatActionFlash(btn, "Durduruldu", "ok");
+    return true;
   }
 
   function chatSpeakMessage(msg, btn) {
     var synth = typeof window !== "undefined" ? window.speechSynthesis : null;
     if (!synth || typeof window.SpeechSynthesisUtterance === "undefined") {
-      chatActionFlash(btn, "Desteklenmiyor");
+      chatActionFlash(btn, "Desteklenmiyor", "warn");
       return;
     }
     if (synth.speaking || synth.pending) {
-      chatStopSpeaking();
-      chatActionFlash(btn, "Durduruldu");
+      chatStopSpeaking(btn);
       return;
     }
     var text = chatMessagePlainText(msg);
     if (!text) {
-      chatActionFlash(btn, "Boş");
+      chatActionFlash(btn, "Boş", "info");
       return;
     }
     try {
       var u = new window.SpeechSynthesisUtterance(text);
       u.lang = "tr-TR";
       synth.speak(u);
-      chatActionFlash(btn, "Okunuyor");
+      syncAllChatTtsStopMenuItems();
+      chatActionFlash(btn, "Okunuyor", "ok");
     } catch (e) {
-      chatActionFlash(btn, "Hata");
+      chatActionFlash(btn, "Hata", "error");
     }
   }
 
@@ -5029,7 +5085,7 @@ function canTransition(from, to) {
    * Yanıltıcı olmamak için hiçbir aksiyon/olay yok; yalnızca "Yakında" bildirimi.
    */
   function chatBranchPlaceholderNotice(btn) {
-    chatActionFlash(btn, "Yakında");
+    chatActionFlash(btn, "Yakında", "warn");
   }
 
   /** Re-çalıştırmada yan etki (görev oluştur/sil, navigasyon, kilit) olur mu? */
@@ -5057,11 +5113,11 @@ function canTransition(from, to) {
       }
     }
     if (!userText || !String(userText).trim()) {
-      chatActionFlash(btn, "Kaynak yok");
+      chatActionFlash(btn, "Kaynak yok", "warn");
       return;
     }
     if (chatUserTextHasSideEffects(userText)) {
-      chatActionFlash(btn, "Yeniden üretilemez");
+      chatActionFlash(btn, "Yeniden üretilemez", "warn");
       return;
     }
     function apply(reply) {
@@ -5144,6 +5200,7 @@ function canTransition(from, to) {
     if (willOpen) {
       menu.hidden = false;
       btn.setAttribute("aria-expanded", "true");
+      syncChatTtsStopMenuItem(menu);
       positionChatMenu(btn, menu);
     }
   }
@@ -5169,7 +5226,11 @@ function canTransition(from, to) {
     else if (action === "regenerate") chatRegenerateAt(idx, btn);
     else if (action === "share") chatShareMessage(msg, btn);
     else if (action === "tts") chatSpeakMessage(msg, btn);
-    else if (action === "tts-stop") chatStopSpeaking();
+    else if (action === "tts-stop") {
+      chatStopSpeaking(btn);
+      if (inMore) closeAllChatMenus();
+      return;
+    }
     if (inMore) closeAllChatMenus();
   }
 

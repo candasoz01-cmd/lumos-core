@@ -449,10 +449,39 @@ body {
   outline-offset: 1px;
 }
 
-.lumos-chat-action.is-flash {
+.lumos-chat-action.is-flash,
+.lumos-chat-menu-item.is-flash {
   background: #2a3d2a;
   color: #cfe9cf;
   border-color: #3a5a3a;
+}
+
+.lumos-chat-action.is-flash--ok,
+.lumos-chat-menu-item.is-flash--ok {
+  background: #2a3d2a;
+  color: #cfe9cf;
+  border-color: #3a5a3a;
+}
+
+.lumos-chat-action.is-flash--info,
+.lumos-chat-menu-item.is-flash--info {
+  background: #2a3340;
+  color: #cfe0f0;
+  border-color: #3a4a5a;
+}
+
+.lumos-chat-action.is-flash--warn,
+.lumos-chat-menu-item.is-flash--warn {
+  background: #3d3528;
+  color: #e9dccf;
+  border-color: #5a4a3a;
+}
+
+.lumos-chat-action.is-flash--error,
+.lumos-chat-menu-item.is-flash--error {
+  background: #3d2828;
+  color: #e9cfcf;
+  border-color: #5a3a3a;
 }
 
 .lumos-chat-action--more {
@@ -528,6 +557,12 @@ body {
   opacity: 0.75;
 }
 
+.lumos-chat-action--soon:hover {
+  background: #242424;
+  color: var(--text-muted);
+  border-color: #3a3a3a;
+}
+
 .lumos-chat-menu-item--soon {
   color: var(--text-muted);
   font-style: italic;
@@ -539,8 +574,14 @@ body {
   cursor: not-allowed;
 }
 
-.lumos-chat-menu-item[aria-disabled="true"]:hover {
+.lumos-chat-menu-item[aria-disabled="true"]:hover,
+.lumos-chat-menu-item--disabled:hover {
   background: transparent;
+}
+
+.lumos-chat-menu-item--disabled {
+  color: var(--text-muted);
+  opacity: 0.65;
 }
 
 /* Dar ekran: araç çubuğunu ikon-only + kompakt yap (erişilebilir etiketler korunur) */
