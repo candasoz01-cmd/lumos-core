@@ -4944,6 +4944,8 @@ function canTransition(from, to) {
   }
 
   var CHAT_FLASH_KINDS = ["ok", "info", "warn", "error"];
+  var CHAT_SOON_LABEL = "Yakında";
+  var CHAT_SOON_LABEL_LONG = "Yakında — henüz kullanılamıyor";
 
   /** Buton üzerinde geçici geri bildirim metni; kind: ok | info | warn | error */
   function chatActionFlash(btn, label, kind) {
@@ -4952,6 +4954,7 @@ function canTransition(from, to) {
     var target = btn.querySelector
       ? btn.querySelector(".lumos-chat-action__label") ||
         btn.querySelector(".lumos-chat-user-action__label") ||
+        btn.querySelector(".lumos-chat-attach-menu__label") ||
         btn
       : btn;
     if (btn._lumosFlashTimer) {
@@ -5007,7 +5010,8 @@ function canTransition(from, to) {
     }
     function done() { chatActionFlash(btn, "Kopyalandı", "ok"); }
     function fail() {
-      chatActionFlash(btn, chatCopyFallback(text) ? "Kopyalandı" : "Kopyalanamadı", chatCopyFallback(text) ? "ok" : "error");
+      var copied = chatCopyFallback(text);
+      chatActionFlash(btn, copied ? "Kopyalandı" : "Kopyalanamadı", copied ? "ok" : "error");
     }
     if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
       navigator.clipboard.writeText(text).then(done).catch(fail);
@@ -5105,12 +5109,12 @@ function canTransition(from, to) {
    * Yanıltıcı olmamak için hiçbir aksiyon/olay yok; yalnızca "Yakında" bildirimi.
    */
   function chatBranchPlaceholderNotice(btn) {
-    chatActionFlash(btn, "Yakında", "warn");
+    chatActionFlash(btn, CHAT_SOON_LABEL, "warn");
   }
 
   /** Kullanıcı mesajı düzenle: gerçek altyapı YOK; yalnızca "Yakında" bildirimi. */
   function chatUserEditPlaceholderNotice(btn) {
-    chatActionFlash(btn, "Yakında", "warn");
+    chatActionFlash(btn, CHAT_SOON_LABEL, "warn");
   }
 
   /** Re-çalıştırmada yan etki (görev oluştur/sil, navigasyon, kilit) olur mu? */
@@ -5235,25 +5239,7 @@ function canTransition(from, to) {
 
   /** Composer + menüsü: altyapı yok; yalnızca "Yakında" bildirimi (rozet korunur). */
   function chatAttachPlaceholderNotice(btn) {
-    if (!btn) return;
-    var label = btn.querySelector ? btn.querySelector(".lumos-chat-attach-menu__label") : null;
-    if (!label) {
-      chatActionFlash(btn, "Yakında", "warn");
-      return;
-    }
-    if (btn._lumosFlashTimer) {
-      clearTimeout(btn._lumosFlashTimer);
-      btn._lumosFlashTimer = null;
-    }
-    if (btn._lumosOrigText == null) btn._lumosOrigText = label.textContent;
-    label.textContent = "Yakında";
-    btn.classList.add("is-flash", "is-flash--warn");
-    btn._lumosFlashTimer = setTimeout(function () {
-      if (btn._lumosOrigText != null) label.textContent = btn._lumosOrigText;
-      btn.classList.remove("is-flash", "is-flash--warn");
-      btn._lumosOrigText = null;
-      btn._lumosFlashTimer = null;
-    }, 1400);
+    chatActionFlash(btn, CHAT_SOON_LABEL_LONG, "warn");
   }
 
   function handleChatAttachAction(btn) {
