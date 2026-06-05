@@ -901,6 +901,79 @@ body {
   line-height: 1.45;
 }
 
+.lumos-chat-empty-note {
+  margin: 0.55rem 0 0;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  opacity: 0.85;
+}
+
+.lumos-chat-status {
+  margin: 0 0 0.55rem 0;
+  padding: 0.42rem 0.55rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.lumos-chat-status--waiting {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: #2a3340;
+  color: #cfe0f0;
+  border: 1px solid #3a4a5a;
+}
+
+.lumos-chat-status-dot {
+  flex-shrink: 0;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: #6aa8e8;
+  animation: lumos-chat-status-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes lumos-chat-status-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.lumos-chat-status--ok {
+  background: #2a3d2a;
+  color: #cfe9cf;
+  border: 1px solid #3a5a3a;
+}
+
+.lumos-chat-status--info {
+  background: #2a3340;
+  color: #cfe0f0;
+  border: 1px solid #3a4a5a;
+}
+
+.lumos-chat-status--warn {
+  background: #3d3528;
+  color: #e9dccf;
+  border: 1px solid #5a4a3a;
+}
+
+.lumos-chat-status--error {
+  background: #3d2828;
+  color: #e9cfcf;
+  border: 1px solid #5a3a3a;
+}
+
 .lumos-chat-composer-row {
   display: flex;
   gap: 0.5rem;
@@ -1067,6 +1140,24 @@ body {
 }
 
 @media (max-width: 480px) {
+  .lumos-chat-empty {
+    padding: 0.75rem 0.35rem;
+    max-width: 100%;
+  }
+
+  .lumos-chat-empty-hint {
+    font-size: 0.84rem;
+  }
+
+  .lumos-chat-empty-note {
+    font-size: 0.72rem;
+  }
+
+  .lumos-chat-status {
+    font-size: 0.76rem;
+    padding: 0.38rem 0.48rem;
+  }
+
   .lumos-chat-attach-btn {
     width: 2.35rem;
     height: 2.35rem;

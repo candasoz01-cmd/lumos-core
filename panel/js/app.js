@@ -4125,6 +4125,12 @@ function canTransition(from, to) {
     focusComposerAfterRender: false,
     /** Unlock isteği devam ederken tekrar gönderimi engelle. */
     kilitAcUnlockInFlight: false,
+    /** idle | waiting — asistan yanıtı veya kilit işlemi beklenirken. */
+    status: "idle",
+    /** Composer üstü durum şeridi (hata/bilgi); waiting ayrı gösterilir. */
+    statusMessage: "",
+    /** ok | info | warn | error */
+    statusKind: "info",
   };
 
   var KILIT_AC_MSG_UNLOCK_OK = "Kilit açıldı";
@@ -4785,6 +4791,9 @@ function canTransition(from, to) {
   function submitChatFromComposer() {
     var ta = document.getElementById("lumos-chat-input");
     if (!ta) return;
+    if (chatIsReplyInFlight()) {
+      return;
+    }
     var text = ta.value != null ? String(ta.value).trim() : "";
 
     if (!text) {
@@ -4797,6 +4806,7 @@ function canTransition(from, to) {
       if (chatViewState.kilitAcUnlockInFlight) {
         return;
       }
+      clearChatViewStatus();
       ta.value = "";
       chatViewState.draft = "";
       chatViewState.userForcedScrollToBottom = true;
@@ -4807,15 +4817,16 @@ function canTransition(from, to) {
       openUnlockModal();
       return;
     }
+    clearChatViewStatus();
     ta.value = "";
     chatViewState.draft = "";
     chatViewState.userForcedScrollToBottom = true;
     chatViewState.focusComposerAfterRender = true;
     chatViewState.messages.push({ role: "user", text: text });
     persistChatMessagesToStorage();
-    refreshCurrentView();
 
     function pushAssistantAndRefresh(reply) {
+      clearChatViewStatus();
       chatViewState.focusComposerAfterRender = true;
       var r = reply && typeof reply === "object" ? reply : { text: String(reply || ""), depth: "simple" };
       chatViewState.messages.push({
@@ -4828,16 +4839,29 @@ function canTransition(from, to) {
       refreshCurrentView();
     }
 
+    function handleChatReplyError() {
+      chatViewState.status = "idle";
+      chatViewState.focusComposerAfterRender = true;
+      chatViewState.messages.push({
+        role: "assistant",
+        text: CHAT_REPLY_ERROR_LABEL,
+        depth: "simple",
+      });
+      setChatViewStatusBanner(CHAT_REPLY_ERROR_LABEL, "error");
+      persistChatMessagesToStorage();
+      refreshCurrentView();
+    }
+
     var replyOrPromise = buildAssistantReply(text);
     if (replyOrPromise && typeof replyOrPromise.then === "function") {
-      replyOrPromise.then(pushAssistantAndRefresh).catch(function (err) {
-        pushAssistantAndRefresh({
-          text: "Bağlantı hatası; tekrar deneyin.",
-          depth: "simple",
-        });
+      chatViewState.status = "waiting";
+      refreshCurrentView();
+      replyOrPromise.then(pushAssistantAndRefresh).catch(function () {
+        handleChatReplyError();
       });
       return;
     }
+    refreshCurrentView();
     pushAssistantAndRefresh(replyOrPromise);
   }
 
@@ -4944,8 +4968,75 @@ function canTransition(from, to) {
   }
 
   var CHAT_FLASH_KINDS = ["ok", "info", "warn", "error"];
+  var CHAT_STATUS_KINDS = ["ok", "info", "warn", "error"];
   var CHAT_SOON_LABEL = "Yakında";
   var CHAT_SOON_LABEL_LONG = "Yakında — henüz kullanılamıyor";
+  var CHAT_WAITING_LABEL = "Yanıt hazırlanıyor…";
+  var CHAT_UNLOCK_WAITING_LABEL = "Kilit işlemi…";
+  var CHAT_REPLY_ERROR_LABEL = "Bağlantı hatası; tekrar deneyin.";
+
+  function clearChatViewStatus() {
+    chatViewState.status = "idle";
+    chatViewState.statusMessage = "";
+    chatViewState.statusKind = "info";
+  }
+
+  function setChatViewStatusBanner(message, kind) {
+    chatViewState.status = "idle";
+    chatViewState.statusMessage = message != null ? String(message) : "";
+    chatViewState.statusKind =
+      kind && CHAT_STATUS_KINDS.indexOf(kind) >= 0 ? kind : "info";
+  }
+
+  function chatIsReplyInFlight() {
+    return chatViewState.status === "waiting" || !!chatViewState.kilitAcUnlockInFlight;
+  }
+
+  /** Boş sohbet: gerçek sohbet motoru bağlı değil — kısa not. */
+  function chatDemoModeNoteText() {
+    var s = getEffectiveState();
+    var mode = s && s.appMode ? String(s.appMode).toLowerCase() : "offline";
+    if (mode === "offline") {
+      var ts = mockState.taskSourceState;
+      if (ts === "offline-cache") {
+        return "Çevrimdışı önbellek — yanıtlar panel demosu; gerçek sohbet motoru bağlı değil.";
+      }
+      if (ts === "unreachable") {
+        return "Bağlantı yok — yanıtlar panel demosu; gerçek sohbet motoru bağlı değil.";
+      }
+    }
+    return "Yanıtlar panel demosu; gerçek sohbet motoru bağlı değil.";
+  }
+
+  function renderChatStatusHtml() {
+    if (chatViewState.status === "waiting" || chatViewState.kilitAcUnlockInFlight) {
+      var waitLabel =
+        chatViewState.kilitAcUnlockInFlight && chatViewState.status !== "waiting"
+          ? CHAT_UNLOCK_WAITING_LABEL
+          : CHAT_WAITING_LABEL;
+      return (
+        '<p class="lumos-chat-status lumos-chat-status--waiting" role="status" aria-live="polite">' +
+        '<span class="lumos-chat-status-dot" aria-hidden="true"></span>' +
+        escapeHtmlYanit(waitLabel) +
+        "</p>"
+      );
+    }
+    if (!chatViewState.statusMessage) return "";
+    var sk =
+      chatViewState.statusKind && CHAT_STATUS_KINDS.indexOf(chatViewState.statusKind) >= 0
+        ? chatViewState.statusKind
+        : "info";
+    var live = sk === "error" ? "alert" : "status";
+    return (
+      '<p class="lumos-chat-status lumos-chat-status--' +
+      sk +
+      '" role="' +
+      live +
+      '" aria-live="polite">' +
+      escapeHtmlYanit(chatViewState.statusMessage) +
+      "</p>"
+    );
+  }
 
   /** Buton üzerinde geçici geri bildirim metni; kind: ok | info | warn | error */
   function chatActionFlash(btn, label, kind) {
@@ -5131,6 +5222,10 @@ function canTransition(from, to) {
 
   /** Asistan yanıtını yeniden üret: önceki kullanıcı mesajını yeniden cevaplar (yan etkili komutlarda atlanır). */
   function chatRegenerateAt(idx, btn) {
+    if (chatIsReplyInFlight()) {
+      chatActionFlash(btn, "Bekleyin", "info");
+      return;
+    }
     var msgs = chatViewState.messages;
     if (isNaN(idx) || idx < 0 || idx >= msgs.length) return;
     if (!msgs[idx] || msgs[idx].role !== "assistant") return;
@@ -5150,6 +5245,7 @@ function canTransition(from, to) {
       return;
     }
     function apply(reply) {
+      clearChatViewStatus();
       var r = reply && typeof reply === "object" ? reply : { text: String(reply || ""), depth: "simple" };
       msgs[idx] = {
         role: "assistant",
@@ -5160,10 +5256,21 @@ function canTransition(from, to) {
       persistChatMessagesToStorage();
       refreshCurrentView();
     }
+    clearChatViewStatus();
     var replyOrPromise = buildAssistantReply(userText);
     if (replyOrPromise && typeof replyOrPromise.then === "function") {
+      chatViewState.status = "waiting";
+      refreshCurrentView();
       replyOrPromise.then(apply).catch(function () {
-        apply({ text: "Bağlantı hatası; tekrar deneyin.", depth: "simple" });
+        chatViewState.status = "idle";
+        msgs[idx] = {
+          role: "assistant",
+          text: CHAT_REPLY_ERROR_LABEL,
+          depth: "simple",
+        };
+        setChatViewStatusBanner(CHAT_REPLY_ERROR_LABEL, "error");
+        persistChatMessagesToStorage();
+        refreshCurrentView();
       });
       return;
     }
@@ -5557,7 +5664,10 @@ function canTransition(from, to) {
     if (msgs.length === 0) {
       logHtml =
         '<div class="lumos-chat-empty" role="status">' +
-        '<p class="lumos-chat-empty-hint">Henüz mesaj yok. Aşağıya yazıp Gönder’e basın veya Enter ile gönderin.</p>' +
+        '<p class="lumos-chat-empty-hint">Henüz mesaj yok. Mesaj yazıp Gönder’e basın veya Enter kullanın.</p>' +
+        '<p class="lumos-chat-empty-note">' +
+        escapeHtmlYanit(chatDemoModeNoteText()) +
+        "</p>" +
         "</div>";
     }
     for (var i = 0; i < msgs.length; i++) {
@@ -5585,12 +5695,18 @@ function canTransition(from, to) {
           "</div>";
       }
     }
+    var sendDisabled = chatIsReplyInFlight() ? " disabled" : "";
+    var sendBusy = chatViewState.status === "waiting" ? ' aria-busy="true"' : "";
+    var statusHtml = renderChatStatusHtml();
     return (
       '<div class="lumos-chat-root">' +
       '<div class="lumos-chat-log" role="log" aria-live="polite">' +
       logHtml +
       "</div>" +
-      '<div class="lumos-chat-composer">' +
+      '<div class="lumos-chat-composer"' +
+      (chatIsReplyInFlight() ? ' aria-busy="true"' : "") +
+      ">" +
+      statusHtml +
       '<div class="lumos-chat-composer-row">' +
       '<div class="lumos-chat-attach-wrap">' +
       '<button type="button" id="lumos-chat-attach-toggle" class="lumos-chat-attach-btn" title="Dosya veya medya ekle" aria-label="Dosya veya medya ekle" aria-haspopup="menu" aria-expanded="false" aria-controls="lumos-chat-attach-menu">+</button>' +
@@ -5602,7 +5718,10 @@ function canTransition(from, to) {
       renderChatAttachMenuItem("audio-record", "Ses kaydet") +
       "</div></div>" +
       '<textarea id="lumos-chat-input" class="lumos-chat-input" rows="2" placeholder="Mesaj yazın…" aria-label="Mesaj girişi"></textarea>' +
-      '<button type="button" id="lumos-chat-send" class="lumos-chat-send">Gönder</button>' +
+      '<button type="button" id="lumos-chat-send" class="lumos-chat-send"' +
+      sendDisabled +
+      sendBusy +
+      ">Gönder</button>" +
       "</div></div></div>"
     );
   }
