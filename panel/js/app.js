@@ -330,8 +330,23 @@ function canTransition(from, to) {
     if (lower === "başarısız" || lower === "basarisiz") return "warn";
     if (lower === "engellenen" || lower === "engellendi") return "error";
     if (s === "Siliniyor" || lower === "siliniyor") return "warn";
-    if (lower === "aktif" || lower === "bekleyen") return "info";
+    if (lower === "bekleyen") return "warn";
+    if (lower === "aktif") return "info";
     return "info";
+  }
+
+  /** Liste/detay rozet metni: okunaklı, tutarlı etiket (motor status değerini değiştirmez). */
+  function formatPanelStatusLabel(label) {
+    var s = label != null ? String(label).trim() : "";
+    if (!s) return "—";
+    var lower = s.toLowerCase();
+    if (lower === "engellenen" || lower === "engellendi") return "Engellendi";
+    if (lower === "başarısız" || lower === "basarisiz") return "Başarısız";
+    if (lower === "tamamlandı" || lower === "tamamlandi") return "Tamamlandı";
+    if (lower === "aktif") return "Aktif";
+    if (lower === "bekleyen") return "Bekleyen";
+    if (s === "Siliniyor" || lower === "siliniyor") return "Siliniyor";
+    return s;
   }
 
   function getTaskStatusVariant(status) {
@@ -2625,11 +2640,14 @@ function canTransition(from, to) {
   function buildPanelStatusBadge(label, kind) {
     var k =
       kind && PANEL_STATUS_KINDS.indexOf(kind) >= 0 ? kind : "info";
+    var disp = formatPanelStatusLabel(label);
     return (
       '<span class="lumos-panel-status lumos-panel-status--' +
       k +
+      '" title="' +
+      escapeHtmlYanit(disp) +
       '">' +
-      escapeHtmlYanit(label != null ? String(label) : "—") +
+      escapeHtmlYanit(disp) +
       "</span>"
     );
   }
@@ -2689,7 +2707,7 @@ function canTransition(from, to) {
       "Bu filtrede görev yok",
       '"' +
         filterLabel +
-        '" filtresine uyan görev yok. Üstteki sekmelerden başka bir filtre seçebilir veya yeni görev oluşturabilirsiniz.'
+        '" filtresine uyan görev yok. «Tümü» sekmesinde görev olabilir; başka filtre seçebilir veya yeni görev oluşturabilirsiniz.'
     );
   }
 
@@ -2708,7 +2726,7 @@ function canTransition(from, to) {
       "Bu sekmede kayıt yok",
       '"' +
         filterLabel +
-        '" sekmesine uyan olay henüz oluşmadı. Farklı bir sekme seçebilir veya yeni işlem yaptıktan sonra tekrar bakabilirsiniz.'
+        '" sekmesine uyan olay henüz oluşmadı. «Tümü» sekmesinde kayıt olabilir; farklı sekme seçebilir veya yeni işlem sonrası tekrar bakabilirsiniz.'
     );
   }
 
@@ -5030,16 +5048,24 @@ function canTransition(from, to) {
     }
 
     var replyOrPromise = buildAssistantReply(text);
+
+    function deliverChatReply() {
+      if (replyOrPromise && typeof replyOrPromise.then === "function") {
+        replyOrPromise.then(pushAssistantAndRefresh).catch(function () {
+          handleChatReplyError();
+        });
+        return;
+      }
+      pushAssistantAndRefresh(replyOrPromise);
+    }
+
+    chatViewState.status = "waiting";
+    refreshCurrentView();
     if (replyOrPromise && typeof replyOrPromise.then === "function") {
-      chatViewState.status = "waiting";
-      refreshCurrentView();
-      replyOrPromise.then(pushAssistantAndRefresh).catch(function () {
-        handleChatReplyError();
-      });
+      deliverChatReply();
       return;
     }
-    refreshCurrentView();
-    pushAssistantAndRefresh(replyOrPromise);
+    setTimeout(deliverChatReply, 120);
   }
 
   /**
@@ -5173,6 +5199,9 @@ function canTransition(from, to) {
   function chatDemoModeNoteText() {
     var s = getEffectiveState();
     var mode = s && s.appMode ? String(s.appMode).toLowerCase() : "offline";
+    if (mode === "online") {
+      return "Yanıtlar bu panel oturumunda üretilir; harici sohbet motoru bağlı değil.";
+    }
     if (mode === "offline") {
       var ts = mockState.taskSourceState;
       if (ts === "offline-cache") {
@@ -5435,23 +5464,32 @@ function canTransition(from, to) {
     }
     clearChatViewStatus();
     var replyOrPromise = buildAssistantReply(userText);
+
+    function deliverRegenerateReply() {
+      if (replyOrPromise && typeof replyOrPromise.then === "function") {
+        replyOrPromise.then(apply).catch(function () {
+          chatViewState.status = "idle";
+          msgs[idx] = {
+            role: "assistant",
+            text: CHAT_REPLY_ERROR_LABEL,
+            depth: "simple",
+          };
+          setChatViewStatusBanner(CHAT_REPLY_ERROR_LABEL, "error");
+          persistChatMessagesToStorage();
+          refreshCurrentView();
+        });
+        return;
+      }
+      apply(replyOrPromise);
+    }
+
+    chatViewState.status = "waiting";
+    refreshCurrentView();
     if (replyOrPromise && typeof replyOrPromise.then === "function") {
-      chatViewState.status = "waiting";
-      refreshCurrentView();
-      replyOrPromise.then(apply).catch(function () {
-        chatViewState.status = "idle";
-        msgs[idx] = {
-          role: "assistant",
-          text: CHAT_REPLY_ERROR_LABEL,
-          depth: "simple",
-        };
-        setChatViewStatusBanner(CHAT_REPLY_ERROR_LABEL, "error");
-        persistChatMessagesToStorage();
-        refreshCurrentView();
-      });
+      deliverRegenerateReply();
       return;
     }
-    apply(replyOrPromise);
+    setTimeout(deliverRegenerateReply, 120);
   }
 
   function closeChatMenuElement(menu, toggleSelector) {

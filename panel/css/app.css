@@ -830,7 +830,8 @@ body {
   }
 
   .lumos-chat-menu-item.is-flash,
-  .lumos-chat-user-menu-item.is-flash {
+  .lumos-chat-user-menu-item.is-flash,
+  .lumos-chat-attach-menu__item.is-flash {
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1094,26 +1095,31 @@ body {
 .lumos-chat-attach-menu__item.is-flash {
   background: #2a3340;
   color: #cfe0f0;
+  border: 1px solid #3a4a5a;
 }
 
 .lumos-chat-attach-menu__item.is-flash--ok {
   background: #2a3d2a;
   color: #cfe9cf;
+  border-color: #3a5a3a;
 }
 
 .lumos-chat-attach-menu__item.is-flash--info {
   background: #2a3340;
   color: #cfe0f0;
+  border-color: #3a4a5a;
 }
 
 .lumos-chat-attach-menu__item.is-flash--warn {
   background: #3d3528;
   color: #e9dccf;
+  border-color: #5a4a3a;
 }
 
 .lumos-chat-attach-menu__item.is-flash--error {
   background: #3d2828;
   color: #e9cfcf;
+  border-color: #5a3a3a;
 }
 
 .lumos-chat-attach-menu__item.is-flash .lumos-chat-attach-menu__label {
@@ -1552,6 +1558,12 @@ body {
   font-weight: 500;
 }
 
+.panel-filter-tabs button.panel-filter-tab:not(.active),
+.task-filters button.panel-filter-tab:not(.active) {
+  opacity: 0.72;
+  color: var(--text-muted);
+}
+
 /* Akış kaynağı sekmeleri: aktif daha belirgin */
 .feed-source-tabs button.log-tab.active {
   background: linear-gradient(180deg, rgba(126, 184, 255, 0.38) 0%, rgba(90, 140, 220, 0.22) 100%);
@@ -1606,6 +1618,15 @@ body {
   background: #3d2828;
   color: #e9cfcf;
   border: 1px solid #5a3a3a;
+}
+
+.task-detail-status-row .lumos-panel-status {
+  font-size: 0.78rem;
+  padding: 0.28rem 0.62rem;
+}
+
+.task-list-badge .lumos-panel-status {
+  flex-shrink: 0;
 }
 
 .lumos-panel-feedback {
@@ -1952,6 +1973,9 @@ body {
 
   .lumos-panel-status {
     max-width: 100%;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
   }
 }
 
