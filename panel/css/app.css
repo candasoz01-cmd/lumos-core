@@ -1477,6 +1477,7 @@ body {
   grid-template-columns: 1fr 1fr;
   gap: var(--spacing);
   margin: 0 0 var(--spacing) 0;
+  min-width: 0;
 }
 
 @media (max-width: 720px) {
@@ -1564,6 +1565,394 @@ body {
 
 .task-list-badge {
   margin-right: 0.35rem;
+  flex-shrink: 0;
+}
+
+/* ——— Panel durum rozeti (PR #64: ok / info / warn / error) ——— */
+.lumos-panel-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lumos-panel-status--ok {
+  background: #2a3d2a;
+  color: #cfe9cf;
+  border: 1px solid #3a5a3a;
+}
+
+.lumos-panel-status--info {
+  background: #2a3340;
+  color: #cfe0f0;
+  border: 1px solid #3a4a5a;
+}
+
+.lumos-panel-status--warn {
+  background: #3d3528;
+  color: #e9dccf;
+  border: 1px solid #5a4a3a;
+}
+
+.lumos-panel-status--error {
+  background: #3d2828;
+  color: #e9cfcf;
+  border: 1px solid #5a3a3a;
+}
+
+.lumos-panel-feedback {
+  margin: 0.5rem 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--card-radius);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.lumos-panel-feedback--ok {
+  background: rgba(207, 233, 207, 0.08);
+  border: 1px solid rgba(58, 90, 58, 0.55);
+  color: #cfe9cf;
+}
+
+.lumos-panel-feedback--info {
+  background: rgba(207, 224, 240, 0.06);
+  border: 1px solid rgba(58, 74, 90, 0.5);
+  color: #cfe0f0;
+}
+
+.lumos-panel-feedback--warn {
+  background: rgba(233, 220, 207, 0.08);
+  border: 1px solid rgba(90, 74, 58, 0.55);
+  color: #e9dccf;
+}
+
+.lumos-panel-feedback--error {
+  background: rgba(233, 207, 207, 0.08);
+  border: 1px solid rgba(90, 58, 58, 0.55);
+  color: #e9cfcf;
+}
+
+.empty-state--panel.empty-state--info {
+  border-color: rgba(58, 74, 90, 0.45);
+  background: rgba(207, 224, 240, 0.04);
+}
+
+.empty-state--panel.empty-state--warn {
+  border-color: rgba(90, 74, 58, 0.45);
+  background: rgba(233, 220, 207, 0.04);
+}
+
+.empty-state--panel .empty-desc {
+  line-height: 1.55;
+}
+
+/* Görevler / Kayıtlar: aktif sekme belirgin */
+.panel-filter-tabs button.panel-filter-tab.active,
+.task-filters button.panel-filter-tab.active {
+  background: linear-gradient(180deg, rgba(126, 184, 255, 0.38) 0%, rgba(90, 140, 220, 0.22) 100%);
+  color: #f5f9ff;
+  border: 1px solid rgba(126, 184, 255, 0.95);
+  font-weight: 600;
+  box-shadow:
+    0 0 0 2px rgba(126, 184, 255, 0.25) inset,
+    0 2px 10px rgba(0, 0, 0, 0.28);
+}
+
+.panel-filter-tab:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
+/* Görev listesi satırı */
+.task-list-row-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.task-list-title-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.list-item--pending-delete .task-list-row-main {
+  opacity: 0.92;
+}
+
+/* Görev detay paneli */
+.task-detail-header {
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.task-detail-title {
+  margin: 0 0 0.55rem 0;
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.task-detail-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.task-detail-status-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.task-detail-summary,
+.task-detail-result {
+  margin-top: 0.5rem;
+}
+
+.task-detail-result-label {
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-right: 0.35rem;
+}
+
+.task-detail-meta {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.task-detail-meta-heading {
+  margin: 0 0 0.55rem 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.task-detail-dl {
+  margin: 0;
+  padding: 0;
+}
+
+.task-detail-dl-row {
+  display: grid;
+  grid-template-columns: minmax(5.5rem, 7.5rem) 1fr;
+  gap: 0.35rem 0.75rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.task-detail-dl-row:last-child {
+  border-bottom: none;
+}
+
+.task-detail-dl dt {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.task-detail-dl dd {
+  margin: 0;
+  font-size: 0.85rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.task-detail-primary {
+  margin-top: 0.85rem;
+}
+
+.task-detail-actions-label {
+  margin: 0 0 0.45rem 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.task-detail-flash {
+  margin-top: 0.65rem;
+}
+
+/* Kayıtlar timeline */
+.kayitlar-timeline-split {
+  min-width: 0;
+}
+
+.kayitlar-timeline-list-col,
+.kayitlar-timeline-detail-col,
+.tasks-split-view > .section-card {
+  min-width: 0;
+}
+
+.kayitlar-timeline-master {
+  min-width: 0;
+}
+
+.kayitlar-timeline-row {
+  display: block;
+  min-width: 0;
+}
+
+.kayitlar-timeline-row-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.35rem 0.5rem;
+  min-width: 0;
+}
+
+.kayitlar-timeline-title {
+  flex: 1 1 8rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.kayitlar-timeline-row-trail {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  max-width: 100%;
+}
+
+.kayitlar-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  max-width: 100%;
+}
+
+.kayitlar-status-badge__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kayitlar-timeline-date {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.kayitlar-timeline-summary {
+  margin-bottom: 0.85rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--card-radius);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.35rem 0.75rem;
+}
+
+.kayitlar-timeline-summary--completed {
+  background: rgba(207, 233, 207, 0.08);
+  border: 1px solid rgba(58, 90, 58, 0.45);
+}
+
+.kayitlar-timeline-summary--created {
+  background: rgba(207, 224, 240, 0.06);
+  border: 1px solid rgba(58, 74, 90, 0.45);
+}
+
+.kayitlar-timeline-summary--deleted,
+.kayitlar-timeline-summary--trash {
+  background: rgba(233, 220, 207, 0.08);
+  border: 1px solid rgba(90, 74, 58, 0.45);
+}
+
+.kayitlar-timeline-summary--permanently_deleted,
+.kayitlar-timeline-summary--blocked {
+  background: rgba(233, 207, 207, 0.08);
+  border: 1px solid rgba(90, 58, 58, 0.45);
+}
+
+.kayitlar-timeline-summary-state {
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.03em;
+}
+
+.kayitlar-timeline-summary-time {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.kayitlar-timeline-detail-record-title {
+  margin: 0.5rem 0 0.75rem 0;
+}
+
+.kayitlar-detail-meta-heading {
+  margin: 0 0 0.55rem 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.kayitlar-timeline-process {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.kayitlar-timeline-process-step {
+  display: flex;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.35rem 0;
+}
+
+.kayitlar-timeline-process-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.kayitlar-timeline-process-label,
+.kayitlar-timeline-process-detail {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 720px) {
+  .tasks-split-view,
+  .kayitlar-timeline-split {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 360px) {
+  .task-detail-dl-row {
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
+
+  .kayitlar-timeline-row-trail {
+    width: 100%;
+  }
+
+  .lumos-panel-status {
+    max-width: 100%;
+  }
 }
 
 .detail-metrics {

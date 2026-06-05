@@ -320,16 +320,33 @@ function canTransition(from, to) {
     return value;
   }
 
+  var PANEL_STATUS_KINDS = ["ok", "info", "warn", "error"];
+
+  /** Görev listesi/detay rozetleri: ok | info | warn | error (PR #64 paleti). */
+  function getTaskStatusKind(status) {
+    var s = status != null ? String(status).trim() : "";
+    var lower = s.toLowerCase();
+    if (lower === "tamamlandı" || lower === "tamamlandi") return "ok";
+    if (lower === "başarısız" || lower === "basarisiz") return "warn";
+    if (lower === "engellenen" || lower === "engellendi") return "error";
+    if (s === "Siliniyor" || lower === "siliniyor") return "warn";
+    if (lower === "aktif" || lower === "bekleyen") return "info";
+    return "info";
+  }
+
   function getTaskStatusVariant(status) {
-    var v = {
-      aktif: "badge-live",
-      bekleyen: "badge-offline",
-      tamamlandı: "badge-live",
-      başarısız: "badge-warning",
-      engellenen: "badge-blocked",
-      Siliniyor: "badge-warning",
-    };
-    return v[status] || "badge-mode";
+    return "lumos-panel-status--" + getTaskStatusKind(status);
+  }
+
+  /** Kayıtlar satır rozeti → ok | info | warn | error. */
+  function getKayitlarStatusKind(variant) {
+    var v = variant != null ? String(variant) : "default";
+    if (v === "completed") return "ok";
+    if (v === "permanently_deleted") return "error";
+    if (v === "deleted" || v === "trash") return "warn";
+    if (v === "created") return "info";
+    if (v === "blocked") return "error";
+    return "info";
   }
 
   function getHealthStatusVariant(status) {
@@ -2036,7 +2053,7 @@ function canTransition(from, to) {
       return { label: "Aktif", variant: "created" };
     }
     if (typ === "policy_blocked") {
-      return { label: "Engellendi", variant: "default" };
+      return { label: "Engellendi", variant: "blocked" };
     }
     if (lk === "trash") {
       return { label: "Çöpte", variant: "trash" };
@@ -2330,11 +2347,10 @@ function canTransition(from, to) {
   function buildKayitlarTimelineDetailHtml(groups, selectedKey) {
     if (!selectedKey) {
       return wrapKayitlarDetailPanel(
-        '<p class="text-muted-small kayitlar-detail-placeholder">' +
-          escapeHtmlYanit(
-            "Henüz seçim yok. Soldaki listeden bir kayda tıklayın; süreç zaman çizelgesi ve temel bilgiler burada görünür."
-          ) +
-          "</p>"
+        buildPanelFeedback(
+          "info",
+          "Henüz seçim yok. Soldaki listeden bir kayda tıklayın; süreç zaman çizelgesi ve temel bilgiler burada görünür."
+        )
       );
     }
     var g = null;
@@ -2347,11 +2363,10 @@ function canTransition(from, to) {
     }
     if (!g) {
       return wrapKayitlarDetailPanel(
-        '<p class="text-muted-small kayitlar-detail-placeholder">' +
-          escapeHtmlYanit(
-            "Bu seçim artık listede yok (ör. sekme değişti). Soldan geçerli bir kayıt seçin."
-          ) +
-          "</p>"
+        buildPanelFeedback(
+          "warn",
+          "Bu seçim artık listede yok (ör. sekme değişti). Soldan geçerli bir kayıt seçin."
+        )
       );
     }
     var lastEv = g.events[g.events.length - 1];
@@ -2444,16 +2459,21 @@ function canTransition(from, to) {
     );
   }
 
-  function KayitlarTimelineView(groups, selectedKey) {
+  function KayitlarTimelineView(groups, selectedKey, activeFilterId, filters) {
     if (!groups || groups.length === 0) {
-      return buildEmptyState("Henüz kayıt yok", "Bu sekme için gösterilecek satır yok.");
+      return buildKayitlarEmptyStateHtml(activeFilterId, filters);
     }
     var listHtml = '<ul class="kayitlar-timeline-master list-selectable">';
     var i;
     for (i = 0; i < groups.length; i++) {
       var g = groups[i];
       var sel = selectedKey && g.key === selectedKey ? " selected" : "";
-      var badgeClass = "kayitlar-status-badge kayitlar-status-badge--" + g.statusVariant;
+      var statusKind = getKayitlarStatusKind(g.statusVariant);
+      var badgeClass =
+        "kayitlar-status-badge kayitlar-status-badge--" +
+        g.statusVariant +
+        " lumos-panel-status lumos-panel-status--" +
+        statusKind;
       var lastTsUi = formatUiListTimestamp(g.lastTs);
       listHtml +=
         '<li class="kayitlar-timeline-row' +
@@ -2602,6 +2622,96 @@ function canTransition(from, to) {
     return StatusBadge(label, variant || getBadgeVariant(label));
   }
 
+  function buildPanelStatusBadge(label, kind) {
+    var k =
+      kind && PANEL_STATUS_KINDS.indexOf(kind) >= 0 ? kind : "info";
+    return (
+      '<span class="lumos-panel-status lumos-panel-status--' +
+      k +
+      '">' +
+      escapeHtmlYanit(label != null ? String(label) : "—") +
+      "</span>"
+    );
+  }
+
+  function buildPanelFeedback(kind, text, role) {
+    var k =
+      kind && PANEL_STATUS_KINDS.indexOf(kind) >= 0 ? kind : "info";
+    var live = role === "alert" ? "alert" : "status";
+    return (
+      '<p class="lumos-panel-feedback lumos-panel-feedback--' +
+      k +
+      '" role="' +
+      live +
+      '">' +
+      escapeHtmlYanit(text != null ? String(text) : "") +
+      "</p>"
+    );
+  }
+
+  function buildPanelEmptyState(kind, title, desc) {
+    var k =
+      kind && PANEL_STATUS_KINDS.indexOf(kind) >= 0 ? kind : "info";
+    return (
+      '<div class="empty-state empty-state--panel empty-state--' +
+      k +
+      '"><p class="empty-title">' +
+      escapeHtmlYanit(title || "Henüz veri yok") +
+      '</p><p class="empty-desc">' +
+      escapeHtmlYanit(desc || EMPTY_DESC_DEFAULT) +
+      "</p></div>"
+    );
+  }
+
+  function getPanelFilterLabel(filters, activeFilterId, fallbackLabel) {
+    var af = activeFilterId != null ? String(activeFilterId) : "all";
+    if (af === "all") return fallbackLabel || "Tümü";
+    var list = filters || [];
+    var i;
+    for (i = 0; i < list.length; i++) {
+      if (list[i] && list[i].id === af) return list[i].label || af;
+    }
+    return af;
+  }
+
+  function buildTasksEmptyStateHtml(data) {
+    var af = data.activeFilter || "all";
+    if (af === "all") {
+      return buildPanelEmptyState(
+        "info",
+        "Henüz görev yok",
+        "Görev oluşturulduğunda veya içe aktarıldığında burada listelenir. Şu an görüntülenecek görev bulunmuyor."
+      );
+    }
+    var filterLabel = getPanelFilterLabel(data.filters, af, "Tümü");
+    return buildPanelEmptyState(
+      "info",
+      "Bu filtrede görev yok",
+      '"' +
+        filterLabel +
+        '" filtresine uyan görev yok. Üstteki sekmelerden başka bir filtre seçebilir veya yeni görev oluşturabilirsiniz.'
+    );
+  }
+
+  function buildKayitlarEmptyStateHtml(activeFilterId, filters) {
+    var af = activeFilterId || "all";
+    if (af === "all") {
+      return buildPanelEmptyState(
+        "info",
+        "Henüz kayıt yok",
+        "Görev, yapılandırma veya sistem olayları gerçekleştiğinde süreç kayıtları burada listelenir. Şu an görüntülenecek olay bulunmuyor."
+      );
+    }
+    var filterLabel = getPanelFilterLabel(filters, af, "Tümü");
+    return buildPanelEmptyState(
+      "info",
+      "Bu sekmede kayıt yok",
+      '"' +
+        filterLabel +
+        '" sekmesine uyan olay henüz oluşmadı. Farklı bir sekme seçebilir veya yeni işlem yaptıktan sonra tekrar bakabilirsiniz.'
+    );
+  }
+
   function buildEmptyState(title, desc) {
     return EmptyState(title || "Henüz veri yok", desc || EMPTY_DESC_DEFAULT);
   }
@@ -2610,6 +2720,20 @@ function canTransition(from, to) {
     var html = "";
     for (var i = 0; i < rows.length; i++) html += "<p><strong>" + rows[i].label + ":</strong> " + (rows[i].value != null ? rows[i].value : "—") + "</p>";
     return html;
+  }
+
+  function buildTaskDetailRows(rows) {
+    var html = '<dl class="task-detail-dl">';
+    var i;
+    for (i = 0; i < rows.length; i++) {
+      html +=
+        '<div class="task-detail-dl-row"><dt>' +
+        escapeHtmlYanit(rows[i].label) +
+        "</dt><dd>" +
+        (rows[i].value != null ? rows[i].value : "—") +
+        "</dd></div>";
+    }
+    return html + "</dl>";
   }
 
   function buildDetailPanel(title, bodyHtml) {
@@ -3249,16 +3373,27 @@ function canTransition(from, to) {
     var tasksFilePathLine = data.tasksFilePath ? '<p class="text-muted-small">Görev dosyası: ' + (data.tasksFilePath || "—") + "</p>" : "";
     var tabsHtml = data.filters.map(function (f) {
       var active = f.id === data.activeFilter ? " active" : "";
-      return '<button type="button" class="log-tab task-filter-tab' + active + '" data-task-filter="' + f.id + '">' + f.label + "</button>";
+      var pressed = f.id === data.activeFilter ? ' aria-pressed="true"' : ' aria-pressed="false"';
+      return (
+        '<button type="button" class="log-tab task-filter-tab panel-filter-tab' +
+        active +
+        '" data-task-filter="' +
+        f.id +
+        '"' +
+        pressed +
+        ">" +
+        f.label +
+        "</button>"
+      );
     }).join("");
     var listBody = (listUpdatedLine || taskCountLine || tasksFilePathLine ? (listUpdatedLine || "") + (taskCountLine || "") + (tasksFilePathLine || "") : "") + '<div class="task-filters" id="task-filters">' + tabsHtml + "</div>";
     if (data.listItems.length === 0) {
-      listBody += buildEmptyState(data.emptyListTitle, data.emptyListDesc);
+      listBody += buildTasksEmptyStateHtml(data);
     } else {
       var listItems = "";
       data.listItems.forEach(function (t) {
         var sel = taskIdEquals(data.selectedId, t.id) ? " selected" : "";
-        var badge = buildBadge(t.status, getTaskStatusVariant(t.status));
+        var badge = buildPanelStatusBadge(t.status, getTaskStatusKind(t.status));
         var tid = escapeHtmlYanit(t.id);
         var pdui = pendingDeleteUiFromRow(t);
         var isPendingRow = pdui.active;
@@ -3303,7 +3438,11 @@ function canTransition(from, to) {
 
     var detailContent;
     if (!data.selectedTask) {
-      detailContent = buildEmptyState("Görev seçin", "Soldaki listeden bir satıra tıklayın.");
+      detailContent = buildPanelEmptyState(
+        "info",
+        "Görev seçin",
+        "Soldaki listeden bir satıra tıklayın; durum, işlemler ve ayrıntılar burada görünür."
+      );
     } else {
       var t = data.selectedTask;
       var st = String(t.status || "").toLowerCase();
@@ -3379,9 +3518,9 @@ function canTransition(from, to) {
           fr.kind === "error" ? "error" : fr.kind === "ok" ? "ok" : "info";
         var live = fr.kind === "error" ? "alert" : "status";
         flashRow =
-          '<p class="task-detail-flash task-detail-flash--' +
+          '<p class="lumos-panel-feedback lumos-panel-feedback--' +
           fk +
-          '" role="' +
+          ' task-detail-flash" role="' +
           live +
           '">' +
           escapeHtmlYanit(formatTaskDetailPanelFlashText(fr.text, fr.panelAction)) +
@@ -3445,20 +3584,39 @@ function canTransition(from, to) {
       detailContent =
         busyRow +
         flashRow +
-        "<p><strong>" + escapeHtmlYanit(t.title) + "</strong></p>" +
-        "<p>Durum: " +
-        buildBadge(t.status, getTaskStatusVariant(t.status)) +
-        "</p>" +
-        (t.summary ? ('<p class="text-muted-small">' + escapeHtmlYanit(t.summary) + "</p>") : "") +
-        (t.result ? ('<p class="text-muted-small"><strong>Sonuç:</strong> ' + escapeHtmlYanit(t.result) + "</p>") : "") +
+        '<div class="task-detail-header">' +
+        '<p class="task-detail-title"><strong>' +
+        escapeHtmlYanit(t.title) +
+        "</strong></p>" +
+        '<div class="task-detail-status-row">' +
+        '<span class="task-detail-status-label">Durum</span>' +
+        buildPanelStatusBadge(t.status, getTaskStatusKind(t.status)) +
+        "</div></div>" +
+        (t.summary
+          ? '<p class="text-muted-small task-detail-summary">' + escapeHtmlYanit(t.summary) + "</p>"
+          : "") +
+        (t.result
+          ? '<p class="text-muted-small task-detail-result"><span class="task-detail-result-label">Sonuç</span> ' +
+            escapeHtmlYanit(t.result) +
+            "</p>"
+          : "") +
         primaryBlock +
         noActionsNote +
+        '<div class="task-detail-meta">' +
         '<p class="task-detail-meta-heading">Ayrıntılar</p>' +
-        buildDetailRows(metaRows);
+        buildTaskDetailRows(metaRows) +
+        "</div>";
     }
     var detail = buildDetailPanel(data.detailTitle, detailContent);
     var runNoteSection = buildSection(data.runNoteTitle, "<p class=\"text-muted-small\">" + data.runNoteBody + "</p>");
-    return ViewHeader(data.title, data.subtitle) + '<div class="split-view">' + listSection + detail + "</div>" + runNoteSection;
+    return (
+      ViewHeader(data.title, data.subtitle) +
+      '<div class="split-view tasks-split-view">' +
+      listSection +
+      detail +
+      "</div>" +
+      runNoteSection
+    );
   }
 
   // ——— Ekran: Korumalı Alan (adapter + build) ———
@@ -4088,15 +4246,34 @@ function canTransition(from, to) {
     }
     var tabsHtml = data.filters.map(function (f) {
       var active = f.id === data.activeFilter ? " active" : "";
-      return '<button type="button" class="log-tab' + active + '" data-log-filter="' + f.id + '">' + f.label + "</button>";
+      var pressed = f.id === data.activeFilter ? ' aria-pressed="true"' : ' aria-pressed="false"';
+      return (
+        '<button type="button" class="log-tab panel-filter-tab' +
+        active +
+        '" data-log-filter="' +
+        f.id +
+        '"' +
+        pressed +
+        ">" +
+        f.label +
+        "</button>"
+      );
     }).join("");
     return (
       ViewHeader(data.title, data.subtitle) +
       (metaLine ? metaLine : "") +
-      '<div class="log-tabs" id="log-tabs">' +
+      '<div class="log-tabs panel-filter-tabs" id="log-tabs">' +
       tabsHtml +
       "</div>" +
-      buildSection("Kayıtlar", KayitlarTimelineView(data.kayitRecords || [], mockState.selectedKayitlarTimelineKey))
+      buildSection(
+        "Kayıtlar",
+        KayitlarTimelineView(
+          data.kayitRecords || [],
+          mockState.selectedKayitlarTimelineKey,
+          data.activeFilter,
+          data.filters
+        )
+      )
     );
   }
 
