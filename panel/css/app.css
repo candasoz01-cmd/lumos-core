@@ -493,6 +493,12 @@ body {
   bottom: calc(100% + 4px);
 }
 
+/* Sağ kenara yakınken sağa hizalanır (sağdan kırpılmayı önler) */
+.lumos-chat-menu--left {
+  left: auto;
+  right: 0;
+}
+
 .lumos-chat-menu-item {
   font-family: inherit;
   font-size: 0.8rem;
@@ -525,6 +531,16 @@ body {
 .lumos-chat-menu-item--soon {
   color: var(--text-muted);
   font-style: italic;
+}
+
+/* Pasif placeholder: tıklanınca yalnızca "Yakında" bildirimi; başarı iddia etmez */
+.lumos-chat-action[aria-disabled="true"],
+.lumos-chat-menu-item[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+.lumos-chat-menu-item[aria-disabled="true"]:hover {
+  background: transparent;
 }
 
 /* Dar ekran: araç çubuğunu ikon-only + kompakt yap (erişilebilir etiketler korunur) */

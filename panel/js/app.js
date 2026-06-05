@@ -4853,13 +4853,13 @@ function canTransition(from, to) {
       '<button type="button" class="lumos-chat-action" data-chat-action="regenerate" data-chat-msg-index="' + idx + '" aria-label="Yeniden üret" title="Yeniden üret"><span class="lumos-chat-action__label">Yeniden üret</span></button>' +
       '<button type="button" class="lumos-chat-action" data-chat-action="share" data-chat-msg-index="' + idx + '" aria-label="Paylaş / gönder" title="Paylaş / gönder"><span class="lumos-chat-action__label">Paylaş</span></button>' +
       '<button type="button" class="lumos-chat-action" data-chat-action="tts" data-chat-msg-index="' + idx + '" aria-label="Sesli oku" title="Sesli oku"><span class="lumos-chat-action__label">Sesli oku</span></button>' +
-      '<button type="button" class="lumos-chat-action lumos-chat-action--soon" data-chat-action="branch" data-chat-msg-index="' + idx + '" aria-label="Yeni sohbet / branch olarak aç (yakında)" title="Yeni sohbet / branch — yakında (henüz kullanılamıyor)"><span class="lumos-chat-action__label">Branch</span></button>' +
+      '<button type="button" class="lumos-chat-action lumos-chat-action--soon" data-chat-action="branch" data-chat-msg-index="' + idx + '" aria-disabled="true" aria-label="Yeni sohbet / branch — yakında, henüz kullanılamıyor" title="Yeni sohbet / branch — yakında (henüz kullanılamıyor)"><span class="lumos-chat-action__label">Branch</span></button>' +
       '<div class="lumos-chat-actions-more">' +
       '<button type="button" class="lumos-chat-action lumos-chat-action--more" data-chat-action="menu" data-chat-msg-index="' + idx + '" aria-haspopup="true" aria-expanded="false" aria-label="Diğer işlemler" title="Diğer işlemler">⋯</button>' +
       '<div class="lumos-chat-menu" role="menu" hidden>' +
       '<button type="button" class="lumos-chat-menu-item" data-chat-action="copy" data-chat-msg-index="' + idx + '" role="menuitem">Düz metni kopyala</button>' +
       '<button type="button" class="lumos-chat-menu-item" data-chat-action="tts-stop" data-chat-msg-index="' + idx + '" role="menuitem">Sesli okumayı durdur</button>' +
-      '<button type="button" class="lumos-chat-menu-item lumos-chat-menu-item--soon" data-chat-action="branch" data-chat-msg-index="' + idx + '" role="menuitem" title="Yakında — henüz kullanılamıyor">Yeni sohbet olarak aç (yakında)</button>' +
+      '<button type="button" class="lumos-chat-menu-item lumos-chat-menu-item--soon" data-chat-action="branch" data-chat-msg-index="' + idx + '" role="menuitem" aria-disabled="true" title="Yakında — henüz kullanılamıyor">Yeni sohbet olarak aç (yakında)</button>' +
       "</div>" +
       "</div>" +
       "</div>"
@@ -5024,33 +5024,11 @@ function canTransition(from, to) {
     }
   }
 
-  /** Yeni branch / sohbet olarak aç: güvenli kanca — özel olay yayar + geri bildirim. */
-  function chatOpenAsBranch(idx, btn) {
-    var msgs = chatViewState.messages;
-    var msg = !isNaN(idx) && msgs[idx] ? msgs[idx] : null;
-    var userText = "";
-    for (var j = idx - 1; j >= 0; j--) {
-      if (msgs[j] && msgs[j].role === "user") {
-        userText = msgs[j].text != null ? String(msgs[j].text) : "";
-        break;
-      }
-    }
-    try {
-      if (typeof window.CustomEvent === "function") {
-        window.dispatchEvent(
-          new window.CustomEvent("lumos:chat-open-branch", {
-            detail: {
-              index: idx,
-              userText: userText,
-              assistantText: msg && msg.text != null ? String(msg.text) : "",
-            },
-          })
-        );
-      }
-    } catch (e) {
-      /* ignore */
-    }
-    /* Gerçek branch/çoklu-sohbet altyapısı yok; başarı iddia etmeyen dürüst geri bildirim. */
+  /**
+   * Yeni sohbet / branch: gerçek altyapı YOK ve bu PR'da eklenmeyecek.
+   * Yanıltıcı olmamak için hiçbir aksiyon/olay yok; yalnızca "Yakında" bildirimi.
+   */
+  function chatBranchPlaceholderNotice(btn) {
     chatActionFlash(btn, "Yakında");
   }
 
@@ -5115,29 +5093,44 @@ function canTransition(from, to) {
       if (exceptContainer && exceptContainer.contains && exceptContainer.contains(menu)) continue;
       menu.hidden = true;
       menu.classList.remove("lumos-chat-menu--up");
+      menu.classList.remove("lumos-chat-menu--left");
       var parent = menu.parentElement;
       var toggle = parent && parent.querySelector ? parent.querySelector('[data-chat-action="menu"]') : null;
       if (toggle) toggle.setAttribute("aria-expanded", "false");
     }
   }
 
-  /** Menü açılırken aşağıda yer yoksa yukarı doğru aç (chat-log / viewport sınırına göre). */
+  /**
+   * Menü görünür alanda kalsın: altta yer yoksa yukarı, sağda taşarsa sağa hizala.
+   * Sınır = chat-log ∩ viewport (log viewport dışına taşabilir; ikisinin kesişimi alınır).
+   * Ölçüm menü görünür (hidden=false) olduktan SONRA, gerçek getBoundingClientRect ile yapılır.
+   */
   function positionChatMenu(btn, menu) {
     menu.classList.remove("lumos-chat-menu--up");
+    menu.classList.remove("lumos-chat-menu--left");
     try {
-      var btnRect = btn.getBoundingClientRect();
-      var menuH = menu.offsetHeight || 0;
+      var pad = 6;
+      var vpBottom = window.innerHeight || document.documentElement.clientHeight;
+      var vpRight = window.innerWidth || document.documentElement.clientWidth;
       var log = btn.closest ? btn.closest(".lumos-chat-log") : null;
       var logRect = log ? log.getBoundingClientRect() : null;
-      var boundaryBottom = logRect ? logRect.bottom : (window.innerHeight || document.documentElement.clientHeight);
-      var boundaryTop = logRect ? logRect.top : 0;
-      var spaceBelow = boundaryBottom - btnRect.bottom;
-      var spaceAbove = btnRect.top - boundaryTop;
-      if (spaceBelow < menuH + 8 && spaceAbove > spaceBelow) {
+      var bTop = logRect ? Math.max(logRect.top, 0) : 0;
+      var bBottom = logRect ? Math.min(logRect.bottom, vpBottom) : vpBottom;
+      var bRight = logRect ? Math.min(logRect.right, vpRight) : vpRight;
+      var btnRect = btn.getBoundingClientRect();
+      /* Varsayılan (aşağı + sola hizalı) konumdaki gerçek menü dikdörtgeni */
+      var menuRect = menu.getBoundingClientRect();
+
+      var spaceBelow = bBottom - btnRect.bottom;
+      var spaceAbove = btnRect.top - bTop;
+      if (menuRect.bottom > bBottom - pad && spaceAbove > spaceBelow) {
         menu.classList.add("lumos-chat-menu--up");
       }
+      if (menuRect.right > bRight - pad) {
+        menu.classList.add("lumos-chat-menu--left");
+      }
     } catch (e) {
-      /* ölçüm başarısızsa varsayılan: aşağı açılır */
+      /* ölçüm başarısızsa varsayılan: aşağı + sola hizalı açılır */
     }
   }
 
@@ -5164,6 +5157,11 @@ function canTransition(from, to) {
       toggleChatMenu(btn);
       return;
     }
+    if (action === "branch") {
+      /* Pasif placeholder: state değişmez, olay yok; bildirim görünsün diye menü kapatılmaz. */
+      chatBranchPlaceholderNotice(btn);
+      return;
+    }
     var idx = parseInt(btn.dataset.chatMsgIndex, 10);
     var msg = !isNaN(idx) && chatViewState.messages[idx] ? chatViewState.messages[idx] : null;
     var inMore = btn.closest ? btn.closest(".lumos-chat-actions-more") : null;
@@ -5172,7 +5170,6 @@ function canTransition(from, to) {
     else if (action === "share") chatShareMessage(msg, btn);
     else if (action === "tts") chatSpeakMessage(msg, btn);
     else if (action === "tts-stop") chatStopSpeaking();
-    else if (action === "branch") chatOpenAsBranch(idx, btn);
     if (inMore) closeAllChatMenus();
   }
 
