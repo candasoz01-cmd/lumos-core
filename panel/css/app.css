@@ -1666,7 +1666,21 @@ body {
   color: #e9cfcf;
 }
 
-/* ——— Sistem Durumu ekranı ——— */
+/* ——— Sistem / Sandbox / Keystore ekranları ——— */
+.panel-screen-sandbox,
+.panel-screen-keystore {
+  min-width: 0;
+}
+
+.panel-screen-cards {
+  min-width: 0;
+}
+
+.panel-screen-dl .system-status-dl-row dd {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
 .system-status-dl {
   margin: 0.75rem 0 0;
 }
@@ -2013,9 +2027,14 @@ body {
     max-width: 100%;
   }
 
-  .system-status-dl-row {
+  .system-status-dl-row,
+  .panel-screen-dl .system-status-dl-row {
     grid-template-columns: 1fr;
     gap: 0.15rem;
+  }
+
+  .panel-screen-cards {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -2041,6 +2060,20 @@ body {
 
   .topbar-demo-hint {
     font-size: 0.65rem;
+  }
+
+  .panel-screen-sandbox .lumos-panel-feedback,
+  .panel-screen-keystore .lumos-panel-feedback {
+    font-size: 0.78rem;
+    padding: 0.45rem 0.6rem;
+  }
+
+  .panel-screen-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .lumos-panel-status {
+    white-space: normal;
   }
 }
 
