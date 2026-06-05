@@ -4878,6 +4878,22 @@ function canTransition(from, to) {
     for (var i = 0; i < menus.length; i++) syncChatTtsStopMenuItem(menus[i]);
   }
 
+  function renderUserActionsBar(index) {
+    var idx = String(index);
+    return (
+      '<div class="lumos-chat-user-actions" role="toolbar" aria-label="Mesaj işlemleri" data-chat-user-msg-index="' + idx + '">' +
+      '<button type="button" class="lumos-chat-user-action" data-chat-user-action="copy" data-chat-user-msg-index="' + idx + '" aria-label="Kopyala" title="Kopyala"><span class="lumos-chat-user-action__label">Kopyala</span></button>' +
+      '<button type="button" class="lumos-chat-user-action lumos-chat-user-action--soon" data-chat-user-action="edit" data-chat-user-msg-index="' + idx + '" aria-disabled="true" aria-label="Düzenle — yakında, henüz kullanılamıyor" title="Düzenle — yakında (henüz kullanılamıyor)"><span class="lumos-chat-user-action__label">Düzenle (yakında)</span></button>' +
+      '<div class="lumos-chat-user-actions-more">' +
+      '<button type="button" class="lumos-chat-user-action lumos-chat-user-action--more" data-chat-user-action="menu" data-chat-user-msg-index="' + idx + '" aria-haspopup="true" aria-expanded="false" aria-label="Diğer işlemler" title="Diğer işlemler">⋯</button>' +
+      '<div class="lumos-chat-user-menu" role="menu" hidden>' +
+      '<button type="button" class="lumos-chat-user-menu-item lumos-chat-user-menu-item--soon" data-chat-user-action="edit" data-chat-user-msg-index="' + idx + '" role="menuitem" aria-disabled="true" title="Yakında — henüz kullanılamıyor">Düzenle (yakında)</button>' +
+      "</div>" +
+      "</div>" +
+      "</div>"
+    );
+  }
+
   function renderAssistantActionsBar(index) {
     var idx = String(index);
     var ttsStopAttrs = chatTtsStopMenuItemAttrs();
@@ -4933,7 +4949,11 @@ function canTransition(from, to) {
   function chatActionFlash(btn, label, kind) {
     if (!btn) return;
     /* Mobilde ikon-only modunda etiket span'ı gizli; flash sırasında is-flash ile görünür olur. */
-    var target = btn.querySelector ? btn.querySelector(".lumos-chat-action__label") || btn : btn;
+    var target = btn.querySelector
+      ? btn.querySelector(".lumos-chat-action__label") ||
+        btn.querySelector(".lumos-chat-user-action__label") ||
+        btn
+      : btn;
     if (btn._lumosFlashTimer) {
       clearTimeout(btn._lumosFlashTimer);
       btn._lumosFlashTimer = null;
@@ -5088,6 +5108,11 @@ function canTransition(from, to) {
     chatActionFlash(btn, "Yakında", "warn");
   }
 
+  /** Kullanıcı mesajı düzenle: gerçek altyapı YOK; yalnızca "Yakında" bildirimi. */
+  function chatUserEditPlaceholderNotice(btn) {
+    chatActionFlash(btn, "Yakında", "warn");
+  }
+
   /** Re-çalıştırmada yan etki (görev oluştur/sil, navigasyon, kilit) olur mu? */
   function chatUserTextHasSideEffects(text) {
     if (!text) return false;
@@ -5141,18 +5166,31 @@ function canTransition(from, to) {
     apply(replyOrPromise);
   }
 
-  /** Açık olan tüm yanıt menülerini kapat (isteğe bağlı bir kapsayıcı hariç). */
+  function closeChatMenuElement(menu, toggleSelector) {
+    if (!menu || menu.hidden) return;
+    menu.hidden = true;
+    menu.classList.remove("lumos-chat-menu--up");
+    menu.classList.remove("lumos-chat-menu--left");
+    menu.classList.remove("lumos-chat-user-menu--up");
+    menu.classList.remove("lumos-chat-user-menu--left");
+    var parent = menu.parentElement;
+    var toggle = parent && parent.querySelector ? parent.querySelector(toggleSelector) : null;
+    if (toggle) toggle.setAttribute("aria-expanded", "false");
+  }
+
+  /** Açık olan tüm yanıt ve kullanıcı mesajı menülerini kapat (isteğe bağlı bir kapsayıcı hariç). */
   function closeAllChatMenus(exceptContainer) {
-    var open = document.querySelectorAll(".lumos-chat-actions-more .lumos-chat-menu:not([hidden])");
-    for (var i = 0; i < open.length; i++) {
-      var menu = open[i];
-      if (exceptContainer && exceptContainer.contains && exceptContainer.contains(menu)) continue;
-      menu.hidden = true;
-      menu.classList.remove("lumos-chat-menu--up");
-      menu.classList.remove("lumos-chat-menu--left");
-      var parent = menu.parentElement;
-      var toggle = parent && parent.querySelector ? parent.querySelector('[data-chat-action="menu"]') : null;
-      if (toggle) toggle.setAttribute("aria-expanded", "false");
+    var assistantOpen = document.querySelectorAll(".lumos-chat-actions-more .lumos-chat-menu:not([hidden])");
+    for (var i = 0; i < assistantOpen.length; i++) {
+      var aMenu = assistantOpen[i];
+      if (exceptContainer && exceptContainer.contains && exceptContainer.contains(aMenu)) continue;
+      closeChatMenuElement(aMenu, '[data-chat-action="menu"]');
+    }
+    var userOpen = document.querySelectorAll(".lumos-chat-user-actions-more .lumos-chat-user-menu:not([hidden])");
+    for (var j = 0; j < userOpen.length; j++) {
+      var uMenu = userOpen[j];
+      if (exceptContainer && exceptContainer.contains && exceptContainer.contains(uMenu)) continue;
+      closeChatMenuElement(uMenu, '[data-chat-user-action="menu"]');
     }
     closeChatAttachMenu();
   }
@@ -5284,6 +5322,67 @@ function canTransition(from, to) {
     }
   }
 
+  function positionChatUserMenu(btn, menu) {
+    menu.classList.remove("lumos-chat-user-menu--up");
+    menu.classList.remove("lumos-chat-user-menu--left");
+    try {
+      var pad = 6;
+      var vpBottom = window.innerHeight || document.documentElement.clientHeight;
+      var vpRight = window.innerWidth || document.documentElement.clientWidth;
+      var log = btn.closest ? btn.closest(".lumos-chat-log") : null;
+      var logRect = log ? log.getBoundingClientRect() : null;
+      var bTop = logRect ? Math.max(logRect.top, 0) : 0;
+      var bBottom = logRect ? Math.min(logRect.bottom, vpBottom) : vpBottom;
+      var bRight = logRect ? Math.min(logRect.right, vpRight) : vpRight;
+      var btnRect = btn.getBoundingClientRect();
+      var menuRect = menu.getBoundingClientRect();
+      var spaceBelow = bBottom - btnRect.bottom;
+      var spaceAbove = btnRect.top - bTop;
+      if (menuRect.bottom > bBottom - pad && spaceAbove > spaceBelow) {
+        menu.classList.add("lumos-chat-user-menu--up");
+      }
+      if (menuRect.right > bRight - pad) {
+        menu.classList.add("lumos-chat-user-menu--left");
+      }
+    } catch (e) {
+      /* ölçüm başarısızsa varsayılan: aşağı + sola hizalı açılır */
+    }
+  }
+
+  function toggleChatUserMenu(btn) {
+    var container = btn.closest ? btn.closest(".lumos-chat-user-actions-more") : null;
+    if (!container) return;
+    var menu = container.querySelector(".lumos-chat-user-menu");
+    if (!menu) return;
+    var willOpen = !!menu.hidden;
+    closeAllChatMenus();
+    if (willOpen) {
+      menu.hidden = false;
+      btn.setAttribute("aria-expanded", "true");
+      positionChatUserMenu(btn, menu);
+    }
+  }
+
+  /** Kullanıcı mesajı aksiyon butonu tıklaması (delegasyon ile çağrılır). */
+  function handleChatUserAction(btn) {
+    if (!btn || !btn.dataset) return;
+    var action = btn.dataset.chatUserAction;
+    if (!action) return;
+    if (action === "menu") {
+      toggleChatUserMenu(btn);
+      return;
+    }
+    if (action === "edit") {
+      chatUserEditPlaceholderNotice(btn);
+      return;
+    }
+    var idx = parseInt(btn.dataset.chatUserMsgIndex, 10);
+    var msg = !isNaN(idx) && chatViewState.messages[idx] ? chatViewState.messages[idx] : null;
+    var inMore = btn.closest ? btn.closest(".lumos-chat-user-actions-more") : null;
+    if (action === "copy") chatCopyMessage(msg, btn);
+    if (inMore) closeAllChatMenus();
+  }
+
   /** Yanıt kartı hızlı aksiyon butonu tıklaması (delegasyon ile çağrılır). */
   function handleChatAnswerAction(btn) {
     if (!btn || !btn.dataset) return;
@@ -5315,7 +5414,10 @@ function canTransition(from, to) {
 
   function onDocumentClickCloseChatMenus(e) {
     var target = e && e.target;
-    var inMore = target && target.closest ? target.closest(".lumos-chat-actions-more") : null;
+    var inMore =
+      target && target.closest
+        ? target.closest(".lumos-chat-actions-more, .lumos-chat-user-actions-more")
+        : null;
     closeAllChatMenus(inMore || null);
   }
 
@@ -5479,7 +5581,9 @@ function canTransition(from, to) {
           '<div class="lumos-chat-msg lumos-chat-msg--user">' +
           '<div class="lumos-chat-bubble">' +
           escapeHtmlYanit(m.text) +
-          "</div></div>";
+          "</div>" +
+          renderUserActionsBar(i) +
+          "</div>";
       } else {
         var plain = m.text != null ? String(m.text).trim() : "";
         var bubbleHtml = plain ? '<div class="lumos-chat-bubble">' + escapeHtmlYanit(plain) + "</div>" : "";
@@ -6013,6 +6117,12 @@ function canTransition(from, to) {
     if (attachItem && attachItem.dataset && attachItem.dataset.chatAttachAction) {
       e.preventDefault();
       handleChatAttachAction(attachItem);
+      return;
+    }
+    var chatUserActionBtn = t && t.closest ? t.closest("[data-chat-user-action]") : null;
+    if (chatUserActionBtn && chatUserActionBtn.dataset && chatUserActionBtn.dataset.chatUserAction) {
+      e.preventDefault();
+      handleChatUserAction(chatUserActionBtn);
       return;
     }
     var chatActionBtn = t && t.closest ? t.closest("[data-chat-action]") : null;

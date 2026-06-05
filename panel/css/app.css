@@ -584,6 +584,168 @@ body {
   opacity: 0.65;
 }
 
+/* Kullanıcı mesajı altı aksiyon çubuğu (asistan aksiyonlarından ayrı) */
+.lumos-chat-user-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3rem;
+  margin-top: 0.35rem;
+  max-width: min(100%, 28rem);
+  align-self: flex-end;
+}
+
+.lumos-chat-user-action {
+  font-family: inherit;
+  font-size: 0.74rem;
+  line-height: 1;
+  padding: 0.32rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #3a4a55;
+  background: #1f2830;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  white-space: nowrap;
+}
+
+.lumos-chat-user-action:hover {
+  background: #2a3540;
+  color: var(--text);
+  border-color: #4a5a65;
+}
+
+.lumos-chat-user-action:focus-visible {
+  outline: 2px solid #4a90d9;
+  outline-offset: 1px;
+}
+
+.lumos-chat-user-action.is-flash,
+.lumos-chat-user-menu-item.is-flash {
+  background: #2a3d2a;
+  color: #cfe9cf;
+  border-color: #3a5a3a;
+}
+
+.lumos-chat-user-action.is-flash--ok,
+.lumos-chat-user-menu-item.is-flash--ok {
+  background: #2a3d2a;
+  color: #cfe9cf;
+  border-color: #3a5a3a;
+}
+
+.lumos-chat-user-action.is-flash--info,
+.lumos-chat-user-menu-item.is-flash--info {
+  background: #2a3340;
+  color: #cfe0f0;
+  border-color: #3a4a5a;
+}
+
+.lumos-chat-user-action.is-flash--warn,
+.lumos-chat-user-menu-item.is-flash--warn {
+  background: #3d3528;
+  color: #e9dccf;
+  border-color: #5a4a3a;
+}
+
+.lumos-chat-user-action.is-flash--error,
+.lumos-chat-user-menu-item.is-flash--error {
+  background: #3d2828;
+  color: #e9cfcf;
+  border-color: #5a3a3a;
+}
+
+.lumos-chat-user-action--more {
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  letter-spacing: 0.05em;
+}
+
+.lumos-chat-user-actions-more {
+  position: relative;
+  display: inline-flex;
+}
+
+.lumos-chat-user-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 50;
+  min-width: 11rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.25rem;
+  border: 1px solid #3a4a55;
+  border-radius: 8px;
+  background: #1a2228;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.lumos-chat-user-menu[hidden] {
+  display: none;
+}
+
+.lumos-chat-user-menu--up {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+
+.lumos-chat-user-menu--left {
+  left: auto;
+  right: 0;
+}
+
+.lumos-chat-user-menu-item {
+  font-family: inherit;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  text-align: left;
+  padding: 0.4rem 0.55rem;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.lumos-chat-user-menu-item:hover {
+  background: #2a3540;
+}
+
+.lumos-chat-user-menu-item:focus-visible {
+  outline: 2px solid #4a90d9;
+  outline-offset: -1px;
+}
+
+.lumos-chat-user-action--soon {
+  border-style: dashed;
+  opacity: 0.75;
+}
+
+.lumos-chat-user-action--soon:hover {
+  background: #1f2830;
+  color: var(--text-muted);
+  border-color: #3a4a55;
+}
+
+.lumos-chat-user-menu-item--soon {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.lumos-chat-user-action[aria-disabled="true"],
+.lumos-chat-user-menu-item[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+.lumos-chat-user-menu-item[aria-disabled="true"]:hover {
+  background: transparent;
+}
+
 /* Dar ekran: araç çubuğunu ikon-only + kompakt yap (erişilebilir etiketler korunur) */
 @media (max-width: 480px) {
   .lumos-chat-actions {
@@ -623,6 +785,35 @@ body {
   }
 
   .lumos-chat-action.is-flash .lumos-chat-action__label {
+    display: inline;
+  }
+
+  .lumos-chat-user-actions {
+    gap: 0.25rem;
+  }
+
+  .lumos-chat-user-action {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.92rem;
+    line-height: 1;
+  }
+
+  .lumos-chat-user-action .lumos-chat-user-action__label {
+    display: none;
+  }
+
+  .lumos-chat-user-action[data-chat-user-action="copy"]::before {
+    content: "\29C9";
+  }
+  .lumos-chat-user-action[data-chat-user-action="edit"]::before {
+    content: "\270E";
+  }
+
+  .lumos-chat-user-action.is-flash::before {
+    content: none;
+  }
+
+  .lumos-chat-user-action.is-flash .lumos-chat-user-action__label {
     display: inline;
   }
 }
