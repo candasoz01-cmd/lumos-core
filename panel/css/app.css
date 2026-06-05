@@ -449,11 +449,12 @@ body {
   outline-offset: 1px;
 }
 
+/* Kind belirtilmezse nötr (başarı iddiası yok); asıl renk --ok|--info|--warn|--error ile gelir */
 .lumos-chat-action.is-flash,
 .lumos-chat-menu-item.is-flash {
-  background: #2a3d2a;
-  color: #cfe9cf;
-  border-color: #3a5a3a;
+  background: #2a3340;
+  color: #cfe0f0;
+  border-color: #3a4a5a;
 }
 
 .lumos-chat-action.is-flash--ok,
@@ -623,9 +624,9 @@ body {
 
 .lumos-chat-user-action.is-flash,
 .lumos-chat-user-menu-item.is-flash {
-  background: #2a3d2a;
-  color: #cfe9cf;
-  border-color: #3a5a3a;
+  background: #2a3340;
+  color: #cfe0f0;
+  border-color: #3a4a5a;
 }
 
 .lumos-chat-user-action.is-flash--ok,
@@ -815,6 +816,25 @@ body {
 
   .lumos-chat-user-action.is-flash .lumos-chat-user-action__label {
     display: inline;
+    max-width: 8.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.72rem;
+    vertical-align: middle;
+  }
+
+  .lumos-chat-action.is-flash,
+  .lumos-chat-user-action.is-flash {
+    max-width: min(100%, 10.5rem);
+    overflow: hidden;
+  }
+
+  .lumos-chat-menu-item.is-flash,
+  .lumos-chat-user-menu-item.is-flash {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.74rem;
   }
 }
 
@@ -998,9 +1018,39 @@ body {
   background: transparent;
 }
 
+.lumos-chat-attach-menu__item.is-flash {
+  background: #2a3340;
+  color: #cfe0f0;
+}
+
+.lumos-chat-attach-menu__item.is-flash--ok {
+  background: #2a3d2a;
+  color: #cfe9cf;
+}
+
+.lumos-chat-attach-menu__item.is-flash--info {
+  background: #2a3340;
+  color: #cfe0f0;
+}
+
 .lumos-chat-attach-menu__item.is-flash--warn {
   background: #3d3528;
   color: #e9dccf;
+}
+
+.lumos-chat-attach-menu__item.is-flash--error {
+  background: #3d2828;
+  color: #e9cfcf;
+}
+
+.lumos-chat-attach-menu__item.is-flash .lumos-chat-attach-menu__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lumos-chat-attach-menu__item.is-flash .lumos-chat-attach-menu__badge {
+  display: none;
 }
 
 .lumos-chat-attach-menu__badge {
@@ -1031,6 +1081,11 @@ body {
   .lumos-chat-attach-menu__item {
     font-size: 0.76rem;
     padding: 0.38rem 0.45rem;
+  }
+
+  .lumos-chat-attach-menu__item.is-flash .lumos-chat-attach-menu__label {
+    font-size: 0.7rem;
+    white-space: nowrap;
   }
 }
 
