@@ -354,6 +354,89 @@ function canTransition(from, to) {
     return v[status] || "badge-mode";
   }
 
+  /** Sistem sağlık kartları → PR #64 ok | info | warn | error. */
+  function getHealthStatusKind(status) {
+    var s = status != null ? String(status).trim().toLowerCase() : "";
+    if (s === "ok" || s === "tamam" || s === "iyi") return "ok";
+    if (s === "uyarı" || s === "uyari" || s === "warn" || s === "warning") return "warn";
+    if (s === "hata" || s === "error" || s === "engellendi") return "error";
+    return "info";
+  }
+
+  function hasBackendReadStateInjected() {
+    return !!(typeof window !== "undefined" && window.__LUMOS_READ_STATE__);
+  }
+
+  function getScenarioLabel(scenarioId) {
+    var list = getScenarioList();
+    var i;
+    for (i = 0; i < list.length; i++) {
+      if (list[i].id === scenarioId) return list[i].label;
+    }
+    return scenarioId || "—";
+  }
+
+  /** Veri kaynağı özeti — demo / fixture / yerel köprü; üretim iddiası yok. */
+  function getPanelDataSourcePresentation() {
+    if (useFixtureData) {
+      return {
+        kind: "info",
+        label: "Sabit örnek",
+        line:
+          "Panel fixtures.js içindeki sabit örnek veriyi gösteriyor. Canlı backend veya uzaktan koruma servisi bağlı değil.",
+      };
+    }
+    if (hasBackendReadStateInjected()) {
+      return {
+        kind: "ok",
+        label: "Yerel köprü",
+        line:
+          "Durum read_backend_state.py ile enjekte edilen yerel köprüden okunuyor. Bu uzaktan bir üretim servisi değildir.",
+      };
+    }
+    return {
+      kind: "warn",
+      label: "Demo / yerel",
+      line:
+        "Gerçek backend köprüsü yok. Değerler mockState ve seçili demo senaryosundan geliyor; salt okunur önizleme.",
+    };
+  }
+
+  /** Koruma rozeti metni, ipucu ve özet — yalnızca görünüm. */
+  function getProtectionPresentation(state) {
+    var m = state || getEffectiveState();
+    var locked = m.keystoreState === "Kilitli";
+    var sandbox = !!m.sandboxMode;
+    var guardStatus = m.guardStatus != null ? String(m.guardStatus) : "—";
+    var hasBridge = hasBackendReadStateInjected();
+    var label = locked ? "KORUMA AKTİF" : "Kilit açık";
+    var variant = locked ? "badge-guard" : "badge-offline";
+    var summary = locked
+      ? "Anahtar kasası kilitli; hassas işlemler korumalı. Silme gibi bazı aksiyonlar engellenebilir."
+      : "Anahtar kasası açık; koruma pasif. Hassas işlemler daha serbest.";
+    var kind = locked ? "ok" : "warn";
+    if (sandbox) {
+      summary += " Korumalı alan açık; yazım sandbox hedefine yönlendiriliyor.";
+    }
+    if (!hasBridge) {
+      summary += " Demo veri — gerçek koruma motoru bağlı değil.";
+      if (!locked) kind = "warn";
+    }
+    return {
+      locked: locked,
+      label: label,
+      variant: variant,
+      title: locked
+        ? "Anahtar kasası kilitli; çekirdek koruma aktif."
+        : "Anahtar kasası açık; koruma pasif.",
+      ariaLabel: locked ? "Koruma aktif: anahtar kasası kilitli" : "Koruma pasif: anahtar kasası açık",
+      guardStatus: guardStatus,
+      sandbox: sandbox,
+      summary: summary,
+      kind: kind,
+    };
+  }
+
   // ——— Veri kaynağı soyutlaması (Phase 1: Dashboard, Sandbox, System, Config, Identity, Keystore) ———
   var Bridge = typeof LumosBackendBridge !== "undefined" ? LumosBackendBridge : {};
   function getDashboardSourceData() {
@@ -566,7 +649,38 @@ function canTransition(from, to) {
    */
   function getPanelWorkModePresentation() {
     var f = readPanelApiFeatureOrNull();
-    return { label: (f && f.durum) ? String(f.durum) : "—", variant: "badge-mode" };
+    if (f && f.durum) {
+      var durum = String(f.durum);
+      var aciklama = f.aciklama ? String(f.aciklama) : "";
+      return {
+        label: durum,
+        variant: getBadgeVariant(durum) !== "badge-mode" ? getBadgeVariant(durum) : "badge-readonly",
+        title: aciklama || "Panel API durumu (product_features.panel_api).",
+        ariaLabel: "Panel modu: " + durum,
+      };
+    }
+    if (useFixtureData) {
+      return {
+        label: "Sabit örnek",
+        variant: "badge-readonly",
+        title: "fixtures.js sabit verisi; canlı backend yok.",
+        ariaLabel: "Veri kaynağı: sabit örnek",
+      };
+    }
+    if (hasBackendReadStateInjected()) {
+      return {
+        label: "Yerel köprü",
+        variant: "badge-readonly",
+        title: "Yerel read_backend_state köprüsü; uzaktan üretim servisi değil.",
+        ariaLabel: "Veri kaynağı: yerel köprü",
+      };
+    }
+    return {
+      label: "Demo",
+      variant: "badge-readonly",
+      title: "Mock demo state; backend köprüsü bağlı değil.",
+      ariaLabel: "Veri kaynağı: demo",
+    };
   }
 
   /**
@@ -2586,12 +2700,27 @@ function canTransition(from, to) {
     var m = getEffectiveState();
     var badges = [];
     var modePres = getPanelWorkModePresentation();
-    badges.push({ label: modePres.label, variant: modePres.variant });
     badges.push({
-      label: getBadgeLabel("lock", m.keystoreState === "Kilitli" ? "LOCKED" : "UNLOCKED"),
-      variant: getBadgeVariant(getBadgeLabel("lock", m.keystoreState === "Kilitli" ? "LOCKED" : "UNLOCKED")),
+      label: modePres.label,
+      variant: modePres.variant,
+      title: modePres.title,
+      ariaLabel: modePres.ariaLabel,
     });
-    if (m.sandboxMode) badges.push({ label: "KORUMALI ALAN", variant: "badge-sandbox" });
+    var prot = getProtectionPresentation(m);
+    badges.push({
+      label: prot.label,
+      variant: prot.variant,
+      title: prot.title,
+      ariaLabel: prot.ariaLabel,
+    });
+    if (m.sandboxMode) {
+      badges.push({
+        label: "KORUMALI ALAN",
+        variant: "badge-sandbox",
+        title: "Yazım korumalı sandbox dizinine yönlendiriliyor.",
+        ariaLabel: "Korumalı alan açık",
+      });
+    }
     return { basePath: m.basePath || "—", badges: badges };
   }
 
@@ -2770,9 +2899,13 @@ function canTransition(from, to) {
     return '<div class="empty-state"><p class="empty-title">' + title + "</p><p class=\"empty-desc\">" + desc + "</p></div>";
   }
 
-  function StatusBadge(label, variant) {
+  function StatusBadge(label, variant, opts) {
+    opts = opts || {};
     var cls = "badge " + (variant || getBadgeVariant(label));
-    return '<span class="' + cls + '">' + label + "</span>";
+    var extra = "";
+    if (opts.title) extra += ' title="' + escapeHtmlYanit(opts.title) + '"';
+    if (opts.ariaLabel) extra += ' aria-label="' + escapeHtmlYanit(opts.ariaLabel) + '"';
+    return '<span class="' + cls + '"' + extra + ' role="status">' + label + "</span>";
   }
 
   function MetricCard(title, value, techNote) {
@@ -3009,7 +3142,21 @@ function canTransition(from, to) {
     var meta = document.getElementById("sidebar-meta");
     if (meta) {
       var wm = getPanelWorkModePresentation();
-      meta.textContent = "Dal: " + data.branchName + " · " + wm.label;
+      var prot = getProtectionPresentation();
+      meta.innerHTML =
+        '<span class="sidebar-meta-line" title="' +
+        escapeHtmlYanit(wm.title) +
+        '">Dal: ' +
+        escapeHtmlYanit(data.branchName) +
+        " · " +
+        escapeHtmlYanit(wm.label) +
+        "</span>" +
+        '<span class="sidebar-meta-line sidebar-meta-protection" title="' +
+        escapeHtmlYanit(prot.title) +
+        '">' +
+        escapeHtmlYanit(prot.label) +
+        (prot.sandbox ? " · Korumalı alan" : "") +
+        "</span>";
     }
   }
 
@@ -3033,17 +3180,18 @@ function canTransition(from, to) {
     var data = getTopbarData();
     var baseEl = document.getElementById("topbar-base-label");
     if (baseEl) {
-      var feedHint = "";
-      if (typeof window.LumosFeedApi !== "undefined" && window.LumosFeedApi.getBase) {
-        feedHint = " · Akış bağlantısı ayarlı";
-      }
-      baseEl.textContent = "Çalışma alanı: " + data.basePath + feedHint;
+      baseEl.textContent = "Çalışma alanı: " + data.basePath;
+      baseEl.title = "Panel çalışma alanı yolu (demo veya köprüden)";
     }
     var wrap = document.getElementById("topbar-badges");
     if (wrap) {
       var html = "";
-      for (var i = 0; i < data.badges.length; i++) html += buildBadge(data.badges[i].label, data.badges[i].variant);
+      for (var i = 0; i < data.badges.length; i++) {
+        var b = data.badges[i];
+        html += StatusBadge(b.label, b.variant, { title: b.title, ariaLabel: b.ariaLabel });
+      }
       wrap.innerHTML = html;
+      wrap.setAttribute("aria-label", "Durum rozetleri: veri kaynağı, koruma ve korumalı alan");
     }
     var actionsEl = document.getElementById("topbar-actions");
     if (actionsEl) {
@@ -3054,17 +3202,23 @@ function canTransition(from, to) {
       var dataSourceOpts =
         '<option value="demo"' +
         (useFixtureData ? '' : ' selected') +
-        '>Yerel durum</option><option value="fixture"' +
+        '>Yerel demo</option><option value="fixture"' +
         (useFixtureData ? ' selected' : '') +
         '>Sabit örnek</option>';
+      var dsHint = getPanelDataSourcePresentation();
       actionsEl.innerHTML =
         '<div class="topbar-actions-dev">' +
-        '<select id="demo-scenario-select" class="demo-scenario-select" aria-label="Örnek panel durumu" title="Örnek panel durumu">' +
+        '<span class="topbar-demo-label" title="Panelde gösterilen mock operasyon durumu">Durum:</span>' +
+        '<select id="demo-scenario-select" class="demo-scenario-select" aria-label="Demo durum senaryosu" title="Örnek operasyon durumu (mock veri; gerçek backend değil)">' +
         opts +
         "</select>" +
-        '<select id="data-source-select" class="demo-scenario-select" aria-label="Veri kaynağı" title="Yerel durum veya sabit örnek veri">' +
+        '<span class="topbar-demo-label" title="Hangi veri kaynağının kullanıldığı">Kaynak:</span>' +
+        '<select id="data-source-select" class="demo-scenario-select" aria-label="Veri kaynağı: yerel demo veya sabit örnek" title="Yerel demo state veya fixtures.js sabit örneği">' +
         dataSourceOpts +
-        "</select></div>";
+        "</select>" +
+        '<p class="topbar-demo-hint text-muted-small" role="note">' +
+        escapeHtmlYanit(dsHint.line) +
+        "</p></div>";
       var sel = document.getElementById("demo-scenario-select");
       if (sel) sel.addEventListener("change", function () { currentScenario = sel.value; refresh(); });
       var dataSel = document.getElementById("data-source-select");
@@ -4280,13 +4434,56 @@ function canTransition(from, to) {
   // ——— Ekran: Sistem Durumu (adapter + build) ———
   function renderSystem() {
     var data = getSystemStatusData();
+    var src = getSystemSourceData();
+    var ds = getPanelDataSourcePresentation();
+    var prot = getProtectionPresentation();
+    var m = getEffectiveState();
+    var srcLine = "";
+    if (src.type === "backend") {
+      srcLine = "Sistem kartları enjekte köprüden (read_backend_state) okunuyor.";
+    } else if (src.type === "fixture") {
+      srcLine = "Sistem kartları fixtures.js sabit örneğinden geliyor.";
+    } else {
+      srcLine = "Sistem kartları demo senaryosundan geliyor: " + getScenarioLabel(currentScenario) + ".";
+    }
+    var overviewHtml =
+      buildPanelFeedback(ds.kind, ds.line) +
+      buildPanelFeedback(prot.kind, prot.summary) +
+      buildPanelFeedback("info", srcLine);
+    var guardNote = hasBackendReadStateInjected() ? "" : ' <span class="text-muted-small">(demo)</span>';
+    var modeLabel = String(m.appMode || "offline").toLowerCase() === SOURCE_STATUS.ONLINE ? "Çevrimiçi" : "Çevrimdışı";
+    var overviewSection = buildSection(
+      "Genel bakış",
+      overviewHtml +
+        '<dl class="system-status-dl">' +
+        '<div class="system-status-dl-row"><dt>Koruma</dt><dd>' +
+        buildPanelStatusBadge(prot.label, prot.locked ? "ok" : "warn") +
+        "</dd></div>" +
+        '<div class="system-status-dl-row"><dt>Guard durumu</dt><dd>' +
+        escapeHtmlYanit(prot.guardStatus) +
+        guardNote +
+        "</dd></div>" +
+        '<div class="system-status-dl-row"><dt>Korumalı alan</dt><dd>' +
+        (prot.sandbox ? buildPanelStatusBadge("Açık", "warn") : buildPanelStatusBadge("Kapalı", "info")) +
+        "</dd></div>" +
+        '<div class="system-status-dl-row"><dt>Mod</dt><dd>' +
+        escapeHtmlYanit(modeLabel) +
+        (!hasBackendReadStateInjected() ? ' <span class="text-muted-small">(demo)</span>' : "") +
+        "</dd></div>" +
+        "</dl>"
+    );
     var cards = "";
     for (var i = 0; i < data.healthCards.length; i++) {
       var c = data.healthCards[i];
-      var value = c.status === "—" ? "—" : buildBadge(c.status, getHealthStatusVariant(c.status));
+      var kind = getHealthStatusKind(c.status);
+      var value = c.status === "—" ? "—" : buildPanelStatusBadge(String(c.status), kind);
       cards += MetricCard(c.title, value, c.note);
     }
-    return ViewHeader(data.title, data.subtitle) + '<div class="cards-grid">' + cards + "</div>";
+    return (
+      ViewHeader(data.title, data.subtitle) +
+      overviewSection +
+      buildSection("Çekirdek sağlık", '<div class="cards-grid system-health-grid">' + cards + "</div>")
+    );
   }
 
   /** Sohbet: bellek + tek kalıcı kaynak CHAT_PANEL_STORAGE_KEY (localStorage). Hash değişince sıfırlanmaz. */
