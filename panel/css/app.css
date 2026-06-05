@@ -391,6 +391,185 @@ body {
   border: 1px solid #3a3a3a;
 }
 
+/* AI yanıtı: kullanıcıdan görsel olarak ayrı, bağımsız çıktı kartı */
+.lumos-chat-answer-card {
+  border: 1px solid #34404a;
+  border-left: 3px solid #4a90d9;
+  border-radius: 12px;
+  background: #20262c;
+  padding: 0.3rem 0.35rem;
+  max-width: min(100%, 32rem);
+}
+
+/* Kart içinde iç içe kutu görünmesin: bubble/blok nötrlenir */
+.lumos-chat-answer-card .lumos-chat-bubble {
+  background: transparent;
+  border: none;
+  padding: 0.35rem 0.5rem;
+  max-width: 100%;
+}
+
+.lumos-chat-answer-card .lumos-msg-blocks {
+  max-width: 100%;
+  padding: 0 0.5rem 0.25rem;
+}
+
+/* Yanıt altı hızlı aksiyon çubuğu */
+.lumos-chat-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+  max-width: min(100%, 32rem);
+}
+
+.lumos-chat-action {
+  font-family: inherit;
+  font-size: 0.74rem;
+  line-height: 1;
+  padding: 0.32rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #3a3a3a;
+  background: #242424;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  white-space: nowrap;
+}
+
+.lumos-chat-action:hover {
+  background: #2f2f2f;
+  color: var(--text);
+  border-color: #4a4a4a;
+}
+
+.lumos-chat-action:focus-visible {
+  outline: 2px solid #4a90d9;
+  outline-offset: 1px;
+}
+
+.lumos-chat-action.is-flash {
+  background: #2a3d2a;
+  color: #cfe9cf;
+  border-color: #3a5a3a;
+}
+
+.lumos-chat-action--more {
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  letter-spacing: 0.05em;
+}
+
+.lumos-chat-actions-more {
+  position: relative;
+  display: inline-flex;
+}
+
+.lumos-chat-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 50;
+  min-width: 11rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.25rem;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  background: #1f1f1f;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.lumos-chat-menu[hidden] {
+  display: none;
+}
+
+/* Alt kenara yakınken yukarı doğru açılır (kırpılmayı önler) */
+.lumos-chat-menu--up {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+
+.lumos-chat-menu-item {
+  font-family: inherit;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  text-align: left;
+  padding: 0.4rem 0.55rem;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.lumos-chat-menu-item:hover {
+  background: #2c2c2c;
+}
+
+.lumos-chat-menu-item:focus-visible {
+  outline: 2px solid #4a90d9;
+  outline-offset: -1px;
+}
+
+/* "Yakında" / henüz hazır olmayan aksiyon: görsel olarak ayrışsın (yanıltmasın) */
+.lumos-chat-action--soon {
+  border-style: dashed;
+  opacity: 0.75;
+}
+
+.lumos-chat-menu-item--soon {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Dar ekran: araç çubuğunu ikon-only + kompakt yap (erişilebilir etiketler korunur) */
+@media (max-width: 480px) {
+  .lumos-chat-actions {
+    gap: 0.25rem;
+  }
+
+  .lumos-chat-action {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.92rem;
+    line-height: 1;
+  }
+
+  .lumos-chat-action .lumos-chat-action__label {
+    display: none;
+  }
+
+  /* Etiket gizliyken anlamı taşıyan unicode ikon (emoji değil) */
+  .lumos-chat-action[data-chat-action="copy"]::before {
+    content: "\29C9";
+  }
+  .lumos-chat-action[data-chat-action="regenerate"]::before {
+    content: "\21BB";
+  }
+  .lumos-chat-action[data-chat-action="share"]::before {
+    content: "\2197";
+  }
+  .lumos-chat-action[data-chat-action="tts"]::before {
+    content: "\266A";
+  }
+  .lumos-chat-action[data-chat-action="branch"]::before {
+    content: "\2442";
+  }
+
+  /* Flash sırasında: ikonu gizle, etiketi (geri bildirim metnini) göster */
+  .lumos-chat-action.is-flash::before {
+    content: none;
+  }
+
+  .lumos-chat-action.is-flash .lumos-chat-action__label {
+    display: inline;
+  }
+}
+
 .lumos-msg-blocks {
   margin-top: 0.65rem;
   display: flex;
