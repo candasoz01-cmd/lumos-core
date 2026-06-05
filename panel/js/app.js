@@ -437,6 +437,144 @@ function canTransition(from, to) {
     };
   }
 
+  /** Korumalı Alan ekranı — durum özeti; üretim sandbox iddiası yok. */
+  function getSandboxPresentation(state) {
+    var m = state || getEffectiveState();
+    var active = !!m.sandboxMode;
+    var hasBridge = hasBackendReadStateInjected();
+    var writing = m.writingBaseDir != null ? String(m.writingBaseDir) : "—";
+    var source = m.sandboxSource != null ? String(m.sandboxSource) : "varsayılan";
+    var kind = active ? "warn" : "info";
+    var summary = active
+      ? "Korumalı alan açık: yazım tanımlı sandbox base'e yönlendirilir; canlı çekirdek path'lere doğrudan overwrite yapılmaz."
+      : "Korumalı alan kapalı: yazım doğrudan canlı çalışma alanına gider.";
+    if (!hasBridge) {
+      summary += " Demo önizleme — gerçek sandbox guard bağlı değil; değerler mock veya seçili senaryodan gelir.";
+    }
+    return {
+      active: active,
+      kind: kind,
+      summary: summary,
+      label: active ? "Açık" : "Kapalı",
+      badgeKind: active ? "warn" : "info",
+      writing: writing,
+      source: source,
+    };
+  }
+
+  /** Anahtar Kasası ekranı — kilit/açık özeti; uzaktan vault iddiası yok. */
+  function getKeystorePresentation(state) {
+    var m = state || getEffectiveState();
+    var stateStr = m.keystoreState != null ? String(m.keystoreState) : "—";
+    var locked = stateStr === "Kilitli" || !m.keystoreReady;
+    var hasBridge = hasBackendReadStateInjected();
+    var kind = locked ? "ok" : "warn";
+    var summary = locked
+      ? "Kilitli: passphrase girilmedi veya oturum kapalı. Hassas yazım bekletilir; anahtar içeriği panelde gösterilmez. Bu yerel bir koruma durumudur — uzaktan üretim vault'u veya bulut anahtar kasası değildir."
+      : "Açık (mock/demo): hassas yazım daha serbest görünebilir. Gerçek ortamda kilit varsayılandır; panel anahtar materyali ifşa etmez.";
+    if (!hasBridge) {
+      summary += " Demo önizleme — gerçek keystore motoru bağlı değil.";
+      if (!locked) kind = "warn";
+    }
+    return {
+      locked: locked,
+      ready: !!m.keystoreReady,
+      stateStr: stateStr,
+      kind: kind,
+      summary: summary,
+      label: locked ? "Kilitli" : "Açık",
+      badgeKind: locked ? "ok" : "warn",
+      writeScope: m.keystoreWriteScope != null ? String(m.keystoreWriteScope) : "—",
+    };
+  }
+
+  function buildSandboxScreenSrcLine(src) {
+    if (src.type === "backend") {
+      return "Sandbox kartları enjekte köprüden (read_backend_state) okunuyor.";
+    }
+    if (src.type === "fixture") {
+      return "Sandbox kartları fixtures.js sabit örneğinden geliyor.";
+    }
+    return "Sandbox kartları demo senaryosundan geliyor: " + getScenarioLabel(currentScenario) + ".";
+  }
+
+  function buildKeystoreScreenSrcLine(src) {
+    if (src.type === "backend") {
+      return "Keystore kartları enjekte köprüden (read_backend_state) okunuyor.";
+    }
+    if (src.type === "fixture") {
+      return "Keystore kartları fixtures.js sabit örneğinden geliyor.";
+    }
+    return "Keystore kartları demo senaryosundan geliyor: " + getScenarioLabel(currentScenario) + ".";
+  }
+
+  function buildSandboxScreenMetricCards(metrics, sb) {
+    var html = "";
+    var i;
+    for (i = 0; i < metrics.length; i++) {
+      var m = metrics[i];
+      var copy = { title: m.title, note: m.note, value: m.value, valueBadge: m.valueBadge };
+      if (m.title === "Yazım Yönü" && sb.writing && sb.writing !== "—") {
+        copy.value = buildPanelStatusBadge(sb.writing, sb.active ? "warn" : "info");
+      } else if (m.title === "Sözleşme Durumu") {
+        copy.value = buildPanelStatusBadge(sb.active ? "Tanımlı" : "Devre dışı", sb.badgeKind);
+        copy.valueBadge = null;
+      }
+      html += buildMetric(copy);
+    }
+    return html;
+  }
+
+  function buildKeystoreScreenMetricCards(metrics, ks) {
+    var html = "";
+    var i;
+    for (i = 0; i < metrics.length; i++) {
+      var m = metrics[i];
+      var copy = { title: m.title, note: m.note, value: m.value, valueBadge: m.valueBadge };
+      if (m.title === "Hazır mı") {
+        copy.value = buildPanelStatusBadge(ks.ready ? "Evet" : "Hayır", ks.ready ? "ok" : "warn");
+      } else if (m.title === "Şifreli Durum") {
+        copy.value = buildPanelStatusBadge(ks.stateStr, ks.badgeKind);
+      }
+      html += buildMetric(copy);
+    }
+    return html;
+  }
+
+  /** Anahtar Kasası — pasif/yakında işlem düğmeleri; gerçek vault veya kilit akışı yok. */
+  function buildKeystorePassiveActionButton(actionId, label) {
+    return (
+      '<button type="button" class="lumos-panel-action lumos-panel-action--soon" data-keystore-action="' +
+      escapeHtmlYanit(actionId) +
+      '" aria-disabled="true" title="Yakında — henüz kullanılamıyor">' +
+      '<span class="lumos-panel-action__label">' +
+      escapeHtmlYanit(label) +
+      '</span><span class="lumos-panel-action__badge">yakında</span></button>'
+    );
+  }
+
+  function buildKeystoreActionsSection(ks) {
+    var locked = !!(ks && ks.locked);
+    var hintsHtml = "";
+    if (locked) {
+      hintsHtml =
+        buildPanelFeedback("info", "Kilit açılmadan hassas işlem yapılamaz.") +
+        buildPanelFeedback("info", "Bu panel hassas veriyi göstermez.");
+    }
+    var actionsHtml =
+      buildKeystorePassiveActionButton("unlock", "Kilidi aç") +
+      buildKeystorePassiveActionButton("add-key", "Anahtar ekle") +
+      buildKeystorePassiveActionButton("view-keys", "Anahtarları görüntüle") +
+      buildKeystorePassiveActionButton("secure-write", "Güvenli yazımı etkinleştir");
+    var body =
+      hintsHtml +
+      '<div class="keystore-actions-row" role="group" aria-label="Anahtar kasası işlemleri (yakında)">' +
+      actionsHtml +
+      "</div>" +
+      '<p class="text-muted-small keystore-actions-note">Bu işlemler yalnızca bilgilendirme amaçlıdır; panel üzerinden gerçek vault veya kilit işlemi yapılmaz.</p>';
+    return buildSection("İşlemler", body);
+  }
+
   // ——— Veri kaynağı soyutlaması (Phase 1: Dashboard, Sandbox, System, Config, Identity, Keystore) ———
   var Bridge = typeof LumosBackendBridge !== "undefined" ? LumosBackendBridge : {};
   function getDashboardSourceData() {
@@ -3776,10 +3914,49 @@ function canTransition(from, to) {
   // ——— Ekran: Korumalı Alan (adapter + build) ———
   function renderSandbox() {
     var data = getSandboxData();
-    var cards = buildMetricCards(data.metrics);
+    var src = getSandboxSourceData();
+    var ds = getPanelDataSourcePresentation();
+    var sb = getSandboxPresentation();
+    var demoNote = hasBackendReadStateInjected() ? "" : ' <span class="text-muted-small">(demo)</span>';
+    var overviewHtml =
+      buildPanelFeedback(ds.kind, ds.line) +
+      buildPanelFeedback(sb.kind, sb.summary) +
+      buildPanelFeedback(
+        "info",
+        "Bu ekran yalnızca yazım hedefi görünürlüğü sağlar. Uzaktan bir üretim sandbox hizmeti veya bulut ortamı bağlı değildir."
+      ) +
+      buildPanelFeedback("info", buildSandboxScreenSrcLine(src));
+    var overviewSection = buildSection(
+      "Genel bakış",
+      overviewHtml +
+        '<dl class="system-status-dl panel-screen-dl">' +
+        '<div class="system-status-dl-row"><dt>Durum</dt><dd>' +
+        buildPanelStatusBadge(sb.label, sb.badgeKind) +
+        demoNote +
+        "</dd></div>" +
+        '<div class="system-status-dl-row"><dt>Kaynak</dt><dd>' +
+        escapeHtmlYanit(sb.source) +
+        demoNote +
+        "</dd></div>" +
+        '<div class="system-status-dl-row"><dt>Yazım yönü</dt><dd>' +
+        escapeHtmlYanit(sb.writing) +
+        demoNote +
+        "</dd></div>" +
+        "</dl>"
+    );
+    var cards = buildSandboxScreenMetricCards(data.metrics, sb);
     var sectionsHtml = "";
     for (var i = 0; i < data.sections.length; i++) sectionsHtml += buildSection(data.sections[i].title, data.sections[i].body);
-    return ViewHeader(data.title, data.subtitle) + '<div class="cards-grid">' + cards + "</div>" + sectionsHtml;
+    return (
+      ViewHeader(data.title, data.subtitle) +
+      '<div class="panel-screen-sandbox">' +
+      overviewSection +
+      '<div class="cards-grid panel-screen-cards">' +
+      cards +
+      "</div>" +
+      sectionsHtml +
+      "</div>"
+    );
   }
 
   // ——— Ekran: Yapılandırma (adapter + build) ———
@@ -3803,10 +3980,50 @@ function canTransition(from, to) {
   // ——— Ekran: Anahtar Kasası (adapter + build) ———
   function renderKeystore() {
     var data = getKeystoreData();
-    var cards = buildMetricCards(data.metrics);
+    var src = getKeystoreSourceData();
+    var ds = getPanelDataSourcePresentation();
+    var ks = getKeystorePresentation();
+    var demoNote = hasBackendReadStateInjected() ? "" : ' <span class="text-muted-small">(demo)</span>';
+    var overviewHtml =
+      buildPanelFeedback(ds.kind, ds.line) +
+      buildPanelFeedback(ks.kind, ks.summary) +
+      buildPanelFeedback(
+        "info",
+        "Bu ekran durum görünürlüğü sağlar; passphrase, anahtar içeriği veya uzaktan vault erişimi sunmaz."
+      ) +
+      buildPanelFeedback("info", buildKeystoreScreenSrcLine(src));
+    var overviewSection = buildSection(
+      "Genel bakış",
+      overviewHtml +
+        '<dl class="system-status-dl panel-screen-dl">' +
+        '<div class="system-status-dl-row"><dt>Durum</dt><dd>' +
+        buildPanelStatusBadge(ks.label, ks.badgeKind) +
+        demoNote +
+        "</dd></div>" +
+        '<div class="system-status-dl-row"><dt>Şifreli durum</dt><dd>' +
+        buildPanelStatusBadge(ks.stateStr, ks.badgeKind) +
+        demoNote +
+        "</dd></div>" +
+        '<div class="system-status-dl-row"><dt>Yazım kapsamı</dt><dd>' +
+        escapeHtmlYanit(ks.writeScope) +
+        demoNote +
+        "</dd></div>" +
+        "</dl>"
+    );
+    var cards = buildKeystoreScreenMetricCards(data.metrics, ks);
     var sectionsHtml = "";
     for (var i = 0; i < data.sections.length; i++) sectionsHtml += buildSection(data.sections[i].title, data.sections[i].body);
-    return ViewHeader(data.title, data.subtitle) + '<div class="cards-grid">' + cards + "</div>" + sectionsHtml;
+    return (
+      ViewHeader(data.title, data.subtitle) +
+      '<div class="panel-screen-keystore">' +
+      overviewSection +
+      buildKeystoreActionsSection(ks) +
+      '<div class="cards-grid panel-screen-cards">' +
+      cards +
+      "</div>" +
+      sectionsHtml +
+      "</div>"
+    );
   }
 
   /** GET /posts/trash — yalnızca backend yanıtı (trashPosts); başka kaynak yok */
@@ -5420,6 +5637,7 @@ function canTransition(from, to) {
       ? btn.querySelector(".lumos-chat-action__label") ||
         btn.querySelector(".lumos-chat-user-action__label") ||
         btn.querySelector(".lumos-chat-attach-menu__label") ||
+        btn.querySelector(".lumos-panel-action__label") ||
         btn
       : btn;
     if (btn._lumosFlashTimer) {
@@ -5580,6 +5798,30 @@ function canTransition(from, to) {
   /** Kullanıcı mesajı düzenle: gerçek altyapı YOK; yalnızca "Yakında" bildirimi. */
   function chatUserEditPlaceholderNotice(btn) {
     chatActionFlash(btn, CHAT_SOON_LABEL, "warn");
+  }
+
+  /** Anahtar Kasası pasif işlem: gerçek vault/kilit yok; yalnızca info/warn geri bildirimi. */
+  function handleKeystorePassiveAction(btn) {
+    if (!btn || !btn.dataset) return;
+    var action = String(btn.dataset.keystoreAction || "");
+    var ks = getKeystorePresentation();
+    var fb;
+    if (action === "unlock") {
+      fb = ks.locked
+        ? { label: "Kilit açılmadan hassas işlem yapılamaz.", kind: "info" }
+        : { label: CHAT_SOON_LABEL_LONG, kind: "warn" };
+    } else if (action === "add-key") {
+      fb = { label: CHAT_SOON_LABEL, kind: "warn" };
+    } else if (action === "view-keys") {
+      fb = { label: "Bu panel hassas veriyi göstermez.", kind: "info" };
+    } else if (action === "secure-write") {
+      fb = ks.locked
+        ? { label: "Kilit açılmadan hassas işlem yapılamaz.", kind: "info" }
+        : { label: CHAT_SOON_LABEL, kind: "warn" };
+    } else {
+      fb = { label: CHAT_SOON_LABEL, kind: "warn" };
+    }
+    chatActionFlash(btn, fb.label, fb.kind);
   }
 
   /** Re-çalıştırmada yan etki (görev oluştur/sil, navigasyon, kilit) olur mu? */
@@ -6608,6 +6850,12 @@ function canTransition(from, to) {
     if (chatActionBtn && chatActionBtn.dataset && chatActionBtn.dataset.chatAction) {
       e.preventDefault();
       handleChatAnswerAction(chatActionBtn);
+      return;
+    }
+    var keystoreActBtn = t && t.closest ? t.closest("[data-keystore-action]") : null;
+    if (keystoreActBtn && keystoreActBtn.dataset && keystoreActBtn.dataset.keystoreAction) {
+      e.preventDefault();
+      handleKeystorePassiveAction(keystoreActBtn);
       return;
     }
     function closestByDataAttr(el, attrName) {

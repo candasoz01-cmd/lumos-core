@@ -1666,7 +1666,115 @@ body {
   color: #e9cfcf;
 }
 
-/* ——— Sistem Durumu ekranı ——— */
+/* ——— Sistem / Sandbox / Keystore ekranları ——— */
+.panel-screen-sandbox,
+.panel-screen-keystore {
+  min-width: 0;
+}
+
+/* Anahtar Kasası — pasif işlemler (yakında; gerçek vault yok) */
+.keystore-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  min-width: 0;
+  margin-top: 0.35rem;
+}
+
+.keystore-actions-note {
+  margin: 0.55rem 0 0;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.lumos-panel-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: inherit;
+  font-size: 0.78rem;
+  line-height: 1.25;
+  padding: 0.38rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid #3a4a55;
+  background: #1f2830;
+  color: var(--text-muted);
+  cursor: pointer;
+  max-width: 100%;
+  min-width: 0;
+  text-align: left;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.lumos-panel-action__label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.lumos-panel-action__badge {
+  flex-shrink: 0;
+  padding: 0.08rem 0.35rem;
+  border-radius: 999px;
+  background: rgba(74, 144, 217, 0.14);
+  color: #a0c8e8;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+}
+
+.lumos-panel-action--soon {
+  border-style: dashed;
+  opacity: 0.82;
+}
+
+.lumos-panel-action--soon:hover,
+.lumos-panel-action[aria-disabled="true"]:hover {
+  background: #1f2830;
+  color: var(--text-muted);
+  border-color: #3a4a55;
+}
+
+.lumos-panel-action[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+.lumos-panel-action.is-flash {
+  opacity: 1;
+  border-style: solid;
+}
+
+.lumos-panel-action.is-flash--info {
+  background: #2a3340;
+  color: #cfe0f0;
+  border-color: #3a4a5a;
+}
+
+.lumos-panel-action.is-flash--warn {
+  background: #3d3528;
+  color: #e9dccf;
+  border-color: #5a4a3a;
+}
+
+.lumos-panel-action.is-flash--error {
+  background: #3d2828;
+  color: #e9cfcf;
+  border-color: #5a3a3a;
+}
+
+.lumos-panel-action.is-flash .lumos-panel-action__badge {
+  display: none;
+}
+
+.panel-screen-cards {
+  min-width: 0;
+}
+
+.panel-screen-dl .system-status-dl-row dd {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
 .system-status-dl {
   margin: 0.75rem 0 0;
 }
@@ -2013,9 +2121,14 @@ body {
     max-width: 100%;
   }
 
-  .system-status-dl-row {
+  .system-status-dl-row,
+  .panel-screen-dl .system-status-dl-row {
     grid-template-columns: 1fr;
     gap: 0.15rem;
+  }
+
+  .panel-screen-cards {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -2041,6 +2154,30 @@ body {
 
   .topbar-demo-hint {
     font-size: 0.65rem;
+  }
+
+  .panel-screen-sandbox .lumos-panel-feedback,
+  .panel-screen-keystore .lumos-panel-feedback {
+    font-size: 0.78rem;
+    padding: 0.45rem 0.6rem;
+  }
+
+  .panel-screen-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .keystore-actions-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .lumos-panel-action {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .lumos-panel-status {
+    white-space: normal;
   }
 }
 
