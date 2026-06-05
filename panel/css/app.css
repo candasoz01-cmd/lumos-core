@@ -146,6 +146,9 @@ body {
   align-items: center;
   gap: 0.4rem;
   flex-shrink: 0;
+  flex-wrap: wrap;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .topbar-actions {
@@ -169,6 +172,15 @@ body {
   gap: 0.5rem;
   justify-content: flex-end;
   min-width: 0;
+  max-width: 100%;
+}
+
+.topbar-demo-hint {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
   max-width: 100%;
 }
 
@@ -196,6 +208,8 @@ body {
   border-radius: 4px;
   font-weight: 500;
   white-space: nowrap;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .badge-mode,
@@ -264,6 +278,17 @@ body {
 
 .sidebar-meta {
   color: var(--text-muted);
+}
+
+.sidebar-meta-line {
+  display: block;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.sidebar-meta-protection {
+  margin-top: 0.2rem;
+  font-size: 0.75rem;
 }
 
 /* ——— Main ——— */
@@ -1641,6 +1666,40 @@ body {
   color: #e9cfcf;
 }
 
+/* ——— Sistem Durumu ekranı ——— */
+.system-status-dl {
+  margin: 0.75rem 0 0;
+}
+
+.system-status-dl-row {
+  display: grid;
+  grid-template-columns: minmax(0, 9rem) minmax(0, 1fr);
+  gap: 0.35rem 0.75rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid rgba(58, 58, 58, 0.45);
+}
+
+.system-status-dl-row:last-child {
+  border-bottom: none;
+}
+
+.system-status-dl-row dt {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.system-status-dl-row dd {
+  margin: 0;
+  font-size: 0.85rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.system-health-grid {
+  margin-top: 0;
+}
+
 .empty-state--panel.empty-state--info {
   border-color: rgba(58, 74, 90, 0.45);
   background: rgba(207, 224, 240, 0.04);
@@ -1952,6 +2011,36 @@ body {
 
   .lumos-panel-status {
     max-width: 100%;
+  }
+
+  .system-status-dl-row {
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
+}
+
+@media (max-width: 320px) {
+  .topbar-badges {
+    flex: 1 1 100%;
+  }
+
+  .badge {
+    white-space: normal;
+  }
+
+  .topbar-base {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .demo-scenario-select {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .topbar-demo-hint {
+    font-size: 0.65rem;
   }
 }
 
