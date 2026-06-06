@@ -39,3 +39,15 @@ Panel quality tour — ana sol menü ekranları görünürlüğü ve audit polis
 **Kalan:** Mobil/dar ekran polish (`#system` 320px audit notu); gerçek backend entegrasyonları (ileride).
 
 **Not:** Mail/Inbox Intelligence gelecek fikir düzeyinde — uygulanmadı. Jilee ürüne aktarılmadı. AI Gateway analizi beklemede.
+
+---
+
+## 2026-06-06
+
+ADR-008 agent/task/executor usage map revizyonu tamamlandı (PR #87 merge; docs-only; `main` @ `7e7dd8b`).
+
+| Sıra | PR | Özet |
+|------|-----|------|
+| 1 | [#87](https://github.com/candasoz01-cmd/lumos-core/pull/87) | ADR-008 usage map — agent/task/executor kullanım haritası eklendi |
+
+**Kapsam:** Yalnızca `docs/decisions/ADR-008-agent-network-boundary.md`; kod değişikliği yok.
