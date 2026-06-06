@@ -488,6 +488,73 @@ function canTransition(from, to) {
     };
   }
 
+  /** Yapılandırma ekranı — yerel config özeti; uzaktan yapılandırma servisi iddiası yok. */
+  function getConfigPresentation(state) {
+    var m = state || getEffectiveState();
+    var cfg = m.configSnapshot || {};
+    var hasBridge = hasBackendReadStateInjected();
+    var writeStatus = cfg.writeStatus != null ? String(cfg.writeStatus) : "—";
+    var profil = cfg.profil != null ? String(cfg.profil) : "—";
+    var workspaceRoot = cfg.workspace_root != null ? String(cfg.workspace_root) : "—";
+    var hasWarning =
+      writeStatus !== "—" &&
+      (writeStatus.indexOf("Uyarı") !== -1 || writeStatus.toLowerCase().indexOf("uyarı") !== -1);
+    var kind = hasWarning ? "warn" : "info";
+    var summary =
+      "Yerel config.json özeti: profil, workspace kökü ve yazım durumu görünür. Panel üzerinden config düzenleme veya uzaktan yapılandırma hizmeti sunulmaz.";
+    if (!hasBridge) {
+      summary +=
+        " Demo önizleme — gerçek config sink/guard motoru bağlı değil; değerler mock veya seçili senaryodan gelir.";
+      if (hasWarning) kind = "warn";
+    }
+    return {
+      kind: kind,
+      summary: summary,
+      label: hasWarning ? "Yazım uyarısı" : "Yazım uygun",
+      badgeKind: hasWarning ? "warn" : "ok",
+      writeStatus: writeStatus,
+      writeBadgeKind: hasWarning ? "warn" : "ok",
+      profil: profil,
+      workspaceRoot: workspaceRoot,
+    };
+  }
+
+  /** Kimlik ekranı — oturum/yetki görünürlüğü; üretim OAuth/SSO iddiası yok. */
+  function getIdentityPresentation(state) {
+    var m = state || getEffectiveState();
+    var hasBridge = hasBackendReadStateInjected();
+    var identityState = m.identityState != null ? String(m.identityState) : "—";
+    var guardResult = m.identityGuardResult != null ? String(m.identityGuardResult) : "—";
+    var targetScope = m.identityTargetScope != null ? String(m.identityTargetScope) : "—";
+    var ready =
+      identityState !== "—" &&
+      identityState.toLowerCase() !== "mevcut değil" &&
+      identityState.toLowerCase() !== "yok";
+    var kind = ready ? "ok" : "warn";
+    var summary = ready
+      ? "Yerel kimlik durumu görünür. Oturum, OAuth, IMAP veya uzaktan kimlik doğrulama hizmeti panelde yoktur."
+      : "Kimlik hazır değil: oturum açık değil veya yerel kimlik kaydı yok. Panel oturum açma veya uzaktan SSO sunmaz.";
+    if (!hasBridge) {
+      summary +=
+        " Demo önizleme — gerçek identity sink/guard motoru bağlı değil; değerler mock veya seçili senaryodan gelir.";
+      kind = "warn";
+    }
+    return {
+      ready: ready,
+      kind: kind,
+      summary: summary,
+      label: ready ? "Hazır" : "Hazır değil",
+      badgeKind: ready ? "ok" : "warn",
+      identityState: identityState,
+      stateBadgeKind: ready ? "ok" : "warn",
+      guardResult: guardResult,
+      guardBadgeKind: guardResult.indexOf("Korun") >= 0 ? "ok" : "info",
+      targetScope: targetScope,
+      sessionStatus: ready ? "Yerel oturum yok (demo)" : "Oturum kapalı",
+      permissionStatus: "Salt okunur — yetki değiştirme yok",
+    };
+  }
+
   function buildSandboxScreenSrcLine(src) {
     if (src.type === "backend") {
       return "Sandbox kartları enjekte köprüden (read_backend_state) okunuyor.";
@@ -506,6 +573,26 @@ function canTransition(from, to) {
       return "Keystore kartları fixtures.js sabit örneğinden geliyor.";
     }
     return "Keystore kartları demo senaryosundan geliyor: " + getScenarioLabel(currentScenario) + ".";
+  }
+
+  function buildConfigScreenSrcLine(src) {
+    if (src.type === "backend") {
+      return "Config kartları enjekte köprüden (read_backend_state) okunuyor.";
+    }
+    if (src.type === "fixture") {
+      return "Config kartları fixtures.js sabit örneğinden geliyor.";
+    }
+    return "Config kartları demo senaryosundan geliyor: " + getScenarioLabel(currentScenario) + ".";
+  }
+
+  function buildIdentityScreenSrcLine(src) {
+    if (src.type === "backend") {
+      return "Kimlik kartları enjekte köprüden (read_backend_state) okunuyor.";
+    }
+    if (src.type === "fixture") {
+      return "Kimlik kartları fixtures.js sabit örneğinden geliyor.";
+    }
+    return "Kimlik kartları demo senaryosundan geliyor: " + getScenarioLabel(currentScenario) + ".";
   }
 
   function buildSandboxScreenMetricCards(metrics, sb) {
@@ -535,6 +622,48 @@ function canTransition(from, to) {
         copy.value = buildPanelStatusBadge(ks.ready ? "Evet" : "Hayır", ks.ready ? "ok" : "warn");
       } else if (m.title === "Şifreli Durum") {
         copy.value = buildPanelStatusBadge(ks.stateStr, ks.badgeKind);
+      }
+      html += buildMetric(copy);
+    }
+    return html;
+  }
+
+  function buildConfigScreenMetricCards(metrics, cfg) {
+    var html = "";
+    var i;
+    for (i = 0; i < metrics.length; i++) {
+      var m = metrics[i];
+      var copy = { title: m.title, note: m.note, value: m.value, valueBadge: m.valueBadge };
+      if (m.title === "Yazım Durumu" && cfg.writeStatus && cfg.writeStatus !== "—") {
+        copy.value = buildPanelStatusBadge(cfg.writeStatus, cfg.writeBadgeKind);
+        copy.valueBadge = null;
+      } else if (m.title === "Mevcut Yapılandırma Özeti" && cfg.profil && cfg.profil !== "—") {
+        copy.note =
+          "Profil: " +
+          cfg.profil +
+          " · Workspace: " +
+          cfg.workspaceRoot +
+          ". config.json; sabit yetki profilleri panelden değiştirilmez.";
+      }
+      html += buildMetric(copy);
+    }
+    return html;
+  }
+
+  function buildIdentityScreenMetricCards(metrics, idp) {
+    var html = "";
+    var i;
+    for (i = 0; i < metrics.length; i++) {
+      var m = metrics[i];
+      var copy = { title: m.title, note: m.note, value: m.value, valueBadge: m.valueBadge };
+      if (m.title === "Kimlik hazır mı" && idp.identityState && idp.identityState !== "—") {
+        copy.value = buildPanelStatusBadge(idp.identityState, idp.stateBadgeKind);
+        copy.valueBadge = null;
+      } else if (m.title === "Guard Sonucu" && idp.guardResult && idp.guardResult !== "—") {
+        copy.value = buildPanelStatusBadge(idp.guardResult, idp.guardBadgeKind);
+        copy.valueBadge = null;
+      } else if (m.title === "Hedef Kapsam" && idp.targetScope && idp.targetScope !== "—") {
+        copy.note = idp.targetScope + " — çekirdek kimlik alanı; yetki dışı değişiklik yapılmaz.";
       }
       html += buildMetric(copy);
     }
@@ -572,6 +701,35 @@ function canTransition(from, to) {
       actionsHtml +
       "</div>" +
       '<p class="text-muted-small keystore-actions-note">Bu işlemler yalnızca bilgilendirme amaçlıdır; panel üzerinden gerçek vault veya kilit işlemi yapılmaz.</p>';
+    return buildSection("İşlemler", body);
+  }
+
+  /** Kimlik — pasif/yakında işlem düğmeleri; gerçek oturum veya SSO akışı yok. */
+  function buildIdentityPassiveActionButton(actionId, label) {
+    return (
+      '<button type="button" class="lumos-panel-action lumos-panel-action--soon" data-identity-action="' +
+      escapeHtmlYanit(actionId) +
+      '" aria-disabled="true" title="Yakında — henüz kullanılamıyor">' +
+      '<span class="lumos-panel-action__label">' +
+      escapeHtmlYanit(label) +
+      '</span><span class="lumos-panel-action__badge">yakında</span></button>'
+    );
+  }
+
+  function buildIdentityActionsSection(idp) {
+    var hintsHtml =
+      buildPanelFeedback("info", "Bu ekran oturum açma, OAuth veya uzaktan kimlik doğrulama sunmaz.") +
+      buildPanelFeedback("info", idp.ready ? "Kimlik durumu salt okunur görünür." : "Kimlik hazır değil — hassas işlem panelden açılmaz.");
+    var actionsHtml =
+      buildIdentityPassiveActionButton("sign-in", "Oturum aç") +
+      buildIdentityPassiveActionButton("verify", "Kimlik doğrula") +
+      buildIdentityPassiveActionButton("view-permissions", "Yetkileri görüntüle");
+    var body =
+      hintsHtml +
+      '<div class="identity-actions-row" role="group" aria-label="Kimlik işlemleri (yakında)">' +
+      actionsHtml +
+      "</div>" +
+      '<p class="text-muted-small identity-actions-note">Bu işlemler yalnızca bilgilendirme amaçlıdır; panel üzerinden gerçek oturum veya kimlik doğrulama yapılmaz.</p>';
     return buildSection("İşlemler", body);
   }
 
@@ -3962,19 +4120,98 @@ function canTransition(from, to) {
   // ——— Ekran: Yapılandırma (adapter + build) ———
   function renderConfig() {
     var data = getConfigData();
-    var cards = buildMetricCards(data.metrics);
+    var src = getConfigSourceData();
+    var ds = getPanelDataSourcePresentation();
+    var cfg = getConfigPresentation();
+    var demoNote = hasBackendReadStateInjected() ? "" : ' <span class="text-muted-small">(demo)</span>';
+    var overviewHtml =
+      buildPanelFeedback(ds.kind, ds.line) +
+      buildPanelFeedback(cfg.kind, cfg.summary) +
+      buildPanelFeedback(
+        "info",
+        "Bu ekran yalnızca yerel config görünürlüğü sağlar. Uzaktan yapılandırma servisi veya bulut config yönetimi bağlı değildir."
+      ) +
+      buildPanelFeedback("info", buildConfigScreenSrcLine(src));
+    var overviewSection = buildSection(
+      "Genel bakış",
+      overviewHtml +
+        '<dl class="system-status-dl panel-screen-dl">' +
+        '<div class="system-status-dl-row"><dt>Yazım durumu</dt><dd>' +
+        buildPanelStatusBadge(cfg.label, cfg.badgeKind) +
+        demoNote +
+        "</dd></div>" +
+        '<div class="system-status-dl-row"><dt>Profil</dt><dd>' +
+        escapeHtmlYanit(cfg.profil) +
+        demoNote +
+        "</dd></div>" +
+        '<div class="system-status-dl-row"><dt>Workspace kökü</dt><dd>' +
+        escapeHtmlYanit(cfg.workspaceRoot) +
+        demoNote +
+        "</dd></div>" +
+        "</dl>"
+    );
+    var cards = buildConfigScreenMetricCards(data.metrics, cfg);
     var sectionsHtml = "";
     for (var i = 0; i < data.sections.length; i++) sectionsHtml += buildSection(data.sections[i].title, data.sections[i].body);
-    return ViewHeader(data.title, data.subtitle) + '<div class="cards-grid">' + cards + "</div>" + sectionsHtml;
+    return (
+      ViewHeader(data.title, data.subtitle) +
+      '<div class="panel-screen-config">' +
+      overviewSection +
+      '<div class="cards-grid panel-screen-cards">' +
+      cards +
+      "</div>" +
+      sectionsHtml +
+      "</div>"
+    );
   }
 
   // ——— Ekran: Kimlik (adapter + build) ———
   function renderIdentity() {
     var data = getIdentityData();
-    var cards = buildMetricCards(data.metrics);
+    var src = getIdentitySourceData();
+    var ds = getPanelDataSourcePresentation();
+    var idp = getIdentityPresentation();
+    var demoNote = hasBackendReadStateInjected() ? "" : ' <span class="text-muted-small">(demo)</span>';
+    var overviewHtml =
+      buildPanelFeedback(ds.kind, ds.line) +
+      buildPanelFeedback(idp.kind, idp.summary) +
+      buildPanelFeedback(
+        "info",
+        "Bu ekran oturum, yetki ve kimlik durumu görünürlüğü sağlar; OAuth, IMAP veya uzaktan üretim kimlik hizmeti sunmaz."
+      ) +
+      buildPanelFeedback("info", buildIdentityScreenSrcLine(src));
+    var overviewSection = buildSection(
+      "Genel bakış",
+      overviewHtml +
+        '<dl class="system-status-dl panel-screen-dl">' +
+        '<div class="system-status-dl-row"><dt>Kimlik durumu</dt><dd>' +
+        buildPanelStatusBadge(idp.label, idp.badgeKind) +
+        demoNote +
+        "</dd></div>" +
+        '<div class="system-status-dl-row"><dt>Oturum</dt><dd>' +
+        escapeHtmlYanit(idp.sessionStatus) +
+        demoNote +
+        "</dd></div>" +
+        '<div class="system-status-dl-row"><dt>Yetki</dt><dd>' +
+        escapeHtmlYanit(idp.permissionStatus) +
+        demoNote +
+        "</dd></div>" +
+        "</dl>"
+    );
+    var cards = buildIdentityScreenMetricCards(data.metrics, idp);
     var sectionsHtml = "";
     for (var i = 0; i < data.sections.length; i++) sectionsHtml += buildSection(data.sections[i].title, data.sections[i].body);
-    return ViewHeader(data.title, data.subtitle) + '<div class="cards-grid">' + cards + "</div>" + sectionsHtml;
+    return (
+      ViewHeader(data.title, data.subtitle) +
+      '<div class="panel-screen-identity">' +
+      overviewSection +
+      buildIdentityActionsSection(idp) +
+      '<div class="cards-grid panel-screen-cards">' +
+      cards +
+      "</div>" +
+      sectionsHtml +
+      "</div>"
+    );
   }
 
   // ——— Ekran: Anahtar Kasası (adapter + build) ———
@@ -5824,6 +6061,25 @@ function canTransition(from, to) {
     chatActionFlash(btn, fb.label, fb.kind);
   }
 
+  function handleIdentityPassiveAction(btn) {
+    if (!btn || !btn.dataset) return;
+    var action = String(btn.dataset.identityAction || "");
+    var idp = getIdentityPresentation();
+    var fb;
+    if (action === "sign-in") {
+      fb = { label: "Panel oturum açma sunmaz — yerel CLI veya köprü kullanın.", kind: "info" };
+    } else if (action === "verify") {
+      fb = { label: CHAT_SOON_LABEL_LONG, kind: "warn" };
+    } else if (action === "view-permissions") {
+      fb = idp.ready
+        ? { label: "Yetki profilleri sabittir; panelden değiştirilmez.", kind: "info" }
+        : { label: "Kimlik hazır değil — yetki görünürlüğü sınırlı.", kind: "info" };
+    } else {
+      fb = { label: CHAT_SOON_LABEL, kind: "warn" };
+    }
+    chatActionFlash(btn, fb.label, fb.kind);
+  }
+
   /** Re-çalıştırmada yan etki (görev oluştur/sil, navigasyon, kilit) olur mu? */
   function chatUserTextHasSideEffects(text) {
     if (!text) return false;
@@ -6856,6 +7112,12 @@ function canTransition(from, to) {
     if (keystoreActBtn && keystoreActBtn.dataset && keystoreActBtn.dataset.keystoreAction) {
       e.preventDefault();
       handleKeystorePassiveAction(keystoreActBtn);
+      return;
+    }
+    var identityActBtn = t && t.closest ? t.closest("[data-identity-action]") : null;
+    if (identityActBtn && identityActBtn.dataset && identityActBtn.dataset.identityAction) {
+      e.preventDefault();
+      handleIdentityPassiveAction(identityActBtn);
       return;
     }
     function closestByDataAttr(el, attrName) {
