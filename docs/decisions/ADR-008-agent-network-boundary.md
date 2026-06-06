@@ -2,9 +2,9 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Taslak / karar bekliyor** — agent/task/executor usage map tamamlanmadan finalize edilmez |
+| Durum | **Taslak / karar bekliyor** — agent/task/executor usage map checkpoint tamamlandı; karar finalize dar import/drift incelemesi sonrası |
 | Tarih | 2026-06-06 |
-| İlgili | `docs/lumos-karar-sozlesmesi.md`, public GitHub sınırı kuralları, ADR-001, ADR-003, ADR-004, ADR-005, ADR-006, ADR-007 |
+| İlgili | `docs/lumos-karar-sozlesmesi.md`, public GitHub sınırı kuralları, ADR-001, ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-010 |
 
 ## Amaç
 
@@ -60,6 +60,7 @@ Repo taramasında **tek, merkezi "Agent Network" veya çok-ajan koordinasyon kat
 - **ADR-005:** Gerçek Memory Graph **yok**; bellek parçalı. Agent Network bağlam paylaşımı Memory Graph oturmadan tek başına üretim vaadi taşımamalıdır.
 - **ADR-006:** Birleşik AI Firewall **yok**; guard parçalı. Her dış aksiyon ve hassas adım firewall + trust kontrolünden geçmelidir (*hedef ilke*).
 - **ADR-007:** Birleşik Trust Engine **yok**; trust parçalı. Agent yetkileri trust durumu ve profil matrisi ile sınırlı olmalıdır (*hedef ilke*).
+- **ADR-010:** Guard/policy/trust terminolojisi; agent rol adlandırması ve onay sınırları bu ADR ile karıştırılmamalıdır.
 
 ---
 
@@ -116,40 +117,134 @@ Agent Network tasarımı ve ilerideki dar uygulama adımları aşağıdaki ilkel
 
 ---
 
-## Karar (taslak — usage map bekliyor)
+## Karar (taslak — import/drift incelemesi bekliyor)
 
 1. **Mevcut gerçek:** Birleşik Agent Network yok; yürütme `agent_runner`, `lumos_gate`, `task_dispatch`, `cursor_bridge`/köprü ve `task_engine` üzerinde **parçalı tek-ajan hatları** şeklindedir; birleşik koordinasyon katmanı yoktur.
-2. **Hedef:** Yukarıdaki beş rol, yedi karar ilkesi ve public/private sınır; finalize için agent/task/executor usage map zorunlu.
+2. **Hedef:** Yukarıdaki beş rol, yedi karar ilkesi ve public/private sınır; usage map checkpoint tamamlandı — finalize için dar import/drift incelemesi beklenir.
 3. **Öncelik sırası (ADR-001):** Firewall → Trust → Router → Memory → **Agent Network**; alt katmanlar oturmadan Agent Network açılmaz.
 4. **Alt katman ilişkisi:** ADR-004 (router sinyalleri), ADR-005 (bağlam/bellek), ADR-006 (firewall/guard), ADR-007 (trust) ile uyumlu ilerlenmeli; Agent Network bu katmanları bypass etmemelidir.
 5. **Canonical katmanlar (ADR-003):** Bellek `src/memory`; trust/security `src/security` + `src/policy`; yetki `task_engine/profiles.py`.
 6. **Bu turda kod yok** — yalnızca karar kaydı.
 
-Durum: **Karar agent/task/executor usage map tamamlanana kadar bekletilir.**
+Durum: **Usage map checkpoint tamamlandı; karar dar import/drift incelemesi sonrası finalize edilir.**
 
 ---
 
-## İlk güvenli adım: agent/task/executor usage map
+## Mevcut agent/task/executor kullanım haritası
 
-Büyük agent framework refactor veya production orchestration **yapılmadan** önce mevcut ajan/yürütme dokunuş noktalarının haritalanması önerilir.
+Haziran 2026 repo taraması sonucu — **salt okuma analizi**; kod, import, test, executor davranışı veya orchestration değişikliği **yoktur**.
 
-**Hedef çıktı (ayrı checkpoint veya bu ADR eki — henüz yazılmadı):**
+### Özet bulgular
 
-| Giriş noktası | Akış türü | Tükettiği / ürettiği | Not |
-|---------------|-----------|----------------------|-----|
-| `agent_runner.py` | Tek tuş agent | Hedef seçimi → executor → verify | `src/core/` sınırlı; köprü/server import |
-| `lumos_gate.execute_plan` | Çok adımlı plan | LLM plan, substep yürütme | Gate reasoning; ham metin executor'a gitmez |
-| `task_dispatch.py` | task_type → executor | Risk, onay kuyrukları, dispatch plan | `pending_approval`, `execution_permitted` |
-| `cursor_bridge.py` | Patch/onay köprüsü | Execution/result paketleri | `may_execute_step_at_runtime`; onay dosyası |
-| `kando_bridge/server.py` | Köprü POST | `bridge_intent` → gate → dispatch | Panel/chat girişi |
-| `task_engine/engine.py` | Görev motoru | Plan, kuyruk, profil, doğrulama | `.lumos/tasks/` state |
-| `task_engine/executors/*` | Adım yürütme | read, analyze, patch, safe_local vb. | Profil × adım matrisi |
-| `kando_runtime/executors/*` | Runtime executor | file, shell, video, image vb. | Dispatch üzerinden |
-| Panel görev/kayıt | UX görünürlük | Demo/köprü durumu | Orchestration değil |
+- **Birleşik Agent Network yok.** `agent_network`, `agent_coordinator` veya merkezi çok-ajan orchestration modülü tespit edilmemiştir.
+- **Yürütme parçalıdır:** `agent_runner`, `lumos_gate`, `task_dispatch`, `cursor_bridge`, köprü (`kando_bridge/server.py`), `task_engine` ve panel görev hattı **ayrı tek-ajan / yürütme hatları** olarak çalışır; aralarında rol sözleşmesi veya koordinasyon protokolü yoktur.
+- **`bridge_intent`, `task_engine` ve panel görev akışları ayrı boru hatlarıdır** — birbirini otomatik tüketmez; ortak state modeli yoktur.
+- **Kritik drift:** Panel görev deposu `.lumos/tasks.json` (`panel_tasks_server.py`); TaskEngine görev deposu `.lumos/tasks/tasks.json` (`TaskStore` base_dir = `.lumos/tasks`). Farklı path, farklı JSON şeması ve farklı yazıcı; tek kaynak yoktur.
+- **`POST /task` ≠ `POST /tasks`:** Köprü yürütme girişi `POST /task` (tekil; `kando_bridge/server.py`); panel görev CRUD'u `POST /tasks` (çoğul; `panel_tasks_server.py` → `.lumos/tasks.json`). İsim benzerliği yanlış birleştirme riski taşır.
+- **`_resolve_task_routing` ↔ `task_dispatch` sınırı:** `_resolve_task_routing` köprü HTTP gövdesinden `direct_patch` \| `agent` modu ve payload üretir (gate öncesi); `task_dispatch` gate kararı sonrası `task_type` → executor yönlendirmesi, risk ve onay kuyruğu yapar. İkisi farklı katmandır; birleşik agent routing değildir.
+- **Kod veya büyük refactor için erken.** Usage map kilitlendikten sonra dar **import/drift karşılaştırması** yapılabilir; Agent Network motoru veya executor birleştirmesi bu aşamada **yapılmaz**.
 
-**Import map kapsamı (analiz görevi):** `agent_runner` → `cursor_bridge` / executor → `lumos_gate` → `task_dispatch` → `profiles` / `may_execute_step_at_runtime` → `task_engine` → runtime executor'lar → köprü (`kando_bridge/server.py`) — kim kimi import ediyor, hangi giriş noktası hangi yürütme zincirini tetikliyor, hangi onay/trust/firewall sinyali tüketiliyor.
+### Parçalı yürütme modülleri
 
-Usage map tamamlanmadan Agent Network birleştirme, yeni orchestration modülü veya agent framework kararı **verilmez**.
+| Modül | Konum (analiz bulgusu) | Kısa rol | Agent Network ile ilişki |
+|-------|------------------------|----------|--------------------------|
+| Tek tuş agent | `src/kando/agent_runner.py` | Hedef seçimi → executor → verify → commit/push | Tek ajan; `src/core/` sınırlı hedef |
+| LLM plan yürütme | `packages/kando_runtime/.../lumos_gate.py` | `execute_plan`, gate reasoning, `agent` \| `direct_patch` \| `no_op` | Çok adımlı plan; koordinasyon değil |
+| Görev türü dispatch | `packages/kando_runtime/.../task_dispatch.py`, `router.py` | `task_type` → executor; risk, onay kuyrukları | Gate sonrası yürütme yönlendirmesi |
+| Cursor köprü | `src/kando/cursor_bridge.py` | Patch/onay paketleri; subprocess yürütme | Ayrı onay sözleşmesi |
+| Köprü sunucu | `packages/kando_bridge/.../server.py` | `POST /task`, `POST /chat`; `_resolve_task_routing` | Panel/chat giriş orkestrasyonu |
+| Köprü niyet | `packages/kando_runtime/.../bridge_intent.py` | `task` \| `chat` sınıflandırması | Gate/dispatch öncesi ayrım (ADR-004 ile örtüşür) |
+| Görev motoru | `src/task_engine/engine.py`, `executors/*` | Plan, kuyruk, profil, doğrulama | CLI/main hattı; köprüden bağımsız |
+| Runtime executor | `packages/kando_runtime/executors/*` | file, shell, video, image, read vb. | Dispatch üzerinden |
+| Panel görev sunucu | `panel/scripts/panel_tasks_server.py` | `GET/POST /tasks` → `.lumos/tasks.json` | UX görev listesi; TaskEngine değil |
+| Panel read-only | `panel/js/app.js`, `read_backend_state.py` | Görev/kayıt görünürlük; demo/fixture | Orchestration değil |
+
+### Giriş noktası → zincir haritası
+
+| Giriş noktası | Akış türü | Sonraki adım / tüketici | Not |
+|---------------|-----------|-------------------------|-----|
+| `kando_bridge/server.py` POST `/task` | Köprü yürütme | `_resolve_task_routing` → `direct_patch` \| `agent` → gate/dispatch veya `agent_runner` | Panel Görevler `source: panel_gorevler` ile buraya gelir |
+| `_resolve_task_routing` | HTTP gövde ayrıştırma | `direct_patch`: TARGET talimatı; `agent`: serbest goal metni | Gate **öncesi**; `task_dispatch` **değil** |
+| `bridge_intent.classify_bridge_message_intent` | `task` \| `chat` | `task`: gate+dispatch; `chat`: LLM (gate bypass) | `/chat` ve bazı `/task` yollarında |
+| `lumos_gate.run_lumos_gate` | Gate kararı | `execute_plan`, pending approval, risk | Ham metin doğrudan executor'a gitmez |
+| `task_dispatch.dispatch_*` | `task_type`, risk, onay | `ROUTES` → runtime executor | Gate kararı **sonrası** yürütme |
+| `agent_runner` (köprüden) | Agent job | Hedef seç → executor → verify → git | Tek dosya/hedef odaklı |
+| `cursor_bridge` (subprocess) | Patch uygulama | `.lumos/cursor_bridge` paketleri | `may_execute_step_at_runtime` |
+| `src/main.py` → `TaskEngine` | CLI görev motoru | `planner` → kuyruk → `task_engine/executors/*` | `.lumos/tasks/tasks.json` |
+| `panel_tasks_server.py` POST `/tasks` | Panel CRUD | `.lumos/tasks.json` yaz/oku | Köprü `/task` ile **bağlı değil** |
+| Panel read-only script | Salt okuma | `read_backend_state.py` → panel adapter | `.lumos/tasks.json` okur; TaskEngine path drift riski |
+
+### POST `/task` vs POST `/tasks` (ayrım)
+
+| Özellik | `POST /task` | `POST /tasks` |
+|---------|--------------|---------------|
+| Sunucu | `kando_bridge/server.py` | `panel/scripts/panel_tasks_server.py` |
+| Amaç | Yürütme / köprü orkestrasyonu | Panel görev listesi CRUD |
+| State | `.lumos/outbox`, cursor_bridge, dispatch onay dosyaları | `.lumos/tasks.json` |
+| TaskEngine | Doğrudan kullanmaz (ayrı hat) | Kullanmaz |
+| Tipik gövde | `goal`, `file+task`, `text`; `source: panel_gorevler` | Görev satırı ekleme/tamamlama/silme |
+| Agent Network adayı | Evet (yürütme girişi) | Hayır (UX depo) |
+
+**Analiz bulgusu:** İki endpoint **birleştirilmemelidir**; isim benzerliği migration veya orchestration kararında bilinçli ayrım gerektirir.
+
+### `_resolve_task_routing` vs `task_dispatch` sınırı
+
+| Katman | Fonksiyon / modül | Ne zaman | Çıktı |
+|--------|-------------------|----------|-------|
+| Köprü routing | `_resolve_task_routing` (`server.py`) | HTTP gövdesi parse edildiğinde | `mode`: `direct_patch` \| `agent`; payload; UI mesajı |
+| Gate karar | `lumos_gate` | Agent/direct_patch yolunda | `agent` \| `direct_patch` \| `no_op`; risk; plan |
+| Yürütme dispatch | `task_dispatch` | Gate sonrası | `task_type`, `execution_permitted`, executor kuyruğu |
+
+**Analiz bulgusu:** `_resolve_task_routing` panel başlığındaki dosya adını yanlış patch hedefi sanmaması için `source === "panel_gorevler"` istisnası taşır (`docs/ui_panel_gorevler_bridge.md`). Bu, köprü routing ile dispatch arasında **üçüncü özel kural** katmanıdır — birleşik agent sözleşmesi değildir.
+
+### Ayrı boru hatları (pipeline)
+
+| Boru hattı | Giriş | State / çıktı | TaskEngine ile |
+|------------|-------|---------------|----------------|
+| Köprü yürütme | `POST /task`, `/chat` | outbox, dispatch onay, cursor_bridge | Bağımsız |
+| TaskEngine | CLI, `main.py` | `.lumos/tasks/tasks.json` | Canonical motor |
+| Panel görev CRUD | `POST /tasks` (panel sunucu) | `.lumos/tasks.json` | **Farklı dosya** |
+| Panel read-only | `read_backend_state.py` | UI adapter | TaskEngine path ile drift |
+| Tek tuş agent | Köprü agent modu | git commit/push raporu | Bağımsız |
+
+### Drift ve çelişki riskleri (teşhis listesi)
+
+Usage map ve sonraki import karşılaştırmasında **özellikle** kontrol edilmesi gereken noktalar (analiz bulgusu):
+
+| Risk | Açıklama | Etkilenen modüller |
+|------|----------|-------------------|
+| **Çift görev deposu** | Panel `.lumos/tasks.json` vs TaskEngine `.lumos/tasks/tasks.json` — farklı path, şema, yazıcı | `panel_tasks_server.py`, `task_engine/engine.py`, `read_backend_state.py` |
+| **`POST /task` ↔ `POST /tasks` karışıklığı** | İsim benzerliği; farklı sunucu, farklı sözleşme | `kando_bridge/server.py`, `panel_tasks_server.py` |
+| **Köprü routing ↔ dispatch örtüşmesi** | `_resolve_task_routing` mod kararı ile `task_dispatch` task_type kararı farklı katman | `server.py`, `task_dispatch.py` |
+| **Panel görev → köprü → yerel liste** | Yerel liste önce yazılır; köprü hatası geri alınmaz | Panel UI, `POST /task` |
+| **Gate + profil hizasızlığı** | Köprü hattı `profiles.py` ile doğrudan hizalı değil; task engine ayrı yol | ADR-006/007/010 ile ortak risk |
+| **`bridge_intent` ↔ task engine** | Köprü niyeti task engine planlayıcısını çağırmaz | `bridge_intent`, `task_engine/planner.py` |
+| **`src/` vs `packages/kando_*`** | Runtime köprüde; task engine `src/` altında | ADR-003 ayna drift |
+| **`agent_runner` ↔ `cursor_bridge`** | Subprocess ve outbox kopyası; tek agent kimliği yok | `agent_runner`, `cursor_bridge`, köprü |
+| **Read-only panel boş görev** | `read_backend_state.py` `.lumos/tasks.json` okur; görevler `.lumos/tasks/` altındaysa panel boş görünür | `PANEL_READONLY_AUDIT`, `WORKSPACE_CONTRACT_STABILITY_AUDIT` |
+
+Bu tablo **teşhis listesidir**; bu ADR drift'i **düzeltmez**, yalnızca haritalar.
+
+### Import map özeti (checkpoint — tam değil)
+
+Dar import karşılaştırması için öncelikli kenarlar (analiz bulgusu):
+
+```
+kando_bridge/server → _resolve_task_routing → lumos_gate → task_dispatch → router.ROUTES → executors
+kando_bridge/server → bridge_intent; agent_runner; cursor_bridge (subprocess)
+agent_runner → executor / git / verify → cursor_bridge outbox
+main → TaskEngine → task_engine/executors → profiles.may_execute_step_at_runtime
+panel_tasks_server → .lumos/tasks.json (TaskEngine'den bağımsız)
+read_backend_state → .lumos/tasks.json (TaskEngine path drift adayı)
+```
+
+Tam import diff ve çift kayıt analizi **ayrı dar checkpoint** olarak planlanır; bu bölüm usage map'i **kilitler**, import map'i tamamlamaz.
+
+### İlk güvenli sonraki adım
+
+1. **Usage map kilitle** — bu bölüm checkpoint olarak kabul edilir; Agent Network birleştirme kararı verilmez.
+2. **Dar import/drift karşılaştırması** — yukarıdaki drift tablosu maddeleri için salt okuma diff; özellikle görev path (`tasks.json` vs `tasks/tasks.json`) ve köprü routing sınırı.
+3. **Kod, migration veya executor birleştirmesi yapılmaz** — ADR-004/005 disiplini ile hizalı.
 
 ---
 
@@ -159,9 +254,12 @@ Aşağıdaki işler **bilinçli olarak yapılmaz**; ayrı ADR, usage map, audit 
 
 | Yapılmaması gereken | Gerekçe (kısa) |
 |---------------------|----------------|
-| **Kod yazma** (orchestration, yeni agent modülü) | Usage map ve karar finalize edilmedi; kapsam şişmesi |
-| **Gerçek Agent Network kurma** | ADR-001 taslak; Firewall → Trust → Router → Memory öncesi değil |
-| **Büyük agent framework / refactor** | Regresyon riski; parçalı hatlar önce haritalanmalı |
+| **Agent Network kurma / birleştirme** | ADR-001 taslak; Firewall → Trust → Router → Memory öncesi değil; birleşik katman yok |
+| **Executor davranışı değiştirme** | Usage map kilitlendi; dar drift incelemesi önce; regresyon riski |
+| **Görev path/model migration** | `.lumos/tasks.json` ↔ `.lumos/tasks/tasks.json` drift bilinçli ayrım; otomatik birleştirme yok |
+| **Panel görev deposunu runtime TaskEngine ile hemen birleştirme** | Farklı boru hatları; migration ayrı onay ve ADR gerektirir |
+| **Kod yazma** (orchestration, yeni agent modülü) | Karar finalize edilmedi; kapsam şişmesi |
+| **Büyük agent framework / refactor** | Regresyon riski; parçalı hatlar önce haritalandı — import diff sonrası dar adım |
 | **Cihaz / terminal kontrolü ekleme** | Public sınır; private/professional katman |
 | **Mail / OAuth / Gmail entegrasyonu** | ADR-002 — izin akışı ve kod kapsam dışı |
 | **Ödeme / domain işlem entegrasyonu** | Public sınır; prod katmanı |
@@ -169,7 +267,7 @@ Aşağıdaki işler **bilinçli olarak yapılmaz**; ayrı ADR, usage map, audit 
 | **Quantum / IBM tarafına geçme** | ADR-001 — erken hedef değil |
 | **Public repo'da otonom dış aksiyon** | Onaysız dış etki yasağı; demo-safe sınır ihlali |
 
-Ek olarak: abartılı "otonom ajan ordusu" vaadi, production orchestration'un public'e taşınması ve alt katmanları bypass eden koordinasyon **yapılmaz**.
+Ek olarak: abartılı "otonom ajan ordusu" vaadi, production orchestration'un public'e taşınması, `POST /task` ile `POST /tasks` endpoint birleştirmesi ve alt katmanları bypass eden koordinasyon **yapılmaz**.
 
 ---
 
@@ -190,14 +288,17 @@ Ek olarak: abartılı "otonom ajan ordusu" vaadi, production orchestration'un pu
 
 ## Sonuç (geçici)
 
-Haziran 2026 repo analizine dayanarak Lumos'ta **birleşik Agent Network bulunmamaktadır**. Yürütme `agent_runner`, `lumos_gate`, `task_dispatch`, `cursor_bridge`/köprü ve `task_engine` üzerinde **parçalı tek-ajan hatları** şeklindedir; birleşik koordinasyon/orchestration katmanı yoktur. ADR-001 sırasına göre Agent Network, Firewall → Trust → Router → Memory omurgası netleşmeden açılmamalıdır. ADR-004, ADR-005, ADR-006 ve ADR-007 ile uyumlu ilerlenmelidir.
+Haziran 2026 repo analizine dayanarak Lumos'ta **birleşik Agent Network bulunmamaktadır**. Yürütme `agent_runner`, `lumos_gate`, `task_dispatch`, `cursor_bridge`/köprü, `task_engine` ve panel görev hattı üzerinde **parçalı tek-ajan hatları** şeklindedir; birleşik koordinasyon/orchestration katmanı yoktur. **Usage map checkpoint tamamlandı** — kritik drift: panel `.lumos/tasks.json` ile TaskEngine `.lumos/tasks/tasks.json` ayrımı; `POST /task` (köprü yürütme) ile `POST /tasks` (panel CRUD) ayrımı kayıt altındadır.
 
-**İlk güvenli adım:** Mevcut agent/task/executor dokunuş noktalarının usage map / import map olarak çıkarılması. **Bu turda kod yazılmaz; büyük agent framework refactor yapılmaz; production orchestration kurulmaz.**
+ADR-001 sırasına göre Agent Network, Firewall → Trust → Router → Memory omurgası netleşmeden açılmamalıdır. ADR-004, ADR-005, ADR-006, ADR-007 ve ADR-010 ile uyumlu ilerlenmelidir.
+
+**Sonraki güvenli adım:** Dar import/drift karşılaştırması (görev path, köprü routing sınırı). **Bu turda kod yazılmaz; Agent Network kurulmaz; görev path migration yapılmaz.**
 
 ## Sonraki gözden geçirme
 
-- Agent/task/executor usage map checkpoint sonuçları ile ADR revizyonu ve karar finalize
-- Rol sözleşmesi taslağı (kod, belge, görev, kontrol, doğrulama, raporlama) — usage map sonrası
-- ADR-001 (ileri modüller), ADR-003 (canonical katmanlar), ADR-004 (router), ADR-005 (memory graph), ADR-006 (firewall), ADR-007 (trust) ile çakışma kontrolü
+- Dar import/drift checkpoint sonuçları ile ADR revizyonu ve karar finalize
+- Rol sözleşmesi taslağı (kod, belge, görev, kontrol, doğrulama, raporlama) — drift incelemesi sonrası
+- ADR-001 (ileri modüller), ADR-003 (canonical katmanlar), ADR-004 (router), ADR-005 (memory graph), ADR-006 (firewall), ADR-007 (trust), ADR-010 (terminoloji) ile çakışma kontrolü
+- Panel `.lumos/tasks.json` ↔ TaskEngine `.lumos/tasks/tasks.json` drift — salt okuma audit; migration kararı ayrı onay
 - Public repo sınırı ve çekirdek stabilizasyon durumu ile uyum kontrolü
-- Pilot tek-rol delegasyon seçimi — usage map sonrası, ayrı onay
+- Pilot tek-rol delegasyon seçimi — karar finalize sonrası, ayrı onay
