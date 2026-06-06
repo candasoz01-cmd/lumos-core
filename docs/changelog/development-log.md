@@ -51,3 +51,15 @@ ADR-008 agent/task/executor usage map revizyonu tamamlandı (PR #87 merge; docs-
 | 1 | [#87](https://github.com/candasoz01-cmd/lumos-core/pull/87) | ADR-008 usage map — agent/task/executor kullanım haritası eklendi |
 
 **Kapsam:** Yalnızca `docs/decisions/ADR-008-agent-network-boundary.md`; kod değişikliği yok.
+
+---
+
+## 2026-06-06
+
+CI pytest kapısı gerçek kırmızı/yeşil sinyale alındı (PR #89 merge; `main` @ `60cf4fd`).
+
+| Sıra | PR | Özet |
+|------|-----|------|
+| 1 | [#89](https://github.com/candasoz01-cmd/lumos-core/pull/89) | CI pytest `continue-on-error` kaldırıldı; `video_executor` testleri için `requests` bağımlılığı düzeltildi |
+
+**Kapsam:** CI workflow + test bağımlılığı; CI artık gerçek red/green sinyali veriyor.
