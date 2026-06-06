@@ -3731,7 +3731,8 @@ function canTransition(from, to) {
         "Şu an gösterilecek uyarı veya not bulunmuyor."
       );
     }
-    var guidanceHtml = '<div class="guidance-cards">' + buildGuidanceCard() + "</div>";
+    var guidanceHtml =
+      '<div class="guidance-cards panel-screen-dashboard-guidance">' + buildGuidanceCard() + "</div>";
     var lumosStatusHtml = buildLumosStatusCard();
     var lumosSectionTitle = hasBackendReadStateInjected()
       ? "Çekirdek durum (yerel köprü)"
@@ -3754,7 +3755,10 @@ function canTransition(from, to) {
       "</div>" +
       buildSection("Son Olaylar", eventsBody) +
       buildSection("Uyarılar ve notlar", warningsHtml) +
-      buildSection(lumosSectionTitle, lumosStatusHtml) +
+      buildSection(
+        lumosSectionTitle,
+        '<div class="panel-screen-dashboard-lumos">' + lumosStatusHtml + "</div>"
+      ) +
       buildSection("Ürün Özellikleri", productSectionBody) +
       buildSection("Durum ve rehber", guidanceHtml) +
       buildSection(
@@ -6730,11 +6734,44 @@ function canTransition(from, to) {
     /** Son başarılı feed GET → normalize + dedupe tam liste */
     posts: [],
     error: "",
+    /** PR #64: warn | info (ağ/HTTP; kırmızı error değil) */
+    errorKind: "warn",
     tab: "feed",
     loadId: 0,
     actionBusyByPostId: {},
     flash: null,
   };
+
+  function isFeedFetchNetworkError(err) {
+    var raw = (err && err.message) || String(err);
+    return (
+      raw === "Failed to fetch" ||
+      raw === "Load failed" ||
+      raw === "NetworkError when attempting to fetch resource." ||
+      (err && err.name === "AbortError")
+    );
+  }
+
+  function mapFeedFetchError(err) {
+    var raw = (err && err.message) || String(err);
+    if (isFeedFetchNetworkError(err)) {
+      return {
+        kind: "warn",
+        text:
+          "Yerel feed backend'e ulaşılamıyor. Bu demo/yerel modda normal olabilir; backend çalışıyorsa 127.0.0.1:3000 adresini kontrol et.",
+      };
+    }
+    if (raw.indexOf("HTTP ") === 0) {
+      return {
+        kind: "info",
+        text:
+          "Posts API yanıt vermedi (" +
+          raw +
+          "). Yerel demo modda backend kapalı olabilir; çalışıyorsa 127.0.0.1:3000 adresini kontrol edin.",
+      };
+    }
+    return { kind: "info", text: raw };
+  }
 
   function feedFlashHtml(F) {
     if (!feedViewState.flash || !feedViewState.flash.text) return "";
@@ -6757,7 +6794,7 @@ function canTransition(from, to) {
       return feedTabLabel(tab) + " · yükleniyor";
     }
     if (loadStatus === "error") {
-      return "Bağlantı hatası · " + feedTabLabel(tab);
+      return "Yerel backend kapalı · " + feedTabLabel(tab);
     }
     var count = (feedViewState.posts || []).length;
     return count + " gönderi · " + feedTabLabel(tab);
@@ -6790,12 +6827,20 @@ function canTransition(from, to) {
 
   function buildFeedOverviewSectionHtml(tab, loadStatus) {
     var ds = getPanelDataSourcePresentation();
-    var statusKind = loadStatus === "error" ? "error" : loadStatus === "ok" ? "ok" : "info";
+    var statusKind =
+      loadStatus === "error"
+        ? feedViewState.errorKind === "info"
+          ? "info"
+          : "warn"
+        : loadStatus === "ok"
+          ? "ok"
+          : "info";
     var statusText =
       loadStatus === "loading" || loadStatus === "idle"
         ? "Liste yükleniyor…"
         : loadStatus === "error"
-          ? "Son istek başarısız — yerel backend veya posts API taban adresini kontrol edin."
+          ? feedViewState.error ||
+            "Yerel feed backend'e ulaşılamıyor — demo/yerel modda normal olabilir."
           : (feedViewState.posts || []).length + " gönderi · " + feedTabLabel(tab) + " sekmesi";
     return buildSection(
       "Genel bakış",
@@ -6892,6 +6937,7 @@ function canTransition(from, to) {
     var myLoad = feedViewState.loadId;
     feedViewState.status = "loading";
     feedViewState.error = "";
+    feedViewState.errorKind = "warn";
     feedViewState.posts = [];
     if (typeof console !== "undefined" && console.log) {
       console.log("FETCH_FEED", { tab: tab, url: url });
@@ -6910,7 +6956,9 @@ function canTransition(from, to) {
       })
       .catch(function (e) {
         if (myLoad !== feedViewState.loadId) return;
-        feedViewState.error = e.message || String(e);
+        var mapped = mapFeedFetchError(e);
+        feedViewState.error = mapped.text;
+        feedViewState.errorKind = mapped.kind;
         feedViewState.status = "error";
         feedViewState.posts = [];
         if (getCurrentScreen().id === "feed") renderMain();
@@ -7042,18 +7090,26 @@ function canTransition(from, to) {
     }
 
     if (feedViewState.status === "error") {
+      var errKind =
+        feedViewState.errorKind && PANEL_STATUS_KINDS.indexOf(feedViewState.errorKind) >= 0
+          ? feedViewState.errorKind
+          : "warn";
       return wrapFeedPanelView(
         tab,
         "error",
-        '<div class="feed-panel-error" role="alert">' +
-          '<p class="feed-panel-error-title">İstek tamamlanamadı</p>' +
-          '<p class="feed-panel-error-detail">' +
-          F.escapeHtml(feedViewState.error) +
-          "</p>" +
-          '<div class="feed-panel-error-hint">' +
-          "<p><strong>Ne kontrol edilir?</strong> Yerel demo backend çalışıyor mu (<code>cd backend && npm run dev</code>), posts API adresi doğru mu.</p>" +
-          '<p class="feed-panel-error-hint-sub">Bu ekran üretim telemetrisi değildir. Özel taban: <code>LUMOS_POSTS_API_BASE</code> veya <code>localStorage.lumos_posts_api_base</code>.</p>' +
-          "</div></div>"
+        '<div class="feed-panel-offline" role="status">' +
+          buildPanelFeedbackBlock(
+            errKind,
+            feedViewState.error ||
+              "Yerel feed backend'e ulaşılamıyor. Bu demo/yerel modda normal olabilir; backend çalışıyorsa 127.0.0.1:3000 adresini kontrol et.",
+            "status"
+          ) +
+          buildPanelFeedbackBlock(
+            "info",
+            "Bu ekran üretim telemetrisi değildir. Özel taban: LUMOS_POSTS_API_BASE veya localStorage.lumos_posts_api_base.",
+            "status"
+          ) +
+          "</div>"
       );
     }
 

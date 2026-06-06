@@ -1674,6 +1674,55 @@ body {
 .panel-screen-dashboard,
 .panel-screen-feed {
   min-width: 0;
+  max-width: 100%;
+}
+
+.panel-screen-dashboard .panel-screen-dashboard-cards {
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.panel-screen-dashboard .section-card,
+.panel-screen-dashboard .metric-card,
+.panel-screen-dashboard .guidance-cards,
+.panel-screen-dashboard-guidance,
+.panel-screen-dashboard-lumos,
+.panel-screen-dashboard .section-body,
+.panel-screen-dashboard .section-body p,
+.panel-screen-dashboard .metric-value,
+.panel-screen-dashboard .metric-title {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.panel-screen-dashboard code {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+.panel-screen-dashboard .inline-link {
+  overflow-wrap: anywhere;
+}
+
+.panel-screen-dashboard .event-list li {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.feed-panel-offline {
+  min-width: 0;
+  max-width: 100%;
+  margin: 0.5rem 0 0 0;
+}
+
+.feed-panel-offline .lumos-panel-feedback {
+  margin-bottom: 0.5rem;
+}
+
+.feed-panel-offline .lumos-panel-feedback:last-child {
+  margin-bottom: 0;
 }
 
 /* Anahtar Kasası — pasif işlemler (yakında; gerçek vault yok) */
