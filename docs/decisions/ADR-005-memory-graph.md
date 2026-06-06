@@ -2,9 +2,9 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Taslak / karar bekliyor** — usage map tamamlanmadan finalize edilmez |
+| Durum | **Taslak / karar bekliyor** — memory usage map checkpoint tamamlandı; karar finalize büyük konsolidasyon planı öncesi bekletilir |
 | Tarih | 2026-06-06 |
-| İlgili | `docs/lumos-karar-sozlesmesi.md`, public GitHub sınırı kuralları, ADR-001, ADR-003, ADR-004 |
+| İlgili | `docs/lumos-karar-sozlesmesi.md`, public GitHub sınırı kuralları, ADR-001, ADR-003, ADR-004, ADR-010, PR #84 (`492e8d1`) |
 
 ## Amaç
 
@@ -34,11 +34,12 @@ Repo taramasında **node/edge tabanlı bir graph bellek modeli tespit edilmemiş
 | Bağlam deposu | `src/core/context_store.py` | `.lumos/context.json`; repo sorgusu, panel sağlık, aktivite — graph değil |
 | Runtime bağlam | `src/context/context.py` (`Context`) | Mesaj, online, confidence, `memory_note_count`; ilişki yok |
 | Karar örüntüleri / bias | `src/core/memory_compressor.py`, `memory_patterns.py`, `strategy_updater.apply_memory_bias` | Loglardan istatistiksel örüntü → `.lumos/memory_patterns.json`; entity graph değil |
-| Karar kayıtları | `docs/decisions/ADR-*.md` | İnsan okur Markdown; makine graph node'u değil |
+| Karar kayıtları | `docs/decisions/ADR-*.md` | İnsan okur Markdown; makine graph node'u değil; runtime bellekten ayrı |
+| Günlük / ilerleme | `docs/journal/` | İnsan okur; runtime bellekten ayrı |
 | Görev kayıtları | `task_engine`, `.lumos/tasks/` | Yapılandırılmış görev state; graph kenarı yok |
 | CLI notları | `src/cli/cli_notes.py` (analiz bulgusu) | Ayrı in-memory string listesi; `MemoryNote` ile birleşik değil |
 
-**Analiz bulgusu:** "Decision memory" (log → pattern → bias) ile "note memory" (kullanıcı/kısıt notları) ve `context_store` (geçici UI/oturum state) **ayrı kavramlardır**; tek graph altında birleşmemiştir.
+**Analiz bulgusu:** "Decision memory" (`decision_bias`: log → pattern → bias) ile "note memory" (kullanıcı/kısıt notları), `context_store` (geçici UI/oturum state) ve `docs/decisions` / `docs/journal` (insan okur kayıt) **ayrı kavramlardır**; tek graph altında birleşmemiştir.
 
 ### ADR-003 ile hizalı canonical katman
 
@@ -46,16 +47,18 @@ Haziran 2026 repo analizine göre **bellek için canonical kaynak `src/memory`**
 
 **Analiz bulgusu:** `packages/kando_memory` aktif import taşımıyor gibi görünmekte; ayna/drift riski taşır (ADR-003). Graph kararı bu pakete dokunmaz.
 
-### Drift riski: `memory.py` ↔ runtime `attach_store`
+### Drift riski: `memory.py` ↔ runtime `attach_store` (doğrulandı; PR #84 ile dar düzeltme)
 
-`src/core/lumos_runtime.py` (ve `packages/kando_runtime` aynası) runtime'da şunları çağırır:
+Usage map sırasında `src/core/lumos_runtime.py` (ve `packages/kando_runtime` aynası) runtime'da şunları çağırdığı doğrulandı:
 
 - `lumos.note_memory.attach_store(store, rk)`
 - `lumos.note_memory.root_key = rk`
 
-Güncel `src/memory/memory.py` içinde `attach_store`, `_load_from_store`, `_save_to_store`, `device_lock` metodları **bulunmamaktadır** (analiz bulgusu). Kilitsiz not persistence zinciri tutarsız görünmektedir.
+İlk analizde `src/memory/memory.py` içinde `attach_store`, `_load_from_store`, `_save_to_store`, `device_lock` **eksikti**; kilitsiz not persistence zinciri tutarsızdı.
 
-**Bu ADR kapsamında çözülmez** — ayrı, dar kapsamlı inceleme gerektirir; usage map çıktısının parçası olarak ele alınmalıdır.
+**PR #84** (`492e8d1` — *fix: restore Memory attach_store persistence API*) yalnızca bu API drift'ini giderdi: `attach_store`, `_load_from_store`, `_save_to_store`, `device_lock` `src/memory/memory.py`'ye geri eklendi. Bu **büyük bellek konsolidasyonu değildir**; graph engine, graph DB veya yeni memory motoru yoktur.
+
+Kalan drift adayları (ayrı inceleme): `packages/kando_memory` aynası, `cli/cli_notes.py` ↔ `MemoryNote`, oturum belleği stub'ı — usage map tablosunda listelenmiştir.
 
 ### Henüz olmayan alanlar
 
@@ -73,6 +76,77 @@ Güncel `src/memory/memory.py` içinde `attach_store`, `_load_from_store`, `_sav
 - **ADR-001:** Memory Graph **hipotez**; öncelik sırasında routing/trust sonrası 3.–4. alan.
 - **ADR-003:** Canonical bellek `src/memory`; büyük konsolidasyon ertelendi.
 - **ADR-004:** Usage map disiplini; router ile graph aynı "önce haritala, sonra kod" ilkesini paylaşır.
+- **ADR-010:** Guard/policy/trust terminolojisi; `decision_bias` ile kullanıcı belleği karıştırılmamalıdır.
+
+---
+
+## Mevcut memory kullanım haritası
+
+Haziran 2026 repo taraması sonucu — **salt okuma analizi**; graph engine, graph DB veya bellek konsolidasyonu **yapılmamıştır**. PR #84 yalnızca `attach_store` persistence API drift'ini dar kapsamda giderdi (`492e8d1`).
+
+### Özet bulgular
+
+- **Gerçek graph memory yok.** Node/edge modeli, ilişki türleri veya graph DB tespit edilmemiştir.
+- **Bellek parçalıdır:** `MemoryNote`, `context_store`, oturum belleği (`SessionMemory`), log türevli `decision_bias` (`memory_patterns` / `apply_memory_bias`), runtime `attach_store` zinciri, `docs/decisions` ve `docs/journal` ayrı katmanlardır — **tek sistem değildir**.
+- **`decision_bias` kullanıcı belleği değildir.** Loglardan türetilen istatistiksel karar ağırlıklandırmasıdır (`.lumos/memory_patterns.json`); kullanıcı tercihi veya entity graph sanılmamalıdır.
+- **`docs/journal` ve `docs/decisions` runtime bellekten ayrı tutulmalıdır.** İnsan okur kayıt / karar arşividir; makine graph node'u veya otomatik ingest hedefi değildir.
+- **`attach_store` / persistence API drift usage map ile doğrulandı;** PR #84 `src/memory/memory.py`'de API'yi geri yükledi. Fix büyük konsolidasyon veya graph kararı değildir.
+- **`packages/kando_memory` aktif değildir** (ADR-003); import taşımıyor; ayna/drift riski devam eder — graph kararı bu paketi etkinleştirmez.
+- **Graph DB veya yeni memory engine kurulmaz** — bu ADR yalnızca harita ve sınır kaydıdır.
+
+### Modül → veri türü haritası
+
+| Modül / konum | Veri türü | Tüketiciler / üretenler | Graph / drift notu |
+|---------------|-----------|-------------------------|-------------------|
+| `src/memory/memory.py` | `MemoryNote` listesi; `SecureNotesStore` persistence | `lumos.py` (`note_memory.enrich`), `lumos_runtime` (`attach_store`) | Düz liste; graph yok. PR #84: `attach_store` API geri yüklendi |
+| `src/memory/secure_store.py` | AES-GCM `notes.enc.json` | `lumos_runtime` unlock hattı | Şifreli düz not; entity ilişkisi yok |
+| `src/memory/session_memory.py` | Oturum (stub) | `lumos.py` runtime zinciri | `enrich()` no-op; oturumlar arası bellek yok |
+| `src/core/context_store.py` | `.lumos/context.json` | `llm.py`, `panel_runtime`, `product_features` | UI/repo geçici state; graph değil |
+| `src/context/context.py` | Runtime `Context` (mesaj, online, `memory_note_count`) | Engine, enrich zinciri | İlişki modeli yok |
+| `memory_compressor` → `memory_patterns.json` | Log türevli karar örüntüleri | `strategy_updater.apply_memory_bias`, `decision_ranker` | **decision_bias** — kullanıcı hafızası değil |
+| `docs/decisions/ADR-*.md` | İnsan okur karar kayıtları | Geliştirici / dokümantasyon | Runtime bellekten **ayrı**; otomatik graph ingest yok |
+| `docs/journal/` | İlerleme / günlük notları | İnsan okur | Runtime bellekten **ayrı** |
+| `task_engine` / `.lumos/tasks/` | Görev state | CLI, panel | Yapılandırılmış görev; graph kenarı yok |
+| `src/cli/cli_notes.py` | In-memory string listesi | CLI | `MemoryNote` ile birleşik değil — drift adayı |
+| `packages/kando_memory` | Ayna kopya (`memory.py`, `schema.py`) | Aktif import **yok** | ADR-003 drift riski; etkinleştirilmez |
+
+### Runtime persistence zinciri (checkpoint)
+
+```
+lumos_runtime unlock → SecureNotesStore → note_memory.attach_store(store, rk)
+  → _load_from_store / add → _save_to_store
+lumos.py.enrich_context → note_memory.enrich → session_memory.enrich (no-op)
+context_store ← llm / panel (ayrı dosya: .lumos/context.json)
+memory_compressor → .lumos/memory_patterns.json → apply_memory_bias (strateji ağırlığı)
+```
+
+**Analiz bulgusu:** Not persistence (`MemoryNote` + `attach_store`) ile bağlam deposu (`context_store`) ve karar bias'ı (`memory_patterns`) **farklı dosyalar, farklı sözleşmeler**; tek graph altında birleşmemiştir.
+
+### Drift ve çelişki riskleri (teşhis listesi)
+
+Usage map sonrası **özellikle** ayrı tutulması veya dar inceleme gereken noktalar (analiz bulgusu):
+
+| Risk | Açıklama | Etkilenen modüller |
+|------|----------|-------------------|
+| **Runtime vs doküman karışımı** | ADR/journal kayıtları runtime bellek sanılabilir | `docs/decisions`, `docs/journal`, `MemoryNote` |
+| **decision_bias vs kullanıcı tercihi** | Log örüntüleri profil/tercih graph'ına karışabilir | `memory_patterns.json`, `apply_memory_bias` |
+| **CLI notları ↔ MemoryNote** | İki ayrı not deposu; senkron yok | `cli_notes.py`, `memory.py` |
+| **`SessionMemory` stub** | Oturum belleği hedef rolü ile kod uyumsuz | `session_memory.py`, `lumos.py` |
+| **`src/` ↔ `packages/kando_memory`** | Ayna drift; aktif import yok | ADR-003 |
+| **`context_store` vs `MemoryNote`** | Geçici UI state ile kalıcı not karışımı | `context_store.py`, `memory.py` |
+| **attach_store (dar fix sonrası)** | PR #84 API'yi geri yükledi; mirror/CLI drift devam | `memory.py`, `lumos_runtime`, `kando_memory` |
+
+Bu tablo **teşhis listesidir**; PR #84 yalnızca `attach_store` satırındaki API eksikliğini giderdi. Büyük bellek refactor veya graph implementasyonu **bu ADR kapsamında yapılmaz**.
+
+### PR #84 notu (dar düzeltme — konsolidasyon değil)
+
+| Alan | Değer |
+|------|-------|
+| PR | #84 — *fix: restore Memory attach_store persistence API* |
+| Merge commit | `492e8d1` |
+| Dosya | `src/memory/memory.py` (+47 satır) |
+| Kapsam | `attach_store`, `_load_from_store`, `_save_to_store`, `device_lock` geri yükleme |
+| **Değil** | Graph DB, memory engine, `kando_memory` etkinleştirme, kullanıcı verisi taşıma, büyük konsolidasyon |
 
 ---
 
@@ -172,58 +246,63 @@ Public repo'da Memory Graph'ın **"tam ürün bellek motoru"** gibi sunulması b
 
 ---
 
-## Karar (taslak — usage map bekliyor)
+## Karar (taslak — büyük konsolidasyon planı bekliyor)
 
-1. **Mevcut gerçek:** Graph memory yok; bellek `MemoryNote`, `context_store`, decision bias (`memory_patterns` / `apply_memory_bias`) ve `docs/decisions` üzerinden parçalıdır.
-2. **Canonical katman:** ADR-003 ile uyumlu — bellek `src/memory`; graph bu katmanı bypass etmemelidir.
-3. **Hedef:** Yukarıdaki dört rol, 10 node türü ve 10 ilişki türü taslağı; finalize için usage map zorunlu.
-4. **Büyük refactor veya graph database şimdi kurulmaz** — Neo4j, toplu schema değişikliği veya yeni memory engine bu ADR kapsamında yoktur.
-5. **Drift incelemesi:** `memory.py` ↔ runtime `attach_store` ayrı dar inceleme; usage map parçası.
-6. **ADR-001 / ADR-004 ile hizalı:** Memory Graph hipotez alanı; router usage map disiplimi ile aynı sıra — önce haritalama, sonra kod.
-7. **Bu turda kod yok** — yalnızca karar kaydı.
+1. **Mevcut gerçek:** Graph memory yok; bellek `MemoryNote`, `context_store`, oturum belleği, `decision_bias` (`memory_patterns` / `apply_memory_bias`), runtime `attach_store` ve `docs/decisions` / `docs/journal` üzerinden **parçalıdır** (usage map: yukarıdaki bölüm).
+2. **Usage map checkpoint:** Bellek modülleri, persistence zinciri ve drift riskleri bu ADR'de **kilitlendi**; graph engine veya büyük refactor yapılmadı.
+3. **PR #84 (dar fix):** `memory.py` ↔ runtime `attach_store` API drift'i giderildi (`492e8d1`); bu bellek konsolidasyonu veya graph kararı **değildir**.
+4. **Canonical katman:** ADR-003 ile uyumlu — bellek `src/memory`; graph bu katmanı bypass etmemelidir.
+5. **Sınır:** `decision_bias` kullanıcı belleği değildir; `docs/journal` ve `docs/decisions` runtime bellekten ayrı kalır.
+6. **Hedef:** Yukarıdaki dört rol, 10 node türü ve 10 ilişki türü taslağı; finalize için terminoloji sözleşmesi ve (gerekirse) ayrı konsolidasyon planı gerekir.
+7. **Graph database, yeni memory engine ve `kando_memory` etkinleştirme şimdi yapılmaz.**
+8. **ADR-001 / ADR-004 / ADR-010 ile hizalı:** Memory Graph hipotez alanı; router usage map disiplini ile aynı sıra — önce haritalama, sonra dar kod.
+9. **Bu turda kod yok** — yalnızca karar kaydı (PR #84 önceden merge edilmiş dar fix dışında).
 
-Durum: **Karar usage map tamamlanana kadar bekletilir.**
+Durum: **Karar bellek terimleri / persistence sınırları netleştirildikten ve büyük konsolidasyon için ayrı plan onaylanmadan finalize edilmez.**
 
 ---
 
-## İlk güvenli adım: usage map ve ilişkisel harita
+## İlk güvenli adım: usage map kilitlendi → terimler ve sınırlar
 
-Büyük refactor, graph database veya memory engine değişikliği **yapılmadan** önce mevcut bellek dokunuş noktalarının haritalanması önerilir (ADR-004 usage map disiplini ile paralel).
+**Tamamlanan (bu ADR):** Mevcut memory kullanım haritası — bkz. [Mevcut memory kullanım haritası](#mevcut-memory-kullanım-haritası). Graph engine, graph DB veya büyük refactor **yapılmadı**. PR #84 yalnızca `attach_store` API drift'ini dar kapsamda giderdi.
 
-**Hedef çıktı (ayrı checkpoint veya bu ADR eki — henüz yazılmadı):**
+**Sonraki güvenli adımlar (henüz yapılmadı):**
 
-| Dokunuş noktası | Veri türü | Tüketiciler / üretenler | Not |
-|-----------------|-----------|-------------------------|-----|
-| `src/memory/memory.py` | `MemoryNote` listesi | `src/core/lumos.py` (`note_memory.enrich`) | Düz liste; graph yok |
-| `src/memory/secure_store.py` | Şifreli notlar | `lumos_runtime` unlock hattı | `attach_store` drift riski |
-| `src/memory/session_memory.py` | Oturum (stub) | Runtime zinciri | No-op enrich |
-| `src/core/context_store.py` | `.lumos/context.json` | `llm.py`, `panel_runtime`, `product_features` | UI/repo state |
-| `memory_compressor` → `memory_patterns.json` | Karar örüntüleri | `strategy_updater`, `decision_ranker` | Bias; entity graph değil |
-| `docs/decisions/` | ADR Markdown | İnsan okur | Makine node yok |
-| `task_engine` / `.lumos/tasks/` | Görev state | CLI, panel | Graph kenarı yok |
-| `cli/cli_notes.py` | In-memory notlar | CLI | `MemoryNote` ile ayrı |
+| Adım | Amaç | Not |
+|------|------|-----|
+| Bellek terimleri sözleşmesi | `MemoryNote`, `context_store`, `decision_bias`, ADR/journal ayrımını tek tabloda kilitle | Memory Graph öncesi zorunlu |
+| Persistence sınırları | Hangi veri nereye yazılır; runtime vs doküman | Onaysız ingest yok |
+| Dar drift incelemesi (opsiyonel) | `cli_notes` ↔ `MemoryNote`, `kando_memory` aynası | PR #84 kapsamı dışı |
+| Büyük konsolidasyon planı | Çoklu kaynak birleştirme | **Ayrı ADR / onay** — bu ADR'de yapılmaz |
 
-**İlişkisel harita kapsamı (analiz görevi):** Yukarıdaki kaynaklar arasında veri akışı, olası node eşlemesi (taslak), çift kayıt ve drift noktaları — özellikle `memory.py` ↔ `lumos_runtime.attach_store`.
+**Yapılmaması gereken (ilk adımda):**
 
-Usage map tamamlanmadan graph şema implementasyonu, graph DB veya memory engine refactor kararı **verilmez**.
+- Runtime bellek ile `docs/decisions` / `docs/journal` kayıtlarını tek sistem gibi sunmak veya otomatik eşlemek.
+- PR #84 fix'ini "bellek birleştirildi" veya "graph hazır" diye yorumlamak.
+- Usage map tamamlanmadan graph şema, graph DB veya memory engine kararı vermek *(usage map tamamlandı; graph kararı hâlâ verilmez)*.
+
+Büyük bellek konsolidasyonu **ayrı plan ve kullanıcı onayı** olmadan başlatılmamalıdır.
 
 ---
 
 ## Ne yapılmamalı (bu ADR kapsamında ve hemen sonrasında)
 
-Aşağıdaki işler **bilinçli olarak yapılmaz**; ayrı ADR, usage map, audit ve kullanıcı onayı olmadan başlatılmamalıdır:
+Aşağıdaki işler **bilinçli olarak yapılmaz**; ayrı ADR, konsolidasyon planı, audit ve kullanıcı onayı olmadan başlatılmamalıdır:
 
 | Yapılmaması gereken | Gerekçe (kısa) |
 |---------------------|----------------|
-| **Kod yazma** (graph engine, schema implementasyonu) | Usage map ve karar finalize edilmedi |
 | **Graph database ekleme** (Neo4j vb.) | Omurga oturmadan operasyonel karmaşıklık; erken hedef değil |
-| **Memory engine refactor** | ADR-003 büyük konsolidasyon ertelendi; drift önce netleşmeli |
+| **Büyük memory refactor / konsolidasyon** | Usage map kilitlendi; terimler ve persistence sınırları önce; ADR-003 büyük birleştirme ertelendi |
 | **Kullanıcı verisi taşıma** | Onay ve gizlilik sınırı; public repo riski |
+| **`kando_memory` etkinleştirme** | Aktif import yok; ayna drift; graph kararı paketi açmaz |
+| **Runtime bellek ↔ docs kararlarını tek sistem sunma** | `docs/decisions` ve `docs/journal` runtime ingest hedefi değil |
+| **`decision_bias`'ı kullanıcı hafızası gibi kullanma** | Log türevli ağırlık; entity/tercih graph'ı değil |
+| **Kod yazma** (graph engine, schema implementasyonu) | Terim sözleşmesi ve karar finalize edilmedi |
 | **Mail/OAuth entegrasyonu** | ADR-002 — izin akışı ve kod kapsam dışı |
 | **Agent Network kurma** | ADR-001 taslak; graph öncesi değil |
 | **Quantum/IBM tarafına geçme** | ADR-001 — erken hedef değil |
 
-Ek olarak: abartılı ürün vaadi, otomatik graph doldurma (onaysız ingest) ve public sınırı aşan PII graph içeriği **yapılmaz**.
+Ek olarak: abartılı ürün vaadi, otomatik graph doldurma (onaysız ingest), PR #84 fix'ini konsolidasyon sanma ve public sınırı aşan PII graph içeriği **yapılmaz**.
 
 ---
 
@@ -231,27 +310,32 @@ Ek olarak: abartılı ürün vaadi, otomatik graph doldurma (onaysız ingest) ve
 
 | Risk | Not |
 |------|-----|
-| `memory.py` ↔ runtime drift | `attach_store` API uyumsuzluğu; persistence zinciri belirsiz |
+| `memory.py` ↔ runtime drift | PR #84 `attach_store` API'yi geri yükledi; CLI/`kando_memory` drift devam edebilir |
+| Runtime vs docs karışımı | ADR/journal otomatik graph veya runtime bellek sanılabilir |
 | Çoklu bellek kaynağı | Notlar, context, tasks, logs, panel — tek graph yok |
 | Graph şişmesi | İlişkisiz node birikimi; TTL/compressor graph'a uyarlanmalı |
 | Gizlilik sızıntısı | Kişi/konuşma node'ları public demo'ya karışabilir |
-| Bias vs graph karışımı | Decision pattern'ler kullanıcı tercihi sanılabilir |
-| Mirror paket drift | `kando_memory` (ADR-003) |
+| Bias vs graph karışımı | `decision_bias` kullanıcı tercihi sanılabilir (ADR-010) |
+| Mirror paket drift | `kando_memory` aktif değil (ADR-003) |
 | Erken graph DB | CI/regresyon; onay modeli karmaşıklaşması |
 | Onaysız yazım | Auto-ingest karar sözleşmesini ihlal eder |
+| PR #84 yanlış yorum | Dar API fix'i büyük konsolidasyon sanılması |
 
 ---
 
 ## Sonuç (geçici)
 
-Haziran 2026 repo analizine dayanarak Lumos'ta **gerçek graph memory bulunmamaktadır**. Bellek `MemoryNote`, `context_store`, decision bias (`memory_patterns` / `apply_memory_bias`) ve `docs/decisions` kayıtları üzerinden **parçalıdır**. ADR-003'e göre canonical bellek katmanı **`src/memory`**'dir. Memory Graph hedef rolü, 10 node türü ve 10 ilişki türü **taslak sözleşme** olarak kaydedilmiştir; büyük refactor veya graph database **hemen kurulmayacaktır**.
+Haziran 2026 repo analizine dayanarak Lumos'ta **gerçek graph memory bulunmamaktadır**. Bellek `MemoryNote`, `context_store`, oturum belleği, `decision_bias` (`memory_patterns` / `apply_memory_bias`), runtime `attach_store` ve `docs/decisions` / `docs/journal` kayıtları üzerinden **parçalıdır** — tek birleşik bellek sistemi yoktur. ADR-003'e göre canonical bellek katmanı **`src/memory`**'dir. Memory Graph hedef rolü, 10 node türü ve 10 ilişki türü **taslak sözleşme** olarak kaydedilmiştir.
 
-**İlk güvenli adım:** Mevcut bellek dokunuş noktalarının usage map ve ilişkisel haritası; `memory.py` ↔ runtime `attach_store` drift'inin ayrı incelemesi. **Bu turda kod yazılmaz.**
+**Usage map checkpoint tamamlandı** — modül haritası, persistence zinciri ve drift teşhis listesi bu ADR'de kilitlendi. **PR #84** (`492e8d1`) yalnızca `attach_store` persistence API drift'ini dar kapsamda giderdi; graph DB, memory engine veya büyük konsolidasyon **yapılmadı**. **`kando_memory` etkinleştirilmedi.**
+
+**Sonraki güvenli adım:** Bellek terimleri ve persistence sınırlarını dokümante etmek; runtime bellek ile docs/journal/decisions kayıtlarını karıştırmamak; büyük konsolidasyon için ayrı plan. **Bu turda graph implementasyonu veya büyük refactor yapılmaz.**
 
 ## Sonraki gözden geçirme
 
-- Usage map / ilişkisel harita checkpoint sonuçları ile ADR revizyonu ve karar finalize
-- `memory.py` ↔ `attach_store` drift incelemesi bulguları (ayrı dar kapsam)
-- ADR-001 (ileri modüller), ADR-003 (canonical katmanlar), ADR-004 (router usage map) ile çakışma kontrolü
+- Bellek terimleri / persistence sınırları sözleşmesi (Memory Graph öncesi)
+- Büyük konsolidasyon planı — ayrı ADR veya onaylı checkpoint
+- `cli_notes` ↔ `MemoryNote` ve `kando_memory` ayna drift incelemesi (dar kapsam)
+- ADR-001 (ileri modüller), ADR-003 (canonical katmanlar), ADR-004 (router usage map), ADR-010 (terminoloji) ile çakışma kontrolü
 - Public repo sınırı ve çekirdek stabilizasyon durumu ile uyum kontrolü
-- Pilot node/ilişki seçimi — usage map sonrası, ayrı onay
+- Pilot node/ilişki seçimi — terim sözleşmesi sonrası, ayrı onay
