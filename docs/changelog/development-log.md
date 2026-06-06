@@ -75,3 +75,15 @@ CI pytest kapısı gerçek kırmızı/yeşil sinyale alındı (PR #89 merge; `ma
 | 1 | [#91](https://github.com/candasoz01-cmd/lumos-core/pull/91) | Gereksiz `requests` satırı `requirements.txt`'ten kaldırıldı; CI inline kurulum düzeni korundu |
 
 **Kapsam:** Yalnızca `requirements.txt`; `requests` zaten `kando_runtime` transitif bağımlılığı ve CI workflow inline kurulumunda mevcut — drift riski azaltıldı.
+
+---
+
+## 2026-06-06
+
+CI dependency kurulumu tek manifest kaynağına alındı (PR #93 merge; `main` @ `f7de2f7`).
+
+| Sıra | PR | Özet |
+|------|-----|------|
+| 1 | [#93](https://github.com/candasoz01-cmd/lumos-core/pull/93) | Inline `pip install pytest cryptography openai requests` kaldırıldı; CI artık `pip install -r requirements.txt` kullanıyor |
+
+**Kapsam:** Yalnızca `.github/workflows/ci.yml`; PYTHONPATH ve test adımları aynı — dependency drift riski azaltıldı.
