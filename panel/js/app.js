@@ -3639,7 +3639,7 @@ function canTransition(from, to) {
     html += "<p><strong>API erişimi:</strong> " + esc(apiLine) + "</p>";
     html += "<p><strong>Çekirdek aktif:</strong> " + esc(coreTr) + " · <strong>Mod:</strong> " + esc(modeTr) + " · <strong>Sandbox:</strong> " + esc(sbTr) + " · <strong>Yazım:</strong> " + esc(ls.writing_base_dir) + "</p>";
     html += "<p class=\"text-muted-small\"><strong>Koruma (köprü):</strong> " + esc((window.__LUMOS_READ_STATE__ && window.__LUMOS_READ_STATE__.dashboard && window.__LUMOS_READ_STATE__.dashboard.guard_status) || "—") + "</p>";
-    html += "<p class=\"text-muted-small\"><strong>Köprü zamanı:</strong> " + esc(ls.panel_bridge_built_at) + (ls.backend_live_at ? " · <strong>Backend canlı:</strong> " + esc(ls.backend_live_at) : "") + "</p>";
+    html += "<p class=\"text-muted-small\"><strong>Köprü zamanı:</strong> " + esc(ls.panel_bridge_built_at) + (ls.backend_live_at ? " · <strong>Yerel backend durumu:</strong> " + esc(ls.backend_live_at) : "") + "</p>";
     if (rs && rs.server_time_utc) {
       html += "<p class=\"text-muted-small\"><strong>Sunucu zamanı (UTC):</strong> " + esc(rs.server_time_utc) + "</p>";
     }
@@ -4878,9 +4878,6 @@ function canTransition(from, to) {
       }
       metricsHtml = '<div class="cards-grid">' + mcHtml + "</div>";
     }
-    if (typeof console !== "undefined" && console.log) {
-      console.log("renderTrash listItems", items);
-    }
     var listPaneHtml;
     if (items.length === 0) {
       listPaneHtml = buildEmptyState(data.emptyListTitle || "Çöp listesi boş", data.emptyListDesc || "");
@@ -5264,7 +5261,12 @@ function canTransition(from, to) {
       var list = [];
       for (var hi = 0; hi < doc.messages.length; hi++) {
         var n = normalizeChatMessageForStorage(doc.messages[hi]);
-        if (n) list.push(n);
+        if (n) {
+          if (n.role === "assistant" && n.text) {
+            n.text = normalizeChatOfflineDemoMessage(n.text);
+          }
+          list.push(n);
+        }
       }
       chatViewState.messages = list;
     } catch (_) {
@@ -5800,10 +5802,10 @@ function canTransition(from, to) {
       chatViewState.focusComposerAfterRender = true;
       chatViewState.messages.push({
         role: "assistant",
-        text: CHAT_REPLY_ERROR_LABEL,
+        text: CHAT_REPLY_OFFLINE_LABEL,
         depth: "simple",
       });
-      setChatViewStatusBanner(CHAT_REPLY_ERROR_LABEL, "error");
+      setChatViewStatusBanner(CHAT_REPLY_OFFLINE_LABEL, CHAT_REPLY_OFFLINE_KIND);
       persistChatMessagesToStorage();
       refreshCurrentView();
     }
@@ -5929,7 +5931,16 @@ function canTransition(from, to) {
   var CHAT_SOON_LABEL_LONG = "Yakında — henüz kullanılamıyor";
   var CHAT_WAITING_LABEL = "Yanıt hazırlanıyor…";
   var CHAT_UNLOCK_WAITING_LABEL = "Kilit işlemi…";
-  var CHAT_REPLY_ERROR_LABEL = "Bağlantı hatası; tekrar deneyin.";
+  var CHAT_REPLY_OFFLINE_LABEL =
+    "Yerel demo — backend kapalı; panel sohbeti yalnızca yerel yanıt verir.";
+  var CHAT_REPLY_OFFLINE_KIND = "info";
+
+  function normalizeChatOfflineDemoMessage(text) {
+    var s = text != null ? String(text).trim() : "";
+    if (!s) return s;
+    if (s.indexOf("Bağlantı hatası") === 0) return CHAT_REPLY_OFFLINE_LABEL;
+    return s;
+  }
 
   function clearChatViewStatus() {
     chatViewState.status = "idle";
@@ -6265,10 +6276,10 @@ function canTransition(from, to) {
         chatViewState.status = "idle";
         msgs[idx] = {
           role: "assistant",
-          text: CHAT_REPLY_ERROR_LABEL,
+          text: CHAT_REPLY_OFFLINE_LABEL,
           depth: "simple",
         };
-        setChatViewStatusBanner(CHAT_REPLY_ERROR_LABEL, "error");
+        setChatViewStatusBanner(CHAT_REPLY_OFFLINE_LABEL, CHAT_REPLY_OFFLINE_KIND);
         persistChatMessagesToStorage();
         refreshCurrentView();
       });

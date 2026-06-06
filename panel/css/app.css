@@ -129,6 +129,9 @@ body {
   background: var(--bg-main);
   border: var(--border);
   border-radius: 4px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .posts-api-base-label {
@@ -388,6 +391,7 @@ body {
   display: flex;
   flex-direction: column;
   max-width: 100%;
+  min-width: 0;
 }
 
 .lumos-chat-msg--user {
@@ -404,6 +408,9 @@ body {
   line-height: 1.45;
   font-size: 0.92rem;
   max-width: min(100%, 28rem);
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .lumos-chat-msg--user .lumos-chat-bubble {
@@ -424,6 +431,9 @@ body {
   background: #20262c;
   padding: 0.3rem 0.35rem;
   max-width: min(100%, 32rem);
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* Kart içinde iç içe kutu görünmesin: bubble/blok nötrlenir */
@@ -1725,6 +1735,72 @@ body {
   margin-bottom: 0;
 }
 
+/* Chat / Silinenler / Akış — dar viewport taşma koruması (dashboard PR #72 ile uyumlu) */
+.lumos-chat-root,
+.lumos-chat-log,
+.lumos-chat-composer,
+.lumos-chat-answer-card .lumos-msg-blocks,
+.lumos-chat-actions,
+.lumos-chat-user-actions {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.trash-deletion-hub,
+.trash-deletion-hub .section-card,
+.trash-deletion-hub .metric-card,
+.trash-deletion-hub .split-view,
+.trash-deletion-hub .trash-inbox-split,
+.trash-deletion-hub .trash-inbox-list-col,
+.trash-deletion-hub .detail-panel,
+.trash-deletion-hub .detail-row,
+.trash-deletion-hub .trash-task-toolbar,
+.trash-deletion-hub .trash-task-toolbar-hint,
+.trash-deletion-hub .cards-grid,
+.trash-deletion-hub .section-body,
+.trash-deletion-hub .section-body p {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.trash-deletion-hub .trash-json-pre {
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.trash-deletion-hub code {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+.panel-screen-feed .post-feed-list,
+.panel-screen-feed .post-feed-card,
+.panel-screen-feed .post-feed-content,
+.panel-screen-feed .post-feed-meta,
+.panel-screen-feed .post-feed-id,
+.panel-screen-feed .posts-api-base-line,
+.panel-screen-feed .feed-toolbar,
+.panel-screen-feed .section-card,
+.panel-screen-feed .section-body,
+.panel-screen-feed .section-body p {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.panel-screen-feed .post-feed-id code {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
 /* Anahtar Kasası — pasif işlemler (yakında; gerçek vault yok) */
 .keystore-actions-row {
   display: flex;
@@ -2238,6 +2314,30 @@ body {
   .panel-screen-feed .post-feed-card,
   .panel-screen-dashboard .panel-screen-dashboard-cards {
     max-width: 100%;
+  }
+
+  .lumos-chat-root,
+  .lumos-chat-composer-row,
+  .lumos-chat-actions,
+  .lumos-chat-user-actions {
+    max-width: 100%;
+  }
+
+  .lumos-chat-action,
+  .lumos-chat-user-action {
+    white-space: normal;
+  }
+
+  .trash-deletion-hub .trash-task-toolbar,
+  .trash-deletion-hub .split-view,
+  .trash-deletion-hub .cards-grid {
+    max-width: 100%;
+  }
+
+  .trash-deletion-hub .lumos-panel-feedback,
+  .panel-screen-feed .lumos-panel-feedback {
+    font-size: 0.78rem;
+    padding: 0.45rem 0.6rem;
   }
 
   .post-feed-badge {
