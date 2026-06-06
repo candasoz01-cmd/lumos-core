@@ -3,3 +3,4 @@
 -e ./packages/kando_bridge
 -e .
 pytest
+requests

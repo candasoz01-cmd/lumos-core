@@ -23,7 +23,7 @@ jobs:
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
-          pip install pytest cryptography openai
+          pip install pytest cryptography openai requests
 
       - name: Set PYTHONPATH
         run: |
@@ -31,6 +31,5 @@ jobs:
 
       - name: Run tests
         run: pytest
-        continue-on-error: true
         env:
           KANDO_MOCK: "1"
