@@ -63,3 +63,15 @@ CI pytest kapısı gerçek kırmızı/yeşil sinyale alındı (PR #89 merge; `ma
 | 1 | [#89](https://github.com/candasoz01-cmd/lumos-core/pull/89) | CI pytest `continue-on-error` kaldırıldı; `video_executor` testleri için `requests` bağımlılığı düzeltildi |
 
 **Kapsam:** CI workflow + test bağımlılığı; CI artık gerçek red/green sinyali veriyor.
+
+---
+
+## 2026-06-06
+
+`requirements.txt` dependency tekrarı temizlendi (PR #91 merge; `main` @ `0083d17`).
+
+| Sıra | PR | Özet |
+|------|-----|------|
+| 1 | [#91](https://github.com/candasoz01-cmd/lumos-core/pull/91) | Gereksiz `requests` satırı `requirements.txt`'ten kaldırıldı; CI inline kurulum düzeni korundu |
+
+**Kapsam:** Yalnızca `requirements.txt`; `requests` zaten `kando_runtime` transitif bağımlılığı ve CI workflow inline kurulumunda mevcut — drift riski azaltıldı.
