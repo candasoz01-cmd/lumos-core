@@ -595,6 +595,57 @@ function canTransition(from, to) {
     return "Kimlik kartları demo senaryosundan geliyor: " + getScenarioLabel(currentScenario) + ".";
   }
 
+  function buildDashboardScreenSrcLine(src) {
+    if (src.type === "backend") {
+      return "Gösterge kartları enjekte köprüden (read_backend_state) okunuyor.";
+    }
+    if (src.type === "fixture") {
+      return "Gösterge kartları fixtures.js sabit örneğinden geliyor.";
+    }
+    return "Gösterge kartları demo senaryosundan geliyor: " + getScenarioLabel(currentScenario) + ".";
+  }
+
+  function buildDashboardScreenMetricCards(metrics, prot, sb) {
+    var html = "";
+    var i;
+    for (i = 0; i < metrics.length; i++) {
+      var m = metrics[i];
+      var copy = { title: m.title, note: m.note, value: m.value, valueBadge: m.valueBadge };
+      if (m.title === "Korumalı Alan Durumu") {
+        copy.value = buildPanelStatusBadge(sb.label, sb.badgeKind);
+        copy.valueBadge = null;
+      } else if (m.title === "Koruma Durumu") {
+        copy.value = buildPanelStatusBadge(prot.label, prot.locked ? "ok" : "warn");
+        copy.valueBadge = null;
+        if (!hasBackendReadStateInjected()) {
+          copy.note =
+            (copy.note || "") +
+            " Demo önizleme — gerçek koruma motoru bağlı değil.";
+        }
+      } else if (m.title === "Son Aktivite" && (copy.value == null || copy.value === "" || copy.value === "—")) {
+        copy.note =
+          "Henüz kayıtlı olay yok. Görev veya kayıt oluştuğunda burada görünür.";
+      }
+      html += buildMetric(copy);
+    }
+    return html;
+  }
+
+  /** Genel bakış geri bildirimleri + isteğe bağlı tanım listesi (Sistem / Sandbox ile aynı düzen). */
+  function buildPanelScreenOverview(feedbacks, dlHtml) {
+    var html = "";
+    var i;
+    for (i = 0; i < feedbacks.length; i++) {
+      var fb = feedbacks[i];
+      html += buildPanelFeedbackBlock(fb.kind, fb.text, fb.role);
+    }
+    return html + (dlHtml || "");
+  }
+
+  function buildPanelFeedbackBlock(kind, text, role) {
+    return buildPanelFeedback(kind, text, role);
+  }
+
   function buildSandboxScreenMetricCards(metrics, sb) {
     var html = "";
     var i;
@@ -3461,7 +3512,9 @@ function canTransition(from, to) {
     if (!F || !F.getBase) return "";
     return (
       '<p class="posts-api-base-line">' +
-      '<span class="posts-api-base-label">Akış tabanı</span> ' +
+      '<span class="posts-api-base-label">Posts API</span> ' +
+      buildPanelStatusBadge("Yerel demo", "info") +
+      " " +
       '<code>' +
       F.escapeHtml(F.getBase()) +
       "</code></p>"
@@ -3617,28 +3670,103 @@ function canTransition(from, to) {
   // ——— Ekran: Gösterge Paneli (adapter + build) ———
   function renderDashboard() {
     var data = getDashboardData();
-    var cards = buildMetricCards(data.metrics);
-    var warningsHtml = "";
-    if (data.sections[1].warnings && data.sections[1].warnings.length > 0) {
-      warningsHtml = "<ul class=\"event-list\">";
-      for (var w = 0; w < data.sections[1].warnings.length; w++) {
-        warningsHtml += "<li>" + buildBadge("UYARI", "badge-warning") + " " + data.sections[1].warnings[w] + "</li>";
+    var src = getDashboardSourceData();
+    var ds = getPanelDataSourcePresentation();
+    var prot = getProtectionPresentation();
+    var sb = getSandboxPresentation();
+    var demoNote = hasBackendReadStateInjected() ? "" : ' <span class="text-muted-small">(demo)</span>';
+    var overviewHtml = buildPanelScreenOverview(
+      [
+        { kind: ds.kind, text: ds.line },
+        { kind: prot.kind, text: prot.summary },
+        {
+          kind: "info",
+          text:
+            "Bu ekran yerel özet görünürlüğü sağlar. Uzaktan üretim izleme, canlı telemetri veya SaaS operasyon paneli değildir.",
+        },
+        { kind: "info", text: buildDashboardScreenSrcLine(src) },
+      ],
+      '<dl class="system-status-dl panel-screen-dl">' +
+        '<div class="system-status-dl-row"><dt>Veri kaynağı</dt><dd>' +
+        buildPanelStatusBadge(ds.label, ds.kind) +
+        demoNote +
+        "</dd></div>" +
+        '<div class="system-status-dl-row"><dt>Koruma</dt><dd>' +
+        buildPanelStatusBadge(prot.label, prot.locked ? "ok" : "warn") +
+        demoNote +
+        "</dd></div>" +
+        '<div class="system-status-dl-row"><dt>Korumalı alan</dt><dd>' +
+        buildPanelStatusBadge(sb.label, sb.badgeKind) +
+        demoNote +
+        "</dd></div>" +
+        "</dl>"
+    );
+    var cards = buildDashboardScreenMetricCards(data.metrics, prot, sb);
+    var events = (data.sections[0] && data.sections[0].events) || [];
+    var eventsBody =
+      events.length === 0
+        ? buildPanelEmptyState(
+            "info",
+            "Henüz olay yok",
+            "Görev motoru, kayıt veya köprü olayları oluştuğunda burada listelenir. Tam geçmiş için Kayıtlar ekranına gidin."
+          )
+        : EventList(events);
+    var warnings = (data.sections[1] && data.sections[1].warnings) || [];
+    var warningsHtml;
+    if (warnings.length > 0) {
+      warningsHtml = "<ul class=\"event-list dashboard-warnings-list\">";
+      for (var w = 0; w < warnings.length; w++) {
+        warningsHtml +=
+          "<li>" +
+          buildPanelStatusBadge("UYARI", "warn") +
+          " " +
+          escapeHtmlYanit(warnings[w]) +
+          "</li>";
       }
       warningsHtml += "</ul>";
     } else {
-      warningsHtml = "<p class=\"text-muted-small\">Uyarı veya not yok.</p>";
+      warningsHtml = buildPanelEmptyState(
+        "info",
+        "Uyarı yok",
+        "Şu an gösterilecek uyarı veya not bulunmuyor."
+      );
     }
-    var guidanceHtml = '<div class="guidance-cards">' + buildGuidanceCard() + "</div>";
+    var guidanceHtml =
+      '<div class="guidance-cards panel-screen-dashboard-guidance">' + buildGuidanceCard() + "</div>";
     var lumosStatusHtml = buildLumosStatusCard();
+    var lumosSectionTitle = hasBackendReadStateInjected()
+      ? "Çekirdek durum (yerel köprü)"
+      : "Çekirdek durum özeti";
     var productFeaturesHtml = buildProductFeaturesSection();
-    var sections =
-      buildSection("Son Olaylar", EventList(data.sections[0].events)) +
+    var productSectionBody =
+      productFeaturesHtml.indexOf("henüz gelmedi") !== -1
+        ? buildPanelEmptyState(
+            "info",
+            "Ürün özelliği özeti yok",
+            "Köprü veya fixtures yüklendiğinde özellik durumu kartları burada görünür."
+          )
+        : productFeaturesHtml;
+    return (
+      ViewHeader(data.title, data.subtitle) +
+      '<div class="panel-screen-dashboard">' +
+      buildSection("Genel bakış", overviewHtml) +
+      '<div class="cards-grid panel-screen-cards panel-screen-dashboard-cards">' +
+      cards +
+      "</div>" +
+      buildSection("Son Olaylar", eventsBody) +
       buildSection("Uyarılar ve notlar", warningsHtml) +
-      buildSection("Canlı Sistem Durumu", lumosStatusHtml) +
-      buildSection("Ürün Özellikleri", productFeaturesHtml) +
+      buildSection(
+        lumosSectionTitle,
+        '<div class="panel-screen-dashboard-lumos">' + lumosStatusHtml + "</div>"
+      ) +
+      buildSection("Ürün Özellikleri", productSectionBody) +
       buildSection("Durum ve rehber", guidanceHtml) +
-      buildSection("Hızlı geçişler", '<p><a href="#feed" class="inline-link">Akış</a> (API) · <a href="#tasks" class="inline-link">Görevler</a> · <a href="#sandbox" class="inline-link">Korumalı Alan</a> · <a href="#config" class="inline-link">Yapılandırma</a> · <a href="#logs" class="inline-link">Kayıtlar</a></p><p class="text-muted-small">Hash ile sayfa yenilenmeden geçiş.</p>');
-    return ViewHeader(data.title, data.subtitle) + '<div class="cards-grid">' + cards + "</div>" + sections;
+      buildSection(
+        "Hızlı geçişler",
+        '<p><a href="#feed" class="inline-link">Akış</a> (yerel posts API) · <a href="#tasks" class="inline-link">Görevler</a> · <a href="#sandbox" class="inline-link">Korumalı Alan</a> · <a href="#config" class="inline-link">Yapılandırma</a> · <a href="#logs" class="inline-link">Kayıtlar</a></p><p class="text-muted-small">Hash ile sayfa yenilenmeden geçiş; üretim telemetrisi değildir.</p>'
+      ) +
+      "</div>"
+    );
   }
 
   function escapeHtmlYanit(s) {
@@ -6606,30 +6734,145 @@ function canTransition(from, to) {
     /** Son başarılı feed GET → normalize + dedupe tam liste */
     posts: [],
     error: "",
+    /** PR #64: warn | info (ağ/HTTP; kırmızı error değil) */
+    errorKind: "warn",
     tab: "feed",
     loadId: 0,
     actionBusyByPostId: {},
     flash: null,
   };
 
+  function isFeedFetchNetworkError(err) {
+    var raw = (err && err.message) || String(err);
+    return (
+      raw === "Failed to fetch" ||
+      raw === "Load failed" ||
+      raw === "NetworkError when attempting to fetch resource." ||
+      (err && err.name === "AbortError")
+    );
+  }
+
+  function mapFeedFetchError(err) {
+    var raw = (err && err.message) || String(err);
+    if (isFeedFetchNetworkError(err)) {
+      return {
+        kind: "warn",
+        text:
+          "Yerel feed backend'e ulaşılamıyor. Bu demo/yerel modda normal olabilir; backend çalışıyorsa 127.0.0.1:3000 adresini kontrol et.",
+      };
+    }
+    if (raw.indexOf("HTTP ") === 0) {
+      return {
+        kind: "info",
+        text:
+          "Posts API yanıt vermedi (" +
+          raw +
+          "). Yerel demo modda backend kapalı olabilir; çalışıyorsa 127.0.0.1:3000 adresini kontrol edin.",
+      };
+    }
+    return { kind: "info", text: raw };
+  }
+
   function feedFlashHtml(F) {
     if (!feedViewState.flash || !feedViewState.flash.text) return "";
     var kind = feedViewState.flash.kind === "error" ? "error" : "ok";
-    return (
-      '<p class="feed-action-flash feed-action-flash--' +
-      kind +
-      '" role="' +
-      (kind === "error" ? "alert" : "status") +
-      '">' +
-      F.escapeHtml(feedViewState.flash.text) +
-      "</p>"
+    return buildPanelFeedbackBlock(
+      kind,
+      feedViewState.flash.text,
+      kind === "error" ? "alert" : "status"
     );
   }
 
   function feedTabLabel(tab) {
-    if (tab === "rated-high") return "Rated High";
-    if (tab === "rated-low") return "Rated Low";
-    return "Feed";
+    if (tab === "rated-high") return "Yüksek puanlı";
+    if (tab === "rated-low") return "Düşük puanlı";
+    return "Tüm akış";
+  }
+
+  function buildFeedSubtitle(tab, loadStatus) {
+    if (loadStatus === "loading" || loadStatus === "idle") {
+      return feedTabLabel(tab) + " · yükleniyor";
+    }
+    if (loadStatus === "error") {
+      return "Yerel backend kapalı · " + feedTabLabel(tab);
+    }
+    var count = (feedViewState.posts || []).length;
+    return count + " gönderi · " + feedTabLabel(tab);
+  }
+
+  function buildFeedEmptyStateHtml(tab) {
+    var label = feedTabLabel(tab);
+    if (tab === "rated-high") {
+      return buildPanelEmptyState(
+        "info",
+        "Yüksek puanlı gönderi yok",
+        label +
+          " sekmesi yerel posts API'sinden yüksek puanlı gönderileri listeler. Backend çalışıyorsa ve veri varsa burada görünür."
+      );
+    }
+    if (tab === "rated-low") {
+      return buildPanelEmptyState(
+        "info",
+        "Düşük puanlı gönderi yok",
+        label +
+          " sekmesi yerel posts API'sinden düşük puanlı gönderileri listeler. Backend çalışıyorsa ve veri varsa burada görünür."
+      );
+    }
+    return buildPanelEmptyState(
+      "info",
+      "Akışta gönderi yok",
+      "Yerel demo posts API'si boş yanıt döndürdü. Backend'i başlatın (cd backend && npm run dev) veya başka bir sekme deneyin."
+    );
+  }
+
+  function buildFeedOverviewSectionHtml(tab, loadStatus) {
+    var ds = getPanelDataSourcePresentation();
+    var statusKind =
+      loadStatus === "error"
+        ? feedViewState.errorKind === "info"
+          ? "info"
+          : "warn"
+        : loadStatus === "ok"
+          ? "ok"
+          : "info";
+    var statusText =
+      loadStatus === "loading" || loadStatus === "idle"
+        ? "Liste yükleniyor…"
+        : loadStatus === "error"
+          ? feedViewState.error ||
+            "Yerel feed backend'e ulaşılamıyor — demo/yerel modda normal olabilir."
+          : (feedViewState.posts || []).length + " gönderi · " + feedTabLabel(tab) + " sekmesi";
+    return buildSection(
+      "Genel bakış",
+      buildPanelScreenOverview([
+        {
+          kind: "info",
+          text:
+            "Akış, yerel demo posts API'sinden salt okunur gönderi listesi gösterir. Üretim telemetrisi, olay akışı izleme veya uzaktan operasyon paneli değildir.",
+        },
+        {
+          kind: "warn",
+          text:
+            "Posts API, panel üstündeki " +
+            ds.label +
+            " veri kaynağından bağımsızdır; yalnızca aşağıdaki API tabanına bağlıdır.",
+        },
+        { kind: statusKind, text: statusText },
+      ])
+    );
+  }
+
+  function wrapFeedPanelView(tab, loadStatus, bodyHtml) {
+    return (
+      ViewHeader("Akış", buildFeedSubtitle(tab, loadStatus)) +
+      '<div class="panel-screen-feed">' +
+      buildFeedOverviewSectionHtml(tab, loadStatus) +
+      feedToolbarHtml(tab) +
+      feedFlashHtml(window.LumosFeedApi) +
+      renderPostsApiBaseLine(window.LumosFeedApi) +
+      bodyHtml +
+      "</div>"
+    );
   }
 
   function normalizeFeedListPayload(data) {
@@ -6694,6 +6937,7 @@ function canTransition(from, to) {
     var myLoad = feedViewState.loadId;
     feedViewState.status = "loading";
     feedViewState.error = "";
+    feedViewState.errorKind = "warn";
     feedViewState.posts = [];
     if (typeof console !== "undefined" && console.log) {
       console.log("FETCH_FEED", { tab: tab, url: url });
@@ -6712,7 +6956,9 @@ function canTransition(from, to) {
       })
       .catch(function (e) {
         if (myLoad !== feedViewState.loadId) return;
-        feedViewState.error = e.message || String(e);
+        var mapped = mapFeedFetchError(e);
+        feedViewState.error = mapped.text;
+        feedViewState.errorKind = mapped.kind;
         feedViewState.status = "error";
         feedViewState.posts = [];
         if (getCurrentScreen().id === "feed") renderMain();
@@ -6748,9 +6994,9 @@ function canTransition(from, to) {
     }
     return (
       '<div class="feed-toolbar log-tabs feed-source-tabs" role="tablist" aria-label="Liste kaynağı">' +
-      tabButton("feed", "Feed") +
-      tabButton("rated-high", "Rated High") +
-      tabButton("rated-low", "Rated Low") +
+      tabButton("feed", "Tüm akış") +
+      tabButton("rated-high", "Yüksek puan") +
+      tabButton("rated-low", "Düşük puan") +
       '<button type="button" class="log-tab" data-feed-refresh="1">Yenile</button>' +
       "</div>"
     );
@@ -6781,16 +7027,19 @@ function canTransition(from, to) {
       "</div>" +
       '<div class="post-feed-meta">' +
       '<div class="post-feed-badges" aria-label="Oylama özeti">' +
-      '<span class="post-feed-badge post-feed-badge--avg" title="ratingAvg">⭐ ' +
+      '<span class="post-feed-badge post-feed-badge--avg" title="Ortalama puan">' +
+      '<span class="post-feed-badge__label">Ort.</span> ' +
       F.escapeHtml(avgStr) +
       "</span>" +
-      '<span class="post-feed-badge post-feed-badge--count" title="ratingCount">' +
+      '<span class="post-feed-badge post-feed-badge--count" title="Toplam oy">' +
       F.escapeHtml(String(p.ratingCount)) +
       " oy</span>" +
-      '<span class="post-feed-badge post-feed-badge--high" title="highRatingCount">' +
+      '<span class="post-feed-badge post-feed-badge--high" title="Yüksek puan sayısı">' +
+      '<span class="post-feed-badge__label">↑</span> ' +
       F.escapeHtml(String(p.highRatingCount)) +
       "</span>" +
-      '<span class="post-feed-badge post-feed-badge--low" title="lowRatingCount">' +
+      '<span class="post-feed-badge post-feed-badge--low" title="Düşük puan sayısı">' +
+      '<span class="post-feed-badge__label">↓</span> ' +
       F.escapeHtml(String(p.lowRatingCount)) +
       "</span>" +
       "</div>" +
@@ -6833,66 +7082,50 @@ function canTransition(from, to) {
 
     if (feedViewState.status === "idle") {
       fetchFeed();
-      return (
-        ViewHeader("Akış", feedTabLabel(tab)) +
-        feedToolbarHtml(tab) +
-        feedFlashHtml(F) +
-        renderPostsApiBaseLine(F) +
-        '<div class="feed-loading">Yükleniyor…</div>'
-      );
+      return wrapFeedPanelView(tab, "loading", '<div class="feed-loading" role="status">Yükleniyor…</div>');
     }
 
     if (feedViewState.status === "loading") {
-      return (
-        ViewHeader("Akış", feedTabLabel(tab)) +
-        feedToolbarHtml(tab) +
-        feedFlashHtml(F) +
-        renderPostsApiBaseLine(F) +
-        '<div class="feed-loading">Yükleniyor…</div>'
-      );
+      return wrapFeedPanelView(tab, "loading", '<div class="feed-loading" role="status">Yükleniyor…</div>');
     }
 
     if (feedViewState.status === "error") {
-      return (
-        ViewHeader("Akış", "Bağlantı hatası · " + feedTabLabel(tab)) +
-        feedToolbarHtml(tab) +
-        feedFlashHtml(F) +
-        renderPostsApiBaseLine(F) +
-        '<div class="feed-panel-error" role="alert">' +
-        '<p class="feed-panel-error-title">İstek tamamlanamadı</p>' +
-        '<p class="feed-panel-error-detail">' +
-        F.escapeHtml(feedViewState.error) +
-        "</p>" +
-        '<div class="feed-panel-error-hint">' +
-        "<p><strong>Ne kontrol edilir?</strong> Backend çalışıyor mu (<code>cd backend && npm run dev</code>), adres doğru mu.</p>" +
-        "<p class=\"feed-panel-error-hint-sub\">Özel taban için konsol: <code>LUMOS_POSTS_API_BASE</code> veya <code>localStorage.lumos_posts_api_base</code>.</p>" +
-        "</div></div>"
+      var errKind =
+        feedViewState.errorKind && PANEL_STATUS_KINDS.indexOf(feedViewState.errorKind) >= 0
+          ? feedViewState.errorKind
+          : "warn";
+      return wrapFeedPanelView(
+        tab,
+        "error",
+        '<div class="feed-panel-offline" role="status">' +
+          buildPanelFeedbackBlock(
+            errKind,
+            feedViewState.error ||
+              "Yerel feed backend'e ulaşılamıyor. Bu demo/yerel modda normal olabilir; backend çalışıyorsa 127.0.0.1:3000 adresini kontrol et.",
+            "status"
+          ) +
+          buildPanelFeedbackBlock(
+            "info",
+            "Bu ekran üretim telemetrisi değildir. Özel taban: LUMOS_POSTS_API_BASE veya localStorage.lumos_posts_api_base.",
+            "status"
+          ) +
+          "</div>"
       );
     }
 
     var displayPosts = feedViewState.posts || [];
     var cards = "";
     if (displayPosts.length === 0) {
-      cards =
-        '<div class="empty-state feed-panel-empty" role="status">' +
-        '<p class="empty-title">Hiç içerik yok</p>' +
-        '<p class="empty-desc"><strong>' +
-        F.escapeHtml(feedTabLabel(tab)) +
-        "</strong> için şu an gösterilecek gönderi yok (bu sekme kendi GET yanıtıyla dolar).</p>" +
-        "</div>";
+      cards = buildFeedEmptyStateHtml(tab);
     } else {
       for (var i = 0; i < displayPosts.length; i++) {
         cards += renderPostFeedCard(F, displayPosts[i]);
       }
     }
-    return (
-      ViewHeader("Akış", displayPosts.length + " gönderi · " + feedTabLabel(tab)) +
-      feedToolbarHtml(tab) +
-      feedFlashHtml(F) +
-      renderPostsApiBaseLine(F) +
-      '<div class="post-feed-list">' +
-      cards +
-      "</div>"
+    return wrapFeedPanelView(
+      tab,
+      "ok",
+      '<div class="post-feed-list">' + cards + "</div>"
     );
   }
 

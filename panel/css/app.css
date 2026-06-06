@@ -1666,12 +1666,63 @@ body {
   color: #e9cfcf;
 }
 
-/* ——— Sistem / Sandbox / Keystore / Config / Identity ekranları ——— */
+/* ——— Sistem / Sandbox / Keystore / Config / Identity / Dashboard / Feed ekranları ——— */
 .panel-screen-sandbox,
 .panel-screen-keystore,
 .panel-screen-config,
-.panel-screen-identity {
+.panel-screen-identity,
+.panel-screen-dashboard,
+.panel-screen-feed {
   min-width: 0;
+  max-width: 100%;
+}
+
+.panel-screen-dashboard .panel-screen-dashboard-cards {
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.panel-screen-dashboard .section-card,
+.panel-screen-dashboard .metric-card,
+.panel-screen-dashboard .guidance-cards,
+.panel-screen-dashboard-guidance,
+.panel-screen-dashboard-lumos,
+.panel-screen-dashboard .section-body,
+.panel-screen-dashboard .section-body p,
+.panel-screen-dashboard .metric-value,
+.panel-screen-dashboard .metric-title {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.panel-screen-dashboard code {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+.panel-screen-dashboard .inline-link {
+  overflow-wrap: anywhere;
+}
+
+.panel-screen-dashboard .event-list li {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.feed-panel-offline {
+  min-width: 0;
+  max-width: 100%;
+  margin: 0.5rem 0 0 0;
+}
+
+.feed-panel-offline .lumos-panel-feedback {
+  margin-bottom: 0.5rem;
+}
+
+.feed-panel-offline .lumos-panel-feedback:last-child {
+  margin-bottom: 0;
 }
 
 /* Anahtar Kasası — pasif işlemler (yakında; gerçek vault yok) */
@@ -2170,9 +2221,27 @@ body {
   .panel-screen-sandbox .lumos-panel-feedback,
   .panel-screen-keystore .lumos-panel-feedback,
   .panel-screen-config .lumos-panel-feedback,
-  .panel-screen-identity .lumos-panel-feedback {
+  .panel-screen-identity .lumos-panel-feedback,
+  .panel-screen-dashboard .lumos-panel-feedback,
+  .panel-screen-feed .lumos-panel-feedback {
     font-size: 0.78rem;
     padding: 0.45rem 0.6rem;
+  }
+
+  .panel-screen-feed .feed-toolbar,
+  .panel-screen-feed .posts-api-base-line {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .panel-screen-feed .post-feed-list,
+  .panel-screen-feed .post-feed-card,
+  .panel-screen-dashboard .panel-screen-dashboard-cards {
+    max-width: 100%;
+  }
+
+  .post-feed-badge {
+    white-space: normal;
   }
 
   .panel-screen-cards {
@@ -2361,6 +2430,7 @@ body {
 .post-feed-badge {
   display: inline-flex;
   align-items: center;
+  gap: 0.2rem;
   padding: 0.18rem 0.5rem;
   font-size: 0.72rem;
   font-weight: 600;
@@ -2369,6 +2439,15 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.05);
   color: var(--text-muted);
+  line-height: 1.3;
+  max-width: 100%;
+  white-space: normal;
+}
+
+.post-feed-badge__label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  opacity: 0.85;
 }
 
 .post-feed-badge--avg {
@@ -2483,11 +2562,30 @@ body {
 }
 
 /* Akış: boş ve hata kutuları */
-.feed-panel-empty {
+.feed-panel-empty,
+.panel-screen-feed .empty-state--panel {
   text-align: center;
   max-width: 26rem;
   margin: 1rem auto;
   padding: 1.5rem 1.75rem;
+}
+
+.dashboard-warnings-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem;
+  overflow-wrap: anywhere;
+}
+
+.panel-screen-dashboard-cards {
+  margin-bottom: 0.5rem;
+}
+
+.feed-loading {
+  padding: 1rem 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
 }
 
 .feed-panel-empty .empty-title {
