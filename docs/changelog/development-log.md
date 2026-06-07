@@ -87,3 +87,15 @@ CI dependency kurulumu tek manifest kaynağına alındı (PR #93 merge; `main` @
 | 1 | [#93](https://github.com/candasoz01-cmd/lumos-core/pull/93) | Inline `pip install pytest cryptography openai requests` kaldırıldı; CI artık `pip install -r requirements.txt` kullanıyor |
 
 **Kapsam:** Yalnızca `.github/workflows/ci.yml`; PYTHONPATH ve test adımları aynı — dependency drift riski azaltıldı.
+
+---
+
+## 2026-06-07
+
+Makefile test/check CI pytest env ile hizalandı (PR #95 merge; `main` @ `aca679b`).
+
+| Sıra | PR | Özet |
+|------|-----|------|
+| 1 | [#95](https://github.com/candasoz01-cmd/lumos-core/pull/95) | `make test` ve `make check` artık `TEST_PYTHONPATH` (src + kando_runtime + kando_bridge) ve `KANDO_MOCK=1` kullanıyor |
+
+**Kapsam:** Yalnızca `Makefile`; yerelde 565 passed, 2 skipped.
