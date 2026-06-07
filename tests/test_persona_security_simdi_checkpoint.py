@@ -119,28 +119,17 @@ def test_bridge_send_lumos_pipeline_out_maps_policy_block_to_403() -> None:
 # --- A2: Offline/push — agent_runner push phase trace (checkpoint §3, gap #3) ---
 
 
-def test_agent_runner_push_phase_present_without_lumos_gate_or_approval() -> None:
-    """Şimdi trace: push_if_possible runs git push without gate/onay hooks (known gap)."""
+def test_agent_runner_pipeline_has_no_auto_push_phase() -> None:
+    """Persona offline: run_agent_pipeline must not auto-invoke git push (gap #3 closed)."""
     from kando import agent_runner
 
     source = inspect.getsource(agent_runner.run_agent_pipeline)
-    assert "push_if_possible" in source
-    assert "_push_repo" in source
-    push_slice = source.split("phase(\"push_if_possible\")", 1)[-1]
-    assert "lumos_gate" not in push_slice
-    assert "approval" not in push_slice.lower()
-    assert "onay" not in push_slice.lower()
+    assert "push_if_possible" not in source
+    assert "_push_repo" not in source
 
 
-@pytest.mark.xfail(
-    reason=(
-        "Persona gap #3: agent_runner auto git push without Lumos gate/onay — "
-        f"see {GAPS_DOC} §3; target behavior in sonraki faz"
-    ),
-    strict=True,
-)
-def test_persona_offline_no_auto_push_invariant_not_enforced_yet() -> None:
-    """Documents desired invariant (not yet implemented)."""
+def test_persona_offline_no_auto_push_invariant() -> None:
+    """Offline invariant: agent pipeline excludes automatic push phase."""
     from kando import agent_runner
 
     source = inspect.getsource(agent_runner.run_agent_pipeline)
@@ -282,30 +271,27 @@ def test_bridge_check_secret_accepts_matching_bearer_token(
     assert handler.reject is None
 
 
-def test_bridge_check_secret_skips_auth_when_unset_documents_gap(
+def test_bridge_check_secret_rejects_when_secret_unset(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Şimdi gap: secret unset → auth skipped (not 401). See gaps doc §5."""
+    """Anti-taklit: secret unset → 401 (persona gap #5 closed)."""
     from kando_bridge.server import BridgeHandler
 
     monkeypatch.delenv("KANDO_BRIDGE_SECRET", raising=False)
     handler = _bridge_handler_stub(headers={})
     ok = BridgeHandler._check_secret(handler)
-    assert ok is True
-    assert handler.reject is None
+    assert ok is False
+    assert handler.reject is not None
+    assert handler.reject[0] == 401
 
 
-@pytest.mark.xfail(
-    reason=(
-        "Persona gap #5: KANDO_BRIDGE_SECRET unset allows unauthenticated bridge — "
-        f"see {GAPS_DOC} §5; sonraki faz adds invariant tests"
-    ),
-    strict=True,
-)
-def test_persona_bridge_requires_auth_when_secret_unset() -> None:
-    """Desired anti-taklit invariant (not enforced when secret unset)."""
+def test_persona_bridge_requires_auth_when_secret_unset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Anti-taklit invariant: bridge rejects when KANDO_BRIDGE_SECRET unset."""
     from kando_bridge.server import BridgeHandler
 
+    monkeypatch.delenv("KANDO_BRIDGE_SECRET", raising=False)
     handler = _bridge_handler_stub(headers={})
     ok = BridgeHandler._check_secret(handler)
     assert ok is False
