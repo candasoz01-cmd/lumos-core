@@ -7173,9 +7173,10 @@ const TASKS_API_URL =
           if (!t || !t.id) return;
           if (!confirm("Görev silinsin mi?")) return;
           hideHint();
+          const deletedId = String(t.id).trim();
           let res;
           try {
-            res = await tasksApiPost("/tasks/delete", { id: String(t.id).trim() });
+            res = await tasksApiPost("/tasks/delete", { id: deletedId });
           } catch {
             showHint("Silinemedi: görev sunucusuna ulaşılamadı.");
             return;
@@ -7185,11 +7186,24 @@ const TASKS_API_URL =
             showHint("Silinemedi (" + err + ").");
             return;
           }
-          lastGorevlerDeletedId = String(t.id).trim();
+          lastGorevlerDeletedId = deletedId;
           if (restoreLastBtn) restoreLastBtn.hidden = false;
-          await refreshPanelGorevlerFromTasksApi();
+          const refreshed = await refreshPanelGorevlerFromTasksApi();
+          if (!refreshed) {
+            for (let i = panelGorevlerTasks.length - 1; i >= 0; i--) {
+              if (
+                panelGorevlerTasks[i] &&
+                String(panelGorevlerTasks[i].id || "").trim() === deletedId
+              ) {
+                panelGorevlerTasks.splice(i, 1);
+                break;
+              }
+            }
+            persistPanelGorevlerTasks();
+          }
           closeGorevlerDetail(true);
-          showHint("Görev silindi. Geri almak için «Geri al» düğmesine basın.");
+          render();
+          showHint("Görev silindi.");
         }
 
         async function restoreLastGorevlerTask() {
