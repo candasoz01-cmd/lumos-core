@@ -3354,7 +3354,7 @@ const PANEL_DEBUG =
                             çalıştırmam).
                           </li>
                           <li>
-                            Köprü ve görev adreslerini panel yapılandırmasından okurum; senden endpoint istemem.
+                            Köprü ve görev adreslerini cihaz yapılandırmasından okurum; senden bağlantı adresi istemem.
                           </li>
                           <li>Dosya adı, türü, boyutu ve uzantısını gösterebilirim.</li>
                           <li>
@@ -3378,12 +3378,14 @@ const PANEL_DEBUG =
                   </div>
                   <p class="lumos-security-note">Kalıcı işlemler için onay ister.</p>
                   <p class="lumos-security-note">
-                    Gizli değerleri burada istemiyorum. Test için yerel .env veya mevcut bridge ayarını kullanacağım;
-                    ekrana secret yazdırmadan ilerleyelim.
+                    Gizli değerleri burada istemiyorum. Cihazınızdaki yerel ayarları kullanacağım; ekrana gizli bilgi
+                    yazdırmadan ilerleyelim.
                   </p>
-                  <p class="lumos-security-note lumos-security-note--dev">
-                    Yerel geliştirmede PUBLIC token tarayıcıda görünebilir; gerçek secret'ı sohbete yapıştırma.
-                  </p>
+                  {PANEL_DEBUG && (
+                    <p class="lumos-security-note panel-debug-only">
+                      Yerel geliştirmede bağlantı anahtarı tarayıcıda görünebilir; gerçek gizli değeri sohbete yapıştırma.
+                    </p>
+                  )}
                   <p class="lumos-security-note">
                     Kamera ve mikrofon özellikleri cihaz, tarayıcı ve verilen izinlere bağlı olarak çalışır. Bazı
                     tarayıcılarda desteklenmeyebilir veya ek izin isteyebilir.
@@ -4526,21 +4528,39 @@ const PANEL_DEBUG =
         );
         s = s.replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "***");
         s = s.replace(/\b[a-f0-9]{32,}\b/gi, "***");
+        s = s.replace(/\bX-Kando-Token\s*[:=]\s*\S+/gi, "Bağlantı: ***");
         return s;
       }
 
       function stripPanelTechnicalLeak(text) {
         if (PANEL_DEBUG || text == null) return text == null ? "" : String(text);
         let s = String(text);
+        s = s.replace(/\bX-Kando-Token\b/gi, "bağlantı anahtarı");
+        s = s.replace(/\b(?:Kando|Cando)\b/gi, "Lumos");
+        s = s.replace(/\bajan\b/gi, "cihaz");
+        s = s.replace(/\bagent\b/gi, "cihaz");
+        s = s.replace(/\b(?:PUBLIC\s+)?token\b/gi, "bağlantı bilgisi");
+        s = s.replace(/\bendpoint\b/gi, "bağlantı");
         s = s.replace(/127\.0\.0\.1(?::\d+)?/gi, "yerel sunucu");
         s = s.replace(/https?:\/\/[^\s)]+/gi, "bağlantı");
         s = s.replace(/\/last-result/gi, "son sonuç");
         s = s.replace(/\.lumos\/tasks\.json/gi, "görev kaydı");
         s = s.replace(/\/tasks\b/gi, "görev");
+        s = s.replace(/\/controlled\b/gi, "kontrollü dosya");
+        s = s.replace(/\/task\b/gi, "görev");
+        s = s.replace(/\/status\b/gi, "durum");
+        s = s.replace(/\/health\b/gi, "sağlık");
+        s = s.replace(/\/chat\b/gi, "sohbet");
         s = s.replace(/\b(GET|POST|PUT|DELETE|OPTIONS)\b/gi, "");
         s = s.replace(/\bHTTP\s+\d+\b/gi, "istek hatası");
         s = s.replace(/panel_tasks_server/gi, "görev servisi");
         s = s.replace(/bridge_start\.sh/gi, "köprü başlatma");
+        s = s.replace(/\bcomplete_failed\b/gi, "kayıt tamamlanamadı");
+        s = s.replace(/\bcreate_failed\b/gi, "kayıt başarısız");
+        s = s.replace(/\bdelete_failed\b/gi, "silme başarısız");
+        s = s.replace(/\brestore_failed\b/gi, "geri alma başarısız");
+        s = s.replace(/\bCORS\b/gi, "tarayıcı kısıtı");
+        s = s.replace(/:\d{4,5}\b/g, "");
         s = s.replace(/\s{2,}/g, " ").trim();
         return s;
       }
@@ -5366,6 +5386,8 @@ const PANEL_DEBUG =
           body.className = "chat-msg-body";
           if (kind === "lumos") {
             body.innerHTML = formatAssistantHtml(text);
+          } else if (kind === "error") {
+            body.textContent = panelUserVisibleText(text);
           } else {
             body.textContent = text;
           }
@@ -5602,7 +5624,7 @@ const PANEL_DEBUG =
             "Sunucuya ulaşamadım. Önce yapılandırılmış köprü ve sohbet bağlantısını denerim; biraz sonra tekrar deneyebilirsin.",
           timeout: "Yanıt süresi doldu. Biraz sonra tekrar deneyeceğim.",
           unauthorized:
-            "Kimlik doğrulanamadı. Yerel geliştirmede PUBLIC token görünür olabilir; gerçek secret'ı sohbete yazma — bridge ayarından devam edeceğim.",
+            "Bağlantı doğrulanamadı. Cihaz ayarlarını kontrol edin; gizli değerleri sohbete yazmayın.",
           server_error:
             "Sohbet sunucusu geçici bir sorun bildirdi. Biraz sonra tekrar deneyin.",
           model_error:
@@ -5905,7 +5927,7 @@ const PANEL_DEBUG =
                     });
               const httpFailMsg =
                 upstreamErr && !PANEL_CHAT_TECH_LEAK_RE.test(upstreamErr)
-                  ? upstreamErr
+                  ? panelUserVisibleText(upstreamErr)
                   : userMessageForPanelChatFailureKind(httpFailKind);
               appendBubble("error", httpFailMsg);
               if (photoTelemetry) {
@@ -5950,7 +5972,7 @@ const PANEL_DEBUG =
               }
             } else {
               const EMPTY_REPLY_MSG =
-                "Bu turda net bir yanıt üretemedim; mevcut bridge bağlantısıyla tekrar deneyeceğim.";
+                "Bu turda net bir yanıt üretemedim; biraz sonra tekrar deneyeceğim.";
               const CHAT_BODY_UNUSABLE_HINT = "Yanıt okunamadı.";
               const CHAT_BODY_UNUSABLE_BUBBLE =
                 "Sunucudan gelen yanıtı işleyemedik. Biraz sonra yeniden deneyebilirsin.";
@@ -6189,13 +6211,17 @@ const PANEL_DEBUG =
               }
 
               if (r.status === 401) {
-                setSendHint("Kimlik doğrulanamadı.");
+                setSendHint("Bağlantı doğrulanamadı.");
                 return;
               }
               if (!r.ok) {
                 const detail =
                   data && (data.error || data.message) ? String(data.error || data.message).trim() : "";
-                setSendHint(detail ? "Gönderilemedi: " + detail.slice(0, 80) : "Gönderilemedi.");
+                setSendHint(
+                  detail
+                    ? "Gönderilemedi: " + panelUserVisibleText(detail.slice(0, 80))
+                    : "Gönderilemedi.",
+                );
                 return;
               }
 
@@ -6268,8 +6294,9 @@ const PANEL_DEBUG =
 
         function setVoiceHint(msg) {
           if (!voiceHint) return;
-          voiceHint.textContent = msg;
-          voiceHint.hidden = !msg;
+          const s = panelUserVisibleText(msg != null ? String(msg) : "");
+          voiceHint.textContent = s;
+          voiceHint.hidden = !s;
         }
 
         function stopVoiceListeningUi() {
@@ -7021,8 +7048,10 @@ const PANEL_DEBUG =
             }
           }
 
-          appendDetailRow(detailBridgeDl, "Rota", route);
-          appendDetailRow(detailBridgeDl, "Kaynak", source);
+          if (PANEL_DEBUG) {
+            appendDetailRow(detailBridgeDl, "Rota", route);
+            appendDetailRow(detailBridgeDl, "Kaynak", source);
+          }
           appendDetailRow(detailBridgeDl, "Kabul", acceptedTxt);
           appendDetailRow(detailBridgeDl, "Sonuç dosyası", resultFile);
           appendDetailRow(detailBridgeDl, "Çalıştırma dosyası", execFile);
@@ -7077,11 +7106,17 @@ const PANEL_DEBUG =
           const isoOk = iso && !Number.isNaN(Date.parse(iso));
           if (blSumm && isoOk) {
             const whenBridge = formatTrDateTime(blSumm.lastBridgeAt);
-            const routeBit =
-              blSumm.route != null && String(blSumm.route).trim()
-                ? " · " + truncateGorevlerField(String(blSumm.route).trim()).slice(0, 56)
-                : "";
-            return "Son köprü: " + whenBridge + routeBit;
+            if (PANEL_DEBUG) {
+              const routeBit =
+                blSumm.route != null && String(blSumm.route).trim()
+                  ? " · " + truncateGorevlerField(String(blSumm.route).trim()).slice(0, 56)
+                  : "";
+              return "Son köprü: " + whenBridge + routeBit;
+            }
+            let statusBit = "";
+            if (blSumm.accepted === true) statusBit = " · iletildi";
+            else if (blSumm.accepted === false) statusBit = " · iletilemedi";
+            return "Son köprü: " + whenBridge + statusBit;
           }
           return "Köprü: henüz yok";
         }
@@ -7318,7 +7353,7 @@ const PANEL_DEBUG =
             }
 
             if (r.status === 401) {
-              showHint("Kimlik doğrulama başarısız. Bağlantı ayarlarını kontrol edin.");
+              showHint("Bağlantı doğrulanamadı. Cihaz ayarlarını kontrol edin.");
               return;
             }
             if (!r.ok) {
@@ -8015,7 +8050,7 @@ const PANEL_DEBUG =
         btn.addEventListener("click", async () => {
           if (hint) {
             hint.hidden = false;
-            hint.textContent = "Test çalışıyor…";
+            hint.textContent = panelUserVisibleText("Test çalışıyor…");
           }
           btn.disabled = true;
           const probePath = "capability/_probe.txt";
@@ -8054,16 +8089,17 @@ const PANEL_DEBUG =
           setCap(caps.taskComplete, localComplete ? "aktif" : "pasif");
 
           if (hint) {
-            hint.textContent =
+            hint.textContent = panelUserVisibleText(
               w.ok && readOk && taskOk
                 ? panelDebugText(
                     "Köprü kanıtı doğrulandı. 4–7. satırlar politika özetidir.",
                     "Bağlantı testi tamamlandı.",
                   )
                 : panelDebugText(
-                    "Kısmi veya başarısız sonuç; köprü adresini ve token’ı kontrol edin.",
-                    "Bağlantı testi kısmen başarısız. Ayarları kontrol edin.",
-                  );
+                    "Kısmi veya başarısız sonuç; köprü adresini ve bağlantı bilgisini kontrol edin.",
+                    "Bağlantı testi kısmen başarısız. Cihaz ayarlarını kontrol edin.",
+                  ),
+            );
           }
           btn.disabled = false;
         });
@@ -8372,9 +8408,11 @@ const PANEL_DEBUG =
                 text && String(text).trim().length
                   ? panelUserVisibleText(String(text).trim().slice(0, 280))
                   : "";
-              hint.textContent = panelDebugText(
-                "Köprü yanıtı " + r.status + (snippet ? ": " + snippet : " (last-result yok veya token hatalı)."),
-                snippet ? "Sonuç alınamadı: " + snippet : "Sonuç kaydı bulunamadı veya kimlik doğrulanamadı.",
+              hint.textContent = panelUserVisibleText(
+                panelDebugText(
+                  "Köprü yanıtı " + r.status + (snippet ? ": " + snippet : " (last-result yok veya token hatalı)."),
+                  snippet ? "Sonuç alınamadı: " + snippet : "Sonuç kaydı bulunamadı veya bağlantı doğrulanamadı.",
+                ),
               );
               hint.hidden = false;
               pre.hidden = true;
@@ -8391,9 +8429,11 @@ const PANEL_DEBUG =
             pre.textContent = panelUserVisibleText(pretty || "—");
             pre.hidden = false;
           } catch {
-            hint.textContent = panelDebugText(
-              "İstek başarısız (ağ, CORS veya köprü kapalı). Yerelde `./scripts/bridge_start.sh` ile deneyin.",
-              "Sonuç alınamadı. Bağlantıyı kontrol edin.",
+            hint.textContent = panelUserVisibleText(
+              panelDebugText(
+                "İstek başarısız (ağ, CORS veya köprü kapalı). Yerelde `./scripts/bridge_start.sh` ile deneyin.",
+                "Sonuç alınamadı. Bağlantıyı kontrol edin.",
+              ),
             );
             hint.hidden = false;
             pre.hidden = true;
