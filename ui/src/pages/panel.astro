@@ -3487,10 +3487,10 @@ const TASKS_API_URL =
                     type="button"
                     id="panel-clipboard-to-kando"
                     class="chat-compose-clipboard-btn"
-                    title="Panodaki metni Kando köprüsüne gönder"
-                    aria-label="Panodan Kando'ya gönder"
+                    title="Panodaki metni ilet"
+                    aria-label="Panodaki metni ilet"
                   >
-                    Panodan Kando'ya gönder
+                    Panodaki metni ilet
                   </button>
                 </div>
                 <p id="panel-voice-hint" class="chat-voice-hint" role="status" aria-live="polite" hidden></p>
@@ -5967,7 +5967,7 @@ const TASKS_API_URL =
 
         const clipboardBtn = document.getElementById("panel-clipboard-to-kando");
         if (clipboardBtn) {
-          const clipboardLabel = "Panodan Kando'ya gönder";
+          const clipboardLabel = "Panodaki metni ilet";
           const clipboardConfirmLabel = "Onayla ve gönder";
           const clipboardLoadingLabel = "Gönderiliyor…";
           const CLIP_PREVIEW_MAX = 80;
@@ -5984,15 +5984,15 @@ const TASKS_API_URL =
           function clearClipPending() {
             pendingClipText = null;
             clipboardBtn.textContent = clipboardLabel;
-            clipboardBtn.setAttribute("aria-label", "Panodan Kando'ya gönder");
+            clipboardBtn.setAttribute("aria-label", "Panodaki metni ilet");
             clipboardBtn.removeAttribute("data-pending-clip");
-            clipboardBtn.title = "Panodaki metni Kando köprüsüne gönder";
+            clipboardBtn.title = "Panodaki metni ilet";
           }
 
           function setClipPending(text) {
             pendingClipText = text;
             clipboardBtn.textContent = clipboardConfirmLabel;
-            clipboardBtn.setAttribute("aria-label", "Panodaki metni onayla ve Kando'ya gönder");
+            clipboardBtn.setAttribute("aria-label", "Panodaki metni onayla ve gönder");
             clipboardBtn.setAttribute("data-pending-clip", "1");
             clipboardBtn.title = "Onayla ve panodaki metni gönder";
             const snippet = clipPreviewSnippet(text);
