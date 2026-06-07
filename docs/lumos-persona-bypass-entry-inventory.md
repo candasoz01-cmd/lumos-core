@@ -1,124 +1,73 @@
-# Lumos Persona — Kando/Cando bypass giriş envanteri
+# Lumos Persona — Giriş yüzeyi sınıflandırması (public)
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Salt okuma envanter** — davranış değişikliği yok |
+| Durum | **Public özet** — davranış değişikliği yok |
 | Tarih | 2026-06-07 |
-| İlgili PR | [#100](https://github.com/candasoz01-cmd/lumos-core/pull/100) (persona katmanları), [#101](https://github.com/candasoz01-cmd/lumos-core/pull/101) (checkpoint + gap kaydı) |
-| Plan | [lumos-persona-security-checkpoint.md](lumos-persona-security-checkpoint.md) |
-| Gap kaydı | [lumos-persona-security-implementation-gaps.md](lumos-persona-security-implementation-gaps.md) |
+| İlgili PR | [#100](https://github.com/candasoz01-cmd/lumos-core/pull/100), [#101](https://github.com/candasoz01-cmd/lumos-core/pull/101), [#102](https://github.com/candasoz01-cmd/lumos-core/pull/102) |
+| Persona | [lumos-persona-layers.md](lumos-persona-layers.md) · Checkpoint: [lumos-persona-security-checkpoint.md](lumos-persona-security-checkpoint.md) · Gap: [lumos-persona-security-implementation-gaps.md](lumos-persona-security-implementation-gaps.md) |
 
 ## Amaç
 
-Persona ilkesi: dış etkili komut/iş/dosya yalnızca doğrulanmış **Lumos kanalı** (`run_lumos_gate` + policy + onay) üzerinden Kando/Cando’ya ulaşmalı. Bu belge, repo taramasıyla **Lumos dışı veya kısmi kapı** yollarını listeler; sonraki faz invariant testlerinin girdisidir.
+[lumos-persona-layers.md](lumos-persona-layers.md) ilkesine göre dış etkili iş yalnızca **doğrulanmış Lumos kanalı** üzerinden iç katmanlara ulaşmalıdır. Bu belge, public foundation kapsamında **hangi giriş sınıflarının güvenlik kontrolüne alınması gerektiğini** özetler.
 
-**Kapsam dışı:** protokol, anahtar, algoritma, wire-format; penetrasyon tarifleri.
+**Bu belgede yok:** dosya yolu, modül/CLI/HTTP adı, fonksiyon adı, bypass tarifi, protokol veya anahtar detayı.
 
----
-
-## Özet
-
-| Metrik | Değer |
-|--------|-------|
-| Envantere alınan giriş noktası | **22** |
-| Tam `lumos_gate` zinciri | 4 (+ 1 onay sonrası yürütme) |
-| Bilinen bypass / kısmi kapı | **11** |
-| Salt okuma / Kando hedef değil | 7 |
+> **İç envanter:** Satır satır giriş tablosu ve kod referansları **internal/private security inventory** kapsamındadır; bu public repo’da tutulmaz.
 
 ---
 
-## Envanter tablosu
+## Persona özeti
 
-| # | Giriş noktası | Hedef (Kando/Cando) | Gate / Lumos? | Bypass? | Not |
-|---|---------------|---------------------|---------------|---------|-----|
-| 1 | `kando_bridge` `POST /task` | Kando: patch / agent / dispatch | `run_lumos_gate` → `policy_check` → `lumos_gate_execute` | Hayır | Loopback zorunlu; `KANDO_BRIDGE_SECRET` boşsa token atlanır (yerel risk). Yıkıcı yüzey ön taraması var. |
-| 2 | `kando_bridge` `POST /agent-run` | Kando: agent job | Aynı `_complete_through_gate` | Hayır | `goal` zorunlu; gate tam. |
-| 3 | `kando_bridge` `POST /chat` → task yönlendirme | Kando: gate boru hattı | `_complete_through_gate` (task intent) | Hayır | `classify_bridge_message_intent` == task ve kısa yol devreye girmezse. |
-| 4 | `kando_bridge` `POST /chat` → `simple_chat_task` | Kando: doğrudan dosya yazımı | **Yok** | **Evet** | `core/simple_chat_task.run_task` gate’siz `test.py` yazar; persona tek kapı ihlali. |
-| 5 | `kando_bridge` `POST /chat` → saf sohbet | LLM yanıt (Kando yürütme yok) | Gate yok | Kısmi | Kando motoru tetiklenmez; dış LLM çağrısı persona “tek geçit” kapsamı dışında ama izlenmeli. |
-| 6 | `kando_bridge` `POST /approve` | Kando: onaylı yürütme | Gate yalnızca pending oluşturulurken; yürütmede `execute_approved_pending_record` (gate tekrar yok) | Kısmi | `approval_token` + disk kaydı gerekir; sahte iç onay riski ayrı checkpoint (§6). |
-| 7 | `kando_bridge` `POST /controlled` | Kando: `workspace/` read/write | `controlled_bridge.execute_controlled` + `policy_allows_normalized`; **tam `lumos_gate` değil** | **Evet (kısmi)** | Dar yüzey; shell/silme/mail bloklu. Persona “tek kapı” ile tam eşdeğer sayılmaz. |
-| 8 | `kando_bridge` `POST /replay` | Audit (yürütme yok) | `replay_lumos_gate` dry_run | Hayır | Yalnızca denetim; executor replay modunda atlanır. |
-| 9 | `kando_bridge` GET (`/health`, `/outbox`, …) | Okuma / durum | Secret (bazı uçlar); gate yok | Hayır | Kando komut kabul etmez; bilgi sızıntısı ayrı konu. |
-| 10 | `src/main.py` → CLI `görev oluştur` | TaskEngine (`brain_run`) | `action_policy.check_policy` | **Evet** | `run_lumos_gate` yok; köprüden bağımsız görev yürütme. Gap #1. |
-| 11 | CLI `görev iptal` / `görev sil` / arşiv | TaskEngine / TaskStore | Seçili mutasyonlarda policy; gate yok | **Evet** | Kalıcı silme kullanıcı komutu + uyarı; yine de lumos_gate dışı. |
-| 12 | `scripts/cando_local.py` `recipe … --dry-run` | Cando recipe modülleri | **Yok** | **Evet** | `branch_cleanup_review`, `pr_ready_check`; salt okuma sınırı script seviyesinde, kanal doğrulama yok. Gap #2. |
-| 13 | `src/cando/*` (doğrudan import/çağrı) | Cando read-only git/gh | **Yok** | **Evet** | Resmi CLI dışı `python -c` / test import ile aynı boşluk; yabancı giriş reddi yok. |
-| 14 | `scripts/kando_send.py` → köprü URL | Kando (köprü üzerinden) | Köprü gate’ine tabi | Hayır | Dolaylı giriş; hedef yine `POST /task`. |
-| 15 | `python -m kando.cursor_bridge` (doğrudan) | Kando patch/ brain hattı | **Yok** (CLI) | **Evet** | Köprü gate sonrası subprocess normal; **doğrudan modül çağrısı** bypass. |
-| 16 | `python -m kando.repl` | Kando LLM (`kando.llm`) | **Yok** | **Evet** | Etkileşimli yerel REPL; policy/gate yok. |
-| 17 | `kando/agent_runner.start_agent_job` (doğrudan) | Kando agent pipeline | **Yok** (CLI/script) | **Evet** | Köprü/onay dışı çağrıda `push_if_possible` dahil pipeline gate’siz (Gap #3 ile ilişkili). |
-| 18 | `kando/file_patch_executor.run` (doğrudan) | Kando dosya patch | **Yok** | **Evet** | Gate yalnızca köprü `_complete_through_gate` içinden sarmalanır. |
-| 19 | Panel `panel_tasks_server` `POST /tasks` (+ complete/delete) | `.lumos/tasks.json` (TaskEngine CRUD değil; panel state) | `_task_actions_gate()` her zaman `enabled: True` | **Evet** | Kando motoru değil; persona “tek dış geçit” açısından ayrı yazım yüzeyi. `lumos_gate` yok. |
-| 20 | Panel / UI `POST` köprü `/task` (`ui/panel.astro`, E2E) | Kando köprü | Köprü gate | Hayır | Görev listesi CRUD (satır 19) ile karıştırılmamalı. |
-| 21 | `task_engine.TaskEngine` (`core/brain.run` içi) | Çekirdek görev adımları | Profil + `may_execute_step_at_runtime`; **lumos_gate yok** | **Evet** | CLI ve brain yolunun motoru; köprü policy ile hizalı değil. |
-| 22 | `kando/controlled_bridge_client` → `POST /controlled` | Kando controlled workspace | Satır 7 ile aynı | **Evet (kısmi)** | Python istemci; dar izin modeli. |
+- **Tek giriş:** Kando ve Cando işi yalnızca Lumos üzerinden kabul eder.
+- **Cando read-only:** Recipe/runbook öneri/rapor; otomatik yazma veya dış aksiyon yok.
+- **Offline:** Reconnect’te otomatik dış gönderim yok; onay ve doğrulama gerekir.
+- **Secret:** Lumos ana secret deposu değil; gateway iletişimi sonuç odaklı olmalıdır.
 
 ---
 
-## Bilinen boşluklar (envanter ↔ gap)
+## Giriş sınıfları (kontrol hedefi)
 
-| Gap | Envanter satırları | Kısa doğrulama |
-|-----|-------------------|----------------|
-| [#1 Kando CLI bypass](lumos-persona-security-implementation-gaps.md#1-lumos-dışından-kandoya-komut--cli--taskengine-bypass) | 10, 11, 21 | `src/` altında `lumos_gate` import yok; CLI → `brain_run` → TaskEngine. |
-| [#2 Cando doğrudan](lumos-persona-security-implementation-gaps.md#2-cando-doğrudan-dosya--komut--yabancı-giriş-ve-lumos-kanalı) | 12, 13 | Recipe runner gate/kanal kontrolü içermiyor. |
-| [#3 Offline push](lumos-persona-security-implementation-gaps.md#3-offline-kuyruk--internet-gelince-otomatik-dış-aksiyon-yok) | 17 | `agent_runner` push fazı ayrı trace PR’ında; bu envanter yalnızca giriş noktası işaret eder. |
+Her sınıfta Lumos gate / policy / onay zincirinin tutarlı uygulanması hedeflenir.
 
----
+| # | Sınıf | Kontrol odağı | Checkpoint | Gap |
+|---|-------|---------------|------------|-----|
+| 1 | **Köprü / gateway** | Dış HTTP geçitleri; tam gate vs kısmi yönlendirme, onay sonrası yürütme | [§1](lumos-persona-security-checkpoint.md#1-lumos-tek-dış-geçit) | [#1](lumos-persona-security-implementation-gaps.md#1-lumos-dışından-kandoya-komut--cli--taskengine-bypass) |
+| 2 | **Yerel CLI / görev motoru** | Terminalden görev oluşturma, mutasyon, motor yürütmesi | [§1](lumos-persona-security-checkpoint.md#1-lumos-tek-dış-geçit) | [#1](lumos-persona-security-implementation-gaps.md#1-lumos-dışından-kandoya-komut--cli--taskengine-bypass) |
+| 3 | **Cando recipe** | Read-only rutinlerin kanal doğrulaması ve yabancı giriş reddi | [§2](lumos-persona-security-checkpoint.md#2-cando-yabancı-giriş--read-only-recipe) | [#2](lumos-persona-security-implementation-gaps.md#2-cando-doğrudan-dosya--komut--yabancı-giriş-ve-lumos-kanalı) |
+| 4 | **Offline / push** | Otomatik dış aksiyon, kuyruk flush, reconnect senaryoları | [§3](lumos-persona-security-checkpoint.md#3-offline-kuyruk--reconnect-davranışı) | [#3](lumos-persona-security-implementation-gaps.md#3-offline-kuyruk--internet-gelince-otomatik-dış-aksiyon-yok) |
+| 5 | **Secret / imza** | Kimlik doğrulama, keystore, sonuç odaklı gateway sözleşmesi | [§4](lumos-persona-security-checkpoint.md#4-lumos-secret-ana-deposu-değil), [§6](lumos-persona-security-checkpoint.md#6-anti-taklit--kimlik-doğrulama) | [#4](lumos-persona-security-implementation-gaps.md#4-lumos-secret-ana-deposu-değil--sonuç-odaklı-iletişim), [#6](lumos-persona-security-implementation-gaps.md#6-anti-taklit--kimlik-doğrulama-envanteri) |
 
-## Checkpoint “Şimdi” — bu PR vs ertelenen
-
-### Bu PR ile kapanan / kapsanan
-
-| Checkpoint maddesi | Kapsam |
-|--------------------|--------|
-| Öncelik 1: Giriş envanteri tablosu (köprü / CLI / Cando / panel) | Tam tablo (22 satır) |
-| §1 Giriş envanteri (endpoint → gate evet/hayır) | Köprü + CLI + Cando + panel + doğrudan modül |
-| §1 CLI/TaskEngine gate bypass trace | Satır 10–11, 21; kod referansı doğrulandı |
-| §2 CLI gate’siz / `cando_local` dry-run | Satır 12–13 |
-| Gap #1–#2 ilk assertion (envanter) | Tablo + özet metrikler |
-
-### Ertelenen “Şimdi” maddeler (sonraki PR / manuel)
-
-| Madde | Sınıf | Neden ertelendi |
-|-------|-------|-----------------|
-| Köprü policy-blocked → 403 manuel test | §1 | Davranış testi; bu PR salt okuma |
-| Offline reconnect / panel gözlemi | §3 | Ayrı trace belgesi |
-| `agent_runner` push fazı trace | §3 | Gap #3; kod yürütme envanterinden ayrı |
-| Keystore / secret bellek envanteri | §4 | Kando/Cando bypass dar kapsam dışı |
-| Log/audit secret pattern taraması | §4 | Aynı |
-| Bando runtime grep doğrulama | §5 | Kando/Cando bypass dışı (tek satır: runtime yok) |
-| Anti-taklit auth envanteri + `KANDO_BRIDGE_SECRET` manuel | §6 | Protokol detayı yok kuralı; ayrı checkpoint PR |
-
-### Sonraki faz (bilerek kapsam dışı)
-
-- Tek kapı invariant test paketi
-- Cando yabancı giriş reddi davranış testi
-- Offline auto-push yok invariant testi
-- Gateway sonuç-only contract testi
+Ek yüzey: panel görev durumu yazımı köprü gate’inden ayrı denetlenir (sınıf 1–2 ile ilişkili).
 
 ---
 
-## Referans dosyalar (salt okuma)
+## Kontrol durumu (2026-06-07)
 
-| Rol | Yol |
-|-----|-----|
-| Köprü HTTP | `packages/kando_bridge/src/kando_bridge/server.py` |
-| Lumos gate | `packages/kando_runtime/src/kando_runtime/lumos_gate.py` |
-| CLI mutasyon | `src/cli/cli_tasks_mutation.py` |
-| Brain / TaskEngine | `src/core/brain.py`, `task_engine/engine.py` |
-| Cando runner | `scripts/cando_local.py`, `src/cando/` |
-| Chat kısa yolu | `src/core/simple_chat_task.py` |
-| Agent pipeline | `src/kando/agent_runner.py` |
-| Panel görev API | `panel/scripts/panel_tasks_server.py` |
-| Kontrollü yüzey | `packages/kando_runtime/src/kando_runtime/controlled_bridge.py` |
+| Sınıf | Durum |
+|-------|--------|
+| Köprü / gateway | Kısmi gate; invariant test bekliyor |
+| CLI / görev motoru | Gate zinciri eksik |
+| Cando recipe | Kanal doğrulama yok |
+| Offline / push | Otomatik dış aksiyon riski |
+| Secret / imza | Sözleşme henüz enforce edilmiyor |
+
+Sayısal satır envanteri yalnızca internal belgede; public özet sınıf düzeyindedir.
+
+---
+
+## Kapsam
+
+**Bu PR (#102):** Public-safe giriş sınıfı özeti; detay envanter repo dışına taşındı.
+
+**PR #101:** Checkpoint ve gap kayıtları.
+
+**Sonraki faz:** Tek kapı invariant testleri, Cando yabancı giriş reddi, offline auto-push yok, gateway sonuç-only contract — [checkpoint](lumos-persona-security-checkpoint.md).
 
 ---
 
 ## Ne yapılmaz
 
-- Kod, test veya recipe değişikliği
-- Güvenlik gevşetmesi veya otomatik düzeltme
-- `lumos-karar-sozlesmesi` alanlarında implementasyon
+Kod/test/recipe değişikliği; güvenlik gevşetmesi; bypass tarifi; `lumos-karar-sozlesmesi` implementasyonu.
 
-**Sonraki dar adım:** Gap #1 için “CLI `görev oluştur` → `lumos_gate` çağrısı yok” odaklı davranış testi taslağı (ayrı PR).
+**Sonraki adım:** Gap #1 için CLI–gate hizası davranış testi taslağı (ayrı PR; internal envanter girdisi).
