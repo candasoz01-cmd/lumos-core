@@ -1,0 +1,15 @@
+name: branch-cleanup-review
+description: Yerel branch temizliği için salt okunur inceleme raporu
+base_branch: main
+read_only: true
+allowed_git_commands:
+  - branch
+  - rev-list
+  - merge-base
+  - rev-parse
+  - log
+forbidden_actions:
+  - branch_delete
+  - remote_delete
+  - push
+  - fetch
