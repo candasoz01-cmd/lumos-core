@@ -249,7 +249,7 @@ def test_bando_runtime_absent_in_code_tree() -> None:
     )
 
 
-# --- A5: Anti-taklit — bridge auth when KANDO_BRIDGE_SECRET set (checkpoint §6, gap #6) ---
+# --- A5: Anti-taklit — bridge auth when KANDO_BRIDGE_SECRET set (checkpoint §6, gap #5) ---
 
 
 def test_bridge_check_secret_rejects_missing_token_when_secret_set(
@@ -285,7 +285,7 @@ def test_bridge_check_secret_accepts_matching_bearer_token(
 def test_bridge_check_secret_skips_auth_when_unset_documents_gap(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Şimdi gap: secret unset → auth skipped (not 401). See gaps doc §6."""
+    """Şimdi gap: secret unset → auth skipped (not 401). See gaps doc §5."""
     from kando_bridge.server import BridgeHandler
 
     monkeypatch.delenv("KANDO_BRIDGE_SECRET", raising=False)
@@ -297,8 +297,8 @@ def test_bridge_check_secret_skips_auth_when_unset_documents_gap(
 
 @pytest.mark.xfail(
     reason=(
-        "Persona gap #6: KANDO_BRIDGE_SECRET unset allows unauthenticated bridge — "
-        f"see {GAPS_DOC} §6; sonraki faz adds invariant tests"
+        "Persona gap #5: KANDO_BRIDGE_SECRET unset allows unauthenticated bridge — "
+        f"see {GAPS_DOC} §5; sonraki faz adds invariant tests"
     ),
     strict=True,
 )
