@@ -4,7 +4,7 @@
 |------|-------|
 | Durum | **Taslak / karar bekliyor** — agent/task/executor usage map checkpoint tamamlandı; karar finalize dar import/drift incelemesi sonrası |
 | Tarih | 2026-06-06 |
-| İlgili | `docs/lumos-karar-sozlesmesi.md`, public GitHub sınırı kuralları, ADR-001, ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-010 |
+| İlgili | `docs/lumos-karar-sozlesmesi.md`, `docs/lumos-persona-layers.md`, public GitHub sınırı kuralları, ADR-001, ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-010 |
 
 ## Amaç
 
