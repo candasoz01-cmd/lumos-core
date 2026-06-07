@@ -1,0 +1,12 @@
+name: pr-ready-check
+description: PR merge hazırlığı için salt okunur kontrol raporu
+read_only: true
+allowed_gh_commands:
+  - pr view
+  - pr checks
+  - pr list
+forbidden_actions:
+  - merge
+  - branch_delete
+  - push
+  - close
