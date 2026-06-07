@@ -3320,6 +3320,9 @@ const TASKS_API_URL =
                             Düşük riskte yalnızca bilgi notu gösterebilirim (kod veya köprü
                             çalıştırmam).
                           </li>
+                          <li>
+                            Köprü ve görev adreslerini panel yapılandırmasından okurum; senden endpoint istemem.
+                          </li>
                           <li>Dosya adı, türü, boyutu ve uzantısını gösterebilirim.</li>
                           <li>
                             Kontrollü dosya hattı üzerinden güvenli okuma/yazma akışına
@@ -3341,6 +3344,13 @@ const TASKS_API_URL =
                     </div>
                   </div>
                   <p class="lumos-security-note">Kalıcı işlemler için onay ister.</p>
+                  <p class="lumos-security-note">
+                    Gizli değerleri burada istemiyorum. Test için yerel .env veya mevcut bridge ayarını kullanacağım;
+                    ekrana secret yazdırmadan ilerleyelim.
+                  </p>
+                  <p class="lumos-security-note lumos-security-note--dev">
+                    Yerel geliştirmede PUBLIC token tarayıcıda görünebilir; gerçek secret'ı sohbete yapıştırma.
+                  </p>
                   <p class="lumos-security-note">
                     Kamera ve mikrofon özellikleri cihaz, tarayıcı ve verilen izinlere bağlı olarak çalışır. Bazı
                     tarayıcılarda desteklenmeyebilir veya ek izin isteyebilir.
@@ -5425,12 +5435,15 @@ const TASKS_API_URL =
         }
 
         /** Panel /chat hata türleri — backend/panelChatErrors.js ile eşleşmeli. */
+        const PANEL_LUMOS_UNKNOWN_ROUTE_TR =
+          "Bu route'u şu an kesin göremiyorum; mevcut bridge bağlantısıyla güvenli smoke yapacağım.";
+
         const PANEL_CHAT_ERROR_MESSAGES_TR = {
           network_error:
-            "Sunucuya ulaşılamadı. İnternet bağlantınızı ve sohbet adresini kontrol edip tekrar deneyin.",
-          timeout: "Yanıt süresi doldu. Biraz sonra tekrar deneyin.",
+            "Sunucuya ulaşamadım. Önce yapılandırılmış köprü ve sohbet bağlantısını denerim; biraz sonra tekrar deneyebilirsin.",
+          timeout: "Yanıt süresi doldu. Biraz sonra tekrar deneyeceğim.",
           unauthorized:
-            "Yetkilendirme hatası. Oturum veya API anahtar ayarlarınızı kontrol edin.",
+            "Kimlik doğrulanamadı. Yerel geliştirmede PUBLIC token görünür olabilir; gerçek secret'ı sohbete yazma — bridge ayarından devam edeceğim.",
           server_error:
             "Sohbet sunucusu geçici bir sorun bildirdi. Biraz sonra tekrar deneyin.",
           model_error:
@@ -5617,7 +5630,7 @@ const TASKS_API_URL =
             if (r.status === 401) {
               appendBubble(
                 "error",
-                "Kimlik doğrulama başarısız (401). Token veya köprü ayarını kontrol edin.",
+                "Kimlik doğrulanamadı (401). Yerel geliştirmede PUBLIC token tarayıcıda görünür; gerçek secret'ı buraya yazma — köprü ayarından devam edeceğim.",
               );
               return;
             }
@@ -5641,11 +5654,14 @@ const TASKS_API_URL =
             if (accepted === true) okMsg += " Kabul edildi.";
             else if (accepted === false) okMsg += " Kabul edilmedi.";
             if (route) okMsg += " Yol: " + route + ".";
+            else okMsg += " " + PANEL_LUMOS_UNKNOWN_ROUTE_TR;
             appendBubble("lumos", okMsg);
           } catch {
             appendBubble(
               "error",
-              "Köprüye ulaşılamadı. Yerel bridge çalışıyor mu kontrol edin.",
+              "Köprüye ulaşamıyorum. Mevcut bridge ayarını (" +
+                BRIDGE_BASE_URL +
+                ") kullanarak güvenli smoke deneyeceğim.",
             );
           }
         }
@@ -5721,7 +5737,14 @@ const TASKS_API_URL =
               }
             : null;
           try {
-            const chatBody = { message: outgoingMessage, history };
+            const chatBody = {
+              message: outgoingMessage,
+              history,
+              panelContext: {
+                bridgeBaseUrl: BRIDGE_BASE_URL,
+                tasksApiUrl: TASKS_API_URL,
+              },
+            };
             if (hasPhoto && photoFile) {
               chatBody.photoAttached = true;
               chatBody.photoName = photoFile.name || "";
@@ -5836,7 +5859,7 @@ const TASKS_API_URL =
               }
             } else {
               const EMPTY_REPLY_MSG =
-                "Bu sefer boş bir yanıt geldi. Sorunu biraz açıp yeniden deneyebilirsin.";
+                "Bu turda net bir yanıt üretemedim; mevcut bridge bağlantısıyla tekrar deneyeceğim.";
               const CHAT_BODY_UNUSABLE_HINT = "Yanıt okunamadı.";
               const CHAT_BODY_UNUSABLE_BUBBLE =
                 "Sunucudan gelen yanıtı işleyemedik. Biraz sonra yeniden deneyebilirsin.";
@@ -6071,7 +6094,9 @@ const TASKS_API_URL =
               }
 
               if (r.status === 401) {
-                setSendHint("Kimlik doğrulama başarısız (401). Token veya köprü ayarını kontrol edin.");
+                setSendHint(
+                  "Kimlik doğrulanamadı (401). PUBLIC token yerel geliştirmede görünür; secret'ı sohbete yazma.",
+                );
                 return;
               }
               if (!r.ok) {
@@ -6091,11 +6116,14 @@ const TASKS_API_URL =
                 data && (data.accepted === true || data.accepted === false) ? data.accepted : null;
               let okMsg = "Panodaki metin Kando'ya iletildi.";
               if (route) okMsg += " Yol: " + route + ".";
+              else okMsg += " " + PANEL_LUMOS_UNKNOWN_ROUTE_TR;
               if (accepted === true) okMsg += " Kabul edildi.";
               else if (accepted === false) okMsg += " Kabul edilmedi.";
               setSendHint(okMsg);
             } catch {
-              setSendHint("Köprüye ulaşılamadı. Yerel bridge çalışıyor mu kontrol edin.");
+              setSendHint(
+                "Köprüye ulaşamıyorum; yapılandırılmış bridge (" + BRIDGE_BASE_URL + ") ile smoke deneyeceğim.",
+              );
             } finally {
               clipboardSending = false;
               clipboardBtn.disabled = false;
