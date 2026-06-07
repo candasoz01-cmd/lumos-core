@@ -128,9 +128,31 @@ curl -sS http://127.0.0.1:8765/health
 2. Terminal B: `export KANDO_BRIDGE_SECRET='your-local-dev-secret'` ardından `./scripts/bridge_start.sh`
 3. İstemci `POST /task` ile metni yollar → `request.txt` güncellenir → watcher tetiklenir → Kando çalışır → sonuçlar `.lumos/outbox/` ve `cursor_bridge/` altında güncellenir (mevcut `kando_watch` davranışı).
 
+## Hızlı gönderim (`kando_send.py`)
+
+Bridge ayaktayken terminalden doğrudan `POST /task` (dosyaya elle yazmaz):
+
+```bash
+cd /path/to/lumos-core
+export KANDO_BRIDGE_SECRET='your-local-dev-secret'
+./scripts/bridge_start.sh &
+python3 scripts/kando_send.py "görev: src/core/foo.py küçük düzeltme"
+```
+
+Stdin / pipe (panodan veya pipe ile yapıştırma):
+
+```bash
+export KANDO_BRIDGE_SECRET='your-local-dev-secret'
+echo 'patch: README.md' | python3 scripts/kando_send.py
+pbpaste | python3 scripts/kando_send.py
+python3 scripts/kando_send.py   # argümansız: stdin'den okur
+```
+
+Birden fazla argv kelimesi tek mesajda birleştirilir. `KANDO_BRIDGE_SECRET` zorunludur; 401 alırsanız bridge ile aynı secret'ı export edin.
+
 ## İlişkili araçlar
 
-- `scripts/kando_send.py` — aynı `request.txt` dosyasına CLI’dan yazar; bridge ile aynı hedef.
+- `scripts/kando_send.py` — köprüye `POST /task` ile gönderir (bridge `request.txt`'ye yazar); doğrudan dosya yazmaz.
 - `scripts/local_chat_relay.py` / `relay_agent.py` — pano veya başka relay ile entegrasyon; bridge HTTP’sine `curl` veya küçük bir istemci ile bağlanabilir.
 
 ## Sınır
