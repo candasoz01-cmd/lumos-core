@@ -6,6 +6,7 @@ import GlobalMay19Corner from "../components/GlobalMay19Corner.astro";
  * GET /status: aynı origin’de `.../status` — `PUBLIC_LUMOS_PANEL_STATUS_URL` ile ayrı host verilmezse CHAT_URL’den türetilir.
  */
 const CHAT_URL = import.meta.env.PUBLIC_LUMOS_CHAT_URL || "https://lumos-core-1.onrender.com/chat";
+/** PUBLIC token visible in browser — local/dev only */
 const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
 const UPLOAD_URL =
   import.meta.env.PUBLIC_LUMOS_PANEL_UPLOAD_URL ||
@@ -2070,6 +2071,51 @@ const TASKS_API_URL =
           opacity: 0.35;
         }
       }
+      .chat-compose-aux {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0 0.35rem;
+        min-width: 0;
+      }
+      .chat-compose-clipboard-btn {
+        flex: 0 1 auto;
+        max-width: 100%;
+        margin: 0;
+        padding: 0.28rem 0.62rem;
+        border-radius: 999px;
+        border: 1px solid rgb(var(--lumos-land-teal) / 0.28);
+        background: rgb(8 12 22 / 0.55);
+        color: rgba(184, 240, 255, 0.82);
+        font-size: 0.64rem;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        line-height: 1.25;
+        white-space: nowrap;
+        cursor: pointer;
+        transition:
+          color 0.15s ease,
+          border-color 0.15s ease,
+          background 0.15s ease,
+          opacity 0.15s ease;
+      }
+      .chat-compose-clipboard-btn:hover:not(:disabled) {
+        color: rgb(220 248 255 / 0.96);
+        border-color: rgb(var(--lumos-land-teal) / 0.42);
+        background: rgb(var(--lumos-land-teal) / 0.08);
+      }
+      .chat-compose-clipboard-btn:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 2px rgb(var(--lumos-land-teal) / 0.35);
+      }
+      .chat-compose-clipboard-btn:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      .chat-compose-clipboard-btn--busy {
+        animation: chat-compose-send-pulse 0.9s ease-in-out infinite;
+      }
       @media (max-width: 479.98px) {
         .chat-compose-bar {
           padding: 0.38rem 0.42rem 0.38rem 0.38rem;
@@ -3420,6 +3466,17 @@ const TASKS_API_URL =
                       <span class="chat-compose-send__label">Gönder</span>
                     </button>
                   </div>
+                </div>
+                <div class="chat-compose-aux">
+                  <button
+                    type="button"
+                    id="panel-clipboard-to-kando"
+                    class="chat-compose-clipboard-btn"
+                    title="Panodaki metni Kando köprüsüne gönder"
+                    aria-label="Panodan Kando'ya gönder"
+                  >
+                    Panodan Kando'ya gönder
+                  </button>
                 </div>
                 <p id="panel-voice-hint" class="chat-voice-hint" role="status" aria-live="polite" hidden></p>
                 <p id="panel-camera-hint" class="chat-camera-hint" role="status" aria-live="polite" hidden></p>
@@ -5882,6 +5939,104 @@ const TASKS_API_URL =
           e.preventDefault();
           void runSend();
         });
+
+        const clipboardBtn = document.getElementById("panel-clipboard-to-kando");
+        if (clipboardBtn) {
+          const clipboardLabel = "Panodan Kando'ya gönder";
+          const clipboardLoadingLabel = "Gönderiliyor…";
+          let clipboardSending = false;
+
+          clipboardBtn.addEventListener("click", async () => {
+            if (clipboardSending) return;
+            clipboardSending = true;
+            clipboardBtn.disabled = true;
+            clipboardBtn.setAttribute("aria-busy", "true");
+            clipboardBtn.classList.add("chat-compose-clipboard-btn--busy");
+            clipboardBtn.textContent = clipboardLoadingLabel;
+            setSendHint("");
+
+            try {
+              if (!navigator.clipboard || typeof navigator.clipboard.readText !== "function") {
+                setSendHint("Panodan okuma bu tarayıcıda desteklenmiyor.");
+                return;
+              }
+
+              let clipboardText = "";
+              try {
+                clipboardText = await navigator.clipboard.readText();
+              } catch (err) {
+                const name = err && typeof err === "object" && "name" in err ? String(err.name) : "";
+                if (name === "NotAllowedError") {
+                  setSendHint("Pano erişimi reddedildi. Tarayıcı iznini veya sayfa odakını kontrol edin.");
+                } else {
+                  const msg =
+                    err && typeof err === "object" && "message" in err ? String(err.message) : String(err);
+                  setSendHint("Panodan okunamadı: " + msg.slice(0, 120));
+                }
+                return;
+              }
+
+              const trimmed = String(clipboardText || "").trim();
+              if (!trimmed) {
+                setSendHint("Pano boş; kopyalanmış metin yok.");
+                return;
+              }
+
+              // PUBLIC token (kandoToken) visible in browser — local/dev only
+              const r = await fetch(`${BRIDGE_BASE_URL}/task`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "X-Kando-Token": kandoToken,
+                },
+                body: JSON.stringify({
+                  text: trimmed,
+                  source: "panel_clipboard",
+                }),
+              });
+
+              let data = null;
+              try {
+                data = await r.json();
+              } catch {
+                data = null;
+              }
+
+              if (r.status === 401) {
+                setSendHint("Kimlik doğrulama başarısız (401). Token veya köprü ayarını kontrol edin.");
+                return;
+              }
+              if (!r.ok) {
+                const detail =
+                  data && (data.error || data.message) ? String(data.error || data.message).trim() : "";
+                setSendHint(
+                  "Köprü gönderimi başarısız (HTTP " +
+                    r.status +
+                    ")." +
+                    (detail ? " " + detail.slice(0, 80) : ""),
+                );
+                return;
+              }
+
+              const route = data && data.route != null ? String(data.route).trim() : "";
+              const accepted =
+                data && (data.accepted === true || data.accepted === false) ? data.accepted : null;
+              let okMsg = "Panodaki metin Kando'ya iletildi.";
+              if (route) okMsg += " Yol: " + route + ".";
+              if (accepted === true) okMsg += " Kabul edildi.";
+              else if (accepted === false) okMsg += " Kabul edilmedi.";
+              setSendHint(okMsg);
+            } catch {
+              setSendHint("Köprüye ulaşılamadı. Yerel bridge çalışıyor mu kontrol edin.");
+            } finally {
+              clipboardSending = false;
+              clipboardBtn.disabled = false;
+              clipboardBtn.removeAttribute("aria-busy");
+              clipboardBtn.classList.remove("chat-compose-clipboard-btn--busy");
+              clipboardBtn.textContent = clipboardLabel;
+            }
+          });
+        }
 
         const voiceBtn = document.getElementById("panel-voice-input");
         const voiceHint = document.getElementById("panel-voice-hint");
