@@ -677,8 +677,8 @@ def _resolve_task_routing(
         else:
             tv = ""
         # Panel Görevler listesi: başlıkta "foo.py" geçse bile doğrudan patch sanılmasın.
-        src = obj.get("source")
-        panel_gorevler = isinstance(src, str) and src.strip() == "panel_gorevler"
+        src = _normalize_task_source(obj.get("source"))
+        panel_gorevler = src == "panel_gorevler"
         if not fv and tv and not panel_gorevler:
             fv = _extract_first_repo_path_fragment(tv)
         if fv and tv:
@@ -1186,6 +1186,14 @@ def _find_pending_approval_by_task_id(task_id: str) -> Path | None:
     return None
 
 
+def _normalize_task_source(value: object) -> str | None:
+    """JSON `source` alanını okunur stringe çevirir (panel_chat, panel_gorevler, …)."""
+    if not isinstance(value, str):
+        return None
+    s = value.strip()
+    return s or None
+
+
 def _parse_task_source_from_request_raw(raw: bytes | bytearray) -> str | None:
     try:
         obj = json.loads(bytes(raw).decode("utf-8"))
@@ -1193,10 +1201,24 @@ def _parse_task_source_from_request_raw(raw: bytes | bytearray) -> str | None:
         return None
     if not isinstance(obj, dict):
         return None
-    s = obj.get("source")
-    if isinstance(s, str) and s.strip():
-        return s.strip()
-    return None
+    return _normalize_task_source(obj.get("source"))
+
+
+def _log_post_task_routed(*, source: str | None, route: str, raw: bytes | bytearray) -> None:
+    """POST /task yönlendirme kabulü — stderr ve bridge.log (görünürlük, davranış değil)."""
+    preview = _task_goal_preview_from_raw(raw, max_len=120)
+    line = json.dumps(
+        {"event": "post_task_routed", "source": source, "route": route, "goal_preview": preview},
+        ensure_ascii=False,
+    )
+    _stderr_write(line + "\n")
+    try:
+        Path("logs").mkdir(exist_ok=True)
+        with open("logs/bridge.log", "ab") as f:
+            f.write(line.encode("utf-8", errors="replace"))
+            f.write(b"\n")
+    except OSError:
+        pass
 
 
 def merge_post_task_http_envelope(
@@ -2359,6 +2381,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
                     return
                 assert mode is not None and payload is not None
                 self._post_task_envelope_meta["route"] = mode
+                task_source = _parse_task_source_from_request_raw(raw)
+                _log_post_task_routed(source=task_source, route=mode, raw=raw)
 
                 ingest = (umsg or "").strip() or None
                 surf = _task_surface_for_destructive_scan(mode, payload, ingest)
