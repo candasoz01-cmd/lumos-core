@@ -3599,6 +3599,9 @@ const TASKS_API_URL =
                   <header class="gorevler-detail-header">
                     <h3 id="gorevler-detail-title" class="gorevler-detail-heading">Görev</h3>
                     <div class="gorevler-detail-header-actions">
+                      <button type="button" id="gorevler-detail-bridge" class="gorevler-add-btn" hidden>
+                        Köprüye gönder
+                      </button>
                       <button type="button" id="gorevler-detail-complete" class="gorevler-clear-test-btn" hidden>
                         Tamamla
                       </button>
@@ -6279,6 +6282,7 @@ const TASKS_API_URL =
         const detailTaskDl = document.getElementById("gorevler-detail-task-dl");
         const detailBridgeDl = document.getElementById("gorevler-detail-bridge-dl");
         const detailCloseBtn = document.getElementById("gorevler-detail-close");
+        const detailBridgeBtn = document.getElementById("gorevler-detail-bridge");
         const detailCompleteBtn = document.getElementById("gorevler-detail-complete");
         const detailDeleteBtn = document.getElementById("gorevler-detail-delete");
         const restoreLastBtn = document.getElementById("gorevler-restore-last");
@@ -6394,6 +6398,7 @@ const TASKS_API_URL =
             detailPlanStatusEl.textContent = "";
           }
           detailTitleEl.textContent = "Görev";
+          if (detailBridgeBtn) detailBridgeBtn.hidden = true;
           if (detailCompleteBtn) detailCompleteBtn.hidden = true;
           if (detailDeleteBtn) detailDeleteBtn.hidden = true;
           listEl.querySelectorAll(".gorevler-task-card").forEach((node) => {
@@ -6805,7 +6810,11 @@ const TASKS_API_URL =
           syncGorevlerDetailPlanSection(t, taskIndex);
 
           const hasId = !!(t.id && String(t.id).trim());
-          const canComplete = hasId || !!(t.title && String(t.title).trim());
+          const titleOk = !!(t.title && String(t.title).trim());
+          const canComplete = hasId || titleOk;
+          if (detailBridgeBtn) {
+            detailBridgeBtn.hidden = !titleOk || t.status === "tamamlandi";
+          }
           if (detailCompleteBtn) {
             detailCompleteBtn.hidden = !canComplete || t.status === "tamamlandi";
           }
@@ -7054,6 +7063,79 @@ const TASKS_API_URL =
           showHint("Görev kaydedildi; plan gösteriliyor.");
         }
 
+        async function sendBridgeOpenGorevlerTask() {
+          const taskIndex = lastGorevlerOpenedIndex;
+          if (taskIndex < 0) return;
+          const t = panelGorevlerTasks[taskIndex];
+          if (!t) return;
+          const title = t.title != null ? String(t.title).trim() : "";
+          if (!title || t.status === "tamamlandi") return;
+
+          hideHint();
+          const priority =
+            t.priority != null && String(t.priority).trim()
+              ? String(t.priority).trim()
+              : prioritySel.value;
+          const status =
+            t.status != null && String(t.status).trim() ? String(t.status).trim() : "bekliyor";
+
+          if (detailBridgeBtn) {
+            detailBridgeBtn.disabled = true;
+            detailBridgeBtn.setAttribute("aria-busy", "true");
+          }
+
+          try {
+            const r = await fetch(`${BRIDGE_BASE_URL}/task`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-Kando-Token": kandoToken,
+              },
+              body: JSON.stringify({
+                goal: title,
+                source: "panel_gorevler",
+                priority,
+                status,
+              }),
+            });
+
+            let data = null;
+            try {
+              data = await r.json();
+            } catch {
+              data = null;
+            }
+
+            if (r.status === 401) {
+              showHint("Kimlik doğrulama başarısız (401). Token veya köprü ayarını kontrol edin.");
+              return;
+            }
+            if (!r.ok) {
+              const detail =
+                data && (data.error || data.message) ? String(data.error || data.message).trim() : "";
+              showHint(
+                "Köprüye gönderilemedi (HTTP " +
+                  r.status +
+                  ")." +
+                  (detail ? " " + detail.slice(0, 80) : ""),
+              );
+              return;
+            }
+
+            assignTaskBridgeLast(t, data);
+            render();
+            openGorevlerDetail(taskIndex);
+            showHint(buildTaskBridgeSuccessReadableHint(data));
+          } catch {
+            showHint("Köprüye ulaşılamadı. Yerel bridge çalışıyor mu kontrol edin.");
+          } finally {
+            if (detailBridgeBtn) {
+              detailBridgeBtn.disabled = false;
+              detailBridgeBtn.removeAttribute("aria-busy");
+            }
+          }
+        }
+
         async function completeOpenGorevlerTask() {
           const t = panelGorevlerTasks[lastGorevlerOpenedIndex];
           if (!t) return;
@@ -7176,6 +7258,11 @@ const TASKS_API_URL =
         });
 
         detailCloseBtn.addEventListener("click", () => closeGorevlerDetail(true));
+        if (detailBridgeBtn) {
+          detailBridgeBtn.addEventListener("click", () => {
+            sendBridgeOpenGorevlerTask();
+          });
+        }
         if (detailCompleteBtn) {
           detailCompleteBtn.addEventListener("click", () => {
             completeOpenGorevlerTask();
