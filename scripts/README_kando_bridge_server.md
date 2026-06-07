@@ -17,10 +17,11 @@ PYTHONPATH=src python scripts/kando_watch.py
 
 ## Sunucuyu başlatma
 
-Depo kökünden:
+Depo kökünden (önce yerel secret):
 
 ```bash
 cd /path/to/lumos-core
+export KANDO_BRIDGE_SECRET='your-local-dev-secret'
 PYTHONPATH=src python -m kando_bridge
 # veya eşdeğer:
 PYTHONPATH=src python3 scripts/kando_bridge_server.py
@@ -50,14 +51,22 @@ lsof -nP -iTCP:8765 -sTCP:LISTEN
 | Ortam değişkeni | Anlamı |
 |-----------------|--------|
 | `KANDO_BRIDGE_PORT` | Dinlenecek port (CLI `--port` ile geçersiz kılınır) |
-| `KANDO_BRIDGE_SECRET` | Dolu ise her POST için token zorunlu |
+| `KANDO_BRIDGE_SECRET` | **Zorunlu** — korumalı uç noktalar için paylaşımlı token (gap #5) |
 
 ## Güvenlik
 
 1. **Ağ**: Sunucu varsayılan olarak `127.0.0.1` üzerinde dinler; uzak makinadan doğrudan bağlanılmaz.
-2. **Token** (isteğe bağlı): `KANDO_BRIDGE_SECRET` ayarlandığında istekte şunlardan biri gerekir:
+2. **Token (zorunlu)**: `KANDO_BRIDGE_SECRET` ayarlanmalıdır. Boş veya tanımsızsa korumalı uç noktalar **401** döner. İstekte şunlardan biri gerekir:
    - `X-Kando-Token: <secret>`
    - veya `Authorization: Bearer <secret>`
+3. **Korumalı uç noktalar**: Tüm `POST` istekleri ve korumalı `GET` yolları (`/last-result`, `/outbox`, `/agent-status`, vb.) token ister. `GET /health` kimlik doğrulaması **gerektirmez** (durum kontrolü).
+4. **Yerel geliştirme**: Gerçek üretim sırrı kullanmayın; yalnızca yerel placeholder:
+
+```bash
+export KANDO_BRIDGE_SECRET='your-local-dev-secret'
+```
+
+Persona güvenlik checkpoint’inde gap #5 anti-taklit köprü auth testleri bu davranışla geçer (`tests/test_persona_security_simdi_checkpoint.py`).
 
 ## API
 
@@ -87,29 +96,27 @@ Hata (4xx/5xx): `accepted: false`, `error` alanı.
 
 ## Örnek curl
 
-Token yok:
+Secret ve token olmadan korumalı uç noktalar **401** döner. Yerel örnek:
 
 ```bash
-curl -sS -X POST http://127.0.0.1:8765/task \
-  -H "Content-Type: application/json" \
-  -d '{"text":"görev: src/core/foo.py küçük düzeltme"}'
-```
-
-Token ile:
-
-```bash
-export KANDO_BRIDGE_SECRET='örnek-gizli-dize'
+export KANDO_BRIDGE_SECRET='your-local-dev-secret'
 PYTHONPATH=src python scripts/kando_bridge_server.py &
 curl -sS -X POST http://127.0.0.1:8765/task \
   -H "Content-Type: application/json" \
-  -H "X-Kando-Token: örnek-gizli-dize" \
-  -d '{"text":"görev: ..."}'
+  -H "X-Kando-Token: your-local-dev-secret" \
+  -d '{"text":"görev: src/core/foo.py küçük düzeltme"}'
+```
+
+Sağlık kontrolü (token gerekmez):
+
+```bash
+curl -sS http://127.0.0.1:8765/health
 ```
 
 ## Watcher ile birlikte akış
 
 1. Terminal A: `PYTHONPATH=src python scripts/kando_watch.py`
-2. Terminal B: `PYTHONPATH=src python scripts/kando_bridge_server.py`
+2. Terminal B: `export KANDO_BRIDGE_SECRET='your-local-dev-secret'` ardından `PYTHONPATH=src python scripts/kando_bridge_server.py`
 3. İstemci `POST /task` ile metni yollar → `request.txt` güncellenir → watcher tetiklenir → Kando çalışır → sonuçlar `.lumos/outbox/` ve `cursor_bridge/` altında güncellenir (mevcut `kando_watch` davranışı).
 
 ## İlişkili araçlar

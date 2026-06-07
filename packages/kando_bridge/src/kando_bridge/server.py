@@ -1466,7 +1466,11 @@ class BridgeHandler(BaseHTTPRequestHandler):
     def _check_secret(self) -> bool:
         secret = _read_secret()
         if not secret:
-            return True
+            self._reject(
+                401,
+                "köprü token gerekli (KANDO_BRIDGE_SECRET ayarlanmamış veya boş)",
+            )
+            return False
         token = (self.headers.get("X-Kando-Token") or "").strip()
         auth = (self.headers.get("Authorization") or "").strip()
         if auth.lower().startswith("bearer "):

@@ -36,10 +36,10 @@ Bu belge, [lumos-persona-layers.md](lumos-persona-layers.md) güven sınırları
 ## 3. Offline kuyruk — internet gelince otomatik dış aksiyon yok
 
 - **Hedef davranış:** Offline bekleyen işler reconnect’te otomatik push, sync, PR, mail, bulut veya API işlemine dönüşmez. Her dış etki Lumos doğrulaması ve kullanıcı onayı ister.
-- **Mevcut kod durumu:** Persona offline prensibi docs’ta net. `src/kando/agent_runner.py` pipeline’ında commit sonrası `push_if_possible` fazı `_push_repo` ile `git push` dener; bu adımda ayrı Lumos gate veya kullanıcı onay kontrolü görünmüyor. Panel tarafında `policy-engine.js` offline reddi var; kalıcı “offline kuyruk + reconnect auto-flush” modülü ve bunu engelleyen merkezi invariant kodda tanımlı değil.
-- **Risk:** Agent job tamamlandığında onay/kanal bypass ihtimali; gelecekte kuyruk eklendiğinde otomatik dış gönderim persona ile çelişebilir.
-- **İlk uygulanabilir test/assertion:** `agent_runner` push fazının onay/gate hook’u olmadığı trace ile kayıt; simüle offline→online senaryosunda otomatik push/PR/API tetiklenmediği davranış testi (sonraki faz).
-- **Faz:** şimdi (push trace + panel offline gözlemi) → sonraki faz (auto-push yok invariant testi)
+- **Mevcut kod durumu:** Persona offline prensibi docs’ta net. `src/kando/agent_runner.py` pipeline’ında commit sonrası otomatik `git push` fazı **kaldırıldı**; dış gönderim ayrı, Lumos/kullanıcı onaylı akışa ertelendi (bu PR kapsamı dışı). Panel tarafında `policy-engine.js` offline reddi var; kalıcı “offline kuyruk + reconnect auto-flush” modülü ve bunu engelleyen merkezi invariant kodda tanımlı değil.
+- **Risk:** Gelecekte kuyruk eklendiğinde otomatik dış gönderim persona ile çelişebilir; onaylı push akışının ayrıca tanımlanması gerekir.
+- **İlk uygulanabilir test/assertion:** `agent_runner` tamamlandığında otomatik push tetiklenmediği trace; simüle offline→online senaryosunda otomatik push/PR/API tetiklenmediği davranış testi (sonraki faz).
+- **Faz:** şimdi (auto-push kaldırıldı — kısmi) → sonraki faz (onaylı push akışı + auto-flush yok invariant testi)
 
 ---
 
@@ -56,10 +56,10 @@ Bu belge, [lumos-persona-layers.md](lumos-persona-layers.md) güven sınırları
 ## 5. Sahte Lumos imzası / iç mesaj reddi (anti-taklit)
 
 - **Hedef davranış:** Lumos dışından veya Lumos’u taklit eden kaynaktan gelen iç mesaj güvenilir sayılmaz; Kando ↔ Lumos (ve gerektiğinde Cando) iç iletişimde doğrulama / bütünlük; sahte iç komut reddedilir.
-- **Mevcut kod durumu:** Köprü kimlik doğrulaması loopback (`127.0.0.1`) + isteğe bağlı paylaşımlı token (`KANDO_BRIDGE_SECRET`; secret boşsa auth atlanır). `src/security/request_signer.py` ve `online_engine` imza altyapısı var; köprü ↔ Kando iç mesaj hattına bağlı değil. İç kanalda “Lumos kaynaklı” iddiasını kanıtlayan merkezi anti-taklit katmanı yok.
-- **Risk:** Loopback + opsiyonel bearer yeterli değilse yerel süreç veya sahte istemci iç komut enjekte edebilir. Persona anti-taklit ilkesi docs-only seviyede kalır.
-- **İlk uygulanabilir test/assertion:** `KANDO_BRIDGE_SECRET` unset iken köprü isteğinin 401 yerine kabul edildiği manuel senaryo kaydı; yetkisiz/sahte kaynak reddi için odaklı entegrasyon testi tasarımı (checkpoint §6 ile hizalı, wire-format detaysız).
-- **Faz:** şimdi (auth envanter + manuel red testi) → sonraki faz (iç kanal bütünlük invariant testleri)
+- **Mevcut kod durumu:** Köprü kimlik doğrulaması loopback (`127.0.0.1`) + **zorunlu** paylaşımlı token (`KANDO_BRIDGE_SECRET`; boş veya tanımsızsa korumalı uç noktalar **401**). `GET /health` kimlik doğrulamasız kalır. `src/security/request_signer.py` ve `online_engine` imza altyapısı var; köprü ↔ Kando iç mesaj hattına bağlı değil. İç kanalda “Lumos kaynaklı” iddiasını kanıtlayan merkezi anti-taklit katmanı yok.
+- **Risk:** Paylaşımlı bearer tek başına tam anti-taklit değildir; iç kanal bütünlüğü ve imza katmanı hâlâ eksik. Yerel süreç secret bilirse iç komut enjekte edebilir.
+- **İlk uygulanabilir test/assertion:** Gap #5 anti-taklit köprü auth checkpoint testleri geçer (`tests/test_persona_security_simdi_checkpoint.py`); yetkisiz/sahte kaynak için iç kanal bütünlük testleri sonraki faz.
+- **Faz:** şimdi (köprü secret zorunlu — **kısmen kapandı**) → sonraki faz (iç kanal bütünlük invariant testleri)
 
 ---
 

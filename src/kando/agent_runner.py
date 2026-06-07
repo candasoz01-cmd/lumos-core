@@ -440,12 +440,9 @@ def run_agent_pipeline(
         report["errors"].append("commit_failed")
         return _done()
 
-    phase("push_if_possible")
-    pu = _push_repo(rr)
-    report["push"] = {"ok": pu["ok"], "detail": pu.get("detail", "")[:2000]}
-
-    report["status"] = "ok" if pu["ok"] else "partial"
-    report["next_focus"] = "Push başarısızsa uzak depo/branch kontrol et" if not pu["ok"] else ""
+    # Persona offline: auto git push yok — dış gönderim açık onay + Lumos kanalı gerektirir.
+    report["status"] = "ok"
+    report["next_focus"] = ""
     phase("final_report")
     return _done()
 
