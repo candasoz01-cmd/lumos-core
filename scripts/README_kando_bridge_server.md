@@ -77,6 +77,8 @@ export KANDO_BRIDGE_SECRET='your-local-dev-secret'
 
 Persona güvenlik checkpoint’inde gap #5 anti-taklit köprü auth testleri bu davranışla geçer (`tests/test_persona_security_simdi_checkpoint.py`).
 
+5. **Panel / tarayıcı:** `PUBLIC_KANDO_TOKEN` istemci bundle'ında görünür; gerçek köprü sırrını `PUBLIC_*` ile gömme — bkz. [gap #4](../docs/lumos-persona-security-implementation-gaps.md).
+
 ## API
 
 ### `GET /` veya `GET /health`
