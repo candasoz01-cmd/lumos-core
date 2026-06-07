@@ -148,6 +148,8 @@ pbpaste | python3 scripts/kando_send.py
 python3 scripts/kando_send.py   # argümansız: stdin'den okur
 ```
 
+macOS pano kısayolu: `export KANDO_BRIDGE_SECRET='…'` sonrası `./scripts/kando_clip.sh` (`pbpaste | kando_send.py`).
+
 Birden fazla argv kelimesi tek mesajda birleştirilir. `KANDO_BRIDGE_SECRET` zorunludur; 401 alırsanız bridge ile aynı secret'ı export edin.
 
 ## İlişkili araçlar
