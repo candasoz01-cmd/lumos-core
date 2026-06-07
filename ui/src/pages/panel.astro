@@ -5589,6 +5589,67 @@ const TASKS_API_URL =
           return true;
         }
 
+        /** Sohbet metnini Kando köprüsüne iletir (panel_chat); chat POST ile paralel, bağımsız. */
+        async function forwardPanelChatToKandoBridge(userText) {
+          const trimmed = String(userText || "").trim();
+          if (!trimmed) return;
+
+          try {
+            const r = await fetch(`${BRIDGE_BASE_URL}/task`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-Kando-Token": kandoToken,
+              },
+              body: JSON.stringify({
+                text: trimmed,
+                source: "panel_chat",
+              }),
+            });
+
+            let data = null;
+            try {
+              data = await r.json();
+            } catch {
+              data = null;
+            }
+
+            if (r.status === 401) {
+              appendBubble(
+                "error",
+                "Kando köprüsü kimlik doğrulaması başarısız (401). Token veya köprü gizli anahtarı uyuşmuyor.",
+              );
+              return;
+            }
+            if (!r.ok) {
+              const detail =
+                data && (data.error || data.message) ? String(data.error || data.message).trim() : "";
+              appendBubble(
+                "error",
+                "Kando köprüsüne iletilemedi (HTTP " +
+                  r.status +
+                  ")." +
+                  (detail ? " " + detail.slice(0, 80) : ""),
+              );
+              return;
+            }
+
+            const route = data && data.route != null ? String(data.route).trim() : "";
+            const accepted =
+              data && (data.accepted === true || data.accepted === false) ? data.accepted : null;
+            let okMsg = "Kando'ya ilettim.";
+            if (accepted === true) okMsg += " Kabul edildi.";
+            else if (accepted === false) okMsg += " Kabul edilmedi.";
+            if (route) okMsg += " Yol: " + route + ".";
+            appendBubble("lumos", okMsg);
+          } catch {
+            appendBubble(
+              "error",
+              "Kando köprüsüne ulaşılamadı. Köprü kapalı olabilir; `./scripts/bridge_start.sh` ile başlatın.",
+            );
+          }
+        }
+
         async function runSend() {
           const message = input.value.trim();
           const photoFile =
@@ -5627,6 +5688,10 @@ const TASKS_API_URL =
             appendUserComposeBubble(message, imageDataUrlForBubble);
           } else {
             appendBubble("user", message);
+          }
+
+          if (message) {
+            void forwardPanelChatToKandoBridge(message);
           }
 
           /** Liste + onay: fetch’ten önce; aksi halde uzayan / takılan istek zinciri burada kopar (runSend hiç ilerlemez). */
