@@ -5968,17 +5968,107 @@ const TASKS_API_URL =
         const clipboardBtn = document.getElementById("panel-clipboard-to-kando");
         if (clipboardBtn) {
           const clipboardLabel = "Panodan Kando'ya gönder";
+          const clipboardConfirmLabel = "Onayla ve gönder";
           const clipboardLoadingLabel = "Gönderiliyor…";
+          const CLIP_PREVIEW_MAX = 80;
           let clipboardSending = false;
+          let pendingClipText = null;
 
-          clipboardBtn.addEventListener("click", async () => {
-            if (clipboardSending) return;
+          function clipPreviewSnippet(text) {
+            const t = String(text || "").trim();
+            if (!t) return "";
+            if (t.length <= CLIP_PREVIEW_MAX) return t;
+            return t.slice(0, CLIP_PREVIEW_MAX) + "…";
+          }
+
+          function clearClipPending() {
+            pendingClipText = null;
+            clipboardBtn.textContent = clipboardLabel;
+            clipboardBtn.setAttribute("aria-label", "Panodan Kando'ya gönder");
+            clipboardBtn.removeAttribute("data-pending-clip");
+            clipboardBtn.title = "Panodaki metni Kando köprüsüne gönder";
+          }
+
+          function setClipPending(text) {
+            pendingClipText = text;
+            clipboardBtn.textContent = clipboardConfirmLabel;
+            clipboardBtn.setAttribute("aria-label", "Panodaki metni onayla ve Kando'ya gönder");
+            clipboardBtn.setAttribute("data-pending-clip", "1");
+            clipboardBtn.title = "Onayla ve panodaki metni gönder";
+            const snippet = clipPreviewSnippet(text);
+            const hint = snippet
+              ? 'Panodaki metin hazır: "' + snippet + '" Göndermek için tekrar bas.'
+              : 'Panodaki metin hazır: "" Göndermek için tekrar bas.';
+            setSendHint(hint);
+          }
+
+          async function sendClipText(trimmed) {
             clipboardSending = true;
             clipboardBtn.disabled = true;
             clipboardBtn.setAttribute("aria-busy", "true");
             clipboardBtn.classList.add("chat-compose-clipboard-btn--busy");
             clipboardBtn.textContent = clipboardLoadingLabel;
             setSendHint("");
+
+            try {
+              // PUBLIC token (kandoToken) visible in browser — local/dev only
+              const r = await fetch(`${BRIDGE_BASE_URL}/task`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "X-Kando-Token": kandoToken,
+                },
+                body: JSON.stringify({
+                  text: trimmed,
+                  source: "panel_clipboard",
+                }),
+              });
+
+              let data = null;
+              try {
+                data = await r.json();
+              } catch {
+                data = null;
+              }
+
+              if (r.status === 401) {
+                setSendHint("Kimlik doğrulanamadı.");
+                return;
+              }
+              if (!r.ok) {
+                const detail =
+                  data && (data.error || data.message) ? String(data.error || data.message).trim() : "";
+                setSendHint(detail ? "Gönderilemedi: " + detail.slice(0, 80) : "Gönderilemedi.");
+                return;
+              }
+
+              const accepted =
+                data && (data.accepted === true || data.accepted === false) ? data.accepted : null;
+              if (accepted === false) {
+                setSendHint("Gönderilemedi.");
+                return;
+              }
+              setSendHint("Gönderildi. Kabul edildi.");
+            } catch {
+              setSendHint("Bağlantı kurulamadı. Tekrar deneyin.");
+            } finally {
+              clipboardSending = false;
+              clipboardBtn.disabled = false;
+              clipboardBtn.removeAttribute("aria-busy");
+              clipboardBtn.classList.remove("chat-compose-clipboard-btn--busy");
+              clearClipPending();
+            }
+          }
+
+          clipboardBtn.addEventListener("click", async () => {
+            if (clipboardSending) return;
+
+            if (pendingClipText) {
+              const toSend = pendingClipText;
+              pendingClipText = null;
+              await sendClipText(toSend);
+              return;
+            }
 
             try {
               if (!navigator.clipboard || typeof navigator.clipboard.readText !== "function") {
@@ -6003,61 +6093,13 @@ const TASKS_API_URL =
 
               const trimmed = String(clipboardText || "").trim();
               if (!trimmed) {
-                setSendHint("Pano boş; kopyalanmış metin yok.");
+                setSendHint("Pano boş görünüyor.");
                 return;
               }
 
-              // PUBLIC token (kandoToken) visible in browser — local/dev only
-              const r = await fetch(`${BRIDGE_BASE_URL}/task`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "X-Kando-Token": kandoToken,
-                },
-                body: JSON.stringify({
-                  text: trimmed,
-                  source: "panel_clipboard",
-                }),
-              });
-
-              let data = null;
-              try {
-                data = await r.json();
-              } catch {
-                data = null;
-              }
-
-              if (r.status === 401) {
-                setSendHint(
-                  "Kimlik doğrulanamadı (401). PUBLIC token yerel geliştirmede görünür; secret'ı sohbete yazma.",
-                );
-                return;
-              }
-              if (!r.ok) {
-                const detail =
-                  data && (data.error || data.message) ? String(data.error || data.message).trim() : "";
-                setSendHint(
-                  "Köprü gönderimi başarısız (HTTP " +
-                    r.status +
-                    ")." +
-                    (detail ? " " + detail.slice(0, 80) : ""),
-                );
-                return;
-              }
-
-              const accepted =
-                data && (data.accepted === true || data.accepted === false) ? data.accepted : null;
-              let okMsg = "Panodaki metin iletildi.";
-              if (accepted === false) okMsg = "Panodaki metin iletilemedi.";
-              setSendHint(okMsg);
+              setClipPending(trimmed);
             } catch {
-              setSendHint("Köprüye ulaşılamadı. Bağlantıyı kontrol edip tekrar deneyin.");
-            } finally {
-              clipboardSending = false;
-              clipboardBtn.disabled = false;
-              clipboardBtn.removeAttribute("aria-busy");
-              clipboardBtn.classList.remove("chat-compose-clipboard-btn--busy");
-              clipboardBtn.textContent = clipboardLabel;
+              setSendHint("Panodan okunamadı.");
             }
           });
         }
