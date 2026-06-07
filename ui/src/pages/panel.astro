@@ -1974,6 +1974,7 @@ const TASKS_API_URL =
       .chat-compose--gpt textarea {
         flex: 1;
         min-width: 0;
+        max-width: 100%;
         min-height: 2.35rem;
         max-height: 9rem;
         padding: 0.48rem 0.5rem 0.48rem 0.45rem;
@@ -1986,6 +1987,10 @@ const TASKS_API_URL =
         line-height: 1.45;
         resize: none;
         box-shadow: none;
+        overflow-x: hidden;
+        overflow-wrap: break-word;
+        word-wrap: break-word;
+        white-space: pre-wrap;
       }
       @supports (field-sizing: content) {
         .chat-compose--gpt textarea {
@@ -2895,9 +2900,9 @@ const TASKS_API_URL =
           min-width: 0;
           max-width: 100%;
           margin: 0;
-          padding: 0 0.3rem;
+          padding: 0.35rem 0.3rem;
           font-size: max(16px, 0.84rem);
-          line-height: 2.375rem;
+          line-height: 1.45;
           color: #e9eef5;
           background: none;
           background-color: transparent;
@@ -2915,12 +2920,13 @@ const TASKS_API_URL =
           accent-color: transparent;
           box-sizing: border-box;
           resize: none;
-          height: 2.375rem;
           min-height: 2.375rem;
-          max-height: 2.375rem;
-          overflow-x: auto;
-          overflow-y: hidden;
-          white-space: nowrap;
+          max-height: 9rem;
+          overflow-x: hidden;
+          overflow-y: auto;
+          overflow-wrap: break-word;
+          word-wrap: break-word;
+          white-space: pre-wrap;
           scrollbar-width: none;
           -ms-overflow-style: none;
           -webkit-overflow-scrolling: touch;
@@ -2941,7 +2947,7 @@ const TASKS_API_URL =
         }
         #panel-sohbet .chat-compose--gpt textarea::placeholder {
           font-size: 0.75rem;
-          line-height: 2.375rem;
+          line-height: 1.45;
           color: rgb(138 152 172 / 0.72);
           opacity: 1;
         }
@@ -2949,16 +2955,16 @@ const TASKS_API_URL =
         @supports (-webkit-touch-callout: none) {
           #panel-sohbet .chat-compose--gpt textarea,
           #panel-sohbet .chat-compose--gpt textarea#panel-msg {
-            padding: 3px 0.3rem 0;
-            line-height: calc(2.375rem - 3px);
+            padding: 0.35rem 0.3rem;
+            line-height: 1.45;
           }
           #panel-sohbet .chat-compose--gpt textarea::placeholder {
-            line-height: calc(2.375rem - 3px);
+            line-height: 1.45;
           }
         }
         @supports (field-sizing: content) {
           #panel-sohbet .chat-compose--gpt textarea {
-            field-sizing: fixed;
+            field-sizing: content;
           }
         }
         #panel-sohbet .chat-compose--gpt textarea:focus,
@@ -3054,8 +3060,8 @@ const TASKS_API_URL =
         #panel-sohbet .chat-compose--gpt textarea:not(:placeholder-shown) {
           text-align: start;
           color: #e9eef5;
-          overflow-x: auto;
-          overflow-y: hidden;
+          overflow-x: hidden;
+          overflow-y: auto;
           scrollbar-width: none;
           -ms-overflow-style: none;
         }
@@ -3072,16 +3078,15 @@ const TASKS_API_URL =
             gap: 0.1rem;
           }
           #panel-sohbet .chat-compose--gpt textarea {
-            padding: 0 0.22rem;
-            line-height: 2.375rem;
-            height: 2.375rem;
+            padding: 0.35rem 0.22rem;
+            line-height: 1.45;
             min-height: 2.375rem;
-            max-height: 2.375rem;
+            max-height: 9rem;
           }
           @supports (-webkit-touch-callout: none) {
             #panel-sohbet .chat-compose--gpt textarea {
-              padding: 3px 0.22rem 0;
-              line-height: calc(2.375rem - 3px);
+              padding: 0.35rem 0.22rem;
+              line-height: 1.45;
             }
           }
           #panel-sohbet .chat-compose--gpt textarea::placeholder {
@@ -5435,9 +5440,6 @@ const TASKS_API_URL =
         }
 
         /** Panel /chat hata türleri — backend/panelChatErrors.js ile eşleşmeli. */
-        const PANEL_LUMOS_UNKNOWN_ROUTE_TR =
-          "Bu route'u şu an kesin göremiyorum; mevcut bridge bağlantısıyla güvenli smoke yapacağım.";
-
         const PANEL_CHAT_ERROR_MESSAGES_TR = {
           network_error:
             "Sunucuya ulaşamadım. Önce yapılandırılmış köprü ve sohbet bağlantısını denerim; biraz sonra tekrar deneyebilirsin.",
@@ -5602,70 +5604,6 @@ const TASKS_API_URL =
           return true;
         }
 
-        /** Sohbet metnini Kando köprüsüne iletir (panel_chat); chat POST ile paralel, bağımsız. */
-        async function forwardPanelChatToKandoBridge(userText) {
-          const trimmed = String(userText || "").trim();
-          if (!trimmed) return;
-
-          try {
-            const r = await fetch(`${BRIDGE_BASE_URL}/task`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "X-Kando-Token": kandoToken,
-              },
-              body: JSON.stringify({
-                text: trimmed,
-                source: "panel_chat",
-              }),
-            });
-
-            let data = null;
-            try {
-              data = await r.json();
-            } catch {
-              data = null;
-            }
-
-            if (r.status === 401) {
-              appendBubble(
-                "error",
-                "Kimlik doğrulanamadı (401). Yerel geliştirmede PUBLIC token tarayıcıda görünür; gerçek secret'ı buraya yazma — köprü ayarından devam edeceğim.",
-              );
-              return;
-            }
-            if (!r.ok) {
-              const detail =
-                data && (data.error || data.message) ? String(data.error || data.message).trim() : "";
-              appendBubble(
-                "error",
-                "Kando köprüsüne iletilemedi (HTTP " +
-                  r.status +
-                  ")." +
-                  (detail ? " " + detail.slice(0, 80) : ""),
-              );
-              return;
-            }
-
-            const route = data && data.route != null ? String(data.route).trim() : "";
-            const accepted =
-              data && (data.accepted === true || data.accepted === false) ? data.accepted : null;
-            let okMsg = "Kando'ya ilettim.";
-            if (accepted === true) okMsg += " Kabul edildi.";
-            else if (accepted === false) okMsg += " Kabul edilmedi.";
-            if (route) okMsg += " Yol: " + route + ".";
-            else okMsg += " " + PANEL_LUMOS_UNKNOWN_ROUTE_TR;
-            appendBubble("lumos", okMsg);
-          } catch {
-            appendBubble(
-              "error",
-              "Köprüye ulaşamıyorum. Mevcut bridge ayarını (" +
-                BRIDGE_BASE_URL +
-                ") kullanarak güvenli smoke deneyeceğim.",
-            );
-          }
-        }
-
         async function runSend() {
           const message = input.value.trim();
           const photoFile =
@@ -5704,10 +5642,6 @@ const TASKS_API_URL =
             appendUserComposeBubble(message, imageDataUrlForBubble);
           } else {
             appendBubble("user", message);
-          }
-
-          if (message) {
-            void forwardPanelChatToKandoBridge(message);
           }
 
           /** Liste + onay: fetch’ten önce; aksi halde uzayan / takılan istek zinciri burada kopar (runSend hiç ilerlemez). */
@@ -6111,19 +6045,13 @@ const TASKS_API_URL =
                 return;
               }
 
-              const route = data && data.route != null ? String(data.route).trim() : "";
               const accepted =
                 data && (data.accepted === true || data.accepted === false) ? data.accepted : null;
-              let okMsg = "Panodaki metin Kando'ya iletildi.";
-              if (route) okMsg += " Yol: " + route + ".";
-              else okMsg += " " + PANEL_LUMOS_UNKNOWN_ROUTE_TR;
-              if (accepted === true) okMsg += " Kabul edildi.";
-              else if (accepted === false) okMsg += " Kabul edilmedi.";
+              let okMsg = "Panodaki metin iletildi.";
+              if (accepted === false) okMsg = "Panodaki metin iletilemedi.";
               setSendHint(okMsg);
             } catch {
-              setSendHint(
-                "Köprüye ulaşamıyorum; yapılandırılmış bridge (" + BRIDGE_BASE_URL + ") ile smoke deneyeceğim.",
-              );
+              setSendHint("Köprüye ulaşılamadı. Bağlantıyı kontrol edip tekrar deneyin.");
             } finally {
               clipboardSending = false;
               clipboardBtn.disabled = false;
@@ -7047,22 +6975,9 @@ const TASKS_API_URL =
          * @param {Record<string, unknown>} data
          */
         function buildTaskBridgeSuccessReadableHint(data) {
-          const route =
-            data.route != null && String(data.route).trim() ? String(data.route).trim() : "—";
-          const source =
-            data.source != null && String(data.source).trim() ? String(data.source).trim() : "—";
-          const head =
-            data.accepted === true || data.ok === true ? "kabul edildi" : "yanıt alındı";
-          const main = "Köprü: " + head + " · route: " + route + " · source: " + source;
-          const rf = data.result_file != null ? String(data.result_file).trim() : "";
-          const ef = data.execution_file != null ? String(data.execution_file).trim() : "";
-          const extra = [];
-          const rfBn = lumosOutboxPathBasename(rf);
-          if (rfBn) extra.push("result_file: " + rfBn);
-          const efBn = lumosOutboxPathBasename(ef);
-          if (efBn) extra.push("execution_file: " + efBn);
-          if (extra.length === 0) return main;
-          return main + "\n" + extra.join(" · ");
+          if (data.accepted === false) return "Görev köprüye iletilemedi.";
+          if (data.accepted === true || data.ok === true) return "Görev köprüye iletildi.";
+          return "Köprüden yanıt alındı.";
         }
 
         function findPanelGorevlerRow(taskId, title) {
@@ -7258,9 +7173,10 @@ const TASKS_API_URL =
           if (!t || !t.id) return;
           if (!confirm("Görev silinsin mi?")) return;
           hideHint();
+          const deletedId = String(t.id).trim();
           let res;
           try {
-            res = await tasksApiPost("/tasks/delete", { id: String(t.id).trim() });
+            res = await tasksApiPost("/tasks/delete", { id: deletedId });
           } catch {
             showHint("Silinemedi: görev sunucusuna ulaşılamadı.");
             return;
@@ -7270,11 +7186,24 @@ const TASKS_API_URL =
             showHint("Silinemedi (" + err + ").");
             return;
           }
-          lastGorevlerDeletedId = String(t.id).trim();
+          lastGorevlerDeletedId = deletedId;
           if (restoreLastBtn) restoreLastBtn.hidden = false;
-          await refreshPanelGorevlerFromTasksApi();
+          const refreshed = await refreshPanelGorevlerFromTasksApi();
+          if (!refreshed) {
+            for (let i = panelGorevlerTasks.length - 1; i >= 0; i--) {
+              if (
+                panelGorevlerTasks[i] &&
+                String(panelGorevlerTasks[i].id || "").trim() === deletedId
+              ) {
+                panelGorevlerTasks.splice(i, 1);
+                break;
+              }
+            }
+            persistPanelGorevlerTasks();
+          }
           closeGorevlerDetail(true);
-          showHint("Görev silindi. Geri almak için «Geri al» düğmesine basın.");
+          render();
+          showHint("Görev silindi.");
         }
 
         async function restoreLastGorevlerTask() {
