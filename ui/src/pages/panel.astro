@@ -3350,11 +3350,11 @@ const PANEL_DEBUG =
                           <li>Görevleri listeleyebilirim.</li>
                           <li>Düşük riskli görevlerde kısa bir plan önerebilirim.</li>
                           <li>
-                            Düşük riskte yalnızca bilgi notu gösterebilirim (kod veya köprü
-                            çalıştırmam).
+                            Düşük riskte yalnızca bilgi notu gösterebilirim (kod çalıştırmam veya
+                            işlem iletmem).
                           </li>
                           <li>
-                            Köprü ve görev adreslerini cihaz yapılandırmasından okurum; senden bağlantı adresi istemem.
+                            Bağlantı ve görev bilgilerini cihaz yapılandırmasından okurum; senden bağlantı adresi istemem.
                           </li>
                           <li>Dosya adı, türü, boyutu ve uzantısını gösterebilirim.</li>
                           <li>
@@ -3541,7 +3541,7 @@ const PANEL_DEBUG =
             <h2 id="panel-gorevler-title">Görevler</h2>
             <p class="gorevler-intro">
               <span class="panel-data-flow-badge">[Yerel]</span>
-              Görevler cihazınızdaki görev kaydına yazılır; görev eklerken köprü gerekmez. Sunucu kapalıysa liste
+              Görevler cihazınızdaki görev kaydına yazılır; görev eklerken iletim gerekmez. Sunucu kapalıysa liste
               tarayıcı önbelleğinden gösterilir.
               {PANEL_DEBUG && (
                 <span class="panel-debug-only">
@@ -3651,7 +3651,7 @@ const PANEL_DEBUG =
                     <h3 id="gorevler-detail-title" class="gorevler-detail-heading">Görev</h3>
                     <div class="gorevler-detail-header-actions">
                       <button type="button" id="gorevler-detail-bridge" class="gorevler-add-btn" hidden>
-                        Köprüye gönder
+                        Görevi ilet
                       </button>
                       <button type="button" id="gorevler-detail-complete" class="gorevler-clear-test-btn" hidden>
                         Tamamla
@@ -3695,7 +3695,7 @@ const PANEL_DEBUG =
                       ></section>
                     </section>
                     <section class="gorevler-detail-section" aria-labelledby="gorevler-detail-sec-bridge">
-                      <h4 id="gorevler-detail-sec-bridge" class="gorevler-detail-section-title">Köprü yanıtı</h4>
+                      <h4 id="gorevler-detail-sec-bridge" class="gorevler-detail-section-title">İletim yanıtı</h4>
                       <dl id="gorevler-detail-bridge-dl" class="gorevler-detail-dl"></dl>
                     </section>
                   </div>
@@ -3768,7 +3768,7 @@ const PANEL_DEBUG =
               <h3 id="medya-outbox-title" class="gorevler-list-heading">Son çıktı özeti (salt okunur)</h3>
               <p class="medya-intro" style="margin-top: 0.35rem">
                 <span class="panel-data-flow-badge">[Harici Servis]</span>
-                Son görev veya sohbet çıktısının köprüden okunan özeti. Kayıt yoksa kısa bilgi gösterilir.
+                Son görev veya sohbet çıktısının iletimden okunan özeti. Kayıt yoksa kısa bilgi gösterilir.
                 {PANEL_DEBUG && (
                   <span class="panel-debug-only">
                     {" "}
@@ -3988,7 +3988,7 @@ const PANEL_DEBUG =
             <h2 id="panel-dosyalar-title">Dosyalar</h2>
             <p class="gorevler-intro">
               <span class="panel-data-flow-badge">[Harici Servis]</span>
-              Dosyayı cihazınızdan seçin; köprü dosyayı alır, adı, türü ve boyutu döner. Metin dosyalarında kısa özet
+              Dosyayı cihazınızdan seçin; sunucu dosyayı alır, adı, türü ve boyutu döner. Metin dosyalarında kısa özet
               üretilir. PDF ve Word (DOCX) gibi biçimler bu fazda işlenmez.
             </p>
             <div class="gorevler-proto">
@@ -4162,7 +4162,7 @@ const PANEL_DEBUG =
           >
             <h2 id="panel-entegrasyon-title">Entegrasyon</h2>
             <p class="medya-intro">
-              Bu sekme, Lumos’un yerel araçlar, harici servisler, API bağlantıları ve uygulamalar arasında kontrollü bir köprü
+              Bu sekme, Lumos’un yerel araçlar, harici servisler, API bağlantıları ve uygulamalar arasında kontrollü bir bağlantı
               kurma yaklaşımını özetler. Amaç her şeyi sınırsız bağlamak değil; bağlantı kapsamını, veri akışını ve kullanıcı
               onayını görünür tutmaktır.
             </p>
@@ -4175,7 +4175,7 @@ const PANEL_DEBUG =
                 </p>
               </li>
               <li class="medya-card">
-                <h3>API Köprüsü</h3>
+                <h3>API bağlantısı</h3>
                 <p>
                   API entegrasyonları, Lumos’un dış sistemlerle kontrollü biçimde iletişim kurmasını sağlar. Bu bağlantılar sınırsız
                   yetki değil, belirlenmiş kapsam ve açık amaç üzerinden düşünülür.
@@ -4317,12 +4317,10 @@ const PANEL_DEBUG =
             data-active="false"
             aria-labelledby="panel-yetenekler-title"
           >
-            <h2 id="panel-yetenekler-title">
-              Yetenekler <span class="lumos-capability-en">Capability</span>
-            </h2>
+            <h2 id="panel-yetenekler-title">Yetenekler</h2>
             <p class="gorevler-intro">
               Lumos’un hangi işlemlere hangi bağlantı veya panel yüzeyi üzerinden bağlandığını özetler. «Bağlantı testi»
-              yalnızca 1–3. satırlarda köprüyü doğrular; 4. satır yerel kanıtını kontrol eder.
+              yalnızca 1–3. satırlarda bağlantıyı doğrular; 4. satır yerel kanıtını kontrol eder.
             </p>
             <div class="lumos-capability-block">
               <ul class="lumos-capability-legend" aria-label="Durum sözlüğü">
@@ -4554,7 +4552,7 @@ const PANEL_DEBUG =
         s = s.replace(/\b(GET|POST|PUT|DELETE|OPTIONS)\b/gi, "");
         s = s.replace(/\bHTTP\s+\d+\b/gi, "istek hatası");
         s = s.replace(/panel_tasks_server/gi, "görev servisi");
-        s = s.replace(/bridge_start\.sh/gi, "köprü başlatma");
+        s = s.replace(/bridge_start\.sh/gi, "bağlantı başlatma");
         s = s.replace(/\bcomplete_failed\b/gi, "kayıt tamamlanamadı");
         s = s.replace(/\bcreate_failed\b/gi, "kayıt başarısız");
         s = s.replace(/\bdelete_failed\b/gi, "silme başarısız");
@@ -4696,9 +4694,9 @@ const PANEL_DEBUG =
           sonrakiAdim = "Listede durumu güncelle veya tamamla.";
           if (/\b(sil|geri al)\b/.test(hay)) risk = "Orta";
         } else if (/\b(bridge|köprü|kopru|koprü|controlled)\b/.test(hay)) {
-          tur = "Köprü";
-          onerilenAlan = "Köprü";
-          sonrakiAdim = "Detayda köprü yanıtına bak. Onay köprü çalıştırmaz.";
+          tur = "İletim";
+          onerilenAlan = "İletim";
+          sonrakiAdim = "Detayda iletim yanıtına bak. Onay işlem çalıştırmaz.";
           risk = "Orta";
         } else if (/\b(panel|görsel|gorsel|metin|uyarı|uyari)\b/.test(hay)) {
           tur = "Metin";
@@ -5621,7 +5619,7 @@ const PANEL_DEBUG =
         /** Panel /chat hata türleri — backend/panelChatErrors.js ile eşleşmeli. */
         const PANEL_CHAT_ERROR_MESSAGES_TR = {
           network_error:
-            "Sunucuya ulaşamadım. Önce yapılandırılmış köprü ve sohbet bağlantısını denerim; biraz sonra tekrar deneyebilirsin.",
+            "Sunucuya ulaşamadım. Önce yapılandırılmış bağlantı ve sohbet hattını denerim; biraz sonra tekrar deneyebilirsin.",
           timeout: "Yanıt süresi doldu. Biraz sonra tekrar deneyeceğim.",
           unauthorized:
             "Bağlantı doğrulanamadı. Cihaz ayarlarını kontrol edin; gizli değerleri sohbete yazmayın.",
@@ -6794,6 +6792,7 @@ const PANEL_DEBUG =
           const raw = p && p.onerilenAlan ? String(p.onerilenAlan).trim() : "";
           if (!raw || /^görevler(\s+sekmesi)?$/i.test(raw)) return "Görevler";
           if (/^dosyalar(\s+sekmesi)?$/i.test(raw)) return "Dosyalar";
+          if (/^köprü(\s+sekmesi)?$/i.test(raw)) return "İletim";
           return raw.replace(/\s+sekmesi$/i, "");
         }
 
@@ -6813,7 +6812,7 @@ const PANEL_DEBUG =
           const onay =
             p && p.onayDurumu && String(p.onayDurumu).trim()
               ? String(p.onayDurumu).trim()
-              : "Onay gerekir; plan onayı köprü veya kod çalıştırmaz.";
+              : "Onay gerekir; plan onayı iletim veya kod çalıştırmaz.";
           return [
             tespit,
             gorevlerPlanAlanDisplay(p),
@@ -6873,7 +6872,7 @@ const PANEL_DEBUG =
             appendDetailRow(dl, "Risk", p.risk);
             appendDetailRow(dl, "Alan", gorevlerPlanAlanDisplay(p));
             appendDetailRow(dl, "Sonraki adım", "Görevi listede açıp detayları kontrol et.");
-            appendDetailRow(dl, "Not", "Kod, köprü veya terminal çalıştırılmadı.");
+            appendDetailRow(dl, "Not", "Kod, iletim veya terminal çalıştırılmadı.");
             return;
           }
           const durum =
@@ -7055,7 +7054,7 @@ const PANEL_DEBUG =
           appendDetailRow(detailBridgeDl, "Kabul", acceptedTxt);
           appendDetailRow(detailBridgeDl, "Sonuç dosyası", resultFile);
           appendDetailRow(detailBridgeDl, "Çalıştırma dosyası", execFile);
-          appendDetailRow(detailBridgeDl, "Köprü zamanı", lastOp);
+          appendDetailRow(detailBridgeDl, "İletim zamanı", lastOp);
 
           syncGorevlerDetailPlanSection(t, taskIndex);
 
@@ -7095,7 +7094,7 @@ const PANEL_DEBUG =
         }
 
         /**
-         * Görev kartı köprü özeti: geçerli zaman damgası varsa “Son köprü”, aksi halde sade “henüz yok”.
+         * Görev kartı iletim özeti: geçerli zaman damgası varsa “Son iletim”, aksi halde “Henüz iletilmedi”.
          * Detay paneli ham `bridgeLast` ile doldurulmaya devam eder.
          * @param {Record<string, unknown> | null} blRow
          */
@@ -7111,14 +7110,14 @@ const PANEL_DEBUG =
                 blSumm.route != null && String(blSumm.route).trim()
                   ? " · " + truncateGorevlerField(String(blSumm.route).trim()).slice(0, 56)
                   : "";
-              return "Son köprü: " + whenBridge + routeBit;
+              return "Son iletim: " + whenBridge + panelUserVisibleText(routeBit);
             }
             let statusBit = "";
             if (blSumm.accepted === true) statusBit = " · iletildi";
             else if (blSumm.accepted === false) statusBit = " · iletilemedi";
-            return "Son köprü: " + whenBridge + statusBit;
+            return "Son iletim: " + whenBridge + statusBit;
           }
-          return "Köprü: henüz yok";
+          return "Henüz iletilmedi";
         }
 
         function gorevlerTaskBadgeSlug(v) {
@@ -7210,9 +7209,10 @@ const PANEL_DEBUG =
          * @param {Record<string, unknown>} data
          */
         function buildTaskBridgeSuccessReadableHint(data) {
-          if (data.accepted === false) return "Görev köprüye iletilemedi.";
-          if (data.accepted === true || data.ok === true) return "Görev köprüye iletildi.";
-          return "Köprüden yanıt alındı.";
+          if (data.accepted === false) return "Görev iletilemedi.";
+          if (data.accepted === true) return "Görev iletildi.";
+          if (data.ok === true) return "İşleme alındı.";
+          return "İletim yanıtı alındı.";
         }
 
         function findPanelGorevlerRow(taskId, title) {
@@ -7366,8 +7366,8 @@ const PANEL_DEBUG =
                     ")." +
                     (detail ? " " + detail.slice(0, 80) : ""),
                   detail
-                    ? "Köprüye gönderilemedi: " + detail.slice(0, 80)
-                    : "Köprüye gönderilemedi.",
+                    ? "Görev iletilemedi: " + panelUserVisibleText(detail.slice(0, 80))
+                    : "Görev iletilemedi.",
                 ),
               );
               return;
@@ -7378,7 +7378,7 @@ const PANEL_DEBUG =
             openGorevlerDetail(taskIndex);
             showHint(buildTaskBridgeSuccessReadableHint(data));
           } catch {
-            showHint("Köprüye ulaşılamadı. Bağlantıyı kontrol edin.");
+            showHint("Bağlantı kurulamadı. Bağlantıyı kontrol edin.");
           } finally {
             if (detailBridgeBtn) {
               detailBridgeBtn.disabled = false;
@@ -7962,7 +7962,7 @@ const PANEL_DEBUG =
 
             if (file.size > CONTROLLED_MAX_WRITE_BYTES) {
               data.unsupported =
-                "Dosya boyutu kontrollü köprü yazma sınırını (" +
+                "Dosya boyutu kontrollü dosya yazma sınırını (" +
                 CONTROLLED_MAX_WRITE_BYTES +
                 " bayt) aşıyor.";
               renderResult(data);
@@ -8009,7 +8009,7 @@ const PANEL_DEBUG =
             renderResult(data);
             pushDosyalarHistory(data);
           } catch {
-            showHint("Sunucuya ulaşılamadı. Köprü adresini veya bağlantıyı kontrol edin.");
+            showHint("Sunucuya ulaşılamadı. Bağlantı ayarlarını kontrol edin.");
           } finally {
             btn.disabled = false;
             btn.removeAttribute("aria-busy");
@@ -8193,7 +8193,7 @@ const PANEL_DEBUG =
             corsEl.textContent = "Bu bilgi panelden okunamıyor (CORS).";
           }
           if (dl) dl.hidden = false;
-          setSistemDurumuDd("panel-sistem-durumu-baglanti", "Köprü: " + bridgeHealthLine);
+          setSistemDurumuDd("panel-sistem-durumu-baglanti", "Bağlantı: " + bridgeHealthLine);
           setSistemDurumuDd("panel-sistem-durumu-chat", "—");
           setSistemDurumuDd("panel-sistem-durumu-vision", "—");
           setSistemDurumuDd("panel-sistem-durumu-vision-last", "—");
@@ -8206,7 +8206,7 @@ const PANEL_DEBUG =
         if (dl) dl.hidden = false;
         const j = lastStatusJson;
         if (!j) {
-          setSistemDurumuDd("panel-sistem-durumu-baglanti", "Köprü: " + bridgeHealthLine);
+          setSistemDurumuDd("panel-sistem-durumu-baglanti", "Bağlantı: " + bridgeHealthLine);
           setSistemDurumuDd("panel-sistem-durumu-chat", "—");
           setSistemDurumuDd("panel-sistem-durumu-vision", "—");
           setSistemDurumuDd("panel-sistem-durumu-vision-last", "—");
@@ -8216,7 +8216,7 @@ const PANEL_DEBUG =
         const chatS = j.chat != null ? String(j.chat) : "—";
         const visionLast = j.visionLastStatus != null ? String(j.visionLastStatus) : "—";
         const visionCfg = j.visionConfigured === true;
-        setSistemDurumuDd("panel-sistem-durumu-baglanti", health + " · köprü: " + bridgeHealthLine);
+        setSistemDurumuDd("panel-sistem-durumu-baglanti", health + " · bağlantı: " + bridgeHealthLine);
         setSistemDurumuDd("panel-sistem-durumu-chat", chatS + " · " + lastChatOptionsPingLine);
         setSistemDurumuDd(
           "panel-sistem-durumu-vision",
