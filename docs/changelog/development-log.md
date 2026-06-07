@@ -99,3 +99,19 @@ Makefile test/check CI pytest env ile hizalandı (PR #95 merge; `main` @ `aca679
 | 1 | [#95](https://github.com/candasoz01-cmd/lumos-core/pull/95) | `make test` ve `make check` artık `TEST_PYTHONPATH` (src + kando_runtime + kando_bridge) ve `KANDO_MOCK=1` kullanıyor |
 
 **Kapsam:** Yalnızca `Makefile`; yerelde 565 passed, 2 skipped.
+
+---
+
+## 2026-06-07
+
+Cando `branch-cleanup-review` read-only dry-run recipe MVP (PR #97 merge; `main` @ `b6235a0`).
+
+| Sıra | PR | Özet |
+|------|-----|------|
+| 1 | [#97](https://github.com/candasoz01-cmd/lumos-core/pull/97) | `branch-cleanup-review` read-only dry-run recipe MVP — dal temizliği önizlemesi; silme yapmaz |
+
+**Komut:** `python scripts/cando_local.py recipe branch-cleanup-review --dry-run`
+
+**Kapsam:** Read-only; dal silmez. Yerelde 568 passed, 2 skipped.
+
+**Sonraki adım (henüz yok):** continuity / registry / run-history ileride değerlendirilebilir — bu PR'da uygulanmadı.
