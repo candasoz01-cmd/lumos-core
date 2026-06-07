@@ -17,16 +17,25 @@ PYTHONPATH=src python scripts/kando_watch.py
 
 ## Sunucuyu başlatma
 
-Depo kökünden (önce yerel secret):
+Depo kökünden (önce yerel secret **zorunlu**):
 
 ```bash
 cd /path/to/lumos-core
 export KANDO_BRIDGE_SECRET='your-local-dev-secret'
-PYTHONPATH=src python -m kando_bridge
-# veya eşdeğer:
-PYTHONPATH=src python3 scripts/kando_bridge_server.py
-# port müsaitliği kontrolü ile (önerilen):
 ./scripts/bridge_start.sh
+```
+
+`GET /health` token istemez (**200**); korumalı uç noktalar secret veya token olmadan **401** döner.
+
+**Elle başlatma** (isteğe bağlı; `PYTHONPATH` üçlemesi `bridge_start.sh` ile aynı):
+
+```bash
+cd /path/to/lumos-core
+export KANDO_BRIDGE_SECRET='your-local-dev-secret'
+export PYTHONPATH="$PWD/src:$PWD/packages/kando_bridge/src:$PWD/packages/kando_runtime/src"
+python3 -m kando_bridge
+# veya eşdeğer sarmalayıcı:
+python3 scripts/kando_bridge_server.py
 ```
 
 Varsayılan: **`127.0.0.1:8765`**. Bind adresi **yalnızca** `127.0.0.1`, `::1` veya `localhost` olabilir (`0.0.0.0` reddedilir). İstemci adresi de loopback değilse **403**.
@@ -41,7 +50,7 @@ Başka bir süreç aynı portu kullanıyorsa sunucu açılmaz. Kontrol örnekler
 
 ```bash
 export KANDO_BRIDGE_PORT=8766
-PYTHONPATH=src python3 scripts/kando_bridge_server.py
+./scripts/bridge_start.sh
 # veya mevcut dinleyeni görmek için:
 lsof -nP -iTCP:8765 -sTCP:LISTEN
 ```
@@ -100,7 +109,7 @@ Secret ve token olmadan korumalı uç noktalar **401** döner. Yerel örnek:
 
 ```bash
 export KANDO_BRIDGE_SECRET='your-local-dev-secret'
-PYTHONPATH=src python scripts/kando_bridge_server.py &
+./scripts/bridge_start.sh &
 curl -sS -X POST http://127.0.0.1:8765/task \
   -H "Content-Type: application/json" \
   -H "X-Kando-Token: your-local-dev-secret" \
@@ -116,7 +125,7 @@ curl -sS http://127.0.0.1:8765/health
 ## Watcher ile birlikte akış
 
 1. Terminal A: `PYTHONPATH=src python scripts/kando_watch.py`
-2. Terminal B: `export KANDO_BRIDGE_SECRET='your-local-dev-secret'` ardından `PYTHONPATH=src python scripts/kando_bridge_server.py`
+2. Terminal B: `export KANDO_BRIDGE_SECRET='your-local-dev-secret'` ardından `./scripts/bridge_start.sh`
 3. İstemci `POST /task` ile metni yollar → `request.txt` güncellenir → watcher tetiklenir → Kando çalışır → sonuçlar `.lumos/outbox/` ve `cursor_bridge/` altında güncellenir (mevcut `kando_watch` davranışı).
 
 ## İlişkili araçlar
