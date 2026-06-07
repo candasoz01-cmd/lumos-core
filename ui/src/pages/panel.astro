@@ -25,6 +25,8 @@ const STATUS_URL =
 /** Görev motoru: GET/POST /tasks → `.lumos/tasks.json` (`panel/scripts/panel_tasks_server.py`, varsayılan :8766). */
 const TASKS_API_URL =
   import.meta.env.PUBLIC_LUMOS_PANEL_TASKS_URL || "http://127.0.0.1:8766";
+const PANEL_DEBUG =
+  import.meta.env.DEV || import.meta.env.PUBLIC_LUMOS_PANEL_DEV === "1";
 ---
 
 <html lang="tr">
@@ -1463,6 +1465,32 @@ const TASKS_API_URL =
         color: var(--lumos-text);
         font-weight: 600;
         min-width: 7.5rem;
+      }
+      .panel-data-flow-badge {
+        display: inline-block;
+        margin-right: 0.35rem;
+        padding: 0.08rem 0.38rem;
+        border-radius: 4px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: var(--lumos-accent-blue);
+        background: var(--lumos-teal-12);
+        border: 1px solid var(--lumos-teal-22);
+        vertical-align: baseline;
+      }
+      .panel-pre-send-summary {
+        margin: 0.65rem 0;
+        padding: 0.65rem 0.75rem;
+        border-radius: var(--panel-radius);
+        border: 1px solid var(--lumos-teal-28);
+        background: var(--panel-surface-raised);
+        font-size: 0.88rem;
+        line-height: 1.45;
+        white-space: pre-line;
+      }
+      body[data-panel-debug="false"] .panel-debug-only {
+        display: none !important;
       }
       .gorevler-list-heading {
         margin: 0;
@@ -3228,7 +3256,7 @@ const TASKS_API_URL =
       }
     </style>
   </head>
-  <body class="panel-page">
+  <body class="panel-page" data-panel-debug={PANEL_DEBUG ? "true" : "false"}>
     <div class="panel-shell">
       <header class="panel-header">
         <div class="panel-header-title-row">
@@ -3510,9 +3538,15 @@ const TASKS_API_URL =
             <p class="gorevler-eyebrow">Operasyon</p>
             <h2 id="panel-gorevler-title">Görevler</h2>
             <p class="gorevler-intro">
-              Görevler <code>panel_tasks_server</code> üzerinden <strong>.lumos/tasks.json</strong> dosyasına yazılır
-              (<code>{TASKS_API_URL}</code>). Görev eklerken köprü çalıştırılmaz. Sunucu kapalıysa liste tarayıcı
-              önbelleğinden (localStorage) gösterilir.
+              <span class="panel-data-flow-badge">[Yerel]</span>
+              Görevler cihazınızdaki görev kaydına yazılır; görev eklerken köprü gerekmez. Sunucu kapalıysa liste
+              tarayıcı önbelleğinden gösterilir.
+              {PANEL_DEBUG && (
+                <span class="panel-debug-only">
+                  {" "}
+                  (<code>panel_tasks_server</code> · <code>{TASKS_API_URL}</code>)
+                </span>
+              )}
             </p>
             <div class="gorevler-proto">
               <div class="gorevler-form-panel">
@@ -3729,10 +3763,16 @@ const TASKS_API_URL =
               desteğine bağlıdır; her ortamda çalışmayabilir.
             </p>
             <div class="medya-outbox-wrap" aria-labelledby="medya-outbox-title">
-              <h3 id="medya-outbox-title" class="gorevler-list-heading">Köprü özeti (salt okunur)</h3>
+              <h3 id="medya-outbox-title" class="gorevler-list-heading">Son çıktı özeti (salt okunur)</h3>
               <p class="medya-intro" style="margin-top: 0.35rem">
-                Son görev/sohbet çıktısı için köprüdeki <code>GET /last-result</code> yanıtı (dosya yoksa 404 metni gösterilir).
-                Token, görev ve dosya yükleme ile aynıdır.
+                <span class="panel-data-flow-badge">[Harici Servis]</span>
+                Son görev veya sohbet çıktısının köprüden okunan özeti. Kayıt yoksa kısa bilgi gösterilir.
+                {PANEL_DEBUG && (
+                  <span class="panel-debug-only">
+                    {" "}
+                    (<code>GET /last-result</code>)
+                  </span>
+                )}
               </p>
               <div class="medya-outbox-actions">
                 <button type="button" id="medya-outbox-refresh" class="medya-outbox-refresh">Yenile</button>
@@ -3772,6 +3812,29 @@ const TASKS_API_URL =
                 </p>
               </li>
             </ul>
+            <div class="panel-share-proto gorevler-proto" style="margin-top: 1rem">
+              <p class="medya-intro" style="margin-top: 0">
+                <span class="panel-data-flow-badge">[Harici Servis]</span>
+                Paylaşım taslağı — gönderimden önce özet onayı zorunludur.
+              </p>
+              <div class="gorevler-field">
+                <label for="medya-share-target">Hedef</label>
+                <select id="medya-share-target">
+                  <option value="dis-ozet">Dış özet / arşiv</option>
+                  <option value="yerel-kopya">Yerel kopya</option>
+                </select>
+              </div>
+              <div class="gorevler-field">
+                <label for="medya-share-content">İçerik özeti</label>
+                <textarea id="medya-share-content" rows="2" maxlength="400" placeholder="Paylaşılacak özet…"></textarea>
+              </div>
+              <div id="medya-share-summary" class="panel-pre-send-summary" hidden role="status" aria-live="polite"></div>
+              <div class="medya-outbox-actions">
+                <button type="button" id="medya-share-review" class="medya-outbox-refresh">Özeti göster</button>
+                <button type="button" id="medya-share-send" class="gorevler-add-btn" disabled>Gönder</button>
+              </div>
+              <p id="medya-share-hint" class="gorevler-hint" role="status" aria-live="polite" hidden></p>
+            </div>
           </section>
 
           <section
@@ -3818,6 +3881,29 @@ const TASKS_API_URL =
                 </p>
               </li>
             </ul>
+            <div class="panel-share-proto gorevler-proto" style="margin-top: 1rem">
+              <p class="medya-intro" style="margin-top: 0">
+                <span class="panel-data-flow-badge">[Harici Servis]</span>
+                Sosyal paylaşım taslağı — gönderimden önce özet onayı zorunludur.
+              </p>
+              <div class="gorevler-field">
+                <label for="sosyal-share-target">Hedef platform</label>
+                <select id="sosyal-share-target">
+                  <option value="genel">Genel akış</option>
+                  <option value="mesaj">Doğrudan mesaj</option>
+                </select>
+              </div>
+              <div class="gorevler-field">
+                <label for="sosyal-share-content">Gönderi taslağı</label>
+                <textarea id="sosyal-share-content" rows="3" maxlength="500" placeholder="Paylaşılacak metin…"></textarea>
+              </div>
+              <div id="sosyal-share-summary" class="panel-pre-send-summary" hidden role="status" aria-live="polite"></div>
+              <div class="medya-outbox-actions">
+                <button type="button" id="sosyal-share-review" class="medya-outbox-refresh">Özeti göster</button>
+                <button type="button" id="sosyal-share-send" class="gorevler-add-btn" disabled>Paylaş</button>
+              </div>
+              <p id="sosyal-share-hint" class="gorevler-hint" role="status" aria-live="polite" hidden></p>
+            </div>
           </section>
 
           <section
@@ -3864,6 +3950,30 @@ const TASKS_API_URL =
                 </p>
               </li>
             </ul>
+            <div class="panel-share-proto gorevler-proto" style="margin-top: 1rem">
+              <p class="medya-intro" style="margin-top: 0">
+                <span class="panel-data-flow-badge">[Harici Servis]</span>
+                E-posta taslağı — gönderimden önce özet onayı zorunludur.
+              </p>
+              <div class="gorevler-field">
+                <label for="posta-share-target">Alıcı</label>
+                <input id="posta-share-target" type="email" maxlength="120" placeholder="ornek@posta.com" autocomplete="off" />
+              </div>
+              <div class="gorevler-field">
+                <label for="posta-share-content">Mesaj taslağı</label>
+                <textarea id="posta-share-content" rows="3" maxlength="800" placeholder="E-posta metni…"></textarea>
+              </div>
+              <div class="gorevler-field">
+                <label for="posta-share-attachments">Ek sayısı</label>
+                <input id="posta-share-attachments" type="number" min="0" max="20" value="0" />
+              </div>
+              <div id="posta-share-summary" class="panel-pre-send-summary" hidden role="status" aria-live="polite"></div>
+              <div class="medya-outbox-actions">
+                <button type="button" id="posta-share-review" class="medya-outbox-refresh">Özeti göster</button>
+                <button type="button" id="posta-share-send" class="gorevler-add-btn" disabled>Gönder</button>
+              </div>
+              <p id="posta-share-hint" class="gorevler-hint" role="status" aria-live="polite" hidden></p>
+            </div>
           </section>
 
           <section
@@ -3875,8 +3985,9 @@ const TASKS_API_URL =
           >
             <h2 id="panel-dosyalar-title">Dosyalar</h2>
             <p class="gorevler-intro">
-              Dosyayı cihazınızdan seçin; Lumos köprüsü dosyayı alır, adı/türü/boyutu döner. Metin dosyalarında (.txt, .md,
-              .json, .csv) kısa özet üretilir. PDF ve Word (DOCX) gibi biçimler bu fazda işlenmez.
+              <span class="panel-data-flow-badge">[Harici Servis]</span>
+              Dosyayı cihazınızdan seçin; köprü dosyayı alır, adı, türü ve boyutu döner. Metin dosyalarında kısa özet
+              üretilir. PDF ve Word (DOCX) gibi biçimler bu fazda işlenmez.
             </p>
             <div class="gorevler-proto">
               <div class="gorevler-form-panel">
@@ -4208,50 +4319,49 @@ const TASKS_API_URL =
               Yetenekler <span class="lumos-capability-en">Capability</span>
             </h2>
             <p class="gorevler-intro">
-              Lumos’un hangi işlemlere hangi köprü uç noktası veya panel yüzeyi üzerinden bağlandığını özetler. «Bağlantı
-              testi» yalnızca 1–3. satırlarda köprüyü doğrular; 4. satır yerel/legacy kanıtını kontrol eder.
+              Lumos’un hangi işlemlere hangi bağlantı veya panel yüzeyi üzerinden bağlandığını özetler. «Bağlantı testi»
+              yalnızca 1–3. satırlarda köprüyü doğrular; 4. satır yerel kanıtını kontrol eder.
             </p>
             <div class="lumos-capability-block">
               <ul class="lumos-capability-legend" aria-label="Durum sözlüğü">
-                <li><strong>Var</strong> kanıtı var</li>
-                <li><strong>Hedef</strong> yapılacak ama bağlı değil</li>
-                <li><strong>Yok / bağlı değil</strong> şu an çalışır hat yok</li>
-                <li><strong>Kısıtlı</strong> var ama sınırlı / koşullu</li>
+                <li><strong>AKTİF</strong> kanıtı var veya kısıtlı çalışır</li>
+                <li><strong>PASİF</strong> şu an çalışır hat yok</li>
+                <li><strong>GELİŞTİRME AŞAMASINDA</strong> hedefleniyor, henüz bağlı değil</li>
               </ul>
               <ul id="lumos-capability-list" class="lumos-capability-list" aria-live="polite">
                 <li>
                   <span class="lumos-capability-name">1. Dosya okuma</span>
-                  <span id="cap-file-read" class="lumos-capability-val" data-state="ok">Var</span>
-                  <span class="lumos-capability-route">/controlled</span>
+                  <span id="cap-file-read" class="lumos-capability-val" data-state="ok">AKTİF</span>
+                  <span class="lumos-capability-route panel-debug-only">/controlled</span>
                 </li>
                 <li>
                   <span class="lumos-capability-name">2. Dosya yazma</span>
-                  <span id="cap-file-write" class="lumos-capability-val" data-state="ok">Var</span>
-                  <span class="lumos-capability-route">/controlled</span>
+                  <span id="cap-file-write" class="lumos-capability-val" data-state="ok">AKTİF</span>
+                  <span class="lumos-capability-route panel-debug-only">/controlled</span>
                 </li>
                 <li>
                   <span class="lumos-capability-name">3. Görev oluşturma</span>
-                  <span id="cap-task-create" class="lumos-capability-val" data-state="ok">Var</span>
-                  <span class="lumos-capability-route">/task</span>
+                  <span id="cap-task-create" class="lumos-capability-val" data-state="ok">AKTİF</span>
+                  <span class="lumos-capability-route panel-debug-only">/task</span>
                 </li>
                 <li>
                   <span class="lumos-capability-name">4. Görev tamamlama</span>
-                  <span id="cap-task-complete" class="lumos-capability-val" data-state="kisitli">Kısıtlı</span>
-                  <span class="lumos-capability-route">legacy /tasks/complete</span>
+                  <span id="cap-task-complete" class="lumos-capability-val" data-state="ok">AKTİF</span>
+                  <span class="lumos-capability-route panel-debug-only">legacy /tasks/complete</span>
                 </li>
                 <li>
                   <span class="lumos-capability-name">5. Terminal komutu</span>
-                  <span id="cap-terminal" class="lumos-capability-val" data-state="kisitli">Kısıtlı</span>
+                  <span id="cap-terminal" class="lumos-capability-val" data-state="ok">AKTİF</span>
                   <span class="lumos-capability-route">panele bağlı değil</span>
                 </li>
                 <li>
                   <span class="lumos-capability-name">6. Mac uygulaması açma</span>
-                  <span id="cap-mac-app" class="lumos-capability-val" data-state="hedef">Hedef</span>
+                  <span id="cap-mac-app" class="lumos-capability-val" data-state="hedef">GELİŞTİRME AŞAMASINDA</span>
                   <span class="lumos-capability-route">—</span>
                 </li>
                 <li>
                   <span class="lumos-capability-name">7. Canlı deploy</span>
-                  <span id="cap-live-deploy" class="lumos-capability-val" data-state="kisitli">Kısıtlı</span>
+                  <span id="cap-live-deploy" class="lumos-capability-val" data-state="ok">AKTİF</span>
                   <span class="lumos-capability-route">manuel onay sonrası</span>
                 </li>
               </ul>
@@ -4398,10 +4508,56 @@ const TASKS_API_URL =
         </nav>
       </div>
     </div>
-    <script define:vars={{ CHAT_URL, kandoToken, UPLOAD_URL, HEALTH_URL, BRIDGE_BASE_URL, STATUS_URL, TASKS_API_URL }}>
+    <script define:vars={{ CHAT_URL, kandoToken, UPLOAD_URL, HEALTH_URL, BRIDGE_BASE_URL, STATUS_URL, TASKS_API_URL, PANEL_DEBUG }}>
       /** Görevler: panel_tasks_server → .lumos/tasks.json; localStorage önbellek (görev eklerken köprü yok). */
       const PANEL_GOREVLER_LS_KEY = "lumos_panel_gorevler_list_v1";
       const GOREVLER_FIELD_MAX_LEN = 2048;
+
+      function maskBridgeSensitive(text) {
+        if (text == null) return "";
+        let s = String(text);
+        s = s.replace(
+          /("(?:token|api[_-]?key|secret|password|bearer|cookie|session|authorization|x-kando-token)"\s*:\s*")([^"]+)(")/gi,
+          "$1***$3",
+        );
+        s = s.replace(
+          /\b(Bearer|Token|ApiKey|API-Key|Password|Secret|Cookie|Session|Authorization)\s*[:=]\s*\S+/gi,
+          "$1: ***",
+        );
+        s = s.replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "***");
+        s = s.replace(/\b[a-f0-9]{32,}\b/gi, "***");
+        return s;
+      }
+
+      function stripPanelTechnicalLeak(text) {
+        if (PANEL_DEBUG || text == null) return text == null ? "" : String(text);
+        let s = String(text);
+        s = s.replace(/127\.0\.0\.1(?::\d+)?/gi, "yerel sunucu");
+        s = s.replace(/https?:\/\/[^\s)]+/gi, "bağlantı");
+        s = s.replace(/\/last-result/gi, "son sonuç");
+        s = s.replace(/\.lumos\/tasks\.json/gi, "görev kaydı");
+        s = s.replace(/\/tasks\b/gi, "görev");
+        s = s.replace(/\b(GET|POST|PUT|DELETE|OPTIONS)\b/gi, "");
+        s = s.replace(/\bHTTP\s+\d+\b/gi, "istek hatası");
+        s = s.replace(/panel_tasks_server/gi, "görev servisi");
+        s = s.replace(/bridge_start\.sh/gi, "köprü başlatma");
+        s = s.replace(/\s{2,}/g, " ").trim();
+        return s;
+      }
+
+      function panelUserVisibleText(text) {
+        return stripPanelTechnicalLeak(maskBridgeSensitive(text));
+      }
+
+      function panelDebugText(debugMsg, userMsg) {
+        return PANEL_DEBUG ? debugMsg : userMsg;
+      }
+
+      function dataFlowBadge(kind) {
+        if (kind === "local") return "[Yerel]";
+        if (kind === "external") return "[Harici Servis]";
+        return "[Bilinmiyor]";
+      }
 
       function truncateGorevlerField(s) {
         const t = String(s || "").trim();
@@ -5006,8 +5162,9 @@ const TASKS_API_URL =
 
         function setSendHint(msg) {
           if (!sendHint) return;
-          sendHint.textContent = msg;
-          sendHint.hidden = !msg;
+          const s = panelUserVisibleText(msg != null ? String(msg) : "");
+          sendHint.textContent = s;
+          sendHint.hidden = !s;
         }
 
         function revokeCameraPhotoObjectUrl() {
@@ -5719,7 +5876,7 @@ const TASKS_API_URL =
 
             if (!r.ok) {
               console.warn("[Lumos panel chat] HTTP error", r.status);
-              setSendHint("Gönderilemedi (HTTP " + r.status + "). Tekrar dene.");
+              setSendHint(panelDebugText("Gönderilemedi (HTTP " + r.status + "). Tekrar dene.", "Gönderilemedi. Tekrar dene."));
               let upstreamErr = "";
               let upstreamKind = "";
               if (text) {
@@ -5919,7 +6076,7 @@ const TASKS_API_URL =
             const netMsg = summarizeClientFetchError(err);
             const errName =
               err && typeof err === "object" && err.name ? String(err.name) : "";
-            setSendHint("İstek hatası: " + netMsg.slice(0, 140));
+            setSendHint(panelDebugText("İstek hatası: " + netMsg.slice(0, 140), "İstek hatası. Tekrar dene."));
             const netKind = classifyPanelChatFailure({
               errName,
               errMessage: netMsg,
@@ -6556,7 +6713,8 @@ const TASKS_API_URL =
           const dt = document.createElement("dt");
           dt.textContent = label;
           const dd = document.createElement("dd");
-          dd.textContent = value != null && String(value).trim() ? String(value).trim() : "—";
+          const raw = value != null && String(value).trim() ? String(value).trim() : "—";
+          dd.textContent = panelUserVisibleText(raw);
           dl.appendChild(dt);
           dl.appendChild(dd);
         }
@@ -6863,7 +7021,7 @@ const TASKS_API_URL =
             }
           }
 
-          appendDetailRow(detailBridgeDl, "Route", route);
+          appendDetailRow(detailBridgeDl, "Rota", route);
           appendDetailRow(detailBridgeDl, "Kaynak", source);
           appendDetailRow(detailBridgeDl, "Kabul", acceptedTxt);
           appendDetailRow(detailBridgeDl, "Sonuç dosyası", resultFile);
@@ -7000,7 +7158,7 @@ const TASKS_API_URL =
         }
 
         function showHint(msg) {
-          const s = msg != null ? String(msg) : "";
+          const s = panelUserVisibleText(msg != null ? String(msg) : "");
           hintEl.textContent = s;
           hintEl.hidden = false;
           hintEl.style.whiteSpace = s.indexOf("\n") >= 0 ? "pre-line" : "";
@@ -7054,9 +7212,12 @@ const TASKS_API_URL =
             createRes = await tasksApiPost("/tasks", { title });
           } catch {
             showHint(
-              "Görev sunucusuna ulaşılamadı. panel_tasks_server çalışıyor mu? (" +
-                resolveGorevlerTasksApiBase() +
-                ")",
+              panelDebugText(
+                "Görev sunucusuna ulaşılamadı. panel_tasks_server çalışıyor mu? (" +
+                  resolveGorevlerTasksApiBase() +
+                  ")",
+                "Görev sunucusuna ulaşılamadı. Yerel görev servisini kontrol edin.",
+              ),
             );
             return;
           }
@@ -7064,7 +7225,7 @@ const TASKS_API_URL =
             const err =
               createRes.data && createRes.data.error != null
                 ? String(createRes.data.error)
-                : "create_failed (" + createRes.status + ")";
+                : panelDebugText("create_failed (" + createRes.status + ")", "kayıt başarısız");
             showHint("Görev kaydedilemedi (" + err + ").");
             return;
           }
@@ -7157,17 +7318,22 @@ const TASKS_API_URL =
             }
 
             if (r.status === 401) {
-              showHint("Kimlik doğrulama başarısız (401). Token veya köprü ayarını kontrol edin.");
+              showHint("Kimlik doğrulama başarısız. Bağlantı ayarlarını kontrol edin.");
               return;
             }
             if (!r.ok) {
               const detail =
                 data && (data.error || data.message) ? String(data.error || data.message).trim() : "";
               showHint(
-                "Köprüye gönderilemedi (HTTP " +
-                  r.status +
-                  ")." +
-                  (detail ? " " + detail.slice(0, 80) : ""),
+                panelDebugText(
+                  "Köprüye gönderilemedi (HTTP " +
+                    r.status +
+                    ")." +
+                    (detail ? " " + detail.slice(0, 80) : ""),
+                  detail
+                    ? "Köprüye gönderilemedi: " + detail.slice(0, 80)
+                    : "Köprüye gönderilemedi.",
+                ),
               );
               return;
             }
@@ -7177,7 +7343,7 @@ const TASKS_API_URL =
             openGorevlerDetail(taskIndex);
             showHint(buildTaskBridgeSuccessReadableHint(data));
           } catch {
-            showHint("Köprüye ulaşılamadı. Yerel bridge çalışıyor mu kontrol edin.");
+            showHint("Köprüye ulaşılamadı. Bağlantıyı kontrol edin.");
           } finally {
             if (detailBridgeBtn) {
               detailBridgeBtn.disabled = false;
@@ -7631,7 +7797,7 @@ const TASKS_API_URL =
         }
 
         function showHint(msg) {
-          hint.textContent = msg;
+          hint.textContent = panelUserVisibleText(msg != null ? String(msg) : "");
           hint.hidden = false;
         }
 
@@ -7783,7 +7949,9 @@ const TASKS_API_URL =
                 w.data && w.data.error != null
                   ? String(w.data.error)
                   : "write_file başarısız";
-              showHint("Köprü yazma (HTTP " + w.status + "): " + err);
+              showHint(
+                panelDebugText("Köprü yazma (HTTP " + w.status + "): " + err, "Dosya yazılamadı: " + err),
+              );
               return;
             }
 
@@ -7793,7 +7961,9 @@ const TASKS_API_URL =
                 rd.data && rd.data.error != null
                   ? String(rd.data.error)
                   : "read_file başarısız";
-              showHint("Köprü okuma (HTTP " + rd.status + "): " + err);
+              showHint(
+                panelDebugText("Köprü okuma (HTTP " + rd.status + "): " + err, "Dosya okunamadı: " + err),
+              );
               return;
             }
 
@@ -7824,11 +7994,15 @@ const TASKS_API_URL =
         if (!btn) return;
 
         const CAP_STATUS = {
-          var: { label: "Var", state: "ok" },
-          hedef: { label: "Hedef", state: "hedef" },
-          yok: { label: "Yok / bağlı değil", state: "no" },
-          kisitli: { label: "Kısıtlı", state: "kisitli" },
+          aktif: { label: "AKTİF", state: "ok" },
+          pasif: { label: "PASİF", state: "no" },
+          gelistirme: { label: "GELİŞTİRME AŞAMASINDA", state: "hedef" },
         };
+
+        function capKeyFromProbe(ok, limited) {
+          if (ok) return limited ? "aktif" : "aktif";
+          return "pasif";
+        }
 
         function setCap(el, key) {
           if (!el) return;
@@ -7848,13 +8022,13 @@ const TASKS_API_URL =
           const probeBody = "lumos capability probe\n";
 
           const w = await controlledWriteFile(probePath, probeBody);
-          setCap(caps.fileWrite, w.ok ? "var" : "yok");
+          setCap(caps.fileWrite, capKeyFromProbe(w.ok, false));
 
           const rd = await controlledReadFile(probePath);
           const readOk =
             rd.ok &&
             String((rd.data && rd.data.content) || "").indexOf("lumos capability") >= 0;
-          setCap(caps.fileRead, readOk ? "var" : "yok");
+          setCap(caps.fileRead, capKeyFromProbe(readOk, false));
 
           let taskOk = false;
           try {
@@ -7873,17 +8047,23 @@ const TASKS_API_URL =
           } catch {
             taskOk = false;
           }
-          setCap(caps.taskCreate, taskOk ? "var" : "yok");
+          setCap(caps.taskCreate, capKeyFromProbe(taskOk, false));
 
           const localComplete =
             typeof panelGorevlerTasks !== "undefined" && Array.isArray(panelGorevlerTasks);
-          setCap(caps.taskComplete, localComplete ? "kisitli" : "yok");
+          setCap(caps.taskComplete, localComplete ? "aktif" : "pasif");
 
           if (hint) {
             hint.textContent =
               w.ok && readOk && taskOk
-                ? "Köprü kanıtı doğrulandı. 4–7. satırlar politika özetidir."
-                : "Kısmi veya başarısız sonuç; köprü adresini ve token’ı kontrol edin.";
+                ? panelDebugText(
+                    "Köprü kanıtı doğrulandı. 4–7. satırlar politika özetidir.",
+                    "Bağlantı testi tamamlandı.",
+                  )
+                : panelDebugText(
+                    "Kısmi veya başarısız sonuç; köprü adresini ve token’ı kontrol edin.",
+                    "Bağlantı testi kısmen başarısız. Ayarları kontrol edin.",
+                  );
           }
           btn.disabled = false;
         });
@@ -7921,6 +8101,11 @@ const TASKS_API_URL =
         const wrap = document.getElementById("panel-chat-photo-tech");
         const pre = document.getElementById("panel-chat-photo-tech-pre");
         if (!wrap || !pre) return;
+        if (!PANEL_DEBUG) {
+          wrap.hidden = true;
+          pre.textContent = "";
+          return;
+        }
         const t = text == null ? "" : String(text).trim();
         if (!t) {
           wrap.hidden = true;
@@ -7928,7 +8113,7 @@ const TASKS_API_URL =
           return;
         }
         wrap.hidden = false;
-        pre.textContent = t;
+        pre.textContent = panelUserVisibleText(t);
       }
 
       function buildPhotoTechBlock(o) {
@@ -7960,7 +8145,7 @@ const TASKS_API_URL =
 
       function setSistemDurumuDd(id, t) {
         const el = document.getElementById(id);
-        if (el) el.textContent = t == null ? "" : String(t);
+        if (el) el.textContent = panelUserVisibleText(t == null ? "" : String(t));
       }
 
       function paintSistemDurumuPanel() {
@@ -8012,10 +8197,12 @@ const TASKS_API_URL =
             mode: "cors",
             credentials: "omit",
           });
-          if (r.ok || r.status === 204) return "OPTIONS OK (" + r.status + ")";
-          return "OPTIONS HTTP " + r.status;
+          if (r.ok || r.status === 204) {
+            return panelDebugText("OPTIONS OK (" + r.status + ")", "Sohbet bağlantısı hazır");
+          }
+          return panelDebugText("OPTIONS HTTP " + r.status, "Sohbet bağlantısı yanıt vermedi");
         } catch {
-          return "OPTIONS hata (ağ/CORS)";
+          return panelDebugText("OPTIONS hata (ağ/CORS)", "Sohbet bağlantısı okunamadı");
         }
       }
 
@@ -8025,7 +8212,10 @@ const TASKS_API_URL =
           lastStatusCorsError = false;
           lastChatOptionsPingLine = await probeChatOptionsPingLine();
           paintSistemDurumuPanel();
-          setSistemDurumuDd("panel-sistem-durumu-chat", "STATUS_URL yok · " + lastChatOptionsPingLine);
+          setSistemDurumuDd(
+            "panel-sistem-durumu-chat",
+            panelDebugText("STATUS_URL yok · " + lastChatOptionsPingLine, lastChatOptionsPingLine),
+          );
           return;
         }
         try {
@@ -8043,7 +8233,7 @@ const TASKS_API_URL =
             paintSistemDurumuPanel();
             setSistemDurumuDd(
               "panel-sistem-durumu-chat",
-              "/status HTTP " + r.status + " · " + lastChatOptionsPingLine,
+              panelDebugText("/status HTTP " + r.status + " · " + lastChatOptionsPingLine, lastChatOptionsPingLine),
             );
             return;
           }
@@ -8059,7 +8249,10 @@ const TASKS_API_URL =
             lastStatusCorsError = false;
             lastChatOptionsPingLine = await probeChatOptionsPingLine();
             paintSistemDurumuPanel();
-            setSistemDurumuDd("panel-sistem-durumu-chat", "JSON okunamadı · " + lastChatOptionsPingLine);
+            setSistemDurumuDd(
+              "panel-sistem-durumu-chat",
+              panelDebugText("JSON okunamadı · " + lastChatOptionsPingLine, lastChatOptionsPingLine),
+            );
             return;
           }
           lastStatusJson = data;
@@ -8135,19 +8328,21 @@ const TASKS_API_URL =
             last = res;
             if (res.ok) {
               ok = true;
-              bridgeHealthLine = "OK · " + res.url;
+              bridgeHealthLine = PANEL_DEBUG ? "OK · " + res.url : "OK";
               break;
             }
           }
           setPanelConnBadge(ok ? "ok" : "bad");
           if (!ok && last) {
-            bridgeHealthLine = "erişilemedi (" + last.detail + ")";
+            bridgeHealthLine = PANEL_DEBUG
+              ? "erişilemedi (" + last.detail + ")"
+              : "erişilemedi";
           } else if (!ok) {
-            bridgeHealthLine = "uygun URL yok";
+            bridgeHealthLine = panelDebugText("uygun URL yok", "erişilemedi");
           }
         } catch {
           setPanelConnBadge("bad");
-          bridgeHealthLine = "istisna (köprü kapalı olabilir)";
+          bridgeHealthLine = panelDebugText("istisna (köprü kapalı olabilir)", "erişilemedi");
         }
         paintSistemDurumuPanel();
       })();
@@ -8173,9 +8368,14 @@ const TASKS_API_URL =
             });
             const text = await r.text();
             if (!r.ok) {
-              const snippet = text && String(text).trim().length ? String(text).trim().slice(0, 280) : "";
-              hint.textContent =
-                "Köprü yanıtı " + r.status + (snippet ? ": " + snippet : " (last-result yok veya token hatalı).");
+              const snippet =
+                text && String(text).trim().length
+                  ? panelUserVisibleText(String(text).trim().slice(0, 280))
+                  : "";
+              hint.textContent = panelDebugText(
+                "Köprü yanıtı " + r.status + (snippet ? ": " + snippet : " (last-result yok veya token hatalı)."),
+                snippet ? "Sonuç alınamadı: " + snippet : "Sonuç kaydı bulunamadı veya kimlik doğrulanamadı.",
+              );
               hint.hidden = false;
               pre.hidden = true;
               return;
@@ -8188,11 +8388,13 @@ const TASKS_API_URL =
               /* ham metin */
             }
             if (pretty.length > 5000) pretty = pretty.slice(0, 5000) + "\n…";
-            pre.textContent = pretty || "—";
+            pre.textContent = panelUserVisibleText(pretty || "—");
             pre.hidden = false;
           } catch {
-            hint.textContent =
-              "İstek başarısız (ağ, CORS veya köprü kapalı). Yerelde `./scripts/bridge_start.sh` ile deneyin.";
+            hint.textContent = panelDebugText(
+              "İstek başarısız (ağ, CORS veya köprü kapalı). Yerelde `./scripts/bridge_start.sh` ile deneyin.",
+              "Sonuç alınamadı. Bağlantıyı kontrol edin.",
+            );
             hint.hidden = false;
             pre.hidden = true;
           } finally {
@@ -8204,6 +8406,118 @@ const TASKS_API_URL =
           void refresh();
         });
       }
+
+      function wirePanelPreSendShare(cfg) {
+        const reviewBtn = document.getElementById(cfg.reviewId);
+        const sendBtn = document.getElementById(cfg.sendId);
+        const summaryEl = document.getElementById(cfg.summaryId);
+        const hintEl = document.getElementById(cfg.hintId);
+        const targetEl = document.getElementById(cfg.targetId);
+        const contentEl = document.getElementById(cfg.contentId);
+        const attachmentEl = cfg.attachmentId ? document.getElementById(cfg.attachmentId) : null;
+        if (!reviewBtn || !sendBtn || !summaryEl || !targetEl || !contentEl) return;
+
+        let summaryApproved = false;
+
+        function resetApproval() {
+          summaryApproved = false;
+          sendBtn.disabled = true;
+        }
+
+        function targetLabel() {
+          if (targetEl.tagName === "SELECT") {
+            const opt = targetEl.options[targetEl.selectedIndex];
+            return opt ? String(opt.textContent || "").trim() : String(targetEl.value || "—");
+          }
+          return String(targetEl.value || "—").trim() || "—";
+        }
+
+        function attachmentCount() {
+          if (!attachmentEl) return 0;
+          const n = Number(attachmentEl.value);
+          return Number.isFinite(n) && n >= 0 ? n : 0;
+        }
+
+        function contentPreview() {
+          const t = String(contentEl.value || "").trim();
+          if (!t) return "—";
+          return t.length > 120 ? t.slice(0, 120) + "…" : t;
+        }
+
+        function flowKindForTarget() {
+          const v = String(targetEl.value || "").toLowerCase();
+          if (v.indexOf("yerel") >= 0) return "local";
+          return cfg.defaultFlow || "external";
+        }
+
+        [targetEl, contentEl, attachmentEl].filter(Boolean).forEach((el) => {
+          el.addEventListener("input", resetApproval);
+          el.addEventListener("change", resetApproval);
+        });
+
+        reviewBtn.addEventListener("click", () => {
+          const summary =
+            dataFlowBadge(flowKindForTarget()) +
+            "\nHedef: " +
+            targetLabel() +
+            "\nİçerik önizleme: " +
+            contentPreview() +
+            "\nEk sayısı: " +
+            attachmentCount() +
+            "\nVeri türü: " +
+            (cfg.dataType || "Metin");
+          summaryEl.textContent = summary;
+          summaryEl.hidden = false;
+          summaryApproved = true;
+          sendBtn.disabled = false;
+          if (hintEl) {
+            hintEl.hidden = false;
+            hintEl.textContent = "Özet onaylandı. Göndermek için butona basın.";
+          }
+        });
+
+        sendBtn.addEventListener("click", () => {
+          if (!summaryApproved) return;
+          if (hintEl) {
+            hintEl.hidden = false;
+            hintEl.textContent = cfg.demoMsg || "Demo: gerçek gönderim henüz bağlı değil.";
+          }
+          resetApproval();
+          summaryEl.hidden = true;
+        });
+      }
+
+      wirePanelPreSendShare({
+        reviewId: "medya-share-review",
+        sendId: "medya-share-send",
+        summaryId: "medya-share-summary",
+        hintId: "medya-share-hint",
+        targetId: "medya-share-target",
+        contentId: "medya-share-content",
+        dataType: "Medya özeti",
+        demoMsg: "Demo: medya paylaşımı henüz bağlı değil.",
+      });
+      wirePanelPreSendShare({
+        reviewId: "sosyal-share-review",
+        sendId: "sosyal-share-send",
+        summaryId: "sosyal-share-summary",
+        hintId: "sosyal-share-hint",
+        targetId: "sosyal-share-target",
+        contentId: "sosyal-share-content",
+        dataType: "Sosyal metin",
+        demoMsg: "Demo: sosyal paylaşım henüz bağlı değil.",
+      });
+      wirePanelPreSendShare({
+        reviewId: "posta-share-review",
+        sendId: "posta-share-send",
+        summaryId: "posta-share-summary",
+        hintId: "posta-share-hint",
+        targetId: "posta-share-target",
+        contentId: "posta-share-content",
+        attachmentId: "posta-share-attachments",
+        dataType: "E-posta",
+        demoMsg: "Demo: e-posta gönderimi henüz bağlı değil.",
+      });
 
       wireMedyaOutbox();
     </script>
