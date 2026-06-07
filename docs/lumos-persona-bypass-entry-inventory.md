@@ -13,7 +13,7 @@
 
 **Bu belgede yok:** dosya yolu, modül/CLI/HTTP adı, fonksiyon adı, bypass tarifi, protokol veya anahtar detayı.
 
-> **İç envanter:** Satır satır giriş tablosu ve kod referansları **internal/private security inventory** kapsamındadır; bu public repo’da tutulmaz.
+> **İç envanter:** Satır satır giriş tablosu ve kod referansları **internal/private security inventory** kapsamındadır; bu public repo’da tutulmaz. Konum ve kurallar: [lumos-persona-internal-inventory-policy.md](lumos-persona-internal-inventory-policy.md).
 
 ---
 
