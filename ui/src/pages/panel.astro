@@ -3346,50 +3346,27 @@ const PANEL_DEBUG =
                       <section class="chat-capability-card__section" aria-label="Yapabilirim">
                         <h4 class="chat-capability-card__heading">Yapabilirim</h4>
                         <ul class="chat-capability-card__list">
-                          <li>Görev kaydedebilirim.</li>
-                          <li>Görevleri listeleyebilirim.</li>
-                          <li>Düşük riskli görevlerde kısa bir plan önerebilirim.</li>
-                          <li>
-                            Düşük riskte yalnızca bilgi notu gösterebilirim (kod çalıştırmam veya
-                            işlem iletmem).
-                          </li>
-                          <li>
-                            Bağlantı ve görev bilgilerini cihaz yapılandırmasından okurum; senden bağlantı adresi istemem.
-                          </li>
-                          <li>Dosya adı, türü, boyutu ve uzantısını gösterebilirim.</li>
-                          <li>
-                            Kontrollü dosya hattı üzerinden güvenli okuma/yazma akışına
-                            hazırlanabilirim.
-                          </li>
+                          <li>Görev kaydeder, listeler ve kısa plan önerir.</li>
+                          <li>Cihaz içi ayarlardan okur; pratik notlar verir.</li>
                         </ul>
                       </section>
                       <section class="chat-capability-card__section" aria-label="Şu an yapmam">
                         <h4 class="chat-capability-card__heading">Şu an yapmam</h4>
                         <ul class="chat-capability-card__list">
-                          <li>Cihazda komut veya uygulama çalıştırmam.</li>
-                          <li>Kod değiştirmem.</li>
-                          <li>Mail, takvim veya kişilere erişmem.</li>
-                          <li>PDF/DOCX derin analiz yapmam.</li>
-                          <li>EXE veya kurulum dosyası çalıştırmam.</li>
-                          <li>Kullanıcı onayı olmadan kalıcı işlem yapmam.</li>
+                          <li>Komut çalıştırmaz, kod değiştirmez.</li>
+                          <li>Onaysız kalıcı işlem yapmaz.</li>
                         </ul>
                       </section>
                     </div>
                   </div>
                   <p class="lumos-security-note">Kalıcı işlemler için onay ister.</p>
-                  <p class="lumos-security-note">
-                    Gizli değerleri burada istemiyorum. Cihazınızdaki yerel ayarları kullanacağım; ekrana gizli bilgi
-                    yazdırmadan ilerleyelim.
-                  </p>
+                  <p class="lumos-security-note">Cihaz içinde çalışır; gizli bilgileri sohbete yazma.</p>
                   {PANEL_DEBUG && (
                     <p class="lumos-security-note panel-debug-only">
                       Yerel geliştirmede bağlantı anahtarı tarayıcıda görünebilir; gerçek gizli değeri sohbete yapıştırma.
                     </p>
                   )}
-                  <p class="lumos-security-note">
-                    Kamera ve mikrofon özellikleri cihaz, tarayıcı ve verilen izinlere bağlı olarak çalışır. Bazı
-                    tarayıcılarda desteklenmeyebilir veya ek izin isteyebilir.
-                  </p>
+                  <p class="lumos-security-note">Kamera ve mikrofon cihaz iznine bağlıdır.</p>
                 </div>
               </div>
               <div class="chat-compose-stack">
@@ -4539,6 +4516,9 @@ const PANEL_DEBUG =
         s = s.replace(/\bagent\b/gi, "cihaz");
         s = s.replace(/\b(?:PUBLIC\s+)?token\b/gi, "bağlantı bilgisi");
         s = s.replace(/\bendpoint\b/gi, "bağlantı");
+        s = s.replace(/\broute\b/gi, "yol");
+        s = s.replace(/\bbridge\b/gi, "bağlantı");
+        s = s.replace(/\bk[öo]pr[üu]\b/gi, "iletim");
         s = s.replace(/127\.0\.0\.1(?::\d+)?/gi, "yerel sunucu");
         s = s.replace(/https?:\/\/[^\s)]+/gi, "bağlantı");
         s = s.replace(/\/last-result/gi, "son sonuç");
@@ -5383,7 +5363,7 @@ const PANEL_DEBUG =
           const body = document.createElement("div");
           body.className = "chat-msg-body";
           if (kind === "lumos") {
-            body.innerHTML = formatAssistantHtml(text);
+            body.innerHTML = formatAssistantHtml(panelUserVisibleText(text));
           } else if (kind === "error") {
             body.textContent = panelUserVisibleText(text);
           } else {
@@ -5618,16 +5598,12 @@ const PANEL_DEBUG =
 
         /** Panel /chat hata türleri — backend/panelChatErrors.js ile eşleşmeli. */
         const PANEL_CHAT_ERROR_MESSAGES_TR = {
-          network_error:
-            "Sunucuya ulaşamadım. Önce yapılandırılmış bağlantı ve sohbet hattını denerim; biraz sonra tekrar deneyebilirsin.",
-          timeout: "Yanıt süresi doldu. Biraz sonra tekrar deneyeceğim.",
-          unauthorized:
-            "Bağlantı doğrulanamadı. Cihaz ayarlarını kontrol edin; gizli değerleri sohbete yazmayın.",
-          server_error:
-            "Sohbet sunucusu geçici bir sorun bildirdi. Biraz sonra tekrar deneyin.",
-          model_error:
-            "Yapay zekâ modeli yanıt üretemedi. Biraz sonra tekrar deneyin.",
-          unknown_error: "Beklenmeyen bir hata oluştu. Biraz sonra tekrar deneyin.",
+          network_error: "İletim tamamlanamadı. Bağlantıyı kontrol edip tekrar dene.",
+          timeout: "Yanıt süresi doldu. Biraz sonra tekrar dene.",
+          unauthorized: "Bağlantı doğrulanamadı. Cihaz ayarlarını kontrol edip tekrar dene.",
+          server_error: "Sohbet geçici olarak yanıt veremedi. Biraz sonra tekrar dene.",
+          model_error: "Yanıt üretilemedi. Biraz sonra tekrar dene.",
+          unknown_error: "Beklenmeyen bir sorun oluştu. Biraz sonra tekrar dene.",
         };
 
         function userMessageForPanelChatFailureKind(kind) {
@@ -5896,7 +5872,12 @@ const PANEL_DEBUG =
 
             if (!r.ok) {
               console.warn("[Lumos panel chat] HTTP error", r.status);
-              setSendHint(panelDebugText("Gönderilemedi (HTTP " + r.status + "). Tekrar dene.", "Gönderilemedi. Tekrar dene."));
+              setSendHint(
+                panelDebugText(
+                  "Gönderilemedi (HTTP " + r.status + "). Tekrar dene.",
+                  "İletim tamamlanamadı. Bağlantıyı kontrol edip tekrar dene.",
+                ),
+              );
               let upstreamErr = "";
               let upstreamKind = "";
               if (text) {
@@ -6096,7 +6077,12 @@ const PANEL_DEBUG =
             const netMsg = summarizeClientFetchError(err);
             const errName =
               err && typeof err === "object" && err.name ? String(err.name) : "";
-            setSendHint(panelDebugText("İstek hatası: " + netMsg.slice(0, 140), "İstek hatası. Tekrar dene."));
+            setSendHint(
+              panelDebugText(
+                "İstek hatası: " + netMsg.slice(0, 140),
+                "İletim tamamlanamadı. Bağlantıyı kontrol edip tekrar dene.",
+              ),
+            );
             const netKind = classifyPanelChatFailure({
               errName,
               errMessage: netMsg,
@@ -6209,29 +6195,23 @@ const PANEL_DEBUG =
               }
 
               if (r.status === 401) {
-                setSendHint("Bağlantı doğrulanamadı.");
+                setSendHint("Bağlantı doğrulanamadı. Cihaz ayarlarını kontrol edip tekrar dene.");
                 return;
               }
               if (!r.ok) {
-                const detail =
-                  data && (data.error || data.message) ? String(data.error || data.message).trim() : "";
-                setSendHint(
-                  detail
-                    ? "Gönderilemedi: " + panelUserVisibleText(detail.slice(0, 80))
-                    : "Gönderilemedi.",
-                );
+                setSendHint("İletim tamamlanamadı. Bağlantıyı kontrol edip tekrar dene.");
                 return;
               }
 
               const accepted =
                 data && (data.accepted === true || data.accepted === false) ? data.accepted : null;
               if (accepted === false) {
-                setSendHint("Gönderilemedi.");
+                setSendHint("İletim tamamlanamadı. Bağlantıyı kontrol edip tekrar dene.");
                 return;
               }
-              setSendHint("Gönderildi. Kabul edildi.");
+              setSendHint("Metin iletildi.");
             } catch {
-              setSendHint("Bağlantı kurulamadı. Tekrar deneyin.");
+              setSendHint("İletim tamamlanamadı. Bağlantıyı kontrol edip tekrar dene.");
             } finally {
               clipboardSending = false;
               clipboardBtn.disabled = false;
@@ -7209,10 +7189,12 @@ const PANEL_DEBUG =
          * @param {Record<string, unknown>} data
          */
         function buildTaskBridgeSuccessReadableHint(data) {
-          if (data.accepted === false) return "Görev iletilemedi.";
+          if (data.accepted === false) {
+            return "İletim tamamlanamadı. Bağlantıyı kontrol edip tekrar dene.";
+          }
           if (data.accepted === true) return "Görev iletildi.";
           if (data.ok === true) return "İşleme alındı.";
-          return "İletim yanıtı alındı.";
+          return "İşleme alındı.";
         }
 
         function findPanelGorevlerRow(taskId, title) {
@@ -7353,21 +7335,19 @@ const PANEL_DEBUG =
             }
 
             if (r.status === 401) {
-              showHint("Bağlantı doğrulanamadı. Cihaz ayarlarını kontrol edin.");
+              showHint("Bağlantı doğrulanamadı. Cihaz ayarlarını kontrol edip tekrar dene.");
               return;
             }
             if (!r.ok) {
-              const detail =
-                data && (data.error || data.message) ? String(data.error || data.message).trim() : "";
               showHint(
                 panelDebugText(
                   "Köprüye gönderilemedi (HTTP " +
                     r.status +
                     ")." +
-                    (detail ? " " + detail.slice(0, 80) : ""),
-                  detail
-                    ? "Görev iletilemedi: " + panelUserVisibleText(detail.slice(0, 80))
-                    : "Görev iletilemedi.",
+                    (data && (data.error || data.message)
+                      ? " " + String(data.error || data.message).trim().slice(0, 80)
+                      : ""),
+                  "İletim tamamlanamadı. Bağlantıyı kontrol edip tekrar dene.",
                 ),
               );
               return;
@@ -7378,7 +7358,7 @@ const PANEL_DEBUG =
             openGorevlerDetail(taskIndex);
             showHint(buildTaskBridgeSuccessReadableHint(data));
           } catch {
-            showHint("Bağlantı kurulamadı. Bağlantıyı kontrol edin.");
+            showHint("İletim tamamlanamadı. Bağlantıyı kontrol edip tekrar dene.");
           } finally {
             if (detailBridgeBtn) {
               detailBridgeBtn.disabled = false;
