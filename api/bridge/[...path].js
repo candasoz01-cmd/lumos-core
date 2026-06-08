@@ -1,6 +1,7 @@
 /**
  * Vercel serverless proxy: /api/bridge/* → BRIDGE_UPSTREAM_URL/*
- * Phase 1: panel uses /api/bridge/task only; token injected server-side.
+ * Phase 1: panel POST /api/bridge/task; Phase 2: GET /api/bridge/last-result.
+ * Token injected server-side for all proxied paths.
  */
 
 const HOP_BY_HOP = new Set([

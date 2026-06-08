@@ -10,9 +10,13 @@ Panel görev çağrıları (`POST /task`) artık tarayıcıdan doğrudan köprü
 |----------|--------|----------|
 | `BRIDGE_UPSTREAM_URL` | Vercel / `vercel dev` (sunucu) | Örn. `http://127.0.0.1:8765` |
 | `KANDO_BRIDGE_SECRET` | Vercel / `vercel dev` (sunucu) | Köprü token'ı; tarayıcıya gömülmez |
-| `PUBLIC_KANDO_TOKEN` | ui `.env.local` (isteğe bağlı) | **Yalnızca** sohbet / upload / controlled / health — Phase 2'ye kadar |
+| `PUBLIC_KANDO_TOKEN` | ui `.env.local` (isteğe bağlı) | **Yalnızca** sohbet / upload / controlled / health |
 
 `BRIDGE_UPSTREAM_URL` tanımsızsa proxy **503** döner; panel görev akışı mevcut “bağlantı yapılandırılmamış” UX'ini gösterir.
+
+## Phase 2: medya outbox (`/api/bridge/last-result`)
+
+Medya sekmesindeki “son sonuç” yenileme artık **`GET /api/bridge/last-result`** üzerinden gider; tarayıcı `X-Kando-Token` taşımaz. Proxy `BRIDGE_UPSTREAM_URL/last-result` adresine iletir. `BRIDGE_UPSTREAM_URL` yoksa **503** — görev akışıyla aynı “bağlantı yapılandırılmamış” mesajı.
 
 Yerel smoke (proxy ile):
 

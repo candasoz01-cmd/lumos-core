@@ -4496,6 +4496,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
         "Panel bağlantısı yapılandırılmamış. Köprü ve pano işlemleri bu ortamda devre dışı; cihaz yöneticinizden bağlantı anahtarını tanımlamasını isteyin.";
       /** Phase 1: görev köprüsü same-origin proxy; tarayıcı token taşımaz. */
       const TASK_BRIDGE_URL = "/api/bridge/task";
+      /** Phase 2: medya outbox (last-result) same-origin proxy; tarayıcı token taşımaz. */
+      const LAST_RESULT_BRIDGE_URL = "/api/bridge/last-result";
 
       function bridgeOpsBlocked() {
         return bridgeTokenMissing;
@@ -8413,23 +8415,18 @@ const PANEL_DEBUG = import.meta.env.DEV;
           hint.hidden = true;
           hint.textContent = "";
           btn.disabled = true;
-          if (bridgeOpsBlocked()) {
-            hint.textContent = panelUserVisibleText(BRIDGE_TOKEN_MSG);
-            hint.hidden = false;
-            pre.hidden = true;
-            btn.disabled = false;
-            return;
-          }
-          const url = BRIDGE_BASE_URL + "/last-result";
           try {
-            const r = await fetch(url, {
+            const r = await fetch(LAST_RESULT_BRIDGE_URL, {
               method: "GET",
-              headers: { "X-Kando-Token": kandoToken },
               cache: "no-store",
-              mode: "cors",
-              credentials: "omit",
             });
             const text = await r.text();
+            if (taskBridgeBlockedResponse(r.status)) {
+              hint.textContent = panelUserVisibleText(BRIDGE_TOKEN_MSG);
+              hint.hidden = false;
+              pre.hidden = true;
+              return;
+            }
             if (!r.ok) {
               const snippet =
                 text && String(text).trim().length
