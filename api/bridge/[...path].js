@@ -28,10 +28,27 @@ function normalizeUpstreamBase() {
     .replace(/\/$/, "");
 }
 
-function pathSegments(query) {
+function pathSegments(query, url) {
   const raw = query.path;
-  if (Array.isArray(raw)) return raw.map((s) => String(s));
-  if (raw != null && raw !== "") return [String(raw)];
+  if (Array.isArray(raw)) {
+    const segments = raw.map((s) => String(s)).filter(Boolean);
+    if (segments.length) return segments;
+  } else if (raw != null && raw !== "") {
+    return [String(raw)];
+  }
+
+  if (url) {
+    try {
+      const pathname = new URL(url, "http://localhost").pathname;
+      const prefix = "/api/bridge/";
+      if (pathname.startsWith(prefix)) {
+        const rest = pathname.slice(prefix.length);
+        if (rest) return rest.split("/").filter(Boolean);
+      }
+    } catch {
+      /* ignore malformed URL */
+    }
+  }
   return [];
 }
 
@@ -65,7 +82,7 @@ export default async function handler(req, res) {
     return res.status(503).json(PROXY_UNAVAILABLE);
   }
 
-  const segments = pathSegments(req.query);
+  const segments = pathSegments(req.query, req.url);
   const targetUrl = `${upstreamBase}/${segments.join("/")}`;
   const secret = String(process.env.KANDO_BRIDGE_SECRET || "").trim();
   const method = String(req.method || "GET").toUpperCase();
