@@ -25,8 +25,8 @@ const STATUS_URL =
 /** Görev motoru: GET/POST /tasks → `.lumos/tasks.json` (`panel/scripts/panel_tasks_server.py`, varsayılan :8766). */
 const TASKS_API_URL =
   import.meta.env.PUBLIC_LUMOS_PANEL_TASKS_URL || "http://127.0.0.1:8766";
-const PANEL_DEBUG =
-  import.meta.env.DEV || import.meta.env.PUBLIC_LUMOS_PANEL_DEV === "1";
+// Prod builds ignore PUBLIC_LUMOS_PANEL_DEV; bundle token risk is separate.
+const PANEL_DEBUG = import.meta.env.DEV;
 ---
 
 <html lang="tr">
