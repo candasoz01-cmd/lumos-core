@@ -4498,6 +4498,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
       const TASK_BRIDGE_URL = "/api/bridge/task";
       /** Phase 2: medya outbox (last-result) same-origin proxy; tarayıcı token taşımaz. */
       const LAST_RESULT_BRIDGE_URL = "/api/bridge/last-result";
+      /** Phase 2: kontrollü dosya köprüsü same-origin proxy; tarayıcı token taşımaz. */
+      const CONTROLLED_BRIDGE_URL = "/api/bridge/controlled";
 
       function bridgeOpsBlocked() {
         return bridgeTokenMissing;
@@ -7660,17 +7662,16 @@ const PANEL_DEBUG = import.meta.env.DEV;
       }
 
       async function callControlledBridge(payload) {
-        if (bridgeOpsBlocked()) {
-          return { ok: false, status: 0, data: null };
-        }
-        const r = await fetch(`${BRIDGE_BASE_URL}/controlled`, {
+        const r = await fetch(CONTROLLED_BRIDGE_URL, {
           method: "POST",
           headers: {
             "Content-Type": "application/json; charset=utf-8",
-            "X-Kando-Token": kandoToken,
           },
           body: JSON.stringify(payload),
         });
+        if (taskBridgeBlockedResponse(r.status)) {
+          return { ok: false, status: r.status, data: null };
+        }
         const text = await r.text();
         let data = null;
         try {
