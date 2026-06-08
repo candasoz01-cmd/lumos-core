@@ -14,6 +14,31 @@ export KANDO_BRIDGE_SECRET='test123'
 
 `KANDO_BRIDGE_SECRET` sunucu tarafı; `PUBLIC_KANDO_TOKEN` tarayıcı bundle'ında görünür — yalnızca düşük riskli yerel placeholder kullanın.
 
+### Ortam dosyası adları
+
+| Konum | Dosya | Not |
+|--------|-------|-----|
+| Astro UI | `ui/.env.local` | `npm run dev` buradan okur (`.env` değil) |
+| Depo kökü | `.env.example` | Örnekte `KANDO_TOKEN` geçer; köprü tarafında karşılığı `KANDO_BRIDGE_SECRET` |
+
+Yerel smoke: `ui/.env.local` içinde `PUBLIC_KANDO_TOKEN`, shell'de `KANDO_BRIDGE_SECRET` — ikisi aynı değer.
+
+### `PUBLIC_*` URL'ler (yerel smoke)
+
+`PUBLIC_LUMOS_CHAT_URL` **tanımsızsa** panel varsayılan olarak Render'a gider (`https://lumos-core-1.onrender.com/chat`). Yerel köprü smoke için açıkça ayarlayın:
+
+```bash
+# ui/.env.local
+PUBLIC_LUMOS_CHAT_URL=http://127.0.0.1:8765/chat
+```
+
+Aynı köprü portu (8765) için kontrol uçları:
+
+```bash
+PUBLIC_LUMOS_PANEL_UPLOAD_URL=http://127.0.0.1:8765/upload
+PUBLIC_LUMOS_PANEL_HEALTH_URL=http://127.0.0.1:8765/health
+```
+
 ## Port kontrolü (drift)
 
 Smoke öncesi hangi sürecin hangi portta dinlediğini doğrulayın:
@@ -28,6 +53,10 @@ Smoke öncesi hangi sürecin hangi portta dinlediğini doğrulayın:
 lsof -nP -iTCP:8765 -sTCP:LISTEN
 lsof -nP -iTCP:8766 -sTCP:LISTEN
 ```
+
+**8765 meşgulse:** `KANDO_BRIDGE_PORT=8766` köprüyü panel görev sunucusunun varsayılan portuyla çakıştırır (`panel_tasks_server` → 8766). Köprü için **8767+** kullanın veya görev sunucusunu farklı porta kaydırın; `ui/.env.local` içindeki `PUBLIC_*` URL'leri yeni köprü portuna göre güncelleyin.
+
+**`127.0.0.1` tercih edin:** macOS'ta `localhost` bazen IPv6 (`::1`) çözülür; köprü `127.0.0.1`'de dinlerken panel `localhost` ile bağlanırsa bağlantı drift'i görülebilir. Smoke ve `curl` örneklerinde `127.0.0.1` kullanın.
 
 ## Başlatma sırası
 
@@ -50,11 +79,14 @@ python3 panel/scripts/panel_tasks_server.py
 
 ```bash
 cd ui
-# Örnek ui/.env:
+# ui/.env.local örneği:
 # PUBLIC_LUMOS_CHAT_URL=http://127.0.0.1:8765/chat
+# PUBLIC_LUMOS_PANEL_UPLOAD_URL=http://127.0.0.1:8765/upload
+# PUBLIC_LUMOS_PANEL_HEALTH_URL=http://127.0.0.1:8765/health
 # PUBLIC_KANDO_TOKEN=test123
 # PUBLIC_LUMOS_PANEL_TASKS_URL=http://127.0.0.1:8766
 npm run dev
+# Panel: http://127.0.0.1:4321/panel  (Astro varsayılan dev portu)
 # veya build sonrası: npm run preview
 ```
 
