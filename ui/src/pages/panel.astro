@@ -4494,9 +4494,15 @@ const PANEL_DEBUG = import.meta.env.DEV;
       const bridgeTokenMissing = !PANEL_DEBUG && !String(kandoToken || "").trim();
       const BRIDGE_TOKEN_MSG =
         "Panel bağlantısı yapılandırılmamış. Köprü ve pano işlemleri bu ortamda devre dışı; cihaz yöneticinizden bağlantı anahtarını tanımlamasını isteyin.";
+      /** Phase 1: görev köprüsü same-origin proxy; tarayıcı token taşımaz. */
+      const TASK_BRIDGE_URL = "/api/bridge/task";
 
       function bridgeOpsBlocked() {
         return bridgeTokenMissing;
+      }
+
+      function taskBridgeBlockedResponse(status) {
+        return status === 503;
       }
 
       function maskBridgeSensitive(text) {
@@ -6188,16 +6194,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
             setSendHint("");
 
             try {
-              if (bridgeOpsBlocked()) {
-                setSendHint(BRIDGE_TOKEN_MSG);
-                return;
-              }
-              // PUBLIC token (kandoToken) visible in browser — local/dev only
-              const r = await fetch(`${BRIDGE_BASE_URL}/task`, {
+              const r = await fetch(TASK_BRIDGE_URL, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
-                  "X-Kando-Token": kandoToken,
                 },
                 body: JSON.stringify({
                   text: trimmed,
@@ -6212,6 +6212,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 data = null;
               }
 
+              if (taskBridgeBlockedResponse(r.status)) {
+                setSendHint(BRIDGE_TOKEN_MSG);
+                return;
+              }
               if (r.status === 401) {
                 setSendHint("Bağlantı doğrulanamadı. Cihaz ayarlarını kontrol edip tekrar dene.");
                 return;
@@ -7331,15 +7335,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
 
           try {
-            if (bridgeOpsBlocked()) {
-              showHint(BRIDGE_TOKEN_MSG);
-              return;
-            }
-            const r = await fetch(`${BRIDGE_BASE_URL}/task`, {
+            const r = await fetch(TASK_BRIDGE_URL, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
-                "X-Kando-Token": kandoToken,
               },
               body: JSON.stringify({
                 goal: title,
@@ -7356,6 +7355,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
               data = null;
             }
 
+            if (taskBridgeBlockedResponse(r.status)) {
+              showHint(BRIDGE_TOKEN_MSG);
+              return;
+            }
             if (r.status === 401) {
               showHint("Bağlantı doğrulanamadı. Cihaz ayarlarını kontrol edip tekrar dene.");
               return;
@@ -8077,18 +8080,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
           let taskOk = false;
           try {
-            const r = await fetch(`${BRIDGE_BASE_URL}/task`, {
+            const r = await fetch(TASK_BRIDGE_URL, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
-                "X-Kando-Token": kandoToken,
               },
               body: JSON.stringify({
                 goal: "lumos capability probe",
                 source: "panel_capability_test",
               }),
             });
-            taskOk = r.ok;
+            taskOk = r.ok && !taskBridgeBlockedResponse(r.status);
           } catch {
             taskOk = false;
           }

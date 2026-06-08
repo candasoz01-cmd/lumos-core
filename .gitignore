@@ -46,3 +46,4 @@ kando-ai/*.png
 .tmp-panel-samples/
 
 ui/.env.local
+.vercel
