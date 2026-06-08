@@ -6,8 +6,10 @@ import GlobalMay19Corner from "../components/GlobalMay19Corner.astro";
  * GET /status: aynı origin’de `.../status` — `PUBLIC_LUMOS_PANEL_STATUS_URL` ile ayrı host verilmezse CHAT_URL’den türetilir.
  */
 const CHAT_URL = import.meta.env.PUBLIC_LUMOS_CHAT_URL || "https://lumos-core-1.onrender.com/chat";
-/** PUBLIC token visible in browser — local/dev only */
-const kandoToken = import.meta.env.PUBLIC_KANDO_TOKEN || "test123";
+/** PUBLIC token visible in browser — local/dev only; prod build omits test123 fallback */
+const kandoToken = import.meta.env.DEV
+  ? import.meta.env.PUBLIC_KANDO_TOKEN || "test123"
+  : import.meta.env.PUBLIC_KANDO_TOKEN || "";
 const UPLOAD_URL =
   import.meta.env.PUBLIC_LUMOS_PANEL_UPLOAD_URL ||
   String(CHAT_URL).replace(/\/chat\/?$/i, "") + "/panel/upload";
@@ -4489,6 +4491,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
       /** Görevler: panel_tasks_server → .lumos/tasks.json; localStorage önbellek (görev eklerken köprü yok). */
       const PANEL_GOREVLER_LS_KEY = "lumos_panel_gorevler_list_v1";
       const GOREVLER_FIELD_MAX_LEN = 2048;
+      const bridgeTokenMissing = !PANEL_DEBUG && !String(kandoToken || "").trim();
+      const BRIDGE_TOKEN_MSG =
+        "Panel bağlantısı yapılandırılmamış. Köprü ve pano işlemleri bu ortamda devre dışı; cihaz yöneticinizden bağlantı anahtarını tanımlamasını isteyin.";
+
+      function bridgeOpsBlocked() {
+        return bridgeTokenMissing;
+      }
 
       function maskBridgeSensitive(text) {
         if (text == null) return "";
@@ -5860,6 +5869,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   : 0;
               }
             }
+            if (bridgeOpsBlocked()) {
+              setSendHint(BRIDGE_TOKEN_MSG);
+              appendBubble("error", BRIDGE_TOKEN_MSG);
+              return;
+            }
             const r = await fetch(CHAT_URL, {
               method: "POST",
               headers: {
@@ -6174,6 +6188,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
             setSendHint("");
 
             try {
+              if (bridgeOpsBlocked()) {
+                setSendHint(BRIDGE_TOKEN_MSG);
+                return;
+              }
               // PUBLIC token (kandoToken) visible in browser — local/dev only
               const r = await fetch(`${BRIDGE_BASE_URL}/task`, {
                 method: "POST",
@@ -7313,6 +7331,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
 
           try {
+            if (bridgeOpsBlocked()) {
+              showHint(BRIDGE_TOKEN_MSG);
+              return;
+            }
             const r = await fetch(`${BRIDGE_BASE_URL}/task`, {
               method: "POST",
               headers: {
@@ -7633,6 +7655,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
       }
 
       async function callControlledBridge(payload) {
+        if (bridgeOpsBlocked()) {
+          return { ok: false, status: 0, data: null };
+        }
         const r = await fetch(`${BRIDGE_BASE_URL}/controlled`, {
           method: "POST",
           headers: {
@@ -8033,6 +8058,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
             hint.textContent = panelUserVisibleText("Test çalışıyor…");
           }
           btn.disabled = true;
+          if (bridgeOpsBlocked()) {
+            if (hint) hint.textContent = panelUserVisibleText(BRIDGE_TOKEN_MSG);
+            btn.disabled = false;
+            return;
+          }
           const probePath = "capability/_probe.txt";
           const probeBody = "lumos capability probe\n";
 
@@ -8324,6 +8354,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
       }
 
       void (async function checkBridgeHealth() {
+        if (bridgeOpsBlocked()) {
+          setPanelConnBadge("bad");
+          const badge = document.getElementById("panel-conn-badge");
+          if (badge) badge.textContent = "Yapılandırılmamış";
+          bridgeHealthLine = "yapılandırılmamış";
+          paintSistemDurumuPanel();
+          return;
+        }
         setPanelConnBadge("pending");
         bridgeHealthLine = "deneniyor…";
         paintSistemDurumuPanel();
@@ -8373,6 +8411,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
           hint.hidden = true;
           hint.textContent = "";
           btn.disabled = true;
+          if (bridgeOpsBlocked()) {
+            hint.textContent = panelUserVisibleText(BRIDGE_TOKEN_MSG);
+            hint.hidden = false;
+            pre.hidden = true;
+            btn.disabled = false;
+            return;
+          }
           const url = BRIDGE_BASE_URL + "/last-result";
           try {
             const r = await fetch(url, {
