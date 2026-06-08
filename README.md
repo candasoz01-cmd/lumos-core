@@ -205,13 +205,15 @@ The **Kando bridge** (or equivalent backend) for the panel's chat, task, and fil
 
 Provide bridge addresses to the UI via Vercel (or other static host) environment variables; run the bridge process on that service. The example remote addresses in `panel.astro` are references only—use your own URLs and token policy.
 
+**Task bridge proxy (Phase 1):** Panel `POST /task` calls go to same-origin `/api/bridge/task`. Configure **server-side** `BRIDGE_UPSTREAM_URL` (e.g. `http://127.0.0.1:8765`) and `KANDO_BRIDGE_SECRET` on Vercel or `vercel dev`—not `PUBLIC_*`. See [docs/local-kando-dev-runbook.md](docs/local-kando-dev-runbook.md).
+
 ### Environment variables (`PUBLIC_*`)
 
 In Astro, the `PUBLIC_` prefix means the value is **embedded into the client (browser)**. Typical examples for production UI:
 
 - `PUBLIC_LUMOS_CHAT_URL`
 - `PUBLIC_LUMOS_PANEL_UPLOAD_URL`
-- `PUBLIC_KANDO_TOKEN` (or similar `PUBLIC_*` token / hint fields)
+- `PUBLIC_KANDO_TOKEN` (chat / upload / controlled only in Phase 1; task uses server-side proxy)
 - Optional: `PUBLIC_LUMOS_PANEL_HEALTH_URL`
 
 **Security warning:** Do **not** put real secret keys, production tokens, or long-lived secrets into `PUBLIC_KANDO_TOKEN`, `PUBLIC_LUMOS_PANEL_TOKEN_HINT`, or any other `PUBLIC_*` variable. These values are visible in the build output and readable from the browser. Use temporary, low-risk values for local experimentation; in production, protect the bridge with server-side authentication, short-lived tokens, and network restrictions. Sensitive secrets must only be kept in **server-side** environment variables (on the bridge / backend host).

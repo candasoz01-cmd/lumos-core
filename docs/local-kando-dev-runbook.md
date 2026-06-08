@@ -2,9 +2,31 @@
 
 Kısa smoke rehberi. Ayrıntılı API ve güvenlik: [scripts/README_kando_bridge_server.md](../scripts/README_kando_bridge_server.md).
 
-## Önkoşul: token eşleşmesi
+## Phase 1: görev köprüsü proxy (`/api/bridge/task`)
 
-Yerel geliştirmede köprü secret'ı ile panel token'ı **aynı** olmalı:
+Panel görev çağrıları (`POST /task`) artık tarayıcıdan doğrudan köprüye gitmez; same-origin **`/api/bridge/task`** üzerinden Vercel serverless proxy'ye gider. Proxy sunucu tarafında `KANDO_BRIDGE_SECRET` ekler ve `BRIDGE_UPSTREAM_URL/task` adresine iletir.
+
+| Değişken | Konum | Açıklama |
+|----------|--------|----------|
+| `BRIDGE_UPSTREAM_URL` | Vercel / `vercel dev` (sunucu) | Örn. `http://127.0.0.1:8765` |
+| `KANDO_BRIDGE_SECRET` | Vercel / `vercel dev` (sunucu) | Köprü token'ı; tarayıcıya gömülmez |
+| `PUBLIC_KANDO_TOKEN` | ui `.env.local` (isteğe bağlı) | **Yalnızca** sohbet / upload / controlled / health — Phase 2'ye kadar |
+
+`BRIDGE_UPSTREAM_URL` tanımsızsa proxy **503** döner; panel görev akışı mevcut “bağlantı yapılandırılmamış” UX'ini gösterir.
+
+Yerel smoke (proxy ile):
+
+```bash
+export KANDO_BRIDGE_SECRET='test123'
+export BRIDGE_UPSTREAM_URL='http://127.0.0.1:8765'
+./scripts/bridge_start.sh
+# başka terminal:
+vercel dev   # veya Vercel preview; Astro npm run dev tek başına /api/bridge sunmaz
+```
+
+## Önkoşul: token eşleşmesi (sohbet / controlled — Phase 1 dışı)
+
+Sohbet, upload, `POST /controlled` ve health probe hâlâ istemci `PUBLIC_KANDO_TOKEN` kullanır. Yerel geliştirmede köprü secret'ı ile bu token **aynı** olmalı:
 
 ```bash
 export KANDO_BRIDGE_SECRET='test123'
@@ -12,7 +34,7 @@ export KANDO_BRIDGE_SECRET='test123'
 # PUBLIC_KANDO_TOKEN=test123
 ```
 
-`KANDO_BRIDGE_SECRET` sunucu tarafı; `PUBLIC_KANDO_TOKEN` tarayıcı bundle'ında görünür — yalnızca düşük riskli yerel placeholder kullanın.
+`KANDO_BRIDGE_SECRET` sunucu tarafı; `PUBLIC_KANDO_TOKEN` tarayıcı bundle'ında görünür — yalnızca düşük riskli yerel placeholder kullanın. **Görev (`/task`) çağrıları** Phase 1'de proxy üzerinden gider; tarayıcı token taşımaz.
 
 ### Ortam dosyası adları
 
@@ -75,9 +97,16 @@ export KANDO_BRIDGE_SECRET='test123'
 python3 panel/scripts/panel_tasks_server.py
 ```
 
-3. **UI** — Astro panel (isteğe bağlı; tam panel deneyimi için):
+3. **UI** — proxy ile tam görev smoke için `vercel dev` (depo kökü); yalnızca Astro için `cd ui && npm run dev`:
 
 ```bash
+# Depo kökü — görev proxy dahil:
+export BRIDGE_UPSTREAM_URL='http://127.0.0.1:8765'
+export KANDO_BRIDGE_SECRET='test123'
+vercel dev
+# Panel: http://127.0.0.1:3000/panel (vercel dev varsayılan portu)
+
+# Alternatif: yalnız Astro (görev proxy yok; /api/bridge 404 veya 503 benzeri)
 cd ui
 # ui/.env.local örneği:
 # PUBLIC_LUMOS_CHAT_URL=http://127.0.0.1:8765/chat
@@ -86,8 +115,7 @@ cd ui
 # PUBLIC_KANDO_TOKEN=test123
 # PUBLIC_LUMOS_PANEL_TASKS_URL=http://127.0.0.1:8766
 npm run dev
-# Panel: http://127.0.0.1:4321/panel  (Astro varsayılan dev portu)
-# veya build sonrası: npm run preview
+# Panel: http://127.0.0.1:4321/panel
 ```
 
 Alternatif: `http://127.0.0.1:8766/index.html#chat` (panel_tasks_server statik paneli).
