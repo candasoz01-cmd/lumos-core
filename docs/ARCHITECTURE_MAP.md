@@ -174,3 +174,23 @@ lumos-core/
 | **docs/STABILIZATION_EXECUTION_PLAN.md** | Single execution plan: top 7 tasks in safest order, analysis vs code-change, low-risk first, no-touch areas, regression test checklist. |
 
 This map is the single reference for core modules, panel structure, backend contracts, and coupling; update it when adding new core state, panel screens, or entry points.
+
+---
+
+## Current verified entry chain
+
+Verified on 2026-06-09:
+
+```text
+lumos / python -m lumos_core
+-> src/lumos_core/__main__.py
+-> src/main.py
+-> core.lumos_runtime.create_runtime
+-> cli.cli_router.run_cli_loop
+```
+
+Current active runtime is `src/`.
+
+`packages/kando_*` modules exist as separated/package-oriented Kando modules, but the root `lumos` entrypoint does not currently start from those packages.
+
+Root `package.json` contains `build: cd ui && npm install && npm run build`, but no `ui/` directory is visible in the current confirmed project map. Treat it as a suspicious or legacy build target until verified.
