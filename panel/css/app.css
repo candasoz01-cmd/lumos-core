@@ -1019,6 +1019,15 @@ body {
 .lumos-chat-composer-row .lumos-chat-input {
   flex: 1;
   min-width: 0;
+  max-width: 100%;
+  min-height: 2.5rem;
+  max-height: 9rem;
+  resize: vertical;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.4;
 }
 
 .lumos-chat-attach-wrap {

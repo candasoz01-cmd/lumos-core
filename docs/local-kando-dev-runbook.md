@@ -10,13 +10,25 @@ Panel görev çağrıları (`POST /task`) artık tarayıcıdan doğrudan köprü
 |----------|--------|----------|
 | `BRIDGE_UPSTREAM_URL` | Vercel / `vercel dev` (sunucu) | Örn. `http://127.0.0.1:8765` |
 | `KANDO_BRIDGE_SECRET` | Vercel / `vercel dev` (sunucu) | Köprü token'ı; tarayıcıya gömülmez |
-| `PUBLIC_KANDO_TOKEN` | ui `.env.local` (isteğe bağlı) | **Yalnızca** sohbet / upload / controlled / health |
+| `PUBLIC_KANDO_TOKEN` | ui `.env.local` (isteğe bağlı) | **Yalnızca** sohbet / upload / health |
 
 `BRIDGE_UPSTREAM_URL` tanımsızsa proxy **503** döner; panel görev akışı mevcut “bağlantı yapılandırılmamış” UX'ini gösterir.
 
 ## Phase 2: medya outbox (`/api/bridge/last-result`)
 
 Medya sekmesindeki “son sonuç” yenileme artık **`GET /api/bridge/last-result`** üzerinden gider; tarayıcı `X-Kando-Token` taşımaz. Proxy `BRIDGE_UPSTREAM_URL/last-result` adresine iletir. `BRIDGE_UPSTREAM_URL` yoksa **503** — görev akışıyla aynı “bağlantı yapılandırılmamış” mesajı.
+
+## Phase 2 (adım 2): kontrollü dosya (`/api/bridge/controlled`)
+
+Dosyalar sekmesi ve `file_rw` çağrıları artık **`POST /api/bridge/controlled`** üzerinden gider; tarayıcı `X-Kando-Token` taşımaz. Proxy `BRIDGE_UPSTREAM_URL/controlled` adresine iletir. `BRIDGE_UPSTREAM_URL` yoksa **503** — görev / last-result ile aynı “bağlantı yapılandırılmamış” mesajı.
+
+Yerel smoke (proxy ile):
+
+```bash
+curl -sS -X POST http://localhost:3000/api/bridge/controlled \
+  -H 'Content-Type: application/json' \
+  -d '{"permission":"file_rw","tool":"read_file","action":"read_file","command":"read","path":"capability/_probe.txt"}'
+```
 
 Yerel smoke (proxy ile):
 
@@ -28,9 +40,9 @@ export BRIDGE_UPSTREAM_URL='http://127.0.0.1:8765'
 vercel dev   # veya Vercel preview; Astro npm run dev tek başına /api/bridge sunmaz
 ```
 
-## Önkoşul: token eşleşmesi (sohbet / controlled — Phase 1 dışı)
+## Önkoşul: token eşleşmesi (sohbet — görev / last-result / controlled dışı)
 
-Sohbet, upload, `POST /controlled` ve health probe hâlâ istemci `PUBLIC_KANDO_TOKEN` kullanır. Yerel geliştirmede köprü secret'ı ile bu token **aynı** olmalı:
+Sohbet, upload ve health probe hâlâ istemci `PUBLIC_KANDO_TOKEN` kullanır. Yerel geliştirmede köprü secret'ı ile bu token **aynı** olmalı:
 
 ```bash
 export KANDO_BRIDGE_SECRET='test123'

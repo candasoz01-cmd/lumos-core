@@ -1,6 +1,7 @@
 /**
  * Vercel serverless proxy: /api/bridge/* → BRIDGE_UPSTREAM_URL/*
- * Phase 1: panel POST /api/bridge/task; Phase 2: GET /api/bridge/last-result.
+ * Phase 1: panel POST /api/bridge/task; Phase 2: GET /api/bridge/last-result,
+ * POST /api/bridge/controlled.
  * Token injected server-side for all proxied paths.
  */
 
