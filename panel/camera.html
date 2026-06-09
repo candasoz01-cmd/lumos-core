@@ -3,36 +3,45 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <title>Lumos Panel — Kamera testi</title>
   <style>
     :root {
-      --bg: #1a1a1a;
-      --bg-card: #252525;
+      --bg: #111;
+      --bg-card: #1e1e1e;
       --border: #3a3a3a;
-      --text: #e0e0e0;
-      --text-muted: #999;
+      --text: #e8e8e8;
+      --text-muted: #aaa;
       --link: #7eb8ff;
       --accent: #38ceff;
       --danger: #f0b4b4;
-      --radius: 8px;
-      --spacing: 0.75rem;
+      --radius: 10px;
+      --spacing: 1rem;
+      --btn-min-h: 3rem;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
 
     * {
       box-sizing: border-box;
     }
 
+    html,
     body {
       margin: 0;
-      min-height: 100vh;
+      min-height: 100%;
       font-family: system-ui, -apple-system, sans-serif;
-      font-size: 14px;
+      font-size: 16px;
       color: var(--text);
-      background: #111;
+      background: var(--bg);
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      padding-bottom: calc(var(--spacing) + var(--safe-bottom));
     }
 
     .page {
-      max-width: 720px;
+      max-width: 960px;
       margin: 0 auto;
       padding: var(--spacing);
     }
@@ -43,81 +52,69 @@
       align-items: center;
       gap: 0.75rem;
       margin-bottom: var(--spacing);
-      padding-bottom: var(--spacing);
-      border-bottom: 1px solid var(--border);
     }
 
     .header h1 {
       margin: 0;
-      font-size: 1.1rem;
+      font-size: 1.15rem;
       font-weight: 600;
     }
 
     .back-link {
       color: var(--link);
       text-decoration: none;
-    }
-
-    .back-link:hover {
-      text-decoration: underline;
+      font-size: 1rem;
+      padding: 0.35rem 0;
     }
 
     .note {
       margin: 0 0 var(--spacing);
-      padding: 0.65rem 0.75rem;
+      padding: 0.75rem;
       border-radius: var(--radius);
       background: rgba(56, 206, 255, 0.08);
       border: 1px solid rgba(56, 206, 255, 0.22);
       color: var(--text-muted);
       line-height: 1.45;
+      font-size: 0.9rem;
     }
 
     .error {
       display: none;
       margin: 0 0 var(--spacing);
-      padding: 0.65rem 0.75rem;
+      padding: 0.75rem;
       border-radius: var(--radius);
       background: rgba(240, 180, 180, 0.12);
       border: 1px solid rgba(240, 180, 180, 0.35);
       color: var(--danger);
       line-height: 1.45;
+      font-size: 0.95rem;
     }
 
     .error.is-visible {
       display: block;
     }
 
-    .stage {
-      display: grid;
-      gap: var(--spacing);
+    .live-section {
+      margin-bottom: var(--spacing);
     }
 
-    .card {
-      padding: var(--spacing);
+    .video-shell {
+      position: relative;
+      width: 100%;
+      min-height: min(62vh, 520px);
+      max-height: 72vh;
       border-radius: var(--radius);
-      background: var(--bg-card);
+      overflow: hidden;
+      background: #000;
       border: 1px solid var(--border);
     }
 
-    .card h2 {
-      margin: 0 0 0.5rem;
-      font-size: 0.95rem;
-      font-weight: 600;
-    }
-
-    .preview-wrap {
-      position: relative;
-      overflow: hidden;
-      border-radius: var(--radius);
-      background: #000;
-      aspect-ratio: 4 / 3;
-    }
-
-    video,
-    .preview-img {
+    #live-video {
       display: block;
       width: 100%;
       height: 100%;
+      min-height: min(62vh, 520px);
+      max-height: 72vh;
       object-fit: cover;
       background: #000;
     }
@@ -128,21 +125,22 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 1rem;
+      padding: 1.25rem;
       text-align: center;
       color: var(--text-muted);
       pointer-events: none;
+      font-size: 1rem;
     }
 
-    canvas {
-      display: none;
-    }
-
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
+    .control-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.65rem;
       margin-top: 0.75rem;
+    }
+
+    .control-bar .btn-wide {
+      grid-column: 1 / -1;
     }
 
     button {
@@ -151,30 +149,105 @@
       border-radius: var(--radius);
       background: #2d2d2d;
       color: var(--text);
-      padding: 0.45rem 0.75rem;
+      min-height: var(--btn-min-h);
+      padding: 0.75rem 1rem;
       font: inherit;
+      font-size: 1rem;
+      font-weight: 600;
       cursor: pointer;
+      touch-action: manipulation;
     }
 
-    button:hover:not(:disabled) {
+    button:hover:not(:disabled),
+    button:active:not(:disabled) {
       border-color: var(--accent);
-      color: #fff;
     }
 
     button:disabled {
-      opacity: 0.45;
+      opacity: 0.42;
       cursor: not-allowed;
     }
 
     button.primary {
-      border-color: rgba(56, 206, 255, 0.45);
-      background: rgba(56, 206, 255, 0.12);
+      border-color: rgba(56, 206, 255, 0.55);
+      background: rgba(56, 206, 255, 0.18);
     }
 
-    .status-line {
-      margin: 0.5rem 0 0;
+    button.capture-btn {
+      border-color: rgba(198, 166, 106, 0.55);
+      background: rgba(198, 166, 106, 0.16);
+      font-size: 1.05rem;
+    }
+
+    .card {
+      padding: var(--spacing);
+      border-radius: var(--radius);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      margin-bottom: var(--spacing);
+    }
+
+    .card h2 {
+      margin: 0 0 0.65rem;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .capture-preview-wrap {
+      position: relative;
+      width: 100%;
+      min-height: 220px;
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: #000;
+      border: 1px solid var(--border);
+    }
+
+    #capture-preview {
+      display: block;
+      width: 100%;
+      max-height: 50vh;
+      object-fit: contain;
+      background: #000;
+    }
+
+    #capture-preview[hidden] {
+      display: none;
+    }
+
+    .debug-panel {
+      margin: 0;
+      padding: 0.75rem;
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.78rem;
+      line-height: 1.55;
       color: var(--text-muted);
-      font-size: 0.85rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    canvas {
+      display: none;
+    }
+
+    @media (min-width: 640px) {
+      .control-bar {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .control-bar .btn-wide {
+        grid-column: auto;
+      }
+
+      .control-bar .btn-capture-row {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.65rem;
+      }
     }
   </style>
 </head>
@@ -186,43 +259,60 @@
     </header>
 
     <p class="note" role="note">
-      Yerel önizleme ve indirme only — fotoğraf hiçbir yere yüklenmez.
-      Kamera erişimi için sayfayı <strong>http://localhost</strong> veya <strong>HTTPS</strong> üzerinden açın;
-      <code>file://</code> protokolünde tarayıcıya göre erişim başarısız olabilir.
+      Yerel önizleme ve indirme — fotoğraf hiçbir yere yüklenmez.
+      Kamera için <strong>http://localhost</strong> veya <strong>HTTPS</strong> kullanın;
+      <code>file://</code> mobilde genelde çalışmaz.
     </p>
 
     <p id="error" class="error" role="alert" aria-live="assertive"></p>
 
-    <div class="stage">
-      <section class="card" aria-labelledby="live-title">
-        <h2 id="live-title">Canlı önizleme</h2>
-        <div class="preview-wrap">
-          <video id="live-video" playsinline autoplay muted aria-label="Canlı kamera"></video>
-          <div id="live-placeholder" class="preview-placeholder">Kamera kapalı</div>
-        </div>
-        <div class="actions">
-          <button type="button" id="btn-start" class="primary">Kamerayı aç</button>
-          <button type="button" id="btn-stop" disabled>Kamerayı kapat</button>
-          <button type="button" id="btn-switch" disabled>Ön / arka kamera</button>
-        </div>
-        <p id="camera-status" class="status-line">Durum: hazır</p>
-      </section>
+    <section class="live-section" aria-labelledby="live-title">
+      <h2 id="live-title" class="sr-only">Canlı önizleme</h2>
+      <div class="video-shell">
+        <video id="live-video" playsinline webkit-playsinline autoplay muted aria-label="Canlı kamera"></video>
+        <div id="live-placeholder" class="preview-placeholder">Kamera kapalı — açmak için aşağıdaki düğmeye dokunun</div>
+      </div>
 
-      <section class="card" aria-labelledby="capture-title">
-        <h2 id="capture-title">Yakalanan fotoğraf</h2>
-        <div class="preview-wrap">
-          <img id="capture-preview" class="preview-img" alt="" hidden />
-          <div id="capture-placeholder" class="preview-placeholder">Henüz fotoğraf yok</div>
-        </div>
-        <div class="actions">
-          <button type="button" id="btn-capture" disabled>Fotoğraf çek</button>
+      <div class="control-bar">
+        <button type="button" id="btn-start" class="primary btn-wide">Kamerayı aç</button>
+        <button type="button" id="btn-stop" disabled>Kapat</button>
+        <button type="button" id="btn-switch" disabled title="Ön/arka kamera">Kamera değiştir</button>
+        <div class="btn-capture-row btn-wide">
+          <button type="button" id="btn-capture" class="capture-btn" disabled>Fotoğraf çek</button>
           <button type="button" id="btn-download" disabled>JPG indir</button>
         </div>
-      </section>
-    </div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="capture-title">
+      <h2 id="capture-title">Yakalanan fotoğraf</h2>
+      <div class="capture-preview-wrap">
+        <img id="capture-preview" alt="" hidden />
+        <div id="capture-placeholder" class="preview-placeholder">Henüz fotoğraf yok</div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="debug-title">
+      <h2 id="debug-title">Durum</h2>
+      <pre id="debug-panel" class="debug-panel" aria-live="polite">Hazır.</pre>
+    </section>
   </div>
 
-  <canvas id="capture-canvas" width="1280" height="960" aria-hidden="true"></canvas>
+  <canvas id="capture-canvas" aria-hidden="true"></canvas>
+
+  <style>
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+  </style>
 
   <script>
     (function () {
@@ -234,7 +324,7 @@
       var capturePlaceholder = document.getElementById("capture-placeholder");
       var captureCanvas = document.getElementById("capture-canvas");
       var errorEl = document.getElementById("error");
-      var statusEl = document.getElementById("camera-status");
+      var debugPanel = document.getElementById("debug-panel");
       var btnStart = document.getElementById("btn-start");
       var btnStop = document.getElementById("btn-stop");
       var btnSwitch = document.getElementById("btn-switch");
@@ -242,9 +332,24 @@
       var btnDownload = document.getElementById("btn-download");
 
       var stream = null;
+      var videoDevices = [];
+      var activeDeviceIndex = -1;
       var facingMode = "user";
+      var useDeviceIdSwitch = false;
+      var activeCameraLabel = "—";
+      var lastCaptureResult = "—";
       var capturedBlob = null;
       var capturedObjectUrl = null;
+      var videoReady = false;
+
+      var debugState = {
+        cameraLabel: "—",
+        videoSize: "0 × 0",
+        deviceCount: 0,
+        switchMode: "—",
+        captureResult: "—",
+        streamState: "kapalı",
+      };
 
       function setError(message) {
         if (!message) {
@@ -256,8 +361,30 @@
         errorEl.classList.add("is-visible");
       }
 
-      function setStatus(text) {
-        statusEl.textContent = "Durum: " + text;
+      function renderDebug() {
+        debugPanel.textContent =
+          "Kamera: " +
+          debugState.cameraLabel +
+          "\nVideo: " +
+          debugState.videoSize +
+          "\nVideo cihaz sayısı: " +
+          debugState.deviceCount +
+          "\nGeçiş modu: " +
+          debugState.switchMode +
+          "\nAkış: " +
+          debugState.streamState +
+          "\nSon çekim: " +
+          debugState.captureResult;
+      }
+
+      function updateDebug(patch) {
+        var key;
+        for (key in patch) {
+          if (Object.prototype.hasOwnProperty.call(patch, key)) {
+            debugState[key] = patch[key];
+          }
+        }
+        renderDebug();
       }
 
       function revokeCapturedUrl() {
@@ -288,6 +415,18 @@
         stream = null;
       }
 
+      function setCaptureEnabled(enabled) {
+        videoReady = enabled;
+        btnCapture.disabled = !enabled;
+      }
+
+      function updateVideoSizeDebug() {
+        var w = liveVideo.videoWidth || 0;
+        var h = liveVideo.videoHeight || 0;
+        updateDebug({ videoSize: w + " × " + h });
+        return w > 0 && h > 0;
+      }
+
       function stopCamera() {
         stopTracks();
         liveVideo.srcObject = null;
@@ -295,8 +434,15 @@
         btnStart.disabled = false;
         btnStop.disabled = true;
         btnSwitch.disabled = true;
-        btnCapture.disabled = true;
-        setStatus("kapalı");
+        setCaptureEnabled(false);
+        activeDeviceIndex = -1;
+        activeCameraLabel = "—";
+        updateDebug({
+          cameraLabel: "—",
+          videoSize: "0 × 0",
+          streamState: "kapalı",
+          switchMode: videoDevices.length <= 1 ? "tek kamera" : useDeviceIdSwitch ? "deviceId" : "facingMode",
+        });
       }
 
       function isMediaSupported() {
@@ -323,41 +469,194 @@
         return "Kamera kullanılamıyor: " + ((err && err.message) || "bilinmeyen hata");
       }
 
-      function waitForVideoReady(video) {
-        if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0) {
-          return Promise.resolve();
+      function refreshVideoDevices() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+          videoDevices = [];
+          updateDebug({ deviceCount: 0 });
+          return Promise.resolve(videoDevices);
         }
+        return navigator.mediaDevices.enumerateDevices().then(function (devices) {
+          videoDevices = devices.filter(function (d) {
+            return d.kind === "videoinput";
+          });
+          useDeviceIdSwitch = videoDevices.length >= 2;
+          updateDebug({
+            deviceCount: videoDevices.length,
+            switchMode:
+              videoDevices.length <= 1
+                ? "tek kamera (devre dışı)"
+                : useDeviceIdSwitch
+                  ? "deviceId"
+                  : "facingMode",
+          });
+          return videoDevices;
+        });
+      }
+
+      function updateSwitchButton() {
+        if (videoDevices.length <= 1) {
+          btnSwitch.disabled = true;
+          btnSwitch.title = "Yalnızca bir kamera bulundu";
+          return;
+        }
+        btnSwitch.disabled = !stream;
+        btnSwitch.title = useDeviceIdSwitch ? "Sonraki video cihazına geç" : "Ön/arka kamera (facingMode)";
+      }
+
+      function resolveActiveLabel(mediaStream) {
+        if (activeDeviceIndex >= 0 && videoDevices[activeDeviceIndex]) {
+          var dev = videoDevices[activeDeviceIndex];
+          return dev.label || "Kamera " + (activeDeviceIndex + 1);
+        }
+        if (mediaStream) {
+          var track = mediaStream.getVideoTracks()[0];
+          if (track && track.label) return track.label;
+        }
+        return facingMode === "environment" ? "Arka kamera" : "Ön kamera";
+      }
+
+      function syncActiveDeviceFromStream() {
+        if (!stream || !videoDevices.length) {
+          return;
+        }
+        var track = stream.getVideoTracks()[0];
+        var settings = track && track.getSettings ? track.getSettings() : {};
+        var currentId = settings.deviceId;
+        if (currentId) {
+          for (var i = 0; i < videoDevices.length; i++) {
+            if (videoDevices[i].deviceId === currentId) {
+              activeDeviceIndex = i;
+              activeCameraLabel = resolveActiveLabel(stream);
+              updateDebug({ cameraLabel: activeCameraLabel });
+              return;
+            }
+          }
+        }
+        if (activeDeviceIndex < 0) {
+          activeDeviceIndex = 0;
+        }
+        activeCameraLabel = resolveActiveLabel(stream);
+        updateDebug({ cameraLabel: activeCameraLabel });
+      }
+
+      function buildVideoConstraints() {
+        if (useDeviceIdSwitch && activeDeviceIndex >= 0 && videoDevices[activeDeviceIndex]) {
+          return {
+            audio: false,
+            video: {
+              deviceId: { exact: videoDevices[activeDeviceIndex].deviceId },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+            },
+          };
+        }
+        return {
+          audio: false,
+          video: {
+            facingMode: { ideal: facingMode },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
+        };
+      }
+
+      function waitForVideoReady(video) {
         return new Promise(function (resolve, reject) {
+          function readyNow() {
+            return video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0 && video.videoHeight > 0;
+          }
+
+          if (readyNow()) {
+            resolve();
+            return;
+          }
+
           var timeout = window.setTimeout(function () {
             cleanup();
             reject(new Error("video-not-ready"));
-          }, 8000);
+          }, 12000);
 
           function cleanup() {
             window.clearTimeout(timeout);
-            video.removeEventListener("loadedmetadata", onReady);
-            video.removeEventListener("canplay", onReady);
+            video.removeEventListener("loadedmetadata", onEvent);
+            video.removeEventListener("loadeddata", onEvent);
+            video.removeEventListener("canplay", onEvent);
+            video.removeEventListener("playing", onEvent);
           }
 
-          function onReady() {
-            if (video.videoWidth > 0) {
+          function onEvent() {
+            if (readyNow()) {
               cleanup();
               resolve();
             }
           }
 
-          video.addEventListener("loadedmetadata", onReady);
-          video.addEventListener("canplay", onReady);
+          video.addEventListener("loadedmetadata", onEvent);
+          video.addEventListener("loadeddata", onEvent);
+          video.addEventListener("canplay", onEvent);
+          video.addEventListener("playing", onEvent);
+        });
+      }
+
+      function attachStream(mediaStream) {
+        stream = mediaStream;
+        liveVideo.srcObject = mediaStream;
+        liveVideo.muted = true;
+        setCaptureEnabled(false);
+
+        var playPromise;
+        try {
+          playPromise = liveVideo.play();
+        } catch (playErr) {
+          return Promise.reject(playErr);
+        }
+
+        return Promise.resolve(playPromise)
+          .catch(function () {
+            /* iOS may reject first play; waitForVideoReady still applies */
+          })
+          .then(function () {
+            return waitForVideoReady(liveVideo);
+          })
+          .then(function () {
+            if (!updateVideoSizeDebug()) {
+              throw new Error("video-not-ready");
+            }
+            activeCameraLabel = resolveActiveLabel(mediaStream);
+            livePlaceholder.style.display = "none";
+            btnStart.disabled = true;
+            btnStop.disabled = false;
+            updateSwitchButton();
+            setCaptureEnabled(true);
+            updateDebug({
+              cameraLabel: activeCameraLabel,
+              streamState: "açık",
+              captureResult: lastCaptureResult,
+            });
+            setError("");
+          });
+      }
+
+      function openCameraStream() {
+        setError("");
+        setCaptureEnabled(false);
+        stopTracks();
+        liveVideo.srcObject = null;
+        updateDebug({ streamState: "açılıyor…", videoSize: "0 × 0" });
+
+        return navigator.mediaDevices.getUserMedia(buildVideoConstraints()).then(function (mediaStream) {
+          return attachStream(mediaStream);
         });
       }
 
       function startCamera() {
-        setError("");
         clearCapturedPreview();
+        lastCaptureResult = "—";
+        updateDebug({ captureResult: lastCaptureResult });
 
         if (!isMediaSupported()) {
           setError("Desteklenmeyen tarayıcı: getUserMedia bu ortamda kullanılamıyor.");
-          setStatus("desteklenmiyor");
+          updateDebug({ streamState: "desteklenmiyor" });
           return;
         }
 
@@ -367,99 +666,187 @@
           );
         }
 
-        stopCamera();
-        setStatus("açılıyor…");
         btnStart.disabled = true;
+        activeDeviceIndex = -1;
 
-        var constraints = {
-          audio: false,
-          video: {
-            facingMode: facingMode,
-            width: { ideal: 1280 },
-            height: { ideal: 960 },
-          },
-        };
-
-        navigator.mediaDevices
-          .getUserMedia(constraints)
-          .then(function (mediaStream) {
-            stream = mediaStream;
-            liveVideo.srcObject = stream;
-            return waitForVideoReady(liveVideo);
+        openCameraStream()
+          .then(function () {
+            return refreshVideoDevices();
           })
           .then(function () {
-            livePlaceholder.style.display = "none";
-            btnStart.disabled = true;
-            btnStop.disabled = false;
-            btnSwitch.disabled = false;
-            btnCapture.disabled = false;
-            setStatus("açık (" + (facingMode === "environment" ? "arka" : "ön") + " kamera)");
-            setError("");
+            syncActiveDeviceFromStream();
+            updateSwitchButton();
+          })
+          .catch(function (err) {
+            if (useDeviceIdSwitch && err && err.name === "OverconstrainedError") {
+              useDeviceIdSwitch = false;
+              facingMode = facingMode === "user" ? "environment" : "user";
+              activeDeviceIndex = -1;
+              updateDebug({ switchMode: "facingMode (fallback)" });
+              return openCameraStream().then(function () {
+                return refreshVideoDevices();
+              });
+            }
+            throw err;
+          })
+          .then(function () {
+            syncActiveDeviceFromStream();
+            updateSwitchButton();
           })
           .catch(function (err) {
             stopCamera();
-            setError(mapGetUserMediaError(err));
-            setStatus("hata");
+            btnStart.disabled = false;
+            var msg =
+              err && err.message === "video-not-ready"
+                ? "Video hazır değil: kamera karesi gelmedi. Tekrar deneyin."
+                : mapGetUserMediaError(err);
+            setError(msg);
+            updateDebug({ streamState: "hata", captureResult: msg });
           });
       }
 
       function switchCamera() {
-        facingMode = facingMode === "user" ? "environment" : "user";
-        if (stream) {
-          startCamera();
+        if (videoDevices.length <= 1) {
+          setError("Yalnızca bir kamera var; geçiş yapılamıyor.");
+          updateDebug({ switchMode: "tek kamera (devre dışı)" });
+          return;
         }
+
+        setError("");
+        lastCaptureResult = "—";
+
+        if (useDeviceIdSwitch) {
+          activeDeviceIndex = (activeDeviceIndex + 1) % videoDevices.length;
+        } else {
+          facingMode = facingMode === "user" ? "environment" : "user";
+          activeDeviceIndex = -1;
+        }
+
+        btnSwitch.disabled = true;
+        setCaptureEnabled(false);
+        updateDebug({ streamState: "kamera değiştiriliyor…" });
+
+        openCameraStream()
+          .then(function () {
+            return refreshVideoDevices();
+          })
+          .then(function () {
+            syncActiveDeviceFromStream();
+            updateSwitchButton();
+          })
+          .catch(function (err) {
+            if (useDeviceIdSwitch && err && err.name === "OverconstrainedError") {
+              useDeviceIdSwitch = false;
+              facingMode = facingMode === "user" ? "environment" : "user";
+              activeDeviceIndex = -1;
+              updateDebug({ switchMode: "facingMode (fallback)" });
+              return openCameraStream().then(function () {
+                return refreshVideoDevices();
+              });
+            }
+            throw err;
+          })
+          .then(function () {
+            syncActiveDeviceFromStream();
+            updateSwitchButton();
+          })
+          .catch(function (err) {
+            stopCamera();
+            btnStart.disabled = false;
+            var msg =
+              err && err.message === "video-not-ready"
+                ? "Video hazır değil: yeni kamera karesi gelmedi."
+                : mapGetUserMediaError(err);
+            setError(msg);
+            updateDebug({ streamState: "hata", captureResult: msg });
+          });
       }
 
       function capturePhoto() {
         setError("");
 
         if (!stream) {
-          setError("Video hazır değil: önce kamerayı açın.");
+          var noStreamMsg = "Video hazır değil: önce kamerayı açın.";
+          setError(noStreamMsg);
+          lastCaptureResult = "hata: " + noStreamMsg;
+          updateDebug({ captureResult: lastCaptureResult });
           return;
         }
 
-        if (liveVideo.videoWidth <= 0 || liveVideo.videoHeight <= 0) {
-          setError("Video hazır değil: kamera karesi henüz gelmedi.");
+        if (!videoReady) {
+          var notReadyMsg = "Video hazır değil: kamera henüz hazır değil.";
+          setError(notReadyMsg);
+          lastCaptureResult = "hata: " + notReadyMsg;
+          updateDebug({ captureResult: lastCaptureResult });
           return;
         }
 
         var width = liveVideo.videoWidth;
         var height = liveVideo.videoHeight;
+        if (!width || !height) {
+          var dimMsg = "Video hazır değil: boyut " + width + " × " + height + ".";
+          setError(dimMsg);
+          lastCaptureResult = "hata: " + dimMsg;
+          updateDebug({ videoSize: width + " × " + height, captureResult: lastCaptureResult });
+          return;
+        }
+
         captureCanvas.width = width;
         captureCanvas.height = height;
 
-        var ctx = captureCanvas.getContext("2d");
+        var ctx = captureCanvas.getContext("2d", { alpha: false });
         if (!ctx) {
-          setError("Canvas/toBlob hatası: 2D bağlamı oluşturulamadı.");
+          var ctxMsg = "Canvas/toBlob hatası: 2D bağlamı oluşturulamadı.";
+          setError(ctxMsg);
+          lastCaptureResult = "hata: " + ctxMsg;
+          updateDebug({ captureResult: lastCaptureResult });
           return;
         }
 
         try {
-          ctx.drawImage(liveVideo, 0, 0, width, height);
-        } catch (drawErr) {
-          setError("Video hazır değil: kare yakalanamadı (" + (drawErr.message || drawErr) + ").");
-          return;
-        }
-
-        captureCanvas.toBlob(
-          function (blob) {
-            if (!blob) {
-              setError("Canvas/toBlob hatası: JPEG üretilemedi.");
+          requestAnimationFrame(function () {
+            try {
+              ctx.drawImage(liveVideo, 0, 0, width, height);
+            } catch (drawErr) {
+              var drawMsg = "Video hazır değil: kare yakalanamadı (" + (drawErr.message || drawErr) + ").";
+              setError(drawMsg);
+              lastCaptureResult = "hata: " + drawMsg;
+              updateDebug({ captureResult: lastCaptureResult });
               return;
             }
-            revokeCapturedUrl();
-            capturedBlob = blob;
-            capturedObjectUrl = URL.createObjectURL(blob);
-            capturePreview.src = capturedObjectUrl;
-            capturePreview.alt = "Yakalanan fotoğraf önizlemesi";
-            capturePreview.hidden = false;
-            capturePlaceholder.style.display = "none";
-            btnDownload.disabled = false;
-            setStatus("fotoğraf yakalandı");
-          },
-          "image/jpeg",
-          0.92
-        );
+
+            captureCanvas.toBlob(
+              function (blob) {
+                if (!blob) {
+                  var blobMsg = "Canvas/toBlob hatası: JPEG üretilemedi.";
+                  setError(blobMsg);
+                  lastCaptureResult = "hata: " + blobMsg;
+                  updateDebug({ captureResult: lastCaptureResult });
+                  return;
+                }
+                revokeCapturedUrl();
+                capturedBlob = blob;
+                capturedObjectUrl = URL.createObjectURL(blob);
+                capturePreview.src = capturedObjectUrl;
+                capturePreview.alt = "Yakalanan fotoğraf önizlemesi";
+                capturePreview.hidden = false;
+                capturePlaceholder.style.display = "none";
+                btnDownload.disabled = false;
+                lastCaptureResult = "OK — " + width + " × " + height + ", " + Math.round(blob.size / 1024) + " KB";
+                updateDebug({ captureResult: lastCaptureResult, videoSize: width + " × " + height });
+                setError("");
+              },
+              "image/jpeg",
+              0.92
+            );
+          });
+        } catch (drawErr) {
+          var outerDrawMsg = "Video hazır değil: kare yakalanamadı (" + (drawErr.message || drawErr) + ").";
+          setError(outerDrawMsg);
+          lastCaptureResult = "hata: " + outerDrawMsg;
+          updateDebug({ captureResult: lastCaptureResult });
+          return;
+        }
       }
 
       function downloadJpg() {
@@ -498,10 +885,15 @@
       window.addEventListener("pagehide", cleanupAll);
       window.addEventListener("beforeunload", cleanupAll);
 
+      liveVideo.addEventListener("loadedmetadata", updateVideoSizeDebug);
+      liveVideo.addEventListener("resize", updateVideoSizeDebug);
+
       if (!isMediaSupported()) {
         setError("Desteklenmeyen tarayıcı: getUserMedia bu ortamda kullanılamıyor.");
         btnStart.disabled = true;
-        setStatus("desteklenmiyor");
+        updateDebug({ streamState: "desteklenmiyor" });
+      } else {
+        renderDebug();
       }
     })();
   </script>
