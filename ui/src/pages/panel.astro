@@ -7991,6 +7991,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
             const w = await controlledWriteFile(relPath, textContent);
             if (!w.ok) {
+              if (taskBridgeBlockedResponse(w.status)) {
+                showHint(panelUserVisibleText(BRIDGE_TOKEN_MSG));
+                return;
+              }
               const err =
                 w.data && w.data.error != null
                   ? String(w.data.error)
@@ -8003,6 +8007,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
             const rd = await controlledReadFile(relPath);
             if (!rd.ok) {
+              if (taskBridgeBlockedResponse(rd.status)) {
+                showHint(panelUserVisibleText(BRIDGE_TOKEN_MSG));
+                return;
+              }
               const err =
                 rd.data && rd.data.error != null
                   ? String(rd.data.error)
@@ -8064,11 +8072,6 @@ const PANEL_DEBUG = import.meta.env.DEV;
             hint.textContent = panelUserVisibleText("Test çalışıyor…");
           }
           btn.disabled = true;
-          if (bridgeOpsBlocked()) {
-            if (hint) hint.textContent = panelUserVisibleText(BRIDGE_TOKEN_MSG);
-            btn.disabled = false;
-            return;
-          }
           const probePath = "capability/_probe.txt";
           const probeBody = "lumos capability probe\n";
 
@@ -8080,6 +8083,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
             rd.ok &&
             String((rd.data && rd.data.content) || "").indexOf("lumos capability") >= 0;
           setCap(caps.fileRead, capKeyFromProbe(readOk, false));
+          const controlledBridgeBlocked =
+            taskBridgeBlockedResponse(w.status) || taskBridgeBlockedResponse(rd.status);
 
           let taskOk = false;
           try {
@@ -8105,15 +8110,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
           if (hint) {
             hint.textContent = panelUserVisibleText(
-              w.ok && readOk && taskOk
-                ? panelDebugText(
-                    "Köprü kanıtı doğrulandı. 4–7. satırlar politika özetidir.",
-                    "Bağlantı testi tamamlandı.",
-                  )
-                : panelDebugText(
-                    "Kısmi veya başarısız sonuç; köprü adresini ve bağlantı bilgisini kontrol edin.",
-                    "Bağlantı testi kısmen başarısız. Cihaz ayarlarını kontrol edin.",
-                  ),
+              controlledBridgeBlocked
+                ? BRIDGE_TOKEN_MSG
+                : w.ok && readOk && taskOk
+                  ? panelDebugText(
+                      "Köprü kanıtı doğrulandı. 4–7. satırlar politika özetidir.",
+                      "Bağlantı testi tamamlandı.",
+                    )
+                  : panelDebugText(
+                      "Kısmi veya başarısız sonuç; köprü adresini ve bağlantı bilgisini kontrol edin.",
+                      "Bağlantı testi kısmen başarısız. Cihaz ayarlarını kontrol edin.",
+                    ),
             );
           }
           btn.disabled = false;
