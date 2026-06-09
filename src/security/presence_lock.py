@@ -61,6 +61,9 @@ def _set_status(s: str) -> None:
     global _STATUS
     _STATUS = s
 
+def _status_is_error() -> bool:
+    return str(_STATUS).startswith("ERR:")
+
 def presence_status() -> str:
     return _STATUS
 
@@ -224,7 +227,8 @@ def _presence_loop(*, base_dir: Path, lock_cb: Optional[Callable[[], None]], tim
                 cap.release()
         except Exception:
             pass
-        _set_status("OFF")
+        if not _status_is_error():
+            _set_status("OFF")
 
 def start_presence_lock(*, base_dir: Path, lock_cb: Optional[Callable[[], None]] = None, is_already_locked: Optional[Callable[[], bool]] = None, timeout_sec: int = 30, poll_sec: float = 1.0, camera_index: int = 0, require_face: bool = True, silent_stop: bool = False, reason: Optional[str] = None, is_sandbox_mode: bool = False) -> tuple[bool, str]:
     _orig_lock_cb = lock_cb

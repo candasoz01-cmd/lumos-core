@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Lumos Panel — Kamera testi</title>
+  <style>
+    :root {
+      --bg: #1a1a1a;
+      --bg-card: #252525;
+      --border: #3a3a3a;
+      --text: #e0e0e0;
+      --text-muted: #999;
+      --link: #7eb8ff;
+      --accent: #38ceff;
+      --danger: #f0b4b4;
+      --radius: 8px;
+      --spacing: 0.75rem;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: #111;
+    }
+
+    .page {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: var(--spacing);
+    }
+
+    .header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: var(--spacing);
+      padding-bottom: var(--spacing);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .back-link {
+      color: var(--link);
+      text-decoration: none;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    .note {
+      margin: 0 0 var(--spacing);
+      padding: 0.65rem 0.75rem;
+      border-radius: var(--radius);
+      background: rgba(56, 206, 255, 0.08);
+      border: 1px solid rgba(56, 206, 255, 0.22);
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    .error {
+      display: none;
+      margin: 0 0 var(--spacing);
+      padding: 0.65rem 0.75rem;
+      border-radius: var(--radius);
+      background: rgba(240, 180, 180, 0.12);
+      border: 1px solid rgba(240, 180, 180, 0.35);
+      color: var(--danger);
+      line-height: 1.45;
+    }
+
+    .error.is-visible {
+      display: block;
+    }
+
+    .stage {
+      display: grid;
+      gap: var(--spacing);
+    }
+
+    .card {
+      padding: var(--spacing);
+      border-radius: var(--radius);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+    }
+
+    .card h2 {
+      margin: 0 0 0.5rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .preview-wrap {
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--radius);
+      background: #000;
+      aspect-ratio: 4 / 3;
+    }
+
+    video,
+    .preview-img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      background: #000;
+    }
+
+    .preview-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      text-align: center;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    canvas {
+      display: none;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: #2d2d2d;
+      color: var(--text);
+      padding: 0.45rem 0.75rem;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button:hover:not(:disabled) {
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    button.primary {
+      border-color: rgba(56, 206, 255, 0.45);
+      background: rgba(56, 206, 255, 0.12);
+    }
+
+    .status-line {
+      margin: 0.5rem 0 0;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <a class="back-link" href="index.html">← Panele dön</a>
+      <h1>Kamera testi</h1>
+    </header>
+
+    <p class="note" role="note">
+      Yerel önizleme ve indirme only — fotoğraf hiçbir yere yüklenmez.
+      Kamera erişimi için sayfayı <strong>http://localhost</strong> veya <strong>HTTPS</strong> üzerinden açın;
+      <code>file://</code> protokolünde tarayıcıya göre erişim başarısız olabilir.
+    </p>
+
+    <p id="error" class="error" role="alert" aria-live="assertive"></p>
+
+    <div class="stage">
+      <section class="card" aria-labelledby="live-title">
+        <h2 id="live-title">Canlı önizleme</h2>
+        <div class="preview-wrap">
+          <video id="live-video" playsinline autoplay muted aria-label="Canlı kamera"></video>
+          <div id="live-placeholder" class="preview-placeholder">Kamera kapalı</div>
+        </div>
+        <div class="actions">
+          <button type="button" id="btn-start" class="primary">Kamerayı aç</button>
+          <button type="button" id="btn-stop" disabled>Kamerayı kapat</button>
+          <button type="button" id="btn-switch" disabled>Ön / arka kamera</button>
+        </div>
+        <p id="camera-status" class="status-line">Durum: hazır</p>
+      </section>
+
+      <section class="card" aria-labelledby="capture-title">
+        <h2 id="capture-title">Yakalanan fotoğraf</h2>
+        <div class="preview-wrap">
+          <img id="capture-preview" class="preview-img" alt="" hidden />
+          <div id="capture-placeholder" class="preview-placeholder">Henüz fotoğraf yok</div>
+        </div>
+        <div class="actions">
+          <button type="button" id="btn-capture" disabled>Fotoğraf çek</button>
+          <button type="button" id="btn-download" disabled>JPG indir</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <canvas id="capture-canvas" width="1280" height="960" aria-hidden="true"></canvas>
+
+  <script>
+    (function () {
+      "use strict";
+
+      var liveVideo = document.getElementById("live-video");
+      var livePlaceholder = document.getElementById("live-placeholder");
+      var capturePreview = document.getElementById("capture-preview");
+      var capturePlaceholder = document.getElementById("capture-placeholder");
+      var captureCanvas = document.getElementById("capture-canvas");
+      var errorEl = document.getElementById("error");
+      var statusEl = document.getElementById("camera-status");
+      var btnStart = document.getElementById("btn-start");
+      var btnStop = document.getElementById("btn-stop");
+      var btnSwitch = document.getElementById("btn-switch");
+      var btnCapture = document.getElementById("btn-capture");
+      var btnDownload = document.getElementById("btn-download");
+
+      var stream = null;
+      var facingMode = "user";
+      var capturedBlob = null;
+      var capturedObjectUrl = null;
+
+      function setError(message) {
+        if (!message) {
+          errorEl.textContent = "";
+          errorEl.classList.remove("is-visible");
+          return;
+        }
+        errorEl.textContent = message;
+        errorEl.classList.add("is-visible");
+      }
+
+      function setStatus(text) {
+        statusEl.textContent = "Durum: " + text;
+      }
+
+      function revokeCapturedUrl() {
+        if (capturedObjectUrl) {
+          URL.revokeObjectURL(capturedObjectUrl);
+          capturedObjectUrl = null;
+        }
+      }
+
+      function clearCapturedPreview() {
+        revokeCapturedUrl();
+        capturedBlob = null;
+        capturePreview.hidden = true;
+        capturePreview.removeAttribute("src");
+        capturePlaceholder.style.display = "flex";
+        btnDownload.disabled = true;
+      }
+
+      function stopTracks() {
+        if (!stream) return;
+        stream.getTracks().forEach(function (track) {
+          try {
+            track.stop();
+          } catch (_err) {
+            /* ignore */
+          }
+        });
+        stream = null;
+      }
+
+      function stopCamera() {
+        stopTracks();
+        liveVideo.srcObject = null;
+        livePlaceholder.style.display = "flex";
+        btnStart.disabled = false;
+        btnStop.disabled = true;
+        btnSwitch.disabled = true;
+        btnCapture.disabled = true;
+        setStatus("kapalı");
+      }
+
+      function isMediaSupported() {
+        return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+      }
+
+      function mapGetUserMediaError(err) {
+        var name = err && err.name ? String(err.name) : "";
+        if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+          return "İzin reddedildi: kamera erişimi için tarayıcı izni gerekli.";
+        }
+        if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+          return "Kamera kullanılamıyor: uygun bir kamera bulunamadı.";
+        }
+        if (name === "NotReadableError" || name === "TrackStartError") {
+          return "Kamera kullanılamıyor: cihaz başka bir uygulama tarafından kullanılıyor olabilir.";
+        }
+        if (name === "OverconstrainedError") {
+          return "Kamera kullanılamıyor: seçilen kamera modu desteklenmiyor.";
+        }
+        if (name === "SecurityError") {
+          return "Kamera kullanılamıyor: güvenli bağlam (HTTPS veya localhost) gerekli.";
+        }
+        return "Kamera kullanılamıyor: " + ((err && err.message) || "bilinmeyen hata");
+      }
+
+      function waitForVideoReady(video) {
+        if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0) {
+          return Promise.resolve();
+        }
+        return new Promise(function (resolve, reject) {
+          var timeout = window.setTimeout(function () {
+            cleanup();
+            reject(new Error("video-not-ready"));
+          }, 8000);
+
+          function cleanup() {
+            window.clearTimeout(timeout);
+            video.removeEventListener("loadedmetadata", onReady);
+            video.removeEventListener("canplay", onReady);
+          }
+
+          function onReady() {
+            if (video.videoWidth > 0) {
+              cleanup();
+              resolve();
+            }
+          }
+
+          video.addEventListener("loadedmetadata", onReady);
+          video.addEventListener("canplay", onReady);
+        });
+      }
+
+      function startCamera() {
+        setError("");
+        clearCapturedPreview();
+
+        if (!isMediaSupported()) {
+          setError("Desteklenmeyen tarayıcı: getUserMedia bu ortamda kullanılamıyor.");
+          setStatus("desteklenmiyor");
+          return;
+        }
+
+        if (location.protocol === "file:") {
+          setError(
+            "file:// protokolünde kamera erişimi tarayıcıya göre engellenebilir. Lütfen http://localhost veya HTTPS kullanın."
+          );
+        }
+
+        stopCamera();
+        setStatus("açılıyor…");
+        btnStart.disabled = true;
+
+        var constraints = {
+          audio: false,
+          video: {
+            facingMode: facingMode,
+            width: { ideal: 1280 },
+            height: { ideal: 960 },
+          },
+        };
+
+        navigator.mediaDevices
+          .getUserMedia(constraints)
+          .then(function (mediaStream) {
+            stream = mediaStream;
+            liveVideo.srcObject = stream;
+            return waitForVideoReady(liveVideo);
+          })
+          .then(function () {
+            livePlaceholder.style.display = "none";
+            btnStart.disabled = true;
+            btnStop.disabled = false;
+            btnSwitch.disabled = false;
+            btnCapture.disabled = false;
+            setStatus("açık (" + (facingMode === "environment" ? "arka" : "ön") + " kamera)");
+            setError("");
+          })
+          .catch(function (err) {
+            stopCamera();
+            setError(mapGetUserMediaError(err));
+            setStatus("hata");
+          });
+      }
+
+      function switchCamera() {
+        facingMode = facingMode === "user" ? "environment" : "user";
+        if (stream) {
+          startCamera();
+        }
+      }
+
+      function capturePhoto() {
+        setError("");
+
+        if (!stream) {
+          setError("Video hazır değil: önce kamerayı açın.");
+          return;
+        }
+
+        if (liveVideo.videoWidth <= 0 || liveVideo.videoHeight <= 0) {
+          setError("Video hazır değil: kamera karesi henüz gelmedi.");
+          return;
+        }
+
+        var width = liveVideo.videoWidth;
+        var height = liveVideo.videoHeight;
+        captureCanvas.width = width;
+        captureCanvas.height = height;
+
+        var ctx = captureCanvas.getContext("2d");
+        if (!ctx) {
+          setError("Canvas/toBlob hatası: 2D bağlamı oluşturulamadı.");
+          return;
+        }
+
+        try {
+          ctx.drawImage(liveVideo, 0, 0, width, height);
+        } catch (drawErr) {
+          setError("Video hazır değil: kare yakalanamadı (" + (drawErr.message || drawErr) + ").");
+          return;
+        }
+
+        captureCanvas.toBlob(
+          function (blob) {
+            if (!blob) {
+              setError("Canvas/toBlob hatası: JPEG üretilemedi.");
+              return;
+            }
+            revokeCapturedUrl();
+            capturedBlob = blob;
+            capturedObjectUrl = URL.createObjectURL(blob);
+            capturePreview.src = capturedObjectUrl;
+            capturePreview.alt = "Yakalanan fotoğraf önizlemesi";
+            capturePreview.hidden = false;
+            capturePlaceholder.style.display = "none";
+            btnDownload.disabled = false;
+            setStatus("fotoğraf yakalandı");
+          },
+          "image/jpeg",
+          0.92
+        );
+      }
+
+      function downloadJpg() {
+        if (!capturedBlob) {
+          setError("Henüz indirilecek fotoğraf yok.");
+          return;
+        }
+        var url = capturedObjectUrl || URL.createObjectURL(capturedBlob);
+        var temporary = !capturedObjectUrl;
+        var anchor = document.createElement("a");
+        var stamp = new Date().toISOString().replace(/[:.]/g, "-");
+        anchor.href = url;
+        anchor.download = "lumos-camera-" + stamp + ".jpg";
+        anchor.rel = "noopener";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        if (temporary) {
+          URL.revokeObjectURL(url);
+        }
+      }
+
+      function cleanupAll() {
+        stopCamera();
+        revokeCapturedUrl();
+      }
+
+      btnStart.addEventListener("click", startCamera);
+      btnStop.addEventListener("click", function () {
+        setError("");
+        stopCamera();
+      });
+      btnSwitch.addEventListener("click", switchCamera);
+      btnCapture.addEventListener("click", capturePhoto);
+      btnDownload.addEventListener("click", downloadJpg);
+      window.addEventListener("pagehide", cleanupAll);
+      window.addEventListener("beforeunload", cleanupAll);
+
+      if (!isMediaSupported()) {
+        setError("Desteklenmeyen tarayıcı: getUserMedia bu ortamda kullanılamıyor.");
+        btnStart.disabled = true;
+        setStatus("desteklenmiyor");
+      }
+    })();
+  </script>
+</body>
+</html>

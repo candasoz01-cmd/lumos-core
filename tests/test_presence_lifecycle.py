@@ -224,3 +224,69 @@ def test_presence_fsm_get_state_running():
         with patch.object(pl, "is_running", return_value=True):
             s = fsm_mod.get_state(Path(ROOT / ".lumos"), pl)
     assert s == fsm_mod.PresenceState.RUNNING
+
+
+def _run_presence_loop_and_wait(pl, **kwargs):
+    """Run _presence_loop in a thread and wait for it to finish."""
+    import threading
+    t = threading.Thread(target=pl._presence_loop, kwargs=kwargs, daemon=True)
+    t.start()
+    t.join(timeout=2.0)
+    assert not t.is_alive(), "_presence_loop did not finish in time"
+
+
+def test_presence_loop_preserves_err_opencv_yok():
+    """When cv2 is None, _presence_loop leaves status ERR:opencv_yok."""
+    import security.presence_lock as pl
+    pl._set_status("OFF")
+    with patch.object(pl, "cv2", None):
+        _run_presence_loop_and_wait(
+            pl,
+            base_dir=Path(ROOT / ".lumos"),
+            lock_cb=None,
+            timeout_sec=30,
+            poll_sec=0.1,
+            camera_index=0,
+            require_face=False,
+        )
+    assert pl.presence_status() == "ERR:opencv_yok"
+
+
+def test_presence_loop_preserves_err_kamera_acilamadi():
+    """When VideoCapture cannot open, _presence_loop leaves status ERR:kamera_acilamadi."""
+    import security.presence_lock as pl
+
+    class FakeCap:
+        def isOpened(self):
+            return False
+
+        def release(self):
+            pass
+
+    class FakeCv2:
+        COLOR_BGR2GRAY = 0
+
+        def VideoCapture(self, _index):
+            return FakeCap()
+
+    pl._set_status("OFF")
+    with patch.object(pl, "cv2", FakeCv2()):
+        _run_presence_loop_and_wait(
+            pl,
+            base_dir=Path(ROOT / ".lumos"),
+            lock_cb=None,
+            timeout_sec=30,
+            poll_sec=0.1,
+            camera_index=0,
+            require_face=False,
+        )
+    assert pl.presence_status() == "ERR:kamera_acilamadi"
+
+
+def test_stop_presence_lock_resets_error_status_to_off():
+    """stop_presence_lock still resets ERR:* status to OFF."""
+    import security.presence_lock as pl
+    pl._set_status("ERR:kamera_acilamadi")
+    with patch.object(pl, "is_running", return_value=False):
+        pl.stop_presence_lock(base_dir=Path(ROOT / ".lumos"), silent=True)
+    assert pl.presence_status() == "OFF"
