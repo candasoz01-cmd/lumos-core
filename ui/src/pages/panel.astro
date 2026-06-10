@@ -5168,6 +5168,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const cameraPreviewWrap = document.getElementById("panel-camera-preview-wrap");
         const cameraVideo = /** @type {HTMLVideoElement | null} */ (document.getElementById("panel-camera-video"));
         const mqPanelCameraMobile = window.matchMedia("(max-width: 767.98px)");
+
+        function isPanelCameraNativeCapture() {
+          return mqPanelCameraMobile.matches || mqPanelChatTouchPrimary.matches;
+        }
         /** @type {string | null} */
         let cameraPhotoObjectUrl = null;
         /** @type {MediaStream | null} */
@@ -6379,13 +6383,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
         function syncCameraPhotoStatusVisibilityForViewport() {
           if (!cameraPhotoStatus || !cameraPhotoObjectUrl) return;
-          cameraPhotoStatus.hidden = mqPanelCameraMobile.matches;
+          cameraPhotoStatus.hidden = isPanelCameraNativeCapture();
         }
 
-        mqPanelCameraMobile.addEventListener("change", () => {
+        function onPanelCameraViewportChange() {
+          if (isPanelCameraNativeCapture() && cameraStream) stopPanelCameraStream();
           syncPanelCameraPhotoBarVisibility();
           syncCameraPhotoStatusVisibilityForViewport();
-        });
+        }
+
+        mqPanelCameraMobile.addEventListener("change", onPanelCameraViewportChange);
+        mqPanelChatTouchPrimary.addEventListener("change", onPanelCameraViewportChange);
         syncPanelCameraPhotoBarVisibility();
 
         function closePanelAttachMenu() {
@@ -6427,7 +6435,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
           if (mode === "camera") {
             closePanelAttachMenu();
-            if (mqPanelCameraMobile.matches) {
+            if (isPanelCameraNativeCapture()) {
               stopPanelCameraStream();
               setCameraHint("");
               cameraPhotoInput.setAttribute("capture", "environment");
