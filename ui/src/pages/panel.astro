@@ -6435,14 +6435,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
           if (mode === "camera") {
             closePanelAttachMenu();
-            if (isPanelCameraNativeCapture()) {
-              stopPanelCameraStream();
-              setCameraHint("");
-              cameraPhotoInput.setAttribute("capture", "environment");
-              cameraPhotoInput.click();
-              return;
-            }
-            togglePanelCameraStream();
+            stopPanelCameraStream();
+            setCameraHint("");
+            cameraPhotoInput.setAttribute("capture", "environment");
+            cameraPhotoInput.click();
             return;
           }
           stopPanelCameraStream();
