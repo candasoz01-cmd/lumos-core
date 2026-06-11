@@ -1,6 +1,6 @@
 # Lumos v1 — Readiness Checklist
 
-**Status:** Living document — reflects repo state as of 2026-06-11.  
+**Status:** Living document — reflects repo state as of 2026-06-11 (`bb66e12` on `main`).  
 **Production panel:** `https://welockai.com/panel` (Astro `ui/` build, route `/panel`).  
 **Related:** [MOBILE_PHASE_0_PWA.md](MOBILE_PHASE_0_PWA.md), [PRODUCT_SUMMARY.md](PRODUCT_SUMMARY.md), [ui_panel_gorevler_bridge.md](ui_panel_gorevler_bridge.md).
 
@@ -128,29 +128,29 @@ Local dev reference: [local-kando-dev-runbook.md](local-kando-dev-runbook.md).
 
 ### Production smoke (`welockai.com/panel`)
 
-- [ ] Panel loads over HTTPS; no console-breaking errors on first paint
-- [ ] **Sınırlı mod** badge visible when prod env has empty `PUBLIC_KANDO_TOKEN`
-- [ ] Chat composer does not send optimistically when bridge blocked; hint text is clear (PR #139 behavior)
-- [ ] Görevler: add task → appears with `[Yerel]` → survives refresh
-- [ ] Mobile: camera icon opens native capture, not broken `getUserMedia` on icon
-- [ ] Manifest loads (`Application → Manifest` in DevTools)
+- [x] Panel loads over HTTPS; no console-breaking errors on first paint — doğrulandı: `curl`/Playwright `https://welockai.com/panel` HTTP 200; ilk boyamada kırıcı `console.error` / `pageerror` yok (2026-06-11 smoke).
+- [x] **Sınırlı mod** badge visible when prod env has empty `PUBLIC_KANDO_TOKEN` — doğrulandı: prod panelde **SINIRLI MOD** / **Sınırlı mod** rozeti; ana kart *Sınırlı mod · Yerel işlemler kullanılabilir*; alt metin *Yerel görevler kullanılabilir; dış köprü gerektiren işlemler beklemede.*
+- [x] Chat composer does not send optimistically when bridge blocked; hint text is clear (PR #139 behavior) — doğrulandı: *Sınırlı modda sohbet gönderimi bağlı köprü olmadan çalışmaz.*; PR #139 merged.
+- [x] Görevler: add task → appears with `[Yerel]` → survives refresh — doğrulandı (post-#143 prod smoke, `bb66e12+` on `main`): PR #143 (`shouldSkipGorevlerTasksApi`, `localStorage` fallback); prod bundle `shouldSkipGorevlerTasksApi` mevcut (`curl https://welockai.com/panel`, 2026-06-11); «Görev ekle» *Görev yerel olarak kaydedildi.* + `[Yerel]`; yenileme sonrası kalıcılık doğrulandı. Önceki `65270f3` smoke FAIL (`127.0.0.1:8766` POST) artık geçerli değil.
+- [x] Mobile: camera icon opens native capture, not broken `getUserMedia` on icon — doğrulandı: Playwright iPhone 13 emülasyonu; `#panel-camera-input` tıklaması `#panel-camera-photo-input` (`type=file`, `capture=environment`) `.click()` tetikler; `getUserMedia` çağrılmadı (2026-06-11 smoke).
+- [x] Manifest loads (`Application → Manifest` in DevTools) — doğrulandı: `/panel` HTML `link rel="manifest" href="/manifest.webmanifest"`; `curl https://welockai.com/manifest.webmanifest` HTTP 200, geçerli JSON (`name`, `icons`, `theme_color` `#38CEFF`) (2026-06-11 smoke).
 
 ### CI / repo
 
-- [ ] `ruff check .` passes
-- [ ] `pytest -q` passes
-- [ ] GitHub Actions green on latest `main` commit
-- [ ] No accidental commit of real `PUBLIC_KANDO_TOKEN` / bridge secrets
+- [x] `ruff check .` passes — `bb66e12` üzerinde CI yeşil (ruff job dahil).
+- [x] `pytest -q` passes — `bb66e12` üzerinde CI yeşil (pytest job dahil).
+- [x] GitHub Actions green on latest `main` commit — doğrulandı: `bb66e12`.
+- [x] No accidental commit of real `PUBLIC_KANDO_TOKEN` / bridge secrets — doğrulandı: repo grep — `test123` yalnızca `panel.astro` DEV dalında; prod bundle `kandoToken = ""`, `test123` yok; `.env`/config dosyalarında gerçek token yok (2026-06-11 smoke).
 
 ### Deploy boundary
 
-- [ ] Astro `ui` build is what ships to `/panel` — not raw `panel/camera.html`
-- [ ] PWA shell present (`8247a59` ancestor of release commit)
+- [x] Astro `ui` build is what ships to `/panel` — not raw `panel/camera.html` — doğrulandı: `vercel.json` `outputDirectory: ui/dist`; prod `/panel` Astro build; `curl https://welockai.com/panel/camera.html` HTTP 404 (2026-06-11 smoke).
+- [x] PWA shell present (`8247a59` ancestor of release commit) — doğrulandı: `git merge-base --is-ancestor 8247a59 HEAD` (`bb66e12`); prod manifest geçerli (yukarıdaki manifest maddesi) (2026-06-11 smoke).
 
 ### Optional operator path (full mode, not required for public limited v1)
 
-- [ ] Local smoke: `scripts/kando_bridge_server.py` or `python -m kando_bridge` + `ui` dev with matching token
-- [ ] Task appears in `.lumos/outbox` after bridge-connected görev add
+- [ ] Local smoke: `scripts/kando_bridge_server.py` or `python -m kando_bridge` + `ui` dev with matching token — *Açık:* opsiyonel tam-mod operatör yolu; kullanıcı local smoke paylaşmadı.
+- [ ] Task appears in `.lumos/outbox` after bridge-connected görev add — *Açık:* opsiyonel köprü bağlı görev akışı; kullanıcı outbox doğrulaması paylaşmadı.
 
 ---
 
@@ -200,3 +200,6 @@ No open PRs at checklist time; remaining work is **verification and ops**, not l
 | 2026-06-11 | (this doc) | Initial v1 readiness checklist |
 | 2026-06-11 | `ec02026` / PR #139 | Limited-mode action clarity on `main` |
 | 2026-06-11 | `8247a59` | PWA Phase 0 shell on `main` |
+| 2026-06-11 | `65270f3` / PR #141 | Prod limited-mode smoke kısmi sign-off (badge, kart, chat hint, terminal capability KISITLI); §6 CI maddeleri kapandı |
+| 2026-06-11 | smoke (65270f3) | Otomatik prod smoke: §6 zorunlu 7 maddeden 6 PASS; Görevler ekleme prod’da FAIL (`127.0.0.1:8766` tasks API) |
+| 2026-06-11 | `bb66e12` / PR #143 + smoke | Post-#143 prod re-sign-off: Görevler ekleme PASS (yerel yol); §6 zorunlu prod smoke 7/7 PASS |
