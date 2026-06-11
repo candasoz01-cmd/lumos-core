@@ -198,6 +198,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
         background: rgba(92, 42, 42, 0.32);
         border-color: rgba(200, 120, 110, 0.38);
       }
+      .panel-conn-badge[data-state="limited"] {
+        color: rgba(210, 198, 168, 0.92);
+        background: rgba(72, 62, 48, 0.28);
+        border-color: rgba(160, 140, 108, 0.32);
+      }
       .panel-health-row {
         display: flex;
         flex-wrap: wrap;
@@ -4507,6 +4512,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
         return bridgeTokenMissing;
       }
 
+      const BRIDGE_BADGE_LIMITED_LABEL = "Sınırlı mod";
+
+      /** Rozet zaten köprü kapalı durumunu gösteriyorsa uzun BRIDGE_TOKEN_MSG tekrarlanmasın. */
+      function shouldSuppressBridgeHint() {
+        return bridgeOpsBlocked();
+      }
+
+      function bridgeBlockedUserHint() {
+        return shouldSuppressBridgeHint() ? "" : BRIDGE_TOKEN_MSG;
+      }
+
       function taskBridgeBlockedResponse(status) {
         return status === 503;
       }
@@ -5807,9 +5823,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
 
           if (bridgeOpsBlocked()) {
-            setSendHint(BRIDGE_TOKEN_MSG);
-            input.value = "";
-            clearPanelCameraPhotoSelection();
+            const bridgeHint = bridgeBlockedUserHint();
+            if (bridgeHint) setSendHint(bridgeHint);
             input.blur();
             resetPanelHorizontalScrollAfterInputBlur();
             return;
@@ -6227,7 +6242,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
               }
 
               if (taskBridgeBlockedResponse(r.status)) {
-                setSendHint(BRIDGE_TOKEN_MSG);
+                const bridgeHint = bridgeBlockedUserHint();
+                if (bridgeHint) setSendHint(bridgeHint);
                 return;
               }
               if (r.status === 401) {
@@ -7385,7 +7401,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
             }
 
             if (taskBridgeBlockedResponse(r.status)) {
-              showHint(BRIDGE_TOKEN_MSG);
+              const bridgeHint = bridgeBlockedUserHint();
+              if (bridgeHint) showHint(bridgeHint);
               return;
             }
             if (r.status === 401) {
@@ -8017,7 +8034,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
             const w = await controlledWriteFile(relPath, textContent);
             if (!w.ok) {
               if (taskBridgeBlockedResponse(w.status)) {
-                showHint(panelUserVisibleText(BRIDGE_TOKEN_MSG));
+                const bridgeHint = bridgeBlockedUserHint();
+                if (bridgeHint) showHint(panelUserVisibleText(bridgeHint));
                 return;
               }
               const err =
@@ -8033,7 +8051,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
             const rd = await controlledReadFile(relPath);
             if (!rd.ok) {
               if (taskBridgeBlockedResponse(rd.status)) {
-                showHint(panelUserVisibleText(BRIDGE_TOKEN_MSG));
+                const bridgeHint = bridgeBlockedUserHint();
+                if (bridgeHint) showHint(panelUserVisibleText(bridgeHint));
                 return;
               }
               const err =
@@ -8134,9 +8153,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
           setCap(caps.taskComplete, localComplete ? "aktif" : "pasif");
 
           if (hint) {
+            const blockedHint = controlledBridgeBlocked ? bridgeBlockedUserHint() : "";
             hint.textContent = panelUserVisibleText(
               controlledBridgeBlocked
-                ? BRIDGE_TOKEN_MSG
+                ? blockedHint ||
+                  panelDebugText(
+                    "Köprü yapılandırılmamış veya erişilemiyor.",
+                    "Köprü şu an kullanılamıyor.",
+                  )
                 : w.ok && readOk && taskOk
                   ? panelDebugText(
                       "Köprü kanıtı doğrulandı. 4–7. satırlar politika özetidir.",
@@ -8160,6 +8184,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
         badge.setAttribute("data-state", state);
         if (state === "ok") {
           badge.textContent = "Bağlı";
+        } else if (state === "limited") {
+          badge.textContent = BRIDGE_BADGE_LIMITED_LABEL;
         } else if (state === "bad") {
           badge.textContent = "Çevrimdışı";
         } else {
@@ -8392,10 +8418,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
       void (async function checkBridgeHealth() {
         if (bridgeOpsBlocked()) {
-          setPanelConnBadge("bad");
-          const badge = document.getElementById("panel-conn-badge");
-          if (badge) badge.textContent = "Yapılandırılmamış";
-          bridgeHealthLine = "yapılandırılmamış";
+          setPanelConnBadge("limited");
+          bridgeHealthLine = panelDebugText("yapılandırılmamış", "sınırlı mod");
           paintSistemDurumuPanel();
           return;
         }
@@ -8455,8 +8479,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
             });
             const text = await r.text();
             if (taskBridgeBlockedResponse(r.status)) {
-              hint.textContent = panelUserVisibleText(BRIDGE_TOKEN_MSG);
-              hint.hidden = false;
+              const bridgeHint = bridgeBlockedUserHint();
+              if (bridgeHint) {
+                hint.textContent = panelUserVisibleText(bridgeHint);
+                hint.hidden = false;
+              }
               pre.hidden = true;
               return;
             }
