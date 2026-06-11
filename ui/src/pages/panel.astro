@@ -5806,6 +5806,15 @@ const PANEL_DEBUG = import.meta.env.DEV;
             }
           }
 
+          if (bridgeOpsBlocked()) {
+            setSendHint(BRIDGE_TOKEN_MSG);
+            input.value = "";
+            clearPanelCameraPhotoSelection();
+            input.blur();
+            resetPanelHorizontalScrollAfterInputBlur();
+            return;
+          }
+
           const outgoingMessage = message;
           const panelGorevCmd = parsePanelGorevKomutu(message);
 
@@ -5884,15 +5893,6 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   ? decodedByteLengthFromBase64(inlineB64)
                   : 0;
               }
-            }
-            if (bridgeOpsBlocked()) {
-              setSendHint(BRIDGE_TOKEN_MSG);
-              appendBubble("error", BRIDGE_TOKEN_MSG);
-              input.value = "";
-              clearPanelCameraPhotoSelection();
-              input.blur();
-              resetPanelHorizontalScrollAfterInputBlur();
-              return;
             }
             const r = await fetch(CHAT_URL, {
               method: "POST",
