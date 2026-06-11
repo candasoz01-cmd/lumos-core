@@ -4913,6 +4913,49 @@ const PANEL_DEBUG = import.meta.env.DEV;
         return "http://127.0.0.1:8766";
       }
 
+      function isLoopbackHostname(host) {
+        const h = String(host || "")
+          .trim()
+          .toLowerCase()
+          .replace(/^\[|\]$/g, "");
+        if (!h) return false;
+        return h === "localhost" || h === "127.0.0.1" || h === "::1" || h.endsWith(".localhost");
+      }
+
+      function isTasksApiLoopbackBase(base) {
+        const b = String(base || "").trim();
+        if (!b) return false;
+        try {
+          const u = new URL(b);
+          return isLoopbackHostname(u.hostname);
+        } catch {
+          return /^(https?:\/\/)?(127\.0\.0\.1|localhost)(:|\/|$)/i.test(b);
+        }
+      }
+
+      function isPanelOnNonLoopbackHost() {
+        try {
+          const w = typeof window !== "undefined" ? window : null;
+          const host = w && w.location && w.location.hostname;
+          if (!host) return false;
+          return !isLoopbackHostname(host);
+        } catch {
+          return false;
+        }
+      }
+
+      /** Prod panel + loopback API URL: tarayıcı erişemez; yerel yol tercih edilir. */
+      function shouldSkipGorevlerTasksApi() {
+        const base = resolveGorevlerTasksApiBase();
+        if (!base) return true;
+        return isPanelOnNonLoopbackHost() && isTasksApiLoopbackBase(base);
+      }
+
+      function shouldFallbackGorevlerTasksLocal(apiUnreachable) {
+        if (shouldSkipGorevlerTasksApi()) return true;
+        return !!apiUnreachable;
+      }
+
       async function tasksApiPost(path, body) {
         const base = resolveGorevlerTasksApiBase();
         if (!base) throw new Error("tasks_api_disabled");
@@ -5174,6 +5217,22 @@ const PANEL_DEBUG = import.meta.env.DEV;
         panelGorevlerTasks.push(row);
         attachGorevlerTaskPlan(row, cmd.title);
         if (typeof panelGorevlerTasksRender === "function") panelGorevlerTasksRender();
+      }
+
+      function pushGorevlerTaskLocalRow(title, priority, status) {
+        const row = {
+          title,
+          priority:
+            priority && ["dusuk", "orta", "yuksek"].includes(priority) ? priority : "orta",
+          status: "bekliyor",
+        };
+        if (status === "onay_bekliyor") row.status = "onay_bekliyor";
+        else if (status === "tamamlandi") row.status = "tamamlandi";
+        panelGorevlerTasks.push(row);
+        persistPanelGorevlerTasks();
+        attachGorevlerTaskPlan(row, title);
+        if (typeof panelGorevlerTasksRender === "function") panelGorevlerTasksRender();
+        return row;
       }
 
       function wirePanel() {
@@ -6767,6 +6826,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         let gorevlerEscapeHandler = null;
         let lastGorevlerOpenedIndex = -1;
         let lastGorevlerDeletedId = "";
+        let lastGorevlerDeletedLocalRow = null;
         let lastGorevlerPlanIndex = -1;
         let gorevlerListFilter = "all";
 
@@ -7389,6 +7449,16 @@ const PANEL_DEBUG = import.meta.env.DEV;
          * Görevler: POST /tasks → .lumos/tasks.json; isteğe bağlı POST /tasks/complete;
          * ardından yerel plan kartı (görev eklerken köprü yok).
          */
+        function finishAddTaskLocal(title, priority, status) {
+          const taskRef = pushGorevlerTaskLocalRow(title, priority, status);
+          titleInput.value = "";
+          const savedPlan = taskRef.taskPlan;
+          const savedIdx = panelGorevlerTasks.indexOf(taskRef);
+          if (savedPlan && savedIdx >= 0) showGorevlerPlanInline(savedPlan, savedIdx);
+          showHint("Görev yerel olarak kaydedildi.");
+          return taskRef;
+        }
+
         async function addTask() {
           const title = titleInput.value.trim();
           if (!title) {
@@ -7401,25 +7471,38 @@ const PANEL_DEBUG = import.meta.env.DEV;
           const priority = prioritySel.value;
           const status = statusSel.value;
 
+          if (shouldSkipGorevlerTasksApi()) {
+            finishAddTaskLocal(title, priority, status);
+            return;
+          }
+
           let createRes;
+          let apiUnreachable = false;
           try {
             createRes = await tasksApiPost("/tasks", { title });
           } catch {
-            showHint(
-              panelDebugText(
-                "Görev sunucusuna ulaşılamadı. panel_tasks_server çalışıyor mu? (" +
-                  resolveGorevlerTasksApiBase() +
-                  ")",
-                "Görev sunucusuna ulaşılamadı. Yerel görev servisini kontrol edin.",
-              ),
-            );
-            return;
+            apiUnreachable = true;
           }
-          if (!createRes.ok || !createRes.data || !createRes.data.ok) {
+          if (
+            apiUnreachable ||
+            !createRes ||
+            !createRes.ok ||
+            !createRes.data ||
+            !createRes.data.ok
+          ) {
+            if (shouldFallbackGorevlerTasksLocal(apiUnreachable)) {
+              finishAddTaskLocal(title, priority, status);
+              return;
+            }
             const err =
-              createRes.data && createRes.data.error != null
+              createRes &&
+              createRes.data &&
+              createRes.data.error != null
                 ? String(createRes.data.error)
-                : panelDebugText("create_failed (" + createRes.status + ")", "kayıt başarısız");
+                : panelDebugText(
+                    "create_failed (" + (createRes ? createRes.status : "?") + ")",
+                    "kayıt başarısız",
+                  );
             showHint("Görev kaydedilemedi (" + err + ").");
             return;
           }
@@ -7548,22 +7631,40 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
         }
 
+        function completeGorevlerTaskLocal(t) {
+          t.status = "tamamlandi";
+          persistPanelGorevlerTasks();
+          render();
+        }
+
         async function completeOpenGorevlerTask() {
           const t = panelGorevlerTasks[lastGorevlerOpenedIndex];
           if (!t) return;
           const ref = t.id ? String(t.id).trim() : String(t.title || "").trim();
           if (!ref) return;
           hideHint();
+          if (shouldSkipGorevlerTasksApi()) {
+            completeGorevlerTaskLocal(t);
+            closeGorevlerDetail(true);
+            hideHint();
+            return;
+          }
           let res;
+          let apiUnreachable = false;
           try {
             res = await tasksApiPost("/tasks/complete", { ref });
           } catch {
-            showHint("Tamamlanamadı: görev sunucusuna ulaşılamadı.");
-            return;
+            apiUnreachable = true;
           }
-          if (!res.ok || !res.data || !res.data.ok) {
+          if (apiUnreachable || !res || !res.ok || !res.data || !res.data.ok) {
+            if (shouldFallbackGorevlerTasksLocal(apiUnreachable)) {
+              completeGorevlerTaskLocal(t);
+              closeGorevlerDetail(true);
+              hideHint();
+              return;
+            }
             const err =
-              res.data && res.data.error != null ? String(res.data.error) : "complete_failed";
+              res && res.data && res.data.error != null ? String(res.data.error) : "complete_failed";
             showHint("Tamamlanamadı (" + err + ").");
             return;
           }
@@ -7572,38 +7673,62 @@ const PANEL_DEBUG = import.meta.env.DEV;
           hideHint();
         }
 
+        function removeGorevlerTaskLocalById(deletedId) {
+          const id = String(deletedId || "").trim();
+          if (!id) return false;
+          for (let i = panelGorevlerTasks.length - 1; i >= 0; i--) {
+            if (panelGorevlerTasks[i] && String(panelGorevlerTasks[i].id || "").trim() === id) {
+              panelGorevlerTasks.splice(i, 1);
+              persistPanelGorevlerTasks();
+              return true;
+            }
+          }
+          return false;
+        }
+
+        function finishDeleteGorevlerTaskLocal(t, deletedId) {
+          lastGorevlerDeletedId = deletedId;
+          lastGorevlerDeletedLocalRow = { ...t };
+          if (restoreLastBtn) restoreLastBtn.hidden = false;
+          removeGorevlerTaskLocalById(deletedId);
+          closeGorevlerDetail(true);
+          render();
+          showHint("Görev silindi.");
+        }
+
         async function deleteOpenGorevlerTask() {
           const t = panelGorevlerTasks[lastGorevlerOpenedIndex];
           if (!t || !t.id) return;
           if (!confirm("Görev silinsin mi?")) return;
           hideHint();
           const deletedId = String(t.id).trim();
+          if (shouldSkipGorevlerTasksApi()) {
+            finishDeleteGorevlerTaskLocal(t, deletedId);
+            return;
+          }
           let res;
+          let apiUnreachable = false;
           try {
             res = await tasksApiPost("/tasks/delete", { id: deletedId });
           } catch {
-            showHint("Silinemedi: görev sunucusuna ulaşılamadı.");
-            return;
+            apiUnreachable = true;
           }
-          if (!res.ok || !res.data || !res.data.ok) {
-            const err = res.data && res.data.error != null ? String(res.data.error) : "delete_failed";
+          if (apiUnreachable || !res || !res.ok || !res.data || !res.data.ok) {
+            if (shouldFallbackGorevlerTasksLocal(apiUnreachable)) {
+              finishDeleteGorevlerTaskLocal(t, deletedId);
+              return;
+            }
+            const err =
+              res && res.data && res.data.error != null ? String(res.data.error) : "delete_failed";
             showHint("Silinemedi (" + err + ").");
             return;
           }
           lastGorevlerDeletedId = deletedId;
+          lastGorevlerDeletedLocalRow = null;
           if (restoreLastBtn) restoreLastBtn.hidden = false;
           const refreshed = await refreshPanelGorevlerFromTasksApi();
           if (!refreshed) {
-            for (let i = panelGorevlerTasks.length - 1; i >= 0; i--) {
-              if (
-                panelGorevlerTasks[i] &&
-                String(panelGorevlerTasks[i].id || "").trim() === deletedId
-              ) {
-                panelGorevlerTasks.splice(i, 1);
-                break;
-              }
-            }
-            persistPanelGorevlerTasks();
+            removeGorevlerTaskLocalById(deletedId);
           }
           closeGorevlerDetail(true);
           render();
@@ -7613,20 +7738,49 @@ const PANEL_DEBUG = import.meta.env.DEV;
         async function restoreLastGorevlerTask() {
           if (!lastGorevlerDeletedId) return;
           hideHint();
+          if (shouldSkipGorevlerTasksApi() || lastGorevlerDeletedLocalRow) {
+            if (lastGorevlerDeletedLocalRow) {
+              const row = sanitizeGorevlerRow(lastGorevlerDeletedLocalRow);
+              if (row) {
+                panelGorevlerTasks.push(row);
+                persistPanelGorevlerTasks();
+                render();
+              }
+            }
+            lastGorevlerDeletedId = "";
+            lastGorevlerDeletedLocalRow = null;
+            if (restoreLastBtn) restoreLastBtn.hidden = true;
+            hideHint();
+            return;
+          }
           let res;
+          let apiUnreachable = false;
           try {
             res = await tasksApiPost("/tasks/restore", { id: lastGorevlerDeletedId });
           } catch {
-            showHint("Geri alınamadı: görev sunucusuna ulaşılamadı.");
-            return;
+            apiUnreachable = true;
           }
-          if (!res.ok || !res.data || !res.data.ok) {
+          if (apiUnreachable || !res || !res.ok || !res.data || !res.data.ok) {
+            if (shouldFallbackGorevlerTasksLocal(apiUnreachable) && lastGorevlerDeletedLocalRow) {
+              const row = sanitizeGorevlerRow(lastGorevlerDeletedLocalRow);
+              if (row) {
+                panelGorevlerTasks.push(row);
+                persistPanelGorevlerTasks();
+                render();
+              }
+              lastGorevlerDeletedId = "";
+              lastGorevlerDeletedLocalRow = null;
+              if (restoreLastBtn) restoreLastBtn.hidden = true;
+              hideHint();
+              return;
+            }
             const err =
-              res.data && res.data.error != null ? String(res.data.error) : "restore_failed";
+              res && res.data && res.data.error != null ? String(res.data.error) : "restore_failed";
             showHint("Geri alınamadı (" + err + ").");
             return;
           }
           lastGorevlerDeletedId = "";
+          lastGorevlerDeletedLocalRow = null;
           if (restoreLastBtn) restoreLastBtn.hidden = true;
           await refreshPanelGorevlerFromTasksApi();
           hideHint();
@@ -7749,6 +7903,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           panelGorevlerTasks.length = 0;
           hideGorevlerPlanInline();
           lastGorevlerDeletedId = "";
+          lastGorevlerDeletedLocalRow = null;
           if (restoreLastBtn) restoreLastBtn.hidden = true;
           render();
           await refreshPanelGorevlerFromTasksApi();
