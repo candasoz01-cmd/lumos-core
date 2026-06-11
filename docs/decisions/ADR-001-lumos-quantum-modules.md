@@ -2,9 +2,22 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Taslak / hipotez** — kesinleşmiş mimari karar değildir |
-| Tarih | 2026-06-05 |
-| İlgili | Panel geliştirme günlüğü, ileri katman araştırmaları |
+| Durum | **Taslak / hipotez** — kesinleşmiş mimari karar değildir; bkz. [Güncel durum](#güncel-durum-2026-06-11) |
+| Tarih | 2026-06-05 (güncel durum: 2026-06-11) |
+| İlgili | Panel geliştirme günlüğü, ileri katman araştırmaları, `ROADMAP.md` |
+
+## Güncel durum (2026-06-11)
+
+Kuantum alanı Lumos'ta **kaldırılmadı, iptal edilmedi ve "hiç çalışılmadı" sayılmaz**. Bugün **aktif üretim özelliği değildir**; geçmişte vizyon, taslak, placeholder, demo ve araştırma düzeyinde ele alınmıştır.
+
+| Boyut | Durum |
+|------|-------|
+| Üretim özelliği | Yok — panelde görünür iskelet / demo düzeyi |
+| Geçmiş çalışma | Vizyon notları, bu ADR taslağı, `lumos-quantum/` placeholder alanı, panel kuantum modülü iskeleti |
+| IBM / ücretli API | Aktif kullanım yok; maliyet henüz açılmadı — bu **iptal veya vazgeçme** anlamına gelmez |
+| Gelecek aday | Lumos güvenlik mimarisinde kuantum tabanlı güvenli iletişim / anahtar dağıtımı |
+
+**Dürüst ifadeler:** "Kuantum üretim özelliği mevcut" veya "hiç çalışılmadı" yazılmamalıdır. Ücretli API'nin açılmamış olması, alanın terk edildiği anlamına gelmez.
 
 ## Bağlam
 
@@ -39,7 +52,8 @@ Quantum ve IBM tarafı, üstteki temeller netleşmeden üretim hedefi olarak kon
 |------|-------|
 | AI Gateway / canonical layer | Beklemede — daha sonra güçlü modelle tekrar ele alınacak |
 | Jilee | Ayrı fikir; gözlemde, ürüne aktarılmadı |
-| Quantum üretim entegrasyonu | Erken hedef değil |
+| Quantum üretim entegrasyonu | Erken hedef değil; alan iptal değil — araştırma / aday |
+| IBM / ücretli quantum API | Maliyet açılmadı; aktif entegrasyon yok — vazgeçme değil |
 
 ## Sonuç (geçici)
 

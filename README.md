@@ -87,7 +87,7 @@ Paid or official service access is managed separately from open-source code, via
 
 - Publishing
 - Artificial Intelligence
-- Quantum
+- Quantum *(research / placeholder — not active production; see [ADR-001](docs/decisions/ADR-001-lumos-quantum-modules.md))*
 - Integration
 - Identity
 - Security
