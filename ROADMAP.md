@@ -40,7 +40,7 @@
 - Silme işlemlerinde varsayılan yaklaşım kalıcı silme değil, silinenler/çöp akışıdır.
 - Sesli konuşma araya kaynamayacak.
 - Panel, sabit menü gezdirmekten çok göreve göre doğru çalışma alanını açan merkez olacak.
-- Kuantum başlığı iddia değil, araştırma/yön/kapasite alanıdır.
+- Kuantum başlığı iddia değil; iptal veya "hiç çalışılmadı" değil — araştırma/yön/kapasite alanıdır (bkz. `docs/decisions/ADR-001-lumos-quantum-modules.md`).
 
 ## Not
 Bu dosya işlev eklemez; yalnızca ürün yönünü ve unutulmaması gereken başlıkları takip eder.

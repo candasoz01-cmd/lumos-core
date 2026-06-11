@@ -22,7 +22,7 @@ lumos-core/
 ├── docs/             # Dokümantasyon (çok sayıda .md)
 ├── examples/         # Kullanım örnekleri (kando-post-card, lumos senaryoları)
 ├── logs/             # Log dosyaları (örn. lumos_evolution.jsonl)
-├── lumos-quantum/    # Boş/placeholder (sadece .DS_Store görüldü)
+├── lumos-quantum/    # Placeholder — kuantum modülü rezervi (iptal değil; bkz. ADR-001)
 ├── lumos.py          # Giriş noktası (root)
 ├── package-lock.json # Root’ta — niyet net değil
 ├── panel/            # Frontend panel (HTML/CSS/JS)
@@ -115,7 +115,7 @@ Panel altında çok sayıda .md (BACKEND_*, PANEL_*, CHECKPOINT) — dokümantas
   - **src/policy/** — offline_engine.py.bak, .bak_fallback_cli, .bak_lock_cli, .bak_unlock; rules.py.bak, .bak_gate
   - **src/security/** — keystore.py.bak2; **security.bak_lock/** — tüm klasör yedek
   - **src/scripts/** — init_keystore.py.bak_fix
-- **lumos-quantum/** — Neredeyse boş; niyet net değil.
+- **lumos-quantum/** — Placeholder alan; kuantum modülü için rezerve (iptal değil). Ayrıntı: `docs/decisions/ADR-001-lumos-quantum-modules.md`.
 - **Root package-lock.json** — Proje çoğunlukla Python; backend kendi package-lock’una sahip; root’taki gereksiz olabilir.
 - **YARIN_DEVAM.txt** — Geçici not; commit’e girmemesi veya silinmesi tercih edilebilir.
 - **PROJE_DOSYA_LISTESI.txt** — Eski liste; .lumos/ ve __pycache__ karışık; güncellenebilir veya kaldırılabilir.
