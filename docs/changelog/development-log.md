@@ -131,3 +131,17 @@ PR #145 merge, prod deploy ve smoke sign-off (`welockai.com`).
 **Smoke:** Desktop/prod PASS; mobil viewport PASS. iPhone 13 viewport ile mobil Kuantum/roadmap/harita ve kısayol kontrolü geçti.
 
 **Sonuç:** Ek düzeltme gerekmiyor.
+
+---
+
+## 2026-06-11
+
+V1 readiness §6 zorunlu maddeler PASS (PR #142 merge; docs-only; `main` @ `791d9f1`).
+
+| Sıra | PR | Özet |
+|------|-----|------|
+| 1 | [#142](https://github.com/candasoz01-cmd/lumos-core/pull/142) | V1 readiness §6 — zorunlu maddeler 7/7 PASS olarak main'e girdi |
+
+**Kapsam:** Yalnızca `docs/LUMOS_V1_READINESS.md`; ürün kodu değişmedi.
+
+**Not:** Opsiyonel tam-mod operatör maddeleri açık kaldı; public v1 için blokaj yok.
