@@ -2114,14 +2114,6 @@ const PANEL_DEBUG = import.meta.env.DEV;
           opacity: 0.35;
         }
       }
-      .chat-compose-aux {
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-        gap: 0.35rem;
-        padding: 0 0.35rem;
-        min-width: 0;
-      }
       .chat-compose-clipboard-btn {
         flex: 0 1 auto;
         max-width: 100%;
@@ -3450,11 +3442,24 @@ const PANEL_DEBUG = import.meta.env.DEV;
                         <button type="button" class="chat-compose-attach-menu__item" role="menuitem" data-attach-action="camera">
                           Kamera aç
                         </button>
+                        <button type="button" class="chat-compose-attach-menu__item" role="menuitem" data-attach-action="clipboard">
+                          Panodaki metni ilet
+                        </button>
                         <button type="button" class="chat-compose-attach-menu__item" role="menuitem" data-attach-action="audio">
                           Ses dosyası yükle
                           <span class="chat-compose-attach-menu__badge">yakında</span>
                         </button>
                       </div>
+                      <button
+                        type="button"
+                        id="panel-clipboard-to-kando"
+                        class="chat-compose-clipboard-btn"
+                        title="Panodaki metni ilet"
+                        aria-label="Panodaki metni ilet"
+                        hidden
+                      >
+                        Panodaki metni ilet
+                      </button>
                     </div>
                     <button
                       type="button"
@@ -3498,17 +3503,6 @@ const PANEL_DEBUG = import.meta.env.DEV;
                       <span class="chat-compose-send__label">Gönder</span>
                     </button>
                   </div>
-                </div>
-                <div class="chat-compose-aux">
-                  <button
-                    type="button"
-                    id="panel-clipboard-to-kando"
-                    class="chat-compose-clipboard-btn"
-                    title="Panodaki metni ilet"
-                    aria-label="Panodaki metni ilet"
-                  >
-                    Panodaki metni ilet
-                  </button>
                 </div>
                 <p id="panel-voice-hint" class="chat-voice-hint" role="status" aria-live="polite" hidden></p>
                 <p id="panel-camera-hint" class="chat-camera-hint" role="status" aria-live="polite" hidden></p>
@@ -5174,6 +5168,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const cameraPreviewWrap = document.getElementById("panel-camera-preview-wrap");
         const cameraVideo = /** @type {HTMLVideoElement | null} */ (document.getElementById("panel-camera-video"));
         const mqPanelCameraMobile = window.matchMedia("(max-width: 767.98px)");
+
+        function isPanelCameraNativeCapture() {
+          return mqPanelCameraMobile.matches || mqPanelChatTouchPrimary.matches;
+        }
         /** @type {string | null} */
         let cameraPhotoObjectUrl = null;
         /** @type {MediaStream | null} */
@@ -5808,6 +5806,15 @@ const PANEL_DEBUG = import.meta.env.DEV;
             }
           }
 
+          if (bridgeOpsBlocked()) {
+            setSendHint(BRIDGE_TOKEN_MSG);
+            input.value = "";
+            clearPanelCameraPhotoSelection();
+            input.blur();
+            resetPanelHorizontalScrollAfterInputBlur();
+            return;
+          }
+
           const outgoingMessage = message;
           const panelGorevCmd = parsePanelGorevKomutu(message);
 
@@ -5886,11 +5893,6 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   ? decodedByteLengthFromBase64(inlineB64)
                   : 0;
               }
-            }
-            if (bridgeOpsBlocked()) {
-              setSendHint(BRIDGE_TOKEN_MSG);
-              appendBubble("error", BRIDGE_TOKEN_MSG);
-              return;
             }
             const r = await fetch(CHAT_URL, {
               method: "POST",
@@ -6385,13 +6387,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
         function syncCameraPhotoStatusVisibilityForViewport() {
           if (!cameraPhotoStatus || !cameraPhotoObjectUrl) return;
-          cameraPhotoStatus.hidden = mqPanelCameraMobile.matches;
+          cameraPhotoStatus.hidden = isPanelCameraNativeCapture();
         }
 
-        mqPanelCameraMobile.addEventListener("change", () => {
+        function onPanelCameraViewportChange() {
+          if (isPanelCameraNativeCapture() && cameraStream) stopPanelCameraStream();
           syncPanelCameraPhotoBarVisibility();
           syncCameraPhotoStatusVisibilityForViewport();
-        });
+        }
+
+        mqPanelCameraMobile.addEventListener("change", onPanelCameraViewportChange);
+        mqPanelChatTouchPrimary.addEventListener("change", onPanelCameraViewportChange);
         syncPanelCameraPhotoBarVisibility();
 
         function closePanelAttachMenu() {
@@ -6423,13 +6429,20 @@ const PANEL_DEBUG = import.meta.env.DEV;
         }
 
         function triggerPanelCameraPhotoInput(mode) {
-          if (mode === "camera") {
-            closePanelAttachMenu();
-            togglePanelCameraStream();
+          if (!cameraPhotoInput) {
+            setCameraHint(
+              mode === "camera"
+                ? "Bu tarayıcıda kamera desteklenmiyor."
+                : "Bu tarayıcıda görsel seçimi desteklenmiyor.",
+            );
             return;
           }
-          if (!cameraPhotoInput) {
-            setCameraHint("Bu tarayıcıda görsel seçimi desteklenmiyor.");
+          if (mode === "camera") {
+            closePanelAttachMenu();
+            stopPanelCameraStream();
+            setCameraHint("");
+            cameraPhotoInput.setAttribute("capture", "environment");
+            cameraPhotoInput.click();
             return;
           }
           stopPanelCameraStream();
@@ -6488,6 +6501,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
             triggerPanelCameraPhotoInput("camera");
             return;
           }
+          if (action === "clipboard") {
+            clipboardBtn?.click();
+            return;
+          }
           if (action === "audio") {
             if (attachAudioInput) {
               attachAudioInput.click();
@@ -6519,7 +6536,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
         cameraBtn?.addEventListener("click", () => {
           closePanelAttachMenu();
-          togglePanelCameraStream();
+          triggerPanelCameraPhotoInput("camera");
         });
 
         cameraPhotoInput?.addEventListener("change", () => {

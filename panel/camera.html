@@ -3,38 +3,50 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Lumos Panel — Kamera testi</title>
+  <title>Lumos Panel — Kamera smoke testi</title>
   <style>
     :root {
-      --bg: #1a1a1a;
-      --bg-card: #252525;
+      --bg: #111;
+      --bg-card: #1e1e1e;
       --border: #3a3a3a;
-      --text: #e0e0e0;
-      --text-muted: #999;
+      --text: #e8e8e8;
+      --text-muted: #aaa;
       --link: #7eb8ff;
       --accent: #38ceff;
       --danger: #f0b4b4;
-      --radius: 8px;
-      --spacing: 0.75rem;
+      --ok: #9fd89f;
+      --radius: 10px;
+      --spacing: 1rem;
+      --btn-min-h: 3.25rem;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
-    body {
+    html, body {
       margin: 0;
-      min-height: 100vh;
+      min-height: 100%;
       font-family: system-ui, -apple-system, sans-serif;
-      font-size: 14px;
+      font-size: 16px;
       color: var(--text);
-      background: #111;
+      background: var(--bg);
+      -webkit-text-size-adjust: 100%;
     }
 
-    .page {
-      max-width: 720px;
-      margin: 0 auto;
-      padding: var(--spacing);
+    body { padding-bottom: calc(var(--spacing) + var(--safe-bottom)); }
+
+    .page { max-width: 960px; margin: 0 auto; padding: var(--spacing); }
+
+    .build-marker {
+      margin: 0 0 var(--spacing);
+      padding: 0.55rem 0.75rem;
+      border-radius: var(--radius);
+      background: rgba(159, 216, 159, 0.12);
+      border: 1px solid rgba(159, 216, 159, 0.35);
+      color: var(--ok);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.82rem;
+      word-break: break-all;
     }
 
     .header {
@@ -43,83 +55,62 @@
       align-items: center;
       gap: 0.75rem;
       margin-bottom: var(--spacing);
-      padding-bottom: var(--spacing);
-      border-bottom: 1px solid var(--border);
     }
 
-    .header h1 {
-      margin: 0;
-      font-size: 1.1rem;
-      font-weight: 600;
-    }
+    .header h1 { margin: 0; font-size: 1.15rem; font-weight: 600; }
 
     .back-link {
       color: var(--link);
       text-decoration: none;
-    }
-
-    .back-link:hover {
-      text-decoration: underline;
+      font-size: 1rem;
+      padding: 0.35rem 0;
     }
 
     .note {
       margin: 0 0 var(--spacing);
-      padding: 0.65rem 0.75rem;
+      padding: 0.75rem;
       border-radius: var(--radius);
       background: rgba(56, 206, 255, 0.08);
       border: 1px solid rgba(56, 206, 255, 0.22);
       color: var(--text-muted);
       line-height: 1.45;
+      font-size: 0.9rem;
     }
 
     .error {
       display: none;
       margin: 0 0 var(--spacing);
-      padding: 0.65rem 0.75rem;
+      padding: 0.75rem;
       border-radius: var(--radius);
       background: rgba(240, 180, 180, 0.12);
       border: 1px solid rgba(240, 180, 180, 0.35);
       color: var(--danger);
       line-height: 1.45;
+      font-size: 0.95rem;
+      white-space: pre-wrap;
     }
 
-    .error.is-visible {
-      display: block;
-    }
+    .error.is-visible { display: block; }
 
-    .stage {
-      display: grid;
-      gap: var(--spacing);
-    }
-
-    .card {
-      padding: var(--spacing);
+    .video-shell {
+      position: relative;
+      width: 100%;
+      height: min(68vh, 640px);
+      min-height: 280px;
       border-radius: var(--radius);
-      background: var(--bg-card);
+      overflow: hidden;
+      background: #000;
       border: 1px solid var(--border);
     }
 
-    .card h2 {
-      margin: 0 0 0.5rem;
-      font-size: 0.95rem;
-      font-weight: 600;
-    }
-
-    .preview-wrap {
-      position: relative;
-      overflow: hidden;
-      border-radius: var(--radius);
-      background: #000;
-      aspect-ratio: 4 / 3;
-    }
-
-    video,
-    .preview-img {
+    #live-video {
       display: block;
       width: 100%;
       height: 100%;
       object-fit: cover;
       background: #000;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
     }
 
     .preview-placeholder {
@@ -128,22 +119,24 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 1rem;
+      padding: 1.25rem;
       text-align: center;
       color: var(--text-muted);
       pointer-events: none;
+      font-size: 1rem;
+      z-index: 1;
     }
 
-    canvas {
-      display: none;
-    }
-
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
+    .control-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.65rem;
       margin-top: 0.75rem;
+      position: relative;
+      z-index: 5;
     }
+
+    .control-bar .btn-wide { grid-column: 1 / -1; }
 
     button {
       appearance: none;
@@ -151,82 +144,130 @@
       border-radius: var(--radius);
       background: #2d2d2d;
       color: var(--text);
-      padding: 0.45rem 0.75rem;
+      min-height: var(--btn-min-h);
+      padding: 0.75rem 1rem;
       font: inherit;
+      font-size: 1rem;
+      font-weight: 600;
       cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
     }
 
-    button:hover:not(:disabled) {
-      border-color: var(--accent);
-      color: #fff;
+    button:active:not(:disabled) { border-color: var(--accent); transform: scale(0.98); }
+    button:disabled { opacity: 0.42; cursor: not-allowed; }
+    button.primary { border-color: rgba(56, 206, 255, 0.55); background: rgba(56, 206, 255, 0.18); }
+    button.capture-btn { border-color: rgba(198, 166, 106, 0.55); background: rgba(198, 166, 106, 0.16); font-size: 1.05rem; }
+
+    .card {
+      padding: var(--spacing);
+      border-radius: var(--radius);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      margin-bottom: var(--spacing);
     }
 
-    button:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
+    .card h2 { margin: 0 0 0.65rem; font-size: 1rem; font-weight: 600; }
+
+    .capture-preview-wrap {
+      position: relative;
+      width: 100%;
+      min-height: 240px;
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: #000;
+      border: 1px solid var(--border);
     }
 
-    button.primary {
-      border-color: rgba(56, 206, 255, 0.45);
-      background: rgba(56, 206, 255, 0.12);
+    #capture-preview {
+      display: block;
+      width: 100%;
+      max-height: 50vh;
+      object-fit: contain;
+      background: #000;
     }
 
-    .status-line {
-      margin: 0.5rem 0 0;
+    #capture-preview[hidden] { display: none; }
+
+    .debug-panel {
+      margin: 0;
+      padding: 0.75rem;
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.72rem;
+      line-height: 1.5;
       color: var(--text-muted);
-      font-size: 0.85rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    canvas { position: fixed; left: -9999px; opacity: 0; pointer-events: none; }
+
+    .sr-only {
+      position: absolute;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
     }
   </style>
 </head>
 <body>
   <div class="page">
+    <p id="build-marker" class="build-marker" aria-live="polite">Camera smoke test build: loading…</p>
+
     <header class="header">
       <a class="back-link" href="index.html">← Panele dön</a>
-      <h1>Kamera testi</h1>
+      <h1>Kamera smoke testi</h1>
     </header>
 
     <p class="note" role="note">
-      Yerel önizleme ve indirme only — fotoğraf hiçbir yere yüklenmez.
-      Kamera erişimi için sayfayı <strong>http://localhost</strong> veya <strong>HTTPS</strong> üzerinden açın;
-      <code>file://</code> protokolünde tarayıcıya göre erişim başarısız olabilir.
+      Video akışından <strong>anlık kare</strong> yakalar — yerel önizleme ve JPG indirme; upload yok.
+      HTTPS veya localhost gerekir; <code>file://</code> mobilde genelde çalışmaz.
     </p>
 
     <p id="error" class="error" role="alert" aria-live="assertive"></p>
 
-    <div class="stage">
-      <section class="card" aria-labelledby="live-title">
-        <h2 id="live-title">Canlı önizleme</h2>
-        <div class="preview-wrap">
-          <video id="live-video" playsinline autoplay muted aria-label="Canlı kamera"></video>
-          <div id="live-placeholder" class="preview-placeholder">Kamera kapalı</div>
-        </div>
-        <div class="actions">
-          <button type="button" id="btn-start" class="primary">Kamerayı aç</button>
-          <button type="button" id="btn-stop" disabled>Kamerayı kapat</button>
-          <button type="button" id="btn-switch" disabled>Ön / arka kamera</button>
-        </div>
-        <p id="camera-status" class="status-line">Durum: hazır</p>
-      </section>
+    <section class="live-section" aria-labelledby="live-title">
+      <h2 id="live-title" class="sr-only">Canlı önizleme</h2>
+      <div class="video-shell">
+        <video id="live-video" playsinline webkit-playsinline muted aria-label="Canlı kamera"></video>
+        <div id="live-placeholder" class="preview-placeholder">Kamera kapalı</div>
+      </div>
+      <div class="control-bar">
+        <button type="button" id="btn-start" class="primary btn-wide">Kamerayı aç</button>
+        <button type="button" id="btn-stop" disabled>Kapat</button>
+        <button type="button" id="btn-capture" class="capture-btn btn-wide" disabled>Kare yakala</button>
+        <button type="button" id="btn-download" class="btn-wide" disabled>JPG indir</button>
+      </div>
+    </section>
 
-      <section class="card" aria-labelledby="capture-title">
-        <h2 id="capture-title">Yakalanan fotoğraf</h2>
-        <div class="preview-wrap">
-          <img id="capture-preview" class="preview-img" alt="" hidden />
-          <div id="capture-placeholder" class="preview-placeholder">Henüz fotoğraf yok</div>
-        </div>
-        <div class="actions">
-          <button type="button" id="btn-capture" disabled>Fotoğraf çek</button>
-          <button type="button" id="btn-download" disabled>JPG indir</button>
-        </div>
-      </section>
-    </div>
+    <section class="card" aria-labelledby="capture-title">
+      <h2 id="capture-title">Yakalanan kare</h2>
+      <div class="capture-preview-wrap">
+        <img id="capture-preview" alt="" hidden />
+        <div id="capture-placeholder" class="preview-placeholder">Henüz kare yok</div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="debug-title">
+      <h2 id="debug-title">Durum</h2>
+      <pre id="debug-panel" class="debug-panel" aria-live="polite">Başlatılıyor…</pre>
+    </section>
   </div>
 
-  <canvas id="capture-canvas" width="1280" height="960" aria-hidden="true"></canvas>
+  <canvas id="capture-canvas" width="640" height="480" aria-hidden="true"></canvas>
 
   <script>
     (function () {
       "use strict";
+
+      var BUILD_ID = "smoke-v1+ea97358";
 
       var liveVideo = document.getElementById("live-video");
       var livePlaceholder = document.getElementById("live-placeholder");
@@ -234,17 +275,63 @@
       var capturePlaceholder = document.getElementById("capture-placeholder");
       var captureCanvas = document.getElementById("capture-canvas");
       var errorEl = document.getElementById("error");
-      var statusEl = document.getElementById("camera-status");
+      var debugPanel = document.getElementById("debug-panel");
+      var buildMarker = document.getElementById("build-marker");
       var btnStart = document.getElementById("btn-start");
       var btnStop = document.getElementById("btn-stop");
-      var btnSwitch = document.getElementById("btn-switch");
       var btnCapture = document.getElementById("btn-capture");
       var btnDownload = document.getElementById("btn-download");
 
       var stream = null;
-      var facingMode = "user";
       var capturedBlob = null;
+      var capturedDataUrl = null;
       var capturedObjectUrl = null;
+      var videoReady = false;
+      var captureDisableReason = "kamera kapalı";
+      var dimensionPollTimer = null;
+      var lastButtonClicked = "—";
+      var lastCaptureResult = "—";
+      var lastErrorText = "—";
+
+      liveVideo.playsInline = true;
+      liveVideo.setAttribute("playsinline", "");
+      liveVideo.setAttribute("webkit-playsinline", "");
+      liveVideo.muted = true;
+      liveVideo.autoplay = true;
+
+      function paintBuildMarker() {
+        buildMarker.textContent = "Camera smoke test build: " + BUILD_ID;
+      }
+      paintBuildMarker();
+
+      function renderDebug() {
+        debugPanel.textContent =
+          "build: " +
+          BUILD_ID +
+          "\nlocation.href: " +
+          location.href +
+          "\nvideo.readyState: " +
+          liveVideo.readyState +
+          "\nvideo.videoWidth × video.videoHeight: " +
+          (liveVideo.videoWidth || 0) +
+          " × " +
+          (liveVideo.videoHeight || 0) +
+          "\ncaptureButton: " +
+          (btnCapture.disabled ? "DISABLED" : "ENABLED") +
+          " — " +
+          captureDisableReason +
+          "\nlastButtonClicked: " +
+          lastButtonClicked +
+          "\nlastCaptureResult: " +
+          lastCaptureResult +
+          "\nlastError: " +
+          lastErrorText;
+      }
+
+      function recordButton(name) {
+        lastButtonClicked = name + " @ " + new Date().toISOString();
+        renderDebug();
+      }
 
       function setError(message) {
         if (!message) {
@@ -254,10 +341,8 @@
         }
         errorEl.textContent = message;
         errorEl.classList.add("is-visible");
-      }
-
-      function setStatus(text) {
-        statusEl.textContent = "Durum: " + text;
+        lastErrorText = message;
+        renderDebug();
       }
 
       function revokeCapturedUrl() {
@@ -270,10 +355,25 @@
       function clearCapturedPreview() {
         revokeCapturedUrl();
         capturedBlob = null;
+        capturedDataUrl = null;
         capturePreview.hidden = true;
         capturePreview.removeAttribute("src");
         capturePlaceholder.style.display = "flex";
         btnDownload.disabled = true;
+      }
+
+      function stopDimensionPoll() {
+        if (dimensionPollTimer) {
+          window.clearInterval(dimensionPollTimer);
+          dimensionPollTimer = null;
+        }
+      }
+
+      function setCaptureEnabled(enabled, reason) {
+        videoReady = enabled;
+        captureDisableReason = reason || (enabled ? "hazır" : "bilinmiyor");
+        btnCapture.disabled = !enabled;
+        renderDebug();
       }
 
       function stopTracks() {
@@ -289,14 +389,14 @@
       }
 
       function stopCamera() {
+        stopDimensionPoll();
         stopTracks();
         liveVideo.srcObject = null;
         livePlaceholder.style.display = "flex";
         btnStart.disabled = false;
         btnStop.disabled = true;
-        btnSwitch.disabled = true;
-        btnCapture.disabled = true;
-        setStatus("kapalı");
+        setCaptureEnabled(false, "kamera kapalı");
+        renderDebug();
       }
 
       function isMediaSupported() {
@@ -314,195 +414,363 @@
         if (name === "NotReadableError" || name === "TrackStartError") {
           return "Kamera kullanılamıyor: cihaz başka bir uygulama tarafından kullanılıyor olabilir.";
         }
-        if (name === "OverconstrainedError") {
-          return "Kamera kullanılamıyor: seçilen kamera modu desteklenmiyor.";
-        }
         if (name === "SecurityError") {
           return "Kamera kullanılamıyor: güvenli bağlam (HTTPS veya localhost) gerekli.";
         }
         return "Kamera kullanılamıyor: " + ((err && err.message) || "bilinmeyen hata");
       }
 
-      function waitForVideoReady(video) {
-        if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0) {
-          return Promise.resolve();
-        }
+      function waitForVideoReady(video, timeoutMs) {
         return new Promise(function (resolve, reject) {
+          function readyNow() {
+            return video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0 && video.videoHeight > 0;
+          }
+
+          if (readyNow()) {
+            resolve();
+            return;
+          }
+
           var timeout = window.setTimeout(function () {
             cleanup();
             reject(new Error("video-not-ready"));
-          }, 8000);
+          }, timeoutMs || 15000);
 
           function cleanup() {
             window.clearTimeout(timeout);
-            video.removeEventListener("loadedmetadata", onReady);
-            video.removeEventListener("canplay", onReady);
+            video.removeEventListener("loadedmetadata", onEvent);
+            video.removeEventListener("loadeddata", onEvent);
+            video.removeEventListener("canplay", onEvent);
+            video.removeEventListener("playing", onEvent);
+            video.removeEventListener("resize", onEvent);
           }
 
-          function onReady() {
-            if (video.videoWidth > 0) {
+          function onEvent() {
+            if (readyNow()) {
               cleanup();
               resolve();
             }
           }
 
-          video.addEventListener("loadedmetadata", onReady);
-          video.addEventListener("canplay", onReady);
+          video.addEventListener("loadedmetadata", onEvent);
+          video.addEventListener("loadeddata", onEvent);
+          video.addEventListener("canplay", onEvent);
+          video.addEventListener("playing", onEvent);
+          video.addEventListener("resize", onEvent);
         });
       }
 
-      function startCamera() {
-        setError("");
-        clearCapturedPreview();
+      function startDimensionPoll() {
+        stopDimensionPoll();
+        var attempts = 0;
+        dimensionPollTimer = window.setInterval(function () {
+          attempts += 1;
+          var w = liveVideo.videoWidth || 0;
+          var h = liveVideo.videoHeight || 0;
 
-        if (!isMediaSupported()) {
-          setError("Desteklenmeyen tarayıcı: getUserMedia bu ortamda kullanılamıyor.");
-          setStatus("desteklenmiyor");
-          return;
-        }
+          if (w > 0 && h > 0) {
+            setCaptureEnabled(true, "video boyutu hazır (" + w + "×" + h + ")");
+            stopDimensionPoll();
+            return;
+          }
 
-        if (location.protocol === "file:") {
-          setError(
-            "file:// protokolünde kamera erişimi tarayıcıya göre engellenebilir. Lütfen http://localhost veya HTTPS kullanın."
-          );
-        }
+          setCaptureEnabled(false, "video boyutu 0×0 (deneme " + attempts + ")");
+          if (attempts >= 75) {
+            stopDimensionPoll();
+            setError("Video hazır değil: boyut hâlâ 0×0. Kamerayı kapatıp tekrar açın.");
+            lastErrorText = "dimension poll timeout";
+          }
+          renderDebug();
+        }, 200);
+      }
 
-        stopCamera();
-        setStatus("açılıyor…");
-        btnStart.disabled = true;
+      function attachStream(mediaStream) {
+        stopDimensionPoll();
+        stream = mediaStream;
+        liveVideo.srcObject = mediaStream;
+        liveVideo.muted = true;
+        setCaptureEnabled(false, "video boyutu bekleniyor");
 
-        var constraints = {
-          audio: false,
-          video: {
-            facingMode: facingMode,
-            width: { ideal: 1280 },
-            height: { ideal: 960 },
-          },
-        };
-
-        navigator.mediaDevices
-          .getUserMedia(constraints)
-          .then(function (mediaStream) {
-            stream = mediaStream;
-            liveVideo.srcObject = stream;
-            return waitForVideoReady(liveVideo);
+        return Promise.resolve()
+          .then(function () {
+            try {
+              return liveVideo.play();
+            } catch (_playErr) {
+              return undefined;
+            }
+          })
+          .catch(function () {
+            /* iOS may reject first play */
+          })
+          .then(function () {
+            return waitForVideoReady(liveVideo, 15000);
           })
           .then(function () {
             livePlaceholder.style.display = "none";
             btnStart.disabled = true;
             btnStop.disabled = false;
-            btnSwitch.disabled = false;
-            btnCapture.disabled = false;
-            setStatus("açık (" + (facingMode === "environment" ? "arka" : "ön") + " kamera)");
+            startDimensionPoll();
             setError("");
-          })
-          .catch(function (err) {
-            stopCamera();
-            setError(mapGetUserMediaError(err));
-            setStatus("hata");
+            renderDebug();
           });
       }
 
-      function switchCamera() {
-        facingMode = facingMode === "user" ? "environment" : "user";
-        if (stream) {
-          startCamera();
+      function startCamera() {
+        clearCapturedPreview();
+        lastCaptureResult = "—";
+
+        if (!isMediaSupported()) {
+          setError("Desteklenmeyen tarayıcı: getUserMedia yok.");
+          setCaptureEnabled(false, "getUserMedia yok");
+          return;
+        }
+
+        if (location.protocol === "file:") {
+          setError("file:// — kamera genelde çalışmaz. HTTPS veya localhost kullanın.");
+        }
+
+        stopDimensionPoll();
+        stopTracks();
+        liveVideo.srcObject = null;
+        btnStart.disabled = true;
+        setCaptureEnabled(false, "açılıyor");
+
+        navigator.mediaDevices
+          .getUserMedia({
+            audio: false,
+            video: {
+              facingMode: { ideal: "user" },
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            },
+          })
+          .then(function (mediaStream) {
+            return attachStream(mediaStream);
+          })
+          .catch(function (err) {
+            stopCamera();
+            btnStart.disabled = false;
+            var msg =
+              err && err.message === "video-not-ready"
+                ? "Video hazır değil: kamera karesi gelmedi."
+                : mapGetUserMediaError(err);
+            setError(msg);
+            lastErrorText = msg;
+            renderDebug();
+          });
+      }
+
+      function applyCapturedImage(blob, dataUrl, width, height, via) {
+        revokeCapturedUrl();
+        capturedBlob = blob || null;
+        capturedDataUrl = dataUrl || null;
+
+        if (blob) {
+          capturedObjectUrl = URL.createObjectURL(blob);
+          capturePreview.src = capturedObjectUrl;
+        } else if (dataUrl) {
+          capturePreview.src = dataUrl;
+        }
+
+        capturePreview.alt = "Yakalanan kare önizlemesi";
+        capturePreview.hidden = false;
+        capturePlaceholder.style.display = "none";
+        btnDownload.disabled = false;
+
+        var sizeKb = blob ? Math.round(blob.size / 1024) : Math.round((dataUrl || "").length / 1024);
+        lastCaptureResult = "OK via " + via + " — " + width + "×" + height + ", ~" + sizeKb + " KB";
+        setError("");
+        renderDebug();
+      }
+
+      function canvasToJpeg(canvas, callback) {
+        if (canvas.toBlob) {
+          canvas.toBlob(
+            function (blob) {
+              if (blob) {
+                callback(null, blob, null, "toBlob");
+                return;
+              }
+              fallbackDataUrl();
+            },
+            "image/jpeg",
+            0.92
+          );
+        } else {
+          fallbackDataUrl();
+        }
+
+        function fallbackDataUrl() {
+          try {
+            var dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+            var parts = dataUrl.split(",");
+            var bin = atob(parts[1] || "");
+            var arr = new Uint8Array(bin.length);
+            for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+            callback(null, new Blob([arr], { type: "image/jpeg" }), dataUrl, "toDataURL");
+          } catch (err) {
+            callback(err, null, null, "failed");
+          }
         }
       }
 
-      function capturePhoto() {
+      function captureFrame() {
         setError("");
 
         if (!stream) {
           setError("Video hazır değil: önce kamerayı açın.");
+          lastCaptureResult = "hata: stream yok";
+          renderDebug();
           return;
         }
 
-        if (liveVideo.videoWidth <= 0 || liveVideo.videoHeight <= 0) {
-          setError("Video hazır değil: kamera karesi henüz gelmedi.");
+        if (!videoReady) {
+          setError("Video hazır değil: " + captureDisableReason);
+          lastCaptureResult = "hata: " + captureDisableReason;
+          renderDebug();
           return;
         }
 
         var width = liveVideo.videoWidth;
         var height = liveVideo.videoHeight;
+        if (!width || !height) {
+          setCaptureEnabled(false, "boyut 0×0 — yakalama kapalı");
+          setError("Video hazır değil: boyut " + width + " × " + height + ".");
+          lastCaptureResult = "hata: boyut 0";
+          renderDebug();
+          return;
+        }
+
         captureCanvas.width = width;
         captureCanvas.height = height;
 
-        var ctx = captureCanvas.getContext("2d");
+        var ctx = captureCanvas.getContext("2d", { alpha: false });
         if (!ctx) {
-          setError("Canvas/toBlob hatası: 2D bağlamı oluşturulamadı.");
+          setError("Kare kodlanamadı: 2D bağlamı yok.");
+          lastCaptureResult = "hata: no 2d context";
+          renderDebug();
           return;
         }
 
-        try {
-          ctx.drawImage(liveVideo, 0, 0, width, height);
-        } catch (drawErr) {
-          setError("Video hazır değil: kare yakalanamadı (" + (drawErr.message || drawErr) + ").");
-          return;
-        }
+        function drawAndEncode() {
+          try {
+            ctx.drawImage(liveVideo, 0, 0, width, height);
+          } catch (drawErr) {
+            setError("Video hazır değil: drawImage başarısız.");
+            lastCaptureResult = "hata: drawImage";
+            lastErrorText = String(drawErr.message || drawErr);
+            renderDebug();
+            return;
+          }
 
-        captureCanvas.toBlob(
-          function (blob) {
-            if (!blob) {
-              setError("Canvas/toBlob hatası: JPEG üretilemedi.");
+          canvasToJpeg(captureCanvas, function (err, blob, dataUrl, via) {
+            if (err || (!blob && !dataUrl)) {
+              setError("Kare kodlanamadı: JPEG üretilemedi.");
+              lastCaptureResult = "hata: encode";
+              lastErrorText = err ? String(err.message || err) : "null blob";
+              renderDebug();
               return;
             }
-            revokeCapturedUrl();
-            capturedBlob = blob;
-            capturedObjectUrl = URL.createObjectURL(blob);
-            capturePreview.src = capturedObjectUrl;
-            capturePreview.alt = "Yakalanan fotoğraf önizlemesi";
-            capturePreview.hidden = false;
-            capturePlaceholder.style.display = "none";
-            btnDownload.disabled = false;
-            setStatus("fotoğraf yakalandı");
-          },
-          "image/jpeg",
-          0.92
-        );
+            applyCapturedImage(blob, dataUrl, width, height, via);
+          });
+        }
+
+        if (liveVideo.paused) {
+          liveVideo
+            .play()
+            .then(function () {
+              requestAnimationFrame(drawAndEncode);
+            })
+            .catch(function () {
+              setError("Video hazır değil: oynatma başarısız.");
+            });
+        } else {
+          requestAnimationFrame(drawAndEncode);
+        }
       }
 
       function downloadJpg() {
-        if (!capturedBlob) {
-          setError("Henüz indirilecek fotoğraf yok.");
+        if (!capturedBlob && !capturedDataUrl) {
+          setError("Henüz indirilecek kare yok.");
           return;
         }
-        var url = capturedObjectUrl || URL.createObjectURL(capturedBlob);
-        var temporary = !capturedObjectUrl;
-        var anchor = document.createElement("a");
         var stamp = new Date().toISOString().replace(/[:.]/g, "-");
-        anchor.href = url;
-        anchor.download = "lumos-camera-" + stamp + ".jpg";
+        var filename = "lumos-frame-" + stamp + ".jpg";
+        var anchor = document.createElement("a");
         anchor.rel = "noopener";
-        document.body.appendChild(anchor);
-        anchor.click();
-        anchor.remove();
-        if (temporary) {
-          URL.revokeObjectURL(url);
+
+        if (capturedBlob) {
+          var url = capturedObjectUrl || URL.createObjectURL(capturedBlob);
+          var temporary = !capturedObjectUrl;
+          anchor.href = url;
+          anchor.download = filename;
+          document.body.appendChild(anchor);
+          anchor.click();
+          anchor.remove();
+          if (temporary) URL.revokeObjectURL(url);
+        } else if (capturedDataUrl) {
+          anchor.href = capturedDataUrl;
+          anchor.download = filename;
+          document.body.appendChild(anchor);
+          anchor.click();
+          anchor.remove();
         }
       }
 
+      function bindAction(btn, name, handler) {
+        var guard = 0;
+        function run() {
+          if (btn.disabled) return;
+          var now = Date.now();
+          if (now - guard < 350) return;
+          guard = now;
+          recordButton(name);
+          try {
+            handler();
+          } catch (err) {
+            setError(String(err.message || err));
+            lastErrorText = String(err.message || err);
+            renderDebug();
+          }
+        }
+        btn.addEventListener("click", function (e) {
+          e.preventDefault();
+          run();
+        });
+        btn.addEventListener("pointerup", function (e) {
+          if (e.pointerType === "mouse" && e.button !== 0) return;
+          e.preventDefault();
+          run();
+        });
+      }
+
       function cleanupAll() {
+        stopDimensionPoll();
         stopCamera();
         revokeCapturedUrl();
       }
 
-      btnStart.addEventListener("click", startCamera);
-      btnStop.addEventListener("click", function () {
+      bindAction(btnStart, "btn-start", startCamera);
+      bindAction(btnStop, "btn-stop", function () {
         setError("");
         stopCamera();
       });
-      btnSwitch.addEventListener("click", switchCamera);
-      btnCapture.addEventListener("click", capturePhoto);
-      btnDownload.addEventListener("click", downloadJpg);
+      bindAction(btnCapture, "btn-capture", captureFrame);
+      bindAction(btnDownload, "btn-download", downloadJpg);
+
       window.addEventListener("pagehide", cleanupAll);
       window.addEventListener("beforeunload", cleanupAll);
 
+      liveVideo.addEventListener("loadedmetadata", renderDebug);
+      liveVideo.addEventListener("playing", renderDebug);
+      liveVideo.addEventListener("resize", renderDebug);
+
       if (!isMediaSupported()) {
-        setError("Desteklenmeyen tarayıcı: getUserMedia bu ortamda kullanılamıyor.");
+        setError("Desteklenmeyen tarayıcı: getUserMedia yok.");
         btnStart.disabled = true;
-        setStatus("desteklenmiyor");
+        setCaptureEnabled(false, "getUserMedia yok");
       }
+      renderDebug();
     })();
   </script>
 </body>
