@@ -4390,7 +4390,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 <li>
                   <span class="lumos-capability-name">5. Terminal komutu</span>
                   <span id="cap-terminal" class="lumos-capability-val" data-state="ok">AKTİF</span>
-                  <span class="lumos-capability-route">panele bağlı değil</span>
+                  <span class="lumos-capability-route">Yerel cihaz köprüsü bekleniyor.</span>
+                  <span class="lumos-capability-limit-note" data-cap-note-for="cap-terminal" hidden>
+                    Köprü bağlantısı bekleniyor.
+                  </span>
                 </li>
                 <li>
                   <span class="lumos-capability-name">6. Mac uygulaması açma</span>
@@ -4574,7 +4577,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
       const SEND_LIMITED_HINT =
         "Sınırlı modda sohbet gönderimi bağlı köprü olmadan çalışmaz.";
       const CAP_LIMITED_NOTE = "Köprü bağlantısı bekleniyor.";
-      const KISITLI_CAP_IDS = ["cap-file-read", "cap-file-write", "cap-task-create", "cap-live-deploy"];
+      const KISITLI_CAP_IDS = ["cap-file-read", "cap-file-write", "cap-task-create", "cap-live-deploy", "cap-terminal"];
 
       const CAP_STATUS = {
         aktif: { label: "AKTİF", state: "ok" },
