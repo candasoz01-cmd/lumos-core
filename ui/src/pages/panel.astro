@@ -5888,6 +5888,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
             if (bridgeOpsBlocked()) {
               setSendHint(BRIDGE_TOKEN_MSG);
               appendBubble("error", BRIDGE_TOKEN_MSG);
+              input.value = "";
+              clearPanelCameraPhotoSelection();
+              input.blur();
+              resetPanelHorizontalScrollAfterInputBlur();
               return;
             }
             const r = await fetch(CHAT_URL, {
