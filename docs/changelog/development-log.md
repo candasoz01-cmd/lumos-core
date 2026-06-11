@@ -115,3 +115,19 @@ Cando `branch-cleanup-review` read-only dry-run recipe MVP (PR #97 merge; `main`
 **Kapsam:** Read-only; dal silmez. Yerelde 568 passed, 2 skipped.
 
 **Sonraki adım (henüz yok):** continuity / registry / run-history ileride değerlendirilebilir — bu PR'da uygulanmadı.
+
+---
+
+## 2026-06-11
+
+PR #145 merge, prod deploy ve smoke sign-off (`welockai.com`).
+
+| Sıra | PR | Özet |
+|------|-----|------|
+| 1 | #145 | Merge edildi |
+
+**Deploy:** Prod deploy `welockai.com` üzerinde tamamlandı.
+
+**Smoke:** Desktop/prod PASS; mobil viewport PASS. iPhone 13 viewport ile mobil Kuantum/roadmap/harita ve kısayol kontrolü geçti.
+
+**Sonuç:** Ek düzeltme gerekmiyor.
