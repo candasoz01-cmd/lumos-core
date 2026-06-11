@@ -145,3 +145,17 @@ V1 readiness §6 zorunlu maddeler PASS (PR #142 merge; docs-only; `main` @ `791d
 **Kapsam:** Yalnızca `docs/LUMOS_V1_READINESS.md`; ürün kodu değişmedi.
 
 **Not:** Opsiyonel tam-mod operatör maddeleri açık kaldı; public v1 için blokaj yok.
+
+---
+
+## 2026-06-11
+
+Quantum docs status netliği (PR #144 merge; docs-only; `main` @ `541819b2`).
+
+| Sıra | PR | Özet |
+|------|-----|------|
+| 1 | [#144](https://github.com/candasoz01-cmd/lumos-core/pull/144) | PR #144 merge edildi — Quantum docs main'e girdi |
+
+**Kapsam:** README, ROADMAP ve `docs/*` güncellendi; ürün kodu değişmedi.
+
+**Durum:** Açık PR kalmadı.
