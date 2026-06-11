@@ -4513,6 +4513,33 @@ const PANEL_DEBUG = import.meta.env.DEV;
       }
 
       const BRIDGE_BADGE_LIMITED_LABEL = "Sınırlı mod";
+      const CHAT_EMPTY_LIMITED_TEXT = "Sınırlı mod · Yerel işlemler kullanılabilir";
+
+      const CAP_STATUS = {
+        aktif: { label: "AKTİF", state: "ok" },
+        pasif: { label: "PASİF", state: "no" },
+        kisitli: { label: "KISITLI", state: "kisitli" },
+        gelistirme: { label: "GELİŞTİRME AŞAMASINDA", state: "hedef" },
+      };
+
+      function setCap(el, key) {
+        if (!el) return;
+        const row = CAP_STATUS[key];
+        if (!row) return;
+        el.textContent = row.label;
+        el.setAttribute("data-state", row.state);
+      }
+
+      function applyBridgeLimitedUi() {
+        if (!bridgeOpsBlocked()) return;
+        const chatEmptyText = document.querySelector(".chat-empty-hint__text");
+        if (chatEmptyText) chatEmptyText.textContent = CHAT_EMPTY_LIMITED_TEXT;
+        setCap(document.getElementById("cap-file-read"), "kisitli");
+        setCap(document.getElementById("cap-file-write"), "kisitli");
+        setCap(document.getElementById("cap-task-create"), "kisitli");
+        setCap(document.getElementById("cap-live-deploy"), "kisitli");
+        setCap(document.getElementById("cap-task-complete"), "aktif");
+      }
 
       /** Rozet zaten köprü kapalı durumunu gösteriyorsa uzun BRIDGE_TOKEN_MSG tekrarlanmasın. */
       function shouldSuppressBridgeHint() {
@@ -7109,7 +7136,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
           const titleOk = !!(t.title && String(t.title).trim());
           const canComplete = hasId || titleOk;
           if (detailBridgeBtn) {
-            detailBridgeBtn.hidden = !titleOk || t.status === "tamamlandi";
+            detailBridgeBtn.hidden =
+              bridgeOpsBlocked() || !titleOk || t.status === "tamamlandi";
           }
           if (detailCompleteBtn) {
             detailCompleteBtn.hidden = !canComplete || t.status === "tamamlandi";
@@ -8091,23 +8119,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
         };
         if (!btn) return;
 
-        const CAP_STATUS = {
-          aktif: { label: "AKTİF", state: "ok" },
-          pasif: { label: "PASİF", state: "no" },
-          gelistirme: { label: "GELİŞTİRME AŞAMASINDA", state: "hedef" },
-        };
-
         function capKeyFromProbe(ok, limited) {
           if (ok) return limited ? "aktif" : "aktif";
           return "pasif";
-        }
-
-        function setCap(el, key) {
-          if (!el) return;
-          const row = CAP_STATUS[key];
-          if (!row) return;
-          el.textContent = row.label;
-          el.setAttribute("data-state", row.state);
         }
 
         btn.addEventListener("click", async () => {
@@ -8177,6 +8191,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
       }
 
       wireCapabilityProbe();
+      applyBridgeLimitedUi();
 
       function setPanelConnBadge(state) {
         const badge = document.getElementById("panel-conn-badge");
@@ -8421,6 +8436,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           setPanelConnBadge("limited");
           bridgeHealthLine = panelDebugText("yapılandırılmamış", "sınırlı mod");
           paintSistemDurumuPanel();
+          applyBridgeLimitedUi();
           return;
         }
         setPanelConnBadge("pending");
