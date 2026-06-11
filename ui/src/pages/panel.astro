@@ -1563,6 +1563,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
       }
       .chat-empty-hint {
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
         align-self: center;
@@ -1579,6 +1580,39 @@ const PANEL_DEBUG = import.meta.env.DEV;
         letter-spacing: -0.015em;
         line-height: 1.5;
         color: rgb(200 226 248 / 0.88);
+      }
+      .chat-empty-hint__sub {
+        display: block;
+        margin-top: 0.35rem;
+        max-width: 100%;
+        font-size: 0.72rem;
+        font-weight: 500;
+        letter-spacing: 0.005em;
+        line-height: 1.45;
+        color: rgba(168, 188, 210, 0.72);
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+      .panel-limited-note {
+        margin: 0;
+        padding: 0 0.4rem;
+        font-size: 0.66rem;
+        line-height: 1.45;
+        letter-spacing: 0.01em;
+        color: rgba(168, 188, 210, 0.72);
+      }
+      .lumos-capability-limit-note {
+        grid-column: 1 / -1;
+        margin: 0.12rem 0 0;
+        font-size: 0.72rem;
+        line-height: 1.4;
+        color: rgba(168, 188, 210, 0.72);
+      }
+      .gorevler-detail-bridge-note {
+        margin: 0;
+        font-size: 0.72rem;
+        line-height: 1.45;
+        color: rgba(168, 188, 210, 0.72);
       }
       .chat-thread:has(> .chat-turn) > .chat-empty-hint {
         display: none;
@@ -2731,6 +2765,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
           letter-spacing: -0.025em;
           line-height: 1.28;
         }
+        #panel-sohbet .chat-empty-hint__sub {
+          font-size: clamp(0.6rem, 2.2vw, 0.7rem);
+          line-height: 1.35;
+        }
         #panel-sohbet .chat-capability-card {
           width: 100%;
           max-width: 100%;
@@ -3340,6 +3378,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 >
                   <div class="chat-empty-hint" aria-hidden="true">
                     <span class="chat-empty-hint__text">Lumos hazır · Dinliyor</span>
+                    <span id="chat-empty-limited-sub" class="chat-empty-hint__sub" hidden></span>
                   </div>
                   <div
                     class="chat-capability-card"
@@ -3511,6 +3550,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 </div>
                 <p id="panel-voice-hint" class="chat-voice-hint" role="status" aria-live="polite" hidden></p>
                 <p id="panel-camera-hint" class="chat-camera-hint" role="status" aria-live="polite" hidden></p>
+                <p id="panel-send-limited-hint" class="panel-limited-note" role="note" hidden></p>
                 <p id="panel-send-hint" class="chat-camera-hint" role="status" aria-live="polite" hidden></p>
               </div>
             </div>
@@ -3636,6 +3676,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   <header class="gorevler-detail-header">
                     <h3 id="gorevler-detail-title" class="gorevler-detail-heading">Görev</h3>
                     <div class="gorevler-detail-header-actions">
+                      <p id="gorevler-detail-bridge-note" class="gorevler-detail-bridge-note" role="note" hidden>
+                        Görev iletimi köprü bağlantısı bekliyor.
+                      </p>
                       <button type="button" id="gorevler-detail-bridge" class="gorevler-add-btn" hidden>
                         Görevi ilet
                       </button>
@@ -4319,16 +4362,25 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   <span class="lumos-capability-name">1. Dosya okuma</span>
                   <span id="cap-file-read" class="lumos-capability-val" data-state="ok">AKTİF</span>
                   <span class="lumos-capability-route panel-debug-only">/controlled</span>
+                  <span class="lumos-capability-limit-note" data-cap-note-for="cap-file-read" hidden>
+                    Köprü bağlantısı bekleniyor.
+                  </span>
                 </li>
                 <li>
                   <span class="lumos-capability-name">2. Dosya yazma</span>
                   <span id="cap-file-write" class="lumos-capability-val" data-state="ok">AKTİF</span>
                   <span class="lumos-capability-route panel-debug-only">/controlled</span>
+                  <span class="lumos-capability-limit-note" data-cap-note-for="cap-file-write" hidden>
+                    Köprü bağlantısı bekleniyor.
+                  </span>
                 </li>
                 <li>
                   <span class="lumos-capability-name">3. Görev oluşturma</span>
                   <span id="cap-task-create" class="lumos-capability-val" data-state="ok">AKTİF</span>
                   <span class="lumos-capability-route panel-debug-only">/task</span>
+                  <span class="lumos-capability-limit-note" data-cap-note-for="cap-task-create" hidden>
+                    Köprü bağlantısı bekleniyor.
+                  </span>
                 </li>
                 <li>
                   <span class="lumos-capability-name">4. Görev tamamlama</span>
@@ -4349,6 +4401,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   <span class="lumos-capability-name">7. Canlı deploy</span>
                   <span id="cap-live-deploy" class="lumos-capability-val" data-state="ok">AKTİF</span>
                   <span class="lumos-capability-route">manuel onay sonrası</span>
+                  <span class="lumos-capability-limit-note" data-cap-note-for="cap-live-deploy" hidden>
+                    Köprü bağlantısı bekleniyor.
+                  </span>
                 </li>
               </ul>
               <button type="button" id="lumos-capability-test-btn" class="gorevler-add-btn">Bağlantı testi</button>
@@ -4514,6 +4569,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
       const BRIDGE_BADGE_LIMITED_LABEL = "Sınırlı mod";
       const CHAT_EMPTY_LIMITED_TEXT = "Sınırlı mod · Yerel işlemler kullanılabilir";
+      const CHAT_EMPTY_LIMITED_SUBTEXT =
+        "Yerel görevler kullanılabilir; dış köprü gerektiren işlemler beklemede.";
+      const SEND_LIMITED_HINT =
+        "Sınırlı modda sohbet gönderimi bağlı köprü olmadan çalışmaz.";
+      const CAP_LIMITED_NOTE = "Köprü bağlantısı bekleniyor.";
+      const KISITLI_CAP_IDS = ["cap-file-read", "cap-file-write", "cap-task-create", "cap-live-deploy"];
 
       const CAP_STATUS = {
         aktif: { label: "AKTİF", state: "ok" },
@@ -4534,10 +4595,24 @@ const PANEL_DEBUG = import.meta.env.DEV;
         if (!bridgeOpsBlocked()) return;
         const chatEmptyText = document.querySelector(".chat-empty-hint__text");
         if (chatEmptyText) chatEmptyText.textContent = CHAT_EMPTY_LIMITED_TEXT;
-        setCap(document.getElementById("cap-file-read"), "kisitli");
-        setCap(document.getElementById("cap-file-write"), "kisitli");
-        setCap(document.getElementById("cap-task-create"), "kisitli");
-        setCap(document.getElementById("cap-live-deploy"), "kisitli");
+        const chatEmptySub = document.getElementById("chat-empty-limited-sub");
+        if (chatEmptySub) {
+          chatEmptySub.textContent = CHAT_EMPTY_LIMITED_SUBTEXT;
+          chatEmptySub.hidden = false;
+        }
+        const sendLimitedHint = document.getElementById("panel-send-limited-hint");
+        if (sendLimitedHint) {
+          sendLimitedHint.textContent = SEND_LIMITED_HINT;
+          sendLimitedHint.hidden = false;
+        }
+        for (const id of KISITLI_CAP_IDS) {
+          setCap(document.getElementById(id), "kisitli");
+          const note = document.querySelector('[data-cap-note-for="' + id + '"]');
+          if (note) {
+            note.textContent = CAP_LIMITED_NOTE;
+            note.hidden = false;
+          }
+        }
         setCap(document.getElementById("cap-task-complete"), "aktif");
       }
 
@@ -6602,6 +6677,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const detailBridgeDl = document.getElementById("gorevler-detail-bridge-dl");
         const detailCloseBtn = document.getElementById("gorevler-detail-close");
         const detailBridgeBtn = document.getElementById("gorevler-detail-bridge");
+        const detailBridgeNote = document.getElementById("gorevler-detail-bridge-note");
         const detailCompleteBtn = document.getElementById("gorevler-detail-complete");
         const detailDeleteBtn = document.getElementById("gorevler-detail-delete");
         const restoreLastBtn = document.getElementById("gorevler-restore-last");
@@ -7135,9 +7211,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
           const hasId = !!(t.id && String(t.id).trim());
           const titleOk = !!(t.title && String(t.title).trim());
           const canComplete = hasId || titleOk;
+          const bridgeRelayEligible = titleOk && t.status !== "tamamlandi";
           if (detailBridgeBtn) {
-            detailBridgeBtn.hidden =
-              bridgeOpsBlocked() || !titleOk || t.status === "tamamlandi";
+            detailBridgeBtn.hidden = bridgeOpsBlocked() || !bridgeRelayEligible;
+          }
+          if (detailBridgeNote) {
+            detailBridgeNote.hidden = !(bridgeOpsBlocked() && bridgeRelayEligible);
           }
           if (detailCompleteBtn) {
             detailCompleteBtn.hidden = !canComplete || t.status === "tamamlandi";
