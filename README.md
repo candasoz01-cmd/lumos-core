@@ -57,7 +57,7 @@ npm install
 npm run dev
 ```
 
-Product summary: [`docs/PRODUCT_SUMMARY.md`](docs/PRODUCT_SUMMARY.md). Release checklist: [`docs/GITHUB_RELEASE_CHECKLIST.md`](docs/GITHUB_RELEASE_CHECKLIST.md).
+Product summary: [`docs/PRODUCT_SUMMARY.md`](docs/PRODUCT_SUMMARY.md). Release checklist: [`docs/GITHUB_RELEASE_CHECKLIST.md`](docs/GITHUB_RELEASE_CHECKLIST.md). Branch strategy: [`docs/repo-branches.md`](docs/repo-branches.md).
 
 ## Release Tracks
 
