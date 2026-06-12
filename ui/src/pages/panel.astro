@@ -6609,6 +6609,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const voiceHint = document.getElementById("panel-voice-hint");
         let voiceRec = null;
         let voiceListening = false;
+        let voiceStartPending = false;
+        let voiceStopRequested = false;
 
         function setVoiceHint(msg) {
           if (!voiceHint) return;
@@ -6617,11 +6619,39 @@ const PANEL_DEBUG = import.meta.env.DEV;
           voiceHint.hidden = !s;
         }
 
-        function stopVoiceListeningUi() {
-          voiceListening = false;
+        function setVoiceListeningUi(active) {
+          voiceListening = active;
           if (voiceBtn) {
-            voiceBtn.classList.remove("chat-compose-voice-btn--listening");
-            voiceBtn.setAttribute("aria-pressed", "false");
+            voiceBtn.classList.toggle("chat-compose-voice-btn--listening", active);
+            voiceBtn.setAttribute("aria-pressed", active ? "true" : "false");
+          }
+        }
+
+        function stopVoiceListeningUi() {
+          voiceStartPending = false;
+          setVoiceListeningUi(false);
+        }
+
+        function beginVoiceListeningUi() {
+          voiceStartPending = false;
+          setVoiceListeningUi(true);
+        }
+
+        function voiceErrorHint(errorCode) {
+          switch (errorCode) {
+            case "network":
+              return "Ses tanıma ağ hatası. Tekrar deneyin.";
+            case "no-speech":
+              return "Konuşma algılanmadı.";
+            case "audio-capture":
+              return "Mikrofon kullanılamıyor.";
+            case "service-not-allowed":
+            case "not-allowed":
+              return "Mikrofon izni verilmedi.";
+            case "aborted":
+              return "Sesli giriş iptal edildi.";
+            default:
+              return "Sesli giriş başarısız oldu.";
           }
         }
 
@@ -6641,11 +6671,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
             return;
           }
 
-          if (voiceListening && voiceRec) {
-            try {
-              voiceRec.stop();
-            } catch {
-              /* ignore */
+          if (voiceListening || voiceStartPending) {
+            if (voiceRec) {
+              voiceStopRequested = true;
+              try {
+                voiceRec.stop();
+              } catch {
+                /* ignore */
+              }
             }
             return;
           }
@@ -6656,10 +6689,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
           voiceRec.continuous = false;
           voiceRec.maxAlternatives = 1;
 
-          voiceListening = true;
-          voiceBtn.classList.add("chat-compose-voice-btn--listening");
-          voiceBtn.setAttribute("aria-pressed", "true");
+          voiceStartPending = true;
+          voiceStopRequested = false;
           setVoiceHint("");
+
+          voiceRec.onstart = () => {
+            beginVoiceListeningUi();
+          };
+
+          voiceRec.onaudiostart = () => {
+            if (!voiceListening) beginVoiceListeningUi();
+          };
 
           voiceRec.onresult = (ev) => {
             let spoken = "";
@@ -6671,9 +6711,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
           };
 
           voiceRec.onerror = (ev) => {
-            if (ev.error === "not-allowed" || ev.error === "service-not-allowed") {
-              setVoiceHint("Mikrofon izni verilmedi.");
+            const code = ev.error || "";
+            if (code !== "aborted" || !voiceStopRequested) {
+              setVoiceHint(voiceErrorHint(code));
             }
+            voiceStopRequested = false;
             stopVoiceListeningUi();
           };
 
