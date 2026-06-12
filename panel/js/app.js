@@ -65,7 +65,7 @@ function canTransition(from, to) {
     sandboxSource: "varsayılan",
     writingBaseDir: "canlı",
     workspaceName: "lumos-core",
-    branchName: "kando/main",
+    branchName: "main",
     basePath: ".lumos",
     guardStatus: "KORUMA AKTİF",
     recentEvents: [
