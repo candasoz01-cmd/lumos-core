@@ -2057,6 +2057,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
           inset 0 0 0 1px rgb(var(--lumos-land-teal) / 0.38),
           0 0 12px rgb(var(--lumos-land-warm) / 0.08);
       }
+      .chat-compose-voice-btn:disabled,
+      .chat-compose-voice-btn--unsupported {
+        color: rgb(130 200 240 / 0.45);
+        cursor: not-allowed;
+        opacity: 0.55;
+      }
+      .chat-compose-voice-btn:disabled:hover,
+      .chat-compose-voice-btn--unsupported:hover {
+        color: rgb(130 200 240 / 0.45);
+        background: transparent;
+      }
       .chat-compose--gpt textarea {
         flex: 1;
         min-width: 0;
@@ -3545,8 +3556,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
                       type="button"
                       id="panel-voice-input"
                       class="chat-compose-voice-btn"
-                      title="Sesli giriş"
-                      aria-label="Sesli giriş"
+                      title="Sesle yazma (deneysel — tarayıcı/ağ servisine bağlı)"
+                      aria-label="Sesle yazma, deneysel; tarayıcı ve ağ servisine bağlı"
                       aria-pressed="false"
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -6609,6 +6620,18 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
         const voiceBtn = document.getElementById("panel-voice-input");
         const voiceHint = document.getElementById("panel-voice-hint");
+        const speechRecognitionSupported = !!(
+          window.SpeechRecognition || window.webkitSpeechRecognition
+        );
+        const VOICE_TITLE_SUPPORTED =
+          "Sesle yazma (deneysel — tarayıcı/ağ servisine bağlı)";
+        const VOICE_ARIA_SUPPORTED =
+          "Sesle yazma, deneysel; tarayıcı ve ağ servisine bağlı";
+        const VOICE_TITLE_UNSUPPORTED = "Sesle yazma desteklenmiyor";
+        const VOICE_ARIA_UNSUPPORTED =
+          "Bu tarayıcıda sesle yazma desteklenmiyor";
+        const VOICE_UNSUPPORTED_HINT =
+          "Bu tarayıcıda sesle yazma desteklenmiyor.";
         let voiceRec = null;
         let voiceListening = false;
         let voiceStartPending = false;
@@ -6616,6 +6639,24 @@ const PANEL_DEBUG = import.meta.env.DEV;
         let voiceGotResult = false;
         let voiceHadError = false;
         let voiceSessionStarted = false;
+
+        function applyVoiceSupportUi() {
+          if (!voiceBtn) return;
+          if (!speechRecognitionSupported) {
+            voiceBtn.disabled = true;
+            voiceBtn.setAttribute("aria-disabled", "true");
+            voiceBtn.classList.add("chat-compose-voice-btn--unsupported");
+            voiceBtn.title = VOICE_TITLE_UNSUPPORTED;
+            voiceBtn.setAttribute("aria-label", VOICE_ARIA_UNSUPPORTED);
+            setVoiceHint(VOICE_UNSUPPORTED_HINT);
+            return;
+          }
+          voiceBtn.disabled = false;
+          voiceBtn.removeAttribute("aria-disabled");
+          voiceBtn.classList.remove("chat-compose-voice-btn--unsupported");
+          voiceBtn.title = VOICE_TITLE_SUPPORTED;
+          voiceBtn.setAttribute("aria-label", VOICE_ARIA_SUPPORTED);
+        }
 
         function setVoiceHint(msg) {
           if (!voiceHint) return;
@@ -6670,12 +6711,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
           input.dispatchEvent(new Event("input", { bubbles: true }));
         }
 
-        voiceBtn?.addEventListener("click", () => {
+        applyVoiceSupportUi();
+
+        if (speechRecognitionSupported) {
+          voiceBtn?.addEventListener("click", () => {
           const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-          if (!SR) {
-            setVoiceHint("Bu tarayıcıda sesli giriş desteklenmiyor.");
-            return;
-          }
+          if (!SR) return;
 
           if (voiceListening || voiceStartPending) {
             if (voiceRec) {
@@ -6736,12 +6777,18 @@ const PANEL_DEBUG = import.meta.env.DEV;
             const gotResult = voiceGotResult;
             const hadError = voiceHadError;
             const sessionStarted = voiceSessionStarted;
+            const startPendingButNeverStarted =
+              voiceStartPending && !voiceSessionStarted;
             stopVoiceListeningUi();
             voiceStopRequested = false;
             voiceGotResult = false;
             voiceHadError = false;
             voiceSessionStarted = false;
             if (gotResult || userStopped || hadError) return;
+            if (startPendingButNeverStarted) {
+              setVoiceHint("Ses tanıma başlatılamadı. Tekrar deneyin.");
+              return;
+            }
             if (sessionStarted) {
               setVoiceHint(
                 "Ses algılanmadı veya tarayıcı konuşma sonucu üretmedi. Tekrar deneyin."
@@ -6753,9 +6800,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
             voiceRec.start();
           } catch {
             stopVoiceListeningUi();
-            setVoiceHint("Bu tarayıcıda sesli giriş desteklenmiyor.");
+            setVoiceHint("Ses tanıma başlatılamadı. Tekrar deneyin.");
           }
         });
+        }
 
         function syncCameraPhotoStatusVisibilityForViewport() {
           if (!cameraPhotoStatus || !cameraPhotoObjectUrl) return;
