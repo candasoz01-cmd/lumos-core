@@ -175,3 +175,5 @@ Main hash hizalama / readiness sync (PR #149 merge; `main` @ `f5d99b5`).
 **Repo:** `main` `origin/main` ile hizalı.
 
 **Durum:** Açık PR kalmadı.
+
+**Not:** Repo branch stratejisi dokümantasyonu eklendi — varsayılan aktif dal `main` (`docs/repo-branches.md`).
