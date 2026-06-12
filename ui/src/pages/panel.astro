@@ -4589,7 +4589,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
       const CHAT_EMPTY_LIMITED_SUBTEXT =
         "Yerel görevler kullanılabilir; dış köprü gerektiren işlemler beklemede.";
       const SEND_LIMITED_HINT =
-        "Sınırlı modda sohbet gönderimi bağlı köprü olmadan çalışmaz.";
+        "Sınırlı mod: dış sohbet köprüsü yok; yerel yanıtlar ve görev komutları kullanılabilir.";
+      const PANEL_LIMITED_PHOTO_REPLY =
+        "Sınırlı modda fotoğraf analizi yapılamaz; dış görsel API köprüsü bağlı değil.";
       const CAP_LIMITED_NOTE = "Köprü bağlantısı bekleniyor.";
       const KISITLI_CAP_IDS = ["cap-file-read", "cap-file-write", "cap-task-create", "cap-live-deploy", "cap-terminal"];
 
@@ -5221,6 +5223,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
           : `Görev eklendi: ${cmd.title}`;
       }
 
+      function normalizePanelLimitedIntentKey(text) {
+        return String(text || "")
+          .trim()
+          .toLocaleLowerCase("tr-TR")
+          .replace(/\s+/g, " ");
+      }
+
       function applyPanelGorevKomutu(cmd) {
         const row = {
           title: cmd.title,
@@ -5322,6 +5331,66 @@ const PANEL_DEBUG = import.meta.env.DEV;
             p.setAttribute("data-active", p.getAttribute("data-module-panel") === id ? "true" : "false");
           });
         });
+
+        function panelNavigateToModule(moduleId) {
+          const btn = nav.querySelector('button[data-module="' + moduleId + '"]');
+          if (!btn) return false;
+          nav.querySelectorAll("button[data-module]").forEach((b) => {
+            b.setAttribute("aria-current", b === btn ? "true" : "false");
+          });
+          panels.forEach((p) => {
+            p.setAttribute(
+              "data-active",
+              p.getAttribute("data-module-panel") === moduleId ? "true" : "false",
+            );
+          });
+          return true;
+        }
+
+        function tryPanelLimitedNavigationIntent(trimmed) {
+          const k = normalizePanelLimitedIntentKey(trimmed)
+            .replace(/[.?!…]+$/g, "")
+            .trim();
+          if (!k) return null;
+          if (/^(görevler|gorevler)$/.test(k)) {
+            panelNavigateToModule("gorevler");
+            return "Görevler ekranına geçtim; listeden görevleri görebilir veya «görev oluştur başlık» ile yeni görev ekleyebilirsin.";
+          }
+          if (/^(durum|sistem|sistem durumu|system)$/.test(k)) {
+            panelNavigateToModule("ayarlar");
+            return "Ayarlar ekranına geçtim. Bağlantı köprüsü olmadan dış sohbet devre dışı; yerel görevler kullanılabilir.";
+          }
+          if (/^(anahtar\s+kasası|anahtar\s+kasasi|keystore|kimlik)$/.test(k)) {
+            panelNavigateToModule("kimlik");
+            return "Kimlik ekranına geçtim; bağlantı ve kimlik ayarlarını buradan görebilirsin.";
+          }
+          return null;
+        }
+
+        function buildPanelLimitedReply(userText) {
+          const trimmed = String(userText || "").trim();
+          if (!trimmed) return "Bir mesaj yazın.";
+          const navReply = tryPanelLimitedNavigationIntent(trimmed);
+          if (navReply) return navReply;
+          const keyTr = normalizePanelLimitedIntentKey(trimmed);
+          const keyAscii = keyTr
+            .replace(/ğ/g, "g")
+            .replace(/ü/g, "u")
+            .replace(/ş/g, "s")
+            .replace(/ı/g, "i")
+            .replace(/ö/g, "o")
+            .replace(/ç/g, "c");
+          if (keyTr.indexOf("görev") !== -1 || keyAscii.indexOf("gorev") !== -1) {
+            return "Görevler ekranından listeyi görebilirsin. Yeni görev için: «görev oluştur başlık» (ör. görev oluştur alışveriş).";
+          }
+          if (keyTr.indexOf("kayıt") !== -1 || keyAscii.indexOf("kayit") !== -1) {
+            return "Medya ekranına geçip dosyaları inceleyebilirsin.";
+          }
+          if (keyTr.indexOf("akış") !== -1 || keyAscii.indexOf("akis") !== -1) {
+            return "Sosyal ekranına geçip güncel listeyi görebilirsin.";
+          }
+          return "Sınırlı moddasın; dış köprü yok. Yerel görevler ve kısa yönlendirmeler kullanılabilir — örn. «görev oluştur başlık» veya «görevler».";
+        }
 
         const sendLabel = "Gönder";
         const loadingLabel = "Gönderiliyor…";
@@ -6000,16 +6069,52 @@ const PANEL_DEBUG = import.meta.env.DEV;
             }
           }
 
+          const panelGorevCmd = parsePanelGorevKomutu(message);
+
           if (bridgeOpsBlocked()) {
-            const bridgeHint = bridgeBlockedUserHint();
-            if (bridgeHint) setSendHint(bridgeHint);
-            input.blur();
-            resetPanelHorizontalScrollAfterInputBlur();
+            sending = true;
+            sendBtn.disabled = true;
+            sendBtn.setAttribute("aria-busy", "true");
+            sendBtn.setAttribute("aria-label", loadingLabel);
+            sendBtn.setAttribute("title", loadingLabel);
+            sendBtn.classList.add("chat-compose-send--busy");
+            try {
+              if (hasPhoto) {
+                appendUserComposeBubble(message, imageDataUrlForBubble);
+                appendBubble("lumos", PANEL_LIMITED_PHOTO_REPLY);
+                setSendHint("Sınırlı modda görsel analizi kullanılamaz.");
+                input.value = "";
+                clearPanelCameraPhotoSelection();
+                input.blur();
+                resetPanelHorizontalScrollAfterInputBlur();
+                return;
+              }
+
+              appendBubble("user", message);
+              if (panelGorevCmd) {
+                applyPanelGorevKomutu(panelGorevCmd);
+                appendBubble("lumos", buildPanelGorevConfirmation(panelGorevCmd));
+              } else {
+                appendBubble("lumos", buildPanelLimitedReply(message));
+              }
+              input.value = "";
+              clearPanelCameraPhotoSelection();
+              setSendHint("");
+              input.blur();
+              resetPanelHorizontalScrollAfterInputBlur();
+            } finally {
+              sending = false;
+              sendBtn.disabled = false;
+              sendBtn.removeAttribute("aria-busy");
+              sendBtn.setAttribute("aria-label", sendLabel);
+              sendBtn.setAttribute("title", sendLabel);
+              sendBtn.classList.remove("chat-compose-send--busy");
+              refocusPanelChatInput();
+            }
             return;
           }
 
           const outgoingMessage = message;
-          const panelGorevCmd = parsePanelGorevKomutu(message);
 
           sending = true;
           sendBtn.disabled = true;
