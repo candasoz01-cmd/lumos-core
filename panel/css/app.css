@@ -428,6 +428,8 @@ body {
   font-size: 0.92rem;
   max-width: min(100%, 28rem);
   min-width: 0;
+  white-space: pre-wrap;
+  overflow-x: hidden;
   overflow-wrap: anywhere;
   word-break: break-word;
 }
@@ -451,6 +453,8 @@ body {
   padding: 0.3rem 0.35rem;
   max-width: min(100%, 32rem);
   min-width: 0;
+  white-space: pre-wrap;
+  overflow-x: hidden;
   overflow-wrap: anywhere;
   word-break: break-word;
 }
@@ -905,6 +909,9 @@ body {
   border-radius: 8px;
   padding: 0.45rem 0.6rem;
   background: rgba(255, 255, 255, 0.03);
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .lumos-msg-block-title {
@@ -921,6 +928,9 @@ body {
   font-size: 0.86rem;
   line-height: 1.45;
   color: var(--text);
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .lumos-msg-block-list {
@@ -1248,6 +1258,14 @@ body {
   .lumos-chat-attach-menu__item.is-flash .lumos-chat-attach-menu__label {
     font-size: 0.7rem;
     white-space: nowrap;
+  }
+
+  .lumos-chat-bubble,
+  .lumos-chat-answer-card,
+  .lumos-msg-blocks,
+  .lumos-msg-block {
+    max-width: 100%;
+    min-width: 0;
   }
 }
 
@@ -2351,6 +2369,14 @@ body {
   .panel-screen-feed .post-feed-card,
   .panel-screen-dashboard .panel-screen-dashboard-cards {
     max-width: 100%;
+  }
+
+  .lumos-chat-bubble,
+  .lumos-chat-answer-card,
+  .lumos-msg-blocks,
+  .lumos-msg-block {
+    max-width: 100%;
+    min-width: 0;
   }
 
   .lumos-chat-root,
