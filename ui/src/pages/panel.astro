@@ -1916,6 +1916,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
           0 10px 28px rgb(0 0 0 / 0.42),
           var(--panel-edge-inset);
       }
+      .chat-compose-attach-menu--fixed {
+        position: fixed;
+        bottom: auto;
+        right: auto;
+      }
       .chat-compose-attach-menu[hidden] {
         display: none !important;
       }
@@ -6699,9 +6704,45 @@ const PANEL_DEBUG = import.meta.env.DEV;
         mqPanelChatTouchPrimary.addEventListener("change", onPanelCameraViewportChange);
         syncPanelCameraPhotoBarVisibility();
 
+        function panelAttachMenuGapPx() {
+          const root = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+          return root * 0.4;
+        }
+
+        function positionPanelAttachMenu() {
+          if (!attachMenu || !attachToggle || attachMenu.hidden) return;
+          const btn = attachToggle.getBoundingClientRect();
+          const menu = attachMenu.getBoundingClientRect();
+          const gap = panelAttachMenuGapPx();
+          const margin = Math.max(8, gap);
+          const menuW = menu.width;
+          const menuH = menu.height;
+
+          let left = btn.left;
+          let top = btn.top - menuH - gap;
+
+          if (top < margin) {
+            const below = btn.bottom + gap;
+            if (below + menuH + margin <= window.innerHeight) {
+              top = below;
+            } else {
+              top = Math.max(margin, top);
+            }
+          }
+
+          left = Math.max(margin, Math.min(left, window.innerWidth - menuW - margin));
+          top = Math.max(margin, Math.min(top, window.innerHeight - menuH - margin));
+
+          attachMenu.style.top = `${Math.round(top)}px`;
+          attachMenu.style.left = `${Math.round(left)}px`;
+        }
+
         function closePanelAttachMenu() {
           if (!attachMenu || !attachToggle) return;
           attachMenu.hidden = true;
+          attachMenu.classList.remove("chat-compose-attach-menu--fixed");
+          attachMenu.style.top = "";
+          attachMenu.style.left = "";
           attachToggle.setAttribute("aria-expanded", "false");
           attachToggle.classList.remove("chat-compose-attach-btn--open");
         }
@@ -6709,9 +6750,21 @@ const PANEL_DEBUG = import.meta.env.DEV;
         function openPanelAttachMenu() {
           if (!attachMenu || !attachToggle) return;
           attachMenu.hidden = false;
+          attachMenu.classList.add("chat-compose-attach-menu--fixed");
           attachToggle.setAttribute("aria-expanded", "true");
           attachToggle.classList.add("chat-compose-attach-btn--open");
+          requestAnimationFrame(() => {
+            positionPanelAttachMenu();
+          });
         }
+
+        function onPanelAttachMenuViewportChange() {
+          if (!attachMenu || attachMenu.hidden) return;
+          positionPanelAttachMenu();
+        }
+
+        window.addEventListener("resize", onPanelAttachMenuViewportChange);
+        window.addEventListener("scroll", onPanelAttachMenuViewportChange, true);
 
         function switchPanelModule(moduleId) {
           const navBtn = nav.querySelector(`button[data-module="${moduleId}"]`);
