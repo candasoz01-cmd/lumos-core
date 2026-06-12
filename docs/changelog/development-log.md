@@ -159,3 +159,19 @@ Quantum docs status netliği (PR #144 merge; docs-only; `main` @ `541819b2`).
 **Kapsam:** README, ROADMAP ve `docs/*` güncellendi; ürün kodu değişmedi.
 
 **Durum:** Açık PR kalmadı.
+
+---
+
+## 2026-06-12
+
+Main hash hizalama / readiness sync (PR #149 merge; `main` @ `f5d99b5`).
+
+| Sıra | PR | Özet |
+|------|-----|------|
+| 1 | [#149](https://github.com/candasoz01-cmd/lumos-core/pull/149) | §6 smoke hash (`9c4d025`) traceability hizası — merge edildi |
+
+**Kapsam:** Yalnızca docs hash hizalama; PR #149 ≠ §8 kapanış sign-off.
+
+**Repo:** `main` `origin/main` ile hizalı.
+
+**Durum:** Açık PR kalmadı.
