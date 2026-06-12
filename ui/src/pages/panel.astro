@@ -3425,7 +3425,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                     </div>
                   </div>
                   <p class="lumos-security-note">Kalıcı işlemler için onay ister.</p>
-                  <p class="lumos-security-note">Cihaz içinde çalışır; gizli bilgileri sohbete yazma.</p>
+                  <p id="panel-empty-secret-note" class="lumos-security-note">Cihaz içinde çalışır; gizli bilgileri sohbete yazma.</p>
                   {PANEL_DEBUG && (
                     <p class="lumos-security-note panel-debug-only">
                       Yerel geliştirmede bağlantı anahtarı tarayıcıda görünebilir; gerçek gizli değeri sohbete yapıştırma.
@@ -4629,6 +4629,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
           sendLimitedHint.textContent = SEND_LIMITED_HINT;
           sendLimitedHint.hidden = false;
         }
+        const emptySecretNote = document.getElementById("panel-empty-secret-note");
+        if (emptySecretNote) emptySecretNote.hidden = true;
         for (const id of KISITLI_CAP_IDS) {
           setCap(document.getElementById(id), "kisitli");
           const note = document.querySelector('[data-cap-note-for="' + id + '"]');
