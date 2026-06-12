@@ -1,6 +1,6 @@
 # Lumos v1 — Readiness Checklist
 
-**Status:** Living document — reflects repo state as of 2026-06-12 (`9c4d025` on `main`).  
+**Status:** V1 closed as of 2026-06-12 (§8 sign-off; smoke ref `9c4d025`). PR #149 (`f5d99b5`) = docs hash hizalama only.  
 **Production panel:** `https://welockai.com/panel` (Astro `ui/` build, route `/panel`).  
 **Related:** [MOBILE_PHASE_0_PWA.md](MOBILE_PHASE_0_PWA.md), [PRODUCT_SUMMARY.md](PRODUCT_SUMMARY.md), [ui_panel_gorevler_bridge.md](ui_panel_gorevler_bridge.md).
 
@@ -156,12 +156,12 @@ Local dev reference: [local-kando-dev-runbook.md](local-kando-dev-runbook.md).
 
 ## 7. Smallest remaining PR list (priority order)
 
-No open PRs at checklist time; remaining work is **verification and ops**, not large feature branches.
+**v1 closed (2026-06-12):** §8 sign-off tamamlandı; smoke ref `9c4d025`; prod smoke PASS; açık PR yok. PR #149 (`f5d99b5`) yalnızca hash hizalama — kapanış değil. Kalan iş **post-v1 ops / opsiyonel**, yeni feature dalı değil.
 
 | Priority | Item | Type | Notes |
 |----------|------|------|-------|
-| 1 | **Prod limited-mode smoke sign-off** | Ops / checklist | Confirm welockai.com/panel matches §6; document date + commit hash |
-| 2 | **CI green on release commit** | Verify | Required by project discipline — local pass ≠ done |
+| 1 | **Yerel dal temizliği** | Ops | `python scripts/cando_local.py recipe branch-cleanup-review --dry-run` (read-only önizleme) |
+| 2 | **Opsiyonel tam-mod operatör smoke** | Ops | §6 opsiyonel maddeler — köprü bağlı görev/outbox; public limited v1 için zorunlu değil |
 | 3 | **Operator bridge runbook link in README** | Docs (tiny) | Point operators to `local-kando-dev-runbook.md` — only if public doc gap found |
 | 4 | **PWA `start_url` → `/panel` review** | Optional UX PR | Manifest currently `start_url: "/"`; change only if product wants install → panel |
 | 5 | **Service worker / offline** | **Post-v1** | Explicit new phase + approval per MOBILE_PHASE_0_PWA |
@@ -191,6 +191,19 @@ No open PRs at checklist time; remaining work is **verification and ops**, not l
 - Production deploy serves `panel/camera.html` as the main panel.
 - Real bridge secrets are embedded in `PUBLIC_*` build variables.
 
+### Closure sign-off (2026-06-12)
+
+| Check | Result |
+|-------|--------|
+| §8 kapanış sign-off | Bu docs güncellemesi (≠ PR #149) |
+| Smoke hash ref (`9c4d025`) | §6 doğrulama referansı |
+| PR #149 (`f5d99b5`) | Docs hash hizalama — merge edildi |
+| Prod smoke (§6 zorunlu) | PASS (7/7) |
+| CI on `main` | Yeşil (`9c4d025`) |
+| Açık PR | Yok |
+
+**Sonraki hedef (post-v1):** Yerel dalları temizlemek veya opsiyonel tam-mod operatör smoke (§6 opsiyonel).
+
 ---
 
 ## Revision log
@@ -204,3 +217,5 @@ No open PRs at checklist time; remaining work is **verification and ops**, not l
 | 2026-06-11 | smoke (65270f3) | Otomatik prod smoke: §6 zorunlu 7 maddeden 6 PASS; Görevler ekleme prod’da FAIL (`127.0.0.1:8766` tasks API) |
 | 2026-06-11 | `bb66e12` / PR #143 + smoke | Post-#143 prod re-sign-off: Görevler ekleme PASS (yerel yol); §6 zorunlu prod smoke 7/7 PASS |
 | 2026-06-12 | `9c4d025` / #148 | §6 smoke hash traceability güncel `main` ile hizalandı; post-#143 prod smoke PASS (7/7) durumu korunuyor |
+| 2026-06-12 | `f5d99b5` / #149 | §6 smoke hash hizalama merge (≠ §8 kapanış) |
+| 2026-06-12 | (bu docs) | §8 kapanış sign-off — PR #149 ile aynı değil |
