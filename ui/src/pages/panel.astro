@@ -6642,7 +6642,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         function voiceErrorHint(errorCode) {
           switch (errorCode) {
             case "network":
-              return "Ses tanıma ağ hatası. Tekrar deneyin.";
+              return "Tarayıcının ses tanıma servisine ulaşılamıyor; hata mikrofonunuzdan değil ağ veya servis kaynaklı olabilir. Mikrofon iznini, VPN/güvenlik duvarını kontrol edip tekrar deneyin.";
             case "no-speech":
               return "Konuşma algılanmadı.";
             case "audio-capture":
