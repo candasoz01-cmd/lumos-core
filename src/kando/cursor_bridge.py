@@ -104,6 +104,13 @@ _PATCH_APPLY_LOG_SUCCESS_RESULTS = frozenset(
 )
 
 
+def _disk_matches_proposed_text(disk_text: str, proposed_text: str) -> bool:
+    """Disk ile hedef içerik aynı; yalnızca dosya sonu \\n farkı no-op sayılır (apply_patch çağrılmaz)."""
+    if disk_text == proposed_text:
+        return True
+    return disk_text.rstrip("\n") == proposed_text.rstrip("\n")
+
+
 def _patch_apply_log_shows_completed_approve(lumos_base: Path | None, aid_raw: str) -> bool:
     """
     Bekleyen kayıt yokken APPROVE tekrarı: jsonl'de policy audit_id ile satır
@@ -1546,19 +1553,8 @@ def _instruction_apply_one(
         if _deadline_exceeded():
             return False, {"detail": "patch timeout", "kind": "timeout", "had_previous": had_previous}
 
-        risk_level = _rollback_preview_risk_level_from_diff(diff_preview)
-        if risk_level == "high" and not force:
-            return False, {
-                "kind": "high_risk_blocked",
-                "detail": "yüksek riskli yama uygulanmadı (önizleme diff risk_level=high)",
-                "patch_id": proposal.id,
-                "diff_preview": diff_preview,
-                "risk_level": "high",
-                "had_previous": had_previous,
-            }
-        forced_apply = bool(risk_level == "high" and force)
-
-        if previous_text == proposal.proposed_text:
+        # Disk zaten hedef içerikteyse (EOF \n farkı dahil) risk kapısından önce no-op; yoksa boş diff yüksek risk sayılabilir.
+        if _disk_matches_proposed_text(previous_text, proposal.proposed_text):
             if _total_budget_exceeded():
                 return False, {"detail": "total patch timeout", "kind": "timeout_total", "had_previous": had_previous}
             if _deadline_exceeded():
@@ -1603,13 +1599,25 @@ def _instruction_apply_one(
                 "forced": False,
             }
 
+        risk_level = _rollback_preview_risk_level_from_diff(diff_preview)
+        if risk_level == "high" and not force:
+            return False, {
+                "kind": "high_risk_blocked",
+                "detail": "yüksek riskli yama uygulanmadı (önizleme diff risk_level=high)",
+                "patch_id": proposal.id,
+                "diff_preview": diff_preview,
+                "risk_level": "high",
+                "had_previous": had_previous,
+            }
+        forced_apply = bool(risk_level == "high" and force)
+
         apply_patch(proposal, assume_reviewed=True, allow_protected_apply=False)
         mutated = True
         try:
             on_disk = target.read_text(encoding="utf-8")
         except OSError:
             on_disk = ""
-        if on_disk != proposal.proposed_text:
+        if not _disk_matches_proposed_text(on_disk, proposal.proposed_text):
             if not _atomic_write_text_utf8(target, proposal.proposed_text):
                 rb_ok, rb_msg = rollback_patch_file(
                     target,
@@ -3096,7 +3104,7 @@ def _write_emergency_bridge_files(
     base.mkdir(parents=True, exist_ok=True)
     tid = int(getattr(task, "task_id", 0) or 0)
     emergency_execution = {
-        "execution_result": "patch_applied",
+        "execution_result": "patch_failed",
         "detail": "instruction_path_fallback",
         "error_type": "",
         "retry_count": 0,
