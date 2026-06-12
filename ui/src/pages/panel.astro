@@ -6613,6 +6613,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
         let voiceListening = false;
         let voiceStartPending = false;
         let voiceStopRequested = false;
+        let voiceGotResult = false;
+        let voiceHadError = false;
+        let voiceSessionStarted = false;
 
         function setVoiceHint(msg) {
           if (!voiceHint) return;
@@ -6636,6 +6639,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
         function beginVoiceListeningUi() {
           voiceStartPending = false;
+          voiceSessionStarted = true;
           setVoiceListeningUi(true);
         }
 
@@ -6693,6 +6697,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
           voiceStartPending = true;
           voiceStopRequested = false;
+          voiceGotResult = false;
+          voiceHadError = false;
+          voiceSessionStarted = false;
           setVoiceHint("");
 
           voiceRec.onstart = () => {
@@ -6708,6 +6715,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
             for (let i = ev.resultIndex; i < ev.results.length; i++) {
               spoken += ev.results[i][0].transcript;
             }
+            const trimmed = String(spoken || "").trim();
+            if (!trimmed) return;
+            voiceGotResult = true;
             appendVoiceTranscript(spoken);
             if (voiceHint) voiceHint.hidden = true;
           };
@@ -6716,13 +6726,27 @@ const PANEL_DEBUG = import.meta.env.DEV;
             const code = ev.error || "";
             if (code !== "aborted" || !voiceStopRequested) {
               setVoiceHint(voiceErrorHint(code));
+              voiceHadError = true;
             }
-            voiceStopRequested = false;
             stopVoiceListeningUi();
           };
 
           voiceRec.onend = () => {
+            const userStopped = voiceStopRequested;
+            const gotResult = voiceGotResult;
+            const hadError = voiceHadError;
+            const sessionStarted = voiceSessionStarted;
             stopVoiceListeningUi();
+            voiceStopRequested = false;
+            voiceGotResult = false;
+            voiceHadError = false;
+            voiceSessionStarted = false;
+            if (gotResult || userStopped || hadError) return;
+            if (sessionStarted) {
+              setVoiceHint(
+                "Ses algılanmadı veya tarayıcı konuşma sonucu üretmedi. Tekrar deneyin."
+              );
+            }
           };
 
           try {
