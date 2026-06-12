@@ -1036,17 +1036,25 @@ body {
 }
 
 .lumos-chat-composer-row .lumos-chat-input {
-  flex: 1;
+  flex: 1 1 0%;
+  width: auto;
   min-width: 0;
   max-width: 100%;
   min-height: 2.5rem;
   max-height: 9rem;
   resize: vertical;
+  overflow-x: hidden;
   overflow-y: auto;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: break-word;
   line-height: 1.4;
+}
+
+@supports (field-sizing: content) {
+  .lumos-chat-composer-row .lumos-chat-input {
+    field-sizing: content;
+  }
 }
 
 .lumos-chat-attach-wrap {
@@ -1265,7 +1273,7 @@ body {
 }
 
 .lumos-chat-input {
-  width: 100%;
+  width: auto;
   box-sizing: border-box;
   padding: 0.5rem 0.65rem;
   font-size: 0.9rem;
@@ -1276,6 +1284,7 @@ body {
   background: #1a1a1a;
   color: var(--text);
   resize: vertical;
+  overflow-x: hidden;
   min-height: 2.75rem;
   max-height: 10rem;
   opacity: 0.9;
