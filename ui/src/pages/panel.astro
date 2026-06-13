@@ -1829,6 +1829,60 @@ const PANEL_DEBUG = import.meta.env.DEV;
         font-weight: 700;
         color: #f0e8d8;
       }
+      :global(.chat-msg-actions) {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        margin-top: 0.45rem;
+        padding-top: 0.35rem;
+        border-top: 1px solid rgb(var(--lumos-land-teal) / 0.14);
+      }
+      :global(.chat-msg-action) {
+        appearance: none;
+        border: 1px solid rgb(var(--lumos-land-teal) / 0.28);
+        background: rgb(var(--lumos-land-teal) / 0.08);
+        color: rgb(168 214 236 / 0.92);
+        font-size: 0.72rem;
+        font-weight: 500;
+        line-height: 1.2;
+        padding: 0.28rem 0.55rem;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s;
+      }
+      :global(.chat-msg-action:hover:not(:disabled)) {
+        background: rgb(var(--lumos-land-teal) / 0.16);
+        border-color: rgb(var(--lumos-land-teal) / 0.4);
+      }
+      :global(.chat-msg-action:focus-visible) {
+        outline: 2px solid rgb(var(--lumos-land-teal) / 0.55);
+        outline-offset: 2px;
+      }
+      :global(.chat-msg-action--speaking) {
+        border-color: rgb(var(--lumos-land-warm) / 0.45);
+        background: rgb(var(--lumos-land-warm) / 0.12);
+        color: rgb(var(--lumos-land-warm) / 0.95);
+      }
+      :global(.chat-msg-action--unsupported),
+      :global(.chat-msg-action:disabled) {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      :global(.chat-msg-action.is-flash--ok) {
+        border-color: rgb(120 200 150 / 0.5);
+        color: rgb(180 230 195 / 0.95);
+      }
+      :global(.chat-msg-action.is-flash--warn) {
+        border-color: rgb(var(--lumos-land-warm) / 0.55);
+        color: rgb(var(--lumos-land-warm) / 0.95);
+      }
+      :global(.chat-msg-action.is-flash--info) {
+        border-color: rgb(168 214 236 / 0.45);
+      }
+      :global(.chat-msg-action.is-flash--error) {
+        border-color: rgba(240, 180, 180, 0.55);
+        color: #ffd6d6;
+      }
       .chat-compose-stack {
         flex-shrink: 0;
         display: flex;
@@ -5881,6 +5935,158 @@ const PANEL_DEBUG = import.meta.env.DEV;
           return out.join("").trim();
         }
 
+        const PANEL_TTS_FLASH_KINDS = ["ok", "info", "warn", "error"];
+        const panelTtsSupported = !!(
+          typeof window !== "undefined" &&
+          window.speechSynthesis &&
+          typeof window.SpeechSynthesisUtterance !== "undefined"
+        );
+        /** @type {HTMLButtonElement | null} */
+        let panelTtsActiveBtn = null;
+
+        function panelIsSpeaking() {
+          try {
+            const synth = window.speechSynthesis;
+            return !!(synth && (synth.speaking || synth.pending));
+          } catch {
+            return false;
+          }
+        }
+
+        function panelActionFlash(btn, label, kind) {
+          if (!btn) return;
+          const target = btn.querySelector(".chat-msg-action__label") || btn;
+          if (btn._panelFlashTimer) {
+            clearTimeout(btn._panelFlashTimer);
+            btn._panelFlashTimer = null;
+          }
+          if (btn._panelOrigText == null) btn._panelOrigText = target.textContent;
+          target.textContent = label;
+          btn.classList.add("is-flash");
+          for (const k of PANEL_TTS_FLASH_KINDS) btn.classList.remove("is-flash--" + k);
+          if (kind && PANEL_TTS_FLASH_KINDS.includes(kind)) btn.classList.add("is-flash--" + kind);
+          btn._panelFlashTimer = window.setTimeout(() => {
+            if (panelTtsActiveBtn === btn && panelIsSpeaking()) {
+              target.textContent = "Durdur";
+            } else if (btn._panelOrigText != null) {
+              target.textContent = btn._panelOrigText;
+            }
+            btn._panelOrigText = null;
+            btn.classList.remove("is-flash");
+            for (const k of PANEL_TTS_FLASH_KINDS) btn.classList.remove("is-flash--" + k);
+            btn._panelFlashTimer = null;
+          }, 1400);
+        }
+
+        function syncPanelTtsButtons(activeBtn) {
+          thread.querySelectorAll("[data-panel-tts]").forEach((raw) => {
+            const btn = /** @type {HTMLButtonElement} */ (raw);
+            const label = btn.querySelector(".chat-msg-action__label");
+            if (!label) return;
+            const speaking = activeBtn === btn && panelIsSpeaking();
+            const text = speaking ? "Durdur" : "Sesli oku";
+            label.textContent = text;
+            btn.setAttribute("aria-label", speaking ? "Sesli okumayı durdur" : "Sesli oku");
+            btn.title = text;
+            btn.classList.toggle("chat-msg-action--speaking", speaking);
+            btn._panelOrigText = text;
+          });
+        }
+
+        function panelStopSpeaking(btn) {
+          try {
+            if (window.speechSynthesis?.cancel) window.speechSynthesis.cancel();
+          } catch {
+            /* ignore */
+          }
+          panelTtsActiveBtn = null;
+          syncPanelTtsButtons(null);
+          if (btn) panelActionFlash(btn, "Durduruldu", "ok");
+        }
+
+        function panelSpeakLumosBubble(wrap, btn) {
+          if (!panelTtsSupported) {
+            panelActionFlash(btn, "Desteklenmiyor", "warn");
+            return;
+          }
+          if (panelIsSpeaking()) {
+            if (btn === panelTtsActiveBtn) {
+              panelStopSpeaking(btn);
+              return;
+            }
+            try {
+              window.speechSynthesis.cancel();
+            } catch {
+              /* ignore */
+            }
+            panelTtsActiveBtn = null;
+            syncPanelTtsButtons(null);
+          }
+          const body = wrap.querySelector(".chat-msg-body");
+          const text = body ? lumosBodyToPlainText(body) : "";
+          if (!text) {
+            panelActionFlash(btn, "Boş", "info");
+            return;
+          }
+          try {
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = "tr-TR";
+            u.onend = () => {
+              if (panelTtsActiveBtn === btn) {
+                panelTtsActiveBtn = null;
+                syncPanelTtsButtons(null);
+              }
+            };
+            u.onerror = () => {
+              if (panelTtsActiveBtn === btn) {
+                panelTtsActiveBtn = null;
+                syncPanelTtsButtons(null);
+              }
+            };
+            panelTtsActiveBtn = btn;
+            window.speechSynthesis.speak(u);
+            syncPanelTtsButtons(btn);
+          } catch {
+            panelActionFlash(btn, "Hata", "error");
+          }
+        }
+
+        thread.addEventListener("click", (e) => {
+          const t = e.target;
+          if (!(t instanceof HTMLElement)) return;
+          const btn = t.closest("[data-panel-tts]");
+          if (!btn || !(btn instanceof HTMLButtonElement)) return;
+          const wrap = btn.closest(".chat-msg--lumos");
+          if (!wrap) return;
+          if (btn.disabled) {
+            panelActionFlash(btn, "Desteklenmiyor", "warn");
+            return;
+          }
+          panelSpeakLumosBubble(wrap, btn);
+        });
+
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState === "hidden") {
+            try {
+              window.speechSynthesis?.cancel();
+            } catch {
+              /* ignore */
+            }
+            panelTtsActiveBtn = null;
+            syncPanelTtsButtons(null);
+          }
+        });
+        window.addEventListener("pagehide", () => {
+          try {
+            window.speechSynthesis?.cancel();
+          } catch {
+            /* ignore */
+          }
+          panelTtsActiveBtn = null;
+          syncPanelTtsButtons(null);
+        });
+
         /** Mevcut iplikten (yeni kullanıcı mesajı eklenmeden önce) son N mesajı role/content olarak döner. */
         function collectThreadHistory(threadEl) {
           const nodes = threadEl.querySelectorAll(".chat-msg");
@@ -5928,6 +6134,32 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
           wrap.appendChild(role);
           wrap.appendChild(body);
+          if (kind === "lumos") {
+            const actions = document.createElement("div");
+            actions.className = "chat-msg-actions";
+            actions.setAttribute("role", "toolbar");
+            actions.setAttribute("aria-label", "Yanıt işlemleri");
+            const ttsBtn = document.createElement("button");
+            ttsBtn.type = "button";
+            ttsBtn.className = "chat-msg-action";
+            ttsBtn.setAttribute("data-panel-tts", "");
+            const ttsLabel = document.createElement("span");
+            ttsLabel.className = "chat-msg-action__label";
+            ttsLabel.textContent = "Sesli oku";
+            ttsBtn.appendChild(ttsLabel);
+            if (!panelTtsSupported) {
+              ttsBtn.disabled = true;
+              ttsBtn.setAttribute("aria-disabled", "true");
+              ttsBtn.classList.add("chat-msg-action--unsupported");
+              ttsBtn.title = "Sesli okuma desteklenmiyor";
+              ttsBtn.setAttribute("aria-label", "Sesli okuma desteklenmiyor");
+            } else {
+              ttsBtn.title = "Sesli oku";
+              ttsBtn.setAttribute("aria-label", "Sesli oku");
+            }
+            actions.appendChild(ttsBtn);
+            wrap.appendChild(actions);
+          }
           turn.appendChild(wrap);
           thread.appendChild(turn);
           requestAnimationFrame(() => {
