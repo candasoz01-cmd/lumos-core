@@ -1842,14 +1842,19 @@ const PANEL_DEBUG = import.meta.env.DEV;
       :global(.chat-msg-tts-diag) {
         display: block;
         flex: 1 1 100%;
+        order: 10;
         width: 100%;
         max-width: 100%;
         min-width: 0;
-        margin-top: 2px;
+        margin-top: 0.25rem;
+        padding: 0.4rem 0.55rem;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-size: 0.62rem;
-        line-height: 1.35;
-        color: rgb(120 168 168 / 0.72);
+        font-size: 0.78rem;
+        line-height: 1.45;
+        color: rgb(22 48 48 / 0.95);
+        background: rgb(var(--lumos-land-teal) / 0.14);
+        border: 1px solid rgb(var(--lumos-land-teal) / 0.38);
+        border-radius: 0.45rem;
         word-break: break-word;
         overflow-wrap: anywhere;
       }
@@ -6020,7 +6025,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
           return true;
         })();
-        /** @type {WeakMap<HTMLButtonElement, { el: HTMLSpanElement; timer: number | null; parts: string[] }>} */
+        /** @type {WeakMap<HTMLButtonElement, { el: HTMLSpanElement; parts: string[] }>} */
         const panelTtsDiagState = new WeakMap();
         /** @type {HTMLButtonElement | null} */
         let panelTtsActiveBtn = null;
@@ -6042,7 +6047,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             el.hidden = true;
             actions.appendChild(el);
           }
-          state = { el, timer: null, parts: [] };
+          state = { el, parts: [] };
           panelTtsDiagState.set(btn, state);
           return el;
         }
@@ -6052,10 +6057,6 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (!panelTtsDiagEnabled) return;
           const state = panelTtsDiagState.get(btn);
           if (!state) return;
-          if (state.timer) {
-            clearTimeout(state.timer);
-            state.timer = null;
-          }
           state.parts = [];
           state.el.textContent = "";
           state.el.hidden = true;
@@ -6071,22 +6072,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (!el) return;
           const state = panelTtsDiagState.get(btn);
           if (!state) return;
-          if (state.timer) {
-            clearTimeout(state.timer);
-            state.timer = null;
-          }
           state.parts.push(append);
           el.textContent = state.parts.join(" · ");
           el.hidden = false;
-        }
-
-        /** @param {HTMLButtonElement} btn */
-        function panelTtsDiagScheduleClear(btn) {
-          if (!panelTtsDiagEnabled) return;
-          const state = panelTtsDiagState.get(btn);
-          if (!state) return;
-          if (state.timer) clearTimeout(state.timer);
-          state.timer = window.setTimeout(() => panelTtsDiagReset(btn), 8000);
         }
 
         function panelIsSpeaking() {
@@ -6200,24 +6188,22 @@ const PANEL_DEBUG = import.meta.env.DEV;
         function panelDoSpeak(btn, text) {
           try {
             const synth = window.speechSynthesis;
-            panelTtsDiag(
-              btn,
-              "speechSynthesis available: " + (synth && typeof window.SpeechSynthesisUtterance !== "undefined" ? "yes" : "no")
-            );
             const voices = synth.getVoices();
             if (voices && voices.length) panelTtsVoicesCache = voices;
             panelTtsDiag(btn, "voices count: " + (voices ? voices.length : 0));
             const voice = panelPickTrVoice(voices);
-            panelTtsDiag(btn, "selected voice: " + (voice ? voice.name + " (" + voice.lang + ")" : "default"));
+            panelTtsDiag(
+              btn,
+              "voice/lang: " + (voice ? voice.name + " / " + voice.lang : "default")
+            );
             const u = new SpeechSynthesisUtterance(text);
             u.lang = "tr-TR";
             if (voice) u.voice = voice;
             u.onstart = () => {
-              panelTtsDiag(btn, "onstart fired");
+              panelTtsDiag(btn, "onstart");
             };
             u.onend = () => {
-              panelTtsDiag(btn, "onend fired");
-              panelTtsDiagScheduleClear(btn);
+              panelTtsDiag(btn, "onend");
               if (panelTtsActiveBtn === btn) {
                 panelTtsActiveBtn = null;
                 syncPanelTtsButtons(null);
@@ -6225,8 +6211,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             };
             u.onerror = (ev) => {
               const errName = ev && "error" in ev && ev.error ? String(ev.error) : "unknown";
-              panelTtsDiag(btn, "onerror fired: " + errName);
-              panelTtsDiagScheduleClear(btn);
+              panelTtsDiag(btn, "onerror: " + errName);
               if (panelTtsActiveBtn === btn) {
                 panelTtsActiveBtn = null;
                 syncPanelTtsButtons(null);
@@ -6245,7 +6230,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
         function panelSpeakLumosBubble(wrap, btn) {
           panelTtsDiagReset(btn);
-          panelTtsDiag(btn, "click received");
+          panelTtsDiag(btn, "click");
           if (!panelTtsSupported) {
             panelActionFlash(btn, "Desteklenmiyor", "warn");
             return;
@@ -6268,7 +6253,6 @@ const PANEL_DEBUG = import.meta.env.DEV;
           panelTtsDiag(btn, "text length: " + text.length);
           if (!text) {
             panelActionFlash(btn, "Boş", "info");
-            panelTtsDiagScheduleClear(btn);
             return;
           }
           panelDoSpeak(btn, text);
