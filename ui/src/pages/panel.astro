@@ -5990,6 +5990,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
         );
         /** @type {HTMLButtonElement | null} */
         let panelTtsActiveBtn = null;
+        /** @type {SpeechSynthesisVoice[] | null} */
+        let panelTtsVoicesCache = null;
 
         function panelIsSpeaking() {
           try {
@@ -6059,9 +6061,15 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (btn) panelActionFlash(btn, "Durduruldu", "ok");
         }
 
-        function panelPickTrVoice() {
+        /** @param {SpeechSynthesisVoice[] | null | undefined} [voicesIn] */
+        function panelPickTrVoice(voicesIn) {
           try {
-            const voices = window.speechSynthesis.getVoices();
+            const voices =
+              voicesIn && voicesIn.length
+                ? voicesIn
+                : panelTtsVoicesCache && panelTtsVoicesCache.length
+                  ? panelTtsVoicesCache
+                  : window.speechSynthesis.getVoices();
             if (!voices || !voices.length) return null;
             const trLocal = voices.find((v) => v.lang === "tr-TR" && v.localService);
             if (trLocal) return trLocal;
@@ -6073,27 +6081,54 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
         }
 
-        /** @param {() => void} cb */
-        function panelEnsureVoicesReady(cb) {
+        function panelInitTtsVoiceCache() {
+          if (!panelTtsSupported) return;
+          try {
+            const synth = window.speechSynthesis;
+            const refresh = () => {
+              const v = synth.getVoices();
+              if (v && v.length) panelTtsVoicesCache = v;
+            };
+            refresh();
+            synth.addEventListener("voiceschanged", refresh);
+          } catch {
+            /* ignore */
+          }
+        }
+
+        /**
+         * Must run synchronously inside the user click handler (WebKit gesture chain).
+         * @param {HTMLButtonElement} btn
+         * @param {string} text
+         */
+        function panelDoSpeak(btn, text) {
           try {
             const synth = window.speechSynthesis;
             const voices = synth.getVoices();
-            if (voices && voices.length) {
-              cb();
-              return;
-            }
-            let done = false;
-            const finish = () => {
-              if (done) return;
-              done = true;
-              synth.removeEventListener("voiceschanged", onVoicesChanged);
-              cb();
+            if (voices && voices.length) panelTtsVoicesCache = voices;
+            const voice = panelPickTrVoice(voices);
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = "tr-TR";
+            if (voice) u.voice = voice;
+            u.onend = () => {
+              if (panelTtsActiveBtn === btn) {
+                panelTtsActiveBtn = null;
+                syncPanelTtsButtons(null);
+              }
             };
-            const onVoicesChanged = () => finish();
-            synth.addEventListener("voiceschanged", onVoicesChanged);
-            window.setTimeout(finish, 500);
+            u.onerror = () => {
+              if (panelTtsActiveBtn === btn) {
+                panelTtsActiveBtn = null;
+                syncPanelTtsButtons(null);
+              }
+              panelActionFlash(btn, "Sesli okuma başarısız", "error");
+            };
+            panelTtsActiveBtn = btn;
+            synth.speak(u);
+            if (synth.paused) synth.resume();
+            syncPanelTtsButtons(btn);
           } catch {
-            cb();
+            panelActionFlash(btn, "Hata", "error");
           }
         }
 
@@ -6121,43 +6156,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
             panelActionFlash(btn, "Boş", "info");
             return;
           }
-          panelEnsureVoicesReady(() => {
-            try {
-              const synth = window.speechSynthesis;
-              synth.cancel();
-              window.setTimeout(() => {
-                try {
-                  const u = new SpeechSynthesisUtterance(text);
-                  u.lang = "tr-TR";
-                  const voice = panelPickTrVoice();
-                  if (voice) u.voice = voice;
-                  u.onend = () => {
-                    if (panelTtsActiveBtn === btn) {
-                      panelTtsActiveBtn = null;
-                      syncPanelTtsButtons(null);
-                    }
-                  };
-                  u.onerror = (e) => {
-                    if (panelTtsActiveBtn === btn) {
-                      panelTtsActiveBtn = null;
-                      syncPanelTtsButtons(null);
-                    }
-                    panelActionFlash(btn, "Sesli okuma başarısız", "error");
-                    console.warn("[panel TTS]", e?.error ?? e);
-                  };
-                  panelTtsActiveBtn = btn;
-                  synth.speak(u);
-                  if (synth.paused) synth.resume();
-                  syncPanelTtsButtons(btn);
-                } catch {
-                  panelActionFlash(btn, "Hata", "error");
-                }
-              }, 0);
-            } catch {
-              panelActionFlash(btn, "Hata", "error");
-            }
-          });
+          panelDoSpeak(btn, text);
         }
+
+        panelInitTtsVoiceCache();
 
         thread.addEventListener("click", (e) => {
           const t = e.target;
