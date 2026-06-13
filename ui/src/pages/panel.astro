@@ -6031,6 +6031,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
         let panelTtsActiveBtn = null;
         /** @type {SpeechSynthesisVoice[] | null} */
         let panelTtsVoicesCache = null;
+        /** Session warm-up flag — first click primes speechSynthesis inside user gesture (Safari). */
+        let panelTtsPrimed = false;
+        /** After first successful main utterance, explicit tr-TR voice may be used. */
+        let panelTtsExplicitVoiceReady = false;
 
         /** @param {HTMLButtonElement} btn */
         function panelEnsureTtsDiag(btn) {
@@ -6181,21 +6185,73 @@ const PANEL_DEBUG = import.meta.env.DEV;
         }
 
         /**
+         * Prime speechSynthesis synchronously inside the user gesture (Safari first-click).
+         * @param {SpeechSynthesis} synth
+         * @param {HTMLButtonElement} btn
+         */
+        function panelPrimeTtsIfNeeded(synth, btn) {
+          if (panelTtsPrimed) return;
+          try {
+            if (synth.paused) synth.resume();
+            const p = new SpeechSynthesisUtterance("\u200b");
+            p.volume = 0.01;
+            p.lang = "tr-TR";
+            synth.speak(p);
+            panelTtsPrimed = true;
+            panelTtsDiag(btn, "warm-up");
+          } catch {
+            /* ignore */
+          }
+        }
+
+        /**
          * Must run synchronously inside the user click handler (WebKit gesture chain).
          * @param {HTMLButtonElement} btn
          * @param {string} text
+         * @param {{ forceDefaultVoice?: boolean; isRetry?: boolean }} [opts]
          */
-        function panelDoSpeak(btn, text) {
+        function panelDoSpeak(btn, text, opts) {
+          const forceDefaultVoice = !!(opts && opts.forceDefaultVoice);
+          const isRetry = !!(opts && opts.isRetry);
           try {
             const synth = window.speechSynthesis;
             const voices = synth.getVoices();
             if (voices && voices.length) panelTtsVoicesCache = voices;
             panelTtsDiag(btn, "voices count: " + (voices ? voices.length : 0));
-            const voice = panelPickTrVoice(voices);
-            panelTtsDiag(
-              btn,
-              "voice/lang: " + (voice ? voice.name + " / " + voice.lang : "default")
-            );
+
+            panelPrimeTtsIfNeeded(synth, btn);
+            if (synth.paused) synth.resume();
+
+            const pickedVoice = forceDefaultVoice ? null : panelPickTrVoice(voices);
+            let voice = null;
+            if (forceDefaultVoice) {
+              voice = null;
+            } else if (panelTtsExplicitVoiceReady && pickedVoice) {
+              voice = pickedVoice;
+              if (!voice.localService) {
+                try {
+                  const ua = navigator.userAgent || "";
+                  const isSafari =
+                    /safari/i.test(ua) && !/chrome|chromium|crios|android/i.test(ua);
+                  if (isSafari) voice = null;
+                } catch {
+                  /* ignore */
+                }
+              }
+            }
+
+            if (forceDefaultVoice) {
+              panelTtsDiag(btn, "voice/lang: default (fallback)");
+            } else if (voice) {
+              panelTtsDiag(btn, "voice/lang: " + voice.name + " / " + voice.lang);
+            } else if (!panelTtsExplicitVoiceReady) {
+              panelTtsDiag(btn, "voice/lang: default (lang only)");
+            } else if (pickedVoice && !pickedVoice.localService) {
+              panelTtsDiag(btn, "voice/lang: default (remote skipped)");
+            } else {
+              panelTtsDiag(btn, "voice/lang: default");
+            }
+
             const u = new SpeechSynthesisUtterance(text);
             u.lang = "tr-TR";
             if (voice) u.voice = voice;
@@ -6204,6 +6260,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             };
             u.onend = () => {
               panelTtsDiag(btn, "onend");
+              panelTtsExplicitVoiceReady = true;
               if (panelTtsActiveBtn === btn) {
                 panelTtsActiveBtn = null;
                 syncPanelTtsButtons(null);
@@ -6212,6 +6269,23 @@ const PANEL_DEBUG = import.meta.env.DEV;
             u.onerror = (ev) => {
               const errName = ev && "error" in ev && ev.error ? String(ev.error) : "unknown";
               panelTtsDiag(btn, "onerror: " + errName);
+              if (errName === "interrupted" || errName === "canceled") {
+                if (panelTtsActiveBtn === btn) {
+                  panelTtsActiveBtn = null;
+                  syncPanelTtsButtons(null);
+                }
+                return;
+              }
+              if (!isRetry && pickedVoice && !forceDefaultVoice) {
+                panelTtsDiag(btn, "fallback: default voice");
+                try {
+                  synth.cancel();
+                } catch {
+                  /* ignore */
+                }
+                panelDoSpeak(btn, text, { forceDefaultVoice: true, isRetry: true });
+                return;
+              }
               if (panelTtsActiveBtn === btn) {
                 panelTtsActiveBtn = null;
                 syncPanelTtsButtons(null);
@@ -6221,7 +6295,6 @@ const PANEL_DEBUG = import.meta.env.DEV;
             panelTtsActiveBtn = btn;
             panelTtsDiag(btn, "speak called");
             synth.speak(u);
-            if (synth.paused) synth.resume();
             syncPanelTtsButtons(btn);
           } catch {
             panelActionFlash(btn, "Hata", "error");
