@@ -3774,7 +3774,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                       id="panel-audio-record-status"
                       class="chat-audio-record-status"
                       aria-live="polite"
-                    >Ses kaydı önizlemesi (henüz gönderilemez)</span>
+                    ></span>
                     <audio
                       id="panel-audio-record-player"
                       class="chat-audio-record-player"
@@ -3842,11 +3842,25 @@ const PANEL_DEBUG = import.meta.env.DEV;
                         <button type="button" class="chat-compose-attach-menu__item" role="menuitem" data-attach-action="clipboard">
                           Panodaki metni ilet
                         </button>
-                        <button type="button" class="chat-compose-attach-menu__item" role="menuitem" data-attach-action="audio">
+                        <button
+                          type="button"
+                          class="chat-compose-attach-menu__item chat-compose-attach-menu__item--unsupported"
+                          role="menuitem"
+                          data-attach-action="audio"
+                          disabled
+                          aria-disabled="true"
+                          title="Ses dosyasını sohbete ekleme yakında"
+                        >
                           Ses dosyası yükle
                           <span class="chat-compose-attach-menu__badge">yakında</span>
                         </button>
-                        <button type="button" class="chat-compose-attach-menu__item" role="menuitem" data-attach-action="record">
+                        <button
+                          type="button"
+                          class="chat-compose-attach-menu__item"
+                          role="menuitem"
+                          data-attach-action="record"
+                          title="Mikrofonla ses kaydet; metne çevirmez (Sesle yaz düğmesinden farklı)"
+                        >
                           Ses kaydı
                         </button>
                       </div>
@@ -3882,8 +3896,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
                       type="button"
                       id="panel-voice-input"
                       class="chat-compose-voice-btn"
-                      title="Sesle yazma (deneysel — tarayıcı/ağ servisine bağlı)"
-                      aria-label="Sesle yazma, deneysel; tarayıcı ve ağ servisine bağlı"
+                      title="Sesle yaz (metne çevir) — tarayıcı ses tanıma servisine bağlı"
+                      aria-label="Sesle yaz, metne çevir; tarayıcı ses tanıma servisine bağlı"
                       aria-pressed="false"
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -7208,9 +7222,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
           window.SpeechRecognition || window.webkitSpeechRecognition
         );
         const VOICE_TITLE_SUPPORTED =
-          "Sesle yazma (deneysel — tarayıcı/ağ servisine bağlı)";
+          "Sesle yaz (metne çevir) — tarayıcı ses tanıma servisine bağlı";
         const VOICE_ARIA_SUPPORTED =
-          "Sesle yazma, deneysel; tarayıcı ve ağ servisine bağlı";
+          "Sesle yaz, metne çevir; tarayıcı ses tanıma servisine bağlı";
+        const VOICE_SERVICE_UNAVAILABLE_HINT =
+          "Tarayıcı ses tanıma servisi şu anda kullanılamıyor";
         const VOICE_TITLE_UNSUPPORTED = "Sesle yazma desteklenmiyor";
         const VOICE_ARIA_UNSUPPORTED =
           "Bu tarayıcıda sesle yazma desteklenmiyor";
@@ -7271,12 +7287,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
         function voiceErrorHint(errorCode) {
           switch (errorCode) {
             case "network":
-              return "Tarayıcının ses tanıma servisine ulaşılamıyor; hata mikrofonunuzdan değil ağ veya servis kaynaklı olabilir. Mikrofon iznini, VPN/güvenlik duvarını kontrol edip tekrar deneyin.";
+            case "service-not-allowed":
+              return VOICE_SERVICE_UNAVAILABLE_HINT;
             case "no-speech":
               return "Konuşma algılanmadı.";
             case "audio-capture":
               return "Mikrofon kullanılamıyor.";
-            case "service-not-allowed":
             case "not-allowed":
               return "Mikrofon izni verilmedi.";
             case "aborted":
@@ -7516,6 +7532,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
         const AUDIO_RECORD_PREVIEW_LABEL = "Ses kaydı hazır — Gönder ile sohbete ekle";
         const AUDIO_RECORD_UNSUPPORTED_HINT = "Bu tarayıcıda ses kaydı desteklenmiyor.";
+        const AUDIO_RECORD_RECORDING_HINT =
+          "Ses kaydı yapılıyor (metne çevrilmez) — bitince Gönder ile ekleyin";
 
         /** @type {MediaRecorder | null} */
         let mediaRecorder = null;
@@ -7557,6 +7575,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
             attachRecordMenuItem.disabled = !supported;
             attachRecordMenuItem.setAttribute("aria-disabled", supported ? "false" : "true");
             attachRecordMenuItem.classList.toggle("chat-compose-attach-menu__item--unsupported", !supported);
+            if (supported) {
+              attachRecordMenuItem.title =
+                "Mikrofonla ses kaydet; metne çevirmez (Sesle yaz düğmesinden farklı)";
+            } else {
+              attachRecordMenuItem.removeAttribute("title");
+            }
           }
           if (!supported) {
             setAudioRecordHint(AUDIO_RECORD_UNSUPPORTED_HINT);
@@ -7600,7 +7624,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
           if (audioRecordStatus) {
             if (isAudioRecording) {
-              audioRecordStatus.textContent = "Kayıt yapılıyor…";
+              audioRecordStatus.textContent = "Ses kaydı yapılıyor…";
             } else if (audioRecordObjectUrl) {
               audioRecordStatus.textContent = AUDIO_RECORD_PREVIEW_LABEL;
             } else {
@@ -7711,6 +7735,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
               isAudioRecording = true;
               syncAudioRecordControlsUi();
               syncAudioRecordPreviewVisibility();
+              setAudioRecordHint(AUDIO_RECORD_RECORDING_HINT);
             })
             .catch((err) => {
               const name = err && err.name;
@@ -7809,11 +7834,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             return;
           }
           if (action === "audio") {
-            if (attachAudioInput) {
-              attachAudioInput.click();
-            } else {
-              setCameraHint("Ses dosyasını sohbete ekleme yakında.");
-            }
+            setCameraHint("Ses dosyasını sohbete ekleme yakında.");
             return;
           }
           if (action === "record") {
