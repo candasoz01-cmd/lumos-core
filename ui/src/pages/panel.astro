@@ -1839,6 +1839,23 @@ const PANEL_DEBUG = import.meta.env.DEV;
         max-width: 100%;
         min-width: 0;
       }
+      :global(.chat-msg-tts-diag) {
+        display: block;
+        flex: 1 1 100%;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        margin-top: 2px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.62rem;
+        line-height: 1.35;
+        color: rgb(120 168 168 / 0.72);
+        word-break: break-word;
+        overflow-wrap: anywhere;
+      }
+      :global(.chat-msg-tts-diag[hidden]) {
+        display: none;
+      }
       :global(.chat-msg-action) {
         appearance: none;
         display: inline-flex;
@@ -2949,6 +2966,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
           flex-wrap: nowrap;
           max-width: 100%;
           overflow: hidden;
+        }
+        #panel-sohbet :global(.chat-msg-actions:has(.chat-msg-tts-diag:not([hidden]))) {
+          flex-wrap: wrap;
+        }
+        #panel-sohbet :global(.chat-msg-tts-diag) {
+          flex: 1 1 100%;
+          order: 10;
         }
         #panel-sohbet :global(.chat-msg-action) {
           width: 1.55rem;
@@ -5988,10 +6012,82 @@ const PANEL_DEBUG = import.meta.env.DEV;
           window.speechSynthesis &&
           typeof window.SpeechSynthesisUtterance !== "undefined"
         );
+        const panelTtsDiagEnabled = (() => {
+          try {
+            if (new URLSearchParams(window.location.search).get("tts_diag") === "0") return false;
+          } catch {
+            /* ignore */
+          }
+          return true;
+        })();
+        /** @type {WeakMap<HTMLButtonElement, { el: HTMLSpanElement; timer: number | null; parts: string[] }>} */
+        const panelTtsDiagState = new WeakMap();
         /** @type {HTMLButtonElement | null} */
         let panelTtsActiveBtn = null;
         /** @type {SpeechSynthesisVoice[] | null} */
         let panelTtsVoicesCache = null;
+
+        /** @param {HTMLButtonElement} btn */
+        function panelEnsureTtsDiag(btn) {
+          if (!panelTtsDiagEnabled) return null;
+          let state = panelTtsDiagState.get(btn);
+          if (state) return state.el;
+          const actions = btn.closest(".chat-msg-actions");
+          if (!actions) return null;
+          let el = actions.querySelector(".chat-msg-tts-diag");
+          if (!(el instanceof HTMLSpanElement)) {
+            el = document.createElement("span");
+            el.className = "chat-msg-tts-diag";
+            el.setAttribute("aria-live", "polite");
+            el.hidden = true;
+            actions.appendChild(el);
+          }
+          state = { el, timer: null, parts: [] };
+          panelTtsDiagState.set(btn, state);
+          return el;
+        }
+
+        /** @param {HTMLButtonElement} btn */
+        function panelTtsDiagReset(btn) {
+          if (!panelTtsDiagEnabled) return;
+          const state = panelTtsDiagState.get(btn);
+          if (!state) return;
+          if (state.timer) {
+            clearTimeout(state.timer);
+            state.timer = null;
+          }
+          state.parts = [];
+          state.el.textContent = "";
+          state.el.hidden = true;
+        }
+
+        /**
+         * @param {HTMLButtonElement} btn
+         * @param {string} append
+         */
+        function panelTtsDiag(btn, append) {
+          if (!panelTtsDiagEnabled) return;
+          const el = panelEnsureTtsDiag(btn);
+          if (!el) return;
+          const state = panelTtsDiagState.get(btn);
+          if (!state) return;
+          if (state.timer) {
+            clearTimeout(state.timer);
+            state.timer = null;
+          }
+          state.parts.push(append);
+          el.textContent = state.parts.join(" · ");
+          el.hidden = false;
+        }
+
+        /** @param {HTMLButtonElement} btn */
+        function panelTtsDiagScheduleClear(btn) {
+          if (!panelTtsDiagEnabled) return;
+          const state = panelTtsDiagState.get(btn);
+          if (!state) return;
+          if (state.timer) clearTimeout(state.timer);
+          state.timer = window.setTimeout(() => panelTtsDiagReset(btn), 8000);
+        }
 
         function panelIsSpeaking() {
           try {
@@ -6104,19 +6200,33 @@ const PANEL_DEBUG = import.meta.env.DEV;
         function panelDoSpeak(btn, text) {
           try {
             const synth = window.speechSynthesis;
+            panelTtsDiag(
+              btn,
+              "speechSynthesis available: " + (synth && typeof window.SpeechSynthesisUtterance !== "undefined" ? "yes" : "no")
+            );
             const voices = synth.getVoices();
             if (voices && voices.length) panelTtsVoicesCache = voices;
+            panelTtsDiag(btn, "voices count: " + (voices ? voices.length : 0));
             const voice = panelPickTrVoice(voices);
+            panelTtsDiag(btn, "selected voice: " + (voice ? voice.name + " (" + voice.lang + ")" : "default"));
             const u = new SpeechSynthesisUtterance(text);
             u.lang = "tr-TR";
             if (voice) u.voice = voice;
+            u.onstart = () => {
+              panelTtsDiag(btn, "onstart fired");
+            };
             u.onend = () => {
+              panelTtsDiag(btn, "onend fired");
+              panelTtsDiagScheduleClear(btn);
               if (panelTtsActiveBtn === btn) {
                 panelTtsActiveBtn = null;
                 syncPanelTtsButtons(null);
               }
             };
-            u.onerror = () => {
+            u.onerror = (ev) => {
+              const errName = ev && "error" in ev && ev.error ? String(ev.error) : "unknown";
+              panelTtsDiag(btn, "onerror fired: " + errName);
+              panelTtsDiagScheduleClear(btn);
               if (panelTtsActiveBtn === btn) {
                 panelTtsActiveBtn = null;
                 syncPanelTtsButtons(null);
@@ -6124,6 +6234,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
               panelActionFlash(btn, "Sesli okuma başarısız", "error");
             };
             panelTtsActiveBtn = btn;
+            panelTtsDiag(btn, "speak called");
             synth.speak(u);
             if (synth.paused) synth.resume();
             syncPanelTtsButtons(btn);
@@ -6133,6 +6244,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
         }
 
         function panelSpeakLumosBubble(wrap, btn) {
+          panelTtsDiagReset(btn);
+          panelTtsDiag(btn, "click received");
           if (!panelTtsSupported) {
             panelActionFlash(btn, "Desteklenmiyor", "warn");
             return;
@@ -6152,8 +6265,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
           const body = wrap.querySelector(".chat-msg-body");
           const text = body ? lumosBodyToPlainText(body) : "";
+          panelTtsDiag(btn, "text length: " + text.length);
           if (!text) {
             panelActionFlash(btn, "Boş", "info");
+            panelTtsDiagScheduleClear(btn);
             return;
           }
           panelDoSpeak(btn, text);
@@ -6272,6 +6387,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
               ttsBtn.setAttribute("aria-label", "Sesli oku");
             }
             actions.appendChild(ttsBtn);
+            const ttsDiag = document.createElement("span");
+            ttsDiag.className = "chat-msg-tts-diag";
+            ttsDiag.setAttribute("aria-live", "polite");
+            ttsDiag.hidden = true;
+            actions.appendChild(ttsDiag);
             wrap.appendChild(actions);
           }
           turn.appendChild(wrap);
