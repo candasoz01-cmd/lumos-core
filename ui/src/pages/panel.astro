@@ -6059,6 +6059,44 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (btn) panelActionFlash(btn, "Durduruldu", "ok");
         }
 
+        function panelPickTrVoice() {
+          try {
+            const voices = window.speechSynthesis.getVoices();
+            if (!voices || !voices.length) return null;
+            const trLocal = voices.find((v) => v.lang === "tr-TR" && v.localService);
+            if (trLocal) return trLocal;
+            const trExact = voices.find((v) => v.lang === "tr-TR");
+            if (trExact) return trExact;
+            return voices.find((v) => (v.lang || "").toLowerCase().startsWith("tr")) || null;
+          } catch {
+            return null;
+          }
+        }
+
+        /** @param {() => void} cb */
+        function panelEnsureVoicesReady(cb) {
+          try {
+            const synth = window.speechSynthesis;
+            const voices = synth.getVoices();
+            if (voices && voices.length) {
+              cb();
+              return;
+            }
+            let done = false;
+            const finish = () => {
+              if (done) return;
+              done = true;
+              synth.removeEventListener("voiceschanged", onVoicesChanged);
+              cb();
+            };
+            const onVoicesChanged = () => finish();
+            synth.addEventListener("voiceschanged", onVoicesChanged);
+            window.setTimeout(finish, 500);
+          } catch {
+            cb();
+          }
+        }
+
         function panelSpeakLumosBubble(wrap, btn) {
           if (!panelTtsSupported) {
             panelActionFlash(btn, "Desteklenmiyor", "warn");
@@ -6083,28 +6121,42 @@ const PANEL_DEBUG = import.meta.env.DEV;
             panelActionFlash(btn, "Boş", "info");
             return;
           }
-          try {
-            window.speechSynthesis.cancel();
-            const u = new SpeechSynthesisUtterance(text);
-            u.lang = "tr-TR";
-            u.onend = () => {
-              if (panelTtsActiveBtn === btn) {
-                panelTtsActiveBtn = null;
-                syncPanelTtsButtons(null);
-              }
-            };
-            u.onerror = () => {
-              if (panelTtsActiveBtn === btn) {
-                panelTtsActiveBtn = null;
-                syncPanelTtsButtons(null);
-              }
-            };
-            panelTtsActiveBtn = btn;
-            window.speechSynthesis.speak(u);
-            syncPanelTtsButtons(btn);
-          } catch {
-            panelActionFlash(btn, "Hata", "error");
-          }
+          panelEnsureVoicesReady(() => {
+            try {
+              const synth = window.speechSynthesis;
+              synth.cancel();
+              window.setTimeout(() => {
+                try {
+                  const u = new SpeechSynthesisUtterance(text);
+                  u.lang = "tr-TR";
+                  const voice = panelPickTrVoice();
+                  if (voice) u.voice = voice;
+                  u.onend = () => {
+                    if (panelTtsActiveBtn === btn) {
+                      panelTtsActiveBtn = null;
+                      syncPanelTtsButtons(null);
+                    }
+                  };
+                  u.onerror = (e) => {
+                    if (panelTtsActiveBtn === btn) {
+                      panelTtsActiveBtn = null;
+                      syncPanelTtsButtons(null);
+                    }
+                    panelActionFlash(btn, "Sesli okuma başarısız", "error");
+                    console.warn("[panel TTS]", e?.error ?? e);
+                  };
+                  panelTtsActiveBtn = btn;
+                  synth.speak(u);
+                  if (synth.paused) synth.resume();
+                  syncPanelTtsButtons(btn);
+                } catch {
+                  panelActionFlash(btn, "Hata", "error");
+                }
+              }, 0);
+            } catch {
+              panelActionFlash(btn, "Hata", "error");
+            }
+          });
         }
 
         thread.addEventListener("click", (e) => {
