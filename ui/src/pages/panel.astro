@@ -1948,6 +1948,18 @@ const PANEL_DEBUG = import.meta.env.DEV;
         color: rgb(236 248 255 / 0.99);
         outline: none;
       }
+      .chat-compose-attach-menu__item:disabled,
+      .chat-compose-attach-menu__item--unsupported {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .chat-compose-attach-menu__item:disabled:hover,
+      .chat-compose-attach-menu__item:disabled:focus-visible,
+      .chat-compose-attach-menu__item--unsupported:hover,
+      .chat-compose-attach-menu__item--unsupported:focus-visible {
+        background: transparent;
+        color: rgb(214 232 248 / 0.96);
+      }
       .chat-compose-attach-menu__badge {
         margin-inline-start: auto;
         padding: 0.08rem 0.35rem;
@@ -2049,6 +2061,89 @@ const PANEL_DEBUG = import.meta.env.DEV;
         .chat-camera-photo-row {
           position: relative;
         }
+      }
+      .chat-audio-record-preview-wrap {
+        position: relative;
+        display: block;
+        padding: 0.45rem 0.5rem;
+        border-radius: var(--panel-radius-lg);
+        border: 1px solid var(--lumos-border);
+        background: rgba(4, 8, 18, 0.92);
+        box-shadow: var(--panel-edge-inset);
+        max-width: 100%;
+        min-width: 0;
+      }
+      #panel-audio-record-preview-wrap[hidden] {
+        display: none !important;
+      }
+      .chat-audio-record-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.55rem;
+        min-width: 0;
+      }
+      .chat-audio-record-status {
+        flex: 1 1 auto;
+        min-width: 0;
+        font-size: 0.72rem;
+        line-height: 1.45;
+        letter-spacing: 0.01em;
+        color: rgba(184, 160, 130, 0.92);
+        word-break: break-word;
+      }
+      .chat-audio-record-player {
+        flex: 1 1 100%;
+        display: block;
+        width: 100%;
+        min-width: 0;
+        max-height: 2.5rem;
+      }
+      .chat-audio-record-player[hidden] {
+        display: none !important;
+      }
+      .chat-audio-record-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.35rem;
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      .chat-audio-record-btn {
+        margin: 0;
+        padding: 0.32rem 0.55rem;
+        border-radius: 0.45rem;
+        border: 1px solid var(--lumos-teal-38);
+        background: rgba(8, 14, 28, 0.92);
+        color: rgb(214 232 248 / 0.96);
+        font: inherit;
+        font-size: 0.72rem;
+        line-height: 1.3;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .chat-audio-record-btn:hover:not(:disabled) {
+        background: rgb(var(--lumos-land-teal) / 0.12);
+        color: rgb(236 248 255 / 0.99);
+      }
+      .chat-audio-record-btn:focus-visible {
+        outline: 2px solid rgb(var(--lumos-land-teal) / 0.45);
+        outline-offset: 1px;
+      }
+      .chat-audio-record-btn[hidden] {
+        display: none !important;
+      }
+      .chat-audio-record-hint {
+        margin: 0.28rem 0 0;
+        padding: 0;
+        font-size: 0.68rem;
+        line-height: 1.45;
+        letter-spacing: 0.01em;
+        color: rgba(184, 160, 130, 0.88);
+      }
+      .chat-audio-record-hint[hidden] {
+        display: none !important;
       }
       .chat-compose-voice-btn--listening {
         color: rgb(220 248 255 / 0.99);
@@ -2942,6 +3037,99 @@ const PANEL_DEBUG = import.meta.env.DEV;
           object-position: center;
           border-radius: 0.55rem;
         }
+        #panel-sohbet .chat-audio-record-preview-wrap {
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+          align-self: stretch;
+          box-sizing: border-box;
+          transition:
+            max-height 0.18s ease,
+            opacity 0.18s ease,
+            padding 0.18s ease;
+        }
+        #panel-sohbet .chat-audio-record-preview-wrap[hidden] {
+          max-height: 0;
+          min-height: 0;
+          margin: 0;
+          padding: 0;
+          border-width: 0;
+          overflow: hidden;
+          opacity: 0;
+          pointer-events: none;
+        }
+        #panel-sohbet .chat-audio-record-preview-wrap:not([hidden]) {
+          max-height: min(8.25rem, 36vh);
+          min-height: 0;
+          padding: 0.22rem 0.42rem;
+          margin-bottom: 0.1rem;
+          border-radius: 12px;
+          opacity: 1;
+          pointer-events: auto;
+          gap: 0.35rem;
+          background: rgba(22, 20, 16, 0.96);
+          border-color: rgba(130, 108, 78, 0.42);
+          box-shadow:
+            0 1px 0 rgba(255, 255, 255, 0.04) inset,
+            0 2px 10px rgba(0, 0, 0, 0.38);
+          overflow: hidden;
+        }
+        #panel-sohbet .chat-audio-record-row {
+          display: flex;
+          flex-direction: row;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 0.42rem;
+          width: 100%;
+          min-width: 0;
+          flex: 1 1 auto;
+          box-sizing: border-box;
+        }
+        #panel-sohbet .chat-audio-record-status {
+          flex: 1 1 auto;
+          min-width: 0;
+          max-width: 100%;
+          font-size: clamp(0.6rem, 2.5vw, 0.68rem);
+          line-height: 1.32;
+          overflow: hidden;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+          white-space: normal;
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+          color: rgba(198, 178, 148, 0.95);
+        }
+        #panel-sohbet .chat-audio-record-player:not([hidden]) {
+          flex: 1 1 100%;
+          width: 100%;
+          min-width: 0;
+          max-height: 2.15rem;
+        }
+        #panel-sohbet .chat-audio-record-actions {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 0.32rem;
+          flex: 1 1 auto;
+          min-width: 0;
+        }
+        #panel-sohbet .chat-audio-record-btn {
+          padding: 0.28rem 0.48rem;
+          font-size: clamp(0.6rem, 2.4vw, 0.68rem);
+        }
+        #panel-sohbet .chat-audio-record-hint {
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+          align-self: stretch;
+          box-sizing: border-box;
+          font-size: 0.62rem;
+          line-height: 1.35;
+          padding: 0.12rem 0;
+        }
         #panel-sohbet .chat-compose-bar {
           width: 100%;
           max-width: 100%;
@@ -3489,6 +3677,50 @@ const PANEL_DEBUG = import.meta.env.DEV;
                     ></span>
                   </div>
                 </div>
+                <div id="panel-audio-record-preview-wrap" class="chat-audio-record-preview-wrap" hidden>
+                  <div class="chat-audio-record-row">
+                    <span
+                      id="panel-audio-record-status"
+                      class="chat-audio-record-status"
+                      aria-live="polite"
+                    >Ses kaydı önizlemesi (henüz gönderilemez)</span>
+                    <audio
+                      id="panel-audio-record-player"
+                      class="chat-audio-record-player"
+                      controls
+                      hidden
+                      aria-label="Ses kaydı önizlemesi"
+                    ></audio>
+                    <div class="chat-audio-record-actions">
+                      <button
+                        type="button"
+                        id="panel-audio-record-stop"
+                        class="chat-audio-record-btn"
+                        hidden
+                      >
+                        Durdur
+                      </button>
+                      <button type="button" id="panel-audio-record-cancel" class="chat-audio-record-btn" hidden>
+                        İptal
+                      </button>
+                      <button
+                        type="button"
+                        id="panel-audio-record-rerecord"
+                        class="chat-audio-record-btn"
+                        hidden
+                      >
+                        Yeniden kaydet
+                      </button>
+                    </div>
+                  </div>
+                  <p
+                    id="panel-audio-record-hint"
+                    class="chat-audio-record-hint"
+                    role="status"
+                    aria-live="polite"
+                    hidden
+                  ></p>
+                </div>
                 <div class="chat-compose-bar">
                   <div class="chat-compose chat-compose--gpt">
                     <div class="chat-compose-attach-wrap">
@@ -3522,6 +3754,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
                         <button type="button" class="chat-compose-attach-menu__item" role="menuitem" data-attach-action="audio">
                           Ses dosyası yükle
                           <span class="chat-compose-attach-menu__badge">yakında</span>
+                        </button>
+                        <button type="button" class="chat-compose-attach-menu__item" role="menuitem" data-attach-action="record">
+                          Ses kaydı
                         </button>
                       </div>
                       <button
@@ -6919,12 +7154,253 @@ const PANEL_DEBUG = import.meta.env.DEV;
           cameraPhotoInput.click();
         }
 
+        const audioRecordPreviewWrap = document.getElementById("panel-audio-record-preview-wrap");
+        const audioRecordPlayer = /** @type {HTMLAudioElement | null} */ (
+          document.getElementById("panel-audio-record-player")
+        );
+        const audioRecordStatus = document.getElementById("panel-audio-record-status");
+        const audioRecordHint = document.getElementById("panel-audio-record-hint");
+        const audioRecordStopBtn = document.getElementById("panel-audio-record-stop");
+        const audioRecordCancelBtn = document.getElementById("panel-audio-record-cancel");
+        const audioRecordRerecordBtn = document.getElementById("panel-audio-record-rerecord");
+        const attachRecordMenuItem = attachMenu?.querySelector('[data-attach-action="record"]');
+
+        const AUDIO_RECORD_PREVIEW_LABEL = "Ses kaydı önizlemesi (henüz gönderilemez)";
+        const AUDIO_RECORD_UNSUPPORTED_HINT = "Bu tarayıcıda ses kaydı desteklenmiyor.";
+
+        /** @type {MediaRecorder | null} */
+        let mediaRecorder = null;
+        /** @type {MediaStream | null} */
+        let audioRecordStream = null;
+        /** @type {BlobPart[]} */
+        let audioRecordChunks = [];
+        /** @type {string | null} */
+        let audioRecordObjectUrl = null;
+        let isAudioRecording = false;
+
+        function isAudioRecordSupported() {
+          return !!(
+            navigator.mediaDevices &&
+            typeof navigator.mediaDevices.getUserMedia === "function" &&
+            typeof MediaRecorder !== "undefined"
+          );
+        }
+
+        function pickAudioRecordMimeType() {
+          const candidates = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm"];
+          if (typeof MediaRecorder.isTypeSupported !== "function") return "";
+          for (const t of candidates) {
+            if (MediaRecorder.isTypeSupported(t)) return t;
+          }
+          return "";
+        }
+
+        function setAudioRecordHint(msg) {
+          if (!audioRecordHint) return;
+          const s = panelUserVisibleText(msg != null ? String(msg) : "");
+          audioRecordHint.textContent = s;
+          audioRecordHint.hidden = !s;
+        }
+
+        function applyAudioRecordSupportUi() {
+          const supported = isAudioRecordSupported();
+          if (attachRecordMenuItem instanceof HTMLButtonElement) {
+            attachRecordMenuItem.disabled = !supported;
+            attachRecordMenuItem.setAttribute("aria-disabled", supported ? "false" : "true");
+            attachRecordMenuItem.classList.toggle("chat-compose-attach-menu__item--unsupported", !supported);
+          }
+          if (!supported) {
+            setAudioRecordHint(AUDIO_RECORD_UNSUPPORTED_HINT);
+          } else if (!isAudioRecording && !audioRecordObjectUrl) {
+            setAudioRecordHint("");
+          }
+        }
+
+        function revokeAudioRecordObjectUrl() {
+          if (!audioRecordObjectUrl) return;
+          try {
+            URL.revokeObjectURL(audioRecordObjectUrl);
+          } catch {
+            /* ignore */
+          }
+          audioRecordObjectUrl = null;
+        }
+
+        function stopAudioRecordStream() {
+          if (audioRecordStream) {
+            audioRecordStream.getTracks().forEach((tr) => tr.stop());
+            audioRecordStream = null;
+          }
+        }
+
+        function syncAudioRecordPreviewVisibility() {
+          if (!audioRecordPreviewWrap) return;
+          audioRecordPreviewWrap.hidden = !(isAudioRecording || !!audioRecordObjectUrl);
+        }
+
+        function syncAudioRecordControlsUi() {
+          if (audioRecordStopBtn) audioRecordStopBtn.hidden = !isAudioRecording;
+          if (audioRecordCancelBtn) {
+            audioRecordCancelBtn.hidden = !isAudioRecording && !audioRecordObjectUrl;
+          }
+          if (audioRecordRerecordBtn) {
+            audioRecordRerecordBtn.hidden = isAudioRecording || !audioRecordObjectUrl;
+          }
+          if (audioRecordPlayer) {
+            audioRecordPlayer.hidden = isAudioRecording || !audioRecordObjectUrl;
+          }
+          if (audioRecordStatus) {
+            if (isAudioRecording) {
+              audioRecordStatus.textContent = "Kayıt yapılıyor…";
+            } else if (audioRecordObjectUrl) {
+              audioRecordStatus.textContent = AUDIO_RECORD_PREVIEW_LABEL;
+            } else {
+              audioRecordStatus.textContent = "";
+            }
+          }
+        }
+
+        function clearPanelAudioRecordSelection() {
+          const rec = mediaRecorder;
+          mediaRecorder = null;
+          if (rec) {
+            rec.onstop = null;
+            rec.onerror = null;
+            rec.ondataavailable = null;
+            if (rec.state !== "inactive") {
+              try {
+                rec.stop();
+              } catch {
+                /* ignore */
+              }
+            }
+          }
+          audioRecordChunks = [];
+          isAudioRecording = false;
+          revokeAudioRecordObjectUrl();
+          stopAudioRecordStream();
+          if (audioRecordPlayer) {
+            audioRecordPlayer.pause();
+            audioRecordPlayer.removeAttribute("src");
+            audioRecordPlayer.load();
+            audioRecordPlayer.hidden = true;
+          }
+          syncAudioRecordControlsUi();
+          syncAudioRecordPreviewVisibility();
+          if (isAudioRecordSupported()) setAudioRecordHint("");
+        }
+
+        function bindAudioRecordFromBlob(blob) {
+          if (!blob || blob.size < 512) {
+            setAudioRecordHint("Kayıt çok kısa veya boş; tekrar deneyin.");
+            clearPanelAudioRecordSelection();
+            return;
+          }
+          revokeAudioRecordObjectUrl();
+          audioRecordObjectUrl = URL.createObjectURL(blob);
+          if (audioRecordPlayer) {
+            audioRecordPlayer.src = audioRecordObjectUrl;
+            audioRecordPlayer.hidden = false;
+          }
+          isAudioRecording = false;
+          syncAudioRecordControlsUi();
+          syncAudioRecordPreviewVisibility();
+          setAudioRecordHint("");
+        }
+
+        function stopPanelAudioRecording() {
+          if (!mediaRecorder || mediaRecorder.state === "inactive") return;
+          try {
+            mediaRecorder.stop();
+          } catch {
+            setAudioRecordHint("Kayıt durdurulamadı.");
+            clearPanelAudioRecordSelection();
+          }
+        }
+
+        function startPanelAudioRecording() {
+          clearPanelAudioRecordSelection();
+          if (!isAudioRecordSupported()) {
+            setAudioRecordHint(AUDIO_RECORD_UNSUPPORTED_HINT);
+            return;
+          }
+          setAudioRecordHint("");
+          navigator.mediaDevices
+            .getUserMedia({ audio: true })
+            .then((stream) => {
+              audioRecordStream = stream;
+              audioRecordChunks = [];
+              const mimeType = pickAudioRecordMimeType();
+              const options = mimeType ? { mimeType } : undefined;
+              let rec;
+              try {
+                rec = options ? new MediaRecorder(stream, options) : new MediaRecorder(stream);
+              } catch {
+                stopAudioRecordStream();
+                setAudioRecordHint("Bu tarayıcıda ses kaydı başlatılamadı.");
+                return;
+              }
+              mediaRecorder = rec;
+              mediaRecorder.ondataavailable = (ev) => {
+                if (ev.data && ev.data.size > 0) audioRecordChunks.push(ev.data);
+              };
+              mediaRecorder.onstop = () => {
+                stopAudioRecordStream();
+                const type = rec.mimeType || mimeType || "audio/webm";
+                const blob = new Blob(audioRecordChunks, { type });
+                mediaRecorder = null;
+                audioRecordChunks = [];
+                bindAudioRecordFromBlob(blob);
+              };
+              mediaRecorder.onerror = () => {
+                setAudioRecordHint("Kayıt sırasında hata oluştu.");
+                clearPanelAudioRecordSelection();
+              };
+              mediaRecorder.start();
+              isAudioRecording = true;
+              syncAudioRecordControlsUi();
+              syncAudioRecordPreviewVisibility();
+            })
+            .catch((err) => {
+              const name = err && err.name;
+              if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+                setAudioRecordHint("Mikrofon izni verilmedi.");
+              } else {
+                setAudioRecordHint("Mikrofon kullanılamıyor.");
+              }
+              clearPanelAudioRecordSelection();
+            });
+        }
+
+        applyAudioRecordSupportUi();
+
+        audioRecordStopBtn?.addEventListener("click", () => {
+          stopPanelAudioRecording();
+        });
+
+        audioRecordCancelBtn?.addEventListener("click", () => {
+          clearPanelAudioRecordSelection();
+        });
+
+        audioRecordRerecordBtn?.addEventListener("click", () => {
+          clearPanelAudioRecordSelection();
+          startPanelAudioRecording();
+        });
+
         function onDocVisibilityForCamera() {
-          if (document.hidden) stopPanelCameraStream();
+          if (document.hidden) {
+            stopPanelCameraStream();
+            if (isAudioRecording) clearPanelAudioRecordSelection();
+          }
+        }
+
+        function onPanelPageHide() {
+          stopPanelCameraStream();
+          clearPanelAudioRecordSelection();
         }
 
         document.addEventListener("visibilitychange", onDocVisibilityForCamera);
-        window.addEventListener("pagehide", stopPanelCameraStream);
+        window.addEventListener("pagehide", onPanelPageHide);
 
         attachToggle?.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -6979,6 +7455,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
             } else {
               setCameraHint("Ses dosyasını sohbete ekleme yakında.");
             }
+            return;
+          }
+          if (action === "record") {
+            if (!isAudioRecordSupported()) {
+              setAudioRecordHint(AUDIO_RECORD_UNSUPPORTED_HINT);
+              return;
+            }
+            startPanelAudioRecording();
           }
         });
 
