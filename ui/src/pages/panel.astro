@@ -1808,6 +1808,16 @@ const PANEL_DEBUG = import.meta.env.DEV;
         overflow-wrap: anywhere;
         word-break: break-word;
       }
+      :global(.chat-msg-body .chat-compose-bubble-audio) {
+        display: block;
+        max-width: min(100%, 280px);
+        width: 100%;
+        margin-top: 6px;
+        border-radius: 8px;
+      }
+      :global(.chat-msg-body .chat-compose-bubble-audio:not(:first-child)) {
+        margin-top: 8px;
+      }
       :global(.chat-msg--lumos .chat-msg-body) {
         white-space: pre-wrap;
         line-height: 1.75;
@@ -4843,6 +4853,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
         "Sınırlı mod: dış sohbet köprüsü yok; yerel yanıtlar ve görev komutları kullanılabilir.";
       const PANEL_LIMITED_PHOTO_REPLY =
         "Sınırlı modda fotoğraf analizi yapılamaz; dış görsel API köprüsü bağlı değil.";
+      const PANEL_LIMITED_AUDIO_REPLY =
+        "Sınırlı modda ses kaydı yalnızca bu cihazda görünür; dış sohbet köprüsüne iletilmez.";
       const CAP_LIMITED_NOTE = "Köprü bağlantısı bekleniyor.";
       const KISITLI_CAP_IDS = ["cap-file-read", "cap-file-write", "cap-task-create", "cap-live-deploy", "cap-terminal"];
 
@@ -5692,6 +5704,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
         let cameraPhotoObjectUrl = null;
         /** @type {MediaStream | null} */
         let cameraStream = null;
+        /** @type {Blob | null} */
+        let audioRecordBlob = null;
+        /** Sohbet balonlarındaki ses URL'leri; yalnızca pagehide'da iptal (aktif mesajda revoke etme). */
+        const audioBubbleObjectUrls = new Set();
 
         function setCameraHint(msg) {
           if (!cameraHint) return;
@@ -6061,8 +6077,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
           return null;
         }
 
-        /** Kullanıcı balonu: düz metin ve isteğe bağlı yerel görsel (sunucu ikili almaz). */
-        function appendUserComposeBubble(plainText, imageDataUrl) {
+        /** Kullanıcı balonu: düz metin, isteğe bağlı yerel görsel veya ses (sunucu ikili almaz). */
+        function appendUserComposeBubble(plainText, imageDataUrl, audioObjectUrl) {
           const turn = document.createElement("div");
           turn.className = "chat-turn chat-turn--user";
           const wrap = document.createElement("div");
@@ -6093,6 +6109,19 @@ const PANEL_DEBUG = import.meta.env.DEV;
             img.style.display = "block";
             img.style.marginTop = trimmed ? "8px" : "6px";
             body.appendChild(img);
+          }
+          if (audioObjectUrl) {
+            if (!trimmed && !imageDataUrl) {
+              const cap = document.createElement("div");
+              cap.textContent = "Ses kaydı eklendi";
+              body.appendChild(cap);
+            }
+            const audio = document.createElement("audio");
+            audio.controls = true;
+            audio.src = audioObjectUrl;
+            audio.setAttribute("aria-label", "Ses kaydı");
+            audio.className = "chat-compose-bubble-audio";
+            body.appendChild(audio);
           }
           wrap.appendChild(role);
           wrap.appendChild(body);
@@ -6305,7 +6334,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
               ? cameraPhotoInput.files[0]
               : null;
           const hasPhoto = !!(photoFile && /^image\//.test(photoFile.type));
-          if ((!message && !hasPhoto) || sending) return;
+          const hasAudio = !!(audioRecordBlob && audioRecordBlob.size >= 512);
+          if ((!message && !hasPhoto && !hasAudio) || sending) return;
+          if (hasPhoto && hasAudio) {
+            setSendHint("Önce tek ek seçin");
+            return;
+          }
 
           setSendHint("");
           if (!hasPhoto) {
@@ -6320,6 +6354,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
               setSendHint("Fotoğraf okunamadı.");
               return;
             }
+          }
+
+          let audioBubbleUrl = null;
+          if (hasAudio) {
+            audioBubbleUrl = URL.createObjectURL(audioRecordBlob);
+            audioBubbleObjectUrls.add(audioBubbleUrl);
           }
 
           const panelGorevCmd = parsePanelGorevKomutu(message);
@@ -6338,6 +6378,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 setSendHint("Sınırlı modda görsel analizi kullanılamaz.");
                 input.value = "";
                 clearPanelCameraPhotoSelection();
+                input.blur();
+                resetPanelHorizontalScrollAfterInputBlur();
+                return;
+              }
+
+              if (hasAudio) {
+                appendUserComposeBubble(message, null, audioBubbleUrl);
+                appendBubble("lumos", PANEL_LIMITED_AUDIO_REPLY);
+                setSendHint("Sınırlı modda ses yalnızca yerel sohbette görünür.");
+                input.value = "";
+                clearPanelAudioRecordSelection();
                 input.blur();
                 resetPanelHorizontalScrollAfterInputBlur();
                 return;
@@ -6378,6 +6429,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
           const history = collectThreadHistory(thread);
           if (imageDataUrlForBubble) {
             appendUserComposeBubble(message, imageDataUrlForBubble);
+          } else if (hasAudio) {
+            appendUserComposeBubble(message, null, audioBubbleUrl);
           } else {
             appendBubble("user", message);
           }
@@ -6388,9 +6441,26 @@ const PANEL_DEBUG = import.meta.env.DEV;
             appendBubble("lumos", buildPanelGorevConfirmation(panelGorevCmd));
             input.value = "";
             clearPanelCameraPhotoSelection();
+            clearPanelAudioRecordSelection();
             setSendHint("");
             input.blur();
             resetPanelHorizontalScrollAfterInputBlur();
+          }
+
+          if (hasAudio && !outgoingMessage && !hasPhoto) {
+            input.value = "";
+            clearPanelAudioRecordSelection();
+            setSendHint("");
+            input.blur();
+            resetPanelHorizontalScrollAfterInputBlur();
+            sending = false;
+            sendBtn.disabled = false;
+            sendBtn.removeAttribute("aria-busy");
+            sendBtn.setAttribute("aria-label", sendLabel);
+            sendBtn.setAttribute("title", sendLabel);
+            sendBtn.classList.remove("chat-compose-send--busy");
+            refocusPanelChatInput();
+            return;
           }
 
           /**
@@ -6642,6 +6712,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                     appendBubble("lumos", lumosText);
                     input.value = "";
                     clearPanelCameraPhotoSelection();
+                    clearPanelAudioRecordSelection();
                     setSendHint("");
                     input.blur();
                     resetPanelHorizontalScrollAfterInputBlur();
@@ -7165,7 +7236,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const audioRecordRerecordBtn = document.getElementById("panel-audio-record-rerecord");
         const attachRecordMenuItem = attachMenu?.querySelector('[data-attach-action="record"]');
 
-        const AUDIO_RECORD_PREVIEW_LABEL = "Ses kaydı önizlemesi (henüz gönderilemez)";
+        const AUDIO_RECORD_PREVIEW_LABEL = "Ses kaydı hazır — Gönder ile sohbete ekle";
         const AUDIO_RECORD_UNSUPPORTED_HINT = "Bu tarayıcıda ses kaydı desteklenmiyor.";
 
         /** @type {MediaRecorder | null} */
@@ -7277,6 +7348,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
           audioRecordChunks = [];
           isAudioRecording = false;
+          audioRecordBlob = null;
           revokeAudioRecordObjectUrl();
           stopAudioRecordStream();
           if (audioRecordPlayer) {
@@ -7297,6 +7369,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             return;
           }
           revokeAudioRecordObjectUrl();
+          audioRecordBlob = blob;
           audioRecordObjectUrl = URL.createObjectURL(blob);
           if (audioRecordPlayer) {
             audioRecordPlayer.src = audioRecordObjectUrl;
@@ -7397,6 +7470,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
         function onPanelPageHide() {
           stopPanelCameraStream();
           clearPanelAudioRecordSelection();
+          for (const url of audioBubbleObjectUrls) {
+            try {
+              URL.revokeObjectURL(url);
+            } catch {
+              /* ignore */
+            }
+          }
+          audioBubbleObjectUrls.clear();
         }
 
         document.addEventListener("visibilitychange", onDocVisibilityForCamera);
