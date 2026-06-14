@@ -6183,14 +6183,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
             const voices = synth.getVoices();
             if (voices && voices.length) panelTtsVoicesCache = voices;
             panelTtsDiag(btn, "voices count: " + (voices ? voices.length : 0));
-            const voice = panelPickTrVoice(voices);
-            panelTtsDiag(
-              btn,
-              "voice/lang: " + (voice ? voice.name + " / " + voice.lang : "default")
-            );
+            panelTtsDiag(btn, "voice/lang: lang-only / tr-TR (no voice assign)");
             const u = new SpeechSynthesisUtterance(text);
             u.lang = "tr-TR";
-            if (voice) u.voice = voice;
             u.onstart = () => {
               panelTtsDiag(btn, "onstart");
             };
