@@ -7988,11 +7988,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             return;
           }
           if (action === "audio") {
-            if (attachAudioInput) {
-              attachAudioInput.click();
-            } else {
-              setCameraHint("Ses dosyasını sohbete ekleme yakında.");
-            }
+            attachAudioInput?.click();
             return;
           }
           if (action === "record") {
@@ -8019,9 +8015,38 @@ const PANEL_DEBUG = import.meta.env.DEV;
         attachAudioInput?.addEventListener("change", () => {
           const f = attachAudioInput.files && attachAudioInput.files[0];
           attachAudioInput.value = "";
+          setSendHint("");
+          setCameraHint("");
           if (!f) return;
-          const name = f.name && String(f.name).trim() ? String(f.name).trim() : "ses dosyası";
-          setCameraHint(`«${name}» — sohbete ses ekleme yakında.`);
+          if (!/^audio\//.test(f.type || "")) {
+            setSendHint("Yalnızca ses dosyası seçin.");
+            return;
+          }
+          const photoFile =
+            cameraPhotoInput && cameraPhotoInput.files && cameraPhotoInput.files[0]
+              ? cameraPhotoInput.files[0]
+              : null;
+          const hasPhoto = !!(photoFile && /^image\//.test(photoFile.type));
+          const hasPendingRecord = !!(audioRecordBlob && audioRecordBlob.size >= 512);
+          if (hasPhoto || hasPendingRecord || isAudioRecording) {
+            setSendHint("Önce tek ek seçin");
+            return;
+          }
+          let audioBubbleUrl = null;
+          try {
+            audioBubbleUrl = URL.createObjectURL(f);
+            audioBubbleObjectUrls.add(audioBubbleUrl);
+          } catch {
+            setSendHint("Ses dosyası okunamadı.");
+            return;
+          }
+          appendUserComposeBubble("Ses dosyası eklendi", null, audioBubbleUrl);
+          if (bridgeOpsBlocked()) {
+            appendBubble("lumos", PANEL_LIMITED_AUDIO_REPLY);
+            setSendHint("Sınırlı modda ses yalnızca yerel sohbette görünür.");
+          }
+          input.blur();
+          resetPanelHorizontalScrollAfterInputBlur();
         });
 
         cameraBtn?.addEventListener("click", () => {
