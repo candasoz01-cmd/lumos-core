@@ -1818,6 +1818,18 @@ const PANEL_DEBUG = import.meta.env.DEV;
       :global(.chat-msg-body .chat-compose-bubble-audio:not(:first-child)) {
         margin-top: 8px;
       }
+      :global(.chat-msg-body .chat-compose-bubble-audio-meta) {
+        margin-top: 4px;
+        font-size: 0.82rem;
+        line-height: 1.45;
+        opacity: 0.85;
+      }
+      :global(.chat-msg-body .chat-compose-bubble-audio-meta-name) {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: min(100%, 280px);
+      }
       :global(.chat-msg--lumos .chat-msg-body) {
         white-space: pre-wrap;
         line-height: 1.75;
@@ -6523,8 +6535,19 @@ const PANEL_DEBUG = import.meta.env.DEV;
           return null;
         }
 
+        function formatFileSize(bytes) {
+          if (typeof bytes !== "number" || !Number.isFinite(bytes) || bytes < 0) return null;
+          if (bytes < 1024) return `${bytes} B`;
+          if (bytes < 1024 * 1024) {
+            const kb = bytes / 1024;
+            return `${kb < 10 ? kb.toFixed(1) : Math.round(kb)} KB`;
+          }
+          const mb = bytes / (1024 * 1024);
+          return `${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB`;
+        }
+
         /** Kullanıcı balonu: düz metin, isteğe bağlı yerel görsel veya ses (sunucu ikili almaz). */
-        function appendUserComposeBubble(plainText, imageDataUrl, audioObjectUrl) {
+        function appendUserComposeBubble(plainText, imageDataUrl, audioObjectUrl, audioUploadMeta) {
           const turn = document.createElement("div");
           turn.className = "chat-turn chat-turn--user";
           const wrap = document.createElement("div");
@@ -6561,6 +6584,37 @@ const PANEL_DEBUG = import.meta.env.DEV;
               const cap = document.createElement("div");
               cap.textContent = "Ses kaydı eklendi";
               body.appendChild(cap);
+            }
+            if (audioUploadMeta && typeof audioUploadMeta === "object") {
+              const metaWrap = document.createElement("div");
+              metaWrap.className = "chat-compose-bubble-audio-meta";
+              const uploadName =
+                audioUploadMeta.name != null ? String(audioUploadMeta.name).trim() : "";
+              if (uploadName) {
+                const nameEl = document.createElement("div");
+                nameEl.className = "chat-compose-bubble-audio-meta-name";
+                nameEl.textContent = uploadName;
+                nameEl.title = uploadName;
+                metaWrap.appendChild(nameEl);
+              }
+              const uploadType =
+                audioUploadMeta.type != null ? String(audioUploadMeta.type).trim() : "";
+              if (uploadType) {
+                const typeEl = document.createElement("div");
+                typeEl.className = "chat-compose-bubble-audio-meta-detail";
+                typeEl.textContent = uploadType;
+                metaWrap.appendChild(typeEl);
+              }
+              const sizeLabel = formatFileSize(audioUploadMeta.size);
+              if (sizeLabel) {
+                const sizeEl = document.createElement("div");
+                sizeEl.className = "chat-compose-bubble-audio-meta-detail";
+                sizeEl.textContent = sizeLabel;
+                metaWrap.appendChild(sizeEl);
+              }
+              if (metaWrap.childNodes.length) {
+                body.appendChild(metaWrap);
+              }
             }
             const audio = document.createElement("audio");
             audio.controls = true;
@@ -8040,7 +8094,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
             setSendHint("Ses dosyası okunamadı.");
             return;
           }
-          appendUserComposeBubble("Ses dosyası eklendi", null, audioBubbleUrl);
+          appendUserComposeBubble("Ses dosyası eklendi", null, audioBubbleUrl, {
+            name: f.name,
+            type: f.type,
+            size: f.size,
+          });
           if (bridgeOpsBlocked()) {
             appendBubble("lumos", PANEL_LIMITED_AUDIO_REPLY);
             setSendHint("Sınırlı modda ses yalnızca yerel sohbette görünür.");
