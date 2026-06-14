@@ -6010,11 +6010,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
         );
         const panelTtsDiagEnabled = (() => {
           try {
-            if (new URLSearchParams(window.location.search).get("tts_diag") === "0") return false;
+            const v = new URLSearchParams(window.location.search).get("tts_diag");
+            return v === "1" || v === "true";
           } catch {
             /* ignore */
           }
-          return true;
+          return false;
         })();
         /** @type {WeakMap<HTMLButtonElement, { el: HTMLSpanElement; parts: string[] }>} */
         const panelTtsDiagState = new WeakMap();
