@@ -62,6 +62,21 @@ lsof -nP -iTCP:8765 -sTCP:LISTEN
 | `KANDO_BRIDGE_PORT` | Dinlenecek port (CLI `--port` ile geçersiz kılınır) |
 | `KANDO_BRIDGE_SECRET` | **Zorunlu** — korumalı uç noktalar için paylaşımlı token (gap #5) |
 
+### İsteğe bağlı STT (`POST /transcribe`)
+
+Yerel faster-whisper yalnızca `[stt]` ekstra bağımlılığı ve env ile açılır; varsayılan kurulumda motor kapalıdır (**503**).
+
+| Ortam değişkeni | Anlamı |
+|-----------------|--------|
+| `KANDO_STT_ENABLED` | `1` ise faster-whisper kuruluysa motor etkin |
+| `KANDO_STT_MODEL` | Whisper modeli (varsayılan `tiny`) |
+| `KANDO_STT_DEVICE` | `cpu` / `cuda` (varsayılan `cpu`) |
+| `KANDO_STT_COMPUTE_TYPE` | Örn. `int8` (varsayılan `int8`) |
+| `KANDO_STT_LANGUAGE` | Dil kodu; boş = otomatik (varsayılan `tr`) |
+| `KANDO_STT_INTEGRATION` | `1` ise yerel entegrasyon testi çalışır (CI'da yok) |
+
+Kurulum: `pip install -e 'packages/kando_bridge[stt]'` (depo kökünden uygun `PYTHONPATH` ile).
+
 ## Güvenlik
 
 1. **Ağ**: Sunucu varsayılan olarak `127.0.0.1` üzerinde dinler; uzak makinadan doğrudan bağlanılmaz.
