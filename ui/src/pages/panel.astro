@@ -6219,7 +6219,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
         function panelSpeakLumosBubble(wrap, btn) {
           panelTtsDiagReset(btn);
-          panelTtsDiag(btn, "click");
+          panelTtsDiag(btn, "click received");
           if (!panelTtsSupported) {
             panelActionFlash(btn, "Desteklenmiyor", "warn");
             return;
@@ -6251,11 +6251,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
         thread.addEventListener("click", (e) => {
           const t = e.target;
-          if (!(t instanceof HTMLElement)) return;
-          const btn = t.closest("[data-panel-tts]");
-          if (!btn || !(btn instanceof HTMLButtonElement)) return;
+          if (!(t instanceof Element)) return;
+          const btn = t.closest("button[data-panel-tts]");
+          if (!btn) return;
           const wrap = btn.closest(".chat-msg--lumos");
           if (!wrap) return;
+          panelTtsDiag(btn, "click received");
           if (btn.disabled) {
             panelActionFlash(btn, "Desteklenmiyor", "warn");
             return;
