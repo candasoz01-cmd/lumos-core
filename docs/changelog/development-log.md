@@ -177,3 +177,15 @@ Main hash hizalama / readiness sync (PR #149 merge; `main` @ `f5d99b5`).
 **Durum:** Açık PR kalmadı.
 
 **Not:** Repo branch stratejisi dokümantasyonu eklendi — varsayılan aktif dal `main` (`docs/repo-branches.md`).
+
+---
+
+## 2026-06-14
+
+Panel TTS tıklama bağlama düzeltmesi — kök neden kaydı.
+
+**Kök neden:** Hoparlör (TTS) ikonuna tıklanınca olay dinleyicisi tetiklenmiyordu — tıklama `SVGElement` hedefinde kalıyordu; `HTMLElement` kontrolü click handler'ı atlıyordu.
+
+**Düzeltme:** PR #180 (`fix/panel-tts-click-binding`).
+
+**Kapsam:** Yalnızca panel TTS tıklama davranışı; STT/kayıt ve ses yükleme seçici koduna dokunulmadı.
