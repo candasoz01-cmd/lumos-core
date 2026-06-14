@@ -1894,6 +1894,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
       :global(.chat-audio-transcript-privacy[hidden]) {
         display: none !important;
       }
+      :global(.chat-audio-transcript-warn) {
+        margin: 0;
+        font-size: 0.65rem;
+        line-height: 1.4;
+        opacity: 0.82;
+        color: rgba(220, 175, 120, 0.95);
+        max-width: min(100%, 280px);
+      }
+      :global(.chat-audio-transcript-warn[hidden]) {
+        display: none !important;
+      }
       :global(.chat-audio-transcript-btn:disabled) {
         opacity: 0.55;
         cursor: not-allowed;
@@ -3847,7 +3858,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   <p id="panel-empty-secret-note" class="lumos-security-note">Cihaz içinde çalışır; gizli bilgileri sohbete yazma.</p>
                   {PANEL_DEBUG && (
                     <p class="lumos-security-note panel-debug-only">
-                      Yerel geliştirmede bağlantı anahtarı tarayıcıda görünebilir; gerçek gizli değeri sohbete yapıştırma.
+                      Yerel köprü bağlı. Ses ve görev işlemleri bu cihaz üzerinden yürütülür.
                     </p>
                   )}
                   <p class="lumos-security-note">Kamera ve mikrofon cihaz iznine bağlıdır.</p>
@@ -5096,6 +5107,38 @@ const PANEL_DEBUG = import.meta.env.DEV;
       const AUDIO_TRANSCRIPT_PRIVACY_MSG =
         "Metin yalnızca önizleme; «Sohbete ekle» ile yazma alanına kopyalanır, otomatik gönderilmez.";
       const DOSYALAR_AUDIO_TRANSCRIPT_MSG = AUDIO_TRANSCRIPT_ENGINE_MSG;
+      const AUDIO_TRANSCRIPT_MUSIC_WARN_MSG =
+        "Bu ses müzik/şarkı içeriyor olabilir. Metne çeviri sonucu güvenilir olmayabilir.";
+      const AUDIO_TRANSCRIPT_FAILED_MSG =
+        "Metne çeviri tamamlanamadı. Ses müzik, gürültülü veya konuşma dışı olabilir.";
+      const AUDIO_TRANSCRIPT_SPEECH_FAILED_MSG = "Metne çeviri tamamlanamadı.";
+      const AUDIO_TRANSCRIPT_LOW_QUALITY_WARN_MSG =
+        "Metin düşük güvenilirlikte olabilir; daha net bir konuşma kaydıyla tekrar deneyin.";
+
+      function transcribeFailureUserMessage(result, filename, mime) {
+        const isMusic = isLikelyMusicAudio(filename, mime);
+        const userMsg = isMusic
+          ? AUDIO_TRANSCRIPT_FAILED_MSG
+          : AUDIO_TRANSCRIPT_SPEECH_FAILED_MSG;
+        if (!PANEL_DEBUG) return userMsg;
+        const bits = [userMsg];
+        if (result && typeof result === "object") {
+          if (result.error != null && String(result.error).trim()) {
+            bits.push("[" + String(result.error).trim() + "]");
+          }
+          const backendMsg =
+            result.message != null ? String(result.message).trim() : "";
+          if (
+            backendMsg &&
+            backendMsg !== userMsg &&
+            backendMsg !== AUDIO_TRANSCRIPT_FAILED_MSG &&
+            backendMsg !== AUDIO_TRANSCRIPT_SPEECH_FAILED_MSG
+          ) {
+            bits.push(backendMsg);
+          }
+        }
+        return bits.join(" ");
+      }
 
       function extractTranscriptText(data) {
         if (!data || typeof data !== "object") return "";
@@ -5105,6 +5148,59 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (v != null && String(v).trim()) return String(v).trim();
         }
         return "";
+      }
+
+      function isLikelyMusicAudio(filename, mime) {
+        const name = filename != null ? String(filename).trim().toLowerCase() : "";
+        const type = mime != null ? String(mime).trim().toLowerCase() : "";
+        if (!name && !type) return false;
+        if (/\.mp3\b/i.test(name)) return true;
+        if (/music|song|şarkı|müzik|sarki|muzik/i.test(name)) return true;
+        if (/\.(flac|aac|m4a)\b/i.test(name)) return true;
+        if (type.startsWith("audio/")) {
+          // In-browser speech recordings default to webm; uploaded audio/* otherwise.
+          if (type === "audio/webm") return false;
+          return true;
+        }
+        return false;
+      }
+
+      function isLowQualityTranscript(text) {
+        const trimmed = text != null ? String(text).trim() : "";
+        if (!trimmed) return false;
+        if (trimmed.length < 3) return true;
+        const tokens = trimmed.split(/\s+/).filter((t) => t.length > 0);
+        if (!tokens.length) return true;
+        function tokenCore(t) {
+          return t.toLowerCase().replace(/[^a-z0-9çğıöşüâîû]/gi, "");
+        }
+        const cores = tokens.map(tokenCore).filter((c) => c.length > 0);
+        const basis = cores.length || tokens.length;
+        if (cores.length) {
+          const counts = {};
+          for (const c of cores) counts[c] = (counts[c] || 0) + 1;
+          const max = Math.max(...Object.values(counts));
+          if (max / basis > 0.4) return true;
+        }
+        const singleChar = tokens.filter((t) => tokenCore(t).length <= 1);
+        if (singleChar.length / tokens.length > 0.35) return true;
+        const punctHeavy = tokens.filter((t) => {
+          const letters = (t.match(/[a-zA-Z0-9çğıöşüâîû]/gi) || []).length;
+          return letters === 0 || (letters <= 1 && t.length > 2);
+        });
+        if (punctHeavy.length / tokens.length > 0.3) return true;
+        const words = cores.length ? cores : tokens.map((t) => t.toLowerCase());
+        if (words.length >= 6) {
+          for (let len = 2; len <= 3; len++) {
+            const phraseCounts = {};
+            for (let i = 0; i <= words.length - len; i++) {
+              const phrase = words.slice(i, i + len).join(" ");
+              phraseCounts[phrase] = (phraseCounts[phrase] || 0) + 1;
+              if (phraseCounts[phrase] >= 3) return true;
+            }
+          }
+        }
+        return false;
       }
 
       async function requestLocalTranscription(blob, source, filename, mime) {
@@ -5197,28 +5293,32 @@ const PANEL_DEBUG = import.meta.env.DEV;
           };
         }
         if (!r.ok) {
+          const backendMsg =
+            data && data.message != null && String(data.message).trim()
+              ? String(data.message).trim()
+              : "";
           return {
             ok: false,
+            transcribeFailure: true,
             status: r.status,
             error: data && data.error != null ? String(data.error) : "transcribe_failed",
-            message:
-              data && data.message != null && String(data.message).trim()
-                ? String(data.message).trim()
-                : "Metne çeviri tamamlanamadı.",
+            message: backendMsg || AUDIO_TRANSCRIPT_FAILED_MSG,
           };
         }
         const text = extractTranscriptText(data);
         if (data && data.ok === true && text) {
           return { ok: true, text, data, source: source || "panel" };
         }
+        const backendMsg =
+          data && data.message != null && String(data.message).trim()
+            ? String(data.message).trim()
+            : "";
         return {
           ok: false,
+          transcribeFailure: true,
           status: r.status,
           error: data && data.error != null ? String(data.error) : "transcribe_empty",
-          message:
-            data && data.message != null && String(data.message).trim()
-              ? String(data.message).trim()
-              : "Metne çeviri sonucu boş.",
+          message: backendMsg || AUDIO_TRANSCRIPT_FAILED_MSG,
         };
       }
 
@@ -5266,6 +5366,16 @@ const PANEL_DEBUG = import.meta.env.DEV;
         preview.setAttribute("role", "region");
         preview.setAttribute("aria-label", "Transkript önizlemesi");
 
+        const musicWarn = document.createElement("p");
+        musicWarn.className = "chat-audio-transcript-warn";
+        musicWarn.hidden = true;
+        musicWarn.setAttribute("role", "note");
+
+        const qualityWarn = document.createElement("p");
+        qualityWarn.className = "chat-audio-transcript-warn";
+        qualityWarn.hidden = true;
+        qualityWarn.setAttribute("role", "note");
+
         const privacy = document.createElement("p");
         privacy.className = "chat-audio-transcript-privacy";
         privacy.hidden = true;
@@ -5292,12 +5402,21 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
         }
 
-        function showStatus(text) {
+        function updateMusicWarnVisibility(show) {
+          const showMusic = !!show && isLikelyMusicAudio(filename, mime);
+          musicWarn.textContent = AUDIO_TRANSCRIPT_MUSIC_WARN_MSG;
+          musicWarn.hidden = !showMusic;
+        }
+
+        function showStatus(text, options) {
+          const opts = options && typeof options === "object" ? options : {};
           preview.hidden = true;
+          qualityWarn.hidden = true;
           privacy.hidden = true;
           addBtn.hidden = true;
           msg.textContent = text != null ? String(text) : "";
           msg.hidden = !msg.textContent;
+          updateMusicWarnVisibility(opts.showMusicWarn === true);
         }
 
         function showPreview(text) {
@@ -5305,6 +5424,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
           msg.hidden = true;
           preview.textContent = lastTranscript;
           preview.hidden = !lastTranscript;
+          updateMusicWarnVisibility(isLikelyMusicAudio(filename, mime));
+          const showQuality = !!lastTranscript && isLowQualityTranscript(lastTranscript);
+          qualityWarn.textContent = AUDIO_TRANSCRIPT_LOW_QUALITY_WARN_MSG;
+          qualityWarn.hidden = !showQuality;
           privacy.hidden = !lastTranscript;
           addBtn.hidden = !lastTranscript;
         }
@@ -5325,7 +5448,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             return;
           }
           setBusy(true);
-          showStatus(AUDIO_TRANSCRIPT_BUSY_MSG);
+          showStatus(AUDIO_TRANSCRIPT_BUSY_MSG, { showMusicWarn: false });
           try {
             const result = await requestLocalTranscription(
               audioBlob,
@@ -5339,17 +5462,36 @@ const PANEL_DEBUG = import.meta.env.DEV;
               showStatus(result.message || AUDIO_TRANSCRIPT_LIMITED_MSG);
             } else if (result.engineUnavailable) {
               showStatus(result.message || AUDIO_TRANSCRIPT_ENGINE_MSG);
+            } else if (result.transcribeFailure) {
+              showStatus(transcribeFailureUserMessage(result, filename, mime), {
+                showMusicWarn: true,
+              });
             } else {
-              showStatus(result.message || "Metne çeviri tamamlanamadı.");
+              const fallback = isLikelyMusicAudio(filename, mime)
+                ? AUDIO_TRANSCRIPT_FAILED_MSG
+                : AUDIO_TRANSCRIPT_SPEECH_FAILED_MSG;
+              let text = result.message || fallback;
+              if (!PANEL_DEBUG && text) {
+                text =
+                  String(text)
+                    .replace(/\s*\[[^\]]+\]\s*/g, " ")
+                    .replace(/\s{2,}/g, " ")
+                    .trim() || fallback;
+              }
+              showStatus(text, { showMusicWarn: isLikelyMusicAudio(filename, mime) });
             }
           } catch {
-            showStatus("Metne çeviri sırasında hata oluştu.");
+            showStatus(transcribeFailureUserMessage(null, filename, mime), {
+              showMusicWarn: true,
+            });
           } finally {
             setBusy(false);
           }
         });
 
         wrap.appendChild(btn);
+        wrap.appendChild(musicWarn);
+        wrap.appendChild(qualityWarn);
         wrap.appendChild(msg);
         wrap.appendChild(preview);
         wrap.appendChild(privacy);
@@ -5390,6 +5532,16 @@ const PANEL_DEBUG = import.meta.env.DEV;
         preview.setAttribute("role", "region");
         preview.setAttribute("aria-label", "Transkript önizlemesi");
 
+        const musicWarn = document.createElement("p");
+        musicWarn.className = "chat-audio-transcript-warn";
+        musicWarn.hidden = true;
+        musicWarn.setAttribute("role", "note");
+
+        const qualityWarn = document.createElement("p");
+        qualityWarn.className = "chat-audio-transcript-warn";
+        qualityWarn.hidden = true;
+        qualityWarn.setAttribute("role", "note");
+
         const privacy = document.createElement("p");
         privacy.className = privacyClass;
         privacy.hidden = true;
@@ -5416,12 +5568,21 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
         }
 
-        function showStatus(text) {
+        function updateMusicWarnVisibility(show) {
+          const showMusic = !!show && isLikelyMusicAudio(filename, mime);
+          musicWarn.textContent = AUDIO_TRANSCRIPT_MUSIC_WARN_MSG;
+          musicWarn.hidden = !showMusic;
+        }
+
+        function showStatus(text, options) {
+          const opts = options && typeof options === "object" ? options : {};
           preview.hidden = true;
+          qualityWarn.hidden = true;
           privacy.hidden = true;
           addBtn.hidden = true;
           msg.textContent = text != null ? String(text) : "";
           msg.hidden = !msg.textContent;
+          updateMusicWarnVisibility(opts.showMusicWarn === true);
         }
 
         function showPreview(text) {
@@ -5429,6 +5590,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
           msg.hidden = true;
           preview.textContent = lastTranscript;
           preview.hidden = !lastTranscript;
+          updateMusicWarnVisibility(isLikelyMusicAudio(filename, mime));
+          const showQuality = !!lastTranscript && isLowQualityTranscript(lastTranscript);
+          qualityWarn.textContent = AUDIO_TRANSCRIPT_LOW_QUALITY_WARN_MSG;
+          qualityWarn.hidden = !showQuality;
           privacy.hidden = !lastTranscript;
           addBtn.hidden = !lastTranscript || !includeAddToChat;
         }
@@ -5452,7 +5617,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             return;
           }
           setBusy(true);
-          showStatus(AUDIO_TRANSCRIPT_BUSY_MSG);
+          showStatus(AUDIO_TRANSCRIPT_BUSY_MSG, { showMusicWarn: false });
           try {
             const blobMime = blob.type || mime;
             const result = await requestLocalTranscription(
@@ -5467,17 +5632,36 @@ const PANEL_DEBUG = import.meta.env.DEV;
               showStatus(result.message || AUDIO_TRANSCRIPT_LIMITED_MSG);
             } else if (result.engineUnavailable) {
               showStatus(result.message || AUDIO_TRANSCRIPT_ENGINE_MSG);
+            } else if (result.transcribeFailure) {
+              showStatus(transcribeFailureUserMessage(result, filename, mime), {
+                showMusicWarn: true,
+              });
             } else {
-              showStatus(result.message || "Metne çeviri tamamlanamadı.");
+              const fallback = isLikelyMusicAudio(filename, mime)
+                ? AUDIO_TRANSCRIPT_FAILED_MSG
+                : AUDIO_TRANSCRIPT_SPEECH_FAILED_MSG;
+              let text = result.message || fallback;
+              if (!PANEL_DEBUG && text) {
+                text =
+                  String(text)
+                    .replace(/\s*\[[^\]]+\]\s*/g, " ")
+                    .replace(/\s{2,}/g, " ")
+                    .trim() || fallback;
+              }
+              showStatus(text, { showMusicWarn: isLikelyMusicAudio(filename, mime) });
             }
           } catch {
-            showStatus("Metne çeviri sırasında hata oluştu.");
+            showStatus(transcribeFailureUserMessage(null, filename, mime), {
+              showMusicWarn: true,
+            });
           } finally {
             setBusy(false);
           }
         });
 
         container.appendChild(btn);
+        container.appendChild(musicWarn);
+        container.appendChild(qualityWarn);
         container.appendChild(msg);
         container.appendChild(preview);
         container.appendChild(privacy);
