@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 from kando_bridge.transcribe import (
     TRANSCRIBE_MAX_BYTES,
     handle_transcribe_request,
 )
+from kando_bridge.transcribe_engine import set_engine_instance
 
 
 def _multipart_audio(
@@ -33,6 +36,65 @@ def test_transcribe_engine_unavailable_with_valid_audio() -> None:
         "error": "transcribe_engine_unavailable",
         "message": "Ses metne çeviri motoru henüz bağlı değil.",
     }
+
+
+class _MockTranscribeEngine:
+    def transcribe(
+        self,
+        audio_bytes: bytes,
+        *,
+        language: str | None = None,
+        filename: str | None = None,
+    ) -> dict:
+        assert audio_bytes == b"\x00\x01\x02"
+        assert filename == "clip.webm"
+        return {
+            "ok": True,
+            "text": "merhaba dünya",
+            "language": language or "tr",
+            "filename": filename,
+        }
+
+
+def test_transcribe_success_with_mock_engine() -> None:
+    mock_engine = _MockTranscribeEngine()
+    set_engine_instance(mock_engine)
+    try:
+        ct, body = _multipart_audio(b"\x00\x01\x02")
+        status, payload = handle_transcribe_request(ct, body, content_length=len(body))
+        assert status == 200
+        assert payload == {
+            "ok": True,
+            "text": "merhaba dünya",
+            "language": "tr",
+            "filename": "clip.webm",
+        }
+    finally:
+        set_engine_instance(None)
+
+
+def test_transcribe_success_with_patched_engine() -> None:
+    mock_result = {
+        "ok": True,
+        "text": "patched transcript",
+        "language": "en",
+    }
+    with (
+        patch("kando_bridge.transcribe.is_engine_available", return_value=True),
+        patch(
+            "kando_bridge.transcribe.transcribe_audio_bytes",
+            return_value=mock_result,
+        ) as mock_transcribe,
+    ):
+        ct, body = _multipart_audio(b"audio-data", filename="note.ogg")
+        status, payload = handle_transcribe_request(ct, body, content_length=len(body))
+        assert status == 200
+        assert payload == mock_result
+        mock_transcribe.assert_called_once()
+        call_kwargs = mock_transcribe.call_args
+        assert call_kwargs.args[0] == b"audio-data"
+        assert call_kwargs.kwargs["filename"] == "note.ogg"
+        assert call_kwargs.kwargs["language"] is None
 
 
 def test_transcribe_missing_audio_empty_body() -> None:
