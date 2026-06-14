@@ -1830,6 +1830,49 @@ const PANEL_DEBUG = import.meta.env.DEV;
         white-space: nowrap;
         max-width: min(100%, 280px);
       }
+      :global(.chat-msg-body .chat-audio-transcript-placeholder) {
+        margin-top: 6px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        max-width: min(100%, 280px);
+      }
+      :global(.chat-audio-transcript-btn) {
+        font-size: 0.72rem;
+        line-height: 1.35;
+        padding: 0.28rem 0.6rem;
+        border-radius: 6px;
+        border: 1px solid rgba(184, 160, 130, 0.35);
+        background: rgba(8, 14, 28, 0.85);
+        color: rgba(224, 208, 184, 0.92);
+        cursor: pointer;
+      }
+      :global(.chat-audio-transcript-btn:hover) {
+        border-color: rgba(200, 176, 144, 0.5);
+        background: rgba(12, 20, 36, 0.95);
+      }
+      :global(.chat-audio-transcript-btn:focus-visible) {
+        outline: 2px solid rgba(200, 176, 144, 0.55);
+        outline-offset: 2px;
+      }
+      :global(.chat-audio-transcript-msg) {
+        margin: 0;
+        font-size: 0.72rem;
+        line-height: 1.45;
+        opacity: 0.88;
+        color: rgba(200, 180, 155, 0.92);
+        word-break: break-word;
+      }
+      :global(.chat-audio-transcript-msg[hidden]) {
+        display: none !important;
+      }
+      :global(.dosyalar-result-transcript-placeholder) {
+        margin: 0;
+        font-size: 0.88rem;
+        line-height: 1.55;
+        color: rgba(200, 180, 155, 0.92);
+      }
       :global(.chat-msg--lumos .chat-msg-body) {
         white-space: pre-wrap;
         line-height: 1.75;
@@ -3843,8 +3886,23 @@ const PANEL_DEBUG = import.meta.env.DEV;
                       >
                         Yeniden kaydet
                       </button>
+                      <button
+                        type="button"
+                        id="panel-audio-record-transcript"
+                        class="chat-audio-record-btn chat-audio-transcript-btn"
+                        hidden
+                      >
+                        Metne çevir
+                      </button>
                     </div>
                   </div>
+                  <p
+                    id="panel-audio-record-transcript-msg"
+                    class="chat-audio-transcript-msg"
+                    role="status"
+                    aria-live="polite"
+                    hidden
+                  ></p>
                   <p
                     id="panel-audio-record-hint"
                     class="chat-audio-record-hint"
@@ -4982,6 +5040,33 @@ const PANEL_DEBUG = import.meta.env.DEV;
         "Sınırlı modda fotoğraf analizi yapılamaz; dış görsel API köprüsü bağlı değil.";
       const PANEL_LIMITED_AUDIO_REPLY =
         "Sınırlı modda ses kaydı yalnızca bu cihazda görünür; dış sohbete iletilmez.";
+      const AUDIO_TRANSCRIPT_BUBBLE_MSG =
+        "Ses metne çeviri motoru henüz bağlı değil. Bu ses şu an yalnızca bu cihazda oynatılabilir; dışarı gönderilmedi.";
+      const DOSYALAR_AUDIO_TRANSCRIPT_MSG = "Metne çevir: motor henüz bağlı değil.";
+
+      /** Yerel ses balonu / önizleme: metne çevir placeholder (dış API yok). */
+      function attachAudioTranscriptPlaceholder(parentEl, message) {
+        if (!parentEl) return null;
+        const wrap = document.createElement("div");
+        wrap.className = "chat-audio-transcript-placeholder";
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "chat-audio-transcript-btn";
+        btn.textContent = "Metne çevir";
+        const msg = document.createElement("p");
+        msg.className = "chat-audio-transcript-msg";
+        msg.hidden = true;
+        msg.setAttribute("role", "status");
+        msg.setAttribute("aria-live", "polite");
+        msg.textContent = message || AUDIO_TRANSCRIPT_BUBBLE_MSG;
+        btn.addEventListener("click", () => {
+          msg.hidden = false;
+        });
+        wrap.appendChild(btn);
+        wrap.appendChild(msg);
+        parentEl.appendChild(wrap);
+        return wrap;
+      }
       const CAP_LIMITED_NOTE = "Köprü bağlantısı bekleniyor.";
       const KISITLI_CAP_IDS = ["cap-file-read", "cap-file-write", "cap-task-create", "cap-live-deploy", "cap-terminal"];
 
@@ -6622,6 +6707,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             audio.setAttribute("aria-label", "Ses kaydı");
             audio.className = "chat-compose-bubble-audio";
             body.appendChild(audio);
+            attachAudioTranscriptPlaceholder(body, AUDIO_TRANSCRIPT_BUBBLE_MSG);
           }
           wrap.appendChild(role);
           wrap.appendChild(body);
@@ -7736,6 +7822,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const audioRecordStopBtn = document.getElementById("panel-audio-record-stop");
         const audioRecordCancelBtn = document.getElementById("panel-audio-record-cancel");
         const audioRecordRerecordBtn = document.getElementById("panel-audio-record-rerecord");
+        const audioRecordTranscriptBtn = document.getElementById("panel-audio-record-transcript");
+        const audioRecordTranscriptMsg = document.getElementById("panel-audio-record-transcript-msg");
         const attachRecordMenuItem = attachMenu?.querySelector('[data-attach-action="record"]');
 
         const AUDIO_RECORD_PREVIEW_LABEL = "Ses kaydı hazır — Gönder ile sohbete ekle";
@@ -7827,6 +7915,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (audioRecordRerecordBtn) {
             audioRecordRerecordBtn.hidden = isAudioRecording || !audioRecordObjectUrl;
           }
+          if (audioRecordTranscriptBtn) {
+            audioRecordTranscriptBtn.hidden = isAudioRecording || !audioRecordObjectUrl;
+          }
           if (audioRecordPlayer) {
             audioRecordPlayer.hidden = isAudioRecording || !audioRecordObjectUrl;
           }
@@ -7866,6 +7957,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
             audioRecordPlayer.removeAttribute("src");
             audioRecordPlayer.load();
             audioRecordPlayer.hidden = true;
+          }
+          if (audioRecordTranscriptMsg) {
+            audioRecordTranscriptMsg.textContent = "";
+            audioRecordTranscriptMsg.hidden = true;
           }
           syncAudioRecordControlsUi();
           syncAudioRecordPreviewVisibility();
@@ -7969,6 +8064,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
         audioRecordRerecordBtn?.addEventListener("click", () => {
           clearPanelAudioRecordSelection();
           startPanelAudioRecording();
+        });
+
+        audioRecordTranscriptBtn?.addEventListener("click", () => {
+          if (!audioRecordTranscriptMsg) return;
+          audioRecordTranscriptMsg.textContent = AUDIO_TRANSCRIPT_BUBBLE_MSG;
+          audioRecordTranscriptMsg.hidden = false;
         });
 
         function onDocVisibilityForCamera() {
@@ -9679,6 +9780,22 @@ const PANEL_DEBUG = import.meta.env.DEV;
             sumCard.appendChild(sumTitle);
             sumCard.appendChild(sumBody);
             result.appendChild(sumCard);
+          }
+
+          if (dosyalarIsAudioFile(data.extension, data.kind)) {
+            const txCard = document.createElement("section");
+            txCard.className = "dosyalar-result-card dosyalar-result-card--transcript";
+            txCard.setAttribute("aria-labelledby", "dosyalar-result-transcript-title");
+            const txTitle = document.createElement("h3");
+            txTitle.id = "dosyalar-result-transcript-title";
+            txTitle.className = "dosyalar-result-card__title";
+            txTitle.textContent = "Metne çevir";
+            const txBody = document.createElement("p");
+            txBody.className = "dosyalar-result-transcript-placeholder";
+            txBody.textContent = DOSYALAR_AUDIO_TRANSCRIPT_MSG;
+            txCard.appendChild(txTitle);
+            txCard.appendChild(txBody);
+            result.appendChild(txCard);
           }
 
           result.hidden = false;
