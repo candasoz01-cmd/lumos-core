@@ -1,9 +1,15 @@
 /**
  * Vercel serverless proxy: /api/bridge/* → BRIDGE_UPSTREAM_URL/*
  * Phase 1: panel POST /api/bridge/task; Phase 2: GET /api/bridge/last-result,
- * POST /api/bridge/controlled.
+ * POST /api/bridge/controlled, POST /api/bridge/transcribe (multipart/raw).
  * Token injected server-side for all proxied paths.
  */
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
 
 const HOP_BY_HOP = new Set([
   "connection",
@@ -78,6 +84,14 @@ function pickForwardResponseHeaders(upstreamHeaders) {
   return out;
 }
 
+async function readRawBody(req) {
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}
+
 export default async function handler(req, res) {
   const upstreamBase = normalizeUpstreamBase();
   if (!upstreamBase) {
@@ -95,13 +109,9 @@ export default async function handler(req, res) {
   };
 
   if (method !== "GET" && method !== "HEAD") {
-    if (typeof req.body === "string") {
-      init.body = req.body;
-    } else if (req.body != null && typeof req.body === "object") {
-      init.body = JSON.stringify(req.body);
-      if (!init.headers["Content-Type"] && !init.headers["content-type"]) {
-        init.headers["Content-Type"] = "application/json";
-      }
+    const rawBody = await readRawBody(req);
+    if (rawBody.length > 0) {
+      init.body = rawBody;
     }
   }
 

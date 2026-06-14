@@ -1655,6 +1655,16 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 },
             )
             return
+        if req_path == "/transcribe":
+            self._send_json(
+                405,
+                {
+                    "ok": False,
+                    "error": "method_not_allowed",
+                    "message": "Ses metne çeviri yalnızca POST ile kullanılabilir.",
+                },
+            )
+            return
         if req_path == "/":
             self._send_json(
                 200,
@@ -1663,6 +1673,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
                     "service": "kando_bridge_server",
                     "post_task": "POST /task (direct_patch | agent)",
                     "post_controlled": "POST /controlled {permission,command,path,content}",
+                    "post_transcribe": "POST /transcribe (multipart audio; STT iskelet)",
                     "post_chat": "POST /chat {message} → gate + execute",
                     "post_replay": "POST /replay (dry_run audit)",
                     "post_approve": "POST /approve (pending high-risk)",
@@ -2327,6 +2338,21 @@ class BridgeHandler(BaseHTTPRequestHandler):
         status = 200 if out.get("ok") else 403
         self._send_json(status, out)
 
+    def _handle_transcribe(self) -> None:
+        from kando_bridge.transcribe import handle_transcribe_request
+
+        try:
+            length = int(self.headers.get("Content-Length", "0") or "0")
+        except (TypeError, ValueError):
+            length = 0
+        raw = self.rfile.read(length) if length > 0 else b""
+        status, payload = handle_transcribe_request(
+            self.headers.get("Content-Type"),
+            raw,
+            content_length=length,
+        )
+        self._send_json(status, payload)
+
     def do_POST(self) -> None:
         if not self._check_loopback():
             return
@@ -2349,6 +2375,9 @@ class BridgeHandler(BaseHTTPRequestHandler):
             return
         if req_path == "/chat":
             self._handle_chat()
+            return
+        if req_path == "/transcribe":
+            self._handle_transcribe()
             return
         if req_path != "/task":
             self.send_error(404)
