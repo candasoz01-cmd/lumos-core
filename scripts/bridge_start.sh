@@ -12,4 +12,9 @@ if command -v lsof >/dev/null 2>&1; then
   fi
 fi
 export PYTHONPATH="${ROOT}/src:${ROOT}/packages/kando_bridge/src:${ROOT}/packages/kando_runtime/src${PYTHONPATH:+:${PYTHONPATH}}"
-exec python3 -m kando_bridge "$@"
+PYTHON="python3"
+if [[ -x "${ROOT}/.venv/bin/python3" ]]; then
+  PYTHON="${ROOT}/.venv/bin/python3"
+fi
+echo "bridge_start: Python: ${PYTHON}" >&2
+exec "${PYTHON}" -m kando_bridge "$@"
