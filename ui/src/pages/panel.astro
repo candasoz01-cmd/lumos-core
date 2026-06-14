@@ -1867,6 +1867,51 @@ const PANEL_DEBUG = import.meta.env.DEV;
       :global(.chat-audio-transcript-msg[hidden]) {
         display: none !important;
       }
+      :global(.chat-audio-transcript-preview) {
+        margin: 0;
+        font-size: 0.72rem;
+        line-height: 1.45;
+        opacity: 0.92;
+        color: rgba(224, 208, 184, 0.95);
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-width: min(100%, 280px);
+      }
+      :global(.chat-audio-transcript-preview[hidden]) {
+        display: none !important;
+      }
+      :global(.chat-audio-transcript-add-btn) {
+        margin-top: 2px;
+      }
+      :global(.chat-audio-transcript-privacy) {
+        margin: 0;
+        font-size: 0.65rem;
+        line-height: 1.4;
+        opacity: 0.72;
+        color: rgba(180, 165, 145, 0.88);
+        max-width: min(100%, 280px);
+      }
+      :global(.chat-audio-transcript-privacy[hidden]) {
+        display: none !important;
+      }
+      :global(.chat-audio-transcript-btn:disabled) {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      :global(.dosyalar-result-transcript-controls) {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.45rem;
+      }
+      :global(.dosyalar-result-transcript-preview) {
+        margin: 0;
+        font-size: 0.88rem;
+        line-height: 1.55;
+        color: rgba(224, 208, 184, 0.95);
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
       :global(.dosyalar-result-transcript-placeholder) {
         margin: 0;
         font-size: 0.88rem;
@@ -5025,6 +5070,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
       const LAST_RESULT_BRIDGE_URL = "/api/bridge/last-result";
       /** Phase 2: kontrollü dosya köprüsü same-origin proxy; tarayıcı token taşımaz. */
       const CONTROLLED_BRIDGE_URL = "/api/bridge/controlled";
+      /** Phase 2: ses→metin köprüsü same-origin proxy; multipart audio alanı. */
+      const TRANSCRIBE_BRIDGE_URL = "/api/bridge/transcribe";
 
       function bridgeOpsBlocked() {
         return bridgeTokenMissing;
@@ -5042,30 +5089,399 @@ const PANEL_DEBUG = import.meta.env.DEV;
         "Sınırlı modda ses kaydı yalnızca bu cihazda görünür; dış sohbete iletilmez.";
       const AUDIO_TRANSCRIPT_BUBBLE_MSG =
         "Ses metne çeviri motoru henüz bağlı değil. Bu ses şu an yalnızca bu cihazda oynatılabilir; dışarı gönderilmedi.";
-      const DOSYALAR_AUDIO_TRANSCRIPT_MSG = "Metne çevir: motor henüz bağlı değil.";
+      const AUDIO_TRANSCRIPT_ENGINE_MSG = "Ses metne çeviri motoru henüz bağlı değil.";
+      const AUDIO_TRANSCRIPT_LIMITED_MSG =
+        "Sınırlı modda ses metne çeviri kullanılamaz; dış köprü bağlı değil.";
+      const AUDIO_TRANSCRIPT_BUSY_MSG = "Metne çevriliyor…";
+      const AUDIO_TRANSCRIPT_PRIVACY_MSG =
+        "Metin yalnızca önizleme; «Sohbete ekle» ile yazma alanına kopyalanır, otomatik gönderilmez.";
+      const DOSYALAR_AUDIO_TRANSCRIPT_MSG = AUDIO_TRANSCRIPT_ENGINE_MSG;
 
-      /** Yerel ses balonu / önizleme: metne çevir placeholder (dış API yok). */
-      function attachAudioTranscriptPlaceholder(parentEl, message) {
+      function extractTranscriptText(data) {
+        if (!data || typeof data !== "object") return "";
+        const keys = ["text", "transcript"];
+        for (let i = 0; i < keys.length; i++) {
+          const v = data[keys[i]];
+          if (v != null && String(v).trim()) return String(v).trim();
+        }
+        return "";
+      }
+
+      async function requestLocalTranscription(blob, source, filename, mime) {
+        if (!blob || typeof blob.size !== "number" || blob.size < 512) {
+          return {
+            ok: false,
+            error: "transcribe_missing_audio",
+            message: "Ses verisi yok veya çok kısa.",
+          };
+        }
+        if (bridgeOpsBlocked()) {
+          return {
+            ok: false,
+            blocked: true,
+            error: "bridge_limited",
+            message: AUDIO_TRANSCRIPT_LIMITED_MSG,
+          };
+        }
+        const safeName =
+          filename != null && String(filename).trim()
+            ? String(filename).trim()
+            : "recording.webm";
+        const safeMime =
+          mime != null && String(mime).trim()
+            ? String(mime).trim()
+            : blob.type || "application/octet-stream";
+        const fd = new FormData();
+        try {
+          fd.append("audio", blob, safeName);
+        } catch {
+          fd.append("audio", blob);
+        }
+        let r;
+        try {
+          r = await fetch(TRANSCRIBE_BRIDGE_URL, {
+            method: "POST",
+            body: fd,
+          });
+        } catch {
+          return {
+            ok: false,
+            error: "network_error",
+            message: "Metne çeviri tamamlanamadı. Bağlantıyı kontrol edip tekrar deneyin.",
+          };
+        }
+        let data = null;
+        const raw = await r.text();
+        if (raw && raw.trim()) {
+          try {
+            data = JSON.parse(raw);
+          } catch {
+            data = null;
+          }
+        }
+        if (taskBridgeBlockedResponse(r.status)) {
+          const engineUnavailable =
+            data &&
+            (data.error === "transcribe_engine_unavailable" ||
+              data.error === "engine_unavailable");
+          if (engineUnavailable || (data && data.ok === false && !data.error)) {
+            return {
+              ok: false,
+              engineUnavailable: true,
+              status: r.status,
+              error: data && data.error ? String(data.error) : "transcribe_engine_unavailable",
+              message:
+                data && data.message != null && String(data.message).trim()
+                  ? String(data.message).trim()
+                  : AUDIO_TRANSCRIPT_ENGINE_MSG,
+            };
+          }
+          if (bridgeOpsBlocked() || (data && data.error === "bridge_proxy_unconfigured")) {
+            return {
+              ok: false,
+              blocked: true,
+              status: r.status,
+              error: data && data.error ? String(data.error) : "bridge_proxy_unconfigured",
+              message: AUDIO_TRANSCRIPT_LIMITED_MSG,
+            };
+          }
+          return {
+            ok: false,
+            engineUnavailable: true,
+            status: r.status,
+            error: data && data.error ? String(data.error) : "transcribe_engine_unavailable",
+            message:
+              data && data.message != null && String(data.message).trim()
+                ? String(data.message).trim()
+                : AUDIO_TRANSCRIPT_ENGINE_MSG,
+          };
+        }
+        if (!r.ok) {
+          return {
+            ok: false,
+            status: r.status,
+            error: data && data.error != null ? String(data.error) : "transcribe_failed",
+            message:
+              data && data.message != null && String(data.message).trim()
+                ? String(data.message).trim()
+                : "Metne çeviri tamamlanamadı.",
+          };
+        }
+        const text = extractTranscriptText(data);
+        if (data && data.ok === true && text) {
+          return { ok: true, text, data, source: source || "panel" };
+        }
+        return {
+          ok: false,
+          status: r.status,
+          error: data && data.error != null ? String(data.error) : "transcribe_empty",
+          message:
+            data && data.message != null && String(data.message).trim()
+              ? String(data.message).trim()
+              : "Metne çeviri sonucu boş.",
+        };
+      }
+
+      function fillPanelChatInputWithTranscript(text) {
+        const chatInput = document.getElementById("panel-msg");
+        if (!(chatInput instanceof HTMLTextAreaElement)) return false;
+        const transcript = text != null ? String(text).trim() : "";
+        if (!transcript) return false;
+        const existing = chatInput.value.trim();
+        chatInput.value = existing ? existing + "\n" + transcript : transcript;
+        chatInput.dispatchEvent(new Event("input", { bubbles: true }));
+        try {
+          chatInput.focus({ preventScroll: true });
+        } catch {
+          chatInput.focus();
+        }
+        return true;
+      }
+
+      /** Yerel ses balonu: Metne çevir → önizleme; Sohbete ekle yalnızca tıklamada. */
+      function attachAudioTranscriptPlaceholder(parentEl, audioBlob, options) {
         if (!parentEl) return null;
+        const opts = options && typeof options === "object" ? options : {};
+        const filename = opts.filename || "recording.webm";
+        const mime = opts.mime || (audioBlob && audioBlob.type) || "audio/webm";
+        const source = opts.source || "bubble";
+
         const wrap = document.createElement("div");
         wrap.className = "chat-audio-transcript-placeholder";
+
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "chat-audio-transcript-btn";
         btn.textContent = "Metne çevir";
+
         const msg = document.createElement("p");
         msg.className = "chat-audio-transcript-msg";
         msg.hidden = true;
         msg.setAttribute("role", "status");
         msg.setAttribute("aria-live", "polite");
-        msg.textContent = message || AUDIO_TRANSCRIPT_BUBBLE_MSG;
-        btn.addEventListener("click", () => {
-          msg.hidden = false;
+
+        const preview = document.createElement("div");
+        preview.className = "chat-audio-transcript-preview";
+        preview.hidden = true;
+        preview.setAttribute("role", "region");
+        preview.setAttribute("aria-label", "Transkript önizlemesi");
+
+        const privacy = document.createElement("p");
+        privacy.className = "chat-audio-transcript-privacy";
+        privacy.hidden = true;
+        privacy.textContent = AUDIO_TRANSCRIPT_PRIVACY_MSG;
+
+        const addBtn = document.createElement("button");
+        addBtn.type = "button";
+        addBtn.className = "chat-audio-transcript-btn chat-audio-transcript-add-btn";
+        addBtn.textContent = "Sohbete ekle";
+        addBtn.hidden = true;
+
+        let lastTranscript = "";
+        let busy = false;
+
+        function setBusy(on) {
+          busy = on;
+          btn.disabled = on;
+          if (on) {
+            btn.setAttribute("aria-busy", "true");
+            btn.textContent = "Çevriliyor…";
+          } else {
+            btn.removeAttribute("aria-busy");
+            btn.textContent = "Metne çevir";
+          }
+        }
+
+        function showStatus(text) {
+          preview.hidden = true;
+          privacy.hidden = true;
+          addBtn.hidden = true;
+          msg.textContent = text != null ? String(text) : "";
+          msg.hidden = !msg.textContent;
+        }
+
+        function showPreview(text) {
+          lastTranscript = text != null ? String(text) : "";
+          msg.hidden = true;
+          preview.textContent = lastTranscript;
+          preview.hidden = !lastTranscript;
+          privacy.hidden = !lastTranscript;
+          addBtn.hidden = !lastTranscript;
+        }
+
+        addBtn.addEventListener("click", () => {
+          if (!lastTranscript) return;
+          fillPanelChatInputWithTranscript(lastTranscript);
         });
+
+        btn.addEventListener("click", async () => {
+          if (busy) return;
+          if (!audioBlob || audioBlob.size < 512) {
+            showStatus("Ses verisi yok veya çok kısa.");
+            return;
+          }
+          if (bridgeOpsBlocked()) {
+            showStatus(AUDIO_TRANSCRIPT_LIMITED_MSG);
+            return;
+          }
+          setBusy(true);
+          showStatus(AUDIO_TRANSCRIPT_BUSY_MSG);
+          try {
+            const result = await requestLocalTranscription(
+              audioBlob,
+              source,
+              filename,
+              mime,
+            );
+            if (result.ok && result.text) {
+              showPreview(result.text);
+            } else if (result.blocked) {
+              showStatus(result.message || AUDIO_TRANSCRIPT_LIMITED_MSG);
+            } else if (result.engineUnavailable) {
+              showStatus(result.message || AUDIO_TRANSCRIPT_ENGINE_MSG);
+            } else {
+              showStatus(result.message || "Metne çeviri tamamlanamadı.");
+            }
+          } catch {
+            showStatus("Metne çeviri sırasında hata oluştu.");
+          } finally {
+            setBusy(false);
+          }
+        });
+
         wrap.appendChild(btn);
         wrap.appendChild(msg);
+        wrap.appendChild(preview);
+        wrap.appendChild(privacy);
+        wrap.appendChild(addBtn);
         parentEl.appendChild(wrap);
         return wrap;
+      }
+
+      /** Kayıt önizlemesi / Dosyalar kartı için ortak Metne çevir UI. */
+      function wireStandaloneAudioTranscriptUi(container, getBlob, options) {
+        if (!container) return;
+        const opts = options && typeof options === "object" ? options : {};
+        const btnClass = opts.btnClass || "chat-audio-transcript-btn";
+        const msgClass = opts.msgClass || "chat-audio-transcript-msg";
+        const previewClass = opts.previewClass || "chat-audio-transcript-preview";
+        const privacyClass = opts.privacyClass || "chat-audio-transcript-privacy";
+        const filename = opts.filename || "recording.webm";
+        const mime = opts.mime || "audio/webm";
+        const source = opts.source || "preview";
+        const includeAddToChat = opts.includeAddToChat !== false;
+
+        container.replaceChildren();
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = btnClass;
+        btn.textContent = "Metne çevir";
+
+        const msg = document.createElement("p");
+        msg.className = msgClass;
+        msg.hidden = true;
+        msg.setAttribute("role", "status");
+        msg.setAttribute("aria-live", "polite");
+
+        const preview = document.createElement("div");
+        preview.className = previewClass;
+        preview.hidden = true;
+        preview.setAttribute("role", "region");
+        preview.setAttribute("aria-label", "Transkript önizlemesi");
+
+        const privacy = document.createElement("p");
+        privacy.className = privacyClass;
+        privacy.hidden = true;
+        privacy.textContent = AUDIO_TRANSCRIPT_PRIVACY_MSG;
+
+        const addBtn = document.createElement("button");
+        addBtn.type = "button";
+        addBtn.className = btnClass + " chat-audio-transcript-add-btn";
+        addBtn.textContent = "Sohbete ekle";
+        addBtn.hidden = true;
+
+        let lastTranscript = "";
+        let busy = false;
+
+        function setBusy(on) {
+          busy = on;
+          btn.disabled = on;
+          if (on) {
+            btn.setAttribute("aria-busy", "true");
+            btn.textContent = "Çevriliyor…";
+          } else {
+            btn.removeAttribute("aria-busy");
+            btn.textContent = "Metne çevir";
+          }
+        }
+
+        function showStatus(text) {
+          preview.hidden = true;
+          privacy.hidden = true;
+          addBtn.hidden = true;
+          msg.textContent = text != null ? String(text) : "";
+          msg.hidden = !msg.textContent;
+        }
+
+        function showPreview(text) {
+          lastTranscript = text != null ? String(text) : "";
+          msg.hidden = true;
+          preview.textContent = lastTranscript;
+          preview.hidden = !lastTranscript;
+          privacy.hidden = !lastTranscript;
+          addBtn.hidden = !lastTranscript || !includeAddToChat;
+        }
+
+        if (includeAddToChat) {
+          addBtn.addEventListener("click", () => {
+            if (!lastTranscript) return;
+            fillPanelChatInputWithTranscript(lastTranscript);
+          });
+        }
+
+        btn.addEventListener("click", async () => {
+          if (busy) return;
+          const blob = typeof getBlob === "function" ? getBlob() : null;
+          if (!blob || blob.size < 512) {
+            showStatus("Ses verisi yok veya çok kısa.");
+            return;
+          }
+          if (bridgeOpsBlocked()) {
+            showStatus(AUDIO_TRANSCRIPT_LIMITED_MSG);
+            return;
+          }
+          setBusy(true);
+          showStatus(AUDIO_TRANSCRIPT_BUSY_MSG);
+          try {
+            const blobMime = blob.type || mime;
+            const result = await requestLocalTranscription(
+              blob,
+              source,
+              filename,
+              blobMime,
+            );
+            if (result.ok && result.text) {
+              showPreview(result.text);
+            } else if (result.blocked) {
+              showStatus(result.message || AUDIO_TRANSCRIPT_LIMITED_MSG);
+            } else if (result.engineUnavailable) {
+              showStatus(result.message || AUDIO_TRANSCRIPT_ENGINE_MSG);
+            } else {
+              showStatus(result.message || "Metne çeviri tamamlanamadı.");
+            }
+          } catch {
+            showStatus("Metne çeviri sırasında hata oluştu.");
+          } finally {
+            setBusy(false);
+          }
+        });
+
+        container.appendChild(btn);
+        container.appendChild(msg);
+        container.appendChild(preview);
+        container.appendChild(privacy);
+        if (includeAddToChat) container.appendChild(addBtn);
       }
       const CAP_LIMITED_NOTE = "Köprü bağlantısı bekleniyor.";
       const KISITLI_CAP_IDS = ["cap-file-read", "cap-file-write", "cap-task-create", "cap-live-deploy", "cap-terminal"];
@@ -6632,7 +7048,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
         }
 
         /** Kullanıcı balonu: düz metin, isteğe bağlı yerel görsel veya ses (sunucu ikili almaz). */
-        function appendUserComposeBubble(plainText, imageDataUrl, audioObjectUrl, audioUploadMeta) {
+        function appendUserComposeBubble(
+          plainText,
+          imageDataUrl,
+          audioObjectUrl,
+          audioUploadMeta,
+          audioBlob,
+        ) {
           const turn = document.createElement("div");
           turn.className = "chat-turn chat-turn--user";
           const wrap = document.createElement("div");
@@ -6707,7 +7129,21 @@ const PANEL_DEBUG = import.meta.env.DEV;
             audio.setAttribute("aria-label", "Ses kaydı");
             audio.className = "chat-compose-bubble-audio";
             body.appendChild(audio);
-            attachAudioTranscriptPlaceholder(body, AUDIO_TRANSCRIPT_BUBBLE_MSG);
+            const txFilename =
+              audioUploadMeta && audioUploadMeta.name != null
+                ? String(audioUploadMeta.name).trim()
+                : "recording.webm";
+            const txMime =
+              audioUploadMeta && audioUploadMeta.type != null
+                ? String(audioUploadMeta.type).trim()
+                : audioBlob && audioBlob.type
+                  ? audioBlob.type
+                  : "audio/webm";
+            attachAudioTranscriptPlaceholder(body, audioBlob, {
+              filename: txFilename || "recording.webm",
+              mime: txMime || "audio/webm",
+              source: audioUploadMeta ? "upload-bubble" : "record-bubble",
+            });
           }
           wrap.appendChild(role);
           wrap.appendChild(body);
@@ -6970,7 +7406,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
               }
 
               if (hasAudio) {
-                appendUserComposeBubble(message, null, audioBubbleUrl);
+                appendUserComposeBubble(message, null, audioBubbleUrl, null, audioRecordBlob);
                 appendBubble("lumos", PANEL_LIMITED_AUDIO_REPLY);
                 setSendHint("Sınırlı modda ses yalnızca yerel sohbette görünür.");
                 input.value = "";
@@ -7016,7 +7452,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (imageDataUrlForBubble) {
             appendUserComposeBubble(message, imageDataUrlForBubble);
           } else if (hasAudio) {
-            appendUserComposeBubble(message, null, audioBubbleUrl);
+            appendUserComposeBubble(message, null, audioBubbleUrl, null, audioRecordBlob);
           } else {
             appendBubble("user", message);
           }
@@ -7918,6 +8354,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (audioRecordTranscriptBtn) {
             audioRecordTranscriptBtn.hidden = isAudioRecording || !audioRecordObjectUrl;
           }
+          if (audioRecordTranscriptHost) {
+            audioRecordTranscriptHost.hidden = isAudioRecording || !audioRecordObjectUrl;
+          }
           if (audioRecordPlayer) {
             audioRecordPlayer.hidden = isAudioRecording || !audioRecordObjectUrl;
           }
@@ -7962,6 +8401,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             audioRecordTranscriptMsg.textContent = "";
             audioRecordTranscriptMsg.hidden = true;
           }
+          resetAudioRecordTranscriptUi();
           syncAudioRecordControlsUi();
           syncAudioRecordPreviewVisibility();
           if (isAudioRecordSupported()) setAudioRecordHint("");
@@ -8066,11 +8506,32 @@ const PANEL_DEBUG = import.meta.env.DEV;
           startPanelAudioRecording();
         });
 
-        audioRecordTranscriptBtn?.addEventListener("click", () => {
-          if (!audioRecordTranscriptMsg) return;
-          audioRecordTranscriptMsg.textContent = AUDIO_TRANSCRIPT_BUBBLE_MSG;
-          audioRecordTranscriptMsg.hidden = false;
-        });
+        /** @type {HTMLElement | null} */
+        let audioRecordTranscriptHost = null;
+
+        function resetAudioRecordTranscriptUi() {
+          if (!audioRecordTranscriptHost) return;
+          wireStandaloneAudioTranscriptUi(audioRecordTranscriptHost, () => audioRecordBlob, {
+            source: "record-preview",
+            filename: "recording.webm",
+            mime: "audio/webm",
+          });
+        }
+
+        function ensureAudioRecordTranscriptHost() {
+          if (audioRecordTranscriptHost) return audioRecordTranscriptHost;
+          if (!(audioRecordTranscriptBtn instanceof HTMLButtonElement)) return null;
+          audioRecordTranscriptHost = document.createElement("div");
+          audioRecordTranscriptHost.id = "panel-audio-record-transcript-host";
+          audioRecordTranscriptHost.className = "chat-audio-transcript-placeholder";
+          audioRecordTranscriptBtn.replaceWith(audioRecordTranscriptHost);
+          if (audioRecordTranscriptMsg) audioRecordTranscriptMsg.remove();
+          resetAudioRecordTranscriptUi();
+          return audioRecordTranscriptHost;
+        }
+
+        ensureAudioRecordTranscriptHost();
+        syncAudioRecordControlsUi();
 
         function onDocVisibilityForCamera() {
           if (document.hidden) {
@@ -8199,7 +8660,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             name: f.name,
             type: f.type,
             size: f.size,
-          });
+          }, f);
           if (bridgeOpsBlocked()) {
             appendBubble("lumos", PANEL_LIMITED_AUDIO_REPLY);
             setSendHint("Sınırlı modda ses yalnızca yerel sohbette görünür.");
@@ -9592,6 +10053,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
         /** Bellek içi; sayfa yenilenince sıfırlanır. En fazla 5 kayıt, en yeni üstte. */
         const dosyalarUploadHistory = [];
+        /** Son seçilen ses dosyası (Metne çevir için blob kaynağı). */
+        let dosyalarLastAudioFile = null;
 
         function dosyalarHistoryShortStatus(data) {
           if (dosyalarIsAudioFile(data.extension, data.kind)) {
@@ -9790,12 +10253,24 @@ const PANEL_DEBUG = import.meta.env.DEV;
             txTitle.id = "dosyalar-result-transcript-title";
             txTitle.className = "dosyalar-result-card__title";
             txTitle.textContent = "Metne çevir";
-            const txBody = document.createElement("p");
-            txBody.className = "dosyalar-result-transcript-placeholder";
-            txBody.textContent = DOSYALAR_AUDIO_TRANSCRIPT_MSG;
+            const txControls = document.createElement("div");
+            txControls.className = "dosyalar-result-transcript-controls";
             txCard.appendChild(txTitle);
-            txCard.appendChild(txBody);
+            txCard.appendChild(txControls);
             result.appendChild(txCard);
+            const audioName =
+              data.filename != null ? String(data.filename).trim() : "audio-upload";
+            wireStandaloneAudioTranscriptUi(
+              txControls,
+              () => dosyalarLastAudioFile,
+              {
+                source: "dosyalar",
+                filename: audioName || "audio-upload",
+                mime: data.kind || "audio/webm",
+                previewClass: "dosyalar-result-transcript-preview",
+                msgClass: "dosyalar-result-transcript-placeholder",
+              },
+            );
           }
 
           result.hidden = false;
@@ -9807,6 +10282,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
             showHint("Önce bir dosya seçin.");
             return;
           }
+          dosyalarLastAudioFile = dosyalarIsAudioFile(
+            dosyalarFileExtension(file.name),
+            file.type,
+          )
+            ? file
+            : null;
           hideHint();
           result.hidden = true;
           btn.disabled = true;
