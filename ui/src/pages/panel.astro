@@ -6036,7 +6036,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
             el = document.createElement("span");
             el.className = "chat-msg-tts-diag";
             el.setAttribute("aria-live", "polite");
-            el.hidden = true;
+            el.textContent = "TTS diag ready — click speaker";
+            el.hidden = false;
             actions.appendChild(el);
           }
           state = { el, parts: [] };
@@ -6047,11 +6048,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
         /** @param {HTMLButtonElement} btn */
         function panelTtsDiagReset(btn) {
           if (!panelTtsDiagEnabled) return;
+          const el = panelEnsureTtsDiag(btn);
+          if (!el) return;
           const state = panelTtsDiagState.get(btn);
-          if (!state) return;
-          state.parts = [];
-          state.el.textContent = "";
-          state.el.hidden = true;
+          if (state) state.parts = [];
+          el.textContent = "";
+          el.hidden = false;
         }
 
         /**
@@ -6183,14 +6185,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
             const voices = synth.getVoices();
             if (voices && voices.length) panelTtsVoicesCache = voices;
             panelTtsDiag(btn, "voices count: " + (voices ? voices.length : 0));
-            const voice = panelPickTrVoice(voices);
-            panelTtsDiag(
-              btn,
-              "voice/lang: " + (voice ? voice.name + " / " + voice.lang : "default")
-            );
+            panelTtsDiag(btn, "voice/lang: default / tr-TR");
             const u = new SpeechSynthesisUtterance(text);
             u.lang = "tr-TR";
-            if (voice) u.voice = voice;
             u.onstart = () => {
               panelTtsDiag(btn, "onstart");
             };
@@ -6366,7 +6363,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
             const ttsDiag = document.createElement("span");
             ttsDiag.className = "chat-msg-tts-diag";
             ttsDiag.setAttribute("aria-live", "polite");
-            ttsDiag.hidden = true;
+            if (panelTtsDiagEnabled) {
+              ttsDiag.textContent = "TTS diag ready — click speaker";
+              ttsDiag.hidden = false;
+              panelTtsDiagState.set(ttsBtn, { el: ttsDiag, parts: ["TTS diag ready — click speaker"] });
+            } else {
+              ttsDiag.hidden = true;
+            }
             actions.appendChild(ttsDiag);
             wrap.appendChild(actions);
           }
