@@ -3871,15 +3871,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                         <button type="button" class="chat-compose-attach-menu__item" role="menuitem" data-attach-action="clipboard">
                           Panodaki metni ilet
                         </button>
-                        <button
-                          type="button"
-                          class="chat-compose-attach-menu__item chat-compose-attach-menu__item--unsupported"
-                          role="menuitem"
-                          data-attach-action="audio"
-                          disabled
-                          aria-disabled="true"
-                          title="Ses dosyasını sohbete ekleme yakında"
-                        >
+                        <button type="button" class="chat-compose-attach-menu__item" role="menuitem" data-attach-action="audio">
                           Ses dosyası yükle
                           <span class="chat-compose-attach-menu__badge">yakında</span>
                         </button>
@@ -7992,7 +7984,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
             return;
           }
           if (action === "audio") {
-            setCameraHint("Ses dosyasını sohbete ekleme yakında.");
+            if (attachAudioInput) {
+              attachAudioInput.click();
+            } else {
+              setCameraHint("Ses dosyasını sohbete ekleme yakında.");
+            }
             return;
           }
           if (action === "record") {
