@@ -84,13 +84,76 @@ function pickForwardResponseHeaders(upstreamHeaders) {
   return out;
 }
 
-async function readRawBody(req) {
-  const chunks = [];
-  for await (const chunk of req) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-  }
-  return Buffer.concat(chunks);
+function bufferFromBodyValue(value) {
+  if (value == null) return null;
+  if (Buffer.isBuffer(value)) return value;
+  if (value instanceof Uint8Array) return Buffer.from(value);
+  if (typeof value === "string") return Buffer.from(value, "utf8");
+  return null;
 }
+
+async function readRawBody(req) {
+  if (!req) return Buffer.alloc(0);
+
+  const preloaded = bufferFromBodyValue(req.body);
+  if (preloaded && preloaded.length > 0) {
+    return preloaded;
+  }
+
+  if (typeof req.read === "function") {
+    const buffered = [];
+    let chunk;
+    while ((chunk = req.read()) != null) {
+      buffered.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    if (buffered.length > 0) {
+      return Buffer.concat(buffered);
+    }
+  }
+
+  if (typeof req.on === "function") {
+    const streamed = await new Promise((resolve, reject) => {
+      const chunks = [];
+      req.on("data", (part) => {
+        chunks.push(Buffer.isBuffer(part) ? part : Buffer.from(part));
+      });
+      req.on("end", () => resolve(Buffer.concat(chunks)));
+      req.on("error", reject);
+      if (typeof req.resume === "function") {
+        req.resume();
+      }
+    });
+    if (streamed.length > 0) {
+      return streamed;
+    }
+  }
+
+  if (req[Symbol.asyncIterator]) {
+    const chunks = [];
+    for await (const chunk of req) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    return Buffer.concat(chunks);
+  }
+
+  return preloaded || Buffer.alloc(0);
+}
+
+function applyForwardBody(init, rawBody) {
+  if (!rawBody || rawBody.length === 0) {
+    return;
+  }
+  init.body = rawBody;
+  // Match declared length to bytes actually forwarded (Vercel may strip stream body).
+  init.headers["content-length"] = String(rawBody.length);
+}
+
+export {
+  applyForwardBody,
+  bufferFromBodyValue,
+  forwardRequestHeaders,
+  readRawBody,
+};
 
 export default async function handler(req, res) {
   const upstreamBase = normalizeUpstreamBase();
@@ -110,9 +173,7 @@ export default async function handler(req, res) {
 
   if (method !== "GET" && method !== "HEAD") {
     const rawBody = await readRawBody(req);
-    if (rawBody.length > 0) {
-      init.body = rawBody;
-    }
+    applyForwardBody(init, rawBody);
   }
 
   try {
