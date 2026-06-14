@@ -1,9 +1,15 @@
-"""POST /transcribe — ses→metin köprü iskeleti (STT motoru yok)."""
+"""POST /transcribe — ses→metin köprü; doğrulama + isteğe bağlı STT motoru."""
 from __future__ import annotations
 
 import re
 from email import policy
 from email.parser import BytesParser
+
+from kando_bridge.transcribe_engine import (
+    EngineUnavailable,
+    is_engine_available,
+    transcribe_audio_bytes,
+)
 
 TRANSCRIBE_MAX_BYTES = 10 * 1024 * 1024
 TRANSCRIBE_AUDIO_FIELD = "audio"
@@ -32,16 +38,16 @@ def _extract_multipart_field(
     content_type: str | None,
     raw: bytes,
     field_name: str,
-) -> bytes | None:
-    """İlk eşleşen form alanının gövdesini döndürür; yoksa None."""
+) -> tuple[bytes | None, str | None]:
+    """İlk eşleşen form alanının gövdesini ve dosya adı ipucunu döndürür."""
     boundary = _parse_boundary(content_type)
     if not boundary:
-        return None
+        return None, None
     header_block = f"Content-Type: {content_type}\r\n\r\n".encode("utf-8", errors="replace")
     try:
         msg = BytesParser(policy=policy.default).parsebytes(header_block + raw)
     except (ValueError, TypeError):
-        return None
+        return None, None
     for part in msg.iter_parts():
         disp = part.get("Content-Disposition") or ""
         m = re.search(r'name="([^"]+)"', disp, re.I)
@@ -49,10 +55,14 @@ def _extract_multipart_field(
             continue
         if m.group(1) != field_name:
             continue
+        filename_hint: str | None = None
+        m_fn = re.search(r'filename="([^"]+)"', disp, re.I)
+        if m_fn:
+            filename_hint = m_fn.group(1)
         payload = part.get_payload(decode=True)
         if isinstance(payload, (bytes, bytearray)):
-            return bytes(payload)
-    return None
+            return bytes(payload), filename_hint
+    return None, None
 
 
 def handle_transcribe_request(
@@ -63,7 +73,7 @@ def handle_transcribe_request(
 ) -> tuple[int, dict]:
     """
     Ses yükleme isteğini doğrular; gövde kalıcı saklanmaz.
-    Geçerli isteklerde STT motoru bağlı olmadığı için 503 döner.
+    STT motoru yoksa 503; motor varsa transkript sonucu döner.
     """
     declared_len = content_length
     if declared_len is None:
@@ -100,7 +110,11 @@ def handle_transcribe_request(
             },
         )
 
-    audio_bytes = _extract_multipart_field(content_type, raw, TRANSCRIBE_AUDIO_FIELD)
+    audio_bytes, filename_hint = _extract_multipart_field(
+        content_type,
+        raw,
+        TRANSCRIBE_AUDIO_FIELD,
+    )
     if not audio_bytes:
         return (
             400,
@@ -121,6 +135,17 @@ def handle_transcribe_request(
             },
         )
 
+    if not is_engine_available():
+        return 503, dict(_ENGINE_UNAVAILABLE)
+
+    try:
+        result = transcribe_audio_bytes(
+            audio_bytes,
+            language=None,
+            filename=filename_hint,
+        )
+    except EngineUnavailable:
+        return 503, dict(_ENGINE_UNAVAILABLE)
+
     # Gövde işlendi; kalıcı depolama yok — audio_bytes scope dışına çıkınca atılır.
-    del audio_bytes
-    return 503, dict(_ENGINE_UNAVAILABLE)
+    return 200, result
