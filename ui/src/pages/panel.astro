@@ -1279,21 +1279,21 @@ const PANEL_DEBUG = import.meta.env.DEV;
           margin: auto;
         }
       }
-      .dosyalar-result-stack {
+      :global(.dosyalar-result-stack) {
         max-width: 36rem;
         margin-top: 0.5rem;
         display: flex;
         flex-direction: column;
         gap: 0.65rem;
       }
-      .dosyalar-result-card {
+      :global(.dosyalar-result-card) {
         padding: 0.85rem 1rem;
         border-radius: var(--panel-radius-lg);
         border: 1px solid var(--lumos-card-border);
         background: #0b0b0b;
         box-shadow: var(--panel-edge-inset);
       }
-      .dosyalar-result-card__title {
+      :global(.dosyalar-result-card__title) {
         margin: 0 0 0.55rem;
         font-size: 0.62rem;
         font-weight: 600;
@@ -1301,21 +1301,21 @@ const PANEL_DEBUG = import.meta.env.DEV;
         text-transform: uppercase;
         color: rgba(176, 170, 162, 0.88);
       }
-      .dosyalar-result-card--alert {
+      :global(.dosyalar-result-card--alert) {
         border-color: rgba(212, 182, 128, 0.38);
         box-shadow: var(--panel-edge-inset);
       }
-      .dosyalar-result-card--alert .dosyalar-result-card__title {
+      :global(.dosyalar-result-card--alert .dosyalar-result-card__title) {
         color: rgba(236, 210, 175, 0.92);
       }
-      .dosyalar-result-meta {
+      :global(.dosyalar-result-meta) {
         margin: 0;
         padding: 0;
         list-style: none;
         display: grid;
         gap: 0.35rem;
       }
-      .dosyalar-result-meta li {
+      :global(.dosyalar-result-meta li) {
         display: flex;
         gap: 0.5rem;
         flex-wrap: wrap;
@@ -1324,12 +1324,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
         line-height: 1.45;
         color: var(--lumos-text);
       }
-      .dosyalar-result-meta span:first-child {
+      :global(.dosyalar-result-meta span:first-child) {
         color: var(--lumos-muted);
         min-width: 5.5rem;
         flex-shrink: 0;
       }
-      .dosyalar-result-summary-body {
+      :global(.dosyalar-result-summary-body) {
         margin: 0;
         font-size: 0.84rem;
         line-height: 1.55;
@@ -1337,20 +1337,20 @@ const PANEL_DEBUG = import.meta.env.DEV;
         word-break: break-word;
         white-space: pre-wrap;
       }
-      .dosyalar-result-alert-body {
+      :global(.dosyalar-result-alert-body) {
         margin: 0;
         font-size: 0.84rem;
         line-height: 1.55;
         color: rgba(220, 200, 168, 0.96);
       }
-      .dosyalar-history-wrap {
+      :global(.dosyalar-history-wrap) {
         max-width: 36rem;
         margin-top: 0.75rem;
       }
-      .dosyalar-history-wrap .gorevler-list-heading {
+      :global(.dosyalar-history-wrap .gorevler-list-heading) {
         margin-bottom: 0.45rem;
       }
-      .dosyalar-history-list {
+      :global(.dosyalar-history-list) {
         list-style: none;
         margin: 0;
         padding: 0;
@@ -1358,7 +1358,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         flex-direction: column;
         gap: 0.45rem;
       }
-      .dosyalar-history-row {
+      :global(.dosyalar-history-row) {
         display: flex;
         flex-wrap: wrap;
         align-items: baseline;
@@ -1376,29 +1376,29 @@ const PANEL_DEBUG = import.meta.env.DEV;
         box-sizing: border-box;
         font-family: inherit;
       }
-      .dosyalar-history-row:hover {
+      :global(.dosyalar-history-row:hover) {
         filter: brightness(1.05);
         border-color: rgba(212, 182, 128, 0.32);
       }
-      .dosyalar-history-row:focus-visible {
+      :global(.dosyalar-history-row:focus-visible) {
         outline: none;
         border-color: rgba(184, 148, 96, 0.45);
         box-shadow: 0 0 0 1px rgba(184, 148, 96, 0.22);
       }
-      .dosyalar-history-name {
+      :global(.dosyalar-history-name) {
         flex: 1 1 10rem;
         min-width: 0;
         font-weight: 500;
         color: var(--lumos-text);
         word-break: break-word;
       }
-      .dosyalar-history-meta {
+      :global(.dosyalar-history-meta) {
         color: var(--lumos-muted);
         font-variant-numeric: tabular-nums;
         white-space: nowrap;
         flex-shrink: 0;
       }
-      .dosyalar-history-status {
+      :global(.dosyalar-history-status) {
         flex: 1 1 100%;
         margin: 0;
         padding-top: 0.2rem;
@@ -9327,8 +9327,47 @@ const PANEL_DEBUG = import.meta.env.DEV;
       const DOSYALAR_TEXT_EXT = new Set(["txt", "md", "json", "csv"]);
       const DOSYALAR_READ_EXT = new Set(["txt", "md", "json", "csv", "py"]);
       const DOSYALAR_DOC_EXT = new Set(["pdf", "docx"]);
+      const DOSYALAR_AUDIO_EXT = new Set([
+        "mp3",
+        "wav",
+        "ogg",
+        "m4a",
+        "aac",
+        "flac",
+        "oga",
+        "opus",
+        "weba",
+      ]);
 
-      function dosyalarUnsupportedMessage(ext) {
+      function formatFileSize(bytes) {
+        if (typeof bytes !== "number" || !Number.isFinite(bytes) || bytes < 0) return null;
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) {
+          const kb = bytes / 1024;
+          return `${kb < 10 ? kb.toFixed(1) : Math.round(kb)} KB`;
+        }
+        const mb = bytes / (1024 * 1024);
+        return `${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB`;
+      }
+
+      function dosyalarFormatSize(size) {
+        const label = formatFileSize(size);
+        if (label) return label;
+        if (size != null && size !== "") return String(size) + " bayt";
+        return "—";
+      }
+
+      function dosyalarIsAudioFile(ext, mime) {
+        const e = String(ext ?? "").toLowerCase();
+        if (e && DOSYALAR_AUDIO_EXT.has(e)) return true;
+        const m = String(mime ?? "").toLowerCase();
+        return m.startsWith("audio/");
+      }
+
+      function dosyalarUnsupportedMessage(ext, mime) {
+        if (dosyalarIsAudioFile(ext, mime)) {
+          return "Dosya başarıyla seçildi. Ses dosyaları Dosyalar sekmesinde bu fazda analiz edilmez.";
+        }
         if (ext === "exe") {
           return "Dosya çalıştırılmaz; yalnızca dosya bilgisi kaydedilir.";
         }
@@ -9454,6 +9493,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const dosyalarUploadHistory = [];
 
         function dosyalarHistoryShortStatus(data) {
+          if (dosyalarIsAudioFile(data.extension, data.kind)) {
+            return "Ses — analiz yok";
+          }
           const u = data.unsupported != null ? String(data.unsupported).trim() : "";
           if (u) return "Uyarı";
           const i = data.info != null ? String(data.info).trim() : "";
@@ -9502,15 +9544,15 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
             const sizeEl = document.createElement("span");
             sizeEl.className = "dosyalar-history-meta";
-            sizeEl.textContent =
-              snap.size != null && snap.size !== "" ? String(snap.size) + " bayt" : "—";
+            sizeEl.textContent = dosyalarFormatSize(snap.size);
 
             const extEl = document.createElement("span");
             extEl.className = "dosyalar-history-meta";
-            extEl.textContent =
+            const extVal =
               snap.extension != null && String(snap.extension).trim()
                 ? String(snap.extension)
-                : "—";
+                : "";
+            extEl.textContent = extVal ? "." + extVal : "—";
 
             const stEl = document.createElement("p");
             stEl.className = "dosyalar-history-status";
@@ -9568,9 +9610,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
           const ul = document.createElement("ul");
           ul.className = "dosyalar-result-meta";
           const rows = [
-            ["Dosya adı", String(data.filename ?? "")],
-            ["Boyut", String(data.size ?? "") + " bayt"],
-            ["Tür", String(data.kind ?? "")],
+            ["Dosya adı", String(data.filename ?? "") || "—"],
+            ["Boyut", dosyalarFormatSize(data.size)],
+            ["Tür", String(data.kind ?? "") || "—"],
             ["Uzantı", data.extension ? String(data.extension) : "—"],
           ];
           for (const [k, v] of rows) {
@@ -9612,7 +9654,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
             const alertTitle = document.createElement("h3");
             alertTitle.id = "dosyalar-result-alert-title";
             alertTitle.className = "dosyalar-result-card__title";
-            alertTitle.textContent = "Uyarı";
+            alertTitle.textContent = dosyalarIsAudioFile(data.extension, data.kind)
+              ? "Bilgi"
+              : "Uyarı";
             const alertBody = document.createElement("p");
             alertBody.className = "dosyalar-result-alert-body";
             alertBody.textContent = unsup;
@@ -9665,7 +9709,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             };
 
             if (!DOSYALAR_READ_EXT.has(ext)) {
-              data.unsupported = dosyalarUnsupportedMessage(ext);
+              data.unsupported = dosyalarUnsupportedMessage(ext, file.type);
               renderResult(data);
               pushDosyalarHistory(data);
               return;
