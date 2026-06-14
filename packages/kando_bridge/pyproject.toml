@@ -10,6 +10,11 @@ dependencies = [
   "kando-runtime>=0.1.0",
 ]
 
+[project.optional-dependencies]
+stt = [
+  "faster-whisper>=1.2,<2",
+]
+
 [tool.setuptools]
 package-dir = {"" = "src"}
 
