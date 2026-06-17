@@ -1,0 +1,91 @@
+# Karar günlüğü — kalıcı repo kaydı
+
+**Durum:** Takip belgesi (kod değildir).  
+**Amaç:** Sohbet/bellek veya CI kapsamı dışına çıkan maddelerin **kaybolmaması**; karar, erteleme ve iptal geçmişinin repo içinde tutulması.
+
+---
+
+## Nasıl kullanılır
+
+1. Yeni karar veya erteleme → bu dosyaya satır ekle.
+2. Detaylı canonical kayıt gerekiyorsa → `docs/memory/*.md` veya ADR.
+3. Her satırda **statü** zorunlu: `aktif`, `geçici ertelendi`, `silindi/iptal`, `public'ten çıkarıldı`, `duplicate kapatıldı`, `ileride değerlendirilecek`.
+4. Secret, PII, production credential **yazılmaz**.
+
+---
+
+## Statü başlıkları (CI / kapsam dışı takibi)
+
+### Geçici ertelendi
+
+Bilinçli erteleme; yeniden açılma koşulu veya bağlı OD not edilir.
+
+| ID | Tarih | Konu | Özet | Bağlantı |
+|----|-------|------|------|----------|
+| DL-E01 | 2026-06-17 | Ödeme / PSP | Şirket yapısı netleşene kadar ödeme sistemi dışarıda | OD-011, `docs/memory/payment-scope-decision.md` |
+| DL-E02 | 2026-06-17 | Mail entegrasyonu | İzinli mail okuma/özet — kapsam sonra | OD-031 |
+| DL-E03 | 2026-06-17 | Vault uygulama spec | Katman modeli ilke; API/amaç kodu bekliyor | OD-001–005 |
+
+### Public'ten çıkarıldı — private/internal'a taşınacak
+
+| ID | Tarih | Konu | Özet | Bağlantı |
+|----|-------|------|------|----------|
+| DL-I01 | 2026-06-17 | Üretim auth / cihaz presence | Public sınır dışı; private katmanda | ADR-007 |
+
+### Silindi / iptal
+
+| ID | Tarih | Konu | Özet | Gerekçe |
+|----|-------|------|------|---------|
+| DL-R01 | 2026-06-17 | `lumos_core.main:main` entry notu | Geçersiz entry ifadesi | Repo: `lumos_core.__main__:main` |
+
+### Duplicate kapatıldı
+
+| ID | Tarih | Konu | Özet | Tek kaynak |
+|----|-------|------|------|------------|
+| DL-D01 | 2026-06-17 | `panel/` = `ui/` | İki ayrı dizin | `docs/project-map.md` |
+| DL-D02 | 2026-06-17 | Ürün kuralları çift kayıt | `docs/product-rules.md` özet; detay `docs/memory/product-rules.md` | Bu günlük + memory |
+
+### İleride değerlendirilecek
+
+| ID | Tarih | Konu | Özet | Bağlantı |
+|----|-------|------|------|----------|
+| DL-F01 | 2026-06-17 | Cursor Automations | Proaktif hatırlatma; düşük riskli read/report pilot | `docs/tool-watchlist.md` |
+| DL-F02 | 2026-06-17 | `frontend/` yaşam döngüsü | Arşiv / koru / ui'ye taşı / kaldır | OD-044 |
+| DL-F03 | 2026-06-17 | Platform veri kasası | İzinli, şeffaf, geri alınabilir taşıma | `docs/security-architecture.md` SEC-023 |
+| DL-F04 | 2026-06-17 | OpenAI Agents / Realtime / Computer Use / Codex | Watchlist; rastgele eklenmez | `docs/tool-watchlist.md` |
+| DL-F05 | 2026-06-17 | GitHub/Slack/Drive/Linear connector | Tek tek evaluate | OD-033 |
+| DL-F06 | 2026-06-17 | Birincil kullanıcı yüzeyi | Taslak `ui/`; kesin karar bekliyor | OD-043 |
+| DL-F07 | 2026-06-17 | Root build vs panel E2E hizası | Üretim `ui/`, E2E `panel/` — hizasız | OD-046 |
+
+---
+
+## 2026-06-17 — Dokümantasyon düzeni kurulumu
+
+**Karar:** Repo içi kalıcı dokümantasyon/takip dosyaları oluşturuldu; kod değiştirilmedi.
+
+| Dosya | Amaç | Statü |
+|-------|------|--------|
+| `docs/product-rules.md` | Ürün kuralları özeti | **aktif** |
+| `docs/security-architecture.md` | Güvenlik kuralları özeti | **aktif** |
+| `docs/workflow-rules.md` | İş akışı ve Cursor kuralları | **aktif** (güncellendi) |
+| `docs/tool-watchlist.md` | Araç takip listesi | **aktif** |
+| `docs/project-map.md` | Proje kökü ve dizin haritası | **aktif** |
+| `docs/decision-log.md` | Bu günlük | **aktif** |
+
+**İş akışı maddeleri (özet):**
+
+| Madde | Statü |
+|-------|--------|
+| CI için çıkarılan kod/test/doküman kaybolmaz; statü yazılır | **aktif kural** |
+| Uzun görev metinleri ayrı kopyalanabilir blokta; terminal blokları yalnızca komut için | **aktif kural** |
+| Açıklamalar kod bloğunda değil; yalnızca çalıştırılabilir komutlar terminal kod bloğunda | **aktif kural** |
+
+---
+
+## Açık karar indeksi
+
+Tam liste: `docs/memory/open-decisions-needs-review.md` (OD-001 … OD-060).
+
+---
+
+Son güncelleme: 2026-06-17
