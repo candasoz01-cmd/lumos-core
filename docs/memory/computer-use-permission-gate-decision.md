@@ -1,8 +1,8 @@
-# Computer Use izin kapısı — karar taslağı (OD-012)
+# Computer Use izin kapısı — onaylı karar (OD-012)
 
-> **Durum:** Karar taslağı — **uygulama başlamadı**; bu doküman kod değişikliği değildir.
+> **Durum:** `decision-approved` — ilke kararları onaylandı; **uygulama başlamadı** (`implementation-pending`). Bu belge kod değişikliği değildir.
 >
-> **Üst sınır:** [`docs/lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md) — güvenlik, yetki, kalıcı silme ve onay kuralları bu taslağı gevşetemez.
+> **Üst sınır:** [`docs/lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md) — güvenlik, yetki, kalıcı silme ve onay kuralları bu kararı gevşetemez.
 >
 > **Canonical kaynaklar:** [`external-integrations-permissions.md`](./external-integrations-permissions.md), [`tools-technology-watchlist.md`](./tools-technology-watchlist.md), [`security-architecture.md`](./security-architecture.md), [`product-rules.md`](./product-rules.md), [`project-workflow.md`](./project-workflow.md), [`open-decisions-needs-review.md`](./open-decisions-needs-review.md).
 
@@ -10,7 +10,7 @@
 
 ## 1. Amaç
 
-OD-012 kapsamında OpenAI **Computer Use** (ve benzeri bilgisayar kullanımı / dış etkili otomasyon yetenekleri) için **izin kapısı karar taslağını** sabitlemek.
+OD-012 kapsamında OpenAI **Computer Use** (ve benzeri bilgisayar kullanımı / dış etkili otomasyon yetenekleri) için **izin kapısı onaylı karar kaydını** sabitlemek.
 
 Bu belge:
 
@@ -19,7 +19,19 @@ Bu belge:
 - Okuma/gözlem/öneri modu ile dış etkili aksiyon modunu **katı biçimde ayırır**.
 - Kanıt, geri alınabilirlik ve public repo sınırını tekrarlar.
 
-**Uygulama notu:** Bu aşamada kod, test, panel, bridge, connector veya otomasyon yapılandırması değişikliği yapılmaz; yalnızca karar çerçevesi dokümante edilir.
+**Uygulama notu:** İlke kararları onaylandı; kod, test, panel, bridge, connector veya otomasyon yapılandırması **henüz başlamadı**.
+
+---
+
+## 1b. Onaylanan ilke vs bekleyen uygulama
+
+| Katman | Durum | Kapsam |
+|--------|--------|--------|
+| **İlke kararları** | `decision-approved` | Computer Use serbest yetkilendirilmiş katman değildir; Lumos geçidi, görev kapsamı ve açık kullanıcı onayı zorunludur; okuma/gözlem/öneri modu ile dış etkili aksiyon modu katı ayrılır; dış yazma/tıklama/gönderme açık onay gerektirir; geri dönüşsüz/kritik aksiyonlar otomatik yapılmaz; kullanıcıya ne/nerede/etki görünürlüğü zorunludur; gerçek kanıt sunulur (mock ≠ gerçek); public repoda secret/protokol yasağı geçerlidir; online modda kimlik/kilit koşulları sağlanmadan dış etkili oturum başlamaz. |
+| **Uygulama / teknik detay** | `implementation-pending` | Computer Use teknik entegrasyonu (OpenAI = çekirdek stratejik sağlayıcı; ek sağlayıcılar mimari gerektiğinde isteğe bağlı uzantı); sandbox/izolasyon modeli; onay UX ve oturum süresi; log ve kanıt saklama politikası; gateway oturum iptali ve credential entegrasyonu (OD-001/002 ile örtüşme). Hiçbiri uygulanmadı; bu belge uygulama izni vermez. |
+| **Needs-review (açık)** | `needs-review` | Etkisiz vs etkili tıklama sınıflandırması; mod geçişi UI/CLI; çok adımlı görevde ara onay sıklığı; Agents SDK / Realtime / Codex ile birlikte değerlendirme (OD-034, OD-035). |
+
+Bu belge **somut uygulama icat etmez**; onaylanan ilkeler ile bekleyen teknik detay ayrımı korunur.
 
 ---
 
@@ -31,7 +43,7 @@ Bu belge:
 | Tarayıcı otomasyonu, sandbox VM, OS düzeyi kontrol detayı | Operasyonel/teknik spesifikasyon; public repoda yer almaz |
 | Credential, token, API anahtarı, production endpoint | Güvenlik ve public boundary; asla yazılmaz |
 | Panel UX akışı, onay ekranı wireframe'i | Ürün uygulaması; ayrı karar/uygulama paketi |
-| Bridge, task engine, profil kodu değişikliği | Bu belge yalnızca karar taslağıdır |
+| Bridge, task engine, profil kodu değişikliği | Bu belge onaylı karar kaydıdır; uygulama henüz başlamadı |
 | Agents SDK, Realtime, Codex Plugins (OD-034, OD-035) | İlgili ama ayrı değerlendirme maddeleri |
 | Gerçek ekran görüntüsü, otomasyon script'i, iç protokol | Demo-safe sınır dışı |
 
@@ -39,7 +51,7 @@ Bu belge:
 
 ## 3. Netleşen ilkeler
 
-Aşağıdaki ilkeler **firm** (kesin) kabul edilir; çekirdek sözleşme ve canonical memory kayıtlarıyla uyumludur.
+Aşağıdaki ilkeler **onaylandı** (`decision-approved`); çekirdek sözleşme ve canonical memory kayıtlarıyla uyumludur.
 
 | # | İlke | Kaynak özeti |
 |---|------|--------------|
@@ -47,7 +59,7 @@ Aşağıdaki ilkeler **firm** (kesin) kabul edilir; çekirdek sözleşme ve cano
 | CU2 | **Computer Use yalnızca Lumos geçidi üzerinden** erişilir; iç katmanlara veya dış sisteme doğrudan bypass yok. | product-rules §4; security-architecture §3 |
 | CU3 | **Görev kapsamı (task scope) zorunludur.** Hangi hedef, hangi süre, hangi etki alanı — kullanıcıya görünür ve sınırlıdır. | project-workflow §2; lumos-karar-sozlesmesi §1 |
 | CU4 | **Dış etkili aksiyonlar açık kullanıcı onayı gerektirir** — yazma, tıklama, gönderme, satın alma, silme, ödeme, domain, e-posta, dosya gönderimi. | external-integrations-permissions §İzin; lumos-karar-sozlesmesi §2 |
-| CU5 | **Okuma/gözlem/öneri modu ile dış etkili aksiyon modu katı ayrılır.** Mod karışımı veya sessiz yükseltme yasaktır. | Bu taslak §7; karar katmanları |
+| CU5 | **Okuma/gözlem/öneri modu ile dış etkili aksiyon modu katı ayrılır.** Mod karışımı veya sessiz yükseltme yasaktır. | Bu belge §7; karar katmanları |
 | CU6 | **Geri dönüşsüz ve kritik aksiyonlar otomatik yapılmaz** (`SECURITY_NEVER_AUTO`: external_write, irreversible_user_op, critical_system_config). | lumos-karar-sozlesmesi §2 |
 | CU7 | **Aksiyon başlamadan önce kullanıcı ne, nerede, hangi etki** görecektir — sessiz veya varsayılan-onaylı uygulama yok. | product-rules §Panel/chat §3 |
 | CU8 | **Computer Use sonuçları gerçek kanıtla raporlanır;** mock veya üretilmiş çıktı gerçek sonuç gibi sunulmaz. | project-workflow §7 |
@@ -58,7 +70,7 @@ Aşağıdaki ilkeler **firm** (kesin) kabul edilir; çekirdek sözleşme ve cano
 
 ## 4. Computer Use rol tanımı
 
-**Karar taslağı (firm):** Computer Use, Lumos'un **kontrollü dış etki aracı**dır; bağımsız veya otonom bir katman değildir.
+**Onaylı karar (firm):** Computer Use, Lumos'un **kontrollü dış etki aracı**dır; bağımsız veya otonom bir katman değildir.
 
 | Boyut | Tanım |
 |-------|--------|
@@ -67,8 +79,10 @@ Aşağıdaki ilkeler **firm** (kesin) kabul edilir; çekirdek sözleşme ve cano
 | **İlişki** | Görev motoru ve yetki profili (`rapor`, `guvenli_yurut`, `kisitli_otonom`) ile hizalı; `critical` ve `external` adımlar asla otomatik değildir. |
 | **Varsayılan** | Kapalı / pasif; açık görev + onay + geçit olmadan etkinleştirilmez. |
 | **Watchlist** | `tools-technology-watchlist.md` ve `external-integrations-permissions.md` altında izlenir; otomatik entegrasyon yok. |
+| **Stratejik sağlayıcı (firm)** | **OpenAI**, Lumos çekirdeğinin stratejik AI sağlayıcısıdır; Computer Use değerlendirmesi ve varsayılan yön bu çerçevededir. "Hangi sağlayıcı?" sorusu **kapalı** — OpenAI çekirdek varsayılan/stratejik sağlayıcıdır. |
+| **Ek sağlayıcılar** | Mimari gerektiğinde ek sağlayıcı desteği isteğe bağlı uzantı olarak düşünülebilir; çoklu-vendor spesifikasyonu bu belgede tanımlanmaz. |
 
-**Needs-review:** Hangi sağlayıcı/API (OpenAI Computer Use veya eşdeğer) önce değerlendirilecek; sandbox/izolasyon modeli; çok adımlı görevde ara onay sıklığı.
+**Implementation-pending:** Computer Use teknik entegrasyonu (OpenAI stratejik sağlayıcı üzerinden); sandbox/izolasyon modeli. **Needs-review:** Çok adımlı görevde ara onay sıklığı.
 
 ---
 
@@ -100,7 +114,7 @@ Computer Use için **çok katmanlı izin kapısı** hedeflenir:
 | **Kapsam sınırı** | Oturum hedefi, süresi ve izin verilen etki türü önceden tanımlı; kapsam dışı adım durdurulur. |
 | **Varsayılan-onay yasağı** | Sessiz, önceden işaretli veya zaman aşımıyla geçerli sayılan onay yok. |
 
-**Needs-review:** Onay UX biçimi (tek tık / passphrase / adım adım); oturum süresi ve yenileme; genel onay ile işlem onayı çakışma kuralları.
+**Implementation-pending:** Onay UX biçimi; oturum süresi ve yenileme. **Needs-review:** Genel onay ile işlem onayı çakışma kuralları.
 
 ---
 
@@ -161,7 +175,7 @@ Karar katmanları (`lumos-karar-sozlesmesi.md` §1) ile hizalı **mod ayrımı**
 | Y6 | Belirsiz kökenli toplu veri import veya arka plan senkronu | external-integrations-permissions §Provenance |
 | Y7 | Mock veya simüle çıktının gerçek Computer Use sonucu gibi sunulması | project-workflow §7 |
 | Y8 | Lumos geçidini bypass eden doğrudan Computer Use bağlantısı | product-rules §4 |
-| Y9 | Kapsam dışı hedefe veya süresiz oturuma uzatma | Bu taslak §5 |
+| Y9 | Kapsam dışı hedefe veya süresiz oturuma uzatma | Bu belge §5 |
 
 ### Yüksek risk (ekstra onay / tek adım — needs-review)
 
@@ -189,7 +203,7 @@ Computer Use, **dış entegrasyonlar ve izinler** belgesindeki gateway ilkesiyle
 | **Provenance** | Dış içerik hangi sistem, hesap, zaman — kullanıcıya görünür. |
 | **Offline** | Offline modda dış/network ve Computer Use dış etkisi yok. |
 
-**Needs-review:** Gateway içinde Computer Use oturum kimliği, iptal/geri çekme API'si, bridge ile vault/credential enjeksiyon modeli (OD-001/002 ile örtüşme).
+**Implementation-pending:** Gateway oturum iptali/geri çekme; bridge ile credential entegrasyonu (OD-001/002 ile örtüşme).
 
 ---
 
@@ -201,16 +215,16 @@ Computer Use, **dış entegrasyonlar ve izinler** belgesindeki gateway ilkesiyle
 | **Raporlama** | Computer Use adım sonucu: başarı/başarısızlık, hedef, zaman, kapsam özeti kullanıcıya sunulur. |
 | **Mock ayrımı** | Simülasyon veya taslak açıkça etiketlenir; `result_kind` / görev durumu ile uyumlu. |
 | **Geri alınabilirlik** | Mümkün olan işlemlerde geri alma veya durdurma yolu hedeflenir; geri dönüşsüz işlemde tek satır uyarı zorunlu. |
-| **Log** | Operasyonel log formatı needs-review; secret ve PII loga yazılmaz. |
+| **Log** | Operasyonel log politikası `implementation-pending`; secret ve PII loga yazılmaz (firm). |
 | **Trash prensibi** | Lumos içi silinen içerik trash'e; Computer Use ile dış kalıcı silme otomatik değil. |
 
-**Needs-review:** Oturum kaydı saklama süresi; kanıt dosyalarının konumu; kullanıcıya gösterilecek özet derinliği.
+**Implementation-pending:** Oturum kaydı saklama süresi; kanıt dosyalarının konumu; kullanıcıya gösterilecek özet derinliği (log/kanıt politikası).
 
 ---
 
 ## 11. Public repo sınırı
 
-Public `lumos-core` için Computer Use karar taslağı filtresi:
+Public `lumos-core` için Computer Use onaylı karar filtresi:
 
 **Taşınmaz / yazılmaz:**
 
@@ -233,33 +247,33 @@ Computer Use **uygulama kodu** public repoda yalnızca demo-safe, placeholder ve
 
 ## 12. Açık kararlar
 
-Aşağıdaki maddeler bu taslakta **firm ilke** olarak sabitlenmiş; **teknik/ürün detayı** `needs-review` olarak kalır:
-
 | Konu | Durum | Not |
 |------|--------|-----|
-| Computer Use serbest katman değil | **firm** | CU1 |
-| Lumos geçidi + görev kapsamı + onay zorunlu | **firm** | CU2–CU4 |
-| Okuma vs dış etki mod ayrımı | **firm** | CU5, §7 |
-| Dış yazma/tıklama/gönderme açık onay | **firm** | §6 |
-| Geri dönüşsüz/kritik otomatik yok | **firm** | CU6 |
-| Kullanıcıya ne/nerede/etki görünürlüğü | **firm** | CU7 |
-| Gerçek kanıt; mock ≠ gerçek | **firm** | CU8 |
-| Public repo secret/protokol yasağı | **firm** | CU9 |
-| Sağlayıcı seçimi ve sandbox modeli | needs-review | §4 |
-| Onay UX ve oturum süresi | needs-review | §5 |
+| Computer Use serbest katman değil | **decision-approved** | CU1 |
+| Lumos geçidi + görev kapsamı + onay zorunlu | **decision-approved** | CU2–CU4 |
+| Okuma vs dış etki mod ayrımı | **decision-approved** | CU5, §7 |
+| Dış yazma/tıklama/gönderme açık onay | **decision-approved** | §6 |
+| Geri dönüşsüz/kritik otomatik yok | **decision-approved** | CU6 |
+| Kullanıcıya ne/nerede/etki görünürlüğü | **decision-approved** | CU7 |
+| Gerçek kanıt; mock ≠ gerçek | **decision-approved** | CU8 |
+| Public repo secret/protokol yasağı | **decision-approved** | CU9 |
+| Online kimlik/kilit koşulu | **decision-approved** | CU10 |
+| OpenAI çekirdek stratejik AI sağlayıcısı | **decision-approved** | §4 — ek sağlayıcılar mimari gerektiğinde isteğe bağlı uzantı |
+| Computer Use teknik entegrasyonu ve sandbox modeli | **implementation-pending** | §4 — OpenAI stratejik sağlayıcı; entegrasyon/sandbox detayı bekliyor |
+| Onay UX ve oturum süresi | **implementation-pending** | §5 |
+| Log ve kanıt saklama politikası | **implementation-pending** | §10 |
+| Gateway oturum iptali ve credential entegrasyonu | **implementation-pending** | §9; OD-001/002 |
 | Etkisiz vs etkili tıklama sınıflandırması | needs-review | §6 |
 | Mod geçişi UI/CLI | needs-review | §7 |
-| Gateway oturum iptali ve credential enjeksiyonu | needs-review | §9; OD-001/002 |
-| Log ve kanıt saklama politikası | needs-review | §10 |
 | Agents SDK / Realtime / Codex ile birlikte değerlendirme | needs-review | OD-034, OD-035 |
 
 ---
 
 ## 13. OD eşleme tablosu
 
-| OD | Kaynak | Konu | Bu taslaktaki karşılık | Durum |
+| OD | Kaynak | Konu | Bu belgedeki karşılık | Durum |
 |----|--------|------|------------------------|--------|
-| **OD-012** | external-integrations-permissions.md | Computer Use kapısı — onaysız dış yazma riskine karşı onay katmanı | Bu belgenin tamamı; §5, §6, §7 | needs-review → taslak firm ilkeler |
+| **OD-012** | external-integrations-permissions.md | Computer Use kapısı — onaysız dış yazma riskine karşı onay katmanı | Bu belgenin tamamı; §5, §6, §7 | **decision-approved / implementation-pending** |
 | OD-034 | external-integrations-permissions.md | OpenAI Agents / Realtime onay kapısı | §4, §9 — ayrı değerlendirme | needs-review |
 | OD-035 | external-integrations-permissions.md | Codex Plugins onay modeli | §11 public sınır | needs-review |
 | OD-031 | external-integrations-permissions.md | Mail entegrasyonu onay modeli | §6 e-posta satırı ile örtüşür | needs-review |
@@ -267,17 +281,19 @@ Aşağıdaki maddeler bu taslakta **firm ilke** olarak sabitlenmiş; **teknik/ü
 | OD-041 | commercial-domain-payments.md | Ticari onay modeli | §5 — işlem bazlı onay | needs-review |
 | OD-001/002 | security-architecture.md | Vault / token | §9 credential enjeksiyonu | needs-review |
 
-**İndeks notu:** OD-012 bu taslakla **karar çerçevesi netleşmiş** sayılır; uygulama ve teknik detaylar kapanmadan indeks durumu `needs-review` kalabilir (kaynak dosya senkronu ayrı adım).
+**İndeks notu:** `open-decisions-needs-review.md` OD-012 satırı bu belgeyle senkron tutulur; canonical kaynak önce `external-integrations-permissions.md`, onaylı karar özeti bu dosyadır.
 
 ---
 
 ## 14. Sonraki adım
 
-1. Bu taslağı `external-integrations-permissions.md` §OpenAI ajan ve computer-use araçları ile çapraz referans olarak işaretle (manuel senkron — bu oturumda yapılmadı).
-2. Onay UX ve etkili/etkisiz aksiyon sınıflandırması için dar ürün oturumu aç; tek ihtiyaç: **işlem öncesi görünürlük metni**.
-3. Computer Use değerlendirmesi **tek parça** olarak watchlist kriterlerine (`tools-technology-watchlist.md` §Kabul) tabi tutulur; Agents SDK / Realtime ile toplu entegrasyon yapılmaz.
+1. **Implementation-pending (devam):** Computer Use teknik entegrasyonu (OpenAI stratejik sağlayıcı), sandbox modeli, onay UX, log/kanıt politikası, credential entegrasyonu — uygulama paketi değerlendirmesi.
+2. **Needs-review (devam):** Etkisiz vs etkili tıklama sınıflandırması; mod geçişi UI/CLI; çok adımlı görevde ara onay sıklığı.
+3. Computer Use değerlendirmesi **tek parça** olarak watchlist kriterlerine (`tools-technology-watchlist.md` §Kabul) tabi tutulur; Agents SDK / Realtime ile toplu entegrasyon yapılmaz (OD-034, OD-035 ayrı).
 4. Uygulama başlamadan önce vault/credential modeli (OD-001/002) ile gateway oturum sınırı hizalanır.
+
+**Yasak (bu aşamada):** kod, test, panel, bridge, connector, otomasyon yapılandırması, Computer Use teknik entegrasyonu, sandbox kurulumu, credential, endpoint, secret.
 
 ---
 
-Son güncelleme: 2026-06-17
+Son güncelleme: 2026-06-18

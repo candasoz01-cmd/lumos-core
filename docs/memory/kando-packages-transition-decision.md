@@ -1,8 +1,9 @@
-# OD-027 — `packages/kando_*` → `src/` geçiş kararı (taslak)
+# OD-027 — `packages/kando_*` → `src/` geçiş kararı
 
-**Durum:** `[needs-review]` — uygulama değil; karar taslağı.  
+**Durum:** `decision-approved / implementation-pending` — Faz 2 hedef mimari onaylandı (Seçenek **C — Hibrit**); kesme (cutover) ve arşiv uygulaması bekliyor.  
 **Kaynak indeks:** [`open-decisions-needs-review.md`](./open-decisions-needs-review.md) OD-027.  
-**Doğrulama tarihi:** 2026-06-17 (repo read-only tarama).
+**Faz 1 envanter:** [`kando-packages-faz1-inventory.md`](./kando-packages-faz1-inventory.md) (2026-06-18).  
+**Doğrulama tarihi:** 2026-06-18 (Faz 2 karar taslağı; repo salt-okuma kanıtı).
 
 ---
 
@@ -22,7 +23,7 @@ Bu belge **kod değişikliği veya taşıma işlemi değildir**. Amaç: gelişti
 |-------|-------------------|
 | Kod taşıma, import yeniden yönlendirme, entrypoint değişikliği | Bu belge yalnızca karar taslağıdır; uygulama ayrı görev ve açık hedef gerektirir |
 | `panel/`, `ui/`, `frontend/` birincil yüzey seçimi | OD-043, OD-046 — ayrı karar; geçiş zamanlamasını doğrudan kilitlemez |
-| `lumos web` / `web/app.py` restore veya kaldırma | OD-028 — CLI alt komutu; `src/` zincirinden bağımsız needs-review |
+| `lumos web` / `web/app.py` restore veya kaldırma | OD-028 — **kapalı (B1):** kök `lumos` web dalı kaldırıldı; `packages/kando_core/__main__.py` web kalıntısı bu geçişte hizalanır |
 | İç katman (Kando/Cando/Bando) protokol detayı | OD-006, OD-007 — [`internal-agent-layers.md`](./internal-agent-layers.md) |
 | Vault / token uygulama modeli | OD-001, OD-002 — [`security-architecture.md`](./security-architecture.md) |
 | `kando-ai/` içeriğinin ürünleştirilmesi | Yan/aday alan; canlı Lumos CLI kapsamı dışı |
@@ -52,13 +53,14 @@ lumos  (veya python -m lumos_core)
         → cli.cli_router.run_cli_loop(router_ctx)
 ```
 
-**Diğer `lumos` alt komutları** (`__main__.py`):
+**Diğer `lumos` alt komutları** (`src/lumos_core/__main__.py`):
 
 | Alt komut | Hedef | Repo durumu |
 |-----------|--------|-------------|
 | `cli` (varsayılan) | `src/main.py` → CLI döngüsü | **Canlı** |
-| `web` | `web/app.py` | **`web/` dizini yok** — OD-028 needs-review |
-| `decision` | `core.decision_pipeline` / `core.decision_runner` | `src/` içi |
+| `decision` | `core.decision_pipeline` / `core.decision_runner` | **Canlı** (`src/` içi) |
+
+**OD-028 (kapalı — B1):** Kök `lumos` artık `web` alt komutu **içermez** ([`lumos-web-command-decision.md`](./lumos-web-command-decision.md)). `packages/kando_core/__main__.py` hâlâ `_run_web()` ve `web` parser taşır — stale kalıntı; Faz 5 temizlik adayı.
 
 **Doğrulanan düzeltmeler:**
 
@@ -73,38 +75,72 @@ lumos  (veya python -m lumos_core)
 
 | Özellik | Değer |
 |---------|--------|
-| **Rol** | Canlı Lumos Core Python kodu |
+| **Rol** | Canlı Lumos Core Python kodu — **tek canonical çekirdek** |
 | **Paket kökü** | `src/` (`package-dir` root `pyproject.toml` içinde) |
-| **Ana modüller** | `lumos_core`, `core`, `cli`, `task_engine`, `security`, … |
+| **Ana modüller** | `lumos_core` (1), `core` (53), `cli` (7), `task_engine` (26), `security` (16), `policy` (4), `memory` (5), `context` (2), `engine` (4), `kando` (22), `device` (7) |
 | **Yerel state** | CWD altında `.lumos/` (`tasks.json`, `config`, `logs`, `trash`, …) — workspace sözleşmesi |
-| **Durum** | **Aktif / canlı** |
+| **Durum** | **Aktif / canlı** — sınıf: `canlı aday` (envanter) |
+| **Import yönü** | `src/` → `packages/kando_*` import **yok** (`rg` sıfır eşleşme) |
 
-**Sabit karar (taslak):** `src/` = live Lumos Core. Geçiş tamamlanana kadar tüm üretim benzeri CLI, görev motoru ve güvenlik sınırları buradan yürür.
+**Sabit karar (onaylı):** `src/` = live Lumos Core. Tüm üretim benzeri CLI, görev motoru, güvenlik ve bellek katmanları buradan yürür. `src/kando/kando_core.py` yerel modül adıdır; `packages/kando_core` ile karıştırılmaz.
+
+**Belirsiz alt alanlar (envanter):** `integrations/` (sınırlı canlı kullanım), `cando/` (geliştirme yardımcı), boş `logs/` dizini.
 
 ---
 
-## 5. `packages/kando_*` aday paket alanı
+## 5. `packages/kando_*` paket alanı — envanter ve sınıflandırma
 
-**Doğrulanan dizinler** (2026-06-17):
+**Doğrulama:** Faz 1 envanter (2026-06-18). Detay: [`kando-packages-faz1-inventory.md`](./kando-packages-faz1-inventory.md).
 
-| Paket dizini | PyPI adı (`pyproject.toml`) | Bağımlılık notu |
-|--------------|----------------------------|-----------------|
-| `packages/kando_bridge` | `kando-bridge` | `kando-runtime>=0.1.0`; opsiyonel `stt` |
-| `packages/kando_context` | `kando-context` | — |
-| `packages/kando_core` | `kando-core` | — |
-| `packages/kando_memory` | `kando-memory` | — |
-| `packages/kando_policy` | `kando-policy` | — |
-| `packages/kando_runtime` | `kando-runtime` | `openai`, `requests` |
+### 5.1 Paket özet tablosu
 
-**Yapı:** Her paketin kendi `pyproject.toml` ve `src/kando_*/` ağacı vardır. Örnek: `packages/kando_core/src/kando_core/__main__.py` benzer bir CLI yüzeyi sunar; ancak **kök `lumos` komutu bunu çağırmaz**.
+| Paket dizini | PyPI adı | Sınıf (envanter) | Karar sınıfı | Gerekçe (kısa) |
+|--------------|----------|------------------|--------------|----------------|
+| `packages/kando_bridge` | `kando-bridge` | canlı aday | **keep** | `python -m kando_bridge`; 16 test; Makefile/CI PYTHONPATH; `src/` tüketir |
+| `packages/kando_runtime` | `kando-runtime` | canlı aday (gate/dispatch) | **keep** | Bridge + test importları; gate/executor zinciri; `src/` PYTHONPATH zorunlu |
+| `packages/kando_core` | `kando-core` | ölü kod / stale ayna | **archive candidate** | `from kando_core` dış import sıfır; 43 ortak basename `src/core/`; `__main__` web kalıntısı |
+| `packages/kando_memory` | `kando-memory` | ölü kod (drift riskli ayna) | **archive candidate** | Dış import sıfır; `memory.py`/`session_memory.py` `src/memory/` ile farklı |
+| `packages/kando_policy` | `kando-policy` | ölü kod (ayna + coupling) | **archive candidate** | Dış import sıfır; seçili dosyalar `src/security`/`src/policy` ile özdeş |
+| `packages/kando_context` | `kando-context` | ölü kod (paket içi ayna) | **archive candidate** | Yalnızca `kando_memory` içinden; dış tüketim yok |
 
-**Sabit karar (taslak):**
+### 5.2 `kando_bridge` ve `kando_runtime` — canlı paket durumu
 
-- `packages/kando_*` = **aday / ayrılmış mimari** alanı.
-- Root entrypoint buradan **başlamaz**.
-- Canlı kabul edilmeden önce: entrypoint, test, CI, import yolu, güvenlik sınırı ve geri alma (rollback) kriterleri **yazılı ve onaylı** olmalıdır ([§8](#8-kesme-kriterleri)).
+| Alan | `kando_bridge` | `kando_runtime` |
+|------|----------------|-----------------|
+| **Rol** | HTTP köprü, STT, `run.py` launcher | Gate, audit, dispatch, executor'lar |
+| **Entry** | `python -m kando_bridge` → `server.run` | Kütüphane; root script yok |
+| **Test** | 16 test dosyası | Aynı test setinde |
+| **`src/` bağımlılığı** | `from core.*`, `from kando.file_patch_executor` | `lumos_runtime.py` tam bootstrap (`cli`, `core`, `security`, …) |
+| **Karar** | **keep** (hibrit C) | **keep** (hibrit C); `lumos_runtime.py` aynası **archive candidate** |
 
-**İç katman ilişkisi:** [`internal-agent-layers.md`](./internal-agent-layers.md) — dış dünya yalnızca Lumos geçidini görür; iç katmanlar doğrudan dış komut/veri kabul etmez. `packages/kando_*` canlıya alınsa bile bu sınır gevşetilmez.
+**PYTHONPATH (canlı kanıt):** `src:packages/kando_runtime/src:packages/kando_bridge/src` (`Makefile`, `ci.yml`).
+
+**Import grafiği:** Tek yönlü `packages → src`; tersi yok. Paketler `src/` olmadan import kırılır — ince kabuk değil, **ters bağımlılık** (Seçenek B riski).
+
+### 5.3 Ayna paketler — `kando_core`, `kando_memory`, `kando_policy`, `kando_context`
+
+| Paket | Modül sayısı | Dış tüketim | `src/` örtüşmesi | Karar |
+|-------|--------------|-------------|------------------|-------|
+| `kando_core` | 47 | **sıfır** | 43 ortak basename `src/core/` | **archive candidate** |
+| `kando_memory` | 5 | **sıfır** | 5/5 basename; 2 dosya drift | **archive candidate** |
+| `kando_policy` | 19 | **sıfır** | 17+ ortak basename | **archive candidate** |
+| `kando_context` | 2 | yalnızca `kando_memory` | 2/2 basename `src/context/` | **archive candidate** |
+
+**Ölü ayna modülleri (`kando_runtime` içi):**
+
+| Modül | Canonical | Karar |
+|-------|-----------|-------|
+| `lumos_runtime.py` | `src/core/lumos_runtime.py` | **archive candidate** (dış import sıfır) |
+| `brain.py` | `src/core/brain.py` (`diff -q` özdeş) | **uncertain** — hangi zincir kullanıyor net değil; arşiv öncesi doğrulama |
+
+**Sabit karar (onaylı):**
+
+- Root entrypoint `packages/kando_*` üzerinden **başlamaz**.
+- Canlı yol: `src/` canonical + `kando_bridge` + `kando_runtime` (gate/dispatch) paket olarak kalır.
+- Ayna paketler (`kando_core`, `kando_memory`, `kando_policy`, `kando_context`) arşiv adayı; birleştirme gereksiz (canonical zaten `src/`).
+- Kesme öncesi: entrypoint, test, CI, import, güvenlik sınırı, rollback — [§8](#8-kesme-kriterleri).
+
+**İç katman ilişkisi:** [`internal-agent-layers.md`](./internal-agent-layers.md) — dış dünya yalnızca Lumos geçidini görür; bu sınır gevşetilmez.
 
 ---
 
@@ -131,24 +167,60 @@ Aşağıdaki fazlar **zorunlu takvim değildir**; sıra ve içerik onay bekler. 
 - Aday: `packages/kando_*`, `kando-ai/`.
 - Karar: geçiş yapılmaz; yanlış entry sanılmaz.
 
-### Faz 1 — Envanter ve sınır haritası `[needs-review]`
+### Faz 1 — Envanter ve sınır haritası `[tamamlandı — 2026-06-18]`
+
+Salt-okuma raporu: [`kando-packages-faz1-inventory.md`](./kando-packages-faz1-inventory.md).
 
 - `src/` modülleri ile `packages/kando_*` modülleri arasında işlev eşlemesi (çift kod, boşluk, çakışma).
 - Güvenlik sınırı: hangi paket hangi dış etkiye dokunabilir ([`security-architecture.md`](./security-architecture.md)).
 - Test ve CI: hangi paketlerin bağımsız test zinciri olacağı.
 
-### Faz 2 — Hedef mimari kararı `[needs-review]`
+### Faz 2 — Hedef mimari kararı `[onaylandı — 2026-06-18]`
 
-Seçenekler (birbirini dışlar; çoklu seçim onay gerektirir):
+**Önerilen ve onaylanan seçenek: C — Hibrit.**
 
-| Seçenek | Özet |
-|---------|------|
-| **A — Birleştir** | Seçilen `kando_*` modülleri `src/` altına taşınır; root entry aynı kalır veya kontrollü genişler |
-| **B — Ayrı kal** | `packages/` bağımsız kalır; `src/` yalnızca Lumos geçidi / ince kabuk |
-| **C — Hibrit** | Çekirdek `src/`; belirli alt sistemler paket olarak yayınlanır; import sözleşmesi sabitlenir |
-| **D — Dondur / arşiv** | `packages/kando_*` deneysel kalır; canlı yol `src/` ile sınırlı |
+#### Seçenek karşılaştırması (envanter kanıtı)
 
-**Çıkış:** Yazılı hedef mimari + OD-027 durumu güncellemesi.
+| Seçenek | Özet | Envanter desteği | Risk / red nedeni |
+|---------|------|------------------|-------------------|
+| **A — Birleştir** | `kando_bridge` + `kando_runtime` → `src/` altına taşı | 16 test + CI PYTHONPATH sadeleşir; modüller taşınabilir | Büyük diff; gate/bridge güvenlik sınırı yeniden doğrulanmalı; acil kazanç düşük (paketler zaten canlı) |
+| **B — Ayrı kal** | `packages/` bağımsız; `src/` ince kabuk | Mevcut PYTHONPATH zinciri | **Reddedildi:** paketler `src/` olmadan çalışmaz; ters bağımlılık; `lumos_runtime`/`kando_core` drift devam eder |
+| **C — Hibrit** ✓ | `src/` canonical çekirdek; yalnızca `kando_bridge` + `kando_runtime` paket kalır; ayna paketler arşiv | Ayna paketler zaten ölü (dış import sıfır); arşiv net kazanç; canlı test/CI kanıtı bridge+runtime için | Import sözleşmesi (`packages → src`) dokümante edilmeli; arşiv öncesi `brain.py` belirsizliği giderilmeli |
+| **D — Dondur / arşiv** | Tüm `packages/kando_*` deneysel | `kando_core`/`memory`/`policy`/`context` fiilen ölü | **Kısmi:** `bridge`+`runtime` canlı kaldığı sürece tam D mümkün değil — C ile birleşir |
+
+#### Seçenek C — gerekçe (envanter doğrulaması)
+
+1. **Canonical zaten `src/`:** Kök `lumos` → `src/main.py` → `core/cli`; `src/` → `packages` import yok.
+2. **Canlı paketler dar küme:** Yalnızca `kando_bridge` (16 test, panel E2E spawn) ve `kando_runtime` (gate/dispatch) fiilen kullanılıyor; Makefile/CI PYTHONPATH bunları içerir, `kando_core` dahil değil.
+3. **Ayna paketler birleştirme gerektirmez:** `kando_core` (43 dosya örtüşme, sıfır dış import), `kando_memory`, `kando_policy`, `kando_context` — hepsi **archive candidate**; taşıma yerine arşiv/temizlik yeterli.
+4. **A birleştirme ertelenebilir:** Bridge/runtime `src/` altına taşımak (ör. `src/kando_bridge`) opsiyonel Faz 4+ işi; şu an paket sınırı güvenlik/geçit ayrımına hizmet ediyor.
+5. **B sürdürülemez:** “Bağımsız paket” iddiası envanterle çelişiyor — `lumos_runtime.py` pakette `src/` import eder.
+
+#### Onaylanan hedef mimari (C)
+
+```
+Canlı yol:
+  lumos (root) → src/ (canonical: core, cli, task_engine, security, memory, policy, context, kando)
+              ↘ packages/kando_bridge (HTTP köprü, STT)
+              ↘ packages/kando_runtime (gate, dispatch, executor'lar — lumos_runtime aynası hariç)
+
+Arşiv adayı (Faz 5):
+  packages/kando_core, kando_memory, kando_policy, kando_context
+  packages/kando_runtime/lumos_runtime.py (+ muhtemelen brain.py)
+
+Dokunulmaz (cutover öncesi):
+  src/ canonical; .lumos/ workspace sözleşmesi; güvenlik geçidi
+```
+
+**Sonraki uygulama paketi sınırı (implementation-pending):**
+
+1. Import sözleşmesi belgesi: `packages/kando_bridge` + `kando_runtime` → `src/` tek yönlü bağımlılık; PYTHONPATH sabit.
+2. Ayna paket arşivi: `kando_core`, `kando_memory`, `kando_policy`, `kando_context` — açık hedef path + rollback ile.
+3. `kando_core.__main__` web kalıntısı kaldırma (OD-028 hizası).
+4. `kando_runtime/lumos_runtime.py` ölü ayna kaldırma veya `src/core` ile tek kaynak senkronu.
+5. (Opsiyonel, ayrı görev) Bridge/runtime `src/` altına taşıma — Seçenek A alt kümesi; C onayı bunu zorunlu kılmaz.
+
+**Çıkış:** Bu belge + OD-027 indeks güncellemesi (`decision-approved / implementation-pending`).
 
 ### Faz 3 — Kesme öncesi kapılar `[needs-review]`
 
@@ -215,16 +287,16 @@ Seçenekler (birbirini dışlar; çoklu seçim onay gerektirir):
 
 | # | Soru | Durum |
 |---|------|--------|
-| 1 | Hedef mimari: A birleştir / B ayrı / C hibrit / D dondur? | **needs-review** |
-| 2 | Hangi `kando_*` paketleri (varsa) canlı yola dahil edilecek? | **needs-review** |
-| 3 | Kesme tek seferde mi, paket paket mi? | **needs-review** |
-| 4 | Root `pyproject.toml` tek paket mi kalır, workspace/monorepo mu olur? | **needs-review** |
-| 5 | `kando_core.__main__` ile root `lumos` ilişkisi (birleşme / kaldırma / alias) | **needs-review** |
-| 6 | Geçiş sırasında `.lumos/` state migrasyonu gerekir mi? | **needs-review** |
+| 1 | Hedef mimari: A birleştir / B ayrı / C hibrit / D dondur? | **Onaylandı: C — Hibrit** |
+| 2 | Hangi `kando_*` paketleri canlı yola dahil? | **Onaylandı: `kando_bridge` + `kando_runtime` (gate/dispatch); ayna paketler arşiv** |
+| 3 | Kesme tek seferde mi, paket paket mi? | **needs-review** (uygulama paketi) — öneri: önce ayna arşiv, bridge/runtime sabit |
+| 4 | Root `pyproject.toml` tek paket mi kalır, workspace/monorepo mu olur? | **needs-review** — C ile mevcut PYTHONPATH korunur; monorepo zorunlu değil |
+| 5 | `kando_core.__main__` ile root `lumos` ilişkisi | **Onaylandı: kaldırma/arşiv** — hiç çağrılmıyor; web kalıntısı OD-028 hizası |
+| 6 | Geçiş sırasında `.lumos/` state migrasyonu gerekir mi? | **Onaylandı: hayır** — kod taşıma/arşiv; state path değişmez |
 
 **İlişkili ama bu belgede çözülmeyen:**
 
-- **OD-028:** `lumos web` / `web/app.py` — restore veya kaldırma.
+- **OD-028:** Kapalı (B1) — kök `lumos` web yok; `kando_core.__main__` web kalıntısı bu geçişte temizlenir.
 - **OD-043:** Birincil kullanıcı yüzeyi (`panel/` / `ui/` / `frontend/`).
 - **OD-046:** Root `npm run build` (ui) ile panel E2E hangi yüzeyi «canlı» sayar.
 
@@ -234,33 +306,38 @@ Seçenekler (birbirini dışlar; çoklu seçim onay gerektirir):
 
 | OD | Konu | Bu belgedeki karşılık | Durum |
 |----|------|------------------------|--------|
-| **OD-027** | `packages/kando_*` → `src/` geçiş takvimi ve kesme kriterleri | Bu dosyanın tamamı | **needs-review** (taslak) |
-| OD-028 | `lumos web` / `web/app.py` | §3 alt komut tablosu; kapsam dışı çözüm | needs-review (çapraz) |
-| OD-043 | Birincil kullanıcı yüzeyi | §2 kapsam dışı; geçişten bağımsız | needs-review (çapraz) |
-| OD-046 | Root build vs panel E2E | §2 kapsam dışı; geçişten bağımsız | needs-review (çapraz) |
+| **OD-027** | `packages/kando_*` → `src/` geçiş takvimi ve kesme kriterleri | Bu dosyanın tamamı | **decision-approved / implementation-pending** |
+| OD-028 | `lumos web` / `web/app.py` | §3 — kök kapalı (B1); `kando_core.__main__` kalıntısı Faz 5 | **closed** (çapraz temizlik bu geçişte) |
+| OD-043 | Birincil kullanıcı yüzeyi | §2 kapsam dışı; geçişten bağımsız | decision-approved (çapraz) |
+| OD-046 | Root build vs panel E2E | §2 kapsam dışı; geçişten bağımsız | decision-approved / implementation-pending (çapraz) |
 
-**İndeks senkronu:** OD-027 kapanınca önce bu dosya ve [`project-map-runtime-entrypoints.md`](./project-map-runtime-entrypoints.md) §11 madde 4 güncellenir; ardından [`open-decisions-needs-review.md`](./open-decisions-needs-review.md).
+**İndeks senkronu:** Kesme (Faz 4) tamamlanınca `project-map-runtime-entrypoints.md` §11 ve bu indeks `migrated`/`superseded` güncellenir.
 
 ---
 
 ## 13. Sonraki adım
 
-**Tek adım:** Faz 1 envanter görevi aç — `src/` ile `packages/kando_*` modül eşlemesi ve çift-kod listesi (kod değişikliği yok; salt okuma raporu). Çıktı onaylandıktan sonra Faz 2 hedef mimari seçeneği (A/B/C/D) için kullanıcı kararı istenir.
+**Tek adım (uygulama paketi):** Ayna paket arşivi — `packages/kando_core`, `kando_memory`, `kando_policy`, `kando_context` için açık hedef path, rollback planı ve §8 kesme checklist'i ile ayrı görev aç. Bridge/runtime (`kando_bridge`, `kando_runtime` gate/dispatch) **keep**; PYTHONPATH ve import sözleşmesi değişmez.
 
 ---
 
-## Netleşen sabit kararlar (taslak — uygulama bekliyor)
+## Netleşen sabit kararlar (onaylı — uygulama bekliyor)
 
 | Karar | İfade |
 |-------|--------|
+| Hedef mimari | **C — Hibrit:** `src/` canonical; `kando_bridge` + `kando_runtime` paket kalır |
 | Canlı runtime | `pyproject.toml` → `lumos_core.__main__` → `src/main.py` → `core/cli` |
-| `src/` | Live Lumos Core |
-| `packages/kando_*` | Aday / ayrılmış mimari; root entry buradan başlamaz |
-| `kando-ai/` | Yan/aday; canlı Lumos CLI değil |
-| Geçiş öncesi zorunluluk | Entrypoint, test, CI, import, güvenlik sınırı, rollback net olmalı |
+| `src/` | Live Lumos Core — **keep** |
+| `kando_bridge`, `kando_runtime` | Canlı paket — **keep** |
+| `kando_core`, `kando_memory`, `kando_policy`, `kando_context` | Stale ayna — **archive candidate** |
+| `kando_runtime/lumos_runtime.py` | Ölü ayna — **archive candidate** (canonical: `src/core/lumos_runtime.py`) |
+| `kando-ai/` | Yan/aday; canlı Lumos CLI değil — **uncertain** (ürünleştirme kapsam dışı) |
+| Import sözleşmesi | Tek yönlü `packages → src`; PYTHONPATH: `src:kando_runtime:kando_bridge` |
+| Geçiş öncesi zorunluluk | Entrypoint, test, CI, import, güvenlik sınırı, rollback net olmalı (§8) |
 | Taşıma kuralı | Açık hedef olmadan `src`↔`packages` move/import/entrypoint değişikliği yok |
+| State migrasyonu | Gerekmez — `.lumos/` path değişmez |
 | Takvim | Faz taslağı; sabit tarihli zorunlu plan değil |
 
 ---
 
-*Son güncelleme: 2026-06-17*
+*Son güncelleme: 2026-06-18*
