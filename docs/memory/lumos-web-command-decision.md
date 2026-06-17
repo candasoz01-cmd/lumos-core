@@ -1,9 +1,10 @@
-# OD-028 — `lumos web` / eksik `web/app.py` karar taslağı
+# OD-028 — `lumos web` / eksik `web/app.py` karar belgesi
 
-**Durum:** `[decision-draft]` — uygulama değildir; kod değişikliği içermez.  
+**Durum:** `[decision-approved]` — **B1 (alt komutu kaldır)** seçildi; **restore değil**. Uygulama henüz yapılmadı; kod değişikliği bu belgede yok.  
 **Kaynak indeks:** [`open-decisions-needs-review.md`](./open-decisions-needs-review.md) OD-028.  
 **Çapraz referans:** OD-027 (`packages/kando_*` geçişi), OD-043 / OD-046 (panel/ui/frontend yüzeyleri).  
-**Doğrulama tarihi:** 2026-06-17 (repo read-only tarama).
+**Doğrulama tarihi:** 2026-06-17 (repo read-only tarama).  
+**Karar tarihi:** 2026-06-17 — B1 onaylandı.
 
 ---
 
@@ -11,11 +12,13 @@
 
 Root `lumos` CLI içindeki **`web` alt komutunun** ve hedef dosya **`web/app.py`** ile repo gerçekliği arasındaki uyumsuzluğu netleştirmek; **restore** (geri yükleme) ile **kaldırma** seçeneklerini kanıta dayalı değerlendirmek.
 
+**Seçilen yön (2026-06-17):** **B1 — alt komutu kaldır.** `web/app.py` restore edilmeyecek.
+
 Bu belge:
 
-- **Uygulama belgesi değildir** — hiçbir kod, dizin oluşturma, entrypoint değişikliği veya test düzeltmesi yapmaz.
+- **Karar belgesidir** — seçim kayıtlıdır; **uygulama ayrı görevdir** (§12.2).
+- Uygulama yapılana kadar repo'da kırık `lumos web` komutu **bilinçli olarak** kalabilir.
 - Çekirdek sözleşme ([`docs/lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md)) üst sınır olarak geçerlidir.
-- Karar seçilmeden CLI/entrypoint değişikliği yapılmaz.
 
 ---
 
@@ -26,8 +29,8 @@ Bu belge:
 | `panel/`, `ui/`, `frontend/` birincil yüzey seçimi | OD-043, OD-046 — ayrı karar belgeleri; `lumos web` ile karıştırılmaz |
 | `packages/kando_*` → `src/` geçişi | OD-027 — [`kando-packages-transition-decision.md`](./kando-packages-transition-decision.md) |
 | `backend/` Express API, `api/bridge/` Vercel proxy | Ayrı HTTP yüzeyleri; `web/app.py` minimal read-only sunucu modelinden farklı |
-| `web/` dizini oluşturma veya `web/app.py` restore uygulaması | Bu oturum yalnızca karar taslağı üretir |
-| Diğer `docs/memory/*.md` dosyalarının güncellenmesi | Bu oturumda yalnızca bu dosya oluşturulur |
+| `web/` dizini oluşturma veya `web/app.py` restore uygulaması | **B1 seçildi** — restore yok; uygulama §12.2'de |
+| Diğer `docs/memory/*.md` dosyalarının güncellenmesi | Uygulama paketi (§12.2) — indeks senkronu uygulama sonrası |
 | `packages/kando_core` içindeki benzer `web` alt komutu | Aday paket; kök `lumos` canlı entry değil |
 
 ---
@@ -127,13 +130,15 @@ lumos  (veya python -m lumos_core)
 |-------|----------------|
 | `lumos web` alt komutu tanımlı | Evet |
 | `web/app.py` mevcut | Hayır |
-| **Sınıf** | **broken / needs-review** — komut var, hedef dosya yok |
+| **Sınıf** | **broken** — komut var, hedef dosya yok; **B1 seçildi**, uygulama bekliyor (§12.2) |
 
 ---
 
 ## 6. Restore / kaldırma seçenekleri
 
-### 6.1 Seçenek A — Restore (geri yükleme)
+> **Not:** Aşağıdaki seçenekler karar öncesi değerlendirme kaydıdır. **Seçilen yön B1** (§7, §12.1). Restore (A) ve B2/B3 **seçilmedi** — yalnızca tarihsel referans.
+
+### 6.1 Seçenek A — Restore (geri yükleme) *(seçilmedi — tarihsel referans)*
 
 | Alt seçenek | Özet | Artı | Eksi |
 |-------------|------|------|------|
@@ -146,7 +151,7 @@ lumos  (veya python -m lumos_core)
 - Panel (`panel/`, `ui/`) ile karıştırılmaz — ayrı HTTP yüzeyi.
 - `lumos web` çalıştırıldığında anlamlı çıktı; `test_web_health.py` skip etmez.
 
-### 6.2 Seçenek B — Kaldırma (remove)
+### 6.2 Seçenek B — Kaldırma (remove) *(B1 seçildi)*
 
 | Alt seçenek | Özet | Artı | Eksi |
 |-------------|------|------|------|
@@ -159,30 +164,31 @@ lumos  (veya python -m lumos_core)
 - Read-only durum/health ihtiyacı başka yüzeyle karşılanıyor mu (CLI `durum`, bridge, backend) — ürün kararı.
 - `packages/kando_core` içindeki aynı desen OD-027 ile birlikte ele alınır (canlı entry değil).
 
-### 6.3 Seçenek C — Needs-review (mevcut durum)
+### 6.3 Seçenek C — Needs-review (mevcut durum) *(seçilmedi — superseded)*
 
-- Ne restore ne kaldırma seçilmedi.
-- `lumos web` **broken** olarak kalır; yeni CLI/entrypoint işleri bu kararı beklemez ama **web alt komutuna dokunan değişiklik** yapılmaz.
+- Karar öncesi «henüz seçim yok» durumuydu.
+- **B1 onaylandı** — bu seçenek geçersiz; uygulama §12.2'de.
 
 ---
 
-## 7. Karar taslağı
+## 7. Karar özeti
 
-| Alan | Taslak ifade |
-|------|----------------|
+| Alan | İfade |
+|------|--------|
 | **Mevcut gerçeklik** | Canlı CLI: `lumos_core.__main__` → `src/main.py` → `core/cli`. `lumos web` tanımlı ama `web/app.py` yok → **kırık**. |
 | **Ürün tanımı çelişkisi** | `pyproject.toml` ve mimari belgeler «read-only web» öngörür; repo dosyası yok. |
 | **Restore lehine sinyal** | Git geçmişinde çalışan minimal `web/app.py`; test ve audit belgeleri mevcut. |
 | **Kaldırma lehine sinyal** | Panel/UI/bridge/backend ayrı HTTP yüzeyleri; web v1 kullanım sıklığı belgelenmemiş. |
-| **Seçim** | **Henüz yapılmadı** — `[needs-review]` |
-| **Varsayılan durum** | Kod değişikliği yok; kırık komut bilinçli olarak dokunulmadan bırakılır ta ki karar kapanana kadar. |
+| **Seçim** | **B1 — alt komutu kaldır** (`[decision-approved]`) |
+| **Restore** | **Seçilmedi** — `web/app.py` geri getirilmeyecek. |
+| **Uygulama durumu** | **Bekliyor** — kod henüz değişmedi. |
 
-**Netleşen sabit kararlar (uygulama bekliyor):**
+**Netleşen sabit kararlar:**
 
-1. Bu belge **implementasyon değildir**.
-2. `web/` dizini bu taslak tarafından **oluşturulmaz**.
+1. **Restore değil, kaldırma yönü seçildi** — alt seçenek **B1**.
+2. `web/` dizini **oluşturulmayacak**; `web/app.py` restore edilmeyecek.
 3. OD-043 / OD-046 (birincil UI yüzeyi, build vs E2E) ile **birleştirilmez**.
-4. CLI/entrypoint değişikliği, OD-028 kapanana kadar **ertelenir** (web alt komutuna özgü değişiklikler).
+4. Uygulama paketi (§12.2) tamamlanana kadar OD-028 **closed** sayılmaz; indeks senkronu uygulama sonrası yapılır.
 
 ---
 
@@ -190,11 +196,11 @@ lumos  (veya python -m lumos_core)
 
 [`project-map-runtime-entrypoints.md`](./project-map-runtime-entrypoints.md) §8 ve [`project-workflow.md`](./project-workflow.md) §2 ile hizalı:
 
-1. **`lumos web` / `web/app.py` restore veya kaldırma** için kullanıcı/onaylı görev ve yazılı hedef (A/B alt seçeneği) gerekir.
-2. Belirsiz «web'i düzelt» isteğiyle `__main__.py`, `pyproject.toml` veya yeni `web/` oluşturma **yapılmaz**.
+1. **B1 seçildi** — restore yapılmaz; kaldırma uygulaması §12.2 paketinde, onaylı görev olarak yürütülür.
+2. Belirsiz «web'i düzelt» veya restore isteğiyle `__main__.py`, `pyproject.toml` veya yeni `web/` oluşturma **yapılmaz**.
 3. Panel/UI/frontend build veya deploy değişikliği bu kararın **kapsamı dışındadır**.
 4. Minimum diff; test + CI yeşil olmadan «tamamlandı» denmez.
-5. Public repo sınırı: production API, secret veya operasyonel detay `web/app.py` restore'unda sızmamalı.
+5. Public repo sınırı: production API, secret veya operasyonel detay kod değişikliklerinde sızmamalı.
 
 ---
 
@@ -202,9 +208,9 @@ lumos  (veya python -m lumos_core)
 
 | Risk | Açıklama | Azaltma (özet) |
 |------|----------|----------------|
-| **Kırık komut UX** | Kullanıcı `lumos web` çalıştırınca `web/app.py not found` | Karar kapatılana kadar yardım metinlerinde belirsizlik; restore veya kaldır |
-| **Dokümantasyon drift** | `ARCHITECTURE_MAP.md`, `pyproject.toml` web öngörür; dosya yok | Karar sonrası tek canonical güncelleme paketi |
-| **Test sahte güven** | `test_web_health.py` skip — CI yeşil ama web doğrulanmıyor | Restore sonrası skip kalkmalı; kaldırma sonrası test kaldırılmalı veya redirect testi |
+| **Kırık komut UX** | Kullanıcı `lumos web` çalıştırınca `web/app.py not found` | B1 uygulanana kadar bilinçli; §12.2 ile kaldırılır |
+| **Dokümantasyon drift** | `ARCHITECTURE_MAP.md`, `pyproject.toml` web öngörür; dosya yok | §12.2 uygulama paketi (madde 3, 5) |
+| **Test sahte güven** | `test_web_health.py` skip — CI yeşil ama web doğrulanmıyor | §12.2 madde 4 — test kaldır veya güncelle |
 | **Yüzey karışıklığı** | `lumos web` ile `panel/` / `ui/` / `backend/` aynı sanılır | Bu belge ve OD-043/046 ayrımı |
 | **Çift entry (kando_core)** | Aday pakette aynı kırık desen | OD-027 ile birlikte ele alınır |
 | **Erken restore** | Eski `web/app.py` güncel `src/` güvenlik sınırlarıyla uyumsuz | Restore öncesi `WEB_STABILIZATION_AUDIT` checklist |
@@ -215,12 +221,12 @@ lumos  (veya python -m lumos_core)
 
 | # | Soru | Durum |
 |---|------|--------|
-| 1 | **Restore (A)** mi **kaldırma (B)** mi? | **needs-review** |
-| 2 | Restore ise: git restore (A1) mi minimal yeniden yazım (A2) mi? | **needs-review** |
-| 3 | Kaldırma ise: tam silme (B1) mi deprecated mesaj (B2) mi? | **needs-review** |
-| 4 | Read-only `/health` / `/status` ürün ihtiyacı devam ediyor mu? | **needs-review** |
-| 5 | `pyproject.toml` açıklamasından «read-only web» ifadesi ne zaman güncellenir? | **needs-review** (karara bağlı) |
-| 6 | `packages/kando_core` `web` alt komutu kök kararla birlikte mi temizlenir? | **needs-review** (OD-027 çapraz) |
+| 1 | **Restore (A)** mi **kaldırma (B)** mi? | **Kapandı** — **B (kaldırma)** |
+| 2 | Restore ise: git restore (A1) mi minimal yeniden yazım (A2) mi? | **Geçersiz** — restore seçilmedi |
+| 3 | Kaldırma ise: tam silme (B1) mi deprecated mesaj (B2) mi? | **Kapandı** — **B1** |
+| 4 | Read-only `/health` / `/status` ürün ihtiyacı devam ediyor mu? | **OD-028 dışı** — B1 ile web v1 sunulmayacak; ihtiyaç CLI/bridge/backend ürün kararı (bu belgenin uygulama paketi değil) |
+| 5 | `pyproject.toml` açıklamasından «read-only web» ifadesi ne zaman güncellenir? | **§12.2 madde 3** — uygulama paketi |
+| 6 | `packages/kando_core` `web` alt komutu kök kararla birlikte mi temizlenir? | **§12.2 madde 6** — uygulama paketi (OD-027 çapraz temizlik) |
 
 ---
 
@@ -228,7 +234,7 @@ lumos  (veya python -m lumos_core)
 
 | OD | Konu | Bu belgedeki karşılık | Durum |
 |----|------|------------------------|--------|
-| **OD-028** | `lumos web` / eksik `web/app.py` restore veya kaldırma | Bu dosyanın tamamı | **needs-review** (decision-draft) |
+| **OD-028** | `lumos web` / eksik `web/app.py` restore veya kaldırma | **B1 seçildi** — restore değil; uygulama bekliyor | **decision-approved** (uygulama pending) |
 | OD-027 | `packages/kando_*` → `src/` geçişi | §2 kapsam dışı; `kando_core` web kopyası notu | needs-review (çapraz) |
 | OD-043 | Birincil kullanıcı yüzeyi (`panel/` / `ui/` / `frontend/`) | §2 kapsam dışı — karıştırılmaz | needs-review (çapraz) |
 | OD-046 | Root `npm run build` (ui) vs panel E2E | §2 kapsam dışı — karıştırılmaz | needs-review (çapraz) |
@@ -239,12 +245,35 @@ lumos  (veya python -m lumos_core)
 
 ## 12. Sonraki adım
 
-**Tek adım:** Kullanıcı kararı — **Seçenek A (restore)** veya **Seçenek B (kaldırma)** (§6); alt seçenek (A1/A2 veya B1/B2) ile birlikte. Karar verilmeden `web/` oluşturma, `__main__.py` değişikliği veya entrypoint güncellemesi yapılmaz.
+### 12.1 Karar (tamamlandı)
 
-Restore seçilirse izleyen görev (ayrı oturum): git geçmişinden `web/app.py` diff incelemesi + `WEB_STABILIZATION_AUDIT.md` checklist doğrulaması + `test_web_health.py` yeşil.
+**B1 — Alt komutu kaldır** seçildi. **Restore (A) seçilmedi.**
 
-Kaldırma seçilirse izleyen görev (ayrı oturum): `__main__.py` dar kaldırma + `pyproject.toml` / mimari belge senkronu + test dosyası kararı.
+### 12.2 Uygulama paketi (henüz yapılmadı)
+
+Aşağıdaki işler **ayrı uygulama görevidir**; bu belge kod değiştirmez:
+
+| # | Hedef | Not |
+|---|--------|-----|
+| 1 | `src/lumos_core/__main__.py` — `web` alt komutunu kaldır | `sub.add_parser("web", …)` ve `args.cmd == "web"` dalı |
+| 2 | `src/lumos_core/__main__.py` — `_run_web()` fonksiyonunu kaldır | İlgili importlar temizlenir |
+| 3 | `pyproject.toml` — açıklamadaki «read-only web» ifadesini gözden geçir | Örn. yalnızca CLI odaklı açıklama |
+| 4 | `tests/test_web_health.py` — kaldır veya güncelle | `web/app.py` artık hedef değil |
+| 5 | `docs/ARCHITECTURE_MAP.md` ve ilgili dokümanlar — senkronize et | `lumos web` referanslarını kaldır veya arşiv notu |
+| 6 | `packages/kando_core` içindeki benzer `web` kalıntısı | OD-027 çapraz temizlik; canlı entry değil ama B1 ile hizalı kaldırma |
+
+**Kabul:** İlgili testler + CI yeşil; `lumos web` artık tanımlı değil veya bilinçli deprecated mesaj (B1 = tam kaldırma).
+
+**İndeks senkronu (uygulama sonrası):** [`project-map-runtime-entrypoints.md`](./project-map-runtime-entrypoints.md) §11 madde 3 → [`open-decisions-needs-review.md`](./open-decisions-needs-review.md) OD-028 satırı → `docs/project-map.md` / `docs/decision-log.md`.
+
+### 12.3 Seçilmeyen yol (kayıt)
+
+| Seçenek | Durum |
+|---------|--------|
+| A — Restore (`web/app.py` geri getirme) | **Reddedildi** |
+| B2 — Deprecated alias | **Reddedildi** — B1 tercih edildi |
+| B3 — Yalnızca dokümantasyon temizliği | **Reddedildi** |
 
 ---
 
-*Son güncelleme: 2026-06-17*
+*Son güncelleme: 2026-06-17 (B1 kararı işlendi)*
