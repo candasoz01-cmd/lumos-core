@@ -91,7 +91,7 @@
 
 | ID | Kaynak dosya | Konu | Kısa karar sorusu | Öncelik | Durum | Not |
 |----|--------------|------|-------------------|---------|--------|-----|
-| OD-043 | project-map-runtime-entrypoints.md | Birincil kullanıcı yüzeyi | Birincil yüzey `panel/`, `ui/` veya `frontend/` mi? | high | needs-review | Karar taslağı: [`primary-user-surface-decision.md`](primary-user-surface-decision.md); kısmi netleşti — üretim taslağı `ui/`; kesin karar uygulama kararı bekliyor (OD-046 önkoşul). Üç dizin mevcut; build/e2e farklı hedefler |
+| OD-043 | project-map-runtime-entrypoints.md | Birincil kullanıcı yüzeyi | Birincil üretim/dış kullanıcı yüzeyi hangisi? | high | decision-approved | Karar: [`primary-user-surface-decision.md`](primary-user-surface-decision.md); birincil üretim/dış kullanıcı yüzeyi `ui/` Astro olarak onaylandı. `panel/` legacy/statik E2E kalite kapısıdır; `frontend/` birincil/canlı yüzey değildir. OD-046 Option A uygulamasıyla E2E hizası ayrıca tamamlanacak. |
 | OD-044 | project-map-runtime-entrypoints.md | frontend/ rolü | `frontend/` dizininin panel/ui ile ilişkisi ve yaşam döngüsü ne? | medium | needs-review | Canlı/aday ayrımı tablosu |
 | OD-045 | project-map-runtime-entrypoints.md | lumos-demo konumu | `lumos-demo` nerede; lumos-core ile ilişkisi ne? | low | needs-review | `work_2026` altında bulunamadı |
 | OD-046 | project-map-runtime-entrypoints.md | Root build vs panel | `npm run build` (ui) ile panel E2E hangi yüzeyi «canlı» sayar? | medium | needs-review | Karar taslağı: [`build-e2e-surface-alignment-decision.md`](build-e2e-surface-alignment-decision.md); kısmi netleşti — üretim `ui/`, E2E `panel/`; hizalama seçeneği uygulama kararı bekliyor. Migration: birincil yüzey needs-review |
