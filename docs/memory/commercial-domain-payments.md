@@ -17,6 +17,8 @@ Taşıma süreci: [`chatgpt-saved-memories-migration.md`](./chatgpt-saved-memori
 **Çapraz referans ruhu (çelişki yok):**
 
 - [`payment-scope-decision.md`](./payment-scope-decision.md) — OD-011 onaylı karar özeti; şirket/vergi kaydı mevcut; erteleme nedeni şirket yokluğu değildir.
+- [`commercial-approval-model-decision.md`](./commercial-approval-model-decision.md) — OD-041 onaylı karar özeti; hibrit onay modeli (oturum = düşük risk; ticari işlem = işlem bazlı açık onay).
+- [`domain-monitoring-design-decision.md`](./domain-monitoring-design-decision.md) — OD-042 onaylı karar özeti; marka koruma izleme ilkeleri (uygulama bekliyor).
 - [`external-integrations-permissions.md`](./external-integrations-permissions.md) — onaysız ödeme/domain/dış yazma yasak; gateway + açık onay.
 - [`data-vault-user-data.md`](./data-vault-user-data.md) — kullanıcı verinin sahibi; Lumos kullanıcı adına onaysız ticari aksiyon başlatmaz.
 
@@ -24,7 +26,7 @@ Taşıma süreci: [`chatgpt-saved-memories-migration.md`](./chatgpt-saved-memori
 
 ## Domain ve marka koruma
 
-**Durum:** `[needs-review]` — izleme/raporlama tasarımı; otomatik satın alma yok.
+**Durum:** `decision-approved / implementation-pending` (OD-042) — izleme/raporlama ilkeleri onaylandı; uygulama başlamadı. Karar özeti: [`domain-monitoring-design-decision.md`](./domain-monitoring-design-decision.md). Otomatik satın alma yok.
 
 ### Hedef davranış (gelecek)
 
@@ -96,7 +98,7 @@ Tüm **ticari dış aksiyonlar** (domain, ödeme, abonelik, satın alma, yenilem
 |---|--------|-----|
 | 1 | Domain satın alma, yenileme ve ödeme başlatma **açık kullanıcı onayı olmadan yapılmaz.** | Taşındı |
 | 2 | Ticari dış aksiyon öncesi: **kapsam** (işlem türü, tutar/hedef, sağlayıcı) kullanıcıya gösterilir. | Taşındı |
-| 3 | Onay tek seferlik veya oturum bazlı olabilir — model `[needs-review]`. | Çekirdek sözleşme onay katmanları esas |
+| 3 | **Hibrit onay modeli** (`decision-approved`, OD-041): düşük riskli okuma/izleme oturum bazlı; dış etkili ticari işlemler **işlem bazlı açık onay** — oturum izni ödeme yetkisi değildir. Domain izleme OD-042 ile hizalı. | [`commercial-approval-model-decision.md`](./commercial-approval-model-decision.md), [`domain-monitoring-design-decision.md`](./domain-monitoring-design-decision.md) |
 | 4 | Lumos, kullanıcı adına **sessiz** veya **varsayılan-onaylı** ticari işlem başlatmaz. | Taşındı |
 
 **Onay akışı (taslak):**
