@@ -1,12 +1,12 @@
 # Workflow karar hizalaması — OD-008, OD-009, OD-010
 
-> **Durum:** Karar taslağı (needs-review). **Uygulama değildir.** Bu belge `.cursor/rules`, `docs/workflow-rules.md` veya diğer workflow dosyalarında değişiklik yapmaz; yalnızca OD-008/009/010 için netleşen ve hâlâ açık kalan ilkeleri kayıt altına alır.
+> **Durum:** Karar onaylı (`decision-approved`). **Uygulama değildir** — bu belge `.cursor/rules`, `docs/workflow-rules.md` veya diğer workflow dosyalarında değişiklik yapmaz; yalnızca OD-008/009/010 için onaylanan ilkeleri kayıt altına alır. OD-010 için CI sınıflandırması (`doc-only` / `analysis-only`) **implementation-pending** kaldı.
 
 ---
 
 ## 1. Amaç
 
-`docs/memory/project-workflow.md` içindeki **needs-review** maddeleri (OD-008, OD-009, OD-010) için tek bir karar taslağı oluşturmak:
+`docs/memory/project-workflow.md` içindeki **needs-review** maddeleri (OD-008, OD-009, OD-010) için tek bir karar kaydı oluşturmak:
 
 - Continuous progress ile tek-adım önceliği arasındaki sınırı netleştirmek
 - Agent-first kuralının workflow’daki yerini tanımlamak (kapsam genişletmesi olmadan)
@@ -16,35 +16,47 @@
 
 ---
 
-## 2. Kapsam dışı olanlar
+## 2. Canonical hiyerarşi
+
+| Sıra | Kaynak | Rol |
+|------|--------|-----|
+| 1 | `docs/memory/project-workflow.md` | **Birincil workflow canonical** — karar ve hizalama referansı |
+| 2 | `docs/workflow-rules.md` | **Davranış / akış destek belgesi** — `project-workflow` ile uyumlu olmalı |
+| 3 | `.cursor/rules/**` | **Operasyonel uygulama katmanı** — Cursor oturumunda uygulanır; bu belge kuralları değiştirmez |
+
+**Not:** Çekirdek sözleşme (`docs/lumos-karar-sozlesmesi.md`) tüm katmanların üst sınırdır (§9).
+
+---
+
+## 3. Kapsam dışı olanlar
 
 | Kapsam dışı | Gerekçe |
 |-------------|---------|
 | `.cursor/rules/**` değişikliği | Bu adım uygulama değildir |
-| `docs/workflow-rules.md` düzenlemesi | Ayrı hizalama adımı gerekir |
+| `docs/workflow-rules.md` düzenlemesi | Ayrı hizalama adımı gerekir (implementation-pending) |
 | Kod, CI pipeline, hook veya otomasyon değişikliği | Davranış belgesi kapsamı dışı |
 | Çok ajanlı rol sırası detayı | `kando-lumos-multi-agent.mdc` alanı; bu belge yalnızca workflow tamamlanma sınırına referans verir |
 | Ürün onayı / kalıcı silme / vault | Çekirdek sözleşme; workflow OD’leri ile karıştırılmaz |
 
 ---
 
-## 3. Netleşen ilkeler
+## 4. Netleşen ilkeler
 
-Aşağıdaki maddeler **bu karar taslağında firm** kabul edilir; kaynaklar arasında örtüşen çekirdek ilkelerdir:
+Aşağıdaki maddeler **onaylı** kabul edilir:
 
 1. **Her görev tek hedefli ve dar kapsamlıdır.** Aynı oturumda birden fazla bağımsız problem birleştirilmez.
-2. **Continuous progress, tek hedefi kırmaz.** Akış devam eder; her turda yalnızca **bir** somut ilerleme adımı sunulur.
+2. **Tek hedef / tek adım, continuous progress’ten önceliklidir.** Akış devam eder; her turda yalnızca **bir** somut ilerleme adımı sunulur.
 3. **Görev, kullanıcı onayı olmadan kapatılmaz.** Ajan “bitti” demekle işi kapatamaz; kabul kullanıcıdadır.
-4. **Test / doğrulama olmadan “tamamlandı” denmez.** Local doğrulama yetersizse CI zinciri tamamlanana kadar iş bitmiş sayılmaz (commit/push senaryolarında).
-5. **Agent-first tercih edilebilir iş akışıdır** — kullanıcıyı gereksiz manuel adımdan korumak için — **ancak kapsam genişletme izni vermez.**
+4. **Test / doğrulama olmadan “tamamlandı” denmez.** CI yeşil olmadan (commit/push/merge senaryosunda) iş bitmiş sayılmaz.
+5. **Agent-first tercih edilen yürütme yöntemidir** — kullanıcıyı gereksiz manuel adımdan korumak için — **ancak kapsam genişletme izni vermez.** Canonical kaynak: `project-workflow.md`.
 6. **Cursor/ajan yalnızca atanan işi yapar;** ek refactor, “hazır girmişken” yan düzeltme veya kapsam dışı dosya değişikliği yoktur.
 7. **Bu belge uygulama adımı değildir.** Kuralların ve workflow dosyalarının güncellenmesi ayrı, onaylı bir iş paketidir.
 
 ---
 
-## 4. Tek hedef / dar kapsam kararı
+## 5. Tek hedef / dar kapsam kararı
 
-**Karar (firm):** Tüm geliştirme ve ajan oturumları **tek hedef, dar kapsam** ilkesine tabidir.
+**Karar (onaylı):** Tüm geliştirme ve ajan oturumları **tek hedef, dar kapsam** ilkesine tabidir.
 
 | Kaynak | İfade |
 |--------|--------|
@@ -57,11 +69,11 @@ Aşağıdaki maddeler **bu karar taslağında firm** kabul edilir; kaynaklar ara
 
 ---
 
-## 5. Continuous progress sınırı
+## 6. Continuous progress sınırı (OD-008)
 
-**OD-008 bağlamı:** `docs/workflow-rules.md` (Continuous Progress Rule) ile `.cursor/rules/tek-adim-ilerleme.mdc` arasında öncelik sorusu.
+**OD-008:** `decision-approved`
 
-### Firm hizalama
+**Karar:** **Tek hedef / tek adım, continuous progress’ten önceliklidir.**
 
 | Katman | Kural | Öncelik |
 |--------|-------|---------|
@@ -75,45 +87,42 @@ Aşağıdaki maddeler **bu karar taslağında firm** kabul edilir; kaynaklar ara
 - **Continuous progress ≠ kapsam genişletme.** Sıradaki adım, açık görev tanımı veya kullanıcı yönlendirmesiyle uyumlu olmalı; ajan kendi kafasına yeni hedef eklemez.
 - **Durma kararı kullanıcıdadır** (`workflow-rules.md`); ajan “burada duralım” demez — ancak **riskli / geri dönüşsüz** işlerde açık onay ister (çekirdek sözleşme ile uyumlu).
 
-### Needs-review (OD-008 kısmi)
-
-- `docs/workflow-rules.md` ile `docs/memory/project-workflow.md` arasında **hangi belge birincil workflow canonical** olduğu henüz kapatılmadı.
-- Continuous progress’in **güvenli dokümantasyon / planlama** ile **kod değişikliği** sınırı metin olarak örtüşüyor; tek cümlelik öncelik sırası indekste hâlâ `needs-review`.
+**Canonical referans:** `docs/memory/project-workflow.md` birincil; `docs/workflow-rules.md` davranış desteği (§2).
 
 ---
 
-## 6. Agent-first kuralının yeri
+## 7. Agent-first kuralının yeri (OD-009)
 
-**OD-009 bağlamı:** Agent-first kuralının tek canonical kaynağı nerede tutulacak?
+**OD-009:** `decision-approved`
 
-### Firm hizalama
+**Karar:** Agent-first **tercih edilen yürütme yöntemidir**; **kapsam genişletme izni vermez.** **Canonical kaynak:** `docs/memory/project-workflow.md`.
 
 | İlke | Durum |
 |------|--------|
-| Mümkünse önce agent ile yap (manuel adımı kullanıcıya yıkmadan önce) | Firm — davranış hedefi |
-| Agent-first **kapsam genişletme izni vermez** | Firm |
-| Komutlar kısa, tek hedefli, uygulanabilir | Firm — `workflow-rules.md` ile örtüşür |
-| Atanan iş dışına çıkma yasağı geçerlidir | Firm — `project-workflow.md` §4 |
+| Mümkünse önce agent ile yap (manuel adımı kullanıcıya yıkmadan önce) | Onaylı — davranış hedefi |
+| Agent-first **kapsam genişletme izni vermez** | Onaylı |
+| Komutlar kısa, tek hedefli, uygulanabilir | Onaylı — `workflow-rules.md` ile örtüşür |
+| Atanan iş dışına çıkma yasağı geçerlidir | Onaylı — `project-workflow.md` §4 |
 
-### Çift kayıt (needs-review — OD-009 açık)
+### Kaynak katmanları (çift kayıt — uygulama bekliyor)
 
-Aynı veya çok yakın içerik şu an **birden fazla yerde** bulunuyor:
+Aynı veya yakın içerik operasyonel katmanda da bulunur; **canonical tanım** `project-workflow.md`’dedir:
 
-| Konum | İçerik |
-|-------|--------|
-| `docs/workflow-rules.md` | Agent-First Execution Rule |
-| `.cursor/rules/agent-calisma-kurallari.mdc` | Agent-First Çalıştırma Kuralı (+ genel ajan disiplini) |
-| `docs/memory/project-workflow.md` §4, migration tablosu | Atanan iş sınırı; agent-first `needs-review` |
+| Konum | Rol |
+|-------|-----|
+| `docs/memory/project-workflow.md` §4, migration tablosu | **Canonical** — agent-first + atanan iş sınırı |
+| `docs/workflow-rules.md` | Davranış desteği — Agent-First Execution Rule |
+| `.cursor/rules/agent-calisma-kurallari.mdc` | Operasyonel uygulama — değiştirilmez (bu adım) |
 
-**Karar taslağı:** Agent-first **tercih edilen iş akışı** olarak kalır; **canonical tek kaynak** seçimi bu belgede kapatılmadı — OD-009 `needs-review` devam eder.
-
-**Önerilen yön (uygulama değil):** Uzun vadede `docs/memory/project-workflow.md` özet + `docs/workflow-rules.md` veya tek seçilmiş kural dosyası; çift kayıt birleştirmesi ayrı onaylı adım.
+**Implementation-pending:** `docs/workflow-rules.md` ve `project-workflow.md` migration tablosunun bu kararla senkron edilmesi ayrı onaylı adımdır.
 
 ---
 
-## 7. CI ve tamamlanma kriteri
+## 8. CI ve tamamlanma kriteri (OD-010)
 
-**OD-010 bağlamı:** CI yeşil olmadan tamamlandı sayma kuralı workflow belgeleriyle tam hizalı mı?
+**OD-010:** `decision-approved` / `implementation-pending`
+
+**Karar:** **CI yeşil olmadan “tamamlandı” denmez** (commit/push/merge senaryosunda).
 
 ### Firm tamamlanma kriterleri
 
@@ -123,7 +132,7 @@ Bir iş **tamamlandı** sayılmaz:
 |-------|--------|
 | İlgili test / lint / doğrulanabilir çıktı yok | `project-workflow.md` §5 |
 | Kullanıcı onayı / kabul yok | `project-workflow.md` §5; `lumos-karar-sozlesmesi.md` §6 |
-| CI kırmızı (commit/push/merge sonrası senaryoda) | `kando-lumos-multi-agent.mdc`; `lumos-karar-ozet.mdc` |
+| CI kırmızı (commit/push/merge sonrası senaryoda) | `kando-lumos-multi-agent.mdc`; `lumos-karar-ozet.mdc`; **OD-010 onaylı** |
 | “Çalışıyor gibi” — kanıtsız iddia | Çok ajanlı disiplin; `project-workflow.md` §7 |
 
 ### Doğrulama zinciri (geliştirme)
@@ -135,16 +144,17 @@ Commit/push önerildiğinde esas alınan sıra (özet):
 - Local test geçse bile **push sonrası en güncel CI run** yeşil değilse iş bitmiş sayılmaz.
 - CI kırmızıysa teşhis önce **log** (`ci-diagnosis.mdc`); repo state tek başına teşhis kaynağı değildir.
 
-### Needs-review (OD-010 kısmi)
+### Doc-only / analysis-only istisna sınırı (implementation-pending)
 
-- `project-workflow.md` §5 madde 3’te CI hizası açıkça `needs-review` işaretli; bu taslak firm kriterleri yazar ancak **tüm workflow dosyalarının senkron olduğunu iddia etmez**.
-- **Sadece analiz/plan** görevlerinde CI’nin nasıl uygulanacağı (ör. yalnızca doküman değişikliği) ayrı netleştirme gerektirebilir — `needs-review`.
+**Onaylı ilke:** Yalnızca doküman veya analiz görevlerinde, yerel pre-commit / test yeterliyse **CI sınıflandırması uygulama detayı** olarak kalır — kararın kendisi “CI yeşil = tamamlandı” kuralını gevşetmez; kod/commit/push senaryosunda CI zorunludur.
+
+**Implementation-pending:** Bu sınıflandırmanın `project-workflow.md` §5 ve ilgili indekslerde nasıl yazılacağı henüz uygulanmadı.
 
 ---
 
-## 8. Kullanıcı onayı ve kapanış kuralı
+## 9. Kullanıcı onayı ve kapanış kuralı
 
-**Firm:**
+**Onaylı:**
 
 1. Görev **kullanıcı onayı olmadan kapatılmaz** (`project-workflow.md` §2, §5).
 2. Ajan işi bitirdiğini düşünse bile **kabul kullanıcıdadır**; “tamamlandı” raporu öneri niteliğindedir.
@@ -155,66 +165,77 @@ Commit/push önerildiğinde esas alınan sıra (özet):
 
 ---
 
-## 9. Çelişki çözüm sırası
+## 10. Çelişki çözüm sırası
 
-Kaynaklar çeliştiğinde aşağıdaki sıra uygulanır (bu taslakta firm):
+Kaynaklar çeliştiğinde aşağıdaki sıra uygulanır (onaylı):
 
 | Sıra | Kaynak | Gerekçe |
 |------|--------|---------|
 | 1 | `docs/lumos-karar-sozlesmesi.md` | Çekirdek sözleşme; üst sınır |
-| 2 | `docs/memory/project-workflow.md` | Repo canonical workflow kaydı (`open-decisions-needs-review.md` indeks kuralı) |
-| 3 | `.cursor/rules/*` (workspace) | Cursor oturumunda uygulanan operasyonel kurallar |
-| 4 | `docs/workflow-rules.md` | Davranış/akış kuralı; `project-workflow` ile hizalanması devam eden alan |
-| 5 | Bu belge (`workflow-decision-alignment.md`) | OD karar taslağı; uygulama değil — canonical değil, yönlendirme |
+| 2 | `docs/memory/project-workflow.md` | **Birincil workflow canonical** |
+| 3 | `docs/workflow-rules.md` | Davranış/akış desteği; `project-workflow` ile hizalanmalı |
+| 4 | `.cursor/rules/*` (workspace) | Operasyonel uygulama katmanı |
+| 5 | Bu belge (`workflow-decision-alignment.md`) | OD karar kaydı; uygulama değil — yönlendirme |
 
 **Özel çelişki notları:**
 
-- **Tek-adım vs continuous progress:** §5 — tek hedef üstün; tur başına tek aksiyon; akış devamı ayrı katman.
-- **Local test vs CI:** CI kırmızıysa “tamamlandı” yok; öncelik CI > test çıktısı > git state (`kando-lumos-multi-agent.mdc`).
-- **Agent-first vs dar kapsam:** Agent-first yalnızca **yürütme yöntemi**; kapsamı genişletmez.
+- **Tek-adım vs continuous progress (OD-008):** Tek hedef / tek adım üstün; tur başına tek aksiyon; akış devamı ayrı katman.
+- **Local test vs CI (OD-010):** CI kırmızıysa “tamamlandı” yok; öncelik CI > test çıktısı > git state (`kando-lumos-multi-agent.mdc`).
+- **Agent-first vs dar kapsam (OD-009):** Agent-first yalnızca **yürütme yöntemi**; kapsamı genişletmez; canonical: `project-workflow.md`.
 
 ---
 
-## 10. Açık kararlar
+## 11. Karar durumu özeti
 
-| ID | Konu | Bu taslaktaki durum |
-|----|------|---------------------|
-| OD-008 | Continuous progress vs tek-adım önceliği | **Kısmi netleşti** — §5 firm sınır; canonical öncelik belgesi ve indeks durumu `needs-review` |
-| OD-009 | Agent-first canonical kaynak | **Açık** — çift kayıt; tek canonical yer seçilmedi |
-| OD-010 | CI tamamlanma kriteri hizası | **Kısmi netleşti** — firm “bitti” kriterleri §7; tüm workflow dosyaları senkron değil (`needs-review`) |
-
-**Kapatılmayan sorular:**
-
-1. `docs/workflow-rules.md` mi `docs/memory/project-workflow.md` mi birincil workflow canonical?
-2. Agent-first metni hangi tek dosyada toplanacak?
-3. Doküman-only / analiz-only görevlerde CI zorunluluğu nasıl sınıflandırılacak?
-4. OD indeksinde OD-008/009/010 durumu `needs-review` → `aligned-draft` geçişi kim onaylar?
+| ID | Konu | Durum |
+|----|------|--------|
+| OD-008 | Continuous progress vs tek-adım önceliği | **decision-approved** — tek hedef / tek adım öncelikli (§6) |
+| OD-009 | Agent-first canonical kaynak | **decision-approved** — tercih edilen yöntem; kapsam genişletmez; canonical: `project-workflow.md` (§7) |
+| OD-010 | CI tamamlanma kriteri | **decision-approved** / **implementation-pending** — CI yeşil zorunlu; doc-only CI sınıflandırması uygulama bekliyor (§8) |
 
 ---
 
-## 11. OD eşleme tablosu
+## 12. Açık kalan maddeler
+
+| Konu | Kategori | Not |
+|------|----------|-----|
+| `project-workflow.md` migration tablosu + OD indeks senkronu | implementation-pending | Karar onaylı; metin güncellemesi ayrı adım |
+| `docs/workflow-rules.md` hizalama | implementation-pending | Canonical hiyerarşi onaylı; dosya düzenlemesi bu adımda yapılmadı |
+| Doc-only / analysis-only CI sınıflandırması metni | implementation-pending | OD-010 kararı net; uygulama detayı bekliyor |
+| `.cursor/rules/**` | kapsam dışı | Operasyonel katman; bu belge değiştirmez |
+
+**Kapatılan sorular (OD-008/009/010):**
+
+1. ~~Birincil workflow canonical?~~ → `docs/memory/project-workflow.md`
+2. ~~Agent-first canonical kaynak?~~ → `docs/memory/project-workflow.md`
+3. ~~Continuous progress vs tek-adım?~~ → Tek hedef / tek adım öncelikli
+4. ~~CI yeşil olmadan tamamlandı?~~ → Hayır (commit/push/merge senaryosunda)
+
+---
+
+## 13. OD eşleme tablosu
 
 | OD | Kaynak | Karar sorusu | Bu belgedeki karşılık | Durum |
 |----|--------|--------------|------------------------|--------|
-| OD-008 | `project-workflow.md` | Continuous progress ile tek-adım hangisi öncelikli? | §5 — tek hedef üstün; tur başına tek aksiyon; continuous progress durma önermeme + tek sonraki adım | Kısmi netleşti / needs-review |
-| OD-009 | `project-workflow.md` | Agent-first tek canonical yerde mi? | §6 — davranış firm; kaynak birleştirme açık | needs-review |
-| OD-010 | `project-workflow.md` | CI yeşil olmadan tamamlandı sayma tam hizalı mı? | §7 — firm kriterler; dosya senkronu açık | Kısmi netleşti / needs-review |
+| OD-008 | `project-workflow.md` | Continuous progress ile tek-adım hangisi öncelikli? | §6 — **tek hedef / tek adım öncelikli**; continuous progress durma önermeme + tek sonraki adım | **decision-approved** |
+| OD-009 | `project-workflow.md` | Agent-first tek canonical yerde mi? | §7 — tercih edilen yöntem; kapsam genişletmez; **canonical: `project-workflow.md`** | **decision-approved** |
+| OD-010 | `project-workflow.md` | CI yeşil olmadan tamamlandı sayma tam hizalı mı? | §8 — **CI yeşil zorunlu**; doc-only sınıflandırma implementation-pending | **decision-approved** / **implementation-pending** |
 
 ---
 
-## 12. Sonraki adım
+## 14. Sonraki adım
 
-**Tek önerilen adım (uygulama değil):** Kullanıcı onayıyla OD-008/009/010 için ya (a) `docs/memory/project-workflow.md` migration tablosunda bu taslağa referans + durum güncellemesi, ya da (b) `docs/workflow-rules.md` ile `.cursor/rules` hizalama paketi planlanır — **bu adımda hiçbiri yapılmaz.**
+**Tek önerilen adım (uygulama — ayrı onay):** OD-010 `implementation-pending` kapsamında `docs/memory/project-workflow.md` migration tablosu ve `open-decisions-needs-review.md` indeksinde OD-008/009/010 durumlarını bu belgeye referansla güncellemek — **bu adımda yapılmaz.**
 
 ---
 
 ## İlişkili belgeler
 
-- [`open-decisions-needs-review.md`](./open-decisions-needs-review.md) — OD indeksi
-- [`project-workflow.md`](./project-workflow.md) — canonical workflow kaydı
-- [`../workflow-rules.md`](../workflow-rules.md) — continuous progress / agent-first
+- [`open-decisions-needs-review.md`](./open-decisions-needs-review.md) — OD indeksi (senkron implementation-pending)
+- [`project-workflow.md`](./project-workflow.md) — **birincil workflow canonical**
+- [`../workflow-rules.md`](../workflow-rules.md) — davranış/akış desteği
 - [`../lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md) — üst sınır
 
 ---
 
-*Son güncelleme: 2026-06-17*
+*Son güncelleme: 2026-06-17 — OD-008/009/010 decision-approved*
