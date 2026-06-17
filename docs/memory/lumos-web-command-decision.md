@@ -1,6 +1,6 @@
 # OD-028 — `lumos web` / eksik `web/app.py` karar belgesi
 
-**Durum:** `[decision-approved]` — **B1 (alt komutu kaldır)** seçildi; **restore değil**. Uygulama henüz yapılmadı; kod değişikliği bu belgede yok.  
+**Durum:** `[implemented]` — **B1 (alt komutu kaldır)** uygulandı (2026-06-17). `web/app.py` restore edilmedi.  
 **Kaynak indeks:** [`open-decisions-needs-review.md`](./open-decisions-needs-review.md) OD-028.  
 **Çapraz referans:** OD-027 (`packages/kando_*` geçişi), OD-043 / OD-046 (panel/ui/frontend yüzeyleri).  
 **Doğrulama tarihi:** 2026-06-17 (repo read-only tarama).  
@@ -17,7 +17,7 @@ Root `lumos` CLI içindeki **`web` alt komutunun** ve hedef dosya **`web/app.py`
 Bu belge:
 
 - **Karar belgesidir** — seçim kayıtlıdır; **uygulama ayrı görevdir** (§12.2).
-- Uygulama yapılana kadar repo'da kırık `lumos web` komutu **bilinçli olarak** kalabilir.
+- **B1 uygulandı** — `lumos web` alt komutu `__main__.py`'den kaldırıldı.
 - Çekirdek sözleşme ([`docs/lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md)) üst sınır olarak geçerlidir.
 
 ---
@@ -249,7 +249,7 @@ lumos  (veya python -m lumos_core)
 
 **B1 — Alt komutu kaldır** seçildi. **Restore (A) seçilmedi.**
 
-### 12.2 Uygulama paketi (henüz yapılmadı)
+### 12.2 Uygulama paketi (tamamlandı — 2026-06-17)
 
 Aşağıdaki işler **ayrı uygulama görevidir**; bu belge kod değiştirmez:
 
