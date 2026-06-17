@@ -1,29 +1,8 @@
-"""Entry point: lumos (or python -m lumos_core). Subcommands: cli (default), web."""
+"""Entry point: lumos (or python -m lumos_core). Subcommands: cli (default), decision."""
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import sys
-from pathlib import Path
-
-
-def _run_web() -> None:
-    """Run web/app.py main() by loading the module from repo root."""
-    # Editable install: __file__ is .../src/lumos_core/__main__.py -> repo = parent of src
-    repo_root = Path(__file__).resolve().parent.parent.parent
-    app_py = repo_root / "web" / "app.py"
-    if not app_py.exists():
-        sys.exit("web/app.py not found")
-    spec = importlib.util.spec_from_file_location("web_app", app_py)
-    if spec is None or spec.loader is None:
-        sys.exit("Could not load web/app.py")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules["web_app"] = module
-    spec.loader.exec_module(module)
-    if hasattr(module, "main"):
-        module.main()
-    else:
-        sys.exit("web/app.py has no main()")
 
 
 def _run_cli(sandbox_mode: bool | None = None) -> None:
@@ -35,7 +14,7 @@ def _run_cli(sandbox_mode: bool | None = None) -> None:
 
 def main() -> None:
     from lumos_core import __version__
-    parser = argparse.ArgumentParser(prog="lumos", description="Lumos core CLI and web")
+    parser = argparse.ArgumentParser(prog="lumos", description="Lumos core CLI")
     parser.add_argument("--version", action="store_true", help="show version and exit")
     parser.add_argument(
         "--sandbox",
@@ -44,7 +23,6 @@ def main() -> None:
     )
     sub = parser.add_subparsers(dest="cmd", help="subcommand")
     sub.add_parser("cli", help="run interactive CLI (default)")
-    sub.add_parser("web", help="run Web v1 server")
     decision_p = sub.add_parser("decision", help="run decision pipeline, show proposal diff (no apply)")
     decision_p.add_argument("--goal", required=True, help="goal description")
     decision_p.add_argument("--paths", required=True, nargs="+", help="target paths")
@@ -53,9 +31,7 @@ def main() -> None:
     if args.version:
         print(__version__)
         sys.exit(0)
-    if args.cmd == "web":
-        _run_web()
-    elif args.cmd == "decision":
+    if args.cmd == "decision":
         from pathlib import Path
         from core.decision_pipeline import run_decision_pipeline
         from core.decision_runner import format_result_preview

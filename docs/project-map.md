@@ -41,7 +41,7 @@ lumos  (veya python -m lumos_core)
 |-----|--------|
 | `src/` canlı/aktif Lumos Core | **proje haritası** |
 | `packages/kando_*` ayrıştırılmış mimari adayı; root entry buradan başlamaz | **proje haritası** |
-| `lumos web` → `web/app.py` | **karar: B1 kaldır** — restore değil; uygulama bekliyor (OD-028). Bugün: alt komut hâlâ `__main__.py`'de, `web/` yok, komut kırık. |
+| `lumos web` → `web/app.py` | **uygulandı: B1 kaldır** (OD-028) — alt komut yok; `web/` restore edilmedi |
 
 ---
 

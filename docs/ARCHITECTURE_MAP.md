@@ -20,14 +20,13 @@ lumos-core/
 │   ├── device/             # Contacts (device layer)
 │   ├── tools/              # File classifier, run_classify
 │   └── lumos_core/         # Installable package: __main__, version only
-├── web/                    # Web v1 server (read-only /health, /status)
 ├── panel/                  # Operator panel (static HTML/JS/CSS; read-only bridge)
 ├── docs/                   # Contracts, karar sözleşmesi, guard/sandbox
 ├── tests/
 └── .lumos/                 # Workspace spine: tasks/, logs/, trash/, config/
 ```
 
-**Entry points:** `lumos` (or `python -m lumos_core`) → CLI (default) or `lumos web` → `web/app.py`. CLI loads `main.main()` from `src/main.py` with `src` on path.
+**Entry points:** `lumos` (or `python -m lumos_core`) → CLI (default) or `lumos decision`. CLI loads `main.main()` from `src/main.py` with `src` on path. (`lumos web` removed — OD-028 B1.)
 
 ---
 
@@ -61,7 +60,7 @@ lumos-core/
 | **State inject** | `panel/js/state_inject.js` | Consumes injected state (e.g. from `read_backend_state.py --write`). |
 | **Script** | `panel/scripts/read_backend_state.py` | Read-only backend snapshot: uses `workspace_contract`, `startup_health`; outputs JSON for Dashboard, Sandbox, System, Config, Identity, Keystore, Tasks, Trash, Logs. Injected into panel via `__LUMOS_READ_STATE__` (e.g. static build or dev pipeline). |
 
-**Serving:** Panel is static; no routes in `web/app.py`. Run via `file://` or HTTP (e.g. `python3 -m http.server 8080` → `http://localhost:8080/panel/`).
+**Serving:** Panel is static. Run via `file://` or HTTP (e.g. `python3 -m http.server 8080` → `http://localhost:8080/panel/`).
 
 ---
 
@@ -104,14 +103,14 @@ lumos-core/
 
 ### 5.5 Panel ↔ backend
 
-- **Panel** never talks to `web/app.py` today. Data comes from: (1) `window.__LUMOS_READ_STATE__` (filled by `read_backend_state.py` or similar), or (2) fixture/demo.
+- **Panel** does not use a dedicated Python HTTP server in the CLI entry. Data comes from: (1) `window.__LUMOS_READ_STATE__` (filled by `read_backend_state.py` or similar), or (2) fixture/demo.
 - **read_backend_state.py** imports only from `src` (workspace_contract, startup_health, etc.); no `main.py`, no write flows. Output shape must match **BACKEND_DATA_CONTRACT.md** and **fixtures.js** mappers.
 - **Coupling:** Adding a new panel screen or backend payload: (1) extend `read_backend_state.py` output, (2) add bridge getter in `backend-bridge.js`, (3) add CONTRACTS + normalizer in `contracts.js`, (4) add mapper in `fixtures.js`, (5) update BACKEND_DATA_CONTRACT.md. Keeps panel contract-driven and backend read-only.
 
-### 5.6 Web server
+### 5.6 HTTP surfaces (outside CLI)
 
-- **web/app.py** is minimal: GET /health, GET /status. Reads from `.lumos` (or `src/.lumos`) and security presence for status; no panel serving, no write.
-- **Coupling:** If later you add panel serving or write APIs, keep them behind explicit routes and preserve read-only and sandbox rules for core paths.
+- **backend/** Express API and **api/bridge/** Vercel proxy are separate HTTP layers; not served by `lumos` CLI subcommands.
+- **Panel/UI** are static; serve via `file://`, static host, or Astro build output. Preserve read-only and sandbox rules for core paths when adding routes.
 
 ---
 
@@ -119,9 +118,8 @@ lumos-core/
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  Entry: lumos / lumos web                                         │
+│  Entry: lumos (CLI default) / lumos decision                      │
 │  CLI: main.py  ──► CoreEngine, CoreState, Lumos, TaskEngine       │
-│  Web: web/app.py  ──► /health, /status (read-only)               │
 └─────────────────────────────────────────────────────────────────┘
          │                    │
          ▼                    ▼
@@ -143,7 +141,7 @@ lumos-core/
 │  index.html ← app.js ← contracts.js ← fixtures.js                │
 │                  ↑           ↑              ↑                     │
 │  backend-bridge.js (__LUMOS_READ_STATE__)  read_backend_state.py │
-│  (read-only; no web/app.py routes)                               │
+│  (read-only; static panel — no CLI web subcommand)               │
 └─────────────────────────────────────────────────────────────────┘
 ```
 

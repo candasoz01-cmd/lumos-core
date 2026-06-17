@@ -54,8 +54,9 @@ lumos  (veya python -m lumos_core)
 | Alt komut | Hedef |
 |-----------|--------|
 | `cli` (varsayılan) | `src/main.py` → CLI döngüsü |
-| `web` | `web/app.py` — **`[needs-review]`** repoda `web/` dizini yok; komut çalıştırılırsa hata verebilir |
 | `decision` | `core.decision_pipeline` / `core.decision_runner` |
+
+> **OD-028 B1 (2026-06-17):** `web` alt komutu kaldırıldı; `web/app.py` restore edilmedi.
 
 **Özet:** Aktif ana giriş hâlâ **`src/`** tarafındadır. Root `pyproject.toml` → `lumos_core.__main__` → `main` modülü (`src/main.py`).
 
@@ -134,7 +135,7 @@ Panel ↔ köprü entegrasyonu bu katmandan geçer; Python CLI zincirinden ayrı
 | Root `package.json` → `"build": "cd ui && npm install && npm run build"` | **`ui/` mevcut** — komut teknik olarak çalışabilir; panel ile hangi yüzeyin “birincil” olduğu `[needs-review]` |
 | `lumos_core.main:main` entry | **Eski / hatalı** — güncel: `lumos_core.__main__:main` |
 | `src/lumos_core/main.py` | **Yok** — zincir `__main__.py` üzerinden |
-| `lumos web` → `web/app.py` | **`web/` dizini yok** — alt komut kırık olabilir `[needs-review]` |
+| `lumos web` → `web/app.py` | **Kaldırıldı** (OD-028 B1) — alt komut yok; `web/` restore edilmedi |
 | `cd ui && npm run build` panel yerine UI build eder | Panel E2E için `npm run e2e:* --prefix panel` kullanılır |
 
 ---
@@ -155,7 +156,6 @@ Panel ↔ köprü entegrasyonu bu katmandan geçer; Python CLI zincirinden ayrı
 |------|----------|
 | **Yanlış entry sanma** | `packages/kando_*` veya `kando-ai/` üzerinden canlı CLI varsayımı |
 | **panel vs ui karışıklığı** | İki ayrı Node yüzeyi; build script UI’yı, e2e panel’i hedefler |
-| **`lumos web` kırığı** | `web/` eksik; dokümantasyon veya kod uyumsuzluğu |
 | **Stale memory** | ChatGPT’deki `lumos_core.main` veya tek klasör (`ui` *veya* `panel`) notları güncel değil |
 | **Çoklu work_2026 dizini** | Yanlış klasörde komut çalıştırma |
 
@@ -171,7 +171,7 @@ Panel ↔ köprü entegrasyonu bu katmandan geçer; Python CLI zincirinden ayrı
 | `ui/` yok → build stale | `ui/` var (Astro) | `[migrated]` — build çalışabilir; birincil yüzey `[needs-review]` |
 | `packages/kando_*` = canlı entry | Root entry `src/`; packages aday | `[migrated]` |
 | `lumos-demo` ayrı proje | `work_2026/lumos-demo` yok | `[needs-review]` |
-| `web/app.py` web sunucusu | `web/` dizini yok | `[needs-review]` |
+| `web/app.py` web sunucusu | `web/` dizini yok; `lumos web` kaldırıldı (OD-028 B1) | `[migrated]` |
 | `.lumos/` runtime kayıtları | Mevcut + `CORE_STATE_PATH_NAMES` | `[migrated]` |
 | `api/bridge/[...path].js` | Mevcut | `[migrated]` |
 | `backend/` Express API | Mevcut | `[migrated]` |
@@ -186,7 +186,7 @@ Aşağıdaki satırlar henüz repo dışı kaynaktan işlenmedi veya doğrulanma
 |---|--------|--------|-----|
 | 1 | `[needs-review]` | `lumos-demo` konumu ve lumos-core ile ilişkisi | `work_2026` altında bulunamadı |
 | 2 | `[needs-review]` | Birincil kullanıcı yüzeyi: `panel/` mi `ui/` mi `frontend/` mi? | Üç dizin de var |
-| 3 | `[needs-review]` | `lumos web` / `web/app.py` geleceği — restore mu kaldırma mı? | `web/` eksik |
+| 3 | `[migrated]` | `lumos web` / `web/app.py` — OD-028 B1 alt komut kaldırıldı | `web/` restore yok; `__main__.py` güncellendi |
 | 4 | `[needs-review]` | `packages/kando_*` → `src/` geçiş takvimi ve kesme kriterleri | Mimari karar bekliyor |
 | 5 | `[queued]` | ChatGPT Saved Memories’ten ek proje yolu / deploy notları | `chatgpt-saved-memories-migration.md` tablosuna yapıştırılacak |
 
