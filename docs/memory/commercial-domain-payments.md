@@ -16,6 +16,7 @@ Taşıma süreci: [`chatgpt-saved-memories-migration.md`](./chatgpt-saved-memori
 
 **Çapraz referans ruhu (çelişki yok):**
 
+- [`payment-scope-decision.md`](./payment-scope-decision.md) — OD-011 onaylı karar özeti; şirket/vergi kaydı mevcut; erteleme nedeni şirket yokluğu değildir.
 - [`external-integrations-permissions.md`](./external-integrations-permissions.md) — onaysız ödeme/domain/dış yazma yasak; gateway + açık onay.
 - [`data-vault-user-data.md`](./data-vault-user-data.md) — kullanıcı verinin sahibi; Lumos kullanıcı adına onaysız ticari aksiyon başlatmaz.
 
@@ -53,15 +54,15 @@ Taşıma süreci: [`chatgpt-saved-memories-migration.md`](./chatgpt-saved-memori
 
 ## Ödeme sistemi ertelenmiş kapsam
 
-**Durum:** `[needs-review]` — iş/şirket yapısı netleşene kadar uygulama yok.
+**Durum:** `decision-approved / implementation-pending` (OD-011) — ilke kararları onaylandı; **uygulama başlamadı**. Şirket/vergi kaydı **mevcut**; erteleme nedeni şirket yokluğu değildir. Beklenen: ödeme ürün modeli, PSP seçimi, hukuk/mali ödeme akışı, abonelik modeli ve uygulama paketi. Ayrıntı: [`payment-scope-decision.md`](./payment-scope-decision.md).
 
 | # | Kural | Not |
 |---|--------|-----|
-| 1 | Ödeme sistemi özelliği, **şirket resmi/bağımsız iş yapısı** oluşana kadar **ertelenir**. | Taşındı |
-| 2 | Bu sürede: **banka** veya **ödeme sağlayıcı** kurulum çalışması yapılmaz. | Taşındı |
-| 3 | Gelecek fikir: kullanıcılar arası **maliyet paylaşımı** için QR kod veya **tek ödeme linki**. | `[needs-review]` — ürün/hukuk/PSP modeli belirsiz |
+| 1 | Ödeme sistemi özelliği, **ödeme ürün modeli + PSP/hukuk-mali ödeme akışı uygulama paketi** hazır olana kadar **ertelenir** (şirket/vergi kaydı mevcut). | OD-011 — `decision-approved` |
+| 2 | Bu sürede: **banka**, **PSP**, **merchant hesabı** veya **ödeme sağlayıcı entegrasyonu** aktif geliştirme kapsamında yapılmaz. | Taşındı |
+| 3 | Gelecek fikir (yalnızca ürün notu): kullanıcılar arası **maliyet paylaşımı** için QR kod veya **tek ödeme linki** — uygulama, tasarım veya entegrasyon yok. | `[needs-review]` — OD-040; ürün/hukuk/PSP modeli sonra |
 
-**Özet:** Ödeme altyapısı şimdilik kapsam dışı; yalnızca not olarak saklanır. Banka/PSP entegrasyonu, merchant hesabı veya fatura akışı tanımsızdır.
+**Özet:** Ödeme altyapısı aktif geliştirme kapsamı dışı; yalnızca not olarak saklanır. Lumos, kullanıcı **açık onayı olmadan** ödeme, satın alma, abonelik, domain satın alma/yenileme veya ödeme linki oluşturma **başlatmaz**. Banka/PSP entegrasyonu, merchant hesabı, checkout, webhook, settlement ve fatura akışı henüz uygulanmadı.
 
 ---
 
@@ -115,7 +116,7 @@ Tüm **ticari dış aksiyonlar** (domain, ödeme, abonelik, satın alma, yenilem
 | Erken PSP/banka kurulumu | Ödeme sistemi ertelenmiş kapsam — kurulum yok |
 | Ticari scope creep | Her aksiyon: onay + kapsam + risk gösterimi |
 | ChatGPT memory drift | Repo canonical; periyodik migration kontrolü |
-| Hukuk/şirket yapısı belirsizliği | Ödeme ve maliyet paylaşımı maddeleri `[needs-review]` |
+| Ödeme modeli / PSP / hukuk-mali akış bekleniyor | Ödeme uygulama paketi onaylanmadan aktif kapsama alınmaz; maliyet paylaşımı (OD-040) `[needs-review]` |
 | Kullanıcı verisi / ödeme bilgisi | Vault ve sahiplik — data-vault-user-data.md |
 
 **Şeffaflık:** Domain izleme sonuçları ve ticari teklifler kaynak, fiyat ve risk ile birlikte sunulur; otomatik uygulama yok.
@@ -133,9 +134,9 @@ ChatGPT Saved Memories / oturum bağlamından bu dosyaya taşınan maddeler.
 | 3 | Onaysız domain satın alma/yenileme/ödeme yok | Domain / Kullanıcı onayı | `[migrated]` | external-integrations ile hizalı |
 | 4 | Birincil domain: welockai.com | Domain ve marka koruma | `[migrated]` | Hedef korunur |
 | 5 | Varyasyon domain → birincil redirect | Domain ve marka koruma | `[needs-review]` | Edinim onaylı; redirect detayı sonra |
-| 6 | Ödeme sistemi şirket yapısına kadar ertelendi | Ödeme sistemi ertelenmiş kapsam | `[migrated]` | |
-| 7 | Banka/PSP kurulumu yapılmaz (şimdilik) | Ödeme sistemi ertelenmiş kapsam | `[migrated]` | |
-| 8 | QR / tek ödeme linki — maliyet paylaşımı fikri | Ödeme sistemi ertelenmiş kapsam | `[needs-review]` | Ürün/hukuk/PSP belirsiz |
+| 6 | Ödeme sistemi uygulama paketi bekleniyor (şirket/vergi kaydı mevcut) | Ödeme sistemi ertelenmiş kapsam | `[migrated]` | OD-011 `decision-approved` |
+| 7 | Banka/PSP/merchant kurulumu aktif kapsam dışı | Ödeme sistemi ertelenmiş kapsam | `[migrated]` | |
+| 8 | QR / tek ödeme linki — maliyet paylaşımı fikri | Ödeme sistemi ertelenmiş kapsam | `[needs-review]` | Gelecek ürün notu only; OD-040 |
 | 9 | Ticari dış aksiyon: onay + kapsam + risk | Ticari dış aksiyon sınırları | `[migrated]` | |
 | 10 | external-integrations ve data-vault ile çelişki yok | Amaç / Ticari sınırlar | `[migrated]` | Çapraz referans |
 
@@ -157,4 +158,4 @@ ChatGPT Saved Memories'ten henüz işlenmemiş maddeler için şablon. Taşıma 
 
 ---
 
-*Son güncelleme: 2026-06-17*
+*Son güncelleme: 2026-06-18*

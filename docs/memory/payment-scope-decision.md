@@ -1,6 +1,8 @@
-# Ödeme sistemi kapsam kararı — OD-011 karar taslağı
+# Ödeme sistemi kapsam kararı — onaylı karar (OD-011)
 
-**Durum:** `[decision-draft]` — uygulama başlamadı; bu belge kod değişikliği değildir.
+> **Durum:** `decision-approved` — ilke kararları onaylandı; **uygulama başlamadı** (`implementation-pending`). Bu belge kod değişikliği değildir.
+>
+> **Üst sınır:** `docs/lumos-karar-sozlesmesi.md` — güvenlik, yetki, kalıcı silme ve onay kuralları bu kararı gevşetemez.
 
 **Kaynak OD:** OD-011 (`commercial-domain-payments.md` — Ödeme sistemi kapsamı)
 
@@ -14,18 +16,28 @@ OD-011 kapsamında ödeme sistemi, PSP (Payment Service Provider), banka/merchan
 
 Bu belge:
 
-- Şirket/resmî iş yapısı netleşene kadar ödeme altyapısının **kapsam dışı** kalmasını kayıt altına alır.
+- Ödeme ürün modeli, PSP seçimi, hukuk/mali ödeme akışı ve fatura/vergi işleme henüz **uygulama paketine** alınmadığı için ödeme altyapısının **aktif geliştirme kapsamı dışı** kalmasını kayıt altına alır (şirket/vergi kaydı mevcut; erteleme nedeni şirket yokluğu değildir).
 - Onaysız ödeme, satın alma, abonelik ve domain işlemlerinin **yasak** olduğunu tekrarlar.
 - QR / tek ödeme linki fikrini yalnızca **gelecek ürün notu** olarak konumlandırır.
 - Vault, veri sahipliği ve public repo sınırlarıyla hizayı sabitler.
 
-**Uygulama durumu:** Ödeme sistemi uygulaması **başlamadı**. Bu doküman politika/karar taslağıdır; kod, test, panel, bridge veya entegrasyon değişikliği içermez.
+**Uygulama notu:** İlke kararları onaylandı; kod, test, panel, bridge, ödeme entegrasyonu, sağlayıcı seçimi, banka/PSP kurulumu veya credential/endpoint tanımı **henüz başlamadı**.
+
+---
+
+## 1b. Onaylanan ilke vs bekleyen uygulama
+
+| Katman | Durum | Kapsam |
+|--------|--------|--------|
+| **İlke kararları** | `decision-approved` | Ödeme ürün modeli + PSP/hukuk-mali ödeme akışı uygulama paketi hazır olana kadar ödeme sistemi, PSP, banka, merchant hesabı, checkout, webhook, settlement ve gerçek ödeme entegrasyonu **aktif geliştirme kapsamı dışı** (şirket/vergi kaydı mevcut). Lumos, kullanıcı **açık onayı olmadan** ödeme, satın alma, abonelik, domain satın alma/yenileme veya ödeme linki oluşturma **başlatmaz**. QR / tek ödeme linki yalnızca **gelecek ürün notu** — uygulama yok. Ödeme credential'ı, banka bilgisi, merchant detayı ve production endpoint public repoda ve Lumos yüzeyinde **tutulmaz/yazılmaz**. |
+| **Uygulama / teknik detay** | `implementation-pending` | Ödeme altyapısı, checkout, webhook, settlement, PSP entegrasyonu — hiçbiri uygulanmadı; bu belge uygulama izni vermez. |
+| **Needs-review (açık)** | `needs-review` | PSP seçimi, ödeme sağlayıcı entegrasyonu, vergi/fatura akışı, abonelik modeli, maliyet paylaşımı modeli, ödeme verisi vault entegrasyonu; OD-040 (maliyet paylaşımı QR/link) ve OD-041 (ticari onay modeli) detayları. |
 
 ---
 
 ## 2. Kapsam dışı olanlar
 
-Aşağıdakiler **şu an ve şirket/resmî yapı netleşene kadar** Lumos geliştirme ve ürün kapsamı dışındadır:
+Aşağıdakiler **şu an ve ödeme modeli / PSP / hukuk-mali ödeme akışı uygulama paketi tamamlanana kadar** Lumos aktif geliştirme ve ürün kapsamı dışındadır:
 
 | Alan | Kapsam dışı davranış |
 |------|----------------------|
@@ -40,49 +52,52 @@ Aşağıdakiler **şu an ve şirket/resmî yapı netleşene kadar** Lumos geliş
 
 ---
 
-## 3. Netleşen ilkeler
+## 3. Onaylanan ilkeler
 
-Aşağıdaki ilkeler **firm** (sabit) kabul edilir; çekirdek sözleşme ve canonical memory kayıtlarıyla uyumludur:
+Aşağıdaki ilkeler **onaylandı** (`decision-approved`); çekirdek sözleşme ve canonical memory kayıtlarıyla uyumludur:
 
 | # | İlke | Kaynak hizası |
 |---|------|---------------|
-| 1 | Ödeme sistemi, **şirket/resmî bağımsız iş yapısı** netleşene kadar **ertelenir**. | `commercial-domain-payments.md` |
-| 2 | Bu sürede **banka, PSP, merchant hesabı veya ödeme sağlayıcı kurulumu yapılmaz**. | `commercial-domain-payments.md` |
+| 1 | Ödeme sistemi, **ödeme ürün modeli + PSP/hukuk-mali ödeme akışı uygulama paketi** hazır olana kadar **ertelenir** (şirket/vergi kaydı mevcut; erteleme nedeni şirket yokluğu değildir). | `commercial-domain-payments.md` |
+| 2 | Bu sürede **banka, PSP, merchant hesabı veya ödeme sağlayıcı entegrasyonu** aktif geliştirme kapsamında **yapılmaz**. | `commercial-domain-payments.md` |
 | 3 | Lumos, kullanıcı **açık onayı olmadan** ödeme, satın alma, abonelik, domain satın alma/yenileme **başlatmaz**. | `lumos-karar-sozlesmesi.md`, `security-architecture.md` |
 | 4 | Ödeme bilgisi, kullanıcı verisi ve credential'lar Lumos **yüzeyinde** tutulmaz; vault ve sahiplik ilkeleri geçerlidir. | `data-vault-user-data.md` |
 | 5 | Ticari dış aksiyonlar Lumos **güvenli geçidi** ve **açık kapsam + risk gösterimi** üzerinden tanımlanır. | `external-integrations-permissions.md` |
 | 6 | Public `lumos-core` reposuna ödeme credential'ı, banka bilgisi, merchant detayı veya production endpoint **yazılmaz**. | `security-architecture.md`, public boundary kuralları |
-| 7 | QR veya tek ödeme linki fikri **yalnızca gelecek ürün notu** olarak saklanır; uygulama yok. | `commercial-domain-payments.md` |
+| 7 | QR veya tek ödeme linki fikri **yalnızca gelecek ürün notu** olarak saklanır; **uygulama, tasarım veya entegrasyon yok**. | `commercial-domain-payments.md` |
+| 8 | Gerçek ödeme entegrasyonu, webhook, settlement ve reconciliation **kapsam dışı**; uygulama paketi onaylanana kadar başlatılmaz. | `commercial-domain-payments.md` |
+| 9 | Lumos, kullanıcı adına **ödeme linki oluşturma veya paylaşma** dahil onaysız ticari aksiyon başlatmaz. | `external-integrations-permissions.md` |
 
 ---
 
 ## 4. Ödeme sistemi karar sınırı
 
 ```
-[ Şirket/resmî yapı belirsiz ] → ödeme sistemi KAPSAM DIŞI
-[ Kullanıcı açık onayı yok ]   → ödeme/domain/abonelik BAŞLATILMAZ
-[ Lumos yüzeyi ]               → ödeme bilgisi / credential TUTULMAZ
-[ Public repo ]                → operasyonel ödeme detayı YAZILMAZ
+[ Ödeme modeli / PSP / hukuk-mali akış uygulama paketi yok ] → ödeme sistemi KAPSAM DIŞI
+[ Kullanıcı açık onayı yok ]                                  → ödeme/domain/abonelik BAŞLATILMAZ
+[ Lumos yüzeyi ]                                              → ödeme bilgisi / credential TUTULMAZ
+[ Public repo ]                                               → operasyonel ödeme detayı YAZILMAZ
 ```
 
 **Karar sınırı özeti:**
 
-- **Şimdi:** Politika notu ve karar taslağı; teknik uygulama yok.
-- **Sonra (koşullu):** Şirket/resmî yapı + hukuk/vergi/PSP modeli netleşince ayrı karar belgesi ve OD güncellemesi gerekir; bu belge tek başına uygulama izni vermez.
+- **Onaylandı (şimdi):** Kapsam dışı sınır, onaysız ticari aksiyon yasağı, QR/link gelecek-notu konumu, public repo ve yüzey sınırı.
+- **Uygulama (beklemede):** Ödeme altyapısı, entegrasyon, PSP/banka kurulumu — hiçbiri başlamadı; bu belge tek başına uygulama izni vermez.
+- **Sonra (koşullu):** Ödeme ürün modeli, PSP seçimi, hukuk/mali ödeme akışı ve fatura/vergi işleme uygulama paketi netleşince ayrı karar turu ve OD güncellemesi gerekir.
 - **Her zaman:** Kullanıcı onayı, gateway ilkesi ve çekirdek sözleşme üst sınırdır.
 
 ---
 
-## 5. Şirket/resmî yapı şartı
+## 5. Uygulama paketi önkoşulu
 
 | Konu | Durum |
 |------|--------|
-| Bağımsız şirket / resmî iş yapısı | `[needs-review]` — hukuk ve operasyonel detay bu belgede tanımlanmaz |
-| Ödeme özelliğine geçiş önkoşulu | Resmî yapı netleşmeden ödeme sistemi kapsama **alınmaz** |
-| Vergi, fatura, mevzuat uyumu | `[needs-review]` — ayrı hukuk/mali değerlendirme gerekir |
+| Şirket / vergi kaydı | **Mevcut** — ödeme kapsamı ertelemesinin nedeni şirket yokluğu değildir |
+| Ödeme özelliğine geçiş önkoşulu | Ödeme ürün modeli, PSP seçimi, hukuk/mali ödeme akışı ve fatura/vergi işleme **uygulama paketi** onaylanmadan ödeme sistemi aktif kapsama **alınmaz** |
+| Vergi, fatura, mevzuat uyumu | `[needs-review]` — uygulama paketi içinde ayrı hukuk/mali değerlendirme gerekir |
 | Domain ticari işlemleri | Domain izleme ayrı; satın alma/yenileme yine açık onaylı — bkz. `commercial-domain-payments.md` |
 
-**Firm karar:** Ödeme sistemi, şirket/resmî bağımsız iş yapısı açıklanana kadar **tamamen dışarıda** kalır.
+**Firm karar:** Ödeme sistemi, ödeme modeli / PSP / hukuk-mali ödeme akışı uygulama paketi hazır olana kadar **aktif geliştirme kapsamı dışında** kalır.
 
 ---
 
@@ -183,9 +198,12 @@ Aşağıdakiler **needs-review** olarak kalır; bu karar taslağı bunları kapa
 
 | Konu | OD / kaynak | Not |
 |------|-------------|-----|
-| Şirket/resmî bağımsız iş yapısı zamanlaması ve formu | OD-011 | Hukuk/operasyon ayrı değerlendirme |
 | PSP seçimi ve sözleşme modeli | OD-011, OD-040 | Platform vs merchant; ülke/para birimi |
-| Vergi, fatura, mevzuat uyumu | — | Mali/hukuk danışmanlığı gerekir |
+| Ödeme sağlayıcı entegrasyonu | OD-011 | Uygulama paketi içinde tanımlanacak |
+| Vergi, fatura, mevzuat uyumu | OD-011 | Uygulama paketi içinde mali/hukuk değerlendirme |
+| Abonelik modeli | OD-011 | Ürün + PSP birlikte |
+| Maliyet paylaşımı modeli | OD-040 | Ürün + hukuk + PSP birlikte |
+| Ödeme verisi vault entegrasyonu | OD-001, OD-003 | `data-vault-user-data.md` |
 | QR / tek link maliyet paylaşımı ürün modeli | OD-040 | Ürün + hukuk + PSP birlikte |
 | Ticari onay: tek seferlik vs oturum bazlı | OD-041 | Çekirdek sözleşme onay katmanları esas |
 | Vault amaç bazlı erişim (ödeme verisi dahil) | OD-001, OD-003 | `security-architecture.md`, `data-vault-user-data.md` |
@@ -197,24 +215,25 @@ Aşağıdakiler **needs-review** olarak kalır; bu karar taslağı bunları kapa
 
 | OD | Kaynak dosya | Konu | Bu belgedeki karar | Durum |
 |----|--------------|------|-------------------|--------|
-| **OD-011** | `commercial-domain-payments.md` | Ödeme sistemi kapsamı | Şirket yapısı netleşene kadar ödeme/PSP tamamen dışarıda | **decision-draft** (needs-review devam) |
+| **OD-011** | `commercial-domain-payments.md` | Ödeme sistemi kapsamı | Ödeme modeli/PSP/hukuk-mali akış uygulama paketi bekleniyor; ödeme/PSP aktif kapsam dışı | **decision-approved / implementation-pending** |
 | OD-040 | `commercial-domain-payments.md` | Maliyet paylaşımı QR/link | Gelecek fikir only; ürün/hukuk/PSP belirsiz | needs-review |
 | OD-041 | `commercial-domain-payments.md` | Ticari onay modeli | Açık onay zorunlu; tek/oturum modeli belirsiz | needs-review |
 | OD-039 | `commercial-domain-payments.md` | Domain redirect | Ödeme belgesi kapsamı dışı; çapraz referans | needs-review |
 | OD-001–002 | `security-architecture.md` | Vault / token | Ödeme credential yüzeyde değil | needs-review |
 | OD-003–005 | `data-vault-user-data.md` | Vault erişim / şifreleme | Ödeme verisi vault ilkesine tabi | needs-review |
 
-**İndeks notu:** `open-decisions-needs-review.md` OD-011 satırı, bu belge yayınlandıktan sonra manuel senkronize edilebilir; canonical kaynak önce `commercial-domain-payments.md`, karar özeti bu dosyadır.
+**İndeks notu:** `open-decisions-needs-review.md` OD-011 satırı bu belgeyle senkron tutulur; canonical kaynak önce `commercial-domain-payments.md`, onaylı karar özeti bu dosyadır.
 
 ---
 
 ## 13. Sonraki adım
 
-1. **Şirket/resmî yapı** ve hukuk/mali çerçeve için ayrı değerlendirme (bu repo dışı; needs-review).
-2. Koşullar netleşince: `commercial-domain-payments.md` ve `open-decisions-needs-review.md` içinde OD-011 durumunu güncelle; gerekirse uygulama spesifikasyonu **yeni** belgede aç (bu taslak uygulama izni vermez).
-3. Ödeme kapsamına geçilmeden önce: vault modeli (OD-001–005), ticari onay modeli (OD-041) ve public boundary tekrar doğrulanmalı.
+1. **Needs-review (devam):** PSP seçimi, ödeme sağlayıcı entegrasyonu, vergi/fatura akışı, abonelik modeli, maliyet paylaşımı modeli, ödeme verisi vault entegrasyonu — uygulama paketi değerlendirmesi (çoğu bu repo dışı).
+2. **OD-040 / OD-041:** Maliyet paylaşımı QR/link ürün modeli ve ticari onay (tek seferlik vs oturum bazlı) detayları netleşene kadar uygulama yok.
+3. Koşullar netleşince: `commercial-domain-payments.md` güncellenir; uygulama spesifikasyonu **yeni** belgede açılır (bu onaylı karar belgesi tek başına uygulama izni vermez).
+4. Ödeme kapsamına geçilmeden önce: vault modeli (OD-001–005), ticari onay modeli (OD-041) ve public boundary tekrar doğrulanmalı.
 
-**Tek doğrulanabilir sonraki repo adımı (dokümantasyon):** OD-011 için `open-decisions-needs-review.md` indeks satırına bu belgeye referans eklenmesi — ayrı onaylı commit turu; bu dosya tek başına indeksi değiştirmez.
+**Yasak (bu aşamada):** kod, test, ödeme entegrasyonu, sağlayıcı seçimi, banka/PSP kurulumu, credential, endpoint, secret.
 
 ---
 
@@ -229,4 +248,4 @@ Aşağıdakiler **needs-review** olarak kalır; bu karar taslağı bunları kapa
 
 ---
 
-*Son güncelleme: 2026-06-17*
+*Son güncelleme: 2026-06-18*
