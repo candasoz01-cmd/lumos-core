@@ -1,20 +1,21 @@
-# Root build vs panel E2E — yüzey hizası karar taslağı (OD-046)
+# Root build vs panel E2E — yüzey hizası kararı (OD-046)
 
-**Durum:** `[decision-draft]` — uygulama değildir; kod, build, test veya deploy değişikliği içermez.  
+**Durum:** `[decision-approved]` — **Seçenek A** onaylandı; uygulama ayrı iş paketidir (bu belge kod, build, test veya deploy değişikliği yapmaz).  
 **Kaynak:** `docs/memory/open-decisions-needs-review.md` (OD-046; çapraz OD-043, OD-044).  
-**Doğrulama:** Repo dosya sistemi read-only tarama — 2026-06-17.
+**Doğrulama:** Repo dosya sistemi read-only tarama — 2026-06-17; karar onayı — 2026-06-17.
 
 ---
 
 ## 1. Amaç
 
-Root `package.json` içindeki **build** hedefi (`ui/`) ile **E2E** hedefi (`panel/`) farklı dizinlere işaret ettiği için «hangi yüzey canlıdır?» sorusunu (OD-046) kanıta dayalı bir **karar taslağı** olarak netleştirmek.
+Root `package.json` içindeki **build** hedefi (`ui/`) ile **E2E** hedefi (`panel/`) farklı dizinlere işaret ettiği için «hangi yüzey canlıdır?» sorusunu (OD-046) kanıta dayalı olarak netleştirmek ve **onaylanmış hizalama kararını** kaydetmek.
 
 Bu belge:
 
 - **Uygulama belgesi değildir** — hiçbir kod, build scripti, E2E migrasyonu veya deploy değişikliği önermez veya yapmaz.
 - Çekirdek sözleşme (`docs/lumos-karar-sozlesmesi.md`) üst sınır olarak geçerlidir.
-- OD-043 (birincil kullanıcı yüzeyi) kapanmadan «tek canlı yüzey» kesin kararı verilmez; bu belge OD-046 özelinde build/E2E «canlı» tanımını ayırır.
+- **Onaylanan karar (Seçenek A):** Kök E2E kalite kapısı, üretim yüzeyi (`ui/dist` veya Astro preview) ile hizalanacak; bugünkü `panel/` E2E geçiş dönemi kalite kapısıdır.
+- OD-043 (birincil kullanıcı yüzeyi) kapanışı, bu hizalama **uygulamasının** sonucuna bağlıdır.
 
 ---
 
@@ -24,9 +25,9 @@ Bu belge:
 |-------------|---------|
 | `ui/`, `panel/`, `frontend/` kod değişikliği | OD-046 yalnızca karar taslağıdır |
 | Root `package.json` script değişikliği | Bilinçli hizalama kararı sonrası ayrı görev |
-| E2E migrasyonu (`panel/` → `ui/dist`) | Uygulama kararı bekliyor |
+| E2E migrasyonu (`panel/` → `ui/dist`) | Karar onaylandı (Seçenek A); uygulama ayrı iş paketi |
 | `api/bridge/`, `backend/`, `src/` Python çekirdeği | Runtime giriş zinciri ayrı belgede |
-| OD-043 kesin kapanışı | Bu belge önkoşul sağlar; tek başına kapatmaz |
+| OD-043 kesin kapanışı | Hizalama uygulaması sonucuna bağlı; tek başına kapatmaz |
 | OD-044 (`frontend/` yaşam döngüsü) | Yalnızca çapraz not; ayrı karar |
 | `lumos web` / `web/app.py` | OD-028; bu belgenin konusu değil |
 
@@ -125,7 +126,7 @@ Kök package.json                    vercel.json
 | Üretim panel hangi dosyadan gelir? | `ui/src/pages/panel.astro` build çıktısı |
 | `panel/` dizini build'e dahil mi? | **Hayır** — root build ve Vercel zincirinde referans yok |
 
-**Taslak pozisyon (sabit kural):** Root build + Vercel `ui/`'ye işaret ediyorsa → **üretim yüzeyi adayı `ui/`** (`/panel` rotası dahil). Bu, deploy kanıtı düzeyinde güçlü sinyaldir; ancak tek başına E2E hizasını garanti etmez.
+**Onaylanmış pozisyon:** Root build + Vercel `ui/`'ye işaret ediyorsa → **üretim yüzeyi `ui/`** (`/panel` rotası dahil). Bu, deploy kanıtı düzeyinde güçlü sinyaldir; E2E hizası Seçenek A uygulaması ile tamamlanacaktır.
 
 ---
 
@@ -149,7 +150,7 @@ Kök package.json
 | `ui/dist` veya `ui` dev sunucusu test edilir mi? | **Hayır** — kök expose E2E scriptlerinde `ui/` hedefi yok |
 | Panel README ne diyor? | Mock/fixture ağırlıklı geliştirme yüzeyi; hash routing (`#yanit`, `#dashboard`, …) |
 
-**Taslak pozisyon (sabit kural):** Root E2E `panel/` statik uygulamayı hedefliyorsa → bu bir **kalite kapısı**dır; tek başına «üretim yüzeyi = panel/» kanıtı **değildir**.
+**Onaylanmış pozisyon:** Root E2E bugün `panel/` statik uygulamayı hedefler → bu **geçiş dönemi kalite kapısı**dır; nihai hedef üretim yüzeyi (`ui/dist` veya Astro preview) ile hizadır (Seçenek A). `panel/` tek başına «üretim yüzeyi = panel/» kanıtı **değildir**.
 
 **Ürün dili notu:** `docs/memory/ui-chat-experience.md` «panel / chat» derken ürün yüzeyini (Lumos tek dış yüzey) kasteder; bu otomatik olarak `panel/` dizinine işaret etmez.
 
@@ -159,11 +160,11 @@ Kök package.json
 
 OD-046'nın çözmesi gereken kavram ayrımı:
 
-| Kavram | Tanım (taslak) | Mevcut repo kanıtı | «Canlı» sayılır mı? |
-|--------|----------------|--------------------|---------------------|
-| **Üretim / dış kullanıcı yüzeyi** | Deploy edilen, son kullanıcının gördüğü web UI | `vercel.json` → `ui/dist`; `LUMOS_V1_READINESS.md` → `welockai.com/panel` | **Taslak: evet** (`ui/`) |
-| **Root build çıktısı** | `npm run build` (kök) artifact | `ui/dist` | Üretim adayı ile **hizalı** (taslak) |
-| **Root E2E kalite kapısı** | Kökten çalıştırılan paket/regresyon testleri | `panel/` statik — Playwright | **Kalite kapısı**; üretim kanıtı değil |
+| Kavram | Tanım | Mevcut repo kanıtı | «Canlı» sayılır mı? |
+|--------|-------|--------------------|---------------------|
+| **Üretim / dış kullanıcı yüzeyi** | Deploy edilen, son kullanıcının gördüğü web UI | `vercel.json` → `ui/dist`; `LUMOS_V1_READINESS.md` → `welockai.com/panel` | **Evet** (`ui/`) — onaylı |
+| **Root build çıktısı** | `npm run build` (kök) artifact | `ui/dist` | Üretim yüzeyi ile **hizalı** — onaylı |
+| **Root E2E kalite kapısı** | Kökten çalıştırılan paket/regresyon testleri | `panel/` statik — Playwright (bugün); hedef `ui/dist` / Astro preview | **Geçiş dönemi kalite kapısı**; nihai hedef üretim hizası |
 | **Yerel statik panel geliştirme** | Mock/fixture operatör görünümü | `panel/README.md`, `python3 -m http.server` | Geliştirme yüzeyi; deploy değil |
 | **`frontend/` prototip** | Köprü odaklı HTML | Root build/E2E'de yok | Canlı **değil** (OD-044) |
 
@@ -178,40 +179,52 @@ OD-046'nın çözmesi gereken kavram ayrımı:
 
 ### OD-043 ile ilişki
 
-`docs/memory/primary-user-surface-decision.md` üretim için taslağı `ui/`, E2E için `panel/` olarak ayırmıştır. OD-046 bu ayrımı **build/E2E «canlı» tanımı** özelinde daraltır; OD-043'ün kesin kapanışı için **bilinçli hizalama kararı** önkoşuldur.
+`docs/memory/primary-user-surface-decision.md` üretim için taslağı `ui/`, E2E için `panel/` olarak ayırmıştır. OD-046 **Seçenek A** ile kök E2E'nin üretim yüzeyine (`ui/`) hizalanmasını onaylamıştır. OD-043'ün kesin kapanışı, bu hizalamanın **uygulanması ve doğrulanması** sonucuna bağlıdır.
 
 ---
 
-## 7. Karar taslağı
+## 7. Onaylanmış karar
 
 ### 7.1 Belge statüsü
 
 | İfade | Durum |
 |-------|--------|
 | Bu belge uygulama değildir | **Sabit** |
-| Repo kesin «tek canlı yüzey» kararı vermiyor | **Sabit** — `needs-review` |
-| Build + Vercel → `ui/` = üretim yüzeyi **adayı** | **Taslak** (kanıt güçlü) |
-| Root E2E → `panel/` = kalite kapısı, üretim kanıtı değil | **Taslak** (kanıt güçlü) |
-| İki yüzey bilinçli hizalanmadan OD-043 kapanmaz | **Sabit** |
+| OD-046 hizalama kararı | **Onaylandı** — Seçenek A |
+| Build + Vercel → `ui/` = üretim yüzeyi | **Onaylı** (kanıt güçlü) |
+| Root E2E bugün → `panel/` = geçiş dönemi kalite kapısı | **Onaylı** (mevcut repo gerçekliği) |
+| Root E2E nihai hedef → `ui/dist` veya Astro preview | **Onaylı** (Seçenek A) |
+| OD-043 kapanışı hizalama uygulamasına bağlı | **Sabit** |
 
-### 7.2 Kanıta dayalı taslak pozisyon
+### 7.2 Onaylanmış pozisyon
 
-**Üretim «canlı» yüzey (dış kullanıcı):** Taslak olarak **`ui/`** — Astro build, Vercel `ui/dist`, `/panel` rotası (`ui/src/pages/panel.astro`). Kaynak: `vercel.json`, `LUMOS_V1_READINESS.md`, root `npm run build`.
+**Üretim «canlı» yüzey (dış kullanıcı):** **`ui/`** — Astro build, Vercel `ui/dist`, `/panel` rotası (`ui/src/pages/panel.astro`). Kaynak: `vercel.json`, `LUMOS_V1_READINESS.md`, root `npm run build`.
 
-**Kalite kapısı «canlı» yüzey (kök E2E):** Taslak olarak **`panel/`** statik uygulama — `panel/index.html` üzerinde Playwright. Kaynak: root `e2e:*` scriptleri, `panel/e2e/run-package.mjs`.
+**Kalite kapısı (kök E2E — bugün):** **`panel/`** statik uygulama — `panel/index.html` üzerinde Playwright. Kaynak: root `e2e:*` scriptleri, `panel/e2e/run-package.mjs`. Bu, geçiş dönemi kalite kapısıdır; üretim kanıtı değildir.
 
-**Legacy / operatör geliştirme:** `panel/` statik uygulama üretim için dokümante olarak **superseded** (`LUMOS_V1_READINESS.md` §2); ancak kök E2E hâlâ bu yüzeyi test eder → **hizasızlık devam ediyor**.
+**Kalite kapısı (kök E2E — nihai hedef, Seçenek A):** **`ui/dist`** veya Astro preview — üretim yüzeyi ile hizalı E2E. Uygulama henüz yapılmadı.
 
-### 7.3 Henüz kabul edilmeyen varsayımlar
+**Legacy / operatör geliştirme:** `panel/` statik uygulama üretim için dokümante olarak **superseded** (`LUMOS_V1_READINESS.md` §2); kök E2E hâlâ bu yüzeyi test eder → **hizasızlık devam ediyor**; Seçenek A uygulaması ile giderilecek.
 
-- «E2E yeşil = prod panel doğrulandı»
+### 7.3 Seçilen seçenek: A
+
+| Seçenek | Durum | Özet |
+|---------|--------|------|
+| **A** | **Seçildi** | Kök E2E'yi `ui/dist` veya Astro preview'a taşı — E2E = üretim yüzeyi hizası |
+| B | Seçilmedi (tarihsel referans) | `panel/` statik E2E'yi koru; üretim smoke ayrı kanal |
+| C | Seçilmedi (tarihsel referans) | `panel/` statik uygulamayı emekli et; yalnızca `ui/` |
+| D | Seçilmedi (tarihsel referans) | Parity politikası: kritik akışlar her iki yüzeyde test |
+
+### 7.4 Hâlâ geçerli olan yasak varsayımlar
+
+- «E2E yeşil = prod panel doğrulandı» (bugünkü `panel/` E2E için geçerli)
 - «Build yeşil = panel E2E senaryoları geçer»
 - «`panel/` ve `ui/.../panel.astro` aynı test kapsamı»
-- «Kök scriptler zaten hizalı» — kanıt bunun tersini gösteriyor
+- «Kök scriptler zaten hizalı» — kanıt bunun tersini gösteriyor; uygulama tamamlanana kadar geçerli
 
-### 7.4 Özet taslak cümlesi (OD-046)
+### 7.5 Özet onay cümlesi (OD-046)
 
-**Dış kullanıcıya sunulan üretim yüzeyi** taslak olarak **`ui/` (`/panel`)** kabul edilir; **root E2E kalite kapısı** ise **`panel/`** statik uygulamayı hedefler. Bu iki hedef **bilinçli olarak ayrılmıştır** ve repo bugün **hizalı değildir**. Kesin karar ve uygulama (E2E migrasyonu, `panel/` emekliliği veya parity politikası) **beklemededir**.
+**Dış kullanıcıya sunulan üretim yüzeyi** **`ui/` (`/panel`)** kabul edilir. **Root E2E kalite kapısı** bugün **`panel/`** statik uygulamayı hedefler; **onaylanan nihai hedef** üretim yüzeyi ile hizadır (**Seçenek A:** `ui/dist` veya Astro preview). Repo bugün **henüz hizalı değildir**; hizalama **ayrı uygulama iş paketidir**.
 
 ---
 
@@ -222,8 +235,8 @@ Build/E2E hizası veya yüzey değişikliği görevi açılmadan önce:
 1. **Hedef yüzeyi yaz:** `ui/src/pages/panel.astro` **veya** `panel/` — «panel» tek başına yeterli değil.
 2. **Kanal belirt:** deploy mu (`ui/dist`), E2E mi (`panel/` statik), yerel mock mu (`panel/README.md` akışı).
 3. **Kanıt türünü ayır:** Build pass, E2E pass ve prod smoke **farklı yüzeyleri** doğrular; birini diğerinin yerine kullanma.
-4. **OD-046 kapanmadan** «build ve E2E zaten aynı yüzeyi test ediyor» varsayımı yapılmaz.
-5. **OD-043 kapanmadan** birincil yüzey için kesin implementasyon kararı verilmez.
+4. **OD-046 uygulaması tamamlanmadan** «build ve E2E zaten aynı yüzeyi test ediyor» varsayımı yapılmaz.
+5. **OD-043 kapanmadan** birincil yüzey için kesin implementasyon kapanışı verilmez — OD-043, Seçenek A uygulama sonucuna bağlıdır.
 6. **Çekirdek sözleşme** (`docs/lumos-karar-sozlesmesi.md`) — token/bridge sınırları `ui/` prod bundle ile `panel/` mock ortamını karıştırmaz.
 
 ---
@@ -245,22 +258,20 @@ Build/E2E hizası veya yüzey değişikliği görevi açılmadan önce:
 
 | ID | Soru | Bu belgedeki durum |
 |----|------|-------------------|
-| **OD-046** | Root build (ui) ile panel E2E hangi yüzeyi «canlı» sayar? | **Taslak ayrım:** üretim → `ui/`; kök E2E → `panel/`. **Hizalama kararı:** `needs-review` |
-| **OD-043** | Birincil yüzey `panel/`, `ui/` veya `frontend/` mi? | OD-046 hizalanmadan **kapanmaz**; taslak üretim `ui/` |
+| **OD-046** | Root build (ui) ile panel E2E hangi yüzeyi «canlı» sayar? | **Karar onaylandı (Seçenek A):** üretim → `ui/`; kök E2E bugün → `panel/`; nihai hedef → `ui/dist` veya Astro preview |
+| **OD-043** | Birincil yüzey `panel/`, `ui/` veya `frontend/` mi? | Seçenek A **uygulaması** sonucuna bağlı; taslak üretim `ui/` |
 | **OD-044** | `frontend/` rolü? | Root build/E2E'de yok; canlı değil — kısa çapraz not |
 
-### OD-046 için bekleyen uygulama seçenekleri (karar değil — yalnızca çerçeve)
+### OD-046 seçenekleri (onay + tarihsel referans)
 
-Bu maddeler **henüz seçilmedi**; bilinçli oturumda değerlendirilir:
+| Seçenek | Durum | Özet | Etki |
+|---------|--------|------|------|
+| **A** | **Seçildi** | Kök E2E'yi `ui/dist` veya Astro preview'a taşı | E2E = üretim yüzeyi hizası |
+| B | Seçilmedi (tarihsel referans) | `panel/` statik E2E'yi koru; üretim smoke ayrı kanal | İki kapı; roller açık yazılır |
+| C | Seçilmedi (tarihsel referans) | `panel/` statik uygulamayı emekli et; yalnızca `ui/` | E2E migrasyonu zorunlu |
+| D | Seçilmedi (tarihsel referans) | Parity politikası: kritik akışlar her iki yüzeyde test | Bakım maliyeti artar |
 
-| Seçenek | Özet | Etki |
-|---------|------|------|
-| A | Kök E2E'yi `ui/dist` veya Astro preview'a taşı | E2E = üretim yüzeyi hizası |
-| B | `panel/` statik E2E'yi koru; üretim smoke ayrı kanal | İki kapı; roller açık yazılır |
-| C | `panel/` statik uygulamayı emekli et; yalnızca `ui/` | E2E migrasyonu zorunlu |
-| D | Parity politikası: kritik akışlar her iki yüzeyde test | Bakım maliyeti artar |
-
-**Not:** Seçenek işaretlenmeden kod/build/test değişikliği yapılmaz.
+**Not:** Karar onaylandı (Seçenek A); kod/build/test değişikliği **ayrı uygulama iş paketinde** yapılır.
 
 ---
 
@@ -268,22 +279,29 @@ Bu maddeler **henüz seçilmedi**; bilinçli oturumda değerlendirilir:
 
 | ID | Kaynak | Konu | Bu belgede netleşen | Durum | Çapraz not |
 |----|--------|------|---------------------|--------|------------|
-| **OD-046** | project-map-runtime-entrypoints.md | Root build vs panel E2E | Üretim adayı `ui/`; kök E2E `panel/`; «canlı» = bağlama göre; hizasız | **needs-review** | Uygulama seçeneği bekliyor |
-| **OD-043** | project-map-runtime-entrypoints.md | Birincil kullanıcı yüzeyi | OD-046 hizalaması önkoşul; taslak üretim `ui/` | **needs-review** | primary-user-surface-decision.md |
+| **OD-046** | project-map-runtime-entrypoints.md | Root build vs panel E2E | Seçenek A onaylı: üretim `ui/`; kök E2E bugün `panel/`, hedef `ui/dist` / Astro preview | **decision-approved** | Uygulama iş paketi bekliyor |
+| **OD-043** | project-map-runtime-entrypoints.md | Birincil kullanıcı yüzeyi | Seçenek A uygulama sonucuna bağlı; taslak üretim `ui/` | **needs-review** | primary-user-surface-decision.md |
 | **OD-044** | project-map-runtime-entrypoints.md | `frontend/` rolü | Build/E2E zincirinde değil | **needs-review** | Birincil yüzey değil |
 
 ---
 
-## 12. Sonraki adım
+## 12. Sonraki adım — uygulama iş paketi (ayrı görev)
 
-**Tek önerilen adım:** OD-046 için kısa karar oturumu — §10'daki seçeneklerden (A/B/C/D veya hibrit) birinin seçilmesi: root E2E'nin üretim yüzeyi (`ui/dist` / `welockai.com/panel`) ile bilinçli hizalanıp hizalanmayacağı ve `panel/` statik uygulamanın rolünün (legacy-only / parity test / kademeli emeklilik) netleştirilmesi.
+OD-046 kararı onaylandı (Seçenek A). Aşağıdaki uygulama **bu belgenin dışında**, ayrı iş paketi olarak yapılır:
 
-Bu adım tamamlanmadan:
+| Parça | Kapsam |
+|-------|--------|
+| E2E hedefi | Kök E2E'yi `ui/dist` veya Astro preview'a taşıma |
+| Test komutları | Root `package.json` `e2e:*` scriptlerinin üretim yüzeyine hizalanması |
+| Prod smoke | `welockai.com/panel` veya eşdeğer üretim smoke kanalı |
+| Dokümantasyon | `LUMOS_V1_READINESS.md`, `open-decisions-needs-review.md` ve ilgili belgelerin senkronu |
 
-- OD-046 **closed** sayılmaz.
-- OD-043 **closed** sayılmaz.
-- Build/E2E script değişikliği görevi açılmaz.
+Bu uygulama tamamlanmadan:
+
+- OD-046 **implementation-complete** sayılmaz (karar onaylı; uygulama bekliyor).
+- OD-043 **closed** sayılmaz — kapanış, hizalama uygulamasının sonucuna bağlıdır.
+- Build/E2E script değişikliği bu iş paketi kapsamında açılır.
 
 ---
 
-Son güncelleme: 2026-06-17
+Son güncelleme: 2026-06-17 (OD-046 Seçenek A onaylandı)
