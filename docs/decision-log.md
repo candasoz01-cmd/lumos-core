@@ -45,6 +45,14 @@ Bilinçli erteleme; yeniden açılma koşulu veya bağlı OD not edilir.
 | DL-D01 | 2026-06-17 | `panel/` = `ui/` | İki ayrı dizin | `docs/project-map.md` |
 | DL-D02 | 2026-06-17 | Ürün kuralları çift kayıt | `docs/product-rules.md` özet; detay `docs/memory/product-rules.md` | Bu günlük + memory |
 
+### Karar onaylandı — uygulama bekliyor
+
+Karar verildi; kod/CI uygulaması henüz yapılmadı. OD **closed** sayılmaz.
+
+| ID | Tarih | Konu | Karar | Uygulama paketi | Bağlantı |
+|----|-------|------|-------|-----------------|----------|
+| DL-A01 | 2026-06-17 | OD-028 `lumos web` / `web/app.py` | **B1** — alt komutu kaldır; **restore değil** | `__main__.py` web dalı + `_run_web()`; `pyproject.toml` açıklama; `test_web_health.py`; `ARCHITECTURE_MAP.md` senkronu; `kando_core` ayrı (OD-027) | `docs/memory/lumos-web-command-decision.md` §12.2 |
+
 ### İleride değerlendirilecek
 
 | ID | Tarih | Konu | Özet | Bağlantı |
