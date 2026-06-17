@@ -98,7 +98,7 @@ lumos  (veya python -m lumos_core)
 |-----|--------------|--------|
 | `lumos_core.main:main` entry | `lumos_core.__main__:main` | **duplicate kapatıldı** — eski not hatalı |
 | `panel/` = `ui/` | Ayrı dizinler | **duplicate kapatıldı** |
-| `lumos-demo` under `work_2026` | Bulunamadı | **ileride değerlendirilecek** (OD-045) |
+| `lumos-demo` under `work_2026` | Bulunamadı; aktif lumos-core parçası değil | **superseded / not-found** (OD-045 kapandı) — sonradan bulunursa ayrı repo/yan klasör olarak yeniden değerlendirilir |
 
 ---
 

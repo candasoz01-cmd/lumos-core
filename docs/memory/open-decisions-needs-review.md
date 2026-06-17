@@ -93,7 +93,7 @@
 |----|--------------|------|-------------------|---------|--------|-----|
 | OD-043 | project-map-runtime-entrypoints.md | Birincil kullanıcı yüzeyi | Birincil üretim/dış kullanıcı yüzeyi hangisi? | high | decision-approved | Karar: [`primary-user-surface-decision.md`](primary-user-surface-decision.md); birincil üretim/dış kullanıcı yüzeyi `ui/` Astro olarak onaylandı. `panel/` legacy/statik E2E kalite kapısıdır; `frontend/` birincil/canlı yüzey değildir. OD-046 Option A uygulamasıyla E2E hizası ayrıca tamamlanacak. |
 | OD-044 | project-map-runtime-entrypoints.md | frontend/ rolü | `frontend/` dizininin panel/ui ile ilişkisi ve yaşam döngüsü ne? | medium | decision-approved | Karar: [`frontend-role-decision.md`](frontend-role-decision.md); Seçenek B onaylandı — izole köprü E2E + prototip referans; üretim/deploy/root build/root E2E yüzeyi değil; kod/taşıma/arşiv/silme yok. Seçenekler A/C/D seçilmedi. Çapraz: OD-043 birincil `ui/`; OD-046 E2E hizası ayrı uygulama. |
-| OD-045 | project-map-runtime-entrypoints.md | lumos-demo konumu | `lumos-demo` nerede; lumos-core ile ilişkisi ne? | low | needs-review | `work_2026` altında bulunamadı |
+| OD-045 | project-map-runtime-entrypoints.md | lumos-demo konumu | `lumos-demo` nerede; lumos-core ile ilişkisi ne? | low | superseded / not-found | Kapandı (2026-06-17): `work_2026` altında bulunamadı; aktif lumos-core parçası değil (giriş noktası, build hedefi, app bağımlılığı yok). Sonradan bulunursa ayrı repo/yan klasör olarak yeniden değerlendirilir — otomatik lumos-core parçası sayılmaz. |
 | OD-046 | project-map-runtime-entrypoints.md | Root build vs panel E2E | `npm run build` (ui) ile panel E2E hangi yüzeyi hedefler? | medium | decision-approved / implementation-pending | Karar: [`build-e2e-surface-alignment-decision.md`](build-e2e-surface-alignment-decision.md); Seçenek A onaylandı — üretim yüzeyi `ui/`, kök E2E bugün `panel/`, nihai hedef `ui/dist` veya Astro preview. Uygulama ayrı iş paketi: E2E hizası henüz yapılmadı. |
 | OD-047 | repair-assistant-requirements.md | Ürün vizyonu hizası | Teknik servis asistanı genel Lumos vizyonuna nasıl bağlanır? | medium | needs-review | Kapsam §4 migration notu |
 
@@ -134,7 +134,7 @@ Kaynak dosyalardaki migration tablolarından **needs-review / queued** özetleri
 | tools-technology-watchlist.md | 3 | 3 (boş manuel) | OD-029, OD-030 |
 | internal-agent-layers.md | 4 | 5 (boş manuel) | OD-006, OD-007, OD-026 |
 | public-identity-branding.md | 5 | 9 (+5 boş manuel) | OD-048 – OD-057 |
-| project-map-runtime-entrypoints.md | 6 | 1 | OD-027, OD-028, OD-043 – OD-046 |
+| project-map-runtime-entrypoints.md | 5 | 1 | OD-027, OD-028, OD-043, OD-044, OD-046 |
 | chatgpt-saved-memories-migration.md | 0 | 5 (boş manuel) | — (süreç rehberi; madde yok) |
 
 **İndeks senkron kontrolü:** Kaynak dosyada `needs-review` / `queued` / `incelenecek` sayısı değişince bu tablo ve ilgili OD satırları güncellenir.

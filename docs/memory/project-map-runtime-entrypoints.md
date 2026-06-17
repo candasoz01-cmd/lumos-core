@@ -22,7 +22,7 @@ Bu belge, Lumos Core deposunda **aktif runtime giriş zincirini**, **canlı vs a
 **Notlar:**
 
 - `work_2026` altında `lumos-core` dışında başka dizinler de vardır (`archive`, `backend` kopyası, `lumos-quantum` vb.); bunlar ayrı çalışma alanları olabilir.
-- `lumos-demo` — `work_2026` altında **yok** (`[needs-review]` — ayrı demo repo başka yerde olabilir).
+- `lumos-demo` — `work_2026` altında **yok**; aktif lumos-core parçası **değildir** (giriş noktası, build hedefi, app bağımlılığı yok). `[superseded / not-found]` OD-045 kapandı — sonradan bulunursa ayrı repo/yan klasör olarak yeniden değerlendirilir.
 - Kullanıcıya özel mutlak yol bu belgede yerel dev referansı olarak tutulabilir; paylaşılan canonical ifade `~/work_2026/lumos-core` tercih edilir.
 
 ---
@@ -170,7 +170,7 @@ Panel ↔ köprü entegrasyonu bu katmandan geçer; Python CLI zincirinden ayrı
 | Panel = `ui/` | `panel/` **ve** `ui/` ayrı dizinler | `[migrated]` düzeltildi |
 | `ui/` yok → build stale | `ui/` var (Astro) | `[migrated]` — build çalışabilir; birincil yüzey `[needs-review]` |
 | `packages/kando_*` = canlı entry | Root entry `src/`; packages aday | `[migrated]` |
-| `lumos-demo` ayrı proje | `work_2026/lumos-demo` yok | `[needs-review]` |
+| `lumos-demo` ayrı proje | `work_2026/lumos-demo` yok; lumos-core parçası değil | `[superseded / not-found]` OD-045 |
 | `web/app.py` web sunucusu | `web/` dizini yok; `lumos web` kaldırıldı (OD-028 B1) | `[migrated]` |
 | `.lumos/` runtime kayıtları | Mevcut + `CORE_STATE_PATH_NAMES` | `[migrated]` |
 | `api/bridge/[...path].js` | Mevcut | `[migrated]` |
@@ -184,7 +184,7 @@ Aşağıdaki satırlar henüz repo dışı kaynaktan işlenmedi veya doğrulanma
 
 | # | Durum | Madde | Not |
 |---|--------|--------|-----|
-| 1 | `[needs-review]` | `lumos-demo` konumu ve lumos-core ile ilişkisi | `work_2026` altında bulunamadı |
+| 1 | `[superseded / not-found]` | `lumos-demo` konumu ve lumos-core ile ilişkisi | OD-045 kapandı; `work_2026` altında yok; lumos-core parçası değil; sonradan bulunursa ayrı değerlendirme |
 | 2 | `[needs-review]` | Birincil kullanıcı yüzeyi: `panel/` mi `ui/` mi `frontend/` mi? | Üç dizin de var |
 | 3 | `[migrated]` | `lumos web` / `web/app.py` — OD-028 B1 alt komut kaldırıldı | `web/` restore yok; `__main__.py` güncellendi |
 | 4 | `[needs-review]` | `packages/kando_*` → `src/` geçiş takvimi ve kesme kriterleri | Mimari karar bekliyor |
