@@ -1,6 +1,6 @@
-# Bando katmanı ve iç iletişim protokolü — karar taslağı (OD-006 / OD-007)
+# Bando katmanı ve iç iletişim protokolü — onaylı karar (OD-006 / OD-007)
 
-> **Uygulama durumu:** Uygulama başlamadı; bu doküman kod değişikliği değildir. Mimari ve politika kararlarının canonical taslak kaydıdır.
+> **Uygulama durumu:** Karar onaylandı; uygulama başlamadı. Bu doküman kod değişikliği değildir. Mimari ve politika kararlarının canonical kaydıdır.
 
 **Üst sınır:** [`docs/lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md) — güvenlik, yetki, onay ve kalıcı silme kuralları bu taslağı gevşetemez.
 
@@ -10,7 +10,7 @@
 
 ## 1. Amaç
 
-OD-006 (Bando katman varlığı) ve OD-007 (Lumos → iç katman iletişim protokolü) için **tek karar taslağı** oluşturmak.
+OD-006 (Bando katman varlığı) ve OD-007 (Lumos → iç katman iletişim protokolü) için **onaylı karar kaydı** tutmak.
 
 Bu belge:
 
@@ -29,7 +29,7 @@ netleştirir. Uygulama, kod, test veya operasyonel protokol tanımı **bu belgen
 |------|-------------------|
 | Kod, test, panel, bridge, API uygulaması | Bu belge yalnızca karar taslağıdır; uygulama başlamadı. |
 | Gerçek anahtar, token, credential, imza örneği | Güvenlik ve public repo sınırı; canonical kayıtlara yazılmaz. |
-| İmzalama/şifreleme algoritması, format, endpoint, path | OD-007 needs-review; ayrı ve gizli kanalda netleştirilecek. |
+| İmzalama/şifreleme algoritması, format, endpoint, path | OD-007 uygulama bekliyor; private/gizli uygulama paketinde netleştirilecek. |
 | Bando operasyonel runbook'u | Olay kaydı prosedürü OD-026 ile örtüşür; detay sonra. |
 | Kando / Cando görev dağılımı detayı | Bu taslak Bando ve iç iletişim geçidine odaklanır. |
 | Vault, token entegrasyonu (OD-001 – OD-005) | İlgili ama ayrı karar paketi. |
@@ -46,7 +46,7 @@ Aşağıdaki ilkeler **firm** (kaynak canonical dosyalar ve çekirdek sözleşme
 | 2 | Kando, Cando ve Bando **iç katmanlardır**; kullanıcıya ad veya arayüz olarak yansıtılmaz. | product-rules §2; internal-agent-layers §3 |
 | 3 | İç katmanlar dış kaynaklardan **doğrudan komut, dosya veya veri kabul etmez**. | internal-agent-layers §4; security-architecture §3 |
 | 4 | Tüm dış ↔ iç akış **yalnızca Lumos geçidi** üzerinden yönlendirilir; bypass mimari ihlaldir. | internal-agent-layers §4; product-rules §4 |
-| 5 | Lumos'tan iç katmanlara giden iletişim **doğrulanmalıdır**; imzalama ve/veya şifreleme tercih edilir (teknik seçim needs-review). | internal-agent-layers §7 |
+| 5 | Lumos'tan iç katmanlara giden iletişim **doğrulanmalıdır**; imzalama ve/veya şifreleme tercih edilir (onaylı ilke; teknik uygulama bekliyor). | internal-agent-layers §7 |
 | 6 | Doğrulanmamış veya yetkisiz iç mesaj **reddedilir**; güvenlik olayı kaydı oluşturulması hedeflenir (operasyonel detay needs-review). | internal-agent-layers §7; OD-026 |
 | 7 | Public `lumos-core` içeriği **demo-safe** kalır; iç protokol, anahtarlar ve savunma akışları public'e taşınmaz. | security-architecture §Public; internal-agent-layers §8 |
 | 8 | Çekirdek güvenlik, yetki profilleri ve onay kuralları bu kararları gevşetemez. | lumos-karar-sozlesmesi §2 |
@@ -55,7 +55,7 @@ Aşağıdaki ilkeler **firm** (kaynak canonical dosyalar ve çekirdek sözleşme
 
 ## 4. Bando rol kararı
 
-**Karar taslağı (firm):** Bando, ayrı bir katman olarak tanımlandığında **sıradan görev ajanı değildir**; güvenlik / gözlem / anomali tespiti katmanıdır.
+**Karar (onaylı):** Bando, **yalnızca** güvenlik, gözlem ve anomali tespiti için ayrı bir katman olarak kabul edilir. Sıradan görev ajanı değildir; yürütme yapmaz; kullanıcıya görünmez; dış kaynaktan doğrudan komut, veri veya dosya kabul etmez.
 
 | Boyut | Tanım |
 |-------|--------|
@@ -65,7 +65,7 @@ Aşağıdaki ilkeler **firm** (kaynak canonical dosyalar ve çekirdek sözleşme
 | **Girdi** | Yalnızca Lumos geçidi üzerinden gelen, doğrulanmış iç iletişim (ve tanımlı iç gözlem kanalları). |
 | **Çıktı** | Güvenlik/anomali raporu, olay kaydı tetikleyicisi; kullanıcıya doğrudan yüzey sunmaz. |
 
-**OD-006 durumu:** Bando'nun **ayrı katman olarak kalması** bu taslakta **onaylanır** (rol ve sınır tanımıyla). Uygulama zamanlaması, dağıtım modeli ve Kando/Cando ile sınır çizgisi operasyonel detayı **needs-review** olarak kalır.
+**OD-006 durumu:** **decision-approved / implementation-pending.** Bando ayrı katman olarak onaylandı (rol ve sınır tanımı firm). Dağıtım modeli, edge-case senaryoları ve Kando/Cando sınır örnekleri uygulama detayı olarak bekliyor.
 
 ---
 
@@ -113,12 +113,12 @@ Dış dünya / kullanıcı → Lumos (geçit, orkestratör) → [doğrulanmış 
 | # | İlke | Durum |
 |---|------|--------|
 | 1 | Lumos → iç katman mesajları **doğrulanmalıdır** (kaynak, yetki, bütünlük). | Firm |
-| 2 | Mümkün olduğunda iletişim **imzalı ve/veya şifreli** tutulur. | İlke firm; **uygulama needs-review** (OD-007) |
-| 3 | İmzalama protokolü, anahtar döngüsü, şifreleme politikası | **Needs-review** — bu belgede tanımlanmaz |
+| 2 | Mümkün olduğunda iletişim **imzalı ve/veya şifreli** tutulur. | İlke onaylı; **uygulama bekliyor** (OD-007) |
+| 3 | İmzalama protokolü, mesaj formatı, anahtar döngüsü, vault entegrasyonu | **Uygulama bekliyor** — public repoda tanımlanmaz; private/gizli uygulama paketinde netleştirilecek |
 | 4 | Doğrulama başarısız mesajlar işlenmez; reddedilir. | Firm |
 | 5 | Anahtar ve credential'lar Lumos yüzeyinde açık tutulmaz; vault katmanı tercih edilir. | İlke; vault detayı OD-001 – OD-005 |
 
-**OD-007 durumu:** “İletişim doğrulanmalı” ilkesi **netleşti**; hangi protokol, hangi anahtar yaşam döngüsü ve hangi katmanda uygulanacağı **açık karar olarak kapanmadı** — needs-review.
+**OD-007 durumu:** **decision-approved / implementation-pending.** Lumos → iç katman iletişimi **doğrulanmalıdır**; imzalama ve/veya şifreleme tercih edilir (onaylı ilke). Protokol, mesaj formatı, anahtar döngüsü ve vault entegrasyonu public repoda tanımlanmaz; private/gizli uygulama paketini bekler.
 
 ---
 
@@ -148,25 +148,25 @@ Public boundary: [`security-architecture.md`](./security-architecture.md) §Publ
 
 ---
 
-## 10. Açık kararlar
+## 10. Uygulama bekleyen detaylar
 
-Bu taslak sonrası **hâlâ needs-review** kalan başlıklar:
+Onaylı karar sonrası **implementation-pending** kalan başlıklar:
 
 | Konu | İlişkili OD | Not |
 |------|-------------|-----|
-| İmzalama protokolü ve mesaj formatı | OD-007 | Teknik seçim ve uygulama kanalı ayrı |
+| İmzalama protokolü ve mesaj formatı | OD-007 | Private/gizli uygulama paketi |
 | Anahtar döngüsü ve vault entegrasyonu | OD-007, OD-001 – OD-005 | Vault kararlarına bağımlı |
-| Bando dağıtım modeli (süreç/ortam ayrımı) | OD-006 | Rol firm; deploy şekli açık değil |
-| Reddedilen iç mesaj operasyonel prosedürü | OD-026 | Olay kaydı §8 ile örtüşür |
-| Bando ↔ Kando/Cando sınır örnekleri (senaryo listesi) | OD-006 | Rol tablosu yeterli; edge case listesi yok |
+| Bando dağıtım modeli (süreç/ortam ayrımı) | OD-006 | Rol onaylı; deploy şekli uygulama detayı |
+| Bando ↔ Kando/Cando sınır örnekleri (senaryo listesi) | OD-006 | Rol tablosu yeterli; edge case listesi uygulama detayı |
+| Reddedilen iç mesaj operasyonel prosedürü | OD-026 | **needs-review** — olay kaydı §8 ile örtüşür; bu belge kapatmaz |
 
-**Kapanan (bu taslakta firm):**
+**Onaylı (firm):**
 
 - Dış yüzey yalnızca Lumos.
 - İç katmanlara doğrudan dış girdi yok.
-- Bando = güvenlik/gözlem/anomali; yürütme değil.
-- Dış → Bando doğrudan erişim = güvenlik olayı.
-- İç iletişim doğrulanmalı; şifreleme/imza ilkesi var; teknik detay sonra.
+- Bando = güvenlik/gözlem/anomali katmanı; sıradan görev ajanı değil; yürütme yok; kullanıcıya görünmez.
+- Dış → Bando doğrudan komut/veri/dosya kabulü yok; doğrudan erişim = güvenlik olayı.
+- Lumos → iç katman iletişimi doğrulanmalı; imzalama ve/veya şifreleme tercih edilir.
 
 ---
 
@@ -174,22 +174,19 @@ Bu taslak sonrası **hâlâ needs-review** kalan başlıklar:
 
 | OD | Kaynak | Konu | Bu belgedeki karar / durum |
 |----|--------|------|----------------------------|
-| **OD-006** | internal-agent-layers.md | Bando katman varlığı | **Rol firm:** ayrı katman olarak kalır; güvenlik/gözlem/anomali. Varlık sorusu “evet, bu rolle” yanıtlandı. Dağıtım ve sınır örnekleri **needs-review**. |
-| **OD-007** | internal-agent-layers.md | İç iletişim protokolü | **İlke firm:** Lumos→iç doğrulanmalı; imza/şifreleme tercih edilir. Protokol, format, anahtar döngüsü **needs-review** — bu belgede kapatılmadı. |
-| **OD-026** | internal-agent-layers.md | Doğrulanmamış iç mesaj olay kaydı | §8'de ilke olarak referans; operasyonel detay **needs-review**, bu belge kapatmaz. |
-
-**İndeks senkronu:** `open-decisions-needs-review.md` güncellemesi bu belgenin onayından sonra ayrı adımda yapılır (bu commit kapsamı dışı).
+| **OD-006** | internal-agent-layers.md | Bando katman varlığı | **decision-approved / implementation-pending.** Ayrı katman; yalnızca güvenlik/gözlem/anomali; yürütme yok; kullanıcıya görünmez. Dağıtım modeli ve edge-case senaryoları uygulama detayı. |
+| **OD-007** | internal-agent-layers.md | İç iletişim protokolü | **decision-approved / implementation-pending.** Lumos→iç iletişim doğrulanmalı; imza/şifreleme tercih edilir. Protokol, format, anahtar döngüsü, vault entegrasyonu private/gizli uygulama paketini bekler. |
+| **OD-026** | internal-agent-layers.md | Doğrulanmamış iç mesaj olay kaydı | §8'de ilke olarak referans; operasyonel prosedür **needs-review** — bu belge kapatmaz. |
 
 ---
 
 ## 12. Sonraki adım
 
-1. Bu karar taslağını kullanıcı / mimari onayından geçir.
-2. Onay sonrası `internal-agent-layers.md` içinde OD-006 ve OD-007 notlarını güncelle; ardından `open-decisions-needs-review.md` indeksini senkronize et.
-3. OD-007 için ayrı, **gizli veya private kanalda** protokol taslağı aç (algoritma/format/anahtar döngüsü); public repoya taşınmaz.
-4. OD-026 operasyonel olay kaydı prosedürünü vault ve kimlik kararları (OD-001 – OD-002) ile birlikte sıraya al.
+1. OD-006 ve OD-007 uygulama paketini private/gizli kanalda başlat (dağıtım modeli, protokol, format, anahtar döngüsü).
+2. `internal-agent-layers.md` içinde OD-006 ve OD-007 notlarını onaylı karar durumuna senkronize et.
+3. OD-026 operasyonel olay kaydı prosedürünü vault ve kimlik kararları (OD-001 – OD-002) ile birlikte sıraya al — **needs-review** olarak kalır.
 
-**Tek net ilerleme (şimdilik):** Bu belgeyi okuyup firm maddeleri onayla veya düzeltme notu ver; kod veya uygulama başlatılmaz.
+**Tek net ilerleme (şimdilik):** Uygulama paketi; kod veya public repo değişikliği bu kararın kapsamı dışındadır.
 
 ---
 
