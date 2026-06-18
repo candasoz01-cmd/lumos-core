@@ -35,6 +35,20 @@ class ChatMemoryPromptTests(unittest.TestCase):
         self.assertIn("Backend", p)
         self.assertIn("React", p)
 
+    def test_uses_preferred_address_when_display_name_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            lumos = root / ".lumos"
+            lumos.mkdir(parents=True)
+            (lumos / "user_preferences.json").write_text(
+                json.dumps({"preferred_address": "Can"}),
+                encoding="utf-8",
+            )
+            p = format_chat_prompt_prefix(root)
+
+        self.assertIn("Can", p)
+        self.assertIn("Kullanıcının adı: Can", p)
+
 
 if __name__ == "__main__":
     unittest.main()
