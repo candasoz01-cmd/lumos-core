@@ -61,7 +61,7 @@ Karar verildi; kod/CI uygulaması henüz yapılmadı. OD **closed** sayılmaz.
 | DL-F02 | 2026-06-17 | `frontend/` yaşam döngüsü | Arşiv / koru / ui'ye taşı / kaldır | OD-044 |
 | DL-F03 | 2026-06-17 | Platform veri kasası | İzinli, şeffaf, geri alınabilir taşıma | `docs/security-architecture.md` SEC-023 |
 | DL-F04 | 2026-06-17 | OpenAI Agents / Realtime / Computer Use / Codex | Watchlist; rastgele eklenmez | `docs/tool-watchlist.md` |
-| DL-F05 | 2026-06-17 | GitHub/Slack/Drive/Linear connector | Tek tek evaluate | OD-033 |
+| DL-F05 | 2026-06-18 | Çalışma araçları connector (GitHub, Slack, Drive, Linear, Notion, Asana) | İlke onaylı; değerlendirme listesi + katman sırası; uygulama bekliyor | OD-033 — [`work-tools-connectors-decision.md`](memory/work-tools-connectors-decision.md) |
 | DL-F06 | 2026-06-17 | Birincil kullanıcı yüzeyi | Taslak `ui/`; kesin karar bekliyor | OD-043 |
 | DL-F07 | 2026-06-17 | Root build vs panel E2E hizası | Üretim `ui/`, E2E `panel/` — hizasız | OD-046 |
 

@@ -19,6 +19,7 @@ Taşıma süreci: [`chatgpt-saved-memories-migration.md`](./chatgpt-saved-memori
 - [`payment-scope-decision.md`](./payment-scope-decision.md) — OD-011 onaylı karar özeti; şirket/vergi kaydı mevcut; erteleme nedeni şirket yokluğu değildir.
 - [`commercial-approval-model-decision.md`](./commercial-approval-model-decision.md) — OD-041 onaylı karar özeti; hibrit onay modeli (oturum = düşük risk; ticari işlem = işlem bazlı açık onay).
 - [`domain-monitoring-design-decision.md`](./domain-monitoring-design-decision.md) — OD-042 onaylı karar özeti; marka koruma izleme ilkeleri (uygulama bekliyor).
+- [`domain-redirect-model-decision.md`](./domain-redirect-model-decision.md) — OD-039 onaylı karar özeti; varyasyon → `welockai.com` redirect (301; registrar forwarding veya Cloudflare; somut kurulum bekliyor).
 - [`external-integrations-permissions.md`](./external-integrations-permissions.md) — onaysız ödeme/domain/dış yazma yasak; gateway + açık onay.
 - [`data-vault-user-data.md`](./data-vault-user-data.md) — kullanıcı verinin sahibi; Lumos kullanıcı adına onaysız ticari aksiyon başlatmaz.
 
@@ -36,7 +37,7 @@ Taşıma süreci: [`chatgpt-saved-memories-migration.md`](./chatgpt-saved-memori
 | 2 | Kullanıcıya **müsaitlik**, **fiyat** ve **risk** bilgisi sunulabilir. | Taşındı |
 | 3 | **Açık kullanıcı onayı olmadan:** domain **satın alma**, **yenileme** veya **ödeme başlatma yapılmaz.** | Taşındı — `external-integrations-permissions.md` ile hizalı |
 | 4 | Birincil domain hedefi: **`welockai.com`** — korunur, hedef olarak saklanır. | Taşındı |
-| 5 | Varyasyon domain'ler edinilirse **birincil domain'e yönlendirme** (redirect) uygulanır. | `[needs-review]` — edinim yalnızca kullanıcı onayı ile; redirect teknik detayı sonra |
+| 5 | Varyasyon domain'ler edinilirse **birincil domain'e yönlendirme** (redirect) uygulanır. | `decision-approved` — 301; registrar forwarding veya Cloudflare; `implementation-pending` (kurulum) — [`domain-redirect-model-decision.md`](./domain-redirect-model-decision.md) |
 
 ### Yasak (onaysız)
 
@@ -135,7 +136,7 @@ ChatGPT Saved Memories / oturum bağlamından bu dosyaya taşınan maddeler.
 | 2 | Müsaitlik, fiyat, risk bilgisi sunma | Domain ve marka koruma | `[migrated]` | Bilgi only |
 | 3 | Onaysız domain satın alma/yenileme/ödeme yok | Domain / Kullanıcı onayı | `[migrated]` | external-integrations ile hizalı |
 | 4 | Birincil domain: welockai.com | Domain ve marka koruma | `[migrated]` | Hedef korunur |
-| 5 | Varyasyon domain → birincil redirect | Domain ve marka koruma | `[needs-review]` | Edinim onaylı; redirect detayı sonra |
+| 5 | Varyasyon domain → birincil redirect | Domain ve marka koruma | `[migrated]` | OD-039 — [`domain-redirect-model-decision.md`](./domain-redirect-model-decision.md) |
 | 6 | Ödeme sistemi uygulama paketi bekleniyor (şirket/vergi kaydı mevcut) | Ödeme sistemi ertelenmiş kapsam | `[migrated]` | OD-011 `decision-approved` |
 | 7 | Banka/PSP/merchant kurulumu aktif kapsam dışı | Ödeme sistemi ertelenmiş kapsam | `[migrated]` | |
 | 8 | QR / tek ödeme linki — maliyet paylaşımı fikri | Ödeme sistemi ertelenmiş kapsam | `[needs-review]` | Gelecek ürün notu only; OD-040 |

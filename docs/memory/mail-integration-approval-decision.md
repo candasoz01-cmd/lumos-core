@@ -82,7 +82,7 @@ Açık izin paketi ve tanımlı kurallar dahilinde:
 | Kural bazlı otomasyon (kanal, kişi, domain, konu, içerik, görev, önem) | Onay UX wireframe, sync sıklığı, çakışma algoritması detayı |
 | Varsayılan pasif / güvenli mod (izin yok = okuma yok) | Production endpoint, token, mesaj içeriği |
 | OD-041 / OD-012 / product-rules hizası | Computer Use teknik entegrasyonu (OD-012 uygulama) |
-| Public repo sınırı (credential / mesaj içeriği yok) | Takvim, kişiler, Slack vb. (OD-032) |
+| Public repo sınırı (credential / mesaj içeriği yok) | Takvim, kişiler (OD-032); çalışma araçları GitHub/Slack/Drive vb. (OD-033) |
 | Kapalı platformlar: resmi API + platform kuralları ayrı değerlendirme | Scraping, unofficial API, platform bypass |
 
 **Çelişki çözümü:** `external-integrations-permissions.md` Mail entegrasyonu bölümündeki eski “yalnızca izinle okur, özetler” veya pasif-özet sınırlaması ifadeleri bu belgeyle **geçersiz kılınır**; canonical kapsam bu dosyadır.
@@ -386,7 +386,8 @@ Aşağıdakiler **henüz uygulanmadı**; bu belge uygulama izni vermez.
 | OD-041 | commercial-approval-model-decision.md | Hibrit onay modeli | §OD-041 hizası; oturum vs işlem vs kural | decision-approved / implementation-pending |
 | OD-001 | security-architecture.md | Vault uygulaması | §Vault — katman ilkesi | decision-approved / implementation-pending |
 | OD-002 | security-architecture.md | Token / vault entegrasyonu | §Vault — bridge, credential | decision-approved / implementation-pending |
-| OD-032 | external-integrations-permissions.md | Takvim / kişiler | İletişim kanalları ile birlikte değil; ayrı | needs-review |
+| OD-032 | external-integrations-permissions.md | Takvim / kişiler | İletişim kanalları ile birlikte değil; ayrı | decision-approved / implementation-pending — [`calendar-contacts-decision.md`](./calendar-contacts-decision.md) |
+| OD-033 | external-integrations-permissions.md | Çalışma araçları connector'ları | İletişim kanalları ile birlikte değil; ayrı | decision-approved / implementation-pending — [`work-tools-connectors-decision.md`](./work-tools-connectors-decision.md) |
 
 **İndeks notu:** `open-decisions-needs-review.md` OD-031 satırı bu belgeyle senkron tutulur; canonical kaynak önce `external-integrations-permissions.md`, onaylı karar özeti bu dosyadır.
 

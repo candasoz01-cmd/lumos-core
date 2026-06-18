@@ -57,7 +57,7 @@ Bu belge:
 | DM4 | **Açık kullanıcı onayı olmadan** domain satın alma, yenileme veya ödeme başlatılmaz. | `decision-approved` |
 | DM5 | İzleme ve raporlama **oturum bazlı izin** katmanındadır (OD-041 CA1); satın alma **işlem bazlı açık onay** gerektirir. | `decision-approved` |
 | DM6 | İzleme akışı ödeme sistemi kapsamı **dışındadır** (OD-011); ödeme altyapısı olmadan bilgi sunumu yapılabilir. | `decision-approved` |
-| DM7 | Edinilen varyasyon domain'ler birincil domain'e yönlendirilir — teknik detay **OD-039**'da kalır. | `decision-approved` (ilke) / OD-039 `needs-review` (uygulama) |
+| DM7 | Edinilen varyasyon domain'ler birincil domain'e yönlendirilir — teknik detay **OD-039**'da kalır. | `decision-approved` (ilke) / OD-039 `implementation-pending` (teknik) — [`domain-redirect-model-decision.md`](./domain-redirect-model-decision.md) |
 | DM8 | Lumos kullanıcı adına **sessiz** domain edinimi veya alarm tetiklemeli otomatik satın alma yapmaz. | `decision-approved` |
 
 ---
@@ -409,7 +409,7 @@ Aşağıdakiler **henüz uygulanmadı**; bu belge uygulama izni vermez.
 | **OD-042** | commercial-domain-payments.md | Domain izleme tasarımı | Bu belgenin tamamı | **decision-approved / implementation-pending** |
 | OD-041 | commercial-approval-model-decision.md | Ticari onay modeli | §7 — izleme oturum, satın alma işlem onayı | decision-approved / implementation-pending |
 | OD-011 | payment-scope-decision.md | Ödeme kapsamı | §8 — izleme ödeme dışı | decision-approved / implementation-pending |
-| OD-039 | commercial-domain-payments.md | Domain redirect | §6 adım 5 | needs-review |
+| OD-039 | commercial-domain-payments.md | Domain redirect | §6 adım 5 | decision-approved / implementation-pending — [`domain-redirect-model-decision.md`](./domain-redirect-model-decision.md) |
 | OD-040 | commercial-domain-payments.md | Maliyet paylaşımı | Kapsam dışı | needs-review |
 
 **İndeks notu:** `open-decisions-needs-review.md` OD-042 satırı bu belgeyle senkron tutulur; canonical kaynak önce `commercial-domain-payments.md`, onaylı karar özeti bu dosyadır.

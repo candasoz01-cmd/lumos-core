@@ -65,8 +65,8 @@ Bu dosya, projeye **hemen eklenmeyecek** araç ve entegrasyon adaylarını kayı
 | ID | Madde özeti | Statü | Not |
 |----|-------------|--------|-----|
 | TW-D01 | Mail entegrasyonu (okuma/özet) | **geçici ertelendi** | OD-031 |
-| TW-D02 | Takvim / kişiler / Notion-Asana benzeri | **ileride değerlendirilecek** | OD-032 |
-| TW-D03 | Üretim connector rollout sırası | **ileride değerlendirilecek** | OD-033 |
+| TW-D02 | Takvim / kişiler | **karar onaylı — uygulama bekliyor** | OD-032 — [`calendar-contacts-decision.md`](memory/calendar-contacts-decision.md) |
+| TW-D03 | Çalışma araçları connector rollout (GitHub, Slack, Drive, Linear, Notion, Asana) | **karar onaylı — uygulama bekliyor** | OD-033 — [`work-tools-connectors-decision.md`](memory/work-tools-connectors-decision.md) |
 
 ---
 
@@ -81,4 +81,4 @@ Bir madde uygulamaya geçmeden önce:
 
 ---
 
-Son güncelleme: 2026-06-17
+Son güncelleme: 2026-06-18
