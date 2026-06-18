@@ -90,34 +90,98 @@ Kullanıcı **açık onayı** olmadan aşağıdaki işlemler **yapılmaz**:
 
 ---
 
-## Takvim / kişiler / çalışma araçları
+## Takvim ve kişiler (OD-032)
 
-**Durum:** `[needs-review]` — placeholder; gelecek ihtiyaçlar netleşince genişletilecek.
+> **Kapsam sınırı:** Bu bölüm yalnızca **Takvim + Kişiler** içindir. GitHub, Slack, Linear, Notion, Drive ve benzeri **çalışma araçları** → **OD-033** (aşağıdaki §Platform connector'ları / çalışma araçları); OD-032 ile **birleştirilmez**.
 
-| Alan | Not |
-|------|-----|
-| Takvim | Okuma/yazma izin modeli, onay ayrımı — henüz tanımsız |
-| Kişiler | Adres defteri erişimi, provenance — henüz tanımsız |
-| Çalışma araçları | Notion, Asana vb. adaylar değerlendirme kuyruğunda değil; ihtiyaç doğunca |
+**Durum:** `[decision-approved / implementation-pending]` — ilke kararları onaylı; uygulama yok. **Onaylı karar özeti:** [`calendar-contacts-decision.md`](./calendar-contacts-decision.md) (OD-032).
 
-Bu bölüm şimdilik **boş şablon**; mail ve genel izin kuralları üst önceliklidir.
+### Hedef davranış (gelecek)
+
+**Takvim** (kullanıcı yetkilendirmesi dahilinde):
+
+- Okuma, toplantı oluşturma, taşıma/yeniden zamanlama, iptal, RSVP (katılım yanıtı), kullanıcı adına planlama — granüler izin paketi (`cal_read`, `cal_create`, `cal_update`, `cal_cancel`, `cal_rsvp`, `cal_plan` vb.) ve OD-041/OD-012 hibrit onay omurgası.
+
+**Kişiler:**
+
+- Kişi bulma, ilişkilendirme, iletişim geçmişi bağlama (provenance ile), kişi bazlı kurallar — OD-031 kural modeli ile çapraz; granüler izin (`contact_read`, `contact_link`, `contact_history_link`, `contact_rule` vb.).
+
+### Tasarım ilkeleri
+
+| İlke | Açıklama |
+|------|----------|
+| Varsayılan pasif | İzin olmadan takvim/kişi okuma ve dış etki yok |
+| Granüler izin | Okuma ↔ oluştur/iptal/RSVP/plan ↔ kişi yazma ayrı grant |
+| Kişi kuralları | OD-031 ile aynı opt-in, revoke, çakışmada güvenli kazanır |
+| Entegrasyon yöntemi ikincil | Google Calendar, iCal, CalDAV, yerel OS — aynı izin omurgası |
+| Vault | Credential OD-001/002; Lumos yüzeyinde açık tutulmaz |
+| Çalışma araçları hariç | Notion, Asana, GitHub vb. → OD-033 |
+
+### Yasak (açık yetkilendirme olmadan)
+
+- Takvim **okuma**, **oluşturma**, **iptal**, **RSVP**, **planlama**
+- Kişi **arama**, **yazma**, **ilişkilendirme**, **kişi kuralı tetikleme**
+
+### Uygulama bekliyor (implementation-pending)
+
+İlke kararları onaylı; aşağıdakiler **henüz uygulanmadı** — detay: [`calendar-contacts-decision.md`](./calendar-contacts-decision.md) §Implementation-pending.
+
+- Provider seçimi (Google Calendar, iCal, CalDAV, Apple Contacts vb.)
+- Connector kodu, bridge entegrasyonu, sync modeli
+- Onay UX, takvim/kişi kural editörü
+- Vault credential şeması (OD-001/002 ile birlikte)
 
 ---
 
-## GitHub / Drive / Slack / Linear bağlantıları
+## Platform connector'ları / çalışma araçları (OD-033)
 
-**Durum:** `[needs-review]` — değerlendirme listesi; rastgele ekleme yok.
+> **Kapsam sınırı:** Bu bölüm yalnızca **çalışma/ürün verimliliği platformları** içindir. Takvim + Kişiler → [`calendar-contacts-decision.md`](./calendar-contacts-decision.md) (OD-032); iletişim kanalları → [`mail-integration-approval-decision.md`](./mail-integration-approval-decision.md) (OD-031); ticari domain → OD-039–042. **Birleştirilmez.**
 
-Zamanı geldiğinde **tek tek** değerlendirilecek araç listesi:
+**Durum:** `[decision-approved / implementation-pending]` — ilke kararları onaylı; uygulama yok. **Onaylı karar özeti:** [`work-tools-connectors-decision.md`](./work-tools-connectors-decision.md) (OD-033).
 
-| Araç | Rol (taslak) | Not |
-|------|--------------|-----|
-| GitHub | Repo/issue/PR bağlamı | Manuel kısayol UI'da mevcut; otomatik connector sonra |
-| Slack | Bildirim / kanal özeti | İzin + provenance zorunlu |
-| Google Drive | Dosya okuma / referans | Kalıcı import onaysız yok |
-| Linear | Görev/issue senkronu | Panel/görev akışı ile çakışma kontrolü |
+### Hedef davranış (gelecek)
 
-**İlke:** Connector eklemeden önce — çekirdek panel/görev/güvenlik akışına etki analizi.
+- Lumos, **açık izin paketi ve değerlendirme listesi** ile GitHub, Slack, Google Drive, Linear, Notion, Asana ve benzeri platformlarda bağlam okuma, bildirim ve kural-kapsamlı dış etki yapabilir — varsayılan pasif; connector **otomatik eklenmez**.
+- Her platform **tek tek** ihtiyaç + etki analizi sonrası değerlendirilir; watchlist ≠ entegrasyon.
+
+### Değerlendirme listesi (özet)
+
+| Katman | Araç | Rol (taslak) | Not |
+|--------|------|--------------|-----|
+| 1 | **GitHub** | Repo/issue/PR bağlamı | UI manuel kısayol mevcut; **ilk connector adayı** (uygulama paketi) |
+| 2 | **Slack** | Bildirim / kanal özeti | İzin + provenance; iş yeri bağlamı (OD-031 ile sınır ayrımı) |
+| 2 | **Google Drive** | Dosya okuma / referans | Kalıcı import onaysız yok |
+| 3 | **Linear** | Görev/issue senkronu | Panel/görev akışı çakışma kontrolü |
+| 4 | **Notion**, **Asana** | Sayfa / görev bağlamı | Ayrı platform değerlendirmesi |
+| 5 | Diğer benzer araçlar | — | Listeye ekleme ayrı karar |
+
+### Tasarım ilkeleri
+
+| İlke | Açıklama |
+|------|----------|
+| Değerlendirme listesi | Otomatik connector ekleme yok; tek platform, tek pilot |
+| Granüler izin | `{platform}_read`, `_notify`, `_create`, `_update`, `_comment`, `_share`, `_delete` |
+| Varsayılan pasif | İzin olmadan okuma/yazma yok |
+| Hibrit onay | OD-041/OD-012 — oturum vs kural-kapsamlı vs işlem bazlı |
+| Vault | Credential OD-001/002 |
+| Entegrasyon yöntemi ikincil | Resmi API tercih; Computer Use aynı izin omurgası |
+| UI kısayolu ≠ connector | GitHub/Render/Vercel yönlendirme — otomatik veri akışı değil |
+
+### Yasak (açık yetkilendirme olmadan)
+
+- Platform **okuma**, **oluşturma**, **güncelleme**, **paylaşım**, **silme**
+- Onaysız **kalıcı import** (toplu dosya/issue/görev)
+- **Rastgele/toplu** connector ekleme
+
+### Uygulama bekliyor (implementation-pending)
+
+İlke kararları onaylı; aşağıdakiler **henüz uygulanmadı** — detay: [`work-tools-connectors-decision.md`](./work-tools-connectors-decision.md) §Implementation-pending.
+
+- İlk connector pilotu (öneri GitHub, Katman 1)
+- OAuth scope, webhook vs poll (platform başına)
+- Onay UX, platform kural editörü
+- Lumos görev motoru ↔ Linear/Asana çakışma algoritması
+- Vault credential şeması (OD-001/002 ile birlikte)
 
 ---
 
@@ -193,11 +257,11 @@ ChatGPT Saved Memories / oturum bağlamından bu dosyaya taşınan maddeler.
 | 1 | Mail okuma/özet (gelecek) | Mail entegrasyonu | `[migrated]` | Tasarım needs-review |
 | 2 | Mail: onaysız okuma/gönder/sil/arşiv yok | Mail entegrasyonu | `[migrated]` | |
 | 3 | Genel: onaysız ödeme, domain, veri çekme, import, mail, dış yazma | İzin ve kullanıcı onayı | `[migrated]` | security-architecture ile hizalı |
-| 4 | GitHub, Slack, Drive, Linear listesi | GitHub/Drive/… | `[migrated]` | Değerlendirme sonra |
+| 4 | GitHub, Slack, Drive, Linear listesi | Platform connector'ları / çalışma araçları | `[migrated]` | Karar: work-tools-connectors-decision.md (OD-033) |
 | 5 | OpenAI Agents, Realtime, Computer Use, Codex Plugins | OpenAI ajan… | `[migrated]` | Tek tek evaluate |
 | 6 | Render/Vercel/GitHub UI kısayolları | İzin ve gateway | `[migrated]` | UI doc referansı |
 | 7 | Gateway + provenance + otomatik vs kısayol ayrımı | Gateway / Kaynak | `[migrated]` | |
-| 8 | Takvim/kişiler/çalışma araçları | Takvim/… | `[needs-review]` | Placeholder |
+| 8 | Takvim + kişiler (OD-032) | Takvim ve kişiler | `[migrated]` | Karar: calendar-contacts-decision.md; çalışma araçları → OD-033 |
 
 ---
 

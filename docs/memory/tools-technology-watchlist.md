@@ -65,12 +65,15 @@ Tüm maddeler watchlist'te; otomatik entegrasyon yok. Değerlendirme: kontrollü
 
 | Sistem | Durum | Not |
 |--------|-------|-----|
-| **GitHub** | `[migrated]` | Bağlantı / plugin yaklaşımları takipte |
+| **Takvim / Kişiler** | `[migrated]` | TW-D02 — OD-032 ilke onaylı; uygulama bekliyor — [`calendar-contacts-decision.md`](./calendar-contacts-decision.md) |
+| **GitHub** | `[migrated]` | Bağlantı / plugin yaklaşımları takipte; OD-033 katman 1 |
 | **Slack** | `[migrated]` | Bağlantı / plugin yaklaşımları takipte |
 | **Google Drive** | `[migrated]` | Bağlantı / plugin yaklaşımları takipte |
 | **Linear** | `[migrated]` | Bağlantı / plugin yaklaşımları takipte |
+| **Notion** | `[migrated]` | Sayfa/görev bağlamı — OD-033 katman 4 |
+| **Asana** | `[migrated]` | Görev/proje bağlamı — OD-033 katman 4 |
 
-**Çapraz referans:** İzin ve onay ruhu için [`external-integrations-permissions.md`](./external-integrations-permissions.md) — değerlendirme sonraya; rastgele connector eklenmez.
+**Çapraz referans:** Onaylı karar [`work-tools-connectors-decision.md`](./work-tools-connectors-decision.md) (OD-033); izin omurgası [`external-integrations-permissions.md`](./external-integrations-permissions.md) — değerlendirme listesi; rastgele connector eklenmez.
 
 ---
 

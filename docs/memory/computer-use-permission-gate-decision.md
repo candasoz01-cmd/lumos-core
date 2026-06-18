@@ -279,6 +279,8 @@ Computer Use **uygulama kodu** public repoda yalnızca demo-safe, placeholder ve
 | OD-034 | external-integrations-permissions.md | OpenAI Agents / Realtime onay kapısı | §4, §9 — ayrı değerlendirme | needs-review |
 | OD-035 | external-integrations-permissions.md | Codex Plugins onay modeli | §11 public sınır | needs-review |
 | OD-031 | external-integrations-permissions.md | İletişim kanalları otomasyon modeli (mail ilk kanal) | §6 e-posta satırı ile örtüşür; [`mail-integration-approval-decision.md`](./mail-integration-approval-decision.md) | **decision-approved / implementation-pending** |
+| OD-032 | external-integrations-permissions.md | Takvim + Kişiler — granüler izin ve onay omurgası | Aynı hibrit onay/ dış etki kapısı; [`calendar-contacts-decision.md`](./calendar-contacts-decision.md) | **decision-approved / implementation-pending** |
+| OD-033 | external-integrations-permissions.md | Platform connector'ları / çalışma araçları | Aynı hibrit onay/ dış etki kapısı; Computer Use platform erişimi aynı izin tablosu; [`work-tools-connectors-decision.md`](./work-tools-connectors-decision.md) | **decision-approved / implementation-pending** |
 | OD-011 | commercial-domain-payments.md | Ödeme sistemi kapsamı | §6, §8 — ödeme otomatik yok | needs-review |
 | OD-041 | commercial-domain-payments.md | Ticari onay modeli | §5 — işlem bazlı onay | needs-review |
 | OD-001/002 | security-architecture.md | Vault / token | §9 credential enjeksiyonu | needs-review |
