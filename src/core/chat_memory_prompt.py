@@ -81,15 +81,32 @@ def format_chat_prompt_prefix(repo_root: Path | str | None) -> str:
     repo_root: Lumos çalışma kökü (.lumos buranın altında).
     """
     base = Path(repo_root) if repo_root else Path(".")
-    lumos = base / ".lumos"
+    # Minimizasyon: tek mimari eklemeden, mevcut yerel dosya konumlarını destekleyelim.
+    # Bazı kurulumlarda `.lumos/` repoda kökte, bazılarında `src/.lumos/` altında tutuluyor.
+    lumos_primary = base / ".lumos"
+    lumos_alt = base / "src" / ".lumos"
+    lumos = lumos_primary
+    if not (lumos_primary / "user_preferences.json").is_file() and not (
+        lumos_primary / "user_memory.json"
+    ).is_file():
+        if (lumos_alt / "user_preferences.json").is_file() or (
+            lumos_alt / "user_memory.json"
+        ).is_file():
+            lumos = lumos_alt
 
     parts: list[str] = [_LUMOS_IDENTITY.strip(), ""]
 
     prefs = _load_json_dict(lumos / "user_preferences.json")
     if prefs:
-        name = prefs.get("display_name") or prefs.get("name")
+        # Kullanıcı adı / hitap bilgisi yerel profilde birden fazla isim altında tutulabilir.
+        # Minimum entegrasyon: Chat prompt'u için tek bir değeri seçeriz.
+        name = (
+            prefs.get("display_name")
+            or prefs.get("preferred_address")
+            or prefs.get("name")
+        )
         if isinstance(name, str) and name.strip():
-            parts.append(f"Kullanıcı adı / tercih edilen hitap: {name.strip()}")
+            parts.append(f"Kullanıcının adı: {name.strip()}")
         loc = prefs.get("locale") or prefs.get("language")
         if isinstance(loc, str) and loc.strip():
             parts.append(f"Tercih edilen dil/locale: {loc.strip()}")
