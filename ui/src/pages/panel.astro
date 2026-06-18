@@ -5,7 +5,7 @@ import GlobalMay19Corner from "../components/GlobalMay19Corner.astro";
  * POST /chat tam URL (örn. `https://host/chat`).
  * GET /status: aynı origin’de `.../status` — `PUBLIC_LUMOS_PANEL_STATUS_URL` ile ayrı host verilmezse CHAT_URL’den türetilir.
  */
-const CHAT_URL = import.meta.env.PUBLIC_LUMOS_CHAT_URL || "https://lumos-core-1.onrender.com/chat";
+const CHAT_URL = import.meta.env.PUBLIC_LUMOS_CHAT_URL || "/api/bridge/chat";
 /** PUBLIC token visible in browser — local/dev only; prod build omits test123 fallback */
 const kandoToken = import.meta.env.DEV
   ? import.meta.env.PUBLIC_KANDO_TOKEN || "test123"
