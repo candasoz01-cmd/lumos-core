@@ -33,6 +33,7 @@ KURATOR*.md
 KURATOR_GIT_TALIMAT.md
 KURATOR_SON_RAPOR.md
 .env
+.env.backup
 
 *.bak
 *.heic
