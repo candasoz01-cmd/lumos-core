@@ -21,6 +21,8 @@ Bu belge:
 
 **Uygulama notu:** İlke kararları onaylandı; kod, test, panel, bridge, connector veya otomasyon yapılandırması **henüz başlamadı**.
 
+**Entegrasyon felsefesi:** Computer Use, Lumos dış entegrasyonlarının **tanımı veya tek yolu değildir**; [`external-integrations-permissions.md`](./external-integrations-permissions.md) §Entegrasyon felsefesi kapsamında **izinli yöntemlerden biridir** (resmi API, yerel entegrasyon, erişilebilirlik katmanları ve gelecekteki izinli yöntemlerle birlikte). Amaç kullanıcının yetki verdiği kapsamda sistemi kullanabilmektir; doğrudan API connector'ları ile **aynı izin, onay ve Lumos geçidi omurgasını** paylaşır.
+
 ---
 
 ## 1b. Onaylanan ilke vs bekleyen uygulama
@@ -70,11 +72,11 @@ Aşağıdaki ilkeler **onaylandı** (`decision-approved`); çekirdek sözleşme 
 
 ## 4. Computer Use rol tanımı
 
-**Onaylı karar (firm):** Computer Use, Lumos'un **kontrollü dış etki aracı**dır; bağımsız veya otonom bir katman değildir.
+**Onaylı karar (firm):** Computer Use, Lumos'un **kontrollü dış etki aracı**dır; bağımsız veya otonom bir katman değildir. Lumos entegrasyon modelinin **bütünü değildir** — yalnızca §Entegrasyon felsefesi (`external-integrations-permissions.md`) altındaki **izinli yöntemlerden biri**; teknik yöntem ikincil, kullanıcı yetkisi birincildir.
 
 | Boyut | Tanım |
 |-------|--------|
-| **Amaç** | Kullanıcı onaylı, görev kapsamına bağlı bilgisayar/tarayıcı düzeyi işlemler (okuma, gözlem veya onaylı dış etki). |
+| **Amaç** | Kullanıcı onaylı, görev kapsamına bağlı bilgisayar/tarayıcı düzeyi işlemler (okuma, gözlem veya onaylı dış etki). API connector veya diğer izinli yollar mümkün olduğunda aynı omurgada tercih edilebilir. |
 | **Konum** | Lumos geçidi arkasında; kullanıcıya yalnızca Lumos yüzeyi üzerinden görünür. |
 | **İlişki** | Görev motoru ve yetki profili (`rapor`, `guvenli_yurut`, `kisitli_otonom`) ile hizalı; `critical` ve `external` adımlar asla otomatik değildir. |
 | **Varsayılan** | Kapalı / pasif; açık görev + onay + geçit olmadan etkinleştirilmez. |
@@ -276,7 +278,7 @@ Computer Use **uygulama kodu** public repoda yalnızca demo-safe, placeholder ve
 | **OD-012** | external-integrations-permissions.md | Computer Use kapısı — onaysız dış yazma riskine karşı onay katmanı | Bu belgenin tamamı; §5, §6, §7 | **decision-approved / implementation-pending** |
 | OD-034 | external-integrations-permissions.md | OpenAI Agents / Realtime onay kapısı | §4, §9 — ayrı değerlendirme | needs-review |
 | OD-035 | external-integrations-permissions.md | Codex Plugins onay modeli | §11 public sınır | needs-review |
-| OD-031 | external-integrations-permissions.md | Mail entegrasyonu onay modeli | §6 e-posta satırı ile örtüşür | needs-review |
+| OD-031 | external-integrations-permissions.md | İletişim kanalları otomasyon modeli (mail ilk kanal) | §6 e-posta satırı ile örtüşür; [`mail-integration-approval-decision.md`](./mail-integration-approval-decision.md) | **decision-approved / implementation-pending** |
 | OD-011 | commercial-domain-payments.md | Ödeme sistemi kapsamı | §6, §8 — ödeme otomatik yok | needs-review |
 | OD-041 | commercial-domain-payments.md | Ticari onay modeli | §5 — işlem bazlı onay | needs-review |
 | OD-001/002 | security-architecture.md | Vault / token | §9 credential enjeksiyonu | needs-review |
