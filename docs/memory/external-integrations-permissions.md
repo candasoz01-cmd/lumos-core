@@ -16,6 +16,26 @@ Taşıma süreci: [`chatgpt-saved-memories-migration.md`](./chatgpt-saved-memori
 
 ---
 
+## Entegrasyon felsefesi
+
+Lumos **belirli bir entegrasyon yöntemine bağlı tanımlanmaz**. Amaç, kullanıcının **yetki verdiği kapsamda** ilgili sistemi kullanabilmektir; **teknik yöntem ikincildir**.
+
+İzinli yollar örnek olarak şunları içerebilir (tümü değil):
+
+| Yöntem | Not |
+|--------|-----|
+| **Resmi API** | OAuth, REST, platform SDK — mümkün olduğunda tercih edilen yol |
+| **Yerel entegrasyon** | Cihaz/OS düzeyi bağlayıcı |
+| **Computer Use** | Tarayıcı/uygulama düzeyi kontrollü dış etki — [`computer-use-permission-gate-decision.md`](./computer-use-permission-gate-decision.md) (OD-012) |
+| **Erişilebilirlik katmanları** | İzinli ve yasal erişim yolları |
+| **Gelecekteki izinli yöntemler** | Kullanıcı onayı + Lumos geçidi + çekirdek sözleşme ile |
+
+**Omurga sabittir; yöntem değişkendir:** Aynı izin, onay ve gateway kuralları — kullanıcı kapsamı, provenance, mod ayrımı — **OpenAI Computer Use** ile **doğrudan API entegrasyonları** (ve diğer izinli yöntemler) altında **aynı çatıda** tutulur. Yöntem seçimi uygulama kararıdır; platform yeteneği, kullanıcı yetkisi ve güvenlik sınırlarına göre değerlendirilir.
+
+Bu belgedeki mail, takvim, connector ve Computer Use bölümleri **aynı felsefenin** alan-özel ifadeleridir; tek bir yönteme indirgenmez.
+
+---
+
 ## İzin ve kullanıcı onayı
 
 ### Genel kural
@@ -42,12 +62,14 @@ Kullanıcı **açık onayı** olmadan aşağıdaki işlemler **yapılmaz**:
 
 ## Mail entegrasyonu
 
-**Durum:** `[needs-review]` — gelecek özellik; tasarım notları canonical, uygulama yok.
+> **OD-031 kapsam notu:** Onaylı karar belgesi [`mail-integration-approval-decision.md`](./mail-integration-approval-decision.md) artık **genel iletişim kanalları otomasyon modelini** tanımlar; **mail ilk uygulama kanalıdır**. Telegram, WhatsApp, Messenger, SMS ve sosyal DM gelecek genişleme adaylarıdır — aynı ilke omurgası, kanal başına ayrı teknik değerlendirme.
 
-### Hedef davranış (gelecek)
+**Durum:** `[decision-approved / implementation-pending]` — ilke kararları onaylı; uygulama yok. **Onaylı karar özeti:** [`mail-integration-approval-decision.md`](./mail-integration-approval-decision.md) (OD-031) — iletişim kanalları otomasyon modeli (mail ilk kanal); özetleme/pasif okuma sınırı yok; izin paketi sınırları içinde tam otomasyon mümkün; varsayılan pasif; OD-041/OD-012/product-rules hibrit onay hizası.
 
-- Lumos, **izinle** gelen e-postaları okur.
-- Önem sırasına göre özetler ve kullanıcıya sunar.
+### Hedef davranış (gelecek — mail ilk kanal)
+
+- Lumos, **açık izin paketiyle** gelen e-postaları takip eder; varsayılan pasif — izin olmadan okuma yok; grant sonrası okuma, bildirim ve sınıflandırma.
+- Kullanıcı tanımlı kurallarla (kişi, domain, konu, içerik, görev, önem) kontrollü otomasyon — bildirim, taslak, kural-kapsamlı otomatik yanıt (açık opt-in, revoke edilebilir); tam otomasyon izin paketi sınırları içinde mümkün.
 
 ### Tasarım ilkeleri
 
@@ -100,6 +122,8 @@ Zamanı geldiğinde **tek tek** değerlendirilecek araç listesi:
 ---
 
 ## OpenAI ajan ve computer-use araçları
+
+> **Yöntem notu:** Computer Use, Lumos entegrasyonlarının **tanımı değil**; §Entegrasyon felsefesi kapsamında **izinli yöntemlerden biridir**. Doğrudan API connector'ları ile aynı izin/onay omurgasını paylaşır.
 
 **Durum:** `[needs-review]` — izleme listesi; her biri ayrı değerlendirme.
 
@@ -193,4 +217,4 @@ ChatGPT Saved Memories'ten henüz işlenmemiş maddeler için şablon. Taşıma 
 
 ---
 
-*Son güncelleme: 2026-06-17*
+*Son güncelleme: 2026-06-18*
