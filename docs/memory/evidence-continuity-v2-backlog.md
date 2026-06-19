@@ -37,7 +37,7 @@ Kaynak: [`evidence-continuity-v1-decision.md`](./evidence-continuity-v1-decision
 | EC2-06 | Legacy panel (`panel/js/app.js`) hizalama | **P2** | Hayır |
 | EC2-07 | `events[]` migration veya deprecate | **P2** | Hayır |
 | EC2-08 | Correlation UI — «son işlem kanıtı», «buradan devam» | **P1** | Evet (Phase 4) — **`[implemented]`** PR #274 (`fb2af14`) — [`evidence-continuity-ec2-08-decision.md`](./evidence-continuity-ec2-08-decision.md) |
-| EC2-09 | Evidence-specific rotation / retention politikası | **P2** | Hayır |
+| EC2-09 | Evidence-specific rotation / retention politikası | **P2** | Phase 5 — **`[decision-approved]`** minimum v1 — [`evidence-continuity-ec2-09-decision.md`](./evidence-continuity-ec2-09-decision.md) |
 | EC2-10 | `ObservationEngine` disk spill — CLI step lifecycle | **P2** | Hayır |
 | EC2-11 | Structured query / görev durumu reconstruct | **P2** | Hayır |
 | EC2-12 | Disconnect + resume integration test harness | **P1** | Evet (Phase 4) — **`[implemented]`** PR #261 (`aa2a6ff`); [`evidence-continuity-ec2-12-decision.md`](./evidence-continuity-ec2-12-decision.md) |
@@ -165,7 +165,7 @@ EC2-05 (store merge)          ── bağımsız OD; v2 fazlarına hard dependen
 |-------|----------|-----|
 | Store merge | EC2-05 | **`[implemented]`** minimum v1 — PR #277; tam merge ayrı OD — [`evidence-continuity-ec2-05-decision.md`](./evidence-continuity-ec2-05-decision.md) |
 | Legacy / migration | EC2-06, EC2-07 | Astro birincil panel |
-| Retention / observation / query | EC2-09, EC2-10, EC2-11 | Politika + CLI genişlemesi |
+| Retention / observation / query | EC2-09, EC2-10, EC2-11 | EC2-09 decision-approved — impl bekliyor; observation/query sonra |
 
 ---
 
@@ -220,13 +220,14 @@ Detay: [`audit-hook-term-decision.md`](./audit-hook-term-decision.md).
 | [`evidence-continuity-ec2-03-decision.md`](./evidence-continuity-ec2-03-decision.md) | EC2-03 `[implemented]` — PR #265 (`b1c48aa`); köprü POST /task journal mirror |
 | [`evidence-continuity-ec2-04-decision.md`](./evidence-continuity-ec2-04-decision.md) | EC2-04 `[implemented]` — PR #268 (`9475a0f`); guard/policy journal mirror |
 | [`evidence-continuity-ec2-13-decision.md`](./evidence-continuity-ec2-13-decision.md) | EC2-13 `[implemented]` — PR #271 (`41a48fb`); köprü async agent `result` faz |
-| [`evidence-continuity-ec2-08-decision.md`](./evidence-continuity-ec2-08-decision.md) | EC2-08 `[implemented]` — PR #274 (`fb2af14`); read-only `GET /evidence/recent` + `panel.astro` correlation şeridi |
+| [`evidence-continuity-ec2-08-decision.md`](./evidence-continuity-ec2-08-decision.md) | EC2-08 `[implemented]` — PR #274 (`fb2af14`); correlation UI |
+| [`evidence-continuity-ec2-09-decision.md`](./evidence-continuity-ec2-09-decision.md) | EC2-09 `[decision-approved]` — retention metadata v1 |
 
 ---
 
 ## Sonraki adım
 
-1. **Phase 5 (P2):** EC2-09/10/11 (retention/observation/query); EC2-06/07 (legacy/migration).
+1. **Phase 5 (P2):** EC2-09 impl (decision-approved); EC2-10/11 (observation/query); EC2-06/07 (legacy/migration).
 2. **Phase 2 kalan (opsiyonel):** EC2-01 merge edildi; silme UX iyileştirmeleri «sohbet görev silme» takip maddesi ile devam edebilir.
 3. **EC2-05:** Karar [`evidence-continuity-ec2-05-decision.md`](./evidence-continuity-ec2-05-decision.md) — tam merge reddedildi; minimum v1 registry + dual health.
 
