@@ -64,6 +64,13 @@ Karar verildi; kod/CI uygulaması henüz yapılmadı. OD **closed** sayılmaz.
 | DL-F05 | 2026-06-18 | Çalışma araçları connector (GitHub, Slack, Drive, Linear, Notion, Asana) | İlke onaylı; değerlendirme listesi + katman sırası; uygulama bekliyor | OD-033 — [`work-tools-connectors-decision.md`](memory/work-tools-connectors-decision.md) |
 | DL-F06 | 2026-06-17 | Birincil kullanıcı yüzeyi | Taslak `ui/`; kesin karar bekliyor | OD-043 |
 | DL-F07 | 2026-06-17 | Root build vs panel E2E hizası | Üretim `ui/`, E2E `panel/` — hizasız | OD-046 |
+| DL-F08 | 2026-06-19 | Evidence Continuity v2 backlog | 14 madde; P0/P1/P2 + 5 faz planı; kod yok — planlama belgesi | [`docs/memory/evidence-continuity-v2-backlog.md`](memory/evidence-continuity-v2-backlog.md); OD-058 v1 closed |
+
+### Karar kapandı — docs/memory (uygulama kodu yok)
+
+| ID | Tarih | Konu | Karar | Bağlantı |
+|----|-------|------|-------|----------|
+| DL-C01 | 2026-06-19 | OD-059 audit hook terminolojisi | Informal «audit hook» ayrı git hook **gerektirmez**; üç katman (commit guard / EC runtime v1 / EC v2 #4+#14); informal takip maddesi docs seviyesinde **CLOSED** | [`docs/memory/audit-hook-term-decision.md`](memory/audit-hook-term-decision.md); OD-058 çapraz |
 
 ---
 
@@ -96,4 +103,4 @@ Tam liste: `docs/memory/open-decisions-needs-review.md` (OD-001 … OD-060).
 
 ---
 
-Son güncelleme: 2026-06-17
+Son güncelleme: 2026-06-19
