@@ -1,8 +1,8 @@
 # Evidence Continuity v1 — onaylı karar (Karar A — daraltılmış kapsam)
 
-> **Durum:** `decision-approved` — ilke kararları onaylandı; **uygulama başlamadı** (`implementation-pending`). Bu belge **yalnızca karar dokümanıdır**; kod, runtime, test veya deploy değişikliği içermez.
+> **Durum:** `[implemented]` / `[verified]` — **v1 panel + engine kapsamında** karar uygulandı ve doğrulandı (2026-06-19). Merge: **PR #248** (`main`).
 >
-> **Uygulama yok:** `append_evidence_event`, hook entegrasyonları, journal dosyası oluşturma ve doğrulama senaryoları **henüz yapılmadı**. Onaylı ilkeler kayıt altındadır; teknik uygulama ayrı iş paketidir.
+> **Karar uygulandı:** `append_evidence_event`, H1/H2 hook entegrasyonları ve journal yazımı `main` üzerinde canlıdır. Chat, client ve köprü hatları v1 kapsam dışı kalır (v2 backlog).
 >
 > **Üst sınır:** [`docs/lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md) — güvenlik, yetki, kalıcı silme ve onay kuralları bu kararı gevşetemez.
 >
@@ -24,7 +24,7 @@
 | EC2 | `tasks.json` içindeki `events[]` = **UI/legacy projection**; v1’de kaldırılmaz, journal ile reconcile edilmez. | `decision-approved` |
 | EC3 | Tek journal dosyası: `.lumos/logs/evidence_continuity.jsonl`. | `decision-approved` |
 | EC4 | Kesin şema: `lumos.evidence_continuity.v1`. | `decision-approved` |
-| EC5 | Minimum hook: `append_evidence_event` helper + `panel_tasks_server._write_doc()` + `save_task_store_json()`. | `decision-approved` (ilke) / `implementation-pending` (kod) |
+| EC5 | Minimum hook: `append_evidence_event` helper + `panel_tasks_server._write_doc()` + `save_task_store_json()`. | `implemented` / `verified` |
 | EC6 | Chat görevleri, görev silme UX, çift depo merge, client/bridge/guard hook’ları **v1 kapsam dışı**. | `decision-approved` |
 | EC7 | Demo-safe payload — secret, ham kullanıcı metni, production URL journal’a yazılmaz. | `decision-approved` |
 | EC8 | **İlke:** Kanıt kopunca aranmaz; sunucu yazım kapılarında otomatik bırakılır. | `decision-approved` |
@@ -41,7 +41,7 @@ Bu belge:
 - ADR-008’de kayıtlı **çift görev deposu drift**’ini v1’de **birleştirmez**; journal `source` + `store` ile ayrımı korur.
 - Public repo sınırına uygun **demo-safe** event şemasını sabitler.
 
-**Uygulama notu:** İlke kararları onaylandı; helper modülü, hook entegrasyonları, şema doğrulayıcı ve doğrulama senaryoları **henüz başlamadı**.
+**Uygulama notu:** Karar A ve EC1–EC8 ilkeleri `main` üzerinde uygulandı; panel + engine sunucu yazım kapıları journal bırakır. Chat/client/bridge v1 dışındadır.
 
 ---
 
@@ -85,12 +85,12 @@ Bu belge:
 Panel form/API ──► panel_tasks_server._write_doc()
                          │
                          ├──► .lumos/tasks.json (mevcut)
-                         └──► evidence_continuity.jsonl (onaylı; henüz yok)
+                         └──► evidence_continuity.jsonl (H1 — uygulandı)
 
 CLI / TaskEngine ──► TaskStore._save() ──► save_task_store_json()
                          │
                          ├──► .lumos/tasks/tasks.json (mevcut)
-                         └──► evidence_continuity.jsonl (onaylı; henüz yok)
+                         └──► evidence_continuity.jsonl (H2 — uygulandı)
 ```
 
 **Mevcut parçalı kanıt (v1’de korunur, kaldırılmaz):**
@@ -109,7 +109,7 @@ CLI / TaskEngine ──► TaskStore._save() ──► save_task_store_json()
 
 | Katman | Rol | v1 davranışı |
 |--------|-----|--------------|
-| **`.lumos/logs/evidence_continuity.jsonl`** | Audit / continuity **birincil kaynak** (sunucu mutasyonları) | Onaylı hedef; henüz oluşturulmadı |
+| **`.lumos/logs/evidence_continuity.jsonl`** | Audit / continuity **birincil kaynak** (sunucu mutasyonları) | Uygulandı; panel + engine mutasyonlarında append-only |
 | **`tasks.json` → `events[]`** | UI / legacy **projection** | Parallel kalır; journal ile reconcile **edilmez** |
 | **Trash, outbox, log.txt** | Mevcut yan kanıt | Korunur; v1’de journal’a taşınmaz |
 
@@ -122,7 +122,7 @@ CLI / TaskEngine ──► TaskStore._save() ──► save_task_store_json()
 | Özellik | Değer |
 |---------|--------|
 | **Path** | `.lumos/logs/evidence_continuity.jsonl` |
-| **Yazım deseni** | `append_jsonl_with_rotation()` ile hizalı (evolution/decision logları gibi) — `implementation-pending` |
+| **Yazım deseni** | `append_jsonl_with_rotation()` ile hizalı (evolution/decision logları gibi) — `append_evidence_event` üzerinden uygulandı |
 | **Rotation** | Mevcut default (1 MB × 3); v1 yeterli — evidence-specific politika v2 |
 | **Encoding** | UTF-8; satır başına bir JSON object |
 | **Sandbox** | `logs/` core state; sandbox write kuralları geçerli ([`lumos-guard-sandbox-kopya-siniri.md`](../lumos-guard-sandbox-kopya-siniri.md)) |
@@ -133,9 +133,9 @@ CLI / TaskEngine ──► TaskStore._save() ──► save_task_store_json()
 
 | # | Hook | Konum | Kapsadığı işlemler | Durum |
 |---|------|-------|-------------------|--------|
-| **H0** | `append_evidence_event(base_dir, record)` | Yeni helper (onay sonrası dosya) | Tek yazım deseni, şema doğrulama, rotation | `implementation-pending` |
-| **H1** | `_write_doc(doc)` | `panel/scripts/panel_tasks_server.py` | Panel create / complete / delete / restore / PUT | `implementation-pending` |
-| **H2** | `save_task_store_json(...)` | `src/core/workspace_contract.py` (TaskStore._save üzerinden) | Engine create / update / archive / delete | `implementation-pending` |
+| **H0** | `append_evidence_event(base_dir, record)` | `src/core/evidence_continuity.py` | Tek yazım deseni, şema doğrulama, rotation | `implemented` |
+| **H1** | `_write_doc(doc)` | `panel/scripts/panel_tasks_server.py` | Panel create / complete / delete / restore / PUT | `implemented` |
+| **H2** | `save_task_store_json(...)` | `src/core/workspace_contract.py` (`TaskStore._save` metadata üzerinden, `src/task_engine/engine.py`) | Engine create / update / archive / delete | `implemented` |
 
 **Bilerek çıkarılan (v1):**
 
@@ -144,7 +144,7 @@ CLI / TaskEngine ──► TaskStore._save() ──► save_task_store_json()
 - `tasksApiPost` — client
 - `applyPanelGorevKomutu` — chat, kapsam dışı
 
-**Hook davranışı (onaylı ilke, uygulama bekliyor):**
+**Hook davranışı (uygulandı):**
 
 1. `correlation_id` = request / `_save` girişinde UUID v4
 2. `before` → disk yazımı → `after`; exception → `error`
@@ -257,7 +257,7 @@ CLI / TaskEngine ──► TaskStore._save() ──► save_task_store_json()
 | 7 | Chat-local görevler journal’da **yok** — bilinen boşluk | Bilinçli kapsam dışı dokümantasyonu |
 | 8 | `events[]` parallel kalır; journal ile reconcile edilmez | Truth kuralı doğrulaması |
 
-**v1 “bitti” sayılması:** Kriter 1–6 geçer; 7–8 bilinen sınırlar olarak raporlanır. CI yeşil + uygulama commit’i olmadan tamamlanmış sayılmaz.
+**v1 “bitti” sayılması:** Kriter 1–6 geçti (2026-06-19 canlı doğrulama + pytest); 7–8 bilinen sınırlar olarak raporlanır. Karar uygulandı ve doğrulandı (v1 panel + engine kapsamında).
 
 ---
 
@@ -295,19 +295,32 @@ CLI / TaskEngine ──► TaskStore._save() ──► save_task_store_json()
 
 ---
 
-## Implementation-pending
+## Uygulama durumu
 
-Aşağıdakiler **henüz uygulanmadı**; bu belge uygulama izni vermez.
+**Özet:** Karar A ve EC1–EC8 ilkeleri **uygulandı**; panel + engine sunucu yazım kapıları journal bırakır. **Merge:** PR #248 (`main`).
 
-| Sıra | İş | Not |
-|------|-----|-----|
-| 1 | `append_evidence_event` helper modülü | Yeni dosya — kullanıcı onayı ile |
-| 2 | Hook H1: `_write_doc()` | Panel tüm mutasyonlar |
-| 3 | Hook H2: `save_task_store_json()` | Engine tüm mutasyonlar |
-| 4 | Manuel / otomasyon doğrulama | Başarı kriterleri 1–6 |
-| 5 | Şema spot-check / validator (opsiyonel v1.1) | Kriter 5 |
+| Hook | Dosya / konum | Durum |
+|------|---------------|--------|
+| **H0** | `src/core/evidence_continuity.py` — `append_evidence_event` | Uygulandı |
+| **H1** | `panel/scripts/panel_tasks_server.py` — `_write_doc` | Uygulandı |
+| **H2** | `src/core/workspace_contract.py` — `save_task_store_json` | Uygulandı |
+| **H2 (metadata)** | `src/task_engine/engine.py` — `TaskStore._save` evidence metadata | Uygulandı |
 
-**Yasak (bu aşamada):** kod, test, runtime değişikliği, client/bridge/guard hook’ları, store merge, `open-decisions-needs-review.md` otomatik güncelleme (ayrı istek).
+**v1 kapsam dışı (değişmedi):** chat (`applyPanelGorevKomutu`), client (`tasksApiPost`), köprü outbox, guard/policy mirror, çift depo merge — v2 backlog.
+
+---
+
+## Doğrulama özeti
+
+**Tarih:** 2026-06-19
+
+| Kanal | Senaryo | Sonuç |
+|-------|---------|--------|
+| **Canlı (izole `LUMOS_BASE_DIR`)** | Panel sunucu curl: create → complete → delete | 6 journal satırı; `lumos.evidence_continuity.v1` şema geçerli |
+| **Canlı (hata)** | Yazım hatası senaryosu | `before` + `error` fazları kayıtlı |
+| **pytest** | İlgili test paketleri | 9 + 9 + 2 test geçti |
+
+**Sonuç:** Karar uygulandı ve doğrulandı (v1 panel + engine kapsamında). Chat/client/bridge boşlukları bilinçli kapsam dışıdır.
 
 ---
 
@@ -325,9 +338,9 @@ Aşağıdakiler **henüz uygulanmadı**; bu belge uygulama izni vermez.
 
 ## Sonraki adım
 
-1. **Onay (tamamlandı — ilke):** Karar A ve EC1–EC8 `decision-approved`; teknik uygulama `implementation-pending`.
-2. **Implementation-pending:** `append_evidence_event` + H1/H2 hook’ları — ayrı uygulama paketi, dar commit.
-3. Chat silme, store merge ve köprü mirror **bu pakete dahil edilmez** — v2 backlog.
+1. **v1 (tamamlandı):** Karar A uygulandı ve doğrulandı — PR #248, `main`.
+2. **v2 backlog:** Chat persist, client evidence queue, köprü mirror, guard/policy journal, store merge — § «v2’ye ertelenen maddeler».
+3. **Opsiyonel v1.1:** Şema validator CI kapısı (v2 backlog madde 14).
 
 ---
 
