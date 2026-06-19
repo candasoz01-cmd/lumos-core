@@ -116,3 +116,32 @@ def test_append_evidence_event_best_effort_invalid_record(tmp_path):
     assert not evidence_continuity_path(tmp_path).exists()
 
 
+def test_panel_write_doc_emits_before_after(tmp_path, monkeypatch):
+    panel_scripts = _REPO_ROOT / "panel" / "scripts"
+    if str(panel_scripts) not in sys.path:
+        sys.path.insert(0, str(panel_scripts))
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path))
+    import panel_tasks_server as pts  # noqa: E402
+
+    doc = pts._empty_doc()
+    doc["tasks"] = [{"id": "tsk_test", "title": "Demo", "status": "active"}]
+    pts._write_doc(
+        doc,
+        evidence={
+            "operation": OPERATION_PANEL_TASK_CREATE,
+            "mutation": "create",
+            "entity_id": "tsk_test",
+            "route": "POST /tasks",
+            "title_preview": "Demo",
+            "events_appended": 0,
+        },
+    )
+    journal = evidence_continuity_path(tmp_path)
+    lines = journal.read_text(encoding="utf-8").strip().splitlines()
+    assert len(lines) == 2
+    phases = [json.loads(line)["phase"] for line in lines]
+    assert phases == [PHASE_BEFORE, PHASE_AFTER]
+    corr_ids = {json.loads(line)["correlation_id"] for line in lines}
+    assert len(corr_ids) == 1
+    stores = {json.loads(line)["store"] for line in lines}
+    assert stores == {STORE_PANEL_TASKS}
