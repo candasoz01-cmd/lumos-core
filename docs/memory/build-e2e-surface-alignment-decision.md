@@ -1,6 +1,6 @@
 # Root build vs panel E2E — yüzey hizası kararı (OD-046)
 
-**Durum:** `[decision-approved]` — **Seçenek A** onaylandı; uygulama ayrı iş paketidir (bu belge kod, build, test veya deploy değişikliği yapmaz).  
+**Durum:** `[decision-approved]` — **Seçenek A** onaylandı; **kısmi uygulama v1** (ui smoke) merge edildi; tam E2E migrasyonu bekliyor.  
 **Kaynak:** `docs/memory/open-decisions-needs-review.md` (OD-046; çapraz OD-043, OD-044).  
 **Doğrulama:** Repo dosya sistemi read-only tarama — 2026-06-17; karar onayı — 2026-06-17.
 
@@ -39,6 +39,7 @@ Bu belge:
 
 ```json
 "build": "cd ui && npm install && npm run build",
+"e2e:smoke:ui": "npm run build && npm run e2e:smoke --prefix ui",
 "e2e:package": "npm run e2e:package --prefix panel",
 "e2e:package:api": "npm run e2e:package:api --prefix panel",
 "e2e:tasks-offline-online": "npm run e2e:tasks-offline-online --prefix panel"
@@ -47,9 +48,10 @@ Bu belge:
 | Script | Hedef dizin | Çıktı / davranış |
 |--------|-------------|------------------|
 | `npm run build` (kök) | `ui/` | Astro build → `ui/dist` |
-| `npm run e2e:*` (kök) | `panel/` | Playwright; `panel/index.html` statik sunucu |
+| `npm run e2e:smoke:ui` (kök) | `ui/dist` | Playwright smoke — `/panel` title + temel DOM (OD-046 v1) |
+| `npm run e2e:*` (kök, legacy) | `panel/` | Playwright; `panel/index.html` statik sunucu — **legacy kalite kapısı** |
 
-**Kanıt:** Kök `package.json` — build yalnızca `ui/`; tüm expose edilen E2E scriptleri `--prefix panel`.
+**Kanıt:** Kök `package.json` — build `ui/`; `e2e:smoke:ui` üretim yüzeyi smoke; legacy `e2e:package*` hâlâ `--prefix panel`.
 
 ### 3.2 `ui/` (Astro — `lumos-core-ui`)
 
@@ -202,7 +204,7 @@ OD-046'nın çözmesi gereken kavram ayrımı:
 
 **Kalite kapısı (kök E2E — bugün):** **`panel/`** statik uygulama — `panel/index.html` üzerinde Playwright. Kaynak: root `e2e:*` scriptleri, `panel/e2e/run-package.mjs`. Bu, geçiş dönemi kalite kapısıdır; üretim kanıtı değildir.
 
-**Kalite kapısı (kök E2E — nihai hedef, Seçenek A):** **`ui/dist`** veya Astro preview — üretim yüzeyi ile hizalı E2E. Uygulama henüz yapılmadı.
+| **Kalite kapısı (kök E2E — nihai hedef, Seçenek A):** **`ui/dist`** veya Astro preview — üretim yüzeyi ile hizalı E2E. **v1 kısmi:** `e2e:smoke:ui` + `ui/e2e/smoke-panel.mjs` (PR #294); tam migrasyon bekliyor.
 
 **Legacy / operatör geliştirme:** `panel/` statik uygulama üretim için dokümante olarak **superseded** (`LUMOS_V1_READINESS.md` §2); kök E2E hâlâ bu yüzeyi test eder → **hizasızlık devam ediyor**; Seçenek A uygulaması ile giderilecek.
 
@@ -287,21 +289,21 @@ Build/E2E hizası veya yüzey değişikliği görevi açılmadan önce:
 
 ## 12. Sonraki adım — uygulama iş paketi (ayrı görev)
 
-OD-046 kararı onaylandı (Seçenek A). Aşağıdaki uygulama **bu belgenin dışında**, ayrı iş paketi olarak yapılır:
+OD-046 kararı onaylandı (Seçenek A). **v1 kısmi uygulama** merge edildi; kalan parçalar ayrı iş paketidir:
 
-| Parça | Kapsam |
-|-------|--------|
-| E2E hedefi | Kök E2E'yi `ui/dist` veya Astro preview'a taşıma |
-| Test komutları | Root `package.json` `e2e:*` scriptlerinin üretim yüzeyine hizalanması |
-| Prod smoke | `welockai.com/panel` veya eşdeğer üretim smoke kanalı |
-| Dokümantasyon | `LUMOS_V1_READINESS.md`, `open-decisions-needs-review.md` ve ilgili belgelerin senkronu |
+| Parça | Kapsam | Durum |
+|-------|--------|--------|
+| UI smoke (v1) | `ui/e2e/smoke-panel.mjs` — `ui/dist` statik `/panel` | **Tamamlandı** — PR #294 |
+| Kök script | `npm run e2e:smoke:ui` | **Tamamlandı** — bu PR |
+| Tam E2E migrasyonu | Legacy `e2e:package*` → `ui/dist` veya Astro preview | Bekliyor |
+| CI Playwright job | Otomatik smoke/E2E kapısı | v1 dışı — bekliyor |
+| Prod smoke | `welockai.com/panel` veya eşdeğer | Bekliyor |
 
-Bu uygulama tamamlanmadan:
+Tam migrasyon tamamlanmadan:
 
-- OD-046 **implementation-complete** sayılmaz (karar onaylı; uygulama bekliyor).
-- OD-043 **closed** sayılmaz — kapanış, hizalama uygulamasının sonucuna bağlıdır.
-- Build/E2E script değişikliği bu iş paketi kapsamında açılır.
+- OD-046 **implementation-partial** (v1 smoke); **implementation-complete** sayılmaz.
+- OD-043 **closed** sayılmaz — kapanış, tam hizalama uygulamasına bağlıdır.
 
 ---
 
-Son güncelleme: 2026-06-17 (OD-046 Seçenek A onaylandı)
+Son güncelleme: 2026-06-20 (OD-046 v1 smoke — PR #294; kök `e2e:smoke:ui`; legacy panel E2E etiketi)

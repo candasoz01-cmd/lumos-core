@@ -105,3 +105,16 @@ Ortak bileşenler: Sidebar, Topbar, StatusBadge, MetricCard, SectionCard, EmptyS
 - **Bilinçli sınırlar:** Canlı API, yeni ekran veya büyük modül bu sürümde açılmaz; sadece mock tabanlı operatör görünümü.
 - **Adapter / contract:** Ekran verisi contract şemasına göre; stub üreticileri (`buildXxxStub`) state → contract şekli, normalizer'lar eksik alanları güvenli varsayılana çeker. Ekranlar `getXxxData()` çıktısından beslenir. Gerçek backend entegrasyonunda sadece mapping katmanı (API → contract) değiştirilecek; contract referans alınacak.
 - **Çalıştırma:** `panel/index.html` doğrudan açılır veya repo kökünden `python3 -m http.server 8080` ile `http://localhost:8080/panel/`. Hash listesi: hazır ekranlar tablosu (`#yanit` katmanlı yanıt örneği).
+
+---
+
+## E2E (legacy kalite kapısı)
+
+> **Legacy:** Birincil üretim yüzeyi `ui/` (Astro `/panel`) — bkz. OD-043. Bu dizindeki Playwright E2E (`panel/e2e/`, kök `e2e:package*`) **legacy statik panel** kalite kapısıdır; üretim `/panel` doğrulaması değildir (OD-046).
+
+| Komut | Hedef | Not |
+|-------|-------|-----|
+| `npm run e2e:package` (kök) | `panel/index.html` statik | Legacy paket kapısı |
+| `npm run e2e:smoke:ui` (kök) | `ui/dist` → `/panel` | OD-046 minimum v1 smoke (üretim yüzeyi) |
+
+Legacy E2E ayrıntıları: `panel/e2e/run-package.mjs`. UI smoke: `ui/e2e/smoke-panel.mjs`.
