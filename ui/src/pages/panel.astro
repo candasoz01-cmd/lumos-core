@@ -1325,6 +1325,36 @@ const PANEL_DEBUG = import.meta.env.DEV;
         line-height: 1.45;
         color: var(--lumos-error);
       }
+      .gorevler-evidence-strip {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.55rem 0.75rem;
+        margin: 0.65rem 0 0.85rem;
+        padding: 0.55rem 0.75rem;
+        border-radius: var(--panel-radius-md);
+        border: 1px solid rgba(228, 198, 138, 0.22);
+        background: rgba(8, 12, 24, 0.55);
+      }
+      .gorevler-evidence-strip[hidden] {
+        display: none !important;
+      }
+      .gorevler-evidence-summary {
+        margin: 0;
+        flex: 1 1 12rem;
+        font-size: 0.74rem;
+        line-height: 1.45;
+        color: rgba(232, 226, 214, 0.92);
+      }
+      .gorevler-evidence-empty {
+        margin: 0 0 0.65rem;
+        font-size: 0.72rem;
+        line-height: 1.45;
+        color: rgba(180, 176, 168, 0.88);
+      }
+      .gorevler-evidence-empty[hidden] {
+        display: none !important;
+      }
       #gorevler-detail.gorevler-detail {
         width: 100%;
         max-width: min(36rem, 100%);
@@ -4403,6 +4433,20 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   ></section>
                 </aside>
               </div>
+              <section
+                id="gorevler-evidence-strip"
+                class="gorevler-evidence-strip"
+                aria-label="Son işlem kanıtı"
+                hidden
+              >
+                <p id="gorevler-evidence-summary" class="gorevler-evidence-summary"></p>
+                <button type="button" id="gorevler-evidence-continue" class="gorevler-clear-test-btn" hidden>
+                  Buradan devam
+                </button>
+              </section>
+              <p id="gorevler-evidence-empty" class="gorevler-evidence-empty" role="status" hidden>
+                Henüz sunucu kanıtı yok
+              </p>
               <div class="gorevler-list-heading-row">
                 <h3 class="gorevler-list-heading">Görev listesi</h3>
                 <div class="gorevler-list-filter" role="group" aria-label="Görev durumu filtresi">
@@ -6495,6 +6539,264 @@ const PANEL_DEBUG = import.meta.env.DEV;
         if (shouldSkipGorevlerTasksApi()) return true;
         return !!apiUnreachable;
       }
+
+      const EVIDENCE_BRIDGE_PAIR_MAX_MS = 60000;
+      /** @type {null | ((taskId: string) => void)} */
+      let panelEvidenceOpenTaskDetail = null;
+      /** @type {null | (() => void)} */
+      let panelEvidenceRefreshStrip = null;
+      let panelEvidenceLatestGroup = null;
+
+      function parseEvidenceTsMs(ts) {
+        const d = Date.parse(String(ts || ""));
+        return Number.isNaN(d) ? 0 : d;
+      }
+
+      function evidenceTitlePreviewPrefixMatch(a, b) {
+        const x = String(a || "").trim();
+        const y = String(b || "").trim();
+        if (!x || !y) return false;
+        const px = x.slice(0, 20);
+        const py = y.slice(0, 20);
+        return x.startsWith(py) || y.startsWith(px) || px === py;
+      }
+
+      function evidenceSourceLabel(source) {
+        const s = String(source || "");
+        if (s === "panel_tasks_server") return "Panel";
+        if (s === "kando_bridge") return "Köprü";
+        if (s === "guard_audit") return "Koruma";
+        if (s === "action_policy") return "Koruma";
+        if (s === "task_engine") return "Motor";
+        return s || "Kaynak";
+      }
+
+      function buildEvidenceUiGroup(primary, kind, label) {
+        const ev = primary && typeof primary === "object" ? primary : {};
+        const entityRef =
+          ev.entity_ref && typeof ev.entity_ref === "object" ? ev.entity_ref : null;
+        const entityId = entityRef && entityRef.id ? String(entityRef.id).trim() : "";
+        const titlePreview =
+          ev.payload_summary &&
+          ev.payload_summary.title_preview != null &&
+          String(ev.payload_summary.title_preview).trim()
+            ? String(ev.payload_summary.title_preview).trim()
+            : "";
+        let continueKind = null;
+        let canContinue = false;
+        if (entityId) {
+          continueKind = "task";
+          canContinue = true;
+        } else if (titlePreview && kind !== "guard") {
+          continueKind = "chat";
+          canContinue = true;
+        } else if (kind === "guard") {
+          continueKind = "info";
+          canContinue = false;
+        }
+        return {
+          ts: ev.ts != null ? String(ev.ts) : "",
+          kind,
+          label,
+          primaryEvent: ev,
+          entityRefId: entityId || null,
+          titlePreview: titlePreview || null,
+          canContinue,
+          continueKind,
+        };
+      }
+
+      function groupEvidenceEventsForUi(events) {
+        const list = Array.isArray(events) ? events.slice() : [];
+        list.sort((a, b) => parseEvidenceTsMs(b && b.ts) - parseEvidenceTsMs(a && a.ts));
+        const used = new Set();
+        const groups = [];
+        for (let i = 0; i < list.length; i++) {
+          if (used.has(i)) continue;
+          const ev = list[i];
+          if (!ev || typeof ev !== "object") {
+            used.add(i);
+            continue;
+          }
+          const op = String(ev.operation || "");
+          const phase = String(ev.phase || "");
+          const source = String(ev.source || "");
+
+          if (op === "bridge.task.post" && phase === "result") {
+            let matchedAfter = null;
+            for (let j = i + 1; j < list.length; j++) {
+              if (used.has(j)) continue;
+              const cand = list[j];
+              if (!cand || String(cand.operation || "") !== "bridge.task.post") continue;
+              if (String(cand.phase || "") !== "after") continue;
+              const dt = Math.abs(parseEvidenceTsMs(ev.ts) - parseEvidenceTsMs(cand.ts));
+              if (dt > EVIDENCE_BRIDGE_PAIR_MAX_MS) continue;
+              const tp1 =
+                ev.payload_summary && ev.payload_summary.title_preview != null
+                  ? String(ev.payload_summary.title_preview)
+                  : "";
+              const tp2 =
+                cand.payload_summary && cand.payload_summary.title_preview != null
+                  ? String(cand.payload_summary.title_preview)
+                  : "";
+              if (tp1 && tp2 && !evidenceTitlePreviewPrefixMatch(tp1, tp2)) continue;
+              matchedAfter = cand;
+              used.add(j);
+              break;
+            }
+            const outcome = String(ev.outcome || "ok");
+            const preview =
+              ev.payload_summary && ev.payload_summary.title_preview != null
+                ? String(ev.payload_summary.title_preview).trim()
+                : "";
+            const label =
+              "Köprü: " +
+              outcome +
+              (preview ? " · " + preview : matchedAfter ? " · iletim" : "");
+            groups.push(buildEvidenceUiGroup(ev, "bridge", label));
+            used.add(i);
+            continue;
+          }
+
+          if (source === "panel_tasks_server" && phase === "after") {
+            const mutation = ev.mutation != null ? String(ev.mutation) : "işlem";
+            const outcome = String(ev.outcome || "ok");
+            groups.push(
+              buildEvidenceUiGroup(ev, "panel", "Görev: " + mutation + " · " + outcome),
+            );
+            used.add(i);
+            continue;
+          }
+
+          if (op === "guard.decision" || op === "policy.blocked") {
+            const code =
+              ev.error && ev.error.code != null
+                ? String(ev.error.code)
+                : ev.payload_summary && ev.payload_summary.reason_code != null
+                  ? String(ev.payload_summary.reason_code)
+                  : "koruma";
+            groups.push(buildEvidenceUiGroup(ev, "guard", "Koruma: " + code));
+            used.add(i);
+            continue;
+          }
+
+          if (source === "task_engine") {
+            groups.push(buildEvidenceUiGroup(ev, "engine", "Motor · " + String(ev.outcome || "ok")));
+            used.add(i);
+            continue;
+          }
+
+          if (phase === "before") {
+            used.add(i);
+            continue;
+          }
+
+          groups.push(
+            buildEvidenceUiGroup(
+              ev,
+              "other",
+              evidenceSourceLabel(source) + " · " + String(ev.outcome || "ok"),
+            ),
+          );
+          used.add(i);
+        }
+        groups.sort((a, b) => parseEvidenceTsMs(b.ts) - parseEvidenceTsMs(a.ts));
+        return groups;
+      }
+
+      function pickLatestEvidenceGroup(groups) {
+        if (!Array.isArray(groups) || !groups.length) return null;
+        return groups[0];
+      }
+
+      function navigatePanelModule(moduleId) {
+        const nav = document.querySelector(".panel-body");
+        const btn = nav && nav.querySelector('button[data-module="' + moduleId + '"]');
+        if (btn && typeof btn.click === "function") btn.click();
+      }
+
+      function prefillPanelChatFromEvidence(titlePreview) {
+        const chatInput = document.getElementById("panel-msg");
+        if (!(chatInput instanceof HTMLTextAreaElement)) return false;
+        const text = String(titlePreview || "").trim();
+        if (!text) return false;
+        chatInput.value = text;
+        chatInput.dispatchEvent(new Event("input", { bubbles: true }));
+        try {
+          chatInput.focus({ preventScroll: true });
+        } catch {
+          chatInput.focus();
+        }
+        return true;
+      }
+
+      function evidenceContinueFromGroup(group) {
+        if (!group || !group.canContinue) return;
+        if (group.continueKind === "task" && group.entityRefId) {
+          navigatePanelModule("gorevler");
+          if (typeof panelEvidenceOpenTaskDetail === "function") {
+            panelEvidenceOpenTaskDetail(group.entityRefId);
+          }
+          return;
+        }
+        if (group.continueKind === "chat" && group.titlePreview) {
+          navigatePanelModule("sohbet");
+          prefillPanelChatFromEvidence(group.titlePreview);
+        }
+      }
+
+      async function fetchEvidenceRecent() {
+        const base = resolveGorevlerTasksApiBase();
+        if (!base) return null;
+        try {
+          const r = await fetch(`${base}/evidence/recent`, {
+            headers: { Accept: "application/json" },
+          });
+          if (!r.ok) return null;
+          const data = await r.json();
+          if (!data || !Array.isArray(data.events)) return null;
+          return data;
+        } catch {
+          return null;
+        }
+      }
+
+      async function refreshGorevlerEvidenceStrip() {
+        const stripEl = document.getElementById("gorevler-evidence-strip");
+        const summaryEl = document.getElementById("gorevler-evidence-summary");
+        const continueBtn = document.getElementById("gorevler-evidence-continue");
+        const emptyEl = document.getElementById("gorevler-evidence-empty");
+        if (!stripEl || !summaryEl || !continueBtn || !emptyEl) return;
+
+        const data = await fetchEvidenceRecent();
+        if (!data) {
+          panelEvidenceLatestGroup = null;
+          stripEl.hidden = true;
+          emptyEl.hidden = false;
+          emptyEl.textContent = "Henüz sunucu kanıtı yok";
+          continueBtn.hidden = true;
+          return;
+        }
+
+        const groups = groupEvidenceEventsForUi(data.events);
+        const latest = pickLatestEvidenceGroup(groups);
+        if (!latest) {
+          panelEvidenceLatestGroup = null;
+          stripEl.hidden = true;
+          emptyEl.hidden = false;
+          emptyEl.textContent = "Henüz sunucu kanıtı yok";
+          continueBtn.hidden = true;
+          return;
+        }
+
+        panelEvidenceLatestGroup = latest;
+        emptyEl.hidden = true;
+        stripEl.hidden = false;
+        summaryEl.textContent = "Son işlem kanıtı: " + latest.label;
+        continueBtn.hidden = !latest.canContinue;
+      }
+
+      panelEvidenceRefreshStrip = refreshGorevlerEvidenceStrip;
 
       async function tasksApiPost(path, body) {
         const base = resolveGorevlerTasksApiBase();
@@ -9935,6 +10237,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
           detailPlanSection && detailPlanSection.querySelector(".gorevler-plan-actions");
         const planInlineTeshisEl = document.getElementById("gorevler-plan-inline-teshis");
         const detailPlanTeshisEl = document.getElementById("gorevler-detail-plan-teshis");
+        const evidenceContinueBtn = document.getElementById("gorevler-evidence-continue");
+        const gorevlerPanelEl = document.getElementById("panel-gorevler");
         if (
           !listEl ||
           !titleInput ||
@@ -10865,6 +11169,31 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
           return -1;
         }
+
+        panelEvidenceOpenTaskDetail = function (taskId) {
+          const idx = findGorevlerTaskIndexByRef(taskId);
+          if (idx >= 0) openGorevlerDetail(idx);
+        };
+
+        if (evidenceContinueBtn) {
+          evidenceContinueBtn.addEventListener("click", () => {
+            if (panelEvidenceLatestGroup) evidenceContinueFromGroup(panelEvidenceLatestGroup);
+          });
+        }
+
+        if (gorevlerPanelEl && typeof MutationObserver !== "undefined") {
+          const evidenceObs = new MutationObserver(() => {
+            if (
+              gorevlerPanelEl.getAttribute("data-active") === "true" &&
+              typeof panelEvidenceRefreshStrip === "function"
+            ) {
+              panelEvidenceRefreshStrip();
+            }
+          });
+          evidenceObs.observe(gorevlerPanelEl, { attributes: true, attributeFilter: ["data-active"] });
+        }
+
+        if (typeof panelEvidenceRefreshStrip === "function") panelEvidenceRefreshStrip();
 
         function removeGorevlerTaskLocalByRef(ref) {
           const idx = findGorevlerTaskIndexByRef(ref);

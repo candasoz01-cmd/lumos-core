@@ -21,6 +21,7 @@ import re
 import subprocess
 import sys
 import time
+from urllib.parse import parse_qs, urlparse
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
@@ -33,6 +34,8 @@ if _SRC.is_dir() and str(_SRC) not in sys.path:
 
 from core.lumos_base_dir import lumos_base_dir  # noqa: E402
 from core.evidence_continuity import (  # noqa: E402
+    DEFAULT_READ_LIMIT,
+    MAX_READ_LIMIT,
     OPERATION_PANEL_TASK_COMPLETE,
     OPERATION_PANEL_TASK_CREATE,
     OPERATION_PANEL_TASK_DELETE,
@@ -47,7 +50,9 @@ from core.evidence_continuity import (  # noqa: E402
     STORE_PANEL_TASKS,
     append_evidence_event,
     build_evidence_record,
+    build_ui_projection_response,
     generate_correlation_id,
+    read_recent_evidence_events,
     title_preview_from,
 )
 
@@ -432,6 +437,23 @@ def _find_task_by_ref(doc: dict, ref: str) -> Optional[dict]:
     return None
 
 
+def _parse_evidence_recent_limit(path: str) -> int:
+    try:
+        qs = parse_qs(urlparse(path).query)
+        raw = qs.get("limit", [None])[0]
+        if raw is None:
+            return DEFAULT_READ_LIMIT
+        return max(1, min(int(raw), MAX_READ_LIMIT))
+    except (TypeError, ValueError):
+        return DEFAULT_READ_LIMIT
+
+
+def build_evidence_recent_response(limit: int | None = None) -> dict:
+    lim = DEFAULT_READ_LIMIT if limit is None else max(1, min(int(limit), MAX_READ_LIMIT))
+    events, truncated = read_recent_evidence_events(_base_dir(), lim)
+    return build_ui_projection_response(events, truncated=truncated)
+
+
 def _send_json(handler: BaseHTTPRequestHandler, code: int, obj: dict) -> None:
     raw = json.dumps(obj, ensure_ascii=False).encode("utf-8")
     handler.send_response(code)
@@ -482,6 +504,7 @@ class Handler(BaseHTTPRequestHandler):
             "/tasks/delete-permanent",
             "/lumos-read-state",
             "/lumos-consent",
+            "/evidence/recent",
             "/open-folder",
         ):
             return True
@@ -564,6 +587,10 @@ class Handler(BaseHTTPRequestHandler):
         td = _trash_dir()
         _send_json(self, 200, {"ok": True, "trash_location": str(td.resolve()), "items": items})
 
+    def _get_evidence_recent(self) -> None:
+        limit = _parse_evidence_recent_limit(self.path)
+        _send_json(self, 200, build_evidence_recent_response(limit))
+
     def _try_serve_panel_static(self, p: str) -> bool:
         root = _panel_static_root()
         if p == "/":
@@ -607,6 +634,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if p == "/tasks/trash":
             self._get_tasks_trash()
+            return
+        if p == "/evidence/recent":
+            self._get_evidence_recent()
             return
         if p not in ("/tasks.json", "/tasks"):
             if self._try_serve_panel_static(p):
