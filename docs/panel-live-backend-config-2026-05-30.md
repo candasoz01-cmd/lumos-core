@@ -12,8 +12,10 @@ Feed endpoint değişmedi: `GET /posts?order=feed`. Deprecated `/posts/feed` kul
 
 ## Canlı test (tarayıcı konsolu)
 
+Lokal geliştirme için varsayılan `http://127.0.0.1:3000` kullanılır. Uzak/staging API için ortam değişkeni veya tarayıcı konsolundan override:
+
 ```js
-localStorage.setItem("LUMOS_POSTS_API_BASE", "http://167.99.253.148:3000")
+localStorage.setItem("LUMOS_POSTS_API_BASE", "https://api.example.com")
 ```
 
 Ardından sayfayı yenile (taban oturum başında bir kez çözümlenir).
@@ -29,12 +31,11 @@ Tekrar varsayılan lokal tabana (`http://127.0.0.1:3000`) döner.
 ## Canlı feed doğrulaması (2026-05-30)
 
 - Panel lokal olarak `http://127.0.0.1:8080` üzerinde çalıştırıldı.
-- Akış ekranı canlı backend base URL ile doğrulandı: `http://167.99.253.148:3000`
-- `localStorage` `LUMOS_POSTS_API_BASE` üzerinden canlı backend seçildi.
+- Akış ekranı uzak backend base URL ile doğrulandı (`LUMOS_POSTS_API_BASE` override ile).
 - Feed endpoint: `/posts?order=feed`
-- Panelde "Lumos backend test post" görüldü.
-- Bu doğrulama panel -> canlı backend -> Prisma SQLite DB hattının çalıştığını gösterir.
-- Not: Bu bağlantı HTTP/IP üzerinden test içindir; üretim için domain + HTTPS + reverse proxy gerekir.
+- Panelde test gönderisi görüldü.
+- Bu doğrulama panel -> uzak backend -> DB hattının çalıştığını gösterir.
+- Not: Üretim için domain + HTTPS + reverse proxy gerekir; operasyonel detaylar bkz. `docs/ops-runbooks-private-notice.md`.
 
 ## HTTPS domain ile feed doğrulaması (2026-05-30)
 
@@ -44,7 +45,7 @@ Tekrar varsayılan lokal tabana (`http://127.0.0.1:3000`) döner.
 - Doğrulanan endpoint: `https://api.welockai.com/posts?order=feed&limit=20`
 - Panelde "1 gönderi · Feed" ve "@test-user — Lumos backend test post" görüldü.
 - CORS/fetch hatası görülmedi.
-- Eski test IP tabanı `http://167.99.253.148:3000` yerine artık doğrulanmış canlı API tabanı `https://api.welockai.com` olarak kullanılabilir.
+- Doğrulanmış canlı API tabanı `https://api.welockai.com` olarak kullanılabilir.
 
 ### Açık konu
 

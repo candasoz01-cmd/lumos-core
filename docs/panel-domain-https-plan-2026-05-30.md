@@ -21,7 +21,7 @@ Bu doküman, Lumos panelinin ileride `panel.welockai.com` veya `app.welockai.com
 
 ## DNS
 
-- Planlanan kayıt: `panel` -> `A` -> `167.99.253.148`.
+- Planlanan kayıt: `panel` -> `A` -> `<SERVER_IP>`.
 - Başlangıçta Cloudflare proxied (turuncu bulut) kullanılabilir; ancak origin / Nginx ayarı dikkatle doğrulanmalı.
 
 ## Nginx
@@ -46,5 +46,5 @@ Bu doküman, Lumos panelinin ileride `panel.welockai.com` veya `app.welockai.com
 ## Sonraki teknik adım
 
 1. Önce doküman (bu dosya).
-2. Sonra DNS (`panel` -> `A` -> `167.99.253.148`).
+2. Sonra DNS (`panel` -> `A` -> `<SERVER_IP>`).
 3. Sonra Nginx statik panel servis testi.

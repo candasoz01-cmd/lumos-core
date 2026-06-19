@@ -1,10 +1,10 @@
-# Panel / Frontend — Canlı DigitalOcean Backend Bağlantı Planı (2026-05-30)
+# Panel / Frontend — Canlı Backend Bağlantı Planı (2026-05-30)
 
-Bu not, panel/frontend tarafının canlı DigitalOcean test backend'ine bağlanması için plandır. Henüz kod değişikliği yapılmadı.
+Bu not, panel/frontend tarafının uzak (staging/production) backend'e bağlanması için plandır. Henüz kod değişikliği yapılmadı.
 
-## Canlı Backend Bilgileri
+## Uzak Backend Bilgileri
 
-- **Base URL:** http://167.99.253.148:3000
+- **Base URL:** `https://api.example.com` (veya ortam değişkeni ile tanımlanan `<API_BASE_URL>`)
 - **Health endpoint:** `/health`
 - **Feed endpoint:** `/posts?order=feed`
 - **Deprecated (kullanılmayacak):** `/posts/feed`
@@ -12,13 +12,13 @@ Bu not, panel/frontend tarafının canlı DigitalOcean test backend'ine bağlanm
 ## Yapılandırma İlkeleri
 
 - Panel tarafında API base URL **sabit kodlanmadan** config/env üzerinden yönetilmeli.
-- Lokal geliştirme için `localhost:3000` korunmalı.
-- Canlı test için DigitalOcean backend URL **ayrı bir ortam değişkeniyle** tanımlanmalı.
+- Lokal geliştirme için `127.0.0.1:3000` korunmalı.
+- Uzak test için backend URL **ayrı bir ortam değişkeniyle** tanımlanmalı.
 - UI değişikliği yapılmadan önce mevcut panel API çağrıları haritalanmalı.
 
 ## Risk
 
-- Direkt canlı IP'ye bağlanmak geçici çözümdür; domain/HTTPS/proxy olmadan üretim sayılmaz.
+- Direkt IP veya HTTP üzerinden bağlanmak geçici çözümdür; domain/HTTPS/proxy olmadan üretim sayılmaz.
 
 ## Sonraki Teknik Adım
 
