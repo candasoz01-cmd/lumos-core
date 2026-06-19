@@ -278,6 +278,8 @@ CLI / TaskEngine ──► TaskStore._save() ──► save_task_store_json()
 
 ## v2’ye ertelenen maddeler
 
+**Önceliklendirme, bağımlılık ve faz planı:** [`evidence-continuity-v2-backlog.md`](./evidence-continuity-v2-backlog.md) (14 madde; P0/P1/P2; 5 faz).
+
 1. Chat görev persist + `id` + silme UX düzeltmesi  
 2. Client evidence queue (`localStorage` → sunucu journal sync)  
 3. Köprü `POST /task` outbox append + journal mirror  
@@ -333,14 +335,16 @@ CLI / TaskEngine ──► TaskStore._save() ──► save_task_store_json()
 | [primary-user-surface-decision](./primary-user-surface-decision.md) | Astro panel birincil; legacy panel v2 |
 | Evidence Continuity keşif raporu (2026-06) | Üç persistence hattı, hook choke-point doğrulaması |
 | Evidence v1 eleştirel inceleme (2026-06) | Minimum hook, chat gap, çift kayıt riski |
+| [`evidence-continuity-v2-backlog.md`](./evidence-continuity-v2-backlog.md) | v2 14 madde önceliklendirme; OD-058 v1 kapalı |
+| [`audit-hook-term-decision.md`](./audit-hook-term-decision.md) | OD-059 — «audit hook» ≠ git hook; EC2-14/#4 eşlemesi |
 
 ---
 
 ## Sonraki adım
 
 1. **v1 (tamamlandı):** Karar A uygulandı ve doğrulandı — PR #248, `main`.
-2. **v2 backlog:** Chat persist, client evidence queue, köprü mirror, guard/policy journal, store merge — § «v2’ye ertelenen maddeler».
-3. **Opsiyonel v1.1:** Şema validator CI kapısı (v2 backlog madde 14).
+2. **v2 backlog:** [`evidence-continuity-v2-backlog.md`](./evidence-continuity-v2-backlog.md) — chat persist, client queue, köprü mirror, guard/policy journal, store merge.
+3. **Opsiyonel v1.1:** Şema validator CI kapısı (EC2-14 / v2 Phase 1).
 
 ---
 
