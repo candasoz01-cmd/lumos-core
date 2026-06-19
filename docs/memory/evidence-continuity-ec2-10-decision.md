@@ -1,6 +1,6 @@
 # Evidence Continuity EC2-10 — ObservationEngine disk spill (onaylı karar)
 
-> **Durum:** `[decision-approved]` — minimum v1 uygulama bekliyor.
+> **Durum:** `[implemented]` — merge PR #289 (`1a0f411`); observation lifecycle spill uygulandı.
 >
 > **Keşif kaynağı:** v1 bilinçli boşluk — `ObservationEngine` in-memory only; CLI step lifecycle kaybolur; read-only keşif (2026-06-20).
 >
@@ -36,4 +36,13 @@
 
 ## Uygulama
 
-*(Implementasyon PR merge sonrası doldurulur.)*
+**Merge:** PR #289 (`1a0f411` — `feat/ec2-10-observation-spill`).
+
+| Dosya | Değişiklik |
+|-------|------------|
+| `src/task_engine/observation/lifecycle_spill.py` | Spill append + read_recent |
+| `src/task_engine/observation/engine.py` | lifecycle_spill hook |
+| `src/task_engine/engine.py` | Auto-wire when base_dir + observation_engine |
+| `tests/test_observation_lifecycle_spill_ec2_10.py` | O1–O6 |
+
+Evidence journal mirror **v1 uygulanmadı** — OB4.
