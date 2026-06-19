@@ -40,7 +40,7 @@ Kaynak: [`evidence-continuity-v1-decision.md`](./evidence-continuity-v1-decision
 | EC2-09 | Evidence-specific rotation / retention politikası | **P2** | Hayır |
 | EC2-10 | `ObservationEngine` disk spill — CLI step lifecycle | **P2** | Hayır |
 | EC2-11 | Structured query / görev durumu reconstruct | **P2** | Hayır |
-| EC2-12 | Disconnect + resume integration test harness | **P1** | Evet (Phase 4) |
+| EC2-12 | Disconnect + resume integration test harness | **P1** | Evet (Phase 4) — **`[decision-approved]`** test-only harness v1; [`evidence-continuity-ec2-12-decision.md`](./evidence-continuity-ec2-12-decision.md) |
 | EC2-13 | `result` fazı — köprü ve guard hatları için ayrı lifecycle | **P1** | Evet |
 | EC2-14 | Şema validator CI kapısı | **P0** | Evet |
 
@@ -151,7 +151,7 @@ EC2-05 (store merge)          ── bağımsız OD; v2 fazlarına hard dependen
 | Guard/policy normalize | EC2-04 | EC v1 bilinçli dışı bırakıldı |
 | `result` faz (köprü/guard) | EC2-13 | EC2-03, EC2-04 |
 | Correlation UI | EC2-08 | Yeterli journal kaynağı (Phase 2–3+) |
-| Integration test harness | EC2-12 | Kopma/devam senaryoları |
+| Integration test harness | EC2-12 | Kopma/devam senaryoları — **`[decision-approved]`** DR1–DR7 pytest harness; runtime değişikliği yok — [`evidence-continuity-ec2-12-decision.md`](./evidence-continuity-ec2-12-decision.md) |
 
 **Çıktı:** Sunucu dışı ve guard hatları journal semantiğine yaklaşır; kullanıcı «son kanıt» görür.
 
@@ -213,6 +213,7 @@ Detay: [`audit-hook-term-decision.md`](./audit-hook-term-decision.md).
 | [`primary-user-surface-decision.md`](./primary-user-surface-decision.md) | EC2-06 legacy panel |
 | [`open-decisions-needs-review.md`](./open-decisions-needs-review.md) | OD-058 (v1 closed), OD-059 (audit terminoloji) |
 | [`evidence-continuity-ec2-02-decision.md`](./evidence-continuity-ec2-02-decision.md) | EC2-02 `[implemented]` — PR #258 (`bc6e4e0`); Phase 3 kapalı |
+| [`evidence-continuity-ec2-12-decision.md`](./evidence-continuity-ec2-12-decision.md) | EC2-12 `[decision-approved]` — test-only harness v1; tasarım kilitli |
 
 ---
 
@@ -228,4 +229,4 @@ Detay: [`audit-hook-term-decision.md`](./audit-hook-term-decision.md).
 
 ---
 
-Son güncelleme: 2026-06-19 (EC2-02 implemented — PR #258)
+Son güncelleme: 2026-06-19 (EC2-12 decision-approved — test-only harness v1)
