@@ -29,6 +29,12 @@ from core.evidence_continuity import (  # noqa: E402
 )
 
 
+def _assert_journal_lines_valid(path: Path) -> None:
+    for line in path.read_text(encoding="utf-8").strip().splitlines():
+        if line.strip():
+            assert validate_evidence_record(json.loads(line)) == []
+
+
 def test_generate_correlation_id_is_uuid4():
     cid = generate_correlation_id()
     assert len(cid) == 36
@@ -66,6 +72,20 @@ def test_validate_evidence_record_rejects_bad_source():
     )
     errors = validate_evidence_record(record)
     assert any("invalid:source" in e for e in errors)
+
+
+def test_validate_evidence_record_rejects_missing_correlation_id():
+    record = build_evidence_record(
+        correlation_id=generate_correlation_id(),
+        source=SOURCE_PANEL_TASKS_SERVER,
+        store=STORE_PANEL_TASKS,
+        operation=OPERATION_PANEL_TASK_CREATE,
+        phase=PHASE_BEFORE,
+        outcome=OUTCOME_OK,
+    )
+    del record["correlation_id"]
+    errors = validate_evidence_record(record)
+    assert any("missing:correlation_id" in e for e in errors)
 
 
 def test_sanitize_payload_summary_filters_keys():
@@ -108,6 +128,7 @@ def test_append_evidence_event_writes_jsonl(tmp_path):
     parsed = json.loads(lines[0])
     assert parsed["correlation_id"] == corr
     assert parsed["schema"] == SCHEMA_V1
+    _assert_journal_lines_valid(journal)
 
 
 def test_append_evidence_event_best_effort_invalid_record(tmp_path):
@@ -145,3 +166,4 @@ def test_panel_write_doc_emits_before_after(tmp_path, monkeypatch):
     assert len(corr_ids) == 1
     stores = {json.loads(line)["store"] for line in lines}
     assert stores == {STORE_PANEL_TASKS}
+    _assert_journal_lines_valid(journal)
