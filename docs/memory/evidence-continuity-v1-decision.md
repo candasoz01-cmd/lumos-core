@@ -344,4 +344,8 @@ CLI / TaskEngine ──► TaskStore._save() ──► save_task_store_json()
 
 ---
 
+**İndeks notu:** `open-decisions-needs-review.md` OD-058 satırı bu belgeyle senkron tutulur; onaylı karar özeti bu dosyadır.
+
+---
+
 Son güncelleme: 2026-06-19

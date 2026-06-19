@@ -96,6 +96,7 @@
 | OD-045 | project-map-runtime-entrypoints.md | lumos-demo konumu | `lumos-demo` nerede; lumos-core ile ilişkisi ne? | low | superseded / not-found | Kapandı (2026-06-17): `work_2026` altında bulunamadı; aktif lumos-core parçası değil (giriş noktası, build hedefi, app bağımlılığı yok). Sonradan bulunursa ayrı repo/yan klasör olarak yeniden değerlendirilir — otomatik lumos-core parçası sayılmaz. |
 | OD-046 | project-map-runtime-entrypoints.md | Root build vs panel E2E | `npm run build` (ui) ile panel E2E hangi yüzeyi hedefler? | medium | decision-approved / implementation-pending | Karar: [`build-e2e-surface-alignment-decision.md`](build-e2e-surface-alignment-decision.md); Seçenek A onaylandı — üretim yüzeyi `ui/`, kök E2E bugün `panel/`, nihai hedef `ui/dist` veya Astro preview. Uygulama ayrı iş paketi: E2E hizası henüz yapılmadı. |
 | OD-047 | repair-assistant-requirements.md | Ürün vizyonu hizası | Teknik servis asistanı genel Lumos vizyonuna nasıl bağlanır? | medium | needs-review | Kapsam §4 migration notu |
+| OD-058 | evidence-continuity-v1-decision.md | Evidence Continuity v1 | Panel + engine sunucu mutasyonları için append-only journal (Karar A) uygulandı mı? | medium | closed | Karar: [`evidence-continuity-v1-decision.md`](evidence-continuity-v1-decision.md) — **Karar A** uygulandı ve doğrulandı (PR #248, `main`); H0/H1/H2 hook'ları canlı. **v2 backlog:** chat/client/bridge, guard mirror, çift depo merge — decision doc § «v2'ye ertelenen maddeler» (`implementation-pending`). |
 
 ---
 
@@ -135,6 +136,7 @@ Kaynak dosyalardaki migration tablolarından **needs-review / queued** özetleri
 | internal-agent-layers.md | 4 | 5 (boş manuel) | OD-006, OD-007, OD-026 |
 | public-identity-branding.md | 5 | 9 (+5 boş manuel) | OD-048 – OD-057 |
 | project-map-runtime-entrypoints.md | 5 | 1 | OD-027, OD-028, OD-043, OD-044, OD-046 |
+| evidence-continuity-v1-decision.md | 0 | 0 | OD-058 (closed / v2 backlog decision doc'ta) |
 | chatgpt-saved-memories-migration.md | 0 | 5 (boş manuel) | — (süreç rehberi; madde yok) |
 
 **İndeks senkron kontrolü:** Kaynak dosyada `needs-review` / `queued` / `incelenecek` sayısı değişince bu tablo ve ilgili OD satırları güncellenir.
@@ -147,10 +149,9 @@ Kaynak dosyalardaki boş manuel şablonlar burada tekrarlanmaz. Yeni açık kara
 
 | ID | Kaynak dosya | Konu | Kısa karar sorusu | Öncelik | Durum | Not |
 |----|--------------|------|-------------------|---------|--------|-----|
-| OD-058 | *(manuel)* | | | | queued | |
 | OD-059 | *(manuel)* | | | | queued | |
 | OD-060 | *(manuel)* | | | | queued | |
 
 ---
 
-Son güncelleme: 2026-06-18
+Son güncelleme: 2026-06-19
