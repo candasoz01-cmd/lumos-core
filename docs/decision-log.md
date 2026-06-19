@@ -52,7 +52,14 @@ Karar verildi; kod/CI uygulaması henüz yapılmadı. OD **closed** sayılmaz.
 | ID | Tarih | Konu | Karar | Uygulama paketi | Bağlantı |
 |----|-------|------|-------|-----------------|----------|
 | DL-A01 | 2026-06-17 | OD-028 `lumos web` / `web/app.py` | **B1** — alt komutu kaldır; **restore değil** | `__main__.py` web dalı + `_run_web()`; `pyproject.toml` açıklama; `test_web_health.py`; `ARCHITECTURE_MAP.md` senkronu; `kando_core` ayrı (OD-027) | `docs/memory/lumos-web-command-decision.md` §12.2 |
-| DL-A02 | 2026-06-19 | EC2-02 Client Evidence Queue | **Seçenek 1** — pending-op kuyruğu `panel.astro`; flush mevcut REST; journal şeması ve sunucu endpoint v1'de değişmez | `panel.astro` kuyruk + flush + test; EC2-01 (`5073780`) önkoşul ✓ | [`docs/memory/evidence-continuity-ec2-02-decision.md`](memory/evidence-continuity-ec2-02-decision.md) |
+
+### Karar kapandı — uygulama merge edildi
+
+Karar uygulandı; kod `main`'de. DL-A02 takip satırı kapandı.
+
+| ID | Tarih | Konu | Karar | Merge | Bağlantı |
+|----|-------|------|-------|-------|----------|
+| DL-A02 | 2026-06-19 | EC2-02 Client Evidence Queue | **Seçenek 1** — pending-op kuyruğu `panel.astro`; flush mevcut REST; journal şeması ve sunucu endpoint v1'de değişmez | PR #258 (`bc6e4e0`) — `panel.astro` + `test_panel_evidence_queue_ec2_02.py` | [`docs/memory/evidence-continuity-ec2-02-decision.md`](memory/evidence-continuity-ec2-02-decision.md) § Uygulama |
 
 ### İleride değerlendirilecek
 
@@ -104,4 +111,4 @@ Tam liste: `docs/memory/open-decisions-needs-review.md` (OD-001 … OD-060).
 
 ---
 
-Son güncelleme: 2026-06-19 (DL-A02 EC2-02)
+Son güncelleme: 2026-06-19 (DL-A02 EC2-02 merge — PR #258)

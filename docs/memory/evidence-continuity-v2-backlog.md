@@ -30,7 +30,7 @@ Kaynak: [`evidence-continuity-v1-decision.md`](./evidence-continuity-v1-decision
 | ID | Madde | Öncelik | v2 ilk dalga |
 |----|-------|---------|--------------|
 | EC2-01 | Chat görev persist + `id` + silme UX düzeltmesi | **P0** | Evet |
-| EC2-02 | Client evidence queue (`localStorage` → sunucu journal sync) | **P0** | Evet — **`decision-approved`** / [`evidence-continuity-ec2-02-decision.md`](./evidence-continuity-ec2-02-decision.md) |
+| EC2-02 | Client evidence queue (`localStorage` → sunucu journal sync) | **P0** | Evet — **`[implemented]`** PR #258 (`bc6e4e0`) / [`evidence-continuity-ec2-02-decision.md`](./evidence-continuity-ec2-02-decision.md) |
 | EC2-03 | Köprü `POST /task` outbox append + journal mirror | **P1** | Evet |
 | EC2-04 | Guard/policy tek semantik journal (`record_guard_event`, `log_policy_blocked`) | **P1** | Evet |
 | EC2-05 | Çift depo birleştirme — ADR-008 drift çözümü | **P2** | **Hayır** — ayrı OD |
@@ -135,9 +135,11 @@ EC2-05 (store merge)          ── bağımsız OD; v2 fazlarına hard dependen
 |-------|----------|------------|
 | `localStorage` → sunucu sync | EC2-02 | **EC2-01 tamamlanmış olmalı** — merge `5073780` ✓ |
 
-**Durum (2026-06-19):** Tasarım kilitlendi — karar [`evidence-continuity-ec2-02-decision.md`](./evidence-continuity-ec2-02-decision.md) (`decision-approved` / `implementation-pending`). Seçenek 1: pending-op kuyruğu `panel.astro`, flush mevcut REST, journal şeması değişmez.
+**Durum (2026-06-19):** **`[implemented]`** — merge PR #258 (`bc6e4e0`); pending-op kuyruğu `panel.astro`, flush mevcut REST, journal şeması değişmedi. Karar: [`evidence-continuity-ec2-02-decision.md`](./evidence-continuity-ec2-02-decision.md).
 
-**Çıktı:** Tarayıcı kesintisinde client kanıtı kaybolmaz; sunucu journal ile birleşir.
+**Çıktı:** Tarayıcı kesintisinde client kanıtı kaybolmaz; sunucu journal ile birleşir. ✓
+
+**Sonraki öncelik (Phase 4):** EC2-03 (köprü mirror) + EC2-04 (guard/policy normalize) — Phase 3 tamamlandı.
 
 ---
 
@@ -195,7 +197,7 @@ Detay: [`audit-hook-term-decision.md`](./audit-hook-term-decision.md).
 |-----|------------------------|
 | 1 | EC2-14 CI kapısı yeşil; şema ihlali PR'da yakalanır |
 | 2 | Chat görev create → journal'da `panel_tasks` veya yeni `source` |
-| 3 | Client queue disconnect sonrası sunucu journal ile reconcile |
+| 3 | Client queue disconnect sonrası sunucu journal ile reconcile — **EC2-02 merge `bc6e4e0` ✓** |
 | 4 | Köprü/guard olayları tek journal semantiğinde veya normalize edilmiş kanalda |
 | 5 | Store merge ayrı OD onayı ile; EC2-05 v2 fazlarından bağımsız |
 
@@ -210,13 +212,13 @@ Detay: [`audit-hook-term-decision.md`](./audit-hook-term-decision.md).
 | [ADR-008](../decisions/ADR-008-agent-network-boundary.md) | EC2-05 çift depo — ayrı OD adayı |
 | [`primary-user-surface-decision.md`](./primary-user-surface-decision.md) | EC2-06 legacy panel |
 | [`open-decisions-needs-review.md`](./open-decisions-needs-review.md) | OD-058 (v1 closed), OD-059 (audit terminoloji) |
-| [`evidence-continuity-ec2-02-decision.md`](./evidence-continuity-ec2-02-decision.md) | EC2-02 tasarım kilitlendi; Phase 3 implementasyon PR bekliyor |
+| [`evidence-continuity-ec2-02-decision.md`](./evidence-continuity-ec2-02-decision.md) | EC2-02 `[implemented]` — PR #258 (`bc6e4e0`); Phase 3 kapalı |
 
 ---
 
 ## Sonraki adım
 
-1. **Phase 3 implementasyon PR:** EC2-02 pending-op kuyruğu — [`evidence-continuity-ec2-02-decision.md`](./evidence-continuity-ec2-02-decision.md) (dar PR; `panel.astro` + test).
+1. **Phase 4 — köprü + guard:** EC2-03 (köprü outbox mirror) ve EC2-04 (guard/policy normalize) — Phase 3 (`bc6e4e0`) tamamlandı.
 2. **Phase 2 kalan (opsiyonel):** EC2-01 merge edildi; silme UX iyileştirmeleri «sohbet görev silme» takip maddesi ile devam edebilir.
 3. **EC2-05:** Ayrı open decision kaydı açılması değerlendirilir (bu belge kapsamında karar yok).
 
@@ -226,4 +228,4 @@ Detay: [`audit-hook-term-decision.md`](./audit-hook-term-decision.md).
 
 ---
 
-Son güncelleme: 2026-06-19 (EC2-02 karar kaydı)
+Son güncelleme: 2026-06-19 (EC2-02 implemented — PR #258)
