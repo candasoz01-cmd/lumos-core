@@ -78,6 +78,19 @@ def _stderr_write(line: str) -> None:
 
 
 try:
+    from core.evidence_continuity import mirror_post_task_outbox_to_evidence_journal
+except ImportError:
+
+    def mirror_post_task_outbox_to_evidence_journal(
+        envelope_meta: dict,
+        snapshot: dict | None,
+        *,
+        base_dir: Path | str | None = None,
+    ) -> dict:
+        return {"appended": False}
+
+
+try:
     from core.chat_memory_prompt import format_chat_prompt_prefix
 except ImportError:
 
@@ -2523,6 +2536,10 @@ class BridgeHandler(BaseHTTPRequestHandler):
             if isinstance(meta_fc, dict):
                 try:
                     persist_post_task_outbox_snapshots(meta_fc, snap_fc)
+                except Exception:
+                    pass
+                try:
+                    mirror_post_task_outbox_to_evidence_journal(meta_fc, snap_fc)
                 except Exception:
                     pass
             self._post_task_envelope_meta = None
