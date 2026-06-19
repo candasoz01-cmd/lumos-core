@@ -31,16 +31,38 @@ _TASK_STATUS_MAP = {
     "dogrulanamadi": "dogrulanamadi",
 }
 
-def _task_engine_health(base: Path) -> tuple[str, str]:
-    """Read-only: tasks.json varlığı ve okunabilirliği → (status, note). System ekranı task_engine kartı."""
-    tasks_file = base / "tasks.json"
+def _store_file_health(tasks_file: Path) -> tuple[str, str]:
+    """Read-only JSON file health → (status, note)."""
     if not tasks_file.is_file():
-        return ("—", "Görev listesi yok.")
+        return ("—", "Dosya yok.")
     try:
         json.loads(tasks_file.read_text(encoding="utf-8"))
-        return ("ok", "Görev listesi okunabiliyor.")
+        return ("ok", f"Okunabiliyor: {tasks_file.name}")
     except Exception:
-        return ("—", "Görev listesi okunamadı.")
+        return ("—", "Dosya okunamadı.")
+
+
+def _panel_tasks_store_health(base: Path) -> tuple[str, str]:
+    """Read-only: panel CRUD store `.lumos/tasks.json`."""
+    return _store_file_health(base / "tasks.json")
+
+
+def _task_engine_store_health(base: Path) -> tuple[str, str]:
+    """Read-only: TaskEngine store `.lumos/tasks/tasks.json`."""
+    return _store_file_health(base / "tasks" / "tasks.json")
+
+
+def _task_engine_health(base: Path) -> tuple[str, str]:
+    """System card: dual-store summary (panel + engine paths; EC2-05)."""
+    panel_status, panel_note = _panel_tasks_store_health(base)
+    engine_status, engine_note = _task_engine_store_health(base)
+    if panel_status == "ok" and engine_status == "ok":
+        return ("ok", "Panel ve engine depoları okunabiliyor (ayrı path).")
+    if panel_status == "ok":
+        return ("uyarı", f"Panel store ok; engine store: {engine_note}")
+    if engine_status == "ok":
+        return ("uyarı", f"Engine store ok; panel store: {panel_note}")
+    return ("—", "Her iki görev deposu da yok veya okunamıyor.")
 
 
 def _read_tasks_payload(base: Path) -> dict:
@@ -613,13 +635,21 @@ def build_panel_read_state(*, repo_root: Path | None = None) -> dict:
     except Exception:
         pass
     tasks_path = base / "tasks.json"
+    engine_tasks_path = base / "tasks" / "tasks.json"
     system_paths["tasks"] = _safe_resolve_path(tasks_path) if tasks_path else None
+    system_paths["panel_tasks"] = system_paths["tasks"]
+    system_paths["task_engine_tasks"] = _safe_resolve_path(engine_tasks_path) if engine_tasks_path else None
+
+    panel_store_status, _ = _panel_tasks_store_health(base)
+    engine_store_status, _ = _task_engine_store_health(base)
 
     # Çekirdek dosya özeti (zaten okunan tasks/trash/logs/config sinyallerinin dar yansıması)
     system_summary = {
         "config_exists": config_path.is_file() if config_path else False,
         "tasks_file_exists": tasks_payload.get("tasks_file_exists", False),
         "task_count": tasks_payload.get("task_count", 0),
+        "panel_tasks_store_ok": panel_store_status == "ok",
+        "task_engine_store_ok": engine_store_status == "ok",
         "trash_dir_exists": trash_payload.get("trash_dir_exists", False),
         "trash_item_count": trash_payload.get("trash_item_count", 0),
         "log_file_exists": logs_payload.get("log_file_exists", False),
