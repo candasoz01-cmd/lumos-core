@@ -57,7 +57,7 @@ export KANDO_BRIDGE_SECRET='test123'
 | Konum | Dosya | Not |
 |--------|-------|-----|
 | Astro UI | `ui/.env.local` | `npm run dev` buradan okur (`.env` değil); şablon: `ui/.env.example` → kopyala |
-| Depo kökü | `.env.example` | Örnekte `KANDO_TOKEN` geçer; köprü tarafında karşılığı `KANDO_BRIDGE_SECRET` |
+| Depo kökü | `.env` (şablon: `.env.example`) | `KANDO_BRIDGE_SECRET`, `OPENAI_API_KEY`, `BRIDGE_UPSTREAM_URL` — sunucu/köprü; `PUBLIC_*` yok |
 
 Yerel smoke: `ui/.env.local` içinde `PUBLIC_KANDO_TOKEN`, shell'de `KANDO_BRIDGE_SECRET` — ikisi aynı değer.
 
@@ -85,7 +85,7 @@ Smoke öncesi hangi sürecin hangi portta dinlediğini doğrulayın:
 |--------|-----------------|-----|
 | Köprü (`bridge_start.sh`) | **8765** | `KANDO_BRIDGE_PORT` ile değişir |
 | Panel görev sunucusu | **8766** | `panel/scripts/panel_tasks_server.py` |
-| `.env.example` örnekleri | **8787** | Eski/alternatif backend örneği; yerel köprü akışında 8765 kullanın |
+| Depo kökü / `ui/.env.example` | **8765** / **8766** | Köprü 8765; panel görev API 8766 (`PUBLIC_*` → `ui/.env.local`) |
 
 ```bash
 lsof -nP -iTCP:8765 -sTCP:LISTEN
