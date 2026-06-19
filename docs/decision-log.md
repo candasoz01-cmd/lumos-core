@@ -52,11 +52,10 @@ Karar verildi; kod/CI uygulaması henüz yapılmadı. OD **closed** sayılmaz.
 | ID | Tarih | Konu | Karar | Uygulama paketi | Bağlantı |
 |----|-------|------|-------|-----------------|----------|
 | DL-A01 | 2026-06-17 | OD-028 `lumos web` / `web/app.py` | **B1** — alt komutu kaldır; **restore değil** | `__main__.py` web dalı + `_run_web()`; `pyproject.toml` açıklama; `test_web_health.py`; `ARCHITECTURE_MAP.md` senkronu; `kando_core` ayrı (OD-027) | `docs/memory/lumos-web-command-decision.md` §12.2 |
-| DL-A08 | 2026-06-20 | EC2-05 Store merge / ADR-008 drift | **Seçenek 1 (minimum v1)** — tam store merge reddedildi; `TASK_STORE_REGISTRY` + dual-store read-only health; `POST /task` ≠ `POST /tasks`; chat localStorage dışı | `evidence_continuity.py` registry + `panel_bridge_state.py` dual health + `test_evidence_store_registry_ec2_05.py` R1–R8 | [`docs/memory/evidence-continuity-ec2-05-decision.md`](memory/evidence-continuity-ec2-05-decision.md) |
 
 ### Karar kapandı — uygulama merge edildi
 
-Karar uygulandı; kod `main`'de. DL-A02, DL-A03, DL-A04, DL-A05, DL-A06 ve DL-A07 takip satırları kapandı.
+Karar uygulandı; kod `main`'de. DL-A02, DL-A03, DL-A04, DL-A05, DL-A06, DL-A07 ve DL-A08 takip satırları kapandı.
 
 | ID | Tarih | Konu | Karar | Merge | Bağlantı |
 |----|-------|------|-------|-------|----------|
@@ -66,6 +65,7 @@ Karar uygulandı; kod `main`'de. DL-A02, DL-A03, DL-A04, DL-A05, DL-A06 ve DL-A0
 | DL-A05 | 2026-06-19 | EC2-04 Guard/policy journal mirror | **Seçenek A** — iki source (`guard_audit` / `action_policy`); H4a/H4b choke-point; deny-only guard; parallel logging+log.txt korunur; `payload_summary` action/reason_code/route/title_preview(basename); `result` fazı EC2-13 dışı; git audit hook değil (OD-059) | PR #268 (`9475a0f`) — `evidence_continuity.py` + `guard_audit.py` H4a + `action_policy.py` H4b + `test_guard_policy_evidence_ec2_04.py` T1–T10 | [`docs/memory/evidence-continuity-ec2-04-decision.md`](memory/evidence-continuity-ec2-04-decision.md) § Uygulama |
 | DL-A06 | 2026-06-19 | EC2-13 Köprü async agent `result` fazı | **Seçenek 1** — H5 `agent_runner` worker hook; `phase: result`; aynı enum; `payload_summary` + `job_id`; guard/policy result v1 dışı | PR #271 (`41a48fb`) — `evidence_continuity.py` H5 + `agent_runner.py` + `test_bridge_agent_result_evidence_ec2_13.py` R1–R10 | [`docs/memory/evidence-continuity-ec2-13-decision.md`](memory/evidence-continuity-ec2-13-decision.md) § Uygulama |
 | DL-A07 | 2026-06-20 | EC2-08 Correlation UI | **Seçenek 1** — read-only `GET /evidence/recent` + `panel.astro` «Son işlem kanıtı» / «Buradan devam»; journal yazım hook'ları ve şema v1'de değişmez; köprü zinciri `job_id` + heuristic | PR #274 (`fb2af14`) — `evidence_continuity.py` read + `panel_tasks_server.py` route + `panel.astro` UI + U1–U12 pytest | [`docs/memory/evidence-continuity-ec2-08-decision.md`](memory/evidence-continuity-ec2-08-decision.md) § Uygulama |
+| DL-A08 | 2026-06-20 | EC2-05 Store merge / ADR-008 drift | **Seçenek 1 (minimum v1)** — tam store merge reddedildi; `TASK_STORE_REGISTRY` + dual-store read-only health; chat localStorage dışı | PR #277 (`6521222`) — `evidence_continuity.py` + `panel_bridge_state.py` + `test_evidence_store_registry_ec2_05.py` R1–R8 | [`docs/memory/evidence-continuity-ec2-05-decision.md`](memory/evidence-continuity-ec2-05-decision.md) § Uygulama |
 
 ### İleride değerlendirilecek
 
@@ -117,4 +117,4 @@ Tam liste: `docs/memory/open-decisions-needs-review.md` (OD-001 … OD-060).
 
 ---
 
-Son güncelleme: 2026-06-20 (DL-A08 decision-approved — EC2-05 minimum v1 slice)
+Son güncelleme: 2026-06-20 (DL-A08 closed — EC2-05 PR #277 merge)

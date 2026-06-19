@@ -1,6 +1,6 @@
 # Evidence Continuity EC2-05 — Store merge / ADR-008 drift (onaylı karar)
 
-> **Durum:** `[decision-approved]` — minimum v1 slice tanımlandı; tam ADR-008 store merge **reddedildi** (v1).
+> **Durum:** `[implemented]` — merge PR #277 (`6521222`); minimum v1 registry + dual-store health uygulandı.
 >
 > **Keşif kaynağı:** Evidence Continuity v2 backlog Phase 5 (EC2-05); ADR-008 çift görev deposu drift; v1 bilinçli boşluk (store merge); read-only keşif (2026-06-20).
 >
@@ -188,15 +188,15 @@ Chat / outbox / trash bu registry'de **yok** — farklı domain.
 
 ## Uygulama
 
-**Durum:** `[decision-approved]` — implementasyon PR bekliyor.
+**Merge:** PR #277 (`6521222` — `feat/ec2-05-store-registry`).
 
 | Dosya | Değişiklik |
 |-------|------------|
-| `src/core/evidence_continuity.py` | Store registry helpers |
-| `src/core/panel_bridge_state.py` | Dual-store health + system_paths |
+| `src/core/evidence_continuity.py` | `TASK_STORE_REGISTRY`, `task_store_rel_path()`, `resolve_task_store_path()` |
+| `src/core/panel_bridge_state.py` | Dual-store health + `system_paths` / `system_summary` sinyalleri |
 | `tests/test_evidence_store_registry_ec2_05.py` | R1–R8 |
 
-Tam store merge **v1 uygulanmaz** — gerekçe: ADR-008 yüksek etki; regresyon; ayrı migration OD (SM7).
+Tam store merge **v1 uygulanmadı** — gerekçe: ADR-008 yüksek etki; regresyon; ayrı migration OD (SM7).
 
 ---
 
