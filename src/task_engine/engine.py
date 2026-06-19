@@ -465,6 +465,16 @@ class TaskEngine:
         self._action_registry = action_registry or get_default_action_registry()
         self._verification_engine = verification_engine or get_default_verification_engine()
         self._observation_engine = observation_engine
+        if (
+            self._observation_engine is not None
+            and self.base_dir is not None
+            and self._observation_engine.lifecycle_spill is None
+        ):
+            from task_engine.observation.lifecycle_spill import ObservationLifecycleSpill
+
+            self._observation_engine.attach_lifecycle_spill(
+                ObservationLifecycleSpill(self.base_dir)
+            )
 
     def _is_step_allowed_runtime(self, step: TaskStep) -> bool:
         """

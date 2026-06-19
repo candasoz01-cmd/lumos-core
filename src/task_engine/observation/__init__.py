@@ -13,9 +13,11 @@ from task_engine.observation.events import (
 from task_engine.observation.memory import ObservationMemory
 from task_engine.observation.state import WorldState
 from task_engine.observation.engine import ObservationEngine
+from task_engine.observation.lifecycle_spill import ObservationLifecycleSpill
 
 __all__ = [
     "ObservationEngine",
+    "ObservationLifecycleSpill",
     "ObservationEvent",
     "ObservationMemory",
     "WorldState",
