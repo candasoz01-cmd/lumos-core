@@ -51,6 +51,8 @@ from core.evidence_continuity import (  # noqa: E402
     append_evidence_event,
     build_evidence_record,
     build_ui_projection_response,
+    evidence_journal_storage_summary,
+    evidence_retention_policy,
     generate_correlation_id,
     read_recent_evidence_events,
     title_preview_from,
@@ -450,8 +452,12 @@ def _parse_evidence_recent_limit(path: str) -> int:
 
 def build_evidence_recent_response(limit: int | None = None) -> dict:
     lim = DEFAULT_READ_LIMIT if limit is None else max(1, min(int(limit), MAX_READ_LIMIT))
-    events, truncated = read_recent_evidence_events(_base_dir(), lim)
-    return build_ui_projection_response(events, truncated=truncated)
+    base = _base_dir()
+    events, truncated = read_recent_evidence_events(base, lim)
+    resp = build_ui_projection_response(events, truncated=truncated)
+    resp["retention"] = evidence_retention_policy()
+    resp["storage"] = evidence_journal_storage_summary(base)
+    return resp
 
 
 def _send_json(handler: BaseHTTPRequestHandler, code: int, obj: dict) -> None:
