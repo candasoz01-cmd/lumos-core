@@ -1,6 +1,6 @@
 # Evidence Continuity EC2-09 — Retention / rotation policy (onaylı karar)
 
-> **Durum:** `[decision-approved]` — minimum v1 slice tanımlandı; config override ve çoklu dosya UI read v1 **dışı**.
+> **Durum:** `[implemented]` — merge PR #280 (`121216d`); retention policy metadata uygulandı.
 >
 > **Keşif kaynağı:** Evidence Continuity v2 backlog Phase 5 (EC2-09); v1 `append_jsonl_with_rotation` (1 MB × 3); EC2-08 rotation bilinçli sınır; read-only keşif (2026-06-20).
 >
@@ -130,8 +130,12 @@ Politika zaten çalışıyor; metadata yok — **reddedildi** (operasyonel gör�
 
 ## Uygulama
 
-**Durum:** `[decision-approved]` — implementasyon PR bekliyor.
+**Merge:** PR #280 (`121216d` — `feat/ec2-09-retention-policy`).
 
----
+| Dosya | Değişiklik |
+|-------|------------|
+| `src/core/evidence_continuity.py` | Named constants; `evidence_retention_policy()`; `evidence_journal_storage_summary()` |
+| `panel/scripts/panel_tasks_server.py` | `build_evidence_recent_response` → `retention` + `storage` |
+| `tests/test_evidence_retention_ec2_09.py` | T1–T8 |
 
-Son güncelleme: 2026-06-20 (karar onay — minimum v1 slice)
+Config override ve multi-file UI read **v1 uygulanmadı** — RT6/RT7.

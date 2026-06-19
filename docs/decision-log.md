@@ -52,11 +52,10 @@ Karar verildi; kod/CI uygulaması henüz yapılmadı. OD **closed** sayılmaz.
 | ID | Tarih | Konu | Karar | Uygulama paketi | Bağlantı |
 |----|-------|------|-------|-----------------|----------|
 | DL-A01 | 2026-06-17 | OD-028 `lumos web` / `web/app.py` | **B1** — alt komutu kaldır; **restore değil** | `__main__.py` web dalı + `_run_web()`; `pyproject.toml` açıklama; `test_web_health.py`; `ARCHITECTURE_MAP.md` senkronu; `kando_core` ayrı (OD-027) | `docs/memory/lumos-web-command-decision.md` §12.2 |
-| DL-A09 | 2026-06-20 | EC2-09 Evidence retention policy | **Seçenek 1 (minimum v1)** — named constants 1 MB × 3; `evidence_retention_policy()` + storage summary; API metadata; config override ve multi-file read v1 dışı | `evidence_continuity.py` + `panel_tasks_server.py` + `test_evidence_retention_ec2_09.py` T1–T8 | [`docs/memory/evidence-continuity-ec2-09-decision.md`](memory/evidence-continuity-ec2-09-decision.md) |
 
 ### Karar kapandı — uygulama merge edildi
 
-Karar uygulandı; kod `main`'de. DL-A02, DL-A03, DL-A04, DL-A05, DL-A06, DL-A07 ve DL-A08 takip satırları kapandı.
+Karar uygulandı; kod `main`'de. DL-A02 … DL-A09 takip satırları kapandı.
 
 | ID | Tarih | Konu | Karar | Merge | Bağlantı |
 |----|-------|------|-------|-------|----------|
@@ -67,6 +66,7 @@ Karar uygulandı; kod `main`'de. DL-A02, DL-A03, DL-A04, DL-A05, DL-A06, DL-A07 
 | DL-A06 | 2026-06-19 | EC2-13 Köprü async agent `result` fazı | **Seçenek 1** — H5 `agent_runner` worker hook; `phase: result`; aynı enum; `payload_summary` + `job_id`; guard/policy result v1 dışı | PR #271 (`41a48fb`) — `evidence_continuity.py` H5 + `agent_runner.py` + `test_bridge_agent_result_evidence_ec2_13.py` R1–R10 | [`docs/memory/evidence-continuity-ec2-13-decision.md`](memory/evidence-continuity-ec2-13-decision.md) § Uygulama |
 | DL-A07 | 2026-06-20 | EC2-08 Correlation UI | **Seçenek 1** — read-only `GET /evidence/recent` + `panel.astro` «Son işlem kanıtı» / «Buradan devam»; journal yazım hook'ları ve şema v1'de değişmez; köprü zinciri `job_id` + heuristic | PR #274 (`fb2af14`) — `evidence_continuity.py` read + `panel_tasks_server.py` route + `panel.astro` UI + U1–U12 pytest | [`docs/memory/evidence-continuity-ec2-08-decision.md`](memory/evidence-continuity-ec2-08-decision.md) § Uygulama |
 | DL-A08 | 2026-06-20 | EC2-05 Store merge / ADR-008 drift | **Seçenek 1 (minimum v1)** — tam store merge reddedildi; `TASK_STORE_REGISTRY` + dual-store read-only health; chat localStorage dışı | PR #277 (`6521222`) — `evidence_continuity.py` + `panel_bridge_state.py` + `test_evidence_store_registry_ec2_05.py` R1–R8 | [`docs/memory/evidence-continuity-ec2-05-decision.md`](memory/evidence-continuity-ec2-05-decision.md) § Uygulama |
+| DL-A09 | 2026-06-20 | EC2-09 Evidence retention policy | **Seçenek 1 (minimum v1)** — named constants 1 MB × 3; retention + storage API metadata; config/multi-file read v1 dışı | PR #280 (`121216d`) — `evidence_continuity.py` + `panel_tasks_server.py` + `test_evidence_retention_ec2_09.py` T1–T8 | [`docs/memory/evidence-continuity-ec2-09-decision.md`](memory/evidence-continuity-ec2-09-decision.md) § Uygulama |
 
 ### İleride değerlendirilecek
 
@@ -118,4 +118,4 @@ Tam liste: `docs/memory/open-decisions-needs-review.md` (OD-001 … OD-060).
 
 ---
 
-Son güncelleme: 2026-06-20 (DL-A09 decision-approved — EC2-09 minimum v1 slice)
+Son güncelleme: 2026-06-20 (DL-A09 closed — EC2-09 PR #280 merge)
