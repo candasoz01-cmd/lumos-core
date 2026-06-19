@@ -1,6 +1,6 @@
 # Evidence Continuity EC2-07 — `events[]` migration / deprecate (onaylı karar)
 
-> **Durum:** `[decision-approved]` — minimum v1 uygulama bekliyor.
+> **Durum:** `[implemented]` — merge PR #286 (`424cf19`); events_meta API metadata uygulandı.
 >
 > **Keşif kaynağı:** Evidence Continuity v2 backlog Phase 5 (EC2-07); v1 truth kuralı (`events[]` = UI projection); EC2-05 SM6; read-only keşif (2026-06-20).
 >
@@ -112,4 +112,12 @@ Metadata yok — **reddedildi** (EC2-05/09 slice ile uyumsuz).
 
 ## Uygulama
 
-*(Implementasyon PR merge sonrası doldurulur.)*
+**Merge:** PR #286 (`424cf19` — `feat/ec2-07-events-projection-meta`).
+
+| Dosya | Değişiklik |
+|-------|------------|
+| `src/core/evidence_continuity.py` | `tasks_json_events_projection_meta()`; `enrich_tasks_doc_api_response()` |
+| `panel/scripts/panel_tasks_server.py` | GET enrich |
+| `tests/test_evidence_events_projection_ec2_07.py` | E1–E6 |
+
+Tam migration ve events[] yazım durdurma **v1 uygulanmadı** — EV1/EV3.
