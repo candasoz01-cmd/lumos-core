@@ -104,6 +104,7 @@ PAYLOAD_SUMMARY_ALLOWED_KEYS = frozenset(
         "step_count",
         "action",
         "reason_code",
+        "job_id",
     }
 )
 
@@ -152,6 +153,8 @@ def sanitize_payload_summary(summary: dict[str, Any] | None) -> dict[str, Any] |
             out[key] = str(value)[:80]
         elif key in ("action", "reason_code"):
             out[key] = str(value)[:80]
+        elif key == "job_id":
+            out[key] = str(value)[:32]
         else:
             out[key] = value
     return out or None
@@ -419,6 +422,57 @@ def mirror_post_task_outbox_to_evidence_journal(
     from core.lumos_base_dir import lumos_base_dir
 
     record = mirror_post_task_outbox_record(envelope_meta, snapshot)
+    target = base_dir if base_dir is not None else lumos_base_dir()
+    return append_evidence_event(target, record)
+
+
+_BRIDGE_AGENT_RESULT_ROUTE = "agent/async"
+
+
+def _bridge_agent_result_outcome(final_report: dict[str, Any]) -> tuple[str, dict[str, str] | None]:
+    status = str(final_report.get("status") or "").strip().lower()
+    if status == "ok":
+        return OUTCOME_OK, None
+    errors = final_report.get("errors")
+    code = "agent_failed"
+    if isinstance(errors, list) and errors:
+        code = str(errors[0])[:80]
+    elif status == "partial":
+        code = "agent_partial"
+    return OUTCOME_ERROR, {"code": code, "message": "agent pipeline failed"}
+
+
+def mirror_bridge_agent_result_record(
+    job_id: str,
+    final_report: dict[str, Any],
+) -> dict[str, Any]:
+    task_text = str(final_report.get("task") or final_report.get("selected_target") or "")
+    outcome, error = _bridge_agent_result_outcome(final_report)
+    return build_evidence_record(
+        correlation_id=generate_correlation_id(),
+        source=SOURCE_KANDO_BRIDGE,
+        store=STORE_BRIDGE_OUTBOX,
+        operation=OPERATION_BRIDGE_TASK_POST,
+        phase=PHASE_RESULT,
+        outcome=outcome,
+        payload_summary={
+            "title_preview": task_text,
+            "route": _BRIDGE_AGENT_RESULT_ROUTE,
+            "job_id": job_id,
+        },
+        error=error,
+    )
+
+
+def mirror_bridge_agent_result_to_evidence_journal(
+    job_id: str,
+    final_report: dict[str, Any],
+    *,
+    base_dir: Path | str | None = None,
+) -> dict[str, Any]:
+    from core.lumos_base_dir import lumos_base_dir
+
+    record = mirror_bridge_agent_result_record(job_id, final_report)
     target = base_dir if base_dir is not None else lumos_base_dir()
     return append_evidence_event(target, record)
 
