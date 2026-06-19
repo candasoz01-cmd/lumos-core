@@ -53,6 +53,7 @@ from core.evidence_continuity import (  # noqa: E402
     build_ui_projection_response,
     evidence_journal_storage_summary,
     evidence_retention_policy,
+    enrich_tasks_doc_api_response,
     generate_correlation_id,
     read_recent_evidence_events,
     title_preview_from,
@@ -665,6 +666,7 @@ class Handler(BaseHTTPRequestHandler):
             "delete": {"enabled": gate["enabled"], "reason": gate["reason"]},
             "undo_pending": {"enabled": gate["enabled"], "reason": gate["reason"]},
         }
+        doc = enrich_tasks_doc_api_response(doc)
         raw = json.dumps(doc, ensure_ascii=False).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json; charset=utf-8")

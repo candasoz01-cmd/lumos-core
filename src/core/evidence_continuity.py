@@ -129,6 +129,12 @@ EVIDENCE_CONTINUITY_MAX_BYTES = DEFAULT_MAX_BYTES
 EVIDENCE_CONTINUITY_KEEP = DEFAULT_KEEP
 EVIDENCE_READ_SCOPE_CURRENT_ONLY = "current_file_only"
 
+# EC2-07: tasks.json events[] — UI projection metadata (v1; no migration)
+TASKS_JSON_EVENTS_PROJECTION_POLICY_ID = "lumos.tasks_json.events_projection.v1"
+AUDIT_TRUTH_EVIDENCE_JOURNAL = "evidence_continuity_journal"
+EVENTS_PROJECTION_ROLE = "ui_projection"
+EVENTS_DEPRECATION_SOFT_V1 = "soft_deprecated_v1"
+
 
 def generate_correlation_id() -> str:
     return str(uuid4())
@@ -160,6 +166,29 @@ def evidence_retention_policy() -> dict[str, Any]:
         "max_file_slots": EVIDENCE_CONTINUITY_KEEP + 1,
         "read_scope": EVIDENCE_READ_SCOPE_CURRENT_ONLY,
     }
+
+
+def tasks_json_events_projection_meta(*, events_count: int | None = None) -> dict[str, Any]:
+    """Read-only v1 DTO: tasks.json events[] is UI projection; journal is audit truth."""
+    meta: dict[str, Any] = {
+        "policy_id": TASKS_JSON_EVENTS_PROJECTION_POLICY_ID,
+        "role": EVENTS_PROJECTION_ROLE,
+        "audit_truth": AUDIT_TRUTH_EVIDENCE_JOURNAL,
+        "reconcile_with_journal": False,
+        "deprecation_status": EVENTS_DEPRECATION_SOFT_V1,
+    }
+    if events_count is not None:
+        meta["events_count"] = max(0, int(events_count))
+    return meta
+
+
+def enrich_tasks_doc_api_response(doc: dict[str, Any]) -> dict[str, Any]:
+    """HTTP GET wrapper: attach events_meta without mutating on-disk tasks.json."""
+    out = dict(doc)
+    events = out.get("events")
+    count = len(events) if isinstance(events, list) else 0
+    out["events_meta"] = tasks_json_events_projection_meta(events_count=count)
+    return out
 
 
 def _evidence_journal_file_paths(base_dir: Path | str) -> list[Path]:
