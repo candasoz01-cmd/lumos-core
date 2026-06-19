@@ -67,4 +67,17 @@ def record_guard_event(event: GuardEvent) -> None:
         (event.reason or ""),
         (event.caller or ""),
     )
+    if event.decision != "deny":
+        return
+    try:
+        from core.evidence_continuity import (
+            is_evidence_mirror_active,
+            mirror_guard_event_to_evidence_journal,
+        )
+
+        if is_evidence_mirror_active():
+            return
+        mirror_guard_event_to_evidence_journal(event)
+    except Exception:
+        pass
 

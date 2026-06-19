@@ -12,25 +12,34 @@ from core.evidence_continuity import (  # noqa: E402
     SCHEMA_V1,
     OPERATION_BRIDGE_TASK_POST,
     OPERATION_ENGINE_TASK_MUTATION,
+    OPERATION_GUARD_DECISION,
     OPERATION_PANEL_TASK_CREATE,
+    OPERATION_POLICY_BLOCKED,
     OUTCOME_OK,
     PHASE_AFTER,
     PHASE_BEFORE,
+    SOURCE_ACTION_POLICY,
+    SOURCE_GUARD_AUDIT,
     SOURCE_KANDO_BRIDGE,
     SOURCE_PANEL_TASKS_SERVER,
     SOURCE_TASK_ENGINE,
     STORE_BRIDGE_OUTBOX,
+    STORE_GUARD,
     STORE_PANEL_TASKS,
+    STORE_POLICY_LOG,
     STORE_TASK_ENGINE,
     append_evidence_event,
     build_evidence_record,
     evidence_continuity_path,
     generate_correlation_id,
+    mirror_guard_event_record,
+    mirror_policy_blocked_record,
     mirror_post_task_outbox_record,
     sanitize_payload_summary,
     title_preview_from,
     validate_evidence_record,
 )
+from core.guard_audit import GuardEvent  # noqa: E402
 
 
 def _assert_journal_lines_valid(path: Path) -> None:
@@ -99,11 +108,15 @@ def test_sanitize_payload_summary_filters_keys():
             "route": "POST /tasks",
             "forbidden": "x",
             "task_count": "3",
+            "action": "create_task",
+            "reason_code": "offline_mode",
         }
     )
     assert "forbidden" not in out
     assert out["title_preview"] == "hello world"
     assert out["task_count"] == 3
+    assert out["action"] == "create_task"
+    assert out["reason_code"] == "offline_mode"
 
 
 def test_title_preview_from_truncates():
@@ -183,3 +196,26 @@ def test_panel_write_doc_emits_before_after(tmp_path, monkeypatch):
     stores = {json.loads(line)["store"] for line in lines}
     assert stores == {STORE_PANEL_TASKS}
     _assert_journal_lines_valid(journal)
+
+
+def test_validate_evidence_record_accepts_guard_policy_enum_values():
+    guard_rec = mirror_guard_event_record(
+        GuardEvent(
+            action="write",
+            decision="deny",
+            path=Path("/tmp/tasks.json"),
+            sandbox_mode=True,
+            reason="core_state_under_live_base",
+            caller="test",
+        )
+    )
+    assert guard_rec["source"] == SOURCE_GUARD_AUDIT
+    assert guard_rec["store"] == STORE_GUARD
+    assert guard_rec["operation"] == OPERATION_GUARD_DECISION
+    assert validate_evidence_record(guard_rec) == []
+
+    policy_rec = mirror_policy_blocked_record("create_task", "offline_mode")
+    assert policy_rec["source"] == SOURCE_ACTION_POLICY
+    assert policy_rec["store"] == STORE_POLICY_LOG
+    assert policy_rec["operation"] == OPERATION_POLICY_BLOCKED
+    assert validate_evidence_record(policy_rec) == []
