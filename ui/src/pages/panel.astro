@@ -6640,19 +6640,19 @@ const PANEL_DEBUG = import.meta.env.DEV;
         return title ? { title, whenSummary: null, replyKind: "mini" } : null;
       }
 
-      /** Asistan cevabından yerel listeye aktarır; mini onay cümlelerinde sohbet metnini kısaltır. */
-      function ingestAssistantPanelGorev(replyBody) {
+      /** Asistan cevabından listeye aktarır (POST /tasks veya yerel); mini onay cümlelerinde sohbet metnini kısaltır. */
+      async function ingestAssistantPanelGorev(replyBody) {
         let cmd = parsePanelGorevFromAssistantReply(replyBody);
         if (cmd) {
           const w = cmd.whenSummary || null;
-          if (!panelGorevRowExists(cmd.title, w)) applyPanelGorevKomutu(cmd);
+          if (!panelGorevRowExists(cmd.title, w)) await applyPanelGorevKomutu(cmd);
           return { lumosText: String(replyBody || "").trim() };
         }
         const loose = parsePanelGorevLooseFromAssistant(replyBody);
         if (loose) {
           const w = loose.whenSummary || null;
           if (!panelGorevRowExists(loose.title, w)) {
-            applyPanelGorevKomutu({ title: loose.title, whenSummary: loose.whenSummary || null });
+            await applyPanelGorevKomutu({ title: loose.title, whenSummary: loose.whenSummary || null });
           }
           if (loose.replyKind === "mini") {
             return { lumosText: `Mini görev eklendi: ${loose.title}` };
@@ -6712,7 +6712,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
       /**
        * mini görev ekle … | görev oluştur … | … görev ekle … (isteğe bağlı tarih/saat öneki).
-       * accepted / onay beklemez; yalnızca yerel liste ile bağlar.
+       * accepted / onay beklemez; POST /tasks veya yerel fallback ile bağlar.
        */
       function parsePanelGorevKomutu(raw) {
         const s0 = String(raw || "").trim();
@@ -6760,17 +6760,123 @@ const PANEL_DEBUG = import.meta.env.DEV;
           .replace(/\s+/g, " ");
       }
 
-      function applyPanelGorevKomutu(cmd) {
-        const row = {
+      function findPanelGorevlerRow(taskId, title) {
+        const tid = taskId != null ? String(taskId).trim() : "";
+        const tt = title != null ? String(title).trim() : "";
+        for (let i = 0; i < panelGorevlerTasks.length; i++) {
+          const x = panelGorevlerTasks[i];
+          if (tid && x.id === tid) return x;
+          if (tt && x.title === tt) return x;
+        }
+        return null;
+      }
+
+      /**
+       * Chat/asistan görev oluşturma: POST /tasks → tasks.json; API yoksa yerel push.
+       * addTask ile aynı sunucu yolu; whenSummary yalnızca panel satırında tutulur.
+       */
+      async function persistPanelGorevCreateViaApi(opts) {
+        const title = String(opts && opts.title != null ? opts.title : "").trim();
+        if (!title) return null;
+        const whenSummary = opts && opts.whenSummary != null ? opts.whenSummary : null;
+        const priority =
+          opts &&
+          opts.priority &&
+          ["dusuk", "orta", "yuksek"].includes(String(opts.priority))
+            ? String(opts.priority)
+            : "orta";
+        let status = "bekliyor";
+        if (opts && opts.status === "onay_bekliyor") status = "onay_bekliyor";
+        else if (opts && opts.status === "tamamlandi") status = "tamamlandi";
+
+        function finishLocal() {
+          const row = { title, priority, status };
+          if (whenSummary) row.when = whenSummary;
+          panelGorevlerTasks.push(row);
+          persistPanelGorevlerTasks();
+          attachGorevlerTaskPlan(row, title);
+          if (typeof panelGorevlerTasksRender === "function") panelGorevlerTasksRender();
+          return row;
+        }
+
+        if (shouldSkipGorevlerTasksApi()) {
+          return finishLocal();
+        }
+
+        let createRes;
+        let apiUnreachable = false;
+        try {
+          createRes = await tasksApiPost("/tasks", { title });
+        } catch {
+          apiUnreachable = true;
+        }
+        if (
+          apiUnreachable ||
+          !createRes ||
+          !createRes.ok ||
+          !createRes.data ||
+          !createRes.data.ok
+        ) {
+          if (shouldFallbackGorevlerTasksLocal(apiUnreachable)) {
+            return finishLocal();
+          }
+          return null;
+        }
+
+        const taskId =
+          createRes.data.task && createRes.data.task.id != null
+            ? String(createRes.data.task.id).trim()
+            : "";
+        if (status === "tamamlandi" && taskId) {
+          await tasksApiPost("/tasks/complete", { ref: taskId });
+        }
+
+        const refreshed = await refreshPanelGorevlerFromTasksApi();
+        if (!refreshed && createRes.data.task) {
+          const row = engineTaskToPanelRow(createRes.data.task);
+          if (row) {
+            row.priority = priority;
+            if (status === "onay_bekliyor") row.status = "onay_bekliyor";
+            else if (status === "tamamlandi") row.status = "tamamlandi";
+            if (whenSummary) row.when = whenSummary;
+            panelGorevlerTasks.push(row);
+            persistPanelGorevlerTasks();
+            if (typeof panelGorevlerTasksRender === "function") panelGorevlerTasksRender();
+          }
+        }
+
+        const taskRef = findPanelGorevlerRow(taskId, title);
+        if (taskRef) {
+          taskRef.priority = priority;
+          if (status === "onay_bekliyor") taskRef.status = "onay_bekliyor";
+          else if (status === "tamamlandi") taskRef.status = "tamamlandi";
+          if (whenSummary) taskRef.when = whenSummary;
+          persistPanelGorevlerTasks();
+          attachGorevlerTaskPlan(taskRef, title);
+          if (typeof panelGorevlerTasksRender === "function") panelGorevlerTasksRender();
+          return taskRef;
+        }
+
+        if (createRes.data.task) {
+          const row = engineTaskToPanelRow(createRes.data.task);
+          if (row) {
+            row.priority = priority;
+            if (whenSummary) row.when = whenSummary;
+            attachGorevlerTaskPlan(row, title);
+            if (typeof panelGorevlerTasksRender === "function") panelGorevlerTasksRender();
+            return row;
+          }
+        }
+        return null;
+      }
+
+      async function applyPanelGorevKomutu(cmd) {
+        await persistPanelGorevCreateViaApi({
           title: cmd.title,
+          whenSummary: cmd.whenSummary || null,
           priority: "orta",
           status: "bekliyor",
-        };
-        if (cmd.whenSummary) row.when = cmd.whenSummary;
-        panelGorevlerTasks.push(row);
-        persistPanelGorevlerTasks();
-        attachGorevlerTaskPlan(row, cmd.title);
-        if (typeof panelGorevlerTasksRender === "function") panelGorevlerTasksRender();
+        });
       }
 
       function pushGorevlerTaskLocalRow(title, priority, status) {
@@ -8193,7 +8299,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                     : "Görev silme şu an kullanılamıyor (liste bağlanmadı).";
                   appendBubble("lumos", delReply);
                 } else {
-                  applyPanelGorevKomutu(panelGorevCmd);
+                  await applyPanelGorevKomutu(panelGorevCmd);
                   appendBubble("lumos", buildPanelGorevConfirmation(panelGorevCmd));
                 }
               } else {
@@ -8255,7 +8361,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
               refocusPanelChatInput();
               return;
             }
-            applyPanelGorevKomutu(panelGorevCmd);
+            await applyPanelGorevKomutu(panelGorevCmd);
             appendBubble("lumos", buildPanelGorevConfirmation(panelGorevCmd));
             input.value = "";
             clearPanelCameraPhotoSelection();
@@ -8524,7 +8630,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   void loadPanelBackendStatus();
                 }
                 if (replyBody.trim()) {
-                  const { lumosText } = ingestAssistantPanelGorev(replyBody);
+                  const { lumosText } = await ingestAssistantPanelGorev(replyBody);
                   if (panelGorevCmd) {
                     appendBubble("lumos", "Sunucu yanıtı:\n" + lumosText);
                     setSendHint("");
@@ -10196,17 +10302,6 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (data.accepted === true) return "Görev iletildi.";
           if (data.ok === true) return "İşleme alındı.";
           return "İşleme alındı.";
-        }
-
-        function findPanelGorevlerRow(taskId, title) {
-          const tid = taskId != null ? String(taskId).trim() : "";
-          const tt = title != null ? String(title).trim() : "";
-          for (let i = 0; i < panelGorevlerTasks.length; i++) {
-            const x = panelGorevlerTasks[i];
-            if (tid && x.id === tid) return x;
-            if (tt && x.title === tt) return x;
-          }
-          return null;
         }
 
         /**
