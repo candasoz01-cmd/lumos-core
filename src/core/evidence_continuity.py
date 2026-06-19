@@ -8,6 +8,7 @@ Best-effort append; journal failure must not break main mutations.
 """
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -20,9 +21,11 @@ SCHEMA_V1 = "lumos.evidence_continuity.v1"
 
 SOURCE_PANEL_TASKS_SERVER = "panel_tasks_server"
 SOURCE_TASK_ENGINE = "task_engine"
+SOURCE_KANDO_BRIDGE = "kando_bridge"
 
 STORE_PANEL_TASKS = "panel_tasks"
 STORE_TASK_ENGINE = "task_engine"
+STORE_BRIDGE_OUTBOX = "bridge_outbox"
 
 OPERATION_PANEL_TASK_CREATE = "panel.task.create"
 OPERATION_PANEL_TASK_COMPLETE = "panel.task.complete"
@@ -30,6 +33,7 @@ OPERATION_PANEL_TASK_DELETE = "panel.task.delete"
 OPERATION_PANEL_TASK_RESTORE = "panel.task.restore"
 OPERATION_PANEL_TASK_PUT = "panel.task.put"
 OPERATION_ENGINE_TASK_MUTATION = "engine.task.mutation"
+OPERATION_BRIDGE_TASK_POST = "bridge.task.post"
 
 PHASE_BEFORE = "before"
 PHASE_AFTER = "after"
@@ -46,8 +50,8 @@ MUTATION_RESTORE = "restore"
 MUTATION_UPDATE = "update"
 MUTATION_ARCHIVE = "archive"
 
-SOURCES = frozenset({SOURCE_PANEL_TASKS_SERVER, SOURCE_TASK_ENGINE})
-STORES = frozenset({STORE_PANEL_TASKS, STORE_TASK_ENGINE})
+SOURCES = frozenset({SOURCE_PANEL_TASKS_SERVER, SOURCE_TASK_ENGINE, SOURCE_KANDO_BRIDGE})
+STORES = frozenset({STORE_PANEL_TASKS, STORE_TASK_ENGINE, STORE_BRIDGE_OUTBOX})
 OPERATIONS = frozenset(
     {
         OPERATION_PANEL_TASK_CREATE,
@@ -56,6 +60,7 @@ OPERATIONS = frozenset(
         OPERATION_PANEL_TASK_RESTORE,
         OPERATION_PANEL_TASK_PUT,
         OPERATION_ENGINE_TASK_MUTATION,
+        OPERATION_BRIDGE_TASK_POST,
     }
 )
 PHASES = frozenset({PHASE_BEFORE, PHASE_AFTER, PHASE_ERROR, PHASE_RESULT})
@@ -196,6 +201,107 @@ def build_evidence_record(
             "message": str(error.get("message", ""))[:200],
         }
     return record
+
+
+def _bridge_goal_preview_from_raw(raw: bytes | bytearray | None) -> str:
+    if not raw:
+        return ""
+    try:
+        dec = bytes(raw).decode("utf-8").strip()
+    except UnicodeDecodeError:
+        return ""
+    if not dec:
+        return ""
+    if dec.startswith("{"):
+        try:
+            obj = json.loads(dec)
+        except json.JSONDecodeError:
+            return dec
+        if isinstance(obj, dict):
+            for key in ("task", "goal", "text", "raw_text", "title", "instruction", "prompt"):
+                val = obj.get(key)
+                if isinstance(val, str) and val.strip():
+                    return val.strip()
+        return dec
+    return dec
+
+
+def _bridge_post_task_route(envelope_meta: dict) -> str:
+    route_o = envelope_meta.get("route")
+    if route_o is not None and str(route_o).strip():
+        return f"POST /task/{route_o}"
+    return "POST /task"
+
+
+def _bridge_post_task_outcome(snapshot: dict | None) -> tuple[str, dict[str, str] | None]:
+    if snapshot is None:
+        return OUTCOME_ERROR, {
+            "code": "snapshot_incomplete",
+            "message": "no_json_response_sent",
+        }
+    http_status = snapshot.get("http_status")
+    try:
+        http_status = int(http_status) if http_status is not None else None
+    except (TypeError, ValueError):
+        http_status = None
+    resp = snapshot.get("response")
+    accepted = resp.get("accepted") if isinstance(resp, dict) else None
+    if http_status is None:
+        return OUTCOME_ERROR, {
+            "code": "snapshot_incomplete",
+            "message": "missing_http_status",
+        }
+    if http_status >= 400 or accepted is False:
+        err_code = "bridge_task_rejected"
+        err_msg = "request not accepted"
+        if isinstance(resp, dict):
+            if resp.get("error"):
+                err_code = str(resp.get("error"))[:80]
+            if resp.get("destructive_code"):
+                err_code = str(resp.get("destructive_code"))[:80]
+        return OUTCOME_ERROR, {"code": err_code, "message": err_msg}
+    if 200 <= http_status < 400:
+        return OUTCOME_OK, None
+    return OUTCOME_ERROR, {"code": "http_error", "message": f"status {http_status}"}
+
+
+def mirror_post_task_outbox_record(
+    envelope_meta: dict,
+    snapshot: dict | None,
+    *,
+    correlation_id: str | None = None,
+) -> dict[str, Any]:
+    raw = envelope_meta.get("raw")
+    if not isinstance(raw, (bytes, bytearray)):
+        raw = b""
+    goal_preview = _bridge_goal_preview_from_raw(raw)
+    outcome, error = _bridge_post_task_outcome(snapshot)
+    return build_evidence_record(
+        correlation_id=correlation_id or generate_correlation_id(),
+        source=SOURCE_KANDO_BRIDGE,
+        store=STORE_BRIDGE_OUTBOX,
+        operation=OPERATION_BRIDGE_TASK_POST,
+        phase=PHASE_AFTER,
+        outcome=outcome,
+        payload_summary={
+            "title_preview": goal_preview,
+            "route": _bridge_post_task_route(envelope_meta),
+        },
+        error=error,
+    )
+
+
+def mirror_post_task_outbox_to_evidence_journal(
+    envelope_meta: dict,
+    snapshot: dict | None,
+    *,
+    base_dir: Path | str | None = None,
+) -> dict[str, Any]:
+    from core.lumos_base_dir import lumos_base_dir
+
+    record = mirror_post_task_outbox_record(envelope_meta, snapshot)
+    target = base_dir if base_dir is not None else lumos_base_dir()
+    return append_evidence_event(target, record)
 
 
 def append_evidence_event(

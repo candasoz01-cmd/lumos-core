@@ -10,19 +10,23 @@ if str(_SRC) not in sys.path:
 
 from core.evidence_continuity import (  # noqa: E402
     SCHEMA_V1,
+    OPERATION_BRIDGE_TASK_POST,
     OPERATION_ENGINE_TASK_MUTATION,
     OPERATION_PANEL_TASK_CREATE,
     OUTCOME_OK,
     PHASE_AFTER,
     PHASE_BEFORE,
+    SOURCE_KANDO_BRIDGE,
     SOURCE_PANEL_TASKS_SERVER,
     SOURCE_TASK_ENGINE,
+    STORE_BRIDGE_OUTBOX,
     STORE_PANEL_TASKS,
     STORE_TASK_ENGINE,
     append_evidence_event,
     build_evidence_record,
     evidence_continuity_path,
     generate_correlation_id,
+    mirror_post_task_outbox_record,
     sanitize_payload_summary,
     title_preview_from,
     validate_evidence_record,
@@ -104,6 +108,18 @@ def test_sanitize_payload_summary_filters_keys():
 
 def test_title_preview_from_truncates():
     assert title_preview_from("a" * 50) == "a" * 40
+
+
+def test_validate_evidence_record_accepts_bridge_enum_values():
+    raw_goal = "köprü görev"
+    rec = mirror_post_task_outbox_record(
+        {"raw": json.dumps({"goal": raw_goal}).encode(), "route": "agent"},
+        {"http_status": 200, "response": {"accepted": True}},
+    )
+    assert rec["source"] == SOURCE_KANDO_BRIDGE
+    assert rec["store"] == STORE_BRIDGE_OUTBOX
+    assert rec["operation"] == OPERATION_BRIDGE_TASK_POST
+    assert validate_evidence_record(rec) == []
 
 
 def test_append_evidence_event_writes_jsonl(tmp_path):
