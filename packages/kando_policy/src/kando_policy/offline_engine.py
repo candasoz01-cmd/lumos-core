@@ -37,7 +37,7 @@ class OfflineEngineV1:
         intent = self._classify(lower_msg)
 
         if intent == "DEVICE_TIME":
-            return self._handle_time()
+            return self._handle_time(lower_msg)
 
         if intent == "NETWORK_REQUIRED_WEATHER":
             return {
@@ -91,13 +91,31 @@ class OfflineEngineV1:
         if self.perm:
             self.perm.acquire(name, purpose=purpose, ttl_seconds=ttl)
 
-    def _handle_time(self) -> dict:
+    def _is_weekday_time_query(self, lower_msg: str) -> bool:
+        return any(
+            k in lower_msg
+            for k in ("günlerden", "gunlerden", "hangi gün", "hangi gun")
+        )
+
+    def _handle_time(self, lower_msg: str = "") -> dict:
         self._lease("system_time", "time_query", 5)
         now = datetime.now()
         hhmm = now.strftime("%H:%M")
         date = now.strftime("%d.%m.%Y")
+        response = f"Saat {hhmm}. Bugün {date}."
+        if self._is_weekday_time_query(lower_msg):
+            weekdays = [
+                "Pazar",
+                "Pazartesi",
+                "Salı",
+                "Çarşamba",
+                "Perşembe",
+                "Cuma",
+                "Cumartesi",
+            ]
+            response += f" Günlerden {weekdays[(now.weekday() + 1) % 7]}."
         return {
-            "response": f"Saat {hhmm}. Bugün {date}.",
+            "response": response,
             "reason": "Bu bilgi cihazın yerel saatinden alındı (offline).",
             "follow_up": "İstersen şunu da söyle: bugün hangi işin en acil?",
         }
