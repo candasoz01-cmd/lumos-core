@@ -35,6 +35,15 @@ STORE_BRIDGE_OUTBOX = "bridge_outbox"
 STORE_GUARD = "guard"
 STORE_POLICY_LOG = "policy_log"
 
+# EC2-05: journal store enum → relative path under lumos base (parallel truth; no merge v1)
+PANEL_TASKS_STORE_REL_PATH = "tasks.json"
+TASK_ENGINE_STORE_REL_PATH = "tasks/tasks.json"
+
+TASK_STORE_REGISTRY: dict[str, str] = {
+    STORE_PANEL_TASKS: PANEL_TASKS_STORE_REL_PATH,
+    STORE_TASK_ENGINE: TASK_ENGINE_STORE_REL_PATH,
+}
+
 OPERATION_PANEL_TASK_CREATE = "panel.task.create"
 OPERATION_PANEL_TASK_COMPLETE = "panel.task.complete"
 OPERATION_PANEL_TASK_DELETE = "panel.task.delete"
@@ -121,6 +130,19 @@ def generate_correlation_id() -> str:
 
 def evidence_continuity_path(base_dir: Path | str) -> Path:
     return logs_dir_path(base_dir) / EVIDENCE_CONTINUITY_FILENAME
+
+
+def task_store_rel_path(store: str) -> str | None:
+    """Relative path under lumos base for a journal `store` enum, or None if not a task store."""
+    return TASK_STORE_REGISTRY.get(store)
+
+
+def resolve_task_store_path(base_dir: Path | str, store: str) -> Path | None:
+    """Absolute path for a task store enum under base_dir, or None if unknown store."""
+    rel = task_store_rel_path(store)
+    if rel is None:
+        return None
+    return Path(base_dir) / rel
 
 
 def _now_iso_ms() -> str:
