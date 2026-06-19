@@ -1,6 +1,6 @@
 # Evidence Continuity EC2-11 — Structured query / reconstruct (onaylı karar)
 
-> **Durum:** `[decision-approved]` — minimum v1 uygulama bekliyor.
+> **Durum:** `[implemented]` — merge PR #291 (`980a50f`); structured query API uygulandı.
 >
 > **Keşif kaynağı:** v2 backlog EC2-11; EC2-08 tail read mevcut; full reconstruct v1 dışı (2026-06-20).
 >
@@ -35,4 +35,12 @@
 
 ## Uygulama
 
-*(Implementasyon PR merge sonrası doldurulur.)*
+**Merge:** PR #291 (`980a50f` — `feat/ec2-11-evidence-query`).
+
+| Dosya | Değişiklik |
+|-------|------------|
+| `src/core/evidence_continuity.py` | filter + query helpers |
+| `panel/scripts/panel_tasks_server.py` | GET `/evidence/query` |
+| `tests/test_evidence_query_ec2_11.py` | Q1–Q6 |
+
+Tam görev durumu reconstruct **v1 uygulanmadı** — QY5.

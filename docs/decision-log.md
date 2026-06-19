@@ -52,7 +52,6 @@ Karar verildi; kod/CI uygulaması henüz yapılmadı. OD **closed** sayılmaz.
 | ID | Tarih | Konu | Karar | Uygulama paketi | Bağlantı |
 |----|-------|------|-------|-----------------|----------|
 | DL-A01 | 2026-06-17 | OD-028 `lumos web` / `web/app.py` | **B1** — alt komutu kaldır; **restore değil** | `__main__.py` web dalı + `_run_web()`; `pyproject.toml` açıklama; `test_web_health.py`; `ARCHITECTURE_MAP.md` senkronu; `kando_core` ayrı (OD-027) | `docs/memory/lumos-web-command-decision.md` §12.2 |
-| DL-A13 | 2026-06-20 | EC2-11 Structured evidence query | **Seçenek 1 (minimum v1)** — filtered tail query; tam reconstruct v1 dışı | `query_evidence_events()` + GET `/evidence/query` + Q1–Q6 pytest | [`docs/memory/evidence-continuity-ec2-11-decision.md`](memory/evidence-continuity-ec2-11-decision.md) § Uygulama |
 
 ### Karar kapandı — uygulama merge edildi
 
@@ -71,6 +70,7 @@ Karar uygulandı; kod `main`'de. DL-A02 … DL-A09 takip satırları kapandı.
 | DL-A10 | 2026-06-20 | EC2-06 Legacy panel evidence hizalama | **Seçenek 1 (minimum v1)** — read-only evidence strip + shared JS module; EC2-02 queue Astro-only | PR #283 (`5ff9660`) — `evidence-correlation-strip.js` + legacy Görevler şeridi + L1–L6 pytest | [`docs/memory/evidence-continuity-ec2-06-decision.md`](memory/evidence-continuity-ec2-06-decision.md) § Uygulama |
 | DL-A11 | 2026-06-20 | EC2-07 events[] projection metadata | **Seçenek 1 (minimum v1)** — soft deprecation metadata; disk yazım korunur | PR #286 (`424cf19`) — `tasks_json_events_projection_meta()` + GET enrich + E1–E6 pytest | [`docs/memory/evidence-continuity-ec2-07-decision.md`](memory/evidence-continuity-ec2-07-decision.md) § Uygulama |
 | DL-A12 | 2026-06-20 | EC2-10 ObservationEngine disk spill | **Seçenek 1 (minimum v1)** — JSONL spill; TaskEngine auto-wire; evidence journal dışı | PR #289 (`1a0f411`) — `ObservationLifecycleSpill` + O1–O6 pytest | [`docs/memory/evidence-continuity-ec2-10-decision.md`](memory/evidence-continuity-ec2-10-decision.md) § Uygulama |
+| DL-A13 | 2026-06-20 | EC2-11 Structured evidence query | **Seçenek 1 (minimum v1)** — filtered tail query; tam reconstruct v1 dışı | PR #291 (`980a50f`) — `query_evidence_events()` + GET `/evidence/query` + Q1–Q6 pytest | [`docs/memory/evidence-continuity-ec2-11-decision.md`](memory/evidence-continuity-ec2-11-decision.md) § Uygulama |
 
 ### İleride değerlendirilecek
 
