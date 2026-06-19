@@ -38,7 +38,7 @@ Kaynak: [`evidence-continuity-v1-decision.md`](./evidence-continuity-v1-decision
 | EC2-07 | `events[]` migration veya deprecate | **P2** | Hayır — **`[implemented]`** PR #286 (`424cf19`) / [`evidence-continuity-ec2-07-decision.md`](./evidence-continuity-ec2-07-decision.md) |
 | EC2-08 | Correlation UI — «son işlem kanıtı», «buradan devam» | **P1** | Evet (Phase 4) — **`[implemented]`** PR #274 (`fb2af14`) — [`evidence-continuity-ec2-08-decision.md`](./evidence-continuity-ec2-08-decision.md) |
 | EC2-09 | Evidence-specific rotation / retention politikası | **P2** | Phase 5 — **`[implemented]`** PR #280 (`121216d`) / [`evidence-continuity-ec2-09-decision.md`](./evidence-continuity-ec2-09-decision.md) |
-| EC2-10 | `ObservationEngine` disk spill — CLI step lifecycle | **P2** | Hayır |
+| EC2-10 | `ObservationEngine` disk spill — CLI step lifecycle | **P2** | Hayır — **`[implemented]`** PR #289 (`1a0f411`) / [`evidence-continuity-ec2-10-decision.md`](./evidence-continuity-ec2-10-decision.md) |
 | EC2-11 | Structured query / görev durumu reconstruct | **P2** | Hayır |
 | EC2-12 | Disconnect + resume integration test harness | **P1** | Evet (Phase 4) — **`[implemented]`** PR #261 (`aa2a6ff`); [`evidence-continuity-ec2-12-decision.md`](./evidence-continuity-ec2-12-decision.md) |
 | EC2-13 | `result` fazı — köprü async agent; guard senkron (EC2-04 `after` yeterli) | **P1** | Evet — **`[implemented]`** PR #271 (`41a48fb`) / [`evidence-continuity-ec2-13-decision.md`](./evidence-continuity-ec2-13-decision.md) |
@@ -165,7 +165,7 @@ EC2-05 (store merge)          ── bağımsız OD; v2 fazlarına hard dependen
 |-------|----------|-----|
 | Store merge | EC2-05 | **`[implemented]`** minimum v1 — PR #277; tam merge ayrı OD — [`evidence-continuity-ec2-05-decision.md`](./evidence-continuity-ec2-05-decision.md) |
 | Legacy / migration | EC2-06, EC2-07 | EC2-06 **`[implemented]`** PR #283; EC2-07 **`[implemented]`** PR #286 |
-| Retention / observation / query | EC2-09, EC2-10, EC2-11 | EC2-09 **`[implemented]`** PR #280; EC2-10/11 sonra |
+| Retention / observation / query | EC2-09, EC2-10, EC2-11 | EC2-09 **`[implemented]`** PR #280; EC2-10 **`[implemented]`** PR #289; EC2-11 sırada |
 
 ---
 
