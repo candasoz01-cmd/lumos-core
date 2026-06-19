@@ -1,6 +1,6 @@
 # Evidence Continuity EC2-06 — Legacy panel hizalama (onaylı karar)
 
-> **Durum:** `[decision-approved]` — minimum v1 uygulama bekliyor.
+> **Durum:** `[implemented]` — merge PR #283 (`5ff9660`); legacy read-only evidence strip uygulandı.
 >
 > **Keşif kaynağı:** Evidence Continuity v2 backlog Phase 5 (EC2-06); OD-043 Astro birincil; legacy `panel/js/app.js` EC2-02/08 dışı bırakıldı; read-only keşif (2026-06-20).
 >
@@ -109,4 +109,14 @@ OD-046 E2E migrasyonu ayrı paket — **v1 dışı**.
 
 ## Uygulama
 
-*(Implementasyon PR merge sonrası doldurulur.)*
+**Merge:** PR #283 (`5ff9660` — `feat/ec2-06-legacy-evidence-strip`).
+
+| Dosya | Değişiklik |
+|-------|------------|
+| `panel/js/evidence-correlation-strip.js` | Paylaşılan fetch + group + strip helpers |
+| `panel/index.html` | Script include |
+| `panel/js/app.js` | Görevler şeridi + wire/continue |
+| `panel/css/app.css` | Strip stilleri |
+| `tests/test_legacy_panel_evidence_ec2_06.py` | L1–L6 |
+
+EC2-02 pending-op queue legacy'de **uygulanmadı** — LG4 bilinçli sınır.
