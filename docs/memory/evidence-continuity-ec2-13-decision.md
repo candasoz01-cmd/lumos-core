@@ -1,6 +1,6 @@
 # Evidence Continuity EC2-13 — Köprü async agent `result` fazı (onaylı karar)
 
-> **Durum:** `[decision-approved]` — implementasyon PR bekliyor.
+> **Durum:** `[implemented]` — merge PR #271 (`41a48fb`); H5 köprü async agent `result` faz uygulandı.
 >
 > **Keşif kaynağı:** Evidence Continuity v2 backlog Phase 4 (EC2-13); `PHASE_RESULT` read-only keşif; `kando_bridge` POST /task + `agent_runner` async completion; EC2-03/04 `after`-only mirror (2026-06-19).
 >
@@ -302,11 +302,25 @@ EC2-03 BM9 ile aynı: journal hatası agent worker / outbox yazımını **kırma
 
 ---
 
+## Uygulama
+
+**Merge:** PR #271 (`41a48fb` — `feat/ec2-13-bridge-agent-result-phase`).
+
+| Dosya | Değişiklik |
+|-------|------------|
+| `src/core/evidence_continuity.py` | `job_id` payload anahtarı; `mirror_bridge_agent_result_record`, `mirror_bridge_agent_result_to_evidence_journal` |
+| `src/kando/agent_runner.py` | H5: worker sonunda journal mirror (success + failure) |
+| `tests/test_bridge_agent_result_evidence_ec2_13.py` | R1–R10 köprü agent result + journal entegrasyon |
+| `tests/test_evidence_continuity.py` | `PHASE_RESULT` + `job_id` validator testleri |
+
+EC2-03 `after` mirror ve guard/policy EC2-04 `after` mirror v1'de değişmedi; guard `result` fazı bilinçli dışı.
+
+---
+
 ## Sonraki adım
 
-1. **Implementasyon PR:** `feat/ec2-13-bridge-agent-result-phase` — H5 + testler.
-2. **Backlog senkron:** EC2-13 → `[implemented]` merge sonrası.
-3. **Phase 4 kalan:** EC2-08 (correlation UI).
+1. **Backlog senkron:** v2 backlog EC2-13 → `[implemented]` ✓.
+2. **Phase 4 kalan:** EC2-08 (correlation UI).
 
 ---
 
@@ -314,4 +328,4 @@ EC2-03 BM9 ile aynı: journal hatası agent worker / outbox yazımını **kırma
 
 ---
 
-Son güncelleme: 2026-06-19 (keşif + karar onayı)
+Son güncelleme: 2026-06-19 (PR #271 merge — `[implemented]`)
