@@ -1,12 +1,14 @@
 # Panel / Frontend Backend API Kullanım Envanteri (2026-05-30)
 
+> Operasyonel infra detayları (IP, SSH, deployment) public repoda tutulmaz — bkz. [`ops-runbooks-private-notice.md`](ops-runbooks-private-notice.md).
+
 Salt okuma taraması. Kodda değişiklik yapılmadı. Aranan kalıplar: `fetch(`, `axios`, `localhost:3000`, `/posts`, `/health`, `API_BASE`, `BASE_URL`, `/posts/feed`, `order=feed`. `node_modules` ve `dist` hariç tutuldu.
 
 ## Özet: Backend grupları
 
 Panel üç ayrı backend tabanına konuşuyor:
 
-1. **Posts/Feed API (port 3000)** — `panel/js/feed-api.js` (canlı DigitalOcean backend bunu hedefliyor).
+1. **Posts/Feed API (port 3000)** — `panel/js/feed-api.js` (uzak backend bunu hedefliyor).
 2. **Tasks / Trash action API (port 8766)** — `panel/js/app.js`, `frontend/index.html` (yerel köprü/görev sunucusu).
 3. **Chat / Bridge / Upload / Health / Status** — `ui/src/pages/panel.astro` (Astro `import.meta.env` ile).
 
@@ -58,7 +60,7 @@ Tümü `import.meta.env` üzerinden, sabit kodlama yok (satır 8-25):
 
 - `PUBLIC_LUMOS_PANEL_UPLOAD_URL=http://127.0.0.1:8765/panel/upload`
 - `PUBLIC_LUMOS_PANEL_HEALTH_URL=http://127.0.0.1:8765/health`
-- `PUBLIC_KANDO_TOKEN=test123`
+- `PUBLIC_KANDO_TOKEN=<TEST_TOKEN>` (yerel geliştirme placeholder; gerçek secret commit edilmez)
 
 Not: Posts API (3000) bu env dosyasında temsil edilmiyor; `feed-api.js` kendi global/localStorage tabanını kullanıyor.
 
@@ -75,9 +77,9 @@ Not: Posts API (3000) bu env dosyasında temsil edilmiyor; `feed-api.js` kendi g
 
 ## Canlı backend bağlantısı için değiştirilmesi gereken dosyalar (sadece not)
 
-- `panel/js/feed-api.js`: Canlı test için posts tabanı `http://167.99.253.148:3000` olmalı. Kod değiştirmeden `window.LUMOS_POSTS_API_BASE` veya `localStorage.lumos_posts_api_base` ile verilebilir. Kalıcı/varsayılan istenirse `DEFAULT_BASE` (satır 9) tek dokunma noktasıdır — env tabanlı yapılması önerilir.
+- `panel/js/feed-api.js`: Uzak test için posts tabanı `window.LUMOS_POSTS_API_BASE` veya `localStorage.lumos_posts_api_base` ile verilebilir (ör. `https://api.example.com`). Lokal varsayılan `http://127.0.0.1:3000` korunmalı. Kalıcı/varsayılan istenirse `DEFAULT_BASE` (satır 9) tek dokunma noktasıdır — env tabanlı yapılması önerilir.
 - `ui/.env.local`: Canlı doğrulama için ayrı bir değişken (ör. `PUBLIC_LUMOS_POSTS_API_BASE`) tanımlanıp panel.astro'da feed tabanına bağlanması değerlendirilebilir (şu an feed tabanı astro env'inden gelmiyor).
 - `frontend/index.html` (satır 1757) ve `panel/js/app.js` (satır 419/3516): bunlar 8766 köprü/görev sunucusu içindir; posts/feed canlı bağlantısı için **değiştirilmemeli**.
 - `panel/css/app.css:920`: yalnızca yanıltıcı yorum; istenirse `/posts?order=feed` olarak güncellenir.
 
-> İlke: posts API tabanı tek noktadan (env/global) yönetilmeli, lokal `127.0.0.1:3000` korunmalı, canlı IP ayrı değişkenle verilmeli. Düz IP + HTTP geçici çözümdür; domain/HTTPS/proxy olmadan üretim sayılmaz.
+> İlke: posts API tabanı tek noktadan (env/global) yönetilmeli, lokal `127.0.0.1:3000` korunmalı, uzak URL ayrı değişkenle verilmeli. Düz IP + HTTP geçici çözümdür; domain/HTTPS/proxy olmadan üretim sayılmaz.

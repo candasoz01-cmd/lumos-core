@@ -1,5 +1,7 @@
 # Panel Domain + HTTPS Servis Planı (2026-05-30)
 
+> Operasyonel adımlar (SSH, Nginx komutları, firewall) [`ops-runbooks-private-notice.md`](ops-runbooks-private-notice.md) kapsamında vault'ta tutulur. Uygulama runbook: `<PRIVATE_OPS_RUNBOOK>`.
+
 Bu doküman, Lumos panelinin ileride `panel.welockai.com` veya `app.welockai.com` üzerinden HTTPS ile servis edilmesi planını tanımlar. Sadece plandır; bu adımda kod veya altyapı değişikliği yapılmaz.
 
 ## Mevcut durum
@@ -21,7 +23,7 @@ Bu doküman, Lumos panelinin ileride `panel.welockai.com` veya `app.welockai.com
 
 ## DNS
 
-- Planlanan kayıt: `panel` -> `A` -> `167.99.253.148`.
+- Planlanan kayıt: `panel` -> `A` -> `<SERVER_IP>`.
 - Başlangıçta Cloudflare proxied (turuncu bulut) kullanılabilir; ancak origin / Nginx ayarı dikkatle doğrulanmalı.
 
 ## Nginx
@@ -46,5 +48,5 @@ Bu doküman, Lumos panelinin ileride `panel.welockai.com` veya `app.welockai.com
 ## Sonraki teknik adım
 
 1. Önce doküman (bu dosya).
-2. Sonra DNS (`panel` -> `A` -> `167.99.253.148`).
+2. Sonra DNS (`panel` -> `A` -> `<SERVER_IP>`).
 3. Sonra Nginx statik panel servis testi.
