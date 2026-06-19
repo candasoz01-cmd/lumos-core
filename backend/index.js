@@ -1,3 +1,4 @@
+import "dotenv/config";
 import crypto from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,6 +16,61 @@ import {
 /** Panel /chat: geçmiş boyutu ve içerik tavanı (token maliyetini sınırlar). */
 const PANEL_CHAT_HISTORY_MAX_MESSAGES = 12;
 const PANEL_CHAT_MAX_CONTENT_CHARS = 6000;
+
+const TIME_QUERY_KEYS = [
+  "saat kaç",
+  "saat kac",
+  "saat",
+  "time",
+  "tarih",
+  "bugün kaç",
+  "bugun kac",
+  "bugün günlerden ne",
+  "bugun gunlerden ne",
+  "hangi gün",
+  "hangi gun",
+  "günlerden",
+  "gunlerden",
+];
+
+function isTimeQuery(text) {
+  const lower = String(text || "").trim().toLowerCase();
+  if (!lower) return false;
+  return TIME_QUERY_KEYS.some((k) => lower.includes(k));
+}
+
+function isWeekdayTimeQuery(text) {
+  const lower = String(text || "").trim().toLowerCase();
+  return (
+    lower.includes("günlerden") ||
+    lower.includes("gunlerden") ||
+    lower.includes("hangi gün") ||
+    lower.includes("hangi gun")
+  );
+}
+
+function localTimeReply(text) {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, "0");
+  const mm = String(now.getMinutes()).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  const mo = String(now.getMonth() + 1).padStart(2, "0");
+  const yyyy = now.getFullYear();
+  let reply = `Saat ${hh}:${mm}. Bugün ${dd}.${mo}.${yyyy}.`;
+  if (isWeekdayTimeQuery(text)) {
+    const weekdays = [
+      "Pazar",
+      "Pazartesi",
+      "Salı",
+      "Çarşamba",
+      "Perşembe",
+      "Cuma",
+      "Cumartesi",
+    ];
+    reply += ` Günlerden ${weekdays[now.getDay()]}.`;
+  }
+  return reply;
+}
 
 /**
  * İsteğe bağlı JSON gövdesindeki küçük görsel (base64) üst tavanı — ham bayt (decode sonrası).
@@ -211,6 +267,10 @@ app.post("/chat", async (req, res) => {
 
     if (!currentText && !photo.photoAttached) {
       return res.status(400).json({ error: "message required" });
+    }
+
+    if (currentText && isTimeQuery(currentText)) {
+      return res.json({ reply: localTimeReply(currentText), mode: "local_time" });
     }
 
     if (photo.photoAttached) {
