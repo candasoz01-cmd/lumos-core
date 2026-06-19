@@ -1,6 +1,6 @@
 # Evidence Continuity EC2-12 — Disconnect/resume integration test harness (onaylı karar)
 
-> **Durum:** `[decision-approved]` — tasarım kilitli; uygulama bekliyor (test-only harness v1).
+> **Durum:** `[implemented]` — PR #261 (`aa2a6ff`); test-only harness v1 merge edildi.
 >
 > **Keşif kaynağı:** Evidence Continuity v2 backlog Phase 4 (EC2-12); EC2-02 runtime merge sonrası disconnect/resume doğrulama boşluğu (2026-06-19 read-only keşif).
 >
@@ -250,22 +250,32 @@ Harness, aşağıdaki **mevcut** `panel.astro` flush tetikleyicilerini ve algori
 
 ---
 
-## Uygulama (bekliyor)
+## Uygulama
 
-**Durum:** Karar onaylı; kod PR'ı henüz açılmadı.
+**Merge:** PR #261 (`aa2a6ff` — `test/ec2-12-disconnect-resume-harness`).
 
-| Dosya | Beklenen değişiklik |
-|-------|---------------------|
-| `tests/test_panel_evidence_disconnect_resume_ec2_12.py` | DR1–DR7 senaryoları |
+| Dosya | Değişiklik |
+|-------|------------|
+| `tests/test_panel_evidence_disconnect_resume_ec2_12.py` | DR1–DR7 disconnect/resume senaryoları — pytest + izole `LUMOS_BASE_DIR` + `panel_tasks_server` simülasyonu |
 
-Runtime, sunucu yüzeyi ve journal şeması v1'de değişmez (DRH1, DRH3, DRH4).
+| Senaryo | Test |
+|---------|------|
+| DR1 | `test_dr1_server_create_offline_complete_enqueue_flush_journal` |
+| DR2 | `test_dr2_offline_delete_enqueue_flush_journal_and_trash` |
+| DR3 | `test_dr3_offline_restore_enqueue_flush_journal` |
+| DR4 | `test_dr4_multi_op_fifo_partial_flush_on_network_fail` |
+| DR5 | `test_dr5_duplicate_idempotent_flush_already_done_and_not_found` |
+| DR6 | `test_dr6_ec2_01_tsk_id_offline_complete_flush` |
+| DR7 | `test_dr7_meta_overlay_preserved_after_flush_refresh` |
+
+Runtime, sunucu yüzeyi ve journal şeması v1'de değişmedi (DRH1, DRH3, DRH4).
 
 ---
 
 ## Sonraki adım
 
-1. **Harness PR:** `tests/test_panel_evidence_disconnect_resume_ec2_12.py` — DR1–DR7; pytest + izole `LUMOS_BASE_DIR`; runtime/schema/sunucu değişikliği **yok**.
-2. **Backlog senkron:** Implementasyon merge sonrası v2 backlog EC2-12 → `[implemented]`.
+1. **Backlog senkron:** v2 backlog EC2-12 → `[implemented]` ✓.
+2. **Phase 4 kalan:** EC2-03 (köprü mirror), EC2-04 (guard/policy normalize), EC2-08 (correlation UI), EC2-13 (`result` faz).
 3. **Opsiyonel v1.1:** Ortak helper modülü; HTTP subprocess; T8 kuyruk limit testi.
 
 ---
@@ -274,4 +284,4 @@ Runtime, sunucu yüzeyi ve journal şeması v1'de değişmez (DRH1, DRH3, DRH4).
 
 ---
 
-Son güncelleme: 2026-06-19 (karar onaylı — test-only harness v1)
+Son güncelleme: 2026-06-19 (PR #261 merge — `[implemented]`)
