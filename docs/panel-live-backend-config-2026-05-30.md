@@ -1,5 +1,7 @@
 # Panel Feed API Base URL Yapılandırması (2026-05-30)
 
+> Operasyonel infra detayları vault'ta — bkz. [`ops-runbooks-private-notice.md`](ops-runbooks-private-notice.md) · [`memory/public-ops-runbook-boundary.md`](memory/public-ops-runbook-boundary.md).
+
 Panel feed API tabanı artık yapılandırılabilir. Yalnızca `panel/js/feed-api.js` içindeki base URL çözümlemesi güncellendi; UI ve endpoint davranışı değişmedi.
 
 ## Base URL çözüm sırası

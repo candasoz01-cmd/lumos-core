@@ -1,5 +1,7 @@
 # Panel / Frontend — Canlı Backend Bağlantı Planı (2026-05-30)
 
+> Sunucu IP, SSH ve deployment notları public repoda yok — bkz. [`ops-runbooks-private-notice.md`](ops-runbooks-private-notice.md).
+
 Bu not, panel/frontend tarafının uzak (staging/production) backend'e bağlanması için plandır. Henüz kod değişikliği yapılmadı.
 
 ## Uzak Backend Bilgileri

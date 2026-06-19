@@ -1,5 +1,7 @@
 # Panel / Frontend Backend API Kullanım Envanteri (2026-05-30)
 
+> Operasyonel infra detayları (IP, SSH, deployment) public repoda tutulmaz — bkz. [`ops-runbooks-private-notice.md`](ops-runbooks-private-notice.md).
+
 Salt okuma taraması. Kodda değişiklik yapılmadı. Aranan kalıplar: `fetch(`, `axios`, `localhost:3000`, `/posts`, `/health`, `API_BASE`, `BASE_URL`, `/posts/feed`, `order=feed`. `node_modules` ve `dist` hariç tutuldu.
 
 ## Özet: Backend grupları
@@ -58,7 +60,7 @@ Tümü `import.meta.env` üzerinden, sabit kodlama yok (satır 8-25):
 
 - `PUBLIC_LUMOS_PANEL_UPLOAD_URL=http://127.0.0.1:8765/panel/upload`
 - `PUBLIC_LUMOS_PANEL_HEALTH_URL=http://127.0.0.1:8765/health`
-- `PUBLIC_KANDO_TOKEN=test123`
+- `PUBLIC_KANDO_TOKEN=<TEST_TOKEN>` (yerel geliştirme placeholder; gerçek secret commit edilmez)
 
 Not: Posts API (3000) bu env dosyasında temsil edilmiyor; `feed-api.js` kendi global/localStorage tabanını kullanıyor.
 

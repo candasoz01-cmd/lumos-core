@@ -1,5 +1,7 @@
 # Panel Domain + HTTPS Servis Planı (2026-05-30)
 
+> Operasyonel adımlar (SSH, Nginx komutları, firewall) [`ops-runbooks-private-notice.md`](ops-runbooks-private-notice.md) kapsamında vault'ta tutulur. Uygulama runbook: `<PRIVATE_OPS_RUNBOOK>`.
+
 Bu doküman, Lumos panelinin ileride `panel.welockai.com` veya `app.welockai.com` üzerinden HTTPS ile servis edilmesi planını tanımlar. Sadece plandır; bu adımda kod veya altyapı değişikliği yapılmaz.
 
 ## Mevcut durum
