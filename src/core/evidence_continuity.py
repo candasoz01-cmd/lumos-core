@@ -123,6 +123,12 @@ _MIRROR_CTX = threading.local()
 
 EVIDENCE_CONTINUITY_FILENAME = "evidence_continuity.jsonl"
 
+# EC2-09: evidence-specific retention (v1 — aliases log_rotation defaults; no config override)
+EVIDENCE_RETENTION_POLICY_ID = "lumos.evidence_continuity.retention.v1"
+EVIDENCE_CONTINUITY_MAX_BYTES = DEFAULT_MAX_BYTES
+EVIDENCE_CONTINUITY_KEEP = DEFAULT_KEEP
+EVIDENCE_READ_SCOPE_CURRENT_ONLY = "current_file_only"
+
 
 def generate_correlation_id() -> str:
     return str(uuid4())
@@ -143,6 +149,46 @@ def resolve_task_store_path(base_dir: Path | str, store: str) -> Path | None:
     if rel is None:
         return None
     return Path(base_dir) / rel
+
+
+def evidence_retention_policy() -> dict[str, Any]:
+    """Read-only v1 retention policy DTO (no config override)."""
+    return {
+        "policy_id": EVIDENCE_RETENTION_POLICY_ID,
+        "max_bytes_per_file": EVIDENCE_CONTINUITY_MAX_BYTES,
+        "rotated_files_kept": EVIDENCE_CONTINUITY_KEEP,
+        "max_file_slots": EVIDENCE_CONTINUITY_KEEP + 1,
+        "read_scope": EVIDENCE_READ_SCOPE_CURRENT_ONLY,
+    }
+
+
+def _evidence_journal_file_paths(base_dir: Path | str) -> list[Path]:
+    """Current + rotated evidence journal paths that exist on disk."""
+    current = evidence_continuity_path(base_dir)
+    paths: list[Path] = []
+    if current.is_file():
+        paths.append(current)
+    for n in range(1, EVIDENCE_CONTINUITY_KEEP + 1):
+        rotated = Path(str(current) + f".{n}")
+        if rotated.is_file():
+            paths.append(rotated)
+    return paths
+
+
+def evidence_journal_storage_summary(base_dir: Path | str) -> dict[str, Any]:
+    """Read-only storage footprint for evidence journal files."""
+    files = _evidence_journal_file_paths(base_dir)
+    total_bytes = 0
+    for p in files:
+        try:
+            total_bytes += p.stat().st_size
+        except OSError:
+            pass
+    return {
+        "journal_path": str(evidence_continuity_path(base_dir)),
+        "file_count": len(files),
+        "total_bytes": total_bytes,
+    }
 
 
 def _now_iso_ms() -> str:
@@ -632,8 +678,8 @@ def append_evidence_event(
         append_result = append_jsonl_with_rotation(
             path,
             record,
-            max_bytes=DEFAULT_MAX_BYTES,
-            keep=DEFAULT_KEEP,
+            max_bytes=EVIDENCE_CONTINUITY_MAX_BYTES,
+            keep=EVIDENCE_CONTINUITY_KEEP,
         )
         result.update(append_result)
     except Exception:
