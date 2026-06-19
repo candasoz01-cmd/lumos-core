@@ -1,6 +1,6 @@
 # Evidence Continuity EC2-02 — Client Evidence Queue minimum v1 (onaylı karar)
 
-> **Durum:** `decision-approved` / `implementation-pending` — tasarım kilitlendi; kod PR bekliyor.
+> **Durum:** `[implemented]` — merge PR #258 (`bc6e4e0`); pending-op kuyruğu + flush uygulandı.
 >
 > **Keşif kaynağı:** Evidence Continuity v2 backlog Phase 3 (EC2-02); v1 bilinçli boşluk (client hook'ları); `panel.astro` offline fallback ve meta overlay davranışı (2026-06-19 read-only tarama).
 >
@@ -260,11 +260,23 @@ Evidence Continuity v1 yalnızca **sunucu yazım kapılarında** (H1 `_write_doc
 
 ---
 
+## Uygulama
+
+**Merge:** PR #258 (`bc6e4e0` — `feat/ec2-02-client-evidence-queue`).
+
+| Dosya | Değişiklik |
+|-------|------------|
+| `ui/src/pages/panel.astro` | Pending-op kuyruğu (`lumos_panel_evidence_pending_ops_v1`), enqueue hook'ları, `flushPendingEvidenceOps`, tetikleyici wiring |
+| `tests/test_panel_evidence_queue_ec2_02.py` | Kuyruk serileştirme, flush sırası, idempotent davranış |
+
+Sunucu yüzeyi ve journal şeması v1'de değişmedi (CEQ2–CEQ4).
+
+---
+
 ## Sonraki adım
 
-1. **Dar implementasyon PR:** `panel.astro` pending-op kuyruğu + flush + enqueue hook'ları; `tests/test_panel_evidence_queue_ec2_02.py`.
-2. **Doğrulama:** T1–T10; journal spot check; CI yeşil (EC2-14 regresyonsuz).
-3. **Backlog senkron:** Bu belge `decision-approved` → uygulama merge sonrası `implemented` / `verified` olarak güncellenir.
+1. **Backlog senkron:** v2 backlog Phase 3 → `[implemented]`; Phase 4 (EC2-03/04) sıradaki öncelik.
+2. **Doğrulama (opsiyonel):** T1–T10 manuel journal spot check; CI yeşil (EC2-14 regresyonsuz).
 
 ---
 
@@ -272,4 +284,4 @@ Evidence Continuity v1 yalnızca **sunucu yazım kapılarında** (H1 `_write_doc
 
 ---
 
-Son güncelleme: 2026-06-19
+Son güncelleme: 2026-06-19 (PR #258 merge — `[implemented]`)
