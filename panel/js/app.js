@@ -4187,8 +4187,14 @@ function canTransition(from, to) {
     }
     var detail = buildDetailPanel(data.detailTitle, detailContent);
     var runNoteSection = buildSection(data.runNoteTitle, "<p class=\"text-muted-small\">" + data.runNoteBody + "</p>");
+    var evidenceStripHtml =
+      typeof LumosEvidenceCorrelationStrip !== "undefined" &&
+      LumosEvidenceCorrelationStrip.buildLegacyEvidenceStripHtml
+        ? LumosEvidenceCorrelationStrip.buildLegacyEvidenceStripHtml()
+        : "";
     return (
       ViewHeader(data.title, data.subtitle) +
+      evidenceStripHtml +
       '<div class="split-view tasks-split-view">' +
       listSection +
       detail +
@@ -7176,6 +7182,68 @@ function canTransition(from, to) {
    * Aktif hash için doğrudan ilgili render* çalıştırır (tasks/logs/dashboard/chat açık adres).
    * Diğer rotalar: renderRouteHtml ile renderMain ile aynı zincir.
    */
+  /** EC2-06: legacy Görevler evidence strip — read-only journal özeti. */
+  var legacyEvidenceLatestGroup = null;
+
+  function resolveLegacyTasksApiBaseForEvidence() {
+    try {
+      return getPanelTasksApiBaseResolved();
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function legacyEvidenceContinueFromGroup(group) {
+    if (!group || !group.canContinue) return;
+    if (group.continueKind === "task" && group.entityRefId) {
+      mockState.selectedTaskId = group.entityRefId;
+      if ((window.location.hash || "").toLowerCase() !== "#tasks") {
+        window.location.hash = "#tasks";
+      } else {
+        refreshCurrentView();
+      }
+      return;
+    }
+    if (group.continueKind === "chat" && group.titlePreview) {
+      window.location.hash = "#chat";
+      setTimeout(function () {
+        var chatInput = document.getElementById("lumos-chat-input");
+        if (!chatInput) return;
+        chatInput.value = String(group.titlePreview);
+        try {
+          chatInput.dispatchEvent(new Event("input", { bubbles: true }));
+          chatInput.focus();
+        } catch (_) {
+          /* ignore */
+        }
+      }, 50);
+    }
+  }
+
+  function wireLegacyEvidenceStrip() {
+    if (
+      typeof LumosEvidenceCorrelationStrip === "undefined" ||
+      !LumosEvidenceCorrelationStrip.refreshLegacyEvidenceStrip
+    ) {
+      return;
+    }
+    var continueBtn = document.getElementById("legacy-evidence-continue");
+    if (continueBtn && !continueBtn.dataset.ec2Bound) {
+      continueBtn.dataset.ec2Bound = "1";
+      continueBtn.addEventListener("click", function () {
+        if (legacyEvidenceLatestGroup) {
+          legacyEvidenceContinueFromGroup(legacyEvidenceLatestGroup);
+        }
+      });
+    }
+    LumosEvidenceCorrelationStrip.refreshLegacyEvidenceStrip({
+      apiBase: resolveLegacyTasksApiBaseForEvidence(),
+      onGroupChange: function (g) {
+        legacyEvidenceLatestGroup = g;
+      },
+    });
+  }
+
   function refreshCurrentView() {
     var main = document.getElementById("main-content");
     if (!main) return;
@@ -7183,6 +7251,7 @@ function canTransition(from, to) {
     if (h.length <= 1) h = DEFAULT_HASH.toLowerCase();
     if (h === "#tasks") {
       main.innerHTML = renderTasks();
+      wireLegacyEvidenceStrip();
       return;
     }
     if (h === "#logs") {
