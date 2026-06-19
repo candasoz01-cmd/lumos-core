@@ -33,3 +33,31 @@ jobs:
         run: pytest
         env:
           KANDO_MOCK: "1"
+
+  ui-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Install UI dependencies
+        working-directory: ui
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        working-directory: ui
+        run: npx playwright install chromium --with-deps
+
+      - name: Build UI
+        working-directory: ui
+        run: npm run build
+
+      - name: Run UI smoke (OD-046 v2)
+        working-directory: ui
+        run: npm run e2e:smoke

@@ -82,7 +82,7 @@ Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A15 takip satırları kap
 | DL-F03 | 2026-06-17 | Platform veri kasası | İzinli, şeffaf, geri alınabilir taşıma | `docs/security-architecture.md` SEC-023 |
 | DL-F04 | 2026-06-17 | OpenAI Agents / Realtime / Computer Use / Codex | Watchlist; rastgele eklenmez | `docs/tool-watchlist.md` |
 | DL-F05 | 2026-06-18 | Çalışma araçları connector (GitHub, Slack, Drive, Linear, Notion, Asana) | İlke onaylı; değerlendirme listesi + katman sırası; uygulama bekliyor | OD-033 — [`work-tools-connectors-decision.md`](memory/work-tools-connectors-decision.md) |
-| DL-F07 | 2026-06-17 | Root build vs panel E2E hizası | **Seçenek A onaylandı** (OD-046) — üretim `ui/`; **v1 kısmi:** `e2e:smoke:ui` + `ui/e2e/smoke-panel.mjs` (PR #294); legacy `panel/` E2E geçiş kapısı; tam migrasyon bekliyor | OD-046 — [`build-e2e-surface-alignment-decision.md`](memory/build-e2e-surface-alignment-decision.md) |
+| DL-F07 | 2026-06-17 | Root build vs panel E2E hizası | **Seçenek A onaylandı** (OD-046) — üretim `ui/`; **v1:** `e2e:smoke:ui` + smoke script (PR #294); **v2:** CI `ui-smoke` job; legacy `panel/` E2E geçiş kapısı; tam migrasyon bekliyor | OD-046 — [`build-e2e-surface-alignment-decision.md`](memory/build-e2e-surface-alignment-decision.md) |
 | DL-F08 | 2026-06-19 | Evidence Continuity v2 backlog | 14/14 madde minimum v1 uygulandı (PR #255–#291); takip belgesi `implementation-complete` | [`docs/memory/evidence-continuity-v2-backlog.md`](memory/evidence-continuity-v2-backlog.md); OD-058 v1 closed |
 
 ### Karar kapandı — docs/memory (uygulama kodu yok)
@@ -123,4 +123,4 @@ Tam liste: `docs/memory/open-decisions-needs-review.md` (OD-001 … OD-060).
 
 ---
 
-Son güncelleme: 2026-06-20 (DL-F07 OD-046 v1 partial; PR #294 smoke)
+Son güncelleme: 2026-06-20 (DL-F07 OD-046 v2 CI smoke; v1 PR #294)
