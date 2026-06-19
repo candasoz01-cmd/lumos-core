@@ -477,6 +477,120 @@ def mirror_bridge_agent_result_to_evidence_journal(
     return append_evidence_event(target, record)
 
 
+UI_PROJECTION_SCHEMA = "lumos.evidence_continuity.ui_projection.v1"
+DEFAULT_READ_LIMIT = 20
+MAX_READ_LIMIT = 50
+_ERROR_MESSAGE_UI_MAX = 80
+
+_UI_PROJECTION_FIELDS = frozenset(
+    {
+        "ts",
+        "source",
+        "store",
+        "operation",
+        "phase",
+        "outcome",
+        "mutation",
+        "entity_ref",
+        "payload_summary",
+        "error",
+    }
+)
+
+
+def _parse_evidence_ts_ms(ts: str) -> float:
+    raw = str(ts or "").strip()
+    if not raw:
+        return 0.0
+    if raw.endswith("Z"):
+        raw = raw[:-1] + "+00:00"
+    try:
+        return datetime.fromisoformat(raw).timestamp()
+    except ValueError:
+        return 0.0
+
+
+def read_recent_evidence_events(
+    base_dir: Path | str,
+    limit: int = DEFAULT_READ_LIMIT,
+) -> tuple[list[dict[str, Any]], bool]:
+    """
+    Tail-read validated journal records, newest first.
+    Returns (records, truncated) where truncated is True when more valid rows exist than limit.
+    """
+    try:
+        limit_n = int(limit)
+    except (TypeError, ValueError):
+        limit_n = DEFAULT_READ_LIMIT
+    limit_n = max(1, min(limit_n, MAX_READ_LIMIT))
+
+    path = evidence_continuity_path(base_dir)
+    if not path.is_file():
+        return [], False
+
+    valid: list[dict[str, Any]] = []
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(rec, dict) or validate_evidence_record(rec):
+                continue
+            valid.append(rec)
+    except OSError:
+        return [], False
+
+    truncated = len(valid) > limit_n
+    tail = valid[-limit_n:]
+    tail.sort(key=lambda r: _parse_evidence_ts_ms(str(r.get("ts", ""))), reverse=True)
+    return tail, truncated
+
+
+def project_evidence_for_ui(record: dict[str, Any]) -> dict[str, Any]:
+    """Demo-safe DTO for panel UI; correlation_id and unknown keys omitted."""
+    out: dict[str, Any] = {}
+    for key in _UI_PROJECTION_FIELDS:
+        if key not in record:
+            continue
+        value = record[key]
+        if key == "entity_ref":
+            if isinstance(value, dict) and value.get("id"):
+                out[key] = {"kind": "task", "id": str(value["id"])[:80]}
+            continue
+        if key == "payload_summary":
+            summary = sanitize_payload_summary(value if isinstance(value, dict) else None)
+            if summary:
+                out[key] = summary
+            continue
+        if key == "error":
+            if isinstance(value, dict) and value.get("code"):
+                err: dict[str, str] = {"code": str(value["code"])[:80]}
+                msg = str(value.get("message", ""))[:_ERROR_MESSAGE_UI_MAX]
+                if msg:
+                    err["message"] = msg
+                out[key] = err
+            continue
+        if value is not None and value != "":
+            out[key] = value
+    return out
+
+
+def build_ui_projection_response(
+    events: list[dict[str, Any]],
+    *,
+    truncated: bool = False,
+) -> dict[str, Any]:
+    return {
+        "schema": UI_PROJECTION_SCHEMA,
+        "events": [project_evidence_for_ui(e) for e in events],
+        "truncated": bool(truncated),
+    }
+
+
 def append_evidence_event(
     base_dir: Path | str,
     record: dict[str, Any],
