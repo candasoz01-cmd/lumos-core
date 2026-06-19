@@ -96,7 +96,7 @@
 | OD-045 | project-map-runtime-entrypoints.md | lumos-demo konumu | `lumos-demo` nerede; lumos-core ile ilişkisi ne? | low | superseded / not-found | Kapandı (2026-06-17): `work_2026` altında bulunamadı; aktif lumos-core parçası değil (giriş noktası, build hedefi, app bağımlılığı yok). Sonradan bulunursa ayrı repo/yan klasör olarak yeniden değerlendirilir — otomatik lumos-core parçası sayılmaz. |
 | OD-046 | project-map-runtime-entrypoints.md | Root build vs panel E2E | `npm run build` (ui) ile panel E2E hangi yüzeyi hedefler? | medium | decision-approved / implementation-pending | Karar: [`build-e2e-surface-alignment-decision.md`](build-e2e-surface-alignment-decision.md); Seçenek A onaylandı — üretim yüzeyi `ui/`, kök E2E bugün `panel/`, nihai hedef `ui/dist` veya Astro preview. Uygulama ayrı iş paketi: E2E hizası henüz yapılmadı. |
 | OD-047 | repair-assistant-requirements.md | Ürün vizyonu hizası | Teknik servis asistanı genel Lumos vizyonuna nasıl bağlanır? | medium | needs-review | Kapsam §4 migration notu |
-| OD-058 | evidence-continuity-v1-decision.md | Evidence Continuity v1 | Panel + engine sunucu mutasyonları için append-only journal (Karar A) uygulandı mı? | medium | closed | Karar: [`evidence-continuity-v1-decision.md`](evidence-continuity-v1-decision.md) — **Karar A** uygulandı ve doğrulandı (PR #248, `main`); H0/H1/H2 hook'ları canlı. **v2 backlog:** [`evidence-continuity-v2-backlog.md`](evidence-continuity-v2-backlog.md). |
+| OD-058 | evidence-continuity-v1-decision.md | Evidence Continuity v1 | Panel + engine sunucu mutasyonları için append-only journal (Karar A) uygulandı mı? | medium | closed | Karar: [`evidence-continuity-v1-decision.md`](evidence-continuity-v1-decision.md) — **Karar A** uygulandı ve doğrulandı (PR #248, `main`); H0/H1/H2 hook'ları canlı. **v2 backlog:** [`evidence-continuity-v2-backlog.md`](evidence-continuity-v2-backlog.md) — 14/14 `implementation-complete` (PR #255–#291). |
 | OD-059 | audit-hook-term-decision.md | Audit hook terminolojisi | Informal «audit hook» takip maddesi ayrı git hook gerektiriyor mu? | low | closed | Karar: [`audit-hook-term-decision.md`](audit-hook-term-decision.md) — **Hayır**; git hook reddi. Üç katman: commit guard (dev), EC runtime (v1), EC v2 #4/#14. Informal takip maddesi docs seviyesinde **CLOSED**. Opsiyonel CI ruff parity (Paket B) ayrı PR — `implementation-pending`. |
 
 ---
@@ -136,7 +136,7 @@ Kaynak dosyalardaki migration tablolarından **needs-review / queued** özetleri
 | tools-technology-watchlist.md | 3 | 3 (boş manuel) | OD-029, OD-030 |
 | internal-agent-layers.md | 4 | 5 (boş manuel) | OD-006, OD-007, OD-026 |
 | public-identity-branding.md | 5 | 9 (+5 boş manuel) | OD-048 – OD-057 |
-| project-map-runtime-entrypoints.md | 5 | 1 | OD-027, OD-028, OD-043, OD-044, OD-046 |
+| project-map-runtime-entrypoints.md | 3 | 1 | OD-027, OD-028 (closed), OD-043/044 (approved), OD-046 (approved/pending) |
 | evidence-continuity-v1-decision.md | 0 | 0 | OD-058 (closed / v2 backlog: evidence-continuity-v2-backlog.md) |
 | audit-hook-term-decision.md | 0 | 0 | OD-059 (closed / terminoloji) |
 | chatgpt-saved-memories-migration.md | 0 | 5 (boş manuel) | — (süreç rehberi; madde yok) |
@@ -155,4 +155,4 @@ Kaynak dosyalardaki boş manuel şablonlar burada tekrarlanmaz. Yeni açık kara
 
 ---
 
-Son güncelleme: 2026-06-19
+Son güncelleme: 2026-06-20 (MA-01 drift sync; OD-058 v2 completion note; migration tablosu)

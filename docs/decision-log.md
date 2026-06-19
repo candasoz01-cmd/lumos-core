@@ -49,16 +49,15 @@ Bilinçli erteleme; yeniden açılma koşulu veya bağlı OD not edilir.
 
 Karar verildi; kod/CI uygulaması henüz yapılmadı. OD **closed** sayılmaz.
 
-| ID | Tarih | Konu | Karar | Uygulama paketi | Bağlantı |
-|----|-------|------|-------|-----------------|----------|
-| DL-A01 | 2026-06-17 | OD-028 `lumos web` / `web/app.py` | **B1** — alt komutu kaldır; **restore değil** | `__main__.py` web dalı + `_run_web()`; `pyproject.toml` açıklama; `test_web_health.py`; `ARCHITECTURE_MAP.md` senkronu; `kando_core` ayrı (OD-027) | `docs/memory/lumos-web-command-decision.md` §12.2 |
+*(Şu an boş — DL-A01 kapandı; bkz. «Karar kapandı — uygulama merge edildi».)*
 
 ### Karar kapandı — uygulama merge edildi
 
-Karar uygulandı; kod `main`'de. DL-A02 … DL-A09 takip satırları kapandı.
+Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A15 takip satırları kapandı.
 
 | ID | Tarih | Konu | Karar | Merge | Bağlantı |
 |----|-------|------|-------|-------|----------|
+| DL-A01 | 2026-06-17 | OD-028 `lumos web` / `web/app.py` | **B1** — alt komutu kaldır; **restore değil** | PR #227 (`ff0ef4c`) — `__main__.py` web dalı kaldırıldı; `test_web_health.py` silindi; mimari belge senkronu | [`docs/memory/lumos-web-command-decision.md`](memory/lumos-web-command-decision.md) §12.2 |
 | DL-A02 | 2026-06-19 | EC2-02 Client Evidence Queue | **Seçenek 1** — pending-op kuyruğu `panel.astro`; flush mevcut REST; journal şeması ve sunucu endpoint v1'de değişmez | PR #258 (`bc6e4e0`) — `panel.astro` + `test_panel_evidence_queue_ec2_02.py` | [`docs/memory/evidence-continuity-ec2-02-decision.md`](memory/evidence-continuity-ec2-02-decision.md) § Uygulama |
 | DL-A03 | 2026-06-19 | EC2-12 Disconnect/resume test harness | **Seçenek 1** — test-only pytest integration harness (DR1–DR7); runtime, şema ve sunucu yüzeyi v1'de değişmez; Playwright E2E v1 reddedildi | PR #261 (`aa2a6ff`) — `test_panel_evidence_disconnect_resume_ec2_12.py` | [`docs/memory/evidence-continuity-ec2-12-decision.md`](memory/evidence-continuity-ec2-12-decision.md) § Uygulama |
 | DL-A04 | 2026-06-19 | EC2-03 Köprü POST /task journal mirror | **Seçenek 1** — outbox overwrite değişmez; outbox persist sonrası append-only tek `after` satırı; enum `kando_bridge` / `bridge_outbox` / `bridge.task.post`; `payload_summary` yalnızca `title_preview` + `route`; `result` fazı EC2-13 dışı | PR #265 (`b1c48aa`) — `evidence_continuity.py` + `kando_bridge/server.py` H3 + `test_bridge_post_task_evidence_ec2_03.py` | [`docs/memory/evidence-continuity-ec2-03-decision.md`](memory/evidence-continuity-ec2-03-decision.md) § Uygulama |
@@ -71,6 +70,8 @@ Karar uygulandı; kod `main`'de. DL-A02 … DL-A09 takip satırları kapandı.
 | DL-A11 | 2026-06-20 | EC2-07 events[] projection metadata | **Seçenek 1 (minimum v1)** — soft deprecation metadata; disk yazım korunur | PR #286 (`424cf19`) — `tasks_json_events_projection_meta()` + GET enrich + E1–E6 pytest | [`docs/memory/evidence-continuity-ec2-07-decision.md`](memory/evidence-continuity-ec2-07-decision.md) § Uygulama |
 | DL-A12 | 2026-06-20 | EC2-10 ObservationEngine disk spill | **Seçenek 1 (minimum v1)** — JSONL spill; TaskEngine auto-wire; evidence journal dışı | PR #289 (`1a0f411`) — `ObservationLifecycleSpill` + O1–O6 pytest | [`docs/memory/evidence-continuity-ec2-10-decision.md`](memory/evidence-continuity-ec2-10-decision.md) § Uygulama |
 | DL-A13 | 2026-06-20 | EC2-11 Structured evidence query | **Seçenek 1 (minimum v1)** — filtered tail query; tam reconstruct v1 dışı | PR #291 (`980a50f`) — `query_evidence_events()` + GET `/evidence/query` + Q1–Q6 pytest | [`docs/memory/evidence-continuity-ec2-11-decision.md`](memory/evidence-continuity-ec2-11-decision.md) § Uygulama |
+| DL-A14 | 2026-06-19 | EC2-01 Chat görev persist + `id` | **Minimum v1** — chat create `POST /tasks` + H1 journal; sunucu `tsk_*` id; silme UX opsiyonel takip | PR #256 (`5073780`) — `panel.astro` + `test_panel_gorev_create_ec2_01.py` | [`docs/memory/evidence-continuity-v2-backlog.md`](memory/evidence-continuity-v2-backlog.md) § Phase 2 |
+| DL-A15 | 2026-06-19 | EC2-14 Şema validator CI kapısı | **Minimum v1** — `validate_evidence_record` pytest CI kapısı; ayrı decision memo yok | PR #255 (`5b2ae6b`) — `test_evidence_continuity.py` journal şema doğrulama | [`docs/memory/evidence-continuity-v2-backlog.md`](memory/evidence-continuity-v2-backlog.md) § Phase 1 |
 
 ### İleride değerlendirilecek
 
@@ -81,15 +82,15 @@ Karar uygulandı; kod `main`'de. DL-A02 … DL-A09 takip satırları kapandı.
 | DL-F03 | 2026-06-17 | Platform veri kasası | İzinli, şeffaf, geri alınabilir taşıma | `docs/security-architecture.md` SEC-023 |
 | DL-F04 | 2026-06-17 | OpenAI Agents / Realtime / Computer Use / Codex | Watchlist; rastgele eklenmez | `docs/tool-watchlist.md` |
 | DL-F05 | 2026-06-18 | Çalışma araçları connector (GitHub, Slack, Drive, Linear, Notion, Asana) | İlke onaylı; değerlendirme listesi + katman sırası; uygulama bekliyor | OD-033 — [`work-tools-connectors-decision.md`](memory/work-tools-connectors-decision.md) |
-| DL-F06 | 2026-06-17 | Birincil kullanıcı yüzeyi | Taslak `ui/`; kesin karar bekliyor | OD-043 |
-| DL-F07 | 2026-06-17 | Root build vs panel E2E hizası | Üretim `ui/`, E2E `panel/` — hizasız | OD-046 |
-| DL-F08 | 2026-06-19 | Evidence Continuity v2 backlog | 14 madde; P0/P1/P2 + 5 faz planı; kod yok — planlama belgesi | [`docs/memory/evidence-continuity-v2-backlog.md`](memory/evidence-continuity-v2-backlog.md); OD-058 v1 closed |
+| DL-F07 | 2026-06-17 | Root build vs panel E2E hizası | **Seçenek A onaylandı** (OD-046) — üretim `ui/`, kök E2E bugün `panel/`, hedef `ui/dist` veya Astro preview; **E2E migrasyon uygulaması bekliyor** | OD-046 — [`build-e2e-surface-alignment-decision.md`](memory/build-e2e-surface-alignment-decision.md) |
+| DL-F08 | 2026-06-19 | Evidence Continuity v2 backlog | 14/14 madde minimum v1 uygulandı (PR #255–#291); takip belgesi `implementation-complete` | [`docs/memory/evidence-continuity-v2-backlog.md`](memory/evidence-continuity-v2-backlog.md); OD-058 v1 closed |
 
 ### Karar kapandı — docs/memory (uygulama kodu yok)
 
 | ID | Tarih | Konu | Karar | Bağlantı |
 |----|-------|------|-------|----------|
 | DL-C01 | 2026-06-19 | OD-059 audit hook terminolojisi | Informal «audit hook» ayrı git hook **gerektirmez**; üç katman (commit guard / EC runtime v1 / EC v2 #4+#14); informal takip maddesi docs seviyesinde **CLOSED** | [`docs/memory/audit-hook-term-decision.md`](memory/audit-hook-term-decision.md); OD-058 çapraz |
+| DL-C02 | 2026-06-17 | OD-043 Birincil kullanıcı yüzeyi | Birincil üretim/dış kullanıcı yüzeyi **`ui/` Astro** onaylandı; `panel/` legacy E2E kapısı; `frontend/` birincil değil | [`docs/memory/primary-user-surface-decision.md`](memory/primary-user-surface-decision.md); OD-046 E2E hizası ayrı uygulama |
 
 ---
 
@@ -122,4 +123,4 @@ Tam liste: `docs/memory/open-decisions-needs-review.md` (OD-001 … OD-060).
 
 ---
 
-Son güncelleme: 2026-06-20 (DL-A09 closed — EC2-09 PR #280 merge)
+Son güncelleme: 2026-06-20 (DL-A01/14/15 closed; DL-F06→C02; DL-F07/F08 sync; footer DL-A15)
