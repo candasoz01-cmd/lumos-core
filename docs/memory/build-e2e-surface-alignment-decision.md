@@ -296,7 +296,7 @@ OD-046 kararı onaylandı (Seçenek A). **v1 kısmi uygulama** merge edildi; kal
 | UI smoke (v1) | `ui/e2e/smoke-panel.mjs` — `ui/dist` statik `/panel` | **Tamamlandı** — PR #294 |
 | Kök script | `npm run e2e:smoke:ui` | **Tamamlandı** — bu PR |
 | Tam E2E migrasyonu | Legacy `e2e:package*` → `ui/dist` veya Astro preview | Bekliyor |
-| CI Playwright job | Otomatik smoke/E2E kapısı | v1 dışı — bekliyor |
+| CI Playwright job | Otomatik smoke/E2E kapısı | **Tamamlandı (v2 smoke)** — `.github/workflows/ci.yml` `ui-smoke` job |
 | Prod smoke | `welockai.com/panel` veya eşdeğer | Bekliyor |
 
 Tam migrasyon tamamlanmadan:
@@ -306,4 +306,4 @@ Tam migrasyon tamamlanmadan:
 
 ---
 
-Son güncelleme: 2026-06-20 (OD-046 v1 smoke — PR #294; kök `e2e:smoke:ui`; legacy panel E2E etiketi)
+Son güncelleme: 2026-06-20 (OD-046 v2 CI smoke job; v1 smoke PR #294; tam E2E migrasyonu bekliyor)
