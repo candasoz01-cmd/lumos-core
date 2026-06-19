@@ -1,6 +1,6 @@
 # Evidence Continuity EC2-04 — Guard/policy journal mirror (onaylı karar)
 
-> **Durum:** `[decision-approved]` — implementasyon PR bekliyor.
+> **Durum:** `[implemented]` — merge PR #268 (`9475a0f`); H4a/H4b guard/policy journal mirror uygulandı.
 >
 > **Keşif kaynağı:** Evidence Continuity v2 backlog Phase 4 (EC2-04); v1 bilinçli boşluk (guard/policy); `record_guard_event` + `log_policy_blocked` read-only keşif (2026-06-19; subagent ae801e02).
 >
@@ -394,13 +394,32 @@ Panel H1 / EC2-03 BM9 ile aynı ilke: journal hatası guard/policy ana akışın
 | EC2-14 / PR #255 | Şema CI — enum genişlemesi regresyonsuz kalmalı |
 | EC2-13 | `result` faz — guard tarafı EC2-04 sonrası |
 
+
+---
+
+## Uygulama
+
+**Merge:** PR #268 (`9475a0f` — `feat/ec2-04-guard-policy-journal-mirror`).
+
+| Dosya | Değişiklik |
+|-------|------------|
+| `src/core/evidence_continuity.py` | Enum sabitleri; `mirror_guard_event_to_evidence_journal`, `mirror_policy_blocked_to_evidence_journal` |
+| `src/core/guard_audit.py` | H4a: deny sonrası journal mirror + re-entrancy guard |
+| `src/policy/action_policy.py` | H4b: `log.txt` sonrası journal mirror |
+| `tests/test_guard_policy_evidence_ec2_04.py` | T1–T10 guard/policy + journal entegrasyon |
+| `tests/test_evidence_continuity.py` | Yeni enum + payload anahtar validator testleri |
+| `tests/test_guard_audit.py` | Deny → journal satırı; allow → journal yok |
+| `tests/test_action_policy.py` | Policy block → journal + `log.txt` korunur |
+
+Python logging ve `log.txt` semantiği v1'de değişmedi; journal append-only (EC2-13 `result` fazı dışı).
+
+
 ---
 
 ## Sonraki adım
 
-1. **Dar implementasyon PR** — yalnızca bu belgedeki dosya listesi ve T1–T10 test planı.
-2. **Backlog senkron:** v2 backlog EC2-04 → `[decision-approved]` ✓.
-3. **Phase 4 kalan:** EC2-13 (`result` faz), EC2-08 (correlation UI).
+1. **Backlog senkron:** v2 backlog EC2-04 → `[implemented]` ✓.
+2. **Phase 4 kalan:** EC2-13 (`result` faz), EC2-08 (correlation UI).
 
 ---
 
@@ -408,4 +427,4 @@ Panel H1 / EC2-03 BM9 ile aynı ilke: journal hatası guard/policy ana akışın
 
 ---
 
-Son güncelleme: 2026-06-19 (`[decision-approved]`)
+Son güncelleme: 2026-06-19 (PR #268 merge — `[implemented]`)

@@ -52,17 +52,17 @@ Karar verildi; kod/CI uygulaması henüz yapılmadı. OD **closed** sayılmaz.
 | ID | Tarih | Konu | Karar | Uygulama paketi | Bağlantı |
 |----|-------|------|-------|-----------------|----------|
 | DL-A01 | 2026-06-17 | OD-028 `lumos web` / `web/app.py` | **B1** — alt komutu kaldır; **restore değil** | `__main__.py` web dalı + `_run_web()`; `pyproject.toml` açıklama; `test_web_health.py`; `ARCHITECTURE_MAP.md` senkronu; `kando_core` ayrı (OD-027) | `docs/memory/lumos-web-command-decision.md` §12.2 |
-| DL-A05 | 2026-06-19 | EC2-04 Guard/policy journal mirror | **Seçenek A** — iki source (`guard_audit` / `action_policy`); H4a/H4b choke-point; deny-only guard; parallel logging+log.txt korunur; `payload_summary` action/reason_code/route/title_preview(basename); `result` fazı EC2-13 dışı; git audit hook değil (OD-059) | `evidence_continuity.py` enum + mirror builder; `guard_audit.py` H4a; `action_policy.py` H4b; `test_guard_policy_evidence_ec2_04.py` T1–T10 | [`docs/memory/evidence-continuity-ec2-04-decision.md`](memory/evidence-continuity-ec2-04-decision.md) |
 
 ### Karar kapandı — uygulama merge edildi
 
-Karar uygulandı; kod `main`'de. DL-A02, DL-A03 ve DL-A04 takip satırları kapandı.
+Karar uygulandı; kod `main`'de. DL-A02, DL-A03, DL-A04 ve DL-A05 takip satırları kapandı.
 
 | ID | Tarih | Konu | Karar | Merge | Bağlantı |
 |----|-------|------|-------|-------|----------|
 | DL-A02 | 2026-06-19 | EC2-02 Client Evidence Queue | **Seçenek 1** — pending-op kuyruğu `panel.astro`; flush mevcut REST; journal şeması ve sunucu endpoint v1'de değişmez | PR #258 (`bc6e4e0`) — `panel.astro` + `test_panel_evidence_queue_ec2_02.py` | [`docs/memory/evidence-continuity-ec2-02-decision.md`](memory/evidence-continuity-ec2-02-decision.md) § Uygulama |
 | DL-A03 | 2026-06-19 | EC2-12 Disconnect/resume test harness | **Seçenek 1** — test-only pytest integration harness (DR1–DR7); runtime, şema ve sunucu yüzeyi v1'de değişmez; Playwright E2E v1 reddedildi | PR #261 (`aa2a6ff`) — `test_panel_evidence_disconnect_resume_ec2_12.py` | [`docs/memory/evidence-continuity-ec2-12-decision.md`](memory/evidence-continuity-ec2-12-decision.md) § Uygulama |
 | DL-A04 | 2026-06-19 | EC2-03 Köprü POST /task journal mirror | **Seçenek 1** — outbox overwrite değişmez; outbox persist sonrası append-only tek `after` satırı; enum `kando_bridge` / `bridge_outbox` / `bridge.task.post`; `payload_summary` yalnızca `title_preview` + `route`; `result` fazı EC2-13 dışı | PR #265 (`b1c48aa`) — `evidence_continuity.py` + `kando_bridge/server.py` H3 + `test_bridge_post_task_evidence_ec2_03.py` | [`docs/memory/evidence-continuity-ec2-03-decision.md`](memory/evidence-continuity-ec2-03-decision.md) § Uygulama |
+| DL-A05 | 2026-06-19 | EC2-04 Guard/policy journal mirror | **Seçenek A** — iki source (`guard_audit` / `action_policy`); H4a/H4b choke-point; deny-only guard; parallel logging+log.txt korunur; `payload_summary` action/reason_code/route/title_preview(basename); `result` fazı EC2-13 dışı; git audit hook değil (OD-059) | PR #268 (`9475a0f`) — `evidence_continuity.py` + `guard_audit.py` H4a + `action_policy.py` H4b + `test_guard_policy_evidence_ec2_04.py` T1–T10 | [`docs/memory/evidence-continuity-ec2-04-decision.md`](memory/evidence-continuity-ec2-04-decision.md) § Uygulama |
 
 ### İleride değerlendirilecek
 
@@ -114,4 +114,4 @@ Tam liste: `docs/memory/open-decisions-needs-review.md` (OD-001 … OD-060).
 
 ---
 
-Son güncelleme: 2026-06-19 (DL-A05 — EC2-04 decision-approved)
+Son güncelleme: 2026-06-19 (DL-A05 closed — EC2-04 PR #268 merge)
