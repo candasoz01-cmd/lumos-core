@@ -56,7 +56,7 @@ export KANDO_BRIDGE_SECRET='test123'
 
 | Konum | Dosya | Not |
 |--------|-------|-----|
-| Astro UI | `ui/.env.local` | `npm run dev` buradan okur (`.env` değil) |
+| Astro UI | `ui/.env.local` | `npm run dev` buradan okur (`.env` değil); şablon: `ui/.env.example` → kopyala |
 | Depo kökü | `.env.example` | Örnekte `KANDO_TOKEN` geçer; köprü tarafında karşılığı `KANDO_BRIDGE_SECRET` |
 
 Yerel smoke: `ui/.env.local` içinde `PUBLIC_KANDO_TOKEN`, shell'de `KANDO_BRIDGE_SECRET` — ikisi aynı değer.
