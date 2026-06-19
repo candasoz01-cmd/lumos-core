@@ -1,6 +1,6 @@
 # Evidence Continuity v2 — backlog ve uygulama sırası
 
-> **Durum:** `planning-only` — kod yok; öncelik ve faz planı.
+> **Durum:** `implementation-complete` — 14/14 madde minimum v1 uygulandı (PR #255–#291); opsiyonel UX takibi EC2-01 silme.
 >
 > **v1 durumu:** [`evidence-continuity-v1-decision.md`](./evidence-continuity-v1-decision.md) — `[implemented]` / `[verified]` (PR #248, `main`); OD-058 **closed**.
 >
@@ -29,7 +29,7 @@ Kaynak: [`evidence-continuity-v1-decision.md`](./evidence-continuity-v1-decision
 
 | ID | Madde | Öncelik | v2 ilk dalga |
 |----|-------|---------|--------------|
-| EC2-01 | Chat görev persist + `id` + silme UX düzeltmesi | **P0** | Evet |
+| EC2-01 | Chat görev persist + `id` + silme UX düzeltmesi | **P0** | Evet — **`[implemented]`** PR #256 (`5073780`); silme UX opsiyonel takip |
 | EC2-02 | Client evidence queue (`localStorage` → sunucu journal sync) | **P0** | Evet — **`[implemented]`** PR #258 (`bc6e4e0`) / [`evidence-continuity-ec2-02-decision.md`](./evidence-continuity-ec2-02-decision.md) |
 | EC2-03 | Köprü `POST /task` outbox append + journal mirror | **P1** | Evet — **`[implemented]`** PR #265 (`b1c48aa`) / [`evidence-continuity-ec2-03-decision.md`](./evidence-continuity-ec2-03-decision.md) |
 | EC2-04 | Guard/policy tek semantik journal (`record_guard_event`, `log_policy_blocked`) | **P1** | Evet — **`[implemented]`** PR #268 (`9475a0f`) / [`evidence-continuity-ec2-04-decision.md`](./evidence-continuity-ec2-04-decision.md) |
@@ -42,7 +42,7 @@ Kaynak: [`evidence-continuity-v1-decision.md`](./evidence-continuity-v1-decision
 | EC2-11 | Structured query / görev durumu reconstruct | **P2** | Hayır — **`[implemented]`** PR #291 (`980a50f`) / [`evidence-continuity-ec2-11-decision.md`](./evidence-continuity-ec2-11-decision.md) |
 | EC2-12 | Disconnect + resume integration test harness | **P1** | Evet (Phase 4) — **`[implemented]`** PR #261 (`aa2a6ff`); [`evidence-continuity-ec2-12-decision.md`](./evidence-continuity-ec2-12-decision.md) |
 | EC2-13 | `result` fazı — köprü async agent; guard senkron (EC2-04 `after` yeterli) | **P1** | Evet — **`[implemented]`** PR #271 (`41a48fb`) / [`evidence-continuity-ec2-13-decision.md`](./evidence-continuity-ec2-13-decision.md) |
-| EC2-14 | Şema validator CI kapısı | **P0** | Evet |
+| EC2-14 | Şema validator CI kapısı | **P0** | Evet — **`[implemented]`** PR #255 (`5b2ae6b`) |
 
 ---
 
@@ -114,7 +114,9 @@ EC2-05 (store merge)          ── bağımsız OD; v2 fazlarına hard dependen
 | Şema doğrulama CI | EC2-14 | Mevcut `validate_evidence_record` + pytest; ince CI kapısı |
 | Opsiyonel (geliştirme) | — | CI ruff parity — Paket B; EC v2 dışı ayrı PR |
 
-**Çıktı:** Journal satırları CI'da şema bütünlüğü ile korunur; «audit hook» takip maddesi docs seviyesinde kapalı.
+**Durum (2026-06-19):** **`[implemented]`** — EC2-14 merge PR #255 (`5b2ae6b`); `validate_evidence_record` pytest CI kapısı.
+
+**Çıktı:** Journal satırları CI'da şema bütünlüğü ile korunur; «audit hook» takip maddesi docs seviyesinde kapalı. ✓
 
 ---
 
@@ -125,7 +127,9 @@ EC2-05 (store merge)          ── bağımsız OD; v2 fazlarına hard dependen
 | Chat görev sunucu persist | EC2-01 | v1 H1 journal hazır |
 | `id` + silme UX | EC2-01 | Ayrı «sohbet görev silme» takip maddesi ile hizalı |
 
-**Çıktı:** Chat kaynaklı görevler sunucu mutasyonuna girer; journal boşluğu kapanmaya başlar.
+**Durum (2026-06-19):** **`[implemented]`** — EC2-01 merge PR #256 (`5073780`); chat create → `POST /tasks` + H1 journal; silme UX opsiyonel takip.
+
+**Çıktı:** Chat kaynaklı görevler sunucu mutasyonuna girer; journal boşluğu kapanmaya başlar. ✓
 
 ---
 
@@ -238,4 +242,4 @@ Detay: [`audit-hook-term-decision.md`](./audit-hook-term-decision.md).
 
 ---
 
-Son güncelleme: 2026-06-20 (EC2-11 implemented — PR #291; Phase 5 P2 tamamlandı)
+Son güncelleme: 2026-06-20 (EC2-01/14 tagging + header `implementation-complete`; Phase 1–5 tamamlandı)
