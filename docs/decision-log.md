@@ -52,6 +52,7 @@ Karar verildi; kod/CI uygulaması henüz yapılmadı. OD **closed** sayılmaz.
 | ID | Tarih | Konu | Karar | Uygulama paketi | Bağlantı |
 |----|-------|------|-------|-----------------|----------|
 | DL-A01 | 2026-06-17 | OD-028 `lumos web` / `web/app.py` | **B1** — alt komutu kaldır; **restore değil** | `__main__.py` web dalı + `_run_web()`; `pyproject.toml` açıklama; `test_web_health.py`; `ARCHITECTURE_MAP.md` senkronu; `kando_core` ayrı (OD-027) | `docs/memory/lumos-web-command-decision.md` §12.2 |
+| DL-A10 | 2026-06-20 | EC2-06 Legacy panel evidence hizalama | **Seçenek 1 (minimum v1)** — read-only evidence strip + shared JS module; EC2-02 queue Astro-only; birincil yüzey banner | `panel/js/evidence-correlation-strip.js` + legacy Görevler şeridi + L1–L6 pytest | [`docs/memory/evidence-continuity-ec2-06-decision.md`](memory/evidence-continuity-ec2-06-decision.md) § Uygulama |
 
 ### Karar kapandı — uygulama merge edildi
 
