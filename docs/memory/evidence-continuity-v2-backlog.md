@@ -31,7 +31,7 @@ Kaynak: [`evidence-continuity-v1-decision.md`](./evidence-continuity-v1-decision
 |----|-------|---------|--------------|
 | EC2-01 | Chat görev persist + `id` + silme UX düzeltmesi | **P0** | Evet |
 | EC2-02 | Client evidence queue (`localStorage` → sunucu journal sync) | **P0** | Evet — **`[implemented]`** PR #258 (`bc6e4e0`) / [`evidence-continuity-ec2-02-decision.md`](./evidence-continuity-ec2-02-decision.md) |
-| EC2-03 | Köprü `POST /task` outbox append + journal mirror | **P1** | Evet — **`[decision-approved]`** [`evidence-continuity-ec2-03-decision.md`](./evidence-continuity-ec2-03-decision.md) |
+| EC2-03 | Köprü `POST /task` outbox append + journal mirror | **P1** | Evet — **`[implemented]`** PR #265 (`b1c48aa`) / [`evidence-continuity-ec2-03-decision.md`](./evidence-continuity-ec2-03-decision.md) |
 | EC2-04 | Guard/policy tek semantik journal (`record_guard_event`, `log_policy_blocked`) | **P1** | Evet |
 | EC2-05 | Çift depo birleştirme — ADR-008 drift çözümü | **P2** | **Hayır** — ayrı OD |
 | EC2-06 | Legacy panel (`panel/js/app.js`) hizalama | **P2** | Hayır |
@@ -139,7 +139,7 @@ EC2-05 (store merge)          ── bağımsız OD; v2 fazlarına hard dependen
 
 **Çıktı:** Tarayıcı kesintisinde client kanıtı kaybolmaz; sunucu journal ile birleşir. ✓
 
-**Sonraki öncelik (Phase 4):** EC2-03 dar implementasyon PR (karar onaylı) + EC2-04 (guard/policy normalize) — Phase 3 tamamlandı.
+**Sonraki öncelik (Phase 4):** EC2-04 (guard/policy normalize) + EC2-08 / EC2-13 — EC2-03 merge `b1c48aa` ✓.
 
 ---
 
@@ -147,13 +147,13 @@ EC2-05 (store merge)          ── bağımsız OD; v2 fazlarına hard dependen
 
 | Hedef | Maddeler | Bağımlılık |
 |-------|----------|------------|
-| Köprü outbox + journal | EC2-03 | v1 şema enum genişlemesi; **`[decision-approved]`** — [`evidence-continuity-ec2-03-decision.md`](./evidence-continuity-ec2-03-decision.md); EC2-13 ile birlikte planlanır |
+| Köprü outbox + journal | EC2-03 | v1 şema enum genişlemesi; **`[implemented]`** PR #265 (`b1c48aa`) — [`evidence-continuity-ec2-03-decision.md`](./evidence-continuity-ec2-03-decision.md); EC2-13 ile birlikte planlanır |
 | Guard/policy normalize | EC2-04 | EC v1 bilinçli dışı bırakıldı |
 | `result` faz (köprü/guard) | EC2-13 | EC2-03, EC2-04 |
 | Correlation UI | EC2-08 | Yeterli journal kaynağı (Phase 2–3+) |
 | Integration test harness | EC2-12 | Kopma/devam senaryoları — **`[implemented]`** PR #261 (`aa2a6ff`); DR1–DR7 pytest harness; runtime değişikliği yok — [`evidence-continuity-ec2-12-decision.md`](./evidence-continuity-ec2-12-decision.md) |
 
-**Durum (2026-06-19):** EC2-12 harness merge edildi — `tests/test_panel_evidence_disconnect_resume_ec2_12.py` (DR1–DR7). EC2-03 karar onaylandı — [`evidence-continuity-ec2-03-decision.md`](./evidence-continuity-ec2-03-decision.md) (`[decision-approved]`). Phase 4 kalan uygulama: EC2-03 implementasyon PR, EC2-04, EC2-08, EC2-13.
+**Durum (2026-06-19):** EC2-12 harness merge edildi — `tests/test_panel_evidence_disconnect_resume_ec2_12.py` (DR1–DR7). EC2-03 köprü mirror merge edildi — PR #265 (`b1c48aa`); [`evidence-continuity-ec2-03-decision.md`](./evidence-continuity-ec2-03-decision.md) (`[implemented]`). Phase 4 kalan uygulama: EC2-04, EC2-08, EC2-13.
 
 **Çıktı:** Sunucu dışı ve guard hatları journal semantiğine yaklaşır; kullanıcı «son kanıt» görür. EC2-12 disconnect/resume doğrulama katmanı ✓.
 

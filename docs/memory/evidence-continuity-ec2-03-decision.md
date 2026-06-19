@@ -1,6 +1,6 @@
 # Evidence Continuity EC2-03 — Köprü POST /task journal mirror (onaylı karar)
 
-> **Durum:** `[decision-approved]` — kod yok; dar implementasyon PR bekliyor.
+> **Durum:** `[implemented]` — merge PR #265 (`b1c48aa`); H3 köprü outbox journal mirror uygulandı.
 >
 > **Keşif kaynağı:** Evidence Continuity v2 backlog Phase 4 (EC2-03); v1 bilinçli boşluk (köprü outbox); `kando_bridge.server` `POST /task` + `persist_post_task_outbox_snapshots` read-only keşif (2026-06-19; subagent 4893ffcc).
 >
@@ -299,13 +299,29 @@ Panel H1 ile aynı ilke: journal hatası `POST /task` yanıtını **kırmamalı*
 | EC2-14 / PR #255 | Şema CI — enum genişlemesi regresyonsuz kalmalı |
 | [ADR-008](../decisions/ADR-008-agent-network-boundary.md) | `POST /task` ≠ `POST /tasks` |
 
+
+---
+
+## Uygulama
+
+**Merge:** PR #265 (`b1c48aa` — `feat/ec2-03-bridge-journal-mirror`).
+
+| Dosya | Değişiklik |
+|-------|------------|
+| `src/core/evidence_continuity.py` | `SOURCE_KANDO_BRIDGE`, `STORE_BRIDGE_OUTBOX`, `OPERATION_BRIDGE_TASK_POST`; `mirror_post_task_outbox_to_evidence_journal` |
+| `packages/kando_bridge/src/kando_bridge/server.py` | Outbox persist sonrası H3 mirror çağrısı |
+| `tests/test_bridge_post_task_evidence_ec2_03.py` | T1–T9 köprü outbox + journal entegrasyon |
+| `tests/test_evidence_continuity.py` | Yeni enum değerleri validator testleri |
+
+Outbox overwrite semantiği ve `POST /task` yanıt yüzeyi v1'de değişmedi; journal append-only (EC2-13 `result` fazı dışı).
+
+
 ---
 
 ## Sonraki adım
 
-1. **Dar implementasyon PR:** enum genişlemesi + H3 hook + `tests/test_bridge_post_task_evidence_ec2_03.py`; CI yeşil (EC2-14 regresyonsuz).
-2. **Backlog senkron (merge sonrası):** v2 backlog EC2-03 → `[implemented]`.
-3. **Phase 4 kalan:** EC2-04 (guard/policy), EC2-08 (correlation UI), EC2-13 (`result` faz).
+1. **Backlog senkron:** v2 backlog EC2-03 → `[implemented]` ✓.
+2. **Phase 4 kalan:** EC2-04 (guard/policy), EC2-08 (correlation UI), EC2-13 (`result` faz).
 
 ---
 
@@ -313,4 +329,4 @@ Panel H1 ile aynı ilke: journal hatası `POST /task` yanıtını **kırmamalı*
 
 ---
 
-Son güncelleme: 2026-06-19 (karar onaylandı — `[decision-approved]`)
+Son güncelleme: 2026-06-19 (PR #265 merge — `[implemented]`)
