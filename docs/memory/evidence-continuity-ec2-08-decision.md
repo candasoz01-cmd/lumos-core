@@ -1,6 +1,6 @@
 # Evidence Continuity EC2-08 — Correlation UI (onaylı karar)
 
-> **Durum:** `[decision-approved]` — kod yok; uygulama bekliyor.
+> **Durum:** `[implemented]` — merge PR #274 (`fb2af14`); read-only `GET /evidence/recent` + `panel.astro` correlation şeridi uygulandı.
 >
 > **Keşif kaynağı:** Evidence Continuity v2 backlog Phase 4 (EC2-08); `panel.astro` bridgeLast / evidence queue read-only keşif; `evidence_continuity.py` journal şeması ve mirror hatları; EC2-03/04/13 correlation bağımlılıkları (2026-06-20 read-only keşif).
 >
@@ -268,16 +268,31 @@
 
 ---
 
+## Uygulama
+
+**Merge:** PR #274 (`fb2af14` — `feat/ec2-08-correlation-ui`).
+
+| Dosya | Değişiklik |
+|-------|------------|
+| `src/core/evidence_continuity.py` | `read_recent_evidence_events`, `project_evidence_for_ui`, `build_ui_projection_response` |
+| `panel/scripts/panel_tasks_server.py` | Read-only `GET /evidence/recent`; `build_evidence_recent_response` |
+| `ui/src/pages/panel.astro` | «Son işlem kanıtı» şeridi + «Buradan devam»; istemci gruplama |
+| `tests/test_evidence_continuity_read_ec2_08.py` | U1–U6, U12 read + projection |
+| `tests/test_panel_evidence_correlation_ui_ec2_08.py` | U1, U7–U11 API + gruplama mantığı |
+
+Journal yazım hook'ları, şema v1 ve `correlation_id` runtime propagate v1'de değişmedi; `bridgeLast` istemci overlay korundu (CR8).
+
+---
+
 ## Sonraki adım
 
-1. **Backlog senkron:** v2 backlog EC2-08 → `[decision-approved]` ✓.
-2. **Implementasyon PR:** yukarıdaki dosya listesi; tek sorumluluk PR.
-3. **Doğrulama:** U1–U12 pytest; manuel panel spot check (journal dolu ortam).
+1. **Backlog senkron:** v2 backlog EC2-08 → `[implemented]` ✓.
+2. **Phase 4:** EC2-08 tamamlandı; Phase 5 (P2) maddeleri ayrı backlog.
 
 ---
 
-**İndeks notu:** EC2-08 ayrı OD kaydı açmaz; v2 backlog + bu belge canonical. `docs/decision-log.md` DL-A07 satırı ile senkron.
+**İndeks notu:** EC2-08 ayrı OD kaydı açmaz; v2 backlog + bu belge canonical. `docs/decision-log.md` DL-A07 satırı kapandı.
 
 ---
 
-Son güncelleme: 2026-06-20 (karar onaylandı — `[decision-approved]`)
+Son güncelleme: 2026-06-20 (PR #274 merge — `[implemented]`)
