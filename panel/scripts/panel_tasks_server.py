@@ -55,6 +55,7 @@ from core.evidence_continuity import (  # noqa: E402
     evidence_retention_policy,
     enrich_tasks_doc_api_response,
     generate_correlation_id,
+    query_evidence_events,
     read_recent_evidence_events,
     title_preview_from,
 )
@@ -461,6 +462,48 @@ def build_evidence_recent_response(limit: int | None = None) -> dict:
     return resp
 
 
+def _parse_evidence_query_params(path: str) -> dict[str, Any]:
+    try:
+        qs = parse_qs(urlparse(path).query)
+    except Exception:
+        qs = {}
+
+    def _one(key: str) -> str | None:
+        raw = qs.get(key, [None])[0]
+        if raw is None:
+            return None
+        s = str(raw).strip()
+        return s if s else None
+
+    limit_raw = qs.get("limit", [None])[0]
+    try:
+        limit = DEFAULT_READ_LIMIT if limit_raw is None else max(1, min(int(limit_raw), MAX_READ_LIMIT))
+    except (TypeError, ValueError):
+        limit = DEFAULT_READ_LIMIT
+    return {
+        "entity_id": _one("entity_id"),
+        "operation": _one("operation"),
+        "source": _one("source"),
+        "limit": limit,
+    }
+
+
+def build_evidence_query_response_from_base(
+    *,
+    entity_id: str | None = None,
+    operation: str | None = None,
+    source: str | None = None,
+    limit: int = DEFAULT_READ_LIMIT,
+) -> dict:
+    return query_evidence_events(
+        _base_dir(),
+        entity_id=entity_id,
+        operation=operation,
+        source=source,
+        limit=limit,
+    )
+
+
 def _send_json(handler: BaseHTTPRequestHandler, code: int, obj: dict) -> None:
     raw = json.dumps(obj, ensure_ascii=False).encode("utf-8")
     handler.send_response(code)
@@ -512,6 +555,7 @@ class Handler(BaseHTTPRequestHandler):
             "/lumos-read-state",
             "/lumos-consent",
             "/evidence/recent",
+            "/evidence/query",
             "/open-folder",
         ):
             return True
@@ -598,6 +642,17 @@ class Handler(BaseHTTPRequestHandler):
         limit = _parse_evidence_recent_limit(self.path)
         _send_json(self, 200, build_evidence_recent_response(limit))
 
+    def _get_evidence_query(self) -> None:
+        params = _parse_evidence_query_params(self.path)
+        if not any(params.get(k) for k in ("entity_id", "operation", "source")):
+            _send_json(
+                self,
+                400,
+                {"ok": False, "error": "filter_required", "hint": "entity_id, operation, or source"},
+            )
+            return
+        _send_json(self, 200, build_evidence_query_response_from_base(**params))
+
     def _try_serve_panel_static(self, p: str) -> bool:
         root = _panel_static_root()
         if p == "/":
@@ -644,6 +699,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if p == "/evidence/recent":
             self._get_evidence_recent()
+            return
+        if p == "/evidence/query":
+            self._get_evidence_query()
             return
         if p not in ("/tasks.json", "/tasks"):
             if self._try_serve_panel_static(p):

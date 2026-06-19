@@ -688,6 +688,88 @@ def build_ui_projection_response(
     }
 
 
+EVIDENCE_QUERY_SCHEMA = "lumos.evidence_continuity.query.v1"
+EVIDENCE_QUERY_READ_SCOPE = "recent_tail_only"
+
+
+def filter_evidence_events(
+    events: list[dict[str, Any]],
+    *,
+    entity_id: str | None = None,
+    operation: str | None = None,
+    source: str | None = None,
+) -> list[dict[str, Any]]:
+    """Filter journal records by optional entity_id / operation / source (EC2-11 v1)."""
+    eid = str(entity_id).strip() if entity_id else None
+    op = str(operation).strip() if operation else None
+    src = str(source).strip() if source else None
+    if not eid and not op and not src:
+        return list(events)
+    out: list[dict[str, Any]] = []
+    for rec in events:
+        if not isinstance(rec, dict):
+            continue
+        if op and str(rec.get("operation", "")) != op:
+            continue
+        if src and str(rec.get("source", "")) != src:
+            continue
+        if eid:
+            entity_ref = rec.get("entity_ref")
+            rid = ""
+            if isinstance(entity_ref, dict):
+                rid = str(entity_ref.get("id", "")).strip()
+            if rid != eid:
+                continue
+        out.append(rec)
+    return out
+
+
+def build_evidence_query_response(
+    events: list[dict[str, Any]],
+    *,
+    truncated: bool = False,
+    filters: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    resp = build_ui_projection_response(events, truncated=truncated)
+    resp["schema"] = EVIDENCE_QUERY_SCHEMA
+    resp["filters"] = dict(filters) if filters else {}
+    resp["read_scope"] = EVIDENCE_QUERY_READ_SCOPE
+    return resp
+
+
+def query_evidence_events(
+    base_dir: Path | str,
+    *,
+    entity_id: str | None = None,
+    operation: str | None = None,
+    source: str | None = None,
+    limit: int = DEFAULT_READ_LIMIT,
+) -> dict[str, Any]:
+    """Read recent journal tail and apply structured filters (v1 — no full reconstruct)."""
+    limit_n = max(1, min(int(limit), MAX_READ_LIMIT))
+    events, truncated = read_recent_evidence_events(base_dir, MAX_READ_LIMIT)
+    filtered = filter_evidence_events(
+        events,
+        entity_id=entity_id,
+        operation=operation,
+        source=source,
+    )
+    filters = {
+        k: v
+        for k, v in {
+            "entity_id": entity_id,
+            "operation": operation,
+            "source": source,
+        }.items()
+        if v
+    }
+    return build_evidence_query_response(
+        filtered[:limit_n],
+        truncated=truncated,
+        filters=filters,
+    )
+
+
 def append_evidence_event(
     base_dir: Path | str,
     record: dict[str, Any],
