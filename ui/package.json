@@ -9,9 +9,13 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "e2e:smoke": "node e2e/smoke-panel.mjs"
   },
   "dependencies": {
     "astro": "^6.2.1"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.1"
   }
 }
