@@ -61,6 +61,38 @@ def test_task_store_create_and_list():
         assert store.get(1).title == "Test görev"
 
 
+def test_task_store_create_writes_evidence_journal():
+    import json
+    from pathlib import Path
+
+    from core.evidence_continuity import (
+        OPERATION_ENGINE_TASK_MUTATION,
+        PHASE_AFTER,
+        PHASE_BEFORE,
+        SOURCE_TASK_ENGINE,
+        STORE_TASK_ENGINE,
+        evidence_continuity_path,
+    )
+
+    with tempfile.TemporaryDirectory() as d:
+        tasks_dir = Path(d) / "tasks"
+        store = TaskStore(tasks_dir)
+        store.create("Journal test", "adım kontrol", PROFILE_GUVENLI_YURUT)
+        journal = evidence_continuity_path(tasks_dir.parent)
+        assert journal.is_file()
+        lines = journal.read_text(encoding="utf-8").strip().splitlines()
+        assert len(lines) == 2
+        events = [json.loads(line) for line in lines]
+        assert events[0]["phase"] == PHASE_BEFORE
+        assert events[1]["phase"] == PHASE_AFTER
+        assert events[0]["correlation_id"] == events[1]["correlation_id"]
+        assert events[0]["source"] == SOURCE_TASK_ENGINE
+        assert events[0]["store"] == STORE_TASK_ENGINE
+        assert events[0]["operation"] == OPERATION_ENGINE_TASK_MUTATION
+        assert events[0]["mutation"] == "create"
+        assert events[0]["entity_ref"] == {"kind": "task", "id": "1"}
+
+
 def test_task_engine_run():
     """guvenli_yurut + not kontrol: base_dir verilirse gerçek okuma yapılır; en az bir doğrulama varsa kismi veya tamamlandi."""
     with tempfile.TemporaryDirectory() as d:

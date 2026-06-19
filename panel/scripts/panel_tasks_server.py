@@ -32,6 +32,24 @@ if _SRC.is_dir() and str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
 from core.lumos_base_dir import lumos_base_dir  # noqa: E402
+from core.evidence_continuity import (  # noqa: E402
+    OPERATION_PANEL_TASK_COMPLETE,
+    OPERATION_PANEL_TASK_CREATE,
+    OPERATION_PANEL_TASK_DELETE,
+    OPERATION_PANEL_TASK_PUT,
+    OPERATION_PANEL_TASK_RESTORE,
+    OUTCOME_ERROR,
+    OUTCOME_OK,
+    PHASE_AFTER,
+    PHASE_BEFORE,
+    PHASE_ERROR,
+    SOURCE_PANEL_TASKS_SERVER,
+    STORE_PANEL_TASKS,
+    append_evidence_event,
+    build_evidence_record,
+    generate_correlation_id,
+    title_preview_from,
+)
 
 if os.environ.get("LUMOS_BASE_DIR") is None:
     os.environ["LUMOS_BASE_DIR"] = str(_REPO_ROOT / ".lumos")
@@ -88,13 +106,84 @@ def _read_doc() -> dict:
     return out
 
 
-def _write_doc(data: dict) -> None:
+def _write_doc(
+    data: dict,
+    *,
+    evidence: dict[str, Any] | None = None,
+) -> None:
     p = _tasks_file()
-    p.parent.mkdir(parents=True, exist_ok=True)
-    tmp = p.with_suffix(".json.tmp")
-    body = json.dumps(data, ensure_ascii=False, indent=2) + "\n"
-    tmp.write_text(body, encoding="utf-8")
-    tmp.replace(p)
+    base = _base_dir()
+    corr_id = None
+    if evidence and not evidence.get("skip"):
+        corr_id = str(evidence.get("correlation_id") or generate_correlation_id())
+        operation = str(evidence["operation"])
+        mutation = str(evidence["mutation"])
+        entity_id = evidence.get("entity_id")
+        before_summary: dict[str, Any] = {}
+        if evidence.get("route"):
+            before_summary["route"] = evidence["route"]
+        if evidence.get("title_preview"):
+            before_summary["title_preview"] = evidence["title_preview"]
+        append_evidence_event(
+            base,
+            build_evidence_record(
+                correlation_id=corr_id,
+                source=SOURCE_PANEL_TASKS_SERVER,
+                store=STORE_PANEL_TASKS,
+                operation=operation,
+                phase=PHASE_BEFORE,
+                outcome=OUTCOME_OK,
+                mutation=mutation,
+                entity_id=str(entity_id) if entity_id else None,
+                payload_summary=before_summary or None,
+            ),
+        )
+    try:
+        p.parent.mkdir(parents=True, exist_ok=True)
+        tmp = p.with_suffix(".json.tmp")
+        body = json.dumps(data, ensure_ascii=False, indent=2) + "\n"
+        tmp.write_text(body, encoding="utf-8")
+        tmp.replace(p)
+    except OSError as exc:
+        if evidence and not evidence.get("skip") and corr_id is not None:
+            append_evidence_event(
+                base,
+                build_evidence_record(
+                    correlation_id=corr_id,
+                    source=SOURCE_PANEL_TASKS_SERVER,
+                    store=STORE_PANEL_TASKS,
+                    operation=str(evidence["operation"]),
+                    phase=PHASE_ERROR,
+                    outcome=OUTCOME_ERROR,
+                    mutation=str(evidence["mutation"]),
+                    entity_id=str(evidence["entity_id"]) if evidence.get("entity_id") else None,
+                    error={"code": "write_failed", "message": f"{type(exc).__name__}: {exc}"},
+                ),
+            )
+        raise
+    if evidence and not evidence.get("skip") and corr_id is not None:
+        after_summary: dict[str, Any] = {}
+        tasks = data.get("tasks")
+        if isinstance(tasks, list):
+            after_summary["task_count"] = len(tasks)
+        if evidence.get("events_appended") is not None:
+            after_summary["events_appended"] = int(evidence["events_appended"])
+        if evidence.get("trash_written") is not None:
+            after_summary["trash_written"] = bool(evidence["trash_written"])
+        append_evidence_event(
+            base,
+            build_evidence_record(
+                correlation_id=corr_id,
+                source=SOURCE_PANEL_TASKS_SERVER,
+                store=STORE_PANEL_TASKS,
+                operation=str(evidence["operation"]),
+                phase=PHASE_AFTER,
+                outcome=OUTCOME_OK,
+                mutation=str(evidence["mutation"]),
+                entity_id=str(evidence["entity_id"]) if evidence.get("entity_id") else None,
+                payload_summary=after_summary or None,
+            ),
+        )
 
 
 def _trash_dir() -> Path:
@@ -563,7 +652,15 @@ class Handler(BaseHTTPRequestHandler):
         if isinstance(data.get("events"), list):
             doc["events"] = data["events"]
         try:
-            _write_doc(doc)
+            _write_doc(
+                doc,
+                evidence={
+                    "operation": OPERATION_PANEL_TASK_PUT,
+                    "mutation": "update",
+                    "route": "PUT /tasks.json",
+                    "events_appended": 0,
+                },
+            )
         except OSError as e:
             self.send_error(500, str(e))
             return
@@ -682,7 +779,17 @@ class Handler(BaseHTTPRequestHandler):
         doc.setdefault("tasks", []).append(task)
         doc.setdefault("events", []).append(ev)
         try:
-            _write_doc(doc)
+            _write_doc(
+                doc,
+                evidence={
+                    "operation": OPERATION_PANEL_TASK_CREATE,
+                    "mutation": "create",
+                    "entity_id": tid,
+                    "route": "POST /tasks",
+                    "title_preview": title_preview_from(title),
+                    "events_appended": 1,
+                },
+            )
         except OSError as e:
             _send_json(self, 500, {"ok": False, "error": str(e)})
             return
@@ -727,7 +834,17 @@ class Handler(BaseHTTPRequestHandler):
         }
         doc.setdefault("events", []).append(ev)
         try:
-            _write_doc(doc)
+            _write_doc(
+                doc,
+                evidence={
+                    "operation": OPERATION_PANEL_TASK_COMPLETE,
+                    "mutation": "complete",
+                    "entity_id": tid,
+                    "route": "POST /tasks/complete",
+                    "title_preview": title_preview_from(title),
+                    "events_appended": 1,
+                },
+            )
         except OSError as e:
             _send_json(self, 500, {"ok": False, "error": str(e)})
             return
@@ -785,7 +902,18 @@ class Handler(BaseHTTPRequestHandler):
         }
         doc.setdefault("events", []).append(ev)
         try:
-            _write_doc(doc)
+            _write_doc(
+                doc,
+                evidence={
+                    "operation": OPERATION_PANEL_TASK_DELETE,
+                    "mutation": "delete",
+                    "entity_id": tid,
+                    "route": "POST /tasks/delete",
+                    "title_preview": title_preview_from(title),
+                    "events_appended": 1,
+                    "trash_written": True,
+                },
+            )
         except OSError as e:
             _send_json(self, 500, {"ok": False, "error": str(e)})
             return
@@ -838,7 +966,17 @@ class Handler(BaseHTTPRequestHandler):
         }
         doc.setdefault("events", []).append(ev)
         try:
-            _write_doc(doc)
+            _write_doc(
+                doc,
+                evidence={
+                    "operation": OPERATION_PANEL_TASK_RESTORE,
+                    "mutation": "restore",
+                    "entity_id": rid,
+                    "route": "POST /tasks/restore",
+                    "title_preview": title_preview_from(title),
+                    "events_appended": 1,
+                },
+            )
         except OSError as e:
             _send_json(self, 500, {"ok": False, "error": str(e)})
             return
@@ -889,7 +1027,7 @@ class Handler(BaseHTTPRequestHandler):
         }
         doc.setdefault("events", []).append(ev)
         try:
-            _write_doc(doc)
+            _write_doc(doc, evidence={"skip": True})
         except OSError as e:
             _send_json(self, 500, {"ok": False, "error": str(e)})
             return

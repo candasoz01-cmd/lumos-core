@@ -213,7 +213,7 @@ class TaskStore:
             self._tasks = []
             self._next_id = 1
 
-    def _save(self) -> None:
+    def _save(self, *, mutation: str | None = None, entity_id: int | None = None) -> None:
         # Aynı task_id tek kayıt: son yazılan geçerli; sıra task_id ile tutarlı olsun
         by_id: dict[int, TaskRecord] = {t.task_id: t for t in self._tasks}
         self._tasks = sorted(by_id.values(), key=lambda x: x.task_id)
@@ -223,6 +223,8 @@ class TaskStore:
             data=data,
             sandbox_mode=self.sandbox_mode,
             live_base_dir=self._live_base_dir,
+            mutation=mutation,
+            entity_id=entity_id,
         )
 
     def create(self, title: str, description: str, permission_profile: str) -> TaskRecord:
@@ -238,7 +240,7 @@ class TaskStore:
         )
         self._next_id += 1
         self._tasks.append(task)
-        self._save()
+        self._save(mutation="create", entity_id=task.task_id)
         return task
 
     def create_from_steps(
@@ -261,7 +263,7 @@ class TaskStore:
         )
         self._next_id += 1
         self._tasks.append(task)
-        self._save()
+        self._save(mutation="create", entity_id=task.task_id)
         return task
 
     def get(self, task_id: int) -> TaskRecord | None:
@@ -273,14 +275,14 @@ class TaskStore:
     def list_all(self) -> list[TaskRecord]:
         return list(self._tasks)
 
-    def update(self, task: TaskRecord) -> None:
+    def update(self, task: TaskRecord, *, mutation: str = "update") -> None:
         for i, t in enumerate(self._tasks):
             if t.task_id == task.task_id:
                 self._tasks[i] = task
-                self._save()
+                self._save(mutation=mutation, entity_id=task.task_id)
                 return
         self._tasks.append(task)
-        self._save()
+        self._save(mutation=mutation, entity_id=task.task_id)
 
     # --- Hijyen / arşivleme operasyonları (silme yerine arşiv tercih edilir) ---
 
@@ -291,7 +293,7 @@ class TaskStore:
             return False
         task.archived = True
         task.archived_at = _now_iso()
-        self.update(task)
+        self.update(task, mutation="archive")
         return True
 
     def delete(self, task_id: int, *, user_initiated: bool = False) -> bool:
@@ -306,7 +308,7 @@ class TaskStore:
         self._tasks = [t for t in self._tasks if t.task_id != task_id]
         if len(self._tasks) == before:
             return False
-        self._save()
+        self._save(mutation="delete", entity_id=task_id)
         return True
 
     def archive_completed(self) -> int:

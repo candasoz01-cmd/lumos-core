@@ -304,6 +304,9 @@ def save_task_store_json(
     *,
     sandbox_mode: bool,
     live_base_dir: Path | str | None = None,
+    correlation_id: str | None = None,
+    mutation: str | None = None,
+    entity_id: str | int | None = None,
 ) -> None:
     """
     TaskStore için merkezi yazım sink'i.
@@ -313,24 +316,99 @@ def save_task_store_json(
       allow_write_to_core(live_base_dir or tasks_dir.parent, target_path, is_sandbox_mode=True)
       canlı çekirdek state path'ine yazmayı reddeder.
     - sandbox_mode=False varsayılan davranışı korur; guard devre dışı.
+    - correlation_id + mutation verilirse evidence continuity journal (best-effort).
     """
+    from core.evidence_continuity import (  # yerel import: döngüsel import önleme
+        OPERATION_ENGINE_TASK_MUTATION,
+        OUTCOME_ERROR,
+        OUTCOME_OK,
+        PHASE_AFTER,
+        PHASE_BEFORE,
+        PHASE_ERROR,
+        SOURCE_TASK_ENGINE,
+        STORE_TASK_ENGINE,
+        append_evidence_event,
+        build_evidence_record,
+        generate_correlation_id,
+    )
+
     tasks_dir_path = Path(tasks_dir)
     target_path = tasks_dir_path / "tasks.json"
+    journal_base = Path(live_base_dir) if live_base_dir is not None else tasks_dir_path.parent
+    evidence_enabled = correlation_id is not None or mutation is not None
+    corr_id = correlation_id or (generate_correlation_id() if evidence_enabled else None)
+    entity_str = str(entity_id) if entity_id is not None else None
+    step_count = None
+    tasks_list = data.get("tasks")
+    if isinstance(tasks_list, list) and entity_str is not None:
+        for item in tasks_list:
+            if isinstance(item, dict) and str(item.get("task_id", "")) == entity_str:
+                steps = item.get("steps")
+                if isinstance(steps, list):
+                    step_count = len(steps)
+                break
+    elif isinstance(tasks_list, list) and mutation in ("create", "update", "archive", "delete"):
+        for item in reversed(tasks_list):
+            if isinstance(item, dict):
+                steps = item.get("steps")
+                if isinstance(steps, list):
+                    step_count = len(steps)
+                if entity_str is None and item.get("task_id") is not None:
+                    entity_str = str(item["task_id"])
+                break
+
+    def _emit(phase: str, outcome: str, *, error: dict[str, str] | None = None) -> None:
+        if not evidence_enabled or corr_id is None or not mutation:
+            return
+        summary: dict = {}
+        if step_count is not None:
+            summary["step_count"] = step_count
+        append_evidence_event(
+            journal_base,
+            build_evidence_record(
+                correlation_id=corr_id,
+                source=SOURCE_TASK_ENGINE,
+                store=STORE_TASK_ENGINE,
+                operation=OPERATION_ENGINE_TASK_MUTATION,
+                phase=phase,
+                outcome=outcome,
+                mutation=mutation,
+                entity_id=entity_str,
+                payload_summary=summary or None,
+                error=error,
+            ),
+            is_sandbox_mode=sandbox_mode,
+        )
 
     if sandbox_mode:
         live_base = Path(live_base_dir) if live_base_dir is not None else tasks_dir_path.parent
         if not allow_write_to_core(live_base, target_path, is_sandbox_mode=True):
+            _emit(
+                PHASE_ERROR,
+                OUTCOME_ERROR,
+                error={"code": "write_forbidden", "message": "sandbox core write forbidden"},
+            )
             raise CoreWriteForbidden(
                 "Sandbox modunda canlı çekirdek state path'e yazma yasak",
             )
 
-    tasks_dir_path.mkdir(parents=True, exist_ok=True)
-    import json  # yerel import: workspace_contract yüzeyini dar tutmak için
+    _emit(PHASE_BEFORE, OUTCOME_OK)
+    try:
+        tasks_dir_path.mkdir(parents=True, exist_ok=True)
+        import json  # yerel import: workspace_contract yüzeyini dar tutmak için
 
-    target_path.write_text(
-        json.dumps(data, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
+        target_path.write_text(
+            json.dumps(data, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        _emit(
+            PHASE_ERROR,
+            OUTCOME_ERROR,
+            error={"code": "write_failed", "message": f"{type(exc).__name__}: {exc}"},
+        )
+        raise
+    _emit(PHASE_AFTER, OUTCOME_OK)
 
 
 def is_allowed_trash_path(base_dir: Path | str, path: Path | str) -> bool:
