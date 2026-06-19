@@ -6569,7 +6569,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
       let panelGorevlerTasksRender = null;
 
-      /** @typedef {{ title: string, whenSummary: string | null }} PanelGorevKomut */
+      /** @type {null | ((ref: string) => Promise<string>)} */
+      let panelGorevlerDeleteFromChat = null;
+
+      /** @typedef {{ title: string, whenSummary: string | null, replyKind?: string }} PanelGorevCreateKomut */
+      /** @typedef {{ verb: "sil", ref: string }} PanelGorevSilKomut */
+      /** @typedef {PanelGorevCreateKomut | PanelGorevSilKomut} PanelGorevKomut */
 
       function pad2(n) {
         const x = String(Number(n));
@@ -6714,7 +6719,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
         if (!s0) return null;
         const s = canonicalizeTaskInput(s0);
 
-        let m = /^\s*mini\s+görev\s+ekle\s+(.+)$/i.exec(s);
+        let m = /^(?:görev|gorev)\s+sil(?=\s|:|$)/i.exec(s);
+        if (m) {
+          const ref = s.slice(m[0].length).replace(/^\s*:+\s*/, "").trim();
+          return { verb: "sil", ref };
+        }
+
+        m = /^\s*mini\s+görev\s+ekle\s+(.+)$/i.exec(s);
         if (m) {
           const title = m[1].trim();
           return title ? { title, whenSummary: null, replyKind: "mini" } : null;
@@ -6757,6 +6768,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         };
         if (cmd.whenSummary) row.when = cmd.whenSummary;
         panelGorevlerTasks.push(row);
+        persistPanelGorevlerTasks();
         attachGorevlerTaskPlan(row, cmd.title);
         if (typeof panelGorevlerTasksRender === "function") panelGorevlerTasksRender();
       }
@@ -8175,8 +8187,15 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
               appendBubble("user", message);
               if (panelGorevCmd) {
-                applyPanelGorevKomutu(panelGorevCmd);
-                appendBubble("lumos", buildPanelGorevConfirmation(panelGorevCmd));
+                if (panelGorevCmd.verb === "sil") {
+                  const delReply = panelGorevlerDeleteFromChat
+                    ? await panelGorevlerDeleteFromChat(panelGorevCmd.ref)
+                    : "Görev silme şu an kullanılamıyor (liste bağlanmadı).";
+                  appendBubble("lumos", delReply);
+                } else {
+                  applyPanelGorevKomutu(panelGorevCmd);
+                  appendBubble("lumos", buildPanelGorevConfirmation(panelGorevCmd));
+                }
               } else {
                 appendBubble("lumos", buildPanelLocalModeReply(message));
               }
@@ -8216,6 +8235,26 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
           /** Liste + onay: fetch’ten önce; aksi halde uzayan / takılan istek zinciri burada kopar (runSend hiç ilerlemez). */
           if (panelGorevCmd) {
+            if (panelGorevCmd.verb === "sil") {
+              const delReply = panelGorevlerDeleteFromChat
+                ? await panelGorevlerDeleteFromChat(panelGorevCmd.ref)
+                : "Görev silme şu an kullanılamıyor (liste bağlanmadı).";
+              appendBubble("lumos", delReply);
+              input.value = "";
+              clearPanelCameraPhotoSelection();
+              clearPanelAudioRecordSelection();
+              setSendHint("");
+              input.blur();
+              resetPanelHorizontalScrollAfterInputBlur();
+              sending = false;
+              sendBtn.disabled = false;
+              sendBtn.removeAttribute("aria-busy");
+              sendBtn.setAttribute("aria-label", sendLabel);
+              sendBtn.setAttribute("title", sendLabel);
+              sendBtn.classList.remove("chat-compose-send--busy");
+              refocusPanelChatInput();
+              return;
+            }
             applyPanelGorevKomutu(panelGorevCmd);
             appendBubble("lumos", buildPanelGorevConfirmation(panelGorevCmd));
             input.value = "";
@@ -10010,7 +10049,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             detailCompleteBtn.hidden = !canComplete || t.status === "tamamlandi";
           }
           if (detailDeleteBtn) {
-            detailDeleteBtn.hidden = !hasId;
+            detailDeleteBtn.hidden = !canComplete;
           }
 
           if (gorevlerUseDialog) {
@@ -10398,49 +10437,125 @@ const PANEL_DEBUG = import.meta.env.DEV;
           hideHint();
         }
 
-        function removeGorevlerTaskLocalById(deletedId) {
-          const id = String(deletedId || "").trim();
-          if (!id) return false;
-          for (let i = panelGorevlerTasks.length - 1; i >= 0; i--) {
-            if (panelGorevlerTasks[i] && String(panelGorevlerTasks[i].id || "").trim() === id) {
-              panelGorevlerTasks.splice(i, 1);
-              persistPanelGorevlerTasks();
-              return true;
-            }
-          }
+        function gorevlerTitleMatchesRef(ref, title) {
+          const r = String(ref || "")
+            .trim()
+            .toLocaleLowerCase("tr-TR")
+            .replace(/\s+/g, " ");
+          const t = String(title || "")
+            .trim()
+            .toLocaleLowerCase("tr-TR")
+            .replace(/\s+/g, " ");
+          if (!r || !t) return false;
+          if (t === r) return true;
+          if (t.replace(/-/g, " ") === r.replace(/-/g, " ")) return true;
+          if (t.replace(/\s+/g, "-") === r.replace(/\s+/g, "-")) return true;
           return false;
         }
 
-        function finishDeleteGorevlerTaskLocal(t, deletedId) {
-          lastGorevlerDeletedId = deletedId;
+        function findGorevlerTaskIndexByRef(ref) {
+          const r = String(ref || "").trim();
+          if (!r) return -1;
+          for (let i = panelGorevlerTasks.length - 1; i >= 0; i--) {
+            const row = panelGorevlerTasks[i];
+            if (!row) continue;
+            const id = row.id ? String(row.id).trim() : "";
+            if (id && id === r) return i;
+            const title = row.title ? String(row.title).trim() : "";
+            if (title && gorevlerTitleMatchesRef(r, title)) return i;
+          }
+          return -1;
+        }
+
+        function removeGorevlerTaskLocalByRef(ref) {
+          const idx = findGorevlerTaskIndexByRef(ref);
+          if (idx < 0) return false;
+          panelGorevlerTasks.splice(idx, 1);
+          persistPanelGorevlerTasks();
+          return true;
+        }
+
+        function removeGorevlerTaskLocalById(deletedId) {
+          const id = String(deletedId || "").trim();
+          if (!id) return false;
+          return removeGorevlerTaskLocalByRef(id);
+        }
+
+        function finishDeleteGorevlerTaskLocal(t, ref) {
+          const deletedKey = t.id ? String(t.id).trim() : String(ref || t.title || "").trim();
+          lastGorevlerDeletedId = deletedKey;
           lastGorevlerDeletedLocalRow = { ...t };
           if (restoreLastBtn) restoreLastBtn.hidden = false;
-          removeGorevlerTaskLocalById(deletedId);
+          removeGorevlerTaskLocalByRef(deletedKey);
           closeGorevlerDetail(true);
           render();
           showHint("Görev silindi.");
         }
 
+        async function deleteGorevlerTaskFromChat(ref) {
+          const r = String(ref || "").trim();
+          if (!r) return "Görev adı eksik. Örnek: görev sil alışveriş";
+          if (!confirm('"' + r + '" silinsin mi?')) return "Silme iptal edildi.";
+          hideHint();
+          const idx = findGorevlerTaskIndexByRef(r);
+          const t = idx >= 0 ? panelGorevlerTasks[idx] : null;
+          if (shouldSkipGorevlerTasksApi()) {
+            if (!t) return "Silinecek görev bulunamadı.";
+            finishDeleteGorevlerTaskLocal(t, r);
+            return 'Görev silindi: "' + String(t.title || r).trim() + '".';
+          }
+          let res;
+          let apiUnreachable = false;
+          try {
+            res = await tasksApiPost("/tasks/delete", { ref: r });
+          } catch {
+            apiUnreachable = true;
+          }
+          if (res && (res.status === 404 || (res.data && res.data.error === "not_found"))) {
+            return "Silinecek görev bulunamadı.";
+          }
+          if (apiUnreachable || !res || !res.ok || !res.data || !res.data.ok) {
+            if (shouldFallbackGorevlerTasksLocal(apiUnreachable)) {
+              if (!t) return "Silinecek görev bulunamadı.";
+              finishDeleteGorevlerTaskLocal(t, r);
+              return 'Görev silindi: "' + String(t.title || r).trim() + '".';
+            }
+            const err =
+              res && res.data && res.data.error != null ? String(res.data.error) : "delete_failed";
+            return "Silinemedi (" + err + ").";
+          }
+          const deletedId = t && t.id ? String(t.id).trim() : r;
+          lastGorevlerDeletedId = deletedId;
+          lastGorevlerDeletedLocalRow = null;
+          if (restoreLastBtn) restoreLastBtn.hidden = false;
+          const refreshed = await refreshPanelGorevlerFromTasksApi();
+          if (!refreshed) removeGorevlerTaskLocalByRef(r);
+          if (typeof panelGorevlerTasksRender === "function") panelGorevlerTasksRender();
+          const title = t && t.title ? String(t.title).trim() : r;
+          return 'Görev silindi: "' + title + '".';
+        }
+
         async function deleteOpenGorevlerTask() {
           const t = panelGorevlerTasks[lastGorevlerOpenedIndex];
-          if (!t || !t.id) return;
+          if (!t) return;
+          const ref = t.id ? String(t.id).trim() : String(t.title || "").trim();
+          if (!ref) return;
           if (!confirm("Görev silinsin mi?")) return;
           hideHint();
-          const deletedId = String(t.id).trim();
           if (shouldSkipGorevlerTasksApi()) {
-            finishDeleteGorevlerTaskLocal(t, deletedId);
+            finishDeleteGorevlerTaskLocal(t, ref);
             return;
           }
           let res;
           let apiUnreachable = false;
           try {
-            res = await tasksApiPost("/tasks/delete", { id: deletedId });
+            res = await tasksApiPost("/tasks/delete", { ref });
           } catch {
             apiUnreachable = true;
           }
           if (apiUnreachable || !res || !res.ok || !res.data || !res.data.ok) {
             if (shouldFallbackGorevlerTasksLocal(apiUnreachable)) {
-              finishDeleteGorevlerTaskLocal(t, deletedId);
+              finishDeleteGorevlerTaskLocal(t, ref);
               return;
             }
             const err =
@@ -10448,12 +10563,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
             showHint("Silinemedi (" + err + ").");
             return;
           }
+          const deletedId = t.id ? String(t.id).trim() : ref;
           lastGorevlerDeletedId = deletedId;
           lastGorevlerDeletedLocalRow = null;
           if (restoreLastBtn) restoreLastBtn.hidden = false;
           const refreshed = await refreshPanelGorevlerFromTasksApi();
           if (!refreshed) {
-            removeGorevlerTaskLocalById(deletedId);
+            removeGorevlerTaskLocalByRef(ref);
           }
           closeGorevlerDetail(true);
           render();
@@ -10512,6 +10628,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         }
 
         panelGorevlerTasksRender = render;
+        panelGorevlerDeleteFromChat = deleteGorevlerTaskFromChat;
 
         document.querySelectorAll("[data-gorevler-filter]").forEach((btn) => {
           btn.addEventListener("click", () => {
