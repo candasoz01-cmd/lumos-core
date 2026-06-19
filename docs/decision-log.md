@@ -52,6 +52,7 @@ Karar verildi; kod/CI uygulaması henüz yapılmadı. OD **closed** sayılmaz.
 | ID | Tarih | Konu | Karar | Uygulama paketi | Bağlantı |
 |----|-------|------|-------|-----------------|----------|
 | DL-A01 | 2026-06-17 | OD-028 `lumos web` / `web/app.py` | **B1** — alt komutu kaldır; **restore değil** | `__main__.py` web dalı + `_run_web()`; `pyproject.toml` açıklama; `test_web_health.py`; `ARCHITECTURE_MAP.md` senkronu; `kando_core` ayrı (OD-027) | `docs/memory/lumos-web-command-decision.md` §12.2 |
+| DL-A09 | 2026-06-20 | EC2-09 Evidence retention policy | **Seçenek 1 (minimum v1)** — named constants 1 MB × 3; `evidence_retention_policy()` + storage summary; API metadata; config override ve multi-file read v1 dışı | `evidence_continuity.py` + `panel_tasks_server.py` + `test_evidence_retention_ec2_09.py` T1–T8 | [`docs/memory/evidence-continuity-ec2-09-decision.md`](memory/evidence-continuity-ec2-09-decision.md) |
 
 ### Karar kapandı — uygulama merge edildi
 
@@ -117,4 +118,4 @@ Tam liste: `docs/memory/open-decisions-needs-review.md` (OD-001 … OD-060).
 
 ---
 
-Son güncelleme: 2026-06-20 (DL-A08 closed — EC2-05 PR #277 merge)
+Son güncelleme: 2026-06-20 (DL-A09 decision-approved — EC2-09 minimum v1 slice)
