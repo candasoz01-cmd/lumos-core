@@ -90,3 +90,24 @@ def test_build_chat_reply_propagates_error():
             assert "no key" in str(e)
         else:
             raise AssertionError("expected RuntimeError")
+
+
+def test_build_chat_reply_local_time_skips_openai():
+    fake_client = MagicMock()
+    with patch("openai.OpenAI", return_value=fake_client):
+        r = build_chat_reply("saat kaç")
+    assert r["mode"] == "local_time"
+    assert r["intent"] == "DEVICE_TIME"
+    assert r["reply"].startswith("Saat ")
+    assert "Bugün" in r["reply"]
+    fake_client.responses.create.assert_not_called()
+
+
+def test_build_chat_reply_local_time_weekday_skips_openai():
+    fake_client = MagicMock()
+    with patch("openai.OpenAI", return_value=fake_client):
+        r = build_chat_reply("bugün günlerden ne")
+    assert r["mode"] == "local_time"
+    assert r["intent"] == "DEVICE_TIME"
+    assert "Günlerden" in r["reply"]
+    fake_client.responses.create.assert_not_called()

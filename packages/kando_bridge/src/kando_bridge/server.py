@@ -845,8 +845,44 @@ def _parse_intent_only(raw: str) -> str:
     return first
 
 
+_offline_engine_for_time = None
+
+
+def _get_offline_engine_for_time():
+    global _offline_engine_for_time
+    if _offline_engine_for_time is None:
+        from policy.offline_engine import OfflineEngineV1
+
+        _offline_engine_for_time = OfflineEngineV1()
+    return _offline_engine_for_time
+
+
+def try_local_device_time_reply(message: str) -> dict | None:
+    """Saat/tarih sorgularında OpenAI çağrısı yapmadan yerel cevap."""
+    msg = (message or "").strip()
+    if not msg:
+        return None
+    engine = _get_offline_engine_for_time()
+    if not engine._is_time_query(msg.lower()):
+        return None
+    result = engine.process(msg)
+    reply = str(result.get("response") or "").strip()
+    if not reply:
+        return None
+    return {
+        "reply": reply,
+        "blocked": False,
+        "mode": "local_time",
+        "intent": "DEVICE_TIME",
+    }
+
+
 def build_chat_reply(message: str, history: list | None = None) -> dict:
     """POST /chat: önce tek satır INTENT, sonra bu INTENT'e bağlı cevap (iki ayrı LLM çağrısı)."""
+    local = try_local_device_time_reply(message)
+    if local is not None:
+        return local
+
     from openai import OpenAI
 
     turns = _coerce_chat_history(history)
