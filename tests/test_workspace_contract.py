@@ -489,3 +489,26 @@ def test_move_to_trash_sandbox_mode_moves_to_sandbox_trash(tmp_path):
     assert not src.exists()
     assert dest.is_file()
     assert dest.read_text(encoding="utf-8") == "x"
+
+
+def test_save_task_store_json_emits_evidence_when_mutation_set(tmp_path):
+    from core.evidence_continuity import evidence_continuity_path
+    from core.workspace_contract import save_task_store_json
+
+    base = tmp_path
+    tasks_dir = base / "tasks"
+    data = {"tasks": [{"task_id": 7, "steps": [{"kind": "read"}]}], "next_id": 8}
+    save_task_store_json(
+        tasks_dir,
+        data,
+        sandbox_mode=False,
+        mutation="update",
+        entity_id=7,
+    )
+    journal = evidence_continuity_path(base)
+    lines = journal.read_text(encoding="utf-8").strip().splitlines()
+    assert len(lines) == 2
+    first = json.loads(lines[0])
+    assert first["mutation"] == "update"
+    assert first["entity_ref"] == {"kind": "task", "id": "7"}
+    assert first["payload_summary"]["step_count"] == 1
