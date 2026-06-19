@@ -33,7 +33,7 @@ Kaynak: [`evidence-continuity-v1-decision.md`](./evidence-continuity-v1-decision
 | EC2-02 | Client evidence queue (`localStorage` → sunucu journal sync) | **P0** | Evet — **`[implemented]`** PR #258 (`bc6e4e0`) / [`evidence-continuity-ec2-02-decision.md`](./evidence-continuity-ec2-02-decision.md) |
 | EC2-03 | Köprü `POST /task` outbox append + journal mirror | **P1** | Evet — **`[implemented]`** PR #265 (`b1c48aa`) / [`evidence-continuity-ec2-03-decision.md`](./evidence-continuity-ec2-03-decision.md) |
 | EC2-04 | Guard/policy tek semantik journal (`record_guard_event`, `log_policy_blocked`) | **P1** | Evet — **`[implemented]`** PR #268 (`9475a0f`) / [`evidence-continuity-ec2-04-decision.md`](./evidence-continuity-ec2-04-decision.md) |
-| EC2-05 | Çift depo birleştirme — ADR-008 drift çözümü | **P2** | **Hayır** — ayrı OD |
+| EC2-05 | Çift depo birleştirme — ADR-008 drift çözümü | **P2** | Phase 5 — **`[decision-approved]`** minimum v1 slice; tam merge reddedildi — [`evidence-continuity-ec2-05-decision.md`](./evidence-continuity-ec2-05-decision.md) |
 | EC2-06 | Legacy panel (`panel/js/app.js`) hizalama | **P2** | Hayır |
 | EC2-07 | `events[]` migration veya deprecate | **P2** | Hayır |
 | EC2-08 | Correlation UI — «son işlem kanıtı», «buradan devam» | **P1** | Evet (Phase 4) — **`[implemented]`** PR #274 (`fb2af14`) — [`evidence-continuity-ec2-08-decision.md`](./evidence-continuity-ec2-08-decision.md) |
@@ -163,7 +163,7 @@ EC2-05 (store merge)          ── bağımsız OD; v2 fazlarına hard dependen
 
 | Hedef | Maddeler | Not |
 |-------|----------|-----|
-| Store merge | EC2-05 | **Ayrı OD** — ADR-008; v2 Phase 1–4 blocker değil |
+| Store merge | EC2-05 | **Minimum v1** — registry + dual-store read-only health; tam merge ayrı OD — [`evidence-continuity-ec2-05-decision.md`](./evidence-continuity-ec2-05-decision.md) |
 | Legacy / migration | EC2-06, EC2-07 | Astro birincil panel |
 | Retention / observation / query | EC2-09, EC2-10, EC2-11 | Politika + CLI genişlemesi |
 
@@ -211,7 +211,8 @@ Detay: [`audit-hook-term-decision.md`](./audit-hook-term-decision.md).
 |-------|--------|
 | [`evidence-continuity-v1-decision.md`](./evidence-continuity-v1-decision.md) | v1 uygulandı; 14 madde kaynağı |
 | [`audit-hook-term-decision.md`](./audit-hook-term-decision.md) | Git hook reddi; #14/#4 eşlemesi |
-| [ADR-008](../decisions/ADR-008-agent-network-boundary.md) | EC2-05 çift depo — ayrı OD adayı |
+| [ADR-008](../decisions/ADR-008-agent-network-boundary.md) | EC2-05 çift depo — minimum v1 karar |
+| [`evidence-continuity-ec2-05-decision.md`](./evidence-continuity-ec2-05-decision.md) | EC2-05 `[decision-approved]` — tam merge reddedildi; registry + dual health v1 |
 | [`primary-user-surface-decision.md`](./primary-user-surface-decision.md) | EC2-06 legacy panel |
 | [`open-decisions-needs-review.md`](./open-decisions-needs-review.md) | OD-058 (v1 closed), OD-059 (audit terminoloji) |
 | [`evidence-continuity-ec2-02-decision.md`](./evidence-continuity-ec2-02-decision.md) | EC2-02 `[implemented]` — PR #258 (`bc6e4e0`); Phase 3 kapalı |
@@ -225,9 +226,9 @@ Detay: [`audit-hook-term-decision.md`](./audit-hook-term-decision.md).
 
 ## Sonraki adım
 
-1. **Phase 5 (P2):** EC2-05 (store merge — ayrı OD), EC2-06/07 (legacy/migration), EC2-09/10/11 (retention/observation/query).
+1. **Phase 5 (P2):** EC2-05 minimum v1 (decision-approved — impl bekliyor), EC2-06/07 (legacy/migration), EC2-09/10/11 (retention/observation/query).
 2. **Phase 2 kalan (opsiyonel):** EC2-01 merge edildi; silme UX iyileştirmeleri «sohbet görev silme» takip maddesi ile devam edebilir.
-3. **EC2-05:** Ayrı open decision kaydı açılması değerlendirilir (bu belge kapsamında karar yok).
+3. **EC2-05:** Karar [`evidence-continuity-ec2-05-decision.md`](./evidence-continuity-ec2-05-decision.md) — tam merge reddedildi; minimum v1 registry + dual health.
 
 ---
 
@@ -235,4 +236,4 @@ Detay: [`audit-hook-term-decision.md`](./audit-hook-term-decision.md).
 
 ---
 
-Son güncelleme: 2026-06-20 (EC2-08 implemented — PR #274 merge)
+Son güncelleme: 2026-06-20 (EC2-05 decision-approved — minimum v1 slice)
