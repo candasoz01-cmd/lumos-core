@@ -30,7 +30,7 @@ Kaynak: [`evidence-continuity-v1-decision.md`](./evidence-continuity-v1-decision
 | ID | Madde | Öncelik | v2 ilk dalga |
 |----|-------|---------|--------------|
 | EC2-01 | Chat görev persist + `id` + silme UX düzeltmesi | **P0** | Evet |
-| EC2-02 | Client evidence queue (`localStorage` → sunucu journal sync) | **P0** | Evet |
+| EC2-02 | Client evidence queue (`localStorage` → sunucu journal sync) | **P0** | Evet — **`decision-approved`** / [`evidence-continuity-ec2-02-decision.md`](./evidence-continuity-ec2-02-decision.md) |
 | EC2-03 | Köprü `POST /task` outbox append + journal mirror | **P1** | Evet |
 | EC2-04 | Guard/policy tek semantik journal (`record_guard_event`, `log_policy_blocked`) | **P1** | Evet |
 | EC2-05 | Çift depo birleştirme — ADR-008 drift çözümü | **P2** | **Hayır** — ayrı OD |
@@ -133,7 +133,9 @@ EC2-05 (store merge)          ── bağımsız OD; v2 fazlarına hard dependen
 
 | Hedef | Maddeler | Bağımlılık |
 |-------|----------|------------|
-| `localStorage` → sunucu sync | EC2-02 | **EC2-01 tamamlanmış olmalı** |
+| `localStorage` → sunucu sync | EC2-02 | **EC2-01 tamamlanmış olmalı** — merge `5073780` ✓ |
+
+**Durum (2026-06-19):** Tasarım kilitlendi — karar [`evidence-continuity-ec2-02-decision.md`](./evidence-continuity-ec2-02-decision.md) (`decision-approved` / `implementation-pending`). Seçenek 1: pending-op kuyruğu `panel.astro`, flush mevcut REST, journal şeması değişmez.
 
 **Çıktı:** Tarayıcı kesintisinde client kanıtı kaybolmaz; sunucu journal ile birleşir.
 
@@ -208,13 +210,14 @@ Detay: [`audit-hook-term-decision.md`](./audit-hook-term-decision.md).
 | [ADR-008](../decisions/ADR-008-agent-network-boundary.md) | EC2-05 çift depo — ayrı OD adayı |
 | [`primary-user-surface-decision.md`](./primary-user-surface-decision.md) | EC2-06 legacy panel |
 | [`open-decisions-needs-review.md`](./open-decisions-needs-review.md) | OD-058 (v1 closed), OD-059 (audit terminoloji) |
+| [`evidence-continuity-ec2-02-decision.md`](./evidence-continuity-ec2-02-decision.md) | EC2-02 tasarım kilitlendi; Phase 3 implementasyon PR bekliyor |
 
 ---
 
 ## Sonraki adım
 
-1. **Phase 1 uygulama PR:** EC2-14 şema validator CI (kod PR — ayrı onay).
-2. **Phase 2 tasarım:** Chat persist + silme UX — «sohbet görev silme» takip maddesi ile birleşik plan.
+1. **Phase 3 implementasyon PR:** EC2-02 pending-op kuyruğu — [`evidence-continuity-ec2-02-decision.md`](./evidence-continuity-ec2-02-decision.md) (dar PR; `panel.astro` + test).
+2. **Phase 2 kalan (opsiyonel):** EC2-01 merge edildi; silme UX iyileştirmeleri «sohbet görev silme» takip maddesi ile devam edebilir.
 3. **EC2-05:** Ayrı open decision kaydı açılması değerlendirilir (bu belge kapsamında karar yok).
 
 ---
@@ -223,4 +226,4 @@ Detay: [`audit-hook-term-decision.md`](./audit-hook-term-decision.md).
 
 ---
 
-Son güncelleme: 2026-06-19
+Son güncelleme: 2026-06-19 (EC2-02 karar kaydı)
