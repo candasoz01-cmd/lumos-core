@@ -41,7 +41,7 @@ Kaynak: [`evidence-continuity-v1-decision.md`](./evidence-continuity-v1-decision
 | EC2-10 | `ObservationEngine` disk spill — CLI step lifecycle | **P2** | Hayır |
 | EC2-11 | Structured query / görev durumu reconstruct | **P2** | Hayır |
 | EC2-12 | Disconnect + resume integration test harness | **P1** | Evet (Phase 4) — **`[implemented]`** PR #261 (`aa2a6ff`); [`evidence-continuity-ec2-12-decision.md`](./evidence-continuity-ec2-12-decision.md) |
-| EC2-13 | `result` fazı — köprü async agent; guard senkron (EC2-04 `after` yeterli) | **P1** | Evet — karar: [`evidence-continuity-ec2-13-decision.md`](./evidence-continuity-ec2-13-decision.md) |
+| EC2-13 | `result` fazı — köprü async agent; guard senkron (EC2-04 `after` yeterli) | **P1** | Evet — **`[implemented]`** PR #271 (`41a48fb`) / [`evidence-continuity-ec2-13-decision.md`](./evidence-continuity-ec2-13-decision.md) |
 | EC2-14 | Şema validator CI kapısı | **P0** | Evet |
 
 ---
@@ -139,7 +139,7 @@ EC2-05 (store merge)          ── bağımsız OD; v2 fazlarına hard dependen
 
 **Çıktı:** Tarayıcı kesintisinde client kanıtı kaybolmaz; sunucu journal ile birleşir. ✓
 
-**Sonraki öncelik (Phase 4):** EC2-08 (correlation UI) + EC2-13 (`result` faz) — EC2-04 merge `9475a0f` ✓.
+**Sonraki öncelik (Phase 4):** EC2-08 (correlation UI) — EC2-13 merge `41a48fb` ✓.
 
 ---
 
@@ -149,11 +149,11 @@ EC2-05 (store merge)          ── bağımsız OD; v2 fazlarına hard dependen
 |-------|----------|------------|
 | Köprü outbox + journal | EC2-03 | v1 şema enum genişlemesi; **`[implemented]`** PR #265 (`b1c48aa`) — [`evidence-continuity-ec2-03-decision.md`](./evidence-continuity-ec2-03-decision.md); EC2-13 ile birlikte planlanır |
 | Guard/policy normalize | EC2-04 | EC v1 bilinçli dışı bırakıldı — **`[implemented]`** PR #268 (`9475a0f`) — [`evidence-continuity-ec2-04-decision.md`](./evidence-continuity-ec2-04-decision.md); EC2-13 ile birlikte planlanır |
-| `result` faz (köprü/guard) | EC2-13 | EC2-03, EC2-04 |
+| `result` faz (köprü async agent) | EC2-13 | EC2-03, EC2-04 — **`[implemented]`** PR #271 (`41a48fb`); [`evidence-continuity-ec2-13-decision.md`](./evidence-continuity-ec2-13-decision.md) |
 | Correlation UI | EC2-08 | Yeterli journal kaynağı (Phase 2–3+) |
 | Integration test harness | EC2-12 | Kopma/devam senaryoları — **`[implemented]`** PR #261 (`aa2a6ff`); DR1–DR7 pytest harness; runtime değişikliği yok — [`evidence-continuity-ec2-12-decision.md`](./evidence-continuity-ec2-12-decision.md) |
 
-**Durum (2026-06-19):** EC2-12 harness merge edildi — `tests/test_panel_evidence_disconnect_resume_ec2_12.py` (DR1–DR7). EC2-03 köprü mirror merge edildi — PR #265 (`b1c48aa`); [`evidence-continuity-ec2-03-decision.md`](./evidence-continuity-ec2-03-decision.md) (`[implemented]`). EC2-04 guard/policy mirror merge edildi — PR #268 (`9475a0f`); [`evidence-continuity-ec2-04-decision.md`](./evidence-continuity-ec2-04-decision.md) (`[implemented]`). Phase 4 kalan uygulama: EC2-08, EC2-13.
+**Durum (2026-06-19):** EC2-12 harness merge edildi — `tests/test_panel_evidence_disconnect_resume_ec2_12.py` (DR1–DR7). EC2-03 köprü mirror merge edildi — PR #265 (`b1c48aa`). EC2-04 guard/policy mirror merge edildi — PR #268 (`9475a0f`). EC2-13 köprü async agent `result` faz merge edildi — PR #271 (`41a48fb`). Phase 4 kalan uygulama: EC2-08.
 
 **Çıktı:** Sunucu dışı ve guard hatları journal semantiğine yaklaşır; kullanıcı «son kanıt» görür. EC2-12 disconnect/resume doğrulama katmanı ✓.
 
@@ -218,13 +218,13 @@ Detay: [`audit-hook-term-decision.md`](./audit-hook-term-decision.md).
 | [`evidence-continuity-ec2-12-decision.md`](./evidence-continuity-ec2-12-decision.md) | EC2-12 `[implemented]` — PR #261 (`aa2a6ff`); DR1–DR7 pytest harness |
 | [`evidence-continuity-ec2-03-decision.md`](./evidence-continuity-ec2-03-decision.md) | EC2-03 `[implemented]` — PR #265 (`b1c48aa`); köprü POST /task journal mirror |
 | [`evidence-continuity-ec2-04-decision.md`](./evidence-continuity-ec2-04-decision.md) | EC2-04 `[implemented]` — PR #268 (`9475a0f`); guard/policy journal mirror |
-| [`evidence-continuity-ec2-13-decision.md`](./evidence-continuity-ec2-13-decision.md) | EC2-13 `[decision-approved]` — köprü async agent `result` faz; DL-A06 |
+| [`evidence-continuity-ec2-13-decision.md`](./evidence-continuity-ec2-13-decision.md) | EC2-13 `[implemented]` — PR #271 (`41a48fb`); köprü async agent `result` faz |
 
 ---
 
 ## Sonraki adım
 
-1. **Phase 4 kalan:** EC2-08 (correlation UI) + EC2-13 (`result` faz) — EC2-04 merge `9475a0f` ✓.
+1. **Phase 4 kalan:** EC2-08 (correlation UI) — EC2-13 merge `41a48fb` ✓.
 2. **Phase 2 kalan (opsiyonel):** EC2-01 merge edildi; silme UX iyileştirmeleri «sohbet görev silme» takip maddesi ile devam edebilir.
 3. **EC2-05:** Ayrı open decision kaydı açılması değerlendirilir (bu belge kapsamında karar yok).
 
@@ -234,4 +234,4 @@ Detay: [`audit-hook-term-decision.md`](./audit-hook-term-decision.md).
 
 ---
 
-Son güncelleme: 2026-06-19 (EC2-04 implemented — PR #268 merge)
+Son güncelleme: 2026-06-19 (EC2-13 implemented — PR #271 merge)
