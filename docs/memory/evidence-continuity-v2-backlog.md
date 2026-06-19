@@ -41,7 +41,7 @@ Kaynak: [`evidence-continuity-v1-decision.md`](./evidence-continuity-v1-decision
 | EC2-10 | `ObservationEngine` disk spill — CLI step lifecycle | **P2** | Hayır |
 | EC2-11 | Structured query / görev durumu reconstruct | **P2** | Hayır |
 | EC2-12 | Disconnect + resume integration test harness | **P1** | Evet (Phase 4) — **`[implemented]`** PR #261 (`aa2a6ff`); [`evidence-continuity-ec2-12-decision.md`](./evidence-continuity-ec2-12-decision.md) |
-| EC2-13 | `result` fazı — köprü ve guard hatları için ayrı lifecycle | **P1** | Evet |
+| EC2-13 | `result` fazı — köprü async agent; guard senkron (EC2-04 `after` yeterli) | **P1** | Evet — karar: [`evidence-continuity-ec2-13-decision.md`](./evidence-continuity-ec2-13-decision.md) |
 | EC2-14 | Şema validator CI kapısı | **P0** | Evet |
 
 ---
@@ -218,6 +218,7 @@ Detay: [`audit-hook-term-decision.md`](./audit-hook-term-decision.md).
 | [`evidence-continuity-ec2-12-decision.md`](./evidence-continuity-ec2-12-decision.md) | EC2-12 `[implemented]` — PR #261 (`aa2a6ff`); DR1–DR7 pytest harness |
 | [`evidence-continuity-ec2-03-decision.md`](./evidence-continuity-ec2-03-decision.md) | EC2-03 `[implemented]` — PR #265 (`b1c48aa`); köprü POST /task journal mirror |
 | [`evidence-continuity-ec2-04-decision.md`](./evidence-continuity-ec2-04-decision.md) | EC2-04 `[implemented]` — PR #268 (`9475a0f`); guard/policy journal mirror |
+| [`evidence-continuity-ec2-13-decision.md`](./evidence-continuity-ec2-13-decision.md) | EC2-13 `[decision-approved]` — köprü async agent `result` faz; DL-A06 |
 
 ---
 
