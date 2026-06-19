@@ -5363,6 +5363,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
     <script define:vars={{ CHAT_URL, kandoToken, UPLOAD_URL, HEALTH_URL, BRIDGE_BASE_URL, STATUS_URL, TASKS_API_URL, PANEL_DEBUG }}>
       /** Görevler: panel_tasks_server → .lumos/tasks.json; localStorage önbellek (görev eklerken köprü yok). */
       const PANEL_GOREVLER_LS_KEY = "lumos_panel_gorevler_list_v1";
+      /** EC2-02: offline görev mutasyonları — flush mevcut REST ile (journal istemciden yazılmaz). */
+      const PANEL_EVIDENCE_PENDING_OPS_LS_KEY = "lumos_panel_evidence_pending_ops_v1";
+      const PANEL_EVIDENCE_QUEUE_MAX = 64;
+      const PANEL_EVIDENCE_FLUSH_MAX_ATTEMPTS = 5;
+      const PANEL_EVIDENCE_FLUSH_INTERVAL_MS = 45000;
       /** PR-1: kullanıcı modu — altyapı durumundan bağımsız tercih. */
       const PANEL_USER_MODE_LS_KEY = "lumos_panel_user_mode_v1";
       const PANEL_USER_MODES = ["offline", "limited", "full"];
@@ -6509,6 +6514,300 @@ const PANEL_DEBUG = import.meta.env.DEV;
         return { ok: r.ok, status: r.status, data };
       }
 
+      let panelEvidenceFlushInFlight = false;
+      let panelEvidenceFlushSkipNested = false;
+      let panelEvidenceFlushTimer = null;
+
+      function generateEvidenceOpId() {
+        try {
+          if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+            return crypto.randomUUID();
+          }
+        } catch (_) {
+          /* ignore */
+        }
+        return (
+          "evop_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 10)
+        );
+      }
+
+      function sanitizeEvidenceQueueRef(ref) {
+        const s = String(ref || "").trim();
+        if (!s) return "";
+        return s.length > 200 ? s.slice(0, 200) : s;
+      }
+
+      function loadEvidencePendingOps() {
+        try {
+          if (typeof localStorage === "undefined") return [];
+          const raw = localStorage.getItem(PANEL_EVIDENCE_PENDING_OPS_LS_KEY);
+          if (!raw) return [];
+          const a = JSON.parse(raw);
+          if (!Array.isArray(a)) return [];
+          const out = [];
+          for (let i = 0; i < a.length; i++) {
+            const x = a[i];
+            if (!x || typeof x !== "object") continue;
+            const op = String(x.op || "").trim();
+            if (!["create", "complete", "delete", "restore"].includes(op)) continue;
+            const ref = sanitizeEvidenceQueueRef(x.ref);
+            if (!ref) continue;
+            out.push({
+              v: 1,
+              op_id: String(x.op_id || generateEvidenceOpId()),
+              op,
+              ref,
+              ref_kind: x.ref_kind === "title" ? "title" : "id",
+              enqueued_at: String(x.enqueued_at || new Date().toISOString()),
+              attempts: Number(x.attempts) >= 0 ? Number(x.attempts) : 0,
+              last_attempt_at: x.last_attempt_at != null ? String(x.last_attempt_at) : null,
+            });
+          }
+          return out;
+        } catch {
+          return [];
+        }
+      }
+
+      function persistEvidencePendingOps(queue) {
+        try {
+          if (typeof localStorage === "undefined") return;
+          localStorage.setItem(PANEL_EVIDENCE_PENDING_OPS_LS_KEY, JSON.stringify(queue));
+        } catch (_) {
+          /* kota / gizli mod */
+        }
+      }
+
+      function trimEvidenceQueue(queue) {
+        if (queue.length <= PANEL_EVIDENCE_QUEUE_MAX) return queue;
+        const dropped = queue.length - PANEL_EVIDENCE_QUEUE_MAX;
+        console.warn(
+          "[Lumos panel evidence] pending-op kuyruğu limit aşıldı; " +
+            dropped +
+            " eski öğe düşürüldü.",
+        );
+        return queue.slice(-PANEL_EVIDENCE_QUEUE_MAX);
+      }
+
+      function evidenceOpPairKey(op, ref) {
+        return String(op || "") + "\0" + sanitizeEvidenceQueueRef(ref);
+      }
+
+      function enqueueEvidencePendingOp(op, ref, refKind) {
+        const r = sanitizeEvidenceQueueRef(ref);
+        if (!r || !["create", "complete", "delete", "restore"].includes(String(op))) return null;
+        const rk = refKind === "title" ? "title" : "id";
+        let queue = loadEvidencePendingOps();
+        const pair = evidenceOpPairKey(op, r);
+        queue = queue.filter((x) => evidenceOpPairKey(x.op, x.ref) !== pair);
+        const item = {
+          v: 1,
+          op_id: generateEvidenceOpId(),
+          op: String(op),
+          ref: r,
+          ref_kind: rk,
+          enqueued_at: new Date().toISOString(),
+          attempts: 0,
+          last_attempt_at: null,
+        };
+        queue.push(item);
+        queue = trimEvidenceQueue(queue);
+        persistEvidencePendingOps(queue);
+        return item;
+      }
+
+      function evidenceRefFromGorevlerRow(t) {
+        if (!t) return { ref: "", refKind: "title" };
+        const id = t.id ? String(t.id).trim() : "";
+        if (id) return { ref: id, refKind: "id" };
+        const title = t.title ? String(t.title).trim() : "";
+        return { ref: title, refKind: "title" };
+      }
+
+      function evidenceFlushBackoffMs(attempts) {
+        const n = Math.max(0, Number(attempts) || 0);
+        return Math.min(30000, 1000 * Math.pow(2, n));
+      }
+
+      function evidenceOpReadyForRetry(item) {
+        if (!item || !item.last_attempt_at) return true;
+        const last = Date.parse(String(item.last_attempt_at));
+        if (Number.isNaN(last)) return true;
+        return Date.now() - last >= evidenceFlushBackoffMs(item.attempts);
+      }
+
+      function isEvidenceFlushNetworkError(res, errThrown) {
+        if (errThrown) return true;
+        if (!res) return true;
+        return false;
+      }
+
+      function isEvidenceFlushIdempotentSuccess(res, op) {
+        if (!res) return false;
+        if (res.ok && res.data && res.data.ok) return true;
+        const err = res.data && res.data.error != null ? String(res.data.error) : "";
+        if (res.status === 404 && err === "not_found") return true;
+        if (op === "complete" && res.status === 409 && err === "already_done") return true;
+        return false;
+      }
+
+      async function fetchTasksApiDoc() {
+        const base = resolveGorevlerTasksApiBase();
+        if (!base) return null;
+        try {
+          const r = await fetch(`${base}/tasks`, { headers: { Accept: "application/json" } });
+          if (!r.ok) return null;
+          const doc = await r.json();
+          if (!doc || !Array.isArray(doc.tasks)) return null;
+          return doc;
+        } catch {
+          return null;
+        }
+      }
+
+      function findTaskByTitleInDoc(doc, title) {
+        const tt = String(title || "")
+          .trim()
+          .toLocaleLowerCase("tr-TR");
+        if (!tt || !doc || !Array.isArray(doc.tasks)) return null;
+        for (let i = 0; i < doc.tasks.length; i++) {
+          const t = doc.tasks[i];
+          if (!t || typeof t !== "object") continue;
+          if (String(t.status || "") === "deleted") continue;
+          const tTitle = String(t.title || "")
+            .trim()
+            .toLocaleLowerCase("tr-TR");
+          if (tTitle === tt) return t;
+        }
+        return null;
+      }
+
+      async function replayEvidencePendingOp(item, tasksDoc) {
+        const op = String(item.op || "");
+        const ref = sanitizeEvidenceQueueRef(item.ref);
+        if (!ref) return { outcome: "skip" };
+
+        if (op === "create") {
+          let doc = tasksDoc;
+          if (!doc) doc = await fetchTasksApiDoc();
+          if (doc && findTaskByTitleInDoc(doc, ref)) {
+            return { outcome: "success", deduped: true };
+          }
+          try {
+            const res = await tasksApiPost("/tasks", { title: ref });
+            if (isEvidenceFlushIdempotentSuccess(res, op)) return { outcome: "success", res };
+            return { outcome: "fail", res, network: false };
+          } catch {
+            return { outcome: "fail", network: true };
+          }
+        }
+
+        if (op === "complete") {
+          try {
+            const res = await tasksApiPost("/tasks/complete", { ref });
+            if (isEvidenceFlushIdempotentSuccess(res, op)) return { outcome: "success", res };
+            return { outcome: "fail", res, network: false };
+          } catch {
+            return { outcome: "fail", network: true };
+          }
+        }
+
+        if (op === "delete") {
+          try {
+            const res = await tasksApiPost("/tasks/delete", { ref });
+            if (isEvidenceFlushIdempotentSuccess(res, op)) return { outcome: "success", res };
+            return { outcome: "fail", res, network: false };
+          } catch {
+            return { outcome: "fail", network: true };
+          }
+        }
+
+        if (op === "restore") {
+          try {
+            const res = await tasksApiPost("/tasks/restore", { id: ref });
+            if (isEvidenceFlushIdempotentSuccess(res, op)) return { outcome: "success", res };
+            return { outcome: "fail", res, network: false };
+          } catch {
+            return { outcome: "fail", network: true };
+          }
+        }
+
+        return { outcome: "skip" };
+      }
+
+      async function flushPendingEvidenceOps() {
+        if (shouldSkipGorevlerTasksApi()) return false;
+        if (panelEvidenceFlushInFlight) return false;
+        let queue = loadEvidencePendingOps();
+        if (!queue.length) return true;
+
+        panelEvidenceFlushInFlight = true;
+        let tasksDoc = null;
+        let changed = false;
+        let anySuccess = false;
+        let stoppedOnNetwork = false;
+
+        try {
+          for (let i = 0; i < queue.length; i++) {
+            if (stoppedOnNetwork) break;
+            const item = queue[i];
+            if (!item) continue;
+            if (item.attempts >= PANEL_EVIDENCE_FLUSH_MAX_ATTEMPTS) continue;
+            if (!evidenceOpReadyForRetry(item)) continue;
+
+            const result = await replayEvidencePendingOp(item, tasksDoc);
+            if (result.outcome === "success") {
+              queue.splice(i, 1);
+              i -= 1;
+              changed = true;
+              anySuccess = true;
+              if (item.op === "create") {
+                tasksDoc = await fetchTasksApiDoc();
+              }
+              continue;
+            }
+            if (result.outcome === "fail") {
+              item.attempts = (Number(item.attempts) || 0) + 1;
+              item.last_attempt_at = new Date().toISOString();
+              changed = true;
+              if (result.network || isEvidenceFlushNetworkError(result.res, false)) {
+                stoppedOnNetwork = true;
+              }
+            }
+          }
+          if (changed) persistEvidencePendingOps(queue);
+          if (anySuccess) {
+            panelEvidenceFlushSkipNested = true;
+            try {
+              await refreshPanelGorevlerFromTasksApi();
+            } finally {
+              panelEvidenceFlushSkipNested = false;
+            }
+          }
+          return !stoppedOnNetwork;
+        } finally {
+          panelEvidenceFlushInFlight = false;
+        }
+      }
+
+      function scheduleEvidenceQueueFlush() {
+        if (shouldSkipGorevlerTasksApi()) return;
+        flushPendingEvidenceOps().catch(() => {});
+      }
+
+      function wireEvidenceQueueFlushTriggers() {
+        if (typeof window === "undefined") return;
+        window.addEventListener("online", () => scheduleEvidenceQueueFlush());
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState === "visible") scheduleEvidenceQueueFlush();
+        });
+        if (panelEvidenceFlushTimer) clearInterval(panelEvidenceFlushTimer);
+        panelEvidenceFlushTimer = setInterval(
+          () => scheduleEvidenceQueueFlush(),
+          PANEL_EVIDENCE_FLUSH_INTERVAL_MS,
+        );
+      }
+
       async function refreshPanelGorevlerFromTasksApi() {
         const base = resolveGorevlerTasksApiBase();
         if (!base) return false;
@@ -6532,6 +6831,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           panelGorevlerTasks.push(...next);
           persistPanelGorevlerTasks();
           if (typeof panelGorevlerTasksRender === "function") panelGorevlerTasksRender();
+          if (!panelEvidenceFlushSkipNested) scheduleEvidenceQueueFlush();
           return true;
         } catch {
           return false;
@@ -6795,6 +7095,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           panelGorevlerTasks.push(row);
           persistPanelGorevlerTasks();
           attachGorevlerTaskPlan(row, title);
+          enqueueEvidencePendingOp("create", title, "title");
           if (typeof panelGorevlerTasksRender === "function") panelGorevlerTasksRender();
           return row;
         }
@@ -10310,6 +10611,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
          */
         function finishAddTaskLocal(title, priority, status) {
           const taskRef = pushGorevlerTaskLocalRow(title, priority, status);
+          enqueueEvidencePendingOp("create", title, "title");
           titleInput.value = "";
           const savedPlan = taskRef.taskPlan;
           const savedIdx = panelGorevlerTasks.indexOf(taskRef);
@@ -10494,6 +10796,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
           t.status = "tamamlandi";
           persistPanelGorevlerTasks();
           render();
+          const er = evidenceRefFromGorevlerRow(t);
+          if (er.ref) enqueueEvidencePendingOp("complete", er.ref, er.refKind);
         }
 
         async function completeOpenGorevlerTask() {
@@ -10581,6 +10885,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
           lastGorevlerDeletedId = deletedKey;
           lastGorevlerDeletedLocalRow = { ...t };
           if (restoreLastBtn) restoreLastBtn.hidden = false;
+          const er = evidenceRefFromGorevlerRow(t);
+          const deleteRef = er.ref || sanitizeEvidenceQueueRef(ref || t.title);
+          if (deleteRef) enqueueEvidencePendingOp("delete", deleteRef, er.refKind);
           removeGorevlerTaskLocalByRef(deletedKey);
           closeGorevlerDetail(true);
           render();
@@ -10681,6 +10988,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 panelGorevlerTasks.push(row);
                 persistPanelGorevlerTasks();
                 render();
+                const rid = row.id ? String(row.id).trim() : "";
+                if (rid) {
+                  enqueueEvidencePendingOp("restore", rid, "id");
+                } else if (row.title) {
+                  enqueueEvidencePendingOp("create", String(row.title).trim(), "title");
+                }
               }
             }
             lastGorevlerDeletedId = "";
@@ -10703,6 +11016,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 panelGorevlerTasks.push(row);
                 persistPanelGorevlerTasks();
                 render();
+                const rid = row.id ? String(row.id).trim() : "";
+                if (rid) {
+                  enqueueEvidencePendingOp("restore", rid, "id");
+                } else if (row.title) {
+                  enqueueEvidencePendingOp("create", String(row.title).trim(), "title");
+                }
               }
               lastGorevlerDeletedId = "";
               lastGorevlerDeletedLocalRow = null;
@@ -10859,11 +11178,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
             persistPanelGorevlerTasks();
           }
           render();
+          scheduleEvidenceQueueFlush();
         });
       }
 
       wirePanel();
       wireGorevlerPrototype();
+      wireEvidenceQueueFlushTriggers();
       wireDosyalarUpload();
 
       /** Kontrollü köprü file_rw: yalnızca POST /controlled (genel /task akışına dokunulmaz). */
@@ -11488,11 +11809,18 @@ const PANEL_DEBUG = import.meta.env.DEV;
       }
 
       function applyPanelUserMode(mode) {
+        const prevMode = getPanelUserMode();
         const next = setPanelUserMode(mode);
         setPanelUserModeBadge(next);
         syncPanelUserModeControls(next);
         applyUserModeUi();
         paintPanelInfraStatusSkeleton();
+        if (
+          prevMode === "offline" &&
+          (next === "limited" || next === "full")
+        ) {
+          scheduleEvidenceQueueFlush();
+        }
         return next;
       }
 
