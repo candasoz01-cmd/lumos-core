@@ -9,10 +9,14 @@ Best-effort append; journal failure must not break main mutations.
 from __future__ import annotations
 
 import json
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
+
+if TYPE_CHECKING:
+    from core.guard_audit import GuardEvent
 
 from core.log_rotation import DEFAULT_KEEP, DEFAULT_MAX_BYTES, append_jsonl_with_rotation
 from core.workspace_contract import allow_write_to_core, logs_dir_path
@@ -22,10 +26,14 @@ SCHEMA_V1 = "lumos.evidence_continuity.v1"
 SOURCE_PANEL_TASKS_SERVER = "panel_tasks_server"
 SOURCE_TASK_ENGINE = "task_engine"
 SOURCE_KANDO_BRIDGE = "kando_bridge"
+SOURCE_GUARD_AUDIT = "guard_audit"
+SOURCE_ACTION_POLICY = "action_policy"
 
 STORE_PANEL_TASKS = "panel_tasks"
 STORE_TASK_ENGINE = "task_engine"
 STORE_BRIDGE_OUTBOX = "bridge_outbox"
+STORE_GUARD = "guard"
+STORE_POLICY_LOG = "policy_log"
 
 OPERATION_PANEL_TASK_CREATE = "panel.task.create"
 OPERATION_PANEL_TASK_COMPLETE = "panel.task.complete"
@@ -34,6 +42,8 @@ OPERATION_PANEL_TASK_RESTORE = "panel.task.restore"
 OPERATION_PANEL_TASK_PUT = "panel.task.put"
 OPERATION_ENGINE_TASK_MUTATION = "engine.task.mutation"
 OPERATION_BRIDGE_TASK_POST = "bridge.task.post"
+OPERATION_GUARD_DECISION = "guard.decision"
+OPERATION_POLICY_BLOCKED = "policy.blocked"
 
 PHASE_BEFORE = "before"
 PHASE_AFTER = "after"
@@ -50,8 +60,24 @@ MUTATION_RESTORE = "restore"
 MUTATION_UPDATE = "update"
 MUTATION_ARCHIVE = "archive"
 
-SOURCES = frozenset({SOURCE_PANEL_TASKS_SERVER, SOURCE_TASK_ENGINE, SOURCE_KANDO_BRIDGE})
-STORES = frozenset({STORE_PANEL_TASKS, STORE_TASK_ENGINE, STORE_BRIDGE_OUTBOX})
+SOURCES = frozenset(
+    {
+        SOURCE_PANEL_TASKS_SERVER,
+        SOURCE_TASK_ENGINE,
+        SOURCE_KANDO_BRIDGE,
+        SOURCE_GUARD_AUDIT,
+        SOURCE_ACTION_POLICY,
+    }
+)
+STORES = frozenset(
+    {
+        STORE_PANEL_TASKS,
+        STORE_TASK_ENGINE,
+        STORE_BRIDGE_OUTBOX,
+        STORE_GUARD,
+        STORE_POLICY_LOG,
+    }
+)
 OPERATIONS = frozenset(
     {
         OPERATION_PANEL_TASK_CREATE,
@@ -61,6 +87,8 @@ OPERATIONS = frozenset(
         OPERATION_PANEL_TASK_PUT,
         OPERATION_ENGINE_TASK_MUTATION,
         OPERATION_BRIDGE_TASK_POST,
+        OPERATION_GUARD_DECISION,
+        OPERATION_POLICY_BLOCKED,
     }
 )
 PHASES = frozenset({PHASE_BEFORE, PHASE_AFTER, PHASE_ERROR, PHASE_RESULT})
@@ -74,8 +102,14 @@ PAYLOAD_SUMMARY_ALLOWED_KEYS = frozenset(
         "events_appended",
         "trash_written",
         "step_count",
+        "action",
+        "reason_code",
     }
 )
+
+_POLICY_BLOCKED_ROUTE = "cli:task_mutation"
+
+_MIRROR_CTX = threading.local()
 
 EVIDENCE_CONTINUITY_FILENAME = "evidence_continuity.jsonl"
 
@@ -115,6 +149,8 @@ def sanitize_payload_summary(summary: dict[str, Any] | None) -> dict[str, Any] |
         elif key == "trash_written":
             out[key] = bool(value)
         elif key == "route":
+            out[key] = str(value)[:80]
+        elif key in ("action", "reason_code"):
             out[key] = str(value)[:80]
         else:
             out[key] = value
@@ -289,6 +325,89 @@ def mirror_post_task_outbox_record(
         },
         error=error,
     )
+
+
+def is_evidence_mirror_active() -> bool:
+    return bool(getattr(_MIRROR_CTX, "active", False))
+
+
+def _set_evidence_mirror_active(active: bool) -> None:
+    _MIRROR_CTX.active = active
+
+
+def _guard_deny_error_message(reason: str | None) -> str:
+    if reason == "core_state_under_live_base":
+        return "sandbox core write denied"
+    return "guard deny"
+
+
+def mirror_guard_event_record(event: GuardEvent) -> dict[str, Any]:
+    reason_code = (event.reason or "unknown")[:80]
+    return build_evidence_record(
+        correlation_id=generate_correlation_id(),
+        source=SOURCE_GUARD_AUDIT,
+        store=STORE_GUARD,
+        operation=OPERATION_GUARD_DECISION,
+        phase=PHASE_AFTER,
+        outcome=OUTCOME_ERROR,
+        error={
+            "code": reason_code,
+            "message": _guard_deny_error_message(event.reason),
+        },
+        payload_summary={
+            "action": event.action,
+            "reason_code": reason_code,
+            "route": event.caller or "",
+            "title_preview": event.path.name,
+        },
+    )
+
+
+def mirror_guard_event_to_evidence_journal(
+    event: GuardEvent,
+    *,
+    base_dir: Path | str | None = None,
+) -> dict[str, Any]:
+    from core.lumos_base_dir import lumos_base_dir
+
+    record = mirror_guard_event_record(event)
+    target = base_dir if base_dir is not None else lumos_base_dir()
+    _set_evidence_mirror_active(True)
+    try:
+        return append_evidence_event(target, record)
+    finally:
+        _set_evidence_mirror_active(False)
+
+
+def mirror_policy_blocked_record(action: str, reason: str) -> dict[str, Any]:
+    reason_code = str(reason)[:80]
+    return build_evidence_record(
+        correlation_id=generate_correlation_id(),
+        source=SOURCE_ACTION_POLICY,
+        store=STORE_POLICY_LOG,
+        operation=OPERATION_POLICY_BLOCKED,
+        phase=PHASE_AFTER,
+        outcome=OUTCOME_ERROR,
+        error={"code": reason_code, "message": "policy blocked"},
+        payload_summary={
+            "action": action,
+            "reason_code": reason_code,
+            "route": _POLICY_BLOCKED_ROUTE,
+        },
+    )
+
+
+def mirror_policy_blocked_to_evidence_journal(
+    base_dir: Path | str,
+    action: str,
+    reason: str,
+) -> dict[str, Any]:
+    record = mirror_policy_blocked_record(action, reason)
+    _set_evidence_mirror_active(True)
+    try:
+        return append_evidence_event(base_dir, record)
+    finally:
+        _set_evidence_mirror_active(False)
 
 
 def mirror_post_task_outbox_to_evidence_journal(

@@ -91,3 +91,9 @@ def log_policy_blocked(base_dir: str, action: str, reason: str) -> None:
             f.write(line + "\n")
     except OSError:
         pass
+    try:
+        from core.evidence_continuity import mirror_policy_blocked_to_evidence_journal
+
+        mirror_policy_blocked_to_evidence_journal(base_dir, action, reason)
+    except Exception:
+        pass

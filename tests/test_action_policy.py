@@ -1,9 +1,19 @@
 """Hardcoded action policy (CLI/panel ile aynı kurallar)."""
 from __future__ import annotations
 
+import json
 import tempfile
 from pathlib import Path
 
+from core.evidence_continuity import (
+    OPERATION_POLICY_BLOCKED,
+    OUTCOME_ERROR,
+    PHASE_AFTER,
+    SOURCE_ACTION_POLICY,
+    STORE_POLICY_LOG,
+    evidence_continuity_path,
+    validate_evidence_record,
+)
 from policy.action_policy import (
     ACCESS_IDENTITY,
     CANCEL_TASK,
@@ -60,6 +70,30 @@ def test_policy_log_appends_line():
         assert "action=create_task" in txt
         assert "reason=offline_mode" in txt
         assert "ts=" in txt
+
+
+def test_policy_block_mirrors_to_evidence_journal():
+    with tempfile.TemporaryDirectory() as d:
+        base = Path(d)
+        log_policy_blocked(str(base), "create_task", "offline_mode")
+        journal = evidence_continuity_path(base)
+        assert journal.is_file()
+        records = [
+            json.loads(line)
+            for line in journal.read_text(encoding="utf-8").strip().splitlines()
+            if line.strip()
+        ]
+        assert len(records) == 1
+        rec = records[0]
+        assert rec["source"] == SOURCE_ACTION_POLICY
+        assert rec["store"] == STORE_POLICY_LOG
+        assert rec["operation"] == OPERATION_POLICY_BLOCKED
+        assert rec["phase"] == PHASE_AFTER
+        assert rec["outcome"] == OUTCOME_ERROR
+        assert rec["payload_summary"]["action"] == "create_task"
+        assert rec["payload_summary"]["reason_code"] == "offline_mode"
+        assert validate_evidence_record(rec) == []
+        assert (base / "logs" / "log.txt").is_file()
 
 
 def test_user_messages_non_empty():
