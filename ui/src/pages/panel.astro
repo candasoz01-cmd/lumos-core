@@ -203,6 +203,199 @@ const PANEL_DEBUG = import.meta.env.DEV;
         background: rgba(72, 62, 48, 0.28);
         border-color: rgba(160, 140, 108, 0.32);
       }
+      .panel-user-mode-badge {
+        flex: 0 0 auto;
+        font-size: 0.58rem;
+        font-weight: 600;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        padding: 0.2rem 0.48rem;
+        border-radius: 999px;
+        line-height: 1.25;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        white-space: nowrap;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      }
+      .panel-user-mode-badge[data-mode="offline"] {
+        color: rgba(210, 198, 168, 0.92);
+        background: rgba(72, 62, 48, 0.28);
+        border-color: rgba(160, 140, 108, 0.32);
+      }
+      .panel-user-mode-badge[data-mode="limited"] {
+        color: rgba(220, 205, 170, 0.94);
+        background: rgba(88, 72, 44, 0.3);
+        border-color: rgba(184, 148, 96, 0.34);
+      }
+      .panel-user-mode-badge[data-mode="full"] {
+        color: rgb(196 234 255 / 0.96);
+        background: linear-gradient(180deg, rgb(6 16 36 / 0.96) 0%, rgb(2 6 18 / 0.98) 100%);
+        border-color: var(--lumos-teal-38);
+        box-shadow:
+          inset 0 1px 0 var(--lumos-tq-badge-inset),
+          0 0 10px rgb(var(--lumos-land-teal) / 0.12);
+      }
+      .panel-user-mode-wrap {
+        position: relative;
+        flex: 0 0 auto;
+      }
+      button.panel-user-mode-badge {
+        appearance: none;
+        -webkit-appearance: none;
+        margin: 0;
+        cursor: pointer;
+        font-family: inherit;
+        transition:
+          filter 0.15s ease,
+          border-color 0.15s ease,
+          box-shadow 0.15s ease;
+      }
+      button.panel-user-mode-badge:hover {
+        filter: brightness(1.08);
+      }
+      button.panel-user-mode-badge:focus-visible {
+        outline: 2px solid var(--lumos-teal-38);
+        outline-offset: 2px;
+      }
+      button.panel-user-mode-badge.panel-user-mode-badge--open {
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.08),
+          0 0 0 1px var(--lumos-teal-18);
+      }
+      .panel-user-mode-menu {
+        position: absolute;
+        top: calc(100% + 0.35rem);
+        right: 0;
+        z-index: 60;
+        display: flex;
+        flex-direction: column;
+        gap: 0.12rem;
+        min-width: 9.5rem;
+        padding: 0.35rem;
+        border-radius: 0.7rem;
+        border: 1px solid var(--lumos-border);
+        background: rgba(5, 10, 22, 0.98);
+        box-shadow:
+          0 10px 28px rgb(0 0 0 / 0.42),
+          var(--panel-edge-inset);
+      }
+      .panel-user-mode-menu[hidden] {
+        display: none !important;
+      }
+      .panel-user-mode-menu__item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        width: 100%;
+        margin: 0;
+        padding: 0.42rem 0.5rem;
+        border: none;
+        border-radius: 0.45rem;
+        background: transparent;
+        color: rgb(214 232 248 / 0.96);
+        font: inherit;
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        line-height: 1.35;
+        text-align: start;
+        cursor: pointer;
+      }
+      .panel-user-mode-menu__item:hover,
+      .panel-user-mode-menu__item:focus-visible {
+        background: rgb(var(--lumos-land-teal) / 0.1);
+        outline: none;
+      }
+      .panel-user-mode-menu__item[aria-checked="true"] {
+        color: rgb(196 234 255 / 0.96);
+        background: linear-gradient(180deg, rgb(6 16 36 / 0.96) 0%, rgb(2 6 18 / 0.98) 100%);
+        box-shadow: inset 0 1px 0 var(--lumos-tq-badge-inset);
+      }
+      .panel-user-mode-menu__check {
+        flex: 0 0 auto;
+        font-size: 0.68rem;
+        opacity: 0;
+        color: rgb(130 206 255 / 0.92);
+      }
+      .panel-user-mode-menu__item[aria-checked="true"] .panel-user-mode-menu__check {
+        opacity: 1;
+      }
+      .panel-user-mode-fieldset {
+        margin: 0;
+        padding: 0;
+        border: 0;
+        min-width: 0;
+      }
+      .panel-user-mode-legend {
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--lumos-muted);
+        margin-bottom: 0.55rem;
+      }
+      .panel-user-mode-seg {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+      }
+      .panel-user-mode-seg-option {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        cursor: pointer;
+      }
+      .panel-user-mode-seg-option input {
+        position: absolute;
+        opacity: 0;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+      }
+      .panel-user-mode-seg-option span {
+        display: inline-block;
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        padding: 0.32rem 0.62rem;
+        border-radius: 999px;
+        border: 1px solid var(--lumos-teal-18);
+        background: var(--lumos-main-bg);
+        color: var(--lumos-muted);
+        transition:
+          border-color 0.15s ease,
+          background 0.15s ease,
+          color 0.15s ease;
+      }
+      .panel-user-mode-seg-option input:focus-visible + span {
+        outline: 2px solid var(--lumos-teal-38);
+        outline-offset: 2px;
+      }
+      .panel-user-mode-seg-option input:checked + span {
+        color: rgb(196 234 255 / 0.96);
+        border-color: var(--lumos-teal-38);
+        background: linear-gradient(180deg, rgb(6 16 36 / 0.96) 0%, rgb(2 6 18 / 0.98) 100%);
+        box-shadow: inset 0 1px 0 var(--lumos-tq-badge-inset);
+      }
+      .panel-infra-status-dl {
+        margin: 0.35rem 0 0;
+        display: grid;
+        gap: 0.35rem 0.75rem;
+        grid-template-columns: minmax(5.5rem, auto) 1fr;
+        font-size: 0.74rem;
+        line-height: 1.4;
+      }
+      .panel-infra-status-dl dt {
+        margin: 0;
+        font-weight: 600;
+        color: var(--lumos-muted);
+      }
+      .panel-infra-status-dl dd {
+        margin: 0;
+        color: var(--lumos-text);
+        word-break: break-word;
+      }
       .panel-health-row {
         display: flex;
         flex-wrap: wrap;
@@ -2833,6 +3026,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
           padding: 0.06rem 0.2rem;
           box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
         }
+        .panel-user-mode-badge {
+          font-size: 0.4rem;
+          line-height: 1.2;
+          padding: 0.06rem 0.2rem;
+        }
         .panel-conn-badge[data-state="ok"] {
           box-shadow: inset 0 1px 0 var(--lumos-tq-badge-inset);
         }
@@ -3756,12 +3954,66 @@ const PANEL_DEBUG = import.meta.env.DEV;
             <h1>Lumos Panel</h1>
           </div>
           <div class="panel-health-row">
+            <div class="panel-user-mode-wrap">
+              <button
+                type="button"
+                id="panel-user-mode-badge"
+                class="panel-user-mode-badge"
+                data-mode="limited"
+                aria-live="polite"
+                aria-label="Kullanıcı modu seç"
+                title="Mod değiştir (Offline, Sınırlı, Tam)"
+                aria-haspopup="menu"
+                aria-expanded="false"
+                aria-controls="panel-user-mode-menu"
+              >Mod · Sınırlı</button>
+              <div
+                id="panel-user-mode-menu"
+                class="panel-user-mode-menu"
+                role="menu"
+                hidden
+                aria-label="Mod seçimi"
+              >
+                <button
+                  type="button"
+                  class="panel-user-mode-menu__item"
+                  role="menuitemradio"
+                  data-mode="offline"
+                  aria-checked="false"
+                >
+                  <span class="panel-user-mode-menu__label">Offline</span>
+                  <span class="panel-user-mode-menu__check" aria-hidden="true">✓</span>
+                </button>
+                <button
+                  type="button"
+                  class="panel-user-mode-menu__item"
+                  role="menuitemradio"
+                  data-mode="limited"
+                  aria-checked="true"
+                >
+                  <span class="panel-user-mode-menu__label">Sınırlı</span>
+                  <span class="panel-user-mode-menu__check" aria-hidden="true">✓</span>
+                </button>
+                <button
+                  type="button"
+                  class="panel-user-mode-menu__item"
+                  role="menuitemradio"
+                  data-mode="full"
+                  aria-checked="false"
+                >
+                  <span class="panel-user-mode-menu__label">Tam</span>
+                  <span class="panel-user-mode-menu__check" aria-hidden="true">✓</span>
+                </button>
+              </div>
+            </div>
             <span
               id="panel-conn-badge"
               class="panel-conn-badge"
               data-state="pending"
               role="status"
               aria-live="polite"
+              aria-label="Altyapı bağlantı durumu"
+              title="Altyapı: köprü bağlantısı"
             >Bağlanıyor</span>
             <GlobalMay19Corner />
           </div>
@@ -4991,6 +5243,46 @@ const PANEL_DEBUG = import.meta.env.DEV;
             </p>
             <ul class="medya-card-list">
               <li class="medya-card">
+                <h3>Kullanıcı modu</h3>
+                <p>
+                  Panelin çalışma kapsamını siz seçersiniz. Bu tercih altyapı bağlantı durumundan ayrıdır; köprü rozeti yalnızca
+                  teknik durumu gösterir.
+                </p>
+                <fieldset class="panel-user-mode-fieldset">
+                  <legend class="panel-user-mode-legend" id="panel-user-mode-seg-label">Mod seçimi</legend>
+                  <div class="panel-user-mode-seg" role="radiogroup" aria-labelledby="panel-user-mode-seg-label">
+                    <label class="panel-user-mode-seg-option">
+                      <input type="radio" name="panel-user-mode" value="offline" />
+                      <span>Çevrimdışı</span>
+                    </label>
+                    <label class="panel-user-mode-seg-option">
+                      <input type="radio" name="panel-user-mode" value="limited" checked />
+                      <span>Sınırlı</span>
+                    </label>
+                    <label class="panel-user-mode-seg-option">
+                      <input type="radio" name="panel-user-mode" value="full" />
+                      <span>Tam</span>
+                    </label>
+                  </div>
+                </fieldset>
+              </li>
+              <li class="medya-card">
+                <h3>Altyapı durumu</h3>
+                <p>
+                  Köprü, anahtar, sağlık ve ağ durumu — kullanıcı modundan bağımsız teknik özet.
+                </p>
+                <dl class="panel-infra-status-dl" aria-label="Altyapı durumu özeti">
+                  <dt>Köprü</dt>
+                  <dd id="panel-infra-bridge">—</dd>
+                  <dt>Anahtar</dt>
+                  <dd id="panel-infra-token">—</dd>
+                  <dt>Sağlık</dt>
+                  <dd id="panel-infra-health">—</dd>
+                  <dt>İnternet</dt>
+                  <dd id="panel-infra-internet">—</dd>
+                </dl>
+              </li>
+              <li class="medya-card">
                 <h3>Kullanıcı Tercihleri</h3>
                 <p>
                   Dil, tema, bildirim yoğunluğu gibi seçenekler anlaşılır gruplarda sunulmayı hedefler.
@@ -5071,6 +5363,50 @@ const PANEL_DEBUG = import.meta.env.DEV;
     <script define:vars={{ CHAT_URL, kandoToken, UPLOAD_URL, HEALTH_URL, BRIDGE_BASE_URL, STATUS_URL, TASKS_API_URL, PANEL_DEBUG }}>
       /** Görevler: panel_tasks_server → .lumos/tasks.json; localStorage önbellek (görev eklerken köprü yok). */
       const PANEL_GOREVLER_LS_KEY = "lumos_panel_gorevler_list_v1";
+      /** PR-1: kullanıcı modu — altyapı durumundan bağımsız tercih. */
+      const PANEL_USER_MODE_LS_KEY = "lumos_panel_user_mode_v1";
+      const PANEL_USER_MODES = ["offline", "limited", "full"];
+      const PANEL_USER_MODE_LABELS = {
+        offline: { short: "Çevrimdışı", badge: "Mod · Çevrimdışı" },
+        limited: { short: "Sınırlı", badge: "Mod · Sınırlı" },
+        full: { short: "Tam", badge: "Mod · Tam" },
+      };
+
+      function normalizePanelUserMode(mode) {
+        const m = String(mode || "")
+          .trim()
+          .toLowerCase();
+        return PANEL_USER_MODES.includes(m) ? m : "limited";
+      }
+
+      function getPanelUserMode() {
+        try {
+          if (typeof localStorage === "undefined") return "limited";
+          const raw = localStorage.getItem(PANEL_USER_MODE_LS_KEY);
+          if (!raw) return "limited";
+          return normalizePanelUserMode(raw);
+        } catch {
+          return "limited";
+        }
+      }
+
+      function setPanelUserMode(mode) {
+        const next = normalizePanelUserMode(mode);
+        try {
+          if (typeof localStorage !== "undefined") {
+            localStorage.setItem(PANEL_USER_MODE_LS_KEY, next);
+          }
+        } catch {
+          /* localStorage kapalı olabilir */
+        }
+        return next;
+      }
+
+      function panelUserModeBadgeLabel(mode) {
+        const row = PANEL_USER_MODE_LABELS[normalizePanelUserMode(mode)];
+        return row ? row.badge : PANEL_USER_MODE_LABELS.limited.badge;
+      }
+
       const GOREVLER_FIELD_MAX_LEN = 2048;
       const bridgeTokenMissing = !PANEL_DEBUG && !String(kandoToken || "").trim();
       const BRIDGE_TOKEN_MSG =
@@ -5088,21 +5424,64 @@ const PANEL_DEBUG = import.meta.env.DEV;
         return bridgeTokenMissing;
       }
 
+      function isOfflineUserMode() {
+        return getPanelUserMode() === "offline";
+      }
+
+      function isLocalOnlyUserMode() {
+        const mode = getPanelUserMode();
+        return mode === "offline" || mode === "limited";
+      }
+
+      function shouldAttemptRemoteChat() {
+        return getPanelUserMode() === "full";
+      }
+
+      function remoteTranscriptionBlocked() {
+        if (isOfflineUserMode()) {
+          return { blocked: true, message: AUDIO_TRANSCRIPT_OFFLINE_MSG };
+        }
+        if (getPanelUserMode() === "limited") {
+          return { blocked: true, message: AUDIO_TRANSCRIPT_LIMITED_USER_MSG };
+        }
+        return { blocked: false, message: "" };
+      }
+
       const BRIDGE_BADGE_LIMITED_LABEL = "Sınırlı mod";
+      const CHAT_EMPTY_DEFAULT_TEXT = "Lumos hazır · Dinliyor";
       const CHAT_EMPTY_LIMITED_TEXT = "Sınırlı mod · Yerel işlemler kullanılabilir";
+      const CHAT_EMPTY_LIMITED_USER_TEXT = "Sınırlı mod · Kullanıcı seçimi";
       const CHAT_EMPTY_LIMITED_SUBTEXT =
         "Yerel görevler kullanılabilir; dış köprü gerektiren işlemler beklemede.";
+      const CHAT_EMPTY_LIMITED_USER_SUBTEXT =
+        "Yerel görevler kullanılabilir; bu modda dış sohbet köprüsü denenmez.";
+      const CHAT_EMPTY_OFFLINE_TEXT = "Çevrimdışı mod · İnternet kullanılmaz";
+      const CHAT_EMPTY_OFFLINE_SUBTEXT =
+        "Yerel işlemler kullanılabilir; dış bağlantı bu modda denenmez.";
       const SEND_LIMITED_HINT =
         "Sınırlı mod: dış sohbet köprüsü yok; yerel yanıtlar ve görev komutları kullanılabilir.";
+      const SEND_LIMITED_USER_HINT =
+        "Sınırlı moddasın (kullanıcı seçimi); yerel yanıtlar ve görev komutları kullanılabilir.";
+      const SEND_OFFLINE_HINT =
+        "Çevrimdışı mod: internet ve dış köprü kullanılmaz; yerel yanıtlar kullanılabilir.";
       const PANEL_LIMITED_PHOTO_REPLY =
         "Sınırlı modda fotoğraf analizi yapılamaz; dış görsel API köprüsü bağlı değil.";
+      const PANEL_OFFLINE_PHOTO_REPLY =
+        "Çevrimdışı modda fotoğraf analizi yapılamaz; internet erişimi kapalı.";
       const PANEL_LIMITED_AUDIO_REPLY =
         "Sınırlı modda ses kaydı yalnızca bu cihazda görünür; dış sohbete iletilmez.";
+      const PANEL_OFFLINE_AUDIO_REPLY =
+        "Çevrimdışı modda ses kaydı yalnızca bu cihazda görünür; dış sohbete iletilmez.";
+      const PANEL_INFRA_UNAVAILABLE_MSG = "Köprü erişilemiyor (altyapı). Bağlantıyı kontrol edip tekrar deneyin.";
       const AUDIO_TRANSCRIPT_BUBBLE_MSG =
         "Ses metne çeviri motoru henüz bağlı değil. Bu ses şu an yalnızca bu cihazda oynatılabilir; dışarı gönderilmedi.";
       const AUDIO_TRANSCRIPT_ENGINE_MSG = "Ses metne çeviri motoru henüz bağlı değil.";
       const AUDIO_TRANSCRIPT_LIMITED_MSG =
         "Sınırlı modda ses metne çeviri kullanılamaz; dış köprü bağlı değil.";
+      const AUDIO_TRANSCRIPT_LIMITED_USER_MSG =
+        "Sınırlı moddasın (kullanıcı seçimi); ses metne çeviri bu modda denenmez.";
+      const AUDIO_TRANSCRIPT_OFFLINE_MSG =
+        "Çevrimdışı modda ses metne çeviri kullanılamaz; internet erişimi kapalı.";
       const AUDIO_TRANSCRIPT_BUSY_MSG = "Metne çevriliyor…";
       const AUDIO_TRANSCRIPT_PRIVACY_MSG =
         "Metin yalnızca önizleme; «Sohbete ekle» ile yazma alanına kopyalanır, otomatik gönderilmez.";
@@ -5211,12 +5590,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
             message: "Ses verisi yok veya çok kısa.",
           };
         }
-        if (bridgeOpsBlocked()) {
+        const transcribeUserBlock = remoteTranscriptionBlocked();
+        if (transcribeUserBlock.blocked) {
           return {
             ok: false,
             blocked: true,
-            error: "bridge_limited",
-            message: AUDIO_TRANSCRIPT_LIMITED_MSG,
+            error: isOfflineUserMode() ? "offline_mode" : "user_limited_mode",
+            message: transcribeUserBlock.message,
           };
         }
         const safeName =
@@ -5272,13 +5652,33 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   : AUDIO_TRANSCRIPT_ENGINE_MSG,
             };
           }
-          if (bridgeOpsBlocked() || (data && data.error === "bridge_proxy_unconfigured")) {
+          if (data && data.error === "bridge_proxy_unconfigured") {
+            if (isLocalOnlyUserMode()) {
+              const block = remoteTranscriptionBlocked();
+              return {
+                ok: false,
+                blocked: true,
+                status: r.status,
+                error: "bridge_proxy_unconfigured",
+                message: block.message,
+              };
+            }
+            return {
+              ok: false,
+              transcribeFailure: true,
+              status: r.status,
+              error: "bridge_proxy_unconfigured",
+              message: PANEL_INFRA_UNAVAILABLE_MSG,
+            };
+          }
+          if (isLocalOnlyUserMode()) {
+            const block = remoteTranscriptionBlocked();
             return {
               ok: false,
               blocked: true,
               status: r.status,
-              error: data && data.error ? String(data.error) : "bridge_proxy_unconfigured",
-              message: AUDIO_TRANSCRIPT_LIMITED_MSG,
+              error: data && data.error ? String(data.error) : "bridge_limited",
+              message: block.message,
             };
           }
           return {
@@ -5443,8 +5843,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
             showStatus("Ses verisi yok veya çok kısa.");
             return;
           }
-          if (bridgeOpsBlocked()) {
-            showStatus(AUDIO_TRANSCRIPT_LIMITED_MSG);
+          const transcribeUserBlock = remoteTranscriptionBlocked();
+          if (transcribeUserBlock.blocked) {
+            showStatus(transcribeUserBlock.message);
             return;
           }
           setBusy(true);
@@ -5612,8 +6013,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
             showStatus("Ses verisi yok veya çok kısa.");
             return;
           }
-          if (bridgeOpsBlocked()) {
-            showStatus(AUDIO_TRANSCRIPT_LIMITED_MSG);
+          const transcribeUserBlock = remoteTranscriptionBlocked();
+          if (transcribeUserBlock.blocked) {
+            showStatus(transcribeUserBlock.message);
             return;
           }
           setBusy(true);
@@ -5685,21 +6087,55 @@ const PANEL_DEBUG = import.meta.env.DEV;
         el.setAttribute("data-state", row.state);
       }
 
-      function applyBridgeLimitedUi() {
-        if (!bridgeOpsBlocked()) return;
+      function applyUserModeUi() {
+        const mode = getPanelUserMode();
         const chatEmptyText = document.querySelector(".chat-empty-hint__text");
-        if (chatEmptyText) chatEmptyText.textContent = CHAT_EMPTY_LIMITED_TEXT;
         const chatEmptySub = document.getElementById("chat-empty-limited-sub");
+        const sendLimitedHint = document.getElementById("panel-send-limited-hint");
+        const emptySecretNote = document.getElementById("panel-empty-secret-note");
+
+        if (mode === "full") {
+          if (chatEmptyText) chatEmptyText.textContent = CHAT_EMPTY_DEFAULT_TEXT;
+          if (chatEmptySub) {
+            chatEmptySub.textContent = "";
+            chatEmptySub.hidden = true;
+          }
+          if (sendLimitedHint) sendLimitedHint.hidden = true;
+          return;
+        }
+
+        if (mode === "offline") {
+          if (chatEmptyText) chatEmptyText.textContent = CHAT_EMPTY_OFFLINE_TEXT;
+          if (chatEmptySub) {
+            chatEmptySub.textContent = CHAT_EMPTY_OFFLINE_SUBTEXT;
+            chatEmptySub.hidden = false;
+          }
+          if (sendLimitedHint) {
+            sendLimitedHint.textContent = SEND_OFFLINE_HINT;
+            sendLimitedHint.hidden = false;
+          }
+          if (emptySecretNote) emptySecretNote.hidden = true;
+          for (const id of KISITLI_CAP_IDS) {
+            setCap(document.getElementById(id), "kisitli");
+            const note = document.querySelector('[data-cap-note-for="' + id + '"]');
+            if (note) {
+              note.textContent = CAP_LIMITED_NOTE;
+              note.hidden = false;
+            }
+          }
+          setCap(document.getElementById("cap-task-complete"), "aktif");
+          return;
+        }
+
+        if (chatEmptyText) chatEmptyText.textContent = CHAT_EMPTY_LIMITED_USER_TEXT;
         if (chatEmptySub) {
-          chatEmptySub.textContent = CHAT_EMPTY_LIMITED_SUBTEXT;
+          chatEmptySub.textContent = CHAT_EMPTY_LIMITED_USER_SUBTEXT;
           chatEmptySub.hidden = false;
         }
-        const sendLimitedHint = document.getElementById("panel-send-limited-hint");
         if (sendLimitedHint) {
-          sendLimitedHint.textContent = SEND_LIMITED_HINT;
+          sendLimitedHint.textContent = SEND_LIMITED_USER_HINT;
           sendLimitedHint.hidden = false;
         }
-        const emptySecretNote = document.getElementById("panel-empty-secret-note");
         if (emptySecretNote) emptySecretNote.hidden = true;
         for (const id of KISITLI_CAP_IDS) {
           setCap(document.getElementById(id), "kisitli");
@@ -5710,6 +6146,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
         }
         setCap(document.getElementById("cap-task-complete"), "aktif");
+      }
+
+      /** @deprecated use applyUserModeUi — kept for call-site clarity during bridge-only flows */
+      function applyBridgeLimitedUi() {
+        if (getPanelUserMode() === "full") return;
+        applyUserModeUi();
       }
 
       /** Rozet zaten köprü kapalı durumunu gösteriyorsa uzun BRIDGE_TOKEN_MSG tekrarlanmasın. */
@@ -6444,9 +6886,68 @@ const PANEL_DEBUG = import.meta.env.DEV;
           return null;
         }
 
+        const PANEL_TIME_QUERY_KEYS = [
+          "saat kaç",
+          "saat kac",
+          "saat",
+          "time",
+          "tarih",
+          "bugün kaç",
+          "bugun kac",
+          "bugün günlerden ne",
+          "bugun gunlerden ne",
+          "hangi gün",
+          "hangi gun",
+          "günlerden",
+          "gunlerden",
+        ];
+
+        function isPanelTimeQuery(text) {
+          const lower = String(text || "").trim().toLowerCase();
+          if (!lower) return false;
+          return PANEL_TIME_QUERY_KEYS.some((k) => lower.indexOf(k) !== -1);
+        }
+
+        function isPanelWeekdayTimeQuery(text) {
+          const lower = String(text || "").trim().toLowerCase();
+          return (
+            lower.indexOf("günlerden") !== -1 ||
+            lower.indexOf("gunlerden") !== -1 ||
+            lower.indexOf("hangi gün") !== -1 ||
+            lower.indexOf("hangi gun") !== -1
+          );
+        }
+
+        function tryPanelLocalTimeReply(userText) {
+          const trimmed = String(userText || "").trim();
+          if (!trimmed || !isPanelTimeQuery(trimmed)) return null;
+          const now = new Date();
+          const hh = String(now.getHours()).padStart(2, "0");
+          const mm = String(now.getMinutes()).padStart(2, "0");
+          const dd = String(now.getDate()).padStart(2, "0");
+          const mo = String(now.getMonth() + 1).padStart(2, "0");
+          const yyyy = now.getFullYear();
+          let reply = "Saat " + hh + ":" + mm + ". Bugün " + dd + "." + mo + "." + yyyy + ".";
+          if (isPanelWeekdayTimeQuery(trimmed)) {
+            const weekdays = [
+              "Pazar",
+              "Pazartesi",
+              "Salı",
+              "Çarşamba",
+              "Perşembe",
+              "Cuma",
+              "Cumartesi",
+            ];
+            reply += " Günlerden " + weekdays[now.getDay()] + ".";
+          }
+          return reply;
+        }
+
         function buildPanelLimitedReply(userText) {
           const trimmed = String(userText || "").trim();
           if (!trimmed) return "Bir mesaj yazın.";
+          const timeReply = tryPanelLocalTimeReply(trimmed);
+          if (timeReply) return timeReply;
           const navReply = tryPanelLimitedNavigationIntent(trimmed);
           if (navReply) return navReply;
           const keyTr = normalizePanelLimitedIntentKey(trimmed);
@@ -6466,7 +6967,31 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (keyTr.indexOf("akış") !== -1 || keyAscii.indexOf("akis") !== -1) {
             return "Sosyal ekranına geçip güncel listeyi görebilirsin.";
           }
-          return "Sınırlı moddasın; dış köprü yok. Yerel görevler ve kısa yönlendirmeler kullanılabilir — örn. «görev oluştur başlık» veya «görevler».";
+          return "Sınırlı moddasın (kullanıcı seçimi); yerel görevler ve kısa yönlendirmeler kullanılabilir — örn. «görev oluştur başlık» veya «görevler».";
+        }
+
+        function buildPanelOfflineReply(userText) {
+          const trimmed = String(userText || "").trim();
+          if (!trimmed) return "Bir mesaj yazın.";
+          const timeReply = tryPanelLocalTimeReply(trimmed);
+          if (timeReply) return timeReply;
+          const navReply = tryPanelLimitedNavigationIntent(trimmed);
+          if (navReply) {
+            return navReply.replace(/Sınırlı mod|bağlantı köprüsü olmadan dış sohbet devre dışı/gi, "Çevrimdışı mod");
+          }
+          const limited = buildPanelLimitedReply(trimmed);
+          if (limited.indexOf("Sınırlı moddasın") !== -1) {
+            return limited.replace(
+              "Sınırlı moddasın (kullanıcı seçimi)",
+              "Çevrimdışı moddasın; internet kullanılmaz",
+            );
+          }
+          return "Çevrimdışı moddasın; internet kullanılmaz. Yerel görevler kullanılabilir — örn. «görev oluştur başlık» veya «görevler».";
+        }
+
+        function buildPanelLocalModeReply(userText) {
+          if (isOfflineUserMode()) return buildPanelOfflineReply(userText);
+          return buildPanelLimitedReply(userText);
         }
 
         const sendLabel = "Gönder";
@@ -7569,19 +8094,67 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
 
           const panelGorevCmd = parsePanelGorevKomutu(message);
+          const userMode = getPanelUserMode();
 
-          if (bridgeOpsBlocked()) {
+          if (!hasPhoto && !hasAudio && !panelGorevCmd) {
+            const localTimeReply = tryPanelLocalTimeReply(message);
+            if (localTimeReply) {
+              sending = true;
+              sendBtn.disabled = true;
+              sendBtn.setAttribute("aria-busy", "true");
+              sendBtn.setAttribute("aria-label", loadingLabel);
+              sendBtn.setAttribute("title", loadingLabel);
+              sendBtn.classList.add("chat-compose-send--busy");
+              try {
+                appendBubble("user", message);
+                appendBubble("lumos", localTimeReply);
+                input.value = "";
+                clearPanelCameraPhotoSelection();
+                clearPanelAudioRecordSelection();
+                setSendHint("");
+                input.blur();
+                resetPanelHorizontalScrollAfterInputBlur();
+              } finally {
+                sending = false;
+                sendBtn.disabled = false;
+                sendBtn.removeAttribute("aria-busy");
+                sendBtn.setAttribute("aria-label", sendLabel);
+                sendBtn.setAttribute("title", sendLabel);
+                sendBtn.classList.remove("chat-compose-send--busy");
+                refocusPanelChatInput();
+              }
+              return;
+            }
+          }
+
+          if (!shouldAttemptRemoteChat()) {
             sending = true;
             sendBtn.disabled = true;
             sendBtn.setAttribute("aria-busy", "true");
             sendBtn.setAttribute("aria-label", loadingLabel);
             sendBtn.setAttribute("title", loadingLabel);
             sendBtn.classList.add("chat-compose-send--busy");
+            const photoReply =
+              userMode === "offline" ? PANEL_OFFLINE_PHOTO_REPLY : PANEL_LIMITED_PHOTO_REPLY;
+            const audioReply =
+              userMode === "offline" ? PANEL_OFFLINE_AUDIO_REPLY : PANEL_LIMITED_AUDIO_REPLY;
+            const photoHint =
+              userMode === "offline"
+                ? "Çevrimdışı modda görsel analizi kullanılamaz."
+                : userMode === "limited"
+                  ? "Sınırlı moddasın (kullanıcı seçimi); görsel analizi denenmez."
+                  : "Sınırlı modda görsel analizi kullanılamaz.";
+            const audioHint =
+              userMode === "offline"
+                ? "Çevrimdışı modda ses yalnızca yerel sohbette görünür."
+                : userMode === "limited"
+                  ? "Sınırlı moddasın (kullanıcı seçimi); ses dış sohbete iletilmez."
+                  : "Sınırlı modda ses yalnızca yerel sohbette görünür.";
             try {
               if (hasPhoto) {
                 appendUserComposeBubble(message, imageDataUrlForBubble);
-                appendBubble("lumos", PANEL_LIMITED_PHOTO_REPLY);
-                setSendHint("Sınırlı modda görsel analizi kullanılamaz.");
+                appendBubble("lumos", photoReply);
+                setSendHint(photoHint);
                 input.value = "";
                 clearPanelCameraPhotoSelection();
                 input.blur();
@@ -7591,8 +8164,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
               if (hasAudio) {
                 appendUserComposeBubble(message, null, audioBubbleUrl, null, audioRecordBlob);
-                appendBubble("lumos", PANEL_LIMITED_AUDIO_REPLY);
-                setSendHint("Sınırlı modda ses yalnızca yerel sohbette görünür.");
+                appendBubble("lumos", audioReply);
+                setSendHint(audioHint);
                 input.value = "";
                 clearPanelAudioRecordSelection();
                 input.blur();
@@ -7605,7 +8178,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 applyPanelGorevKomutu(panelGorevCmd);
                 appendBubble("lumos", buildPanelGorevConfirmation(panelGorevCmd));
               } else {
-                appendBubble("lumos", buildPanelLimitedReply(message));
+                appendBubble("lumos", buildPanelLocalModeReply(message));
               }
               input.value = "";
               clearPanelCameraPhotoSelection();
@@ -7770,6 +8343,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   ? panelUserVisibleText(upstreamErr)
                   : userMessageForPanelChatFailureKind(httpFailKind);
               appendBubble("error", httpFailMsg);
+              reportPanelInfraUnavailable("sohbet HTTP " + r.status, "Köprü erişilemiyor (altyapı)");
+              void loadPanelBackendStatus();
               if (photoTelemetry) {
                 let reason = "HTTP " + r.status;
                 let missingKey = "";
@@ -7950,6 +8525,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
               errMessage: netMsg,
             });
             appendBubble("error", userMessageForPanelChatFailureKind(netKind));
+            reportPanelInfraUnavailable(
+              "sohbet ağ: " + netMsg.slice(0, 120),
+              "Köprü erişilemiyor (altyapı)",
+            );
+            void loadPanelBackendStatus();
             if (photoTelemetry) {
               const visionGuess =
                 photoTelemetry.hasInline && !!photoFile && /^image\//i.test(photoFile.type || "");
@@ -8845,9 +9425,15 @@ const PANEL_DEBUG = import.meta.env.DEV;
             type: f.type,
             size: f.size,
           }, f);
-          if (bridgeOpsBlocked()) {
-            appendBubble("lumos", PANEL_LIMITED_AUDIO_REPLY);
-            setSendHint("Sınırlı modda ses yalnızca yerel sohbette görünür.");
+          if (!shouldAttemptRemoteChat()) {
+            const audioReply =
+              isOfflineUserMode() ? PANEL_OFFLINE_AUDIO_REPLY : PANEL_LIMITED_AUDIO_REPLY;
+            appendBubble("lumos", audioReply);
+            setSendHint(
+              isOfflineUserMode()
+                ? "Çevrimdışı modda ses yalnızca yerel sohbette görünür."
+                : "Sınırlı moddasın (kullanıcı seçimi); ses dış sohbete iletilmez.",
+            );
           }
           input.blur();
           resetPanelHorizontalScrollAfterInputBlur();
@@ -10647,7 +11233,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
       }
 
       wireCapabilityProbe();
-      applyBridgeLimitedUi();
+      applyUserModeUi();
 
       function setPanelConnBadge(state) {
         const badge = document.getElementById("panel-conn-badge");
@@ -10662,6 +11248,181 @@ const PANEL_DEBUG = import.meta.env.DEV;
         } else {
           badge.textContent = "Bağlanıyor";
         }
+        paintPanelInfraStatusSkeleton();
+      }
+
+      function setPanelUserModeBadge(mode) {
+        const badge = document.getElementById("panel-user-mode-badge");
+        if (!badge) return;
+        const next = normalizePanelUserMode(mode);
+        badge.setAttribute("data-mode", next);
+        badge.textContent = panelUserModeBadgeLabel(next);
+      }
+
+      function syncPanelUserModeControls(mode) {
+        const next = normalizePanelUserMode(mode);
+        const inputs = document.querySelectorAll('input[name="panel-user-mode"]');
+        inputs.forEach((input) => {
+          if (!(input instanceof HTMLInputElement)) return;
+          input.checked = input.value === next;
+        });
+        const menuItems = document.querySelectorAll("#panel-user-mode-menu [data-mode]");
+        menuItems.forEach((item) => {
+          if (!(item instanceof HTMLButtonElement)) return;
+          const isActive = item.getAttribute("data-mode") === next;
+          item.setAttribute("aria-checked", isActive ? "true" : "false");
+          item.setAttribute("aria-selected", isActive ? "true" : "false");
+        });
+      }
+
+      function applyPanelUserMode(mode) {
+        const next = setPanelUserMode(mode);
+        setPanelUserModeBadge(next);
+        syncPanelUserModeControls(next);
+        applyUserModeUi();
+        paintPanelInfraStatusSkeleton();
+        return next;
+      }
+
+      function panelInfraConnSummary() {
+        const badge = document.getElementById("panel-conn-badge");
+        if (badge && badge.textContent) return String(badge.textContent).trim();
+        return "—";
+      }
+
+      function paintPanelInfraStatusSkeleton() {
+        const bridgeEl = document.getElementById("panel-infra-bridge");
+        const tokenEl = document.getElementById("panel-infra-token");
+        const healthEl = document.getElementById("panel-infra-health");
+        const internetEl = document.getElementById("panel-infra-internet");
+        if (bridgeEl) bridgeEl.textContent = panelUserVisibleText(panelInfraConnSummary());
+        if (tokenEl) {
+          tokenEl.textContent = panelUserVisibleText(
+            bridgeTokenMissing ? "Yapılandırılmamış" : "Tanımlı",
+          );
+        }
+        if (healthEl) {
+          healthEl.textContent = panelUserVisibleText(
+            bridgeHealthLine != null ? String(bridgeHealthLine) : "—",
+          );
+        }
+        if (internetEl) {
+          let net = "—";
+          try {
+            if (typeof navigator !== "undefined" && "onLine" in navigator) {
+              net = navigator.onLine ? "Çevrimiçi" : "Çevrimdışı";
+            }
+          } catch {
+            net = "—";
+          }
+          internetEl.textContent = panelUserVisibleText(net);
+        }
+      }
+
+      function wirePanelUserMode() {
+        const inputs = document.querySelectorAll('input[name="panel-user-mode"]');
+        const badge = document.getElementById("panel-user-mode-badge");
+        const menu = document.getElementById("panel-user-mode-menu");
+        const menuItems = menu
+          ? Array.from(menu.querySelectorAll("[data-mode]")).filter(
+              (el) => el instanceof HTMLButtonElement,
+            )
+          : [];
+
+        function closeHeaderModeMenu() {
+          if (!menu || !badge) return;
+          menu.hidden = true;
+          badge.setAttribute("aria-expanded", "false");
+          badge.classList.remove("panel-user-mode-badge--open");
+        }
+
+        function openHeaderModeMenu() {
+          if (!menu || !badge) return;
+          menu.hidden = false;
+          badge.setAttribute("aria-expanded", "true");
+          badge.classList.add("panel-user-mode-badge--open");
+          const active =
+            menu.querySelector('[aria-checked="true"]') ||
+            menu.querySelector("[data-mode]");
+          if (active instanceof HTMLElement) active.focus();
+        }
+
+        function toggleHeaderModeMenu() {
+          if (!menu) return;
+          if (menu.hidden) openHeaderModeMenu();
+          else closeHeaderModeMenu();
+        }
+
+        const initial = applyPanelUserMode(getPanelUserMode());
+
+        inputs.forEach((input) => {
+          if (!(input instanceof HTMLInputElement)) return;
+          input.addEventListener("change", () => {
+            if (!input.checked) return;
+            applyPanelUserMode(input.value);
+          });
+        });
+
+        badge?.addEventListener("click", (e) => {
+          e.stopPropagation();
+          toggleHeaderModeMenu();
+        });
+
+        menuItems.forEach((item) => {
+          item.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const mode = item.getAttribute("data-mode");
+            if (mode) applyPanelUserMode(mode);
+            closeHeaderModeMenu();
+            badge?.focus();
+          });
+        });
+
+        menu?.addEventListener("keydown", (e) => {
+          if (menu.hidden || !menuItems.length) return;
+          const focusedIdx = menuItems.findIndex((item) => item === document.activeElement);
+          const idx = focusedIdx >= 0 ? focusedIdx : 0;
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            menuItems[(idx + 1) % menuItems.length]?.focus();
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            menuItems[(idx - 1 + menuItems.length) % menuItems.length]?.focus();
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            closeHeaderModeMenu();
+            badge?.focus();
+          } else if (e.key === "Enter" || e.key === " ") {
+            const focused =
+              document.activeElement instanceof HTMLButtonElement &&
+              menu.contains(document.activeElement)
+                ? document.activeElement
+                : null;
+            if (focused) {
+              e.preventDefault();
+              const mode = focused.getAttribute("data-mode");
+              if (mode) applyPanelUserMode(mode);
+              closeHeaderModeMenu();
+              badge?.focus();
+            }
+          }
+        });
+
+        document.addEventListener("click", (e) => {
+          if (!menu || menu.hidden) return;
+          const t = e.target;
+          if (!(t instanceof Node)) return;
+          if (badge?.contains(t) || menu.contains(t)) return;
+          closeHeaderModeMenu();
+        });
+
+        document.addEventListener("keydown", (e) => {
+          if (e.key !== "Escape" || !menu || menu.hidden) return;
+          closeHeaderModeMenu();
+          badge?.focus();
+        });
+
+        return initial;
       }
 
       function formatBytesShort(n) {
@@ -10723,6 +11484,18 @@ const PANEL_DEBUG = import.meta.env.DEV;
       let lastStatusCorsError = false;
       let lastChatOptionsPingLine = "—";
 
+      function reportPanelInfraUnavailable(debugDetail, userLine) {
+        setPanelConnBadge("bad");
+        bridgeHealthLine = panelDebugText(
+          debugDetail != null ? String(debugDetail) : "erişilemedi",
+          userLine != null ? String(userLine) : "Köprü erişilemiyor (altyapı)",
+        );
+        paintSistemDurumuPanel();
+        paintPanelInfraStatusSkeleton();
+      }
+
+      wirePanelUserMode();
+
       function setSistemDurumuDd(id, t) {
         const el = document.getElementById(id);
         if (el) el.textContent = panelUserVisibleText(t == null ? "" : String(t));
@@ -10741,6 +11514,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           setSistemDurumuDd("panel-sistem-durumu-chat", "—");
           setSistemDurumuDd("panel-sistem-durumu-vision", "—");
           setSistemDurumuDd("panel-sistem-durumu-vision-last", "—");
+          paintPanelInfraStatusSkeleton();
           return;
         }
         if (corsEl) {
@@ -10754,6 +11528,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           setSistemDurumuDd("panel-sistem-durumu-chat", "—");
           setSistemDurumuDd("panel-sistem-durumu-vision", "—");
           setSistemDurumuDd("panel-sistem-durumu-vision-last", "—");
+          paintPanelInfraStatusSkeleton();
           return;
         }
         const health = j.health != null ? String(j.health) : "—";
@@ -10767,6 +11542,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           visionCfg ? "Evet (görsel analiz için anahtar tanımlı)" : "Hayır",
         );
         setSistemDurumuDd("panel-sistem-durumu-vision-last", visionLast);
+        paintPanelInfraStatusSkeleton();
       }
 
       async function probeChatOptionsPingLine() {
@@ -10888,13 +11664,6 @@ const PANEL_DEBUG = import.meta.env.DEV;
       }
 
       void (async function checkBridgeHealth() {
-        if (bridgeOpsBlocked()) {
-          setPanelConnBadge("limited");
-          bridgeHealthLine = panelDebugText("yapılandırılmamış", "sınırlı mod");
-          paintSistemDurumuPanel();
-          applyBridgeLimitedUi();
-          return;
-        }
         setPanelConnBadge("pending");
         bridgeHealthLine = "deneniyor…";
         paintSistemDurumuPanel();
