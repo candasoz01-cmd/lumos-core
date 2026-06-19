@@ -503,6 +503,12 @@ def start_agent_job(
             last_path = outbox_dir / "agent_last.json"
             _write_json(last_path, fr)
             _copy_cursor_bridge_snapshots_to_outbox(rr, outbox_dir)
+            try:
+                from core.evidence_continuity import mirror_bridge_agent_result_to_evidence_journal
+
+                mirror_bridge_agent_result_to_evidence_journal(job_id, fr)
+            except Exception:
+                pass
         except Exception as e:
             state.status = "failed"
             state.errors.append(str(e)[:2000])
@@ -524,6 +530,12 @@ def start_agent_job(
                 )
                 _write_json(outbox_dir / "agent_last.json", fr)
             except OSError:
+                pass
+            try:
+                from core.evidence_continuity import mirror_bridge_agent_result_to_evidence_journal
+
+                mirror_bridge_agent_result_to_evidence_journal(job_id, fr)
+            except Exception:
                 pass
         finally:
             try:

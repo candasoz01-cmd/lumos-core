@@ -219,3 +219,15 @@ def test_validate_evidence_record_accepts_guard_policy_enum_values():
     assert policy_rec["store"] == STORE_POLICY_LOG
     assert policy_rec["operation"] == OPERATION_POLICY_BLOCKED
     assert validate_evidence_record(policy_rec) == []
+
+
+def test_validate_evidence_record_accepts_result_phase_and_job_id():
+    from core.evidence_continuity import (
+        PHASE_RESULT,
+        mirror_bridge_agent_result_record,
+    )
+
+    rec = mirror_bridge_agent_result_record("abc123", {"status": "ok", "task": "goal"})
+    assert rec["phase"] == PHASE_RESULT
+    assert rec["payload_summary"]["job_id"] == "abc123"
+    assert validate_evidence_record(rec) == []
