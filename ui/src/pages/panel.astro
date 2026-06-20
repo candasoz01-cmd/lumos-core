@@ -4946,17 +4946,19 @@ const PANEL_DEBUG = import.meta.env.DEV;
           >
             <h2 id="panel-dosyalar-title" data-i18n="panel.sections.dosyalar">Dosyalar</h2>
             <p class="gorevler-intro">
-              <span class="panel-data-flow-badge">[Harici Servis]</span>
-              Dosyayı cihazınızdan seçin; sunucu dosyayı alır, adı, türü ve boyutu döner. Metin dosyalarında kısa özet
+              <span class="panel-data-flow-badge" data-i18n="panel.common.badges.externalService">[Harici Servis]</span>
+              <span data-i18n="panel.modules.files.intro">
+              Dosyayı cihazınızdan seçin; Lumos köprüsü dosyayı alır, adı/türü/boyutu döner. Metin dosyalarında (.txt, .md, .json, .csv) kısa özet
               üretilir. PDF ve Word (DOCX) gibi biçimler bu fazda işlenmez.
+              </span>
             </p>
             <div class="gorevler-proto">
               <div class="gorevler-form-panel">
                 <div class="gorevler-field">
-                  <label for="dosyalar-file-input">Dosya seç</label>
+                  <label for="dosyalar-file-input" data-i18n="panel.modules.files.form.pickLabel">Dosya seç</label>
                   <input id="dosyalar-file-input" type="file" name="file" autocomplete="off" />
                 </div>
-                <button type="button" id="dosyalar-upload-btn" class="gorevler-add-btn">Yükle ve analiz et</button>
+                <button type="button" id="dosyalar-upload-btn" class="gorevler-add-btn" data-i18n="panel.modules.files.form.uploadBtn">Yükle ve analiz et</button>
                 <p id="dosyalar-hint" class="gorevler-hint" role="status" aria-live="polite" hidden></p>
               </div>
               <div id="dosyalar-result" class="dosyalar-result-stack" hidden aria-live="polite"></div>
@@ -5676,6 +5678,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
       function refreshPanelChatI18n() {
         applyUserModeUi();
         refreshChatBubbleRoles();
+      }
+
+      let refreshDosyalarPanelI18n = null;
+
+      function refreshPanelFilesI18n() {
+        if (typeof refreshDosyalarPanelI18n === "function") refreshDosyalarPanelI18n();
       }
       const PANEL_LIMITED_PHOTO_REPLY =
         "Sınırlı modda fotoğraf analizi yapılamaz; dış görsel API köprüsü bağlı değil.";
@@ -11922,7 +11930,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
       function dosyalarFormatSize(size) {
         const label = formatFileSize(size);
         if (label) return label;
-        if (size != null && size !== "") return String(size) + " bayt";
+        if (size != null && size !== "") return String(size) + panelT("panel.modules.files.messages.bytesSuffix");
         return "—";
       }
 
@@ -11935,21 +11943,21 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
       function dosyalarUnsupportedMessage(ext, mime) {
         if (dosyalarIsAudioFile(ext, mime)) {
-          return "Dosya başarıyla seçildi. Ses dosyaları Dosyalar sekmesinde bu fazda analiz edilmez.";
+          return panelT("panel.modules.files.messages.unsupportedAudio");
         }
         if (ext === "exe") {
-          return "Dosya çalıştırılmaz; yalnızca dosya bilgisi kaydedilir.";
+          return panelT("panel.modules.files.messages.unsupportedExe");
         }
         if (DOSYALAR_DOC_EXT.has(ext)) {
-          return "PDF ve Word (DOCX) içeriği bu fazda işlenmez.";
+          return panelT("panel.modules.files.messages.unsupportedDoc");
         }
-        return "Bu dosya türü bu fazda işlenmez.";
+        return panelT("panel.modules.files.messages.unsupportedGeneric");
       }
 
       function dosyalarInfoMessageForExt(ext) {
-        if (DOSYALAR_TEXT_EXT.has(ext)) return "Bu dosya için özet üretildi.";
+        if (DOSYALAR_TEXT_EXT.has(ext)) return panelT("panel.modules.files.messages.infoSummary");
         if (ext === "py") {
-          return "Dosya metin dosyası gibi gösterilir; bu fazda kod çalıştırılmaz.";
+          return panelT("panel.modules.files.messages.infoPy");
         }
         return "";
       }
@@ -12027,9 +12035,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
         if (ext === "json") {
           try {
             const o = JSON.parse(t);
-            if (Array.isArray(o)) return "JSON dizi: " + o.length + " öğe.";
+            if (Array.isArray(o)) {
+              return panelT("panel.modules.files.messages.summaryJsonArray").replace("{count}", String(o.length));
+            }
             if (o && typeof o === "object") {
-              return "JSON nesne: " + Object.keys(o).length + " anahtar.";
+              return panelT("panel.modules.files.messages.summaryJsonObject").replace(
+                "{count}",
+                String(Object.keys(o).length),
+              );
             }
           } catch {
             /* geçersiz JSON — düz metin özeti */
@@ -12037,7 +12050,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         }
         if (ext === "csv") {
           const lines = t.split(/\r?\n/).filter((l) => l.trim());
-          return "CSV: yaklaşık " + lines.length + " satır.";
+          return panelT("panel.modules.files.messages.summaryCsv").replace("{count}", String(lines.length));
         }
         const flat = t.replace(/\s+/g, " ").trim();
         if (flat.length <= 320) return flat;
@@ -12062,6 +12075,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const dosyalarUploadHistory = loadDosyalarUploadHistory();
         /** Son seçilen ses dosyası (Metne çevir için blob kaynağı). */
         let dosyalarLastAudioFile = null;
+        let dosyalarLastSnapshot = null;
 
         function loadDosyalarUploadHistory() {
           try {
@@ -12098,15 +12112,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
         function dosyalarHistoryShortStatus(data) {
           if (dosyalarIsAudioFile(data.extension, data.kind)) {
-            return "Ses — analiz yok";
+            return panelT("panel.modules.files.history.statusAudio");
           }
           const u = data.unsupported != null ? String(data.unsupported).trim() : "";
-          if (u) return "Uyarı";
+          if (u) return panelT("panel.modules.files.history.statusWarn");
           const i = data.info != null ? String(data.info).trim() : "";
-          if (i && DOSYALAR_TEXT_EXT.has(String(data.extension ?? ""))) return "Özet üretildi";
+          if (i && DOSYALAR_TEXT_EXT.has(String(data.extension ?? ""))) {
+            return panelT("panel.modules.files.history.statusSummaryDone");
+          }
           const s = data.summary != null ? String(data.summary).trim() : "";
-          if (s) return "Özet hazır";
-          return "Tamamlandı";
+          if (s) return panelT("panel.modules.files.history.statusSummaryReady");
+          return panelT("panel.modules.files.history.statusDone");
         }
 
         function replayDosyalarSnapshot(snapshot) {
@@ -12139,7 +12155,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
             const fn = String(snap.filename ?? "");
             li.setAttribute(
               "aria-label",
-              fn ? `Sonuçları yeniden göster: ${fn}` : "Sonuçları yeniden göster",
+              fn
+                ? panelT("panel.modules.files.history.replayAriaPrefix") + fn
+                : panelT("panel.modules.files.history.replayAria"),
             );
 
             const nameEl = document.createElement("span");
@@ -12200,6 +12218,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         }
 
         function renderResult(data) {
+          dosyalarLastSnapshot = data;
           result.replaceChildren();
           result.className = "dosyalar-result-stack";
 
@@ -12209,16 +12228,16 @@ const PANEL_DEBUG = import.meta.env.DEV;
           const metaTitle = document.createElement("h3");
           metaTitle.id = "dosyalar-result-meta-title";
           metaTitle.className = "dosyalar-result-card__title";
-          metaTitle.textContent = "Dosya bilgisi";
+          metaTitle.textContent = panelT("panel.modules.files.result.metaTitle");
           metaCard.appendChild(metaTitle);
 
           const ul = document.createElement("ul");
           ul.className = "dosyalar-result-meta";
           const rows = [
-            ["Dosya adı", String(data.filename ?? "") || "—"],
-            ["Boyut", dosyalarFormatSize(data.size)],
-            ["Tür", String(data.kind ?? "") || "—"],
-            ["Uzantı", data.extension ? String(data.extension) : "—"],
+            [panelT("panel.modules.files.result.metaFilename"), String(data.filename ?? "") || "—"],
+            [panelT("panel.modules.files.result.metaSize"), dosyalarFormatSize(data.size)],
+            [panelT("panel.modules.files.result.metaKind"), String(data.kind ?? "") || "—"],
+            [panelT("panel.modules.files.result.metaExt"), data.extension ? String(data.extension) : "—"],
           ];
           for (const [k, v] of rows) {
             const li = document.createElement("li");
@@ -12241,7 +12260,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             const infoTitle = document.createElement("h3");
             infoTitle.id = "dosyalar-result-info-title";
             infoTitle.className = "dosyalar-result-card__title";
-            infoTitle.textContent = "Bilgi";
+            infoTitle.textContent = panelT("panel.modules.files.result.infoTitle");
             const infoBody = document.createElement("p");
             infoBody.className = "dosyalar-result-summary-body";
             infoBody.textContent = infoMsg;
@@ -12260,8 +12279,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
             alertTitle.id = "dosyalar-result-alert-title";
             alertTitle.className = "dosyalar-result-card__title";
             alertTitle.textContent = dosyalarIsAudioFile(data.extension, data.kind)
-              ? "Bilgi"
-              : "Uyarı";
+              ? panelT("panel.modules.files.result.infoTitle")
+              : panelT("panel.modules.files.result.alertTitle");
             const alertBody = document.createElement("p");
             alertBody.className = "dosyalar-result-alert-body";
             alertBody.textContent = unsup;
@@ -12277,7 +12296,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             const sumTitle = document.createElement("h3");
             sumTitle.id = "dosyalar-result-summary-title";
             sumTitle.className = "dosyalar-result-card__title";
-            sumTitle.textContent = "Kısa özet";
+            sumTitle.textContent = panelT("panel.modules.files.result.summaryTitle");
             const sumBody = document.createElement("p");
             sumBody.className = "dosyalar-result-summary-body";
             sumBody.textContent = String(data.summary);
@@ -12293,7 +12312,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             const txTitle = document.createElement("h3");
             txTitle.id = "dosyalar-result-transcript-title";
             txTitle.className = "dosyalar-result-card__title";
-            txTitle.textContent = "Metne çevir";
+            txTitle.textContent = panelT("panel.modules.files.result.transcriptTitle");
             const txControls = document.createElement("div");
             txControls.className = "dosyalar-result-transcript-controls";
             txCard.appendChild(txTitle);
@@ -12320,7 +12339,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         btn.addEventListener("click", async () => {
           const file = input.files && input.files[0];
           if (!file) {
-            showHint("Önce bir dosya seçin.");
+            showHint(panelT("panel.modules.files.hints.pickFirst"));
             return;
           }
           dosyalarLastAudioFile = dosyalarIsAudioFile(
@@ -12356,9 +12375,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
             if (file.size > CONTROLLED_MAX_WRITE_BYTES) {
               data.unsupported =
-                "Dosya boyutu kontrollü dosya yazma sınırını (" +
+                panelT("panel.modules.files.hints.sizeLimitPrefix") +
                 CONTROLLED_MAX_WRITE_BYTES +
-                " bayt) aşıyor.";
+                panelT("panel.modules.files.hints.sizeLimitSuffix");
               renderResult(data);
               pushDosyalarHistory(data);
               return;
@@ -12368,7 +12387,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             try {
               textContent = await readBlobAsUtf8(file);
             } catch {
-              showHint("Dosya metin olarak okunamadı.");
+              showHint(panelT("panel.modules.files.hints.readFailed"));
               return;
             }
 
@@ -12384,7 +12403,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   ? String(w.data.error)
                   : "write_file başarısız";
               showHint(
-                panelDebugText("Köprü yazma (HTTP " + w.status + "): " + err, "Dosya yazılamadı: " + err),
+                panelDebugText(
+                  "Köprü yazma (HTTP " + w.status + "): " + err,
+                  panelT("panel.modules.files.hints.writeFailed") + ": " + err,
+                ),
               );
               return;
             }
@@ -12401,7 +12423,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   ? String(rd.data.error)
                   : "read_file başarısız";
               showHint(
-                panelDebugText("Köprü okuma (HTTP " + rd.status + "): " + err, "Dosya okunamadı: " + err),
+                panelDebugText(
+                  "Köprü okuma (HTTP " + rd.status + "): " + err,
+                  panelT("panel.modules.files.hints.readFailedBridge") + ": " + err,
+                ),
               );
               return;
             }
@@ -12413,7 +12438,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             renderResult(data);
             pushDosyalarHistory(data);
           } catch {
-            showHint("Sunucuya ulaşılamadı. Bağlantı ayarlarını kontrol edin.");
+            showHint(panelT("panel.modules.files.hints.unreachable"));
           } finally {
             btn.disabled = false;
             btn.removeAttribute("aria-busy");
@@ -12421,6 +12446,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
         });
 
         renderDosyalarHistory();
+        refreshDosyalarPanelI18n = () => {
+          renderDosyalarHistory();
+          if (dosyalarLastSnapshot && !result.hidden) {
+            renderResult(dosyalarLastSnapshot);
+          }
+        };
       }
 
       function wireCapabilityProbe() {
@@ -13195,6 +13226,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
       window.addEventListener("lumos:localechange", () => {
         refreshPanelShellI18n();
         refreshPanelChatI18n();
+        refreshPanelFilesI18n();
       });
     </script>
     <I18nInit />

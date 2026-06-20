@@ -136,6 +136,24 @@ PANEL_I18N_V6_TR_KEYS = (
     "userMode:",
 )
 
+PANEL_I18N_V7_MARKERS = (
+    'data-i18n="panel.modules.files.intro"',
+    'data-i18n="panel.modules.files.form.pickLabel"',
+    'data-i18n="panel.modules.files.form.uploadBtn"',
+    'panelT("panel.modules.files.hints.pickFirst")',
+    'panelT("panel.modules.files.result.metaTitle")',
+    'function refreshPanelFilesI18n()',
+    'refreshPanelFilesI18n()',
+)
+
+PANEL_I18N_V7_TR_KEYS = (
+    "form:",
+    "hints:",
+    "result:",
+    "history:",
+    "messages:",
+)
+
 
 
 def test_panel_astro_i18n_wiring_present() -> None:
@@ -227,3 +245,17 @@ def test_panel_i18n_v6_shell_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V6_TR_KEYS:
         assert key in tr_text, f"missing panel tr v6 key fragment: {key}"
         assert key in en_text, f"missing panel en v6 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v7_files_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V7_MARKERS:
+        assert token in text, f"missing panel i18n v7 token: {token}"
+
+
+def test_panel_i18n_v7_files_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V7_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v7 key fragment: {key}"
+        assert key in en_text, f"missing panel en v7 key fragment: {key}"
