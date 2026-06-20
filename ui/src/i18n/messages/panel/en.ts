@@ -135,6 +135,7 @@ const panel: typeof panelTr = {
       user: "You",
       lumos: "Lumos",
       warning: "Warning",
+      actionsAria: "Reply actions",
     },
     compose: {
       placeholder: "Write your message",
@@ -714,6 +715,10 @@ const panel: typeof panelTr = {
       "Default behaviors are shown to you before acceptance; changes aim to remain reversible.",
     corsMsg: "This information cannot be read from the panel (CORS).",
     infraSummaryAria: "Infrastructure status summary",
+    connectionLine: "Connection: {line}",
+    healthWithConnection: "{health} · connection: {line}",
+    visionConfiguredYes: "Yes (key configured for visual analysis)",
+    visionConfiguredNo: "No",
   },
   capabilities: {
     intro:
@@ -725,6 +730,9 @@ const panel: typeof panelTr = {
     testBtn: "Connection test",
     testRunning: "Test running…",
     bridgePending: "Waiting for bridge connection.",
+    routeTerminal: "Waiting for local device bridge.",
+    routeNone: "—",
+    routeManualApproval: "after manual approval",
     row1: "1. File read",
     row2: "2. File write",
     row3: "3. Task create",
