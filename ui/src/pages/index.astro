@@ -16,14 +16,14 @@ const ADR_QUANTUM_URL = `${GITHUB_REPO_URL}/blob/main/docs/decisions/ADR-001-lum
     <title data-i18n="meta.landingTitle">Lumos — Yapay Zekâ Kontrol Katmanı</title>
     <meta
       name="description"
-      content="Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştirmeyi hedefleyen yapay zekâ kontrol katmanı prototipidir."
+      content="Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştiren yapay zekâ kontrol katmanı prototipidir."
       data-i18n-content="meta.description"
     />
     <link rel="canonical" href="https://welockai.com/" />
     <meta property="og:title" content="Lumos — Yapay Zekâ Kontrol Katmanı" data-i18n-content="meta.ogTitle" />
     <meta
       property="og:description"
-      content="Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştirmeyi hedefleyen yapay zekâ kontrol katmanı prototipidir."
+      content="Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştiren yapay zekâ kontrol katmanı prototipidir."
       data-i18n-content="meta.ogDescription"
     />
     <meta name="twitter:card" content="summary_large_image" />
@@ -34,10 +34,14 @@ const ADR_QUANTUM_URL = `${GITHUB_REPO_URL}/blob/main/docs/decisions/ADR-001-lum
     />
     <meta
       name="twitter:description"
-      content="Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştirmeyi hedefleyen yapay zekâ kontrol katmanı prototipidir."
+      content="Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştiren yapay zekâ kontrol katmanı prototipidir."
       data-i18n-content="meta.twitterDescription"
     />
-    <meta name="twitter:image" content="https://welockai.com/lumos-world-map.jpg" />
+    <meta
+      name="twitter:image"
+      content="https://welockai.com/lumos-world-map.jpg"
+      data-i18n-content="landing.assets.ogImage"
+    />
     <meta property="og:url" content="https://welockai.com/" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="tr_TR" />
@@ -2327,7 +2331,7 @@ const ADR_QUANTUM_URL = `${GITHUB_REPO_URL}/blob/main/docs/decisions/ADR-001-lum
         <a class="lumos-cap-card-link" href="#ilkeler">
           <article class="lumos-cap-card">
             <h3 data-i18n="landing.principles.cardUserControlTitle">Kullanıcı Kontrolü</h3>
-            <p data-i18n="landing.principles.cardUserControlBody">Nihai seçim her zaman sizdedir; Lumos yerine geçmez.</p>
+            <p data-i18n="landing.principles.cardUserControlBody">Nihai seçim her zaman sizdedir; Lumos sizin yerinize geçmez.</p>
           </article>
         </a>
         <a class="lumos-cap-card-link" href="#ilkeler">
@@ -2357,7 +2361,7 @@ const ADR_QUANTUM_URL = `${GITHUB_REPO_URL}/blob/main/docs/decisions/ADR-001-lum
       <ul>
         <li>
           <strong data-i18n="landing.principles.listUserDecisionLabel">Kullanıcı kararı:</strong>
-          <span data-i18n="landing.principles.listUserDecisionBody">Nihai seçim her zaman sizdedir; Lumos yerine geçmez.</span>
+          <span data-i18n="landing.principles.listUserDecisionBody">Nihai seçim her zaman sizdedir; Lumos sizin yerinize geçmez.</span>
         </li>
         <li>
           <strong data-i18n="landing.principles.listApprovalLabel">Açık onay:</strong>
@@ -2750,7 +2754,7 @@ vercel dev</code></pre>
             target="_blank"
             rel="noopener noreferrer"
             data-i18n="landing.install.githubOpen">GitHub'da aç</a>
-          <a class="lumos-hero-btn lumos-hero-btn--ghost" href="/panel" data-i18n="landing.install.tryPanel">Paneli dene</a>
+          <a class="lumos-hero-btn lumos-hero-btn--ghost" href="/panel" data-i18n="landing.install.tryPanel">Geliştirici panelini aç</a>
         </div>
         <div class="lumos-install-versions">
           <h3 class="lumos-install-versions__heading" data-i18n="landing.install.versionsTitle">Sürüm durumu</h3>
