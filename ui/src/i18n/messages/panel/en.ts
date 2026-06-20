@@ -70,6 +70,7 @@ const panel: typeof panelTr = {
     posta: "Mail",
     dosyalar: "Files",
     kuantum: "Quantum",
+    kuantumResearchTitle: "Quantum — research area (not an active production feature)",
     lumosCore: "Lumos core",
     yayincilik: "Publishing",
     yapayzeka: "AI",
@@ -418,6 +419,26 @@ const panel: typeof panelTr = {
       bridgeFailedSuffix: " · failed to send",
     },
     plan: {
+      listPrefix: "Plan: ",
+      tur: {
+        genelGorev: "General task",
+        dosyaIslemi: "File operation",
+        gorevListesi: "Task list",
+        transmission: "Transmission",
+        metin: "Text",
+      },
+      risk: {
+        dusuk: "Low",
+        orta: "Medium",
+      },
+      sonrakiAdim: {
+        default: "Open the task from the list and review.",
+        dosyalar: "Upload or preview in Files.",
+        gorevler: "Update status or complete in the list.",
+        transmission: "Check the transmission response in details. Approval does not run actions.",
+        panel: "Edit the panel text.",
+      },
+      alanPanel: "Panel",
       teshis: {
         ozet: "Summary",
         alan: "Area",

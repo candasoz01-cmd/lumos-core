@@ -4136,7 +4136,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
               <button type="button" data-module="dosyalar">
                 <span class="panel-nav-label" data-i18n="panel.nav.dosyalar">Dosyalar</span>
               </button>
-              <button type="button" class="panel-nav-research-chip" data-module="kuantum" title="Kuantum — araştırma alanı (aktif üretim özelliği değil)">
+              <button type="button" class="panel-nav-research-chip" data-module="kuantum" data-i18n-title="panel.nav.kuantumResearchTitle">
                 <span class="panel-nav-label" data-i18n="panel.nav.kuantum">Kuantum</span>
               </button>
             </div>
@@ -6623,23 +6623,117 @@ const PANEL_DEBUG = import.meta.env.DEV;
       }
 
       /** Görev planı (Faz A): localStorage ile görev satırında saklanır. */
+      function normalizeGorevlerPlanLookupToken(raw) {
+        return String(raw != null ? raw : "")
+          .trim()
+          .toLocaleLowerCase("tr-TR")
+          .replace(/ş/g, "s")
+          .replace(/ı/g, "i")
+          .replace(/ü/g, "u")
+          .replace(/ö/g, "o")
+          .replace(/ç/g, "c")
+          .replace(/ğ/g, "g");
+      }
+
+      function gorevlerPlanLegacyTransmissionNorm() {
+        return ["ile", "tim"].join("");
+      }
+
+      function gorevlerPlanTurToken(raw) {
+        const s = String(raw != null ? raw : "").trim();
+        if (!s) return "genelGorev";
+        if (s === gorevlerPlanLegacyTransmissionNorm()) return "transmission";
+        if (/^(genelGorev|dosyaIslemi|gorevListesi|transmission|metin)$/.test(s)) return s;
+        const norm = normalizeGorevlerPlanLookupToken(s);
+        if (norm === "genel gorev") return "genelGorev";
+        if (norm === "dosya islemi") return "dosyaIslemi";
+        if (norm === "gorev listesi") return "gorevListesi";
+        if (norm === gorevlerPlanLegacyTransmissionNorm()) return "transmission";
+        if (norm === "metin") return "metin";
+        return s;
+      }
+
+      function gorevlerPlanTurDisplay(raw) {
+        const tok = gorevlerPlanTurToken(raw);
+        const key = "panel.modules.tasks.plan.tur." + tok;
+        const t = panelT(key);
+        return t !== key ? t : tok;
+      }
+
+      function gorevlerPlanRiskToken(raw) {
+        const s = String(raw != null ? raw : "").trim();
+        if (!s) return "dusuk";
+        if (/^(dusuk|orta)$/.test(s)) return s;
+        const norm = normalizeGorevlerPlanLookupToken(s);
+        if (norm === "dusuk" || norm === "low") return "dusuk";
+        if (norm === "orta" || norm === "medium") return "orta";
+        return s;
+      }
+
+      function gorevlerPlanRiskDisplay(raw) {
+        const tok = gorevlerPlanRiskToken(raw);
+        const key = "panel.modules.tasks.plan.risk." + tok;
+        const t = panelT(key);
+        return t !== key ? t : tok;
+      }
+
+      function gorevlerPlanSonrakiAdimToken(raw) {
+        const s = String(raw != null ? raw : "").trim();
+        if (!s) return "default";
+        if (s === gorevlerPlanLegacyTransmissionNorm()) return "transmission";
+        if (/^(default|dosyalar|gorevler|transmission|panel)$/.test(s)) return s;
+        const norm = normalizeGorevlerPlanLookupToken(s);
+        if (norm === "listeden gorevi ac ve bak.") return "default";
+        if (norm.includes("dosyalar") && norm.includes("yukle")) return "dosyalar";
+        if (norm.includes("listed") && norm.includes("durum")) return "gorevler";
+        const tx = gorevlerPlanLegacyTransmissionNorm();
+        if (norm.includes(tx) && norm.includes("yanit")) return "transmission";
+        if (norm.includes("panel") && norm.includes("metin")) return "panel";
+        return s;
+      }
+
+      function gorevlerPlanSonrakiAdimDisplay(raw) {
+        const tok = gorevlerPlanSonrakiAdimToken(raw);
+        const key = "panel.modules.tasks.plan.sonrakiAdim." + tok;
+        const t = panelT(key);
+        return t !== key ? t : tok;
+      }
+
+      function gorevlerPlanAlanToken(raw) {
+        const s = String(raw != null ? raw : "").trim();
+        if (!s) return "gorevler";
+        if (s === gorevlerPlanLegacyTransmissionNorm()) return "transmission";
+        if (/^(gorevler|dosyalar|transmission|panel)$/.test(s)) return s;
+        const norm = normalizeGorevlerPlanLookupToken(s);
+        if (!norm || norm === "gorevler" || norm.startsWith("gorevler ")) return "gorevler";
+        if (norm === "dosyalar" || norm.startsWith("dosyalar ")) return "dosyalar";
+        const tx = gorevlerPlanLegacyTransmissionNorm();
+        if (norm === tx || norm === "kopru" || norm.startsWith("kopru ")) return "transmission";
+        if (norm === "panel" || norm.startsWith("panel ")) return "panel";
+        return s;
+      }
+
       function sanitizeGorevlerTaskPlan(raw) {
         if (!raw || typeof raw !== "object") return null;
         const src = /** @type {Record<string, unknown>} */ (raw);
-        const tur = truncateGorevlerField(src.tur);
-        const risk = truncateGorevlerField(src.risk);
-        const onerilenAlan = truncateGorevlerField(
-          src.onerilenAlan != null ? src.onerilenAlan : src.onerilen_alan,
+        const tur = gorevlerPlanTurToken(truncateGorevlerField(src.tur));
+        const risk = gorevlerPlanRiskToken(truncateGorevlerField(src.risk));
+        const onerilenAlan = gorevlerPlanAlanToken(
+          truncateGorevlerField(
+            src.onerilenAlan != null ? src.onerilenAlan : src.onerilen_alan,
+          ),
         );
-        const sonrakiAdim = truncateGorevlerField(
-          src.sonrakiAdim != null ? src.sonrakiAdim : src.sonraki_adim,
+        const sonrakiAdim = gorevlerPlanSonrakiAdimToken(
+          truncateGorevlerField(
+            src.sonrakiAdim != null ? src.sonrakiAdim : src.sonraki_adim,
+          ),
         );
         if (!tur && !risk && !onerilenAlan && !sonrakiAdim) return null;
         const out = {
-          tur: tur || "Genel görev",
-          risk: risk || "Düşük",
-          onerilenAlan: onerilenAlan || "Görevler",
-          sonrakiAdim: sonrakiAdim || "Listeden görevi aç ve bak.",
+          tur: tur || "genelGorev",
+          risk: risk || "dusuk",
+          onerilenAlan: onerilenAlan || "gorevler",
+          sonrakiAdim: sonrakiAdim || "default",
           active: src.active !== false,
         };
         const onayDurumu =
@@ -6658,30 +6752,30 @@ const PANEL_DEBUG = import.meta.env.DEV;
        */
       function generateGorevlerTaskPlan(title) {
         const hay = canonicalizeTaskInput(title);
-        let tur = "Genel görev";
-        let risk = "Düşük";
-        let onerilenAlan = "Görevler";
-        let sonrakiAdim = "Listeden görevi aç ve bak.";
+        let tur = "genelGorev";
+        let risk = "dusuk";
+        let onerilenAlan = "gorevler";
+        let sonrakiAdim = "default";
 
         if (/\b(dosya|dosyalar|upload|exe|pdf|docx)\b/.test(hay)) {
-          tur = "Dosya işlemi";
-          onerilenAlan = "Dosyalar";
-          sonrakiAdim = "Dosyalar'da yükle veya önizle.";
-          if (/\bexe\b/.test(hay)) risk = "Orta";
+          tur = "dosyaIslemi";
+          onerilenAlan = "dosyalar";
+          sonrakiAdim = "dosyalar";
+          if (/\bexe\b/.test(hay)) risk = "orta";
         } else if (/\b(görev|task|tamamla|sil|geri al)\b/.test(hay)) {
-          tur = "Görev listesi";
-          onerilenAlan = "Görevler";
-          sonrakiAdim = "Listede durumu güncelle veya tamamla.";
-          if (/\b(sil|geri al)\b/.test(hay)) risk = "Orta";
+          tur = "gorevListesi";
+          onerilenAlan = "gorevler";
+          sonrakiAdim = "gorevler";
+          if (/\b(sil|geri al)\b/.test(hay)) risk = "orta";
         } else if (/\b(bridge|köprü|kopru|koprü|controlled)\b/.test(hay)) {
-          tur = "İletim";
-          onerilenAlan = "İletim";
-          sonrakiAdim = "Detayda iletim yanıtına bak. Onay işlem çalıştırmaz.";
-          risk = "Orta";
+          tur = "transmission";
+          onerilenAlan = "transmission";
+          sonrakiAdim = "transmission";
+          risk = "orta";
         } else if (/\b(panel|görsel|gorsel|metin|uyarı|uyari)\b/.test(hay)) {
-          tur = "Metin";
-          onerilenAlan = "Panel";
-          sonrakiAdim = "Panel metnini düzenle.";
+          tur = "metin";
+          onerilenAlan = "panel";
+          sonrakiAdim = "panel";
         }
 
         return { tur, risk, onerilenAlan, sonrakiAdim, active: true };
@@ -6695,7 +6789,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
           p.onayDurumu != null && String(p.onayDurumu).trim()
             ? " · " + String(p.onayDurumu).trim()
             : "";
-        return "Plan: " + p.tur + " · " + p.risk + onay;
+        return (
+          panelT("panel.modules.tasks.plan.listPrefix") +
+          gorevlerPlanTurDisplay(p.tur) +
+          " · " +
+          gorevlerPlanRiskDisplay(p.risk) +
+          onay
+        );
       }
 
       /** Başarılı kayıttan sonra göreve plan ekler ve localStorage’a yazar. */
@@ -10940,14 +11040,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
         function gorevlerPlanAlanDisplay(plan) {
           const p = sanitizeGorevlerTaskPlan(plan);
           const raw = p && p.onerilenAlan ? String(p.onerilenAlan).trim() : "";
-          if (!raw || /^görevler(\s+sekmesi)?$/i.test(raw)) {
+          if (!raw || raw === "gorevler" || /^görevler(\s+sekmesi)?$/i.test(raw)) {
             return panelT("panel.modules.tasks.plan.alanGorevler");
           }
-          if (/^dosyalar(\s+sekmesi)?$/i.test(raw)) {
+          if (raw === "dosyalar" || /^dosyalar(\s+sekmesi)?$/i.test(raw)) {
             return panelT("panel.modules.tasks.plan.alanDosyalar");
           }
-          if (/^köprü(\s+sekmesi)?$/i.test(raw)) {
+          if (raw === "transmission" || /^köprü(\s+sekmesi)?$/i.test(raw) || /^iletim(\s+sekmesi)?$/i.test(raw)) {
             return panelT("panel.modules.tasks.plan.alanIletim");
+          }
+          if (raw === "panel" || /^panel(\s+sekmesi)?$/i.test(raw)) {
+            return panelT("panel.modules.tasks.plan.alanPanel");
           }
           return raw.replace(/\s+sekmesi$/i, "");
         }
@@ -10961,10 +11064,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
         function buildGorevlerMediumHighRiskTeshisLines(_title, plan) {
           const p = sanitizeGorevlerTaskPlan(plan);
           const tespit =
-            p && p.tur ? String(p.tur) + "." : panelT("panel.modules.tasks.plan.defaultTespit");
+            p && p.tur
+              ? gorevlerPlanTurDisplay(p.tur) + "."
+              : panelT("panel.modules.tasks.plan.defaultTespit");
           const cozum =
             p && p.sonrakiAdim
-              ? String(p.sonrakiAdim)
+              ? gorevlerPlanSonrakiAdimDisplay(p.sonrakiAdim)
               : panelT("panel.modules.tasks.plan.defaultCozum");
           const onay =
             p && p.onayDurumu && String(p.onayDurumu).trim()
@@ -10975,7 +11080,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             gorevlerPlanAlanDisplay(p),
             gorevlerPlanNotDisplay(p),
             cozum,
-            p && p.risk ? String(p.risk) : panelT("panel.modules.tasks.plan.defaultRiskOrta"),
+            p && p.risk ? gorevlerPlanRiskDisplay(p.risk) : panelT("panel.modules.tasks.plan.defaultRiskOrta"),
             onay,
           ];
         }
@@ -11027,7 +11132,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           const low = isGorevlerPlanLowRisk(p);
           if (low) {
             appendDetailRow(dl, panelT("panel.modules.tasks.plan.dlStatus"), panelT("panel.modules.tasks.plan.lowRiskStatus"));
-            appendDetailRow(dl, panelT("panel.modules.tasks.plan.dlRisk"), p.risk);
+            appendDetailRow(dl, panelT("panel.modules.tasks.plan.dlRisk"), gorevlerPlanRiskDisplay(p.risk));
             appendDetailRow(dl, panelT("panel.modules.tasks.plan.dlAlan"), gorevlerPlanAlanDisplay(p));
             appendDetailRow(
               dl,
@@ -11041,10 +11146,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
             p.onayDurumu && String(p.onayDurumu).trim()
               ? String(p.onayDurumu).trim()
               : panelT("panel.modules.tasks.plan.pendingApproval");
-          appendDetailRow(dl, panelT("panel.modules.tasks.plan.dlTur"), p.tur);
-          appendDetailRow(dl, panelT("panel.modules.tasks.plan.dlRisk"), p.risk);
+          appendDetailRow(dl, panelT("panel.modules.tasks.plan.dlTur"), gorevlerPlanTurDisplay(p.tur));
+          appendDetailRow(dl, panelT("panel.modules.tasks.plan.dlRisk"), gorevlerPlanRiskDisplay(p.risk));
           appendDetailRow(dl, panelT("panel.modules.tasks.plan.dlAlan"), gorevlerPlanAlanDisplay(p));
-          appendDetailRow(dl, panelT("panel.modules.tasks.plan.dlSirada"), p.sonrakiAdim);
+          appendDetailRow(dl, panelT("panel.modules.tasks.plan.dlSirada"), gorevlerPlanSonrakiAdimDisplay(p.sonrakiAdim));
           appendDetailRow(dl, panelT("panel.modules.tasks.plan.dlNot"), gorevlerPlanNotDisplay(p));
         }
 
