@@ -1,4 +1,4 @@
-"""Panel i18n v1–v30 — LanguageSwitcher, nav, modules, Sohbet chat, Görevler."""
+"""Panel i18n v1–v31 — LanguageSwitcher, nav, modules, Sohbet chat, Görevler."""
 
 from __future__ import annotations
 
@@ -536,6 +536,30 @@ PANEL_I18N_V30_TR_KEYS = (
     "leakBrowserRestriction:",
 )
 
+PANEL_I18N_V31_MARKERS = (
+    'panelT("panel.shell.infra.leakDevice")',
+    'panelT("panel.shell.infra.leakConnection")',
+    'panelT("panel.shell.infra.leakTask")',
+    'panelT("panel.shell.infra.leakControlledFile")',
+    'panelT("panel.shell.infra.leakStatus")',
+    'panelT("panel.shell.infra.leakHealth")',
+    'panelT("panel.shell.infra.leakChat")',
+    'panelT("panel.shell.infra.leakTaskService")',
+    'panelT("panel.shell.infra.leakConnectionStart")',
+)
+
+PANEL_I18N_V31_TR_KEYS = (
+    "leakDevice:",
+    "leakConnection:",
+    "leakTask:",
+    "leakControlledFile:",
+    "leakStatus:",
+    "leakHealth:",
+    "leakChat:",
+    "leakTaskService:",
+    "leakConnectionStart:",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -1042,3 +1066,26 @@ def test_panel_i18n_v30_strip_leak_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V30_TR_KEYS:
         assert key in tr_text, f"missing panel tr v30 key fragment: {key}"
         assert key in en_text, f"missing panel en v30 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v31_strip_leak_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V31_MARKERS:
+        assert token in text, f"missing panel i18n v31 token: {token}"
+    assert 's.replace(/\bajan\b/gi, "cihaz")' not in text
+    assert 's.replace(/\bendpoint\b/gi, "bağlantı")' not in text
+    assert r's.replace(/\/tasks\b/gi, "görev")' not in text
+    assert r's.replace(/\/controlled\b/gi, "kontrollü dosya")' not in text
+    assert r's.replace(/\/status\b/gi, "durum")' not in text
+    assert r's.replace(/\/health\b/gi, "sağlık")' not in text
+    assert r's.replace(/\/chat\b/gi, "sohbet")' not in text
+    assert 's.replace(/panel_tasks_server/gi, "görev servisi")' not in text
+    assert r's.replace(/bridge_start\.sh/gi, "bağlantı başlatma")' not in text
+
+
+def test_panel_i18n_v31_strip_leak_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V31_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v31 key fragment: {key}"
+        assert key in en_text, f"missing panel en v31 key fragment: {key}"
