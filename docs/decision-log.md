@@ -107,6 +107,7 @@ Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A16 takip satırları kap
 | DL-C11 | 2026-06-20 | OD-010 CI doc-only sınıflandırma | **Closed** — kod yolunda CI zorunlu | [`docs/memory/od-010-ci-classification-decision.md`](memory/od-010-ci-classification-decision.md) |
 | DL-C12 | 2026-06-20 | OD-029 Ghidra public kapsamı | **Public entegrasyon reddedildi** — watchlist; operatör yerel/private RE | [`docs/memory/od-029-ghidra-scope-decision.md`](memory/od-029-ghidra-scope-decision.md) |
 | DL-C13 | 2026-06-20 | OD-025 Vault migration senkronu | **Closed** (ilke düzeyi) — ChatGPT vault/token maddeleri `vault-secret-token-decision.md`'e taşındı; uygulama OD-001–005 | [`docs/memory/od-025-vault-migration-decision.md`](memory/od-025-vault-migration-decision.md) |
+| DL-C14 | 2026-06-20 | OD-027 Faz 5 doc sync kapanışı | **Doc-only complete** — path/indeks senkronu (#317–331); bridge/runtime birleştirme **ertelendi** (ayrı oturum, onaylı impl) | [`docs/memory/kando-packages-transition-decision.md`](memory/kando-packages-transition-decision.md) Faz 5 |
 ---
 
 ## 2026-06-17 — Dokümantasyon düzeni kurulumu
@@ -138,4 +139,4 @@ Tam liste: `docs/memory/open-decisions-needs-review.md` (OD-001 … OD-060).
 
 ---
 
-Son güncelleme: 2026-06-20 (DL-C08 — OD-027 Faz 4 cutover)
+Son güncelleme: 2026-06-20 (DL-C14 — günlük docs sync kapanışı)

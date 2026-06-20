@@ -243,10 +243,16 @@ Keşif raporu: [`kando-packages-faz3-keşif-raporu.md`](./kando-packages-faz3-ke
 - Karar: [`od-027-faz4-cutover-decision.md`](./od-027-faz4-cutover-decision.md).
 - §8 kesme kapıları doğrulandı; OD-027 **closed**.
 
-### Faz 5 — Temizlik ve dokümantasyon `[needs-review]`
+### Faz 5 — Temizlik ve dokümantasyon `[doc-sync-complete]`
 
-- [`project-map-runtime-entrypoints.md`](./project-map-runtime-entrypoints.md) güncellemesi.
-- `open-decisions-needs-review.md` OD-027 durumu (`migrated` / `superseded`).
+**Doc-only (bu oturum — #317–331 zinciri):**
+
+- [`project-map-runtime-entrypoints.md`](./project-map-runtime-entrypoints.md) §4/§11 path senkronu.
+- `open-decisions-needs-review.md` OD-027 **closed** notu; **DL-C14** günlük kapanış.
+
+**Ertelenen — ayrı oturum (kapsam dışı burada):**
+
+- Bridge/runtime → `src/` birleştirme (Seçenek A alt kümesi); Makefile/CI PYTHONPATH taşıma — yalnızca kullanıcı **onaylı impl** paketi ile.
 
 ---
 
@@ -301,7 +307,7 @@ Keşif raporu: [`kando-packages-faz3-keşif-raporu.md`](./kando-packages-faz3-ke
 |---|------|--------|
 | 1 | Hedef mimari: A birleştir / B ayrı / C hibrit / D dondur? | **Onaylandı: C — Hibrit** |
 | 2 | Hangi `kando_*` paketleri canlı yola dahil? | **Onaylandı: `kando_bridge` + `kando_runtime` (gate/dispatch); ayna paketler arşiv** |
-| 3 | Kesme tek seferde mi, paket paket mi? | **needs-review** (uygulama paketi) — öneri: önce ayna arşiv, bridge/runtime sabit |
+| 3 | Kesme tek seferde mi, paket paket mi? | **closed** — ayna arşiv (3b) + cutover (Faz 4) tamam; bridge/runtime paket olarak sabit (birleştirme Faz 5 **ertelendi**) |
 | 4 | Root `pyproject.toml` tek paket mi kalır, workspace/monorepo mu olur? | **needs-review** — C ile mevcut PYTHONPATH korunur; monorepo zorunlu değil |
 | 5 | `kando_core.__main__` ile root `lumos` ilişkisi | **Onaylandı: kaldırma/arşiv** — hiç çağrılmıyor; web kalıntısı OD-028 hizası |
 | 6 | Geçiş sırasında `.lumos/` state migrasyonu gerekir mi? | **Onaylandı: hayır** — kod taşıma/arşiv; state path değişmez |
@@ -318,18 +324,18 @@ Keşif raporu: [`kando-packages-faz3-keşif-raporu.md`](./kando-packages-faz3-ke
 
 | OD | Konu | Bu belgedeki karşılık | Durum |
 |----|------|------------------------|--------|
-| **OD-027** | `packages/kando_*` → `src/` geçiş takvimi ve kesme kriterleri | Bu dosyanın tamamı + Faz 3 keşif | **approved-for-implementation** (Slice 3a **complete**; Slice 3b **complete** #316) |
+| **OD-027** | `packages/kando_*` → `src/` geçiş takvimi ve kesme kriterleri | Bu dosyanın tamamı + Faz 3 keşif | **closed** — Slice 3a/3b + Faz 4 cutover (DL-C08/DL-A19); Faz 5 doc-only **DL-C14** |
 | OD-028 | `lumos web` / `web/app.py` | §3 — kök kapalı (B1); `kando_core.__main__` kalıntısı Slice 3a | **closed** (çapraz temizlik Slice 3a) |
 | OD-043 | Birincil kullanıcı yüzeyi | §2 kapsam dışı; geçişten bağımsız | **closed** (çapraz) |
 | OD-046 | Root build vs kök E2E | §2 kapsam dışı; geçişten bağımsız | **closed** (çapraz) |
 
-**İndeks senkronu:** Kesme (Faz 4) tamamlanınca `project-map-runtime-entrypoints.md` §11 ve bu indeks `migrated`/`superseded` güncellenir.
+**İndeks senkronu:** Faz 4 + Faz 5 doc-only tamam; fiziksel bridge/runtime birleştirme ayrı oturum.
 
 ---
 
 ## 13. Sonraki adım
 
-**Tek adım (uygulama):** Slice **3b** PR — [`od-027-slice-3b-archive-decision.md`](./od-027-slice-3b-archive-decision.md) §3 (`git mv` → `archive/packages/`); pytest + CI yeşil. Faz 4 cutover ayrı kullanıcı onayı gerektirir.
+**Sonraki oturum (ertelenen impl):** Bridge/runtime → `src/` birleştirme — onaylı uygulama paketi; bu belgede doc-only Faz 5 kapanmıştır (**DL-C14**).
 
 ---
 
@@ -352,4 +358,4 @@ Keşif raporu: [`kando-packages-faz3-keşif-raporu.md`](./kando-packages-faz3-ke
 
 ---
 
-*Son güncelleme: 2026-06-18*
+*Son güncelleme: 2026-06-20 (Faz 5 doc sync — DL-C14)*
