@@ -139,6 +139,11 @@ const panel: typeof panelTr = {
       lumos: "Lumos",
       warning: "Warning",
       actionsAria: "Reply actions",
+      copy: "Copy",
+      copied: "Copied",
+      copyFailed: "Copy failed",
+      copyEmpty: "Nothing to copy",
+      copyUnsupported: "Copy not supported",
     },
     compose: {
       placeholder: "Write your message",
