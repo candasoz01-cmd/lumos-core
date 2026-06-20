@@ -61,7 +61,7 @@
 | OD-024 | product-rules.md | Şifreleme detayı (ürün) | Veri sahipliği Encrypted ekseninde şifreleme politikası hangi belgede genişletilecek? | high | needs-review | Veri sahipliği ekseni; data-vault OD-005 ile örtüşür |
 | OD-025 | security-architecture.md | Vault migration maddeleri | ChatGPT kaynaklı vault/token maddeleri uygulama tanımına taşındı mı? | high | needs-review | Migration: Lumos vault + token detayı |
 | OD-026 | internal-agent-layers.md | Doğrulanmamış iç mesaj | Reddedilen iç mesaj için operasyonel olay kaydı prosedürü ne? | medium | needs-review | İç iletişim §3 — operasyonel detay |
-| OD-027 | project-map-runtime-entrypoints.md | packages/kando_* geçişi | `packages/kando_*` → `src/` geçiş takvimi ve kesme kriterleri ne? | high | decision-approved / implementation-pending | Karar: [`kando-packages-transition-decision.md`](kando-packages-transition-decision.md) — **Seçenek C (Hibrit)** onaylandı: `src/` canonical; `kando_bridge` + `kando_runtime` **keep**; `kando_core`/`memory`/`policy`/`context` **archive candidate**. Faz 1 envanter: [`kando-packages-faz1-inventory.md`](kando-packages-faz1-inventory.md). **Bekleyen:** ayna paket arşivi, `lumos_runtime` ölü ayna temizliği, `kando_core.__main__` web kalıntısı, §8 kesme checklist ile cutover. |
+| OD-027 | project-map-runtime-entrypoints.md | packages/kando_* geçişi | `packages/kando_*` → `src/` geçiş takvimi ve kesme kriterleri ne? | high | **approved-for-implementation** | Karar: [`kando-packages-transition-decision.md`](kando-packages-transition-decision.md) — **Seçenek C (Hibrit)**. Faz 3 keşif: [`kando-packages-faz3-keşif-raporu.md`](kando-packages-faz3-keşif-raporu.md) — **Slice 3a** onaylı (web kalıntısı + ölü `lumos_runtime` aynası; S effort). **Bekleyen:** Slice 3b ayna paket arşivi, Faz 4 cutover. |
 | OD-028 | project-map-runtime-entrypoints.md | lumos web komutu | `lumos web` / eksik `web/app.py` — B1: alt komutu kaldır (restore değil) | medium | closed | Karar: [`lumos-web-command-decision.md`](lumos-web-command-decision.md) — **B1** uygulandı: `__main__.py` web dalı kaldırıldı, `test_web_health.py` silindi, mimari belge senkronu. `packages/kando_core` web kalıntısı OD-027'de. |
 | OD-029 | tools-technology-watchlist.md | Ghidra kapsamı | Ghidra RE/firmware entegrasyonu public OSS sınırında kalacak mı? | medium | needs-review | RE/firmware araçları; public boundary |
 | OD-030 | tools-technology-watchlist.md | Çin menşeli vibe coding | Çin menşeli AI prototip araçları güvenlik/veri sınırı test edildi mi? | medium | needs-review | Vibe coding kategorisi |
@@ -155,4 +155,4 @@ Kaynak dosyalardaki boş manuel şablonlar burada tekrarlanmaz. Yeni açık kara
 
 ---
 
-Son güncelleme: 2026-06-20 (OD-044 closed — Seçenek B)
+Son güncelleme: 2026-06-20 (OD-027 Faz 3 keşif — Slice 3a)

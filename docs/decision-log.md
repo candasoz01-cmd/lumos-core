@@ -93,6 +93,7 @@ Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A16 takip satırları kap
 | DL-C02 | 2026-06-20 | OD-043 Birincil kullanıcı yüzeyi | **Closed** — birincil üretim/dış kullanıcı yüzeyi **`ui/` Astro**; `panel/` legacy E2E; `frontend/` birincil değil; formal kapanış OD-046 (#300–#307) sonrası | [`docs/memory/primary-user-surface-decision.md`](memory/primary-user-surface-decision.md); [`build-e2e-surface-alignment-decision.md`](memory/build-e2e-surface-alignment-decision.md) |
 | DL-C03 | 2026-06-20 | OD-046 E2E migrasyonu kapanışı | Kök E2E **`ui/dist`** hizası **implementation-complete**; PR #300–#305; indeks closed | [`docs/memory/od-046-e2e-migration-plan.md`](memory/od-046-e2e-migration-plan.md); [`build-e2e-surface-alignment-decision.md`](memory/build-e2e-surface-alignment-decision.md) |
 | DL-C04 | 2026-06-20 | OD-044 frontend/ rolü | **Closed** — Seçenek **B**: izole köprü E2E + prototip referans; üretim/deploy/root build/root E2E değil; kod/taşıma/arşiv/silme yok | [`docs/memory/frontend-role-decision.md`](memory/frontend-role-decision.md) |
+| DL-C05 | 2026-06-20 | OD-027 kando_* Faz 3 keşif | **Slice 3a approved-for-implementation** — web kalıntısı + ölü `lumos_runtime` aynası (S effort); tam arşiv pending | [`docs/memory/kando-packages-faz3-keşif-raporu.md`](memory/kando-packages-faz3-keşif-raporu.md) |
 
 ---
 
@@ -125,4 +126,4 @@ Tam liste: `docs/memory/open-decisions-needs-review.md` (OD-001 … OD-060).
 
 ---
 
-Son güncelleme: 2026-06-20 (DL-C04 — OD-044 closed Seçenek B)
+Son güncelleme: 2026-06-20 (DL-C05 — OD-027 Faz 3 keşif)

@@ -1,6 +1,6 @@
 # OD-027 — `packages/kando_*` → `src/` geçiş kararı
 
-**Durum:** `decision-approved / implementation-pending` — Faz 2 hedef mimari onaylandı (Seçenek **C — Hibrit**); kesme (cutover) ve arşiv uygulaması bekliyor.  
+**Durum:** `decision-approved / approved-for-implementation` — Faz 2 hedef mimari onaylandı (Seçenek **C — Hibrit**); Slice **3a** uygulama onaylı ([`kando-packages-faz3-keşif-raporu.md`](./kando-packages-faz3-keşif-raporu.md)); tam arşiv/cutover bekliyor.  
 **Kaynak indeks:** [`open-decisions-needs-review.md`](./open-decisions-needs-review.md) OD-027.  
 **Faz 1 envanter:** [`kando-packages-faz1-inventory.md`](./kando-packages-faz1-inventory.md) (2026-06-18).  
 **Doğrulama tarihi:** 2026-06-18 (Faz 2 karar taslağı; repo salt-okuma kanıtı).
@@ -222,11 +222,19 @@ Dokunulmaz (cutover öncesi):
 
 **Çıkış:** Bu belge + OD-027 indeks güncellemesi (`decision-approved / implementation-pending`).
 
-### Faz 3 — Kesme öncesi kapılar `[needs-review]`
+### Faz 3 — Kesme öncesi kapılar + Slice 3a `[approved-for-implementation — 2026-06-20]`
 
-- Entrypoint, test, CI, import path, güvenlik sınırı, rollback — hepsi [§8](#8-kesme-kriterleri) checklist’inde yeşil (veya bilinçli istisna kayıtlı).
+Keşif raporu: [`kando-packages-faz3-keşif-raporu.md`](./kando-packages-faz3-keşif-raporu.md).
 
-### Faz 4 — Kesme (cutover) `[needs-review — kullanıcı onayı zorunlu]`
+**Onaylı ilk dilim (Slice 3a — S effort, ayrı PR):**
+
+1. `kando_core.__main__.py` web kalıntısı kaldırma (OD-028 hizası)
+2. `kando_runtime/lumos_runtime.py` ölü ayna kaldırma
+3. Import sözleşmesi referans notu (docs-only veya README)
+
+§8 checklist Slice 3a için geçerli; tam ayna paket arşivi **3b** (henüz onaylanmadı).
+
+### Faz 4 — Kesme (cutover) `[implementation-pending — kullanıcı onayı zorunlu]`
 
 - Tek sorumluluklu görev(ler); açık hedef path ve geri alma planı.
 - CI yeşil olmadan “tamamlandı” denmez ([`project-workflow.md`](./project-workflow.md) §5).
@@ -297,8 +305,8 @@ Dokunulmaz (cutover öncesi):
 **İlişkili ama bu belgede çözülmeyen:**
 
 - **OD-028:** Kapalı (B1) — kök `lumos` web yok; `kando_core.__main__` web kalıntısı bu geçişte temizlenir.
-- **OD-043:** Birincil kullanıcı yüzeyi (`panel/` / `ui/` / `frontend/`).
-- **OD-046:** Root `npm run build` (ui) ile panel E2E hangi yüzeyi «canlı» sayar.
+- **OD-043:** Birincil kullanıcı yüzeyi — **closed** (`ui/`).
+- **OD-046:** Root build vs kök E2E — **closed** (`ui/dist`).
 
 ---
 
@@ -306,10 +314,10 @@ Dokunulmaz (cutover öncesi):
 
 | OD | Konu | Bu belgedeki karşılık | Durum |
 |----|------|------------------------|--------|
-| **OD-027** | `packages/kando_*` → `src/` geçiş takvimi ve kesme kriterleri | Bu dosyanın tamamı | **decision-approved / implementation-pending** |
-| OD-028 | `lumos web` / `web/app.py` | §3 — kök kapalı (B1); `kando_core.__main__` kalıntısı Faz 5 | **closed** (çapraz temizlik bu geçişte) |
-| OD-043 | Birincil kullanıcı yüzeyi | §2 kapsam dışı; geçişten bağımsız | decision-approved (çapraz) |
-| OD-046 | Root build vs panel E2E | §2 kapsam dışı; geçişten bağımsız | decision-approved / implementation-pending (çapraz) |
+| **OD-027** | `packages/kando_*` → `src/` geçiş takvimi ve kesme kriterleri | Bu dosyanın tamamı + Faz 3 keşif | **approved-for-implementation** (Slice 3a) |
+| OD-028 | `lumos web` / `web/app.py` | §3 — kök kapalı (B1); `kando_core.__main__` kalıntısı Slice 3a | **closed** (çapraz temizlik Slice 3a) |
+| OD-043 | Birincil kullanıcı yüzeyi | §2 kapsam dışı; geçişten bağımsız | **closed** (çapraz) |
+| OD-046 | Root build vs kök E2E | §2 kapsam dışı; geçişten bağımsız | **closed** (çapraz) |
 
 **İndeks senkronu:** Kesme (Faz 4) tamamlanınca `project-map-runtime-entrypoints.md` §11 ve bu indeks `migrated`/`superseded` güncellenir.
 
@@ -317,7 +325,7 @@ Dokunulmaz (cutover öncesi):
 
 ## 13. Sonraki adım
 
-**Tek adım (uygulama paketi):** Ayna paket arşivi — `packages/kando_core`, `kando_memory`, `kando_policy`, `kando_context` için açık hedef path, rollback planı ve §8 kesme checklist'i ile ayrı görev aç. Bridge/runtime (`kando_bridge`, `kando_runtime` gate/dispatch) **keep**; PYTHONPATH ve import sözleşmesi değişmez.
+**Tek adım (uygulama):** Slice **3a** PR — § [`kando-packages-faz3-keşif-raporu.md`](./kando-packages-faz3-keşif-raporu.md) tablo 3a-1..3a-3; pytest + CI yeşil. Slice **3b** (ayna paket arşivi) ayrı onay gerektirir.
 
 ---
 
