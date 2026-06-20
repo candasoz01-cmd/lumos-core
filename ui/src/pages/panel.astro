@@ -5701,6 +5701,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
       function refreshPanelChatI18n() {
         applyUserModeUi();
         refreshChatBubbleRoles();
+        if (typeof refreshChatBubbleBodies === "function") refreshChatBubbleBodies();
         if (typeof refreshPanelCameraHintsI18n === "function") refreshPanelCameraHintsI18n();
         if (typeof refreshPanelAudioRecordI18n === "function") refreshPanelAudioRecordI18n();
         if (typeof refreshPanelVoiceHintsI18n === "function") refreshPanelVoiceHintsI18n();
@@ -5730,6 +5731,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
       let refreshPanelTtsI18n = null;
       let refreshSendHintI18n = null;
       let refreshPanelSendButtonI18n = null;
+      let refreshChatBubbleBodies = null;
 
       function refreshPanelFilesI18n() {
         if (typeof refreshDosyalarPanelI18n === "function") refreshDosyalarPanelI18n();
@@ -6804,10 +6806,28 @@ const PANEL_DEBUG = import.meta.env.DEV;
           : panelT("panel.modules.chat.compose.hints.limitedPhotoReply");
       }
 
+      function panelComposePhotoReplyMeta(userMode) {
+        return {
+          i18nKey:
+            userMode === "offline"
+              ? "panel.modules.chat.compose.hints.offlinePhotoReply"
+              : "panel.modules.chat.compose.hints.limitedPhotoReply",
+        };
+      }
+
       function panelComposeAudioReply(userMode) {
         return userMode === "offline"
           ? panelT("panel.modules.chat.compose.hints.offlineAudioReply")
           : panelT("panel.modules.chat.compose.hints.limitedAudioReply");
+      }
+
+      function panelComposeAudioReplyMeta(userMode) {
+        return {
+          i18nKey:
+            userMode === "offline"
+              ? "panel.modules.chat.compose.hints.offlineAudioReply"
+              : "panel.modules.chat.compose.hints.limitedAudioReply",
+        };
       }
 
       function gorevlerPriorityLabel(key) {
@@ -8102,6 +8122,25 @@ const PANEL_DEBUG = import.meta.env.DEV;
         return panelT("panel.modules.chat.gorev.confirm").replace("{title}", cmd.title);
       }
 
+      function buildPanelGorevConfirmationMeta(cmd) {
+        if (cmd.replyKind === "mini") {
+          return {
+            i18nKey: "panel.modules.chat.gorev.confirmMini",
+            i18nVars: { title: cmd.title },
+          };
+        }
+        if (cmd.whenSummary) {
+          return {
+            i18nKey: "panel.modules.chat.gorev.confirmWithWhen",
+            i18nVars: { title: cmd.title, when: cmd.whenSummary },
+          };
+        }
+        return {
+          i18nKey: "panel.modules.chat.gorev.confirm",
+          i18nVars: { title: cmd.title },
+        };
+      }
+
       function normalizePanelLimitedIntentKey(text) {
         return String(text || "")
           .trim()
@@ -9194,7 +9233,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
           return items.slice(-CHAT_HISTORY_LIMIT);
         }
 
-        function appendBubble(kind, text) {
+        const panelChatBubbleBodyRefreshers = new WeakMap();
+
+        function appendBubble(kind, text, meta) {
           const turn = document.createElement("div");
           turn.className =
             "chat-turn " +
@@ -9215,6 +9256,21 @@ const PANEL_DEBUG = import.meta.env.DEV;
             body.textContent = panelUserVisibleText(text);
           } else {
             body.textContent = text;
+          }
+          if (meta && typeof meta === "object") {
+            if (typeof meta.refreshBody === "function") {
+              panelChatBubbleBodyRefreshers.set(wrap, meta.refreshBody);
+            } else if (meta.errorKind) {
+              wrap.setAttribute("data-panel-chat-error-kind", String(meta.errorKind));
+            } else if (meta.i18nKey) {
+              wrap.setAttribute("data-panel-bubble-i18n", String(meta.i18nKey));
+              if (meta.i18nVars && typeof meta.i18nVars === "object") {
+                wrap.setAttribute("data-panel-bubble-i18n-vars", JSON.stringify(meta.i18nVars));
+              }
+              if (meta.i18nSuffix != null) {
+                wrap.setAttribute("data-panel-bubble-i18n-suffix", String(meta.i18nSuffix));
+              }
+            }
           }
           wrap.appendChild(role);
           wrap.appendChild(body);
@@ -9582,6 +9638,61 @@ const PANEL_DEBUG = import.meta.env.DEV;
           return panelT("panel.modules.chat.errors." + k);
         }
 
+        function paintPanelChatBubbleBody(wrap, body, text) {
+          if (wrap.classList.contains("chat-msg--lumos")) {
+            body.innerHTML = formatAssistantHtml(panelUserVisibleText(text));
+          } else if (wrap.classList.contains("chat-msg--error")) {
+            body.textContent = panelUserVisibleText(text);
+          } else {
+            body.textContent = text;
+          }
+        }
+
+        function panelChatBubbleTextFromI18nMeta(wrap) {
+          const key = wrap.getAttribute("data-panel-bubble-i18n");
+          if (!key) return null;
+          let text = panelT(key);
+          const varsRaw = wrap.getAttribute("data-panel-bubble-i18n-vars");
+          if (varsRaw) {
+            try {
+              const vars = JSON.parse(varsRaw);
+              Object.keys(vars).forEach((k) => {
+                text = text.replace("{" + k + "}", String(vars[k]));
+              });
+            } catch {
+              /* ignore */
+            }
+          }
+          const suffix = wrap.getAttribute("data-panel-bubble-i18n-suffix");
+          if (suffix != null) text += suffix;
+          return text;
+        }
+
+        refreshChatBubbleBodies = function refreshChatBubbleBodiesImpl() {
+          document.querySelectorAll(".chat-msg").forEach((wrap) => {
+            const body = wrap.querySelector(".chat-msg-body");
+            if (!body) return;
+            const refresher = panelChatBubbleBodyRefreshers.get(wrap);
+            if (refresher) {
+              paintPanelChatBubbleBody(wrap, body, refresher());
+              return;
+            }
+            const errorKind = wrap.getAttribute("data-panel-chat-error-kind");
+            if (errorKind) {
+              paintPanelChatBubbleBody(
+                wrap,
+                body,
+                userMessageForPanelChatFailureKind(errorKind),
+              );
+              return;
+            }
+            const i18nText = panelChatBubbleTextFromI18nMeta(wrap);
+            if (i18nText != null) {
+              paintPanelChatBubbleBody(wrap, body, i18nText);
+            }
+          });
+        };
+
         function panelChatFailureUserMessage(ctx, kindOverride) {
           const kind =
             kindOverride && PANEL_CHAT_ERROR_KINDS.includes(kindOverride)
@@ -9728,6 +9839,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
           return { kind, rawError };
         }
 
+        /** HTTP 200 + error alanları olsa bile foto fallback metni asistan yanıtı olarak önceliklidir. */
+        function isPanelChatPhotoFallbackReply(text) {
+          const t = text == null ? "" : String(text).trim();
+          if (!t) return false;
+          return t === REPLY_PHOTO_NO_VISION_TR || PANEL_REPLY_PHOTO_NO_VISION_RE.test(t);
+        }
+
         function extractAssistantFromChatPayload(data) {
           if (data == null) return "";
           if (typeof data === "string") return String(data).trim();
@@ -9854,7 +9972,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             try {
               if (hasPhoto) {
                 appendUserComposeBubble(message, imageDataUrlForBubble);
-                appendBubble("lumos", photoReply);
+                appendBubble("lumos", photoReply, panelComposePhotoReplyMeta(userMode));
                 setSendHint(() => panelComposePhotoHint(getPanelUserMode()));
                 input.value = "";
                 clearPanelCameraPhotoSelection();
@@ -9865,7 +9983,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
               if (hasAudio) {
                 appendUserComposeBubble(message, null, audioBubbleUrl, null, audioRecordBlob);
-                appendBubble("lumos", audioReply);
+                appendBubble("lumos", audioReply, panelComposeAudioReplyMeta(userMode));
                 setSendHint(() => panelComposeAudioHint(getPanelUserMode()));
                 input.value = "";
                 clearPanelAudioRecordSelection();
@@ -9888,10 +10006,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   appendBubble("lumos", restoreReply);
                 } else {
                   await applyPanelGorevKomutu(panelGorevCmd);
-                  appendBubble("lumos", buildPanelGorevConfirmation(panelGorevCmd));
+                  appendBubble("lumos", buildPanelGorevConfirmation(panelGorevCmd), buildPanelGorevConfirmationMeta(panelGorevCmd));
                 }
               } else {
-                appendBubble("lumos", buildPanelLocalModeReply(message));
+                appendBubble("lumos", buildPanelLocalModeReply(message), {
+                  refreshBody: () => buildPanelLocalModeReply(message),
+                });
               }
               input.value = "";
               clearPanelCameraPhotoSelection();
@@ -9970,7 +10090,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
               return;
             }
             await applyPanelGorevKomutu(panelGorevCmd);
-            appendBubble("lumos", buildPanelGorevConfirmation(panelGorevCmd));
+            appendBubble("lumos", buildPanelGorevConfirmation(panelGorevCmd), buildPanelGorevConfirmationMeta(panelGorevCmd));
             input.value = "";
             clearPanelCameraPhotoSelection();
             clearPanelAudioRecordSelection();
@@ -9980,7 +10100,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
 
           if (hasAudio && !outgoingMessage && !hasPhoto) {
-            appendBubble("lumos", panelT("panel.modules.chat.compose.hints.fullAudioReply"));
+            appendBubble("lumos", panelT("panel.modules.chat.compose.hints.fullAudioReply"), {
+              i18nKey: "panel.modules.chat.compose.hints.fullAudioReply",
+            });
             setSendHint(() => panelT("panel.modules.chat.compose.hints.fullAudioHint"));
             input.value = "";
             clearPanelAudioRecordSelection();
@@ -10112,6 +10234,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   },
                   httpFailKind,
                 ),
+                { errorKind: httpFailKind },
               );
               reportPanelInfraUnavailable(
                 "sohbet HTTP " + r.status,
@@ -10166,7 +10289,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 if (chatFailureReported) return;
                 chatFailureReported = true;
                 setSendHint(() => panelT("panel.modules.chat.compose.hints.responseUnreadable"));
-                appendBubble("error", CHAT_BODY_UNUSABLE_BUBBLE);
+                appendBubble("error", CHAT_BODY_UNUSABLE_BUBBLE, {
+                  i18nKey: "panel.modules.chat.compose.hints.responseUnusableBubble",
+                });
               }
 
               const trimmedBody = text == null ? "" : String(text).trim();
@@ -10197,7 +10322,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
               if (havePayload) {
                 const errorPayload = parsePanelChatErrorPayload(parsedPayload);
-                if (errorPayload) {
+                const replyFor200 = extractAssistantFromChatPayload(parsedPayload);
+                const skip200ErrorBubble =
+                  !!replyFor200.trim() && isPanelChatPhotoFallbackReply(replyFor200);
+                if (errorPayload && !skip200ErrorBubble) {
                   appendBubble(
                     "error",
                     panelChatFailureUserMessage(
@@ -10208,6 +10336,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                       },
                       errorPayload.kind,
                     ),
+                    { errorKind: errorPayload.kind },
                   );
                   setSendHint("");
                   if (photoTelemetry && PANEL_DEBUG) {
@@ -10233,7 +10362,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                     void loadPanelBackendStatus();
                   }
                 } else {
-                const replyBody = extractAssistantFromChatPayload(parsedPayload);
+                const replyBody = replyFor200;
                 if (photoTelemetry && PANEL_DEBUG) {
                   const trimmedReply = replyBody.trim();
                   const fallbackExact = trimmedReply === REPLY_PHOTO_NO_VISION_TR;
@@ -10297,6 +10426,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
                       "lumos",
                       panelT("panel.modules.chat.compose.hints.gorevServerReplyPrefix") +
                         panelChatDisplayReply(lumosText),
+                      {
+                        i18nKey: "panel.modules.chat.compose.hints.gorevServerReplyPrefix",
+                        i18nSuffix: panelChatDisplayReply(lumosText),
+                      },
                     );
                     setSendHint("");
                   } else {
@@ -10312,10 +10445,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   appendBubble(
                     "lumos",
                     panelT("panel.modules.chat.compose.hints.gorevNoExtraServerText"),
+                    { i18nKey: "panel.modules.chat.compose.hints.gorevNoExtraServerText" },
                   );
                   setSendHint("");
                 } else {
-                  appendBubble("lumos", panelT("panel.modules.chat.compose.hints.emptyReply"));
+                  appendBubble("lumos", panelT("panel.modules.chat.compose.hints.emptyReply"), {
+                    i18nKey: "panel.modules.chat.compose.hints.emptyReply",
+                  });
                   setSendHint("");
                 }
                 }
@@ -10336,7 +10472,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
               errName,
               errMessage: netMsg,
             });
-            appendBubble("error", userMessageForPanelChatFailureKind(netKind));
+            appendBubble("error", userMessageForPanelChatFailureKind(netKind), {
+              errorKind: netKind,
+            });
             reportPanelInfraUnavailable(
               "sohbet ağ: " + netMsg.slice(0, 120),
               panelT("panel.shell.infra.unavailableShort"),
@@ -11283,12 +11421,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
             const audioReply = panelComposeAudioReply(
               isOfflineUserMode() ? "offline" : "limited",
             );
-            appendBubble("lumos", audioReply);
+            appendBubble("lumos", audioReply, panelComposeAudioReplyMeta(getPanelUserMode()));
             setSendHint(() =>
               panelComposeAudioHint(isOfflineUserMode() ? "offline" : "limited"),
             );
           } else {
-            appendBubble("lumos", panelT("panel.modules.chat.compose.hints.fullAudioReply"));
+            appendBubble("lumos", panelT("panel.modules.chat.compose.hints.fullAudioReply"), {
+              i18nKey: "panel.modules.chat.compose.hints.fullAudioReply",
+            });
             setSendHint(() => panelT("panel.modules.chat.compose.hints.fullAudioHint"));
           }
           input.blur();

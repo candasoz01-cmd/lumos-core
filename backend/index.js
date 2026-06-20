@@ -329,7 +329,7 @@ app.post("/chat", async (req, res) => {
             errMessage: visionErr?.message ?? String(visionErr),
           });
           const payload = panelChatErrorPayload(kind, { locale: chatLocale });
-          return res.json({ reply: REPLY_PHOTO_NO_VISION, ...payload });
+          return res.json({ ...payload, reply: REPLY_PHOTO_NO_VISION });
         }
       }
       visionLastStatus = "fallback";
