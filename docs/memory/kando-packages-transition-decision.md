@@ -204,9 +204,11 @@ Canlı yol:
               ↘ packages/kando_bridge (HTTP köprü, STT)
               ↘ packages/kando_runtime (gate, dispatch, executor'lar — lumos_runtime aynası hariç)
 
-Arşiv adayı (Faz 5):
-  packages/kando_core, kando_memory, kando_policy, kando_context
-  packages/kando_runtime/lumos_runtime.py (+ muhtemelen brain.py)
+Arşiv (Slice 3b — archive/packages/):
+  archive/packages/kando_core, kando_memory, kando_policy, kando_context
+
+Kalan aday (Faz 5):
+  packages/kando_runtime/lumos_runtime.py (+ muhtemelen brain.py) — Slice 3a ile lumos_runtime aynası kaldırıldı
 
 Dokunulmaz (cutover öncesi):
   src/ canonical; .lumos/ workspace sözleşmesi; güvenlik geçidi
@@ -232,7 +234,9 @@ Keşif raporu: [`kando-packages-faz3-keşif-raporu.md`](./kando-packages-faz3-ke
 2. `kando_runtime/lumos_runtime.py` ölü ayna silindi
 3. Import sözleşmesi referans notu (docs-only veya README)
 
-§8 checklist Slice 3a için geçerli; tam ayna paket arşivi **3b** — [`od-027-slice-3b-archive-decision.md`](./od-027-slice-3b-archive-decision.md) **`approved-for-implementation`**.
+§8 checklist Slice 3a için geçerli; ayna paket arşivi **3b** **`implementation-complete`** (PR #316 / `1cdb0f2`) — [`od-027-slice-3b-archive-decision.md`](./od-027-slice-3b-archive-decision.md).
+
+**Slice 3b (M effort, PR #316):** dört ayna paket `archive/packages/` altına taşındı (`git mv`); canlı `packages/` yalnızca bridge + runtime.
 
 ### Faz 4 — Kesme (cutover) `[implementation-pending — kullanıcı onayı zorunlu]`
 
@@ -314,7 +318,7 @@ Keşif raporu: [`kando-packages-faz3-keşif-raporu.md`](./kando-packages-faz3-ke
 
 | OD | Konu | Bu belgedeki karşılık | Durum |
 |----|------|------------------------|--------|
-| **OD-027** | `packages/kando_*` → `src/` geçiş takvimi ve kesme kriterleri | Bu dosyanın tamamı + Faz 3 keşif | **approved-for-implementation** (Slice 3a **complete**; 3b karar onaylı) |
+| **OD-027** | `packages/kando_*` → `src/` geçiş takvimi ve kesme kriterleri | Bu dosyanın tamamı + Faz 3 keşif | **approved-for-implementation** (Slice 3a **complete**; Slice 3b **complete** #316) |
 | OD-028 | `lumos web` / `web/app.py` | §3 — kök kapalı (B1); `kando_core.__main__` kalıntısı Slice 3a | **closed** (çapraz temizlik Slice 3a) |
 | OD-043 | Birincil kullanıcı yüzeyi | §2 kapsam dışı; geçişten bağımsız | **closed** (çapraz) |
 | OD-046 | Root build vs kök E2E | §2 kapsam dışı; geçişten bağımsız | **closed** (çapraz) |

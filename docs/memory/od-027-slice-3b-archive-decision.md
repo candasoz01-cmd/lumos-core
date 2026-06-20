@@ -1,6 +1,6 @@
 # OD-027 Slice 3b — Ayna paket arşiv kararı
 
-**Durum:** **`approved-for-implementation`** (docs-only karar — 2026-06-20).  
+**Durum:** **`implementation-complete`** (PR #316, `1cdb0f2`).  
 **Kaynak:** OD-027 Seçenek C — [`kando-packages-transition-decision.md`](./kando-packages-transition-decision.md).  
 **Önceki dilim:** Slice 3a **`implementation-complete`** (PR #313, DL-A17).  
 **Keşif:** [`kando-packages-faz1-inventory.md`](./kando-packages-faz1-inventory.md), [`kando-packages-faz3-keşif-raporu.md`](./kando-packages-faz3-keşif-raporu.md).
@@ -97,7 +97,7 @@ Repo kökünde `archive/refactor_history/` mevcut (yedek `.py` dosyaları). Slic
 
 | Dilim | İçerik | Durum |
 |-------|--------|--------|
-| **3b uygulama** | Bu belge §3 | **`approved-for-implementation`** |
+| **3b uygulama** | Bu belge §3 | **`implementation-complete`** (PR #316) |
 | **4** | Cutover onayı | `implementation-pending` — kullanıcı açık komutu |
 | **5** | İndeks `migrated` / `superseded` | Faz 4 sonrası |
 
@@ -105,10 +105,10 @@ Repo kökünde `archive/refactor_history/` mevcut (yedek `.py` dosyaları). Slic
 
 ## 7. İndeks / DL senkronu
 
-- `open-decisions-needs-review.md` OD-027 — Slice 3b karar onaylı; uygulama PR bekler
-- `decision-log.md` — DL-C07 (bu karar); uygulama merge sonrası DL-A18 (planlanır)
+- `open-decisions-needs-review.md` OD-027 — Slice 3b **complete** (PR #316)
+- `decision-log.md` — DL-C07 (karar); **DL-A18** (uygulama — PR #316)
 - `kando-packages-faz3-keşif-raporu.md` §5 — 3b **`approved-for-implementation`**
 
 ---
 
-Son güncelleme: 2026-06-20 (Slice 3b karar — docs-only)
+Son güncelleme: 2026-06-20 (Slice 3b **implementation-complete** — PR #316)
