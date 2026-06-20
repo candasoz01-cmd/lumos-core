@@ -11,7 +11,9 @@
     "build": "astro build",
     "preview": "astro preview",
     "e2e:smoke": "node e2e/smoke-panel.mjs",
-    "e2e:package:local": "node e2e/package-local.mjs"
+    "e2e:package:local": "node e2e/package-local.mjs",
+    "e2e:package:api": "node e2e/package-api.mjs",
+    "e2e:tasks-offline-online": "node e2e/tasks-offline-online.mjs"
   },
   "dependencies": {
     "astro": "^6.2.1"
