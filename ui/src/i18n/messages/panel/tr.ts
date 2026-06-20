@@ -690,6 +690,12 @@ const panelModules = {
     c5Title: "Bağlantı Ayarları",
     c5Body:
       "Harici servis ve hesap bağlantıları tek yerden görülebilir; gerektiğinde kesme ve yeniden bağlanma kullanıcıdadır.",
+    c6Title: "Görünürlük ve Güvenlik Tercihleri",
+    c6Body:
+      "Paylaşım, günlük veya veri saklama ile ilgili seçenekler birbirinden ayrılır; her biri net bir açıklamayla sunulur.",
+    c7Title: "Varsayılanlar ve Kontrol",
+    c7Body:
+      "Öntanımlı davranışlar kabul edilmeden önce kullanıcıya gösterilir; değişiklikler geri alınabilir biçimde tutulmayı hedefler.",
   },
   capabilities: {
     intro:
