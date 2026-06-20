@@ -8284,6 +8284,20 @@ const PANEL_DEBUG = import.meta.env.DEV;
           nav.querySelector('button[data-module][aria-current="true"]'),
         );
 
+        function scrollPanelComposeIntoView() {
+          const stack = document.querySelector("#panel-sohbet .chat-compose-stack");
+          if (!(stack instanceof HTMLElement)) return;
+          try {
+            stack.scrollIntoView({ behavior: "smooth", block: "end" });
+          } catch {
+            try {
+              stack.scrollIntoView(false);
+            } catch {
+              stack.scrollIntoView();
+            }
+          }
+        }
+
         const vv = window.visualViewport;
         if (vv) {
           let vvTimer = 0;
@@ -8303,6 +8317,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 if (se) se.scrollLeft = 0;
                 document.documentElement.scrollLeft = 0;
                 document.body.scrollLeft = 0;
+              }
+              if (window.matchMedia("(pointer: coarse) and (hover: none)").matches) {
+                const sohbet = document.getElementById("panel-sohbet");
+                if (
+                  sohbet &&
+                  sohbet.getAttribute("data-active") === "true" &&
+                  document.activeElement === input &&
+                  vv.height < window.innerHeight * 0.82
+                ) {
+                  scrollPanelComposeIntoView();
+                }
               }
             }, 100);
           };
