@@ -1599,6 +1599,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
       :global(.dosyalar-history-wrap .gorevler-list-heading) {
         margin-bottom: 0.45rem;
       }
+      :global(.dosyalar-history-device-note) {
+        margin: 0 0 0.55rem;
+        font-size: 0.72rem;
+        line-height: 1.35;
+        color: rgb(174 182 200 / 0.72);
+      }
       :global(.dosyalar-history-list) {
         list-style: none;
         margin: 0;
@@ -4915,7 +4921,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
               </div>
               <div id="dosyalar-result" class="dosyalar-result-stack" hidden aria-live="polite"></div>
               <div id="dosyalar-history-wrap" class="dosyalar-history-wrap" hidden>
-                <h3 id="dosyalar-history-heading" class="gorevler-list-heading">Son yüklemeler</h3>
+                <h3 id="dosyalar-history-heading" class="gorevler-list-heading" data-i18n="panel.modules.files.historyHeading">Son yüklemeler</h3>
+                <p id="dosyalar-history-device-note" class="dosyalar-history-device-note" data-i18n="panel.modules.files.historyDeviceNote">Bu cihazda saklanır; en fazla 5 kayıt.</p>
                 <ul id="dosyalar-history-list" class="dosyalar-history-list" aria-labelledby="dosyalar-history-heading"></ul>
               </div>
             </div>
@@ -5479,6 +5486,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
     <script define:vars={{ CHAT_URL, kandoToken, UPLOAD_URL, HEALTH_URL, BRIDGE_BASE_URL, STATUS_URL, TASKS_API_URL, PANEL_DEBUG }}>
       /** Görevler: panel_tasks_server → .lumos/tasks.json; localStorage önbellek (görev eklerken köprü yok). */
       const PANEL_GOREVLER_LS_KEY = "lumos_panel_gorevler_list_v1";
+      /** Dosyalar: son 5 yükleme özeti — yalnız bu cihaz/tarayıcı. */
+      const PANEL_DOSYALAR_HISTORY_LS_KEY = "lumos_panel_dosyalar_history_v1";
       /** EC2-02: offline görev mutasyonları — flush mevcut REST ile (journal istemciden yazılmaz). */
       const PANEL_EVIDENCE_PENDING_OPS_LS_KEY = "lumos_panel_evidence_pending_ops_v1";
       const PANEL_EVIDENCE_QUEUE_MAX = 64;
@@ -11945,10 +11954,43 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const historyList = document.getElementById("dosyalar-history-list");
         if (!input || !btn || !hint || !result) return;
 
-        /** Bellek içi; sayfa yenilenince sıfırlanır. En fazla 5 kayıt, en yeni üstte. */
-        const dosyalarUploadHistory = [];
+        /** Bu cihazda localStorage; en fazla 5 kayıt, en yeni üstte. */
+        const dosyalarUploadHistory = loadDosyalarUploadHistory();
         /** Son seçilen ses dosyası (Metne çevir için blob kaynağı). */
         let dosyalarLastAudioFile = null;
+
+        function loadDosyalarUploadHistory() {
+          try {
+            if (typeof localStorage === "undefined") return [];
+            const raw = localStorage.getItem(PANEL_DOSYALAR_HISTORY_LS_KEY);
+            if (!raw) return [];
+            const parsed = JSON.parse(raw);
+            if (!parsed || parsed.v !== 1 || !Array.isArray(parsed.items)) return [];
+            return parsed.items
+              .filter(
+                (row) =>
+                  row &&
+                  typeof row === "object" &&
+                  row.snapshot &&
+                  typeof row.snapshot === "object",
+              )
+              .slice(0, 5);
+          } catch {
+            return [];
+          }
+        }
+
+        function persistDosyalarUploadHistory() {
+          try {
+            if (typeof localStorage === "undefined") return;
+            localStorage.setItem(
+              PANEL_DOSYALAR_HISTORY_LS_KEY,
+              JSON.stringify({ v: 1, items: dosyalarUploadHistory.slice(0, 5) }),
+            );
+          } catch {
+            /* kota / gizli mod */
+          }
+        }
 
         function dosyalarHistoryShortStatus(data) {
           if (dosyalarIsAudioFile(data.extension, data.kind)) {
@@ -12040,6 +12082,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           dosyalarUploadHistory.unshift({ snapshot });
           if (dosyalarUploadHistory.length > 5) dosyalarUploadHistory.length = 5;
           renderDosyalarHistory();
+          persistDosyalarUploadHistory();
         }
 
         function showHint(msg) {
@@ -12272,6 +12315,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
             btn.removeAttribute("aria-busy");
           }
         });
+
+        renderDosyalarHistory();
       }
 
       function wireCapabilityProbe() {
