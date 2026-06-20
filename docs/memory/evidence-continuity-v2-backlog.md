@@ -112,7 +112,7 @@ EC2-05 (store merge)          ── bağımsız OD; v2 fazlarına hard dependen
 |-------|----------|-----|
 | Terminoloji kapandı | — | [`audit-hook-term-decision.md`](./audit-hook-term-decision.md) |
 | Şema doğrulama CI | EC2-14 | Mevcut `validate_evidence_record` + pytest; ince CI kapısı |
-| Opsiyonel (geliştirme) | — | CI ruff parity — Paket B; EC v2 dışı ayrı PR |
+| Opsiyonel (geliştirme) | — | CI ruff parity — Paket B **tamamlandı** (OD-059) |
 
 **Durum (2026-06-19):** **`[implemented]`** — EC2-14 merge PR #255 (`5b2ae6b`); `validate_evidence_record` pytest CI kapısı.
 

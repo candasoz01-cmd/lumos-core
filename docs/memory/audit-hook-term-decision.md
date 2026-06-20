@@ -1,6 +1,6 @@
 # Audit hook terim kararı — informal takip maddesi kapanışı
 
-> **Durum:** `decision-approved` (terminoloji) / `implementation-pending` yalnızca opsiyonel CI ruff parity (Paket B — ayrı PR).
+> **Durum:** `decision-approved` (terminoloji **closed**) / **Paket B implementation-complete** (CI ruff parity — 2026-06-20).
 >
 > **Keşif kaynağı:** Audit Hook v1 discovery (2026-06-19) — `.githooks/`, EC v1, CI `ci.yml`, dağınık audit katmanları read-only tarama.
 >
@@ -22,7 +22,7 @@
 | AH2 | Git pre-commit (commit guard) = geliştirme kalite kapısı; ürün audit değil | `decision-approved` |
 | AH3 | Evidence Continuity runtime hook'ları (H0/H1/H2) = sunucu mutasyon kanıtı; v1 uygulandı | `implemented` / `verified` |
 | AH4 | EC v2 guard mirror + şema validator CI «audit hook» adıyla karıştırılmaz | `decision-approved` |
-| AH5 | Opsiyonel CI ruff parity (Paket B) ayrı PR; «audit hook» adıyla etiketlenmez | `implementation-pending` |
+| AH5 | CI ruff parity (Paket B) — pre-commit ile hizalı | **implementation-complete** |
 
 ---
 
@@ -80,7 +80,7 @@ Commit-dışı informal takip listesinde geçen **«audit hook»** maddesinin re
 
 **Firm:** Commit guard geliştirici makinesinde kalite kapısıdır; git commit/push olayları ürün mutasyonu değildir ve EC journal'a **girmez**.
 
-**CI drift (bilinen):** Pre-commit'te ruff varken [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) yalnızca pytest koşar. Bu «audit hook» değil; opsiyonel **Paket B** (CI ruff parity) ayrı PR ile ele alınır.
+**CI drift (giderildi — 2026-06-20):** Pre-commit'te ruff varken [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) artık `ruff check .` koşar (OD-059 Paket B). Bu «audit hook» değildir; geliştirme kalite parity'sidir.
 
 ---
 
@@ -158,7 +158,7 @@ Bunların EC v2 #4 ile normalize edilmesi ayrı iş paketidir; «audit hook v1»
 | Paket | İçerik | Bu belge / PR |
 |-------|--------|---------------|
 | **Paket A** | Terminoloji kararı (bu dosya) + informal takip maddesi kapanışı | **Bu belge** |
-| **Paket B** | CI'ya `ruff check .` eklenmesi (pre-commit parity) | **Ayrı PR** — «audit hook» adıyla açılmaz; `implementation-pending` |
+| **Paket B** | CI'ya `ruff check .` eklenmesi (pre-commit parity) | **Tamamlandı** — `.github/workflows/ci.yml` + `requirements.txt` |
 
 **Paket C/D (EC v2):** Şema validator CI (#14) ve guard/policy normalize (#4) — [`evidence-continuity-v2-backlog.md`](./evidence-continuity-v2-backlog.md).
 
@@ -183,7 +183,7 @@ Bunların EC v2 #4 ile normalize edilmesi ayrı iş paketidir; «audit hook v1»
 | Risk | Mitigasyon |
 |------|------------|
 | «Audit hook» = yeni git hook sanılması | Bu belge + OD-059 |
-| CI ruff drift (pre-commit vs CI) | Opsiyonel Paket B |
+| CI ruff drift (pre-commit vs CI) | Paket B **tamamlandı** |
 | Dağınık audit kanalları (5+ sistem) | EC v2 #4 backlog |
 | EC v1 chat/client boşluğu | EC v2 Phase 2 — audit hook ile kapanmaz |
 
@@ -204,7 +204,7 @@ Bunların EC v2 #4 ile normalize edilmesi ayrı iş paketidir; «audit hook v1»
 ## Sonraki adım
 
 1. **Paket A (tamamlandı):** Bu terminoloji belgesi + OD-059 indeks senkronu.
-2. **Opsiyonel Paket B:** CI ruff parity — ayrı PR; kullanıcı onayı ile.
+2. **Paket B (tamamlandı):** CI ruff parity — `.github/workflows/ci.yml`.
 3. **EC v2:** [`evidence-continuity-v2-backlog.md`](./evidence-continuity-v2-backlog.md) faz sırası.
 
 ---
@@ -213,4 +213,4 @@ Bunların EC v2 #4 ile normalize edilmesi ayrı iş paketidir; «audit hook v1»
 
 ---
 
-Son güncelleme: 2026-06-19
+Son güncelleme: 2026-06-20 (Paket B — CI ruff parity)
