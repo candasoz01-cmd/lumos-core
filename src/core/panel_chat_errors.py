@@ -1,4 +1,4 @@
-"""Panel /chat hata sınıflandırması ve kullanıcıya gösterilecek Türkçe mesajlar."""
+"""Panel /chat hata sınıflandırması ve kullanıcıya gösterilecek mesajlar."""
 
 from __future__ import annotations
 
@@ -14,20 +14,38 @@ PanelChatErrorKind = Literal[
     "unknown_error",
 ]
 
+PanelChatErrorLocale = Literal["tr", "en"]
+
 PANEL_CHAT_ERROR_MESSAGES_TR: dict[PanelChatErrorKind, str] = {
-    "network_error": (
-        "Sunucuya ulaşılamadı. İnternet bağlantınızı ve sohbet adresini kontrol edip tekrar deneyin."
-    ),
-    "timeout": "Yanıt süresi doldu. Biraz sonra tekrar deneyin.",
-    "unauthorized": "Yetkilendirme hatası. Oturum veya API anahtar ayarlarınızı kontrol edin.",
-    "server_error": "Sohbet sunucusu geçici bir sorun bildirdi. Biraz sonra tekrar deneyin.",
-    "model_error": "Yapay zekâ modeli yanıt üretemedi. Biraz sonra tekrar deneyin.",
-    "unknown_error": "Beklenmeyen bir hata oluştu. Biraz sonra tekrar deneyin.",
+    "network_error": "İletim tamamlanamadı. Bağlantıyı kontrol edip tekrar dene.",
+    "timeout": "Yanıt süresi doldu. Biraz sonra tekrar dene.",
+    "unauthorized": "Bağlantı doğrulanamadı. Cihaz ayarlarını kontrol edip tekrar dene.",
+    "server_error": "Sohbet geçici olarak yanıt veremedi. Biraz sonra tekrar dene.",
+    "model_error": "Yanıt üretilemedi. Biraz sonra tekrar dene.",
+    "unknown_error": "Beklenmeyen bir sorun oluştu. Biraz sonra tekrar dene.",
+}
+
+PANEL_CHAT_ERROR_MESSAGES_EN: dict[PanelChatErrorKind, str] = {
+    "network_error": "Delivery failed. Check your connection and try again.",
+    "timeout": "Response timed out. Try again in a moment.",
+    "unauthorized": "Connection could not be verified. Check device settings and try again.",
+    "server_error": "Chat is temporarily unavailable. Try again in a moment.",
+    "model_error": "Could not produce a reply. Try again in a moment.",
+    "unknown_error": "Something unexpected happened. Try again in a moment.",
 }
 
 
-def user_message_for_panel_chat_error(kind: PanelChatErrorKind) -> str:
-    return PANEL_CHAT_ERROR_MESSAGES_TR.get(kind, PANEL_CHAT_ERROR_MESSAGES_TR["unknown_error"])
+def normalize_panel_chat_error_locale(locale: str = "") -> PanelChatErrorLocale:
+    return "en" if str(locale or "").strip().lower() == "en" else "tr"
+
+
+def user_message_for_panel_chat_error(
+    kind: PanelChatErrorKind,
+    locale: str = "tr",
+) -> str:
+    loc = normalize_panel_chat_error_locale(locale)
+    catalog = PANEL_CHAT_ERROR_MESSAGES_EN if loc == "en" else PANEL_CHAT_ERROR_MESSAGES_TR
+    return catalog.get(kind, catalog["unknown_error"])
 
 
 def classify_panel_chat_error(
@@ -75,8 +93,9 @@ def panel_chat_error_payload(
     kind: PanelChatErrorKind,
     *,
     detail: str = "",
+    locale: str = "tr",
 ) -> dict[str, str]:
-    base = user_message_for_panel_chat_error(kind)
+    base = user_message_for_panel_chat_error(kind, locale)
     detail = (detail or "").strip()
     error = f"{base} ({detail})" if detail else base
     return {"errorKind": kind, "error": error, "reply": base}
