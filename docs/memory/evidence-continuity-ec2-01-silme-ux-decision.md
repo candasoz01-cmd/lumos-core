@@ -1,6 +1,6 @@
 # Evidence Continuity EC2-01 — Silme UX follow-up (onaylı karar)
 
-> **Durum:** `[approved-for-implementation]` — keşif tamamlandı; dar v1 uygulama PR'ı bekliyor.
+> **Durum:** `[implemented]` — karar PR #297 (`f74dd63`); V1-a…V1-e uygulama PR #298 (`d778fc9`); `main`.
 >
 > **Keşif kaynağı:** EC2-01 core merge PR #256 (`5073780`); read-only tarama `panel.astro` + `tests/test_panel_gorev_delete_phase1.py` + legacy `app.js` parity karşılaştırması (2026-06-20); opsiyonel UX boşlukları G1–G9.
 >
@@ -219,27 +219,26 @@ Opsiyonel takip maddesi açık kalır; chat restore ve strip senkronu eksik — 
 
 ---
 
-## Uygulama (henüz yapılmadı)
+## Uygulama
 
-| Dosya | Planlanan değişiklik |
-|-------|---------------------|
+| Dosya | Değişiklik |
+|-------|------------|
 | `ui/src/pages/panel.astro` | V1-a … V1-e |
-| `tests/test_panel_gorev_delete_phase1.py` | Restore parse + mesaj testleri |
+| `tests/test_panel_gorev_delete_phase1.py` | Restore parse + mesaj testleri (T1–T9) |
 
-**Beklenen PR:** docs-only karar merge sonrası `feat/ec2-01-silme-ux-v1` implementasyon dalı.
+**Merge:** PR #297 (karar belgesi) + PR #298 (`d778fc9`) — V1-a…V1-e; pytest + CI yeşil.
 
 ---
 
 ## Sonraki adım
 
-1. **Docs PR:** Bu belge + backlog satır güncellemesi merge.
-2. **Implementasyon PR:** V1-a … V1-e; pytest T1–T9; CI yeşil.
-3. **Backlog:** Phase 2 opsiyonel takip → `[implemented]` (silme UX alt seti kapandıktan sonra).
+1. **Backlog / decision-log sync:** EC2-01 silme UX `[implemented]` — docs PR (backlog + DL-A16).
+2. **v2 kapsam dışı (v1 reddedildi):** Seçenek 3 sunucu mesaj API; legacy panel; Playwright E2E — ayrı OD gerekmeden takip edilmez.
 
 ---
 
-**İndeks notu:** EC2-01 silme UX follow-up ayrı OD açmaz; v2 backlog § Phase 2 opsiyonel + bu belge canonical. `docs/decision-log.md` için uygulama merge sonrası DL-A16 adayı.
+**İndeks notu:** EC2-01 silme UX follow-up ayrı OD açmaz; v2 backlog § Phase 2 opsiyonel + bu belge canonical. **`docs/decision-log.md` DL-A16** kapandı (PR #298).
 
 ---
 
-Son güncelleme: 2026-06-20 (keşif tamam; `[approved-for-implementation]`)
+Son güncelleme: 2026-06-20 (`[implemented]` PR #297–#298)
