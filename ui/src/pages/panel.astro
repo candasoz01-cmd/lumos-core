@@ -1721,6 +1721,20 @@ const PANEL_DEBUG = import.meta.env.DEV;
         border: 1px solid var(--lumos-teal-22);
         vertical-align: baseline;
       }
+      .panel-data-flow-badge--demo {
+        color: var(--lumos-gold);
+        background: var(--lumos-gold-soft);
+        border-color: var(--lumos-gold-line);
+      }
+      .panel-share-proto--demo .gorevler-add-btn[disabled] {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      .panel-share-proto--demo .panel-pre-send-demo-hint {
+        margin: 0;
+        font-size: 0.82rem;
+        color: rgba(212, 182, 128, 0.92);
+      }
       .panel-pre-send-summary {
         margin: 0.65rem 0;
         padding: 0.65rem 0.75rem;
@@ -4655,10 +4669,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 </p>
               </li>
             </ul>
-            <div class="panel-share-proto gorevler-proto" style="margin-top: 1rem">
+            <div class="panel-share-proto panel-share-proto--demo gorevler-proto" data-panel-share-demo="true" style="margin-top: 1rem">
               <p class="medya-intro" style="margin-top: 0">
-                <span class="panel-data-flow-badge">[Harici Servis]</span>
-                Paylaşım taslağı — gönderimden önce özet onayı zorunludur.
+                <span class="panel-data-flow-badge panel-data-flow-badge--demo">[Demo — bağlı değil]</span>
+                Paylaşım taslağı önizlemesi — gerçek gönderim bu sürümde kapalı.
               </p>
               <div class="gorevler-field">
                 <label for="medya-share-target">Hedef</label>
@@ -4674,9 +4688,16 @@ const PANEL_DEBUG = import.meta.env.DEV;
               <div id="medya-share-summary" class="panel-pre-send-summary" hidden role="status" aria-live="polite"></div>
               <div class="medya-outbox-actions">
                 <button type="button" id="medya-share-review" class="medya-outbox-refresh">Özeti göster</button>
-                <button type="button" id="medya-share-send" class="gorevler-add-btn" disabled>Gönder</button>
+                <button
+                  type="button"
+                  id="medya-share-send"
+                  class="gorevler-add-btn"
+                  disabled
+                  aria-disabled="true"
+                  title="Demo: gerçek gönderim bağlı değil"
+                >Gönder (demo kapalı)</button>
               </div>
-              <p id="medya-share-hint" class="gorevler-hint" role="status" aria-live="polite" hidden></p>
+              <p id="medya-share-hint" class="gorevler-hint panel-pre-send-demo-hint" role="status" aria-live="polite"></p>
             </div>
           </section>
 
@@ -4724,10 +4745,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 </p>
               </li>
             </ul>
-            <div class="panel-share-proto gorevler-proto" style="margin-top: 1rem">
+            <div class="panel-share-proto panel-share-proto--demo gorevler-proto" data-panel-share-demo="true" style="margin-top: 1rem">
               <p class="medya-intro" style="margin-top: 0">
-                <span class="panel-data-flow-badge">[Harici Servis]</span>
-                Sosyal paylaşım taslağı — gönderimden önce özet onayı zorunludur.
+                <span class="panel-data-flow-badge panel-data-flow-badge--demo">[Demo — bağlı değil]</span>
+                Sosyal paylaşım taslağı önizlemesi — gerçek paylaşım bu sürümde kapalı.
               </p>
               <div class="gorevler-field">
                 <label for="sosyal-share-target">Hedef platform</label>
@@ -4743,9 +4764,16 @@ const PANEL_DEBUG = import.meta.env.DEV;
               <div id="sosyal-share-summary" class="panel-pre-send-summary" hidden role="status" aria-live="polite"></div>
               <div class="medya-outbox-actions">
                 <button type="button" id="sosyal-share-review" class="medya-outbox-refresh">Özeti göster</button>
-                <button type="button" id="sosyal-share-send" class="gorevler-add-btn" disabled>Paylaş</button>
+                <button
+                  type="button"
+                  id="sosyal-share-send"
+                  class="gorevler-add-btn"
+                  disabled
+                  aria-disabled="true"
+                  title="Demo: gerçek paylaşım bağlı değil"
+                >Paylaş (demo kapalı)</button>
               </div>
-              <p id="sosyal-share-hint" class="gorevler-hint" role="status" aria-live="polite" hidden></p>
+              <p id="sosyal-share-hint" class="gorevler-hint panel-pre-send-demo-hint" role="status" aria-live="polite"></p>
             </div>
           </section>
 
@@ -4793,10 +4821,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 </p>
               </li>
             </ul>
-            <div class="panel-share-proto gorevler-proto" style="margin-top: 1rem">
+            <div class="panel-share-proto panel-share-proto--demo gorevler-proto" data-panel-share-demo="true" style="margin-top: 1rem">
               <p class="medya-intro" style="margin-top: 0">
-                <span class="panel-data-flow-badge">[Harici Servis]</span>
-                E-posta taslağı — gönderimden önce özet onayı zorunludur.
+                <span class="panel-data-flow-badge panel-data-flow-badge--demo">[Demo — bağlı değil]</span>
+                E-posta taslağı önizlemesi — gerçek gönderim bu sürümde kapalı.
               </p>
               <div class="gorevler-field">
                 <label for="posta-share-target">Alıcı</label>
@@ -4813,9 +4841,16 @@ const PANEL_DEBUG = import.meta.env.DEV;
               <div id="posta-share-summary" class="panel-pre-send-summary" hidden role="status" aria-live="polite"></div>
               <div class="medya-outbox-actions">
                 <button type="button" id="posta-share-review" class="medya-outbox-refresh">Özeti göster</button>
-                <button type="button" id="posta-share-send" class="gorevler-add-btn" disabled>Gönder</button>
+                <button
+                  type="button"
+                  id="posta-share-send"
+                  class="gorevler-add-btn"
+                  disabled
+                  aria-disabled="true"
+                  title="Demo: gerçek gönderim bağlı değil"
+                >Gönder (demo kapalı)</button>
               </div>
-              <p id="posta-share-hint" class="gorevler-hint" role="status" aria-live="polite" hidden></p>
+              <p id="posta-share-hint" class="gorevler-hint panel-pre-send-demo-hint" role="status" aria-live="polite"></p>
             </div>
           </section>
 
@@ -10516,8 +10551,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
           "Onay",
         ];
 
-        const GOREVLER_PLAN_KOK_NEDEN_PLACEHOLDER =
-          "Kod taranmadı; ilk sınıflandırma.";
+        const GOREVLER_PLAN_NOT_PENDING =
+          "Kök neden analizi henüz yapılmadı (beklemede).";
+
+        function gorevlerPlanNotDisplay(_plan) {
+          return GOREVLER_PLAN_NOT_PENDING;
+        }
 
         function gorevlerPlanAlanDisplay(plan) {
           const p = sanitizeGorevlerTaskPlan(plan);
@@ -10548,7 +10587,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           return [
             tespit,
             gorevlerPlanAlanDisplay(p),
-            GOREVLER_PLAN_KOK_NEDEN_PLACEHOLDER,
+            gorevlerPlanNotDisplay(p),
             cozum,
             p && p.risk ? String(p.risk) : "Orta",
             onay,
@@ -10615,7 +10654,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           appendDetailRow(dl, "Risk", p.risk);
           appendDetailRow(dl, "Alan", gorevlerPlanAlanDisplay(p));
           appendDetailRow(dl, "Sırada", p.sonrakiAdim);
-          appendDetailRow(dl, "Not", GOREVLER_PLAN_KOK_NEDEN_PLACEHOLDER);
+          appendDetailRow(dl, "Not", gorevlerPlanNotDisplay(p));
         }
 
         function renderGorevlerPlanStatusEl(statusEl, plan) {
@@ -12787,11 +12826,25 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const attachmentEl = cfg.attachmentId ? document.getElementById(cfg.attachmentId) : null;
         if (!reviewBtn || !sendBtn || !summaryEl || !targetEl || !contentEl) return;
 
-        let summaryApproved = false;
+        const demoOnly = cfg.demoOnly !== false;
+        const demoIdleHint =
+          cfg.demoIdleHint || "Demo modu: gerçek gönderim bağlı değil; yalnızca önizleme.";
+        const demoReviewHint =
+          cfg.demoReviewHint ||
+          "Özet görüntülendi (demo). Gönderim bu sürümde kapalı; bağlantı henüz yok.";
+
+        function keepSendDisabled() {
+          sendBtn.disabled = true;
+          if (demoOnly) sendBtn.setAttribute("aria-disabled", "true");
+        }
 
         function resetApproval() {
-          summaryApproved = false;
-          sendBtn.disabled = true;
+          keepSendDisabled();
+          summaryEl.hidden = true;
+          if (hintEl && demoOnly) {
+            hintEl.hidden = false;
+            hintEl.textContent = demoIdleHint;
+          }
         }
 
         function targetLabel() {
@@ -12825,6 +12878,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
           el.addEventListener("change", resetApproval);
         });
 
+        if (hintEl && demoOnly) {
+          hintEl.hidden = false;
+          hintEl.textContent = demoIdleHint;
+        }
+
         reviewBtn.addEventListener("click", () => {
           const summary =
             dataFlowBadge(flowKindForTarget()) +
@@ -12835,19 +12893,19 @@ const PANEL_DEBUG = import.meta.env.DEV;
             "\nEk sayısı: " +
             attachmentCount() +
             "\nVeri türü: " +
-            (cfg.dataType || "Metin");
+            (cfg.dataType || "Metin") +
+            (demoOnly ? "\n\n[Demo] Gerçek gönderim yapılmaz." : "");
           summaryEl.textContent = summary;
           summaryEl.hidden = false;
-          summaryApproved = true;
-          sendBtn.disabled = false;
+          keepSendDisabled();
           if (hintEl) {
             hintEl.hidden = false;
-            hintEl.textContent = "Özet onaylandı. Göndermek için butona basın.";
+            hintEl.textContent = demoOnly ? demoReviewHint : "Özet onaylandı. Göndermek için butona basın.";
           }
         });
 
         sendBtn.addEventListener("click", () => {
-          if (!summaryApproved) return;
+          if (demoOnly) return;
           if (hintEl) {
             hintEl.hidden = false;
             hintEl.textContent = cfg.demoMsg || "Demo: gerçek gönderim henüz bağlı değil.";
@@ -12855,6 +12913,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
           resetApproval();
           summaryEl.hidden = true;
         });
+
+        keepSendDisabled();
       }
 
       wirePanelPreSendShare({
