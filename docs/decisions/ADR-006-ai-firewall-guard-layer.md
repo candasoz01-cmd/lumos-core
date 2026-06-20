@@ -1,143 +1,173 @@
-# ADR-006: AI Firewall / Guard Katmanı (Taslak Karar)
+# ADR-006: AI Firewall / Guard Katmanı
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Taslak / karar bekliyor** — guard/policy usage map tamamlanmadan finalize edilmez |
-| Tarih | 2026-06-06 |
-| İlgili | `docs/lumos-karar-sozlesmesi.md`, public GitHub sınırı kuralları, ADR-001, ADR-003, ADR-004 |
+| Durum | **Kabul edildi** (2026-06-21) — usage map doğrulandı; ADR-010 terminolojisi ile hizalı; birleşik motor **ayrı checkpoint** |
+| Tarih | 2026-06-06 (finalize: 2026-06-21) |
+| İlgili | `docs/lumos-karar-sozlesmesi.md`, public GitHub sınırı kuralları, ADR-001, ADR-003, ADR-004, ADR-007, ADR-008, [ADR-010](ADR-010-guard-policy-trust-terminology.md) |
 
 ## Amaç
 
-Lumos kod tabanında **birleşik AI Firewall** olup olmadığını repo analizine dayalı olarak netleştirmek; hedef firewall rolünü, ilk risk kategorilerini, firewall karar tiplerini ve public/private sınırını **kodsuz karar kaydı** olarak belgelemek.
+Lumos kod tabanında **birleşik AI Firewall** olup olmadığını repo analizine dayalı olarak netleştirmek; hedef firewall (guard) rolünü, kabul edilmiş risk kategorilerini, guard karar tiplerini ve public/private sınırını **kodsuz karar kaydı** olarak belgelemek.
 
 Bu belge **yalnızca dokümantasyondur**. Bu turda kod, import, test, guard davranışı değişikliği veya yeni güvenlik motoru **kapsam dışıdır**.
 
+**Terminoloji:** Guard, policy, trust, lock, consent, confirmation ve ilişkili kavramlar **[ADR-010](ADR-010-guard-policy-trust-terminology.md)** kabul edilmiş sözlüğüne tabidir. Bu ADR **guard / AI Firewall hedef rolünü** kaydeder; trust durumları ADR-007'ye aittir.
+
 ## Bağlam
 
-Lumos çekirdeğinde güvenlik, yetki, onay ve workspace sözleşmesi önceliklidir (`lumos-karar-sozlesmesi`). ADR-001 AI Firewall'ı **hipotez** düzeyinde listeler ve öncelik sırasında **Router'dan önce** konumlandırır. ADR-003 canonical trust/security katmanlarını (`src/security`, `src/policy`) kaydeder. ADR-004 birleşik AI Router'ın olmadığını ve router'ın firewall sinyallerini kullanması gerektiğini kaydeder — firewall router'ın yerine geçmez. Bu ADR, guard/firewall hedefini aynı disiplinle — önce analiz ve haritalama, sonra dar karar — kayıt altına alır.
+Lumos çekirdeğinde güvenlik, yetki, onay ve workspace sözleşmesi önceliklidir (`lumos-karar-sozlesmesi`). ADR-001 AI Firewall'ı **hipotez** düzeyinde listeler ve öncelik sırasında **Router'dan önce** konumlandırır. ADR-003 canonical trust/security katmanlarını (`src/security`, `src/policy`) kaydeder. ADR-004 birleşik AI Router'ın olmadığını ve router'ın guard sinyallerini kullanması gerektiğini kaydeder — guard router'ın yerine geçmez. ADR-010 guard/policy/trust terminolojisini **kabul edilmiş sözlük** olarak kayıtlıdır; guard ≠ trust, policy ≠ permission, consent ≠ confirmation ayrımları zorunludur.
+
+**Öncelik sırası (ADR-001, ADR-004, ADR-007, ADR-010 ile hizalı):** AI Firewall (guard) → Trust → Router → Memory → Agent Network.
 
 ---
 
-## Mevcut durum (repo analiz bulguları, Haziran 2026)
+## Mevcut durum (repo analiz bulguları, Haziran 2026 — usage map doğrulandı)
 
 ### Birleşik AI Firewall yok
 
-Repo taramasında **tek, merkezi "AI Firewall" modülü tespit edilmemiştir**. Güvenlik ve guard davranışı farklı giriş noktalarında, farklı kurallarla uygulanmaktadır.
+Repo taramasında **tek, merkezi "AI Firewall" modülü tespit edilmemiştir**. Guard davranışı farklı giriş noktalarında, farklı kurallarla uygulanmaktadır (usage map 2026-06-21 ile doğrulandı).
 
 ### Parçalı guard / politika katmanları
 
-| Katman | Konum (analiz bulgusu) | Kısa rol |
-|--------|------------------------|----------|
-| LLM reasoning öncesi gate | `packages/kando_runtime/src/kando_runtime/lumos_gate.py` | `agent` \| `direct_patch` \| `no_op`; `classify_risk`; risk ipuçları |
-| Yetki / onay matrisi | `src/task_engine/profiles.py` | Profil × adım türü; `SECURITY_NEVER_AUTO`; `may_execute_step_at_runtime` |
-| Minimal aksiyon politikası | `src/policy/action_policy.py` | Offline mutasyon red; koruma aktifken delete red; identity/keystore consent |
-| Offline engine | `src/policy/offline_engine.py` | Network gerektiren intent red; SMS kapalı; taslak-only |
-| Path hassasiyeti | `src/core/change_sensitivity.py` | CRITICAL / HIGH / NORMAL / LOW; `write_interceptor` kullanır |
-| Güvenlik çekirdeği | `src/security/*` | identity, keystore, lock, crypto, presence (demo) |
-| Kontrollü köprü | `packages/kando_runtime/src/kando_runtime/controlled_bridge.py` | workspace sandbox; silme/mail/shell blok |
-| Görev dispatch | `packages/kando_runtime/src/kando_runtime/task_dispatch.py` | task_type → executor; risk → onay kuyruğu |
+| Katman | Konum (usage map doğrulandı) | Kısa rol (ADR-010) |
+|--------|------------------------------|---------------------|
+| LLM reasoning öncesi gate | `packages/kando_runtime/src/kando_runtime/lumos_gate.py` | **guard** — `agent` \| `direct_patch` \| `no_op`; risk; **confirmation** |
+| Görev dispatch | `packages/kando_runtime/src/kando_runtime/task_dispatch.py` | **guard** — task_type; `pending_approval` |
+| Yetki / onay matrisi | `src/task_engine/profiles.py` | **policy** + **permission** — profil × adım; `SECURITY_NEVER_AUTO` |
+| Minimal aksiyon politikası | `src/policy/action_policy.py` | **policy** — offline mutasyon red; **consent** |
+| Offline engine | `src/policy/offline_engine.py` | **policy** — network gerektiren intent red |
+| Path hassasiyeti | `src/core/change_sensitivity.py` | **guard** — CRITICAL/HIGH/NORMAL/LOW |
+| Write interceptor | `src/core/write_interceptor.py` | **guard** + **sandbox** |
+| Workspace contract | `src/core/workspace_contract.py` | **guard** + **sandbox** — core path sink'ler |
+| Guard audit | `src/core/guard_audit.py` | **guard** — audit kanıtı |
+| Device guard | `src/device/device_guard.py` | **guard** + **policy** |
+| Güvenlik çekirdeği | `src/security/*` | **trust** sinyalleri — lock, consent, presence (guard değil) |
+| Kontrollü köprü | `packages/kando_runtime/src/kando_runtime/controlled_bridge.py` | **guard** + **sandbox** — yüzey blok |
 
-**Analiz bulgusu:** Bu katmanlar **kısmen örtüşür** — örneğin dosya düzenleme hem `lumos_gate` (`classify_risk`, `direct_patch`) hem `change_sensitivity` hem `write_interceptor` hem `profiles` üzerinden değerlendirilir; ancak aralarında tutarlı bir risk skoru veya tek karar sözleşmesi yoktur. `lumos_gate` ile `change_sensitivity` **doğrudan bağlı değildir** (analiz bulgusu).
+**Analiz bulgusu (doğrulandı):** Katmanlar **kısmen örtüşür**; zincir **doğrusal değil** — `lumos_gate` allow + `profiles` deny kombinasyonları mümkün. `lumos_gate` ile `change_sensitivity` **doğrudan bağlı değildir**. Guard katmanları merkezi trust sinyallerini **tüketmiyor** (ADR-010).
 
 ### İlgili ADR durumu
 
-- **ADR-001:** AI Firewall **hipotez**; öncelik sırasında güvenli yönlendirme (routing) ve politika sınırlarından **önce** temel güvenlik katmanı olarak konumlanmalıdır. Quantum erken hedef değil.
-- **ADR-003:** Canonical trust/security kaynakları **`src/security`** ve **`src/policy`**; yetki profilleri `task_engine/profiles.py` ile hizalı. Firewall tasarımı bu katmanları bypass etmemelidir.
-- **ADR-004:** Birleşik AI Router **yok**; router firewall sinyallerini **kullanmalı**; firewall router'ın yerine **geçmemelidir**. Firewall ve trust tam oturmadan router'ın tek başına üretim vaadi taşımaması gerekir.
+- **ADR-001:** AI Firewall **hipotez**; öncelik sırasında güvenli yönlendirme (routing) ve politika sınırlarından **önce** temel güvenlik katmanı olarak konumlanmalıdır.
+- **ADR-003:** Canonical trust/security kaynakları **`src/security`** ve **`src/policy`**; yetki profilleri `task_engine/profiles.py` ile hizalı. Guard tasarımı bu katmanları bypass etmemelidir.
+- **ADR-004:** Birleşik AI Router **yok**; router guard sinyallerini **kullanmalı**; guard router'ın yerine **geçmemelidir**.
+- **ADR-007:** Birleşik Trust Engine **yok**; trust sinyalleri (`LockState`, `effective_consent`, presence) guard'dan **ayrıdır** — guard ≠ trust.
+- **ADR-010:** Terminoloji sözlüğü **kabul edildi**; bu ADR guard karar tiplerini ADR-010 tanımlarıyla hizalar.
 
 ### Henüz olmayan alanlar
 
-| Alan | Durum (analiz bulgusu) |
-|------|------------------------|
+| Alan | Durum (usage map doğrulandı) |
+|------|------------------------------|
 | Birleşik risk sınıflandırma (11 kategori) | Yok — dağınık keyword/heuristic |
-| Birleşik firewall karar sözlüğü (7 tip) | Yok — `lumos_gate` alt kümesi |
-| Trust Engine / birleşik güven skoru | Yok — ADR-001 hipotez |
+| Birleşik guard karar sözlüğü (7 tip) | Yok — `lumos_gate` alt kümesi |
+| Trust Engine / birleşik güven skoru | Yok — ADR-007 hedef |
 | Tüm entrypoint'lerde aynı guard zinciri | Yok — CLI, köprü, task engine, demo hattı ayrı |
 | PII tespiti / filtreleme | Yok |
 | Production auth / ödeme / mail aksiyonu | Public sınır dışı |
 
 ---
 
-## AI Firewall hedef rolü
+## AI Firewall (guard) hedef rolü
 
-AI Firewall, Lumos'ta model ve araç çağrıları için **politika, filtre ve sınır katmanı** olarak hedeflenir (ADR-001 hipotezi). Kesin API veya modül adı henüz kararlaştırılmamıştır (*taslak*).
+**guard** (ADR-010): Bir istek, adım veya araç çağrısının **yürütülmeden önce** risk, kapsam, profil ve politika sinyallerine göre geçip geçemeyeceğine karar veren koruyucu katman.
+
+AI Firewall, Lumos'ta model ve araç çağrıları için **politika, filtre ve sınır katmanı** olarak hedeflenir (ADR-001 hipotezi). Kesin API veya modül adı henüz kararlaştırılmamıştır; birleşik modül **yoktur**.
 
 Hedeflenen işlevler:
 
 1. **Kullanıcı isteğini risk açısından kontrol etmek** — niyet, metin, hedef path ve adım türü sinyallerini birleştirmek.
 2. **Hassas veri, dış servis, dosya sistemi, cihaz işlemleri ve geri dönüşsüz aksiyonları sınıflandırmak** — 11 risk kategorisine (aşağıda) map etmek.
-3. **Gerektiğinde kullanıcı onayı istemek** — `lumos-karar-sozlesmesi` ile uyumlu; genel onay, açık komut veya yüksek risk kartı.
+3. **Gerektiğinde kullanıcı onayı istemek** — **confirmation** (`ask_confirmation`); `lumos-karar-sozlesmesi` ile uyumlu genel onay, açık komut veya yüksek risk kartı.
 4. **Güvenli olmayan veya kapsam dışı işlemleri durdurmak** — `no_op`, `deny`, `SECURITY_NEVER_AUTO`, köprü yüzey blokları.
-5. **AI Router ve Trust Layer ile birlikte çalışmak** — firewall karar verir; router yönlendirir; trust skoru/kaynak güveni besler (*Trust Engine henüz birleşik değil — ADR-001 hipotez*).
+5. **Trust sinyalleri ve Router ile birlikte çalışmak** — guard "yürütülebilir mi?" sorar; trust "kim / hangi güven durumunda?" sorar (ADR-010: guard ≠ trust); router yönlendirir.
 
-Bu rol ADR-001'deki "AI Firewall → Trust → Router → Memory → Agent Network" öncelik sırasında **firewall katmanını** somutlaştırmayı hedefler; router oturmadan firewall'ın tek başına üretim vaadi taşımaması gerekir (*ADR-004 ile hizalı: firewall router'ın yerine geçmez*).
-
----
-
-## İlk risk kategorileri (taslak — 11 kategori)
-
-Aşağıdaki kategoriler **ürün/guard hedef sözleşmesidir**; repo'da birleşik karşılıkları henüz tanımlı değildir. Mevcut parçalı eşleşmeler analiz bulgusudur, finalize edilmiş mapping değildir.
-
-| # | Kategori | Hedef firewall davranışı | Mevcut repo karşılığı (analiz bulgusu) | Boşluk |
-|---|----------|--------------------------|----------------------------------------|--------|
-| 1 | **Düşük riskli bilgi/sohbet** | `allow` / `log_only` | `bridge_intent` → chat; `OfflineEngineV1` keyword cevapları; CLI `unknown` + online → live brain | Birleşik kategori yok; maliyet/risk skoru yok |
-| 2 | **Proje içi okuma/özetleme** | `allow` (read profili) | `profiles.py` `STEP_TYPE_READ/ANALYZE`; `lumos_gate` özet modu; `controlled_bridge` read | Okuma ile özetleme firewall sözleşmesi ayrılmamış |
-| 3 | **Dosya düzenleme** | `allow` / `ask_confirmation` / `sandbox_only` | `lumos_gate` `direct_patch`; `classify_risk` keyword; `task_dispatch` risk→onay; `write_interceptor` + `change_sensitivity` | Gate ile `change_sensitivity` **bağlı değil** |
-| 4 | **Dış servis yazma** | `deny` / `defer_to_private_layer` | `profiles.py` `STEP_TYPE_EXTERNAL` → hiçbir profilde izinli değil | Merkezi "external write" sınıflandırıcı yok |
-| 5 | **Mail gönderme/silme/arşivleme** | `deny` / `defer_to_private_layer` | `controlled_bridge` mail/takvim regex blok; `offline_engine` SMS kapalı | ADR-002 taslak; demo-safe stub; prod aksiyon yok |
-| 6 | **Ödeme/domain/satın alma** | `deny` / `defer_to_private_layer` | `kando_core._infer_risk` "payment" keyword → high (demo hattı) | Üretim entegrasyonu yok; public sınır dışı |
-| 7 | **Cihaz/yerel işlem** | `sandbox_only` / `ask_confirmation` | `OfflineEngineV1` + `PermissionManager` lease stub; `controlled_bridge` workspace sandbox | Gerçek cihaz kontrolü yok (public sınır) |
-| 8 | **Kalıcı silme** | `deny` (otomatik) / `ask_confirmation` (açık komut) | `SECURITY_NEVER_AUTO` `permanent_delete`; `may_perform_permanent_delete`; gate `HIGH_RISK_KEYWORDS`; bridge silme blok | `SECURITY_NEVER_AUTO` engine'de ayrı red branch eksik (guard zincir dokümanı) |
-| 9 | **Güvenlik/kimlik/anahtar işlemi** | `require_stronger_auth` / `deny` | `action_policy` `ACCESS_IDENTITY/KEYSTORE` → consent; `DeviceIdentity`, `FileKeyStore`, `LockState` | Firewall→identity/lock tek kapı değil |
-| 10 | **Üretim config değişikliği** | `deny` / `ask_confirmation` | `SECURITY_NEVER_AUTO` `critical_system_config`; `change_sensitivity` CRITICAL → `src/core`, `src/policy`, `src/security` | Config değişikliği intent sınıflandırması yok |
-| 11 | **Kullanıcı özel verisi (PII)** | `log_only` / `defer_to_private_layer` | Public boundary kuralı; bridge PII routing yok | PII tespiti/filtreleme katmanı yok |
-
-Kategori ataması **öneri** niteliğindedir; kullanıcı override, profil sınırları ve onay kuralları her zaman üstünde kalır (`lumos-karar-sozlesmesi`).
+Bu rol ADR-001'deki "AI Firewall → Trust → Router → Memory → Agent Network" öncelik sırasında **guard katmanını** somutlaştırmayı hedefler; router oturmadan guard'ın tek başına üretim vaadi taşımaması gerekir.
 
 ---
 
-## Firewall karar tipleri (taslak — 7 tip)
+## Risk kategorileri (kabul edilmiş hedef sözleşme — 11 kategori)
 
-Aşağıdaki karar tipleri **hedef sözleşmedir**; repo'da birleşik enum veya modül olarak tanımlı değildir.
+Aşağıdaki kategoriler **kabul edilmiş guard hedef sözleşmesidir**; repo'da birleşik karşılıkları henüz tanımlı değildir. Mevcut parçalı eşleşmeler usage map ile **doğrulanmış analiz bulgusudur**.
 
-| Karar | Anlam | Mevcut repo karşılığı (analiz bulgusu) | Tam karşılık var mı? |
-|-------|-------|----------------------------------------|----------------------|
-| **allow** | Güvenli; yürüt | `final_decision: "allow"` (`lumos_gate`); `may_execute_step_at_runtime` True; `execution_mode: direct_patch` (low risk) | Kısmen — profil/onay matrisine bağlı |
-| **ask_confirmation** | Kullanıcı onayı bekle | `pending_approval`, `requires_approval`, `await_user_approval`; `task_dispatch` medium/high risk kuyrukları | Evet (köprü/görev hattında); CLI hattında formel değil |
-| **require_stronger_auth** | Kilit, passphrase, consent | `action_policy` koruma+consent; karar sözleşmesi "kilidi aç"; online'da kimlik/kilit şartı | Kısmen — birleşik firewall kararı değil |
-| **sandbox_only** | Yalnız tanımlı sandbox | `controlled_bridge` → `workspace/`; `write_interceptor` sandbox_mode + core path yasağı | Kısmen — tüm yazma yolları sandbox'a alınmamış |
-| **deny** | Durdur | `mode: no_op`; `decision_kind: blocked`; `is_allowed_for_profile` False; `surface_blocked` | Dağınık; tek `deny` enum yok |
-| **log_only** | Yürütme yok, kayıt | `log_policy_blocked`; `record_guard_event` (`write_interceptor`); Lumos audit collector | Audit var; firewall-wide `log_only` sözleşmesi yok |
-| **defer_to_private_layer** | Public'te açma | `STEP_TYPE_EXTERNAL` asla; mail/ödeme/cihaz public boundary'de yasak | Politika düzeyinde; kodda explicit karar tipi yok |
+| # | Kategori | Hedef guard davranışı | Mevcut repo karşılığı (usage map) | Boşluk |
+|---|----------|----------------------|-----------------------------------|--------|
+| 1 | **Düşük riskli bilgi/sohbet** | `allow` / `log_only` | `bridge_intent` → chat; `OfflineEngineV1`; CLI `unknown` + online | Birleşik kategori yok |
+| 2 | **Proje içi okuma/özetleme** | `allow` (read profili) | `profiles.py` READ/ANALYZE; `lumos_gate` özet; `controlled_bridge` read | Okuma/özet firewall sözleşmesi ayrılmamış |
+| 3 | **Dosya düzenleme** | `allow` / `ask_confirmation` / `sandbox_only` | `lumos_gate` `direct_patch`; `task_dispatch`; `write_interceptor` + `change_sensitivity` | Gate ↔ sensitivity **kopuk** |
+| 4 | **Dış servis yazma** | `deny` / `defer_to_private_layer` | `STEP_TYPE_EXTERNAL` profil blok | Merkezi sınıflandırıcı yok |
+| 5 | **Mail gönderme/silme/arşivleme** | `deny` / `defer_to_private_layer` | `controlled_bridge` mail regex blok | ADR-009; demo-safe stub |
+| 6 | **Ödeme/domain/satın alma** | `deny` / `defer_to_private_layer` | `kando_core._infer_risk` keyword (demo) | Public sınır dışı |
+| 7 | **Cihaz/yerel işlem** | `sandbox_only` / `ask_confirmation` | `OfflineEngineV1` + `PermissionManager` stub; bridge sandbox | Gerçek cihaz kontrolü yok |
+| 8 | **Kalıcı silme** | `deny` (otomatik) / `ask_confirmation` (açık komut) | `SECURITY_NEVER_AUTO`; gate HIGH_RISK; bridge silme blok | Engine enforce **gap** |
+| 9 | **Güvenlik/kimlik/anahtar işlemi** | `require_stronger_auth` / `deny` | `action_policy` consent; `LockState` | Guard→identity tek kapı değil; **trust** sinyali |
+| 10 | **Üretim config değişikliği** | `deny` / `ask_confirmation` | `SECURITY_NEVER_AUTO`; `change_sensitivity` CRITICAL | Intent sınıflandırması yok |
+| 11 | **Kullanıcı özel verisi (PII)** | `log_only` / `defer_to_private_layer` | Public boundary kuralı | PII tespiti yok |
 
-**Not:** `lumos_gate` kendi içinde `agent | direct_patch | no_op` + `risk_level: low|medium|high|unknown` + `execution_mode: direct_patch|restricted|pending_approval` kullanır; bu, 7'li firewall sözlüğünün **alt kümesi**dir, birebir eşdeğer değildir.
+Kategori ataması kullanıcı override, profil sınırları (**permission**) ve onay kuralları (**confirmation**) altındadır (`lumos-karar-sozlesmesi`).
 
 ---
 
-## Mevcut repo karşılığı vs gap (özet)
+## Guard karar tipleri (kabul edilmiş hedef sözleşme — 7 tip)
+
+Aşağıdaki karar tipleri **kabul edilmiş guard hedef sözleşmesidir** (ADR-010 `guard` tanımı ile uyumlu); repo'da birleşik enum veya modül olarak tanımlı değildir.
+
+| Karar | Anlam | ADR-010 ilişkisi | Mevcut repo karşılığı (usage map) | Tam karşılık |
+|-------|-------|------------------|-----------------------------------|--------------|
+| **allow** | Güvenli; yürüt | Guard çıktısı | `lumos_gate` allow; `may_execute_step_at_runtime` True | Kısmen |
+| **ask_confirmation** | Kullanıcı onayı bekle | **confirmation** | `pending_approval`, `task_dispatch` risk kuyrukları | Evet (köprü/görev); CLI formel değil |
+| **require_stronger_auth** | Kilit, passphrase, consent | **elevated confirmation** | `action_policy` consent; kilidi aç komutu | Kısmen — trust sinyali karışımı |
+| **sandbox_only** | Yalnız tanımlı sandbox | **sandbox** ≠ private layer | `controlled_bridge`, `write_interceptor` sandbox_mode | Kısmen |
+| **deny** | Durdur | **locked ≠ denied** (ADR-010) | `no_op`, `is_allowed_for_profile` False, `surface_blocked` | Dağınık |
+| **log_only** | Yürütme yok, kayıt | Guard audit | `guard_audit`, `write_interceptor` log | Audit var; firewall-wide sözleşme yok |
+| **defer_to_private_layer** | Public'te açma | **private_layer_required** (ADR-007) | `STEP_TYPE_EXTERNAL`; bridge mail/shell blok | Politika düzeyinde |
+
+**Not:** `lumos_gate` kendi içinde `agent | direct_patch | no_op` + `risk_level` + `execution_mode` kullanır; bu, 7'li guard sözlüğünün **alt kümesi**dir. `require_stronger_auth` trust/kilit sinyalleriyle örtüşür — guard kararı trust durumunu **tüketmeli**, yerine geçmemelidir (ADR-010).
+
+---
+
+## Terminoloji uyumu (ADR-010)
+
+Bu ADR'de geçen kavramlar ADR-010 zorunlu ayrımlarına tabidir:
+
+| Ayrım | Guard katmanı bağlamı |
+|-------|----------------------|
+| **guard ≠ trust** | Guard yürütme öncesi karar; `LockState`, consent, presence **trust** sinyalleridir — guard katmanları merkezi tüketim yapmıyor |
+| **policy ≠ permission** | `action_policy` / profil matrisi **policy**; `may_execute_step_at_runtime` **permission** |
+| **consent ≠ confirmation** | Keystore/identity rızası ≠ `pending_approval` tek adım onayı |
+| **sandbox_only ≠ defer_to_private_layer** | Sandbox demo-safe workspace; private layer prod mail/ödeme/cihaz |
+| **locked ≠ denied** | Kilit açılabilir durum ≠ guard/policy nihai red |
+| **panel görünürlüğü ≠ runtime enforcement** | Panel durumu guard kararını garanti etmez |
+
+Tam sözlük: [ADR-010](ADR-010-guard-policy-trust-terminology.md). Giriş noktası haritası: [usage map](../analysis/ADR-010-guard-policy-trust-usage-map.md).
+
+---
+
+## Mevcut repo karşılığı vs gap (özet — usage map doğrulandı)
 
 ### Var olan parçalar (canonical — ADR-003)
 
-| Bileşen | Konum | Firewall'a katkı |
-|---------|-------|------------------|
-| Gate (reasoning öncesi) | `lumos_gate.py` | LLM plan; ham metin executor'a gitmez; `classify_risk`, high→onay, `no_op` |
-| Yetki matrisi | `src/task_engine/profiles.py` | `is_allowed_for_profile`, `may_execute_step_at_runtime`, `SECURITY_NEVER_AUTO` |
-| Minimal politika | `src/policy/action_policy.py` | Offline görev mutasyonu red; koruma aktifken delete red; identity/keystore consent |
-| Offline engine | `src/policy/offline_engine.py` | Network gerektiren intent'ler red |
-| Path hassasiyeti | `src/core/change_sensitivity.py` | CRITICAL/HIGH/NORMAL/LOW; `write_interceptor` kullanır |
-| Güvenlik çekirdeği | `src/security/*` | identity, keystore, lock, crypto |
-| Kontrollü köprü | `controlled_bridge.py` | workspace sandbox; silme/mail/shell blok |
-| Görev dispatch | `task_dispatch.py` | task_type→executor; risk→onay kuyruğu |
+| Bileşen | Konum | Guard'a katkı (ADR-010) |
+|---------|-------|-------------------------|
+| Gate | `lumos_gate.py` | **guard** — LLM plan; `classify_risk`; high→**confirmation** |
+| Dispatch | `task_dispatch.py` | **guard** — task_type; `pending_approval` |
+| Yetki matrisi | `profiles.py` | **policy** + **permission** |
+| Minimal politika | `action_policy.py` | **policy**; **consent** kuralları |
+| Path hassasiyeti | `change_sensitivity.py` | **guard** — gate'ten kopuk |
+| Write interceptor | `write_interceptor.py` | **guard** + **sandbox** |
+| Workspace contract | `workspace_contract.py` | **guard** sink'leri |
+| Kontrollü köprü | `controlled_bridge.py` | **guard** + **sandbox** |
+| Güvenlik çekirdeği | `src/security/*` | **trust** sinyalleri (guard değil) |
 
-### Kritik gap'ler (analiz bulgusu)
+### Kritik gap'ler (usage map doğrulandı)
 
-1. **Birleşik AI Firewall modülü yok** — ADR-001 hipotez; dağınık guard'lar çelişebilir (ADR-004 risk tablosu).
-2. **`lumos_gate` ↔ `change_sensitivity` bağlantısı yok** — aynı dosya patch'i için farklı risk sinyalleri.
-3. **`classify_risk` sezgisel ve dar** — keyword tabanlı; `unknown` çoğu durumda `restricted`.
-4. **`SECURITY_NEVER_AUTO` runtime'da tam enforce değil** — `critical`/`external` step türü red var; `permanent_delete` vb. için ayrı engine branch eksik.
-5. **Trust Layer birleşik değil** — skor modeli, kaynak güveni, tutarlı risk birleştirmesi yok.
-6. **Tüm entrypoint'ler aynı guard'ı kullanmıyor** — `TaskEngine.run_task` vs köprü vs `kando_core` demo hattı vs CLI.
-7. **`packages/kando_policy` ayna drift** — ADR-003; canonical kaynak `src/security` + `src/policy`.
+1. **Birleşik AI Firewall modülü yok** — parçalı guard'lar çelişebilir.
+2. **`lumos_gate` ↔ `change_sensitivity` bağlantısı yok** — CRITICAL path + düşük gate riski mümkün.
+3. **`classify_risk` sezgisel ve dar** — keyword tabanlı.
+4. **`SECURITY_NEVER_AUTO` runtime'da tam enforce değil** — engine branch eksik (ADR-010 drift tablosu).
+5. **Trust sinyalleri guard tarafından merkezi tüketilmiyor** — ADR-007 hedef.
+6. **Tüm entrypoint'ler aynı guard zincirini kullanmıyor** — CLI, köprü, task engine, demo hattı ayrı.
+7. **`packages/kando_policy` ayna drift** — canonical `src/policy` (ADR-003).
 
 ---
 
@@ -147,97 +177,106 @@ Bu depo Lumos'un **public açık kaynak temelidir** (`public-github-boundary`). 
 
 | Public repo'da kalabilir | Private / professional katmanda kalır |
 |--------------------------|----------------------------------------|
-| Risk sınıflandırma **taslağı** ve onay kuralı dokümantasyonu | Gerçek production auth, SSO, prod key yönetimi |
+| Risk sınıflandırma **hedef sözleşmesi** ve onay kuralı dokümantasyonu | Gerçek production auth, SSO, prod key yönetimi |
 | `profiles.py` davranış referansı (değiştirmeden) | Ücretli model tier, maliyet routing |
-| Gate pattern açıklaması (`lumos_gate` — kontrollü reasoning) | PII işleyen routing kuralları |
-| Basit keyword/heuristic risk (`classify_risk` seviyesinde) | Mail prod aksiyonları (ADR-002; public stub sadece grant/sözleşme) |
-| Offline stub, controlled bridge sandbox tanımı | Ödeme, domain satın alma, cihaz orkestrasyonu |
-| Guard/policy usage map (salt okuma analizi) | Operasyonel backend, prod orchestration |
-| ADR karar kayıtları (hipotez/taslak) | Quantum/IBM prod entegrasyonu (ADR-001) |
+| Gate pattern açıklaması (`lumos_gate`) | PII işleyen routing kuralları |
+| Basit keyword/heuristic risk (`classify_risk` seviyesinde) | Mail prod aksiyonları |
+| Offline stub, controlled bridge **sandbox** tanımı | Ödeme, domain satın alma, cihaz orkestrasyonu |
+| Usage map ve ADR karar kayıtları (kabul edilmiş) | Operasyonel backend, prod orchestration |
 
-Public repo'da parçalı guard'ların **"tam AI Firewall ürünü"** gibi sunulması bilinçli olarak yapılmamalıdır (ADR-004 ile aynı ilke).
-
----
-
-## Karar (taslak — usage map bekliyor)
-
-1. **Mevcut gerçek:** Birleşik AI Firewall yok; guard davranışı `lumos_gate`, `profiles`, `action_policy`, `change_sensitivity`, `src/security` ve ilgili köprü/dispatch katmanlarında **parçalıdır**; katmanlar **kısmen örtüşür**.
-2. **Hedef:** Yukarıdaki beş rol, 11 risk kategorisi ve 7 karar tipi taslağı; finalize için guard/policy usage map zorunlu.
-3. **Öncelik sırası (ADR-001):** Firewall, Router'dan **önce** temel güvenlik katmanı olarak ele alınmalıdır.
-4. **Canonical katmanlar (ADR-003):** Trust/security kaynakları `src/security` ve `src/policy`; firewall tasarımı bu katmanları bypass etmemelidir.
-5. **Router ilişkisi (ADR-004):** Router firewall sinyallerini **kullanmalı**; firewall router'ın yerine **geçmemelidir**.
-6. **Bu turda kod yok** — yalnızca karar kaydı.
-
-Durum: **Karar guard/policy usage map tamamlanana kadar bekletilir.**
+Public repo'da parçalı guard'ların **"tam AI Firewall ürünü"** gibi sunulması bilinçli olarak yapılmamalıdır.
 
 ---
 
-## İlk güvenli adım: guard/policy usage map
+## Guard / policy kullanım kararları
 
-Büyük refactor veya yeni güvenlik motoru **yapılmadan** önce mevcut guard dokunuş noktalarının haritalanması önerilir.
+Usage map bulgularına dayalı **guard terminoloji seçimleri** (kod değişikliği yok; ADR-010 ile uyumlu):
 
-**Hedef çıktı (ayrı checkpoint veya bu ADR eki — henüz yazılmadı):**
+| Kavram | Kabul edilen kullanım | Kaçınılacak karışım |
+|--------|----------------------|---------------------|
+| **AI Firewall / guard** | Yürütme öncesi koruyucu katman toplamı; modül adı olarak `lumos_gate`, interceptor, contract guard | Trust durumu, lock veya birleşik motor varsayımı |
+| **firewall kararı** | 7 tip hedef sözleşme (`allow` … `defer_to_private_layer`) | Trust durumu (`locked`, `consent_required`) ile aynı enum |
+| **risk kategorisi** | 11 kategori hedef sınıflandırma | Birleşik skor veya tek modül iddiası |
+| **onay** | **confirmation** (işlem bazlı) veya **elevated confirmation** (passphrase, genel onay) | **consent** (kalıcı rıza) ile birleştirme |
 
-| Giriş noktası | Karar / guard türü | Tükettiği / ürettiği | Not |
-|---------------|-------------------|----------------------|-----|
-| `src/cli/cli_router.py` | Komut / live brain kapısı | CLI handlers, online/offline | ADR-004 ile ortak |
-| `bridge_intent` | chat \| task | Köprü POST | Görev motoruna gitmeden önce |
-| `lumos_gate` | agent \| direct_patch \| no_op | LLM reasoning, risk reason | Ham metin executor'a gitmez |
-| `task_dispatch` | task_type, risk, onay | Executor kuyrukları | `pending_approval` |
-| `profiles.py` | profil × adım izni | `task_engine/engine.py` | `SECURITY_NEVER_AUTO` |
-| `action_policy.py` | offline mutasyon, consent | identity/keystore erişimi | Minimal politika |
-| `change_sensitivity.py` | path hassasiyeti | `write_interceptor` | Gate ile bağlı değil |
-| `controlled_bridge.py` | yüzey blok, sandbox | workspace/ | Mail/shell/silme blok |
-| `src/security/*` | kilit, kimlik, keystore | consent, online şartı | Canonical (ADR-003) |
-
-**Import map kapsamı (analiz görevi):** `cli_router` → `bridge_intent` → `lumos_gate` → `task_dispatch` → `profiles` / `may_execute_step_at_runtime` → `action_policy` → `controlled_bridge` → `write_interceptor` / `change_sensitivity` → `src/security` (consent/lock) — kim kimi import ediyor, hangi giriş noktası hangi zinciri tetikliyor.
-
-Usage map tamamlanmadan firewall birleştirme, yeni modül veya davranış değişikliği kararı **verilmez**.
+**Zincir gerçeği:** Giriş noktaları doğrusal değil; gate allow + profil deny mümkün. Guard terminolojisi bu parçalılığı gizlemez.
 
 ---
 
-## Ne yapılmamalı (bu ADR kapsamında ve hemen sonrasında)
+## Karar
 
-Aşağıdaki işler **bilinçli olarak yapılmaz**; ayrı ADR, usage map, audit ve kullanıcı onayı olmadan başlatılmamalıdır:
+1. **Mevcut gerçek (doğrulandı):** Birleşik AI Firewall yok; guard davranışı `lumos_gate`, `task_dispatch`, `profiles`, `action_policy`, `change_sensitivity`, `write_interceptor`, `workspace_contract`, `controlled_bridge` ve ilgili katmanlarda **parçalıdır**; katmanlar kısmen örtüşür; zincir doğrusal değil.
+2. **Kabul edilen hedef sözleşme:** Yukarıdaki beş guard rolü, 11 risk kategorisi ve 7 guard karar tipi — ADR-010 terminolojisi ile hizalı **referans guard sözleşmesi** olarak kullanılır.
+3. **Terminoloji (ADR-010):** Guard terimleri ADR-010 sözlüğüne tabidir; guard ≠ trust; policy ≠ permission; consent ≠ confirmation; sandbox_only ≠ defer_to_private_layer.
+4. **Öncelik sırası:** Guard (AI Firewall) → Trust (ADR-007) → Router (ADR-004) → Memory → Agent Network.
+5. **Canonical katmanlar (ADR-003):** Policy → `src/policy`; trust sinyalleri → `src/security`; guard giriş noktaları canonical katmanları bypass etmemelidir.
+6. **Router ilişkisi (ADR-004):** Router guard sinyallerini **kullanmalı**; guard router'ın yerine **geçmemelidir**.
+7. **Bu ADR kod değiştirmez** — birleşik motor, lock semantiği birleştirme ve engine enforce **ayrı checkpoint**.
 
-| Yapılmaması gereken | Gerekçe (kısa) |
-|---------------------|----------------|
-| **Kod yazma** (firewall birleştirme, yeni modül) | Usage map ve karar finalize edilmedi; kapsam şişmesi |
-| **Yeni güvenlik motoru** | Parçalı guard'lar önce haritalanmalı; erken motor regresyon riski |
-| **Production auth** | Public sınır; private/professional katman |
-| **Mail demo-safe stub (ADR-002)** | ADR-002 — public stub; prod izin akışı ve connector private |
-| **Ödeme/domain işlem entegrasyonu** | Public sınır; prod katmanı |
-| **Cihaz kontrolü** | Public sınır; demo/sandbox dışında yok |
-| **Agent Network kurma** | ADR-001 taslak; firewall öncesi değil |
-| **Quantum/IBM tarafına geçme** | ADR-001 — erken hedef değil |
+Kaynak: [`docs/analysis/ADR-010-guard-policy-trust-usage-map.md`](../analysis/ADR-010-guard-policy-trust-usage-map.md) (checkpoint tamamlandı, 2026-06-21).
 
 ---
 
-## Riskler (analiz bulgusu)
+## Takip checkpoint'leri (bu ADR dışı)
+
+| Checkpoint | Neden ayrı | Bu ADR'de yapılan |
+|------------|------------|-------------------|
+| Birleşik AI Firewall modülü | Parçalı guard önce sözleşme; motor regresyon riski | Hedef rol + 7 karar tipi kayıtlı |
+| Lock semantiği (`_lock_ok` vs `LockState`) | Trust sinyali; ürün/kod kararı gerekir | ADR-010 drift referansı |
+| ADR-007 finalize | Trust engine hedef durumları | guard ≠ trust ayrımı |
+| `SECURITY_NEVER_AUTO` enforce gap | Engine branch eksik | Risk tablosu + gap kaydı |
+| Gate–sensitivity birleştirme | Import/kod kararı | Kopukluk doğrulandı |
+| `packages/kando_policy` import drift | ADR-003 canonical | Terminoloji etkilenmez |
+
+---
+
+## Mevcut guard/policy/trust kullanım haritası
+
+Haziran 2026 repo taraması (2026-06-21) — **salt okuma analizi**; tam tablolar, import zinciri ve drift doğrulaması:
+
+→ **[ADR-010 guard/policy/trust usage map](../analysis/ADR-010-guard-policy-trust-usage-map.md)**
+
+Özet: birleşik guard/trust motoru yok; guard en yoğun terim; gate + profil + policy parçalı zincir; gate–sensitivity kopukluğu doğrulandı.
+
+---
+
+## Ne yapılmamalı (bu ADR kapsamında)
+
+| Yapılmaması gereken | Gerekçe |
+|---------------------|---------|
+| Kod yazma (firewall birleştirme, yeni modül) | Sözleşme kayıtlı; motor ayrı checkpoint |
+| Yeni güvenlik motoru | Parçalı guard önce enforce edilmeli |
+| Production auth / mail prod / ödeme / cihaz | Public sınır |
+| Trust engine veya guard birleştirme | ADR-007 + ayrı onay |
+| Terimleri tek enum'a zorla map etme | Birleşik motor yok; parçalı repo gerçeği |
+| Guard = trust varsayımı | ADR-010 zorunlu ayrım |
+
+---
+
+## Riskler (usage map doğrulandı)
 
 | Risk | Not |
 |------|-----|
-| Parçalı guard çelişkisi | Gate "allow" + profil "deny" veya tersi mümkün |
+| Parçalı guard çelişkisi | Gate allow + profil deny mümkün |
 | Erken birleştirme / yeni motor | CI/regresyon; onay modeli karmaşıklaşması |
-| `classify_risk` yanlış pozitif/negatif | Keyword tabanlı; `unknown`→restricted tutarsızlığı |
-| Gate–sensitivity kopukluğu | CRITICAL path'e düşük gate riski |
+| `classify_risk` yanlış pozitif/negatif | Keyword tabanlı |
+| Gate–sensitivity kopukluğu | CRITICAL path + düşük gate riski |
 | `SECURITY_NEVER_AUTO` tam enforce eksik | Sözleşme vs engine gap |
+| Guard–trust karışımı | Lock/consent guard kararı sanılabilir — ADR-010 ayrımı |
 | Public sınır sızıntısı | Prod auth/PII/mail public'e taşınması |
-| `src/` vs `packages/kando_*` drift | ADR-003 ayna paketleri |
-| Router firewall'sız ilerleme | ADR-001 sırasına aykırı; maliyet/risk kontrolsüzlük |
+| Router guard'sız ilerleme | ADR-001 sırasına aykırı |
 
 ---
 
-## Sonuç (geçici)
+## Sonuç
 
-Haziran 2026 repo analizine dayanarak Lumos'ta **birleşik AI Firewall bulunmamaktadır**. Guard davranışı `lumos_gate`, `profiles`, `action_policy`, `change_sensitivity`, `src/security` ve ilgili köprü/dispatch katmanlarında **parçalıdır**; katmanlar kısmen örtüşür. ADR-001 sırasına göre firewall Router'dan **önce** temel güvenlik katmanı olarak ele alınmalıdır. ADR-003'e göre canonical trust/security kaynakları **`src/security`** ve **`src/policy`**'dir. ADR-004'e göre router firewall sinyallerini kullanmalı; firewall router'ın yerine geçmemelidir.
-
-**İlk güvenli adım:** Mevcut guard/policy dokunuş noktalarının usage map / import map olarak çıkarılması. **Bu turda kod yazılmaz; yeni güvenlik motoru kurulmaz.**
+Haziran 2026 repo analizi ve usage map (2026-06-21) sonrasında Lumos'ta **birleşik AI Firewall bulunmamaktadır**. Guard davranışı parçalıdır; **11 risk kategorisi** ve **7 guard karar tipi** ADR-010 terminolojisi ile hizalı **kabul edilmiş hedef sözleşme** olarak kayıtlıdır. ADR-001 sırasına göre guard Router'dan **önce** temel güvenlik katmanıdır. Guard ≠ trust; birleşik motor kurulumu ve engine enforce **takip checkpoint'lerindedir**; bu ADR kod değiştirmez.
 
 ## Sonraki gözden geçirme
 
-- Guard/policy usage map checkpoint sonuçları ile ADR revizyonu ve karar finalize
-- 11 kategori × 7 karar tipi için resmi firewall sözleşmesi taslağı (ayrı belge veya ADR eki)
-- ADR-001 (ileri modüller), ADR-003 (canonical katmanlar), ADR-004 (router usage map) ile çakışma kontrolü
+- ADR-007 finalize — trust engine hedef durumları; ADR-010 + ADR-006 guard ayrımı
+- Lock semantiği birleştirme — **ayrı ADR veya checkpoint**
+- `SECURITY_NEVER_AUTO` enforce gap — engine branch (kod değişikliği ayrı iş)
+- Gate–sensitivity hizalama — dar import/kod kararı ayrı onay
+- ADR-004 router finalize — guard sinyali tüketimi
 - Public repo sınırı ve çekirdek stabilizasyon durumu ile uyum kontrolü
-- Pilot kategori seçimi (ör. dosya düzenleme vs düşük riskli sohbet) — usage map sonrası, ayrı onay

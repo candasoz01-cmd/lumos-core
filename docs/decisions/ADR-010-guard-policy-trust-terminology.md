@@ -387,7 +387,7 @@ Kaynak: [`docs/analysis/ADR-010-guard-policy-trust-usage-map.md`](../analysis/AD
 | Checkpoint | Neden ayrı | Bu ADR'de yapılan |
 |------------|------------|-------------------|
 | Lock semantiği (`_lock_ok` vs `LockState`) | Farklı anlam doğrulandı; ürün/kod kararı gerekir | Drift kaydı; düzeltme yok |
-| ADR-006 finalize | Guard/firewall karar metni | Terminoloji referansı hazır |
+| ADR-006 finalize | Guard/firewall karar metni | **Tamamlandı** (2026-06-21) |
 | ADR-007 finalize | Trust engine hedef durumları | Sinyal haritası usage map'te |
 | `SECURITY_NEVER_AUTO` enforce gap | Engine branch eksik | Sözleşme terimi kayıtlı |
 | `packages/kando_policy` import drift | ADR-003 canonical | Terminoloji etkilenmez |
@@ -425,7 +425,7 @@ Repo drift riskleri (`LockState` / `_lock_ok`, panel consent proxy, CLI LOCKED, 
 
 ## Sonraki gözden geçirme
 
-- ADR-006 (7 karar tipi) ve ADR-007 (8 trust durumu) finalize — ADR-010 terminolojisine referans
+- ADR-007 (8 trust durumu) finalize — ADR-010 + ADR-006 terminolojisine referans
 - Lock semantiği birleştirme — **ayrı ADR veya checkpoint**
 - ADR-003 canonical katmanlar ve ADR-008 agent network sınırı ile uyum
 - `SECURITY_NEVER_AUTO` enforce gap — ADR-006 risk tablosu ile birlikte
