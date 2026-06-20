@@ -40,9 +40,9 @@
 
 | ID | Kaynak dosya | Konu | Kısa karar sorusu | Öncelik | Durum | Not |
 |----|--------------|------|-------------------|---------|--------|-----|
-| OD-013 | ui-chat-experience.md | Görsel üretim kapsamı | Chat içinde image generation ürün kapsamına girecek mi? | medium | needs-review | Görsel destek beklentisi §1 |
-| OD-014 | ui-chat-experience.md | Chat görsel destek UX | Görsel destek kart/mesaj modeliyle nasıl hizalanacak? | medium | needs-review | Görsel destek beklentisi §2 |
-| OD-015 | voice-media-experience.md | Görsel üretim (ses dok.) | Ses/medya dokümanındaki görsel üretim beklentisi UI kararıyla tek mi? | medium | needs-review | ui-chat-experience.md OD-013/014 ile çapraz; çelişki çözülmedi |
+| OD-013 | ui-chat-experience.md | Görsel üretim kapsamı | Chat içinde image generation ürün kapsamına girecek mi? | medium | decision-approved / implementation-pending | Karar: [`od-013-visual-generation-decision.md`](od-013-visual-generation-decision.md) — sınırlı kapsam, onay kapılı. **Bekleyen:** provider, kart UX, pilot. |
+| OD-014 | ui-chat-experience.md | Chat görsel destek UX | Görsel destek kart/mesaj modeliyle nasıl hizalanacak? | medium | decision-approved / implementation-pending | [`od-013-visual-generation-decision.md`](od-013-visual-generation-decision.md) §1 — kart/mesaj hizası. |
+| OD-015 | voice-media-experience.md | Görsel üretim (ses dok.) | Ses/medya dokümanındaki görsel üretim beklentisi UI kararıyla tek mi? | medium | **closed (merge)** | OD-013/014 birleşik karar — [`od-013-visual-generation-decision.md`](od-013-visual-generation-decision.md); `voice-media-experience.md` çapraz ref. |
 | OD-016 | voice-media-experience.md | Kamera erişimi | Kamera/foto kalitesi iyileştirme hangi izin ve onay akışıyla sunulacak? | medium | needs-review | Kamera ve fotoğraf fikri |
 | OD-017 | voice-media-experience.md | Foto / arka plan düzenleme | Foto ve arka plan düzenleme akışları ürün kapsamına alınacak mı? | medium | needs-review | Ürün kapsamı netleşene kadar bekliyor |
 | OD-018 | ui-chat-experience.md | Yeni sohbet menüsü | Yeni sohbet menüsü UX ve davranışı nasıl tanımlanacak? | medium | queued | Özellik izleniyor; tam spesifikasyon yok |
@@ -50,7 +50,7 @@
 | OD-020 | repair-assistant-requirements.md | Tamir asistanı yüzeyi | Tamir asistanı Lumos'un hangi yüzeyinde ve hangi yetki profiliyle çalışır? | medium | needs-review | Needs-review özeti §1 |
 | OD-021 | repair-assistant-requirements.md | Ses katmanı istisnası | Genel üründe ses varken tamir alanı metin-only — çakışma nasıl yönetilir? | medium | needs-review | voice-media-experience.md ile çapraz |
 | OD-022 | repair-assistant-requirements.md | Kart fotoğrafı hattı | PCB fotoğrafı nerede işlenir, saklanır, kim görür? | medium | needs-review | Girdi türleri §1 |
-| OD-023 | product-rules.md | Vault UX detayı | «Gizli anahtarlar Lumos yüzeyinde tutulmaz» ilkesi UX'te nasıl anlatılacak? | medium | needs-review | UX kuralları §3; security-architecture ile örtüşür |
+| OD-023 | product-rules.md | Vault UX detayı | «Gizli anahtarlar Lumos yüzeyinde tutulmaz» ilkesi UX'te nasıl anlatılacak? | medium | decision-approved / implementation-pending | Karar: [`od-023-vault-ux-language-decision.md`](od-023-vault-ux-language-decision.md) — birleşik vault UX dili. |
 
 ---
 
@@ -58,7 +58,7 @@
 
 | ID | Kaynak dosya | Konu | Kısa karar sorusu | Öncelik | Durum | Not |
 |----|--------------|------|-------------------|---------|--------|-----|
-| OD-024 | product-rules.md | Şifreleme detayı (ürün) | Veri sahipliği Encrypted ekseninde şifreleme politikası hangi belgede genişletilecek? | high | needs-review | Veri sahipliği ekseni; data-vault OD-005 ile örtüşür |
+| OD-024 | product-rules.md | Şifreleme detayı (ürün) | Veri sahipliği Encrypted ekseninde şifreleme politikası hangi belgede genişletilecek? | high | decision-approved / implementation-pending | [`od-023-vault-ux-language-decision.md`](od-023-vault-ux-language-decision.md) — OD-023 ile birleşik; teknik spec OD-005 private impl. |
 | OD-025 | security-architecture.md | Vault migration maddeleri | ChatGPT kaynaklı vault/token maddeleri uygulama tanımına taşındı mı? | high | **closed** | [`od-025-vault-migration-decision.md`](od-025-vault-migration-decision.md) — ilke migration **DL-C13**; somut vault uygulaması OD-001–005 implementation-pending |
 | OD-026 | internal-agent-layers.md | Doğrulanmamış iç mesaj | Reddedilen iç mesaj için operasyonel olay kaydı prosedürü ne? | medium | needs-review | İç iletişim §3 — operasyonel detay |
 | OD-027 | project-map-runtime-entrypoints.md | packages/kando_* geçişi | `packages/kando_*` → `src/` geçiş takvimi ve kesme kriterleri ne? | high | **closed** | Karar: [`kando-packages-transition-decision.md`](kando-packages-transition-decision.md) — **Seçenek C (Hibrit)**. Slice 3a (#313), 3b (#316), **Faz 4 cutover** — [`od-027-faz4-cutover-decision.md`](od-027-faz4-cutover-decision.md). Canlı: `src/` + `kando_bridge` + `kando_runtime`; ayna paketler `archive/packages/`. Faz 5 doc-sync **DL-C14**; bridge/runtime merge **ertelendi** → **OD-B05** backlog. |
@@ -107,11 +107,11 @@
 
 | ID | Kaynak dosya | Konu | Kısa karar sorusu | Öncelik | Durum | Not |
 |----|--------------|------|-------------------|---------|--------|-----|
-| OD-048 | public-identity-branding.md | Landing page kopyası | Landing tonu, iddia seviyesi ve hedef kitle nasıl tanımlanacak? | medium | needs-review | Dış vitrin fazı §5 |
-| OD-049 | public-identity-branding.md | Landing tonu (migration) | Kanal bazlı landing taslağı ne zaman hazırlanacak? | medium | needs-review | Migration #6 |
-| OD-050 | public-identity-branding.md | LUMOS AI skull logo | Skull logo gelecek görsel kimlikte kullanılacak mı; nerede? | low | needs-review | Görsel commit yok; kullanıcı tercihi notu |
-| OD-051 | public-identity-branding.md | Logo kullanım kuralları | Logo boyut, arka plan ve birlikte metin kuralları ne? | low | needs-review | Migration #7 |
-| OD-052 | public-identity-branding.md | Landing görsel tonu | Landing görsel tonu metin tonuyla nasıl hizalanacak? | low | needs-review | Marka §4 |
+| OD-048 | public-identity-branding.md | Landing page kopyası | Landing tonu, iddia seviyesi ve hedef kitle nasıl tanımlanacak? | medium | needs-review | Paket: [`od-048-landing-vitrin-decision.md`](od-048-landing-vitrin-decision.md) |
+| OD-049 | public-identity-branding.md | Landing tonu (migration) | Kanal bazlı landing taslağı ne zaman hazırlanacak? | medium | needs-review | [`od-048-landing-vitrin-decision.md`](od-048-landing-vitrin-decision.md) §1 |
+| OD-050 | public-identity-branding.md | LUMOS AI skull logo | Skull logo gelecek görsel kimlikte kullanılacak mı; nerede? | low | needs-review | Paket: [`od-050-logo-paketi-decision.md`](od-050-logo-paketi-decision.md) |
+| OD-051 | public-identity-branding.md | Logo kullanım kuralları | Logo boyut, arka plan ve birlikte metin kuralları ne? | low | needs-review | [`od-050-logo-paketi-decision.md`](od-050-logo-paketi-decision.md) |
+| OD-052 | public-identity-branding.md | Landing görsel tonu | Landing görsel tonu metin tonuyla nasıl hizalanacak? | low | needs-review | [`od-048-landing-vitrin-decision.md`](od-048-landing-vitrin-decision.md) |
 | OD-053 | public-identity-branding.md | LinkedIn profil güncellemesi | Dış vitrin fazında LinkedIn metni ne zaman yayınlanacak? | low | queued | Dış vitrin §1 |
 | OD-054 | public-identity-branding.md | Profil fotoğrafı | Vitrin fotoğrafı görsel kimlikle nasıl seçilecek? | low | queued | Dış vitrin §2 |
 | OD-055 | public-identity-branding.md | Kısa tanıtım metni | Kişisel/proje intro metni taslağı ne? | low | queued | Dış vitrin §3 |
@@ -126,11 +126,11 @@ Kaynak dosyalardaki migration tablolarından **needs-review / queued** özetleri
 
 | Kaynak dosya | needs-review (yaklaşık) | queued (yaklaşık) | İndeks OD aralığı |
 |--------------|-------------------------|-------------------|-------------------|
-| product-rules.md | 2 | 0 (+5 boş manuel) | OD-023, OD-024 |
+| product-rules.md | 0 | 0 (+5 boş manuel) | OD-023, OD-024 (approved — Phase 2) |
 | security-architecture.md | 0 | 0 | OD-001, OD-002 (indeks: decision-approved / impl-pending) |
 | project-workflow.md | 0 | 5 (boş manuel) | OD-008, OD-009 (approved); OD-010 closed |
-| ui-chat-experience.md | 3 | 2 (+5 boş manuel) | OD-013, OD-014, OD-018, OD-019 |
-| voice-media-experience.md | 3 | 5 (boş manuel) | OD-015, OD-016, OD-017 |
+| ui-chat-experience.md | 0 | 2 (+5 boş manuel) | OD-013/014 approved; OD-018, OD-019 queued |
+| voice-media-experience.md | 2 | 5 (boş manuel) | OD-015 closed; OD-016, OD-017 |
 | data-vault-user-data.md | 1 | 5 (boş manuel) | OD-003–005 (approved); OD-036 |
 | external-integrations-permissions.md | 5 | 5 (boş manuel) | OD-031 – OD-035, OD-012 |
 | commercial-domain-payments.md | 3 | 5 (boş manuel) | OD-039–042, OD-011 (OD-039/041 approved) |
@@ -157,4 +157,4 @@ Kaynak dosyalardaki boş manuel şablonlar burada tekrarlanmaz. Yeni açık kara
 
 ---
 
-Son güncelleme: 2026-06-20 (Faz 1 doc-sync — envanter ab791c14 §13; OD-B05 backlog)
+Son güncelleme: 2026-06-20 (Phase 2 karar taslakları — envanter ab791c14 §10)
