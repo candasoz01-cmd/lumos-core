@@ -180,11 +180,11 @@ OD-031 Phase 2 Step 4 boundary sync sonrası **mail drift guard/policy kodunda t
 
 | ADR | Usage map bekleyen alan | Bu checkpoint |
 |-----|-------------------------|---------------|
-| ADR-006 (guard/firewall) | Guard dokunuş noktaları tablosu | **Tamamlandı** — § Giriş noktası haritası |
+| ADR-006 (guard/firewall) | Guard dokunuş noktaları tablosu | **Tamamlandı** — § Giriş noktası haritası; ADR **kabul edildi** (2026-06-21) |
 | ADR-007 (trust engine) | Trust state sinyalleri | **Tamamlandı** — trust kod yok; sinyaller haritalandı |
 | ADR-010 (terminoloji) | Terim→kod eşlemesi | **Tamamlandı** — § Terim→modül |
 
-**Sonraki (bu belge dışı):** ADR-006/007 karar metni revizyonu, lock semantiği birleştirme **ayrı checkpoint** (ADR-010 finalize tamamlandı).
+**Sonraki (bu belge dışı):** ADR-007 karar metni revizyonu, lock semantiği birleştirme **ayrı checkpoint** (ADR-006 ve ADR-010 finalize tamamlandı).
 
 ---
 
@@ -201,7 +201,7 @@ OD-031 Phase 2 Step 4 boundary sync sonrası **mail drift guard/policy kodunda t
 ## Sonraki gözden geçirme
 
 1. ADR-010 **kabul edildi** (2026-06-21) — bkz. [ADR-010](../decisions/ADR-010-guard-policy-trust-terminology.md)
-2. ADR-006 § İlk güvenli adım — bu belgeye referans
+2. ADR-006 **kabul edildi** (2026-06-21) — bkz. [ADR-006](../decisions/ADR-006-ai-firewall-guard-layer.md)
 3. ADR-007 § İlk güvenli adım — trust sinyal tablosu revizyonu
 4. Lock semantiği — **ayrı ADR/checkpoint** (usage map sonrası onay)
 5. `packages/kando_policy` import drift — ADR-003 dar import map (ADR-008 disiplini)
