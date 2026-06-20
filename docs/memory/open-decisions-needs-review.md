@@ -91,10 +91,10 @@
 
 | ID | Kaynak dosya | Konu | Kısa karar sorusu | Öncelik | Durum | Not |
 |----|--------------|------|-------------------|---------|--------|-----|
-| OD-043 | project-map-runtime-entrypoints.md | Birincil kullanıcı yüzeyi | Birincil üretim/dış kullanıcı yüzeyi hangisi? | high | decision-approved | Karar: [`primary-user-surface-decision.md`](primary-user-surface-decision.md); birincil üretim/dış kullanıcı yüzeyi `ui/` Astro olarak onaylandı. `panel/` legacy/statik E2E kalite kapısıdır; `frontend/` birincil/canlı yüzey değildir. OD-046 Option A uygulamasıyla E2E hizası ayrıca tamamlanacak. |
+| OD-043 | project-map-runtime-entrypoints.md | Birincil kullanıcı yüzeyi | Birincil üretim/dış kullanıcı yüzeyi hangisi? | high | decision-approved | Karar: [`primary-user-surface-decision.md`](primary-user-surface-decision.md); birincil üretim/dış kullanıcı yüzeyi `ui/` Astro olarak onaylandı. `panel/` legacy/statik yüzey; `frontend/` birincil/canlı yüzey değildir. OD-046 E2E hizası **tamamlandı** (closed). |
 | OD-044 | project-map-runtime-entrypoints.md | frontend/ rolü | `frontend/` dizininin panel/ui ile ilişkisi ve yaşam döngüsü ne? | medium | decision-approved | Karar: [`frontend-role-decision.md`](frontend-role-decision.md); Seçenek B onaylandı — izole köprü E2E + prototip referans; üretim/deploy/root build/root E2E yüzeyi değil; kod/taşıma/arşiv/silme yok. Seçenekler A/C/D seçilmedi. Çapraz: OD-043 birincil `ui/`; OD-046 E2E hizası ayrı uygulama. |
 | OD-045 | project-map-runtime-entrypoints.md | lumos-demo konumu | `lumos-demo` nerede; lumos-core ile ilişkisi ne? | low | superseded / not-found | Kapandı (2026-06-17): `work_2026` altında bulunamadı; aktif lumos-core parçası değil (giriş noktası, build hedefi, app bağımlılığı yok). Sonradan bulunursa ayrı repo/yan klasör olarak yeniden değerlendirilir — otomatik lumos-core parçası sayılmaz. |
-| OD-046 | project-map-runtime-entrypoints.md | Root build vs panel E2E | `npm run build` (ui) ile panel E2E hangi yüzeyi hedefler? | medium | decision-approved / **implementation-partial** (plan approved) | Karar: [`build-e2e-surface-alignment-decision.md`](build-e2e-surface-alignment-decision.md); Seçenek A. **v1–v2:** smoke+CI (#294–296). **Migrasyon planı:** [`od-046-e2e-migration-plan.md`](od-046-e2e-migration-plan.md) — Faz 0 kayıtlı; ürün blocker kapandı (E2E tamamla = UI/API, chat `görev tamamla` kapsam dışı). Faz 1–4 kod PR bekliyor. |
+| OD-046 | project-map-runtime-entrypoints.md | Root build vs panel E2E | `npm run build` (ui) ile kök E2E hangi yüzeyi hedefler? | medium | **closed** | Karar + uygulama: [`build-e2e-surface-alignment-decision.md`](build-e2e-surface-alignment-decision.md), [`od-046-e2e-migration-plan.md`](od-046-e2e-migration-plan.md) — Seçenek A **implementation-complete** (#300–#305). Birincil kök `e2e:package*` → `ui/dist`; legacy `e2e:legacy:*` → `panel/`. |
 | OD-047 | repair-assistant-requirements.md | Ürün vizyonu hizası | Teknik servis asistanı genel Lumos vizyonuna nasıl bağlanır? | medium | needs-review | Kapsam §4 migration notu |
 | OD-058 | evidence-continuity-v1-decision.md | Evidence Continuity v1 | Panel + engine sunucu mutasyonları için append-only journal (Karar A) uygulandı mı? | medium | closed | Karar: [`evidence-continuity-v1-decision.md`](evidence-continuity-v1-decision.md) — **Karar A** uygulandı ve doğrulandı (PR #248, `main`); H0/H1/H2 hook'ları canlı. **v2 backlog:** [`evidence-continuity-v2-backlog.md`](evidence-continuity-v2-backlog.md) — 14/14 `implementation-complete` (PR #255–#291). |
 | OD-059 | audit-hook-term-decision.md | Audit hook terminolojisi | Informal «audit hook» takip maddesi ayrı git hook gerektiriyor mu? | low | closed | Karar: [`audit-hook-term-decision.md`](audit-hook-term-decision.md) — **Hayır**; git hook reddi. Üç katman: commit guard (dev), EC runtime (v1), EC v2 #4/#14. Informal takip maddesi docs seviyesinde **CLOSED**. Opsiyonel CI ruff parity (Paket B) ayrı PR — `implementation-pending`. |
@@ -136,7 +136,7 @@ Kaynak dosyalardaki migration tablolarından **needs-review / queued** özetleri
 | tools-technology-watchlist.md | 3 | 3 (boş manuel) | OD-029, OD-030 |
 | internal-agent-layers.md | 4 | 5 (boş manuel) | OD-006, OD-007, OD-026 |
 | public-identity-branding.md | 5 | 9 (+5 boş manuel) | OD-048 – OD-057 |
-| project-map-runtime-entrypoints.md | 3 | 1 | OD-027, OD-028 (closed), OD-043/044 (approved), OD-046 (approved/pending) |
+| project-map-runtime-entrypoints.md | 2 | 1 | OD-027, OD-028 (closed), OD-043/044 (approved), OD-046 (closed) |
 | evidence-continuity-v1-decision.md | 0 | 0 | OD-058 (closed / v2 backlog: evidence-continuity-v2-backlog.md) |
 | audit-hook-term-decision.md | 0 | 0 | OD-059 (closed / terminoloji) |
 | chatgpt-saved-memories-migration.md | 0 | 5 (boş manuel) | — (süreç rehberi; madde yok) |
@@ -155,4 +155,4 @@ Kaynak dosyalardaki boş manuel şablonlar burada tekrarlanmaz. Yeni açık kara
 
 ---
 
-Son güncelleme: 2026-06-20 (OD-046 Faz 0 migrasyon planı; görev tamamla blocker kapalı; implementation-partial)
+Son güncelleme: 2026-06-20 (OD-046 closed — implementation-complete Faz 5)
