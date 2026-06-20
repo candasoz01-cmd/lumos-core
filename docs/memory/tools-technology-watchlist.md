@@ -108,7 +108,7 @@ Watchlist'te kalan maddeler **entegrasyon adayı sayılmaz**.
 |------|------|---------|
 | **Toplu araç ekleme** | Bakım yükü, güvenlik yüzeyi | Değerlendirme ilkesi: tek parça, zamanı gelince |
 | **Çin menşeli AI / vibe coding araçları** `[needs-review]` | Veri sızıntısı, belirsiz lisans / güvenlik | Önce izole test; public repo'ya taşınmadan sınır kontrolü |
-| **Ghidra kapsamı** `[needs-review]` | Public OSS sınırı, firmware/RE iş yükü | Kapsam netleşmeden repo'ya kod veya otomasyon eklenmez |
+| **Ghidra kapsamı** `[closed]` OD-029 | Public OSS sınırı — public entegrasyon yok | [`od-029-ghidra-scope-decision.md`](./od-029-ghidra-scope-decision.md); operatör yerel/private |
 | **OpenAI computer-use / ajanlar** | Kontrolsüz dış aksiyon | Onay modeli + güvenli geçit; otomatik bağlantı yok |
 | **Connector credential'ları** | Sızıntı, yetkisiz erişim | `external-integrations-permissions.md` ruhu; credential bu dosyada tutulmaz |
 | **ChatGPT kaynağı eskir** | Yanlış öncelik | Canonical kaynak `docs/memory/`; periyodik gözden geçirme |
@@ -122,7 +122,7 @@ ChatGPT / oturum bağlamından bu dosyaya taşınan ana maddeler.
 | Kaynak özeti | Hedef bölüm | Durum |
 |--------------|-------------|-------|
 | Değerlendirme ilkesi (rastgele ekleme yok, tek parça, test sonra süreç) | Değerlendirme ilkesi | `[migrated]` |
-| Ghidra — RE / firmware takibi | Reverse engineering / firmware | `[needs-review]` |
+| Ghidra — RE / firmware takibi | Reverse engineering / firmware | `[decision-approved]` OD-029 closed — public entegrasyon yok |
 | Çin menşeli vibe coding / prototip araçları | Vibe coding ve prototip | `[needs-review]` |
 | Google AI Studio + Cursor + Android Studio | Vibe coding ve prototip | `[migrated]` |
 | OpenAI Agents SDK, Realtime/voice, Computer Use, Codex Plugins | OpenAI ajan ve computer-use | `[migrated]` |
@@ -146,4 +146,4 @@ Aşağıdaki şablon satırları boş bırakılmıştır; yeni takip maddeleri b
 
 ---
 
-*Son güncelleme: 2026-06-17*
+*Son güncelleme: 2026-06-20 (OD-029 Ghidra closed sync — envanter ab791c14 §13)*

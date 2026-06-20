@@ -61,7 +61,7 @@
 | OD-024 | product-rules.md | Şifreleme detayı (ürün) | Veri sahipliği Encrypted ekseninde şifreleme politikası hangi belgede genişletilecek? | high | needs-review | Veri sahipliği ekseni; data-vault OD-005 ile örtüşür |
 | OD-025 | security-architecture.md | Vault migration maddeleri | ChatGPT kaynaklı vault/token maddeleri uygulama tanımına taşındı mı? | high | **closed** | [`od-025-vault-migration-decision.md`](od-025-vault-migration-decision.md) — ilke migration **DL-C13**; somut vault uygulaması OD-001–005 implementation-pending |
 | OD-026 | internal-agent-layers.md | Doğrulanmamış iç mesaj | Reddedilen iç mesaj için operasyonel olay kaydı prosedürü ne? | medium | needs-review | İç iletişim §3 — operasyonel detay |
-| OD-027 | project-map-runtime-entrypoints.md | packages/kando_* geçişi | `packages/kando_*` → `src/` geçiş takvimi ve kesme kriterleri ne? | high | **closed** | Karar: [`kando-packages-transition-decision.md`](kando-packages-transition-decision.md) — **Seçenek C (Hibrit)**. Slice 3a (#313), 3b (#316), **Faz 4 cutover** — [`od-027-faz4-cutover-decision.md`](od-027-faz4-cutover-decision.md). Canlı: `src/` + `kando_bridge` + `kando_runtime`; ayna paketler `archive/packages/`. Faz 5 doc-sync **DL-C14**; bridge/runtime merge **ertelendi**. |
+| OD-027 | project-map-runtime-entrypoints.md | packages/kando_* geçişi | `packages/kando_*` → `src/` geçiş takvimi ve kesme kriterleri ne? | high | **closed** | Karar: [`kando-packages-transition-decision.md`](kando-packages-transition-decision.md) — **Seçenek C (Hibrit)**. Slice 3a (#313), 3b (#316), **Faz 4 cutover** — [`od-027-faz4-cutover-decision.md`](od-027-faz4-cutover-decision.md). Canlı: `src/` + `kando_bridge` + `kando_runtime`; ayna paketler `archive/packages/`. Faz 5 doc-sync **DL-C14**; bridge/runtime merge **ertelendi** → **OD-B05** backlog. |
 | OD-028 | project-map-runtime-entrypoints.md | lumos web komutu | `lumos web` / eksik `web/app.py` — B1: alt komutu kaldır (restore değil) | medium | closed | Karar: [`lumos-web-command-decision.md`](lumos-web-command-decision.md) — **B1** uygulandı: `__main__.py` web dalı kaldırıldı, `test_web_health.py` silindi, mimari belge senkronu. `packages/kando_core` web kalıntısı OD-027'de. |
 | OD-029 | tools-technology-watchlist.md | Ghidra kapsamı | Ghidra RE/firmware entegrasyonu public OSS sınırında kalacak mı? | medium | **closed** | Karar: [`od-029-ghidra-scope-decision.md`](od-029-ghidra-scope-decision.md) — public repoda entegrasyon **yok**; operatör yerel/private; watchlist devam. |
 | OD-030 | tools-technology-watchlist.md | Çin menşeli vibe coding | Çin menşeli AI prototip araçları güvenlik/veri sınırı test edildi mi? | medium | needs-review | Vibe coding kategorisi |
@@ -99,6 +99,7 @@
 | OD-047 | repair-assistant-requirements.md | Ürün vizyonu hizası | Teknik servis asistanı genel Lumos vizyonuna nasıl bağlanır? | medium | needs-review | Kapsam §4 migration notu |
 | OD-058 | evidence-continuity-v1-decision.md | Evidence Continuity v1 | Panel + engine sunucu mutasyonları için append-only journal (Karar A) uygulandı mı? | medium | closed | Karar: [`evidence-continuity-v1-decision.md`](evidence-continuity-v1-decision.md) — **Karar A** uygulandı ve doğrulandı (PR #248, `main`); H0/H1/H2 hook'ları canlı. **v2 backlog:** [`evidence-continuity-v2-backlog.md`](evidence-continuity-v2-backlog.md) — 14/14 `implementation-complete` (PR #255–#291). |
 | OD-059 | audit-hook-term-decision.md | Audit hook terminolojisi | Informal «audit hook» takip maddesi ayrı git hook gerektiriyor mu? | low | **closed** | Karar: [`audit-hook-term-decision.md`](audit-hook-term-decision.md) — **Hayır**; git hook reddi. Üç katman: commit guard (dev), EC runtime (v1), EC v2 #4/#14. Informal takip maddesi docs seviyesinde **CLOSED**. CI ruff parity (Paket B) **implementation-complete** (2026-06-20). |
+| OD-B05 | kando-packages-transition-decision.md | Faz 5 bridge/runtime merge | `kando_bridge` + `kando_runtime` → `src/` birleştirme ne zaman, hangi kapılarla? | high | **needs-review** | **Backlog (ertelendi — DL-C14).** XL impl; kullanıcı onayı + ayrı oturum gerekli; public-safe değil (gate/bridge güvenlik sınırı). Docs-only kayıt; kod yok. |
 
 ---
 
@@ -125,22 +126,22 @@ Kaynak dosyalardaki migration tablolarından **needs-review / queued** özetleri
 
 | Kaynak dosya | needs-review (yaklaşık) | queued (yaklaşık) | İndeks OD aralığı |
 |--------------|-------------------------|-------------------|-------------------|
-| product-rules.md | 4 | 0 (+5 boş manuel incelenecek) | OD-023, OD-024 |
-| security-architecture.md | 4 | 0 | OD-001, OD-002 |
-| project-workflow.md | 3 | 5 (boş manuel) | OD-008, OD-009, OD-010 |
+| product-rules.md | 2 | 0 (+5 boş manuel) | OD-023, OD-024 |
+| security-architecture.md | 0 | 0 | OD-001, OD-002 (indeks: decision-approved / impl-pending) |
+| project-workflow.md | 0 | 5 (boş manuel) | OD-008, OD-009 (approved); OD-010 closed |
 | ui-chat-experience.md | 3 | 2 (+5 boş manuel) | OD-013, OD-014, OD-018, OD-019 |
 | voice-media-experience.md | 3 | 5 (boş manuel) | OD-015, OD-016, OD-017 |
-| data-vault-user-data.md | 5 | 5 (boş manuel) | OD-003, OD-004, OD-005, OD-036 |
+| data-vault-user-data.md | 1 | 5 (boş manuel) | OD-003–005 (approved); OD-036 |
 | external-integrations-permissions.md | 5 | 5 (boş manuel) | OD-031 – OD-035, OD-012 |
-| commercial-domain-payments.md | 5 | 5 (boş manuel) | OD-039 – OD-042, OD-011 |
+| commercial-domain-payments.md | 3 | 5 (boş manuel) | OD-039–042, OD-011 (OD-039/041 approved) |
 | repair-assistant-requirements.md | 5 | 5 (boş manuel) | OD-020 – OD-022, OD-037, OD-038, OD-047 |
-| tools-technology-watchlist.md | 3 | 3 (boş manuel) | OD-029, OD-030 |
-| internal-agent-layers.md | 4 | 5 (boş manuel) | OD-006, OD-007, OD-026 |
+| tools-technology-watchlist.md | 2 | 3 (boş manuel) | OD-030 (OD-029 closed) |
+| internal-agent-layers.md | 1 | 5 (boş manuel) | OD-006, OD-007 (approved); OD-026 |
 | public-identity-branding.md | 5 | 9 (+5 boş manuel) | OD-048 – OD-057 |
-| project-map-runtime-entrypoints.md | 0 | 1 | OD-027, OD-028/043/044/046 (closed) |
-| evidence-continuity-v1-decision.md | 0 | 0 | OD-058 (closed / v2 backlog: evidence-continuity-v2-backlog.md) |
-| audit-hook-term-decision.md | 0 | 0 | OD-059 (closed / terminoloji) |
-| chatgpt-saved-memories-migration.md | 0 | 5 (boş manuel) | — (süreç rehberi; madde yok) |
+| project-map-runtime-entrypoints.md | 1 | 1 | OD-027 closed; OD-B05 backlog |
+| evidence-continuity-v1-decision.md | 0 | 0 | OD-058 (closed / v2 backlog) |
+| audit-hook-term-decision.md | 0 | 0 | OD-059 (closed) |
+| chatgpt-saved-memories-migration.md | 0 | 5 (boş manuel) | — (süreç rehberi) |
 
 **İndeks senkron kontrolü:** Kaynak dosyada `needs-review` / `queued` / `incelenecek` sayısı değişince bu tablo ve ilgili OD satırları güncellenir.
 
@@ -156,4 +157,4 @@ Kaynak dosyalardaki boş manuel şablonlar burada tekrarlanmaz. Yeni açık kara
 
 ---
 
-Son güncelleme: 2026-06-20 (DL-C14 — günlük docs sync kapanışı; #317–331)
+Son güncelleme: 2026-06-20 (Faz 1 doc-sync — envanter ab791c14 §13; OD-B05 backlog)

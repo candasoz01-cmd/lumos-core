@@ -205,9 +205,8 @@ Aşağıdakiler **needs-review** olarak kalır; bu karar taslağı bunları kapa
 | Maliyet paylaşımı modeli | OD-040 | Ürün + hukuk + PSP birlikte |
 | Ödeme verisi vault entegrasyonu | OD-001, OD-003 | `data-vault-user-data.md` |
 | QR / tek link maliyet paylaşımı ürün modeli | OD-040 | Ürün + hukuk + PSP birlikte |
-| Ticari onay: tek seferlik vs oturum bazlı | OD-041 | Çekirdek sözleşme onay katmanları esas |
-| Vault amaç bazlı erişim (ödeme verisi dahil) | OD-001, OD-003 | `security-architecture.md`, `data-vault-user-data.md` |
-| Domain varyasyon redirect (ticari edinim sonrası) | OD-039 | Edinim zaten onaylı; teknik detay sonra |
+| Ticari onay: hibrit model (oturum vs işlem) | OD-041 | [`commercial-approval-model-decision.md`](./commercial-approval-model-decision.md) — **decision-approved / implementation-pending** |
+| Domain varyasyon redirect (ticari edinim sonrası) | OD-039 | [`domain-redirect-model-decision.md`](./domain-redirect-model-decision.md) — **decision-approved / implementation-pending** |
 
 ---
 
@@ -217,10 +216,10 @@ Aşağıdakiler **needs-review** olarak kalır; bu karar taslağı bunları kapa
 |----|--------------|------|-------------------|--------|
 | **OD-011** | `commercial-domain-payments.md` | Ödeme sistemi kapsamı | Ödeme modeli/PSP/hukuk-mali akış uygulama paketi bekleniyor; ödeme/PSP aktif kapsam dışı | **decision-approved / implementation-pending** |
 | OD-040 | `commercial-domain-payments.md` | Maliyet paylaşımı QR/link | Gelecek fikir only; ürün/hukuk/PSP belirsiz | needs-review |
-| OD-041 | `commercial-domain-payments.md` | Ticari onay modeli | Açık onay zorunlu; tek/oturum modeli belirsiz | needs-review |
-| OD-039 | `commercial-domain-payments.md` | Domain redirect | Ödeme belgesi kapsamı dışı; çapraz referans | needs-review |
-| OD-001–002 | `security-architecture.md` | Vault / token | Ödeme credential yüzeyde değil | needs-review |
-| OD-003–005 | `data-vault-user-data.md` | Vault erişim / şifreleme | Ödeme verisi vault ilkesine tabi | needs-review |
+| OD-041 | `commercial-domain-payments.md` | Ticari onay modeli | Hibrit model — [`commercial-approval-model-decision.md`](./commercial-approval-model-decision.md) | **decision-approved / implementation-pending** |
+| OD-039 | `commercial-domain-payments.md` | Domain redirect | [`domain-redirect-model-decision.md`](./domain-redirect-model-decision.md) — ödeme kapsamı dışı | **decision-approved / implementation-pending** |
+| OD-001–002 | `security-architecture.md` | Vault / token | Ödeme credential yüzeyde değil | decision-approved / implementation-pending |
+| OD-003–005 | `data-vault-user-data.md` | Vault erişim / şifreleme | Ödeme verisi vault ilkesine tabi | decision-approved / implementation-pending |
 
 **İndeks notu:** `open-decisions-needs-review.md` OD-011 satırı bu belgeyle senkron tutulur; canonical kaynak önce `commercial-domain-payments.md`, onaylı karar özeti bu dosyadır.
 
@@ -248,4 +247,4 @@ Aşağıdakiler **needs-review** olarak kalır; bu karar taslağı bunları kapa
 
 ---
 
-*Son güncelleme: 2026-06-18*
+*Son güncelleme: 2026-06-20 (OD-041/039 tablo sync — envanter ab791c14 §13)*

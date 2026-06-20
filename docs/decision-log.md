@@ -16,15 +16,23 @@
 
 ## Statü başlıkları (CI / kapsam dışı takibi)
 
-### Geçici ertelendi
+### Karar onaylı, uygulama bekliyor
 
-Bilinçli erteleme; yeniden açılma koşulu veya bağlı OD not edilir.
+İlke kararı onaylandı; somut uygulama/teknik paket bekliyor. Eski «geçici ertelendi» kayıtları bu statüye taşındı (envanter ab791c14 §13).
 
 | ID | Tarih | Konu | Özet | Bağlantı |
 |----|-------|------|------|----------|
-| DL-E01 | 2026-06-17 | Ödeme / PSP | Şirket yapısı netleşene kadar ödeme sistemi dışarıda | OD-011, `docs/memory/payment-scope-decision.md` |
-| DL-E02 | 2026-06-17 | Mail entegrasyonu | İzinli mail okuma/özet — kapsam sonra | OD-031 |
-| DL-E03 | 2026-06-17 | Vault uygulama spec | Katman modeli ilke; API/amaç kodu bekliyor | OD-001–005 |
+| DL-E01 | 2026-06-17 | Ödeme / PSP | Ödeme modeli + PSP/hukuk-mali paket gelene kadar aktif kapsam dışı; şirket/vergi kaydı mevcut | OD-011, [`payment-scope-decision.md`](memory/payment-scope-decision.md) |
+| DL-E02 | 2026-06-17 | Mail entegrasyonu | İletişim kanalları ilke onaylı; mail ilk kanal — provider/connector bekliyor | OD-031, [`mail-integration-approval-decision.md`](memory/mail-integration-approval-decision.md) |
+| DL-E03 | 2026-06-17 | Vault uygulama spec | Vault ilke onaylı (OD-001–005); somut ürün/API/amaç kodu private impl bekliyor | OD-001–005, [`vault-secret-token-decision.md`](memory/vault-secret-token-decision.md) |
+
+### Geçici ertelendi
+
+Bilinçli erteleme; yeniden açılma koşulu veya bağlı OD not edilir. *(DL-E01–E03 taşındı — yukarı «Karar onaylı, uygulama bekliyor».)*
+
+| ID | Tarih | Konu | Özet | Bağlantı |
+|----|-------|------|------|----------|
+| — | — | — | *(boş — aktif geçici erteleme yok)* | — |
 
 ### Public'ten çıkarıldı — private/internal'a taşınacak
 

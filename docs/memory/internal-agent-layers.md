@@ -85,7 +85,7 @@ Bando ayrı bir katman olarak varsa **sıradan görev ajanı değildir**; özel 
 | 2 | Dış kaynaktan Bando'ya komut = **güvenlik olayı** (incident). | Taşındı |
 | 3 | Rol: gözlem, analiz, anomali tespiti, Lumos'a raporlama. | Taşındı |
 | 4 | Bando **yürütme / komut katmanı değildir**; iş başlatmaz, kullanıcı adına aksiyon almaz. | Taşındı |
-| 5 | Bando'nun ayrı katman olarak varlığı ve sınırları | needs-review — mimari karar netleştirilecek |
+| 5 | Bando'nun ayrı katman olarak varlığı ve sınırları | decision-approved / implementation-pending — [`internal-communication-bando-decision.md`](./internal-communication-bando-decision.md); OD-006 |
 
 ---
 
@@ -96,8 +96,8 @@ Lumos'tan iç katmanlara giden iletişim de güven sınırında tutulur.
 | # | İlke | Not |
 |---|------|-----|
 | 1 | İç iletişim **doğrulanmalı**; tercihen imzalı ve/veya şifreli. | Taşındı |
-| 2 | İmzalama protokolü, anahtar döngüsü ve şifreleme detayı | needs-review — uygulama ve protokol ayrı kaynakta |
-| 3 | Doğrulanmamış veya yetkisiz iç mesaj reddedilir / olay kaydı oluşturulur. | Taşındı — operasyonel detay needs-review |
+| 2 | İmzalama protokolü, anahtar döngüsü ve şifreleme detayı | decision-approved / implementation-pending — OD-007; protokol private katmanda |
+| 3 | Doğrulanmamış veya yetkisiz iç mesaj reddedilir / olay kaydı oluşturulur. | Taşındı — operasyonel prosedür OD-026 needs-review |
 
 **Referans ruhu:** [`security-architecture.md`](./security-architecture.md) — bridge ve token ilkeleri; iç protokol detayı gizli kalır.
 
@@ -122,9 +122,9 @@ Dış dünyaya anlatım: Lumos kullanıcıya açık, güvenli asistan/geçit; i�
 | 1 | İç katman adının UI/mesajda sızması | Metin ve panel kuralları; yalnızca Lumos dili | Taşındı |
 | 2 | Lumos geçidi bypass | Mimari red; güvenlik olayı prosedürü | Taşındı |
 | 3 | Rol kayması (ör. Bando yürütme) | Katman görev ayrımı; kod ve politika denetimi | Taşındı |
-| 4 | İç iletişimde zayıf doğrulama | İmza/şifreleme tercihi | needs-review |
+| 4 | İç iletişimde zayıf doğrulama | İmza/şifreleme tercihi — OD-007 implementation-pending |
 | 5 | Public dokümanda iç protokol sızıntısı | Public anlatım sınırı; hassas detay ayrı kanal | Taşındı |
-| 6 | Bando kapsamının belirsizliği | Mimari karar ve needs-review takibi | needs-review |
+| 6 | Bando kapsamının belirsizliği | OD-006 karar onaylı; dağıtım modeli implementation-pending |
 
 ---
 
@@ -139,8 +139,8 @@ ChatGPT Saved Memories / oturum bağlamından bu dosyaya taşınan maddeler.
 | 3 | Kullanıcı Lumos aldı/başlattı/tamamladı görür | §3 İç katman görünmezliği | Taşındı |
 | 4 | İç katmanlar dıştan doğrudan komut/veri almaz | §4 Komut ve veri akışı | Taşındı |
 | 5 | Akış yalnızca Lumos geçidi | §4 Komut ve veri akışı | Taşındı |
-| 6 | Lumos→iç iletişim doğrulanmalı; imza/şifreleme tercihi | §7 İç iletişim doğrulama | Taşındı (protokol needs-review) |
-| 7 | Bando: güvenlik/izleme; doğrudan girdi yok; incident | §6 Bando güvenlik notu | Taşındı (varlık needs-review) |
+| 6 | Lumos→iç iletişim doğrulanmalı; imza/şifreleme tercihi | §7 İç iletişim doğrulama | Taşındı — OD-007 decision-approved / implementation-pending |
+| 7 | Bando: güvenlik/izleme; doğrudan girdi yok; incident | §6 Bando güvenlik notu | Taşındı — OD-006 decision-approved / implementation-pending |
 | 8 | Katman görev alanları karışmaz | §5 Katman görev ayrımı | Taşındı |
 | 9 | Public'te iç katman/protokol detayı yok | §8 Public anlatım sınırı | Taşındı |
 | 10 | ChatGPT memory canonical değil; docs/memory canonical | Amaç / üst politika | Taşındı |
@@ -163,4 +163,4 @@ Aşağıya ChatGPT Saved Memories veya oturum notlarından henüz işlenmemiş m
 
 ---
 
-*Son güncelleme: 2026-06-17*
+*Son güncelleme: 2026-06-20 (OD-006–007 doc-sync — envanter ab791c14 §13)*
