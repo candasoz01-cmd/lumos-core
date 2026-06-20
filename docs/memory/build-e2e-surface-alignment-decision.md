@@ -301,9 +301,9 @@ Build/E2E hizası veya yüzey değişikliği görevi açılmadan önce:
 | Tam E2E migrasyonu | Kök `e2e:package*` → `ui/dist` | **Tamamlandı** — PR #303–#305 |
 | CI package E2E | `ui-e2e` job | **Tamamlandı** — PR #305 |
 | Legacy kök expose | `e2e:legacy:*` → `panel/` | **Deprecated notu** — PR #305 + `panel/README.md` |
-| Prod smoke | `welockai.com/panel` veya eşdeğer | Bekliyor (OD-046 dışı) |
+| Prod smoke | `welockai.com/panel` veya eşdeğer | **Stub** — [`od-prod-smoke-decision.md`](./od-prod-smoke-decision.md); `e2e:smoke:prod`; CI `prod-smoke.yml` (`workflow_dispatch`) |
 
-**Statü:** **`implementation-complete`** — OD-046 kapandı; prod smoke OD dışı backlog.
+**Statü:** **`implementation-complete`** — OD-046 kapandı; prod smoke A3 stub (push kapısı değil).
 
 ### 12.2 implementation-complete kriterleri
 

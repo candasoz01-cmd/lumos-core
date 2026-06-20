@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
+_ARCHIVE_PANEL = _REPO_ROOT / "archive" / "panel"
 _SRC = _REPO_ROOT / "src"
 if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
@@ -127,7 +128,7 @@ def group_evidence_events_for_ui(events: list[dict]) -> list[dict]:
 
 
 def test_l1_evidence_correlation_strip_module_exists() -> None:
-    path = _REPO_ROOT / "panel" / "js" / "evidence-correlation-strip.js"
+    path = _ARCHIVE_PANEL / "js" / "evidence-correlation-strip.js"
     assert path.is_file()
     text = path.read_text(encoding="utf-8")
     assert "LumosEvidenceCorrelationStrip" in text
@@ -135,18 +136,18 @@ def test_l1_evidence_correlation_strip_module_exists() -> None:
 
 
 def test_l2_index_html_script_order() -> None:
-    html = (_REPO_ROOT / "panel" / "index.html").read_text(encoding="utf-8")
+    html = (_ARCHIVE_PANEL / "index.html").read_text(encoding="utf-8")
     strip_pos = html.index("evidence-correlation-strip.js")
     app_pos = html.index("js/app.js")
     assert strip_pos < app_pos
 
 
 def test_l3_app_js_legacy_strip_mount() -> None:
-    app = (_REPO_ROOT / "panel" / "js" / "app.js").read_text(encoding="utf-8")
+    app = (_ARCHIVE_PANEL / "js" / "app.js").read_text(encoding="utf-8")
     assert "legacy-evidence-continue" in app
     assert "wireLegacyEvidenceStrip" in app
     assert "buildLegacyEvidenceStripHtml" in app
-    strip = (_REPO_ROOT / "panel" / "js" / "evidence-correlation-strip.js").read_text(encoding="utf-8")
+    strip = (_ARCHIVE_PANEL / "js" / "evidence-correlation-strip.js").read_text(encoding="utf-8")
     assert "legacy-evidence-strip" in strip
 
 
