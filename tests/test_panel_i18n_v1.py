@@ -290,6 +290,23 @@ PANEL_I18N_V17_TR_KEYS = (
     "clipboardConfirmTitle:",
 )
 
+PANEL_I18N_V18_MARKERS = (
+    'panelT("panel.modules.chat.compose.hints.emptyReply")',
+    'panelT("panel.modules.chat.compose.hints.responseUnusableBubble")',
+    'panelT("panel.modules.chat.compose.hints.gorevServerReplyPrefix")',
+    'panelT("panel.modules.chat.compose.hints.gorevNoExtraServerText")',
+    'panelT("panel.modules.chat.compose.hints.photoNoVision")',
+    'function panelChatDisplayReply(',
+)
+
+PANEL_I18N_V18_TR_KEYS = (
+    "emptyReply:",
+    "responseUnusableBubble:",
+    "gorevServerReplyPrefix:",
+    "gorevNoExtraServerText:",
+    "photoNoVision:",
+)
+
 
 
 def test_panel_astro_i18n_wiring_present() -> None:
@@ -558,3 +575,21 @@ def test_panel_i18n_v17_compose_send_clipboard_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V17_TR_KEYS:
         assert key in tr_text, f"missing panel tr v17 key fragment: {key}"
         assert key in en_text, f"missing panel en v17 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v18_compose_replies_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V18_MARKERS:
+        assert token in text, f"missing panel i18n v18 token: {token}"
+    assert '"Bu turda net bir yanıt üretemedim' not in text
+    assert '"Sunucudan gelen yanıtı işleyemedik' not in text
+    assert 'appendBubble("lumos", "Sunucu yanıtı' not in text
+    assert "Sunucu bu istek için ek metin dönmedi" not in text
+
+
+def test_panel_i18n_v18_compose_replies_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V18_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v18 key fragment: {key}"
+        assert key in en_text, f"missing panel en v18 key fragment: {key}"

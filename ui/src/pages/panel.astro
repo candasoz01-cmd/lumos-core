@@ -9429,11 +9429,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 void loadPanelBackendStatus();
               }
             } else {
-              const EMPTY_REPLY_MSG =
-                "Bu turda net bir yanıt üretemedim; biraz sonra tekrar deneyeceğim.";
               const CHAT_BODY_UNUSABLE_HINT = panelT("panel.modules.chat.compose.hints.responseUnreadable");
-              const CHAT_BODY_UNUSABLE_BUBBLE =
-                "Sunucudan gelen yanıtı işleyemedik. Biraz sonra yeniden deneyebilirsin.";
+              const CHAT_BODY_UNUSABLE_BUBBLE = panelT("panel.modules.chat.compose.hints.responseUnusableBubble");
 
               let chatFailureReported = false;
               function reportChatBodyFailure() {
@@ -9530,10 +9527,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 if (replyBody.trim()) {
                   const { lumosText } = await ingestAssistantPanelGorev(replyBody);
                   if (panelGorevCmd) {
-                    appendBubble("lumos", "Sunucu yanıtı:\n" + lumosText);
+                    appendBubble(
+                      "lumos",
+                      panelT("panel.modules.chat.compose.hints.gorevServerReplyPrefix") +
+                        panelChatDisplayReply(lumosText),
+                    );
                     setSendHint("");
                   } else {
-                    appendBubble("lumos", lumosText);
+                    appendBubble("lumos", panelChatDisplayReply(lumosText));
                     input.value = "";
                     clearPanelCameraPhotoSelection();
                     clearPanelAudioRecordSelection();
@@ -9544,11 +9545,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 } else if (panelGorevCmd) {
                   appendBubble(
                     "lumos",
-                    "Sunucu bu istek için ek metin dönmedi (görev zaten yerelde kayıtlı).",
+                    panelT("panel.modules.chat.compose.hints.gorevNoExtraServerText"),
                   );
                   setSendHint("");
                 } else {
-                  appendBubble("lumos", EMPTY_REPLY_MSG);
+                  appendBubble("lumos", panelT("panel.modules.chat.compose.hints.emptyReply"));
                   setSendHint("");
                 }
               }
@@ -12815,6 +12816,15 @@ const PANEL_DEBUG = import.meta.env.DEV;
         "Fotoğraf eklendi; görsel analiz henüz aktif değil.";
       const PANEL_REPLY_PHOTO_NO_VISION_RE =
         /Fotoğraf eklendi;\s*görsel analiz henüz aktif değil\.?$/i;
+
+      function panelChatDisplayReply(raw) {
+        const t = raw == null ? "" : String(raw).trim();
+        if (!t) return raw == null ? "" : String(raw);
+        if (t === REPLY_PHOTO_NO_VISION_TR || PANEL_REPLY_PHOTO_NO_VISION_RE.test(t)) {
+          return panelT("panel.modules.chat.compose.hints.photoNoVision");
+        }
+        return raw;
+      }
 
       function showPanelChatPhotoTech(text) {
         const wrap = document.getElementById("panel-chat-photo-tech");
