@@ -26,11 +26,13 @@ registry = IntegrationRegistry()
 
 
 def register_default_integrations() -> IntegrationRegistry:
+    from integrations.providers.device_provider import register_device_provider
+    from integrations.providers.mail_provider import register_mail_provider
     from integrations.providers.openai_provider import register_openai_provider
     from integrations.providers.web_search_provider import register_web_search_provider
-    from integrations.providers.device_provider import register_device_provider
 
     register_openai_provider(registry.register)
     register_web_search_provider(registry.register)
     register_device_provider(registry.register)
+    register_mail_provider(registry.register)
     return registry
