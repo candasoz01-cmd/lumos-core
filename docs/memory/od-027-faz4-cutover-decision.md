@@ -1,6 +1,6 @@
 # OD-027 Faz 4 — Kesme (cutover) kararı
 
-**Durum:** `approved-for-implementation` — kullanıcı açık komutu (2026-06-20: «sırayla hepsini bitir»).  
+**Durum:** `implementation-complete` — Faz 4 cutover (DL-A19, PR #317).  
 **Kaynak:** OD-027 Seçenek C — [`kando-packages-transition-decision.md`](./kando-packages-transition-decision.md).  
 **Önceki dilimler:** Slice 3a **`implementation-complete`** (PR #313); Slice 3b **`implementation-complete`** (PR #316).  
 **Keşif:** [`kando-packages-faz3-keşif-raporu.md`](./kando-packages-faz3-keşif-raporu.md), [`od-027-slice-3b-archive-decision.md`](./od-027-slice-3b-archive-decision.md).
@@ -95,8 +95,9 @@ rg 'from kando_(core|memory|policy|context)|import kando_(core|memory|policy|con
 
 | Dilim | İçerik | Durum |
 |-------|--------|--------|
-| **Faz 4 uygulama** | Bu belge §4 | **`approved-for-implementation`** |
-| **Faz 5 (opsiyonel)** | Bridge/runtime → `src/` birleştirme; stale doc path temizliği | `needs-review` |
+| **Faz 4 uygulama** | Bu belge §4 | **`implementation-complete`** (DL-A19) |
+| **Faz 5 doc-only** | Path/indeks senkronu | **`doc-sync-complete`** (DL-C14) |
+| **Faz 5 fiziksel (ertelenen)** | Bridge/runtime → `src/` birleştirme; PYTHONPATH/CI | **Ayrı oturum** — onaylı impl; bu PR zincirinde yok |
 
 ---
 
@@ -108,4 +109,4 @@ rg 'from kando_(core|memory|policy|context)|import kando_(core|memory|policy|con
 
 ---
 
-Son güncelleme: 2026-06-20 (Faz 4 karar — kullanıcı onayı)
+Son güncelleme: 2026-06-20 (Faz 4 complete; Faz 5 doc sync DL-C14; fiziksel merge ertelendi)

@@ -67,9 +67,10 @@ lumos  (veya python -m lumos_core)
 | Alan | Rol | Durum |
 |------|-----|--------|
 | **`src/`** | Canlı Lumos Core Python kodu (CLI, core, cli, task_engine, security, …) | **Aktif** |
-| **`packages/kando_*`** | Ayrılmış / yeni mimari aday paketler | **Aday** — root entry buradan başlamaz |
+| **`packages/kando_bridge`, `kando_runtime`** | Canlı köprü + gate/dispatch (OD-027 C) | **Aktif paket** — kök entry değil; `src/` tüketir (PYTHONPATH) |
 | **`kando-ai/`** (repo kökü) | Ayrı `main.py` içeren alt proje | **Aday / yan** — root `lumos` CLI zincirine dahil değil |
-| **`archive/`** | Arşiv | Canlı değil |
+| **`archive/packages/kando_*`** | OD-027 Slice 3b ayna paketler | Canlı değil — canonical `src/` |
+| **`archive/`** (diğer) | Arşiv (ör. `archive/panel/`) | Canlı değil |
 | **`frontend/`** | Köprü/prototip HTML | `[migrated]` — OD-044 Seçenek B; birincil/canlı değil (`frontend-role-decision.md`) |
 
 **`packages/` altı canlı paketler (doğrulandı):**
@@ -190,6 +191,7 @@ Aşağıdaki satırlar henüz repo dışı kaynaktan işlenmedi veya doğrulanma
 | 3 | `[migrated]` | `lumos web` / `web/app.py` — OD-028 B1 alt komut kaldırıldı | `web/` restore yok; `__main__.py` güncellendi |
 | 4 | `[closed]` | `packages/kando_*` → `src/` geçiş (OD-027) | Seçenek C; Slice 3a (#313), 3b (#316), Faz 4 cutover — [`od-027-faz4-cutover-decision.md`](od-027-faz4-cutover-decision.md); canlı yalnızca bridge+runtime |
 | 5 | `[queued]` | ChatGPT Saved Memories’ten ek proje yolu / deploy notları | `chatgpt-saved-memories-migration.md` tablosuna yapıştırılacak |
+| 6 | `[doc-sync-complete]` | OD-027 Faz 5 (doc-only) | Path/indeks senkronu (#317–331); bridge/runtime → `src/` birleştirme **ertelendi — ayrı oturum** — [`kando-packages-transition-decision.md`](kando-packages-transition-decision.md) Faz 5 |
 
 ---
 
@@ -212,4 +214,4 @@ lumos-core/
 
 ---
 
-*Son doğrulama: 2026-06-17 — dosya sistemi read-only tarama.*
+*Son doğrulama: 2026-06-20 — OD-027 Faz 5 doc sync; fiziksel bridge/runtime merge ayrı oturuma ertelendi.*
