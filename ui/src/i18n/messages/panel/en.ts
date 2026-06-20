@@ -786,6 +786,12 @@ const panel: typeof panelTr = {
       bridgeTokenMsg:
         "Panel connection is not configured. Bridge and panel operations are disabled in this environment; ask your device administrator to set up the connection key.",
       leakConnectionKey: "connection key",
+      leakConnectionInfo: "connection info",
+      leakRoute: "route",
+      leakTransmission: "transmission",
+      leakLastResult: "latest result",
+      leakTaskRecord: "task record",
+      leakBrowserRestriction: "browser restriction",
       leakLocalServer: "local server",
       leakRequestError: "request error",
       healthPending: "pending…",
