@@ -84,7 +84,7 @@ Aşağıdaki kategoriler **ürün/guard hedef sözleşmesidir**; repo'da birleş
 | 2 | **Proje içi okuma/özetleme** | `allow` (read profili) | `profiles.py` `STEP_TYPE_READ/ANALYZE`; `lumos_gate` özet modu; `controlled_bridge` read | Okuma ile özetleme firewall sözleşmesi ayrılmamış |
 | 3 | **Dosya düzenleme** | `allow` / `ask_confirmation` / `sandbox_only` | `lumos_gate` `direct_patch`; `classify_risk` keyword; `task_dispatch` risk→onay; `write_interceptor` + `change_sensitivity` | Gate ile `change_sensitivity` **bağlı değil** |
 | 4 | **Dış servis yazma** | `deny` / `defer_to_private_layer` | `profiles.py` `STEP_TYPE_EXTERNAL` → hiçbir profilde izinli değil | Merkezi "external write" sınıflandırıcı yok |
-| 5 | **Mail gönderme/silme/arşivleme** | `deny` / `defer_to_private_layer` | `controlled_bridge` mail/takvim regex blok; `offline_engine` SMS kapalı | ADR-002 taslak; kod yok |
+| 5 | **Mail gönderme/silme/arşivleme** | `deny` / `defer_to_private_layer` | `controlled_bridge` mail/takvim regex blok; `offline_engine` SMS kapalı | ADR-002 taslak; demo-safe stub; prod aksiyon yok |
 | 6 | **Ödeme/domain/satın alma** | `deny` / `defer_to_private_layer` | `kando_core._infer_risk` "payment" keyword → high (demo hattı) | Üretim entegrasyonu yok; public sınır dışı |
 | 7 | **Cihaz/yerel işlem** | `sandbox_only` / `ask_confirmation` | `OfflineEngineV1` + `PermissionManager` lease stub; `controlled_bridge` workspace sandbox | Gerçek cihaz kontrolü yok (public sınır) |
 | 8 | **Kalıcı silme** | `deny` (otomatik) / `ask_confirmation` (açık komut) | `SECURITY_NEVER_AUTO` `permanent_delete`; `may_perform_permanent_delete`; gate `HIGH_RISK_KEYWORDS`; bridge silme blok | `SECURITY_NEVER_AUTO` engine'de ayrı red branch eksik (guard zincir dokümanı) |
@@ -150,7 +150,7 @@ Bu depo Lumos'un **public açık kaynak temelidir** (`public-github-boundary`). 
 | Risk sınıflandırma **taslağı** ve onay kuralı dokümantasyonu | Gerçek production auth, SSO, prod key yönetimi |
 | `profiles.py` davranış referansı (değiştirmeden) | Ücretli model tier, maliyet routing |
 | Gate pattern açıklaması (`lumos_gate` — kontrollü reasoning) | PII işleyen routing kuralları |
-| Basit keyword/heuristic risk (`classify_risk` seviyesinde) | Mail/IMAP/OAuth/Gmail aksiyonları (ADR-002) |
+| Basit keyword/heuristic risk (`classify_risk` seviyesinde) | Mail prod aksiyonları (ADR-002; public stub sadece grant/sözleşme) |
 | Offline stub, controlled bridge sandbox tanımı | Ödeme, domain satın alma, cihaz orkestrasyonu |
 | Guard/policy usage map (salt okuma analizi) | Operasyonel backend, prod orchestration |
 | ADR karar kayıtları (hipotez/taslak) | Quantum/IBM prod entegrasyonu (ADR-001) |
@@ -205,7 +205,7 @@ Aşağıdaki işler **bilinçli olarak yapılmaz**; ayrı ADR, usage map, audit 
 | **Kod yazma** (firewall birleştirme, yeni modül) | Usage map ve karar finalize edilmedi; kapsam şişmesi |
 | **Yeni güvenlik motoru** | Parçalı guard'lar önce haritalanmalı; erken motor regresyon riski |
 | **Production auth** | Public sınır; private/professional katman |
-| **Mail/OAuth/Gmail entegrasyonu** | ADR-002 — izin akışı ve kod kapsam dışı |
+| **Mail demo-safe stub (ADR-002)** | ADR-002 — public stub; prod izin akışı ve connector private |
 | **Ödeme/domain işlem entegrasyonu** | Public sınır; prod katmanı |
 | **Cihaz kontrolü** | Public sınır; demo/sandbox dışında yok |
 | **Agent Network kurma** | ADR-001 taslak; firewall öncesi değil |

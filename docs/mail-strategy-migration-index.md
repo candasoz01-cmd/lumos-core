@@ -7,7 +7,9 @@ moved out of this public repository on **2026-06-20** (branch
 Full content is maintained locally in **`.lumos/internal/strategy-vault/`**
 (gitignored). Public docs below are **stubs only**.
 
-Boundary rule: [`docs/memory/public-mail-strategy-boundary.md`](memory/public-mail-strategy-boundary.md)
+Boundary rule: [`docs/memory/public-repo-boundary.md`](memory/public-repo-boundary.md) (canonical; mail § Bölüm A)
+
+Legacy redirect: [`docs/memory/public-mail-strategy-boundary.md`](memory/public-mail-strategy-boundary.md)
 
 Operator notice: [`docs/mail-strategy-private-notice.md`](mail-strategy-private-notice.md)
 
@@ -23,6 +25,19 @@ Operator notice: [`docs/mail-strategy-private-notice.md`](mail-strategy-private-
 
 ---
 
+## Public code surface (demo-safe stub)
+
+Merged to `main` via PR #413–#415 — **foundation only**, not product:
+
+| Path | Scope |
+|------|-------|
+| `src/integrations/mail/` | Grant model, OAuth callback contract types, vault credential ref, demo connector |
+| `src/integrations/vault/` | Purpose codes, adapter interface, demo/read-only adapter |
+
+Canonical boundary + code reality: [`memory/public-repo-boundary.md`](memory/public-repo-boundary.md) § Bölüm C. ADR: [`decisions/ADR-002-mail-inbox-intelligence.md`](decisions/ADR-002-mail-inbox-intelligence.md) § Public kod gerçeği.
+
+---
+
 ## Public docs kept (demo-safe)
 
 These files remain in public `docs/` at ADR-002 / boundary level:
@@ -30,7 +45,8 @@ These files remain in public `docs/` at ADR-002 / boundary level:
 | File | Scope |
 |------|-------|
 | [`decisions/ADR-002-mail-inbox-intelligence.md`](decisions/ADR-002-mail-inbox-intelligence.md) | Draft ADR — permission gates, demo-safe mail principles |
-| [`memory/public-mail-strategy-boundary.md`](memory/public-mail-strategy-boundary.md) | What must not live in public repo |
+| [`memory/public-repo-boundary.md`](memory/public-repo-boundary.md) | Canonical public boundary (mail § A, ops § B, code § C) |
+| [`memory/public-mail-strategy-boundary.md`](memory/public-mail-strategy-boundary.md) | Legacy redirect → canonical |
 | [`memory/open-decisions-needs-review.md`](memory/open-decisions-needs-review.md) | OD index — OD-031 row redacted |
 
 ---

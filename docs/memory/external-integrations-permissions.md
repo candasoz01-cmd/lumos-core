@@ -62,9 +62,9 @@ Kullanıcı **açık onayı** olmadan aşağıdaki işlemler **yapılmaz**:
 
 ## Mail entegrasyonu
 
-> **OD-031 kapsam notu:** Tam strateji belgesi private strategy vault'ta. Public repoda yalnızca ADR-002 seviyesi ilke ve stub referansları tutulur — [`public-mail-strategy-boundary.md`](./public-mail-strategy-boundary.md).
+> **OD-031 kapsam notu:** Tam strateji belgesi private strategy vault'ta. Public repoda yalnızca ADR-002 seviyesi ilke, demo-safe kod stub referansları ve canonical boundary tutulur — [`public-repo-boundary.md`](./public-repo-boundary.md) § Bölüm A.
 
-**Durum:** `[decision-approved / implementation-pending]` — ilke kararları onaylı; uygulama yok.
+**Durum:** `[decision-approved / implementation-pending]` — ilke kararları onaylı; public demo-safe stub (`src/integrations/mail/`, PR #413–#415); **ürün uygulanmamış**.
 
 **Public referanslar (demo-safe):**
 
@@ -287,4 +287,4 @@ ChatGPT Saved Memories'ten henüz işlenmemiş maddeler için şablon. Taşıma 
 
 ---
 
-*Son güncelleme: 2026-06-21 (OD-031 Phase 2 Step 3 — mail bölümü ADR-002/stub seviyesine redakte)*
+*Son güncelleme: 2026-06-21 (OD-031 Phase 2 Step 4 — canonical boundary + ADR-002 stub sync)*

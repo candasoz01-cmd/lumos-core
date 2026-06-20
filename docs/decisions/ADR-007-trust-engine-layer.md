@@ -153,7 +153,7 @@ Bu depo Lumos'un **public açık kaynak temelidir** (`public-github-boundary`). 
 |--------------------------|----------------------------------------|
 | Trust state/sinyal **taslağı** ve ADR karar kayıtları | Gerçek production auth, SSO, prod key yönetimi |
 | `src/security` demo-safe foundation (local keystore, identity stub) | Cihaz presence kontrolü (üretim) |
-| `profiles.py` davranış referansı (değiştirmeden) | Mail/IMAP/OAuth/Gmail aksiyon izinleri |
+| `profiles.py` davranış referansı (değiştirmeden) | Mail prod aksiyon izinleri (ADR-002; public stub grant modeli ayrı) |
 | Panel koruma/kimlik/keystore **görünürlük** (dürüst demo metinleri) | Ödeme, domain, cihaz orkestrasyonu |
 | `action_policy` + consent dosyası modeli | PII işleyen routing / trust skoru |
 | Trust state usage map (salt okuma analizi) | Operasyonel backend, prod orchestration |
@@ -214,7 +214,7 @@ Aşağıdaki işler **bilinçli olarak yapılmaz**; ayrı ADR, usage map, audit 
 | **Gerçek auth sistemi** | Public sınır; private/professional katman |
 | **Secret/key yönetimi kurma** | Prod key yönetimi public repo'da olmamalı |
 | **Cihaz presence kontrolü** | Public sınır; demo `presence_lock` dışında yok |
-| **Mail/OAuth/Gmail entegrasyonu** | ADR-002 — izin akışı ve kod kapsam dışı |
+| **Mail demo-safe stub (ADR-002)** | ADR-002 — public stub; prod izin akışı ve connector private |
 | **Ödeme/domain işlem entegrasyonu** | Public sınır; prod katmanı |
 | **Agent Network kurma** | ADR-001 taslak; trust öncesi değil |
 | **Quantum/IBM tarafına geçme** | ADR-001 — erken hedef değil |

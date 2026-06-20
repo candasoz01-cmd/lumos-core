@@ -4,7 +4,9 @@ Operational runbooks with real infrastructure details were moved out of this pub
 
 Full content is maintained locally in **`.lumos/internal/ops-vault/`** (gitignored). Public docs below are **stubs only**.
 
-Boundary rule: [`docs/memory/public-ops-runbook-boundary.md`](memory/public-ops-runbook-boundary.md)
+Boundary rule: [`docs/memory/public-repo-boundary.md`](memory/public-repo-boundary.md) (canonical; ops § Bölüm B)
+
+Legacy redirect: [`docs/memory/public-ops-runbook-boundary.md`](memory/public-ops-runbook-boundary.md)
 
 Operator notice: [`docs/ops-runbooks-private-notice.md`](ops-runbooks-private-notice.md)
 

@@ -89,7 +89,7 @@ Bu depo Lumos'un **public açık kaynak temelidir** (`public-github-boundary`). 
 | Tek ajan pipeline tasarım notları (demo-safe) | Gerçek agent-to-agent orchestration |
 | Task/executor routing referansı (`task_dispatch`, `router` — davranışı değiştirmeden) | Cihaz kontrolü ve üretim terminal erişimi |
 | Demo-safe plan yürütme pattern'i (`lumos_gate` `execute_plan` açıklaması) | Dış servis aksiyonları (prod entegrasyon) |
-| `agent_runner` sınırlı hedef akışı (dokümantasyon) | Mail/Gmail/IMAP/OAuth erişimi (ADR-002) |
+| `agent_runner` sınırlı hedef akışı (dokümantasyon) | Mail prod erişimi (ADR-002; public demo-safe stub only) |
 | `task_engine` profil/onay matrisi referansı | Ödeme/domain/satın alma işlemleri |
 | Agent/task/executor usage map (salt okuma analizi) | Production secrets ve provider key yönetimi |
 | Panel görev/kayıt görünürlük (dürüst demo metinleri) | Operasyonel backend, prod multi-agent ağı |
@@ -261,7 +261,7 @@ Aşağıdaki işler **bilinçli olarak yapılmaz**; ayrı ADR, usage map, audit 
 | **Kod yazma** (orchestration, yeni agent modülü) | Karar finalize edilmedi; kapsam şişmesi |
 | **Büyük agent framework / refactor** | Regresyon riski; parçalı hatlar önce haritalandı — import diff sonrası dar adım |
 | **Cihaz / terminal kontrolü ekleme** | Public sınır; private/professional katman |
-| **Mail / OAuth / Gmail entegrasyonu** | ADR-002 — izin akışı ve kod kapsam dışı |
+| **Mail prod entegrasyonu** | ADR-002 — demo-safe stub public; prod connector private |
 | **Ödeme / domain işlem entegrasyonu** | Public sınır; prod katmanı |
 | **Production secrets / provider key kullanımı** | Gizli anahtar public repo'da olmamalı |
 | **Quantum / IBM tarafına geçme** | ADR-001 — erken hedef değil |
