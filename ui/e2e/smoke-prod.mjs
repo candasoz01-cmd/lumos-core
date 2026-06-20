@@ -51,14 +51,21 @@ try {
     fail("Temel panel DOM eksik: " + String(domErr.message || domErr));
   }
 
+  const bodyText = (await page.textContent("body")) || "";
+  if (!/Sınırlı|SINIRLI|limited/i.test(bodyText)) {
+    await browser.close();
+    fail("Sınırlı mod göstergesi bulunamadı (prod beklenen varsayılan)");
+  }
+
   if (consoleErrors.length) {
     await browser.close();
-    fail("Kırıcı console.error: " + consoleErrors.slice(0, 3).join(" | "));
+    fail("Console/page errors: " + consoleErrors.slice(0, 5).join("; "));
   }
 
   await browser.close();
   console.log("SMOKE_PROD_RESULT: PASS");
-  console.log("URL:", PROD_URL);
+  console.log("surface: production HTTPS");
+  console.log("url:", PROD_URL);
 } catch (err) {
   fail(String(err && err.message ? err.message : err));
 }
