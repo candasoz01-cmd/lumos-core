@@ -8774,6 +8774,48 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
           return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" stroke-linejoin="round"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07" stroke-linecap="round"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14" stroke-linecap="round"></path></svg>';
         }
+        function panelBubbleCopyIconMarkup() {
+          return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+        }
+        function panelBubblePlainText(wrap, kind) {
+          const body = wrap.querySelector(".chat-msg-body");
+          if (!body) return "";
+          if (kind === "lumos") return lumosBodyToPlainText(body);
+          return body.textContent.trim();
+        }
+        function panelWriteTextToClipboard(text) {
+          if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+            return navigator.clipboard.writeText(text);
+          }
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          ta.setAttribute("readonly", "");
+          ta.style.position = "fixed";
+          ta.style.left = "-9999px";
+          document.body.appendChild(ta);
+          ta.select();
+          try {
+            const ok = document.execCommand("copy");
+            document.body.removeChild(ta);
+            return ok ? Promise.resolve() : Promise.reject(new Error("execCommand failed"));
+          } catch (err) {
+            document.body.removeChild(ta);
+            return Promise.reject(err);
+          }
+        }
+        function createChatBubbleCopyButton() {
+          const copyBtn = document.createElement("button");
+          copyBtn.type = "button";
+          copyBtn.className = "chat-msg-action";
+          copyBtn.setAttribute("data-panel-copy", "");
+          const copyIcon = document.createElement("span");
+          copyIcon.className = "chat-msg-action__icon chat-msg-action__icon--copy";
+          copyIcon.innerHTML = panelBubbleCopyIconMarkup();
+          copyBtn.appendChild(copyIcon);
+          copyBtn.title = panelT("panel.modules.chat.bubbles.copy");
+          copyBtn.setAttribute("aria-label", panelT("panel.modules.chat.bubbles.copy"));
+          return copyBtn;
+        }
         const panelTtsSupported = !!(
           typeof window !== "undefined" &&
           window.speechSynthesis &&
@@ -8904,6 +8946,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
           document.querySelectorAll(".chat-msg-actions[role='toolbar']").forEach((raw) => {
             raw.setAttribute("aria-label", panelT("panel.modules.chat.bubbles.actionsAria"));
           });
+          document.querySelectorAll("[data-panel-copy]").forEach((raw) => {
+            const btn = /** @type {HTMLButtonElement} */ (raw);
+            btn.title = panelT("panel.modules.chat.bubbles.copy");
+            btn.setAttribute("aria-label", panelT("panel.modules.chat.bubbles.copy"));
+          });
         };
 
         function panelStopSpeaking(btn) {
@@ -9030,6 +9077,27 @@ const PANEL_DEBUG = import.meta.env.DEV;
         thread.addEventListener("click", (e) => {
           const t = e.target;
           if (!(t instanceof Element)) return;
+          const copyBtn = t.closest("button[data-panel-copy]");
+          if (copyBtn instanceof HTMLButtonElement) {
+            const wrap = copyBtn.closest(".chat-msg");
+            if (!wrap) return;
+            let kind = "lumos";
+            if (wrap.classList.contains("chat-msg--user")) kind = "user";
+            else if (wrap.classList.contains("chat-msg--error")) kind = "error";
+            const text = panelBubblePlainText(wrap, kind);
+            if (!text) {
+              panelActionFlash(copyBtn, panelT("panel.modules.chat.bubbles.copyEmpty"), "info");
+              return;
+            }
+            panelWriteTextToClipboard(text)
+              .then(() => {
+                panelActionFlash(copyBtn, panelT("panel.modules.chat.bubbles.copied"), "ok");
+              })
+              .catch(() => {
+                panelActionFlash(copyBtn, panelT("panel.modules.chat.bubbles.copyFailed"), "error");
+              });
+            return;
+          }
           const btn = t.closest("button[data-panel-tts]");
           if (!btn) return;
           const wrap = btn.closest(".chat-msg--lumos");
@@ -9110,11 +9178,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
           wrap.appendChild(role);
           wrap.appendChild(body);
+          const actions = document.createElement("div");
+          actions.className = "chat-msg-actions";
+          actions.setAttribute("role", "toolbar");
+          actions.setAttribute("aria-label", panelT("panel.modules.chat.bubbles.actionsAria"));
+          actions.appendChild(createChatBubbleCopyButton());
           if (kind === "lumos") {
-            const actions = document.createElement("div");
-            actions.className = "chat-msg-actions";
-            actions.setAttribute("role", "toolbar");
-            actions.setAttribute("aria-label", panelT("panel.modules.chat.bubbles.actionsAria"));
             const ttsBtn = document.createElement("button");
             ttsBtn.type = "button";
             ttsBtn.className = "chat-msg-action";
@@ -9150,8 +9219,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
               ttsDiag.hidden = true;
             }
             actions.appendChild(ttsDiag);
-            wrap.appendChild(actions);
           }
+          wrap.appendChild(actions);
           turn.appendChild(wrap);
           thread.appendChild(turn);
           requestAnimationFrame(() => {

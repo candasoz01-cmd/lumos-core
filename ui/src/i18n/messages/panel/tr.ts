@@ -139,6 +139,11 @@ const panelModules = {
       lumos: "Lumos",
       warning: "Uyarı",
       actionsAria: "Yanıt işlemleri",
+      copy: "Kopyala",
+      copied: "Kopyalandı",
+      copyFailed: "Kopyalanamadı",
+      copyEmpty: "Kopyalanacak metin yok",
+      copyUnsupported: "Kopyalama desteklenmiyor",
     },
     compose: {
       placeholder: "Mesajını yaz",
