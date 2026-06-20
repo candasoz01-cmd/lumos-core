@@ -357,6 +357,22 @@ Aşağıdakiler **henüz uygulanmadı**; bu belge uygulama izni vermez.
 
 ---
 
+## Mail pilot implementation checklist (public stub)
+
+| # | Madde | Durum | Not |
+|---|--------|--------|-----|
+| M1 | Mail provider seçimi (Gmail OAuth / IMAP) | implementation-pending | Resmi API |
+| M2 | Vault mail credential şeması | implementation-pending | OD-001/002 private |
+| M3 | Granüler izin grant UI | implementation-pending | OD-041 hibrit |
+| M4 | Kural editörü (kişi/kaynak/içerik) | implementation-pending | OD-031 CC |
+| M5 | Sync modeli (poll vs push) | implementation-pending | — |
+| M6 | Çakışma algoritması (taslak vs otomatik) | implementation-pending | CC7 |
+| M7 | İlk kanal smoke — **onaylı impl paketi gerekir** | blocked | Public kod yok |
+
+**DL-E02 sync:** «Karar onaylı, uygulama bekliyor» — ilke onaylı; M1–M7 private/onaylı paket.
+
+---
+
 ## Açık kararlar özeti
 
 | Konu | Durum |
@@ -405,4 +421,4 @@ Aşağıdakiler **henüz uygulanmadı**; bu belge uygulama izni vermez.
 
 ---
 
-Son güncelleme: 2026-06-18
+Son güncelleme: 2026-06-20 (mail pilot checklist — envanter ab791c14 §12 #5)
