@@ -592,6 +592,7 @@ const panelModules = {
     outboxIntro:
       "Son görev veya sohbet çıktısının iletimden okunan özeti. Kayıt yoksa kısa bilgi gösterilir.",
     outboxRefresh: "Yenile",
+    outboxResultUnauthorized: "Bağlantı doğrulanamadı. Cihaz ayarlarını kontrol edin.",
     outboxResultFailedWithSnippet: "Sonuç alınamadı: {snippet}",
     outboxResultNotFound: "Sonuç kaydı bulunamadı veya bağlantı doğrulanamadı.",
     outboxFetchFailed: "Sonuç alınamadı. Bağlantıyı kontrol edin.",

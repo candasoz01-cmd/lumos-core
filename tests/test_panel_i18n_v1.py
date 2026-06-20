@@ -473,7 +473,6 @@ PANEL_I18N_V26_TR_KEYS = (
 )
 
 PANEL_I18N_V27_MARKERS = (
-    'panelT("panel.modules.media.outboxResultFailedWithSnippet")',
     'panelT("panel.modules.media.outboxResultNotFound")',
     'panelT("panel.modules.media.outboxFetchFailed")',
     'panelT("panel.modules.capabilities.testBridgeUnavailable")',
@@ -694,6 +693,16 @@ PANEL_I18N_V40_TR_KEYS = (
     "path_outside_sandbox:",
     "create_failed:",
     "complete_failed:",
+)
+
+PANEL_I18N_V41_MARKERS = (
+    "function panelOutboxFailureUserMessage(",
+    "panelOutboxFailureUserMessage({",
+    'panelT("panel.modules.media.outboxResultUnauthorized")',
+)
+
+PANEL_I18N_V41_TR_KEYS = (
+    "outboxResultUnauthorized:",
 )
 
 
@@ -1371,3 +1380,19 @@ def test_panel_i18n_v40_prod_error_classify_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V40_TR_KEYS:
         assert key in tr_text, f"missing panel tr v40 key fragment: {key}"
         assert key in en_text, f"missing panel en v40 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v41_outbox_classified_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V41_MARKERS:
+        assert token in text, f"missing panel i18n v41 token: {token}"
+    assert 'panelT("panel.modules.media.outboxResultFailedWithSnippet").replace' not in text
+    assert "String(text).trim().slice(0, 280)" not in text
+
+
+def test_panel_i18n_v41_outbox_classified_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V41_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v41 key fragment: {key}"
+        assert key in en_text, f"missing panel en v41 key fragment: {key}"

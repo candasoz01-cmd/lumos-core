@@ -6581,6 +6581,43 @@ const PANEL_DEBUG = import.meta.env.DEV;
         return userMsg;
       }
 
+      function panelOutboxFailureUserMessage(ctx) {
+        const status =
+          typeof ctx.httpStatus === "number" && Number.isFinite(ctx.httpStatus)
+            ? ctx.httpStatus
+            : null;
+        const text = String(ctx.upstreamText || "").trim();
+        if (status === 401 || status === 403) {
+          return panelT("panel.modules.media.outboxResultUnauthorized");
+        }
+        if (!text) {
+          return panelT("panel.modules.media.outboxResultNotFound");
+        }
+        let rawError = "";
+        try {
+          const j = JSON.parse(text);
+          if (j && j.error != null) rawError = String(j.error);
+          else if (j && j.message != null) rawError = String(j.message);
+        } catch {
+          rawError = text.slice(0, 120);
+        }
+        const userMsg = panelProdErrorUserMessage({
+          rawError,
+          httpStatus: status,
+          upstreamText: text,
+        });
+        if (PANEL_DEBUG) {
+          const snippet = text.slice(0, 280);
+          return panelDebugText(
+            "Köprü yanıtı " +
+              (status != null ? status : "?") +
+              (snippet ? ": " + snippet : " (last-result yok veya token hatalı)."),
+            userMsg,
+          );
+        }
+        return userMsg;
+      }
+
       function panelDebugText(debugMsg, userMsg) {
         return PANEL_DEBUG ? debugMsg : userMsg;
       }
@@ -13608,20 +13645,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
               return;
             }
             if (!r.ok) {
-              const snippet =
-                text && String(text).trim().length
-                  ? panelUserVisibleText(String(text).trim().slice(0, 280))
-                  : "";
               hint.textContent = panelUserVisibleText(
-                panelDebugText(
-                  "Köprü yanıtı " + r.status + (snippet ? ": " + snippet : " (last-result yok veya token hatalı)."),
-                  snippet
-                    ? panelT("panel.modules.media.outboxResultFailedWithSnippet").replace(
-                        "{snippet}",
-                        snippet,
-                      )
-                    : panelT("panel.modules.media.outboxResultNotFound"),
-                ),
+                panelOutboxFailureUserMessage({
+                  httpStatus: r.status,
+                  upstreamText: text,
+                }),
               );
               hint.hidden = false;
               pre.hidden = true;
