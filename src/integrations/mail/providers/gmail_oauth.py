@@ -2,11 +2,17 @@ from __future__ import annotations
 
 from integrations.mail.connector import MAIL_PROVIDER_GMAIL_OAUTH, StubMailConnector
 from integrations.mail.models import MailMessageSummary
+from integrations.mail.providers.gmail_api_client import (
+    extract_access_token,
+    is_gmail_smoke_enabled,
+    list_unread_summaries as gmail_list_unread_summaries,
+)
 from integrations.mail.vault_credential import (
     DemoVaultCredentialBridge,
     VaultCredentialRef,
     mail_read_credential_ref,
 )
+from integrations.vault.adapter import CredentialResolution
 from integrations.vault.purpose_codes import PURPOSE_MAIL_READ
 
 # Gmail OAuth read-only scope — public-safe sabit; client secret repo'da yok.
@@ -43,7 +49,12 @@ class GmailOAuthConnector:
         if not resolution.ok:
             return self._stub.list_unread_summaries(account_id=account_id, limit=cap)
 
-        return self._vault_backed_summaries(account_id=account_id, cap=cap, ref=ref)
+        return self._vault_backed_summaries(
+            account_id=account_id,
+            cap=cap,
+            ref=ref,
+            resolution=resolution,
+        )
 
     def _vault_backed_summaries(
         self,
@@ -51,8 +62,16 @@ class GmailOAuthConnector:
         account_id: str,
         cap: int,
         ref: VaultCredentialRef,
+        resolution: CredentialResolution,
     ) -> list[MailMessageSummary]:
-        """Vault-backed read path — public repo'da canlı Gmail API yok; mock-friendly özet."""
+        """Vault-backed read path — default mock; ``LUMOS_GMAIL_SMOKE=1`` ile canlı Gmail API."""
+        if is_gmail_smoke_enabled():
+            token = extract_access_token(resolution.secret_value or "")
+            if token:
+                live = gmail_list_unread_summaries(token, limit=cap)
+                if live:
+                    return live
+
         samples = [
             MailMessageSummary(
                 message_id=f"vault-{ref.ref_id}-001",
