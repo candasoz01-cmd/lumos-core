@@ -1,6 +1,6 @@
 # Mail — dar v1 hedef tanımı (OD-031)
 
-> **Durum:** `scope-approved` (dar v1 hedef) / **`implementation-pending`** (kod, connector, provider).  
+> **Durum:** `scope-approved` (dar v1 hedef) / **`implementation-partial`** (public demo stub; private Gmail/vault impl bekliyor).  
 > **Bu belge:** Dar v1 kapsam sınırı only — **mail ürün kodu yok**, **credential yok**, **send otomasyonu yok**.  
 > **Üst ilke modeli:** [`mail-integration-approval-decision.md`](./mail-integration-approval-decision.md) (OD-031 tam model — dar v1 bunun **alt kümesi**).
 
@@ -30,11 +30,11 @@
 | Madde | Dar v1 |
 |-------|--------|
 | Hesap sayısı | **1** mail hesabı / 1 provider bağlantısı |
-| Provider adayı | Gmail OAuth **veya** IMAP — **tek seçim** impl paketinde (M1) |
+| Provider adayı | **Gmail OAuth** (resmi Gmail API) — **M1 onaylı** | Tek seçim impl paketinde (M1) |
 | Resmi API | Zorunlu — platform bypass / scraping **yok** (CC11) |
 | Çoklu kutu / paylaşımlı hesap | **Dar v1 dışı** — needs-review |
 
-**Not:** Provider seçimi bu belgede **yapılmaz**; M1 `implementation-pending`.
+**Not:** Provider seçimi **Gmail OAuth** — resmi API, push/watch (M5), vault OAuth credential modeli (M2). IMAP dar v1 birincil değil.
 
 ---
 
@@ -107,9 +107,9 @@ Kaynak: [`mail-integration-approval-decision.md`](./mail-integration-approval-de
 
 | # | Madde | Tam checklist | **Dar v1** | Not |
 |---|--------|---------------|------------|-----|
-| **M1** | Mail provider seçimi (Gmail OAuth / IMAP) | implementation-pending | **dar v1 — gerekli** | Tek provider seçimi |
-| **M2** | Vault mail credential şeması | implementation-pending | **dar v1 — gerekli** | OD-001/002 + vault dar v1 impl |
-| **M3** | Granüler izin grant UI | implementation-pending | **dar v1 — kısmi** | Yalnızca `read` / `notify` (+ opsiyonel `draft_prep`) |
+| **M1** | Mail provider seçimi (Gmail OAuth / IMAP) | implementation-pending | **dar v1 — gerekli** | **Gmail OAuth seçildi** — public stub only |
+| **M2** | Vault mail credential şeması | implementation-pending | **dar v1 — gerekli** | Demo vault bridge stub; Infisical private |
+| **M3** | Granüler izin grant UI | implementation-pending | **dar v1 — kısmi** | `read`/`notify` grant modeli kodda (OD-041) |
 | **M4** | Kural editörü (kişi/kaynak/içerik) | implementation-pending | **dar v1 — hariç** | Tam OD-031 modeli |
 | **M5** | Sync modeli (poll vs push) | implementation-pending | **dar v1 — gerekli** | Tek hesap; minimum viable |
 | **M6** | Çakışma algoritması (taslak vs otomatik) | implementation-pending | **dar v1 — hariç** | `send_reply` / kural yok |
@@ -142,7 +142,7 @@ M1 (tek provider) → M2 (vault credential) → M3 (read/notify grant UI) → M5
 
 | OD | Konu | Bu belge | Durum |
 |----|------|----------|--------|
-| **OD-031** | İletişim kanalları — mail ilk kanal | Dar v1 alt kümesi | **scope-approved / impl-pending** |
+| **OD-031** | İletişim kanalları — mail ilk kanal | Dar v1 alt kümesi | **scope-approved / implementation-partial** |
 | OD-041 | Hibrit onay | §5 | decision-approved / UX impl-pending |
 | OD-001 | Vault uygulaması | §4 bağımlılık | decision-approved / impl-pending |
 | OD-002 | Token / vault entegrasyonu | §4 M2 | decision-approved / impl-pending |
@@ -154,9 +154,9 @@ M1 (tek provider) → M2 (vault credential) → M3 (read/notify grant UI) → M5
 
 ## 9. Sonraki adım
 
-1. **Vault dar v1 impl paketi** (ayrı onay): [`od-vault-dar-v1-design.md`](./od-vault-dar-v1-design.md) §9.
-2. **Mail impl paketi** (ayrı onay): M1 → M2 → M3 → M5 → M7; `draft_prep` A/B seçimi.
-3. **Genişleme:** Tam OD-031 modeli (M4, M6, `send_reply`, çoklu kanal) — dar v1 **sonrası** ayrı paket.
+1. **Private impl:** Infisical vault PoC + Gmail OAuth connector ([`od-vault-v1-technology-selection.md`](./od-vault-v1-technology-selection.md)).
+2. **Public stub tamam:** `src/integrations/mail/` — grant model, demo connector, vault bridge mock.
+3. **Genişleme:** M3 UI, M5 sync, M7 smoke — private/onaylı paket.
 
 **Yasak (bu aşamada):** connector kodu, OAuth secret, production endpoint, otomatik gönderim, çoklu kanal.
 

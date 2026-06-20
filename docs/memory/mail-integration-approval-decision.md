@@ -361,7 +361,7 @@ Aşağıdakiler **henüz uygulanmadı**; bu belge uygulama izni vermez.
 
 | # | Madde | Durum | Not |
 |---|--------|--------|-----|
-| M1 | Mail provider seçimi (Gmail OAuth / IMAP) | implementation-pending | Resmi API |
+| M1 | Mail provider seçimi (Gmail OAuth / IMAP) | **Gmail OAuth seçildi** — public stub | Resmi API |
 | M2 | Vault mail credential şeması | implementation-pending | OD-001/002 private |
 | M3 | Granüler izin grant UI | implementation-pending | OD-041 hibrit |
 | M4 | Kural editörü (kişi/kaynak/içerik) | implementation-pending | OD-031 CC |

@@ -23,7 +23,7 @@
 | ID | Tarih | Konu | Özet | Bağlantı |
 |----|-------|------|------|----------|
 | DL-E01 | 2026-06-17 | Ödeme / PSP | Ödeme modeli + PSP/hukuk-mali paket gelene kadar aktif kapsam dışı; şirket/vergi kaydı mevcut | OD-011, [`payment-scope-decision.md`](memory/payment-scope-decision.md) |
-| DL-E02 | 2026-06-17 | Mail entegrasyonu | İletişim kanalları ilke onaylı; mail ilk kanal — provider/connector bekliyor; **dar v1 scope:** tek provider, read+notify | OD-031, [`mail-integration-approval-decision.md`](memory/mail-integration-approval-decision.md), [`od-031-mail-dar-v1-scope.md`](memory/od-031-mail-dar-v1-scope.md) |
+| DL-E02 | 2026-06-17 | Mail entegrasyonu | İletişim kanalları ilke onaylı; **dar v1 public stub** (`src/integrations/mail/`); Gmail OAuth + vault private impl bekliyor | OD-031, [`mail-integration-approval-decision.md`](memory/mail-integration-approval-decision.md), [`od-031-mail-dar-v1-scope.md`](memory/od-031-mail-dar-v1-scope.md) |
 | DL-E03 | 2026-06-17 | Vault uygulama spec | Vault ilke onaylı (OD-001–005); **V1 teknoloji harman+Infisical onaylı**; PoC/API/amaç kodu private impl bekliyor | OD-001–005, [`od-vault-v1-technology-selection.md`](memory/od-vault-v1-technology-selection.md), [`od-vault-dar-v1-design.md`](memory/od-vault-dar-v1-design.md) |
 
 ### Geçici ertelendi
