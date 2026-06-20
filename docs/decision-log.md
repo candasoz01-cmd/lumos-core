@@ -103,7 +103,8 @@ Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A16 takip satırları kap
 | DL-C07 | 2026-06-20 | OD-027 Slice 3b ayna paket arşivi | **`approved-for-implementation`** — dört ölü ayna paket (`kando_core`, `kando_memory`, `kando_policy`, `kando_context`) → `archive/packages/`; dış import sıfır; rollback `git mv` geri; bridge/runtime/CI PYTHONPATH dokunulmaz | [`docs/memory/od-027-slice-3b-archive-decision.md`](memory/od-027-slice-3b-archive-decision.md) |
 | DL-C08 | 2026-06-20 | OD-027 Faz 4 cutover | **Cutover onaylandı** — §8 kapıları geçti; Slice 3a–3b tamam; OD-027 **closed**; canlı yol `src/` + bridge + runtime | [`docs/memory/od-027-faz4-cutover-decision.md`](memory/od-027-faz4-cutover-decision.md) |
 | DL-C09 | 2026-06-20 | Panel statik emekliliği (Seçenek C) | **`decision-approved`** — **(a)** docs onaylı (#321); fiziksel **DL-A20** (#320); prod smoke **DL-C10** | [`docs/memory/od-panel-retirement-option-c-decision.md`](memory/od-panel-retirement-option-c-decision.md) |
-| DL-C10 | 2026-06-20 | Prod smoke (A3) | **`approved-for-implementation`** — read-only HTTPS `welockai.com/panel`; `workflow_dispatch` only; push gate değil | [`docs/memory/od-prod-smoke-decision.md`](memory/od-prod-smoke-decision.md) |
+| DL-C10 | 2026-06-20 | Prod smoke (A3) | Read-only HTTPS smoke; `workflow_dispatch` only | [`docs/memory/od-prod-smoke-decision.md`](memory/od-prod-smoke-decision.md) |
+| DL-C11 | 2026-06-20 | OD-010 CI doc-only sınıflandırma | **Closed** — kod yolunda CI zorunlu | [`docs/memory/od-010-ci-classification-decision.md`](memory/od-010-ci-classification-decision.md) |
 ---
 
 ## 2026-06-17 — Dokümantasyon düzeni kurulumu

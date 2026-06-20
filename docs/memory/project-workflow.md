@@ -121,7 +121,7 @@ ChatGPT Saved Memories / oturum bağlamından taşınan maddeler.
 | Analiz seçici ve ekonomik | migrated | Keşif/tarama | Limit ve odak | §7 |
 | Continuous progress / otomatik sonraki adım | needs-review | `docs/workflow-rules.md` ile örtüşme | Tek-adım kuralı ile çelişki riski | Repo’da ayrı belge var; hangisi öncelikli netleştir |
 | Agent-first execution (önce agent dene) | needs-review | `.cursor/rules/agent-calisma-kurallari.mdc` | Davranış kuralı çift kayıt | Taşındı sayılabilir; canonical tek yer tercih edilmeli |
-| CI yeşil olmadan tamamlandı sayma | needs-review | CI disiplini | `kando-lumos-multi-agent.mdc` ile hizalı | §5’e eklendi; detay CI kuralına referans |
+| CI yeşil olmadan tamamlandı sayma | migrated | CI disiplini | [`od-010-ci-classification-decision.md`](od-010-ci-classification-decision.md) | §5; kod yolunda CI zorunlu |
 
 ---
 
