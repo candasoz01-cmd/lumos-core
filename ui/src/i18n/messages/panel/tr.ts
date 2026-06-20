@@ -19,6 +19,7 @@ const panelNav = {
     posta: "Posta",
     dosyalar: "Dosyalar",
     kuantum: "Kuantum",
+    kuantumResearchTitle: "Kuantum — araştırma alanı (aktif üretim özelliği değil)",
     lumosCore: "Lumos çekirdeği",
     yayincilik: "Yayıncılık",
     yapayzeka: "Yapay Zekâ",
@@ -418,6 +419,26 @@ const panelModules = {
       bridgeFailedSuffix: " · iletilemedi",
     },
     plan: {
+      listPrefix: "Plan: ",
+      tur: {
+        genelGorev: "Genel görev",
+        dosyaIslemi: "Dosya işlemi",
+        gorevListesi: "Görev listesi",
+        transmission: "İletim",
+        metin: "Metin",
+      },
+      risk: {
+        dusuk: "Düşük",
+        orta: "Orta",
+      },
+      sonrakiAdim: {
+        default: "Listeden görevi aç ve bak.",
+        dosyalar: "Dosyalar'da yükle veya önizle.",
+        gorevler: "Listede durumu güncelle veya tamamla.",
+        transmission: "Detayda iletim yanıtına bak. Onay işlem çalıştırmaz.",
+        panel: "Panel metnini düzenle.",
+      },
+      alanPanel: "Panel",
       teshis: {
         ozet: "Özet",
         alan: "Alan",
