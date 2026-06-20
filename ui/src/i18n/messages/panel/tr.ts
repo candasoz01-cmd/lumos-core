@@ -163,6 +163,28 @@ const panelModules = {
       transcribe: "Metne çevir",
     },
     bridgeBadgeLimited: "Sınırlı mod",
+    transcript: {
+      engineMsg: "Ses metne çeviri motoru henüz bağlı değil.",
+      limitedMsg: "Sınırlı modda ses metne çeviri kullanılamaz; dış köprü bağlı değil.",
+      limitedUserMsg:
+        "Sınırlı moddasın (kullanıcı seçimi); ses metne çeviri bu modda denenmez.",
+      offlineMsg: "Çevrimdışı modda ses metne çeviri kullanılamaz; internet erişimi kapalı.",
+      busyMsg: "Metne çevriliyor…",
+      privacyMsg:
+        "Metin yalnızca önizleme; «Sohbete ekle» ile yazma alanına kopyalanır, otomatik gönderilmez.",
+      musicWarnMsg:
+        "Bu ses müzik/şarkı içeriyor olabilir. Metne çeviri sonucu güvenilir olmayabilir.",
+      failedMusic:
+        "Metne çeviri tamamlanamadı. Ses müzik, gürültülü veya konuşma dışı olabilir.",
+      failedSpeech: "Metne çeviri tamamlanamadı.",
+      lowQualityWarnMsg:
+        "Metin düşük güvenilirlikte olabilir; daha net bir konuşma kaydıyla tekrar deneyin.",
+      missingAudio: "Ses verisi yok veya çok kısa.",
+      networkFailed: "Metne çeviri tamamlanamadı. Bağlantıyı kontrol edip tekrar deneyin.",
+      addToChat: "Sohbete ekle",
+      transcribing: "Çevriliyor…",
+      previewAria: "Transkript önizlemesi",
+    },
     errors: {
       network_error: "İletim tamamlanamadı. Bağlantıyı kontrol edip tekrar dene.",
       timeout: "Yanıt süresi doldu. Biraz sonra tekrar dene.",

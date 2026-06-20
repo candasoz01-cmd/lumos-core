@@ -163,6 +163,28 @@ const panel: typeof panelTr = {
       transcribe: "Transcribe",
     },
     bridgeBadgeLimited: "Limited mode",
+    transcript: {
+      engineMsg: "Speech-to-text engine is not connected yet.",
+      limitedMsg: "Speech-to-text is unavailable in limited mode; external bridge is not connected.",
+      limitedUserMsg:
+        "You are in limited mode (user choice); speech-to-text is not attempted in this mode.",
+      offlineMsg: "Speech-to-text is unavailable offline; internet access is disabled.",
+      busyMsg: "Transcribing…",
+      privacyMsg:
+        "Text is preview only; «Add to chat» copies it to the compose field without sending.",
+      musicWarnMsg:
+        "This audio may contain music. Transcription results may be unreliable.",
+      failedMusic:
+        "Transcription failed. The audio may be music, noisy, or non-speech.",
+      failedSpeech: "Transcription failed.",
+      lowQualityWarnMsg:
+        "Text may be low confidence; try again with a clearer speech recording.",
+      missingAudio: "No audio data or clip is too short.",
+      networkFailed: "Transcription failed. Check your connection and try again.",
+      addToChat: "Add to chat",
+      transcribing: "Transcribing…",
+      previewAria: "Transcript preview",
+    },
     errors: {
       network_error: "Delivery failed. Check your connection and try again.",
       timeout: "Response timed out. Try again in a moment.",
