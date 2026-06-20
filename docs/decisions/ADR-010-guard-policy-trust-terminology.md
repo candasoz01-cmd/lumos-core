@@ -2,7 +2,7 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Taslak / karar bekliyor** — guard/policy/trust usage map tamamlanmadan finalize edilmez |
+| Durum | **Taslak / usage map checkpoint tamamlandı** — finalize için ADR-006/007 hizası ve lock semantiği checkpoint beklenir |
 | Tarih | 2026-06-06 |
 | İlgili | `docs/lumos-karar-sozlesmesi.md`, public GitHub sınırı kuralları, ADR-003, ADR-004, ADR-006, ADR-007, ADR-008 |
 
@@ -356,7 +356,17 @@ Public repo'da parçalı guard/trust parçalarının **"tam ürün terminolojisi
 4. **Guard/trust/router sırası:** ADR-006 (guard) → ADR-007 (trust) → ADR-004 (router) — terimler bu sırayla karıştırılmaz.
 5. **Bu turda kod yok** — yalnızca karar kaydı; lock semantiği, panel UI ve yeni motor **değiştirilmez**.
 
-Durum: **Karar guard/policy/trust usage map tamamlanana kadar bekletilir.**
+Durum: **Usage map checkpoint tamamlandı** — [`docs/analysis/ADR-010-guard-policy-trust-usage-map.md`](../analysis/ADR-010-guard-policy-trust-usage-map.md). Karar finalize: lock semantiği ayrı checkpoint + ADR-006/007 revizyonu sonrası.
+
+---
+
+## Mevcut guard/policy/trust kullanım haritası
+
+Haziran 2026 repo taraması (2026-06-21) — **salt okuma analizi**; tam tablolar ve drift doğrulaması:
+
+→ **[ADR-010 guard/policy/trust usage map](../analysis/ADR-010-guard-policy-trust-usage-map.md)**
+
+Özet: birleşik guard/trust motoru yok; `trust` aktif kodda neredeyse yok; `_lock_ok` ≠ `LockState` drift doğrulandı; gate + profil + policy parçalı zincir.
 
 ---
 
@@ -377,11 +387,11 @@ Durum: **Karar guard/policy/trust usage map tamamlanana kadar bekletilir.**
 
 Haziran 2026 repo analizi ve ADR-003/006/007 usage map çalışması sonrasında **guard, policy, trust, lock, permission, consent, confirmation** ve ilişkili kavramlar bu ADR'de **kodsuz terminoloji sözlüğü** olarak toplanmıştır. **guard ≠ trust**, **policy ≠ permission**, **consent ≠ confirmation**, **local demo ≠ production**, **locked ≠ denied**, **sandbox_only ≠ private_layer_required**, **panel görünürlüğü ≠ runtime enforcement** ayrımları açıkça kayıtlıdır.
 
-Repo drift riskleri (`LockState` / `_lock_ok`, panel consent proxy, CLI LOCKED, panel mock) usage map ile doğrulanmalıdır. **Bu turda kod yazılmaz; lock semantiği değiştirilmez; yeni trust engine kurulmaz.**
+Repo drift riskleri (`LockState` / `_lock_ok`, panel consent proxy, CLI LOCKED, panel mock) usage map ile **doğrulandı** — bkz. [usage map](../analysis/ADR-010-guard-policy-trust-usage-map.md). **Bu turda kod yazılmaz; lock semantiği değiştirilmez; yeni trust engine kurulmaz.**
 
 ## Sonraki gözden geçirme
 
-- Guard/policy/trust usage map sonuçları ile terim→kod eşlemesinin revizyonu
+- Usage map checkpoint **tamamlandı** — terim→kod eşlemesi revizyonu finalize aşamasında
 - ADR-006 (7 karar tipi) ve ADR-007 (8 trust durumu) ile terim çakışma kontrolü
 - ADR-003 canonical katmanlar ve ADR-008 agent network sınırı ile uyum
 - Lock semantiği birleştirme kararı — **ayrı ADR veya checkpoint**; bu belge otomatik uygulama içermez
