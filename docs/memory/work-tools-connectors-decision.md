@@ -302,6 +302,25 @@ Bu bölüm **durum tespiti**dir; OD-033 ilke onayı otomatik implementasyon **ba
 
 ---
 
+## GitHub pilot scope (Katman 1 — public stub)
+
+**Durum:** `decision-approved` (pilot kapsam ilkesi) / `implementation-pending` (kod).  
+**Referans:** OD-033 [`work-tools-connectors-decision.md`](./work-tools-connectors-decision.md) katman 1.
+
+| # | Pilot sınırı | Onay |
+|---|--------------|------|
+| G1 | **Read-only ilk adım:** `{github}_read`, `{github}_notify` | Oturum + scope grant |
+| G2 | Issue/PR **oluşturma** | Kural-kapsamlı veya işlem onayı — OD-041 |
+| G3 | **Delete / admin / merge** | Her zaman işlem bazlı onay |
+| G4 | OAuth scope minimum prensibi | Resmi GitHub API |
+| G5 | Repo/org allowlist kullanıcı tanımlı | WT granüler izin |
+| G6 | Credential vault (OD-001/002) | Lumos yüzeyinde token yok |
+| G7 | Public repoda issue gövdesi / token **yok** | Demo-safe stub only |
+
+**Sıra:** Vault stub → OD-041 onay UX → G1 read pilot → G2+ (onaylı impl paketi).
+
+---
+
 ## Bağımlılıklar
 
 | OD / belge | İlişki | Durum |
@@ -365,4 +384,4 @@ Bu bölüm **durum tespiti**dir; OD-033 ilke onayı otomatik implementasyon **ba
 
 ---
 
-Son güncelleme: 2026-06-18
+Son güncelleme: 2026-06-20 (GitHub pilot scope — envanter ab791c14 §12 #6)

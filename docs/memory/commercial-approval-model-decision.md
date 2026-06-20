@@ -163,6 +163,21 @@ Aşağıdakiler **henüz uygulanmadı**; bu belge uygulama izni vermez.
 
 ---
 
+## UX spec outline (implementation-pending checklist)
+
+| # | Bileşen | Açıklama | Public-safe |
+|---|---------|----------|-------------|
+| UX1 | Oturum izni banner | Okuma/izleme kapsamı; «ticari yetki değildir» | Docs/stub |
+| UX2 | İşlem onay modal | ne / nerede / etki / yaklaşık maliyet — CA7 | Taslak only |
+| UX3 | DNS vs satın alma ayrımı | CA3 — ayrı onay adımları | [`od-039-042-domain-chain-decision.md`](./od-039-042-domain-chain-decision.md) |
+| UX4 | `kisitli_otonom` genel onay rozeti | Genel onay ≠ işlem onayı | Taslak |
+| UX5 | İptal / geri alma | Kullanıcı-visible; otomatik yok | Taslak |
+| UX6 | Computer Use ticari tıklama | OD-012 aynı kapı | Cross-ref |
+
+**Not:** Wireframe ve panel kodu **private/onaylı impl paketi** — public repoda yalnızca bu checklist.
+
+---
+
 ## Riskler
 
 | Risk | Azaltma (onaylı ilke) |
@@ -185,8 +200,8 @@ Aşağıdakiler **henüz uygulanmadı**; bu belge uygulama izni vermez.
 | OD-012 | computer-use-permission-gate-decision.md | Computer Use işlem bazlı onay | §OD-012 hizası | decision-approved / implementation-pending |
 | OD-011 | payment-scope-decision.md | Ödeme kapsamı | §OD-011 çapraz — kapsam ayrı, onay hizalı | decision-approved / implementation-pending |
 | OD-040 | commercial-domain-payments.md | Maliyet paylaşımı QR/link | Link oluşturma = işlem bazlı onay | needs-review |
-| OD-039 | commercial-domain-payments.md | Domain redirect | Edinim onaylı; redirect teknik detay sonra | needs-review |
-| OD-042 | commercial-domain-payments.md | Domain izleme tasarımı | Okuma/izleme = oturum izni katmanı | needs-review |
+| OD-039 | commercial-domain-payments.md | Domain redirect | [`domain-redirect-model-decision.md`](./domain-redirect-model-decision.md); zincir: [`od-039-042-domain-chain-decision.md`](./od-039-042-domain-chain-decision.md) | decision-approved / implementation-pending |
+| OD-042 | commercial-domain-payments.md | Domain izleme tasarımı | Okuma/izleme = oturum izni; zincir: [`od-039-042-domain-chain-decision.md`](./od-039-042-domain-chain-decision.md) | decision-approved / implementation-pending |
 
 **İndeks notu:** `open-decisions-needs-review.md` OD-041 satırı bu belgeyle senkron tutulur; canonical kaynak önce `commercial-domain-payments.md`, onaylı karar özeti bu dosyadır.
 
@@ -203,4 +218,4 @@ Aşağıdakiler **henüz uygulanmadı**; bu belge uygulama izni vermez.
 
 ---
 
-Son güncelleme: 2026-06-18
+Son güncelleme: 2026-06-20 (UX checklist — envanter ab791c14 §12 #2)

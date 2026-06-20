@@ -271,6 +271,23 @@ Computer Use **uygulama kodu** public repoda yalnızca demo-safe, placeholder ve
 
 ---
 
+## Computer Use implementation checklist (genişletme)
+
+| # | Madde | Durum | Public |
+|---|--------|--------|--------|
+| CU-IMP1 | OpenAI Computer Use API entegrasyonu | implementation-pending | Out of scope (private) |
+| CU-IMP2 | Sandbox / izolasyon modeli | implementation-pending | Ilke only |
+| CU-IMP3 | Onay UX + oturum süresi | implementation-pending | Taslak cross-ref OD-041 |
+| CU-IMP4 | Log / kanıt saklama (EC hizası) | implementation-pending | Policy stub |
+| CU-IMP5 | Gateway oturum iptali | implementation-pending | — |
+| CU-IMP6 | Credential vault enjeksiyonu | implementation-pending | OD-001/002 |
+| CU-IMP7 | Etkisiz vs etkili tıklama sınıflandırması | needs-review | §6 |
+| CU-IMP8 | Mod geçişi UI/CLI | needs-review | §7 |
+
+**Sıra (firm):** OD-041 UX → CU-IMP3 → CU-IMP2 → CU-IMP1 (onaylı private paket).
+
+---
+
 ## 13. OD eşleme tablosu
 
 | OD | Kaynak | Konu | Bu belgedeki karşılık | Durum |
@@ -281,9 +298,9 @@ Computer Use **uygulama kodu** public repoda yalnızca demo-safe, placeholder ve
 | OD-031 | external-integrations-permissions.md | İletişim kanalları otomasyon modeli (mail ilk kanal) | §6 e-posta satırı ile örtüşür; [`mail-integration-approval-decision.md`](./mail-integration-approval-decision.md) | **decision-approved / implementation-pending** |
 | OD-032 | external-integrations-permissions.md | Takvim + Kişiler — granüler izin ve onay omurgası | Aynı hibrit onay/ dış etki kapısı; [`calendar-contacts-decision.md`](./calendar-contacts-decision.md) | **decision-approved / implementation-pending** |
 | OD-033 | external-integrations-permissions.md | Platform connector'ları / çalışma araçları | Aynı hibrit onay/ dış etki kapısı; Computer Use platform erişimi aynı izin tablosu; [`work-tools-connectors-decision.md`](./work-tools-connectors-decision.md) | **decision-approved / implementation-pending** |
-| OD-011 | commercial-domain-payments.md | Ödeme sistemi kapsamı | §6, §8 — ödeme otomatik yok | needs-review |
-| OD-041 | commercial-domain-payments.md | Ticari onay modeli | §5 — işlem bazlı onay | needs-review |
-| OD-001/002 | security-architecture.md | Vault / token | §9 credential enjeksiyonu | needs-review |
+| OD-011 | commercial-domain-payments.md | Ödeme sistemi kapsamı | §6, §8 — ödeme otomatik yok | decision-approved / implementation-pending |
+| OD-041 | commercial-domain-payments.md | Ticari onay modeli | §5 — işlem bazlı onay | decision-approved / implementation-pending |
+| OD-001/002 | security-architecture.md | Vault / token | §9 credential enjeksiyonu | decision-approved / implementation-pending |
 
 **İndeks notu:** `open-decisions-needs-review.md` OD-012 satırı bu belgeyle senkron tutulur; canonical kaynak önce `external-integrations-permissions.md`, onaylı karar özeti bu dosyadır.
 
@@ -300,4 +317,4 @@ Computer Use **uygulama kodu** public repoda yalnızca demo-safe, placeholder ve
 
 ---
 
-Son güncelleme: 2026-06-18
+Son güncelleme: 2026-06-20 (CU checklist — envanter ab791c14 §12 #7)
