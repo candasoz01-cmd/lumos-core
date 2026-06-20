@@ -1,6 +1,6 @@
 # OD-027 Faz 3 — Keşif raporu (uygulama öncesi)
 
-**Durum:** `approved-for-implementation` — Slice **3a** onaylandı; kod bu belgede değil, ayrı PR'da.  
+**Durum:** Slice **3a** uygulandı (2026-06-20); Slice **3b** `implementation-pending`.  
 **Kaynak karar:** [`kando-packages-transition-decision.md`](./kando-packages-transition-decision.md) (Seçenek C — Hibrit).  
 **Faz 1 envanter:** [`kando-packages-faz1-inventory.md`](./kando-packages-faz1-inventory.md).  
 **Doğrulama tarihi:** 2026-06-20 (repo salt-okuma + grep).
@@ -81,7 +81,7 @@ Aşağıdaki dilim **docs-onaylı**; tek PR, dar kapsam, rollback kolay.
 | Faz 1 envanter | **Tamamlandı** |
 | Faz 2 karar | **Onaylı** |
 | Faz 3 keşif (bu belge) | **Tamamlandı** |
-| İlk uygulama dilimi (Slice 3a) | **`approved-for-implementation`** |
+| İlk uygulama dilimi (Slice 3a) | **`implementation-complete`** |
 | Tam geçiş / arşiv | **`implementation-pending`** |
 
 ---
