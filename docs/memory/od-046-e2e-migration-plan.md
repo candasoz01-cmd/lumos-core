@@ -82,7 +82,7 @@ Bu karar Faz 0'da kayıt altına alındı; Faz 2–3 implementasyonunda bağlay�
 | **Faz 1** | `ui/e2e/` altyapı: `ui/dist` statik sunucu helper, Playwright ortak util, politika yama (online/kilit/consent) | Yalnızca `ui/e2e/*` + `ui/package.json` script taslağı; **davranış assert yok** | Infra hazır |
 | **Faz 2** | `e2e:package` karşılığı — local/demo (`LUMOS_PANEL_TASKS_API_BASE=false` eşdeğeri); create → **UI tamamla** → sil; storage/API assert | `ui/e2e/run-package.mjs` (+ shared); kök script **henüz değiştirilmez** | IC1 kısmi (ui prefix) |
 | **Faz 3** | `e2e:package:api` + `e2e:tasks-offline-online` karşılıkları; `panel_tasks_server` entegrasyonu | `ui/e2e/run-package-api.mjs`, `ui/e2e/run-tasks-offline-online.mjs` | IC2–IC3 kısmi (ui prefix) |
-| **Faz 4** | Kök `package.json` `e2e:package*` → `--prefix ui`; CI **`ui-e2e` job** | `.github/workflows/ci.yml` + root `package.json` + `ui/package.json` expose | IC1–IC5 |
+| **Faz 4** | Kök `package.json` `e2e:package*` → `--prefix ui`; CI **`ui-e2e` job**; legacy → `e2e:legacy:*` | `.github/workflows/ci.yml` + root `package.json` + `ui/package.json` expose | IC1–IC5 |
 | **Faz 5** | OD-046 kapanış: doc sync, legacy kök expose deprecate notu (opsiyonel kaldırma ayrı onay) | `open-decisions-needs-review.md`, `build-e2e-surface-alignment-decision.md`, `decision-log.md` | **implementation-complete** |
 
 **PR kuralı:** Faz atlama yok; her faz ayrı PR; Faz 4 öncesi kök scriptler legacy `panel/`'e işaret etmeye devam edebilir.
@@ -144,4 +144,4 @@ Tüm maddeler evet olmadan OD-046 **implementation-complete** ve indeks **closed
 
 ---
 
-Son güncelleme: 2026-06-20 (Faz 0 — approved-for-implementation; görev tamamla UI/API kararı kayıtlı)
+Son güncelleme: 2026-06-20 (Faz 4 — kök script redirect + `ui-e2e` CI job; Faz 5 doc sync bekliyor)

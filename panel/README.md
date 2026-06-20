@@ -110,11 +110,18 @@ Ortak bileşenler: Sidebar, Topbar, StatusBadge, MetricCard, SectionCard, EmptyS
 
 ## E2E (legacy kalite kapısı)
 
-> **Legacy:** Birincil üretim yüzeyi `ui/` (Astro `/panel`) — bkz. OD-043. Bu dizindeki Playwright E2E (`panel/e2e/`, kök `e2e:package*`) **legacy statik panel** kalite kapısıdır; üretim `/panel` doğrulaması değildir (OD-046).
+> **Legacy:** Birincil üretim yüzeyi `ui/` (Astro `/panel`) — bkz. OD-043. Bu dizindeki Playwright E2E (`panel/e2e/`) **legacy statik panel** kalite kapısıdır; üretim `/panel` doğrulaması değildir (OD-046).
 
-| Komut | Hedef | Not |
-|-------|-------|-----|
-| `npm run e2e:package` (kök) | `panel/index.html` statik | Legacy paket kapısı |
-| `npm run e2e:smoke:ui` (kök) | `ui/dist` → `/panel` | OD-046 minimum v1 smoke (üretim yüzeyi) |
+| Komut (kök) | Hedef | Not |
+|-------------|-------|-----|
+| `npm run e2e:package` | `ui/dist` → `/panel` | OD-046 birincil package kapısı (Faz 4) |
+| `npm run e2e:package:api` | `ui/dist` + `panel_tasks_server` | API package kapısı |
+| `npm run e2e:tasks-offline-online` | `ui/dist` + offline/online geçişi | Görev API dayanıklılık kapısı |
+| `npm run e2e:smoke:ui` | `ui/dist` → `/panel` | OD-046 v1/v2 smoke (üretim yüzeyi) |
+| `npm run e2e:legacy:package` | `panel/index.html` statik | Legacy paket kapısı (geçiş dönemi) |
+| `npm run e2e:legacy:package:api` | panel + `panel_tasks_server` | Legacy API kapısı |
+| `npm run e2e:legacy:tasks-offline-online` | panel + offline/online | Legacy offline/online kapısı |
 
-Legacy E2E ayrıntıları: `panel/e2e/run-package.mjs`. UI smoke: `ui/e2e/smoke-panel.mjs`.
+CI: `ui-smoke` (hızlı varlık) + `ui-e2e` (package trio) — `.github/workflows/ci.yml`.
+
+Legacy E2E ayrıntıları: `panel/e2e/run-package.mjs`. UI E2E: `ui/e2e/package-local.mjs`, `ui/e2e/smoke-panel.mjs`.

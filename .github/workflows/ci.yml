@@ -61,3 +61,44 @@ jobs:
       - name: Run UI smoke (OD-046 v2)
         working-directory: ui
         run: npm run e2e:smoke
+
+  ui-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Install UI dependencies
+        working-directory: ui
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        working-directory: ui
+        run: npx playwright install chromium --with-deps
+
+      - name: Build UI
+        working-directory: ui
+        run: npm run build
+
+      - name: Run package-local E2E (OD-046 Faz 4)
+        working-directory: ui
+        run: npm run e2e:package:local
+
+      - name: Run package-api E2E (OD-046 Faz 4)
+        working-directory: ui
+        run: npm run e2e:package:api
+
+      - name: Run tasks-offline-online E2E (OD-046 Faz 4)
+        working-directory: ui
+        run: npm run e2e:tasks-offline-online
