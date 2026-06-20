@@ -1,3 +1,9 @@
+# Lumos Panel v1 (archived)
+
+> **Archived (Seçenek C):** Bu statik panel uygulaması **`archive/panel/`** altındadır; birincil üretim yüzeyi **`ui/`** (`welockai.com/panel`) değildir. Canlı köprü sunucuları: `panel/scripts/`. Karar: [`docs/memory/od-panel-retirement-option-c-decision.md`](../../docs/memory/od-panel-retirement-option-c-decision.md).
+
+---
+
 # Lumos Panel v1
 
 ---
