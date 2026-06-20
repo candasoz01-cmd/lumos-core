@@ -406,6 +406,10 @@ const panelModules = {
       savedLocal: "Görev yerel olarak kaydedildi.",
       titleEmpty: "Görev adı boş olamaz.",
       saveFailed: "Görev kaydedilemedi ({error}).",
+      createFailed: "kayıt başarısız",
+      leakCompleteFailed: "kayıt tamamlanamadı",
+      leakDeleteFailed: "silme başarısız",
+      leakRestoreFailed: "geri alma başarısız",
       savedWithPlan: "Görev kaydedildi; plan gösteriliyor.",
       bridgeFailed: "İletim tamamlanamadı. Bağlantıyı kontrol edip tekrar dene.",
       bridgeSent: "Görev iletildi.",
@@ -776,6 +780,8 @@ const panelShell = {
     unavailableShort: "Köprü erişilemiyor (altyapı)",
     unavailableMsg:
       "Köprü erişilemiyor (altyapı). Bağlantıyı kontrol edip tekrar deneyin.",
+    bridgeTokenMsg:
+      "Panel bağlantısı yapılandırılmamış. Köprü ve pano işlemleri bu ortamda devre dışı; cihaz yöneticinizden bağlantı anahtarını tanımlamasını isteyin.",
     healthPending: "bekleniyor…",
     healthTrying: "deneniyor…",
     healthOk: "OK",

@@ -406,6 +406,10 @@ const panel: typeof panelTr = {
       savedLocal: "Task saved locally.",
       titleEmpty: "Task name cannot be empty.",
       saveFailed: "Could not save task ({error}).",
+      createFailed: "save failed",
+      leakCompleteFailed: "could not complete save",
+      leakDeleteFailed: "delete failed",
+      leakRestoreFailed: "restore failed",
       savedWithPlan: "Task saved; showing plan.",
       bridgeFailed: "Transmission failed. Check connection and try again.",
       bridgeSent: "Task sent.",
@@ -779,6 +783,8 @@ const panel: typeof panelTr = {
       unavailableShort: "Bridge unavailable (infrastructure)",
       unavailableMsg:
         "Bridge unavailable (infrastructure). Check your connection and try again.",
+      bridgeTokenMsg:
+        "Panel connection is not configured. Bridge and panel operations are disabled in this environment; ask your device administrator to set up the connection key.",
       healthPending: "pending…",
       healthTrying: "trying…",
       healthOk: "OK",

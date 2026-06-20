@@ -1,4 +1,4 @@
-"""Panel i18n v1–v27 — LanguageSwitcher, nav, modules, Sohbet chat, Görevler."""
+"""Panel i18n v1–v28 — LanguageSwitcher, nav, modules, Sohbet chat, Görevler."""
 
 from __future__ import annotations
 
@@ -490,6 +490,22 @@ PANEL_I18N_V27_TR_KEYS = (
     "testPartialFailed:",
 )
 
+PANEL_I18N_V28_MARKERS = (
+    'panelT("panel.shell.infra.bridgeTokenMsg")',
+    'panelT("panel.modules.tasks.hints.createFailed")',
+    'panelT("panel.modules.tasks.hints.leakCompleteFailed")',
+    'panelT("panel.modules.tasks.hints.leakDeleteFailed")',
+    'panelT("panel.modules.tasks.hints.leakRestoreFailed")',
+)
+
+PANEL_I18N_V28_TR_KEYS = (
+    "bridgeTokenMsg:",
+    "createFailed:",
+    "leakCompleteFailed:",
+    "leakDeleteFailed:",
+    "leakRestoreFailed:",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -942,3 +958,20 @@ def test_panel_i18n_v27_outbox_bridge_debug_user_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V27_TR_KEYS:
         assert key in tr_text, f"missing panel tr v27 key fragment: {key}"
         assert key in en_text, f"missing panel en v27 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v28_bridge_token_tasks_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V28_MARKERS:
+        assert token in text, f"missing panel i18n v28 token: {token}"
+    assert "const BRIDGE_TOKEN_MSG" not in text
+    assert '"kayıt başarısız"' not in text
+    assert 'return shouldSuppressBridgeHint() ? "" : BRIDGE_TOKEN_MSG' not in text
+
+
+def test_panel_i18n_v28_bridge_token_tasks_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V28_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v28 key fragment: {key}"
+        assert key in en_text, f"missing panel en v28 key fragment: {key}"
