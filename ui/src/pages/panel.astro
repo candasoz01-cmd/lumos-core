@@ -6489,6 +6489,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
         s = s.replace(/\bcreate_failed\b/gi, panelT("panel.modules.tasks.hints.createFailed"));
         s = s.replace(/\bdelete_failed\b/gi, panelT("panel.modules.tasks.hints.leakDeleteFailed"));
         s = s.replace(/\brestore_failed\b/gi, panelT("panel.modules.tasks.hints.leakRestoreFailed"));
+        s = s.replace(/\bwrite_failed\b/gi, panelT("panel.shell.infra.prodErrors.write_failed"));
+        s = s.replace(/\bpath_outside_sandbox\b/gi, panelT("panel.shell.infra.prodErrors.path_outside_sandbox"));
+        s = s.replace(/\bread_failed\b/gi, panelT("panel.shell.infra.prodErrors.read_failed"));
+        s = s.replace(/\bfile_not_found\b/gi, panelT("panel.shell.infra.prodErrors.file_not_found"));
+        s = s.replace(/\bcommand_not_allowed\b/gi, panelT("panel.shell.infra.prodErrors.command_not_allowed"));
         s = s.replace(/\bCORS\b/gi, panelT("panel.shell.infra.leakBrowserRestriction"));
         s = s.replace(/:\d{4,5}\b/g, "");
         s = s.replace(/\s{2,}/g, " ").trim();
@@ -6497,6 +6502,83 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
       function panelUserVisibleText(text) {
         return stripPanelTechnicalLeak(maskBridgeSensitive(text));
+      }
+
+      const PANEL_PROD_ERROR_KINDS = [
+        "write_failed",
+        "path_outside_sandbox",
+        "read_failed",
+        "file_not_found",
+        "create_failed",
+        "complete_failed",
+        "delete_failed",
+        "restore_failed",
+        "command_not_allowed",
+        "unauthorized",
+        "network_error",
+        "server_error",
+        "unknown_error",
+      ];
+
+      function classifyPanelProdError(ctx) {
+        const status =
+          typeof ctx.httpStatus === "number" && Number.isFinite(ctx.httpStatus)
+            ? ctx.httpStatus
+            : null;
+        const raw = String(ctx.rawError || ctx.errMessage || ctx.upstreamText || "")
+          .trim()
+          .toLowerCase();
+        const code = raw.replace(/^error:\s*/i, "").split(/\s/)[0];
+        if (code === "write_failed" || /write_file\s*başarısız|write_file\s*failed/i.test(raw)) {
+          return "write_failed";
+        }
+        if (code === "path_outside_sandbox") return "path_outside_sandbox";
+        if (code === "read_failed" || /read_file\s*başarısız|read_file\s*failed/i.test(raw)) {
+          return "read_failed";
+        }
+        if (code === "file_not_found") return "file_not_found";
+        if (code === "create_failed" || code === "empty_title") return "create_failed";
+        if (code === "complete_failed" || code === "not_found" || code === "already_done") {
+          return code === "complete_failed" ? "complete_failed" : "unknown_error";
+        }
+        if (code === "delete_failed" || code === "missing_trash_file") return "delete_failed";
+        if (code === "restore_failed" || code === "invalid_trash_file") return "restore_failed";
+        if (code === "command_not_allowed" || code === "action_disabled") {
+          return "command_not_allowed";
+        }
+        if (status === 401 || status === 403 || /unauthorized|forbidden|invalid.*token/i.test(raw)) {
+          return "unauthorized";
+        }
+        if (status != null && status >= 500) return "server_error";
+        if (
+          /failed to fetch|networkerror|network\s*error|econnrefused|enotfound|fetch failed|ulaşılamadı|cors/i.test(
+            raw,
+          )
+          || (status == null && ctx.apiUnreachable)
+        ) {
+          return "network_error";
+        }
+        if (/oserror|permission denied|errno/i.test(raw)) return "write_failed";
+        return "unknown_error";
+      }
+
+      function userMessageForPanelProdErrorKind(kind) {
+        const k = PANEL_PROD_ERROR_KINDS.includes(kind) ? kind : "unknown_error";
+        return panelT("panel.shell.infra.prodErrors." + k);
+      }
+
+      function panelProdErrorUserMessage(ctx) {
+        const kind = classifyPanelProdError(ctx || {});
+        const userMsg = userMessageForPanelProdErrorKind(kind);
+        if (PANEL_DEBUG) {
+          const raw = String(ctx.rawError || ctx.errMessage || ctx.upstreamText || "").trim();
+          const status =
+            ctx.httpStatus != null && Number.isFinite(ctx.httpStatus)
+              ? " HTTP " + ctx.httpStatus
+              : "";
+          return raw ? userMsg + " [" + raw + status + "]" : userMsg + status;
+        }
+        return userMsg;
       }
 
       function panelDebugText(debugMsg, userMsg) {
@@ -11591,9 +11673,15 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 ? String(createRes.data.error)
                 : panelDebugText(
                     "create_failed (" + (createRes ? createRes.status : "?") + ")",
-                    panelT("panel.modules.tasks.hints.createFailed"),
+                    "create_failed",
                   );
-            showHint(panelT("panel.modules.tasks.hints.saveFailed").replace("{error}", err));
+            showHint(
+              panelProdErrorUserMessage({
+                rawError: err,
+                httpStatus: createRes ? createRes.status : null,
+                apiUnreachable,
+              }),
+            );
             return;
           }
 
@@ -11757,7 +11845,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
             }
             const err =
               res && res.data && res.data.error != null ? String(res.data.error) : "complete_failed";
-            showHint(panelT("panel.modules.tasks.hints.completeFailed").replace("{error}", err));
+            showHint(
+              panelProdErrorUserMessage({
+                rawError: err,
+                httpStatus: res ? res.status : null,
+                apiUnreachable,
+              }),
+            );
             return;
           }
           await refreshPanelGorevlerFromTasksApi();
@@ -11985,7 +12079,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
             }
             const err =
               res && res.data && res.data.error != null ? String(res.data.error) : "delete_failed";
-            showHint(panelT("panel.modules.tasks.hints.deleteFailed").replace("{error}", err));
+            showHint(
+              panelProdErrorUserMessage({
+                rawError: err,
+                httpStatus: res ? res.status : null,
+                apiUnreachable,
+              }),
+            );
             return;
           }
           const deletedId = t.id ? String(t.id).trim() : ref;
@@ -12057,7 +12157,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
             }
             const err =
               res && res.data && res.data.error != null ? String(res.data.error) : "restore_failed";
-            showHint(panelT("panel.modules.tasks.hints.restoreFailed").replace("{error}", err));
+            showHint(
+              panelProdErrorUserMessage({
+                rawError: err,
+                httpStatus: res ? res.status : null,
+                apiUnreachable,
+              }),
+            );
             return;
           }
           lastGorevlerDeletedId = "";
@@ -12763,10 +12869,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   ? String(w.data.error)
                   : "write_file başarısız";
               showHint(
-                panelDebugText(
-                  "Köprü yazma (HTTP " + w.status + "): " + err,
-                  panelT("panel.modules.files.hints.writeFailed") + ": " + err,
-                ),
+                panelProdErrorUserMessage({
+                  rawError: err,
+                  httpStatus: w.status,
+                }),
               );
               return;
             }
@@ -12783,10 +12889,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   ? String(rd.data.error)
                   : "read_file başarısız";
               showHint(
-                panelDebugText(
-                  "Köprü okuma (HTTP " + rd.status + "): " + err,
-                  panelT("panel.modules.files.hints.readFailedBridge") + ": " + err,
-                ),
+                panelProdErrorUserMessage({
+                  rawError: err,
+                  httpStatus: rd.status,
+                }),
               );
               return;
             }
