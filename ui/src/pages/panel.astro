@@ -12670,16 +12670,16 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 ? blockedHint ||
                   panelDebugText(
                     "Köprü yapılandırılmamış veya erişilemiyor.",
-                    "Köprü şu an kullanılamıyor.",
+                    panelT("panel.modules.capabilities.testBridgeUnavailable"),
                   )
                 : w.ok && readOk && taskOk
                   ? panelDebugText(
                       "Köprü kanıtı doğrulandı. 4–7. satırlar politika özetidir.",
-                      "Bağlantı testi tamamlandı.",
+                      panelT("panel.modules.capabilities.testDone"),
                     )
                   : panelDebugText(
                       "Kısmi veya başarısız sonuç; köprü adresini ve bağlantı bilgisini kontrol edin.",
-                      "Bağlantı testi kısmen başarısız. Cihaz ayarlarını kontrol edin.",
+                      panelT("panel.modules.capabilities.testPartialFailed"),
                     ),
             );
           }
@@ -13270,7 +13270,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
               hint.textContent = panelUserVisibleText(
                 panelDebugText(
                   "Köprü yanıtı " + r.status + (snippet ? ": " + snippet : " (last-result yok veya token hatalı)."),
-                  snippet ? "Sonuç alınamadı: " + snippet : "Sonuç kaydı bulunamadı veya bağlantı doğrulanamadı.",
+                  snippet
+                    ? panelT("panel.modules.media.outboxResultFailedWithSnippet").replace(
+                        "{snippet}",
+                        snippet,
+                      )
+                    : panelT("panel.modules.media.outboxResultNotFound"),
                 ),
               );
               hint.hidden = false;
@@ -13291,7 +13296,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             hint.textContent = panelUserVisibleText(
               panelDebugText(
                 "İstek başarısız (ağ, CORS veya köprü kapalı). Yerelde `./scripts/bridge_start.sh` ile deneyin.",
-                "Sonuç alınamadı. Bağlantıyı kontrol edin.",
+                panelT("panel.modules.media.outboxFetchFailed"),
               ),
             );
             hint.hidden = false;

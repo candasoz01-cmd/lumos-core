@@ -1,4 +1,4 @@
-"""Panel i18n v1–v26 — LanguageSwitcher, nav, modules, Sohbet chat, Görevler."""
+"""Panel i18n v1–v27 — LanguageSwitcher, nav, modules, Sohbet chat, Görevler."""
 
 from __future__ import annotations
 
@@ -472,6 +472,24 @@ PANEL_I18N_V26_TR_KEYS = (
     "chatWithPing:",
 )
 
+PANEL_I18N_V27_MARKERS = (
+    'panelT("panel.modules.media.outboxResultFailedWithSnippet")',
+    'panelT("panel.modules.media.outboxResultNotFound")',
+    'panelT("panel.modules.media.outboxFetchFailed")',
+    'panelT("panel.modules.capabilities.testBridgeUnavailable")',
+    'panelT("panel.modules.capabilities.testDone")',
+    'panelT("panel.modules.capabilities.testPartialFailed")',
+)
+
+PANEL_I18N_V27_TR_KEYS = (
+    "outboxResultFailedWithSnippet:",
+    "outboxResultNotFound:",
+    "outboxFetchFailed:",
+    "testBridgeUnavailable:",
+    "testDone:",
+    "testPartialFailed:",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -904,3 +922,23 @@ def test_panel_i18n_v26_chat_status_ping_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V26_TR_KEYS:
         assert key in tr_text, f"missing panel tr v26 key fragment: {key}"
         assert key in en_text, f"missing panel en v26 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v27_outbox_bridge_debug_user_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V27_MARKERS:
+        assert token in text, f"missing panel i18n v27 token: {token}"
+    assert 'snippet ? "Sonuç alınamadı: " + snippet' not in text
+    assert '"Sonuç kaydı bulunamadı veya bağlantı doğrulanamadı."' not in text
+    assert '"Sonuç alınamadı. Bağlantıyı kontrol edin."' not in text
+    assert '"Köprü şu an kullanılamıyor."' not in text
+    assert '"Bağlantı testi tamamlandı."' not in text
+    assert '"Bağlantı testi kısmen başarısız. Cihaz ayarlarını kontrol edin."' not in text
+
+
+def test_panel_i18n_v27_outbox_bridge_debug_user_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V27_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v27 key fragment: {key}"
+        assert key in en_text, f"missing panel en v27 key fragment: {key}"
