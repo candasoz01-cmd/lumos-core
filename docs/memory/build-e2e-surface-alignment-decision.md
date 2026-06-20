@@ -1,6 +1,6 @@
 # Root build vs panel E2E — yüzey hizası kararı (OD-046)
 
-**Durum:** `[decision-approved]` — **Seçenek A** onaylandı; **kısmi uygulama v1** (ui smoke) merge edildi; tam E2E migrasyonu bekliyor.  
+**Durum:** `[decision-approved]` / **plan approved** — Seçenek A onaylı; v1–v2 smoke+CI merge (#294–296); migrasyon fazları tanımlı → [`od-046-e2e-migration-plan.md`](od-046-e2e-migration-plan.md).  
 **Kaynak:** `docs/memory/open-decisions-needs-review.md` (OD-046; çapraz OD-043, OD-044).  
 **Doğrulama:** Repo dosya sistemi read-only tarama — 2026-06-17; karar onayı — 2026-06-17.
 
@@ -287,23 +287,36 @@ Build/E2E hizası veya yüzey değişikliği görevi açılmadan önce:
 
 ---
 
-## 12. Sonraki adım — uygulama iş paketi (ayrı görev)
+## 12. Tam E2E tanımı (implementation-complete)
 
-OD-046 kararı onaylandı (Seçenek A). **v1 kısmi uygulama** merge edildi; kalan parçalar ayrı iş paketidir:
+**Canonical migrasyon planı:** [`od-046-e2e-migration-plan.md`](od-046-e2e-migration-plan.md) — Faz 0–5, envanter, non-goals, CI stratejisi, kapanış checklist.
+
+### 12.1 Mevcut durum (v1–v2)
 
 | Parça | Kapsam | Durum |
 |-------|--------|--------|
 | UI smoke (v1) | `ui/e2e/smoke-panel.mjs` — `ui/dist` statik `/panel` | **Tamamlandı** — PR #294 |
-| Kök script | `npm run e2e:smoke:ui` | **Tamamlandı** — bu PR |
-| Tam E2E migrasyonu | Legacy `e2e:package*` → `ui/dist` veya Astro preview | Bekliyor |
-| CI Playwright job | Otomatik smoke/E2E kapısı | **Tamamlandı (v2 smoke)** — `.github/workflows/ci.yml` `ui-smoke` job |
-| Prod smoke | `welockai.com/panel` veya eşdeğer | Bekliyor |
+| Kök script | `npm run e2e:smoke:ui` | **Tamamlandı** |
+| CI smoke (v2) | `.github/workflows/ci.yml` → `ui-smoke` job | **Tamamlandı** — PR #296 |
+| Tam E2E migrasyonu | Kök `e2e:package*` → `ui/dist` | **Plan onaylı** — Faz 1–4 |
+| CI package E2E | `ui-e2e` job | **Bekliyor** — Faz 4 |
+| Prod smoke | `welockai.com/panel` veya eşdeğer | Bekliyor (OD-046 dışı) |
 
-Tam migrasyon tamamlanmadan:
+**Statü:** `implementation-partial` → migrasyon planı `approved-for-implementation`; fazlar tanımlı; Faz 1 kod PR'ı bekliyor.
 
-- OD-046 **implementation-partial** (v1 smoke); **implementation-complete** sayılmaz.
-- OD-043 **closed** sayılmaz — kapanış, tam hizalama uygulamasına bağlıdır.
+### 12.2 implementation-complete kriterleri
+
+OD-046 **implementation-complete** yalnızca aşağıdakilerin tamamı sağlandığında:
+
+| # | Kriter |
+|---|--------|
+| 1 | Kök `e2e:package`, `e2e:package:api`, `e2e:tasks-offline-online` **`ui/dist`** (veya Astro preview) hedefler |
+| 2 | CI **`ui-smoke` korunur** + yeni **`ui-e2e` job** package trio'yu çalıştırır |
+| 3 | Legacy 12 script **1:1 port değil** — kök expose üçlüsünün ui karşılığı yeterli (keşif: mekanik port mümkün değil) |
+| 4 | «Görev tamamla» E2E adımı **UI/API** (`POST /tasks/complete`); chat `görev tamamla` **kapsam dışı** |
+
+Tam migrasyon tamamlanmadan OD-046 **implementation-complete** sayılmaz. OD-043 birincil yüzey kararı ayrıca onaylıdır; E2E hizası bu checklist ile tamamlanır.
 
 ---
 
-Son güncelleme: 2026-06-20 (OD-046 v2 CI smoke job; v1 smoke PR #294; tam E2E migrasyonu bekliyor)
+Son güncelleme: 2026-06-20 (Faz 0 migrasyon planı; §12 implementation-complete tanımı; v1–v2 smoke+CI)
