@@ -7173,6 +7173,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
       /** @type {null | ((ref: string) => Promise<string>)} */
       let panelGorevlerDeleteFromChat = null;
+      let panelGorevlerRestoreFromChat = null;
+      const PANEL_GOREV_DELETE_RESTORE_HINT =
+        ' Geri almak için «görev geri al» yazabilir veya Görevler\'de «Son silineni geri al» kullan.';
 
       /** @typedef {{ title: string, whenSummary: string | null, replyKind?: string }} PanelGorevCreateKomut */
       /** @typedef {{ verb: "sil", ref: string }} PanelGorevSilKomut */
@@ -7325,6 +7328,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
         if (m) {
           const ref = s.slice(m[0].length).replace(/^\s*:+\s*/, "").trim();
           return { verb: "sil", ref };
+        }
+
+        m = /^(?:görev|gorev)\s+geri\s+al(?=\s|:|$)/i.exec(s);
+        if (m) {
+          const ref = s.slice(m[0].length).replace(/^\s*:+\s*/, "").trim();
+          return { verb: "geri_al", ref };
         }
 
         m = /^\s*mini\s+görev\s+ekle\s+(.+)$/i.exec(s);
@@ -8901,6 +8910,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
                     ? await panelGorevlerDeleteFromChat(panelGorevCmd.ref)
                     : "Görev silme şu an kullanılamıyor (liste bağlanmadı).";
                   appendBubble("lumos", delReply);
+                } else if (panelGorevCmd.verb === "geri_al") {
+                  const restoreReply = panelGorevlerRestoreFromChat
+                    ? await panelGorevlerRestoreFromChat(panelGorevCmd.ref)
+                    : "Görev geri alma şu an kullanılamıyor (liste bağlanmadı).";
+                  appendBubble("lumos", restoreReply);
                 } else {
                   await applyPanelGorevKomutu(panelGorevCmd);
                   appendBubble("lumos", buildPanelGorevConfirmation(panelGorevCmd));
@@ -8949,6 +8963,26 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 ? await panelGorevlerDeleteFromChat(panelGorevCmd.ref)
                 : "Görev silme şu an kullanılamıyor (liste bağlanmadı).";
               appendBubble("lumos", delReply);
+              input.value = "";
+              clearPanelCameraPhotoSelection();
+              clearPanelAudioRecordSelection();
+              setSendHint("");
+              input.blur();
+              resetPanelHorizontalScrollAfterInputBlur();
+              sending = false;
+              sendBtn.disabled = false;
+              sendBtn.removeAttribute("aria-busy");
+              sendBtn.setAttribute("aria-label", sendLabel);
+              sendBtn.setAttribute("title", sendLabel);
+              sendBtn.classList.remove("chat-compose-send--busy");
+              refocusPanelChatInput();
+              return;
+            }
+            if (panelGorevCmd.verb === "geri_al") {
+              const restoreReply = panelGorevlerRestoreFromChat
+                ? await panelGorevlerRestoreFromChat(panelGorevCmd.ref)
+                : "Görev geri alma şu an kullanılamıyor (liste bağlanmadı).";
+              appendBubble("lumos", restoreReply);
               input.value = "";
               clearPanelCameraPhotoSelection();
               clearPanelAudioRecordSelection();
@@ -11209,6 +11243,48 @@ const PANEL_DEBUG = import.meta.env.DEV;
           return removeGorevlerTaskLocalByRef(id);
         }
 
+        function buildGorevlerNotFoundMessage(ref) {
+          const r = String(ref || "").trim();
+          return (
+            "Görev bulunamadı: «" + r + "». Başlık veya görev kimliği (tsk_…) kontrol edin."
+          );
+        }
+
+        function buildGorevDeleteSuccessMessage(titleOrRef) {
+          const t = String(titleOrRef || "").trim();
+          return 'Görev silindi: "' + t + '".' + PANEL_GOREV_DELETE_RESTORE_HINT;
+        }
+
+        function refreshPanelEvidenceStripIfReady() {
+          if (typeof panelEvidenceRefreshStrip === "function") panelEvidenceRefreshStrip();
+        }
+
+        function gorevlerLastDeletedDisplayTitle() {
+          const row = lastGorevlerDeletedLocalRow;
+          if (row && row.title) return String(row.title).trim();
+          const id = String(lastGorevlerDeletedId || "").trim();
+          return id || "görev";
+        }
+
+        function gorevlerLastDeletedMatchesRef(ref) {
+          const r = String(ref || "").trim();
+          if (!lastGorevlerDeletedId && !lastGorevlerDeletedLocalRow) return false;
+          if (!r) return true;
+          const deletedId = String(lastGorevlerDeletedId || "").trim();
+          if (deletedId && deletedId === r) return true;
+          const row = lastGorevlerDeletedLocalRow;
+          if (row) {
+            const id = row.id ? String(row.id).trim() : "";
+            if (id && id === r) return true;
+            const title = row.title ? String(row.title).trim() : "";
+            if (title && gorevlerTitleMatchesRef(r, title)) return true;
+          }
+          if (deletedId && !String(deletedId).startsWith("tsk_")) {
+            if (gorevlerTitleMatchesRef(r, deletedId)) return true;
+          }
+          return false;
+        }
+
         function finishDeleteGorevlerTaskLocal(t, ref) {
           const deletedKey = t.id ? String(t.id).trim() : String(ref || t.title || "").trim();
           lastGorevlerDeletedId = deletedKey;
@@ -11221,6 +11297,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           closeGorevlerDetail(true);
           render();
           showHint("Görev silindi.");
+          refreshPanelEvidenceStripIfReady();
         }
 
         async function deleteGorevlerTaskFromChat(ref) {
@@ -11230,10 +11307,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
           hideHint();
           const idx = findGorevlerTaskIndexByRef(r);
           const t = idx >= 0 ? panelGorevlerTasks[idx] : null;
+          const detailIdxToClose = idx >= 0 && lastGorevlerOpenedIndex === idx ? idx : -1;
           if (shouldSkipGorevlerTasksApi()) {
-            if (!t) return "Silinecek görev bulunamadı.";
+            if (!t) return buildGorevlerNotFoundMessage(r);
             finishDeleteGorevlerTaskLocal(t, r);
-            return 'Görev silindi: "' + String(t.title || r).trim() + '".';
+            return buildGorevDeleteSuccessMessage(String(t.title || r).trim());
           }
           let res;
           let apiUnreachable = false;
@@ -11243,13 +11321,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
             apiUnreachable = true;
           }
           if (res && (res.status === 404 || (res.data && res.data.error === "not_found"))) {
-            return "Silinecek görev bulunamadı.";
+            return buildGorevlerNotFoundMessage(r);
           }
           if (apiUnreachable || !res || !res.ok || !res.data || !res.data.ok) {
             if (shouldFallbackGorevlerTasksLocal(apiUnreachable)) {
-              if (!t) return "Silinecek görev bulunamadı.";
+              if (!t) return buildGorevlerNotFoundMessage(r);
               finishDeleteGorevlerTaskLocal(t, r);
-              return 'Görev silindi: "' + String(t.title || r).trim() + '".';
+              return buildGorevDeleteSuccessMessage(String(t.title || r).trim());
             }
             const err =
               res && res.data && res.data.error != null ? String(res.data.error) : "delete_failed";
@@ -11261,9 +11339,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (restoreLastBtn) restoreLastBtn.hidden = false;
           const refreshed = await refreshPanelGorevlerFromTasksApi();
           if (!refreshed) removeGorevlerTaskLocalByRef(r);
+          if (detailIdxToClose >= 0) closeGorevlerDetail(true);
           if (typeof panelGorevlerTasksRender === "function") panelGorevlerTasksRender();
+          refreshPanelEvidenceStripIfReady();
           const title = t && t.title ? String(t.title).trim() : r;
-          return 'Görev silindi: "' + title + '".';
+          return buildGorevDeleteSuccessMessage(title);
         }
 
         async function deleteOpenGorevlerTask() {
@@ -11305,6 +11385,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           closeGorevlerDetail(true);
           render();
           showHint("Görev silindi.");
+          refreshPanelEvidenceStripIfReady();
         }
 
         async function restoreLastGorevlerTask() {
@@ -11329,6 +11410,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             lastGorevlerDeletedLocalRow = null;
             if (restoreLastBtn) restoreLastBtn.hidden = true;
             hideHint();
+            refreshPanelEvidenceStripIfReady();
             return;
           }
           let res;
@@ -11356,6 +11438,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
               lastGorevlerDeletedLocalRow = null;
               if (restoreLastBtn) restoreLastBtn.hidden = true;
               hideHint();
+              refreshPanelEvidenceStripIfReady();
               return;
             }
             const err =
@@ -11368,10 +11451,29 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (restoreLastBtn) restoreLastBtn.hidden = true;
           await refreshPanelGorevlerFromTasksApi();
           hideHint();
+          refreshPanelEvidenceStripIfReady();
+        }
+
+        async function restoreGorevlerTaskFromChat(ref) {
+          if (!lastGorevlerDeletedId && !lastGorevlerDeletedLocalRow) {
+            return "Geri alınacak silinen görev yok.";
+          }
+          const r = String(ref || "").trim();
+          if (r && !gorevlerLastDeletedMatchesRef(r)) {
+            return buildGorevlerNotFoundMessage(r);
+          }
+          const titleBefore = gorevlerLastDeletedDisplayTitle();
+          const hadDeleted = !!lastGorevlerDeletedId;
+          await restoreLastGorevlerTask();
+          if (hadDeleted && lastGorevlerDeletedId) {
+            return "Geri alınamadı (restore_failed).";
+          }
+          return 'Görev geri alındı: "' + titleBefore + '".';
         }
 
         panelGorevlerTasksRender = render;
         panelGorevlerDeleteFromChat = deleteGorevlerTaskFromChat;
+        panelGorevlerRestoreFromChat = restoreGorevlerTaskFromChat;
 
         document.querySelectorAll("[data-gorevler-filter]").forEach((btn) => {
           btn.addEventListener("click", () => {
