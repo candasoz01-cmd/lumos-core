@@ -800,6 +800,7 @@ const panelShell = {
     leakChat: "sohbet",
     leakTaskService: "görev servisi",
     leakConnectionStart: "bağlantı başlatma",
+    leakConnectionMasked: "Bağlantı: ***",
     healthPending: "bekleniyor…",
     healthTrying: "deneniyor…",
     healthOk: "OK",

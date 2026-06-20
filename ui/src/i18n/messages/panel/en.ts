@@ -803,6 +803,7 @@ const panel: typeof panelTr = {
       leakChat: "chat",
       leakTaskService: "task service",
       leakConnectionStart: "connection startup",
+      leakConnectionMasked: "Connection: ***",
       healthPending: "pending…",
       healthTrying: "trying…",
       healthOk: "OK",

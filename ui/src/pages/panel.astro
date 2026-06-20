@@ -6435,7 +6435,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
         );
         s = s.replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "***");
         s = s.replace(/\b[a-f0-9]{32,}\b/gi, "***");
-        s = s.replace(/\bX-Kando-Token\s*[:=]\s*\S+/gi, "Bağlantı: ***");
+        s = s.replace(
+          /\bX-Kando-Token\s*[:=]\s*\S+/gi,
+          panelT("panel.shell.infra.leakConnectionMasked"),
+        );
         return s;
       }
 
