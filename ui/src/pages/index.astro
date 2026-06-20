@@ -85,6 +85,16 @@ const ADR_QUANTUM_URL = `${GITHUB_REPO_URL}/blob/main/docs/decisions/ADR-001-lum
         --lumos-vizyon-card-border: rgb(var(--lumos-land-teal) / 0.2);
         --lumos-vizyon-card-border-gold: rgb(var(--lumos-land-warm) / 0.16);
         --lumos-vizyon-eyebrow: rgb(152 174 200 / 0.78);
+        /** Sticky nav altında hash/anchor kaydırma — mobil varsayılan; masaüstü ≥768px */
+        --lumos-sticky-nav-offset: 1.25rem;
+      }
+      @media (min-width: 768px) {
+        :root {
+          --lumos-sticky-nav-offset: 4.75rem;
+        }
+        html {
+          scroll-padding-top: var(--lumos-sticky-nav-offset);
+        }
       }
       html {
         scroll-behavior: smooth;
@@ -441,7 +451,7 @@ const ADR_QUANTUM_URL = `${GITHUB_REPO_URL}/blob/main/docs/decisions/ADR-001-lum
       #gelistirici,
       #kurulum,
       #neden-lumos {
-        scroll-margin-top: 1.25rem;
+        scroll-margin-top: var(--lumos-sticky-nav-offset);
       }
       /** Giriş: sinematik şerit — metin solda, sağda Atatürk sınıf sahnesi (kırpılmış raster, mockup UI yok) */
       #top.lumos-section {
@@ -986,7 +996,7 @@ const ADR_QUANTUM_URL = `${GITHUB_REPO_URL}/blob/main/docs/decisions/ADR-001-lum
         padding: 0 clamp(0.65rem, 2vw, 1.25rem);
       }
       .lumos-section {
-        scroll-margin-top: 1.25rem;
+        scroll-margin-top: var(--lumos-sticky-nav-offset);
         padding: clamp(1rem, 2.5vw, 1.55rem) 0;
       }
       .lumos-section--tight-top {
@@ -1307,7 +1317,7 @@ const ADR_QUANTUM_URL = `${GITHUB_REPO_URL}/blob/main/docs/decisions/ADR-001-lum
         pointer-events: none;
       }
       .lumos-section--dunya-vizyon {
-        scroll-margin-top: 1.25rem;
+        scroll-margin-top: var(--lumos-sticky-nav-offset);
         margin-top: clamp(0.85rem, 2.4vw, 1.65rem);
         padding: 0;
         border: 0;
@@ -1694,7 +1704,7 @@ const ADR_QUANTUM_URL = `${GITHUB_REPO_URL}/blob/main/docs/decisions/ADR-001-lum
         }
       }
       .lumos-module-item {
-        scroll-margin-top: 1.25rem;
+        scroll-margin-top: var(--lumos-sticky-nav-offset);
         padding: 0.85rem 0.95rem;
         border-radius: 12px;
         border: 1px solid rgba(255, 255, 255, 0.12);
