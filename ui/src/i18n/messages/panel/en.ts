@@ -390,6 +390,25 @@ const panel: typeof panelTr = {
       evidenceSummaryPrefix: "Latest operation evidence: ",
       evidenceContinue: "Continue from here",
     },
+    hints: {
+      savedLocal: "Task saved locally.",
+      titleEmpty: "Task name cannot be empty.",
+      saveFailed: "Could not save task ({error}).",
+      savedWithPlan: "Task saved; showing plan.",
+      bridgeFailed: "Transmission failed. Check connection and try again.",
+      bridgeSent: "Task sent.",
+      bridgeAccepted: "Accepted for processing.",
+      completeFailed: "Could not complete ({error}).",
+      deleted: "Task deleted.",
+      deleteFailed: "Could not delete ({error}).",
+      restoreFailed: "Could not undo ({error}).",
+      clearLocalDone: "Local list cleared; server records were not changed.",
+    },
+    confirm: {
+      deleteOpen: "Delete this task?",
+      clearLocal:
+        "Clear the local task list? Server task records will not be changed.",
+    },
   },
   files: {
     intro:
@@ -695,6 +714,12 @@ const panel: typeof panelTr = {
       limited: "Limited mode",
       ariaLabel: "Infrastructure connection status",
       title: "Infrastructure: bridge connection",
+    },
+    infra: {
+      tokenMissing: "Not configured",
+      tokenPresent: "Configured",
+      online: "Online",
+      offline: "Offline",
     },
     userMode: {
       menuOffline: "Offline",
