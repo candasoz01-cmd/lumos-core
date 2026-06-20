@@ -316,6 +316,16 @@ const ADR_QUANTUM_URL = `${GITHUB_REPO_URL}/blob/main/docs/decisions/ADR-001-lum
         line-height: 1.35;
         color: rgb(174 182 200 / 0.72);
       }
+      .lumos-hero-ask__error {
+        margin: 0;
+        padding: 0 0.1rem;
+        font-size: clamp(0.72rem, 1.65vw, 0.8rem);
+        line-height: 1.35;
+        color: rgb(248 148 148 / 0.92);
+      }
+      .lumos-hero-ask__error[hidden] {
+        display: none;
+      }
       .lumos-hero-ask__field:hover {
         border-color: rgb(var(--lumos-land-teal) / 0.58);
         box-shadow: 0 0 0 1px rgb(var(--lumos-land-warm-deep) / 0.12);
@@ -2267,11 +2277,19 @@ const ADR_QUANTUM_URL = `${GITHUB_REPO_URL}/blob/main/docs/decisions/ADR-001-lum
                 inputmode="text"
                 placeholder="Örnek: Bir görevi güvenli adımlara böl"
                 data-i18n-placeholder="hero.askPlaceholder"
-                aria-describedby="lumos-hero-ask-hint"
+                aria-describedby="lumos-hero-ask-hint lumos-hero-ask-error"
               />
               <button class="lumos-hero-ask__submit" type="submit" data-i18n="hero.askSubmit">Geliştirici Panelini Aç</button>
             </div>
             <p class="lumos-hero-ask__hint" id="lumos-hero-ask-hint" data-i18n="hero.askHint">Yanıt burada değil; geliştirici panelinde devam eder.</p>
+            <p
+              class="lumos-hero-ask__error"
+              id="lumos-hero-ask-error"
+              data-i18n="hero.askEmpty"
+              role="alert"
+              aria-live="polite"
+              hidden
+            >Devam etmek için bir soru yazın.</p>
           </form>
         </div>
       </div>
@@ -3074,12 +3092,29 @@ vercel dev</code></pre>
       (function () {
         var form = document.getElementById("lumos-hero-ask");
         var input = document.getElementById("lumos-hero-ask-input");
+        var errorEl = document.getElementById("lumos-hero-ask-error");
         if (form && input) {
+          function hideHeroAskError() {
+            if (errorEl) {
+              errorEl.hidden = true;
+            }
+            input.removeAttribute("aria-invalid");
+          }
+          function showHeroAskError() {
+            if (errorEl) {
+              errorEl.hidden = false;
+            }
+            input.setAttribute("aria-invalid", "true");
+            input.focus();
+          }
+          input.addEventListener("input", hideHeroAskError);
           form.addEventListener("submit", function (e) {
             var q = String(input.value || "").trim();
             if (!q) {
               e.preventDefault();
-              window.location.href = "/panel";
+              showHeroAskError();
+            } else {
+              hideHeroAskError();
             }
           });
         }

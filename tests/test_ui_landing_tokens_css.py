@@ -58,6 +58,21 @@ def test_landing_hero_ask_field_name_q() -> None:
     assert 'window.location.href = "/panel?q="' not in text
 
 
+def test_landing_hero_ask_empty_submit_no_panel_redirect() -> None:
+    text = _INDEX_ASTRO.read_text(encoding="utf-8")
+    tr_text = (_REPO_ROOT / "ui" / "src" / "i18n" / "messages" / "tr.ts").read_text(encoding="utf-8")
+    en_text = (_REPO_ROOT / "ui" / "src" / "i18n" / "messages" / "en.ts").read_text(encoding="utf-8")
+    assert 'window.location.href = "/panel"' not in text
+    assert 'id="lumos-hero-ask-error"' in text
+    assert 'data-i18n="hero.askEmpty"' in text
+    assert 'role="alert"' in text
+    assert "showHeroAskError()" in text
+    assert "input.focus()" in text
+    assert 'aria-invalid="true"' in text or 'setAttribute("aria-invalid", "true")' in text
+    assert "askEmpty:" in tr_text
+    assert "askEmpty:" in en_text
+
+
 def test_panel_hero_prefill_scroll_and_banner_wiring() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
     assert "scrollIntoView({ behavior: \"smooth\", block: \"center\" })" in text
