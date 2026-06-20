@@ -9704,6 +9704,30 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
         }
 
+        /**
+         * HTTP 200 JSON gövdesinde hata alanı varsa sınıflandır; asistan metni olarak kullanma.
+         * @returns {{ kind: string; rawError: string } | null}
+         */
+        function parsePanelChatErrorPayload(data) {
+          if (data == null || typeof data !== "object" || Array.isArray(data)) return null;
+          const rawError =
+            typeof data.error === "string" && data.error.trim() ? data.error.trim() : "";
+          const errorKindRaw =
+            typeof data.errorKind === "string" && data.errorKind.trim()
+              ? data.errorKind.trim()
+              : "";
+          const hasErrorKind = PANEL_CHAT_ERROR_KINDS.includes(errorKindRaw);
+          if (!rawError && !hasErrorKind) return null;
+          const kind = hasErrorKind
+            ? errorKindRaw
+            : classifyPanelChatFailure({
+                httpStatus: 200,
+                upstreamText: rawError,
+                errMessage: rawError,
+              });
+          return { kind, rawError };
+        }
+
         function extractAssistantFromChatPayload(data) {
           if (data == null) return "";
           if (typeof data === "string") return String(data).trim();
@@ -9736,7 +9760,6 @@ const PANEL_DEBUG = import.meta.env.DEV;
               if (typeof c0.text === "string" && c0.text.trim()) return c0.text.trim();
             }
           }
-          if (typeof data.error === "string" && data.error.trim()) return data.error.trim();
           return "";
         }
 
@@ -10173,6 +10196,43 @@ const PANEL_DEBUG = import.meta.env.DEV;
               }
 
               if (havePayload) {
+                const errorPayload = parsePanelChatErrorPayload(parsedPayload);
+                if (errorPayload) {
+                  appendBubble(
+                    "error",
+                    panelChatFailureUserMessage(
+                      {
+                        httpStatus: r.status,
+                        upstreamText: errorPayload.rawError,
+                        errMessage: errorPayload.rawError,
+                      },
+                      errorPayload.kind,
+                    ),
+                  );
+                  setSendHint("");
+                  if (photoTelemetry && PANEL_DEBUG) {
+                    showPanelChatPhotoTech(
+                      buildPhotoTechBlock({
+                        httpStatus: r.status,
+                        reachedBackend: true,
+                        imageDataSent: photoTelemetry.hasInline,
+                        visionTriedGuess:
+                          photoTelemetry.hasInline
+                          && !!photoFile
+                          && /^image\//i.test(photoFile.type || ""),
+                        replyPreview: panelChatSanitizeUserVisibleChatFailureText(
+                          errorPayload.rawError,
+                          { httpStatus: r.status },
+                        ).slice(0, 120),
+                        fallbackExact: false,
+                        fallbackRegex: false,
+                        networkError: false,
+                        extraReason: "HTTP 200 · error alanı",
+                      }),
+                    );
+                    void loadPanelBackendStatus();
+                  }
+                } else {
                 const replyBody = extractAssistantFromChatPayload(parsedPayload);
                 if (photoTelemetry && PANEL_DEBUG) {
                   const trimmedReply = replyBody.trim();
@@ -10257,6 +10317,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 } else {
                   appendBubble("lumos", panelT("panel.modules.chat.compose.hints.emptyReply"));
                   setSendHint("");
+                }
                 }
               }
             }
