@@ -6730,6 +6730,16 @@ const PANEL_DEBUG = import.meta.env.DEV;
         return true;
       }
 
+      function prefillPanelChatFromUrlQuery() {
+        try {
+          const q = new URLSearchParams(window.location.search).get("q");
+          if (q && String(q).trim()) return prefillPanelChatFromEvidence(q);
+        } catch {
+          /* ignore */
+        }
+        return false;
+      }
+
       function evidenceContinueFromGroup(group) {
         if (!group || !group.canContinue) return;
         if (group.continueKind === "task" && group.entityRefId) {
@@ -11637,6 +11647,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
       }
 
       wirePanel();
+      prefillPanelChatFromUrlQuery();
       wireGorevlerPrototype();
       wireEvidenceQueueFlushTriggers();
       wireDosyalarUpload();

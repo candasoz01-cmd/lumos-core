@@ -3,7 +3,11 @@
  * Requires: npm run build (ui/dist/panel/index.html).
  */
 import { chromium } from "playwright";
-import { waitForPanelDom, PANEL_READY_MS } from "./lib/panel-helpers.mjs";
+import {
+  CHAT_INPUT_SELECTOR,
+  waitForPanelDom,
+  PANEL_READY_MS,
+} from "./lib/panel-helpers.mjs";
 import {
   closeServer,
   DIST_DIR,
@@ -47,6 +51,28 @@ try {
   } catch (domErr) {
     await browser.close();
     fail("Temel panel DOM eksik (#chat-thread veya #panel-conn-badge): " + String(domErr.message || domErr));
+  }
+
+  const heroQuery = "landing-hero-smoke-" + Date.now();
+  await page.goto(PANEL_URL + "?q=" + encodeURIComponent(heroQuery), {
+    waitUntil: "domcontentloaded",
+    timeout: PANEL_READY_MS,
+  });
+  try {
+    await waitForPanelDom(page, PANEL_READY_MS);
+  } catch (domErr) {
+    await browser.close();
+    fail("?q= ile panel DOM eksik: " + String(domErr.message || domErr));
+  }
+  const prefilled = await page.inputValue(CHAT_INPUT_SELECTOR);
+  if (prefilled !== heroQuery) {
+    await browser.close();
+    fail(
+      "?q= sohbet alanına yazılmadı; beklenen=" +
+        JSON.stringify(heroQuery) +
+        " alınan=" +
+        JSON.stringify(prefilled),
+    );
   }
 
   await browser.close();
