@@ -730,6 +730,23 @@ PANEL_I18N_V43_TR_KEYS = (
     "network_error:",
 )
 
+PANEL_I18N_V44_MARKERS = (
+    "let sendHintRefresh = null",
+    "function paintSendHintFromResolver(",
+    "refreshSendHintI18n = () =>",
+    "refreshPanelSendButtonI18n = () =>",
+    "function refreshPanelHeroPrefillBannerI18n(",
+    "function panelSendLabel(",
+    "function panelSendLoadingLabel(",
+    "refreshPanelHeroPrefillBannerI18n();",
+    "refreshSendHintI18n();",
+)
+
+PANEL_I18N_V44_TR_KEYS = (
+    "heroPrefillBanner:",
+    "sendLoading:",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -1448,3 +1465,20 @@ def test_panel_i18n_v43_chat_http_classified_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V43_TR_KEYS:
         assert key in tr_text, f"missing panel tr v43 key fragment: {key}"
         assert key in en_text, f"missing panel en v43 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v44_locale_send_hint_refresh_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V44_MARKERS:
+        assert token in text, f"missing panel i18n v44 token: {token}"
+    assert "function setSendHint(msg)" not in text
+    assert "const sendLabel = panelT(" not in text
+    assert "const loadingLabel = panelT(" not in text
+
+
+def test_panel_i18n_v44_locale_send_hint_refresh_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V44_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v44 key fragment: {key}"
+        assert key in en_text, f"missing panel en v44 key fragment: {key}"
