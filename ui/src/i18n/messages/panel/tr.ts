@@ -251,6 +251,53 @@ const panelModules = {
           "Ses algılanmadı veya tarayıcı konuşma sonucu üretmedi. Tekrar deneyin.",
       },
     },
+    gorev: {
+      confirmMini: "Mini görev eklendi: {title}",
+      confirmWithWhen: "Görev eklendi: {title} — {when}",
+      confirm: "Görev eklendi: {title}",
+      deleteUnavailable: "Görev silme şu an kullanılamıyor (liste bağlanmadı).",
+      restoreUnavailable: "Görev geri alma şu an kullanılamıyor (liste bağlanmadı).",
+      deleteRestoreHint:
+        ' Geri almak için «görev geri al» yazabilir veya Görevler\'de «Son silineni geri al» kullan.',
+      notFound:
+        'Görev bulunamadı: «{ref}». Başlık veya görev kimliği (tsk_…) kontrol edin.',
+      deleted: 'Görev silindi: "{title}".',
+      deleteMissingRef: "Görev adı eksik. Örnek: görev sil alışveriş",
+      deleteConfirm: '"{ref}" silinsin mi?',
+      deleteCancelled: "Silme iptal edildi.",
+      deleteFailed: "Silinemedi ({error}).",
+      restoreNothing: "Geri alınacak silinen görev yok.",
+      restoreVerifyFailed: "Görev listesine eklenemedi; geri alma doğrulanamadı.",
+      restored: 'Görev geri alındı: "{title}".',
+    },
+    localReply: {
+      emptyMessage: "Bir mesaj yazın.",
+      navGorevler:
+        "Görevler ekranına geçtim; listeden görevleri görebilir veya «görev oluştur başlık» ile yeni görev ekleyebilirsin.",
+      navAyarlar:
+        "Ayarlar ekranına geçtim. Bağlantı köprüsü olmadan dış sohbet devre dışı; yerel görevler kullanılabilir.",
+      navKimlik:
+        "Kimlik ekranına geçtim; bağlantı ve kimlik ayarlarını buradan görebilirsin.",
+      navAyarlarOffline:
+        "Ayarlar ekranına geçtim. Çevrimdışı mod; yerel görevler kullanılabilir.",
+      keywordGorev:
+        "Görevler ekranından listeyi görebilirsin. Yeni görev için: «görev oluştur başlık» (ör. görev oluştur alışveriş).",
+      keywordKayit: "Medya ekranına geçip dosyaları inceleyebilirsin.",
+      keywordAkis: "Sosyal ekranına geçip güncel listeyi görebilirsin.",
+      limitedDefault:
+        "Sınırlı moddasın (kullanıcı seçimi); yerel görevler ve kısa yönlendirmeler kullanılabilir — örn. «görev oluştur başlık» veya «görevler».",
+      offlineDefault:
+        "Çevrimdışı moddasın; internet kullanılmaz. Yerel görevler kullanılabilir — örn. «görev oluştur başlık» veya «görevler».",
+      timeBase: "Saat {hh}:{mm}. Bugün {date}.",
+      timeWeekdaySuffix: " Günlerden {weekday}.",
+      weekday0: "Pazar",
+      weekday1: "Pazartesi",
+      weekday2: "Salı",
+      weekday3: "Çarşamba",
+      weekday4: "Perşembe",
+      weekday5: "Cuma",
+      weekday6: "Cumartesi",
+    },
     bridgeBadgeLimited: "Sınırlı mod",
     transcript: {
       engineMsg: "Ses metne çeviri motoru henüz bağlı değil.",

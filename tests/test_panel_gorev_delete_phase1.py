@@ -106,8 +106,8 @@ def test_panel_astro_ec2_01_silme_ux_wiring() -> None:
         'verb: "geri_al"',
         "panelGorevlerRestoreFromChat",
         "restoreGorevlerTaskFromChat",
-        "PANEL_GOREV_DELETE_RESTORE_HINT",
-        PANEL_GOREV_DELETE_RESTORE_HINT_ASTRO_SNIPPET,
+        "function panelGorevDeleteRestoreHint(",
+        'panelT("panel.modules.chat.gorev.deleteRestoreHint")',
         "buildGorevlerNotFoundMessage",
         "refreshPanelEvidenceStripIfReady",
         "panelGorevlerRestoreFromChat = restoreGorevlerTaskFromChat",
@@ -129,8 +129,8 @@ def test_panel_astro_restore_chat_verifies_list_presence() -> None:
         "function finishDeleteGorevlerTaskLocal", 1
     )[0]
     assert "await restoreLastGorevlerTask();" in restore_fn
-    assert "Görev geri alındı:" in restore_fn
-    assert PANEL_GOREV_RESTORE_VERIFY_FAIL in restore_fn
+    assert 'panelT("panel.modules.chat.gorev.restored")' in restore_fn
+    assert 'panelT("panel.modules.chat.gorev.restoreVerifyFailed")' in restore_fn
     assert "lastGorevlerDeletedId = savedDeletedId" in restore_fn
     assert "hadDeleted && lastGorevlerDeletedId" not in restore_fn
 
