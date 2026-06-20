@@ -275,6 +275,21 @@ PANEL_I18N_V16_TR_KEYS = (
     "audioRecordAria:",
 )
 
+PANEL_I18N_V17_MARKERS = (
+    'panelT("panel.modules.chat.compose.send")',
+    'panelT("panel.modules.chat.compose.photoAdded")',
+    'panelT("panel.modules.chat.compose.clipboardConfirm")',
+    'panelT("panel.modules.chat.compose.clipboardConfirmAria")',
+    'panelT("panel.modules.chat.compose.clipboardConfirmTitle")',
+)
+
+PANEL_I18N_V17_TR_KEYS = (
+    "photoAdded:",
+    "clipboardConfirm:",
+    "clipboardConfirmAria:",
+    "clipboardConfirmTitle:",
+)
+
 
 
 def test_panel_astro_i18n_wiring_present() -> None:
@@ -522,3 +537,24 @@ def test_panel_i18n_v16_compose_loading_audio_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V16_TR_KEYS:
         assert key in tr_text, f"missing panel tr v16 key fragment: {key}"
         assert key in en_text, f"missing panel en v16 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v17_compose_send_clipboard_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V17_MARKERS:
+        assert token in text, f"missing panel i18n v17 token: {token}"
+    assert 'const sendLabel = "Gönder"' not in text
+    assert 'cap.textContent = "Fotoğraf eklendi"' not in text
+    assert 'const clipboardLabel = "Panodaki metni ilet"' not in text
+    assert 'const clipboardConfirmLabel = "Onayla ve gönder"' not in text
+    assert 'const clipboardLoadingLabel = "Gönderiliyor…"' not in text
+    assert 'clipboardBtn.setAttribute("aria-label", "Panodaki metni ilet")' not in text
+    assert 'clipboardBtn.setAttribute("aria-label", "Panodaki metni onayla ve gönder")' not in text
+
+
+def test_panel_i18n_v17_compose_send_clipboard_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V17_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v17 key fragment: {key}"
+        assert key in en_text, f"missing panel en v17 key fragment: {key}"

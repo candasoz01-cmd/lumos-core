@@ -7958,7 +7958,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           return buildPanelLimitedReply(userText);
         }
 
-        const sendLabel = "Gönder";
+        const sendLabel = panelT("panel.modules.chat.compose.send");
         const loadingLabel = panelT("panel.modules.chat.compose.sendLoading");
         const CHAT_HISTORY_LIMIT = 12;
         let sending = false;
@@ -8773,7 +8773,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (imageDataUrl) {
             if (!trimmed) {
               const cap = document.createElement("div");
-              cap.textContent = "Fotoğraf eklendi";
+              cap.textContent = panelT("panel.modules.chat.compose.photoAdded");
               body.appendChild(cap);
             }
             const img = document.createElement("img");
@@ -9616,9 +9616,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
         const clipboardBtn = document.getElementById("panel-clipboard-to-kando");
         if (clipboardBtn) {
-          const clipboardLabel = "Panodaki metni ilet";
-          const clipboardConfirmLabel = "Onayla ve gönder";
-          const clipboardLoadingLabel = "Gönderiliyor…";
+          const clipboardLabel = panelT("panel.modules.chat.compose.attachClipboard");
+          const clipboardConfirmLabel = panelT("panel.modules.chat.compose.clipboardConfirm");
+          const clipboardLoadingLabel = panelT("panel.modules.chat.compose.sendLoading");
           const CLIP_PREVIEW_MAX = 80;
           let clipboardSending = false;
           let pendingClipText = null;
@@ -9633,17 +9633,20 @@ const PANEL_DEBUG = import.meta.env.DEV;
           function clearClipPending() {
             pendingClipText = null;
             clipboardBtn.textContent = clipboardLabel;
-            clipboardBtn.setAttribute("aria-label", "Panodaki metni ilet");
+            clipboardBtn.setAttribute("aria-label", clipboardLabel);
             clipboardBtn.removeAttribute("data-pending-clip");
-            clipboardBtn.title = "Panodaki metni ilet";
+            clipboardBtn.title = clipboardLabel;
           }
 
           function setClipPending(text) {
             pendingClipText = text;
             clipboardBtn.textContent = clipboardConfirmLabel;
-            clipboardBtn.setAttribute("aria-label", "Panodaki metni onayla ve gönder");
+            clipboardBtn.setAttribute(
+              "aria-label",
+              panelT("panel.modules.chat.compose.clipboardConfirmAria"),
+            );
             clipboardBtn.setAttribute("data-pending-clip", "1");
-            clipboardBtn.title = "Onayla ve panodaki metni gönder";
+            clipboardBtn.title = panelT("panel.modules.chat.compose.clipboardConfirmTitle");
             const snippet = clipPreviewSnippet(text);
             const hint = snippet
               ? panelT("panel.modules.chat.compose.hints.clipboardReadyWithSnippet").replace(
