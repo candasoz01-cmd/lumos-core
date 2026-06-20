@@ -105,18 +105,29 @@ def test_landing_kuantum_sections_i18n_wiring() -> None:
         "quantumDetailStatus:",
         "quantumDetailBody:",
         "quantumDetailLinksLead:",
+        "quantumAdrLink:",
         "quantumPanelLink:",
         "roadmapInlineLead:",
+        "roadmapLinkFile:",
         "roadmapWorldVision:",
+        "roadmapWorldVisionLink:",
     ):
         assert key in tr_text, f"missing landing tr key: {key}"
         assert key in en_text, f"missing landing en key: {key}"
     assert 'id="modul-kuantum"' in text
     assert 'data-i18n="landing.modules.quantumTitle"' in text
     assert 'data-i18n="landing.modules.quantumDetailStatus"' in text
+    assert 'data-i18n="landing.modules.quantumAdrLink"' in text
     assert 'data-i18n="landing.modules.quantumPanelLink"' in text
     assert 'data-i18n="landing.modules.roadmapInlineLead"' in text
+    assert 'data-i18n="landing.modules.roadmapLinkFile"' in text
+    assert 'data-i18n="landing.modules.roadmapWorldVisionLink"' in text
     assert "<h3>Kuantum</h3>" not in text
+    modules_inline_start = text.index('data-i18n="landing.modules.roadmapInlineLead"')
+    modules_inline_end = text.index("</p>", modules_inline_start)
+    modules_inline_block = text[modules_inline_start:modules_inline_end]
+    assert ">ROADMAP.md</a>" not in modules_inline_block
+    assert 'data-i18n="landing.modules.roadmapLinkFile"' in modules_inline_block
 
 
 def test_landing_hero_ask_submit_distinct_from_cta_panel_tr() -> None:
