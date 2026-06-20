@@ -1,4 +1,4 @@
-"""Panel i18n v1–v29 — LanguageSwitcher, nav, modules, Sohbet chat, Görevler."""
+"""Panel i18n v1–v30 — LanguageSwitcher, nav, modules, Sohbet chat, Görevler."""
 
 from __future__ import annotations
 
@@ -518,6 +518,24 @@ PANEL_I18N_V29_TR_KEYS = (
     "leakRequestError:",
 )
 
+PANEL_I18N_V30_MARKERS = (
+    'panelT("panel.shell.infra.leakConnectionInfo")',
+    'panelT("panel.shell.infra.leakRoute")',
+    'panelT("panel.shell.infra.leakTransmission")',
+    'panelT("panel.shell.infra.leakLastResult")',
+    'panelT("panel.shell.infra.leakTaskRecord")',
+    'panelT("panel.shell.infra.leakBrowserRestriction")',
+)
+
+PANEL_I18N_V30_TR_KEYS = (
+    "leakConnectionInfo:",
+    "leakRoute:",
+    "leakTransmission:",
+    "leakLastResult:",
+    "leakTaskRecord:",
+    "leakBrowserRestriction:",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -1004,3 +1022,23 @@ def test_panel_i18n_v29_strip_leak_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V29_TR_KEYS:
         assert key in tr_text, f"missing panel tr v29 key fragment: {key}"
         assert key in en_text, f"missing panel en v29 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v30_strip_leak_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V30_MARKERS:
+        assert token in text, f"missing panel i18n v30 token: {token}"
+    assert '"bağlantı bilgisi"' not in text
+    assert '"yol"' not in text
+    assert '"iletim"' not in text
+    assert '"son sonuç"' not in text
+    assert '"görev kaydı"' not in text
+    assert '"tarayıcı kısıtı"' not in text
+
+
+def test_panel_i18n_v30_strip_leak_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V30_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v30 key fragment: {key}"
+        assert key in en_text, f"missing panel en v30 key fragment: {key}"

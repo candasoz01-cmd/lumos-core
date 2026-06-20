@@ -783,6 +783,12 @@ const panelShell = {
     bridgeTokenMsg:
       "Panel bağlantısı yapılandırılmamış. Köprü ve pano işlemleri bu ortamda devre dışı; cihaz yöneticinizden bağlantı anahtarını tanımlamasını isteyin.",
     leakConnectionKey: "bağlantı anahtarı",
+    leakConnectionInfo: "bağlantı bilgisi",
+    leakRoute: "yol",
+    leakTransmission: "iletim",
+    leakLastResult: "son sonuç",
+    leakTaskRecord: "görev kaydı",
+    leakBrowserRestriction: "tarayıcı kısıtı",
     leakLocalServer: "yerel sunucu",
     leakRequestError: "istek hatası",
     healthPending: "bekleniyor…",
