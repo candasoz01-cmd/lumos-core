@@ -187,7 +187,7 @@ Aşağıdaki satırlar henüz repo dışı kaynaktan işlenmedi veya doğrulanma
 | 1 | `[superseded / not-found]` | `lumos-demo` konumu ve lumos-core ile ilişkisi | OD-045 kapandı; `work_2026` altında yok; lumos-core parçası değil; sonradan bulunursa ayrı değerlendirme |
 | 2 | `[closed]` | Birincil kullanıcı yüzeyi (OD-043) | `ui/` birincil; `panel/` legacy E2E; `frontend/` birincil değil — [`primary-user-surface-decision.md`](primary-user-surface-decision.md) |
 | 3 | `[migrated]` | `lumos web` / `web/app.py` — OD-028 B1 alt komut kaldırıldı | `web/` restore yok; `__main__.py` güncellendi |
-| 4 | `[approved-for-implementation]` | `packages/kando_*` → `src/` geçiş (OD-027) | Seçenek C; Slice 3a **complete** (#313); Slice 3b **complete** (#316) — [`od-027-slice-3b-archive-decision.md`](od-027-slice-3b-archive-decision.md); Faz 4 cutover bekler |
+| 4 | `[closed]` | `packages/kando_*` → `src/` geçiş (OD-027) | Seçenek C; Slice 3a (#313), 3b (#316), Faz 4 cutover — [`od-027-faz4-cutover-decision.md`](od-027-faz4-cutover-decision.md); canlı yalnızca bridge+runtime |
 | 5 | `[queued]` | ChatGPT Saved Memories’ten ek proje yolu / deploy notları | `chatgpt-saved-memories-migration.md` tablosuna yapıştırılacak |
 
 ---
@@ -197,7 +197,8 @@ Aşağıdaki satırlar henüz repo dışı kaynaktan işlenmedi veya doğrulanma
 ```
 lumos-core/
 ├── src/                 # CANLI Python core + CLI
-├── packages/kando_*/    # ADAY ayrık paketler
+├── packages/kando_bridge, kando_runtime/  # CANLI paketler
+├── archive/packages/kando_*/  # Arşiv ayna paketler (OD-027)
 ├── panel/               # Panel E2E (Playwright)
 ├── ui/                  # Astro statik UI
 ├── backend/             # Express + Prisma API

@@ -98,8 +98,8 @@ Repo kökünde `archive/refactor_history/` mevcut (yedek `.py` dosyaları). Slic
 | Dilim | İçerik | Durum |
 |-------|--------|--------|
 | **3b uygulama** | Bu belge §3 | **`implementation-complete`** (PR #316) |
-| **4** | Cutover onayı | `implementation-pending` — kullanıcı açık komutu |
-| **5** | İndeks `migrated` / `superseded` | Faz 4 sonrası |
+| **4** | Cutover onayı | **`implementation-complete`** — [`od-027-faz4-cutover-decision.md`](./od-027-faz4-cutover-decision.md) |
+| **5** | İndeks `migrated` / `superseded` | **Tamamlandı** (Faz 4) |
 
 ---
 

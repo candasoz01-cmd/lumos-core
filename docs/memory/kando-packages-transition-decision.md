@@ -1,6 +1,6 @@
 # OD-027 — `packages/kando_*` → `src/` geçiş kararı
 
-**Durum:** `decision-approved / approved-for-implementation` — Faz 2 hedef mimari onaylandı (Seçenek **C — Hibrit**); Slice **3a** uygulama onaylı ([`kando-packages-faz3-keşif-raporu.md`](./kando-packages-faz3-keşif-raporu.md)); tam arşiv/cutover bekliyor.  
+**Durum:** `decision-approved / implementation-complete` — Faz 4 cutover tamamlandı ([`od-027-faz4-cutover-decision.md`](./od-027-faz4-cutover-decision.md)).  
 **Kaynak indeks:** [`open-decisions-needs-review.md`](./open-decisions-needs-review.md) OD-027.  
 **Faz 1 envanter:** [`kando-packages-faz1-inventory.md`](./kando-packages-faz1-inventory.md) (2026-06-18).  
 **Doğrulama tarihi:** 2026-06-18 (Faz 2 karar taslağı; repo salt-okuma kanıtı).
@@ -238,10 +238,10 @@ Keşif raporu: [`kando-packages-faz3-keşif-raporu.md`](./kando-packages-faz3-ke
 
 **Slice 3b (M effort, PR #316):** dört ayna paket `archive/packages/` altına taşındı (`git mv`); canlı `packages/` yalnızca bridge + runtime.
 
-### Faz 4 — Kesme (cutover) `[implementation-pending — kullanıcı onayı zorunlu]`
+### Faz 4 — Kesme (cutover) `[implementation-complete]`
 
-- Tek sorumluluklu görev(ler); açık hedef path ve geri alma planı.
-- CI yeşil olmadan “tamamlandı” denmez ([`project-workflow.md`](./project-workflow.md) §5).
+- Karar: [`od-027-faz4-cutover-decision.md`](./od-027-faz4-cutover-decision.md).
+- §8 kesme kapıları doğrulandı; OD-027 **closed**.
 
 ### Faz 5 — Temizlik ve dokümantasyon `[needs-review]`
 
