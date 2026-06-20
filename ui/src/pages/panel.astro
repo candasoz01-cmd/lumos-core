@@ -5755,6 +5755,40 @@ const PANEL_DEBUG = import.meta.env.DEV;
         return bits.join(" ");
       }
 
+      function transcriptBlockedUserMessage(result) {
+        const err = result && result.error != null ? String(result.error).trim() : "";
+        let userMsg = panelT("panel.modules.chat.transcript.limitedMsg");
+        if (err === "offline_mode") {
+          userMsg = panelT("panel.modules.chat.transcript.offlineMsg");
+        } else if (err === "user_limited_mode" || err === "bridge_limited") {
+          userMsg = panelT("panel.modules.chat.transcript.limitedUserMsg");
+        }
+        if (!PANEL_DEBUG) return userMsg;
+        const bits = [userMsg];
+        if (result && result.message != null) {
+          const backendMsg = String(result.message).trim();
+          if (backendMsg && backendMsg !== userMsg) bits.push("[" + backendMsg + "]");
+        }
+        if (err) bits.push("[" + err + "]");
+        return bits.join(" ");
+      }
+
+      function transcriptEngineUserMessage(result) {
+        const userMsg = panelT("panel.modules.chat.transcript.engineMsg");
+        if (!PANEL_DEBUG) return userMsg;
+        const bits = [userMsg];
+        if (result && typeof result === "object") {
+          if (result.error != null && String(result.error).trim()) {
+            bits.push("[" + String(result.error).trim() + "]");
+          }
+          if (result.message != null) {
+            const backendMsg = String(result.message).trim();
+            if (backendMsg && backendMsg !== userMsg) bits.push("[" + backendMsg + "]");
+          }
+        }
+        return bits.join(" ");
+      }
+
       function extractTranscriptText(data) {
         if (!data || typeof data !== "object") return "";
         const keys = ["text", "transcript"];
@@ -6096,9 +6130,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
             if (result.ok && result.text) {
               showPreview(result.text);
             } else if (result.blocked) {
-              showStatus(result.message || panelT("panel.modules.chat.transcript.limitedMsg"));
+              showStatus(transcriptBlockedUserMessage(result));
             } else if (result.engineUnavailable) {
-              showStatus(result.message || panelT("panel.modules.chat.transcript.engineMsg"));
+              showStatus(transcriptEngineUserMessage(result));
             } else if (result.transcribeFailure) {
               showStatus(transcribeFailureUserMessage(result, filename, mime), {
                 showMusicWarn: true,
@@ -6267,9 +6301,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
             if (result.ok && result.text) {
               showPreview(result.text);
             } else if (result.blocked) {
-              showStatus(result.message || panelT("panel.modules.chat.transcript.limitedMsg"));
+              showStatus(transcriptBlockedUserMessage(result));
             } else if (result.engineUnavailable) {
-              showStatus(result.message || panelT("panel.modules.chat.transcript.engineMsg"));
+              showStatus(transcriptEngineUserMessage(result));
             } else if (result.transcribeFailure) {
               showStatus(transcribeFailureUserMessage(result, filename, mime), {
                 showMusicWarn: true,
