@@ -5296,7 +5296,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   <span class="lumos-capability-name" data-i18n="panel.modules.capabilities.row1">1. Dosya okuma</span>
                   <span id="cap-file-read" class="lumos-capability-val" data-state="ok">AKTİF</span>
                   <span class="lumos-capability-route panel-debug-only">/controlled</span>
-                  <span class="lumos-capability-limit-note" data-cap-note-for="cap-file-read" hidden>
+                  <span class="lumos-capability-limit-note" data-cap-note-for="cap-file-read" data-i18n="panel.modules.capabilities.bridgePending" hidden>
                     Köprü bağlantısı bekleniyor.
                   </span>
                 </li>
@@ -5304,7 +5304,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   <span class="lumos-capability-name" data-i18n="panel.modules.capabilities.row2">2. Dosya yazma</span>
                   <span id="cap-file-write" class="lumos-capability-val" data-state="ok">AKTİF</span>
                   <span class="lumos-capability-route panel-debug-only">/controlled</span>
-                  <span class="lumos-capability-limit-note" data-cap-note-for="cap-file-write" hidden>
+                  <span class="lumos-capability-limit-note" data-cap-note-for="cap-file-write" data-i18n="panel.modules.capabilities.bridgePending" hidden>
                     Köprü bağlantısı bekleniyor.
                   </span>
                 </li>
@@ -5312,7 +5312,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   <span class="lumos-capability-name" data-i18n="panel.modules.capabilities.row3">3. Görev oluşturma</span>
                   <span id="cap-task-create" class="lumos-capability-val" data-state="ok">AKTİF</span>
                   <span class="lumos-capability-route panel-debug-only">/task</span>
-                  <span class="lumos-capability-limit-note" data-cap-note-for="cap-task-create" hidden>
+                  <span class="lumos-capability-limit-note" data-cap-note-for="cap-task-create" data-i18n="panel.modules.capabilities.bridgePending" hidden>
                     Köprü bağlantısı bekleniyor.
                   </span>
                 </li>
@@ -5324,21 +5324,21 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 <li>
                   <span class="lumos-capability-name" data-i18n="panel.modules.capabilities.row5">5. Terminal komutu</span>
                   <span id="cap-terminal" class="lumos-capability-val" data-state="ok">AKTİF</span>
-                  <span class="lumos-capability-route">Yerel cihaz köprüsü bekleniyor.</span>
-                  <span class="lumos-capability-limit-note" data-cap-note-for="cap-terminal" hidden>
+                  <span class="lumos-capability-route" data-i18n="panel.modules.capabilities.routeTerminal">Yerel cihaz köprüsü bekleniyor.</span>
+                  <span class="lumos-capability-limit-note" data-cap-note-for="cap-terminal" data-i18n="panel.modules.capabilities.bridgePending" hidden>
                     Köprü bağlantısı bekleniyor.
                   </span>
                 </li>
                 <li>
                   <span class="lumos-capability-name" data-i18n="panel.modules.capabilities.row6">6. Mac uygulaması açma</span>
                   <span id="cap-mac-app" class="lumos-capability-val" data-state="hedef">GELİŞTİRME AŞAMASINDA</span>
-                  <span class="lumos-capability-route">—</span>
+                  <span class="lumos-capability-route" data-i18n="panel.modules.capabilities.routeNone">—</span>
                 </li>
                 <li>
                   <span class="lumos-capability-name" data-i18n="panel.modules.capabilities.row7">7. Canlı deploy</span>
                   <span id="cap-live-deploy" class="lumos-capability-val" data-state="ok">AKTİF</span>
-                  <span class="lumos-capability-route">manuel onay sonrası</span>
-                  <span class="lumos-capability-limit-note" data-cap-note-for="cap-live-deploy" hidden>
+                  <span class="lumos-capability-route" data-i18n="panel.modules.capabilities.routeManualApproval">manuel onay sonrası</span>
+                  <span class="lumos-capability-limit-note" data-cap-note-for="cap-live-deploy" data-i18n="panel.modules.capabilities.bridgePending" hidden>
                     Köprü bağlantısı bekleniyor.
                   </span>
                 </li>
@@ -8403,6 +8403,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
         refreshPanelTtsI18n = () => {
           syncPanelTtsButtons(panelTtsActiveBtn);
+          document.querySelectorAll(".chat-msg-actions[role='toolbar']").forEach((raw) => {
+            raw.setAttribute("aria-label", panelT("panel.modules.chat.bubbles.actionsAria"));
+          });
         };
 
         function panelStopSpeaking(btn) {
@@ -8613,7 +8616,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             const actions = document.createElement("div");
             actions.className = "chat-msg-actions";
             actions.setAttribute("role", "toolbar");
-            actions.setAttribute("aria-label", "Yanıt işlemleri");
+            actions.setAttribute("aria-label", panelT("panel.modules.chat.bubbles.actionsAria"));
             const ttsBtn = document.createElement("button");
             ttsBtn.type = "button";
             ttsBtn.className = "chat-msg-action";
@@ -13002,7 +13005,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
             corsEl.textContent = panelT("panel.modules.settings.corsMsg");
           }
           if (dl) dl.hidden = false;
-          setSistemDurumuDd("panel-sistem-durumu-baglanti", "Bağlantı: " + bridgeHealthLine);
+          setSistemDurumuDd(
+            "panel-sistem-durumu-baglanti",
+            panelT("panel.modules.settings.connectionLine").replace("{line}", bridgeHealthLine),
+          );
           setSistemDurumuDd("panel-sistem-durumu-chat", "—");
           setSistemDurumuDd("panel-sistem-durumu-vision", "—");
           setSistemDurumuDd("panel-sistem-durumu-vision-last", "—");
@@ -13016,7 +13022,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
         if (dl) dl.hidden = false;
         const j = lastStatusJson;
         if (!j) {
-          setSistemDurumuDd("panel-sistem-durumu-baglanti", "Bağlantı: " + bridgeHealthLine);
+          setSistemDurumuDd(
+            "panel-sistem-durumu-baglanti",
+            panelT("panel.modules.settings.connectionLine").replace("{line}", bridgeHealthLine),
+          );
           setSistemDurumuDd("panel-sistem-durumu-chat", "—");
           setSistemDurumuDd("panel-sistem-durumu-vision", "—");
           setSistemDurumuDd("panel-sistem-durumu-vision-last", "—");
@@ -13027,11 +13036,18 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const chatS = j.chat != null ? String(j.chat) : "—";
         const visionLast = j.visionLastStatus != null ? String(j.visionLastStatus) : "—";
         const visionCfg = j.visionConfigured === true;
-        setSistemDurumuDd("panel-sistem-durumu-baglanti", health + " · bağlantı: " + bridgeHealthLine);
+        setSistemDurumuDd(
+          "panel-sistem-durumu-baglanti",
+          panelT("panel.modules.settings.healthWithConnection")
+            .replace("{health}", health)
+            .replace("{line}", bridgeHealthLine),
+        );
         setSistemDurumuDd("panel-sistem-durumu-chat", chatS + " · " + lastChatOptionsPingLine);
         setSistemDurumuDd(
           "panel-sistem-durumu-vision",
-          visionCfg ? "Evet (görsel analiz için anahtar tanımlı)" : "Hayır",
+          visionCfg
+            ? panelT("panel.modules.settings.visionConfiguredYes")
+            : panelT("panel.modules.settings.visionConfiguredNo"),
         );
         setSistemDurumuDd("panel-sistem-durumu-vision-last", visionLast);
         paintPanelInfraStatusSkeleton();

@@ -135,6 +135,7 @@ const panelModules = {
       user: "Sen",
       lumos: "Lumos",
       warning: "Uyarı",
+      actionsAria: "Yanıt işlemleri",
     },
     compose: {
       placeholder: "Mesajını yaz",
@@ -710,6 +711,10 @@ const panelModules = {
       "Öntanımlı davranışlar kabul edilmeden önce kullanıcıya gösterilir; değişiklikler geri alınabilir biçimde tutulmayı hedefler.",
     corsMsg: "Bu bilgi panelden okunamıyor (CORS).",
     infraSummaryAria: "Altyapı durumu özeti",
+    connectionLine: "Bağlantı: {line}",
+    healthWithConnection: "{health} · bağlantı: {line}",
+    visionConfiguredYes: "Evet (görsel analiz için anahtar tanımlı)",
+    visionConfiguredNo: "Hayır",
   },
   capabilities: {
     intro:
@@ -721,6 +726,9 @@ const panelModules = {
     testBtn: "Bağlantı testi",
     testRunning: "Test çalışıyor…",
     bridgePending: "Köprü bağlantısı bekleniyor.",
+    routeTerminal: "Yerel cihaz köprüsü bekleniyor.",
+    routeNone: "—",
+    routeManualApproval: "manuel onay sonrası",
     row1: "1. Dosya okuma",
     row2: "2. Dosya yazma",
     row3: "3. Görev oluşturma",

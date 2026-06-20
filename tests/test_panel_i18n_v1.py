@@ -1,4 +1,4 @@
-"""Panel i18n v1–v24 — LanguageSwitcher, nav, modules, Sohbet chat, Görevler."""
+"""Panel i18n v1–v25 — LanguageSwitcher, nav, modules, Sohbet chat, Görevler."""
 
 from __future__ import annotations
 
@@ -435,6 +435,29 @@ PANEL_I18N_V24_TR_KEYS = (
     "attachRecord:",
 )
 
+PANEL_I18N_V25_MARKERS = (
+    'panelT("panel.modules.settings.connectionLine")',
+    'panelT("panel.modules.settings.healthWithConnection")',
+    'panelT("panel.modules.settings.visionConfiguredYes")',
+    'panelT("panel.modules.settings.visionConfiguredNo")',
+    'panelT("panel.modules.chat.bubbles.actionsAria")',
+    'data-i18n="panel.modules.capabilities.bridgePending"',
+    'data-i18n="panel.modules.capabilities.routeTerminal"',
+    'data-i18n="panel.modules.capabilities.routeManualApproval"',
+    'data-i18n="panel.modules.capabilities.routeNone"',
+)
+
+PANEL_I18N_V25_TR_KEYS = (
+    "connectionLine:",
+    "healthWithConnection:",
+    "visionConfiguredYes:",
+    "visionConfiguredNo:",
+    "actionsAria:",
+    "routeTerminal:",
+    "routeManualApproval:",
+    "routeNone:",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -828,3 +851,24 @@ def test_panel_i18n_v24_settings_cors_cap_compose_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V24_TR_KEYS:
         assert key in tr_text, f"missing panel tr v24 key fragment: {key}"
         assert key in en_text, f"missing panel en v24 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v25_sistem_cap_actions_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V25_MARKERS:
+        assert token in text, f"missing panel i18n v25 token: {token}"
+    assert 'setSistemDurumuDd("panel-sistem-durumu-baglanti", "Bağlantı: "' not in text
+    assert 'health + " · bağlantı: " + bridgeHealthLine' not in text
+    assert 'visionCfg ? "Evet (görsel analiz için anahtar tanımlı)" : "Hayır"' not in text
+    assert 'actions.setAttribute("aria-label", "Yanıt işlemleri")' not in text
+    assert '<span class="lumos-capability-route">Yerel cihaz köprüsü bekleniyor.</span>' not in text
+    assert '<span class="lumos-capability-route">manuel onay sonrası</span>' not in text
+    assert 'data-cap-note-for="cap-file-read" hidden>' not in text
+
+
+def test_panel_i18n_v25_sistem_cap_actions_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V25_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v25 key fragment: {key}"
+        assert key in en_text, f"missing panel en v25 key fragment: {key}"
