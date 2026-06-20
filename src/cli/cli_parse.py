@@ -190,18 +190,18 @@ def _get_oneri(
 ) -> list[str]:
     parts = get_durum_parts(Path(base_dir), keystore_initialized, presence_module, session_consent=session_consent)
     consent_ok = parts["consent_ok"]
-    lock_ok = parts["lock_ok"]
+    ks_ready = parts["keystore_ready"]
     durum_label = parts.get("durum_label", "")
     out: list[str] = []
     if not consent_ok:
         out.append("Önce consent akışını tamamla.")
         if len(out) >= 3:
             return out
-    if not lock_ok:
-        out.append("Önce kilit kurulumunu kontrol et: kilit")
+    if not ks_ready:
+        out.append("Önce keystore kurulumunu kontrol et: kilit")
         if len(out) >= 3:
             return out
-    if consent_ok and lock_ok and durum_label == "güvenli":
+    if consent_ok and ks_ready and durum_label == "güvenli":
         try:
             cfg = presence_module.load_presence_cfg(Path(base_dir))
             pres_enabled = bool(getattr(cfg, "enabled", False))
@@ -212,7 +212,7 @@ def _get_oneri(
         if not out:
             out.append("Hazırsın. durum, hazir veya yardım et ile devam edebilirsin.")
         return out
-    if consent_ok and lock_ok:
+    if consent_ok and ks_ready:
         out.append("İstersen kamera aç: kamera")
     return out if out else ["durum yazıp mevcut durumu kontrol edebilirsin."]
 
@@ -227,8 +227,8 @@ def _get_tek_sonraki_adim(
     first = (oneriler or [""])[0]
     if first.startswith("Önce consent"):
         return "Bir sonraki adım: önce consent akışını tamamla."
-    if first.startswith("Önce kilit"):
-        return "Bir sonraki adım: lock durumunu kontrol et."
+    if first.startswith("Önce keystore"):
+        return "Bir sonraki adım: keystore durumunu kontrol et."
     if "kamera" in first and "aç" in first:
         return "Bir sonraki adım: istersen kamera/presence aç."
     if "Hazırsın" in first or "devam edebilirsin" in first:
@@ -246,19 +246,19 @@ def _get_guvenli_cevap(
 ) -> str:
     parts = get_durum_parts(Path(base_dir), keystore_initialized, presence_module, session_consent=session_consent)
     consent_ok = parts["consent_ok"]
-    lock_ok = parts["lock_ok"]
+    ks_ready = parts["keystore_ready"]
     durum_label = parts.get("durum_label", "")
     if not consent_ok:
         return "Şu an tam güvenli değilsin. Consent eksik."
-    if not lock_ok:
-        return "Şu an tam güvenli değilsin. Lock aktif değil."
+    if not ks_ready:
+        return "Şu an tam güvenli değilsin. Keystore hazır değil."
     try:
         cfg = presence_module.load_presence_cfg(Path(base_dir))
         pres_enabled = bool(getattr(cfg, "enabled", False))
     except Exception:
         pres_enabled = False
-    if consent_ok and lock_ok and not pres_enabled:
-        return "Şu an kısmen güvenlisin. Lock aktif ama presence kapalı."
+    if consent_ok and ks_ready and not pres_enabled:
+        return "Şu an kısmen güvenlisin. Keystore hazır ama presence kapalı."
     if durum_label == "güvenli":
         return "Şu an güvenlisin. Temel korumalar aktif."
     return "Şu an kısmen güvenlisin. " + (parts.get("not_line") or "Durum ile detay görebilirsin.")
@@ -273,8 +273,8 @@ def _get_en_onemli_eksik(
     parts = get_durum_parts(Path(base_dir), keystore_initialized, presence_module, session_consent=session_consent)
     if not parts["consent_ok"]:
         return "En önemli eksik: consent alınmamış."
-    if not parts["lock_ok"]:
-        return "En önemli eksik: lock aktif değil."
+    if not parts["keystore_ready"]:
+        return "En önemli eksik: keystore hazır değil."
     if parts.get("not_line") != "kritik eksik yok":
         return "En önemli eksik: temel güvenlik durumu tam değil."
     return "Şu an kritik bir eksik görünmüyor."

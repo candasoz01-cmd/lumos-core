@@ -121,15 +121,17 @@ def format_status_line(snapshot: dict[str, Any]) -> str:
 def format_durum(
     snapshot: dict[str, Any],
     consent_ok: bool,
-    lock_ok: bool,
+    keystore_ready: bool,
     durum_label: str,
     not_line: str,
 ) -> str:
     """
-    Durum komutu için okunur çıktı: Durum, Lock, Presence, Consent, Mod, Not.
-    consent_ok/lock_ok/durum_label/not_line get_durum_parts ile alınır.
+    Durum komutu için okunur çıktı (ADR-011): Keystore + Oturum ayrı satırlar.
+    keystore_ready get_durum_parts'tan; oturum snapshot.lock_status'tan.
     """
-    lock_label = "aktif" if lock_ok else "pasif"
+    keystore_label = "hazır" if keystore_ready else "eksik"
+    lock_status = (snapshot.get("lock_status") or "LOCKED").strip()
+    session_label = "açık" if lock_status == "UNLOCKED" else "kilitli"
     enabled = bool(snapshot.get("presence_enabled", False))
     pres_label = "açık" if enabled else "kapalı"
     consent_label = "kayıtlı" if consent_ok else "yok"
@@ -137,7 +139,8 @@ def format_durum(
 
     lines = [
         f"Durum: {durum_label}",
-        f"Lock: {lock_label}",
+        f"Keystore: {keystore_label}",
+        f"Oturum: {session_label}",
         f"Presence: {pres_label}",
         f"Consent: {consent_label}",
         f"Mod: {mode}",

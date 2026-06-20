@@ -22,7 +22,8 @@ def effective_consent(base_dir: str | Path, session_consent: bool) -> bool:
     return _consent_ok(base_dir) or session_consent
 
 
-def _lock_ok(keystore_initialized: bool) -> bool:
+def keystore_ready(keystore_initialized: bool) -> bool:
+    """ADR-011: keystore init signal — FileKeyStore.is_initialized() or equivalent."""
     return bool(keystore_initialized)
 
 
@@ -58,22 +59,32 @@ def get_startup_summary(
     keystore_initialized: bool,
     presence_module: Any,
     session_consent: bool = False,
+    *,
+    session_unlocked: bool | None = None,
 ) -> str:
     """
     Tek satır hazır olma özeti. Öncelik: consent > lock > presence > macOS.
     Sorun varsa yalnızca en kritik eksik; mümkünse bir sonraki adım.
     session_consent: when True (e.g. genel onay aç), consent is treated as given for this session.
+    session_unlocked: when set (CLI hazir), runtime session signal is used instead of keystore_ready.
     """
     consent = effective_consent(base_dir, session_consent)
-    lock = _lock_ok(keystore_initialized)
+    if session_unlocked is not None:
+        lock_ready = bool(session_unlocked)
+        lock_missing = "Oturum kilitli"
+        lock_ok_label = "Oturum açık"
+    else:
+        lock_ready = keystore_ready(keystore_initialized)
+        lock_missing = "Keystore hazır değil"
+        lock_ok_label = "Keystore hazır"
     pres_ok, pres_enabled = _presence_ok(presence_module, base_dir)
     macos = _macos_permissions_ok()
 
     if not consent:
         return "Hazır değil. Consent alınmadı."
 
-    if not lock:
-        return "Kısmen hazır. Lock yok, consent kayıtlı."
+    if not lock_ready:
+        return f"Kısmen hazır. {lock_missing}, consent kayıtlı."
 
     if not pres_ok:
         return "Kısmen hazır. Presence yapılandırması yüklenemedi."
@@ -85,7 +96,7 @@ def get_startup_summary(
         return "Kısmen hazır. Presence açık, kamera izni bilinmiyor."
 
     pres_label = "presence hazır" if pres_enabled else "presence kapalı"
-    return f"Hazır. Lock aktif, {pres_label}, consent kayıtlı."
+    return f"Hazır. {lock_ok_label}, {pres_label}, consent kayıtlı."
 
 
 def consent_ok(base_dir: str | Path) -> bool:
@@ -100,24 +111,24 @@ def get_durum_parts(
     session_consent: bool = False,
 ) -> dict[str, Any]:
     """
-    Durum komutu için etiket ve not. Öncelik: consent > lock > presence > macOS.
-    Döner: consent_ok, lock_ok, durum_label ("güvenli" | "kısmen hazır"), not_line.
+    Durum komutu için etiket ve not. Öncelik: consent > keystore > presence > macOS.
+    Döner: consent_ok, keystore_ready, durum_label ("güvenli" | "kısmen hazır"), not_line.
     session_consent: when True (e.g. genel onay aç), consent is treated as given for this session.
     """
     consent = effective_consent(base_dir, session_consent)
-    lock = _lock_ok(keystore_initialized)
+    ks_ready = keystore_ready(keystore_initialized)
     pres_ok, pres_enabled = _presence_ok(presence_module, base_dir)
     macos = _macos_permissions_ok()
 
     if not consent:
-        return {"consent_ok": False, "lock_ok": lock, "durum_label": "kısmen hazır", "not_line": "consent alınmadı"}
-    if not lock:
-        return {"consent_ok": True, "lock_ok": False, "durum_label": "kısmen hazır", "not_line": "lock hazır değil"}
+        return {"consent_ok": False, "keystore_ready": ks_ready, "durum_label": "kısmen hazır", "not_line": "consent alınmadı"}
+    if not ks_ready:
+        return {"consent_ok": True, "keystore_ready": False, "durum_label": "kısmen hazır", "not_line": "keystore hazır değil"}
     if not pres_ok:
-        return {"consent_ok": True, "lock_ok": True, "durum_label": "kısmen hazır", "not_line": "presence yapılandırması yok"}
+        return {"consent_ok": True, "keystore_ready": True, "durum_label": "kısmen hazır", "not_line": "presence yapılandırması yok"}
     if pres_enabled and platform.system() == "Darwin" and macos is False:
-        return {"consent_ok": True, "lock_ok": True, "durum_label": "kısmen hazır", "not_line": "kamera izni yok"}
+        return {"consent_ok": True, "keystore_ready": True, "durum_label": "kısmen hazır", "not_line": "kamera izni yok"}
     if pres_enabled and platform.system() == "Darwin" and macos is None:
-        return {"consent_ok": True, "lock_ok": True, "durum_label": "kısmen hazır", "not_line": "kamera izni bilinmiyor"}
+        return {"consent_ok": True, "keystore_ready": True, "durum_label": "kısmen hazır", "not_line": "kamera izni bilinmiyor"}
 
-    return {"consent_ok": True, "lock_ok": True, "durum_label": "güvenli", "not_line": "kritik eksik yok"}
+    return {"consent_ok": True, "keystore_ready": True, "durum_label": "güvenli", "not_line": "kritik eksik yok"}
