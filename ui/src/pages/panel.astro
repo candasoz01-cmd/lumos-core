@@ -6840,12 +6840,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
       function evidenceSourceLabel(source) {
         const s = String(source || "");
-        if (s === "panel_tasks_server") return "Panel";
-        if (s === "kando_bridge") return "Köprü";
-        if (s === "guard_audit") return "Koruma";
-        if (s === "action_policy") return "Koruma";
-        if (s === "task_engine") return "Motor";
-        return s || "Kaynak";
+        if (s === "panel_tasks_server") return panelT("panel.modules.tasks.evidence.sourcePanel");
+        if (s === "kando_bridge") return panelT("panel.modules.tasks.evidence.sourceBridge");
+        if (s === "guard_audit") return panelT("panel.modules.tasks.evidence.sourceGuard");
+        if (s === "action_policy") return panelT("panel.modules.tasks.evidence.sourceGuard");
+        if (s === "task_engine") return panelT("panel.modules.tasks.evidence.sourceEngine");
+        return s || panelT("panel.modules.tasks.evidence.sourceFallback");
       }
 
       function buildEvidenceUiGroup(primary, kind, label) {
@@ -6927,19 +6927,30 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 ? String(ev.payload_summary.title_preview).trim()
                 : "";
             const label =
-              "Köprü: " +
+              panelT("panel.modules.tasks.evidence.bridgePrefix") +
               outcome +
-              (preview ? " · " + preview : matchedAfter ? " · iletim" : "");
+              (preview
+                ? " · " + preview
+                : matchedAfter
+                  ? panelT("panel.modules.tasks.evidence.bridgeRelay")
+                  : "");
             groups.push(buildEvidenceUiGroup(ev, "bridge", label));
             used.add(i);
             continue;
           }
 
           if (source === "panel_tasks_server" && phase === "after") {
-            const mutation = ev.mutation != null ? String(ev.mutation) : "işlem";
+            const mutation =
+              ev.mutation != null
+                ? String(ev.mutation)
+                : panelT("panel.modules.tasks.evidence.mutationDefault");
             const outcome = String(ev.outcome || "ok");
             groups.push(
-              buildEvidenceUiGroup(ev, "panel", "Görev: " + mutation + " · " + outcome),
+              buildEvidenceUiGroup(
+                ev,
+                "panel",
+                panelT("panel.modules.tasks.evidence.taskPrefix") + mutation + " · " + outcome,
+              ),
             );
             used.add(i);
             continue;
@@ -6951,14 +6962,26 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 ? String(ev.error.code)
                 : ev.payload_summary && ev.payload_summary.reason_code != null
                   ? String(ev.payload_summary.reason_code)
-                  : "koruma";
-            groups.push(buildEvidenceUiGroup(ev, "guard", "Koruma: " + code));
+                  : panelT("panel.modules.tasks.evidence.guardDefault");
+            groups.push(
+              buildEvidenceUiGroup(
+                ev,
+                "guard",
+                panelT("panel.modules.tasks.evidence.guardPrefix") + code,
+              ),
+            );
             used.add(i);
             continue;
           }
 
           if (source === "task_engine") {
-            groups.push(buildEvidenceUiGroup(ev, "engine", "Motor · " + String(ev.outcome || "ok")));
+            groups.push(
+              buildEvidenceUiGroup(
+                ev,
+                "engine",
+                panelT("panel.modules.tasks.evidence.enginePrefix") + String(ev.outcome || "ok"),
+              ),
+            );
             used.add(i);
             continue;
           }

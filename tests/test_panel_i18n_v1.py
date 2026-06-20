@@ -593,6 +593,26 @@ PANEL_I18N_V33_TR_KEYS = (
     "lowRiskStatus:",
 )
 
+PANEL_I18N_V34_MARKERS = (
+    'panelT("panel.modules.tasks.evidence.sourceBridge")',
+    'panelT("panel.modules.tasks.evidence.bridgePrefix")',
+    'panelT("panel.modules.tasks.evidence.taskPrefix")',
+    'panelT("panel.modules.tasks.evidence.guardPrefix")',
+    'panelT("panel.modules.tasks.evidence.enginePrefix")',
+    'panelT("panel.modules.tasks.evidence.mutationDefault")',
+    'panelT("panel.modules.tasks.evidence.guardDefault")',
+)
+
+PANEL_I18N_V34_TR_KEYS = (
+    "sourceBridge:",
+    "bridgePrefix:",
+    "taskPrefix:",
+    "guardPrefix:",
+    "enginePrefix:",
+    "mutationDefault:",
+    "guardDefault:",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -1155,3 +1175,22 @@ def test_panel_i18n_v33_gorevler_plan_detail_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V33_TR_KEYS:
         assert key in tr_text, f"missing panel tr v33 key fragment: {key}"
         assert key in en_text, f"missing panel en v33 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v34_gorevler_evidence_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V34_MARKERS:
+        assert token in text, f"missing panel i18n v34 token: {token}"
+    assert '"Köprü: "' not in text
+    assert '"Görev: "' not in text
+    assert '"Koruma: "' not in text
+    assert '"Motor · "' not in text
+    assert 'return "Köprü"' not in text
+
+
+def test_panel_i18n_v34_gorevler_evidence_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V34_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v34 key fragment: {key}"
+        assert key in en_text, f"missing panel en v34 key fragment: {key}"
