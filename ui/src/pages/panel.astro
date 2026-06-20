@@ -5705,6 +5705,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
         if (typeof refreshPanelAudioRecordI18n === "function") refreshPanelAudioRecordI18n();
         if (typeof refreshPanelVoiceHintsI18n === "function") refreshPanelVoiceHintsI18n();
         if (typeof refreshPanelTtsI18n === "function") refreshPanelTtsI18n();
+        if (typeof refreshSendHintI18n === "function") refreshSendHintI18n();
+        refreshPanelHeroPrefillBannerI18n();
+        if (typeof refreshPanelSendButtonI18n === "function") refreshPanelSendButtonI18n();
       }
 
       let refreshDosyalarPanelI18n = null;
@@ -5712,6 +5715,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
       let refreshPanelAudioRecordI18n = null;
       let refreshPanelVoiceHintsI18n = null;
       let refreshPanelTtsI18n = null;
+      let refreshSendHintI18n = null;
+      let refreshPanelSendButtonI18n = null;
 
       function refreshPanelFilesI18n() {
         if (typeof refreshDosyalarPanelI18n === "function") refreshDosyalarPanelI18n();
@@ -7283,6 +7288,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
         banner.hidden = false;
       }
 
+      function refreshPanelHeroPrefillBannerI18n() {
+        const banner = document.getElementById("panel-hero-prefill-banner");
+        if (!banner || banner.hidden) return;
+        banner.textContent = panelT("panel.modules.chat.empty.heroPrefillBanner");
+      }
+
       function prefillPanelChatFromUrlQuery() {
         try {
           const q = new URLSearchParams(window.location.search).get("q");
@@ -8309,8 +8320,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
           return buildPanelLimitedReply(userText);
         }
 
-        const sendLabel = panelT("panel.modules.chat.compose.send");
-        const loadingLabel = panelT("panel.modules.chat.compose.sendLoading");
+        function panelSendLabel() {
+          return panelT("panel.modules.chat.compose.send");
+        }
+
+        function panelSendLoadingLabel() {
+          return panelT("panel.modules.chat.compose.sendLoading");
+        }
+
         const CHAT_HISTORY_LIMIT = 12;
         let sending = false;
         const mqPanelChatFinePointer = window.matchMedia("(pointer: fine)");
@@ -8399,12 +8416,40 @@ const PANEL_DEBUG = import.meta.env.DEV;
           syncCameraPhotoStatusText();
         };
 
-        function setSendHint(msg) {
-          if (!sendHint) return;
-          const s = panelUserVisibleText(msg != null ? String(msg) : "");
+        let sendHintRefresh = null;
+
+        function paintSendHintFromResolver() {
+          if (!sendHint || !sendHintRefresh) return;
+          const s = panelUserVisibleText(sendHintRefresh());
           sendHint.textContent = s;
           sendHint.hidden = !s;
         }
+
+        function setSendHint(resolver) {
+          if (resolver == null || resolver === "") {
+            sendHintRefresh = null;
+            if (sendHint) {
+              sendHint.textContent = "";
+              sendHint.hidden = true;
+            }
+            return;
+          }
+          sendHintRefresh =
+            typeof resolver === "function" ? resolver : () => String(resolver);
+          paintSendHintFromResolver();
+        }
+
+        refreshSendHintI18n = () => {
+          if (!sendHint || sendHint.hidden || !sendHintRefresh) return;
+          paintSendHintFromResolver();
+        };
+
+        refreshPanelSendButtonI18n = () => {
+          if (!sendBtn) return;
+          const label = sending ? panelSendLoadingLabel() : panelSendLabel();
+          sendBtn.setAttribute("aria-label", label);
+          sendBtn.setAttribute("title", label);
+        };
 
         function revokeCameraPhotoObjectUrl() {
           if (!cameraPhotoObjectUrl) return;
@@ -9437,7 +9482,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           const hasAudio = !!(audioRecordBlob && audioRecordBlob.size >= 512);
           if ((!message && !hasPhoto && !hasAudio) || sending) return;
           if (hasPhoto && hasAudio) {
-            setSendHint(panelT("panel.modules.chat.compose.hints.pickOneAttachment"));
+            setSendHint(() => panelT("panel.modules.chat.compose.hints.pickOneAttachment"));
             return;
           }
 
@@ -9451,7 +9496,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             try {
               imageDataUrlForBubble = await readFileAsDataUrl(photoFile);
             } catch {
-              setSendHint(panelT("panel.modules.chat.compose.hints.photoReadFailed"));
+              setSendHint(() => panelT("panel.modules.chat.compose.hints.photoReadFailed"));
               return;
             }
           }
@@ -9471,8 +9516,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
               sending = true;
               sendBtn.disabled = true;
               sendBtn.setAttribute("aria-busy", "true");
-              sendBtn.setAttribute("aria-label", loadingLabel);
-              sendBtn.setAttribute("title", loadingLabel);
+              sendBtn.setAttribute("aria-label", panelSendLoadingLabel());
+              sendBtn.setAttribute("title", panelSendLoadingLabel());
               sendBtn.classList.add("chat-compose-send--busy");
               try {
                 appendBubble("user", message);
@@ -9487,8 +9532,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 sending = false;
                 sendBtn.disabled = false;
                 sendBtn.removeAttribute("aria-busy");
-                sendBtn.setAttribute("aria-label", sendLabel);
-                sendBtn.setAttribute("title", sendLabel);
+                sendBtn.setAttribute("aria-label", panelSendLabel());
+                sendBtn.setAttribute("title", panelSendLabel());
                 sendBtn.classList.remove("chat-compose-send--busy");
                 refocusPanelChatInput();
               }
@@ -9500,8 +9545,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
             sending = true;
             sendBtn.disabled = true;
             sendBtn.setAttribute("aria-busy", "true");
-            sendBtn.setAttribute("aria-label", loadingLabel);
-            sendBtn.setAttribute("title", loadingLabel);
+            sendBtn.setAttribute("aria-label", panelSendLoadingLabel());
+            sendBtn.setAttribute("title", panelSendLoadingLabel());
             sendBtn.classList.add("chat-compose-send--busy");
             const photoReply = panelComposePhotoReply(userMode);
             const audioReply = panelComposeAudioReply(userMode);
@@ -9511,7 +9556,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
               if (hasPhoto) {
                 appendUserComposeBubble(message, imageDataUrlForBubble);
                 appendBubble("lumos", photoReply);
-                setSendHint(photoHint);
+                setSendHint(() => panelComposePhotoHint(getPanelUserMode()));
                 input.value = "";
                 clearPanelCameraPhotoSelection();
                 input.blur();
@@ -9522,7 +9567,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
               if (hasAudio) {
                 appendUserComposeBubble(message, null, audioBubbleUrl, null, audioRecordBlob);
                 appendBubble("lumos", audioReply);
-                setSendHint(audioHint);
+                setSendHint(() => panelComposeAudioHint(getPanelUserMode()));
                 input.value = "";
                 clearPanelAudioRecordSelection();
                 input.blur();
@@ -9558,8 +9603,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
               sending = false;
               sendBtn.disabled = false;
               sendBtn.removeAttribute("aria-busy");
-              sendBtn.setAttribute("aria-label", sendLabel);
-              sendBtn.setAttribute("title", sendLabel);
+              sendBtn.setAttribute("aria-label", panelSendLabel());
+              sendBtn.setAttribute("title", panelSendLabel());
               sendBtn.classList.remove("chat-compose-send--busy");
               refocusPanelChatInput();
             }
@@ -9571,8 +9616,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
           sending = true;
           sendBtn.disabled = true;
           sendBtn.setAttribute("aria-busy", "true");
-          sendBtn.setAttribute("aria-label", loadingLabel);
-          sendBtn.setAttribute("title", loadingLabel);
+          sendBtn.setAttribute("aria-label", panelSendLoadingLabel());
+          sendBtn.setAttribute("title", panelSendLoadingLabel());
           sendBtn.classList.add("chat-compose-send--busy");
           const history = collectThreadHistory(thread);
           if (imageDataUrlForBubble) {
@@ -9599,8 +9644,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
               sending = false;
               sendBtn.disabled = false;
               sendBtn.removeAttribute("aria-busy");
-              sendBtn.setAttribute("aria-label", sendLabel);
-              sendBtn.setAttribute("title", sendLabel);
+              sendBtn.setAttribute("aria-label", panelSendLabel());
+              sendBtn.setAttribute("title", panelSendLabel());
               sendBtn.classList.remove("chat-compose-send--busy");
               refocusPanelChatInput();
               return;
@@ -9619,8 +9664,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
               sending = false;
               sendBtn.disabled = false;
               sendBtn.removeAttribute("aria-busy");
-              sendBtn.setAttribute("aria-label", sendLabel);
-              sendBtn.setAttribute("title", sendLabel);
+              sendBtn.setAttribute("aria-label", panelSendLabel());
+              sendBtn.setAttribute("title", panelSendLabel());
               sendBtn.classList.remove("chat-compose-send--busy");
               refocusPanelChatInput();
               return;
@@ -9637,7 +9682,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
           if (hasAudio && !outgoingMessage && !hasPhoto) {
             appendBubble("lumos", panelT("panel.modules.chat.compose.hints.fullAudioReply"));
-            setSendHint(panelT("panel.modules.chat.compose.hints.fullAudioHint"));
+            setSendHint(() => panelT("panel.modules.chat.compose.hints.fullAudioHint"));
             input.value = "";
             clearPanelAudioRecordSelection();
             input.blur();
@@ -9645,8 +9690,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
             sending = false;
             sendBtn.disabled = false;
             sendBtn.removeAttribute("aria-busy");
-            sendBtn.setAttribute("aria-label", sendLabel);
-            sendBtn.setAttribute("title", sendLabel);
+            sendBtn.setAttribute("aria-label", panelSendLabel());
+            sendBtn.setAttribute("title", panelSendLabel());
             sendBtn.classList.remove("chat-compose-send--busy");
             refocusPanelChatInput();
             return;
@@ -9724,7 +9769,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
             if (!r.ok) {
               console.warn("[Lumos panel chat] HTTP error", r.status);
-              setSendHint(
+              setSendHint(() =>
                 panelDebugText(
                   panelT("panel.modules.chat.compose.hints.httpSendFailedDebugPrefix") +
                     r.status +
@@ -9815,14 +9860,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 void loadPanelBackendStatus();
               }
             } else {
-              const CHAT_BODY_UNUSABLE_HINT = panelT("panel.modules.chat.compose.hints.responseUnreadable");
               const CHAT_BODY_UNUSABLE_BUBBLE = panelT("panel.modules.chat.compose.hints.responseUnusableBubble");
 
               let chatFailureReported = false;
               function reportChatBodyFailure() {
                 if (chatFailureReported) return;
                 chatFailureReported = true;
-                setSendHint(CHAT_BODY_UNUSABLE_HINT);
+                setSendHint(() => panelT("panel.modules.chat.compose.hints.responseUnreadable"));
                 appendBubble("error", CHAT_BODY_UNUSABLE_BUBBLE);
               }
 
@@ -9944,7 +9988,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             const netMsg = summarizeClientFetchError(err);
             const errName =
               err && typeof err === "object" && err.name ? String(err.name) : "";
-            setSendHint(
+            setSendHint(() =>
               panelDebugText(
                 panelT("panel.modules.chat.compose.hints.requestErrorDebugPrefix") +
                   netMsg.slice(0, 140),
@@ -9984,8 +10028,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
             sending = false;
             sendBtn.disabled = false;
             sendBtn.removeAttribute("aria-busy");
-            sendBtn.setAttribute("aria-label", sendLabel);
-            sendBtn.setAttribute("title", sendLabel);
+            sendBtn.setAttribute("aria-label", panelSendLabel());
+            sendBtn.setAttribute("title", panelSendLabel());
             sendBtn.classList.remove("chat-compose-send--busy");
             refocusPanelChatInput();
           }
@@ -10034,14 +10078,15 @@ const PANEL_DEBUG = import.meta.env.DEV;
             );
             clipboardBtn.setAttribute("data-pending-clip", "1");
             clipboardBtn.title = panelT("panel.modules.chat.compose.clipboardConfirmTitle");
-            const snippet = clipPreviewSnippet(text);
-            const hint = snippet
-              ? panelT("panel.modules.chat.compose.hints.clipboardReadyWithSnippet").replace(
-                  "{snippet}",
-                  snippet,
-                )
-              : panelT("panel.modules.chat.compose.hints.clipboardReadyEmpty");
-            setSendHint(hint);
+            setSendHint(() => {
+              const snippet = clipPreviewSnippet(pendingClipText);
+              return snippet
+                ? panelT("panel.modules.chat.compose.hints.clipboardReadyWithSnippet").replace(
+                    "{snippet}",
+                    snippet,
+                  )
+                : panelT("panel.modules.chat.compose.hints.clipboardReadyEmpty");
+            });
           }
 
           async function sendClipText(trimmed) {
@@ -10073,27 +10118,27 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
               if (taskBridgeBlockedResponse(r.status)) {
                 const bridgeHint = bridgeBlockedUserHint();
-                if (bridgeHint) setSendHint(bridgeHint);
+                if (bridgeHint) setSendHint(() => bridgeBlockedUserHint());
                 return;
               }
               if (r.status === 401) {
-                setSendHint(panelT("panel.modules.chat.errors.unauthorized"));
+                setSendHint(() => panelT("panel.modules.chat.errors.unauthorized"));
                 return;
               }
               if (!r.ok) {
-                setSendHint(panelT("panel.modules.chat.errors.network_error"));
+                setSendHint(() => panelT("panel.modules.chat.errors.network_error"));
                 return;
               }
 
               const accepted =
                 data && (data.accepted === true || data.accepted === false) ? data.accepted : null;
               if (accepted === false) {
-                setSendHint(panelT("panel.modules.chat.errors.network_error"));
+                setSendHint(() => panelT("panel.modules.chat.errors.network_error"));
                 return;
               }
-              setSendHint(panelT("panel.modules.chat.compose.hints.sentOk"));
+              setSendHint(() => panelT("panel.modules.chat.compose.hints.sentOk"));
             } catch {
-              setSendHint(panelT("panel.modules.chat.errors.network_error"));
+              setSendHint(() => panelT("panel.modules.chat.errors.network_error"));
             } finally {
               clipboardSending = false;
               clipboardBtn.disabled = false;
@@ -10115,7 +10160,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
             try {
               if (!navigator.clipboard || typeof navigator.clipboard.readText !== "function") {
-                setSendHint(panelT("panel.modules.chat.compose.hints.clipboardUnsupported"));
+                setSendHint(() => panelT("panel.modules.chat.compose.hints.clipboardUnsupported"));
                 return;
               }
 
@@ -10125,12 +10170,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
               } catch (err) {
                 const name = err && typeof err === "object" && "name" in err ? String(err.name) : "";
                 if (name === "NotAllowedError") {
-                  setSendHint(panelT("panel.modules.chat.compose.hints.clipboardDenied"));
+                  setSendHint(() => panelT("panel.modules.chat.compose.hints.clipboardDenied"));
                 } else {
                   const msg =
                     err && typeof err === "object" && "message" in err ? String(err.message) : String(err);
                   setSendHint(
-                    panelT("panel.modules.chat.compose.hints.clipboardReadFailedPrefix") +
+                    () =>
+                      panelT("panel.modules.chat.compose.hints.clipboardReadFailedPrefix") +
                       msg.slice(0, 120),
                   );
                 }
@@ -10139,13 +10185,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
               const trimmed = String(clipboardText || "").trim();
               if (!trimmed) {
-                setSendHint(panelT("panel.modules.chat.compose.hints.clipboardEmpty"));
+                setSendHint(() => panelT("panel.modules.chat.compose.hints.clipboardEmpty"));
                 return;
               }
 
               setClipPending(trimmed);
             } catch {
-              setSendHint(panelT("panel.modules.chat.compose.hints.clipboardReadFailed"));
+              setSendHint(() => panelT("panel.modules.chat.compose.hints.clipboardReadFailed"));
             }
           });
         }
@@ -10869,7 +10915,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           setCameraHintKey("");
           if (!f) return;
           if (!/^audio\//.test(f.type || "")) {
-            setSendHint(panelT("panel.modules.chat.compose.hints.audioOnly"));
+            setSendHint(() => panelT("panel.modules.chat.compose.hints.audioOnly"));
             return;
           }
           const photoFile =
@@ -10879,7 +10925,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           const hasPhoto = !!(photoFile && /^image\//.test(photoFile.type));
           const hasPendingRecord = !!(audioRecordBlob && audioRecordBlob.size >= 512);
           if (hasPhoto || hasPendingRecord || isAudioRecording) {
-            setSendHint(panelT("panel.modules.chat.compose.hints.pickOneAttachment"));
+            setSendHint(() => panelT("panel.modules.chat.compose.hints.pickOneAttachment"));
             return;
           }
           let audioBubbleUrl = null;
@@ -10887,7 +10933,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             audioBubbleUrl = URL.createObjectURL(f);
             audioBubbleObjectUrls.add(audioBubbleUrl);
           } catch {
-            setSendHint(panelT("panel.modules.chat.compose.hints.audioReadFailed"));
+            setSendHint(() => panelT("panel.modules.chat.compose.hints.audioReadFailed"));
             return;
           }
           appendUserComposeBubble(panelT("panel.modules.chat.compose.audioFileAttached"), null, audioBubbleUrl, {
@@ -10900,12 +10946,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
               isOfflineUserMode() ? "offline" : "limited",
             );
             appendBubble("lumos", audioReply);
-            setSendHint(
+            setSendHint(() =>
               panelComposeAudioHint(isOfflineUserMode() ? "offline" : "limited"),
             );
           } else {
             appendBubble("lumos", panelT("panel.modules.chat.compose.hints.fullAudioReply"));
-            setSendHint(panelT("panel.modules.chat.compose.hints.fullAudioHint"));
+            setSendHint(() => panelT("panel.modules.chat.compose.hints.fullAudioHint"));
           }
           input.blur();
           resetPanelHorizontalScrollAfterInputBlur();
