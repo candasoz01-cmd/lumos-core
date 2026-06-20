@@ -152,6 +152,29 @@ def test_landing_mobile_nav_scroll_hint_in_mobile_block() -> None:
     assert "mask-image: linear-gradient" in mobile_nav_block
 
 
+def test_landing_sticky_nav_scroll_margin_offset_token() -> None:
+    text = _INDEX_ASTRO.read_text(encoding="utf-8")
+    assert "--lumos-sticky-nav-offset:" in text
+    assert "scroll-margin-top: var(--lumos-sticky-nav-offset)" in text
+    desktop_block = re.search(
+        r"@media\s*\(\s*min-width:\s*768px\s*\)\s*\{[^}]*--lumos-sticky-nav-offset:\s*([\d.]+)rem",
+        text,
+        re.DOTALL,
+    )
+    assert desktop_block is not None, "desktop --lumos-sticky-nav-offset media block missing"
+    desktop_rem = float(desktop_block.group(1))
+    assert desktop_rem > 1.25
+    mobile_default = re.search(
+        r":root\s*\{[^}]*--lumos-sticky-nav-offset:\s*1\.25rem",
+        text,
+        re.DOTALL,
+    )
+    assert mobile_default is not None, "mobile default --lumos-sticky-nav-offset should be 1.25rem"
+    mobile_nav_block_start = text.index("Küçük ekran cilası: yalnızca max-width ile")
+    mobile_nav_block = text[mobile_nav_block_start : mobile_nav_block_start + 5000]
+    assert ".lumos-site-nav {\n          position: relative;" in mobile_nav_block
+
+
 def test_landing_hero_no_duplicate_inline_copy_dict() -> None:
     text = _INDEX_ASTRO.read_text(encoding="utf-8")
     tr_text = (_REPO_ROOT / "ui" / "src" / "i18n" / "messages" / "tr.ts").read_text(encoding="utf-8")
