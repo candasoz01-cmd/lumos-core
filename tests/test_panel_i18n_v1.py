@@ -613,6 +613,19 @@ PANEL_I18N_V34_TR_KEYS = (
     "guardDefault:",
 )
 
+PANEL_I18N_V35_MARKERS = (
+    "function panelLocaleTag()",
+    'panelT("panel.modules.tasks.when.tomorrow")',
+    'panelT("panel.modules.tasks.when.today")',
+    "panelLocaleTag()",
+)
+
+PANEL_I18N_V35_TR_KEYS = (
+    "when:",
+    "tomorrow:",
+    "today:",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -1194,3 +1207,20 @@ def test_panel_i18n_v34_gorevler_evidence_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V34_TR_KEYS:
         assert key in tr_text, f"missing panel tr v34 key fragment: {key}"
         assert key in en_text, f"missing panel en v34 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v35_datetime_when_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V35_MARKERS:
+        assert token in text, f"missing panel i18n v35 token: {token}"
+    assert 'parts.push("Yarın")' not in text
+    assert 'parts.push("Bugün")' not in text
+    assert 'toLocaleString("tr-TR"' not in text
+
+
+def test_panel_i18n_v35_datetime_when_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V35_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v35 key fragment: {key}"
+        assert key in en_text, f"missing panel en v35 key fragment: {key}"

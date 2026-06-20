@@ -6495,6 +6495,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
         return key;
       }
 
+      function panelLocaleTag() {
+        const loc =
+          window.LumosI18n && typeof window.LumosI18n.getLocale === "function"
+            ? window.LumosI18n.getLocale()
+            : "tr";
+        return loc === "en" ? "en-US" : "tr-TR";
+      }
+
       function panelComposePhotoHint(userMode) {
         if (userMode === "offline") return panelT("panel.modules.chat.compose.hints.photoOffline");
         if (userMode === "limited") {
@@ -7525,9 +7533,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const d = /(?:^|\n)\s*Tarih\s*:\s*([^\n]+)/i.exec(t);
         if (d) {
           const dl = d[1].trim().toLocaleLowerCase("tr-TR");
-          if (/\byarın\b|\byarin\b|\byarain\b/.test(dl)) parts.push("Yarın");
-          else if (/\bbugün\b|\bbugun\b/.test(dl)) parts.push("Bugün");
-          else if (d[1].trim()) parts.push(d[1].trim());
+          if (/\byarın\b|\byarin\b|\byarain\b/.test(dl)) {
+            parts.push(panelT("panel.modules.tasks.when.tomorrow"));
+          } else if (/\bbugün\b|\bbugun\b/.test(dl)) {
+            parts.push(panelT("panel.modules.tasks.when.today"));
+          } else if (d[1].trim()) parts.push(d[1].trim());
         }
         const st = /(?:^|\n)\s*Saat\s*:\s*([^\n]+)/i.exec(t);
         if (st) {
@@ -7591,8 +7601,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const rest = normalizeUserTaskMessage(String(restRaw || "").trim());
         if (!rest) return { title: "", whenSummary: null };
         const parts = [];
-        if (/\byarın\b/i.test(rest)) parts.push("Yarın");
-        else if (/\bbugün\b/i.test(rest)) parts.push("Bugün");
+        if (/\byarın\b/i.test(rest)) parts.push(panelT("panel.modules.tasks.when.tomorrow"));
+        else if (/\bbugün\b/i.test(rest)) parts.push(panelT("panel.modules.tasks.when.today"));
         const tm = /\bsaat\s*(\d{1,2})(?:\s*[:.]\s*(\d{2}))?\b/i.exec(rest);
         if (tm) parts.push(tm[2] !== undefined ? `${pad2(tm[1])}:${tm[2]}` : `${pad2(tm[1])}:00`);
         let titleWork = rest
@@ -7614,8 +7624,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
         if (!prefix) return { whenSummary: null };
         const pl = prefix.toLocaleLowerCase("tr-TR");
         const parts = [];
-        if (/\byarın\b|\byarain\b|\byarin\b/i.test(prefix)) parts.push("Yarın");
-        else if (/\bbugün\b|\bbugun\b/i.test(prefix)) parts.push("Bugün");
+        if (/\byarın\b|\byarain\b|\byarin\b/i.test(prefix)) {
+          parts.push(panelT("panel.modules.tasks.when.tomorrow"));
+        } else if (/\bbugün\b|\bbugun\b/i.test(prefix)) {
+          parts.push(panelT("panel.modules.tasks.when.today"));
+        }
         const tm = /(?:saat\s*)?(\d{1,2})(?:\s*[:.]\s*(\d{2}))?\b/.exec(pl);
         if (tm) parts.push(tm[2] !== undefined ? `${pad2(tm[1])}:${tm[2]}` : `${pad2(tm[1])}:00`);
         const whenSummary = parts.length ? parts.join(" ") : prefix;
@@ -10809,7 +10822,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           const d = new Date(s);
           if (Number.isNaN(d.getTime())) return "—";
           try {
-            return d.toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "medium" });
+            return d.toLocaleString(panelLocaleTag(), { dateStyle: "short", timeStyle: "medium" });
           } catch {
             return s;
           }
