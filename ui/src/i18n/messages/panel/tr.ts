@@ -81,6 +81,71 @@ const panelCommon = {
 } as const;
 
 const panelModules = {
+  chat: {
+    historyAria: "Mesaj geçmişi",
+    empty: {
+      default: "Lumos hazır · Dinliyor",
+      limited: "Sınırlı mod · Yerel işlemler kullanılabilir",
+      limitedUser: "Sınırlı mod · Kullanıcı seçimi",
+      limitedSub: "Yerel görevler kullanılabilir; dış köprü gerektiren işlemler beklemede.",
+      limitedUserSub: "Yerel görevler kullanılabilir; bu modda dış sohbet köprüsü denenmez.",
+      offline: "Çevrimdışı mod · İnternet kullanılmaz",
+      offlineSub: "Yerel işlemler kullanılabilir; dış bağlantı bu modda denenmez.",
+    },
+    modeHints: {
+      sendLimited: "Sınırlı mod: dış sohbet köprüsü yok; yerel yanıtlar ve görev komutları kullanılabilir.",
+      sendLimitedUser:
+        "Sınırlı moddasın (kullanıcı seçimi); yerel yanıtlar ve görev komutları kullanılabilir.",
+      sendOffline: "Çevrimdışı mod: internet ve dış köprü kullanılmaz; yerel yanıtlar kullanılabilir.",
+    },
+    capability: {
+      title: "Şu an ne yapabilirim?",
+      canDoSection: "Yapabilirim",
+      canDo1: "Görev kaydeder, listeler ve kısa plan önerir.",
+      canDo2: "Cihaz içi ayarlardan okur; pratik notlar verir.",
+      wontDoSection: "Şu an yapmam",
+      wontDo1: "Komut çalıştırmaz, kod değiştirmez.",
+      wontDo2: "Onaysız kalıcı işlem yapmaz.",
+    },
+    security: {
+      approval: "Kalıcı işlemler için onay ister.",
+      secret: "Cihaz içinde çalışır; gizli bilgileri sohbete yazma.",
+      debugBridge: "Yerel köprü bağlı. Ses ve görev işlemleri bu cihaz üzerinden yürütülür.",
+      devicePerms: "Kamera ve mikrofon cihaz iznine bağlıdır.",
+    },
+    bubbles: {
+      user: "Sen",
+      lumos: "Lumos",
+      warning: "Uyarı",
+    },
+    compose: {
+      placeholder: "Mesajını yaz",
+      send: "Gönder",
+      attachTitle: "Ekle",
+      attachAria: "Dosya veya medya ekle",
+      attachFile: "Dosya yükle",
+      attachPhoto: "Fotoğraf seç",
+      attachCamera: "Kamera aç",
+      attachClipboard: "Panodaki metni ilet",
+      attachAudio: "Ses dosyası yükle",
+      attachRecord: "Ses kaydı",
+      attachRecordTitle: "Mikrofonla ses kaydet; metne çevirmez (Sesle yaz düğmesinden farklı)",
+      cameraTitle: "Kamera / görsel giriş",
+      cameraAria: "Kamera / görsel giriş",
+      voiceTitleSupported: "Sesle yaz (metne çevir) — tarayıcı ses tanıma servisine bağlı",
+      voiceAriaSupported: "Sesle yaz, metne çevir; tarayıcı ses tanıma servisine bağlı",
+      voiceTitleUnsupported: "Sesle yazma desteklenmiyor",
+      voiceAriaUnsupported: "Bu tarayıcıda sesle yazma desteklenmiyor",
+      galleryAria: "Galeriden görsel seç",
+      audioFileAria: "Ses dosyası seç",
+      audioPreviewAria: "Ses kaydı önizlemesi",
+      stopRecord: "Durdur",
+      cancelRecord: "İptal",
+      rerecord: "Yeniden kaydet",
+      transcribe: "Metne çevir",
+    },
+    bridgeBadgeLimited: "Sınırlı mod",
+  },
   tasks: {
     eyebrow: "Operasyon",
     intro:

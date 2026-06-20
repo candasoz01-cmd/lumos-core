@@ -1,4 +1,4 @@
-"""Panel i18n v1/v2 — LanguageSwitcher, nav, Ses/Medya/Sosyal/Posta module chrome."""
+"""Panel i18n v1/v2/v3 — LanguageSwitcher, nav, Ses/Medya/Sosyal/Posta, Sohbet chat."""
 
 from __future__ import annotations
 
@@ -55,6 +55,29 @@ PANEL_I18N_V2_TR_KEYS = (
     "posta:",
 )
 
+PANEL_I18N_V3_MARKERS = (
+    'data-i18n="panel.modules.chat.empty.default"',
+    'data-i18n="panel.modules.chat.capability.title"',
+    'data-i18n="panel.modules.chat.security.approval"',
+    'data-i18n-placeholder="panel.modules.chat.compose.placeholder"',
+    'data-i18n="panel.modules.chat.compose.send"',
+    'data-i18n="panel.modules.chat.compose.attachFile"',
+    'panelT("panel.modules.chat.empty.default")',
+    'panelT("panel.modules.chat.modeHints.sendOffline")',
+    'chatBubbleRoleLabel(kind)',
+    'function refreshPanelChatI18n()',
+    'refreshPanelChatI18n()',
+)
+
+PANEL_I18N_V3_TR_KEYS = (
+    "chat:",
+    "empty:",
+    "modeHints:",
+    "bubbles:",
+    "capability:",
+    "compose:",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -89,3 +112,17 @@ def test_panel_i18n_v2_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V2_TR_KEYS:
         assert key in tr_text, f"missing panel tr key fragment: {key}"
         assert key in en_text, f"missing panel en key fragment: {key}"
+
+
+def test_panel_astro_i18n_v3_chat_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V3_MARKERS:
+        assert token in text, f"missing panel i18n v3 token: {token}"
+
+
+def test_panel_i18n_v3_chat_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V3_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v3 key fragment: {key}"
+        assert key in en_text, f"missing panel en v3 key fragment: {key}"
