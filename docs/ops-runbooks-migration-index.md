@@ -19,6 +19,8 @@ Operator notice: [`docs/ops-runbooks-private-notice.md`](ops-runbooks-private-no
 | [`digitalocean-ssh-recovery.md`](digitalocean-ssh-recovery.md) | `.lumos/internal/ops-vault/migration-2026-06-19/digitalocean-ssh-recovery.md` | SSH access recovery notes |
 | [`digitalocean-test-server-status-2026-05-30.md`](digitalocean-test-server-status-2026-05-30.md) | `.lumos/internal/ops-vault/migration-2026-06-19/digitalocean-test-server-status-2026-05-30.md` | Test server live status |
 | [`daily-status-2026-05-29.md`](daily-status-2026-05-29.md) | `.lumos/internal/ops-vault/migration-2026-06-19/daily-status-2026-05-29.md` | Daily ops status (2026-05-29) |
+| [`memory/gmail-readonly-smoke-operator-runbook.md`](memory/gmail-readonly-smoke-operator-runbook.md) | `.lumos/internal/ops-vault/migration-2026-06-21/gmail-readonly-smoke-operator-runbook.md` | Gmail readonly live smoke — operator runbook |
+| [`memory/vault-infisical-poc-runbook.md`](memory/vault-infisical-poc-runbook.md) | `.lumos/internal/ops-vault/migration-2026-06-21/vault-infisical-poc-runbook.md` | Infisical self-host PoC — operator runbook |
 
 ---
 
