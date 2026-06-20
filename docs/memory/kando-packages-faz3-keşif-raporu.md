@@ -1,6 +1,6 @@
 # OD-027 Faz 3 — Keşif raporu (uygulama öncesi)
 
-**Durum:** Slice **3a** uygulandı (2026-06-20); Slice **3b** `implementation-pending`.  
+**Durum:** Slice **3a** **`implementation-complete`** (PR #313, `c0b8ea0`); Slice **3b** `implementation-pending` (karar kaydı bekliyor).  
 **Kaynak karar:** [`kando-packages-transition-decision.md`](./kando-packages-transition-decision.md) (Seçenek C — Hibrit).  
 **Faz 1 envanter:** [`kando-packages-faz1-inventory.md`](./kando-packages-faz1-inventory.md).  
 **Doğrulama tarihi:** 2026-06-20 (repo salt-okuma + grep).
@@ -20,17 +20,17 @@ Faz 2 mimari kararı (C — Hibrit) sonrası **ilk uygulanabilir dilim** (Slice 
 | Canlı entry | `src/lumos_core/__main__.py` → `src/main.py` | Aynı | — |
 | Canlı paketler | `kando_bridge`, `kando_runtime` | Aynı; CI PYTHONPATH değişmedi | — |
 | Ayna paketler | `kando_core`, `kando_memory`, `kando_policy`, `kando_context` | Dış import hâlâ **sıfır** (`src/`, `tests/` grep) | — |
-| `kando_core/__main__.py` web kalıntısı | OD-028 B1 ile kök temiz; paket stale | **Hâlâ mevcut** — `web` parser + `_run_web()` | Uygulama adayı (3a-2) |
-| `kando_runtime/lumos_runtime.py` | Ölü ayna | **Hâlâ mevcut**; `from kando_runtime.lumos_runtime` dış import **yok** | Uygulama adayı (3a-3) |
+| `kando_core/__main__.py` web kalıntısı | OD-028 B1 ile kök temiz; paket stale | **Kaldırıldı** (PR #313) — yalnızca `cli` / `decision` alt komutları | 3a-2 **tamam** |
+| `kando_runtime/lumos_runtime.py` | Ölü ayna | **Silindi** (PR #313); canonical `src/core/lumos_runtime.py` korundu | 3a-3 **tamam** |
 | OD-043 / OD-046 | needs-review (çapraz) | **closed** — birincil `ui/`; kök E2E `ui/dist` | Geçişten bağımsız |
 
 **Sabit:** Root `lumos` hâlâ `packages/kando_*` üzerinden başlamaz. Bridge/runtime → `src/` tek yönlü bağımlılık devam ediyor.
 
 ---
 
-## 3. Slice 3a — onaylı uygulama paketi (S effort)
+## 3. Slice 3a — uygulama paketi (S effort) `[implementation-complete — PR #313]`
 
-Aşağıdaki dilim **docs-onaylı**; tek PR, dar kapsam, rollback kolay.
+Aşağıdaki dilim **merge edildi** (`c0b8ea0`); tek PR, dar kapsam, rollback kolay.
 
 | # | Hedef | Dosya / alan | Risk | Rollback |
 |---|--------|--------------|------|----------|
@@ -59,7 +59,7 @@ Aşağıdaki dilim **docs-onaylı**; tek PR, dar kapsam, rollback kolay.
 | K7 | Workspace / state | **Geçer** — `.lumos/` etkilenmez |
 | K8 | Public sınır | **Geçer** — production secret yok |
 
-**Karar:** Slice 3a, §8 kapılarını bozmaz; uygulama PR'si açılabilir.
+**Karar:** Slice 3a, §8 kapılarını bozmaz; **PR #313 merge ile doğrulandı** (pytest + CI yeşil).
 
 ---
 
@@ -86,4 +86,4 @@ Aşağıdaki dilim **docs-onaylı**; tek PR, dar kapsam, rollback kolay.
 
 ---
 
-Son güncelleme: 2026-06-20 (Faz 3 keşif — Slice 3a approved-for-implementation)
+Son güncelleme: 2026-06-20 (Slice 3a **implementation-complete** — PR #313; DL-A17)

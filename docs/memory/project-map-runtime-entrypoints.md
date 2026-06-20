@@ -187,7 +187,7 @@ Aşağıdaki satırlar henüz repo dışı kaynaktan işlenmedi veya doğrulanma
 | 1 | `[superseded / not-found]` | `lumos-demo` konumu ve lumos-core ile ilişkisi | OD-045 kapandı; `work_2026` altında yok; lumos-core parçası değil; sonradan bulunursa ayrı değerlendirme |
 | 2 | `[closed]` | Birincil kullanıcı yüzeyi (OD-043) | `ui/` birincil; `panel/` legacy E2E; `frontend/` birincil değil — [`primary-user-surface-decision.md`](primary-user-surface-decision.md) |
 | 3 | `[migrated]` | `lumos web` / `web/app.py` — OD-028 B1 alt komut kaldırıldı | `web/` restore yok; `__main__.py` güncellendi |
-| 4 | `[approved-for-implementation]` | `packages/kando_*` → `src/` geçiş (OD-027) | Seçenek C; Slice 3a onaylı — [`kando-packages-faz3-keşif-raporu.md`](kando-packages-faz3-keşif-raporu.md) |
+| 4 | `[approved-for-implementation]` | `packages/kando_*` → `src/` geçiş (OD-027) | Seçenek C; Slice 3a **complete** (#313) — [`kando-packages-faz3-keşif-raporu.md`](kando-packages-faz3-keşif-raporu.md); Slice 3b pending |
 | 5 | `[queued]` | ChatGPT Saved Memories’ten ek proje yolu / deploy notları | `chatgpt-saved-memories-migration.md` tablosuna yapıştırılacak |
 
 ---

@@ -222,14 +222,14 @@ Dokunulmaz (cutover öncesi):
 
 **Çıkış:** Bu belge + OD-027 indeks güncellemesi (`decision-approved / implementation-pending`).
 
-### Faz 3 — Kesme öncesi kapılar + Slice 3a `[approved-for-implementation — 2026-06-20]`
+### Faz 3 — Kesme öncesi kapılar + Slice 3a `[implementation-complete — PR #313]`
 
 Keşif raporu: [`kando-packages-faz3-keşif-raporu.md`](./kando-packages-faz3-keşif-raporu.md).
 
-**Onaylı ilk dilim (Slice 3a — S effort, ayrı PR):**
+**Tamamlanan dilim (Slice 3a — S effort, PR #313 / `c0b8ea0`):**
 
-1. `kando_core.__main__.py` web kalıntısı kaldırma (OD-028 hizası)
-2. `kando_runtime/lumos_runtime.py` ölü ayna kaldırma
+1. `kando_core.__main__.py` web kalıntısı kaldırıldı (OD-028 hizası)
+2. `kando_runtime/lumos_runtime.py` ölü ayna silindi
 3. Import sözleşmesi referans notu (docs-only veya README)
 
 §8 checklist Slice 3a için geçerli; tam ayna paket arşivi **3b** (henüz onaylanmadı).
@@ -314,7 +314,7 @@ Keşif raporu: [`kando-packages-faz3-keşif-raporu.md`](./kando-packages-faz3-ke
 
 | OD | Konu | Bu belgedeki karşılık | Durum |
 |----|------|------------------------|--------|
-| **OD-027** | `packages/kando_*` → `src/` geçiş takvimi ve kesme kriterleri | Bu dosyanın tamamı + Faz 3 keşif | **approved-for-implementation** (Slice 3a) |
+| **OD-027** | `packages/kando_*` → `src/` geçiş takvimi ve kesme kriterleri | Bu dosyanın tamamı + Faz 3 keşif | **approved-for-implementation** (Slice 3a **complete**; 3b pending) |
 | OD-028 | `lumos web` / `web/app.py` | §3 — kök kapalı (B1); `kando_core.__main__` kalıntısı Slice 3a | **closed** (çapraz temizlik Slice 3a) |
 | OD-043 | Birincil kullanıcı yüzeyi | §2 kapsam dışı; geçişten bağımsız | **closed** (çapraz) |
 | OD-046 | Root build vs kök E2E | §2 kapsam dışı; geçişten bağımsız | **closed** (çapraz) |
@@ -325,7 +325,7 @@ Keşif raporu: [`kando-packages-faz3-keşif-raporu.md`](./kando-packages-faz3-ke
 
 ## 13. Sonraki adım
 
-**Tek adım (uygulama):** Slice **3a** PR — § [`kando-packages-faz3-keşif-raporu.md`](./kando-packages-faz3-keşif-raporu.md) tablo 3a-1..3a-3; pytest + CI yeşil. Slice **3b** (ayna paket arşivi) ayrı onay gerektirir.
+**Tek adım (karar):** Slice **3b** karar kaydı — ayna paket arşivi hedef path + rollback planı; [`kando-packages-faz3-keşif-raporu.md`](./kando-packages-faz3-keşif-raporu.md) §5. **Uygulama:** Slice 3b PR (3b onayı sonrası); pytest + CI yeşil.
 
 ---
 
