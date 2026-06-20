@@ -1996,6 +1996,22 @@ const ADR_QUANTUM_URL = `${GITHUB_REPO_URL}/blob/main/docs/decisions/ADR-001-lum
           flex: 1 1 auto;
           padding-bottom: 3px;
         }
+        /** Sağ kenar fade: kaydırılabilir nav linklerini (Panel/Kurulum) görünür kılar */
+        .lumos-site-nav__list.lumos-site-nav__list--scroll-hint {
+          position: relative;
+          -webkit-mask-image: linear-gradient(
+            to right,
+            #000 0%,
+            #000 calc(100% - 2.25rem),
+            transparent 100%
+          );
+          mask-image: linear-gradient(
+            to right,
+            #000 0%,
+            #000 calc(100% - 2.25rem),
+            transparent 100%
+          );
+        }
         .lumos-site-nav__corner {
           flex-shrink: 0;
           align-self: center;
@@ -2184,7 +2200,7 @@ const ADR_QUANTUM_URL = `${GITHUB_REPO_URL}/blob/main/docs/decisions/ADR-001-lum
                 </span>
               </a>
             </div>
-            <ul class="lumos-site-nav__list">
+            <ul class="lumos-site-nav__list lumos-site-nav__list--scroll-hint">
               <li>
                 <a class="lumos-site-nav__link" href="#dunya" data-i18n="nav.world">Dünya</a>
               </li>

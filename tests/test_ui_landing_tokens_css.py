@@ -130,6 +130,17 @@ def test_landing_hero_ask_submit_distinct_from_cta_panel_tr() -> None:
     assert ask_submit.group(1) != cta_panel.group(1)
 
 
+def test_landing_mobile_nav_scroll_hint_in_mobile_block() -> None:
+    text = _INDEX_ASTRO.read_text(encoding="utf-8")
+    assert 'class="lumos-site-nav__list lumos-site-nav__list--scroll-hint"' in text
+    mobile_nav_anchor = "Küçük ekran cilası: yalnızca max-width ile"
+    assert mobile_nav_anchor in text
+    mobile_nav_start = text.index(mobile_nav_anchor)
+    mobile_nav_block = text[mobile_nav_start : mobile_nav_start + 5000]
+    assert "lumos-site-nav__list--scroll-hint" in mobile_nav_block
+    assert "mask-image: linear-gradient" in mobile_nav_block
+
+
 def test_landing_hero_no_duplicate_inline_copy_dict() -> None:
     text = _INDEX_ASTRO.read_text(encoding="utf-8")
     tr_text = (_REPO_ROOT / "ui" / "src" / "i18n" / "messages" / "tr.ts").read_text(encoding="utf-8")
