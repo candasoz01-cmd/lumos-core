@@ -747,6 +747,19 @@ PANEL_I18N_V44_TR_KEYS = (
     "sendLoading:",
 )
 
+PANEL_I18N_V45_MARKERS = (
+    "function transcriptBlockedUserMessage(",
+    "function transcriptEngineUserMessage(",
+    "showStatus(transcriptBlockedUserMessage(result))",
+    "showStatus(transcriptEngineUserMessage(result))",
+)
+
+PANEL_I18N_V45_TR_KEYS = (
+    "engineMsg:",
+    "limitedMsg:",
+    "limitedUserMsg:",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -1482,3 +1495,19 @@ def test_panel_i18n_v44_locale_send_hint_refresh_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V44_TR_KEYS:
         assert key in tr_text, f"missing panel tr v44 key fragment: {key}"
         assert key in en_text, f"missing panel en v44 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v45_transcript_classified_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V45_MARKERS:
+        assert token in text, f"missing panel i18n v45 token: {token}"
+    assert 'showStatus(result.message || panelT("panel.modules.chat.transcript.limitedMsg"))' not in text
+    assert 'showStatus(result.message || panelT("panel.modules.chat.transcript.engineMsg"))' not in text
+
+
+def test_panel_i18n_v45_transcript_classified_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V45_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v45 key fragment: {key}"
+        assert key in en_text, f"missing panel en v45 key fragment: {key}"
