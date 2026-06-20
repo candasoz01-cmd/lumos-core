@@ -1,6 +1,6 @@
 # Evidence Continuity v2 — backlog ve uygulama sırası
 
-> **Durum:** `implementation-complete` — 14/14 madde minimum v1 uygulandı (PR #255–#291); opsiyonel UX takibi EC2-01 silme.
+> **Durum:** `implementation-complete` — 14/14 madde + EC2-01 silme UX opsiyonel takip kapandı (PR #255–#291, #297–#298); v2 minimum v1 tamam.
 >
 > **v1 durumu:** [`evidence-continuity-v1-decision.md`](./evidence-continuity-v1-decision.md) — `[implemented]` / `[verified]` (PR #248, `main`); OD-058 **closed**.
 >
@@ -29,7 +29,7 @@ Kaynak: [`evidence-continuity-v1-decision.md`](./evidence-continuity-v1-decision
 
 | ID | Madde | Öncelik | v2 ilk dalga |
 |----|-------|---------|--------------|
-| EC2-01 | Chat görev persist + `id` + silme UX düzeltmesi | **P0** | Evet — **`[implemented]`** PR #256 (`5073780`); silme UX **`[decision-recorded]`** — [`evidence-continuity-ec2-01-silme-ux-decision.md`](./evidence-continuity-ec2-01-silme-ux-decision.md) |
+| EC2-01 | Chat görev persist + `id` + silme UX düzeltmesi | **P0** | Evet — **`[implemented]`** core PR #256 (`5073780`); silme UX **`[implemented]`** PR #297 (karar) + #298 (`d778fc9`) — [`evidence-continuity-ec2-01-silme-ux-decision.md`](./evidence-continuity-ec2-01-silme-ux-decision.md) |
 | EC2-02 | Client evidence queue (`localStorage` → sunucu journal sync) | **P0** | Evet — **`[implemented]`** PR #258 (`bc6e4e0`) / [`evidence-continuity-ec2-02-decision.md`](./evidence-continuity-ec2-02-decision.md) |
 | EC2-03 | Köprü `POST /task` outbox append + journal mirror | **P1** | Evet — **`[implemented]`** PR #265 (`b1c48aa`) / [`evidence-continuity-ec2-03-decision.md`](./evidence-continuity-ec2-03-decision.md) |
 | EC2-04 | Guard/policy tek semantik journal (`record_guard_event`, `log_policy_blocked`) | **P1** | Evet — **`[implemented]`** PR #268 (`9475a0f`) / [`evidence-continuity-ec2-04-decision.md`](./evidence-continuity-ec2-04-decision.md) |
@@ -127,7 +127,7 @@ EC2-05 (store merge)          ── bağımsız OD; v2 fazlarına hard dependen
 | Chat görev sunucu persist | EC2-01 | v1 H1 journal hazır |
 | `id` + silme UX | EC2-01 | Ayrı «sohbet görev silme» takip maddesi ile hizalı |
 
-**Durum (2026-06-20):** **`[implemented]`** core — PR #256; silme UX follow-up **`[decision-recorded]`** V1-a…V1-e — [`evidence-continuity-ec2-01-silme-ux-decision.md`](./evidence-continuity-ec2-01-silme-ux-decision.md).
+**Durum (2026-06-20):** **`[implemented]`** — core PR #256; silme UX V1-a…V1-e PR #297 + #298 (`d778fc9`) — [`evidence-continuity-ec2-01-silme-ux-decision.md`](./evidence-continuity-ec2-01-silme-ux-decision.md).
 
 **Çıktı:** Chat kaynaklı görevler sunucu mutasyonuna girer; journal boşluğu kapanmaya başlar. ✓
 
@@ -219,7 +219,7 @@ Detay: [`audit-hook-term-decision.md`](./audit-hook-term-decision.md).
 | [`evidence-continuity-ec2-05-decision.md`](./evidence-continuity-ec2-05-decision.md) | EC2-05 `[implemented]` — PR #277; registry + dual health v1 |
 | [`primary-user-surface-decision.md`](./primary-user-surface-decision.md) | EC2-06 legacy panel |
 | [`open-decisions-needs-review.md`](./open-decisions-needs-review.md) | OD-058 (v1 closed), OD-059 (audit terminoloji) |
-| [`evidence-continuity-ec2-01-silme-ux-decision.md`](./evidence-continuity-ec2-01-silme-ux-decision.md) | EC2-01 silme UX follow-up — `[decision-recorded]`; V1-a…V1-e panel.astro |
+| [`evidence-continuity-ec2-01-silme-ux-decision.md`](./evidence-continuity-ec2-01-silme-ux-decision.md) | EC2-01 silme UX — `[implemented]` PR #297 + #298; V1-a…V1-e `panel.astro` |
 | [`evidence-continuity-ec2-02-decision.md`](./evidence-continuity-ec2-02-decision.md) | EC2-02 `[implemented]` — PR #258 (`bc6e4e0`); Phase 3 kapalı |
 | [`evidence-continuity-ec2-12-decision.md`](./evidence-continuity-ec2-12-decision.md) | EC2-12 `[implemented]` — PR #261 (`aa2a6ff`); DR1–DR7 pytest harness |
 | [`evidence-continuity-ec2-03-decision.md`](./evidence-continuity-ec2-03-decision.md) | EC2-03 `[implemented]` — PR #265 (`b1c48aa`); köprü POST /task journal mirror |
@@ -234,7 +234,7 @@ Detay: [`audit-hook-term-decision.md`](./audit-hook-term-decision.md).
 ## Sonraki adım
 
 1. **Phase 5 (P2):** Tamamlandı — EC2-06..11 minimum v1 uygulandı.
-2. **Phase 2 kalan (opsiyonel):** EC2-01 silme UX karar kaydı açıldı — uygulama PR bekliyor ([`evidence-continuity-ec2-01-silme-ux-decision.md`](./evidence-continuity-ec2-01-silme-ux-decision.md)).
+2. **Phase 2 opsiyonel:** EC2-01 silme UX kapandı — PR #297 (karar) + #298 (V1-a…V1-e); bkz. [`evidence-continuity-ec2-01-silme-ux-decision.md`](./evidence-continuity-ec2-01-silme-ux-decision.md).
 3. **EC2-05:** Karar [`evidence-continuity-ec2-05-decision.md`](./evidence-continuity-ec2-05-decision.md) — tam merge reddedildi; minimum v1 registry + dual health.
 
 ---
@@ -243,4 +243,4 @@ Detay: [`audit-hook-term-decision.md`](./audit-hook-term-decision.md).
 
 ---
 
-Son güncelleme: 2026-06-20 (EC2-01 silme UX karar kaydı; Phase 1–5 tamamlandı)
+Son güncelleme: 2026-06-20 (EC2-01 silme UX `[implemented]` PR #297–#298; Phase 1–5 + opsiyonel takip tamam)

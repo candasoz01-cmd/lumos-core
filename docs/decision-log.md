@@ -53,7 +53,7 @@ Karar verildi; kod/CI uygulaması henüz yapılmadı. OD **closed** sayılmaz.
 
 ### Karar kapandı — uygulama merge edildi
 
-Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A15 takip satırları kapandı.
+Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A16 takip satırları kapandı.
 
 | ID | Tarih | Konu | Karar | Merge | Bağlantı |
 |----|-------|------|-------|-------|----------|
@@ -70,7 +70,7 @@ Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A15 takip satırları kap
 | DL-A11 | 2026-06-20 | EC2-07 events[] projection metadata | **Seçenek 1 (minimum v1)** — soft deprecation metadata; disk yazım korunur | PR #286 (`424cf19`) — `tasks_json_events_projection_meta()` + GET enrich + E1–E6 pytest | [`docs/memory/evidence-continuity-ec2-07-decision.md`](memory/evidence-continuity-ec2-07-decision.md) § Uygulama |
 | DL-A12 | 2026-06-20 | EC2-10 ObservationEngine disk spill | **Seçenek 1 (minimum v1)** — JSONL spill; TaskEngine auto-wire; evidence journal dışı | PR #289 (`1a0f411`) — `ObservationLifecycleSpill` + O1–O6 pytest | [`docs/memory/evidence-continuity-ec2-10-decision.md`](memory/evidence-continuity-ec2-10-decision.md) § Uygulama |
 | DL-A13 | 2026-06-20 | EC2-11 Structured evidence query | **Seçenek 1 (minimum v1)** — filtered tail query; tam reconstruct v1 dışı | PR #291 (`980a50f`) — `query_evidence_events()` + GET `/evidence/query` + Q1–Q6 pytest | [`docs/memory/evidence-continuity-ec2-11-decision.md`](memory/evidence-continuity-ec2-11-decision.md) § Uygulama |
-| DL-A14 | 2026-06-19 | EC2-01 Chat görev persist + `id` | **Minimum v1** — chat create `POST /tasks` + H1 journal; sunucu `tsk_*` id; silme UX opsiyonel takip | PR #256 (`5073780`) — `panel.astro` + `test_panel_gorev_create_ec2_01.py` | [`docs/memory/evidence-continuity-v2-backlog.md`](memory/evidence-continuity-v2-backlog.md) § Phase 2 |
+| DL-A14 | 2026-06-19 | EC2-01 Chat görev persist + `id` | **Minimum v1** — chat create `POST /tasks` + H1 journal; sunucu `tsk_*` id; silme UX → DL-A16 | PR #256 (`5073780`) — `panel.astro` + `test_panel_gorev_create_ec2_01.py` | [`docs/memory/evidence-continuity-v2-backlog.md`](memory/evidence-continuity-v2-backlog.md) § Phase 2 |
 | DL-A15 | 2026-06-19 | EC2-14 Şema validator CI kapısı | **Minimum v1** — `validate_evidence_record` pytest CI kapısı; ayrı decision memo yok | PR #255 (`5b2ae6b`) — `test_evidence_continuity.py` journal şema doğrulama | [`docs/memory/evidence-continuity-v2-backlog.md`](memory/evidence-continuity-v2-backlog.md) § Phase 1 |
 
 ### İleride değerlendirilecek
