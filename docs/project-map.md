@@ -51,7 +51,7 @@ lumos  (veya python -m lumos_core)
 |-------|--------|-----|--------|
 | **`ui/`** | `lumos-core-ui` | Astro statik site; landing + `/panel` | **proje haritası** — Vercel deploy hedefi |
 | **`panel/`** | `lumos-panel` | Statik panel; kök E2E (`e2e:* --prefix panel`) | **proje haritası** |
-| **`frontend/`** | yok | İzole HTML prototip; köprü E2E | **ileride değerlendirilecek** (OD-044) |
+| **`frontend/`** | yok | İzole HTML prototip; köprü E2E (Seçenek B) | **closed** (OD-044) |
 | **`backend/`** | — | Express + Prisma SQLite API | **proje haritası** |
 | **`api/bridge/[...path].js`** | — | Vercel serverless proxy | **proje haritası** |
 
@@ -115,8 +115,8 @@ lumos  (veya python -m lumos_core)
 
 - `docs/memory/primary-user-surface-decision.md` — OD-043 (**closed**)
 - `docs/memory/build-e2e-surface-alignment-decision.md` — OD-046
-- `docs/memory/frontend-role-decision.md` — OD-044
+- `docs/memory/frontend-role-decision.md` — OD-044 (**closed**)
 
 ---
 
-Son güncelleme: 2026-06-20 (OD-043 closed)
+Son güncelleme: 2026-06-20 (OD-044 closed)

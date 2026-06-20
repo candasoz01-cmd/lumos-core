@@ -1,8 +1,8 @@
-# frontend/ rolü ve yaşam döngüsü — karar taslağı (OD-044)
+# frontend/ rolü ve yaşam döngüsü — karar (OD-044)
 
-**Durum:** `[decision-draft]` — uygulama değildir; kod değişikliği içermez.  
-**Kaynak:** `docs/memory/open-decisions-needs-review.md` (OD-044; çapraz OD-043, OD-046).  
-**Doğrulama:** Repo dosya sistemi read-only tarama — 2026-06-17.
+**Durum:** `[closed]` — Seçenek **B** onaylandı; kod/taşıma/arşiv/silme yok.  
+**Kaynak:** `docs/memory/open-decisions-needs-review.md` (OD-044; çapraz OD-043 **closed**, OD-046 **closed**).  
+**Doğrulama:** Repo dosya sistemi read-only tarama — 2026-06-17; formal kapanış — 2026-06-20.
 
 ---
 
@@ -187,7 +187,7 @@ Aşağıdaki seçenekler **karar değildir** — bilinçli değerlendirme adayla
 | Rol netleşene kadar (prototip / köprü E2E / legacy / arşiv adayı) canlı yüzey sayılmaz | **Sabit** |
 | `frontend/` ≠ `ui/` | **Sabit** |
 | `frontend/` ≠ `panel/` | **Sabit** |
-| Yaşam döngüsü seçeneği (A/B/C/D) | **`needs-review`** — henüz seçilmedi |
+| Yaşam döngüsü seçeneği (A/B/C/D) | **Seçenek B onaylandı** — izole köprü E2E + prototip referans; üretim/deploy/root build/root E2E yüzeyi değil |
 
 ### Kanıta dayalı taslak pozisyon
 
@@ -246,11 +246,11 @@ Görev veya PR açılmadan önce:
 
 | ID | Soru | Bu belgedeki durum |
 |----|------|-------------------|
-| **OD-044** | `frontend/` rolü ve yaşam döngüsü? | Canlı **değil**; A/B/C/D seçeneği **`needs-review`** |
-| **OD-043** | Birincil yüzey `panel/`, `ui/` veya `frontend/` mi? | `frontend/` birincil **değil**; kesin karar OD-043'te açık |
-| **OD-046** | Root build (ui) ile panel E2E hangi yüzeyi «canlı» sayar? | `frontend/` bu çelişkinin **dışında**; çapraz not |
+| **OD-044** | `frontend/` rolü ve yaşam döngüsü? | **Kapandı (closed):** Seçenek B — izole köprü E2E + prototip; üretim/canlı değil |
+| **OD-043** | Birincil yüzey `panel/`, `ui/` veya `frontend/` mi? | **Kapandı (closed):** birincil `ui/`; `frontend/` birincil değil |
+| **OD-046** | Root build (ui) ile kök E2E hangi yüzeyi «canlı» sayar? | **Kapandı (closed):** kök E2E `ui/dist`; `frontend/` dışında |
 
-OD-044 kapanmadan `frontend/` için arşivleme, taşıma veya silme **uygulama görevi** açılmaz.
+Seçenek B kapsamında kod/taşıma/arşiv/silme **yapılmaz**. A/C/D veya hibrit değişiklik ayrı görev gerektirir.
 
 ---
 
@@ -258,24 +258,38 @@ OD-044 kapanmadan `frontend/` için arşivleme, taşıma veya silme **uygulama g
 
 | ID | Kaynak | Konu | Bu belgede netleşen | Durum | Çapraz not |
 |----|--------|------|---------------------|--------|------------|
-| **OD-044** | project-map-runtime-entrypoints.md | `frontend/` rolü ve yaşam döngüsü | Canlı yüzey değil; 2 dosya; izole köprü E2E; A/B/C/D aday | **needs-review** | Bu belgenin ana konusu |
-| **OD-043** | project-map-runtime-entrypoints.md | Birincil kullanıcı yüzeyi | `frontend/` birincil aday değil | **needs-review** | primary-user-surface-decision.md |
-| **OD-046** | project-map-runtime-entrypoints.md | Root build vs panel E2E | `frontend/` build/E2E zincirinde yok | **needs-review** | build-e2e-surface-alignment-decision.md |
+| **OD-044** | project-map-runtime-entrypoints.md | `frontend/` rolü ve yaşam döngüsü | Seçenek B: izole köprü E2E + prototip; canlı değil | **closed** | Bu belgenin ana konusu |
+| **OD-043** | project-map-runtime-entrypoints.md | Birincil kullanıcı yüzeyi | Birincil `ui/`; `frontend/` birincil değil | **closed** | primary-user-surface-decision.md |
+| **OD-046** | project-map-runtime-entrypoints.md | Root build vs kök E2E | Kök E2E `ui/dist`; `frontend/` zincirde yok | **closed** | build-e2e-surface-alignment-decision.md |
 
 ---
 
-## Sonraki adım
+## Onaylı karar (Seçenek B)
 
-**Tek önerilen adım:** OD-044 için kısa karar oturumu — §Yaşam döngüsü seçenekleri tablosundan (A/B/C/D veya hibrit) birinin seçilmesi; seçimde `run-frontend-task-loading.mjs` ve `project_memory_v1.js` kaderinin açık yazılması.
+| Karar | İfade |
+|-------|--------|
+| Yaşam döngüsü | **B — E2E/prototip olarak koru** — dizin kalır; rol «izole köprü E2E + prototip referans» |
+| Üretim / deploy | **Dahil değil** — root build, Vercel, kök E2E kapısında yok |
+| Birincil yüzey | **Değil** — OD-043 **closed** ile birincil `ui/` |
+| Kod değişikliği | **Yok** — taşıma, arşiv, silme veya `ui/` migrasyonu (Seçenek C) ayrı görev |
+| `run-frontend-task-loading.mjs` | **Korunur** — izole köprü E2E hedefi olarak kalır |
+| `project_memory_v1.js` | **Korunur** — `index.html` import etmiyor; ayrı legacy parça; B kapsamında dokunulmaz |
 
-Bu adım tamamlanmadan:
-
-- OD-044 **closed** sayılmaz.
-- `frontend/` taşıma, arşivleme veya silme görevi açılmaz.
-- `open-decisions-needs-review.md` indeks senkronu ayrı görev olarak yapılır (bu oturum kapsamı dışı).
-
-**OD-043 / OD-046 ile sıra notu:** Birincil yüzey ve build/E2E hizası kararları `frontend/` yaşam döngüsünü bilgilendirir (özellikle C seçeneği); ancak OD-044, «üçüncü HTML yüzeyi» sorusunu bağımsız olarak kapatmayı hedefler.
+**Özet onaylı cümle (OD-044):** `frontend/` izole köprü E2E + HTML prototip referansı olarak **korunur**; üretim, deploy, root build ve kök E2E yüzeyi **değildir**. Birincil yüzey `ui/` (OD-043). Kök E2E hizası `ui/dist` (OD-046).
 
 ---
 
-Son güncelleme: 2026-06-17
+## OD-044 kapanış checklist
+
+- [x] Seçenek B onaylandı (A/C/D seçilmedi)
+- [x] Canlı / birincil / üretim yüzeyi reddi sabit
+- [x] `frontend/` ≠ `ui/` ≠ `panel/` ayrımı belgelendi
+- [x] OD-043 / OD-046 çapraz referanslar **closed**
+- [x] `open-decisions-needs-review.md` OD-044 **closed**
+- [x] Kod/taşıma/arşiv/silme kapsam dışı
+
+**Sonraki adım (opsiyonel, ayrı görev):** Seçenek A/C/D veya `project_memory_v1.js` temizliği yalnızca açık kullanıcı komutu ile.
+
+---
+
+Son güncelleme: 2026-06-20 (OD-044 closed — Seçenek B)
