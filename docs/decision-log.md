@@ -96,6 +96,7 @@ Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A16 takip satırları kap
 | DL-C04 | 2026-06-20 | OD-044 frontend/ rolü | **Closed** — Seçenek **B**: izole köprü E2E + prototip referans; üretim/deploy/root build/root E2E değil; kod/taşıma/arşiv/silme yok | [`docs/memory/frontend-role-decision.md`](memory/frontend-role-decision.md) |
 | DL-C05 | 2026-06-20 | OD-027 kando_* Faz 3 keşif | **Slice 3a approved-for-implementation** — web kalıntısı + ölü `lumos_runtime` aynası (S effort); uygulama **DL-A17** (#313) ile kapandı; Slice 3b pending | [`docs/memory/kando-packages-faz3-keşif-raporu.md`](memory/kando-packages-faz3-keşif-raporu.md) |
 | DL-C06 | 2026-06-20 | OD-059 Paket B CI ruff parity | Pre-commit ile CI hizalandı — `ruff check .` in `.github/workflows/ci.yml` | [`docs/memory/audit-hook-term-decision.md`](memory/audit-hook-term-decision.md) |
+| DL-C07 | 2026-06-20 | OD-027 Slice 3b ayna paket arşivi | **`approved-for-implementation`** — dört ölü ayna paket (`kando_core`, `kando_memory`, `kando_policy`, `kando_context`) → `archive/packages/`; dış import sıfır; rollback `git mv` geri; bridge/runtime/CI PYTHONPATH dokunulmaz | [`docs/memory/od-027-slice-3b-archive-decision.md`](memory/od-027-slice-3b-archive-decision.md) |
 
 ---
 
@@ -128,4 +129,4 @@ Tam liste: `docs/memory/open-decisions-needs-review.md` (OD-001 … OD-060).
 
 ---
 
-Son güncelleme: 2026-06-20 (DL-A17 — OD-027 Slice 3a merge kapanışı)
+Son güncelleme: 2026-06-20 (DL-C07 — OD-027 Slice 3b karar)

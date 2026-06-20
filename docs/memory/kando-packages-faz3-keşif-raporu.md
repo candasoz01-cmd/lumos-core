@@ -1,6 +1,6 @@
 # OD-027 Faz 3 — Keşif raporu (uygulama öncesi)
 
-**Durum:** Slice **3a** **`implementation-complete`** (PR #313, `c0b8ea0`); Slice **3b** `implementation-pending` (karar kaydı bekliyor).  
+**Durum:** Slice **3a** **`implementation-complete`** (PR #313, `c0b8ea0`); Slice **3b** **`approved-for-implementation`** — [`od-027-slice-3b-archive-decision.md`](./od-027-slice-3b-archive-decision.md).  
 **Kaynak karar:** [`kando-packages-transition-decision.md`](./kando-packages-transition-decision.md) (Seçenek C — Hibrit).  
 **Faz 1 envanter:** [`kando-packages-faz1-inventory.md`](./kando-packages-faz1-inventory.md).  
 **Doğrulama tarihi:** 2026-06-20 (repo salt-okuma + grep).
@@ -67,7 +67,7 @@ Aşağıdaki dilim **merge edildi** (`c0b8ea0`); tek PR, dar kapsam, rollback ko
 
 | Dilim | İçerik | Durum |
 |-------|--------|--------|
-| **3b** | Ayna paket arşivi (`kando_core`, `kando_memory`, `kando_policy`, `kando_context`) → `archive/` | `implementation-pending` — açık hedef path + rollback planı gerekir |
+| **3b** | Ayna paket arşivi (`kando_core`, `kando_memory`, `kando_policy`, `kando_context`) → `archive/packages/` | **`approved-for-implementation`** — [`od-027-slice-3b-archive-decision.md`](./od-027-slice-3b-archive-decision.md) |
 | **4** | Cutover onayı | Kullanıcı açık komutu + §8 tam checklist |
 | **5** | İndeks `migrated` / `superseded` | Faz 4 sonrası |
 
@@ -82,8 +82,8 @@ Aşağıdaki dilim **merge edildi** (`c0b8ea0`); tek PR, dar kapsam, rollback ko
 | Faz 2 karar | **Onaylı** |
 | Faz 3 keşif (bu belge) | **Tamamlandı** |
 | İlk uygulama dilimi (Slice 3a) | **`implementation-complete`** |
-| Tam geçiş / arşiv | **`implementation-pending`** |
+| Tam geçiş / arşiv | **`approved-for-implementation`** (Slice 3b karar; uygulama PR bekler) |
 
 ---
 
-Son güncelleme: 2026-06-20 (Slice 3a **implementation-complete** — PR #313; DL-A17)
+Son güncelleme: 2026-06-20 (Slice 3b **`approved-for-implementation`** — DL-C07)

@@ -232,7 +232,7 @@ Keşif raporu: [`kando-packages-faz3-keşif-raporu.md`](./kando-packages-faz3-ke
 2. `kando_runtime/lumos_runtime.py` ölü ayna silindi
 3. Import sözleşmesi referans notu (docs-only veya README)
 
-§8 checklist Slice 3a için geçerli; tam ayna paket arşivi **3b** (henüz onaylanmadı).
+§8 checklist Slice 3a için geçerli; tam ayna paket arşivi **3b** — [`od-027-slice-3b-archive-decision.md`](./od-027-slice-3b-archive-decision.md) **`approved-for-implementation`**.
 
 ### Faz 4 — Kesme (cutover) `[implementation-pending — kullanıcı onayı zorunlu]`
 
@@ -314,7 +314,7 @@ Keşif raporu: [`kando-packages-faz3-keşif-raporu.md`](./kando-packages-faz3-ke
 
 | OD | Konu | Bu belgedeki karşılık | Durum |
 |----|------|------------------------|--------|
-| **OD-027** | `packages/kando_*` → `src/` geçiş takvimi ve kesme kriterleri | Bu dosyanın tamamı + Faz 3 keşif | **approved-for-implementation** (Slice 3a **complete**; 3b pending) |
+| **OD-027** | `packages/kando_*` → `src/` geçiş takvimi ve kesme kriterleri | Bu dosyanın tamamı + Faz 3 keşif | **approved-for-implementation** (Slice 3a **complete**; 3b karar onaylı) |
 | OD-028 | `lumos web` / `web/app.py` | §3 — kök kapalı (B1); `kando_core.__main__` kalıntısı Slice 3a | **closed** (çapraz temizlik Slice 3a) |
 | OD-043 | Birincil kullanıcı yüzeyi | §2 kapsam dışı; geçişten bağımsız | **closed** (çapraz) |
 | OD-046 | Root build vs kök E2E | §2 kapsam dışı; geçişten bağımsız | **closed** (çapraz) |
@@ -325,7 +325,7 @@ Keşif raporu: [`kando-packages-faz3-keşif-raporu.md`](./kando-packages-faz3-ke
 
 ## 13. Sonraki adım
 
-**Tek adım (karar):** Slice **3b** karar kaydı — ayna paket arşivi hedef path + rollback planı; [`kando-packages-faz3-keşif-raporu.md`](./kando-packages-faz3-keşif-raporu.md) §5. **Uygulama:** Slice 3b PR (3b onayı sonrası); pytest + CI yeşil.
+**Tek adım (uygulama):** Slice **3b** PR — [`od-027-slice-3b-archive-decision.md`](./od-027-slice-3b-archive-decision.md) §3 (`git mv` → `archive/packages/`); pytest + CI yeşil. Faz 4 cutover ayrı kullanıcı onayı gerektirir.
 
 ---
 
