@@ -787,6 +787,13 @@ PANEL_I18N_V47_TR_KEYS = (
     "charsRemaining:",
 )
 
+PANEL_I18N_V48_MARKERS = (
+    "function scrollActivePanelNavChipIntoView(",
+    'scrollIntoView({ behavior: "smooth", inline: "nearest", block: "nearest" })',
+    "scrollActivePanelNavChipIntoView(btn)",
+    "scrollActivePanelNavChipIntoView(",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -1570,3 +1577,9 @@ def test_panel_i18n_v47_chat_log_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V47_TR_KEYS:
         assert key in tr_text, f"missing panel tr v47 key fragment: {key}"
         assert key in en_text, f"missing panel en v47 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v48_mobile_nav_scroll_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V48_MARKERS:
+        assert token in text, f"missing panel i18n v48 token: {token}"
