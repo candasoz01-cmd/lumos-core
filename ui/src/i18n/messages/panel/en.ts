@@ -384,6 +384,8 @@ const panel: typeof panelTr = {
       listDefault: "No tasks yet. Enter a short title above and use «Add task».",
       listFilter: "No tasks in this filter. Switch to «All» to see every task.",
       evidence: "No server evidence yet",
+      evidenceUnreachable:
+        "Could not reach the evidence server; check your connection.",
     },
     detail: {
       title: "Task",
