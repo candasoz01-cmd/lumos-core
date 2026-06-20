@@ -680,20 +680,20 @@ const panel: typeof panelTr = {
   settings: {
     intro:
       "This tab summarizes keeping preferences, connection and permission limits, and default behaviors under your control and visible.",
-    c1Title: "User preferences",
-    c1Body: "Options like language, theme, and notification intensity aim to be grouped clearly.",
-    c2Title: "Limits and permissions",
+    c1Title: "User mode",
+    c1Body:
+      "You choose how much the panel runs. This preference is separate from infrastructure connection status; the bridge badge only shows technical status.",
+    c2Title: "Infrastructure status",
     c2Body:
-      "Which feature depends on which permission is shown in short summaries; permissions you turned off are not silently re-enabled.",
-    c3Title: "Connection settings",
-    c3Body:
-      "External service and account links can be seen in one place; disconnecting and reconnecting stays with you when needed.",
-    c4Title: "Privacy and safety preferences",
+      "Bridge, key, health, and network status — a technical summary independent of user mode.",
+    c3Title: "User preferences",
+    c3Body: "Options like language, theme, and notification intensity aim to be grouped clearly.",
+    c4Title: "Limits and permissions",
     c4Body:
-      "Choices about sharing, logging, or retention are separated, each with a clear explanation.",
-    c5Title: "Defaults and control",
+      "Which feature depends on which permission is shown in short summaries; permissions you turned off are not silently re-enabled.",
+    c5Title: "Connection settings",
     c5Body:
-      "Default behaviors aim to be shown before you accept them; changes should remain reversible.",
+      "External service and account links can be seen in one place; disconnecting and reconnecting stays with you when needed.",
   },
   capabilities: {
     intro:
@@ -720,6 +720,17 @@ const panel: typeof panelTr = {
       tokenPresent: "Configured",
       online: "Online",
       offline: "Offline",
+      labelBridge: "Bridge",
+      labelToken: "Key",
+      labelHealth: "Health",
+      labelInternet: "Internet",
+      unavailableShort: "Bridge unavailable (infrastructure)",
+      unavailableMsg:
+        "Bridge unavailable (infrastructure). Check your connection and try again.",
+      healthPending: "pending…",
+      healthTrying: "trying…",
+      healthOk: "OK",
+      healthUnreachable: "unreachable",
     },
     userMode: {
       menuOffline: "Offline",

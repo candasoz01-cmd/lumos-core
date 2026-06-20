@@ -5436,13 +5436,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   Köprü, anahtar, sağlık ve ağ durumu — kullanıcı modundan bağımsız teknik özet.
                 </p>
                 <dl class="panel-infra-status-dl" aria-label="Altyapı durumu özeti">
-                  <dt>Köprü</dt>
+                  <dt data-i18n="panel.shell.infra.labelBridge">Köprü</dt>
                   <dd id="panel-infra-bridge">—</dd>
-                  <dt>Anahtar</dt>
+                  <dt data-i18n="panel.shell.infra.labelToken">Anahtar</dt>
                   <dd id="panel-infra-token">—</dd>
-                  <dt>Sağlık</dt>
+                  <dt data-i18n="panel.shell.infra.labelHealth">Sağlık</dt>
                   <dd id="panel-infra-health">—</dd>
-                  <dt>İnternet</dt>
+                  <dt data-i18n="panel.shell.infra.labelInternet">İnternet</dt>
                   <dd id="panel-infra-internet">—</dd>
                 </dl>
               </li>
@@ -5661,6 +5661,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           connBadge.textContent = panelConnBadgeLabel(state);
         }
         setPanelUserModeBadge(getPanelUserMode());
+        syncBridgeHealthLine();
         paintPanelInfraStatusSkeleton();
         document.querySelectorAll("#panel-user-mode-menu [data-mode]").forEach((item) => {
           if (!(item instanceof HTMLElement)) return;
@@ -5700,8 +5701,6 @@ const PANEL_DEBUG = import.meta.env.DEV;
           void panelEvidenceRefreshStrip();
         }
       }
-      const PANEL_INFRA_UNAVAILABLE_MSG = "Köprü erişilemiyor (altyapı). Bağlantıyı kontrol edip tekrar deneyin.";
-
       function transcribeFailureUserMessage(result, filename, mime) {
         const isMusic = isLikelyMusicAudio(filename, mime);
         const failedMusic = panelT("panel.modules.chat.transcript.failedMusic");
@@ -5876,7 +5875,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
               transcribeFailure: true,
               status: r.status,
               error: "bridge_proxy_unconfigured",
-              message: PANEL_INFRA_UNAVAILABLE_MSG,
+              message: panelT("panel.shell.infra.unavailableMsg"),
             };
           }
           if (isLocalOnlyUserMode()) {
@@ -9397,9 +9396,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   ? panelUserVisibleText(upstreamErr)
                   : userMessageForPanelChatFailureKind(httpFailKind);
               appendBubble("error", httpFailMsg);
-              reportPanelInfraUnavailable("sohbet HTTP " + r.status, "Köprü erişilemiyor (altyapı)");
+              reportPanelInfraUnavailable(
+                "sohbet HTTP " + r.status,
+                panelT("panel.shell.infra.unavailableShort"),
+              );
               void loadPanelBackendStatus();
-              if (photoTelemetry) {
+              if (photoTelemetry && PANEL_DEBUG) {
                 let reason = "HTTP " + r.status;
                 let missingKey = "";
                 if (text) {
@@ -9479,7 +9481,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
               if (havePayload) {
                 const replyBody = extractAssistantFromChatPayload(parsedPayload);
-                if (photoTelemetry) {
+                if (photoTelemetry && PANEL_DEBUG) {
                   const trimmedReply = replyBody.trim();
                   const fallbackExact = trimmedReply === REPLY_PHOTO_NO_VISION_TR;
                   const fallbackRegex = PANEL_REPLY_PHOTO_NO_VISION_RE.test(trimmedReply);
@@ -9583,10 +9585,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
             appendBubble("error", userMessageForPanelChatFailureKind(netKind));
             reportPanelInfraUnavailable(
               "sohbet ağ: " + netMsg.slice(0, 120),
-              "Köprü erişilemiyor (altyapı)",
+              panelT("panel.shell.infra.unavailableShort"),
             );
             void loadPanelBackendStatus();
-            if (photoTelemetry) {
+            if (photoTelemetry && PANEL_DEBUG) {
               const visionGuess =
                 photoTelemetry.hasInline && !!photoFile && /^image\//i.test(photoFile.type || "");
               showPanelChatPhotoTech(
@@ -12887,17 +12889,44 @@ const PANEL_DEBUG = import.meta.env.DEV;
         return lines.join("\n");
       }
 
-      let bridgeHealthLine = "bekleniyor…";
+      /** @type {"pending"|"trying"|"ok"|"unreachable"|"unavailable"} */
+      let bridgeHealthPhase = "pending";
+      let bridgeHealthDebugTail = "";
+      let bridgeHealthLine = "";
+
+      function syncBridgeHealthLine() {
+        let userKey = "panel.shell.infra.healthPending";
+        if (bridgeHealthPhase === "trying") userKey = "panel.shell.infra.healthTrying";
+        else if (bridgeHealthPhase === "ok") userKey = "panel.shell.infra.healthOk";
+        else if (bridgeHealthPhase === "unreachable") {
+          userKey = "panel.shell.infra.healthUnreachable";
+        } else if (bridgeHealthPhase === "unavailable") {
+          userKey = "panel.shell.infra.unavailableShort";
+        }
+        const userMsg = panelT(userKey);
+        if (bridgeHealthPhase === "ok" && PANEL_DEBUG && bridgeHealthDebugTail) {
+          bridgeHealthLine = userMsg + " · " + bridgeHealthDebugTail;
+        } else if (bridgeHealthDebugTail) {
+          bridgeHealthLine = panelDebugText(bridgeHealthDebugTail, userMsg);
+        } else {
+          bridgeHealthLine = userMsg;
+        }
+      }
+
+      syncBridgeHealthLine();
       let lastStatusJson = /** @type {Record<string, unknown> | null} */ (null);
       let lastStatusCorsError = false;
       let lastChatOptionsPingLine = "—";
 
       function reportPanelInfraUnavailable(debugDetail, userLine) {
         setPanelConnBadge("bad");
-        bridgeHealthLine = panelDebugText(
-          debugDetail != null ? String(debugDetail) : "erişilemedi",
-          userLine != null ? String(userLine) : "Köprü erişilemiyor (altyapı)",
-        );
+        bridgeHealthPhase = "unavailable";
+        bridgeHealthDebugTail =
+          debugDetail != null ? String(debugDetail) : "erişilemedi";
+        syncBridgeHealthLine();
+        if (userLine != null && String(userLine).trim()) {
+          bridgeHealthLine = panelDebugText(bridgeHealthDebugTail, String(userLine).trim());
+        }
         paintSistemDurumuPanel();
         paintPanelInfraStatusSkeleton();
       }
@@ -13073,7 +13102,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
       void (async function checkBridgeHealth() {
         setPanelConnBadge("pending");
-        bridgeHealthLine = "deneniyor…";
+        bridgeHealthPhase = "trying";
+        bridgeHealthDebugTail = "";
+        syncBridgeHealthLine();
         paintSistemDurumuPanel();
         const candidates = [
           HEALTH_URL,
@@ -13092,21 +13123,31 @@ const PANEL_DEBUG = import.meta.env.DEV;
             last = res;
             if (res.ok) {
               ok = true;
-              bridgeHealthLine = PANEL_DEBUG ? "OK · " + res.url : "OK";
+              bridgeHealthPhase = "ok";
+              bridgeHealthDebugTail = PANEL_DEBUG ? res.url : "";
+              syncBridgeHealthLine();
               break;
             }
           }
           setPanelConnBadge(ok ? "ok" : "bad");
           if (!ok && last) {
-            bridgeHealthLine = PANEL_DEBUG
+            bridgeHealthPhase = "unreachable";
+            bridgeHealthDebugTail = PANEL_DEBUG
               ? "erişilemedi (" + last.detail + ")"
-              : "erişilemedi";
+              : "";
+            syncBridgeHealthLine();
           } else if (!ok) {
-            bridgeHealthLine = panelDebugText("uygun URL yok", "erişilemedi");
+            bridgeHealthPhase = "unreachable";
+            bridgeHealthDebugTail = PANEL_DEBUG ? "uygun URL yok" : "";
+            syncBridgeHealthLine();
           }
         } catch {
           setPanelConnBadge("bad");
-          bridgeHealthLine = panelDebugText("istisna (köprü kapalı olabilir)", "erişilemedi");
+          bridgeHealthPhase = "unreachable";
+          bridgeHealthDebugTail = PANEL_DEBUG
+            ? "istisna (köprü kapalı olabilir)"
+            : "";
+          syncBridgeHealthLine();
         }
         paintSistemDurumuPanel();
       })();

@@ -1,4 +1,4 @@
-"""Panel i18n v1–v20 — LanguageSwitcher, nav, modules, Sohbet chat, Görevler."""
+"""Panel i18n v1–v21 — LanguageSwitcher, nav, modules, Sohbet chat, Görevler."""
 
 from __future__ import annotations
 
@@ -349,6 +349,32 @@ PANEL_I18N_V20_TR_KEYS = (
     "tokenMissing:",
 )
 
+PANEL_I18N_V21_MARKERS = (
+    'data-i18n="panel.shell.infra.labelBridge"',
+    'data-i18n="panel.shell.infra.labelToken"',
+    'data-i18n="panel.shell.infra.labelHealth"',
+    'data-i18n="panel.shell.infra.labelInternet"',
+    'panelT("panel.shell.infra.unavailableMsg")',
+    'panelT("panel.shell.infra.unavailableShort")',
+    "function syncBridgeHealthLine()",
+    "syncBridgeHealthLine();",
+    'bridgeHealthPhase = "trying"',
+    "if (photoTelemetry && PANEL_DEBUG) {",
+)
+
+PANEL_I18N_V21_TR_KEYS = (
+    "labelBridge:",
+    "labelToken:",
+    "labelHealth:",
+    "labelInternet:",
+    "unavailableShort:",
+    "unavailableMsg:",
+    "healthPending:",
+    "healthTrying:",
+    "healthOk:",
+    "healthUnreachable:",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -671,3 +697,22 @@ def test_panel_i18n_v20_gorev_hints_infra_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V20_TR_KEYS:
         assert key in tr_text, f"missing panel tr v20 key fragment: {key}"
         assert key in en_text, f"missing panel en v20 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v21_infra_health_labels_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V21_MARKERS:
+        assert token in text, f"missing panel i18n v21 token: {token}"
+    assert 'const PANEL_INFRA_UNAVAILABLE_MSG = "' not in text
+    assert 'bridgeHealthLine = "deneniyor…"' not in text
+    assert 'bridgeHealthLine = "bekleniyor…"' not in text
+    assert 'userLine != null ? String(userLine) : "Köprü erişilemiyor (altyapı)"' not in text
+    assert "if (photoTelemetry) {\n                let reason" not in text
+
+
+def test_panel_i18n_v21_infra_health_labels_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V21_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v21 key fragment: {key}"
+        assert key in en_text, f"missing panel en v21 key fragment: {key}"
