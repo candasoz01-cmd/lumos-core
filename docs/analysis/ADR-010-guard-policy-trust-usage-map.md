@@ -200,7 +200,7 @@ OD-031 Phase 2 Step 4 boundary sync sonrası **mail drift guard/policy kodunda t
 
 ## Sonraki gözden geçirme
 
-1. ADR-010 durum satırı: usage map checkpoint **tamamlandı** → finalize taslağı
+1. ADR-010 **kabul edildi** (2026-06-21) — bkz. [ADR-010](../decisions/ADR-010-guard-policy-trust-terminology.md)
 2. ADR-006 § İlk güvenli adım — bu belgeye referans
 3. ADR-007 § İlk güvenli adım — trust sinyal tablosu revizyonu
 4. Lock semantiği — **ayrı ADR/checkpoint** (usage map sonrası onay)

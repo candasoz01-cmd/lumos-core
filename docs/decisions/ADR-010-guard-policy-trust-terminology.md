@@ -1,9 +1,9 @@
-# ADR-010: Guard, Policy, Trust Terminoloji Sözlüğü (Taslak Karar)
+# ADR-010: Guard, Policy, Trust Terminoloji Sözlüğü
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Taslak / usage map checkpoint tamamlandı** — finalize için ADR-006/007 hizası ve lock semantiği checkpoint beklenir |
-| Tarih | 2026-06-06 |
+| Durum | **Kabul edildi** (2026-06-21) — usage map doğrulandı; lock semantiği birleştirme **ayrı checkpoint** |
+| Tarih | 2026-06-06 (finalize: 2026-06-21) |
 | İlgili | `docs/lumos-karar-sozlesmesi.md`, public GitHub sınırı kuralları, ADR-003, ADR-004, ADR-006, ADR-007, ADR-008 |
 
 ## Amaç
@@ -32,9 +32,9 @@ ADR-006 guard/firewall hedef rolünü, ADR-007 trust hedef rolünü kaydeder —
 
 ---
 
-## Terminoloji sözlüğü (taslak)
+## Terminoloji sözlüğü (kabul edilmiş)
 
-Aşağıdaki tanımlar **hedef terminoloji sözleşmesidir**; repo'da her terim için birleşik enum veya modül **henüz yoktur**. Parantez içindeki konumlar **analiz bulgusudur**, finalize edilmiş mapping değildir.
+Aşağıdaki tanımlar **kabul edilmiş terminoloji sözleşmesidir**. Usage map (2026-06-21) terim→modül eşlemesini doğruladı; birleşik guard/trust **motoru yoktur**. Parantez içindeki konumlar **usage map ile doğrulanmış repo karşılıklarıdır**.
 
 ### guard
 
@@ -42,9 +42,9 @@ Aşağıdaki tanımlar **hedef terminoloji sözleşmesidir**; repo'da her terim 
 
 **Hedef rol:** Durdur, izin ver, onay iste, sandbox'a yönlendir, private katmana ertele (ADR-006 karar tipleri).
 
-**Repo karşılığı (analiz bulgusu, parçalı):** `lumos_gate`, `profiles.py`, `action_policy.py`, `change_sensitivity.py`, `write_interceptor`, `controlled_bridge`, `task_dispatch`.
+**Repo karşılığı (usage map doğrulandı):** `lumos_gate`, `task_dispatch`, `write_interceptor`, `workspace_contract`, `device_guard`, `guard_audit`, `change_sensitivity`, `controlled_bridge`; profil matrisi ile birlikte.
 
-**Not:** Guard **tek modül değildir**; birleşik AI Firewall henüz yok (ADR-006).
+**Not:** Guard **tek modül değildir**; en yoğun terim (~194 eşleşme, 28+ dosya). Birleşik AI Firewall yok (ADR-006).
 
 ---
 
@@ -66,9 +66,9 @@ Aşağıdaki tanımlar **hedef terminoloji sözleşmesidir**; repo'da her terim 
 
 **Hedef rol:** Firewall'a sinyal beslemek; router'a public/yerel/private katman bilgisi vermek; hassas işlem öncesi durum kontrolü (ADR-007).
 
-**Repo karşılığı (analiz bulgusu, parçalı):** `src/security/*`, `action_policy`, `CoreState` / `get_durum_parts`, `presence_lock`, panel görünürlük.
+**Repo karşılığı (usage map doğrulandı):** Aktif kodda `trust` terimi neredeyse yok (1 yorum); sinyaller `LockState`, `effective_consent`, `presence_lock`, `get_durum_parts`, `panel_bridge_state`.
 
-**Not:** Birleşik Trust Engine **henüz yok** (ADR-007 hipotez).
+**Not:** Birleşik Trust Engine yok (ADR-007 hedef). Trust **dokümantasyon ve hedef rol** terimi; guard katmanları merkezi trust sinyallerini **tüketmiyor**.
 
 ---
 
@@ -80,7 +80,7 @@ Aşağıdaki tanımlar **hedef terminoloji sözleşmesidir**; repo'da her terim 
 
 **Repo karşılığı (analiz bulgusu):** `src/security/lock.py` (`LockState`), `CoreState.lock_status()`, panel `keystoreState`.
 
-**Drift riski:** `startup_health._lock_ok` keystore **init** durumunu yansıtır; runtime `LockState.unlocked` ile **aynı anlama gelmeyebilir** (aşağıda).
+**Drift (usage map doğrulandı):** `_lock_ok` = keystore init; `LockState.unlocked` = passphrase yüklü — **farklı anlam, aynı kelime**. Birleştirme **ayrı checkpoint**; bu ADR düzeltmez.
 
 ---
 
@@ -314,19 +314,21 @@ Bu tablo **teşhis listesidir**; bu ADR drift'i **düzeltmez**, yalnızca isimle
 
 ---
 
-## Terim → katman eşlemesi (özet, taslak)
+## Terim → katman eşlemesi (kabul edilmiş özet)
+
+Usage map (2026-06-21) ile doğrulandı. Tam giriş noktası tablosu: [usage map](../analysis/ADR-010-guard-policy-trust-usage-map.md).
 
 | Terim | Birincil hedef katman | Canonical kaynak (ADR-003) | Birleşik modül |
 |-------|----------------------|----------------------------|----------------|
-| guard | AI Firewall (hedef) | Dağınık giriş noktaları | Yok (ADR-006) |
-| policy | Policy | `src/policy` | Parçalı |
-| trust | Trust Engine (hedef) | `src/security` + sinyal tüketicileri | Yok (ADR-007) |
-| lock | Trust / security | `src/security/lock.py` | Var (semantik kayma riski) |
+| guard | AI Firewall (hedef) | `lumos_gate`, `task_dispatch`, `write_interceptor`, `workspace_contract`, `device_guard`, `guard_audit` | Yok (ADR-006) |
+| policy | Policy | `src/policy`, `profiles.py` matrisi, `device_action_policy` | Kısmen (matris) |
+| trust | Trust Engine (hedef) | Sinyaller: `LockState`, `effective_consent`, `presence_lock`, `panel_bridge_state` | Yok (ADR-007); kod terimi yok |
+| lock | Trust / security | `src/security/lock.py`, `_lock_ok` (farklı semantik) | Var (`LockState`); **drift doğrulandı** |
 | presence | Trust sinyali | `presence_lock`, `presence_fsm` | Demo |
-| permission | Yetki | `profiles.py`, `permissions.py` stub | Profil matrisi var |
-| consent | Trust / policy | `action_policy`, consent state | Parçalı |
-| confirmation | Guard / task | `task_dispatch`, `lumos_gate` | Parçalı |
-| sandbox | Guard / bridge | `controlled_bridge`, interceptor | Kısmen |
+| permission | Yetki | `profiles.py`, `permissions.py` stub | Profil matrisi var; stub lease gerçek değil |
+| consent | Trust / policy | `effective_consent`, `action_policy`, `panel_bridge_state` | Parçalı |
+| confirmation | Guard / task | `pending_approval`, `lumos_gate`, `task_dispatch` | Parçalı |
+| sandbox | Guard / bridge | `workspace_contract`, `write_interceptor`, `controlled_bridge` | Kısmen |
 
 ---
 
@@ -336,7 +338,7 @@ Bu depo Lumos'un **public açık kaynak temelidir** (`public-github-boundary`). 
 
 | Public repo'da kalabilir | Private / professional katmanda kalır |
 |--------------------------|----------------------------------------|
-| Bu terminoloji sözlüğü (taslak) | Gerçek production auth, prod lock/presence |
+| Bu terminoloji sözlüğü (kabul edilmiş) | Gerçek production auth, prod lock/presence |
 | Demo-safe guard/trust **kavram** ayrımları | Üretim permission lease modeli |
 | `local_demo`, `sandbox`, `private_layer_required` **tanımları** | Prod mail, ödeme, cihaz enforcement |
 | Drift risk tablosu (analiz bulgusu) | Operasyonel backend, prod orchestration |
@@ -348,15 +350,47 @@ Public repo'da parçalı guard/trust parçalarının **"tam ürün terminolojisi
 
 ---
 
-## Karar (taslak — usage map bekliyor)
+## Guard / policy / trust kullanım kararları
 
-1. **Mevcut gerçek:** Guard, policy, trust, lock, consent ve onay terimleri repo'da **parçalı ve çelişkili** kullanılmaktadır; birleşik sözlük yoktu.
-2. **Hedef:** Bu ADR'deki sözlük ve zorunlu ayrımlar, usage map ve ADR-006/007 revizyonları için **referans terminoloji** olarak kullanılır.
+Usage map bulgularına dayalı **terminoloji seçimleri** (kod değişikliği yok):
+
+| Kavram | Kabul edilen kullanım | Kaçınılacak karışım |
+|--------|----------------------|---------------------|
+| **guard** | Yürütme öncesi koruyucu katman; modül adı veya audit sink olarak (`lumos_gate`, interceptor, contract guard) | Trust durumu veya lock ile aynı kelime |
+| **policy** | Deklaratif kural kümesi (`action_policy`, profil matrisi, device policy) | Runtime grant (`may_execute_step`) ile aynı terim |
+| **trust** | Hedef rol ve ADR-007 trust **durumları**; kodda sinyal kaynakları (`LockState`, consent, presence) | Aktif kodda `trust` identifier aramak |
+| **lock** | Runtime `LockState` veya açık `_lock_ok` bağlamında; bağlam belirtilmeden "lock" | `_lock_ok` ≡ `LockState.unlocked` varsayımı |
+| **consent** | Kalıcı/oturum rıza (`effective_consent`, consent dosyası) | Tek işlem `pending_approval` |
+| **confirmation** | İşlem bazlı onay (`pending_approval`, gate risk) | Consent kaydı ile birleştirme |
+
+**Zincir gerçeği:** Giriş noktaları doğrusal değil; `lumos_gate` allow + `profiles` deny kombinasyonları mümkün. Terminoloji bu parçalılığı gizlemez.
+
+---
+
+## Karar
+
+1. **Mevcut gerçek (doğrulandı):** Guard, policy, lock, consent ve onay terimleri repo'da **parçalı**; birleşik guard/trust motoru yok; `trust` aktif kodda neredeyse yok.
+2. **Kabul edilen sözlük:** Bu ADR'deki tanımlar ve zorunlu ayrımlar, ADR-006/007 revizyonları ve sonraki dokümantasyon için **referans terminoloji** olarak kullanılır.
 3. **Canonical katmanlar (ADR-003):** Policy → `src/policy`; trust/security sinyalleri → `src/security`; yetki → `profiles.py` — terminoloji bu konumları bypass etmez.
 4. **Guard/trust/router sırası:** ADR-006 (guard) → ADR-007 (trust) → ADR-004 (router) — terimler bu sırayla karıştırılmaz.
-5. **Bu turda kod yok** — yalnızca karar kaydı; lock semantiği, panel UI ve yeni motor **değiştirilmez**.
+5. **guard ≠ trust (kod kanıtı):** Guard "yürütülebilir mi?" sorar; trust sinyalleri ayrı modüllerde — merkezi tüketim yok.
+6. **policy ≠ permission:** Kurallar `action_policy` / matris; grant `may_execute_step_at_runtime`.
+7. **panel görünürlüğü ≠ runtime enforcement:** Canlı panel path `panel_bridge_state`; arşiv `policy-engine.js` runtime ile senkron değil.
+8. **Bu ADR kod değiştirmez** — lock semantiği, panel UI ve yeni motor bu belge kapsamında **değiştirilmez**.
 
-Durum: **Usage map checkpoint tamamlandı** — [`docs/analysis/ADR-010-guard-policy-trust-usage-map.md`](../analysis/ADR-010-guard-policy-trust-usage-map.md). Karar finalize: lock semantiği ayrı checkpoint + ADR-006/007 revizyonu sonrası.
+Kaynak: [`docs/analysis/ADR-010-guard-policy-trust-usage-map.md`](../analysis/ADR-010-guard-policy-trust-usage-map.md) (checkpoint tamamlandı, 2026-06-21).
+
+---
+
+## Takip checkpoint'leri (bu ADR dışı)
+
+| Checkpoint | Neden ayrı | Bu ADR'de yapılan |
+|------------|------------|-------------------|
+| Lock semantiği (`_lock_ok` vs `LockState`) | Farklı anlam doğrulandı; ürün/kod kararı gerekir | Drift kaydı; düzeltme yok |
+| ADR-006 finalize | Guard/firewall karar metni | Terminoloji referansı hazır |
+| ADR-007 finalize | Trust engine hedef durumları | Sinyal haritası usage map'te |
+| `SECURITY_NEVER_AUTO` enforce gap | Engine branch eksik | Sözleşme terimi kayıtlı |
+| `packages/kando_policy` import drift | ADR-003 canonical | Terminoloji etkilenmez |
 
 ---
 
@@ -377,22 +411,22 @@ Haziran 2026 repo taraması (2026-06-21) — **salt okuma analizi**; tam tablola
 | Kod, import, davranış değişikliği | Yalnızca terminoloji ADR'si |
 | Lock semantiği birleştirme (`_lock_ok` vs `LockState`) | Ayrı checkpoint; usage map sonrası |
 | Panel UI / mock kaldırma veya değiştirme | Görünürlük ≠ enforcement ayrımı korunur |
-| Yeni trust engine veya guard birleştirme | ADR-006/007 usage map öncesi |
+| Yeni trust engine veya guard birleştirme | ADR-006/007 finalize ayrı iş |
 | Abartılı ürün vaadi | Teslim veya tam enforcement taahhüdü yok |
-| Terimleri tek enum'a zorla map etme | Hipotez/taslak düzeyinde kal |
+| Terimleri tek enum'a zorla map etme | Birleşik motor yok; parçalı repo gerçeği |
 
 ---
 
-## Sonuç (geçici)
+## Sonuç
 
-Haziran 2026 repo analizi ve ADR-003/006/007 usage map çalışması sonrasında **guard, policy, trust, lock, permission, consent, confirmation** ve ilişkili kavramlar bu ADR'de **kodsuz terminoloji sözlüğü** olarak toplanmıştır. **guard ≠ trust**, **policy ≠ permission**, **consent ≠ confirmation**, **local demo ≠ production**, **locked ≠ denied**, **sandbox_only ≠ private_layer_required**, **panel görünürlüğü ≠ runtime enforcement** ayrımları açıkça kayıtlıdır.
+Haziran 2026 repo analizi ve usage map (2026-06-21) sonrasında **guard, policy, trust, lock, permission, consent, confirmation** ve ilişkili kavramlar bu ADR'de **kabul edilmiş kodsuz terminoloji sözlüğü** olarak kayıtlıdır. **guard ≠ trust**, **policy ≠ permission**, **consent ≠ confirmation**, **local demo ≠ production**, **locked ≠ denied**, **sandbox_only ≠ private_layer_required**, **panel görünürlüğü ≠ runtime enforcement** ayrımları zorunludur.
 
-Repo drift riskleri (`LockState` / `_lock_ok`, panel consent proxy, CLI LOCKED, panel mock) usage map ile **doğrulandı** — bkz. [usage map](../analysis/ADR-010-guard-policy-trust-usage-map.md). **Bu turda kod yazılmaz; lock semantiği değiştirilmez; yeni trust engine kurulmaz.**
+Repo drift riskleri (`LockState` / `_lock_ok`, panel consent proxy, CLI LOCKED, panel mock) usage map ile **doğrulandı** — bkz. [usage map](../analysis/ADR-010-guard-policy-trust-usage-map.md). Lock semantiği birleştirme ve engine enforce **takip checkpoint'lerinde**; bu ADR kod veya lock davranışı değiştirmez.
 
 ## Sonraki gözden geçirme
 
-- Usage map checkpoint **tamamlandı** — terim→kod eşlemesi revizyonu finalize aşamasında
-- ADR-006 (7 karar tipi) ve ADR-007 (8 trust durumu) ile terim çakışma kontrolü
+- ADR-006 (7 karar tipi) ve ADR-007 (8 trust durumu) finalize — ADR-010 terminolojisine referans
+- Lock semantiği birleştirme — **ayrı ADR veya checkpoint**
 - ADR-003 canonical katmanlar ve ADR-008 agent network sınırı ile uyum
-- Lock semantiği birleştirme kararı — **ayrı ADR veya checkpoint**; bu belge otomatik uygulama içermez
+- `SECURITY_NEVER_AUTO` enforce gap — ADR-006 risk tablosu ile birlikte
 - Public repo sınırı ve çekirdek stabilizasyon durumu ile uyum kontrolü
