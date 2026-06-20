@@ -261,6 +261,20 @@ PANEL_I18N_V15_TR_KEYS = (
     "photoCapturedStatus:",
 )
 
+PANEL_I18N_V16_MARKERS = (
+    'panelT("panel.modules.chat.compose.sendLoading")',
+    'panelT("panel.modules.chat.compose.audioFileAttached")',
+    'panelT("panel.modules.chat.compose.audioRecordAttached")',
+    'panelT("panel.modules.chat.compose.audioRecordAria")',
+)
+
+PANEL_I18N_V16_TR_KEYS = (
+    "sendLoading:",
+    "audioFileAttached:",
+    "audioRecordAttached:",
+    "audioRecordAria:",
+)
+
 
 
 def test_panel_astro_i18n_wiring_present() -> None:
@@ -490,3 +504,21 @@ def test_panel_i18n_v15_camera_photo_status_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V15_TR_KEYS:
         assert key in tr_text, f"missing panel tr v15 key fragment: {key}"
         assert key in en_text, f"missing panel en v15 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v16_compose_loading_audio_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V16_MARKERS:
+        assert token in text, f"missing panel i18n v16 token: {token}"
+    assert 'const loadingLabel = "Gönderiliyor…"' not in text
+    assert '"Ses dosyası eklendi"' not in text
+    assert '"Ses kaydı eklendi"' not in text
+    assert 'audio.setAttribute("aria-label", "Ses kaydı")' not in text
+
+
+def test_panel_i18n_v16_compose_loading_audio_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V16_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v16 key fragment: {key}"
+        assert key in en_text, f"missing panel en v16 key fragment: {key}"

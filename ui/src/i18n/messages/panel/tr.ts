@@ -139,6 +139,7 @@ const panelModules = {
     compose: {
       placeholder: "Mesajını yaz",
       send: "Gönder",
+      sendLoading: "Gönderiliyor…",
       attachTitle: "Ekle",
       attachAria: "Dosya veya medya ekle",
       attachFile: "Dosya yükle",
@@ -163,6 +164,9 @@ const panelModules = {
       transcribe: "Metne çevir",
       photoSelectedLabel: "Seçilen görsel",
       photoCapturedStatus: "Fotoğraf alındı",
+      audioFileAttached: "Ses dosyası eklendi",
+      audioRecordAttached: "Ses kaydı eklendi",
+      audioRecordAria: "Ses kaydı",
       hints: {
         pickOneAttachment: "Önce tek ek seçin",
         photoReadFailed: "Fotoğraf okunamadı.",
