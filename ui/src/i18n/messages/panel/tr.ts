@@ -199,6 +199,15 @@ const panelModules = {
         httpSendFailedDebugSuffix: "). Tekrar dene.",
         requestErrorDebugPrefix: "İstek hatası: ",
       },
+      cameraHints: {
+        unsupported: "Bu tarayıcıda kamera girişi desteklenmiyor.",
+        permissionDenied: "Kamera izni verilmedi.",
+        pickImageFile: "Lütfen bir görsel dosyası seçin.",
+        previewFailed: "Önizleme oluşturulamadı.",
+        captureUnsupported: "Bu tarayıcıda kamera desteklenmiyor.",
+        photoPickUnsupported: "Bu tarayıcıda görsel seçimi desteklenmiyor.",
+        fileUploadPreparing: "Dosya yükleme bu görünümde hazırlanıyor.",
+      },
     },
     bridgeBadgeLimited: "Sınırlı mod",
     transcript: {

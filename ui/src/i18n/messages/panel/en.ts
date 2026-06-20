@@ -200,6 +200,15 @@ const panel: typeof panelTr = {
         httpSendFailedDebugSuffix: "). Try again.",
         requestErrorDebugPrefix: "Request error: ",
       },
+      cameraHints: {
+        unsupported: "Camera input is not supported in this browser.",
+        permissionDenied: "Camera permission was not granted.",
+        pickImageFile: "Please choose an image file.",
+        previewFailed: "Could not create preview.",
+        captureUnsupported: "Camera is not supported in this browser.",
+        photoPickUnsupported: "Image selection is not supported in this browser.",
+        fileUploadPreparing: "File upload is being prepared in this view.",
+      },
     },
     bridgeBadgeLimited: "Limited mode",
     transcript: {

@@ -5681,9 +5681,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
       function refreshPanelChatI18n() {
         applyUserModeUi();
         refreshChatBubbleRoles();
+        if (typeof refreshPanelCameraHintsI18n === "function") refreshPanelCameraHintsI18n();
       }
 
       let refreshDosyalarPanelI18n = null;
+      let refreshPanelCameraHintsI18n = null;
 
       function refreshPanelFilesI18n() {
         if (typeof refreshDosyalarPanelI18n === "function") refreshDosyalarPanelI18n();
@@ -8005,11 +8007,25 @@ const PANEL_DEBUG = import.meta.env.DEV;
         /** Sohbet balonlarındaki ses URL'leri; yalnızca pagehide'da iptal (aktif mesajda revoke etme). */
         const audioBubbleObjectUrls = new Set();
 
-        function setCameraHint(msg) {
+        /** @type {string | null} */
+        let cameraHintI18nKey = null;
+
+        function setCameraHintKey(key) {
+          cameraHintI18nKey = key && String(key).trim() ? String(key) : null;
           if (!cameraHint) return;
-          cameraHint.textContent = msg;
-          cameraHint.hidden = !msg;
+          if (!cameraHintI18nKey) {
+            cameraHint.textContent = "";
+            cameraHint.hidden = true;
+            return;
+          }
+          const s = panelUserVisibleText(panelT(cameraHintI18nKey));
+          cameraHint.textContent = s;
+          cameraHint.hidden = !s;
         }
+
+        refreshPanelCameraHintsI18n = () => {
+          if (cameraHintI18nKey) setCameraHintKey(cameraHintI18nKey);
+        };
 
         function setSendHint(msg) {
           if (!sendHint) return;
@@ -8056,14 +8072,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
         function togglePanelCameraStream() {
           if (cameraStream) {
             stopPanelCameraStream();
-            setCameraHint("");
+            setCameraHintKey("");
             return;
           }
           if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== "function") {
-            setCameraHint("Bu tarayıcıda kamera girişi desteklenmiyor.");
+            setCameraHintKey("panel.modules.chat.compose.cameraHints.unsupported");
             return;
           }
-          setCameraHint("");
+          setCameraHintKey("");
           navigator.mediaDevices
             .getUserMedia({ video: true, audio: false })
             .then((stream) => {
@@ -8081,9 +8097,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
             .catch((err) => {
               const name = err && err.name;
               if (name === "NotAllowedError" || name === "PermissionDeniedError") {
-                setCameraHint("Kamera izni verilmedi.");
+                setCameraHintKey("panel.modules.chat.compose.cameraHints.permissionDenied");
               } else {
-                setCameraHint("Bu tarayıcıda kamera girişi desteklenmiyor.");
+                setCameraHintKey("panel.modules.chat.compose.cameraHints.unsupported");
               }
               stopPanelCameraStream();
             });
@@ -8113,15 +8129,15 @@ const PANEL_DEBUG = import.meta.env.DEV;
         function bindCameraPhotoFromFile(file) {
           stopPanelCameraStream();
           if (!file || !/^image\//.test(file.type)) {
-            setCameraHint("Lütfen bir görsel dosyası seçin.");
+            setCameraHintKey("panel.modules.chat.compose.cameraHints.pickImageFile");
             return;
           }
-          setCameraHint("");
+          setCameraHintKey("");
           revokeCameraPhotoObjectUrl();
           try {
             cameraPhotoObjectUrl = URL.createObjectURL(file);
           } catch {
-            setCameraHint("Önizleme oluşturulamadı.");
+            setCameraHintKey("panel.modules.chat.compose.cameraHints.previewFailed");
             return;
           }
           const name = file.name && String(file.name).trim();
@@ -9823,6 +9839,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         applyVoiceSupportUi();
 
         window.addEventListener("lumos:localechange", () => {
+          if (typeof refreshPanelCameraHintsI18n === "function") refreshPanelCameraHintsI18n();
           applyVoiceSupportUi();
         });
 
@@ -10011,23 +10028,23 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
         function triggerPanelCameraPhotoInput(mode) {
           if (!cameraPhotoInput) {
-            setCameraHint(
+            setCameraHintKey(
               mode === "camera"
-                ? "Bu tarayıcıda kamera desteklenmiyor."
-                : "Bu tarayıcıda görsel seçimi desteklenmiyor.",
+                ? "panel.modules.chat.compose.cameraHints.captureUnsupported"
+                : "panel.modules.chat.compose.cameraHints.photoPickUnsupported",
             );
             return;
           }
           if (mode === "camera") {
             closePanelAttachMenu();
             stopPanelCameraStream();
-            setCameraHint("");
+            setCameraHintKey("");
             cameraPhotoInput.setAttribute("capture", "environment");
             cameraPhotoInput.click();
             return;
           }
           stopPanelCameraStream();
-          setCameraHint("");
+          setCameraHintKey("");
           cameraPhotoInput.removeAttribute("capture");
           cameraPhotoInput.click();
         }
@@ -10370,7 +10387,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 }
               }, 120);
             } else {
-              setCameraHint("Dosya yükleme bu görünümde hazırlanıyor.");
+              setCameraHintKey("panel.modules.chat.compose.cameraHints.fileUploadPreparing");
             }
             return;
           }
@@ -10415,7 +10432,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           const f = attachAudioInput.files && attachAudioInput.files[0];
           attachAudioInput.value = "";
           setSendHint("");
-          setCameraHint("");
+          setCameraHintKey("");
           if (!f) return;
           if (!/^audio\//.test(f.type || "")) {
             setSendHint(panelT("panel.modules.chat.compose.hints.audioOnly"));
