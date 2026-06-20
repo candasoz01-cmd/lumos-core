@@ -17,7 +17,9 @@ def test_panel_full_audio_reply_on_send_path() -> None:
 
 def test_panel_full_audio_reply_on_attach_path() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
-    attach_block = text.split('appendUserComposeBubble("Ses dosyası eklendi"', 1)[1].split(
+    attach_block = text.split(
+        'appendUserComposeBubble(panelT("panel.modules.chat.compose.audioFileAttached")', 1
+    )[1].split(
         "input.blur();", 1
     )[0]
     assert 'panelT("panel.modules.chat.compose.hints.fullAudioReply")' in attach_block

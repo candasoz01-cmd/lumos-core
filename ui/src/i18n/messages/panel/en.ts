@@ -139,6 +139,7 @@ const panel: typeof panelTr = {
     compose: {
       placeholder: "Write your message",
       send: "Send",
+      sendLoading: "Sending…",
       attachTitle: "Add",
       attachAria: "Add file or media",
       attachFile: "Upload file",
@@ -163,6 +164,9 @@ const panel: typeof panelTr = {
       transcribe: "Transcribe",
       photoSelectedLabel: "Selected image",
       photoCapturedStatus: "Photo captured",
+      audioFileAttached: "Audio file attached",
+      audioRecordAttached: "Audio recording attached",
+      audioRecordAria: "Audio recording",
       hints: {
         pickOneAttachment: "Choose one attachment at a time",
         photoReadFailed: "Could not read the photo.",

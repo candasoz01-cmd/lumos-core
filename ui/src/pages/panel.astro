@@ -7959,7 +7959,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         }
 
         const sendLabel = "Gönder";
-        const loadingLabel = "Gönderiliyor…";
+        const loadingLabel = panelT("panel.modules.chat.compose.sendLoading");
         const CHAT_HISTORY_LIMIT = 12;
         let sending = false;
         const mqPanelChatFinePointer = window.matchMedia("(pointer: fine)");
@@ -8789,7 +8789,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (audioObjectUrl) {
             if (!trimmed && !imageDataUrl) {
               const cap = document.createElement("div");
-              cap.textContent = "Ses kaydı eklendi";
+              cap.textContent = panelT("panel.modules.chat.compose.audioRecordAttached");
               body.appendChild(cap);
             }
             if (audioUploadMeta && typeof audioUploadMeta === "object") {
@@ -8826,7 +8826,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             const audio = document.createElement("audio");
             audio.controls = true;
             audio.src = audioObjectUrl;
-            audio.setAttribute("aria-label", "Ses kaydı");
+            audio.setAttribute("aria-label", panelT("panel.modules.chat.compose.audioRecordAria"));
             audio.className = "chat-compose-bubble-audio";
             body.appendChild(audio);
             const txFilename =
@@ -10500,7 +10500,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             setSendHint(panelT("panel.modules.chat.compose.hints.audioReadFailed"));
             return;
           }
-          appendUserComposeBubble("Ses dosyası eklendi", null, audioBubbleUrl, {
+          appendUserComposeBubble(panelT("panel.modules.chat.compose.audioFileAttached"), null, audioBubbleUrl, {
             name: f.name,
             type: f.type,
             size: f.size,
