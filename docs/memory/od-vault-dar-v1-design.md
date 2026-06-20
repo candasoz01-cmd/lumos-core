@@ -136,7 +136,7 @@ Onaylı ilkeler: [`od-023-vault-ux-language-decision.md`](./od-023-vault-ux-lang
 | **Harman** | OSS çekirdek + Lumos bridge adapter (private) | Önerilen default yön — sıfırdan kripto icat etme yok |
 | **Sıfırdan** | Custom vault modülü | Yalnızca bilinçli onay + güçlü gerekçe; **dar v1 default değil** |
 
-**Dar v1 kararı:** Çerçeve onaylandı; **ürün seçimi yapılmadı** (`implementation-pending`).
+**Dar v1 kararı:** Çerçeve onaylandı; **V1 teknoloji seçimi onaylandı** — [`od-vault-v1-technology-selection.md`](od-vault-v1-technology-selection.md) (harman + Infisical; PoC private).
 
 ### 5.3 Değerlendirme checklist (V1 stub → impl paketi)
 
@@ -146,7 +146,7 @@ Onaylı ilkeler: [`od-023-vault-ux-language-decision.md`](./od-023-vault-ux-lang
 | T2 | OSS aday kısa liste (2–3) | çerçeve | PoC private |
 | T3 | SaaS aday kısa liste (0–2) | çerçeve | hukuk/maliyet |
 | T4 | Harman mimari diyagram (public-safe) | opsiyonel stub | private detay |
-| T5 | Seçim kararı + rollback planı | **yok** | onaylı impl |
+| T5 | Seçim kararı + rollback planı | **onaylı** — [`od-vault-v1-technology-selection.md`](od-vault-v1-technology-selection.md) §4–6 | private PoC |
 
 ---
 
@@ -196,7 +196,7 @@ Onaylı ilkeler: [`od-023-vault-ux-language-decision.md`](./od-023-vault-ux-lang
 
 ## 9. Sonraki adım
 
-1. **Onaylı impl paketi (ayrı oturum):** V1 teknoloji seçimi (T1–T5) — private PoC; public'te yalnızca karar özeti.
+1. **Private impl paketi:** Infisical PoC (V1a) + amaç kodu token eşlemesi (V1b) — karar: [`od-vault-v1-technology-selection.md`](od-vault-v1-technology-selection.md).
 2. **UX:** §3 outline → panel/chat copy taslağı (`implementation-pending`).
 3. **Amaç kodları:** Private `vault-purpose-codes-v1` tam listesi + vault-Lumos API sözleşmesi.
 4. **Mail:** Vault credential hazır olunca [`od-031-mail-dar-v1-scope.md`](./od-031-mail-dar-v1-scope.md) M2 pilot.
