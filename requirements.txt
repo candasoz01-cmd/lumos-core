@@ -1,6 +1,5 @@
-# CI / local test deps (install order: kando_runtime before kando-bridge)
--e ./packages/kando_runtime
--e ./packages/kando_bridge
+# CI / local test deps (kando_* resolved via pytest.ini PYTHONPATH + Makefile/CI)
 -e .
 pytest
 ruff
+requests>=2.28
