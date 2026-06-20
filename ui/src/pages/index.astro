@@ -2271,7 +2271,7 @@ const ADR_QUANTUM_URL = `${GITHUB_REPO_URL}/blob/main/docs/decisions/ADR-001-lum
               />
               <button class="lumos-hero-ask__submit" type="submit" data-i18n="hero.askSubmit">Geliştirici Panelini Aç</button>
             </div>
-            <p class="lumos-hero-ask__hint" id="lumos-hero-ask-hint">Yanıt burada değil; geliştirici panelinde devam eder.</p>
+            <p class="lumos-hero-ask__hint" id="lumos-hero-ask-hint" data-i18n="hero.askHint">Yanıt burada değil; geliştirici panelinde devam eder.</p>
           </form>
         </div>
       </div>
@@ -2353,6 +2353,7 @@ const ADR_QUANTUM_URL = `${GITHUB_REPO_URL}/blob/main/docs/decisions/ADR-001-lum
               href={GITHUB_ROADMAP_URL}
               target="_blank"
               rel="noopener noreferrer"
+              data-i18n="landing.world.linkRoadmap"
             >Yol haritası</a>
           </p>
         </div>
@@ -2743,9 +2744,9 @@ vercel dev</code></pre>
           Aşağıdaki başlıklar ürün kapsamının özünü özetler; ayrıntılı modül notları sayfanın devamında yer alır.
         </p>
         <p class="lumos-roadmap-inline">
-          Ürün yönü özeti:
+          <span data-i18n="landing.modules.roadmapInlineLead">Ürün yönü özeti:</span>
           <a href={GITHUB_ROADMAP_URL} target="_blank" rel="noopener noreferrer">ROADMAP.md</a>
-          · Dünya haritası vizyonu
+          · <span data-i18n="landing.modules.roadmapWorldVision">Dünya haritası vizyonu</span>
           <a href="#dunya">#dunya</a>
         </p>
         <div class="lumos-scope-grid">
@@ -2915,9 +2916,9 @@ vercel dev</code></pre>
                 <circle class="lumos-mod-ico__fill-cyan" cx="10" cy="16" r="1.4" opacity="0.85" />
               </svg>
             </span>
-            <h3>Kuantum</h3>
-            <p>Gelecek güvenlik mimarisi adayı; vizyon ve araştırma alanı.</p>
-            <span class="lumos-scope-card__status">Aktif üretim özelliği değil · iptal edilmedi · ücretli API açılmaması vazgeçme değildir</span>
+            <h3 data-i18n="landing.modules.quantumTitle">Kuantum</h3>
+            <p data-i18n="landing.modules.quantumScope">Gelecek güvenlik mimarisi adayı; vizyon ve araştırma alanı.</p>
+            <span class="lumos-scope-card__status" data-i18n="landing.modules.quantumCardStatus">Aktif üretim özelliği değil · iptal edilmedi · ücretli API açılmaması vazgeçme değildir</span>
           </a>
           <a class="lumos-scope-card lumos-scope-card-link" href="#modul-entegrasyon">
             <span class="lumos-scope-card__icon" aria-hidden="true">
@@ -3018,21 +3019,21 @@ vercel dev</code></pre>
             <a class="lumos-modul-back" href="#top" data-i18n="landing.modules.backToTop">Yukarı dön</a>
           </article>
           <article id="modul-kuantum" class="lumos-module-item">
-            <h3>Kuantum</h3>
-            <p class="lumos-module-status">
+            <h3 data-i18n="landing.modules.quantumTitle">Kuantum</h3>
+            <p class="lumos-module-status" data-i18n="landing.modules.quantumDetailStatus">
               Aktif üretim özelliği değildir; kaldırılmadı ve iptal edilmedi. Vizyon, araştırma ve gelecekteki güvenlik
               mimarisi adayı olarak takip edilir. Ücretli API maliyetinin henüz açılmaması, alanın terk edildiği anlamına gelmez;
               yalnızca şu an aktif kullanılmadığını gösterir.
             </p>
-            <p>
+            <p data-i18n="landing.modules.quantumDetailBody">
               Geleneksel şifreleme ve hesaplama sınırlarının ötesindeki yaklaşımları izlemek için ayrılmış bir araştırma
               alanıdır. Mevcut sistem kuantum şifreleme kullandığını iddia etmez; panelde görünür iskelet düzeyindedir.
             </p>
             <p class="lumos-roadmap-inline">
-              Ayrıntı:
+              <span data-i18n="landing.modules.quantumDetailLinksLead">Ayrıntı:</span>
               <a href={ADR_QUANTUM_URL} target="_blank" rel="noopener noreferrer">ADR-001</a>
               ·
-              <a href="/panel">Panel — Kuantum</a>
+              <a href="/panel" data-i18n="landing.modules.quantumPanelLink">Panel — Kuantum</a>
             </p>
             <a class="lumos-modul-back" href="#top" data-i18n="landing.modules.backToTop">Yukarı dön</a>
           </article>
@@ -3183,61 +3184,6 @@ vercel dev</code></pre>
             if (btn.__lumosCopyTid) return;
             btn.textContent = copyLabel();
           });
-        });
-      })();
-    </script>
-
-    <script is:inline>
-      (function () {
-        var HERO_LANDING_COPY = {
-          tr: {
-            ctaWorld: "Vizyonu oku",
-            askPlaceholder: "Örnek: Bir görevi güvenli adımlara böl",
-            askSubmit: "Geliştirici Panelini Aç",
-            askHint: "Yanıt burada değil; geliştirici panelinde devam eder.",
-            askAria: "Lumos’a sor — geliştirici panelinde devam eder",
-          },
-          en: {
-            ctaWorld: "Read the vision",
-            askPlaceholder: "Example: Break a task into safe steps",
-            askSubmit: "Open in panel",
-            askHint: "No answer here; continue in the panel.",
-            askAria: "Ask Lumos — continue in the panel",
-          },
-        };
-
-        function applyHeroLandingCopy(locale) {
-          var pack = HERO_LANDING_COPY[locale === "en" ? "en" : "tr"];
-          var ctaWorld = document.querySelector('.lumos-hero-actions a[data-i18n="hero.ctaWorld"]');
-          var form = document.getElementById("lumos-hero-ask");
-          var input = document.getElementById("lumos-hero-ask-input");
-          var hint = document.getElementById("lumos-hero-ask-hint");
-          var submit = form && form.querySelector(".lumos-hero-ask__submit");
-          if (ctaWorld) ctaWorld.textContent = pack.ctaWorld;
-          if (input) input.placeholder = pack.askPlaceholder;
-          if (submit) submit.textContent = pack.askSubmit;
-          if (hint) hint.textContent = pack.askHint;
-          if (form) form.setAttribute("aria-label", pack.askAria);
-        }
-
-        function currentLocale() {
-          if (window.LumosI18n && typeof window.LumosI18n.getLocale === "function") {
-            return window.LumosI18n.getLocale();
-          }
-          return document.documentElement.lang === "en" ? "en" : "tr";
-        }
-
-        function syncHeroLandingCopy() {
-          applyHeroLandingCopy(currentLocale());
-        }
-
-        document.addEventListener("DOMContentLoaded", syncHeroLandingCopy);
-        window.addEventListener("lumos:localechange", function (e) {
-          var locale =
-            e && e.detail && (e.detail.locale === "en" || e.detail.locale === "tr")
-              ? e.detail.locale
-              : currentLocale();
-          applyHeroLandingCopy(locale);
         });
       })();
     </script>

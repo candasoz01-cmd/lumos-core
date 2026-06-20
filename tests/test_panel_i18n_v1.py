@@ -1637,3 +1637,11 @@ def test_panel_astro_i18n_v51_chat_200_photo_fallback_reply_priority_wiring() ->
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
     for token in PANEL_I18N_V51_MARKERS:
         assert token in text, f"missing panel i18n v51 token: {token}"
+
+
+def test_panel_tts_diag_is_debug_only_not_catalogued() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    assert 'get("tts_diag")' in text
+    assert "TTS diag ready — click speaker" in text
+    assert "panelTtsDiagEnabled" in text
+    assert 'data-i18n="panel.modules.chat.tts.diagReady"' not in text

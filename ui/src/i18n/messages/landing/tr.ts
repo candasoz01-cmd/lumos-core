@@ -28,6 +28,7 @@ const landingTr = {
       "Lumos; dil, bölge ve erişilebilirlik farklarını gözeterek arayüz ve akışların geniş bir kullanıcı yelpazesine uyumunu hedefler. Yandaki kart, “dünya” modülünün tek bir küçük simgeyle değil; insani ölçekte bir vizyonla bağlanmasını vurgular.",
     linkVision: "Dünya vizyonu",
     linkModules: "Modül ızgarası",
+    linkRoadmap: "Yol haritası",
     visionCardTitle: "Dünya vizyonu",
     visionCardBody:
       "Kıbrıs’tan başlayan akıllı ses, medya ve yapay zekâ ağı; insan merkezli kontrol anlayışıyla dünyaya açılır.",
@@ -163,6 +164,18 @@ const landingTr = {
     integrationScope: "Harici servisleri aynı kontrol katmanında birleştirir; kapsam sözleşmeli kalır.",
     integrationDetail:
       "Üçüncü taraf API’ler, bulut servisleri ve yerel uygulamalar arasında tek bir orchestrasyon yüzeyi sunmayı amaçlar. Her bağlantı için kapsam, süre ve veri paylaşımı mümkün olduğunca sözleşmeli ve görünür tutulur.",
+    roadmapInlineLead: "Ürün yönü özeti:",
+    roadmapWorldVision: "Dünya haritası vizyonu",
+    quantumTitle: "Kuantum",
+    quantumScope: "Gelecek güvenlik mimarisi adayı; vizyon ve araştırma alanı.",
+    quantumCardStatus:
+      "Aktif üretim özelliği değil · iptal edilmedi · ücretli API açılmaması vazgeçme değildir",
+    quantumDetailStatus:
+      "Aktif üretim özelliği değildir; kaldırılmadı ve iptal edilmedi. Vizyon, araştırma ve gelecekteki güvenlik mimarisi adayı olarak takip edilir. Ücretli API maliyetinin henüz açılmaması, alanın terk edildiği anlamına gelmez; yalnızca şu an aktif kullanılmadığını gösterir.",
+    quantumDetailBody:
+      "Geleneksel şifreleme ve hesaplama sınırlarının ötesindeki yaklaşımları izlemek için ayrılmış bir araştırma alanıdır. Mevcut sistem kuantum şifreleme kullandığını iddia etmez; panelde görünür iskelet düzeyindedir.",
+    quantumDetailLinksLead: "Ayrıntı:",
+    quantumPanelLink: "Panel — Kuantum",
   },
   may19: {
     heading: "19 Mayıs’a Saygıyla",

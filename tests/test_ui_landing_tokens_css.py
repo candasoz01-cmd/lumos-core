@@ -66,3 +66,48 @@ def test_panel_hero_prefill_scroll_and_banner_wiring() -> None:
     assert 'panelT("panel.modules.chat.empty.heroPrefillBanner")' in text
     assert 'navigatePanelModule("sohbet")' in text
     assert "prefillPanelChatFromUrlQuery()" in text
+
+
+def test_landing_world_roadmap_link_i18n_wiring() -> None:
+    text = _INDEX_ASTRO.read_text(encoding="utf-8")
+    tr_text = _LANDING_TR.read_text(encoding="utf-8")
+    en_text = _LANDING_EN.read_text(encoding="utf-8")
+    assert 'data-i18n="landing.world.linkRoadmap"' in text
+    assert "linkRoadmap:" in tr_text
+    assert "linkRoadmap:" in en_text
+    assert ">Yol haritası</a>" in text
+
+
+def test_landing_kuantum_sections_i18n_wiring() -> None:
+    text = _INDEX_ASTRO.read_text(encoding="utf-8")
+    tr_text = _LANDING_TR.read_text(encoding="utf-8")
+    en_text = _LANDING_EN.read_text(encoding="utf-8")
+    for key in (
+        "quantumTitle:",
+        "quantumScope:",
+        "quantumCardStatus:",
+        "quantumDetailStatus:",
+        "quantumDetailBody:",
+        "quantumDetailLinksLead:",
+        "quantumPanelLink:",
+        "roadmapInlineLead:",
+        "roadmapWorldVision:",
+    ):
+        assert key in tr_text, f"missing landing tr key: {key}"
+        assert key in en_text, f"missing landing en key: {key}"
+    assert 'id="modul-kuantum"' in text
+    assert 'data-i18n="landing.modules.quantumTitle"' in text
+    assert 'data-i18n="landing.modules.quantumDetailStatus"' in text
+    assert 'data-i18n="landing.modules.quantumPanelLink"' in text
+    assert 'data-i18n="landing.modules.roadmapInlineLead"' in text
+    assert "<h3>Kuantum</h3>" not in text
+
+
+def test_landing_hero_no_duplicate_inline_copy_dict() -> None:
+    text = _INDEX_ASTRO.read_text(encoding="utf-8")
+    tr_text = (_REPO_ROOT / "ui" / "src" / "i18n" / "messages" / "tr.ts").read_text(encoding="utf-8")
+    en_text = (_REPO_ROOT / "ui" / "src" / "i18n" / "messages" / "en.ts").read_text(encoding="utf-8")
+    assert "HERO_LANDING_COPY" not in text
+    assert 'data-i18n="hero.askHint"' in text
+    assert "askHint:" in tr_text
+    assert "askHint:" in en_text
