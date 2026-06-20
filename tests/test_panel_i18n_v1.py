@@ -1,4 +1,4 @@
-"""Panel i18n v1–v23 — LanguageSwitcher, nav, modules, Sohbet chat, Görevler."""
+"""Panel i18n v1–v24 — LanguageSwitcher, nav, modules, Sohbet chat, Görevler."""
 
 from __future__ import annotations
 
@@ -411,6 +411,30 @@ PANEL_I18N_V23_TR_KEYS = (
     "unsupportedFeature:",
 )
 
+PANEL_I18N_V24_MARKERS = (
+    'panelT("panel.modules.settings.corsMsg")',
+    'id="panel-sistem-durumu-cors"',
+    'data-i18n-aria-label="panel.modules.settings.infraSummaryAria"',
+    'data-i18n="panel.modules.capabilities.row1"',
+    'data-i18n="panel.modules.capabilities.row7"',
+    'data-i18n-aria-label="panel.modules.chat.compose.galleryAria"',
+    'data-i18n-aria-label="panel.modules.chat.compose.cameraAria"',
+    'data-i18n-aria-label="panel.modules.chat.compose.voiceAriaSupported"',
+    'data-i18n-aria-label="panel.modules.chat.compose.attachRecord"',
+    "paintSistemDurumuPanel();",
+)
+
+PANEL_I18N_V24_TR_KEYS = (
+    "corsMsg:",
+    "infraSummaryAria:",
+    "row1:",
+    "row7:",
+    "galleryAria:",
+    "cameraAria:",
+    "voiceAriaSupported:",
+    "attachRecord:",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -787,3 +811,20 @@ def test_panel_i18n_v23_cap_tts_files_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V23_TR_KEYS:
         assert key in tr_text, f"missing panel tr v23 key fragment: {key}"
         assert key in en_text, f"missing panel en v23 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v24_settings_cors_cap_compose_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V24_MARKERS:
+        assert token in text, f"missing panel i18n v24 token: {token}"
+    assert 'corsEl.textContent = "Bu bilgi panelden okunamıyor (CORS)."' not in text
+    assert '<span class="lumos-capability-name">1. Dosya okuma</span>' not in text
+    assert '<span class="lumos-capability-name">7. Canlı deploy</span>' not in text
+
+
+def test_panel_i18n_v24_settings_cors_cap_compose_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V24_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v24 key fragment: {key}"
+        assert key in en_text, f"missing panel en v24 key fragment: {key}"

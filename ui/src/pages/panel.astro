@@ -4348,7 +4348,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
                           class="chat-compose-attach-menu__item"
                           role="menuitem"
                           data-attach-action="record"
+                          aria-label="Ses kaydı"
                           data-i18n-title="panel.modules.chat.compose.attachRecordTitle"
+                          data-i18n-aria-label="panel.modules.chat.compose.attachRecord"
                           data-i18n="panel.modules.chat.compose.attachRecord"
                         >
                           Ses kaydı
@@ -5291,7 +5293,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
               </ul>
               <ul id="lumos-capability-list" class="lumos-capability-list" aria-live="polite">
                 <li>
-                  <span class="lumos-capability-name">1. Dosya okuma</span>
+                  <span class="lumos-capability-name" data-i18n="panel.modules.capabilities.row1">1. Dosya okuma</span>
                   <span id="cap-file-read" class="lumos-capability-val" data-state="ok">AKTİF</span>
                   <span class="lumos-capability-route panel-debug-only">/controlled</span>
                   <span class="lumos-capability-limit-note" data-cap-note-for="cap-file-read" hidden>
@@ -5299,7 +5301,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   </span>
                 </li>
                 <li>
-                  <span class="lumos-capability-name">2. Dosya yazma</span>
+                  <span class="lumos-capability-name" data-i18n="panel.modules.capabilities.row2">2. Dosya yazma</span>
                   <span id="cap-file-write" class="lumos-capability-val" data-state="ok">AKTİF</span>
                   <span class="lumos-capability-route panel-debug-only">/controlled</span>
                   <span class="lumos-capability-limit-note" data-cap-note-for="cap-file-write" hidden>
@@ -5307,7 +5309,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   </span>
                 </li>
                 <li>
-                  <span class="lumos-capability-name">3. Görev oluşturma</span>
+                  <span class="lumos-capability-name" data-i18n="panel.modules.capabilities.row3">3. Görev oluşturma</span>
                   <span id="cap-task-create" class="lumos-capability-val" data-state="ok">AKTİF</span>
                   <span class="lumos-capability-route panel-debug-only">/task</span>
                   <span class="lumos-capability-limit-note" data-cap-note-for="cap-task-create" hidden>
@@ -5315,12 +5317,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   </span>
                 </li>
                 <li>
-                  <span class="lumos-capability-name">4. Görev tamamlama</span>
+                  <span class="lumos-capability-name" data-i18n="panel.modules.capabilities.row4">4. Görev tamamlama</span>
                   <span id="cap-task-complete" class="lumos-capability-val" data-state="ok">AKTİF</span>
                   <span class="lumos-capability-route panel-debug-only">legacy /tasks/complete</span>
                 </li>
                 <li>
-                  <span class="lumos-capability-name">5. Terminal komutu</span>
+                  <span class="lumos-capability-name" data-i18n="panel.modules.capabilities.row5">5. Terminal komutu</span>
                   <span id="cap-terminal" class="lumos-capability-val" data-state="ok">AKTİF</span>
                   <span class="lumos-capability-route">Yerel cihaz köprüsü bekleniyor.</span>
                   <span class="lumos-capability-limit-note" data-cap-note-for="cap-terminal" hidden>
@@ -5328,12 +5330,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   </span>
                 </li>
                 <li>
-                  <span class="lumos-capability-name">6. Mac uygulaması açma</span>
+                  <span class="lumos-capability-name" data-i18n="panel.modules.capabilities.row6">6. Mac uygulaması açma</span>
                   <span id="cap-mac-app" class="lumos-capability-val" data-state="hedef">GELİŞTİRME AŞAMASINDA</span>
                   <span class="lumos-capability-route">—</span>
                 </li>
                 <li>
-                  <span class="lumos-capability-name">7. Canlı deploy</span>
+                  <span class="lumos-capability-name" data-i18n="panel.modules.capabilities.row7">7. Canlı deploy</span>
                   <span id="cap-live-deploy" class="lumos-capability-val" data-state="ok">AKTİF</span>
                   <span class="lumos-capability-route">manuel onay sonrası</span>
                   <span class="lumos-capability-limit-note" data-cap-note-for="cap-live-deploy" hidden>
@@ -5435,7 +5437,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 <p data-i18n="panel.modules.settings.c2Body">
                   Köprü, anahtar, sağlık ve ağ durumu — kullanıcı modundan bağımsız teknik özet.
                 </p>
-                <dl class="panel-infra-status-dl" aria-label="Altyapı durumu özeti">
+                <dl
+                  class="panel-infra-status-dl"
+                  aria-label="Altyapı durumu özeti"
+                  data-i18n-aria-label="panel.modules.settings.infraSummaryAria"
+                >
                   <dt data-i18n="panel.shell.infra.labelBridge">Köprü</dt>
                   <dd id="panel-infra-bridge">—</dd>
                   <dt data-i18n="panel.shell.infra.labelToken">Anahtar</dt>
@@ -5445,6 +5451,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   <dt data-i18n="panel.shell.infra.labelInternet">İnternet</dt>
                   <dd id="panel-infra-internet">—</dd>
                 </dl>
+                <p id="panel-sistem-durumu-cors" class="panel-infra-cors-note" role="status" hidden></p>
               </li>
               <li class="medya-card">
                 <h3 data-i18n="panel.modules.settings.c3Title">Kullanıcı Tercihleri</h3>
@@ -12992,7 +12999,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         if (lastStatusCorsError) {
           if (corsEl) {
             corsEl.hidden = false;
-            corsEl.textContent = "Bu bilgi panelden okunamıyor (CORS).";
+            corsEl.textContent = panelT("panel.modules.settings.corsMsg");
           }
           if (dl) dl.hidden = false;
           setSistemDurumuDd("panel-sistem-durumu-baglanti", "Bağlantı: " + bridgeHealthLine);
@@ -13423,6 +13430,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         refreshPanelFilesI18n();
         refreshPanelGorevlerI18n();
         refreshPanelCapabilitiesI18n();
+        paintSistemDurumuPanel();
       });
     </script>
     <I18nInit />
