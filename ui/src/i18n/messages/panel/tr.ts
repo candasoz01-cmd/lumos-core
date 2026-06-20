@@ -251,6 +251,17 @@ const panelModules = {
           "Ses algılanmadı veya tarayıcı konuşma sonucu üretmedi. Tekrar deneyin.",
       },
     },
+    tts: {
+      speak: "Sesli oku",
+      stopSpeaking: "Sesli okumayı durdur",
+      stop: "Durdur",
+      stopped: "Durduruldu",
+      failed: "Sesli okuma başarısız",
+      error: "Hata",
+      unsupported: "Desteklenmiyor",
+      unsupportedFeature: "Sesli okuma desteklenmiyor",
+      empty: "Boş",
+    },
     gorev: {
       confirmMini: "Mini görev eklendi: {title}",
       confirmWithWhen: "Görev eklendi: {title} — {when}",
@@ -420,6 +431,7 @@ const panelModules = {
       uploadBtn: "Yükle ve analiz et",
     },
     hints: {
+      attachNavigate: "Dosyayı seçin; ardından «Yükle ve analiz et».",
       pickFirst: "Önce bir dosya seçin.",
       readFailed: "Dosya metin olarak okunamadı.",
       unreachable: "Sunucuya ulaşılamadı. Bağlantı ayarlarını kontrol edin.",
@@ -705,7 +717,14 @@ const panelModules = {
     legendPassive: "PASİF şu an çalışır hat yok",
     legendDev: "GELİŞTİRME AŞAMASINDA hedefleniyor, henüz bağlı değil",
     testBtn: "Bağlantı testi",
+    testRunning: "Test çalışıyor…",
     bridgePending: "Köprü bağlantısı bekleniyor.",
+    status: {
+      active: "AKTİF",
+      passive: "PASİF",
+      limited: "KISITLI",
+      dev: "GELİŞTİRME AŞAMASINDA",
+    },
   },
 } as const;
 

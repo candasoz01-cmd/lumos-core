@@ -251,6 +251,17 @@ const panel: typeof panelTr = {
         noResult: "No speech detected or the browser did not produce a result. Try again.",
       },
     },
+    tts: {
+      speak: "Read aloud",
+      stopSpeaking: "Stop read aloud",
+      stop: "Stop",
+      stopped: "Stopped",
+      failed: "Read aloud failed",
+      error: "Error",
+      unsupported: "Not supported",
+      unsupportedFeature: "Read aloud not supported",
+      empty: "Empty",
+    },
     gorev: {
       confirmMini: "Mini task added: {title}",
       confirmWithWhen: "Task added: {title} — {when}",
@@ -420,6 +431,7 @@ const panel: typeof panelTr = {
       uploadBtn: "Upload and analyze",
     },
     hints: {
+      attachNavigate: "Choose a file, then «Upload and analyze».",
       pickFirst: "Choose a file first.",
       readFailed: "Could not read the file as text.",
       unreachable: "Could not reach the server. Check connection settings.",
@@ -709,7 +721,14 @@ const panel: typeof panelTr = {
     legendPassive: "PASSIVE — no working path right now",
     legendDev: "IN DEVELOPMENT — planned, not connected yet",
     testBtn: "Connection test",
+    testRunning: "Test running…",
     bridgePending: "Waiting for bridge connection.",
+    status: {
+      active: "ACTIVE",
+      passive: "PASSIVE",
+      limited: "LIMITED",
+      dev: "IN DEVELOPMENT",
+    },
   },
   },
   shell: {

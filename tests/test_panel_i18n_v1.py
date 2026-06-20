@@ -1,4 +1,4 @@
-"""Panel i18n v1–v21 — LanguageSwitcher, nav, modules, Sohbet chat, Görevler."""
+"""Panel i18n v1–v23 — LanguageSwitcher, nav, modules, Sohbet chat, Görevler."""
 
 from __future__ import annotations
 
@@ -389,6 +389,28 @@ PANEL_I18N_V22_TR_KEYS = (
     "c7Body:",
 )
 
+PANEL_I18N_V23_MARKERS = (
+    '"panel.modules.capabilities.status.active"',
+    'panelT("panel.modules.capabilities.testRunning")',
+    'panelT("panel.modules.files.hints.attachNavigate")',
+    'panelT("panel.modules.chat.tts.speak")',
+    'panelT("panel.modules.chat.tts.stopSpeaking")',
+    "function capStatusLabel(",
+    "function refreshPanelCapabilitiesI18n()",
+    "function initCapLabels()",
+    "refreshPanelCapabilitiesI18n();",
+    "refreshPanelTtsI18n = () =>",
+)
+
+PANEL_I18N_V23_TR_KEYS = (
+    "status:",
+    "testRunning:",
+    "attachNavigate:",
+    "tts:",
+    "stopSpeaking:",
+    "unsupportedFeature:",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -746,3 +768,22 @@ def test_panel_i18n_v22_settings_c6_c7_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V22_TR_KEYS:
         assert key in tr_text, f"missing panel tr v22 key fragment: {key}"
         assert key in en_text, f"missing panel en v22 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v23_cap_tts_files_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V23_MARKERS:
+        assert token in text, f"missing panel i18n v23 token: {token}"
+    assert 'aktif: { label: "AKTİF"' not in text
+    assert 'dosyaHint.textContent = "Dosyayı seçin' not in text
+    assert 'hint.textContent = panelUserVisibleText("Test çalışıyor' not in text
+    assert 'btn.setAttribute("aria-label", "Sesli oku")' not in text
+    assert 'panelActionFlash(btn, "Durduruldu"' not in text
+
+
+def test_panel_i18n_v23_cap_tts_files_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V23_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v23 key fragment: {key}"
+        assert key in en_text, f"missing panel en v23 key fragment: {key}"

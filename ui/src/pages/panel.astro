@@ -5685,12 +5685,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
         if (typeof refreshPanelCameraHintsI18n === "function") refreshPanelCameraHintsI18n();
         if (typeof refreshPanelAudioRecordI18n === "function") refreshPanelAudioRecordI18n();
         if (typeof refreshPanelVoiceHintsI18n === "function") refreshPanelVoiceHintsI18n();
+        if (typeof refreshPanelTtsI18n === "function") refreshPanelTtsI18n();
       }
 
       let refreshDosyalarPanelI18n = null;
       let refreshPanelCameraHintsI18n = null;
       let refreshPanelAudioRecordI18n = null;
       let refreshPanelVoiceHintsI18n = null;
+      let refreshPanelTtsI18n = null;
 
       function refreshPanelFilesI18n() {
         if (typeof refreshDosyalarPanelI18n === "function") refreshDosyalarPanelI18n();
@@ -6279,19 +6281,60 @@ const PANEL_DEBUG = import.meta.env.DEV;
       const CAP_LIMITED_NOTE = () => panelT("panel.modules.capabilities.bridgePending");
       const KISITLI_CAP_IDS = ["cap-file-read", "cap-file-write", "cap-task-create", "cap-live-deploy", "cap-terminal"];
 
-      const CAP_STATUS = {
-        aktif: { label: "AKTİF", state: "ok" },
-        pasif: { label: "PASİF", state: "no" },
-        kisitli: { label: "KISITLI", state: "kisitli" },
-        gelistirme: { label: "GELİŞTİRME AŞAMASINDA", state: "hedef" },
+      const CAP_STATUS_STATE = {
+        aktif: "ok",
+        pasif: "no",
+        kisitli: "kisitli",
+        gelistirme: "hedef",
+      };
+
+      function capStatusLabel(key) {
+        const map = {
+          aktif: "panel.modules.capabilities.status.active",
+          pasif: "panel.modules.capabilities.status.passive",
+          kisitli: "panel.modules.capabilities.status.limited",
+          gelistirme: "panel.modules.capabilities.status.dev",
+        };
+        const i18nKey = map[key];
+        return i18nKey ? panelT(i18nKey) : "";
+      }
+
+      const CAP_DEFAULT_KEYS = {
+        "cap-file-read": "aktif",
+        "cap-file-write": "aktif",
+        "cap-task-create": "aktif",
+        "cap-task-complete": "aktif",
+        "cap-terminal": "aktif",
+        "cap-mac-app": "gelistirme",
+        "cap-live-deploy": "aktif",
       };
 
       function setCap(el, key) {
         if (!el) return;
-        const row = CAP_STATUS[key];
-        if (!row) return;
-        el.textContent = row.label;
-        el.setAttribute("data-state", row.state);
+        const state = CAP_STATUS_STATE[key];
+        if (!state) return;
+        el.setAttribute("data-cap-key", key);
+        el.textContent = capStatusLabel(key);
+        el.setAttribute("data-state", state);
+      }
+
+      function initCapLabels() {
+        for (const [id, key] of Object.entries(CAP_DEFAULT_KEYS)) {
+          const el = document.getElementById(id);
+          if (el && !el.getAttribute("data-cap-key")) setCap(el, key);
+        }
+      }
+
+      function refreshPanelCapabilitiesI18n() {
+        document.querySelectorAll(".lumos-capability-val[data-cap-key]").forEach((raw) => {
+          const el = /** @type {HTMLElement} */ (raw);
+          const key = el.getAttribute("data-cap-key");
+          if (key) setCap(el, key);
+        });
+        document.querySelectorAll(".lumos-capability-limit-note[data-cap-note-for]").forEach((raw) => {
+          const note = /** @type {HTMLElement} */ (raw);
+          if (!note.hidden) note.textContent = CAP_LIMITED_NOTE();
+        });
       }
 
       function applyUserModeUi() {
@@ -8320,8 +8363,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (kind && PANEL_TTS_FLASH_KINDS.includes(kind)) btn.classList.add("is-flash--" + kind);
           btn._panelFlashTimer = window.setTimeout(() => {
             if (panelTtsActiveBtn === btn && panelIsSpeaking()) {
-              btn.setAttribute("aria-label", "Sesli okumayı durdur");
-              btn.title = "Durdur";
+              btn.setAttribute("aria-label", panelT("panel.modules.chat.tts.stopSpeaking"));
+              btn.title = panelT("panel.modules.chat.tts.stop");
             } else if (btn._panelOrigAria != null) {
               btn.setAttribute("aria-label", btn._panelOrigAria);
               btn.title = btn._panelOrigTitle || "";
@@ -8343,13 +8386,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
             const speaking = activeBtn === btn && panelIsSpeaking();
             speakIcon.hidden = speaking;
             stopIcon.hidden = !speaking;
-            btn.setAttribute("aria-label", speaking ? "Sesli okumayı durdur" : "Sesli oku");
-            btn.title = speaking ? "Durdur" : "Sesli oku";
+            btn.setAttribute("aria-label", speaking ? panelT("panel.modules.chat.tts.stopSpeaking") : panelT("panel.modules.chat.tts.speak"));
+            btn.title = speaking ? panelT("panel.modules.chat.tts.stop") : panelT("panel.modules.chat.tts.speak");
             btn.classList.toggle("chat-msg-action--speaking", speaking);
-            btn._panelOrigAria = speaking ? "Sesli okumayı durdur" : "Sesli oku";
-            btn._panelOrigTitle = speaking ? "Durdur" : "Sesli oku";
+            btn._panelOrigAria = speaking ? panelT("panel.modules.chat.tts.stopSpeaking") : panelT("panel.modules.chat.tts.speak");
+            btn._panelOrigTitle = speaking ? panelT("panel.modules.chat.tts.stop") : panelT("panel.modules.chat.tts.speak");
           });
         }
+
+        refreshPanelTtsI18n = () => {
+          syncPanelTtsButtons(panelTtsActiveBtn);
+        };
 
         function panelStopSpeaking(btn) {
           try {
@@ -8359,7 +8406,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
           panelTtsActiveBtn = null;
           syncPanelTtsButtons(null);
-          if (btn) panelActionFlash(btn, "Durduruldu", "ok");
+          if (btn) panelActionFlash(btn, panelT("panel.modules.chat.tts.stopped"), "ok");
         }
 
         /** @param {SpeechSynthesisVoice[] | null | undefined} [voicesIn] */
@@ -8428,7 +8475,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 panelTtsActiveBtn = null;
                 syncPanelTtsButtons(null);
               }
-              panelActionFlash(btn, "Sesli okuma başarısız", "error");
+              panelActionFlash(btn, panelT("panel.modules.chat.tts.failed"), "error");
             };
             panelTtsActiveBtn = btn;
             panelTtsDiag(btn, "speak called");
@@ -8436,7 +8483,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             if (synth.paused) synth.resume();
             syncPanelTtsButtons(btn);
           } catch {
-            panelActionFlash(btn, "Hata", "error");
+            panelActionFlash(btn, panelT("panel.modules.chat.tts.error"), "error");
           }
         }
 
@@ -8444,7 +8491,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           panelTtsDiagReset(btn);
           panelTtsDiag(btn, "click received");
           if (!panelTtsSupported) {
-            panelActionFlash(btn, "Desteklenmiyor", "warn");
+            panelActionFlash(btn, panelT("panel.modules.chat.tts.unsupported"), "warn");
             return;
           }
           if (panelIsSpeaking()) {
@@ -8464,7 +8511,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           const text = body ? lumosBodyToPlainText(body) : "";
           panelTtsDiag(btn, "text length: " + text.length);
           if (!text) {
-            panelActionFlash(btn, "Boş", "info");
+            panelActionFlash(btn, panelT("panel.modules.chat.tts.empty"), "info");
             return;
           }
           panelDoSpeak(btn, text);
@@ -8481,7 +8528,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (!wrap) return;
           panelTtsDiag(btn, "click received");
           if (btn.disabled) {
-            panelActionFlash(btn, "Desteklenmiyor", "warn");
+            panelActionFlash(btn, panelT("panel.modules.chat.tts.unsupported"), "warn");
             return;
           }
           panelSpeakLumosBubble(wrap, btn);
@@ -8577,11 +8624,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
               ttsBtn.disabled = true;
               ttsBtn.setAttribute("aria-disabled", "true");
               ttsBtn.classList.add("chat-msg-action--unsupported");
-              ttsBtn.title = "Sesli okuma desteklenmiyor";
-              ttsBtn.setAttribute("aria-label", "Sesli okuma desteklenmiyor");
+              ttsBtn.title = panelT("panel.modules.chat.tts.unsupportedFeature");
+              ttsBtn.setAttribute("aria-label", panelT("panel.modules.chat.tts.unsupportedFeature"));
             } else {
-              ttsBtn.title = "Sesli oku";
-              ttsBtn.setAttribute("aria-label", "Sesli oku");
+              ttsBtn.title = panelT("panel.modules.chat.tts.speak");
+              ttsBtn.setAttribute("aria-label", panelT("panel.modules.chat.tts.speak"));
             }
             actions.appendChild(ttsBtn);
             const ttsDiag = document.createElement("span");
@@ -10436,7 +10483,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             const dosyaInput = document.getElementById("dosyalar-file-input");
             const dosyaHint = document.getElementById("dosyalar-hint");
             if (dosyaHint) {
-              dosyaHint.textContent = "Dosyayı seçin; ardından «Yükle ve analiz et».";
+              dosyaHint.textContent = panelT("panel.modules.files.hints.attachNavigate");
               dosyaHint.hidden = false;
             }
             if (dosyaInput instanceof HTMLInputElement) {
@@ -12567,7 +12614,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         btn.addEventListener("click", async () => {
           if (hint) {
             hint.hidden = false;
-            hint.textContent = panelUserVisibleText("Test çalışıyor…");
+            hint.textContent = panelUserVisibleText(panelT("panel.modules.capabilities.testRunning"));
           }
           btn.disabled = true;
           const probePath = "capability/_probe.txt";
@@ -12631,6 +12678,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
       }
 
       wireCapabilityProbe();
+      initCapLabels();
       applyUserModeUi();
 
       function setPanelConnBadge(state) {
@@ -13374,6 +13422,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         refreshPanelChatI18n();
         refreshPanelFilesI18n();
         refreshPanelGorevlerI18n();
+        refreshPanelCapabilitiesI18n();
       });
     </script>
     <I18nInit />
