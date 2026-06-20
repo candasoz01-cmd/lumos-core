@@ -251,6 +251,53 @@ const panel: typeof panelTr = {
         noResult: "No speech detected or the browser did not produce a result. Try again.",
       },
     },
+    gorev: {
+      confirmMini: "Mini task added: {title}",
+      confirmWithWhen: "Task added: {title} — {when}",
+      confirm: "Task added: {title}",
+      deleteUnavailable: "Task delete is unavailable right now (task list not wired).",
+      restoreUnavailable: "Task restore is unavailable right now (task list not wired).",
+      deleteRestoreHint:
+        ' To undo, type «görev geri al» or use «Restore last deleted» on the Tasks screen.',
+      notFound:
+        'Task not found: «{ref}». Check the title or task id (tsk_…).',
+      deleted: 'Task deleted: "{title}".',
+      deleteMissingRef: "Task name missing. Example: görev sil alışveriş",
+      deleteConfirm: 'Delete "{ref}"?',
+      deleteCancelled: "Delete cancelled.",
+      deleteFailed: "Could not delete ({error}).",
+      restoreNothing: "No deleted task to restore.",
+      restoreVerifyFailed: "Task could not be added back to the list; restore not verified.",
+      restored: 'Task restored: "{title}".',
+    },
+    localReply: {
+      emptyMessage: "Type a message.",
+      navGorevler:
+        "Opened Tasks; browse the list or add one with «görev oluştur title».",
+      navAyarlar:
+        "Opened Settings. External chat is off without the bridge; local tasks still work.",
+      navKimlik:
+        "Opened Identity; connection and identity settings are here.",
+      navAyarlarOffline:
+        "Opened Settings. Offline mode; local tasks still work.",
+      keywordGorev:
+        "Open Tasks to see the list. To add: «görev oluştur title» (e.g. görev oluştur shopping).",
+      keywordKayit: "Open Media to browse files.",
+      keywordAkis: "Open Social to see the current feed.",
+      limitedDefault:
+        "You are in limited mode (user choice); local tasks and short hints work — e.g. «görev oluştur title» or «görevler».",
+      offlineDefault:
+        "You are offline; no internet. Local tasks work — e.g. «görev oluştur title» or «görevler».",
+      timeBase: "Time {hh}:{mm}. Today {date}.",
+      timeWeekdaySuffix: " Today is {weekday}.",
+      weekday0: "Sunday",
+      weekday1: "Monday",
+      weekday2: "Tuesday",
+      weekday3: "Wednesday",
+      weekday4: "Thursday",
+      weekday5: "Friday",
+      weekday6: "Saturday",
+    },
     bridgeBadgeLimited: "Limited mode",
     transcript: {
       engineMsg: "Speech-to-text engine is not connected yet.",

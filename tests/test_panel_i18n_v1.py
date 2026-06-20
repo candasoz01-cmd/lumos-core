@@ -307,6 +307,25 @@ PANEL_I18N_V18_TR_KEYS = (
     "photoNoVision:",
 )
 
+PANEL_I18N_V19_MARKERS = (
+    'panelT("panel.modules.chat.gorev.deleteUnavailable")',
+    'panelT("panel.modules.chat.gorev.restoreUnavailable")',
+    'panelT("panel.modules.chat.gorev.confirmMini")',
+    'panelT("panel.modules.chat.localReply.emptyMessage")',
+    'panelT("panel.modules.chat.localReply.limitedDefault")',
+    'panelT("panel.modules.chat.gorev.deleteRestoreHint")',
+    'function panelGorevDeleteRestoreHint(',
+    'function panelLocalWeekdayName(',
+)
+
+PANEL_I18N_V19_TR_KEYS = (
+    "gorev:",
+    "localReply:",
+    "deleteUnavailable:",
+    "restoreNothing:",
+    "timeBase:",
+)
+
 
 
 def test_panel_astro_i18n_wiring_present() -> None:
@@ -593,3 +612,22 @@ def test_panel_i18n_v18_compose_replies_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V18_TR_KEYS:
         assert key in tr_text, f"missing panel tr v18 key fragment: {key}"
         assert key in en_text, f"missing panel en v18 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v19_gorev_chat_fallback_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V19_MARKERS:
+        assert token in text, f"missing panel i18n v19 token: {token}"
+    assert "Görev silme şu an kullanılamıyor (liste bağlanmadı)." not in text
+    assert "Görev geri alma şu an kullanılamıyor (liste bağlanmadı)." not in text
+    assert 'return "Bir mesaj yazın."' not in text
+    assert "PANEL_GOREV_DELETE_RESTORE_HINT" not in text
+    assert 'let reply = "Saat " + hh' not in text
+
+
+def test_panel_i18n_v19_gorev_chat_fallback_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V19_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v19 key fragment: {key}"
+        assert key in en_text, f"missing panel en v19 key fragment: {key}"

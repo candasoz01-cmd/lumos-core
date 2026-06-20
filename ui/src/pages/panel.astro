@@ -7408,8 +7408,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
       /** @type {null | ((ref: string) => Promise<string>)} */
       let panelGorevlerDeleteFromChat = null;
       let panelGorevlerRestoreFromChat = null;
-      const PANEL_GOREV_DELETE_RESTORE_HINT =
-        ' Geri almak için «görev geri al» yazabilir veya Görevler\'de «Son silineni geri al» kullan.';
+      function panelGorevDeleteRestoreHint() {
+        return panelT("panel.modules.chat.gorev.deleteRestoreHint");
+      }
 
       /** @typedef {{ title: string, whenSummary: string | null, replyKind?: string }} PanelGorevCreateKomut */
       /** @typedef {{ verb: "sil", ref: string }} PanelGorevSilKomut */
@@ -7494,7 +7495,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
             await applyPanelGorevKomutu({ title: loose.title, whenSummary: loose.whenSummary || null });
           }
           if (loose.replyKind === "mini") {
-            return { lumosText: `Mini görev eklendi: ${loose.title}` };
+            return {
+              lumosText: panelT("panel.modules.chat.gorev.confirmMini").replace(
+                "{title}",
+                loose.title,
+              ),
+            };
           }
         }
         return { lumosText: String(replyBody || "").trim() };
@@ -7592,10 +7598,15 @@ const PANEL_DEBUG = import.meta.env.DEV;
       }
 
       function buildPanelGorevConfirmation(cmd) {
-        if (cmd.replyKind === "mini") return `Mini görev eklendi: ${cmd.title}`;
-        return cmd.whenSummary
-          ? `Görev eklendi: ${cmd.title} — ${cmd.whenSummary}`
-          : `Görev eklendi: ${cmd.title}`;
+        if (cmd.replyKind === "mini") {
+          return panelT("panel.modules.chat.gorev.confirmMini").replace("{title}", cmd.title);
+        }
+        if (cmd.whenSummary) {
+          return panelT("panel.modules.chat.gorev.confirmWithWhen")
+            .replace("{title}", cmd.title)
+            .replace("{when}", cmd.whenSummary);
+        }
+        return panelT("panel.modules.chat.gorev.confirm").replace("{title}", cmd.title);
       }
 
       function normalizePanelLimitedIntentKey(text) {
@@ -7830,22 +7841,24 @@ const PANEL_DEBUG = import.meta.env.DEV;
           return true;
         }
 
-        function tryPanelLimitedNavigationIntent(trimmed) {
+        function tryPanelLimitedNavigationIntent(trimmed, offlineNav) {
           const k = normalizePanelLimitedIntentKey(trimmed)
             .replace(/[.?!…]+$/g, "")
             .trim();
           if (!k) return null;
           if (/^(görevler|gorevler)$/.test(k)) {
             panelNavigateToModule("gorevler");
-            return "Görevler ekranına geçtim; listeden görevleri görebilir veya «görev oluştur başlık» ile yeni görev ekleyebilirsin.";
+            return panelT("panel.modules.chat.localReply.navGorevler");
           }
           if (/^(durum|sistem|sistem durumu|system)$/.test(k)) {
             panelNavigateToModule("ayarlar");
-            return "Ayarlar ekranına geçtim. Bağlantı köprüsü olmadan dış sohbet devre dışı; yerel görevler kullanılabilir.";
+            return offlineNav
+              ? panelT("panel.modules.chat.localReply.navAyarlarOffline")
+              : panelT("panel.modules.chat.localReply.navAyarlar");
           }
           if (/^(anahtar\s+kasası|anahtar\s+kasasi|keystore|kimlik)$/.test(k)) {
             panelNavigateToModule("kimlik");
-            return "Kimlik ekranına geçtim; bağlantı ve kimlik ayarlarını buradan görebilirsin.";
+            return panelT("panel.modules.chat.localReply.navKimlik");
           }
           return null;
         }
@@ -7882,6 +7895,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
           );
         }
 
+        function panelLocalWeekdayName(dayIndex) {
+          return panelT("panel.modules.chat.localReply.weekday" + String(dayIndex));
+        }
+
         function tryPanelLocalTimeReply(userText) {
           const trimmed = String(userText || "").trim();
           if (!trimmed || !isPanelTimeQuery(trimmed)) return null;
@@ -7891,28 +7908,25 @@ const PANEL_DEBUG = import.meta.env.DEV;
           const dd = String(now.getDate()).padStart(2, "0");
           const mo = String(now.getMonth() + 1).padStart(2, "0");
           const yyyy = now.getFullYear();
-          let reply = "Saat " + hh + ":" + mm + ". Bugün " + dd + "." + mo + "." + yyyy + ".";
+          let reply = panelT("panel.modules.chat.localReply.timeBase")
+            .replace("{hh}", hh)
+            .replace("{mm}", mm)
+            .replace("{date}", dd + "." + mo + "." + yyyy);
           if (isPanelWeekdayTimeQuery(trimmed)) {
-            const weekdays = [
-              "Pazar",
-              "Pazartesi",
-              "Salı",
-              "Çarşamba",
-              "Perşembe",
-              "Cuma",
-              "Cumartesi",
-            ];
-            reply += " Günlerden " + weekdays[now.getDay()] + ".";
+            reply += panelT("panel.modules.chat.localReply.timeWeekdaySuffix").replace(
+              "{weekday}",
+              panelLocalWeekdayName(now.getDay()),
+            );
           }
           return reply;
         }
 
         function buildPanelLimitedReply(userText) {
           const trimmed = String(userText || "").trim();
-          if (!trimmed) return "Bir mesaj yazın.";
+          if (!trimmed) return panelT("panel.modules.chat.localReply.emptyMessage");
           const timeReply = tryPanelLocalTimeReply(trimmed);
           if (timeReply) return timeReply;
-          const navReply = tryPanelLimitedNavigationIntent(trimmed);
+          const navReply = tryPanelLimitedNavigationIntent(trimmed, false);
           if (navReply) return navReply;
           const keyTr = normalizePanelLimitedIntentKey(trimmed);
           const keyAscii = keyTr
@@ -7923,34 +7937,30 @@ const PANEL_DEBUG = import.meta.env.DEV;
             .replace(/ö/g, "o")
             .replace(/ç/g, "c");
           if (keyTr.indexOf("görev") !== -1 || keyAscii.indexOf("gorev") !== -1) {
-            return "Görevler ekranından listeyi görebilirsin. Yeni görev için: «görev oluştur başlık» (ör. görev oluştur alışveriş).";
+            return panelT("panel.modules.chat.localReply.keywordGorev");
           }
           if (keyTr.indexOf("kayıt") !== -1 || keyAscii.indexOf("kayit") !== -1) {
-            return "Medya ekranına geçip dosyaları inceleyebilirsin.";
+            return panelT("panel.modules.chat.localReply.keywordKayit");
           }
           if (keyTr.indexOf("akış") !== -1 || keyAscii.indexOf("akis") !== -1) {
-            return "Sosyal ekranına geçip güncel listeyi görebilirsin.";
+            return panelT("panel.modules.chat.localReply.keywordAkis");
           }
-          return "Sınırlı moddasın (kullanıcı seçimi); yerel görevler ve kısa yönlendirmeler kullanılabilir — örn. «görev oluştur başlık» veya «görevler».";
+          return panelT("panel.modules.chat.localReply.limitedDefault");
         }
 
         function buildPanelOfflineReply(userText) {
           const trimmed = String(userText || "").trim();
-          if (!trimmed) return "Bir mesaj yazın.";
+          if (!trimmed) return panelT("panel.modules.chat.localReply.emptyMessage");
           const timeReply = tryPanelLocalTimeReply(trimmed);
           if (timeReply) return timeReply;
-          const navReply = tryPanelLimitedNavigationIntent(trimmed);
-          if (navReply) {
-            return navReply.replace(/Sınırlı mod|bağlantı köprüsü olmadan dış sohbet devre dışı/gi, "Çevrimdışı mod");
-          }
+          const navReply = tryPanelLimitedNavigationIntent(trimmed, true);
+          if (navReply) return navReply;
           const limited = buildPanelLimitedReply(trimmed);
-          if (limited.indexOf("Sınırlı moddasın") !== -1) {
-            return limited.replace(
-              "Sınırlı moddasın (kullanıcı seçimi)",
-              "Çevrimdışı moddasın; internet kullanılmaz",
-            );
+          const limitedDefault = panelT("panel.modules.chat.localReply.limitedDefault");
+          if (limited === limitedDefault) {
+            return panelT("panel.modules.chat.localReply.offlineDefault");
           }
-          return "Çevrimdışı moddasın; internet kullanılmaz. Yerel görevler kullanılabilir — örn. «görev oluştur başlık» veya «görevler».";
+          return limited;
         }
 
         function buildPanelLocalModeReply(userText) {
@@ -9158,12 +9168,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 if (panelGorevCmd.verb === "sil") {
                   const delReply = panelGorevlerDeleteFromChat
                     ? await panelGorevlerDeleteFromChat(panelGorevCmd.ref)
-                    : "Görev silme şu an kullanılamıyor (liste bağlanmadı).";
+                    : panelT("panel.modules.chat.gorev.deleteUnavailable");
                   appendBubble("lumos", delReply);
                 } else if (panelGorevCmd.verb === "geri_al") {
                   const restoreReply = panelGorevlerRestoreFromChat
                     ? await panelGorevlerRestoreFromChat(panelGorevCmd.ref)
-                    : "Görev geri alma şu an kullanılamıyor (liste bağlanmadı).";
+                    : panelT("panel.modules.chat.gorev.restoreUnavailable");
                   appendBubble("lumos", restoreReply);
                 } else {
                   await applyPanelGorevKomutu(panelGorevCmd);
@@ -9211,7 +9221,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             if (panelGorevCmd.verb === "sil") {
               const delReply = panelGorevlerDeleteFromChat
                 ? await panelGorevlerDeleteFromChat(panelGorevCmd.ref)
-                : "Görev silme şu an kullanılamıyor (liste bağlanmadı).";
+                : panelT("panel.modules.chat.gorev.deleteUnavailable");
               appendBubble("lumos", delReply);
               input.value = "";
               clearPanelCameraPhotoSelection();
@@ -9231,7 +9241,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             if (panelGorevCmd.verb === "geri_al") {
               const restoreReply = panelGorevlerRestoreFromChat
                 ? await panelGorevlerRestoreFromChat(panelGorevCmd.ref)
-                : "Görev geri alma şu an kullanılamıyor (liste bağlanmadı).";
+                : panelT("panel.modules.chat.gorev.restoreUnavailable");
               appendBubble("lumos", restoreReply);
               input.value = "";
               clearPanelCameraPhotoSelection();
@@ -11570,14 +11580,15 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
         function buildGorevlerNotFoundMessage(ref) {
           const r = String(ref || "").trim();
-          return (
-            "Görev bulunamadı: «" + r + "». Başlık veya görev kimliği (tsk_…) kontrol edin."
-          );
+          return panelT("panel.modules.chat.gorev.notFound").replace("{ref}", r);
         }
 
         function buildGorevDeleteSuccessMessage(titleOrRef) {
           const t = String(titleOrRef || "").trim();
-          return 'Görev silindi: "' + t + '".' + PANEL_GOREV_DELETE_RESTORE_HINT;
+          return (
+            panelT("panel.modules.chat.gorev.deleted").replace("{title}", t) +
+            panelGorevDeleteRestoreHint()
+          );
         }
 
         function refreshPanelEvidenceStripIfReady() {
@@ -11643,8 +11654,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
         async function deleteGorevlerTaskFromChat(ref) {
           const r = String(ref || "").trim();
-          if (!r) return "Görev adı eksik. Örnek: görev sil alışveriş";
-          if (!confirm('"' + r + '" silinsin mi?')) return "Silme iptal edildi.";
+          if (!r) return panelT("panel.modules.chat.gorev.deleteMissingRef");
+          if (
+            !confirm(
+              panelT("panel.modules.chat.gorev.deleteConfirm").replace("{ref}", r),
+            )
+          ) {
+            return panelT("panel.modules.chat.gorev.deleteCancelled");
+          }
           hideHint();
           const idx = findGorevlerTaskIndexByRef(r);
           const t = idx >= 0 ? panelGorevlerTasks[idx] : null;
@@ -11672,7 +11689,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             }
             const err =
               res && res.data && res.data.error != null ? String(res.data.error) : "delete_failed";
-            return "Silinemedi (" + err + ").";
+            return panelT("panel.modules.chat.gorev.deleteFailed").replace("{error}", err);
           }
           const deletedId = t && t.id ? String(t.id).trim() : r;
           lastGorevlerDeletedId = deletedId;
@@ -11797,7 +11814,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
         async function restoreGorevlerTaskFromChat(ref) {
           if (!lastGorevlerDeletedId && !lastGorevlerDeletedLocalRow) {
-            return "Geri alınacak silinen görev yok.";
+            return panelT("panel.modules.chat.gorev.restoreNothing");
           }
           const r = String(ref || "").trim();
           if (r && !gorevlerLastDeletedMatchesRef(r)) {
@@ -11814,9 +11831,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
             lastGorevlerDeletedId = savedDeletedId;
             lastGorevlerDeletedLocalRow = savedLocalRow;
             if (restoreLastBtn) restoreLastBtn.hidden = false;
-            return "Görev listesine eklenemedi; geri alma doğrulanamadı.";
+            return panelT("panel.modules.chat.gorev.restoreVerifyFailed");
           }
-          return 'Görev geri alındı: "' + titleBefore + '".';
+          return panelT("panel.modules.chat.gorev.restored").replace("{title}", titleBefore);
         }
 
         panelGorevlerTasksRender = render;
