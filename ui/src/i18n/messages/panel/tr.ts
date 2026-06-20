@@ -384,6 +384,8 @@ const panelModules = {
       listDefault: "Henüz görev yok. Yukarıdan kısa bir başlık yazıp «Görev ekle» kullanın.",
       listFilter: "Bu filtrede görev yok. «Tümü» ile tüm görevleri görebilirsin.",
       evidence: "Henüz sunucu kanıtı yok",
+      evidenceUnreachable:
+        "Kanıt sunucusuna ulaşılamadı; bağlantıyı kontrol edin.",
     },
     detail: {
       title: "Görev",

@@ -7174,17 +7174,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
       async function fetchEvidenceRecent() {
         const base = resolveGorevlerTasksApiBase();
-        if (!base) return null;
+        if (!base) return { ok: false };
         try {
           const r = await fetch(`${base}/evidence/recent`, {
             headers: { Accept: "application/json" },
           });
-          if (!r.ok) return null;
+          if (!r.ok) return { ok: false };
           const data = await r.json();
-          if (!data || !Array.isArray(data.events)) return null;
-          return data;
+          if (!data || !Array.isArray(data.events)) return { ok: false };
+          return { ok: true, events: data.events };
         } catch {
-          return null;
+          return { ok: false };
         }
       }
 
@@ -7195,17 +7195,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const emptyEl = document.getElementById("gorevler-evidence-empty");
         if (!stripEl || !summaryEl || !continueBtn || !emptyEl) return;
 
-        const data = await fetchEvidenceRecent();
-        if (!data) {
+        const fetched = await fetchEvidenceRecent();
+        if (!fetched.ok) {
           panelEvidenceLatestGroup = null;
           stripEl.hidden = true;
           emptyEl.hidden = false;
-          emptyEl.textContent = panelT("panel.modules.tasks.empty.evidence");
+          emptyEl.textContent = panelT("panel.modules.tasks.empty.evidenceUnreachable");
           continueBtn.hidden = true;
           return;
         }
 
-        const groups = groupEvidenceEventsForUi(data.events);
+        const groups = groupEvidenceEventsForUi(fetched.events);
         const latest = pickLatestEvidenceGroup(groups);
         if (!latest) {
           panelEvidenceLatestGroup = null;
