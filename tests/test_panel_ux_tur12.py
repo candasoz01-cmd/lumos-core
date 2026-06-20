@@ -43,3 +43,19 @@ def test_panel_ux_tur12_1_bubble_copy_i18n_keys() -> None:
     for key in PANEL_UX_TUR12_1_I18N_KEYS:
         assert key in tr_text, f"missing panel tr tur12-1 key: {key}"
         assert key in en_text, f"missing panel en tur12-1 key: {key}"
+
+
+PANEL_UX_TUR12_2_MARKERS = (
+    "function scrollPanelComposeIntoView(",
+    "#panel-sohbet .chat-compose-stack",
+    'scrollIntoView({ behavior: "smooth", block: "end" })',
+    "vv.height < window.innerHeight * 0.82",
+    'document.activeElement === input',
+    '(pointer: coarse) and (hover: none)',
+)
+
+
+def test_panel_ux_tur12_2_mobile_compose_scroll_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_UX_TUR12_2_MARKERS:
+        assert token in text, f"missing tur12-2 token: {token}"
