@@ -108,9 +108,9 @@ Ortak bileşenler: Sidebar, Topbar, StatusBadge, MetricCard, SectionCard, EmptyS
 
 ---
 
-## E2E (legacy kalite kapısı)
+## E2E (legacy — deprecated kök expose)
 
-> **Legacy:** Birincil üretim yüzeyi `ui/` (Astro `/panel`) — bkz. OD-043. Bu dizindeki Playwright E2E (`panel/e2e/`) **legacy statik panel** kalite kapısıdır; üretim `/panel` doğrulaması değildir (OD-046).
+> **Deprecated (OD-046 kapandı):** Birincil üretim ve **birincil kök E2E** `ui/` (`ui/dist` `/panel`) — repo kökünden `npm run e2e:package`, `e2e:package:api`, `e2e:tasks-offline-online` (hepsi `--prefix ui`). Bu dizindeki Playwright (`panel/e2e/`) yalnızca **legacy** statik panel kapısıdır; kökten `npm run e2e:legacy:*` ile çalıştırılır; üretim `/panel` doğrulaması değildir.
 
 | Komut (kök) | Hedef | Not |
 |-------------|-------|-----|

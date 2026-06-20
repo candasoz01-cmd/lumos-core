@@ -1,6 +1,6 @@
 # OD-046 — E2E migrasyon planı (ui/dist hizası)
 
-> **Durum:** `[approved-for-implementation]` — Faz 0 karar kaydı tamamlandı; Faz 1–5 ayrı PR sınırlarıyla uygulanır.
+> **Durum:** `[implemented]` — Faz 0–5 tamamlandı (#300–#305 + Faz 5 doc sync); OD-046 **implementation-complete**.
 >
 > **Üst karar:** [`build-e2e-surface-alignment-decision.md`](./build-e2e-surface-alignment-decision.md) — Seçenek A onaylı; üretim yüzeyi `ui/`; kök E2E nihai hedef `ui/dist` veya Astro preview.
 >
@@ -22,7 +22,7 @@
 | IC6 | «Tamamla» adımı chat değil UI/API | `POST /tasks/complete`; chat komutu assert edilmez |
 | IC7 | Legacy `panel/` E2E kök expose'dan **kaldırılmaz** (Faz 5'e kadar) veya açık deprecate notu | Geçiş dönemi; tek PR'da sert kesim yok |
 
-**Henüz tamamlanmış (v1–v2):** `e2e:smoke:ui`, `ui/e2e/smoke-panel.mjs`, CI `ui-smoke` — **implementation-partial**; IC1–IC5 olmadan **implementation-complete** sayılmaz.
+**Tamamlandı (v1–v5):** IC1–IC7 karşılandı — smoke (#294–#296), ui/e2e package trio (#303–#305), kök redirect + `ui-e2e` CI (#305), legacy `e2e:legacy:*` (#305).
 
 ---
 
@@ -111,7 +111,7 @@ Bu karar Faz 0'da kayıt altına alındı; Faz 2–3 implementasyonunda bağlay�
 | Job | Ne zaman | Komut | OD-046 faz |
 |-----|----------|-------|------------|
 | `ui-smoke` | **Şimdi (v2)** | `npm run build` + `npm run e2e:smoke` (`ui/`) | v1/v2 tamam |
-| `ui-e2e` | **Faz 4 sonrası** | `npm run build` + kök veya `ui` package E2E trio | implementation-complete |
+| `ui-e2e` | **Tamamlandı (Faz 4)** | `npm run build` + kök package E2E trio (`--prefix ui`) | PR #305 |
 
 Smoke ve E2E **ayrı job** — smoke hızlı kırılma alarmı; E2E tam package kapısı.
 
@@ -119,17 +119,18 @@ Smoke ve E2E **ayrı job** — smoke hızlı kırılma alarmı; E2E tam package 
 
 ## 7. OD-046 kapanış checklist
 
-Tüm maddeler evet olmadan OD-046 **implementation-complete** ve indeks **closed** sayılmaz:
+OD-046 **implementation-complete** — indeks **closed** (Faz 5):
 
-- [ ] IC1 — Kök `e2e:package` `ui/dist` hedefli ve yeşil
-- [ ] IC2 — Kök `e2e:package:api` `ui/dist` + API yeşil
-- [ ] IC3 — Kök `e2e:tasks-offline-online` yeşil
-- [ ] IC4 — CI `ui-smoke` yeşil (regresyonsuz)
-- [ ] IC5 — CI `ui-e2e` yeşil
-- [ ] IC6 — Package akışında tamamla UI/API ile doğrulanıyor; chat `görev tamamla` yok
-- [ ] `build-e2e-surface-alignment-decision.md` §12 güncel
-- [ ] `open-decisions-needs-review.md` OD-046 durumu `implementation-complete`
-- [ ] `decision-log.md` DL-F07 senkron
+- [x] IC1 — Kök `e2e:package` `ui/dist` hedefli ve yeşil — PR #303, #305
+- [x] IC2 — Kök `e2e:package:api` `ui/dist` + API yeşil — PR #304, #305
+- [x] IC3 — Kök `e2e:tasks-offline-online` yeşil — PR #304, #305
+- [x] IC4 — CI `ui-smoke` yeşil (regresyonsuz) — PR #294–#296
+- [x] IC5 — CI `ui-e2e` yeşil — PR #305
+- [x] IC6 — Package akışında tamamla UI/API ile doğrulanıyor; chat `görev tamamla` yok — PR #303–#304
+- [x] IC7 — Legacy kök expose → `e2e:legacy:*`; deprecate notu — PR #305, `panel/README.md` (Faz 5)
+- [x] `build-e2e-surface-alignment-decision.md` §12 güncel — Faz 5
+- [x] `open-decisions-needs-review.md` OD-046 **closed** — Faz 5
+- [x] `decision-log.md` DL-F07 senkron — Faz 5
 
 ---
 
@@ -140,8 +141,9 @@ Tüm maddeler evet olmadan OD-046 **implementation-complete** ve indeks **closed
 | OD-043 | Birincil yüzey `ui/` — E2E hizası bu planla tamamlanır |
 | OD-044 | `frontend/` E2E bu planda yok |
 | PR #294–296 | v1 smoke + v2 CI smoke |
+| PR #300–#305 | Faz 0–4 migrasyon zinciri (Faz 5 doc sync ayrı PR) |
 | `panel_tasks_server.py` | Faz 3 API sunucusu — değişiklik yalnızca gerekirse dar PR |
 
 ---
 
-Son güncelleme: 2026-06-20 (Faz 4 — kök script redirect + `ui-e2e` CI job; Faz 5 doc sync bekliyor)
+Son güncelleme: 2026-06-20 (Faz 5 — implementation-complete; doc sync + indeks closed)

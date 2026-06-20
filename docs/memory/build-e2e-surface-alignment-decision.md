@@ -1,6 +1,6 @@
 # Root build vs panel E2E — yüzey hizası kararı (OD-046)
 
-**Durum:** `[decision-approved]` / **plan approved** — Seçenek A onaylı; v1–v2 smoke+CI merge (#294–296); migrasyon fazları tanımlı → [`od-046-e2e-migration-plan.md`](od-046-e2e-migration-plan.md).  
+**Durum:** `[decision-approved]` / **`implementation-complete`** — Seçenek A uygulandı; v1–v2 smoke+CI (#294–#296); Faz 0–4 (#300–#305) → [`od-046-e2e-migration-plan.md`](od-046-e2e-migration-plan.md).  
 **Kaynak:** `docs/memory/open-decisions-needs-review.md` (OD-046; çapraz OD-043, OD-044).  
 **Doğrulama:** Repo dosya sistemi read-only tarama — 2026-06-17; karar onayı — 2026-06-17.
 
@@ -40,18 +40,20 @@ Bu belge:
 ```json
 "build": "cd ui && npm install && npm run build",
 "e2e:smoke:ui": "npm run build && npm run e2e:smoke --prefix ui",
-"e2e:package": "npm run e2e:package --prefix panel",
-"e2e:package:api": "npm run e2e:package:api --prefix panel",
-"e2e:tasks-offline-online": "npm run e2e:tasks-offline-online --prefix panel"
+"e2e:package": "npm run e2e:package --prefix ui",
+"e2e:package:api": "npm run e2e:package:api --prefix ui",
+"e2e:tasks-offline-online": "npm run e2e:tasks-offline-online --prefix ui",
+"e2e:legacy:package": "npm run e2e:package --prefix panel"
 ```
 
 | Script | Hedef dizin | Çıktı / davranış |
 |--------|-------------|------------------|
 | `npm run build` (kök) | `ui/` | Astro build → `ui/dist` |
 | `npm run e2e:smoke:ui` (kök) | `ui/dist` | Playwright smoke — `/panel` title + temel DOM (OD-046 v1) |
-| `npm run e2e:*` (kök, legacy) | `panel/` | Playwright; `panel/index.html` statik sunucu — **legacy kalite kapısı** |
+| `npm run e2e:legacy:*` (kök) | `panel/` | Playwright; `panel/index.html` — **deprecated** geçiş kapısı |
+| `npm run e2e:package*` (kök, birincil) | `ui/dist` | Playwright package trio — **OD-046 birincil kapı** |
 
-**Kanıt:** Kök `package.json` — build `ui/`; `e2e:smoke:ui` üretim yüzeyi smoke; legacy `e2e:package*` hâlâ `--prefix panel`.
+**Kanıt:** Kök `package.json` — build `ui/`; birincil `e2e:package*` → `--prefix ui`; legacy → `e2e:legacy:*` → `--prefix panel`.
 
 ### 3.2 `ui/` (Astro — `lumos-core-ui`)
 
@@ -260,7 +262,7 @@ Build/E2E hizası veya yüzey değişikliği görevi açılmadan önce:
 
 | ID | Soru | Bu belgedeki durum |
 |----|------|-------------------|
-| **OD-046** | Root build (ui) ile panel E2E hangi yüzeyi «canlı» sayar? | **Karar onaylandı (Seçenek A):** üretim → `ui/`; kök E2E bugün → `panel/`; nihai hedef → `ui/dist` veya Astro preview |
+| **OD-046** | Root build (ui) ile panel E2E hangi yüzeyi «canlı» sayar? | **Uygulandı (Seçenek A):** üretim → `ui/`; birincil kök E2E → `ui/dist`; legacy → `e2e:legacy:*` / `panel/` |
 | **OD-043** | Birincil yüzey `panel/`, `ui/` veya `frontend/` mi? | Seçenek A **uygulaması** sonucuna bağlı; taslak üretim `ui/` |
 | **OD-044** | `frontend/` rolü? | Root build/E2E'de yok; canlı değil — kısa çapraz not |
 
@@ -281,7 +283,7 @@ Build/E2E hizası veya yüzey değişikliği görevi açılmadan önce:
 
 | ID | Kaynak | Konu | Bu belgede netleşen | Durum | Çapraz not |
 |----|--------|------|---------------------|--------|------------|
-| **OD-046** | project-map-runtime-entrypoints.md | Root build vs panel E2E | Seçenek A onaylı: üretim `ui/`; kök E2E bugün `panel/`, hedef `ui/dist` / Astro preview | **decision-approved** | Uygulama iş paketi bekliyor |
+| **OD-046** | project-map-runtime-entrypoints.md | Root build vs panel E2E | Seçenek A uygulandı: üretim `ui/`; birincil kök E2E → `ui/dist`; legacy → `e2e:legacy:*` | **implementation-complete** | PR #300–#305 |
 | **OD-043** | project-map-runtime-entrypoints.md | Birincil kullanıcı yüzeyi | Seçenek A uygulama sonucuna bağlı; taslak üretim `ui/` | **needs-review** | primary-user-surface-decision.md |
 | **OD-044** | project-map-runtime-entrypoints.md | `frontend/` rolü | Build/E2E zincirinde değil | **needs-review** | Birincil yüzey değil |
 
@@ -298,11 +300,12 @@ Build/E2E hizası veya yüzey değişikliği görevi açılmadan önce:
 | UI smoke (v1) | `ui/e2e/smoke-panel.mjs` — `ui/dist` statik `/panel` | **Tamamlandı** — PR #294 |
 | Kök script | `npm run e2e:smoke:ui` | **Tamamlandı** |
 | CI smoke (v2) | `.github/workflows/ci.yml` → `ui-smoke` job | **Tamamlandı** — PR #296 |
-| Tam E2E migrasyonu | Kök `e2e:package*` → `ui/dist` | **Plan onaylı** — Faz 1–4 |
-| CI package E2E | `ui-e2e` job | **Bekliyor** — Faz 4 |
+| Tam E2E migrasyonu | Kök `e2e:package*` → `ui/dist` | **Tamamlandı** — PR #303–#305 |
+| CI package E2E | `ui-e2e` job | **Tamamlandı** — PR #305 |
+| Legacy kök expose | `e2e:legacy:*` → `panel/` | **Deprecated notu** — PR #305 + `panel/README.md` |
 | Prod smoke | `welockai.com/panel` veya eşdeğer | Bekliyor (OD-046 dışı) |
 
-**Statü:** `implementation-partial` → migrasyon planı `approved-for-implementation`; fazlar tanımlı; Faz 1 kod PR'ı bekliyor.
+**Statü:** **`implementation-complete`** — OD-046 kapandı; prod smoke OD dışı backlog.
 
 ### 12.2 implementation-complete kriterleri
 
@@ -315,8 +318,8 @@ OD-046 **implementation-complete** yalnızca aşağıdakilerin tamamı sağland�
 | 3 | Legacy 12 script **1:1 port değil** — kök expose üçlüsünün ui karşılığı yeterli (keşif: mekanik port mümkün değil) |
 | 4 | «Görev tamamla» E2E adımı **UI/API** (`POST /tasks/complete`); chat `görev tamamla` **kapsam dışı** |
 
-Tam migrasyon tamamlanmadan OD-046 **implementation-complete** sayılmaz. OD-043 birincil yüzey kararı ayrıca onaylıdır; E2E hizası bu checklist ile tamamlanır.
+OD-046 **implementation-complete** (2026-06-20). OD-043 birincil yüzey kararı onaylıdır; kök E2E hizası bu checklist ile tamamlandı.
 
 ---
 
-Son güncelleme: 2026-06-20 (Faz 0 migrasyon planı; §12 implementation-complete tanımı; v1–v2 smoke+CI)
+Son güncelleme: 2026-06-20 (Faz 5 — OD-046 implementation-complete; §12 senkron)
