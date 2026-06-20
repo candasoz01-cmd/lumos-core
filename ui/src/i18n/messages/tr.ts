@@ -1,5 +1,6 @@
-/** Turkish UI strings — landing (phase 1). Panel keys live in ./panel/ for phase 2. */
+/** Turkish UI strings — landing (phase 1) + panel shell (phase 2). */
 import landing from "./landing/tr";
+import panel from "./panel/tr";
 
 const tr = {
   meta: {
@@ -46,6 +47,7 @@ const tr = {
     askSubmit: "Sor",
   },
   landing,
+  panel,
 } as const;
 
 export default tr;

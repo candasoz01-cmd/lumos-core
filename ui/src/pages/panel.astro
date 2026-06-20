@@ -1,5 +1,7 @@
 ---
 import GlobalMay19Corner from "../components/GlobalMay19Corner.astro";
+import LanguageSwitcher from "../components/LanguageSwitcher.astro";
+import I18nInit from "../components/I18nInit.astro";
 
 /**
  * POST /chat tam URL (örn. `https://host/chat`).
@@ -38,7 +40,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
       name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no"
     />
-    <title>Lumos Panel — Çalışma alanı</title>
+    <title data-i18n="panel.meta.title">Lumos Panel — Çalışma alanı</title>
     <link rel="icon" href="/lumos-tree-logo.svg" type="image/svg+xml" sizes="any" />
     <link rel="apple-touch-icon" href="/lumos-tree-logo.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
@@ -4019,7 +4021,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         <div class="panel-header-title-row">
           <div class="panel-header-brand">
             <span class="lumos-mark" aria-hidden="true"></span>
-            <h1>Lumos Panel</h1>
+            <h1 data-i18n="panel.header.title">Lumos Panel</h1>
           </div>
           <div class="panel-health-row">
             <div class="panel-user-mode-wrap">
@@ -4083,13 +4085,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
               aria-label="Altyapı bağlantı durumu"
               title="Altyapı: köprü bağlantısı"
             >Bağlanıyor</span>
+            <LanguageSwitcher />
             <GlobalMay19Corner />
           </div>
         </div>
       </header>
       <div class="panel-body">
-        <nav class="panel-nav__primary" aria-label="Çalışma modülleri">
-          <p class="panel-nav-sig">Lumos <span>panel</span></p>
+        <nav class="panel-nav__primary" aria-label="Çalışma modülleri" data-i18n-aria-label="panel.nav.aria">
+          <p class="panel-nav-sig"><span data-i18n="panel.nav.lumos">Lumos</span> <span data-i18n="panel.nav.panel">panel</span></p>
           <div class="panel-nav-collapsible" data-nav-group="calisma">
             <button
               type="button"
@@ -4098,32 +4101,32 @@ const PANEL_DEBUG = import.meta.env.DEV;
               aria-expanded="true"
               aria-controls="panel-nav-items-calisma"
             >
-              <span class="panel-nav-group-toggle-label">Çalışma</span>
+              <span class="panel-nav-group-toggle-label" data-i18n="panel.nav.calisma">Çalışma</span>
             </button>
             <div class="panel-nav-group-items" id="panel-nav-items-calisma">
               <button type="button" data-module="sohbet" aria-current="true">
-                <span class="panel-nav-label">Sohbet</span>
+                <span class="panel-nav-label" data-i18n="panel.nav.sohbet">Sohbet</span>
               </button>
               <button type="button" data-module="gorevler">
-                <span class="panel-nav-label">Görevler</span>
+                <span class="panel-nav-label" data-i18n="panel.nav.gorevler">Görevler</span>
               </button>
               <button type="button" data-module="ses">
-                <span class="panel-nav-label">Ses</span>
+                <span class="panel-nav-label" data-i18n="panel.nav.ses">Ses</span>
               </button>
               <button type="button" data-module="medya">
-                <span class="panel-nav-label">Medya</span>
+                <span class="panel-nav-label" data-i18n="panel.nav.medya">Medya</span>
               </button>
               <button type="button" data-module="sosyal">
-                <span class="panel-nav-label">Sosyal</span>
+                <span class="panel-nav-label" data-i18n="panel.nav.sosyal">Sosyal</span>
               </button>
               <button type="button" data-module="posta">
-                <span class="panel-nav-label">Posta</span>
+                <span class="panel-nav-label" data-i18n="panel.nav.posta">Posta</span>
               </button>
               <button type="button" data-module="dosyalar">
-                <span class="panel-nav-label">Dosyalar</span>
+                <span class="panel-nav-label" data-i18n="panel.nav.dosyalar">Dosyalar</span>
               </button>
               <button type="button" class="panel-nav-research-chip" data-module="kuantum" title="Kuantum — araştırma alanı (aktif üretim özelliği değil)">
-                <span class="panel-nav-label">Kuantum</span>
+                <span class="panel-nav-label" data-i18n="panel.nav.kuantum">Kuantum</span>
               </button>
             </div>
           </div>
@@ -4135,6 +4138,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             data-module-panel="sohbet"
             data-active="true"
             aria-label="Sohbet"
+            data-i18n-aria-label="panel.sections.sohbet"
           >
             <div class="chat-workspace">
               <div class="chat-history-shell" aria-label="Mesaj geçmişi">
@@ -4399,8 +4403,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
             data-active="false"
             aria-labelledby="panel-gorevler-title"
           >
-            <p class="gorevler-eyebrow">Operasyon</p>
-            <h2 id="panel-gorevler-title">Görevler</h2>
+            <p class="gorevler-eyebrow" data-i18n="panel.modules.tasks.eyebrow">Operasyon</p>
+            <h2 id="panel-gorevler-title" data-i18n="panel.sections.gorevler">Görevler</h2>
             <p class="gorevler-intro">
               <span class="panel-data-flow-badge">[Yerel]</span>
               Görevler cihazınızdaki görev kaydına yazılır; görev eklerken iletim gerekmez. Sunucu kapalıysa liste
@@ -4894,7 +4898,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             data-active="false"
             aria-labelledby="panel-dosyalar-title"
           >
-            <h2 id="panel-dosyalar-title">Dosyalar</h2>
+            <h2 id="panel-dosyalar-title" data-i18n="panel.sections.dosyalar">Dosyalar</h2>
             <p class="gorevler-intro">
               <span class="panel-data-flow-badge">[Harici Servis]</span>
               Dosyayı cihazınızdan seçin; sunucu dosyayı alır, adı, türü ve boyutu döner. Metin dosyalarında kısa özet
@@ -13034,5 +13038,6 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
       wireMedyaOutbox();
     </script>
+    <I18nInit />
   </body>
 </html>

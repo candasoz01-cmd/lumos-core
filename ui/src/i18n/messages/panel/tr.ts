@@ -1,4 +1,32 @@
-/** Panel module copy — Turkish (from panel.astro sections) */
+/** Panel shell + module copy — Turkish (from panel.astro sections) */
+const panelNav = {
+  meta: {
+    title: "Lumos Panel — Çalışma alanı",
+  },
+  header: {
+    title: "Lumos Panel",
+  },
+  nav: {
+    aria: "Çalışma modülleri",
+    lumos: "Lumos",
+    panel: "panel",
+    calisma: "Çalışma",
+    sohbet: "Sohbet",
+    gorevler: "Görevler",
+    ses: "Ses",
+    medya: "Medya",
+    sosyal: "Sosyal",
+    posta: "Posta",
+    dosyalar: "Dosyalar",
+    kuantum: "Kuantum",
+  },
+  sections: {
+    sohbet: "Sohbet",
+    gorevler: "Görevler",
+    dosyalar: "Dosyalar",
+  },
+} as const;
+
 const panelModules = {
   tasks: {
     eyebrow: "Operasyon",
@@ -234,4 +262,10 @@ const panelModules = {
   },
 } as const;
 
-export default panelModules;
+const panel = {
+  ...panelNav,
+  modules: panelModules,
+};
+
+export default panel;
+export type PanelMessages = typeof panel;

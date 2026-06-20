@@ -1,6 +1,7 @@
-/** English UI strings — landing (phase 1). Mirror keys from tr.ts */
+/** English UI strings — landing (phase 1) + panel shell (phase 2). Mirror keys from tr.ts */
 import type { MessageTree } from "./tr";
 import landing from "./landing/en";
+import panel from "./panel/en";
 
 const en: MessageTree = {
   meta: {
@@ -47,6 +48,7 @@ const en: MessageTree = {
     askSubmit: "Ask",
   },
   landing,
+  panel,
 };
 
 export default en;
