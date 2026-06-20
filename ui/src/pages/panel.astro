@@ -8263,7 +8263,26 @@ const PANEL_DEBUG = import.meta.env.DEV;
           const toggle = collapsible?.querySelector(".panel-nav-group-toggle");
           if (toggle) toggle.setAttribute("aria-expanded", "true");
         }
+
+        function scrollActivePanelNavChipIntoView(activeBtn) {
+          if (!(activeBtn instanceof HTMLElement)) return;
+          const chipNav = activeBtn.closest(".panel-nav__primary, .panel-nav__lumos");
+          if (!chipNav) return;
+          try {
+            activeBtn.scrollIntoView({ behavior: "smooth", inline: "nearest", block: "nearest" });
+          } catch {
+            try {
+              activeBtn.scrollIntoView({ inline: "nearest", block: "nearest" });
+            } catch {
+              activeBtn.scrollIntoView();
+            }
+          }
+        }
+
         expandNavGroupIfActiveHidden();
+        scrollActivePanelNavChipIntoView(
+          nav.querySelector('button[data-module][aria-current="true"]'),
+        );
 
         const vv = window.visualViewport;
         if (vv) {
@@ -8317,6 +8336,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           panels.forEach((p) => {
             p.setAttribute("data-active", p.getAttribute("data-module-panel") === id ? "true" : "false");
           });
+          scrollActivePanelNavChipIntoView(btn);
         });
 
         function panelNavigateToModule(moduleId) {
@@ -8331,6 +8351,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
               p.getAttribute("data-module-panel") === moduleId ? "true" : "false",
             );
           });
+          scrollActivePanelNavChipIntoView(btn);
           return true;
         }
 
