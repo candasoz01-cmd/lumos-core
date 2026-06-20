@@ -9839,6 +9839,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
           return { kind, rawError };
         }
 
+        /** HTTP 200 + error alanları olsa bile foto fallback metni asistan yanıtı olarak önceliklidir. */
+        function isPanelChatPhotoFallbackReply(text) {
+          const t = text == null ? "" : String(text).trim();
+          if (!t) return false;
+          return t === REPLY_PHOTO_NO_VISION_TR || PANEL_REPLY_PHOTO_NO_VISION_RE.test(t);
+        }
+
         function extractAssistantFromChatPayload(data) {
           if (data == null) return "";
           if (typeof data === "string") return String(data).trim();
@@ -10315,7 +10322,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
               if (havePayload) {
                 const errorPayload = parsePanelChatErrorPayload(parsedPayload);
-                if (errorPayload) {
+                const replyFor200 = extractAssistantFromChatPayload(parsedPayload);
+                const skip200ErrorBubble =
+                  !!replyFor200.trim() && isPanelChatPhotoFallbackReply(replyFor200);
+                if (errorPayload && !skip200ErrorBubble) {
                   appendBubble(
                     "error",
                     panelChatFailureUserMessage(
@@ -10352,7 +10362,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                     void loadPanelBackendStatus();
                   }
                 } else {
-                const replyBody = extractAssistantFromChatPayload(parsedPayload);
+                const replyBody = replyFor200;
                 if (photoTelemetry && PANEL_DEBUG) {
                   const trimmedReply = replyBody.trim();
                   const fallbackExact = trimmedReply === REPLY_PHOTO_NO_VISION_TR;
