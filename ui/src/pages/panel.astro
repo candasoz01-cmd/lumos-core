@@ -4431,9 +4431,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
             <p class="gorevler-eyebrow" data-i18n="panel.modules.tasks.eyebrow">Operasyon</p>
             <h2 id="panel-gorevler-title" data-i18n="panel.sections.gorevler">Görevler</h2>
             <p class="gorevler-intro">
-              <span class="panel-data-flow-badge">[Yerel]</span>
-              Görevler cihazınızdaki görev kaydına yazılır; görev eklerken iletim gerekmez. Sunucu kapalıysa liste
-              tarayıcı önbelleğinden gösterilir.
+              <span class="panel-data-flow-badge" data-i18n="panel.common.badges.local">[Yerel]</span>
+              <span data-i18n="panel.modules.tasks.intro">
+                Görevler cihazınızdaki görev kaydına yazılır; görev eklerken iletim gerekmez. Sunucu kapalıysa liste
+                tarayıcı önbelleğinden gösterilir.
+              </span>
               {PANEL_DEBUG && (
                 <span class="panel-debug-only">
                   {" "}
@@ -4444,7 +4446,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             <div class="gorevler-proto">
               <div class="gorevler-form-panel">
                 <div class="gorevler-field">
-                  <label for="gorevler-title-input">Görev adı</label>
+                  <label for="gorevler-title-input" data-i18n="panel.modules.tasks.form.titleLabel">Görev adı</label>
                   <input
                     id="gorevler-title-input"
                     type="text"
@@ -4452,25 +4454,26 @@ const PANEL_DEBUG = import.meta.env.DEV;
                     maxlength="200"
                     autocomplete="off"
                     placeholder="Kısa bir başlık yazın…"
+                    data-i18n-placeholder="panel.modules.tasks.form.titlePlaceholder"
                   />
                 </div>
                 <div class="gorevler-field">
-                  <label for="gorevler-priority">Öncelik</label>
+                  <label for="gorevler-priority" data-i18n="panel.modules.tasks.form.priorityLabel">Öncelik</label>
                   <select id="gorevler-priority" name="gorevler-priority">
-                    <option value="dusuk">Düşük</option>
-                    <option value="orta" selected>Orta</option>
-                    <option value="yuksek">Yüksek</option>
+                    <option value="dusuk" data-i18n="panel.modules.tasks.priority.dusuk">Düşük</option>
+                    <option value="orta" selected data-i18n="panel.modules.tasks.priority.orta">Orta</option>
+                    <option value="yuksek" data-i18n="panel.modules.tasks.priority.yuksek">Yüksek</option>
                   </select>
                 </div>
                 <div class="gorevler-field">
-                  <label for="gorevler-status">Durum</label>
+                  <label for="gorevler-status" data-i18n="panel.modules.tasks.form.statusLabel">Durum</label>
                   <select id="gorevler-status" name="gorevler-status">
-                    <option value="bekliyor" selected>Bekliyor</option>
-                    <option value="onay_bekliyor">Onay bekliyor</option>
-                    <option value="tamamlandi">Tamamlandı</option>
+                    <option value="bekliyor" selected data-i18n="panel.modules.tasks.status.bekliyor">Bekliyor</option>
+                    <option value="onay_bekliyor" data-i18n="panel.modules.tasks.status.onay_bekliyor">Onay bekliyor</option>
+                    <option value="tamamlandi" data-i18n="panel.modules.tasks.status.tamamlandi">Tamamlandı</option>
                   </select>
                 </div>
-                <button type="button" id="gorevler-add" class="gorevler-add-btn">Görev ekle</button>
+                <button type="button" id="gorevler-add" class="gorevler-add-btn" data-i18n="panel.modules.tasks.form.addBtn">Görev ekle</button>
                 <p id="gorevler-hint" class="gorevler-hint" role="status" aria-live="polite" hidden></p>
                 <aside
                   id="gorevler-plan-inline"
@@ -4478,17 +4481,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   hidden
                   aria-labelledby="gorevler-plan-inline-title"
                 >
-                  <h4 id="gorevler-plan-inline-title" class="gorevler-plan-card__title">Görev planı</h4>
+                  <h4 id="gorevler-plan-inline-title" class="gorevler-plan-card__title" data-i18n="panel.modules.tasks.detail.planTitle">Görev planı</h4>
                   <p id="gorevler-plan-inline-status" class="gorevler-plan-card__status" hidden></p>
                   <dl id="gorevler-plan-inline-dl" class="gorevler-detail-dl"></dl>
-                  <p id="gorevler-plan-inline-low-risk-note" class="gorevler-plan-card__low-risk-note" hidden>
+                  <p id="gorevler-plan-inline-low-risk-note" class="gorevler-plan-card__low-risk-note" hidden data-i18n="panel.modules.tasks.detail.lowRiskNote">
                     Düşük risk. Otomatik plan; hiçbir şey çalıştırılmadı.
                   </p>
                   <div class="gorevler-plan-actions">
-                    <button type="button" id="gorevler-plan-inline-confirm" class="gorevler-add-btn">
+                    <button type="button" id="gorevler-plan-inline-confirm" class="gorevler-add-btn" data-i18n="panel.modules.tasks.detail.planConfirm">
                       Planı onayla
                     </button>
-                    <button type="button" id="gorevler-plan-inline-dismiss" class="gorevler-clear-test-btn">
+                    <button type="button" id="gorevler-plan-inline-dismiss" class="gorevler-clear-test-btn" data-i18n="panel.modules.tasks.detail.planDismiss">
                       Sadece kaydet
                     </button>
                   </div>
@@ -4504,32 +4507,35 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 id="gorevler-evidence-strip"
                 class="gorevler-evidence-strip"
                 aria-label="Son işlem kanıtı"
+                data-i18n-aria-label="panel.modules.tasks.detail.evidenceAria"
                 hidden
               >
                 <p id="gorevler-evidence-summary" class="gorevler-evidence-summary"></p>
-                <button type="button" id="gorevler-evidence-continue" class="gorevler-clear-test-btn" hidden>
+                <button type="button" id="gorevler-evidence-continue" class="gorevler-clear-test-btn" hidden data-i18n="panel.modules.tasks.detail.evidenceContinue">
                   Buradan devam
                 </button>
               </section>
-              <p id="gorevler-evidence-empty" class="gorevler-evidence-empty" role="status" hidden>
+              <p id="gorevler-evidence-empty" class="gorevler-evidence-empty" role="status" hidden data-i18n="panel.modules.tasks.empty.evidence">
                 Henüz sunucu kanıtı yok
               </p>
               <div class="gorevler-list-heading-row">
-                <h3 class="gorevler-list-heading">Görev listesi</h3>
+                <h3 class="gorevler-list-heading" data-i18n="panel.modules.tasks.list.heading">Görev listesi</h3>
                 <span
                   id="gorevler-sync-badge"
                   class="gorevler-sync-badge panel-conn-badge"
                   data-state="limited"
                   role="status"
                   hidden
+                  data-i18n="panel.modules.tasks.list.syncBadge"
                   >yalnızca bu cihaz / sunucu senkronu kapalı</span
                 >
-                <div class="gorevler-list-filter" role="group" aria-label="Görev durumu filtresi">
+                <div class="gorevler-list-filter" role="group" aria-label="Görev durumu filtresi" data-i18n-aria-label="panel.modules.tasks.list.filterAria">
                   <button
                     type="button"
                     class="gorevler-list-filter-btn is-active"
                     data-gorevler-filter="all"
                     aria-pressed="true"
+                    data-i18n="panel.modules.tasks.list.filterAll"
                   >
                     Tümü
                   </button>
@@ -4538,6 +4544,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                     class="gorevler-list-filter-btn"
                     data-gorevler-filter="pending"
                     aria-pressed="false"
+                    data-i18n="panel.modules.tasks.list.filterPending"
                   >
                     Bekleyen
                   </button>
@@ -4546,42 +4553,43 @@ const PANEL_DEBUG = import.meta.env.DEV;
                     class="gorevler-list-filter-btn"
                     data-gorevler-filter="done"
                     aria-pressed="false"
+                    data-i18n="panel.modules.tasks.list.filterDone"
                   >
                     Tamamlanan
                   </button>
                 </div>
-                <button type="button" id="gorevler-restore-last" class="gorevler-clear-test-btn" hidden>
+                <button type="button" id="gorevler-restore-last" class="gorevler-clear-test-btn" hidden data-i18n="panel.modules.tasks.list.restore">
                   Geri al
                 </button>
-                <button type="button" id="gorevler-clear-test" class="gorevler-clear-test-btn">
+                <button type="button" id="gorevler-clear-test" class="gorevler-clear-test-btn" data-i18n="panel.modules.tasks.list.clearLocal">
                   Yerel listeyi temizle
                 </button>
               </div>
-              <ul id="gorevler-list" class="gorevler-task-list" aria-label="Görev listesi"></ul>
+              <ul id="gorevler-list" class="gorevler-task-list" aria-label="Görev listesi" data-i18n-aria-label="panel.modules.tasks.list.listAria"></ul>
               <p id="gorevler-list-empty" class="gorevler-list-empty" role="status" hidden></p>
               <dialog id="gorevler-detail" class="gorevler-detail" aria-labelledby="gorevler-detail-title" tabindex="-1">
                 <div class="gorevler-detail-shell">
                   <header class="gorevler-detail-header">
-                    <h3 id="gorevler-detail-title" class="gorevler-detail-heading">Görev</h3>
+                    <h3 id="gorevler-detail-title" class="gorevler-detail-heading" data-i18n="panel.modules.tasks.detail.title">Görev</h3>
                     <div class="gorevler-detail-header-actions">
-                      <p id="gorevler-detail-bridge-note" class="gorevler-detail-bridge-note" role="note" hidden>
+                      <p id="gorevler-detail-bridge-note" class="gorevler-detail-bridge-note" role="note" hidden data-i18n="panel.modules.tasks.detail.bridgeNote">
                         Görev iletimi köprü bağlantısı bekliyor.
                       </p>
-                      <button type="button" id="gorevler-detail-bridge" class="gorevler-add-btn" hidden>
+                      <button type="button" id="gorevler-detail-bridge" class="gorevler-add-btn" hidden data-i18n="panel.modules.tasks.detail.bridge">
                         Görevi ilet
                       </button>
-                      <button type="button" id="gorevler-detail-complete" class="gorevler-clear-test-btn" hidden>
+                      <button type="button" id="gorevler-detail-complete" class="gorevler-clear-test-btn" hidden data-i18n="panel.modules.tasks.detail.complete">
                         Tamamla
                       </button>
-                      <button type="button" id="gorevler-detail-delete" class="gorevler-clear-test-btn" hidden>
+                      <button type="button" id="gorevler-detail-delete" class="gorevler-clear-test-btn" hidden data-i18n="panel.modules.tasks.detail.delete">
                         Sil
                       </button>
-                      <button type="button" id="gorevler-detail-close" class="gorevler-detail-close">Kapat</button>
+                      <button type="button" id="gorevler-detail-close" class="gorevler-detail-close" data-i18n="panel.modules.tasks.detail.close">Kapat</button>
                     </div>
                   </header>
                   <div class="gorevler-detail-body">
                     <section class="gorevler-detail-section" aria-labelledby="gorevler-detail-sec-task">
-                      <h4 id="gorevler-detail-sec-task" class="gorevler-detail-section-title">Görev</h4>
+                      <h4 id="gorevler-detail-sec-task" class="gorevler-detail-section-title" data-i18n="panel.modules.tasks.detail.secTask">Görev</h4>
                       <dl id="gorevler-detail-task-dl" class="gorevler-detail-dl"></dl>
                     </section>
                     <section
@@ -4590,17 +4598,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
                       hidden
                       aria-labelledby="gorevler-detail-sec-plan"
                     >
-                      <h4 id="gorevler-detail-sec-plan" class="gorevler-detail-section-title">Görev planı</h4>
+                      <h4 id="gorevler-detail-sec-plan" class="gorevler-detail-section-title" data-i18n="panel.modules.tasks.detail.secPlan">Görev planı</h4>
                       <p id="gorevler-detail-plan-status" class="gorevler-plan-card__status" hidden></p>
                       <dl id="gorevler-detail-plan-dl" class="gorevler-detail-dl"></dl>
-                      <p id="gorevler-detail-plan-low-risk-note" class="gorevler-plan-card__low-risk-note" hidden>
+                      <p id="gorevler-detail-plan-low-risk-note" class="gorevler-plan-card__low-risk-note" hidden data-i18n="panel.modules.tasks.detail.lowRiskNote">
                         Düşük risk. Otomatik plan; hiçbir şey çalıştırılmadı.
                       </p>
                       <div class="gorevler-plan-actions">
-                        <button type="button" id="gorevler-detail-plan-confirm" class="gorevler-add-btn">
+                        <button type="button" id="gorevler-detail-plan-confirm" class="gorevler-add-btn" data-i18n="panel.modules.tasks.detail.planConfirm">
                           Planı onayla
                         </button>
-                        <button type="button" id="gorevler-detail-plan-dismiss" class="gorevler-clear-test-btn">
+                        <button type="button" id="gorevler-detail-plan-dismiss" class="gorevler-clear-test-btn" data-i18n="panel.modules.tasks.detail.planDismiss">
                           Sadece kaydet
                         </button>
                       </div>
@@ -4612,7 +4620,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                       ></section>
                     </section>
                     <section class="gorevler-detail-section" aria-labelledby="gorevler-detail-sec-bridge">
-                      <h4 id="gorevler-detail-sec-bridge" class="gorevler-detail-section-title">İletim yanıtı</h4>
+                      <h4 id="gorevler-detail-sec-bridge" class="gorevler-detail-section-title" data-i18n="panel.modules.tasks.detail.secBridge">İletim yanıtı</h4>
                       <dl id="gorevler-detail-bridge-dl" class="gorevler-detail-dl"></dl>
                     </section>
                   </div>
@@ -6408,6 +6416,26 @@ const PANEL_DEBUG = import.meta.env.DEV;
         return key;
       }
 
+      function gorevlerPriorityLabel(key) {
+        const k = key != null ? String(key).trim() : "";
+        const map = {
+          dusuk: panelT("panel.modules.tasks.priority.dusuk"),
+          orta: panelT("panel.modules.tasks.priority.orta"),
+          yuksek: panelT("panel.modules.tasks.priority.yuksek"),
+        };
+        return map[k] != null ? map[k] : k || "—";
+      }
+
+      function gorevlerStatusLabel(key) {
+        const k = key != null ? String(key).trim() : "";
+        const map = {
+          bekliyor: panelT("panel.modules.tasks.status.bekliyor"),
+          onay_bekliyor: panelT("panel.modules.tasks.status.onay_bekliyor"),
+          tamamlandi: panelT("panel.modules.tasks.status.tamamlandi"),
+        };
+        return map[k] != null ? map[k] : k || "—";
+      }
+
       function dataFlowBadge(kind) {
         if (kind === "local") return panelT("panel.common.badges.local");
         if (kind === "external") return panelT("panel.common.badges.externalService");
@@ -6666,20 +6694,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
         return isPanelOnNonLoopbackHost() && isTasksApiLoopbackBase(base);
       }
 
-      const GOREVLER_SYNC_SKIP_BADGE_LABEL =
-        "yalnızca bu cihaz / sunucu senkronu kapalı";
-
       function syncGorevlerTasksApiSkipBadge() {
         const badge = document.getElementById("gorevler-sync-badge");
         if (!badge) return;
         const skip = shouldSkipGorevlerTasksApi();
         badge.hidden = !skip;
         if (skip) {
-          badge.textContent = GOREVLER_SYNC_SKIP_BADGE_LABEL;
-          badge.setAttribute(
-            "title",
-            "Görevler yalnızca bu cihazda tutulur; sunucu görev API'sine erişilemiyor.",
-          );
+          badge.textContent = panelT("panel.modules.tasks.list.syncBadge");
+          badge.setAttribute("title", panelT("panel.modules.tasks.list.syncBadgeTitle"));
         }
       }
 
@@ -10489,23 +10511,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
           });
         }
 
-        const priorityLabels = { dusuk: "Düşük", orta: "Orta", yuksek: "Yüksek" };
-        const statusLabels = {
-          bekliyor: "Bekliyor",
-          onay_bekliyor: "Onay bekliyor",
-          tamamlandi: "Tamamlandı",
-        };
-
         let gorevlerEscapeHandler = null;
         let lastGorevlerOpenedIndex = -1;
         let lastGorevlerDeletedId = "";
         let lastGorevlerDeletedLocalRow = null;
         let lastGorevlerPlanIndex = -1;
         let gorevlerListFilter = "all";
-        const GOREVLER_LIST_EMPTY_DEFAULT =
-          "Henüz görev yok. Yukarıdan kısa bir başlık yazıp «Görev ekle» kullanın.";
-        const GOREVLER_LIST_EMPTY_FILTER =
-          "Bu filtrede görev yok. «Tümü» ile tüm görevleri görebilirsin.";
 
         function syncGorevlerListEmptyState(visibleCount) {
           if (!listEmptyEl) return;
@@ -10516,8 +10527,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
           listEmptyEl.textContent =
             panelGorevlerTasks.length > 0
-              ? GOREVLER_LIST_EMPTY_FILTER
-              : GOREVLER_LIST_EMPTY_DEFAULT;
+              ? panelT("panel.modules.tasks.empty.listFilter")
+              : panelT("panel.modules.tasks.empty.listDefault");
           listEmptyEl.hidden = false;
         }
 
@@ -10546,7 +10557,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             detailPlanStatusEl.hidden = true;
             detailPlanStatusEl.textContent = "";
           }
-          detailTitleEl.textContent = "Görev";
+          detailTitleEl.textContent = panelT("panel.modules.tasks.detail.title");
           if (detailBridgeBtn) detailBridgeBtn.hidden = true;
           if (detailCompleteBtn) detailCompleteBtn.hidden = true;
           if (detailDeleteBtn) detailDeleteBtn.hidden = true;
@@ -10705,7 +10716,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         }
 
         function updateGorevlerPlanCardTitles(_plan) {
-          const title = "Görev planı";
+          const title = panelT("panel.modules.tasks.detail.planTitle");
           if (planInlineTitleEl) planInlineTitleEl.textContent = title;
           if (detailPlanSecTitleEl) detailPlanSecTitleEl.textContent = title;
         }
@@ -10915,14 +10926,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
           detailTaskDl.replaceChildren();
           detailBridgeDl.replaceChildren();
 
-          const statusTxt =
-            statusLabels[t.status] != null ? statusLabels[t.status] : t.status != null ? String(t.status) : "—";
-          const priorityTxt =
-            priorityLabels[t.priority] != null
-              ? priorityLabels[t.priority]
-              : t.priority != null
-                ? String(t.priority)
-                : "—";
+          const statusTxt = gorevlerStatusLabel(t.status);
+          const priorityTxt = gorevlerPriorityLabel(t.priority);
           const whenRaw = t.when != null ? String(t.when).trim() : "";
           const whenTxt = whenRaw ? whenRaw : "—";
 
@@ -11053,7 +11058,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
             li.setAttribute("data-task-index", String(i));
             li.setAttribute("aria-expanded", "false");
             li.setAttribute("aria-controls", "gorevler-detail");
-            li.setAttribute("aria-label", "Görev: " + t.title + "; ayrıntıları göster");
+            li.setAttribute(
+              "aria-label",
+              panelT("panel.modules.tasks.list.cardAriaPrefix") +
+                ": " +
+                t.title +
+                "; " +
+                panelT("panel.modules.tasks.list.cardAriaSuffix"),
+            );
 
             const main = document.createElement("div");
             main.className = "gorevler-task-main";
@@ -11065,11 +11077,16 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
             const metaEl = document.createElement("div");
             metaEl.className = "gorevler-task-meta";
-            const statusLabel =
-              statusLabels[t.status] != null ? statusLabels[t.status] : String(t.status);
-            const priorityLabel =
-              priorityLabels[t.priority] != null ? priorityLabels[t.priority] : String(t.priority);
-            metaEl.textContent = "Durum: " + statusLabel + " · Öncelik: " + priorityLabel;
+            const statusLabel = gorevlerStatusLabel(t.status);
+            const priorityLabel = gorevlerPriorityLabel(t.priority);
+            metaEl.textContent =
+              panelT("panel.modules.tasks.list.metaStatus") +
+              ": " +
+              statusLabel +
+              " · " +
+              panelT("panel.modules.tasks.list.metaPriority") +
+              ": " +
+              priorityLabel;
             main.appendChild(metaEl);
 
             const whenEl = document.createElement("div");
@@ -11826,6 +11843,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
         });
 
         syncGorevlerTasksApiSkipBadge();
+
+        window.addEventListener("lumos:localechange", () => {
+          syncGorevlerTasksApiSkipBadge();
+          render();
+        });
       }
 
       wirePanel();

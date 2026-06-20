@@ -1,4 +1,4 @@
-"""Panel i18n v1/v2/v3 — LanguageSwitcher, nav, Ses/Medya/Sosyal/Posta, Sohbet chat."""
+"""Panel i18n v1/v2/v3/v4 — LanguageSwitcher, nav, modules, Sohbet chat, Görevler."""
 
 from __future__ import annotations
 
@@ -78,6 +78,28 @@ PANEL_I18N_V3_TR_KEYS = (
     "compose:",
 )
 
+PANEL_I18N_V4_MARKERS = (
+    'data-i18n="panel.modules.tasks.intro"',
+    'data-i18n="panel.modules.tasks.form.titleLabel"',
+    'data-i18n-placeholder="panel.modules.tasks.form.titlePlaceholder"',
+    'data-i18n="panel.modules.tasks.status.bekliyor"',
+    'data-i18n="panel.modules.tasks.list.filterAll"',
+    'data-i18n="panel.modules.tasks.detail.close"',
+    'function gorevlerStatusLabel(',
+    'panelT("panel.modules.tasks.empty.listDefault")',
+    'gorevlerPriorityLabel(t.priority)',
+)
+
+PANEL_I18N_V4_TR_KEYS = (
+    "form:",
+    "priority:",
+    "status:",
+    "list:",
+    "empty:",
+    "detail:",
+)
+
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -126,3 +148,17 @@ def test_panel_i18n_v3_chat_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V3_TR_KEYS:
         assert key in tr_text, f"missing panel tr v3 key fragment: {key}"
         assert key in en_text, f"missing panel en v3 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v4_gorevler_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V4_MARKERS:
+        assert token in text, f"missing panel i18n v4 token: {token}"
+
+
+def test_panel_i18n_v4_gorevler_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V4_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v4 key fragment: {key}"
+        assert key in en_text, f"missing panel en v4 key fragment: {key}"
