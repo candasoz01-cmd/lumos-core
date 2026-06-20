@@ -290,7 +290,7 @@ curl -sf -X PATCH "$BASE_URL/posts/$POST_A/restore" >/dev/null
 echo "OK"
 echo ""
 
-echo "=== 13) GET /posts/feed — iyi puan üstte, kötü altta, yeni nötr üstte değil en alt ==="
+echo "=== 13) GET /posts?order=feed — iyi puan üstte, kötü altta, yeni nötr üstte değil en alt ==="
 PFEED_BAD=$(curl -sf -X POST "$BASE_URL/posts" -H "Content-Type: application/json" \
   -d "{\"content\":\"FEED_BAD düşük puan\",\"userId\":\"$USER1_ID\"}") || die "feed bad"
 ID_BAD=$(echo "$PFEED_BAD" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
@@ -314,17 +314,16 @@ node <<NODE
   const bad = "${ID_BAD}";
   const good = "${ID_GOOD}";
   const neu = "${ID_NEW}";
-  const feed = await (await fetch(base + "/posts/feed?limit=500")).json();
-  const sb = feed.find((p) => p.id === bad);
-  const sg = feed.find((p) => p.id === good);
-  const sn = feed.find((p) => p.id === neu);
-  if (!sb || !sg || !sn) throw new Error("feed: üç posttan biri listede yok");
-  if (typeof sb.feedScore !== "number" || typeof sg.feedScore !== "number")
-    throw new Error("feedScore alanı eksik");
-  if (sg.feedScore <= sb.feedScore) throw new Error("iyi puanlı, kötü puanlıdan üstte olmalı");
-  if (sn.feedScore <= sb.feedScore) throw new Error("yeni (nötr) kötü puanlıdan üstte olmalı");
-  if (sg.feedScore <= sn.feedScore) throw new Error("yüksek puanlı, yeni nötrden üstte olmalı");
-  console.log("OK feed: GOOD > NEW > BAD (feedScore)");
+  const feed = await (await fetch(base + "/posts?order=feed&limit=500")).json();
+  const idx = (id) => feed.findIndex((p) => p.id === id);
+  const iBad = idx(bad);
+  const iGood = idx(good);
+  const iNeu = idx(neu);
+  if (iBad < 0 || iGood < 0 || iNeu < 0) throw new Error("feed: üç posttan biri listede yok");
+  if (iGood >= iBad) throw new Error("iyi puanlı, kötü puanlıdan üstte olmalı");
+  if (iNeu >= iBad) throw new Error("yeni (nötr) kötü puanlıdan üstte olmalı");
+  if (iGood >= iNeu) throw new Error("yüksek puanlı, yeni nötrden üstte olmalı");
+  console.log("OK feed: GOOD > NEW > BAD (sıra)");
 })();
 NODE
 
@@ -358,13 +357,13 @@ curl -sf -X POST "$BASE_URL/posts/$ID_DECAY_NEW/rate" -H "Content-Type: applicat
   -H "Authorization: Bearer $USER2_TOKEN" -d "{\"value\":4}" >/dev/null
 node <<NODE
 (async () => {
-  const feed = await (await fetch("${BASE_URL}/posts/feed?limit=500")).json();
-  const oldP = feed.find((p) => p.id === "${ID_DECAY_OLD}");
-  const newP = feed.find((p) => p.id === "${ID_DECAY_NEW}");
-  if (!oldP || !newP) throw new Error("decay test: post feed'de yok");
-  if (newP.feedScore <= oldP.feedScore)
+  const feed = await (await fetch("${BASE_URL}/posts?order=feed&limit=500")).json();
+  const iOld = feed.findIndex((p) => p.id === "${ID_DECAY_OLD}");
+  const iNew = feed.findIndex((p) => p.id === "${ID_DECAY_NEW}");
+  if (iOld < 0 || iNew < 0) throw new Error("decay test: post feed'de yok");
+  if (iNew >= iOld)
     throw new Error("yeni 4★, yaşlı 5★ üstünde olmalı (time decay)");
-  console.log("OK decay: yeni 4★ > eski 5★ (feedScore)");
+  console.log("OK decay: yeni 4★ > eski 5★ (sıra)");
 })();
 NODE
 
@@ -374,7 +373,7 @@ ID_FEED_DEL=$(echo "$PFEED_DEL" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -
 curl -sf -X DELETE "$BASE_URL/posts/$ID_FEED_DEL" >/dev/null
 node <<NODE
 (async () => {
-  const feed = await (await fetch("${BASE_URL}/posts/feed?limit=500")).json();
+  const feed = await (await fetch("${BASE_URL}/posts?order=feed&limit=500")).json();
   if (feed.some((p) => p.id === "${ID_FEED_DEL}")) throw new Error("FAIL: silinen post feed'de");
   console.log("OK feed: soft delete yok");
 })();
