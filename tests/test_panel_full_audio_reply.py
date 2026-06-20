@@ -22,3 +22,9 @@ def test_panel_full_audio_reply_on_attach_path() -> None:
     )[0]
     assert 'panelT("panel.modules.chat.compose.hints.fullAudioReply")' in attach_block
     assert 'setSendHint(panelT("panel.modules.chat.compose.hints.fullAudioHint"))' in attach_block
+
+
+def test_panel_full_audio_no_deprecated_constants() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    assert "PANEL_FULL_AUDIO_REPLY" not in text
+    assert "PANEL_FULL_AUDIO_HINT" not in text
