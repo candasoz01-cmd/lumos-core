@@ -11285,6 +11285,22 @@ const PANEL_DEBUG = import.meta.env.DEV;
           return false;
         }
 
+        function gorevlerRestoreVerifyRef() {
+          const row = lastGorevlerDeletedLocalRow;
+          if (row) {
+            const id = row.id ? String(row.id).trim() : "";
+            if (id) return id;
+            if (row.title) return String(row.title).trim();
+          }
+          return String(lastGorevlerDeletedId || "").trim();
+        }
+
+        function gorevlerTaskPresentInList(ref) {
+          const r = String(ref || "").trim();
+          if (!r) return false;
+          return findGorevlerTaskIndexByRef(r) >= 0;
+        }
+
         function finishDeleteGorevlerTaskLocal(t, ref) {
           const deletedKey = t.id ? String(t.id).trim() : String(ref || t.title || "").trim();
           lastGorevlerDeletedId = deletedKey;
@@ -11463,10 +11479,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
             return buildGorevlerNotFoundMessage(r);
           }
           const titleBefore = gorevlerLastDeletedDisplayTitle();
-          const hadDeleted = !!lastGorevlerDeletedId;
+          const verifyRef = gorevlerRestoreVerifyRef();
+          const savedDeletedId = String(lastGorevlerDeletedId || "").trim();
+          const savedLocalRow = lastGorevlerDeletedLocalRow
+            ? { ...lastGorevlerDeletedLocalRow }
+            : null;
           await restoreLastGorevlerTask();
-          if (hadDeleted && lastGorevlerDeletedId) {
-            return "Geri alınamadı (restore_failed).";
+          if (!gorevlerTaskPresentInList(verifyRef)) {
+            lastGorevlerDeletedId = savedDeletedId;
+            lastGorevlerDeletedLocalRow = savedLocalRow;
+            if (restoreLastBtn) restoreLastBtn.hidden = false;
+            return "Görev listesine eklenemedi; geri alma doğrulanamadı.";
           }
           return 'Görev geri alındı: "' + titleBefore + '".';
         }
