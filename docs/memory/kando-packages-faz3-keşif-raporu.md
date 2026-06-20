@@ -68,8 +68,8 @@ Aşağıdaki dilim **merge edildi** (`c0b8ea0`); tek PR, dar kapsam, rollback ko
 | Dilim | İçerik | Durum |
 |-------|--------|--------|
 | **3b** | Ayna paket arşivi (`kando_core`, `kando_memory`, `kando_policy`, `kando_context`) → `archive/packages/` | **`implementation-complete`** (PR #316) — [`od-027-slice-3b-archive-decision.md`](./od-027-slice-3b-archive-decision.md) |
-| **4** | Cutover onayı | Kullanıcı açık komutu + §8 tam checklist |
-| **5** | İndeks `migrated` / `superseded` | Faz 4 sonrası |
+| **4** | Cutover onayı | **`implementation-complete`** — [`od-027-faz4-cutover-decision.md`](./od-027-faz4-cutover-decision.md) |
+| **5** | İndeks `migrated` / `superseded` | **Tamamlandı** (Faz 4 ile OD-027 closed) |
 
 ---
 
@@ -82,7 +82,7 @@ Aşağıdaki dilim **merge edildi** (`c0b8ea0`); tek PR, dar kapsam, rollback ko
 | Faz 2 karar | **Onaylı** |
 | Faz 3 keşif (bu belge) | **Tamamlandı** |
 | İlk uygulama dilimi (Slice 3a) | **`implementation-complete`** |
-| Tam geçiş / arşiv | **`implementation-complete`** (Slice 3b — PR #316); Faz 4 cutover pending |
+| Tam geçiş / arşiv | **`implementation-complete`** (Slice 3b + Faz 4 cutover) |
 
 ---
 

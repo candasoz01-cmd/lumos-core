@@ -74,6 +74,7 @@ Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A16 takip satırları kap
 | DL-A15 | 2026-06-19 | EC2-14 Şema validator CI kapısı | **Minimum v1** — `validate_evidence_record` pytest CI kapısı; ayrı decision memo yok | PR #255 (`5b2ae6b`) — `test_evidence_continuity.py` journal şema doğrulama | [`docs/memory/evidence-continuity-v2-backlog.md`](memory/evidence-continuity-v2-backlog.md) § Phase 1 |
 | DL-A17 | 2026-06-20 | OD-027 Slice 3a — web kalıntısı + ölü `lumos_runtime` aynası | **Slice 3a implementation-complete** — `kando_core.__main__` web parser/`_run_web()` kaldırıldı; `kando_runtime/lumos_runtime.py` silindi; canonical `src/core/lumos_runtime.py` korundu | PR #313 (`c0b8ea0`) | [`docs/memory/kando-packages-faz3-keşif-raporu.md`](memory/kando-packages-faz3-keşif-raporu.md) §3–6 |
 | DL-A18 | 2026-06-20 | OD-027 Slice 3b — ayna paket arşivi | **Slice 3b implementation-complete** — dört ölü ayna paket (`kando_core`, `kando_memory`, `kando_policy`, `kando_context`) `archive/packages/` altına taşındı; bridge/runtime/CI PYTHONPATH dokunulmadı | PR #316 (`1cdb0f2`) | [`docs/memory/od-027-slice-3b-archive-decision.md`](memory/od-027-slice-3b-archive-decision.md) §3–7 |
+| DL-A19 | 2026-06-20 | OD-027 Faz 4 cutover | **Faz 4 implementation-complete** — §8 kesme kapıları doğrulandı; OD-027 **closed**; `archive/packages/README.md`; indeks senkronu | PR (Faz 4) | [`docs/memory/od-027-faz4-cutover-decision.md`](memory/od-027-faz4-cutover-decision.md) §4 |
 
 ### İleride değerlendirilecek
 
@@ -98,6 +99,7 @@ Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A16 takip satırları kap
 | DL-C05 | 2026-06-20 | OD-027 kando_* Faz 3 keşif | **Slice 3a** uygulama **DL-A17** (#313); **Slice 3b** uygulama **DL-A18** (#316) | [`docs/memory/kando-packages-faz3-keşif-raporu.md`](memory/kando-packages-faz3-keşif-raporu.md) |
 | DL-C06 | 2026-06-20 | OD-059 Paket B CI ruff parity | Pre-commit ile CI hizalandı — `ruff check .` in `.github/workflows/ci.yml` | [`docs/memory/audit-hook-term-decision.md`](memory/audit-hook-term-decision.md) |
 | DL-C07 | 2026-06-20 | OD-027 Slice 3b ayna paket arşivi | **`approved-for-implementation`** — dört ölü ayna paket (`kando_core`, `kando_memory`, `kando_policy`, `kando_context`) → `archive/packages/`; dış import sıfır; rollback `git mv` geri; bridge/runtime/CI PYTHONPATH dokunulmaz | [`docs/memory/od-027-slice-3b-archive-decision.md`](memory/od-027-slice-3b-archive-decision.md) |
+| DL-C08 | 2026-06-20 | OD-027 Faz 4 cutover | **Cutover onaylandı** — §8 kapıları geçti; Slice 3a–3b tamam; OD-027 **closed**; canlı yol `src/` + bridge + runtime | [`docs/memory/od-027-faz4-cutover-decision.md`](memory/od-027-faz4-cutover-decision.md) |
 
 ---
 
@@ -130,4 +132,4 @@ Tam liste: `docs/memory/open-decisions-needs-review.md` (OD-001 … OD-060).
 
 ---
 
-Son güncelleme: 2026-06-20 (DL-C07 — OD-027 Slice 3b karar)
+Son güncelleme: 2026-06-20 (DL-C08 — OD-027 Faz 4 cutover)
