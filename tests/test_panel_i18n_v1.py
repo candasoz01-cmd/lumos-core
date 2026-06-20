@@ -177,6 +177,19 @@ PANEL_I18N_V9_TR_KEYS = (
     "evidenceSummaryPrefix:",
 )
 
+PANEL_I18N_V10_MARKERS = (
+    'panelT("panel.modules.chat.transcript.engineMsg")',
+    'panelT("panel.modules.chat.transcript.offlineMsg")',
+    'panelT("panel.modules.chat.transcript.addToChat")',
+    'panelT("panel.modules.chat.transcript.previewAria")',
+)
+
+PANEL_I18N_V10_TR_KEYS = (
+    "transcript:",
+    "engineMsg:",
+    "addToChat:",
+)
+
 
 
 def test_panel_astro_i18n_wiring_present() -> None:
@@ -310,3 +323,18 @@ def test_panel_i18n_v9_gorevler_evidence_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V9_TR_KEYS:
         assert key in tr_text, f"missing panel tr v9 key fragment: {key}"
         assert key in en_text, f"missing panel en v9 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v10_transcript_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V10_MARKERS:
+        assert token in text, f"missing panel i18n v10 token: {token}"
+    assert "AUDIO_TRANSCRIPT_ENGINE_MSG" not in text
+
+
+def test_panel_i18n_v10_transcript_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V10_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v10 key fragment: {key}"
+        assert key in en_text, f"missing panel en v10 key fragment: {key}"

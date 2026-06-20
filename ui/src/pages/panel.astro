@@ -5622,10 +5622,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
       function remoteTranscriptionBlocked() {
         if (isOfflineUserMode()) {
-          return { blocked: true, message: AUDIO_TRANSCRIPT_OFFLINE_MSG };
+          return { blocked: true, message: panelT("panel.modules.chat.transcript.offlineMsg") };
         }
         if (getPanelUserMode() === "limited") {
-          return { blocked: true, message: AUDIO_TRANSCRIPT_LIMITED_USER_MSG };
+          return {
+            blocked: true,
+            message: panelT("panel.modules.chat.transcript.limitedUserMsg"),
+          };
         }
         return { blocked: false, message: "" };
       }
@@ -5704,32 +5707,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
       const PANEL_FULL_AUDIO_HINT =
         "Tam modda ses kaydı dış köprüye iletilmez; metin ekleyin veya «Ses metne çevir» kullanın.";
       const PANEL_INFRA_UNAVAILABLE_MSG = "Köprü erişilemiyor (altyapı). Bağlantıyı kontrol edip tekrar deneyin.";
-      const AUDIO_TRANSCRIPT_BUBBLE_MSG =
-        "Ses metne çeviri motoru henüz bağlı değil. Bu ses şu an yalnızca bu cihazda oynatılabilir; dışarı gönderilmedi.";
-      const AUDIO_TRANSCRIPT_ENGINE_MSG = "Ses metne çeviri motoru henüz bağlı değil.";
-      const AUDIO_TRANSCRIPT_LIMITED_MSG =
-        "Sınırlı modda ses metne çeviri kullanılamaz; dış köprü bağlı değil.";
-      const AUDIO_TRANSCRIPT_LIMITED_USER_MSG =
-        "Sınırlı moddasın (kullanıcı seçimi); ses metne çeviri bu modda denenmez.";
-      const AUDIO_TRANSCRIPT_OFFLINE_MSG =
-        "Çevrimdışı modda ses metne çeviri kullanılamaz; internet erişimi kapalı.";
-      const AUDIO_TRANSCRIPT_BUSY_MSG = "Metne çevriliyor…";
-      const AUDIO_TRANSCRIPT_PRIVACY_MSG =
-        "Metin yalnızca önizleme; «Sohbete ekle» ile yazma alanına kopyalanır, otomatik gönderilmez.";
-      const DOSYALAR_AUDIO_TRANSCRIPT_MSG = AUDIO_TRANSCRIPT_ENGINE_MSG;
-      const AUDIO_TRANSCRIPT_MUSIC_WARN_MSG =
-        "Bu ses müzik/şarkı içeriyor olabilir. Metne çeviri sonucu güvenilir olmayabilir.";
-      const AUDIO_TRANSCRIPT_FAILED_MSG =
-        "Metne çeviri tamamlanamadı. Ses müzik, gürültülü veya konuşma dışı olabilir.";
-      const AUDIO_TRANSCRIPT_SPEECH_FAILED_MSG = "Metne çeviri tamamlanamadı.";
-      const AUDIO_TRANSCRIPT_LOW_QUALITY_WARN_MSG =
-        "Metin düşük güvenilirlikte olabilir; daha net bir konuşma kaydıyla tekrar deneyin.";
 
       function transcribeFailureUserMessage(result, filename, mime) {
         const isMusic = isLikelyMusicAudio(filename, mime);
-        const userMsg = isMusic
-          ? AUDIO_TRANSCRIPT_FAILED_MSG
-          : AUDIO_TRANSCRIPT_SPEECH_FAILED_MSG;
+        const failedMusic = panelT("panel.modules.chat.transcript.failedMusic");
+        const failedSpeech = panelT("panel.modules.chat.transcript.failedSpeech");
+        const userMsg = isMusic ? failedMusic : failedSpeech;
         if (!PANEL_DEBUG) return userMsg;
         const bits = [userMsg];
         if (result && typeof result === "object") {
@@ -5741,8 +5724,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (
             backendMsg &&
             backendMsg !== userMsg &&
-            backendMsg !== AUDIO_TRANSCRIPT_FAILED_MSG &&
-            backendMsg !== AUDIO_TRANSCRIPT_SPEECH_FAILED_MSG
+            backendMsg !== failedMusic &&
+            backendMsg !== failedSpeech
           ) {
             bits.push(backendMsg);
           }
@@ -5818,7 +5801,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           return {
             ok: false,
             error: "transcribe_missing_audio",
-            message: "Ses verisi yok veya çok kısa.",
+            message: panelT("panel.modules.chat.transcript.missingAudio"),
           };
         }
         const transcribeUserBlock = remoteTranscriptionBlocked();
@@ -5854,7 +5837,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           return {
             ok: false,
             error: "network_error",
-            message: "Metne çeviri tamamlanamadı. Bağlantıyı kontrol edip tekrar deneyin.",
+            message: panelT("panel.modules.chat.transcript.networkFailed"),
           };
         }
         let data = null;
@@ -5880,7 +5863,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
               message:
                 data && data.message != null && String(data.message).trim()
                   ? String(data.message).trim()
-                  : AUDIO_TRANSCRIPT_ENGINE_MSG,
+                  : panelT("panel.modules.chat.transcript.engineMsg"),
             };
           }
           if (data && data.error === "bridge_proxy_unconfigured") {
@@ -5920,7 +5903,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             message:
               data && data.message != null && String(data.message).trim()
                 ? String(data.message).trim()
-                : AUDIO_TRANSCRIPT_ENGINE_MSG,
+                : panelT("panel.modules.chat.transcript.engineMsg"),
           };
         }
         if (!r.ok) {
@@ -5933,7 +5916,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             transcribeFailure: true,
             status: r.status,
             error: data && data.error != null ? String(data.error) : "transcribe_failed",
-            message: backendMsg || AUDIO_TRANSCRIPT_FAILED_MSG,
+            message: backendMsg || panelT("panel.modules.chat.transcript.failedMusic"),
           };
         }
         const text = extractTranscriptText(data);
@@ -5949,7 +5932,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           transcribeFailure: true,
           status: r.status,
           error: data && data.error != null ? String(data.error) : "transcribe_empty",
-          message: backendMsg || AUDIO_TRANSCRIPT_FAILED_MSG,
+          message: backendMsg || panelT("panel.modules.chat.transcript.failedMusic"),
         };
       }
 
@@ -5983,7 +5966,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "chat-audio-transcript-btn";
-        btn.textContent = "Metne çevir";
+        btn.textContent = panelT("panel.modules.chat.compose.transcribe");
 
         const msg = document.createElement("p");
         msg.className = "chat-audio-transcript-msg";
@@ -5995,7 +5978,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         preview.className = "chat-audio-transcript-preview";
         preview.hidden = true;
         preview.setAttribute("role", "region");
-        preview.setAttribute("aria-label", "Transkript önizlemesi");
+        preview.setAttribute("aria-label", panelT("panel.modules.chat.transcript.previewAria"));
 
         const musicWarn = document.createElement("p");
         musicWarn.className = "chat-audio-transcript-warn";
@@ -6010,12 +5993,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const privacy = document.createElement("p");
         privacy.className = "chat-audio-transcript-privacy";
         privacy.hidden = true;
-        privacy.textContent = AUDIO_TRANSCRIPT_PRIVACY_MSG;
+        privacy.textContent = panelT("panel.modules.chat.transcript.privacyMsg");
 
         const addBtn = document.createElement("button");
         addBtn.type = "button";
         addBtn.className = "chat-audio-transcript-btn chat-audio-transcript-add-btn";
-        addBtn.textContent = "Sohbete ekle";
+        addBtn.textContent = panelT("panel.modules.chat.transcript.addToChat");
         addBtn.hidden = true;
 
         let lastTranscript = "";
@@ -6026,16 +6009,16 @@ const PANEL_DEBUG = import.meta.env.DEV;
           btn.disabled = on;
           if (on) {
             btn.setAttribute("aria-busy", "true");
-            btn.textContent = "Çevriliyor…";
+            btn.textContent = panelT("panel.modules.chat.transcript.transcribing");
           } else {
             btn.removeAttribute("aria-busy");
-            btn.textContent = "Metne çevir";
+            btn.textContent = panelT("panel.modules.chat.compose.transcribe");
           }
         }
 
         function updateMusicWarnVisibility(show) {
           const showMusic = !!show && isLikelyMusicAudio(filename, mime);
-          musicWarn.textContent = AUDIO_TRANSCRIPT_MUSIC_WARN_MSG;
+          musicWarn.textContent = panelT("panel.modules.chat.transcript.musicWarnMsg");
           musicWarn.hidden = !showMusic;
         }
 
@@ -6057,7 +6040,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           preview.hidden = !lastTranscript;
           updateMusicWarnVisibility(isLikelyMusicAudio(filename, mime));
           const showQuality = !!lastTranscript && isLowQualityTranscript(lastTranscript);
-          qualityWarn.textContent = AUDIO_TRANSCRIPT_LOW_QUALITY_WARN_MSG;
+          qualityWarn.textContent = panelT("panel.modules.chat.transcript.lowQualityWarnMsg");
           qualityWarn.hidden = !showQuality;
           privacy.hidden = !lastTranscript;
           addBtn.hidden = !lastTranscript;
@@ -6071,7 +6054,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         btn.addEventListener("click", async () => {
           if (busy) return;
           if (!audioBlob || audioBlob.size < 512) {
-            showStatus("Ses verisi yok veya çok kısa.");
+            showStatus(panelT("panel.modules.chat.transcript.missingAudio"));
             return;
           }
           const transcribeUserBlock = remoteTranscriptionBlocked();
@@ -6080,7 +6063,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             return;
           }
           setBusy(true);
-          showStatus(AUDIO_TRANSCRIPT_BUSY_MSG, { showMusicWarn: false });
+          showStatus(panelT("panel.modules.chat.transcript.busyMsg"), { showMusicWarn: false });
           try {
             const result = await requestLocalTranscription(
               audioBlob,
@@ -6091,17 +6074,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
             if (result.ok && result.text) {
               showPreview(result.text);
             } else if (result.blocked) {
-              showStatus(result.message || AUDIO_TRANSCRIPT_LIMITED_MSG);
+              showStatus(result.message || panelT("panel.modules.chat.transcript.limitedMsg"));
             } else if (result.engineUnavailable) {
-              showStatus(result.message || AUDIO_TRANSCRIPT_ENGINE_MSG);
+              showStatus(result.message || panelT("panel.modules.chat.transcript.engineMsg"));
             } else if (result.transcribeFailure) {
               showStatus(transcribeFailureUserMessage(result, filename, mime), {
                 showMusicWarn: true,
               });
             } else {
               const fallback = isLikelyMusicAudio(filename, mime)
-                ? AUDIO_TRANSCRIPT_FAILED_MSG
-                : AUDIO_TRANSCRIPT_SPEECH_FAILED_MSG;
+                ? panelT("panel.modules.chat.transcript.failedMusic")
+                : panelT("panel.modules.chat.transcript.failedSpeech");
               let text = result.message || fallback;
               if (!PANEL_DEBUG && text) {
                 text =
@@ -6150,7 +6133,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = btnClass;
-        btn.textContent = "Metne çevir";
+        btn.textContent = panelT("panel.modules.chat.compose.transcribe");
 
         const msg = document.createElement("p");
         msg.className = msgClass;
@@ -6162,7 +6145,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         preview.className = previewClass;
         preview.hidden = true;
         preview.setAttribute("role", "region");
-        preview.setAttribute("aria-label", "Transkript önizlemesi");
+        preview.setAttribute("aria-label", panelT("panel.modules.chat.transcript.previewAria"));
 
         const musicWarn = document.createElement("p");
         musicWarn.className = "chat-audio-transcript-warn";
@@ -6177,12 +6160,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const privacy = document.createElement("p");
         privacy.className = privacyClass;
         privacy.hidden = true;
-        privacy.textContent = AUDIO_TRANSCRIPT_PRIVACY_MSG;
+        privacy.textContent = panelT("panel.modules.chat.transcript.privacyMsg");
 
         const addBtn = document.createElement("button");
         addBtn.type = "button";
         addBtn.className = btnClass + " chat-audio-transcript-add-btn";
-        addBtn.textContent = "Sohbete ekle";
+        addBtn.textContent = panelT("panel.modules.chat.transcript.addToChat");
         addBtn.hidden = true;
 
         let lastTranscript = "";
@@ -6193,16 +6176,16 @@ const PANEL_DEBUG = import.meta.env.DEV;
           btn.disabled = on;
           if (on) {
             btn.setAttribute("aria-busy", "true");
-            btn.textContent = "Çevriliyor…";
+            btn.textContent = panelT("panel.modules.chat.transcript.transcribing");
           } else {
             btn.removeAttribute("aria-busy");
-            btn.textContent = "Metne çevir";
+            btn.textContent = panelT("panel.modules.chat.compose.transcribe");
           }
         }
 
         function updateMusicWarnVisibility(show) {
           const showMusic = !!show && isLikelyMusicAudio(filename, mime);
-          musicWarn.textContent = AUDIO_TRANSCRIPT_MUSIC_WARN_MSG;
+          musicWarn.textContent = panelT("panel.modules.chat.transcript.musicWarnMsg");
           musicWarn.hidden = !showMusic;
         }
 
@@ -6224,7 +6207,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           preview.hidden = !lastTranscript;
           updateMusicWarnVisibility(isLikelyMusicAudio(filename, mime));
           const showQuality = !!lastTranscript && isLowQualityTranscript(lastTranscript);
-          qualityWarn.textContent = AUDIO_TRANSCRIPT_LOW_QUALITY_WARN_MSG;
+          qualityWarn.textContent = panelT("panel.modules.chat.transcript.lowQualityWarnMsg");
           qualityWarn.hidden = !showQuality;
           privacy.hidden = !lastTranscript;
           addBtn.hidden = !lastTranscript || !includeAddToChat;
@@ -6241,7 +6224,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (busy) return;
           const blob = typeof getBlob === "function" ? getBlob() : null;
           if (!blob || blob.size < 512) {
-            showStatus("Ses verisi yok veya çok kısa.");
+            showStatus(panelT("panel.modules.chat.transcript.missingAudio"));
             return;
           }
           const transcribeUserBlock = remoteTranscriptionBlocked();
@@ -6250,7 +6233,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             return;
           }
           setBusy(true);
-          showStatus(AUDIO_TRANSCRIPT_BUSY_MSG, { showMusicWarn: false });
+          showStatus(panelT("panel.modules.chat.transcript.busyMsg"), { showMusicWarn: false });
           try {
             const blobMime = blob.type || mime;
             const result = await requestLocalTranscription(
@@ -6262,17 +6245,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
             if (result.ok && result.text) {
               showPreview(result.text);
             } else if (result.blocked) {
-              showStatus(result.message || AUDIO_TRANSCRIPT_LIMITED_MSG);
+              showStatus(result.message || panelT("panel.modules.chat.transcript.limitedMsg"));
             } else if (result.engineUnavailable) {
-              showStatus(result.message || AUDIO_TRANSCRIPT_ENGINE_MSG);
+              showStatus(result.message || panelT("panel.modules.chat.transcript.engineMsg"));
             } else if (result.transcribeFailure) {
               showStatus(transcribeFailureUserMessage(result, filename, mime), {
                 showMusicWarn: true,
               });
             } else {
               const fallback = isLikelyMusicAudio(filename, mime)
-                ? AUDIO_TRANSCRIPT_FAILED_MSG
-                : AUDIO_TRANSCRIPT_SPEECH_FAILED_MSG;
+                ? panelT("panel.modules.chat.transcript.failedMusic")
+                : panelT("panel.modules.chat.transcript.failedSpeech");
               let text = result.message || fallback;
               if (!PANEL_DEBUG && text) {
                 text =
