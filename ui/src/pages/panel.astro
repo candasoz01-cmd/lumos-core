@@ -5556,6 +5556,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
         "Sınırlı modda ses kaydı yalnızca bu cihazda görünür; dış sohbete iletilmez.";
       const PANEL_OFFLINE_AUDIO_REPLY =
         "Çevrimdışı modda ses kaydı yalnızca bu cihazda görünür; dış sohbete iletilmez.";
+      const PANEL_FULL_AUDIO_REPLY =
+        "Tam modda ses kaydı yalnızca bu cihazda görünür; dış köprüye iletilmez.";
+      const PANEL_FULL_AUDIO_HINT =
+        "Tam modda ses kaydı dış köprüye iletilmez; metin ekleyin veya «Ses metne çevir» kullanın.";
       const PANEL_INFRA_UNAVAILABLE_MSG = "Köprü erişilemiyor (altyapı). Bağlantıyı kontrol edip tekrar deneyin.";
       const AUDIO_TRANSCRIPT_BUBBLE_MSG =
         "Ses metne çeviri motoru henüz bağlı değil. Bu ses şu an yalnızca bu cihazda oynatılabilir; dışarı gönderilmedi.";
@@ -9054,9 +9058,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
 
           if (hasAudio && !outgoingMessage && !hasPhoto) {
+            appendBubble("lumos", PANEL_FULL_AUDIO_REPLY);
+            setSendHint(PANEL_FULL_AUDIO_HINT);
             input.value = "";
             clearPanelAudioRecordSelection();
-            setSendHint("");
             input.blur();
             resetPanelHorizontalScrollAfterInputBlur();
             sending = false;
@@ -10261,6 +10266,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 ? "Çevrimdışı modda ses yalnızca yerel sohbette görünür."
                 : "Sınırlı moddasın (kullanıcı seçimi); ses dış sohbete iletilmez.",
             );
+          } else {
+            appendBubble("lumos", PANEL_FULL_AUDIO_REPLY);
+            setSendHint(PANEL_FULL_AUDIO_HINT);
           }
           input.blur();
           resetPanelHorizontalScrollAfterInputBlur();
