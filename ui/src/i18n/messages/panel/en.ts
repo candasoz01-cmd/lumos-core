@@ -209,6 +209,14 @@ const panel: typeof panelTr = {
         httpSendFailedDebugPrefix: "Send failed (HTTP ",
         httpSendFailedDebugSuffix: "). Try again.",
         requestErrorDebugPrefix: "Request error: ",
+        emptyReply:
+          "I could not produce a clear reply this turn; I will try again shortly.",
+        responseUnusableBubble:
+          "We could not process the server response. You can try again shortly.",
+        gorevServerReplyPrefix: "Server reply:\n",
+        gorevNoExtraServerText:
+          "The server returned no extra text for this request (the task is already saved locally).",
+        photoNoVision: "Photo added; image analysis is not active yet.",
       },
       cameraHints: {
         unsupported: "Camera input is not supported in this browser.",

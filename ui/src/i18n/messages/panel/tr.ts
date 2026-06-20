@@ -208,6 +208,14 @@ const panelModules = {
         httpSendFailedDebugPrefix: "Gönderilemedi (HTTP ",
         httpSendFailedDebugSuffix: "). Tekrar dene.",
         requestErrorDebugPrefix: "İstek hatası: ",
+        emptyReply:
+          "Bu turda net bir yanıt üretemedim; biraz sonra tekrar deneyeceğim.",
+        responseUnusableBubble:
+          "Sunucudan gelen yanıtı işleyemedik. Biraz sonra yeniden deneyebilirsin.",
+        gorevServerReplyPrefix: "Sunucu yanıtı:\n",
+        gorevNoExtraServerText:
+          "Sunucu bu istek için ek metin dönmedi (görev zaten yerelde kayıtlı).",
+        photoNoVision: "Fotoğraf eklendi; görsel analiz henüz aktif değil.",
       },
       cameraHints: {
         unsupported: "Bu tarayıcıda kamera girişi desteklenmiyor.",
