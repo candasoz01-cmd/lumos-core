@@ -5707,6 +5707,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
         if (typeof panelEvidenceRefreshStrip === "function") {
           void panelEvidenceRefreshStrip();
         }
+        if (typeof panelGorevlerRefreshI18n === "function") {
+          panelGorevlerRefreshI18n();
+        }
       }
       function transcribeFailureUserMessage(result, filename, mime) {
         const isMusic = isLikelyMusicAudio(filename, mime);
@@ -7455,6 +7458,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
       let panelGorevlerTasks = [];
 
       let panelGorevlerTasksRender = null;
+      let panelGorevlerRefreshI18n = null;
 
       /** @type {null | ((ref: string) => Promise<string>)} */
       let panelGorevlerDeleteFromChat = null;
@@ -10880,28 +10884,35 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (detailPlanLowRiskNoteEl) detailPlanLowRiskNoteEl.hidden = true;
         }
 
-        const GOREVLER_TESHIS_LABELS = [
-          "Özet",
-          "Alan",
-          "Not",
-          "Sırada",
-          "Risk",
-          "Onay",
+        const GOREVLER_TESHIS_LABEL_KEYS = [
+          "panel.modules.tasks.plan.teshis.ozet",
+          "panel.modules.tasks.plan.teshis.alan",
+          "panel.modules.tasks.plan.teshis.not",
+          "panel.modules.tasks.plan.teshis.sirada",
+          "panel.modules.tasks.plan.teshis.risk",
+          "panel.modules.tasks.plan.teshis.onay",
         ];
 
-        const GOREVLER_PLAN_NOT_PENDING =
-          "Kök neden analizi henüz yapılmadı (beklemede).";
+        function gorevlerTeshisLabels() {
+          return GOREVLER_TESHIS_LABEL_KEYS.map((key) => panelT(key));
+        }
 
         function gorevlerPlanNotDisplay(_plan) {
-          return GOREVLER_PLAN_NOT_PENDING;
+          return panelT("panel.modules.tasks.plan.notPending");
         }
 
         function gorevlerPlanAlanDisplay(plan) {
           const p = sanitizeGorevlerTaskPlan(plan);
           const raw = p && p.onerilenAlan ? String(p.onerilenAlan).trim() : "";
-          if (!raw || /^görevler(\s+sekmesi)?$/i.test(raw)) return "Görevler";
-          if (/^dosyalar(\s+sekmesi)?$/i.test(raw)) return "Dosyalar";
-          if (/^köprü(\s+sekmesi)?$/i.test(raw)) return "İletim";
+          if (!raw || /^görevler(\s+sekmesi)?$/i.test(raw)) {
+            return panelT("panel.modules.tasks.plan.alanGorevler");
+          }
+          if (/^dosyalar(\s+sekmesi)?$/i.test(raw)) {
+            return panelT("panel.modules.tasks.plan.alanDosyalar");
+          }
+          if (/^köprü(\s+sekmesi)?$/i.test(raw)) {
+            return panelT("panel.modules.tasks.plan.alanIletim");
+          }
           return raw.replace(/\s+sekmesi$/i, "");
         }
 
@@ -10913,21 +10924,22 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
         function buildGorevlerMediumHighRiskTeshisLines(_title, plan) {
           const p = sanitizeGorevlerTaskPlan(plan);
-          const tespit = p && p.tur ? String(p.tur) + "." : "Plan hazır; işlem yok.";
+          const tespit =
+            p && p.tur ? String(p.tur) + "." : panelT("panel.modules.tasks.plan.defaultTespit");
           const cozum =
             p && p.sonrakiAdim
               ? String(p.sonrakiAdim)
-              : "Listeden görevi aç ve bak.";
+              : panelT("panel.modules.tasks.plan.defaultCozum");
           const onay =
             p && p.onayDurumu && String(p.onayDurumu).trim()
               ? String(p.onayDurumu).trim()
-              : "Onay gerekir; plan onayı iletim veya kod çalıştırmaz.";
+              : panelT("panel.modules.tasks.plan.defaultOnay");
           return [
             tespit,
             gorevlerPlanAlanDisplay(p),
             gorevlerPlanNotDisplay(p),
             cozum,
-            p && p.risk ? String(p.risk) : "Orta",
+            p && p.risk ? String(p.risk) : panelT("panel.modules.tasks.plan.defaultRiskOrta"),
             onay,
           ];
         }
@@ -10963,9 +10975,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
             return;
           }
           const lines = buildGorevlerMediumHighRiskTeshisLines(title, plan);
+          const labels = gorevlerTeshisLabels();
           el.replaceChildren();
-          for (let i = 0; i < GOREVLER_TESHIS_LABELS.length; i++) {
-            appendGorevlerTeshisCompactLine(el, GOREVLER_TESHIS_LABELS[i], lines[i]);
+          for (let i = 0; i < labels.length; i++) {
+            appendGorevlerTeshisCompactLine(el, labels[i], lines[i]);
           }
           el.hidden = false;
         }
@@ -10977,22 +10990,26 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (!p) return;
           const low = isGorevlerPlanLowRisk(p);
           if (low) {
-            appendDetailRow(dl, "Durum", "Plan hazırlandı, işlem yapılmadı.");
-            appendDetailRow(dl, "Risk", p.risk);
-            appendDetailRow(dl, "Alan", gorevlerPlanAlanDisplay(p));
-            appendDetailRow(dl, "Sonraki adım", "Görevi listede açıp detayları kontrol et.");
-            appendDetailRow(dl, "Not", "Kod, iletim veya terminal çalıştırılmadı.");
+            appendDetailRow(dl, panelT("panel.modules.tasks.plan.dlStatus"), panelT("panel.modules.tasks.plan.lowRiskStatus"));
+            appendDetailRow(dl, panelT("panel.modules.tasks.plan.dlRisk"), p.risk);
+            appendDetailRow(dl, panelT("panel.modules.tasks.plan.dlAlan"), gorevlerPlanAlanDisplay(p));
+            appendDetailRow(
+              dl,
+              panelT("panel.modules.tasks.plan.dlSonrakiAdim"),
+              panelT("panel.modules.tasks.plan.lowRiskSonraki"),
+            );
+            appendDetailRow(dl, panelT("panel.modules.tasks.plan.dlNot"), panelT("panel.modules.tasks.plan.lowRiskNot"));
             return;
           }
           const durum =
             p.onayDurumu && String(p.onayDurumu).trim()
               ? String(p.onayDurumu).trim()
-              : "Plan hazır; onay bekleniyor.";
-          appendDetailRow(dl, "Tür", p.tur);
-          appendDetailRow(dl, "Risk", p.risk);
-          appendDetailRow(dl, "Alan", gorevlerPlanAlanDisplay(p));
-          appendDetailRow(dl, "Sırada", p.sonrakiAdim);
-          appendDetailRow(dl, "Not", gorevlerPlanNotDisplay(p));
+              : panelT("panel.modules.tasks.plan.pendingApproval");
+          appendDetailRow(dl, panelT("panel.modules.tasks.plan.dlTur"), p.tur);
+          appendDetailRow(dl, panelT("panel.modules.tasks.plan.dlRisk"), p.risk);
+          appendDetailRow(dl, panelT("panel.modules.tasks.plan.dlAlan"), gorevlerPlanAlanDisplay(p));
+          appendDetailRow(dl, panelT("panel.modules.tasks.plan.dlSirada"), p.sonrakiAdim);
+          appendDetailRow(dl, panelT("panel.modules.tasks.plan.dlNot"), gorevlerPlanNotDisplay(p));
         }
 
         function renderGorevlerPlanStatusEl(statusEl, plan) {
@@ -11086,7 +11103,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (!t) return;
           const p = sanitizeGorevlerTaskPlan(t.taskPlan);
           if (!p || !p.active) return;
-          p.onayDurumu = "Onay kaydedildi";
+          p.onayDurumu = panelT("panel.modules.tasks.plan.approvalSaved");
           t.taskPlan = p;
           persistPanelGorevlerTasks();
           render();
@@ -11121,9 +11138,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
           const whenRaw = t.when != null ? String(t.when).trim() : "";
           const whenTxt = whenRaw ? whenRaw : "—";
 
-          appendDetailRow(detailTaskDl, "Durum", statusTxt);
-          appendDetailRow(detailTaskDl, "Öncelik", priorityTxt);
-          appendDetailRow(detailTaskDl, "Tarih", whenTxt);
+          appendDetailRow(detailTaskDl, panelT("panel.modules.tasks.detail.dlStatus"), statusTxt);
+          appendDetailRow(detailTaskDl, panelT("panel.modules.tasks.detail.dlPriority"), priorityTxt);
+          appendDetailRow(detailTaskDl, panelT("panel.modules.tasks.detail.dlDate"), whenTxt);
 
           let route = "—";
           let source = "—";
@@ -11136,8 +11153,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
             lastOp = formatTrDateTime(bl.lastBridgeAt);
             if (bl.route != null && String(bl.route).trim()) route = String(bl.route).trim();
             if (bl.source != null && String(bl.source).trim()) source = String(bl.source).trim();
-            if (bl.accepted === true) acceptedTxt = "Evet";
-            else if (bl.accepted === false) acceptedTxt = "Hayır";
+            if (bl.accepted === true) acceptedTxt = panelT("panel.modules.tasks.detail.yes");
+            else if (bl.accepted === false) acceptedTxt = panelT("panel.modules.tasks.detail.no");
             if (bl.result_file) {
               const raw = String(bl.result_file).trim();
               const bn = lumosOutboxPathBasename(raw);
@@ -11151,13 +11168,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
 
           if (PANEL_DEBUG) {
-            appendDetailRow(detailBridgeDl, "Rota", route);
-            appendDetailRow(detailBridgeDl, "Kaynak", source);
+            appendDetailRow(detailBridgeDl, panelT("panel.modules.tasks.detail.dlRoute"), route);
+            appendDetailRow(detailBridgeDl, panelT("panel.modules.tasks.detail.dlSource"), source);
           }
-          appendDetailRow(detailBridgeDl, "Kabul", acceptedTxt);
-          appendDetailRow(detailBridgeDl, "Sonuç dosyası", resultFile);
-          appendDetailRow(detailBridgeDl, "Çalıştırma dosyası", execFile);
-          appendDetailRow(detailBridgeDl, "İletim zamanı", lastOp);
+          appendDetailRow(detailBridgeDl, panelT("panel.modules.tasks.detail.dlAccepted"), acceptedTxt);
+          appendDetailRow(detailBridgeDl, panelT("panel.modules.tasks.detail.dlResultFile"), resultFile);
+          appendDetailRow(detailBridgeDl, panelT("panel.modules.tasks.detail.dlExecFile"), execFile);
+          appendDetailRow(detailBridgeDl, panelT("panel.modules.tasks.detail.dlBridgeTime"), lastOp);
 
           syncGorevlerDetailPlanSection(t, taskIndex);
 
@@ -11217,14 +11234,20 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 blSumm.route != null && String(blSumm.route).trim()
                   ? " · " + truncateGorevlerField(String(blSumm.route).trim()).slice(0, 56)
                   : "";
-              return "Son iletim: " + whenBridge + panelUserVisibleText(routeBit);
+              return (
+                panelT("panel.modules.tasks.detail.bridgeLastPrefix") +
+                whenBridge +
+                panelUserVisibleText(routeBit)
+              );
             }
             let statusBit = "";
-            if (blSumm.accepted === true) statusBit = " · iletildi";
-            else if (blSumm.accepted === false) statusBit = " · iletilemedi";
-            return "Son iletim: " + whenBridge + statusBit;
+            if (blSumm.accepted === true) statusBit = panelT("panel.modules.tasks.detail.bridgeSentSuffix");
+            else if (blSumm.accepted === false) {
+              statusBit = panelT("panel.modules.tasks.detail.bridgeFailedSuffix");
+            }
+            return panelT("panel.modules.tasks.detail.bridgeLastPrefix") + whenBridge + statusBit;
           }
-          return "Henüz iletilmedi";
+          return panelT("panel.modules.tasks.detail.bridgeNotYet");
         }
 
         function gorevlerTaskBadgeSlug(v) {
@@ -11898,6 +11921,24 @@ const PANEL_DEBUG = import.meta.env.DEV;
         }
 
         panelGorevlerTasksRender = render;
+
+        panelGorevlerRefreshI18n = () => {
+          syncGorevlerTasksApiSkipBadge();
+          const openedIdx = lastGorevlerOpenedIndex;
+          const planIdx = lastGorevlerPlanIndex;
+          let visibleCount = 0;
+          for (let i = 0; i < panelGorevlerTasks.length; i++) {
+            if (gorevlerTaskPassesListFilter(panelGorevlerTasks[i])) visibleCount += 1;
+          }
+          syncGorevlerListEmptyState(visibleCount);
+          render();
+          if (planIdx >= 0) {
+            const planTask = panelGorevlerTasks[planIdx];
+            const planObj = planTask && sanitizeGorevlerTaskPlan(planTask.taskPlan);
+            if (planObj && planObj.active) showGorevlerPlanInline(planObj, planIdx);
+          }
+          if (openedIdx >= 0) openGorevlerDetail(openedIdx);
+        };
         panelGorevlerDeleteFromChat = deleteGorevlerTaskFromChat;
         panelGorevlerRestoreFromChat = restoreGorevlerTaskFromChat;
 
@@ -12038,11 +12079,6 @@ const PANEL_DEBUG = import.meta.env.DEV;
         });
 
         syncGorevlerTasksApiSkipBadge();
-
-        window.addEventListener("lumos:localechange", () => {
-          syncGorevlerTasksApiSkipBadge();
-          render();
-        });
       }
 
       wirePanel();
