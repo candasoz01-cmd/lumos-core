@@ -263,7 +263,7 @@ Build/E2E hizası veya yüzey değişikliği görevi açılmadan önce:
 | ID | Soru | Bu belgedeki durum |
 |----|------|-------------------|
 | **OD-046** | Root build (ui) ile panel E2E hangi yüzeyi «canlı» sayar? | **Uygulandı (Seçenek A):** üretim → `ui/`; birincil kök E2E → `ui/dist`; legacy → `e2e:legacy:*` / `panel/` |
-| **OD-043** | Birincil yüzey `panel/`, `ui/` veya `frontend/` mi? | Seçenek A **uygulaması** sonucuna bağlı; taslak üretim `ui/` |
+| **OD-043** | Birincil yüzey `panel/`, `ui/` veya `frontend/` mi? | **Kapandı (closed):** birincil üretim `ui/`; formal kapanış OD-046 tamamlandı (#300–#307) |
 | **OD-044** | `frontend/` rolü? | Root build/E2E'de yok; canlı değil — kısa çapraz not |
 
 ### OD-046 seçenekleri (onay + tarihsel referans)
@@ -284,7 +284,7 @@ Build/E2E hizası veya yüzey değişikliği görevi açılmadan önce:
 | ID | Kaynak | Konu | Bu belgede netleşen | Durum | Çapraz not |
 |----|--------|------|---------------------|--------|------------|
 | **OD-046** | project-map-runtime-entrypoints.md | Root build vs panel E2E | Seçenek A uygulandı: üretim `ui/`; birincil kök E2E → `ui/dist`; legacy → `e2e:legacy:*` | **implementation-complete** | PR #300–#305 |
-| **OD-043** | project-map-runtime-entrypoints.md | Birincil kullanıcı yüzeyi | Seçenek A uygulama sonucuna bağlı; taslak üretim `ui/` | **needs-review** | primary-user-surface-decision.md |
+| **OD-043** | project-map-runtime-entrypoints.md | Birincil kullanıcı yüzeyi | Birincil üretim `ui/`; E2E hizası tamam | **closed** | primary-user-surface-decision.md |
 | **OD-044** | project-map-runtime-entrypoints.md | `frontend/` rolü | Build/E2E zincirinde değil | **needs-review** | Birincil yüzey değil |
 
 ---
@@ -318,8 +318,8 @@ OD-046 **implementation-complete** yalnızca aşağıdakilerin tamamı sağland�
 | 3 | Legacy 12 script **1:1 port değil** — kök expose üçlüsünün ui karşılığı yeterli (keşif: mekanik port mümkün değil) |
 | 4 | «Görev tamamla» E2E adımı **UI/API** (`POST /tasks/complete`); chat `görev tamamla` **kapsam dışı** |
 
-OD-046 **implementation-complete** (2026-06-20). OD-043 birincil yüzey kararı onaylıdır; kök E2E hizası bu checklist ile tamamlandı.
+OD-046 **implementation-complete** (2026-06-20). OD-043 **closed** — birincil yüzey `ui/`; kök E2E hizası bu checklist ile tamamlandı (#300–#307).
 
 ---
 
-Son güncelleme: 2026-06-20 (Faz 5 — OD-046 implementation-complete; §12 senkron)
+Son güncelleme: 2026-06-20 (OD-043 closed; OD-046 implementation-complete)

@@ -90,7 +90,7 @@ Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A16 takip satırları kap
 | ID | Tarih | Konu | Karar | Bağlantı |
 |----|-------|------|-------|----------|
 | DL-C01 | 2026-06-19 | OD-059 audit hook terminolojisi | Informal «audit hook» ayrı git hook **gerektirmez**; üç katman (commit guard / EC runtime v1 / EC v2 #4+#14); informal takip maddesi docs seviyesinde **CLOSED** | [`docs/memory/audit-hook-term-decision.md`](memory/audit-hook-term-decision.md); OD-058 çapraz |
-| DL-C02 | 2026-06-17 | OD-043 Birincil kullanıcı yüzeyi | Birincil üretim/dış kullanıcı yüzeyi **`ui/` Astro** onaylandı; `panel/` legacy yüzey; `frontend/` birincil değil | [`docs/memory/primary-user-surface-decision.md`](memory/primary-user-surface-decision.md); OD-046 E2E hizası tamamlandı |
+| DL-C02 | 2026-06-20 | OD-043 Birincil kullanıcı yüzeyi | **Closed** — birincil üretim/dış kullanıcı yüzeyi **`ui/` Astro**; `panel/` legacy E2E; `frontend/` birincil değil; formal kapanış OD-046 (#300–#307) sonrası | [`docs/memory/primary-user-surface-decision.md`](memory/primary-user-surface-decision.md); [`build-e2e-surface-alignment-decision.md`](memory/build-e2e-surface-alignment-decision.md) |
 | DL-C03 | 2026-06-20 | OD-046 E2E migrasyonu kapanışı | Kök E2E **`ui/dist`** hizası **implementation-complete**; PR #300–#305; indeks closed | [`docs/memory/od-046-e2e-migration-plan.md`](memory/od-046-e2e-migration-plan.md); [`build-e2e-surface-alignment-decision.md`](memory/build-e2e-surface-alignment-decision.md) |
 
 ---
@@ -124,4 +124,4 @@ Tam liste: `docs/memory/open-decisions-needs-review.md` (OD-001 … OD-060).
 
 ---
 
-Son güncelleme: 2026-06-20 (DL-F07/DL-C03 — OD-046 implementation-complete)
+Son güncelleme: 2026-06-20 (DL-C02 — OD-043 closed post OD-046)

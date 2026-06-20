@@ -91,7 +91,7 @@
 
 | ID | Kaynak dosya | Konu | Kısa karar sorusu | Öncelik | Durum | Not |
 |----|--------------|------|-------------------|---------|--------|-----|
-| OD-043 | project-map-runtime-entrypoints.md | Birincil kullanıcı yüzeyi | Birincil üretim/dış kullanıcı yüzeyi hangisi? | high | decision-approved | Karar: [`primary-user-surface-decision.md`](primary-user-surface-decision.md); birincil üretim/dış kullanıcı yüzeyi `ui/` Astro olarak onaylandı. `panel/` legacy/statik yüzey; `frontend/` birincil/canlı yüzey değildir. OD-046 E2E hizası **tamamlandı** (closed). |
+| OD-043 | project-map-runtime-entrypoints.md | Birincil kullanıcı yüzeyi | Birincil üretim/dış kullanıcı yüzeyi hangisi? | high | **closed** | Karar: [`primary-user-surface-decision.md`](primary-user-surface-decision.md) — birincil `ui/` Astro; `panel/` legacy E2E; `frontend/` birincil değil. Formal kapanış: OD-046 E2E hizası tamam (#300–#307). |
 | OD-044 | project-map-runtime-entrypoints.md | frontend/ rolü | `frontend/` dizininin panel/ui ile ilişkisi ve yaşam döngüsü ne? | medium | decision-approved | Karar: [`frontend-role-decision.md`](frontend-role-decision.md); Seçenek B onaylandı — izole köprü E2E + prototip referans; üretim/deploy/root build/root E2E yüzeyi değil; kod/taşıma/arşiv/silme yok. Seçenekler A/C/D seçilmedi. Çapraz: OD-043 birincil `ui/`; OD-046 E2E hizası ayrı uygulama. |
 | OD-045 | project-map-runtime-entrypoints.md | lumos-demo konumu | `lumos-demo` nerede; lumos-core ile ilişkisi ne? | low | superseded / not-found | Kapandı (2026-06-17): `work_2026` altında bulunamadı; aktif lumos-core parçası değil (giriş noktası, build hedefi, app bağımlılığı yok). Sonradan bulunursa ayrı repo/yan klasör olarak yeniden değerlendirilir — otomatik lumos-core parçası sayılmaz. |
 | OD-046 | project-map-runtime-entrypoints.md | Root build vs panel E2E | `npm run build` (ui) ile kök E2E hangi yüzeyi hedefler? | medium | **closed** | Karar + uygulama: [`build-e2e-surface-alignment-decision.md`](build-e2e-surface-alignment-decision.md), [`od-046-e2e-migration-plan.md`](od-046-e2e-migration-plan.md) — Seçenek A **implementation-complete** (#300–#305). Birincil kök `e2e:package*` → `ui/dist`; legacy `e2e:legacy:*` → `panel/`. |
@@ -136,7 +136,7 @@ Kaynak dosyalardaki migration tablolarından **needs-review / queued** özetleri
 | tools-technology-watchlist.md | 3 | 3 (boş manuel) | OD-029, OD-030 |
 | internal-agent-layers.md | 4 | 5 (boş manuel) | OD-006, OD-007, OD-026 |
 | public-identity-branding.md | 5 | 9 (+5 boş manuel) | OD-048 – OD-057 |
-| project-map-runtime-entrypoints.md | 2 | 1 | OD-027, OD-028 (closed), OD-043/044 (approved), OD-046 (closed) |
+| project-map-runtime-entrypoints.md | 1 | 1 | OD-027, OD-028/043/046 (closed), OD-044 (approved) |
 | evidence-continuity-v1-decision.md | 0 | 0 | OD-058 (closed / v2 backlog: evidence-continuity-v2-backlog.md) |
 | audit-hook-term-decision.md | 0 | 0 | OD-059 (closed / terminoloji) |
 | chatgpt-saved-memories-migration.md | 0 | 5 (boş manuel) | — (süreç rehberi; madde yok) |
@@ -155,4 +155,4 @@ Kaynak dosyalardaki boş manuel şablonlar burada tekrarlanmaz. Yeni açık kara
 
 ---
 
-Son güncelleme: 2026-06-20 (OD-046 closed — implementation-complete Faz 5)
+Son güncelleme: 2026-06-20 (OD-043 closed — post OD-046)

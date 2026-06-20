@@ -70,7 +70,7 @@ lumos  (veya python -m lumos_core)
 | **`packages/kando_*`** | Ayrılmış / yeni mimari aday paketler | **Aday** — root entry buradan başlamaz |
 | **`kando-ai/`** (repo kökü) | Ayrı `main.py` içeren alt proje | **Aday / yan** — root `lumos` CLI zincirine dahil değil |
 | **`archive/`** | Arşiv | Canlı değil |
-| **`frontend/`** | Eski/alternatif frontend | `[needs-review]` — panel/ui ile ilişkisi netleştirilmeli |
+| **`frontend/`** | Köprü/prototip HTML | `[migrated]` — OD-044 Seçenek B; birincil/canlı değil (`frontend-role-decision.md`) |
 
 **`packages/` altı paketler (doğrulandı):**
 
@@ -93,10 +93,10 @@ Her birinin kendi `pyproject.toml` ve `src/kando_*/` yapısı vardır. `packages
 
 | Dizin | Var mı? | Rol |
 |-------|---------|-----|
-| **`panel/`** | Evet | Aktif panel E2E paketi (`lumos-panel`); root `package.json` e2e scriptleri `--prefix panel` kullanır |
+| **`panel/`** | Evet | Legacy statik panel + `e2e:legacy:*` Playwright (`lumos-panel`); birincil üretim değil |
 | **`ui/`** | Evet | Astro tabanlı statik UI (`lumos-core-ui`); root `npm run build` burayı hedefler |
 
-> **Düzeltme (doğrulandı):** Eski notlarda yalnızca `panel/` veya yalnızca `ui/` vurgusu eksikti; **ikisi de mevcut**. Panel = E2E/entegrasyon odaklı; UI = Astro build çıktısı (`ui/dist`).
+> **Düzeltme (doğrulandı):** **ikisi de mevcut**. Birincil üretim/dış kullanıcı = **`ui/`** (`ui/dist`, OD-043 **closed**). Kök E2E birincil = **`ui/dist`** (OD-046). `panel/` = legacy E2E (`e2e:legacy:*`).
 
 ### Backend
 
@@ -132,11 +132,11 @@ Panel ↔ köprü entegrasyonu bu katmandan geçer; Python CLI zincirinden ayrı
 
 | Komut / ifade | Durum |
 |---------------|--------|
-| Root `package.json` → `"build": "cd ui && npm install && npm run build"` | **`ui/` mevcut** — komut teknik olarak çalışabilir; panel ile hangi yüzeyin “birincil” olduğu `[needs-review]` |
+| Root `package.json` → `"build": "cd ui && npm install && npm run build"` | **`ui/` birincil build** — OD-043 **closed**; kök E2E → `ui/dist` (OD-046) |
 | `lumos_core.main:main` entry | **Eski / hatalı** — güncel: `lumos_core.__main__:main` |
 | `src/lumos_core/main.py` | **Yok** — zincir `__main__.py` üzerinden |
 | `lumos web` → `web/app.py` | **Kaldırıldı** (OD-028 B1) — alt komut yok; `web/` restore edilmedi |
-| `cd ui && npm run build` panel yerine UI build eder | Panel E2E için `npm run e2e:* --prefix panel` kullanılır |
+| Kök `e2e:package*` | `ui/dist` hedefler; legacy için `e2e:legacy:*` → `panel/` |
 
 ---
 
@@ -155,7 +155,7 @@ Panel ↔ köprü entegrasyonu bu katmandan geçer; Python CLI zincirinden ayrı
 | Risk | Açıklama |
 |------|----------|
 | **Yanlış entry sanma** | `packages/kando_*` veya `kando-ai/` üzerinden canlı CLI varsayımı |
-| **panel vs ui karışıklığı** | İki ayrı Node yüzeyi; build script UI’yı, e2e panel’i hedefler |
+| **panel vs ui karışıklığı** | Birincil üretim/E2E `ui/`; legacy E2E `panel/` — hedef yüzey görevde yazılmalı |
 | **Stale memory** | ChatGPT’deki `lumos_core.main` veya tek klasör (`ui` *veya* `panel`) notları güncel değil |
 | **Çoklu work_2026 dizini** | Yanlış klasörde komut çalıştırma |
 
@@ -168,7 +168,7 @@ Panel ↔ köprü entegrasyonu bu katmandan geçer; Python CLI zincirinden ayrı
 | `lumos = lumos_core.main:main` | `lumos = lumos_core.__main__:main` | `[migrated]` düzeltildi |
 | Zincir: `lumos_core/main.py` → `main.py` | `lumos_core/__main__.py` → `main.py` | `[migrated]` düzeltildi |
 | Panel = `ui/` | `panel/` **ve** `ui/` ayrı dizinler | `[migrated]` düzeltildi |
-| `ui/` yok → build stale | `ui/` var (Astro) | `[migrated]` — build çalışabilir; birincil yüzey `[needs-review]` |
+| `ui/` yok → build stale | `ui/` var (Astro) | `[migrated]` — birincil yüzey `ui/` (OD-043 **closed**) |
 | `packages/kando_*` = canlı entry | Root entry `src/`; packages aday | `[migrated]` |
 | `lumos-demo` ayrı proje | `work_2026/lumos-demo` yok; lumos-core parçası değil | `[superseded / not-found]` OD-045 |
 | `web/app.py` web sunucusu | `web/` dizini yok; `lumos web` kaldırıldı (OD-028 B1) | `[migrated]` |
@@ -185,7 +185,7 @@ Aşağıdaki satırlar henüz repo dışı kaynaktan işlenmedi veya doğrulanma
 | # | Durum | Madde | Not |
 |---|--------|--------|-----|
 | 1 | `[superseded / not-found]` | `lumos-demo` konumu ve lumos-core ile ilişkisi | OD-045 kapandı; `work_2026` altında yok; lumos-core parçası değil; sonradan bulunursa ayrı değerlendirme |
-| 2 | `[needs-review]` | Birincil kullanıcı yüzeyi: `panel/` mi `ui/` mi `frontend/` mi? | Üç dizin de var |
+| 2 | `[closed]` | Birincil kullanıcı yüzeyi (OD-043) | `ui/` birincil; `panel/` legacy E2E; `frontend/` birincil değil — [`primary-user-surface-decision.md`](primary-user-surface-decision.md) |
 | 3 | `[migrated]` | `lumos web` / `web/app.py` — OD-028 B1 alt komut kaldırıldı | `web/` restore yok; `__main__.py` güncellendi |
 | 4 | `[needs-review]` | `packages/kando_*` → `src/` geçiş takvimi ve kesme kriterleri | Mimari karar bekliyor |
 | 5 | `[queued]` | ChatGPT Saved Memories’ten ek proje yolu / deploy notları | `chatgpt-saved-memories-migration.md` tablosuna yapıştırılacak |
