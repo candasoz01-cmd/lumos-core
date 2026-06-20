@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -116,6 +117,17 @@ def test_landing_kuantum_sections_i18n_wiring() -> None:
     assert 'data-i18n="landing.modules.quantumPanelLink"' in text
     assert 'data-i18n="landing.modules.roadmapInlineLead"' in text
     assert "<h3>Kuantum</h3>" not in text
+
+
+def test_landing_hero_ask_submit_distinct_from_cta_panel_tr() -> None:
+    tr_text = (_REPO_ROOT / "ui" / "src" / "i18n" / "messages" / "tr.ts").read_text(
+        encoding="utf-8"
+    )
+    cta_panel = re.search(r'ctaPanel:\s*"([^"]+)"', tr_text)
+    ask_submit = re.search(r'askSubmit:\s*"([^"]+)"', tr_text)
+    assert cta_panel is not None
+    assert ask_submit is not None
+    assert ask_submit.group(1) != cta_panel.group(1)
 
 
 def test_landing_hero_no_duplicate_inline_copy_dict() -> None:
