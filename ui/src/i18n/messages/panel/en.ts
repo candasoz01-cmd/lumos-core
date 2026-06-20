@@ -1,7 +1,33 @@
-/** Panel module copy — English */
+/** Panel shell + module copy — English */
 import type panelTr from "./tr";
 
-const panelModules: typeof panelTr = {
+const panel: typeof panelTr = {
+  meta: {
+    title: "Lumos Panel — Workspace",
+  },
+  header: {
+    title: "Lumos Panel",
+  },
+  nav: {
+    aria: "Workspace modules",
+    lumos: "Lumos",
+    panel: "panel",
+    calisma: "Workspace",
+    sohbet: "Chat",
+    gorevler: "Tasks",
+    ses: "Voice",
+    medya: "Media",
+    sosyal: "Social",
+    posta: "Mail",
+    dosyalar: "Files",
+    kuantum: "Quantum",
+  },
+  sections: {
+    sohbet: "Chat",
+    gorevler: "Tasks",
+    dosyalar: "Files",
+  },
+  modules: {
   tasks: {
     eyebrow: "Operations",
     intro:
@@ -238,6 +264,7 @@ const panelModules: typeof panelTr = {
     c5Body:
       "Default behaviors aim to be shown before you accept them; changes should remain reversible.",
   },
+  },
 };
 
-export default panelModules;
+export default panel;
