@@ -6581,6 +6581,43 @@ const PANEL_DEBUG = import.meta.env.DEV;
         return userMsg;
       }
 
+      function panelOutboxFailureUserMessage(ctx) {
+        const status =
+          typeof ctx.httpStatus === "number" && Number.isFinite(ctx.httpStatus)
+            ? ctx.httpStatus
+            : null;
+        const text = String(ctx.upstreamText || "").trim();
+        if (status === 401 || status === 403) {
+          return panelT("panel.modules.media.outboxResultUnauthorized");
+        }
+        if (!text) {
+          return panelT("panel.modules.media.outboxResultNotFound");
+        }
+        let rawError = "";
+        try {
+          const j = JSON.parse(text);
+          if (j && j.error != null) rawError = String(j.error);
+          else if (j && j.message != null) rawError = String(j.message);
+        } catch {
+          rawError = text.slice(0, 120);
+        }
+        const userMsg = panelProdErrorUserMessage({
+          rawError,
+          httpStatus: status,
+          upstreamText: text,
+        });
+        if (PANEL_DEBUG) {
+          const snippet = text.slice(0, 280);
+          return panelDebugText(
+            "Köprü yanıtı " +
+              (status != null ? status : "?") +
+              (snippet ? ": " + snippet : " (last-result yok veya token hatalı)."),
+            userMsg,
+          );
+        }
+        return userMsg;
+      }
+
       function panelDebugText(debugMsg, userMsg) {
         return PANEL_DEBUG ? debugMsg : userMsg;
       }
@@ -11590,14 +11627,28 @@ const PANEL_DEBUG = import.meta.env.DEV;
           syncGorevlerListEmptyState(visibleCount);
         }
 
-        function showHint(msg) {
-          const s = panelUserVisibleText(msg != null ? String(msg) : "");
+        let gorevlerHintRefresh = null;
+
+        function paintGorevlerHintFromResolver() {
+          if (!gorevlerHintRefresh) return;
+          const s = panelUserVisibleText(gorevlerHintRefresh());
           hintEl.textContent = s;
           hintEl.hidden = false;
           hintEl.style.whiteSpace = s.indexOf("\n") >= 0 ? "pre-line" : "";
         }
 
+        function setGorevlerHint(resolver) {
+          gorevlerHintRefresh = typeof resolver === "function" ? resolver : () => String(resolver ?? "");
+          paintGorevlerHintFromResolver();
+        }
+
+        function refreshGorevlerVisibleHintI18n() {
+          if (hintEl.hidden || !gorevlerHintRefresh) return;
+          paintGorevlerHintFromResolver();
+        }
+
         function hideHint() {
+          gorevlerHintRefresh = null;
           hintEl.hidden = true;
           hintEl.textContent = "";
           hintEl.style.whiteSpace = "";
@@ -11627,14 +11678,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
           const savedPlan = taskRef.taskPlan;
           const savedIdx = panelGorevlerTasks.indexOf(taskRef);
           if (savedPlan && savedIdx >= 0) showGorevlerPlanInline(savedPlan, savedIdx);
-          showHint(panelT("panel.modules.tasks.hints.savedLocal"));
+          setGorevlerHint(() => panelT("panel.modules.tasks.hints.savedLocal"));
           return taskRef;
         }
 
         async function addTask() {
           const title = titleInput.value.trim();
           if (!title) {
-            showHint(panelT("panel.modules.tasks.hints.titleEmpty"));
+            setGorevlerHint(() => panelT("panel.modules.tasks.hints.titleEmpty"));
             titleInput.focus();
             return;
           }
@@ -11675,13 +11726,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
                     "create_failed (" + (createRes ? createRes.status : "?") + ")",
                     "create_failed",
                   );
-            showHint(
-              panelProdErrorUserMessage({
-                rawError: err,
-                httpStatus: createRes ? createRes.status : null,
-                apiUnreachable,
-              }),
-            );
+            const prodErrCtx = {
+              rawError: err,
+              httpStatus: createRes ? createRes.status : null,
+              apiUnreachable,
+            };
+            setGorevlerHint(() => panelProdErrorUserMessage(prodErrCtx));
             return;
           }
 
@@ -11726,7 +11776,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           const savedIdx = panelGorevlerTasks.indexOf(taskRef);
           if (savedPlan && savedIdx >= 0) showGorevlerPlanInline(savedPlan, savedIdx);
 
-          showHint(panelT("panel.modules.tasks.hints.savedWithPlan"));
+          setGorevlerHint(() => panelT("panel.modules.tasks.hints.savedWithPlan"));
         }
 
         async function sendBridgeOpenGorevlerTask() {
@@ -11773,15 +11823,15 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
             if (taskBridgeBlockedResponse(r.status)) {
               const bridgeHint = bridgeBlockedUserHint();
-              if (bridgeHint) showHint(bridgeHint);
+              if (bridgeHint) setGorevlerHint(() => bridgeHint);
               return;
             }
             if (r.status === 401) {
-              showHint(panelT("panel.modules.chat.errors.unauthorized"));
+              setGorevlerHint(() => panelT("panel.modules.chat.errors.unauthorized"));
               return;
             }
             if (!r.ok) {
-              showHint(
+              setGorevlerHint(() =>
                 panelDebugText(
                   "Köprüye gönderilemedi (HTTP " +
                     r.status +
@@ -11798,9 +11848,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
             assignTaskBridgeLast(t, data);
             render();
             openGorevlerDetail(taskIndex);
-            showHint(buildTaskBridgeSuccessReadableHint(data));
+            setGorevlerHint(() => buildTaskBridgeSuccessReadableHint(data));
           } catch {
-            showHint(panelT("panel.modules.tasks.hints.bridgeFailed"));
+            setGorevlerHint(() => panelT("panel.modules.tasks.hints.bridgeFailed"));
           } finally {
             if (detailBridgeBtn) {
               detailBridgeBtn.disabled = false;
@@ -11845,13 +11895,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
             }
             const err =
               res && res.data && res.data.error != null ? String(res.data.error) : "complete_failed";
-            showHint(
-              panelProdErrorUserMessage({
-                rawError: err,
-                httpStatus: res ? res.status : null,
-                apiUnreachable,
-              }),
-            );
+            const completeErrCtx = {
+              rawError: err,
+              httpStatus: res ? res.status : null,
+              apiUnreachable,
+            };
+            setGorevlerHint(() => panelProdErrorUserMessage(completeErrCtx));
             return;
           }
           await refreshPanelGorevlerFromTasksApi();
@@ -11998,7 +12047,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           removeGorevlerTaskLocalByRef(deletedKey);
           closeGorevlerDetail(true);
           render();
-          showHint(panelT("panel.modules.tasks.hints.deleted"));
+          setGorevlerHint(() => panelT("panel.modules.tasks.hints.deleted"));
           refreshPanelEvidenceStripIfReady();
         }
 
@@ -12079,13 +12128,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
             }
             const err =
               res && res.data && res.data.error != null ? String(res.data.error) : "delete_failed";
-            showHint(
-              panelProdErrorUserMessage({
-                rawError: err,
-                httpStatus: res ? res.status : null,
-                apiUnreachable,
-              }),
-            );
+            const completeErrCtx = {
+              rawError: err,
+              httpStatus: res ? res.status : null,
+              apiUnreachable,
+            };
+            setGorevlerHint(() => panelProdErrorUserMessage(completeErrCtx));
             return;
           }
           const deletedId = t.id ? String(t.id).trim() : ref;
@@ -12098,7 +12146,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
           closeGorevlerDetail(true);
           render();
-          showHint(panelT("panel.modules.tasks.hints.deleted"));
+          setGorevlerHint(() => panelT("panel.modules.tasks.hints.deleted"));
           refreshPanelEvidenceStripIfReady();
         }
 
@@ -12157,13 +12205,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
             }
             const err =
               res && res.data && res.data.error != null ? String(res.data.error) : "restore_failed";
-            showHint(
-              panelProdErrorUserMessage({
-                rawError: err,
-                httpStatus: res ? res.status : null,
-                apiUnreachable,
-              }),
-            );
+            const completeErrCtx = {
+              rawError: err,
+              httpStatus: res ? res.status : null,
+              apiUnreachable,
+            };
+            setGorevlerHint(() => panelProdErrorUserMessage(completeErrCtx));
             return;
           }
           lastGorevlerDeletedId = "";
@@ -12216,6 +12263,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             if (planObj && planObj.active) showGorevlerPlanInline(planObj, planIdx);
           }
           if (openedIdx >= 0) openGorevlerDetail(openedIdx);
+          refreshGorevlerVisibleHintI18n();
         };
         panelGorevlerDeleteFromChat = deleteGorevlerTaskFromChat;
         panelGorevlerRestoreFromChat = restoreGorevlerTaskFromChat;
@@ -12337,7 +12385,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (restoreLastBtn) restoreLastBtn.hidden = true;
           render();
           await refreshPanelGorevlerFromTasksApi();
-          showHint(panelT("panel.modules.tasks.hints.clearLocalDone"));
+          setGorevlerHint(() => panelT("panel.modules.tasks.hints.clearLocalDone"));
         });
 
         refreshPanelGorevlerFromTasksApi().then((ok) => {
@@ -12673,12 +12721,26 @@ const PANEL_DEBUG = import.meta.env.DEV;
           persistDosyalarUploadHistory();
         }
 
-        function showHint(msg) {
-          hint.textContent = panelUserVisibleText(msg != null ? String(msg) : "");
+        let dosyalarHintRefresh = null;
+
+        function paintDosyalarHintFromResolver() {
+          if (!dosyalarHintRefresh) return;
+          hint.textContent = panelUserVisibleText(dosyalarHintRefresh());
           hint.hidden = false;
         }
 
+        function setDosyalarHint(resolver) {
+          dosyalarHintRefresh = typeof resolver === "function" ? resolver : () => String(resolver ?? "");
+          paintDosyalarHintFromResolver();
+        }
+
+        function refreshDosyalarVisibleHintI18n() {
+          if (hint.hidden || !dosyalarHintRefresh) return;
+          paintDosyalarHintFromResolver();
+        }
+
         function hideHint() {
+          dosyalarHintRefresh = null;
           hint.hidden = true;
           hint.textContent = "";
         }
@@ -12805,7 +12867,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         btn.addEventListener("click", async () => {
           const file = input.files && input.files[0];
           if (!file) {
-            showHint(panelT("panel.modules.files.hints.pickFirst"));
+            setDosyalarHint(() => panelT("panel.modules.files.hints.pickFirst"));
             return;
           }
           dosyalarLastAudioFile = dosyalarIsAudioFile(
@@ -12853,7 +12915,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             try {
               textContent = await readBlobAsUtf8(file);
             } catch {
-              showHint(panelT("panel.modules.files.hints.readFailed"));
+              setDosyalarHint(() => panelT("panel.modules.files.hints.readFailed"));
               return;
             }
 
@@ -12861,19 +12923,18 @@ const PANEL_DEBUG = import.meta.env.DEV;
             if (!w.ok) {
               if (taskBridgeBlockedResponse(w.status)) {
                 const bridgeHint = bridgeBlockedUserHint();
-                if (bridgeHint) showHint(panelUserVisibleText(bridgeHint));
+                if (bridgeHint) setDosyalarHint(() => panelUserVisibleText(bridgeHint));
                 return;
               }
               const err =
                 w.data && w.data.error != null
                   ? String(w.data.error)
                   : "write_file başarısız";
-              showHint(
-                panelProdErrorUserMessage({
-                  rawError: err,
-                  httpStatus: w.status,
-                }),
-              );
+              const writeErrCtx = {
+                rawError: err,
+                httpStatus: w.status,
+              };
+              setDosyalarHint(() => panelProdErrorUserMessage(writeErrCtx));
               return;
             }
 
@@ -12881,19 +12942,18 @@ const PANEL_DEBUG = import.meta.env.DEV;
             if (!rd.ok) {
               if (taskBridgeBlockedResponse(rd.status)) {
                 const bridgeHint = bridgeBlockedUserHint();
-                if (bridgeHint) showHint(panelUserVisibleText(bridgeHint));
+                if (bridgeHint) setDosyalarHint(() => panelUserVisibleText(bridgeHint));
                 return;
               }
               const err =
                 rd.data && rd.data.error != null
                   ? String(rd.data.error)
                   : "read_file başarısız";
-              showHint(
-                panelProdErrorUserMessage({
-                  rawError: err,
-                  httpStatus: rd.status,
-                }),
-              );
+              const readErrCtx = {
+                rawError: err,
+                httpStatus: rd.status,
+              };
+              setDosyalarHint(() => panelProdErrorUserMessage(readErrCtx));
               return;
             }
 
@@ -12904,7 +12964,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             renderResult(data);
             pushDosyalarHistory(data);
           } catch {
-            showHint(panelT("panel.modules.files.hints.unreachable"));
+            setDosyalarHint(() => panelT("panel.modules.files.hints.unreachable"));
           } finally {
             btn.disabled = false;
             btn.removeAttribute("aria-busy");
@@ -12917,6 +12977,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (dosyalarLastSnapshot && !result.hidden) {
             renderResult(dosyalarLastSnapshot);
           }
+          refreshDosyalarVisibleHintI18n();
         };
       }
 
@@ -13588,9 +13649,33 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const pre = document.getElementById("medya-outbox-pre");
         if (!btn || !hint || !pre) return;
 
-        async function refresh() {
+        let medyaOutboxHintRefresh = null;
+
+        function paintMedyaOutboxHintFromResolver() {
+          if (!medyaOutboxHintRefresh) return;
+          hint.textContent = panelUserVisibleText(medyaOutboxHintRefresh());
+          hint.hidden = false;
+        }
+
+        function setMedyaOutboxHint(resolver) {
+          medyaOutboxHintRefresh =
+            typeof resolver === "function" ? resolver : () => String(resolver ?? "");
+          paintMedyaOutboxHintFromResolver();
+        }
+
+        function clearMedyaOutboxHint() {
+          medyaOutboxHintRefresh = null;
           hint.hidden = true;
           hint.textContent = "";
+        }
+
+        window.refreshMedyaOutboxHintI18n = () => {
+          if (hint.hidden || !medyaOutboxHintRefresh) return;
+          paintMedyaOutboxHintFromResolver();
+        };
+
+        async function refresh() {
+          clearMedyaOutboxHint();
           btn.disabled = true;
           try {
             const r = await fetch(LAST_RESULT_BRIDGE_URL, {
@@ -13601,29 +13686,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
             if (taskBridgeBlockedResponse(r.status)) {
               const bridgeHint = bridgeBlockedUserHint();
               if (bridgeHint) {
-                hint.textContent = panelUserVisibleText(bridgeHint);
-                hint.hidden = false;
+                setMedyaOutboxHint(() => panelUserVisibleText(bridgeHint));
               }
               pre.hidden = true;
               return;
             }
             if (!r.ok) {
-              const snippet =
-                text && String(text).trim().length
-                  ? panelUserVisibleText(String(text).trim().slice(0, 280))
-                  : "";
-              hint.textContent = panelUserVisibleText(
-                panelDebugText(
-                  "Köprü yanıtı " + r.status + (snippet ? ": " + snippet : " (last-result yok veya token hatalı)."),
-                  snippet
-                    ? panelT("panel.modules.media.outboxResultFailedWithSnippet").replace(
-                        "{snippet}",
-                        snippet,
-                      )
-                    : panelT("panel.modules.media.outboxResultNotFound"),
-                ),
-              );
-              hint.hidden = false;
+              const outboxErrCtx = {
+                httpStatus: r.status,
+                upstreamText: text,
+              };
+              setMedyaOutboxHint(() => panelOutboxFailureUserMessage(outboxErrCtx));
               pre.hidden = true;
               return;
             }
@@ -13638,13 +13711,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
             pre.textContent = panelUserVisibleText(pretty || "—");
             pre.hidden = false;
           } catch {
-            hint.textContent = panelUserVisibleText(
+            setMedyaOutboxHint(() =>
               panelDebugText(
                 "İstek başarısız (ağ, CORS veya köprü kapalı). Yerelde `./scripts/bridge_start.sh` ile deneyin.",
                 panelT("panel.modules.media.outboxFetchFailed"),
               ),
             );
-            hint.hidden = false;
             pre.hidden = true;
           } finally {
             btn.disabled = false;
@@ -13810,6 +13882,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
         refreshPanelFilesI18n();
         refreshPanelGorevlerI18n();
         refreshPanelCapabilitiesI18n();
+        if (typeof window.refreshMedyaOutboxHintI18n === "function") {
+          window.refreshMedyaOutboxHintI18n();
+        }
         paintSistemDurumuPanel();
       });
     </script>

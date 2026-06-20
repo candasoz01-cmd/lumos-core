@@ -592,6 +592,7 @@ const panel: typeof panelTr = {
     outboxIntro:
       "Summary read from transmission for the latest task or chat output. If there is no record, a short notice is shown.",
     outboxRefresh: "Refresh",
+    outboxResultUnauthorized: "Connection could not be verified. Check device settings.",
     outboxResultFailedWithSnippet: "Could not load result: {snippet}",
     outboxResultNotFound: "No result record found or connection could not be verified.",
     outboxFetchFailed: "Could not load result. Check your connection.",
