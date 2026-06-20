@@ -5682,11 +5682,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
         refreshChatBubbleRoles();
         if (typeof refreshPanelCameraHintsI18n === "function") refreshPanelCameraHintsI18n();
         if (typeof refreshPanelAudioRecordI18n === "function") refreshPanelAudioRecordI18n();
+        if (typeof refreshPanelVoiceHintsI18n === "function") refreshPanelVoiceHintsI18n();
       }
 
       let refreshDosyalarPanelI18n = null;
       let refreshPanelCameraHintsI18n = null;
       let refreshPanelAudioRecordI18n = null;
+      let refreshPanelVoiceHintsI18n = null;
 
       function refreshPanelFilesI18n() {
         if (typeof refreshDosyalarPanelI18n === "function") refreshDosyalarPanelI18n();
@@ -9752,12 +9754,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
         );
         const VOICE_TITLE_SUPPORTED = () => panelT("panel.modules.chat.compose.voiceTitleSupported");
         const VOICE_ARIA_SUPPORTED = () => panelT("panel.modules.chat.compose.voiceAriaSupported");
-        const VOICE_SERVICE_UNAVAILABLE_HINT =
-          "Tarayıcı ses tanıma servisi şu anda kullanılamıyor";
         const VOICE_TITLE_UNSUPPORTED = () => panelT("panel.modules.chat.compose.voiceTitleUnsupported");
         const VOICE_ARIA_UNSUPPORTED = () => panelT("panel.modules.chat.compose.voiceAriaUnsupported");
-        const VOICE_UNSUPPORTED_HINT =
-          "Bu tarayıcıda sesle yazma desteklenmiyor.";
+        /** @type {string | null} */
+        let voiceHintI18nKey = null;
         let voiceRec = null;
         let voiceListening = false;
         let voiceStartPending = false;
@@ -9765,6 +9765,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
         let voiceGotResult = false;
         let voiceHadError = false;
         let voiceSessionStarted = false;
+
+        function panelSpeechRecognitionLang() {
+          const loc =
+            window.LumosI18n && typeof window.LumosI18n.getLocale === "function"
+              ? window.LumosI18n.getLocale()
+              : "tr";
+          return loc === "en" ? "en-US" : "tr-TR";
+        }
 
         function applyVoiceSupportUi() {
           if (!voiceBtn) return;
@@ -9774,7 +9782,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             voiceBtn.classList.add("chat-compose-voice-btn--unsupported");
             voiceBtn.title = VOICE_TITLE_UNSUPPORTED();
             voiceBtn.setAttribute("aria-label", VOICE_ARIA_UNSUPPORTED());
-            setVoiceHint(VOICE_UNSUPPORTED_HINT);
+            setVoiceHintKey("panel.modules.chat.compose.voiceHints.unsupported");
             return;
           }
           voiceBtn.disabled = false;
@@ -9784,9 +9792,15 @@ const PANEL_DEBUG = import.meta.env.DEV;
           voiceBtn.setAttribute("aria-label", VOICE_ARIA_SUPPORTED());
         }
 
-        function setVoiceHint(msg) {
+        function setVoiceHintKey(key) {
+          voiceHintI18nKey = key && String(key).trim() ? String(key) : null;
           if (!voiceHint) return;
-          const s = panelUserVisibleText(msg != null ? String(msg) : "");
+          if (!voiceHintI18nKey) {
+            voiceHint.textContent = "";
+            voiceHint.hidden = true;
+            return;
+          }
+          const s = panelUserVisibleText(panelT(voiceHintI18nKey));
           voiceHint.textContent = s;
           voiceHint.hidden = !s;
         }
@@ -9810,21 +9824,21 @@ const PANEL_DEBUG = import.meta.env.DEV;
           setVoiceListeningUi(true);
         }
 
-        function voiceErrorHint(errorCode) {
+        function voiceErrorHintKey(errorCode) {
           switch (errorCode) {
             case "network":
             case "service-not-allowed":
-              return VOICE_SERVICE_UNAVAILABLE_HINT;
+              return "panel.modules.chat.compose.voiceHints.serviceUnavailable";
             case "no-speech":
-              return "Konuşma algılanmadı.";
+              return "panel.modules.chat.compose.voiceHints.noSpeech";
             case "audio-capture":
-              return "Mikrofon kullanılamıyor.";
+              return "panel.modules.chat.compose.voiceHints.micUnavailable";
             case "not-allowed":
-              return "Mikrofon izni verilmedi.";
+              return "panel.modules.chat.compose.voiceHints.micDenied";
             case "aborted":
-              return "Sesli giriş iptal edildi.";
+              return "panel.modules.chat.compose.voiceHints.aborted";
             default:
-              return "Sesli giriş başarısız oldu.";
+              return "panel.modules.chat.compose.voiceHints.failed";
           }
         }
 
@@ -9839,9 +9853,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
         applyVoiceSupportUi();
 
+        refreshPanelVoiceHintsI18n = () => {
+          applyVoiceSupportUi();
+          if (voiceHintI18nKey) setVoiceHintKey(voiceHintI18nKey);
+        };
+
         window.addEventListener("lumos:localechange", () => {
           if (typeof refreshPanelCameraHintsI18n === "function") refreshPanelCameraHintsI18n();
-          applyVoiceSupportUi();
+          if (typeof refreshPanelVoiceHintsI18n === "function") refreshPanelVoiceHintsI18n();
         });
 
         if (speechRecognitionSupported) {
@@ -9862,7 +9881,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
 
           voiceRec = new SR();
-          voiceRec.lang = "tr-TR";
+          voiceRec.lang = panelSpeechRecognitionLang();
           voiceRec.interimResults = false;
           voiceRec.continuous = false;
           voiceRec.maxAlternatives = 1;
@@ -9872,7 +9891,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           voiceGotResult = false;
           voiceHadError = false;
           voiceSessionStarted = false;
-          setVoiceHint("");
+          setVoiceHintKey("");
 
           voiceRec.onstart = () => {
             beginVoiceListeningUi();
@@ -9897,7 +9916,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           voiceRec.onerror = (ev) => {
             const code = ev.error || "";
             if (code !== "aborted" || !voiceStopRequested) {
-              setVoiceHint(voiceErrorHint(code));
+              setVoiceHintKey(voiceErrorHintKey(code));
               voiceHadError = true;
             }
             stopVoiceListeningUi();
@@ -9917,13 +9936,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
             voiceSessionStarted = false;
             if (gotResult || userStopped || hadError) return;
             if (startPendingButNeverStarted) {
-              setVoiceHint("Ses tanıma başlatılamadı. Tekrar deneyin.");
+              setVoiceHintKey("panel.modules.chat.compose.voiceHints.startFailed");
               return;
             }
             if (sessionStarted) {
-              setVoiceHint(
-                "Ses algılanmadı veya tarayıcı konuşma sonucu üretmedi. Tekrar deneyin."
-              );
+              setVoiceHintKey("panel.modules.chat.compose.voiceHints.noResult");
             }
           };
 
@@ -9931,7 +9948,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             voiceRec.start();
           } catch {
             stopVoiceListeningUi();
-            setVoiceHint("Ses tanıma başlatılamadı. Tekrar deneyin.");
+            setVoiceHintKey("panel.modules.chat.compose.voiceHints.startFailed");
           }
         });
         }

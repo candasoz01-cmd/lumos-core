@@ -233,6 +233,22 @@ PANEL_I18N_V13_TR_KEYS = (
     "attachRecordTitle:",
 )
 
+PANEL_I18N_V14_MARKERS = (
+    'setVoiceHintKey("panel.modules.chat.compose.voiceHints.unsupported")',
+    'voiceRec.lang = panelSpeechRecognitionLang();',
+    'function panelSpeechRecognitionLang()',
+    'function voiceErrorHintKey(',
+    'refreshPanelVoiceHintsI18n = () => {',
+    'if (typeof refreshPanelVoiceHintsI18n === "function") refreshPanelVoiceHintsI18n();',
+)
+
+PANEL_I18N_V14_TR_KEYS = (
+    "voiceHints:",
+    "serviceUnavailable:",
+    "startFailed:",
+    "noResult:",
+)
+
 
 
 def test_panel_astro_i18n_wiring_present() -> None:
@@ -429,3 +445,20 @@ def test_panel_i18n_v13_record_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V13_TR_KEYS:
         assert key in tr_text, f"missing panel tr v13 key fragment: {key}"
         assert key in en_text, f"missing panel en v13 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v14_voice_hints_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V14_MARKERS:
+        assert token in text, f"missing panel i18n v14 token: {token}"
+    assert 'voiceRec.lang = "tr-TR"' not in text
+    assert "VOICE_UNSUPPORTED_HINT" not in text
+    assert "function setVoiceHint(" not in text
+
+
+def test_panel_i18n_v14_voice_hints_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V14_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v14 key fragment: {key}"
+        assert key in en_text, f"missing panel en v14 key fragment: {key}"

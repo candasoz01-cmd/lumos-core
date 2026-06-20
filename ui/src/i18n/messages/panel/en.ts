@@ -221,6 +221,17 @@ const panel: typeof panelTr = {
         micDenied: "Microphone permission was not granted.",
         micUnavailable: "Microphone is unavailable.",
       },
+      voiceHints: {
+        serviceUnavailable: "Browser speech recognition service is currently unavailable.",
+        unsupported: "Speak to type is not supported in this browser.",
+        noSpeech: "No speech detected.",
+        micUnavailable: "Microphone is unavailable.",
+        micDenied: "Microphone permission was not granted.",
+        aborted: "Voice input was cancelled.",
+        failed: "Voice input failed.",
+        startFailed: "Could not start speech recognition. Try again.",
+        noResult: "No speech detected or the browser did not produce a result. Try again.",
+      },
     },
     bridgeBadgeLimited: "Limited mode",
     transcript: {
