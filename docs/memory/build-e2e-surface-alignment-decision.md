@@ -214,7 +214,7 @@ OD-046'nın çözmesi gereken kavram ayrımı:
 |---------|--------|------|
 | **A** | **Seçildi** | Kök E2E'yi `ui/dist` veya Astro preview'a taşı — E2E = üretim yüzeyi hizası |
 | B | Seçilmedi (tarihsel referans) | `panel/` statik E2E'yi koru; üretim smoke ayrı kanal |
-| C | Seçilmedi (tarihsel referans) | `panel/` statik uygulamayı emekli et; yalnızca `ui/` |
+| C | **Uygulandı (#320)** | Statik → `archive/panel/`; `panel/scripts/` canlı — [`od-panel-retirement-option-c-decision.md`](./od-panel-retirement-option-c-decision.md) (DL-C09 / DL-A20) |
 | D | Seçilmedi (tarihsel referans) | Parity politikası: kritik akışlar her iki yüzeyde test |
 
 ### 7.4 Hâlâ geçerli olan yasak varsayımlar

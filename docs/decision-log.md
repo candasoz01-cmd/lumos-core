@@ -75,7 +75,8 @@ Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A16 takip satırları kap
 | DL-A17 | 2026-06-20 | OD-027 Slice 3a — web kalıntısı + ölü `lumos_runtime` aynası | **Slice 3a implementation-complete** — `kando_core.__main__` web parser/`_run_web()` kaldırıldı; `kando_runtime/lumos_runtime.py` silindi; canonical `src/core/lumos_runtime.py` korundu | PR #313 (`c0b8ea0`) | [`docs/memory/kando-packages-faz3-keşif-raporu.md`](memory/kando-packages-faz3-keşif-raporu.md) §3–6 |
 | DL-A18 | 2026-06-20 | OD-027 Slice 3b — ayna paket arşivi | **Slice 3b implementation-complete** — dört ölü ayna paket (`kando_core`, `kando_memory`, `kando_policy`, `kando_context`) `archive/packages/` altına taşındı; bridge/runtime/CI PYTHONPATH dokunulmadı | PR #316 (`1cdb0f2`) | [`docs/memory/od-027-slice-3b-archive-decision.md`](memory/od-027-slice-3b-archive-decision.md) §3–7 |
 | DL-A19 | 2026-06-20 | OD-027 Faz 4 cutover | **Faz 4 implementation-complete** — §8 kesme kapıları doğrulandı; OD-027 **closed**; `archive/packages/README.md`; indeks senkronu | PR #317 (`9f8c6b4`) | [`docs/memory/od-027-faz4-cutover-decision.md`](memory/od-027-faz4-cutover-decision.md) §4 |
-| DL-A20 | 2026-06-20 | Panel statik emekliliği (Seçenek C) | Statik panel → `archive/panel/`; `panel/scripts/` korundu; kök `e2e:legacy:*` → `archive/panel` | PR #319 | [`docs/memory/od-panel-retirement-option-c-decision.md`](memory/od-panel-retirement-option-c-decision.md) §3 |
+| DL-A20 | 2026-06-20 | Panel statik emekliliği (Seçenek C) | Statik panel → `archive/panel/`; `panel/scripts/` korundu; kök `e2e:legacy:*` → `archive/panel` | PR #320 | [`docs/memory/od-panel-retirement-option-c-decision.md`](memory/od-panel-retirement-option-c-decision.md) §3 |
+| DL-A21 | 2026-06-20 | Prod smoke (A3) | Read-only `smoke-prod.mjs` + `workflow_dispatch` prod-smoke.yml; push gate değil | PR #323 | [`docs/memory/od-prod-smoke-decision.md`](memory/od-prod-smoke-decision.md) §3 |
 
 ### İleride değerlendirilecek
 
@@ -101,7 +102,7 @@ Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A16 takip satırları kap
 | DL-C06 | 2026-06-20 | OD-059 Paket B CI ruff parity | Pre-commit ile CI hizalandı — `ruff check .` in `.github/workflows/ci.yml` | [`docs/memory/audit-hook-term-decision.md`](memory/audit-hook-term-decision.md) |
 | DL-C07 | 2026-06-20 | OD-027 Slice 3b ayna paket arşivi | **`approved-for-implementation`** — dört ölü ayna paket (`kando_core`, `kando_memory`, `kando_policy`, `kando_context`) → `archive/packages/`; dış import sıfır; rollback `git mv` geri; bridge/runtime/CI PYTHONPATH dokunulmaz | [`docs/memory/od-027-slice-3b-archive-decision.md`](memory/od-027-slice-3b-archive-decision.md) |
 | DL-C08 | 2026-06-20 | OD-027 Faz 4 cutover | **Cutover onaylandı** — §8 kapıları geçti; Slice 3a–3b tamam; OD-027 **closed**; canlı yol `src/` + bridge + runtime | [`docs/memory/od-027-faz4-cutover-decision.md`](memory/od-027-faz4-cutover-decision.md) |
-| DL-C09 | 2026-06-20 | Panel statik emekliliği (Seçenek C) | **`approved-for-implementation`** — statik panel → `archive/panel/`; `panel/scripts/` canlı kalır; legacy E2E → `archive/panel` | [`docs/memory/od-panel-retirement-option-c-decision.md`](memory/od-panel-retirement-option-c-decision.md) |
+| DL-C09 | 2026-06-20 | Panel statik emekliliği (Seçenek C) | **`decision-approved`** — **(a)** docs onaylı (#321); fiziksel **DL-A20** (#320); prod smoke **DL-C10** | [`docs/memory/od-panel-retirement-option-c-decision.md`](memory/od-panel-retirement-option-c-decision.md) |
 | DL-C10 | 2026-06-20 | Prod smoke (A3) | **`approved-for-implementation`** — read-only HTTPS `welockai.com/panel`; `workflow_dispatch` only; push gate değil | [`docs/memory/od-prod-smoke-decision.md`](memory/od-prod-smoke-decision.md) |
 ---
 

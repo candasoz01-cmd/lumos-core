@@ -1,6 +1,6 @@
 # Panel statik uygulama emekliliği — Seçenek C (hibrit)
 
-**Durum:** **`implementation-complete`** (PR #319).  
+**Durum:** **`implementation-complete`** — fiziksel **(b)** PR #320 (`DL-A20`); **(a) docs takibi** `decision-approved` (PR #321); **(c)** prod smoke kararı **DL-C10** (#322).  
 **Kaynak:** OD-046 tarihsel Seçenek C — [`build-e2e-surface-alignment-decision.md`](./build-e2e-surface-alignment-decision.md) §7.3; birincil E2E zaten Seçenek A ile `ui/dist` (#300–#305).  
 **Çapraz:** OD-043 **closed** (birincil `ui/`); OD-046 **closed** (birincil kök E2E → `ui/`).
 
@@ -55,7 +55,7 @@ docs/local-kando-dev-runbook.md → panel_tasks_server.py
 
 ---
 
-## 3. Onaylı uygulama paketi (M effort — ayrı PR)
+## 3. Onaylı uygulama paketi **(b)** — fiziksel emeklilik (tamamlandı #320)
 
 | # | Adım | Detay |
 |---|------|--------|
@@ -97,8 +97,8 @@ docs/local-kando-dev-runbook.md → panel_tasks_server.py
 
 - Yeni OD yok — OD-043/046 kapsamında operasyonel emeklilik
 - `decision-log.md` — DL-C09 (karar); DL-A20 (uygulama)
-- `open-decisions-needs-review.md` — not güncellemesi (prod smoke A3 ayrı)
+- `open-decisions-needs-review.md` — Seçenek C satırı (docs + fiziksel durum)
 
 ---
 
-Son güncelleme: 2026-06-20 (Seçenek C karar — kullanıcı onayı)
+Son güncelleme: 2026-06-20 (Seçenek C — **(a)** docs PR #321; **(b)** #320; **(c)** DL-C10)
