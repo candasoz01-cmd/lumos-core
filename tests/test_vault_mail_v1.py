@@ -18,6 +18,33 @@ from integrations.vault.purpose_codes import (
     token_intent_for_purpose,
 )
 
+_MOCK_SECRET_PLACEHOLDER = "mock-oauth-credential-placeholder"
+_MOCK_SECRET_JSON = (
+    b'{"secret":{"secretKey":"mail-read:a@example.invalid","secretValue":"'
+    + _MOCK_SECRET_PLACEHOLDER.encode()
+    + b'"}}'
+)
+
+
+def _adapter_kwargs(**overrides):
+    base = {
+        "vault_url": "https://vault.test",
+        "vault_token": "tok",
+        "vault_project": "proj-id",
+        "vault_env": "dev",
+    }
+    base.update(overrides)
+    return base
+
+
+def _mock_http_response(*, status: int = 200, body: bytes = b""):
+    mock_resp = MagicMock()
+    mock_resp.status = status
+    mock_resp.read.return_value = body
+    mock_resp.__enter__ = MagicMock(return_value=mock_resp)
+    mock_resp.__exit__ = MagicMock(return_value=False)
+    return mock_resp
+
 
 def test_purpose_code_constants():
     assert PURPOSE_MAIL_READ == "integration.mail.read"
@@ -45,36 +72,92 @@ def test_infisical_adapter_fails_closed_without_env():
     assert resolution.error == "vault_env_not_configured"
 
 
-def test_infisical_adapter_unknown_purpose():
+def test_infisical_adapter_missing_project_env():
     adapter = InfisicalVaultAdapter(vault_url="https://vault.test", vault_token="tok")
+    assert adapter.is_configured() is False
+    resolution = adapter.resolve_credential("mail-read:a@example.invalid", PURPOSE_MAIL_READ)
+    assert resolution.ok is False
+    assert resolution.error == "vault_project_env_not_configured"
+
+
+def test_infisical_adapter_unknown_purpose():
+    adapter = InfisicalVaultAdapter(**_adapter_kwargs())
     resolution = adapter.resolve_credential("ref-1", "vault.unknown")
     assert resolution.ok is False
     assert resolution.error == "unknown_purpose_code"
 
 
 @patch("integrations.vault.adapter.urlopen")
-def test_infisical_adapter_resolves_when_reachable(mock_urlopen):
-    mock_resp = MagicMock()
-    mock_resp.status = 200
-    mock_resp.__enter__ = MagicMock(return_value=mock_resp)
-    mock_resp.__exit__ = MagicMock(return_value=False)
-    mock_urlopen.return_value = mock_resp
+def test_infisical_adapter_resolves_secret_when_reachable(mock_urlopen):
+    mock_urlopen.side_effect = [
+        _mock_http_response(status=200),
+        _mock_http_response(status=200, body=_MOCK_SECRET_JSON),
+    ]
 
-    adapter = InfisicalVaultAdapter(vault_url="https://vault.test", vault_token="tok")
+    adapter = InfisicalVaultAdapter(**_adapter_kwargs())
     assert adapter.is_configured() is True
     resolution = adapter.resolve_credential("mail-read:a@example.invalid", PURPOSE_MAIL_READ)
     assert resolution.ok is True
     assert resolution.token_intent == "gmail.readonly"
+    assert resolution.secret_value == _MOCK_SECRET_PLACEHOLDER
+    assert _MOCK_SECRET_PLACEHOLDER not in str(resolution.error)
+
+
+@patch("integrations.vault.adapter.urlopen")
+def test_infisical_adapter_secret_not_found(mock_urlopen):
+    from urllib.error import HTTPError
+
+    mock_urlopen.side_effect = [
+        _mock_http_response(status=200),
+        HTTPError("https://vault.test", 404, "Not Found", hdrs=None, fp=None),
+    ]
+
+    adapter = InfisicalVaultAdapter(**_adapter_kwargs())
+    resolution = adapter.resolve_credential("mail-read:a@example.invalid", PURPOSE_MAIL_READ)
+    assert resolution.ok is False
+    assert resolution.error == "secret_not_found"
     assert resolution.secret_value is None
+
+
+@patch("integrations.vault.adapter.urlopen")
+def test_infisical_adapter_secret_fetch_timeout(mock_urlopen):
+    mock_urlopen.side_effect = [
+        _mock_http_response(status=200),
+        TimeoutError("timed out"),
+    ]
+
+    adapter = InfisicalVaultAdapter(**_adapter_kwargs())
+    resolution = adapter.resolve_credential("mail-read:a@example.invalid", PURPOSE_MAIL_READ)
+    assert resolution.ok is False
+    assert resolution.error == "vault_timeout"
 
 
 @patch("integrations.vault.adapter.urlopen")
 def test_infisical_adapter_unreachable(mock_urlopen):
     mock_urlopen.side_effect = OSError("connection refused")
-    adapter = InfisicalVaultAdapter(vault_url="https://vault.test", vault_token="tok")
+    adapter = InfisicalVaultAdapter(**_adapter_kwargs())
     resolution = adapter.resolve_credential("mail-read:a@example.invalid", PURPOSE_MAIL_READ)
     assert resolution.ok is False
     assert resolution.error == "vault_unreachable"
+
+
+def test_mail_vault_connection_hint_resolved_without_secret_leak():
+    mock_adapter = MagicMock()
+    mock_adapter.is_configured.return_value = True
+    mock_adapter.resolve_credential.return_value = CredentialResolution(
+        ok=True,
+        purpose_code=PURPOSE_MAIL_READ,
+        ref="mail-read:user@example.invalid",
+        token_intent="gmail.readonly",
+        secret_value=_MOCK_SECRET_PLACEHOLDER,
+    )
+
+    bridge = DemoVaultCredentialBridge(adapter=mock_adapter)
+    ref = mail_read_credential_ref("user@example.invalid")
+    hint = bridge.connection_hint(ref)
+    assert hint["credential_resolved"] is True
+    assert hint["boundary"] == "vault_poc_ready"
+    assert _MOCK_SECRET_PLACEHOLDER not in str(hint)
 
 
 def test_gmail_oauth_scope_constant():

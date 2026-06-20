@@ -47,17 +47,21 @@ class MailVaultBridge:
             "configured": configured,
             "provider": MAIL_VAULT_PROVIDER,
             "purpose_code": ref.purpose_code,
+            "ref_id": ref.ref_id,
         }
         if configured:
             hint["boundary"] = "vault_poc_ready"
+            hint["credential_resolved"] = resolution.secret_value is not None
             if resolution.token_intent:
                 hint["token_intent"] = resolution.token_intent
         elif self._adapter.is_configured():
             hint["boundary"] = "vault_env_set_credential_unresolved"
+            hint["credential_resolved"] = False
             if resolution.error:
                 hint["error"] = resolution.error
         else:
             hint["boundary"] = "private_vault_impl_required"
+            hint["credential_resolved"] = False
         return hint
 
 
