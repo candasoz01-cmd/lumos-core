@@ -24,7 +24,7 @@
 |----|-------|------|------|----------|
 | DL-E01 | 2026-06-17 | Ödeme / PSP | Ödeme modeli + PSP/hukuk-mali paket gelene kadar aktif kapsam dışı; şirket/vergi kaydı mevcut | OD-011, [`payment-scope-decision.md`](memory/payment-scope-decision.md) |
 | DL-E02 | 2026-06-17 | Mail entegrasyonu | İletişim kanalları ilke onaylı; mail ilk kanal — provider/connector bekliyor; **dar v1 scope:** tek provider, read+notify | OD-031, [`mail-integration-approval-decision.md`](memory/mail-integration-approval-decision.md), [`od-031-mail-dar-v1-scope.md`](memory/od-031-mail-dar-v1-scope.md) |
-| DL-E03 | 2026-06-17 | Vault uygulama spec | Vault ilke onaylı (OD-001–005); somut ürün/API/amaç kodu private impl bekliyor; **dar v1 keşif/tasarım** docs-only | OD-001–005, [`vault-secret-token-decision.md`](memory/vault-secret-token-decision.md), [`od-vault-dar-v1-design.md`](memory/od-vault-dar-v1-design.md) |
+| DL-E03 | 2026-06-17 | Vault uygulama spec | Vault ilke onaylı (OD-001–005); **V1 teknoloji harman+Infisical onaylı**; PoC/API/amaç kodu private impl bekliyor | OD-001–005, [`od-vault-v1-technology-selection.md`](memory/od-vault-v1-technology-selection.md), [`od-vault-dar-v1-design.md`](memory/od-vault-dar-v1-design.md) |
 
 ### Geçici ertelendi
 
@@ -117,6 +117,7 @@ Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A16 takip satırları kap
 | DL-C13 | 2026-06-20 | OD-025 Vault migration senkronu | **Closed** (ilke düzeyi) — ChatGPT vault/token maddeleri `vault-secret-token-decision.md`'e taşındı; uygulama OD-001–005 | [`docs/memory/od-025-vault-migration-decision.md`](memory/od-025-vault-migration-decision.md) |
 | DL-C14 | 2026-06-20 | OD-027 Faz 5 doc sync kapanışı | **Doc-only complete** — path/indeks senkronu (#317–331); bridge/runtime birleştirme **ertelendi** (ayrı oturum, onaylı impl) | [`docs/memory/kando-packages-transition-decision.md`](memory/kando-packages-transition-decision.md) Faz 5 |
 | DL-C15 | 2026-06-20 | Vault/mail dar v1 design scope | **Doc-only complete** — vault dar v1 keşif/tasarım (UX outline, amaç kodu iskeleti, teknoloji çerçevesi); mail dar v1 hedef (tek provider, read+notify); **OD-B05 ertelendi** (kullanıcı 2026-06-20); impl ayrı onay | [`od-vault-dar-v1-design.md`](memory/od-vault-dar-v1-design.md), [`od-031-mail-dar-v1-scope.md`](memory/od-031-mail-dar-v1-scope.md) |
+| DL-C16 | 2026-06-20 | Vault V1 teknoloji seçimi | **decision-approved** — harman + Infisical birincil (OpenBao alternatif); sıfırdan reddedildi; public karar özeti only; PoC private | [`od-vault-v1-technology-selection.md`](memory/od-vault-v1-technology-selection.md) |
 ---
 
 ## 2026-06-17 — Dokümantasyon düzeni kurulumu
@@ -148,4 +149,4 @@ Tam liste: `docs/memory/open-decisions-needs-review.md` (OD-001 … OD-060).
 
 ---
 
-Son güncelleme: 2026-06-20 (DL-C15 — vault/mail dar v1 design scope)
+Son güncelleme: 2026-06-20 (DL-C16 — vault V1 teknoloji seçimi)
