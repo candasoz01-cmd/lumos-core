@@ -81,7 +81,7 @@ Public repoda **demo-safe foundation stub** kodu vardır; bu **ürün / prod ent
 | **`src/integrations/mail/`** | Grant modeli (`read`, `notify`), OAuth callback **sözleşme tipleri** (`oauth_contract.py`), vault credential **ref** iskeleti, demo connector arayüzü | HTTP OAuth handler, token exchange, canlı Gmail API connector, panel UX, kural motoru |
 | **`src/integrations/vault/`** | Amaç kodu iskeleti, vault adapter **arayüzü**, demo/read-only adapter | Self-host vault PoC operasyonu, credential yazma, production secret yönetimi |
 
-**Hizalı kayıtlar:** ADR-002 §Public kod gerçeği; PR #413–#415 (contract + adapter + env-gated smoke — smoke operatör adımları ops vault'ta).
+**Hizalı kayıtlar:** ADR-002 §Public kod gerçeği; PR #413–#415 (contract + adapter + env-gated smoke — smoke operatör adımları ops vault'ta). Vault dar v1 tasarım çerçevesi: [`od-vault-dar-v1-design.md`](./od-vault-dar-v1-design.md).
 
 **Drift uyarısı:** Stub kod varlığı «mail ürünü hazır» veya «canlı OAuth prod'da» anlamına gelmez. Onaylı private impl paketi ve operatör runbook'ları tamamlanmadan prod kapsam sayılmaz.
 

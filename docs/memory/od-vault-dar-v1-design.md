@@ -19,7 +19,9 @@ Onaylı vault **ilkeleri** (OD-001–005) somut uygulamaya geçmeden önce, publ
 2. **Amaç kodu taslağı** — public'te yalnızca kategori iskeleti; tam liste **private belge referansı**.
 3. **V1 vault teknoloji değerlendirme çerçevesi** — OSS / SaaS / harman seçenekleri; **sıfırdan zorunlu değil**.
 
-**Dar v1 dışı (bilinçli):** vault ürün kodu, keystore implementasyonu, bridge API, token formatı, KDF/HSM parametreleri, production endpoint, örnek secret.
+**Dar v1 dışı (bilinçli):** **prod** vault ürün kodu, keystore implementasyonu, bridge API, token formatı, KDF/HSM parametreleri, production endpoint, örnek secret.
+
+**Public'te mevcut (demo-safe stub):** `src/integrations/vault/` — adapter arayüzü + amaç kodu iskeleti; **prod vault ürün kodu değildir** ([`public-repo-boundary.md`](./public-repo-boundary.md) §C, PR #414).
 
 ---
 
@@ -107,7 +109,7 @@ Onaylı ilkeler: [`od-023-vault-ux-language-decision.md`](./od-023-vault-ux-lang
 | API sözleşmesi | «Sözleşme private impl» | Aynı private paket |
 | İzin profili eşlemesi | İlke: rapor = vault yazma yok | Detay tablo private |
 
-**Dar v1 çıktısı:** Kategori iskeleti + private referans adı; **kod veya endpoint yok**.
+**Dar v1 çıktısı:** Kategori iskeleti + private referans adı; **prod API/endpoint yok**. Public adapter stub (`src/integrations/vault/`) yalnızca demo-safe iskelet — §1 / boundary §C.
 
 ---
 
@@ -150,10 +152,12 @@ Onaylı ilkeler: [`od-023-vault-ux-language-decision.md`](./od-023-vault-ux-lang
 
 ---
 
-## 6. Dar v1 uygulama sırası (tasarım — kod değil)
+## 6. Dar v1 uygulama sırası (tasarım — prod kod değil)
 
 ```
 [Dar v1 design — bu belge]
+        ↓
+[Public demo-safe stub — `src/integrations/vault/` (PR #414); boundary §C]
         ↓
 [V1 teknoloji seçimi — onaylı impl paketi, private]
         ↓
@@ -164,7 +168,7 @@ Onaylı ilkeler: [`od-023-vault-ux-language-decision.md`](./od-023-vault-ux-lang
 [Connector credential — mail dar v1, OD-031 scope]
 ```
 
-**Bağımlılık:** Mail dar v1 ([`od-031-mail-dar-v1-scope.md`](./od-031-mail-dar-v1-scope.md)) vault **credential şeması** için OD-001/002 + dar v1 vault tasarımının onaylı impl paketini bekler; Lumos yüzeyine secret taşınmaz.
+**Bağımlılık:** Mail dar v1 ([`od-031-mail-dar-v1-scope.md`](./od-031-mail-dar-v1-scope.md)) vault **credential şeması** için OD-001/002 + onaylı private impl paketini bekler. Public stub credential **ref** iskeleti sağlar; **canlı secret çözümleme** private PoC sonrasıdır. Lumos yüzeyine secret taşınmaz.
 
 ---
 
@@ -172,7 +176,7 @@ Onaylı ilkeler: [`od-023-vault-ux-language-decision.md`](./od-023-vault-ux-lang
 
 | # | Yasak |
 |---|--------|
-| Y1 | Vault ürün kodu, keystore, API route |
+| Y1 | Prod vault ürün kodu, keystore, canlı API route |
 | Y2 | Örnek token, secret, credential, production URL |
 | Y3 | KDF parametreleri, HSM config, şifreleme implementasyonu |
 | Y4 | Bridge fiziksel merge (OD-B05 — kullanıcı 2026-06-20: ertelendi) |
@@ -201,7 +205,7 @@ Onaylı ilkeler: [`od-023-vault-ux-language-decision.md`](./od-023-vault-ux-lang
 3. **Amaç kodları:** Private `vault-purpose-codes-v1` tam listesi + vault-Lumos API sözleşmesi.
 4. **Mail:** Vault credential hazır olunca [`od-031-mail-dar-v1-scope.md`](./od-031-mail-dar-v1-scope.md) M2 pilot.
 
-**Bu aşamada yapılmaz:** kod, test, API, secret, bridge merge.
+**Bu aşamada yapılmaz (prod impl):** canlı vault API, credential yazma, prod secret akışı, bridge merge. **Public'te mevcut (demo-safe):** `src/integrations/vault/` adapter stub + env-gated smoke — prod kapsam sayılmaz ([`public-repo-boundary.md`](./public-repo-boundary.md) §C).
 
 ---
 
