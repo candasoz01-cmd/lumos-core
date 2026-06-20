@@ -85,6 +85,8 @@ Public repoda **demo-safe foundation stub** kodu vardır; bu **ürün / prod ent
 
 **Drift uyarısı:** Stub kod varlığı «mail ürünü hazır» veya «canlı OAuth prod'da» anlamına gelmez. Onaylı private impl paketi ve operatör runbook'ları tamamlanmadan prod kapsam sayılmaz.
 
+**Stub kod vs stub belge (Kalem 3):** `src/integrations/` altındaki demo-safe stub kod, sağlayıcı/ürün **sınıf ve adapter adları** içerebilir (ör. `InfisicalVaultAdapter`, `GmailOAuthConnector`). Bu, Bölüm A'daki strateji/ops **stub belgelerinde** provider seçimi ve vault ürün adı yasağından **ayrıdır** — §A yalnızca public `docs/` tam strateji/runbook metnine uygulanır; stub kod rename zorunluluğu yok.
+
 ---
 
 ## Public dokümanlarda izin verilenler

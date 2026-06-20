@@ -118,6 +118,7 @@ Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A16 takip satırları kap
 | DL-C14 | 2026-06-20 | OD-027 Faz 5 doc sync kapanışı | **Doc-only complete** — path/indeks senkronu (#317–331); bridge/runtime birleştirme **ertelendi** (ayrı oturum, onaylı impl) | [`docs/memory/kando-packages-transition-decision.md`](memory/kando-packages-transition-decision.md) Faz 5 |
 | DL-C15 | 2026-06-20 | Vault/mail dar v1 design scope | **Doc-only complete** — vault dar v1 keşif/tasarım (UX outline, amaç kodu iskeleti, teknoloji çerçevesi); mail dar v1 hedef (tek provider, read+notify); **OD-B05 ertelendi** (kullanıcı 2026-06-20); impl ayrı onay | [`od-vault-dar-v1-design.md`](memory/od-vault-dar-v1-design.md), [`od-031-mail-dar-v1-scope.md`](memory/od-031-mail-dar-v1-scope.md) |
 | DL-C16 | 2026-06-20 | Vault V1 teknoloji seçimi | **decision-approved** — harman + OSS self-host; sıfırdan reddedildi; public stub only (2026-06-21 vault migration); PoC private | [`od-vault-v1-technology-selection.md`](memory/od-vault-v1-technology-selection.md) |
+| DL-C17 | 2026-06-21 | Kalem 3 — stub ürün adı rename | **Reddedildi** — `src/integrations/` PoC stub'ta provider sınıf adları kalır; §A yasağı yalnızca strategy/ops stub **docs** için | [`public-repo-boundary.md`](memory/public-repo-boundary.md) § Bölüm C |
 ---
 
 ## 2026-06-17 — Dokümantasyon düzeni kurulumu
