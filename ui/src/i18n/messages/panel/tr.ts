@@ -708,6 +708,8 @@ const panelModules = {
     c7Title: "Varsayılanlar ve Kontrol",
     c7Body:
       "Öntanımlı davranışlar kabul edilmeden önce kullanıcıya gösterilir; değişiklikler geri alınabilir biçimde tutulmayı hedefler.",
+    corsMsg: "Bu bilgi panelden okunamıyor (CORS).",
+    infraSummaryAria: "Altyapı durumu özeti",
   },
   capabilities: {
     intro:
@@ -719,6 +721,13 @@ const panelModules = {
     testBtn: "Bağlantı testi",
     testRunning: "Test çalışıyor…",
     bridgePending: "Köprü bağlantısı bekleniyor.",
+    row1: "1. Dosya okuma",
+    row2: "2. Dosya yazma",
+    row3: "3. Görev oluşturma",
+    row4: "4. Görev tamamlama",
+    row5: "5. Terminal komutu",
+    row6: "6. Mac uygulaması açma",
+    row7: "7. Canlı deploy",
     status: {
       active: "AKTİF",
       passive: "PASİF",

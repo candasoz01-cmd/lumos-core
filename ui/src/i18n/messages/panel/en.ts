@@ -712,6 +712,8 @@ const panel: typeof panelTr = {
     c7Title: "Defaults and control",
     c7Body:
       "Default behaviors are shown to you before acceptance; changes aim to remain reversible.",
+    corsMsg: "This information cannot be read from the panel (CORS).",
+    infraSummaryAria: "Infrastructure status summary",
   },
   capabilities: {
     intro:
@@ -723,6 +725,13 @@ const panel: typeof panelTr = {
     testBtn: "Connection test",
     testRunning: "Test running…",
     bridgePending: "Waiting for bridge connection.",
+    row1: "1. File read",
+    row2: "2. File write",
+    row3: "3. Task create",
+    row4: "4. Task complete",
+    row5: "5. Terminal command",
+    row6: "6. Open Mac app",
+    row7: "7. Live deploy",
     status: {
       active: "ACTIVE",
       passive: "PASSIVE",
