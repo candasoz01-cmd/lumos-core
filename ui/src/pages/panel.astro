@@ -1194,6 +1194,18 @@ const PANEL_DEBUG = import.meta.env.DEV;
         flex: 1 1 auto;
         min-width: 0;
       }
+      .gorevler-sync-badge {
+        flex: 1 1 100%;
+        text-transform: none;
+        letter-spacing: 0.02em;
+        font-size: 0.62rem;
+        max-width: 100%;
+        white-space: normal;
+        text-align: left;
+      }
+      .gorevler-sync-badge[hidden] {
+        display: none !important;
+      }
       .gorevler-list-filter {
         display: flex;
         flex-wrap: wrap;
@@ -4475,6 +4487,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
               </p>
               <div class="gorevler-list-heading-row">
                 <h3 class="gorevler-list-heading">Görev listesi</h3>
+                <span
+                  id="gorevler-sync-badge"
+                  class="gorevler-sync-badge panel-conn-badge"
+                  data-state="limited"
+                  role="status"
+                  hidden
+                  >yalnızca bu cihaz / sunucu senkronu kapalı</span
+                >
                 <div class="gorevler-list-filter" role="group" aria-label="Görev durumu filtresi">
                   <button
                     type="button"
@@ -6585,6 +6605,23 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const base = resolveGorevlerTasksApiBase();
         if (!base) return true;
         return isPanelOnNonLoopbackHost() && isTasksApiLoopbackBase(base);
+      }
+
+      const GOREVLER_SYNC_SKIP_BADGE_LABEL =
+        "yalnızca bu cihaz / sunucu senkronu kapalı";
+
+      function syncGorevlerTasksApiSkipBadge() {
+        const badge = document.getElementById("gorevler-sync-badge");
+        if (!badge) return;
+        const skip = shouldSkipGorevlerTasksApi();
+        badge.hidden = !skip;
+        if (skip) {
+          badge.textContent = GOREVLER_SYNC_SKIP_BADGE_LABEL;
+          badge.setAttribute(
+            "title",
+            "Görevler yalnızca bu cihazda tutulur; sunucu görev API'sine erişilemiyor.",
+          );
+        }
       }
 
       function shouldFallbackGorevlerTasksLocal(apiUnreachable) {
@@ -11724,8 +11761,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
             persistPanelGorevlerTasks();
           }
           render();
+          syncGorevlerTasksApiSkipBadge();
           scheduleEvidenceQueueFlush();
         });
+
+        syncGorevlerTasksApiSkipBadge();
       }
 
       wirePanel();
