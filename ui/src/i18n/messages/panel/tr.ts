@@ -782,6 +782,9 @@ const panelShell = {
       "Köprü erişilemiyor (altyapı). Bağlantıyı kontrol edip tekrar deneyin.",
     bridgeTokenMsg:
       "Panel bağlantısı yapılandırılmamış. Köprü ve pano işlemleri bu ortamda devre dışı; cihaz yöneticinizden bağlantı anahtarını tanımlamasını isteyin.",
+    leakConnectionKey: "bağlantı anahtarı",
+    leakLocalServer: "yerel sunucu",
+    leakRequestError: "istek hatası",
     healthPending: "bekleniyor…",
     healthTrying: "deneniyor…",
     healthOk: "OK",
