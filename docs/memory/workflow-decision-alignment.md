@@ -1,6 +1,6 @@
 # Workflow karar hizalaması — OD-008, OD-009, OD-010
 
-> **Durum:** Karar onaylı (`decision-approved`). **Uygulama değildir** — bu belge `.cursor/rules`, `docs/workflow-rules.md` veya diğer workflow dosyalarında değişiklik yapmaz; yalnızca OD-008/009/010 için onaylanan ilkeleri kayıt altına alır. OD-010 için CI sınıflandırması (`doc-only` / `analysis-only`) **implementation-pending** kaldı.
+> **Durum:** Karar onaylı (`decision-approved`). OD-010 **closed** — [`od-010-ci-classification-decision.md`](./od-010-ci-classification-decision.md) (`implementation-complete`, DL-C11). **Uygulama değildir** — bu belge `.cursor/rules`, `docs/workflow-rules.md` veya diğer workflow dosyalarında değişiklik yapmaz; yalnızca OD-008/009/010 için onaylanan ilkeleri kayıt altına alır.
 
 ---
 
@@ -120,7 +120,7 @@ Aynı veya yakın içerik operasyonel katmanda da bulunur; **canonical tanım** 
 
 ## 8. CI ve tamamlanma kriteri (OD-010)
 
-**OD-010:** `decision-approved` / `implementation-pending`
+**OD-010:** **`closed`** — [`od-010-ci-classification-decision.md`](./od-010-ci-classification-decision.md) (`implementation-complete`, DL-C11)
 
 **Karar:** **CI yeşil olmadan “tamamlandı” denmez** (commit/push/merge senaryosunda).
 
@@ -144,11 +144,11 @@ Commit/push önerildiğinde esas alınan sıra (özet):
 - Local test geçse bile **push sonrası en güncel CI run** yeşil değilse iş bitmiş sayılmaz.
 - CI kırmızıysa teşhis önce **log** (`ci-diagnosis.mdc`); repo state tek başına teşhis kaynağı değildir.
 
-### Doc-only / analysis-only istisna sınırı (implementation-pending)
+### Doc-only / analysis-only istisna sınırı
 
-**Onaylı ilke:** Yalnızca doküman veya analiz görevlerinde, yerel pre-commit / test yeterliyse **CI sınıflandırması uygulama detayı** olarak kalır — kararın kendisi “CI yeşil = tamamlandı” kuralını gevşetmez; kod/commit/push senaryosunda CI zorunludur.
+**Onaylı ilke (uygulandı — OD-010 closed):** Yalnızca doküman veya analiz görevlerinde, yerel pre-commit / test yeterliyse doc-only tanımı geçerlidir — kararın kendisi “CI yeşil = tamamlandı” kuralını **kod yolunda** gevşetmez.
 
-**Implementation-pending:** Bu sınıflandırmanın `project-workflow.md` §5 ve ilgili indekslerde nasıl yazılacağı henüz uygulanmadı.
+**Referans:** [`od-010-ci-classification-decision.md`](./od-010-ci-classification-decision.md) §2 Doc-only tanımı.
 
 ---
 
@@ -191,7 +191,7 @@ Kaynaklar çeliştiğinde aşağıdaki sıra uygulanır (onaylı):
 |----|------|--------|
 | OD-008 | Continuous progress vs tek-adım önceliği | **decision-approved** — tek hedef / tek adım öncelikli (§6) |
 | OD-009 | Agent-first canonical kaynak | **decision-approved** — tercih edilen yöntem; kapsam genişletmez; canonical: `project-workflow.md` (§7) |
-| OD-010 | CI tamamlanma kriteri | **decision-approved** / **implementation-pending** — CI yeşil zorunlu; doc-only CI sınıflandırması uygulama bekliyor (§8) |
+| OD-010 | CI tamamlanma kriteri | **closed** — CI yeşil zorunlu; doc-only tanımı uygulandı (§8, [`od-010-ci-classification-decision.md`](./od-010-ci-classification-decision.md)) |
 
 ---
 
@@ -199,9 +199,7 @@ Kaynaklar çeliştiğinde aşağıdaki sıra uygulanır (onaylı):
 
 | Konu | Kategori | Not |
 |------|----------|-----|
-| `project-workflow.md` migration tablosu + OD indeks senkronu | implementation-pending | Karar onaylı; metin güncellemesi ayrı adım |
-| `docs/workflow-rules.md` hizalama | implementation-pending | Canonical hiyerarşi onaylı; dosya düzenlemesi bu adımda yapılmadı |
-| Doc-only / analysis-only CI sınıflandırması metni | implementation-pending | OD-010 kararı net; uygulama detayı bekliyor |
+| `docs/workflow-rules.md` hizalama | implementation-pending | Canonical hiyerarşi onaylı; dosya düzenlemesi ayrı adım |
 | `.cursor/rules/**` | kapsam dışı | Operasyonel katman; bu belge değiştirmez |
 
 **Kapatılan sorular (OD-008/009/010):**
@@ -219,23 +217,24 @@ Kaynaklar çeliştiğinde aşağıdaki sıra uygulanır (onaylı):
 |----|--------|--------------|------------------------|--------|
 | OD-008 | `project-workflow.md` | Continuous progress ile tek-adım hangisi öncelikli? | §6 — **tek hedef / tek adım öncelikli**; continuous progress durma önermeme + tek sonraki adım | **decision-approved** |
 | OD-009 | `project-workflow.md` | Agent-first tek canonical yerde mi? | §7 — tercih edilen yöntem; kapsam genişletmez; **canonical: `project-workflow.md`** | **decision-approved** |
-| OD-010 | `project-workflow.md` | CI yeşil olmadan tamamlandı sayma tam hizalı mı? | §8 — **CI yeşil zorunlu**; doc-only sınıflandırma implementation-pending | **decision-approved** / **implementation-pending** |
+| OD-010 | `project-workflow.md` | CI yeşil olmadan tamamlandı sayma tam hizalı mı? | §8 — **closed**; doc-only tanımı [`od-010-ci-classification-decision.md`](./od-010-ci-classification-decision.md) | **closed** |
 
 ---
 
 ## 14. Sonraki adım
 
-**Tek önerilen adım (uygulama — ayrı onay):** OD-010 `implementation-pending` kapsamında `docs/memory/project-workflow.md` migration tablosu ve `open-decisions-needs-review.md` indeksinde OD-008/009/010 durumlarını bu belgeye referansla güncellemek — **bu adımda yapılmaz.**
+**Tek önerilen adım (uygulama — ayrı onay):** `docs/workflow-rules.md` hizalaması — canonical hiyerarşi onaylı; dosya düzenlemesi ayrı onaylı adım.
 
 ---
 
 ## İlişkili belgeler
 
-- [`open-decisions-needs-review.md`](./open-decisions-needs-review.md) — OD indeksi (senkron implementation-pending)
+- [`open-decisions-needs-review.md`](./open-decisions-needs-review.md) — OD indeksi
 - [`project-workflow.md`](./project-workflow.md) — **birincil workflow canonical**
+- [`od-010-ci-classification-decision.md`](./od-010-ci-classification-decision.md) — OD-010 closed
 - [`../workflow-rules.md`](../workflow-rules.md) — davranış/akış desteği
 - [`../lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md) — üst sınır
 
 ---
 
-*Son güncelleme: 2026-06-17 — OD-008/009/010 decision-approved*
+*Son güncelleme: 2026-06-20 (OD-010 closed sync — envanter ab791c14 §13)*

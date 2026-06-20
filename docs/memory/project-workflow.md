@@ -65,7 +65,7 @@ Erteleme, iptal veya kapsam dışı bırakma durumları açık statü ile işare
 |---|--------|
 | 1 | **Test etmeden tamamlandı denmez** — ilgili test, lint veya doğrulanabilir çıktı gerekir. |
 | 2 | **Kullanıcı onayı olmadan iş kapatılmaz** — kabul kullanıcı tarafından verilir. |
-| 3 | CI yeşil değilse “bitti” sayılmaz (needs-review: CI zinciri `.cursor/rules` ile hizalı mı — bkz. migration tablosu). |
+| 3 | CI yeşil değilse “bitti” sayılmaz — kod yolunda CI zorunlu; doc-only tanımı [`od-010-ci-classification-decision.md`](od-010-ci-classification-decision.md). |
 
 ---
 
@@ -119,8 +119,8 @@ ChatGPT Saved Memories / oturum bağlamından taşınan maddeler.
 | Mock ≠ gerçek çıktı | migrated | Demo/panel | Yanıltıcı kanıt önleme | §7 |
 | Kanıt: gerçek screenshot, terminal, dosya | migrated | Doğrulama | “Çalışıyor gibi” yasağı | §7 |
 | Analiz seçici ve ekonomik | migrated | Keşif/tarama | Limit ve odak | §7 |
-| Continuous progress / otomatik sonraki adım | needs-review | `docs/workflow-rules.md` ile örtüşme | Tek-adım kuralı ile çelişki riski | Repo’da ayrı belge var; hangisi öncelikli netleştir |
-| Agent-first execution (önce agent dene) | needs-review | `.cursor/rules/agent-calisma-kurallari.mdc` | Davranış kuralı çift kayıt | Taşındı sayılabilir; canonical tek yer tercih edilmeli |
+| Continuous progress / otomatik sonraki adım | migrated | `docs/workflow-rules.md` ile örtüşme | Tek hedef / tek adım öncelikli — OD-008 | [`workflow-decision-alignment.md`](workflow-decision-alignment.md) §6 |
+| Agent-first execution (önce agent dene) | migrated | `.cursor/rules/agent-calisma-kurallari.mdc` | Canonical: bu belge §4 — OD-009 | [`workflow-decision-alignment.md`](workflow-decision-alignment.md) §7 |
 | CI yeşil olmadan tamamlandı sayma | migrated | CI disiplini | [`od-010-ci-classification-decision.md`](od-010-ci-classification-decision.md) | §5; kod yolunda CI zorunlu |
 
 ---
@@ -145,9 +145,9 @@ ChatGPT Saved Memories’ten henüz taşınmamış veya yeni eklenen maddeler i�
 
 - [`chatgpt-saved-memories-migration.md`](./chatgpt-saved-memories-migration.md) — taşıma süreci ve durum tanımları
 - [`product-rules.md`](./product-rules.md) — ürün ilkeleri
-- [`../workflow-rules.md`](../workflow-rules.md) — continuous progress / agent-first (needs-review: hizalama)
+- [`../workflow-rules.md`](../workflow-rules.md) — continuous progress / agent-first (OD-008/009 hizalı)
 - [`../lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md) — çekirdek sözleşme (üst sınır)
 
 ---
 
-*Son güncelleme: 2026-06-17*
+*Son güncelleme: 2026-06-20 (OD-008/009/010 doc-sync — envanter ab791c14 §13)*

@@ -66,9 +66,9 @@ Taşıma süreci ve durum tanımları: [`chatgpt-saved-memories-migration.md`](.
 |---|------|-----|
 | 1 | Hassas kullanıcı bilgisi mümkün olduğunca Lumos **yüzeyinde** tutulmaz. | Taşındı |
 | 2 | Lumos yetkili **geçit / orkestratör** rolündedir; ham secret'ları yüzeyde biriktirmez. | Taşındı |
-| 3 | Gerektiğinde güvenli vault/katman, Lumos'a **sınırlı, amaç bazlı** erişim verir. | needs-review — vault uygulama detayı |
-| 4 | Lumos ele geçirilirse tüm sırlar tek yerde açığa çıkmamalı; yük ve risk **dağıtılmış** olmalıdır. | needs-review — şifreleme ve segmentasyon modeli |
-| 5 | Token ve credential'lar Lumos yüzeyinde açık tutulmaz; güvenli vault/katman tercih edilir. | needs-review — `security-architecture.md` ile hizalı |
+| 3 | Gerektiğinde güvenli vault/katman, Lumos'a **sınırlı, amaç bazlı** erişim verir. | decision-approved / implementation-pending — [`vault-secret-token-decision.md`](./vault-secret-token-decision.md); OD-003 |
+| 4 | Lumos ele geçirilirse tüm sırlar tek yerde açığa çıkmamalı; yük ve risk **dağıtılmış** olmalıdır. | decision-approved / implementation-pending — OD-004; somut segmentasyon modeli bekliyor |
+| 5 | Token ve credential'lar Lumos yüzeyinde açık tutulmaz; güvenli vault/katman tercih edilir. | decision-approved / implementation-pending — OD-005; `security-architecture.md` ile hizalı |
 
 **Referans ruhu:** Vault = kullanıcı kontrolünde güvenli katman; Lumos = izinli geçit.
 
@@ -103,10 +103,10 @@ Workspace trash prensibi ve çekirdek sözleşme ruhuyla hizalı.
 |---|------|----------------|
 | 1 | Onaysız dış veri çekimi veya import | Kullanıcı onayı zorunlu; şeffaf akış |
 | 2 | Hassas verinin Lumos yüzeyinde birikmesi | Vault katmanı; yüzeyde minimum tutma |
-| 3 | Tek noktada tüm sırların açığa çıkması | Dağıtılmış yükleme ve risk — needs-review |
+| 3 | Tek noktada tüm sırların açığa çıkması | Dağıtılmış yükleme ve risk — OD-004 implementation-pending |
 | 4 | Public repo'ya PII/secret sızması | Politika + review; bu dosyada örnek veri yok |
 | 5 | Migration geri alınamaz veya kaynak atıfsız | Geri alınabilirlik ve kaynak atıfı zorunlu tasarım hedefi |
-| 6 | Vault şifreleme ve erişim modeli belirsiz | needs-review — uygulama aşamasında netleştirilecek |
+| 6 | Vault şifreleme ve erişim modeli belirsiz | OD-005 implementation-pending — private katmanda netleştirilecek |
 
 ---
 
@@ -127,11 +127,11 @@ ChatGPT / oturum bağlamından taşınan maddelerin hedef dosya ve durum özeti.
 | 9 | Onaysız silme yasağı | Kullanıcı adına silme/temizleme onaysız yapılmaz | Silme/temizleme sınırı | `[migrated]` |
 | 10 | Vault yüzey ayrımı | Hassas veri ideal olarak Lumos yüzeyinde değil | Lumos Vault / güvenli kasa | `[migrated]` |
 | 11 | Geçit rolü | Lumos yetkili geçit/orkestratör | Lumos Vault / güvenli kasa | `[migrated]` |
-| 12 | Amaç bazlı erişim | Vault sınırlı, amaç bazlı erişim verir | Lumos Vault / güvenli kasa | `[needs-review]` |
-| 13 | Risk dağılımı | Ele geçirmede tek yerde tüm sırlar açığa çıkmamalı | Lumos Vault / güvenli kasa | `[needs-review]` |
+| 12 | Amaç bazlı erişim | Vault sınırlı, amaç bazlı erişim verir | Lumos Vault / güvenli kasa | `[decision-approved / implementation-pending]` OD-003 |
+| 13 | Risk dağılımı | Ele geçirmede tek yerde tüm sırlar açığa çıkmamalı | Lumos Vault / güvenli kasa | `[decision-approved / implementation-pending]` OD-004 |
 | 14 | Public repo | Secret, PII, production credential yok | Public repo sınırı | `[migrated]` |
 | 15 | Platform connector'ları | Belirli dış platform entegrasyonları | — | `[needs-review]` |
-| 16 | Şifreleme modeli | Vault içi şifreleme ve anahtar yönetimi | Lumos Vault / güvenli kasa | `[needs-review]` |
+| 16 | Şifreleme modeli | Vault içi şifreleme ve anahtar yönetimi | Lumos Vault / güvenli kasa | `[decision-approved / implementation-pending]` OD-005 |
 
 ---
 
@@ -149,4 +149,4 @@ Aşağıdaki tabloya ChatGPT Saved Memories veya oturum bağlamından kopyalanan
 
 ---
 
-*Son güncelleme: 2026-06-17*
+*Son güncelleme: 2026-06-20 (OD-003–005 doc-sync — envanter ab791c14 §13)*
