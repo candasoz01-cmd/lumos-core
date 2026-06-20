@@ -461,6 +461,10 @@ const panelModules = {
       mutationDefault: "işlem",
       guardDefault: "koruma",
     },
+    when: {
+      tomorrow: "Yarın",
+      today: "Bugün",
+    },
     hints: {
       savedLocal: "Görev yerel olarak kaydedildi.",
       titleEmpty: "Görev adı boş olamaz.",

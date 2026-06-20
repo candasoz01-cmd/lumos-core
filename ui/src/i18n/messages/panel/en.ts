@@ -461,6 +461,10 @@ const panel: typeof panelTr = {
       mutationDefault: "operation",
       guardDefault: "guard",
     },
+    when: {
+      tomorrow: "Tomorrow",
+      today: "Today",
+    },
     hints: {
       savedLocal: "Task saved locally.",
       titleEmpty: "Task name cannot be empty.",
