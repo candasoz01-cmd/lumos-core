@@ -105,6 +105,7 @@ Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A16 takip satırları kap
 | DL-C09 | 2026-06-20 | Panel statik emekliliği (Seçenek C) | **`decision-approved`** — **(a)** docs onaylı (#321); fiziksel **DL-A20** (#320); prod smoke **DL-C10** | [`docs/memory/od-panel-retirement-option-c-decision.md`](memory/od-panel-retirement-option-c-decision.md) |
 | DL-C10 | 2026-06-20 | Prod smoke (A3) | Read-only HTTPS smoke; `workflow_dispatch` only | [`docs/memory/od-prod-smoke-decision.md`](memory/od-prod-smoke-decision.md) |
 | DL-C11 | 2026-06-20 | OD-010 CI doc-only sınıflandırma | **Closed** — kod yolunda CI zorunlu | [`docs/memory/od-010-ci-classification-decision.md`](memory/od-010-ci-classification-decision.md) |
+| DL-C12 | 2026-06-20 | OD-029 Ghidra public kapsamı | **Public entegrasyon reddedildi** — watchlist; operatör yerel/private RE | [`docs/memory/od-029-ghidra-scope-decision.md`](memory/od-029-ghidra-scope-decision.md) |
 ---
 
 ## 2026-06-17 — Dokümantasyon düzeni kurulumu

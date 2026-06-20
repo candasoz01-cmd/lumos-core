@@ -30,9 +30,7 @@ Taşıma süreci: [`chatgpt-saved-memories-migration.md`](./chatgpt-saved-memori
 
 | Araç | Durum | Not |
 |------|-------|-----|
-| **Ghidra** | `[needs-review]` | Kando/Lumos güncellemeleri için takipte. Potansiyel kullanım: reverse engineering, firmware analizi, decompile/disassemble, cihaz yazılım mantığı inceleme. |
-
-**Kapsam uyarısı:** Ghidra entegrasyon kapsamı ve public repo sınırı netleştirilmeden uygulama yapılmaz. `[needs-review]`
+| **Ghidra** | `[decision-approved]` | Public repoda entegrasyon yok — [`od-029-ghidra-scope-decision.md`](./od-029-ghidra-scope-decision.md); operatör yerel/private RE |
 
 ---
 
