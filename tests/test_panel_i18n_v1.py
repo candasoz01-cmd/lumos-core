@@ -205,6 +205,19 @@ PANEL_I18N_V11_TR_KEYS = (
     "clipboardReadyWithSnippet:",
 )
 
+PANEL_I18N_V12_MARKERS = (
+    'setCameraHintKey("panel.modules.chat.compose.cameraHints.unsupported")',
+    'setCameraHintKey("panel.modules.chat.compose.cameraHints.permissionDenied")',
+    'refreshPanelCameraHintsI18n = () => {',
+    'if (typeof refreshPanelCameraHintsI18n === "function") refreshPanelCameraHintsI18n();',
+)
+
+PANEL_I18N_V12_TR_KEYS = (
+    "cameraHints:",
+    "unsupported:",
+    "fileUploadPreparing:",
+)
+
 
 
 def test_panel_astro_i18n_wiring_present() -> None:
@@ -369,3 +382,19 @@ def test_panel_i18n_v11_compose_hints_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V11_TR_KEYS:
         assert key in tr_text, f"missing panel tr v11 key fragment: {key}"
         assert key in en_text, f"missing panel en v11 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v12_camera_hints_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V12_MARKERS:
+        assert token in text, f"missing panel i18n v12 token: {token}"
+    assert 'setCameraHint("Bu tarayıcıda kamera' not in text
+    assert "function setCameraHint(" not in text
+
+
+def test_panel_i18n_v12_camera_hints_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V12_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v12 key fragment: {key}"
+        assert key in en_text, f"missing panel en v12 key fragment: {key}"
