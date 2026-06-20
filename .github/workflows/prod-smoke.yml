@@ -1,0 +1,32 @@
+# A3 — read-only prod panel smoke (manual only; not a push/PR gate).
+name: Prod smoke
+
+on:
+  workflow_dispatch:
+
+jobs:
+  prod-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Install UI dependencies
+        working-directory: ui
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        working-directory: ui
+        run: npx playwright install chromium --with-deps
+
+      - name: Run prod smoke (read-only HTTPS)
+        working-directory: ui
+        run: npm run e2e:smoke:prod
+        env:
+          LUMOS_PROD_PANEL_URL: https://welockai.com/panel

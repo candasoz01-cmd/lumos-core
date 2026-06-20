@@ -4,12 +4,13 @@
   "scripts": {
     "build": "cd ui && npm install && npm run build",
     "e2e:smoke:ui": "npm run build && npm run e2e:smoke --prefix ui",
+    "e2e:smoke:prod": "npm run e2e:smoke:prod --prefix ui",
     "e2e:package": "npm run build && npm run e2e:package:local --prefix ui",
     "e2e:package:api": "npm run build && npm run e2e:package:api --prefix ui",
     "e2e:tasks-offline-online": "npm run build && npm run e2e:tasks-offline-online --prefix ui",
-    "e2e:legacy:package": "npm run e2e:package --prefix panel",
-    "e2e:legacy:package:api": "npm run e2e:package:api --prefix panel",
-    "e2e:legacy:tasks-offline-online": "npm run e2e:tasks-offline-online --prefix panel",
+    "e2e:legacy:package": "npm run e2e:package --prefix archive/panel",
+    "e2e:legacy:package:api": "npm run e2e:package:api --prefix archive/panel",
+    "e2e:legacy:tasks-offline-online": "npm run e2e:tasks-offline-online --prefix archive/panel",
     "e2e:package:ui": "npm run e2e:package",
     "e2e:package:api:ui": "npm run e2e:package:api",
     "e2e:tasks-offline-online:ui": "npm run e2e:tasks-offline-online"
