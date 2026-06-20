@@ -8850,18 +8850,19 @@ const PANEL_DEBUG = import.meta.env.DEV;
           );
         }
 
-        /** Panel /chat hata türleri — backend/panelChatErrors.js ile eşleşmeli. */
-        const PANEL_CHAT_ERROR_MESSAGES_TR = {
-          network_error: "İletim tamamlanamadı. Bağlantıyı kontrol edip tekrar dene.",
-          timeout: "Yanıt süresi doldu. Biraz sonra tekrar dene.",
-          unauthorized: "Bağlantı doğrulanamadı. Cihaz ayarlarını kontrol edip tekrar dene.",
-          server_error: "Sohbet geçici olarak yanıt veremedi. Biraz sonra tekrar dene.",
-          model_error: "Yanıt üretilemedi. Biraz sonra tekrar dene.",
-          unknown_error: "Beklenmeyen bir sorun oluştu. Biraz sonra tekrar dene.",
-        };
+        /** Panel /chat hata türleri — panel.modules.chat.errors.* ile hizalı. */
+        const PANEL_CHAT_ERROR_KINDS = [
+          "network_error",
+          "timeout",
+          "unauthorized",
+          "server_error",
+          "model_error",
+          "unknown_error",
+        ];
 
         function userMessageForPanelChatFailureKind(kind) {
-          return PANEL_CHAT_ERROR_MESSAGES_TR[kind] || PANEL_CHAT_ERROR_MESSAGES_TR.unknown_error;
+          const k = PANEL_CHAT_ERROR_KINDS.includes(kind) ? kind : "unknown_error";
+          return panelT("panel.modules.chat.errors." + k);
         }
 
         function classifyPanelChatFailure(ctx) {
@@ -9267,6 +9268,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
             const chatBody = {
               message: outgoingMessage,
               history,
+              locale:
+                window.LumosI18n && typeof window.LumosI18n.getLocale === "function"
+                  ? window.LumosI18n.getLocale()
+                  : "tr",
               panelContext: {
                 bridgeBaseUrl: BRIDGE_BASE_URL,
                 tasksApiUrl: TASKS_API_URL,
@@ -9305,6 +9310,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
               headers: {
                 "Content-Type": "application/json",
                 "X-Kando-Token": kandoToken,
+                "Accept-Language":
+                  window.LumosI18n && typeof window.LumosI18n.getLocale === "function"
+                    ? window.LumosI18n.getLocale()
+                    : "tr",
               },
               body: JSON.stringify(chatBody),
             });
@@ -9338,7 +9347,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 }
               }
               const httpFailKind =
-                upstreamKind && Object.prototype.hasOwnProperty.call(PANEL_CHAT_ERROR_MESSAGES_TR, upstreamKind)
+                upstreamKind && PANEL_CHAT_ERROR_KINDS.includes(upstreamKind)
                   ? upstreamKind
                   : classifyPanelChatFailure({
                       httpStatus: r.status,

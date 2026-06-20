@@ -163,6 +163,14 @@ const panelModules = {
       transcribe: "Metne çevir",
     },
     bridgeBadgeLimited: "Sınırlı mod",
+    errors: {
+      network_error: "İletim tamamlanamadı. Bağlantıyı kontrol edip tekrar dene.",
+      timeout: "Yanıt süresi doldu. Biraz sonra tekrar dene.",
+      unauthorized: "Bağlantı doğrulanamadı. Cihaz ayarlarını kontrol edip tekrar dene.",
+      server_error: "Sohbet geçici olarak yanıt veremedi. Biraz sonra tekrar dene.",
+      model_error: "Yanıt üretilemedi. Biraz sonra tekrar dene.",
+      unknown_error: "Beklenmeyen bir sorun oluştu. Biraz sonra tekrar dene.",
+    },
   },
   tasks: {
     eyebrow: "Operasyon",

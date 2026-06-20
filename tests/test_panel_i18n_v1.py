@@ -154,6 +154,18 @@ PANEL_I18N_V7_TR_KEYS = (
     "messages:",
 )
 
+PANEL_I18N_V8_MARKERS = (
+    'panelT("panel.modules.chat.errors." + k)',
+    'const PANEL_CHAT_ERROR_KINDS = [',
+    'PANEL_CHAT_ERROR_KINDS.includes(upstreamKind)',
+)
+
+PANEL_I18N_V8_TR_KEYS = (
+    "errors:",
+    "network_error:",
+    "unknown_error:",
+)
+
 
 
 def test_panel_astro_i18n_wiring_present() -> None:
@@ -259,3 +271,17 @@ def test_panel_i18n_v7_files_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V7_TR_KEYS:
         assert key in tr_text, f"missing panel tr v7 key fragment: {key}"
         assert key in en_text, f"missing panel en v7 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v8_chat_errors_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V8_MARKERS:
+        assert token in text, f"missing panel i18n v8 token: {token}"
+
+
+def test_panel_i18n_v8_chat_errors_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V8_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v8 key fragment: {key}"
+        assert key in en_text, f"missing panel en v8 key fragment: {key}"

@@ -9,9 +9,16 @@ import { PrismaClient, Prisma } from "@prisma/client";
 import { LUMOS_CHAT_INSTRUCTIONS } from "./lumosInstructions.js";
 import {
   classifyPanelChatError,
+  normalizePanelChatErrorLocale,
   panelChatErrorPayload,
   userMessageForPanelChatError,
 } from "./panelChatErrors.js";
+
+function panelChatLocaleFromRequest(req) {
+  const body = req.body && typeof req.body === "object" ? req.body : {};
+  const raw = body.locale ?? req.headers["accept-language"] ?? "";
+  return normalizePanelChatErrorLocale(String(raw).split(",")[0]);
+}
 
 /** Panel /chat: geçmiş boyutu ve içerik tavanı (token maliyetini sınırlar). */
 const PANEL_CHAT_HISTORY_MAX_MESSAGES = 12;
@@ -260,6 +267,7 @@ app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || "1mb" }));
 app.post("/chat", async (req, res) => {
   try {
     const body = req.body && typeof req.body === "object" ? req.body : {};
+    const chatLocale = panelChatLocaleFromRequest(req);
     const photo = parsePanelChatPhotoFields(body);
     const message = body?.message;
     const currentText =
@@ -283,7 +291,7 @@ app.post("/chat", async (req, res) => {
           visionLastStatus = "fallback";
           const kind = "server_error";
           return res.json({
-            reply: userMessageForPanelChatError(kind),
+            reply: userMessageForPanelChatError(kind, chatLocale),
             errorKind: kind,
             error: "OPENAI_API_KEY missing",
           });
@@ -320,7 +328,7 @@ app.post("/chat", async (req, res) => {
           const kind = classifyPanelChatError({
             errMessage: visionErr?.message ?? String(visionErr),
           });
-          const payload = panelChatErrorPayload(kind);
+          const payload = panelChatErrorPayload(kind, { locale: chatLocale });
           return res.json({ reply: REPLY_PHOTO_NO_VISION, ...payload });
         }
       }
@@ -334,7 +342,7 @@ app.post("/chat", async (req, res) => {
       return res.status(503).json({
         errorKind: kind,
         error: "OPENAI_API_KEY missing",
-        reply: userMessageForPanelChatError(kind),
+        reply: userMessageForPanelChatError(kind, chatLocale),
       });
     }
     if (!currentText) {
@@ -361,7 +369,7 @@ app.post("/chat", async (req, res) => {
     res.json({ reply });
   } catch (e) {
     const kind = classifyPanelChatError({ httpStatus: 500, errMessage: e?.message ?? String(e) });
-    const payload = panelChatErrorPayload(kind);
+    const payload = panelChatErrorPayload(kind, { locale: panelChatLocaleFromRequest(req) });
     res.status(500).json(payload);
   }
 });

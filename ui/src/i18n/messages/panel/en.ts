@@ -163,6 +163,14 @@ const panel: typeof panelTr = {
       transcribe: "Transcribe",
     },
     bridgeBadgeLimited: "Limited mode",
+    errors: {
+      network_error: "Delivery failed. Check your connection and try again.",
+      timeout: "Response timed out. Try again in a moment.",
+      unauthorized: "Connection could not be verified. Check device settings and try again.",
+      server_error: "Chat is temporarily unavailable. Try again in a moment.",
+      model_error: "Could not produce a reply. Try again in a moment.",
+      unknown_error: "Something unexpected happened. Try again in a moment.",
+    },
   },
   tasks: {
     eyebrow: "Operations",
