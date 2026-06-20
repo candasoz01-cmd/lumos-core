@@ -6,6 +6,30 @@ RANDOM_USER="kando_$RANDOM"
 
 die() { echo "FAIL: $*" >&2; exit 1; }
 
+# Same-user rating UPDATE may hit 429 "Too fast" (RATE_ENDPOINT_COOLDOWN_MS); retry without weakening limits.
+rate_post() {
+  local post_id="$1" token="$2" value="$3"
+  local attempt=1 max=12 delay=1
+  while [[ $attempt -le $max ]]; do
+    local resp code
+    resp=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/posts/$post_id/rate" \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer $token" \
+      -d "{\"value\":$value}")
+    code=$(echo "$resp" | tail -1)
+    if [[ "$code" == "200" ]]; then
+      return 0
+    fi
+    if [[ "$code" == "429" ]]; then
+      sleep "$delay"
+      attempt=$((attempt + 1))
+      continue
+    fi
+    die "rate failed HTTP $code (post=$post_id value=$value): $(echo "$resp" | sed '$d' | head -c 180)"
+  done
+  die "rate retry exhausted after 429 (post=$post_id value=$value)"
+}
+
 expect_http() {
   local code="$1"
   local got="$2"
@@ -78,11 +102,8 @@ NODE
 echo ""
 
 echo "=== 3c) AYNI USER (user1: 5→4) — UPDATE ==="
-curl -s -X POST "$BASE_URL/posts/$POST_A/rate" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $USER1_TOKEN" \
-  -d "{\"value\":4}" | head -c 180
-echo ""
+rate_post "$POST_A" "$USER1_TOKEN" 4 || die "rate u1 UPDATE 5→4"
+echo "OK"
 echo ""
 
 echo "=== 3d) GET — ratingCount=2, ratingAvg=2.5 ==="
@@ -124,8 +145,7 @@ NODE
 echo ""
 
 echo "=== 6) user2 postA: 1→4 (UPDATE, avg 4) ==="
-curl -sf -X POST "$BASE_URL/posts/$POST_A/rate" -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $USER2_TOKEN" -d "{\"value\":4}" >/dev/null || die "rate"
+rate_post "$POST_A" "$USER2_TOKEN" 4 || die "rate u2 UPDATE 1→4"
 node <<NODE
 (async () => {
   const a = (await (await fetch("${BASE_URL}/posts")).json()).find((p) => p.id === "${POST_A}");
@@ -210,8 +230,7 @@ node <<NODE
   console.log("OK ara: 2 oy, avg 3.0");
 })();
 NODE
-curl -sf -X POST "$BASE_URL/posts/$POST_P/rate" -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $USER2_TOKEN" -d "{\"value\":5}" >/dev/null
+rate_post "$POST_P" "$USER2_TOKEN" 5 || die "rate u2 UPDATE 1→5"
 node <<NODE
 (async () => {
   const p = (await (await fetch("${BASE_URL}/posts")).json()).find((x) => x.id === "${POST_P}");
