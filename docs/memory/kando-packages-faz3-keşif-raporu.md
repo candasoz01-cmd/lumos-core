@@ -1,6 +1,6 @@
 # OD-027 Faz 3 — Keşif raporu (uygulama öncesi)
 
-**Durum:** Slice **3a** **`implementation-complete`** (PR #313, `c0b8ea0`); Slice **3b** **`approved-for-implementation`** — [`od-027-slice-3b-archive-decision.md`](./od-027-slice-3b-archive-decision.md).  
+**Durum:** Slice **3a** **`implementation-complete`** (PR #313, `c0b8ea0`); Slice **3b** **`implementation-complete`** (PR #316, `1cdb0f2`) — [`od-027-slice-3b-archive-decision.md`](./od-027-slice-3b-archive-decision.md).  
 **Kaynak karar:** [`kando-packages-transition-decision.md`](./kando-packages-transition-decision.md) (Seçenek C — Hibrit).  
 **Faz 1 envanter:** [`kando-packages-faz1-inventory.md`](./kando-packages-faz1-inventory.md).  
 **Doğrulama tarihi:** 2026-06-20 (repo salt-okuma + grep).
@@ -67,7 +67,7 @@ Aşağıdaki dilim **merge edildi** (`c0b8ea0`); tek PR, dar kapsam, rollback ko
 
 | Dilim | İçerik | Durum |
 |-------|--------|--------|
-| **3b** | Ayna paket arşivi (`kando_core`, `kando_memory`, `kando_policy`, `kando_context`) → `archive/packages/` | **`approved-for-implementation`** — [`od-027-slice-3b-archive-decision.md`](./od-027-slice-3b-archive-decision.md) |
+| **3b** | Ayna paket arşivi (`kando_core`, `kando_memory`, `kando_policy`, `kando_context`) → `archive/packages/` | **`implementation-complete`** (PR #316) — [`od-027-slice-3b-archive-decision.md`](./od-027-slice-3b-archive-decision.md) |
 | **4** | Cutover onayı | Kullanıcı açık komutu + §8 tam checklist |
 | **5** | İndeks `migrated` / `superseded` | Faz 4 sonrası |
 
@@ -82,8 +82,8 @@ Aşağıdaki dilim **merge edildi** (`c0b8ea0`); tek PR, dar kapsam, rollback ko
 | Faz 2 karar | **Onaylı** |
 | Faz 3 keşif (bu belge) | **Tamamlandı** |
 | İlk uygulama dilimi (Slice 3a) | **`implementation-complete`** |
-| Tam geçiş / arşiv | **`approved-for-implementation`** (Slice 3b karar; uygulama PR bekler) |
+| Tam geçiş / arşiv | **`implementation-complete`** (Slice 3b — PR #316); Faz 4 cutover pending |
 
 ---
 
-Son güncelleme: 2026-06-20 (Slice 3b **`approved-for-implementation`** — DL-C07)
+Son güncelleme: 2026-06-20 (Slice 3b **implementation-complete** — PR #316)

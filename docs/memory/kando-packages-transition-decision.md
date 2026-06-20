@@ -234,9 +234,9 @@ Keşif raporu: [`kando-packages-faz3-keşif-raporu.md`](./kando-packages-faz3-ke
 2. `kando_runtime/lumos_runtime.py` ölü ayna silindi
 3. Import sözleşmesi referans notu (docs-only veya README)
 
-§8 checklist Slice 3a için geçerli; tam ayna paket arşivi **3b** — [`od-027-slice-3b-archive-decision.md`](./od-027-slice-3b-archive-decision.md) uygulama PR bekler.
+§8 checklist Slice 3a için geçerli; ayna paket arşivi **3b** **`implementation-complete`** (PR #316 / `1cdb0f2`) — [`od-027-slice-3b-archive-decision.md`](./od-027-slice-3b-archive-decision.md).
 
-**Slice 3b (M effort):** dört ayna paket `archive/packages/` altına taşındı (`git mv`); canlı `packages/` yalnızca bridge + runtime.
+**Slice 3b (M effort, PR #316):** dört ayna paket `archive/packages/` altına taşındı (`git mv`); canlı `packages/` yalnızca bridge + runtime.
 
 ### Faz 4 — Kesme (cutover) `[implementation-pending — kullanıcı onayı zorunlu]`
 
