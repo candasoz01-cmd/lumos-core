@@ -36,6 +36,8 @@ const panel: typeof panelTr = {
   files: {
     intro:
       "Pick a file from your device; the Lumos bridge ingests it and returns its name, type, and size. Plain-text formats (.txt, .md, .json, .csv) get a short summary. PDF and Word (DOCX) are not processed in this phase.",
+    historyHeading: "Recent uploads",
+    historyDeviceNote: "Stored on this device only; up to 5 entries.",
   },
   voice: {
     intro:

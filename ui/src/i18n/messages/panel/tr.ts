@@ -36,6 +36,8 @@ const panelModules = {
   files: {
     intro:
       "Dosyayı cihazınızdan seçin; Lumos köprüsü dosyayı alır, adı/türü/boyutu döner. Metin dosyalarında (.txt, .md, .json, .csv) kısa özet üretilir. PDF ve Word (DOCX) gibi biçimler bu fazda işlenmez.",
+    historyHeading: "Son yüklemeler",
+    historyDeviceNote: "Bu cihazda saklanır; en fazla 5 kayıt.",
   },
   voice: {
     intro:
