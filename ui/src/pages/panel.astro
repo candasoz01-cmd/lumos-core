@@ -5708,6 +5708,19 @@ const PANEL_DEBUG = import.meta.env.DEV;
         if (typeof refreshSendHintI18n === "function") refreshSendHintI18n();
         refreshPanelHeroPrefillBannerI18n();
         if (typeof refreshPanelSendButtonI18n === "function") refreshPanelSendButtonI18n();
+        refreshTranscriptVisibleI18n();
+      }
+
+      const transcriptVisibleI18nRefreshers = new Set();
+
+      function refreshTranscriptVisibleI18n() {
+        transcriptVisibleI18nRefreshers.forEach((fn) => {
+          try {
+            fn();
+          } catch {
+            /* ignore */
+          }
+        });
       }
 
       let refreshDosyalarPanelI18n = null;
@@ -6059,6 +6072,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
         let lastTranscript = "";
         let busy = false;
+        let transcriptStatusRefresh = null;
+        let transcriptStatusOptions = {};
 
         function setBusy(on) {
           busy = on;
@@ -6078,18 +6093,35 @@ const PANEL_DEBUG = import.meta.env.DEV;
           musicWarn.hidden = !showMusic;
         }
 
-        function showStatus(text, options) {
-          const opts = options && typeof options === "object" ? options : {};
+        function paintTranscriptStatusFromResolver() {
+          if (!transcriptStatusRefresh) return;
+          const s = panelUserVisibleText(transcriptStatusRefresh());
+          msg.textContent = s;
+          msg.hidden = !s;
+          updateMusicWarnVisibility(transcriptStatusOptions.showMusicWarn === true);
+        }
+
+        function showStatus(textOrResolver, options) {
+          transcriptStatusOptions = options && typeof options === "object" ? options : {};
           preview.hidden = true;
           qualityWarn.hidden = true;
           privacy.hidden = true;
           addBtn.hidden = true;
-          msg.textContent = text != null ? String(text) : "";
-          msg.hidden = !msg.textContent;
-          updateMusicWarnVisibility(opts.showMusicWarn === true);
+          if (textOrResolver == null || textOrResolver === "") {
+            transcriptStatusRefresh = null;
+            msg.textContent = "";
+            msg.hidden = true;
+            updateMusicWarnVisibility(transcriptStatusOptions.showMusicWarn === true);
+            return;
+          }
+          transcriptStatusRefresh =
+            typeof textOrResolver === "function" ? textOrResolver : () => String(textOrResolver);
+          msg.hidden = false;
+          paintTranscriptStatusFromResolver();
         }
 
         function showPreview(text) {
+          transcriptStatusRefresh = null;
           lastTranscript = text != null ? String(text) : "";
           msg.hidden = true;
           preview.textContent = lastTranscript;
@@ -6102,6 +6134,28 @@ const PANEL_DEBUG = import.meta.env.DEV;
           addBtn.hidden = !lastTranscript;
         }
 
+        function refreshTranscriptWidgetVisibleI18n() {
+          if (busy) {
+            btn.textContent = panelT("panel.modules.chat.transcript.transcribing");
+          } else {
+            btn.textContent = panelT("panel.modules.chat.compose.transcribe");
+          }
+          privacy.textContent = panelT("panel.modules.chat.transcript.privacyMsg");
+          if (!addBtn.hidden) addBtn.textContent = panelT("panel.modules.chat.transcript.addToChat");
+          if (!musicWarn.hidden) {
+            musicWarn.textContent = panelT("panel.modules.chat.transcript.musicWarnMsg");
+          }
+          if (!qualityWarn.hidden) {
+            qualityWarn.textContent = panelT("panel.modules.chat.transcript.lowQualityWarnMsg");
+          }
+          if (!preview.hidden) {
+            preview.setAttribute("aria-label", panelT("panel.modules.chat.transcript.previewAria"));
+          }
+          paintTranscriptStatusFromResolver();
+        }
+
+        transcriptVisibleI18nRefreshers.add(refreshTranscriptWidgetVisibleI18n);
+
         addBtn.addEventListener("click", () => {
           if (!lastTranscript) return;
           fillPanelChatInputWithTranscript(lastTranscript);
@@ -6110,16 +6164,16 @@ const PANEL_DEBUG = import.meta.env.DEV;
         btn.addEventListener("click", async () => {
           if (busy) return;
           if (!audioBlob || audioBlob.size < 512) {
-            showStatus(panelT("panel.modules.chat.transcript.missingAudio"));
+            showStatus(() => panelT("panel.modules.chat.transcript.missingAudio"));
             return;
           }
           const transcribeUserBlock = remoteTranscriptionBlocked();
           if (transcribeUserBlock.blocked) {
-            showStatus(transcribeUserBlock.message);
+            showStatus(() => remoteTranscriptionBlocked().message);
             return;
           }
           setBusy(true);
-          showStatus(panelT("panel.modules.chat.transcript.busyMsg"), { showMusicWarn: false });
+          showStatus(() => panelT("panel.modules.chat.transcript.busyMsg"), { showMusicWarn: false });
           try {
             const result = await requestLocalTranscription(
               audioBlob,
@@ -6130,29 +6184,34 @@ const PANEL_DEBUG = import.meta.env.DEV;
             if (result.ok && result.text) {
               showPreview(result.text);
             } else if (result.blocked) {
-              showStatus(transcriptBlockedUserMessage(result));
+              showStatus(() => transcriptBlockedUserMessage(result));
             } else if (result.engineUnavailable) {
-              showStatus(transcriptEngineUserMessage(result));
+              showStatus(() => transcriptEngineUserMessage(result));
             } else if (result.transcribeFailure) {
-              showStatus(transcribeFailureUserMessage(result, filename, mime), {
+              showStatus(() => transcribeFailureUserMessage(result, filename, mime), {
                 showMusicWarn: true,
               });
             } else {
-              const fallback = isLikelyMusicAudio(filename, mime)
-                ? panelT("panel.modules.chat.transcript.failedMusic")
-                : panelT("panel.modules.chat.transcript.failedSpeech");
-              let text = result.message || fallback;
-              if (!PANEL_DEBUG && text) {
-                text =
-                  String(text)
-                    .replace(/\s*\[[^\]]+\]\s*/g, " ")
-                    .replace(/\s{2,}/g, " ")
-                    .trim() || fallback;
-              }
-              showStatus(text, { showMusicWarn: isLikelyMusicAudio(filename, mime) });
+              showStatus(
+                () => {
+                  const fallback = isLikelyMusicAudio(filename, mime)
+                    ? panelT("panel.modules.chat.transcript.failedMusic")
+                    : panelT("panel.modules.chat.transcript.failedSpeech");
+                  let text = result.message || fallback;
+                  if (!PANEL_DEBUG && text) {
+                    text =
+                      String(text)
+                        .replace(/\s*\[[^\]]+\]\s*/g, " ")
+                        .replace(/\s{2,}/g, " ")
+                        .trim() || fallback;
+                  }
+                  return text;
+                },
+                { showMusicWarn: isLikelyMusicAudio(filename, mime) },
+              );
             }
           } catch {
-            showStatus(transcribeFailureUserMessage(null, filename, mime), {
+            showStatus(() => transcribeFailureUserMessage(null, filename, mime), {
               showMusicWarn: true,
             });
           } finally {
@@ -6226,6 +6285,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
         let lastTranscript = "";
         let busy = false;
+        let transcriptStatusRefresh = null;
+        let transcriptStatusOptions = {};
 
         function setBusy(on) {
           busy = on;
@@ -6245,18 +6306,35 @@ const PANEL_DEBUG = import.meta.env.DEV;
           musicWarn.hidden = !showMusic;
         }
 
-        function showStatus(text, options) {
-          const opts = options && typeof options === "object" ? options : {};
+        function paintTranscriptStatusFromResolver() {
+          if (!transcriptStatusRefresh) return;
+          const s = panelUserVisibleText(transcriptStatusRefresh());
+          msg.textContent = s;
+          msg.hidden = !s;
+          updateMusicWarnVisibility(transcriptStatusOptions.showMusicWarn === true);
+        }
+
+        function showStatus(textOrResolver, options) {
+          transcriptStatusOptions = options && typeof options === "object" ? options : {};
           preview.hidden = true;
           qualityWarn.hidden = true;
           privacy.hidden = true;
           addBtn.hidden = true;
-          msg.textContent = text != null ? String(text) : "";
-          msg.hidden = !msg.textContent;
-          updateMusicWarnVisibility(opts.showMusicWarn === true);
+          if (textOrResolver == null || textOrResolver === "") {
+            transcriptStatusRefresh = null;
+            msg.textContent = "";
+            msg.hidden = true;
+            updateMusicWarnVisibility(transcriptStatusOptions.showMusicWarn === true);
+            return;
+          }
+          transcriptStatusRefresh =
+            typeof textOrResolver === "function" ? textOrResolver : () => String(textOrResolver);
+          msg.hidden = false;
+          paintTranscriptStatusFromResolver();
         }
 
         function showPreview(text) {
+          transcriptStatusRefresh = null;
           lastTranscript = text != null ? String(text) : "";
           msg.hidden = true;
           preview.textContent = lastTranscript;
@@ -6269,6 +6347,30 @@ const PANEL_DEBUG = import.meta.env.DEV;
           addBtn.hidden = !lastTranscript || !includeAddToChat;
         }
 
+        function refreshTranscriptWidgetVisibleI18n() {
+          if (busy) {
+            btn.textContent = panelT("panel.modules.chat.transcript.transcribing");
+          } else {
+            btn.textContent = panelT("panel.modules.chat.compose.transcribe");
+          }
+          privacy.textContent = panelT("panel.modules.chat.transcript.privacyMsg");
+          if (includeAddToChat && !addBtn.hidden) {
+            addBtn.textContent = panelT("panel.modules.chat.transcript.addToChat");
+          }
+          if (!musicWarn.hidden) {
+            musicWarn.textContent = panelT("panel.modules.chat.transcript.musicWarnMsg");
+          }
+          if (!qualityWarn.hidden) {
+            qualityWarn.textContent = panelT("panel.modules.chat.transcript.lowQualityWarnMsg");
+          }
+          if (!preview.hidden) {
+            preview.setAttribute("aria-label", panelT("panel.modules.chat.transcript.previewAria"));
+          }
+          paintTranscriptStatusFromResolver();
+        }
+
+        transcriptVisibleI18nRefreshers.add(refreshTranscriptWidgetVisibleI18n);
+
         if (includeAddToChat) {
           addBtn.addEventListener("click", () => {
             if (!lastTranscript) return;
@@ -6280,16 +6382,16 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (busy) return;
           const blob = typeof getBlob === "function" ? getBlob() : null;
           if (!blob || blob.size < 512) {
-            showStatus(panelT("panel.modules.chat.transcript.missingAudio"));
+            showStatus(() => panelT("panel.modules.chat.transcript.missingAudio"));
             return;
           }
           const transcribeUserBlock = remoteTranscriptionBlocked();
           if (transcribeUserBlock.blocked) {
-            showStatus(transcribeUserBlock.message);
+            showStatus(() => remoteTranscriptionBlocked().message);
             return;
           }
           setBusy(true);
-          showStatus(panelT("panel.modules.chat.transcript.busyMsg"), { showMusicWarn: false });
+          showStatus(() => panelT("panel.modules.chat.transcript.busyMsg"), { showMusicWarn: false });
           try {
             const blobMime = blob.type || mime;
             const result = await requestLocalTranscription(
@@ -6301,29 +6403,34 @@ const PANEL_DEBUG = import.meta.env.DEV;
             if (result.ok && result.text) {
               showPreview(result.text);
             } else if (result.blocked) {
-              showStatus(transcriptBlockedUserMessage(result));
+              showStatus(() => transcriptBlockedUserMessage(result));
             } else if (result.engineUnavailable) {
-              showStatus(transcriptEngineUserMessage(result));
+              showStatus(() => transcriptEngineUserMessage(result));
             } else if (result.transcribeFailure) {
-              showStatus(transcribeFailureUserMessage(result, filename, mime), {
+              showStatus(() => transcribeFailureUserMessage(result, filename, mime), {
                 showMusicWarn: true,
               });
             } else {
-              const fallback = isLikelyMusicAudio(filename, mime)
-                ? panelT("panel.modules.chat.transcript.failedMusic")
-                : panelT("panel.modules.chat.transcript.failedSpeech");
-              let text = result.message || fallback;
-              if (!PANEL_DEBUG && text) {
-                text =
-                  String(text)
-                    .replace(/\s*\[[^\]]+\]\s*/g, " ")
-                    .replace(/\s{2,}/g, " ")
-                    .trim() || fallback;
-              }
-              showStatus(text, { showMusicWarn: isLikelyMusicAudio(filename, mime) });
+              showStatus(
+                () => {
+                  const fallback = isLikelyMusicAudio(filename, mime)
+                    ? panelT("panel.modules.chat.transcript.failedMusic")
+                    : panelT("panel.modules.chat.transcript.failedSpeech");
+                  let text = result.message || fallback;
+                  if (!PANEL_DEBUG && text) {
+                    text =
+                      String(text)
+                        .replace(/\s*\[[^\]]+\]\s*/g, " ")
+                        .replace(/\s{2,}/g, " ")
+                        .trim() || fallback;
+                  }
+                  return text;
+                },
+                { showMusicWarn: isLikelyMusicAudio(filename, mime) },
+              );
             }
           } catch {
-            showStatus(transcribeFailureUserMessage(null, filename, mime), {
+            showStatus(() => transcribeFailureUserMessage(null, filename, mime), {
               showMusicWarn: true,
             });
           } finally {
