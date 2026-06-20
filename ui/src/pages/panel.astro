@@ -4037,6 +4037,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 class="panel-user-mode-badge"
                 data-mode="limited"
                 aria-live="polite"
+                data-i18n-aria-label="panel.shell.userMode.badgeAria"
+                data-i18n-title="panel.shell.userMode.badgeTitle"
                 aria-label="Kullanıcı modu seç"
                 title="Mod değiştir (Offline, Sınırlı, Tam)"
                 aria-haspopup="menu"
@@ -4048,6 +4050,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 class="panel-user-mode-menu"
                 role="menu"
                 hidden
+                data-i18n-aria-label="panel.shell.userMode.menuAria"
                 aria-label="Mod seçimi"
               >
                 <button
@@ -4057,7 +4060,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   data-mode="offline"
                   aria-checked="false"
                 >
-                  <span class="panel-user-mode-menu__label">Offline</span>
+                  <span class="panel-user-mode-menu__label" data-i18n="panel.shell.userMode.menuOffline">Offline</span>
                   <span class="panel-user-mode-menu__check" aria-hidden="true">✓</span>
                 </button>
                 <button
@@ -4067,7 +4070,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   data-mode="limited"
                   aria-checked="true"
                 >
-                  <span class="panel-user-mode-menu__label">Sınırlı</span>
+                  <span class="panel-user-mode-menu__label" data-i18n="panel.shell.userMode.menuLimited">Sınırlı</span>
                   <span class="panel-user-mode-menu__check" aria-hidden="true">✓</span>
                 </button>
                 <button
@@ -4077,7 +4080,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   data-mode="full"
                   aria-checked="false"
                 >
-                  <span class="panel-user-mode-menu__label">Tam</span>
+                  <span class="panel-user-mode-menu__label" data-i18n="panel.shell.userMode.menuFull">Tam</span>
                   <span class="panel-user-mode-menu__check" aria-hidden="true">✓</span>
                 </button>
               </div>
@@ -4088,6 +4091,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
               data-state="pending"
               role="status"
               aria-live="polite"
+              data-i18n-aria-label="panel.shell.conn.ariaLabel"
+              data-i18n-title="panel.shell.conn.title"
               aria-label="Altyapı bağlantı durumu"
               title="Altyapı: köprü bağlantısı"
             >Bağlanıyor</span>
@@ -5407,19 +5412,19 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   teknik durumu gösterir.
                 </p>
                 <fieldset class="panel-user-mode-fieldset">
-                  <legend class="panel-user-mode-legend" id="panel-user-mode-seg-label">Mod seçimi</legend>
+                  <legend class="panel-user-mode-legend" id="panel-user-mode-seg-label" data-i18n="panel.shell.userMode.segLegend">Mod seçimi</legend>
                   <div class="panel-user-mode-seg" role="radiogroup" aria-labelledby="panel-user-mode-seg-label">
                     <label class="panel-user-mode-seg-option">
                       <input type="radio" name="panel-user-mode" value="offline" />
-                      <span>Çevrimdışı</span>
+                      <span data-i18n="panel.shell.userMode.segOffline">Çevrimdışı</span>
                     </label>
                     <label class="panel-user-mode-seg-option">
                       <input type="radio" name="panel-user-mode" value="limited" checked />
-                      <span>Sınırlı</span>
+                      <span data-i18n="panel.shell.userMode.segLimited">Sınırlı</span>
                     </label>
                     <label class="panel-user-mode-seg-option">
                       <input type="radio" name="panel-user-mode" value="full" />
-                      <span>Tam</span>
+                      <span data-i18n="panel.shell.userMode.segFull">Tam</span>
                     </label>
                   </div>
                 </fieldset>
@@ -5531,11 +5536,27 @@ const PANEL_DEBUG = import.meta.env.DEV;
       /** PR-1: kullanıcı modu — altyapı durumundan bağımsız tercih. */
       const PANEL_USER_MODE_LS_KEY = "lumos_panel_user_mode_v1";
       const PANEL_USER_MODES = ["offline", "limited", "full"];
-      const PANEL_USER_MODE_LABELS = {
-        offline: { short: "Çevrimdışı", badge: "Mod · Çevrimdışı" },
-        limited: { short: "Sınırlı", badge: "Mod · Sınırlı" },
-        full: { short: "Tam", badge: "Mod · Tam" },
-      };
+
+      function panelUserModeBadgeLabel(mode) {
+        const m = normalizePanelUserMode(mode);
+        if (m === "offline") return panelT("panel.shell.userMode.badgeOffline");
+        if (m === "full") return panelT("panel.shell.userMode.badgeFull");
+        return panelT("panel.shell.userMode.badgeLimited");
+      }
+
+      function panelUserModeMenuLabel(mode) {
+        const m = normalizePanelUserMode(mode);
+        if (m === "offline") return panelT("panel.shell.userMode.menuOffline");
+        if (m === "full") return panelT("panel.shell.userMode.menuFull");
+        return panelT("panel.shell.userMode.menuLimited");
+      }
+
+      function panelConnBadgeLabel(state) {
+        if (state === "ok") return panelT("panel.shell.conn.ok");
+        if (state === "limited") return panelT("panel.shell.conn.limited");
+        if (state === "bad") return panelT("panel.shell.conn.bad");
+        return panelT("panel.shell.conn.pending");
+      }
 
       function normalizePanelUserMode(mode) {
         const m = String(mode || "")
@@ -5565,11 +5586,6 @@ const PANEL_DEBUG = import.meta.env.DEV;
           /* localStorage kapalı olabilir */
         }
         return next;
-      }
-
-      function panelUserModeBadgeLabel(mode) {
-        const row = PANEL_USER_MODE_LABELS[normalizePanelUserMode(mode)];
-        return row ? row.badge : PANEL_USER_MODE_LABELS.limited.badge;
       }
 
       const GOREVLER_FIELD_MAX_LEN = 2048;
@@ -5612,7 +5628,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         return { blocked: false, message: "" };
       }
 
-      const BRIDGE_BADGE_LIMITED_LABEL = () => panelT("panel.modules.chat.bridgeBadgeLimited");
+      const BRIDGE_BADGE_LIMITED_LABEL = () => panelConnBadgeLabel("limited");
 
       function chatBubbleRoleLabel(kind) {
         if (kind === "user") return panelT("panel.modules.chat.bubbles.user");
@@ -5634,13 +5650,32 @@ const PANEL_DEBUG = import.meta.env.DEV;
         });
       }
 
+      function refreshPanelShellI18n() {
+        const connBadge = document.getElementById("panel-conn-badge");
+        if (connBadge) {
+          const state = connBadge.getAttribute("data-state") || "pending";
+          connBadge.textContent = panelConnBadgeLabel(state);
+        }
+        setPanelUserModeBadge(getPanelUserMode());
+        document.querySelectorAll("#panel-user-mode-menu [data-mode]").forEach((item) => {
+          if (!(item instanceof HTMLElement)) return;
+          const mode = item.getAttribute("data-mode");
+          const label = item.querySelector(".panel-user-mode-menu__label");
+          if (label && mode) label.textContent = panelUserModeMenuLabel(mode);
+        });
+        document.querySelectorAll('input[name="panel-user-mode"]').forEach((input) => {
+          if (!(input instanceof HTMLInputElement)) return;
+          const span = input.parentElement && input.parentElement.querySelector("span");
+          if (!span) return;
+          if (input.value === "offline") span.textContent = panelT("panel.shell.userMode.segOffline");
+          else if (input.value === "full") span.textContent = panelT("panel.shell.userMode.segFull");
+          else span.textContent = panelT("panel.shell.userMode.segLimited");
+        });
+      }
+
       function refreshPanelChatI18n() {
         applyUserModeUi();
         refreshChatBubbleRoles();
-        const badge = document.getElementById("panel-conn-badge");
-        if (badge && badge.getAttribute("data-state") === "limited") {
-          badge.textContent = BRIDGE_BADGE_LIMITED_LABEL();
-        }
       }
       const PANEL_LIMITED_PHOTO_REPLY =
         "Sınırlı modda fotoğraf analizi yapılamaz; dış görsel API köprüsü bağlı değil.";
@@ -12477,15 +12512,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const badge = document.getElementById("panel-conn-badge");
         if (!badge) return;
         badge.setAttribute("data-state", state);
-        if (state === "ok") {
-          badge.textContent = "Bağlı";
-        } else if (state === "limited") {
-          badge.textContent = BRIDGE_BADGE_LIMITED_LABEL();
-        } else if (state === "bad") {
-          badge.textContent = "Çevrimdışı";
-        } else {
-          badge.textContent = "Bağlanıyor";
-        }
+        badge.textContent = panelConnBadgeLabel(state);
         paintPanelInfraStatusSkeleton();
       }
 
@@ -13166,6 +13193,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
       wireMedyaOutbox();
 
       window.addEventListener("lumos:localechange", () => {
+        refreshPanelShellI18n();
         refreshPanelChatI18n();
       });
     </script>

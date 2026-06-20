@@ -471,9 +471,36 @@ const panelModules = {
   },
 } as const;
 
+const panelShell = {
+  conn: {
+    pending: "Bağlanıyor",
+    ok: "Bağlı",
+    bad: "Çevrimdışı",
+    limited: "Sınırlı mod",
+    ariaLabel: "Altyapı bağlantı durumu",
+    title: "Altyapı: köprü bağlantısı",
+  },
+  userMode: {
+    menuOffline: "Offline",
+    menuLimited: "Sınırlı",
+    menuFull: "Tam",
+    badgeOffline: "Mod · Çevrimdışı",
+    badgeLimited: "Mod · Sınırlı",
+    badgeFull: "Mod · Tam",
+    badgeAria: "Kullanıcı modu seç",
+    badgeTitle: "Mod değiştir (Offline, Sınırlı, Tam)",
+    menuAria: "Mod seçimi",
+    segLegend: "Mod seçimi",
+    segOffline: "Çevrimdışı",
+    segLimited: "Sınırlı",
+    segFull: "Tam",
+  },
+} as const;
+
 const panel = {
   ...panelNav,
   common: panelCommon,
+  shell: panelShell,
   modules: panelModules,
 };
 
