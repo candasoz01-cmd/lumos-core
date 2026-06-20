@@ -10925,14 +10925,42 @@ const PANEL_DEBUG = import.meta.env.DEV;
           attachMenu.style.left = `${Math.round(left)}px`;
         }
 
-        function closePanelAttachMenu() {
+        const attachMenuItems = attachMenu
+          ? Array.from(attachMenu.querySelectorAll('[role="menuitem"]')).filter(
+              (el) => el instanceof HTMLButtonElement,
+            )
+          : [];
+
+        function focusableAttachMenuItems() {
+          return attachMenuItems.filter(
+            (item) =>
+              !item.disabled
+              && !item.classList.contains("chat-compose-attach-menu__item--unsupported"),
+          );
+        }
+
+        function focusFirstAttachMenuItem() {
+          const items = focusableAttachMenuItems();
+          if (items.length) {
+            items[0].focus();
+            return;
+          }
+          if (attachToggle instanceof HTMLElement) attachToggle.focus();
+        }
+
+        function closePanelAttachMenu(opts) {
           if (!attachMenu || !attachToggle) return;
+          const returnFocus = !opts || opts.returnFocus !== false;
+          const wasOpen = !attachMenu.hidden;
           attachMenu.hidden = true;
           attachMenu.classList.remove("chat-compose-attach-menu--fixed");
           attachMenu.style.top = "";
           attachMenu.style.left = "";
           attachToggle.setAttribute("aria-expanded", "false");
           attachToggle.classList.remove("chat-compose-attach-btn--open");
+          if (wasOpen && returnFocus && attachToggle instanceof HTMLElement) {
+            attachToggle.focus();
+          }
         }
 
         function openPanelAttachMenu() {
@@ -10943,6 +10971,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           attachToggle.classList.add("chat-compose-attach-btn--open");
           requestAnimationFrame(() => {
             positionPanelAttachMenu();
+            focusFirstAttachMenuItem();
           });
         }
 
@@ -11316,7 +11345,35 @@ const PANEL_DEBUG = import.meta.env.DEV;
           e.stopPropagation();
           if (!attachMenu) return;
           if (attachMenu.hidden) openPanelAttachMenu();
-          else closePanelAttachMenu();
+          else closePanelAttachMenu({ returnFocus: false });
+        });
+
+        attachMenu?.addEventListener("keydown", (e) => {
+          if (attachMenu.hidden) return;
+          const items = focusableAttachMenuItems();
+          if (!items.length) return;
+          const focusedIdx = items.findIndex((item) => item === document.activeElement);
+          const idx = focusedIdx >= 0 ? focusedIdx : 0;
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            items[(idx + 1) % items.length]?.focus();
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            items[(idx - 1 + items.length) % items.length]?.focus();
+          } else if (e.key === "Tab") {
+            if (e.shiftKey) {
+              if (focusedIdx <= 0) {
+                e.preventDefault();
+                items[items.length - 1]?.focus();
+              }
+            } else if (focusedIdx === items.length - 1 || focusedIdx < 0) {
+              e.preventDefault();
+              items[0]?.focus();
+            }
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            closePanelAttachMenu();
+          }
         });
 
         attachMenu?.addEventListener("click", (e) => {
@@ -11325,7 +11382,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           const item = t.closest("[data-attach-action]");
           if (!(item instanceof HTMLElement)) return;
           const action = item.getAttribute("data-attach-action");
-          closePanelAttachMenu();
+          closePanelAttachMenu({ returnFocus: false });
           if (action === "file") {
             switchPanelModule("dosyalar");
             const dosyaInput = document.getElementById("dosyalar-file-input");
@@ -11380,8 +11437,19 @@ const PANEL_DEBUG = import.meta.env.DEV;
           closePanelAttachMenu();
         });
 
+        document.addEventListener("focusin", (e) => {
+          if (!attachMenu || attachMenu.hidden) return;
+          const t = e.target;
+          if (!(t instanceof Node)) return;
+          if (attachToggle?.contains(t) || attachMenu.contains(t)) return;
+          const items = focusableAttachMenuItems();
+          if (items.length) items[0].focus();
+        });
+
         document.addEventListener("keydown", (e) => {
-          if (e.key === "Escape") closePanelAttachMenu();
+          if (e.key !== "Escape" || !attachMenu || attachMenu.hidden) return;
+          e.preventDefault();
+          closePanelAttachMenu();
         });
 
         attachAudioInput?.addEventListener("change", () => {
