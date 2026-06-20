@@ -106,6 +106,7 @@ Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A16 takip satırları kap
 | DL-C10 | 2026-06-20 | Prod smoke (A3) | Read-only HTTPS smoke; `workflow_dispatch` only | [`docs/memory/od-prod-smoke-decision.md`](memory/od-prod-smoke-decision.md) |
 | DL-C11 | 2026-06-20 | OD-010 CI doc-only sınıflandırma | **Closed** — kod yolunda CI zorunlu | [`docs/memory/od-010-ci-classification-decision.md`](memory/od-010-ci-classification-decision.md) |
 | DL-C12 | 2026-06-20 | OD-029 Ghidra public kapsamı | **Public entegrasyon reddedildi** — watchlist; operatör yerel/private RE | [`docs/memory/od-029-ghidra-scope-decision.md`](memory/od-029-ghidra-scope-decision.md) |
+| DL-C13 | 2026-06-20 | OD-025 Vault migration senkronu | **Closed** (ilke düzeyi) — ChatGPT vault/token maddeleri `vault-secret-token-decision.md`'e taşındı; uygulama OD-001–005 | [`docs/memory/od-025-vault-migration-decision.md`](memory/od-025-vault-migration-decision.md) |
 ---
 
 ## 2026-06-17 — Dokümantasyon düzeni kurulumu

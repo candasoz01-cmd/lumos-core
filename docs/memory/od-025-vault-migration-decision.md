@@ -29,7 +29,7 @@
 
 - `security-architecture.md` migration satırları → `[migrated]`
 - `open-decisions-needs-review.md` OD-025 → **closed**
-- DL-C12
+- DL-C13
 
 ---
 
