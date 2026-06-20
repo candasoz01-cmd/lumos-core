@@ -59,3 +59,18 @@ def test_panel_ux_tur12_2_mobile_compose_scroll_wiring() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
     for token in PANEL_UX_TUR12_2_MARKERS:
         assert token in text, f"missing tur12-2 token: {token}"
+
+
+PANEL_UX_TUR12_3_MARKERS = (
+    "function focusPanelModuleContent(moduleId)",
+    'panel.setAttribute("tabindex", "-1")',
+    "panel.focus({ preventScroll: true })",
+    "focusPanelModuleContent(id)",
+    "focusPanelModuleContent(moduleId)",
+)
+
+
+def test_panel_ux_tur12_3_module_focus_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_UX_TUR12_3_MARKERS:
+        assert token in text, f"missing tur12-3 token: {token}"
