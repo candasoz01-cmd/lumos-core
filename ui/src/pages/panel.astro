@@ -10551,8 +10551,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
           "Onay",
         ];
 
-        const GOREVLER_PLAN_KOK_NEDEN_PLACEHOLDER =
+        const GOREVLER_PLAN_NOT_PENDING =
           "Kök neden analizi henüz yapılmadı (beklemede).";
+
+        function gorevlerPlanNotDisplay(_plan) {
+          return GOREVLER_PLAN_NOT_PENDING;
+        }
 
         function gorevlerPlanAlanDisplay(plan) {
           const p = sanitizeGorevlerTaskPlan(plan);
@@ -10650,7 +10654,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           appendDetailRow(dl, "Risk", p.risk);
           appendDetailRow(dl, "Alan", gorevlerPlanAlanDisplay(p));
           appendDetailRow(dl, "Sırada", p.sonrakiAdim);
-          appendDetailRow(dl, "Not", GOREVLER_PLAN_KOK_NEDEN_PLACEHOLDER);
+          appendDetailRow(dl, "Not", gorevlerPlanNotDisplay(p));
         }
 
         function renderGorevlerPlanStatusEl(statusEl, plan) {
@@ -12823,8 +12827,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
         if (!reviewBtn || !sendBtn || !summaryEl || !targetEl || !contentEl) return;
 
         const demoOnly = cfg.demoOnly !== false;
-        const demoHint =
-          cfg.demoMsg || "Demo: özet yalnızca önizleme; gerçek gönderim bağlı değil.";
+        const demoIdleHint =
+          cfg.demoIdleHint || "Demo modu: gerçek gönderim bağlı değil; yalnızca önizleme.";
+        const demoReviewHint =
+          cfg.demoReviewHint ||
+          "Özet görüntülendi (demo). Gönderim bu sürümde kapalı; bağlantı henüz yok.";
 
         function keepSendDisabled() {
           sendBtn.disabled = true;
@@ -12833,6 +12840,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
         function resetApproval() {
           keepSendDisabled();
+          summaryEl.hidden = true;
+          if (hintEl && demoOnly) {
+            hintEl.hidden = false;
+            hintEl.textContent = demoIdleHint;
+          }
         }
 
         function targetLabel() {
@@ -12868,7 +12880,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
         if (hintEl && demoOnly) {
           hintEl.hidden = false;
-          hintEl.textContent = demoHint;
+          hintEl.textContent = demoIdleHint;
         }
 
         reviewBtn.addEventListener("click", () => {
@@ -12881,15 +12893,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
             "\nEk sayısı: " +
             attachmentCount() +
             "\nVeri türü: " +
-            (cfg.dataType || "Metin");
+            (cfg.dataType || "Metin") +
+            (demoOnly ? "\n\n[Demo] Gerçek gönderim yapılmaz." : "");
           summaryEl.textContent = summary;
           summaryEl.hidden = false;
           keepSendDisabled();
           if (hintEl) {
             hintEl.hidden = false;
-            hintEl.textContent = demoOnly
-              ? demoHint
-              : "Özet onaylandı. Göndermek için butona basın.";
+            hintEl.textContent = demoOnly ? demoReviewHint : "Özet onaylandı. Göndermek için butona basın.";
           }
         });
 
@@ -12897,7 +12908,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (demoOnly) return;
           if (hintEl) {
             hintEl.hidden = false;
-            hintEl.textContent = demoHint;
+            hintEl.textContent = cfg.demoMsg || "Demo: gerçek gönderim henüz bağlı değil.";
           }
           resetApproval();
           summaryEl.hidden = true;

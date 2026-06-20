@@ -75,6 +75,18 @@ try {
     );
   }
 
+  const demoShareCount = await page.locator('[data-panel-share-demo="true"]').count();
+  if (demoShareCount < 3) {
+    await browser.close();
+    fail("Medya/Sosyal/Posta demo paylaşım blokları eksik; count=" + demoShareCount);
+  }
+  const planPendingSnippet = "Kök neden analizi henüz yapılmadı (beklemede).";
+  const panelHtml = await page.content();
+  if (!panelHtml.includes(planPendingSnippet)) {
+    await browser.close();
+    fail("Görev planı bekleme metni panel HTML'de yok");
+  }
+
   await browser.close();
   console.log("SMOKE_UI_RESULT: PASS");
   console.log("surface: ui/dist static");
