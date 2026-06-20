@@ -8279,6 +8279,19 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
         }
 
+        function focusPanelModuleContent(moduleId) {
+          const panel = document.querySelector('[data-module-panel="' + moduleId + '"]');
+          if (!(panel instanceof HTMLElement)) return;
+          if (!panel.hasAttribute("tabindex")) panel.setAttribute("tabindex", "-1");
+          requestAnimationFrame(() => {
+            try {
+              panel.focus({ preventScroll: true });
+            } catch {
+              panel.focus();
+            }
+          });
+        }
+
         expandNavGroupIfActiveHidden();
         scrollActivePanelNavChipIntoView(
           nav.querySelector('button[data-module][aria-current="true"]'),
@@ -8362,6 +8375,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             p.setAttribute("data-active", p.getAttribute("data-module-panel") === id ? "true" : "false");
           });
           scrollActivePanelNavChipIntoView(btn);
+          focusPanelModuleContent(id);
         });
 
         function panelNavigateToModule(moduleId) {
@@ -8377,6 +8391,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             );
           });
           scrollActivePanelNavChipIntoView(btn);
+          focusPanelModuleContent(moduleId);
           return true;
         }
 
@@ -10752,6 +10767,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           panels.forEach((p) => {
             p.setAttribute("data-active", p.getAttribute("data-module-panel") === moduleId ? "true" : "false");
           });
+          focusPanelModuleContent(moduleId);
         }
 
         function triggerPanelCameraPhotoInput(mode) {
