@@ -229,6 +229,7 @@ const panel: typeof panelTr = {
       planDismiss: "Save only",
       lowRiskNote: "Low risk. Automatic plan; nothing was executed.",
       evidenceAria: "Latest operation evidence",
+      evidenceSummaryPrefix: "Latest operation evidence: ",
       evidenceContinue: "Continue from here",
     },
   },

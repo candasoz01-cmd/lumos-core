@@ -5685,6 +5685,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
       function refreshPanelFilesI18n() {
         if (typeof refreshDosyalarPanelI18n === "function") refreshDosyalarPanelI18n();
       }
+
+      function refreshPanelGorevlerI18n() {
+        if (typeof panelEvidenceRefreshStrip === "function") {
+          void panelEvidenceRefreshStrip();
+        }
+      }
       const PANEL_LIMITED_PHOTO_REPLY =
         "Sınırlı modda fotoğraf analizi yapılamaz; dış görsel API köprüsü bağlı değil.";
       const PANEL_OFFLINE_PHOTO_REPLY =
@@ -6996,7 +7002,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           panelEvidenceLatestGroup = null;
           stripEl.hidden = true;
           emptyEl.hidden = false;
-          emptyEl.textContent = "Henüz sunucu kanıtı yok";
+          emptyEl.textContent = panelT("panel.modules.tasks.empty.evidence");
           continueBtn.hidden = true;
           return;
         }
@@ -7007,7 +7013,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           panelEvidenceLatestGroup = null;
           stripEl.hidden = true;
           emptyEl.hidden = false;
-          emptyEl.textContent = "Henüz sunucu kanıtı yok";
+          emptyEl.textContent = panelT("panel.modules.tasks.empty.evidence");
           continueBtn.hidden = true;
           return;
         }
@@ -7015,7 +7021,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
         panelEvidenceLatestGroup = latest;
         emptyEl.hidden = true;
         stripEl.hidden = false;
-        summaryEl.textContent = "Son işlem kanıtı: " + latest.label;
+        summaryEl.textContent =
+          panelT("panel.modules.tasks.detail.evidenceSummaryPrefix") + latest.label;
         continueBtn.hidden = !latest.canContinue;
       }
 
@@ -13236,6 +13243,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         refreshPanelShellI18n();
         refreshPanelChatI18n();
         refreshPanelFilesI18n();
+        refreshPanelGorevlerI18n();
       });
     </script>
     <I18nInit />
