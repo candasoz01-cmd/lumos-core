@@ -390,6 +390,25 @@ const panelModules = {
       evidenceSummaryPrefix: "Son işlem kanıtı: ",
       evidenceContinue: "Buradan devam",
     },
+    hints: {
+      savedLocal: "Görev yerel olarak kaydedildi.",
+      titleEmpty: "Görev adı boş olamaz.",
+      saveFailed: "Görev kaydedilemedi ({error}).",
+      savedWithPlan: "Görev kaydedildi; plan gösteriliyor.",
+      bridgeFailed: "İletim tamamlanamadı. Bağlantıyı kontrol edip tekrar dene.",
+      bridgeSent: "Görev iletildi.",
+      bridgeAccepted: "İşleme alındı.",
+      completeFailed: "Tamamlanamadı ({error}).",
+      deleted: "Görev silindi.",
+      deleteFailed: "Silinemedi ({error}).",
+      restoreFailed: "Geri alınamadı ({error}).",
+      clearLocalDone: "Yerel liste temizlendi; sunucu kayıtlarına dokunulmadı.",
+    },
+    confirm: {
+      deleteOpen: "Görev silinsin mi?",
+      clearLocal:
+        "Yerel görev listesi temizlensin mi? Sunucudaki görev kayıtlarına dokunulmaz.",
+    },
   },
   files: {
     intro:
@@ -692,6 +711,12 @@ const panelShell = {
     limited: "Sınırlı mod",
     ariaLabel: "Altyapı bağlantı durumu",
     title: "Altyapı: köprü bağlantısı",
+  },
+  infra: {
+    tokenMissing: "Yapılandırılmamış",
+    tokenPresent: "Tanımlı",
+    online: "Çevrimiçi",
+    offline: "Çevrimdışı",
   },
   userMode: {
     menuOffline: "Offline",

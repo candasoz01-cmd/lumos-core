@@ -1,4 +1,4 @@
-"""Panel i18n v1/v2/v3/v4 — LanguageSwitcher, nav, modules, Sohbet chat, Görevler."""
+"""Panel i18n v1–v20 — LanguageSwitcher, nav, modules, Sohbet chat, Görevler."""
 
 from __future__ import annotations
 
@@ -326,6 +326,28 @@ PANEL_I18N_V19_TR_KEYS = (
     "timeBase:",
 )
 
+PANEL_I18N_V20_MARKERS = (
+    'panelT("panel.modules.tasks.hints.savedLocal")',
+    'panelT("panel.modules.tasks.hints.titleEmpty")',
+    'panelT("panel.modules.tasks.hints.bridgeFailed")',
+    'panelT("panel.modules.tasks.hints.deleted")',
+    'panelT("panel.modules.tasks.confirm.deleteOpen")',
+    'panelT("panel.modules.tasks.confirm.clearLocal")',
+    'panelT("panel.shell.infra.tokenMissing")',
+    'panelT("panel.shell.infra.tokenPresent")',
+    'panelT("panel.shell.infra.online")',
+    'panelT("panel.shell.infra.offline")',
+    'paintPanelInfraStatusSkeleton();',
+)
+
+PANEL_I18N_V20_TR_KEYS = (
+    "hints:",
+    "savedLocal:",
+    "confirm:",
+    "deleteOpen:",
+    "infra:",
+    "tokenMissing:",
+)
 
 
 def test_panel_astro_i18n_wiring_present() -> None:
@@ -631,3 +653,21 @@ def test_panel_i18n_v19_gorev_chat_fallback_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V19_TR_KEYS:
         assert key in tr_text, f"missing panel tr v19 key fragment: {key}"
         assert key in en_text, f"missing panel en v19 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v20_gorev_hints_infra_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V20_MARKERS:
+        assert token in text, f"missing panel i18n v20 token: {token}"
+    assert 'showHint("Görev yerel olarak kaydedildi.")' not in text
+    assert 'confirm("Görev silinsin mi?")' not in text
+    assert 'bridgeTokenMissing ? "Yapılandırılmamış"' not in text
+    assert 'navigator.onLine ? "Çevrimiçi"' not in text
+
+
+def test_panel_i18n_v20_gorev_hints_infra_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V20_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v20 key fragment: {key}"
+        assert key in en_text, f"missing panel en v20 key fragment: {key}"

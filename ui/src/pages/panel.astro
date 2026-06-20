@@ -5661,6 +5661,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           connBadge.textContent = panelConnBadgeLabel(state);
         }
         setPanelUserModeBadge(getPanelUserMode());
+        paintPanelInfraStatusSkeleton();
         document.querySelectorAll("#panel-user-mode-menu [data-mode]").forEach((item) => {
           if (!(item instanceof HTMLElement)) return;
           const mode = item.getAttribute("data-mode");
@@ -11271,11 +11272,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
          */
         function buildTaskBridgeSuccessReadableHint(data) {
           if (data.accepted === false) {
-            return "İletim tamamlanamadı. Bağlantıyı kontrol edip tekrar dene.";
+            return panelT("panel.modules.tasks.hints.bridgeFailed");
           }
-          if (data.accepted === true) return "Görev iletildi.";
-          if (data.ok === true) return "İşleme alındı.";
-          return "İşleme alındı.";
+          if (data.accepted === true) return panelT("panel.modules.tasks.hints.bridgeSent");
+          if (data.ok === true) return panelT("panel.modules.tasks.hints.bridgeAccepted");
+          return panelT("panel.modules.tasks.hints.bridgeAccepted");
         }
 
         /**
@@ -11289,14 +11290,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
           const savedPlan = taskRef.taskPlan;
           const savedIdx = panelGorevlerTasks.indexOf(taskRef);
           if (savedPlan && savedIdx >= 0) showGorevlerPlanInline(savedPlan, savedIdx);
-          showHint("Görev yerel olarak kaydedildi.");
+          showHint(panelT("panel.modules.tasks.hints.savedLocal"));
           return taskRef;
         }
 
         async function addTask() {
           const title = titleInput.value.trim();
           if (!title) {
-            showHint("Görev adı boş olamaz.");
+            showHint(panelT("panel.modules.tasks.hints.titleEmpty"));
             titleInput.focus();
             return;
           }
@@ -11337,7 +11338,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                     "create_failed (" + (createRes ? createRes.status : "?") + ")",
                     "kayıt başarısız",
                   );
-            showHint("Görev kaydedilemedi (" + err + ").");
+            showHint(panelT("panel.modules.tasks.hints.saveFailed").replace("{error}", err));
             return;
           }
 
@@ -11382,7 +11383,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           const savedIdx = panelGorevlerTasks.indexOf(taskRef);
           if (savedPlan && savedIdx >= 0) showGorevlerPlanInline(savedPlan, savedIdx);
 
-          showHint("Görev kaydedildi; plan gösteriliyor.");
+          showHint(panelT("panel.modules.tasks.hints.savedWithPlan"));
         }
 
         async function sendBridgeOpenGorevlerTask() {
@@ -11433,7 +11434,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
               return;
             }
             if (r.status === 401) {
-              showHint("Bağlantı doğrulanamadı. Cihaz ayarlarını kontrol edip tekrar dene.");
+              showHint(panelT("panel.modules.chat.errors.unauthorized"));
               return;
             }
             if (!r.ok) {
@@ -11445,7 +11446,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                     (data && (data.error || data.message)
                       ? " " + String(data.error || data.message).trim().slice(0, 80)
                       : ""),
-                  "İletim tamamlanamadı. Bağlantıyı kontrol edip tekrar dene.",
+                  panelT("panel.modules.tasks.hints.bridgeFailed"),
                 ),
               );
               return;
@@ -11456,7 +11457,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             openGorevlerDetail(taskIndex);
             showHint(buildTaskBridgeSuccessReadableHint(data));
           } catch {
-            showHint("İletim tamamlanamadı. Bağlantıyı kontrol edip tekrar dene.");
+            showHint(panelT("panel.modules.tasks.hints.bridgeFailed"));
           } finally {
             if (detailBridgeBtn) {
               detailBridgeBtn.disabled = false;
@@ -11501,7 +11502,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             }
             const err =
               res && res.data && res.data.error != null ? String(res.data.error) : "complete_failed";
-            showHint("Tamamlanamadı (" + err + ").");
+            showHint(panelT("panel.modules.tasks.hints.completeFailed").replace("{error}", err));
             return;
           }
           await refreshPanelGorevlerFromTasksApi();
@@ -11648,7 +11649,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           removeGorevlerTaskLocalByRef(deletedKey);
           closeGorevlerDetail(true);
           render();
-          showHint("Görev silindi.");
+          showHint(panelT("panel.modules.tasks.hints.deleted"));
           refreshPanelEvidenceStripIfReady();
         }
 
@@ -11709,7 +11710,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (!t) return;
           const ref = t.id ? String(t.id).trim() : String(t.title || "").trim();
           if (!ref) return;
-          if (!confirm("Görev silinsin mi?")) return;
+          if (!confirm(panelT("panel.modules.tasks.confirm.deleteOpen"))) return;
           hideHint();
           if (shouldSkipGorevlerTasksApi()) {
             finishDeleteGorevlerTaskLocal(t, ref);
@@ -11729,7 +11730,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             }
             const err =
               res && res.data && res.data.error != null ? String(res.data.error) : "delete_failed";
-            showHint("Silinemedi (" + err + ").");
+            showHint(panelT("panel.modules.tasks.hints.deleteFailed").replace("{error}", err));
             return;
           }
           const deletedId = t.id ? String(t.id).trim() : ref;
@@ -11742,7 +11743,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
           closeGorevlerDetail(true);
           render();
-          showHint("Görev silindi.");
+          showHint(panelT("panel.modules.tasks.hints.deleted"));
           refreshPanelEvidenceStripIfReady();
         }
 
@@ -11801,7 +11802,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             }
             const err =
               res && res.data && res.data.error != null ? String(res.data.error) : "restore_failed";
-            showHint("Geri alınamadı (" + err + ").");
+            showHint(panelT("panel.modules.tasks.hints.restoreFailed").replace("{error}", err));
             return;
           }
           lastGorevlerDeletedId = "";
@@ -11938,9 +11939,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
         clearTestBtn.addEventListener("click", async () => {
           if (
-            !confirm(
-              "Yerel görev listesi temizlensin mi? Sunucudaki görev kayıtlarına dokunulmaz.",
-            )
+            !confirm(panelT("panel.modules.tasks.confirm.clearLocal"))
           ) {
             return;
           }
@@ -11959,7 +11958,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (restoreLastBtn) restoreLastBtn.hidden = true;
           render();
           await refreshPanelGorevlerFromTasksApi();
-          showHint("Yerel liste temizlendi; sunucu kayıtlarına dokunulmadı.");
+          showHint(panelT("panel.modules.tasks.hints.clearLocalDone"));
         });
 
         refreshPanelGorevlerFromTasksApi().then((ok) => {
@@ -12694,7 +12693,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
         if (bridgeEl) bridgeEl.textContent = panelUserVisibleText(panelInfraConnSummary());
         if (tokenEl) {
           tokenEl.textContent = panelUserVisibleText(
-            bridgeTokenMissing ? "Yapılandırılmamış" : "Tanımlı",
+            bridgeTokenMissing
+              ? panelT("panel.shell.infra.tokenMissing")
+              : panelT("panel.shell.infra.tokenPresent"),
           );
         }
         if (healthEl) {
@@ -12706,7 +12707,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
           let net = "—";
           try {
             if (typeof navigator !== "undefined" && "onLine" in navigator) {
-              net = navigator.onLine ? "Çevrimiçi" : "Çevrimdışı";
+              net = navigator.onLine
+                ? panelT("panel.shell.infra.online")
+                : panelT("panel.shell.infra.offline");
             }
           } catch {
             net = "—";
