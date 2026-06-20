@@ -51,15 +51,45 @@ Infisical secret key = Lumos vault ref (`mail-read:{account_id}`); path = `LUMOS
 
 - `src/integrations/mail/providers/gmail_oauth.py` — scope `gmail.readonly`
 - Google OAuth client credentials **Google Cloud Console'da** — repo'da yok
-- Vault configured + read grant → vault-backed read path (public repo mock-friendly)
-- **OAuth callback contract (PR1):** [`gmail-oauth-callback-contract.md`](./gmail-oauth-callback-contract.md) — types `src/integrations/mail/oauth_contract.py`; post-OAuth ref `mail-read:{account_id}`. **Infisical secret read (PR2)**; HTTP handler + token write private operatör.
+- Vault configured + read grant → vault-backed read path (default mock; `LUMOS_GMAIL_SMOKE=1` ile canlı API)
+- **OAuth callback contract (PR1):** [`gmail-oauth-callback-contract.md`](./gmail-oauth-callback-contract.md) — types `src/integrations/mail/oauth_contract.py`; post-OAuth ref `mail-read:{account_id}`. **Infisical secret read (PR2)**; **Gmail readonly smoke (PR3)** env-gated; HTTP handler + token write private operatör.
 
 ## Private operatör işleri (repo dışı)
 
 1. Infisical self-host kurulum + backup
 2. Google OAuth client oluşturma + redirect URI
 3. Mail OAuth token'ı Infisical secret olarak kaydetme (`mail-read:{account_id}` key, `/integrations/mail` path)
-4. Canlı Gmail API çağrısı (M5 / private katman; PR3 smoke env-gated)
+4. Canlı Gmail API çağrısı (M7 / PR3 smoke — env-gated, CI dışı)
+
+## M7 — Gmail readonly smoke (PR3, operatör-only)
+
+**CI default:** kapalı. Canlı çağrı yalnız operatör makinesinde, vault + OAuth token hazırken.
+
+### Önkoşullar
+
+1. PR2 vault env'leri set (`LUMOS_VAULT_URL`, `LUMOS_VAULT_TOKEN`, `LUMOS_VAULT_PROJECT`, `LUMOS_VAULT_ENV`)
+2. Infisical'da `mail-read:{account_id}` secret — OAuth access token (düz string veya JSON `access_token`)
+3. Smoke gate env'leri:
+
+```bash
+export LUMOS_GMAIL_SMOKE=1
+export LUMOS_GMAIL_SMOKE_ACCOUNT="operator@example.invalid"
+# vault env'leri (yukarıdaki gibi)
+```
+
+### Çalıştırma
+
+```bash
+pytest tests/test_gmail_api_smoke.py::test_live_gmail_smoke_via_vault -q
+```
+
+Beklenen: test geçer veya inbox boşsa boş liste döner; secret/token çıktıda görünmez.
+
+### Kod yüzeyi
+
+- `src/integrations/mail/providers/gmail_api_client.py` — `users.messages.list` (`q=is:unread`) + metadata-only get
+- `src/integrations/mail/providers/gmail_oauth.py` — `LUMOS_GMAIL_SMOKE=1` iken vault token ile canlı API; aksi halde mock özet
+- Unit testler: `tests/test_gmail_api_smoke.py` (mock); live test `@pytest.mark.skipif` ile gate'li
 
 ## Rollback
 
