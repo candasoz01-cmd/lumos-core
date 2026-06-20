@@ -24,7 +24,7 @@
 
 | # | Adım | Efor | Public |
 |---|------|------|--------|
-| V1 | Vault ürün/teknoloji seçimi | XL | **Karar özeti:** [`od-vault-v1-technology-selection.md`](od-vault-v1-technology-selection.md) — harman + Infisical; **V1a PoC:** `implementation-partial` ([`vault-infisical-poc-runbook.md`](./vault-infisical-poc-runbook.md)) |
+| V1 | Vault ürün/teknoloji seçimi | XL | **Karar özeti:** [`od-vault-v1-technology-selection.md`](od-vault-v1-technology-selection.md) — harman; **V1a PoC:** `implementation-partial` (operatör runbook: [`ops-runbooks-private-notice.md`](../ops-runbooks-private-notice.md)) |
 | V2 | Depolama + dağıtım modeli | XL | Out of scope |
 | V3 | Amaç kodu listesi + Lumos–vault API sözleşmesi | L | Stub referans only |
 | V4 | Connector izolasyonu / segmentasyon | L | Out of scope |
