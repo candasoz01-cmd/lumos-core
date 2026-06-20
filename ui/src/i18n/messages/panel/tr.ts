@@ -229,6 +229,7 @@ const panelModules = {
       planDismiss: "Sadece kaydet",
       lowRiskNote: "Düşük risk. Otomatik plan; hiçbir şey çalıştırılmadı.",
       evidenceAria: "Son işlem kanıtı",
+      evidenceSummaryPrefix: "Son işlem kanıtı: ",
       evidenceContinue: "Buradan devam",
     },
   },
