@@ -19,7 +19,7 @@ See vault README: `.lumos/internal/strategy-vault/README.md` (never commit).
 
 - **Onay ve güvenlik ilkeleri:** [`docs/decisions/ADR-002-mail-inbox-intelligence.md`](../decisions/ADR-002-mail-inbox-intelligence.md) — taslak; onaysız okuma/gönderim yok
 - **Karar sözleşmesi üst sınırı:** [`docs/lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md)
-- **Boundary rule:** [`public-mail-strategy-boundary.md`](./public-mail-strategy-boundary.md)
+- **Boundary rule:** [`public-repo-boundary.md`](./public-repo-boundary.md) § Bölüm A
 - **Migration index:** [`../mail-strategy-migration-index.md`](../mail-strategy-migration-index.md)
 - **Open decisions index (redacted):** [`open-decisions-needs-review.md`](./open-decisions-needs-review.md) — OD-031 satırı
 
