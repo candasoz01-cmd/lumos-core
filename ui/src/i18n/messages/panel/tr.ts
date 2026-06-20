@@ -161,6 +161,8 @@ const panelModules = {
       cancelRecord: "İptal",
       rerecord: "Yeniden kaydet",
       transcribe: "Metne çevir",
+      photoSelectedLabel: "Seçilen görsel",
+      photoCapturedStatus: "Fotoğraf alındı",
       hints: {
         pickOneAttachment: "Önce tek ek seçin",
         photoReadFailed: "Fotoğraf okunamadı.",
