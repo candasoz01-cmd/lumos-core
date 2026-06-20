@@ -80,7 +80,7 @@ try {
     await browser.close();
     fail("Medya/Sosyal/Posta demo paylaşım blokları eksik; count=" + demoShareCount);
   }
-  const planPendingSnippet = "Kök neden analizi henüz yapılmadı (beklemede).";
+  const planPendingSnippet = 'panelT("panel.modules.tasks.plan.notPending")';
   const panelHtml = await page.content();
   if (!panelHtml.includes(planPendingSnippet)) {
     await browser.close();
