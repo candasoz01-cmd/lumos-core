@@ -1,6 +1,6 @@
 # Birincil kullanıcı yüzeyi — karar (OD-043)
 
-**Durum:** `[decision-approved]` — dokümantasyon kararıdır; kod değişikliği içermez.  
+**Durum:** `[closed]` — birincil yüzey kararı onaylıdır; formal kapanış OD-046 E2E hizası tamamlandıktan sonra (#300–#307). Kod değişikliği içermez.  
 **Kaynak:** `docs/memory/project-map-runtime-entrypoints.md`, `docs/memory/open-decisions-needs-review.md` (OD-043, çapraz OD-044 / OD-046).  
 **Doğrulama:** Repo dosya sistemi read-only tarama — 2026-06-17.
 
@@ -43,13 +43,15 @@ Bu belge:
 
 ```json
 "build": "cd ui && npm install && npm run build",
-"e2e:package": "npm run e2e:package --prefix panel",
-"e2e:package:api": "npm run e2e:package:api --prefix panel",
-"e2e:tasks-offline-online": "npm run e2e:tasks-offline-online --prefix panel"
+"e2e:package": "npm run build && npm run e2e:package:local --prefix ui",
+"e2e:package:api": "npm run build && npm run e2e:package:api --prefix ui",
+"e2e:tasks-offline-online": "npm run build && npm run e2e:tasks-offline-online --prefix ui",
+"e2e:legacy:package": "npm run e2e:package --prefix panel"
 ```
 
-- **Build hedefi:** `ui/` (Astro).
-- **Root E2E hedefi (mevcut):** `panel/` (Playwright; statik `panel/index.html` sunucusu) — **legacy/static E2E kalite kapısı**; üretim yüzeyi değildir.
+- **Build hedefi:** `ui/` (Astro) → `ui/dist`.
+- **Root E2E hedefi (birincil):** `ui/dist` (Playwright; OD-046 Seçenek A — PR #300–#305, #307).
+- **Legacy E2E:** `e2e:legacy:*` → `panel/` statik — geçiş dönemi kapısı; üretim yüzeyi değildir.
 
 ### 3.3 Deploy ve yerel geliştirme
 
@@ -67,7 +69,7 @@ Bu belge:
 - Üretim panel: `https://welockai.com/panel` — Astro `ui/` build, rota `/panel`.
 - Legacy `panel/` statik uygulama: üretim için **superseded** (`ui/src/pages/panel.astro`).
 
-OD-043 bu kanıtı **onaylı karar** olarak kilitler: birincil üretim/dış kullanıcı yüzeyi `ui/` (Astro). Root E2E hâlâ `panel/` statik uygulamayı hedeflediği için **E2E hizası** OD-046 Seçenek A uygulamasına kadar **beklemede** kalır.
+OD-043 bu kanıtı **onaylı karar** olarak kilitler: birincil üretim/dış kullanıcı yüzeyi `ui/` (Astro). Kök E2E hizası OD-046 ile **`ui/dist`** hedefine taşındı (**implementation-complete**).
 
 ### 3.5 `frontend/` ek kanıt
 
@@ -103,7 +105,7 @@ OD-043 bu kanıtı **onaylı karar** olarak kilitler: birincil üretim/dış kul
 | `frontend/` canlı / birincil yüzey olarak kabul edilmez | **Onaylı** |
 | Birincil üretim / dış kullanıcı yüzeyi = `ui/` (Astro) | **Onaylı** (OD-043) |
 | `panel/` birincil üretim yüzeyi değildir | **Onaylı** (OD-043) |
-| Root E2E → `ui/dist` veya Astro preview hizası | **Beklemede** — OD-046 Seçenek A uygulaması |
+| Root E2E → `ui/dist` hizası (OD-046 A) | **Tamamlandı** — PR #300–#305, #307 |
 
 ### 5.2 Onaylı pozisyon
 
@@ -111,7 +113,7 @@ OD-043 bu kanıtı **onaylı karar** olarak kilitler: birincil üretim/dış kul
 |--------|--------|----------------|--------|
 | **Üretim / dış kullanıcı (deploy)** | `ui/` (`/panel` rotası) | `vercel.json` + `LUMOS_V1_READINESS.md` + OD-043 | **Onaylı** |
 | **Root `npm run build`** | `ui/` | Root `package.json` | **Onaylı** |
-| **Root E2E paket kapısı (mevcut)** | `panel/` statik | `e2e:* --prefix panel` → `panel/index.html` sunucusu | **Legacy E2E kapısı** — üretim yüzeyi değil; OD-046 A ile hizalanacak |
+| **Root E2E paket kapısı (birincil)** | `ui/dist` | Kök `e2e:package*` → `ui/` Playwright (#300–#305) | **Birincil E2E kapısı** — üretim yüzeyi ile hizalı |
 | **Yerel statik panel geliştirme** | `panel/` | `panel/README.md` | Operasyonel gerçek (legacy / mock) |
 | **Köprü odaklı HTML prototip** | `frontend/` | Yalnızca izole E2E; deploy yok | Canlı / birincil **değil** |
 
@@ -121,7 +123,7 @@ OD-043 bu kanıtı **onaylı karar** olarak kilitler: birincil üretim/dış kul
 - «Birincil yüzey = `frontend/`» — **reddedildi**. Build/deploy zincirinde yok; iki dosyalık prototip.
 - «`ui/` ve `panel/` birleşik tek kod tabanı» — **reddedildi**. Ayrı dizinler, ayrı `package.json`, farklı çalıştırma komutları.
 
-**Özet onaylı cümle (OD-043):** Dış kullanıcıya sunulan birincil üretim web yüzeyi **`ui/` (Astro)** kabul edilir. **`panel/`** birincil üretim yüzeyi değildir; mevcut rolü **legacy/statik E2E kalite kapısı**dır. **`frontend/`** canlı veya birincil yüzey sayılmaz. Root E2E’nin üretim yüzeyiyle hizalanması **OD-046 Seçenek A uygulamasına kadar beklemededir**.
+**Özet onaylı cümle (OD-043):** Dış kullanıcıya sunulan birincil üretim web yüzeyi **`ui/` (Astro)** kabul edilir. **`panel/`** birincil üretim yüzeyi değildir; **`e2e:legacy:*`** ile legacy/statik E2E kapısıdır. **`frontend/`** canlı veya birincil yüzey sayılmaz. Kök E2E hizası OD-046 ile **`ui/dist`** üzerinde **tamamlandı**.
 
 ---
 
@@ -153,12 +155,12 @@ OD-043 bu kanıtı **onaylı karar** olarak kilitler: birincil üretim/dış kul
 |---------------|--------|-----|
 | `npm run build` (kök) | `ui/dist` | Üretim deploy — **birincil yüzey** |
 | Vercel deploy | `ui/dist` | Dış kullanıcı — **birincil yüzey** |
-| `npm run e2e:package` (kök) | `panel/` statik | **Legacy E2E kalite kapısı** (mevcut); OD-046 A ile `ui/dist` veya Astro preview’a hizalanacak |
+| `npm run e2e:package` (kök) | `ui/dist` | **Birincil E2E kalite kapısı** (OD-046 A); legacy → `e2e:legacy:*` / `panel/` |
 | `cd ui && npm run dev` | Astro dev sunucusu | Yerel birincil yüzey geliştirme |
 | `cd panel && python3 -m http.server` | Statik panel | Yerel legacy/mock geliştirme |
 | `panel/e2e/run-frontend-task-loading.mjs` | `frontend/index.html` | Köprü E2E; birincil yüzey **değil** |
 
-**OD-046 özeti (bağlantılı):** Seçenek A seçildi — E2E kalite kapısı `ui/dist` veya Astro preview ile hizalanacak. Uygulama **ayrı paket**; OD-043 kararı E2E migrasyonunun tamamlanmasını beklemez.
+**OD-046 özeti (bağlantılı):** Seçenek A **uygulandı** — kök E2E `ui/dist` ile hizalı (PR #300–#305, #307). OD-043 formal kapanış bu hizalamaya dayanır.
 
 ---
 
@@ -181,7 +183,7 @@ Görev veya PR açılmadan önce:
 | Risk | Açıklama | Öncelik |
 |------|----------|---------|
 | **İsim çakışması** | `panel/` dizini vs `ui/.../panel.astro` vs «panel» ürün terimi | Yüksek |
-| **Build / E2E ayrışması** | Yeşil E2E `panel/` statikte geçer; üretim `ui/dist` farklı kod — OD-046 A beklemede | Yüksek (OD-046) |
+| **Build / E2E ayrışması** | Kök E2E `ui/dist` ile hizalandı; legacy `panel/` ayrı kapı — izole tutulmalı | Orta (legacy kapı) |
 | **Stale memory** | Eski notlarda tek yüzey (`ui` *veya* `panel`) iddiası | Orta |
 | **`frontend/` hayalet yüzey** | Dizin adı genel; deploy yok ama E2E var | Orta (OD-044) |
 | **Yanlış klasörde dev** | `panel/` sunucusu ile `ui/` Astro dev karışması | Orta |
@@ -193,9 +195,9 @@ Görev veya PR açılmadan önce:
 
 | ID | Soru | Bu belgedeki durum |
 |----|------|-------------------|
-| **OD-043** | Birincil yüzey `panel/`, `ui/` veya `frontend/` mi? | **Kapandı — onaylı:** birincil üretim/dış kullanıcı yüzeyi `ui/`; `panel/` legacy/statik E2E kapısı (üretim değil); `frontend/` birincil/canlı değil |
+| **OD-043** | Birincil yüzey `panel/`, `ui/` veya `frontend/` mi? | **Kapandı (closed):** birincil üretim/dış kullanıcı yüzeyi `ui/`; `panel/` legacy E2E; `frontend/` birincil/canlı değil |
 | **OD-044** | `frontend/` rolü ve yaşam döngüsü? | Canlı / birincil kabul **edilmedi**; arşiv / birleştirme / E2E-only — **kapanmadı** |
-| **OD-046** | Root build (ui) ile panel E2E hangi yüzeyi test eder? | **Seçenek A seçildi** — E2E `ui/dist` veya Astro preview’a hizalanacak; **uygulama beklemede** (ayrı paket) |
+| **OD-046** | Root build (ui) ile kök E2E hangi yüzeyi test eder? | **Kapandı (implementation-complete):** birincil kök E2E → `ui/dist`; legacy → `panel/` (#300–#307) |
 
 Diğer OD maddeleri bu belgenin kapsamı dışındadır.
 
@@ -205,30 +207,32 @@ Diğer OD maddeleri bu belgenin kapsamı dışındadır.
 
 | ID | Kaynak | Konu | Bu belgede netleşen | Durum | Çapraz not |
 |----|--------|------|---------------------|--------|------------|
-| **OD-043** | project-map-runtime-entrypoints.md | Birincil kullanıcı yüzeyi | Üç yüzey ayrıldı; birincil üretim = `ui/`; `panel/` = legacy E2E kapısı; `frontend/` = birincil değil | **decision-approved** | OD-046 uygulaması E2E hizasını tamamlar |
+| **OD-043** | project-map-runtime-entrypoints.md | Birincil kullanıcı yüzeyi | Üç yüzey ayrıldı; birincil üretim = `ui/`; `panel/` = legacy E2E; `frontend/` = birincil değil | **closed** | OD-046 (#300–#307) E2E hizası tamamlandı |
 | **OD-044** | project-map-runtime-entrypoints.md | `frontend/` rolü | Canlı / birincil yüzey **değil**; 2 dosya; izole E2E | **needs-review** | OD-043 ile bağlı |
-| **OD-046** | project-map-runtime-entrypoints.md | Root build vs panel E2E | Seçenek A: E2E → `ui/dist` veya Astro preview; uygulama ayrı paket | **pending-implementation** | OD-043 kararını bloklamaz |
+| **OD-046** | project-map-runtime-entrypoints.md | Root build vs panel E2E | Seçenek A uygulandı: birincil kök E2E → `ui/dist` | **implementation-complete** | OD-043 formal kapanış koşulu sağlandı |
 
 ---
 
 ## 11. Sonraki adım
 
-**Tek önerilen adım:** OD-046 Seçenek A **uygulama paketini** başlat — root E2E komutlarını `ui/dist` veya Astro preview hedefine taşı; `panel/` statik uygulamayı yalnızca legacy/E2E geçiş döneminde tut. OD-043 **kapandı**; E2E hizası tamamlanana kadar mevcut `panel/` E2E köprüsü geçerli kalır.
+**OD-043 kapandı.** Birincil yüzey `ui/`; kök E2E hizası OD-046 ile tamamlandı. Operasyonel takip: legacy `e2e:legacy:*` kullanımını azaltma ve prod smoke (OD-046 dışı backlog) — ayrı iş paketleri.
 
 ---
 
-## 12. Ayrı uygulama paketi (OD-046 A)
+## 12. OD-043 kapanış checklist
 
-OD-043 bu belgede kapanır; aşağıdaki işler **bu belge kapsamı dışında**, ayrı uygulama paketinde yürütülür:
+Formal kapanış koşulu: OD-046 **implementation-complete** (#300–#307).
 
-| Paket parçası | Kapsam | Not |
-|---------------|--------|-----|
-| **E2E migrasyonu** | Root `e2e:*` hedefini `panel/` statikten `ui/dist` veya Astro preview’a taşıma | OD-046 Seçenek A |
-| **Test komutları** | Root `package.json` ve `panel/package.json` E2E script güncellemesi | Kod değişikliği; bu belgeye dahil değil |
-| **Doc sync** | `project-map-runtime-entrypoints.md`, `open-decisions-needs-review.md`, ilgili README’ler | OD-046 kapanışıyla eşzamanlı |
+- [x] Birincil üretim/dış kullanıcı yüzeyi = `ui/` (Astro) — onaylı karar
+- [x] `panel/` birincil üretim değil; legacy E2E (`e2e:legacy:*`)
+- [x] `frontend/` birincil/canlı değil (OD-044 ayrı)
+- [x] Kök `e2e:package*` → `ui/dist` (OD-046)
+- [x] `open-decisions-needs-review.md` OD-043 **closed**
+- [x] `project-map-runtime-entrypoints.md` stale needs-review → closed/migrated
+- [x] `decision-log.md` DL-C02 güncellendi
 
-**Bekleme durumu:** E2E hizası **PENDING** — OD-046 Seçenek A uygulaması tamamlanana kadar root E2E mevcut `panel/` statik kapısını kullanmaya devam eder; bu, birincil üretim yüzeyinin `ui/` olduğu kararını değiştirmez.
+**Referans (OD-046 uygulama):** [`build-e2e-surface-alignment-decision.md`](build-e2e-surface-alignment-decision.md), [`od-046-e2e-migration-plan.md`](od-046-e2e-migration-plan.md) — PR #300–#307.
 
 ---
 
-Son güncelleme: 2026-06-17
+Son güncelleme: 2026-06-20 (OD-043 closed — post OD-046)

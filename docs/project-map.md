@@ -68,9 +68,9 @@ lumos  (veya python -m lumos_core)
 | `ui/` var mı? | **Evet** — Astro projesi mevcut | **proje haritası** |
 | Root build ne hedefler? | `ui/dist` | **proje haritası** |
 | `vercel.json` | `outputDirectory`: `ui/dist` | **proje haritası** |
-| Kök E2E | `--prefix panel` | **proje haritası** |
+| Kök E2E (birincil) | `ui/dist` (`e2e:package*`); legacy → `e2e:legacy:*` / `panel/` | **proje haritası** |
 
-> Eski not: «`ui/` görünmüyorsa build şüpheli» — **güncel repo'da `ui/` mevcut**; build komutu teknik olarak çalışabilir. Birincil yüzey ve build/E2E hizası ayrı karar (OD-043, OD-046).
+> Birincil üretim yüzeyi **`ui/`** (OD-043 **closed**). Kök E2E hizası OD-046 ile **`ui/dist`** (#300–#307).
 
 ---
 
@@ -107,16 +107,16 @@ lumos  (veya python -m lumos_core)
 1. Hedef `src/` zinciri mi, `packages/kando_*` aday mı?
 2. Panel mi (`panel/`), UI mı (`ui/`), frontend prototip mi (`frontend/`)?
 3. Bridge değişikliği `api/bridge/` + upstream env ile mi?
-4. Root `npm run build` → `ui/`; kök E2E → `panel/`.
+4. Root `npm run build` → `ui/`; birincil kök E2E → `ui/dist`; legacy → `e2e:legacy:*` / `panel/`.
 
 ---
 
 ## İlişkili belgeler
 
-- `docs/memory/primary-user-surface-decision.md` — OD-043
+- `docs/memory/primary-user-surface-decision.md` — OD-043 (**closed**)
 - `docs/memory/build-e2e-surface-alignment-decision.md` — OD-046
 - `docs/memory/frontend-role-decision.md` — OD-044
 
 ---
 
-Son güncelleme: 2026-06-17
+Son güncelleme: 2026-06-20 (OD-043 closed)
