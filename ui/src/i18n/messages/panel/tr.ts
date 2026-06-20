@@ -220,6 +220,18 @@ const panelModules = {
         micDenied: "Mikrofon izni verilmedi.",
         micUnavailable: "Mikrofon kullanılamıyor.",
       },
+      voiceHints: {
+        serviceUnavailable: "Tarayıcı ses tanıma servisi şu anda kullanılamıyor",
+        unsupported: "Bu tarayıcıda sesle yazma desteklenmiyor.",
+        noSpeech: "Konuşma algılanmadı.",
+        micUnavailable: "Mikrofon kullanılamıyor.",
+        micDenied: "Mikrofon izni verilmedi.",
+        aborted: "Sesli giriş iptal edildi.",
+        failed: "Sesli giriş başarısız oldu.",
+        startFailed: "Ses tanıma başlatılamadı. Tekrar deneyin.",
+        noResult:
+          "Ses algılanmadı veya tarayıcı konuşma sonucu üretmedi. Tekrar deneyin.",
+      },
     },
     bridgeBadgeLimited: "Sınırlı mod",
     transcript: {
