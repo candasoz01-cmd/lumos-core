@@ -47,6 +47,7 @@ const en: MessageTree = {
     askPlaceholder: "Example: Break a task into safe steps",
     askSubmit: "Open in panel",
     askHint: "No answer here; continue in the panel.",
+    askEmpty: "Enter a question to continue.",
   },
   landing,
   panel,

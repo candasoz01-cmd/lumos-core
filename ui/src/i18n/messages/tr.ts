@@ -46,6 +46,7 @@ const tr = {
     askPlaceholder: "Örnek: Bir görevi güvenli adımlara böl",
     askSubmit: "Geliştirici Panelini Aç",
     askHint: "Yanıt burada değil; geliştirici panelinde devam eder.",
+    askEmpty: "Devam etmek için bir soru yazın.",
   },
   landing,
   panel,
