@@ -161,6 +161,44 @@ const panelModules = {
       cancelRecord: "İptal",
       rerecord: "Yeniden kaydet",
       transcribe: "Metne çevir",
+      hints: {
+        pickOneAttachment: "Önce tek ek seçin",
+        photoReadFailed: "Fotoğraf okunamadı.",
+        audioOnly: "Yalnızca ses dosyası seçin.",
+        audioReadFailed: "Ses dosyası okunamadı.",
+        photoOffline: "Çevrimdışı modda görsel analizi kullanılamaz.",
+        photoLimitedUser: "Sınırlı moddasın (kullanıcı seçimi); görsel analizi denenmez.",
+        photoLimited: "Sınırlı modda görsel analizi kullanılamaz.",
+        audioOffline: "Çevrimdışı modda ses yalnızca yerel sohbette görünür.",
+        audioLimitedUser: "Sınırlı moddasın (kullanıcı seçimi); ses dış sohbete iletilmez.",
+        audioLimited: "Sınırlı modda ses yalnızca yerel sohbette görünür.",
+        limitedPhotoReply:
+          "Sınırlı modda fotoğraf analizi yapılamaz; dış görsel API köprüsü bağlı değil.",
+        offlinePhotoReply:
+          "Çevrimdışı modda fotoğraf analizi yapılamaz; internet erişimi kapalı.",
+        limitedAudioReply:
+          "Sınırlı modda ses kaydı yalnızca bu cihazda görünür; dış sohbete iletilmez.",
+        offlineAudioReply:
+          "Çevrimdışı modda ses kaydı yalnızca bu cihazda görünür; dış sohbete iletilmez.",
+        fullAudioReply:
+          "Tam modda ses kaydı yalnızca bu cihazda görünür; dış köprüye iletilmez.",
+        fullAudioHint:
+          "Tam modda ses kaydı dış köprüye iletilmez; metin ekleyin veya «Ses metne çevir» kullanın.",
+        responseUnreadable: "Yanıt okunamadı.",
+        sentOk: "Metin iletildi.",
+        clipboardUnsupported: "Panodan okuma bu tarayıcıda desteklenmiyor.",
+        clipboardDenied:
+          "Pano erişimi reddedildi. Tarayıcı iznini veya sayfa odakını kontrol edin.",
+        clipboardReadFailedPrefix: "Panodan okunamadı: ",
+        clipboardEmpty: "Pano boş görünüyor.",
+        clipboardReadFailed: "Panodan okunamadı.",
+        clipboardReadyWithSnippet:
+          'Panodaki metin hazır: "{snippet}" Göndermek için tekrar bas.',
+        clipboardReadyEmpty: 'Panodaki metin hazır: "" Göndermek için tekrar bas.',
+        httpSendFailedDebugPrefix: "Gönderilemedi (HTTP ",
+        httpSendFailedDebugSuffix: "). Tekrar dene.",
+        requestErrorDebugPrefix: "İstek hatası: ",
+      },
     },
     bridgeBadgeLimited: "Sınırlı mod",
     transcript: {

@@ -5694,18 +5694,6 @@ const PANEL_DEBUG = import.meta.env.DEV;
           void panelEvidenceRefreshStrip();
         }
       }
-      const PANEL_LIMITED_PHOTO_REPLY =
-        "Sınırlı modda fotoğraf analizi yapılamaz; dış görsel API köprüsü bağlı değil.";
-      const PANEL_OFFLINE_PHOTO_REPLY =
-        "Çevrimdışı modda fotoğraf analizi yapılamaz; internet erişimi kapalı.";
-      const PANEL_LIMITED_AUDIO_REPLY =
-        "Sınırlı modda ses kaydı yalnızca bu cihazda görünür; dış sohbete iletilmez.";
-      const PANEL_OFFLINE_AUDIO_REPLY =
-        "Çevrimdışı modda ses kaydı yalnızca bu cihazda görünür; dış sohbete iletilmez.";
-      const PANEL_FULL_AUDIO_REPLY =
-        "Tam modda ses kaydı yalnızca bu cihazda görünür; dış köprüye iletilmez.";
-      const PANEL_FULL_AUDIO_HINT =
-        "Tam modda ses kaydı dış köprüye iletilmez; metin ekleyin veya «Ses metne çevir» kullanın.";
       const PANEL_INFRA_UNAVAILABLE_MSG = "Köprü erişilemiyor (altyapı). Bağlantıyı kontrol edip tekrar deneyin.";
 
       function transcribeFailureUserMessage(result, filename, mime) {
@@ -6446,6 +6434,34 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const api = window.LumosI18n;
         if (api && typeof api.t === "function") return api.t(key);
         return key;
+      }
+
+      function panelComposePhotoHint(userMode) {
+        if (userMode === "offline") return panelT("panel.modules.chat.compose.hints.photoOffline");
+        if (userMode === "limited") {
+          return panelT("panel.modules.chat.compose.hints.photoLimitedUser");
+        }
+        return panelT("panel.modules.chat.compose.hints.photoLimited");
+      }
+
+      function panelComposeAudioHint(userMode) {
+        if (userMode === "offline") return panelT("panel.modules.chat.compose.hints.audioOffline");
+        if (userMode === "limited") {
+          return panelT("panel.modules.chat.compose.hints.audioLimitedUser");
+        }
+        return panelT("panel.modules.chat.compose.hints.audioLimited");
+      }
+
+      function panelComposePhotoReply(userMode) {
+        return userMode === "offline"
+          ? panelT("panel.modules.chat.compose.hints.offlinePhotoReply")
+          : panelT("panel.modules.chat.compose.hints.limitedPhotoReply");
+      }
+
+      function panelComposeAudioReply(userMode) {
+        return userMode === "offline"
+          ? panelT("panel.modules.chat.compose.hints.offlineAudioReply")
+          : panelT("panel.modules.chat.compose.hints.limitedAudioReply");
       }
 
       function gorevlerPriorityLabel(key) {
@@ -9012,7 +9028,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           const hasAudio = !!(audioRecordBlob && audioRecordBlob.size >= 512);
           if ((!message && !hasPhoto && !hasAudio) || sending) return;
           if (hasPhoto && hasAudio) {
-            setSendHint("Önce tek ek seçin");
+            setSendHint(panelT("panel.modules.chat.compose.hints.pickOneAttachment"));
             return;
           }
 
@@ -9026,7 +9042,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             try {
               imageDataUrlForBubble = await readFileAsDataUrl(photoFile);
             } catch {
-              setSendHint("Fotoğraf okunamadı.");
+              setSendHint(panelT("panel.modules.chat.compose.hints.photoReadFailed"));
               return;
             }
           }
@@ -9078,22 +9094,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
             sendBtn.setAttribute("aria-label", loadingLabel);
             sendBtn.setAttribute("title", loadingLabel);
             sendBtn.classList.add("chat-compose-send--busy");
-            const photoReply =
-              userMode === "offline" ? PANEL_OFFLINE_PHOTO_REPLY : PANEL_LIMITED_PHOTO_REPLY;
-            const audioReply =
-              userMode === "offline" ? PANEL_OFFLINE_AUDIO_REPLY : PANEL_LIMITED_AUDIO_REPLY;
-            const photoHint =
-              userMode === "offline"
-                ? "Çevrimdışı modda görsel analizi kullanılamaz."
-                : userMode === "limited"
-                  ? "Sınırlı moddasın (kullanıcı seçimi); görsel analizi denenmez."
-                  : "Sınırlı modda görsel analizi kullanılamaz.";
-            const audioHint =
-              userMode === "offline"
-                ? "Çevrimdışı modda ses yalnızca yerel sohbette görünür."
-                : userMode === "limited"
-                  ? "Sınırlı moddasın (kullanıcı seçimi); ses dış sohbete iletilmez."
-                  : "Sınırlı modda ses yalnızca yerel sohbette görünür.";
+            const photoReply = panelComposePhotoReply(userMode);
+            const audioReply = panelComposeAudioReply(userMode);
+            const photoHint = panelComposePhotoHint(userMode);
+            const audioHint = panelComposeAudioHint(userMode);
             try {
               if (hasPhoto) {
                 appendUserComposeBubble(message, imageDataUrlForBubble);
@@ -9223,8 +9227,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
 
           if (hasAudio && !outgoingMessage && !hasPhoto) {
-            appendBubble("lumos", PANEL_FULL_AUDIO_REPLY);
-            setSendHint(PANEL_FULL_AUDIO_HINT);
+            appendBubble("lumos", panelT("panel.modules.chat.compose.hints.fullAudioReply"));
+            setSendHint(panelT("panel.modules.chat.compose.hints.fullAudioHint"));
             input.value = "";
             clearPanelAudioRecordSelection();
             input.blur();
@@ -9313,8 +9317,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
               console.warn("[Lumos panel chat] HTTP error", r.status);
               setSendHint(
                 panelDebugText(
-                  "Gönderilemedi (HTTP " + r.status + "). Tekrar dene.",
-                  "İletim tamamlanamadı. Bağlantıyı kontrol edip tekrar dene.",
+                  panelT("panel.modules.chat.compose.hints.httpSendFailedDebugPrefix") +
+                    r.status +
+                    panelT("panel.modules.chat.compose.hints.httpSendFailedDebugSuffix"),
+                  panelT("panel.modules.chat.errors.network_error"),
                 ),
               );
               let upstreamErr = "";
@@ -9393,7 +9399,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             } else {
               const EMPTY_REPLY_MSG =
                 "Bu turda net bir yanıt üretemedim; biraz sonra tekrar deneyeceğim.";
-              const CHAT_BODY_UNUSABLE_HINT = "Yanıt okunamadı.";
+              const CHAT_BODY_UNUSABLE_HINT = panelT("panel.modules.chat.compose.hints.responseUnreadable");
               const CHAT_BODY_UNUSABLE_BUBBLE =
                 "Sunucudan gelen yanıtı işleyemedik. Biraz sonra yeniden deneyebilirsin.";
 
@@ -9521,8 +9527,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
               err && typeof err === "object" && err.name ? String(err.name) : "";
             setSendHint(
               panelDebugText(
-                "İstek hatası: " + netMsg.slice(0, 140),
-                "İletim tamamlanamadı. Bağlantıyı kontrol edip tekrar dene.",
+                panelT("panel.modules.chat.compose.hints.requestErrorDebugPrefix") +
+                  netMsg.slice(0, 140),
+                panelT("panel.modules.chat.errors.network_error"),
               ),
             );
             const netKind = classifyPanelChatFailure({
@@ -9607,8 +9614,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
             clipboardBtn.title = "Onayla ve panodaki metni gönder";
             const snippet = clipPreviewSnippet(text);
             const hint = snippet
-              ? 'Panodaki metin hazır: "' + snippet + '" Göndermek için tekrar bas.'
-              : 'Panodaki metin hazır: "" Göndermek için tekrar bas.';
+              ? panelT("panel.modules.chat.compose.hints.clipboardReadyWithSnippet").replace(
+                  "{snippet}",
+                  snippet,
+                )
+              : panelT("panel.modules.chat.compose.hints.clipboardReadyEmpty");
             setSendHint(hint);
           }
 
@@ -9645,23 +9655,23 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 return;
               }
               if (r.status === 401) {
-                setSendHint("Bağlantı doğrulanamadı. Cihaz ayarlarını kontrol edip tekrar dene.");
+                setSendHint(panelT("panel.modules.chat.errors.unauthorized"));
                 return;
               }
               if (!r.ok) {
-                setSendHint("İletim tamamlanamadı. Bağlantıyı kontrol edip tekrar dene.");
+                setSendHint(panelT("panel.modules.chat.errors.network_error"));
                 return;
               }
 
               const accepted =
                 data && (data.accepted === true || data.accepted === false) ? data.accepted : null;
               if (accepted === false) {
-                setSendHint("İletim tamamlanamadı. Bağlantıyı kontrol edip tekrar dene.");
+                setSendHint(panelT("panel.modules.chat.errors.network_error"));
                 return;
               }
-              setSendHint("Metin iletildi.");
+              setSendHint(panelT("panel.modules.chat.compose.hints.sentOk"));
             } catch {
-              setSendHint("İletim tamamlanamadı. Bağlantıyı kontrol edip tekrar dene.");
+              setSendHint(panelT("panel.modules.chat.errors.network_error"));
             } finally {
               clipboardSending = false;
               clipboardBtn.disabled = false;
@@ -9683,7 +9693,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
             try {
               if (!navigator.clipboard || typeof navigator.clipboard.readText !== "function") {
-                setSendHint("Panodan okuma bu tarayıcıda desteklenmiyor.");
+                setSendHint(panelT("panel.modules.chat.compose.hints.clipboardUnsupported"));
                 return;
               }
 
@@ -9693,24 +9703,27 @@ const PANEL_DEBUG = import.meta.env.DEV;
               } catch (err) {
                 const name = err && typeof err === "object" && "name" in err ? String(err.name) : "";
                 if (name === "NotAllowedError") {
-                  setSendHint("Pano erişimi reddedildi. Tarayıcı iznini veya sayfa odakını kontrol edin.");
+                  setSendHint(panelT("panel.modules.chat.compose.hints.clipboardDenied"));
                 } else {
                   const msg =
                     err && typeof err === "object" && "message" in err ? String(err.message) : String(err);
-                  setSendHint("Panodan okunamadı: " + msg.slice(0, 120));
+                  setSendHint(
+                    panelT("panel.modules.chat.compose.hints.clipboardReadFailedPrefix") +
+                      msg.slice(0, 120),
+                  );
                 }
                 return;
               }
 
               const trimmed = String(clipboardText || "").trim();
               if (!trimmed) {
-                setSendHint("Pano boş görünüyor.");
+                setSendHint(panelT("panel.modules.chat.compose.hints.clipboardEmpty"));
                 return;
               }
 
               setClipPending(trimmed);
             } catch {
-              setSendHint("Panodan okunamadı.");
+              setSendHint(panelT("panel.modules.chat.compose.hints.clipboardReadFailed"));
             }
           });
         }
@@ -10405,7 +10418,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           setCameraHint("");
           if (!f) return;
           if (!/^audio\//.test(f.type || "")) {
-            setSendHint("Yalnızca ses dosyası seçin.");
+            setSendHint(panelT("panel.modules.chat.compose.hints.audioOnly"));
             return;
           }
           const photoFile =
@@ -10415,7 +10428,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           const hasPhoto = !!(photoFile && /^image\//.test(photoFile.type));
           const hasPendingRecord = !!(audioRecordBlob && audioRecordBlob.size >= 512);
           if (hasPhoto || hasPendingRecord || isAudioRecording) {
-            setSendHint("Önce tek ek seçin");
+            setSendHint(panelT("panel.modules.chat.compose.hints.pickOneAttachment"));
             return;
           }
           let audioBubbleUrl = null;
@@ -10423,7 +10436,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             audioBubbleUrl = URL.createObjectURL(f);
             audioBubbleObjectUrls.add(audioBubbleUrl);
           } catch {
-            setSendHint("Ses dosyası okunamadı.");
+            setSendHint(panelT("panel.modules.chat.compose.hints.audioReadFailed"));
             return;
           }
           appendUserComposeBubble("Ses dosyası eklendi", null, audioBubbleUrl, {
@@ -10432,17 +10445,16 @@ const PANEL_DEBUG = import.meta.env.DEV;
             size: f.size,
           }, f);
           if (!shouldAttemptRemoteChat()) {
-            const audioReply =
-              isOfflineUserMode() ? PANEL_OFFLINE_AUDIO_REPLY : PANEL_LIMITED_AUDIO_REPLY;
+            const audioReply = panelComposeAudioReply(
+              isOfflineUserMode() ? "offline" : "limited",
+            );
             appendBubble("lumos", audioReply);
             setSendHint(
-              isOfflineUserMode()
-                ? "Çevrimdışı modda ses yalnızca yerel sohbette görünür."
-                : "Sınırlı moddasın (kullanıcı seçimi); ses dış sohbete iletilmez.",
+              panelComposeAudioHint(isOfflineUserMode() ? "offline" : "limited"),
             );
           } else {
-            appendBubble("lumos", PANEL_FULL_AUDIO_REPLY);
-            setSendHint(PANEL_FULL_AUDIO_HINT);
+            appendBubble("lumos", panelT("panel.modules.chat.compose.hints.fullAudioReply"));
+            setSendHint(panelT("panel.modules.chat.compose.hints.fullAudioHint"));
           }
           input.blur();
           resetPanelHorizontalScrollAfterInputBlur();

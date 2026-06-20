@@ -161,6 +161,45 @@ const panel: typeof panelTr = {
       cancelRecord: "Cancel",
       rerecord: "Re-record",
       transcribe: "Transcribe",
+      hints: {
+        pickOneAttachment: "Choose one attachment at a time",
+        photoReadFailed: "Could not read the photo.",
+        audioOnly: "Choose an audio file only.",
+        audioReadFailed: "Could not read the audio file.",
+        photoOffline: "Image analysis is unavailable offline.",
+        photoLimitedUser: "You are in limited mode (user choice); image analysis is not attempted.",
+        photoLimited: "Image analysis is unavailable in limited mode.",
+        audioOffline: "Audio stays in the local chat thread while offline.",
+        audioLimitedUser:
+          "You are in limited mode (user choice); audio is not sent to external chat.",
+        audioLimited: "Audio stays in the local chat thread in limited mode.",
+        limitedPhotoReply:
+          "Photo analysis is unavailable in limited mode; the external image API bridge is not connected.",
+        offlinePhotoReply:
+          "Photo analysis is unavailable offline; internet access is disabled.",
+        limitedAudioReply:
+          "Audio recordings stay on this device in limited mode; they are not sent to external chat.",
+        offlineAudioReply:
+          "Audio recordings stay on this device while offline; they are not sent to external chat.",
+        fullAudioReply:
+          "Audio recordings stay on this device in full mode; they are not sent to the external bridge.",
+        fullAudioHint:
+          "In full mode audio is not sent to the external bridge; add text or use «Transcribe».",
+        responseUnreadable: "Could not read the response.",
+        sentOk: "Text delivered.",
+        clipboardUnsupported: "Clipboard read is not supported in this browser.",
+        clipboardDenied:
+          "Clipboard access was denied. Check browser permission or page focus.",
+        clipboardReadFailedPrefix: "Could not read clipboard: ",
+        clipboardEmpty: "Clipboard appears empty.",
+        clipboardReadFailed: "Could not read clipboard.",
+        clipboardReadyWithSnippet:
+          'Clipboard text ready: "{snippet}" Tap again to send.',
+        clipboardReadyEmpty: 'Clipboard text ready: "" Tap again to send.',
+        httpSendFailedDebugPrefix: "Send failed (HTTP ",
+        httpSendFailedDebugSuffix: "). Try again.",
+        requestErrorDebugPrefix: "Request error: ",
+      },
     },
     bridgeBadgeLimited: "Limited mode",
     transcript: {

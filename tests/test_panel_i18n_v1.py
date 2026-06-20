@@ -190,6 +190,21 @@ PANEL_I18N_V10_TR_KEYS = (
     "addToChat:",
 )
 
+PANEL_I18N_V11_MARKERS = (
+    'panelT("panel.modules.chat.compose.hints.pickOneAttachment")',
+    'panelT("panel.modules.chat.compose.hints.fullAudioHint")',
+    'panelT("panel.modules.chat.errors.network_error")',
+    'function panelComposePhotoHint(',
+    'function panelComposeAudioReply(',
+)
+
+PANEL_I18N_V11_TR_KEYS = (
+    "hints:",
+    "pickOneAttachment:",
+    "fullAudioHint:",
+    "clipboardReadyWithSnippet:",
+)
+
 
 
 def test_panel_astro_i18n_wiring_present() -> None:
@@ -338,3 +353,19 @@ def test_panel_i18n_v10_transcript_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V10_TR_KEYS:
         assert key in tr_text, f"missing panel tr v10 key fragment: {key}"
         assert key in en_text, f"missing panel en v10 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v11_compose_hints_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V11_MARKERS:
+        assert token in text, f"missing panel i18n v11 token: {token}"
+    assert "PANEL_FULL_AUDIO_HINT" not in text
+    assert 'setSendHint("Önce tek ek seçin")' not in text
+
+
+def test_panel_i18n_v11_compose_hints_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V11_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v11 key fragment: {key}"
+        assert key in en_text, f"missing panel en v11 key fragment: {key}"
