@@ -201,12 +201,9 @@ echo "=== 7b) Burst: aynı user+post 4 yazma / 10s → 4. 429 ==="
 PBURST=$(curl -sf -X POST "$BASE_URL/posts" -H "Content-Type: application/json" \
   -d "{\"content\":\"burst test\",\"userId\":\"$USER1_ID\"}") || die "post burst"
 POST_BURST=$(echo "$PBURST" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
-curl -sf -X POST "$BASE_URL/posts/$POST_BURST/rate" -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $USER1_TOKEN" -d "{\"value\":1}" >/dev/null
-curl -sf -X POST "$BASE_URL/posts/$POST_BURST/rate" -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $USER1_TOKEN" -d "{\"value\":2}" >/dev/null
-curl -sf -X POST "$BASE_URL/posts/$POST_BURST/rate" -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $USER1_TOKEN" -d "{\"value\":3}" >/dev/null
+rate_post "$POST_BURST" "$USER1_TOKEN" 1 || die "burst rate 1"
+rate_post "$POST_BURST" "$USER1_TOKEN" 2 || die "burst rate 2"
+rate_post "$POST_BURST" "$USER1_TOKEN" 3 || die "burst rate 3"
 CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/posts/$POST_BURST/rate" \
   -H "Content-Type: application/json" -H "Authorization: Bearer $USER1_TOKEN" \
   -d "{\"value\":4}")
