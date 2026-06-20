@@ -676,20 +676,20 @@ const panelModules = {
   settings: {
     intro:
       "Bu sekme, kullanıcı tercihlerinin, bağlantı ve izin sınırlarının ve varsayılan davranışların kullanıcı kontrolünde ve görünür kalması için tasarlanan yaklaşımı özetler.",
-    c1Title: "Kullanıcı Tercihleri",
-    c1Body: "Dil, tema, bildirim yoğunluğu gibi seçenekler anlaşılır gruplarda sunulmayı hedefler.",
-    c2Title: "Sınırlar ve İzinler",
+    c1Title: "Kullanıcı modu",
+    c1Body:
+      "Panelin çalışma kapsamını siz seçersiniz. Bu tercih altyapı bağlantı durumundan ayrıdır; köprü rozeti yalnızca teknik durumu gösterir.",
+    c2Title: "Altyapı durumu",
     c2Body:
-      "Hangi özelliğin hangi izne bağlı olduğu kısa özetlerle gösterilir; kapalı tutulan izinler sessizce açılmaz.",
-    c3Title: "Bağlantı Ayarları",
-    c3Body:
-      "Harici servis ve hesap bağlantıları tek yerden görülebilir; gerektiğinde kesme ve yeniden bağlanma kullanıcıdadır.",
-    c4Title: "Görünürlük ve Güvenlik Tercihleri",
+      "Köprü, anahtar, sağlık ve ağ durumu — kullanıcı modundan bağımsız teknik özet.",
+    c3Title: "Kullanıcı Tercihleri",
+    c3Body: "Dil, tema, bildirim yoğunluğu gibi seçenekler anlaşılır gruplarda sunulmayı hedefler.",
+    c4Title: "Sınırlar ve İzinler",
     c4Body:
-      "Paylaşım, günlük veya veri saklama ile ilgili seçenekler birbirinden ayrılır; her biri net bir açıklamayla sunulur.",
-    c5Title: "Varsayılanlar ve Kontrol",
+      "Hangi özelliğin hangi izne bağlı olduğu kısa özetlerle gösterilir; kapalı tutulan izinler sessizce açılmaz.",
+    c5Title: "Bağlantı Ayarları",
     c5Body:
-      "Öntanımlı davranışlar kabul edilmeden önce kullanıcıya gösterilir; değişiklikler geri alınabilir biçimde tutulmayı hedefler.",
+      "Harici servis ve hesap bağlantıları tek yerden görülebilir; gerektiğinde kesme ve yeniden bağlanma kullanıcıdadır.",
   },
   capabilities: {
     intro:
@@ -717,6 +717,17 @@ const panelShell = {
     tokenPresent: "Tanımlı",
     online: "Çevrimiçi",
     offline: "Çevrimdışı",
+    labelBridge: "Köprü",
+    labelToken: "Anahtar",
+    labelHealth: "Sağlık",
+    labelInternet: "İnternet",
+    unavailableShort: "Köprü erişilemiyor (altyapı)",
+    unavailableMsg:
+      "Köprü erişilemiyor (altyapı). Bağlantıyı kontrol edip tekrar deneyin.",
+    healthPending: "bekleniyor…",
+    healthTrying: "deneniyor…",
+    healthOk: "OK",
+    healthUnreachable: "erişilemedi",
   },
   userMode: {
     menuOffline: "Offline",
