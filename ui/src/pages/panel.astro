@@ -2826,13 +2826,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
         }
       }
       .chat-voice-hint,
-      .chat-camera-hint {
+      .chat-camera-hint,
+      .panel-hero-prefill-banner {
         margin: 0;
         padding: 0 0.4rem;
         font-size: 0.68rem;
         line-height: 1.45;
         letter-spacing: 0.01em;
         color: rgba(184, 160, 130, 0.88);
+      }
+      .panel-hero-prefill-banner {
+        color: rgba(120, 196, 176, 0.92);
       }
       .lumos-security-note {
         margin: 0 auto;
@@ -4428,6 +4432,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                     </button>
                   </div>
                 </div>
+                <p id="panel-hero-prefill-banner" class="panel-hero-prefill-banner" role="status" aria-live="polite" hidden data-i18n="panel.modules.chat.empty.heroPrefillBanner"></p>
                 <p id="panel-voice-hint" class="chat-voice-hint" role="status" aria-live="polite" hidden></p>
                 <p id="panel-camera-hint" class="chat-camera-hint" role="status" aria-live="polite" hidden></p>
                 <p id="panel-send-limited-hint" class="panel-limited-note" role="note" hidden></p>
@@ -7144,13 +7149,30 @@ const PANEL_DEBUG = import.meta.env.DEV;
         } catch {
           chatInput.focus();
         }
+        try {
+          chatInput.scrollIntoView({ behavior: "smooth", block: "center" });
+        } catch {
+          chatInput.scrollIntoView();
+        }
         return true;
+      }
+
+      function showPanelHeroPrefillBanner() {
+        const banner = document.getElementById("panel-hero-prefill-banner");
+        if (!banner) return;
+        banner.textContent = panelT("panel.modules.chat.empty.heroPrefillBanner");
+        banner.hidden = false;
       }
 
       function prefillPanelChatFromUrlQuery() {
         try {
           const q = new URLSearchParams(window.location.search).get("q");
-          if (q && String(q).trim()) return prefillPanelChatFromEvidence(q);
+          if (q && String(q).trim()) {
+            navigatePanelModule("sohbet");
+            const ok = prefillPanelChatFromEvidence(q);
+            if (ok) showPanelHeroPrefillBanner();
+            return ok;
+          }
         } catch {
           /* ignore */
         }

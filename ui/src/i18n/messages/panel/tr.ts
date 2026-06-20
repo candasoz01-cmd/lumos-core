@@ -110,6 +110,8 @@ const panelModules = {
       limitedUserSub: "Yerel görevler kullanılabilir; bu modda dış sohbet köprüsü denenmez.",
       offline: "Çevrimdışı mod · İnternet kullanılmaz",
       offlineSub: "Yerel işlemler kullanılabilir; dış bağlantı bu modda denenmez.",
+      heroPrefillBanner:
+        "Landing sorusu buraya taşındı — göndermeden önce kontrol edin.",
     },
     modeHints: {
       sendLimited: "Sınırlı mod: dış sohbet köprüsü yok; yerel yanıtlar ve görev komutları kullanılabilir.",

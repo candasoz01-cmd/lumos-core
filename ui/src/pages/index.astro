@@ -2262,6 +2262,7 @@ const ADR_QUANTUM_URL = `${GITHUB_REPO_URL}/blob/main/docs/decisions/ADR-001-lum
               <input
                 class="lumos-hero-ask__field"
                 id="lumos-hero-ask-input"
+                name="q"
                 type="text"
                 inputmode="text"
                 placeholder="Örnek: Bir görevi güvenli adımlara böl"
@@ -3074,11 +3075,9 @@ vercel dev</code></pre>
         var input = document.getElementById("lumos-hero-ask-input");
         if (form && input) {
           form.addEventListener("submit", function (e) {
-            e.preventDefault();
             var q = String(input.value || "").trim();
-            if (q) {
-              window.location.href = "/panel?q=" + encodeURIComponent(q);
-            } else {
+            if (!q) {
+              e.preventDefault();
               window.location.href = "/panel";
             }
           });

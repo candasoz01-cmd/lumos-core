@@ -668,6 +668,17 @@ PANEL_I18N_V38_TR_KEYS = (
     "evidenceUnreachable:",
 )
 
+PANEL_I18N_V39_MARKERS = (
+    'panelT("panel.modules.chat.empty.heroPrefillBanner")',
+    "showPanelHeroPrefillBanner",
+    'navigatePanelModule("sohbet")',
+    "scrollIntoView({ behavior: \"smooth\", block: \"center\" })",
+)
+
+PANEL_I18N_V39_TR_KEYS = (
+    "heroPrefillBanner:",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -1312,3 +1323,17 @@ def test_panel_i18n_v38_evidence_unreachable_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V38_TR_KEYS:
         assert key in tr_text, f"missing panel tr v38 key fragment: {key}"
         assert key in en_text, f"missing panel en v38 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v39_hero_prefill_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V39_MARKERS:
+        assert token in text, f"missing panel i18n v39 token: {token}"
+
+
+def test_panel_i18n_v39_hero_prefill_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V39_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v39 key fragment: {key}"
+        assert key in en_text, f"missing panel en v39 key fragment: {key}"
