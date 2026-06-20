@@ -1,6 +1,6 @@
 # Prod panel smoke — A3 karar
 
-**Durum:** `approved-for-implementation` — kullanıcı açık komutu (2026-06-20 backlog A3).  
+**Durum:** **`implementation-complete`** (PR #323).  
 **Kaynak:** OD-046 non-goals — [`build-e2e-surface-alignment-decision.md`](./build-e2e-surface-alignment-decision.md) § prod smoke ayrı backlog; [`LUMOS_V1_READINESS.md`](../LUMOS_V1_READINESS.md) §6.  
 **Hedef URL:** `https://welockai.com/panel` (public; override: `LUMOS_PROD_PANEL_URL`).
 

@@ -1,6 +1,6 @@
 # panel/scripts — canlı köprü sunucuları
 
-Statik legacy panel uygulaması **`archive/panel/`** altına taşındı (Seçenek C — PR #319).
+Statik legacy panel uygulaması **`archive/panel/`** altına taşındı (Seçenek C — PR #320). Karar: [`od-panel-retirement-option-c-decision.md`](../docs/memory/od-panel-retirement-option-c-decision.md) (**DL-C09** / **DL-A20**).
 
 Bu dizinde yalnızca **canlı** köprü betikleri kalır:
 
