@@ -14,7 +14,11 @@ MAIL_VAULT_PROVIDER = "gmail_oauth"
 
 @dataclass(frozen=True)
 class VaultCredentialRef:
-    """Opak vault referansı — secret/token içermez."""
+    """Opak vault referansı — secret/token içermez.
+
+    Post-OAuth şema (Gmail dar v1): ref_id ``mail-read:{account_id}``,
+    purpose_code ``integration.mail.read`` — bkz. oauth_contract + gmail-oauth-callback-contract.md.
+    """
 
     purpose_code: str
     ref_id: str
@@ -68,6 +72,7 @@ def get_vault_credential_bridge() -> MailVaultBridge:
 
 
 def mail_read_credential_ref(account_id: str) -> VaultCredentialRef:
+    """OAuth callback sonrası vault credential ref — ``mail-read:{account_id}``."""
     return VaultCredentialRef(
         purpose_code=VAULT_PURPOSE_MAIL_READ,
         ref_id=f"mail-read:{account_id}",
