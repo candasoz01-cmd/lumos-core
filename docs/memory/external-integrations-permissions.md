@@ -62,24 +62,30 @@ Kullanıcı **açık onayı** olmadan aşağıdaki işlemler **yapılmaz**:
 
 ## Mail entegrasyonu
 
-> **OD-031 kapsam notu:** Onaylı karar belgesi [`mail-integration-approval-decision.md`](./mail-integration-approval-decision.md) artık **genel iletişim kanalları otomasyon modelini** tanımlar; **mail ilk uygulama kanalıdır**. Telegram, WhatsApp, Messenger, SMS ve sosyal DM gelecek genişleme adaylarıdır — aynı ilke omurgası, kanal başına ayrı teknik değerlendirme.
+> **OD-031 kapsam notu:** Tam strateji belgesi private strategy vault'ta. Public repoda yalnızca ADR-002 seviyesi ilke ve stub referansları tutulur — [`public-mail-strategy-boundary.md`](./public-mail-strategy-boundary.md).
 
-**Durum:** `[decision-approved / implementation-pending]` — ilke kararları onaylı; uygulama yok. **Onaylı karar özeti:** [`mail-integration-approval-decision.md`](./mail-integration-approval-decision.md) (OD-031) — iletişim kanalları otomasyon modeli (mail ilk kanal); özetleme/pasif okuma sınırı yok; izin paketi sınırları içinde tam otomasyon mümkün; varsayılan pasif; OD-041/OD-012/product-rules hibrit onay hizası.
+**Durum:** `[decision-approved / implementation-pending]` — ilke kararları onaylı; uygulama yok.
 
-### Hedef davranış (gelecek — mail ilk kanal)
+**Public referanslar (demo-safe):**
 
-- Lumos, **açık izin paketiyle** gelen e-postaları takip eder; varsayılan pasif — izin olmadan okuma yok; grant sonrası okuma, bildirim ve sınıflandırma.
-- Kullanıcı tanımlı kurallarla (kişi, domain, konu, içerik, görev, önem) kontrollü otomasyon — bildirim, taslak, kural-kapsamlı otomatik yanıt (açık opt-in, revoke edilebilir); tam otomasyon izin paketi sınırları içinde mümkün.
+- [`docs/decisions/ADR-002-mail-inbox-intelligence.md`](../decisions/ADR-002-mail-inbox-intelligence.md) — taslak; onaysız okuma/gönderim yok; öneri/önizleme ile gerçek aksiyon ayrımı
+- [`mail-integration-approval-decision.md`](./mail-integration-approval-decision.md) (OD-031) — private strategy notice stub
+- [`mail-strategy-migration-index.md`](../mail-strategy-migration-index.md) — taşınan belgeler indeksi
 
-### Tasarım ilkeleri
+### Hedef davranış (public özet — ADR-002 hizası)
+
+- Mail, inbox intelligence için **ilk aday kanal**; diğer iletişim kanalları gelecekte ayrı değerlendirme.
+- **Varsayılan kapalı:** izin olmadan okuma, gönderme veya dış etki yok.
+- **Taslak kapsam:** okuma + önem önceliği sunumu + önerilen aksiyonlar (önizleme); gönder/sil/arşiv ayrı onay gerektirir.
+- Kural motoru, granüler izin matrisi, provider seçimi ve connector uygulaması → **private katman** (stub: [`mail-integration-approval-decision.md`](./mail-integration-approval-decision.md)).
+
+### Tasarım ilkeleri (public)
 
 | İlke | Açıklama |
 |------|----------|
 | İzinli erişim | Yalnızca kullanıcının açıkça verdiği mail erişim izni |
-| Gizlilik sınırı | Hangi kutular/etiketler kapsamda net tanımlı |
-| Önem sıralaması | Özet önceliği kullanıcıya şeffaf kriterlerle |
-| Kaynak atıfı | Her özet hangi mesaj/kaynakla ilişkili açıkça belirtilir |
-| Aksiyon ayrımı | Okuma/özet ↔ gönder/sil/arşiv: ayrı onay katmanı |
+| Kaynak atıfı | Özet/öneri hangi kaynağa dayanıyor belirtilir |
+| Aksiyon ayrımı | Okuma/özet ↔ gönder/sil/arşiv: ayrı onay katmanı (ADR-002) |
 
 ### Yasak (açık yetkilendirme olmadan)
 
@@ -281,4 +287,4 @@ ChatGPT Saved Memories'ten henüz işlenmemiş maddeler için şablon. Taşıma 
 
 ---
 
-*Son güncelleme: 2026-06-18*
+*Son güncelleme: 2026-06-21 (OD-031 Phase 2 Step 3 — mail bölümü ADR-002/stub seviyesine redakte)*

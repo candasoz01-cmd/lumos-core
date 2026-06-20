@@ -1,10 +1,10 @@
 # Gmail OAuth callback contract (public-safe)
 
-**Durum:** PR1 — contract + types only. **HTTP handler, token exchange ve Infisical yazma bu PR'da yok.**
+**Durum:** PR1 — contract + types only. **HTTP handler, token exchange ve vault credential yazma bu PR'da yok.**
 
 İlgili kod: `src/integrations/mail/oauth_contract.py`  
 Vault ref: `src/integrations/mail/vault_credential.py` — `mail_read_credential_ref`  
-Runbook: [`vault-infisical-poc-runbook.md`](./vault-infisical-poc-runbook.md)
+Private ops: [`ops-runbooks-private-notice.md`](../ops-runbooks-private-notice.md) · [`ops-runbooks-migration-index.md`](../ops-runbooks-migration-index.md)
 
 ---
 
@@ -15,7 +15,7 @@ sequenceDiagram
     participant User
     participant Lumos as Lumos (private handler)
     participant Google as Google OAuth
-    participant Vault as Infisical vault
+    participant Vault as Private vault (ops layer)
 
     User->>Lumos: authorize (account_id, session)
     Lumos->>Google: redirect (scope gmail.readonly, state)
@@ -23,13 +23,13 @@ sequenceDiagram
     Google->>Lumos: callback ?code=&state=
     Lumos->>Lumos: evaluate_oauth_callback (contract)
     Lumos->>Vault: write credential ref mail-read:{account_id}
-    Note over Lumos,Vault: PR2 — secret read/write impl
+    Note over Lumos,Vault: PR2 — secret read/write impl (private ops)
     Lumos->>Lumos: mail-read ref ready for connector
 ```
 
 1. **Authorize** — kullanıcı Gmail OAuth onayına yönlendirilir; `state` payload `account_id`, `session_id`, `nonce` taşır (secret yok).
 2. **Callback** — Google redirect query: `code`, `state`; hata durumunda `error`, `error_description`.
-3. **Vault write** — başarılı callback sonrası OAuth token **private operatör katmanında** Infisical'a `mail-read:{account_id}` ref ile yazılır (PR2).
+3. **Vault write** — başarılı callback sonrası OAuth token **private operatör katmanında** vault'a `mail-read:{account_id}` ref ile yazılır (PR2; runbook private ops vault'ta).
 4. **Mail-read ref** — `GmailOAuthConnector` vault bridge üzerinden `mail_read_credential_ref(account_id)` ile okur.
 
 ---
@@ -53,12 +53,12 @@ sequenceDiagram
 |--------|---------------------|------------------|
 | OAuth scope sabitleri | `GMAIL_OAUTH_SCOPE_READONLY`, `GMAIL_OAUTH_SCOPES_DAR_V1` | — |
 | Callback spec + types | `oauth_contract.py`, bu belge | — |
-| Vault ref adlandırma | `mail-read:{account_id}`, purpose `integration.mail.read` | Infisical secret path / RBAC |
+| Vault ref adlandırma | `mail-read:{account_id}`, purpose `integration.mail.read` | Secret path / RBAC (private ops) |
 | Client ID / secret | — | Google Cloud OAuth client |
 | Redirect URI (canlı) | path pattern only | HTTPS endpoint deploy |
 | HTTP callback handler | **Yok (PR1)** | Private route impl |
 | Authorization code → token exchange | **Yok (PR1)** | Google token endpoint |
-| Infisical token write | **Yok (PR1)** | PR2 operatör runbook |
+| Vault token write | **Yok (PR1)** | PR2 operatör runbook (private ops vault) |
 
 ---
 
@@ -95,6 +95,14 @@ Connector: `GmailOAuthConnector.list_unread_summaries` vault configured ise bu r
 
 - HTTP route / handler implementasyonu yok
 - Google token exchange yok
-- Infisical secret read/write yok (PR2)
+- Vault secret read/write yok (PR2 — private ops)
 - Gmail API smoke test yok (PR3)
 - Panel UI (M3) dokunulmadı
+
+---
+
+## Revision history
+
+| Date | Change |
+|------|--------|
+| 2026-06-21 | OD-031 Phase 2 Step 3 — vault write ops trimmed; private ops pointers only |
