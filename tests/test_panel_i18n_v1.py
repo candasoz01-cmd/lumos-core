@@ -375,6 +375,20 @@ PANEL_I18N_V21_TR_KEYS = (
     "healthUnreachable:",
 )
 
+PANEL_I18N_V22_MARKERS = (
+    'data-i18n="panel.modules.settings.c6Title"',
+    'data-i18n="panel.modules.settings.c6Body"',
+    'data-i18n="panel.modules.settings.c7Title"',
+    'data-i18n="panel.modules.settings.c7Body"',
+)
+
+PANEL_I18N_V22_TR_KEYS = (
+    "c6Title:",
+    "c6Body:",
+    "c7Title:",
+    "c7Body:",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -716,3 +730,19 @@ def test_panel_i18n_v21_infra_health_labels_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V21_TR_KEYS:
         assert key in tr_text, f"missing panel tr v21 key fragment: {key}"
         assert key in en_text, f"missing panel en v21 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v22_settings_c6_c7_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V22_MARKERS:
+        assert token in text, f"missing panel i18n v22 token: {token}"
+    assert "<h3>Görünürlük ve Güvenlik Tercihleri</h3>" not in text
+    assert "<h3>Varsayılanlar ve Kontrol</h3>" not in text
+
+
+def test_panel_i18n_v22_settings_c6_c7_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V22_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v22 key fragment: {key}"
+        assert key in en_text, f"missing panel en v22 key fragment: {key}"

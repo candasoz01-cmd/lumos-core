@@ -694,6 +694,12 @@ const panel: typeof panelTr = {
     c5Title: "Connection settings",
     c5Body:
       "External service and account links can be seen in one place; disconnecting and reconnecting stays with you when needed.",
+    c6Title: "Visibility and security preferences",
+    c6Body:
+      "Sharing, logging, or data retention options are separated from each other; each is presented with a clear explanation.",
+    c7Title: "Defaults and control",
+    c7Body:
+      "Default behaviors are shown to you before acceptance; changes aim to remain reversible.",
   },
   capabilities: {
     intro:
