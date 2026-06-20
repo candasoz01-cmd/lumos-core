@@ -5598,8 +5598,6 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
       const GOREVLER_FIELD_MAX_LEN = 2048;
       const bridgeTokenMissing = !PANEL_DEBUG && !String(kandoToken || "").trim();
-      const BRIDGE_TOKEN_MSG =
-        "Panel bağlantısı yapılandırılmamış. Köprü ve pano işlemleri bu ortamda devre dışı; cihaz yöneticinizden bağlantı anahtarını tanımlamasını isteyin.";
       /** Phase 1: görev köprüsü same-origin proxy; tarayıcı token taşımaz. */
       const TASK_BRIDGE_URL = "/api/bridge/task";
       /** Phase 2: medya outbox (last-result) same-origin proxy; tarayıcı token taşımaz. */
@@ -6411,13 +6409,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
         applyUserModeUi();
       }
 
-      /** Rozet zaten köprü kapalı durumunu gösteriyorsa uzun BRIDGE_TOKEN_MSG tekrarlanmasın. */
+      /** Rozet zaten köprü kapalı durumunu gösteriyorsa uzun bridgeTokenMsg tekrarlanmasın. */
       function shouldSuppressBridgeHint() {
         return bridgeOpsBlocked();
       }
 
       function bridgeBlockedUserHint() {
-        return shouldSuppressBridgeHint() ? "" : BRIDGE_TOKEN_MSG;
+        return shouldSuppressBridgeHint() ? "" : panelT("panel.shell.infra.bridgeTokenMsg");
       }
 
       function taskBridgeBlockedResponse(status) {
@@ -6467,10 +6465,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
         s = s.replace(/\bHTTP\s+\d+\b/gi, "istek hatası");
         s = s.replace(/panel_tasks_server/gi, "görev servisi");
         s = s.replace(/bridge_start\.sh/gi, "bağlantı başlatma");
-        s = s.replace(/\bcomplete_failed\b/gi, "kayıt tamamlanamadı");
-        s = s.replace(/\bcreate_failed\b/gi, "kayıt başarısız");
-        s = s.replace(/\bdelete_failed\b/gi, "silme başarısız");
-        s = s.replace(/\brestore_failed\b/gi, "geri alma başarısız");
+        s = s.replace(/\bcomplete_failed\b/gi, panelT("panel.modules.tasks.hints.leakCompleteFailed"));
+        s = s.replace(/\bcreate_failed\b/gi, panelT("panel.modules.tasks.hints.createFailed"));
+        s = s.replace(/\bdelete_failed\b/gi, panelT("panel.modules.tasks.hints.leakDeleteFailed"));
+        s = s.replace(/\brestore_failed\b/gi, panelT("panel.modules.tasks.hints.leakRestoreFailed"));
         s = s.replace(/\bCORS\b/gi, "tarayıcı kısıtı");
         s = s.replace(/:\d{4,5}\b/g, "");
         s = s.replace(/\s{2,}/g, " ").trim();
@@ -11395,7 +11393,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 ? String(createRes.data.error)
                 : panelDebugText(
                     "create_failed (" + (createRes ? createRes.status : "?") + ")",
-                    "kayıt başarısız",
+                    panelT("panel.modules.tasks.hints.createFailed"),
                   );
             showHint(panelT("panel.modules.tasks.hints.saveFailed").replace("{error}", err));
             return;
