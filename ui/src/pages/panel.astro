@@ -1355,6 +1355,18 @@ const PANEL_DEBUG = import.meta.env.DEV;
       .gorevler-evidence-empty[hidden] {
         display: none !important;
       }
+      .gorevler-list-empty {
+        margin: 0.35rem 0 0.65rem;
+        padding: 0.65rem 0.75rem;
+        border-radius: var(--panel-radius-md);
+        border: 1px dashed rgba(212, 182, 128, 0.22);
+        font-size: 0.74rem;
+        line-height: 1.45;
+        color: rgba(180, 176, 168, 0.92);
+      }
+      .gorevler-list-empty[hidden] {
+        display: none !important;
+      }
       #gorevler-detail.gorevler-detail {
         width: 100%;
         max-width: min(36rem, 100%);
@@ -4497,6 +4509,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 </button>
               </div>
               <ul id="gorevler-list" class="gorevler-task-list" aria-label="Görev listesi"></ul>
+              <p id="gorevler-list-empty" class="gorevler-list-empty" role="status" hidden></p>
               <dialog id="gorevler-detail" class="gorevler-detail" aria-labelledby="gorevler-detail-title" tabindex="-1">
                 <div class="gorevler-detail-shell">
                   <header class="gorevler-detail-header">
@@ -10288,6 +10301,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
       function wireGorevlerPrototype() {
         const listEl = document.getElementById("gorevler-list");
+        const listEmptyEl = document.getElementById("gorevler-list-empty");
         const titleInput = document.getElementById("gorevler-title-input");
         const prioritySel = document.getElementById("gorevler-priority");
         const statusSel = document.getElementById("gorevler-status");
@@ -10391,6 +10405,24 @@ const PANEL_DEBUG = import.meta.env.DEV;
         let lastGorevlerDeletedLocalRow = null;
         let lastGorevlerPlanIndex = -1;
         let gorevlerListFilter = "all";
+        const GOREVLER_LIST_EMPTY_DEFAULT =
+          "Henüz görev yok. Yukarıdan kısa bir başlık yazıp «Görev ekle» kullanın.";
+        const GOREVLER_LIST_EMPTY_FILTER =
+          "Bu filtrede görev yok. «Tümü» ile tüm görevleri görebilirsin.";
+
+        function syncGorevlerListEmptyState(visibleCount) {
+          if (!listEmptyEl) return;
+          if (visibleCount > 0) {
+            listEmptyEl.hidden = true;
+            listEmptyEl.textContent = "";
+            return;
+          }
+          listEmptyEl.textContent =
+            panelGorevlerTasks.length > 0
+              ? GOREVLER_LIST_EMPTY_FILTER
+              : GOREVLER_LIST_EMPTY_DEFAULT;
+          listEmptyEl.hidden = false;
+        }
 
         function gorevlerTaskPassesListFilter(t) {
           const st = t && t.status != null ? String(t.status).trim() : "";
@@ -10912,9 +10944,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
         function render() {
           closeGorevlerDetail(false);
           listEl.replaceChildren();
+          let visibleCount = 0;
           for (let i = 0; i < panelGorevlerTasks.length; i++) {
             const t = panelGorevlerTasks[i];
             if (!gorevlerTaskPassesListFilter(t)) continue;
+            visibleCount += 1;
             const li = document.createElement("li");
             li.className = "gorevler-task-card";
             li.tabIndex = 0;
@@ -10972,6 +11006,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             li.appendChild(main);
             listEl.appendChild(li);
           }
+          syncGorevlerListEmptyState(visibleCount);
         }
 
         function showHint(msg) {
