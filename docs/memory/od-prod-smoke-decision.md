@@ -1,38 +1,37 @@
-# Prod panel smoke — A3 karar
+# Prod smoke — karar ve minimal uygulama (A3)
 
-**Durum:** `approved-for-implementation` — kullanıcı açık komutu (2026-06-20 backlog A3).  
-**Kaynak:** OD-046 non-goals — [`build-e2e-surface-alignment-decision.md`](./build-e2e-surface-alignment-decision.md) § prod smoke ayrı backlog; [`LUMOS_V1_READINESS.md`](../LUMOS_V1_READINESS.md) §6.  
-**Hedef URL:** `https://welockai.com/panel` (public; override: `LUMOS_PROD_PANEL_URL`).
+**Durum:** `approved-for-implementation` — kullanıcı açık komutu (2026-06-20: sequential backlog A3).  
+**Kaynak:** OD-046 dışı backlog — [`build-e2e-surface-alignment-decision.md`](./build-e2e-surface-alignment-decision.md) §12.1; [`LUMOS_V1_READINESS.md`](../LUMOS_V1_READINESS.md) §6.  
+**Çapraz:** Birincil üretim yüzeyi `ui/` → `welockai.com/panel` (OD-043 **closed**); CI `ui-smoke` / `ui-e2e` yerel `ui/dist` hedefler — prod doğrulaması ayrı kanal.
 
 ---
 
 ## 1. Karar özeti
 
-**Minimal read-only prod smoke:** Playwright ile canlı `/panel` HTTPS 200, temel DOM (`#chat-thread` veya `#panel-conn-badge`), kırıcı `console.error` yok. **Yazma yok**, secret yok, API token yok.
+**Prod smoke = read-only HTTPS doğrulama** — canlı `/panel` yüzeyinin yüklendiğini, temel DOM'un var olduğunu ve kırıcı konsol hatası olmadığını kontrol eder. Yazım, auth secret veya köprü token **gerektirmez**.
 
-| Kanal | Tetikleyici | Kapı mı? |
-|-------|-------------|----------|
-| **GitHub Actions `prod-smoke.yml`** | `workflow_dispatch` (manuel) | **Hayır** — push/PR gate değil |
-| Yerel | `npm run e2e:smoke:prod` (kök veya `ui/`) | Opsiyonel operatör |
+| Kanal | Hedef | CI |
+|-------|--------|-----|
+| `ui-smoke` / `ui-e2e` | Yerel `ui/dist` | Her push/PR (`ci.yml`) |
+| **Prod smoke (yeni)** | `https://welockai.com/panel` (override: `LUMOS_PROD_PANEL_URL`) | **`workflow_dispatch` only** — dış URL; push kapısı değil |
 
 **Kapsam dışı:**
 
-- Prod görev ekleme / POST /tasks
-- Auth / vault / backend credential
-- Push veya PR zorunlu CI job'ı (flaky dış bağımlılık riski)
+- Prod görev ekleme / chat gönderimi (yazım; v1 manuel sign-off LUMOS_V1_READINESS'te)
+- Secret, token, bridge credential
+- `archive/panel/` legacy statik yüzey
+- Push/PR zorunlu CI job (flaky dış bağımlılık riski)
 
 ---
 
-## 2. Keşif (2026-06-20)
+## 2. Keşif kanıtı (2026-06-20)
 
-| Alan | Durum |
-|------|--------|
-| Birincil prod yüzey | `ui/` Astro → `welockai.com/panel` (OD-043 **closed**) |
-| Birincil kök E2E | `ui/dist` — CI `ui-smoke` + `ui-e2e` (OD-046 **closed**) |
-| Prod smoke geçmişi | `LUMOS_V1_READINESS.md` §6 — 2026-06-11/12 manuel PASS |
-| Boşluk | Otomatik/tekrarlanabilir **public repo** workflow yok |
-
-**Public sınır:** Yalnızca public HTTPS URL; repo secret gerekmez.
+| Bulgu | Kanıt |
+|-------|--------|
+| Prod URL public | `LUMOS_V1_READINESS.md` — `https://welockai.com/panel` |
+| v1 manuel smoke PASS | 2026-06-12 sign-off; otomatik tekrar yok |
+| CI prod smoke yok | `.github/workflows/ci.yml` — yalnızca `ui-smoke` + `ui-e2e` |
+| Secret gerekmez | Read-only GET; sınırlı mod rozeti metin assert |
 
 ---
 
@@ -40,24 +39,23 @@
 
 | # | Adım | Dosya |
 |---|------|--------|
-| **A3-1** | Prod smoke script | `ui/e2e/smoke-prod.mjs` |
-| **A3-2** | npm expose | `ui/package.json`, kök `package.json` |
-| **A3-3** | Manuel workflow | `.github/workflows/prod-smoke.yml` |
-| **A3-4** | Doğrulama | CI yeşil (prod job push gate **değil**) |
+| P-1 | Prod smoke script | `ui/e2e/smoke-prod.mjs` |
+| P-2 | npm script | `ui/package.json` → `e2e:smoke:prod`; kök `e2e:smoke:prod` |
+| P-3 | Manuel CI workflow | `.github/workflows/prod-smoke.yml` — `workflow_dispatch` |
+| P-4 | Karar + günlük | Bu belge; `decision-log.md` DL-C10 |
+
+**Doğrulama:** Yerel `npm run e2e:smoke:prod --prefix ui` (network); workflow manuel tetik.
+
+**Console filtresi:** Sınırlı modda köprü/API `Failed to load resource` / `ERR_CONNECTION_REFUSED` beklenir — kırıcı `pageerror` ve filtre dışı `console.error` fail eder.
 
 ---
 
 ## 4. Rollback
 
-1. Workflow dosyasını sil veya `workflow_dispatch` devre dışı bırak.
-2. npm script satırlarını kaldır.
+1. Workflow dosyasını sil veya devre dışı bırak.
+2. npm scriptleri kaldır.
+3. Karar belgesi arşiv notu — davranış değişmez (CI push kapısı yok).
 
 ---
 
-## 5. İndeks
-
-- `decision-log.md` — DL-C10 (karar); DL-A21 (uygulama)
-
----
-
-Son güncelleme: 2026-06-20
+Son güncelleme: 2026-06-20 (A3 karar — minimal stub)
