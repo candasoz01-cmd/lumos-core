@@ -14,6 +14,7 @@ PANEL_GOREV_DELETE_RESTORE_HINT = (
 )
 PANEL_GOREV_DELETE_RESTORE_HINT_ASTRO_SNIPPET = "Görevler\\'de «Son silineni geri al»"
 PANEL_GOREV_NOT_FOUND_PREFIX = "Görev bulunamadı: «"
+PANEL_GOREV_RESTORE_VERIFY_FAIL = "Görev listesine eklenemedi; geri alma doğrulanamadı."
 
 
 def _canonicalize_task_input(raw: str) -> str:
@@ -114,6 +115,24 @@ def test_panel_astro_ec2_01_silme_ux_wiring() -> None:
     for token in required:
         assert token in text, f"missing panel.astro token: {token}"
     assert text.count("refreshPanelEvidenceStripIfReady()") >= 4
+
+
+def test_panel_astro_restore_chat_verifies_list_presence() -> None:
+    """Chat restore başarısı yalnızca görev listesinde doğrulama sonrası."""
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    restore_fn = text.split("async function restoreGorevlerTaskFromChat", 1)[1].split(
+        "panelGorevlerTasksRender = render", 1
+    )[0]
+    assert "gorevlerRestoreVerifyRef" in restore_fn
+    assert "gorevlerTaskPresentInList" in restore_fn
+    assert "findGorevlerTaskIndexByRef" in text.split("function gorevlerTaskPresentInList", 1)[1].split(
+        "function finishDeleteGorevlerTaskLocal", 1
+    )[0]
+    assert "await restoreLastGorevlerTask();" in restore_fn
+    assert "Görev geri alındı:" in restore_fn
+    assert PANEL_GOREV_RESTORE_VERIFY_FAIL in restore_fn
+    assert "lastGorevlerDeletedId = savedDeletedId" in restore_fn
+    assert "hadDeleted && lastGorevlerDeletedId" not in restore_fn
 
 
 def test_panel_astro_chat_delete_server_path_closes_detail() -> None:
