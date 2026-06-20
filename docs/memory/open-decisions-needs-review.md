@@ -59,7 +59,7 @@
 | ID | Kaynak dosya | Konu | Kısa karar sorusu | Öncelik | Durum | Not |
 |----|--------------|------|-------------------|---------|--------|-----|
 | OD-024 | product-rules.md | Şifreleme detayı (ürün) | Veri sahipliği Encrypted ekseninde şifreleme politikası hangi belgede genişletilecek? | high | needs-review | Veri sahipliği ekseni; data-vault OD-005 ile örtüşür |
-| OD-025 | security-architecture.md | Vault migration maddeleri | ChatGPT kaynaklı vault/token maddeleri uygulama tanımına taşındı mı? | high | needs-review | Migration: Lumos vault + token detayı |
+| OD-025 | security-architecture.md | Vault migration maddeleri | ChatGPT kaynaklı vault/token maddeleri uygulama tanımına taşındı mı? | high | **closed** | [`od-025-vault-migration-decision.md`](od-025-vault-migration-decision.md) — ilke migration **DL-C13**; somut vault uygulaması OD-001–005 implementation-pending |
 | OD-026 | internal-agent-layers.md | Doğrulanmamış iç mesaj | Reddedilen iç mesaj için operasyonel olay kaydı prosedürü ne? | medium | needs-review | İç iletişim §3 — operasyonel detay |
 | OD-027 | project-map-runtime-entrypoints.md | packages/kando_* geçişi | `packages/kando_*` → `src/` geçiş takvimi ve kesme kriterleri ne? | high | **closed** | Karar: [`kando-packages-transition-decision.md`](kando-packages-transition-decision.md) — **Seçenek C (Hibrit)**. Slice 3a (#313), 3b (#316), **Faz 4 cutover** — [`od-027-faz4-cutover-decision.md`](od-027-faz4-cutover-decision.md). Canlı: `src/` + `kando_bridge` + `kando_runtime`; ayna paketler `archive/packages/`. |
 | OD-028 | project-map-runtime-entrypoints.md | lumos web komutu | `lumos web` / eksik `web/app.py` — B1: alt komutu kaldır (restore değil) | medium | closed | Karar: [`lumos-web-command-decision.md`](lumos-web-command-decision.md) — **B1** uygulandı: `__main__.py` web dalı kaldırıldı, `test_web_health.py` silindi, mimari belge senkronu. `packages/kando_core` web kalıntısı OD-027'de. |
@@ -126,7 +126,7 @@ Kaynak dosyalardaki migration tablolarından **needs-review / queued** özetleri
 | Kaynak dosya | needs-review (yaklaşık) | queued (yaklaşık) | İndeks OD aralığı |
 |--------------|-------------------------|-------------------|-------------------|
 | product-rules.md | 4 | 0 (+5 boş manuel incelenecek) | OD-023, OD-024 |
-| security-architecture.md | 4 | 0 | OD-001, OD-002, OD-025 |
+| security-architecture.md | 4 | 0 | OD-001, OD-002 |
 | project-workflow.md | 3 | 5 (boş manuel) | OD-008, OD-009, OD-010 |
 | ui-chat-experience.md | 3 | 2 (+5 boş manuel) | OD-013, OD-014, OD-018, OD-019 |
 | voice-media-experience.md | 3 | 5 (boş manuel) | OD-015, OD-016, OD-017 |

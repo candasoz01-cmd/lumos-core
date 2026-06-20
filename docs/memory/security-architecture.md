@@ -39,7 +39,7 @@ Taşıma süreci ve durum tanımları: [`chatgpt-saved-memories-migration.md`](.
 | # | Konu | İlke / sınır | Not |
 |---|------|--------------|-----|
 | Kimlik | Dış dünya ile kimlik ve oturum akışı Lumos geçidi üzerinden yönetilir. | Taşındı |
-| Token | Token ve credential'lar Lumos yüzeyinde açık tutulmaz; güvenli vault/katman tercih edilir. | needs-review — vault uygulaması genişletilecek |
+| Token | Token ve credential'lar Lumos yüzeyinde açık tutulmaz; güvenli vault/katman tercih edilir. | Taşındı — [`vault-secret-token-decision.md`](vault-secret-token-decision.md); uygulama OD-001/002 |
 | Bridge | Bridge yalnızca yetkili, onaylı ve Lumos kontrollü dış iletişim kanalıdır; iç katmanlara doğrudan köprü kurmaz. | Taşındı |
 | Oturum / presence | Online işlem için kimlik ve kilit/presence koşulları sağlanmadan dış aksiyon başlatılmaz. | Taşındı — çekirdek sözleşme ile hizalı |
 
@@ -98,8 +98,8 @@ Gizli anahtarların Lumos yüzeyinde tutulmaması ilkesi; güvenli vault/katman 
 
 | # | Not | Durum | Bağımlılık / Not |
 |---|-----|--------|------------------|
-| 1 | Secret'lar ideal olarak Lumos yüzeyinde değil, ayrı güvenli vault/katmanda tutulur. | needs-review | ChatGPT oturum bağlamı — uygulama tanımı genişletilecek |
-| 2 | Vault entegrasyonu, bridge ve token yönetimi ile birlikte netleştirilecek. | needs-review | Gelecek mimari karar |
+| 1 | Secret'lar ideal olarak Lumos yüzeyinde değil, ayrı güvenli vault/katmanda tutulur. | Taşındı | [`vault-secret-token-decision.md`](vault-secret-token-decision.md) §1–4 |
+| 2 | Vault entegrasyonu, bridge ve token yönetimi ile birlikte netleştirilecek. | Taşındı | [`vault-secret-token-decision.md`](vault-secret-token-decision.md) §12; uygulama OD-001/002 |
 
 ---
 
@@ -114,8 +114,8 @@ ChatGPT Saved Memories → bu dosyaya taşınan veya incelenecek maddeler.
 | ChatGPT saved memory / oturum bağlamı — iç katmana doğrudan dış akış yok | Taşındı | lumos-core | Gateway zorunluluğu | Güvenlik ilkeleri §3 |
 | ChatGPT saved memory / oturum bağlamı — değişmez çekirdek, sandbox | Taşındı | lumos-core | Kod güvenliği | Güvenlik ilkeleri §4 |
 | ChatGPT saved memory / oturum bağlamı — public repo secret/PII yasağı | Taşındı | lumos-core | Public boundary | Public repo §1 |
-| ChatGPT saved memory / oturum bağlamı — Lumos vault / secret yüzeyi | needs-review | lumos-core | Vault vizyonu | Lumos Vault bölümü |
-| ChatGPT saved memory / oturum bağlamı — token/vault uygulama detayı | needs-review | lumos-core | Kimlik katmanı | Kimlik/token §Token |
+| ChatGPT saved memory / oturum bağlamı — Lumos vault / secret yüzeyi | Taşındı | lumos-core | Vault vizyonu | [`vault-secret-token-decision.md`](vault-secret-token-decision.md); OD-025 closed |
+| ChatGPT saved memory / oturum bağlamı — token/vault uygulama detayı | Taşındı | lumos-core | Kimlik katmanı | [`vault-secret-token-decision.md`](vault-secret-token-decision.md) §12; uygulama OD-001/002 |
 
 **Durum kısaltmaları:** Taşındı · needs-review · eski (detay: [`chatgpt-saved-memories-migration.md`](./chatgpt-saved-memories-migration.md)).
 
