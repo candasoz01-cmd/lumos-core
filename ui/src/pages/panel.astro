@@ -4609,40 +4609,40 @@ const PANEL_DEBUG = import.meta.env.DEV;
             data-active="false"
             aria-labelledby="panel-ses-title"
           >
-            <h2 id="panel-ses-title">Ses</h2>
-            <p class="medya-intro">
+            <h2 id="panel-ses-title" data-i18n="panel.sections.ses">Ses</h2>
+            <p class="medya-intro" data-i18n="panel.modules.voice.intro">
               Bu sekme, sesli girdinin metne ve komutlara dönüşürken arayüz katmanında kalması ve kararın yine kullanıcıda
               tutulması için tasarlanan yaklaşımı özetler. Sohbet alt çubuğundaki mikrofon, cihaz, tarayıcı ve verilen
               izinlere bağlıdır; bazı ortamlarda desteklenmeyebilir.
             </p>
             <ul class="medya-card-list">
               <li class="medya-card">
-                <h3>Sesten Metne</h3>
-                <p>
+                <h3 data-i18n="panel.modules.voice.c1Title">Sesten Metne</h3>
+                <p data-i18n="panel.modules.voice.c1Body">
                   Sesli ifade, metin ve komut adımlarına aktarılarak ekranda izlenebilir hale getirilebilir.
                 </p>
               </li>
               <li class="medya-card">
-                <h3>Arayüz Katmanı</h3>
-                <p>
+                <h3 data-i18n="panel.modules.voice.c2Title">Arayüz Katmanı</h3>
+                <p data-i18n="panel.modules.voice.c2Body">
                   Ses, doğrudan yerine geçen bir otorite değil; kullanıcının gördüğü ve düzeltebildiği bir katman olarak ele alınır.
                 </p>
               </li>
               <li class="medya-card">
-                <h3>Karar Kullanıcıda</h3>
-                <p>
+                <h3 data-i18n="panel.modules.voice.c3Title">Karar Kullanıcıda</h3>
+                <p data-i18n="panel.modules.voice.c3Body">
                   Özetlenen komut veya metin uygulanmadan önce kullanıcı net biçimde kontrol edebilmelidir.
                 </p>
               </li>
               <li class="medya-card">
-                <h3>Yanlış Anlama ve Onay</h3>
-                <p>
+                <h3 data-i18n="panel.modules.voice.c4Title">Yanlış Anlama ve Onay</h3>
+                <p data-i18n="panel.modules.voice.c4Body">
                   Belirsiz veya düşük güvenli algılarda Lumos duraklatmayı ve netleştirmeyi hedefler; tek başına ilerlemez.
                 </p>
               </li>
               <li class="medya-card">
-                <h3>Yerel İşlem Önceliği</h3>
-                <p>
+                <h3 data-i18n="panel.modules.voice.c5Title">Yerel İşlem Önceliği</h3>
+                <p data-i18n="panel.modules.voice.c5Body">
                   Mümkün olduğunda ilk işlem cihaz içinde kalır; dış servise çıkış gerekiyorsa bu görünür tutulmalıdır.
                 </p>
               </li>
@@ -4656,17 +4656,19 @@ const PANEL_DEBUG = import.meta.env.DEV;
             data-active="false"
             aria-labelledby="panel-medya-title"
           >
-            <h2 id="panel-medya-title">Medya</h2>
-            <p class="medya-intro">
+            <h2 id="panel-medya-title" data-i18n="panel.sections.medya">Medya</h2>
+            <p class="medya-intro" data-i18n="panel.modules.media.intro">
               Bu sekme, görsel, ses, video ve dosya akışlarının düzenlenmesinde paylaşım öncesi kontrol, veri yolu görünürlüğü ve
               kaynak ile çıktının ayrılması ilkelerini özetler. Sohbet alt çubuğundaki kamera da cihaz, tarayıcı ve izin
               desteğine bağlıdır; her ortamda çalışmayabilir.
             </p>
             <div class="medya-outbox-wrap" aria-labelledby="medya-outbox-title">
-              <h3 id="medya-outbox-title" class="gorevler-list-heading">Son çıktı özeti (salt okunur)</h3>
+              <h3 id="medya-outbox-title" class="gorevler-list-heading" data-i18n="panel.modules.media.outboxTitle">Son çıktı özeti (salt okunur)</h3>
               <p class="medya-intro" style="margin-top: 0.35rem">
-                <span class="panel-data-flow-badge">[Harici Servis]</span>
-                Son görev veya sohbet çıktısının iletimden okunan özeti. Kayıt yoksa kısa bilgi gösterilir.
+                <span class="panel-data-flow-badge" data-i18n="panel.common.badges.externalService">[Harici Servis]</span>
+                <span data-i18n="panel.modules.media.outboxIntro">
+                  Son görev veya sohbet çıktısının iletimden okunan özeti. Kayıt yoksa kısa bilgi gösterilir.
+                </span>
                 {PANEL_DEBUG && (
                   <span class="panel-debug-only">
                     {" "}
@@ -4675,69 +4677,71 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 )}
               </p>
               <div class="medya-outbox-actions">
-                <button type="button" id="medya-outbox-refresh" class="medya-outbox-refresh">Yenile</button>
+                <button type="button" id="medya-outbox-refresh" class="medya-outbox-refresh" data-i18n="panel.modules.media.outboxRefresh">Yenile</button>
               </div>
               <p id="medya-outbox-hint" class="gorevler-hint" role="status" aria-live="polite" hidden></p>
               <pre id="medya-outbox-pre" class="medya-outbox-pre" hidden></pre>
             </div>
             <ul class="medya-card-list">
               <li class="medya-card">
-                <h3>Akışlar ve Türler</h3>
-                <p>
+                <h3 data-i18n="panel.modules.media.c1Title">Akışlar ve Türler</h3>
+                <p data-i18n="panel.modules.media.c1Body">
                   Farklı medya türleri tek çalışma düzeninde izlenebilir; hangi dosyanın nerede kullanıldığı daha okunaklı olabilir.
                 </p>
               </li>
               <li class="medya-card">
-                <h3>Paylaşım Öncesi Kontrol</h3>
-                <p>
+                <h3 data-i18n="panel.modules.media.c2Title">Paylaşım Öncesi Kontrol</h3>
+                <p data-i18n="panel.modules.media.c2Body">
                   Dışarıya çıkmadan önce içerik özeti ve hedef kullanım kullanıcıya gösterilmeyi hedefler.
                 </p>
               </li>
               <li class="medya-card">
-                <h3>Dış Servise Aktarım</h3>
-                <p>
+                <h3 data-i18n="panel.modules.media.c3Title">Dış Servise Aktarım</h3>
+                <p data-i18n="panel.modules.media.c3Body">
                   Bir dosyanın veya önizlemenin harici işleme gönderildiği adımlar gizlenmez; bağlantı ve amaç daha net tutulur.
                 </p>
               </li>
               <li class="medya-card">
-                <h3>Düzenleme ve Dönüştürme</h3>
-                <p>
+                <h3 data-i18n="panel.modules.media.c4Title">Düzenleme ve Dönüştürme</h3>
+                <p data-i18n="panel.modules.media.c4Body">
                   Kırpma, biçim değişimi veya dönüştürme gibi adımlar sıralı ve geri alınabilir bir akışta önerilir.
                 </p>
               </li>
               <li class="medya-card">
-                <h3>Kaynak ve Çıktı</h3>
-                <p>
+                <h3 data-i18n="panel.modules.media.c5Title">Kaynak ve Çıktı</h3>
+                <p data-i18n="panel.modules.media.c5Body">
                   Orijinal materyal ile üretilen çıktı birbirinden ayırt edilir; kullanıcı hangisinin paylaşıldığını net görebilir.
                 </p>
               </li>
             </ul>
             <div class="panel-share-proto panel-share-proto--demo gorevler-proto" data-panel-share-demo="true" style="margin-top: 1rem">
               <p class="medya-intro" style="margin-top: 0">
-                <span class="panel-data-flow-badge panel-data-flow-badge--demo">[Demo — bağlı değil]</span>
-                Paylaşım taslağı önizlemesi — gerçek gönderim bu sürümde kapalı.
+                <span class="panel-data-flow-badge panel-data-flow-badge--demo" data-i18n="panel.common.badges.demoNotConnected">[Demo — bağlı değil]</span>
+                <span data-i18n="panel.modules.media.sharePreviewIntro">Paylaşım taslağı önizlemesi — gerçek gönderim bu sürümde kapalı.</span>
               </p>
               <div class="gorevler-field">
-                <label for="medya-share-target">Hedef</label>
+                <label for="medya-share-target" data-i18n="panel.common.form.target">Hedef</label>
                 <select id="medya-share-target">
-                  <option value="dis-ozet">Dış özet / arşiv</option>
-                  <option value="yerel-kopya">Yerel kopya</option>
+                  <option value="dis-ozet" data-i18n="panel.common.select.externalSummary">Dış özet / arşiv</option>
+                  <option value="yerel-kopya" data-i18n="panel.common.select.localCopy">Yerel kopya</option>
                 </select>
               </div>
               <div class="gorevler-field">
-                <label for="medya-share-content">İçerik özeti</label>
-                <textarea id="medya-share-content" rows="2" maxlength="400" placeholder="Paylaşılacak özet…"></textarea>
+                <label for="medya-share-content" data-i18n="panel.common.form.contentSummary">İçerik özeti</label>
+                <textarea id="medya-share-content" rows="2" maxlength="400" data-i18n-placeholder="panel.common.placeholders.shareSummary" placeholder="Paylaşılacak özet…"></textarea>
               </div>
               <div id="medya-share-summary" class="panel-pre-send-summary" hidden role="status" aria-live="polite"></div>
               <div class="medya-outbox-actions">
-                <button type="button" id="medya-share-review" class="medya-outbox-refresh">Özeti göster</button>
+                <button type="button" id="medya-share-review" class="medya-outbox-refresh" data-i18n="panel.common.form.showSummary">Özeti göster</button>
                 <button
                   type="button"
                   id="medya-share-send"
                   class="gorevler-add-btn"
                   disabled
                   aria-disabled="true"
+                  data-i18n-title="panel.common.demo.sendTitle"
                   title="Demo: gerçek gönderim bağlı değil"
+                  data-i18n="panel.common.form.sendDemoDisabled"
                 >Gönder (demo kapalı)</button>
               </div>
               <p id="medya-share-hint" class="gorevler-hint panel-pre-send-demo-hint" role="status" aria-live="polite"></p>
@@ -4751,69 +4755,71 @@ const PANEL_DEBUG = import.meta.env.DEV;
             data-active="false"
             aria-labelledby="panel-sosyal-title"
           >
-            <h2 id="panel-sosyal-title">Sosyal</h2>
-            <p class="medya-intro">
+            <h2 id="panel-sosyal-title" data-i18n="panel.sections.sosyal">Sosyal</h2>
+            <p class="medya-intro" data-i18n="panel.modules.social.intro">
               Bu sekme, dışa açılan içeriklerde taslağı kullanıcıda tutmayı, platform farkındalığını artırmayı ve kalıcı paylaşımlarda
               açık onayı öncelemeyi hedefleyen yaklaşımı özetler.
             </p>
             <ul class="medya-card-list">
               <li class="medya-card">
-                <h3>Paylaşım Öncesi Kontrol</h3>
-                <p>
+                <h3 data-i18n="panel.modules.social.c1Title">Paylaşım Öncesi Kontrol</h3>
+                <p data-i18n="panel.modules.social.c1Body">
                   Gönderi yayınlanmadan önce özet, hedef ve görünürlük kullanıcıya son kez gösterilmeyi hedefler.
                 </p>
               </li>
               <li class="medya-card">
-                <h3>Hedef Platform</h3>
-                <p>
+                <h3 data-i18n="panel.modules.social.c2Title">Hedef Platform</h3>
+                <p data-i18n="panel.modules.social.c2Body">
                   İçeriğin hangi ortamda nasıl görüneceği ve hangi kurallara tabi olduğu daha görünür tutulabilir.
                 </p>
               </li>
               <li class="medya-card">
-                <h3>Gönderi Taslağı</h3>
-                <p>
+                <h3 data-i18n="panel.modules.social.c3Title">Gönderi Taslağı</h3>
+                <p data-i18n="panel.modules.social.c3Body">
                   Metin ve ekler taslak halinde saklanır; kullanıcı düzenlemeden yayına çıkmaz.
                 </p>
               </li>
               <li class="medya-card">
-                <h3>Riskli Paylaşımda Onay</h3>
-                <p>
+                <h3 data-i18n="panel.modules.social.c4Title">Riskli Paylaşımda Onay</h3>
+                <p data-i18n="panel.modules.social.c4Body">
                   Kalıcı, geniş kitleye açık veya geri alınması zor paylaşımlarda ek onay istenmesi hedeflenir.
                 </p>
               </li>
               <li class="medya-card">
-                <h3>Otomatik Yayın Yok</h3>
-                <p>
+                <h3 data-i18n="panel.modules.social.c5Title">Otomatik Yayın Yok</h3>
+                <p data-i18n="panel.modules.social.c5Body">
                   Lumos kullanıcı adına sessizce paylaşım yapmaz; gönderme kararı kullanıcıda kalır.
                 </p>
               </li>
             </ul>
             <div class="panel-share-proto panel-share-proto--demo gorevler-proto" data-panel-share-demo="true" style="margin-top: 1rem">
               <p class="medya-intro" style="margin-top: 0">
-                <span class="panel-data-flow-badge panel-data-flow-badge--demo">[Demo — bağlı değil]</span>
-                Sosyal paylaşım taslağı önizlemesi — gerçek paylaşım bu sürümde kapalı.
+                <span class="panel-data-flow-badge panel-data-flow-badge--demo" data-i18n="panel.common.badges.demoNotConnected">[Demo — bağlı değil]</span>
+                <span data-i18n="panel.modules.social.sharePreviewIntro">Sosyal paylaşım taslağı önizlemesi — gerçek paylaşım bu sürümde kapalı.</span>
               </p>
               <div class="gorevler-field">
-                <label for="sosyal-share-target">Hedef platform</label>
+                <label for="sosyal-share-target" data-i18n="panel.common.form.targetPlatform">Hedef platform</label>
                 <select id="sosyal-share-target">
-                  <option value="genel">Genel akış</option>
-                  <option value="mesaj">Doğrudan mesaj</option>
+                  <option value="genel" data-i18n="panel.common.select.generalFeed">Genel akış</option>
+                  <option value="mesaj" data-i18n="panel.common.select.directMessage">Doğrudan mesaj</option>
                 </select>
               </div>
               <div class="gorevler-field">
-                <label for="sosyal-share-content">Gönderi taslağı</label>
-                <textarea id="sosyal-share-content" rows="3" maxlength="500" placeholder="Paylaşılacak metin…"></textarea>
+                <label for="sosyal-share-content" data-i18n="panel.common.form.postDraft">Gönderi taslağı</label>
+                <textarea id="sosyal-share-content" rows="3" maxlength="500" data-i18n-placeholder="panel.common.placeholders.shareText" placeholder="Paylaşılacak metin…"></textarea>
               </div>
               <div id="sosyal-share-summary" class="panel-pre-send-summary" hidden role="status" aria-live="polite"></div>
               <div class="medya-outbox-actions">
-                <button type="button" id="sosyal-share-review" class="medya-outbox-refresh">Özeti göster</button>
+                <button type="button" id="sosyal-share-review" class="medya-outbox-refresh" data-i18n="panel.common.form.showSummary">Özeti göster</button>
                 <button
                   type="button"
                   id="sosyal-share-send"
                   class="gorevler-add-btn"
                   disabled
                   aria-disabled="true"
+                  data-i18n-title="panel.common.demo.shareTitle"
                   title="Demo: gerçek paylaşım bağlı değil"
+                  data-i18n="panel.common.form.shareDemoDisabled"
                 >Paylaş (demo kapalı)</button>
               </div>
               <p id="sosyal-share-hint" class="gorevler-hint panel-pre-send-demo-hint" role="status" aria-live="polite"></p>
@@ -4827,70 +4833,72 @@ const PANEL_DEBUG = import.meta.env.DEV;
             data-active="false"
             aria-labelledby="panel-posta-title"
           >
-            <h2 id="panel-posta-title">Posta</h2>
-            <p class="medya-intro">
+            <h2 id="panel-posta-title" data-i18n="panel.sections.posta">Posta</h2>
+            <p class="medya-intro" data-i18n="panel.modules.mail.intro">
               Bu sekme, e-posta taslağı hazırlama, ek ve alıcı doğrulaması ile gönderim öncesi açık onayı merkeze alan yaklaşımı
               özetler.
             </p>
             <ul class="medya-card-list">
               <li class="medya-card">
-                <h3>Taslak Odaklı Çalışma</h3>
-                <p>
+                <h3 data-i18n="panel.modules.mail.c1Title">Taslak Odaklı Çalışma</h3>
+                <p data-i18n="panel.modules.mail.c1Body">
                   Mesajlar önce taslak olarak düzenlenir; kullanıcı içeriği gözden geçirmeden iletim beklenmez.
                 </p>
               </li>
               <li class="medya-card">
-                <h3>Ek ve Alıcı Kontrolü</h3>
-                <p>
+                <h3 data-i18n="panel.modules.mail.c2Title">Ek ve Alıcı Kontrolü</h3>
+                <p data-i18n="panel.modules.mail.c2Body">
                   Eklerin listesi ve alıcı alanları gönderim öncesi okunaklı biçimde özetlenmeyi hedefler.
                 </p>
               </li>
               <li class="medya-card">
-                <h3>Gönderim Öncesi Onay</h3>
-                <p>
+                <h3 data-i18n="panel.modules.mail.c3Title">Gönderim Öncesi Onay</h3>
+                <p data-i18n="panel.modules.mail.c3Body">
                   “Gönder” adımı bilinçli bir onay gerektirir; tek tıkla görünmez iletim hedeflenmez.
                 </p>
               </li>
               <li class="medya-card">
-                <h3>Yanlış Alıcı ve Hassas Bilgi</h3>
-                <p>
+                <h3 data-i18n="panel.modules.mail.c4Title">Yanlış Alıcı ve Hassas Bilgi</h3>
+                <p data-i18n="panel.modules.mail.c4Body">
                   Şüpheli alıcı eşleşmeleri veya hassas içerik için uyarı gösterilmesi amaçlanır.
                 </p>
               </li>
               <li class="medya-card">
-                <h3>Otomatik Gönderim Yok</h3>
-                <p>
+                <h3 data-i18n="panel.modules.mail.c5Title">Otomatik Gönderim Yok</h3>
+                <p data-i18n="panel.modules.mail.c5Body">
                   Lumos kullanıcı yerine postayı tek başına iletmez; son gönderme kararı kullanıcıdadır.
                 </p>
               </li>
             </ul>
             <div class="panel-share-proto panel-share-proto--demo gorevler-proto" data-panel-share-demo="true" style="margin-top: 1rem">
               <p class="medya-intro" style="margin-top: 0">
-                <span class="panel-data-flow-badge panel-data-flow-badge--demo">[Demo — bağlı değil]</span>
-                E-posta taslağı önizlemesi — gerçek gönderim bu sürümde kapalı.
+                <span class="panel-data-flow-badge panel-data-flow-badge--demo" data-i18n="panel.common.badges.demoNotConnected">[Demo — bağlı değil]</span>
+                <span data-i18n="panel.modules.mail.sharePreviewIntro">E-posta taslağı önizlemesi — gerçek gönderim bu sürümde kapalı.</span>
               </p>
               <div class="gorevler-field">
-                <label for="posta-share-target">Alıcı</label>
-                <input id="posta-share-target" type="email" maxlength="120" placeholder="ornek@posta.com" autocomplete="off" />
+                <label for="posta-share-target" data-i18n="panel.common.form.recipient">Alıcı</label>
+                <input id="posta-share-target" type="email" maxlength="120" data-i18n-placeholder="panel.common.placeholders.emailRecipient" placeholder="ornek@posta.com" autocomplete="off" />
               </div>
               <div class="gorevler-field">
-                <label for="posta-share-content">Mesaj taslağı</label>
-                <textarea id="posta-share-content" rows="3" maxlength="800" placeholder="E-posta metni…"></textarea>
+                <label for="posta-share-content" data-i18n="panel.common.form.messageDraft">Mesaj taslağı</label>
+                <textarea id="posta-share-content" rows="3" maxlength="800" data-i18n-placeholder="panel.common.placeholders.emailBody" placeholder="E-posta metni…"></textarea>
               </div>
               <div class="gorevler-field">
-                <label for="posta-share-attachments">Ek sayısı</label>
+                <label for="posta-share-attachments" data-i18n="panel.common.form.attachmentCount">Ek sayısı</label>
                 <input id="posta-share-attachments" type="number" min="0" max="20" value="0" />
               </div>
               <div id="posta-share-summary" class="panel-pre-send-summary" hidden role="status" aria-live="polite"></div>
               <div class="medya-outbox-actions">
-                <button type="button" id="posta-share-review" class="medya-outbox-refresh">Özeti göster</button>
+                <button type="button" id="posta-share-review" class="medya-outbox-refresh" data-i18n="panel.common.form.showSummary">Özeti göster</button>
                 <button
                   type="button"
                   id="posta-share-send"
                   class="gorevler-add-btn"
                   disabled
                   aria-disabled="true"
+                  data-i18n-title="panel.common.demo.sendTitle"
                   title="Demo: gerçek gönderim bağlı değil"
+                  data-i18n="panel.common.form.sendDemoDisabled"
                 >Gönder (demo kapalı)</button>
               </div>
               <p id="posta-share-hint" class="gorevler-hint panel-pre-send-demo-hint" role="status" aria-live="polite"></p>
@@ -6362,10 +6370,16 @@ const PANEL_DEBUG = import.meta.env.DEV;
         return PANEL_DEBUG ? debugMsg : userMsg;
       }
 
+      function panelT(key) {
+        const api = window.LumosI18n;
+        if (api && typeof api.t === "function") return api.t(key);
+        return key;
+      }
+
       function dataFlowBadge(kind) {
-        if (kind === "local") return "[Yerel]";
-        if (kind === "external") return "[Harici Servis]";
-        return "[Bilinmiyor]";
+        if (kind === "local") return panelT("panel.common.badges.local");
+        if (kind === "external") return panelT("panel.common.badges.externalService");
+        return panelT("panel.common.badges.unknown");
       }
 
       function truncateGorevlerField(s) {
@@ -12959,11 +12973,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
         if (!reviewBtn || !sendBtn || !summaryEl || !targetEl || !contentEl) return;
 
         const demoOnly = cfg.demoOnly !== false;
-        const demoIdleHint =
-          cfg.demoIdleHint || "Demo modu: gerçek gönderim bağlı değil; yalnızca önizleme.";
-        const demoReviewHint =
-          cfg.demoReviewHint ||
-          "Özet görüntülendi (demo). Gönderim bu sürümde kapalı; bağlantı henüz yok.";
+        const demoIdleHint = cfg.demoIdleHint || panelT("panel.common.demo.idleHint");
+        const demoReviewHint = cfg.demoReviewHint || panelT("panel.common.demo.reviewHint");
+        const demoMsg = cfg.demoMsgKey
+          ? panelT(cfg.demoMsgKey)
+          : cfg.demoMsg || panelT("panel.common.demo.defaultMsg");
+        const dataTypeLabel = cfg.dataTypeKey
+          ? panelT(cfg.dataTypeKey)
+          : cfg.dataType || panelT("panel.common.demo.summaryDataType");
 
         function keepSendDisabled() {
           sendBtn.disabled = true;
@@ -13018,21 +13035,27 @@ const PANEL_DEBUG = import.meta.env.DEV;
         reviewBtn.addEventListener("click", () => {
           const summary =
             dataFlowBadge(flowKindForTarget()) +
-            "\nHedef: " +
+            "\n" +
+            panelT("panel.common.demo.summaryTarget") +
             targetLabel() +
-            "\nİçerik önizleme: " +
+            "\n" +
+            panelT("panel.common.demo.summaryContentPreview") +
             contentPreview() +
-            "\nEk sayısı: " +
+            "\n" +
+            panelT("panel.common.demo.summaryAttachmentCount") +
             attachmentCount() +
-            "\nVeri türü: " +
-            (cfg.dataType || "Metin") +
-            (demoOnly ? "\n\n[Demo] Gerçek gönderim yapılmaz." : "");
+            "\n" +
+            panelT("panel.common.demo.summaryDataType") +
+            dataTypeLabel +
+            (demoOnly ? "\n\n" + panelT("panel.common.demo.summaryFooter") : "");
           summaryEl.textContent = summary;
           summaryEl.hidden = false;
           keepSendDisabled();
           if (hintEl) {
             hintEl.hidden = false;
-            hintEl.textContent = demoOnly ? demoReviewHint : "Özet onaylandı. Göndermek için butona basın.";
+            hintEl.textContent = demoOnly
+              ? demoReviewHint
+              : panelT("panel.common.demo.approvedHint");
           }
         });
 
@@ -13040,13 +13063,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (demoOnly) return;
           if (hintEl) {
             hintEl.hidden = false;
-            hintEl.textContent = cfg.demoMsg || "Demo: gerçek gönderim henüz bağlı değil.";
+            hintEl.textContent = demoMsg;
           }
           resetApproval();
           summaryEl.hidden = true;
         });
 
         keepSendDisabled();
+
+        window.addEventListener("lumos:localechange", () => {
+          resetApproval();
+        });
       }
 
       wirePanelPreSendShare({
@@ -13056,8 +13083,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
         hintId: "medya-share-hint",
         targetId: "medya-share-target",
         contentId: "medya-share-content",
-        dataType: "Medya özeti",
-        demoMsg: "Demo: medya paylaşımı henüz bağlı değil.",
+        dataTypeKey: "panel.modules.media.dataType",
+        demoMsgKey: "panel.common.demo.medyaMsg",
       });
       wirePanelPreSendShare({
         reviewId: "sosyal-share-review",
@@ -13066,8 +13093,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
         hintId: "sosyal-share-hint",
         targetId: "sosyal-share-target",
         contentId: "sosyal-share-content",
-        dataType: "Sosyal metin",
-        demoMsg: "Demo: sosyal paylaşım henüz bağlı değil.",
+        dataTypeKey: "panel.modules.social.dataType",
+        demoMsgKey: "panel.common.demo.sosyalMsg",
       });
       wirePanelPreSendShare({
         reviewId: "posta-share-review",
@@ -13077,8 +13104,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
         targetId: "posta-share-target",
         contentId: "posta-share-content",
         attachmentId: "posta-share-attachments",
-        dataType: "E-posta",
-        demoMsg: "Demo: e-posta gönderimi henüz bağlı değil.",
+        dataTypeKey: "panel.modules.mail.dataType",
+        demoMsgKey: "panel.common.demo.postaMsg",
       });
 
       wireMedyaOutbox();
