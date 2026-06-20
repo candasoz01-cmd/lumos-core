@@ -70,6 +70,15 @@ const panel: typeof panelTr = {
     posta: "Mail",
     dosyalar: "Files",
     kuantum: "Quantum",
+    lumosCore: "Lumos core",
+    yayincilik: "Publishing",
+    yapayzeka: "AI",
+    entegrasyon: "Integration",
+    kimlik: "Identity",
+    yetenekler: "Capabilities",
+    guvenlik: "Security",
+    dunya: "World",
+    ayarlar: "Settings",
   },
   sections: {
     sohbet: "Chat",
@@ -79,6 +88,15 @@ const panel: typeof panelTr = {
     sosyal: "Social",
     posta: "Mail",
     dosyalar: "Files",
+    kuantum: "Quantum",
+    yayincilik: "Publishing",
+    yapayzeka: "AI",
+    entegrasyon: "Integration",
+    kimlik: "Identity",
+    yetenekler: "Capabilities",
+    guvenlik: "Security",
+    dunya: "World",
+    ayarlar: "Settings",
   },
   common: panelCommon,
   modules: {
@@ -444,6 +462,16 @@ const panel: typeof panelTr = {
     c5Title: "Defaults and control",
     c5Body:
       "Default behaviors aim to be shown before you accept them; changes should remain reversible.",
+  },
+  capabilities: {
+    intro:
+      "Summarizes which operations Lumos connects to through which link or panel surface. «Connection test» only verifies rows 1–3; row 4 checks local evidence.",
+    legendAria: "Status legend",
+    legendActive: "ACTIVE — evidence exists or runs in limited mode",
+    legendPassive: "PASSIVE — no working path right now",
+    legendDev: "IN DEVELOPMENT — planned, not connected yet",
+    testBtn: "Connection test",
+    bridgePending: "Waiting for bridge connection.",
   },
   },
 };
