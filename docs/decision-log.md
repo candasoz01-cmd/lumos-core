@@ -78,7 +78,7 @@ Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A16 takip satırları kap
 | ID | Tarih | Konu | Özet | Bağlantı |
 |----|-------|------|------|----------|
 | DL-F01 | 2026-06-17 | Cursor Automations | Proaktif hatırlatma; düşük riskli read/report pilot | `docs/tool-watchlist.md` |
-| DL-F02 | 2026-06-17 | `frontend/` yaşam döngüsü | Arşiv / koru / ui'ye taşı / kaldır | OD-044 |
+| DL-F02 | 2026-06-17 | `frontend/` yaşam döngüsü | **Seçenek B uygulandı** (OD-044 **closed**) — izole köprü E2E + prototip; üretim/deploy değil | OD-044 — [`frontend-role-decision.md`](memory/frontend-role-decision.md) |
 | DL-F03 | 2026-06-17 | Platform veri kasası | İzinli, şeffaf, geri alınabilir taşıma | `docs/security-architecture.md` SEC-023 |
 | DL-F04 | 2026-06-17 | OpenAI Agents / Realtime / Computer Use / Codex | Watchlist; rastgele eklenmez | `docs/tool-watchlist.md` |
 | DL-F05 | 2026-06-18 | Çalışma araçları connector (GitHub, Slack, Drive, Linear, Notion, Asana) | İlke onaylı; değerlendirme listesi + katman sırası; uygulama bekliyor | OD-033 — [`work-tools-connectors-decision.md`](memory/work-tools-connectors-decision.md) |
@@ -92,6 +92,7 @@ Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A16 takip satırları kap
 | DL-C01 | 2026-06-19 | OD-059 audit hook terminolojisi | Informal «audit hook» ayrı git hook **gerektirmez**; üç katman (commit guard / EC runtime v1 / EC v2 #4+#14); informal takip maddesi docs seviyesinde **CLOSED** | [`docs/memory/audit-hook-term-decision.md`](memory/audit-hook-term-decision.md); OD-058 çapraz |
 | DL-C02 | 2026-06-20 | OD-043 Birincil kullanıcı yüzeyi | **Closed** — birincil üretim/dış kullanıcı yüzeyi **`ui/` Astro**; `panel/` legacy E2E; `frontend/` birincil değil; formal kapanış OD-046 (#300–#307) sonrası | [`docs/memory/primary-user-surface-decision.md`](memory/primary-user-surface-decision.md); [`build-e2e-surface-alignment-decision.md`](memory/build-e2e-surface-alignment-decision.md) |
 | DL-C03 | 2026-06-20 | OD-046 E2E migrasyonu kapanışı | Kök E2E **`ui/dist`** hizası **implementation-complete**; PR #300–#305; indeks closed | [`docs/memory/od-046-e2e-migration-plan.md`](memory/od-046-e2e-migration-plan.md); [`build-e2e-surface-alignment-decision.md`](memory/build-e2e-surface-alignment-decision.md) |
+| DL-C04 | 2026-06-20 | OD-044 frontend/ rolü | **Closed** — Seçenek **B**: izole köprü E2E + prototip referans; üretim/deploy/root build/root E2E değil; kod/taşıma/arşiv/silme yok | [`docs/memory/frontend-role-decision.md`](memory/frontend-role-decision.md) |
 
 ---
 
@@ -124,4 +125,4 @@ Tam liste: `docs/memory/open-decisions-needs-review.md` (OD-001 … OD-060).
 
 ---
 
-Son güncelleme: 2026-06-20 (DL-C02 — OD-043 closed post OD-046)
+Son güncelleme: 2026-06-20 (DL-C04 — OD-044 closed Seçenek B)

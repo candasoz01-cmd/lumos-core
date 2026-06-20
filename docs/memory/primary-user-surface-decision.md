@@ -196,7 +196,7 @@ Görev veya PR açılmadan önce:
 | ID | Soru | Bu belgedeki durum |
 |----|------|-------------------|
 | **OD-043** | Birincil yüzey `panel/`, `ui/` veya `frontend/` mi? | **Kapandı (closed):** birincil üretim/dış kullanıcı yüzeyi `ui/`; `panel/` legacy E2E; `frontend/` birincil/canlı değil |
-| **OD-044** | `frontend/` rolü ve yaşam döngüsü? | Canlı / birincil kabul **edilmedi**; arşiv / birleştirme / E2E-only — **kapanmadı** |
+| **OD-044** | `frontend/` rolü ve yaşam döngüsü? | **Kapandı (closed):** Seçenek B — izole köprü E2E + prototip; canlı/birincil değil |
 | **OD-046** | Root build (ui) ile kök E2E hangi yüzeyi test eder? | **Kapandı (implementation-complete):** birincil kök E2E → `ui/dist`; legacy → `panel/` (#300–#307) |
 
 Diğer OD maddeleri bu belgenin kapsamı dışındadır.
@@ -208,7 +208,7 @@ Diğer OD maddeleri bu belgenin kapsamı dışındadır.
 | ID | Kaynak | Konu | Bu belgede netleşen | Durum | Çapraz not |
 |----|--------|------|---------------------|--------|------------|
 | **OD-043** | project-map-runtime-entrypoints.md | Birincil kullanıcı yüzeyi | Üç yüzey ayrıldı; birincil üretim = `ui/`; `panel/` = legacy E2E; `frontend/` = birincil değil | **closed** | OD-046 (#300–#307) E2E hizası tamamlandı |
-| **OD-044** | project-map-runtime-entrypoints.md | `frontend/` rolü | Canlı / birincil yüzey **değil**; 2 dosya; izole E2E | **needs-review** | OD-043 ile bağlı |
+| **OD-044** | project-map-runtime-entrypoints.md | `frontend/` rolü | Seçenek B: izole köprü E2E + prototip; canlı/birincil değil | **closed** | OD-043 ile bağlı |
 | **OD-046** | project-map-runtime-entrypoints.md | Root build vs panel E2E | Seçenek A uygulandı: birincil kök E2E → `ui/dist` | **implementation-complete** | OD-043 formal kapanış koşulu sağlandı |
 
 ---
