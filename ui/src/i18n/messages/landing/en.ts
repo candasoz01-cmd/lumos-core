@@ -30,6 +30,7 @@ const landingEn: typeof landingTr = {
       "Lumos aims to adapt interfaces and flows to a wide range of users across language, region, and accessibility. The card beside this text emphasizes connecting the “world” module to a human-scale vision—not a single small icon.",
     linkVision: "World vision",
     linkModules: "Module grid",
+    linkRoadmap: "Roadmap",
     visionCardTitle: "World vision",
     visionCardBody:
       "An intelligent voice, media, and AI network starting from Cyprus; opening to the world with a human-centered control approach.",
@@ -165,6 +166,18 @@ const landingEn: typeof landingTr = {
     integrationScope: "Unifies external services in the same control layer; scope stays contractual.",
     integrationDetail:
       "Aims to offer one orchestration surface across third-party APIs, cloud services, and local apps. Scope, duration, and data sharing should stay as contractual and visible as possible per connection.",
+    roadmapInlineLead: "Product direction:",
+    roadmapWorldVision: "World map vision",
+    quantumTitle: "Quantum",
+    quantumScope: "Candidate future security architecture; vision and research area.",
+    quantumCardStatus:
+      "Not an active production feature · not cancelled · no paid API yet is not abandonment",
+    quantumDetailStatus:
+      "Not an active production feature; not removed and not cancelled. Tracked as vision, research, and a candidate future security architecture. Paid API cost not being opened yet does not mean the area was abandoned—only that it is not actively used right now.",
+    quantumDetailBody:
+      "A research area reserved for tracking approaches beyond traditional encryption and compute limits. The current system does not claim to use quantum encryption; the panel shows a visible skeleton level only.",
+    quantumDetailLinksLead: "Details:",
+    quantumPanelLink: "Panel — Quantum",
   },
   may19: {
     heading: "With respect on 19 May",
