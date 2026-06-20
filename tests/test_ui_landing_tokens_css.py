@@ -183,3 +183,40 @@ def test_landing_hero_no_duplicate_inline_copy_dict() -> None:
     assert 'data-i18n="hero.askHint"' in text
     assert "askHint:" in tr_text
     assert "askHint:" in en_text
+
+
+def _catalog_string(source: str, key: str) -> str:
+    match = re.search(rf'{re.escape(key)}:\s*"([^"]+)"', source)
+    assert match is not None, f"missing catalog key: {key}"
+    return match.group(1)
+
+
+def test_landing_ssr_fallbacks_match_tr_catalog() -> None:
+    """SSR/no-JS fallbacks in index.astro must match Turkish i18n catalogs."""
+    text = _INDEX_ASTRO.read_text(encoding="utf-8")
+    tr_meta = (_REPO_ROOT / "ui" / "src" / "i18n" / "messages" / "tr.ts").read_text(encoding="utf-8")
+    landing_tr = _LANDING_TR.read_text(encoding="utf-8")
+
+    meta_desc = _catalog_string(tr_meta, "description")
+    assert meta_desc in text
+    assert "hedefleyen yapay zekâ kontrol katmanı prototipidir" not in text
+
+    try_panel = _catalog_string(landing_tr, "tryPanel")
+    assert f'>{try_panel}</a>' in text
+    assert ">Paneli dene</a>" not in text
+
+    card_body = _catalog_string(landing_tr, "cardUserControlBody")
+    assert card_body in text
+    assert "Lumos yerine geçmez" not in text
+
+    list_body = _catalog_string(landing_tr, "listUserDecisionBody")
+    assert list_body in text
+
+    og_image = _catalog_string(landing_tr, "ogImage")
+    assert 'data-i18n-content="landing.assets.ogImage"' in text
+    twitter_image = re.search(
+        r'name="twitter:image"[^>]*\n\s*content="([^"]+)"',
+        text,
+    )
+    assert twitter_image is not None
+    assert twitter_image.group(1) == og_image
