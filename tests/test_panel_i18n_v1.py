@@ -697,12 +697,26 @@ PANEL_I18N_V40_TR_KEYS = (
 
 PANEL_I18N_V41_MARKERS = (
     "function panelOutboxFailureUserMessage(",
-    "panelOutboxFailureUserMessage({",
+    "setMedyaOutboxHint(() => panelOutboxFailureUserMessage(outboxErrCtx))",
     'panelT("panel.modules.media.outboxResultUnauthorized")',
 )
 
 PANEL_I18N_V41_TR_KEYS = (
     "outboxResultUnauthorized:",
+)
+
+PANEL_I18N_V42_MARKERS = (
+    "let gorevlerHintRefresh = null",
+    "function refreshGorevlerVisibleHintI18n(",
+    "function setGorevlerHint(",
+    "let dosyalarHintRefresh = null",
+    "function refreshDosyalarVisibleHintI18n(",
+    "function setDosyalarHint(",
+    "window.refreshMedyaOutboxHintI18n",
+    "function setMedyaOutboxHint(",
+    "refreshGorevlerVisibleHintI18n();",
+    "refreshDosyalarVisibleHintI18n();",
+    "window.refreshMedyaOutboxHintI18n()",
 )
 
 
@@ -1396,3 +1410,14 @@ def test_panel_i18n_v41_outbox_classified_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V41_TR_KEYS:
         assert key in tr_text, f"missing panel tr v41 key fragment: {key}"
         assert key in en_text, f"missing panel en v41 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v42_locale_hint_refresh_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V42_MARKERS:
+        assert token in text, f"missing panel i18n v42 token: {token}"
+    assert "function showHint(msg)" not in text
+
+
+def test_panel_i18n_v42_locale_hint_refresh_has_no_new_catalog_keys() -> None:
+    assert PANEL_I18N_V42_MARKERS
