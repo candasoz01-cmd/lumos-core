@@ -19,6 +19,7 @@ Operator notice: [`docs/mail-strategy-private-notice.md`](mail-strategy-private-
 |-------------------------|----------------|-------|
 | [`memory/mail-integration-approval-decision.md`](memory/mail-integration-approval-decision.md) | `.lumos/internal/strategy-vault/migration-2026-06-20/mail-integration-approval-decision.md` | OD-031 communication-channels automation model (full strategy) |
 | [`memory/od-031-mail-dar-v1-scope.md`](memory/od-031-mail-dar-v1-scope.md) | `.lumos/internal/strategy-vault/migration-2026-06-20/od-031-mail-dar-v1-scope.md` | Mail dar v1 pilot scope definition |
+| [`memory/od-vault-v1-technology-selection.md`](memory/od-vault-v1-technology-selection.md) | `.lumos/internal/strategy-vault/migration-2026-06-21/od-vault-v1-technology-selection.md` | Vault V1 OSS/SaaS evaluation and technology selection (OD-001–005) |
 
 ---
 
