@@ -30,6 +30,7 @@ Beklenen: `OK: Infisical reachable ...`
 - `src/integrations/mail/providers/gmail_oauth.py` — scope `gmail.readonly`
 - Google OAuth client credentials **Google Cloud Console'da** — repo'da yok
 - Vault configured + read grant → vault-backed read path (public repo mock-friendly)
+- **OAuth callback contract (PR1):** [`gmail-oauth-callback-contract.md`](./gmail-oauth-callback-contract.md) — types `src/integrations/mail/oauth_contract.py`; post-OAuth ref `mail-read:{account_id}`. HTTP handler + Infisical write PR2.
 
 ## Private operatör işleri (repo dışı)
 
