@@ -14,7 +14,7 @@ Lumos mail yeteneklerini **üç ayrı katmanda** netleştirmek:
 2. **Mail gönderme** — kullanıcı onayı + mail sağlayıcı entegrasyonu gerektirir
 3. **Domain mail adresi** — kullanıcı/şirket sahipli domain altında mail adresi açma
 
-Bu belge **yalnızca dokümantasyondur**. Bu turda kod, API, panel arayüzü, OAuth, IMAP, SMTP, Gmail, DNS değişikliği, domain satın alma, gerçek posta gönderimi veya kullanıcı adına mail hesabı açma **kapsam dışıdır**.
+Bu belge **yalnızca dokümantasyondur**. Public repoda mail için **demo-safe foundation stub** vardır (ADR-002); **canlı SMTP/OAuth prod akışı, DNS değişikliği, domain satın alma, gerçek posta gönderimi veya kullanıcı adına mail hesabı açma uygulanmamıştır**.
 
 ## Bağlam
 
@@ -30,9 +30,9 @@ Aşağıdaki ifadeler **mevcut durum** için geçerlidir; abartılı ürün vaad
 
 | Yetenek | Bugünkü durum |
 |---------|---------------|
-| **Lumos kendi başına mail gönderemez** | Gönderim altyapısı, SMTP/OAuth entegrasyonu ve onaylı gönderim akışı **yoktur** |
+| **Lumos kendi başına mail gönderemez** | Prod gönderim altyapısı ve onaylı gönderim akışı **ürün olarak uygulanmamış** |
 | **Lumos kendi başına mail hesabı açamaz** | Domain altında mailbox oluşturma, sağlayıcı hesabı açma veya DNS yönetimi **Lumos tarafından otomatik yapılmaz** |
-| **Inbox Intelligence (okuma/özet)** | ADR-002 taslak; uygulanmamış; ayrı izin akışı şart |
+| **Inbox Intelligence (okuma/özet)** | ADR-002 taslak; public demo-safe stub (PR #413–#415); **ürün uygulanmamış** |
 | **Domain mail adresi** | Bu ADR'de tanımlanan **hedef sınır**; uygulama yok |
 
 Lumos, kullanıcı adına **sessiz veya otomatik** posta göndermez ve **sessiz veya otomatik** mail hesabı oluşturmaz.
@@ -60,7 +60,7 @@ Detay: `docs/decisions/ADR-002-mail-inbox-intelligence.md`.
 | Koşul | Açıklama |
 |-------|----------|
 | Kullanıcı onayı | Her gönderim **açık onay** gerektirir; otomatik gönderim yok |
-| Mail sağlayıcı entegrasyonu | SMTP, OAuth veya sağlayıcı API — **bugün yok**; gelecekte ayrı ADR/checkpoint |
+| Mail sağlayıcı entegrasyonu | Public demo-safe sözleşme/stub; **prod connector private impl bekliyor** |
 | Lumos tek başına gönderemez | Altyapı ve entegrasyon olmadan gönderim mümkün değildir |
 
 Gönderim, silme, arşivleme ve kutuda değişiklik yapan tüm adımlar ADR-002 onay tablosu ile uyumludur.
@@ -161,7 +161,7 @@ Bu depo Lumos'un **public açık kaynak temelidir** (`public-github-boundary`).
 | Domain/adres **örnekleri** (welockai.com, lumos.com senaryoları) | DNS secret'ları ve zone yönetim kimlik bilgileri |
 | SPF/DKIM/DMARC **ilkeleri** (dokümantasyon) | OAuth token'ları, refresh token'lar |
 | Onay akışı **tasarım hedefi** | SMTP kullanıcı adı / parola / credential |
-| "Bugün gönderemez / hesap açamaz" dürüst ifadesi | IMAP/OAuth/Gmail prod entegrasyonu |
+| "Bugün gönderemez / hesap açamaz" dürüst ifadesi | Prod mail connector / canlı OAuth (private katman) |
 | Demo-safe stub veya placeholder referansı | Operasyonel mail altyapısı ve prod gönderim |
 
 Karar belgesi public'te kalabilir; **gerçek posta, sağlayıcı anahtarları, DNS secret'ları ve OAuth/SMTP kimlik bilgileri private katmanda** tutulur.
@@ -176,7 +176,7 @@ Karar belgesi public'te kalabilir; **gerçek posta, sağlayıcı anahtarları, D
 |---------------------|---------|
 | Kod / API / panel UI | Bu tur yalnızca ADR |
 | Mail sağlayıcı entegrasyonu | Ayrı checkpoint; onay + altyapı şart |
-| SMTP / OAuth / IMAP | Bugün yok; public foundation kapsam dışı prod entegrasyon |
+| SMTP / prod mail connector | Ürün uygulanmamış; public foundation stub only |
 | Domain satın alma veya transfer | Kullanıcı/şirket işlemi; Lumos otomatik yapmaz |
 | DNS değişikliği | Kontrollü, onaylı, private katman |
 | Gerçek mail gönderimi | Onay + sağlayıcı olmadan mümkün değil |
@@ -193,7 +193,7 @@ Karar belgesi public'te kalabilir; **gerçek posta, sağlayıcı anahtarları, D
 | Okuma / özet / sıralama | Ana konu | Katman 1 referansı |
 | Gönderim onayı | Tablo kuralı | Katman 2 detayı + altyapı ön koşulu |
 | Domain / `@` adres | Kapsam dışı | Katman 3 — bu ADR'nin odağı |
-| OAuth / IMAP | Kapsam dışı | Kapsam dışı (aynı) |
+| Prod mail connector | Public stub only | Private impl (aynı sınır) |
 
 ADR-009, ADR-002'yi **genişletmez**; gönderme ve domain adresi sınırlarını **ayrı katman** olarak tamamlar.
 

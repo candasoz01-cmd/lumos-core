@@ -15,7 +15,7 @@
 | Dahil (OD-033) | Hariç — ayrı karar |
 |----------------|---------------------|
 | **GitHub** — repo, issue, PR, yorum bağlamı | **Takvim + Kişiler** → [`calendar-contacts-decision.md`](./calendar-contacts-decision.md) (OD-032) |
-| **Slack** — kanal, mesaj, bildirim bağlamı | **İletişim kanalları** (mail, Telegram, WhatsApp, SMS, sosyal DM) → [`mail-integration-approval-decision.md`](./mail-integration-approval-decision.md) (OD-031) |
+| **Slack** — kanal, mesaj, bildirim bağlamı | **İletişim kanalları** (mail ve diğer mesajlaşma kanalları) → [`mail-integration-approval-decision.md`](./mail-integration-approval-decision.md) (OD-031) |
 | **Google Drive** — dosya okuma, referans, paylaşım sınırları | **Ticari domain / ödeme** → OD-039–OD-042, [`commercial-domain-payments.md`](./commercial-domain-payments.md) |
 | **Linear** — issue, proje, durum senkronu | **OpenAI Agents / Realtime / Codex Plugins** → OD-034, OD-035 (ayrı değerlendirme) |
 | **Notion** — sayfa, veritabanı, görev referansı | Takvim, kişi, mail veya ticari işlem bu belgede **birleştirilmez** |

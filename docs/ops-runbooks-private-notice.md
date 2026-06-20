@@ -17,7 +17,8 @@ See vault README: `.lumos/internal/ops-vault/README.md` (never commit).
 
 - **Stubs** for moved runbooks (title + high-level summary, no secrets)
 - **Migration index:** [`ops-runbooks-migration-index.md`](ops-runbooks-migration-index.md)
-- **Boundary rule:** [`memory/public-ops-runbook-boundary.md`](memory/public-ops-runbook-boundary.md)
+- **Boundary rule:** [`memory/public-repo-boundary.md`](memory/public-repo-boundary.md) (canonical)
+- **Legacy redirect:** [`memory/public-ops-runbook-boundary.md`](memory/public-ops-runbook-boundary.md)
 - **Redacted planning docs** for panel/backend configuration (no IPs, no SSH)
 
 ## Placeholders in public docs
@@ -40,4 +41,4 @@ Do not replace placeholders with real values in commits to this repo.
 | Date | Change |
 |------|--------|
 | 2026-06-19 | PR #252 revision: 5 runbooks moved to ops vault; stubs + migration index + boundary rule added |
-| 2026-06-19 | Initial notice (single line) replaced with this expanded notice |
+| 2026-06-21 | OD-031 Phase 2 Step 4 — canonical `public-repo-boundary.md`; legacy ops boundary → redirect |

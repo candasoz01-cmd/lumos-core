@@ -19,7 +19,8 @@ See vault README: `.lumos/internal/strategy-vault/README.md` (never commit).
 
 - **Stubs** for moved strategy docs (title + high-level summary, no secrets)
 - **Migration index:** [`mail-strategy-migration-index.md`](mail-strategy-migration-index.md)
-- **Boundary rule:** [`memory/public-mail-strategy-boundary.md`](memory/public-mail-strategy-boundary.md)
+- **Boundary rule:** [`memory/public-repo-boundary.md`](memory/public-repo-boundary.md) (canonical)
+- **Legacy redirect:** [`memory/public-mail-strategy-boundary.md`](memory/public-mail-strategy-boundary.md)
 - **Demo-safe ADR:** [`decisions/ADR-002-mail-inbox-intelligence.md`](decisions/ADR-002-mail-inbox-intelligence.md)
 - **Redacted open-decisions index** — OD-031 row without provider/vault impl detail
 
@@ -41,4 +42,4 @@ Do not replace placeholders with strategic implementation detail in commits to t
 
 | Date | Change |
 |------|--------|
-| 2026-06-20 | OD-031 migration: 2 strategy docs moved to strategy vault; stubs + migration index + boundary rule added |
+| 2026-06-21 | OD-031 Phase 2 Step 4 — canonical `public-repo-boundary.md`; legacy mail boundary → redirect |

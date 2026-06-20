@@ -238,7 +238,7 @@ Bu depo Lumos'un **public açık kaynak temelidir** (`public-github-boundary`). 
 | Proje karar graph **fikri** ve ADR kayıtları | Gerçek kullanıcı profili ve PII içeren graph |
 | `SecureNotesStore` desen açıklaması (şifreli yerel store) | Production keystore, cihaz kimliği, operasyonel backend |
 | Sentetik/demo graph fixture tanımı | Cross-service memory senkronu |
-| Usage map / bellek dokunuş noktası analizi (salt okuma) | Mail/IMAP/OAuth graph içeriği (ADR-002) |
+| Usage map / bellek dokunuş noktası analizi (salt okuma) | Mail demo-safe stub bağlamı (ADR-002; prod mail graph private) |
 | | Agent Network graph genişlemesi (ADR-001 hipotez) |
 | | Quantum / IBM prod entegrasyonu (ADR-001) |
 
@@ -298,7 +298,7 @@ Aşağıdaki işler **bilinçli olarak yapılmaz**; ayrı ADR, konsolidasyon pla
 | **Runtime bellek ↔ docs kararlarını tek sistem sunma** | `docs/decisions` ve `docs/journal` runtime ingest hedefi değil |
 | **`decision_bias`'ı kullanıcı hafızası gibi kullanma** | Log türevli ağırlık; entity/tercih graph'ı değil |
 | **Kod yazma** (graph engine, schema implementasyonu) | Terim sözleşmesi ve karar finalize edilmedi |
-| **Mail/OAuth entegrasyonu** | ADR-002 — izin akışı ve kod kapsam dışı |
+| **Mail demo-safe stub (ADR-002)** | ADR-002 — public stub; prod izin akışı ve connector private |
 | **Agent Network kurma** | ADR-001 taslak; graph öncesi değil |
 | **Quantum/IBM tarafına geçme** | ADR-001 — erken hedef değil |
 

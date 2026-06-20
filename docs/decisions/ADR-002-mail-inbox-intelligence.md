@@ -2,15 +2,16 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Taslak / gözlem** — uygulanmamış; kesinleşmiş mimari karar değildir |
+| Durum | **Taslak / gözlem** — public **demo-safe stub** mevcut (PR #413–#415); **ürün uygulanmamış**; kesinleşmiş mimari karar değildir |
 | Tarih | 2026-06-06 |
-| İlgili | `docs/lumos-karar-sozlesmesi.md`, onay ve yetki ilkeleri, ADR-001 |
+| Revizyon | 2026-06-21 — OD-031 Phase 2 Step 4: public kod gerçeği + ADR drift düzeltmesi |
+| İlgili | `docs/lumos-karar-sozlesmesi.md`, onay ve yetki ilkeleri, ADR-001, [`public-repo-boundary.md`](../memory/public-repo-boundary.md) |
 
 ## Amaç
 
 Lumos, kullanıcının **açık izni** ile e-posta okuyabilir ve gelen kutusunu **önem önceliğine** göre sunabilir. Bu ADR, böyle bir yetenek alanının ürün ve güvenlik sınırlarını **taslak** düzeyinde kayıt altına alır.
 
-Bu belge **yalnızca dokümantasyondur**. Bu turda kod, API, panel arayüzü, OAuth, IMAP, Gmail veya gerçek posta entegrasyonu **kapsam dışıdır**.
+Bu belge **yalnızca dokümantasyondur**. Public repoda **demo-safe foundation stub** (`src/integrations/mail/`, `src/integrations/vault/`) vardır; **canlı OAuth handler, prod connector, panel UX ve gerçek posta ürün akışı uygulanmamıştır**.
 
 ## Bağlam
 
@@ -68,7 +69,20 @@ Kategori ataması **öneri** niteliğindedir; kullanıcı her zaman override ede
 | **önerilen aksiyon** | Lumos’un önerdiği sonraki adım (onay gerektirir) |
 | **kaynak zaman** | Postanın alındığı / kaynak sistemdeki zaman |
 
-Bu alanlar **ürün tasarım hedefidir**; şu an kod veya API ile temsil edilmemektedir.
+**Tam kart modeli yok**; public stub yalnızca `MailMessageSummary` (4 alan: gönderen, konu, kısa özet, kaynak zaman). Önem seviyesi, sınıflandırma gerekçesi ve önerilen aksiyon **henüz kod/API yok**.
+
+## Public kod gerçeği (demo-safe stub)
+
+| Konu | Public stub | Ürün / private |
+|------|-------------|----------------|
+| Connector | `StubMailConnector` default; vault+grant OK → `GmailOAuthConnector` | Canlı mailbox prod akışı |
+| OAuth | `oauth_contract.py` types/spec | HTTP handler, token exchange |
+| Vault | `DemoVaultCredentialBridge` / env-gated adapter | Operatör credential yönetimi |
+| Grants | `read` + `notify` validation; `send_reply` reddedilir | Tam izin akışı UX |
+| API smoke | `LUMOS_GMAIL_SMOKE=1` operator-only | CI/default'ta kapalı |
+| Send/archive/delete | Grant reddi / stub | Onaylı gönderim (ADR-009) |
+
+Stub, izin akışını **substitute etmez**; ayrı UX/onay tasarımı hâlâ zorunludur.
 
 ## Önerilen aksiyonlar (taslak)
 
@@ -91,16 +105,17 @@ Herhangi bir uygulama (okuma, sınıflandırma, öneri) başlamadan **önce** ta
 1. Kullanıcıya mail erişiminin kapsamı açıkça anlatılır (ne okunur, ne okunmaz, ne saklanır).
 2. Kullanıcı **bilinçli ve açık** onay verir; varsayılan kapalı kalır.
 3. İzin geri alınabilir olmalıdır.
-4. OAuth, IMAP, Gmail veya benzeri sağlayıcı entegrasyonu **bu ADR turunda yoktur**; izin akışı tasarımı ayrı belgede ele alınacaktır.
+4. Sağlayıcı entegrasyonu **ürün olarak uygulanmamıştır**; public'te yalnızca demo-safe sözleşme tipleri ve stub arayüzleri vardır (PR #413–#415). Tam izin akışı ve operatör impl → **private katman**.
 
-Bu akış onaylanmadan ve dokümante edilmeden **kod veya entegrasyon çalışması başlatılmamalıdır**.
+Bu akış onaylanmadan ve private impl paketi tamamlanmadan **prod entegrasyon çalışması başlatılmamalıdır**.
 
 ## Bilinçli sınırlar
 
 | Konu | Durum |
 |------|-------|
-| Kod / API / panel UI | **Bu turda yok** — yalnızca ADR |
-| OAuth / IMAP / Gmail / gerçek posta | **Kapsam dışı** |
+| Ürün kod / panel UI / canlı posta akışı | **Uygulanmamış** — yalnızca demo-safe stub + ADR |
+| Public stub (`src/integrations/mail/`, `vault/`) | **Mevcut** — foundation; prod değil |
+| Canlı OAuth / prod connector / gerçek posta | **Private impl bekliyor** |
 | Otomatik gönder / sil / arşiv / etiket | **Yasak** (onaysız) |
 | Jilee | **Lumos özelliği değildir**; ayrı fikir, gözlemde |
 | Üretim vaadi | **Yok** — taslak / gelecek / gözlem |
@@ -109,11 +124,11 @@ Abartılı ürün vaadi yapılmaz. Bu belge, olası bir yönü kayıt altına al
 
 ## Sonuç (geçici)
 
-Mail / Inbox Intelligence, Lumos’un **izinli okuma + önem önceliği sunumu** hedefini tanımlayan **taslak ADR**dir. Uygulanmamıştır. Somut adımlar: (1) mail erişim izin akışının ayrı tasarımı, (2) onay sınırlarının korunması, (3) ayrı checkpoint veya revizyon ile kapsam netleştirme.
+Mail / Inbox Intelligence, Lumos'un **izinli okuma + önem önceliği sunumu** hedefini tanımlayan **taslak ADR**dir. **Ürün uygulanmamıştır**; public demo-safe stub mevcuttur. Somut adımlar: (1) mail erişim izin akışının private tasarımı, (2) onay sınırlarının korunması, (3) onaylı private impl paketi.
 
 ## Sonraki gözden geçirme
 
 - Mail erişim izin akışı için ayrı ADR veya checkpoint belgesi
 - Önem sınıflandırma kuralları ve kullanıcı override modeli
-- Public repo sınırına uygun demo / stub kapsamı netleşince revizyon
+- Public stub gerçeği revizyonu — **tamamlandı** (OD-031 Phase 2 Step 4); private impl checkpoint
 - ADR-001 ile çakışmayan, çekirdek stabilizasyon sonrası uygulama değerlendirmesi

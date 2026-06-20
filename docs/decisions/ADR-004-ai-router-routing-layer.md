@@ -61,13 +61,13 @@ Dağıtık guard'lar mevcuttur; merkezi router kararı değildir:
 | Hız bazlı model seçimi | Yok (timeout/kırpma dışında) |
 | Provider / model seçimi | Tek provider + env model |
 | Production routing | Yok |
-| Mail önceliklendirme | Yalnız ADR-002 taslağı; kod yok |
+| Mail önceliklendirme | ADR-002 taslak; demo-safe stub (`src/integrations/mail/`); prod connector yok |
 | Quantum / IBM routing | ADR-001 hipotez; uygulama yok |
 
 ### İlgili ADR durumu
 
 - **ADR-001:** AI Router ve güvenli yönlendirme **hipotez**; quantum erken hedef değil.
-- **ADR-002:** Mail önceliklendirme kategorileri **taslak**; OAuth/IMAP/kod yok.
+- **ADR-002:** Mail önceliklendirme kategorileri **taslak**; public demo-safe stub mevcut; **ürün/prod connector uygulanmamış**.
 - **ADR-003:** Canonical bellek (`src/memory`) ve trust/security (`src/security`, `src/policy`) kayıtlı; router bu katmanlara bağlanmalı, ancak bu ADR canonical kararı değiştirmez.
 - **ADR-006 / ADR-007 / ADR-010:** Guard, trust ve terminoloji sınırları router ile **kavramsal olarak yakın** noktalarda örtüşür; bu ADR router usage map'i kaydeder, firewall/trust kararlarını router'a taşımaz.
 
@@ -168,7 +168,7 @@ Aşağıdaki kategoriler **ürün yönlendirme hedefidir**; repo'da birleşik ka
 | 1 | **Düşük riskli sohbet / açıklama** | Hafif model veya yerel cevap; düşük maliyet | `bridge_intent` → `chat`; CLI `unknown` + online → `live_brain` → `OnlineEngineV1` | Birleşik kategori yok; maliyet kontrolü yok |
 | 2 | **Kod analizi** | Analiz profili; yürütme ayrı | `kando_core.ToolRouter` (ayrı demo hattı); Brain `analyze` adımı | Ana CLI/köprü hattında otomatik kod-analiz router yok |
 | 3 | **Doküman okuma / özetleme** | Read + özet; gate veya read executor | `lumos_gate` dosya okuma; `read_executor` | Ayrı "doküman kategorisi" sözleşmesi yok |
-| 4 | **Mail önceliklendirme** | ADR-002 kategorilerine göre sınıflandırma | **Kod yok** — yalnız ADR-002 | Tam boşluk |
+| 4 | **Mail önceliklendirme** | ADR-002 kategorilerine göre sınıflandırma | Public mail stub; sınıflandırma/router kodu yok | Ürün boşluğu |
 | 5 | **Görev planlama** | Plan üret; uygulama onaylı | `task_engine/planner.py`, `lumos_gate` `mode=agent` | "Planlama kategorisi" router sözleşmesi yok |
 | 6 | **Güvenlik / hassas işlem** | `no_op` veya açık onay; profil kısıtı | `profiles.py` `STEP_TYPE_CRITICAL/EXTERNAL`, `SECURITY_NEVER_AUTO`; gate risk | Birleşik hassas kategori router yok |
 | 7 | **Dış servis aksiyonu** | External step blok veya onaylı köprü | Profilde `external` asla; video → Replicate yolu | Merkezi dış-aksiyon router yok |
@@ -209,7 +209,7 @@ Bu depo Lumos'un **public açık kaynak temelidir** (`public-github-boundary`). 
 | Profil / onay matrisi referansı (`profiles.py` davranışını değiştirmeden) | Production routing ve operasyonel model yönlendirme |
 | Gate pattern açıklaması (`lumos_gate` — kontrollü reasoning) | Kişisel veri (PII) işleyen routing kuralları |
 | Offline stub davranış tanımı | Cihaz aksiyonları ve prod orchestration |
-| Usage map / import map (salt okuma analizi) | Mail/IMAP/OAuth entegrasyonu (ADR-002) |
+| Usage map / import map (salt okuma analizi) | Mail demo-safe stub yüzeyi (ADR-002; prod connector private) |
 | | Quantum / IBM prod entegrasyonu (ADR-001) |
 
 Public repo'da parçalı router'ların **"tam AI Router ürünü"** gibi sunulması bilinçli olarak yapılmamalıdır; bu ADR yalnızca hedef ve mevcut boşluğu kaydeder.
@@ -265,7 +265,7 @@ Aşağıdaki işler **bilinçli olarak yapılmaz**; ayrı ADR, import/drift ince
 | **API key ekleme / yönetimi** | Gizli anahtar public repo'da olmamalı |
 | **Agent Network kurma** | ADR-001 taslak; router öncesi değil |
 | **Quantum / IBM'e geçme** | ADR-001 — erken hedef değil |
-| **Mail entegrasyonu kurma** | ADR-002 — izin akışı ve kod kapsam dışı |
+| **Mail ürün entegrasyonu kurma** | ADR-002 — izin akışı şart; public stub ürün teslimi değildir |
 | Büyük refactor (tek PR'da birleştirme) | Regresyon riski; ADR-003 ile uyumsuz erken konsolidasyon |
 | Abartılı ürün vaadi | Bu belge taslak; teslim veya prod routing taahhüdü yok |
 

@@ -1,6 +1,8 @@
 # Gmail OAuth callback contract (public-safe)
 
-**Durum:** PR1 — contract + types only. **HTTP handler, token exchange ve vault credential yazma bu PR'da yok.**
+**Durum:** Contract + types (PR #413). **HTTP handler, token exchange ve vault credential yazma ürün olarak uygulanmamış** — operatör adımları ops vault'ta.
+
+> **Canonical:** OAuth callback sözleşmesi bu belgede; tam operatör akışı [`ops-runbooks-migration-index.md`](../ops-runbooks-migration-index.md) → gmail-readonly-smoke stub → ops vault. Boundary: [`public-repo-boundary.md`](./public-repo-boundary.md).
 
 İlgili kod: `src/integrations/mail/oauth_contract.py`  
 Vault ref: `src/integrations/mail/vault_credential.py` — `mail_read_credential_ref`  
@@ -105,4 +107,4 @@ Connector: `GmailOAuthConnector.list_unread_summaries` vault configured ise bu r
 
 | Date | Change |
 |------|--------|
-| 2026-06-21 | OD-031 Phase 2 Step 3 — vault write ops trimmed; private ops pointers only |
+| 2026-06-21 | OD-031 Phase 2 Step 4 — contract merged note; canonical boundary pointer |

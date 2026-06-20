@@ -1,8 +1,8 @@
 # Vault — dar v1 keşif ve tasarım (OD-001–005, OD-023)
 
-> **Durum:** `design-approved` (dar v1 kapsam tanımı) / **`implementation-pending`** (kod, API, secret, credential).  
-> **Bu belge:** Keşif + tasarım çerçevesi only — **vault ürün kodu yok**, **secret/API uygulaması yok**.  
-> **Üst sınır:** [`docs/lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md); public repo boundary geçerli.
+> **Durum:** `design-approved` (dar v1 kapsam tanımı) / **`implementation-pending`** (prod vault API, secret, credential).  
+> **Bu belge:** Keşif + tasarım çerçevesi only — **prod vault ürün kodu yok**; public'te demo-safe adapter stub (`src/integrations/vault/`, PR #414).  
+> **Üst sınır:** [`docs/lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md); [`public-repo-boundary.md`](./public-repo-boundary.md).
 
 **Kaynak OD:** OD-001 – OD-005 (vault ilke), OD-023/024 (UX dili)  
 **Canonical ilke:** [`vault-secret-token-decision.md`](./vault-secret-token-decision.md)  
@@ -196,7 +196,7 @@ Onaylı ilkeler: [`od-023-vault-ux-language-decision.md`](./od-023-vault-ux-lang
 
 ## 9. Sonraki adım
 
-1. **Private impl paketi:** Vault PoC (V1a) + amaç kodu token eşlemesi (V1b) — karar: [`od-vault-v1-technology-selection.md`](od-vault-v1-technology-selection.md); operatör runbook: [`ops-runbooks-private-notice.md`](../ops-runbooks-private-notice.md).
+1. **Private impl paketi:** Vault PoC (V1a) + amaç kodu token eşlemesi (V1b) — karar: [`od-vault-v1-technology-selection.md`](od-vault-v1-technology-selection.md); operatör runbook: [`ops-runbooks-private-notice.md`](../ops-runbooks-private-notice.md); canonical boundary: [`public-repo-boundary.md`](./public-repo-boundary.md).
 2. **UX:** §3 outline → panel/chat copy taslağı (`implementation-pending`).
 3. **Amaç kodları:** Private `vault-purpose-codes-v1` tam listesi + vault-Lumos API sözleşmesi.
 4. **Mail:** Vault credential hazır olunca [`od-031-mail-dar-v1-scope.md`](./od-031-mail-dar-v1-scope.md) M2 pilot.
@@ -205,4 +205,4 @@ Onaylı ilkeler: [`od-023-vault-ux-language-decision.md`](./od-023-vault-ux-lang
 
 ---
 
-Son güncelleme: 2026-06-20 (dar v1 keşif/tasarım — docs only)
+Son güncelleme: 2026-06-21 (OD-031 Phase 2 Step 4 — public stub + canonical boundary sync)
