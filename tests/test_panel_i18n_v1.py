@@ -249,6 +249,18 @@ PANEL_I18N_V14_TR_KEYS = (
     "noResult:",
 )
 
+PANEL_I18N_V15_MARKERS = (
+    'panelT("panel.modules.chat.compose.photoSelectedLabel")',
+    'panelT("panel.modules.chat.compose.photoCapturedStatus")',
+    'function syncCameraPhotoStatusText()',
+    'syncCameraPhotoStatusText();',
+)
+
+PANEL_I18N_V15_TR_KEYS = (
+    "photoSelectedLabel:",
+    "photoCapturedStatus:",
+)
+
 
 
 def test_panel_astro_i18n_wiring_present() -> None:
@@ -462,3 +474,19 @@ def test_panel_i18n_v14_voice_hints_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V14_TR_KEYS:
         assert key in tr_text, f"missing panel tr v14 key fragment: {key}"
         assert key in en_text, f"missing panel en v14 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v15_camera_photo_status_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V15_MARKERS:
+        assert token in text, f"missing panel i18n v15 token: {token}"
+    assert '"Seçilen görsel"' not in text
+    assert '"Fotoğraf alındı"' not in text
+
+
+def test_panel_i18n_v15_camera_photo_status_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V15_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v15 key fragment: {key}"
+        assert key in en_text, f"missing panel en v15 key fragment: {key}"

@@ -8003,6 +8003,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
         }
         /** @type {string | null} */
         let cameraPhotoObjectUrl = null;
+        /** @type {string | null} */
+        let cameraPhotoFileName = null;
         /** @type {MediaStream | null} */
         let cameraStream = null;
         /** @type {Blob | null} */
@@ -8026,8 +8028,24 @@ const PANEL_DEBUG = import.meta.env.DEV;
           cameraHint.hidden = !s;
         }
 
+        function syncCameraPhotoStatusText() {
+          if (!cameraPhotoObjectUrl) return;
+          const name = cameraPhotoFileName;
+          const label = name ? name : panelT("panel.modules.chat.compose.photoSelectedLabel");
+          const status = name ? name : panelT("panel.modules.chat.compose.photoCapturedStatus");
+          if (cameraPhotoPreview) {
+            cameraPhotoPreview.alt = label;
+            cameraPhotoPreview.title = label;
+          }
+          if (cameraPhotoStatus) {
+            cameraPhotoStatus.textContent = status;
+            syncCameraPhotoStatusVisibilityForViewport();
+          }
+        }
+
         refreshPanelCameraHintsI18n = () => {
           if (cameraHintI18nKey) setCameraHintKey(cameraHintI18nKey);
+          syncCameraPhotoStatusText();
         };
 
         function setSendHint(msg) {
@@ -8118,6 +8136,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             cameraPhotoPreview.hidden = true;
           }
           if (cameraPhotoInput) cameraPhotoInput.value = "";
+          cameraPhotoFileName = null;
           if (cameraPhotoStatus) {
             cameraPhotoStatus.textContent = "";
             cameraPhotoStatus.hidden = true;
@@ -8143,21 +8162,15 @@ const PANEL_DEBUG = import.meta.env.DEV;
             setCameraHintKey("panel.modules.chat.compose.cameraHints.previewFailed");
             return;
           }
-          const name = file.name && String(file.name).trim();
+          cameraPhotoFileName = file.name && String(file.name).trim() ? String(file.name).trim() : null;
           if (cameraPhotoPreview) {
             cameraPhotoPreview.hidden = true;
-            const label = name ? name : "Seçilen görsel";
-            cameraPhotoPreview.alt = label;
-            cameraPhotoPreview.title = label;
             cameraPhotoPreview.onload = () => {
               cameraPhotoPreview.hidden = false;
             };
             cameraPhotoPreview.src = cameraPhotoObjectUrl;
           }
-          if (cameraPhotoStatus) {
-            cameraPhotoStatus.textContent = name ? name : "Fotoğraf alındı";
-            syncCameraPhotoStatusVisibilityForViewport();
-          }
+          syncCameraPhotoStatusText();
           if (cameraBtn) {
             cameraBtn.classList.add("chat-compose-camera-btn--active");
             cameraBtn.setAttribute("aria-pressed", "true");

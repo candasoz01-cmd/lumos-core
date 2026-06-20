@@ -161,6 +161,8 @@ const panel: typeof panelTr = {
       cancelRecord: "Cancel",
       rerecord: "Re-record",
       transcribe: "Transcribe",
+      photoSelectedLabel: "Selected image",
+      photoCapturedStatus: "Photo captured",
       hints: {
         pickOneAttachment: "Choose one attachment at a time",
         photoReadFailed: "Could not read the photo.",
