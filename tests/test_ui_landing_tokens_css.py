@@ -46,3 +46,23 @@ def test_landing_install_v8_keys_in_catalogs() -> None:
     ):
         assert key in tr_text, f"missing landing tr key: {key}"
         assert key in en_text, f"missing landing en key: {key}"
+
+
+def test_landing_hero_ask_field_name_q() -> None:
+    text = _INDEX_ASTRO.read_text(encoding="utf-8")
+    assert 'id="lumos-hero-ask-input"' in text
+    assert 'name="q"' in text
+    assert 'action="/panel"' in text
+    assert 'method="get"' in text
+    assert "if (!q) {" in text
+    assert 'window.location.href = "/panel?q="' not in text
+
+
+def test_panel_hero_prefill_scroll_and_banner_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    assert "scrollIntoView({ behavior: \"smooth\", block: \"center\" })" in text
+    assert "showPanelHeroPrefillBanner" in text
+    assert 'id="panel-hero-prefill-banner"' in text
+    assert 'panelT("panel.modules.chat.empty.heroPrefillBanner")' in text
+    assert 'navigatePanelModule("sohbet")' in text
+    assert "prefillPanelChatFromUrlQuery()" in text

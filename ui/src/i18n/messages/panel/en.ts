@@ -111,6 +111,8 @@ const panel: typeof panelTr = {
       limitedUserSub: "Local tasks are available; the external chat bridge is not attempted in this mode.",
       offline: "Offline mode · No internet",
       offlineSub: "Local actions are available; external connections are not attempted in this mode.",
+      heroPrefillBanner:
+        "Your landing question was carried here — review before sending.",
     },
     modeHints: {
       sendLimited: "Limited mode: no external chat bridge; local replies and task commands are available.",
