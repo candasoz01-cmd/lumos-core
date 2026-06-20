@@ -23,7 +23,60 @@ const panelNav = {
   sections: {
     sohbet: "Sohbet",
     gorevler: "Görevler",
+    ses: "Ses",
+    medya: "Medya",
+    sosyal: "Sosyal",
+    posta: "Posta",
     dosyalar: "Dosyalar",
+  },
+} as const;
+
+const panelCommon = {
+  badges: {
+    externalService: "[Harici Servis]",
+    demoNotConnected: "[Demo — bağlı değil]",
+    local: "[Yerel]",
+    unknown: "[Bilinmiyor]",
+  },
+  form: {
+    target: "Hedef",
+    targetPlatform: "Hedef platform",
+    recipient: "Alıcı",
+    contentSummary: "İçerik özeti",
+    postDraft: "Gönderi taslağı",
+    messageDraft: "Mesaj taslağı",
+    attachmentCount: "Ek sayısı",
+    showSummary: "Özeti göster",
+    sendDemoDisabled: "Gönder (demo kapalı)",
+    shareDemoDisabled: "Paylaş (demo kapalı)",
+  },
+  placeholders: {
+    shareSummary: "Paylaşılacak özet…",
+    shareText: "Paylaşılacak metin…",
+    emailBody: "E-posta metni…",
+    emailRecipient: "ornek@posta.com",
+  },
+  select: {
+    externalSummary: "Dış özet / arşiv",
+    localCopy: "Yerel kopya",
+    generalFeed: "Genel akış",
+    directMessage: "Doğrudan mesaj",
+  },
+  demo: {
+    sendTitle: "Demo: gerçek gönderim bağlı değil",
+    shareTitle: "Demo: gerçek paylaşım bağlı değil",
+    idleHint: "Demo modu: gerçek gönderim bağlı değil; yalnızca önizleme.",
+    reviewHint: "Özet görüntülendi (demo). Gönderim bu sürümde kapalı; bağlantı henüz yok.",
+    approvedHint: "Özet onaylandı. Göndermek için butona basın.",
+    summaryFooter: "[Demo] Gerçek gönderim yapılmaz.",
+    summaryTarget: "Hedef: ",
+    summaryContentPreview: "İçerik önizleme: ",
+    summaryAttachmentCount: "Ek sayısı: ",
+    summaryDataType: "Veri türü: ",
+    medyaMsg: "Demo: medya paylaşımı henüz bağlı değil.",
+    sosyalMsg: "Demo: sosyal paylaşım henüz bağlı değil.",
+    postaMsg: "Demo: e-posta gönderimi henüz bağlı değil.",
+    defaultMsg: "Demo: gerçek gönderim henüz bağlı değil.",
   },
 } as const;
 
@@ -41,7 +94,7 @@ const panelModules = {
   },
   voice: {
     intro:
-      "Bu sekme, sesli girdinin metne ve komutlara dönüşürken arayüz katmanında kalması ve kararın yine kullanıcıda tutulması için tasarlanan yaklaşımı özetler.",
+      "Bu sekme, sesli girdinin metne ve komutlara dönüşürken arayüz katmanında kalması ve kararın yine kullanıcıda tutulması için tasarlanan yaklaşımı özetler. Sohbet alt çubuğundaki mikrofon, cihaz, tarayıcı ve verilen izinlere bağlıdır; bazı ortamlarda desteklenmeyebilir.",
     c1Title: "Sesten Metne",
     c1Body:
       "Sesli ifade, metin ve komut adımlarına aktarılarak ekranda izlenebilir hale getirilebilir.",
@@ -59,11 +112,13 @@ const panelModules = {
   },
   media: {
     intro:
-      "Bu sekme, görsel, ses, video ve dosya akışlarının düzenlenmesinde paylaşım öncesi kontrol, veri yolu görünürlüğü ve kaynak ile çıktının ayrılması ilkelerini özetler.",
-    outboxTitle: "Köprü özeti (salt okunur)",
+      "Bu sekme, görsel, ses, video ve dosya akışlarının düzenlenmesinde paylaşım öncesi kontrol, veri yolu görünürlüğü ve kaynak ile çıktının ayrılması ilkelerini özetler. Sohbet alt çubuğundaki kamera da cihaz, tarayıcı ve izin desteğine bağlıdır; her ortamda çalışmayabilir.",
+    outboxTitle: "Son çıktı özeti (salt okunur)",
     outboxIntro:
-      "Son görev/sohbet çıktısı için köprüdeki GET /last-result yanıtı (dosya yoksa 404 metni gösterilir). Token, görev ve dosya yükleme ile aynıdır.",
+      "Son görev veya sohbet çıktısının iletimden okunan özeti. Kayıt yoksa kısa bilgi gösterilir.",
     outboxRefresh: "Yenile",
+    sharePreviewIntro: "Paylaşım taslağı önizlemesi — gerçek gönderim bu sürümde kapalı.",
+    dataType: "Medya özeti",
     c1Title: "Akışlar ve Türler",
     c1Body:
       "Farklı medya türleri tek çalışma düzeninde izlenebilir; hangi dosyanın nerede kullanıldığı daha okunaklı olabilir.",
@@ -82,6 +137,8 @@ const panelModules = {
   social: {
     intro:
       "Bu sekme, dışa açılan içeriklerde taslağı kullanıcıda tutmayı, platform farkındalığını artırmayı ve kalıcı paylaşımlarda açık onayı öncelemeyi hedefleyen yaklaşımı özetler.",
+    sharePreviewIntro: "Sosyal paylaşım taslağı önizlemesi — gerçek paylaşım bu sürümde kapalı.",
+    dataType: "Sosyal metin",
     c1Title: "Paylaşım Öncesi Kontrol",
     c1Body:
       "Gönderi yayınlanmadan önce özet, hedef ve görünürlük kullanıcıya son kez gösterilmeyi hedefler.",
@@ -99,6 +156,8 @@ const panelModules = {
   mail: {
     intro:
       "Bu sekme, e-posta taslağı hazırlama, ek ve alıcı doğrulaması ile gönderim öncesi açık onayı merkeze alan yaklaşımı özetler.",
+    sharePreviewIntro: "E-posta taslağı önizlemesi — gerçek gönderim bu sürümde kapalı.",
+    dataType: "E-posta",
     c1Title: "Taslak Odaklı Çalışma",
     c1Body:
       "Mesajlar önce taslak olarak düzenlenir; kullanıcı içeriği gözden geçirmeden iletim beklenmez.",
@@ -266,6 +325,7 @@ const panelModules = {
 
 const panel = {
   ...panelNav,
+  common: panelCommon,
   modules: panelModules,
 };
 

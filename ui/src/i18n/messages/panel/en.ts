@@ -1,6 +1,55 @@
 /** Panel shell + module copy — English */
 import type panelTr from "./tr";
 
+const panelCommon: typeof panelTr.common = {
+  badges: {
+    externalService: "[External service]",
+    demoNotConnected: "[Demo — not connected]",
+    local: "[Local]",
+    unknown: "[Unknown]",
+  },
+  form: {
+    target: "Target",
+    targetPlatform: "Target platform",
+    recipient: "Recipient",
+    contentSummary: "Content summary",
+    postDraft: "Post draft",
+    messageDraft: "Message draft",
+    attachmentCount: "Attachment count",
+    showSummary: "Show summary",
+    sendDemoDisabled: "Send (demo off)",
+    shareDemoDisabled: "Share (demo off)",
+  },
+  placeholders: {
+    shareSummary: "Summary to share…",
+    shareText: "Text to share…",
+    emailBody: "Email body…",
+    emailRecipient: "example@mail.com",
+  },
+  select: {
+    externalSummary: "External summary / archive",
+    localCopy: "Local copy",
+    generalFeed: "Public feed",
+    directMessage: "Direct message",
+  },
+  demo: {
+    sendTitle: "Demo: real send is not connected",
+    shareTitle: "Demo: real share is not connected",
+    idleHint: "Demo mode: real send is not connected; preview only.",
+    reviewHint: "Summary shown (demo). Send is off in this build; no connection yet.",
+    approvedHint: "Summary confirmed. Press the button to send.",
+    summaryFooter: "[Demo] No real send occurs.",
+    summaryTarget: "Target: ",
+    summaryContentPreview: "Content preview: ",
+    summaryAttachmentCount: "Attachment count: ",
+    summaryDataType: "Data type: ",
+    medyaMsg: "Demo: media share is not connected yet.",
+    sosyalMsg: "Demo: social share is not connected yet.",
+    postaMsg: "Demo: email send is not connected yet.",
+    defaultMsg: "Demo: real send is not connected yet.",
+  },
+};
+
 const panel: typeof panelTr = {
   meta: {
     title: "Lumos Panel — Workspace",
@@ -25,8 +74,13 @@ const panel: typeof panelTr = {
   sections: {
     sohbet: "Chat",
     gorevler: "Tasks",
+    ses: "Voice",
+    medya: "Media",
+    sosyal: "Social",
+    posta: "Mail",
     dosyalar: "Files",
   },
+  common: panelCommon,
   modules: {
   tasks: {
     eyebrow: "Operations",
@@ -41,7 +95,7 @@ const panel: typeof panelTr = {
   },
   voice: {
     intro:
-      "This tab summarizes an approach where voice input stays in the interface layer as it becomes text and commands, and the decision remains with you.",
+      "This tab summarizes an approach where voice input stays in the interface layer as it becomes text and commands, and the decision remains with you. The chat bar microphone depends on your device, browser, and granted permissions; it may not be supported in every environment.",
     c1Title: "Speech to text",
     c1Body:
       "Spoken input can be turned into text and command steps so it can be reviewed on screen.",
@@ -59,11 +113,13 @@ const panel: typeof panelTr = {
   },
   media: {
     intro:
-      "This tab summarizes principles for organizing image, audio, video, and file flows: pre-share review, visible data paths, and separating source from output.",
-    outboxTitle: "Bridge summary (read-only)",
+      "This tab summarizes principles for organizing image, audio, video, and file flows: pre-share review, visible data paths, and separating source from output. The chat bar camera also depends on device, browser, and permission support; it may not work in every environment.",
+    outboxTitle: "Latest output summary (read-only)",
     outboxIntro:
-      "For the latest task or chat output, the bridge GET /last-result response (if there is no file, a 404 message is shown). The token matches task and file upload flows.",
+      "Summary read from transmission for the latest task or chat output. If there is no record, a short notice is shown.",
     outboxRefresh: "Refresh",
+    sharePreviewIntro: "Share draft preview — real send is off in this build.",
+    dataType: "Media summary",
     c1Title: "Streams and types",
     c1Body:
       "Different media types can be followed in one working pattern; which file is used where can be easier to read.",
@@ -83,6 +139,8 @@ const panel: typeof panelTr = {
   social: {
     intro:
       "This tab summarizes keeping drafts with the user for outward-facing content, increasing platform awareness, and prioritizing explicit approval for lasting posts.",
+    sharePreviewIntro: "Social share draft preview — real sharing is off in this build.",
+    dataType: "Social text",
     c1Title: "Pre-share review",
     c1Body:
       "Before a post is published, summary, target, and visibility are meant to be shown to you one last time.",
@@ -100,6 +158,8 @@ const panel: typeof panelTr = {
   mail: {
     intro:
       "This tab summarizes an approach centered on email drafts, attachment and recipient checks, and explicit approval before sending.",
+    sharePreviewIntro: "Email draft preview — real send is off in this build.",
+    dataType: "Email",
     c1Title: "Draft-first workflow",
     c1Body:
       "Messages are edited as drafts first; sending is not expected before you review the content.",
