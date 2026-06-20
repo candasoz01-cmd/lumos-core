@@ -1,4 +1,4 @@
-"""Panel i18n v1–v28 — LanguageSwitcher, nav, modules, Sohbet chat, Görevler."""
+"""Panel i18n v1–v29 — LanguageSwitcher, nav, modules, Sohbet chat, Görevler."""
 
 from __future__ import annotations
 
@@ -506,6 +506,18 @@ PANEL_I18N_V28_TR_KEYS = (
     "leakRestoreFailed:",
 )
 
+PANEL_I18N_V29_MARKERS = (
+    'panelT("panel.shell.infra.leakConnectionKey")',
+    'panelT("panel.shell.infra.leakLocalServer")',
+    'panelT("panel.shell.infra.leakRequestError")',
+)
+
+PANEL_I18N_V29_TR_KEYS = (
+    "leakConnectionKey:",
+    "leakLocalServer:",
+    "leakRequestError:",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -975,3 +987,20 @@ def test_panel_i18n_v28_bridge_token_tasks_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V28_TR_KEYS:
         assert key in tr_text, f"missing panel tr v28 key fragment: {key}"
         assert key in en_text, f"missing panel en v28 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v29_strip_leak_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V29_MARKERS:
+        assert token in text, f"missing panel i18n v29 token: {token}"
+    assert '"bağlantı anahtarı"' not in text
+    assert '"yerel sunucu"' not in text
+    assert '"istek hatası"' not in text
+
+
+def test_panel_i18n_v29_strip_leak_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V29_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v29 key fragment: {key}"
+        assert key in en_text, f"missing panel en v29 key fragment: {key}"

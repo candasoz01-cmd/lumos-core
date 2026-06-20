@@ -785,6 +785,9 @@ const panel: typeof panelTr = {
         "Bridge unavailable (infrastructure). Check your connection and try again.",
       bridgeTokenMsg:
         "Panel connection is not configured. Bridge and panel operations are disabled in this environment; ask your device administrator to set up the connection key.",
+      leakConnectionKey: "connection key",
+      leakLocalServer: "local server",
+      leakRequestError: "request error",
       healthPending: "pending…",
       healthTrying: "trying…",
       healthOk: "OK",
