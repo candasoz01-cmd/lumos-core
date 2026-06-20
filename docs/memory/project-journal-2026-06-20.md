@@ -48,4 +48,4 @@ Canlı Gmail readonly smoke: vault + OAuth token hazır operatör makinesinde `L
 
 ## Sonraki odak
 
-**OD-031 Phase 2** — Step 5 (plan): kalan ADR-010 / security-architecture mail drift taraması (opsiyonel). **Landing Tur 1** — kalan landing vitrin bölümlerinin i18n ve token kapsamını genişletmek.
+**ADR-010 usage map** — checkpoint tamamlandı (2026-06-21): [`docs/analysis/ADR-010-guard-policy-trust-usage-map.md`](../analysis/ADR-010-guard-policy-trust-usage-map.md). **Sonraki:** ADR-010 finalize taslağı veya lock semantiği ayrı checkpoint; OD-031 private impl ops vault'ta. **Landing Tur 1** — kalan landing vitrin bölümlerinin i18n ve token kapsamını genişletmek.
