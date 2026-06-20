@@ -93,10 +93,11 @@ Her birinin kendi `pyproject.toml` ve `src/kando_*/` yapısı vardır.
 
 | Dizin | Var mı? | Rol |
 |-------|---------|-----|
-| **`panel/`** | Evet | Legacy statik panel + `e2e:legacy:*` Playwright (`lumos-panel`); birincil üretim değil |
+| **`panel/`** | Evet | **Canlı köprü:** `panel/scripts/` only; statik UI → `archive/panel/` |
+| **`archive/panel/`** | Evet | Legacy statik panel + `e2e:legacy:*` Playwright; birincil üretim değil |
 | **`ui/`** | Evet | Astro tabanlı statik UI (`lumos-core-ui`); root `npm run build` burayı hedefler |
 
-> **Düzeltme (doğrulandı):** **ikisi de mevcut**. Birincil üretim/dış kullanıcı = **`ui/`** (`ui/dist`, OD-043 **closed**). Kök E2E birincil = **`ui/dist`** (OD-046). `panel/` = legacy E2E (`e2e:legacy:*`).
+> **Düzeltme (doğrulandı):** Birincil üretim/dış kullanıcı = **`ui/`** (`ui/dist`, OD-043 **closed**). Kök E2E birincil = **`ui/dist`** (OD-046). Legacy statik panel = **`archive/panel/`** (`e2e:legacy:*`); canlı köprü = **`panel/scripts/`**.
 
 ### Backend
 
@@ -136,7 +137,7 @@ Panel ↔ köprü entegrasyonu bu katmandan geçer; Python CLI zincirinden ayrı
 | `lumos_core.main:main` entry | **Eski / hatalı** — güncel: `lumos_core.__main__:main` |
 | `src/lumos_core/main.py` | **Yok** — zincir `__main__.py` üzerinden |
 | `lumos web` → `web/app.py` | **Kaldırıldı** (OD-028 B1) — alt komut yok; `web/` restore edilmedi |
-| Kök `e2e:package*` | `ui/dist` hedefler; legacy için `e2e:legacy:*` → `panel/` |
+| Kök `e2e:package*` | `ui/dist` hedefler; legacy için `e2e:legacy:*` → `archive/panel/` |
 
 ---
 
@@ -199,7 +200,8 @@ lumos-core/
 ├── src/                 # CANLI Python core + CLI
 ├── packages/kando_bridge, kando_runtime/  # CANLI paketler
 ├── archive/packages/kando_*/  # Arşiv ayna paketler (OD-027)
-├── panel/               # Panel E2E (Playwright)
+├── panel/scripts/       # Canlı köprü sunucuları (tasks API)
+├── archive/panel/       # Legacy statik panel + E2E
 ├── ui/                  # Astro statik UI
 ├── backend/             # Express + Prisma API
 ├── api/bridge/          # Vercel bridge proxy

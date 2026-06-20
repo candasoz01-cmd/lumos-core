@@ -1,6 +1,6 @@
 # Panel statik uygulama emekliliği — Seçenek C (hibrit)
 
-**Durum:** `approved-for-implementation` — kullanıcı açık komutu (2026-06-20: «sırayla hepsini bitir»).  
+**Durum:** **`implementation-complete`** (PR #319).  
 **Kaynak:** OD-046 tarihsel Seçenek C — [`build-e2e-surface-alignment-decision.md`](./build-e2e-surface-alignment-decision.md) §7.3; birincil E2E zaten Seçenek A ile `ui/dist` (#300–#305).  
 **Çapraz:** OD-043 **closed** (birincil `ui/`); OD-046 **closed** (birincil kök E2E → `ui/`).
 
