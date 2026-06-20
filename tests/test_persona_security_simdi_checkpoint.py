@@ -30,6 +30,20 @@ _RUNTIME_SCAN_ROOTS = (
     REPO_ROOT / "backend",
 )
 
+# Prune vendor/build/cache dirs — same source coverage, ~95% fewer file reads.
+_RUNTIME_SCAN_SKIP_DIRS = frozenset(
+    {
+        "node_modules",
+        "__pycache__",
+        ".venv",
+        "dist",
+        "build",
+        ".git",
+        ".pytest_cache",
+        ".ruff_cache",
+    }
+)
+
 _SECRET_FIELD_NAMES = frozenset(
     {
         "passphrase",
@@ -222,6 +236,8 @@ def test_bando_runtime_absent_in_code_tree() -> None:
             continue
         for path in root.rglob("*"):
             if not path.is_file():
+                continue
+            if any(part in _RUNTIME_SCAN_SKIP_DIRS for part in path.parts):
                 continue
             if path.suffix not in {".py", ".js", ".ts", ".tsx", ".mjs"}:
                 continue
