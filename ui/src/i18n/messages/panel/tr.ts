@@ -851,6 +851,7 @@ const panelShell = {
     limited: "Sınırlı mod",
     ariaLabel: "Altyapı bağlantı durumu",
     title: "Altyapı: köprü bağlantısı",
+    setupHint: "Yerel kurulum adımlarına git",
   },
   infra: {
     tokenMissing: "Yapılandırılmamış",

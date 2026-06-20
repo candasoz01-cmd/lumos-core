@@ -647,6 +647,16 @@ PANEL_I18N_V36_TR_KEYS = (
     "alanPanel:",
 )
 
+PANEL_I18N_V37_MARKERS = (
+    "wirePanelConnBadgeSetupLink",
+    'panelT("panel.shell.conn.setupHint")',
+    'badge.setAttribute("data-setup-link"',
+)
+
+PANEL_I18N_V37_TR_KEYS = (
+    "setupHint:",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -1263,3 +1273,17 @@ def test_panel_i18n_v36_gorevler_plan_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V36_TR_KEYS:
         assert key in tr_text, f"missing panel tr v36 key fragment: {key}"
         assert key in en_text, f"missing panel en v36 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v37_conn_setup_link_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V37_MARKERS:
+        assert token in text, f"missing panel i18n v37 token: {token}"
+
+
+def test_panel_i18n_v37_conn_setup_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V37_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v37 key fragment: {key}"
+        assert key in en_text, f"missing panel en v37 key fragment: {key}"

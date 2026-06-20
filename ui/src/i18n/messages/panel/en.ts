@@ -854,6 +854,7 @@ const panel: typeof panelTr = {
       limited: "Limited mode",
       ariaLabel: "Infrastructure connection status",
       title: "Infrastructure: bridge connection",
+      setupHint: "Go to local setup steps",
     },
     infra: {
       tokenMissing: "Not configured",

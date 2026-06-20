@@ -205,6 +205,15 @@ const PANEL_DEBUG = import.meta.env.DEV;
         background: rgba(72, 62, 48, 0.28);
         border-color: rgba(160, 140, 108, 0.32);
       }
+      .panel-conn-badge[data-setup-link="1"] {
+        cursor: pointer;
+      }
+      .panel-conn-badge[data-setup-link="1"]:hover,
+      .panel-conn-badge[data-setup-link="1"]:focus-visible {
+        filter: brightness(1.08);
+        outline: 2px solid rgba(120, 200, 255, 0.35);
+        outline-offset: 2px;
+      }
       .panel-user-mode-badge {
         flex: 0 0 auto;
         font-size: 0.58rem;
@@ -12868,13 +12877,43 @@ const PANEL_DEBUG = import.meta.env.DEV;
       wireCapabilityProbe();
       initCapLabels();
       applyUserModeUi();
+      wirePanelConnBadgeSetupLink();
 
       function setPanelConnBadge(state) {
         const badge = document.getElementById("panel-conn-badge");
         if (!badge) return;
         badge.setAttribute("data-state", state);
         badge.textContent = panelConnBadgeLabel(state);
+        const showSetup = state === "bad" || state === "limited";
+        badge.setAttribute("data-setup-link", showSetup ? "1" : "0");
+        if (showSetup) {
+          badge.setAttribute("tabindex", "0");
+          badge.setAttribute(
+            "title",
+            panelT("panel.shell.conn.setupHint") + " — " + panelT("panel.shell.conn.title"),
+          );
+        } else {
+          badge.removeAttribute("tabindex");
+          badge.setAttribute("title", panelT("panel.shell.conn.title"));
+        }
         paintPanelInfraStatusSkeleton();
+      }
+
+      function wirePanelConnBadgeSetupLink() {
+        const badge = document.getElementById("panel-conn-badge");
+        if (!badge || badge.dataset.setupLinkWired === "1") return;
+        badge.dataset.setupLinkWired = "1";
+        badge.addEventListener("click", () => {
+          if (badge.getAttribute("data-setup-link") !== "1") return;
+          window.location.href = "/#kurulum";
+        });
+        badge.addEventListener("keydown", (e) => {
+          if (badge.getAttribute("data-setup-link") !== "1") return;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            window.location.href = "/#kurulum";
+          }
+        });
       }
 
       function setPanelUserModeBadge(mode) {
