@@ -1,6 +1,6 @@
 # Panel statik uygulama emekliliği — Seçenek C (hibrit)
 
-**Durum:** **`implementation-complete`** — fiziksel **(b)** PR #320 (`DL-A20`); **(a) docs takibi** `decision-approved` (PR #321); **(c)** prod smoke kararı **DL-C10** (#322).  
+**Durum:** **`implementation-complete`** — fiziksel **(b)** PR #320 (`DL-A20`); **(a) docs takibi** `decision-approved` (docs-only v2); **(c)** prod smoke kararı **DL-C10** (#322).  
 **Kaynak:** OD-046 tarihsel Seçenek C — [`build-e2e-surface-alignment-decision.md`](./build-e2e-surface-alignment-decision.md) §7.3; birincil E2E zaten Seçenek A ile `ui/dist` (#300–#305).  
 **Çapraz:** OD-043 **closed** (birincil `ui/`); OD-046 **closed** (birincil kök E2E → `ui/`).
 
@@ -101,4 +101,4 @@ docs/local-kando-dev-runbook.md → panel_tasks_server.py
 
 ---
 
-Son güncelleme: 2026-06-20 (Seçenek C — **(a)** docs PR #321; **(b)** #320; **(c)** DL-C10)
+Son güncelleme: 2026-06-20 (Seçenek C — **(a)** docs-only v2; **(b)** #320; **(c)** DL-C10)
