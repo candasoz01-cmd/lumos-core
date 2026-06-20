@@ -8,6 +8,7 @@ __pycache__/
 .venv/
 .lumos/
 .lumos/internal/
+.lumos/internal/strategy-vault/
 .lumos/logs/
 *.log
 logs/
