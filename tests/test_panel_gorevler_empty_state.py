@@ -7,11 +7,9 @@ from pathlib import Path
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _PANEL_ASTRO = _REPO_ROOT / "ui" / "src" / "pages" / "panel.astro"
 
-GOREVLER_LIST_EMPTY_DEFAULT = (
-    "Henüz görev yok. Yukarıdan kısa bir başlık yazıp «Görev ekle» kullanın."
-)
-GOREVLER_LIST_EMPTY_FILTER = (
-    "Bu filtrede görev yok. «Tümü» ile tüm görevleri görebilirsin."
+GOREVLER_LIST_EMPTY_I18N_KEYS = (
+    'panelT("panel.modules.tasks.empty.listDefault")',
+    'panelT("panel.modules.tasks.empty.listFilter")',
 )
 
 
@@ -23,8 +21,8 @@ def test_gorevler_list_empty_markup_present() -> None:
 
 def test_gorevler_list_empty_messages_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
-    assert GOREVLER_LIST_EMPTY_DEFAULT in text
-    assert GOREVLER_LIST_EMPTY_FILTER in text
+    for key in GOREVLER_LIST_EMPTY_I18N_KEYS:
+        assert key in text, f"missing görevler empty i18n key: {key}"
 
 
 def test_gorevler_render_syncs_empty_state() -> None:
