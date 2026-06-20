@@ -186,17 +186,23 @@ async function run() {
   }
 }
 
+let exitCode = 0;
+
 run()
   .then(function () {
     console.log("PACKAGE_LOCAL_E2E_RESULT: PASS");
     console.log("surface: ui/dist static");
     console.log("mark:", MARK);
     console.log("url:", PANEL_URL);
-    process.exit(0);
   })
   .catch(function (err) {
-    logFail(err);
+    console.error("PACKAGE_LOCAL_E2E_RESULT: FAIL");
+    console.error(String(err && err.message ? err.message : err));
+    exitCode = 1;
   })
   .finally(async function () {
     await closeServer(server);
+  })
+  .then(function () {
+    process.exit(exitCode);
   });
