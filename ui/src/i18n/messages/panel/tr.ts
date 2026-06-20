@@ -344,6 +344,10 @@ const panelModules = {
       model_error: "Yanıt üretilemedi. Biraz sonra tekrar dene.",
       unknown_error: "Beklenmeyen bir sorun oluştu. Biraz sonra tekrar dene.",
     },
+    log: {
+      unknownError: "Bilinmeyen hata",
+      charsRemaining: "… ({n} karakter daha)",
+    },
   },
   tasks: {
     eyebrow: "Operasyon",

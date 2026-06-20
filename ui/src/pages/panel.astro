@@ -9416,7 +9416,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         }
 
         function summarizeClientFetchError(err) {
-          if (err == null) return "Bilinmeyen hata";
+          if (err == null) return panelT("panel.modules.chat.log.unknownError");
           if (typeof err === "object" && err !== null && typeof err.message === "string" && err.message) {
             return err.message;
           }
@@ -9428,7 +9428,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
           const t = s == null ? "" : String(s);
           if (t.length <= PANEL_CHAT_LOG_MAX) return t;
           return (
-            t.slice(0, PANEL_CHAT_LOG_MAX) + "\n… (" + (t.length - PANEL_CHAT_LOG_MAX) + " karakter daha)"
+            t.slice(0, PANEL_CHAT_LOG_MAX)
+            + "\n"
+            + panelT("panel.modules.chat.log.charsRemaining").replace(
+              "{n}",
+              String(t.length - PANEL_CHAT_LOG_MAX),
+            )
           );
         }
 

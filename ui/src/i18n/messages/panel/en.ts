@@ -344,6 +344,10 @@ const panel: typeof panelTr = {
       model_error: "Could not produce a reply. Try again in a moment.",
       unknown_error: "Something unexpected happened. Try again in a moment.",
     },
+    log: {
+      unknownError: "Unknown error",
+      charsRemaining: "… ({n} more characters)",
+    },
   },
   tasks: {
     eyebrow: "Operations",
