@@ -13042,7 +13042,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
             .replace("{health}", health)
             .replace("{line}", bridgeHealthLine),
         );
-        setSistemDurumuDd("panel-sistem-durumu-chat", chatS + " · " + lastChatOptionsPingLine);
+        setSistemDurumuDd(
+          "panel-sistem-durumu-chat",
+          panelT("panel.modules.settings.chatWithPing")
+            .replace("{chat}", chatS)
+            .replace("{ping}", lastChatOptionsPingLine),
+        );
         setSistemDurumuDd(
           "panel-sistem-durumu-vision",
           visionCfg
@@ -13062,11 +13067,20 @@ const PANEL_DEBUG = import.meta.env.DEV;
             credentials: "omit",
           });
           if (r.ok || r.status === 204) {
-            return panelDebugText("OPTIONS OK (" + r.status + ")", "Sohbet bağlantısı hazır");
+            return panelDebugText(
+              "OPTIONS OK (" + r.status + ")",
+              panelT("panel.modules.settings.chatPingReady"),
+            );
           }
-          return panelDebugText("OPTIONS HTTP " + r.status, "Sohbet bağlantısı yanıt vermedi");
+          return panelDebugText(
+            "OPTIONS HTTP " + r.status,
+            panelT("panel.modules.settings.chatPingNoResponse"),
+          );
         } catch {
-          return panelDebugText("OPTIONS hata (ağ/CORS)", "Sohbet bağlantısı okunamadı");
+          return panelDebugText(
+            "OPTIONS hata (ağ/CORS)",
+            panelT("panel.modules.settings.chatPingUnreadable"),
+          );
         }
       }
 

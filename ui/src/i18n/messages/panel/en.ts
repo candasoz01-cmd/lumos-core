@@ -719,6 +719,10 @@ const panel: typeof panelTr = {
     healthWithConnection: "{health} · connection: {line}",
     visionConfiguredYes: "Yes (key configured for visual analysis)",
     visionConfiguredNo: "No",
+    chatPingReady: "Chat connection ready",
+    chatPingNoResponse: "Chat connection did not respond",
+    chatPingUnreadable: "Chat connection could not be read",
+    chatWithPing: "{chat} · {ping}",
   },
   capabilities: {
     intro:
