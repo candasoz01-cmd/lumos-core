@@ -20,7 +20,7 @@ See vault README: `.lumos/internal/strategy-vault/README.md` (never commit).
 - **Principle decision:** [`vault-secret-token-decision.md`](./vault-secret-token-decision.md) — Lumos does not carry secrets; vault is a separate secure layer; Lumos is an authorized gate/orchestrator
 - **Design framework:** [`od-vault-dar-v1-design.md`](./od-vault-dar-v1-design.md) — dar v1 UX outline and purpose-code skeleton (no product selection tables)
 - **Roadmap index:** [`vault-implementation-roadmap.md`](./vault-implementation-roadmap.md) — phase labels only
-- **Boundary rule:** [`public-mail-strategy-boundary.md`](./public-mail-strategy-boundary.md) — provider/vault product names must not appear in public strategy stubs
+- **Boundary rule:** [`public-repo-boundary.md`](./public-repo-boundary.md) § Bölüm A — provider/vault product names must not appear in public strategy stubs
 - **Migration index:** [`../mail-strategy-migration-index.md`](../mail-strategy-migration-index.md)
 - **Open decisions index (redacted):** [`open-decisions-needs-review.md`](./open-decisions-needs-review.md) — OD-001 row
 

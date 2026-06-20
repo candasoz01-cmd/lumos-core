@@ -6,7 +6,7 @@
 >
 > **Üst sınır:** [`docs/lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md) — güvenlik, yetki, kalıcı silme ve onay kuralları bu kararı gevşetemez.
 >
-> **Canonical kaynaklar:** [`docs/dev-commit-guard.md`](../dev-commit-guard.md), [`docs/kando-urun-onay-otomasyon-ayrimi.md`](../kando-urun-onay-otomasyon-ayrimi.md), [`evidence-continuity-v1-decision.md`](./evidence-continuity-v1-decision.md), [`public-ops-runbook-boundary.md`](./public-ops-runbook-boundary.md).
+> **Canonical kaynaklar:** [`docs/dev-commit-guard.md`](../dev-commit-guard.md), [`docs/kando-urun-onay-otomasyon-ayrimi.md`](../kando-urun-onay-otomasyon-ayrimi.md), [`evidence-continuity-v1-decision.md`](./evidence-continuity-v1-decision.md), [`public-repo-boundary.md`](./public-repo-boundary.md) § Bölüm B.
 
 **Karar:** Informal **«audit hook»** takip maddesi **ayrı bir git audit hook v1 gerektirmez**. Terim üç bağımsız katmana ayrılır; yeni pre-commit/post-commit audit logger **açılmaz**.
 
@@ -196,7 +196,7 @@ Bunların EC v2 #4 ile normalize edilmesi ayrı iş paketidir; «audit hook v1»
 | [`evidence-continuity-v1-decision.md`](./evidence-continuity-v1-decision.md) | EC runtime hook'ları; OD-058 closed |
 | [`evidence-continuity-v2-backlog.md`](./evidence-continuity-v2-backlog.md) | #4, #14 ve faz planı |
 | [`docs/dev-commit-guard.md`](../dev-commit-guard.md) | Katman 1 — commit guard |
-| [`public-ops-runbook-boundary.md`](./public-ops-runbook-boundary.md) | Public repo sınırı; operasyonel runbook gitignored vault'ta |
+| [`public-repo-boundary.md`](./public-repo-boundary.md) § Bölüm B | Public repo sınırı; operasyonel runbook gitignored vault'ta |
 | [`docs/kando-urun-onay-otomasyon-ayrimi.md`](../kando-urun-onay-otomasyon-ayrimi.md) | Geliştirme vs ürün otomasyon ayrımı |
 
 ---
