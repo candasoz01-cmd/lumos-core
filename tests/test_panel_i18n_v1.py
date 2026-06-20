@@ -801,6 +801,15 @@ PANEL_I18N_V49_MARKERS = (
     "HTTP 200 · error alanı",
 )
 
+PANEL_I18N_V50_MARKERS = (
+    "let refreshChatBubbleBodies = null",
+    "refreshChatBubbleBodies = function refreshChatBubbleBodiesImpl(",
+    "function panelChatBubbleTextFromI18nMeta(",
+    "data-panel-chat-error-kind",
+    "data-panel-bubble-i18n",
+    "if (typeof refreshChatBubbleBodies === \"function\") refreshChatBubbleBodies();",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -1596,3 +1605,9 @@ def test_panel_astro_i18n_v49_chat_200_error_bubble_wiring() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
     for token in PANEL_I18N_V49_MARKERS:
         assert token in text, f"missing panel i18n v49 token: {token}"
+
+
+def test_panel_astro_i18n_v50_locale_bubble_body_refresh_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V50_MARKERS:
+        assert token in text, f"missing panel i18n v50 token: {token}"
