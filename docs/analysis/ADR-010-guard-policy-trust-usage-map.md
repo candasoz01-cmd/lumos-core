@@ -184,7 +184,7 @@ OD-031 Phase 2 Step 4 boundary sync sonrası **mail drift guard/policy kodunda t
 | ADR-007 (trust engine) | Trust state sinyalleri | **Tamamlandı** — trust kod yok; sinyaller haritalandı |
 | ADR-010 (terminoloji) | Terim→kod eşlemesi | **Tamamlandı** — § Terim→modül |
 
-**Sonraki (bu belge dışı):** ADR-010 finalize, ADR-006/007 karar metni revizyonu, lock semantiği birleştirme **ayrı checkpoint**.
+**Sonraki (bu belge dışı):** ADR-006/007 karar metni revizyonu, lock semantiği birleştirme **ayrı checkpoint** (ADR-010 finalize tamamlandı).
 
 ---
 
@@ -200,7 +200,7 @@ OD-031 Phase 2 Step 4 boundary sync sonrası **mail drift guard/policy kodunda t
 
 ## Sonraki gözden geçirme
 
-1. ADR-010 durum satırı: usage map checkpoint **tamamlandı** → finalize taslağı
+1. ADR-010 **kabul edildi** (2026-06-21) — bkz. [ADR-010](../decisions/ADR-010-guard-policy-trust-terminology.md)
 2. ADR-006 § İlk güvenli adım — bu belgeye referans
 3. ADR-007 § İlk güvenli adım — trust sinyal tablosu revizyonu
 4. Lock semantiği — **ayrı ADR/checkpoint** (usage map sonrası onay)
