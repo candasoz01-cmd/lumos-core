@@ -219,6 +219,8 @@ async function run() {
   }
 }
 
+let exitCode = 0;
+
 run()
   .then(function () {
     console.log("PACKAGE_API_E2E_RESULT: PASS");
@@ -226,12 +228,16 @@ run()
     console.log("mark:", MARK);
     console.log("url:", PANEL_URL);
     console.log("tasks_api:", TASK_API_BASE);
-    process.exit(0);
   })
   .catch(function (err) {
-    logFail(err);
+    console.error("PACKAGE_API_E2E_RESULT: FAIL");
+    console.error(String(err && err.message ? err.message : err));
+    exitCode = 1;
   })
   .finally(async function () {
     stopTasksServer(pyProc);
     await closeServer(server);
+  })
+  .then(function () {
+    process.exit(exitCode);
   });
