@@ -167,7 +167,9 @@ const landingEn: typeof landingTr = {
     integrationDetail:
       "Aims to offer one orchestration surface across third-party APIs, cloud services, and local apps. Scope, duration, and data sharing should stay as contractual and visible as possible per connection.",
     roadmapInlineLead: "Product direction:",
+    roadmapLinkFile: "Roadmap (GitHub)",
     roadmapWorldVision: "World map vision",
+    roadmapWorldVisionLink: "World map vision",
     quantumTitle: "Quantum",
     quantumScope: "Candidate future security architecture; vision and research area.",
     quantumCardStatus:
@@ -177,6 +179,7 @@ const landingEn: typeof landingTr = {
     quantumDetailBody:
       "A research area reserved for tracking approaches beyond traditional encryption and compute limits. The current system does not claim to use quantum encryption; the panel shows a visible skeleton level only.",
     quantumDetailLinksLead: "Details:",
+    quantumAdrLink: "ADR-001",
     quantumPanelLink: "Panel — Quantum",
   },
   may19: {

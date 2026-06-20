@@ -165,7 +165,9 @@ const landingTr = {
     integrationDetail:
       "Üçüncü taraf API’ler, bulut servisleri ve yerel uygulamalar arasında tek bir orchestrasyon yüzeyi sunmayı amaçlar. Her bağlantı için kapsam, süre ve veri paylaşımı mümkün olduğunca sözleşmeli ve görünür tutulur.",
     roadmapInlineLead: "Ürün yönü özeti:",
+    roadmapLinkFile: "Yol haritası (GitHub)",
     roadmapWorldVision: "Dünya haritası vizyonu",
+    roadmapWorldVisionLink: "Dünya haritası vizyonu",
     quantumTitle: "Kuantum",
     quantumScope: "Gelecek güvenlik mimarisi adayı; vizyon ve araştırma alanı.",
     quantumCardStatus:
@@ -175,6 +177,7 @@ const landingTr = {
     quantumDetailBody:
       "Geleneksel şifreleme ve hesaplama sınırlarının ötesindeki yaklaşımları izlemek için ayrılmış bir araştırma alanıdır. Mevcut sistem kuantum şifreleme kullandığını iddia etmez; panelde görünür iskelet düzeyindedir.",
     quantumDetailLinksLead: "Ayrıntı:",
+    quantumAdrLink: "ADR-001",
     quantumPanelLink: "Panel — Kuantum",
   },
   may19: {
