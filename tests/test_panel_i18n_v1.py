@@ -794,6 +794,13 @@ PANEL_I18N_V48_MARKERS = (
     "scrollActivePanelNavChipIntoView(",
 )
 
+PANEL_I18N_V49_MARKERS = (
+    "function parsePanelChatErrorPayload(",
+    "parsePanelChatErrorPayload(parsedPayload)",
+    "errorPayload.kind",
+    "HTTP 200 · error alanı",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -1583,3 +1590,9 @@ def test_panel_astro_i18n_v48_mobile_nav_scroll_wiring() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
     for token in PANEL_I18N_V48_MARKERS:
         assert token in text, f"missing panel i18n v48 token: {token}"
+
+
+def test_panel_astro_i18n_v49_chat_200_error_bubble_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V49_MARKERS:
+        assert token in text, f"missing panel i18n v49 token: {token}"
