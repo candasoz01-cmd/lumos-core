@@ -1,4 +1,4 @@
-"""Panel i18n v1–v25 — LanguageSwitcher, nav, modules, Sohbet chat, Görevler."""
+"""Panel i18n v1–v26 — LanguageSwitcher, nav, modules, Sohbet chat, Görevler."""
 
 from __future__ import annotations
 
@@ -458,6 +458,20 @@ PANEL_I18N_V25_TR_KEYS = (
     "routeNone:",
 )
 
+PANEL_I18N_V26_MARKERS = (
+    'panelT("panel.modules.settings.chatPingReady")',
+    'panelT("panel.modules.settings.chatPingNoResponse")',
+    'panelT("panel.modules.settings.chatPingUnreadable")',
+    'panelT("panel.modules.settings.chatWithPing")',
+)
+
+PANEL_I18N_V26_TR_KEYS = (
+    "chatPingReady:",
+    "chatPingNoResponse:",
+    "chatPingUnreadable:",
+    "chatWithPing:",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -872,3 +886,21 @@ def test_panel_i18n_v25_sistem_cap_actions_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V25_TR_KEYS:
         assert key in tr_text, f"missing panel tr v25 key fragment: {key}"
         assert key in en_text, f"missing panel en v25 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v26_chat_status_ping_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V26_MARKERS:
+        assert token in text, f"missing panel i18n v26 token: {token}"
+    assert 'panelDebugText("OPTIONS OK (" + r.status + ")", "Sohbet bağlantısı hazır")' not in text
+    assert 'panelDebugText("OPTIONS HTTP " + r.status, "Sohbet bağlantısı yanıt vermedi")' not in text
+    assert 'panelDebugText("OPTIONS hata (ağ/CORS)", "Sohbet bağlantısı okunamadı")' not in text
+    assert 'chatS + " · " + lastChatOptionsPingLine' not in text
+
+
+def test_panel_i18n_v26_chat_status_ping_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V26_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v26 key fragment: {key}"
+        assert key in en_text, f"missing panel en v26 key fragment: {key}"

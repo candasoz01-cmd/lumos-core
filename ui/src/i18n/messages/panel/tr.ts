@@ -715,6 +715,10 @@ const panelModules = {
     healthWithConnection: "{health} · bağlantı: {line}",
     visionConfiguredYes: "Evet (görsel analiz için anahtar tanımlı)",
     visionConfiguredNo: "Hayır",
+    chatPingReady: "Sohbet bağlantısı hazır",
+    chatPingNoResponse: "Sohbet bağlantısı yanıt vermedi",
+    chatPingUnreadable: "Sohbet bağlantısı okunamadı",
+    chatWithPing: "{chat} · {ping}",
   },
   capabilities: {
     intro:
