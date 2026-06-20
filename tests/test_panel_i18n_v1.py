@@ -218,6 +218,21 @@ PANEL_I18N_V12_TR_KEYS = (
     "fileUploadPreparing:",
 )
 
+PANEL_I18N_V13_MARKERS = (
+    'setAudioRecordHintKey("panel.modules.chat.compose.record.unsupported")',
+    'panelT("panel.modules.chat.compose.attachRecordTitle")',
+    'panelT("panel.modules.chat.compose.record.previewLabel")',
+    'refreshPanelAudioRecordI18n = () => {',
+    'if (typeof refreshPanelAudioRecordI18n === "function") refreshPanelAudioRecordI18n();',
+)
+
+PANEL_I18N_V13_TR_KEYS = (
+    "record:",
+    "previewLabel:",
+    "recordingHint:",
+    "attachRecordTitle:",
+)
+
 
 
 def test_panel_astro_i18n_wiring_present() -> None:
@@ -398,3 +413,19 @@ def test_panel_i18n_v12_camera_hints_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V12_TR_KEYS:
         assert key in tr_text, f"missing panel tr v12 key fragment: {key}"
         assert key in en_text, f"missing panel en v12 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v13_record_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V13_MARKERS:
+        assert token in text, f"missing panel i18n v13 token: {token}"
+    assert "AUDIO_RECORD_UNSUPPORTED_HINT" not in text
+    assert "function setAudioRecordHint(" not in text
+
+
+def test_panel_i18n_v13_record_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V13_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v13 key fragment: {key}"
+        assert key in en_text, f"missing panel en v13 key fragment: {key}"

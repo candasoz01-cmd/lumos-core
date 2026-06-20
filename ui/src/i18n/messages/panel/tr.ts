@@ -208,6 +208,18 @@ const panelModules = {
         photoPickUnsupported: "Bu tarayıcıda görsel seçimi desteklenmiyor.",
         fileUploadPreparing: "Dosya yükleme bu görünümde hazırlanıyor.",
       },
+      record: {
+        previewLabel: "Ses kaydı hazır — Gönder ile sohbete ekle",
+        unsupported: "Bu tarayıcıda ses kaydı desteklenmiyor.",
+        recordingHint: "Ses kaydı yapılıyor (metne çevrilmez) — bitince Gönder ile ekleyin",
+        recordingStatus: "Ses kaydı yapılıyor…",
+        tooShort: "Kayıt çok kısa veya boş; tekrar deneyin.",
+        stopFailed: "Kayıt durdurulamadı.",
+        startFailed: "Bu tarayıcıda ses kaydı başlatılamadı.",
+        errorDuring: "Kayıt sırasında hata oluştu.",
+        micDenied: "Mikrofon izni verilmedi.",
+        micUnavailable: "Mikrofon kullanılamıyor.",
+      },
     },
     bridgeBadgeLimited: "Sınırlı mod",
     transcript: {

@@ -209,6 +209,18 @@ const panel: typeof panelTr = {
         photoPickUnsupported: "Image selection is not supported in this browser.",
         fileUploadPreparing: "File upload is being prepared in this view.",
       },
+      record: {
+        previewLabel: "Recording ready — add to chat with Send",
+        unsupported: "Audio recording is not supported in this browser.",
+        recordingHint: "Recording audio (not transcribed) — add with Send when done",
+        recordingStatus: "Recording audio…",
+        tooShort: "Recording too short or empty; try again.",
+        stopFailed: "Could not stop recording.",
+        startFailed: "Could not start audio recording in this browser.",
+        errorDuring: "An error occurred during recording.",
+        micDenied: "Microphone permission was not granted.",
+        micUnavailable: "Microphone is unavailable.",
+      },
     },
     bridgeBadgeLimited: "Limited mode",
     transcript: {

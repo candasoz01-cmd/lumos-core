@@ -4348,7 +4348,6 @@ const PANEL_DEBUG = import.meta.env.DEV;
                           class="chat-compose-attach-menu__item"
                           role="menuitem"
                           data-attach-action="record"
-                          title="Mikrofonla ses kaydet; metne çevirmez (Sesle yaz düğmesinden farklı)"
                           data-i18n-title="panel.modules.chat.compose.attachRecordTitle"
                           data-i18n="panel.modules.chat.compose.attachRecord"
                         >
@@ -5682,10 +5681,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
         applyUserModeUi();
         refreshChatBubbleRoles();
         if (typeof refreshPanelCameraHintsI18n === "function") refreshPanelCameraHintsI18n();
+        if (typeof refreshPanelAudioRecordI18n === "function") refreshPanelAudioRecordI18n();
       }
 
       let refreshDosyalarPanelI18n = null;
       let refreshPanelCameraHintsI18n = null;
+      let refreshPanelAudioRecordI18n = null;
 
       function refreshPanelFilesI18n() {
         if (typeof refreshDosyalarPanelI18n === "function") refreshDosyalarPanelI18n();
@@ -10062,10 +10063,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const audioRecordTranscriptMsg = document.getElementById("panel-audio-record-transcript-msg");
         const attachRecordMenuItem = attachMenu?.querySelector('[data-attach-action="record"]');
 
-        const AUDIO_RECORD_PREVIEW_LABEL = "Ses kaydı hazır — Gönder ile sohbete ekle";
-        const AUDIO_RECORD_UNSUPPORTED_HINT = "Bu tarayıcıda ses kaydı desteklenmiyor.";
-        const AUDIO_RECORD_RECORDING_HINT =
-          "Ses kaydı yapılıyor (metne çevrilmez) — bitince Gönder ile ekleyin";
+        /** @type {string | null} */
+        let audioRecordHintI18nKey = null;
 
         /** @type {MediaRecorder | null} */
         let mediaRecorder = null;
@@ -10094,9 +10093,15 @@ const PANEL_DEBUG = import.meta.env.DEV;
           return "";
         }
 
-        function setAudioRecordHint(msg) {
+        function setAudioRecordHintKey(key) {
+          audioRecordHintI18nKey = key && String(key).trim() ? String(key) : null;
           if (!audioRecordHint) return;
-          const s = panelUserVisibleText(msg != null ? String(msg) : "");
+          if (!audioRecordHintI18nKey) {
+            audioRecordHint.textContent = "";
+            audioRecordHint.hidden = true;
+            return;
+          }
+          const s = panelUserVisibleText(panelT(audioRecordHintI18nKey));
           audioRecordHint.textContent = s;
           audioRecordHint.hidden = !s;
         }
@@ -10108,16 +10113,15 @@ const PANEL_DEBUG = import.meta.env.DEV;
             attachRecordMenuItem.setAttribute("aria-disabled", supported ? "false" : "true");
             attachRecordMenuItem.classList.toggle("chat-compose-attach-menu__item--unsupported", !supported);
             if (supported) {
-              attachRecordMenuItem.title =
-                "Mikrofonla ses kaydet; metne çevirmez (Sesle yaz düğmesinden farklı)";
+              attachRecordMenuItem.title = panelT("panel.modules.chat.compose.attachRecordTitle");
             } else {
               attachRecordMenuItem.removeAttribute("title");
             }
           }
           if (!supported) {
-            setAudioRecordHint(AUDIO_RECORD_UNSUPPORTED_HINT);
+            setAudioRecordHintKey("panel.modules.chat.compose.record.unsupported");
           } else if (!isAudioRecording && !audioRecordObjectUrl) {
-            setAudioRecordHint("");
+            setAudioRecordHintKey("");
           }
         }
 
@@ -10162,9 +10166,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
           if (audioRecordStatus) {
             if (isAudioRecording) {
-              audioRecordStatus.textContent = "Ses kaydı yapılıyor…";
+              audioRecordStatus.textContent = panelT("panel.modules.chat.compose.record.recordingStatus");
             } else if (audioRecordObjectUrl) {
-              audioRecordStatus.textContent = AUDIO_RECORD_PREVIEW_LABEL;
+              audioRecordStatus.textContent = panelT("panel.modules.chat.compose.record.previewLabel");
             } else {
               audioRecordStatus.textContent = "";
             }
@@ -10204,12 +10208,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
           resetAudioRecordTranscriptUi();
           syncAudioRecordControlsUi();
           syncAudioRecordPreviewVisibility();
-          if (isAudioRecordSupported()) setAudioRecordHint("");
+          if (isAudioRecordSupported()) setAudioRecordHintKey("");
         }
 
         function bindAudioRecordFromBlob(blob) {
           if (!blob || blob.size < 512) {
-            setAudioRecordHint("Kayıt çok kısa veya boş; tekrar deneyin.");
+            setAudioRecordHintKey("panel.modules.chat.compose.record.tooShort");
             clearPanelAudioRecordSelection();
             return;
           }
@@ -10223,7 +10227,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           isAudioRecording = false;
           syncAudioRecordControlsUi();
           syncAudioRecordPreviewVisibility();
-          setAudioRecordHint("");
+          setAudioRecordHintKey("");
         }
 
         function stopPanelAudioRecording() {
@@ -10231,7 +10235,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           try {
             mediaRecorder.stop();
           } catch {
-            setAudioRecordHint("Kayıt durdurulamadı.");
+            setAudioRecordHintKey("panel.modules.chat.compose.record.stopFailed");
             clearPanelAudioRecordSelection();
           }
         }
@@ -10239,10 +10243,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
         function startPanelAudioRecording() {
           clearPanelAudioRecordSelection();
           if (!isAudioRecordSupported()) {
-            setAudioRecordHint(AUDIO_RECORD_UNSUPPORTED_HINT);
+            setAudioRecordHintKey("panel.modules.chat.compose.record.unsupported");
             return;
           }
-          setAudioRecordHint("");
+          setAudioRecordHintKey("");
           navigator.mediaDevices
             .getUserMedia({ audio: true })
             .then((stream) => {
@@ -10255,7 +10259,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 rec = options ? new MediaRecorder(stream, options) : new MediaRecorder(stream);
               } catch {
                 stopAudioRecordStream();
-                setAudioRecordHint("Bu tarayıcıda ses kaydı başlatılamadı.");
+                setAudioRecordHintKey("panel.modules.chat.compose.record.startFailed");
                 return;
               }
               mediaRecorder = rec;
@@ -10271,27 +10275,37 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 bindAudioRecordFromBlob(blob);
               };
               mediaRecorder.onerror = () => {
-                setAudioRecordHint("Kayıt sırasında hata oluştu.");
+                setAudioRecordHintKey("panel.modules.chat.compose.record.errorDuring");
                 clearPanelAudioRecordSelection();
               };
               mediaRecorder.start();
               isAudioRecording = true;
               syncAudioRecordControlsUi();
               syncAudioRecordPreviewVisibility();
-              setAudioRecordHint(AUDIO_RECORD_RECORDING_HINT);
+              setAudioRecordHintKey("panel.modules.chat.compose.record.recordingHint");
             })
             .catch((err) => {
               const name = err && err.name;
               if (name === "NotAllowedError" || name === "PermissionDeniedError") {
-                setAudioRecordHint("Mikrofon izni verilmedi.");
+                setAudioRecordHintKey("panel.modules.chat.compose.record.micDenied");
               } else {
-                setAudioRecordHint("Mikrofon kullanılamıyor.");
+                setAudioRecordHintKey("panel.modules.chat.compose.record.micUnavailable");
               }
               clearPanelAudioRecordSelection();
             });
         }
 
         applyAudioRecordSupportUi();
+
+        refreshPanelAudioRecordI18n = () => {
+          applyAudioRecordSupportUi();
+          if (audioRecordHintI18nKey) setAudioRecordHintKey(audioRecordHintI18nKey);
+          syncAudioRecordControlsUi();
+        };
+
+        window.addEventListener("lumos:localechange", () => {
+          if (typeof refreshPanelAudioRecordI18n === "function") refreshPanelAudioRecordI18n();
+        });
 
         audioRecordStopBtn?.addEventListener("click", () => {
           stopPanelAudioRecording();
@@ -10409,7 +10423,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
           if (action === "record") {
             if (!isAudioRecordSupported()) {
-              setAudioRecordHint(AUDIO_RECORD_UNSUPPORTED_HINT);
+              setAudioRecordHintKey("panel.modules.chat.compose.record.unsupported");
               return;
             }
             startPanelAudioRecording();
