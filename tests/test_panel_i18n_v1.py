@@ -750,14 +750,29 @@ PANEL_I18N_V44_TR_KEYS = (
 PANEL_I18N_V45_MARKERS = (
     "function transcriptBlockedUserMessage(",
     "function transcriptEngineUserMessage(",
-    "showStatus(transcriptBlockedUserMessage(result))",
-    "showStatus(transcriptEngineUserMessage(result))",
+    "showStatus(() => transcriptBlockedUserMessage(result))",
+    "showStatus(() => transcriptEngineUserMessage(result))",
 )
 
 PANEL_I18N_V45_TR_KEYS = (
     "engineMsg:",
     "limitedMsg:",
     "limitedUserMsg:",
+)
+
+PANEL_I18N_V46_MARKERS = (
+    "let transcriptStatusRefresh = null",
+    "function paintTranscriptStatusFromResolver(",
+    "function refreshTranscriptVisibleI18n(",
+    "transcriptVisibleI18nRefreshers.add(refreshTranscriptWidgetVisibleI18n)",
+    "refreshTranscriptVisibleI18n();",
+    "showStatus(() => panelT(\"panel.modules.chat.transcript.busyMsg\")",
+    "showStatus(() => transcriptBlockedUserMessage(result))",
+)
+
+PANEL_I18N_V46_TR_KEYS = (
+    "busyMsg:",
+    "transcribing:",
 )
 
 
@@ -1511,3 +1526,19 @@ def test_panel_i18n_v45_transcript_classified_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V45_TR_KEYS:
         assert key in tr_text, f"missing panel tr v45 key fragment: {key}"
         assert key in en_text, f"missing panel en v45 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v46_transcript_locale_refresh_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V46_MARKERS:
+        assert token in text, f"missing panel i18n v46 token: {token}"
+    assert 'showStatus(panelT("panel.modules.chat.transcript.busyMsg")' not in text
+    assert "showStatus(transcribeUserBlock.message)" not in text
+
+
+def test_panel_i18n_v46_transcript_locale_refresh_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V46_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v46 key fragment: {key}"
+        assert key in en_text, f"missing panel en v46 key fragment: {key}"
