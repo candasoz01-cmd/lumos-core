@@ -102,10 +102,19 @@ def test_mail_list_unread_vault_not_configured():
 
 def test_mail_list_unread_with_mock_vault(monkeypatch):
     import integrations.providers.mail_provider as mp
+    from integrations.vault.adapter import CredentialResolution
 
     class ConfiguredVault(DemoVaultCredentialBridge):
         def is_configured(self, ref):  # noqa: ARG002
             return True
+
+        def resolve_credential(self, ref):
+            return CredentialResolution(
+                ok=True,
+                purpose_code=ref.purpose_code,
+                ref=ref.ref_id,
+                token_intent="gmail.readonly",
+            )
 
     monkeypatch.setattr(mp, "get_vault_credential_bridge", lambda: ConfiguredVault())
     reg = register_default_integrations()
@@ -121,6 +130,7 @@ def test_mail_list_unread_with_mock_vault(monkeypatch):
     msg = result.data["messages"][0]
     assert "message_id" in msg
     assert "subject_preview" in msg
+    assert msg["message_id"].startswith("vault-mail-read:")
     assert "oauth" not in str(msg).lower()
     assert "token" not in str(msg).lower()
 

@@ -43,5 +43,16 @@ class StubMailConnector:
 _default_connector = StubMailConnector()
 
 
-def get_mail_connector() -> MailConnector:
+def get_mail_connector(
+    *,
+    account_id: str = "",
+    vault_configured: bool = False,
+    grants_include_read: bool = False,
+    vault_bridge=None,
+) -> MailConnector:
+    """Vault + read grant OK ise GmailOAuthConnector; aksi halde stub."""
+    if vault_configured and grants_include_read and account_id.strip():
+        from integrations.mail.providers.gmail_oauth import GmailOAuthConnector
+
+        return GmailOAuthConnector(vault_bridge=vault_bridge, account_id=account_id)
     return _default_connector

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from integrations.mail.connector import get_mail_connector
+from integrations.mail.grants import MAIL_GRANT_READ
 from integrations.mail.grants import session_from_payload, validate_mail_grants
 from integrations.mail.models import MailConnectionStatus
 from integrations.mail.vault_credential import get_vault_credential_bridge, mail_read_credential_ref
@@ -46,7 +47,14 @@ def run_mail_action(request: IntegrationRequest) -> IntegrationResult:
     vault = get_vault_credential_bridge()
     cred_ref = mail_read_credential_ref(session.account_id)
     vault_hint = vault.connection_hint(cred_ref)
-    connector = get_mail_connector()
+    vault_ok = vault.is_configured(cred_ref)
+    grants_include_read = MAIL_GRANT_READ in session.grants
+    connector = get_mail_connector(
+        account_id=session.account_id,
+        vault_configured=vault_ok,
+        grants_include_read=grants_include_read,
+        vault_bridge=vault,
+    )
 
     if action == "connection_status":
         status = MailConnectionStatus(

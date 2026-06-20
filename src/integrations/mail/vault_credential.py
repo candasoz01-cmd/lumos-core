@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-# Amaç kodları — tam liste private; public yalnızca iskelet referansı.
-VAULT_PURPOSE_MAIL_READ = "integration.mail.read"
-VAULT_PURPOSE_MAIL_NOTIFY = "integration.mail.notify"
+from integrations.vault.adapter import CredentialResolution, InfisicalVaultAdapter, get_default_vault_adapter
+from integrations.vault.purpose_codes import PURPOSE_MAIL_NOTIFY, PURPOSE_MAIL_READ
+
+# Geriye uyumluluk — amaç kodları vault katmanından re-export.
+VAULT_PURPOSE_MAIL_READ = PURPOSE_MAIL_READ
+VAULT_PURPOSE_MAIL_NOTIFY = PURPOSE_MAIL_NOTIFY
 
 MAIL_VAULT_PROVIDER = "gmail_oauth"
 
@@ -18,25 +21,49 @@ class VaultCredentialRef:
     account_id: str
 
 
-class DemoVaultCredentialBridge:
-    """Demo-safe stub — gerçek vault/Infisical bağlantısı private katmanda."""
+class MailVaultBridge:
+    """Mail vault köprüsü — Infisical adapter env-gated; fails closed when unset."""
+
+    def __init__(self, adapter: InfisicalVaultAdapter | None = None) -> None:
+        self._adapter = adapter or get_default_vault_adapter()
 
     def is_configured(self, ref: VaultCredentialRef) -> bool:
-        return False
+        if not self._adapter.is_configured():
+            return False
+        resolution = self._adapter.resolve_credential(ref.ref_id, ref.purpose_code)
+        return resolution.ok
+
+    def resolve_credential(self, ref: VaultCredentialRef) -> CredentialResolution:
+        return self._adapter.resolve_credential(ref.ref_id, ref.purpose_code)
 
     def connection_hint(self, ref: VaultCredentialRef) -> dict[str, str | bool]:
-        return {
-            "configured": False,
+        configured = self.is_configured(ref)
+        resolution = self._adapter.resolve_credential(ref.ref_id, ref.purpose_code)
+        hint: dict[str, str | bool] = {
+            "configured": configured,
             "provider": MAIL_VAULT_PROVIDER,
             "purpose_code": ref.purpose_code,
-            "boundary": "private_vault_impl_required",
         }
+        if configured:
+            hint["boundary"] = "vault_poc_ready"
+            if resolution.token_intent:
+                hint["token_intent"] = resolution.token_intent
+        elif self._adapter.is_configured():
+            hint["boundary"] = "vault_env_set_credential_unresolved"
+            if resolution.error:
+                hint["error"] = resolution.error
+        else:
+            hint["boundary"] = "private_vault_impl_required"
+        return hint
 
 
-_default_bridge = DemoVaultCredentialBridge()
+# Geriye uyumluluk alias — testler ve mevcut importlar.
+DemoVaultCredentialBridge = MailVaultBridge
+
+_default_bridge = MailVaultBridge()
 
 
-def get_vault_credential_bridge() -> DemoVaultCredentialBridge:
+def get_vault_credential_bridge() -> MailVaultBridge:
     return _default_bridge
 
 
