@@ -719,6 +719,17 @@ PANEL_I18N_V42_MARKERS = (
     "window.refreshMedyaOutboxHintI18n()",
 )
 
+PANEL_I18N_V43_MARKERS = (
+    "function panelChatFailureUserMessage(",
+    "panelChatFailureUserMessage(",
+    "httpFailKind,",
+)
+
+PANEL_I18N_V43_TR_KEYS = (
+    "errors:",
+    "network_error:",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -1421,3 +1432,19 @@ def test_panel_astro_i18n_v42_locale_hint_refresh_wiring() -> None:
 
 def test_panel_i18n_v42_locale_hint_refresh_has_no_new_catalog_keys() -> None:
     assert PANEL_I18N_V42_MARKERS
+
+
+def test_panel_astro_i18n_v43_chat_http_classified_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V43_MARKERS:
+        assert token in text, f"missing panel i18n v43 token: {token}"
+    assert "upstreamErr && !PANEL_CHAT_TECH_LEAK_RE.test(upstreamErr)" not in text
+    assert "panelUserVisibleText(upstreamErr)" not in text
+
+
+def test_panel_i18n_v43_chat_http_classified_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V43_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v43 key fragment: {key}"
+        assert key in en_text, f"missing panel en v43 key fragment: {key}"

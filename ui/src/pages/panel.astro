@@ -9261,6 +9261,25 @@ const PANEL_DEBUG = import.meta.env.DEV;
           return panelT("panel.modules.chat.errors." + k);
         }
 
+        function panelChatFailureUserMessage(ctx, kindOverride) {
+          const kind =
+            kindOverride && PANEL_CHAT_ERROR_KINDS.includes(kindOverride)
+              ? kindOverride
+              : classifyPanelChatFailure(ctx || {});
+          const userMsg = userMessageForPanelChatFailureKind(kind);
+          if (PANEL_DEBUG) {
+            const raw = String(
+              (ctx && (ctx.rawError || ctx.errMessage || ctx.upstreamText)) || "",
+            ).trim();
+            const status =
+              ctx && ctx.httpStatus != null && Number.isFinite(ctx.httpStatus)
+                ? " HTTP " + ctx.httpStatus
+                : "";
+            return raw ? userMsg + " [" + raw + status + "]" : userMsg + status;
+          }
+          return userMsg;
+        }
+
         function classifyPanelChatFailure(ctx) {
           const status =
             typeof ctx.httpStatus === "number" && Number.isFinite(ctx.httpStatus)
@@ -9739,11 +9758,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
                       httpStatus: r.status,
                       upstreamText: upstreamErr,
                     });
-              const httpFailMsg =
-                upstreamErr && !PANEL_CHAT_TECH_LEAK_RE.test(upstreamErr)
-                  ? panelUserVisibleText(upstreamErr)
-                  : userMessageForPanelChatFailureKind(httpFailKind);
-              appendBubble("error", httpFailMsg);
+              appendBubble(
+                "error",
+                panelChatFailureUserMessage(
+                  {
+                    httpStatus: r.status,
+                    upstreamText: upstreamErr,
+                    errMessage: upstreamErr,
+                  },
+                  httpFailKind,
+                ),
+              );
               reportPanelInfraUnavailable(
                 "sohbet HTTP " + r.status,
                 panelT("panel.shell.infra.unavailableShort"),
