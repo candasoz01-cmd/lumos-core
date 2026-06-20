@@ -816,6 +816,14 @@ PANEL_I18N_V51_MARKERS = (
     "isPanelChatPhotoFallbackReply(replyFor200)",
 )
 
+PANEL_I18N_V52_MARKERS = (
+    "function focusableAttachMenuItems(",
+    "function focusFirstAttachMenuItem(",
+    "closePanelAttachMenu({ returnFocus: false })",
+    "attachMenu?.addEventListener(\"keydown\"",
+    "if (e.key === \"Tab\") {",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -1617,6 +1625,12 @@ def test_panel_astro_i18n_v50_locale_bubble_body_refresh_wiring() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
     for token in PANEL_I18N_V50_MARKERS:
         assert token in text, f"missing panel i18n v50 token: {token}"
+
+
+def test_panel_astro_i18n_v52_attach_menu_focus_trap_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V52_MARKERS:
+        assert token in text, f"missing panel i18n v52 token: {token}"
 
 
 def test_panel_astro_i18n_v51_chat_200_photo_fallback_reply_priority_wiring() -> None:
