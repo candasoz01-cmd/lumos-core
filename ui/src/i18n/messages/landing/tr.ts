@@ -87,8 +87,15 @@ const landingTr = {
     step1: "1 — Depoyu klonla (GitHub)",
     step2: "2 — Proje kök dizinine geç",
     step3: "3 — Arayüz bağımlılıklarını yükle",
-    step4: "4 — Geliştirme sunucusunu başlat",
-    step5: "5 — Yerel adresi tarayıcıda aç",
+    step4: "4 — Ortam dosyası (.env.local)",
+    step5: "5 — Köprüyü başlat (depo kökü, ayrı terminal)",
+    step6: "6 — Görev sunucusu ve proxy (ayrı terminaller)",
+    step7: "7 — Geliştirme sunucusunu başlat (ui klasörü)",
+    step8: "8 — Yerel paneli tarayıcıda aç",
+    step5note:
+      "Depo kökünden (lumos-core); bu terminal açık kalsın. Yerel placeholder: KANDO_BRIDGE_SECRET=test123",
+    step6note:
+      "Görev proxy (/api/bridge) için depo kökünde vercel dev kullanın; yalnızca npm run dev proxy sunmaz.",
     copy: "Kopyala",
     copied: "Kopyalandı",
     open: "Aç",
@@ -97,6 +104,8 @@ const landingTr = {
     note: "Node.js ve npm yüklü bir geliştirme ortamı gerekir. Bu akış üretim veya resmi Lumos servisleri için değildir.",
     githubOpen: "GitHub'da aç",
     tryPanel: "Geliştirici panelini aç",
+    tryPanelWarning:
+      "Paneli açmadan önce köprü, ui/.env.local ve (görevler için) proxy adımlarını tamamlayın; aksi halde bağlantı rozeti «Çevrimdışı» görünebilir.",
     versionsTitle: "Sürüm durumu",
     ossHeading: "Şu an: açık kaynak geliştirme sürümü",
     ossBody:

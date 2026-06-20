@@ -89,8 +89,15 @@ const landingEn: typeof landingTr = {
     step1: "1 — Clone the repository (GitHub)",
     step2: "2 — Go to the project root folder",
     step3: "3 — Install UI dependencies",
-    step4: "4 — Start the development server",
-    step5: "5 — Open the local URL in your browser",
+    step4: "4 — Environment file (.env.local)",
+    step5: "5 — Start the bridge (repo root, separate terminal)",
+    step6: "6 — Task server and proxy (separate terminals)",
+    step7: "7 — Start the dev server (ui folder)",
+    step8: "8 — Open the local panel in your browser",
+    step5note:
+      "From the repo root (lumos-core); keep this terminal open. Local placeholder: KANDO_BRIDGE_SECRET=test123",
+    step6note:
+      "For task proxy (/api/bridge), run vercel dev from the repo root; npm run dev alone does not serve the proxy.",
     copy: "Copy",
     copied: "Copied",
     open: "Open",
@@ -99,6 +106,8 @@ const landingEn: typeof landingTr = {
     note: "You need Node.js and npm installed. This flow is not for production or official Lumos services.",
     githubOpen: "Open on GitHub",
     tryPanel: "Open dev panel",
+    tryPanelWarning:
+      "Complete the bridge, ui/.env.local, and (for tasks) proxy steps before opening the panel; otherwise the connection badge may show Offline.",
     versionsTitle: "Release status",
     ossHeading: "Available now: open-source development build",
     ossBody:
