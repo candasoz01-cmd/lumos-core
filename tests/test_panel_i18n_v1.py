@@ -99,6 +99,25 @@ PANEL_I18N_V4_TR_KEYS = (
     "detail:",
 )
 
+PANEL_I18N_V5_MARKERS = (
+    'data-i18n="panel.sections.kuantum"',
+    'data-i18n="panel.modules.quantum.intro"',
+    'data-i18n="panel.modules.quantum.c1Title"',
+    'data-i18n="panel.nav.lumosCore"',
+    'data-i18n="panel.nav.yayincilik"',
+    'data-i18n="panel.modules.publishing.c1Title"',
+    'data-i18n="panel.modules.capabilities.intro"',
+    'data-i18n="panel.modules.capabilities.testBtn"',
+)
+
+PANEL_I18N_V5_TR_KEYS = (
+    "lumosCore:",
+    "yayincilik:",
+    "yapayzeka:",
+    "entegrasyon:",
+    "capabilities:",
+)
+
 
 
 def test_panel_astro_i18n_wiring_present() -> None:
@@ -162,3 +181,17 @@ def test_panel_i18n_v4_gorevler_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V4_TR_KEYS:
         assert key in tr_text, f"missing panel tr v4 key fragment: {key}"
         assert key in en_text, f"missing panel en v4 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v5_lumos_core_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V5_MARKERS:
+        assert token in text, f"missing panel i18n v5 token: {token}"
+
+
+def test_panel_i18n_v5_lumos_core_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V5_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v5 key fragment: {key}"
+        assert key in en_text, f"missing panel en v5 key fragment: {key}"

@@ -19,6 +19,15 @@ const panelNav = {
     posta: "Posta",
     dosyalar: "Dosyalar",
     kuantum: "Kuantum",
+    lumosCore: "Lumos çekirdeği",
+    yayincilik: "Yayıncılık",
+    yapayzeka: "Yapay Zekâ",
+    entegrasyon: "Entegrasyon",
+    kimlik: "Kimlik",
+    yetenekler: "Yetenekler",
+    guvenlik: "Güvenlik",
+    dunya: "Dünya",
+    ayarlar: "Ayarlar",
   },
   sections: {
     sohbet: "Sohbet",
@@ -28,6 +37,15 @@ const panelNav = {
     sosyal: "Sosyal",
     posta: "Posta",
     dosyalar: "Dosyalar",
+    kuantum: "Kuantum",
+    yayincilik: "Yayıncılık",
+    yapayzeka: "Yapay Zekâ",
+    entegrasyon: "Entegrasyon",
+    kimlik: "Kimlik",
+    yetenekler: "Yetenekler",
+    guvenlik: "Güvenlik",
+    dunya: "Dünya",
+    ayarlar: "Ayarlar",
   },
 } as const;
 
@@ -440,6 +458,16 @@ const panelModules = {
     c5Title: "Varsayılanlar ve Kontrol",
     c5Body:
       "Öntanımlı davranışlar kabul edilmeden önce kullanıcıya gösterilir; değişiklikler geri alınabilir biçimde tutulmayı hedefler.",
+  },
+  capabilities: {
+    intro:
+      "Lumos’un hangi işlemlere hangi bağlantı veya panel yüzeyi üzerinden bağlandığını özetler. «Bağlantı testi» yalnızca 1–3. satırlarda bağlantıyı doğrular; 4. satır yerel kanıtını kontrol eder.",
+    legendAria: "Durum sözlüğü",
+    legendActive: "AKTİF kanıtı var veya kısıtlı çalışır",
+    legendPassive: "PASİF şu an çalışır hat yok",
+    legendDev: "GELİŞTİRME AŞAMASINDA hedefleniyor, henüz bağlı değil",
+    testBtn: "Bağlantı testi",
+    bridgePending: "Köprü bağlantısı bekleniyor.",
   },
 } as const;
 
