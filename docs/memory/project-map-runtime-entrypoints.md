@@ -72,16 +72,16 @@ lumos  (veya python -m lumos_core)
 | **`archive/`** | Arşiv | Canlı değil |
 | **`frontend/`** | Köprü/prototip HTML | `[migrated]` — OD-044 Seçenek B; birincil/canlı değil (`frontend-role-decision.md`) |
 
-**`packages/` altı paketler (doğrulandı):**
+**`packages/` altı canlı paketler (doğrulandı):**
 
 - `kando_bridge`
-- `kando_context`
-- `kando_core`
-- `kando_memory`
-- `kando_policy`
 - `kando_runtime`
 
-Her birinin kendi `pyproject.toml` ve `src/kando_*/` yapısı vardır. `packages/kando_core/src/kando_core/__main__.py` benzer bir CLI yüzeyi sunar ancak **kök `lumos` komutu bunu çağırmaz**.
+Her birinin kendi `pyproject.toml` ve `src/kando_*/` yapısı vardır.
+
+**Arşiv (OD-027 Slice 3b — `archive/packages/`, canlı değil):**
+
+- `kando_core`, `kando_memory`, `kando_policy`, `kando_context` — canonical karşılıkları `src/`; kök `lumos` bunları çağırmaz.
 
 **Kural:** Canlı zinciri düşünürken önce `src/`; `packages/` veya `kando-ai/` canlı entry sanılmaz.
 
@@ -187,7 +187,7 @@ Aşağıdaki satırlar henüz repo dışı kaynaktan işlenmedi veya doğrulanma
 | 1 | `[superseded / not-found]` | `lumos-demo` konumu ve lumos-core ile ilişkisi | OD-045 kapandı; `work_2026` altında yok; lumos-core parçası değil; sonradan bulunursa ayrı değerlendirme |
 | 2 | `[closed]` | Birincil kullanıcı yüzeyi (OD-043) | `ui/` birincil; `panel/` legacy E2E; `frontend/` birincil değil — [`primary-user-surface-decision.md`](primary-user-surface-decision.md) |
 | 3 | `[migrated]` | `lumos web` / `web/app.py` — OD-028 B1 alt komut kaldırıldı | `web/` restore yok; `__main__.py` güncellendi |
-| 4 | `[approved-for-implementation]` | `packages/kando_*` → `src/` geçiş (OD-027) | Seçenek C; Slice 3a **complete** (#313); Slice 3b karar onaylı — [`od-027-slice-3b-archive-decision.md`](od-027-slice-3b-archive-decision.md) |
+| 4 | `[approved-for-implementation]` | `packages/kando_*` → `src/` geçiş (OD-027) | Seçenek C; Slice 3a **complete** (#313); Slice 3b ayna arşivi uygulama PR bekler — [`od-027-slice-3b-archive-decision.md`](od-027-slice-3b-archive-decision.md) |
 | 5 | `[queued]` | ChatGPT Saved Memories’ten ek proje yolu / deploy notları | `chatgpt-saved-memories-migration.md` tablosuna yapıştırılacak |
 
 ---

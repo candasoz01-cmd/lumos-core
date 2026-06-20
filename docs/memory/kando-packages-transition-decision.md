@@ -204,9 +204,11 @@ Canlı yol:
               ↘ packages/kando_bridge (HTTP köprü, STT)
               ↘ packages/kando_runtime (gate, dispatch, executor'lar — lumos_runtime aynası hariç)
 
-Arşiv adayı (Faz 5):
-  packages/kando_core, kando_memory, kando_policy, kando_context
-  packages/kando_runtime/lumos_runtime.py (+ muhtemelen brain.py)
+Arşiv (Slice 3b — archive/packages/):
+  archive/packages/kando_core, kando_memory, kando_policy, kando_context
+
+Kalan aday (Faz 5):
+  packages/kando_runtime/lumos_runtime.py (+ muhtemelen brain.py) — Slice 3a ile lumos_runtime aynası kaldırıldı
 
 Dokunulmaz (cutover öncesi):
   src/ canonical; .lumos/ workspace sözleşmesi; güvenlik geçidi
@@ -232,7 +234,9 @@ Keşif raporu: [`kando-packages-faz3-keşif-raporu.md`](./kando-packages-faz3-ke
 2. `kando_runtime/lumos_runtime.py` ölü ayna silindi
 3. Import sözleşmesi referans notu (docs-only veya README)
 
-§8 checklist Slice 3a için geçerli; tam ayna paket arşivi **3b** — [`od-027-slice-3b-archive-decision.md`](./od-027-slice-3b-archive-decision.md) **`approved-for-implementation`**.
+§8 checklist Slice 3a için geçerli; tam ayna paket arşivi **3b** — [`od-027-slice-3b-archive-decision.md`](./od-027-slice-3b-archive-decision.md) uygulama PR bekler.
+
+**Slice 3b (M effort):** dört ayna paket `archive/packages/` altına taşındı (`git mv`); canlı `packages/` yalnızca bridge + runtime.
 
 ### Faz 4 — Kesme (cutover) `[implementation-pending — kullanıcı onayı zorunlu]`
 
