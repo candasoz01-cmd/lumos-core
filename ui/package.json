@@ -10,7 +10,8 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "e2e:smoke": "node e2e/smoke-panel.mjs"
+    "e2e:smoke": "node e2e/smoke-panel.mjs",
+    "e2e:package:local": "node e2e/package-local.mjs"
   },
   "dependencies": {
     "astro": "^6.2.1"

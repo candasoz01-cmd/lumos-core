@@ -9,6 +9,8 @@ export const CHAT_SEND_SELECTOR = "#panel-send";
 export const CHAT_THREAD_SELECTOR = "#chat-thread";
 export const CONN_BADGE_SELECTOR = "#panel-conn-badge";
 export const PANEL_USER_MODE_LS_KEY = "lumos_panel_user_mode_v1";
+export const PANEL_GOREVLER_LS_KEY = "lumos_panel_gorevler_list_v1";
+export const PACKAGE_FLOW_MS = 45000;
 
 export async function waitForSelectorAttached(page, selector, timeout = PANEL_READY_MS) {
   await page.waitForSelector(selector, { state: "attached", timeout });
@@ -28,31 +30,58 @@ export async function clickModule(page, moduleId, timeout = PANEL_READY_MS) {
 /**
  * Legacy panel state_inject + Astro ui panel user-mode patch for task E2E policy gates.
  */
-export async function patchPolicyAllowTasks(page) {
-  await page.evaluate(function (lsKey) {
-    var rs = window.__LUMOS_READ_STATE__;
-    if (rs && typeof rs === "object") {
-      if (!rs.guidance) rs.guidance = {};
-      rs.guidance.mode = "online";
-      rs.guidance.lock = "UNLOCKED";
-      rs.guidance.consent = true;
-      if (rs.keystore && typeof rs.keystore === "object") {
-        rs.keystore.keystore_state = "Açık";
-        rs.keystore.keystore_ready = true;
-      }
-      if (rs.dashboard && typeof rs.dashboard === "object") {
-        rs.dashboard.guard_status = "Açık";
-      }
-    }
-    try {
-      localStorage.setItem(lsKey, "full");
-    } catch (_) {}
-  }, PANEL_USER_MODE_LS_KEY);
+export async function patchPolicyAllowTasks(page, options = {}) {
+  const userMode =
+    options.userMode === "offline" || options.userMode === "limited" || options.userMode === "full"
+      ? options.userMode
+      : "full";
 
-  const fullMode = page.locator('input[name="panel-user-mode"][value="full"]');
-  if ((await fullMode.count()) > 0) {
-    await fullMode.check();
+  await page.evaluate(
+    function (payload) {
+      var rs = window.__LUMOS_READ_STATE__;
+      if (rs && typeof rs === "object") {
+        if (!rs.guidance) rs.guidance = {};
+        rs.guidance.mode = "online";
+        rs.guidance.lock = "UNLOCKED";
+        rs.guidance.consent = true;
+        if (rs.keystore && typeof rs.keystore === "object") {
+          rs.keystore.keystore_state = "Açık";
+          rs.keystore.keystore_ready = true;
+        }
+        if (rs.dashboard && typeof rs.dashboard === "object") {
+          rs.dashboard.guard_status = "Açık";
+        }
+      }
+      try {
+        localStorage.setItem(payload.lsKey, payload.userMode);
+      } catch (_) {}
+    },
+    { lsKey: PANEL_USER_MODE_LS_KEY, userMode },
+  );
+
+  const modeInput = page.locator(`input[name="panel-user-mode"][value="${userMode}"]`);
+  if ((await modeInput.count()) > 0 && (await modeInput.isVisible())) {
+    await modeInput.check();
   }
+}
+
+export async function clearPanelGorevlerStorage(page) {
+  await page.evaluate(function (lsKey) {
+    try {
+      localStorage.removeItem(lsKey);
+    } catch (_) {}
+  }, PANEL_GOREVLER_LS_KEY);
+}
+
+export async function waitForChatContains(page, text, timeout = PACKAGE_FLOW_MS) {
+  await page.waitForFunction(
+    function (needle) {
+      var thread = document.querySelector("#chat-thread");
+      return !!(thread && thread.innerText && thread.innerText.indexOf(needle) !== -1);
+    },
+    text,
+    { timeout },
+  );
 }
 
 export async function sendChatMessage(page, text, options = {}) {
