@@ -4147,7 +4147,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             data-i18n-aria-label="panel.sections.sohbet"
           >
             <div class="chat-workspace">
-              <div class="chat-history-shell" aria-label="Mesaj geçmişi">
+              <div class="chat-history-shell" aria-label="Mesaj geçmişi" data-i18n-aria-label="panel.modules.chat.historyAria">
                 <div
                   id="chat-thread"
                   class="chat-thread"
@@ -4156,7 +4156,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   aria-relevant="additions"
                 >
                   <div class="chat-empty-hint" aria-hidden="true">
-                    <span class="chat-empty-hint__text">Lumos hazır · Dinliyor</span>
+                    <span class="chat-empty-hint__text" data-i18n="panel.modules.chat.empty.default">Lumos hazır · Dinliyor</span>
                     <span id="chat-empty-limited-sub" class="chat-empty-hint__sub" hidden></span>
                   </div>
                   <div
@@ -4164,34 +4164,34 @@ const PANEL_DEBUG = import.meta.env.DEV;
                     role="region"
                     aria-labelledby="chat-capability-card-title"
                   >
-                    <h3 id="chat-capability-card-title" class="chat-capability-card__title">
+                    <h3 id="chat-capability-card-title" class="chat-capability-card__title" data-i18n="panel.modules.chat.capability.title">
                       Şu an ne yapabilirim?
                     </h3>
                     <div class="chat-capability-card__sections">
-                      <section class="chat-capability-card__section" aria-label="Yapabilirim">
-                        <h4 class="chat-capability-card__heading">Yapabilirim</h4>
+                      <section class="chat-capability-card__section" aria-label="Yapabilirim" data-i18n-aria-label="panel.modules.chat.capability.canDoSection">
+                        <h4 class="chat-capability-card__heading" data-i18n="panel.modules.chat.capability.canDoSection">Yapabilirim</h4>
                         <ul class="chat-capability-card__list">
-                          <li>Görev kaydeder, listeler ve kısa plan önerir.</li>
-                          <li>Cihaz içi ayarlardan okur; pratik notlar verir.</li>
+                          <li data-i18n="panel.modules.chat.capability.canDo1">Görev kaydeder, listeler ve kısa plan önerir.</li>
+                          <li data-i18n="panel.modules.chat.capability.canDo2">Cihaz içi ayarlardan okur; pratik notlar verir.</li>
                         </ul>
                       </section>
-                      <section class="chat-capability-card__section" aria-label="Şu an yapmam">
-                        <h4 class="chat-capability-card__heading">Şu an yapmam</h4>
+                      <section class="chat-capability-card__section" aria-label="Şu an yapmam" data-i18n-aria-label="panel.modules.chat.capability.wontDoSection">
+                        <h4 class="chat-capability-card__heading" data-i18n="panel.modules.chat.capability.wontDoSection">Şu an yapmam</h4>
                         <ul class="chat-capability-card__list">
-                          <li>Komut çalıştırmaz, kod değiştirmez.</li>
-                          <li>Onaysız kalıcı işlem yapmaz.</li>
+                          <li data-i18n="panel.modules.chat.capability.wontDo1">Komut çalıştırmaz, kod değiştirmez.</li>
+                          <li data-i18n="panel.modules.chat.capability.wontDo2">Onaysız kalıcı işlem yapmaz.</li>
                         </ul>
                       </section>
                     </div>
                   </div>
-                  <p class="lumos-security-note">Kalıcı işlemler için onay ister.</p>
-                  <p id="panel-empty-secret-note" class="lumos-security-note">Cihaz içinde çalışır; gizli bilgileri sohbete yazma.</p>
+                  <p class="lumos-security-note" data-i18n="panel.modules.chat.security.approval">Kalıcı işlemler için onay ister.</p>
+                  <p id="panel-empty-secret-note" class="lumos-security-note" data-i18n="panel.modules.chat.security.secret">Cihaz içinde çalışır; gizli bilgileri sohbete yazma.</p>
                   {PANEL_DEBUG && (
-                    <p class="lumos-security-note panel-debug-only">
+                    <p class="lumos-security-note panel-debug-only" data-i18n="panel.modules.chat.security.debugBridge">
                       Yerel köprü bağlı. Ses ve görev işlemleri bu cihaz üzerinden yürütülür.
                     </p>
                   )}
-                  <p class="lumos-security-note">Kamera ve mikrofon cihaz iznine bağlıdır.</p>
+                  <p class="lumos-security-note" data-i18n="panel.modules.chat.security.devicePerms">Kamera ve mikrofon cihaz iznine bağlıdır.</p>
                 </div>
               </div>
               <div class="chat-compose-stack">
@@ -4203,6 +4203,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                     accept="image/*"
                     tabindex="-1"
                     aria-label="Galeriden görsel seç"
+                    data-i18n-aria-label="panel.modules.chat.compose.galleryAria"
                   />
                   <input
                     type="file"
@@ -4211,6 +4212,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                     accept="audio/*"
                     tabindex="-1"
                     aria-label="Ses dosyası seç"
+                    data-i18n-aria-label="panel.modules.chat.compose.audioFileAria"
                   />
                   <video
                     id="panel-camera-video"
@@ -4251,6 +4253,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                       controls
                       hidden
                       aria-label="Ses kaydı önizlemesi"
+                      data-i18n-aria-label="panel.modules.chat.compose.audioPreviewAria"
                     ></audio>
                     <div class="chat-audio-record-actions">
                       <button
@@ -4258,10 +4261,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
                         id="panel-audio-record-stop"
                         class="chat-audio-record-btn"
                         hidden
+                        data-i18n="panel.modules.chat.compose.stopRecord"
                       >
                         Durdur
                       </button>
-                      <button type="button" id="panel-audio-record-cancel" class="chat-audio-record-btn" hidden>
+                      <button type="button" id="panel-audio-record-cancel" class="chat-audio-record-btn" hidden data-i18n="panel.modules.chat.compose.cancelRecord">
                         İptal
                       </button>
                       <button
@@ -4269,6 +4273,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                         id="panel-audio-record-rerecord"
                         class="chat-audio-record-btn"
                         hidden
+                        data-i18n="panel.modules.chat.compose.rerecord"
                       >
                         Yeniden kaydet
                       </button>
@@ -4277,6 +4282,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                         id="panel-audio-record-transcript"
                         class="chat-audio-record-btn chat-audio-transcript-btn"
                         hidden
+                        data-i18n="panel.modules.chat.compose.transcribe"
                       >
                         Metne çevir
                       </button>
@@ -4306,6 +4312,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
                         class="chat-compose-attach-btn"
                         title="Ekle"
                         aria-label="Dosya veya medya ekle"
+                        data-i18n-title="panel.modules.chat.compose.attachTitle"
+                        data-i18n-aria-label="panel.modules.chat.compose.attachAria"
                         aria-haspopup="menu"
                         aria-expanded="false"
                         aria-controls="panel-attach-menu"
@@ -4315,19 +4323,19 @@ const PANEL_DEBUG = import.meta.env.DEV;
                         </svg>
                       </button>
                       <div id="panel-attach-menu" class="chat-compose-attach-menu" role="menu" hidden>
-                        <button type="button" class="chat-compose-attach-menu__item" role="menuitem" data-attach-action="file">
+                        <button type="button" class="chat-compose-attach-menu__item" role="menuitem" data-attach-action="file" data-i18n="panel.modules.chat.compose.attachFile">
                           Dosya yükle
                         </button>
-                        <button type="button" class="chat-compose-attach-menu__item" role="menuitem" data-attach-action="photo">
+                        <button type="button" class="chat-compose-attach-menu__item" role="menuitem" data-attach-action="photo" data-i18n="panel.modules.chat.compose.attachPhoto">
                           Fotoğraf seç
                         </button>
-                        <button type="button" class="chat-compose-attach-menu__item" role="menuitem" data-attach-action="camera">
+                        <button type="button" class="chat-compose-attach-menu__item" role="menuitem" data-attach-action="camera" data-i18n="panel.modules.chat.compose.attachCamera">
                           Kamera aç
                         </button>
-                        <button type="button" class="chat-compose-attach-menu__item" role="menuitem" data-attach-action="clipboard">
+                        <button type="button" class="chat-compose-attach-menu__item" role="menuitem" data-attach-action="clipboard" data-i18n="panel.modules.chat.compose.attachClipboard">
                           Panodaki metni ilet
                         </button>
-                        <button type="button" class="chat-compose-attach-menu__item" role="menuitem" data-attach-action="audio">
+                        <button type="button" class="chat-compose-attach-menu__item" role="menuitem" data-attach-action="audio" data-i18n="panel.modules.chat.compose.attachAudio">
                           Ses dosyası yükle
                         </button>
                         <button
@@ -4336,6 +4344,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
                           role="menuitem"
                           data-attach-action="record"
                           title="Mikrofonla ses kaydet; metne çevirmez (Sesle yaz düğmesinden farklı)"
+                          data-i18n-title="panel.modules.chat.compose.attachRecordTitle"
+                          data-i18n="panel.modules.chat.compose.attachRecord"
                         >
                           Ses kaydı
                         </button>
@@ -4346,6 +4356,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
                         class="chat-compose-clipboard-btn"
                         title="Panodaki metni ilet"
                         aria-label="Panodaki metni ilet"
+                        data-i18n-title="panel.modules.chat.compose.attachClipboard"
+                        data-i18n-aria-label="panel.modules.chat.compose.attachClipboard"
+                        data-i18n="panel.modules.chat.compose.attachClipboard"
                         hidden
                       >
                         Panodaki metni ilet
@@ -4357,6 +4370,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
                       class="chat-compose-camera-btn"
                       title="Kamera / görsel giriş"
                       aria-label="Kamera / görsel giriş"
+                      data-i18n-title="panel.modules.chat.compose.cameraTitle"
+                      data-i18n-aria-label="panel.modules.chat.compose.cameraAria"
                       aria-pressed="false"
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -4374,6 +4389,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
                       class="chat-compose-voice-btn"
                       title="Sesle yaz (metne çevir) — tarayıcı ses tanıma servisine bağlı"
                       aria-label="Sesle yaz, metne çevir; tarayıcı ses tanıma servisine bağlı"
+                      data-i18n-title="panel.modules.chat.compose.voiceTitleSupported"
+                      data-i18n-aria-label="panel.modules.chat.compose.voiceAriaSupported"
                       aria-pressed="false"
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -4387,10 +4404,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
                       rows="1"
                       placeholder="Mesajını yaz"
                       aria-label="Mesajını yaz"
+                      data-i18n-placeholder="panel.modules.chat.compose.placeholder"
+                      data-i18n-aria-label="panel.modules.chat.compose.placeholder"
                       autocomplete="off"
                     ></textarea>
-                    <button type="button" id="panel-send" class="chat-compose-send" title="Gönder" aria-label="Gönder">
-                      <span class="chat-compose-send__label">Gönder</span>
+                    <button type="button" id="panel-send" class="chat-compose-send" title="Gönder" aria-label="Gönder" data-i18n-title="panel.modules.chat.compose.send" data-i18n-aria-label="panel.modules.chat.compose.send">
+                      <span class="chat-compose-send__label" data-i18n="panel.modules.chat.compose.send">Gönder</span>
                     </button>
                   </div>
                 </div>
@@ -5585,23 +5604,36 @@ const PANEL_DEBUG = import.meta.env.DEV;
         return { blocked: false, message: "" };
       }
 
-      const BRIDGE_BADGE_LIMITED_LABEL = "Sınırlı mod";
-      const CHAT_EMPTY_DEFAULT_TEXT = "Lumos hazır · Dinliyor";
-      const CHAT_EMPTY_LIMITED_TEXT = "Sınırlı mod · Yerel işlemler kullanılabilir";
-      const CHAT_EMPTY_LIMITED_USER_TEXT = "Sınırlı mod · Kullanıcı seçimi";
-      const CHAT_EMPTY_LIMITED_SUBTEXT =
-        "Yerel görevler kullanılabilir; dış köprü gerektiren işlemler beklemede.";
-      const CHAT_EMPTY_LIMITED_USER_SUBTEXT =
-        "Yerel görevler kullanılabilir; bu modda dış sohbet köprüsü denenmez.";
-      const CHAT_EMPTY_OFFLINE_TEXT = "Çevrimdışı mod · İnternet kullanılmaz";
-      const CHAT_EMPTY_OFFLINE_SUBTEXT =
-        "Yerel işlemler kullanılabilir; dış bağlantı bu modda denenmez.";
-      const SEND_LIMITED_HINT =
-        "Sınırlı mod: dış sohbet köprüsü yok; yerel yanıtlar ve görev komutları kullanılabilir.";
-      const SEND_LIMITED_USER_HINT =
-        "Sınırlı moddasın (kullanıcı seçimi); yerel yanıtlar ve görev komutları kullanılabilir.";
-      const SEND_OFFLINE_HINT =
-        "Çevrimdışı mod: internet ve dış köprü kullanılmaz; yerel yanıtlar kullanılabilir.";
+      const BRIDGE_BADGE_LIMITED_LABEL = () => panelT("panel.modules.chat.bridgeBadgeLimited");
+
+      function chatBubbleRoleLabel(kind) {
+        if (kind === "user") return panelT("panel.modules.chat.bubbles.user");
+        if (kind === "error") return panelT("panel.modules.chat.bubbles.warning");
+        return panelT("panel.modules.chat.bubbles.lumos");
+      }
+
+      function refreshChatBubbleRoles() {
+        document.querySelectorAll(".chat-msg-role").forEach((roleEl) => {
+          const wrap = roleEl.closest(".chat-msg");
+          if (!wrap) return;
+          if (wrap.classList.contains("chat-msg--user")) {
+            roleEl.textContent = panelT("panel.modules.chat.bubbles.user");
+          } else if (wrap.classList.contains("chat-msg--error")) {
+            roleEl.textContent = panelT("panel.modules.chat.bubbles.warning");
+          } else if (wrap.classList.contains("chat-msg--lumos")) {
+            roleEl.textContent = panelT("panel.modules.chat.bubbles.lumos");
+          }
+        });
+      }
+
+      function refreshPanelChatI18n() {
+        applyUserModeUi();
+        refreshChatBubbleRoles();
+        const badge = document.getElementById("panel-conn-badge");
+        if (badge && badge.getAttribute("data-state") === "limited") {
+          badge.textContent = BRIDGE_BADGE_LIMITED_LABEL();
+        }
+      }
       const PANEL_LIMITED_PHOTO_REPLY =
         "Sınırlı modda fotoğraf analizi yapılamaz; dış görsel API köprüsü bağlı değil.";
       const PANEL_OFFLINE_PHOTO_REPLY =
@@ -6237,7 +6269,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const emptySecretNote = document.getElementById("panel-empty-secret-note");
 
         if (mode === "full") {
-          if (chatEmptyText) chatEmptyText.textContent = CHAT_EMPTY_DEFAULT_TEXT;
+          if (chatEmptyText) chatEmptyText.textContent = panelT("panel.modules.chat.empty.default");
           if (chatEmptySub) {
             chatEmptySub.textContent = "";
             chatEmptySub.hidden = true;
@@ -6247,13 +6279,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
         }
 
         if (mode === "offline") {
-          if (chatEmptyText) chatEmptyText.textContent = CHAT_EMPTY_OFFLINE_TEXT;
+          if (chatEmptyText) chatEmptyText.textContent = panelT("panel.modules.chat.empty.offline");
           if (chatEmptySub) {
-            chatEmptySub.textContent = CHAT_EMPTY_OFFLINE_SUBTEXT;
+            chatEmptySub.textContent = panelT("panel.modules.chat.empty.offlineSub");
             chatEmptySub.hidden = false;
           }
           if (sendLimitedHint) {
-            sendLimitedHint.textContent = SEND_OFFLINE_HINT;
+            sendLimitedHint.textContent = panelT("panel.modules.chat.modeHints.sendOffline");
             sendLimitedHint.hidden = false;
           }
           if (emptySecretNote) emptySecretNote.hidden = true;
@@ -6269,13 +6301,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
           return;
         }
 
-        if (chatEmptyText) chatEmptyText.textContent = CHAT_EMPTY_LIMITED_USER_TEXT;
+        if (chatEmptyText) chatEmptyText.textContent = panelT("panel.modules.chat.empty.limitedUser");
         if (chatEmptySub) {
-          chatEmptySub.textContent = CHAT_EMPTY_LIMITED_USER_SUBTEXT;
+          chatEmptySub.textContent = panelT("panel.modules.chat.empty.limitedUserSub");
           chatEmptySub.hidden = false;
         }
         if (sendLimitedHint) {
-          sendLimitedHint.textContent = SEND_LIMITED_USER_HINT;
+          sendLimitedHint.textContent = panelT("panel.modules.chat.modeHints.sendLimitedUser");
           sendLimitedHint.hidden = false;
         }
         if (emptySecretNote) emptySecretNote.hidden = true;
@@ -8398,7 +8430,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             (kind === "user" ? "chat-msg--user" : kind === "error" ? "chat-msg--error" : "chat-msg--lumos");
           const role = document.createElement("span");
           role.className = "chat-msg-role";
-          role.textContent = kind === "user" ? "Sen" : kind === "error" ? "Uyarı" : "Lumos";
+          role.textContent = chatBubbleRoleLabel(kind);
           const body = document.createElement("div");
           body.className = "chat-msg-body";
           if (kind === "lumos") {
@@ -8626,7 +8658,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           wrap.className = "chat-msg chat-msg--user";
           const role = document.createElement("span");
           role.className = "chat-msg-role";
-          role.textContent = "Sen";
+          role.textContent = chatBubbleRoleLabel("user");
           const body = document.createElement("div");
           body.className = "chat-msg-body";
           const trimmed = plainText && String(plainText).trim();
@@ -9624,15 +9656,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const speechRecognitionSupported = !!(
           window.SpeechRecognition || window.webkitSpeechRecognition
         );
-        const VOICE_TITLE_SUPPORTED =
-          "Sesle yaz (metne çevir) — tarayıcı ses tanıma servisine bağlı";
-        const VOICE_ARIA_SUPPORTED =
-          "Sesle yaz, metne çevir; tarayıcı ses tanıma servisine bağlı";
+        const VOICE_TITLE_SUPPORTED = () => panelT("panel.modules.chat.compose.voiceTitleSupported");
+        const VOICE_ARIA_SUPPORTED = () => panelT("panel.modules.chat.compose.voiceAriaSupported");
         const VOICE_SERVICE_UNAVAILABLE_HINT =
           "Tarayıcı ses tanıma servisi şu anda kullanılamıyor";
-        const VOICE_TITLE_UNSUPPORTED = "Sesle yazma desteklenmiyor";
-        const VOICE_ARIA_UNSUPPORTED =
-          "Bu tarayıcıda sesle yazma desteklenmiyor";
+        const VOICE_TITLE_UNSUPPORTED = () => panelT("panel.modules.chat.compose.voiceTitleUnsupported");
+        const VOICE_ARIA_UNSUPPORTED = () => panelT("panel.modules.chat.compose.voiceAriaUnsupported");
         const VOICE_UNSUPPORTED_HINT =
           "Bu tarayıcıda sesle yazma desteklenmiyor.";
         let voiceRec = null;
@@ -9649,16 +9678,16 @@ const PANEL_DEBUG = import.meta.env.DEV;
             voiceBtn.disabled = true;
             voiceBtn.setAttribute("aria-disabled", "true");
             voiceBtn.classList.add("chat-compose-voice-btn--unsupported");
-            voiceBtn.title = VOICE_TITLE_UNSUPPORTED;
-            voiceBtn.setAttribute("aria-label", VOICE_ARIA_UNSUPPORTED);
+            voiceBtn.title = VOICE_TITLE_UNSUPPORTED();
+            voiceBtn.setAttribute("aria-label", VOICE_ARIA_UNSUPPORTED());
             setVoiceHint(VOICE_UNSUPPORTED_HINT);
             return;
           }
           voiceBtn.disabled = false;
           voiceBtn.removeAttribute("aria-disabled");
           voiceBtn.classList.remove("chat-compose-voice-btn--unsupported");
-          voiceBtn.title = VOICE_TITLE_SUPPORTED;
-          voiceBtn.setAttribute("aria-label", VOICE_ARIA_SUPPORTED);
+          voiceBtn.title = VOICE_TITLE_SUPPORTED();
+          voiceBtn.setAttribute("aria-label", VOICE_ARIA_SUPPORTED());
         }
 
         function setVoiceHint(msg) {
@@ -9715,6 +9744,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
         }
 
         applyVoiceSupportUi();
+
+        window.addEventListener("lumos:localechange", () => {
+          applyVoiceSupportUi();
+        });
 
         if (speechRecognitionSupported) {
           voiceBtn?.addEventListener("click", () => {
@@ -12425,7 +12458,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         if (state === "ok") {
           badge.textContent = "Bağlı";
         } else if (state === "limited") {
-          badge.textContent = BRIDGE_BADGE_LIMITED_LABEL;
+          badge.textContent = BRIDGE_BADGE_LIMITED_LABEL();
         } else if (state === "bad") {
           badge.textContent = "Çevrimdışı";
         } else {
@@ -13109,6 +13142,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
       });
 
       wireMedyaOutbox();
+
+      window.addEventListener("lumos:localechange", () => {
+        refreshPanelChatI18n();
+      });
     </script>
     <I18nInit />
   </body>
