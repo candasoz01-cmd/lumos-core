@@ -47,12 +47,12 @@ Bu belge:
 |------|--------|
 | **`frontend/package.json`** | **Yok** — bağımsız npm paketi değil |
 | Root `package.json` → `build` | `cd ui && npm install && npm run build` — **`frontend/` referansı yok** |
-| Root `package.json` → `e2e:*` | `--prefix panel` — **`frontend/` referansı yok** |
+| Root `package.json` → `e2e:*` (birincil) | `--prefix ui` — **`frontend/` referansı yok**; legacy → `e2e:legacy:*` / `panel/` |
 | `vercel.json` | `installCommand` / `buildCommand` → `ui/`; `outputDirectory`: `ui/dist` — **`frontend/` referansı yok** |
 
 ### `project-map-runtime-entrypoints.md` kaydı
 
-`frontend/` tabloda **«Eski/alternatif frontend»** ve **`[needs-review]`** olarak işaretli; panel/ui ile ilişkisi netleştirilmemiş.
+`frontend/` tabloda **«Köprü/prototip HTML»** ve **`[migrated]`** — OD-044 Seçenek B; birincil/canlı değil.
 
 ### E2E kanıtı
 
@@ -71,7 +71,7 @@ Bu belge:
 | `frontend/` var mı? | Evet — 2 dosya |
 | Canlı üretim yüzeyi mi? | **Hayır** — build/deploy zincirinde yok |
 | Birincil kullanıcı yüzeyi adayı mı? | **Hayır** — OD-043 taslak üretim `ui/` |
-| Kök E2E paket kapısında mı? | **Hayır** — kök `e2e:*` yalnızca `panel/` |
+| Kök E2E paket kapısında mı? | **Hayır** — birincil kök `e2e:package*` → `ui/dist`; legacy `e2e:legacy:*` → `panel/` |
 | İzole köprü E2E hedefi mi? | **Evet** — `run-frontend-task-loading.mjs` |
 | `ui/` veya `panel/` ile aynı kod tabanı mı? | **Hayır** — ayrı dizin, ayrı dosyalar |
 

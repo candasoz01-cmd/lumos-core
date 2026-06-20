@@ -234,10 +234,10 @@ lumos  (veya python -m lumos_core)
 
 | OD | Konu | Bu belgedeki karşılık | Durum |
 |----|------|------------------------|--------|
-| **OD-028** | `lumos web` / eksik `web/app.py` restore veya kaldırma | **B1 seçildi** — restore değil; uygulama bekliyor | **decision-approved** (uygulama pending) |
-| OD-027 | `packages/kando_*` → `src/` geçişi | §2 kapsam dışı; `kando_core` web kopyası notu | needs-review (çapraz) |
-| OD-043 | Birincil kullanıcı yüzeyi (`panel/` / `ui/` / `frontend/`) | §2 kapsam dışı — karıştırılmaz | needs-review (çapraz) |
-| OD-046 | Root `npm run build` (ui) vs panel E2E | §2 kapsam dışı — karıştırılmaz | needs-review (çapraz) |
+| **OD-028** | `lumos web` / eksik `web/app.py` restore veya kaldırma | **B1 uygulandı** — restore değil | **closed** |
+| OD-027 | `packages/kando_*` → `src/` geçişi | §2 kapsam dışı; `kando_core` web kopyası notu | decision-approved / implementation-pending (çapraz) |
+| OD-043 | Birincil kullanıcı yüzeyi (`panel/` / `ui/` / `frontend/`) | §2 kapsam dışı — karıştırılmaz | **closed** (çapraz) |
+| OD-046 | Root `npm run build` (ui) vs kök E2E | §2 kapsam dışı — karıştırılmaz | **closed** (çapraz) |
 
 **İndeks senkronu:** OD-028 kapanınca önce bu dosya ve [`project-map-runtime-entrypoints.md`](./project-map-runtime-entrypoints.md) §11 madde 3 güncellenir; ardından [`open-decisions-needs-review.md`](./open-decisions-needs-review.md).
 
@@ -276,4 +276,4 @@ Aşağıdaki işler **ayrı uygulama görevidir**; bu belge kod değiştirmez:
 
 ---
 
-*Son güncelleme: 2026-06-17 (B1 kararı işlendi)*
+*Son güncelleme: 2026-06-20 (OD-028 closed; çapraz OD-043/046 closed)*

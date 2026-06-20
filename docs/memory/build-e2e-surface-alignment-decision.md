@@ -196,19 +196,17 @@ OD-046'nın çözmesi gereken kavram ayrımı:
 | Bu belge uygulama değildir | **Sabit** |
 | OD-046 hizalama kararı | **Onaylandı** — Seçenek A |
 | Build + Vercel → `ui/` = üretim yüzeyi | **Onaylı** (kanıt güçlü) |
-| Root E2E bugün → `panel/` = geçiş dönemi kalite kapısı | **Onaylı** (mevcut repo gerçekliği) |
-| Root E2E nihai hedef → `ui/dist` veya Astro preview | **Onaylı** (Seçenek A) |
-| OD-043 kapanışı hizalama uygulamasına bağlı | **Sabit** |
+| Root E2E birincil → `ui/dist` (OD-046 **closed**) | **Onaylı** |
+| Root E2E legacy → `e2e:legacy:*` / `panel/` | **Onaylı** |
+| OD-043 kapanışı | **closed** — E2E hizası tamam (#300–#307) |
 
 ### 7.2 Onaylanmış pozisyon
 
 **Üretim «canlı» yüzey (dış kullanıcı):** **`ui/`** — Astro build, Vercel `ui/dist`, `/panel` rotası (`ui/src/pages/panel.astro`). Kaynak: `vercel.json`, `LUMOS_V1_READINESS.md`, root `npm run build`.
 
-**Kalite kapısı (kök E2E — bugün):** **`panel/`** statik uygulama — `panel/index.html` üzerinde Playwright. Kaynak: root `e2e:*` scriptleri, `panel/e2e/run-package.mjs`. Bu, geçiş dönemi kalite kapısıdır; üretim kanıtı değildir.
+**Kalite kapısı (kök E2E — birincil, Seçenek A uygulandı):** **`ui/dist`** — kök `e2e:package*` → `--prefix ui`. Kaynak: root `package.json`, `ui/e2e/run-package.mjs`, CI `ui-e2e` job (#300–#305).
 
-| **Kalite kapısı (kök E2E — nihai hedef, Seçenek A):** **`ui/dist`** veya Astro preview — üretim yüzeyi ile hizalı E2E. **v1 kısmi:** `e2e:smoke:ui` + `ui/e2e/smoke-panel.mjs` (PR #294); tam migrasyon bekliyor.
-
-**Legacy / operatör geliştirme:** `panel/` statik uygulama üretim için dokümante olarak **superseded** (`LUMOS_V1_READINESS.md` §2); kök E2E hâlâ bu yüzeyi test eder → **hizasızlık devam ediyor**; Seçenek A uygulaması ile giderilecek.
+**Legacy kalite kapısı:** `e2e:legacy:*` → `panel/` statik uygulama — operatör/geriye dönük; birincil kapı değil (`panel/README.md` deprecated notu).
 
 ### 7.3 Seçilen seçenek: A
 
@@ -285,7 +283,7 @@ Build/E2E hizası veya yüzey değişikliği görevi açılmadan önce:
 |----|--------|------|---------------------|--------|------------|
 | **OD-046** | project-map-runtime-entrypoints.md | Root build vs panel E2E | Seçenek A uygulandı: üretim `ui/`; birincil kök E2E → `ui/dist`; legacy → `e2e:legacy:*` | **implementation-complete** | PR #300–#305 |
 | **OD-043** | project-map-runtime-entrypoints.md | Birincil kullanıcı yüzeyi | Birincil üretim `ui/`; E2E hizası tamam | **closed** | primary-user-surface-decision.md |
-| **OD-044** | project-map-runtime-entrypoints.md | `frontend/` rolü | Build/E2E zincirinde değil | **needs-review** | Birincil yüzey değil |
+| **OD-044** | project-map-runtime-entrypoints.md | `frontend/` rolü | Seçenek B: izole köprü E2E; build/E2E zincirinde değil | **closed** | Birincil yüzey değil |
 
 ---
 
