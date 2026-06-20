@@ -679,6 +679,23 @@ PANEL_I18N_V39_TR_KEYS = (
     "heroPrefillBanner:",
 )
 
+PANEL_I18N_V40_MARKERS = (
+    "function classifyPanelProdError(",
+    "function panelProdErrorUserMessage(",
+    "function userMessageForPanelProdErrorKind(",
+    'panelT("panel.shell.infra.prodErrors.write_failed")',
+    'panelT("panel.shell.infra.prodErrors.path_outside_sandbox")',
+    "panelProdErrorUserMessage({",
+)
+
+PANEL_I18N_V40_TR_KEYS = (
+    "prodErrors:",
+    "write_failed:",
+    "path_outside_sandbox:",
+    "create_failed:",
+    "complete_failed:",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -1337,3 +1354,20 @@ def test_panel_i18n_v39_hero_prefill_keys_in_catalogs() -> None:
     for key in PANEL_I18N_V39_TR_KEYS:
         assert key in tr_text, f"missing panel tr v39 key fragment: {key}"
         assert key in en_text, f"missing panel en v39 key fragment: {key}"
+
+
+def test_panel_astro_i18n_v40_prod_error_classify_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V40_MARKERS:
+        assert token in text, f"missing panel i18n v40 token: {token}"
+    assert 'panelT("panel.modules.tasks.hints.saveFailed").replace("{error}"' not in text
+    assert 'panelT("panel.modules.tasks.hints.completeFailed").replace("{error}"' not in text
+    assert 'panelT("panel.modules.files.hints.writeFailed") + ": " + err' not in text
+
+
+def test_panel_i18n_v40_prod_error_classify_keys_in_catalogs() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V40_TR_KEYS:
+        assert key in tr_text, f"missing panel tr v40 key fragment: {key}"
+        assert key in en_text, f"missing panel en v40 key fragment: {key}"
