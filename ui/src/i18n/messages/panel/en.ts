@@ -474,6 +474,31 @@ const panel: typeof panelTr = {
     bridgePending: "Waiting for bridge connection.",
   },
   },
+  shell: {
+    conn: {
+      pending: "Connecting",
+      ok: "Connected",
+      bad: "Offline",
+      limited: "Limited mode",
+      ariaLabel: "Infrastructure connection status",
+      title: "Infrastructure: bridge connection",
+    },
+    userMode: {
+      menuOffline: "Offline",
+      menuLimited: "Limited",
+      menuFull: "Full",
+      badgeOffline: "Mode · Offline",
+      badgeLimited: "Mode · Limited",
+      badgeFull: "Mode · Full",
+      badgeAria: "Select user mode",
+      badgeTitle: "Change mode (Offline, Limited, Full)",
+      menuAria: "Mode selection",
+      segLegend: "Mode selection",
+      segOffline: "Offline",
+      segLimited: "Limited",
+      segFull: "Full",
+    },
+  },
 };
 
 export default panel;
