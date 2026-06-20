@@ -44,7 +44,7 @@ const tr = {
     ctaWorld: "Vizyonu oku",
     askAria: "Lumos’a sor — geliştirici panelinde devam eder",
     askPlaceholder: "Örnek: Bir görevi güvenli adımlara böl",
-    askSubmit: "Geliştirici Panelini Aç",
+    askSubmit: "Panelde devam et",
     askHint: "Yanıt burada değil; geliştirici panelinde devam eder.",
     askEmpty: "Devam etmek için bir soru yazın.",
   },
