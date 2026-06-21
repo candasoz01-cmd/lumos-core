@@ -128,6 +128,7 @@ Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A16 takip satırları kap
 | DL-C20 | 2026-06-21 | Quantum Readiness milestone docs sync | **Doc-only complete** — ADR-001/013 Faz-2 kısmi durum eki (#470); panel/landing quantum copy fetch vs local_scan (#471); open-decisions «endpoint yok» maddeleri kapandı | PR #470, #471 | [ADR-001](decisions/ADR-001-lumos-quantum-modules.md), [ADR-013](decisions/ADR-013-lumos-quantum-security-readiness.md) |
 | DL-C21 | 2026-06-21 | G-18 / RB-01 — ADR-012 Internal Alpha defer | **decision-approved** — tek imzalı defer kaydı; Alpha CLOSED beklemez; Wave 1 Madde 1–2 kapandı; Trust Faz 4 / sensitivity↔gate / LockState defer; Wave 2+ enforcement yok | [`adr-012-internal-alpha-defer-record.md`](memory/adr-012-internal-alpha-defer-record.md) |
 | DL-C22 | 2026-06-21 | G-24 / RB-09 — Internal Alpha release scope | **decision-approved** — ekip onaylı kapsam kilidi; GAP-01 README vs v1-readiness hizası; entegrasyon/posta dışı | [`INTERNAL_ALPHA_RELEASE_SCOPE.md`](INTERNAL_ALPHA_RELEASE_SCOPE.md) |
+| DL-C23 | 2026-06-18 | Internal Alpha operasyonel faz başlatıldı | **aktif** — giriş kriterleri (A1–A5) karşılandı; P1-02 yolculuk doğrulama devam ediyor; Wave 2+ / default-on / RB-06 uygulama yok | [`INTERNAL_ALPHA_OPERATIONS.md`](INTERNAL_ALPHA_OPERATIONS.md) |
 
 ### Teknik borç takibi (bilgilendirme)
 
@@ -169,4 +170,4 @@ Tam liste: `docs/memory/open-decisions-needs-review.md` (OD-001 … OD-060).
 
 ---
 
-Son güncelleme: 2026-06-21 (Release blockers + uygulama paketi — DL-T02)
+Son güncelleme: 2026-06-21 (Internal Alpha operasyonel faz — DL-C23)
