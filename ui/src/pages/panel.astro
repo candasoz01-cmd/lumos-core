@@ -1863,6 +1863,34 @@ const PANEL_DEBUG = import.meta.env.DEV;
         background: rgba(6, 6, 6, 0.38);
         border: 1px solid var(--lumos-gold-line);
       }
+      .panel-quantum-readiness-report-badge {
+        display: inline-block;
+        padding: 0.14rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        line-height: 1.35;
+        color: rgba(212, 208, 200, 0.96);
+        background: rgba(6, 6, 6, 0.42);
+        border: 1px solid var(--lumos-teal-22);
+      }
+      .panel-quantum-readiness-report-badge--tamamlandi {
+        color: rgba(168, 220, 188, 0.98);
+        border-color: rgba(72, 160, 120, 0.55);
+        background: rgba(24, 56, 44, 0.55);
+      }
+      .panel-quantum-readiness-report-badge--kismi {
+        color: rgba(232, 196, 128, 0.98);
+        border-color: rgba(180, 140, 64, 0.55);
+        background: rgba(56, 44, 16, 0.55);
+      }
+      .panel-quantum-readiness-report-badge--dogrulanamadi,
+      .panel-quantum-readiness-report-badge--mock {
+        color: rgba(168, 164, 156, 0.95);
+        border-color: rgba(120, 116, 108, 0.45);
+        background: rgba(32, 32, 32, 0.5);
+      }
       .panel-quantum-readiness-mock {
         margin: 0 0 1rem;
         padding: 0.75rem 0.85rem;
@@ -5404,6 +5432,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 Kanıt kaynağı: docs_only — ADR-013 checklist. GET /quantum-readiness kullanılamadı; yerel tarama (local_scan) yüklenemedi.
               </p>
               <dl>
+                <dt data-i18n="panel.modules.quantum.readinessReport.label">Genel durum</dt>
+                <dd>
+                  <span
+                    id="panel-quantum-readiness-report-badge"
+                    class="panel-quantum-readiness-report-badge panel-quantum-readiness-report-badge--mock"
+                    data-i18n="panel.modules.quantum.readinessReport.mock"
+                  >Örnek — doğrulanmadı</span>
+                </dd>
                 <dt data-i18n="panel.modules.quantum.mock.cryptoLabel">Şifreleme / anahtar</dt>
                 <dd id="panel-quantum-crypto-value" data-i18n="panel.modules.quantum.mock.cryptoValue">AES-GCM-256, Scrypt KDF — klasik; PQC uygulanmıyor</dd>
                 <dt data-i18n="panel.modules.quantum.mock.agilityLabel">Kripto çeviklik</dt>
@@ -7969,6 +8005,34 @@ const PANEL_DEBUG = import.meta.env.DEV;
         return String(status || "").trim();
       }
 
+      /** Display-only hazırlık_raporu badge — derived from existing scan fields (ADR-013). */
+      function deriveQuantumReadinessReportBadge(report) {
+        const agility = String(report?.crypto_agility_level || "").trim().toLowerCase();
+        if (agility === "dogrulanamadi") return "dogrulanamadi";
+        const findings = Array.isArray(report?.evidenced_findings) ? report.evidenced_findings : [];
+        if (findings.some((f) => f && f.verified === false)) return "kismi";
+        const inv = report?.crypto_inventory;
+        const hasTypes =
+          inv &&
+          typeof inv === "object" &&
+          []
+            .concat(inv.encryption_types || [])
+            .concat(inv.signature_types || [])
+            .concat(inv.key_types || []).length > 0;
+        if (!hasTypes) return "kismi";
+        return "tamamlandi";
+      }
+
+      function applyQuantumReadinessReportBadge(statusKey) {
+        const badge = document.getElementById("panel-quantum-readiness-report-badge");
+        if (!badge) return;
+        badge.className = "panel-quantum-readiness-report-badge";
+        if (statusKey) badge.classList.add(`panel-quantum-readiness-report-badge--${statusKey}`);
+        const label = panelT(`panel.modules.quantum.readinessReport.${statusKey}`);
+        badge.textContent =
+          label && !label.startsWith("panel.modules.quantum") ? label : String(statusKey || "");
+      }
+
       function renderQuantumFindings(findings) {
         const list = document.getElementById("panel-quantum-findings-list");
         const block = document.getElementById("panel-quantum-findings-block");
@@ -8180,6 +8244,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
         const evidence = document.getElementById("panel-quantum-evidence-value");
         if (evidence) evidence.textContent = panelT("panel.modules.quantum.mock.evidenceValue");
+        applyQuantumReadinessReportBadge("mock");
         hideQuantumLiveOnlyFields();
       }
 
@@ -8237,6 +8302,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           generatedValue.textContent = generatedAt;
         }
 
+        applyQuantumReadinessReportBadge(deriveQuantumReadinessReportBadge(report));
         renderQuantumFindings(report.evidenced_findings);
         renderQuantumLongLivedData(report.long_lived_data);
         renderQuantumHardDeps(report.hard_to_change_deps);

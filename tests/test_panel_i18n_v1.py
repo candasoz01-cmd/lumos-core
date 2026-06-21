@@ -896,6 +896,23 @@ PANEL_I18N_V55_TR_KEYS = (
     "planStatus:",
 )
 
+PANEL_I18N_V56_MARKERS = (
+    'id="panel-quantum-readiness-report-badge"',
+    "panel-quantum-readiness-report-badge--mock",
+    'data-i18n="panel.modules.quantum.readinessReport.label"',
+    'data-i18n="panel.modules.quantum.readinessReport.mock"',
+    "deriveQuantumReadinessReportBadge",
+    "applyQuantumReadinessReportBadge",
+)
+
+PANEL_I18N_V56_TR_KEYS = (
+    "readinessReport:",
+    "label:",
+    "tamamlandi:",
+    "kismi:",
+    "dogrulanamadi:",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -1745,3 +1762,21 @@ def test_panel_quantum_readiness_migration_fields_keys_in_panel_tr() -> None:
     text = _PANEL_TR.read_text(encoding="utf-8")
     for key in PANEL_I18N_V55_TR_KEYS:
         assert key in text, f"missing panel tr v55 key: {key}"
+
+
+def test_panel_astro_i18n_v56_quantum_readiness_report_badge_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V56_MARKERS:
+        assert token in text, f"missing panel i18n v56 token: {token}"
+
+
+def test_panel_quantum_readiness_report_badge_keys_in_panel_tr() -> None:
+    text = _PANEL_TR.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V56_TR_KEYS:
+        assert key in text, f"missing panel tr v56 key: {key}"
+
+
+def test_panel_quantum_readiness_report_badge_keys_in_panel_en() -> None:
+    text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V56_TR_KEYS:
+        assert key in text, f"missing panel en v56 key: {key}"

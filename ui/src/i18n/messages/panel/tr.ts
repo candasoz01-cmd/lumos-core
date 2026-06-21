@@ -714,6 +714,13 @@ const panelModules = {
       "Lumos Quantum Readiness — yerel, salt okunur kuantum sonrası güvenlik hazırlık tarayıcısı. GET /quantum-readiness yanıt vermediğinde aşağıdaki değerler dokümantasyon tabanlı örnektir; panel sunucusu açıkken yerel tarama (local_scan) otomatik yüklenir.",
     readinessIntroLive:
       "Lumos Quantum Readiness — yerel, salt okunur hazırlık taraması. Canlı analiz kuantum güvenli veya üretim kuantum iddiası taşımaz; salt okunur kod/metadata envanteridir.",
+    readinessReport: {
+      label: "Genel durum",
+      mock: "Örnek — doğrulanmadı",
+      tamamlandi: "Tamamlandı",
+      kismi: "Kısmi",
+      dogrulanamadi: "Doğrulanamadı",
+    },
     mock: {
       title: "Örnek hazırlık özeti (mock)",
       titleLive: "Yerel hazırlık özeti",
@@ -728,6 +735,13 @@ const panelModules = {
       pqcValue: "İzleme — NIST PQC farkındalığı; uygulama yok",
       evidenceLabel: "Kanıt türü",
       evidenceValue: "docs_only — yerel tarama (local_scan) yüklenemedi",
+    },
+    readinessReport: {
+      label: "Genel durum",
+      mock: "Örnek — doğrulanmadı",
+      tamamlandi: "Tamamlandı",
+      kismi: "Kısmi",
+      dogrulanamadi: "Doğrulanamadı",
     },
     live: {
       evidenceBasis: "Kanıt kaynağı: {basis} — yerel salt okunur tarama",
