@@ -1038,6 +1038,10 @@ class Handler(BaseHTTPRequestHandler):
         _send_json(self, 200, {"ok": True})
 
     def _post_restore(self) -> None:
+        gate = _task_action_gate(CREATE_TASK, log_on_block=True)
+        if not gate["enabled"]:
+            _send_json(self, 409, {"ok": False, "error": "action_disabled", "reason": gate["reason"]})
+            return
         body = self._read_json_body()
         if not isinstance(body, dict):
             _send_json(self, 400, {"ok": False, "error": "invalid_json"})
