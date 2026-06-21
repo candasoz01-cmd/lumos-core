@@ -2,14 +2,14 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Analiz-only** — uygulama yok |
-| Tarih | 2026-06-21 |
+| Durum | **Güncellendi** — engine branch **merge** #463 (dar kapsam); helper uygulandı; tam küme eşlemesi açık |
+| Tarih | 2026-06-21 (sync: post-#463) |
 | Referans | [ADR-012](../decisions/ADR-012-lumos-security-codex.md), [branch scan](lumos-security-never-auto-branch-scan.md), `src/task_engine/profiles.py`, `src/task_engine/engine.py` |
-| Kapsam | Öneri ve gap haritası; **kod enforcement yok** |
+| Kapsam | Öneri + gap haritası; **engine branch merge #463** (dar: `permanent_delete` store/panel; step tag eşlemesi sınırlı) |
 
 ## Özet
 
-`SECURITY_NEVER_AUTO` dört üyeli sözleşme kümesi (`permanent_delete`, `external_write`, `irreversible_user_op`, `critical_system_config`) `profiles.py` ve `inviolable.py` içinde sabit. P0/P1 panel yolları #444–#446 ile kapandı. **P2:** TaskEngine `run_task` içinde küme üyelerine özel branch yok; `external`/`critical` step türleri matris üzerinden duruyor; üç üye (`external_write`, `irreversible_user_op`, `critical_system_config`) step `kind` veya action policy ile **doğrudan bağlı değil**. Bu belge yalnızca hook noktalarını, mevcut davranışı, helper taslağını ve ADR-012 karar katmanı akışını kaydeder.
+`SECURITY_NEVER_AUTO` dört üyeli sözleşme kümesi (`permanent_delete`, `external_write`, `irreversible_user_op`, `critical_system_config`) `profiles.py` ve `inviolable.py` içinde sabit. P0/P1 panel yolları #444–#446 ile kapandı. **P2 engine branch merge #463 (dar kapsam):** `TaskEngine.run_task` içinde küme üyeleri için branch + `is_security_never_auto()` / `get_security_never_auto_member()` helper; **`permanent_delete` engine dışı** (store/panel yolu). `external`/`critical` step türleri matris üzerinden duruyor; üç üyenin tam step kind/action policy eşlemesi **hâlâ sınırlı**. Bu belge hook noktalarını, merge edilen davranışı, helper API'sini ve kalan gap'leri kaydeder.
 
 ---
 
@@ -37,7 +37,7 @@ Bu stringler **step `kind` değildir**; sözleşme / inviolable sabitleridir. `S
 | `irreversible_user_op` | Dolaylı: `STEP_TYPE_CRITICAL` never layer; bridge/cursor yüksek risk gate (ayrı modül) | Sözleşme terimi engine'de lookup yok |
 | `critical_system_config` | Dolaylı: `critical` step + `change_sensitivity` CRITICAL etiket (gate kopuk) | Config intent sınıflandırması yok |
 
-**`run_task` guard zinciri:**
+**`run_task` guard zinciri (merge #463):**
 
 ```479:486:src/task_engine/engine.py
     def _is_step_allowed_runtime(self, step: TaskStep) -> bool:
@@ -46,7 +46,9 @@ Bu stringler **step `kind` değildir**; sözleşme / inviolable sabitleridir. `S
         )
 ```
 
-`may_execute_step_at_runtime` → `get_decision_layer(step_type) == DECISION_LAYER_NEVER` ise red; aksi halde `is_allowed_for_profile`. **`SECURITY_NEVER_AUTO` kümesine doğrudan bakmaz.**
+`may_execute_step_at_runtime` → profil matrisi. **Ek:** `run_task` döngüsünde `_step_security_never_auto_member(step)` → küme üyesi ise `BLOCK_SECURITY_NEVER_AUTO` ile durdurma (`permanent_delete` engine scope dışı).
+
+**Helper (merge #463):** `is_security_never_auto()` / `get_security_never_auto_member()` — `profiles.py`; `include_permanent_delete=False` engine branch için.
 
 **ActionRegistry savunması** (executor seviyesi):
 
@@ -55,58 +57,48 @@ Bu stringler **step `kind` değildir**; sözleşme / inviolable sabitleridir. `S
             return False, "", "Bu adım türü yürütülmez (güvenlik).", False
 ```
 
-### 1.3 Olası hook noktaları (öneri — uygulanmadı)
+### 1.3 Olası hook noktaları (kalan gap)
 
 | Konum | Ne yapılabilir (gelecek) | Risk |
 |-------|---------------------------|------|
-| `engine.py` `_is_step_allowed_runtime` | Step metadata / action tag → `is_security_never_auto(tag)` red | Yanlış tag → false positive; profil matrisi ile çift guard |
-| `engine.py` `run_task` döngüsü (L512 öncesi) | Ayrı `SECURITY_NEVER_AUTO` branch + `EVENT_POLICY_BLOCKED` + `block_reason=security_never_auto` | Kapsam genişlemesi; ADR-006 bilinçli erteleme |
+| `engine.py` `_is_step_allowed_runtime` | Step metadata / action tag → `is_security_never_auto(tag)` red | ~~Yanlış tag → false positive~~ → helper merge #463; matris ile çift guard izlenmeli |
+| `engine.py` `run_task` döngüsü (L512 öncesi) | Ayrı `SECURITY_NEVER_AUTO` branch + `EVENT_POLICY_BLOCKED` + `block_reason=security_never_auto` | **Merge #463** — dar kapsam; `permanent_delete` hariç |
 | `engine.py` `_execute_step` / `ActionRegistry.execute` | Executor kaydı öncesi action alanı kontrolü | Eylem alanı × step kind drift |
 | `profiles.py` yeni step türleri | `external_write` vb. için ayrı `STEP_TYPE_*` | Matris + inviolable + test genişlemesi; breaking change |
 | `action_policy.py` | Yeni action sabitleri (`EXTERNAL_WRITE`, …) panel/CLI gate | Policy katmanı genişler; profil matrisinden bağımsız ikinci kaynak |
 
-**Önerilen sıra (onay sonrası, dar PR):**
+**Dar merge (#463) kapsamı:** Engine branch yalnızca `step.kind` / `step.action_key` ile küme üyesi eşleşen adımları durdurur; `permanent_delete` store/panel yolunda kalır. Tam küme × action eşlemesi **açık**.
 
-1. Önce **sözleşme → step kind / action tag** eşleme tablosu docs + test (davranış değişmez).
-2. Sonra yalnızca **tanımlı tag taşıyan adımlar** için engine red branch (feature flag veya env ile).
-3. `permanent_delete` engine adımı eklenmeyecek — kalıcı silme yalnızca `TaskStore.delete(user_initiated=True)` ve panel onaylı endpoint (#445).
+### 1.4 Gap özeti (P2 — post-#463)
 
-### 1.4 Gap özeti (P2)
-
-- Küme üyelerinin dördü de `run_task` içinde **tek bir SECURITY_NEVER_AUTO branch'inde toplanmıyor**.
-- `external_write`, `irreversible_user_op`, `critical_system_config` için **runtime lookup yok**; yalnızca `external`/`critical` step türleri ve dağınık modül guard'ları.
+- Engine branch **merge** #463 — `external_write`, `irreversible_user_op`, `critical_system_config` step tag eşleşince durdurulur; `permanent_delete` engine dışı.
+- Tam küme × action policy / step kind resmi eşleme tablosu **açık**; helper erken eşleşmeyen yollar hâlâ risk taşır.
 - CLI `general_approval` ↔ policy `consent` semantik karışımı → **Kapandı** #450+#451
 
 ---
 
-## Bölüm 2 — `is_security_never_auto()` helper önerisi (tasarım only)
+## Bölüm 2 — `is_security_never_auto()` helper (merge #463)
 
-### 2.1 Tek lookup API taslağı
+### 2.1 Lookup API — uygulandı (`profiles.py`)
 
 ```python
-# ÖNERİ — profiles.py içinde veya security/policy modülünde; ŞU AN UYGULANMAZ
+# MERGE #463 — src/task_engine/profiles.py
 
 def is_security_never_auto(
     *,
     step_kind: str | None = None,
+    action_key: str | None = None,
     action_tag: str | None = None,
     policy_action: str | None = None,
+    include_permanent_delete: bool = True,
 ) -> bool:
-    """
-    Sözleşme kümesi üyeliği — profil/genel onaydan bağımsız.
-    En az bir tanımlı girdi eşleşmeli; bilinmeyen girdi False (fail-open değil: explicit tag gerekir).
-    """
-    candidates: set[str] = set()
-    if step_kind:
-        candidates.add(_normalize(step_kind))
-    if action_tag:
-        candidates.add(_normalize(action_tag))
-    if policy_action:
-        candidates.add(_normalize(policy_action))
-    return bool(candidates & SECURITY_NEVER_AUTO)
+    ...
+
+def get_security_never_auto_member(...) -> str | None:
+    """Engine branch: include_permanent_delete=False."""
 ```
 
-**Eşleme tablosu (docs-only, kod yok):**
+**Eşleme tablosu (kısmi — tam policy eşlemesi açık):**
 
 | Girdi türü | Örnek değer | Küme üyesi |
 |------------|-------------|------------|
@@ -114,31 +106,22 @@ def is_security_never_auto(
 | `action_tag` | `permanent_delete` | doğrudan |
 | `policy_action` | (henüz yok) | gelecek: `permanent_delete_task` vb. |
 
-### 2.2 Kullanıcı olabilecek call site'lar (gelecek)
+### 2.2 Call site'lar (bugün)
 
-| Call site | Amaç | Bugün alternatif |
-|-----------|------|------------------|
-| `TaskEngine._is_step_allowed_runtime` | Step metadata tag red | `may_execute_step_at_runtime` |
+| Call site | Amaç | Durum |
+|-----------|------|-------|
+| `TaskEngine._step_security_never_auto_member` | Engine branch red | **Merge #463** |
 | `TaskStore.delete` | Tek satır sözleşme assert | `may_perform_permanent_delete` |
 | `panel_tasks_server` kalıcı silme | Policy + küme birleşik mesaj | #445 `check_policy` + confirm |
-| `action_policy.check_policy` | Yeni action → küme | Hardcoded action list |
-| `write_interceptor` / bridge | Dış yazma tag | Regex + risk gate (cursor_bridge) |
-| Test / `inviolable.verify_core_constants` | Küme bütünlüğü | Mevcut `EXPECTED_SECURITY_NEVER_AUTO` |
+| `action_policy.check_policy` | Yeni action → küme | Hardcoded action list — **açık** |
+| `write_interceptor` / bridge | Dış yazma tag | Regex + risk gate (cursor_bridge) — **açık** |
+| Test / `inviolable.verify_core_constants` | Küme bütünlüğü | `test_security_never_auto_engine.py` (#463) |
 
-### 2.3 Neden şimdi uygulanmamalı
+### 2.3 Dar merge sınırları (#463)
 
-1. **Çift guard riski:** `may_execute_step_at_runtime` + helper aynı adımda tutarsız sonuç üretebilir.
-2. **Eşleme eksik:** Küme üyelerinin step kind karşılığı resmi değil; helper erken eklenirse **sahte güven** (helper True dönmeyen ama riskli yollar).
-3. **ADR-006 bilinçli gap:** Engine tam branch bilinçli ertelendi; helper tek başına gap'i kapatmaz.
-4. **Public OSS sınırı:** Geniş enforcement davranış değişikliği ayrı onay + test + CI gerektirir.
-5. **Fail-open / fail-close:** API tasarımı (bilinmeyen tag → False) yanlış uygulanırsa sessiz izin verebilir.
-
-### 2.4 Uygulama öncesi koşullar (onay checklist)
-
-- [ ] Eylem alanı × küme üyesi eşleme tablosu ADR-012 companion'da kilitlendi
-- [ ] Her call site için mevcut guard ile **equivalence test** tanımlandı
-- [ ] Panel + CLI + engine için ayrı dar PR'lar planlandı
-- [ ] Kullanıcı açık onayı: "core enforcement uygula" (bu backlog turunda **yok**)
+1. **`permanent_delete` engine dışı** — kalıcı silme yalnızca `TaskStore.delete(user_initiated=True)` ve panel onaylı endpoint (#445).
+2. **Step tag eşlemesi sınırlı** — küme üyesi string'i `step.kind` veya `step.action_key` ile birebir eşleşmeli; resmi action×küme tablosu açık.
+3. **Geniş enforcement** (policy katmanı, bridge, sensitivity zinciri) — ayrı onay; bu PR'da **yok**.
 
 ---
 
@@ -169,7 +152,7 @@ ADR-012 C3 ve `lumos-karar-sozlesmesi.md` karar katmanları ile runtime yolları
 | **Öneri** | Öner ama bekle | step `plan`; Brain pending intent | ✓ Uygulama adımı yok; write_local genel onay kapalıyken durur |
 | **Onay** | Açık onayla uygula | `general_approval`; session_consent (#451); panel `/lumos-consent`; confirmation opt-in (#453–#458) | ~~CLI consent=GA drift~~ → **Kapandı** #450; panel policy+profil #443–#449 |
 | **Kod yolu** | Uygulama | `TaskEngine.run_task` → `_execute_step` → `ActionRegistry` | ✓ Profil matrisi + registry external/critical red |
-| **Asla** | SECURITY_NEVER_AUTO | `TaskStore.delete(user_initiated)`; panel delete-permanent #445 | Kısmi — küme üyelerinin 3'ü engine'de ayrı branch yok |
+| **Asla** | SECURITY_NEVER_AUTO | `TaskStore.delete(user_initiated)`; panel delete-permanent #445; engine branch #463 (dar) | Kısmi — tam küme eşlemesi açık |
 
 **Policy katmanı (eylem düzeyi, step kind'dan bağımsız):**
 
@@ -187,16 +170,17 @@ ADR-012 C3 ve `lumos-karar-sozlesmesi.md` karar katmanları ile runtime yolları
 | Genel onay olmadan write_local yok | ✓ Engine guard + panel profil (#449) | — |
 | Panel = CLI policy zinciri | ✓ #443–#458 | Confirmation opt-in; LockState env vekili |
 | Riskli işlemde dur + kanıt | ✓ `EVENT_POLICY_BLOCKED`, evidence | Trust motor (ADR-007) eksik |
-| SECURITY_NEVER_AUTO tüm yollar | Parçalı | P2 engine branch; helper yok |
+| SECURITY_NEVER_AUTO tüm yollar | Parçalı | Engine branch **merge #463** (dar); tam eşleme açık |
 | action_risk sınıflandırması birleşik | Dağınık | cursor_bridge risk_level; action_policy risk yok; tek `action_risk` modülü **yok** |
 
 **Not:** Repoda `action_risk` adlı sembol yok. Codex anlamında **action_risk flow** = karar katmanları + policy + profil matrisi + (gelecek) birleşik risk etiketi. Hedef: ADR-007 trust sinyalleri + ADR-006 firewall tablosu ile birleşik `action_risk` sınıfı — **Faz 4**, bu turda uygulanmaz.
 
-### 3.4 Önerilen docs-only sonraki adım (onay gerekir)
+### 3.4 Sonraki adımlar (onay sınıflandırması)
 
-1. `lumos-action-permission-matrix.md` panel satırını #443–#446 ile güncelle (bu PR'da yapıldı).
-2. Ayrı onay: `action_risk` terimini ADR-010 glossary'ye ekle (terminoloji PR).
-3. Core enforcement: P2 engine branch veya `is_security_never_auto()` — **ayrı açık onay**.
+1. ~~`lumos-action-permission-matrix.md` panel satırını #443–#446 ile güncelle~~ — yapıldı.
+2. Tam küme × action eşleme tablosu docs kilidi — **ONAY GEREKİYOR** (davranış genişlemesi riski).
+3. Policy/bridge call site'larına helper — **ONAY GEREKİYOR** (enforcement expansion).
+4. Trust Faz 4 / `action_risk` — **ONAY GEREKİYOR**; bu turda başlatılmaz.
 
 ---
 
@@ -208,4 +192,4 @@ ADR-012 C3 ve `lumos-karar-sozlesmesi.md` karar katmanları ile runtime yolları
 
 ## Disiplin
 
-Bu belge **analyze-only**. `profiles.py`, `engine.py`, LockState, trust motor ve panel davranışına **dokunulmadı**.
+Engine branch + helper **merge #463** (dar kapsam). Trust motor, panel LockState, tam küme policy eşlemesi ve köprü wiring **dokunulmadı** — ayrı checkpoint.

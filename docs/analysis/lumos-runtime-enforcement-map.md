@@ -2,7 +2,7 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Güncellendi** — salt okuma analizi (2026-06-21); panel gate #443–#446; consent #450+#451; profil guard #449; CU4 confirmation #452–#458 (opt-in); E2E #459+#460; varsayılan-on kararı opt-in korunur (2026-06-21) |
+| Durum | **Güncellendi** — salt okuma analizi (2026-06-21); panel gate #443–#446; consent #450+#451; profil guard #449; CU4 confirmation #452–#458 (opt-in); E2E #459+#460; varsayılan-on kararı opt-in korunur (#461); PR-C6 adapter kısmi (#462); P2 engine branch (#463) |
 | İlgili | [ADR-012](../decisions/ADR-012-lumos-security-codex.md), [ADR-010 usage map](ADR-010-guard-policy-trust-usage-map.md), [permission matrix](lumos-action-permission-matrix.md) |
 | Kapsam | Docs-only; `archive/` hariç aktif kod taraması |
 | Yöntem | `rg` + dosya okuma — kanıt tabanlı |
@@ -23,7 +23,7 @@ ADR-012 Security Codex maddelerinin (C1–C6) repo'da **nerede enforce edildiği
 | En güçlü zincir | `task_engine/profiles.py` → `may_execute_step_at_runtime` → `TaskEngine.run_task` |
 | Panel gate | **Kapandı** #443–#446 (`check_policy`); profil matrisi **Kapandı** #449 (`may_execute_step_at_runtime` 2. kapı); confirmation **Kapandı** #453–#456 (3. kapı, opt-in) |
 | Trust motor | Hedef (ADR-007); aktif kodda minimal |
-| `SECURITY_NEVER_AUTO` | Matris + `inviolable.py`; tüm silme yollarında tam branch **gap** |
+| `SECURITY_NEVER_AUTO` | Matris + `inviolable.py`; engine branch **kısmi** #463 (`permanent_delete` store/panel; step tag eşlemesi sınırlı) |
 | consent ≠ general_approval | **Kapandı** #450 (policy/read ayrımı) + #451 (`consent oturum` CLI + unlock path) |
 
 ---
@@ -75,8 +75,8 @@ ADR-012 Security Codex maddelerinin (C1–C6) repo'da **nerede enforce edildiği
 | Alan | Değer |
 |------|-------|
 | **Sorumluluk** | Görev kaydı, adım yürütme, doğrulama, observation events |
-| **Enforce edilen** | Her adım öncesi `_is_step_allowed_runtime` → durdurma + `EVENT_POLICY_BLOCKED`; `may_perform_permanent_delete` silme dalında; `result_kind` / `simulasyon` ayrımı |
-| **Gap** | `SECURITY_NEVER_AUTO` kümesinin adım executor'larına **otomatik map'i yok**; external adımlar matriste durur ama executor kayıtları ayrı |
+| **Enforce edilen** | Her adım öncesi `_is_step_allowed_runtime` → durdurma + `EVENT_POLICY_BLOCKED`; `SECURITY_NEVER_AUTO` engine branch (#463) → `BLOCK_SECURITY_NEVER_AUTO`; `may_perform_permanent_delete` silme dalında; `result_kind` / `simulasyon` ayrımı |
+| **Gap** | Engine branch `permanent_delete` hariç; küme üyelerinin step kind/action_key eşlemesi sınırlı; external adımlar matriste durur ama executor kayıtları ayrı |
 | **Codex** | C3 ✓, C4 ✓, C5 kısmi, C6 ✓ (adım durdurma)
 
 ### `src/cli/cli_tasks_mutation.py`
@@ -228,7 +228,7 @@ ADR-012 Security Codex maddelerinin (C1–C6) repo'da **nerede enforce edildiği
 | **C3** Onay/kanıt | profiles + TaskEngine + action_policy CLI/panel + evidence + confirmation (opt-in) | ~~consent≠GA drift~~ → **Kapandı** #450+#451; ~~panel profil~~ → **Kapandı** #449; confirmation **merge** #453–#458 — varsayılan kapalı (`LUMOS_CONFIRMATION_ENABLED`) |
 | **C4** Mock ayrımı | Task status `simulasyon`; panel status map | Panel mock alanları |
 | **C5** Trash | workspace_contract, panel trash write | Kalıcı silme tüm path'lerde `user_initiated` (#445 gated) |
-| **C6** Stop-on-risk | Profil never layer; policy offline/koruma; lumos_gate prompt; panel `task_action_gate` | sensitivity kopuk; P2 SECURITY_NEVER_AUTO engine branch |
+| **C6** Stop-on-risk | Profil never layer; policy offline/koruma; lumos_gate prompt; panel `task_action_gate`; P2 SECURITY_NEVER_AUTO engine branch (#463) | sensitivity kopuk; tam küme eşlemesi açık |
 
 ---
 
@@ -275,7 +275,7 @@ PR referansları: #443 policy enforcement, #444 PUT /tasks.json, #445 delete-per
 | CU | Madde | Merge durumu | Not |
 |----|-------|--------------|-----|
 | **CU4** | Dış etkili aksiyon açık onay | **Merge** #453–#456, #458 | `confirmation_policy`; 3. kapı opt-in; bkz. [CU4 skeleton draft](lumos-cu4-confirmation-skeleton-draft.md) |
-| **CU6** | Geri dönüşsüz otomatik yok | **Kısmi** | #445+#454 delete-permanent; P2 engine branch açık |
+| **CU6** | Geri dönüşsüz otomatik yok | **Kısmi** | #445+#454 delete-permanent; P2 engine branch **merge** #463 (dar kapsam) |
 | **CU7** | Ne/nerede/etki görünürlüğü | **Merge** #457 | `POST /lumos-confirm/request` + panel modal (#455 UI) |
 | **CU10** | Online kimlik/kilit koşulu | **Kısmi** | #451 session_consent CLI; panel env vekili; presence ayrı |
 
@@ -287,13 +287,13 @@ PR referansları: #443 policy enforcement, #444 PUT /tasks.json, #445 delete-per
 
 | Madde | Durum | Referans |
 |-------|-------|----------|
-| P2 `SECURITY_NEVER_AUTO` engine branch | Açık | [P2 analiz](security-never-auto-p2-and-helper-proposal.md) |
-| PR-C6 köprü `pending_approval` → confirmation namespace | Açık | [CU4 skeleton §4.1](lumos-cu4-confirmation-skeleton-draft.md) |
+| P2 `SECURITY_NEVER_AUTO` engine branch | **Kapandı (dar kapsam)** | #463 — `run_task` branch + helper; `permanent_delete` store/panel; [P2 analiz](security-never-auto-p2-and-helper-proposal.md) |
+| PR-C6 köprü `pending_approval` → confirmation namespace | **Kısmi** | #462 shadow adapter; köprü yürütmede `consume_confirmation` wiring açık — [CU4 skeleton §4.1](lumos-cu4-confirmation-skeleton-draft.md) |
 | Trust motor Faz 4 (ADR-007) | Açık | ADR-011 checkpoint |
 | E2E confirmation akışı (opt-in env ile) | **Kapandı** | PR #459 CLI, #460 panel+API E2E |
-| Confirmation varsayılan-on kararı | **Kapandı (docs)** | Opt-in korunur (2026-06-21, E2E #460); tam default-on ertelendi; kod değişikliği yok (DL-C18) |
+| Confirmation varsayılan-on kararı | **Kapandı (docs)** | Opt-in korunur (#461, E2E #460); tam default-on ertelendi; kod değişikliği yok (DL-C18) |
 | Panel `LockState` vs env vekili | Açık | ADR-011 |
-| `is_security_never_auto()` helper | Açık (onay bekliyor) | P2 proposal |
+| `is_security_never_auto()` helper | **Kapandı** | #463 — `profiles.py`; engine scope `permanent_delete` hariç |
 
 ---
 

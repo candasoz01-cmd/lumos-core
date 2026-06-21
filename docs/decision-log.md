@@ -85,6 +85,9 @@ Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A16 takip satırları kap
 | DL-A19 | 2026-06-20 | OD-027 Faz 4 cutover | **Faz 4 implementation-complete** — §8 kesme kapıları doğrulandı; OD-027 **closed**; `archive/packages/README.md`; indeks senkronu | PR #317 (`9f8c6b4`) | [`docs/memory/od-027-faz4-cutover-decision.md`](memory/od-027-faz4-cutover-decision.md) §4 |
 | DL-A20 | 2026-06-20 | Panel statik emekliliği (Seçenek C) | Statik panel → `archive/panel/`; `panel/scripts/` korundu; kök `e2e:legacy:*` → `archive/panel` | PR #320 | [`docs/memory/od-panel-retirement-option-c-decision.md`](memory/od-panel-retirement-option-c-decision.md) §3 |
 | DL-A21 | 2026-06-20 | Prod smoke (A3) | Read-only `smoke-prod.mjs` + `workflow_dispatch` prod-smoke.yml; push gate değil | PR #323 | [`docs/memory/od-prod-smoke-decision.md`](memory/od-prod-smoke-decision.md) §3 |
+| DL-A22 | 2026-06-21 | Faz-2 Phase A — E2E confirmation | **Merge** — panel+API confirmation E2E (opt-in env); CLI #459 öncül | PR #460 | ADR-012 §7, [`lumos-runtime-enforcement-map.md`](analysis/lumos-runtime-enforcement-map.md) §8 |
+| DL-A23 | 2026-06-21 | PR-C6 köprü confirmation namespace | **Kısmi merge** — `attach_bridge_pending_confirmation` shadow adapter (#462); legacy `pending_approvals` korunur; köprü yürütmede `consume_confirmation` wiring **açık** | PR #462 | [`lumos-cu4-confirmation-skeleton-draft.md`](analysis/lumos-cu4-confirmation-skeleton-draft.md) §4.1 |
+| DL-A24 | 2026-06-21 | P2 SECURITY_NEVER_AUTO engine branch | **Merge (dar kapsam)** — TaskEngine `run_task` branch + `is_security_never_auto()` helper (#463); `permanent_delete` engine dışı (store/panel yolu) | PR #463 | [`security-never-auto-p2-and-helper-proposal.md`](analysis/security-never-auto-p2-and-helper-proposal.md) |
 
 ### İleride değerlendirilecek
 
@@ -151,4 +154,4 @@ Tam liste: `docs/memory/open-decisions-needs-review.md` (OD-001 … OD-060).
 
 ---
 
-Son güncelleme: 2026-06-21 (Faz-2 Phase B — confirmation varsayılan-on kararı DL-C18; opt-in korunur)
+Son güncelleme: 2026-06-21 (Faz-2 sync #460–#463 — E2E, opt-in kararı, PR-C6 kısmi, P2 engine branch)
