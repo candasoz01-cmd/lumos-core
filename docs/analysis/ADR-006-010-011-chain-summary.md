@@ -66,6 +66,7 @@ Lock iki sinyal (ADR-011) trust tüketimine hazırlanır (Faz 4).
 | #485 | Quantum Faz-2 closure checklist sync (#479–#483) |
 | #486 | Panel `hazırlık_raporu` display-only readiness badge (derived from scan fields) |
 | #488 | Teknik borç mimari yoğunlaşma analizi yayını (DL-T01) — 20 madde anchor indeks + etki/maliyet; docs-only |
+| #490 | Release blockers + teknik borç uygulama paketi (DL-T02) — RB-01..RB-28, execution-map, dependency-graph; docs-only |
 
 ## Sonraki checkpoint
 
