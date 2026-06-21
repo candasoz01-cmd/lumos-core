@@ -26,7 +26,7 @@ Bugün üç algı aynı anda var:
 
 1. **Dürüst metinler** (landing, panel i18n, ADR-001): "Kuantum şifreleme kullanmıyoruz", "aktif üretim özelliği değil".
 2. **Kod gerçeği** (`src/security/entropy/`): Qiskit Aer ve IBM Runtime sağlayıcıları mevcut; varsayılan yol `os.urandom`.
-3. **Kısmi kapanış (Faz-2)**: Yerel salt okunur tarayıcı (`src/security/readiness/scanner.py`) ve panel `GET /quantum-readiness` mevcut; Lumos CLI alt komutu henüz yok. Panel kuantum sekmesinde statik kartlar (`#panel-kuantum`) korunur; canlı tarama bağlı değilse mock banner gösterilir.
+3. **Kısmi kapanış (Faz-2)**: Yerel salt okunur tarayıcı (`src/security/readiness/scanner.py`) ve panel `GET /quantum-readiness` mevcut; Lumos CLI alt komutu henüz yok. Panel kuantum sekmesinde statik kartlar (`#panel-kuantum`) korunur; `GET /quantum-readiness` fetch başarısızsa docs-only mock banner gösterilir (#471, #475).
 
 ### Hedef
 
@@ -349,7 +349,7 @@ Fallback **üç katmanda**, çoğunlukla log/audit olmadan:
 | Faz | Kapsam | Çıktı | Durum (2026-06-21) |
 |-----|--------|-------|---------------------|
 | **Faz-1** | Docs-only: ADR-013, checklist, rapor alanları, panel spesifikasyonu | ADR + checklist; entropy kodu değişmez | **Tamamlandı** |
-| **Faz-2** | Yerel salt okunur readiness taraması (CLI veya panel GET) | Rapor alanları doldurulur; fallback uyarısı zorunlu | **Kısmi** — tarayıcı (#468), panel GET (#469), standalone script; Lumos CLI alt komutu bekliyor |
+| **Faz-2** | Yerel salt okunur readiness taraması (CLI veya panel GET) | Rapor alanları doldurulur; fallback uyarısı zorunlu | **Kısmi** — tarayıcı (#468), panel GET (#469), standalone script; landing/panel copy (#471–#475); Lumos CLI alt komutu bekliyor |
 | **Faz-3** (onaylı, private olabilir) | IBM Runtime POC, maliyet/onay kapısı | Credential vault; public repoda yalnızca sınır metni | Beklemede |
 
 ### Faz-2 uygulanan / bekleyen (2026-06-21)
@@ -360,7 +360,7 @@ Fallback **üç katmanda**, çoğunlukla log/audit olmadan:
 | `scripts/quantum_readiness_scan.py` — standalone JSON çıktı | **Uygulandı** (#468) |
 | Panel `GET /quantum-readiness` — salt okunur JSON | **Uygulandı** (#469) |
 | `tests/test_quantum_readiness_scan.py` | **Uygulandı** (#468) |
-| Panel kuantum sekmesi — canlı fetch + mock fallback | **Kısmi** (#469) |
+| Panel kuantum sekmesi — live fetch + docs-only mock fallback | **Kısmi** (#469; copy #471, #475) |
 | Lumos CLI alt komutu (`lumos quantum-readiness` vb.) | **Bekliyor** |
 
 ---
