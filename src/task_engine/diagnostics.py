@@ -20,6 +20,7 @@ BLOCK_LOCK_ACTIVE = "lock_active"
 BLOCK_OFFLINE_MODE = "offline_mode"
 BLOCK_UNSUPPORTED_ACTION = "unsupported_action"
 BLOCK_POLICY_RESTRICTION = "policy_restriction"
+BLOCK_SECURITY_NEVER_AUTO = "security_never_auto"
 
 # Short labels for "Engel: ..." line
 BLOCK_LABELS = {
@@ -28,6 +29,7 @@ BLOCK_LABELS = {
     BLOCK_OFFLINE_MODE: "Çevrimdışı mod",
     BLOCK_UNSUPPORTED_ACTION: "Desteklenmeyen adım",
     BLOCK_POLICY_RESTRICTION: "Yetki kısıtı",
+    BLOCK_SECURITY_NEVER_AUTO: "Asla otomatik (SECURITY_NEVER_AUTO)",
 }
 
 

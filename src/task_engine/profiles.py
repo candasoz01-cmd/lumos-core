@@ -56,6 +56,62 @@ SECURITY_BOUNDARY_DESCRIPTION = (
     "geri dönüşsüz kullanıcı işlemi, kritik sistem ayarı değişikliği."
 )
 
+# Engine branch: permanent_delete excluded (TaskStore + panel #445/#454).
+_ENGINE_SECURITY_NEVER_AUTO_MEMBERS = frozenset(
+    member for member in SECURITY_NEVER_AUTO if member != "permanent_delete"
+)
+
+
+def _normalize_never_auto_candidate(value: str | None) -> str:
+    return (value or "").strip().lower().replace("-", "_")
+
+
+def is_security_never_auto(
+    *,
+    step_kind: str | None = None,
+    action_key: str | None = None,
+    action_tag: str | None = None,
+    policy_action: str | None = None,
+    include_permanent_delete: bool = True,
+) -> bool:
+    """
+    Sözleşme kümesi üyeliği — profil/genel onaydan bağımsız.
+    En az bir tanımlı girdi eşleşmeli; bilinmeyen girdi False.
+    """
+    return get_security_never_auto_member(
+        step_kind=step_kind,
+        action_key=action_key,
+        action_tag=action_tag,
+        policy_action=policy_action,
+        include_permanent_delete=include_permanent_delete,
+    ) is not None
+
+
+def get_security_never_auto_member(
+    *,
+    step_kind: str | None = None,
+    action_key: str | None = None,
+    action_tag: str | None = None,
+    policy_action: str | None = None,
+    include_permanent_delete: bool = True,
+) -> str | None:
+    """İlk eşleşen SECURITY_NEVER_AUTO üyesini döndür; yoksa None."""
+    candidates: set[str] = set()
+    for raw in (step_kind, action_key, action_tag, policy_action):
+        if raw:
+            candidates.add(_normalize_never_auto_candidate(raw))
+    if not candidates:
+        return None
+    allowed = (
+        SECURITY_NEVER_AUTO
+        if include_permanent_delete
+        else _ENGINE_SECURITY_NEVER_AUTO_MEMBERS
+    )
+    matched = candidates & allowed
+    if not matched:
+        return None
+    return sorted(matched)[0]
+
 
 @dataclass(frozen=True)
 class StepPermission:
