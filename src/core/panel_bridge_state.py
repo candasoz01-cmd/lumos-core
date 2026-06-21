@@ -105,6 +105,9 @@ def task_action_gate(
     ``full_doc_replace``: PUT /tasks.json → write_local step_kind.
     ``profile_guard``: False yalnızca delete-permanent (policy-only) için.
     ``log_on_block``: yalnızca mutasyon handler'larında True (GET listeleme log spam yapmaz).
+
+    PR-C2/C3: Üçüncü kapı — ``policy.confirmation_policy.check_confirmation`` (CU4).
+    Şimdilik enforcement yok; entegrasyon ``INTEGRATION_MARKERS['panel_bridge_gate']``.
     """
     pr = check_policy(action, _panel_policy_context())
     parts = _panel_gate_reason_parts()

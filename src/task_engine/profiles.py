@@ -216,6 +216,16 @@ def panel_action_to_step_kind(action: str, *, full_doc_replace: bool = False) ->
     return STEP_TYPE_CRITICAL
 
 
+def requires_confirmation_for_action(action_key: str) -> bool:
+    """
+    CU4 işlem bazlı onay kaydı — ince re-export (PR-C1).
+    Enforcement: confirmation_policy.check_confirmation (PR-C2/C3).
+    """
+    from policy.confirmation_policy import requires_confirmation_for_action as _requires
+
+    return _requires(action_key)
+
+
 def may_execute_step_at_runtime(profile: str, step_type: str, general_approval: bool) -> bool:
     """
     Runtime step enforcement: Bu adım türü verilen profil ve genel onay ile yürütülebilir mi?
