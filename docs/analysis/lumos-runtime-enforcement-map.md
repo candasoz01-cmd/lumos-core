@@ -114,7 +114,7 @@ ADR-012 Security Codex maddelerinin (C1–C6) repo'da **nerede enforce edildiği
 |------|-------|
 | **Sorumluluk** | Panel HTTP: tasks CRUD, trash, evidence, `/lumos-read-state`, `/lumos-consent` |
 | **Enforce edilen** | Trash'e yazma; evidence journal; consent.json; görev mutasyonları `task_action_gate` → `check_policy` (#443–#446) |
-| **Gap** | Profil matrisi (`may_execute_step_at_runtime`) panelde **çağrılmıyor**; yalnızca `action_policy` snapshot |
+| **Gap** | Profil matrisi: `task_action_gate` → `may_execute_step_at_runtime` (kısmi; delete-permanent hariç) |
 | **Codex** | C1 yüzey ✓, C5 trash write ✓, C3/C6 **kısmi** (policy ✓; profil drift riski)
 
 ---

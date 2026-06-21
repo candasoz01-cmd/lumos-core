@@ -201,6 +201,21 @@ def is_safe_step_kind(kind: str) -> bool:
     return kind in (STEP_TYPE_ANALYZE, STEP_TYPE_READ, STEP_TYPE_PLAN, STEP_TYPE_SAFE_LOCAL)
 
 
+def panel_action_to_step_kind(action: str, *, full_doc_replace: bool = False) -> str:
+    """
+    Panel policy action → TaskEngine step_kind (panel_bridge_state profil guard).
+    PUT /tasks.json (CREATE_TASK + full_doc_replace) → write_local; diğer mutasyonlar → safe_local.
+    """
+    # Lazy import — profiles modülü policy'ye bağımlı olmasın
+    from policy.action_policy import COMPLETE_TASK, CREATE_TASK, DELETE_TASK
+
+    if action == CREATE_TASK and full_doc_replace:
+        return STEP_TYPE_WRITE_LOCAL
+    if action in (CREATE_TASK, COMPLETE_TASK, DELETE_TASK):
+        return STEP_TYPE_SAFE_LOCAL
+    return STEP_TYPE_CRITICAL
+
+
 def may_execute_step_at_runtime(profile: str, step_type: str, general_approval: bool) -> bool:
     """
     Runtime step enforcement: Bu adım türü verilen profil ve genel onay ile yürütülebilir mi?

@@ -28,7 +28,7 @@ def _simulate_put_doc(*, monkeypatch, tmp_path: Path, body: dict) -> bool:
     """do_PUT persist yolu — gate geçerse True, redde False."""
     monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path))
     pts = _load_panel_tasks_server()
-    gate = pts._task_action_gate(CREATE_TASK, log_on_block=True)
+    gate = pts._task_action_gate(CREATE_TASK, log_on_block=True, full_doc_replace=True)
     if not gate["enabled"]:
         return False
     doc = pts._empty_doc()
@@ -67,6 +67,8 @@ def test_put_tasks_json_offline_blocked(tmp_path, monkeypatch) -> None:
 
 def test_put_tasks_json_online_allowed(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("LUMOS_MODE", "online")
+    monkeypatch.setenv("LUMOS_PROFILE", "kisitli_otonom")
+    monkeypatch.setenv("LUMOS_GENERAL_APPROVAL", "true")
     monkeypatch.delenv("LUMOS_SESSION_UNLOCKED", raising=False)
     allowed = _simulate_put_doc(
         monkeypatch=monkeypatch,
@@ -78,9 +80,27 @@ def test_put_tasks_json_online_allowed(tmp_path, monkeypatch) -> None:
     assert saved["tasks"][0]["id"] == "tsk_new"
 
 
+def test_put_tasks_json_guvenli_yurut_profile_blocked(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("LUMOS_MODE", "online")
+    monkeypatch.setenv("LUMOS_PROFILE", "guvenli_yurut")
+    tasks_file = tmp_path / "tasks.json"
+    tasks_file.write_text(
+        '{"v":1,"tasks":[{"id":"tsk_1","title":"keep"}],"events":[]}',
+        encoding="utf-8",
+    )
+    allowed = _simulate_put_doc(
+        monkeypatch=monkeypatch,
+        tmp_path=tmp_path,
+        body={"tasks": [{"id": "tsk_2", "title": "new"}], "events": []},
+    )
+    assert allowed is False
+    assert "keep" in tasks_file.read_text(encoding="utf-8")
+
+
 def test_put_handler_uses_policy_gate() -> None:
     src = (_REPO_ROOT / "panel" / "scripts" / "panel_tasks_server.py").read_text(encoding="utf-8")
     assert "def do_PUT" in src
     put_block = src.split("def do_PUT")[1].split("\n    def do_POST")[0]
     assert "_task_action_gate(CREATE_TASK" in put_block
+    assert "full_doc_replace=True" in put_block
     assert "action_disabled" in put_block

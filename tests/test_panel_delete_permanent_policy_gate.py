@@ -36,7 +36,7 @@ def _simulate_delete_permanent(
     """
     monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path))
     pts = _load_panel_tasks_server()
-    gate = pts._task_action_gate(DELETE_TASK, log_on_block=True)
+    gate = pts._task_action_gate(DELETE_TASK, log_on_block=True, profile_guard=False)
     if not gate["enabled"]:
         return "policy_blocked", False
     body: dict = {"id": tid}
@@ -146,6 +146,7 @@ def test_delete_permanent_handler_uses_gates() -> None:
     src = (_REPO_ROOT / "panel" / "scripts" / "panel_tasks_server.py").read_text(encoding="utf-8")
     block = src.split("def _post_delete_permanent")[1].split("\n    def ")[0]
     assert "_task_action_gate(DELETE_TASK" in block
+    assert "profile_guard=False" in block
     assert "may_perform_permanent_delete" in block
     assert "confirm_required" in block
     assert "_body_confirm_user_initiated" in block

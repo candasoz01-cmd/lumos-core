@@ -110,6 +110,7 @@ def test_restore_offline_blocked(tmp_path, monkeypatch) -> None:
 
 def test_restore_online_allowed(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("LUMOS_MODE", "online")
+    monkeypatch.setenv("LUMOS_PROFILE", "guvenli_yurut")
     monkeypatch.delenv("LUMOS_SESSION_UNLOCKED", raising=False)
     trash_path = _write_trash_task(tmp_path, "tsk_ok", title="geri")
     (tmp_path / "tasks.json").write_text('{"v":1,"tasks":[],"events":[]}', encoding="utf-8")

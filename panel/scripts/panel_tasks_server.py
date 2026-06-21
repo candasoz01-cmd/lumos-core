@@ -91,9 +91,20 @@ def _simulate_photo_capture() -> tuple[str, str]:
     return ("photo_saved", rel)
 
 
-def _task_action_gate(action: str, *, log_on_block: bool = False) -> dict:
-    """ADR-012 C6: check_policy tabanlı gate."""
-    return task_action_gate(action, log_on_block=log_on_block)
+def _task_action_gate(
+    action: str,
+    *,
+    log_on_block: bool = False,
+    full_doc_replace: bool = False,
+    profile_guard: bool = True,
+) -> dict:
+    """ADR-012 C6: check_policy + profil matrisi gate."""
+    return task_action_gate(
+        action,
+        log_on_block=log_on_block,
+        full_doc_replace=full_doc_replace,
+        profile_guard=profile_guard,
+    )
 
 
 def _empty_doc() -> dict:
@@ -751,7 +762,7 @@ class Handler(BaseHTTPRequestHandler):
         if self._parse_path() != "/tasks.json":
             self.send_error(404)
             return
-        gate = _task_action_gate(CREATE_TASK, log_on_block=True)
+        gate = _task_action_gate(CREATE_TASK, log_on_block=True, full_doc_replace=True)
         if not gate["enabled"]:
             _send_json(self, 409, {"ok": False, "error": "action_disabled", "reason": gate["reason"]})
             return
@@ -1110,7 +1121,7 @@ class Handler(BaseHTTPRequestHandler):
         _send_json(self, 200, {"ok": True, "task": task})
 
     def _post_delete_permanent(self) -> None:
-        gate = _task_action_gate(DELETE_TASK, log_on_block=True)
+        gate = _task_action_gate(DELETE_TASK, log_on_block=True, profile_guard=False)
         if not gate["enabled"]:
             _send_json(self, 409, {"ok": False, "error": "action_disabled", "reason": gate["reason"]})
             return

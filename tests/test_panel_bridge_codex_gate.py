@@ -1,4 +1,4 @@
-"""ADR-012: panel bridge task_actions_gate — check_policy enforcement."""
+"""ADR-012: panel bridge task_actions_gate — check_policy + profil guard enforcement."""
 import sys
 from pathlib import Path
 
@@ -28,16 +28,83 @@ def test_task_action_gate_offline_blocks_create(monkeypatch) -> None:
     assert "çevrimdışı" in gate["reason"]
 
 
-def test_task_action_gate_online_allows_create(monkeypatch) -> None:
+def test_task_action_gate_online_rapor_blocks_create(monkeypatch) -> None:
     monkeypatch.setenv("LUMOS_MODE", "online")
+    monkeypatch.delenv("LUMOS_SESSION_UNLOCKED", raising=False)
+    monkeypatch.delenv("LUMOS_PROFILE", raising=False)
+    gate = task_action_gate(CREATE_TASK)
+    assert gate["enabled"] is False
+    assert "[PROFILE_BLOCKED]" in gate["reason"]
+    assert "rapor" in gate["reason"]
+    assert "safe_local" in gate["reason"]
+
+
+def test_task_action_gate_online_guvenli_yurut_allows_create(monkeypatch) -> None:
+    monkeypatch.setenv("LUMOS_MODE", "online")
+    monkeypatch.setenv("LUMOS_PROFILE", "guvenli_yurut")
     monkeypatch.delenv("LUMOS_SESSION_UNLOCKED", raising=False)
     gate = task_action_gate(CREATE_TASK)
     assert gate["enabled"] is True
     assert "Mutasyon izinli" in gate["reason"]
+    assert "profil" in gate["reason"]
+
+
+def test_task_action_gate_online_invalid_profile_blocks(monkeypatch) -> None:
+    monkeypatch.setenv("LUMOS_MODE", "online")
+    monkeypatch.setenv("LUMOS_PROFILE", "admin")
+    gate = task_action_gate(CREATE_TASK)
+    assert gate["enabled"] is False
+    assert "[PROFILE_BLOCKED]" in gate["reason"]
+    assert "Geçersiz profil" in gate["reason"]
+
+
+def test_task_action_gate_kisitli_otonom_without_approval_blocks(monkeypatch) -> None:
+    monkeypatch.setenv("LUMOS_MODE", "online")
+    monkeypatch.setenv("LUMOS_PROFILE", "kisitli_otonom")
+    monkeypatch.delenv("LUMOS_GENERAL_APPROVAL", raising=False)
+    gate = task_action_gate(CREATE_TASK)
+    assert gate["enabled"] is False
+    assert "[PROFILE_BLOCKED]" in gate["reason"]
+    assert "LUMOS_GENERAL_APPROVAL" in gate["reason"]
+
+
+def test_task_action_gate_kisitli_otonom_with_approval_allows(monkeypatch) -> None:
+    monkeypatch.setenv("LUMOS_MODE", "online")
+    monkeypatch.setenv("LUMOS_PROFILE", "kisitli_otonom")
+    monkeypatch.setenv("LUMOS_GENERAL_APPROVAL", "true")
+    gate = task_action_gate(CREATE_TASK)
+    assert gate["enabled"] is True
+
+
+def test_task_action_gate_guvenli_yurut_put_write_local_blocked(monkeypatch) -> None:
+    monkeypatch.setenv("LUMOS_MODE", "online")
+    monkeypatch.setenv("LUMOS_PROFILE", "guvenli_yurut")
+    gate = task_action_gate(CREATE_TASK, full_doc_replace=True)
+    assert gate["enabled"] is False
+    assert "[PROFILE_BLOCKED]" in gate["reason"]
+    assert "write_local" in gate["reason"]
+
+
+def test_task_action_gate_kisitli_otonom_put_allowed_with_approval(monkeypatch) -> None:
+    monkeypatch.setenv("LUMOS_MODE", "online")
+    monkeypatch.setenv("LUMOS_PROFILE", "kisitli_otonom")
+    monkeypatch.setenv("LUMOS_GENERAL_APPROVAL", "true")
+    gate = task_action_gate(CREATE_TASK, full_doc_replace=True)
+    assert gate["enabled"] is True
+
+
+def test_task_action_gate_profile_guard_skippable(monkeypatch) -> None:
+    monkeypatch.setenv("LUMOS_MODE", "online")
+    monkeypatch.delenv("LUMOS_PROFILE", raising=False)
+    gate = task_action_gate(DELETE_TASK, profile_guard=False)
+    assert gate["enabled"] is False
+    assert "[PROFILE_BLOCKED]" not in gate["reason"]
+    assert "koruma aktif" in gate["reason"]
 
 
 def test_task_action_gate_online_koruma_blocks_delete(monkeypatch) -> None:
     monkeypatch.setenv("LUMOS_MODE", "online")
+    monkeypatch.setenv("LUMOS_PROFILE", "guvenli_yurut")
     monkeypatch.delenv("LUMOS_SESSION_UNLOCKED", raising=False)
     gate = task_action_gate(DELETE_TASK)
     assert gate["enabled"] is False
@@ -46,6 +113,7 @@ def test_task_action_gate_online_koruma_blocks_delete(monkeypatch) -> None:
 
 def test_task_action_gate_online_unlocked_allows_delete(monkeypatch) -> None:
     monkeypatch.setenv("LUMOS_MODE", "online")
+    monkeypatch.setenv("LUMOS_PROFILE", "guvenli_yurut")
     monkeypatch.setenv("LUMOS_SESSION_UNLOCKED", "true")
     gate = task_action_gate(DELETE_TASK)
     assert gate["enabled"] is True

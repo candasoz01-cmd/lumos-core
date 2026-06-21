@@ -50,6 +50,7 @@ export function startTasksServer(tmpBaseDir, portStr) {
       LUMOS_PANEL_TASKS_HOST: "127.0.0.1",
       // ADR-012: panel mutations require online policy; delete needs session unlock signal in E2E.
       LUMOS_MODE: process.env.LUMOS_MODE || "online",
+      LUMOS_PROFILE: process.env.LUMOS_PROFILE || "guvenli_yurut",
       LUMOS_SESSION_UNLOCKED: process.env.LUMOS_SESSION_UNLOCKED || "true",
     }),
     stdio: "pipe",

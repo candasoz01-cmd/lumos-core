@@ -21,6 +21,14 @@ from policy.action_policy import (  # noqa: E402
     log_policy_blocked,
     policy_user_message,
 )
+from task_engine.profiles import (  # noqa: E402
+    ALL_PROFILES,
+    PROFILE_RAPOR,
+    get_profile_display_name,
+    may_execute_step_at_runtime,
+    panel_action_to_step_kind,
+    requires_explicit_approval,
+)
 
 def _is_sandbox_mode() -> bool:
     v = os.environ.get("LUMOS_SANDBOX_MODE", "false").lower()
@@ -69,11 +77,33 @@ def _panel_gate_reason_parts() -> list[str]:
     return parts
 
 
-def task_action_gate(action: str, *, log_on_block: bool = False) -> dict:
-    """
-    Panel görev mutasyon gate — tek eylem için check_policy (ADR-012 C6).
+def _panel_general_approval() -> bool:
+    v = (os.environ.get("LUMOS_GENERAL_APPROVAL") or "").strip().lower()
+    return v in ("1", "true", "yes")
 
-    ``enabled`` policy red verdiğinde False; reason codex uyarısı + policy mesajı.
+
+def _panel_profile() -> str:
+    raw = (os.environ.get("LUMOS_PROFILE") or "rapor").strip().lower()
+    return raw or PROFILE_RAPOR
+
+
+def _profile_block_message(profile: str, step_kind: str) -> str:
+    return f"[PROFILE_BLOCKED] profil={profile} step={step_kind}"
+
+
+def task_action_gate(
+    action: str,
+    *,
+    log_on_block: bool = False,
+    full_doc_replace: bool = False,
+    profile_guard: bool = True,
+) -> dict:
+    """
+    Panel görev mutasyon gate — check_policy (ADR-012 C6) + profil matrisi ikinci kapı.
+
+    ``enabled`` policy veya profil red verdiğinde False; reason codex uyarısı + mesaj.
+    ``full_doc_replace``: PUT /tasks.json → write_local step_kind.
+    ``profile_guard``: False yalnızca delete-permanent (policy-only) için.
     ``log_on_block``: yalnızca mutasyon handler'larında True (GET listeleme log spam yapmaz).
     """
     pr = check_policy(action, _panel_policy_context())
@@ -86,7 +116,30 @@ def task_action_gate(action: str, *, log_on_block: bool = False) -> dict:
             except Exception:
                 pass
         return {"enabled": False, "reason": " ".join(parts)}
-    parts.append("Mutasyon izinli (policy).")
+
+    if profile_guard:
+        profile = _panel_profile()
+        general_approval = _panel_general_approval()
+        step_kind = panel_action_to_step_kind(action, full_doc_replace=full_doc_replace)
+        if profile not in ALL_PROFILES:
+            parts.append(_profile_block_message(profile, step_kind))
+            parts.append(
+                f"Geçersiz profil; izinli: {', '.join(ALL_PROFILES)}."
+            )
+            return {"enabled": False, "reason": " ".join(parts)}
+        if not may_execute_step_at_runtime(profile, step_kind, general_approval):
+            parts.append(_profile_block_message(profile, step_kind))
+            display = get_profile_display_name(profile)
+            if requires_explicit_approval(profile, step_kind, general_approval) and not general_approval:
+                parts.append("Genel onay (LUMOS_GENERAL_APPROVAL) gerekli.")
+            elif step_kind == "write_local":
+                parts.append(f"Profil '{display}' tam doküman yazımına (write_local) izin vermiyor.")
+            else:
+                parts.append(f"Profil '{display}' bu mutasyonu (step={step_kind}) izin vermiyor.")
+            return {"enabled": False, "reason": " ".join(parts)}
+        parts.append("Mutasyon izinli (policy + profil).")
+    else:
+        parts.append("Mutasyon izinli (policy).")
     return {"enabled": True, "reason": " ".join(parts)}
 
 
