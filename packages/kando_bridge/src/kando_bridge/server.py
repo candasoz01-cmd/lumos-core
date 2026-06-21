@@ -1704,6 +1704,13 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 },
             )
             return
+        if req_path == "/tools/schema":
+            if not self._check_secret():
+                return
+            from kando_bridge.pc_remote_tools import tools_schema_payload
+
+            self._send_json(200, tools_schema_payload())
+            return
         if req_path == "/transcribe":
             self._send_json(
                 405,
@@ -1735,6 +1742,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
                     "get_outbox": "GET /outbox (last_result.json)",
                     "get_pending_approvals": "GET /pending-approvals",
                     "get_pending_approvals_array": "GET /pending_approvals (JSON array)",
+                    "get_tools_schema": "GET /tools/schema (PC remote stub tools)",
+                    "post_tools_execute": "POST /tools/execute {command, arguments} (stub)",
                 },
             )
             return
@@ -2434,6 +2443,19 @@ class BridgeHandler(BaseHTTPRequestHandler):
         )
         self._send_json(status, payload)
 
+    def _handle_tools_execute(self) -> None:
+        from kando_bridge.pc_remote_tools import handle_tools_execute_body
+
+        try:
+            length = int(self.headers.get("Content-Length", "0") or "0")
+            raw = self.rfile.read(length) if length > 0 else b""
+            body = json.loads(raw.decode("utf-8")) if raw else {}
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            self._reject(400, "invalid_json")
+            return
+        status, payload = handle_tools_execute_body(body)
+        self._send_json(status, payload)
+
     def do_POST(self) -> None:
         if not self._check_loopback():
             return
@@ -2459,6 +2481,9 @@ class BridgeHandler(BaseHTTPRequestHandler):
             return
         if req_path == "/transcribe":
             self._handle_transcribe()
+            return
+        if req_path == "/tools/execute":
+            self._handle_tools_execute()
             return
         if req_path != "/task":
             self.send_error(404)
