@@ -14,6 +14,7 @@
     "e2e:smoke:prod": "node e2e/smoke-prod.mjs",
     "e2e:package:local": "node e2e/package-local.mjs",
     "e2e:package:api": "node e2e/package-api.mjs",
+    "e2e:confirmation:api": "node e2e/confirmation-panel-api.mjs",
     "e2e:tasks-offline-online": "node e2e/tasks-offline-online.mjs"
   },
   "dependencies": {

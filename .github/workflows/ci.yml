@@ -114,6 +114,10 @@ jobs:
         working-directory: ui
         run: npm run e2e:package:api
 
+      - name: Run confirmation-panel-api E2E (Faz-2)
+        working-directory: ui
+        run: npm run e2e:confirmation:api
+
       - name: Run tasks-offline-online E2E (OD-046 Faz 4)
         working-directory: ui
         run: npm run e2e:tasks-offline-online

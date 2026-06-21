@@ -41,18 +41,28 @@ export function createTempLumosBase(prefix = "lumos-ui-e2e-") {
   return mkdtempSync(join(tmpdir(), prefix));
 }
 
-export function startTasksServer(tmpBaseDir, portStr) {
+export function buildTasksServerEnv(tmpBaseDir, portStr, options = {}) {
+  const env = Object.assign({}, process.env, {
+    LUMOS_BASE_DIR: tmpBaseDir,
+    LUMOS_PANEL_TASKS_PORT: String(portStr),
+    LUMOS_PANEL_TASKS_HOST: "127.0.0.1",
+    // ADR-012: panel mutations require online policy; delete needs session unlock signal in E2E.
+    LUMOS_MODE: process.env.LUMOS_MODE || "online",
+    LUMOS_PROFILE: process.env.LUMOS_PROFILE || "guvenli_yurut",
+    LUMOS_SESSION_UNLOCKED: process.env.LUMOS_SESSION_UNLOCKED || "true",
+  });
+  if (options.confirmationEnabled === true) {
+    env.LUMOS_CONFIRMATION_ENABLED = "true";
+  } else if (options.confirmationEnabled === false) {
+    delete env.LUMOS_CONFIRMATION_ENABLED;
+  }
+  return env;
+}
+
+export function startTasksServer(tmpBaseDir, portStr, options = {}) {
   assertTasksServerScript();
   return spawn("python3", [PY_SCRIPT], {
-    env: Object.assign({}, process.env, {
-      LUMOS_BASE_DIR: tmpBaseDir,
-      LUMOS_PANEL_TASKS_PORT: String(portStr),
-      LUMOS_PANEL_TASKS_HOST: "127.0.0.1",
-      // ADR-012: panel mutations require online policy; delete needs session unlock signal in E2E.
-      LUMOS_MODE: process.env.LUMOS_MODE || "online",
-      LUMOS_PROFILE: process.env.LUMOS_PROFILE || "guvenli_yurut",
-      LUMOS_SESSION_UNLOCKED: process.env.LUMOS_SESSION_UNLOCKED || "true",
-    }),
+    env: buildTasksServerEnv(tmpBaseDir, portStr, options),
     stdio: "pipe",
   });
 }
@@ -101,5 +111,42 @@ export function tasksDocHasTitle(doc, title) {
   if (!needle || !doc || !Array.isArray(doc.tasks)) return false;
   return doc.tasks.some(function (t) {
     return t && String(t.title || "").trim() === needle && String(t.status || "") !== "deleted";
+  });
+}
+
+export function postJson(baseUrl, path, body) {
+  const base = String(baseUrl || "").replace(/\/$/, "");
+  const route = String(path || "").startsWith("/") ? path : "/" + path;
+  const payload = JSON.stringify(body ?? {});
+  return new Promise(function (resolvePost, rejectPost) {
+    const req = http.request(
+      `${base}${route}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "Content-Length": Buffer.byteLength(payload),
+        },
+      },
+      function (res) {
+        let data = "";
+        res.on("data", function (chunk) {
+          data += chunk;
+        });
+        res.on("end", function () {
+          let parsed = null;
+          try {
+            parsed = JSON.parse(data);
+          } catch (_) {
+            /* keep null */
+          }
+          resolvePost({ status: res.statusCode, body: parsed, raw: data });
+        });
+      },
+    );
+    req.on("error", rejectPost);
+    req.write(payload);
+    req.end();
   });
 }
