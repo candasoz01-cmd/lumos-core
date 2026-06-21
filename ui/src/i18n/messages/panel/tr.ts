@@ -38,7 +38,7 @@ const panelNav = {
     sosyal: "Sosyal",
     posta: "Posta",
     dosyalar: "Dosyalar",
-    kuantum: "Kuantum",
+    kuantum: "Kuantum Güvenlik Hazırlığı",
     yayincilik: "Yayıncılık",
     yapayzeka: "Yapay Zekâ",
     entegrasyon: "Entegrasyon",
@@ -703,8 +703,32 @@ const panelModules = {
       "Lumos yapay zekânın her şeyi doğru bileceğini iddia etmez. Amaç, kullanıcıyı devre dışı bırakmak değil; daha bilinçli ve kontrollü hareket etmesine yardımcı olmaktır.",
   },
   quantum: {
+    banner: {
+      demo: "DEMO",
+      docsExample: "Dokümantasyon tabanlı örnek çıktı",
+      noLiveScan: "Canlı analiz yapılmadı",
+      mvpPlanning: "Quantum Readiness MVP plan aşamasında",
+    },
+    readinessIntro:
+      "Lumos Quantum Readiness — yerel, salt okunur kuantum sonrası güvenlik hazırlık tarayıcısı konseptidir. Bu ekranda gösterilen değerler dokümantasyon tabanlı örnektir; canlı dosya taraması veya güvenlik skoru üretilmez.",
+    mock: {
+      title: "Örnek hazırlık özeti (mock)",
+      note: "Kanıt kaynağı: docs_only — ADR-013 checklist. Gerçek tarama Faz-2 onayı sonrası bağlanır.",
+      cryptoLabel: "Şifreleme / anahtar",
+      cryptoValue: "AES-GCM-256, Scrypt KDF — klasik; PQC uygulanmıyor",
+      agilityLabel: "Kripto çeviklik",
+      agilityValue: "Orta — modül sınırları var; PQC migration hook yok",
+      pqcLabel: "PQC geçiş hazırlığı",
+      pqcValue: "İzleme — NIST PQC farkındalığı; uygulama yok",
+      evidenceLabel: "Kanıt türü",
+      evidenceValue: "docs_only / simulasyon — canlı tarama yok",
+    },
+    entropyLab: {
+      title: "Entropy Lab (deneysel — ayrı alan)",
+      body: "Entropy Lab, Quantum Readiness’ten ayrı deneysel bir alandır. Bu panelde sağlayıcı probe veya entropy entegrasyonu yoktur; üretim kuantum entropy iddiası taşınmaz.",
+    },
     intro:
-      "Bu sekmede olasılık, belirsizlik ve güvenlik araştırması birlikte ele alınır; kesin vaatler yerine şeffaf sınırlar önceliklidir.",
+      "Aşağıdaki kartlar olasılık, belirsizlik ve güvenlik araştırması kavramlarını özetler; kesin vaatler yerine şeffaf sınırlar önceliklidir.",
     c1Title: "Kuantum Güvenlik Araştırması",
     c1Body:
       "Bu bölüm, Lumos’un gelecekte kuantum dayanıklı şifreleme ve ileri güvenlik yaklaşımlarını değerlendireceği araştırma alanıdır. Mevcut sistem, kuantum şifreleme kullandığını iddia etmez.",

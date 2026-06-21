@@ -1840,6 +1840,77 @@ const PANEL_DEBUG = import.meta.env.DEV;
         background: var(--lumos-gold-soft);
         border-color: var(--lumos-gold-line);
       }
+      .panel-quantum-readiness-banner {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 0.45rem;
+        align-items: center;
+        margin: 0.65rem 0 0.85rem;
+        padding: 0.55rem 0.65rem;
+        border-radius: var(--panel-radius);
+        border: 1px solid var(--lumos-gold-line);
+        background: var(--lumos-gold-soft);
+      }
+      .panel-quantum-readiness-badge {
+        display: inline-block;
+        padding: 0.12rem 0.42rem;
+        border-radius: 4px;
+        font-size: 0.68rem;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        line-height: 1.35;
+        color: rgba(212, 182, 128, 0.98);
+        background: rgba(6, 6, 6, 0.38);
+        border: 1px solid var(--lumos-gold-line);
+      }
+      .panel-quantum-readiness-mock {
+        margin: 0 0 1rem;
+        padding: 0.75rem 0.85rem;
+        border-radius: var(--panel-radius);
+        border: 1px solid var(--lumos-teal-22);
+        background: var(--panel-surface-raised);
+      }
+      .panel-quantum-readiness-mock h3 {
+        margin: 0 0 0.45rem;
+        font-size: 0.92rem;
+        font-weight: 600;
+        color: var(--lumos-accent-blue);
+      }
+      .panel-quantum-readiness-mock p {
+        margin: 0 0 0.55rem;
+        font-size: 0.84rem;
+        line-height: 1.45;
+        color: rgba(200, 196, 188, 0.92);
+      }
+      .panel-quantum-readiness-mock dl {
+        margin: 0;
+        display: grid;
+        gap: 0.35rem 0.65rem;
+        grid-template-columns: minmax(7rem, 38%) 1fr;
+        font-size: 0.82rem;
+        line-height: 1.4;
+      }
+      .panel-quantum-readiness-mock dt {
+        margin: 0;
+        font-weight: 600;
+        color: rgba(168, 164, 156, 0.95);
+      }
+      .panel-quantum-readiness-mock dd {
+        margin: 0;
+        color: rgba(212, 208, 200, 0.94);
+      }
+      .panel-quantum-subsection {
+        margin: 1.1rem 0 0.45rem;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--lumos-accent-blue);
+      }
+      .panel-quantum-subsection-note {
+        margin: 0 0 0.85rem;
+        font-size: 0.84rem;
+        line-height: 1.45;
+        color: rgba(200, 196, 188, 0.92);
+      }
       .panel-share-proto--demo .gorevler-add-btn[disabled] {
         opacity: 0.55;
         cursor: not-allowed;
@@ -5211,10 +5282,46 @@ const PANEL_DEBUG = import.meta.env.DEV;
             data-active="false"
             aria-labelledby="panel-kuantum-title"
           >
-            <h2 id="panel-kuantum-title" data-i18n="panel.sections.kuantum">Kuantum</h2>
+            <h2 id="panel-kuantum-title" data-i18n="panel.sections.kuantum">Kuantum Güvenlik Hazırlığı</h2>
+            <div
+              id="panel-kuantum-readiness-mock-banner"
+              class="panel-quantum-readiness-banner"
+              role="status"
+              aria-live="polite"
+            >
+              <span class="panel-data-flow-badge panel-data-flow-badge--demo" data-i18n="panel.modules.quantum.banner.demo">DEMO</span>
+              <span class="panel-quantum-readiness-badge" data-i18n="panel.modules.quantum.banner.docsExample">Dokümantasyon tabanlı örnek çıktı</span>
+              <span class="panel-quantum-readiness-badge" data-i18n="panel.modules.quantum.banner.noLiveScan">Canlı analiz yapılmadı</span>
+              <span class="panel-quantum-readiness-badge" data-i18n="panel.modules.quantum.banner.mvpPlanning">Quantum Readiness MVP plan aşamasında</span>
+            </div>
+            <p class="medya-intro" data-i18n="panel.modules.quantum.readinessIntro">
+              Lumos Quantum Readiness — yerel, salt okunur kuantum sonrası güvenlik hazırlık tarayıcısı konseptidir. Bu ekranda
+              gösterilen değerler dokümantasyon tabanlı örnektir; canlı dosya taraması veya güvenlik skoru üretilmez.
+            </p>
+            <div class="panel-quantum-readiness-mock" data-quantum-readiness-mock="true">
+              <h3 data-i18n="panel.modules.quantum.mock.title">Örnek hazırlık özeti (mock)</h3>
+              <p data-i18n="panel.modules.quantum.mock.note">
+                Kanıt kaynağı: docs_only — ADR-013 checklist. Gerçek tarama Faz-2 onayı sonrası bağlanır.
+              </p>
+              <dl>
+                <dt data-i18n="panel.modules.quantum.mock.cryptoLabel">Şifreleme / anahtar</dt>
+                <dd data-i18n="panel.modules.quantum.mock.cryptoValue">AES-GCM-256, Scrypt KDF — klasik; PQC uygulanmıyor</dd>
+                <dt data-i18n="panel.modules.quantum.mock.agilityLabel">Kripto çeviklik</dt>
+                <dd data-i18n="panel.modules.quantum.mock.agilityValue">Orta — modül sınırları var; PQC migration hook yok</dd>
+                <dt data-i18n="panel.modules.quantum.mock.pqcLabel">PQC geçiş hazırlığı</dt>
+                <dd data-i18n="panel.modules.quantum.mock.pqcValue">İzleme — NIST PQC farkındalığı; uygulama yok</dd>
+                <dt data-i18n="panel.modules.quantum.mock.evidenceLabel">Kanıt türü</dt>
+                <dd data-i18n="panel.modules.quantum.mock.evidenceValue">docs_only / simulasyon — canlı tarama yok</dd>
+              </dl>
+            </div>
+            <h3 class="panel-quantum-subsection" data-i18n="panel.modules.quantum.entropyLab.title">Entropy Lab (deneysel — ayrı alan)</h3>
+            <p class="panel-quantum-subsection-note" data-i18n="panel.modules.quantum.entropyLab.body">
+              Entropy Lab, Quantum Readiness’ten ayrı deneysel bir alandır. Bu panelde sağlayıcı probe veya entropy entegrasyonu
+              yoktur; üretim kuantum entropy iddiası taşınmaz.
+            </p>
             <p class="medya-intro" data-i18n="panel.modules.quantum.intro">
-              Bu sekmede olasılık, belirsizlik ve güvenlik araştırması birlikte ele alınır; kesin vaatler yerine şeffaf sınırlar
-              önceliklidir.
+              Aşağıdaki kartlar olasılık, belirsizlik ve güvenlik araştırması kavramlarını özetler; kesin vaatler yerine şeffaf
+              sınırlar önceliklidir.
             </p>
             <ul class="medya-card-list">
               <li class="medya-card">

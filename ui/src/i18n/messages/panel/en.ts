@@ -89,7 +89,7 @@ const panel: typeof panelTr = {
     sosyal: "Social",
     posta: "Mail",
     dosyalar: "Files",
-    kuantum: "Quantum",
+    kuantum: "Quantum Security Readiness",
     yayincilik: "Publishing",
     yapayzeka: "AI",
     entegrasyon: "Integration",
@@ -706,8 +706,32 @@ const panel: typeof panelTr = {
       "Lumos does not claim AI is always right. The goal is not to sideline you, but to help you act with clearer awareness and control.",
   },
   quantum: {
+    banner: {
+      demo: "DEMO",
+      docsExample: "Documentation-based sample output",
+      noLiveScan: "No live analysis performed",
+      mvpPlanning: "Quantum Readiness MVP in planning phase",
+    },
+    readinessIntro:
+      "Lumos Quantum Readiness is a concept for a local, read-only post-quantum security readiness scanner. Values shown here are documentation-based samples; no live file scan or security score is produced.",
+    mock: {
+      title: "Sample readiness summary (mock)",
+      note: "Evidence basis: docs_only — ADR-013 checklist. Real scan connects after Phase-2 approval.",
+      cryptoLabel: "Encryption / keys",
+      cryptoValue: "AES-GCM-256, Scrypt KDF — classical; PQC not implemented",
+      agilityLabel: "Crypto agility",
+      agilityValue: "Medium — module boundaries exist; no PQC migration hook",
+      pqcLabel: "PQC transition readiness",
+      pqcValue: "Monitoring — NIST PQC awareness; no implementation",
+      evidenceLabel: "Evidence type",
+      evidenceValue: "docs_only / simulation — no live scan",
+    },
+    entropyLab: {
+      title: "Entropy Lab (experimental — separate area)",
+      body: "Entropy Lab is an experimental area separate from Quantum Readiness. This panel has no provider probe or entropy integration; no production quantum-entropy claim is made.",
+    },
     intro:
-      "This tab treats probability, uncertainty, and security research together; transparent limits take priority over hard promises.",
+      "The cards below summarize probability, uncertainty, and security research concepts; transparent limits take priority over hard promises.",
     c1Title: "Quantum security research",
     c1Body:
       "This area is where Lumos will evaluate post-quantum cryptography and advanced security approaches in the future. The current system does not claim to use quantum encryption.",

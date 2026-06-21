@@ -824,6 +824,26 @@ PANEL_I18N_V52_MARKERS = (
     "if (e.key === \"Tab\") {",
 )
 
+PANEL_I18N_V53_MARKERS = (
+    'id="panel-kuantum-readiness-mock-banner"',
+    'class="panel-quantum-readiness-banner"',
+    'data-i18n="panel.modules.quantum.banner.demo"',
+    'data-i18n="panel.modules.quantum.banner.docsExample"',
+    'data-i18n="panel.modules.quantum.banner.noLiveScan"',
+    'data-i18n="panel.modules.quantum.banner.mvpPlanning"',
+    'data-quantum-readiness-mock="true"',
+    'data-i18n="panel.modules.quantum.readinessIntro"',
+    'data-i18n="panel.modules.quantum.entropyLab.title"',
+)
+
+PANEL_I18N_V53_TR_KEYS = (
+    "banner:",
+    "readinessIntro:",
+    "mock:",
+    "entropyLab:",
+    "Kuantum Güvenlik Hazırlığı",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -1637,3 +1657,15 @@ def test_panel_astro_i18n_v51_chat_200_photo_fallback_reply_priority_wiring() ->
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
     for token in PANEL_I18N_V51_MARKERS:
         assert token in text, f"missing panel i18n v51 token: {token}"
+
+
+def test_panel_astro_i18n_v53_quantum_readiness_mock_banner_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V53_MARKERS:
+        assert token in text, f"missing panel i18n v53 token: {token}"
+
+
+def test_panel_quantum_readiness_mock_banner_keys_in_panel_tr() -> None:
+    text = _PANEL_TR.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V53_TR_KEYS:
+        assert key in text, f"missing panel tr v53 key: {key}"
