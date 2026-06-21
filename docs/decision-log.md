@@ -157,4 +157,4 @@ Tam liste: `docs/memory/open-decisions-needs-review.md` (OD-001 … OD-060).
 
 ---
 
-Son güncelleme: 2026-06-21 (Quantum Readiness Faz-2 milestone — DL-A25, DL-C20; #468–#471)
+Son güncelleme: 2026-06-21 (Quantum Readiness Faz-2 milestone — DL-A25, DL-C20; #468–#475)

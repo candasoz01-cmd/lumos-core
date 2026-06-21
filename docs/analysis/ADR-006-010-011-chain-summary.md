@@ -53,6 +53,9 @@ Lock iki sinyal (ADR-011) trust tüketimine hazırlanır (Faz 4).
 | #470 | ADR-001/013 Faz-2 kısmi durum senkronu |
 | #471 | Panel/landing quantum copy — fetch vs local_scan ayrımı |
 | #472 | DL-A25/DL-C20 + open-decisions quantum milestone kapanışı |
+| #473 | Landing `quantumDetailBody` Faz-2 partial readiness wording |
+| #474 | ADR-001 iskelet cross-ref + chain-summary #468–#472 rows |
+| #475 | Panel `noLiveScan` fetch-failure copy clarify |
 
 ## Sonraki checkpoint
 
