@@ -164,6 +164,183 @@ def default_bridge_request(
         return 502, {"ok": False, "error": "bridge_unreachable", "detail": str(e)}
 
 
+def mobile_ui_path(*, token: str | None = None) -> str:
+    """Relative path to the mobile approval web UI."""
+    if token:
+        return f"/relay/mobile?token={token}"
+    return "/relay/mobile"
+
+
+def build_mobile_ui_html() -> str:
+    """Responsive mobile web UI for pending PC remote approvals (OSS demo)."""
+    return """<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lumos Onay / Approval</title>
+<style>
+:root { color-scheme: light dark; --bg: #f4f4f5; --card: #fff; --text: #18181b; --muted: #71717a;
+  --ok: #16a34a; --no: #dc2626; --accent: #2563eb; --border: #e4e4e7; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #09090b; --card: #18181b; --text: #fafafa; --muted: #a1a1aa;
+    --border: #3f3f46; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: var(--bg);
+  color: var(--text); min-height: 100dvh; }
+header { padding: 1rem 1rem 0.5rem; position: sticky; top: 0; background: var(--bg);
+  border-bottom: 1px solid var(--border); z-index: 1; }
+h1 { margin: 0; font-size: 1.125rem; }
+.sub { color: var(--muted); font-size: 0.8125rem; margin-top: 0.25rem; }
+#status { font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem; }
+main { padding: 0.75rem 1rem 2rem; display: grid; gap: 0.75rem; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 0.875rem; }
+.cmd { font-weight: 600; font-size: 0.9375rem; word-break: break-word; }
+.meta { font-size: 0.8125rem; color: var(--muted); margin-top: 0.35rem; }
+.risk { display: inline-block; padding: 0.125rem 0.5rem; border-radius: 999px;
+  font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.03em;
+  background: #fef3c7; color: #92400e; margin-top: 0.5rem; }
+@media (prefers-color-scheme: dark) {
+  .risk { background: #422006; color: #fde68a; }
+}
+.preview { margin-top: 0.5rem; font-size: 0.75rem; font-family: ui-monospace, monospace;
+  background: var(--bg); padding: 0.5rem; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.75rem; }
+button { border: none; border-radius: 10px; padding: 0.75rem; font-size: 0.9375rem;
+  font-weight: 600; cursor: pointer; }
+.btn-ok { background: var(--ok); color: #fff; }
+.btn-no { background: var(--no); color: #fff; }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+.empty { text-align: center; color: var(--muted); padding: 2rem 1rem; }
+.token-box { margin-top: 0.75rem; display: grid; gap: 0.5rem; }
+.token-box input { width: 100%; padding: 0.625rem; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--card); color: var(--text); font-size: 0.875rem; }
+.token-box button { background: var(--accent); color: #fff; }
+.hidden { display: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Lumos Onay / Approval</h1>
+  <div class="sub">PC remote — bekleyen istekler / pending requests</div>
+  <div id="status">—</div>
+  <div id="token-setup" class="token-box hidden">
+    <input id="token-input" type="text" placeholder="Relay token / eşleştirme token" autocomplete="off">
+    <button type="button" id="token-save">Kaydet / Save</button>
+  </div>
+</header>
+<main id="list"></main>
+<script>
+const RELAY_HEADER = "X-Relay-Token";
+const TOKEN_KEY = "lumos_relay_token";
+const params = new URLSearchParams(location.search);
+let relayToken = params.get("token") || sessionStorage.getItem(TOKEN_KEY) || "";
+
+function setStatus(msg) { document.getElementById("status").textContent = msg; }
+function showTokenSetup(show) {
+  document.getElementById("token-setup").classList.toggle("hidden", !show);
+}
+function saveToken(tok) {
+  relayToken = (tok || "").trim();
+  if (relayToken) {
+    sessionStorage.setItem(TOKEN_KEY, relayToken);
+    showTokenSetup(false);
+    poll();
+  }
+}
+if (params.get("token")) saveToken(params.get("token"));
+else if (!relayToken) showTokenSetup(true);
+
+document.getElementById("token-save").addEventListener("click", () => {
+  saveToken(document.getElementById("token-input").value);
+});
+
+function esc(s) {
+  return String(s ?? "").replace(/[&<>\"']/g, c =>
+    ({ "&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;","'":"&#39;" }[c]));
+}
+
+async function api(method, path, body) {
+  const headers = { "Accept": "application/json" };
+  if (relayToken) headers[RELAY_HEADER] = relayToken;
+  if (body) headers["Content-Type"] = "application/json";
+  const res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || res.statusText || "request_failed");
+  return data;
+}
+
+function renderItem(item) {
+  const preview = JSON.stringify(item.arguments_preview || item.arguments || {}, null, 2);
+  const card = document.createElement("article");
+  card.className = "card";
+  card.innerHTML = `
+    <div class="cmd">${esc(item.command || item.approval_id)}</div>
+    <div class="meta">${esc(item.required_user_action || "")}</div>
+    <div class="risk">${esc(item.risk_level || "unknown")}</div>
+    <div class="meta">${esc(item.expires_at ? "Bitiş / Expires: " + item.expires_at : "")}</div>
+    <pre class="preview">${esc(preview)}</pre>
+    <div class="actions">
+      <button type="button" class="btn-ok" data-act="approve">Onayla / Approve</button>
+      <button type="button" class="btn-no" data-act="reject">Reddet / Reject</button>
+    </div>`;
+  card.querySelectorAll("button").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const approved = btn.dataset.act === "approve";
+      btn.disabled = true;
+      card.querySelectorAll("button").forEach(b => b.disabled = true);
+      try {
+        await api("POST", approved ? "/relay/approve" : "/relay/reject", {
+          approval_file: item.approval_file,
+          approval_token: item.approval_token,
+          approval_id: item.approval_id,
+        });
+        setStatus(approved ? "Onaylandı / Approved" : "Reddedildi / Rejected");
+        poll();
+      } catch (e) {
+        setStatus("Hata / Error: " + e.message);
+        card.querySelectorAll("button").forEach(b => b.disabled = false);
+      }
+    });
+  });
+  return card;
+}
+
+async function poll() {
+  if (!relayToken) {
+    setStatus("Token gerekli / Token required");
+    showTokenSetup(true);
+    return;
+  }
+  setStatus("Yükleniyor… / Loading…");
+  const root = document.getElementById("list");
+  try {
+    const data = await api("GET", "/relay/pending");
+    const items = data.pending || [];
+    root.replaceChildren();
+    if (!items.length) {
+      root.innerHTML = '<div class="empty">Bekleyen istek yok / No pending requests</div>';
+    } else {
+      items.forEach(item => root.appendChild(renderItem(item)));
+    }
+    setStatus(items.length + " bekleyen / pending");
+  } catch (e) {
+    root.replaceChildren();
+    root.innerHTML = '<div class="empty">' + esc(e.message) + '</div>';
+    setStatus("Bağlantı hatası / Connection error");
+    if (String(e.message).includes("relay_token")) showTokenSetup(true);
+  }
+}
+
+poll();
+setInterval(poll, 5000);
+</script>
+</body>
+</html>"""
+
+
 def filter_pc_remote_pending(items: list[Any]) -> list[dict[str, Any]]:
     """Keep pc_remote rows; bridge list API may omit source/schema_version."""
     out: list[dict[str, Any]] = []
@@ -362,6 +539,14 @@ def make_handler(config: RelayConfig) -> type[BaseHTTPRequestHandler]:
             self.end_headers()
             self.wfile.write(body)
 
+        def _send_html(self, status: int, html: str) -> None:
+            body = html.encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
         def _relay_token(self) -> str:
             return (self.headers.get(RELAY_TOKEN_HEADER) or "").strip()
 
@@ -373,7 +558,11 @@ def make_handler(config: RelayConfig) -> type[BaseHTTPRequestHandler]:
             return False
 
         def do_GET(self) -> None:
-            path = _normalize_path(urlparse(self.path).path)
+            parsed = urlparse(self.path)
+            path = _normalize_path(parsed.path)
+            if path == "/relay/mobile":
+                self._send_html(200, build_mobile_ui_html())
+                return
             if path == "/relay/discover":
                 if not state.pairing_valid():
                     state.refresh_pairing(config.pairing_ttl_seconds)
@@ -428,6 +617,7 @@ def make_handler(config: RelayConfig) -> type[BaseHTTPRequestHandler]:
                 if token is None:
                     self._send_json(403, {"ok": False, "error": pair_err})
                     return
+                mobile_path = mobile_ui_path(token=token)
                 self._send_json(
                     200,
                     {
@@ -436,6 +626,8 @@ def make_handler(config: RelayConfig) -> type[BaseHTTPRequestHandler]:
                         "device_id": state.device_id,
                         "device_name": state.device_name,
                         "schema_version": SCHEMA_VERSION,
+                        "mobile_url": mobile_path,
+                        "mobile_ui": mobile_path,
                     },
                 )
                 return
@@ -491,7 +683,8 @@ class LanRelayServer:
             )
             self._beacon.start()
         print(
-            f"lan_relay: {state.relay_base_url} pairing={state.pairing_id} → bridge {self.config.bridge_url}",
+            f"lan_relay: {state.relay_base_url} pairing={state.pairing_id} "
+            f"mobile={state.relay_base_url}{mobile_ui_path()} → bridge {self.config.bridge_url}",
             flush=True,
         )
         if block:

@@ -268,11 +268,12 @@ def run_tool_call_loop(
     *,
     http_fn: HttpJsonFn | None = None,
     approve_fn: ApproveFn | None = None,
-    auto_approve: bool = True,
+    auto_approve: bool = False,
 ) -> dict[str, Any]:
     """
     Single tool call: bridge execute → pending (if needed) → approve → stub execute.
 
+    Default ``auto_approve=False`` — user must approve via mobile web UI or CLI.
     Returns a summary dict with ``stage`` in (direct, pending, executed, error).
     """
     if tool_call.name not in ALL_COMMANDS:
@@ -327,7 +328,7 @@ def run_openai_response_loop(
     *,
     http_fn: HttpJsonFn | None = None,
     approve_fn: ApproveFn | None = None,
-    auto_approve: bool = True,
+    auto_approve: bool = False,
 ) -> list[dict[str, Any]]:
     """Parse OpenAI output and run bridge loop for each tool call."""
     calls = parse_openai_tool_calls(response_or_item)

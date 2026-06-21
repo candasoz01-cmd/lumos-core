@@ -16,6 +16,7 @@ import pytest
 from kando_bridge.lan_relay import RELAY_TOKEN_HEADER, LanRelayServer, RelayConfig
 from kando_bridge.mobile_approval_client import approve_pending
 from kando_bridge.openai_tool_adapter import (
+    approve_and_reexecute,
     mock_openai_response_payload,
     mock_pc_open_url_response,
     parse_openai_tool_calls,
@@ -145,25 +146,42 @@ def test_tool_call_to_execute_body() -> None:
 
 
 def test_openai_tool_loop_adapter_mvp_e2e(adapter_bridge_env: Path) -> None:
-    """Mock OpenAI → bridge pending → approve → stub execute → used=true."""
+    """Mock OpenAI → bridge pending → manual approve → stub execute → used=true."""
     repo = adapter_bridge_env
     payload = mock_openai_response_payload(url="https://example.com")
 
-    results = run_openai_response_loop(payload, auto_approve=True)
+    results = run_openai_response_loop(payload)
     assert len(results) == 1
     result = results[0]
-    assert result["ok"] is True
-    assert result["stage"] == "executed"
+    assert result["stage"] == "pending"
+    assert result["pending"]["status"] == "pending_approval"
 
-    execute = result["execute"]
+    pending = result["pending"]
+    calls = parse_openai_tool_calls(payload)
+    approve_out = approve_pending(pending["approval_id"], pending["approval_token"])
+    assert approve_out.get("accepted") is True
+
+    exec_status, loop_out = approve_and_reexecute(calls[0], pending)
+    assert loop_out["ok"] is True
+    assert loop_out["stage"] == "executed"
+
+    execute = loop_out["execute"]
     assert execute["status"] == "stub"
     assert execute["simulated"]["url"] == "https://example.com"
 
-    pending = result["pending"]
     approval_id = pending["approval_id"]
     disk = find_pending_by_approval_id(repo, approval_id)
     assert disk is not None
     assert disk[1]["used"] is True
+
+
+def test_openai_tool_loop_default_stays_pending(adapter_bridge_env: Path) -> None:
+    """Default auto_approve=False — pending stays until explicit approve."""
+    calls = parse_openai_tool_calls(mock_pc_open_url_response())
+    result = run_tool_call_loop(calls[0])
+    assert result["stage"] == "pending"
+    assert result["pending"]["status"] == "pending_approval"
+    assert result.get("ok") is False
 
 
 def test_openai_tool_loop_pending_without_auto_approve(adapter_bridge_env: Path) -> None:
