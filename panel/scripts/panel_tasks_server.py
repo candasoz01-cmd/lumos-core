@@ -34,6 +34,7 @@ if _SRC.is_dir() and str(_SRC) not in sys.path:
 
 from core.lumos_base_dir import lumos_base_dir  # noqa: E402
 from core.panel_bridge_state import task_action_gate  # noqa: E402
+from core.workspace_contract import may_perform_permanent_delete  # noqa: E402
 from policy.action_policy import COMPLETE_TASK, CREATE_TASK, DELETE_TASK  # noqa: E402
 from core.evidence_continuity import (  # noqa: E402
     DEFAULT_READ_LIMIT,
@@ -401,6 +402,16 @@ def _normalize_ws(s: str) -> str:
 
 def _compare_key(s: str) -> str:
     return _normalize_ws(s).lower()
+
+
+def _body_confirm_user_initiated(body: dict) -> bool:
+    """Kalıcı silme: açık kullanıcı onayı (CLI gorev_sil user_initiated=True hizası)."""
+    raw = body.get("confirm")
+    if raw is True:
+        return True
+    if isinstance(raw, str):
+        return raw.strip().lower() in ("true", "1", "yes", "evet")
+    return False
 
 
 def _title_matches_ref(ref: str, title: str) -> bool:
@@ -1095,9 +1106,25 @@ class Handler(BaseHTTPRequestHandler):
         _send_json(self, 200, {"ok": True, "task": task})
 
     def _post_delete_permanent(self) -> None:
+        gate = _task_action_gate(DELETE_TASK, log_on_block=True)
+        if not gate["enabled"]:
+            _send_json(self, 409, {"ok": False, "error": "action_disabled", "reason": gate["reason"]})
+            return
         body = self._read_json_body()
         if not isinstance(body, dict):
             _send_json(self, 400, {"ok": False, "error": "invalid_json"})
+            return
+        user_initiated = _body_confirm_user_initiated(body)
+        if not may_perform_permanent_delete(user_initiated):
+            _send_json(
+                self,
+                409,
+                {
+                    "ok": False,
+                    "error": "confirm_required",
+                    "hint": "Kalıcı silme geri alınamaz; body.confirm=true gerekir.",
+                },
+            )
             return
         tid = _normalize_ws(body.get("id", ""))
         if not tid:
