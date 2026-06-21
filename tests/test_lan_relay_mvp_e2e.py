@@ -19,9 +19,11 @@ from kando_bridge.lan_relay import (
     RelayConfig,
     RelayState,
     build_beacon_payload,
+    build_mobile_ui_html,
     filter_pc_remote_pending,
     listen_beacon_once,
     make_handler,
+    mobile_ui_path,
 )
 from kando_bridge.mobile_approval_client import main as mobile_cli_main
 from kando_bridge.pc_remote_tools import CMD_OPEN_APP
@@ -314,6 +316,39 @@ def test_udp_beacon_loopback() -> None:
     assert msg["pairing_id"] == "BEAC01"
     assert msg["relay_port"] == 8766
     assert "secret" not in json.dumps(msg).lower()
+
+
+def test_relay_mobile_ui_route(relay_server: tuple[int, RelayState, RelayConfig]) -> None:
+    """GET /relay/mobile returns HTML with approve/reject controls."""
+    port, _, _ = relay_server
+    req = Request(f"http://127.0.0.1:{port}/relay/mobile", method="GET")
+    with urlopen(req, timeout=5) as resp:
+        assert resp.status == 200
+        html = resp.read().decode("utf-8")
+    assert "Onayla / Approve" in html
+    assert "Reddet / Reject" in html
+    assert "/relay/pending" in html
+    assert "/relay/approve" in html
+
+
+def test_pair_returns_mobile_url(relay_server: tuple[int, RelayState, RelayConfig]) -> None:
+    port, state, _ = relay_server
+    _, payload = _relay_post(port, "/relay/pair", {"pairing_code": state.pairing_id})
+    assert payload.get("relay_token")
+    mobile_url = payload.get("mobile_url") or payload.get("mobile_ui")
+    assert mobile_url
+    assert mobile_url.startswith("/relay/mobile?token=")
+
+
+def test_mobile_ui_path_helper() -> None:
+    assert mobile_ui_path() == "/relay/mobile"
+    assert mobile_ui_path(token="abc") == "/relay/mobile?token=abc"
+
+
+def test_build_mobile_ui_html_contains_controls() -> None:
+    html = build_mobile_ui_html()
+    assert "btn-ok" in html
+    assert "btn-no" in html
 
 
 def test_reject_via_relay(relay_server: tuple[int, RelayState, RelayConfig]) -> None:

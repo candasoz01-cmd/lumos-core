@@ -30,7 +30,7 @@
 
 | Eksik | Açıklama |
 |-------|----------|
-| **Mobile istemci yok** | Lumos Mobile uygulaması henüz yok; poll + onay UI tasarlanacak |
+| **Mobile istemci yok** | ~~Lumos Mobile uygulaması henüz yok~~ OSS demo: **mobile web UI** (`GET /relay/mobile`) + CLI poll; native Lumos Mobile private katmanda |
 | **Loopback erişim köprüsü** | `kando_bridge` yalnızca `127.0.0.1` — telefon doğrudan köprüye bağlanamaz |
 | **Güvenli taşıma kanalı** | Mobile ↔ PC arasında şifreli, kimlik doğrulamalı relay/tünel (private katman) |
 | **Cihaz eşleştirme** | Multi-device registry, pairing protokolü, QR/kod akışı tanımlı değil |
@@ -487,7 +487,8 @@ sequenceDiagram
   PC->>Relay: Start relay (pairing_id üretilir)
   Relay-->>Mobile: UDP beacon / GET /relay/discover
   Mobile->>Relay: POST /relay/pair {pairing_code}
-  Relay-->>Mobile: relay_token (X-Relay-Token)
+  Relay-->>Mobile: relay_token + mobile_url (/relay/mobile?token=…)
+  Mobile->>Relay: GET /relay/mobile (phone browser)
   Mobile->>Relay: GET /relay/pending + token
   Relay->>Bridge: GET /pending_approvals + KANDO_BRIDGE_SECRET
   Relay-->>Mobile: pc_remote filtered list
@@ -496,9 +497,9 @@ sequenceDiagram
 ```
 
 1. **Keşif:** Mobile `GET /relay/discover` veya UDP beacon dinler (`pairing_id`, `relay_port`, `pc_name`). Bridge secret beacon'da **yok**.
-2. **Eşleştirme:** Mobile `POST /relay/pair` ile 6 karakter `pairing_code` gönderir (≈10 dk TTL). Yanıt: `relay_token`.
-3. **Kimlik doğrulama:** Korunan uçlar `X-Relay-Token` ister (`discover` / beacon hariç).
-4. **Onay:** `GET /relay/pending` → köprüden `pc_remote` kayıtları filtrelenir. `POST /relay/approve` veya `/relay/reject` → köprü `/approve` proxy.
+2. **Eşleştirme:** Mobile `POST /relay/pair` ile 6 karakter `pairing_code` gönderir (≈10 dk TTL). Yanıt: `relay_token` + `mobile_url` (`/relay/mobile?token=…`).
+3. **Kimlik doğrulama:** Korunan uçlar `X-Relay-Token` ister (`discover` / beacon / `/relay/mobile` HTML hariç — sayfa token'ı sessionStorage'da tutar).
+4. **Onay:** `GET /relay/pending` veya **mobile web UI** (`GET /relay/mobile`) → köprüden `pc_remote` kayıtları filtrelenir. `POST /relay/approve` veya `/relay/reject` → köprü `/approve` proxy.
 
 ### Demo komutları (LAN)
 
@@ -529,7 +530,17 @@ curl -s -X POST http://127.0.0.1:8765/tools/execute \
   -d '{"command":"pc_open_app","arguments":{"app_name":"Safari"}}'
 ```
 
-**Mobile / ikinci makine (aynı LAN):**
+**Mobile / ikinci makine (aynı LAN) — web UI (önerilen):**
+
+Telefon tarayıcısında (pair sonrası):
+
+```text
+http://192.168.x.x:8766/relay/mobile?token=<relay_token>
+```
+
+Sayfa 5 sn'de bir `/relay/pending` poll eder; her kayıtta **Onayla / Approve** ve **Reddet / Reject** düğmeleri vardır.
+
+**Alternatif — CLI:**
 
 ```bash
 export PYTHONPATH=packages/kando_bridge/src
@@ -537,7 +548,7 @@ RELAY=http://192.168.x.x:8766   # PC LAN IP
 
 python -m kando_bridge.mobile_approval_client discover --relay-url "$RELAY"
 python -m kando_bridge.mobile_approval_client pair ABCDEF --relay-url "$RELAY" --save-token
-export LUMOS_RELAY_TOKEN='…'    # pair çıktısından
+export LUMOS_RELAY_TOKEN='…'    # pair çıktısından (Mobile UI satırı da stderr'de)
 
 python -m kando_bridge.mobile_approval_client pending --relay-url "$RELAY"
 python -m kando_bridge.mobile_approval_client approve --relay-url "$RELAY" \
@@ -572,6 +583,8 @@ PYTHONPATH=src:packages/kando_runtime/src:packages/kando_bridge/src \
 **Modül:** `kando_bridge/openai_tool_adapter.py` — Responses API tool call → bridge execute → onay → stub.  
 **Demo:** `scripts/openai_tool_loop_demo.py` (`--mock` default; `--live` + `OPENAI_API_KEY` opsiyonel).
 
+Varsayılan **`auto_approve=False`**: pending diskte kalır; kullanıcı **mobile web UI** (`/relay/mobile`) veya CLI ile onaylar. Dev bypass: `--auto-approve` (uyarı ile). Opsiyonel bekleme: `--wait-approve`.
+
 ```bash
 export KANDO_BRIDGE_SECRET='your-local-dev-secret'
 PYTHONPATH=src:packages/kando_bridge/src \
@@ -579,9 +592,12 @@ PYTHONPATH=src:packages/kando_bridge/src \
 
 PYTHONPATH=src:packages/kando_bridge/src \
   python scripts/openai_tool_loop_demo.py --mock
+# stderr: mobile UI URL — telefonda açın veya --wait-approve
 ```
 
-Zincir: mock `function_call` (`pc_open_url`) → `POST /tools/execute` → `.lumos/pending_approvals/` → `approve_pending` → token ile stub yürütme → `used: true`.
+Zincir: mock `function_call` (`pc_open_url`) → `POST /tools/execute` → `.lumos/pending_approvals/` → **mobile UI / CLI onay** → token ile stub yürütme → `used: true`.
+
+**Mobile web UI yolu:** `GET /relay/mobile` (LAN relay `:8766`; pair sonrası `?token=` ile).
 
 ---
 

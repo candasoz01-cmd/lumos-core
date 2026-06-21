@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 import sys
+import time
 from pathlib import Path
 
 _REPO = Path(__file__).resolve().parents[1]
@@ -16,8 +17,13 @@ _SRC = _REPO / "src"
 if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
-from kando_bridge.mobile_approval_client import require_bridge_token  # noqa: E402
+from kando_bridge.lan_relay import DEFAULT_RELAY_PORT, mobile_ui_path  # noqa: E402
+from kando_bridge.mobile_approval_client import (  # noqa: E402
+    approve_pending,
+    require_bridge_token,
+)
 from kando_bridge.openai_tool_adapter import (  # noqa: E402
+    approve_and_reexecute,
     fetch_live_openai_response,
     mock_openai_response_payload,
     parse_openai_tool_calls,
@@ -34,6 +40,15 @@ def _apply_bridge_env(args: argparse.Namespace) -> None:
         os.environ["LAN_RELAY_URL"] = args.relay_url
     if args.relay_token:
         os.environ["LUMOS_RELAY_TOKEN"] = args.relay_token
+
+
+def _mobile_ui_hint(args: argparse.Namespace) -> str:
+    relay_base = (args.relay_url or os.environ.get("LAN_RELAY_URL") or "").strip()
+    if relay_base:
+        return f"{relay_base.rstrip('/')}{mobile_ui_path()}"
+    host = os.environ.get("LAN_RELAY_HOST", "127.0.0.1")
+    port = os.environ.get("LAN_RELAY_PORT", str(DEFAULT_RELAY_PORT))
+    return f"http://{host}:{port}{mobile_ui_path()}"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -73,7 +88,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--relay-url",
         default=os.environ.get("LAN_RELAY_URL", ""),
-        help="Optional LAN relay base URL (demo only; loop still uses bridge execute)",
+        help="LAN relay base URL for mobile UI hint",
     )
     parser.add_argument(
         "--relay-token",
@@ -81,9 +96,20 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional paired relay token",
     )
     parser.add_argument(
-        "--no-auto-approve",
+        "--auto-approve",
         action="store_true",
-        help="Stop at pending_approval (do not auto-approve)",
+        help="DEV ONLY: skip mobile UI and auto-approve pending (not for production demos)",
+    )
+    parser.add_argument(
+        "--wait-approve",
+        action="store_true",
+        help="Poll until pending is approved via mobile UI or CLI, then re-execute",
+    )
+    parser.add_argument(
+        "--wait-timeout",
+        type=float,
+        default=120.0,
+        help="Seconds to wait for approval when --wait-approve (default 120)",
     )
     parser.add_argument(
         "--model",
@@ -93,10 +119,56 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _wait_for_manual_approve(
+    calls: list,
+    pending_results: list[dict],
+    *,
+    timeout: float,
+) -> list[dict]:
+    """Poll disk until user approves via mobile UI / CLI, then re-execute."""
+    deadline = time.time() + max(1.0, timeout)
+    final: list[dict] = []
+    for call, pending_result in zip(calls, pending_results, strict=True):
+        pending = pending_result.get("pending") or {}
+        approval_id = str(pending.get("approval_id") or "")
+        approval_token = str(pending.get("approval_token") or "")
+        if not approval_id or not approval_token:
+            final.append(pending_result)
+            continue
+        while time.time() < deadline:
+            approve_out = approve_pending(approval_id, approval_token)
+            if approve_out.get("accepted"):
+                exec_status, loop_out = approve_and_reexecute(call, pending)
+                loop_out["http_status"] = exec_status
+                loop_out["tool_call"] = {
+                    "name": call.name,
+                    "arguments": call.arguments,
+                    "call_id": call.call_id,
+                }
+                final.append(loop_out)
+                break
+            time.sleep(1.0)
+        else:
+            final.append(
+                {
+                    **pending_result,
+                    "error": "approval_timeout",
+                    "message": "Timed out waiting for mobile approval",
+                }
+            )
+    return final
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     _apply_bridge_env(args)
+
+    if args.auto_approve:
+        sys.stderr.write(
+            "UYARI / WARNING: --auto-approve dev-only bypass; "
+            "use mobile UI for real demos.\n"
+        )
 
     try:
         require_bridge_token()
@@ -123,12 +195,24 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"ok": False, "error": "no_tool_calls", "payload": payload}, indent=2))
         return 1
 
-    results = run_openai_response_loop(
-        payload,
-        auto_approve=not args.no_auto_approve,
-    )
+    auto_approve = bool(args.auto_approve)
+    results = run_openai_response_loop(payload, auto_approve=auto_approve)
+
+    pending_stages = [r for r in results if r.get("stage") == "pending"]
+    if pending_stages and not auto_approve:
+        mobile_url = _mobile_ui_hint(args)
+        sys.stderr.write(
+            f"\nOnay gerekli / Approval required — open mobile UI:\n  {mobile_url}\n"
+            f"Pair first: POST /relay/pair → open /relay/mobile?token=…\n"
+        )
+        if args.wait_approve:
+            sys.stderr.write("Waiting for approval (--wait-approve)…\n")
+            results = _wait_for_manual_approve(calls, results, timeout=args.wait_timeout)
+
     summary = {
         "mode": "live" if use_live else "mock",
+        "auto_approve": auto_approve,
+        "mobile_ui": _mobile_ui_hint(args),
         "tool_calls": [{"name": c.name, "arguments": c.arguments} for c in calls],
         "results": results,
     }

@@ -349,8 +349,17 @@ def cmd_pair(args: argparse.Namespace) -> int:
     print(json.dumps(payload, ensure_ascii=False, indent=2))
     if status != 200 or not payload.get("relay_token"):
         return 1
+    relay_token = payload["relay_token"]
+    mobile_url = payload.get("mobile_url") or payload.get("mobile_ui")
+    if mobile_url:
+        base = _relay_base(args.relay_url)
+        if mobile_url.startswith("/"):
+            full_mobile = base + mobile_url
+        else:
+            full_mobile = mobile_url
+        print(f"\nMobile UI: {full_mobile}", file=sys.stderr)
     if args.save_token:
-        print(f"\nexport LUMOS_RELAY_TOKEN={payload['relay_token']}", file=sys.stderr)
+        print(f"\nexport LUMOS_RELAY_TOKEN={relay_token}", file=sys.stderr)
     return 0
 
 
