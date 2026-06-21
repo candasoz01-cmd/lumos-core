@@ -50,6 +50,8 @@ Canlı Gmail readonly smoke: vault + OAuth token hazır operatör makinesinde `L
 
 **ADR-010 usage map** — checkpoint tamamlandı (2026-06-21): [`docs/analysis/ADR-010-guard-policy-trust-usage-map.md`](../analysis/ADR-010-guard-policy-trust-usage-map.md).
 
-**ADR-011 lock semantiği** — karar kaydı (2026-06-21): [`docs/decisions/ADR-011-lock-semantics-decision.md`](../decisions/ADR-011-lock-semantics-decision.md). İki sinyal (`keystore_ready` vs `session_unlocked`); birleştirme yok; rename PR ayrı.
+**ADR-011 lock semantiği** — karar kaydı (2026-06-21): [`docs/decisions/ADR-011-lock-semantics-decision.md`](../decisions/ADR-011-lock-semantics-decision.md). İki sinyal (`keystore_ready` vs `session_unlocked`); birleştirme yok.
 
-**Sonraki:** Rename PR (`_lock_ok`, CLI argümanları); OD-031 private impl ops vault'ta. **Landing Tur 1** — kalan landing vitrin bölümlerinin i18n ve token kapsamını genişletmek.
+**ADR-011 Faz 1–3 kapanışı (2026-06-21):** #435 karar → #436 rename (`keystore_ready`) → #437 CLI etiketleri → #438 panel dürüstlüğü; closure docs `docs/adr-011-closure`.
+
+**Sonraki:** ADR-011 Faz 4 (trust motor / ADR-007 sinyal tablosu); OD-031 private impl ops vault'ta. **Landing Tur 1** — kalan landing vitrin bölümlerinin i18n ve token kapsamını genişletmek.
