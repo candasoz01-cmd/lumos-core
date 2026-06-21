@@ -134,6 +134,8 @@
 |--------|--------|-------|-----|
 | [technical-debt-architecture-concentration-2026-06.md](../analysis/technical-debt-architecture-concentration-2026-06.md) | 20 maddelik borç envanteri + [etki/maliyet top 10](../analysis/technical-debt-architecture-concentration-2026-06.md#ilk-10--etki--maliyet-oranı) | **published (2026-06-21)** | DL-T01; salt okuma keşif; uygulama/kod yok. Stratejik yüksek etki: [td-01](../analysis/technical-debt-architecture-concentration-2026-06.md#td-01-panel-astro), [td-02](../analysis/technical-debt-architecture-concentration-2026-06.md#td-02-bridge-cu4-gap). ADR-012 prep ile çapraz: [td-03](../analysis/technical-debt-architecture-concentration-2026-06.md#td-03-panel-lockstate-env). |
 | [release-blockers.md](../analysis/release-blockers.md) | RB-01..RB-28 release engel analizi (hard/soft/watch + NOT blockers) | **published (2026-06-21)** | DL-T02; 30 gün release penceresi; yeni karar taahhüdü yok. RB ↔ td-XX çapraz tablo §6. |
+| [p0-p1-triage-list.md](../analysis/p0-p1-triage-list.md) | P0/P1 triage + sahip (G-23 Internal Alpha) | **published (2026-06-21)** | Alpha giriş A3; operasyonel takip — issue tracker yerine repo canonical. |
+| [python-packaging-spike-rb06.md](../analysis/python-packaging-spike-rb06.md) | RB-06 tek `pip install` spike (G-17) | **published (2026-06-21)** | Spike only; Launch P1 uygulama defer; meta-package önerisi. |
 | [technical-debt-execution-map.md](../analysis/technical-debt-execution-map.md) | td-01..td-10 PR dilimi / test / geri dönüş planı | **published (2026-06-21)** | DL-T02; uygulanabilirlik haritası; bağımlılık sırası için dependency-graph'a bkz. |
 | [technical-debt-dependency-graph.md](../analysis/technical-debt-dependency-graph.md) | td-01..td-10 dalga topolojisi (Wave 1–3) + mermaid | **published (2026-06-21)** | DL-T02; tavsiye dili yok; execution-map § bağımlılık sırasından türetilmiş. |
 
@@ -176,4 +178,4 @@ Kaynak dosyalardaki boş manuel şablonlar burada tekrarlanmaz. Yeni açık kara
 
 ---
 
-Son güncelleme: 2026-06-21 (Release blockers + uygulama paketi — DL-T02; bilgilendirme backlog genişletildi)
+Son güncelleme: 2026-06-21 (Queue #9 sync — PR-C6/P2 closed verified; G-23 triage + RB-06 packaging spike refs)
