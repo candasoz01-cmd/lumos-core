@@ -15,7 +15,9 @@ from policy.confirmation_policy import (
     REASON_SCOPE_MISMATCH,
     REQUIRES_CONFIRMATION_ACTIONS,
     attach_bridge_pending_confirmation,
+    bridge_pending_cu4_fields,
     check_confirmation,
+    consume_bridge_confirmation,
     consume_confirmation,
     ensure_delete_permanent_confirmation,
     ensure_cli_mutation_confirmation,
@@ -23,6 +25,7 @@ from policy.confirmation_policy import (
     is_confirmation_enabled,
     request_confirmation,
     requires_confirmation_for_action,
+    validate_bridge_confirmation,
 )
 
 
@@ -318,3 +321,86 @@ def test_bridge_shadow_grant_expired_blocks_check_when_enabled(
     )
     assert not result.allowed
     assert result.reason == REASON_CONFIRMATION_EXPIRED
+
+
+def test_bridge_pending_cu4_fields_missing_returns_none() -> None:
+    assert bridge_pending_cu4_fields({}) is None
+    assert bridge_pending_cu4_fields({"confirmation_id": "abc"}) is None
+
+
+def test_validate_bridge_confirmation_disabled_noop(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("LUMOS_CONFIRMATION_ENABLED", raising=False)
+    lumos = tmp_path / ".lumos"
+    lumos.mkdir()
+    pending: dict = {"schema_version": "lumos.pending_approval.v1", "title": "noop"}
+    attach_bridge_pending_confirmation(pending, base_dir=lumos, risk="high", source="lumos_gate")
+    result = validate_bridge_confirmation(pending, base_dir=lumos)
+    assert result.allowed
+    assert result.reason == REASON_CONFIRMATION_DISABLED
+
+
+def test_validate_bridge_confirmation_legacy_no_shadow_allowed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    legacy = {"schema_version": "lumos.pending_approval.v1", "title": "legacy only"}
+    result = validate_bridge_confirmation(legacy, base_dir=tmp_path / ".lumos")
+    assert result.allowed
+    assert result.reason == ""
+
+
+def test_validate_bridge_confirmation_enabled_valid_grant(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    lumos = tmp_path / ".lumos"
+    lumos.mkdir()
+    pending: dict = {"schema_version": "lumos.pending_approval.v1", "title": "valid"}
+    attach_bridge_pending_confirmation(pending, base_dir=lumos, risk="high", source="lumos_gate")
+    result = validate_bridge_confirmation(pending, base_dir=lumos)
+    assert result.allowed
+    grant_path = lumos / "pending_confirmations" / f"{pending['confirmation_id']}.json"
+    grant = json.loads(grant_path.read_text(encoding="utf-8"))
+    assert grant.get("consumed") is not True
+
+
+def test_validate_bridge_confirmation_does_not_consume(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """validate before consume: validate_bridge_confirmation grant tüketmez."""
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    lumos = tmp_path / ".lumos"
+    lumos.mkdir()
+    pending: dict = {"schema_version": "lumos.pending_approval.v1", "title": "order"}
+    attach_bridge_pending_confirmation(pending, base_dir=lumos, risk="high", source="lumos_gate")
+    assert validate_bridge_confirmation(pending, base_dir=lumos).allowed
+    cid = str(pending["confirmation_id"])
+    grant_path = lumos / "pending_confirmations" / f"{cid}.json"
+    assert json.loads(grant_path.read_text(encoding="utf-8")).get("consumed") is not True
+    assert consume_bridge_confirmation(pending, base_dir=lumos)
+    assert json.loads(grant_path.read_text(encoding="utf-8")).get("consumed") is True
+    assert not consume_bridge_confirmation(pending, base_dir=lumos)
+
+
+def test_consume_bridge_confirmation_unaffected_by_env_gate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("LUMOS_CONFIRMATION_ENABLED", raising=False)
+    lumos = tmp_path / ".lumos"
+    lumos.mkdir()
+    pending: dict = {"schema_version": "lumos.pending_approval.v1", "title": "env off consume"}
+    attach_bridge_pending_confirmation(pending, base_dir=lumos, risk="medium", source="task_dispatch")
+    assert consume_bridge_confirmation(pending, base_dir=lumos)
+    grant_path = lumos / "pending_confirmations" / f"{pending['confirmation_id']}.json"
+    assert json.loads(grant_path.read_text(encoding="utf-8")).get("consumed") is True
+
+
+def test_consume_bridge_confirmation_wrong_scope_hash_fails(tmp_path: Path) -> None:
+    lumos = tmp_path / ".lumos"
+    lumos.mkdir()
+    pending: dict = {"schema_version": "lumos.pending_approval.v1", "title": "bad hash"}
+    attach_bridge_pending_confirmation(pending, base_dir=lumos, risk="high", source="lumos_gate")
+    pending["confirmation_scope_hash"] = "deadbeefdeadbeef"
+    assert not consume_bridge_confirmation(pending, base_dir=lumos)

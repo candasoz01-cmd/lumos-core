@@ -513,6 +513,86 @@ def attach_bridge_pending_confirmation(
     return pending.confirmation_id
 
 
+def bridge_pending_cu4_fields(
+    pending_record: Mapping[str, Any],
+) -> tuple[str, str, str] | None:
+    """Shadow CU4 alanları: (confirmation_id, scope_hash, action_key) veya None."""
+    if not isinstance(pending_record, Mapping):
+        return None
+    cid = str(pending_record.get("confirmation_id") or "").strip()
+    scope_hash = str(pending_record.get("confirmation_scope_hash") or "").strip()
+    action_key = str(pending_record.get("confirmation_action_key") or "").strip()
+    if not cid or not scope_hash or not action_key:
+        return None
+    return cid, scope_hash, action_key
+
+
+def validate_bridge_confirmation(
+    pending_record: Mapping[str, Any],
+    *,
+    base_dir: Path | str | None = None,
+) -> ConfirmationResult:
+    """
+    PR-W1-03: CU4 shadow grant doğrulama (check only — consume ayrı adım).
+    LUMOS_CONFIRMATION_ENABLED=false → no-op. Shadow alanları yoksa legacy → allowed.
+    """
+    if not is_confirmation_enabled():
+        return ConfirmationResult(True, REASON_CONFIRMATION_DISABLED)
+
+    fields = bridge_pending_cu4_fields(pending_record)
+    if fields is None:
+        return ConfirmationResult(True, "")
+
+    confirmation_id, _scope_hash, action_key = fields
+    base = Path(base_dir).resolve() if base_dir is not None else lumos_base_dir()
+    grant = _load_grant(_grant_path(_pending_dir(base), confirmation_id))
+    if grant is None:
+        return ConfirmationResult(False, REASON_CONFIRMATION_REQUIRED)
+
+    scope = grant.get("scope")
+    if not isinstance(scope, dict):
+        return ConfirmationResult(False, REASON_SCOPE_MISMATCH)
+
+    return check_confirmation(
+        action_key,
+        scope,
+        {"confirmation_id": confirmation_id, "base_dir": str(base)},
+    )
+
+
+def consume_bridge_confirmation(
+    pending_record: Mapping[str, Any],
+    *,
+    base_dir: Path | str | None = None,
+) -> bool:
+    """
+    PR-W1-03: CU4 shadow grant tüketimi. Env gate'e bakmaz (#492).
+    Shadow alanları yoksa False.
+    """
+    fields = bridge_pending_cu4_fields(pending_record)
+    if fields is None:
+        return False
+    confirmation_id, scope_hash, _action_key = fields
+    return consume_confirmation(confirmation_id, scope_hash, base_dir=base_dir)
+
+
+def bridge_approve_validate_legacy_pending(
+    loaded: Mapping[str, Any],
+    *,
+    is_dispatch: bool,
+) -> None:
+    """Legacy pending kayıt doğrulama — runtime validator delegasyonu (W1-03 sınır)."""
+    record = dict(loaded)
+    if is_dispatch:
+        from kando_runtime.task_dispatch import validate_dispatch_pending_for_approval
+
+        validate_dispatch_pending_for_approval(record)
+    else:
+        from kando_runtime.lumos_gate import validate_pending_for_approval
+
+        validate_pending_for_approval(record)
+
+
 def consume_confirmation(
     confirmation_id: str,
     scope_hash: str,

@@ -19,7 +19,10 @@ from policy.confirmation_policy import (
     BRIDGE_HIGH_RISK_ACTION,
     BRIDGE_MEDIUM_DISPATCH_ACTION,
     attach_bridge_pending_confirmation,
+    bridge_approve_validate_legacy_pending,
+    consume_bridge_confirmation,
     consume_confirmation,
+    validate_bridge_confirmation,
 )
 
 
@@ -241,3 +244,22 @@ def test_cross_store_confirmation_id_and_scope_hash_correlate(
     assert grant["confirmation_id"] == cid
     assert grant["scope_hash"] == scope_hash
     assert grant["action_key"] == rec["confirmation_action_key"]
+
+
+def test_w103_bridge_helpers_importable_from_policy() -> None:
+    """PR-W1-03 yardımcı sınırı policy modülünden dışa açık."""
+    assert callable(validate_bridge_confirmation)
+    assert callable(consume_bridge_confirmation)
+    assert callable(bridge_approve_validate_legacy_pending)
+
+
+def test_bridge_server_delegates_legacy_validate_not_cu4_consume() -> None:
+    """server.py legacy validate delegasyonu var; doğrudan consume_confirmation/check yok."""
+    import kando_bridge.server as srv
+
+    src = Path(srv.__file__).read_text(encoding="utf-8")
+    assert "bridge_approve_validate_legacy_pending" in src
+    assert "consume_confirmation" not in src
+    assert "check_confirmation" not in src
+    assert "consume_bridge_confirmation" not in src
+    assert "validate_bridge_confirmation" not in src
