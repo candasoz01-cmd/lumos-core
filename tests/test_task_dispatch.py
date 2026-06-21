@@ -225,6 +225,10 @@ def test_attach_medium_risk_writes_pending_json(tmp_path: Path) -> None:
     rel = str(out.get("approval_file") or "")
     assert rel.startswith(".lumos/pending_approvals/")
     assert (tmp_path / rel).is_file()
+    cid = str(pr.get("confirmation_id") or "")
+    assert cid
+    assert pr.get("confirmation_action_key") == "bridge_medium_dispatch"
+    assert (tmp_path / ".lumos" / "pending_confirmations" / f"{cid}.json").is_file()
 
 
 def test_resolve_system_reasoning_structured_patch_routes_file():
