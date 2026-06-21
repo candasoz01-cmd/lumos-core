@@ -2271,13 +2271,11 @@ class BridgeHandler(BaseHTTPRequestHandler):
             return
 
         if str(loaded.get("schema_version") or "") == DISPATCH_PENDING_APPROVAL_SCHEMA:
-            from kando_runtime.task_dispatch import (
-                execute_approved_dispatch_pending,
-                validate_dispatch_pending_for_approval,
-            )
+            from kando_runtime.task_dispatch import execute_approved_dispatch_pending
+            from policy.confirmation_policy import bridge_approve_validate_legacy_pending
 
             try:
-                validate_dispatch_pending_for_approval(loaded)
+                bridge_approve_validate_legacy_pending(loaded, is_dispatch=True)
             except ValueError as e:
                 self._send_json(200, {"accepted": False, "error": str(e)})
                 return
@@ -2311,10 +2309,10 @@ class BridgeHandler(BaseHTTPRequestHandler):
             self._send_json(200, resp)
             return
 
-        from kando_runtime.lumos_gate import validate_pending_for_approval
+        from policy.confirmation_policy import bridge_approve_validate_legacy_pending
 
         try:
-            validate_pending_for_approval(loaded)
+            bridge_approve_validate_legacy_pending(loaded, is_dispatch=False)
         except ValueError as e:
             self._send_json(200, {"accepted": False, "error": str(e)})
             return
