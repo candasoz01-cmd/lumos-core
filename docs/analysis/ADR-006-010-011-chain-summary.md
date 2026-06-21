@@ -60,6 +60,7 @@ Lock iki sinyal (ADR-011) trust tüketimine hazırlanır (Faz 4).
 | #477 | ADR-013 GET fetch vs mock fallback wording clarify |
 | #479 | `lumos quantum-readiness` CLI subcommand (JSON/summary) |
 | #480 | Panel kuantum sekmesi live fields (`generated_at`, `evidenced_findings`, `entropy_lab`) |
+| #482 | Panel kuantum sekmesi migration tables (`long_lived_data`, `hard_to_change_deps`, `prioritized_migration_plan`) |
 
 ## Sonraki checkpoint
 
