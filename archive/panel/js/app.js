@@ -893,7 +893,7 @@ function canTransition(from, to) {
   var TASKS_API_BASE = "http://127.0.0.1:8766";
   /** Silinenler ekranı: panel kayıtlarından kalıcı silinenler özeti (çöp API listesi değil). */
   var RECENT_PERMANENT_DELETES_LIMIT = 15;
-  /** Silme onayı: bu süre sonunda kalıcı silme + task_permanently_deleted kaydı. */
+  /** Silme geri alma penceresi: süre dolunca yalnızca soft delete (CU6 — otomatik kalıcı silme yok). */
   var PENDING_DELETE_GRACE_MS = 5000;
   /** Liste + detay + satır özeti: tek görünen durum etiketi (pending_delete UI kuralı). */
   var TASK_PENDING_DELETE_UI_LABEL = "Siliniyor…";
@@ -1227,7 +1227,7 @@ function canTransition(from, to) {
               TASK_PENDING_DELETE_UI_LABEL +
               " " +
               secApi +
-              " sn içinde kalıcı silinecek. İptal: listede veya detayda «Geri al» — \"" +
+              " sn içinde çöpe taşınacak. İptal: listede veya detayda «Geri al» — \"" +
               tit3 +
               '".',
             depth: "simple",
@@ -1662,7 +1662,7 @@ function canTransition(from, to) {
   }
 
   /**
-   * Sil: kalıcı değil; pending_delete + expireAt. Kayıtta task_deleted yok; süre dolunca task_permanently_deleted.
+   * Sil: kalıcı değil; pending_delete + expireAt. Süre dolunca task_deleted (soft); kalıcı silme ayrı onay.
    */
   function schedulePendingDeleteTask(ref) {
     var r = normalizeTaskCommandWhitespace(ref);
@@ -4474,18 +4474,28 @@ function canTransition(from, to) {
     return base + "/open-folder";
   }
 
-  /** Disk çöpündeki görev: POST …/tasks/restore | POST …/tasks/delete-permanent. */
+  /** Disk çöpündeki görev: POST …/tasks/restore | POST …/tasks/delete-permanent (confirm: true). */
   function handleTrashTaskServerAction(action, taskId) {
     if (trashViewState.taskTrashBusy) return;
     var tid = resolveTrashActionTaskIdForRequest(taskId);
     if (!tid) return;
+    if (action === "delete-permanent") {
+      if (
+        !window.confirm(
+          "Bu görev çöpten kalıcı silinecek. Geri alınamaz. Emin misin?"
+        )
+      ) {
+        return;
+      }
+    }
     if (typeof console !== "undefined" && console.log) {
       console.log("[LUMOS] trash POST body id:", tid);
     }
     var base = String(API_BASE).replace(/\/$/, "");
     var url =
       action === "restore" ? base + "/tasks/restore" : base + "/tasks/delete-permanent";
-    var reqBody = { id: tid };
+    var reqBody =
+      action === "delete-permanent" ? { id: tid, confirm: true } : { id: tid };
     trashViewState.taskTrashBusy = true;
     trashViewState.flash = { kind: "ok", source: "trash-task", text: "İşleniyor…" };
     refreshCurrentView();
@@ -4512,6 +4522,10 @@ function canTransition(from, to) {
           invalid_trash_file: "invalid_trash_file: Çöp dosyası okunamadı.",
           invalid_payload: "invalid_payload: Çöp kaydı geçersiz.",
           invalid_json: "invalid_json: İstek gövdesi geçersiz.",
+          confirm_required:
+            "confirm_required: Kalıcı silme onayı gerekir (confirm=true).",
+          confirmation_required:
+            "confirmation_required: İşlem onayı gerekir; panelde onaylayın.",
         };
         if (!x.ok || !j.ok) {
           var errText;
@@ -5575,7 +5589,7 @@ function canTransition(from, to) {
           TASK_PENDING_DELETE_UI_LABEL +
           " " +
           secLocal +
-          " sn içinde kalıcı silinecek. İptal: listede veya detayda «Geri al» — \"" +
+          " sn içinde çöpe taşınacak. İptal: listede veya detayda «Geri al» — \"" +
           delResult.task.title +
           '".',
         depth: "simple",
@@ -7366,6 +7380,10 @@ function canTransition(from, to) {
     }, 400);
   }
 
+  /**
+   * pending_delete süresi doldu: CU6 — otomatik kalıcı silme yok; yalnızca soft delete (çöp).
+   * Kalıcı silme yalnızca kullanıcı «Kalıcı sil» + onay ile handleTrashTaskServerAction üzerinden.
+   */
   function finalizeEngineTaskPermanentDelete(taskId) {
     var idStr = taskId != null ? String(taskId) : "";
     if (!idStr) return;
@@ -7381,28 +7399,21 @@ function canTransition(from, to) {
     }
     if (!task) return;
 
-    var delBase = String(API_BASE).replace(/\/$/, "");
-    var delUrl = delBase + "/tasks/delete-permanent";
-    panelTasksTrashDirectPost(delUrl, { id: idStr })
-      .then(function (r) {
-        return r.text().then(function (txt) {
-          var j = null;
-          try {
-            j = txt && String(txt).trim() ? JSON.parse(txt) : null;
-          } catch (_) {
-            j = null;
-          }
-          return { ok: r.ok, j: j && typeof j === "object" ? j : {} };
-        });
-      })
-      .then(function (x) {
-        if (!x.ok || !x.j.ok) return;
-        return syncTasksDocumentFromApi().then(function () {
-          clearPendingDeleteTickerIfIdle();
-          refreshCurrentView();
-        });
-      })
-      .catch(function () {});
+    var nowIso = new Date().toISOString();
+    var title = String(task.title || "").trim() || idStr;
+    task.status = TASK_STATUS.DELETED;
+    task.deletedAt = nowIso;
+    delete task.restoreStatus;
+    delete task.expireAt;
+    appendPanelEngineEvent({
+      type: "task_deleted",
+      taskId: task.id,
+      text: title,
+      ts: nowIso,
+    });
+    persistTasksJsonDocument();
+    clearPendingDeleteTickerIfIdle();
+    refreshCurrentView();
   }
 
   function tickPendingDeleteExpiry() {
