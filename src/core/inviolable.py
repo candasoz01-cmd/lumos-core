@@ -43,4 +43,6 @@ def verify_core_constants() -> bool:
         return False
     if profiles.STEP_TYPE_EXTERNAL != EXPECTED_STEP_TYPE_EXTERNAL:
         return False
+    if not profiles.verify_security_never_auto_mapping():
+        return False
     return True

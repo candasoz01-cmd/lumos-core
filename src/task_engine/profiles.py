@@ -62,8 +62,90 @@ _ENGINE_SECURITY_NEVER_AUTO_MEMBERS = frozenset(
 )
 
 
+@dataclass(frozen=True)
+class SecurityNeverAutoMappingRow:
+    """Tek SECURITY_NEVER_AUTO üyesi × yüzey alias'ları (Option B tek kaynak tablo)."""
+
+    member: str
+    step_kinds: frozenset[str] = frozenset()
+    action_keys: frozenset[str] = frozenset()
+    action_tags: frozenset[str] = frozenset()
+    policy_actions: frozenset[str] = frozenset()
+
+
+# Resmi eşleme tablosu — helper, inviolable, action_policy aynı kaynağı kullanır.
+SECURITY_NEVER_AUTO_MAPPING: tuple[SecurityNeverAutoMappingRow, ...] = (
+    SecurityNeverAutoMappingRow(
+        member="permanent_delete",
+        action_keys=frozenset({"permanent_delete"}),
+        policy_actions=frozenset({"delete_permanent"}),
+    ),
+    SecurityNeverAutoMappingRow(
+        member="external_write",
+        action_keys=frozenset({"external_write"}),
+        action_tags=frozenset({"external_write"}),
+    ),
+    SecurityNeverAutoMappingRow(
+        member="irreversible_user_op",
+        action_keys=frozenset({"irreversible_user_op"}),
+        action_tags=frozenset({"irreversible_user_op"}),
+    ),
+    SecurityNeverAutoMappingRow(
+        member="critical_system_config",
+        action_keys=frozenset({"critical_system_config"}),
+        action_tags=frozenset({"critical_system_config"}),
+    ),
+)
+
+_ALIAS_TO_MEMBER: dict[str, str] | None = None
+
+
 def _normalize_never_auto_candidate(value: str | None) -> str:
     return (value or "").strip().lower().replace("-", "_")
+
+
+def _security_never_auto_alias_map() -> dict[str, str]:
+    """Normalize edilmiş yüzey token → canonical küme üyesi."""
+    global _ALIAS_TO_MEMBER
+    if _ALIAS_TO_MEMBER is not None:
+        return _ALIAS_TO_MEMBER
+    alias_map: dict[str, str] = {}
+    for row in SECURITY_NEVER_AUTO_MAPPING:
+        alias_map[_normalize_never_auto_candidate(row.member)] = row.member
+        for bucket in (
+            row.step_kinds,
+            row.action_keys,
+            row.action_tags,
+            row.policy_actions,
+        ):
+            for alias in bucket:
+                alias_map[_normalize_never_auto_candidate(alias)] = row.member
+    _ALIAS_TO_MEMBER = alias_map
+    return _ALIAS_TO_MEMBER
+
+
+def verify_security_never_auto_mapping() -> bool:
+    """Tablo tüm küme üyelerini kapsar; üye dışı satır yok."""
+    members_in_table = {row.member for row in SECURITY_NEVER_AUTO_MAPPING}
+    if members_in_table != set(SECURITY_NEVER_AUTO):
+        return False
+    for row in SECURITY_NEVER_AUTO_MAPPING:
+        if row.member not in SECURITY_NEVER_AUTO:
+            return False
+    return True
+
+
+def get_security_never_auto_policy_actions() -> frozenset[str]:
+    """Tablodaki policy_action yüzey token'ları."""
+    actions: set[str] = set()
+    for row in SECURITY_NEVER_AUTO_MAPPING:
+        actions.update(row.policy_actions)
+    return frozenset(actions)
+
+
+def resolve_never_auto_member_for_policy_action(action: str) -> str | None:
+    """Policy/confirmation action → canonical SECURITY_NEVER_AUTO üyesi."""
+    return get_security_never_auto_member(policy_action=action)
 
 
 def is_security_never_auto(
@@ -96,18 +178,25 @@ def get_security_never_auto_member(
     include_permanent_delete: bool = True,
 ) -> str | None:
     """İlk eşleşen SECURITY_NEVER_AUTO üyesini döndür; yoksa None."""
-    candidates: set[str] = set()
+    alias_map = _security_never_auto_alias_map()
+    resolved_members: set[str] = set()
     for raw in (step_kind, action_key, action_tag, policy_action):
-        if raw:
-            candidates.add(_normalize_never_auto_candidate(raw))
-    if not candidates:
+        if not raw:
+            continue
+        norm = _normalize_never_auto_candidate(raw)
+        member = alias_map.get(norm)
+        if member:
+            resolved_members.add(member)
+        elif norm in SECURITY_NEVER_AUTO:
+            resolved_members.add(norm)
+    if not resolved_members:
         return None
     allowed = (
         SECURITY_NEVER_AUTO
         if include_permanent_delete
         else _ENGINE_SECURITY_NEVER_AUTO_MEMBERS
     )
-    matched = candidates & allowed
+    matched = resolved_members & allowed
     if not matched:
         return None
     return sorted(matched)[0]

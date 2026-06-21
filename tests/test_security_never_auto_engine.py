@@ -135,3 +135,36 @@ def test_never_auto_block_emits_policy_blocked_event() -> None:
     blocked = [e for e in obs.get_recent_events(limit=10) if e.event_type == EVENT_POLICY_BLOCKED]
     assert len(blocked) >= 1
     assert blocked[0].payload.get("reason") == BLOCK_SECURITY_NEVER_AUTO
+
+
+def test_security_never_auto_mapping_table_covers_all_members() -> None:
+    from task_engine.profiles import SECURITY_NEVER_AUTO_MAPPING, verify_security_never_auto_mapping
+
+    assert verify_security_never_auto_mapping() is True
+    assert {row.member for row in SECURITY_NEVER_AUTO_MAPPING} == set(
+        ("permanent_delete", "external_write", "irreversible_user_op", "critical_system_config")
+    )
+
+
+def test_policy_action_delete_permanent_maps_to_member() -> None:
+    assert get_security_never_auto_member(policy_action="delete_permanent") == "permanent_delete"
+    assert is_security_never_auto(policy_action="delete_permanent") is True
+
+
+def test_action_tag_resolves_via_mapping_table() -> None:
+    assert get_security_never_auto_member(action_tag="external_write") == "external_write"
+    assert get_security_never_auto_member(action_tag="irreversible_user_op") == "irreversible_user_op"
+
+
+def test_action_policy_sync_with_mapping_table() -> None:
+    from policy.action_policy import (
+        DELETE_PERMANENT,
+        is_never_auto_policy_action,
+        never_auto_member_for_policy_action,
+    )
+    from task_engine.profiles import get_security_never_auto_policy_actions
+
+    assert DELETE_PERMANENT in get_security_never_auto_policy_actions()
+    assert is_never_auto_policy_action(DELETE_PERMANENT) is True
+    assert never_auto_member_for_policy_action(DELETE_PERMANENT) == "permanent_delete"
+    assert is_never_auto_policy_action("create_task") is False
