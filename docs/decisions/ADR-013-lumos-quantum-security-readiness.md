@@ -211,7 +211,7 @@ Faz-1: statik öneri tablosu checklist'te; otomatik uygulama yok.
 
 ## Panel alanları (spesifikasyon — Faz-2 kısmi uygulama)
 
-Mevcut panel kuantum sekmesi (`ui/src/pages/panel.astro`, `#panel-kuantum`) dört statik kart taşır. Faz-2 kısmi uygulamada altına **readiness banner + özet alanı** eklendi; panel sunucusu `GET /quantum-readiness` ile `scan_quantum_readiness()` JSON döner (`panel/scripts/panel_tasks_server.py`). Canlı fetch başarısızsa mock banner ve docs-only örnek değerler kalır.
+Mevcut panel kuantum sekmesi (`ui/src/pages/panel.astro`, `#panel-kuantum`) dört statik kart taşır. Faz-2 kısmi uygulamada altına **readiness banner + özet alanı** eklendi; panel sunucusu `GET /quantum-readiness` ile `scan_quantum_readiness()` JSON döner (`panel/scripts/panel_tasks_server.py`). Canlı fetch başarısızsa mock banner ve docs-only örnek değerler kalır. Canlı yükte ek UI alanları: `meta.generated_at`, `evidenced_findings` listesi, `entropy_lab` probe özeti (salt okunur; entropy davranışı değişmez).
 
 ![Panel quantum readiness banner — local_scan örneği](../screenshots/adr-013-panel-quantum-readiness-banner.png)
 

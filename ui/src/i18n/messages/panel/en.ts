@@ -734,8 +734,16 @@ const panel: typeof panelTr = {
     },
     live: {
       evidenceBasis: "Evidence basis: {basis} — local read-only scan",
+      generatedAtLabel: "Last scan",
+      findingsTitle: "Evidenced findings",
+      findingEmpty: "(no summary)",
       pqcAwareYes: "NIST PQC awareness present",
       pqcAwareNo: "No NIST PQC awareness",
+      severity: {
+        dusuk: "low",
+        orta: "medium",
+        yuksek: "high",
+      },
       pqcStatus: {
         uygulanmiyor: "Not implemented",
         izleme: "Monitoring",
@@ -750,6 +758,13 @@ const panel: typeof panelTr = {
     entropyLab: {
       title: "Entropy Lab (experimental — separate area)",
       body: "Entropy Lab is an experimental area separate from Quantum Readiness. This panel has no provider probe or entropy integration; no production quantum-entropy claim is made.",
+      bodyLive:
+        "Entropy Lab is separate from Quantum Readiness. Values below come from the read-only local scan probe — not production quantum entropy.",
+      configuredLabel: "Configured provider",
+      effectiveLabel: "Effective provider (heuristic)",
+      fallbackLabel: "Silent fallback",
+      fallbackYes: "Yes — os fallback active",
+      fallbackNo: "No",
     },
     intro:
       "The cards below summarize probability, uncertainty, and security research concepts; transparent limits take priority over hard promises.",

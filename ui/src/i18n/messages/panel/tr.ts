@@ -731,8 +731,16 @@ const panelModules = {
     },
     live: {
       evidenceBasis: "Kanıt kaynağı: {basis} — yerel salt okunur tarama",
+      generatedAtLabel: "Son tarama",
+      findingsTitle: "Kanıtlı bulgular",
+      findingEmpty: "(özet yok)",
       pqcAwareYes: "NIST PQC farkındalığı var",
       pqcAwareNo: "NIST PQC farkındalığı yok",
+      severity: {
+        dusuk: "düşük",
+        orta: "orta",
+        yuksek: "yüksek",
+      },
       pqcStatus: {
         uygulanmiyor: "Uygulanmıyor",
         izleme: "İzleme",
@@ -747,6 +755,13 @@ const panelModules = {
     entropyLab: {
       title: "Entropy Lab (deneysel — ayrı alan)",
       body: "Entropy Lab, Quantum Readiness’ten ayrı deneysel bir alandır. Bu panelde sağlayıcı probe veya entropy entegrasyonu yoktur; üretim kuantum entropy iddiası taşınmaz.",
+      bodyLive:
+        "Entropy Lab, Quantum Readiness’ten ayrıdır. Aşağıdaki değerler salt okunur yerel tarama probundan gelir — üretim kuantum entropy değildir.",
+      configuredLabel: "Yapılandırılmış sağlayıcı",
+      effectiveLabel: "Efektif sağlayıcı (heuristic)",
+      fallbackLabel: "Sessiz fallback",
+      fallbackYes: "Evet — os fallback aktif",
+      fallbackNo: "Hayır",
     },
     intro:
       "Aşağıdaki kartlar olasılık, belirsizlik ve güvenlik araştırması kavramlarını özetler; kesin vaatler yerine şeffaf sınırlar önceliklidir.",

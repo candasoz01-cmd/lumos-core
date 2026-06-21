@@ -851,6 +851,28 @@ PANEL_I18N_V53_TR_KEYS = (
     "Kuantum Güvenlik Hazırlığı",
 )
 
+PANEL_I18N_V54_MARKERS = (
+    'id="panel-quantum-generated-at-label"',
+    'id="panel-quantum-findings-block"',
+    'id="panel-quantum-entropy-dl"',
+    'data-i18n="panel.modules.quantum.live.generatedAtLabel"',
+    'data-i18n="panel.modules.quantum.live.findingsTitle"',
+    'data-i18n="panel.modules.quantum.entropyLab.configuredLabel"',
+    "formatQuantumGeneratedAt",
+    "renderQuantumFindings",
+    "applyQuantumEntropyLabSection",
+    "hideQuantumLiveOnlyFields",
+)
+
+PANEL_I18N_V54_TR_KEYS = (
+    "generatedAtLabel:",
+    "findingsTitle:",
+    "bodyLive:",
+    "configuredLabel:",
+    "fallbackYes:",
+    "severity:",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -1676,3 +1698,15 @@ def test_panel_quantum_readiness_mock_banner_keys_in_panel_tr() -> None:
     text = _PANEL_TR.read_text(encoding="utf-8")
     for key in PANEL_I18N_V53_TR_KEYS:
         assert key in text, f"missing panel tr v53 key: {key}"
+
+
+def test_panel_astro_i18n_v54_quantum_readiness_live_fields_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V54_MARKERS:
+        assert token in text, f"missing panel i18n v54 token: {token}"
+
+
+def test_panel_quantum_readiness_live_fields_keys_in_panel_tr() -> None:
+    text = _PANEL_TR.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V54_TR_KEYS:
+        assert key in text, f"missing panel tr v54 key: {key}"
