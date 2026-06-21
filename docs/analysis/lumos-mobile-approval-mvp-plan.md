@@ -567,6 +567,24 @@ PYTHONPATH=src:packages/kando_runtime/src:packages/kando_bridge/src \
 
 ---
 
+## PR-RB-07 — OpenAI tool-loop adapter
+
+**Modül:** `kando_bridge/openai_tool_adapter.py` — Responses API tool call → bridge execute → onay → stub.  
+**Demo:** `scripts/openai_tool_loop_demo.py` (`--mock` default; `--live` + `OPENAI_API_KEY` opsiyonel).
+
+```bash
+export KANDO_BRIDGE_SECRET='your-local-dev-secret'
+PYTHONPATH=src:packages/kando_bridge/src \
+  pytest -q tests/test_openai_tool_loop_adapter_mvp.py
+
+PYTHONPATH=src:packages/kando_bridge/src \
+  python scripts/openai_tool_loop_demo.py --mock
+```
+
+Zincir: mock `function_call` (`pc_open_url`) → `POST /tools/execute` → `.lumos/pending_approvals/` → `approve_pending` → token ile stub yürütme → `used: true`.
+
+---
+
 ## Sonraki adımlar (kapsam dışı)
 
 - Push bildirimleri
