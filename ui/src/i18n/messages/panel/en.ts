@@ -162,7 +162,7 @@ const panel: typeof panelTr = {
       attachFile: "Upload file",
       attachPhoto: "Choose photo",
       attachCamera: "Open camera",
-      attachClipboard: "Send clipboard text",
+      attachClipboard: "Paste from clipboard",
       attachAudio: "Upload audio file",
       attachRecord: "Record audio",
       attachRecordTitle: "Record with microphone; does not transcribe (unlike Speak to type)",
