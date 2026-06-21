@@ -29,8 +29,8 @@ const panelNav = {
     guvenlik: "Güvenlik",
     dunya: "Dünya",
     ayarlar: "Ayarlar",
-    inactiveBadge: "Henüz aktif değil",
-    inactiveBadgeTitle: "Bu modül henüz aktif değil — erken erişim aşamasında",
+    inactiveBadge: "Önizleme",
+    inactiveBadgeTitle: "Bilgi ve önizleme ekranı — tam modül işlevi aktif değil",
   },
   sections: {
     sohbet: "Sohbet",

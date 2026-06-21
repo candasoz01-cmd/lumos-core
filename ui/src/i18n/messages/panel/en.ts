@@ -80,8 +80,8 @@ const panel: typeof panelTr = {
     guvenlik: "Security",
     dunya: "World",
     ayarlar: "Settings",
-    inactiveBadge: "Not active yet",
-    inactiveBadgeTitle: "This module is not active yet — early access stage",
+    inactiveBadge: "Preview",
+    inactiveBadgeTitle: "Information and preview screen — the full module is not active",
   },
   sections: {
     sohbet: "Chat",
