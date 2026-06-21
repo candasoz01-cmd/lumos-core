@@ -155,7 +155,8 @@ Panel: `panel_tasks_server` silinen görevleri `trash/*.json` dosyalarına yazar
 | ADR-012 taslak paket (codex + companion analizler) | **Tamamlandı** — #440 (2026-06-21) |
 | Panel şeffaflık — gate reason + UI codex uyarısı | **Tamamlandı** — #441 (2026-06-21) |
 | Panel policy enforcement (`check_policy`, gate `enabled`) | **Tamamlandı** — #443 |
-| `SECURITY_NEVER_AUTO` tüm silme/yazma yolları | Gap — enforcement map |
+| Panel `PUT /tasks.json` policy gate | **Tamamlandı** — dar enforcement PR (#444) |
+| `SECURITY_NEVER_AUTO` tüm silme/yazma yolları | Gap — enforcement map; scan: `lumos-security-never-auto-branch-scan.md` |
 | Trust motor (ADR-007) kanıt zinciri genişletmesi | Bekliyor — Faz 4 |
 
 ---
@@ -164,7 +165,7 @@ Panel: `panel_tasks_server` silinen görevleri `trash/*.json` dosyalarına yazar
 
 1. `SECURITY_NEVER_AUTO` tam runtime branch'i tüm silme/yazma yollarında var mı? (enforcement map gap — bilinçli takip)
 2. Trust motor (ADR-007) finalize olunca codex C3 kanıt zinciri genişletilecek mi? (Faz 4 checkpoint)
-3. Panel `PUT /tasks.json` tam doküman yazımı policy zincirine bağlanacak mı? (dar kapsam dışı — ayrı PR)
+3. Panel `PUT /tasks.json` tam doküman yazımı policy zincirine bağlanacak mı? → **Evet** — #444 (`CREATE_TASK` gate).
 
 ---
 
