@@ -203,3 +203,17 @@ ADR-012 Lumos Security Codex — finalize + panel enforcement zinciri.
 | 3 | [#443](https://github.com/candasoz01-cmd/lumos-core/pull/443) | Panel `check_policy` enforcement (PR #2) |
 
 **Kapsam:** `docs/decisions/ADR-012-lumos-security-codex.md` durum → Kabul edildi; panel görev mutasyonları `action_policy.check_policy` ile hizalanıyor.
+
+---
+
+## 2026-06-21 (Quantum Readiness copy/docs)
+
+Quantum Readiness Faz-2 kısmi milestone — UI copy + docs senkronu (#468–#475).
+
+| Sıra | PR | Özet |
+|------|-----|------|
+| 1 | [#468](https://github.com/candasoz01-cmd/lumos-core/pull/468)–[#469](https://github.com/candasoz01-cmd/lumos-core/pull/469) | Yerel tarayıcı + panel `GET /quantum-readiness` live fetch |
+| 2 | [#470](https://github.com/candasoz01-cmd/lumos-core/pull/470)–[#472](https://github.com/candasoz01-cmd/lumos-core/pull/472) | ADR-001/013 sync, panel/landing copy, DL + open-decisions |
+| 3 | [#473](https://github.com/candasoz01-cmd/lumos-core/pull/473)–[#475](https://github.com/candasoz01-cmd/lumos-core/pull/475) | Landing Faz-2 wording, ADR cross-ref, panel fetch badge copy |
+
+**Kapsam:** Copy/docs-only; enforcement veya runtime davranış değişikliği yok.
