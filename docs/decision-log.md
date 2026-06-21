@@ -137,6 +137,7 @@ Enforcement kararı veya uygulama taahhüdü **içermez**; salt okuma analiz yay
 |----|-------|------|------|----------|
 | DL-T01 | 2026-06-21 | Teknik borç — mimari yoğunlaşma analizi | **Doc-only published** — 20 maddelik kanıta dayalı borç envanteri; anchor indeks + etki/maliyet sıralaması; kod/runtime değişikliği yok | [`technical-debt-architecture-concentration-2026-06.md`](analysis/technical-debt-architecture-concentration-2026-06.md); [open-decisions § teknik borç backlog](memory/open-decisions-needs-review.md#teknik-borç-backlog-bilgilendirme) |
 | DL-T02 | 2026-06-21 | Release blockers + teknik borç uygulama paketi | **Doc-only published** — RB-01..RB-28 release engel analizi; td-01..td-10 uygulanabilirlik haritası + bağımlılık grafiği (Wave 1–3); enforcement/kod taahhüdü yok | [`release-blockers.md`](analysis/release-blockers.md), [`technical-debt-execution-map.md`](analysis/technical-debt-execution-map.md), [`technical-debt-dependency-graph.md`](analysis/technical-debt-dependency-graph.md); [open-decisions § teknik borç backlog](memory/open-decisions-needs-review.md#teknik-borç-backlog-bilgilendirme) |
+| DL-T03 | 2026-06-21 | RB-07 — GitHub release checklist | **Doc-only complete** — canonical [`GITHUB_RELEASE_CHECKLIST.md`](GITHUB_RELEASE_CHECKLIST.md); README referansı geçerli; publish CI (RB-08) defer | GAP-12 |
 ---
 
 ## 2026-06-17 — Dokümantasyon düzeni kurulumu
