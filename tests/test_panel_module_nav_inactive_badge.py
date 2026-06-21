@@ -88,3 +88,14 @@ def test_panel_header_has_no_seasonal_badge_or_flags() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
     assert "GlobalMay19Corner" not in text
     assert "lumos-m19g" not in text
+    assert "/assets/flags/tr.svg" not in text
+
+
+def test_panel_clipboard_attach_label_uses_paste_copy() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    astro = _PANEL_ASTRO.read_text(encoding="utf-8")
+    assert 'attachClipboard: "Panodan yapıştır"' in tr_text
+    assert 'attachClipboard: "Paste from clipboard"' in en_text
+    assert "Panodaki metni ilet" not in astro
+    assert "Panodan yapıştır" in astro

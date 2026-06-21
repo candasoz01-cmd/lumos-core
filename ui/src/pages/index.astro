@@ -8,6 +8,14 @@ const GITHUB_README_URL = "https://github.com/candasoz01-cmd/lumos-core/blob/mai
 const GITHUB_ROADMAP_URL = `${GITHUB_REPO_URL}/blob/main/ROADMAP.md`;
 const ADR_QUANTUM_URL = `${GITHUB_REPO_URL}/blob/main/docs/decisions/ADR-001-lumos-quantum-modules.md`;
 const ADR_QUANTUM_READINESS_URL = `${GITHUB_REPO_URL}/blob/main/docs/decisions/ADR-013-lumos-quantum-security-readiness.md`;
+
+/** UI-only: 19 Mayıs anması yalnızca bayram günü (Europe/Istanbul). */
+function isMay19CommemorationDay(now = new Date()) {
+  const istanbul = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Istanbul" }));
+  return istanbul.getMonth() === 4 && istanbul.getDate() === 19;
+}
+
+const showMay19Commemoration = isMay19CommemorationDay();
 ---
 
 <html lang="tr">
@@ -2245,7 +2253,7 @@ const ADR_QUANTUM_READINESS_URL = `${GITHUB_REPO_URL}/blob/main/docs/decisions/A
             </ul>
             <div class="lumos-site-nav__corner">
               <LanguageSwitcher />
-              <GlobalMay19Corner />
+              {showMay19Commemoration && <GlobalMay19Corner />}
             </div>
           </div>
         </nav>
@@ -2473,6 +2481,7 @@ const ADR_QUANTUM_READINESS_URL = `${GITHUB_REPO_URL}/blob/main/docs/decisions/A
         </p>
       </section>
 
+      {showMay19Commemoration && (
       <aside class="lumos-may19-card lumos-may19-card--sideline" aria-labelledby="lumos-may19-heading">
         <h2 id="lumos-may19-heading" class="lumos-may19-card__heading--inline">
           <span class="lumos-may19-card__flag-badges" aria-hidden="true">
@@ -2515,6 +2524,7 @@ const ADR_QUANTUM_READINESS_URL = `${GITHUB_REPO_URL}/blob/main/docs/decisions/A
           </button>
         </div>
       </aside>
+      )}
 
       <section id="lumos-nedir" class="lumos-section" aria-labelledby="lumos-nedir-baslik">
         <h2 id="lumos-nedir-baslik" data-i18n="landing.whatIs.title">Lumos nedir?</h2>
@@ -3101,6 +3111,7 @@ vercel dev</code></pre>
       </section>
     </div>
 
+    {showMay19Commemoration && (
     <div
       id="lumos-may19-overlay"
       class="lumos-may19-overlay"
@@ -3121,6 +3132,7 @@ vercel dev</code></pre>
         <button type="button" class="lumos-may19-close-btn" id="lumos-may19-close" data-i18n="landing.may19.closeBtn">Kapat</button>
       </div>
     </div>
+    )}
 
     <script is:inline>
       (function () {

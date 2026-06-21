@@ -162,7 +162,7 @@ const panelModules = {
       attachFile: "Dosya yükle",
       attachPhoto: "Fotoğraf seç",
       attachCamera: "Kamera aç",
-      attachClipboard: "Panodaki metni ilet",
+      attachClipboard: "Panodan yapıştır",
       attachAudio: "Ses dosyası yükle",
       attachRecord: "Ses kaydı",
       attachRecordTitle: "Mikrofonla ses kaydet; metne çevirmez (Sesle yaz düğmesinden farklı)",

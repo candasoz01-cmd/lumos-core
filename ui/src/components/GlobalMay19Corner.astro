@@ -2,8 +2,17 @@
 /** `ui/public` → kök URL (`/assets/...`). Kaynak/atıf: `ui/public/assets/flags/README.md`. */
 const FLAG_TR_SRC = "/assets/flags/tr.svg";
 const FLAG_KKTC_SRC = "/assets/flags/kktc.svg";
+
+/** UI-only: gösterim yalnızca 19 Mayıs (Europe/Istanbul). */
+function isMay19CommemorationDay(now = new Date()): boolean {
+  const istanbul = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Istanbul" }));
+  return istanbul.getMonth() === 4 && istanbul.getDate() === 19;
+}
+
+const showMay19Commemoration = isMay19CommemorationDay();
 ---
 
+{showMay19Commemoration && (
 <div
   id="lumos-m19-global"
   class="lumos-m19g lumos-m19g--dock-header"
@@ -88,6 +97,7 @@ const FLAG_KKTC_SRC = "/assets/flags/kktc.svg";
     </span>
   </button>
 </div>
+)}
 
 <style is:global>
   /**
