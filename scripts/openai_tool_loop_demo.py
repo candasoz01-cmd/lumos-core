@@ -24,6 +24,7 @@ from kando_bridge.mobile_approval_client import (  # noqa: E402
 )
 from kando_bridge.openai_tool_adapter import (  # noqa: E402
     approve_and_reexecute,
+    dev_auto_approve_allowed,
     fetch_live_openai_response,
     mock_openai_response_payload,
     parse_openai_tool_calls,
@@ -165,6 +166,12 @@ def main(argv: list[str] | None = None) -> int:
     _apply_bridge_env(args)
 
     if args.auto_approve:
+        if not dev_auto_approve_allowed():
+            sys.stderr.write(
+                "HATA / ERROR: --auto-approve requires LUMOS_DEV_AUTO_APPROVE=1 "
+                "(dev-only; not for production demos).\n"
+            )
+            return 2
         sys.stderr.write(
             "UYARI / WARNING: --auto-approve dev-only bypass; "
             "use mobile UI for real demos.\n"

@@ -17,6 +17,7 @@ from kando_bridge.lan_relay import RELAY_TOKEN_HEADER, LanRelayServer, RelayConf
 from kando_bridge.mobile_approval_client import approve_pending
 from kando_bridge.openai_tool_adapter import (
     approve_and_reexecute,
+    dev_auto_approve_allowed,
     mock_openai_response_payload,
     mock_pc_open_url_response,
     parse_openai_tool_calls,
@@ -189,6 +190,31 @@ def test_openai_tool_loop_pending_without_auto_approve(adapter_bridge_env: Path)
     result = run_tool_call_loop(calls[0], auto_approve=False)
     assert result["stage"] == "pending"
     assert result["pending"]["status"] == "pending_approval"
+
+
+def test_auto_approve_blocked_without_dev_env(
+    adapter_bridge_env: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """auto_approve=True without LUMOS_DEV_AUTO_APPROVE must not silently execute."""
+    monkeypatch.delenv("LUMOS_DEV_AUTO_APPROVE", raising=False)
+    calls = parse_openai_tool_calls(mock_pc_open_url_response())
+    assert dev_auto_approve_allowed() is False
+    result = run_tool_call_loop(calls[0], auto_approve=True)
+    assert result["stage"] == "pending"
+    assert result.get("dev_auto_approve_blocked") is True
+    assert result["pending"]["status"] == "pending_approval"
+
+
+def test_auto_approve_works_with_dev_env(
+    adapter_bridge_env: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("LUMOS_DEV_AUTO_APPROVE", "1")
+    calls = parse_openai_tool_calls(mock_pc_open_url_response())
+    result = run_tool_call_loop(calls[0], auto_approve=True)
+    assert result["stage"] == "executed"
+    assert result["ok"] is True
 
 
 def test_openai_tool_loop_post_tools_execute_pending(adapter_bridge_env: Path) -> None:
