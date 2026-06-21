@@ -45,6 +45,7 @@ def test_router_handles_help_general_approval_and_exit(capsys):
         event_recording_engine=None,
         pending_intent=[None],
         pending_action=[None],
+        pending_confirmation=[],
         policy_runtime_mode="offline",
         policy_is_locked=lambda: True,
     )
@@ -123,6 +124,7 @@ def test_router_unknown_offline_prints_fallback(capsys):
         event_recording_engine=None,
         pending_intent=[None],
         pending_action=[None],
+        pending_confirmation=[],
         policy_runtime_mode="offline",
         policy_is_locked=lambda: True,
     )
@@ -200,6 +202,7 @@ def test_router_unknown_online_routes_to_live_brain(capsys):
         event_recording_engine=None,
         pending_intent=[None],
         pending_action=[None],
+        pending_confirmation=[],
         policy_runtime_mode="online",
         policy_is_locked=lambda: True,
     )

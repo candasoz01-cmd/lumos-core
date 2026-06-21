@@ -16,6 +16,7 @@ from policy.confirmation_policy import (
     check_confirmation,
     consume_confirmation,
     ensure_delete_permanent_confirmation,
+    ensure_cli_mutation_confirmation,
     ensure_panel_mutation_confirmation,
     is_confirmation_enabled,
     request_confirmation,
@@ -201,4 +202,32 @@ def test_ensure_panel_mutation_confirmation_id_consumes(
     result = ensure_panel_mutation_confirmation("create_task", scope, body, base_dir=tmp_path)
     assert result.allowed
     retry = ensure_panel_mutation_confirmation("create_task", scope, body, base_dir=tmp_path)
+    assert not retry.allowed
+
+
+def test_ensure_cli_mutation_disabled_noop(monkeypatch: pytest.MonkeyPatch) -> None:
+    result = ensure_cli_mutation_confirmation("delete_task", {"id": "1"}, None)
+    assert result.allowed
+    assert result.reason == REASON_CONFIRMATION_DISABLED
+
+
+def test_ensure_cli_mutation_confirmation_id_consumes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    scope = {"id": "42"}
+    pending = request_confirmation("delete_task", scope, base_dir=tmp_path)
+    result = ensure_cli_mutation_confirmation(
+        "delete_task",
+        scope,
+        pending.confirmation_id,
+        base_dir=tmp_path,
+    )
+    assert result.allowed
+    retry = ensure_cli_mutation_confirmation(
+        "delete_task",
+        scope,
+        pending.confirmation_id,
+        base_dir=tmp_path,
+    )
     assert not retry.allowed

@@ -17,7 +17,12 @@ from cli.cli_parse import (
     normalize_command,
 )
 from cli.cli_readonly import ReadOnlyContext, handle_gorev_kuyruk, handle_readonly
-from cli.cli_tasks_mutation import TaskMutationContext, handle_task_mutation
+from cli.cli_tasks_mutation import (
+    TaskMutationContext,
+    handle_confirmation_approve,
+    handle_confirmation_cancel,
+    handle_task_mutation,
+)
 from core.startup_health import consent_ok, effective_consent
 from task_engine import ALL_PROFILES, get_profile_display_name
 
@@ -190,6 +195,12 @@ def run_cli_loop(router_ctx: RouterContext) -> None:
                 f"effective: {'evet' if eff else 'hayır'} | "
                 f"kilit: {'kilitli' if locked else 'açık'}"
             )
+            continue
+        if route == "onayla":
+            handle_confirmation_approve(args[0] if args else "", router_ctx.mut_ctx)
+            continue
+        if route == "onay_iptal":
+            handle_confirmation_cancel(args, router_ctx.mut_ctx)
             continue
         if handle_task_mutation(route, args, router_ctx.mut_ctx):
             continue

@@ -10,7 +10,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from core.workspace_contract import may_perform_permanent_delete, save_task_store_json
+from core.workspace_contract import (
+    ensure_trash_dir,
+    may_perform_permanent_delete,
+    save_task_store_json,
+    trash_path,
+    writing_base_dir,
+)
 from task_engine.action_registry import ActionRegistry, ExecutionContext
 from task_engine.diagnostics import get_step_block_reason
 from task_engine.verification import get_default_verification_engine
@@ -294,6 +300,46 @@ class TaskStore:
         task.archived = True
         task.archived_at = _now_iso()
         self.update(task, mutation="archive")
+        return True
+
+    def move_to_trash(self, task_id: int) -> bool:
+        """
+        Soft delete: görevi trash/ altına yazar ve tasks.json'dan çıkarır.
+        Panel POST /tasks/delete ile hizalı; kalıcı silme değildir.
+        """
+        task = self.get(task_id)
+        if not task:
+            return False
+        dest_base = writing_base_dir(self.base_dir, self.sandbox_mode)
+        ensure_trash_dir(self.base_dir, is_sandbox_mode=self.sandbox_mode)
+        trash_dir = trash_path(dest_base)
+        tid = str(task_id)
+        deleted_at = _now_iso()
+        payload = task.to_dict()
+        title = task.title or task.description[:80] or "Görev"
+        fn = tid.replace("/", "_").replace("\\", "_").strip() or "task"
+        path = trash_dir / f"{fn}.json"
+        n = 0
+        while path.exists():
+            n += 1
+            path = trash_dir / f"{fn}_{n}.json"
+        record = {
+            "id": tid,
+            "taskId": tid,
+            "type": "task_deleted",
+            "text": title,
+            "ts": deleted_at,
+            "title": title,
+            "status": str(task.status),
+            "deleted_at": deleted_at,
+            "payload": payload,
+        }
+        tmp = path.parent / (path.name + ".tmp")
+        body = json.dumps(record, ensure_ascii=False, indent=2) + "\n"
+        tmp.write_text(body, encoding="utf-8")
+        tmp.replace(path)
+        self._tasks = [t for t in self._tasks if t.task_id != task_id]
+        self._save(mutation="soft_delete", entity_id=task_id)
         return True
 
     def delete(self, task_id: int, *, user_initiated: bool = False) -> bool:
