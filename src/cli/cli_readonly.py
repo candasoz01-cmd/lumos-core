@@ -249,7 +249,7 @@ def handle_readonly(route: str, args: list[str], ctx: ReadOnlyContext) -> bool:
             log_path = logs_file_path(ctx.base_dir)
             snap = ctx.state.snapshot(base_dir=ctx.base_dir, log_path=log_path)
             parts = get_durum_parts(Path(ctx.base_dir), ctx.ks.is_initialized(), ctx.engine.pl, session_consent=_session_consent_from_ctx(ctx))
-            durum_txt = format_durum(snap, parts["consent_ok"], parts["lock_ok"], parts["durum_label"], parts["not_line"])
+            durum_txt = format_durum(snap, parts["consent_ok"], parts["keystore_ready"], parts["durum_label"], parts["not_line"])
             print(durum_txt)
             ctx.last_response_reason[0] = parts.get("not_line") or parts.get("durum_label", "")
             ctx.last_action[0] = "En son durum özetini gösterdim."
@@ -262,7 +262,13 @@ def handle_readonly(route: str, args: list[str], ctx: ReadOnlyContext) -> bool:
         from core.startup_health import get_startup_summary
         ctx.current_task[0] = "açılış sağlık özetini doğruluyorum."
         try:
-            summary = get_startup_summary(Path(ctx.base_dir), not ctx.state.is_locked(), ctx.pl, session_consent=_session_consent_from_ctx(ctx))
+            summary = get_startup_summary(
+                Path(ctx.base_dir),
+                ctx.ks.is_initialized(),
+                ctx.pl,
+                session_consent=_session_consent_from_ctx(ctx),
+                session_unlocked=not ctx.state.is_locked(),
+            )
             print(summary)
             ctx.last_response_reason[0] = summary
             ctx.last_action[0] = "En son hazır olma özetini verdim."
