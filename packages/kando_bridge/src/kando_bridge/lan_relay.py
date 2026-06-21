@@ -185,51 +185,65 @@ def build_mobile_ui_html() -> str:
 <title>Lumos Onay / Approval</title>
 <style>
 :root { color-scheme: light dark; --bg: #f4f4f5; --card: #fff; --text: #18181b; --muted: #71717a;
-  --ok: #16a34a; --no: #dc2626; --accent: #2563eb; --border: #e4e4e7; }
+  --ok: #16a34a; --no: #dc2626; --accent: #2563eb; --border: #e4e4e7; --warn: #b45309; }
 @media (prefers-color-scheme: dark) {
   :root { --bg: #09090b; --card: #18181b; --text: #fafafa; --muted: #a1a1aa;
-    --border: #3f3f46; }
+    --border: #3f3f46; --warn: #fbbf24; }
 }
 * { box-sizing: border-box; }
 body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: var(--bg);
-  color: var(--text); min-height: 100dvh; }
+  color: var(--text); min-height: 100dvh; padding-bottom: env(safe-area-inset-bottom, 0); }
 header { padding: 1rem 1rem 0.5rem; position: sticky; top: 0; background: var(--bg);
   border-bottom: 1px solid var(--border); z-index: 1; }
 h1 { margin: 0; font-size: 1.125rem; }
 .sub { color: var(--muted); font-size: 0.8125rem; margin-top: 0.25rem; }
 #status { font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem; }
-main { padding: 0.75rem 1rem 2rem; display: grid; gap: 0.75rem; }
-.card { background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-  padding: 0.875rem; }
-.cmd { font-weight: 600; font-size: 0.9375rem; word-break: break-word; }
-.meta { font-size: 0.8125rem; color: var(--muted); margin-top: 0.35rem; }
-.risk { display: inline-block; padding: 0.125rem 0.5rem; border-radius: 999px;
-  font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.03em;
-  background: #fef3c7; color: #92400e; margin-top: 0.5rem; }
+#error-banner { display: none; margin-top: 0.5rem; padding: 0.625rem 0.75rem;
+  border-radius: 8px; background: #fef2f2; color: #991b1b; font-size: 0.8125rem; }
 @media (prefers-color-scheme: dark) {
-  .risk { background: #422006; color: #fde68a; }
+  #error-banner { background: #450a0a; color: #fecaca; }
 }
-.preview { margin-top: 0.5rem; font-size: 0.75rem; font-family: ui-monospace, monospace;
-  background: var(--bg); padding: 0.5rem; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; }
-.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.75rem; }
-button { border: none; border-radius: 10px; padding: 0.75rem; font-size: 0.9375rem;
-  font-weight: 600; cursor: pointer; }
+#error-banner.visible { display: block; }
+main { padding: 0.75rem 1rem 2rem; display: grid; gap: 0.75rem; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+  padding: 1.25rem 1rem; }
+.headline { font-weight: 700; font-size: 1.125rem; line-height: 1.35; word-break: break-word; }
+.detail { font-size: 0.9375rem; color: var(--muted); margin-top: 0.5rem; word-break: break-all; }
+.risk { display: inline-block; padding: 0.2rem 0.625rem; border-radius: 999px;
+  font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.04em;
+  border: 1px solid var(--border); margin-top: 0.75rem; }
+.risk-high { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+.risk-medium { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+@media (prefers-color-scheme: dark) {
+  .risk-high { background: #450a0a; color: #fecaca; }
+  .risk-medium { background: #422006; color: #fde68a; }
+}
+.expiry { font-size: 0.8125rem; color: var(--warn); margin-top: 0.75rem; font-weight: 500; }
+.expiry.urgent { color: var(--no); }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.625rem; margin-top: 1.25rem; }
+button { border: none; border-radius: 12px; padding: 1rem 0.75rem; min-height: 56px;
+  font-size: 1rem; font-weight: 700; cursor: pointer; }
 .btn-ok { background: var(--ok); color: #fff; }
 .btn-no { background: var(--no); color: #fff; }
 button:disabled { opacity: 0.45; cursor: not-allowed; }
-.empty { text-align: center; color: var(--muted); padding: 2rem 1rem; }
+.empty { text-align: center; color: var(--muted); padding: 2.5rem 1rem; line-height: 1.5; }
 .token-box { margin-top: 0.75rem; display: grid; gap: 0.5rem; }
 .token-box input { width: 100%; padding: 0.625rem; border-radius: 8px; border: 1px solid var(--border);
   background: var(--card); color: var(--text); font-size: 0.875rem; }
-.token-box button { background: var(--accent); color: #fff; }
+.token-box button { background: var(--accent); color: #fff; min-height: auto; padding: 0.75rem; }
 .hidden { display: none; }
+.preview-toggle { margin-top: 0.5rem; font-size: 0.75rem; color: var(--accent); background: none;
+  border: none; padding: 0; min-height: auto; font-weight: 500; cursor: pointer; }
+.preview { margin-top: 0.5rem; font-size: 0.75rem; font-family: ui-monospace, monospace;
+  background: var(--bg); padding: 0.5rem; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; }
 </style>
 </head>
 <body>
 <header>
-  <h1>PC isteği onayı / Approve PC request</h1>
-  <div class="sub">Bekleyen komutları onaylayın veya reddedin / Review pending commands</div>
+  <h1 id="device-label">Lumos-PC</h1>
+  <div class="sub">Bekleyen isteği onaylayın veya reddedin / Review pending request</div>
   <div id="status">—</div>
+  <div id="error-banner" role="alert"></div>
   <div id="token-setup" class="token-box hidden">
     <input id="token-input" type="text" placeholder="Relay token / eşleştirme token" autocomplete="off">
     <button type="button" id="token-save">Kaydet / Save</button>
@@ -241,8 +255,15 @@ const RELAY_HEADER = "X-Relay-Token";
 const TOKEN_KEY = "lumos_relay_token";
 const params = new URLSearchParams(location.search);
 let relayToken = params.get("token") || sessionStorage.getItem(TOKEN_KEY) || "";
+let countdownTimer = null;
 
 function setStatus(msg) { document.getElementById("status").textContent = msg; }
+function showError(msg) {
+  const el = document.getElementById("error-banner");
+  if (!msg) { el.classList.remove("visible"); el.textContent = ""; return; }
+  el.textContent = msg;
+  el.classList.add("visible");
+}
 function showTokenSetup(show) {
   document.getElementById("token-setup").classList.toggle("hidden", !show);
 }
@@ -266,35 +287,115 @@ function esc(s) {
     ({ "&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;","'":"&#39;" }[c]));
 }
 
+const CMD_LABELS = {
+  pc_open_url: "Web adresi aç / Open web address",
+  pc_open_app: "Uygulama aç / Open application",
+  pc_type_text: "Metin yaz / Type text",
+  pc_suggest_click: "Tıklama öner / Suggest click",
+  pc_request_file_picker: "Dosya seç / Pick a file",
+  pc_read_screen: "Ekranı oku / Read screen",
+};
+
+function headline(item) {
+  const action = String(item.required_user_action || item.pending_summary || item.title || "").trim();
+  if (action) return action.split(" / ")[0].trim() || action;
+  return CMD_LABELS[item.command] || "PC isteği / PC request";
+}
+
+function detailLine(item) {
+  const prev = item.arguments_preview || item.arguments || {};
+  if (item.command === "pc_open_url" && prev.url) return String(prev.url);
+  if (item.command === "pc_open_app" && prev.app_name) return String(prev.app_name);
+  if (item.command === "pc_type_text" && prev.text) {
+    const t = String(prev.text);
+    return t.length > 80 ? t.slice(0, 80) + "…" : t;
+  }
+  if (prev.target_description) return String(prev.target_description);
+  if (prev.purpose) return String(prev.purpose);
+  return "";
+}
+
+function formatExpiry(expiresAt) {
+  if (!expiresAt) return "";
+  const end = new Date(expiresAt);
+  if (isNaN(end.getTime())) return "";
+  const sec = Math.max(0, Math.floor((end - Date.now()) / 1000));
+  if (sec <= 0) return "Süresi doldu / Expired";
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  if (m >= 60) return "≈" + Math.floor(m / 60) + " saat kaldı / h left";
+  if (m > 0) return "≈" + m + " dk " + s + " sn kaldı / left";
+  return sec + " sn kaldı / sec left";
+}
+
+function riskClass(level) {
+  const l = String(level || "").toLowerCase();
+  if (l === "high") return "risk risk-high";
+  if (l === "medium") return "risk risk-medium";
+  return "risk hidden";
+}
+
+function riskLabel(level) {
+  const l = String(level || "").toLowerCase();
+  if (l === "high") return "Yüksek risk / High risk";
+  if (l === "medium") return "Orta risk / Medium risk";
+  return "";
+}
+
 async function api(method, path, body) {
   const headers = { "Accept": "application/json" };
   if (relayToken) headers[RELAY_HEADER] = relayToken;
   if (body) headers["Content-Type"] = "application/json";
   const res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || res.statusText || "request_failed");
+  if (!res.ok) throw new Error(data.message_en || data.message_tr || data.error || res.statusText || "request_failed");
   return data;
 }
 
-function renderItem(item) {
-  const preview = JSON.stringify(item.arguments_preview || item.arguments || {}, null, 2);
+function renderFocusItem(item) {
   const card = document.createElement("article");
   card.className = "card";
+  const det = detailLine(item);
+  const rl = riskLabel(item.risk_level);
   card.innerHTML = `
-    <div class="cmd">${esc(item.command || item.approval_id)}</div>
-    <div class="meta">${esc(item.required_user_action || "")}</div>
-    <div class="risk">${esc(item.risk_level || "unknown")}</div>
-    <div class="meta">${esc(item.expires_at ? "Bitiş / Expires: " + item.expires_at : "")}</div>
-    <pre class="preview">${esc(preview)}</pre>
+    <div class="headline">${esc(headline(item))}</div>
+    ${det ? `<div class="detail">${esc(det)}</div>` : ""}
+    ${rl ? `<div class="${riskClass(item.risk_level)}">${esc(rl)}</div>` : ""}
+    <div class="expiry" id="expiry-line">${esc(formatExpiry(item.expires_at))}</div>
+    <button type="button" class="preview-toggle hidden" id="preview-toggle">Detayları göster / Show details</button>
+    <pre class="preview hidden" id="preview-block"></pre>
     <div class="actions">
-      <button type="button" class="btn-ok" data-act="approve">Onayla / Approve</button>
       <button type="button" class="btn-no" data-act="reject">Reddet / Reject</button>
+      <button type="button" class="btn-ok" data-act="approve">Onayla / Approve</button>
     </div>`;
-  card.querySelectorAll("button").forEach(btn => {
+  const preview = item.arguments_preview || item.arguments || {};
+  const previewBlock = card.querySelector("#preview-block");
+  const previewToggle = card.querySelector("#preview-toggle");
+  if (preview && Object.keys(preview).length) {
+    previewBlock.textContent = JSON.stringify(preview, null, 2);
+    previewToggle.classList.remove("hidden");
+    previewToggle.addEventListener("click", () => {
+      const open = previewBlock.classList.toggle("hidden");
+      previewToggle.textContent = open
+        ? "Detayları göster / Show details"
+        : "Detayları gizle / Hide details";
+    });
+  }
+  const expiryEl = card.querySelector("#expiry-line");
+  function tickExpiry() {
+    if (!expiryEl || !item.expires_at) return;
+    const txt = formatExpiry(item.expires_at);
+    expiryEl.textContent = txt;
+    expiryEl.classList.toggle("urgent", txt.includes("dk") && parseInt(txt, 10) <= 2 || txt.includes("sn"));
+  }
+  tickExpiry();
+  if (countdownTimer) clearInterval(countdownTimer);
+  countdownTimer = setInterval(tickExpiry, 1000);
+  card.querySelectorAll(".actions button").forEach(btn => {
     btn.addEventListener("click", async () => {
       const approved = btn.dataset.act === "approve";
-      btn.disabled = true;
       card.querySelectorAll("button").forEach(b => b.disabled = true);
+      showError("");
       try {
         await api("POST", approved ? "/relay/approve" : "/relay/reject", {
           approval_file: item.approval_file,
@@ -304,8 +405,8 @@ function renderItem(item) {
         setStatus(approved ? "Onaylandı / Approved" : "Reddedildi / Rejected");
         poll();
       } catch (e) {
-        setStatus("Hata / Error: " + e.message);
-        card.querySelectorAll("button").forEach(b => b.disabled = false);
+        showError("Hata / Error: " + e.message);
+        card.querySelectorAll("button").forEach(b => { if (!b.classList.contains("preview-toggle")) b.disabled = false; });
       }
     });
   });
@@ -319,21 +420,26 @@ async function poll() {
     return;
   }
   setStatus("Yükleniyor… / Loading…");
+  showError("");
   const root = document.getElementById("list");
   try {
     const data = await api("GET", "/relay/pending");
     const items = data.pending || [];
     root.replaceChildren();
     if (!items.length) {
-      root.innerHTML = '<div class="empty">Bekleyen istek yok / No pending requests</div>';
+      if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+      root.innerHTML = '<div class="empty"><strong>Bekleyen istek yok</strong><br>No pending requests<br><span style="font-size:0.8125rem">PC'de yeni bir işlem gelince burada görünür</span></div>';
+      setStatus("Hazır / Ready");
     } else {
-      items.forEach(item => root.appendChild(renderItem(item)));
+      const focus = items[0];
+      root.appendChild(renderFocusItem(focus));
+      setStatus(items.length === 1 ? "1 bekleyen istek / 1 pending" : items.length + " bekleyen — ilk gösteriliyor / showing first");
     }
-    setStatus(items.length + " bekleyen / pending");
   } catch (e) {
     root.replaceChildren();
     root.innerHTML = '<div class="empty">' + esc(e.message) + '</div>';
-    setStatus("Bağlantı hatası / Connection error");
+    showError("Bağlantı hatası / Connection error: " + e.message);
+    setStatus("Bağlantı kesildi / Disconnected");
     if (String(e.message).includes("relay_token")) showTokenSetup(true);
   }
 }

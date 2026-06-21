@@ -327,7 +327,8 @@ def test_relay_mobile_ui_route(relay_server: tuple[int, RelayState, RelayConfig]
         html = resp.read().decode("utf-8")
     assert "Onayla / Approve" in html
     assert "Reddet / Reject" in html
-    assert "PC isteği onayı" in html
+    assert "Lumos-PC" in html
+    assert "headline" in html
     assert "/relay/pending" in html
     assert "/relay/approve" in html
 
@@ -355,6 +356,11 @@ def test_build_mobile_ui_html_contains_controls() -> None:
     assert "/relay/approve" in html
     assert "/relay/reject" in html
     assert "approval_token" in html
+    assert "error-banner" in html
+    assert "headline" in html
+    assert "formatExpiry" in html
+    assert "preview-toggle" in html
+    assert "renderFocusItem" in html
 
 
 def test_relay_invalid_token_error_payload(relay_server: tuple[int, RelayState, RelayConfig]) -> None:

@@ -165,3 +165,63 @@ def test_pending_disk_has_no_used_before_execute(tmp_path: Path) -> None:
     assert disk is not None
     assert disk[1]["status"] == STATUS_PENDING
     assert disk[1]["used"] is False
+
+
+def test_try_consume_approval_token_marks_used(tmp_path: Path) -> None:
+    from kando_bridge.pending_approvals import try_consume_approval_token
+
+    pending = execute_tool_stub(
+        CMD_OPEN_URL,
+        {"url": "https://example.com"},
+        repo_root=tmp_path,
+    )
+    _approve_pending(tmp_path, pending)
+    ok, reason, rec = try_consume_approval_token(
+        tmp_path,
+        str(pending["approval_id"]),
+        str(pending["approval_token"]),
+    )
+    assert ok is True
+    assert reason == ""
+    assert rec is not None
+    assert rec["used"] is True
+    ok2, reason2, _ = try_consume_approval_token(
+        tmp_path,
+        str(pending["approval_id"]),
+        str(pending["approval_token"]),
+    )
+    assert ok2 is False
+    assert reason2 == "approval_already_used"
+
+
+def test_try_consume_rejects_expired_approved(tmp_path: Path) -> None:
+    from kando_bridge.pending_approvals import try_consume_approval_token
+
+    now = datetime.now(timezone.utc)
+    record = {
+        "schema_version": PC_REMOTE_PENDING_SCHEMA,
+        "source": "pc_remote",
+        "approval_id": "pc_remote_try_consume_exp",
+        "approval_file": ".lumos/pending_approvals/pc_remote_try_consume_exp.json",
+        "approval_token": "try-consume-exp-token",
+        "command": CMD_OPEN_URL,
+        "arguments": {"url": "https://example.com"},
+        "arguments_preview": {"url": "https://example.com"},
+        "requested_by": "test",
+        "target_device": "local",
+        "created_at": now.isoformat(),
+        "expires_at": (now - timedelta(minutes=1)).isoformat(),
+        "risk_level": "medium",
+        "required_user_action": "test",
+        "status": STATUS_APPROVED,
+        "used": False,
+        "stub_only": True,
+    }
+    write_pending_approval(record, tmp_path)
+    ok, reason, _ = try_consume_approval_token(
+        tmp_path,
+        "pc_remote_try_consume_exp",
+        "try-consume-exp-token",
+    )
+    assert ok is False
+    assert reason == "approval_expired"
