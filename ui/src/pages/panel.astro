@@ -779,6 +779,19 @@ const PANEL_DEBUG = import.meta.env.DEV;
         border-radius: 4px;
         line-height: 1.2;
       }
+      .panel-nav-inactive-badge {
+        flex-shrink: 0;
+        max-width: 5.2rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 0.5rem;
+        letter-spacing: 0.04em;
+      }
+      .panel-nav__primary button[data-module-availability="inactive"]:not([aria-current="true"]),
+      .panel-nav__lumos button[data-module-availability="inactive"]:not([aria-current="true"]) {
+        opacity: 0.9;
+      }
       .panel-nav__primary button[data-module],
       .panel-nav__lumos button[data-module] {
         display: flex;
@@ -4389,23 +4402,28 @@ const PANEL_DEBUG = import.meta.env.DEV;
               <button type="button" data-module="gorevler">
                 <span class="panel-nav-label" data-i18n="panel.nav.gorevler">Görevler</span>
               </button>
-              <button type="button" data-module="ses">
+              <button type="button" data-module="ses" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
                 <span class="panel-nav-label" data-i18n="panel.nav.ses">Ses</span>
+                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Henüz aktif değil</span>
               </button>
-              <button type="button" data-module="medya">
+              <button type="button" data-module="medya" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
                 <span class="panel-nav-label" data-i18n="panel.nav.medya">Medya</span>
+                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Henüz aktif değil</span>
               </button>
-              <button type="button" data-module="sosyal">
+              <button type="button" data-module="sosyal" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
                 <span class="panel-nav-label" data-i18n="panel.nav.sosyal">Sosyal</span>
+                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Henüz aktif değil</span>
               </button>
-              <button type="button" data-module="posta">
+              <button type="button" data-module="posta" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
                 <span class="panel-nav-label" data-i18n="panel.nav.posta">Posta</span>
+                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Henüz aktif değil</span>
               </button>
               <button type="button" data-module="dosyalar">
                 <span class="panel-nav-label" data-i18n="panel.nav.dosyalar">Dosyalar</span>
               </button>
-              <button type="button" class="panel-nav-research-chip" data-module="kuantum" data-i18n-title="panel.nav.kuantumResearchTitle">
+              <button type="button" class="panel-nav-research-chip" data-module="kuantum" data-module-availability="inactive" data-i18n-title="panel.nav.kuantumResearchTitle">
                 <span class="panel-nav-label" data-i18n="panel.nav.kuantum">Kuantum</span>
+                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Henüz aktif değil</span>
               </button>
             </div>
           </div>
@@ -5919,32 +5937,40 @@ const PANEL_DEBUG = import.meta.env.DEV;
               <span class="panel-nav-group-toggle-label" data-i18n="panel.nav.lumosCore">Lumos çekirdeği</span>
             </button>
             <div class="panel-nav-group-items" id="panel-nav-items-lumos" hidden>
-              <button type="button" data-module="yayincilik">
+              <button type="button" data-module="yayincilik" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
                 <span class="panel-nav-label" data-i18n="panel.nav.yayincilik">Yayıncılık</span>
+                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Henüz aktif değil</span>
               </button>
-              <button type="button" data-module="yapayzeka">
+              <button type="button" data-module="yapayzeka" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
                 <span class="panel-nav-label" data-i18n="panel.nav.yapayzeka">Yapay Zekâ</span>
+                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Henüz aktif değil</span>
               </button>
-              <button type="button" data-module="kuantum">
+              <button type="button" data-module="kuantum" data-module-availability="inactive" data-i18n-title="panel.nav.kuantumResearchTitle">
                 <span class="panel-nav-label" data-i18n="panel.nav.kuantum">Kuantum</span>
+                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Henüz aktif değil</span>
               </button>
-              <button type="button" data-module="entegrasyon">
+              <button type="button" data-module="entegrasyon" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
                 <span class="panel-nav-label" data-i18n="panel.nav.entegrasyon">Entegrasyon</span>
+                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Henüz aktif değil</span>
               </button>
-              <button type="button" data-module="kimlik">
+              <button type="button" data-module="kimlik" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
                 <span class="panel-nav-label" data-i18n="panel.nav.kimlik">Kimlik</span>
+                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Henüz aktif değil</span>
               </button>
               <button type="button" data-module="yetenekler">
                 <span class="panel-nav-label" data-i18n="panel.nav.yetenekler">Yetenekler</span>
               </button>
-              <button type="button" data-module="guvenlik">
+              <button type="button" data-module="guvenlik" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
                 <span class="panel-nav-label" data-i18n="panel.nav.guvenlik">Güvenlik</span>
+                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Henüz aktif değil</span>
               </button>
-              <button type="button" data-module="dunya">
+              <button type="button" data-module="dunya" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
                 <span class="panel-nav-label" data-i18n="panel.nav.dunya">Dünya</span>
+                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Henüz aktif değil</span>
               </button>
-              <button type="button" data-module="ayarlar">
+              <button type="button" data-module="ayarlar" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
                 <span class="panel-nav-label" data-i18n="panel.nav.ayarlar">Ayarlar</span>
+                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Henüz aktif değil</span>
               </button>
             </div>
           </div>
