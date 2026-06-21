@@ -868,6 +868,63 @@ def test_approve_executes_patch(monkeypatch, tmp_path):
         clear_registry()
 
 
+def test_approve_consumes_shadow_grant_when_confirmation_enabled(monkeypatch, tmp_path):
+    """PR-W1-06: cursor_bridge APPROVE env-on iken shadow CU4 grant tüketir."""
+    import json
+
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))
+    monkeypatch.setenv("LUMOS_REPO_ROOT", str(tmp_path))
+    (tmp_path / ".lumos").mkdir()
+    fp = tmp_path / "approve_cu4.py"
+    fp.write_text("x = 0\n", encoding="utf-8")
+    goal = "TARGET: approve_cu4.py\nx = 1\n"
+    t = TaskRecord(
+        task_id=886,
+        title="t",
+        description=goal,
+        created_at="2025-01-01T00:00:00",
+        permission_profile=PROFILE_GUVENLI_YURUT,
+        steps=[],
+    )
+    lumos_resolved = str((tmp_path / ".lumos").resolve())
+    from core.patch_registry import clear_registry
+
+    clear_registry()
+    try:
+        patch_memory_sqlite.clear_for_repo(tmp_path)
+        cursor_bridge._PENDING_APPROVALS.clear()
+        exe1 = build_execution_packet(
+            goal,
+            t,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        exe1.constraints["lumos_base_resolved"] = lumos_resolved
+        exe1.constraints["execution"] = {"risk_level": "high"}
+        try_instruction_patch_apply(goal, exe1)
+        aid = exe1.constraints["execution"]["audit_id"]
+        rec = cursor_bridge._PENDING_APPROVALS.get(aid) or {}
+        cid = str(rec.get("confirmation_id") or "")
+        assert cid
+        grant_path = tmp_path / ".lumos" / "pending_confirmations" / f"{cid}.json"
+        assert grant_path.is_file()
+
+        exe2 = build_execution_packet(
+            f"APPROVE {aid}",
+            t,
+            permission_profile=PROFILE_GUVENLI_YURUT,
+            general_approval=True,
+        )
+        exe2.constraints["lumos_base_resolved"] = lumos_resolved
+        try_instruction_patch_apply(f"APPROVE {aid}", exe2)
+        assert exe2.constraints["execution"]["execution_result"] == "approved_and_executed"
+        grant = json.loads(grant_path.read_text(encoding="utf-8"))
+        assert grant.get("consumed") is True
+    finally:
+        clear_registry()
+
+
 def test_approve_resolves_after_disk_hydrate(monkeypatch, tmp_path):
     """pending_approvals.json yazıldıktan sonra bellek temiz olsa bile APPROVE eşleşir."""
     monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path / ".lumos"))

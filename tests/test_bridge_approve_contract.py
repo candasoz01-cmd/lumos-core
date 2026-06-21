@@ -281,13 +281,13 @@ def test_w103_bridge_helpers_importable_from_policy() -> None:
     assert callable(bridge_approve_validate_legacy_pending)
 
 
-def test_bridge_server_delegates_legacy_validate_not_cu4_consume() -> None:
-    """server.py legacy validate delegasyonu var; doğrudan consume_confirmation/check yok."""
+def test_bridge_server_delegates_validate_not_direct_cu4_consume() -> None:
+    """server.py legacy validate + CU4 validate delegasyonu; doğrudan consume_confirmation/check yok."""
     import kando_bridge.server as srv
 
     src = Path(srv.__file__).read_text(encoding="utf-8")
     assert "bridge_approve_validate_legacy_pending" in src
+    assert "validate_bridge_confirmation" in src
     assert "consume_confirmation" not in src
     assert "check_confirmation" not in src
     assert "consume_bridge_confirmation" not in src
-    assert "validate_bridge_confirmation" not in src

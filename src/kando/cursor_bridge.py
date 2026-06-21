@@ -675,10 +675,24 @@ def _register_pending_approval(
 ) -> None:
     if lumos_base is not None:
         _merge_pending_approvals_from_disk(lumos_base)
+    rec: dict[str, Any] = {
+        "goal": goal,
+        "title": (goal or "")[:500],
+        "schema_version": "cursor_bridge.pending_approval.v1",
+    }
+    if lumos_base is not None:
+        from policy.confirmation_policy import attach_bridge_pending_confirmation
+
+        attach_bridge_pending_confirmation(
+            rec,
+            base_dir=lumos_base,
+            risk="high",
+            source="cursor_bridge",
+        )
     _bounded_ordered_set(
         _PENDING_APPROVALS,
         audit_id,
-        {"goal": goal},
+        rec,
         max_size=_MAX_PENDING_APPROVALS,
     )
     if lumos_base is not None:
@@ -741,6 +755,27 @@ def _handle_approve_goal(goal: str, exe: CursorExecutionPacketV1) -> bool:
     rec = _PENDING_APPROVALS.pop(aid_key)
     if lumos_base is not None:
         _persist_pending_approvals_to_disk(lumos_base)
+
+    from policy.confirmation_policy import (
+        consume_bridge_confirmation,
+        is_confirmation_enabled,
+        validate_bridge_confirmation,
+    )
+
+    if lumos_base is not None and is_confirmation_enabled():
+        bridge_result = validate_bridge_confirmation(rec, base_dir=lumos_base)
+        if not bridge_result.allowed:
+            _PENDING_APPROVALS[aid_key] = rec
+            _persist_pending_approvals_to_disk(lumos_base)
+            _store_execution_outcome(
+                exe,
+                execution_result=EXEC_RESULT_PATCH_FAILED,
+                error_type=EXEC_ERROR_APPROVAL_NOT_FOUND,
+                detail=bridge_result.reason or "confirmation validation failed",
+            )
+            exe.target_file = ""
+            return True
+
     sub_goal = str(rec.get("goal") or "")
     if not sub_goal:
         _store_execution_outcome(
@@ -761,6 +796,8 @@ def _handle_approve_goal(goal: str, exe: CursorExecutionPacketV1) -> bool:
 
     er = str((exe.constraints.get("execution") or {}).get("execution_result") or "")
     if er in _PATCH_APPLY_SUCCESS_RESULTS:
+        if lumos_base is not None and is_confirmation_enabled():
+            consume_bridge_confirmation(rec, base_dir=lumos_base)
         _finalize_approved_execution(exe, aid_key)
     else:
         _PENDING_APPROVALS[aid_key] = rec

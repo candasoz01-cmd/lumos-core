@@ -369,3 +369,53 @@ def test_high_risk_execute_consumes_shadow_grant_when_confirmation_enabled(
     )
     grant = json.loads(grant_path.read_text(encoding="utf-8"))
     assert grant.get("consumed") is True
+
+
+def test_lumos_gate_execute_resume_consumes_shadow_grant_when_enabled(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """PR-W1-06: lumos_gate_execute + pending_confirmation_record → consume (env on)."""
+    from kando_runtime.lumos_gate import lumos_gate_execute
+
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    lumos = tmp_path / ".lumos"
+    lumos.mkdir()
+    pending: dict = {
+        "schema_version": "lumos.pending_approval.v1",
+        "title": "resume consume",
+        "normalized_task": {"target_rel": "resume.txt"},
+    }
+    attach_bridge_pending_confirmation(pending, base_dir=lumos, risk="high", source="lumos_gate")
+    cid = str(pending["confirmation_id"])
+    grant_path = lumos / "pending_confirmations" / f"{cid}.json"
+
+    bundle = {
+        "_kind": "run",
+        "plan": {"steps": [{"type": "patch", "file": "resume.txt", "content": "ok\n"}]},
+        "ctx": type("Ctx", (), {"policy_ok": True, "reasoning_summary": "", "execution_mode": "plan", "generated_content": None, "verification_summary": ""})(),
+        "norm": {"target_rel": "resume.txt"},
+        "reasoning": {"source": "test"},
+        "risk": "high",
+        "mode": "direct_patch",
+        "payload": "TARGET: resume.txt\nok\n",
+        "approval_granted": True,
+        "repo_root": tmp_path,
+        "audit": None,
+        "replay_mode": False,
+        "pending_confirmation_record": pending,
+    }
+
+    def _run_direct(_instr: str) -> dict:
+        return {"execution_result": "patch_applied", "detail": ""}
+
+    def _start_agent(_goal: str, _auto: bool) -> str:
+        return "job-resume"
+
+    lumos_gate_execute(
+        bundle,
+        run_direct=_run_direct,
+        start_agent=_start_agent,
+        run_agent_auto=None,
+    )
+    grant = json.loads(grant_path.read_text(encoding="utf-8"))
+    assert grant.get("consumed") is True
