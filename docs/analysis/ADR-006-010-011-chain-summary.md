@@ -56,6 +56,8 @@ Lock iki sinyal (ADR-011) trust tüketimine hazırlanır (Faz 4).
 | #473 | Landing `quantumDetailBody` Faz-2 partial readiness wording |
 | #474 | ADR-001 iskelet cross-ref + chain-summary #468–#472 rows |
 | #475 | Panel `noLiveScan` fetch-failure copy clarify |
+| #476 | open-decisions + decision-log + chain-summary #473–#475 milestone sync |
+| #477 | ADR-013 GET fetch vs mock fallback wording clarify |
 
 ## Sonraki checkpoint
 
