@@ -39,6 +39,9 @@ HELP_TEXT = """Temel
 Görev motoru
   görev oluştur <metin>, görevler, görev kuyruk, görev durumu <id>, görev özeti <id>, görev adımları <id>, görev iptal <id>, yetki profili, yetki profili <rapor|guvenli_yurut|kisitli_otonom>, genel onay aç, genel onay kapat
 
+Consent (kimlik/keystore — genel onaydan ayrı)
+  consent oturum aç, consent oturum kapat, consent oturum durum
+
 Notlar
   bunu hatırla, son not ne, notları göster, kaç not var, notu sil, notları temizle, notu düzenle, notu kopyala, notu dışa aktar, notu paylaş, not özetle, not birleştir, notu geri al, not geçmişi, not ara <kelime>
 
@@ -58,7 +61,9 @@ HELP_TEMEL_TEXT = """Temel
   durum, hazır, hazır mıyım, ne yapıyorsun, son yaptığın ne, bugün ne yaptın, bana ne önerirsin, bir sonraki adım ne, hangi moddayım, şu an güvenli miyim, neden böyle diyorsun, bunu kısaca anlat, bunu hatırla"""
 
 HELP_GUVENLIK_TEXT = """Güvenlik
-  durum, hazır, hazır mıyım, hangi moddayım, şu an güvenli miyim, neden böyle diyorsun"""
+  durum, hazır, hazır mıyım, hangi moddayım, şu an güvenli miyim, neden böyle diyorsun
+  consent oturum aç (kilit açıkken), consent oturum kapat, consent oturum durum
+  kilit ac (unlock+consent), genel onay aç/kapat (yazma kapısı — consent değil)"""
 
 HELP_ARAMA_TEXT = """Arama:
   not ara <kelime>, etiket ara <kelime>, etiketli not ara <kelime>, etikete göre notları göster <etiket>"""
@@ -82,7 +87,7 @@ NEUTRAL_FALLBACK_TEXT = (
     "Örnek: durum | görevler | görev durumu <id> | görev özeti <id> | yetki profili | yardım"
 )
 
-COMMAND_ANCHOR_WORDS = frozenset({"gorev", "yetki", "not", "notlar", "durum", "hazir", "genel"})
+COMMAND_ANCHOR_WORDS = frozenset({"gorev", "yetki", "not", "notlar", "durum", "hazir", "genel", "consent"})
 CASUAL_FIRST_WORDS = frozenset({
     "saat", "tamam", "oldu", "neden", "napiyoruz", "napiyon", "ben", "cikti", "sanirim", "bakalim",
     "tarih", "zaman", "ne", "evet", "hayir", "oldumu",
@@ -93,6 +98,7 @@ FALLBACK_BY_FAMILY = {
     "yetki": 'Yetki ailesine yakınsın. Örnek: yetki profili | yetki profili rapor',
     "not": 'Not ailesine yakınsın. Örnek: notları göster | not ara <kelime> | yardım notlar',
     "durum": 'Durum/temel ailesine yakınsın. Örnek: durum | hazır | yardım temel',
+    "consent": 'Consent ailesine yakınsın. Örnek: consent oturum aç | consent oturum kapat | kilit ac',
 }
 
 KISACA_ANLAT_SHORT_THRESHOLD = 90
@@ -603,6 +609,14 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
             return ("genel_onay_ac", [])
         if third == "kapat":
             return ("genel_onay_kapat", [])
+    if len(parts) >= 3 and _fold_for_search(parts[0]) == "consent" and _fold_for_search(parts[1]) == "oturum":
+        third = _fold_for_search(parts[2])
+        if third in ("ac", "aç"):
+            return ("consent_oturum_ac", [])
+        if third == "kapat":
+            return ("consent_oturum_kapat", [])
+        if third == "durum":
+            return ("consent_oturum_durum", [])
     return ("unknown", [])
 
 

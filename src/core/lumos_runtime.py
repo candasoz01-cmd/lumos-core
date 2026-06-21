@@ -617,6 +617,7 @@ def create_runtime(sandbox_mode: bool | None = None) -> RuntimeResult:
                 return False
             if c in ("kapat", "kilitle", "lock"):
                 engine.do_lock()
+                session_consent[0] = False
                 try:
                     engine.device_lock_cli(silent=True)
                 except Exception:
@@ -626,6 +627,8 @@ def create_runtime(sandbox_mode: bool | None = None) -> RuntimeResult:
                 pw = getpass("Passphrase: ")
                 ok, msg = engine.unlock_with_passphrase(pw)
                 print(msg)
+                if ok:
+                    session_consent[0] = True
                 return False
             print("Bunu anlamadım. Burada durum, ac, kapat veya cik yazabilirsin.")
             return False

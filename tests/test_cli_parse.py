@@ -80,6 +80,20 @@ def test_genel_onay_and_exit():
     assert a == []
 
 
+def test_consent_oturum_commands():
+    r, a = _norm("consent oturum aç")
+    assert r == "consent_oturum_ac"
+    assert a == []
+
+    r, a = _norm("consent oturum kapat")
+    assert r == "consent_oturum_kapat"
+    assert a == []
+
+    r, a = _norm("consent oturum durum")
+    assert r == "consent_oturum_durum"
+    assert a == []
+
+
 def test_durum_ozet_not_gorev_durumu():
     """durum özet → durum (sistem özeti); görev durumu 1 → gorev_durumu (görev id)."""
     r, a = _norm("durum özet")

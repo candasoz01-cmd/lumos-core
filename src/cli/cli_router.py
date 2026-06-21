@@ -18,6 +18,7 @@ from cli.cli_parse import (
 )
 from cli.cli_readonly import ReadOnlyContext, handle_gorev_kuyruk, handle_readonly
 from cli.cli_tasks_mutation import TaskMutationContext, handle_task_mutation
+from core.startup_health import consent_ok, effective_consent
 from task_engine import ALL_PROFILES, get_profile_display_name
 
 # CLI mode constants (command vs text-input modes)
@@ -152,6 +153,43 @@ def run_cli_loop(router_ctx: RouterContext) -> None:
         if route == "genel_onay_kapat":
             router_ctx.mut_ctx.general_approval[0] = False
             print("Genel onay kapalı. Consent durumu değişmedi.")
+            continue
+        if route == "consent_oturum_ac":
+            sc = router_ctx.mut_ctx.session_consent
+            if consent_ok(router_ctx.base_dir):
+                print("Consent zaten kayıtlı (consent.json). Oturum consent gerekmez.")
+            elif getattr(router_ctx.ctx, "state", None) and router_ctx.ctx.state.is_locked():
+                print(
+                    "Oturum consent için önce kilidi aç (kilit ac). "
+                    "Genel onay consent yerine geçmez."
+                )
+            else:
+                sc[0] = True
+                print(
+                    "Oturum consent açık. Kimlik/keystore policy bu oturumda etkin. "
+                    "Genel onay ayrıdır."
+                )
+            continue
+        if route == "consent_oturum_kapat":
+            router_ctx.mut_ctx.session_consent[0] = False
+            print(
+                "Oturum consent kapalı. consent.json değişmedi; genel onay etkilenmedi."
+            )
+            continue
+        if route == "consent_oturum_durum":
+            sc = router_ctx.mut_ctx.session_consent
+            file_ok = consent_ok(router_ctx.base_dir)
+            eff = effective_consent(router_ctx.base_dir, bool(sc[0]))
+            locked = (
+                getattr(router_ctx.ctx, "state", None) is not None
+                and router_ctx.ctx.state.is_locked()
+            )
+            print(
+                f"Consent dosya: {'kayıtlı' if file_ok else 'yok'} | "
+                f"oturum: {'açık' if sc[0] else 'kapalı'} | "
+                f"effective: {'evet' if eff else 'hayır'} | "
+                f"kilit: {'kilitli' if locked else 'açık'}"
+            )
             continue
         if handle_task_mutation(route, args, router_ctx.mut_ctx):
             continue
