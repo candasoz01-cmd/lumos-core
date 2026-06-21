@@ -123,6 +123,7 @@ Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A16 takip satırları kap
 | DL-C16 | 2026-06-20 | Vault V1 teknoloji seçimi | **decision-approved** — harman + OSS self-host; sıfırdan reddedildi; public stub only (2026-06-21 vault migration); PoC private | [`od-vault-v1-technology-selection.md`](memory/od-vault-v1-technology-selection.md) |
 | DL-C17 | 2026-06-21 | Kalem 3 — stub ürün adı rename | **Reddedildi** — `src/integrations/` PoC stub'ta provider sınıf adları kalır; §A yasağı yalnızca strategy/ops stub **docs** için | [`public-repo-boundary.md`](memory/public-repo-boundary.md) § Bölüm C |
 | DL-C18 | 2026-06-21 | Faz-2 Phase B — confirmation varsayılan-on | **Opt-in korunur** — E2E #460 kanıtı sonrası `LUMOS_CONFIRMATION_ENABLED` varsayılan kapalı kalır; bilinçli opt-in; tam varsayılan-on ürün incelemesine ertelendi; **kod değişikliği yok** | ADR-012 §7, PR #460, [`lumos-runtime-enforcement-map.md`](analysis/lumos-runtime-enforcement-map.md) §8 |
+| DL-C19 | 2026-06-21 | ADR-010 + open-decisions Faz-2 docs sync | **Doc-only complete** — ADR-010 Faz-2 #452–#463 tablosu; chain-summary #459–#464; open-decisions kapanış + güvenlik enforcement açık satırları (Trust Faz 4, köprü wiring, sensitivity chain, P2 tam eşleme); **kod/enforcement genişlemesi yok** | ADR-010, [`open-decisions-needs-review.md`](memory/open-decisions-needs-review.md), [`ADR-006-010-011-chain-summary.md`](analysis/ADR-006-010-011-chain-summary.md); PR #464 öncül |
 ---
 
 ## 2026-06-17 — Dokümantasyon düzeni kurulumu
@@ -154,4 +155,4 @@ Tam liste: `docs/memory/open-decisions-needs-review.md` (OD-001 … OD-060).
 
 ---
 
-Son güncelleme: 2026-06-21 (Faz-2 sync #460–#463 — E2E, opt-in kararı, PR-C6 kısmi, P2 engine branch)
+Son güncelleme: 2026-06-21 (ADR-010 + open-decisions Faz-2 docs sync — DL-C19; #460–#464 milestone)

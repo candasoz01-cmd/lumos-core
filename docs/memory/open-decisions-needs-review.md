@@ -65,6 +65,10 @@
 | OD-028 | project-map-runtime-entrypoints.md | lumos web komutu | `lumos web` / eksik `web/app.py` — B1: alt komutu kaldır (restore değil) | medium | closed | Karar: [`lumos-web-command-decision.md`](lumos-web-command-decision.md) — **B1** uygulandı: `__main__.py` web dalı kaldırıldı, `test_web_health.py` silindi, mimari belge senkronu. `packages/kando_core` web kalıntısı OD-027'de. |
 | OD-029 | tools-technology-watchlist.md | Ghidra kapsamı | Ghidra RE/firmware entegrasyonu public OSS sınırında kalacak mı? | medium | **closed** | Karar: [`od-029-ghidra-scope-decision.md`](od-029-ghidra-scope-decision.md) — public repoda entegrasyon **yok**; operatör yerel/private; watchlist devam. |
 | OD-030 | tools-technology-watchlist.md | Çin menşeli vibe coding | Çin menşeli AI prototip araçları güvenlik/veri sınırı test edildi mi? | medium | needs-review | Vibe coding kategorisi |
+| — | ADR-006 / ADR-011 / enforcement map | Trust Faz 4 — merkezi trust tüketimi | `keystore_ready` ve `session_unlocked` ayrı alanlar merkezi trust modelinde ne zaman birleşir? | high | **needs-review (ONAY GEREKİYOR)** | ADR-011 Faz 1–3 **kapandı** (#436–#438); Faz 4 **açık** — ADR-007 § Trust sinyalleri; kod yok; bkz. [ADR-012 açık maddeler](../decisions/ADR-012-lumos-security-codex.md#açık-kalan-maddeler-codex-kapanış-öncesi) |
+| — | ADR-012 / CU4 skeleton | Köprü `consume_confirmation` wiring | PR-C6 shadow adapter sonrası köprü yürütmede confirmation consume ne zaman bağlanır? | high | **needs-review (ONAY GEREKİYOR)** | **Kısmi merge** #462 — `attach_bridge_pending_confirmation`; legacy `pending_approvals` korunur; tam wiring **açık**; bkz. [CU4 §4.1](../analysis/lumos-cu4-confirmation-skeleton-draft.md) |
+| — | ADR-006 / enforcement map | Gate ↔ `change_sensitivity` zinciri | `lumos_gate` risk ile path hassasiyeti (CRITICAL/HIGH) ne zaman tek zincirde birleşir? | medium | **needs-review (ONAY GEREKİYOR)** | **Açık** — gate ↔ sensitivity **kopuk** (ADR-006); CRITICAL path + düşük gate riski mümkün; karar kaydı only — bu indeks uygulama açmaz |
+| — | ADR-012 / P2 analiz | P2 `SECURITY_NEVER_AUTO` tam küme eşlemesi | Dört üyenin tüm silme/yazma yollarında engine/policy eşlemesi tamamlanacak mı? | high | **needs-review (ONAY GEREKİYOR)** | **Kısmi merge** #463 (dar kapsam); `permanent_delete` store/panel yolunda; bkz. [P2 analiz](../analysis/security-never-auto-p2-and-helper-proposal.md) |
 
 ---
 
@@ -100,6 +104,7 @@
 | OD-058 | evidence-continuity-v1-decision.md | Evidence Continuity v1 | Panel + engine sunucu mutasyonları için append-only journal (Karar A) uygulandı mı? | medium | closed | Karar: [`evidence-continuity-v1-decision.md`](evidence-continuity-v1-decision.md) — **Karar A** uygulandı ve doğrulandı (PR #248, `main`); H0/H1/H2 hook'ları canlı. **v2 backlog:** [`evidence-continuity-v2-backlog.md`](evidence-continuity-v2-backlog.md) — 14/14 `implementation-complete` (PR #255–#291). |
 | OD-059 | audit-hook-term-decision.md | Audit hook terminolojisi | Informal «audit hook» takip maddesi ayrı git hook gerektiriyor mu? | low | **closed** | Karar: [`audit-hook-term-decision.md`](audit-hook-term-decision.md) — **Hayır**; git hook reddi. Üç katman: commit guard (dev), EC runtime (v1), EC v2 #4/#14. Informal takip maddesi docs seviyesinde **CLOSED**. CI ruff parity (Paket B) **implementation-complete** (2026-06-20). |
 | OD-B05 | kando-packages-transition-decision.md | Faz 5 bridge/runtime merge | `kando_bridge` + `kando_runtime` → `src/` birleştirme ne zaman, hangi kapılarla? | high | **needs-review** | **Backlog (ertelendi — DL-C14).** Kullanıcı **2026-06-20: ertelendi** — vault/mail dar v1 ile birlikte başlanmaz. XL impl; kullanıcı onayı + ayrı oturum gerekli; public-safe değil (gate/bridge güvenlik sınırı). Docs-only kayıt; kod yok. |
+| — | ADR-010 / ADR-012 / enforcement map | Faz-2 enforcement dalgası (#460–#464) | E2E, varsayılan-on, PR-C6, P2 engine docs hizası tamam mı? | medium | **closed (docs)** | **Kapandı (2026-06-21):** E2E #460; opt-in #461 (DL-C18); PR-C6 kısmi #462; P2 dar merge #463; milestone docs sync #464; ADR-010 + chain-summary + open-decisions senkronu (DL-C19). **Açık enforcement satırları:** Güvenlik/mimari bölümünde Trust Faz 4, köprü wiring, sensitivity chain, P2 tam eşleme. |
 
 ---
 
@@ -127,7 +132,7 @@ Kaynak dosyalardaki migration tablolarından **needs-review / queued** özetleri
 | Kaynak dosya | needs-review (yaklaşık) | queued (yaklaşık) | İndeks OD aralığı |
 |--------------|-------------------------|-------------------|-------------------|
 | product-rules.md | 0 | 0 (+5 boş manuel) | OD-023, OD-024 (approved — Phase 2) |
-| security-architecture.md | 0 | 0 | OD-001, OD-002 (indeks: decision-approved / impl-pending) |
+| security-architecture.md | 0 | 0 | OD-001, OD-002 (indeks: decision-approved / impl-pending); +4 enforcement açık satır (—, ADR-006/011/012) |
 | project-workflow.md | 0 | 5 (boş manuel) | OD-008, OD-009 (approved); OD-010 closed |
 | ui-chat-experience.md | 0 | 2 (+5 boş manuel) | OD-013/014 approved; OD-018, OD-019 queued |
 | voice-media-experience.md | 2 | 5 (boş manuel) | OD-015 closed; OD-016, OD-017 |
@@ -157,4 +162,4 @@ Kaynak dosyalardaki boş manuel şablonlar burada tekrarlanmaz. Yeni açık kara
 
 ---
 
-Son güncelleme: 2026-06-21 (OD-031 Phase 2 Step 4 — canonical public boundary + ADR sync)
+Son güncelleme: 2026-06-21 (Faz-2 enforcement docs sync — ADR-010, chain-summary #460–#464, open-decisions kapanış satırı)
