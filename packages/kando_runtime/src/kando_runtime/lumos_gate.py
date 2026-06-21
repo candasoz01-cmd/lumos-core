@@ -2559,8 +2559,18 @@ def execute_approved_pending_record(
     """
     Gate tekrar çalışmaz: yalnızca kayıtlı execution_plan + snapshot ile execute_plan.
     """
+    from policy.confirmation_policy import (
+        consume_bridge_confirmation,
+        is_confirmation_enabled,
+        validate_bridge_confirmation,
+    )
+
     validate_pending_for_approval(loaded)
     rr = repo_root if repo_root is not None else Path.cwd()
+    lumos_base = rr / ".lumos"
+    bridge_result = validate_bridge_confirmation(loaded, base_dir=lumos_base)
+    if not bridge_result.allowed:
+        raise ValueError(bridge_result.reason or "confirmation validation failed")
     plan = loaded["execution_plan"]
     reasoning = loaded["reasoning_snapshot"]
     norm = loaded["normalized_task"]
@@ -2611,6 +2621,8 @@ def execute_approved_pending_record(
         if kind != "plan":
             _audit_finalize_non_plan(audit, kind, ex, job_id, plan)
         result["lumos_audit_log"] = audit.to_log_entry()
+    if is_confirmation_enabled():
+        consume_bridge_confirmation(loaded, base_dir=lumos_base)
     return result
 
 

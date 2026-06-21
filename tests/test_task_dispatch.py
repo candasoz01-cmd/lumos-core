@@ -3,6 +3,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from kando_runtime.lumos_gate import enrich_normalized_with_target_file
 from kando_runtime.task_dispatch import (
     DISPATCH_PENDING_APPROVAL_SCHEMA,
@@ -203,6 +205,80 @@ def test_dispatch_medium_after_snapshot_approval_runs_executor(tmp_path: Path) -
     assert d["dispatch_execution_plan"]["reason"] == "user_approved"
     assert d["system_execution"]["executed"] is True
     assert (tmp_path / "workspace" / "apr.txt").is_file()
+
+
+def _dispatch_pending_loaded_for_consume(tmp_path: Path) -> dict:
+    out: dict = {
+        "execution_mode": "restricted",
+        "policy_ok": True,
+        "http_body": {
+            "lumos_gate": {"execution_mode": "restricted"},
+            "risk_level": "medium",
+            "normalized_task": {"target_body": "consume.txt oluştur"},
+        },
+    }
+    attach_execution_dispatch_to_out(out, repo_root=tmp_path)
+    loaded = out["pending_approval_record"]
+    assert isinstance(loaded, dict)
+    return loaded
+
+
+def test_dispatch_execute_consumes_shadow_grant_when_confirmation_enabled(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """PR-W1-05: env-on iken başarılı execute shadow grant tüketir."""
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    loaded = _dispatch_pending_loaded_for_consume(tmp_path)
+    cid = str(loaded["confirmation_id"])
+    grant_path = tmp_path / ".lumos" / "pending_confirmations" / f"{cid}.json"
+    validate_dispatch_pending_for_approval(loaded)
+    execute_approved_dispatch_pending(loaded, repo_root=tmp_path)
+    grant = json.loads(grant_path.read_text(encoding="utf-8"))
+    assert grant.get("consumed") is True
+    assert (tmp_path / "workspace" / "consume.txt").is_file()
+
+
+def test_dispatch_bridge_validate_failure_does_not_consume(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """PR-W1-05: validate fail → grant tüketilmez (#492)."""
+    from datetime import datetime, timedelta, timezone
+
+    from policy.confirmation_policy import REASON_CONFIRMATION_EXPIRED
+
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    loaded = _dispatch_pending_loaded_for_consume(tmp_path)
+    cid = str(loaded["confirmation_id"])
+    grant_path = tmp_path / ".lumos" / "pending_confirmations" / f"{cid}.json"
+    data = json.loads(grant_path.read_text(encoding="utf-8"))
+    past = datetime.now(timezone.utc) - timedelta(minutes=5)
+    data["expires_at"] = past.replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    grant_path.write_text(json.dumps(data), encoding="utf-8")
+    validate_dispatch_pending_for_approval(loaded)
+    with pytest.raises(ValueError, match=REASON_CONFIRMATION_EXPIRED):
+        execute_approved_dispatch_pending(loaded, repo_root=tmp_path)
+    grant = json.loads(grant_path.read_text(encoding="utf-8"))
+    assert grant.get("consumed") is False
+
+
+def test_dispatch_execute_exception_preserves_shadow_grant_unit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """PR-W1-05: execute exception → grant tüketilmez (#492)."""
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    loaded = _dispatch_pending_loaded_for_consume(tmp_path)
+    cid = str(loaded["confirmation_id"])
+    grant_path = tmp_path / ".lumos" / "pending_confirmations" / f"{cid}.json"
+
+    def _boom(*_args: object, **_kwargs: object) -> dict:
+        raise RuntimeError("simulated executor failure")
+
+    monkeypatch.setattr("kando_runtime.file_executor.run", _boom)
+    validate_dispatch_pending_for_approval(loaded)
+    with pytest.raises(RuntimeError, match="simulated executor failure"):
+        execute_approved_dispatch_pending(loaded, repo_root=tmp_path)
+    grant = json.loads(grant_path.read_text(encoding="utf-8"))
+    assert grant.get("consumed") is False
 
 
 def test_attach_medium_risk_writes_pending_json(tmp_path: Path) -> None:

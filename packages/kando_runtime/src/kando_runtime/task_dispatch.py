@@ -513,6 +513,18 @@ def execute_approved_dispatch_pending(
     Onaylanmış orta risk dispatch: risk/plan yeniden hesaplanmaz; snapshot + doğrudan executor.
     Önce validate_dispatch_pending_for_approval(loaded) çağrılmalıdır.
     """
+    from policy.confirmation_policy import (
+        consume_bridge_confirmation,
+        is_confirmation_enabled,
+        validate_bridge_confirmation,
+    )
+
+    rr = repo_root if repo_root is not None else Path.cwd()
+    lumos_base = rr / ".lumos"
+    bridge_result = validate_bridge_confirmation(loaded, base_dir=lumos_base)
+    if not bridge_result.allowed:
+        raise ValueError(bridge_result.reason or "confirmation validation failed")
+
     ds = loaded["dispatch_snapshot"]
     if not isinstance(ds, dict):
         raise ValueError("dispatch_snapshot gerekli")
@@ -564,7 +576,6 @@ def execute_approved_dispatch_pending(
         },
     }
 
-    rr = repo_root
     if task_type == "file":
         from kando_runtime.file_executor import run as file_run
 
@@ -605,6 +616,8 @@ def execute_approved_dispatch_pending(
             **result["execution_dispatch"],
             "outcome_tr": otr,
         }
+    if is_confirmation_enabled():
+        consume_bridge_confirmation(loaded, base_dir=lumos_base)
     return result
 
 
