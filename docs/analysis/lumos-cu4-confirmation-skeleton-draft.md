@@ -2,8 +2,8 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Güncellendi** — PR-C0–C5 + CLI C4 merge (#452–#458); PR-C6 köprü açık; confirmation **opt-in** |
-| Tarih | 2026-06-21 (sync: post-#458) |
+| Durum | **Güncellendi** — PR-C0–C5 + CLI C4 merge (#452–#458); PR-C6 adapter **kısmi** (#462); confirmation **opt-in** |
+| Tarih | 2026-06-21 (sync: post-#462) |
 | İlgili | [ADR-010](../decisions/ADR-010-guard-policy-trust-terminology.md), [ADR-012](../decisions/ADR-012-lumos-security-codex.md), [consent/GA ayrımı](lumos-consent-general-approval-separation-draft.md), [runtime enforcement map](lumos-runtime-enforcement-map.md) |
 
 **Kapsam:** Analiz + merge edilmiş CU4 confirmation zinciri (#452–#458). Kod referansı: `src/policy/confirmation_policy.py`, `panel_bridge_state.task_action_gate`, `panel_tasks_server`, CLI `onayla`.
@@ -85,7 +85,7 @@ Mevcut policy reason'ları korunur: `offline_mode`, `koruma_aktif_delete`, `cons
 |-------|-------|----------------------------|
 | `confirm=true` body | `panel_tasks_server._body_confirm_user_initiated` | **Referans implementasyon** — `delete_permanent` için |
 | `may_perform_permanent_delete(user_initiated)` | `workspace_contract.py` | NEVER_AUTO katmanı; confirmation **üstüne** oturur |
-| `pending_approval` | `lumos_gate`, `task_dispatch`, köprü | Köprü confirmation; public `src/` ile **namespace ayrımı** gerekir |
+| `pending_approval` | `lumos_gate`, `task_dispatch`, köprü | Köprü confirmation; **PR-C6 merge #462** — `attach_bridge_pending_confirmation` shadow adapter; legacy `pending_approvals` korunur; yürütmede `consume_confirmation` **açık** |
 | `pending_action` | `TaskMutationContext`, `live_brain` | **Consent/GA akışı** — confirmation'a taşınmaz |
 | `requires_confirmation()` | `device_action_policy.py` | Cihaz yüzeyi için aynı API imzası hedeflenir |
 
@@ -211,7 +211,20 @@ flowchart TD
 
 ## 4. Dar PR planı (sequence, which actions require confirmation)
 
-### 4.1 PR sırası (minimal, tek sorumluluk)
+### 4.1 PR-C6 adapter durumu (#462)
+
+**Merge (kısmi):** `attach_bridge_pending_confirmation` — köprü `pending_approval` kaydı oluşturulurken paralel `.lumos/pending_confirmations/` shadow kaydı yazar (`lumos_gate`, `task_dispatch`). Legacy `.lumos/pending_approvals/` akışı **bozulmaz**.
+
+| Tamamlanan | Açık |
+|------------|------|
+| `bridge_pending_action_key` / `bridge_pending_confirmation_spec` | Köprü yürütme yolunda `consume_confirmation` wiring |
+| `attach_bridge_pending_confirmation` shadow grant | Köprü onayı hâlâ legacy `pending_approvals` üzerinden |
+| Bridge action_key kayıtları (`BRIDGE_HIGH_RISK_ACTION`, `BRIDGE_MEDIUM_DISPATCH_ACTION`) | Tam namespace birleşimi (panel vs bridge tek consume path) |
+| Test: `tests/test_bridge_confirmation_adapter.py` | Enforcement yalnızca `LUMOS_CONFIRMATION_ENABLED` ile (panel/CLI #453–458 ayrı) |
+
+**Kalan gap:** Köprü risk onayı sonrası yürütme, CU4 grant tüketimi (`consume_confirmation`) ile bağlanmadı; duplicate onay riski devam eder (bkz. false positive tablosu).
+
+### 4.2 PR sırası (minimal, tek sorumluluk)
 
 | PR | Başlık | Kapsam | Durum |
 |----|--------|--------|-------|
@@ -222,11 +235,11 @@ flowchart TD
 | **PR-C3** | Panel mutasyonlar (write_local) | `POST /tasks`, `PUT /tasks.json`, `complete`, soft `delete` — 3. kapı | **Merge** #456 (opt-in) |
 | **PR-C5** | CU7 preview endpoint | `POST /lumos-confirm/request` + panel modal | **Merge** #457 |
 | **PR-C4** | CLI confirmation | `onayla <id>` / inline confirm | **Merge** #458 |
-| **PR-C6** | Köprü hizalama (opsiyonel) | `pending_approval` → confirmation namespace | **Açık** |
+| **PR-C6** | Köprü hizalama (opsiyonel) | `pending_approval` → confirmation namespace | **Kısmi merge** #462 |
 
 **Önkoşul:** Consent ≠ GA ayrımı (#450+#451) **tamamlanmış** kabul edilir; CU4 iskelet bunun üstüne inşa edilir.
 
-### 4.2 Hangi operasyonlar confirmation gerektirir?
+### 4.3 Hangi operasyonlar confirmation gerektirir?
 
 | Operasyon | action_key | Confirmation katmanı | GA önkoşul? | NEVER_AUTO? | CU |
 |-----------|------------|----------------------|-------------|-------------|-----|
@@ -248,7 +261,7 @@ flowchart TD
 
 **Not:** `guvenli_yurut` + `safe_local` panel mutasyonları PR-C3'te **notification** (codex banner) yeterli sayılabilir; confirmation zorunluluğu primarily `write_local` ve dış etki için.
 
-### 4.3 CU4 / CU6 / CU7 / CU10 hizalama
+### 4.4 CU4 / CU6 / CU7 / CU10 hizalama
 
 | CU | Confirmation iskelet karşılığı |
 |----|-------------------------------|
@@ -257,7 +270,7 @@ flowchart TD
 | **CU7** | `scope` preview + gate reason; sessiz uygulama yok |
 | **CU10** | Confirmation öncesi policy `consent` + `koruma_active`; online CU oturumu hook |
 
-### 4.4 UI sinyalleri ve enforcement noktaları
+### 4.5 UI sinyalleri ve enforcement noktaları
 
 | Katman | UI sinyali | Enforcement |
 |--------|------------|-------------|
@@ -302,5 +315,7 @@ flowchart TD
 
 - **Kapandı (öncül):** consent ≠ general_approval (#450+#451); panel profil guard (#449); ADR-010 terminoloji.
 - **Merge (#452–#458):** Reason kodları, `confirmation_policy`, delete-permanent unify, trash modal UI, panel 3. kapı, CU7 preview, CLI `onayla`.
+- **PR-C6 kısmi (#462):** Shadow adapter; legacy `pending_approvals` korunur.
 - **Opt-in:** `LUMOS_CONFIRMATION_ENABLED=true|1|yes` — varsayılan no-op.
-- **Açık:** PR-C6 köprü namespace; E2E confirmation; varsayılan-on ürün kararı; P2 NEVER_AUTO engine branch.
+- **Kapandı:** E2E confirmation (#459+#460); varsayılan-on kararı opt-in (#461, DL-C18).
+- **Açık:** Köprü yürütmede `consume_confirmation` wiring; P2 tam küme eşlemesi (engine branch dar merge #463).

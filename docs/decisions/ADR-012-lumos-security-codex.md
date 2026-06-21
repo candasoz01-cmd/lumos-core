@@ -2,7 +2,7 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Kabul edildi** (2026-06-21) — taslak paket #440; panel şeffaflık #441; panel policy #443–#446; consent #450+#451; profil guard #449; CU4 confirmation #452–#458 (opt-in); E2E confirmation #459+#460; **varsayılan-on kararı: opt-in korunur** (2026-06-21) |
+| Durum | **Kabul edildi** (2026-06-21) — taslak paket #440; panel şeffaflık #441; panel policy #443–#446; consent #450+#451; profil guard #449; CU4 confirmation #452–#458 (opt-in); E2E confirmation #459+#460; **varsayılan-on kararı: opt-in korunur** (2026-06-21, #461); PR-C6 köprü adapter **kısmi** (#462); P2 engine branch **kapandı** (#463, dar kapsam) |
 | Tarih | 2026-06-21 |
 | İlgili | `docs/lumos-karar-sozlesmesi.md`, [ADR-010](ADR-010-guard-policy-trust-terminology.md), [ADR-011](ADR-011-lock-semantics-decision.md), [action permission matrix](../analysis/lumos-action-permission-matrix.md), [runtime enforcement map](../analysis/lumos-runtime-enforcement-map.md) |
 
@@ -192,30 +192,30 @@ ADR-010: **consent ≠ general_approval ≠ confirmation**. İşlem bazlı üç�
 | Panel mutasyon confirmation gate (PR-C3) | **Tamamlandı** — #456 (opt-in) |
 | CU7 preview endpoint + modal (PR-C5) | **Tamamlandı** — #457 |
 | CLI `onayla` confirmation (PR-C4) | **Tamamlandı** — #458 |
-| `SECURITY_NEVER_AUTO` tüm silme/yazma yolları | **P2 gap** — engine branch; analiz: [security-never-auto-p2-and-helper-proposal.md](../analysis/security-never-auto-p2-and-helper-proposal.md) |
-| PR-C6 köprü confirmation namespace hizalama | **Açık** — `pending_approval` ayrı PR |
+| `SECURITY_NEVER_AUTO` tüm silme/yazma yolları | **Kısmi kapandı** — engine branch #463 (`permanent_delete` store/panel yolu; helper merge); tam küme eşlemesi açık | [P2 analiz](../analysis/security-never-auto-p2-and-helper-proposal.md) |
+| PR-C6 köprü confirmation namespace hizalama | **Kısmi** — shadow adapter #462; köprü yürütmede `consume_confirmation` wiring açık |
 | Trust motor (ADR-007) kanıt zinciri genişletmesi | Bekliyor — Faz 4 |
-| Confirmation varsayılan-on ürün kararı | **Kapandı (docs)** — opt-in korunur (2026-06-21); E2E #460; tam default-on ertelendi |
+| Confirmation varsayılan-on ürün kararı | **Kapandı (docs)** — opt-in korunur (2026-06-21, #461); E2E #460; tam default-on ertelendi |
 | E2E confirmation (panel modal + CLI birleşik) | **Tamamlandı** — #459 CLI, #460 panel+API E2E |
 
 ---
 
 ## Açık kalan maddeler (codex kapanış öncesi)
 
-Security Codex **CLOSED değildir**. Aşağıdaki maddeler bilinçli takipte:
+Security Codex **CLOSED değildir**. Faz-2 enforcement dalgası (#460–#463) kapandı; Trust Faz 4 ve köprü tam wiring bilinçli açık:
 
-1. **P2 `SECURITY_NEVER_AUTO`** — TaskEngine tek branch; [P2 analiz](../analysis/security-never-auto-p2-and-helper-proposal.md).
-2. **PR-C6** — Köprü `pending_approval` → confirmation namespace (ayrı PR).
+1. **P2 `SECURITY_NEVER_AUTO`** — Engine branch **merge** #463 (dar: `permanent_delete` store/panel; step `kind`/`action_key` eşlemesi sınırlı). [P2 analiz](../analysis/security-never-auto-p2-and-helper-proposal.md).
+2. **PR-C6** — Shadow adapter **merge** #462; köprü yürütmede `consume_confirmation` wiring **açık**.
 3. **Trust Faz 4** — ADR-007 merkezi trust tüketimi; ADR-011 `keystore_ready` ≠ `session_unlocked`.
 4. ~~**E2E confirmation**~~ — **Kapandı** #459+#460 (opt-in env ile panel+CLI uçtan uca).
-5. ~~**Varsayılan-on kararı**~~ — **Kapandı (docs, 2026-06-21)** — opt-in korunur; tam varsayılan-on ürün incelemesine ertelendi (DL-C18).
+5. ~~**Varsayılan-on kararı**~~ — **Kapandı (docs, 2026-06-21)** — opt-in korunur (#461); tam varsayılan-on ürün incelemesine ertelendi (DL-C18).
 6. **Panel LockState** — Env vekili vs runtime kilit doğrulaması.
 
 ---
 
 ## Açık sorular (kabul sonrası)
 
-1. `SECURITY_NEVER_AUTO` tam runtime branch'i tüm silme/yazma yollarında var mı? (enforcement map §8 — bilinçli takip)
+1. `SECURITY_NEVER_AUTO` tam runtime branch'i tüm silme/yazma yollarında var mı? → **Kısmi** — engine branch #463 (dar kapsam); `permanent_delete` store/panel; tam küme eşlemesi enforcement map §8'de açık.
 2. Trust motor (ADR-007) finalize olunca codex C3 kanıt zinciri genişletilecek mi? (Faz 4 checkpoint)
 3. Panel `PUT /tasks.json` tam doküman yazımı policy zincirine bağlanacak mı? → **Evet** — #444. Kalıcı silme (#445+#454) ve restore (#446) kapandı.
 4. Confirmation varsayılan-on mu opt-in mi kalacak? → **Opt-in korunur** (2026-06-21, E2E #460); tam varsayılan-on ürün incelemesine ertelendi (DL-C18).
@@ -234,4 +234,4 @@ Security Codex **CLOSED değildir**. Aşağıdaki maddeler bilinçli takipte:
 
 ## Sonuç
 
-Lumos Security Codex (C1–C6) resmi sözleşme olarak kayıt altına alındı. İlk uygulama: docs paketi (#440), panel codex şeffaflığı (#441), panel görev mutasyonlarında `check_policy` (#443–#446), consent ayrımı (#450+#451), panel profil guard (#449), CU4 confirmation zinciri (#452–#458, opt-in). Tam trust motor, P2 `SECURITY_NEVER_AUTO` ve PR-C6 **bilinçli sonraki checkpoint'ler**; codex **CLOSED değildir**.
+Lumos Security Codex (C1–C6) resmi sözleşme olarak kayıt altına alındı. İlk uygulama: docs paketi (#440), panel codex şeffaflığı (#441), panel görev mutasyonlarında `check_policy` (#443–#446), consent ayrımı (#450+#451), panel profil guard (#449), CU4 confirmation zinciri (#452–#458, opt-in), Faz-2 enforcement (#460–#463). Trust Faz 4, PR-C6 tam wiring ve codex tam kapanış **bilinçli sonraki checkpoint'ler**; codex **CLOSED değildir**.
