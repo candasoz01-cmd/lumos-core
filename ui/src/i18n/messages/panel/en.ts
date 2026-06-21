@@ -710,7 +710,7 @@ const panel: typeof panelTr = {
       demo: "DEMO",
       localScan: "Local scan (local_scan)",
       docsExample: "Documentation-based sample output",
-      noLiveScan: "No live analysis performed",
+      noLiveScan: "GET /quantum-readiness unavailable",
       mvpPlanning: "Local scan unavailable — showing sample",
     },
     readinessIntro:
