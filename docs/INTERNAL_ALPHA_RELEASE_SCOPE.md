@@ -10,7 +10,7 @@
 
 **Karar:** Internal Alpha release kapsamı bu belgede tanımlanır. [`LUMOS_V1_READINESS.md`](LUMOS_V1_READINESS.md) (web panel v1 **closed** 2026-06-12) ile çelişmez: v1 = üretim panel Faz A kapısı; Internal Alpha = bir sonraki **ekip-only foundation build** aşaması.
 
-**Repo snapshot:** `main` @ `dc800c8` (G-18 defer #500); CI yeşil.
+**Repo snapshot:** `main` @ `24bdbef` (#504 queue kapanış); CI yeşil.
 
 ---
 
@@ -102,8 +102,8 @@ Kullanıcı yüzünde «v2» veya «Alpha download» **ilan edilmez**.
 
 | Rol | Onay | Tarih | Repo ref |
 |-----|------|-------|----------|
-| Ürün / release sahibi | Onaylandı — Internal Alpha kapsam kilidi | 2026-06-21 | `dc800c8` |
-| Docs PR | Bekliyor — merge sonrası hash güncellenir | — | — |
+| Ürün / release sahibi | Onaylandı — Internal Alpha kapsam kilidi | 2026-06-21 | `24bdbef` |
+| Docs PR | Kapandı — #501 merge | 2026-06-21 | `24bdbef` |
 
 **Sign-off koşulu:** Merge sonrası G-24 «yazılı Internal Alpha release kapsamı» **kapandı** sayılır.
 
