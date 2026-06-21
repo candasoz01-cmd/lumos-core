@@ -4,7 +4,7 @@
 |------|-------|
 | Durum | **Taslak / hipotez** — kesinleşmiş mimari karar değildir; bkz. [Güncel durum](#güncel-durum-2026-06-11) |
 | Tarih | 2026-06-05 (güncel durum: 2026-06-11) |
-| İlgili | Panel geliştirme günlüğü, ileri katman araştırmaları, `ROADMAP.md` |
+| İlgili | Panel geliştirme günlüğü, ileri katman araştırmaları, `ROADMAP.md`, [ADR-013](ADR-013-lumos-quantum-security-readiness.md) (Quantum Security Readiness MVP) |
 
 ## Güncel durum (2026-06-11)
 
@@ -59,7 +59,12 @@ Quantum ve IBM tarafı, üstteki temeller netleşmeden üretim hedefi olarak kon
 
 Bu belge **mimari yön taslağıdır**, uygulanmış karar listesi değildir. İlk somut adımlar panel ve çekirdek stabilizasyonu ile sınırlı kalmaya devam eder; ileri modüller ayrı ADR veya checkpoint belgeleriyle güncellenecektir.
 
+## Quantum Security Readiness (ADR-013)
+
+Kuantum alanının somut MVP tanımı — yerel, kanıta dayalı hazırlık raporu, entropy sınırları, panel spesifikasyonu — **[ADR-013](ADR-013-lumos-quantum-security-readiness.md)** belgesindedir. Bu ADR (001) yön ve öncelik taslağını korur; readiness ayrıntısı ADR-013'e bırakılır.
+
 ## Sonraki gözden geçirme
 
 - Temel routing + trust + memory tasarımı için ayrı ADR veya checkpoint
 - IBM / quantum POC gereksinimleri netleşince ADR-002 veya bu belgenin revizyonu
+- Readiness Faz-2 probe — bkz. ADR-013 (onay gerekir)
