@@ -183,11 +183,11 @@ def test_legacy_approve_false_closes_without_execute(
     assert not path.is_file()
 
 
-def test_dispatch_approve_valid_token_executes_without_cu4_consume(
+def test_dispatch_approve_valid_token_executes_without_cu4_consume_when_env_off(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Medium dispatch: legacy token yolu çalışır; shadow grant tüketilmez (PR-C6 gap karakterizasyonu)."""
+    """Medium dispatch: env off iken shadow grant tüketilmez (legacy opt-in)."""
     _path, rec = _write_dispatch_pending(tmp_path, token="tok-disp-1")
     cid = str(rec.get("confirmation_id") or "")
     scope_hash = str(rec.get("confirmation_scope_hash") or "")
@@ -215,6 +215,34 @@ def test_dispatch_approve_valid_token_executes_without_cu4_consume(
     assert consume_confirmation(cid, scope_hash, base_dir=tmp_path / ".lumos")
     grant_after = json.loads(grant_path.read_text(encoding="utf-8"))
     assert grant_after.get("consumed") is True
+
+
+def test_dispatch_approve_consumes_cu4_when_confirmation_enabled(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """PR-W1-05: env-on iken dispatch approve executor shadow grant tüketir."""
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    _path, rec = _write_dispatch_pending(tmp_path, token="tok-disp-1")
+    cid = str(rec.get("confirmation_id") or "")
+    grant_path = tmp_path / ".lumos" / "pending_confirmations" / f"{cid}.json"
+
+    status, payload = _invoke_handle_approve(
+        tmp_path,
+        monkeypatch,
+        {
+            "approval_file": str(rec.get("approval_file") or ""),
+            "approval_token": "tok-disp-1",
+            "approved": True,
+        },
+    )
+    assert status == 200
+    assert isinstance(payload, dict)
+    assert payload.get("accepted") is True
+    assert payload.get("applied") is True
+
+    grant = json.loads(grant_path.read_text(encoding="utf-8"))
+    assert grant.get("consumed") is True
 
 
 def test_high_risk_pending_schema_distinct_from_dispatch(

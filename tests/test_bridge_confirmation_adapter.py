@@ -325,3 +325,47 @@ def test_bridge_approve_validate_legacy_pending_rejects_bad_policy(
     attach_bridge_pending_confirmation(pending, base_dir=lumos, risk="high", source="lumos_gate")
     with pytest.raises(ValueError, match="policy_ok"):
         bridge_approve_validate_legacy_pending(pending, is_dispatch=False)
+
+
+def test_high_risk_execute_consumes_shadow_grant_when_confirmation_enabled(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """PR-W1-05: env-on iken high-risk execute_approved_pending_record grant tüketir."""
+    from kando_runtime.lumos_gate import execute_approved_pending_record
+
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    lumos = tmp_path / ".lumos"
+    lumos.mkdir()
+    (tmp_path / "workspace").mkdir(parents=True, exist_ok=True)
+    loaded: dict = {
+        "schema_version": "lumos.pending_approval.v1",
+        "policy_ok": True,
+        "final_decision": "await_user_approval",
+        "risk_level": "high",
+        "execution_mode": "pending_approval",
+        "mode": "direct_patch",
+        "original_payload": "TARGET: w1.txt\ncontent\n",
+        "execution_plan": {
+            "steps": [{"type": "patch", "file": "w1.txt", "content": "approved\n"}],
+        },
+        "reasoning_snapshot": {"source": "test"},
+        "normalized_task": {"target_rel": "w1.txt", "target_body": "content"},
+    }
+    attach_bridge_pending_confirmation(loaded, base_dir=lumos, risk="high", source="lumos_gate")
+    cid = str(loaded["confirmation_id"])
+    grant_path = lumos / "pending_confirmations" / f"{cid}.json"
+
+    def _run_direct(_instr: str) -> dict:
+        return {"ok": True}
+
+    def _start_agent(_goal: str, _auto: bool) -> str:
+        return "job-1"
+
+    execute_approved_pending_record(
+        loaded,
+        run_direct=_run_direct,
+        start_agent=_start_agent,
+        repo_root=tmp_path,
+    )
+    grant = json.loads(grant_path.read_text(encoding="utf-8"))
+    assert grant.get("consumed") is True
