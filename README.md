@@ -87,7 +87,7 @@ Paid or official service access is managed separately from open-source code, via
 
 - Publishing
 - Artificial Intelligence
-- Quantum *(research / placeholder — not active production; [Quantum Readiness](docs/decisions/ADR-013-lumos-quantum-security-readiness.md) local read-only scanner — Faz-2 partial; see [ADR-001](docs/decisions/ADR-001-lumos-quantum-modules.md))*
+- Quantum *(research / placeholder — not active production; [Quantum Readiness](docs/decisions/ADR-013-lumos-quantum-security-readiness.md) local read-only scanner — Faz-2 partial; CLI: `lumos quantum-readiness`; see [ADR-001](docs/decisions/ADR-001-lumos-quantum-modules.md))*
 - Integration
 - Identity
 - Security

@@ -90,7 +90,7 @@ Faz-2: yerel tarama satır/snapshot ile `verified: true` işaretler.
 |---------|------|-------|------------|------|-------|
 | P0 | Sessiz entropy fallback uyarısını readiness raporunda zorunlu göster | Entropy Lab bölümü | Faz-2 probe | S | `oneri` |
 | P1 | Kripto envanter yerel tarama (panel GET / standalone script) | Tüm `crypto_inventory` | Faz-2 kısmi (#468, #469) | M | `kismi` |
-| P1 | Lumos CLI alt komutu (`quantum-readiness`) | CLI JSON çıktı | Faz-2 tamamlama | M | `onay_bekliyor` |
+| P1 | Lumos CLI alt komutu (`quantum-readiness`) | CLI JSON çıktı | Faz-2 tamamlama | M | **uygulandı** (`lumos quantum-readiness`) |
 | P1 | Keystore / encrypted blob format versiyonlama taslağı | `hard_to_change_deps` | Ayrı ADR | L | `ertelendi` |
 | P2 | NIST PQC aday izleme notu güncelleme | `post_quantum_transition_readiness` | — | S | `oneri` |
 | P3 | Hibrit PQC POC (private/onaylı) | PQC uygulama | P1 + audit | L | `ertelendi` |
@@ -116,7 +116,7 @@ Faz-2: yerel tarama satır/snapshot ile `verified: true` işaretler.
 | `LUMOS_ENTROPY_PROVIDER` | Set değil veya `os` | Farklı değer → sessiz fallback riski |
 | qiskit / qiskit-aer kurulu | Hayır (typical) | Import fail → OS |
 | IBM token / `QiskitRuntimeService` | Yok | Public OSS |
-| Readiness yerel tarama | Panel `GET /quantum-readiness` + `scripts/quantum_readiness_scan.py` | **Kısmi (Faz-2)** — Lumos CLI alt komutu yok |
+| Readiness yerel tarama | Panel `GET /quantum-readiness` + `scripts/quantum_readiness_scan.py` + `lumos quantum-readiness` | **Kısmi (Faz-2)** |
 | Entropy birim testi | Yok | Faz-2+ |
 
 ---

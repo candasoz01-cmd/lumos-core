@@ -26,7 +26,7 @@ Bugün üç algı aynı anda var:
 
 1. **Dürüst metinler** (landing, panel i18n, ADR-001): "Kuantum şifreleme kullanmıyoruz", "aktif üretim özelliği değil".
 2. **Kod gerçeği** (`src/security/entropy/`): Qiskit Aer ve IBM Runtime sağlayıcıları mevcut; varsayılan yol `os.urandom`.
-3. **Kısmi kapanış (Faz-2)**: Yerel salt okunur tarayıcı (`src/security/readiness/scanner.py`) ve panel `GET /quantum-readiness` mevcut; Lumos CLI alt komutu henüz yok. Panel kuantum sekmesinde statik kartlar (`#panel-kuantum`) korunur; `GET /quantum-readiness` fetch başarısızsa docs-only mock banner gösterilir (#471, #475).
+3. **Kısmi kapanış (Faz-2)**: Yerel salt okunur tarayıcı (`src/security/readiness/scanner.py`), panel `GET /quantum-readiness` ve `lumos quantum-readiness` CLI mevcut. Panel kuantum sekmesinde statik kartlar (`#panel-kuantum`) korunur; `GET /quantum-readiness` fetch başarısızsa docs-only mock banner gösterilir (#471, #475).
 
 ### Hedef
 
@@ -349,7 +349,7 @@ Fallback **üç katmanda**, çoğunlukla log/audit olmadan:
 | Faz | Kapsam | Çıktı | Durum (2026-06-21) |
 |-----|--------|-------|---------------------|
 | **Faz-1** | Docs-only: ADR-013, checklist, rapor alanları, panel spesifikasyonu | ADR + checklist; entropy kodu değişmez | **Tamamlandı** |
-| **Faz-2** | Yerel salt okunur readiness taraması (CLI veya panel GET) | Rapor alanları doldurulur; fallback uyarısı zorunlu | **Kısmi** — tarayıcı (#468), panel GET (#469), standalone script; landing/panel copy (#471–#475); Lumos CLI alt komutu bekliyor |
+| **Faz-2** | Yerel salt okunur readiness taraması (CLI veya panel GET) | Rapor alanları doldurulur; fallback uyarısı zorunlu | **Kısmi** — tarayıcı (#468), panel GET (#469), standalone script, `lumos quantum-readiness` CLI; landing/panel copy (#471–#475); tam panel alan seti bekliyor |
 | **Faz-3** (onaylı, private olabilir) | IBM Runtime POC, maliyet/onay kapısı | Credential vault; public repoda yalnızca sınır metni | Beklemede |
 
 ### Faz-2 uygulanan / bekleyen (2026-06-21)
@@ -358,10 +358,11 @@ Fallback **üç katmanda**, çoğunlukla log/audit olmadan:
 |-----|-------|
 | `src/security/readiness/scanner.py` — yerel tarama; `get_entropy` çağırmadan env/import/kod probe | **Uygulandı** (#468) |
 | `scripts/quantum_readiness_scan.py` — standalone JSON çıktı | **Uygulandı** (#468) |
+| `lumos quantum-readiness` — CLI JSON/summary (`src/lumos_core/quantum_readiness_cli.py`) | **Uygulandı** |
 | Panel `GET /quantum-readiness` — salt okunur JSON | **Uygulandı** (#469) |
 | `tests/test_quantum_readiness_scan.py` | **Uygulandı** (#468) |
 | Panel kuantum sekmesi — live fetch + docs-only mock fallback | **Kısmi** (#469; copy #471, #475) |
-| Lumos CLI alt komutu (`lumos quantum-readiness` vb.) | **Bekliyor** |
+| Lumos CLI alt komutu (`lumos quantum-readiness` vb.) | **Uygulandı** |
 
 ---
 
@@ -369,7 +370,7 @@ Fallback **üç katmanda**, çoğunlukla log/audit olmadan:
 
 1. **`lumos-quantum/`** — Belgelerde placeholder; repo kökünde fiziksel dizin yok.
 2. **Entropy testleri** — Yok.
-3. **Readiness tarama yüzeyi** — Yerel tarayıcı (`scanner.py`), standalone script (`scripts/quantum_readiness_scan.py`) ve panel `GET /quantum-readiness` mevcut; **Lumos CLI alt komutu yok**.
+3. **Readiness tarama yüzeyi** — Yerel tarayıcı (`scanner.py`), standalone script (`scripts/quantum_readiness_scan.py`), panel `GET /quantum-readiness` ve Lumos CLI `lumos quantum-readiness` mevcut.
 4. **PQC** — Panel i18n'de gelecek tense ifade; kod yok.
 5. **IBM / Qiskit** — Kod var; bağımlılık ve operasyon yok; çoğu kurulumda pratikte yalnızca `os.urandom`.
 6. **Otomatik long-lived data taraması** — Faz-2.

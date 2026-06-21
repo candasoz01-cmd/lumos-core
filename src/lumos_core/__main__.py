@@ -1,4 +1,4 @@
-"""Entry point: lumos (or python -m lumos_core). Subcommands: cli (default), decision."""
+"""Entry point: lumos (or python -m lumos_core). Subcommands: cli (default), decision, quantum-readiness."""
 from __future__ import annotations
 
 import argparse
@@ -26,6 +26,15 @@ def main() -> None:
     decision_p = sub.add_parser("decision", help="run decision pipeline, show proposal diff (no apply)")
     decision_p.add_argument("--goal", required=True, help="goal description")
     decision_p.add_argument("--paths", required=True, nargs="+", help="target paths")
+    qr_p = sub.add_parser(
+        "quantum-readiness",
+        help="local read-only quantum readiness scan (ADR-013; JSON default)",
+    )
+    qr_p.add_argument(
+        "--summary",
+        action="store_true",
+        help="human-readable summary instead of JSON",
+    )
     args = parser.parse_args()
 
     if args.version:
@@ -42,6 +51,14 @@ def main() -> None:
             sys.exit(1)
         print(format_result_preview(result))
         sys.exit(0 if result.success else 1)
+    if args.cmd == "quantum-readiness":
+        from lumos_core.quantum_readiness_cli import (
+            emit_quantum_readiness_report,
+            run_quantum_readiness_scan,
+        )
+        report = run_quantum_readiness_scan()
+        emit_quantum_readiness_report(report, summary=bool(args.summary))
+        sys.exit(0)
     else:
         # default or explicit cli; --sandbox overrides env
         sandbox_override = True if args.sandbox else None
