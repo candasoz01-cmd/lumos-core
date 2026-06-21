@@ -203,7 +203,7 @@ ADR-010: **consent ≠ general_approval ≠ confirmation**. İşlem bazlı üç�
 
 ## Açık kalan maddeler (codex kapanış öncesi)
 
-Security Codex **CLOSED değildir**. Faz-2 enforcement dalgası (#460–#463) ve Wave 1 Madde 1–2 (#491–#498) kapandı; Trust Faz 4, sensitivity↔gate ve Panel LockState bilinçli açık:
+Security Codex **CLOSED değildir**. Faz-2 enforcement dalgası (#460–#463) ve Wave 1 Madde 1–2 (#491–#498) kapandı; Trust Faz 4, sensitivity↔gate ve Panel LockState bilinçli açık. **Internal Alpha defer kaydı:** [`adr-012-internal-alpha-defer-record.md`](../memory/adr-012-internal-alpha-defer-record.md) (G-18 / RB-01).
 
 1. ~~**P2 `SECURITY_NEVER_AUTO`**~~ — **Kapandı (2026-06-21)** — Wave 1 Seçenek B: tam eşleme tablosu #497, engine + yüzey sync #498.
 2. ~~**PR-C6**~~ — **Kapandı (2026-06-21)** — Wave 1 Seçenek B: köprü approve/resume `consume_confirmation` + opt-in env (#494–#495).

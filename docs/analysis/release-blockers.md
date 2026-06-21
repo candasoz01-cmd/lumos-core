@@ -35,6 +35,7 @@ Bu belge **release engellerini** (RB-XX) listeler. Teknik borç uygulama sıras�
 | **Açıklama** | Codex C1–C6 sözleşmesi merge edildi; Wave 1 Madde 1–2 (#491–#498) kapandı. Checkpoint tablosunda Trust Faz 4, sensitivity↔gate ve panel LockState **açık**. «Açık kalan maddeler (codex kapanış öncesi)» bölümü açıkça «Security Codex **CLOSED değildir**» der. |
 | **Kanıt** | `docs/decisions/ADR-012-lumos-security-codex.md` checkpoint tablosu; Wave 1 #491–#498 merge |
 | **30 gün içinde kapanış koşulu** | ADR-012 checkpoint tablosunda kalan maddeler (Trust Faz 4, sensitivity↔gate, LockState) «kapandı» veya bilinçli defer kaydı ile CLOSED durum geçişi tamamlanır. |
+| **Alpha defer** | **Kayıtlı** — [`adr-012-internal-alpha-defer-record.md`](../memory/adr-012-internal-alpha-defer-record.md) (G-18); Internal Alpha CLOSED beklemez; Launch defer ayrı |
 | **Bağımlılıklar** | RB-02, RB-03, RB-04, RB-05, RB-11 |
 
 ### RB-02 — Köprü CU4 `consume_confirmation` wiring eksik (PR-C6 kısmi)
