@@ -198,7 +198,7 @@ def _get_oneri(
         if len(out) >= 3:
             return out
     if not ks_ready:
-        out.append("Önce keystore kurulumunu kontrol et: kilit")
+        out.append("Önce keystore kurulumunu kontrol et: durum")
         if len(out) >= 3:
             return out
     if consent_ok and ks_ready and durum_label == "güvenli":
