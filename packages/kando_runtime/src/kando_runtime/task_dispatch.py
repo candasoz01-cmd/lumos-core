@@ -691,6 +691,17 @@ def _persist_medium_dispatch_pending(
         p.write_text(json.dumps(rec, ensure_ascii=False, indent=2), encoding="utf-8")
     except OSError:
         return
+    try:
+        from policy.confirmation_policy import attach_bridge_pending_confirmation
+
+        attach_bridge_pending_confirmation(
+            rec,
+            base_dir=repo_root / ".lumos",
+            risk="medium",
+            source="task_dispatch",
+        )
+    except OSError:
+        pass
     out["execution_mode"] = "pending_approval"
     out["pending_approval_record"] = rec
     out["approval_file"] = approval_rel

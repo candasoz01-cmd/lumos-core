@@ -1136,6 +1136,9 @@ def _return_high_risk_pending(
     payload: str,
     norm: dict[str, Any],
     plan: dict[str, Any],
+    *,
+    repo_root: Path | None = None,
+    confirmation_risk: str = "high",
 ) -> dict[str, Any]:
     body = _build_high_risk_pending_http_body(ctx, reasoning)
     out = _handle_task_return(
@@ -1145,7 +1148,7 @@ def _return_high_risk_pending(
         risk="high",
         approval_granted=False,
     )
-    out["pending_approval_record"] = _pending_approval_record(
+    par = _pending_approval_record(
         mode=mode,
         payload=payload,
         norm=norm,
@@ -1153,6 +1156,19 @@ def _return_high_risk_pending(
         plan=plan,
         reasoning=reasoning,
     )
+    if repo_root is not None:
+        try:
+            from policy.confirmation_policy import attach_bridge_pending_confirmation
+
+            attach_bridge_pending_confirmation(
+                par,
+                base_dir=repo_root / ".lumos",
+                risk=confirmation_risk,
+                source="lumos_gate",
+            )
+        except OSError:
+            pass
+    out["pending_approval_record"] = par
     return out
 
 
@@ -2180,7 +2196,8 @@ def run_lumos_gate(
         if tag not in (rsx or ""):
             ctx.reasoning_summary = f"{rsx} | {tag}".strip(" |")
         out = _return_high_risk_pending(
-            ctx, reasoning, mode, payload, norm, plan=plan
+            ctx, reasoning, mode, payload, norm, plan=plan,
+            repo_root=repo_root, confirmation_risk="medium",
         )
         out["policy_ok"] = True
         out["gate_complete"] = True
@@ -2218,7 +2235,7 @@ def run_lumos_gate(
 
     if (risk == "high" or plan_has_high_risk_step(plan)) and not approval_granted:
         out = _return_high_risk_pending(
-            ctx, reasoning, mode, payload, norm, plan=plan
+            ctx, reasoning, mode, payload, norm, plan=plan, repo_root=repo_root,
         )
         out["policy_ok"] = True
         out["gate_complete"] = True
@@ -2268,6 +2285,7 @@ def _build_result_after_execute(
     kind: str,
     ex: dict[str, Any] | None,
     job_id: str | None,
+    repo_root: Path | None = None,
 ) -> dict[str, Any]:
     ctx.verification_summary = verify_result(kind, ex)
     http_body = build_result_payload(ctx=ctx, execution_kind=kind, ex=ex, job_id=job_id)
@@ -2489,7 +2507,7 @@ def _build_result_after_execute(
         and http_body.get("risk_level") == "high"
     ):
         return _return_high_risk_pending(
-            ctx, reasoning, mode, payload, norm, plan=plan
+            ctx, reasoning, mode, payload, norm, plan=plan, repo_root=repo_root,
         )
 
     return _handle_task_return(
@@ -2587,6 +2605,7 @@ def execute_approved_pending_record(
         kind=kind,
         ex=ex,
         job_id=job_id,
+        repo_root=rr,
     )
     if audit is not None:
         if kind != "plan":
@@ -2623,7 +2642,7 @@ def lumos_gate_execute(
 
     if risk == "high" and not approval_granted:
         out = _return_high_risk_pending(
-            ctx, reasoning, mode, payload, norm, plan=plan
+            ctx, reasoning, mode, payload, norm, plan=plan, repo_root=rr,
         )
         if audit is not None:
             audit.set_plan(plan)
@@ -2668,7 +2687,7 @@ def lumos_gate_execute(
     )
     if risk == "high" and not approval_granted:
         return _return_high_risk_pending(
-            ctx, reasoning, mode, payload, norm, plan=plan
+            ctx, reasoning, mode, payload, norm, plan=plan, repo_root=rr,
         )
 
     result = _build_result_after_execute(
@@ -2683,6 +2702,7 @@ def lumos_gate_execute(
         kind=kind,
         ex=ex,
         job_id=job_id,
+        repo_root=rr,
     )
     if audit is not None:
         if kind != "plan":

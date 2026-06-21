@@ -46,7 +46,13 @@ REQUIRES_CONFIRMATION_ACTIONS: frozenset[str] = frozenset({
     "cu_act_domain",
     "cu_act_email",
     "cu_act_file_send",
+    # PR-C6: köprü pending_approval → confirmation namespace (adapter; enforcement opt-in)
+    "bridge_high_risk_execute",
+    "bridge_medium_dispatch",
 })
+
+BRIDGE_HIGH_RISK_ACTION = "bridge_high_risk_execute"
+BRIDGE_MEDIUM_DISPATCH_ACTION = "bridge_medium_dispatch"
 
 # Gelecek enforcement hook noktaları (PR-C2+ — şimdilik yalnızca işaret)
 INTEGRATION_MARKERS: dict[str, str] = {
@@ -69,8 +75,9 @@ INTEGRATION_MARKERS: dict[str, str] = {
         "integrations / Computer Use act modu — PR-C5+: cu_act_* + external_write hooks"
     ),
     "bridge_pending_approval": (
-        "packages/kando_runtime/lumos_gate.py pending_approval — "
-        "PR-C6: köprü namespace hizalama (confirmation ≠ consent)"
+        "packages/kando_runtime/lumos_gate.py + task_dispatch.py — "
+        "PR-C6: attach_bridge_pending_confirmation → .lumos/pending_confirmations/ "
+        "(legacy pending_approvals korunur; enforcement opt-in)"
     ),
 }
 
@@ -425,6 +432,85 @@ def ensure_delete_permanent_confirmation(
         return ConfirmationResult(False, REASON_CONFIRMATION_REQUIRED)
 
     return ConfirmationResult(False, REASON_CONFIRMATION_REQUIRED)
+
+
+def bridge_pending_action_key(*, risk: str, source: str) -> str:
+    """Köprü risk kaynağı → CU4 action_key (PR-C6)."""
+    src = (source or "").strip().lower()
+    r = (risk or "").strip().lower()
+    if src == "task_dispatch" or r == "medium":
+        return BRIDGE_MEDIUM_DISPATCH_ACTION
+    return BRIDGE_HIGH_RISK_ACTION
+
+
+def bridge_pending_confirmation_spec(
+    pending_record: Mapping[str, Any],
+    *,
+    risk: str,
+    source: str,
+) -> tuple[str, dict[str, Any], dict[str, Any]]:
+    """Köprü pending kaydı → action_key, scope, CU7 preview."""
+    title = str(
+        pending_record.get("title")
+        or pending_record.get("raw_text")
+        or pending_record.get("original_payload")
+        or ""
+    ).strip()
+    norm = pending_record.get("normalized_task")
+    target = ""
+    if isinstance(norm, dict):
+        target = str(norm.get("target_rel") or norm.get("target_body") or "").strip()[:500]
+    action_key = bridge_pending_action_key(risk=risk, source=source)
+    scope: dict[str, Any] = {
+        "bridge_source": source,
+        "risk_level": risk,
+        "title": title[:500],
+    }
+    if target:
+        scope["target"] = target
+    legacy_schema = pending_record.get("schema_version")
+    if legacy_schema:
+        scope["legacy_schema"] = str(legacy_schema)
+    task_id = str(pending_record.get("task_id") or "").strip()
+    if task_id:
+        scope["task_id"] = task_id
+    preview = {
+        "what": action_key,
+        "where": target or title[:200] or source,
+        "effect": "bridge_execute_after_approval",
+        "risk_level": risk,
+    }
+    return action_key, scope, preview
+
+
+def attach_bridge_pending_confirmation(
+    pending_record: dict[str, Any],
+    *,
+    base_dir: Path | str,
+    risk: str,
+    source: str,
+) -> str | None:
+    """
+    PR-C6: Köprü pending_approval kaydına CU4 confirmation namespace bağlar.
+    Legacy `.lumos/pending_approvals/` akışını bozmaz; parallel shadow kayıt yazar.
+    Enforcement yalnızca LUMOS_CONFIRMATION_ENABLED ile (panel/CLI #453–458 ayrı).
+    """
+    if not isinstance(pending_record, dict):
+        return None
+    action_key, scope, preview = bridge_pending_confirmation_spec(
+        pending_record, risk=risk, source=source
+    )
+    pending = request_confirmation(
+        action_key,
+        scope,
+        preview,
+        base_dir=base_dir,
+    )
+    pending_record["confirmation_id"] = pending.confirmation_id
+    pending_record["confirmation_action_key"] = action_key
+    pending_record["confirmation_namespace"] = SCHEMA_VERSION
+    pending_record["confirmation_scope_hash"] = pending.scope_hash
+    return pending.confirmation_id
 
 
 def consume_confirmation(
