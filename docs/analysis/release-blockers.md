@@ -15,8 +15,8 @@ Bu belge **release engellerini** (RB-XX) listeler. Teknik borç uygulama sıras�
 
 ## 1. Özet
 
-- ADR-012 Security Codex **kabul edildi** ancak **CLOSED değil** — ayrıntı [prep assessment §1](ADR-012-enforcement-prep-assessment.md#1-kısa-teknik-değerlendirme).
-- Altı ADR-012 enforcement maddesi **karar bekliyor** (insan onayı); matris tavsiye içermez — bkz. [RB-05](#rb-05--adr-012-enforcement-altı-karar-maddesi-karar-bekliyor).
+- ADR-012 Security Codex **kabul edildi** ancak **CLOSED değil** — Wave 1 Madde 1–2 (#491–#498) kapandı; kalan: Trust Faz 4, sensitivity↔gate, Panel LockState — ayrıntı [prep assessment §1](ADR-012-enforcement-prep-assessment.md#1-kısa-teknik-değerlendirme).
+- ADR-012 enforcement Madde 3–6 **karar bekliyor** (insan onayı); Madde 1–2 **kapandı** (Seçenek B, Wave 1) — bkz. [RB-05](#rb-05--adr-012-enforcement-altı-karar-maddesi-karar-bekliyor).
 - Packaging/docs: `pip install` sonrası tam CLI/gate/bridge yolu garanti değil (RB-06); README release checklist kırık referans (RB-07); publish CI yok (RB-08); README kararlı OSS iddiası yok (RB-09).
 - Vault (OD-001–005) ve mail/vault stub'ları **decision-approved / implementation-pending**; public boundary demo-safe stub (RB-10, RB-16).
 - Quantum Readiness Faz-2 **docs-kapalı (kısmi)** — release blocker **değil** (§5).
@@ -32,9 +32,9 @@ Bu belge **release engellerini** (RB-XX) listeler. Teknik borç uygulama sıras�
 |------|-------|
 | **Kategori** | güvenlik / docs |
 | **Blokaj seviyesi** | hard blocker |
-| **Açıklama** | Codex C1–C6 sözleşmesi merge edildi; checkpoint tablosunda Trust Faz 4, PR-C6 tam wiring, P2 tam küme eşlemesi ve panel LockState **açık**. «Açık kalan maddeler (codex kapanış öncesi)» bölümü açıkça «Security Codex **CLOSED değildir**» der. |
-| **Kanıt** | `docs/decisions/ADR-012-lumos-security-codex.md` L196–214, L238; `docs/analysis/ADR-012-enforcement-prep-assessment.md` L11–15 |
-| **30 gün içinde kapanış koşulu** | ADR-012 checkpoint tablosunda kalan dört madde (P2 tam, PR-C6 consume, Trust Faz 4, LockState) «kapandı» veya bilinçli defer kaydı ile CLOSED durum geçişi tamamlanır. |
+| **Açıklama** | Codex C1–C6 sözleşmesi merge edildi; Wave 1 Madde 1–2 (#491–#498) kapandı. Checkpoint tablosunda Trust Faz 4, sensitivity↔gate ve panel LockState **açık**. «Açık kalan maddeler (codex kapanış öncesi)» bölümü açıkça «Security Codex **CLOSED değildir**» der. |
+| **Kanıt** | `docs/decisions/ADR-012-lumos-security-codex.md` checkpoint tablosu; Wave 1 #491–#498 merge |
+| **30 gün içinde kapanış koşulu** | ADR-012 checkpoint tablosunda kalan maddeler (Trust Faz 4, sensitivity↔gate, LockState) «kapandı» veya bilinçli defer kaydı ile CLOSED durum geçişi tamamlanır. |
 | **Bağımlılıklar** | RB-02, RB-03, RB-04, RB-05, RB-11 |
 
 ### RB-02 — Köprü CU4 `consume_confirmation` wiring eksik (PR-C6 kısmi)
@@ -42,11 +42,11 @@ Bu belge **release engellerini** (RB-XX) listeler. Teknik borç uygulama sıras�
 | Alan | Değer |
 |------|-------|
 | **Kategori** | teknik / güvenlik |
-| **Blokaj seviyesi** | hard blocker |
-| **Açıklama** | Shadow adapter grant yazar; köprü approve/resume legacy `approval_token` + `pending_approvals` ile devam eder. `kando_bridge/server.py` approve handler'da `consume_confirmation` yok. |
-| **Kanıt** | `docs/analysis/ADR-012-enforcement-prep-assessment.md` L13–14, L87–96, L142; td-02; open-decisions «needs-review (ONAY GEREKİYOR)» satırı |
-| **30 gün içinde kapanış koşulu** | ADR-012 Madde 1 (PR-C6 wiring) kararı verilir ve seçilen seçeneğin tanımına uygun kod + test kanıtı merge edilir; veya codex CLOSED tanımından köprü yolu bilinçli kapsam dışı bırakılır (ADR güncellemesi). |
-| **Bağımlılıklar** | RB-05, RB-08 (td-08) |
+| **Blokaj seviyesi** | ~~hard blocker~~ **kapandı (2026-06-21)** |
+| **Açıklama** | ~~Shadow adapter grant yazar; köprü approve/resume legacy `approval_token` + `pending_approvals` ile devam eder.~~ Wave 1 Seçenek B: köprü approve/resume `consume_confirmation` + opt-in env (#494–#495); karakterizasyon #491–#493. |
+| **Kanıt** | Wave 1 #491–#495; ADR-012 checkpoint «Kapandı»; open-decisions köprü wiring satırı **closed** |
+| **30 gün içinde kapanış koşulu** | ~~ADR-012 Madde 1 (PR-C6 wiring) kararı verilir…~~ **Sağlandı** — Wave 1 Madde 1 merge. |
+| **Bağımlılıklar** | RB-05 (Madde 1 kararı kapandı) |
 
 ### RB-03 — Panel LockState env vekili vs runtime kilit
 
@@ -64,11 +64,11 @@ Bu belge **release engellerini** (RB-XX) listeler. Teknik borç uygulama sıras�
 | Alan | Değer |
 |------|-------|
 | **Kategori** | güvenlik / teknik |
-| **Blokaj seviyesi** | hard blocker |
-| **Açıklama** | Engine branch #463 dar: `permanent_delete` store/panel yolunda; `external_write`, `irreversible_user_op`, `critical_system_config` tag eşleşmesi olmadan engine dalını bypass edebilir. |
-| **Kanıt** | ADR-012 L196, L208; prep assessment L46, L144; td-09; open-decisions P2 satırı |
-| **30 gün içinde kapanış koşulu** | ADR-012 Madde 2 kararı + seçilen kapsamda merge kanıtı; veya codex «kısmi kapandı» tanımı resmi release sınırına yazılır. |
-| **Bağımlılıklar** | RB-05 |
+| **Blokaj seviyesi** | ~~hard blocker~~ **kapandı (2026-06-21)** |
+| **Açıklama** | ~~Engine branch #463 dar…~~ Wave 1 Seçenek B: tam eşleme tablosu #497; engine + panel/CLI/store sync #498; karakterizasyon #496. |
+| **Kanıt** | Wave 1 #496–#498; ADR-012 checkpoint «Kapandı»; open-decisions P2 satırı **closed** |
+| **30 gün içinde kapanış koşulu** | ~~ADR-012 Madde 2 kararı + seçilen kapsamda merge kanıtı…~~ **Sağlandı** — Wave 1 Madde 2 merge. |
+| **Bağımlılıklar** | RB-05 (Madde 2 kararı kapandı) |
 
 ### RB-05 — ADR-012 enforcement altı karar maddesi «karar bekliyor»
 
@@ -76,9 +76,9 @@ Bu belge **release engellerini** (RB-XX) listeler. Teknik borç uygulama sıras�
 |------|-------|
 | **Kategori** | operasyonel / docs |
 | **Blokaj seviyesi** | hard blocker |
-| **Açıklama** | PR-C6 wiring, P2 genişletme, Trust Faz 4 zamanlaması, sensitivity↔gate, confirmation varsayılanı (tam default-on kapıları), Panel LockState — matriste **karar bekliyor**; indeks «ONAY GEREKİYOR». |
-| **Kanıt** | `docs/analysis/ADR-012-enforcement-decision-matrix.md`; prep assessment §5 L157–164; open-decisions Güvenlik/mimari bölümü |
-| **30 gün içinde kapanış koşulu** | Her madde için durum `closed`/`deferred`/`accepted-as-is` olarak ADR veya open-decisions'da kayıt altına alınır. |
+| **Açıklama** | ~~PR-C6 wiring, P2 genişletme,~~ Trust Faz 4 zamanlaması, sensitivity↔gate, confirmation varsayılanı (tam default-on kapıları), Panel LockState — matriste **karar bekliyor**; Madde 1–2 **kapandı** (Wave 1 Seçenek B). |
+| **Kanıt** | `docs/analysis/ADR-012-enforcement-decision-matrix.md`; prep assessment §5; open-decisions Güvenlik/mimari bölümü |
+| **30 gün içinde kapanış koşulu** | Kalan maddeler (3–6) için durum `closed`/`deferred`/`accepted-as-is` olarak ADR veya open-decisions'da kayıt altına alınır. |
 | **Bağımlılıklar** | RB-01, RB-02, RB-03, RB-04, RB-11, RB-12 |
 
 ### RB-06 — Python paketleme: kando bağımlılıkları wheel dışında
@@ -255,6 +255,8 @@ Bu belge **release engellerini** (RB-XX) listeler. Teknik borç uygulama sıras�
 | **OD-010 CI tamamlanma** | Closed |
 | **OD-029 Ghidra** | Closed — public entegrasyon yok |
 | **Ödeme (OD-011)** | Bilinçli kapsam dışı; release için eksik sayılmaz |
+| **PR-C6 köprü wiring (RB-02)** | Wave 1 #491–#495 merge; ADR-012 checkpoint Kapandı |
+| **P2 tam eşleme (RB-04)** | Wave 1 #496–#498 merge; ADR-012 checkpoint Kapandı |
 | **Faz-2 enforcement dalgası docs (#464)** | Closed (docs) — açık satırlar enforcement uygulaması, release tag değil |
 | **Entropy sağlayıcı davranışı** | ADR-013: değiştirilmez — readiness tarayıcı ayrı |
 
@@ -265,10 +267,10 @@ Bu belge **release engellerini** (RB-XX) listeler. Teknik borç uygulama sıras�
 | RB ID | open-decisions | ADR-012 karar maddesi | td-XX |
 |-------|----------------|----------------------|-------|
 | RB-01 | — (codex genel) | Açık maddeler §204–214 | td-02,03,09,10,11 |
-| RB-02 | CU4 wiring (needs-review) | Madde 1 PR-C6 | td-02, td-08 |
+| RB-02 | CU4 wiring (**closed**) | Madde 1 PR-C6 ✓ | td-02, td-08 |
 | RB-03 | Trust Faz 4 (needs-review) | Madde 6 LockState | td-03 |
-| RB-04 | P2 tam eşleme (needs-review) | Madde 2 P2 | td-09 |
-| RB-05 | 4× needs-review satırı | Matris Madde 1–6 | — |
+| RB-04 | P2 tam eşleme (**closed**) | Madde 2 P2 ✓ | td-09 |
+| RB-05 | 2× needs-review satırı (Madde 3–6) | Matris Madde 3–6 | — |
 | RB-06 | OD-B05 (ertelendi) | — | td-15 |
 | RB-07 | — | — | — |
 | RB-08 | OD-010 (CI closed — test only) | — | — |

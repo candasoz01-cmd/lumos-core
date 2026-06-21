@@ -8,10 +8,10 @@
 
 ## Executive summary
 
-- ADR-012 **CLOSED değil**; Faz-2 dalgası (#459–#464) panel/CLI policy→profil→confirmation zincirini merge etti; confirmation **opt-in** (#461) korunuyor.
-- **Wired:** `task_action_gate`, CLI/panel `ensure_*_confirmation` + `consume_confirmation`, P2 engine branch (#463) + `is_security_never_auto()` helper.
-- **Shadow:** PR-C6 `attach_bridge_pending_confirmation` — CU4 grant yazar, legacy `pending_approvals` + `approval_token` akışı devam eder; köprü yürütmede `consume_confirmation` **yok**.
-- **Documented-only / gap:** Trust Faz 4 (ADR-007), `change_sensitivity` ↔ `lumos_gate` birleşik zincir, P2 tam küme eşlemesi, panel `LockState` vs `LUMOS_SESSION_UNLOCKED`.
+- ADR-012 **CLOSED değil**; Faz-2 dalgası (#459–#464) ve Wave 1 Madde 1–2 (#491–#498) panel/CLI policy→profil→confirmation→köprü→P2 zincirini merge etti; confirmation **opt-in** (#461) korunuyor.
+- **Wired:** `task_action_gate`, CLI/panel `ensure_*_confirmation` + `consume_confirmation`, köprü approve/resume consume (#494–#495), tam P2 eşleme tablosu + engine/yüzey sync (#497–#498).
+- **Shadow (geçiş tamamlandı):** PR-C6 shadow adapter #462 → Wave 1 Seçenek B wiring #491–#495 ile `consume_confirmation` tek yol.
+- **Documented-only / gap:** Trust Faz 4 (ADR-007), `change_sensitivity` ↔ `lumos_gate` birleşik zincir, panel `LockState` vs `LUMOS_SESSION_UNLOCKED`.
 - **Runtime değişikliği:** Bu keşif turunda **sıfır** — yalnızca analiz.
 
 ---
@@ -27,12 +27,12 @@
 | CU4 confirmation (#452–#458) | Kapandı (opt-in) | `confirmation_policy` + panel/CLI consume — wired when env on |
 | E2E (#459+#460) | Kapandı | Test kanıtı; varsayılan kapalı |
 | Varsayılan-on (#461) | Kapandı (docs) | Opt-in korunur; kod değişmedi |
-| PR-C6 (#462) | **Kısmi** | Shadow adapter only |
-| P2 engine (#463) | **Kısmi (dar)** | Engine branch + helper; `permanent_delete` hariç |
+| PR-C6 (#462 → Wave 1) | **Kapandı** | Seçenek B: köprü `consume_confirmation` + opt-in (#494–#495); karakterizasyon #491–#493 |
+| P2 engine (#463 → Wave 1) | **Kapandı** | Seçenek B: tam eşleme tablosu #497; engine + panel/CLI/store #498; karakterizasyon #496 |
 | Trust Faz 4 | Açık | Kod yok |
 | Panel LockState | Açık | Env vekili; runtime `LockState` doğrulanmaz |
 
-**Sonuç:** Codex C1–C6 sözleşmesi dokümante; enforcement **parçalı ama güçlü** (CLI/panel görev mutasyonları). Kapanışı engelleyen dört alan: köprü confirmation consume, P2 tam eşleme, trust motor, sensitivity↔gate zinciri.
+**Sonuç:** Codex C1–C6 sözleşmesi dokümante; enforcement **güçlendi** (CLI/panel görev mutasyonları + köprü CU4 + tam P2). Kapanışı engelleyen üç alan: trust motor, sensitivity↔gate zinciri, panel LockState.
 
 ### Shadow vs wired vs documented-only
 
@@ -42,8 +42,8 @@
 | Profil 2. kapı | **Wired** | `may_execute_step_at_runtime` — engine, panel, cursor_bridge packet |
 | Confirmation 3. kapı | **Wired (opt-in)** | `LUMOS_CONFIRMATION_ENABLED`; default no-op |
 | `consume_confirmation` panel/CLI | **Wired** | `ensure_panel/cli/delete_permanent_confirmation` |
-| PR-C6 bridge adapter | **Shadow** | `attach_bridge_pending_confirmation` yazar; yürütme legacy token |
-| P2 `SECURITY_NEVER_AUTO` engine | **Wired (dar)** | `_step_security_never_auto_member` — `permanent_delete` excluded |
+| PR-C6 bridge adapter | **Wired** | Wave 1 #494–#495: köprü approve/resume `consume_confirmation`; legacy geçiş test matrisi |
+| P2 `SECURITY_NEVER_AUTO` engine | **Wired** | Wave 1 #497–#498: tam eşleme tablosu + engine/panel/CLI/store sync |
 | `change_sensitivity` → gate | **Documented-only / kopuk** | `write_interceptor`, `decision_explorer`; `lumos_gate` import yok |
 | Trust Faz 4 | **Documented-only** | ADR-007; `src/security/*` trust motoru yok |
 
@@ -156,8 +156,8 @@ Detaylı fayda/risk, etkilenen bileşenler ve geri dönüş maliyeti: [ADR-012 e
 
 | # | Madde | Durum |
 |---|-------|-------|
-| 1 | **PR-C6 wiring kapsamı:** Shadow adapter yeterli mi, yoksa köprü approve/resume tek yol olarak `consume_confirmation` + opt-in env mi olacak? Legacy `pending_approvals` ne kadar süre korunacak? | **karar bekliyor** |
-| 2 | **P2 genişletme sınırı:** Engine branch dar mı kalacak (`step.kind`/`action_key` eşlemesi), yoksa `action_policy` + panel/CLI action sabitleri için resmi eşleme tablosu mu eklenecek? | **karar bekliyor** |
+| 1 | **PR-C6 wiring kapsamı:** Shadow adapter yeterli mi, yoksa köprü approve/resume tek yol olarak `consume_confirmation` + opt-in env mi olacak? Legacy `pending_approvals` ne kadar süre korunacak? | **kapandı (Seçenek B, Wave 1 #491–#495)** |
+| 2 | **P2 genişletme sınırı:** Engine branch dar mı kalacak (`step.kind`/`action_key` eşlemesi), yoksa `action_policy` + panel/CLI action sabitleri için resmi eşleme tablosu mu eklenecek? | **kapandı (Seçenek B, Wave 1 #496–#498)** |
 | 3 | **Trust Faz 4 zamanlaması:** Codex kapanış öncesi mi zorunlu, yoksa köprü+P2 sonrası mı? Panel'de `session_unlocked` runtime'dan mı okunacak? | **karar bekliyor** |
 | 4 | **Sensitivity ↔ gate:** `lumos_gate` risk skoru ile `classify_sensitivity` tek zincirde birleşecek mi; eşik politikası ne? | **karar bekliyor** |
 | 5 | **Confirmation varsayılanı:** Opt-in kalıcı mı (#461); tam varsayılan-on için hangi ürün kapıları (E2E, false positive, köprü duplicate) kapanmalı? | **karar bekliyor** |
@@ -165,8 +165,8 @@ Detaylı fayda/risk, etkilenen bileşenler ve geri dönüş maliyeti: [ADR-012 e
 
 ### Top 3 karar maddeleri (insan onayı önceliği)
 
-1. **PR-C6:** Köprü onay sonrası yürütme `approval_token` mı kalacak, yoksa `consume_confirmation` + `LUMOS_CONFIRMATION_ENABLED` ile mi birleşecek? — **karar bekliyor**
-2. **P2 genişletme:** `external_write` / `irreversible_user_op` / `critical_system_config` için action_key/policy eşleme tablosu genişletilsin mi, yoksa dar engine branch yeterli mi? — **karar bekliyor**
+1. ~~**PR-C6:** Köprü onay sonrası yürütme `approval_token` mı kalacak, yoksa `consume_confirmation` + `LUMOS_CONFIRMATION_ENABLED` ile mi birleşecek?~~ — **Kapandı (Seçenek B, #494–#495)**
+2. ~~**P2 genişletme:** `external_write` / `irreversible_user_op` / `critical_system_config` için action_key/policy eşleme tablosu genişletilsin mi, yoksa dar engine branch yeterli mi?~~ — **Kapandı (Seçenek B, #497–#498)**
 3. **Trust Faz 4:** Merkezi trust tüketimi codex C3 kanıt zincirine ne zaman ve hangi sinyallerle (`keystore_ready`, `session_unlocked`, consent) bağlanacak? — **karar bekliyor**
 
 ---
@@ -178,22 +178,24 @@ Detaylı fayda/risk, etkilenen bileşenler ve geri dönüş maliyeti: [ADR-012 e
 | #459 | CLI E2E confirmation | Wired (test) |
 | #460 | Panel+API E2E | Wired (test) |
 | #461 | Varsayılan-on docs → opt-in | Docs only |
-| #462 | PR-C6 shadow adapter | Shadow |
-| #463 | P2 engine branch + helper | Wired (dar) |
+| #462 | PR-C6 shadow adapter | Shadow (geçiş; Wave 1 wiring #494–#495) |
+| #463 | P2 engine branch + helper | Wired (dar; Wave 1 #497–#498 ile genişletildi) |
+| #491–#495 | Wave 1 Madde 1 PR-C6 wiring | Wired — Seçenek B |
+| #496–#498 | Wave 1 Madde 2 P2 tam eşleme | Wired — Seçenek B |
 | #464 | Milestone docs sync | Docs only |
 
 ---
 
 ## Yasaklar (bu hazırlık turu)
 
-- `consume_confirmation` köprü wiring uygulanmadı
+- ~~`consume_confirmation` köprü wiring uygulanmadı~~ — Wave 1 #494–#495 merge
 - Trust Faz 4 davranışı değiştirilmedi
-- P2 matching genişletilmedi
+- ~~P2 matching genişletilmedi~~ — Wave 1 #497–#498 merge
 - `LUMOS_CONFIRMATION_ENABLED` default flip yok
-- Mimari karar verilmedi — yalnızca seçenekler listelendi
+- Madde 3–6 mimari kararları (Trust, sensitivity, default-on, LockState) — yalnızca seçenekler listelendi
 
 ---
 
 ## Sonraki adım
 
-Enforcement uygulaması öncesi yukarıdaki karar maddelerinin insan onayı; ardından dar kapsamlı PR'lar (PR-C6 wiring, P2 genişletme, Trust Faz 4) ayrı onay hatlarında.
+Wave 2 Madde 3–6 (Trust Faz 4, sensitivity↔gate, confirmation default-on, Panel LockState) için insan onayı; Wave 1 checkpoint sync docs PR ile codex tablosu güncellenir.
