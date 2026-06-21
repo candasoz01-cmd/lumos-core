@@ -12,6 +12,7 @@ from task_engine.profiles import (
     STEP_TYPE_EXTERNAL,
     SECURITY_NEVER_AUTO,
     is_allowed_for_profile,
+    verify_security_never_auto_mapping,
 )
 from core.workspace_contract import LUMOS_TRASH_DIRNAME
 
@@ -35,6 +36,7 @@ def test_security_never_auto_inviolable():
     """SECURITY_NEVER_AUTO daraltılamaz; permanent_delete dahil dört eleman sabit."""
     assert SECURITY_NEVER_AUTO == EXPECTED_NEVER_AUTO
     assert "permanent_delete" in SECURITY_NEVER_AUTO
+    assert verify_security_never_auto_mapping() is True
 
 
 def test_trash_dirname_inviolable():

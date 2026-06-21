@@ -20,6 +20,9 @@ CANCEL_TASK = "cancel_task"
 ACCESS_IDENTITY = "access_identity"
 ACCESS_KEYSTORE = "access_keystore"
 
+# Panel delete-permanent yolu — confirmation_policy.DELETE_PERMANENT_ACTION ile aynı token.
+DELETE_PERMANENT = "delete_permanent"
+
 
 @dataclass(frozen=True)
 class PolicyContext:
@@ -35,6 +38,20 @@ class PolicyContext:
 class PolicyResult:
     allowed: bool
     reason: str = ""
+
+
+def is_never_auto_policy_action(action: str) -> bool:
+    """Policy yüzey action SECURITY_NEVER_AUTO tablosunda mı? (Option B tek kaynak)."""
+    from task_engine.profiles import resolve_never_auto_member_for_policy_action
+
+    return resolve_never_auto_member_for_policy_action(action) is not None
+
+
+def never_auto_member_for_policy_action(action: str) -> str | None:
+    """Policy action → canonical küme üyesi; yoksa None."""
+    from task_engine.profiles import resolve_never_auto_member_for_policy_action
+
+    return resolve_never_auto_member_for_policy_action(action)
 
 
 def check_policy(action: str, context: PolicyContext | Mapping[str, Any]) -> PolicyResult:
