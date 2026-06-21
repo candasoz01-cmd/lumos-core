@@ -58,6 +58,8 @@ Lock iki sinyal (ADR-011) trust tüketimine hazırlanır (Faz 4).
 | #475 | Panel `noLiveScan` fetch-failure copy clarify |
 | #476 | open-decisions + decision-log + chain-summary #473–#475 milestone sync |
 | #477 | ADR-013 GET fetch vs mock fallback wording clarify |
+| #479 | `lumos quantum-readiness` CLI subcommand (JSON/summary) |
+| #480 | Panel kuantum sekmesi live fields (`generated_at`, `evidenced_findings`, `entropy_lab`) |
 
 ## Sonraki checkpoint
 
