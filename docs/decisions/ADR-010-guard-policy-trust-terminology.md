@@ -128,6 +128,10 @@ Aşağıdaki tanımlar **kabul edilmiş terminoloji sözleşmesidir**. Usage map
 
 **Repo karşılığı (analiz bulgusu):** `task_dispatch` risk→onay; `lumos_gate` `pending_approval`; köprü `await_user_approval`.
 
+**Reason kodları (PR-C0 — tanımlandı, uygulama bekliyor):** `confirmation_required`, `confirmation_expired`, `confirmation_scope_mismatch`, `confirmation_preview_required`, gate parçası `[CONFIRMATION_BLOCKED]`. Detay: [ADR-012 §7](ADR-012-lumos-security-codex.md#7-confirmation-reason-kodları-pr-c0--tanımlandı-uygulama-bekliyor), [CU4 confirmation skeleton draft](../analysis/lumos-cu4-confirmation-skeleton-draft.md).
+
+**Not:** `pending_action` (consent/GA akışı) ≠ `pending_confirmation` (CU4 işlem onayı) — alan adları birleştirilmemelidir.
+
 ---
 
 ### elevated confirmation

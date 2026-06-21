@@ -127,7 +127,7 @@ Hedef zincir: policy → consent → profil+GA → confirmation → NEVER_AUTO.
 
 ### PR-4 — Confirmation iskeleti
 
-**Atlandı** (scope dışı).
+**CU4 skeleton draft** — ayrı PR zinciri (PR-C0 docs → PR-C1+ kod). Bkz. [lumos-cu4-confirmation-skeleton-draft.md](lumos-cu4-confirmation-skeleton-draft.md).
 
 ### Başarı ölçütleri
 
