@@ -88,9 +88,14 @@ window.__LUMOS_READ_STATE__ = {
   },
   "keystore": {
     "keystore_ready": false,
-    "keystore_state": "Kilitli",
+    "keystore_state": "eksik",
+    "consent_ok": false,
+    "consent_proxy_state": "onay bekleniyor",
+    "session_unlocked": null,
+    "session_unlocked_note": "Panel köprüsü runtime oturum kilidini (session_unlocked) bu okuma yolunda doğrulamaz.",
     "keystore_last_update": null,
-    "keystore_write_scope": "Kilit açılmadan hassas yazım yapılmaz"
+    "keystore_write_scope": "Kilit açılmadan hassas yazım yapılmaz",
+    "display_note": "keystore_ready = dosya init; consent_proxy_state = genel onay vekili; session_unlocked bu köprüde doğrulanmaz."
   },
   "tasks": {
     "task_list": [],
@@ -122,7 +127,11 @@ window.__LUMOS_READ_STATE__ = {
   "guidance": {
     "mode": "offline",
     "lock": "LOCKED",
+    "lock_scope": "consent_proxy",
     "consent": false,
+    "consent_proxy_state": "onay bekleniyor",
+    "session_unlocked": null,
+    "session_unlocked_note": "Panel köprüsü runtime oturum kilidini (session_unlocked) bu okuma yolunda doğrulamaz.",
     "blocked_reason": null,
     "next_step": null
   },

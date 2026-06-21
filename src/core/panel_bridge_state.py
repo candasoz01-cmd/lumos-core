@@ -386,11 +386,25 @@ def _build_yanit_card_payload(
         if str(lat).strip():
             context_line = str(lat).strip()
 
-    lock = str(guidance.get("lock") or "LOCKED").upper()
-    lock_tr = "Kilit açık (onay akışına göre)." if lock == "UNLOCKED" else "Kilit kapalı; koruma aktif."
+    consent_proxy = str(guidance.get("consent_proxy_state") or "").strip()
+    if consent_proxy:
+        lock_tr = f"Genel onay (consent vekili): {consent_proxy}."
+    else:
+        lock = str(guidance.get("lock") or "LOCKED").upper()
+        lock_tr = (
+            "Genel onay (consent vekili): kayıtlı."
+            if lock == "UNLOCKED"
+            else "Genel onay (consent vekili): bekleniyor."
+        )
+    session_unlocked = guidance.get("session_unlocked")
+    if session_unlocked is True:
+        lock_tr += " Oturum: açık (runtime sinyali)."
+    elif session_unlocked is False:
+        lock_tr += " Oturum: kilitli (runtime sinyali)."
 
     iden = str(identity_payload.get("identity_state") or "—").strip()
-    ks = str(keystore_payload.get("keystore_state") or "—").strip()
+    ks_init = str(keystore_payload.get("keystore_state") or "—").strip()
+    ks = f"keystore dosyası {ks_init}"
     te = system_health.get("task_engine") if isinstance(system_health.get("task_engine"), dict) else {}
     te_note = str(te.get("note") or "—").strip()
     tc = int(tasks_payload.get("task_count") or 0)
@@ -401,7 +415,7 @@ def _build_yanit_card_payload(
         lock_tr,
         f"Genel onay: {'açık' if consent else 'kapalı'}.",
         f"Kimlik dosyası: {iden}.",
-        f"Anahtar kasası: {ks}.",
+        f"Anahtar kasası ({ks}).",
         f"Görev motoru: {te_note}",
     ]
     if tfe:
@@ -465,6 +479,21 @@ def _core_active() -> bool:
         return True
     except Exception:
         return False
+
+
+def _panel_keystore_initialized(base: Path, keystore_path: Path | None) -> bool:
+    """ADR-011: keystore_ready — dosya/init sinyali (passphrase unlock değil)."""
+    try:
+        from security.keystore import FileKeyStore
+
+        return FileKeyStore(base_dir=str(base)).is_initialized()
+    except Exception:
+        return bool(keystore_path and keystore_path.is_file())
+
+
+_PANEL_SESSION_UNLOCKED_NOTE = (
+    "Panel köprüsü runtime oturum kilidini (session_unlocked) bu okuma yolunda doğrulamaz."
+)
 
 
 def _build_lumos_status(
@@ -617,7 +646,10 @@ def build_panel_read_state(*, repo_root: Path | None = None) -> dict:
         elif key == "task_engine":
             system_health[key] = {"status": _te_status, "note": _te_note}
         elif key == "keystore_sink":
-            system_health[key] = {"status": general_status, "note": "Keystore durumu consent ile türetildi; ifşa yok."}
+            system_health[key] = {
+                "status": general_status,
+                "note": "Consent vekili + keystore dosya init ayrı; runtime oturum kilidi bu hatta yok.",
+            }
         elif key == "general":
             system_health[key] = {"status": general_status, "note": general_note}
         else:
@@ -672,23 +704,37 @@ def build_panel_read_state(*, repo_root: Path | None = None) -> dict:
         "identity_guard_result": "Korunuyor",
     }
 
-    # Keystore: read-only — consent_ok + keystore.json mtime; anahtar/passphrase ifşası yok
+    # Keystore: read-only — keystore init dosyası + consent vekili ayrı; passphrase/ifşa yok
     keystore_last = _file_mtime_iso(keystore_path) if keystore_path else None
+    ks_initialized = _panel_keystore_initialized(base, keystore_path)
+    consent_proxy_state = "onay kayıtlı" if consent else "onay bekleniyor"
     keystore_payload = {
-        "keystore_ready": consent,
-        "keystore_state": "Hazır" if consent else "Kilitli",
+        "keystore_ready": ks_initialized,
+        "keystore_state": "hazır" if ks_initialized else "eksik",
+        "consent_ok": consent,
+        "consent_proxy_state": consent_proxy_state,
+        "session_unlocked": None,
+        "session_unlocked_note": _PANEL_SESSION_UNLOCKED_NOTE,
         "keystore_last_update": keystore_last,
         "keystore_write_scope": "Kilit açılmadan hassas yazım yapılmaz",
+        "display_note": (
+            "keystore_ready = dosya init; consent_proxy_state = genel onay vekili; "
+            "session_unlocked bu köprüde doğrulanmaz."
+        ),
     }
 
-    # Guidance: next-step planner surface (mode, lock, consent; blocked_reason/next_step when set by CLI)
+    # Guidance: consent vekili; runtime session_unlocked panel okuma yolunda yok
     mode = (os.environ.get("LUMOS_MODE") or "offline").strip().lower()
     mode = "online" if mode == "online" else "offline"
-    lock = "UNLOCKED" if consent else "LOCKED"  # read_backend_state has no Lumos lock; proxy from consent
+    lock = "UNLOCKED" if consent else "LOCKED"
     guidance = {
         "mode": mode,
         "lock": lock,
+        "lock_scope": "consent_proxy",
         "consent": consent,
+        "consent_proxy_state": consent_proxy_state,
+        "session_unlocked": None,
+        "session_unlocked_note": _PANEL_SESSION_UNLOCKED_NOTE,
         "blocked_reason": None,
         "next_step": None,
     }

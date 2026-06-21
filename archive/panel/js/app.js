@@ -142,7 +142,11 @@ function canTransition(from, to) {
     guidance: {
       mode: "offline",
       lock: "LOCKED",
+      lock_scope: "consent_proxy",
       consent: false,
+      consent_proxy_state: "onay bekleniyor",
+      session_unlocked: null,
+      session_unlocked_note: "Panel köprüsü runtime oturum kilidini bu okuma yolunda doğrulamaz.",
       blocked_reason: null,
       next_step: null,
     },
@@ -252,7 +256,11 @@ function canTransition(from, to) {
         out.guidance = {
           mode: g.mode != null ? String(g.mode) : out.guidance.mode,
           lock: g.lock != null ? String(g.lock) : out.guidance.lock,
+          lock_scope: g.lock_scope != null ? String(g.lock_scope) : out.guidance.lock_scope,
           consent: !!g.consent,
+          consent_proxy_state: g.consent_proxy_state != null ? String(g.consent_proxy_state) : out.guidance.consent_proxy_state,
+          session_unlocked: g.session_unlocked,
+          session_unlocked_note: g.session_unlocked_note != null ? String(g.session_unlocked_note) : out.guidance.session_unlocked_note,
           blocked_reason: g.blocked_reason != null ? g.blocked_reason : out.guidance.blocked_reason,
           next_step: g.next_step != null ? g.next_step : out.guidance.next_step,
         };
@@ -262,6 +270,9 @@ function canTransition(from, to) {
       if (ks && typeof ks === "object") {
         if (ks.keystore_state != null) out.keystoreState = String(ks.keystore_state);
         if (typeof ks.keystore_ready === "boolean") out.keystoreReady = ks.keystore_ready;
+        if (typeof ks.consent_ok === "boolean") out.keystoreConsentOk = ks.consent_ok;
+        if (ks.consent_proxy_state != null) out.keystoreConsentProxy = String(ks.consent_proxy_state);
+        if (ks.session_unlocked === true || ks.session_unlocked === false) out.sessionUnlocked = ks.session_unlocked;
       }
       var dash = rs.dashboard;
       if (dash && typeof dash === "object" && dash.guard_status != null) {
@@ -405,7 +416,11 @@ function canTransition(from, to) {
   /** Koruma rozeti metni, ipucu ve özet — yalnızca görünüm. */
   function getProtectionPresentation(state) {
     var m = state || getEffectiveState();
-    var locked = m.keystoreState === "Kilitli";
+    var sessionKnown = m.sessionUnlocked === true || m.sessionUnlocked === false;
+    var sessionLocked = sessionKnown ? !m.sessionUnlocked : null;
+    var locked =
+      sessionLocked === true ||
+      (sessionLocked === null && (m.keystoreState === "Kilitli" || m.keystoreState === "eksik" || !m.keystoreReady));
     var sandbox = !!m.sandboxMode;
     var guardStatus = m.guardStatus != null ? String(m.guardStatus) : "—";
     var hasBridge = hasBackendReadStateInjected();
@@ -465,13 +480,22 @@ function canTransition(from, to) {
   /** Anahtar Kasası ekranı — kilit/açık özeti; uzaktan vault iddiası yok. */
   function getKeystorePresentation(state) {
     var m = state || getEffectiveState();
+    var g = m.guidance || {};
     var stateStr = m.keystoreState != null ? String(m.keystoreState) : "—";
-    var locked = stateStr === "Kilitli" || !m.keystoreReady;
+    var consentProxy =
+      m.keystoreConsentProxy != null ? String(m.keystoreConsentProxy) : (g.consent_proxy_state || "—");
+    var sessionKnown = m.sessionUnlocked === true || m.sessionUnlocked === false;
+    var ksReady = !!m.keystoreReady;
+    var locked = sessionKnown ? !m.sessionUnlocked : !ksReady;
     var hasBridge = hasBackendReadStateInjected();
     var kind = locked ? "ok" : "warn";
-    var summary = locked
-      ? "Kilitli: passphrase girilmedi veya oturum kapalı. Hassas yazım bekletilir; anahtar içeriği panelde gösterilmez. Bu yerel bir koruma durumudur — uzaktan üretim vault'u veya bulut anahtar kasası değildir."
-      : "Açık (mock/demo): hassas yazım daha serbest görünebilir. Gerçek ortamda kilit varsayılandır; panel anahtar materyali ifşa etmez.";
+    var summary = "Keystore dosyası: " + stateStr + ". Genel onay (consent vekili): " + consentProxy + ".";
+    if (sessionKnown) {
+      summary += " Oturum: " + (m.sessionUnlocked ? "açık" : "kilitli") + " (runtime sinyali).";
+    } else {
+      summary += " Oturum kilidi bu köprüde doğrulanmıyor.";
+    }
+    summary += " Anahtar içeriği panelde gösterilmez; uzaktan vault değildir.";
     if (!hasBridge) {
       summary += " Demo önizleme — gerçek keystore motoru bağlı değil.";
       if (!locked) kind = "warn";
@@ -482,7 +506,7 @@ function canTransition(from, to) {
       stateStr: stateStr,
       kind: kind,
       summary: summary,
-      label: locked ? "Kilitli" : "Açık",
+      label: locked ? "Koruma aktif" : "Keystore hazır",
       badgeKind: locked ? "ok" : "warn",
       writeScope: m.keystoreWriteScope != null ? String(m.keystoreWriteScope) : "—",
     };
@@ -669,9 +693,12 @@ function canTransition(from, to) {
     for (i = 0; i < metrics.length; i++) {
       var m = metrics[i];
       var copy = { title: m.title, note: m.note, value: m.value, valueBadge: m.valueBadge };
-      if (m.title === "Hazır mı") {
-        copy.value = buildPanelStatusBadge(ks.ready ? "Evet" : "Hayır", ks.ready ? "ok" : "warn");
-      } else if (m.title === "Şifreli Durum") {
+      if (m.title === "Keystore hazır") {
+        copy.value = buildPanelStatusBadge(ks.ready ? "hazır" : "eksik", ks.ready ? "ok" : "warn");
+      } else if (m.title === "Genel onay (consent vekili)") {
+        var cp = getEffectiveState().keystoreConsentProxy || "—";
+        copy.value = buildPanelStatusBadge(cp, cp.indexOf("kayıtlı") !== -1 ? "ok" : "warn");
+      } else if (m.title === "Şifreli Durum" || m.title === "Keystore dosyası") {
         copy.value = buildPanelStatusBadge(ks.stateStr, ks.badgeKind);
       }
       html += buildMetric(copy);
@@ -3603,9 +3630,23 @@ function canTransition(from, to) {
     var g = getGuidanceSourceData().data;
     if (!g) g = { mode: "—", lock: "—", consent: false, blocked_reason: null, next_step: null };
     var modeLabel = g.mode === SOURCE_STATUS.ONLINE ? "Çevrimiçi" : "Çevrimdışı";
-    var lockLabel = (g.lock || "").toUpperCase() === "UNLOCKED" ? "Açık" : "Kilitli";
     var consentLabel = g.consent ? "Açık" : "Kapalı";
-    var durumHtml = "<p class=\"text-muted-small\"><strong>Mod:</strong> " + modeLabel + " · <strong>Kilit:</strong> " + lockLabel + " · <strong>Genel onay:</strong> " + consentLabel + "</p>";
+    var consentProxy = g.consent_proxy_state ? String(g.consent_proxy_state) : (g.consent ? "onay kayıtlı" : "onay bekleniyor");
+    var lockLine =
+      g.lock_scope === "consent_proxy"
+        ? "<strong>Genel onay (consent vekili):</strong> " + consentProxy
+        : "<strong>Kilit:</strong> " + ((g.lock || "").toUpperCase() === "UNLOCKED" ? "Açık" : "Kilitli");
+  if (g.session_unlocked === true || g.session_unlocked === false) {
+      lockLine += " · <strong>Oturum:</strong> " + (g.session_unlocked ? "açık" : "kilitli");
+    }
+    var durumHtml =
+      "<p class=\"text-muted-small\"><strong>Mod:</strong> " +
+      modeLabel +
+      " · " +
+      lockLine +
+      " · <strong>Genel onay:</strong> " +
+      consentLabel +
+      "</p>";
     var engelHtml = (g.blocked_reason && g.blocked_reason.trim()) ? ("<p>" + g.blocked_reason + "</p>") : "<p class=\"text-muted-small\">Şu anda engel yok.</p>";
     var nextHtml = (g.next_step && g.next_step.trim()) ? ("<p>" + g.next_step + "</p>") : "<p class=\"text-muted-small\">Hazır.</p>";
     return SectionCard("Durum", durumHtml) + SectionCard("Engel", engelHtml) + SectionCard("Sonraki adım", nextHtml);
