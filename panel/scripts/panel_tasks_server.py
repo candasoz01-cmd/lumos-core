@@ -36,6 +36,10 @@ from core.lumos_base_dir import lumos_base_dir  # noqa: E402
 from core.panel_bridge_state import task_action_gate  # noqa: E402
 from core.workspace_contract import may_perform_permanent_delete  # noqa: E402
 from policy.action_policy import COMPLETE_TASK, CREATE_TASK, DELETE_TASK  # noqa: E402
+from policy.confirmation_policy import (  # noqa: E402
+    ensure_delete_permanent_confirmation,
+    is_confirmation_enabled,
+)
 from core.evidence_continuity import (  # noqa: E402
     DEFAULT_READ_LIMIT,
     MAX_READ_LIMIT,
@@ -1129,7 +1133,26 @@ class Handler(BaseHTTPRequestHandler):
         if not isinstance(body, dict):
             _send_json(self, 400, {"ok": False, "error": "invalid_json"})
             return
+        tid = _normalize_ws(body.get("id", ""))
         user_initiated = _body_confirm_user_initiated(body)
+        if is_confirmation_enabled():
+            conf = ensure_delete_permanent_confirmation(
+                body,
+                {"id": tid},
+                base_dir=lumos_base_dir(),
+                legacy_confirm=user_initiated,
+            )
+            if not conf.allowed:
+                _send_json(
+                    self,
+                    409,
+                    {
+                        "ok": False,
+                        "error": "confirmation_required",
+                        "reason": conf.reason or "confirmation_required",
+                    },
+                )
+                return
         if not may_perform_permanent_delete(user_initiated):
             _send_json(
                 self,
@@ -1141,7 +1164,6 @@ class Handler(BaseHTTPRequestHandler):
                 },
             )
             return
-        tid = _normalize_ws(body.get("id", ""))
         if not tid:
             _send_json(self, 400, {"ok": False, "error": "empty_id"})
             return
