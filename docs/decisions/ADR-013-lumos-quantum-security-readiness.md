@@ -4,7 +4,7 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Taslak** — Faz-1 docs-only; entropy sağlayıcı davranışı değiştirilmez |
+| Durum | **Taslak** — Faz-1 docs tamamlandı; **Faz-2 kısmi** (yerel tarayıcı PR #468, panel `GET /quantum-readiness` PR #469). Entropy sağlayıcı davranışı değiştirilmez |
 | Tarih | 2026-06-21 |
 | İlgili | [ADR-001](ADR-001-lumos-quantum-modules.md), `src/security/entropy/`, [readiness checklist](../analysis/lumos-quantum-readiness-checklist.md), `ROADMAP.md` |
 
@@ -26,7 +26,7 @@ Bugün üç algı aynı anda var:
 
 1. **Dürüst metinler** (landing, panel i18n, ADR-001): "Kuantum şifreleme kullanmıyoruz", "aktif üretim özelliği değil".
 2. **Kod gerçeği** (`src/security/entropy/`): Qiskit Aer ve IBM Runtime sağlayıcıları mevcut; varsayılan yol `os.urandom`.
-3. **Boşluk**: Kullanıcıya hazırlık durumunu gösteren kanıt tabanlı yüzey yok; panel yalnızca statik kart metinleri (`#panel-kuantum`, dört kart).
+3. **Kısmi kapanış (Faz-2)**: Yerel salt okunur tarayıcı (`src/security/readiness/scanner.py`) ve panel `GET /quantum-readiness` mevcut; Lumos CLI alt komutu henüz yok. Panel kuantum sekmesinde statik kartlar (`#panel-kuantum`) korunur; canlı tarama bağlı değilse mock banner gösterilir.
 
 ### Hedef
 
@@ -209,9 +209,9 @@ Faz-1: statik öneri tablosu checklist'te; otomatik uygulama yok.
 
 ---
 
-## Panel alanları (spesifikasyon — uygulama Faz-2)
+## Panel alanları (spesifikasyon — Faz-2 kısmi uygulama)
 
-Mevcut panel kuantum sekmesi (`ui/src/pages/panel.astro`, `#panel-kuantum`) dört statik kart taşır. Faz-2'de altına **readiness paneli** eklenir; Faz-1'de yalnızca bu alan listesi geçerlidir.
+Mevcut panel kuantum sekmesi (`ui/src/pages/panel.astro`, `#panel-kuantum`) dört statik kart taşır. Faz-2 kısmi uygulamada altına **readiness banner + özet alanı** eklendi; panel sunucusu `GET /quantum-readiness` ile `scan_quantum_readiness()` JSON döner (`panel/scripts/panel_tasks_server.py`). Canlı fetch başarısızsa mock banner ve docs-only örnek değerler kalır.
 
 ### Sekme banner (öneri)
 
@@ -235,12 +235,14 @@ Mevcut dört kart (Kuantum Güvenlik Araştırması, Çoklu İhtimal, Belirsizli
 | **Son kontrol zamanı** | Salt okunur | `gerçek` | ISO timestamp (Faz-2) |
 | **Kanıt kaynağı** | Salt okunur | `gerçek` | `local_scan` / `docs_only` (Faz-1) |
 
-### Faz-1 mock kuralı
+### Faz-1 / fallback mock kuralı
 
-Backend probe bağlı değilken:
+Panel sunucusu veya `GET /quantum-readiness` erişilemezken:
 
-- Sabit banner: **`DEMO / DOKÜMANTASYON — CANLI TARAMA YOK`**
+- Sabit banner: **`DEMO / DOKÜMANTASYON — CANLI TARAMA YOK`** (veya eşdeğer i18n rozetleri)
 - Statik örnek değerler mock olarak işaretlenir; gerçek başarı gibi gösterilmez.
+
+Canlı tarama bağlıyken rapor `meta.evidence_basis = local_scan` taşır; mock/fallback durumunda `docs_only` etiketi korunur.
 
 ### MVP'de olmayan aksiyonlar
 
@@ -342,18 +344,22 @@ Fallback **üç katmanda**, çoğunlukla log/audit olmadan:
 
 ## Faz-1 / Faz-2 yol haritası
 
-| Faz | Kapsam | Çıktı |
-|-----|--------|-------|
-| **Faz-1** | Docs-only: ADR-013, checklist, rapor alanları, panel spesifikasyonu | Bu PR; entropy kodu değişmez |
-| **Faz-2** | Yerel salt okunur readiness taraması (CLI veya panel GET) | Rapor alanları doldurulur; fallback uyarısı zorunlu; **kullanıcı onayı gerekir** |
-| **Faz-3** (onaylı, private olabilir) | IBM Runtime POC, maliyet/onay kapısı | Credential vault; public repoda yalnızca sınır metni |
+| Faz | Kapsam | Çıktı | Durum (2026-06-21) |
+|-----|--------|-------|---------------------|
+| **Faz-1** | Docs-only: ADR-013, checklist, rapor alanları, panel spesifikasyonu | ADR + checklist; entropy kodu değişmez | **Tamamlandı** |
+| **Faz-2** | Yerel salt okunur readiness taraması (CLI veya panel GET) | Rapor alanları doldurulur; fallback uyarısı zorunlu | **Kısmi** — tarayıcı (#468), panel GET (#469), standalone script; Lumos CLI alt komutu bekliyor |
+| **Faz-3** (onaylı, private olabilir) | IBM Runtime POC, maliyet/onay kapısı | Credential vault; public repoda yalnızca sınır metni | Beklemede |
 
-### Faz-2 aday dosyalar (onay sonrası — bu PR'da yok)
+### Faz-2 uygulanan / bekleyen (2026-06-21)
 
-- `src/security/readiness/` veya `src/security/entropy/readiness.py` — yerel tarama; `get_entropy` çağırmadan env/import/kod probe
-- CLI alt komut veya panel `GET` endpoint — salt okunur JSON (rapor alanları şeması)
-- `tests/test_quantum_readiness_scan.py`
-- Panel kuantum sekmesi — bu ADR'deki alanlar; mock banner kaldırma
+| Öğe | Durum |
+|-----|-------|
+| `src/security/readiness/scanner.py` — yerel tarama; `get_entropy` çağırmadan env/import/kod probe | **Uygulandı** (#468) |
+| `scripts/quantum_readiness_scan.py` — standalone JSON çıktı | **Uygulandı** (#468) |
+| Panel `GET /quantum-readiness` — salt okunur JSON | **Uygulandı** (#469) |
+| `tests/test_quantum_readiness_scan.py` | **Uygulandı** (#468) |
+| Panel kuantum sekmesi — canlı fetch + mock fallback | **Kısmi** (#469) |
+| Lumos CLI alt komutu (`lumos quantum-readiness` vb.) | **Bekliyor** |
 
 ---
 
@@ -361,7 +367,7 @@ Fallback **üç katmanda**, çoğunlukla log/audit olmadan:
 
 1. **`lumos-quantum/`** — Belgelerde placeholder; repo kökünde fiziksel dizin yok.
 2. **Entropy testleri** — Yok.
-3. **Readiness tarama API/CLI** — Yok.
+3. **Readiness tarama yüzeyi** — Yerel tarayıcı (`scanner.py`), standalone script (`scripts/quantum_readiness_scan.py`) ve panel `GET /quantum-readiness` mevcut; **Lumos CLI alt komutu yok**.
 4. **PQC** — Panel i18n'de gelecek tense ifade; kod yok.
 5. **IBM / Qiskit** — Kod var; bağımlılık ve operasyon yok; çoğu kurulumda pratikte yalnızca `os.urandom`.
 6. **Otomatik long-lived data taraması** — Faz-2.
@@ -370,4 +376,4 @@ Fallback **üç katmanda**, çoğunlukla log/audit olmadan:
 
 ## Sonuç
 
-Lumos Quantum Readiness, kuantum alanını **yerel, salt okunur, kanıtlı kuantum sonrası güvenlik hazırlık tarayıcısı** olarak konumlandırır; üretim kuantum iddiası taşımaz. Entropy Lab deneysel kalır ve rapordan ayrılır. Faz-1 bu sözleşmeyi kilitleyerek kod değişikliği olmadan yerel tarama ve rapor tasarımına zemin hazırlar.
+Lumos Quantum Readiness, kuantum alanını **yerel, salt okunur, kanıtlı kuantum sonrası güvenlik hazırlık tarayıcısı** olarak konumlandırır; üretim kuantum iddiası taşımaz. Entropy Lab deneysel kalır ve rapordan ayrılır. Faz-1 sözleşmeyi kilitledi; Faz-2 kısmi uygulamada yerel tarama ve panel GET devreye girdi — CLI alt komutu ve tam panel alan seti bekliyor.

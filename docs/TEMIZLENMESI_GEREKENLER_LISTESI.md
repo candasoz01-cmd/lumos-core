@@ -50,7 +50,7 @@ Docs’ta “legacy/backup, production’da kullanılmaz” diye geçiyor; kodda
 
 | Öğe | Açıklama |
 |-----|----------|
-| **lumos-quantum/** | Boş/placeholder; kuantum modülü için rezerve alan (iptal değil — bkz. ADR-001). Temizlikte silinmemeli; durum ADR-001 ile takip edilir. |
+| **lumos-quantum/** | Boş/placeholder; kuantum modülü için rezerve alan (iptal değil — bkz. ADR-001). Temizlikte silinmemeli; durum ADR-001 ile takip edilir. [^lumos-quantum-drift] |
 | **YARIN_DEVAM.txt** | Geçici not. Commit’e girmemeli; silinebilir veya içerik başka yere taşınır. |
 | **PROJE_DOSYA_LISTESI.txt** | Eski liste (.lumos, __pycache__ karışık). `docs/PROJE_HARITA_ADIM1.md` ile ikame edildi; kaldırılabilir. |
 | **package-lock.json** (repo kökü) | Backend kendi `backend/package-lock.json` kullanıyor. Root’taki untracked; gereksizse silinir veya `.gitignore`’a eklenir. |
@@ -92,10 +92,12 @@ Docs’ta “legacy/backup, production’da kullanılmaz” diye geçiyor; kodda
 1. **Önce yedek al (isteğe bağlı):** Tüm .bak ve security.bak_lock’u `archive/backups_pre_stabilization/` altında path’leri koruyarak kopyala; sonra asıllarını sil.
 2. **src/ içi .bak’ları sil** (veya 1’deki arşive taşıyıp sil).
 3. **src/security.bak_lock/** klasörünü kaldır (veya arşive taşıyıp kaldır).
-4. **lumos-quantum/** — Silme; placeholder olarak bırak (durum: ADR-001 Güncel durum).
+4. **lumos-quantum/** — Silme; placeholder olarak bırak veya dizin yoksa drift notu (durum: ADR-001 Güncel durum eki). [^lumos-quantum-drift]
 5. **YARIN_DEVAM.txt** — İçerik gerekliyse başka yere taşı; değilse sil.
 6. **PROJE_DOSYA_LISTESI.txt** — Sil (yerine PROJE_HARITA_ADIM1.md var).
 7. **Root package-lock.json** — Kullanılmıyorsa sil veya `.gitignore`’a ekle.
 8. **archive/refactor_history** — Dokunma veya tek .zip/.tar ile sıkıştır; silme zorunlu değil.
 
 Bu liste, ADIM 2 temizlik işlerinde tek referans olarak kullanılabilir.
+
+[^lumos-quantum-drift]: 2026-06-21 — Eski belgelerde `lumos-quantum/` placeholder geçer; repo kökünde fiziksel dizin yok (ADR-001 güncel durum eki, ADR-013).
