@@ -56,7 +56,7 @@ Internal Alpha **yeni bir public release iddiası değildir**; README «official
 | O4 | **Packaged end-user installer** | README: yok; RB-06 defer |
 | O5 | **Closed Pilot / müşteri daveti** | Alpha çıkış sonrası aşama |
 | O6 | **Wave 2+ ADR-012 enforcement** | Trust Faz 4, default-on, sensitivity↔gate, Panel LockState — ayrı onay |
-| O7 | **Tam modül menüsü iddiası** | ROADMAP iskelet modüller; RB-17 Pilot girişi |
+| O7 | **Tam modül menüsü iddiası** | ROADMAP iskelet modüller; nav «Henüz aktif değil» rozeti (#503, RB-17 kısmi) |
 | O8 | **Native app / offline-first / SW** | v1 + MOBILE_PHASE_0 dışı |
 
 ---
@@ -79,11 +79,11 @@ Kullanıcı yüzünde «v2» veya «Alpha download» **ilan edilmez**.
 |--------|----------------------------------|
 | A1 Ekip release kapsamı yazılı | **Kapandı** — bu belge |
 | A2 CI yeşil | **Tamam** — `main` CI success |
-| A3 P0/P1 triage listesi | **Açık** — G-23 (kuyruk dışı bu oturum) |
+| A3 P0/P1 triage listesi | **Kapandı** — [p0-p1-triage-list.md](analysis/p0-p1-triage-list.md) (G-23) |
 | A4 README / panel alpha etiketi | **Tamam** — RB-09 |
 | A5 ADR-012 Alpha defer | **Kapandı** — G-18 defer #500 |
 
-**Alpha giriş:** A1 + A5 kapandı; A3 açık kaldı.
+**Alpha giriş:** A1 + A3 + A5 kapandı; çekirdek yolculuk tekrarı (P1-02) Alpha **çıkış** kriteri.
 
 ---
 
@@ -114,6 +114,7 @@ Kullanıcı yüzünde «v2» veya «Alpha download» **ilan edilmez**.
 | ID | Bağlantı |
 |----|----------|
 | G-18 | [`adr-012-internal-alpha-defer-record.md`](memory/adr-012-internal-alpha-defer-record.md) |
+| G-23 | [p0-p1-triage-list.md](analysis/p0-p1-triage-list.md) |
 | G-24 | Bu belge |
 | RB-09 | [`release-blockers.md`](analysis/release-blockers.md#rb-09--readme-kararlı-oss-ürün-iddiası-yok) |
 | v1 | [`LUMOS_V1_READINESS.md`](LUMOS_V1_READINESS.md) |

@@ -210,9 +210,9 @@ Bu belge **release engellerini** (RB-XX) listeler. Teknik borç uygulama sıras�
 |------|-------|
 | **Kategori** | ürün |
 | **Blokaj seviyesi** | soft blocker |
-| **Açıklama** | ROADMAP «Yakında / Takipte»; README early active development. |
-| **Kanıt** | `ROADMAP.md`; README L42 |
-| **30 gün içinde kapanış koşulu** | Release «dev foundation build» olarak etiketlenir. |
+| **Açıklama** | ROADMAP «Yakında / Takipte»; README early active development. Panel nav: iskelet modüllerde «Henüz aktif değil» rozeti (#503). |
+| **Kanıt** | `ROADMAP.md`; README L42; `ui/src/pages/panel.astro` `data-module-availability="inactive"` |
+| **30 gün içinde kapanış koşulu** | Pilot giriş: menü rozet/gizleme ✓ (2026-06-21); release «dev foundation build» etiketi hizası devam |
 
 ### RB-18 — ADR-001 / ADR-013 hâlâ «Taslak»
 
