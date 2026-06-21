@@ -1928,6 +1928,49 @@ const PANEL_DEBUG = import.meta.env.DEV;
         font-weight: 600;
         color: rgba(168, 164, 156, 0.95);
       }
+      .panel-quantum-live-table-block {
+        margin: 0.85rem 0 0;
+        overflow-x: auto;
+      }
+      .panel-quantum-live-table-block h4 {
+        margin: 0 0 0.45rem;
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: var(--lumos-accent-blue);
+      }
+      .panel-quantum-live-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.78rem;
+        line-height: 1.35;
+        color: rgba(212, 208, 200, 0.94);
+      }
+      .panel-quantum-live-table th,
+      .panel-quantum-live-table td {
+        padding: 0.35rem 0.45rem;
+        border-bottom: 1px solid rgba(168, 164, 156, 0.18);
+        text-align: left;
+        vertical-align: top;
+      }
+      .panel-quantum-live-table th {
+        font-weight: 600;
+        color: rgba(168, 164, 156, 0.95);
+        white-space: nowrap;
+      }
+      .panel-quantum-deps-list {
+        margin: 0;
+        padding-left: 1.15rem;
+        font-size: 0.82rem;
+        line-height: 1.45;
+        color: rgba(212, 208, 200, 0.94);
+      }
+      .panel-quantum-deps-list li {
+        margin-bottom: 0.45rem;
+      }
+      .panel-quantum-deps-component {
+        font-weight: 600;
+        color: rgba(168, 164, 156, 0.95);
+      }
       .panel-quantum-entropy-dl {
         margin: 0.55rem 0 0;
         display: grid;
@@ -5376,6 +5419,42 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 <h4 data-i18n="panel.modules.quantum.live.findingsTitle">Kanıtlı bulgular</h4>
                 <ul id="panel-quantum-findings-list" class="panel-quantum-findings-list"></ul>
               </div>
+              <div id="panel-quantum-long-lived-block" class="panel-quantum-live-table-block" hidden>
+                <h4 data-i18n="panel.modules.quantum.live.longLivedTitle">Uzun ömürlü veri</h4>
+                <table id="panel-quantum-long-lived-table" class="panel-quantum-live-table">
+                  <thead>
+                    <tr>
+                      <th data-i18n="panel.modules.quantum.live.longLivedClassCol">Sınıf</th>
+                      <th data-i18n="panel.modules.quantum.live.longLivedRetentionCol">Saklama</th>
+                      <th data-i18n="panel.modules.quantum.live.longLivedCryptoCol">Şifreleme</th>
+                      <th data-i18n="panel.modules.quantum.live.longLivedHndlCol">HNDL risk</th>
+                      <th data-i18n="panel.modules.quantum.live.longLivedEvidenceCol">Kanıt</th>
+                    </tr>
+                  </thead>
+                  <tbody id="panel-quantum-long-lived-body"></tbody>
+                </table>
+              </div>
+              <div id="panel-quantum-deps-block" class="panel-quantum-findings-block" hidden>
+                <h4 data-i18n="panel.modules.quantum.live.hardDepsTitle">Zor değişen bağımlılıklar</h4>
+                <ul id="panel-quantum-deps-list" class="panel-quantum-deps-list"></ul>
+              </div>
+              <div id="panel-quantum-plan-block" class="panel-quantum-live-table-block" hidden>
+                <h4 data-i18n="panel.modules.quantum.live.migrationPlanTitle">Önceliklendirilmiş geçiş planı</h4>
+                <p id="panel-quantum-plan-note" class="panel-quantum-subsection-note" hidden data-i18n="panel.modules.quantum.live.migrationPlanNote">
+                  Salt okunur öneri — otomatik migrasyon yok.
+                </p>
+                <table id="panel-quantum-plan-table" class="panel-quantum-live-table">
+                  <thead>
+                    <tr>
+                      <th data-i18n="panel.modules.quantum.live.planPriorityCol">Öncelik</th>
+                      <th data-i18n="panel.modules.quantum.live.planActionCol">Eylem</th>
+                      <th data-i18n="panel.modules.quantum.live.planTargetCol">Hedef</th>
+                      <th data-i18n="panel.modules.quantum.live.planStatusCol">Durum</th>
+                    </tr>
+                  </thead>
+                  <tbody id="panel-quantum-plan-body"></tbody>
+                </table>
+              </div>
             </div>
             <h3 class="panel-quantum-subsection" data-i18n="panel.modules.quantum.entropyLab.title">Entropy Lab (deneysel — ayrı alan)</h3>
             <p id="panel-quantum-entropy-note" class="panel-quantum-subsection-note" data-i18n="panel.modules.quantum.entropyLab.body">
@@ -7876,6 +7955,20 @@ const PANEL_DEBUG = import.meta.env.DEV;
         return String(severity || "").trim();
       }
 
+      function formatQuantumChangeCost(cost) {
+        const key = String(cost || "").trim().toLowerCase();
+        const label = panelT(`panel.modules.quantum.live.changeCost.${key}`);
+        if (label && !label.startsWith("panel.modules.quantum")) return label;
+        return String(cost || "").trim();
+      }
+
+      function formatQuantumPlanStatus(status) {
+        const key = String(status || "").trim().toLowerCase();
+        const label = panelT(`panel.modules.quantum.live.planStatus.${key}`);
+        if (label && !label.startsWith("panel.modules.quantum")) return label;
+        return String(status || "").trim();
+      }
+
       function renderQuantumFindings(findings) {
         const list = document.getElementById("panel-quantum-findings-list");
         const block = document.getElementById("panel-quantum-findings-block");
@@ -7905,6 +7998,105 @@ const PANEL_DEBUG = import.meta.env.DEV;
           }
           li.append(summary || panelT("panel.modules.quantum.live.findingEmpty"));
           list.appendChild(li);
+        }
+      }
+
+      function renderQuantumLongLivedData(rows) {
+        const block = document.getElementById("panel-quantum-long-lived-block");
+        const body = document.getElementById("panel-quantum-long-lived-body");
+        if (!block || !body) return;
+        body.textContent = "";
+        const items = Array.isArray(rows) ? rows : [];
+        if (!items.length) {
+          block.hidden = true;
+          return;
+        }
+        block.hidden = false;
+        for (const row of items) {
+          if (!row || typeof row !== "object") continue;
+          const tr = document.createElement("tr");
+          const cells = [
+            String(row.data_class || "").trim(),
+            String(row.retention || "").trim(),
+            String(row.crypto_at_rest || "").trim(),
+            formatQuantumFindingSeverity(row.harvest_now_decrypt_later_risk),
+            String(row.evidence || "").trim(),
+          ];
+          for (const text of cells) {
+            const td = document.createElement("td");
+            td.textContent = text || panelT("panel.modules.quantum.live.rowEmpty");
+            tr.appendChild(td);
+          }
+          body.appendChild(tr);
+        }
+      }
+
+      function renderQuantumHardDeps(deps) {
+        const block = document.getElementById("panel-quantum-deps-block");
+        const list = document.getElementById("panel-quantum-deps-list");
+        if (!block || !list) return;
+        list.textContent = "";
+        const items = Array.isArray(deps) ? deps : [];
+        if (!items.length) {
+          block.hidden = true;
+          return;
+        }
+        block.hidden = false;
+        for (const dep of items) {
+          if (!dep || typeof dep !== "object") continue;
+          const li = document.createElement("li");
+          const component = String(dep.component || "").trim();
+          const algorithm = String(dep.algorithm || "").trim();
+          const cost = formatQuantumChangeCost(dep.change_cost);
+          const reason = String(dep.reason || "").trim();
+          const evidence = String(dep.evidence || "").trim();
+          if (component) {
+            const span = document.createElement("span");
+            span.className = "panel-quantum-deps-component";
+            span.textContent = component;
+            li.appendChild(span);
+            li.append(" — ");
+          }
+          if (algorithm) li.append(`${algorithm}; `);
+          if (cost) li.append(`[${cost}] `);
+          if (reason) li.append(reason);
+          if (evidence) li.append(` (${evidence})`);
+          list.appendChild(li);
+        }
+      }
+
+      function renderQuantumMigrationPlan(plan) {
+        const block = document.getElementById("panel-quantum-plan-block");
+        const note = document.getElementById("panel-quantum-plan-note");
+        const body = document.getElementById("panel-quantum-plan-body");
+        if (!block || !body) return;
+        body.textContent = "";
+        const items = Array.isArray(plan) ? plan : [];
+        if (!items.length) {
+          block.hidden = true;
+          if (note) note.hidden = true;
+          return;
+        }
+        block.hidden = false;
+        if (note) {
+          note.hidden = false;
+          note.textContent = panelT("panel.modules.quantum.live.migrationPlanNote");
+        }
+        for (const row of items) {
+          if (!row || typeof row !== "object") continue;
+          const tr = document.createElement("tr");
+          const cells = [
+            String(row.priority || "").trim(),
+            String(row.action || "").trim(),
+            String(row.target || "").trim(),
+            formatQuantumPlanStatus(row.status),
+          ];
+          for (const text of cells) {
+            const td = document.createElement("td");
+            td.textContent = text || panelT("panel.modules.quantum.live.rowEmpty");
+            tr.appendChild(td);
+          }
+          body.appendChild(tr);
         }
       }
 
@@ -7950,6 +8142,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
         }
         if (findingsBlock) findingsBlock.hidden = true;
         if (findingsList) findingsList.textContent = "";
+        renderQuantumLongLivedData([]);
+        renderQuantumHardDeps([]);
+        renderQuantumMigrationPlan([]);
         applyQuantumEntropyLabSection(null, false);
       }
 
@@ -8043,6 +8238,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
         }
 
         renderQuantumFindings(report.evidenced_findings);
+        renderQuantumLongLivedData(report.long_lived_data);
+        renderQuantumHardDeps(report.hard_to_change_deps);
+        renderQuantumMigrationPlan(report.prioritized_migration_plan);
         applyQuantumEntropyLabSection(report.entropy_lab, true);
       }
 

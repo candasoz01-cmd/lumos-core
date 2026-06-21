@@ -873,6 +873,29 @@ PANEL_I18N_V54_TR_KEYS = (
     "severity:",
 )
 
+PANEL_I18N_V55_MARKERS = (
+    'id="panel-quantum-long-lived-block"',
+    'id="panel-quantum-deps-block"',
+    'id="panel-quantum-plan-block"',
+    'data-i18n="panel.modules.quantum.live.longLivedTitle"',
+    'data-i18n="panel.modules.quantum.live.hardDepsTitle"',
+    'data-i18n="panel.modules.quantum.live.migrationPlanTitle"',
+    "renderQuantumLongLivedData",
+    "renderQuantumHardDeps",
+    "renderQuantumMigrationPlan",
+    "formatQuantumChangeCost",
+    "formatQuantumPlanStatus",
+)
+
+PANEL_I18N_V55_TR_KEYS = (
+    "longLivedTitle:",
+    "hardDepsTitle:",
+    "migrationPlanTitle:",
+    "migrationPlanNote:",
+    "changeCost:",
+    "planStatus:",
+)
+
 
 def test_panel_astro_i18n_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
@@ -1710,3 +1733,15 @@ def test_panel_quantum_readiness_live_fields_keys_in_panel_tr() -> None:
     text = _PANEL_TR.read_text(encoding="utf-8")
     for key in PANEL_I18N_V54_TR_KEYS:
         assert key in text, f"missing panel tr v54 key: {key}"
+
+
+def test_panel_astro_i18n_v55_quantum_readiness_migration_fields_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V55_MARKERS:
+        assert token in text, f"missing panel i18n v55 token: {token}"
+
+
+def test_panel_quantum_readiness_migration_fields_keys_in_panel_tr() -> None:
+    text = _PANEL_TR.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V55_TR_KEYS:
+        assert key in text, f"missing panel tr v55 key: {key}"
