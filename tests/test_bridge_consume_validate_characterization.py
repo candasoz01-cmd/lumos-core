@@ -1,11 +1,9 @@
-"""PR-W1-03: köprü consume/validate akış karakterizasyonu (test-only).
+"""PR-W1-03/W1-06: köprü consume/validate akış karakterizasyonu.
 
-Kritik akış (mevcut runtime — wiring yok):
+Akış (W1-05/W1-06):
   attach_bridge_pending_confirmation → shadow grant yazar
-  BridgeHandler._handle_approve → approval_token doğrula → validate → unlink → execute
-  consume_confirmation / check_confirmation approve handler'da çağrılmaz (td-02 gap)
-
-Side-effect sırası: validate önce; consume yalnızca ayrı çağrıda; env off → check no-op.
+  BridgeHandler._handle_approve → token → legacy validate → CU4 validate → unlink → execute → consume (env on)
+  execute_approved_* / lumos_gate_execute resume / cursor_bridge APPROVE: W1-05/W1-06 consume wiring
 """
 from __future__ import annotations
 
@@ -135,20 +133,22 @@ def _grant_unconsumed(grant_path: Path) -> None:
     assert grant.get("consumed") is not True
 
 
-def test_bridge_server_has_no_consume_confirmation_import() -> None:
-    """Köprü approve handler CU4 consume kullanmaz (grep sözleşmesi)."""
+def test_bridge_server_delegates_validate_not_direct_consume() -> None:
+    """server.py CU4 validate delegasyonu var; doğrudan consume_confirmation/check yok."""
     import kando_bridge.server as srv
 
     src = Path(srv.__file__).read_text(encoding="utf-8")
+    assert "validate_bridge_confirmation" in src
     assert "consume_confirmation" not in src
     assert "check_confirmation" not in src
+    assert "consume_bridge_confirmation" not in src
 
 
-def test_high_risk_approve_token_path_leaves_shadow_grant_unconsumed(
+def test_high_risk_approve_token_path_leaves_shadow_grant_unconsumed_when_env_off(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """High-risk legacy token onayı kabul edilir; shadow CU4 grant tüketilmez."""
+    """Env off: legacy token onayı kabul edilir; shadow grant tüketilmez."""
     path, rec = _write_high_risk_pending(tmp_path)
     cid = str(rec["confirmation_id"])
     scope_hash = str(rec["confirmation_scope_hash"])
@@ -169,6 +169,68 @@ def test_high_risk_approve_token_path_leaves_shadow_grant_unconsumed(
     assert not path.is_file()
     _grant_unconsumed(grant_path)
     assert consume_confirmation(cid, scope_hash, base_dir=tmp_path / ".lumos")
+
+
+def test_high_risk_approve_consumes_shadow_grant_when_confirmation_enabled(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """PR-W1-05/W1-06: env-on iken high-risk approve shadow grant tüketir."""
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    path, rec = _write_high_risk_pending(tmp_path)
+    cid = str(rec["confirmation_id"])
+    grant_path = tmp_path / ".lumos" / "pending_confirmations" / f"{cid}.json"
+
+    status, payload = _invoke_handle_approve(
+        tmp_path,
+        monkeypatch,
+        {
+            "approval_file": ".lumos/pending_approvals/hr_w103.json",
+            "approval_token": "tok-hr-w103",
+            "approved": True,
+        },
+    )
+    assert status == 200
+    assert isinstance(payload, dict)
+    assert payload.get("accepted") is True
+    assert not path.is_file()
+    grant = json.loads(grant_path.read_text(encoding="utf-8"))
+    assert grant.get("consumed") is True
+
+
+def test_high_risk_cu4_validate_failure_preserves_pending_before_unlink(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """PR-W1-06: handler CU4 validate fail → pending dosyası kalır."""
+    from datetime import datetime, timedelta, timezone
+
+    from policy.confirmation_policy import REASON_CONFIRMATION_EXPIRED
+
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    path, rec = _write_high_risk_pending(tmp_path)
+    cid = str(rec["confirmation_id"])
+    grant_path = tmp_path / ".lumos" / "pending_confirmations" / f"{cid}.json"
+    data = json.loads(grant_path.read_text(encoding="utf-8"))
+    past = datetime.now(timezone.utc) - timedelta(minutes=5)
+    data["expires_at"] = past.replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    grant_path.write_text(json.dumps(data), encoding="utf-8")
+
+    status, payload = _invoke_handle_approve(
+        tmp_path,
+        monkeypatch,
+        {
+            "approval_file": ".lumos/pending_approvals/hr_w103.json",
+            "approval_token": "tok-hr-w103",
+            "approved": True,
+        },
+    )
+    assert status == 200
+    assert isinstance(payload, dict)
+    assert payload.get("accepted") is False
+    assert REASON_CONFIRMATION_EXPIRED in str(payload.get("error") or "")
+    assert path.is_file()
+    _grant_unconsumed(grant_path)
 
 
 def test_high_risk_validate_failure_preserves_pending_and_grant(

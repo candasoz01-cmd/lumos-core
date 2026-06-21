@@ -2272,13 +2272,30 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
         if str(loaded.get("schema_version") or "") == DISPATCH_PENDING_APPROVAL_SCHEMA:
             from kando_runtime.task_dispatch import execute_approved_dispatch_pending
-            from policy.confirmation_policy import bridge_approve_validate_legacy_pending
+            from policy.confirmation_policy import (
+                bridge_approve_validate_legacy_pending,
+                is_confirmation_enabled,
+                validate_bridge_confirmation,
+            )
 
             try:
                 bridge_approve_validate_legacy_pending(loaded, is_dispatch=True)
             except ValueError as e:
                 self._send_json(200, {"accepted": False, "error": str(e)})
                 return
+
+            lumos_base = ROOT / ".lumos"
+            if is_confirmation_enabled():
+                bridge_result = validate_bridge_confirmation(loaded, base_dir=lumos_base)
+                if not bridge_result.allowed:
+                    self._send_json(
+                        200,
+                        {
+                            "accepted": False,
+                            "error": bridge_result.reason or "confirmation validation failed",
+                        },
+                    )
+                    return
 
             try:
                 path.unlink()
@@ -2309,13 +2326,30 @@ class BridgeHandler(BaseHTTPRequestHandler):
             self._send_json(200, resp)
             return
 
-        from policy.confirmation_policy import bridge_approve_validate_legacy_pending
+        from policy.confirmation_policy import (
+            bridge_approve_validate_legacy_pending,
+            is_confirmation_enabled,
+            validate_bridge_confirmation,
+        )
 
         try:
             bridge_approve_validate_legacy_pending(loaded, is_dispatch=False)
         except ValueError as e:
             self._send_json(200, {"accepted": False, "error": str(e)})
             return
+
+        lumos_base = ROOT / ".lumos"
+        if is_confirmation_enabled():
+            bridge_result = validate_bridge_confirmation(loaded, base_dir=lumos_base)
+            if not bridge_result.allowed:
+                self._send_json(
+                    200,
+                    {
+                        "accepted": False,
+                        "error": bridge_result.reason or "confirmation validation failed",
+                    },
+                )
+                return
 
         try:
             path.unlink()

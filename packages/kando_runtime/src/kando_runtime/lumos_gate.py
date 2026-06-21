@@ -2651,6 +2651,24 @@ def lumos_gate_execute(
         rr = Path(str(rr))
     audit = bundle.get("audit")
     replay_mode = bool(bundle.get("replay_mode"))
+    lumos_base = rr / ".lumos"
+    from policy.confirmation_policy import (
+        bridge_pending_cu4_fields,
+        consume_bridge_confirmation,
+        is_confirmation_enabled,
+        validate_bridge_confirmation,
+    )
+
+    bridge_record: dict[str, Any] | None = None
+    pcr = bundle.get("pending_confirmation_record")
+    if isinstance(pcr, dict):
+        bridge_record = pcr
+    elif bridge_pending_cu4_fields(bundle) is not None:
+        bridge_record = bundle
+    if bridge_record is not None and bridge_pending_cu4_fields(bridge_record) is not None:
+        bridge_result = validate_bridge_confirmation(bridge_record, base_dir=lumos_base)
+        if not bridge_result.allowed:
+            raise ValueError(bridge_result.reason or "confirmation validation failed")
 
     if risk == "high" and not approval_granted:
         out = _return_high_risk_pending(
@@ -2720,6 +2738,13 @@ def lumos_gate_execute(
         if kind != "plan":
             _audit_finalize_non_plan(audit, kind, ex, job_id, plan)
         result["lumos_audit_log"] = audit.to_log_entry()
+    if (
+        bridge_record is not None
+        and bridge_pending_cu4_fields(bridge_record) is not None
+        and approval_granted
+        and is_confirmation_enabled()
+    ):
+        consume_bridge_confirmation(bridge_record, base_dir=lumos_base)
     return result
 
 
