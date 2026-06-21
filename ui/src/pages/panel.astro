@@ -1419,6 +1419,68 @@ const PANEL_DEBUG = import.meta.env.DEV;
       #gorevler-detail.gorevler-detail[open] {
         box-shadow: 0 8px 28px rgba(0, 0, 0, 0.42);
       }
+      #lumos-confirm-dialog.lumos-confirm-dialog {
+        width: 100%;
+        max-width: min(28rem, 100%);
+        margin-top: 0.35rem;
+        padding: 0;
+        border: none;
+        border-radius: var(--panel-radius-lg);
+        background: transparent;
+        color: inherit;
+        box-sizing: border-box;
+      }
+      #lumos-confirm-dialog.lumos-confirm-dialog::backdrop {
+        background: rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(2px);
+      }
+      .lumos-confirm-dialog-shell {
+        border-radius: var(--panel-radius-lg);
+        border: 1px solid rgba(212, 182, 128, 0.28);
+        background: #0b0b0b;
+        box-shadow: var(--panel-edge-inset);
+        overflow: hidden;
+      }
+      .lumos-confirm-dialog-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.85rem 1rem;
+        border-bottom: 1px solid rgba(212, 182, 128, 0.16);
+      }
+      .lumos-confirm-dialog-title {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: rgba(245, 240, 230, 0.96);
+      }
+      .lumos-confirm-dialog-body {
+        padding: 0.85rem 1rem 1rem;
+      }
+      .lumos-confirm-preview-dl {
+        margin: 0;
+        display: grid;
+        grid-template-columns: minmax(4.5rem, auto) 1fr;
+        gap: 0.35rem 0.75rem;
+        font-size: 0.82rem;
+        line-height: 1.45;
+      }
+      .lumos-confirm-preview-dl dt {
+        margin: 0;
+        color: rgba(180, 176, 168, 0.88);
+      }
+      .lumos-confirm-preview-dl dd {
+        margin: 0;
+        color: rgba(245, 240, 230, 0.94);
+        word-break: break-word;
+      }
+      .lumos-confirm-dialog-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        padding: 0 1rem 1rem;
+      }
       .gorevler-detail--fallback#gorevler-detail.gorevler-detail {
         box-shadow: var(--panel-edge-inset), var(--panel-shadow-ambient);
       }
@@ -4665,6 +4727,38 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   </div>
                 </div>
               </dialog>
+              <dialog
+                id="lumos-confirm-dialog"
+                class="lumos-confirm-dialog"
+                aria-labelledby="lumos-confirm-dialog-title"
+                tabindex="-1"
+              >
+                <div class="lumos-confirm-dialog-shell">
+                  <header class="lumos-confirm-dialog-header">
+                    <h3 id="lumos-confirm-dialog-title" class="lumos-confirm-dialog-title" data-i18n="panel.shell.infra.confirmation.title">
+                      İşlemi onayla
+                    </h3>
+                  </header>
+                  <div class="lumos-confirm-dialog-body">
+                    <dl class="lumos-confirm-preview-dl">
+                      <dt data-i18n="panel.shell.infra.confirmation.labelWhat">Ne</dt>
+                      <dd id="lumos-confirm-preview-what"></dd>
+                      <dt data-i18n="panel.shell.infra.confirmation.labelWhere">Hedef</dt>
+                      <dd id="lumos-confirm-preview-where"></dd>
+                      <dt data-i18n="panel.shell.infra.confirmation.labelEffect">Etki</dt>
+                      <dd id="lumos-confirm-preview-effect"></dd>
+                    </dl>
+                  </div>
+                  <div class="lumos-confirm-dialog-actions">
+                    <button type="button" id="lumos-confirm-cancel" class="gorevler-clear-test-btn" data-i18n="panel.shell.infra.confirmation.cancel">
+                      Vazgeç
+                    </button>
+                    <button type="button" id="lumos-confirm-approve" class="gorevler-add-btn" data-i18n="panel.shell.infra.confirmation.confirm">
+                      Onayla
+                    </button>
+                  </div>
+                </div>
+              </dialog>
             </div>
           </section>
 
@@ -6680,6 +6774,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
         "complete_failed",
         "delete_failed",
         "restore_failed",
+        "confirmation_required",
+        "confirmation_expired",
+        "scope_mismatch",
         "command_not_allowed",
         "unauthorized",
         "network_error",
@@ -6710,6 +6807,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
         }
         if (code === "delete_failed" || code === "missing_trash_file") return "delete_failed";
         if (code === "restore_failed" || code === "invalid_trash_file") return "restore_failed";
+        if (
+          code === "confirmation_required"
+          || code === "confirmation_expired"
+          || code === "scope_mismatch"
+        ) {
+          return code;
+        }
+        const reason = String(ctx.reason || ctx.dataReason || "").trim().toLowerCase();
+        if (reason === "confirmation_required") return "confirmation_required";
+        if (reason === "confirmation_expired") return "confirmation_expired";
+        if (reason === "scope_mismatch") return "scope_mismatch";
         if (code === "command_not_allowed" || code === "action_disabled") {
           return "command_not_allowed";
         }
@@ -7558,14 +7666,105 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
       panelEvidenceRefreshStrip = refreshGorevlerEvidenceStrip;
 
-      async function tasksApiPost(path, body) {
+      let panelConfirmationEnabled = false;
+
+      function syncPanelConfirmationEnabledFromDoc(doc) {
+        if (!doc || typeof doc !== "object") return;
+        if (typeof doc.confirmation_enabled === "boolean") {
+          panelConfirmationEnabled = doc.confirmation_enabled;
+        }
+      }
+
+      function isPanelConfirmationEnabled() {
+        return panelConfirmationEnabled === true;
+      }
+
+      function isPanelConfirmationGateError(data) {
+        if (!data || typeof data !== "object") return false;
+        const err = String(data.error || "").trim();
+        const reason = String(data.reason || "").trim();
+        return (
+          err === "confirmation_required"
+          || reason === "confirmation_required"
+          || reason === "confirmation_expired"
+          || reason === "scope_mismatch"
+        );
+      }
+
+      function panelConfirmationPreviewLabel(kind, value) {
+        const v = String(value || "").trim();
+        if (!v) return "—";
+        const actionKey = panelT("panel.shell.infra.confirmation.actions." + v);
+        if (actionKey !== "panel.shell.infra.confirmation.actions." + v) return actionKey;
+        const effectKey = panelT("panel.shell.infra.confirmation.effects." + v);
+        if (effectKey !== "panel.shell.infra.confirmation.effects." + v) return effectKey;
+        return v;
+      }
+
+      function showPanelConfirmationModal(preview) {
+        return new Promise((resolve) => {
+          const dlg = document.getElementById("lumos-confirm-dialog");
+          const whatEl = document.getElementById("lumos-confirm-preview-what");
+          const whereEl = document.getElementById("lumos-confirm-preview-where");
+          const effectEl = document.getElementById("lumos-confirm-preview-effect");
+          const approveBtn = document.getElementById("lumos-confirm-approve");
+          const cancelBtn = document.getElementById("lumos-confirm-cancel");
+          if (!dlg || !whatEl || !whereEl || !effectEl || !approveBtn || !cancelBtn) {
+            resolve(false);
+            return;
+          }
+          const p = preview && typeof preview === "object" ? preview : {};
+          whatEl.textContent = panelConfirmationPreviewLabel("what", p.what);
+          whereEl.textContent = String(p.where || "—");
+          effectEl.textContent = panelConfirmationPreviewLabel("effect", p.effect);
+
+          let settled = false;
+          function finish(ok) {
+            if (settled) return;
+            settled = true;
+            approveBtn.removeEventListener("click", onApprove);
+            cancelBtn.removeEventListener("click", onCancel);
+            dlg.removeEventListener("cancel", onCancel);
+            dlg.removeEventListener("close", onClose);
+            try {
+              if (typeof dlg.close === "function") dlg.close();
+            } catch (_) {
+              /* ignore */
+            }
+            resolve(ok);
+          }
+          function onApprove() {
+            finish(true);
+          }
+          function onCancel() {
+            finish(false);
+          }
+          function onClose() {
+            finish(false);
+          }
+          approveBtn.addEventListener("click", onApprove);
+          cancelBtn.addEventListener("click", onCancel);
+          dlg.addEventListener("cancel", onCancel);
+          dlg.addEventListener("close", onClose);
+          try {
+            if (typeof dlg.showModal === "function") dlg.showModal();
+            else dlg.setAttribute("open", "open");
+          } catch (_) {
+            finish(false);
+          }
+        });
+      }
+
+      async function requestPanelConfirmation(mutationPath, mutationBody) {
         const base = resolveGorevlerTasksApiBase();
-        if (!base) throw new Error("tasks_api_disabled");
-        const p = path.charAt(0) === "/" ? path : "/" + path;
-        const r = await fetch(`${base}${p}`, {
+        if (!base) return null;
+        const r = await fetch(`${base}/lumos-confirm/request`, {
           method: "POST",
           headers: { Accept: "application/json", "Content-Type": "application/json" },
-          body: JSON.stringify(body != null ? body : {}),
+          body: JSON.stringify({
+            mutation_path: mutationPath,
+            mutation_body: mutationBody != null ? mutationBody : {},
+          }),
         });
         let data = null;
         try {
@@ -7573,7 +7772,69 @@ const PANEL_DEBUG = import.meta.env.DEV;
         } catch {
           data = null;
         }
-        return { ok: r.ok, status: r.status, data };
+        if (!r.ok || !data || !data.ok || !data.confirmation_id) return null;
+        return data;
+      }
+
+      async function panelEnsureMutationConfirmation(mutationPath, mutationBody) {
+        const pending = await requestPanelConfirmation(mutationPath, mutationBody);
+        if (!pending) return null;
+        const approved = await showPanelConfirmationModal(pending.preview || {});
+        if (!approved) return null;
+        return String(pending.confirmation_id || "").trim() || null;
+      }
+
+      async function tasksApiPost(path, body) {
+        const base = resolveGorevlerTasksApiBase();
+        if (!base) throw new Error("tasks_api_disabled");
+        const p = path.charAt(0) === "/" ? path : "/" + path;
+        const payload =
+          body != null && typeof body === "object" ? { ...body } : body != null ? body : {};
+
+        async function doPost(postBody) {
+          const r = await fetch(`${base}${p}`, {
+            method: "POST",
+            headers: { Accept: "application/json", "Content-Type": "application/json" },
+            body: JSON.stringify(postBody != null ? postBody : {}),
+          });
+          let data = null;
+          try {
+            data = await r.json();
+          } catch {
+            data = null;
+          }
+          return { ok: r.ok, status: r.status, data };
+        }
+
+        if (isPanelConfirmationEnabled() && !(payload && payload.confirmation_id)) {
+          const confirmationId = await panelEnsureMutationConfirmation(p, payload);
+          if (!confirmationId) {
+            return {
+              ok: false,
+              status: 0,
+              data: { ok: false, error: "confirmation_cancelled" },
+            };
+          }
+          payload.confirmation_id = confirmationId;
+        }
+
+        let res = await doPost(payload);
+
+        if (!res.ok && res.status === 409 && isPanelConfirmationGateError(res.data)) {
+          const retryPayload =
+            payload && typeof payload === "object" ? { ...payload } : payload;
+          if (retryPayload && typeof retryPayload === "object") {
+            delete retryPayload.confirmation_id;
+          }
+          const confirmationId = await panelEnsureMutationConfirmation(p, retryPayload);
+          if (!confirmationId) return res;
+          if (retryPayload && typeof retryPayload === "object") {
+            retryPayload.confirmation_id = confirmationId;
+          }
+          res = await doPost(retryPayload);
+        }
+
+        return res;
       }
 
       let panelEvidenceFlushInFlight = false;
@@ -7721,6 +7982,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (!r.ok) return null;
           const doc = await r.json();
           if (!doc || !Array.isArray(doc.tasks)) return null;
+          syncPanelConfirmationEnabledFromDoc(doc);
           return doc;
         } catch {
           return null;
@@ -7880,6 +8142,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (!r.ok) return false;
           const doc = await r.json();
           if (!doc || !Array.isArray(doc.tasks)) return false;
+          syncPanelConfirmationEnabledFromDoc(doc);
           const next = [];
           for (let i = 0; i < doc.tasks.length; i++) {
             const t = doc.tasks[i];
