@@ -2,7 +2,7 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Güncellendi** — salt okuma analizi (2026-06-21); panel gate #443–#446; consent #450+#451; profil guard #449; CU4 confirmation #452–#458 (opt-in) |
+| Durum | **Güncellendi** — salt okuma analizi (2026-06-21); panel gate #443–#446; consent #450+#451; profil guard #449; CU4 confirmation #452–#458 (opt-in); E2E #459+#460; varsayılan-on kararı opt-in korunur (2026-06-21) |
 | İlgili | [ADR-012](../decisions/ADR-012-lumos-security-codex.md), [ADR-010 usage map](ADR-010-guard-policy-trust-usage-map.md), [permission matrix](lumos-action-permission-matrix.md) |
 | Kapsam | Docs-only; `archive/` hariç aktif kod taraması |
 | Yöntem | `rg` + dosya okuma — kanıt tabanlı |
@@ -264,7 +264,7 @@ pr = check_policy(action, _panel_policy_context())
 # enabled=False when offline, koruma+delete, etc.
 ```
 
-PR referansları: #443 policy enforcement, #444 PUT /tasks.json, #445 delete-permanent, #446 restore, #449 panel profil guard, #450 consent≠general_approval, #451 session_consent CLI, #452 PR-C0 reason codes docs, #453 confirmation_policy modülü, #454 delete-permanent confirmation, #455 trash modal UI, #456 panel mutation confirmation gate, #457 CU7 preview endpoint+modal, #458 CLI `onayla`.
+PR referansları: #443 policy enforcement, #444 PUT /tasks.json, #445 delete-permanent, #446 restore, #449 panel profil guard, #450 consent≠general_approval, #451 session_consent CLI, #452 PR-C0 reason codes docs, #453 confirmation_policy modülü, #454 delete-permanent confirmation, #455 trash modal UI, #456 panel mutation confirmation gate, #457 CU7 preview endpoint+modal, #458 CLI `onayla`, #459 CLI E2E, #460 panel+API E2E.
 
 **Confirmation opt-in:** `LUMOS_CONFIRMATION_ENABLED=true|1|yes` — varsayılan yok/false → 3. kapı no-op; mevcut davranış (#443–#449) korunur.
 
@@ -290,8 +290,8 @@ PR referansları: #443 policy enforcement, #444 PUT /tasks.json, #445 delete-per
 | P2 `SECURITY_NEVER_AUTO` engine branch | Açık | [P2 analiz](security-never-auto-p2-and-helper-proposal.md) |
 | PR-C6 köprü `pending_approval` → confirmation namespace | Açık | [CU4 skeleton §4.1](lumos-cu4-confirmation-skeleton-draft.md) |
 | Trust motor Faz 4 (ADR-007) | Açık | ADR-011 checkpoint |
-| E2E confirmation akışı (opt-in env ile) | Açık | Panel modal + CLI `onayla` birleşik E2E yok |
-| Confirmation varsayılan-on kararı | Açık (ürün) | Şu an varsayılan kapalı; bilinçli opt-in |
+| E2E confirmation akışı (opt-in env ile) | **Kapandı** | PR #459 CLI, #460 panel+API E2E |
+| Confirmation varsayılan-on kararı | **Kapandı (docs)** | Opt-in korunur (2026-06-21, E2E #460); tam default-on ertelendi; kod değişikliği yok (DL-C18) |
 | Panel `LockState` vs env vekili | Açık | ADR-011 |
 | `is_security_never_auto()` helper | Açık (onay bekliyor) | P2 proposal |
 

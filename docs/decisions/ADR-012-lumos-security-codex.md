@@ -2,7 +2,7 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Kabul edildi** (2026-06-21) — taslak paket #440; panel şeffaflık #441; panel policy #443–#446; consent #450+#451; profil guard #449; CU4 confirmation #452–#458 (opt-in) |
+| Durum | **Kabul edildi** (2026-06-21) — taslak paket #440; panel şeffaflık #441; panel policy #443–#446; consent #450+#451; profil guard #449; CU4 confirmation #452–#458 (opt-in); E2E confirmation #459+#460; **varsayılan-on kararı: opt-in korunur** (2026-06-21) |
 | Tarih | 2026-06-21 |
 | İlgili | `docs/lumos-karar-sozlesmesi.md`, [ADR-010](ADR-010-guard-policy-trust-terminology.md), [ADR-011](ADR-011-lock-semantics-decision.md), [action permission matrix](../analysis/lumos-action-permission-matrix.md), [runtime enforcement map](../analysis/lumos-runtime-enforcement-map.md) |
 
@@ -131,6 +131,8 @@ ADR-010: **consent ≠ general_approval ≠ confirmation**. İşlem bazlı üç�
 
 **Opt-in:** Confirmation enforcement yalnızca `LUMOS_CONFIRMATION_ENABLED=true|1|yes` iken aktif. Varsayılan (env yok/false) → 3. kapı no-op; policy+profil gate (#443–#449) davranışı korunur.
 
+**Varsayılan-on kararı (2026-06-21):** E2E #460 kanıtı sonrası ürün kararı: confirmation **varsayılan kapalı kalır** (`LUMOS_CONFIRMATION_ENABLED` opt-in). Tam varsayılan-on, ürün incelemesine ertelendi; bu karar kaydında davranış değiştirilmedi (bkz. DL-C18).
+
 | Kod | Anlam | Gate / UI |
 |-----|-------|-----------|
 | `confirmation_required` | Onay yok veya süresi dolmuş | `task_action_gate` 3. kapı; panel modal tetikleyici |
@@ -193,8 +195,8 @@ ADR-010: **consent ≠ general_approval ≠ confirmation**. İşlem bazlı üç�
 | `SECURITY_NEVER_AUTO` tüm silme/yazma yolları | **P2 gap** — engine branch; analiz: [security-never-auto-p2-and-helper-proposal.md](../analysis/security-never-auto-p2-and-helper-proposal.md) |
 | PR-C6 köprü confirmation namespace hizalama | **Açık** — `pending_approval` ayrı PR |
 | Trust motor (ADR-007) kanıt zinciri genişletmesi | Bekliyor — Faz 4 |
-| Confirmation varsayılan-on ürün kararı | **Açık** — şu an opt-in (`LUMOS_CONFIRMATION_ENABLED`) |
-| E2E confirmation (panel modal + CLI birleşik) | **Açık** |
+| Confirmation varsayılan-on ürün kararı | **Kapandı (docs)** — opt-in korunur (2026-06-21); E2E #460; tam default-on ertelendi |
+| E2E confirmation (panel modal + CLI birleşik) | **Tamamlandı** — #459 CLI, #460 panel+API E2E |
 
 ---
 
@@ -205,8 +207,8 @@ Security Codex **CLOSED değildir**. Aşağıdaki maddeler bilinçli takipte:
 1. **P2 `SECURITY_NEVER_AUTO`** — TaskEngine tek branch; [P2 analiz](../analysis/security-never-auto-p2-and-helper-proposal.md).
 2. **PR-C6** — Köprü `pending_approval` → confirmation namespace (ayrı PR).
 3. **Trust Faz 4** — ADR-007 merkezi trust tüketimi; ADR-011 `keystore_ready` ≠ `session_unlocked`.
-4. **E2E confirmation** — Opt-in env ile panel+CLI uçtan uca doğrulama.
-5. **Varsayılan-on kararı** — Confirmation şu an `LUMOS_CONFIRMATION_ENABLED` opt-in; ürün kararı bekliyor.
+4. ~~**E2E confirmation**~~ — **Kapandı** #459+#460 (opt-in env ile panel+CLI uçtan uca).
+5. ~~**Varsayılan-on kararı**~~ — **Kapandı (docs, 2026-06-21)** — opt-in korunur; tam varsayılan-on ürün incelemesine ertelendi (DL-C18).
 6. **Panel LockState** — Env vekili vs runtime kilit doğrulaması.
 
 ---
@@ -216,7 +218,7 @@ Security Codex **CLOSED değildir**. Aşağıdaki maddeler bilinçli takipte:
 1. `SECURITY_NEVER_AUTO` tam runtime branch'i tüm silme/yazma yollarında var mı? (enforcement map §8 — bilinçli takip)
 2. Trust motor (ADR-007) finalize olunca codex C3 kanıt zinciri genişletilecek mi? (Faz 4 checkpoint)
 3. Panel `PUT /tasks.json` tam doküman yazımı policy zincirine bağlanacak mı? → **Evet** — #444. Kalıcı silme (#445+#454) ve restore (#446) kapandı.
-4. Confirmation varsayılan-on mu opt-in mi kalacak? → **Şu an opt-in** (#453); ürün kararı açık.
+4. Confirmation varsayılan-on mu opt-in mi kalacak? → **Opt-in korunur** (2026-06-21, E2E #460); tam varsayılan-on ürün incelemesine ertelendi (DL-C18).
 
 ---
 
