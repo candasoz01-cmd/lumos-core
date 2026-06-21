@@ -211,7 +211,7 @@ Faz-1: statik öneri tablosu checklist'te; otomatik uygulama yok.
 
 ## Panel alanları (spesifikasyon — Faz-2 kısmi uygulama)
 
-Mevcut panel kuantum sekmesi (`ui/src/pages/panel.astro`, `#panel-kuantum`) dört statik kart taşır. Faz-2 kısmi uygulamada altına **readiness banner + özet alanı** eklendi; panel sunucusu `GET /quantum-readiness` ile `scan_quantum_readiness()` JSON döner (`panel/scripts/panel_tasks_server.py`). Canlı fetch başarısızsa mock banner ve docs-only örnek değerler kalır. Canlı yükte ek UI alanları: `meta.generated_at`, `evidenced_findings` listesi, `entropy_lab` probe özeti (salt okunur; entropy davranışı değişmez).
+Mevcut panel kuantum sekmesi (`ui/src/pages/panel.astro`, `#panel-kuantum`) dört statik kart taşır. Faz-2 kısmi uygulamada altına **readiness banner + özet alanı** eklendi; panel sunucusu `GET /quantum-readiness` ile `scan_quantum_readiness()` JSON döner (`panel/scripts/panel_tasks_server.py`). Canlı fetch başarısızsa mock banner ve docs-only örnek değerler kalır. Canlı yükte ek UI alanları: `meta.generated_at`, `evidenced_findings`, `entropy_lab`, `long_lived_data`, `hard_to_change_deps`, `prioritized_migration_plan` (salt okunur; entropy davranışı değişmez).
 
 ![Panel quantum readiness banner — local_scan örneği](../screenshots/adr-013-panel-quantum-readiness-banner.png)
 
@@ -361,7 +361,7 @@ Fallback **üç katmanda**, çoğunlukla log/audit olmadan:
 | `lumos quantum-readiness` — CLI JSON/summary (`src/lumos_core/quantum_readiness_cli.py`) | **Uygulandı** (#479) |
 | Panel `GET /quantum-readiness` — salt okunur JSON | **Uygulandı** (#469) |
 | `tests/test_quantum_readiness_scan.py` | **Uygulandı** (#468) |
-| Panel kuantum sekmesi — live fetch + docs-only mock fallback | **Kısmi** (#469; copy #471, #475; live fields #480) |
+| Panel kuantum sekmesi — live fetch + docs-only mock fallback | **Kısmi** (#469; copy #471, #475; live fields #480; migration tables v55) |
 | Lumos CLI alt komutu (`lumos quantum-readiness` vb.) | **Uygulandı** (#479) |
 
 ---
