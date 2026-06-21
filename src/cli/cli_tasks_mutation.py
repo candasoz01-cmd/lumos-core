@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any, Callable
 
 from core.brain import run as brain_run
+from core.startup_health import effective_consent
 from policy.action_policy import (
     CANCEL_TASK,
     CREATE_TASK,
@@ -27,6 +28,7 @@ class TaskMutationContext:
     task_store: Any
     current_permission_profile: list
     general_approval: list
+    session_consent: list
     current_task: list
     last_action: list
     today_date: list
@@ -41,6 +43,11 @@ class TaskMutationContext:
     policy_is_locked: Any = None  # Callable[[], bool] | None
 
 
+def _session_consent_from_mut_ctx(ctx: TaskMutationContext) -> bool:
+    sc = getattr(ctx, "session_consent", None)
+    return bool(sc and len(sc) > 0 and sc[0])
+
+
 def _task_mutation_policy_context(ctx: TaskMutationContext):
     online = getattr(ctx, "policy_runtime_mode", "offline") == "online"
     locked = True
@@ -50,8 +57,14 @@ def _task_mutation_policy_context(ctx: TaskMutationContext):
             locked = bool(fn())
         except Exception:
             locked = True
-    consent = bool(ctx.general_approval[0])
-    return {"online": online, "koruma_active": locked, "consent": consent}
+    consent = effective_consent(ctx.base_dir, _session_consent_from_mut_ctx(ctx))
+    general_approval = bool(ctx.general_approval[0])
+    return {
+        "online": online,
+        "koruma_active": locked,
+        "consent": consent,
+        "general_approval": general_approval,
+    }
 
 
 def _enforce_task_policy(ctx: TaskMutationContext, action: str) -> bool:

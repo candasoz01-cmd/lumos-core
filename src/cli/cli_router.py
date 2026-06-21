@@ -144,11 +144,14 @@ def run_cli_loop(router_ctx: RouterContext) -> None:
             continue
         if route == "genel_onay_ac":
             router_ctx.mut_ctx.general_approval[0] = True
-            print("Genel onay açık. Bu oturumda izin profili kapsamında işler yürütülebilir.")
+            print(
+                "Genel onay açık. Kısıtlı otonom profilde bu oturumda yazma adımları yürütülebilir. "
+                "Consent (kimlik/keystore) ayrıdır; genel onay consent yerine geçmez."
+            )
             continue
         if route == "genel_onay_kapat":
             router_ctx.mut_ctx.general_approval[0] = False
-            print("Genel onay kapalı.")
+            print("Genel onay kapalı. Consent durumu değişmedi.")
             continue
         if handle_task_mutation(route, args, router_ctx.mut_ctx):
             continue

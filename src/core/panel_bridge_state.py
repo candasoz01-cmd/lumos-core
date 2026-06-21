@@ -488,15 +488,18 @@ def _build_yanit_card_payload(
     writing_tr = "korunmuş alan (sandbox)" if str(writing).lower() == "sandbox" else "canlı çalışma alanı"
     consent = bool(guidance.get("consent"))
     consent_tr = (
-        "Genel onay (consent) kayıtlı; keystore görünümü buna göre."
+        "Consent (kimlik/keystore rızası) kayıtlı."
         if consent
-        else "Genel onay henüz kayıtlı değil; hassas yazım ve keystore akışı kısıtlı kalır."
+        else "Consent henüz kayıtlı değil; hassas yüzeyler kısıtlı kalır."
     )
+    ga_active = bool(guidance.get("general_approval_active"))
     gen = system_health.get("general") if isinstance(system_health.get("general"), dict) else {}
     gen_note = (gen.get("note") or "").strip()
     summary = (
         f"Şu an mod {mode_tr}. Yazım hedefi {writing_tr}. {consent_tr}"
     )
+    if ga_active:
+        summary += " Genel onay (kisitli_otonom yazma kapısı) bu oturumda açık."
     if gen_note:
         summary += f" Sistem özeti: {gen_note}"
 
@@ -518,21 +521,26 @@ def _build_yanit_card_payload(
         if str(lat).strip():
             context_line = str(lat).strip()
 
-    consent_proxy = str(guidance.get("consent_proxy_state") or "").strip()
-    if consent_proxy:
-        lock_tr = f"Genel onay (consent vekili): {consent_proxy}."
+    consent_state = str(guidance.get("consent_state") or "").strip()
+    if consent_state:
+        consent_line = f"Consent: {consent_state}."
     else:
-        lock = str(guidance.get("lock") or "LOCKED").upper()
-        lock_tr = (
-            "Genel onay (consent vekili): kayıtlı."
-            if lock == "UNLOCKED"
-            else "Genel onay (consent vekili): bekleniyor."
+        consent_line = (
+            "Consent: kayıtlı."
+            if consent
+            else "Consent: bekleniyor."
         )
+    ga_line = (
+        "Genel onay: bu oturumda açık (kisitli_otonom yazma kapısı)."
+        if ga_active
+        else "Genel onay: kapalı."
+    )
     session_unlocked = guidance.get("session_unlocked")
+    session_line = ""
     if session_unlocked is True:
-        lock_tr += " Oturum: açık (runtime sinyali)."
+        session_line = " Oturum kilidi: açık (runtime sinyali)."
     elif session_unlocked is False:
-        lock_tr += " Oturum: kilitli (runtime sinyali)."
+        session_line = " Oturum kilidi: kilitli (runtime sinyali)."
 
     iden = str(identity_payload.get("identity_state") or "—").strip()
     ks_init = str(keystore_payload.get("keystore_state") or "—").strip()
@@ -544,8 +552,8 @@ def _build_yanit_card_payload(
 
     understood: list[str] = [
         f"Mod: {mode_tr}.",
-        lock_tr,
-        f"Genel onay: {'açık' if consent else 'kapalı'}.",
+        consent_line + session_line,
+        ga_line,
         f"Kimlik dosyası: {iden}.",
         f"Anahtar kasası ({ks}).",
         f"Görev motoru: {te_note}",
@@ -781,7 +789,7 @@ def build_panel_read_state(*, repo_root: Path | None = None) -> dict:
         elif key == "keystore_sink":
             system_health[key] = {
                 "status": general_status,
-                "note": "Consent vekili + keystore dosya init ayrı; runtime oturum kilidi bu hatta yok.",
+                "note": "consent_ok dosya tabanlı; keystore init ve oturum kilidi ayrı sinyaller.",
             }
         elif key == "general":
             system_health[key] = {"status": general_status, "note": general_note}
@@ -840,32 +848,33 @@ def build_panel_read_state(*, repo_root: Path | None = None) -> dict:
     # Keystore: read-only — keystore init dosyası + consent vekili ayrı; passphrase/ifşa yok
     keystore_last = _file_mtime_iso(keystore_path) if keystore_path else None
     ks_initialized = _panel_keystore_initialized(base, keystore_path)
-    consent_proxy_state = "onay kayıtlı" if consent else "onay bekleniyor"
+    general_approval_active = _panel_general_approval()
+    consent_state = "kayıtlı" if consent else "bekleniyor"
     keystore_payload = {
         "keystore_ready": ks_initialized,
         "keystore_state": "hazır" if ks_initialized else "eksik",
         "consent_ok": consent,
-        "consent_proxy_state": consent_proxy_state,
+        "consent_state": consent_state,
+        "general_approval_active": general_approval_active,
         "session_unlocked": None,
         "session_unlocked_note": _PANEL_SESSION_UNLOCKED_NOTE,
         "keystore_last_update": keystore_last,
         "keystore_write_scope": "Kilit açılmadan hassas yazım yapılmaz",
         "display_note": (
-            "keystore_ready = dosya init; consent_proxy_state = genel onay vekili; "
-            "session_unlocked bu köprüde doğrulanmaz."
+            "consent_ok = consent.json; general_approval_active = LUMOS_GENERAL_APPROVAL env; "
+            "session_unlocked bu köprüde doğrulanmaz (ADR-010)."
         ),
     }
 
-    # Guidance: consent vekili; runtime session_unlocked panel okuma yolunda yok
+    # Guidance: consent (dosya) ve genel onay (env) ayrı; runtime session_unlocked yok
     mode = (os.environ.get("LUMOS_MODE") or "offline").strip().lower()
     mode = "online" if mode == "online" else "offline"
-    lock = "UNLOCKED" if consent else "LOCKED"
     guidance = {
         "mode": mode,
-        "lock": lock,
-        "lock_scope": "consent_proxy",
         "consent": consent,
-        "consent_proxy_state": consent_proxy_state,
+        "consent_ok": consent,
+        "consent_state": consent_state,
+        "general_approval_active": general_approval_active,
         "session_unlocked": None,
         "session_unlocked_note": _PANEL_SESSION_UNLOCKED_NOTE,
         "blocked_reason": None,

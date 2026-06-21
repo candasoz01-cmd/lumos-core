@@ -28,6 +28,7 @@ class PolicyContext:
     online: bool
     koruma_active: bool
     consent: bool
+    general_approval: bool = False
 
 
 @dataclass(frozen=True)
@@ -50,6 +51,7 @@ def check_policy(action: str, context: PolicyContext | Mapping[str, Any]) -> Pol
             online=bool(context.get("online")),
             koruma_active=bool(context.get("koruma_active")),
             consent=bool(context.get("consent")),
+            general_approval=bool(context.get("general_approval")),
         )
 
     if not ctx.online:

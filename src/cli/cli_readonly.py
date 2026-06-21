@@ -31,9 +31,9 @@ from cli.cli_tasks import handle_tasks_readonly
 
 
 def _session_consent_from_ctx(ctx: ReadOnlyContext) -> bool:
-    """Single place to read session consent (genel onay aç) from context. Same ref as mut_ctx.general_approval."""
-    ga = getattr(ctx, "general_approval", None)
-    return bool(ga and len(ga) > 0 and ga[0])
+    """Oturum consent sinyali — general_approval (genel onay) ile karıştırılmaz (ADR-010)."""
+    sc = getattr(ctx, "session_consent", None)
+    return bool(sc and len(sc) > 0 and sc[0])
 
 
 class ReadOnlyContext:
@@ -56,7 +56,8 @@ class ReadOnlyContext:
     current_permission_profile: list
     task_store: Any
     aliases: dict
-    general_approval: list  # same ref as mut_ctx.general_approval; session consent for durum/hazır
+    general_approval: list  # same ref as mut_ctx.general_approval; kisitli_otonom yazma kapısı
+    session_consent: list  # same ref as mut_ctx.session_consent; identity/keystore consent oturumu
     record_note_op: Callable[[str], None]
     record_today_action: Callable[[str], None]
 
