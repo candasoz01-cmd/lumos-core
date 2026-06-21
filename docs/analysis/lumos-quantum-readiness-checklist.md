@@ -4,7 +4,7 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Faz-2 kısmi (docs-kapalı)** — yerel tarayıcı, CLI, panel GET + live fields + migration tables (#468–#482); `hazırlık_raporu` badge opsiyonel/ertelendi |
+| Durum | **Faz-2 kısmi (docs-kapalı)** — yerel tarayıcı, CLI, panel GET + live fields + migration tables + `hazırlık_raporu` badge (#468–#483) |
 | Tarih | 2026-06-21 |
 | İlgili | [ADR-013](../decisions/ADR-013-lumos-quantum-security-readiness.md) |
 
@@ -118,7 +118,7 @@ Faz-2: yerel tarama satır/snapshot ile `verified: true` işaretler.
 | qiskit / qiskit-aer kurulu | Hayır (typical) | Import fail → OS |
 | IBM token / `QiskitRuntimeService` | Yok | Public OSS |
 | Readiness yerel tarama | Panel `GET /quantum-readiness` + `scripts/quantum_readiness_scan.py` + `lumos quantum-readiness` | **Uygulandı** (#468–#469, #479); panel live fields (#480, #482) |
-| `hazırlık_raporu` genel durum badge | Opsiyonel — `tamamlandi` / `kısmi` / `doğrulanamadi` | **Ertelendi** — local_scan/docs rozetleri (#469, #475) yeterli; ayrı UI PR bekleniyor |
+| `hazırlık_raporu` genel durum badge | `tamamlandi` / `kısmi` / `doğrulanamadi` (display-only türetim) | **Uygulandı** — panel UI; ADR-013 türetim tablosu |
 | Entropy birim testi | Yok | Faz-2+ |
 
 ---
@@ -153,8 +153,8 @@ Faz-2: yerel tarama satır/snapshot ile `verified: true` işaretler.
 | Genel durum | `docs_only` | `local_scan` (panel GET, CLI veya script başarılı) |
 | Panel live fields | Statik § tablolar | `generated_at`, `evidenced_findings`, `entropy_lab` (#480) |
 | Migration tabloları | §2–§3, §7 statik | `long_lived_data`, `hard_to_change_deps`, `prioritized_migration_plan` (#482) |
-| `hazırlık_raporu` badge | — | **Ertelendi (opsiyonel)** — ADR-013 § Panel alanları |
+| `hazırlık_raporu` badge | — | Display-only türetim — panel UI (#484) |
 
 ---
 
-**Kullanım:** `lumos quantum-readiness`, `python -m scripts.quantum_readiness_scan` veya panel kuantum sekmesi (`GET /quantum-readiness` live fetch). **`hazırlık_raporu` genel durum badge'i opsiyonel/ertelendi** — ayrı UI PR bekleniyor. Entropy **davranışı** değiştirilmez; Entropy Lab readiness raporunda **deneysel** etiketli kalır.
+**Kullanım:** `lumos quantum-readiness`, `python -m scripts.quantum_readiness_scan` veya panel kuantum sekmesi (`GET /quantum-readiness` live fetch). **`hazırlık_raporu` genel durum badge'i uygulandı** (display-only; scanner değişmez). Entropy **davranışı** değiştirilmez; Entropy Lab readiness raporunda **deneysel** etiketli kalır.

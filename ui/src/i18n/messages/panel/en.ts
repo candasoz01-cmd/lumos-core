@@ -717,6 +717,13 @@ const panel: typeof panelTr = {
       "Lumos Quantum Readiness — local, read-only post-quantum security readiness scanner. When GET /quantum-readiness does not respond, values below are documentation-based samples; with the panel server running, local scan (local_scan) loads automatically.",
     readinessIntroLive:
       "Lumos Quantum Readiness — local, read-only readiness scan. Live analysis is not a quantum-safe or production quantum claim; it is a read-only code/metadata inventory.",
+    readinessReport: {
+      label: "Overall status",
+      mock: "Sample — unverified",
+      tamamlandi: "Complete",
+      kismi: "Partial",
+      dogrulanamadi: "Unverified",
+    },
     mock: {
       title: "Sample readiness summary (mock)",
       titleLive: "Local readiness summary",
@@ -731,6 +738,13 @@ const panel: typeof panelTr = {
       pqcValue: "Monitoring — NIST PQC awareness; no implementation",
       evidenceLabel: "Evidence type",
       evidenceValue: "docs_only — local scan (local_scan) could not load",
+    },
+    readinessReport: {
+      label: "Overall status",
+      mock: "Sample — unverified",
+      tamamlandi: "Complete",
+      kismi: "Partial",
+      dogrulanamadi: "Unverified",
     },
     live: {
       evidenceBasis: "Evidence basis: {basis} — local read-only scan",

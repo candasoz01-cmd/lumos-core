@@ -225,7 +225,7 @@ Mevcut dört kart (Kuantum Güvenlik Araştırması, Çoklu İhtimal, Belirsizli
 
 | Alan | Tür | Etiket | Açıklama |
 |------|-----|--------|----------|
-| **Genel durum** | Salt okunur badge | `hazırlık_raporu` | `tamamlandi` / `kısmi` / `doğrulanamadi` — **ertelendi (opsiyonel)**; local_scan/docs rozetleri (#469, #475) yeterli |
+| **Genel durum** | Salt okunur badge | `hazırlık_raporu` | `tamamlandi` / `kısmi` / `doğrulanamadi` — **uygulandı (display-only türetim)**; tarayıcı JSON alanı yok; panel canlı yükte mevcut alanlardan türetir (aşağıda). Mock/fallback: nötr `Örnek — doğrulanmadı` rozeti |
 | **Şifreleme / imza / anahtar türleri** | Salt okunur liste | `gerçek` (tarama) | `crypto_inventory` |
 | **Uzun ömürlü veri** | Salt okunur tablo | `gerçek` | `long_lived_data` + HNDL risk notu |
 | **Zor değişen bağımlılıklar** | Salt okunur liste | `gerçek` | `hard_to_change_deps` |
@@ -245,6 +245,17 @@ Panel sunucusu veya `GET /quantum-readiness` erişilemezken:
 - Statik örnek değerler mock olarak işaretlenir; gerçek başarı gibi gösterilmez.
 
 Canlı tarama bağlıyken rapor `meta.evidence_basis = local_scan` taşır; mock/fallback durumunda `docs_only` etiketi korunur.
+
+#### `hazırlık_raporu` display-only türetim (panel UI)
+
+Tarayıcı JSON'unda `hazırlık_raporu` alanı **yoktur**; panel yalnızca görüntü için mevcut alanlardan türetir (scanner değişmez):
+
+| Rozet | Türetim kuralı |
+|-------|----------------|
+| `dogrulanamadi` | `crypto_agility_level === "dogrulanamadi"` |
+| `kismi` | `evidenced_findings` içinde `verified: false` **veya** `crypto_inventory` boş |
+| `tamamlandi` | Yukarıdakilerin hiçbiri değilse |
+| mock (fallback) | `GET /quantum-readiness` başarısız — nötr örnek rozeti; gerçek durum iddiası yok |
 
 ### MVP'de olmayan aksiyonlar
 
@@ -349,7 +360,7 @@ Fallback **üç katmanda**, çoğunlukla log/audit olmadan:
 | Faz | Kapsam | Çıktı | Durum (2026-06-21) |
 |-----|--------|-------|---------------------|
 | **Faz-1** | Docs-only: ADR-013, checklist, rapor alanları, panel spesifikasyonu | ADR + checklist; entropy kodu değişmez | **Tamamlandı** |
-| **Faz-2** | Yerel salt okunur readiness taraması (CLI veya panel GET) | Rapor alanları doldurulur; fallback uyarısı zorunlu | **Kısmi (panel docs-kapalı)** — tarayıcı (#468), panel GET (#469), standalone script, `lumos quantum-readiness` CLI (#479); landing/panel copy (#471–#475); panel live fields (#480); migration tables (#482); `hazırlık_raporu` badge **ertelendi (opsiyonel)** |
+| **Faz-2** | Yerel salt okunur readiness taraması (CLI veya panel GET) | Rapor alanları doldurulur; fallback uyarısı zorunlu | **Kısmi (panel docs-kapalı)** — tarayıcı (#468), panel GET (#469), standalone script, `lumos quantum-readiness` CLI (#479); landing/panel copy (#471–#475); panel live fields (#480); migration tables (#482); `hazırlık_raporu` badge **uygulandı (display-only)** |
 | **Faz-3** (onaylı, private olabilir) | IBM Runtime POC, maliyet/onay kapısı | Credential vault; public repoda yalnızca sınır metni | Beklemede |
 
 ### Faz-2 uygulanan / bekleyen (2026-06-21)
@@ -361,7 +372,7 @@ Fallback **üç katmanda**, çoğunlukla log/audit olmadan:
 | `lumos quantum-readiness` — CLI JSON/summary (`src/lumos_core/quantum_readiness_cli.py`) | **Uygulandı** (#479) |
 | Panel `GET /quantum-readiness` — salt okunur JSON | **Uygulandı** (#469) |
 | `tests/test_quantum_readiness_scan.py` | **Uygulandı** (#468) |
-| Panel kuantum sekmesi — live fetch + docs-only mock fallback | **Kısmi (docs-kapalı)** (#469; copy #471, #475; live fields #480; migration tables #482) |
+| Panel kuantum sekmesi — live fetch + docs-only mock fallback | **Kısmi (docs-kapalı)** (#469; copy #471, #475; live fields #480; migration tables #482; `hazırlık_raporu` badge display-only) |
 | Lumos CLI alt komutu (`lumos quantum-readiness` vb.) | **Uygulandı** (#479) |
 
 ---
@@ -379,4 +390,4 @@ Fallback **üç katmanda**, çoğunlukla log/audit olmadan:
 
 ## Sonuç
 
-Lumos Quantum Readiness, kuantum alanını **yerel, salt okunur, kanıtlı kuantum sonrası güvenlik hazırlık tarayıcısı** olarak konumlandırır; üretim kuantum iddiası taşımaz. Entropy Lab deneysel kalır ve rapordan ayrılır. Faz-1 sözleşmeyi kilitledi; Faz-2 kısmi uygulamada yerel tarama, panel GET, CLI (#479), panel live fields (#480) ve migration tables (#482) devreye girdi — panel Faz-2 alan seti docs-kapalı; yalnızca `hazırlık_raporu` badge opsiyonel/ertelendi.
+Lumos Quantum Readiness, kuantum alanını **yerel, salt okunur, kanıtlı kuantum sonrası güvenlik hazırlık tarayıcısı** olarak konumlandırır; üretim kuantum iddiası taşımaz. Entropy Lab deneysel kalır ve rapordan ayrılır. Faz-1 sözleşmeyi kilitledi; Faz-2 kısmi uygulamada yerel tarama, panel GET, CLI (#479), panel live fields (#480), migration tables (#482) ve `hazırlık_raporu` display-only badge devreye girdi — panel Faz-2 alan seti docs-kapalı.
