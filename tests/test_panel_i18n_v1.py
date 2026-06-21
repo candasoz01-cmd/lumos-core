@@ -1791,3 +1791,18 @@ def test_panel_quantum_readiness_report_badge_keys_in_panel_en() -> None:
     text = _PANEL_EN.read_text(encoding="utf-8")
     for key in PANEL_I18N_V56_TR_KEYS:
         assert key in text, f"missing panel en v56 key: {key}"
+
+
+def test_panel_demo_share_i18n_is_resolved_when_rendered() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in (
+        "function demoIdleHint()",
+        "function demoReviewHint()",
+        "function demoMessage()",
+        "function dataTypeLabel()",
+        "hintEl.textContent = demoIdleHint();",
+        "hintEl.textContent = demoMessage();",
+    ):
+        assert token in text, f"missing render-time demo i18n token: {token}"
+
+    assert 'const demoIdleHint = cfg.demoIdleHint || panelT(' not in text

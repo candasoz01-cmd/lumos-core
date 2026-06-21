@@ -5016,40 +5016,39 @@ const PANEL_DEBUG = import.meta.env.DEV;
             <p class="panel-module-eyebrow" data-i18n="panel.moduleGroups.preview">Önizleme</p>
             <h2 id="panel-ses-title" data-i18n="panel.sections.ses">Ses</h2>
             <p class="panel-module-lead medya-intro" data-i18n="panel.modules.voice.intro">
-              Bu sekme, sesli girdinin metne ve komutlara dönüşürken arayüz katmanında kalması ve kararın yine kullanıcıda
-              tutulması için tasarlanan yaklaşımı özetler. Sohbet alt çubuğundaki mikrofon, cihaz, tarayıcı ve verilen
-              izinlere bağlıdır; bazı ortamlarda desteklenmeyebilir.
+              Ses önizlemesi, konuşmayı kullanıcı kontrolünde metne dönüştürme akışını açıklar. Kullanılabilirlik cihaza,
+              tarayıcıya ve mikrofon iznine bağlıdır.
             </p>
             </header>
             <ul class="medya-card-list">
               <li class="medya-card">
                 <h3 data-i18n="panel.modules.voice.c1Title">Sesten Metne</h3>
                 <p data-i18n="panel.modules.voice.c1Body">
-                  Sesli ifade, metin ve komut adımlarına aktarılarak ekranda izlenebilir hale getirilebilir.
+                  Konuşma, ekranda kontrol edilebilir metne dönüştürülür.
                 </p>
               </li>
               <li class="medya-card">
                 <h3 data-i18n="panel.modules.voice.c2Title">Arayüz Katmanı</h3>
                 <p data-i18n="panel.modules.voice.c2Body">
-                  Ses, doğrudan yerine geçen bir otorite değil; kullanıcının gördüğü ve düzeltebildiği bir katman olarak ele alınır.
+                  Ses sonucu önce ekranda görünür; kullanıcı metni düzeltebilir.
                 </p>
               </li>
               <li class="medya-card">
                 <h3 data-i18n="panel.modules.voice.c3Title">Karar Kullanıcıda</h3>
                 <p data-i18n="panel.modules.voice.c3Body">
-                  Özetlenen komut veya metin uygulanmadan önce kullanıcı net biçimde kontrol edebilmelidir.
+                  Metin veya komut uygulanmadan önce kullanıcı kontrol eder.
                 </p>
               </li>
               <li class="medya-card">
                 <h3 data-i18n="panel.modules.voice.c4Title">Yanlış Anlama ve Onay</h3>
                 <p data-i18n="panel.modules.voice.c4Body">
-                  Belirsiz veya düşük güvenli algılarda Lumos duraklatmayı ve netleştirmeyi hedefler; tek başına ilerlemez.
+                  Lumos emin değilse durur ve açıklama ister.
                 </p>
               </li>
               <li class="medya-card">
                 <h3 data-i18n="panel.modules.voice.c5Title">Yerel İşlem Önceliği</h3>
                 <p data-i18n="panel.modules.voice.c5Body">
-                  Mümkün olduğunda ilk işlem cihaz içinde kalır; dış servise çıkış gerekiyorsa bu görünür tutulmalıdır.
+                  İşlem mümkünse bu cihazda kalır. Dış servis gerekirse ekranda belirtilir.
                 </p>
               </li>
             </ul>
@@ -5066,9 +5065,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
             <p class="panel-module-eyebrow" data-i18n="panel.moduleGroups.preview">Önizleme</p>
             <h2 id="panel-medya-title" data-i18n="panel.sections.medya">Medya</h2>
             <p class="panel-module-lead medya-intro" data-i18n="panel.modules.media.intro">
-              Bu sekme, görsel, ses, video ve dosya akışlarının düzenlenmesinde paylaşım öncesi kontrol, veri yolu görünürlüğü ve
-              kaynak ile çıktının ayrılması ilkelerini özetler. Sohbet alt çubuğundaki kamera da cihaz, tarayıcı ve izin
-              desteğine bağlıdır; her ortamda çalışmayabilir.
+              Görsel, ses, video ve dosya akışları için paylaşım öncesi kontrol önizlemesi. Kamera kullanımı cihaz ve
+              tarayıcı iznine bağlıdır.
             </p>
             </header>
             <div class="medya-outbox-wrap" aria-labelledby="medya-outbox-title">
@@ -5265,8 +5263,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
             <p class="gorevler-intro">
               <span class="panel-data-flow-badge" data-i18n="panel.common.badges.externalService">[Harici Servis]</span>
               <span data-i18n="panel.modules.files.intro">
-              Dosyayı cihazınızdan seçin; Lumos köprüsü dosyayı alır, adı/türü/boyutu döner. Metin dosyalarında (.txt, .md, .json, .csv) kısa özet
-              üretilir. PDF ve Word (DOCX) gibi biçimler bu fazda işlenmez.
+              Bu cihazdan bir dosya seçin. Lumos ad, tür ve boyut bilgisini gösterir; .txt, .md, .json ve .csv dosyaları için
+              kısa özet oluşturur. PDF ve Word dosyaları bu sürümde işlenmez.
               </span>
             </p>
             <div class="gorevler-proto">
@@ -5434,7 +5432,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
               Lumos Quantum Readiness — yerel, salt okunur kuantum sonrası güvenlik hazırlık tarayıcısı. GET /quantum-readiness yanıt vermediğinde aşağıdaki değerler dokümantasyon tabanlı örnektir; panel sunucusu açıkken yerel tarama (local_scan) otomatik yüklenir.
             </p>
             <div class="panel-quantum-readiness-mock" data-quantum-readiness-mock="true">
-              <h3 id="panel-quantum-readiness-title" data-i18n="panel.modules.quantum.mock.title">Örnek hazırlık özeti (mock)</h3>
+              <h3 id="panel-quantum-readiness-title" data-i18n="panel.modules.quantum.mock.title">Örnek hazırlık özeti</h3>
               <p id="panel-quantum-readiness-note" data-i18n="panel.modules.quantum.mock.note">
                 Kanıt kaynağı: docs_only — ADR-013 checklist. GET /quantum-readiness kullanılamadı; yerel tarama (local_scan) yüklenemedi.
               </p>
@@ -5499,17 +5497,16 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 </table>
               </div>
             </div>
-            <h3 class="panel-quantum-subsection" data-i18n="panel.modules.quantum.entropyLab.title">Entropy Lab (deneysel — ayrı alan)</h3>
+            <h3 class="panel-quantum-subsection" data-i18n="panel.modules.quantum.entropyLab.title">Rastgelelik laboratuvarı (deneysel)</h3>
             <p id="panel-quantum-entropy-note" class="panel-quantum-subsection-note" data-i18n="panel.modules.quantum.entropyLab.body">
-              Entropy Lab, Quantum Readiness’ten ayrı deneysel bir alandır. Bu panelde sağlayıcı probe veya entropy entegrasyonu
-              yoktur; üretim kuantum entropy iddiası taşınmaz.
+              Kuantum hazırlığından ayrı, salt okunur deneysel alan. Üretimde kullanılan rastgelelik kaynağı değildir.
             </p>
             <dl id="panel-quantum-entropy-dl" class="panel-quantum-entropy-dl" hidden>
               <dt data-i18n="panel.modules.quantum.entropyLab.configuredLabel">Yapılandırılmış sağlayıcı</dt>
               <dd id="panel-quantum-entropy-configured"></dd>
-              <dt data-i18n="panel.modules.quantum.entropyLab.effectiveLabel">Efektif sağlayıcı (heuristic)</dt>
+              <dt data-i18n="panel.modules.quantum.entropyLab.effectiveLabel">Kullanılan sağlayıcı (tahmini)</dt>
               <dd id="panel-quantum-entropy-effective"></dd>
-              <dt data-i18n="panel.modules.quantum.entropyLab.fallbackLabel">Sessiz fallback</dt>
+              <dt data-i18n="panel.modules.quantum.entropyLab.fallbackLabel">Yedek sağlayıcıya geçiş</dt>
               <dd id="panel-quantum-entropy-fallback"></dd>
             </dl>
             <p class="medya-intro" data-i18n="panel.modules.quantum.intro">
@@ -5709,14 +5706,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
           >
             <h2 id="panel-yetenekler-title" data-i18n="panel.sections.yetenekler">Yetenekler</h2>
             <p class="gorevler-intro" data-i18n="panel.modules.capabilities.intro">
-              Lumos’un hangi işlemlere hangi bağlantı veya panel yüzeyi üzerinden bağlandığını özetler. «Bağlantı testi»
-              yalnızca 1–3. satırlarda bağlantıyı doğrular; 4. satır yerel kanıtını kontrol eder.
+              Hangi işlemlerin kullanılabilir, sınırlı veya kapalı olduğunu gösterir. «Bağlantı testi» ilk üç işlemi ve
+              yerel görev tamamlamayı kontrol eder.
             </p>
             <div class="lumos-capability-block">
               <ul class="lumos-capability-legend" aria-label="Durum sözlüğü" data-i18n-aria-label="panel.modules.capabilities.legendAria">
-                <li data-i18n="panel.modules.capabilities.legendActive"><strong>AKTİF</strong> kanıtı var veya kısıtlı çalışır</li>
-                <li data-i18n="panel.modules.capabilities.legendPassive"><strong>PASİF</strong> şu an çalışır hat yok</li>
-                <li data-i18n="panel.modules.capabilities.legendDev"><strong>GELİŞTİRME AŞAMASINDA</strong> hedefleniyor, henüz bağlı değil</li>
+                <li data-i18n="panel.modules.capabilities.legendActive"><strong>AKTİF</strong> — kullanılabilir</li>
+                <li data-i18n="panel.modules.capabilities.legendPassive"><strong>KAPALI</strong> — kullanılabilir bağlantı yok</li>
+                <li data-i18n="panel.modules.capabilities.legendDev"><strong>ÖNİZLEME</strong> — henüz kullanılamaz</li>
               </ul>
               <ul id="lumos-capability-list" class="lumos-capability-list" aria-live="polite">
                 <li>
@@ -5724,7 +5721,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   <span id="cap-file-read" class="lumos-capability-val" data-state="ok">AKTİF</span>
                   <span class="lumos-capability-route panel-debug-only">/controlled</span>
                   <span class="lumos-capability-limit-note" data-cap-note-for="cap-file-read" data-i18n="panel.modules.capabilities.bridgePending" hidden>
-                    Köprü bağlantısı bekleniyor.
+                    Cihaz bağlantısı bekleniyor.
                   </span>
                 </li>
                 <li>
@@ -5732,7 +5729,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   <span id="cap-file-write" class="lumos-capability-val" data-state="ok">AKTİF</span>
                   <span class="lumos-capability-route panel-debug-only">/controlled</span>
                   <span class="lumos-capability-limit-note" data-cap-note-for="cap-file-write" data-i18n="panel.modules.capabilities.bridgePending" hidden>
-                    Köprü bağlantısı bekleniyor.
+                    Cihaz bağlantısı bekleniyor.
                   </span>
                 </li>
                 <li>
@@ -5740,7 +5737,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   <span id="cap-task-create" class="lumos-capability-val" data-state="ok">AKTİF</span>
                   <span class="lumos-capability-route panel-debug-only">/task</span>
                   <span class="lumos-capability-limit-note" data-cap-note-for="cap-task-create" data-i18n="panel.modules.capabilities.bridgePending" hidden>
-                    Köprü bağlantısı bekleniyor.
+                    Cihaz bağlantısı bekleniyor.
                   </span>
                 </li>
                 <li>
@@ -5751,22 +5748,22 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 <li>
                   <span class="lumos-capability-name" data-i18n="panel.modules.capabilities.row5">5. Terminal komutu</span>
                   <span id="cap-terminal" class="lumos-capability-val" data-state="ok">AKTİF</span>
-                  <span class="lumos-capability-route" data-i18n="panel.modules.capabilities.routeTerminal">Yerel cihaz köprüsü bekleniyor.</span>
+                  <span class="lumos-capability-route" data-i18n="panel.modules.capabilities.routeTerminal">Cihaz bağlantısı bekleniyor.</span>
                   <span class="lumos-capability-limit-note" data-cap-note-for="cap-terminal" data-i18n="panel.modules.capabilities.bridgePending" hidden>
-                    Köprü bağlantısı bekleniyor.
+                    Cihaz bağlantısı bekleniyor.
                   </span>
                 </li>
                 <li>
-                  <span class="lumos-capability-name" data-i18n="panel.modules.capabilities.row6">6. Mac uygulaması açma</span>
-                  <span id="cap-mac-app" class="lumos-capability-val" data-state="hedef">GELİŞTİRME AŞAMASINDA</span>
+                  <span class="lumos-capability-name" data-i18n="panel.modules.capabilities.row6">6. Masaüstü uygulaması açma</span>
+                  <span id="cap-mac-app" class="lumos-capability-val" data-state="hedef">ÖNİZLEME</span>
                   <span class="lumos-capability-route" data-i18n="panel.modules.capabilities.routeNone">—</span>
                 </li>
                 <li>
-                  <span class="lumos-capability-name" data-i18n="panel.modules.capabilities.row7">7. Canlı deploy</span>
+                  <span class="lumos-capability-name" data-i18n="panel.modules.capabilities.row7">7. Canlı yayınlama</span>
                   <span id="cap-live-deploy" class="lumos-capability-val" data-state="ok">AKTİF</span>
                   <span class="lumos-capability-route" data-i18n="panel.modules.capabilities.routeManualApproval">manuel onay sonrası</span>
                   <span class="lumos-capability-limit-note" data-cap-note-for="cap-live-deploy" data-i18n="panel.modules.capabilities.bridgePending" hidden>
-                    Köprü bağlantısı bekleniyor.
+                    Cihaz bağlantısı bekleniyor.
                   </span>
                 </li>
               </ul>
@@ -5831,15 +5828,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
           >
             <h2 id="panel-ayarlar-title" data-i18n="panel.sections.ayarlar">Ayarlar</h2>
             <p class="medya-intro" data-i18n="panel.modules.settings.intro">
-              Bu sekme, kullanıcı tercihlerinin, bağlantı ve izin sınırlarının ve varsayılan davranışların kullanıcı kontrolünde ve
-              görünür kalması için tasarlanan yaklaşımı özetler.
+              Tercihler, cihaz bağlantısı ve izin sınırları burada görünür.
             </p>
             <ul class="medya-card-list">
               <li class="medya-card">
                 <h3 data-i18n="panel.modules.settings.c1Title">Kullanıcı modu</h3>
                 <p data-i18n="panel.modules.settings.c1Body">
-                  Panelin çalışma kapsamını siz seçersiniz. Bu tercih altyapı bağlantı durumundan ayrıdır; köprü rozeti yalnızca
-                  teknik durumu gösterir.
+                  Panelin çalışma kapsamını siz seçersiniz. Cihaz bağlantısı ayrı gösterilir.
                 </p>
                 <fieldset class="panel-user-mode-fieldset">
                   <legend class="panel-user-mode-legend" id="panel-user-mode-seg-label" data-i18n="panel.shell.userMode.segLegend">Mod seçimi</legend>
@@ -5860,20 +5855,20 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 </fieldset>
               </li>
               <li class="medya-card">
-                <h3 data-i18n="panel.modules.settings.c2Title">Altyapı durumu</h3>
+                <h3 data-i18n="panel.modules.settings.c2Title">Cihaz durumu</h3>
                 <p data-i18n="panel.modules.settings.c2Body">
-                  Köprü, anahtar, sağlık ve ağ durumu — kullanıcı modundan bağımsız teknik özet.
+                  Cihaz bağlantısı, doğrulama ve internet durumu.
                 </p>
                 <dl
                   class="panel-infra-status-dl"
-                  aria-label="Altyapı durumu özeti"
+                  aria-label="Cihaz durumu özeti"
                   data-i18n-aria-label="panel.modules.settings.infraSummaryAria"
                 >
-                  <dt data-i18n="panel.shell.infra.labelBridge">Köprü</dt>
+                  <dt data-i18n="panel.shell.infra.labelBridge">Cihaz bağlantısı</dt>
                   <dd id="panel-infra-bridge">—</dd>
-                  <dt data-i18n="panel.shell.infra.labelToken">Anahtar</dt>
+                  <dt data-i18n="panel.shell.infra.labelToken">Doğrulama</dt>
                   <dd id="panel-infra-token">—</dd>
-                  <dt data-i18n="panel.shell.infra.labelHealth">Sağlık</dt>
+                  <dt data-i18n="panel.shell.infra.labelHealth">Erişim</dt>
                   <dd id="panel-infra-health">—</dd>
                   <dt data-i18n="panel.shell.infra.labelInternet">İnternet</dt>
                   <dd id="panel-infra-internet">—</dd>
@@ -15357,14 +15352,25 @@ const PANEL_DEBUG = import.meta.env.DEV;
         if (!reviewBtn || !sendBtn || !summaryEl || !targetEl || !contentEl) return;
 
         const demoOnly = cfg.demoOnly !== false;
-        const demoIdleHint = cfg.demoIdleHint || panelT("panel.common.demo.idleHint");
-        const demoReviewHint = cfg.demoReviewHint || panelT("panel.common.demo.reviewHint");
-        const demoMsg = cfg.demoMsgKey
-          ? panelT(cfg.demoMsgKey)
-          : cfg.demoMsg || panelT("panel.common.demo.defaultMsg");
-        const dataTypeLabel = cfg.dataTypeKey
-          ? panelT(cfg.dataTypeKey)
-          : cfg.dataType || panelT("panel.common.demo.summaryDataType");
+        function demoIdleHint() {
+          return cfg.demoIdleHint || panelT("panel.common.demo.idleHint");
+        }
+
+        function demoReviewHint() {
+          return cfg.demoReviewHint || panelT("panel.common.demo.reviewHint");
+        }
+
+        function demoMessage() {
+          return cfg.demoMsgKey
+            ? panelT(cfg.demoMsgKey)
+            : cfg.demoMsg || panelT("panel.common.demo.defaultMsg");
+        }
+
+        function dataTypeLabel() {
+          return cfg.dataTypeKey
+            ? panelT(cfg.dataTypeKey)
+            : cfg.dataType || panelT("panel.common.demo.summaryDataType");
+        }
 
         function keepSendDisabled() {
           sendBtn.disabled = true;
@@ -15376,7 +15382,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           summaryEl.hidden = true;
           if (hintEl && demoOnly) {
             hintEl.hidden = false;
-            hintEl.textContent = demoIdleHint;
+            hintEl.textContent = demoIdleHint();
           }
         }
 
@@ -15413,7 +15419,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
         if (hintEl && demoOnly) {
           hintEl.hidden = false;
-          hintEl.textContent = demoIdleHint;
+          hintEl.textContent = demoIdleHint();
         }
 
         reviewBtn.addEventListener("click", () => {
@@ -15430,7 +15436,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             attachmentCount() +
             "\n" +
             panelT("panel.common.demo.summaryDataType") +
-            dataTypeLabel +
+            dataTypeLabel() +
             (demoOnly ? "\n\n" + panelT("panel.common.demo.summaryFooter") : "");
           summaryEl.textContent = summary;
           summaryEl.hidden = false;
@@ -15438,7 +15444,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (hintEl) {
             hintEl.hidden = false;
             hintEl.textContent = demoOnly
-              ? demoReviewHint
+              ? demoReviewHint()
               : panelT("panel.common.demo.approvedHint");
           }
         });
@@ -15447,7 +15453,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           if (demoOnly) return;
           if (hintEl) {
             hintEl.hidden = false;
-            hintEl.textContent = demoMsg;
+            hintEl.textContent = demoMessage();
           }
           resetApproval();
           summaryEl.hidden = true;
