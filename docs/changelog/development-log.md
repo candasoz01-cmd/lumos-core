@@ -200,6 +200,6 @@ ADR-012 Lumos Security Codex — finalize + panel enforcement zinciri.
 |------|-----|------|
 | 1 | [#440](https://github.com/candasoz01-cmd/lumos-core/pull/440) | ADR-012 taslak paketi — codex + companion analizler (merge) |
 | 2 | [#441](https://github.com/candasoz01-cmd/lumos-core/pull/441) | Panel codex gate reason + UI warning (merge) |
-| 3 | #442 | ADR-012 finalize (docs) + panel `check_policy` enforcement |
+| 3 | [#443](https://github.com/candasoz01-cmd/lumos-core/pull/443) | Panel `check_policy` enforcement (PR #2) |
 
 **Kapsam:** `docs/decisions/ADR-012-lumos-security-codex.md` durum → Kabul edildi; panel görev mutasyonları `action_policy.check_policy` ile hizalanıyor.

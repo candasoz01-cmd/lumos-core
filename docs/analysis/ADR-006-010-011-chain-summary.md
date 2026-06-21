@@ -8,7 +8,7 @@ Tek sayfa çapraz referans: guard/firewall, terminoloji, lock semantiği ve secu
 | [ADR-007](../decisions/ADR-007-trust-engine-layer.md) | Trust Engine | Birleşik motor **yok**; `locked`/`unlocked` trust durumları; koruma kilidi | `session_unlocked` canonical hassas işlem sinyali; Faz 4 hedefi |
 | [ADR-010](../decisions/ADR-010-guard-policy-trust-terminology.md) | Terminoloji | `lock`/`trust`/`consent` sözlüğü; drift tablosu | Usage map lock drift'i ADR-011'i tetikledi; bağlam olmadan "lock" yasak |
 | [ADR-011](../decisions/ADR-011-lock-semantics-decision.md) | Lock semantiği | **keystore_ready** ≠ **session_unlocked**; tek boolean yasak | Faz 1–3 #436–#438 tamam; Faz 4 trust motor bekliyor |
-| [ADR-012](../decisions/ADR-012-lumos-security-codex.md) | Security Codex | C1–C6: tek kapı, onay/kanıt, trash, stop-on-risk | #440 docs; #441 panel şeffaflık; #442 panel policy enforcement |
+| [ADR-012](../decisions/ADR-012-lumos-security-codex.md) | Security Codex | C1–C6: tek kapı, onay/kanıt, trash, stop-on-risk | #440 docs; #441 panel şeffaflık; #443 panel policy enforcement |
 
 ## Öncelik sırası (sabit)
 
@@ -28,7 +28,7 @@ Lock iki sinyal (ADR-011) trust tüketimine hazırlanır (Faz 4).
 | #438 | Faz 3 — panel keystore display honesty |
 | #440 | ADR-012 Security Codex taslak paketi |
 | #441 | Panel codex gate reason + UI warning |
-| #442 | Panel `check_policy` enforcement (PR #2) |
+| #443 | Panel `check_policy` enforcement (PR #2) |
 
 ## Sonraki checkpoint
 
