@@ -33,7 +33,8 @@ if _SRC.is_dir() and str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
 from core.lumos_base_dir import lumos_base_dir  # noqa: E402
-from core.panel_bridge_state import task_actions_gate  # noqa: E402
+from core.panel_bridge_state import task_action_gate  # noqa: E402
+from policy.action_policy import COMPLETE_TASK, CREATE_TASK, DELETE_TASK  # noqa: E402
 from core.evidence_continuity import (  # noqa: E402
     DEFAULT_READ_LIMIT,
     MAX_READ_LIMIT,
@@ -89,9 +90,9 @@ def _simulate_photo_capture() -> tuple[str, str]:
     return ("photo_saved", rel)
 
 
-def _task_actions_gate() -> dict:
-    """ADR-012 C6 şeffaflık: reason ortamı açıklar; enabled davranışı henüz kilitlenmez."""
-    return task_actions_gate()
+def _task_action_gate(action: str, *, log_on_block: bool = False) -> dict:
+    """ADR-012 C6: check_policy tabanlı gate."""
+    return task_action_gate(action, log_on_block=log_on_block)
 
 
 def _empty_doc() -> dict:
@@ -719,11 +720,12 @@ class Handler(BaseHTTPRequestHandler):
                     "complete": True,
                     "delete": True,
                 }
-        gate = _task_actions_gate()
+        gate_complete = _task_action_gate(COMPLETE_TASK)
+        gate_delete = _task_action_gate(DELETE_TASK)
         doc["action_gate"] = {
-            "complete": {"enabled": gate["enabled"], "reason": gate["reason"]},
-            "delete": {"enabled": gate["enabled"], "reason": gate["reason"]},
-            "undo_pending": {"enabled": gate["enabled"], "reason": gate["reason"]},
+            "complete": {"enabled": gate_complete["enabled"], "reason": gate_complete["reason"]},
+            "delete": {"enabled": gate_delete["enabled"], "reason": gate_delete["reason"]},
+            "undo_pending": {"enabled": gate_complete["enabled"], "reason": gate_complete["reason"]},
         }
         doc = enrich_tasks_doc_api_response(doc)
         raw = json.dumps(doc, ensure_ascii=False).encode("utf-8")
@@ -844,7 +846,7 @@ class Handler(BaseHTTPRequestHandler):
         _send_json(self, 200, {"ok": True, "opened": str(allowed)})
 
     def _post_create(self) -> None:
-        gate = _task_actions_gate()
+        gate = _task_action_gate(CREATE_TASK, log_on_block=True)
         if not gate["enabled"]:
             _send_json(self, 409, {"ok": False, "error": "action_disabled", "reason": gate["reason"]})
             return
@@ -893,7 +895,7 @@ class Handler(BaseHTTPRequestHandler):
         _send_json(self, 200, {"ok": True, "task": task})
 
     def _post_complete(self) -> None:
-        gate = _task_actions_gate()
+        gate = _task_action_gate(COMPLETE_TASK, log_on_block=True)
         if not gate["enabled"]:
             _send_json(self, 409, {"ok": False, "error": "action_disabled", "reason": gate["reason"]})
             return
@@ -948,6 +950,10 @@ class Handler(BaseHTTPRequestHandler):
         _send_json(self, 200, {"ok": True, "task": t})
 
     def _post_delete(self) -> None:
+        gate = _task_action_gate(DELETE_TASK, log_on_block=True)
+        if not gate["enabled"]:
+            _send_json(self, 409, {"ok": False, "error": "action_disabled", "reason": gate["reason"]})
+            return
         body = self._read_json_body()
         if not isinstance(body, dict):
             _send_json(self, 400, {"ok": False, "error": "invalid_json"})

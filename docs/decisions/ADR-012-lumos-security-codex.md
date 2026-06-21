@@ -2,7 +2,7 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Kabul edildi** (2026-06-21) — taslak paket #440; panel şeffaflık #441; panel policy enforcement #442 (devam / tamamlanma) |
+| Durum | **Kabul edildi** (2026-06-21) — taslak paket #440; panel şeffaflık #441; panel policy enforcement #443 |
 | Tarih | 2026-06-21 |
 | İlgili | `docs/lumos-karar-sozlesmesi.md`, [ADR-010](ADR-010-guard-policy-trust-terminology.md), [ADR-011](ADR-011-lock-semantics-decision.md), [action permission matrix](../analysis/lumos-action-permission-matrix.md), [runtime enforcement map](../analysis/lumos-runtime-enforcement-map.md) |
 
@@ -154,7 +154,7 @@ Panel: `panel_tasks_server` silinen görevleri `trash/*.json` dosyalarına yazar
 |------------|-------|
 | ADR-012 taslak paket (codex + companion analizler) | **Tamamlandı** — #440 (2026-06-21) |
 | Panel şeffaflık — gate reason + UI codex uyarısı | **Tamamlandı** — #441 (2026-06-21) |
-| Panel policy enforcement (`check_policy`, gate `enabled`) | **Devam / tamamlanma** — #442 |
+| Panel policy enforcement (`check_policy`, gate `enabled`) | **Tamamlandı** — #443 |
 | `SECURITY_NEVER_AUTO` tüm silme/yazma yolları | Gap — enforcement map |
 | Trust motor (ADR-007) kanıt zinciri genişletmesi | Bekliyor — Faz 4 |
 

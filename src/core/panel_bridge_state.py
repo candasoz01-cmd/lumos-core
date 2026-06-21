@@ -15,6 +15,13 @@ from pathlib import Path
 
 from core.lumos_base_dir import lumos_base_dir as _base_dir
 
+from policy.action_policy import (  # noqa: E402
+    CREATE_TASK,
+    check_policy,
+    log_policy_blocked,
+    policy_user_message,
+)
+
 def _is_sandbox_mode() -> bool:
     v = os.environ.get("LUMOS_SANDBOX_MODE", "false").lower()
     return v in ("1", "true", "yes")
@@ -24,25 +31,72 @@ _CODEX_PANEL_WARNING = (
     "Demo panel — tam policy/profil zinciri CLI ile aynı değil; riskli işlemde dur."
 )
 
+_PANEL_POLICY_NOTE = "Panel görev mutasyonları check_policy ile sınırlandırılır (ADR-012 C6)."
 
-def task_actions_gate() -> dict:
-    """
-    Panel görev mutasyon gate — şeffaflık (ADR-012 C6).
 
-    ``enabled`` davranışı bilinçli olarak açık; yalnızca ``reason`` ortamı açıklar.
-    """
+def _panel_policy_context() -> dict:
+    """CLI `cli_tasks_mutation` ile aynı policy snapshot — panel köprü ortamı."""
+    mode = (os.environ.get("LUMOS_MODE") or "offline").strip().lower()
+    online = mode == "online"
+    base = _base_dir()
+    consent = False
+    try:
+        from core.startup_health import consent_ok
+
+        consent = consent_ok(base)
+    except Exception:
+        pass
+    # Panel okuma yolu runtime LockState doğrulamaz — CLI fallback: kilitli say.
+    session_unlocked_env = (os.environ.get("LUMOS_SESSION_UNLOCKED") or "").strip().lower()
+    if session_unlocked_env in ("1", "true", "yes"):
+        koruma_active = False
+    else:
+        koruma_active = True
+    return {"online": online, "koruma_active": koruma_active, "consent": consent}
+
+
+def _panel_gate_reason_parts() -> list[str]:
     mode = (os.environ.get("LUMOS_MODE") or "offline").strip().lower()
     mode_label = "çevrimiçi" if mode == "online" else "çevrimdışı"
     profile = (os.environ.get("LUMOS_PROFILE") or "rapor").strip().lower() or "rapor"
-    sandbox = _is_sandbox_mode()
     parts = [
         _CODEX_PANEL_WARNING,
         f"Mod: {mode_label}; profil: {profile}.",
     ]
-    if sandbox:
+    if _is_sandbox_mode():
         parts.append("Yazım hedefi: sandbox.")
-    parts.append("Gate açık (demo); CLI policy zinciri uygulanmaz — bkz. ADR-012.")
+    parts.append(_PANEL_POLICY_NOTE)
+    return parts
+
+
+def task_action_gate(action: str, *, log_on_block: bool = False) -> dict:
+    """
+    Panel görev mutasyon gate — tek eylem için check_policy (ADR-012 C6).
+
+    ``enabled`` policy red verdiğinde False; reason codex uyarısı + policy mesajı.
+    ``log_on_block``: yalnızca mutasyon handler'larında True (GET listeleme log spam yapmaz).
+    """
+    pr = check_policy(action, _panel_policy_context())
+    parts = _panel_gate_reason_parts()
+    if not pr.allowed:
+        parts.append(policy_user_message(action, pr.reason))
+        if log_on_block:
+            try:
+                log_policy_blocked(str(_base_dir()), action, pr.reason)
+            except Exception:
+                pass
+        return {"enabled": False, "reason": " ".join(parts)}
+    parts.append("Mutasyon izinli (policy).")
     return {"enabled": True, "reason": " ".join(parts)}
+
+
+def task_actions_gate() -> dict:
+    """
+    Panel görev mutasyon gate — guidance için CREATE_TASK temsili (ADR-012 C6).
+
+    Ayrıntılı complete/delete için ``task_action_gate(action)`` kullanın.
+    """
+    return task_action_gate(CREATE_TASK)
 
 # Panel status (filtre uyumu): engine status → ekran etiketi
 _TASK_STATUS_MAP = {
