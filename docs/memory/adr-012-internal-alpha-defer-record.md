@@ -10,7 +10,7 @@
 
 **Karar:** Internal Alpha aşamasında ADR-012 Security Codex **CLOSED beklenmez**. Wave 1 Madde 1–2 kapandı (#491–#498); kalan codex maddeleri (Trust Faz 4, sensitivity↔gate, Panel LockState) bilinçli **defer** ile Alpha girişine devam edilir. Commercial Launch öncesi CLOSED veya resmi launch defer kaydı zorunludur.
 
-**Repo snapshot:** `main` @ `6795a41` (ADR-012 Wave 1 checkpoint sync #499); CI yeşil.
+**Repo snapshot:** `main` @ `24bdbef` (#504 queue kapanış); CI yeşil.
 
 ---
 

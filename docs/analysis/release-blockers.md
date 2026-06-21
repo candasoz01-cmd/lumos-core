@@ -91,6 +91,7 @@ Bu belge **release engellerini** (RB-XX) listeler. Teknik borç uygulama sıras�
 | **Açıklama** | `pyproject.toml` yalnızca `src/` → `lumos-core` 0.1.0. `kando-runtime` ve `kando-bridge` ayrı `packages/*/pyproject.toml`; CI `PYTHONPATH=src:kando_runtime:kando_bridge` zorunlu. `requirements.txt` yorumu bunu doğrular. |
 | **Kanıt** | `pyproject.toml` L20–24; `requirements.txt` L1; `Makefile` L3, L40–41; `.github/workflows/ci.yml` L31–33 |
 | **30 gün içinde kapanış koşulu** | Tek `pip install` ile gate/bridge import edilebilir hale gelir (monorepo wheel, workspace deps veya birleşik meta-package) ve CI'da PYTHONPATH olmadan aynı test seti geçer. |
+| **Alpha defer** | **Kayıtlı** — [python-packaging-spike-rb06.md](python-packaging-spike-rb06.md) (G-17); Internal Alpha: Seçenek C (`make test` + PYTHONPATH); meta-package uygulaması **Commercial Launch P1** |
 | **Bağımlılıklar** | — |
 
 ### RB-07 — Release checklist dosyası eksik (README kırık referans)
