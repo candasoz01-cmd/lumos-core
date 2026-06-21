@@ -38,7 +38,9 @@ from core.workspace_contract import may_perform_permanent_delete  # noqa: E402
 from policy.action_policy import COMPLETE_TASK, CREATE_TASK, DELETE_TASK  # noqa: E402
 from policy.confirmation_policy import (  # noqa: E402
     ensure_delete_permanent_confirmation,
+    ensure_panel_mutation_confirmation,
     is_confirmation_enabled,
+    panel_action_to_confirmation_key,
 )
 from core.evidence_continuity import (  # noqa: E402
     DEFAULT_READ_LIMIT,
@@ -101,14 +103,54 @@ def _task_action_gate(
     log_on_block: bool = False,
     full_doc_replace: bool = False,
     profile_guard: bool = True,
+    restore: bool = False,
+    confirmation_id: str | None = None,
+    scope: dict[str, Any] | None = None,
 ) -> dict:
-    """ADR-012 C6: check_policy + profil matrisi gate."""
+    """ADR-012 C6: check_policy + profil matrisi + CU4 confirmation gate."""
     return task_action_gate(
         action,
         log_on_block=log_on_block,
         full_doc_replace=full_doc_replace,
         profile_guard=profile_guard,
+        restore=restore,
+        confirmation_id=confirmation_id,
+        scope=scope,
     )
+
+
+def _enforce_panel_mutation_confirmation(
+    action: str,
+    body: dict[str, Any],
+    scope: dict[str, Any],
+    *,
+    full_doc_replace: bool = False,
+    restore: bool = False,
+) -> dict[str, Any] | None:
+    """
+    PR-C3: confirmation aktifken check+consume. Red → HTTP 409 payload; geçer → None.
+    profile_guard=False yollar (delete-permanent) bu helper'ı kullanmaz.
+    """
+    if not is_confirmation_enabled():
+        return None
+    action_key = panel_action_to_confirmation_key(
+        action,
+        full_doc_replace=full_doc_replace,
+        restore=restore,
+    )
+    conf = ensure_panel_mutation_confirmation(
+        action_key,
+        scope,
+        body,
+        base_dir=_base_dir(),
+    )
+    if conf.allowed:
+        return None
+    return {
+        "ok": False,
+        "error": "confirmation_required",
+        "reason": conf.reason or "confirmation_required",
+    }
 
 
 def _empty_doc() -> dict:
@@ -766,13 +808,30 @@ class Handler(BaseHTTPRequestHandler):
         if self._parse_path() != "/tasks.json":
             self.send_error(404)
             return
-        gate = _task_action_gate(CREATE_TASK, log_on_block=True, full_doc_replace=True)
-        if not gate["enabled"]:
-            _send_json(self, 409, {"ok": False, "error": "action_disabled", "reason": gate["reason"]})
-            return
         data = self._read_json_body()
         if not isinstance(data, dict):
             self.send_error(400, "Invalid JSON")
+            return
+        scope = {"route": "PUT /tasks.json"}
+        confirmation_id = str(data.get("confirmation_id") or "").strip()
+        gate = _task_action_gate(
+            CREATE_TASK,
+            log_on_block=True,
+            full_doc_replace=True,
+            confirmation_id=confirmation_id,
+            scope=scope,
+        )
+        if not gate["enabled"]:
+            _send_json(self, 409, {"ok": False, "error": "action_disabled", "reason": gate["reason"]})
+            return
+        conf_err = _enforce_panel_mutation_confirmation(
+            CREATE_TASK,
+            data,
+            scope,
+            full_doc_replace=True,
+        )
+        if conf_err is not None:
+            _send_json(self, 409, conf_err)
             return
         doc = _empty_doc()
         doc["v"] = 1
@@ -876,10 +935,6 @@ class Handler(BaseHTTPRequestHandler):
         _send_json(self, 200, {"ok": True, "opened": str(allowed)})
 
     def _post_create(self) -> None:
-        gate = _task_action_gate(CREATE_TASK, log_on_block=True)
-        if not gate["enabled"]:
-            _send_json(self, 409, {"ok": False, "error": "action_disabled", "reason": gate["reason"]})
-            return
         body = self._read_json_body()
         if not isinstance(body, dict):
             _send_json(self, 400, {"ok": False, "error": "invalid_json"})
@@ -887,6 +942,21 @@ class Handler(BaseHTTPRequestHandler):
         title = _normalize_ws(body.get("title", ""))
         if not title:
             _send_json(self, 400, {"ok": False, "error": "empty_title"})
+            return
+        scope = {"title": title}
+        confirmation_id = str(body.get("confirmation_id") or "").strip()
+        gate = _task_action_gate(
+            CREATE_TASK,
+            log_on_block=True,
+            confirmation_id=confirmation_id,
+            scope=scope,
+        )
+        if not gate["enabled"]:
+            _send_json(self, 409, {"ok": False, "error": "action_disabled", "reason": gate["reason"]})
+            return
+        conf_err = _enforce_panel_mutation_confirmation(CREATE_TASK, body, scope)
+        if conf_err is not None:
+            _send_json(self, 409, conf_err)
             return
         doc = _read_doc()
         now = _now_iso()
@@ -925,10 +995,6 @@ class Handler(BaseHTTPRequestHandler):
         _send_json(self, 200, {"ok": True, "task": task})
 
     def _post_complete(self) -> None:
-        gate = _task_action_gate(COMPLETE_TASK, log_on_block=True)
-        if not gate["enabled"]:
-            _send_json(self, 409, {"ok": False, "error": "action_disabled", "reason": gate["reason"]})
-            return
         body = self._read_json_body()
         if not isinstance(body, dict):
             _send_json(self, 400, {"ok": False, "error": "invalid_json"})
@@ -936,6 +1002,21 @@ class Handler(BaseHTTPRequestHandler):
         ref = _normalize_ws(body.get("ref", ""))
         if not ref:
             _send_json(self, 400, {"ok": False, "error": "empty_ref"})
+            return
+        scope = {"ref": ref}
+        confirmation_id = str(body.get("confirmation_id") or "").strip()
+        gate = _task_action_gate(
+            COMPLETE_TASK,
+            log_on_block=True,
+            confirmation_id=confirmation_id,
+            scope=scope,
+        )
+        if not gate["enabled"]:
+            _send_json(self, 409, {"ok": False, "error": "action_disabled", "reason": gate["reason"]})
+            return
+        conf_err = _enforce_panel_mutation_confirmation(COMPLETE_TASK, body, scope)
+        if conf_err is not None:
+            _send_json(self, 409, conf_err)
             return
         doc = _read_doc()
         t = _find_task_by_ref(doc, ref)
@@ -980,10 +1061,6 @@ class Handler(BaseHTTPRequestHandler):
         _send_json(self, 200, {"ok": True, "task": t})
 
     def _post_delete(self) -> None:
-        gate = _task_action_gate(DELETE_TASK, log_on_block=True)
-        if not gate["enabled"]:
-            _send_json(self, 409, {"ok": False, "error": "action_disabled", "reason": gate["reason"]})
-            return
         body = self._read_json_body()
         if not isinstance(body, dict):
             _send_json(self, 400, {"ok": False, "error": "invalid_json"})
@@ -992,6 +1069,25 @@ class Handler(BaseHTTPRequestHandler):
         ref_key = _normalize_ws(body.get("ref", ""))
         if not id_key and not ref_key:
             _send_json(self, 400, {"ok": False, "error": "empty_id"})
+            return
+        scope: dict[str, Any] = {}
+        if id_key:
+            scope["id"] = id_key
+        if ref_key:
+            scope["ref"] = ref_key
+        confirmation_id = str(body.get("confirmation_id") or "").strip()
+        gate = _task_action_gate(
+            DELETE_TASK,
+            log_on_block=True,
+            confirmation_id=confirmation_id,
+            scope=scope,
+        )
+        if not gate["enabled"]:
+            _send_json(self, 409, {"ok": False, "error": "action_disabled", "reason": gate["reason"]})
+            return
+        conf_err = _enforce_panel_mutation_confirmation(DELETE_TASK, body, scope)
+        if conf_err is not None:
+            _send_json(self, 409, conf_err)
             return
         doc = _read_doc()
         tasks = doc.get("tasks") if isinstance(doc.get("tasks"), list) else []
@@ -1053,10 +1149,6 @@ class Handler(BaseHTTPRequestHandler):
         _send_json(self, 200, {"ok": True})
 
     def _post_restore(self) -> None:
-        gate = _task_action_gate(CREATE_TASK, log_on_block=True)
-        if not gate["enabled"]:
-            _send_json(self, 409, {"ok": False, "error": "action_disabled", "reason": gate["reason"]})
-            return
         body = self._read_json_body()
         if not isinstance(body, dict):
             _send_json(self, 400, {"ok": False, "error": "invalid_json"})
@@ -1064,6 +1156,27 @@ class Handler(BaseHTTPRequestHandler):
         tid = _normalize_ws(body.get("id", ""))
         if not tid:
             _send_json(self, 400, {"ok": False, "error": "empty_id"})
+            return
+        scope = {"id": tid}
+        confirmation_id = str(body.get("confirmation_id") or "").strip()
+        gate = _task_action_gate(
+            CREATE_TASK,
+            log_on_block=True,
+            restore=True,
+            confirmation_id=confirmation_id,
+            scope=scope,
+        )
+        if not gate["enabled"]:
+            _send_json(self, 409, {"ok": False, "error": "action_disabled", "reason": gate["reason"]})
+            return
+        conf_err = _enforce_panel_mutation_confirmation(
+            CREATE_TASK,
+            body,
+            scope,
+            restore=True,
+        )
+        if conf_err is not None:
+            _send_json(self, 409, conf_err)
             return
         tpath = _find_trash_json_for_task_id(tid)
         if tpath is None or not tpath.is_file():

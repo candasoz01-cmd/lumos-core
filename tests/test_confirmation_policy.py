@@ -16,6 +16,7 @@ from policy.confirmation_policy import (
     check_confirmation,
     consume_confirmation,
     ensure_delete_permanent_confirmation,
+    ensure_panel_mutation_confirmation,
     is_confirmation_enabled,
     request_confirmation,
     requires_confirmation_for_action,
@@ -174,3 +175,30 @@ def test_ensure_delete_permanent_confirmation_id_path(tmp_path: Path, monkeypatc
     body = {"confirmation_id": pending.confirmation_id}
     result = ensure_delete_permanent_confirmation(body, scope, base_dir=tmp_path, legacy_confirm=False)
     assert result.allowed
+
+
+def test_ensure_panel_mutation_disabled_noop(monkeypatch: pytest.MonkeyPatch) -> None:
+    result = ensure_panel_mutation_confirmation("create_task", {"title": "x"}, {})
+    assert result.allowed
+    assert result.reason == REASON_CONFIRMATION_DISABLED
+
+
+def test_ensure_panel_mutation_requires_grant(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    scope = {"title": "Demo"}
+    result = ensure_panel_mutation_confirmation("create_task", scope, {}, base_dir=tmp_path)
+    assert not result.allowed
+    assert result.reason == REASON_CONFIRMATION_REQUIRED
+
+
+def test_ensure_panel_mutation_confirmation_id_consumes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    scope = {"title": "Onaylı"}
+    pending = request_confirmation("create_task", scope, base_dir=tmp_path)
+    body = {"confirmation_id": pending.confirmation_id}
+    result = ensure_panel_mutation_confirmation("create_task", scope, body, base_dir=tmp_path)
+    assert result.allowed
+    retry = ensure_panel_mutation_confirmation("create_task", scope, body, base_dir=tmp_path)
+    assert not retry.allowed

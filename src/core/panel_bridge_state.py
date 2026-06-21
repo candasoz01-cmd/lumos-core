@@ -10,8 +10,10 @@ from __future__ import annotations
 
 import json
 import os
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 from core.lumos_base_dir import lumos_base_dir as _base_dir
 
@@ -21,6 +23,7 @@ from policy.action_policy import (  # noqa: E402
     log_policy_blocked,
     policy_user_message,
 )
+from policy.confirmation_policy import is_confirmation_enabled  # noqa: E402
 from task_engine.profiles import (  # noqa: E402
     ALL_PROFILES,
     PROFILE_RAPOR,
@@ -91,12 +94,19 @@ def _profile_block_message(profile: str, step_kind: str) -> str:
     return f"[PROFILE_BLOCKED] profil={profile} step={step_kind}"
 
 
+def _confirmation_block_message(action_key: str, reason: str) -> str:
+    return f"[CONFIRMATION_BLOCKED] {action_key} → {reason or 'confirmation_required'}"
+
+
 def task_action_gate(
     action: str,
     *,
     log_on_block: bool = False,
     full_doc_replace: bool = False,
     profile_guard: bool = True,
+    restore: bool = False,
+    confirmation_id: str | None = None,
+    scope: Mapping[str, Any] | None = None,
 ) -> dict:
     """
     Panel görev mutasyon gate — check_policy (ADR-012 C6) + profil matrisi ikinci kapı.
@@ -106,8 +116,8 @@ def task_action_gate(
     ``profile_guard``: False yalnızca delete-permanent (policy-only) için.
     ``log_on_block``: yalnızca mutasyon handler'larında True (GET listeleme log spam yapmaz).
 
-    PR-C2/C3: Üçüncü kapı — ``policy.confirmation_policy.check_confirmation`` (CU4).
-    Şimdilik enforcement yok; entegrasyon ``INTEGRATION_MARKERS['panel_bridge_gate']``.
+    PR-C3: Üçüncü kapı — ``policy.confirmation_policy.check_confirmation`` (CU4).
+    ``profile_guard=False`` (delete-permanent policy-only) confirmation kapısını atlar.
     """
     pr = check_policy(action, _panel_policy_context())
     parts = _panel_gate_reason_parts()
@@ -143,6 +153,39 @@ def task_action_gate(
         parts.append("Mutasyon izinli (policy + profil).")
     else:
         parts.append("Mutasyon izinli (policy).")
+
+    if is_confirmation_enabled() and profile_guard:
+        from policy.confirmation_policy import (
+            REASON_CONFIRMATION_EXPIRED,
+            REASON_CONFIRMATION_REQUIRED,
+            REASON_SCOPE_MISMATCH,
+            check_confirmation,
+            panel_action_to_confirmation_key,
+        )
+
+        action_key = panel_action_to_confirmation_key(
+            action,
+            full_doc_replace=full_doc_replace,
+            restore=restore,
+        )
+        conf_scope = dict(scope or {})
+        conf_id = (confirmation_id or "").strip()
+        cr = check_confirmation(
+            action_key,
+            conf_scope,
+            {"confirmation_id": conf_id, "base_dir": str(_base_dir())},
+        )
+        if not cr.allowed:
+            parts.append(_confirmation_block_message(action_key, cr.reason))
+            if cr.reason == REASON_CONFIRMATION_REQUIRED:
+                parts.append("İşlem onayı (confirmation_id) gerekli.")
+            elif cr.reason == REASON_CONFIRMATION_EXPIRED:
+                parts.append("Onay süresi doldu.")
+            elif cr.reason == REASON_SCOPE_MISMATCH:
+                parts.append("Onay kapsamı eşleşmiyor.")
+            return {"enabled": False, "reason": " ".join(parts)}
+        parts.append("Confirmation geçerli.")
+
     return {"enabled": True, "reason": " ".join(parts)}
 
 
