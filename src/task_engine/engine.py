@@ -18,7 +18,7 @@ from core.workspace_contract import (
     writing_base_dir,
 )
 from task_engine.action_registry import ActionRegistry, ExecutionContext
-from task_engine.diagnostics import get_step_block_reason
+from task_engine.diagnostics import BLOCK_SECURITY_NEVER_AUTO, get_step_block_reason
 from task_engine.verification import get_default_verification_engine
 from task_engine.planner import plan as planner_plan
 from task_engine.observation import (
@@ -37,6 +37,7 @@ from task_engine.profiles import (
     STEP_TYPE_READ,
     STEP_TYPE_SAFE_LOCAL,
     STEP_TYPE_WRITE_LOCAL,
+    get_security_never_auto_member,
     may_execute_step_at_runtime,
 )
 
@@ -74,9 +75,10 @@ class TaskStep:
     output: str = ""
     error: str = ""
     result_kind: str = ""  # tamamlandi | kismi | simulasyon | dogrulanamadi | hata (adım bittiğinde)
+    action_key: str = ""  # optional CU4/policy tag; engine SECURITY_NEVER_AUTO guard
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        d: dict[str, Any] = {
             "title": self.title,
             "status": self.status,
             "kind": self.kind,
@@ -84,6 +86,9 @@ class TaskStep:
             "error": self.error,
             "result_kind": self.result_kind,
         }
+        if self.action_key:
+            d["action_key"] = self.action_key
+        return d
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> TaskStep:
@@ -94,6 +99,7 @@ class TaskStep:
             output=str(d.get("output", "")),
             error=str(d.get("error", "")),
             result_kind=str(d.get("result_kind", "")),
+            action_key=str(d.get("action_key", "")),
         )
 
 
@@ -522,6 +528,14 @@ class TaskEngine:
                 ObservationLifecycleSpill(self.base_dir)
             )
 
+    def _step_security_never_auto_member(self, step: TaskStep) -> str | None:
+        """ENGINE branch members only; permanent_delete excluded (store/panel path)."""
+        return get_security_never_auto_member(
+            step_kind=step.kind,
+            action_key=step.action_key,
+            include_permanent_delete=False,
+        )
+
     def _is_step_allowed_runtime(self, step: TaskStep) -> bool:
         """
         Runtime step enforcement: bu adım yürütülebilir mi?
@@ -555,6 +569,29 @@ class TaskEngine:
         unverified_count = 0
         try:
             for i, step in enumerate(task.steps):
+                never_auto_member = self._step_security_never_auto_member(step)
+                if never_auto_member:
+                    step.status = STEP_STOPPED
+                    user_message = (
+                        "Bu adım asla otomatik yürütülmez "
+                        f"(SECURITY_NEVER_AUTO: {never_auto_member})."
+                    )
+                    step.error = user_message
+                    task.error_summary = user_message
+                    task.block_reason = BLOCK_SECURITY_NEVER_AUTO
+                    task.status = TASK_STOPPED
+                    self.store.update(task)
+                    if self._observation_engine:
+                        self._observation_engine.record_event(make_event(
+                            task.task_id, EVENT_POLICY_BLOCKED,
+                            step_id=i,
+                            payload={
+                                "reason": BLOCK_SECURITY_NEVER_AUTO,
+                                "member": never_auto_member,
+                                "message": task.error_summary or "",
+                            },
+                        ))
+                    return False, f"Adım {i+1} durdu: {task.error_summary}"
                 if not self._is_step_allowed_runtime(step):
                     step.status = STEP_STOPPED
                     diag = get_step_block_reason(
