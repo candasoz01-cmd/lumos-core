@@ -3,7 +3,7 @@
 | Alan | Değer |
 |------|-------|
 | Durum | Salt okuma keşif (2026-06-21) — uygulama yok |
-| Referans | [ADR-012](../decisions/ADR-012-lumos-security-codex.md), [runtime enforcement map](lumos-runtime-enforcement-map.md), [open decisions § enforcement](../memory/open-decisions-needs-review.md), [karar matrisi (tavsiyesiz)](ADR-012-enforcement-decision-matrix.md) |
+| Referans | [ADR-012](../decisions/ADR-012-lumos-security-codex.md), [runtime enforcement map](lumos-runtime-enforcement-map.md), [open decisions § enforcement](../memory/open-decisions-needs-review.md), [karar matrisi (tavsiyesiz)](ADR-012-enforcement-decision-matrix.md), [teknik borç analizi](technical-debt-architecture-concentration-2026-06.md) (bkz. [#2 köprü CU4 gap](technical-debt-architecture-concentration-2026-06.md#td-02-bridge-cu4-gap), [#3 LockState env](technical-debt-architecture-concentration-2026-06.md#td-03-panel-lockstate-env)) |
 | PR bağlamı | #459–#464 Faz-2 enforcement dalgası |
 
 ## Executive summary

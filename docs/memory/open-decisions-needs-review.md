@@ -126,6 +126,16 @@
 
 ---
 
+## Teknik borç backlog (bilgilendirme) {#teknik-borç-backlog-bilgilendirme}
+
+**Amaç:** Geliştirme hızını yavaşlatabilecek mimari yoğunlaşma ve teknik borç maddelerinin tek bakış indeksi. **Enforcement kararı veya ONAY GEREKİYOR maddesi değildir** — ayrı karar hatları `Güvenlik/mimari açık kararları` bölümünde kalır.
+
+| Kaynak | Kapsam | Durum | Not |
+|--------|--------|-------|-----|
+| [technical-debt-architecture-concentration-2026-06.md](../analysis/technical-debt-architecture-concentration-2026-06.md) | 20 maddelik borç envanteri + [etki/maliyet top 10](../analysis/technical-debt-architecture-concentration-2026-06.md#ilk-10--etki--maliyet-oranı) | **published (2026-06-21)** | DL-T01; salt okuma keşif; uygulama/kod yok. Stratejik yüksek etki: [#1 panel.astro](../analysis/technical-debt-architecture-concentration-2026-06.md#td-01-panel-astro), [#2 köprü CU4 gap](../analysis/technical-debt-architecture-concentration-2026-06.md#td-02-bridge-cu4-gap). ADR-012 prep ile çapraz: [#3 LockState env](../analysis/technical-debt-architecture-concentration-2026-06.md#td-03-panel-lockstate-env). |
+
+---
+
 ## Migration tablosu (indeks bakımı)
 
 Kaynak dosyalardaki migration tablolarından **needs-review / queued** özetleri; tam liste kaynak dosyada.
@@ -163,4 +173,4 @@ Kaynak dosyalardaki boş manuel şablonlar burada tekrarlanmaz. Yeni açık kara
 
 ---
 
-Son güncelleme: 2026-06-21 (Quantum Readiness Faz-2 closure — #479–#483; checklist sync; `hazırlık_raporu` badge uygulandı)
+Son güncelleme: 2026-06-21 (Teknik borç analizi yayını — DL-T01; bilgilendirme backlog bölümü)
