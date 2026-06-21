@@ -2,7 +2,7 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Taslak** — salt okuma analizi (2026-06-21) |
+| Durum | **Güncellendi** — salt okuma analizi (2026-06-21); panel gate #443–#446 |
 | İlgili | [ADR-012](../decisions/ADR-012-lumos-security-codex.md), [ADR-010 usage map](ADR-010-guard-policy-trust-usage-map.md), [permission matrix](lumos-action-permission-matrix.md) |
 | Kapsam | Docs-only; `archive/` hariç aktif kod taraması |
 | Yöntem | `rg` + dosya okuma — kanıt tabanlı |
@@ -21,7 +21,7 @@ ADR-012 Security Codex maddelerinin (C1–C6) repo'da **nerede enforce edildiği
 |-------|-------|
 | Enforcement **parçalı** | Tek security motoru yok; ADR-010 ile uyumlu |
 | En güçlü zincir | `task_engine/profiles.py` → `may_execute_step_at_runtime` → `TaskEngine.run_task` |
-| Panel gap | `_task_actions_gate()` her zaman açık |
+| Panel gap | ~~`_task_actions_gate()` her zaman açık~~ → **Kapandı** #443–#446 (`task_action_gate` + `check_policy`); profil matrisi panelde hâlâ yok |
 | Trust motor | Hedef (ADR-007); aktif kodda minimal |
 | `SECURITY_NEVER_AUTO` | Matris + `inviolable.py`; tüm silme yollarında tam branch **gap** |
 
@@ -113,9 +113,9 @@ ADR-012 Security Codex maddelerinin (C1–C6) repo'da **nerede enforce edildiği
 | Alan | Değer |
 |------|-------|
 | **Sorumluluk** | Panel HTTP: tasks CRUD, trash, evidence, `/lumos-read-state`, `/lumos-consent` |
-| **Enforce edilen** | Trash'e yazma (`_write_trash_task_file`); evidence journal; consent.json (passphrase diskte tutulmaz) |
-| **Gap** | **`_task_actions_gate()` → `{enabled: True}`** — policy/profil guard **devre dışı**; codex C6 ihlali riski |
-| **Codex** | C1 yüzey ✓, C5 trash write ✓, C3/C6 **gap**
+| **Enforce edilen** | Trash'e yazma; evidence journal; consent.json; görev mutasyonları `task_action_gate` → `check_policy` (#443–#446) |
+| **Gap** | Profil matrisi (`may_execute_step_at_runtime`) panelde **çağrılmıyor**; yalnızca `action_policy` snapshot |
+| **Codex** | C1 yüzey ✓, C5 trash write ✓, C3/C6 **kısmi** (policy ✓; profil drift riski)
 
 ---
 
@@ -127,8 +127,8 @@ ADR-012 Security Codex maddelerinin (C1–C6) repo'da **nerede enforce edildiği
 |------|-------|
 | **Sorumluluk** | Minimal hardcoded task/identity kuralları |
 | **Enforce edilen** | Offline mutasyon red; koruma+delete red; consent+identity/keystore red; `log_policy_blocked` |
-| **Gap** | Sınırlı action seti; panel route'ları **çağırmıyor** |
-| **Codex** | C3, C6 ✓ (CLI mutation path)
+| **Gap** | Sınırlı action seti; `general_approval` vs `consent` semantik drift (CLI) |
+| **Codex** | C3, C6 ✓ (CLI mutation + panel #443–#446)
 
 ### `src/policy/offline_engine.py`
 
@@ -213,12 +213,12 @@ ADR-012 Security Codex maddelerinin (C1–C6) repo'da **nerede enforce edildiği
 
 | Codex | Güçlü enforce | Gap |
 |-------|---------------|-----|
-| **C1** Tek kapı | CLI router, panel server yüzeyi | Panel gate açık; çoklu giriş (CLI vs panel vs bridge) |
-| **C2** İç bypass yok | write_interceptor, workspace_contract | Panel doğrudan tasks.json yazımı policy dışı |
-| **C3** Onay/kanıt | profiles + TaskEngine + action_policy CLI + evidence | Panel mutasyon; consent≠general_approval drift |
-| **C4** Mock ayrımı | Task status `simulasyon`; panel status map | Panel mock alanları; gate her zaman enabled |
-| **C5** Trash | workspace_contract, panel trash write | Kalıcı silme tüm path'lerde `user_initiated` kontrolü |
-| **C6** Stop-on-risk | Profil never layer; policy offline/koruma; lumos_gate prompt | Panel `_task_actions_gate`; sensitivity kopuk |
+| **C1** Tek kapı | CLI router, panel server yüzeyi | Çoklu giriş (CLI vs panel vs bridge); panel profil matrisi yok |
+| **C2** İç bypass yok | write_interceptor, workspace_contract | ~~Panel doğrudan tasks.json policy dışı~~ → PUT #444 gated |
+| **C3** Onay/kanıt | profiles + TaskEngine + action_policy CLI/panel + evidence | consent≠general_approval drift; panel profil matrisi yok |
+| **C4** Mock ayrımı | Task status `simulasyon`; panel status map | Panel mock alanları |
+| **C5** Trash | workspace_contract, panel trash write | Kalıcı silme tüm path'lerde `user_initiated` (#445 gated) |
+| **C6** Stop-on-risk | Profil never layer; policy offline/koruma; lumos_gate prompt; panel `task_action_gate` | sensitivity kopuk; P2 SECURITY_NEVER_AUTO engine branch |
 
 ---
 
@@ -237,13 +237,15 @@ Aktif kodda `may_execute_step_at_runtime` çağrıları:
 
 - `src/task_engine/engine.py` (delete/archive dalı)
 
-Panel gate:
+Panel gate (2026-06-21 — #443+):
 
 ```python
-# panel/scripts/panel_tasks_server.py:91-93
-def _task_actions_gate() -> dict:
-    return {"enabled": True, "reason": ""}
+# src/core/panel_bridge_state.py — task_action_gate()
+pr = check_policy(action, _panel_policy_context())
+# enabled=False when offline, koruma+delete, etc.
 ```
+
+PR referansları: #443 policy enforcement, #444 PUT /tasks.json, #445 delete-permanent, #446 restore.
 
 ---
 

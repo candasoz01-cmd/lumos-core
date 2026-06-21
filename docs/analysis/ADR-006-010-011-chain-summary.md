@@ -29,8 +29,11 @@ Lock iki sinyal (ADR-011) trust tüketimine hazırlanır (Faz 4).
 | #440 | ADR-012 Security Codex taslak paketi |
 | #441 | Panel codex gate reason + UI warning |
 | #443 | Panel `check_policy` enforcement (PR #2) |
+| #444 | Panel `PUT /tasks.json` CREATE_TASK gate |
+| #445 | Panel delete-permanent policy + confirm |
+| #446 | Panel restore CREATE_TASK gate |
 
 ## Sonraki checkpoint
 
 - **ADR-011 Faz 4:** Merkezi trust sinyal modelinde `keystore_ready` ve `session_unlocked` ayrı alanlar; ADR-007 § Trust sinyalleri revizyonu.
-- **ADR-012 takip:** `SECURITY_NEVER_AUTO` tüm yollar; panel `PUT /tasks.json` policy (ayrı PR).
+- **ADR-012 takip:** P0/P1 panel yolları #444–#446 kapandı; P2 `SECURITY_NEVER_AUTO` engine branch — [analiz](security-never-auto-p2-and-helper-proposal.md) (onay bekliyor).

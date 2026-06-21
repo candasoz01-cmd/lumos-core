@@ -113,7 +113,7 @@ CLI: `cli/cli_tasks_mutation.py` — `_enforce_task_policy`.
 
 ## Panel yüzeyi (not)
 
-Panel görev CRUD (`panel_tasks_server.py`) profil matrisini **doğrudan çağırmaz**; `_task_actions_gate()` şu an `enabled: True` döner. Codex hedefi: panel mutasyonları CLI ile aynı policy + profil zincirine bağlanmalı (bkz. [next PR plan](lumos-security-codex-next-pr-plan.md)).
+Panel görev CRUD (`panel_tasks_server.py`) profil matrisini **doğrudan çağırmaz**; mutasyonlar `task_action_gate` → `check_policy` ile hizalı (#443–#446). Profil × step türü guard yalnızca TaskEngine/CLI tarafında.
 
 ---
 
