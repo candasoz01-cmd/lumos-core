@@ -56,6 +56,12 @@ const panel: typeof panelTr = {
   },
   header: {
     title: "Lumos Panel",
+    subtitle: "Controlled workspace",
+  },
+  moduleGroups: {
+    calisma: "Workspace",
+    lumosCore: "Lumos core",
+    preview: "Preview",
   },
   nav: {
     aria: "Workspace modules",
@@ -122,13 +128,13 @@ const panel: typeof panelTr = {
       sendOffline: "Offline mode: no internet or external bridge; local replies are available.",
     },
     capability: {
-      title: "What can I do right now?",
+      title: "What can I do?",
       canDoSection: "I can",
-      canDo1: "Save tasks, list them, and suggest short plans.",
-      canDo2: "Read on-device settings and give practical notes.",
-      wontDoSection: "I won't (yet)",
-      wontDo1: "Run commands or change code.",
-      wontDo2: "Perform permanent actions without approval.",
+      canDo1: "Save and list tasks.",
+      canDo2: "Read on-device settings.",
+      wontDoSection: "I won't",
+      wontDo1: "Run commands.",
+      wontDo2: "Act permanently without approval.",
     },
     security: {
       approval: "Asks for approval before permanent actions.",
@@ -628,9 +634,8 @@ const panel: typeof panelTr = {
       "Original material and generated output are distinguished so you can see clearly what is being shared.",
   },
   social: {
-    intro:
-      "This tab summarizes keeping drafts with the user for outward-facing content, increasing platform awareness, and prioritizing explicit approval for lasting posts.",
-    sharePreviewIntro: "Social share draft preview — real sharing is off in this build.",
+    intro: "Share draft and approval flow — preview build.",
+    sharePreviewIntro: "Draft preview — real sharing is off.",
     dataType: "Social text",
     c1Title: "Pre-share review",
     c1Body:
@@ -647,9 +652,8 @@ const panel: typeof panelTr = {
     c5Body: "Lumos does not publish silently on your behalf; the send decision stays with you.",
   },
   mail: {
-    intro:
-      "This tab summarizes an approach centered on email drafts, attachment and recipient checks, and explicit approval before sending.",
-    sharePreviewIntro: "Email draft preview — real send is off in this build.",
+    intro: "Email draft and pre-send approval — preview build.",
+    sharePreviewIntro: "Draft preview — real send is off.",
     dataType: "Email",
     c1Title: "Draft-first workflow",
     c1Body:
@@ -710,15 +714,15 @@ const panel: typeof panelTr = {
   quantum: {
     banner: {
       demo: "DEMO",
-      localScan: "Local scan (local_scan)",
-      docsExample: "Documentation-based sample output",
-      noLiveScan: "GET /quantum-readiness unavailable",
-      mvpPlanning: "Local scan unavailable — showing sample",
+      localScan: "Local scan",
+      docsExample: "Sample output",
+      noLiveScan: "Scan unavailable",
+      mvpPlanning: "Showing sample",
     },
     readinessIntro:
-      "Lumos Quantum Readiness — local, read-only post-quantum security readiness scanner. When GET /quantum-readiness does not respond, values below are documentation-based samples; with the panel server running, local scan (local_scan) loads automatically.",
+      "Local security readiness summary. Values below are samples when the server is offline.",
     readinessIntroLive:
-      "Lumos Quantum Readiness — local, read-only readiness scan. Live analysis is not a quantum-safe or production quantum claim; it is a read-only code/metadata inventory.",
+      "Local read-only scan. Not a quantum-safe or production claim.",
     readinessReport: {
       label: "Overall status",
       mock: "Sample — unverified",
@@ -729,17 +733,16 @@ const panel: typeof panelTr = {
     mock: {
       title: "Sample readiness summary (mock)",
       titleLive: "Local readiness summary",
-      note: "Evidence basis: docs_only — ADR-013 checklist. GET /quantum-readiness unavailable; local scan (local_scan) could not load.",
-      noteLive:
-        "Readiness report — does not claim quantum-safe or quantum computer usage.",
-      cryptoLabel: "Encryption / keys",
-      cryptoValue: "AES-GCM-256, Scrypt KDF — classical; PQC not implemented",
+      note: "Sample data — local scan unavailable.",
+      noteLive: "Readiness summary — not a quantum-safe claim.",
+      cryptoLabel: "Encryption",
+      cryptoValue: "AES-GCM-256, Scrypt — classical; no PQC",
       agilityLabel: "Crypto agility",
-      agilityValue: "Medium — module boundaries exist; no PQC migration hook",
-      pqcLabel: "PQC transition readiness",
-      pqcValue: "Monitoring — NIST PQC awareness; no implementation",
-      evidenceLabel: "Evidence type",
-      evidenceValue: "docs_only — local scan (local_scan) could not load",
+      agilityValue: "Medium — no PQC migration hook",
+      pqcLabel: "PQC readiness",
+      pqcValue: "Monitoring — not implemented",
+      evidenceLabel: "Evidence",
+      evidenceValue: "Sample — no local scan",
     },
     live: {
       evidenceBasis: "Evidence basis: {basis} — local read-only scan",
@@ -789,21 +792,19 @@ const panel: typeof panelTr = {
       },
     },
     entropyLab: {
-      title: "Entropy Lab (experimental — separate area)",
-      body: "Entropy Lab is an experimental area separate from Quantum Readiness. This panel has no provider probe or entropy integration; no production quantum-entropy claim is made.",
-      bodyLive:
-        "Entropy Lab is separate from Quantum Readiness. Values below come from the read-only local scan probe — not production quantum entropy.",
+      title: "Entropy Lab (experimental)",
+      body: "Experimental area separate from Quantum Readiness. No production entropy claim.",
+      bodyLive: "Experimental area — read-only scan probe.",
       configuredLabel: "Configured provider",
       effectiveLabel: "Effective provider (heuristic)",
       fallbackLabel: "Silent fallback",
       fallbackYes: "Yes — os fallback active",
       fallbackNo: "No",
     },
-    intro:
-      "The cards below summarize probability, uncertainty, and security research concepts; transparent limits take priority over hard promises.",
+    intro: "Probability and security research — no hard promises.",
     c1Title: "Quantum security research",
     c1Body:
-      "This area is where Lumos will evaluate post-quantum cryptography and advanced security approaches in the future. The current system does not claim to use quantum encryption.",
+      "Future post-quantum cryptography evaluation. The current system does not claim quantum encryption.",
     c2Title: "Multiple possibilities",
     c2Body:
       "Lumos does not present one path as definitively certain; it keeps possible routes and uncertainties visible together.",

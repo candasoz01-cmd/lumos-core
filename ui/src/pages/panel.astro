@@ -43,7 +43,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
     <link rel="icon" href="/lumos-tree-logo.svg" type="image/svg+xml" sizes="any" />
     <link rel="apple-touch-icon" href="/lumos-tree-logo.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#38CEFF" />
+    <meta name="theme-color" content="#1e3a5f" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -51,13 +51,15 @@ const PANEL_DEBUG = import.meta.env.DEV;
     <style>
       :root {
         /**
-         * Landing ile aynı kanal (index.astro :root — salt okunur referans).
-         * Panel: koyu lacivert zemin, elektrik cyan-mavi, kontrollü sıcak altın.
+         * Panel — premium dark control-center (Internal Alpha).
+         * Parliament-lacivert vurgu; parlak cyan yerine tok, koyu yüzeyler.
          */
-        --lumos-land-teal: 56 206 255;
-        --lumos-land-teal-deep: 8 52 108;
-        --lumos-land-warm: 186 148 88;
-        --lumos-land-warm-deep: 128 96 54;
+        --lumos-land-teal: 45 90 140;
+        --lumos-land-teal-deep: 18 36 62;
+        --lumos-land-warm: 168 138 88;
+        --lumos-land-warm-deep: 108 82 52;
+        --lumos-panel-navy: #1e3a5f;
+        --lumos-panel-navy-deep: #0f1f35;
         --lumos-teal-12: rgb(var(--lumos-land-teal) / 0.12);
         --lumos-teal-14: rgb(var(--lumos-land-teal) / 0.14);
         --lumos-teal-16: rgb(var(--lumos-land-teal) / 0.16);
@@ -72,23 +74,23 @@ const PANEL_DEBUG = import.meta.env.DEV;
         --lumos-teal-48: rgb(var(--lumos-land-teal) / 0.48);
         --lumos-gold-soft: rgb(var(--lumos-land-warm) / 0.22);
         --lumos-gold-line: rgb(var(--lumos-land-warm) / 0.32);
-        --lumos-bg: #030714;
-        --lumos-surface: rgba(4, 8, 18, 0.96);
-        --lumos-border: var(--lumos-teal-22);
-        --lumos-card-border: rgb(var(--lumos-land-teal) / 0.28);
-        --lumos-card-inset: rgba(255, 255, 255, 0.04);
-        --lumos-gold: #c6a66a;
-        --lumos-accent-blue: rgb(130 206 255 / 0.92);
-        --lumos-text: #d4dae8;
-        --lumos-text-soft: rgb(212 218 232 / 0.82);
-        --lumos-muted: #aeb6c8;
-        --lumos-input-bg: #020511;
-        --lumos-sidebar-bg: #020511;
-        --lumos-main-bg: #030714;
-        --lumos-chat-head-bg: #030714;
-        --lumos-chat-history-bg: #040a14;
-        --lumos-compose-bg: rgba(3, 7, 20, 0.92);
-        --lumos-chat-input-bg: #020511;
+        --lumos-bg: #020408;
+        --lumos-surface: rgba(3, 6, 14, 0.97);
+        --lumos-border: rgb(var(--lumos-land-teal) / 0.18);
+        --lumos-card-border: rgb(var(--lumos-land-teal) / 0.22);
+        --lumos-card-inset: rgba(255, 255, 255, 0.03);
+        --lumos-gold: #b89868;
+        --lumos-accent-blue: rgb(148 176 212 / 0.88);
+        --lumos-text: #c8ced8;
+        --lumos-text-soft: rgb(200 206 216 / 0.78);
+        --lumos-muted: #8a92a4;
+        --lumos-input-bg: #010306;
+        --lumos-sidebar-bg: #010306;
+        --lumos-main-bg: #020408;
+        --lumos-chat-head-bg: #020408;
+        --lumos-chat-history-bg: #03060e;
+        --lumos-compose-bg: rgba(2, 4, 10, 0.94);
+        --lumos-chat-input-bg: #010306;
         --lumos-tq-badge-inset: rgb(var(--lumos-land-teal) / 0.14);
         --lumos-tq-badge-glow: rgb(var(--lumos-land-teal) / 0.1);
         --lumos-btn-a: rgba(12, 20, 36, 0.96);
@@ -98,19 +100,28 @@ const PANEL_DEBUG = import.meta.env.DEV;
         --lumos-error: #f0b4b4;
         --panel-radius: 10px;
         --panel-radius-lg: 12px;
-        --panel-strip-bg: linear-gradient(178deg, #010308 0%, #061022 52%, #030714 100%);
-        --panel-surface-raised: rgba(6, 12, 26, 0.94);
-        --panel-edge-inset: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-        --panel-shadow-ambient: 0 1px 3px rgba(0, 0, 0, 0.45);
+        --panel-strip-bg: linear-gradient(178deg, #010204 0%, #0a1424 52%, #020408 100%);
+        --panel-surface-raised: rgba(4, 8, 18, 0.96);
+        --panel-edge-inset: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+        --panel-shadow-ambient: 0 2px 8px rgba(0, 0, 0, 0.55);
         --panel-body-wash:
-          radial-gradient(ellipse 130% 88% at 50% -6%, rgb(12 40 88 / 0.42), transparent 54%),
-          radial-gradient(ellipse 88% 52% at 94% 38%, rgb(var(--lumos-land-teal) / 0.06), transparent 46%),
-          radial-gradient(ellipse 72% 48% at 10% 72%, rgb(var(--lumos-land-warm) / 0.028), transparent 50%),
-          linear-gradient(178deg, #010308 0%, #061022 44%, #030714 100%);
+          radial-gradient(ellipse 120% 80% at 50% -8%, rgb(18 36 62 / 0.38), transparent 52%),
+          radial-gradient(ellipse 80% 48% at 92% 42%, rgb(var(--lumos-land-teal) / 0.04), transparent 48%),
+          radial-gradient(ellipse 68% 44% at 8% 74%, rgb(var(--lumos-land-warm) / 0.022), transparent 50%),
+          linear-gradient(178deg, #010204 0%, #0a1424 46%, #020408 100%);
         --panel-chat-wash:
-          radial-gradient(ellipse 120% 100% at 50% 0%, rgb(var(--lumos-land-teal-deep) / 0.42), transparent 55%),
-          radial-gradient(ellipse 90% 70% at 100% 100%, rgb(var(--lumos-land-teal) / 0.07), transparent 50%),
-          linear-gradient(180deg, rgb(2 5 17) 0%, rgb(4 10 22) 52%, rgb(3 8 18) 100%);
+          radial-gradient(ellipse 110% 90% at 50% 0%, rgb(var(--lumos-land-teal-deep) / 0.32), transparent 56%),
+          radial-gradient(ellipse 85% 65% at 100% 100%, rgb(var(--lumos-land-teal) / 0.05), transparent 52%),
+          linear-gradient(180deg, rgb(1 2 6) 0%, rgb(3 6 14) 52%, rgb(2 4 10) 100%);
+        /** Panel shell — typography, spacing, content rhythm (Internal Alpha polish) */
+        --panel-font-display: clamp(1.05rem, 2.2vw, 1.28rem);
+        --panel-font-title: clamp(1rem, 1.9vw, 1.14rem);
+        --panel-font-body: 0.875rem;
+        --panel-font-caption: 0.72rem;
+        --panel-content-max: 44rem;
+        --panel-content-wide: 52rem;
+        --panel-space-section: 1.25rem;
+        --panel-space-block: 0.85rem;
       }
       * {
         box-sizing: border-box;
@@ -607,12 +618,27 @@ const PANEL_DEBUG = import.meta.env.DEV;
         filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
         pointer-events: none;
       }
+      .panel-header-brand-text {
+        display: flex;
+        flex-direction: column;
+        gap: 0.12rem;
+        min-width: 0;
+      }
       .panel-header-brand h1 {
         margin: 0;
-        font-size: clamp(1rem, 2vw, 1.2rem);
+        font-size: var(--panel-font-display);
         font-weight: 600;
         letter-spacing: -0.018em;
         color: #e9eef5;
+        line-height: 1.2;
+      }
+      .panel-header-tagline {
+        margin: 0;
+        font-size: var(--panel-font-caption);
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        color: rgba(168, 188, 210, 0.72);
+        line-height: 1.35;
       }
       /**
        * Masaüstü: sol sütunda üstte Çalışma, altta Lumos çekirdeği; sağda `main` iki satırı kaplar.
@@ -686,17 +712,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         background-clip: padding-box;
       }
       .panel-nav-sig {
-        margin: 0.15rem 0.35rem 0.45rem 0.45rem;
-        padding: 0;
-        font-size: 0.62rem;
-        font-weight: 600;
-        letter-spacing: 0.22em;
-        text-transform: uppercase;
-        color: rgba(132, 128, 120, 0.52);
-      }
-      .panel-nav-sig span {
-        color: rgba(200, 185, 150, 0.42);
-        letter-spacing: 0.12em;
+        display: none;
       }
       .panel-nav-group {
         display: flex;
@@ -798,8 +814,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
         justify-content: space-between;
         gap: 0.35rem;
         width: calc(100% - 0.35rem);
-        margin: 0.12rem 0 0.12rem 0.35rem;
-        padding: 0.58rem 0.75rem 0.58rem 0.95rem;
+        margin: 0.1rem 0 0.1rem 0.35rem;
+        padding: 0.48rem 0.68rem 0.48rem 0.88rem;
         border: none;
         background: rgba(255, 255, 255, 0.02);
         color: var(--lumos-muted);
@@ -866,23 +882,65 @@ const PANEL_DEBUG = import.meta.env.DEV;
         overflow-y: auto;
         overflow-x: hidden;
         min-height: 0;
-        padding: clamp(0.65rem, 1.6vw, 1rem);
+        padding: clamp(0.75rem, 1.8vw, 1.15rem) clamp(0.85rem, 2vw, 1.35rem);
         border: 1px solid var(--lumos-border);
         border-radius: var(--panel-radius-lg);
         background: var(--panel-surface-raised);
+        box-shadow: var(--panel-shadow-ambient), var(--panel-edge-inset);
+      }
+      /** Module IA — shared page head rhythm (eyebrow → title → lead) */
+      .panel-module-head {
+        margin-bottom: var(--panel-space-section);
+        max-width: var(--panel-content-max);
+      }
+      .panel-module-eyebrow,
+      .gorevler-eyebrow {
+        margin: 0 0 0.28rem;
+        font-size: 0.62rem;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: rgba(156, 152, 146, 0.78);
+      }
+      .panel-module-lead,
+      .gorevler-intro,
+      .medya-intro {
+        margin: 0 0 var(--panel-space-section);
+        max-width: var(--panel-content-max);
+        font-size: var(--panel-font-body);
+        line-height: 1.58;
+        color: var(--lumos-text-soft);
       }
       .module-panel h2 {
         margin: 0 0 0.75rem;
-        font-size: 0.94rem;
+        font-size: var(--panel-font-title);
         font-weight: 600;
-        color: #eae8e4;
-        letter-spacing: -0.012em;
-        line-height: 1.35;
+        color: #f0ece4;
+        letter-spacing: -0.014em;
+        line-height: 1.32;
       }
-      .module-panel:not(#panel-sohbet) > h2 {
-        margin: 0 0 0.85rem;
-        padding-bottom: 0.5rem;
-        border-bottom: 1px solid var(--lumos-teal-14);
+      .module-panel:not(#panel-sohbet) > h2,
+      .panel-module-head > h2 {
+        margin: 0 0 var(--panel-space-block);
+        padding-bottom: 0.55rem;
+        border-bottom: 1px solid var(--lumos-teal-16);
+      }
+      .panel-module-eyebrow + h2,
+      .gorevler-eyebrow + h2 {
+        margin-top: 0;
+      }
+      .panel-module-head > .panel-module-lead,
+      .panel-module-head > .gorevler-intro,
+      .panel-module-head > .medya-intro {
+        margin-bottom: 0;
+      }
+      .module-panel:not(#panel-sohbet) > * {
+        max-width: var(--panel-content-max);
+      }
+      .module-panel:not(#panel-sohbet) .medya-card-list,
+      .module-panel:not(#panel-sohbet) .gorevler-proto,
+      .module-panel:not(#panel-sohbet) .lumos-capability-block {
+        max-width: var(--panel-content-wide);
       }
       .module-panel h2.module-title-row {
         display: flex;
@@ -896,14 +954,15 @@ const PANEL_DEBUG = import.meta.env.DEV;
         opacity: 0.92;
       }
       .placeholder-block {
-        padding: 1rem 1.05rem;
+        padding: 1.05rem 1.15rem;
         border-radius: var(--panel-radius-lg);
         border: 1px solid var(--lumos-card-border);
-        background: #0b0b0b;
+        background: rgba(6, 10, 20, 0.92);
         box-shadow: var(--panel-edge-inset);
-        color: var(--lumos-muted);
-        font-size: 0.86rem;
-        max-width: 32rem;
+        color: var(--lumos-text-soft);
+        font-size: var(--panel-font-body);
+        max-width: var(--panel-content-max);
+        line-height: 1.55;
       }
       .placeholder-block p {
         margin: 0 0 0.65rem;
@@ -917,7 +976,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         padding: 1rem 1.15rem 1.05rem;
         border-radius: var(--panel-radius-lg);
         border: 1px solid var(--lumos-card-border);
-        background: #0b0b0b;
+        background: rgba(4, 8, 16, 0.92);
         box-shadow: var(--panel-edge-inset);
         transition: border-color 0.14s ease;
       }
@@ -978,28 +1037,6 @@ const PANEL_DEBUG = import.meta.env.DEV;
         line-height: 1.45;
         color: rgba(156, 152, 146, 0.92);
       }
-      .gorevler-eyebrow {
-        margin: 0 0 0.35rem;
-        font-size: 0.62rem;
-        font-weight: 600;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: rgba(156, 152, 146, 0.72);
-      }
-      .gorevler-intro {
-        margin: 0 0 1rem;
-        max-width: 36rem;
-        font-size: 0.88rem;
-        line-height: 1.55;
-        color: var(--lumos-muted);
-      }
-      .medya-intro {
-        margin: 0 0 1rem;
-        max-width: 36rem;
-        font-size: 0.88rem;
-        line-height: 1.55;
-        color: var(--lumos-muted);
-      }
       .medya-card-list {
         list-style: none;
         margin: 0;
@@ -1012,7 +1049,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         padding: 0.85rem 1rem;
         border-radius: var(--panel-radius-lg);
         border: 1px solid var(--lumos-card-border);
-        background: #0b0b0b;
+        background: rgba(4, 8, 16, 0.92);
         box-shadow: var(--panel-edge-inset);
         transition: border-color 0.14s ease;
       }
@@ -1050,7 +1087,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         padding: 0.92rem 1.05rem;
         border-radius: var(--panel-radius-lg);
         border: 1px solid var(--lumos-card-border);
-        background: #0b0b0b;
+        background: rgba(4, 8, 16, 0.92);
         box-shadow: var(--panel-edge-inset);
         cursor: pointer;
         text-align: left;
@@ -1297,7 +1334,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         padding: 0.85rem 1rem;
         border-radius: var(--panel-radius-lg);
         border: 1px solid var(--lumos-card-border);
-        background: #0b0b0b;
+        background: rgba(4, 8, 16, 0.92);
         box-shadow: var(--panel-edge-inset);
         display: flex;
         flex-direction: column;
@@ -1317,20 +1354,49 @@ const PANEL_DEBUG = import.meta.env.DEV;
         margin-bottom: 0.32rem;
       }
       .gorevler-field input,
-      .gorevler-field select {
+      .gorevler-field select,
+      .gorevler-field textarea {
         width: 100%;
         box-sizing: border-box;
         padding: 0.52rem 0.65rem;
         border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.14);
+        border: 1px solid rgba(255, 255, 255, 0.1);
         background: var(--lumos-input-bg);
         color: var(--lumos-text);
         font-size: 0.88rem;
         font-family: inherit;
         line-height: 1.45;
       }
+      .panel-share-proto .gorevler-field textarea,
+      #panel-sosyal .gorevler-field textarea,
+      #panel-posta .gorevler-field textarea {
+        min-height: 9.5rem;
+        font-size: 0.94rem;
+        line-height: 1.58;
+        padding: 0.78rem 0.88rem;
+        resize: vertical;
+      }
+      .panel-share-proto .gorevler-field input[type="email"],
+      #panel-posta .gorevler-field input[type="email"] {
+        font-size: 0.94rem;
+        padding: 0.62rem 0.78rem;
+      }
+      .panel-share-proto {
+        max-width: var(--panel-content-wide);
+        padding: 1rem 1.1rem;
+        border-radius: var(--panel-radius-lg);
+        border: 1px solid var(--lumos-card-border);
+        background: rgba(4, 8, 16, 0.92);
+        box-shadow: var(--panel-edge-inset);
+      }
+      /** Önizleme modüllerde bilgi kartlarını gizle — taslak alanı öne çıkar */
+      #panel-sosyal .medya-card-list,
+      #panel-posta .medya-card-list {
+        display: none;
+      }
       .gorevler-field input:focus,
-      .gorevler-field select:focus {
+      .gorevler-field select:focus,
+      .gorevler-field textarea:focus {
         outline: none;
         border-color: rgba(184, 148, 96, 0.45);
         box-shadow: 0 0 0 1px rgba(184, 148, 96, 0.2);
@@ -1449,7 +1515,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
       .lumos-confirm-dialog-shell {
         border-radius: var(--panel-radius-lg);
         border: 1px solid rgba(212, 182, 128, 0.28);
-        background: #0b0b0b;
+        background: rgba(4, 8, 16, 0.92);
         box-shadow: var(--panel-edge-inset);
         overflow: hidden;
       }
@@ -1505,7 +1571,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
       .gorevler-detail-shell {
         border-radius: var(--panel-radius-lg);
         border: 1px solid rgba(212, 182, 128, 0.22);
-        background: #0b0b0b;
+        background: rgba(4, 8, 16, 0.92);
         box-shadow: var(--panel-edge-inset);
         overflow: hidden;
         max-height: min(88vh, 32rem);
@@ -1633,7 +1699,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         padding: 0.85rem 1rem;
         border-radius: var(--panel-radius-lg);
         border: 1px solid var(--lumos-card-border);
-        background: #0b0b0b;
+        background: rgba(4, 8, 16, 0.92);
         box-shadow: var(--panel-edge-inset);
       }
       :global(.dosyalar-result-card__title) {
@@ -1715,7 +1781,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         padding: 0.55rem 0.75rem;
         border-radius: var(--panel-radius);
         border: 1px solid var(--lumos-card-border);
-        background: #0b0b0b;
+        background: rgba(4, 8, 16, 0.92);
         box-shadow: var(--panel-edge-inset);
         font-size: 0.8rem;
         line-height: 1.45;
@@ -1774,7 +1840,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         padding: 0.5rem 0.75rem;
         border-radius: var(--panel-radius-md);
         border: 1px solid var(--lumos-card-border);
-        background: #0b0b0b;
+        background: rgba(4, 8, 16, 0.92);
         font-size: 0.84rem;
         line-height: 1.45;
       }
@@ -2124,21 +2190,21 @@ const PANEL_DEBUG = import.meta.env.DEV;
         transition: color 0.35s ease, opacity 0.35s ease;
       }
       .chat-empty-hint__text {
-        font-size: 0.88rem;
+        font-size: var(--panel-font-body);
         font-weight: 600;
         letter-spacing: -0.015em;
         line-height: 1.5;
-        color: rgb(200 226 248 / 0.88);
+        color: rgb(210 232 252 / 0.92);
       }
       .chat-empty-hint__sub {
         display: block;
         margin-top: 0.35rem;
         max-width: 100%;
-        font-size: 0.72rem;
+        font-size: var(--panel-font-caption);
         font-weight: 500;
         letter-spacing: 0.005em;
-        line-height: 1.45;
-        color: rgba(168, 188, 210, 0.72);
+        line-height: 1.48;
+        color: rgba(168, 188, 210, 0.78);
         overflow-wrap: anywhere;
         word-break: break-word;
       }
@@ -4281,7 +4347,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
         <div class="panel-header-title-row">
           <div class="panel-header-brand">
             <span class="lumos-mark" aria-hidden="true"></span>
-            <h1 data-i18n="panel.header.title">Lumos Panel</h1>
+            <div class="panel-header-brand-text">
+              <h1 data-i18n="panel.header.title">Lumos Panel</h1>
+              <p class="panel-header-tagline" data-i18n="panel.header.subtitle">Kontrollü çalışma alanı</p>
+            </div>
           </div>
           <div class="panel-health-row">
             <div class="panel-user-mode-wrap">
@@ -4693,9 +4762,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
             data-active="false"
             aria-labelledby="panel-gorevler-title"
           >
-            <p class="gorevler-eyebrow" data-i18n="panel.modules.tasks.eyebrow">Operasyon</p>
+            <header class="panel-module-head">
+            <p class="panel-module-eyebrow gorevler-eyebrow" data-i18n="panel.modules.tasks.eyebrow">Operasyon</p>
             <h2 id="panel-gorevler-title" data-i18n="panel.sections.gorevler">Görevler</h2>
-            <p class="gorevler-intro">
+            <p class="panel-module-lead gorevler-intro">
               <span class="panel-data-flow-badge" data-i18n="panel.common.badges.local">[Yerel]</span>
               <span data-i18n="panel.modules.tasks.intro">
                 Görevler cihazınızdaki görev kaydına yazılır; görev eklerken iletim gerekmez. Sunucu kapalıysa liste
@@ -4708,6 +4778,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 </span>
               )}
             </p>
+            </header>
             <p
               id="gorevler-codex-warning"
               class="gorevler-codex-warning"
@@ -4941,12 +5012,15 @@ const PANEL_DEBUG = import.meta.env.DEV;
             data-active="false"
             aria-labelledby="panel-ses-title"
           >
+            <header class="panel-module-head">
+            <p class="panel-module-eyebrow" data-i18n="panel.moduleGroups.preview">Önizleme</p>
             <h2 id="panel-ses-title" data-i18n="panel.sections.ses">Ses</h2>
-            <p class="medya-intro" data-i18n="panel.modules.voice.intro">
+            <p class="panel-module-lead medya-intro" data-i18n="panel.modules.voice.intro">
               Bu sekme, sesli girdinin metne ve komutlara dönüşürken arayüz katmanında kalması ve kararın yine kullanıcıda
               tutulması için tasarlanan yaklaşımı özetler. Sohbet alt çubuğundaki mikrofon, cihaz, tarayıcı ve verilen
               izinlere bağlıdır; bazı ortamlarda desteklenmeyebilir.
             </p>
+            </header>
             <ul class="medya-card-list">
               <li class="medya-card">
                 <h3 data-i18n="panel.modules.voice.c1Title">Sesten Metne</h3>
@@ -4988,12 +5062,15 @@ const PANEL_DEBUG = import.meta.env.DEV;
             data-active="false"
             aria-labelledby="panel-medya-title"
           >
+            <header class="panel-module-head">
+            <p class="panel-module-eyebrow" data-i18n="panel.moduleGroups.preview">Önizleme</p>
             <h2 id="panel-medya-title" data-i18n="panel.sections.medya">Medya</h2>
-            <p class="medya-intro" data-i18n="panel.modules.media.intro">
+            <p class="panel-module-lead medya-intro" data-i18n="panel.modules.media.intro">
               Bu sekme, görsel, ses, video ve dosya akışlarının düzenlenmesinde paylaşım öncesi kontrol, veri yolu görünürlüğü ve
               kaynak ile çıktının ayrılması ilkelerini özetler. Sohbet alt çubuğundaki kamera da cihaz, tarayıcı ve izin
               desteğine bağlıdır; her ortamda çalışmayabilir.
             </p>
+            </header>
             <div class="medya-outbox-wrap" aria-labelledby="medya-outbox-title">
               <h3 id="medya-outbox-title" class="gorevler-list-heading" data-i18n="panel.modules.media.outboxTitle">Son çıktı özeti (salt okunur)</h3>
               <p class="medya-intro" style="margin-top: 0.35rem">
@@ -5087,44 +5164,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
             data-active="false"
             aria-labelledby="panel-sosyal-title"
           >
+            <header class="panel-module-head">
+            <p class="panel-module-eyebrow" data-i18n="panel.moduleGroups.preview">Önizleme</p>
             <h2 id="panel-sosyal-title" data-i18n="panel.sections.sosyal">Sosyal</h2>
-            <p class="medya-intro" data-i18n="panel.modules.social.intro">
-              Bu sekme, dışa açılan içeriklerde taslağı kullanıcıda tutmayı, platform farkındalığını artırmayı ve kalıcı paylaşımlarda
-              açık onayı öncelemeyi hedefleyen yaklaşımı özetler.
+            <p class="panel-module-lead medya-intro" data-i18n="panel.modules.social.intro">
+              Paylaşım taslağı ve onay akışı — önizleme sürümü.
             </p>
-            <ul class="medya-card-list">
-              <li class="medya-card">
-                <h3 data-i18n="panel.modules.social.c1Title">Paylaşım Öncesi Kontrol</h3>
-                <p data-i18n="panel.modules.social.c1Body">
-                  Gönderi yayınlanmadan önce özet, hedef ve görünürlük kullanıcıya son kez gösterilmeyi hedefler.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3 data-i18n="panel.modules.social.c2Title">Hedef Platform</h3>
-                <p data-i18n="panel.modules.social.c2Body">
-                  İçeriğin hangi ortamda nasıl görüneceği ve hangi kurallara tabi olduğu daha görünür tutulabilir.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3 data-i18n="panel.modules.social.c3Title">Gönderi Taslağı</h3>
-                <p data-i18n="panel.modules.social.c3Body">
-                  Metin ve ekler taslak halinde saklanır; kullanıcı düzenlemeden yayına çıkmaz.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3 data-i18n="panel.modules.social.c4Title">Riskli Paylaşımda Onay</h3>
-                <p data-i18n="panel.modules.social.c4Body">
-                  Kalıcı, geniş kitleye açık veya geri alınması zor paylaşımlarda ek onay istenmesi hedeflenir.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3 data-i18n="panel.modules.social.c5Title">Otomatik Yayın Yok</h3>
-                <p data-i18n="panel.modules.social.c5Body">
-                  Lumos kullanıcı adına sessizce paylaşım yapmaz; gönderme kararı kullanıcıda kalır.
-                </p>
-              </li>
-            </ul>
-            <div class="panel-share-proto panel-share-proto--demo gorevler-proto" data-panel-share-demo="true" style="margin-top: 1rem">
+            </header>
+            <div class="panel-share-proto panel-share-proto--demo gorevler-proto" data-panel-share-demo="true">
               <p class="medya-intro" style="margin-top: 0">
                 <span class="panel-data-flow-badge panel-data-flow-badge--demo" data-i18n="panel.common.badges.demoNotConnected">[Demo — bağlı değil]</span>
                 <span data-i18n="panel.modules.social.sharePreviewIntro">Sosyal paylaşım taslağı önizlemesi — gerçek paylaşım bu sürümde kapalı.</span>
@@ -5138,7 +5185,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
               </div>
               <div class="gorevler-field">
                 <label for="sosyal-share-content" data-i18n="panel.common.form.postDraft">Gönderi taslağı</label>
-                <textarea id="sosyal-share-content" rows="3" maxlength="500" data-i18n-placeholder="panel.common.placeholders.shareText" placeholder="Paylaşılacak metin…"></textarea>
+                <textarea id="sosyal-share-content" rows="6" maxlength="500" data-i18n-placeholder="panel.common.placeholders.shareText" placeholder="Paylaşılacak metin…"></textarea>
               </div>
               <div id="sosyal-share-summary" class="panel-pre-send-summary" hidden role="status" aria-live="polite"></div>
               <div class="medya-outbox-actions">
@@ -5165,44 +5212,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
             data-active="false"
             aria-labelledby="panel-posta-title"
           >
+            <header class="panel-module-head">
+            <p class="panel-module-eyebrow" data-i18n="panel.moduleGroups.preview">Önizleme</p>
             <h2 id="panel-posta-title" data-i18n="panel.sections.posta">Posta</h2>
-            <p class="medya-intro" data-i18n="panel.modules.mail.intro">
-              Bu sekme, e-posta taslağı hazırlama, ek ve alıcı doğrulaması ile gönderim öncesi açık onayı merkeze alan yaklaşımı
-              özetler.
+            <p class="panel-module-lead medya-intro" data-i18n="panel.modules.mail.intro">
+              E-posta taslağı hazırlama ve gönderim öncesi onay — önizleme sürümü.
             </p>
-            <ul class="medya-card-list">
-              <li class="medya-card">
-                <h3 data-i18n="panel.modules.mail.c1Title">Taslak Odaklı Çalışma</h3>
-                <p data-i18n="panel.modules.mail.c1Body">
-                  Mesajlar önce taslak olarak düzenlenir; kullanıcı içeriği gözden geçirmeden iletim beklenmez.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3 data-i18n="panel.modules.mail.c2Title">Ek ve Alıcı Kontrolü</h3>
-                <p data-i18n="panel.modules.mail.c2Body">
-                  Eklerin listesi ve alıcı alanları gönderim öncesi okunaklı biçimde özetlenmeyi hedefler.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3 data-i18n="panel.modules.mail.c3Title">Gönderim Öncesi Onay</h3>
-                <p data-i18n="panel.modules.mail.c3Body">
-                  “Gönder” adımı bilinçli bir onay gerektirir; tek tıkla görünmez iletim hedeflenmez.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3 data-i18n="panel.modules.mail.c4Title">Yanlış Alıcı ve Hassas Bilgi</h3>
-                <p data-i18n="panel.modules.mail.c4Body">
-                  Şüpheli alıcı eşleşmeleri veya hassas içerik için uyarı gösterilmesi amaçlanır.
-                </p>
-              </li>
-              <li class="medya-card">
-                <h3 data-i18n="panel.modules.mail.c5Title">Otomatik Gönderim Yok</h3>
-                <p data-i18n="panel.modules.mail.c5Body">
-                  Lumos kullanıcı yerine postayı tek başına iletmez; son gönderme kararı kullanıcıdadır.
-                </p>
-              </li>
-            </ul>
-            <div class="panel-share-proto panel-share-proto--demo gorevler-proto" data-panel-share-demo="true" style="margin-top: 1rem">
+            </header>
+            <div class="panel-share-proto panel-share-proto--demo gorevler-proto" data-panel-share-demo="true">
               <p class="medya-intro" style="margin-top: 0">
                 <span class="panel-data-flow-badge panel-data-flow-badge--demo" data-i18n="panel.common.badges.demoNotConnected">[Demo — bağlı değil]</span>
                 <span data-i18n="panel.modules.mail.sharePreviewIntro">E-posta taslağı önizlemesi — gerçek gönderim bu sürümde kapalı.</span>
@@ -5213,7 +5230,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
               </div>
               <div class="gorevler-field">
                 <label for="posta-share-content" data-i18n="panel.common.form.messageDraft">Mesaj taslağı</label>
-                <textarea id="posta-share-content" rows="3" maxlength="800" data-i18n-placeholder="panel.common.placeholders.emailBody" placeholder="E-posta metni…"></textarea>
+                <textarea id="posta-share-content" rows="8" maxlength="800" data-i18n-placeholder="panel.common.placeholders.emailBody" placeholder="E-posta metni…"></textarea>
               </div>
               <div class="gorevler-field">
                 <label for="posta-share-attachments" data-i18n="panel.common.form.attachmentCount">Ek sayısı</label>

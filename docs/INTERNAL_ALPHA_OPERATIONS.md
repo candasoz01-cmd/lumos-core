@@ -119,7 +119,7 @@ Her **Pazartesi** (veya ekip sprint günü) bir satır `docs/INTERNAL_ALPHA_OPER
 | Tarih | Olay | Ref |
 |-------|------|-----|
 | 2026-06-18 | Operasyonel faz başlangıcı — giriş kriterleri karşılandı | DL-C23 |
-| 2026-06-21 | Operasyon belgesi + triage sync merge | *(bu PR)* |
+| 2026-06-21 | UX finding #1 — premium dark panel polish (in_progress) | [INTERNAL_ALPHA_UX_FINDINGS.md](INTERNAL_ALPHA_UX_FINDINGS.md) #510 |
 
 *(Checkpoint satırları buraya veya ekip kanalına eklenir.)*
 
