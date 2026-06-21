@@ -169,6 +169,7 @@ ADR-010: **consent ≠ general_approval ≠ confirmation**. İşlem bazlı üç�
 | [lumos-security-codex-next-pr-plan.md](../analysis/lumos-security-codex-next-pr-plan.md) | Minimal uygulama PR planı |
 | [security-never-auto-p2-and-helper-proposal.md](../analysis/security-never-auto-p2-and-helper-proposal.md) | P2 engine gap, helper taslağı, action_risk akışı (analyze-only) |
 | [lumos-cu4-confirmation-skeleton-draft.md](../analysis/lumos-cu4-confirmation-skeleton-draft.md) | CU4 confirmation iskelet; PR-C0 reason kodları |
+| [ADR-012-enforcement-prep-assessment.md](../analysis/ADR-012-enforcement-prep-assessment.md) | Faz-2 sonrası keşif: kullanım haritası, riskler, karar maddeleri (#459–#464) |
 
 ---
 

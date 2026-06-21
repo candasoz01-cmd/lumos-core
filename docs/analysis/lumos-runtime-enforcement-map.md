@@ -285,6 +285,8 @@ PR referansları: #443 policy enforcement, #444 PUT /tasks.json, #445 delete-per
 
 ## 8. Açık kalan maddeler
 
+Detaylı keşif değerlendirmesi: [ADR-012 enforcement prep assessment](ADR-012-enforcement-prep-assessment.md).
+
 | Madde | Durum | Referans |
 |-------|-------|----------|
 | P2 `SECURITY_NEVER_AUTO` engine branch | **Kapandı (dar kapsam)** | #463 — `run_task` branch + helper; `permanent_delete` store/panel; [P2 analiz](security-never-auto-p2-and-helper-proposal.md) |
