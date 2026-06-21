@@ -40,7 +40,10 @@ def _bridge_handler_stub(*, body: dict[str, Any]) -> Any:
     def _send_pending_approvals_array_response(*, source_filter: str | None = None) -> None:
         from kando_bridge.server import build_pending_approvals_list
 
-        arr = build_pending_approvals_list(source_filter=source_filter)
+        arr = build_pending_approvals_list(
+            source_filter=source_filter,
+            include_approval_token=True,
+        )
         handler.last_bytes = json.dumps(arr, ensure_ascii=False).encode("utf-8")
 
     handler._reject = _reject
@@ -64,7 +67,11 @@ def _dispatch_http(
         from kando_bridge.server import build_pending_approvals_list
 
         source_filter = (query or {}).get("source") or None
-        arr = build_pending_approvals_list(source_filter=source_filter)
+        include_tokens = (query or {}).get("include_tokens", "").lower() in ("1", "true", "yes")
+        arr = build_pending_approvals_list(
+            source_filter=source_filter,
+            include_approval_token=include_tokens,
+        )
         return 200, arr
 
     if method == "POST" and path == "/approve":

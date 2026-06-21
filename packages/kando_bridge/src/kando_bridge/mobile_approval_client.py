@@ -97,7 +97,11 @@ def http_json(
         status = int(e.code)
         raw = e.read().decode("utf-8", errors="replace")
     except OSError as e:
-        return 0, {"ok": False, "error": "connection_failed", "detail": str(e)}
+        from kando_bridge.relay_errors import enrich_error_payload
+
+        return 0, enrich_error_payload(
+            {"ok": False, "error": "connection_failed", "detail": str(e)}
+        )
     try:
         parsed = json.loads(raw) if raw.strip() else {}
     except json.JSONDecodeError:
@@ -133,7 +137,7 @@ def filter_pc_remote_records(
 
 def list_pending_pc_remote(*, status: str | None = STATUS_PENDING) -> list[dict[str, Any]]:
     """Poll GET /pending_approvals with pc_remote source filter."""
-    query: dict[str, str] = {"source": PC_REMOTE_SOURCE}
+    query: dict[str, str] = {"source": PC_REMOTE_SOURCE, "include_tokens": "1"}
     status_code, data = http_json("GET", "/pending_approvals", query=query)
     if status_code != 200:
         return []
@@ -315,7 +319,11 @@ def _request_json(
             payload = {"error": str(payload)}
         return e.code, payload
     except (URLError, OSError, json.JSONDecodeError) as e:
-        return 0, {"ok": False, "error": "request_failed", "detail": str(e)}
+        from kando_bridge.relay_errors import enrich_error_payload
+
+        return 0, enrich_error_payload(
+            {"ok": False, "error": "request_failed", "detail": str(e)}
+        )
 
 
 def cmd_discover(args: argparse.Namespace) -> int:

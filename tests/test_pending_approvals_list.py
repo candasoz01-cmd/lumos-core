@@ -29,13 +29,32 @@ def test_build_pending_approvals_list_one_file(tmp_path, monkeypatch):
     }
     (pdir / "x.json").write_text(json.dumps(rec, ensure_ascii=False), encoding="utf-8")
     monkeypatch.setattr(srv, "PENDING_APPROVALS_DIR", pdir)
-    items = build_pending_approvals_list()
+    items = build_pending_approvals_list(include_approval_token=True)
     assert len(items) == 1
     assert items[0]["approval_token"] == "tok1"
     assert items[0]["reasoning_summary"] == "yüksek risk"
     assert items[0]["risk_level"] == "high"
     assert items[0]["used"] is False
     assert items[0]["pending_summary"] == "README.md güncellenecek"
+
+
+def test_build_pending_approvals_list_redacts_token_by_default(tmp_path, monkeypatch):
+    from kando_bridge import server as srv
+
+    pdir = tmp_path / "pending"
+    pdir.mkdir()
+    rec = {
+        "schema_version": "lumos.pending_approval.v1",
+        "approval_token": "secret-tok",
+        "approval_id": "aid1",
+        "used": False,
+    }
+    (pdir / "x.json").write_text(json.dumps(rec, ensure_ascii=False), encoding="utf-8")
+    monkeypatch.setattr(srv, "PENDING_APPROVALS_DIR", pdir)
+    items = build_pending_approvals_list()
+    assert "approval_token" not in items[0]
+    with_token = build_pending_approvals_list(include_approval_token=True)
+    assert with_token[0]["approval_token"] == "secret-tok"
 
 
 def test_build_pending_approvals_list_tolerates_cu4_correlation_fields(
@@ -66,7 +85,7 @@ def test_build_pending_approvals_list_tolerates_cu4_correlation_fields(
     attach_bridge_pending_confirmation(rec, base_dir=lumos, risk="high", source="lumos_gate")
     (pdir / "cu4.json").write_text(json.dumps(rec, ensure_ascii=False), encoding="utf-8")
     monkeypatch.setattr(srv, "PENDING_APPROVALS_DIR", pdir)
-    items = build_pending_approvals_list()
+    items = build_pending_approvals_list(include_approval_token=True)
     assert len(items) == 1
     assert items[0]["approval_token"] == "tok-cu4"
     on_disk = json.loads((pdir / "cu4.json").read_text(encoding="utf-8"))

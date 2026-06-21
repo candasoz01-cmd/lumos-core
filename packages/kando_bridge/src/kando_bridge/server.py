@@ -1179,7 +1179,11 @@ def _pending_record_matches_source_filter(data: dict, source_filter: str) -> boo
     return False
 
 
-def build_pending_approvals_list(*, source_filter: str | None = None) -> list[dict]:
+def build_pending_approvals_list(
+    *,
+    source_filter: str | None = None,
+    include_approval_token: bool = False,
+) -> list[dict]:
     """`.lumos/pending_approvals/*.json` → panel / GET /pending_approvals için kayıt listesi."""
     items: list[dict] = []
     try:
@@ -1212,11 +1216,9 @@ def build_pending_approvals_list(*, source_filter: str | None = None) -> list[di
                 op = str(data.get("original_payload") or "").strip()
                 title_g = op[:800] if op else ps[:800] if ps else ""
             raw_g = str(data.get("raw_text") or title_g or "").strip()
-            items.append(
-                {
+            item = {
                     "task_id": str(data.get("task_id") or ""),
                     "approval_file": str(rel).replace("\\", "/"),
-                    "approval_token": str(data.get("approval_token") or ""),
                     "approval_id": str(data.get("approval_id") or ""),
                     "source": str(data.get("source") or ""),
                     "schema_version": str(data.get("schema_version") or ""),
@@ -1232,7 +1234,9 @@ def build_pending_approvals_list(*, source_filter: str | None = None) -> list[di
                     "created_at": str(data.get("created_at") or ""),
                     "used": bool(data.get("used")),
                 }
-            )
+            if include_approval_token:
+                item["approval_token"] = str(data.get("approval_token") or "")
+            items.append(item)
     except OSError:
         pass
     return items
@@ -1654,8 +1658,16 @@ class BridgeHandler(BaseHTTPRequestHandler):
         ]
         self._send_json(200, {"pending": wrapped})
 
-    def _send_pending_approvals_array_response(self, *, source_filter: str | None = None) -> None:
-        arr = build_pending_approvals_list(source_filter=source_filter)
+    def _send_pending_approvals_array_response(
+        self,
+        *,
+        source_filter: str | None = None,
+        include_approval_token: bool = False,
+    ) -> None:
+        arr = build_pending_approvals_list(
+            source_filter=source_filter,
+            include_approval_token=include_approval_token,
+        )
         body = json.dumps(arr, ensure_ascii=False).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -1690,7 +1702,12 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 return
             q = parse_qs(parsed.query or "")
             source_filter = (q.get("source") or [""])[0].strip() or None
-            self._send_pending_approvals_array_response(source_filter=source_filter)
+            include_tokens_raw = (q.get("include_tokens") or [""])[0].strip().lower()
+            include_tokens = include_tokens_raw in ("1", "true", "yes")
+            self._send_pending_approvals_array_response(
+                source_filter=source_filter,
+                include_approval_token=include_tokens,
+            )
             return
         if req_path == "/pending-approvals":
             if not self._check_secret():
