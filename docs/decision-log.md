@@ -126,6 +126,14 @@ Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A16 takip satırları kap
 | DL-C18 | 2026-06-21 | Faz-2 Phase B — confirmation varsayılan-on | **Opt-in korunur** — E2E #460 kanıtı sonrası `LUMOS_CONFIRMATION_ENABLED` varsayılan kapalı kalır; bilinçli opt-in; tam varsayılan-on ürün incelemesine ertelendi; **kod değişikliği yok** | ADR-012 §7, PR #460, [`lumos-runtime-enforcement-map.md`](analysis/lumos-runtime-enforcement-map.md) §8 |
 | DL-C19 | 2026-06-21 | ADR-010 + open-decisions Faz-2 docs sync | **Doc-only complete** — ADR-010 Faz-2 #452–#463 tablosu; chain-summary #459–#464; open-decisions kapanış + güvenlik enforcement açık satırları (Trust Faz 4, köprü wiring, sensitivity chain, P2 tam eşleme); **kod/enforcement genişlemesi yok** | ADR-010, [`open-decisions-needs-review.md`](memory/open-decisions-needs-review.md), [`ADR-006-010-011-chain-summary.md`](analysis/ADR-006-010-011-chain-summary.md); PR #464 öncül |
 | DL-C20 | 2026-06-21 | Quantum Readiness milestone docs sync | **Doc-only complete** — ADR-001/013 Faz-2 kısmi durum eki (#470); panel/landing quantum copy fetch vs local_scan (#471); open-decisions «endpoint yok» maddeleri kapandı | PR #470, #471 | [ADR-001](decisions/ADR-001-lumos-quantum-modules.md), [ADR-013](decisions/ADR-013-lumos-quantum-security-readiness.md) |
+
+### Teknik borç takibi (bilgilendirme)
+
+Enforcement kararı veya uygulama taahhüdü **içermez**; salt okuma analiz yayın kaydı.
+
+| ID | Tarih | Konu | Özet | Bağlantı |
+|----|-------|------|------|----------|
+| DL-T01 | 2026-06-21 | Teknik borç — mimari yoğunlaşma analizi | **Doc-only published** — 20 maddelik kanıta dayalı borç envanteri; anchor indeks + etki/maliyet sıralaması; kod/runtime değişikliği yok | [`technical-debt-architecture-concentration-2026-06.md`](analysis/technical-debt-architecture-concentration-2026-06.md); [open-decisions § teknik borç backlog](memory/open-decisions-needs-review.md#teknik-borç-backlog-bilgilendirme) |
 ---
 
 ## 2026-06-17 — Dokümantasyon düzeni kurulumu
@@ -157,4 +165,4 @@ Tam liste: `docs/memory/open-decisions-needs-review.md` (OD-001 … OD-060).
 
 ---
 
-Son güncelleme: 2026-06-21 (Quantum Readiness Faz-2 milestone — DL-A25, DL-C20; #468–#475)
+Son güncelleme: 2026-06-21 (Teknik borç analizi yayını — DL-T01)
