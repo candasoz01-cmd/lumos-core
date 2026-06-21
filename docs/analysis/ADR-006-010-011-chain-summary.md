@@ -48,6 +48,11 @@ Lock iki sinyal (ADR-011) trust tüketimine hazırlanır (Faz 4).
 | #462 | PR-C6 köprü confirmation namespace — shadow adapter (**kısmi**) |
 | #463 | P2 `SECURITY_NEVER_AUTO` engine branch (**dar kapsam**) |
 | #464 | Faz-2 milestone docs sync (#460–#463) |
+| #468 | Quantum Readiness Faz-2 yerel tarayıcı (`scan_quantum_readiness`) |
+| #469 | Panel `GET /quantum-readiness` + kuantum sekmesi live fetch UI |
+| #470 | ADR-001/013 Faz-2 kısmi durum senkronu |
+| #471 | Panel/landing quantum copy — fetch vs local_scan ayrımı |
+| #472 | DL-A25/DL-C20 + open-decisions quantum milestone kapanışı |
 
 ## Sonraki checkpoint
 
