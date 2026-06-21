@@ -128,7 +128,7 @@ Aşağıdaki tanımlar **kabul edilmiş terminoloji sözleşmesidir**. Usage map
 
 **Repo karşılığı (analiz bulgusu):** `task_dispatch` risk→onay; `lumos_gate` `pending_approval`; köprü `await_user_approval`.
 
-**Reason kodları (PR-C0 — tanımlandı, uygulama bekliyor):** `confirmation_required`, `confirmation_expired`, `confirmation_scope_mismatch`, `confirmation_preview_required`, gate parçası `[CONFIRMATION_BLOCKED]`. Detay: [ADR-012 §7](ADR-012-lumos-security-codex.md#7-confirmation-reason-kodları-pr-c0--tanımlandı-uygulama-bekliyor), [CU4 confirmation skeleton draft](../analysis/lumos-cu4-confirmation-skeleton-draft.md).
+**Reason kodları (PR-C0 — **merge** #452):** `confirmation_required`, `confirmation_expired`, `confirmation_scope_mismatch`, `confirmation_preview_required`, gate parçası `[CONFIRMATION_BLOCKED]`. Runtime modülü PR-C1–C5 (#453–#457) ile merge; opt-in 3. kapı. Detay: [ADR-012 §7](ADR-012-lumos-security-codex.md#7-confirmation-reason-kodları-pr-c0--tanımlandı-uygulama-bekliyor), [CU4 confirmation skeleton draft](../analysis/lumos-cu4-confirmation-skeleton-draft.md).
 
 **Not:** `pending_action` (consent/GA akışı) ≠ `pending_confirmation` (CU4 işlem onayı) — alan adları birleştirilmemelidir.
 
@@ -427,14 +427,23 @@ Haziran 2026 repo analizi ve usage map (2026-06-21) sonrasında **guard, policy,
 
 Repo drift riskleri (`LockState` / `_lock_ok`, panel consent proxy, CLI LOCKED, panel mock) usage map ile **doğrulandı** — bkz. [usage map](../analysis/ADR-010-guard-policy-trust-usage-map.md). Lock semantiği birleştirme ve engine enforce **takip checkpoint'lerinde**; bu ADR kod veya lock davranışı değiştirmez.
 
-### CU4 confirmation merge notu (2026-06-21, #452–#458)
+### CU4 confirmation merge notu (2026-06-21, Faz-2 #452–#463)
 
-PR-C zinciri merge edildi; **confirmation** artık ayrı sinyal olarak `policy.confirmation_policy` modülünde. **Opt-in:** `LUMOS_CONFIRMATION_ENABLED=true|1|yes` — varsayılan no-op. Gate sırası: policy → profil (`may_execute_step_at_runtime`, #449) → confirmation (3. kapı). PR-C6 köprü namespace ve varsayılan-on kararı **açık**. Bkz. [CU4 skeleton](../analysis/lumos-cu4-confirmation-skeleton-draft.md), [ADR-012 §7](ADR-012-lumos-security-codex.md).
+| Dalga | PR | Durum |
+|-------|-----|--------|
+| PR-C0–C5 + CLI C4 | #452–#458 | **Merge tamam** — `policy.confirmation_policy`; gate: policy → profil (#449) → confirmation (3. kapı) |
+| E2E (CLI + panel+API) | #459, **#460** | **Kapandı** — opt-in env ile uçtan uca kanıt |
+| Varsayılan-on kararı | **#461**, DL-C18 | **Kapandı (docs)** — `LUMOS_CONFIRMATION_ENABLED` **opt-in korunur**; tam varsayılan-on ürün incelemesine ertelendi; kod değişikliği yok |
+| PR-C6 köprü namespace | **#462** | **Kısmi** — `attach_bridge_pending_confirmation` shadow adapter; legacy `pending_approvals` korunur; köprü yürütmede `consume_confirmation` wiring **açık** — **ONAY GEREKİYOR** |
+| P2 `SECURITY_NEVER_AUTO` | **#463** | **Kısmi (dar kapsam)** — engine branch + helper; `permanent_delete` store/panel yolunda; tam küme eşlemesi açık |
+
+**Opt-in:** `LUMOS_CONFIRMATION_ENABLED=true|1|yes` — varsayılan no-op. Bkz. [CU4 skeleton](../analysis/lumos-cu4-confirmation-skeleton-draft.md), [ADR-012 §7](ADR-012-lumos-security-codex.md), [enforcement map §8](../analysis/lumos-runtime-enforcement-map.md).
 
 ## Sonraki gözden geçirme
 
-- ADR-007 (8 trust durumu) finalize — ADR-010 + ADR-006 terminolojisine referans
-- Lock semantiği birleştirme — **ayrı ADR veya checkpoint**
+- ADR-007 (8 trust durumu) finalize — ADR-010 + ADR-006 terminolojisine referans; **Trust Faz 4 — ONAY GEREKİYOR**
+- Lock semantiği birleştirme — **ayrı ADR veya checkpoint** (ADR-011 Faz 1–3 #436–#438 tamam)
 - ADR-003 canonical katmanlar ve ADR-008 agent network sınırı ile uyum
-- `SECURITY_NEVER_AUTO` enforce gap — ADR-006 risk tablosu ile birlikte
+- `SECURITY_NEVER_AUTO` tam küme eşlemesi — engine branch **kısmi** #463; ADR-006 risk tablosu ile birlikte
+- Köprü `consume_confirmation` wiring — PR-C6 kısmi #462; **ONAY GEREKİYOR**
 - Public repo sınırı ve çekirdek stabilizasyon durumu ile uyum kontrolü

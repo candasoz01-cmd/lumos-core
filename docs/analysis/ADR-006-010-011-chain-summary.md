@@ -42,10 +42,17 @@ Lock iki sinyal (ADR-011) trust tüketimine hazırlanır (Faz 4).
 | #456 | Panel mutasyon confirmation gate (PR-C3, opt-in) |
 | #457 | CU7 preview endpoint + modal (PR-C5) |
 | #458 | CLI `onayla` confirmation (PR-C4) |
+| #459 | CLI E2E confirmation (Faz-2 Phase A) |
+| #460 | Panel+API confirmation E2E (Faz-2 Phase A) |
+| #461 | Varsayılan-on kararı — opt-in korunur (docs, DL-C18) |
+| #462 | PR-C6 köprü confirmation namespace — shadow adapter (**kısmi**) |
+| #463 | P2 `SECURITY_NEVER_AUTO` engine branch (**dar kapsam**) |
+| #464 | Faz-2 milestone docs sync (#460–#463) |
 
 ## Sonraki checkpoint
 
-- **ADR-011 Faz 4:** Merkezi trust sinyal modelinde `keystore_ready` ve `session_unlocked` ayrı alanlar; ADR-007 § Trust sinyalleri revizyonu.
-- **ADR-012 takip:** P2 `SECURITY_NEVER_AUTO` engine branch — [analiz](security-never-auto-p2-and-helper-proposal.md) (onay bekliyor).
-- **PR-C6:** Köprü `pending_approval` → confirmation namespace hizalama.
-- **Confirmation:** Varsayılan-on ürün kararı; E2E opt-in test.
+- **ADR-011 Faz 4 — ONAY GEREKİYOR:** Merkezi trust sinyal modelinde `keystore_ready` ve `session_unlocked` ayrı alanlar; ADR-007 § Trust sinyalleri revizyonu.
+- **ADR-012 takip:** P2 tam küme eşlemesi açık — engine branch **kısmi merge** #463; [analiz](security-never-auto-p2-and-helper-proposal.md).
+- **PR-C6 — ONAY GEREKİYOR:** Köprü yürütmede `consume_confirmation` wiring; shadow adapter **merge** #462.
+- **Gate ↔ `change_sensitivity` zinciri — ONAY GEREKİYOR:** ADR-006 kopukluk; CRITICAL path + düşük gate riski mümkün; karar kaydı only.
+- ~~**Confirmation varsayılan-on / E2E**~~ — **Kapandı** #459+#460 (E2E); opt-in korunur #461 (DL-C18).
