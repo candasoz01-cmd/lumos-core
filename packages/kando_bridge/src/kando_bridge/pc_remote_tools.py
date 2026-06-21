@@ -377,6 +377,32 @@ def _attach_pc_remote_confirmation(record: dict[str, Any], repo_root: Path) -> N
         return
 
 
+def _audit_execute_rejected(
+    repo_root: Path,
+    *,
+    approval_id: str,
+    command: str,
+    error: str,
+    requested_by: str = "",
+    target_device: str = "",
+) -> None:
+    try:
+        from kando_bridge.pc_remote_audit import EVENT_EXECUTE_REJECTED, append_pc_remote_audit
+
+        append_pc_remote_audit(
+            repo_root,
+            EVENT_EXECUTE_REJECTED,
+            approval_id=approval_id,
+            command=command,
+            status="rejected",
+            error=error,
+            requested_by=requested_by,
+            target_device=target_device,
+        )
+    except ImportError:
+        return
+
+
 def _persist_pending_approval(
     command: str,
     arguments: dict[str, Any],
@@ -479,12 +505,27 @@ def execute_tool_stub(
                     "arguments_preview": record["arguments_preview"],
                     "schema_version": SCHEMA_VERSION,
                 }
+            err_reason = gate.reason or "approval_denied"
+            tok = (approval_token or "").strip()
+            aid = (approval_id or "").strip()
+            if not aid and tok and repo_root is not None:
+                found = find_pending_by_token(repo_root, tok)
+                if found is not None:
+                    aid = str(found[1].get("approval_id") or found[0].stem)
+            _audit_execute_rejected(
+                repo_root,
+                approval_id=aid,
+                command=command,
+                error=err_reason,
+                requested_by=requested_by,
+                target_device=target_device,
+            )
             return {
                 "ok": False,
                 "status": "rejected",
                 "command": command,
                 "approval_required": True,
-                "error": gate.reason or "approval_denied",
+                "error": err_reason,
                 "schema_version": SCHEMA_VERSION,
             }
         tok = (approval_token or "").strip()
@@ -495,6 +536,14 @@ def execute_tool_stub(
                 aid = str(found[1].get("approval_id") or found[0].stem)
         ok, reason, approved_rec = try_consume_approval_token(repo_root, aid, tok)
         if not ok or approved_rec is None:
+            _audit_execute_rejected(
+                repo_root,
+                approval_id=aid,
+                command=command,
+                error=reason or "invalid_approval_token",
+                requested_by=requested_by,
+                target_device=target_device,
+            )
             return {
                 "ok": False,
                 "status": "rejected",

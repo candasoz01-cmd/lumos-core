@@ -264,7 +264,9 @@ def approve_pending_record(path: Path, record: dict[str, Any]) -> dict[str, Any]
     record["approved_at"] = _iso(_utc_now())
     record["used"] = False
     path.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
-    _audit_from_pending_path(path, record, event="pending_approved")
+    from kando_bridge.pc_remote_audit import EVENT_PENDING_APPROVED
+
+    _audit_from_pending_path(path, record, event=EVENT_PENDING_APPROVED)
     return record
 
 
@@ -272,7 +274,9 @@ def reject_pending_record(path: Path, record: dict[str, Any]) -> dict[str, Any]:
     record["status"] = STATUS_REJECTED
     record["rejected_at"] = _iso(_utc_now())
     path.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
-    _audit_from_pending_path(path, record, event="pending_rejected")
+    from kando_bridge.pc_remote_audit import EVENT_PENDING_REJECTED
+
+    _audit_from_pending_path(path, record, event=EVENT_PENDING_REJECTED)
     return record
 
 
@@ -292,6 +296,10 @@ def try_consume_approval_token(
     Validate approved token and mark ``used=True`` before stub execute (replay guard).
 
     Re-reads disk under an exclusive lock when available (Unix) to reduce TOCTOU races.
+
+    Windows: ``fcntl`` is unavailable — falls back to validate + write without an
+    exclusive lock. Concurrent double-execute is possible on Windows until a
+    cross-platform lock (e.g. ``msvcrt.locking`` or atomic rename) is added.
     """
     tok = (token or "").strip()
     aid = (approval_id or "").strip()

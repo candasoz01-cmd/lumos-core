@@ -17,6 +17,8 @@ EVENT_PENDING_CREATED = "pending_created"
 EVENT_PENDING_APPROVED = "pending_approved"
 EVENT_PENDING_REJECTED = "pending_rejected"
 EVENT_STUB_EXECUTED = "stub_executed"
+EVENT_EXECUTE_REJECTED = "execute_rejected"
+EVENT_APPROVAL_DENIED = "approval_denied"
 EVENT_PENDING_EXPIRED = "pending_expired"
 
 

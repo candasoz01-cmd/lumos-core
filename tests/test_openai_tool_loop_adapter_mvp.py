@@ -419,3 +419,41 @@ def test_openai_tool_loop_bridge_unreachable_safe_fallback(
     assert result["stage"] == "error"
     assert result.get("safe_fallback") is True
     assert result["error"] == "connection_failed"
+
+
+def test_parse_malformed_tool_call_returns_empty() -> None:
+    assert parse_openai_tool_calls({"type": "function_call", "arguments": "not-json{{"}) == []
+    assert parse_openai_tool_calls(None) == []
+
+
+def test_openai_tool_loop_missing_url_param_safe_fallback(adapter_bridge_env: Path) -> None:
+    from kando_bridge.openai_tool_adapter import ParsedToolCall, run_tool_call_loop
+
+    result = run_tool_call_loop(
+        ParsedToolCall(name=CMD_OPEN_URL, arguments={}),
+    )
+    assert result["stage"] == "error"
+    assert result.get("safe_fallback") is True
+    assert result["execute"]["error"] == "invalid_url"
+
+
+def test_openai_tool_loop_bridge_http_500_safe_fallback(
+    adapter_bridge_env: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _server_error(*_a, **_k):
+        return 500, {"ok": False, "error": "internal_error", "status": "rejected"}
+
+    monkeypatch.setattr("kando_bridge.openai_tool_adapter.http_json", _server_error)
+    calls = parse_openai_tool_calls(mock_pc_open_url_response())
+    result = run_tool_call_loop(calls[0])
+    assert result["stage"] == "error"
+    assert result.get("safe_fallback") is True
+    assert result["error"] == "internal_error"
+
+
+def test_openai_tool_loop_malformed_openai_payload_no_execute(
+    adapter_bridge_env: Path,
+) -> None:
+    results = run_openai_response_loop({"output": [{"type": "text", "text": "hello"}]})
+    assert results == []
