@@ -66,10 +66,11 @@ Lock iki sinyal (ADR-011) trust tüketimine hazırlanır (Faz 4).
 | #485 | Quantum Faz-2 closure checklist sync (#479–#483) |
 | #486 | Panel `hazırlık_raporu` display-only readiness badge (derived from scan fields) |
 | #488 | Teknik borç mimari yoğunlaşma analizi yayını (DL-T01) — 20 madde anchor indeks + etki/maliyet; docs-only |
+| #490 | Release blockers + teknik borç uygulama paketi (DL-T02) — RB-01..RB-28, execution-map, dependency-graph; docs-only |
 
 ## Sonraki checkpoint
 
-- **Teknik borç envanteri (bilgilendirme):** [Mimari yoğunlaşma analizi](technical-debt-architecture-concentration-2026-06.md) — 20 madde; DL-T01; enforcement kararı değil.
+- **Teknik borç envanteri (bilgilendirme):** [Mimari yoğunlaşma analizi](technical-debt-architecture-concentration-2026-06.md) — 20 madde; DL-T01; [execution-map](technical-debt-execution-map.md) + [dependency-graph](technical-debt-dependency-graph.md) — DL-T02; [release blockers](release-blockers.md) — RB-XX; enforcement kararı değil.
 - **ADR-011 Faz 4 — ONAY GEREKİYOR:** Merkezi trust sinyal modelinde `keystore_ready` ve `session_unlocked` ayrı alanlar; ADR-007 § Trust sinyalleri revizyonu.
 - **ADR-012 takip:** P2 tam küme eşlemesi açık — engine branch **kısmi merge** #463; [analiz](security-never-auto-p2-and-helper-proposal.md).
 - **PR-C6 — ONAY GEREKİYOR:** Köprü yürütmede `consume_confirmation` wiring; shadow adapter **merge** #462.

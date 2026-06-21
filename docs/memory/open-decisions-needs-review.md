@@ -132,7 +132,10 @@
 
 | Kaynak | Kapsam | Durum | Not |
 |--------|--------|-------|-----|
-| [technical-debt-architecture-concentration-2026-06.md](../analysis/technical-debt-architecture-concentration-2026-06.md) | 20 maddelik borç envanteri + [etki/maliyet top 10](../analysis/technical-debt-architecture-concentration-2026-06.md#ilk-10--etki--maliyet-oranı) | **published (2026-06-21)** | DL-T01; salt okuma keşif; uygulama/kod yok. Stratejik yüksek etki: [#1 panel.astro](../analysis/technical-debt-architecture-concentration-2026-06.md#td-01-panel-astro), [#2 köprü CU4 gap](../analysis/technical-debt-architecture-concentration-2026-06.md#td-02-bridge-cu4-gap). ADR-012 prep ile çapraz: [#3 LockState env](../analysis/technical-debt-architecture-concentration-2026-06.md#td-03-panel-lockstate-env). |
+| [technical-debt-architecture-concentration-2026-06.md](../analysis/technical-debt-architecture-concentration-2026-06.md) | 20 maddelik borç envanteri + [etki/maliyet top 10](../analysis/technical-debt-architecture-concentration-2026-06.md#ilk-10--etki--maliyet-oranı) | **published (2026-06-21)** | DL-T01; salt okuma keşif; uygulama/kod yok. Stratejik yüksek etki: [td-01](../analysis/technical-debt-architecture-concentration-2026-06.md#td-01-panel-astro), [td-02](../analysis/technical-debt-architecture-concentration-2026-06.md#td-02-bridge-cu4-gap). ADR-012 prep ile çapraz: [td-03](../analysis/technical-debt-architecture-concentration-2026-06.md#td-03-panel-lockstate-env). |
+| [release-blockers.md](../analysis/release-blockers.md) | RB-01..RB-28 release engel analizi (hard/soft/watch + NOT blockers) | **published (2026-06-21)** | DL-T02; 30 gün release penceresi; yeni karar taahhüdü yok. RB ↔ td-XX çapraz tablo §6. |
+| [technical-debt-execution-map.md](../analysis/technical-debt-execution-map.md) | td-01..td-10 PR dilimi / test / geri dönüş planı | **published (2026-06-21)** | DL-T02; uygulanabilirlik haritası; bağımlılık sırası için dependency-graph'a bkz. |
+| [technical-debt-dependency-graph.md](../analysis/technical-debt-dependency-graph.md) | td-01..td-10 dalga topolojisi (Wave 1–3) + mermaid | **published (2026-06-21)** | DL-T02; tavsiye dili yok; execution-map § bağımlılık sırasından türetilmiş. |
 
 ---
 
@@ -173,4 +176,4 @@ Kaynak dosyalardaki boş manuel şablonlar burada tekrarlanmaz. Yeni açık kara
 
 ---
 
-Son güncelleme: 2026-06-21 (Teknik borç analizi yayını — DL-T01; bilgilendirme backlog bölümü)
+Son güncelleme: 2026-06-21 (Release blockers + uygulama paketi — DL-T02; bilgilendirme backlog genişletildi)

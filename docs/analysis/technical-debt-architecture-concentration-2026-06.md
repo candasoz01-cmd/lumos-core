@@ -279,10 +279,13 @@ Yüksek etki + düşük/orta maliyet önce sıralanmıştır. Etki skoru enforce
 
 ---
 
-## İlgili Belgeler
+## İlgili belgeler
 
 - [ADR-012 enforcement prep assessment](ADR-012-enforcement-prep-assessment.md)
 - [Runtime enforcement map](lumos-runtime-enforcement-map.md)
 - [ADR zinciri özeti (006–012)](ADR-006-010-011-chain-summary.md)
+- [Uygulanabilirlik haritası — PR dilimleri](technical-debt-execution-map.md)
+- [Bağımlılık grafiği — Wave 1–3 topolojisi](technical-debt-dependency-graph.md)
+- [Release blockers — RB-XX](release-blockers.md)
 - [Proje haritası — runtime girişleri](../memory/project-map-runtime-entrypoints.md)
-- [Karar günlüğü — DL-T01](../decision-log.md) (yayın kaydı)
+- [Karar günlüğü — DL-T01](../decision-log.md) (envanter yayını)
