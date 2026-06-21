@@ -51,11 +51,25 @@ Aşağıdakiler kullanıcı onayı olmadan kuyruğa alınmaz; Wave 2 enforcement
 
 ---
 
-## Sonraki operasyonel adımlar (bu kuyruk dışı)
+## Post-queue: Internal Alpha ops
+
+**Faz başlangıcı:** 2026-06-18 · **Takip belgesi:** [INTERNAL_ALPHA_OPERATIONS.md](../INTERNAL_ALPHA_OPERATIONS.md) · **Karar:** DL-C23
+
+| Öncelik | Konu | Sahip | Durum |
+|---------|------|-------|-------|
+| 1 | P1-02 çekirdek yolculuk ≥2 hafta | Ürün / QA | **Devam ediyor** — haftalık checkpoint §4.3 |
+| 2 | P0-05 regresyon izleme | Güvenlik | **İzleme** — `make test` / merge review |
+| 3 | P1-05 read-only tasks path | Platform | **Açık** — Alpha çıkış |
+| 4 | P1-03–P1-04 Pilot kapıları | Ticari / ops / Destek | **Açık** — Alpha çıkış sonrası |
+| — | RB-06 / Wave 2+ | — | **Defer** — Launch P1 / ayrı onay |
+
+---
+
+## Sonraki operasyonel adımlar (legacy özet)
 
 | Öncelik | Konu | Sahip | Not |
 |---------|------|-------|-----|
-| Alpha çıkış | P1-02 çekirdek yolculuk ≥2 hafta | Ürün / QA | Operasyonel — kod PR değil |
+| Alpha çıkış | P1-02 çekirdek yolculuk ≥2 hafta | Ürün / QA | → Post-queue tablosu |
 | Pilot hazırlık | P1-03–P1-05 | Ticari / ops / Platform | Closed Pilot kapıları |
 | Launch P1 | RB-06 meta-package uygulaması | Platform | Spike hazır; Alpha defer |
 

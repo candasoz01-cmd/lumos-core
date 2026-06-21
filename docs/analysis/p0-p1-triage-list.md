@@ -5,7 +5,7 @@
 | **Belge türü** | Operasyonel triage (docs only) |
 | **Tarih** | 2026-06-21 |
 | **Kaynak** | [launch-readiness-gap.md](launch-readiness-gap.md) A3, [INTERNAL_ALPHA_RELEASE_SCOPE.md](../INTERNAL_ALPHA_RELEASE_SCOPE.md) §6 |
-| **Durum** | **Aktif** — Alpha giriş kriteri A3 |
+| **Durum** | **Aktif** — Internal Alpha operasyonel faz (2026-06-18+) |
 
 ---
 
@@ -36,7 +36,7 @@ Internal Alpha girişinde **bilinen P0/P1 maddelerinin tek kaynak listesi** ve *
 | ID | Konu | Durum | Sahip | Blocker for | Not |
 |----|------|-------|-------|-------------|-----|
 | P1-01 | Modül menüsü iskelet rozet (RB-17 / G-03) | **Kapalı** | UX / panel | Closed Pilot | #503 — nav `inactiveBadge` |
-| P1-02 | Çekirdek yolculuk ≥2 hafta ekip tekrarı (G-02) | **Açık** | Ürün / QA | Closed Pilot | panel → görev; ± köprü sohbet |
+| P1-02 | Çekirdek yolculuk ≥2 hafta ekip tekrarı (G-02) | **Devam ediyor** | Ürün / QA | Closed Pilot | Faz başlangıç 2026-06-18; [INTERNAL_ALPHA_OPERATIONS.md](../INTERNAL_ALPHA_OPERATIONS.md) §4 |
 | P1-03 | Pilot sözleşmesi + davet ≤20 (G-04) | **Açık** | Ticari / ops | Closed Pilot | Operasyonel kayıt yok |
 | P1-04 | Yazılı destek kanalı + best-effort SLA (G-05) | **Açık** | Destek / ops | Closed Pilot | `support@` TBD |
 | P1-05 | Panel read-only tasks path uyumsuzluğu | **Açık** | Platform | Alpha çıkış | [PANEL_READONLY_AUDIT.md](../PANEL_READONLY_AUDIT.md) §2.1 — `.lumos/tasks.json` vs `.lumos/tasks/tasks.json` |
@@ -80,4 +80,4 @@ Internal Alpha girişinde **bilinen P0/P1 maddelerinin tek kaynak listesi** ve *
 
 ---
 
-*Son güncelleme: 2026-06-21 — docs only; kod yok.*
+*Son güncelleme: 2026-06-21 — P1-02 operasyonel faz devam ediyor; bkz. [INTERNAL_ALPHA_OPERATIONS.md](../INTERNAL_ALPHA_OPERATIONS.md).*
