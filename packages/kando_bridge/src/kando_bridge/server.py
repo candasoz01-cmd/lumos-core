@@ -1201,6 +1201,9 @@ def build_pending_approvals_list() -> list[dict]:
                     "task_id": str(data.get("task_id") or ""),
                     "approval_file": str(rel).replace("\\", "/"),
                     "approval_token": str(data.get("approval_token") or ""),
+                    "approval_id": str(data.get("approval_id") or ""),
+                    "command": str(data.get("command") or ""),
+                    "status": str(data.get("status") or ""),
                     "risk_level": str(data.get("risk_level") or "high"),
                     "reasoning_summary": summ[:2000],
                     "pending_summary": ps,
@@ -2268,6 +2271,42 @@ class BridgeHandler(BaseHTTPRequestHandler):
             self._send_json(200, {"accepted": False, "error": "zaten kullanıldı"})
             return
 
+        from kando_bridge.pending_approvals import is_pc_remote_pending
+        from kando_bridge.pc_remote_tools import approve_pc_remote_pending
+
+        if is_pc_remote_pending(loaded):
+            ok_pc, err_pc, pc_result = approve_pc_remote_pending(
+                path,
+                loaded,
+                approved=approved,
+                repo_root=ROOT,
+            )
+            if not ok_pc:
+                self._send_json(200, {"accepted": False, "error": err_pc or "pc_remote_approve_failed"})
+                return
+            if not approved:
+                try:
+                    path.unlink()
+                except OSError:
+                    pass
+                self._send_json(
+                    200,
+                    {"accepted": True, "closed": True, "applied": False},
+                )
+                return
+            self._send_json(
+                200,
+                {
+                    "accepted": True,
+                    "applied": False,
+                    "pc_remote_approval": pc_result,
+                    "approval_file": loaded.get("approval_file") or "",
+                    "approval_token": loaded.get("approval_token") or "",
+                    "command": loaded.get("command") or "",
+                },
+            )
+            return
+
         if not approved:
             try:
                 path.unlink()
@@ -2453,7 +2492,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
         except (UnicodeDecodeError, json.JSONDecodeError):
             self._reject(400, "invalid_json")
             return
-        status, payload = handle_tools_execute_body(body)
+        status, payload = handle_tools_execute_body(body, repo_root=ROOT)
         self._send_json(status, payload)
 
     def do_POST(self) -> None:
