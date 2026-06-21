@@ -28,7 +28,7 @@ Kuantum alanı Lumos'ta **kaldırılmadı, iptal edilmedi ve "hiç çalışılma
 | Boyut | Durum (2026-06-21) |
 |------|---------------------|
 | Üretim özelliği | Hâlâ yok — kuantum donanımı veya PQC uygulaması iddiası taşınmaz |
-| Quantum Readiness (ADR-013) | **Faz-2 kısmi** — yerel tarayıcı (`src/security/readiness/`), panel `GET /quantum-readiness`, standalone script; Lumos CLI alt komutu bekliyor |
+| Quantum Readiness (ADR-013) | **Faz-2 kısmi** — yerel tarayıcı (`src/security/readiness/`), panel `GET /quantum-readiness`, standalone script, `lumos quantum-readiness` CLI |
 | Panel kuantum sekmesi | Statik kartlar + readiness banner; panel sunucusu `GET /quantum-readiness` live fetch (#469) ile salt okunur JSON; fetch başarısızsa docs-only mock |
 | `lumos-quantum/` dizin drift | Eski belgelerde placeholder olarak geçer; **repo kökünde fiziksel dizin yok** (2026-06-21) — bkz. ADR-013 bilinen boşluklar |
 | IBM / ücretli API | Değişmedi — aktif prod entegrasyon yok; maliyet açılmadı ≠ vazgeçme |
