@@ -19,6 +19,8 @@ Kuantum alanı Lumos'ta **kaldırılmadı, iptal edilmedi ve "hiç çalışılma
 
 **Dürüst ifadeler:** "Kuantum üretim özelliği mevcut" veya "hiç çalışılmadı" yazılmamalıdır. Ücretli API'nin açılmamış olması, alanın terk edildiği anlamına gelmez.
 
+> **Not (2026-06-21):** «Panelde görünür iskelet / demo düzeyi» (2026-06-11 snapshot) ifadesi güncel durumda Faz-2 kısmi readiness tarayıcısını kapsamaz; bkz. [Güncel durum eki](#güncel-durum-eki-2026-06-21) ve panel live fetch [PR #469](https://github.com/candasoz01-cmd/lumos-core/pull/469).
+
 ## Güncel durum eki (2026-06-21)
 
 > **Not:** Aşağıdaki tablo, [Güncel durum (2026-06-11)](#güncel-durum-2026-06-11) bölümünü **değiştirmez**; o tarihli snapshot korunur. Bu eki yalnızca ADR-001 / ADR-013 tutarlılık senkronudur.
@@ -27,7 +29,7 @@ Kuantum alanı Lumos'ta **kaldırılmadı, iptal edilmedi ve "hiç çalışılma
 |------|---------------------|
 | Üretim özelliği | Hâlâ yok — kuantum donanımı veya PQC uygulaması iddiası taşınmaz |
 | Quantum Readiness (ADR-013) | **Faz-2 kısmi** — yerel tarayıcı (`src/security/readiness/`), panel `GET /quantum-readiness`, standalone script; Lumos CLI alt komutu bekliyor |
-| Panel kuantum sekmesi | Statik kartlar + readiness banner; canlı tarama panel sunucusu üzerinden salt okunur JSON |
+| Panel kuantum sekmesi | Statik kartlar + readiness banner; panel sunucusu `GET /quantum-readiness` live fetch (#469) ile salt okunur JSON; fetch başarısızsa docs-only mock |
 | `lumos-quantum/` dizin drift | Eski belgelerde placeholder olarak geçer; **repo kökünde fiziksel dizin yok** (2026-06-21) — bkz. ADR-013 bilinen boşluklar |
 | IBM / ücretli API | Değişmedi — aktif prod entegrasyon yok; maliyet açılmadı ≠ vazgeçme |
 
