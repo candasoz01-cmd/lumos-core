@@ -1348,6 +1348,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
         line-height: 1.45;
         color: var(--lumos-error);
       }
+      .gorevler-codex-warning {
+        margin: 0 0 0.85rem;
+        max-width: 36rem;
+        padding: 0.55rem 0.75rem;
+        font-size: 0.78rem;
+        line-height: 1.45;
+        color: #92400e;
+        background: rgba(251, 191, 36, 0.12);
+        border: 1px solid rgba(251, 191, 36, 0.35);
+        border-radius: 8px;
+      }
       .gorevler-evidence-strip {
         display: flex;
         flex-wrap: wrap;
@@ -4462,6 +4473,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   (<code>panel_tasks_server</code> · <code>{TASKS_API_URL}</code>)
                 </span>
               )}
+            </p>
+            <p
+              id="gorevler-codex-warning"
+              class="gorevler-codex-warning"
+              role="note"
+              data-i18n="panel.modules.tasks.codexWarning"
+            >
+              Demo panel — tam policy/profil zinciri CLI ile aynı değil; riskli işlemde dur. (ADR-012)
             </p>
             <div class="gorevler-proto">
               <div class="gorevler-form-panel">

@@ -19,6 +19,31 @@ def _is_sandbox_mode() -> bool:
     v = os.environ.get("LUMOS_SANDBOX_MODE", "false").lower()
     return v in ("1", "true", "yes")
 
+
+_CODEX_PANEL_WARNING = (
+    "Demo panel — tam policy/profil zinciri CLI ile aynı değil; riskli işlemde dur."
+)
+
+
+def task_actions_gate() -> dict:
+    """
+    Panel görev mutasyon gate — şeffaflık (ADR-012 C6).
+
+    ``enabled`` davranışı bilinçli olarak açık; yalnızca ``reason`` ortamı açıklar.
+    """
+    mode = (os.environ.get("LUMOS_MODE") or "offline").strip().lower()
+    mode_label = "çevrimiçi" if mode == "online" else "çevrimdışı"
+    profile = (os.environ.get("LUMOS_PROFILE") or "rapor").strip().lower() or "rapor"
+    sandbox = _is_sandbox_mode()
+    parts = [
+        _CODEX_PANEL_WARNING,
+        f"Mod: {mode_label}; profil: {profile}.",
+    ]
+    if sandbox:
+        parts.append("Yazım hedefi: sandbox.")
+    parts.append("Gate açık (demo); CLI policy zinciri uygulanmaz — bkz. ADR-012.")
+    return {"enabled": True, "reason": " ".join(parts)}
+
 # Panel status (filtre uyumu): engine status → ekran etiketi
 _TASK_STATUS_MAP = {
     "bekliyor": "bekleyen",
@@ -579,12 +604,13 @@ def build_panel_read_state(*, repo_root: Path | None = None) -> dict:
     except Exception:
         pass
 
+    gate = task_actions_gate()
     dashboard = {
         "sandbox_mode": is_sandbox,
         "writing_base_dir": writing_label,
         "guard_status": "KORUMA AKTİF",
         "recent_events": [],
-        "warnings": [],
+        "warnings": [gate["reason"]] if gate.get("reason") else [],
     }
 
     sandbox = {
@@ -737,6 +763,8 @@ def build_panel_read_state(*, repo_root: Path | None = None) -> dict:
         "session_unlocked_note": _PANEL_SESSION_UNLOCKED_NOTE,
         "blocked_reason": None,
         "next_step": None,
+        "codex_warning": _CODEX_PANEL_WARNING,
+        "task_actions_gate": gate,
     }
 
     yanit_payload = _build_yanit_card_payload(
