@@ -106,6 +106,7 @@ def test_landing_kuantum_sections_i18n_wiring() -> None:
         "quantumDetailBody:",
         "quantumDetailLinksLead:",
         "quantumAdrLink:",
+        "quantumAdr013Link:",
         "quantumPanelLink:",
         "roadmapInlineLead:",
         "roadmapLinkFile:",
@@ -118,6 +119,8 @@ def test_landing_kuantum_sections_i18n_wiring() -> None:
     assert 'data-i18n="landing.modules.quantumTitle"' in text
     assert 'data-i18n="landing.modules.quantumDetailStatus"' in text
     assert 'data-i18n="landing.modules.quantumAdrLink"' in text
+    assert 'data-i18n="landing.modules.quantumAdr013Link"' in text
+    assert "ADR-013-lumos-quantum-security-readiness.md" in text
     assert 'data-i18n="landing.modules.quantumPanelLink"' in text
     assert 'data-i18n="landing.modules.roadmapInlineLead"' in text
     assert 'data-i18n="landing.modules.roadmapLinkFile"' in text

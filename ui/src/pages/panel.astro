@@ -5310,16 +5310,15 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 id="panel-quantum-badge-mvp"
                 class="panel-quantum-readiness-badge"
                 data-i18n="panel.modules.quantum.banner.mvpPlanning"
-              >Quantum Readiness MVP plan aşamasında</span>
+              >Yerel tarama yüklenemedi — örnek gösteriliyor</span>
             </div>
             <p id="panel-quantum-readiness-intro" class="medya-intro" data-i18n="panel.modules.quantum.readinessIntro">
-              Lumos Quantum Readiness — yerel, salt okunur kuantum sonrası güvenlik hazırlık tarayıcısı konseptidir. Bu ekranda
-              gösterilen değerler dokümantasyon tabanlı örnektir; canlı dosya taraması veya güvenlik skoru üretilmez.
+              Lumos Quantum Readiness — yerel, salt okunur kuantum sonrası güvenlik hazırlık tarayıcısı. GET /quantum-readiness yanıt vermediğinde aşağıdaki değerler dokümantasyon tabanlı örnektir; panel sunucusu açıkken yerel tarama (local_scan) otomatik yüklenir.
             </p>
             <div class="panel-quantum-readiness-mock" data-quantum-readiness-mock="true">
               <h3 id="panel-quantum-readiness-title" data-i18n="panel.modules.quantum.mock.title">Örnek hazırlık özeti (mock)</h3>
               <p id="panel-quantum-readiness-note" data-i18n="panel.modules.quantum.mock.note">
-                Kanıt kaynağı: docs_only — ADR-013 checklist. Gerçek tarama Faz-2 onayı sonrası bağlanır.
+                Kanıt kaynağı: docs_only — ADR-013 checklist. GET /quantum-readiness kullanılamadı; yerel tarama (local_scan) yüklenemedi.
               </p>
               <dl>
                 <dt data-i18n="panel.modules.quantum.mock.cryptoLabel">Şifreleme / anahtar</dt>
@@ -5329,7 +5328,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 <dt data-i18n="panel.modules.quantum.mock.pqcLabel">PQC geçiş hazırlığı</dt>
                 <dd id="panel-quantum-pqc-value" data-i18n="panel.modules.quantum.mock.pqcValue">İzleme — NIST PQC farkındalığı; uygulama yok</dd>
                 <dt data-i18n="panel.modules.quantum.mock.evidenceLabel">Kanıt türü</dt>
-                <dd id="panel-quantum-evidence-value" data-i18n="panel.modules.quantum.mock.evidenceValue">docs_only / simulasyon — canlı tarama yok</dd>
+                <dd id="panel-quantum-evidence-value" data-i18n="panel.modules.quantum.mock.evidenceValue">docs_only — yerel tarama (local_scan) yüklenemedi</dd>
               </dl>
             </div>
             <h3 class="panel-quantum-subsection" data-i18n="panel.modules.quantum.entropyLab.title">Entropy Lab (deneysel — ayrı alan)</h3>

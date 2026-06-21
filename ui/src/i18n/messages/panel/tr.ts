@@ -708,16 +708,16 @@ const panelModules = {
       localScan: "Yerel tarama (local_scan)",
       docsExample: "Dokümantasyon tabanlı örnek çıktı",
       noLiveScan: "Canlı analiz yapılmadı",
-      mvpPlanning: "Quantum Readiness MVP plan aşamasında",
+      mvpPlanning: "Yerel tarama yüklenemedi — örnek gösteriliyor",
     },
     readinessIntro:
-      "Lumos Quantum Readiness — yerel, salt okunur kuantum sonrası güvenlik hazırlık tarayıcısı konseptidir. Bu ekranda gösterilen değerler dokümantasyon tabanlı örnektir; canlı dosya taraması veya güvenlik skoru üretilmez.",
+      "Lumos Quantum Readiness — yerel, salt okunur kuantum sonrası güvenlik hazırlık tarayıcısı. GET /quantum-readiness yanıt vermediğinde aşağıdaki değerler dokümantasyon tabanlı örnektir; panel sunucusu açıkken yerel tarama (local_scan) otomatik yüklenir.",
     readinessIntroLive:
       "Lumos Quantum Readiness — yerel, salt okunur hazırlık taraması. Canlı analiz kuantum güvenli veya üretim kuantum iddiası taşımaz; salt okunur kod/metadata envanteridir.",
     mock: {
       title: "Örnek hazırlık özeti (mock)",
       titleLive: "Yerel hazırlık özeti",
-      note: "Kanıt kaynağı: docs_only — ADR-013 checklist. Gerçek tarama Faz-2 onayı sonrası bağlanır.",
+      note: "Kanıt kaynağı: docs_only — ADR-013 checklist. GET /quantum-readiness kullanılamadı; yerel tarama (local_scan) yüklenemedi.",
       noteLive:
         "Hazırlık raporu — kuantum güvenli veya kuantum bilgisayar iddiası taşımaz.",
       cryptoLabel: "Şifreleme / anahtar",
@@ -727,7 +727,7 @@ const panelModules = {
       pqcLabel: "PQC geçiş hazırlığı",
       pqcValue: "İzleme — NIST PQC farkındalığı; uygulama yok",
       evidenceLabel: "Kanıt türü",
-      evidenceValue: "docs_only / simulasyon — canlı tarama yok",
+      evidenceValue: "docs_only — yerel tarama (local_scan) yüklenemedi",
     },
     live: {
       evidenceBasis: "Kanıt kaynağı: {basis} — yerel salt okunur tarama",
