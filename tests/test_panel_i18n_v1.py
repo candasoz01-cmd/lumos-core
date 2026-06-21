@@ -828,18 +828,25 @@ PANEL_I18N_V53_MARKERS = (
     'id="panel-kuantum-readiness-mock-banner"',
     'class="panel-quantum-readiness-banner"',
     'data-i18n="panel.modules.quantum.banner.demo"',
+    'data-i18n="panel.modules.quantum.banner.localScan"',
     'data-i18n="panel.modules.quantum.banner.docsExample"',
     'data-i18n="panel.modules.quantum.banner.noLiveScan"',
     'data-i18n="panel.modules.quantum.banner.mvpPlanning"',
     'data-quantum-readiness-mock="true"',
     'data-i18n="panel.modules.quantum.readinessIntro"',
     'data-i18n="panel.modules.quantum.entropyLab.title"',
+    'fetchQuantumReadiness',
+    'refreshQuantumReadinessPanel',
 )
 
 PANEL_I18N_V53_TR_KEYS = (
     "banner:",
+    "localScan:",
     "readinessIntro:",
+    "readinessIntroLive:",
     "mock:",
+    "titleLive:",
+    "live:",
     "entropyLab:",
     "Kuantum Güvenlik Hazırlığı",
 )

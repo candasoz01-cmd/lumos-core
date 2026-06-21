@@ -5290,28 +5290,46 @@ const PANEL_DEBUG = import.meta.env.DEV;
               aria-live="polite"
             >
               <span class="panel-data-flow-badge panel-data-flow-badge--demo" data-i18n="panel.modules.quantum.banner.demo">DEMO</span>
-              <span class="panel-quantum-readiness-badge" data-i18n="panel.modules.quantum.banner.docsExample">Dokümantasyon tabanlı örnek çıktı</span>
-              <span class="panel-quantum-readiness-badge" data-i18n="panel.modules.quantum.banner.noLiveScan">Canlı analiz yapılmadı</span>
-              <span class="panel-quantum-readiness-badge" data-i18n="panel.modules.quantum.banner.mvpPlanning">Quantum Readiness MVP plan aşamasında</span>
+              <span
+                id="panel-quantum-badge-local-scan"
+                class="panel-quantum-readiness-badge"
+                hidden
+                data-i18n="panel.modules.quantum.banner.localScan"
+              >Yerel tarama (local_scan)</span>
+              <span
+                id="panel-quantum-badge-docs"
+                class="panel-quantum-readiness-badge"
+                data-i18n="panel.modules.quantum.banner.docsExample"
+              >Dokümantasyon tabanlı örnek çıktı</span>
+              <span
+                id="panel-quantum-badge-no-live"
+                class="panel-quantum-readiness-badge"
+                data-i18n="panel.modules.quantum.banner.noLiveScan"
+              >Canlı analiz yapılmadı</span>
+              <span
+                id="panel-quantum-badge-mvp"
+                class="panel-quantum-readiness-badge"
+                data-i18n="panel.modules.quantum.banner.mvpPlanning"
+              >Quantum Readiness MVP plan aşamasında</span>
             </div>
-            <p class="medya-intro" data-i18n="panel.modules.quantum.readinessIntro">
+            <p id="panel-quantum-readiness-intro" class="medya-intro" data-i18n="panel.modules.quantum.readinessIntro">
               Lumos Quantum Readiness — yerel, salt okunur kuantum sonrası güvenlik hazırlık tarayıcısı konseptidir. Bu ekranda
               gösterilen değerler dokümantasyon tabanlı örnektir; canlı dosya taraması veya güvenlik skoru üretilmez.
             </p>
             <div class="panel-quantum-readiness-mock" data-quantum-readiness-mock="true">
-              <h3 data-i18n="panel.modules.quantum.mock.title">Örnek hazırlık özeti (mock)</h3>
-              <p data-i18n="panel.modules.quantum.mock.note">
+              <h3 id="panel-quantum-readiness-title" data-i18n="panel.modules.quantum.mock.title">Örnek hazırlık özeti (mock)</h3>
+              <p id="panel-quantum-readiness-note" data-i18n="panel.modules.quantum.mock.note">
                 Kanıt kaynağı: docs_only — ADR-013 checklist. Gerçek tarama Faz-2 onayı sonrası bağlanır.
               </p>
               <dl>
                 <dt data-i18n="panel.modules.quantum.mock.cryptoLabel">Şifreleme / anahtar</dt>
-                <dd data-i18n="panel.modules.quantum.mock.cryptoValue">AES-GCM-256, Scrypt KDF — klasik; PQC uygulanmıyor</dd>
+                <dd id="panel-quantum-crypto-value" data-i18n="panel.modules.quantum.mock.cryptoValue">AES-GCM-256, Scrypt KDF — klasik; PQC uygulanmıyor</dd>
                 <dt data-i18n="panel.modules.quantum.mock.agilityLabel">Kripto çeviklik</dt>
-                <dd data-i18n="panel.modules.quantum.mock.agilityValue">Orta — modül sınırları var; PQC migration hook yok</dd>
+                <dd id="panel-quantum-agility-value" data-i18n="panel.modules.quantum.mock.agilityValue">Orta — modül sınırları var; PQC migration hook yok</dd>
                 <dt data-i18n="panel.modules.quantum.mock.pqcLabel">PQC geçiş hazırlığı</dt>
-                <dd data-i18n="panel.modules.quantum.mock.pqcValue">İzleme — NIST PQC farkındalığı; uygulama yok</dd>
+                <dd id="panel-quantum-pqc-value" data-i18n="panel.modules.quantum.mock.pqcValue">İzleme — NIST PQC farkındalığı; uygulama yok</dd>
                 <dt data-i18n="panel.modules.quantum.mock.evidenceLabel">Kanıt türü</dt>
-                <dd data-i18n="panel.modules.quantum.mock.evidenceValue">docs_only / simulasyon — canlı tarama yok</dd>
+                <dd id="panel-quantum-evidence-value" data-i18n="panel.modules.quantum.mock.evidenceValue">docs_only / simulasyon — canlı tarama yok</dd>
               </dl>
             </div>
             <h3 class="panel-quantum-subsection" data-i18n="panel.modules.quantum.entropyLab.title">Entropy Lab (deneysel — ayrı alan)</h3>
@@ -7735,6 +7753,156 @@ const PANEL_DEBUG = import.meta.env.DEV;
         }
       }
 
+      let panelQuantumReadinessLoaded = false;
+      /** @type {null | Record<string, unknown>} */
+      let panelQuantumReadinessReport = null;
+
+      async function fetchQuantumReadiness() {
+        const base = resolveGorevlerTasksApiBase();
+        if (!base) return { ok: false };
+        try {
+          const r = await fetch(`${base}/quantum-readiness`, {
+            headers: { Accept: "application/json" },
+          });
+          if (!r.ok) return { ok: false };
+          const data = await r.json();
+          if (!data || data.meta?.report_type !== "quantum_readiness") return { ok: false };
+          return { ok: true, report: data };
+        } catch {
+          return { ok: false };
+        }
+      }
+
+      function formatQuantumCryptoInventory(inv) {
+        if (!inv || typeof inv !== "object") return panelT("panel.modules.quantum.mock.cryptoValue");
+        const parts = []
+          .concat(inv.encryption_types || [])
+          .concat(inv.signature_types || [])
+          .concat(inv.key_types || []);
+        const note = String(inv.quantum_exposure_note || "").trim();
+        if (!parts.length) return note || panelT("panel.modules.quantum.mock.cryptoValue");
+        return note ? `${parts.join(", ")} — ${note}` : parts.join(", ");
+      }
+
+      function formatQuantumAgilityLevel(level) {
+        const key = String(level || "").trim().toLowerCase();
+        const label = panelT(`panel.modules.quantum.live.agility.${key}`);
+        if (label && !label.startsWith("panel.modules.quantum")) return label;
+        return String(level || panelT("panel.modules.quantum.mock.agilityValue"));
+      }
+
+      function formatQuantumPqcReadiness(pqc) {
+        if (!pqc || typeof pqc !== "object") return panelT("panel.modules.quantum.mock.pqcValue");
+        const status = String(pqc.pqc_status || "").trim();
+        const aware = pqc.nist_pqc_awareness === true;
+        const statusLabel = panelT(`panel.modules.quantum.live.pqcStatus.${status}`);
+        const statusText =
+          statusLabel && !statusLabel.startsWith("panel.modules.quantum") ? statusLabel : status;
+        const awareText = aware
+          ? panelT("panel.modules.quantum.live.pqcAwareYes")
+          : panelT("panel.modules.quantum.live.pqcAwareNo");
+        return `${statusText} — ${awareText}`;
+      }
+
+      function applyQuantumReadinessMockFallback() {
+        panelQuantumReadinessLoaded = false;
+        panelQuantumReadinessReport = null;
+        const localBadge = document.getElementById("panel-quantum-badge-local-scan");
+        const docsBadge = document.getElementById("panel-quantum-badge-docs");
+        const noLiveBadge = document.getElementById("panel-quantum-badge-no-live");
+        const mvpBadge = document.getElementById("panel-quantum-badge-mvp");
+        if (localBadge) localBadge.hidden = true;
+        if (docsBadge) docsBadge.hidden = false;
+        if (noLiveBadge) noLiveBadge.hidden = false;
+        if (mvpBadge) mvpBadge.hidden = false;
+
+        const intro = document.getElementById("panel-quantum-readiness-intro");
+        if (intro) intro.textContent = panelT("panel.modules.quantum.readinessIntro");
+
+        const title = document.getElementById("panel-quantum-readiness-title");
+        if (title) title.textContent = panelT("panel.modules.quantum.mock.title");
+
+        const note = document.getElementById("panel-quantum-readiness-note");
+        if (note) note.textContent = panelT("panel.modules.quantum.mock.note");
+
+        const crypto = document.getElementById("panel-quantum-crypto-value");
+        if (crypto) crypto.textContent = panelT("panel.modules.quantum.mock.cryptoValue");
+
+        const agility = document.getElementById("panel-quantum-agility-value");
+        if (agility) agility.textContent = panelT("panel.modules.quantum.mock.agilityValue");
+
+        const pqc = document.getElementById("panel-quantum-pqc-value");
+        if (pqc) pqc.textContent = panelT("panel.modules.quantum.mock.pqcValue");
+
+        const evidence = document.getElementById("panel-quantum-evidence-value");
+        if (evidence) evidence.textContent = panelT("panel.modules.quantum.mock.evidenceValue");
+      }
+
+      function applyQuantumReadinessLive(report) {
+        panelQuantumReadinessLoaded = true;
+        panelQuantumReadinessReport = report;
+        const localBadge = document.getElementById("panel-quantum-badge-local-scan");
+        const docsBadge = document.getElementById("panel-quantum-badge-docs");
+        const noLiveBadge = document.getElementById("panel-quantum-badge-no-live");
+        const mvpBadge = document.getElementById("panel-quantum-badge-mvp");
+        if (localBadge) localBadge.hidden = false;
+        if (docsBadge) docsBadge.hidden = true;
+        if (noLiveBadge) noLiveBadge.hidden = true;
+        if (mvpBadge) mvpBadge.hidden = true;
+
+        const intro = document.getElementById("panel-quantum-readiness-intro");
+        if (intro) intro.textContent = panelT("panel.modules.quantum.readinessIntroLive");
+
+        const title = document.getElementById("panel-quantum-readiness-title");
+        if (title) title.textContent = panelT("panel.modules.quantum.mock.titleLive");
+
+        const note = document.getElementById("panel-quantum-readiness-note");
+        const disclaimer = report?.meta?.disclaimer;
+        if (note) {
+          note.textContent =
+            typeof disclaimer === "string" && disclaimer.trim()
+              ? disclaimer.trim()
+              : panelT("panel.modules.quantum.mock.noteLive");
+        }
+
+        const crypto = document.getElementById("panel-quantum-crypto-value");
+        if (crypto) crypto.textContent = formatQuantumCryptoInventory(report.crypto_inventory);
+
+        const agility = document.getElementById("panel-quantum-agility-value");
+        if (agility) agility.textContent = formatQuantumAgilityLevel(report.crypto_agility_level);
+
+        const pqc = document.getElementById("panel-quantum-pqc-value");
+        if (pqc) pqc.textContent = formatQuantumPqcReadiness(report.post_quantum_transition_readiness);
+
+        const evidence = document.getElementById("panel-quantum-evidence-value");
+        const basis = String(report?.meta?.evidence_basis || "local_scan").trim();
+        if (evidence) {
+          evidence.textContent = panelT("panel.modules.quantum.live.evidenceBasis").replace(
+            "{basis}",
+            basis,
+          );
+        }
+      }
+
+      async function refreshQuantumReadinessPanel() {
+        const panel = document.getElementById("panel-kuantum");
+        if (!panel || panel.getAttribute("data-active") !== "true") return;
+        const fetched = await fetchQuantumReadiness();
+        if (fetched.ok && fetched.report) {
+          applyQuantumReadinessLive(fetched.report);
+          return;
+        }
+        applyQuantumReadinessMockFallback();
+      }
+
+      function refreshPanelQuantumReadinessI18n() {
+        if (panelQuantumReadinessLoaded && panelQuantumReadinessReport) {
+          applyQuantumReadinessLive(panelQuantumReadinessReport);
+          return;
+        }
+        applyQuantumReadinessMockFallback();
+      }
+
       async function refreshGorevlerEvidenceStrip() {
         const stripEl = document.getElementById("gorevler-evidence-strip");
         const summaryEl = document.getElementById("gorevler-evidence-summary");
@@ -8804,6 +8972,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
           });
           scrollActivePanelNavChipIntoView(btn);
           focusPanelModuleContent(id);
+          if (id === "kuantum") {
+            refreshQuantumReadinessPanel();
+          }
         });
 
         function panelNavigateToModule(moduleId) {
@@ -14888,6 +15059,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         refreshPanelFilesI18n();
         refreshPanelGorevlerI18n();
         refreshPanelCapabilitiesI18n();
+        refreshPanelQuantumReadinessI18n();
         if (typeof window.refreshMedyaOutboxHintI18n === "function") {
           window.refreshMedyaOutboxHintI18n();
         }
