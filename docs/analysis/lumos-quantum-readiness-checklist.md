@@ -4,11 +4,11 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Faz-1 referans** — manuel / docs-only |
+| Durum | **Faz-1 referans + Faz-2 kısmi** — manuel tablo; tarayıcı çıktısı ile güncellenebilir |
 | Tarih | 2026-06-21 |
 | İlgili | [ADR-013](../decisions/ADR-013-lumos-quantum-security-readiness.md) |
 
-Bu belge Faz-1'de **salt okunur envanter ve rapor şablonu**dur. Faz-2 yerel taramada `durum`, `kanıt` ve `verified` sütunları otomatik doldurulabilir.
+Bu belge Faz-1'de **salt okunur envanter ve rapor şablonu**dur. Faz-2 yerel tarayıcı (`scan_quantum_readiness`) çalıştığında `durum`, `kanıt` ve `verified` sütunları otomatik doldurulabilir; panel `GET /quantum-readiness` aynı şemayı döner.
 
 **Sınır:** Kuantum bilgisayar, kuantum-güvenli veya "quantum secure" iddiası yok. Entropy Lab ayrı deneysel bölümdür.
 
@@ -89,7 +89,8 @@ Faz-2: yerel tarama satır/snapshot ile `verified: true` işaretler.
 | Öncelik | Adım | Hedef | Bağımlılık | Efor | Durum |
 |---------|------|-------|------------|------|-------|
 | P0 | Sessiz entropy fallback uyarısını readiness raporunda zorunlu göster | Entropy Lab bölümü | Faz-2 probe | S | `oneri` |
-| P1 | Kripto envanter yerel tarama (CLI/panel GET) | Tüm `crypto_inventory` | Faz-2 onay | M | `onay_bekliyor` |
+| P1 | Kripto envanter yerel tarama (panel GET / standalone script) | Tüm `crypto_inventory` | Faz-2 kısmi (#468, #469) | M | `kismi` |
+| P1 | Lumos CLI alt komutu (`quantum-readiness`) | CLI JSON çıktı | Faz-2 tamamlama | M | `onay_bekliyor` |
 | P1 | Keystore / encrypted blob format versiyonlama taslağı | `hard_to_change_deps` | Ayrı ADR | L | `ertelendi` |
 | P2 | NIST PQC aday izleme notu güncelleme | `post_quantum_transition_readiness` | — | S | `oneri` |
 | P3 | Hibrit PQC POC (private/onaylı) | PQC uygulama | P1 + audit | L | `ertelendi` |
@@ -115,22 +116,23 @@ Faz-2: yerel tarama satır/snapshot ile `verified: true` işaretler.
 | `LUMOS_ENTROPY_PROVIDER` | Set değil veya `os` | Farklı değer → sessiz fallback riski |
 | qiskit / qiskit-aer kurulu | Hayır (typical) | Import fail → OS |
 | IBM token / `QiskitRuntimeService` | Yok | Public OSS |
-| Readiness yerel tarama endpoint/CLI | Yok | Faz-2 |
-| Entropy birim testi | Yok | Faz-2 |
+| Readiness yerel tarama | Panel `GET /quantum-readiness` + `scripts/quantum_readiness_scan.py` | **Kısmi (Faz-2)** — Lumos CLI alt komutu yok |
+| Entropy birim testi | Yok | Faz-2+ |
 
 ---
 
-## Rapor meta (Faz-1 şablon)
+## Rapor meta (Faz-1 şablon / Faz-2 tarayıcı)
 
-| Alan | Faz-1 değer |
-|------|-------------|
-| `report_type` | `quantum_readiness` |
-| `scan_mode` | `local` (henüz çalıştırılmıyor — `docs_only`) |
-| `read_only` | `true` |
-| `evidence_basis` | `docs_only` |
-| `crypto_agility_level` | `orta` |
-| `pqc_status` | `uygulanmiyor` |
-| `disclaimer` | Hazırlık raporu — kuantum güvenli veya kuantum bilgisayar iddiası taşımaz |
+| Alan | Faz-1 (manuel) | Faz-2 tarayıcı (`scan_quantum_readiness`) |
+|------|----------------|-------------------------------------------|
+| `report_type` | `quantum_readiness` | `quantum_readiness` |
+| `scan_mode` | `local` (henüz çalıştırılmıyor — `docs_only`) | `local` |
+| `read_only` | `true` | `true` |
+| `evidence_basis` | `docs_only` | `local_scan` |
+| `generated_at` | — | ISO-8601 (tarayıcı) |
+| `crypto_agility_level` | `orta` | tarayıcı değerlendirmesi |
+| `pqc_status` | `uygulanmiyor` | `uygulanmiyor` |
+| `disclaimer` | Hazırlık raporu — kuantum güvenli veya kuantum bilgisayar iddiası taşımaz | aynı |
 
 ---
 
@@ -146,8 +148,8 @@ Faz-2: yerel tarama satır/snapshot ile `verified: true` işaretler.
 | Kanıtlı bulgular | §6 tablo | `evidenced_findings` JSON |
 | Geçiş planı | §7 tablo | Salt okunur öneri (güncellenebilir) |
 | Entropy Lab | Entropy envanteri | Probe + fallback uyarısı |
-| Genel durum | `docs_only` | `local_scan` |
+| Genel durum | `docs_only` | `local_scan` (panel GET veya script başarılı) |
 
 ---
 
-**Kullanım:** Faz-1 PR sonrası manuel gözden geçirme; Faz-2'de yerel tarama çıktısı ile satır güncelleme. Entropy **davranışı** değiştirilmez; Entropy Lab readiness raporunda **deneysel** etiketli kalır.
+**Kullanım:** Faz-1 PR sonrası manuel gözden geçirme; Faz-2 kısmi uygulamada `python -m scripts.quantum_readiness_scan` veya panel `GET /quantum-readiness` ile satır güncelleme. Entropy **davranışı** değiştirilmez; Entropy Lab readiness raporunda **deneysel** etiketli kalır.

@@ -22,7 +22,7 @@ lumos-core/
 ├── docs/             # Dokümantasyon (çok sayıda .md)
 ├── examples/         # Kullanım örnekleri (kando-post-card, lumos senaryoları)
 ├── logs/             # Log dosyaları (örn. lumos_evolution.jsonl)
-├── lumos-quantum/    # Placeholder — kuantum modülü rezervi (iptal değil; bkz. ADR-001)
+├── lumos-quantum/    # Placeholder — kuantum modülü rezervi (iptal değil; bkz. ADR-001) [^lumos-quantum-drift]
 ├── lumos.py          # Giriş noktası (root)
 ├── package-lock.json # Root’ta — niyet net değil
 ├── panel/            # Frontend panel (HTML/CSS/JS)
@@ -115,7 +115,7 @@ Panel altında çok sayıda .md (BACKEND_*, PANEL_*, CHECKPOINT) — dokümantas
   - **src/policy/** — offline_engine.py.bak, .bak_fallback_cli, .bak_lock_cli, .bak_unlock; rules.py.bak, .bak_gate
   - **src/security/** — keystore.py.bak2; **security.bak_lock/** — tüm klasör yedek
   - **src/scripts/** — init_keystore.py.bak_fix
-- **lumos-quantum/** — Placeholder alan; kuantum modülü için rezerve (iptal değil). Ayrıntı: `docs/decisions/ADR-001-lumos-quantum-modules.md`.
+- **lumos-quantum/** — Placeholder alan; kuantum modülü için rezerve (iptal değil). Ayrıntı: `docs/decisions/ADR-001-lumos-quantum-modules.md`. [^lumos-quantum-drift]
 - **Root package-lock.json** — Proje çoğunlukla Python; backend kendi package-lock’una sahip; root’taki gereksiz olabilir.
 - **YARIN_DEVAM.txt** — Geçici not; commit’e girmemesi veya silinmesi tercih edilebilir.
 - **PROJE_DOSYA_LISTESI.txt** — Eski liste; .lumos/ ve __pycache__ karışık; güncellenebilir veya kaldırılabilir.
@@ -130,3 +130,5 @@ Panel altında çok sayıda .md (BACKEND_*, PANEL_*, CHECKPOINT) — dokümantas
 - **Çıktı:** CLI çıktısı, web yanıtı, panel (backend → feed-api → app.js).
 
 Bu doküman ADIM 2 (temizlik) ve ADIM 3 (kritik akış sabitleme) için giriş referansı olarak kullanılabilir.
+
+[^lumos-quantum-drift]: 2026-06-21 — `lumos-quantum/` bu haritada tarihsel placeholder olarak geçer; repo kökünde fiziksel dizin yok (bkz. ADR-001 güncel durum eki, ADR-013 bilinen boşluklar).

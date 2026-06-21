@@ -29,7 +29,7 @@ Ayrıntılı liste: **`docs/TEMIZLENMESI_GEREKENLER_LISTESI.md`**.
 |----------|--------|
 | **.bak / _bak_*** | `src/` altındaki `.bak`, `.bak_gate`, `.bak_unlock`, `.bak_full`, `.bak_fix`, `.bak2` vb. — toplam 17 dosya (liste dokümanda). |
 | **security.bak_lock** | `src/security.bak_lock/` klasörü (crypto, identity, keystore, permissions + keystore.py.bak2). Production’da kullanılmaz; referans yok. |
-| **Eski / belirsiz** | `lumos-quantum/` (boş/placeholder), `YARIN_DEVAM.txt`, `PROJE_DOSYA_LISTESI.txt`, repo kökündeki `package-lock.json` (opsiyonel). |
+| **Eski / belirsiz** | `lumos-quantum/` (boş/placeholder — repo kökünde fiziksel dizin yok; bkz. [^lumos-quantum-drift]), `YARIN_DEVAM.txt`, `PROJE_DOSYA_LISTESI.txt`, repo kökündeki `package-lock.json` (opsiyonel). |
 | **Arşiv (silme zorunlu değil)** | `archive/refactor_history/` — isteğe bağlı. |
 
 Uygulama sırası ve “önce arşive taşı” seçeneği `TEMIZLENMESI_GEREKENLER_LISTESI.md` §5’te yazılı.
@@ -47,3 +47,5 @@ Uygulama sırası ve “önce arşive taşı” seçeneği `TEMIZLENMESI_GEREKEN
 | **Akış ekranı** | `#feed` — doğrudan **GET /posts/feed** çağrısı (mock yok). Hash routing ile ekranlar arası geçiş. |
 
 Detay: `panel/README.md`.
+
+[^lumos-quantum-drift]: 2026-06-21 — `lumos-quantum/` bu listede tarihsel placeholder; repo kökünde fiziksel dizin yok (ADR-001, ADR-013).

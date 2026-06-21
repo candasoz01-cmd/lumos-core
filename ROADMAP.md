@@ -28,7 +28,7 @@
 - Güvenlik modülü placeholder durumundan görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
 - Dünya modülü placeholder durumundan görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
 - Ayarlar modülü placeholder durumundan görünür temel iskelete taşındı; içerik derinliği geliştirmesi takipte
-- Kuantum modülü placeholder durumundan görünür temel iskelete taşındı; içerik derinliği → Quantum Security Readiness (Faz-1 docs: ADR-013)
+- Kuantum modülü placeholder durumundan görünür temel iskelete taşındı; içerik derinliği → Quantum Readiness (Faz-1 docs + Faz-2 kısmi tarayıcı: ADR-013)
 
 ## Temel ürün ilkeleri
 - Kullanıcı yerine karar verilmez.
@@ -40,7 +40,7 @@
 - Silme işlemlerinde varsayılan yaklaşım kalıcı silme değil, silinenler/çöp akışıdır.
 - Sesli konuşma araya kaynamayacak.
 - Panel, sabit menü gezdirmekten çok göreve göre doğru çalışma alanını açan merkez olacak.
-- Kuantum başlığı iddia değil; iptal veya "hiç çalışılmadı" değil — yerel hazırlık servisi yönü (bkz. ADR-001, ADR-013).
+- Kuantum başlığı iddia değil; iptal veya "hiç çalışılmadı" değil — yerel hazırlık tarayıcısı yönü (bkz. ADR-001, ADR-013).
 
 ## Not
 Bu dosya işlev eklemez; yalnızca ürün yönünü ve unutulmaması gereken başlıkları takip eder.

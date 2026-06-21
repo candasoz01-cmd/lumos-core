@@ -19,6 +19,20 @@ Kuantum alanı Lumos'ta **kaldırılmadı, iptal edilmedi ve "hiç çalışılma
 
 **Dürüst ifadeler:** "Kuantum üretim özelliği mevcut" veya "hiç çalışılmadı" yazılmamalıdır. Ücretli API'nin açılmamış olması, alanın terk edildiği anlamına gelmez.
 
+## Güncel durum eki (2026-06-21)
+
+> **Not:** Aşağıdaki tablo, [Güncel durum (2026-06-11)](#güncel-durum-2026-06-11) bölümünü **değiştirmez**; o tarihli snapshot korunur. Bu eki yalnızca ADR-001 / ADR-013 tutarlılık senkronudur.
+
+| Boyut | Durum (2026-06-21) |
+|------|---------------------|
+| Üretim özelliği | Hâlâ yok — kuantum donanımı veya PQC uygulaması iddiası taşınmaz |
+| Quantum Readiness (ADR-013) | **Faz-2 kısmi** — yerel tarayıcı (`src/security/readiness/`), panel `GET /quantum-readiness`, standalone script; Lumos CLI alt komutu bekliyor |
+| Panel kuantum sekmesi | Statik kartlar + readiness banner; canlı tarama panel sunucusu üzerinden salt okunur JSON |
+| `lumos-quantum/` dizin drift | Eski belgelerde placeholder olarak geçer; **repo kökünde fiziksel dizin yok** (2026-06-21) — bkz. ADR-013 bilinen boşluklar |
+| IBM / ücretli API | Değişmedi — aktif prod entegrasyon yok; maliyet açılmadı ≠ vazgeçme |
+
+**Dürüst ifade (2026-06-21):** Readiness tarayıcısı yerel envanter ve rapor üretir; bu **üretim kuantum özelliği** veya **kuantum-güvenli kriptografi** iddiası değildir.
+
 ## Bağlam
 
 Lumos çekirdeğinde güvenlik, yetki ve workspace sözleşmesi önceliklidir. Bu ADR, ileride değerlendirilebilecek **modüler yetenek alanlarını** kayıt altına alır. Buradaki ifadeler **öneri ve hipotez** düzeyindedir; ürün veya kod tabanında finalize edilmiş bir mimari olarak sunulmamalıdır.
