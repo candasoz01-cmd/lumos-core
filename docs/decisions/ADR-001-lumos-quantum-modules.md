@@ -61,7 +61,7 @@ Bu belge **mimari yön taslağıdır**, uygulanmış karar listesi değildir. İ
 
 ## Quantum Security Readiness (ADR-013)
 
-Kuantum alanının somut MVP tanımı — yerel, kanıta dayalı hazırlık raporu, entropy sınırları, panel spesifikasyonu — **[ADR-013](ADR-013-lumos-quantum-security-readiness.md)** belgesindedir. Bu ADR (001) yön ve öncelik taslağını korur; readiness ayrıntısı ADR-013'e bırakılır.
+Kuantum alanının somut MVP tanımı — **Lumos Quantum Readiness** (yerel, salt okunur, kanıtlı kuantum sonrası güvenlik hazırlık tarayıcısı), rapor alanları, Entropy Lab sınırları, panel spesifikasyonu — **[ADR-013](ADR-013-lumos-quantum-security-readiness.md)** belgesindedir. Bu ADR (001) yön ve öncelik taslağını korur; readiness ayrıntısı ADR-013'e bırakılır.
 
 ## Sonraki gözden geçirme
 
