@@ -41,6 +41,8 @@ from policy.confirmation_policy import (  # noqa: E402
     ensure_panel_mutation_confirmation,
     is_confirmation_enabled,
     panel_action_to_confirmation_key,
+    request_confirmation,
+    requires_confirmation_for_action,
 )
 from core.evidence_continuity import (  # noqa: E402
     DEFAULT_READ_LIMIT,
@@ -117,6 +119,72 @@ def _task_action_gate(
         confirmation_id=confirmation_id,
         scope=scope,
     )
+
+
+def _panel_mutation_confirmation_spec(
+    path: str,
+    body: dict[str, Any],
+) -> tuple[str, dict[str, Any], dict[str, str]] | None:
+    """
+    Panel mutasyon yolu → CU4 action_key, scope, CU7 preview {what, where, effect}.
+    PUT /tasks.json bu helper ile kapsanmaz (ayrı PUT akışı).
+    """
+    p = (path.split("?")[0].rstrip("/") or "/")
+    if p == "/tasks":
+        title = _normalize_ws(body.get("title", ""))
+        if not title:
+            return None
+        scope = {"title": title}
+        preview = {
+            "what": "create_task",
+            "where": title,
+            "effect": "local_task_create",
+        }
+        return panel_action_to_confirmation_key(CREATE_TASK), scope, preview
+    if p == "/tasks/complete":
+        ref = _normalize_ws(body.get("ref", ""))
+        if not ref:
+            return None
+        scope = {"ref": ref}
+        preview = {
+            "what": "complete_task",
+            "where": ref,
+            "effect": "local_task_complete",
+        }
+        return panel_action_to_confirmation_key(COMPLETE_TASK), scope, preview
+    if p == "/tasks/delete":
+        scope: dict[str, Any] = {}
+        id_key = _normalize_ws(body.get("id", ""))
+        ref_key = _normalize_ws(body.get("ref", ""))
+        if id_key:
+            scope["id"] = id_key
+        if ref_key:
+            scope["ref"] = ref_key
+        if not scope:
+            return None
+        where = id_key or ref_key
+        preview = {
+            "what": "delete_task",
+            "where": where,
+            "effect": "local_task_soft_delete",
+        }
+        return panel_action_to_confirmation_key(DELETE_TASK), scope, preview
+    if p == "/tasks/restore":
+        tid = _normalize_ws(body.get("id", ""))
+        if not tid:
+            return None
+        scope = {"id": tid}
+        preview = {
+            "what": "restore_task",
+            "where": tid,
+            "effect": "local_task_restore",
+        }
+        return (
+            panel_action_to_confirmation_key(CREATE_TASK, restore=True),
+            scope,
+            preview,
+        )
+    return None
 
 
 def _enforce_panel_mutation_confirmation(
@@ -624,6 +692,7 @@ class Handler(BaseHTTPRequestHandler):
             "/tasks/delete-permanent",
             "/lumos-read-state",
             "/lumos-consent",
+            "/lumos-confirm/request",
             "/evidence/recent",
             "/evidence/query",
             "/open-folder",
@@ -795,6 +864,7 @@ class Handler(BaseHTTPRequestHandler):
             "delete": {"enabled": gate_delete["enabled"], "reason": gate_delete["reason"]},
             "undo_pending": {"enabled": gate_complete["enabled"], "reason": gate_complete["reason"]},
         }
+        doc["confirmation_enabled"] = is_confirmation_enabled()
         doc = enrich_tasks_doc_api_response(doc)
         raw = json.dumps(doc, ensure_ascii=False).encode("utf-8")
         self.send_response(200)
@@ -865,6 +935,9 @@ class Handler(BaseHTTPRequestHandler):
         if p == "/lumos-consent":
             self._post_lumos_consent()
             return
+        if p == "/lumos-confirm/request":
+            self._post_lumos_confirm_request()
+            return
         if p == "/tasks/restore":
             self._post_restore()
             return
@@ -881,6 +954,60 @@ class Handler(BaseHTTPRequestHandler):
             self._post_create()
             return
         _send_json(self, 404, {"ok": False, "error": "not_found"})
+
+    def _post_lumos_confirm_request(self) -> None:
+        """CU7 preview + confirmation_id üretir (PR-C5). Devre dışıyken 404."""
+        if not is_confirmation_enabled():
+            _send_json(self, 404, {"ok": False, "error": "confirmation_disabled"})
+            return
+        body = self._read_json_body()
+        if not isinstance(body, dict):
+            _send_json(self, 400, {"ok": False, "error": "invalid_json"})
+            return
+        mutation_path = str(body.get("mutation_path") or body.get("path") or "").strip()
+        mutation_body = body.get("mutation_body")
+        if not isinstance(mutation_body, dict):
+            mutation_body = {}
+        action_key = str(body.get("action_key") or "").strip()
+        scope_raw = body.get("scope")
+        preview_raw = body.get("preview")
+        if action_key and isinstance(scope_raw, dict):
+            scope = dict(scope_raw)
+            preview = (
+                dict(preview_raw)
+                if isinstance(preview_raw, dict)
+                else {"what": action_key, "where": json.dumps(scope, sort_keys=True), "effect": action_key}
+            )
+        else:
+            if not mutation_path:
+                _send_json(self, 400, {"ok": False, "error": "mutation_path_required"})
+                return
+            spec = _panel_mutation_confirmation_spec(mutation_path, mutation_body)
+            if spec is None:
+                _send_json(self, 400, {"ok": False, "error": "invalid_mutation_spec"})
+                return
+            action_key, scope, preview = spec
+        if not requires_confirmation_for_action(action_key):
+            _send_json(self, 400, {"ok": False, "error": "action_not_confirmable"})
+            return
+        pending = request_confirmation(
+            action_key,
+            scope,
+            preview,
+            base_dir=_base_dir(),
+        )
+        _send_json(
+            self,
+            200,
+            {
+                "ok": True,
+                "confirmation_id": pending.confirmation_id,
+                "action_key": pending.action_key,
+                "scope_hash": pending.scope_hash,
+                "preview": pending.preview,
+                "expires_at": pending.expires_at,
+            },
+        )
 
     def _post_lumos_consent(self) -> None:
         """Panel chat kilit aç API: JSON body passphrase (zorunlu); consent.json (şifre diske yazılmaz)."""
