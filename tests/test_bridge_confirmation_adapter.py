@@ -10,11 +10,15 @@ import pytest
 from policy.confirmation_policy import (
     BRIDGE_HIGH_RISK_ACTION,
     BRIDGE_MEDIUM_DISPATCH_ACTION,
+    REASON_CONFIRMATION_DISABLED,
+    REASON_CONFIRMATION_REQUIRED,
     SCHEMA_VERSION,
     attach_bridge_pending_confirmation,
     bridge_pending_action_key,
     bridge_pending_confirmation_spec,
+    check_confirmation,
     consume_confirmation,
+    is_confirmation_enabled,
     requires_confirmation_for_action,
 )
 
@@ -176,3 +180,47 @@ def test_shadow_grant_second_consume_fails(tmp_path: Path) -> None:
     sh = str(pending["confirmation_scope_hash"])
     assert consume_confirmation(cid, sh, base_dir=lumos)
     assert not consume_confirmation(cid, sh, base_dir=lumos)
+
+
+def test_shadow_grant_check_noop_when_env_off(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """LUMOS_CONFIRMATION_ENABLED=false → check_confirmation no-op; attach yine yazar."""
+    monkeypatch.delenv("LUMOS_CONFIRMATION_ENABLED", raising=False)
+    assert not is_confirmation_enabled()
+    lumos = tmp_path / ".lumos"
+    lumos.mkdir()
+    pending: dict = {"schema_version": "lumos.pending_approval.v1", "title": "env off"}
+    attach_bridge_pending_confirmation(pending, base_dir=lumos, risk="high", source="lumos_gate")
+    grant = json.loads(
+        (lumos / "pending_confirmations" / f"{pending['confirmation_id']}.json").read_text(encoding="utf-8")
+    )
+    result = check_confirmation(
+        BRIDGE_HIGH_RISK_ACTION,
+        grant["scope"],
+        {"confirmation_id": pending["confirmation_id"], "base_dir": str(lumos)},
+    )
+    assert result.allowed
+    assert result.reason == REASON_CONFIRMATION_DISABLED
+
+
+def test_shadow_grant_consumed_blocks_check_when_enabled(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Tüketilmiş shadow grant → check_confirmation blocked (enabled env)."""
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    lumos = tmp_path / ".lumos"
+    lumos.mkdir()
+    pending: dict = {"schema_version": "lumos.pending_approval.v1", "title": "consumed"}
+    attach_bridge_pending_confirmation(pending, base_dir=lumos, risk="high", source="lumos_gate")
+    cid = str(pending["confirmation_id"])
+    sh = str(pending["confirmation_scope_hash"])
+    grant = json.loads((lumos / "pending_confirmations" / f"{cid}.json").read_text(encoding="utf-8"))
+    assert consume_confirmation(cid, sh, base_dir=lumos)
+    result = check_confirmation(
+        BRIDGE_HIGH_RISK_ACTION,
+        grant["scope"],
+        {"confirmation_id": cid, "base_dir": str(lumos)},
+    )
+    assert not result.allowed
+    assert result.reason == REASON_CONFIRMATION_REQUIRED
