@@ -161,7 +161,11 @@ def default_bridge_request(
             payload = {"error": str(payload)}
         return e.code, payload
     except (URLError, OSError, json.JSONDecodeError) as e:
-        return 502, {"ok": False, "error": "bridge_unreachable", "detail": str(e)}
+        from kando_bridge.relay_errors import enrich_error_payload
+
+        return 502, enrich_error_payload(
+            {"ok": False, "error": "bridge_unreachable", "detail": str(e)}
+        )
 
 
 def mobile_ui_path(*, token: str | None = None) -> str:
@@ -223,8 +227,8 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 </head>
 <body>
 <header>
-  <h1>Lumos Onay / Approval</h1>
-  <div class="sub">PC remote — bekleyen istekler / pending requests</div>
+  <h1>PC isteği onayı / Approve PC request</h1>
+  <div class="sub">Bekleyen komutları onaylayın veya reddedin / Review pending commands</div>
   <div id="status">—</div>
   <div id="token-setup" class="token-box hidden">
     <input id="token-input" type="text" placeholder="Relay token / eşleştirme token" autocomplete="off">
@@ -554,7 +558,9 @@ def make_handler(config: RelayConfig) -> type[BaseHTTPRequestHandler]:
             ok, err = state.validate_relay_token(self._relay_token())
             if ok:
                 return True
-            self._send_json(401, {"ok": False, "error": err})
+            from kando_bridge.relay_errors import enrich_error_payload
+
+            self._send_json(401, enrich_error_payload({"ok": False, "error": err}))
             return False
 
         def do_GET(self) -> None:
@@ -582,7 +588,12 @@ def make_handler(config: RelayConfig) -> type[BaseHTTPRequestHandler]:
             if path == "/relay/pending":
                 if not self._require_relay_token():
                     return
-                status, payload = bridge_request("GET", "/pending_approvals", {}, None)
+                status, payload = bridge_request(
+                    "GET",
+                    "/pending_approvals?include_tokens=1",
+                    {},
+                    None,
+                )
                 items: list[Any]
                 if isinstance(payload, list):
                     items = payload
@@ -615,7 +626,12 @@ def make_handler(config: RelayConfig) -> type[BaseHTTPRequestHandler]:
                     config.pairing_ttl_seconds,
                 )
                 if token is None:
-                    self._send_json(403, {"ok": False, "error": pair_err})
+                    from kando_bridge.relay_errors import enrich_error_payload
+
+                    self._send_json(
+                        403,
+                        enrich_error_payload({"ok": False, "error": pair_err}),
+                    )
                     return
                 mobile_path = mobile_ui_path(token=token)
                 self._send_json(

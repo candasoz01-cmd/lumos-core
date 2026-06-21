@@ -61,9 +61,13 @@ def _dispatch_http(
 ) -> tuple[int, Any]:
     from kando_bridge.server import BridgeHandler, build_pending_approvals_list
 
-    del query
     if method == "GET" and path == "/pending_approvals":
-        return 200, build_pending_approvals_list()
+        source_filter = (query or {}).get("source") or None
+        include_tokens = (query or {}).get("include_tokens", "").lower() in ("1", "true", "yes")
+        return 200, build_pending_approvals_list(
+            source_filter=source_filter,
+            include_approval_token=include_tokens,
+        )
 
     if method == "POST" and path == "/approve":
         handler = _bridge_handler_stub(body=body or {})
@@ -254,7 +258,7 @@ def _make_mock_bridge_request(
         body: bytes | None,
     ) -> tuple[int, dict[str, Any]]:
         if method.upper() == "GET" and path == "/pending_approvals":
-            return 200, {"items": build_pending_approvals_list()}
+            return 200, {"items": build_pending_approvals_list(include_approval_token=True)}
         if method.upper() == "POST" and path == "/tools/execute":
             obj = json.loads((body or b"{}").decode("utf-8"))
             handler = _bridge_handler_stub(body=obj)
@@ -389,3 +393,29 @@ def test_openai_tool_loop_manual_approve_path(adapter_bridge_env: Path) -> None:
     )
     assert exec_status == 200
     assert exec_out["status"] == "stub"
+
+
+def test_openai_tool_loop_unknown_command_safe_fallback(adapter_bridge_env: Path) -> None:
+    from kando_bridge.openai_tool_adapter import ParsedToolCall, run_tool_call_loop
+
+    result = run_tool_call_loop(
+        ParsedToolCall(name="pc_not_a_real_command", arguments={}),
+    )
+    assert result["stage"] == "error"
+    assert result["error"] == "unknown_command"
+    assert result.get("safe_fallback") is True
+
+
+def test_openai_tool_loop_bridge_unreachable_safe_fallback(
+    adapter_bridge_env: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _fail_http(*_a, **_k):
+        return 0, {"ok": False, "error": "connection_failed", "detail": "refused"}
+
+    monkeypatch.setattr("kando_bridge.openai_tool_adapter.http_json", _fail_http)
+    calls = parse_openai_tool_calls(mock_pc_open_url_response())
+    result = run_tool_call_loop(calls[0])
+    assert result["stage"] == "error"
+    assert result.get("safe_fallback") is True
+    assert result["error"] == "connection_failed"

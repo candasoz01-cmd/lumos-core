@@ -503,6 +503,21 @@ def execute_tool_stub(
                 "error": reason or "invalid_approval_token",
                 "schema_version": SCHEMA_VERSION,
             }
+        try:
+            from kando_bridge.pc_remote_audit import EVENT_STUB_EXECUTED, append_pc_remote_audit
+
+            append_pc_remote_audit(
+                repo_root,
+                EVENT_STUB_EXECUTED,
+                approval_id=aid,
+                command=command,
+                status="stub",
+                requested_by=requested_by,
+                target_device=target_device,
+                risk_level=str(spec["risk_tier"]),
+            )
+        except ImportError:
+            pass
 
     ts = int(time.time() * 1000)
     base: dict[str, Any] = {

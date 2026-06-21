@@ -74,6 +74,21 @@ def write_pending_approval(record: dict[str, Any], repo_root: Path) -> Path:
     record.setdefault("approval_file", rel)
     path = pending_dir / f"{approval_id}.json"
     path.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
+    try:
+        from kando_bridge.pc_remote_audit import EVENT_PENDING_CREATED, append_pc_remote_audit
+
+        append_pc_remote_audit(
+            repo_root,
+            EVENT_PENDING_CREATED,
+            approval_id=approval_id,
+            command=str(record.get("command") or ""),
+            status=str(record.get("status") or STATUS_PENDING),
+            requested_by=str(record.get("requested_by") or ""),
+            target_device=str(record.get("target_device") or ""),
+            risk_level=str(record.get("risk_level") or ""),
+        )
+    except ImportError:
+        pass
     return path
 
 
@@ -159,6 +174,18 @@ def mark_expired_if_needed(path: Path, record: dict[str, Any]) -> bool:
         path.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
     except OSError:
         pass
+    try:
+        from kando_bridge.pc_remote_audit import EVENT_PENDING_EXPIRED, append_pc_remote_audit
+
+        append_pc_remote_audit(
+            path.parent.parent.parent,
+            EVENT_PENDING_EXPIRED,
+            approval_id=str(record.get("approval_id") or ""),
+            command=str(record.get("command") or ""),
+            status=STATUS_EXPIRED,
+        )
+    except (ImportError, OSError):
+        pass
     return True
 
 
@@ -213,11 +240,31 @@ def validate_approval_token(
     return True, "", record
 
 
+def _audit_from_pending_path(path: Path, record: dict[str, Any], *, event: str) -> None:
+    try:
+        from kando_bridge.pc_remote_audit import append_pc_remote_audit
+
+        repo_root = path.parent.parent.parent
+        append_pc_remote_audit(
+            repo_root,
+            event,
+            approval_id=str(record.get("approval_id") or ""),
+            command=str(record.get("command") or ""),
+            status=str(record.get("status") or ""),
+            requested_by=str(record.get("requested_by") or ""),
+            target_device=str(record.get("target_device") or ""),
+            risk_level=str(record.get("risk_level") or ""),
+        )
+    except (ImportError, OSError):
+        return
+
+
 def approve_pending_record(path: Path, record: dict[str, Any]) -> dict[str, Any]:
     record["status"] = STATUS_APPROVED
     record["approved_at"] = _iso(_utc_now())
     record["used"] = False
     path.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
+    _audit_from_pending_path(path, record, event="pending_approved")
     return record
 
 
@@ -225,6 +272,7 @@ def reject_pending_record(path: Path, record: dict[str, Any]) -> dict[str, Any]:
     record["status"] = STATUS_REJECTED
     record["rejected_at"] = _iso(_utc_now())
     path.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
+    _audit_from_pending_path(path, record, event="pending_rejected")
     return record
 
 

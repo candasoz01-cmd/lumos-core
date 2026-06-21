@@ -79,8 +79,8 @@ def _make_mock_bridge_request(
         headers: dict[str, str],
         body: bytes | None,
     ) -> tuple[int, dict[str, Any]]:
-        if method.upper() == "GET" and path == "/pending_approvals":
-            return 200, {"items": build_pending_approvals_list()}
+        if method.upper() == "GET" and path.startswith("/pending_approvals"):
+            return 200, {"items": build_pending_approvals_list(include_approval_token=True)}
         if method.upper() == "POST" and path == "/tools/execute":
             obj = json.loads((body or b"{}").decode("utf-8"))
             handler = _bridge_handler_stub(body=obj)
@@ -327,6 +327,7 @@ def test_relay_mobile_ui_route(relay_server: tuple[int, RelayState, RelayConfig]
         html = resp.read().decode("utf-8")
     assert "Onayla / Approve" in html
     assert "Reddet / Reject" in html
+    assert "PC isteği onayı" in html
     assert "/relay/pending" in html
     assert "/relay/approve" in html
 
@@ -349,6 +350,31 @@ def test_build_mobile_ui_html_contains_controls() -> None:
     html = build_mobile_ui_html()
     assert "btn-ok" in html
     assert "btn-no" in html
+    assert 'data-act="approve"' in html
+    assert 'data-act="reject"' in html
+    assert "/relay/approve" in html
+    assert "/relay/reject" in html
+    assert "approval_token" in html
+
+
+def test_relay_invalid_token_error_payload(relay_server: tuple[int, RelayState, RelayConfig]) -> None:
+    port, _, _ = relay_server
+    req = Request(
+        f"http://127.0.0.1:{port}/relay/pending",
+        headers={RELAY_TOKEN_HEADER: "bad-token", "Accept": "application/json"},
+        method="GET",
+    )
+    try:
+        with urlopen(req, timeout=5) as resp:
+            status = resp.status
+            payload = json.loads(resp.read().decode("utf-8"))
+    except HTTPError as e:
+        status = e.code
+        payload = json.loads(e.read().decode("utf-8"))
+    assert status == 401
+    assert payload["error"] == "invalid_relay_token"
+    assert payload.get("message_tr")
+    assert payload.get("message_en")
 
 
 def test_reject_via_relay(relay_server: tuple[int, RelayState, RelayConfig]) -> None:

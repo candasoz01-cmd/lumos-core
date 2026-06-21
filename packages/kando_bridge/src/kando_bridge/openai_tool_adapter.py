@@ -219,9 +219,25 @@ def post_tools_execute(
 ) -> tuple[int, dict[str, Any]]:
     """POST /tools/execute via bridge HTTP client."""
     fn = http_fn or http_json
-    status, data = fn("POST", "/tools/execute", body=body)
+    try:
+        status, data = fn("POST", "/tools/execute", body=body)
+    except Exception as exc:
+        return 0, {
+            "ok": False,
+            "error": "bridge_request_failed",
+            "detail": str(exc),
+            "http_status": 0,
+        }
     if not isinstance(data, dict):
-        return status, {"ok": False, "error": "invalid_response", "http_status": status}
+        return status, {
+            "ok": False,
+            "error": "invalid_response",
+            "http_status": status,
+        }
+    if status == 0 and data.get("error") in ("connection_failed", "bridge_request_failed"):
+        data.setdefault("ok", False)
+        data.setdefault("http_status", 0)
+        return status, data
     data.setdefault("http_status", status)
     return status, data
 
@@ -289,6 +305,7 @@ def run_tool_call_loop(
             "stage": "error",
             "error": "unknown_command",
             "command": tool_call.name,
+            "safe_fallback": True,
         }
 
     body = tool_call_to_execute_body(tool_call)
@@ -297,6 +314,20 @@ def run_tool_call_loop(
     if first.get("status") == "stub" and first.get("ok"):
         return {"ok": True, "stage": "direct", "execute": first, "http_status": status}
 
+    if status == 0 or first.get("error") in (
+        "connection_failed",
+        "bridge_request_failed",
+        "invalid_response",
+    ):
+        return {
+            "ok": False,
+            "stage": "error",
+            "error": first.get("error") or "bridge_unreachable",
+            "execute": first,
+            "http_status": status,
+            "safe_fallback": True,
+        }
+
     if first.get("status") != "pending_approval":
         return {
             "ok": False,
@@ -304,6 +335,7 @@ def run_tool_call_loop(
             "error": first.get("error") or first.get("status") or "execute_failed",
             "execute": first,
             "http_status": status,
+            "safe_fallback": True,
         }
 
     if not auto_approve or not dev_auto_approve_allowed():
