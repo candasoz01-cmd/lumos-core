@@ -2,7 +2,7 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Kabul edildi** (2026-06-21) — usage map drift doğrulandı; kod/rename **ayrı PR** |
+| Durum | **Kabul edildi** (2026-06-21) — Faz 1–3 **tamamlandı** (#436–#438); Faz 4 (trust motor) bekliyor |
 | Tarih | 2026-06-21 |
 | İlgili | `docs/lumos-karar-sozlesmesi.md`, public GitHub sınırı kuralları, [ADR-007](ADR-007-trust-engine-layer.md), [ADR-010](ADR-010-guard-policy-trust-terminology.md), [usage map](../analysis/ADR-010-guard-policy-trust-usage-map.md) |
 
@@ -144,12 +144,12 @@ Kaynak: [ADR-010 guard/policy/trust usage map](../analysis/ADR-010-guard-policy-
 
 ## Fazlı sonraki adımlar (bu PR dışı)
 
-| Faz | İş | Kapsam | Bu ADR'de |
-|-----|-----|--------|-----------|
-| **1 — Rename (docs-first kod)** | `_lock_ok` → `keystore_ready`; `get_durum_parts` alan adları; `hazir` ayrı argüman | `startup_health.py`, CLI çağrıları, testler | **Yapılmaz** — ayrı PR |
-| **2 — CLI çıktı etiketleri** | `durum` Lock satırını `Keystore` / `Oturum` diye ayır | `format_durum`, kullanıcı metinleri | **Yapılmaz** |
-| **3 — Panel dürüstlük** | Keystore kartında vekili açık etiketle; runtime bridge varsa session sinyali | Panel adapter (onaylı) | **Yapılmaz** |
-| **4 — Trust engine tüketimi** | Merkezi trust sinyal modeli iki alanı ayrı taşır | ADR-007 motor checkpoint | **Yapılmaz** |
+| Faz | İş | Kapsam | Durum |
+|-----|-----|--------|-------|
+| **1 — Rename (docs-first kod)** | `_lock_ok` → `keystore_ready`; `get_durum_parts` alan adları; `hazir` ayrı argüman | `startup_health.py`, CLI çağrıları, testler | **Tamamlandı** — #436 |
+| **2 — CLI çıktı etiketleri** | `durum` Lock satırını `Keystore` / `Oturum` diye ayır | `format_durum`, kullanıcı metinleri | **Tamamlandı** — #437 |
+| **3 — Panel dürüstlük** | Keystore kartında vekili açık etiketle; runtime bridge varsa session sinyali | Panel adapter (onaylı) | **Tamamlandı** — #438 |
+| **4 — Trust engine tüketimi** | Merkezi trust sinyal modeli iki alanı ayrı taşır | ADR-007 motor checkpoint | Bekliyor |
 
 **Bu PR yalnızca karar belgesi (+ isteğe bağlı journal notu) içerir.**
 
@@ -173,16 +173,17 @@ Kaynak: [ADR-010 guard/policy/trust usage map](../analysis/ADR-010-guard-policy-
 | Checkpoint | Durum |
 |------------|-------|
 | ADR-010 usage map lock drift | **Tamamlandı** — drift doğrulandı |
-| ADR-011 lock semantiği kararı (bu belge) | **Kabul edildi** (2026-06-21) |
-| Rename PR (`keystore_ready`, CLI argümanları) | Bekliyor — ayrı PR |
-| ADR-007 trust sinyal tablosu revizyonu | İki lock alanı referansı eklenecek |
-| Panel keystore vekili etiketleme | Opsiyonel; ayrı onay |
+| ADR-011 lock semantiği kararı (bu belge) | **Kabul edildi** — #435 (2026-06-21) |
+| Faz 1 — Rename (`keystore_ready`, CLI argümanları) | **Tamamlandı** — #436 |
+| Faz 2 — CLI çıktı etiketleri (`Keystore` / `Oturum`) | **Tamamlandı** — #437 |
+| Faz 3 — Panel keystore vekili etiketleme | **Tamamlandı** — #438 |
+| Faz 4 — ADR-007 trust sinyal tablosu / motor tüketimi | Bekliyor — iki lock alanı referansı |
 
 ---
 
 ## Sonuç
 
-Haziran 2026 repo analizi ve ADR-010 usage map sonrasında Lumos lock semantiği **iki ayrı sinyal** olarak kayıt altına alınmıştır: **keystore_ready** (anahtar kasası init) ve **session_unlocked** (runtime passphrase unlock). **Tek boolean birleştirme yapılmaz.** CLI `durum` keystore_ready, CLI `hazir` session_unlocked kullanır; panel consent vekili olarak kalır; runtime ve policy session_unlocked esas alır. Rename ve çıktı etiketleri **fazlı ayrı PR'larda** uygulanacaktır; bu ADR kod değiştirmez.
+Haziran 2026 repo analizi ve ADR-010 usage map sonrasında Lumos lock semantiği **iki ayrı sinyal** olarak kayıt altına alınmıştır: **keystore_ready** (anahtar kasası init) ve **session_unlocked** (runtime passphrase unlock). **Tek boolean birleştirme yapılmaz.** CLI `durum` keystore_ready, CLI `hazir` session_unlocked kullanır; panel consent vekili olarak kalır; runtime ve policy session_unlocked esas alır. Faz 1–3 rename, CLI etiketleri ve panel dürüstlüğü **#436–#438** ile uygulandı; Faz 4 (trust motor) bekliyor.
 
 ## Sonraki gözden geçirme
 
