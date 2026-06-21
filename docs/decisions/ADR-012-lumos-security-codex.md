@@ -1,8 +1,8 @@
-# ADR-012: Lumos Security Codex — Taslak
+# ADR-012: Lumos Security Codex
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Taslak** — finalize edilmedi |
+| Durum | **Kabul edildi** (2026-06-21) — taslak paket #440; panel şeffaflık #441; panel policy enforcement #442 (devam / tamamlanma) |
 | Tarih | 2026-06-21 |
 | İlgili | `docs/lumos-karar-sozlesmesi.md`, [ADR-010](ADR-010-guard-policy-trust-terminology.md), [ADR-011](ADR-011-lock-semantics-decision.md), [action permission matrix](../analysis/lumos-action-permission-matrix.md), [runtime enforcement map](../analysis/lumos-runtime-enforcement-map.md) |
 
@@ -10,7 +10,7 @@
 
 Lumos'un **tek dış yüz** (external facade) olarak davranması, iç katmanlara doğrudan dış komut gitmemesi ve riskli işlemlerde **dur-kanıt-onay** zincirinin resmi sözleşmesini kaydetmek.
 
-Bu belge **yalnızca dokümantasyondur** (Taslak). Bu turda kod, import, test veya davranış değişikliği **kapsam dışıdır**. Uygulama haritası: [runtime enforcement map](../analysis/lumos-runtime-enforcement-map.md).
+Bu belge **dokümantasyon sözleşmesidir**; uygulama haritası: [runtime enforcement map](../analysis/lumos-runtime-enforcement-map.md). İlk kod adımları [next PR plan](../analysis/lumos-security-codex-next-pr-plan.md) ile planlandı.
 
 **Public OSS sınırı:** Bu codex yalnızca açık kaynak Lumos çekirdeğini kapsar; ticari/özel orkestrasyon, üretim sırları veya operasyonel backend detayı **içermez**.
 
@@ -28,7 +28,7 @@ Bu belge **yalnızca dokümantasyondur** (Taslak). Bu turda kod, import, test ve
 
 **Hedef:** Tüm etkili işlem tek izlenebilir zincirden geçer; bypass yolu dokümante edilmedikçe kabul edilmez.
 
-**Repo notu (Taslak):** Panel sunucusu (`panel/scripts/panel_tasks_server.py`) aynı origin'de statik UI + API sunar; tam enforcement henüz parçalıdır (bkz. enforcement map § Panel).
+**Repo notu:** Panel sunucusu (`panel/scripts/panel_tasks_server.py`) aynı origin'de statik UI + API sunar; enforcement parçalıdır — panel görev mutasyonları `check_policy` ile hizalanıyor (bkz. enforcement map § Panel, PR #442).
 
 ---
 
@@ -144,15 +144,27 @@ Panel: `panel_tasks_server` silinen görevleri `trash/*.json` dosyalarına yazar
 |-------|--------|
 | [lumos-action-permission-matrix.md](../analysis/lumos-action-permission-matrix.md) | Eylem alanı × izin seviyesi matrisi |
 | [lumos-runtime-enforcement-map.md](../analysis/lumos-runtime-enforcement-map.md) | Repo'da bugün ne enforce ediliyor / gap |
-| [lumos-security-codex-next-pr-plan.md](../analysis/lumos-security-codex-next-pr-plan.md) | İlk minimal uygulama PR önerisi |
+| [lumos-security-codex-next-pr-plan.md](../analysis/lumos-security-codex-next-pr-plan.md) | Minimal uygulama PR planı |
 
 ---
 
-## Açık sorular (Taslak — finalize öncesi)
+## Takip checkpoint'leri
 
-1. Panel `_task_actions_gate()` şu an her zaman `enabled: True` — codex C6 ile hizalanacak mı?
-2. `SECURITY_NEVER_AUTO` tam runtime branch'i tüm silme/yazma yollarında var mı? (enforcement map gap)
-3. Trust motor (ADR-007) finalize olunca codex C3 kanıt zinciri genişletilecek mi?
+| Checkpoint | Durum |
+|------------|-------|
+| ADR-012 taslak paket (codex + companion analizler) | **Tamamlandı** — #440 (2026-06-21) |
+| Panel şeffaflık — gate reason + UI codex uyarısı | **Tamamlandı** — #441 (2026-06-21) |
+| Panel policy enforcement (`check_policy`, gate `enabled`) | **Devam / tamamlanma** — #442 |
+| `SECURITY_NEVER_AUTO` tüm silme/yazma yolları | Gap — enforcement map |
+| Trust motor (ADR-007) kanıt zinciri genişletmesi | Bekliyor — Faz 4 |
+
+---
+
+## Açık sorular (kabul sonrası)
+
+1. `SECURITY_NEVER_AUTO` tam runtime branch'i tüm silme/yazma yollarında var mı? (enforcement map gap — bilinçli takip)
+2. Trust motor (ADR-007) finalize olunca codex C3 kanıt zinciri genişletilecek mi? (Faz 4 checkpoint)
+3. Panel `PUT /tasks.json` tam doküman yazımı policy zincirine bağlanacak mı? (dar kapsam dışı — ayrı PR)
 
 ---
 
@@ -160,6 +172,12 @@ Panel: `panel_tasks_server` silinen görevleri `trash/*.json` dosyalarına yazar
 
 | Aşama | Koşul |
 |-------|-------|
-| **Taslak** (şimdi) | Bu belge + companion analizler |
+| **Taslak** | Belge + companion analizler (#440) |
 | **İnceleme** | Gap'ler kapatma planı onayı |
-| **Kabul** | Enforcement map'te kritik gap'ler kapatıldı veya bilinçli istisna kaydı |
+| **Kabul** (2026-06-21) | Codex paketi merge; panel şeffaflık merge; enforcement planı PR #2 ile yürürlükte |
+
+---
+
+## Sonuç
+
+Lumos Security Codex (C1–C6) resmi sözleşme olarak kayıt altına alındı. İlk uygulama: docs paketi (#440), panel codex şeffaflığı (#441), panel görev mutasyonlarında `check_policy` hizalaması (#442). Tam trust motor ve `SECURITY_NEVER_AUTO` tüm yollar **bilinçli sonraki checkpoint'ler**; bu ADR kod refactor veya kapsam genişletmesi talep etmez.
