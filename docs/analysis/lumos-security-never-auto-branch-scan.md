@@ -17,11 +17,11 @@
 | **P1** | Panel `POST /tasks/delete-permanent` `may_perform_permanent_delete` yok | `panel_tasks_server.py` `_post_delete_permanent` | **Kapandı** — #445 |
 | **P1** | Panel `POST /tasks/restore` policy gate yok | `panel_tasks_server.py` `_post_restore` | **Kapandı** — #446 |
 | **P2** | TaskEngine `run_task` içinde `SECURITY_NEVER_AUTO` ayrı branch yok | `task_engine/engine.py` | Bilinçli takip — [P2 analiz](security-never-auto-p2-and-helper-proposal.md) |
-| **P2** | CLI vs panel `consent` / `general_approval` ayrımı | `cli_tasks_mutation.py` | Açık |
+| **P2** | CLI vs panel `consent` / `general_approval` ayrımı | `cli_tasks_mutation.py` | **Kapandı** — #450+#451 |
 
 ## Hizalı yollar (kontrol edildi)
 
-- `POST /tasks`, `/tasks/complete`, `/tasks/delete`, `/tasks/restore` → `_task_action_gate` + `check_policy`
+- `POST /tasks`, `/tasks/complete`, `/tasks/delete`, `/tasks/restore` → `_task_action_gate` + policy + profil (#449) + confirmation opt-in (#456)
 - `TaskStore.delete()` → `may_perform_permanent_delete(user_initiated)`
 - `may_execute_step_at_runtime` → `external` / `critical` red
 

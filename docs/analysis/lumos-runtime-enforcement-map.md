@@ -2,7 +2,7 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Güncellendi** — salt okuma analizi (2026-06-21); panel gate #443–#446; consent ayrımı #450 + session_consent CLI #451 |
+| Durum | **Güncellendi** — salt okuma analizi (2026-06-21); panel gate #443–#446; consent #450+#451; profil guard #449; CU4 confirmation #452–#458 (opt-in) |
 | İlgili | [ADR-012](../decisions/ADR-012-lumos-security-codex.md), [ADR-010 usage map](ADR-010-guard-policy-trust-usage-map.md), [permission matrix](lumos-action-permission-matrix.md) |
 | Kapsam | Docs-only; `archive/` hariç aktif kod taraması |
 | Yöntem | `rg` + dosya okuma — kanıt tabanlı |
@@ -21,7 +21,7 @@ ADR-012 Security Codex maddelerinin (C1–C6) repo'da **nerede enforce edildiği
 |-------|-------|
 | Enforcement **parçalı** | Tek security motoru yok; ADR-010 ile uyumlu |
 | En güçlü zincir | `task_engine/profiles.py` → `may_execute_step_at_runtime` → `TaskEngine.run_task` |
-| Panel gap | ~~`_task_actions_gate()` her zaman açık~~ → **Kapandı** #443–#446 (`task_action_gate` + `check_policy`); profil matrisi panelde hâlâ yok |
+| Panel gate | **Kapandı** #443–#446 (`check_policy`); profil matrisi **Kapandı** #449 (`may_execute_step_at_runtime` 2. kapı); confirmation **Kapandı** #453–#456 (3. kapı, opt-in) |
 | Trust motor | Hedef (ADR-007); aktif kodda minimal |
 | `SECURITY_NEVER_AUTO` | Matris + `inviolable.py`; tüm silme yollarında tam branch **gap** |
 | consent ≠ general_approval | **Kapandı** #450 (policy/read ayrımı) + #451 (`consent oturum` CLI + unlock path) |
@@ -113,19 +113,19 @@ ADR-012 Security Codex maddelerinin (C1–C6) repo'da **nerede enforce edildiği
 
 | Alan | Değer |
 |------|-------|
-| **Sorumluluk** | Salt okuma panel payload: tasks, trash, logs, guidance, consent/keystore **görünürlük** |
-| **Enforce edilen** | Read-only; trash listesi diskten; task status map (`simulasyon` etiketi) |
-| **Gap** | **Enforcement değil** — mock/guidance alanları CLI runtime ile birebir değil (ADR-011) |
-| **Codex** | C4 (görünürlük), C1 read path
+| **Sorumluluk** | Salt okuma panel payload; **`task_action_gate`** — panel mutasyon enforcement merkezi |
+| **Enforce edilen** | Read-only payload; `task_action_gate`: `check_policy` → `may_execute_step_at_runtime` (#449) → `check_confirmation` (#453–#456, `LUMOS_CONFIRMATION_ENABLED` opt-in) |
+| **Gap** | Mock/guidance alanları CLI runtime ile birebir değil (ADR-011); confirmation varsayılan no-op |
+| **Codex** | C3 ✓ (üç kapı), C4 (görünürlük), C1 read path + mutasyon gate
 
 ### `panel/scripts/panel_tasks_server.py`
 
 | Alan | Değer |
 |------|-------|
 | **Sorumluluk** | Panel HTTP: tasks CRUD, trash, evidence, `/lumos-read-state`, `/lumos-consent` |
-| **Enforce edilen** | Trash'e yazma; evidence journal; consent.json; görev mutasyonları `task_action_gate` → `check_policy` (#443–#446) |
-| **Gap** | Profil matrisi: `task_action_gate` → `may_execute_step_at_runtime` (kısmi; delete-permanent hariç) |
-| **Codex** | C1 yüzey ✓, C5 trash write ✓, C3/C6 **kısmi** (policy ✓; profil drift riski)
+| **Enforce edilen** | Trash'e yazma; evidence journal; consent.json; görev mutasyonları `task_action_gate` → `check_policy` (#443–#446) → `may_execute_step_at_runtime` (#449) → `check_confirmation` (#453–#456, opt-in) |
+| **Gap** | `LUMOS_SESSION_UNLOCKED` env vekili; runtime `LockState` doğrulanmaz (ADR-011); confirmation varsayılan kapalı |
+| **Codex** | C1 yüzey ✓, C5 trash write ✓, C3 **kısmi** (policy+profil+confirmation opt-in ✓; trust motor eksik)
 
 ---
 
@@ -223,9 +223,9 @@ ADR-012 Security Codex maddelerinin (C1–C6) repo'da **nerede enforce edildiği
 
 | Codex | Güçlü enforce | Gap |
 |-------|---------------|-----|
-| **C1** Tek kapı | CLI router, panel server yüzeyi | Çoklu giriş (CLI vs panel vs bridge); panel profil matrisi yok |
+| **C1** Tek kapı | CLI router, panel server yüzeyi | Çoklu giriş (CLI vs panel vs bridge); köprü ayrı yüzey |
 | **C2** İç bypass yok | write_interceptor, workspace_contract | ~~Panel doğrudan tasks.json policy dışı~~ → PUT #444 gated |
-| **C3** Onay/kanıt | profiles + TaskEngine + action_policy CLI/panel + evidence | ~~consent≠general_approval drift~~ → **Kapandı** #450+#451; panel profil matrisi yok; confirmation (CU4) → **PR-C0: reason codes defined, implementation pending** |
+| **C3** Onay/kanıt | profiles + TaskEngine + action_policy CLI/panel + evidence + confirmation (opt-in) | ~~consent≠GA drift~~ → **Kapandı** #450+#451; ~~panel profil~~ → **Kapandı** #449; confirmation **merge** #453–#458 — varsayılan kapalı (`LUMOS_CONFIRMATION_ENABLED`) |
 | **C4** Mock ayrımı | Task status `simulasyon`; panel status map | Panel mock alanları |
 | **C5** Trash | workspace_contract, panel trash write | Kalıcı silme tüm path'lerde `user_initiated` (#445 gated) |
 | **C6** Stop-on-risk | Profil never layer; policy offline/koruma; lumos_gate prompt; panel `task_action_gate` | sensitivity kopuk; P2 SECURITY_NEVER_AUTO engine branch |
@@ -238,10 +238,19 @@ Aktif kodda `may_execute_step_at_runtime` çağrıları:
 
 - `src/task_engine/engine.py`
 - `src/kando/cursor_bridge.py`
+- `src/core/panel_bridge_state.py` (`task_action_gate` — #449)
 
 `check_policy` çağrıları:
 
 - `src/cli/cli_tasks_mutation.py`
+- `src/core/panel_bridge_state.py` (`task_action_gate`)
+
+`check_confirmation` / `is_confirmation_enabled` çağrıları (#453–#456):
+
+- `src/core/panel_bridge_state.py` (`task_action_gate` 3. kapı)
+- `src/policy/confirmation_policy.py` (modül)
+- `src/cli/cli_tasks_mutation.py` (#458 CLI `onayla`)
+- `panel/scripts/panel_tasks_server.py` (`POST /lumos-confirm/*` — #457)
 
 `may_perform_permanent_delete` çağrıları:
 
@@ -255,20 +264,36 @@ pr = check_policy(action, _panel_policy_context())
 # enabled=False when offline, koruma+delete, etc.
 ```
 
-PR referansları: #443 policy enforcement, #444 PUT /tasks.json, #445 delete-permanent, #446 restore, #450 consent≠general_approval ayrımı, #451 session_consent CLI/lock flow.
+PR referansları: #443 policy enforcement, #444 PUT /tasks.json, #445 delete-permanent, #446 restore, #449 panel profil guard, #450 consent≠general_approval, #451 session_consent CLI, #452 PR-C0 reason codes docs, #453 confirmation_policy modülü, #454 delete-permanent confirmation, #455 trash modal UI, #456 panel mutation confirmation gate, #457 CU7 preview endpoint+modal, #458 CLI `onayla`.
+
+**Confirmation opt-in:** `LUMOS_CONFIRMATION_ENABLED=true|1|yes` — varsayılan yok/false → 3. kapı no-op; mevcut davranış (#443–#449) korunur.
 
 ---
 
-## 7. CU4 / CU6 / CU7 / CU10 uyum özeti (#450 + #451)
+## 7. CU4 / CU6 / CU7 / CU10 uyum özeti (#449–#458)
 
-| CU | Madde | Bu PR zinciri | Durum |
-|----|-------|---------------|-------|
-| **CU4** | Dış etkili aksiyon açık onay | `general_approval` ≠ `consent`; GA yazma önkoşulu, consent identity/keystore | **PR-C0: reason codes defined, implementation pending** — bkz. [CU4 skeleton draft](lumos-cu4-confirmation-skeleton-draft.md) |
-| **CU6** | Geri dönüşsüz otomatik yok | `SECURITY_NEVER_AUTO`; consent/GA bağımsız | **Kısmi** — engine branch tam değil (#445 gated delete ayrı) |
-| **CU7** | Ne/nerede/etki görünürlüğü | `consent oturum durum`; panel gate `reason`; ayrı GA mesajları | **Kısmi** — CU preview/confirmation yüzeyi yok |
-| **CU10** | Online kimlik/kilit koşulu | `consent oturum aç` kilit açık gerektirir; `kilit ac` → session_consent; lock → sıfırlama | **Kısmi** — panel `LockState` env vekili; presence ayrı |
+| CU | Madde | Merge durumu | Not |
+|----|-------|--------------|-----|
+| **CU4** | Dış etkili aksiyon açık onay | **Merge** #453–#456, #458 | `confirmation_policy`; 3. kapı opt-in; bkz. [CU4 skeleton draft](lumos-cu4-confirmation-skeleton-draft.md) |
+| **CU6** | Geri dönüşsüz otomatik yok | **Kısmi** | #445+#454 delete-permanent; P2 engine branch açık |
+| **CU7** | Ne/nerede/etki görünürlüğü | **Merge** #457 | `POST /lumos-confirm/request` + panel modal (#455 UI) |
+| **CU10** | Online kimlik/kilit koşulu | **Kısmi** | #451 session_consent CLI; panel env vekili; presence ayrı |
 
-**Hedef zincir (ADR-010):** policy → consent (`effective_consent`) → profil+GA → confirmation (PR-C0 reason codes; PR-C1+ runtime) → NEVER_AUTO.
+**Hedef zincir (ADR-010):** policy → consent (`effective_consent`) → profil+GA (#449) → confirmation (#453–#458, opt-in) → NEVER_AUTO.
+
+---
+
+## 8. Açık kalan maddeler
+
+| Madde | Durum | Referans |
+|-------|-------|----------|
+| P2 `SECURITY_NEVER_AUTO` engine branch | Açık | [P2 analiz](security-never-auto-p2-and-helper-proposal.md) |
+| PR-C6 köprü `pending_approval` → confirmation namespace | Açık | [CU4 skeleton §4.1](lumos-cu4-confirmation-skeleton-draft.md) |
+| Trust motor Faz 4 (ADR-007) | Açık | ADR-011 checkpoint |
+| E2E confirmation akışı (opt-in env ile) | Açık | Panel modal + CLI `onayla` birleşik E2E yok |
+| Confirmation varsayılan-on kararı | Açık (ürün) | Şu an varsayılan kapalı; bilinçli opt-in |
+| Panel `LockState` vs env vekili | Açık | ADR-011 |
+| `is_security_never_auto()` helper | Açık (onay bekliyor) | P2 proposal |
 
 ---
 

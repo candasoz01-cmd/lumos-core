@@ -75,7 +75,7 @@ Bu stringler **step `kind` değildir**; sözleşme / inviolable sabitleridir. `S
 
 - Küme üyelerinin dördü de `run_task` içinde **tek bir SECURITY_NEVER_AUTO branch'inde toplanmıyor**.
 - `external_write`, `irreversible_user_op`, `critical_system_config` için **runtime lookup yok**; yalnızca `external`/`critical` step türleri ve dağınık modül guard'ları.
-- CLI `general_approval` ↔ policy `consent` semantik karışımı (scan P2) codex C3 drift riski taşıyor — ayrı dar PR adayı, bu belgede uygulanmaz.
+- CLI `general_approval` ↔ policy `consent` semantik karışımı → **Kapandı** #450+#451
 
 ---
 
@@ -167,7 +167,7 @@ ADR-012 C3 ve `lumos-karar-sozlesmesi.md` karar katmanları ile runtime yolları
 |-------|---------------|------------|-------------|
 | **Rapor** | Sadece cevap / analiz | CLI `durum`, `gorevler`; profil `rapor`; step `analyze`/`read` | ✓ `may_execute_step_at_runtime` izinli |
 | **Öneri** | Öner ama bekle | step `plan`; Brain pending intent | ✓ Uygulama adımı yok; write_local genel onay kapalıyken durur |
-| **Onay** | Açık onayla uygula | `general_approval`; live_brain consent phrase; panel `/lumos-consent` | Kısmi — CLI policy `consent` = `general_approval[0]` (drift); panel policy #443–#446 |
+| **Onay** | Açık onayla uygula | `general_approval`; session_consent (#451); panel `/lumos-consent`; confirmation opt-in (#453–#458) | ~~CLI consent=GA drift~~ → **Kapandı** #450; panel policy+profil #443–#449 |
 | **Kod yolu** | Uygulama | `TaskEngine.run_task` → `_execute_step` → `ActionRegistry` | ✓ Profil matrisi + registry external/critical red |
 | **Asla** | SECURITY_NEVER_AUTO | `TaskStore.delete(user_initiated)`; panel delete-permanent #445 | Kısmi — küme üyelerinin 3'ü engine'de ayrı branch yok |
 
@@ -184,8 +184,8 @@ ADR-012 C3 ve `lumos-karar-sozlesmesi.md` karar katmanları ile runtime yolları
 | Beklenti (ADR-012) | Bugün | Gap |
 |--------------------|-------|-----|
 | Rapor profili hiç uygulama yapmaz | ✓ Matris | — |
-| Genel onay olmadan write_local yok | ✓ Engine guard | CLI consent eşlemesi net değil |
-| Panel = CLI policy zinciri | ✓ #443–#446 | Profil matrisi panelde yok (yalnızca policy) |
+| Genel onay olmadan write_local yok | ✓ Engine guard + panel profil (#449) | — |
+| Panel = CLI policy zinciri | ✓ #443–#458 | Confirmation opt-in; LockState env vekili |
 | Riskli işlemde dur + kanıt | ✓ `EVENT_POLICY_BLOCKED`, evidence | Trust motor (ADR-007) eksik |
 | SECURITY_NEVER_AUTO tüm yollar | Parçalı | P2 engine branch; helper yok |
 | action_risk sınıflandırması birleşik | Dağınık | cursor_bridge risk_level; action_policy risk yok; tek `action_risk` modülü **yok** |

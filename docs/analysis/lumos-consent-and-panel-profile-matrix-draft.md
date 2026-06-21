@@ -2,7 +2,7 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Taslak** — docs-only; uygulama yok |
+| Durum | **Güncellendi** — docs-only; panel profil guard #449; confirmation opt-in #453–#458 |
 | Tarih | 2026-06-21 |
 | İlgili | [ADR-012](../decisions/ADR-012-lumos-security-codex.md), [action permission matrix](lumos-action-permission-matrix.md), [runtime enforcement map](lumos-runtime-enforcement-map.md), [computer-use-permission-gate-decision](../memory/computer-use-permission-gate-decision.md) (CU1–CU10) |
 | Kapsam | Public Lumos OSS; Kando/Cando iç operasyonu **dışarıda** |
@@ -41,7 +41,7 @@ Kaynak: `profiles.py` — `ALL_PROFILES`, `STEP_PERMISSION_MATRIX`, `get_profile
 
 ### Panel ortam değişkeni
 
-Panel read/gate yolu `LUMOS_PROFILE` env ile profil adını **görünürlük** amaçlı taşır; `may_execute_step_at_runtime` panel mutasyonlarında **çağrılmaz** (enforcement map § Panel gap).
+Panel read/gate yolu `LUMOS_PROFILE` env ile profil adını taşır; mutasyonlarda `task_action_gate` → `may_execute_step_at_runtime` **çağrılır** (#449, 2. kapı). Confirmation 3. kapı opt-in (#456, `LUMOS_CONFIRMATION_ENABLED`).
 
 ---
 
@@ -76,12 +76,13 @@ Sütunlar: panel davranış alanları. Hücreler: **izin seviyesi** + **consent 
 |---------|-------|-------------|
 | Salt okuma payload | `panel_bridge_state.build_panel_read_state()` | Read-only |
 | Görev listele / trash listele | `GET /tasks`, `GET /tasks/trash` | Read |
-| Görev CRUD | `POST /tasks`, complete, delete, restore | `task_action_gate` → `check_policy` |
-| Tam doküman yazım | `PUT /tasks.json` | CREATE_TASK gate (#444) |
-| Kalıcı silme | `POST /tasks/delete-permanent` | Policy + confirm (#445) |
+| Görev CRUD | `POST /tasks`, complete, delete, restore | `task_action_gate` → policy + profil (#449) + confirmation opt-in (#456) |
+| Tam doküman yazım | `PUT /tasks.json` | CREATE_TASK gate (#444) + profil + confirmation opt-in |
+| Kalıcı silme | `POST /tasks/delete-permanent` | Policy + confirmation (#454); profil guard kapalı |
 | Consent / kilit API | `POST /lumos-consent` | consent.json; passphrase diske yazılmaz |
+| Confirmation preview | `POST /lumos-confirm/request`, `/grant` | CU7 preview (#457); opt-in |
 | Evidence | `GET /evidence/*` | Journal salt okuma |
-| Profil matrisi | — | **Panelde yok** |
+| Profil matrisi | `task_action_gate` | **Merge** #449 (`may_execute_step_at_runtime`) |
 
 Kaynak: `panel/scripts/panel_tasks_server.py`, `src/core/panel_bridge_state.py`, [runtime enforcement map](lumos-runtime-enforcement-map.md).
 
@@ -139,16 +140,16 @@ Aşağıdaki liste **repo/docs kanıtına** dayanır; tahmin değildir.
 | # | CU ilkesi | Çelişki / gap | Kanıt |
 |---|-----------|---------------|-------|
 | C1 | **CU1** — CU varsayılan kapalı | Computer Use entegrasyonu yok; panel CU modu tanımsız — **henüz uygulanmadı** (beklenen); ancak panel `safe_local` eşdeğeri yokken `PUT /tasks.json` tam yazım mümkün | OD-012 `implementation-pending`; enforcement map C1 kısmi |
-| C2 | **CU2** — yalnızca Lumos geçidi | Panel sunucusu doğrudan `.lumos/tasks.json` yazar; tek yüz ama profil guard atlanır | `panel_tasks_server._write_doc`; enforcement map: profil matrisi panelde yok |
-| C3 | **CU3** — görev kapsamı zorunlu | Panel mutasyonları görev kapsamı / step kind doğrulamaz; yalnızca `action_policy` snapshot | `task_action_gate` → `check_policy` only |
-| C4 | **CU4** — dış etkili açık onay | `general_approval` CLI'da policy `consent` ile eşleniyor — semantik drift; CU işlem onayı ile karışabilir | enforcement map § cli_tasks_mutation; ADR-010 consent≠confirmation |
+| C2 | **CU2** — yalnızca Lumos geçidi | Panel sunucusu `.lumos/tasks.json` yazar; `task_action_gate` policy+profil+confirmation (opt-in) | `panel_tasks_server`; #449 profil guard merge |
+| C3 | **CU3** — görev kapsamı zorunlu | Panel mutasyonları `panel_action_to_step_kind` ile step kind doğrular (#449) | `task_action_gate` |
+| C4 | **CU4** — dış etkili açık onay | ~~CLI consent/GA drift~~ → **Kapandı** #450; confirmation merge #453–#458 (opt-in) | ADR-010; `confirmation_policy` |
 | C5 | **CU5** — okuma / dış etki mod ayrımı | Panel tek HTTP yüzey; mod geçişi UI/endpoint ayrımı **yok** | OD-012 needs-review; panel routes |
 | C6 | **CU6** — SECURITY_NEVER_AUTO | Küme üyeleri `run_task` içinde tek branch'te toplanmıyor; `external_write` vb. step kind değil | [security-never-auto-p2-and-helper-proposal.md](security-never-auto-p2-and-helper-proposal.md) §1.2–1.4 |
-| C7 | **CU7** — ne/nerede/etki görünürlüğü | Panel gate `reason` var; Computer Use oturumu yok; mock/guidance alanları CLI runtime ile birebir değil | ADR-011 panel mock drift; `panel_bridge_state._CODEX_PANEL_WARNING` |
+| C7 | **CU7** — ne/nerede/etki görünürlüğü | **Merge** #457 preview endpoint + modal (#455); mock/guidance CLI drift devam | ADR-011 panel mock drift |
 | C8 | **CU8** — gerçek kanıt | `simulasyon` etiketi TaskEngine'de var; panel status map uyumlu — **kısmi uyum** | ADR-012 C4; `_TASK_STATUS_MAP` |
 | C9 | **CU9** — public repo sınırı | Bu belge public-safe; çelişki **yok** (uyum) | public-github-boundary kuralları |
 | C10 | **CU10** — online kimlik/kilit | Panel `_panel_policy_context`: `LUMOS_SESSION_UNLOCKED` env yoksa `koruma_active=True`; runtime `LockState` doğrulanmaz | `panel_bridge_state.py` L49–54; ADR-011 keystore_ready≠session_unlocked |
-| — | **Profil × panel** | `LUMOS_PROFILE` yalnızca metin; `may_execute_step_at_runtime` panelde çağrılmıyor | enforcement map § panel_tasks_server gap |
+| — | **Profil × panel** | ~~`may_execute_step_at_runtime` panelde çağrılmıyor~~ → **Kapandı** #449 | enforcement map § panel_bridge_state |
 | — | **Trust motor** | Birleşik trust yok; CU10 sinyalleri parçalı | ADR-007; ADR-010 usage map |
 
 ---
@@ -159,9 +160,7 @@ Ayrı bölüm; kod veya PR talep etmez.
 
 ### 5.1 Panel profil guard
 
-1. Panel mutasyonlarında `may_execute_step_at_runtime(LUMOS_PROFILE, step_kind, general_approval)` çağrısı — `check_policy` **sonrası** ikinci kapı.
-2. `LUMOS_PROFILE` için allowlist: yalnızca `rapor`, `guvenli_yurut`, `kisitli_otonom`.
-3. Guest/User/Trusted hedef adları UI katmanında; backend canonical profil adları korunur.
+~~**Öneri (uygulanmadı):**~~ **Merge #449** — `task_action_gate` içinde `may_execute_step_at_runtime` 2. kapı. Kalan: confirmation varsayılan opt-in; LockState env vekili.
 
 ### 5.2 Consent semantik ayrımı (ADR-010)
 

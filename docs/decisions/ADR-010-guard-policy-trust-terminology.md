@@ -427,6 +427,10 @@ Haziran 2026 repo analizi ve usage map (2026-06-21) sonrasında **guard, policy,
 
 Repo drift riskleri (`LockState` / `_lock_ok`, panel consent proxy, CLI LOCKED, panel mock) usage map ile **doğrulandı** — bkz. [usage map](../analysis/ADR-010-guard-policy-trust-usage-map.md). Lock semantiği birleştirme ve engine enforce **takip checkpoint'lerinde**; bu ADR kod veya lock davranışı değiştirmez.
 
+### CU4 confirmation merge notu (2026-06-21, #452–#458)
+
+PR-C zinciri merge edildi; **confirmation** artık ayrı sinyal olarak `policy.confirmation_policy` modülünde. **Opt-in:** `LUMOS_CONFIRMATION_ENABLED=true|1|yes` — varsayılan no-op. Gate sırası: policy → profil (`may_execute_step_at_runtime`, #449) → confirmation (3. kapı). PR-C6 köprü namespace ve varsayılan-on kararı **açık**. Bkz. [CU4 skeleton](../analysis/lumos-cu4-confirmation-skeleton-draft.md), [ADR-012 §7](ADR-012-lumos-security-codex.md).
+
 ## Sonraki gözden geçirme
 
 - ADR-007 (8 trust durumu) finalize — ADR-010 + ADR-006 terminolojisine referans

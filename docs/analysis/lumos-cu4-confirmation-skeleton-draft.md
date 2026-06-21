@@ -2,13 +2,13 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Taslak** — PR-C0 reason kodları tanımlandı; uygulama bekliyor (PR-C1+) |
-| Tarih | 2026-06-21 |
+| Durum | **Güncellendi** — PR-C0–C5 + CLI C4 merge (#452–#458); PR-C6 köprü açık; confirmation **opt-in** |
+| Tarih | 2026-06-21 (sync: post-#458) |
 | İlgili | [ADR-010](../decisions/ADR-010-guard-policy-trust-terminology.md), [ADR-012](../decisions/ADR-012-lumos-security-codex.md), [consent/GA ayrımı](lumos-consent-general-approval-separation-draft.md), [runtime enforcement map](lumos-runtime-enforcement-map.md) |
 
-**Kapsam:** Salt analiz + reason kod sözleşmesi (PR-C0); kod uygulaması PR-C1+.
+**Kapsam:** Analiz + merge edilmiş CU4 confirmation zinciri (#452–#458). Kod referansı: `src/policy/confirmation_policy.py`, `panel_bridge_state.task_action_gate`, `panel_tasks_server`, CLI `onayla`.
 
-**Kaynaklar:** ADR-010, `lumos-consent-general-approval-separation-draft.md`, `computer-use-permission-gate-decision.md` (CU4/CU6/CU7/CU10), `lumos-action-permission-matrix.md`, `lumos-consent-and-panel-profile-matrix-draft.md`, `lumos-runtime-enforcement-map.md`, mevcut kod (`action_policy`, `panel_bridge_state.task_action_gate`, `panel_tasks_server._post_delete_permanent`, `TaskMutationContext.pending_action`).
+**Opt-in:** `LUMOS_CONFIRMATION_ENABLED=true|1|yes` — varsayılan kapalı (no-op). Env yokken policy+profil gate (#443–#449) davranışı değişmez.
 
 ---
 
@@ -20,7 +20,7 @@
 |--------|------|------|------------------------|
 | **session_consent** | Oturum / dosya | Identity, keystore, koruma alanı rızası | `consent.json` + CLI `session_consent[]` (#451); `effective_consent()` |
 | **general_approval** | Oturum | `kisitli_otonom` yazma kapısı (`write_local`, `safe_local` önkoşulu) | `general_approval[]`, panel `LUMOS_GENERAL_APPROVAL` |
-| **confirmation** *(yeni)* | Tek işlem / tek kapsam | CU4: dış etkili veya yükseltilmiş riskli adım için anlık onay | **Gap** — yalnızca parçalı örnekler: `delete-permanent` `confirm=true`, köprü `pending_approval` |
+| **confirmation** *(merge #453–#458)* | Tek işlem / tek kapsam | CU4: dış etkili veya yükseltilmiş riskli adım için anlık onay | `confirmation_policy`; `task_action_gate` 3. kapı; `POST /lumos-confirm/*`; CLI `onayla` — **opt-in** |
 
 **Zorunlu kural:** `general_approval=True` → CU4 için **yeterli değil**. `SECURITY_NEVER_AUTO` → üç sinyalden **bağımsız** ⛔.
 
@@ -36,9 +36,9 @@ confirmation (işlem bazlı, CU4 + CU7 preview)
 SECURITY_NEVER_AUTO (asla otomatik değil)
 ```
 
-### 1.3 Confirmation veri modeli (taslak — uygulama yok)
+### 1.3 Confirmation veri modeli (merge — #453)
 
-**Kayıt:** `ConfirmationGrant` (tek kullanımlık, kapsam bağlı)
+**Kayıt:** `ConfirmationGrant` (tek kullanımlık, kapsam bağlı) — `src/policy/confirmation_policy.py`
 
 | Alan | Tip | Açıklama |
 |------|-----|----------|
@@ -51,33 +51,21 @@ SECURITY_NEVER_AUTO (asla otomatik değil)
 | `consumed` | bool | tek kullanım sonrası true |
 | `granted_by` | enum | `panel_confirm`, `cli_confirm`, `bridge_approve` |
 
-**Depolama (hedef):** `.lumos/pending_confirmations/<id>.json` — köprüdeki `.lumos/pending_approvals/` ile **aynı fikir, farklı semantik** (confirmation ≠ consent ≠ GA).
+**Depolama:** `.lumos/pending_confirmations/<id>.json` — merge (#453).
 
-**Runtime ref (CLI):** `TaskMutationContext` yanına `pending_confirmation: list[dict | None]` — mevcut `pending_action` **consent akışına** aittir (bloklanmış görev id); confirmation ile **karıştırılmamalı**.
+**Runtime ref (CLI):** `TaskMutationContext.pending_confirmation` + `onayla <id>` (#458). `pending_action` **consent akışına** aittir; confirmation ile karıştırılmaz.
 
-### 1.4 API shape (docs-only sözleşme)
+### 1.4 API shape (merge — #453–#457)
 
-**Policy katmanı genişlemesi** (`action_policy` veya ayrı `confirmation_policy` modülü):
+**Modül:** `src/policy/confirmation_policy.py` — `check_confirmation`, `request_confirmation`, `consume_confirmation`, `is_confirmation_enabled`.
 
-```python
-# Taslak — uygulama yok
-check_confirmation(action_key, scope, context) -> ConfirmationResult
-# allowed: bool; reason: str  # örn. confirmation_required | confirmation_expired | scope_mismatch
+**Panel HTTP (merge):**
 
-request_confirmation(action_key, scope, preview) -> PendingConfirmation
-# → confirmation_id + CU7 preview payload (UI/CLI)
-
-consume_confirmation(confirmation_id, scope_hash) -> bool
-# tek kullanım; mismatch → red
-```
-
-**Panel HTTP (hedef):**
-
-| Endpoint | Rol |
-|----------|-----|
-| `POST /lumos-confirm/request` | CU7 preview döner; `confirmation_id` üretir |
-| `POST /lumos-confirm/grant` | Kullanıcı onayı → grant yazar |
-| Mutasyon body | `{ ..., "confirmation_id": "..." }` veya mevcut `confirm=true` (legacy alias) |
+| Endpoint | Rol | PR |
+|----------|-----|-----|
+| `POST /lumos-confirm/request` | CU7 preview döner; `confirmation_id` üretir | #457 |
+| `POST /lumos-confirm/grant` | Kullanıcı onayı → grant yazar | #457 |
+| Mutasyon body | `{ ..., "confirmation_id": "..." }` veya legacy `confirm=true` (delete-permanent) | #454, #456 |
 
 **Reason kodları (gate genişlemesi — PR-C0 tanımlandı):**
 
@@ -225,15 +213,16 @@ flowchart TD
 
 ### 4.1 PR sırası (minimal, tek sorumluluk)
 
-| PR | Başlık | Kapsam | Bağımlılık |
-|----|--------|--------|------------|
-| **PR-C0** | Reason kodları + docs | `[CONFIRMATION_BLOCKED]`, enforcement map CU4 satırı | — |
-| **PR-C1** | `confirmation_policy` iskelet | `check/request/consume`; `.lumos/pending_confirmations/`; unit test | C0 |
-| **PR-C2** | `delete-permanent` unify | Mevcut `confirm=true` → C1 API; regresyon testleri | C1 |
-| **PR-C3** | Panel mutasyonlar (write_local) | `POST /tasks`, `PUT /tasks.json`, `complete`, soft `delete` | C1 |
-| **PR-C4** | CLI confirmation | `lumos_runtime` ref + `onayla` / inline confirm | C1 |
-| **PR-C5** | CU7 preview endpoint | `POST /lumos-confirm/request` + panel modal | C3 |
-| **PR-C6** | Köprü hizalama (opsiyonel, ayrı repo path) | `pending_approval` → confirmation namespace | C1 |
+| PR | Başlık | Kapsam | Durum |
+|----|--------|--------|-------|
+| **PR-C0** | Reason kodları + docs | `[CONFIRMATION_BLOCKED]`, enforcement map CU4 satırı | **Merge** #452 |
+| **PR-C1** | `confirmation_policy` iskelet | `check/request/consume`; `.lumos/pending_confirmations/`; unit test | **Merge** #453 |
+| **PR-C2** | `delete-permanent` unify | `confirm=true` → C1 API; regresyon testleri | **Merge** #454 |
+| **PR-UI-C2a** | Trash modal UI | Panel onay modalı iskeleti | **Merge** #455 |
+| **PR-C3** | Panel mutasyonlar (write_local) | `POST /tasks`, `PUT /tasks.json`, `complete`, soft `delete` — 3. kapı | **Merge** #456 (opt-in) |
+| **PR-C5** | CU7 preview endpoint | `POST /lumos-confirm/request` + panel modal | **Merge** #457 |
+| **PR-C4** | CLI confirmation | `onayla <id>` / inline confirm | **Merge** #458 |
+| **PR-C6** | Köprü hizalama (opsiyonel) | `pending_approval` → confirmation namespace | **Açık** |
 
 **Önkoşul:** Consent ≠ GA ayrımı (#450+#451) **tamamlanmış** kabul edilir; CU4 iskelet bunun üstüne inşa edilir.
 
@@ -311,6 +300,7 @@ flowchart TD
 
 ## Özet durum
 
-- **Kapandı (öncül):** consent ≠ general_approval (#450+#451); ADR-010 terminoloji.
-- **PR-C0 (bu PR):** Reason kodları tanımlandı; runtime enforcement **henüz yok**.
-- **Sonraki adım:** PR-C1 — `confirmation_policy` iskelet modülü + unit test.
+- **Kapandı (öncül):** consent ≠ general_approval (#450+#451); panel profil guard (#449); ADR-010 terminoloji.
+- **Merge (#452–#458):** Reason kodları, `confirmation_policy`, delete-permanent unify, trash modal UI, panel 3. kapı, CU7 preview, CLI `onayla`.
+- **Opt-in:** `LUMOS_CONFIRMATION_ENABLED=true|1|yes` — varsayılan no-op.
+- **Açık:** PR-C6 köprü namespace; E2E confirmation; varsayılan-on ürün kararı; P2 NEVER_AUTO engine branch.
