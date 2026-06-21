@@ -11,7 +11,8 @@
 | **Üst sınır** | [`docs/lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md), [`docs/memory/public-repo-boundary.md`](../memory/public-repo-boundary.md) |
 | **İlgili ADR'ler** | [ADR-007](../decisions/ADR-007-trust-engine-layer.md) (trust katmanı), [ADR-002](../decisions/ADR-002-mail-inbox-intelligence.md) (kanal entegrasyon ilkesi) |
 | **Repo taraması** | `WeChat` / `Weixin` / `微信` — **0 eşleşme** (2026-06-21) |
-| **Son güncelleme** | 2026-06-21 |
+| **Son güncelleme** | 2026-06-22 |
+| **İlgili hazırlık analizi** | [`wechat-china-market-technical-readiness.md`](./wechat-china-market-technical-readiness.md) — Çin pazarı giriş engelleri, yerel entegrasyon, Lumos mimari kancaları (Phase 0–2) |
 
 > **Sorumluluk reddi:** Bu belge **hukuki tavsiye değildir**. Tencent/WeChat platform kuralları, Çin veri mevzuatı (PIPL, DSL, CSL) ve KKTC/Türkiye şirket yapısı **hızla değişebilir**. `[doğrulanmalı]` işaretli maddeler yerel Çin hukuk danışmanı + kullanıcı varlık yapısı ile teyit edilmelidir.
 
