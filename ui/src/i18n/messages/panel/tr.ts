@@ -5,6 +5,12 @@ const panelNav = {
   },
   header: {
     title: "Lumos Panel",
+    subtitle: "Kontrollü çalışma alanı",
+  },
+  moduleGroups: {
+    calisma: "Çalışma",
+    lumosCore: "Lumos çekirdeği",
+    preview: "Önizleme",
   },
   nav: {
     aria: "Çalışma modülleri",
@@ -29,8 +35,8 @@ const panelNav = {
     guvenlik: "Güvenlik",
     dunya: "Dünya",
     ayarlar: "Ayarlar",
-    inactiveBadge: "Henüz aktif değil",
-    inactiveBadgeTitle: "Bu modül henüz aktif değil — erken erişim aşamasında",
+    inactiveBadge: "Önizleme",
+    inactiveBadgeTitle: "Bilgi ve önizleme ekranı — tam modül işlevi aktif değil",
   },
   sections: {
     sohbet: "Sohbet",
@@ -122,12 +128,12 @@ const panelModules = {
       sendOffline: "Çevrimdışı mod: internet ve dış köprü kullanılmaz; yerel yanıtlar kullanılabilir.",
     },
     capability: {
-      title: "Şu an ne yapabilirim?",
+      title: "Ne yapabilirim?",
       canDoSection: "Yapabilirim",
-      canDo1: "Görev kaydeder, listeler ve kısa plan önerir.",
-      canDo2: "Cihaz içi ayarlardan okur; pratik notlar verir.",
-      wontDoSection: "Şu an yapmam",
-      wontDo1: "Komut çalıştırmaz, kod değiştirmez.",
+      canDo1: "Görev kaydeder ve listeler.",
+      canDo2: "Cihaz içi ayarlardan okur.",
+      wontDoSection: "Yapmam",
+      wontDo1: "Komut çalıştırmaz.",
       wontDo2: "Onaysız kalıcı işlem yapmaz.",
     },
     security: {
@@ -361,7 +367,7 @@ const panelModules = {
     intro:
       "Görevler cihazınızdaki görev kaydına yazılır; görev eklerken iletim gerekmez. Sunucu kapalıysa liste tarayıcı önbelleğinden gösterilir.",
     codexWarning:
-      "Demo panel — tam policy/profil zinciri CLI ile aynı değil; riskli işlemde dur. (ADR-012 Security Codex)",
+      "Bu panel önizleme sürümüdür; riskli işlemlerde durur ve onay ister.",
     form: {
       titleLabel: "Görev adı",
       titlePlaceholder: "Kısa bir başlık yazın…",
@@ -627,9 +633,8 @@ const panelModules = {
       "Orijinal materyal ile üretilen çıktı birbirinden ayırt edilir; kullanıcı hangisinin paylaşıldığını net görebilir.",
   },
   social: {
-    intro:
-      "Bu sekme, dışa açılan içeriklerde taslağı kullanıcıda tutmayı, platform farkındalığını artırmayı ve kalıcı paylaşımlarda açık onayı öncelemeyi hedefleyen yaklaşımı özetler.",
-    sharePreviewIntro: "Sosyal paylaşım taslağı önizlemesi — gerçek paylaşım bu sürümde kapalı.",
+    intro: "Paylaşım taslağı ve onay akışı — önizleme sürümü.",
+    sharePreviewIntro: "Taslak önizlemesi — gerçek paylaşım kapalı.",
     dataType: "Sosyal metin",
     c1Title: "Paylaşım Öncesi Kontrol",
     c1Body:
@@ -646,9 +651,8 @@ const panelModules = {
     c5Body: "Lumos kullanıcı adına sessizce paylaşım yapmaz; gönderme kararı kullanıcıda kalır.",
   },
   mail: {
-    intro:
-      "Bu sekme, e-posta taslağı hazırlama, ek ve alıcı doğrulaması ile gönderim öncesi açık onayı merkeze alan yaklaşımı özetler.",
-    sharePreviewIntro: "E-posta taslağı önizlemesi — gerçek gönderim bu sürümde kapalı.",
+    intro: "E-posta taslağı hazırlama ve gönderim öncesi onay — önizleme sürümü.",
+    sharePreviewIntro: "Taslak önizlemesi — gerçek gönderim kapalı.",
     dataType: "E-posta",
     c1Title: "Taslak Odaklı Çalışma",
     c1Body:
@@ -707,15 +711,15 @@ const panelModules = {
   quantum: {
     banner: {
       demo: "DEMO",
-      localScan: "Yerel tarama (local_scan)",
-      docsExample: "Dokümantasyon tabanlı örnek çıktı",
-      noLiveScan: "GET /quantum-readiness yanıt vermedi",
-      mvpPlanning: "Yerel tarama yüklenemedi — örnek gösteriliyor",
+      localScan: "Yerel tarama",
+      docsExample: "Örnek çıktı",
+      noLiveScan: "Tarama yanıt vermedi",
+      mvpPlanning: "Örnek gösteriliyor",
     },
     readinessIntro:
-      "Lumos Quantum Readiness — yerel, salt okunur kuantum sonrası güvenlik hazırlık tarayıcısı. GET /quantum-readiness yanıt vermediğinde aşağıdaki değerler dokümantasyon tabanlı örnektir; panel sunucusu açıkken yerel tarama (local_scan) otomatik yüklenir.",
+      "Yerel güvenlik hazırlık özeti. Sunucu kapalıysa aşağıdaki değerler örnektir.",
     readinessIntroLive:
-      "Lumos Quantum Readiness — yerel, salt okunur hazırlık taraması. Canlı analiz kuantum güvenli veya üretim kuantum iddiası taşımaz; salt okunur kod/metadata envanteridir.",
+      "Yerel salt okunur tarama. Kuantum güvenli veya üretim iddiası taşımaz.",
     readinessReport: {
       label: "Genel durum",
       mock: "Örnek — doğrulanmadı",
@@ -726,24 +730,16 @@ const panelModules = {
     mock: {
       title: "Örnek hazırlık özeti (mock)",
       titleLive: "Yerel hazırlık özeti",
-      note: "Kanıt kaynağı: docs_only — ADR-013 checklist. GET /quantum-readiness kullanılamadı; yerel tarama (local_scan) yüklenemedi.",
-      noteLive:
-        "Hazırlık raporu — kuantum güvenli veya kuantum bilgisayar iddiası taşımaz.",
-      cryptoLabel: "Şifreleme / anahtar",
-      cryptoValue: "AES-GCM-256, Scrypt KDF — klasik; PQC uygulanmıyor",
+      note: "Örnek veri — yerel tarama kullanılamadı.",
+      noteLive: "Hazırlık özeti — kuantum güvenli iddiası taşımaz.",
+      cryptoLabel: "Şifreleme",
+      cryptoValue: "AES-GCM-256, Scrypt — klasik; PQC yok",
       agilityLabel: "Kripto çeviklik",
-      agilityValue: "Orta — modül sınırları var; PQC migration hook yok",
-      pqcLabel: "PQC geçiş hazırlığı",
-      pqcValue: "İzleme — NIST PQC farkındalığı; uygulama yok",
-      evidenceLabel: "Kanıt türü",
-      evidenceValue: "docs_only — yerel tarama (local_scan) yüklenemedi",
-    },
-    readinessReport: {
-      label: "Genel durum",
-      mock: "Örnek — doğrulanmadı",
-      tamamlandi: "Tamamlandı",
-      kismi: "Kısmi",
-      dogrulanamadi: "Doğrulanamadı",
+      agilityValue: "Orta — PQC geçiş kancası yok",
+      pqcLabel: "PQC hazırlığı",
+      pqcValue: "İzleme — uygulama yok",
+      evidenceLabel: "Kanıt",
+      evidenceValue: "Örnek — yerel tarama yok",
     },
     live: {
       evidenceBasis: "Kanıt kaynağı: {basis} — yerel salt okunur tarama",
@@ -793,21 +789,19 @@ const panelModules = {
       },
     },
     entropyLab: {
-      title: "Entropy Lab (deneysel — ayrı alan)",
-      body: "Entropy Lab, Quantum Readiness’ten ayrı deneysel bir alandır. Bu panelde sağlayıcı probe veya entropy entegrasyonu yoktur; üretim kuantum entropy iddiası taşınmaz.",
-      bodyLive:
-        "Entropy Lab, Quantum Readiness’ten ayrıdır. Aşağıdaki değerler salt okunur yerel tarama probundan gelir — üretim kuantum entropy değildir.",
+      title: "Entropy Lab (deneysel)",
+      body: "Quantum Readiness’ten ayrı deneysel alan. Üretim entropy iddiası yok.",
+      bodyLive: "Deneysel alan — salt okunur tarama probu.",
       configuredLabel: "Yapılandırılmış sağlayıcı",
       effectiveLabel: "Efektif sağlayıcı (heuristic)",
       fallbackLabel: "Sessiz fallback",
       fallbackYes: "Evet — os fallback aktif",
       fallbackNo: "Hayır",
     },
-    intro:
-      "Aşağıdaki kartlar olasılık, belirsizlik ve güvenlik araştırması kavramlarını özetler; kesin vaatler yerine şeffaf sınırlar önceliklidir.",
-    c1Title: "Kuantum Güvenlik Araştırması",
+    intro: "Olasılık ve güvenlik araştırması — kesin vaat yok.",
+    c1Title: "Kuantum güvenlik araştırması",
     c1Body:
-      "Bu bölüm, Lumos’un gelecekte kuantum dayanıklı şifreleme ve ileri güvenlik yaklaşımlarını değerlendireceği araştırma alanıdır. Mevcut sistem, kuantum şifreleme kullandığını iddia etmez.",
+      "Gelecekte kuantum dayanıklı şifreleme değerlendirmesi. Mevcut sistem kuantum şifreleme iddia etmez.",
     c2Title: "Çoklu İhtimal",
     c2Body:
       "Lumos tek bir sonucu kesinmiş gibi dayatmaz; olası yolları ve belirsizlikleri birlikte görünür tutar.",

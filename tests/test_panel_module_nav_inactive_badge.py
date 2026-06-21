@@ -75,3 +75,16 @@ def test_panel_nav_inactive_badge_keys_in_panel_en() -> None:
     text = _PANEL_EN.read_text(encoding="utf-8")
     for key in PANEL_NAV_I18N_KEYS:
         assert key in text, f"missing panel en inactive nav key: {key}"
+
+
+def test_panel_nav_inactive_copy_describes_preview_without_claiming_availability() -> None:
+    assert 'inactiveBadge: "Önizleme"' in _PANEL_TR.read_text(encoding="utf-8")
+    assert 'inactiveBadge: "Preview"' in _PANEL_EN.read_text(encoding="utf-8")
+    assert "tam modül işlevi aktif değil" in _PANEL_TR.read_text(encoding="utf-8")
+    assert "the full module is not active" in _PANEL_EN.read_text(encoding="utf-8")
+
+
+def test_panel_header_has_no_seasonal_badge_or_flags() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    assert "GlobalMay19Corner" not in text
+    assert "lumos-m19g" not in text
