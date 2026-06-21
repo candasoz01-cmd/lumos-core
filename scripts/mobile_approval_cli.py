@@ -16,4 +16,4 @@ if str(_SRC) not in sys.path:
 from kando_bridge.mobile_approval_client import main  # noqa: E402
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
