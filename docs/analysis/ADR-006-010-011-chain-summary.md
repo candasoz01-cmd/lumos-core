@@ -61,6 +61,8 @@ Lock iki sinyal (ADR-011) trust tüketimine hazırlanır (Faz 4).
 | #479 | `lumos quantum-readiness` CLI subcommand (JSON/summary) |
 | #480 | Panel kuantum sekmesi live fields (`generated_at`, `evidenced_findings`, `entropy_lab`) |
 | #482 | Panel kuantum sekmesi migration tables (`long_lived_data`, `hard_to_change_deps`, `prioritized_migration_plan`) |
+| #481 | Quantum CLI + panel live fields milestone docs sync (#479–#480) |
+| #483 | Panel migration tables milestone docs sync (#482) |
 
 ## Sonraki checkpoint
 

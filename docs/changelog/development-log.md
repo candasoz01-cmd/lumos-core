@@ -217,3 +217,21 @@ Quantum Readiness Faz-2 kısmi milestone — UI copy + docs senkronu (#468–#47
 | 3 | [#473](https://github.com/candasoz01-cmd/lumos-core/pull/473)–[#475](https://github.com/candasoz01-cmd/lumos-core/pull/475) | Landing Faz-2 wording, ADR cross-ref, panel fetch badge copy |
 
 **Kapsam:** Copy/docs-only; enforcement veya runtime davranış değişikliği yok.
+
+---
+
+## 2026-06-21 (Quantum Readiness Faz-2 closure)
+
+Quantum Readiness Faz-2 closure — CLI + panel live fields + docs chain (#479–#483).
+
+| Sıra | PR | Özet |
+|------|-----|------|
+| 1 | [#479](https://github.com/candasoz01-cmd/lumos-core/pull/479) | `lumos quantum-readiness` CLI subcommand (JSON/summary) |
+| 2 | [#480](https://github.com/candasoz01-cmd/lumos-core/pull/480) | Panel live fields (`generated_at`, `evidenced_findings`, `entropy_lab`) |
+| 3 | [#481](https://github.com/candasoz01-cmd/lumos-core/pull/481) | Docs sync — chain-summary + open-decisions for #479–#480 |
+| 4 | [#482](https://github.com/candasoz01-cmd/lumos-core/pull/482) | Panel migration tables (`long_lived_data`, `hard_to_change_deps`, `prioritized_migration_plan`) |
+| 5 | [#483](https://github.com/candasoz01-cmd/lumos-core/pull/483) | Docs sync — chain-summary + open-decisions for #482 |
+
+**Kapsam:** CLI + panel UI (#479–#482); milestone docs (#481, #483). Panel Faz-2 alan seti docs-kapalı.
+
+**Açık (opsiyonel):** `hazırlık_raporu` genel durum badge'i; entropy birim testleri.
