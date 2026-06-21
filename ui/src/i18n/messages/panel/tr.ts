@@ -705,15 +705,21 @@ const panelModules = {
   quantum: {
     banner: {
       demo: "DEMO",
+      localScan: "Yerel tarama (local_scan)",
       docsExample: "Dokümantasyon tabanlı örnek çıktı",
       noLiveScan: "Canlı analiz yapılmadı",
       mvpPlanning: "Quantum Readiness MVP plan aşamasında",
     },
     readinessIntro:
       "Lumos Quantum Readiness — yerel, salt okunur kuantum sonrası güvenlik hazırlık tarayıcısı konseptidir. Bu ekranda gösterilen değerler dokümantasyon tabanlı örnektir; canlı dosya taraması veya güvenlik skoru üretilmez.",
+    readinessIntroLive:
+      "Lumos Quantum Readiness — yerel, salt okunur hazırlık taraması. Canlı analiz kuantum güvenli veya üretim kuantum iddiası taşımaz; salt okunur kod/metadata envanteridir.",
     mock: {
       title: "Örnek hazırlık özeti (mock)",
+      titleLive: "Yerel hazırlık özeti",
       note: "Kanıt kaynağı: docs_only — ADR-013 checklist. Gerçek tarama Faz-2 onayı sonrası bağlanır.",
+      noteLive:
+        "Hazırlık raporu — kuantum güvenli veya kuantum bilgisayar iddiası taşımaz.",
       cryptoLabel: "Şifreleme / anahtar",
       cryptoValue: "AES-GCM-256, Scrypt KDF — klasik; PQC uygulanmıyor",
       agilityLabel: "Kripto çeviklik",
@@ -722,6 +728,21 @@ const panelModules = {
       pqcValue: "İzleme — NIST PQC farkındalığı; uygulama yok",
       evidenceLabel: "Kanıt türü",
       evidenceValue: "docs_only / simulasyon — canlı tarama yok",
+    },
+    live: {
+      evidenceBasis: "Kanıt kaynağı: {basis} — yerel salt okunur tarama",
+      pqcAwareYes: "NIST PQC farkındalığı var",
+      pqcAwareNo: "NIST PQC farkındalığı yok",
+      pqcStatus: {
+        uygulanmiyor: "Uygulanmıyor",
+        izleme: "İzleme",
+      },
+      agility: {
+        orta: "Orta — modül sınırları var; PQC migration hook yok",
+        yuksek: "Yüksek — versiyonlama ve modül sınırları",
+        dusuk: "Düşük — sınırlı çeviklik",
+        dogrulanamadi: "Doğrulanamadı",
+      },
     },
     entropyLab: {
       title: "Entropy Lab (deneysel — ayrı alan)",

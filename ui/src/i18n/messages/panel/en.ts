@@ -708,15 +708,21 @@ const panel: typeof panelTr = {
   quantum: {
     banner: {
       demo: "DEMO",
+      localScan: "Local scan (local_scan)",
       docsExample: "Documentation-based sample output",
       noLiveScan: "No live analysis performed",
       mvpPlanning: "Quantum Readiness MVP in planning phase",
     },
     readinessIntro:
       "Lumos Quantum Readiness is a concept for a local, read-only post-quantum security readiness scanner. Values shown here are documentation-based samples; no live file scan or security score is produced.",
+    readinessIntroLive:
+      "Lumos Quantum Readiness — local, read-only readiness scan. Live analysis is not a quantum-safe or production quantum claim; it is a read-only code/metadata inventory.",
     mock: {
       title: "Sample readiness summary (mock)",
+      titleLive: "Local readiness summary",
       note: "Evidence basis: docs_only — ADR-013 checklist. Real scan connects after Phase-2 approval.",
+      noteLive:
+        "Readiness report — does not claim quantum-safe or quantum computer usage.",
       cryptoLabel: "Encryption / keys",
       cryptoValue: "AES-GCM-256, Scrypt KDF — classical; PQC not implemented",
       agilityLabel: "Crypto agility",
@@ -725,6 +731,21 @@ const panel: typeof panelTr = {
       pqcValue: "Monitoring — NIST PQC awareness; no implementation",
       evidenceLabel: "Evidence type",
       evidenceValue: "docs_only / simulation — no live scan",
+    },
+    live: {
+      evidenceBasis: "Evidence basis: {basis} — local read-only scan",
+      pqcAwareYes: "NIST PQC awareness present",
+      pqcAwareNo: "No NIST PQC awareness",
+      pqcStatus: {
+        uygulanmiyor: "Not implemented",
+        izleme: "Monitoring",
+      },
+      agility: {
+        orta: "Medium — module boundaries exist; no PQC migration hook",
+        yuksek: "High — versioning and module boundaries",
+        dusuk: "Low — limited agility",
+        dogrulanamadi: "Unverified",
+      },
     },
     entropyLab: {
       title: "Entropy Lab (experimental — separate area)",

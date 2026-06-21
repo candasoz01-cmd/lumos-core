@@ -642,6 +642,13 @@ def build_evidence_query_response_from_base(
     )
 
 
+def build_quantum_readiness_response() -> dict[str, Any]:
+    """ADR-013 yerel salt okunur readiness raporu (get_entropy/decrypt yok)."""
+    from security.readiness.scanner import scan_quantum_readiness
+
+    return scan_quantum_readiness(repo_root=_REPO_ROOT, lumos_dir=_base_dir())
+
+
 def _send_json(handler: BaseHTTPRequestHandler, code: int, obj: dict) -> None:
     raw = json.dumps(obj, ensure_ascii=False).encode("utf-8")
     handler.send_response(code)
@@ -691,6 +698,7 @@ class Handler(BaseHTTPRequestHandler):
             "/tasks/restore",
             "/tasks/delete-permanent",
             "/lumos-read-state",
+            "/quantum-readiness",
             "/lumos-consent",
             "/lumos-confirm/request",
             "/evidence/recent",
@@ -772,6 +780,12 @@ class Handler(BaseHTTPRequestHandler):
             ls["panel_api_health_ok"] = False
             _send_json(self, 200, fallback)
 
+    def _get_quantum_readiness(self) -> None:
+        try:
+            _send_json(self, 200, build_quantum_readiness_response())
+        except Exception as e:
+            _send_json(self, 500, {"ok": False, "error": str(e)})
+
     def _get_tasks_trash(self) -> None:
         items = _list_trash_disk_records()
         td = _trash_dir()
@@ -829,6 +843,9 @@ class Handler(BaseHTTPRequestHandler):
         p = self._parse_path()
         if p == "/lumos-read-state":
             self._get_lumos_read_state()
+            return
+        if p == "/quantum-readiness":
+            self._get_quantum_readiness()
             return
         if p == "/open-folder":
             self.send_error(405)
@@ -1450,7 +1467,7 @@ def main() -> None:
     host = os.environ.get("LUMOS_PANEL_TASKS_HOST", "127.0.0.1")
     httpd = HTTPServer((host, port), Handler)
     sys.stderr.write(
-        "panel_tasks_server: http://%s:%s\n  Statik panel + API aynı port: http://%s:%s/index.html#chat | POST /lumos-consent | GET /lumos-read-state | tasks.json: %s\n"
+        "panel_tasks_server: http://%s:%s\n  Statik panel + API aynı port: http://%s:%s/index.html#chat | POST /lumos-consent | GET /lumos-read-state | GET /quantum-readiness | tasks.json: %s\n"
         % (host, port, host, port, _tasks_file())
     )
     try:
