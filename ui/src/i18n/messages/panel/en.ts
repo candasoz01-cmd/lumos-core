@@ -358,6 +358,8 @@ const panel: typeof panelTr = {
     eyebrow: "Operations",
     intro:
       "Tasks are written to the task record on your device; no transmission is required when adding a task. If the server is down, the list is shown from the browser cache.",
+    codexWarning:
+      "Demo panel — full policy/profile chain is not the same as CLI; pause on risky actions. (ADR-012 Security Codex)",
     form: {
       titleLabel: "Task name",
       titlePlaceholder: "Write a short title…",

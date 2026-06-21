@@ -33,6 +33,7 @@ if _SRC.is_dir() and str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
 from core.lumos_base_dir import lumos_base_dir  # noqa: E402
+from core.panel_bridge_state import task_actions_gate  # noqa: E402
 from core.evidence_continuity import (  # noqa: E402
     DEFAULT_READ_LIMIT,
     MAX_READ_LIMIT,
@@ -89,8 +90,8 @@ def _simulate_photo_capture() -> tuple[str, str]:
 
 
 def _task_actions_gate() -> dict:
-    # Bu paket için aksiyon gate devre dışı: buton aktifse işlem çalışır.
-    return {"enabled": True, "reason": ""}
+    """ADR-012 C6 şeffaflık: reason ortamı açıklar; enabled davranışı henüz kilitlenmez."""
+    return task_actions_gate()
 
 
 def _empty_doc() -> dict:

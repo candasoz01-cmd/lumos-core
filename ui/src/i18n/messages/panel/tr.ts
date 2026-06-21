@@ -358,6 +358,8 @@ const panelModules = {
     eyebrow: "Operasyon",
     intro:
       "Görevler cihazınızdaki görev kaydına yazılır; görev eklerken iletim gerekmez. Sunucu kapalıysa liste tarayıcı önbelleğinden gösterilir.",
+    codexWarning:
+      "Demo panel — tam policy/profil zinciri CLI ile aynı değil; riskli işlemde dur. (ADR-012 Security Codex)",
     form: {
       titleLabel: "Görev adı",
       titlePlaceholder: "Kısa bir başlık yazın…",
