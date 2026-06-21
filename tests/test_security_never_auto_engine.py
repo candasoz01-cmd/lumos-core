@@ -168,3 +168,45 @@ def test_action_policy_sync_with_mapping_table() -> None:
     assert is_never_auto_policy_action(DELETE_PERMANENT) is True
     assert never_auto_member_for_policy_action(DELETE_PERMANENT) == "permanent_delete"
     assert is_never_auto_policy_action("create_task") is False
+
+
+def test_never_auto_member_for_task_step_engine_scope() -> None:
+    from task_engine.profiles import never_auto_member_for_task_step
+
+    step = TaskStep("x", kind=STEP_TYPE_SAFE_LOCAL, action_key="external_write")
+    assert never_auto_member_for_task_step(step, include_permanent_delete=False) == "external_write"
+    tagged = TaskStep("y", kind=STEP_TYPE_ANALYZE, action_key="permanent_delete")
+    assert never_auto_member_for_task_step(tagged, include_permanent_delete=False) is None
+    assert never_auto_member_for_task_step(tagged, include_permanent_delete=True) == "permanent_delete"
+
+
+def test_engine_blocks_never_auto_kind_without_action_key_metadata() -> None:
+    """Producer metadata eksik: step.kind doğrudan küme üyesi ise engine durdurur."""
+    with tempfile.TemporaryDirectory() as d:
+        store = TaskStore(d)
+        t = store.create("Asla", "desc", PROFILE_GUVENLI_YURUT)
+        t.steps = [TaskStep("Dış yaz", kind="external_write")]
+        store.update(t)
+        engine = TaskEngine(store, PROFILE_GUVENLI_YURUT, general_approval=True)
+        ok, _ = engine.run_task(t.task_id)
+        assert ok is False
+        t2 = store.get(t.task_id)
+        assert t2 is not None
+        assert t2.block_reason == BLOCK_SECURITY_NEVER_AUTO
+
+
+def test_engine_false_positive_safe_analyze_unblocked() -> None:
+    with tempfile.TemporaryDirectory() as d:
+        store = TaskStore(d)
+        t = store.create("Güvenli", "desc", PROFILE_GUVENLI_YURUT)
+        t.steps = [TaskStep("Analiz", kind=STEP_TYPE_ANALYZE)]
+        store.update(t)
+        engine = TaskEngine(store, PROFILE_GUVENLI_YURUT, general_approval=True)
+        ok, _ = engine.run_task(t.task_id)
+        assert ok is True
+
+
+def test_workspace_contract_permanent_delete_table_member() -> None:
+    from core.workspace_contract import permanent_delete_never_auto_member
+
+    assert permanent_delete_never_auto_member() == "permanent_delete"

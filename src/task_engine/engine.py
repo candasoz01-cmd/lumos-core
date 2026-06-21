@@ -37,8 +37,8 @@ from task_engine.profiles import (
     STEP_TYPE_READ,
     STEP_TYPE_SAFE_LOCAL,
     STEP_TYPE_WRITE_LOCAL,
-    get_security_never_auto_member,
     may_execute_step_at_runtime,
+    never_auto_member_for_task_step,
 )
 
 # Adım durumları (akış)
@@ -530,11 +530,7 @@ class TaskEngine:
 
     def _step_security_never_auto_member(self, step: TaskStep) -> str | None:
         """ENGINE branch members only; permanent_delete excluded (store/panel path)."""
-        return get_security_never_auto_member(
-            step_kind=step.kind,
-            action_key=step.action_key,
-            include_permanent_delete=False,
-        )
+        return never_auto_member_for_task_step(step, include_permanent_delete=False)
 
     def _is_step_allowed_runtime(self, step: TaskStep) -> bool:
         """

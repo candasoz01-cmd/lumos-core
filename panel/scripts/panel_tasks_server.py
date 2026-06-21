@@ -35,7 +35,13 @@ if _SRC.is_dir() and str(_SRC) not in sys.path:
 from core.lumos_base_dir import lumos_base_dir  # noqa: E402
 from core.panel_bridge_state import task_action_gate  # noqa: E402
 from core.workspace_contract import may_perform_permanent_delete  # noqa: E402
-from policy.action_policy import COMPLETE_TASK, CREATE_TASK, DELETE_TASK  # noqa: E402
+from policy.action_policy import (  # noqa: E402
+    COMPLETE_TASK,
+    CREATE_TASK,
+    DELETE_PERMANENT,
+    DELETE_TASK,
+    never_auto_member_for_policy_action,
+)
 from policy.confirmation_policy import (  # noqa: E402
     ensure_delete_permanent_confirmation,
     ensure_panel_mutation_confirmation,
@@ -1382,6 +1388,13 @@ class Handler(BaseHTTPRequestHandler):
         _send_json(self, 200, {"ok": True, "task": task})
 
     def _post_delete_permanent(self) -> None:
+        if never_auto_member_for_policy_action(DELETE_PERMANENT) != "permanent_delete":
+            _send_json(
+                self,
+                500,
+                {"ok": False, "error": "security_never_auto_misconfigured"},
+            )
+            return
         gate = _task_action_gate(DELETE_TASK, log_on_block=True, profile_guard=False)
         if not gate["enabled"]:
             _send_json(self, 409, {"ok": False, "error": "action_disabled", "reason": gate["reason"]})

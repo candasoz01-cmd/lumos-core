@@ -148,6 +148,21 @@ def resolve_never_auto_member_for_policy_action(action: str) -> str | None:
     return get_security_never_auto_member(policy_action=action)
 
 
+def never_auto_member_for_task_step(step: object, *, include_permanent_delete: bool = False) -> str | None:
+    """TaskStep → tablo üzerinden küme üyesi; engine branch include_permanent_delete=False."""
+    kind = getattr(step, "kind", None)
+    action_key = getattr(step, "action_key", None)
+    action_tag = getattr(step, "action_tag", None)
+    policy_action = getattr(step, "policy_action", None)
+    return get_security_never_auto_member(
+        step_kind=str(kind) if kind else None,
+        action_key=str(action_key) if action_key else None,
+        action_tag=str(action_tag) if action_tag else None,
+        policy_action=str(policy_action) if policy_action else None,
+        include_permanent_delete=include_permanent_delete,
+    )
+
+
 def is_security_never_auto(
     *,
     step_kind: str | None = None,

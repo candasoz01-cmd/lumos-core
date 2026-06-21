@@ -482,9 +482,20 @@ def move_to_trash(
 def may_perform_permanent_delete(user_initiated: bool) -> bool:
     """
     Kalıcı silme yalnızca kullanıcı açık komutu ile.
+    SECURITY_NEVER_AUTO üyesi `permanent_delete` — panel `delete_permanent` policy
+    action ile eşleme tablosunda; engine branch dışında (store/panel yolu).
     user_initiated=True ise (açık kullanıcı kararı) izin verilir; aksi halde asla.
     """
     return user_initiated
+
+
+def permanent_delete_never_auto_member() -> str:
+    """Tablo hizalı canonical üye — panel/policy `delete_permanent` token."""
+    from policy.action_policy import DELETE_PERMANENT
+    from task_engine.profiles import resolve_never_auto_member_for_policy_action
+
+    member = resolve_never_auto_member_for_policy_action(DELETE_PERMANENT)
+    return member or "permanent_delete"
 
 
 def is_core_state_path(base_dir: Path | str, candidate_path: Path | str) -> bool:
