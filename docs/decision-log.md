@@ -88,6 +88,7 @@ Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A16 takip satırları kap
 | DL-A22 | 2026-06-21 | Faz-2 Phase A — E2E confirmation | **Merge** — panel+API confirmation E2E (opt-in env); CLI #459 öncül | PR #460 | ADR-012 §7, [`lumos-runtime-enforcement-map.md`](analysis/lumos-runtime-enforcement-map.md) §8 |
 | DL-A23 | 2026-06-21 | PR-C6 köprü confirmation namespace | **Kısmi merge** — `attach_bridge_pending_confirmation` shadow adapter (#462); legacy `pending_approvals` korunur; köprü yürütmede `consume_confirmation` wiring **açık** | PR #462 | [`lumos-cu4-confirmation-skeleton-draft.md`](analysis/lumos-cu4-confirmation-skeleton-draft.md) §4.1 |
 | DL-A24 | 2026-06-21 | P2 SECURITY_NEVER_AUTO engine branch | **Merge (dar kapsam)** — TaskEngine `run_task` branch + `is_security_never_auto()` helper (#463); `permanent_delete` engine dışı (store/panel yolu) | PR #463 | [`security-never-auto-p2-and-helper-proposal.md`](analysis/security-never-auto-p2-and-helper-proposal.md) |
+| DL-A25 | 2026-06-21 | Quantum Readiness Faz-2 MVP (kısmi) | **Merge** — yerel tarayıcı `scan_quantum_readiness()` (#468); panel `GET /quantum-readiness` + kuantum sekmesi live fetch (#469) | PR #468, #469 | [ADR-013](decisions/ADR-013-lumos-quantum-security-readiness.md), [`lumos-quantum-readiness-checklist.md`](analysis/lumos-quantum-readiness-checklist.md) |
 
 ### İleride değerlendirilecek
 
@@ -124,6 +125,7 @@ Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A16 takip satırları kap
 | DL-C17 | 2026-06-21 | Kalem 3 — stub ürün adı rename | **Reddedildi** — `src/integrations/` PoC stub'ta provider sınıf adları kalır; §A yasağı yalnızca strategy/ops stub **docs** için | [`public-repo-boundary.md`](memory/public-repo-boundary.md) § Bölüm C |
 | DL-C18 | 2026-06-21 | Faz-2 Phase B — confirmation varsayılan-on | **Opt-in korunur** — E2E #460 kanıtı sonrası `LUMOS_CONFIRMATION_ENABLED` varsayılan kapalı kalır; bilinçli opt-in; tam varsayılan-on ürün incelemesine ertelendi; **kod değişikliği yok** | ADR-012 §7, PR #460, [`lumos-runtime-enforcement-map.md`](analysis/lumos-runtime-enforcement-map.md) §8 |
 | DL-C19 | 2026-06-21 | ADR-010 + open-decisions Faz-2 docs sync | **Doc-only complete** — ADR-010 Faz-2 #452–#463 tablosu; chain-summary #459–#464; open-decisions kapanış + güvenlik enforcement açık satırları (Trust Faz 4, köprü wiring, sensitivity chain, P2 tam eşleme); **kod/enforcement genişlemesi yok** | ADR-010, [`open-decisions-needs-review.md`](memory/open-decisions-needs-review.md), [`ADR-006-010-011-chain-summary.md`](analysis/ADR-006-010-011-chain-summary.md); PR #464 öncül |
+| DL-C20 | 2026-06-21 | Quantum Readiness milestone docs sync | **Doc-only complete** — ADR-001/013 Faz-2 kısmi durum eki (#470); panel/landing quantum copy fetch vs local_scan (#471); open-decisions «endpoint yok» maddeleri kapandı | PR #470, #471 | [ADR-001](decisions/ADR-001-lumos-quantum-modules.md), [ADR-013](decisions/ADR-013-lumos-quantum-security-readiness.md) |
 ---
 
 ## 2026-06-17 — Dokümantasyon düzeni kurulumu
@@ -155,4 +157,4 @@ Tam liste: `docs/memory/open-decisions-needs-review.md` (OD-001 … OD-060).
 
 ---
 
-Son güncelleme: 2026-06-21 (ADR-010 + open-decisions Faz-2 docs sync — DL-C19; #460–#464 milestone)
+Son güncelleme: 2026-06-21 (Quantum Readiness Faz-2 milestone — DL-A25, DL-C20; #468–#471)

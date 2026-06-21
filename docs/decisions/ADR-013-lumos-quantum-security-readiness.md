@@ -213,6 +213,8 @@ Faz-1: statik öneri tablosu checklist'te; otomatik uygulama yok.
 
 Mevcut panel kuantum sekmesi (`ui/src/pages/panel.astro`, `#panel-kuantum`) dört statik kart taşır. Faz-2 kısmi uygulamada altına **readiness banner + özet alanı** eklendi; panel sunucusu `GET /quantum-readiness` ile `scan_quantum_readiness()` JSON döner (`panel/scripts/panel_tasks_server.py`). Canlı fetch başarısızsa mock banner ve docs-only örnek değerler kalır.
 
+![Panel quantum readiness banner — local_scan örneği](../screenshots/adr-013-panel-quantum-readiness-banner.png)
+
 ### Sekme banner (öneri)
 
 Üst banner: *"Lumos Quantum Readiness — yerel hazırlık tarayıcısı; üretim kuantum özelliği değildir"*
@@ -239,7 +241,7 @@ Mevcut dört kart (Kuantum Güvenlik Araştırması, Çoklu İhtimal, Belirsizli
 
 Panel sunucusu veya `GET /quantum-readiness` erişilemezken:
 
-- Sabit banner: **`DEMO / DOKÜMANTASYON — CANLI TARAMA YOK`** (veya eşdeğer i18n rozetleri)
+- Sabit banner: **`DEMO`** + docs-only / fetch-unavailable rozetleri (i18n; bkz. #471); live taramada **`Yerel tarama (local_scan)`** rozeti gösterilir.
 - Statik örnek değerler mock olarak işaretlenir; gerçek başarı gibi gösterilmez.
 
 Canlı tarama bağlıyken rapor `meta.evidence_basis = local_scan` taşır; mock/fallback durumunda `docs_only` etiketi korunur.
