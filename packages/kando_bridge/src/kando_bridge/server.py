@@ -1165,7 +1165,21 @@ def _is_dispatch_medium_pending(out: dict) -> bool:
     return pr.get("schema_version") == DISPATCH_PENDING_APPROVAL_SCHEMA
 
 
-def build_pending_approvals_list() -> list[dict]:
+def _pending_record_matches_source_filter(data: dict, source_filter: str) -> bool:
+    """GET /pending_approvals ?source=… filtresi."""
+    want = (source_filter or "").strip()
+    if not want:
+        return True
+    if str(data.get("source") or "") == want:
+        return True
+    if want == "pc_remote":
+        from kando_bridge.pending_approvals import is_pc_remote_pending
+
+        return is_pc_remote_pending(data)
+    return False
+
+
+def build_pending_approvals_list(*, source_filter: str | None = None) -> list[dict]:
     """`.lumos/pending_approvals/*.json` → panel / GET /pending_approvals için kayıt listesi."""
     items: list[dict] = []
     try:
@@ -1174,6 +1188,8 @@ def build_pending_approvals_list() -> list[dict]:
             try:
                 data = json.loads(p.read_text(encoding="utf-8"))
             except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                continue
+            if source_filter and not _pending_record_matches_source_filter(data, source_filter):
                 continue
             rel = data.get("approval_file") or f".lumos/pending_approvals/{p.name}"
             rs = data.get("reasoning_snapshot") if isinstance(data.get("reasoning_snapshot"), dict) else {}
@@ -1202,6 +1218,8 @@ def build_pending_approvals_list() -> list[dict]:
                     "approval_file": str(rel).replace("\\", "/"),
                     "approval_token": str(data.get("approval_token") or ""),
                     "approval_id": str(data.get("approval_id") or ""),
+                    "source": str(data.get("source") or ""),
+                    "schema_version": str(data.get("schema_version") or ""),
                     "command": str(data.get("command") or ""),
                     "status": str(data.get("status") or ""),
                     "risk_level": str(data.get("risk_level") or "high"),
@@ -1636,8 +1654,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
         ]
         self._send_json(200, {"pending": wrapped})
 
-    def _send_pending_approvals_array_response(self) -> None:
-        arr = build_pending_approvals_list()
+    def _send_pending_approvals_array_response(self, *, source_filter: str | None = None) -> None:
+        arr = build_pending_approvals_list(source_filter=source_filter)
         body = json.dumps(arr, ensure_ascii=False).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -1670,7 +1688,9 @@ class BridgeHandler(BaseHTTPRequestHandler):
         if req_path == "/pending_approvals":
             if not self._check_secret():
                 return
-            self._send_pending_approvals_array_response()
+            q = parse_qs(parsed.query or "")
+            source_filter = (q.get("source") or [""])[0].strip() or None
+            self._send_pending_approvals_array_response(source_filter=source_filter)
             return
         if req_path == "/pending-approvals":
             if not self._check_secret():
