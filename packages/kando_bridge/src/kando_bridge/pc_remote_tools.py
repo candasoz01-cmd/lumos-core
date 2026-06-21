@@ -16,11 +16,10 @@ from typing import Any, TypedDict
 from kando_bridge.pending_approvals import (
     approve_pending_record,
     build_pc_remote_pending_record,
-    consume_pending_record,
-    find_pending_by_approval_id,
     find_pending_by_token,
     mark_expired_if_needed,
     reject_pending_record,
+    try_consume_approval_token,
     validate_approval_token,
     write_pending_approval,
 )
@@ -438,7 +437,6 @@ def execute_tool_stub(
             "schema_version": SCHEMA_VERSION,
         }
 
-    pending_path: Path | None = None
     if spec["approval_required"] and command != CMD_REQUEST_USER_APPROVAL:
         if repo_root is None:
             return {
@@ -494,12 +492,8 @@ def execute_tool_stub(
         if not aid:
             found = find_pending_by_token(repo_root, tok)
             if found is not None:
-                pending_path, _ = found
                 aid = str(found[1].get("approval_id") or found[0].stem)
-        else:
-            found = find_pending_by_approval_id(repo_root, aid)
-            pending_path = found[0] if found else None
-        ok, reason, approved_rec = validate_approval_token(repo_root, aid, tok)
+        ok, reason, approved_rec = try_consume_approval_token(repo_root, aid, tok)
         if not ok or approved_rec is None:
             return {
                 "ok": False,
@@ -509,9 +503,6 @@ def execute_tool_stub(
                 "error": reason or "invalid_approval_token",
                 "schema_version": SCHEMA_VERSION,
             }
-        if pending_path is None:
-            found = find_pending_by_approval_id(repo_root, aid)
-            pending_path = found[0] if found else None
 
     ts = int(time.time() * 1000)
     base: dict[str, Any] = {
@@ -571,14 +562,6 @@ def execute_tool_stub(
             "risk_level": str(arguments.get("risk_level") or "medium"),
             "approval_token": secrets.token_hex(16),
         }
-
-    if pending_path is not None and repo_root is not None:
-        data = find_pending_by_approval_id(
-            repo_root,
-            str(approval_id or pending_path.stem),
-        )
-        if data is not None:
-            consume_pending_record(data[0], data[1])
 
     return base
 

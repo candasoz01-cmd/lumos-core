@@ -42,6 +42,13 @@ from kando_bridge.pc_remote_tools import (
 HttpJsonFn = Callable[..., tuple[int, Any]]
 ApproveFn = Callable[[str, str], dict[str, Any]]
 
+_DEV_AUTO_APPROVE_ENV = "LUMOS_DEV_AUTO_APPROVE"
+
+
+def dev_auto_approve_allowed() -> bool:
+    """Dev-only bypass — requires explicit ``LUMOS_DEV_AUTO_APPROVE=1`` (or true/yes)."""
+    return os.environ.get(_DEV_AUTO_APPROVE_ENV, "").strip().lower() in ("1", "true", "yes")
+
 
 @dataclass(frozen=True)
 class ParsedToolCall:
@@ -299,14 +306,20 @@ def run_tool_call_loop(
             "http_status": status,
         }
 
-    if not auto_approve:
-        return {
+    if not auto_approve or not dev_auto_approve_allowed():
+        out: dict[str, Any] = {
             "ok": False,
             "stage": "pending",
             "pending": first,
             "http_status": status,
             "message": "approval_required — call approve_and_reexecute after user consent",
         }
+        if auto_approve and not dev_auto_approve_allowed():
+            out["dev_auto_approve_blocked"] = True
+            out["message"] = (
+                "auto_approve blocked — set LUMOS_DEV_AUTO_APPROVE=1 for dev bypass only"
+            )
+        return out
 
     exec_status, loop_out = approve_and_reexecute(
         tool_call,

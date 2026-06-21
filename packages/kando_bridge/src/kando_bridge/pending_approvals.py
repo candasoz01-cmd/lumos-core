@@ -235,6 +235,92 @@ def consume_pending_record(path: Path, record: dict[str, Any]) -> dict[str, Any]
     return record
 
 
+def try_consume_approval_token(
+    repo_root: Path,
+    approval_id: str,
+    token: str,
+) -> tuple[bool, str, dict[str, Any] | None]:
+    """
+    Validate approved token and mark ``used=True`` before stub execute (replay guard).
+
+    Re-reads disk under an exclusive lock when available (Unix) to reduce TOCTOU races.
+    """
+    tok = (token or "").strip()
+    aid = (approval_id or "").strip()
+    if not tok:
+        return False, "approval_token_required", None
+
+    found = find_pending_by_approval_id(repo_root, aid)
+    if found is None:
+        found = find_pending_by_token(repo_root, tok)
+    if found is None:
+        return False, "approval_not_found", None
+
+    path, _record = found
+    if not is_pc_remote_pending(_record):
+        return False, "not_pc_remote_pending", None
+
+    try:
+        import fcntl  # Unix-only; CI runs on Linux
+    except ImportError:
+        fcntl = None  # type: ignore[assignment]
+
+    if fcntl is not None:
+        with path.open("r+", encoding="utf-8") as fh:
+            fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+            try:
+                fh.seek(0)
+                raw = fh.read()
+                fresh = json.loads(raw) if raw.strip() else {}
+                if not isinstance(fresh, dict):
+                    return False, "approval_not_found", None
+                mark_expired_if_needed(path, fresh)
+                ok, reason, _ = _validate_record_for_execute(fresh, tok)
+                if not ok:
+                    return False, reason, None
+                fresh["used"] = True
+                fresh["consumed_at"] = _iso(_utc_now())
+                fh.seek(0)
+                fh.truncate()
+                fh.write(json.dumps(fresh, ensure_ascii=False, indent=2))
+                fh.flush()
+                return True, "", fresh
+            finally:
+                fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+
+    ok, reason, record = validate_approval_token(repo_root, aid, tok)
+    if not ok or record is None:
+        return False, reason, None
+    if bool(record.get("used")):
+        return False, "approval_already_used", None
+    return True, "", consume_pending_record(path, record)
+
+
+def _validate_record_for_execute(
+    record: dict[str, Any],
+    token: str,
+) -> tuple[bool, str, dict[str, Any] | None]:
+    """In-lock validation helper for :func:`try_consume_approval_token`."""
+    tok = (token or "").strip()
+    if tok != str(record.get("approval_token") or "").strip():
+        return False, "invalid_approval_token", None
+    status = str(record.get("status") or STATUS_PENDING)
+    if status == STATUS_EXPIRED:
+        return False, "approval_expired", None
+    if status == STATUS_REJECTED:
+        return False, "approval_rejected", None
+    if status != STATUS_APPROVED:
+        return False, "approval_not_approved", None
+    if bool(record.get("used")):
+        return False, "approval_already_used", None
+    exp = _parse_expires_at(record)
+    if exp is not None and _utc_now() > exp:
+        record["status"] = STATUS_EXPIRED
+        record["expired_at"] = _iso(_utc_now())
+        return False, "approval_expired", None
+    return True, "", record
+
+
 def build_pc_remote_pending_record(
     *,
     command: str,
