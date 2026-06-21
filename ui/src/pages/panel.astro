@@ -1905,6 +1905,46 @@ const PANEL_DEBUG = import.meta.env.DEV;
         font-weight: 600;
         color: var(--lumos-accent-blue);
       }
+      .panel-quantum-findings-block {
+        margin: 0.85rem 0 0;
+      }
+      .panel-quantum-findings-block h4 {
+        margin: 0 0 0.45rem;
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: var(--lumos-accent-blue);
+      }
+      .panel-quantum-findings-list {
+        margin: 0;
+        padding-left: 1.15rem;
+        font-size: 0.82rem;
+        line-height: 1.45;
+        color: rgba(212, 208, 200, 0.94);
+      }
+      .panel-quantum-findings-list li {
+        margin-bottom: 0.35rem;
+      }
+      .panel-quantum-finding-id {
+        font-weight: 600;
+        color: rgba(168, 164, 156, 0.95);
+      }
+      .panel-quantum-entropy-dl {
+        margin: 0.55rem 0 0;
+        display: grid;
+        gap: 0.35rem 0.65rem;
+        grid-template-columns: minmax(8rem, 38%) 1fr;
+        font-size: 0.82rem;
+        line-height: 1.4;
+      }
+      .panel-quantum-entropy-dl dt {
+        margin: 0;
+        font-weight: 600;
+        color: rgba(168, 164, 156, 0.95);
+      }
+      .panel-quantum-entropy-dl dd {
+        margin: 0;
+        color: rgba(212, 208, 200, 0.94);
+      }
       .panel-quantum-subsection-note {
         margin: 0 0 0.85rem;
         font-size: 0.84rem;
@@ -5329,13 +5369,27 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 <dd id="panel-quantum-pqc-value" data-i18n="panel.modules.quantum.mock.pqcValue">İzleme — NIST PQC farkındalığı; uygulama yok</dd>
                 <dt data-i18n="panel.modules.quantum.mock.evidenceLabel">Kanıt türü</dt>
                 <dd id="panel-quantum-evidence-value" data-i18n="panel.modules.quantum.mock.evidenceValue">docs_only — yerel tarama (local_scan) yüklenemedi</dd>
+                <dt id="panel-quantum-generated-at-label" hidden data-i18n="panel.modules.quantum.live.generatedAtLabel">Son tarama</dt>
+                <dd id="panel-quantum-generated-at-value" hidden></dd>
               </dl>
+              <div id="panel-quantum-findings-block" class="panel-quantum-findings-block" hidden>
+                <h4 data-i18n="panel.modules.quantum.live.findingsTitle">Kanıtlı bulgular</h4>
+                <ul id="panel-quantum-findings-list" class="panel-quantum-findings-list"></ul>
+              </div>
             </div>
             <h3 class="panel-quantum-subsection" data-i18n="panel.modules.quantum.entropyLab.title">Entropy Lab (deneysel — ayrı alan)</h3>
-            <p class="panel-quantum-subsection-note" data-i18n="panel.modules.quantum.entropyLab.body">
+            <p id="panel-quantum-entropy-note" class="panel-quantum-subsection-note" data-i18n="panel.modules.quantum.entropyLab.body">
               Entropy Lab, Quantum Readiness’ten ayrı deneysel bir alandır. Bu panelde sağlayıcı probe veya entropy entegrasyonu
               yoktur; üretim kuantum entropy iddiası taşınmaz.
             </p>
+            <dl id="panel-quantum-entropy-dl" class="panel-quantum-entropy-dl" hidden>
+              <dt data-i18n="panel.modules.quantum.entropyLab.configuredLabel">Yapılandırılmış sağlayıcı</dt>
+              <dd id="panel-quantum-entropy-configured"></dd>
+              <dt data-i18n="panel.modules.quantum.entropyLab.effectiveLabel">Efektif sağlayıcı (heuristic)</dt>
+              <dd id="panel-quantum-entropy-effective"></dd>
+              <dt data-i18n="panel.modules.quantum.entropyLab.fallbackLabel">Sessiz fallback</dt>
+              <dd id="panel-quantum-entropy-fallback"></dd>
+            </dl>
             <p class="medya-intro" data-i18n="panel.modules.quantum.intro">
               Aşağıdaki kartlar olasılık, belirsizlik ve güvenlik araştırması kavramlarını özetler; kesin vaatler yerine şeffaf
               sınırlar önceliklidir.
@@ -7803,6 +7857,102 @@ const PANEL_DEBUG = import.meta.env.DEV;
         return `${statusText} — ${awareText}`;
       }
 
+      function formatQuantumGeneratedAt(iso) {
+        const raw = String(iso || "").trim();
+        if (!raw) return "";
+        const parsed = Date.parse(raw);
+        if (Number.isNaN(parsed)) return raw;
+        try {
+          return new Date(parsed).toLocaleString(undefined, { timeZoneName: "short" });
+        } catch {
+          return raw;
+        }
+      }
+
+      function formatQuantumFindingSeverity(severity) {
+        const key = String(severity || "").trim().toLowerCase();
+        const label = panelT(`panel.modules.quantum.live.severity.${key}`);
+        if (label && !label.startsWith("panel.modules.quantum")) return label;
+        return String(severity || "").trim();
+      }
+
+      function renderQuantumFindings(findings) {
+        const list = document.getElementById("panel-quantum-findings-list");
+        const block = document.getElementById("panel-quantum-findings-block");
+        if (!list || !block) return;
+        list.textContent = "";
+        const items = Array.isArray(findings) ? findings : [];
+        if (!items.length) {
+          block.hidden = true;
+          return;
+        }
+        block.hidden = false;
+        for (const item of items) {
+          if (!item || typeof item !== "object") continue;
+          const li = document.createElement("li");
+          const id = String(item.finding_id || "").trim();
+          const severity = formatQuantumFindingSeverity(item.severity);
+          const summary = String(item.summary || "").trim();
+          if (id) {
+            const idSpan = document.createElement("span");
+            idSpan.className = "panel-quantum-finding-id";
+            idSpan.textContent = id;
+            li.appendChild(idSpan);
+            li.append(" — ");
+          }
+          if (severity) {
+            li.append(`[${severity}] `);
+          }
+          li.append(summary || panelT("panel.modules.quantum.live.findingEmpty"));
+          list.appendChild(li);
+        }
+      }
+
+      function applyQuantumEntropyLabSection(lab, isLive) {
+        const note = document.getElementById("panel-quantum-entropy-note");
+        const dl = document.getElementById("panel-quantum-entropy-dl");
+        const configured = document.getElementById("panel-quantum-entropy-configured");
+        const effective = document.getElementById("panel-quantum-entropy-effective");
+        const fallback = document.getElementById("panel-quantum-entropy-fallback");
+        if (note) {
+          note.textContent = panelT(
+            isLive ? "panel.modules.quantum.entropyLab.bodyLive" : "panel.modules.quantum.entropyLab.body",
+          );
+        }
+        if (!isLive || !lab || typeof lab !== "object") {
+          if (dl) dl.hidden = true;
+          if (configured) configured.textContent = "";
+          if (effective) effective.textContent = "";
+          if (fallback) fallback.textContent = "";
+          return;
+        }
+        if (dl) dl.hidden = false;
+        if (configured) configured.textContent = String(lab.configured_provider || "—");
+        if (effective) effective.textContent = String(lab.effective_provider_heuristic || "—");
+        if (fallback) {
+          const warn = lab.silent_fallback_warning === true;
+          const reason = String(lab.fallback_reason || "").trim();
+          const yes = panelT("panel.modules.quantum.entropyLab.fallbackYes");
+          const no = panelT("panel.modules.quantum.entropyLab.fallbackNo");
+          fallback.textContent = warn && reason ? `${yes} — ${reason}` : warn ? yes : no;
+        }
+      }
+
+      function hideQuantumLiveOnlyFields() {
+        const generatedLabel = document.getElementById("panel-quantum-generated-at-label");
+        const generatedValue = document.getElementById("panel-quantum-generated-at-value");
+        const findingsBlock = document.getElementById("panel-quantum-findings-block");
+        const findingsList = document.getElementById("panel-quantum-findings-list");
+        if (generatedLabel) generatedLabel.hidden = true;
+        if (generatedValue) {
+          generatedValue.hidden = true;
+          generatedValue.textContent = "";
+        }
+        if (findingsBlock) findingsBlock.hidden = true;
+        if (findingsList) findingsList.textContent = "";
+        applyQuantumEntropyLabSection(null, false);
+      }
+
       function applyQuantumReadinessMockFallback() {
         panelQuantumReadinessLoaded = false;
         panelQuantumReadinessReport = null;
@@ -7835,6 +7985,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
         const evidence = document.getElementById("panel-quantum-evidence-value");
         if (evidence) evidence.textContent = panelT("panel.modules.quantum.mock.evidenceValue");
+        hideQuantumLiveOnlyFields();
       }
 
       function applyQuantumReadinessLive(report) {
@@ -7881,6 +8032,18 @@ const PANEL_DEBUG = import.meta.env.DEV;
             basis,
           );
         }
+
+        const generatedLabel = document.getElementById("panel-quantum-generated-at-label");
+        const generatedValue = document.getElementById("panel-quantum-generated-at-value");
+        const generatedAt = formatQuantumGeneratedAt(report?.meta?.generated_at);
+        if (generatedLabel) generatedLabel.hidden = !generatedAt;
+        if (generatedValue) {
+          generatedValue.hidden = !generatedAt;
+          generatedValue.textContent = generatedAt;
+        }
+
+        renderQuantumFindings(report.evidenced_findings);
+        applyQuantumEntropyLabSection(report.entropy_lab, true);
       }
 
       async function refreshQuantumReadinessPanel() {
