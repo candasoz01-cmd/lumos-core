@@ -127,6 +127,7 @@ Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A16 takip satırları kap
 | DL-C19 | 2026-06-21 | ADR-010 + open-decisions Faz-2 docs sync | **Doc-only complete** — ADR-010 Faz-2 #452–#463 tablosu; chain-summary #459–#464; open-decisions kapanış + güvenlik enforcement açık satırları (Trust Faz 4, köprü wiring, sensitivity chain, P2 tam eşleme); **kod/enforcement genişlemesi yok** | ADR-010, [`open-decisions-needs-review.md`](memory/open-decisions-needs-review.md), [`ADR-006-010-011-chain-summary.md`](analysis/ADR-006-010-011-chain-summary.md); PR #464 öncül |
 | DL-C20 | 2026-06-21 | Quantum Readiness milestone docs sync | **Doc-only complete** — ADR-001/013 Faz-2 kısmi durum eki (#470); panel/landing quantum copy fetch vs local_scan (#471); open-decisions «endpoint yok» maddeleri kapandı | PR #470, #471 | [ADR-001](decisions/ADR-001-lumos-quantum-modules.md), [ADR-013](decisions/ADR-013-lumos-quantum-security-readiness.md) |
 | DL-C21 | 2026-06-21 | G-18 / RB-01 — ADR-012 Internal Alpha defer | **decision-approved** — tek imzalı defer kaydı; Alpha CLOSED beklemez; Wave 1 Madde 1–2 kapandı; Trust Faz 4 / sensitivity↔gate / LockState defer; Wave 2+ enforcement yok | [`adr-012-internal-alpha-defer-record.md`](memory/adr-012-internal-alpha-defer-record.md) |
+| DL-C22 | 2026-06-21 | G-24 / RB-09 — Internal Alpha release scope | **decision-approved** — ekip onaylı kapsam kilidi; GAP-01 README vs v1-readiness hizası; entegrasyon/posta dışı | [`INTERNAL_ALPHA_RELEASE_SCOPE.md`](INTERNAL_ALPHA_RELEASE_SCOPE.md) |
 
 ### Teknik borç takibi (bilgilendirme)
 

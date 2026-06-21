@@ -113,7 +113,7 @@ Aşağıdakiler bu defer kaydıyla **authorize edilmez** — ayrı kullanıcı o
 
 | ID | Bağlantı |
 |----|----------|
-| G-24 | Internal Alpha release kapsamı — ayrı belge (kuyruk #6) |
+| G-24 | [`INTERNAL_ALPHA_RELEASE_SCOPE.md`](../INTERNAL_ALPHA_RELEASE_SCOPE.md) |
 | RB-01 | [`release-blockers.md`](../analysis/release-blockers.md#rb-01--adr-012-security-codex-closed-değil) |
 | ADR-012 | [`ADR-012-lumos-security-codex.md`](../decisions/ADR-012-lumos-security-codex.md) |
 | Wave 1 | #491–#498 merge; checkpoint sync #499 |
