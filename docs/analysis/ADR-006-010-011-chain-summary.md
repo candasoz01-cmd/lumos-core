@@ -65,6 +65,7 @@ Lock iki sinyal (ADR-011) trust tüketimine hazırlanır (Faz 4).
 | #483 | Panel migration tables milestone docs sync (#482) |
 | #485 | Quantum Faz-2 closure checklist sync (#479–#483) |
 | #486 | Panel `hazırlık_raporu` display-only readiness badge (derived from scan fields) |
+| #488 | Teknik borç mimari yoğunlaşma analizi yayını (DL-T01) — 20 madde anchor indeks + etki/maliyet; docs-only |
 
 ## Sonraki checkpoint
 
