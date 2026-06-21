@@ -231,6 +231,49 @@ def request_confirmation(
     )
 
 
+DELETE_PERMANENT_ACTION = "delete_permanent"
+
+
+def ensure_delete_permanent_confirmation(
+    body: Mapping[str, Any],
+    scope: Mapping[str, Any],
+    *,
+    base_dir: Path | str | None = None,
+    legacy_confirm: bool = False,
+) -> ConfirmationResult:
+    """
+    PR-C2: delete_permanent panel yolu confirmation enforcement.
+    Devre dışıyken no-op. Aktifken confirmation_id → check+consume;
+    confirm=true legacy alias → request+consume; aksi halde confirmation_required.
+    """
+    if not is_confirmation_enabled():
+        return ConfirmationResult(True, REASON_CONFIRMATION_DISABLED)
+
+    base = Path(base_dir).resolve() if base_dir is not None else lumos_base_dir()
+    scope_hash = _scope_hash(scope)
+    confirmation_id = str(body.get("confirmation_id") or "").strip()
+
+    if confirmation_id:
+        result = check_confirmation(
+            DELETE_PERMANENT_ACTION,
+            scope,
+            {"confirmation_id": confirmation_id, "base_dir": str(base)},
+        )
+        if not result.allowed:
+            return result
+        if consume_confirmation(confirmation_id, scope_hash, base_dir=base):
+            return ConfirmationResult(True, "")
+        return ConfirmationResult(False, REASON_CONFIRMATION_REQUIRED)
+
+    if legacy_confirm:
+        pending = request_confirmation(DELETE_PERMANENT_ACTION, scope, base_dir=base)
+        if consume_confirmation(pending.confirmation_id, scope_hash, base_dir=base):
+            return ConfirmationResult(True, "")
+        return ConfirmationResult(False, REASON_CONFIRMATION_REQUIRED)
+
+    return ConfirmationResult(False, REASON_CONFIRMATION_REQUIRED)
+
+
 def consume_confirmation(
     confirmation_id: str,
     scope_hash: str,

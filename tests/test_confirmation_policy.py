@@ -15,6 +15,7 @@ from policy.confirmation_policy import (
     REQUIRES_CONFIRMATION_ACTIONS,
     check_confirmation,
     consume_confirmation,
+    ensure_delete_permanent_confirmation,
     is_confirmation_enabled,
     request_confirmation,
     requires_confirmation_for_action,
@@ -144,3 +145,32 @@ def test_consumed_grant_blocks_check(tmp_path: Path, monkeypatch: pytest.MonkeyP
     )
     assert not result.allowed
     assert result.reason == REASON_CONFIRMATION_REQUIRED
+
+
+def test_ensure_delete_permanent_disabled_noop(monkeypatch: pytest.MonkeyPatch) -> None:
+    result = ensure_delete_permanent_confirmation({}, {"id": "x"}, legacy_confirm=False)
+    assert result.allowed
+    assert result.reason == REASON_CONFIRMATION_DISABLED
+
+
+def test_ensure_delete_permanent_legacy_confirm(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    scope = {"id": "dp1"}
+    result = ensure_delete_permanent_confirmation({}, scope, base_dir=tmp_path, legacy_confirm=True)
+    assert result.allowed
+
+
+def test_ensure_delete_permanent_requires_grant(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    result = ensure_delete_permanent_confirmation({}, {"id": "dp2"}, base_dir=tmp_path, legacy_confirm=False)
+    assert not result.allowed
+    assert result.reason == REASON_CONFIRMATION_REQUIRED
+
+
+def test_ensure_delete_permanent_confirmation_id_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    scope = {"id": "dp3"}
+    pending = request_confirmation("delete_permanent", scope, base_dir=tmp_path)
+    body = {"confirmation_id": pending.confirmation_id}
+    result = ensure_delete_permanent_confirmation(body, scope, base_dir=tmp_path, legacy_confirm=False)
+    assert result.allowed

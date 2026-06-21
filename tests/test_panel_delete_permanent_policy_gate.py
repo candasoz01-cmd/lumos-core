@@ -29,10 +29,11 @@ def _simulate_delete_permanent(
     tmp_path: Path,
     tid: str,
     confirm: bool | str | None = False,
+    confirmation_id: str | None = None,
 ) -> tuple[str, bool]:
     """
-    _post_delete_permanent persist yolu — gate + confirm geçerse True.
-    Dönüş: (durum, trash_silindi) — durum: allowed | policy_blocked | confirm_blocked
+    _post_delete_permanent persist yolu — gate + confirmation + confirm geçerse True.
+    Dönüş: (durum, trash_silindi)
     """
     monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path))
     pts = _load_panel_tasks_server()
@@ -42,7 +43,23 @@ def _simulate_delete_permanent(
     body: dict = {"id": tid}
     if confirm is not None:
         body["confirm"] = confirm
+    if confirmation_id is not None:
+        body["confirmation_id"] = confirmation_id
     user_initiated = pts._body_confirm_user_initiated(body)
+    from policy.confirmation_policy import (  # noqa: E402
+        ensure_delete_permanent_confirmation,
+        is_confirmation_enabled,
+    )
+
+    if is_confirmation_enabled():
+        conf = ensure_delete_permanent_confirmation(
+            body,
+            {"id": tid},
+            base_dir=tmp_path,
+            legacy_confirm=user_initiated,
+        )
+        if not conf.allowed:
+            return f"confirmation_blocked:{conf.reason}", False
     from core.workspace_contract import may_perform_permanent_delete  # noqa: E402
 
     if not may_perform_permanent_delete(user_initiated):
@@ -142,6 +159,127 @@ def test_delete_permanent_success(tmp_path, monkeypatch) -> None:
     assert doc["events"][-1]["taskId"] == "tsk_ok"
 
 
+def test_delete_permanent_disabled_confirmation_unchanged(tmp_path, monkeypatch) -> None:
+    """LUMOS_CONFIRMATION_ENABLED kapalı — mevcut confirm=true akışı aynı."""
+    monkeypatch.setenv("LUMOS_MODE", "online")
+    monkeypatch.setenv("LUMOS_SESSION_UNLOCKED", "true")
+    monkeypatch.delenv("LUMOS_CONFIRMATION_ENABLED", raising=False)
+    trash_path = _write_trash_task(tmp_path, "tsk_dis")
+    status, deleted = _simulate_delete_permanent(
+        monkeypatch=monkeypatch,
+        tmp_path=tmp_path,
+        tid="tsk_dis",
+        confirm=True,
+    )
+    assert status == "allowed"
+    assert deleted is True
+    assert not trash_path.is_file()
+
+
+def test_delete_permanent_enabled_requires_confirmation(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("LUMOS_MODE", "online")
+    monkeypatch.setenv("LUMOS_SESSION_UNLOCKED", "true")
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    trash_path = _write_trash_task(tmp_path, "tsk_en_req")
+    status, deleted = _simulate_delete_permanent(
+        monkeypatch=monkeypatch,
+        tmp_path=tmp_path,
+        tid="tsk_en_req",
+        confirm=False,
+    )
+    assert status == "confirmation_blocked:confirmation_required"
+    assert deleted is False
+    assert trash_path.is_file()
+
+
+def test_delete_permanent_enabled_legacy_confirm_alias(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("LUMOS_MODE", "online")
+    monkeypatch.setenv("LUMOS_SESSION_UNLOCKED", "true")
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    trash_path = _write_trash_task(tmp_path, "tsk_legacy", title="legacy")
+    status, deleted = _simulate_delete_permanent(
+        monkeypatch=monkeypatch,
+        tmp_path=tmp_path,
+        tid="tsk_legacy",
+        confirm=True,
+    )
+    assert status == "allowed"
+    assert deleted is True
+    assert not trash_path.is_file()
+
+
+def test_delete_permanent_enabled_grant_consume(tmp_path, monkeypatch) -> None:
+    from policy.confirmation_policy import request_confirmation  # noqa: E402
+
+    monkeypatch.setenv("LUMOS_MODE", "online")
+    monkeypatch.setenv("LUMOS_SESSION_UNLOCKED", "true")
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    tid = "tsk_grant"
+    trash_path = _write_trash_task(tmp_path, tid)
+    pending = request_confirmation("delete_permanent", {"id": tid}, base_dir=tmp_path)
+    status, deleted = _simulate_delete_permanent(
+        monkeypatch=monkeypatch,
+        tmp_path=tmp_path,
+        tid=tid,
+        confirm=True,
+        confirmation_id=pending.confirmation_id,
+    )
+    assert status == "allowed"
+    assert deleted is True
+    assert not trash_path.is_file()
+    grant_path = tmp_path / "pending_confirmations" / f"{pending.confirmation_id}.json"
+    grant = json.loads(grant_path.read_text(encoding="utf-8"))
+    assert grant["consumed"] is True
+
+
+def test_delete_permanent_enabled_scope_mismatch(tmp_path, monkeypatch) -> None:
+    from policy.confirmation_policy import request_confirmation  # noqa: E402
+
+    monkeypatch.setenv("LUMOS_MODE", "online")
+    monkeypatch.setenv("LUMOS_SESSION_UNLOCKED", "true")
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    trash_path = _write_trash_task(tmp_path, "tsk_real")
+    pending = request_confirmation("delete_permanent", {"id": "other_id"}, base_dir=tmp_path)
+    status, deleted = _simulate_delete_permanent(
+        monkeypatch=monkeypatch,
+        tmp_path=tmp_path,
+        tid="tsk_real",
+        confirm=True,
+        confirmation_id=pending.confirmation_id,
+    )
+    assert status == "confirmation_blocked:scope_mismatch"
+    assert deleted is False
+    assert trash_path.is_file()
+
+
+def test_delete_permanent_enabled_expired_grant(tmp_path, monkeypatch) -> None:
+    from datetime import datetime, timedelta, timezone
+
+    from policy.confirmation_policy import request_confirmation  # noqa: E402
+
+    monkeypatch.setenv("LUMOS_MODE", "online")
+    monkeypatch.setenv("LUMOS_SESSION_UNLOCKED", "true")
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    tid = "tsk_exp"
+    trash_path = _write_trash_task(tmp_path, tid)
+    pending = request_confirmation("delete_permanent", {"id": tid}, base_dir=tmp_path, ttl_seconds=1)
+    grant_path = tmp_path / "pending_confirmations" / f"{pending.confirmation_id}.json"
+    data = json.loads(grant_path.read_text(encoding="utf-8"))
+    past = datetime.now(timezone.utc) - timedelta(minutes=5)
+    data["expires_at"] = past.replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    grant_path.write_text(json.dumps(data), encoding="utf-8")
+    status, deleted = _simulate_delete_permanent(
+        monkeypatch=monkeypatch,
+        tmp_path=tmp_path,
+        tid=tid,
+        confirm=True,
+        confirmation_id=pending.confirmation_id,
+    )
+    assert status == "confirmation_blocked:confirmation_expired"
+    assert deleted is False
+    assert trash_path.is_file()
+
+
 def test_delete_permanent_handler_uses_gates() -> None:
     src = (_REPO_ROOT / "panel" / "scripts" / "panel_tasks_server.py").read_text(encoding="utf-8")
     block = src.split("def _post_delete_permanent")[1].split("\n    def ")[0]
@@ -150,3 +288,5 @@ def test_delete_permanent_handler_uses_gates() -> None:
     assert "may_perform_permanent_delete" in block
     assert "confirm_required" in block
     assert "_body_confirm_user_initiated" in block
+    assert "is_confirmation_enabled" in block
+    assert "ensure_delete_permanent_confirmation" in block
