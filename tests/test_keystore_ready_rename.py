@@ -76,3 +76,18 @@ def test_get_startup_summary_session_unlocked_kwarg():
         # Default path (no session_unlocked) uses keystore signal
         summary_ks = get_startup_summary(base, keystore_initialized=False, presence_module=pl)
         assert "Keystore hazır değil" in summary_ks
+
+
+def test_get_oneri_keystore_not_ready_points_to_durum_not_kilit():
+    """ADR-011 Faz 2: keystore_ready eksikken öneri kilit değil durum komutuna yönlendirir."""
+    from cli.cli_parse import _get_oneri
+
+    with tempfile.TemporaryDirectory() as d:
+        base = Path(d)
+        (base / "consent.json").write_text("{}")
+        pl = _mock_presence()
+        oneriler = _get_oneri(base, keystore_initialized=False, presence_module=pl)
+        assert oneriler
+        first = oneriler[0]
+        assert "kilit" not in first.lower()
+        assert first.endswith(": durum")
