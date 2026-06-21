@@ -189,3 +189,17 @@ Panel TTS tıklama bağlama düzeltmesi — kök neden kaydı.
 **Düzeltme:** PR #180 (`fix/panel-tts-click-binding`).
 
 **Kapsam:** Yalnızca panel TTS tıklama davranışı; STT/kayıt ve ses yükleme seçici koduna dokunulmadı.
+
+---
+
+## 2026-06-21
+
+ADR-012 Lumos Security Codex — finalize + panel enforcement zinciri.
+
+| Sıra | PR | Özet |
+|------|-----|------|
+| 1 | [#440](https://github.com/candasoz01-cmd/lumos-core/pull/440) | ADR-012 taslak paketi — codex + companion analizler (merge) |
+| 2 | [#441](https://github.com/candasoz01-cmd/lumos-core/pull/441) | Panel codex gate reason + UI warning (merge) |
+| 3 | #442 | ADR-012 finalize (docs) + panel `check_policy` enforcement |
+
+**Kapsam:** `docs/decisions/ADR-012-lumos-security-codex.md` durum → Kabul edildi; panel görev mutasyonları `action_policy.check_policy` ile hizalanıyor.
