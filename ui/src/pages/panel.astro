@@ -15505,7 +15505,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
       wireMedyaOutbox();
 
-      window.addEventListener("lumos:localechange", () => {
+      function refreshPanelI18n() {
         refreshPanelShellI18n();
         refreshPanelChatI18n();
         refreshPanelFilesI18n();
@@ -15516,7 +15516,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
           window.refreshMedyaOutboxHintI18n();
         }
         paintSistemDurumuPanel();
-      });
+      }
+
+      window.addEventListener("lumos:localechange", refreshPanelI18n);
+      window.addEventListener("load", refreshPanelI18n, { once: true });
     </script>
     <I18nInit />
   </body>

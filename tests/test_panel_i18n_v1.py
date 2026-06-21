@@ -929,6 +929,17 @@ def test_panel_messages_imported_into_catalogs() -> None:
     assert "panel," in en_text
 
 
+def test_panel_dynamic_i18n_refreshes_after_initial_load() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    assert 'window.addEventListener("lumos:localechange", refreshPanelI18n);' in text
+    assert 'window.addEventListener("load", refreshPanelI18n, { once: true });' in text
+
+
+def test_quantum_readiness_report_key_is_not_duplicated() -> None:
+    assert _PANEL_TR.read_text(encoding="utf-8").count("readinessReport:") == 1
+    assert _PANEL_EN.read_text(encoding="utf-8").count("readinessReport:") == 1
+
+
 def test_panel_nav_keys_exist_in_panel_tr() -> None:
     text = _PANEL_TR.read_text(encoding="utf-8")
     for key in ("sohbet:", "gorevler:", "dosyalar:", "sections:", "ses:", "medya:", "sosyal:", "posta:"):

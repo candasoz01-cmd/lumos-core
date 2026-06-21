@@ -361,7 +361,7 @@ const panelModules = {
     intro:
       "Görevler cihazınızdaki görev kaydına yazılır; görev eklerken iletim gerekmez. Sunucu kapalıysa liste tarayıcı önbelleğinden gösterilir.",
     codexWarning:
-      "Demo panel — tam policy/profil zinciri CLI ile aynı değil; riskli işlemde dur. (ADR-012 Security Codex)",
+      "Bu panel önizleme sürümüdür; riskli işlemlerde durur ve onay ister.",
     form: {
       titleLabel: "Görev adı",
       titlePlaceholder: "Kısa bir başlık yazın…",
@@ -737,13 +737,6 @@ const panelModules = {
       pqcValue: "İzleme — NIST PQC farkındalığı; uygulama yok",
       evidenceLabel: "Kanıt türü",
       evidenceValue: "docs_only — yerel tarama (local_scan) yüklenemedi",
-    },
-    readinessReport: {
-      label: "Genel durum",
-      mock: "Örnek — doğrulanmadı",
-      tamamlandi: "Tamamlandı",
-      kismi: "Kısmi",
-      dogrulanamadi: "Doğrulanamadı",
     },
     live: {
       evidenceBasis: "Kanıt kaynağı: {basis} — yerel salt okunur tarama",

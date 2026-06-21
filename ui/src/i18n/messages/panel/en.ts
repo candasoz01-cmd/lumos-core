@@ -361,7 +361,7 @@ const panel: typeof panelTr = {
     intro:
       "Tasks are written to the task record on your device; no transmission is required when adding a task. If the server is down, the list is shown from the browser cache.",
     codexWarning:
-      "Demo panel — full policy/profile chain is not the same as CLI; pause on risky actions. (ADR-012 Security Codex)",
+      "This panel is a preview; it pauses for confirmation before risky actions.",
     form: {
       titleLabel: "Task name",
       titlePlaceholder: "Write a short title…",
@@ -740,13 +740,6 @@ const panel: typeof panelTr = {
       pqcValue: "Monitoring — NIST PQC awareness; no implementation",
       evidenceLabel: "Evidence type",
       evidenceValue: "docs_only — local scan (local_scan) could not load",
-    },
-    readinessReport: {
-      label: "Overall status",
-      mock: "Sample — unverified",
-      tamamlandi: "Complete",
-      kismi: "Partial",
-      dogrulanamadi: "Unverified",
     },
     live: {
       evidenceBasis: "Evidence basis: {basis} — local read-only scan",
