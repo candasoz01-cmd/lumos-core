@@ -56,7 +56,7 @@ def _iso(dt: datetime) -> str:
 
 
 def new_approval_id() -> str:
-    return f"pc_remote_{int(time.time() * 1000)}"
+    return f"pc_remote_{int(time.time() * 1000)}_{secrets.token_hex(4)}"
 
 
 def new_approval_token() -> str:

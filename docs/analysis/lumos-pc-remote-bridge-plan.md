@@ -146,7 +146,10 @@ Public repoda **yalnızca kavramsal akış**; implementasyon private veya sonrak
 | **PR-RB-01** | Plan belgesi | Bu dosya | OSS ✓ |
 | **PR-RB-02** | Tool schemas | `pc_remote_tools.py` — OpenAI function JSON + TypedDict | OSS ✓ |
 | **PR-RB-03** | Stub bridge routes | `GET /tools/schema`, `POST /tools/execute`, approval gate placeholder | OSS ✓ |
-| **PR-RB-04** | Mobile approval wire | Push/poll, eşleştirme, tünel | **Private / defer** |
+| **PR-RB-04** | Mobile approval disk wire | Pending disk sözleşmesi, token doğrulama | OSS ✓ |
+| **PR-RB-05** | Mobile approval client | Loopback poll + POST /approve CLI | OSS ✓ |
+| **PR-RB-06** | LAN relay MVP | Pairing, relay token, pending proxy | OSS ✓ |
+| **PR-RB-07** | OpenAI tool-loop adapter | Responses API tool call → `/tools/execute` → onay → stub | OSS ✓ |
 
 **PR-RB-03 kabul kriterleri:**
 
@@ -213,6 +216,36 @@ Public repoda **yalnızca kavramsal akış**; implementasyon private veya sonrak
 
 ---
 
-## 11. Sonraki adım (tek)
+## 11. PR-RB-07 — OpenAI tool-loop adapter (OSS MVP)
 
-**PR-RB-03** stub route'ları merge sonrası panel veya CLI'dan `GET /tools/schema` ile tool listesini doğrula; ardından private katmanda executor swap noktasını `execute_tool_stub` → `execute_tool_real` olarak belgeleyin.
+**Modül:** `packages/kando_bridge/src/kando_bridge/openai_tool_adapter.py`  
+**Demo CLI:** `scripts/openai_tool_loop_demo.py`
+
+Akış: OpenAI Responses API `function_call` → adapter parse → `POST /tools/execute` → disk pending → RB-05 `approve_pending` → token ile tekrar execute → `{status: stub, used: true}`.
+
+Mock (CI-safe, ağ yok):
+
+```bash
+export KANDO_BRIDGE_SECRET='your-local-dev-secret'
+PYTHONPATH=src:packages/kando_bridge/src \
+  pytest -q tests/test_openai_tool_loop_adapter_mvp.py
+
+# Köprü çalışırken demo (mock canned pc_open_url):
+PYTHONPATH=src:packages/kando_bridge/src \
+  python scripts/openai_tool_loop_demo.py --mock --url https://example.com
+```
+
+Live (OPENAI_API_KEY gerekli; CI'da atlanır):
+
+```bash
+export OPENAI_API_KEY='sk-...'
+export KANDO_BRIDGE_SECRET='your-local-dev-secret'
+PYTHONPATH=src:packages/kando_bridge/src \
+  python scripts/openai_tool_loop_demo.py --live --prompt 'Open https://example.com'
+```
+
+---
+
+## 12. Sonraki adım (tek)
+
+Private katmanda executor swap: `execute_tool_stub` → `execute_tool_real`; Lumos Mobile push/eşleştirme wire.
