@@ -195,3 +195,11 @@ def test_engine_never_auto_branch_regression_inventory() -> None:
             t2 = store.get(t.task_id)
             assert t2 is not None
             assert t2.block_reason == BLOCK_SECURITY_NEVER_AUTO
+
+
+def test_cli_never_auto_policy_action_helper() -> None:
+    from cli.cli_tasks_mutation import _never_auto_member_for_cli_policy_action
+    from policy.action_policy import DELETE_PERMANENT
+
+    assert _never_auto_member_for_cli_policy_action(DELETE_PERMANENT) == "permanent_delete"
+    assert _never_auto_member_for_cli_policy_action("create_task") is None

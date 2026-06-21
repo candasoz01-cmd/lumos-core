@@ -16,6 +16,7 @@ from policy.action_policy import (
     DELETE_TASK,
     check_policy,
     log_policy_blocked,
+    never_auto_member_for_policy_action,
     policy_user_message,
 )
 from policy.confirmation_policy import (
@@ -77,6 +78,11 @@ def _task_mutation_policy_context(ctx: TaskMutationContext):
         "consent": consent,
         "general_approval": general_approval,
     }
+
+
+def _never_auto_member_for_cli_policy_action(action: str) -> str | None:
+    """CLI/policy action → SECURITY_NEVER_AUTO tablo üyesi (Option B tek kaynak)."""
+    return never_auto_member_for_policy_action(action)
 
 
 def _enforce_task_policy(ctx: TaskMutationContext, action: str) -> bool:

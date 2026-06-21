@@ -290,3 +290,5 @@ def test_delete_permanent_handler_uses_gates() -> None:
     assert "_body_confirm_user_initiated" in block
     assert "is_confirmation_enabled" in block
     assert "ensure_delete_permanent_confirmation" in block
+    assert "never_auto_member_for_policy_action" in block
+    assert "DELETE_PERMANENT" in block
