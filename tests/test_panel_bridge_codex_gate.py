@@ -142,3 +142,56 @@ def test_build_panel_read_state_exposes_codex_gate(tmp_path, monkeypatch) -> Non
     assert g["task_actions_gate"]["reason"]
     assert state["dashboard"]["warnings"]
     assert "ADR-012" in state["dashboard"]["warnings"][0]
+
+
+def test_task_action_gate_confirmation_disabled_no_change(monkeypatch) -> None:
+    """Varsayılan: confirmation kapalı — mevcut profil gate davranışı korunur."""
+    monkeypatch.delenv("LUMOS_CONFIRMATION_ENABLED", raising=False)
+    monkeypatch.setenv("LUMOS_MODE", "online")
+    monkeypatch.setenv("LUMOS_PROFILE", "guvenli_yurut")
+    gate = task_action_gate(CREATE_TASK)
+    assert gate["enabled"] is True
+    assert "[CONFIRMATION_BLOCKED]" not in gate["reason"]
+
+
+def test_task_action_gate_confirmation_enabled_blocks_without_id(monkeypatch) -> None:
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    monkeypatch.setenv("LUMOS_MODE", "online")
+    monkeypatch.setenv("LUMOS_PROFILE", "guvenli_yurut")
+    gate = task_action_gate(CREATE_TASK)
+    assert gate["enabled"] is False
+    assert "[CONFIRMATION_BLOCKED]" in gate["reason"]
+    assert "create_task" in gate["reason"]
+    assert "confirmation_required" in gate["reason"]
+
+
+def test_task_action_gate_confirmation_enabled_allows_with_grant(
+    tmp_path, monkeypatch
+) -> None:
+    from policy.confirmation_policy import request_confirmation  # noqa: E402
+
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path))
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    monkeypatch.setenv("LUMOS_MODE", "online")
+    monkeypatch.setenv("LUMOS_PROFILE", "guvenli_yurut")
+    scope = {"title": "Demo görev"}
+    pending = request_confirmation("create_task", scope, base_dir=tmp_path)
+    gate = task_action_gate(
+        CREATE_TASK,
+        confirmation_id=pending.confirmation_id,
+        scope=scope,
+    )
+    assert gate["enabled"] is True
+    assert "Confirmation geçerli" in gate["reason"]
+
+
+def test_task_action_gate_confirmation_put_write_local_blocked(monkeypatch) -> None:
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    monkeypatch.setenv("LUMOS_MODE", "online")
+    monkeypatch.setenv("LUMOS_PROFILE", "kisitli_otonom")
+    monkeypatch.setenv("LUMOS_GENERAL_APPROVAL", "true")
+    scope = {"route": "PUT /tasks.json"}
+    gate = task_action_gate(CREATE_TASK, full_doc_replace=True, scope=scope)
+    assert gate["enabled"] is False
+    assert "[CONFIRMATION_BLOCKED]" in gate["reason"]
+    assert "write_local" in gate["reason"]

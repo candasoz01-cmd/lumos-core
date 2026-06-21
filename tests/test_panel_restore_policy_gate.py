@@ -126,5 +126,8 @@ def test_restore_online_allowed(tmp_path, monkeypatch) -> None:
 def test_restore_handler_uses_policy_gate() -> None:
     src = (_REPO_ROOT / "panel" / "scripts" / "panel_tasks_server.py").read_text(encoding="utf-8")
     block = src.split("def _post_restore")[1].split("\n    def ")[0]
-    assert "_task_action_gate(CREATE_TASK" in block
+    assert "_task_action_gate(" in block
+    assert "CREATE_TASK" in block
+    assert "restore=True" in block
+    assert "_enforce_panel_mutation_confirmation" in block
     assert "action_disabled" in block

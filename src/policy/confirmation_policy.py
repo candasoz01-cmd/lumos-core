@@ -234,6 +234,67 @@ def request_confirmation(
 DELETE_PERMANENT_ACTION = "delete_permanent"
 
 
+def panel_action_to_confirmation_key(
+    action: str,
+    *,
+    full_doc_replace: bool = False,
+    restore: bool = False,
+) -> str:
+    """
+    Panel policy action → CU4 confirmation action_key (PR-C3).
+    PUT /tasks.json → write_local; POST /tasks/restore → restore_task.
+    """
+    from policy.action_policy import COMPLETE_TASK, CREATE_TASK, DELETE_TASK
+
+    if restore:
+        return "restore_task"
+    if action == CREATE_TASK and full_doc_replace:
+        return "write_local"
+    if action == CREATE_TASK:
+        return "create_task"
+    if action == COMPLETE_TASK:
+        return "complete_task"
+    if action == DELETE_TASK:
+        return "delete_task"
+    return action
+
+
+def ensure_panel_mutation_confirmation(
+    action_key: str,
+    scope: Mapping[str, Any],
+    body: Mapping[str, Any],
+    *,
+    base_dir: Path | str | None = None,
+) -> ConfirmationResult:
+    """
+    PR-C3: panel mutasyon yolu confirmation enforcement (create/complete/delete/restore/PUT).
+    Devre dışıyken no-op. Aktifken confirmation_id → check+consume; aksi halde confirmation_required.
+    """
+    if not is_confirmation_enabled():
+        return ConfirmationResult(True, REASON_CONFIRMATION_DISABLED)
+
+    if not requires_confirmation_for_action(action_key):
+        return ConfirmationResult(True, "")
+
+    base = Path(base_dir).resolve() if base_dir is not None else lumos_base_dir()
+    scope_hash = _scope_hash(scope)
+    confirmation_id = str(body.get("confirmation_id") or "").strip()
+
+    if not confirmation_id:
+        return ConfirmationResult(False, REASON_CONFIRMATION_REQUIRED)
+
+    result = check_confirmation(
+        action_key,
+        scope,
+        {"confirmation_id": confirmation_id, "base_dir": str(base)},
+    )
+    if not result.allowed:
+        return result
+    if consume_confirmation(confirmation_id, scope_hash, base_dir=base):
+        return ConfirmationResult(True, "")
+    return ConfirmationResult(False, REASON_CONFIRMATION_REQUIRED)
+
+
 def ensure_delete_permanent_confirmation(
     body: Mapping[str, Any],
     scope: Mapping[str, Any],
