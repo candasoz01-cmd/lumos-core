@@ -8,11 +8,13 @@ from pathlib import Path
 import pytest
 
 from policy.confirmation_policy import (
+    BRIDGE_HIGH_RISK_ACTION,
     REASON_CONFIRMATION_DISABLED,
     REASON_CONFIRMATION_EXPIRED,
     REASON_CONFIRMATION_REQUIRED,
     REASON_SCOPE_MISMATCH,
     REQUIRES_CONFIRMATION_ACTIONS,
+    attach_bridge_pending_confirmation,
     check_confirmation,
     consume_confirmation,
     ensure_delete_permanent_confirmation,
@@ -231,3 +233,43 @@ def test_ensure_cli_mutation_confirmation_id_consumes(
         base_dir=tmp_path,
     )
     assert not retry.allowed
+
+
+def test_bridge_shadow_grant_wrong_scope_hash_blocks_consume(tmp_path: Path) -> None:
+    lumos = tmp_path / ".lumos"
+    lumos.mkdir()
+    pending: dict = {"schema_version": "lumos.pending_approval.v1", "title": "bridge scope"}
+    attach_bridge_pending_confirmation(pending, base_dir=lumos, risk="high", source="lumos_gate")
+    assert not consume_confirmation(
+        str(pending["confirmation_id"]),
+        "deadbeefdeadbeef",
+        base_dir=lumos,
+    )
+
+
+def test_bridge_shadow_grant_expired_blocks_check_when_enabled(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
+    lumos = tmp_path / ".lumos"
+    lumos.mkdir()
+    pending: dict = {"schema_version": "lumos.pending_approval.v1", "title": "exp bridge"}
+    attach_bridge_pending_confirmation(
+        pending,
+        base_dir=lumos,
+        risk="high",
+        source="lumos_gate",
+    )
+    grant_path = lumos / "pending_confirmations" / f"{pending['confirmation_id']}.json"
+    data = json.loads(grant_path.read_text(encoding="utf-8"))
+    past = datetime.now(timezone.utc) - timedelta(minutes=5)
+    data["expires_at"] = past.replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    grant_path.write_text(json.dumps(data), encoding="utf-8")
+    scope = data["scope"]
+    result = check_confirmation(
+        BRIDGE_HIGH_RISK_ACTION,
+        scope,
+        {"confirmation_id": pending["confirmation_id"], "base_dir": str(lumos)},
+    )
+    assert not result.allowed
+    assert result.reason == REASON_CONFIRMATION_EXPIRED
