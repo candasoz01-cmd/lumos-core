@@ -740,6 +740,10 @@ class Handler(BaseHTTPRequestHandler):
         if self._parse_path() != "/tasks.json":
             self.send_error(404)
             return
+        gate = _task_action_gate(CREATE_TASK, log_on_block=True)
+        if not gate["enabled"]:
+            _send_json(self, 409, {"ok": False, "error": "action_disabled", "reason": gate["reason"]})
+            return
         data = self._read_json_body()
         if not isinstance(data, dict):
             self.send_error(400, "Invalid JSON")
