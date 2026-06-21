@@ -2,7 +2,7 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Güncellendi** — salt okuma analizi (2026-06-21); panel gate #443–#446 |
+| Durum | **Güncellendi** — salt okuma analizi (2026-06-21); panel gate #443–#446; consent ayrımı #450 + session_consent CLI #451 |
 | İlgili | [ADR-012](../decisions/ADR-012-lumos-security-codex.md), [ADR-010 usage map](ADR-010-guard-policy-trust-usage-map.md), [permission matrix](lumos-action-permission-matrix.md) |
 | Kapsam | Docs-only; `archive/` hariç aktif kod taraması |
 | Yöntem | `rg` + dosya okuma — kanıt tabanlı |
@@ -24,6 +24,7 @@ ADR-012 Security Codex maddelerinin (C1–C6) repo'da **nerede enforce edildiği
 | Panel gap | ~~`_task_actions_gate()` her zaman açık~~ → **Kapandı** #443–#446 (`task_action_gate` + `check_policy`); profil matrisi panelde hâlâ yok |
 | Trust motor | Hedef (ADR-007); aktif kodda minimal |
 | `SECURITY_NEVER_AUTO` | Matris + `inviolable.py`; tüm silme yollarında tam branch **gap** |
+| consent ≠ general_approval | **Kapandı** #450 (policy/read ayrımı) + #451 (`consent oturum` CLI + unlock path) |
 
 ---
 
@@ -83,9 +84,18 @@ ADR-012 Security Codex maddelerinin (C1–C6) repo'da **nerede enforce edildiği
 | Alan | Değer |
 |------|-------|
 | **Sorumluluk** | CLI görev oluştur/tamamla/sil/iptal |
-| **Enforce edilen** | `check_policy` — offline, koruma+delete, consent snapshot |
-| **Gap** | `general_approval` policy context'te `consent` ile eşleniyor — semantik karışım riski (ADR-010 drift) |
+| **Enforce edilen** | `check_policy` — offline, koruma+delete, consent snapshot (`effective_consent(session_consent)`) |
+| **Gap** | ~~`general_approval` policy context'te `consent` ile eşleniyor~~ → **Kapandı** #450 |
 | **Codex** | C3, C6 ✓ (policy block + log)
+
+### `src/cli/cli_router.py` + `src/core/lumos_runtime.py` (session consent)
+
+| Alan | Değer |
+|------|-------|
+| **Sorumluluk** | `consent oturum aç/kapat/durum`; kilit menüsü unlock+consent / lock→consent sıfırlama |
+| **Enforce edilen** | Oturum consent yalnız kilit açıkken (`state.is_locked()`); genel onaydan ayrı liste |
+| **Gap** | Kalıcı `consent.json` yazımı CLI'de yok (panel `POST /lumos-consent` ayrı yüzey) |
+| **Codex** | C3 ✓ (consent sinyali), C10 kısmi (unlock önkoşulu; presence ayrı) |
 
 ### `src/task_engine/diagnostics.py`
 
@@ -127,7 +137,7 @@ ADR-012 Security Codex maddelerinin (C1–C6) repo'da **nerede enforce edildiği
 |------|-------|
 | **Sorumluluk** | Minimal hardcoded task/identity kuralları |
 | **Enforce edilen** | Offline mutasyon red; koruma+delete red; consent+identity/keystore red; `log_policy_blocked` |
-| **Gap** | Sınırlı action seti; `general_approval` vs `consent` semantik drift (CLI) |
+| **Gap** | Sınırlı action seti; ~~`general_approval` vs `consent` semantik drift (CLI)~~ → **Kapandı** #450 (`PolicyContext.general_approval` ayrı alan) |
 | **Codex** | C3, C6 ✓ (CLI mutation + panel #443–#446)
 
 ### `src/policy/offline_engine.py`
@@ -215,7 +225,7 @@ ADR-012 Security Codex maddelerinin (C1–C6) repo'da **nerede enforce edildiği
 |-------|---------------|-----|
 | **C1** Tek kapı | CLI router, panel server yüzeyi | Çoklu giriş (CLI vs panel vs bridge); panel profil matrisi yok |
 | **C2** İç bypass yok | write_interceptor, workspace_contract | ~~Panel doğrudan tasks.json policy dışı~~ → PUT #444 gated |
-| **C3** Onay/kanıt | profiles + TaskEngine + action_policy CLI/panel + evidence | consent≠general_approval drift; panel profil matrisi yok |
+| **C3** Onay/kanıt | profiles + TaskEngine + action_policy CLI/panel + evidence | ~~consent≠general_approval drift~~ → **Kapandı** #450+#451; panel profil matrisi yok; confirmation (CU4) gap |
 | **C4** Mock ayrımı | Task status `simulasyon`; panel status map | Panel mock alanları |
 | **C5** Trash | workspace_contract, panel trash write | Kalıcı silme tüm path'lerde `user_initiated` (#445 gated) |
 | **C6** Stop-on-risk | Profil never layer; policy offline/koruma; lumos_gate prompt; panel `task_action_gate` | sensitivity kopuk; P2 SECURITY_NEVER_AUTO engine branch |
@@ -245,7 +255,20 @@ pr = check_policy(action, _panel_policy_context())
 # enabled=False when offline, koruma+delete, etc.
 ```
 
-PR referansları: #443 policy enforcement, #444 PUT /tasks.json, #445 delete-permanent, #446 restore.
+PR referansları: #443 policy enforcement, #444 PUT /tasks.json, #445 delete-permanent, #446 restore, #450 consent≠general_approval ayrımı, #451 session_consent CLI/lock flow.
+
+---
+
+## 7. CU4 / CU6 / CU7 / CU10 uyum özeti (#450 + #451)
+
+| CU | Madde | Bu PR zinciri | Durum |
+|----|-------|---------------|-------|
+| **CU4** | Dış etkili aksiyon açık onay | `general_approval` ≠ `consent`; GA yazma önkoşulu, consent identity/keystore | **Kısmi** — işlem bazlı confirmation hâlâ gap |
+| **CU6** | Geri dönüşsüz otomatik yok | `SECURITY_NEVER_AUTO`; consent/GA bağımsız | **Kısmi** — engine branch tam değil (#445 gated delete ayrı) |
+| **CU7** | Ne/nerede/etki görünürlüğü | `consent oturum durum`; panel gate `reason`; ayrı GA mesajları | **Kısmi** — CU preview/confirmation yüzeyi yok |
+| **CU10** | Online kimlik/kilit koşulu | `consent oturum aç` kilit açık gerektirir; `kilit ac` → session_consent; lock → sıfırlama | **Kısmi** — panel `LockState` env vekili; presence ayrı |
+
+**Hedef zincir (ADR-010):** policy → consent (`effective_consent`) → profil+GA → confirmation (gap) → NEVER_AUTO.
 
 ---
 

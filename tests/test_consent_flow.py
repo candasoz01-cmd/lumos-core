@@ -118,3 +118,183 @@ def test_task_mutation_policy_consent_from_effective_consent_not_ga():
         ctx.session_consent[0] = True
         pol = _task_mutation_policy_context(ctx)
         assert pol["consent"] is True
+
+
+def test_consent_oturum_parse_routes():
+    """consent oturum commands parse to dedicated routes (not genel onay)."""
+    from cli.cli_parse import normalize_command
+    from pathlib import Path
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as d:
+        base = Path(d)
+        r, a = normalize_command("consent oturum aç", base, {})
+        assert r == "consent_oturum_ac"
+        assert a == []
+        r, a = normalize_command("consent oturum kapat", base, {})
+        assert r == "consent_oturum_kapat"
+        r, a = normalize_command("consent oturum durum", base, {})
+        assert r == "consent_oturum_durum"
+
+
+def test_consent_oturum_ac_requires_unlock(capsys):
+    """consent oturum aç blocked when lock active; succeeds when unlocked."""
+    from cli.cli_router import run_cli_loop
+    from types import SimpleNamespace
+
+    inputs = iter(["consent oturum aç", "consent oturum kapat", "çık"])
+    session_consent = [False]
+    general_approval = [False]
+    today_actions = [[]]
+
+    ctx = SimpleNamespace(
+        base_dir=".",
+        state=SimpleNamespace(pending_intent=None, is_locked=lambda: True),
+        ks=SimpleNamespace(is_initialized=lambda: False),
+        pl=SimpleNamespace(),
+        mode="offline",
+        engine=None,
+        saved_notes=[[]],
+        note_ops_history=[[]],
+        last_response_reason=[None],
+        last_action=[None],
+        last_response_text=[None],
+        today_date=[""],
+        today_actions=today_actions,
+        current_task=[None],
+        current_permission_profile=["rapor"],
+        task_store=None,
+        aliases={},
+        general_approval=general_approval,
+        session_consent=session_consent,
+        record_note_op=lambda label: None,
+        record_today_action=lambda action: today_actions[0].append(action),
+    )
+    mut_ctx = SimpleNamespace(
+        base_dir=".",
+        task_store=None,
+        current_permission_profile=ctx.current_permission_profile,
+        general_approval=general_approval,
+        session_consent=session_consent,
+        current_task=ctx.current_task,
+        last_action=ctx.last_action,
+        today_date=ctx.today_date,
+        today_actions=today_actions,
+        last_task_create_fingerprint=[None],
+        record_today_action=ctx.record_today_action,
+        event_recording_engine=None,
+        pending_intent=[None],
+        pending_action=[None],
+        policy_runtime_mode="offline",
+        policy_is_locked=lambda: True,
+    )
+    router_ctx = SimpleNamespace(
+        base_dir=".",
+        aliases={},
+        ctx=ctx,
+        mut_ctx=mut_ctx,
+        pending_ref=[None],
+        cli_mode=["normal_komut_modu"],
+        last_route=[None],
+        last_note_undo=[None],
+        get_raw_input=lambda: next(inputs),
+        watchdog_tick=lambda: None,
+        on_lock_menu=lambda args: None,
+        on_presence_menu=lambda args: None,
+        on_self_test=lambda: None,
+        on_alias_menu=lambda args: None,
+        observation_engine=None,
+        queue_watcher_tick=None,
+        mode="offline",
+        on_live_brain=None,
+    )
+    run_cli_loop(router_ctx)
+    out = capsys.readouterr().out
+    assert "kilidi aç" in out
+    assert session_consent[0] is False
+
+    # unlocked path
+    inputs2 = iter(["consent oturum aç", "consent oturum durum", "çık"])
+    ctx.state.is_locked = lambda: False
+    router_ctx.get_raw_input = lambda: next(inputs2)
+    run_cli_loop(router_ctx)
+    out2 = capsys.readouterr().out
+    assert "Oturum consent açık" in out2
+    assert session_consent[0] is True
+    assert "oturum: açık" in out2
+
+
+def test_genel_onay_does_not_set_session_consent(capsys):
+    """genel onay aç must not flip session_consent."""
+    from cli.cli_router import run_cli_loop
+    from types import SimpleNamespace
+
+    inputs = iter(["genel onay aç", "çık"])
+    session_consent = [False]
+    general_approval = [False]
+    today_actions = [[]]
+
+    ctx = SimpleNamespace(
+        base_dir=".",
+        state=SimpleNamespace(pending_intent=None, is_locked=lambda: False),
+        ks=SimpleNamespace(is_initialized=lambda: False),
+        pl=SimpleNamespace(),
+        mode="offline",
+        engine=None,
+        saved_notes=[[]],
+        note_ops_history=[[]],
+        last_response_reason=[None],
+        last_action=[None],
+        last_response_text=[None],
+        today_date=[""],
+        today_actions=today_actions,
+        current_task=[None],
+        current_permission_profile=["rapor"],
+        task_store=None,
+        aliases={},
+        general_approval=general_approval,
+        session_consent=session_consent,
+        record_note_op=lambda label: None,
+        record_today_action=lambda action: today_actions[0].append(action),
+    )
+    mut_ctx = SimpleNamespace(
+        base_dir=".",
+        task_store=None,
+        current_permission_profile=ctx.current_permission_profile,
+        general_approval=general_approval,
+        session_consent=session_consent,
+        current_task=ctx.current_task,
+        last_action=ctx.last_action,
+        today_date=ctx.today_date,
+        today_actions=today_actions,
+        last_task_create_fingerprint=[None],
+        record_today_action=ctx.record_today_action,
+        event_recording_engine=None,
+        pending_intent=[None],
+        pending_action=[None],
+        policy_runtime_mode="offline",
+        policy_is_locked=lambda: False,
+    )
+    router_ctx = SimpleNamespace(
+        base_dir=".",
+        aliases={},
+        ctx=ctx,
+        mut_ctx=mut_ctx,
+        pending_ref=[None],
+        cli_mode=["normal_komut_modu"],
+        last_route=[None],
+        last_note_undo=[None],
+        get_raw_input=lambda: next(inputs),
+        watchdog_tick=lambda: None,
+        on_lock_menu=lambda args: None,
+        on_presence_menu=lambda args: None,
+        on_self_test=lambda: None,
+        on_alias_menu=lambda args: None,
+        observation_engine=None,
+        queue_watcher_tick=None,
+        mode="offline",
+        on_live_brain=None,
+    )
+    run_cli_loop(router_ctx)
+    assert general_approval[0] is True
+    assert session_consent[0] is False
