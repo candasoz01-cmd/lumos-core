@@ -175,7 +175,7 @@ const landingTr = {
     quantumDetailStatus:
       "Aktif üretim özelliği değildir; kaldırılmadı ve iptal edilmedi. Vizyon, araştırma ve gelecekteki güvenlik mimarisi adayı olarak takip edilir. Ücretli API maliyetinin henüz açılmaması, alanın terk edildiği anlamına gelmez; yalnızca şu an aktif kullanılmadığını gösterir.",
     quantumDetailBody:
-      "Geleneksel şifreleme ve hesaplama sınırlarının ötesindeki yaklaşımları izlemek için ayrılmış bir araştırma alanıdır. Mevcut sistem kuantum şifreleme kullandığını iddia etmez; panelde görünür iskelet düzeyindedir. Lumos Quantum Readiness (ADR-013): yerel, salt okunur hazırlık tarayıcısı — üretim kuantum özelliği değildir.",
+      "Geleneksel şifreleme ve hesaplama sınırlarının ötesindeki yaklaşımları izlemek için ayrılmış bir araştırma alanıdır. Mevcut sistem kuantum şifreleme kullandığını iddia etmez; panelde Faz-2 kısmi Quantum Readiness tarayıcısı (GET /quantum-readiness, local_scan) görünür — üretim kuantum iddiası taşımaz.",
     quantumDetailLinksLead: "Ayrıntı:",
     quantumAdrLink: "ADR-001",
     quantumAdr013Link: "ADR-013 — Quantum Readiness",
