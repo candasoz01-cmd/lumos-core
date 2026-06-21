@@ -1,6 +1,6 @@
-"""Regression: consent (genel onay aç/kapat) is a single source of truth for durum, hazır, and policy.
+"""Regression: consent vs general_approval separation (ADR-010).
 
-After 'genel onay aç', durum and hazır must reflect consent active; after 'genel onay kapat' they revert.
+consent_ok reflects consent.json or session_consent — NOT general_approval (genel onay).
 """
 import tempfile
 from pathlib import Path
@@ -39,53 +39,82 @@ def test_effective_consent_file_implies_true():
         assert effective_consent(base, True) is True
 
 
-def test_durum_parts_and_hazir_follow_session_consent():
-    """get_durum_parts and get_startup_summary use session consent; genel onay aç/kapat flow is consistent."""
+def test_genel_onay_does_not_set_consent_ok():
+    """general_approval (genel onay) alone does not imply consent_ok."""
     from core.startup_health import get_durum_parts, get_startup_summary
 
     with tempfile.TemporaryDirectory() as d:
         base = Path(d)
         pl = _mock_presence()
-        keystore_ok = False  # lock not required for consent_ok to reflect
+        parts = get_durum_parts(base, False, pl, session_consent=False)
+        assert parts["consent_ok"] is False
+        summary = get_startup_summary(base, False, pl, session_consent=False)
+        assert "Consent alınmadı" in summary or "consent alınmadı" in summary.lower()
 
-        # Same ref as router: genel onay aç sets [0]=True, genel onay kapat sets [0]=False
-        general_approval: list = [False]
 
-        # No file consent; session closed -> consent_ok False, hazır says consent alınmadı
-        parts = get_durum_parts(base, keystore_ok, pl, session_consent=general_approval[0])
+def test_durum_parts_and_hazir_follow_session_consent():
+    """get_durum_parts and get_startup_summary use session_consent, not general_approval."""
+    from core.startup_health import get_durum_parts, get_startup_summary
+
+    with tempfile.TemporaryDirectory() as d:
+        base = Path(d)
+        pl = _mock_presence()
+        keystore_ok = False
+
+        session_consent: list = [False]
+
+        parts = get_durum_parts(base, keystore_ok, pl, session_consent=session_consent[0])
         assert parts["consent_ok"] is False
         assert "consent alınmadı" in parts.get("not_line", "")
-        summary = get_startup_summary(base, keystore_ok, pl, session_consent=general_approval[0])
+        summary = get_startup_summary(base, keystore_ok, pl, session_consent=session_consent[0])
         assert "Consent alınmadı" in summary or "consent alınmadı" in summary.lower()
 
-        # Genel onay aç
-        general_approval[0] = True
-        parts = get_durum_parts(base, keystore_ok, pl, session_consent=general_approval[0])
+        session_consent[0] = True
+        parts = get_durum_parts(base, keystore_ok, pl, session_consent=session_consent[0])
         assert parts["consent_ok"] is True
         assert "consent alınmadı" not in (parts.get("not_line") or "")
-        summary = get_startup_summary(base, keystore_ok, pl, session_consent=general_approval[0])
+        summary = get_startup_summary(base, keystore_ok, pl, session_consent=session_consent[0])
         assert "Consent alınmadı" not in summary and "consent alınmadı" not in summary.lower()
 
-        # Genel onay kapat
-        general_approval[0] = False
-        parts = get_durum_parts(base, keystore_ok, pl, session_consent=general_approval[0])
+        session_consent[0] = False
+        parts = get_durum_parts(base, keystore_ok, pl, session_consent=session_consent[0])
         assert parts["consent_ok"] is False
-        assert "consent alınmadı" in (parts.get("not_line") or "")
-        summary = get_startup_summary(base, keystore_ok, pl, session_consent=general_approval[0])
+        summary = get_startup_summary(base, keystore_ok, pl, session_consent=session_consent[0])
         assert "Consent alınmadı" in summary or "consent alınmadı" in summary.lower()
 
 
-def test_session_consent_from_ctx_reflects_same_list():
-    """ReadOnlyContext.general_approval same ref as mut_ctx; _session_consent_from_ctx reflects it."""
+def test_session_consent_from_ctx_reflects_session_list_not_ga():
+    """ReadOnlyContext.session_consent is separate from general_approval."""
     from cli.cli_readonly import ReadOnlyContext, _session_consent_from_ctx
 
+    session_consent: list = [False]
     general_approval: list = [False]
     ctx = ReadOnlyContext()
     ctx.base_dir = "/tmp"
+    ctx.session_consent = session_consent
     ctx.general_approval = general_approval
 
     assert _session_consent_from_ctx(ctx) is False
     general_approval[0] = True
-    assert _session_consent_from_ctx(ctx) is True
-    general_approval[0] = False
     assert _session_consent_from_ctx(ctx) is False
+    session_consent[0] = True
+    assert _session_consent_from_ctx(ctx) is True
+
+
+def test_task_mutation_policy_consent_from_effective_consent_not_ga():
+    """Policy context consent uses effective_consent(session_consent), not general_approval."""
+    from cli.cli_tasks_mutation import TaskMutationContext, _task_mutation_policy_context
+
+    with tempfile.TemporaryDirectory() as d:
+        ctx = TaskMutationContext()
+        ctx.base_dir = d
+        ctx.general_approval = [True]
+        ctx.session_consent = [False]
+        ctx.policy_runtime_mode = "online"
+        pol = _task_mutation_policy_context(ctx)
+        assert pol["consent"] is False
+        assert pol["general_approval"] is True
+
+        ctx.session_consent[0] = True
+        pol = _task_mutation_policy_context(ctx)
+        assert pol["consent"] is True

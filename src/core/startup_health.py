@@ -16,9 +16,10 @@ def _consent_ok(base_dir: str | Path) -> bool:
 
 def effective_consent(base_dir: str | Path, session_consent: bool) -> bool:
     """
-    Single source of truth for consent: file-based consent OR session (genel onay aç).
-    Use this for durum, hazır, şu an güvenli miyim, bir sonraki adım ne, and task gate.
-    """
+    Consent (identity/keystore rızası): consent.json veya oturum session_consent.
+
+    general_approval (kisitli_otonom yazma kapısı) bu fonksiyona dahil değildir (ADR-010).
+  """
     return _consent_ok(base_dir) or session_consent
 
 
@@ -65,7 +66,7 @@ def get_startup_summary(
     """
     Tek satır hazır olma özeti. Öncelik: consent > lock > presence > macOS.
     Sorun varsa yalnızca en kritik eksik; mümkünse bir sonraki adım.
-    session_consent: when True (e.g. genel onay aç), consent is treated as given for this session.
+    session_consent: oturum consent sinyali (genel onay / general_approval değil).
     session_unlocked: when set (CLI hazir), runtime session signal is used instead of keystore_ready.
     """
     consent = effective_consent(base_dir, session_consent)
@@ -113,7 +114,7 @@ def get_durum_parts(
     """
     Durum komutu için etiket ve not. Öncelik: consent > keystore > presence > macOS.
     Döner: consent_ok, keystore_ready, durum_label ("güvenli" | "kısmen hazır"), not_line.
-    session_consent: when True (e.g. genel onay aç), consent is treated as given for this session.
+    session_consent: oturum consent sinyali (genel onay / general_approval değil).
     """
     consent = effective_consent(base_dir, session_consent)
     ks_ready = keystore_ready(keystore_initialized)

@@ -750,6 +750,7 @@ def create_runtime(sandbox_mode: bool | None = None) -> RuntimeResult:
     event_recording_engine = EventRecordingEngine()
     current_permission_profile: list[str] = [PROFILE_RAPOR]
     general_approval: list[bool] = [False]
+    session_consent: list[bool] = [False]
 
     pending_ref: list[str | None] = [None]
     current_task: list[str | None] = [None]
@@ -788,6 +789,7 @@ def create_runtime(sandbox_mode: bool | None = None) -> RuntimeResult:
     ctx.task_store = task_store
     ctx.aliases = aliases
     ctx.general_approval = general_approval
+    ctx.session_consent = session_consent
     ctx.record_note_op = lambda label: _record_note_op(note_ops_history, label)
     ctx.record_today_action = lambda action: _record_today_action(
         today_date, today_actions, action
@@ -798,6 +800,7 @@ def create_runtime(sandbox_mode: bool | None = None) -> RuntimeResult:
     mut_ctx.task_store = task_store
     mut_ctx.current_permission_profile = current_permission_profile
     mut_ctx.general_approval = general_approval
+    mut_ctx.session_consent = session_consent
     mut_ctx.current_task = current_task
     mut_ctx.last_action = last_action
     mut_ctx.today_date = today_date
