@@ -145,6 +145,7 @@ Panel: `panel_tasks_server` silinen görevleri `trash/*.json` dosyalarına yazar
 | [lumos-action-permission-matrix.md](../analysis/lumos-action-permission-matrix.md) | Eylem alanı × izin seviyesi matrisi |
 | [lumos-runtime-enforcement-map.md](../analysis/lumos-runtime-enforcement-map.md) | Repo'da bugün ne enforce ediliyor / gap |
 | [lumos-security-codex-next-pr-plan.md](../analysis/lumos-security-codex-next-pr-plan.md) | Minimal uygulama PR planı |
+| [security-never-auto-p2-and-helper-proposal.md](../analysis/security-never-auto-p2-and-helper-proposal.md) | P2 engine gap, helper taslağı, action_risk akışı (analyze-only) |
 
 ---
 
@@ -155,8 +156,10 @@ Panel: `panel_tasks_server` silinen görevleri `trash/*.json` dosyalarına yazar
 | ADR-012 taslak paket (codex + companion analizler) | **Tamamlandı** — #440 (2026-06-21) |
 | Panel şeffaflık — gate reason + UI codex uyarısı | **Tamamlandı** — #441 (2026-06-21) |
 | Panel policy enforcement (`check_policy`, gate `enabled`) | **Tamamlandı** — #443 |
-| Panel `PUT /tasks.json` policy gate | **Tamamlandı** — dar enforcement PR (#444) |
-| `SECURITY_NEVER_AUTO` tüm silme/yazma yolları | Gap — enforcement map; scan: `lumos-security-never-auto-branch-scan.md` |
+| Panel `PUT /tasks.json` policy gate | **Tamamlandı** — #444 |
+| Panel `POST /tasks/delete-permanent` policy + confirm | **Tamamlandı** — #445 |
+| Panel `POST /tasks/restore` CREATE_TASK gate | **Tamamlandı** — #446 |
+| `SECURITY_NEVER_AUTO` tüm silme/yazma yolları | **P2 gap** — engine branch; analiz: [security-never-auto-p2-and-helper-proposal.md](../analysis/security-never-auto-p2-and-helper-proposal.md) |
 | Trust motor (ADR-007) kanıt zinciri genişletmesi | Bekliyor — Faz 4 |
 
 ---
@@ -165,7 +168,7 @@ Panel: `panel_tasks_server` silinen görevleri `trash/*.json` dosyalarına yazar
 
 1. `SECURITY_NEVER_AUTO` tam runtime branch'i tüm silme/yazma yollarında var mı? (enforcement map gap — bilinçli takip)
 2. Trust motor (ADR-007) finalize olunca codex C3 kanıt zinciri genişletilecek mi? (Faz 4 checkpoint)
-3. Panel `PUT /tasks.json` tam doküman yazımı policy zincirine bağlanacak mı? → **Evet** — #444 (`CREATE_TASK` gate).
+3. Panel `PUT /tasks.json` tam doküman yazımı policy zincirine bağlanacak mı? → **Evet** — #444 (`CREATE_TASK` gate). Kalıcı silme (#445) ve restore (#446) aynı checkpoint'te kapandı.
 
 ---
 
