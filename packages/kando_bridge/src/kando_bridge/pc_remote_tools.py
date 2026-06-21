@@ -10,7 +10,20 @@ import re
 import secrets
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, TypedDict
+
+from kando_bridge.pending_approvals import (
+    approve_pending_record,
+    build_pc_remote_pending_record,
+    consume_pending_record,
+    find_pending_by_approval_id,
+    find_pending_by_token,
+    mark_expired_if_needed,
+    reject_pending_record,
+    validate_approval_token,
+    write_pending_approval,
+)
 
 SCHEMA_VERSION = "lumos.pc_remote_tools.v1"
 
@@ -40,6 +53,16 @@ RISK_HIGH = "high"
 RISK_META = "meta"
 
 # confirmation_policy action_key hedefleri (stub fazında kayıt amaçlı)
+_REQUIRED_USER_ACTION: dict[str, str] = {
+    CMD_OPEN_APP: "Uygulamayı açmayı onaylayın / Approve opening the application",
+    CMD_OPEN_URL: "URL açmayı onaylayın / Approve opening the URL",
+    CMD_TYPE_TEXT: "Metin yazmayı onaylayın / Approve typing text",
+    CMD_SUGGEST_CLICK: "Tıklama önerisini onaylayın / Approve click suggestion",
+    CMD_REQUEST_FILE_PICKER: (
+        "Dosya seçiciyi onaylayın / Approve file picker request"
+    ),
+}
+
 _ACTION_KEY_BY_COMMAND: dict[str, str | None] = {
     CMD_OPEN_APP: "bridge_high_risk_execute",
     CMD_OPEN_URL: "bridge_medium_dispatch",
@@ -308,9 +331,9 @@ def validate_command_arguments(command: str, arguments: dict[str, Any]) -> str |
 def check_approval_gate(
     command: str,
     *,
-    approval_granted: bool = False,
     approval_token: str | None = None,
-    expected_token: str | None = None,
+    approval_id: str | None = None,
+    repo_root: Path | None = None,
 ) -> ApprovalGateResult:
     spec = COMMAND_SPECS.get(command)
     if spec is None:
@@ -319,31 +342,81 @@ def check_approval_gate(
         return ApprovalGateResult(True, False)
     if command == CMD_REQUEST_USER_APPROVAL:
         return ApprovalGateResult(True, False)
-    if approval_granted:
-        if expected_token and approval_token:
-            if approval_token.strip() != expected_token.strip():
-                return ApprovalGateResult(
-                    False, True, reason="invalid_approval_token"
-                )
-        return ApprovalGateResult(True, True)
-    pending = secrets.token_hex(16)
+    tok = (approval_token or "").strip()
+    if tok and repo_root is not None:
+        aid = (approval_id or "").strip()
+        if not aid:
+            found = find_pending_by_token(repo_root, tok)
+            if found is not None:
+                aid = str(found[1].get("approval_id") or found[0].stem)
+        if aid:
+            ok, reason, _ = validate_approval_token(repo_root, aid, tok)
+            if ok:
+                return ApprovalGateResult(True, True)
+            return ApprovalGateResult(False, True, reason=reason or "invalid_approval_token")
     return ApprovalGateResult(
         False,
         True,
         reason="approval_required",
-        pending_token=pending,
+        pending_token="",
     )
+
+
+def _attach_pc_remote_confirmation(record: dict[str, Any], repo_root: Path) -> None:
+    try:
+        from policy.confirmation_policy import attach_bridge_pending_confirmation
+
+        lumos_base = (repo_root / ".lumos").resolve()
+        risk = str(record.get("risk_level") or "high")
+        attach_bridge_pending_confirmation(
+            record,
+            base_dir=lumos_base,
+            risk=risk,
+            source="pc_remote",
+        )
+    except ImportError:
+        return
+
+
+def _persist_pending_approval(
+    command: str,
+    arguments: dict[str, Any],
+    *,
+    repo_root: Path,
+    requested_by: str,
+    target_device: str,
+) -> dict[str, Any]:
+    spec = COMMAND_SPECS[command]
+    preview = _safe_preview(arguments)
+    record = build_pc_remote_pending_record(
+        command=command,
+        arguments=arguments,
+        arguments_preview=preview,
+        risk_level=str(spec["risk_tier"]),
+        required_user_action=_REQUIRED_USER_ACTION.get(command, "Onay gerekli / Approval required"),
+        action_key=_ACTION_KEY_BY_COMMAND.get(command),
+        requested_by=requested_by,
+        target_device=target_device,
+    )
+    _attach_pc_remote_confirmation(record, repo_root)
+    write_pending_approval(record, repo_root)
+    return record
 
 
 def execute_tool_stub(
     command: str,
     arguments: dict[str, Any],
     *,
-    approval_granted: bool = False,
+    approval_token: str | None = None,
+    approval_id: str | None = None,
+    repo_root: Path | None = None,
+    requested_by: str = "pc_remote_bridge",
+    target_device: str = "local",
 ) -> dict[str, Any]:
     """
     Demo-safe stub yürütme. Gerçek OS API çağrısı yok.
     Private katman: bu fonksiyonun yerine executor swap.
+    Onay gerektiren komutlar: diskte `status=approved` + eşleşen token olmadan yürütülmez.
     """
     err = validate_command_arguments(command, arguments)
     if err:
@@ -355,20 +428,90 @@ def execute_tool_stub(
             "schema_version": SCHEMA_VERSION,
         }
 
-    gate = check_approval_gate(command, approval_granted=approval_granted)
-    if not gate.allowed:
+    spec = COMMAND_SPECS.get(command)
+    if spec is None:
         return {
             "ok": False,
-            "status": "pending_approval",
+            "status": "rejected",
             "command": command,
-            "approval_required": True,
-            "approval_token": gate.pending_token,
-            "action_key": _ACTION_KEY_BY_COMMAND.get(command),
-            "risk_tier": COMMAND_SPECS[command]["risk_tier"],
-            "message": "Kullanıcı onayı gerekli (stub — gerçek yürütme yok)",
-            "arguments_preview": _safe_preview(arguments),
+            "error": "unknown_command",
             "schema_version": SCHEMA_VERSION,
         }
+
+    pending_path: Path | None = None
+    if spec["approval_required"] and command != CMD_REQUEST_USER_APPROVAL:
+        if repo_root is None:
+            return {
+                "ok": False,
+                "status": "rejected",
+                "command": command,
+                "error": "repo_root_required",
+                "schema_version": SCHEMA_VERSION,
+            }
+        gate = check_approval_gate(
+            command,
+            approval_token=approval_token,
+            approval_id=approval_id,
+            repo_root=repo_root,
+        )
+        if not gate.allowed:
+            if gate.reason == "approval_required":
+                record = _persist_pending_approval(
+                    command,
+                    arguments,
+                    repo_root=repo_root,
+                    requested_by=requested_by,
+                    target_device=target_device,
+                )
+                return {
+                    "ok": False,
+                    "status": "pending_approval",
+                    "command": command,
+                    "approval_required": True,
+                    "approval_id": record["approval_id"],
+                    "approval_file": record["approval_file"],
+                    "approval_token": record["approval_token"],
+                    "action_key": record.get("action_key") or _ACTION_KEY_BY_COMMAND.get(command),
+                    "risk_tier": spec["risk_tier"],
+                    "risk_level": record["risk_level"],
+                    "required_user_action": record["required_user_action"],
+                    "expires_at": record["expires_at"],
+                    "pending_status": record["status"],
+                    "message": "Kullanıcı onayı gerekli (stub — gerçek yürütme yok)",
+                    "arguments_preview": record["arguments_preview"],
+                    "schema_version": SCHEMA_VERSION,
+                }
+            return {
+                "ok": False,
+                "status": "rejected",
+                "command": command,
+                "approval_required": True,
+                "error": gate.reason or "approval_denied",
+                "schema_version": SCHEMA_VERSION,
+            }
+        tok = (approval_token or "").strip()
+        aid = (approval_id or "").strip()
+        if not aid:
+            found = find_pending_by_token(repo_root, tok)
+            if found is not None:
+                pending_path, _ = found
+                aid = str(found[1].get("approval_id") or found[0].stem)
+        else:
+            found = find_pending_by_approval_id(repo_root, aid)
+            pending_path = found[0] if found else None
+        ok, reason, approved_rec = validate_approval_token(repo_root, aid, tok)
+        if not ok or approved_rec is None:
+            return {
+                "ok": False,
+                "status": "rejected",
+                "command": command,
+                "approval_required": True,
+                "error": reason or "invalid_approval_token",
+                "schema_version": SCHEMA_VERSION,
+            }
+        if pending_path is None:
+            found = find_pending_by_approval_id(repo_root, aid)
+            pending_path = found[0] if found else None
 
     ts = int(time.time() * 1000)
     base: dict[str, Any] = {
@@ -429,6 +572,14 @@ def execute_tool_stub(
             "approval_token": secrets.token_hex(16),
         }
 
+    if pending_path is not None and repo_root is not None:
+        data = find_pending_by_approval_id(
+            repo_root,
+            str(approval_id or pending_path.stem),
+        )
+        if data is not None:
+            consume_pending_record(data[0], data[1])
+
     return base
 
 
@@ -440,7 +591,11 @@ def _safe_preview(arguments: dict[str, Any], max_len: int = 400) -> dict[str, An
     return out
 
 
-def handle_tools_execute_body(body: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+def handle_tools_execute_body(
+    body: dict[str, Any],
+    *,
+    repo_root: Path | None = None,
+) -> tuple[int, dict[str, Any]]:
     """POST /tools/execute gövdesini işler."""
     if not isinstance(body, dict):
         return 400, {"ok": False, "error": "invalid_body"}
@@ -448,22 +603,61 @@ def handle_tools_execute_body(body: dict[str, Any]) -> tuple[int, dict[str, Any]
     arguments = body.get("arguments")
     if not isinstance(arguments, dict):
         arguments = {}
-    approval_granted = bool(body.get("approval_granted"))
     approval_token = body.get("approval_token")
-    expected = body.get("expected_approval_token")
+    approval_id = body.get("approval_id")
+    requested_by = str(body.get("requested_by") or "pc_remote_bridge").strip() or "pc_remote_bridge"
+    target_device = str(body.get("target_device") or "local").strip() or "local"
 
-    gate = check_approval_gate(
+    out = execute_tool_stub(
         command,
-        approval_granted=approval_granted,
+        arguments,
         approval_token=str(approval_token) if approval_token else None,
-        expected_token=str(expected) if expected else None,
+        approval_id=str(approval_id) if approval_id else None,
+        repo_root=repo_root,
+        requested_by=requested_by,
+        target_device=target_device,
     )
-    if gate.approval_required and not gate.allowed and not approval_granted:
-        out = execute_tool_stub(command, arguments, approval_granted=False)
-        return 200, out
-
-    out = execute_tool_stub(command, arguments, approval_granted=approval_granted)
     status = 200 if out.get("ok") or out.get("status") == "pending_approval" else 403
     if out.get("status") == "rejected":
         status = 400
     return status, out
+
+
+def approve_pc_remote_pending(
+    path: Path,
+    record: dict[str, Any],
+    *,
+    approved: bool,
+    repo_root: Path,
+) -> tuple[bool, str, dict[str, Any] | None]:
+    """POST /approve için PC remote pending kaydı — token zaten doğrulandı."""
+    mark_expired_if_needed(path, record)
+    if str(record.get("status") or "") == "expired":
+        return False, "approval_expired", None
+    if bool(record.get("used")):
+        return False, "zaten kullanıldı", None
+    if not approved:
+        reject_pending_record(path, record)
+        return True, "", {"status": "rejected", "approval_id": record.get("approval_id")}
+    try:
+        from policy.confirmation_policy import (
+            is_confirmation_enabled,
+            validate_bridge_confirmation,
+        )
+
+        lumos_base = (repo_root / ".lumos").resolve()
+        if is_confirmation_enabled():
+            bridge_result = validate_bridge_confirmation(record, base_dir=lumos_base)
+            if not bridge_result.allowed:
+                return False, bridge_result.reason or "confirmation validation failed", None
+    except ImportError:
+        pass
+    updated = approve_pending_record(path, record)
+    return True, "", {
+        "status": "approved",
+        "approval_id": updated.get("approval_id"),
+        "command": updated.get("command"),
+        "approval_token": updated.get("approval_token"),
+        "approval_file": updated.get("approval_file"),
+        "message": "Onaylandı — POST /tools/execute ile approval_token gönderin",
+    }
