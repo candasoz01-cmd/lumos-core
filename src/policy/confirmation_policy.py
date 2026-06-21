@@ -259,6 +259,98 @@ def panel_action_to_confirmation_key(
     return action
 
 
+def cli_action_to_confirmation_key(route: str) -> str | None:
+    """CLI route → CU4 action_key (PR-C4)."""
+    if route == "gorev_olustur":
+        return "create_task"
+    if route == "gorev_sil":
+        return "delete_task"
+    return None
+
+
+def cli_mutation_confirmation_spec(
+    route: str,
+    args: list[str],
+) -> tuple[str, dict[str, Any], dict[str, Any]] | None:
+    """CLI mutasyon route → action_key, scope, CU7 preview."""
+    action_key = cli_action_to_confirmation_key(route)
+    if action_key is None:
+        return None
+    if route == "gorev_olustur":
+        title = (args[0] if args else "").strip()
+        if not title:
+            return None
+        scope = {"title": title}
+        preview = {
+            "what": "create_task",
+            "where": title,
+            "effect": "local_task_create",
+        }
+        return action_key, scope, preview
+    if route == "gorev_sil":
+        id_str = (args[0] if args else "").strip()
+        if not id_str:
+            return None
+        scope = {"id": id_str}
+        preview = {
+            "what": "delete_task",
+            "where": id_str,
+            "effect": "local_task_soft_delete",
+        }
+        return action_key, scope, preview
+    return None
+
+
+def format_cli_confirmation_message(preview: Mapping[str, Any], confirmation_id: str) -> str:
+    """CU7 önizleme metni + onayla komutu (CLI)."""
+    what = str(preview.get("what") or "")
+    where = str(preview.get("where") or "")
+    effect = str(preview.get("effect") or "")
+    return (
+        "Onay gerekli (CU4).\n"
+        f"  Ne: {what}\n"
+        f"  Nerede: {where}\n"
+        f"  Etki: {effect}\n"
+        f"Onay için: onayla {confirmation_id}"
+    )
+
+
+def ensure_cli_mutation_confirmation(
+    action_key: str,
+    scope: Mapping[str, Any],
+    confirmation_id: str | None,
+    *,
+    base_dir: Path | str | None = None,
+) -> ConfirmationResult:
+    """
+    PR-C4: CLI mutasyon yolu confirmation enforcement (create/delete soft).
+    Devre dışıyken no-op. Aktifken confirmation_id → check+consume; aksi halde confirmation_required.
+    """
+    if not is_confirmation_enabled():
+        return ConfirmationResult(True, REASON_CONFIRMATION_DISABLED)
+
+    if not requires_confirmation_for_action(action_key):
+        return ConfirmationResult(True, "")
+
+    base = Path(base_dir).resolve() if base_dir is not None else lumos_base_dir()
+    scope_hash = _scope_hash(scope)
+    cid = str(confirmation_id or "").strip()
+
+    if not cid:
+        return ConfirmationResult(False, REASON_CONFIRMATION_REQUIRED)
+
+    result = check_confirmation(
+        action_key,
+        scope,
+        {"confirmation_id": cid, "base_dir": str(base)},
+    )
+    if not result.allowed:
+        return result
+    if consume_confirmation(cid, scope_hash, base_dir=base):
+        return ConfirmationResult(True, "")
+    return ConfirmationResult(False, REASON_CONFIRMATION_REQUIRED)
+
+
 def ensure_panel_mutation_confirmation(
     action_key: str,
     scope: Mapping[str, Any],

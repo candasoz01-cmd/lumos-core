@@ -1,5 +1,6 @@
 """Görev motoru, yetki profili ve görev kaydı testleri."""
 import tempfile
+from pathlib import Path
 
 from task_engine import (
     TaskStore,
@@ -959,6 +960,21 @@ def test_archive_completed_and_simulations():
         assert ng1.archived is True and ng1.status == "tamamlandi"
         assert ng2.archived is True and ng2.status == "simulasyon"
         assert ng3.archived is False and ng3.status == "kismi"
+
+
+def test_move_to_trash_soft_delete_not_permanent(tmp_path):
+    """move_to_trash görevi trash'e yazar; delete(user_initiated=False) hâlâ korunur."""
+    with tempfile.TemporaryDirectory() as d:
+        store = TaskStore(d)
+        g = store.create("Trash me", "desc", PROFILE_GUVENLI_YURUT)
+        assert store.move_to_trash(g.task_id) is True
+        assert store.get(g.task_id) is None
+        trash_dir = Path(d) / "trash"
+        assert trash_dir.is_dir()
+        assert list(trash_dir.glob("*.json"))
+        g2 = store.create("Keep", "desc", PROFILE_GUVENLI_YURUT)
+        assert store.delete(g2.task_id, user_initiated=False) is False
+        assert store.get(g2.task_id) is not None
 
 
 def test_archive_vs_delete_single_task():

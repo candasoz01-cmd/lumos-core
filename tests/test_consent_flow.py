@@ -185,6 +185,7 @@ def test_consent_oturum_ac_requires_unlock(capsys):
         event_recording_engine=None,
         pending_intent=[None],
         pending_action=[None],
+        pending_confirmation=[],
         policy_runtime_mode="offline",
         policy_is_locked=lambda: True,
     )
@@ -272,6 +273,7 @@ def test_genel_onay_does_not_set_session_consent(capsys):
         event_recording_engine=None,
         pending_intent=[None],
         pending_action=[None],
+        pending_confirmation=[],
         policy_runtime_mode="offline",
         policy_is_locked=lambda: False,
     )

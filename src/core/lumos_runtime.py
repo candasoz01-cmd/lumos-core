@@ -772,6 +772,8 @@ def create_runtime(sandbox_mode: bool | None = None) -> RuntimeResult:
     pending_intent: list[dict | None] = [None]
     # Pending action: consent flow — when a task was blocked due to genel onay, store so we can resume after "onaylıyorum".
     pending_action: list[dict | None] = [None]
+    # Pending confirmation: CU4 işlem onayı — confirmation ≠ consent (ADR-010).
+    pending_confirmation: list[dict[str, Any]] = []
 
     ctx = ReadOnlyContext()
     ctx.base_dir = base_dir
@@ -813,6 +815,7 @@ def create_runtime(sandbox_mode: bool | None = None) -> RuntimeResult:
     mut_ctx.event_recording_engine = event_recording_engine
     mut_ctx.pending_intent = pending_intent
     mut_ctx.pending_action = pending_action
+    mut_ctx.pending_confirmation = pending_confirmation
     mut_ctx.policy_runtime_mode = mode
     mut_ctx.policy_is_locked = state.is_locked
 

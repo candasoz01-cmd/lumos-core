@@ -617,6 +617,10 @@ def normalize_command(raw: str, base_dir: Path, aliases: dict) -> tuple[str, lis
             return ("consent_oturum_kapat", [])
         if third == "durum":
             return ("consent_oturum_durum", [])
+    if len(parts) >= 2 and _fold_for_search(parts[0]) == "onayla":
+        return ("onayla", [parts[1]] if len(parts) >= 2 else [])
+    if len(parts) >= 2 and _fold_for_search(parts[0]) == "onay" and _fold_for_search(parts[1]) == "iptal":
+        return ("onay_iptal", parts[2:] if len(parts) >= 3 else [])
     return ("unknown", [])
 
 
