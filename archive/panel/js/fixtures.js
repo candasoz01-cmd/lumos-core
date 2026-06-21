@@ -72,7 +72,10 @@
     },
     keystore: {
       keystore_ready: false,
-      keystore_state: "Kilitli",
+      keystore_state: "eksik",
+      consent_ok: false,
+      consent_proxy_state: "onay bekleniyor",
+      session_unlocked: null,
       keystore_last_update: "2025-03-14T07:55:00",
       keystore_write_scope: "Kilit açılmadan hassas yazım yapılmaz",
     },
@@ -194,8 +197,9 @@
       title: "Anahtar Kasası",
       subtitle: "Durum görünürlüğü; anahtar ifşası yok",
       metrics: [
-        metric("Hazır mı", payload.keystore_ready ? "Evet" : "Hayır (kilitli)", "Anahtar materyali ekranda açık gösterilmez.", null),
-        metric("Şifreli Durum", payload.keystore_state, "Passphrase ve anahtar içeriği gösterilmez.", null),
+        metric("Keystore hazır", payload.keystore_ready ? "hazır" : "eksik", "ADR-011: keystore dosya init; passphrase unlock değil.", null),
+        metric("Genel onay (consent vekili)", payload.consent_proxy_state || (payload.consent_ok ? "onay kayıtlı" : "onay bekleniyor"), "Runtime oturum kilidi bu kartta doğrulanmaz.", null),
+        metric("Keystore dosyası", payload.keystore_state, "Passphrase ve anahtar içeriği gösterilmez.", null),
         metric("Son Güncelleme", payload.keystore_last_update ? formatTime(payload.keystore_last_update) : "—", "Son güncelleme zamanı.", null),
         metric("Yazım Kapsamı", payload.keystore_write_scope, "Kilit açılmadan hassas yazım yapılmaz.", null),
       ],

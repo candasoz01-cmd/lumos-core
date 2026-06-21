@@ -44,9 +44,13 @@ export async function patchPolicyAllowTasks(page, options = {}) {
         rs.guidance.mode = "online";
         rs.guidance.lock = "UNLOCKED";
         rs.guidance.consent = true;
+        rs.guidance.lock_scope = "consent_proxy";
+        rs.guidance.consent_proxy_state = "onay kayıtlı";
         if (rs.keystore && typeof rs.keystore === "object") {
-          rs.keystore.keystore_state = "Açık";
+          rs.keystore.keystore_state = "hazır";
           rs.keystore.keystore_ready = true;
+          rs.keystore.consent_ok = true;
+          rs.keystore.consent_proxy_state = "onay kayıtlı";
         }
         if (rs.dashboard && typeof rs.dashboard === "object") {
           rs.dashboard.guard_status = "Açık";
