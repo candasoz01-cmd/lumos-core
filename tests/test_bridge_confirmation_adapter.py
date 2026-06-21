@@ -14,6 +14,7 @@ from policy.confirmation_policy import (
     attach_bridge_pending_confirmation,
     bridge_pending_action_key,
     bridge_pending_confirmation_spec,
+    consume_confirmation,
     requires_confirmation_for_action,
 )
 
@@ -117,3 +118,61 @@ def test_lumos_gate_high_risk_pending_links_confirmation_namespace(
     assert cid
     assert pr.get("confirmation_action_key") == BRIDGE_HIGH_RISK_ACTION
     assert (tmp_path / ".lumos" / "pending_confirmations" / f"{cid}.json").is_file()
+
+
+def test_shadow_grant_scope_hash_matches_pending_record(tmp_path: Path) -> None:
+    """CU4 shadow grant scope_hash pending kaydındaki confirmation_scope_hash ile eşleşir."""
+    lumos = tmp_path / ".lumos"
+    lumos.mkdir()
+    pending: dict = {
+        "schema_version": "lumos.pending_approval.v1",
+        "title": "scope probe",
+        "normalized_task": {"target_rel": "src/b.py"},
+    }
+    cid = attach_bridge_pending_confirmation(
+        pending,
+        base_dir=lumos,
+        risk="high",
+        source="lumos_gate",
+    )
+    assert cid
+    grant = json.loads((lumos / "pending_confirmations" / f"{cid}.json").read_text(encoding="utf-8"))
+    assert pending["confirmation_scope_hash"] == grant["scope_hash"]
+    assert pending["confirmation_id"] == grant["confirmation_id"]
+
+
+def test_high_vs_medium_risk_shadow_action_keys_differ(tmp_path: Path) -> None:
+    """High lumos_gate vs medium task_dispatch → farklı CU4 action_key."""
+    lumos = tmp_path / ".lumos"
+    lumos.mkdir()
+    high: dict = {"schema_version": "lumos.pending_approval.v1", "title": "hr"}
+    medium: dict = {
+        "schema_version": "lumos.dispatch_pending_approval.v1",
+        "title": "med",
+        "task_id": "tsk_1",
+    }
+    attach_bridge_pending_confirmation(high, base_dir=lumos, risk="high", source="lumos_gate")
+    attach_bridge_pending_confirmation(medium, base_dir=lumos, risk="medium", source="task_dispatch")
+    assert high["confirmation_action_key"] == BRIDGE_HIGH_RISK_ACTION
+    assert medium["confirmation_action_key"] == BRIDGE_MEDIUM_DISPATCH_ACTION
+    high_grant = json.loads(
+        (lumos / "pending_confirmations" / f"{high['confirmation_id']}.json").read_text(encoding="utf-8")
+    )
+    med_grant = json.loads(
+        (lumos / "pending_confirmations" / f"{medium['confirmation_id']}.json").read_text(encoding="utf-8")
+    )
+    assert high_grant["scope"]["bridge_source"] == "lumos_gate"
+    assert med_grant["scope"]["bridge_source"] == "task_dispatch"
+    assert med_grant["scope"]["legacy_schema"] == "lumos.dispatch_pending_approval.v1"
+
+
+def test_shadow_grant_second_consume_fails(tmp_path: Path) -> None:
+    """Shadow grant tek kullanımlık — ikinci consume False (approve wiring öncesi karakterizasyon)."""
+    lumos = tmp_path / ".lumos"
+    lumos.mkdir()
+    pending: dict = {"schema_version": "lumos.pending_approval.v1", "title": "once"}
+    attach_bridge_pending_confirmation(pending, base_dir=lumos, risk="medium", source="task_dispatch")
+    cid = str(pending["confirmation_id"])
+    sh = str(pending["confirmation_scope_hash"])
+    assert consume_confirmation(cid, sh, base_dir=lumos)
+    assert not consume_confirmation(cid, sh, base_dir=lumos)

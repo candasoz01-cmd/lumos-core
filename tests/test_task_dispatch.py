@@ -1,5 +1,6 @@
 """Execution dispatch: task_type + doğru executor kuyruğu (karar katmanından ayrı)."""
 
+import json
 from pathlib import Path
 
 from kando_runtime.lumos_gate import enrich_normalized_with_target_file
@@ -229,6 +230,36 @@ def test_attach_medium_risk_writes_pending_json(tmp_path: Path) -> None:
     assert cid
     assert pr.get("confirmation_action_key") == "bridge_medium_dispatch"
     assert (tmp_path / ".lumos" / "pending_confirmations" / f"{cid}.json").is_file()
+
+
+def test_dispatch_pending_confirmation_scope_hash_matches_grant(tmp_path: Path) -> None:
+    """task_dispatch shadow kaydı: pending confirmation_scope_hash grant ile korelasyon."""
+    out = {
+        "execution_mode": "restricted",
+        "policy_ok": True,
+        "http_body": {
+            "lumos_gate": {"execution_mode": "restricted"},
+            "risk_level": "medium",
+            "normalized_task": {"target_body": "corr.txt oluştur"},
+        },
+    }
+    attach_execution_dispatch_to_out(out, repo_root=tmp_path)
+    pr = out["pending_approval_record"]
+    assert isinstance(pr, dict)
+    cid = str(pr.get("confirmation_id") or "")
+    sh = str(pr.get("confirmation_scope_hash") or "")
+    grant = json.loads(
+        (tmp_path / ".lumos" / "pending_confirmations" / f"{cid}.json").read_text(encoding="utf-8")
+    )
+    assert grant["scope_hash"] == sh
+    assert grant["action_key"] == "bridge_medium_dispatch"
+    assert grant["scope"]["legacy_schema"] == DISPATCH_PENDING_APPROVAL_SCHEMA
+
+
+def test_dispatch_medium_schema_differs_from_high_risk_gate_schema() -> None:
+    """Şema ayrımı: dispatch medium vs lumos_gate high pending şemaları."""
+    assert DISPATCH_PENDING_APPROVAL_SCHEMA == "lumos.dispatch_pending_approval.v1"
+    assert DISPATCH_PENDING_APPROVAL_SCHEMA != "lumos.pending_approval.v1"
 
 
 def test_resolve_system_reasoning_structured_patch_routes_file():
