@@ -707,7 +707,7 @@ const panelModules = {
       demo: "DEMO",
       localScan: "Yerel tarama (local_scan)",
       docsExample: "Dokümantasyon tabanlı örnek çıktı",
-      noLiveScan: "Canlı analiz yapılmadı",
+      noLiveScan: "GET /quantum-readiness yanıt vermedi",
       mvpPlanning: "Yerel tarama yüklenemedi — örnek gösteriliyor",
     },
     readinessIntro:
