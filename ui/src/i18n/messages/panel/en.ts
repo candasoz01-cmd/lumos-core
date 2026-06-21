@@ -711,16 +711,16 @@ const panel: typeof panelTr = {
       localScan: "Local scan (local_scan)",
       docsExample: "Documentation-based sample output",
       noLiveScan: "No live analysis performed",
-      mvpPlanning: "Quantum Readiness MVP in planning phase",
+      mvpPlanning: "Local scan unavailable — showing sample",
     },
     readinessIntro:
-      "Lumos Quantum Readiness is a concept for a local, read-only post-quantum security readiness scanner. Values shown here are documentation-based samples; no live file scan or security score is produced.",
+      "Lumos Quantum Readiness — local, read-only post-quantum security readiness scanner. When GET /quantum-readiness does not respond, values below are documentation-based samples; with the panel server running, local scan (local_scan) loads automatically.",
     readinessIntroLive:
       "Lumos Quantum Readiness — local, read-only readiness scan. Live analysis is not a quantum-safe or production quantum claim; it is a read-only code/metadata inventory.",
     mock: {
       title: "Sample readiness summary (mock)",
       titleLive: "Local readiness summary",
-      note: "Evidence basis: docs_only — ADR-013 checklist. Real scan connects after Phase-2 approval.",
+      note: "Evidence basis: docs_only — ADR-013 checklist. GET /quantum-readiness unavailable; local scan (local_scan) could not load.",
       noteLive:
         "Readiness report — does not claim quantum-safe or quantum computer usage.",
       cryptoLabel: "Encryption / keys",
@@ -730,7 +730,7 @@ const panel: typeof panelTr = {
       pqcLabel: "PQC transition readiness",
       pqcValue: "Monitoring — NIST PQC awareness; no implementation",
       evidenceLabel: "Evidence type",
-      evidenceValue: "docs_only / simulation — no live scan",
+      evidenceValue: "docs_only — local scan (local_scan) could not load",
     },
     live: {
       evidenceBasis: "Evidence basis: {basis} — local read-only scan",
