@@ -93,7 +93,7 @@ Kullanıcı yüzünde «v2» veya «Alpha download» **ilan edilmez**.
 
 - Çekirdek yolculuk ≥2 hafta ekip içi tekrarlanabilir (panel → görev; ± köprü sohbet)
 - P0 = 0; P1 kapatıldı veya Pilot defer
-- Release checklist mevcut (RB-07 — [`GITHUB_RELEASE_CHECKLIST.md`](GITHUB_RELEASE_CHECKLIST.md); ayrı PR)
+- Release checklist mevcut — [`GITHUB_RELEASE_CHECKLIST.md`](GITHUB_RELEASE_CHECKLIST.md) (RB-07)
 - ADR-012 **CLOSED şart değil** (defer kaydı yeterli)
 
 ---
