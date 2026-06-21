@@ -32,8 +32,20 @@ Lock iki sinyal (ADR-011) trust tüketimine hazırlanır (Faz 4).
 | #444 | Panel `PUT /tasks.json` CREATE_TASK gate |
 | #445 | Panel delete-permanent policy + confirm |
 | #446 | Panel restore CREATE_TASK gate |
+| #449 | Panel profil guard (`may_execute_step_at_runtime` 2. kapı) |
+| #450 | Consent ≠ general_approval ayrımı |
+| #451 | session_consent CLI (`consent oturum aç/kapat/durum`) |
+| #452 | PR-C0 confirmation reason kodları (docs) |
+| #453 | `confirmation_policy` modülü (PR-C1) |
+| #454 | delete-permanent confirmation unify (PR-C2) |
+| #455 | Trash modal UI (PR-UI-C2a) |
+| #456 | Panel mutasyon confirmation gate (PR-C3, opt-in) |
+| #457 | CU7 preview endpoint + modal (PR-C5) |
+| #458 | CLI `onayla` confirmation (PR-C4) |
 
 ## Sonraki checkpoint
 
 - **ADR-011 Faz 4:** Merkezi trust sinyal modelinde `keystore_ready` ve `session_unlocked` ayrı alanlar; ADR-007 § Trust sinyalleri revizyonu.
-- **ADR-012 takip:** P0/P1 panel yolları #444–#446 kapandı; P2 `SECURITY_NEVER_AUTO` engine branch — [analiz](security-never-auto-p2-and-helper-proposal.md) (onay bekliyor).
+- **ADR-012 takip:** P2 `SECURITY_NEVER_AUTO` engine branch — [analiz](security-never-auto-p2-and-helper-proposal.md) (onay bekliyor).
+- **PR-C6:** Köprü `pending_approval` → confirmation namespace hizalama.
+- **Confirmation:** Varsayılan-on ürün kararı; E2E opt-in test.

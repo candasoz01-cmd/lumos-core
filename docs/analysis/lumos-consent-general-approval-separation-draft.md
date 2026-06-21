@@ -2,15 +2,17 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Taslak** — uygulama referansı (`fix/consent-general-approval-separation`) |
+| Durum | **Kapandı** — merge #450 (policy/read ayrımı) + #451 (session_consent CLI) |
 | Tarih | 2026-06-21 |
 | İlgili | [ADR-010](../decisions/ADR-010-guard-policy-trust-terminology.md), [ADR-012](../decisions/ADR-012-lumos-security-codex.md), [consent matrix draft](lumos-consent-and-panel-profile-matrix-draft.md) |
 
 ---
 
-## 1. Mevcut durum (consent ve general_approval bugün nasıl karışıyor)
+## 1. Eski durum (merge öncesi — tarihsel)
 
-Üç ayrı kavram kodda ve UI'da **aynı boolean veya aynı etiket** altında toplanmış durumda: **consent** (identity/keystore rızası), **general_approval** (kisitli_otonom oturum yazma kapısı), **confirmation** (işlem bazlı onay — henüz ayrı alan yok).
+> **Not:** Aşağıdaki drift #450+#451 ile kapandı. Tarihsel kayıt olarak korunur.
+
+Üç ayrı kavram kodda ve UI'da **aynı boolean veya aynı etiket** altında toplanmıştı: **consent**, **general_approval**, **confirmation**.
 
 ### CLI — en net karışım
 
@@ -53,7 +55,7 @@ ADR-010 zorunlu ayrım: **consent ≠ confirmation ≠ general_approval**.
 |--------|--------|----------------------|
 | **consent** | Identity, keystore, koruma alanı rızası | `consent.json` veya oturum `session_consent` — **general_approval'dan bağımsız** |
 | **general_approval** | `kisitli_otonom` oturum yazma kapısı | `profiles.is_allowed_for_profile(..., general_approval)` — **consent yerine geçmez** |
-| **confirmation** | Tek işlem / tek kapsam onayı (CU4) | Henüz ayrı alan yok |
+| **confirmation** | Tek işlem / tek kapsam onayı (CU4) | **Merge** #453–#458 — `confirmation_policy`; opt-in |
 
 **Hedef kurallar:**
 
@@ -103,7 +105,7 @@ Panel: consent kartı ≠ genel onay toggle (`LUMOS_GENERAL_APPROVAL`).
 | consent (dosya) | `panel_bridge_state._panel_policy_context`, `build_panel_read_state` |
 | consent (policy) | `action_policy.check_policy` identity/keystore |
 | general_approval | `profiles`, `engine`, `panel task_action_gate` |
-| CU4 | GA önkoşul; confirmation ayrı (gap) |
+| CU4 | GA önkoşul; confirmation ayrı | **Merge** #453–#458 (opt-in) |
 | CU6 | SECURITY_NEVER_AUTO; consent/GA bağımsız |
 | CU7 | Gate `reason` kapı tipi etiketli (hedef) |
 
@@ -127,7 +129,7 @@ Hedef zincir: policy → consent → profil+GA → confirmation → NEVER_AUTO.
 
 ### PR-4 — Confirmation iskeleti
 
-**CU4 skeleton draft** — ayrı PR zinciri (PR-C0 docs → PR-C1+ kod). Bkz. [lumos-cu4-confirmation-skeleton-draft.md](lumos-cu4-confirmation-skeleton-draft.md).
+**Merge** #452–#458 — bkz. [lumos-cu4-confirmation-skeleton-draft.md](lumos-cu4-confirmation-skeleton-draft.md). PR-C6 köprü hizalama açık.
 
 ### Başarı ölçütleri
 

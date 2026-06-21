@@ -2,7 +2,7 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Kabul edildi** (2026-06-21) — taslak paket #440; panel şeffaflık #441; panel policy enforcement #443 |
+| Durum | **Kabul edildi** (2026-06-21) — taslak paket #440; panel şeffaflık #441; panel policy #443–#446; consent #450+#451; profil guard #449; CU4 confirmation #452–#458 (opt-in) |
 | Tarih | 2026-06-21 |
 | İlgili | `docs/lumos-karar-sozlesmesi.md`, [ADR-010](ADR-010-guard-policy-trust-terminology.md), [ADR-011](ADR-011-lock-semantics-decision.md), [action permission matrix](../analysis/lumos-action-permission-matrix.md), [runtime enforcement map](../analysis/lumos-runtime-enforcement-map.md) |
 
@@ -125,9 +125,11 @@ Panel: `panel_tasks_server` silinen görevleri `trash/*.json` dosyalarına yazar
 
 ---
 
-## 7. Confirmation reason kodları (PR-C0 — tanımlandı, uygulama bekliyor)
+## 7. Confirmation reason kodları ve CU4 enforcement (#452–#458)
 
-ADR-010: **consent ≠ general_approval ≠ confirmation**. İşlem bazlı üçüncü sinyal (CU4) için reason kod sözleşmesi PR-C0 ile kayıt altına alındı; runtime enforcement PR-C1+.
+ADR-010: **consent ≠ general_approval ≠ confirmation**. İşlem bazlı üçüncü sinyal (CU4) reason kod sözleşmesi PR-C0 (#452) ile kayıt altına alındı; runtime modülü ve gate wiring PR-C1–C5 (#453–#457) ile merge edildi; CLI `onayla` PR-C4 (#458).
+
+**Opt-in:** Confirmation enforcement yalnızca `LUMOS_CONFIRMATION_ENABLED=true|1|yes` iken aktif. Varsayılan (env yok/false) → 3. kapı no-op; policy+profil gate (#443–#449) davranışı korunur.
 
 | Kod | Anlam | Gate / UI |
 |-----|-------|-----------|
@@ -139,7 +141,7 @@ ADR-010: **consent ≠ general_approval ≠ confirmation**. İşlem bazlı üç�
 
 **Mevcut reason kodları korunur:** `offline_mode`, `koruma_aktif_delete`, `consent_required`, `[PROFILE_BLOCKED]`, `[POLICY_BLOCKED]`.
 
-**Detay:** [CU4 confirmation skeleton draft](../analysis/lumos-cu4-confirmation-skeleton-draft.md) — operasyon matrisi, PR-C1–C6 sırası, false positive riskleri.
+**Detay:** [CU4 confirmation skeleton draft](../analysis/lumos-cu4-confirmation-skeleton-draft.md) — operasyon matrisi, PR-C0–C6 durumu, false positive riskleri.
 
 ---
 
@@ -178,16 +180,43 @@ ADR-010: **consent ≠ general_approval ≠ confirmation**. İşlem bazlı üç�
 | Panel `PUT /tasks.json` policy gate | **Tamamlandı** — #444 |
 | Panel `POST /tasks/delete-permanent` policy + confirm | **Tamamlandı** — #445 |
 | Panel `POST /tasks/restore` CREATE_TASK gate | **Tamamlandı** — #446 |
+| Consent ≠ general_approval ayrımı | **Tamamlandı** — #450 |
+| session_consent CLI (`consent oturum aç/kapat/durum`) | **Tamamlandı** — #451 |
+| Panel profil guard (`may_execute_step_at_runtime` 2. kapı) | **Tamamlandı** — #449 |
+| PR-C0 confirmation reason kodları (docs) | **Tamamlandı** — #452 |
+| `confirmation_policy` modülü (PR-C1) | **Tamamlandı** — #453 |
+| delete-permanent confirmation unify (PR-C2) | **Tamamlandı** — #454 |
+| Panel trash modal UI (PR-UI-C2a) | **Tamamlandı** — #455 |
+| Panel mutasyon confirmation gate (PR-C3) | **Tamamlandı** — #456 (opt-in) |
+| CU7 preview endpoint + modal (PR-C5) | **Tamamlandı** — #457 |
+| CLI `onayla` confirmation (PR-C4) | **Tamamlandı** — #458 |
 | `SECURITY_NEVER_AUTO` tüm silme/yazma yolları | **P2 gap** — engine branch; analiz: [security-never-auto-p2-and-helper-proposal.md](../analysis/security-never-auto-p2-and-helper-proposal.md) |
+| PR-C6 köprü confirmation namespace hizalama | **Açık** — `pending_approval` ayrı PR |
 | Trust motor (ADR-007) kanıt zinciri genişletmesi | Bekliyor — Faz 4 |
+| Confirmation varsayılan-on ürün kararı | **Açık** — şu an opt-in (`LUMOS_CONFIRMATION_ENABLED`) |
+| E2E confirmation (panel modal + CLI birleşik) | **Açık** |
+
+---
+
+## Açık kalan maddeler (codex kapanış öncesi)
+
+Security Codex **CLOSED değildir**. Aşağıdaki maddeler bilinçli takipte:
+
+1. **P2 `SECURITY_NEVER_AUTO`** — TaskEngine tek branch; [P2 analiz](../analysis/security-never-auto-p2-and-helper-proposal.md).
+2. **PR-C6** — Köprü `pending_approval` → confirmation namespace (ayrı PR).
+3. **Trust Faz 4** — ADR-007 merkezi trust tüketimi; ADR-011 `keystore_ready` ≠ `session_unlocked`.
+4. **E2E confirmation** — Opt-in env ile panel+CLI uçtan uca doğrulama.
+5. **Varsayılan-on kararı** — Confirmation şu an `LUMOS_CONFIRMATION_ENABLED` opt-in; ürün kararı bekliyor.
+6. **Panel LockState** — Env vekili vs runtime kilit doğrulaması.
 
 ---
 
 ## Açık sorular (kabul sonrası)
 
-1. `SECURITY_NEVER_AUTO` tam runtime branch'i tüm silme/yazma yollarında var mı? (enforcement map gap — bilinçli takip)
+1. `SECURITY_NEVER_AUTO` tam runtime branch'i tüm silme/yazma yollarında var mı? (enforcement map §8 — bilinçli takip)
 2. Trust motor (ADR-007) finalize olunca codex C3 kanıt zinciri genişletilecek mi? (Faz 4 checkpoint)
-3. Panel `PUT /tasks.json` tam doküman yazımı policy zincirine bağlanacak mı? → **Evet** — #444 (`CREATE_TASK` gate). Kalıcı silme (#445) ve restore (#446) aynı checkpoint'te kapandı.
+3. Panel `PUT /tasks.json` tam doküman yazımı policy zincirine bağlanacak mı? → **Evet** — #444. Kalıcı silme (#445+#454) ve restore (#446) kapandı.
+4. Confirmation varsayılan-on mu opt-in mi kalacak? → **Şu an opt-in** (#453); ürün kararı açık.
 
 ---
 
@@ -203,4 +232,4 @@ ADR-010: **consent ≠ general_approval ≠ confirmation**. İşlem bazlı üç�
 
 ## Sonuç
 
-Lumos Security Codex (C1–C6) resmi sözleşme olarak kayıt altına alındı. İlk uygulama: docs paketi (#440), panel codex şeffaflığı (#441), panel görev mutasyonlarında `check_policy` hizalaması (#442). Tam trust motor ve `SECURITY_NEVER_AUTO` tüm yollar **bilinçli sonraki checkpoint'ler**; bu ADR kod refactor veya kapsam genişletmesi talep etmez.
+Lumos Security Codex (C1–C6) resmi sözleşme olarak kayıt altına alındı. İlk uygulama: docs paketi (#440), panel codex şeffaflığı (#441), panel görev mutasyonlarında `check_policy` (#443–#446), consent ayrımı (#450+#451), panel profil guard (#449), CU4 confirmation zinciri (#452–#458, opt-in). Tam trust motor, P2 `SECURITY_NEVER_AUTO` ve PR-C6 **bilinçli sonraki checkpoint'ler**; codex **CLOSED değildir**.
