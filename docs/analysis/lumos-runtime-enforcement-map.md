@@ -225,7 +225,7 @@ ADR-012 Security Codex maddelerinin (C1–C6) repo'da **nerede enforce edildiği
 |-------|---------------|-----|
 | **C1** Tek kapı | CLI router, panel server yüzeyi | Çoklu giriş (CLI vs panel vs bridge); panel profil matrisi yok |
 | **C2** İç bypass yok | write_interceptor, workspace_contract | ~~Panel doğrudan tasks.json policy dışı~~ → PUT #444 gated |
-| **C3** Onay/kanıt | profiles + TaskEngine + action_policy CLI/panel + evidence | ~~consent≠general_approval drift~~ → **Kapandı** #450+#451; panel profil matrisi yok; confirmation (CU4) gap |
+| **C3** Onay/kanıt | profiles + TaskEngine + action_policy CLI/panel + evidence | ~~consent≠general_approval drift~~ → **Kapandı** #450+#451; panel profil matrisi yok; confirmation (CU4) → **PR-C0: reason codes defined, implementation pending** |
 | **C4** Mock ayrımı | Task status `simulasyon`; panel status map | Panel mock alanları |
 | **C5** Trash | workspace_contract, panel trash write | Kalıcı silme tüm path'lerde `user_initiated` (#445 gated) |
 | **C6** Stop-on-risk | Profil never layer; policy offline/koruma; lumos_gate prompt; panel `task_action_gate` | sensitivity kopuk; P2 SECURITY_NEVER_AUTO engine branch |
@@ -263,12 +263,12 @@ PR referansları: #443 policy enforcement, #444 PUT /tasks.json, #445 delete-per
 
 | CU | Madde | Bu PR zinciri | Durum |
 |----|-------|---------------|-------|
-| **CU4** | Dış etkili aksiyon açık onay | `general_approval` ≠ `consent`; GA yazma önkoşulu, consent identity/keystore | **Kısmi** — işlem bazlı confirmation hâlâ gap |
+| **CU4** | Dış etkili aksiyon açık onay | `general_approval` ≠ `consent`; GA yazma önkoşulu, consent identity/keystore | **PR-C0: reason codes defined, implementation pending** — bkz. [CU4 skeleton draft](lumos-cu4-confirmation-skeleton-draft.md) |
 | **CU6** | Geri dönüşsüz otomatik yok | `SECURITY_NEVER_AUTO`; consent/GA bağımsız | **Kısmi** — engine branch tam değil (#445 gated delete ayrı) |
 | **CU7** | Ne/nerede/etki görünürlüğü | `consent oturum durum`; panel gate `reason`; ayrı GA mesajları | **Kısmi** — CU preview/confirmation yüzeyi yok |
 | **CU10** | Online kimlik/kilit koşulu | `consent oturum aç` kilit açık gerektirir; `kilit ac` → session_consent; lock → sıfırlama | **Kısmi** — panel `LockState` env vekili; presence ayrı |
 
-**Hedef zincir (ADR-010):** policy → consent (`effective_consent`) → profil+GA → confirmation (gap) → NEVER_AUTO.
+**Hedef zincir (ADR-010):** policy → consent (`effective_consent`) → profil+GA → confirmation (PR-C0 reason codes; PR-C1+ runtime) → NEVER_AUTO.
 
 ---
 

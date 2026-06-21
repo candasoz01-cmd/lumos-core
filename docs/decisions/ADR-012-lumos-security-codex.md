@@ -125,6 +125,24 @@ Panel: `panel_tasks_server` silinen görevleri `trash/*.json` dosyalarına yazar
 
 ---
 
+## 7. Confirmation reason kodları (PR-C0 — tanımlandı, uygulama bekliyor)
+
+ADR-010: **consent ≠ general_approval ≠ confirmation**. İşlem bazlı üçüncü sinyal (CU4) için reason kod sözleşmesi PR-C0 ile kayıt altına alındı; runtime enforcement PR-C1+.
+
+| Kod | Anlam | Gate / UI |
+|-----|-------|-----------|
+| `confirmation_required` | Onay yok veya süresi dolmuş | `task_action_gate` 3. kapı; panel modal tetikleyici |
+| `confirmation_expired` | Grant TTL doldu | Yeniden `POST /lumos-confirm/request` |
+| `confirmation_scope_mismatch` | Id geçerli ama hedef/scope farklı | Red; yeni onay |
+| `confirmation_preview_required` | CU7: önce preview endpoint | Preview kartı zorunlu |
+| `[CONFIRMATION_BLOCKED] <action> → ...` | Birleşik gate reason parçası | Panel/CLI reason string |
+
+**Mevcut reason kodları korunur:** `offline_mode`, `koruma_aktif_delete`, `consent_required`, `[PROFILE_BLOCKED]`, `[POLICY_BLOCKED]`.
+
+**Detay:** [CU4 confirmation skeleton draft](../analysis/lumos-cu4-confirmation-skeleton-draft.md) — operasyon matrisi, PR-C1–C6 sırası, false positive riskleri.
+
+---
+
 ## Codex maddeleri — özet tablo
 
 | # | Madde | Kısa ifade |
@@ -146,6 +164,7 @@ Panel: `panel_tasks_server` silinen görevleri `trash/*.json` dosyalarına yazar
 | [lumos-runtime-enforcement-map.md](../analysis/lumos-runtime-enforcement-map.md) | Repo'da bugün ne enforce ediliyor / gap |
 | [lumos-security-codex-next-pr-plan.md](../analysis/lumos-security-codex-next-pr-plan.md) | Minimal uygulama PR planı |
 | [security-never-auto-p2-and-helper-proposal.md](../analysis/security-never-auto-p2-and-helper-proposal.md) | P2 engine gap, helper taslağı, action_risk akışı (analyze-only) |
+| [lumos-cu4-confirmation-skeleton-draft.md](../analysis/lumos-cu4-confirmation-skeleton-draft.md) | CU4 confirmation iskelet; PR-C0 reason kodları |
 
 ---
 
