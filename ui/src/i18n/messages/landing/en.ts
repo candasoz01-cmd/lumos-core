@@ -177,7 +177,7 @@ const landingEn: typeof landingTr = {
     quantumDetailStatus:
       "Not an active production feature; not removed and not cancelled. Tracked as vision, research, and a candidate future security architecture. Paid API cost not being opened yet does not mean the area was abandoned—only that it is not actively used right now.",
     quantumDetailBody:
-      "A research area reserved for tracking approaches beyond traditional encryption and compute limits. The current system does not claim to use quantum encryption; the panel shows a visible skeleton level only. Lumos Quantum Readiness (ADR-013): local, read-only readiness scanner — not an active production quantum feature.",
+      "A research area reserved for tracking approaches beyond traditional encryption and compute limits. The current system does not claim to use quantum encryption; the panel shows a Faz-2 partial Quantum Readiness scanner (GET /quantum-readiness, local_scan) — not a production quantum feature claim.",
     quantumDetailLinksLead: "Details:",
     quantumAdrLink: "ADR-001",
     quantumAdr013Link: "ADR-013 — Quantum Readiness",
