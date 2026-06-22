@@ -1,4 +1,4 @@
-"""Landing index.astro — inline tokens; no dead external stylesheet link."""
+"""Landing index.astro — shared tokens via lumos-tokens.css."""
 
 from __future__ import annotations
 
@@ -8,14 +8,19 @@ from pathlib import Path
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _INDEX_ASTRO = _REPO_ROOT / "ui" / "src" / "pages" / "index.astro"
 _PANEL_ASTRO = _REPO_ROOT / "ui" / "src" / "pages" / "panel.astro"
+_TOKENS_CSS = _REPO_ROOT / "ui" / "src" / "styles" / "lumos-tokens.css"
 _LANDING_TR = _REPO_ROOT / "ui" / "src" / "i18n" / "messages" / "landing" / "tr.ts"
 _LANDING_EN = _REPO_ROOT / "ui" / "src" / "i18n" / "messages" / "landing" / "en.ts"
 
 
-def test_index_has_no_dead_lumos_tokens_stylesheet_link() -> None:
-    text = _INDEX_ASTRO.read_text(encoding="utf-8")
-    assert "/styles/lumos-tokens.css" not in text
-    assert "--lumos-land-teal:" in text
+def test_index_imports_shared_lumos_tokens_stylesheet() -> None:
+    index = _INDEX_ASTRO.read_text(encoding="utf-8")
+    panel = _PANEL_ASTRO.read_text(encoding="utf-8")
+    tokens = _TOKENS_CSS.read_text(encoding="utf-8")
+    assert 'import "../styles/lumos-tokens.css"' in index
+    assert 'import "../styles/lumos-tokens.css"' in panel
+    assert "--lumos-land-teal: 45 212 191" in tokens
+    assert "--lumos-bg: #0a0e14" in tokens
 
 
 def test_landing_kurulum_bridge_env_proxy_steps() -> None:
