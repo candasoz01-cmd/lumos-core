@@ -7,14 +7,16 @@ from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _PANEL_ASTRO = _REPO_ROOT / "ui" / "src" / "pages" / "panel.astro"
+_TOKENS_CSS = _REPO_ROOT / "ui" / "src" / "styles" / "lumos-tokens.css"
 _PANEL_TR = _REPO_ROOT / "ui" / "src" / "i18n" / "messages" / "panel" / "tr.ts"
 _PANEL_EN = _REPO_ROOT / "ui" / "src" / "i18n" / "messages" / "panel" / "en.ts"
 
 PREMIUM_DARK_MARKERS = (
     "--lumos-panel-navy:",
-    "--lumos-land-teal: 45 90 140",
+    "--lumos-land-teal: 45 212 191",
     "--panel-font-title:",
     "--panel-content-max:",
+    'import "../styles/lumos-tokens.css"',
     "panel-header-tagline",
     "panel-module-head",
     "panel-module-eyebrow",
@@ -25,9 +27,13 @@ PREMIUM_DARK_MARKERS = (
 
 
 def test_panel_premium_dark_control_center_tokens() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    panel = _PANEL_ASTRO.read_text(encoding="utf-8")
+    tokens = _TOKENS_CSS.read_text(encoding="utf-8")
     for token in PREMIUM_DARK_MARKERS:
-        assert token in text, f"missing premium dark marker: {token}"
+        if token.startswith("--"):
+            assert token in tokens, f"missing premium dark marker in tokens: {token}"
+        else:
+            assert token in panel, f"missing premium dark marker in panel: {token}"
 
 
 def test_panel_nav_sig_hidden_to_reduce_branding_repetition() -> None:

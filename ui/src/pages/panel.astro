@@ -1,4 +1,5 @@
 ---
+import "../styles/lumos-tokens.css";
 import LanguageSwitcher from "../components/LanguageSwitcher.astro";
 import I18nInit from "../components/I18nInit.astro";
 
@@ -43,86 +44,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
     <link rel="icon" href="/lumos-tree-logo.svg" type="image/svg+xml" sizes="any" />
     <link rel="apple-touch-icon" href="/lumos-tree-logo.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#1e3a5f" />
+    <meta name="theme-color" content="#0a0e14" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Lumos" />
     <style>
-      :root {
-        /**
-         * Panel — premium dark control-center (Internal Alpha).
-         * Parliament-lacivert vurgu; parlak cyan yerine tok, koyu yüzeyler.
-         */
-        --lumos-land-teal: 45 90 140;
-        --lumos-land-teal-deep: 18 36 62;
-        --lumos-land-warm: 168 138 88;
-        --lumos-land-warm-deep: 108 82 52;
-        --lumos-panel-navy: #1e3a5f;
-        --lumos-panel-navy-deep: #0f1f35;
-        --lumos-teal-12: rgb(var(--lumos-land-teal) / 0.12);
-        --lumos-teal-14: rgb(var(--lumos-land-teal) / 0.14);
-        --lumos-teal-16: rgb(var(--lumos-land-teal) / 0.16);
-        --lumos-teal-18: rgb(var(--lumos-land-teal) / 0.18);
-        --lumos-teal-22: rgb(var(--lumos-land-teal) / 0.22);
-        --lumos-teal-28: rgb(var(--lumos-land-teal) / 0.28);
-        --lumos-teal-32: rgb(var(--lumos-land-teal) / 0.32);
-        --lumos-teal-35: rgb(var(--lumos-land-teal) / 0.35);
-        --lumos-teal-38: rgb(var(--lumos-land-teal) / 0.38);
-        --lumos-teal-40: rgb(var(--lumos-land-teal) / 0.4);
-        --lumos-teal-42: rgb(var(--lumos-land-teal) / 0.42);
-        --lumos-teal-48: rgb(var(--lumos-land-teal) / 0.48);
-        --lumos-gold-soft: rgb(var(--lumos-land-warm) / 0.22);
-        --lumos-gold-line: rgb(var(--lumos-land-warm) / 0.32);
-        --lumos-bg: #020408;
-        --lumos-surface: rgba(3, 6, 14, 0.97);
-        --lumos-border: rgb(var(--lumos-land-teal) / 0.18);
-        --lumos-card-border: rgb(var(--lumos-land-teal) / 0.22);
-        --lumos-card-inset: rgba(255, 255, 255, 0.03);
-        --lumos-gold: #b89868;
-        --lumos-accent-blue: rgb(148 176 212 / 0.88);
-        --lumos-text: #c8ced8;
-        --lumos-text-soft: rgb(200 206 216 / 0.78);
-        --lumos-muted: #8a92a4;
-        --lumos-input-bg: #010306;
-        --lumos-sidebar-bg: #010306;
-        --lumos-main-bg: #020408;
-        --lumos-chat-head-bg: #020408;
-        --lumos-chat-history-bg: #03060e;
-        --lumos-compose-bg: rgba(2, 4, 10, 0.94);
-        --lumos-chat-input-bg: #010306;
-        --lumos-tq-badge-inset: rgb(var(--lumos-land-teal) / 0.14);
-        --lumos-tq-badge-glow: rgb(var(--lumos-land-teal) / 0.1);
-        --lumos-btn-a: rgba(12, 20, 36, 0.96);
-        --lumos-btn-b: #030714;
-        --lumos-user-bubble: rgba(8, 14, 28, 0.92);
-        --lumos-lumos-bubble: rgba(4, 10, 22, 0.55);
-        --lumos-error: #f0b4b4;
-        --panel-radius: 10px;
-        --panel-radius-lg: 12px;
-        --panel-strip-bg: linear-gradient(178deg, #010204 0%, #0a1424 52%, #020408 100%);
-        --panel-surface-raised: rgba(4, 8, 18, 0.96);
-        --panel-edge-inset: inset 0 1px 0 rgba(255, 255, 255, 0.035);
-        --panel-shadow-ambient: 0 2px 8px rgba(0, 0, 0, 0.55);
-        --panel-body-wash:
-          radial-gradient(ellipse 120% 80% at 50% -8%, rgb(18 36 62 / 0.38), transparent 52%),
-          radial-gradient(ellipse 80% 48% at 92% 42%, rgb(var(--lumos-land-teal) / 0.04), transparent 48%),
-          radial-gradient(ellipse 68% 44% at 8% 74%, rgb(var(--lumos-land-warm) / 0.022), transparent 50%),
-          linear-gradient(178deg, #010204 0%, #0a1424 46%, #020408 100%);
-        --panel-chat-wash:
-          radial-gradient(ellipse 110% 90% at 50% 0%, rgb(var(--lumos-land-teal-deep) / 0.32), transparent 56%),
-          radial-gradient(ellipse 85% 65% at 100% 100%, rgb(var(--lumos-land-teal) / 0.05), transparent 52%),
-          linear-gradient(180deg, rgb(1 2 6) 0%, rgb(3 6 14) 52%, rgb(2 4 10) 100%);
-        /** Panel shell — typography, spacing, content rhythm (Internal Alpha polish) */
-        --panel-font-display: clamp(1.05rem, 2.2vw, 1.28rem);
-        --panel-font-title: clamp(1rem, 1.9vw, 1.14rem);
-        --panel-font-body: 0.875rem;
-        --panel-font-caption: 0.72rem;
-        --panel-content-max: 44rem;
-        --panel-content-wide: 52rem;
-        --panel-space-section: 1.25rem;
-        --panel-space-block: 0.85rem;
-      }
       * {
         box-sizing: border-box;
       }
@@ -230,30 +157,31 @@ const PANEL_DEBUG = import.meta.env.DEV;
         font-weight: 600;
         letter-spacing: 0.07em;
         text-transform: uppercase;
-        padding: 0.2rem 0.48rem;
+        padding: 0.22rem 0.5rem;
         border-radius: 999px;
         line-height: 1.25;
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        border: 1px solid var(--lumos-border);
         white-space: nowrap;
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        box-shadow: var(--panel-edge-inset);
       }
       .panel-user-mode-badge[data-mode="offline"] {
-        color: rgba(210, 198, 168, 0.92);
-        background: rgba(72, 62, 48, 0.28);
-        border-color: rgba(160, 140, 108, 0.32);
+        color: var(--lumos-text-soft);
+        background: rgb(var(--lumos-land-warm) / 0.06);
+        border-color: var(--lumos-gold-line);
       }
       .panel-user-mode-badge[data-mode="limited"] {
-        color: rgba(220, 205, 170, 0.94);
-        background: rgba(88, 72, 44, 0.3);
-        border-color: rgba(184, 148, 96, 0.34);
+        color: var(--lumos-accent-gold);
+        background: rgb(var(--lumos-land-warm) / 0.08);
+        border-color: var(--lumos-gold-line);
+        box-shadow: var(--panel-edge-inset);
       }
       .panel-user-mode-badge[data-mode="full"] {
-        color: rgb(196 234 255 / 0.96);
-        background: linear-gradient(180deg, rgb(6 16 36 / 0.96) 0%, rgb(2 6 18 / 0.98) 100%);
-        border-color: var(--lumos-teal-38);
+        color: var(--lumos-accent-primary);
+        background: rgb(var(--lumos-land-teal) / 0.08);
+        border-color: var(--lumos-teal-28);
         box-shadow:
-          inset 0 1px 0 var(--lumos-tq-badge-inset),
-          0 0 10px rgb(var(--lumos-land-teal) / 0.12);
+          var(--panel-edge-inset),
+          0 0 8px rgb(var(--lumos-land-teal) / 0.06);
       }
       .panel-user-mode-wrap {
         position: relative;
@@ -2649,11 +2577,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
       }
       .chat-compose-bar {
         flex-shrink: 0;
-        padding: 0.45rem 0.55rem 0.45rem 0.5rem;
-        border-radius: 999px;
+        padding: 0.5rem 0.6rem 0.5rem 0.55rem;
+        border-radius: var(--lumos-radius-lg);
         border: 1px solid var(--lumos-border);
         background: var(--lumos-compose-bg);
         box-shadow: var(--panel-edge-inset);
+        transition:
+          border-color 0.15s ease,
+          box-shadow 0.15s ease;
       }
       .chat-compose {
         display: flex;
@@ -2686,7 +2617,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         border: none;
         border-radius: 999px;
         background: transparent;
-        color: rgb(130 200 240 / 0.92);
+        color: var(--lumos-accent-primary);
         cursor: pointer;
         transition:
           color 0.15s ease,
@@ -2696,8 +2627,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
       .chat-compose-camera-btn:hover,
       .chat-compose-voice-btn:hover,
       .chat-compose-attach-btn:hover {
-        color: rgb(184 240 255 / 0.98);
-        background: rgb(var(--lumos-land-teal) / 0.08);
+        color: var(--lumos-interactive-fg-hover);
+        background: rgb(var(--lumos-land-teal) / 0.1);
       }
       .chat-compose-camera-btn:focus-visible,
       .chat-compose-voice-btn:focus-visible,
@@ -2707,11 +2638,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
       }
       .chat-compose-camera-btn--active,
       .chat-compose-attach-btn--open {
-        color: rgb(220 248 255 / 0.99);
-        background: rgb(var(--lumos-land-teal) / 0.12);
+        color: var(--lumos-text);
+        background: rgb(var(--lumos-land-teal) / 0.14);
         box-shadow:
-          inset 0 0 0 1px rgb(var(--lumos-land-teal) / 0.38),
-          0 0 12px rgb(var(--lumos-land-warm) / 0.08);
+          inset 0 0 0 1px var(--lumos-teal-28),
+          0 0 8px rgb(var(--lumos-land-teal) / 0.06);
       }
       .chat-compose-camera-btn svg,
       .chat-compose-voice-btn svg,
@@ -2988,13 +2919,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
         flex: 1;
         min-width: 0;
         max-width: 100%;
-        min-height: 2.35rem;
+        min-height: 2.5rem;
         max-height: 9rem;
-        padding: 0.48rem 0.5rem 0.48rem 0.45rem;
+        padding: 0.55rem 0.55rem 0.55rem 0.5rem;
         border-radius: 0;
         border: none;
         background: transparent;
-        color: #e9eef5;
+        color: var(--lumos-text);
         font-size: 0.88rem;
         font-family: inherit;
         line-height: 1.45;
@@ -3011,18 +2942,16 @@ const PANEL_DEBUG = import.meta.env.DEV;
         }
       }
       .chat-compose--gpt textarea::placeholder {
-        color: rgb(138 152 172 / 0.72);
+        color: var(--lumos-muted);
       }
       .chat-compose--gpt textarea:focus {
         outline: none;
       }
       .chat-compose-bar:focus-within {
-        border-color: rgb(var(--lumos-land-teal) / 0.42);
+        border-color: var(--lumos-teal-32);
         box-shadow:
           var(--panel-edge-inset),
-          0 0 0 1px rgb(var(--lumos-land-teal) / 0.2),
-          0 0 20px rgb(var(--lumos-land-teal) / 0.08),
-          0 0 1px rgb(var(--lumos-land-warm) / 0.12);
+          0 0 0 2px rgb(var(--lumos-land-teal) / 0.18);
       }
       .chat-compose-send {
         flex: 0 0 auto;
