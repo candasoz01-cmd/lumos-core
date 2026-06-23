@@ -39,7 +39,7 @@ Internal Alpha girişinde **bilinen P0/P1 maddelerinin tek kaynak listesi** ve *
 | P1-02 | Çekirdek yolculuk ≥2 hafta ekip tekrarı (G-02) | **Devam ediyor** | Ürün / QA | Closed Pilot | Faz başlangıç 2026-06-18; [INTERNAL_ALPHA_OPERATIONS.md](../INTERNAL_ALPHA_OPERATIONS.md) §4 |
 | P1-03 | Pilot sözleşmesi + davet ≤20 (G-04) | **Açık** | Ticari / ops | Closed Pilot | Operasyonel kayıt yok |
 | P1-04 | Yazılı destek kanalı + best-effort SLA (G-05) | **Açık** | Destek / ops | Closed Pilot | `support@` TBD |
-| P1-05 | Panel read-only tasks path uyumsuzluğu | **Açık** | Platform | Alpha çıkış | [PANEL_READONLY_AUDIT.md](../PANEL_READONLY_AUDIT.md) §2.1 — `.lumos/tasks.json` vs `.lumos/tasks/tasks.json` |
+| P1-05 | Panel read-only tasks path uyumsuzluğu | **Kapalı** | Platform | Alpha çıkış | [p1-05-tasks-path-audit.md](p1-05-tasks-path-audit.md) — bilinçli çift depo; sync yok; migration defer (ADR-008, EC2-05) |
 | P1-06 | Python packaging tek `pip install` (RB-06 / G-17) | **Spike** | Platform | Commercial Launch | [python-packaging-spike-rb06.md](python-packaging-spike-rb06.md) — Alpha defer |
 | P1-07 | Release checklist (RB-07) | **Kapalı** | Release | Beta+ | [GITHUB_RELEASE_CHECKLIST.md](../GITHUB_RELEASE_CHECKLIST.md) #502 |
 
@@ -80,4 +80,4 @@ Internal Alpha girişinde **bilinen P0/P1 maddelerinin tek kaynak listesi** ve *
 
 ---
 
-*Son güncelleme: 2026-06-21 — P1-02 operasyonel faz devam ediyor; bkz. [INTERNAL_ALPHA_OPERATIONS.md](../INTERNAL_ALPHA_OPERATIONS.md).*
+*Son güncelleme: 2026-06-23 — P1-05 kapandı (tasks path audit); P1-02 operasyonel faz devam ediyor; bkz. [INTERNAL_ALPHA_OPERATIONS.md](../INTERNAL_ALPHA_OPERATIONS.md).*

@@ -109,7 +109,7 @@ Her **Pazartesi** (veya ekip sprint günü) bir satır `docs/INTERNAL_ALPHA_OPER
 | 1 | `make test` baseline — kayıt checkpoint Hafta 1 | Platform | P0-05 izleme |
 | 2 | Panel `/panel` yerel görev akışı — 1 ekip üyesi | Ürün / QA | P1-02 «başladı» §4.1 |
 | 3 | İlk haftalık checkpoint doldur (§4.3) | Ürün / QA | 2026-06-23 Pazartesi |
-| 4 | P1-05 path envanteri — `.lumos/tasks.json` vs `.lumos/tasks/tasks.json` | Platform | Alpha çıkış risk azaltma |
+| 4 | P1-05 path envanteri — `.lumos/tasks.json` vs `.lumos/tasks/tasks.json` | Platform | **Kapandı** — [p1-05-tasks-path-audit.md](analysis/p1-05-tasks-path-audit.md) |
 | 5 | Wave 2 / default-on / RB-06 impl **başlatma** | — | **Yasak** — defer kayıtlı |
 
 ---
@@ -120,6 +120,7 @@ Her **Pazartesi** (veya ekip sprint günü) bir satır `docs/INTERNAL_ALPHA_OPER
 |-------|------|-----|
 | 2026-06-18 | Operasyonel faz başlangıcı — giriş kriterleri karşılandı | DL-C23 |
 | 2026-06-21 | UX finding #1 — premium dark panel polish (in_progress) | [INTERNAL_ALPHA_UX_FINDINGS.md](INTERNAL_ALPHA_UX_FINDINGS.md) #510 |
+| 2026-06-23 | P1-05 tasks path audit — çift depo doğrulandı, migration defer | [p1-05-tasks-path-audit.md](analysis/p1-05-tasks-path-audit.md) |
 
 *(Checkpoint satırları buraya veya ekip kanalına eklenir.)*
 
