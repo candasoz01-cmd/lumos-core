@@ -194,7 +194,7 @@ def _now_iso() -> str:
 
 
 class TaskStore:
-    """Kalıcı görev kaydı: .lumos/tasks.json."""
+    """Kalıcı görev kaydı: base_dir/tasks.json (tipik .lumos/tasks/tasks.json; panel CRUD ayrı: .lumos/tasks.json)."""
     def __init__(
         self,
         base_dir: str | Path,
