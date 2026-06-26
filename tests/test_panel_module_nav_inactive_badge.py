@@ -1,4 +1,4 @@
-"""RB-17 / G-03 — panel nav inactive module badges."""
+"""RB-17 / G-03 — panel nav module infrastructure status badges."""
 
 from __future__ import annotations
 
@@ -9,11 +9,12 @@ _PANEL_ASTRO = _REPO_ROOT / "ui" / "src" / "pages" / "panel.astro"
 _PANEL_TR = _REPO_ROOT / "ui" / "src" / "i18n" / "messages" / "panel" / "tr.ts"
 _PANEL_EN = _REPO_ROOT / "ui" / "src" / "i18n" / "messages" / "panel" / "en.ts"
 
-PANEL_NAV_INACTIVE_MARKERS = (
-    'data-module-availability="inactive"',
-    'class="panel-nav-inactive-badge lumos-soon-badge"',
-    'data-i18n="panel.nav.inactiveBadge"',
-    'data-i18n-title="panel.nav.inactiveBadgeTitle"',
+PANEL_NAV_STATUS_MARKERS = (
+    'class="panel-nav-status-pill lumos-status-pill',
+    'data-i18n="panel.nav.status.',
+    'data-i18n-title="panel.nav.statusTitle.',
+    'id="panel-root-status"',
+    'data-i18n="panel.rootStatus.title"',
 )
 
 PANEL_NAV_INACTIVE_MODULES = (
@@ -38,16 +39,22 @@ PANEL_NAV_ACTIVE_MODULES = (
     "yetenekler",
 )
 
-PANEL_NAV_I18N_KEYS = (
-    "inactiveBadge:",
-    "inactiveBadgeTitle:",
+PANEL_NAV_STATUS_I18N_KEYS = (
+    "status:",
+    "statusSub:",
+    "statusTitle:",
+)
+
+PANEL_ROOT_STATUS_I18N_KEYS = (
+    "rootStatus:",
+    "disclaimer:",
 )
 
 
-def test_panel_nav_inactive_badge_wiring_present() -> None:
+def test_panel_nav_status_badge_wiring_present() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
-    for token in PANEL_NAV_INACTIVE_MARKERS:
-        assert token in text, f"missing panel nav inactive token: {token}"
+    for token in PANEL_NAV_STATUS_MARKERS:
+        assert token in text, f"missing panel nav status token: {token}"
 
 
 def test_panel_nav_inactive_modules_marked() -> None:
@@ -65,23 +72,47 @@ def test_panel_nav_active_modules_not_marked_inactive() -> None:
         )
 
 
-def test_panel_nav_inactive_badge_keys_in_panel_tr() -> None:
+def test_panel_nav_status_keys_in_panel_tr() -> None:
     text = _PANEL_TR.read_text(encoding="utf-8")
-    for key in PANEL_NAV_I18N_KEYS:
-        assert key in text, f"missing panel tr inactive nav key: {key}"
+    for key in PANEL_NAV_STATUS_I18N_KEYS:
+        assert key in text, f"missing panel tr status nav key: {key}"
+    for key in PANEL_ROOT_STATUS_I18N_KEYS:
+        assert key in text, f"missing panel tr root status key: {key}"
 
 
-def test_panel_nav_inactive_badge_keys_in_panel_en() -> None:
+def test_panel_nav_status_keys_in_panel_en() -> None:
     text = _PANEL_EN.read_text(encoding="utf-8")
-    for key in PANEL_NAV_I18N_KEYS:
-        assert key in text, f"missing panel en inactive nav key: {key}"
+    for key in PANEL_NAV_STATUS_I18N_KEYS:
+        assert key in text, f"missing panel en status nav key: {key}"
+    for key in PANEL_ROOT_STATUS_I18N_KEYS:
+        assert key in text, f"missing panel en root status key: {key}"
 
 
-def test_panel_nav_inactive_copy_describes_preview_without_claiming_availability() -> None:
-    assert 'inactiveBadge: "Önizleme"' in _PANEL_TR.read_text(encoding="utf-8")
-    assert 'inactiveBadge: "Preview"' in _PANEL_EN.read_text(encoding="utf-8")
-    assert "tam modül işlevi aktif değil" in _PANEL_TR.read_text(encoding="utf-8")
-    assert "the full module is not active" in _PANEL_EN.read_text(encoding="utf-8")
+def test_panel_nav_status_copy_is_honest_not_preview() -> None:
+    tr_text = _PANEL_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    astro_nav = _PANEL_ASTRO.read_text(encoding="utf-8").split("panel-nav__primary")[1].split("</nav>")[0]
+    assert 'sohbet: "🟢 Hazır"' in tr_text
+    assert "köprü olmadan sınırlı" in tr_text
+    assert "Bağlantı bekliyor" in tr_text
+    assert "Mimari hazır" in tr_text
+    assert 'sohbet: "🟢 Ready"' in en_text
+    assert "limited without bridge" in en_text
+    assert "Awaiting connection" in en_text
+    assert "Architecture ready" in en_text
+    assert "Topraksız mod" in tr_text
+    assert "Toprak bekleniyor" in tr_text
+    assert "Hydroponic mode" in en_text
+    assert "Awaiting soil" in en_text
+    assert 'data-i18n="panel.rootStatus.katmanALink"' in _PANEL_ASTRO.read_text(encoding="utf-8")
+    assert "inactiveBadge" not in astro_nav
+    assert "Önizleme" not in astro_nav
+
+
+def test_panel_quantum_disclaimer_i18n_present() -> None:
+    assert "disclaimer:" in _PANEL_TR.read_text(encoding="utf-8")
+    assert "ORAA" in _PANEL_TR.read_text(encoding="utf-8")
+    assert 'data-i18n="panel.modules.quantum.disclaimer"' in _PANEL_ASTRO.read_text(encoding="utf-8")
 
 
 def test_panel_header_has_no_seasonal_badge_or_flags() -> None:

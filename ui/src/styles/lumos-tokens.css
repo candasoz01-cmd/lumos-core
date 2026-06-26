@@ -118,4 +118,24 @@
   --panel-content-wide: 52rem;
   --panel-space-section: 1.25rem;
   --panel-space-block: 0.85rem;
+
+  /* Panel module status pills (honest infrastructure labels) */
+  --lumos-status-ready-fg: #6ee7b7;
+  --lumos-status-ready-bg: rgb(16 185 129 / 0.14);
+  --lumos-status-ready-border: rgb(16 185 129 / 0.28);
+  --lumos-status-developing-fg: #fcd34d;
+  --lumos-status-developing-bg: rgb(245 158 11 / 0.14);
+  --lumos-status-developing-border: rgb(245 158 11 / 0.28);
+  --lumos-status-awaiting-fg: #93c5fd;
+  --lumos-status-awaiting-bg: rgb(59 130 246 / 0.14);
+  --lumos-status-awaiting-border: rgb(59 130 246 / 0.28);
+  --lumos-status-off-fg: #94a3b8;
+  --lumos-status-off-bg: rgb(100 116 139 / 0.12);
+  --lumos-status-off-border: rgb(100 116 139 / 0.22);
+  --lumos-status-active-fg: #c4b5fd;
+  --lumos-status-active-bg: rgb(139 92 246 / 0.14);
+  --lumos-status-active-border: rgb(139 92 246 / 0.28);
+  --lumos-status-layers-fg: #7dd3fc;
+  --lumos-status-layers-bg: rgb(14 165 233 / 0.12);
+  --lumos-status-layers-border: rgb(14 165 233 / 0.26);
 }
