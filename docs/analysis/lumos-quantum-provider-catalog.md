@@ -17,36 +17,46 @@
 
 **Durum değerleri:** `planned` · `stub` · `none`
 
+**Bağlantı önceliği (`connect_priority`):** `1` = ilk yol arkadaşı (pilot connect spike) · `2` = Aer kanıtlandıktan sonra · boş = sonraki dal / planlı. Öncelik **otomatik bağlantı anlamına gelmez** — tüm `connect` yolları onay kapısından geçer.
+
+| Öncelik | Sağlayıcı | Rol |
+|---------|-----------|-----|
+| **1** | Qiskit, Qiskit Aer | İlk yol arkadaşı — yerel framework + sim spike |
+| **2** | IBM Quantum (cloud) | İlk bulut dalı — yerel Aer kanıtlandıktan sonra |
+| — | Azure, Braket, diğerleri | Sonraki dallar |
+
+Hikâye: [`lumos-quantum-first-companion.md`](./lumos-quantum-first-companion.md).
+
 ---
 
 ## Bulut sağlayıcılar (cloud)
 
-| Sağlayıcı | Tür | Auth modeli | Maliyet riski | Veri egress riski | Onay katmanı | Durum | Demo-safe vs production |
-|-----------|-----|-------------|---------------|-------------------|--------------|-------|-------------------------|
-| **IBM Quantum** | cloud | IBM Cloud API key / `QiskitRuntimeService` token | **Yüksek** — QPU/saas dakika ücreti | Orta — devre ve sonuçlar IBM bulutunda | needs-owner | stub | OSS: metadata only; Entropy Lab'de opsiyonel runtime probe (deneysel, üretim değil). Prod: IAM + billing guard gerekir |
-| **Azure Quantum** | cloud | Azure AD + workspace resource | **Yüksek** — reserved / pay-per-shot | Orta — Azure tenant sınırı | needs-owner | planned | OSS: yok. Prod: enterprise policy + maliyet kotası |
-| **Amazon Braket** | cloud | AWS IAM + Braket rolü | **Yüksek** — device/time billing | Orta — sonuçlar S3 / AWS | needs-owner | planned | OSS: yok. Prod: AWS Organizations guardrails |
-| **Google Quantum AI** | cloud | Google Cloud IAM + Quantum Engine API | **Yüksek** — processor zamanı | Orta — GCP projesi | needs-owner | planned | OSS: yok. Prod: quota + VPC-SC değerlendirmesi |
+| Sağlayıcı | Tür | `connect_priority` | Auth modeli | Maliyet riski | Veri egress riski | Onay katmanı | Durum | Demo-safe vs production |
+|-----------|-----|-------------------|-------------|---------------|-------------------|--------------|-------|-------------------------|
+| **IBM Quantum** | cloud | **2** | IBM Cloud API key / `QiskitRuntimeService` token | **Yüksek** — QPU/saas dakika ücreti | Orta — devre ve sonuçlar IBM bulutunda | needs-owner | stub | OSS: metadata only; Entropy Lab'de opsiyonel runtime probe (deneysel, üretim değil). **İlk bulut dalı** — yerel Aer kanıtlandıktan sonra. Prod: IAM + billing guard gerekir |
+| **Azure Quantum** | cloud | — | Azure AD + workspace resource | **Yüksek** — reserved / pay-per-shot | Orta — Azure tenant sınırı | needs-owner | planned | OSS: yok. Prod: enterprise policy + maliyet kotası |
+| **Amazon Braket** | cloud | — | AWS IAM + Braket rolü | **Yüksek** — device/time billing | Orta — sonuçlar S3 / AWS | needs-owner | planned | OSS: yok. Prod: AWS Organizations guardrails |
+| **Google Quantum AI** | cloud | — | Google Cloud IAM + Quantum Engine API | **Yüksek** — processor zamanı | Orta — GCP projesi | needs-owner | planned | OSS: yok. Prod: quota + VPC-SC değerlendirmesi |
 
 ---
 
 ## Çerçeveler (framework)
 
-| Sağlayıcı | Tür | Auth modeli | Maliyet riski | Veri egress riski | Onay katmanı | Durum | Demo-safe vs production |
-|-----------|-----|-------------|---------------|-------------------|--------------|-------|-------------------------|
-| **Qiskit** | framework | Yerel pip; bulut için IBM token (ayrı) | Düşük (yerel) / Yüksek (Runtime backend) | Düşük (yerel) / Orta (bulut backend) | auto-doc (yerel) · needs-owner (Runtime) | stub | OSS: `qiskit`/`qiskit-aer` opsiyonel import; readiness/entropy envanterinde. Prod: backend seçimi onaylı |
-| **Cirq** | framework | Yerel pip; Google Quantum için GCP auth | Düşük (yerel) / Yüksek (Google cloud) | Düşük / Orta | auto-doc · needs-owner (cloud) | planned | OSS: katalog only. Prod: private adapter |
-| **PennyLane** | framework | Yerel pip; plugin başına bulut auth | Düşük–Orta (plugin'e bağlı) | Plugin'e bağlı | auto-doc · needs-owner | planned | OSS: katalog only. Prod: plugin allowlist |
+| Sağlayıcı | Tür | `connect_priority` | Auth modeli | Maliyet riski | Veri egress riski | Onay katmanı | Durum | Demo-safe vs production |
+|-----------|-----|-------------------|-------------|---------------|-------------------|--------------|-------|-------------------------|
+| **Qiskit** | framework | **1** · *ilk yol arkadaşı* | Yerel pip; bulut için IBM token (ayrı) | Düşük (yerel) / Yüksek (Runtime backend) | Düşük (yerel) / Orta (bulut backend) | auto-doc (katalog) · needs-owner (`connect`) | stub | OSS: `qiskit`/`qiskit-aer` opsiyonel import; readiness/entropy envanterinde. **İlk connect spike** framework kökü. Prod: backend seçimi onaylı |
+| **Cirq** | framework | — | Yerel pip; Google Quantum için GCP auth | Düşük (yerel) / Yüksek (Google cloud) | Düşük / Orta | auto-doc · needs-owner (cloud) | planned | OSS: katalog only. Prod: private adapter |
+| **PennyLane** | framework | — | Yerel pip; plugin başına bulut auth | Düşük–Orta (plugin'e bağlı) | Plugin'e bağlı | auto-doc · needs-owner | planned | OSS: katalog only. Prod: plugin allowlist |
 
 ---
 
 ## Simülatörler (simulator)
 
-| Sağlayıcı | Tür | Auth modeli | Maliyet riski | Veri egress riski | Onay katmanı | Durum | Demo-safe vs production |
-|-----------|-----|-------------|---------------|-------------------|--------------|-------|-------------------------|
-| **Qiskit Aer** | simulator | Yok (yerel CPU/GPU) | **Düşük** | **Düşük** (yerel) | auto-doc | stub | OSS: Entropy Lab deneysel; simülatör ≠ QPU. Prod: kaynak limiti politikası |
-| **Yerel CPU/GPU simülatörleri** | simulator | Yok | Düşük | Düşük | auto-doc | planned | OSS: genel not. Prod: sandbox CPU/RAM kotası |
-| **Bulut yönetilen simülatörler** | simulator | Bulut sağlayıcı auth (IBM/Azure/AWS/GCP) | Orta–Yüksek | Orta | needs-owner | planned | OSS: yok. Prod: sim ≠ QPU etiketi zorunlu |
+| Sağlayıcı | Tür | `connect_priority` | Auth modeli | Maliyet riski | Veri egress riski | Onay katmanı | Durum | Demo-safe vs production |
+|-----------|-----|-------------------|-------------|---------------|-------------------|--------------|-------|-------------------------|
+| **Qiskit Aer** | simulator | **1** · *ilk yol arkadaşı* | Yok (yerel CPU/GPU) | **Düşük** | **Düşük** (yerel) | needs-owner (`connect`) · auto-doc (katalog) | stub | OSS: Entropy Lab deneysel; simülatör ≠ QPU. **İlk sim connect spike** — API anahtarı yok, otomatik bağlantı yine yok. Prod: kaynak limiti politikası |
+| **Yerel CPU/GPU simülatörleri** | simulator | — | Yok | Düşük | Düşük | auto-doc | planned | OSS: genel not. Prod: sandbox CPU/RAM kotası |
+| **Bulut yönetilen simülatörler** | simulator | — | Bulut sağlayıcı auth (IBM/Azure/AWS/GCP) | Orta–Yüksek | Orta | needs-owner | planned | OSS: yok. Prod: sim ≠ QPU etiketi zorunlu |
 
 ---
 

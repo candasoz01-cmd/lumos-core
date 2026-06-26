@@ -19,9 +19,11 @@ class QuantumProviderEntry:
     approval_tier: QuantumApprovalTier
     status: QuantumProviderStatus
     demo_safe_note: str
+    connect_priority: int | None = None  # 1 = ilk yol arkadaşı; 2 = Aer sonrası bulut
 
 
-# Salt okunur katalog — canlı API, credential veya otomatik bağlantı yok.
+# connect_priority: 1 = ilk yol arkadaşı (Qiskit/Aer pilot); 2 = sonraki dal (IBM cloud).
+# Öncelik otomatik bağlantı demek değildir — tüm connect yolları onay kapısından geçer.
 # Kaynak: docs/analysis/lumos-quantum-provider-catalog.md
 QUANTUM_PROVIDERS: tuple[QuantumProviderEntry, ...] = (
     QuantumProviderEntry(
@@ -33,7 +35,8 @@ QUANTUM_PROVIDERS: tuple[QuantumProviderEntry, ...] = (
         egress_risk="medium",
         approval_tier="needs-owner",
         status="stub",
-        demo_safe_note="OSS metadata only; optional Entropy Lab runtime probe — not production connect",
+        demo_safe_note="OSS metadata only; first cloud branch after local Aer — not production connect",
+        connect_priority=2,
     ),
     QuantumProviderEntry(
         provider_id="azure_quantum",
@@ -77,7 +80,8 @@ QUANTUM_PROVIDERS: tuple[QuantumProviderEntry, ...] = (
         egress_risk="low_local_medium_cloud",
         approval_tier="needs-owner",
         status="stub",
-        demo_safe_note="Optional local import; Runtime backend needs owner approval",
+        demo_safe_note="First companion framework; local connect spike needs owner approval",
+        connect_priority=1,
     ),
     QuantumProviderEntry(
         provider_id="cirq",
@@ -108,9 +112,10 @@ QUANTUM_PROVIDERS: tuple[QuantumProviderEntry, ...] = (
         auth_model="none_local",
         cost_risk="low",
         egress_risk="low",
-        approval_tier="auto-doc",
+        approval_tier="needs-owner",
         status="stub",
-        demo_safe_note="Entropy Lab experimental; simulator is not QPU",
+        demo_safe_note="First companion simulator; local Aer spike — connect needs owner approval",
+        connect_priority=1,
     ),
     QuantumProviderEntry(
         provider_id="local_sim",
@@ -183,7 +188,7 @@ def get_quantum_provider(provider_id: str) -> QuantumProviderEntry | None:
 
 
 def _entry_to_dict(entry: QuantumProviderEntry) -> dict[str, str]:
-    return {
+    data = {
         "provider_id": entry.provider_id,
         "display_name": entry.display_name,
         "provider_type": entry.provider_type,
@@ -194,3 +199,6 @@ def _entry_to_dict(entry: QuantumProviderEntry) -> dict[str, str]:
         "status": entry.status,
         "demo_safe_note": entry.demo_safe_note,
     }
+    if entry.connect_priority is not None:
+        data["connect_priority"] = str(entry.connect_priority)
+    return data
