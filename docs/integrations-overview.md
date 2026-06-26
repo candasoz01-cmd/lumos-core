@@ -4,7 +4,8 @@
 |-------|-------|
 | Status | **Public foundation** — product pages live; OAuth not in OSS |
 | Site | [welockai.com/integrations](https://welockai.com/integrations) |
-| Charter | [`docs/analysis/welockai-charter-draft.md`](analysis/welockai-charter-draft.md) §5 |
+| Charter | [`docs/analysis/welockai-charter-draft.md`](analysis/welockai-charter-draft.md) §5 (integration matrix) |
+| Trust model | [`docs/analysis/welockai-trust-model-draft.md`](analysis/welockai-trust-model-draft.md) |
 | Permissions | [`docs/memory/external-integrations-permissions.md`](memory/external-integrations-permissions.md) |
 
 This document is **demo-safe** and suitable for the public `lumos-core` repository. It does not describe production credentials, OAuth client IDs, or WeLockAI private orchestration.
@@ -76,4 +77,4 @@ See [`docs/memory/public-repo-boundary.md`](memory/public-repo-boundary.md).
 
 ---
 
-*For architectural foundation detail, see the WeLockAI charter draft. This file is the public integration index for developers and product readers.*
+*For architectural foundation detail, see the [WeLockAI charter draft](analysis/welockai-charter-draft.md) and [trust model draft](analysis/welockai-trust-model-draft.md). This file is the public integration index for developers and product readers.*
