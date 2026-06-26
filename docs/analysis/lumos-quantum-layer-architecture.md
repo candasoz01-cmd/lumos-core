@@ -5,11 +5,62 @@
 | Durum | **Planlı** — docs + kayıt iskeleti; otomatik bağlantı yok |
 | Tarih | 2026-06-26 |
 | Dil | Türkçe (birincil) |
-| İlgili | [ADR-001](../decisions/ADR-001-lumos-quantum-modules.md), [ADR-013](../decisions/ADR-013-lumos-quantum-security-readiness.md), [provider kataloğu](./lumos-quantum-provider-catalog.md), [`integrations-overview.md`](../integrations-overview.md) |
+| İlgili | [ADR-001](../decisions/ADR-001-lumos-quantum-modules.md), [ADR-013](../decisions/ADR-013-lumos-quantum-security-readiness.md), [provider kataloğu](./lumos-quantum-provider-catalog.md), [ilk yol arkadaşı](./lumos-quantum-first-companion.md), [`integrations-overview.md`](../integrations-overview.md) |
 
 **Kullanıcı komutu (gelecek):** «Lumos, kuantum kaynaklarını tara ve kullanılabilir olanları güvenli bağlantı listesine al.»
 
 **Temel ilke:** Lumos **asla** otonom olarak kuantum bulutuna veya ücretli hesaplamaya bağlanmaz. Akış her zaman **bul → sınıflandır → risk/ücret/izin çıkar → kullanıcı onayı → bağlan** şeklindedir.
+
+---
+
+## İlk yol arkadaşı
+
+Kuantum Layer ağacında **ilk bağlantı dalı** (connect spike) Qiskit + yerel Qiskit Aer simülatörüdür. Bulut sağlayıcıları (IBM Quantum, Azure Quantum, Amazon Braket) **sonraki dal** olarak planlanır — Aer kanıtlandıktan sonra.
+
+```
+Quantum Layer
+└── Kök (discovery + onay omurgası)
+    ├── Qiskit / Qiskit Aer  ← ilk yol arkadaşı (connect_priority: 1)
+    │   └── yerel sim spike — API anahtarı yok, düşük maliyet/risk
+    └── Bulut dalları (sonra)
+        ├── IBM Quantum        (connect_priority: 2)
+        ├── Azure Quantum      (planlı)
+        └── Amazon Braket      (planlı)
+```
+
+```mermaid
+flowchart TB
+  root[Quantum Layer — Kök]
+  first[Qiskit + Qiskit Aer<br/>ilk yol arkadaşı]
+  ibm[IBM Quantum cloud]
+  azure[Azure Quantum]
+  braket[Amazon Braket]
+  root --> first
+  root --> ibm
+  root --> azure
+  root --> braket
+  first -.->|Aer kanıtlandıktan sonra| ibm
+```
+
+### Neden önce Qiskit?
+
+| Neden | Açıklama |
+|-------|----------|
+| **Olgun ekosistem** | Geniş dokümantasyon, örnek devreler, topluluk ve iş gücü havuzu |
+| **Yerel Aer** | `pip install qiskit-aer` ile bulut faturası ve API anahtarı olmadan ilk connect spike |
+| **Düşük risk** | Simülatör ≠ QPU; egress ve ücret riski katalogda **düşük** |
+| **Entropy Lab hizası** | Repoda zaten `qiskit_aer` deneysel envanterde — Layer connect ayrı, ama teknik tanıdıklık var |
+
+### İlk yol arkadaşı ≠ otomatik bağlantı
+
+**İlk yol arkadaşı** yalnızca **öncelik sırası** ve pilot hedefi tanımlar. Lumos yine de:
+
+1. **Bul** — katalog + (onaylı) discover
+2. **Sınıflandır** — framework / simulator etiketi
+3. **Onay** — Aer bile `needs-owner` katmanında; sessiz `connect` yok
+4. **Bağlan** — yalnızca kullanıcı onayı + private impl (OSS'te `not_configured`)
+
+Yerel Aer için API anahtarı gerekmez; **otomatik bağlantı yine yasaktır** (`SECURITY_NEVER_AUTO`, Q-01–Q-03). Hikâye: [`lumos-quantum-first-companion.md`](./lumos-quantum-first-companion.md).
 
 ---
 
