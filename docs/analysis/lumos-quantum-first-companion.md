@@ -41,4 +41,29 @@ Bu bir «hemen bağlan» kararı değil. Lumos'un kuantum omurgası değişmez: 
 
 ---
 
+## İlk «çalıştı!» (OSS spike)
+
+Onaylı Aer connect, opsiyonel bağımlılıklar kuruluysa **1-qubit smoke** ile kanıtlanır; bu Entropy Lab değil, Quantum Layer connect yoludur.
+
+```python
+from integrations.models import IntegrationRequest
+from integrations.registry import register_default_integrations
+
+reg = register_default_integrations()
+result = reg.run(
+    IntegrationRequest(
+        provider="quantum",
+        action="connect",
+        payload={"provider_id": "qiskit_aer_sim", "approved": True},
+    ),
+)
+# ok=True → connection_status=connected, smoke.counts
+# deps yok → error=not_configured, install_hint
+# onay yok → error=approval_required
+```
+
+Kurulum (opsiyonel): `pip install 'lumos-core[quantum]'` veya `pip install -r requirements-quantum.txt`.
+
+---
+
 *Bu belge ürün taahhüdü değil; öncelik ve hikâye kilididir. Canlı bağlantı yalnızca onaylı private katmanda.*

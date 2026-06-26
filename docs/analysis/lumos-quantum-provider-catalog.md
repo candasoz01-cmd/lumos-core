@@ -54,7 +54,7 @@ Hikâye: [`lumos-quantum-first-companion.md`](./lumos-quantum-first-companion.md
 
 | Sağlayıcı | Tür | `connect_priority` | Auth modeli | Maliyet riski | Veri egress riski | Onay katmanı | Durum | Demo-safe vs production |
 |-----------|-----|-------------------|-------------|---------------|-------------------|--------------|-------|-------------------------|
-| **Qiskit Aer** | simulator | **1** · *ilk yol arkadaşı* | Yok (yerel CPU/GPU) | **Düşük** | **Düşük** (yerel) | needs-owner (`connect`) · auto-doc (katalog) | stub | OSS: Entropy Lab deneysel; simülatör ≠ QPU. **İlk sim connect spike** — API anahtarı yok, otomatik bağlantı yine yok. Prod: kaynak limiti politikası |
+| **Qiskit Aer** | simulator | **1** · *ilk yol arkadaşı* | Yok (yerel CPU/GPU) | **Düşük** | **Düşük** (yerel) | needs-owner (`connect`) · auto-doc (katalog) | stub | OSS: onaylı `connect` spike (`qiskit_aer` / `qiskit_aer_sim`); opsiyonel `pip install 'lumos-core[quantum]'` veya `requirements-quantum.txt`. Entropy Lab deneysel; simülatör ≠ QPU. **İlk sim connect spike** — API anahtarı yok, otomatik bağlantı yine yok. Prod: kaynak limiti politikası |
 | **Yerel CPU/GPU simülatörleri** | simulator | — | Yok | Düşük | Düşük | auto-doc | planned | OSS: genel not. Prod: sandbox CPU/RAM kotası |
 | **Bulut yönetilen simülatörler** | simulator | — | Bulut sağlayıcı auth (IBM/Azure/AWS/GCP) | Orta–Yüksek | Orta | needs-owner | planned | OSS: yok. Prod: sim ≠ QPU etiketi zorunlu |
 
