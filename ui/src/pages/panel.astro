@@ -139,6 +139,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
         border: 1px solid rgba(255, 255, 255, 0.12);
         white-space: nowrap;
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        /** Label uzunluğu (Bağlanıyor → Bağlı) header titremesin */
+        min-width: 5.4rem;
+        text-align: center;
+        box-sizing: border-box;
       }
       .panel-conn-badge[data-state="pending"] {
         color: rgba(200, 188, 160, 0.95);
@@ -2174,6 +2178,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
         background: var(--lumos-surface);
         box-shadow: var(--lumos-shadow-sm);
       }
+      .panel-resource-mode-advisor[hidden] {
+        display: none !important;
+      }
       .panel-resource-mode-advisor__layer {
         display: flex;
         align-items: center;
@@ -3514,6 +3521,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
           line-height: 1.2;
           padding: 0.06rem 0.2rem;
           box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+          min-width: 4.2rem;
+          text-align: center;
+          box-sizing: border-box;
         }
         .panel-user-mode-badge {
           font-size: 0.4rem;
@@ -7770,6 +7780,16 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const badge = document.getElementById("gorevler-sync-badge");
         if (!badge) return;
         const skip = shouldSkipGorevlerTasksApi();
+        const shouldShow = skip;
+        if (shouldShow === !badge.hidden) {
+          if (shouldShow) {
+            const label = panelT("panel.modules.tasks.list.syncBadge");
+            if (badge.textContent !== label) badge.textContent = label;
+            const title = panelT("panel.modules.tasks.list.syncBadgeTitle");
+            if (badge.getAttribute("title") !== title) badge.setAttribute("title", title);
+          }
+          return;
+        }
         badge.hidden = !skip;
         if (skip) {
           badge.textContent = panelT("panel.modules.tasks.list.syncBadge");
@@ -8469,10 +8489,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
       const RESOURCE_MODE_ADVISOR_LAYER = "quantum";
       const RESOURCE_MODE_ADVISOR_POLL_MS = 60000;
+      const RESOURCE_MODE_ADVISOR_FETCH_BACKOFF_INITIAL_MS = 15000;
+      const RESOURCE_MODE_ADVISOR_FETCH_BACKOFF_MAX_MS = 300000;
       let resourceModeAdvisorDismissed = false;
       /** @type {null | Record<string, unknown>} */
       let resourceModeAdvisorProposal = null;
       let resourceModeAdvisorPollTimer = null;
+      let resourceModeAdvisorCardVisible = false;
+      let resourceModeAdvisorLastHash = "";
+      let resourceModeAdvisorRefreshInFlight = false;
+      let resourceModeAdvisorLastFetchAt = 0;
+      let resourceModeAdvisorFetchBackoffMs = 0;
 
       function resourceModeAdvisorModeLabel(mode) {
         const key = String(mode || "").trim().toLowerCase();
@@ -8548,13 +8575,50 @@ const PANEL_DEBUG = import.meta.env.DEV;
         return true;
       }
 
-      function paintResourceModeAdvisorCard(proposal) {
+      function resourceModeProposalDisplayHash(data) {
+        if (!data || !shouldDisplayResourceModeCard(data)) return "";
+        const proposal = data.proposal;
+        if (!proposal || typeof proposal !== "object") return "";
+        return [
+          String(proposal.layer || RESOURCE_MODE_ADVISOR_LAYER),
+          String(proposal.current_mode || ""),
+          String(proposal.proposed_mode || proposal.recommended_mode || ""),
+          String(proposal.reason || "").trim(),
+          String(data.show_card === true),
+        ].join("\u0001");
+      }
+
+      function bumpResourceModeAdvisorFetchBackoff() {
+        if (resourceModeAdvisorFetchBackoffMs <= 0) {
+          resourceModeAdvisorFetchBackoffMs = RESOURCE_MODE_ADVISOR_FETCH_BACKOFF_INITIAL_MS;
+          return;
+        }
+        resourceModeAdvisorFetchBackoffMs = Math.min(
+          resourceModeAdvisorFetchBackoffMs * 2,
+          RESOURCE_MODE_ADVISOR_FETCH_BACKOFF_MAX_MS,
+        );
+      }
+
+      function resetResourceModeAdvisorFetchBackoff() {
+        resourceModeAdvisorFetchBackoffMs = 0;
+      }
+
+      function shouldDeferResourceModeAdvisorFetch() {
+        if (resourceModeAdvisorFetchBackoffMs <= 0) return false;
+        return Date.now() - resourceModeAdvisorLastFetchAt < resourceModeAdvisorFetchBackoffMs;
+      }
+
+      function paintResourceModeAdvisorCard(proposal, displayHash, forceRepaint) {
         const card = document.getElementById("panel-resource-mode-advisor");
         const layerEl = document.getElementById("panel-resource-mode-advisor-layer");
         const statusEl = document.getElementById("panel-resource-mode-advisor-status");
         const reasonEl = document.getElementById("panel-resource-mode-advisor-reason");
         const hintEl = document.getElementById("panel-resource-mode-advisor-hint");
         if (!card || !layerEl || !statusEl || !reasonEl || !hintEl || !proposal) return;
+        const hash = String(displayHash || "");
+        if (!forceRepaint && resourceModeAdvisorCardVisible && hash && hash === resourceModeAdvisorLastHash) {
+          return;
+        }
         const layerKey = String(proposal.layer || RESOURCE_MODE_ADVISOR_LAYER);
         layerEl.textContent = resourceModeAdvisorLayerLabel(layerKey);
         applyResourceModeAdvisorLayerDot(layerKey);
@@ -8563,12 +8627,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const reason = String(proposal.reason || "").trim();
         reasonEl.textContent = reason || panelT("panel.modules.resourceModeAdvisor.reasonFallback");
         hintEl.textContent = resourceModeAdvisorModeHint(proposedMode);
-        card.hidden = false;
+        resourceModeAdvisorLastHash = hash;
+        if (card.hidden) card.hidden = false;
+        resourceModeAdvisorCardVisible = true;
       }
 
       function hideResourceModeAdvisorCard() {
         const card = document.getElementById("panel-resource-mode-advisor");
-        if (card) card.hidden = true;
+        if (!card || (!resourceModeAdvisorCardVisible && card.hidden)) return;
+        if (!card.hidden) card.hidden = true;
+        resourceModeAdvisorCardVisible = false;
+        resourceModeAdvisorLastHash = "";
       }
 
       function setResourceModeAdvisorBusy(busy) {
@@ -8608,8 +8677,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
       }
 
       async function refreshResourceModeAdvisorPanel() {
-        const card = document.getElementById("panel-resource-mode-advisor");
-        if (!card || resourceModeAdvisorDismissed) {
+        if (resourceModeAdvisorDismissed) {
           hideResourceModeAdvisorCard();
           return;
         }
@@ -8617,19 +8685,36 @@ const PANEL_DEBUG = import.meta.env.DEV;
           hideResourceModeAdvisorCard();
           return;
         }
-        const data = await fetchResourceModeProposal();
-        if (!shouldDisplayResourceModeCard(data)) {
-          resourceModeAdvisorProposal = null;
-          hideResourceModeAdvisorCard();
-          return;
+        if (shouldDeferResourceModeAdvisorFetch()) return;
+        if (resourceModeAdvisorRefreshInFlight) return;
+        resourceModeAdvisorRefreshInFlight = true;
+        resourceModeAdvisorLastFetchAt = Date.now();
+        try {
+          const data = await fetchResourceModeProposal();
+          if (!shouldDisplayResourceModeCard(data)) {
+            bumpResourceModeAdvisorFetchBackoff();
+            if (resourceModeAdvisorCardVisible) {
+              resourceModeAdvisorProposal = null;
+              hideResourceModeAdvisorCard();
+            }
+            return;
+          }
+          resetResourceModeAdvisorFetchBackoff();
+          const displayHash = resourceModeProposalDisplayHash(data);
+          resourceModeAdvisorProposal = data.proposal;
+          paintResourceModeAdvisorCard(data.proposal, displayHash);
+        } finally {
+          resourceModeAdvisorRefreshInFlight = false;
         }
-        resourceModeAdvisorProposal = data.proposal;
-        paintResourceModeAdvisorCard(data.proposal);
       }
 
       function refreshPanelResourceModeAdvisorI18n() {
-        if (resourceModeAdvisorProposal) {
-          paintResourceModeAdvisorCard(resourceModeAdvisorProposal);
+        if (resourceModeAdvisorProposal && resourceModeAdvisorCardVisible) {
+          paintResourceModeAdvisorCard(
+            resourceModeAdvisorProposal,
+            resourceModeAdvisorLastHash,
+            true,
+          );
         }
       }
 
@@ -15005,9 +15090,21 @@ const PANEL_DEBUG = import.meta.env.DEV;
       function setPanelConnBadge(state) {
         const badge = document.getElementById("panel-conn-badge");
         if (!badge) return;
-        badge.setAttribute("data-state", state);
-        badge.textContent = panelConnBadgeLabel(state);
-        const showSetup = state === "bad" || state === "limited";
+        const prevState = badge.getAttribute("data-state") || "pending";
+        const nextState = String(state || "pending");
+        const prevBridgeOk = prevState === "ok";
+        const nextBridgeOk = nextState === "ok";
+        const label = panelConnBadgeLabel(nextState);
+        const showSetup = nextState === "bad" || nextState === "limited";
+        if (
+          prevState === nextState &&
+          badge.textContent === label &&
+          badge.getAttribute("data-setup-link") === (showSetup ? "1" : "0")
+        ) {
+          return;
+        }
+        badge.setAttribute("data-state", nextState);
+        badge.textContent = label;
         badge.setAttribute("data-setup-link", showSetup ? "1" : "0");
         if (showSetup) {
           badge.setAttribute("tabindex", "0");
@@ -15020,7 +15117,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
           badge.setAttribute("title", panelT("panel.shell.conn.title"));
         }
         paintPanelInfraStatusSkeleton();
-        refreshResourceModeAdvisorPanel();
+        if (prevBridgeOk !== nextBridgeOk) {
+          refreshResourceModeAdvisorPanel();
+        }
       }
 
       function wirePanelConnBadgeSetupLink() {
