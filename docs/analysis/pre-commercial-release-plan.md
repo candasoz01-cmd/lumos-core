@@ -95,7 +95,7 @@ flowchart LR
 - [ ] Ekip release kapsamı yazılı tanımlandı (minimum: panel + yerel görevler ± köprü ile sohbet; entegrasyon/posta **dışı**).
 - [ ] CI yeşil (son merge'den itibaren en az bir tam `ci.yml` run).
 - [ ] Bilinen P0/P1 hata listesi oluşturuldu ve sahipleri atandı.
-- [ ] README / panel metni «erken geliştirme / alpha» ile hizalı ([`RB-09`](./release-blockers.md#rb-09--readme-kararlı-oss-ürün-iddiası-yok) — bilinçli etiketleme).
+- [ ] README / panel metni «erken geliştirme / alpha» ile hizalı ([`RB-09`](./release-blockers.md#rb-09-readme-kararlı-oss-ürün-iddiası-yok) — bilinçli etiketleme).
 - [ ] ADR-012 durumu dokümante: **Alpha, codex CLOSED beklemez**; açık maddeler (PR-C6 wiring, LockState, P2 genişletme, Trust Faz 4) defer veya yol haritası kaydı var.
 
 ### Çıkış kriterleri
@@ -105,7 +105,7 @@ flowchart LR
   - Köprü yapılandırılmış ortamda sohbet gönder/al (veya bilinçli «pilot dışı» defer)
 - [ ] P0 hata sayısı = 0; P1'ler kapatıldı veya Pilot'a defer kayıtlı.
 - [ ] Kritik regresyon yok: görev verisi kaybı, sessiz kalıcı silme, panel çöküşü (crash).
-- [ ] Release checklist referansı düzeltildi veya geçici runbook yazıldı ([`RB-07`](./release-blockers.md#rb-07--release-checklist-dosyası-eksik-readme-kırık-referans)).
+- [ ] Release checklist referansı düzeltildi veya geçici runbook yazıldı ([`RB-07`](./release-blockers.md#rb-07-release-checklist-dosyası-eksik-readme-kırık-referans)).
 - [ ] Ekip «Closed Pilot davet listesi» ve destek yükü tahmini onaylandı.
 
 ### Ölçülecek metrikler
@@ -280,8 +280,8 @@ flowchart LR
 - [ ] PCI ilkesi: kart verisi Lumos yüzeyinde tutulmaz — PSP hosted/embedded ([`bank-readiness-checklist.md`](./bank-readiness-checklist.md) §1).
 - [ ] İptal/iade self-servis veya destek yolu **canlı** (Packaging §6).
 - [ ] ADR-012: **CLOSED** veya resmi «accepted-as-is / defer» kaydı + müşteri güven iddiası ile uyumlu release notu (**Launch için bilinçli durum zorunlu**).
-- [ ] Vault/entegrasyon iddiası: prod değilse README/panel **demo-stub sınırı** ([`RB-10`](./release-blockers.md#rb-10--vault-kritik-kararlar-implementation-pending-od-001005), [`RB-16`](./release-blockers.md#rb-16--mailvault-public-stub-vs-prod-iddiası)).
-- [ ] Publish/release CI veya resmi manuel release runbook ([`RB-08`](./release-blockers.md#rb-08--publishrelease-ci-pipeline-yok)).
+- [ ] Vault/entegrasyon iddiası: prod değilse README/panel **demo-stub sınırı** ([`RB-10`](./release-blockers.md#rb-10-vault-kritik-kararlar-implementation-pending-od-001005), [`RB-16`](./release-blockers.md#rb-16-mailvault-public-stub-vs-prod-iddiası)).
+- [ ] Publish/release CI veya resmi manuel release runbook ([`RB-08`](./release-blockers.md#rb-08-publishrelease-ci-pipeline-yok)).
 - [ ] Hukuk + mali onay: fiyat, vergi, mesafeli satış **[KKTC]**, e-fatura/e-arşiv süreci.
 
 ### Çıkış kriterleri

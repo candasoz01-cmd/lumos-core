@@ -6,7 +6,7 @@
 >
 > **Üst sınır:** [`docs/lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md), [`docs/decisions/ADR-012-lumos-security-codex.md`](../decisions/ADR-012-lumos-security-codex.md)
 >
-> **Canonical kaynaklar:** [`release-blockers.md`](../analysis/release-blockers.md#rb-01--adr-012-security-codex-closed-değil), [`ADR-012-enforcement-decision-matrix.md`](../analysis/ADR-012-enforcement-decision-matrix.md), [`ADR-012-enforcement-prep-assessment.md`](../analysis/ADR-012-enforcement-prep-assessment.md)
+> **Canonical kaynaklar:** [`release-blockers.md`](../analysis/release-blockers.md#rb-01-adr-012-security-codex-closed-değil), [`ADR-012-enforcement-decision-matrix.md`](../analysis/ADR-012-enforcement-decision-matrix.md), [`ADR-012-enforcement-prep-assessment.md`](../analysis/ADR-012-enforcement-prep-assessment.md)
 
 **Karar:** Internal Alpha aşamasında ADR-012 Security Codex **CLOSED beklenmez**. Wave 1 Madde 1–2 kapandı (#491–#498); kalan codex maddeleri (Trust Faz 4, sensitivity↔gate, Panel LockState) bilinçli **defer** ile Alpha girişine devam edilir. Commercial Launch öncesi CLOSED veya resmi launch defer kaydı zorunludur.
 
@@ -114,7 +114,7 @@ Aşağıdakiler bu defer kaydıyla **authorize edilmez** — ayrı kullanıcı o
 | ID | Bağlantı |
 |----|----------|
 | G-24 | [`INTERNAL_ALPHA_RELEASE_SCOPE.md`](../INTERNAL_ALPHA_RELEASE_SCOPE.md) |
-| RB-01 | [`release-blockers.md`](../analysis/release-blockers.md#rb-01--adr-012-security-codex-closed-değil) |
+| RB-01 | [`release-blockers.md`](../analysis/release-blockers.md#rb-01-adr-012-security-codex-closed-değil) |
 | ADR-012 | [`ADR-012-lumos-security-codex.md`](../decisions/ADR-012-lumos-security-codex.md) |
 | Wave 1 | #491–#498 merge; checkpoint sync #499 |
 

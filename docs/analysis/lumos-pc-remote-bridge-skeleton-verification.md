@@ -130,11 +130,11 @@ Public OSS'te **tüm 7 komut** demo-safe kalmalıdır.
 |--------|---------------|-------|
 | Gerçek OS otomasyonu OSS'te yok | ✓ Doğru | Modül docstring L1–6; `execute_tool_stub` subprocess/OS çağrısı içermez |
 | Device control public sınır dışı | ✓ Doğru | [public-repo-boundary.md](../memory/public-repo-boundary.md); workspace `public-github-boundary` — device control listed |
-| Plan ↔ kod hizası | ✓ Doğru | [plan §10](lumos-pc-remote-bridge-plan.md#L205-L212) ertelenenler listesi kod davranışıyla örtüşür |
+| Plan ↔ kod hizası | ✓ Doğru | [plan §10](lumos-pc-remote-bridge-plan.md#10-private-katmana-ertelenenler) ertelenenler listesi kod davranışıyla örtüşür |
 | Credential exfil yok | ✓ Doğru | Yanıtlar yalnızca argüman preview / demo snapshot |
 | Loopback + token | ✓ Doğru | `_check_loopback` L1530–1535; `_check_secret` L1537–1552; tools rotaları aynı `do_POST` zinciri |
 | Onay diski / Mobile | ✗ Boşluk | PC remote pending dosyaya yazmıyor — plan §5 henüz uygulanmadı (PR-RB-04 defer) |
-| `lumos_gate` birleşik kapı | ✗ Boşluk | Plan: stub fazında `check_approval_gate` yeterli ([plan §9](lumos-pc-remote-bridge-plan.md#L200)); ileride birleşim açık |
+| `lumos_gate` birleşik kapı | ✗ Boşluk | Plan: stub fazında `check_approval_gate` yeterli ([plan §9](lumos-pc-remote-bridge-plan.md#9-mevcut-kod-ile-hizalama)); ileride birleşim açık |
 
 **Public boundary ihlali yok:** İskelet yalnızca şema + simülasyon; production device control, push, tünel, eşleştirme repoda yok — plan ile tutarlı.
 
@@ -142,7 +142,7 @@ Public OSS'te **tüm 7 komut** demo-safe kalmalıdır.
 
 ## 5. Lumos Mobile bağlantı noktaları (PR-RB-04)
 
-Public repoda Mobile wire **tasarım only** ([plan §5](lumos-pc-remote-bridge-plan.md#L100-L117)). Mevcut köprü altyapısı ve PC remote'un bağlanması gereken noktalar:
+Public repoda Mobile wire **tasarım only** ([plan §5](lumos-pc-remote-bridge-plan.md#5-lumos-mobile--faz-1-onay-cihazı-tasarım)). Mevcut köprü altyapısı ve PC remote'un bağlanması gereken noktalar:
 
 ### 5.1 Mevcut köprü hook'ları (Mobile için hazır altyapı)
 

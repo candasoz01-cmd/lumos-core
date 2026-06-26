@@ -8,7 +8,7 @@
 >
 > **Canonical kaynaklar:** [`evidence-continuity-v1-decision.md`](./evidence-continuity-v1-decision.md), [`evidence-continuity-v2-backlog.md`](./evidence-continuity-v2-backlog.md), [`evidence-continuity-ec2-05-decision.md`](./evidence-continuity-ec2-05-decision.md).
 
-**Karar:** **Seçenek 1 (minimum v1)** — tam `events[]` migration **yapılmaz**; disk yazımı ve panel Kayıtlar/Dashboard tüketimi **korunur**; read-only **`events_meta`** API metadata (`GET /tasks`, `GET /tasks.json`) journal'ın audit truth olduğunu açıkça belirtir; `tasks_json_events_projection_meta()` sabit DTO.
+**Karar:** **Seçenek 1 (minimum v1)** — tam `events[]` migration **yapılmaz**; disk yazımı ve panel Kayıtlar/Panel tüketimi **korunur**; read-only **`events_meta`** API metadata (`GET /tasks`, `GET /tasks.json`) journal'ın audit truth olduğunu açıkça belirtir; `tasks_json_events_projection_meta()` sabit DTO.
 
 **Bağımlılık:** EC2-08 read API mevcut; EC2-05 parallel truth kuralı korunur.
 
@@ -30,7 +30,7 @@
 
 ## Problem / mevcut boşluk
 
-v1 karar: journal continuity birincil; `tasks.json` içindeki `events[]` panel UI projection (Kayıtlar, Dashboard, legacy ledger). İki kanal paralel kalır — teşhiste karışıklık riski.
+v1 karar: journal continuity birincil; `tasks.json` içindeki `events[]` panel UI projection (Kayıtlar, Panel, legacy ledger). İki kanal paralel kalır — teşhiste karışıklık riski.
 
 | Kanal | Rol bugün | Boşluk |
 |-------|-----------|--------|
@@ -47,7 +47,7 @@ Davranış değişmez; rol görünür ve test edilebilir.
 
 ### Seçenek 2 — Tam migration (events[] kaldır, journal-only UI)
 
-Kayıtlar/Dashboard regresyonu; yüksek risk — **v1 reddedildi**.
+Kayıtlar/Panel regresyonu; yüksek risk — **v1 reddedildi**.
 
 ### Seçenek 3 — Yazım durdur (events[] append kapat)
 

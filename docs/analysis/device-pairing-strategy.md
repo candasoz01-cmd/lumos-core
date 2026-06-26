@@ -162,7 +162,7 @@ Mobile: beacon dinler veya discover URL çağırır → PC listesi → kullanıc
 
 **Gerekçe:**
 
-1. **Repo gerçeği:** RB-06 bu kombinasyonu uygular ve e2e ile doğrulanmıştır; sıfırdan alternatif protokol gereksiz gecikme ([özellik öncesi hazır çözüm](../.cursor/rules/ozellik-oncesi-hazir-cozum-taramasi.mdc) — mevcut OSS iskelet).
+1. **Repo gerçeği:** RB-06 bu kombinasyonu uygular ve e2e ile doğrulanmıştır; sıfırdan alternatif protokol gereksiz gecikme ([özellik öncesi hazır çözüm](../ozellik-oncesi-hazir-cozum-taramasi.md) — mevcut OSS iskelet).
 2. **MVP plan hizası:** QR ve push v1 **hayır**; manuel/tek seferlik kod yeterli ([lumos-mobile-approval-mvp-plan.md §7](lumos-mobile-approval-mvp-plan.md)).
 3. **Güvenlik minimumu:** İki adım — (a) LAN'da PC keşfi, (b) kullanıcı onaylı kod girişi — `KANDO_BRIDGE_SECRET` exfil olmadan relay oturumu.
 4. **UX:** Discovery IP yazımını kaldırır; kod girişi Internal Alpha için kabul edilebilir.

@@ -155,7 +155,7 @@ Marka + distribütör senaryolarında `unionid` → `external_userid` dönüşü
 | Service provider **resmi website** zorunlu | [How to become a service provider](https://developers.weixin.qq.com/doc/oplatform/en/Third-party_Platforms/2.0/getting_started/how_to_be.html) | welockai.com vitrin gerekli (OD-048 `needs-review`) |
 | Cross-Border Pay: institution / merchant model | [WeChat Pay Global docs](https://pay.weixin.qq.com/doc/global/v3/en/4012356424.md) | Ödeme trust katmanı ayrı compliance paketi |
 
-**Hazır SaaS alternatifleri (OSS/piyasa taraması):** WeChat CRM, SCRM, Mini Program agency platformları (WeChat ecosystem partners) mevcuttur. Lumos'un **trust/onay/günlük** odaklı diferansiyasyonu, bu SaaS'ların yerine geçmekten çok **policy gate middleware** olarak konumlanmayı destekler — **sıfırdan WeChat CRM yapmak genelde gereksiz build** olur ([`ozellik-oncesi-hazir-cozum-taramasi.mdc`](../../.cursor/rules/ozellik-oncesi-hazir-cozum-taramasi.mdc) ilkesi).
+**Hazır SaaS alternatifleri (OSS/piyasa taraması):** WeChat CRM, SCRM, Mini Program agency platformları (WeChat ecosystem partners) mevcuttur. Lumos'un **trust/onay/günlük** odaklı diferansiyasyonu, bu SaaS'ların yerine geçmekten çok **policy gate middleware** olarak konumlanmayı destekler — **sıfırdan WeChat CRM yapmak genelde gereksiz build** olur ([`ozellik-oncesi-hazir-cozum-taramasi.mdc`](../ozellik-oncesi-hazir-cozum-taramasi.md) ilkesi).
 
 ---
 

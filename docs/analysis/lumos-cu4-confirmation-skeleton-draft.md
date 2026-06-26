@@ -243,7 +243,7 @@ flowchart TD
 
 | Operasyon | action_key | Confirmation katmanı | GA önkoşul? | NEVER_AUTO? | CU |
 |-----------|------------|----------------------|-------------|-------------|-----|
-| Dashboard / listeleme | — | ❌ Silent | — | — | — |
+| Panel / listeleme | — | ❌ Silent | — | — | — |
 | `GET /evidence/*` | — | ❌ | — | — | — |
 | `POST /tasks` (create) | `create_task` | ✅ Single | kisitli_otonom: GA | ❌ | CU4 |
 | `POST /tasks/complete` | `complete_task` | ✅ Single | kisitli_otonom: GA | ❌ | CU4 |

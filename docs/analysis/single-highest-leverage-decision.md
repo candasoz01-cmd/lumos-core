@@ -54,7 +54,7 @@ Madde 1 (#495) bittikten sonra Madde 2 (P2) hattının «ONAY GEREKİYOR» limbo
 
 ## 3. Wave 2 açılmadı
 
-Trust Faz 4, Sensitivity↔gate, Confirmation default-on, Panel LockState — [next-work-queue § kapsam dışı](next-work-queue.md#kapsam-dışı-bilinçli-açık--wave-2-veya-launch) sabit; kullanıcı onayı olmadan başlatılmadı.
+Trust Faz 4, Sensitivity↔gate, Confirmation default-on, Panel LockState — [next-work-queue § kapsam dışı](next-work-queue.md#kapsam-dışı-bilinçli-defer) sabit; kullanıcı onayı olmadan başlatılmadı.
 
 ---
 
