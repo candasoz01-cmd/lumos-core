@@ -2,7 +2,7 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Uygulama planı** — henüz kod yok |
+| Durum | **Hafta 1 tamamlandı** (#550); **Hafta 2 uygulandı** |
 | Tarih | 2026-06-26 |
 | Süre | 2 hafta (10 iş günü) |
 | Üst belge | [`../secure-device-framework.md`](../secure-device-framework.md) |
@@ -36,11 +36,11 @@
 
 | Gün | Teslim | Kabul |
 |-----|--------|-------|
-| 6 | Yerel detector: başarısız parola eşiği, hızlı okuma | S4 banner CLI çıktısı |
-| 7 | `export-report` komutu (JSON paket) | Manuel: S6 dosya oluşturma |
-| 8 | Plugin registry + `audit` builtin (salt okunur log özeti) | Plugin enable onay akışı |
-| 9 | `backup_local` eklenti taslağı (kullanıcı onaylı kopya) | Onaysız kopya yok testi |
-| 10 | Entegrasyon testleri + README hızlı başlangıç | Hafta 2 başarı kriterleri |
+| 6 | Yerel detector: başarısız parola eşiği, hızlı okuma | S4 banner CLI çıktısı — **done** |
+| 7 | `export-report` komutu (JSON paket) | Manuel: S6 dosya oluşturma — **done** |
+| 8 | Plugin registry + `audit` builtin (salt okunur log özeti) | Plugin enable onay akışı — **done** |
+| 9 | `backup_local` eklenti taslağı (kullanıcı onaylı kopya) | Onaysız kopya yok testi — **stub only** |
+| 10 | Entegrasyon testleri + README hızlı başlangıç | Hafta 2 başarı kriterleri — **done** |
 
 ### Hafta 2 çıkış kriteri
 

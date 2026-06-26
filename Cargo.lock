@@ -44,6 +44,7 @@ dependencies = [
  "anchorusb-core",
  "clap",
  "rpassword",
+ "tempfile",
  "thiserror",
 ]
 
