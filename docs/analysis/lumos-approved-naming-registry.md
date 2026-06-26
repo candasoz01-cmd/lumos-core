@@ -24,7 +24,7 @@ Bu tablodaki isimler repoda kanıtlanmış ve **kilitleme** altındadır.
 | **We Lock AI** | Marka çatısı (UI eyebrow / başlık) | `ui/` umbrella sayfaları — boşluklu görünen ad |
 | **welockai.com** | Birincil domain | [`integrations-overview.md`](../integrations-overview.md), charter §4 |
 | **api.welockai.com** | Üretim API host (private) | Charter §3 |
-| **Lumos Cyber** | Ürün varyantı adı (tagline §C'de bekliyor) | `ui/src/pages/cyber.astro`, integrations-overview |
+| **Lumos Cyber** | Ürün varyantı adı + kilitli tagline (§A.8) | `ui/src/pages/cyber.astro`, `ui/src/i18n/messages/umbrella/*.ts` |
 
 ### A.2 Kuruluş hiyerarşisi (canonical terimler)
 
@@ -94,7 +94,22 @@ Kaynak: `docs/INTERNAL_ALPHA_RELEASE_SCOPE.md`, trust model §9 Alpha notları.
 
 Kaynak: [`mac-app-link-layer.md`](../mac-app-link-layer.md), `ui/src/i18n/messages/umbrella/*.ts`.
 
-**§A toplam: 36 kilitli isim / terim** (ürün 6 + hiyerarşi 8 + rota 7 + rol 5 + izin 6 + faz 2 + teknik kalıp 2).
+### A.8 Slack eşlemesi ve demo kuruluş kalıpları (2026-06-26 onay)
+
+| Kalıp / terim | TR (sabit) | EN (sabit) | Not |
+|---------------|------------|------------|-----|
+| Slack workspace | **Kuruluş özel alanı** | **Organization private area** | Kuruluşun özel workspace'i; Slack workspace eşlemesi olabilir, model Slack'e indirgenmez |
+| Slack kanal (ürün bağlamı) | **Konu** | **Topic** | Proje altında; hiyerarşi §A.2 |
+| Duyuru yüzeyi | **duyuru konusu** | **announcement topic** | `#general` gibi sabit kanal adları ürün metninde **kullanılmaz** |
+| Demo kuruluş adı | **ÖrnekKuruluş-A** / **-B** / **-C** | aynı | Dokümantasyon ve demo; gerçek müşteri adı değil |
+
+**Lumos Cyber — kilitli tagline (TR):** «Lumos Cyber, We Lock AI çatısı altında güvenlik operasyonları, risk görünürlüğü ve politika odaklı çalışma için planlanan varyanttır. Ayrı bir cyberpunk arayüz değil; profesyonel kontrol katmanıdır.»
+
+**Lumos Cyber — locked tagline (EN):** «Lumos Cyber is the planned We Lock AI variant for security operations, risk visibility, and policy-focused work. It is not a cyberpunk UI — it is a professional control layer.»
+
+Kaynak: kullanıcı onayı «uygundur uygula» (2026-06-26); [`lumos-organization-model-draft.md`](./lumos-organization-model-draft.md) §4–§9.
+
+**§A toplam: 42 kilitli isim / terim / kalıp** (ürün 6 + hiyerarşi 8 + rota 7 + rol 5 + izin 6 + faz 2 + teknik kalıp 2 + Slack/demo 6).
 
 ---
 
@@ -121,8 +136,8 @@ Bu tablodaki isimler **yalnızca dokümantasyon ve demo örneği** içindir. UI,
 
 | Kalıp | Kullanım |
 |-------|----------|
-| **ÖrnekKuruluş-A**, **ÖrnekKuruluş-B** | Çok kiracılı senaryo, üyelik, paylaşımlı proje |
-| **Org A** / **Org B** | Yalnızca kısa teknik not; tercih: `ÖrnekKuruluş-A` |
+| **ÖrnekKuruluş-A**, **ÖrnekKuruluş-B**, **ÖrnekKuruluş-C** | Çok kiracılı senaryo, üyelik, paylaşımlı proje — **tercih edilen** demo kalıbı (§A.8) |
+| **Org A** / **Org B** | Eski kısa not; **yeni metinde kullanma** — `ÖrnekKuruluş-A` kullan |
 | **Acme Corp**, **Example Inc.** | Jenerik İngilizce demo — onay olmadan üretim metninde kullanma |
 
 ### B.4 Entegrasyon demo metinleri
@@ -136,16 +151,24 @@ Bu tablodaki isimler **yalnızca dokümantasyon ve demo örneği** içindir. UI,
 
 ---
 
-## C. Bekleyen onay (PENDING)
+## C. Onay durumu
 
-Aşağıdakiler **henüz kilitlenmedi**; kullanım öncesi ürün / ticari onay gerekir.
+### C.1 Çözüldü — APPROVED LOCKED (2026-06-26)
+
+Kullanıcı onayı «uygundur uygula» ile kilitlendi; ayrıntı §A.8.
+
+| Konu | Karar |
+|------|-------|
+| Slack workspace adlandırma | Slack workspace = **Kuruluş özel alanı**; org modeli Slack kanal listesini tanımlamaz |
+| Slack kanal (ürün metni) | **Konu** (Proje altı); sabit `#general` vb. yok — **duyuru konusu** / **announcement topic** |
+| Demo kuruluş adları | Dokümantasyon ve demo: yalnızca `ÖrnekKuruluş-A` / `-B` / `-C` |
+| **Lumos Cyber** tagline | §A.8'de kilitli (hero `lead` metni) |
+
+### C.2 Bekleyen onay (PENDING)
 
 | Konu | Durum | Not |
 |------|-------|-----|
-| Slack workspace adlandırma kuralları | Bekliyor | Org modeli Slack kanal adını tanımlamaz — [`lumos-organization-model-draft.md`](./lumos-organization-model-draft.md) §1 |
-| Slack kanal adlandırma konvansiyonları | Bekliyor | `#` önekli örnekler yalnızca anti-pattern (§B.4) |
-| Belirli müşteri / pilot kuruluş adları | Bekliyor | Closed Pilot sözleşmesi ve davet listesi |
-| **Lumos Cyber** nihai tagline ve hero metni | Bekliyor | Ürün adı §A'da kilitli; pazarlama cümlesi değil |
+| Belirli müşteri / pilot kuruluş adları (gerçek) | Bekliyor | Closed Pilot sözleşmesi ve davet listesi — demo kalıbı §A.8 |
 | `support@` ve resmi destek kanalı adresi | Bekliyor | [`support-channel-alpha.md`](./support-channel-alpha.md) — TBD |
 | Apple Team ID ve bundle ID **gerçek değerleri** | Bekliyor | Placeholder kalıplar §A.7'de onaylı; değerler ship öncesi |
 

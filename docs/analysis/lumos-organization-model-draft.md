@@ -105,7 +105,7 @@ Kuruluş → Ekip → Proje → Konu hiyerarşisi; sohbet, görev, belge, toplan
 
 | Seviye | Tanım | Örnek bağlam (**EXAMPLE** — registry §B; sabit isim değil) |
 |--------|--------|----------------------------------|
-| **Kuruluş** | Yasal veya operasyonel bütün; özel workspace sahibi | *EXAMPLE tür:* belediye, üniversite, hastane, startup — *EXAMPLE ad:* `ÖrnekKuruluş-A` |
+| **Kuruluş** | Yasal veya operasyonel bütün; özel workspace sahibi | *EXAMPLE tür:* belediye, üniversite, hastane, startup — *EXAMPLE ad:* `ÖrnekKuruluş-A` … `ÖrnekKuruluş-C` |
 | **Ekip** | Kuruluş içi çalışma birimi; üyelik ve rol taşır | *EXAMPLE:* ürün ekibi, operasyon, araştırma grubu |
 | **Proje** | Hedef, zaman ve katılımcı kümesi; tek veya çok kuruluşlu olabilir | *EXAMPLE:* ortak pilot, ürün lansmanı, araştırma grant'i |
 | **Konu** | En alt bağlam; sohbet, görev dizisi veya belge koleksiyonunun yaşadığı yer | *EXAMPLE:* sprint kanalı, incident thread, spec tartışması |
@@ -281,8 +281,8 @@ Sistem **herhangi bir kuruluş türünü eşit** modeller. Aşağıdaki isimler 
 |---------------------------------|-----------------|
 | Apple / Android / Huawei | Teknoloji şirketi **tartışma örneği** — ürün adı değil |
 | Belediye / üniversite / hastane / startup | Kurum **türü** örneği |
-| `ÖrnekKuruluş-A`, `ÖrnekKuruluş-B` | Çok kiracılı senaryo **yer tutucu adı** (tercih edilen kalıp) |
-| Acme Corp, Org A | Jenerik demo — onay olmadan üretim metninde kullanma |
+| `ÖrnekKuruluş-A`, `ÖrnekKuruluş-B`, `ÖrnekKuruluş-C` | Çok kiracılı senaryo **yer tutucu adı** (tercih edilen kalıp — registry §A.8) |
+| Acme Corp, Org A | Eski jenerik demo — **yeni metinde kullanma**; `ÖrnekKuruluş-A` kullan |
 
 **Kural:** Org tipi için hard-coded davranış yok; politika şablonları (WeLockAI) ve kullanıcı tercihleri (Lumos) ile özelleştirme yapılır. Onaylı terimler ve yasaklı örnekler: [`lumos-approved-naming-registry.md`](./lumos-approved-naming-registry.md).
 
@@ -299,7 +299,7 @@ Sistem **herhangi bir kuruluş türünü eşit** modeller. Aşağıdaki isimler 
 | **Slack** | Dış araç; iş yeri bağlamı ve kontrollü bildirim ([`integrations-overview.md`](../integrations-overview.md)); org modelinin kendisi değil |
 | **Cursor** | Geliştirme ortamı; org modeli runtime'ı değil |
 
-**Slack içi Lumos:** Charter'da «çalışma arkadaşı» yüzeyi olarak geçer; bu, Slack kanal adlarının org hiyerarşisini tanımlaması anlamına gelmez. Lumos, Slack'te **bağlamı** (org → proje → konu) taşır; Slack workspace yapısı authoritative kaynak olabilir ama izin modeli ondan türetilmez (§6).
+**Slack içi Lumos:** Charter'da «çalışma arkadaşı» yüzeyi olarak geçer; bu, Slack kanal adlarının org hiyerarşisini tanımlaması anlamına gelmez. Lumos, Slack'te **bağlamı** (Kuruluş → Ekip → Proje → Konu) taşır; Slack workspace **Kuruluş özel alanı** ile eşlenebilir. Ürün metninde sabit kanal adları (`#general` vb.) kullanılmaz — duyuru için **duyuru konusu** / **announcement topic** (registry §A.8). Slack workspace yapısı authoritative kaynak olabilir ama izin modeli ondan türetilmez (§6).
 
 **Karar verme ayrımı** (charter §2): WeLockAI politika enforcement; Lumos kullanıcı onayı — org modeli her iki kapıyı da destekleyecek şekilde tasarlanır.
 
