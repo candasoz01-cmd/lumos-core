@@ -1,0 +1,80 @@
+---
+import "../../styles/lumos-tokens.css";
+import "../../styles/umbrella-chrome.css";
+import WeLockSiteNav from "../../components/WeLockSiteNav.astro";
+import WeLockSiteFooter from "../../components/WeLockSiteFooter.astro";
+import IntegrationPermMatrix from "../../components/IntegrationPermMatrix.astro";
+import I18nInit from "../../components/I18nInit.astro";
+import type { MatrixRow } from "../../components/IntegrationPermMatrix.astro";
+
+const CONNECTORS_DOC_URL =
+  "https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/memory/work-tools-connectors-decision.md";
+
+const linearRows: MatrixRow[] = [
+  {
+    id: "linear",
+    nameKey: "umbrella.integrations.rowLinearName",
+    noteKey: "umbrella.integrations.rowLinearNote",
+    read: true,
+    write: true,
+    delete: true,
+  },
+];
+---
+
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title data-i18n="umbrella.linear.metaTitle">Linear entegrasyonu — We Lock AI</title>
+    <meta
+      name="description"
+      content="Lumos Linear bağlantısı: OD-033 Katman 3 planned — issue bağlamı okuma; yazma onaylı."
+      data-i18n-content="umbrella.linear.metaDescription"
+    />
+    <link rel="canonical" href="https://welockai.com/integrations/linear" />
+    <link rel="icon" href="/lumos-tree-logo.svg" type="image/svg+xml" sizes="any" />
+    <meta name="theme-color" content="#0a0e14" />
+  </head>
+  <body class="umbrella-page">
+    <WeLockSiteNav active="integrations" />
+    <main class="umbrella-main">
+      <p class="umbrella-eyebrow" data-i18n="umbrella.linear.eyebrow">WE LOCK AI · LINEAR</p>
+      <h1 data-i18n="umbrella.linear.title">Linear</h1>
+      <p class="umbrella-lead" data-i18n="umbrella.linear.lead">
+        Linear, OD-033 çalışma araçları watchlist'inde Katman 3 adayıdır; görev motoru çakışma analizi sonrası connector değerlendirilir.
+      </p>
+      <h2 data-i18n="umbrella.integrations.matrixTitle">İzin matrisi (şartname)</h2>
+      <IntegrationPermMatrix rows={linearRows} />
+      <h2 data-i18n="umbrella.linear.readsTitle">Ne okur? (planlanan)</h2>
+      <ul>
+        <li data-i18n="umbrella.linear.read1">Issue ve proje metadata, durum özeti.</li>
+        <li data-i18n="umbrella.linear.read2">Görev bağlamı için provenance etiketli özet.</li>
+        <li data-i18n="umbrella.linear.read3">Lumos görev motoru ile çakışma analizi gerekir.</li>
+      </ul>
+      <h2 data-i18n="umbrella.linear.writesTitle">Ne yazar? (onaylı — planlanan)</h2>
+      <ul>
+        <li data-i18n="umbrella.linear.write1">Issue oluşturma ve güncelleme — işlem bazlı onay.</li>
+        <li data-i18n="umbrella.linear.write2">Durum değişikliği — granüler `linear_*` grant.</li>
+      </ul>
+      <h2 data-i18n="umbrella.linear.deletesTitle">Silme</h2>
+      <p data-i18n="umbrella.linear.deleteBody">Issue veya proje silme varsayılan kapalıdır.</p>
+      <div class="umbrella-callout">
+        <p>
+          <strong data-i18n="umbrella.linear.statusTitle">Durum</strong> —
+          <span data-i18n="umbrella.linear.statusBody">Katman 3 planned — Linear OAuth bu sitede başlatılmaz.</span>
+        </p>
+      </div>
+      <p>
+        <a href={CONNECTORS_DOC_URL} target="_blank" rel="noopener noreferrer">Work tools connector decision (OD-033)</a>
+      </p>
+      <div class="umbrella-actions">
+        <a class="umbrella-btn umbrella-btn--primary" href="/integrations" data-i18n="umbrella.linear.hubCta">Entegrasyon merkezi</a>
+        <a class="umbrella-btn" href="/integrations/github" data-i18n="umbrella.linear.githubCta">GitHub</a>
+        <a class="umbrella-btn" href="/panel" data-i18n="umbrella.linear.panelCta">Panel</a>
+      </div>
+    </main>
+    <WeLockSiteFooter />
+    <I18nInit />
+  </body>
+</html>

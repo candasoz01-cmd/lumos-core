@@ -20,6 +20,8 @@ This document is **demo-safe** and suitable for the public `lumos-core` reposito
 | Integration hub | https://welockai.com/integrations | Charter-aligned permission matrix; links to all connectors |
 | GitHub | https://welockai.com/integrations/github | Issue/PR/CI read context; approved write; no default delete |
 | Google | https://welockai.com/integrations/google | Drive, Calendar, Gmail — read-first policy |
+| Mail (Gmail) | https://welockai.com/integrations/mail | OD-031 Dar v1 — read-only inbox summary; off by default |
+| Linear | https://welockai.com/integrations/linear | OD-033 Layer 3 — planned; issue sync context (no OAuth yet) |
 | Slack | https://welockai.com/slack | Workplace context and controlled notifications |
 | Panel | https://welockai.com/panel | Primary web workspace |
 | Mac links | https://welockai.com/connect/mac | Universal Links for future Mac client |
@@ -43,6 +45,37 @@ Symbols: **Read ✅** · **Write 🔒 (approval)** · **Delete 🚫 (special per
 
 **Common rule:** Read aligns with analysis/report profile. Write needs `kisitli_otonom` + general or per-action approval. Delete and irreversible external effect are treated like `SECURITY_NEVER_AUTO` — never automatic.
 
+### Planned connectors (OD-033 watchlist)
+
+Decision-approved; implementation pending. No automatic connector registration.
+
+| Platform | Layer | Status |
+|----------|-------|--------|
+| **Linear** | 3 | Static product page live; connector after GitHub pilot |
+| **Notion** | 4 | Docs/watchlist only |
+| **Asana** | 4 | Docs/watchlist only |
+
+See [`docs/memory/work-tools-connectors-decision.md`](memory/work-tools-connectors-decision.md) and [`docs/analysis/integrations-expansion-audit.md`](analysis/integrations-expansion-audit.md).
+
+---
+
+## LLM providers (not integration connectors)
+
+LLM routing lives in the **engine layer**, not the integration registry.
+
+| Provider | Role in OSS | Notes |
+|----------|-------------|-------|
+| **OpenAI** | Strategic provider (OD-012) | `openai_provider` + `OPENAI_API_KEY`; Computer Use gate |
+| **DeepSeek** | Router label only | `ToolRouter` auxiliary task name in `kando_core.py` — **no** API adapter, registry entry, or execution path |
+
+Alternative LLM vendors (Groq, etc.) are **not started** in the public foundation.
+
+---
+
+## Closed Pilot (operations — not integration)
+
+**Closed Pilot** (≤20 invites, P1-03) is an **operations program**: contract template, invite list, NDA — not an integration surface. Invite send automation is **not implemented** in OSS; real organization names stay in private ops vault (`lumos-approved-naming-registry.md` §C.2 OWNER_ACTION). Public demo uses `ÖrnekKuruluş-A/B/C` only.
+
 ---
 
 ## OSS vs WeLockAI private
@@ -51,7 +84,7 @@ Symbols: **Read ✅** · **Write 🔒 (approval)** · **Delete 🚫 (special per
 |--------------------------|------------------|
 | Plugin API, stub connectors (`src/integrations/`) | Production OAuth, webhook, enterprise SLA |
 | Policy engine, confirmation, gateway contract | Tenant policy sets, billing limits |
-| Demo-safe mail stub (`src/integrations/mail/`) | Vault, credential bridge, multi-tenant orchestration |
+| Demo-safe mail stub (`src/integrations/mail/`) — Dar v1: `connection_status`, `list_unread`, `notify_check`; OAuth skeleton in `gmail_oauth.py` | Vault, credential bridge, multi-tenant orchestration, send/delete/archive |
 | Static integration pages on welockai.com | Live connection and account linking |
 
 See [`docs/memory/public-repo-boundary.md`](memory/public-repo-boundary.md).

@@ -45,6 +45,8 @@ Kaynak: [`lumos-organization-model-draft.md`](./lumos-organization-model-draft.m
 | `/integrations` | Entegrasyon merkezi |
 | `/integrations/github` | GitHub connector sayfası |
 | `/integrations/google` | Google connector sayfası |
+| `/integrations/mail` | Mail (Gmail) connector sayfası — OD-031 Dar v1 read-only |
+| `/integrations/linear` | Linear connector sayfası — OD-033 Katman 3 planned |
 | `/slack` | Slack entegrasyon yüzeyi |
 | `/connect/mac` | Mac Universal Links / AASA |
 | `/cyber` | Lumos Cyber erken erişim landing |
@@ -109,7 +111,7 @@ Kaynak: [`mac-app-link-layer.md`](../mac-app-link-layer.md), `ui/src/i18n/messag
 
 Kaynak: kullanıcı onayı «uygundur uygula» (2026-06-26); [`lumos-organization-model-draft.md`](./lumos-organization-model-draft.md) §4–§9.
 
-**§A toplam: 42 kilitli isim / terim / kalıp** (ürün 6 + hiyerarşi 8 + rota 7 + rol 5 + izin 6 + faz 2 + teknik kalıp 2 + Slack/demo 6).
+**§A toplam: 44 kilitli isim / terim / kalıp** (ürün 6 + hiyerarşi 8 + rota 9 + rol 5 + izin 6 + faz 2 + teknik kalıp 2 + Slack/demo 6).
 
 ---
 

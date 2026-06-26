@@ -1,0 +1,85 @@
+---
+import "../../styles/lumos-tokens.css";
+import "../../styles/umbrella-chrome.css";
+import WeLockSiteNav from "../../components/WeLockSiteNav.astro";
+import WeLockSiteFooter from "../../components/WeLockSiteFooter.astro";
+import IntegrationPermMatrix from "../../components/IntegrationPermMatrix.astro";
+import I18nInit from "../../components/I18nInit.astro";
+import type { MatrixRow } from "../../components/IntegrationPermMatrix.astro";
+
+const MAIL_STUB_URL =
+  "https://github.com/candasoz01-cmd/lumos-core/tree/main/src/integrations/mail";
+const ADR_MAIL_URL =
+  "https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/decisions/ADR-002-mail-inbox-intelligence.md";
+const OD_031_URL =
+  "https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/memory/mail-integration-approval-decision.md";
+
+const mailRows: MatrixRow[] = [
+  {
+    id: "gmail",
+    nameKey: "umbrella.integrations.rowGmailName",
+    noteKey: "umbrella.integrations.rowGmailNote",
+    read: true,
+    write: true,
+    delete: true,
+  },
+];
+---
+
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title data-i18n="umbrella.mail.metaTitle">Mail (Gmail) entegrasyonu — We Lock AI</title>
+    <meta
+      name="description"
+      content="Lumos Mail bağlantısı: Gmail read-only Dar v1 — inbox özeti ve thread metadata; varsayılan kapalı."
+      data-i18n-content="umbrella.mail.metaDescription"
+    />
+    <link rel="canonical" href="https://welockai.com/integrations/mail" />
+    <link rel="icon" href="/lumos-tree-logo.svg" type="image/svg+xml" sizes="any" />
+    <meta name="theme-color" content="#0a0e14" />
+  </head>
+  <body class="umbrella-page">
+    <WeLockSiteNav active="integrations" />
+    <main class="umbrella-main">
+      <p class="umbrella-eyebrow" data-i18n="umbrella.mail.eyebrow">WE LOCK AI · MAIL</p>
+      <h1 data-i18n="umbrella.mail.title">Mail (Gmail)</h1>
+      <p class="umbrella-lead" data-i18n="umbrella.mail.lead">
+        Lumos, iletişim kanallarında OD-031 Dar v1 kapsamında Gmail inbox özeti ve thread metadata okur.
+      </p>
+      <h2 data-i18n="umbrella.integrations.matrixTitle">İzin matrisi</h2>
+      <IntegrationPermMatrix rows={mailRows} />
+      <h2 data-i18n="umbrella.mail.readsTitle">Ne okur? (Dar v1)</h2>
+      <ul>
+        <li data-i18n="umbrella.mail.read1">Inbox özeti ve okunmamış liste (`list_unread`).</li>
+        <li data-i18n="umbrella.mail.read2">Thread metadata — tam mesaj gövdesi arşivi değil (ADR-002).</li>
+        <li data-i18n="umbrella.mail.read3">Bağlantı durumu (`connection_status`) ve bildirim kontrolü (`notify_check`).</li>
+      </ul>
+      <h2 data-i18n="umbrella.mail.writesTitle">Ne yazar?</h2>
+      <p data-i18n="umbrella.mail.writeBody">Dar v1 kapsamında gönderme, taslak ve yanıt yok; OSS stub yalnızca read-only.</p>
+      <h2 data-i18n="umbrella.mail.deletesTitle">Silme</h2>
+      <p data-i18n="umbrella.mail.deleteBody">Silme ve arşiv varsayılan kapalıdır; ayrı grant gerekir.</p>
+      <div class="umbrella-callout">
+        <p>
+          <strong data-i18n="umbrella.mail.statusTitle">Durum</strong> —
+          <span data-i18n="umbrella.mail.statusBody">Gmail OAuth bu sitede başlatılmaz. OSS mail stub mevcut.</span>
+        </p>
+      </div>
+      <p>
+        <a href={MAIL_STUB_URL} target="_blank" rel="noopener noreferrer">OSS mail stub (`src/integrations/mail/`)</a>
+        ·
+        <a href={ADR_MAIL_URL} target="_blank" rel="noopener noreferrer">ADR-002</a>
+        ·
+        <a href={OD_031_URL} target="_blank" rel="noopener noreferrer">OD-031</a>
+      </p>
+      <div class="umbrella-actions">
+        <a class="umbrella-btn umbrella-btn--primary" href="/integrations" data-i18n="umbrella.mail.hubCta">Entegrasyon merkezi</a>
+        <a class="umbrella-btn" href="/integrations/google" data-i18n="umbrella.mail.googleCta">Google sayfası</a>
+        <a class="umbrella-btn" href="/panel" data-i18n="umbrella.mail.panelCta">Panel</a>
+      </div>
+    </main>
+    <WeLockSiteFooter />
+    <I18nInit />
+  </body>
+</html>
