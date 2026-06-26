@@ -236,6 +236,8 @@ def test_umbrella_integration_routes_exist() -> None:
         _REPO_ROOT / "ui" / "src" / "pages" / "integrations.astro",
         _REPO_ROOT / "ui" / "src" / "pages" / "integrations" / "github.astro",
         _REPO_ROOT / "ui" / "src" / "pages" / "integrations" / "google.astro",
+        _REPO_ROOT / "ui" / "src" / "pages" / "integrations" / "mail.astro",
+        _REPO_ROOT / "ui" / "src" / "pages" / "integrations" / "linear.astro",
         _REPO_ROOT / "ui" / "src" / "pages" / "slack.astro",
     )
     umbrella_tr = (_REPO_ROOT / "ui" / "src" / "i18n" / "messages" / "umbrella" / "tr.ts").read_text(
