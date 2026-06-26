@@ -3,7 +3,7 @@
 | Alan | Değer |
 |------|-------|
 | **Belge türü** | Operasyonel triage (docs only) |
-| **Tarih** | 2026-06-21 |
+| **Tarih** | 2026-06-26 |
 | **Kaynak** | [launch-readiness-gap.md](launch-readiness-gap.md) A3, [INTERNAL_ALPHA_RELEASE_SCOPE.md](../INTERNAL_ALPHA_RELEASE_SCOPE.md) §6 |
 | **Durum** | **Aktif** — Internal Alpha operasyonel faz (2026-06-18+) |
 
@@ -80,4 +80,4 @@ Internal Alpha girişinde **bilinen P0/P1 maddelerinin tek kaynak listesi** ve *
 
 ---
 
-*Son güncelleme: 2026-06-23 — P1-05 kapandı (tasks path audit); P1-02 operasyonel faz devam ediyor; bkz. [INTERNAL_ALPHA_OPERATIONS.md](../INTERNAL_ALPHA_OPERATIONS.md).*
+*Son güncelleme: 2026-06-26 — P1-05 kapalı (#527); welockai.com integrations + umbrella surfaces live (#529, #530); charter/trust docs (#531); P1-02 operasyonel faz devam ediyor; bkz. [INTERNAL_ALPHA_OPERATIONS.md](../INTERNAL_ALPHA_OPERATIONS.md) §6.*
