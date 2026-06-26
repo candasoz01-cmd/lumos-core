@@ -95,6 +95,7 @@ Kaynak: [`integrations-expansion-audit.md`](./integrations-expansion-audit.md), 
 | SECURITY_NEVER_AUTO test koruması | **done** | P0-05 izleme; 1220 passed @ `57e81ea` |
 | Onboarding Katman A/B | **done** | [`getting-started.md`](../getting-started.md) — #539 |
 | Entegrasyon / backlog audit hafızası | **partial** | Bu belge + [`integrations-expansion-audit.md`](./integrations-expansion-audit.md) |
+| Kaynak modu danışmanı (active/beklemeli) | **partial** | [`lumos-resource-mode-advisor.md`](./lumos-resource-mode-advisor.md) — quantum ilk katman; Faz 1 eşikler |
 | Günlük kullanım sürtünmesi kaydı | **stub** | [`INTERNAL_ALPHA_8HOUR_TEST.md`](../INTERNAL_ALPHA_8HOUR_TEST.md) (yeni) |
 | Ajan «8 saat» davranış doğrulaması | **stub** | Runbook var; henüz doldurulmuş günlük yok |
 
