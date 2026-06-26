@@ -123,8 +123,8 @@ const panel: typeof panelTr = {
         "Your landing question was carried here — review before sending.",
     },
     modeHints: {
-      sendLimited: "Limited mode: no external chat bridge; local replies and task commands are available.",
-      sendLimitedUser: "You are in limited mode (user choice); local replies and task commands are available.",
+      sendLimited: "Limited mode: local replies and task commands work; actions that need the external bridge wait.",
+      sendLimitedUser: "Limited mode is selected; local replies and task commands work. Broader actions need full connection.",
       sendOffline: "Offline mode: no internet or external bridge; local replies are available.",
     },
     capability: {
@@ -313,7 +313,7 @@ const panel: typeof panelTr = {
       keywordKayit: "Open Media to browse files.",
       keywordAkis: "Open Social to see the current feed.",
       limitedDefault:
-        "You are in limited mode (user choice); local tasks and short hints work — e.g. «görev oluştur title» or «görevler».",
+        "Limited mode is selected; local tasks and short hints work — e.g. «görev oluştur title» or «görevler». I will ask for full connection only when a broader action needs it.",
       offlineDefault:
         "You are offline; no internet. Local tasks work — e.g. «görev oluştur title» or «görevler».",
       timeBase: "Time {hh}:{mm}. Today {date}.",
@@ -329,9 +329,9 @@ const panel: typeof panelTr = {
     bridgeBadgeLimited: "Limited mode",
     transcript: {
       engineMsg: "Speech-to-text engine is not connected yet.",
-      limitedMsg: "Speech-to-text is unavailable in limited mode; external bridge is not connected.",
+      limitedMsg: "Speech-to-text needs the external bridge. Local chat and tasks still work in limited mode.",
       limitedUserMsg:
-        "You are in limited mode (user choice); speech-to-text is not attempted in this mode.",
+        "Limited mode is selected; speech-to-text is not attempted. Local chat and tasks still work.",
       offlineMsg: "Speech-to-text is unavailable offline; internet access is disabled.",
       busyMsg: "Transcribing…",
       privacyMsg:
@@ -959,8 +959,8 @@ const panel: typeof panelTr = {
     testBridgeUnavailable: "Bridge is unavailable right now.",
     testDone: "Connection test completed.",
     testPartialFailed: "Connection test partially failed. Check device settings.",
-    bridgePending: "Waiting for bridge connection.",
-    routeTerminal: "Waiting for local device bridge.",
+    bridgePending: "This action needs full connection; local actions stay available.",
+    routeTerminal: "Local device bridge after full connection.",
     routeNone: "—",
     routeManualApproval: "after manual approval",
     row1: "1. File read",
