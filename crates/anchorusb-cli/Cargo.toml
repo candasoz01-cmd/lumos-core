@@ -1,0 +1,16 @@
+[package]
+name = "anchorusb-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "AnchorUSB CLI — init, unlock, lock, status"
+
+[[bin]]
+name = "anchorusb"
+path = "src/main.rs"
+
+[dependencies]
+anchorusb-core = { path = "../anchorusb-core" }
+clap = { version = "4", features = ["derive", "env"] }
+rpassword = "7"
+thiserror = "1"
