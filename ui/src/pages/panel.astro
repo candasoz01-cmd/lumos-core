@@ -748,6 +748,67 @@ const PANEL_DEBUG = import.meta.env.DEV;
         border-radius: 4px;
         line-height: 1.2;
       }
+      .panel-nav-label-block {
+        display: flex;
+        flex-direction: column;
+        gap: 0.08rem;
+        min-width: 0;
+        flex: 1;
+      }
+      .panel-nav-status-subline {
+        font-size: 0.58rem;
+        font-weight: 450;
+        line-height: 1.2;
+        color: rgb(148 163 184 / 0.72);
+        letter-spacing: 0.01em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .panel-nav-status-pill {
+        display: inline-block;
+        flex-shrink: 0;
+        max-width: 6.4rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 0.5rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        padding: 0.12rem 0.36rem;
+        border-radius: 4px;
+        line-height: 1.25;
+      }
+      .lumos-status-pill--ready {
+        color: var(--lumos-status-ready-fg);
+        background: var(--lumos-status-ready-bg);
+        border: 1px solid var(--lumos-status-ready-border);
+      }
+      .lumos-status-pill--developing {
+        color: var(--lumos-status-developing-fg);
+        background: var(--lumos-status-developing-bg);
+        border: 1px solid var(--lumos-status-developing-border);
+      }
+      .lumos-status-pill--awaiting {
+        color: var(--lumos-status-awaiting-fg);
+        background: var(--lumos-status-awaiting-bg);
+        border: 1px solid var(--lumos-status-awaiting-border);
+      }
+      .lumos-status-pill--off {
+        color: var(--lumos-status-off-fg);
+        background: var(--lumos-status-off-bg);
+        border: 1px solid var(--lumos-status-off-border);
+      }
+      .lumos-status-pill--active {
+        color: var(--lumos-status-active-fg);
+        background: var(--lumos-status-active-bg);
+        border: 1px solid var(--lumos-status-active-border);
+      }
+      .lumos-status-pill--layers {
+        color: var(--lumos-status-layers-fg);
+        background: var(--lumos-status-layers-bg);
+        border: 1px solid var(--lumos-status-layers-border);
+      }
       .panel-nav-inactive-badge {
         flex-shrink: 0;
         max-width: 5.2rem;
@@ -756,6 +817,66 @@ const PANEL_DEBUG = import.meta.env.DEV;
         white-space: nowrap;
         font-size: 0.5rem;
         letter-spacing: 0.04em;
+      }
+      .panel-root-status {
+        margin: 0.35rem 0.35rem 0.15rem 0.35rem;
+        padding: 0.45rem 0.55rem 0.55rem;
+        border-radius: 8px;
+        border: 1px solid var(--lumos-teal-18);
+        background: rgb(2 6 23 / 0.42);
+      }
+      .panel-root-status > summary {
+        cursor: pointer;
+        font-size: 0.68rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: rgb(148 163 184 / 0.88);
+        list-style: none;
+      }
+      .panel-root-status > summary::-webkit-details-marker {
+        display: none;
+      }
+      .panel-root-status > summary::before {
+        content: "▸ ";
+        opacity: 0.72;
+      }
+      .panel-root-status[open] > summary::before {
+        content: "▾ ";
+      }
+      .panel-root-status-disclaimer {
+        margin: 0.35rem 0 0.45rem;
+        font-size: 0.58rem;
+        line-height: 1.35;
+        color: rgb(148 163 184 / 0.72);
+      }
+      .panel-root-status-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0.28rem;
+      }
+      .panel-root-status-list li {
+        font-size: 0.62rem;
+        line-height: 1.35;
+        color: rgb(226 232 240 / 0.86);
+      }
+      .panel-root-status-footnote {
+        margin: 0.45rem 0 0;
+        font-size: 0.56rem;
+        line-height: 1.4;
+        color: rgb(148 163 184 / 0.72);
+      }
+      .panel-root-status-link {
+        color: rgb(94 234 212 / 0.88);
+        text-decoration: none;
+        margin-left: 0.2rem;
+      }
+      .panel-root-status-link:hover,
+      .panel-root-status-link:focus-visible {
+        text-decoration: underline;
       }
       .panel-nav__primary button[data-module-availability="inactive"]:not([aria-current="true"]),
       .panel-nav__lumos button[data-module-availability="inactive"]:not([aria-current="true"]) {
@@ -4570,34 +4691,57 @@ const PANEL_DEBUG = import.meta.env.DEV;
               <span class="panel-nav-group-toggle-label" data-i18n="panel.nav.calisma">Çalışma</span>
             </button>
             <div class="panel-nav-group-items" id="panel-nav-items-calisma">
-              <button type="button" data-module="sohbet" aria-current="true">
-                <span class="panel-nav-label" data-i18n="panel.nav.sohbet">Sohbet</span>
+              <button type="button" data-module="sohbet" aria-current="true" data-i18n-title="panel.nav.statusTitle.sohbet">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.sohbet">Sohbet</span>
+                  <span class="panel-nav-status-subline" data-i18n="panel.nav.statusSub.sohbet">köprü olmadan sınırlı</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--ready" data-i18n="panel.nav.status.sohbet">🟢 Hazır</span>
               </button>
-              <button type="button" data-module="gorevler">
-                <span class="panel-nav-label" data-i18n="panel.nav.gorevler">Görevler</span>
+              <button type="button" data-module="gorevler" data-i18n-title="panel.nav.statusTitle.gorevler">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.gorevler">Görevler</span>
+                  <span class="panel-nav-status-subline" data-i18n="panel.nav.statusSub.gorevler">yerel görevler</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--ready" data-i18n="panel.nav.status.gorevler">🟢 Hazır</span>
               </button>
-              <button type="button" data-module="ses" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
-                <span class="panel-nav-label" data-i18n="panel.nav.ses">Ses</span>
-                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Önizleme</span>
+              <button type="button" data-module="ses" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.ses">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.ses">Ses</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--developing" data-i18n="panel.nav.status.ses">🟡 Gelişiyor</span>
               </button>
-              <button type="button" data-module="medya" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
-                <span class="panel-nav-label" data-i18n="panel.nav.medya">Medya</span>
-                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Önizleme</span>
+              <button type="button" data-module="medya" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.medya">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.medya">Medya</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--awaiting" data-i18n="panel.nav.status.medya">🔵 Bağlantı bekliyor</span>
               </button>
-              <button type="button" data-module="sosyal" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
-                <span class="panel-nav-label" data-i18n="panel.nav.sosyal">Sosyal</span>
-                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Önizleme</span>
+              <button type="button" data-module="sosyal" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.sosyal">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.sosyal">Sosyal</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--awaiting" data-i18n="panel.nav.status.sosyal">🔵 Bağlantı bekliyor</span>
               </button>
-              <button type="button" data-module="posta" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
-                <span class="panel-nav-label" data-i18n="panel.nav.posta">Posta</span>
-                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Önizleme</span>
+              <button type="button" data-module="posta" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.posta">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.posta">Posta</span>
+                  <span class="panel-nav-status-subline" data-i18n="panel.nav.statusSub.posta">İzin bekliyor · OD-031</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--developing" data-i18n="panel.nav.status.posta">🟡 Mimari hazır</span>
               </button>
-              <button type="button" data-module="dosyalar">
-                <span class="panel-nav-label" data-i18n="panel.nav.dosyalar">Dosyalar</span>
+              <button type="button" data-module="dosyalar" data-i18n-title="panel.nav.statusTitle.dosyalar">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.dosyalar">Dosyalar</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--ready" data-i18n="panel.nav.status.dosyalar">🟢 Hazır</span>
               </button>
-              <button type="button" class="panel-nav-research-chip" data-module="kuantum" data-module-availability="inactive" data-i18n-title="panel.nav.kuantumResearchTitle">
-                <span class="panel-nav-label" data-i18n="panel.nav.kuantum">Kuantum</span>
-                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Önizleme</span>
+              <button type="button" class="panel-nav-research-chip" data-module="kuantum" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.kuantum">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.kuantum">Kuantum</span>
+                  <span class="panel-nav-status-subline" data-i18n="panel.nav.statusSub.kuantum">ORAA aktif · Qiskit Aer öncelik 1</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--developing" data-i18n="panel.nav.status.kuantum">🟡 Mimari hazır</span>
               </button>
             </div>
           </div>
@@ -5645,6 +5789,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
               <dt data-i18n="panel.modules.quantum.entropyLab.fallbackLabel">Sessiz fallback</dt>
               <dd id="panel-quantum-entropy-fallback"></dd>
             </dl>
+            <p class="medya-intro panel-quantum-disclaimer" data-i18n="panel.modules.quantum.disclaimer">
+              ORAA (Operational Risk &amp; Assurance Agent) aktif; Quantum Layer mimari hazır. İlk kuantum sağlayıcı (Qiskit Aer öncelik 1) bekleniyor — aktif üretim veya kuantum-güvenli iddiası yok.
+            </p>
             <p class="medya-intro" data-i18n="panel.modules.quantum.intro">
               Aşağıdaki kartlar olasılık, belirsizlik ve güvenlik araştırması kavramlarını özetler; kesin vaatler yerine şeffaf
               sınırlar önceliklidir.
@@ -6059,43 +6206,86 @@ const PANEL_DEBUG = import.meta.env.DEV;
               <span class="panel-nav-group-toggle-label" data-i18n="panel.nav.lumosCore">Lumos çekirdeği</span>
             </button>
             <div class="panel-nav-group-items" id="panel-nav-items-lumos" hidden>
-              <button type="button" data-module="yayincilik" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
-                <span class="panel-nav-label" data-i18n="panel.nav.yayincilik">Yayıncılık</span>
-                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Önizleme</span>
+              <button type="button" data-module="yayincilik" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.yayincilik">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.yayincilik">Yayıncılık</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--off" data-i18n="panel.nav.status.yayincilik">⚪ Kapalı</span>
               </button>
-              <button type="button" data-module="yapayzeka" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
-                <span class="panel-nav-label" data-i18n="panel.nav.yapayzeka">Yapay Zekâ</span>
-                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Önizleme</span>
+              <button type="button" data-module="yapayzeka" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.yapayzeka">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.yapayzeka">Yapay Zekâ</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--off" data-i18n="panel.nav.status.yapayzeka">⚪ Kapalı</span>
               </button>
-              <button type="button" data-module="kuantum" data-module-availability="inactive" data-i18n-title="panel.nav.kuantumResearchTitle">
-                <span class="panel-nav-label" data-i18n="panel.nav.kuantum">Kuantum</span>
-                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Önizleme</span>
+              <button type="button" data-module="kuantum" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.kuantum">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.kuantum">Kuantum</span>
+                  <span class="panel-nav-status-subline" data-i18n="panel.nav.statusSub.kuantum">ORAA aktif · Qiskit Aer öncelik 1</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--developing" data-i18n="panel.nav.status.kuantum">🟡 Mimari hazır</span>
               </button>
-              <button type="button" data-module="entegrasyon" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
-                <span class="panel-nav-label" data-i18n="panel.nav.entegrasyon">Entegrasyon</span>
-                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Önizleme</span>
+              <button type="button" data-module="entegrasyon" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.entegrasyon">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.entegrasyon">Entegrasyon</span>
+                  <span class="panel-nav-status-subline" data-i18n="panel.nav.statusSub.entegrasyon">7 katman tanımlı</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--layers" data-i18n="panel.nav.status.entegrasyon">🔗 7 katman</span>
               </button>
-              <button type="button" data-module="kimlik" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
-                <span class="panel-nav-label" data-i18n="panel.nav.kimlik">Kimlik</span>
-                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Önizleme</span>
+              <button type="button" data-module="kimlik" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.kimlik">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.kimlik">Kimlik</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--off" data-i18n="panel.nav.status.kimlik">⚪ Kapalı</span>
               </button>
-              <button type="button" data-module="yetenekler">
-                <span class="panel-nav-label" data-i18n="panel.nav.yetenekler">Yetenekler</span>
+              <button type="button" data-module="yetenekler" data-i18n-title="panel.nav.statusTitle.yetenekler">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.yetenekler">Yetenekler</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--ready" data-i18n="panel.nav.status.yetenekler">🟢 Hazır</span>
               </button>
-              <button type="button" data-module="guvenlik" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
-                <span class="panel-nav-label" data-i18n="panel.nav.guvenlik">Güvenlik</span>
-                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Önizleme</span>
+              <button type="button" data-module="guvenlik" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.guvenlik">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.guvenlik">Güvenlik</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--active" data-i18n="panel.nav.status.guvenlik">🛡️ Aktif</span>
               </button>
-              <button type="button" data-module="dunya" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
-                <span class="panel-nav-label" data-i18n="panel.nav.dunya">Dünya</span>
-                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Önizleme</span>
+              <button type="button" data-module="dunya" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.dunya">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.dunya">Dünya</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--off" data-i18n="panel.nav.status.dunya">⚪ Kapalı</span>
               </button>
-              <button type="button" data-module="ayarlar" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
-                <span class="panel-nav-label" data-i18n="panel.nav.ayarlar">Ayarlar</span>
-                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Önizleme</span>
+              <button type="button" data-module="ayarlar" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.ayarlar">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.ayarlar">Ayarlar</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--off" data-i18n="panel.nav.status.ayarlar">⚪ Kapalı</span>
               </button>
             </div>
           </div>
+          <details class="panel-root-status" id="panel-root-status">
+            <summary data-i18n="panel.rootStatus.title">Kök Durumu</summary>
+            <p class="panel-root-status-disclaimer" data-i18n="panel.rootStatus.disclaimer">
+              Altyapı durumu — canlı ölçüm değil; dokümantasyon tabanlı özet
+            </p>
+            <ul class="panel-root-status-list" aria-label="Altyapı durumu özeti" data-i18n-aria-label="panel.rootStatus.disclaimer">
+              <li data-i18n="panel.rootStatus.core">🌳 Çekirdek — Sağlıklı</li>
+              <li data-i18n="panel.rootStatus.security">🛡️ Güven — Aktif</li>
+              <li data-i18n="panel.rootStatus.oraa">👀 ORAA — Aktif</li>
+              <li data-i18n="panel.rootStatus.quantum">⚛️ Quantum Layer — Mimari hazır</li>
+              <li data-i18n="panel.rootStatus.integration">🔗 Entegrasyon — 7 katman tanımlı</li>
+              <li data-i18n="panel.rootStatus.hydroponic">
+                🌱 Topraksız mod — Köprü veya tam toprak yokken yerel katmanlar çalışır; sınırlı mod normaldir.
+              </li>
+            </ul>
+            <p class="panel-root-status-footnote">
+              <span data-i18n="panel.rootStatus.katmanAFootnote">
+                Katman A (yalnızca arayüz): köprü/toprak yokken sınırlı mod beklenen yoldur.
+              </span>
+              <a href="/#kurulum" class="panel-root-status-link" data-i18n="panel.rootStatus.katmanALink">Kurulum · Katman A</a>
+            </p>
+          </details>
         </nav>
       </div>
     </div>
