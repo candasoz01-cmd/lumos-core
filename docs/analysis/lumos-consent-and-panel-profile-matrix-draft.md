@@ -94,7 +94,7 @@ CU4, CU6, CU7 ve ADR-010 (`consent` ≠ `confirmation` ≠ `general_approval`) i
 
 | Consent katmanı | Kod / sözleşme karşılığı | Örnek panel davranışları |
 |-----------------|--------------------------|---------------------------|
-| **Silent allowed** | Karar katmanı `analiz`; step `read`/`analyze`/`plan`; profil `rapor+` | Dashboard okuma, görev listesi, trash listesi, evidence görüntüleme, durum/guidance |
+| **Silent allowed** | Karar katmanı `analiz`; step `read`/`analyze`/`plan`; profil `rapor+` | Panel okuma, görev listesi, trash listesi, evidence görüntüleme, durum/guidance |
 | **Notification required** | `safe_local` under `guvenli_yurut`; sandbox yazım öncesi codex uyarısı | Panel codex banner; gate `reason` metni; simulasyon etiketi gösterimi (C4) |
 | **Single approval required** | `general_approval=True` (kisitli_otonom); işlem bazlı onay (CU4) | Genel onay CLI/panel consent; görev oluştur/tamamla (online + consent); Computer Use oturumu başlatma (hedef) |
 | **Every-time approval required** | Yüksek risk; mod geçişi okuma→dış-etki (CU5) | Kalıcı silme confirm body; Computer Use çok adımlı ara onay (needs-review OD-012); Admin kritik config |

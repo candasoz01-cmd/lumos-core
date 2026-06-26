@@ -16,7 +16,7 @@ Bu belge **release engellerini** (RB-XX) listeler. Teknik borç uygulama sıras�
 ## 1. Özet
 
 - ADR-012 Security Codex **kabul edildi** ancak **CLOSED değil** — Wave 1 Madde 1–2 (#491–#498) kapandı; kalan: Trust Faz 4, sensitivity↔gate, Panel LockState — ayrıntı [prep assessment §1](ADR-012-enforcement-prep-assessment.md#1-kısa-teknik-değerlendirme).
-- ADR-012 enforcement Madde 3–6 **karar bekliyor** (insan onayı); Madde 1–2 **kapandı** (Seçenek B, Wave 1) — bkz. [RB-05](#rb-05--adr-012-enforcement-altı-karar-maddesi-karar-bekliyor).
+- ADR-012 enforcement Madde 3–6 **karar bekliyor** (insan onayı); Madde 1–2 **kapandı** (Seçenek B, Wave 1) — bkz. [RB-05](#rb-05-adr-012-enforcement-altı-karar-maddesi-karar-bekliyor).
 - Packaging/docs: `pip install` sonrası tam CLI/gate/bridge yolu garanti değil (RB-06); ~~README release checklist kırık referans (RB-07)~~ RB-07 checklist mevcut; publish CI yok (RB-08); README kararlı OSS iddiası yok (RB-09).
 - Vault (OD-001–005) ve mail/vault stub'ları **decision-approved / implementation-pending**; public boundary demo-safe stub (RB-10, RB-16).
 - Quantum Readiness Faz-2 **docs-kapalı (kısmi)** — release blocker **değil** (§5).
@@ -101,7 +101,7 @@ Bu belge **release engellerini** (RB-XX) listeler. Teknik borç uygulama sıras�
 | **Kategori** | docs / packaging |
 | **Blokaj seviyesi** | ~~hard blocker~~ **kapandı (2026-06-21)** |
 | **Açıklama** | ~~README L60 `docs/GITHUB_RELEASE_CHECKLIST.md` linkler; repo'da dosya bulunamadı.~~ Canonical checklist oluşturuldu; README referansı geçerli. |
-| **Kanıt** | [`GITHUB_RELEASE_CHECKLIST.md`](GITHUB_RELEASE_CHECKLIST.md); README L60 |
+| **Kanıt** | [`GITHUB_RELEASE_CHECKLIST.md`](../GITHUB_RELEASE_CHECKLIST.md); README L60 |
 | **30 gün içinde kapanış koşulu** | ~~Checklist dosyası oluşturulur…~~ **Sağlandı** — docs PR. |
 | **Bağımlılıklar** | RB-08 (publish CI hâlâ açık) |
 

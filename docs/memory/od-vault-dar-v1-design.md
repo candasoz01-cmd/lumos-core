@@ -115,7 +115,7 @@ Onaylı ilkeler: [`od-023-vault-ux-language-decision.md`](./od-023-vault-ux-lang
 
 ## 5. V1 vault teknoloji değerlendirme çerçevesi
 
-**İlke:** Güçlü OSS veya uygun SaaS varken sıfırdan vault inşa etmek **zorunlu değildir** ([`ozellik-oncesi-hazir-cozum-taramasi`](../../.cursor/rules/ozellik-oncesi-hazir-cozum-taramasi.mdc) ile uyumlu). Seçim **ayrı onaylı uygulama paketi** gerektirir.
+**İlke:** Güçlü OSS veya uygun SaaS varken sıfırdan vault inşa etmek **zorunlu değildir** ([`ozellik-oncesi-hazir-cozum-taramasi`](../ozellik-oncesi-hazir-cozum-taramasi.md) ile uyumlu). Seçim **ayrı onaylı uygulama paketi** gerektirir.
 
 ### 5.1 Değerlendirme eksenleri
 

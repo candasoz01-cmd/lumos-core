@@ -5,7 +5,7 @@
 | **Belge türü** | Teknik spike (plan only) |
 | **Tarih** | 2026-06-21 |
 | **Durum** | **Spike tamamlandı** — uygulama defer (Commercial Launch P1) |
-| **Kaynak** | [release-blockers.md](release-blockers.md#rb-06--python-paketleme-kando-bağımlılıkları-wheel-dışında), [pre-commercial-release-plan.md](pre-commercial-release-plan.md) |
+| **Kaynak** | [release-blockers.md](release-blockers.md#rb-06-python-paketleme-kando-bağımlılıkları-wheel-dışında), [pre-commercial-release-plan.md](pre-commercial-release-plan.md) |
 
 ---
 

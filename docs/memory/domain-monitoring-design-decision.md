@@ -180,12 +180,12 @@ Bu bölüm **ürün risk çerçevesidir**; özel skor algoritması, ML modeli ve
 
 ## 4. Kullanıcı sunum modeli
 
-### 4.1 Rapor vs dashboard (firm ilke + bekleyen UX)
+### 4.1 Rapor vs Panel izleme özeti (firm ilke + bekleyen UX)
 
 | Sunum türü | Rol | Onaylı ilke |
 |------------|-----|-------------|
 | **Rapor** | Periyodik veya talep üzerine özet; okuma ağırlıklı | Varsayılan bilgi yüzeyi; oturum izni yeterli |
-| **Dashboard** | Sürekli görünür izleme özeti; filtre ve watchlist yönetimi | Ürün UX kararı — `implementation-pending` |
+| **Panel izleme özeti** | Sürekli görünür izleme özeti; filtre ve watchlist yönetimi | Ürün UX kararı — `implementation-pending` |
 | **Kart / mesaj (chat)** | Tek domain veya kısa liste inline sunumu | UI chat deneyimi ile hizalanacak — `implementation-pending` |
 
 **Firm karar:** Kullanıcı her kayıtta en az şunları görür:

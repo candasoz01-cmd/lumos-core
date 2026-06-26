@@ -74,7 +74,7 @@ See [`docs/memory/public-repo-boundary.md`](memory/public-repo-boundary.md).
 
 - Source systems (GitHub, Slack, Google) remain authoritative.
 - Lumos stores summaries with **provenance**, not unapproved full copies.
-- Audit records **what happened**, not raw user message bodies ([`lumos-audit-log-contract.md`](lumos-audit-log-contract.md)).
+- Audit records **what happened**, not raw user message bodies ([`lumos-audit-log-contract.md`](analysis/lumos-audit-log-contract.md)).
 
 ---
 

@@ -31,7 +31,7 @@ Lumos bugün **Aşama 0 (Pre-Alpha)** konumundadır. Internal Alpha **girişine 
 
 ## Aşama 1 — Internal Alpha (giriş kriterleri)
 
-Kaynak: [`pre-commercial-release-plan.md` §89–99](./pre-commercial-release-plan.md#aşama-1--internal-alpha)
+Kaynak: [`pre-commercial-release-plan.md` §89–99](./pre-commercial-release-plan.md#aşama-1-internal-alpha)
 
 | # | Kriter | Durum | Kanıt | İlgili gap / RB / OD |
 |---|--------|-------|-------|----------------------|
@@ -47,7 +47,7 @@ Kaynak: [`pre-commercial-release-plan.md` §89–99](./pre-commercial-release-pl
 
 ## Aşama 2 — Closed Pilot (giriş kriterleri)
 
-Kaynak: [`pre-commercial-release-plan.md` §147–155](./pre-commercial-release-plan.md#aşama-2--closed-pilot)
+Kaynak: [`pre-commercial-release-plan.md` §147–155](./pre-commercial-release-plan.md#aşama-2-closed-pilot)
 
 | # | Kriter | Durum | Kanıt | İlgili gap / RB / OD |
 |---|--------|-------|-------|----------------------|
@@ -63,7 +63,7 @@ Kaynak: [`pre-commercial-release-plan.md` §147–155](./pre-commercial-release-
 
 ## Aşama 3 — Open Beta (giriş kriterleri)
 
-Kaynak: [`pre-commercial-release-plan.md` §206–218](./pre-commercial-release-plan.md#aşama-3--open-beta)
+Kaynak: [`pre-commercial-release-plan.md` §206–218](./pre-commercial-release-plan.md#aşama-3-open-beta)
 
 | # | Kriter | Durum | Kanıt | İlgili gap / RB / OD |
 |---|--------|-------|-------|----------------------|
@@ -80,7 +80,7 @@ Kaynak: [`pre-commercial-release-plan.md` §206–218](./pre-commercial-release-
 
 ## Aşama 4 — Commercial Launch (giriş kriterleri)
 
-Kaynak: [`pre-commercial-release-plan.md` §269–285](./pre-commercial-release-plan.md#aşama-4--commercial-launch)
+Kaynak: [`pre-commercial-release-plan.md` §269–285](./pre-commercial-release-plan.md#aşama-4-commercial-launch)
 
 | # | Kriter | Durum | Kanıt | İlgili gap / RB / OD |
 |---|--------|-------|-------|----------------------|

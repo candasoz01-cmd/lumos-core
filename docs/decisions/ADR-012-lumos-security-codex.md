@@ -193,7 +193,7 @@ ADR-010: **consent ≠ general_approval ≠ confirmation**. İşlem bazlı üç�
 | Panel mutasyon confirmation gate (PR-C3) | **Tamamlandı** — #456 (opt-in) |
 | CU7 preview endpoint + modal (PR-C5) | **Tamamlandı** — #457 |
 | CLI `onayla` confirmation (PR-C4) | **Tamamlandı** — #458 |
-| `SECURITY_NEVER_AUTO` tüm silme/yazma yolları | **Kapandı** — Wave 1 Madde 2 (Seçenek B): eşleme tablosu #497, engine + panel/CLI/store sync #498; karakterizasyon #496 | [decision matrix Madde 2](ADR-012-enforcement-decision-matrix.md#madde-2--p2-genişletme-sınırı-dar-engine-vs-tam-eşleme-tablosu), [P2 analiz](../analysis/security-never-auto-p2-and-helper-proposal.md) |
+| `SECURITY_NEVER_AUTO` tüm silme/yazma yolları | **Kapandı** — Wave 1 Madde 2 (Seçenek B): eşleme tablosu #497, engine + panel/CLI/store sync #498; karakterizasyon #496 | [decision matrix Madde 2](../analysis/ADR-012-enforcement-decision-matrix.md#madde-2-p2-genişletme-sınırı-dar-engine-vs-tam-eşleme-tablosu), [P2 analiz](../analysis/security-never-auto-p2-and-helper-proposal.md) |
 | PR-C6 köprü confirmation namespace hizalama | **Kapandı** — Wave 1 Madde 1 (Seçenek B): consume/validate #492–#493, gate/dispatch #494, approve/resume wiring #495; shadow #462 geçiş tamamlandı |
 | Trust motor (ADR-007) kanıt zinciri genişletmesi | Bekliyor — Faz 4 |
 | Confirmation varsayılan-on ürün kararı | **Kapandı (docs)** — opt-in korunur (2026-06-21, #461); E2E #460; tam default-on ertelendi |
