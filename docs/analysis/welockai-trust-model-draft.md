@@ -5,7 +5,7 @@
 | Durum | **Mimari foundation taslak** — kod yok; yetki karışıklığını önleme belgesi |
 | Tarih | 2026-06-26 |
 | Önkoşul | [`welockai-charter-draft.md`](./welockai-charter-draft.md) |
-| İlgili | [ADR-012](../decisions/ADR-012-lumos-security-codex.md), [`lumos-audit-log-contract.md`](./lumos-audit-log-contract.md), [`lumos-privacy-manifesto-draft.md`](./lumos-privacy-manifesto-draft.md), [`public-repo-boundary.md`](../memory/public-repo-boundary.md), [`device-connection-information-architecture.md`](./device-connection-information-architecture.md), [`lumos-mobile-approval-mvp-plan.md`](./lumos-mobile-approval-mvp-plan.md), `src/policy/confirmation_policy.py`, `src/task_engine/profiles.py` |
+| İlgili | [ADR-012](../decisions/ADR-012-lumos-security-codex.md), [`lumos-log-vs-approval.md`](./lumos-log-vs-approval.md), [`lumos-audit-log-contract.md`](./lumos-audit-log-contract.md), [`lumos-privacy-manifesto-draft.md`](./lumos-privacy-manifesto-draft.md), [`public-repo-boundary.md`](../memory/public-repo-boundary.md), [`device-connection-information-architecture.md`](./device-connection-information-architecture.md), [`lumos-mobile-approval-mvp-plan.md`](./lumos-mobile-approval-mvp-plan.md), `src/policy/confirmation_policy.py`, `src/task_engine/profiles.py` |
 
 **Sınır notu:** Bu model Lumos açık kaynak çekirdeği ve WeLockAI ticari katmanı için **ortak güven sözleşmesidir**. Üretim kimlik, faturalama ve kurumsal politika uygulaması yalnızca WeLockAI private katmanında yaşar; bu repoda enforcement kodu beklenmez.
 
@@ -26,6 +26,8 @@ Bu belgenin amacı, Lumos ekosisteminde **yetki ve güven sınırlarının gelec
 | **Yanlış onay yüzeyi** | Köprü secret'ının mobile taşınması | Mobil onay MVP — relay token, loopback kuralı |
 
 Bu taslak, mevcut repo sözleşmelerine (`confirmation_policy`, `profiles.SECURITY_NEVER_AUTO`, device-connection IA, mobil/köprü onay) dayanır; yeni gevşetme getirmez.
+
+**Onay vs kayıt:** Bu modeldeki onay zinciri (§6) ve audit/pending ayrımı, **[Karar ≠ Kayıt](./lumos-log-vs-approval.md)** ilkesiyle hizalıdır — onay geleceği yönetir, kayıt geçmişi korur; `pending_approvals` operasyonel onay state'idir, bridge audit ve ADR/git kalıcı iz katmanıdır. İki mekanizma birbirinin yerine geçmez.
 
 ---
 
@@ -291,6 +293,7 @@ Kullanıcı «İzin durumu» ekranında hangi rolün neye izin verdiğini **tek 
 | Kaynak | Bu modelde kullanımı |
 |--------|----------------------|
 | [ADR-012](../decisions/ADR-012-lumos-security-codex.md) | Tek dış kapı, onay + kanıt, trash, mock ayrımı |
+| [`lumos-log-vs-approval.md`](./lumos-log-vs-approval.md) | Karar ≠ Kayıt ilkesi; onay vs kayıt sorumlulukları |
 | [`lumos-audit-log-contract.md`](./lumos-audit-log-contract.md) | Olay tipleri, pending ≠ audit, NEVER_AUTO blok |
 | [`lumos-privacy-manifesto-draft.md`](./lumos-privacy-manifesto-draft.md) | Kullanıcı kontrolü, audit dengesi |
 | [`public-repo-boundary.md`](../memory/public-repo-boundary.md) | OSS vs private rol sınırı |
