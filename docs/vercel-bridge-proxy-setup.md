@@ -57,6 +57,22 @@ HTTP **503** — **beklenen davranış**; panel «bağlantı yapılandırılmam�
 
 ---
 
+## Quick start for owner (prod köprü — 5 adım)
+
+Secret veya tünel URL'si **repoya yazılmaz**. Owner Vercel dashboard + yerel makinede yapar.
+
+1. **Yerel köprüyü doğrula** — `make bridge` (veya runbook); `127.0.0.1:8765` yanıt veriyor mu kontrol et.
+2. **HTTPS tünel aç** — ngrok, Cloudflare Tunnel vb. ile köprüyü internete aç; **tünel base URL**'ini not et (sonda `/` yok).
+3. **Vercel env ekle** — Proje → Settings → Environment Variables → Production (+ Preview isteğe bağlı):
+   - `BRIDGE_UPSTREAM_URL` = tünel base URL (ör. `https://xxxx.ngrok-free.app`)
+   - `KANDO_BRIDGE_SECRET` = köprü ile **aynı** gizli değer (yalnızca Vercel + yerel köprüde; repoda yok)
+4. **Redeploy** — Env değişikliğinden sonra Production redeploy (Vercel otomatik veya manual).
+5. **Smoke** — `curl -sS -o /dev/null -w "%{http_code}" https://welockai.com/api/bridge/task` → **503 değil** (köprü yanıt kodu); panelden görev gönder → 200.
+
+Env yokken **503 = beklenen**; adım 3 atlanırsa panel Sınırlı modda kalır — deploy hatası sayılmaz.
+
+---
+
 ## Yerel doğrulama
 
 ```bash
@@ -94,4 +110,4 @@ Köprü yapılandırıldıktan sonra aynı uç nokta köprü yanıt kodunu yans�
 
 ---
 
-*Son güncelleme: 2026-06-26 — 503 documented as expected without Vercel env.*
+*Son güncelleme: 2026-06-26 — owner quick-start (5 adım); 503 beklenen davranış.*
