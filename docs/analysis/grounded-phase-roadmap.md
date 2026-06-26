@@ -179,10 +179,17 @@ flowchart LR
 
 ---
 
+## Ayrı iz — AnchorUSB (güvenli taşınabilir vault)
+
+**AnchorUSB** (USB vault + yerel olay günlüğü + insan-onaylı raporlama) bu 5 katmanlı Lumos yol haritasından **bağımsız paralel iz**dir; Katman 1–5 sırasını bloklamaz. Mimari: [`secure-device-framework.md`](./secure-device-framework.md) — paket: [`secure-device/README.md`](./secure-device/README.md).
+
+---
+
 ## Çapraz referanslar
 
 | Belge | Rol |
 |-------|-----|
+| [`secure-device-framework.md`](./secure-device-framework.md) | AnchorUSB — ayrı ürün izi (docs only) |
 | [`integrations-expansion-audit.md`](./integrations-expansion-audit.md) | Entegrasyon envanteri |
 | [`backlog-closure-report.md`](./backlog-closure-report.md) | NA / owner action listesi |
 | [`INTERNAL_ALPHA_OPERATIONS.md`](../INTERNAL_ALPHA_OPERATIONS.md) | Alpha ops + Phase 2 kapısı |
