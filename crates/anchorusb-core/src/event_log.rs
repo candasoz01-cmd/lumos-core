@@ -12,6 +12,7 @@ pub enum EventType {
     Locked,
     IoSummary,
     AccessDenied,
+    SuspiciousFlag,
 }
 
 impl EventType {
@@ -22,6 +23,7 @@ impl EventType {
             Self::Locked => "LOCKED",
             Self::IoSummary => "IO_SUMMARY",
             Self::AccessDenied => "ACCESS_DENIED",
+            Self::SuspiciousFlag => "SUSPICIOUS_FLAG",
         }
     }
 
@@ -32,6 +34,7 @@ impl EventType {
             Self::Locked => 3,
             Self::IoSummary => 4,
             Self::AccessDenied => 5,
+            Self::SuspiciousFlag => 6,
         }
     }
 
@@ -42,6 +45,7 @@ impl EventType {
             3 => Ok(Self::Locked),
             4 => Ok(Self::IoSummary),
             5 => Ok(Self::AccessDenied),
+            6 => Ok(Self::SuspiciousFlag),
             _ => Err(AnchorError::InvalidVault(format!("unknown event type {b}"))),
         }
     }
