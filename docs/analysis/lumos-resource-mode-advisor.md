@@ -94,6 +94,12 @@ Katman enum: `ResourceLayer` — `quantum`, `cyber`, `vision`, `voice`, `integra
 
 ---
 
+## Panel UX (ORAA)
+
+Panel, yerel görev sunucusu (`panel/scripts/panel_tasks_server.py`, varsayılan `:8766`) üzerinden ORAA akışını sunar: `GET /resource-mode/propose?layer=quantum` öneri JSON döner; kullanıcı **Geç** veya **Hayır, aktif kalsın** ile `POST /resource-mode/apply` çağrılır (`user_approved: true|false`). Kart yalnızca köprü bağlı veya yerel görev API erişilebilirken görünür; mod değişimi **asla otomatik uygulanmaz** — yalnızca açık onaylı `apply_mode_change`.
+
+---
+
 ## Katman kaydı
 
 Detaylı katman tablosu: [`lumos-resource-mode-layers.md`](./lumos-resource-mode-layers.md).

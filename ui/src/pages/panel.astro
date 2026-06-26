@@ -2166,6 +2166,63 @@ const PANEL_DEBUG = import.meta.env.DEV;
         letter-spacing: 0.01em;
         color: rgba(168, 188, 210, 0.72);
       }
+      .panel-resource-mode-advisor {
+        margin: 0 0.85rem 0.65rem;
+        padding: 0.78rem 0.92rem 0.82rem;
+        border-radius: 10px;
+        border: 1px solid rgba(120, 168, 255, 0.28);
+        background: rgba(8, 14, 28, 0.72);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+      }
+      .panel-resource-mode-advisor__title {
+        margin: 0 0 0.35rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        color: rgba(226, 236, 248, 0.94);
+      }
+      .panel-resource-mode-advisor__reason {
+        margin: 0 0 0.55rem;
+        font-size: 0.74rem;
+        line-height: 1.48;
+        color: rgba(168, 188, 210, 0.88);
+      }
+      .panel-resource-mode-advisor__meta {
+        margin: 0 0 0.62rem;
+        font-size: 0.68rem;
+        line-height: 1.4;
+        color: rgba(140, 162, 188, 0.78);
+      }
+      .panel-resource-mode-advisor__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+      }
+      .panel-resource-mode-advisor__btn {
+        appearance: none;
+        border: 1px solid rgba(120, 168, 255, 0.35);
+        border-radius: 8px;
+        padding: 0.38rem 0.72rem;
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        cursor: pointer;
+        background: rgba(18, 28, 48, 0.88);
+        color: rgba(226, 236, 248, 0.92);
+      }
+      .panel-resource-mode-advisor__btn:hover,
+      .panel-resource-mode-advisor__btn:focus-visible {
+        border-color: rgba(150, 198, 255, 0.55);
+        outline: none;
+      }
+      .panel-resource-mode-advisor__btn--primary {
+        background: rgba(56, 112, 210, 0.42);
+        border-color: rgba(120, 168, 255, 0.55);
+      }
+      .panel-resource-mode-advisor__btn:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
       .lumos-capability-limit-note {
         grid-column: 1 / -1;
         margin: 0.12rem 0 0;
@@ -4381,6 +4438,37 @@ const PANEL_DEBUG = import.meta.env.DEV;
           <a href="/cyber" data-i18n="umbrella.nav.cyber">Cyber</a>
         </nav>
       </header>
+      <section
+        id="panel-resource-mode-advisor"
+        class="panel-resource-mode-advisor"
+        role="region"
+        aria-labelledby="panel-resource-mode-advisor-title"
+        hidden
+      >
+        <h2 id="panel-resource-mode-advisor-title" class="panel-resource-mode-advisor__title" data-i18n="panel.modules.resourceModeAdvisor.title">
+          Kaynak modu önerisi
+        </h2>
+        <p id="panel-resource-mode-advisor-reason" class="panel-resource-mode-advisor__reason"></p>
+        <p id="panel-resource-mode-advisor-meta" class="panel-resource-mode-advisor__meta"></p>
+        <div class="panel-resource-mode-advisor__actions">
+          <button
+            type="button"
+            id="panel-resource-mode-advisor-accept"
+            class="panel-resource-mode-advisor__btn panel-resource-mode-advisor__btn--primary"
+            data-i18n="panel.modules.resourceModeAdvisor.accept"
+          >
+            Geç
+          </button>
+          <button
+            type="button"
+            id="panel-resource-mode-advisor-reject"
+            class="panel-resource-mode-advisor__btn"
+            data-i18n="panel.modules.resourceModeAdvisor.reject"
+          >
+            Hayır, aktif kalsın
+          </button>
+        </div>
+      </section>
       <div class="panel-body">
         <nav class="panel-nav__primary" aria-label="Çalışma modülleri" data-i18n-aria-label="panel.nav.aria">
           <p class="panel-nav-sig"><span data-i18n="panel.nav.lumos">Lumos</span> <span data-i18n="panel.nav.panel">panel</span></p>
@@ -8300,6 +8388,167 @@ const PANEL_DEBUG = import.meta.env.DEV;
           return;
         }
         applyQuantumReadinessMockFallback();
+      }
+
+      const RESOURCE_MODE_ADVISOR_LAYER = "quantum";
+      const RESOURCE_MODE_ADVISOR_POLL_MS = 60000;
+      let resourceModeAdvisorDismissed = false;
+      /** @type {null | Record<string, unknown>} */
+      let resourceModeAdvisorProposal = null;
+      let resourceModeAdvisorPollTimer = null;
+
+      function resourceModeAdvisorModeLabel(mode) {
+        const key = String(mode || "").trim().toLowerCase();
+        const label = panelT(`panel.modules.resourceModeAdvisor.modes.${key}`);
+        if (label && !label.startsWith("panel.modules.resourceModeAdvisor")) return label;
+        return String(mode || "—");
+      }
+
+      function canShowResourceModeAdvisorCard() {
+        if (resourceModeAdvisorDismissed) return false;
+        if (getPanelUserMode() === "offline") return false;
+        const tasksReachable =
+          !!resolveGorevlerTasksApiBase() && !shouldSkipGorevlerTasksApi();
+        const badge = document.getElementById("panel-conn-badge");
+        const bridgeOk = badge && badge.getAttribute("data-state") === "ok";
+        if (getPanelUserMode() === "limited") {
+          return tasksReachable || bridgeOk;
+        }
+        return tasksReachable || bridgeOk;
+      }
+
+      async function fetchResourceModeProposal() {
+        const base = resolveGorevlerTasksApiBase();
+        if (!base || shouldSkipGorevlerTasksApi()) return { ok: false };
+        try {
+          const r = await fetch(
+            `${base}/resource-mode/propose?layer=${encodeURIComponent(RESOURCE_MODE_ADVISOR_LAYER)}`,
+            { headers: { Accept: "application/json" } },
+          );
+          if (!r.ok) return { ok: false };
+          const data = await r.json();
+          if (!data || data.ok !== true || !data.proposal) return { ok: false };
+          return data;
+        } catch {
+          return { ok: false };
+        }
+      }
+
+      function shouldDisplayResourceModeCard(data) {
+        if (!data || data.show_card !== true) return false;
+        const proposal = data.proposal;
+        if (!proposal || proposal.never_auto !== true) return false;
+        const current = proposal.current_mode;
+        const proposed = proposal.proposed_mode;
+        if (!proposed || current === proposed) return false;
+        return true;
+      }
+
+      function paintResourceModeAdvisorCard(proposal) {
+        const card = document.getElementById("panel-resource-mode-advisor");
+        const reasonEl = document.getElementById("panel-resource-mode-advisor-reason");
+        const metaEl = document.getElementById("panel-resource-mode-advisor-meta");
+        if (!card || !reasonEl || !metaEl || !proposal) return;
+        const reason = String(proposal.reason || "").trim();
+        reasonEl.textContent = reason || panelT("panel.modules.resourceModeAdvisor.reasonFallback");
+        const currentLabel = resourceModeAdvisorModeLabel(proposal.current_mode || "passive");
+        const proposedLabel = resourceModeAdvisorModeLabel(proposal.proposed_mode);
+        metaEl.textContent = panelT("panel.modules.resourceModeAdvisor.meta")
+          .replace("{current}", currentLabel)
+          .replace("{proposed}", proposedLabel)
+          .replace("{layer}", String(proposal.layer || RESOURCE_MODE_ADVISOR_LAYER));
+        card.hidden = false;
+      }
+
+      function hideResourceModeAdvisorCard() {
+        const card = document.getElementById("panel-resource-mode-advisor");
+        if (card) card.hidden = true;
+      }
+
+      function setResourceModeAdvisorBusy(busy) {
+        const acceptBtn = document.getElementById("panel-resource-mode-advisor-accept");
+        const rejectBtn = document.getElementById("panel-resource-mode-advisor-reject");
+        if (acceptBtn instanceof HTMLButtonElement) acceptBtn.disabled = !!busy;
+        if (rejectBtn instanceof HTMLButtonElement) rejectBtn.disabled = !!busy;
+      }
+
+      async function applyResourceModeDecision(userApproved) {
+        const proposal = resourceModeAdvisorProposal;
+        const base = resolveGorevlerTasksApiBase();
+        if (!proposal || !base || shouldSkipGorevlerTasksApi()) return;
+        setResourceModeAdvisorBusy(true);
+        try {
+          const r = await fetch(`${base}/resource-mode/apply`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify({
+              layer: proposal.layer || RESOURCE_MODE_ADVISOR_LAYER,
+              mode: proposal.proposed_mode,
+              user_approved: userApproved === true,
+            }),
+          });
+          if (!r.ok) return;
+          const data = await r.json();
+          if (!data) return;
+          if (userApproved === true && data.ok !== true) return;
+        } catch {
+          return;
+        } finally {
+          setResourceModeAdvisorBusy(false);
+        }
+        resourceModeAdvisorDismissed = true;
+        resourceModeAdvisorProposal = null;
+        hideResourceModeAdvisorCard();
+      }
+
+      async function refreshResourceModeAdvisorPanel() {
+        const card = document.getElementById("panel-resource-mode-advisor");
+        if (!card || resourceModeAdvisorDismissed) {
+          hideResourceModeAdvisorCard();
+          return;
+        }
+        if (!canShowResourceModeAdvisorCard()) {
+          hideResourceModeAdvisorCard();
+          return;
+        }
+        const data = await fetchResourceModeProposal();
+        if (!shouldDisplayResourceModeCard(data)) {
+          resourceModeAdvisorProposal = null;
+          hideResourceModeAdvisorCard();
+          return;
+        }
+        resourceModeAdvisorProposal = data.proposal;
+        paintResourceModeAdvisorCard(data.proposal);
+      }
+
+      function refreshPanelResourceModeAdvisorI18n() {
+        if (resourceModeAdvisorProposal) {
+          paintResourceModeAdvisorCard(resourceModeAdvisorProposal);
+        }
+      }
+
+      function wireResourceModeAdvisorControls() {
+        const acceptBtn = document.getElementById("panel-resource-mode-advisor-accept");
+        const rejectBtn = document.getElementById("panel-resource-mode-advisor-reject");
+        if (acceptBtn && acceptBtn.dataset.oraaWired !== "1") {
+          acceptBtn.dataset.oraaWired = "1";
+          acceptBtn.addEventListener("click", () => {
+            applyResourceModeDecision(true);
+          });
+        }
+        if (rejectBtn && rejectBtn.dataset.oraaWired !== "1") {
+          rejectBtn.dataset.oraaWired = "1";
+          rejectBtn.addEventListener("click", () => {
+            applyResourceModeDecision(false);
+          });
+        }
+      }
+
+      function scheduleResourceModeAdvisorPoll() {
+        if (resourceModeAdvisorPollTimer != null) return;
+        resourceModeAdvisorPollTimer = window.setInterval(() => {
+          refreshResourceModeAdvisorPanel();
+        }, RESOURCE_MODE_ADVISOR_POLL_MS);
       }
 
       async function refreshGorevlerEvidenceStrip() {
@@ -14643,6 +14892,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
       initCapLabels();
       applyUserModeUi();
       wirePanelConnBadgeSetupLink();
+      wireResourceModeAdvisorControls();
+      refreshResourceModeAdvisorPanel();
+      scheduleResourceModeAdvisorPoll();
 
       function setPanelConnBadge(state) {
         const badge = document.getElementById("panel-conn-badge");
@@ -14662,6 +14914,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           badge.setAttribute("title", panelT("panel.shell.conn.title"));
         }
         paintPanelInfraStatusSkeleton();
+        refreshResourceModeAdvisorPanel();
       }
 
       function wirePanelConnBadgeSetupLink() {
@@ -15459,6 +15712,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         refreshPanelGorevlerI18n();
         refreshPanelCapabilitiesI18n();
         refreshPanelQuantumReadinessI18n();
+        refreshPanelResourceModeAdvisorI18n();
         if (typeof window.refreshMedyaOutboxHintI18n === "function") {
           window.refreshMedyaOutboxHintI18n();
         }

@@ -811,6 +811,18 @@ const panelModules = {
     c4Body:
       "Kuantum yaklaşımı kararın yerine geçmez; seçenekleri düzenler, son yönü kullanıcı iradesine bırakır.",
   },
+  resourceModeAdvisor: {
+    title: "Kaynak modu önerisi",
+    accept: "Geç",
+    reject: "Hayır, aktif kalsın",
+    reasonFallback: "Kullanım örüntüsüne göre mod değişikliği önerildi.",
+    meta: "{layer} katmanı: {current} → {proposed} (onay gerekir; otomatik uygulanmaz)",
+    modes: {
+      active: "Aktif",
+      passive: "Beklemeli",
+      insufficient_data: "Yetersiz veri",
+    },
+  },
   integration: {
     intro:
       "Bu sekme, Lumos’un yerel araçlar, harici servisler, API bağlantıları ve uygulamalar arasında kontrollü bir köprü kurma yaklaşımını özetler. Amaç her şeyi sınırsız bağlamak değil; bağlantı kapsamını, veri akışını ve kullanıcı onayını görünür tutmaktır.",

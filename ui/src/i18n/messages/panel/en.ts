@@ -815,6 +815,18 @@ const panel: typeof panelTr = {
     c4Body:
       "A quantum-oriented approach does not replace judgment; it organizes options and leaves the final direction to your will.",
   },
+  resourceModeAdvisor: {
+    title: "Resource mode suggestion",
+    accept: "Switch",
+    reject: "No, keep active",
+    reasonFallback: "A mode change is suggested based on usage patterns.",
+    meta: "{layer} layer: {current} → {proposed} (approval required; never auto-applied)",
+    modes: {
+      active: "Active",
+      passive: "Passive",
+      insufficient_data: "Insufficient data",
+    },
+  },
   integration: {
     intro:
       "This tab summarizes Lumos building a controlled bridge among local tools, external services, API connections, and applications. The goal is not to wire everything without limits, but to keep connection scope, data flow, and user approval visible.",
