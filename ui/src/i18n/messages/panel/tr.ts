@@ -122,9 +122,9 @@ const panelModules = {
         "Landing sorusu buraya taşındı — göndermeden önce kontrol edin.",
     },
     modeHints: {
-      sendLimited: "Sınırlı mod: dış sohbet köprüsü yok; yerel yanıtlar ve görev komutları kullanılabilir.",
+      sendLimited: "Sınırlı mod: yerel yanıtlar ve görev komutları çalışır; dış köprü isteyen işlemler bekler.",
       sendLimitedUser:
-        "Sınırlı moddasın (kullanıcı seçimi); yerel yanıtlar ve görev komutları kullanılabilir.",
+        "Sınırlı mod seçili; yerel yanıtlar ve görev komutları çalışır. Daha geniş işlemler için tam bağlantı gerekir.",
       sendOffline: "Çevrimdışı mod: internet ve dış köprü kullanılmaz; yerel yanıtlar kullanılabilir.",
     },
     capability: {
@@ -313,7 +313,7 @@ const panelModules = {
       keywordKayit: "Medya ekranına geçip dosyaları inceleyebilirsin.",
       keywordAkis: "Sosyal ekranına geçip güncel listeyi görebilirsin.",
       limitedDefault:
-        "Sınırlı moddasın (kullanıcı seçimi); yerel görevler ve kısa yönlendirmeler kullanılabilir — örn. «görev oluştur başlık» veya «görevler».",
+        "Sınırlı mod seçili; yerel görevler ve kısa yönlendirmeler çalışır — örn. «görev oluştur başlık» veya «görevler». Daha geniş işlem gerekirse tam bağlantı isterim.",
       offlineDefault:
         "Çevrimdışı moddasın; internet kullanılmaz. Yerel görevler kullanılabilir — örn. «görev oluştur başlık» veya «görevler».",
       timeBase: "Saat {hh}:{mm}. Bugün {date}.",
@@ -329,9 +329,9 @@ const panelModules = {
     bridgeBadgeLimited: "Sınırlı mod",
     transcript: {
       engineMsg: "Ses metne çeviri motoru henüz bağlı değil.",
-      limitedMsg: "Sınırlı modda ses metne çeviri kullanılamaz; dış köprü bağlı değil.",
+      limitedMsg: "Ses metne çeviri için dış köprü gerekir. Sınırlı modda yerel sohbet ve görevler çalışır.",
       limitedUserMsg:
-        "Sınırlı moddasın (kullanıcı seçimi); ses metne çeviri bu modda denenmez.",
+        "Sınırlı mod seçili; ses metne çeviri denenmez. Yerel sohbet ve görevler çalışır.",
       offlineMsg: "Çevrimdışı modda ses metne çeviri kullanılamaz; internet erişimi kapalı.",
       busyMsg: "Metne çevriliyor…",
       privacyMsg:
@@ -955,8 +955,8 @@ const panelModules = {
     testBridgeUnavailable: "Köprü şu an kullanılamıyor.",
     testDone: "Bağlantı testi tamamlandı.",
     testPartialFailed: "Bağlantı testi kısmen başarısız. Cihaz ayarlarını kontrol edin.",
-    bridgePending: "Köprü bağlantısı bekleniyor.",
-    routeTerminal: "Yerel cihaz köprüsü bekleniyor.",
+    bridgePending: "Bu işlem tam bağlantı ister; yerel işlemler açık kalır.",
+    routeTerminal: "Tam bağlantı sonrası yerel cihaz köprüsü.",
     routeNone: "—",
     routeManualApproval: "manuel onay sonrası",
     row1: "1. Dosya okuma",

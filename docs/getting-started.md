@@ -101,6 +101,26 @@ Full repo layout: [`docs/project-map.md`](project-map.md)
 
 ---
 
+## welockai.com'da ne görünür?
+
+**Production commit (2026-06-26):** `690009e` — Vercel Production deploy, `main` ile hizalı (#557 dahil).
+
+| URL | Prod'da | Not |
+|-----|---------|-----|
+| `/` | Landing, kurulum, ürün kartları | Statik Astro; TR/EN i18n |
+| `/panel` | Panel kabuğu, modül navigasyonu, ORAA kart **markup** | Kart `hidden` — yalnızca görev API'si (`127.0.0.1:8766`) erişilebilirken JS ile açılır; prod tarayıcıda bu adres yok → **kart görünmez**, kabuk görünür |
+| `/integrations` | Hub + izin matrisi | Mail / Linear kartları dahil |
+| `/integrations/mail` | Gmail OD-031 read-only sayfası | OAuth yok — bilgi yüzeyi |
+| `/integrations/linear` | Linear OD-033 planned sayfası | OAuth yok — bilgi yüzeyi |
+| `/cyber`, `/slack` | Ürün varyant sayfaları | Statik |
+| `/api/bridge/*` | **503** `bridge_proxy_unconfigured` | `BRIDGE_UPSTREAM_URL` + secret owner adımı — bkz. [vercel-bridge-proxy-setup.md](vercel-bridge-proxy-setup.md) |
+
+**Prod'da görünür (bugünkü merge'ler):** entegrasyon hub + mail/linear sayfaları; panel ORAA resource-mode advisor kartı HTML/i18n (#555–#556); landing ve umbrella nav; sınırlı mod panel kopyası (TR/EN).
+
+**Yalnızca yerel (Katman B):** köprü sohbeti, görev oluşturma/tamamlama, ORAA kartının canlı veriyle açılması (görev API `127.0.0.1:8766` — tunnel/bridge gerekir), dosya/terminal akışları, kuantum/AnchorUSB Python modülleri.
+
+---
+
 ## Optional: Python CLI
 
 ```bash
