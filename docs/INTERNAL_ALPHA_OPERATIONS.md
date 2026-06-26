@@ -4,7 +4,7 @@
 |------|-------|
 | **Belge türü** | Operasyonel takip (docs only) |
 | **Faz başlangıcı** | **2026-06-18** |
-| **Repo snapshot** | `main` @ `bd4b83c`+; CI yeşil |
+| **Repo snapshot** | `main` @ `57e81ea`; CI yeşil |
 | **Üst sınır** | [`INTERNAL_ALPHA_RELEASE_SCOPE.md`](INTERNAL_ALPHA_RELEASE_SCOPE.md), [`lumos-karar-sozlesmesi.md`](lumos-karar-sozlesmesi.md) |
 | **Durum** | **Aktif** — operasyonel faz devam ediyor |
 
@@ -128,8 +128,19 @@ Her **Pazartesi** (veya ekip sprint günü) bir satır `docs/INTERNAL_ALPHA_OPER
 | 2026-06-26 | **P1-02 faz «başladı»** — welockai.com tam yüzey canlı; §4.1 (1)+(3) karşılandı; haftalık checkpoint §4.3 devam | #529–#532 |
 | 2026-06-26 | P1-03/P1-04 şablonları hazır — planlama boşluğu kapandı | [pilot-contract-template.md](analysis/pilot-contract-template.md), [support-channel-alpha.md](analysis/support-channel-alpha.md) |
 | 2026-06-26 | Bridge proxy 503 prod davranışı belgelendi (env yok = beklenen) | [vercel-bridge-proxy-setup.md](vercel-bridge-proxy-setup.md) |
+| 2026-06-26 | **P0-05 izleme:** `make test` — **1220 passed**, 3 skipped; SECURITY_NEVER_AUTO regresyonu yok | `main` @ `57e81ea` |
+| 2026-06-26 | **P1-02 Hafta 1 checkpoint** — aşağı §4.3 | welockai.com smoke + pytest |
 
-*(Checkpoint satırları buraya veya ekip kanalına eklenir.)*
+### Checkpoint — 2026-06-26 (Hafta 1)
+
+- **Katılımcı(lar):** @owner (placeholder)
+- **Panel yolculuk:** evet — welockai.com `/panel` 200; static deploy doğrulandı; tam görev akışı yerel köprü **veya** Vercel `BRIDGE_UPSTREAM_URL` gerektirir
+- **Yerel görev [Yerel]:** N/A (prod static smoke; yerel akış §4.2 komutlarıyla ayrı doğrulanır)
+- **Köprü sohbet (opsiyonel):** N/A — prod `/api/bridge/task` → **503** (upstream env yok; beklenen)
+- **Regresyon:** `make test` — **pass** (1220 passed, 3 skipped)
+- **P0-05 izleme:** yeni SECURITY_NEVER_AUTO regresyonu yok
+- **Bloker:** yok
+- **Prod yüzey:** `/`, `/integrations`, `/panel`, `/slack`, `/cyber`, `/connect/mac` → 200 ([session-closure](analysis/session-closure-report.md))
 
 ---
 
@@ -157,4 +168,4 @@ Tam liste: [`INTERNAL_ALPHA_RELEASE_SCOPE.md`](INTERNAL_ALPHA_RELEASE_SCOPE.md) 
 
 ---
 
-*Son güncelleme: 2026-06-26 — session closure: welockai yüzey canlı; P1-03/04 şablon; bridge 503 doc; P1-02 checkpoint devam.*
+*Son güncelleme: 2026-06-26 — P0-05 izleme (1220 passed); P1-02 Hafta 1 checkpoint; bridge quick-start.*
