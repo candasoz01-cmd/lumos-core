@@ -36,7 +36,7 @@ Symbols: **Read ✅** · **Write 🔒 (approval)** · **Delete 🚫 (special per
 | Integration | Read | Write | Delete | Notes |
 |-------------|------|-------|--------|-------|
 | **GitHub** | Repo metadata, issues, PRs, diff summary, CI status summary | Comments, labels, assign; merge = high-risk approval | Repo/issue/PR delete, force-push — off by default | Manual UI shortcuts exist; connector pilot Layer 1 |
-| **Slack** | Policy-scoped channel/thread summary, mentions | Post, react — granular grant + approval | Message/channel delete — rare; policy + approval | Separate from mail channel |
+| **Slack** | Policy-scoped Topic (Konu) summary, mentions | Post, react — granular grant + approval | Message/Topic delete — rare; policy + approval | Organization private area mapping; not mail channel; use announcement topic — no fixed channel names in product copy |
 | **Google Drive** | File list, metadata, scoped content summary | Create/update/share link — approved | File/folder delete — special permission | No unapproved full archive |
 | **Google Calendar** | Events, availability, attendee metadata | Create/move/RSVP — approved | Cancel/delete — separate grant | Calendar ↔ contacts OD-032 |
 | **Gmail** | Inbox summary, thread metadata (ADR-002) | Send/draft/reply — per-action approval | Delete/archive — off by default | **Off by default**; read needs explicit grant |
