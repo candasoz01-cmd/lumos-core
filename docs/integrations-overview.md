@@ -34,9 +34,9 @@ Kuantum **kaynak keşfi ve onaylı bağlantı** planlı katmanı — `/cyber` ve
 | Yüzey | Rol | Durum |
 |-------|-----|-------|
 | **Quantum Readiness** (ADR-013) | Yerel salt okunur PQC hazırlık tarayıcısı — panel `GET /quantum-readiness` | Faz-2 kısmi (bağlantı yok) |
-| **Quantum Layer** | Bul → sınıflandır → risk/ücret/izin → onay → bağlan | **Planlı** — docs + `quantum_registry` stub |
+| **Quantum Layer** | Bul → sınıflandır → risk/ücret/izin → onay → bağlan | **Kısmi** — Aer onaylı connect spike + usage önerisi |
 
-Belgeler: [`lumos-quantum-layer-architecture.md`](analysis/lumos-quantum-layer-architecture.md), [`lumos-quantum-provider-catalog.md`](analysis/lumos-quantum-provider-catalog.md), [`lumos-quantum-first-companion.md`](analysis/lumos-quantum-first-companion.md) (Qiskit/Aer — ilk yol arkadaşı). Kod: `src/integrations/quantum_registry.py` (metadata; `connect_priority` 1/2), `quantum` provider (`list_catalog` yerel; `discover`/`connect` → `not_configured`).
+Belgeler: [`lumos-quantum-layer-architecture.md`](analysis/lumos-quantum-layer-architecture.md), [`lumos-quantum-provider-catalog.md`](analysis/lumos-quantum-provider-catalog.md), [`lumos-quantum-first-companion.md`](analysis/lumos-quantum-first-companion.md) (Qiskit/Aer — ilk yol arkadaşı). Kod: `src/integrations/quantum_registry.py`, `quantum_provider.py` (`list_catalog` yerel; Aer `connect` onay + opsiyonel `[quantum]` extra; `usage_recommendation`).
 
 **OAuth is not started on these static pages.** Connection flows will ship under We Lock AI controlled access when ready (Internal Alpha → official release).
 

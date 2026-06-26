@@ -141,13 +141,26 @@ Karşılaştırma:
 
 - **AnchorUSB:** Plugin enable, backup, dış rapor — kullanıcı komutu + NEVER_AUTO tablosu ([`secure-device-framework.md`](./secure-device-framework.md)).
 - **Mail (OD-031):** Varsayılan kapalı; okuma bile explicit grant ([`external-integrations-permissions.md`](../memory/external-integrations-permissions.md)).
-- **Quantum Layer:** Varsayılan **hiç bağlı değil**; `connect` her zaman `approval_required` + `quantum_provider_not_configured` (OSS).
+- **Quantum Layer:** Varsayılan **hiç bağlı değil**; `connect` onaysız `approval_required`. Qiskit Aer yerel spike onaylı + opsiyonel `[quantum]` extra ile smoke; diğer sağlayıcılar `quantum_provider_not_configured` (OSS).
 
 ### 5. Bağlan (Connect)
 
-- Yalnızca kullanıcı açık onayı ve private orchestration katmanında (WeLockAI).
-- Public repoda **handler iskeleti yok** — yalnızca reddeden stub.
-- CI'da canlı API çağrısı, credential veya otomatik job submit **yasak**.
+- Yalnızca kullanıcı açık onayı (`approved=True` / `user_approved=True` veya `requires_approval`) — **NEVER auto-connect**.
+- **Qiskit Aer (OSS spike):** `provider_id` `qiskit_aer` veya `qiskit_aer_sim`; onay sonrası opsiyonel `qiskit`/`qiskit-aer` import + 1-qubit smoke; deps yoksa `not_configured` + kurulum ipucu.
+- Bulut / diğer sağlayıcılar: public repoda yalnızca reddeden stub (`quantum_provider_not_configured`).
+- CI'da canlı bulut API çağrısı, credential veya otomatik job submit **yasak**; Aer testleri mock veya skip.
+
+### Usage modes (active vs passive)
+
+Lumos yerel kullanım örüntüsüne göre **active-wait** (sıcak oturum, kısa yeniden bağlanma) veya **passive/on-demand** (soğuk bağlantı yeterli) önerir. Veri `.lumos/resource_usage.jsonl` (`layer: quantum`; çekirdek state değil). Paylaşılan danışman: [`lumos-resource-mode-advisor.md`](./lumos-resource-mode-advisor.md) · `src/integrations/resource_mode_advisor.py`.
+
+| Mod | Anlam | Ne zaman önerilir |
+|-----|-------|-------------------|
+| **active** | Sık kullanım — warm session / poll mantıklı | Son 24 saatte ≥ **3** `connect` **veya** son 7 günde ≥ **10** olay (`list_catalog`, `connect`, `disconnect`, `job`) |
+| **passive** | Seyrek kullanım — ihtiyaç anında bağlan | Eşik altı kullanım |
+| **insufficient_data** | Yetersiz geçmiş | Varsayılan **passive** |
+
+Kod: `src/integrations/resource_mode_advisor.py` (paylaşılan) · `src/integrations/quantum_usage_tracker.py` (quantum ince sarmalayıcı) · `recommend_usage_mode()` · provider aksiyonu `usage_recommendation` · `connect` / `list_catalog` yanıtında `recommended_mode`. Mod değişimi **NEVER_AUTO** — yalnızca `apply_mode_change(..., user_approved=True)`.
 
 ---
 
@@ -189,7 +202,9 @@ Kaynak: [`public-repo-boundary.md`](../memory/public-repo-boundary.md).
 | Parça | Yol | Durum |
 |-------|-----|-------|
 | Katalog metadata | `src/integrations/quantum_registry.py` | Stub |
-| Entegrasyon handler | `src/integrations/providers/quantum_provider.py` | `not_configured` |
+| Entegrasyon handler | `src/integrations/providers/quantum_provider.py` | Aer onaylı connect spike; usage önerisi |
+| Resource mode advisor | `src/integrations/resource_mode_advisor.py` | `.lumos/resource_usage.jsonl` |
+| Quantum usage wrapper | `src/integrations/quantum_usage_tracker.py` | `ResourceLayer.QUANTUM` delegasyonu |
 | Readiness tarayıcı | `src/security/readiness/scanner.py` | Faz-2 kısmi (ADR-013) |
 | Entropy (deneysel) | `src/security/entropy/providers/` | Readiness'ten ayrı |
 
