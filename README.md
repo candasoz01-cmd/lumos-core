@@ -59,6 +59,24 @@ npm run dev
 
 Product summary: [`docs/PRODUCT_SUMMARY.md`](docs/PRODUCT_SUMMARY.md). Release checklist: [`docs/GITHUB_RELEASE_CHECKLIST.md`](docs/GITHUB_RELEASE_CHECKLIST.md). Internal Alpha scope: [`docs/INTERNAL_ALPHA_RELEASE_SCOPE.md`](docs/INTERNAL_ALPHA_RELEASE_SCOPE.md). Branch strategy: [`docs/repo-branches.md`](docs/repo-branches.md).
 
+## Integrations (We Lock AI)
+
+Official integration pages live under **[welockai.com](https://welockai.com/)** — static, charter-aligned; **no OAuth in the open-source repo**.
+
+| Surface | URL |
+|---------|-----|
+| Integration hub | https://welockai.com/integrations |
+| GitHub | https://welockai.com/integrations/github |
+| Google (Drive, Calendar, Gmail) | https://welockai.com/integrations/google |
+| Slack | https://welockai.com/slack |
+| Panel | https://welockai.com/panel |
+| Mac / Universal Links | https://welockai.com/connect/mac |
+| Cyber | https://welockai.com/cyber |
+
+Technical and product overview: [`docs/integrations-overview.md`](docs/integrations-overview.md). Permission canon: [`docs/memory/external-integrations-permissions.md`](docs/memory/external-integrations-permissions.md). OSS stubs: `src/integrations/`.
+
+Live OAuth, production connectors, and enterprise policy enforcement ship in the **WeLockAI private layer** — not in this public repository.
+
 ## Release Tracks
 
 ### Open-source development build

@@ -3,10 +3,23 @@ import "../styles/lumos-tokens.css";
 import "../styles/umbrella-chrome.css";
 import WeLockSiteNav from "../components/WeLockSiteNav.astro";
 import WeLockSiteFooter from "../components/WeLockSiteFooter.astro";
+import IntegrationPermMatrix from "../components/IntegrationPermMatrix.astro";
 import I18nInit from "../components/I18nInit.astro";
+import type { MatrixRow } from "../components/IntegrationPermMatrix.astro";
 
 const GITHUB_CONNECTORS_URL =
   "https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/memory/work-tools-connectors-decision.md";
+
+const slackRow: MatrixRow[] = [
+  {
+    id: "slack",
+    nameKey: "umbrella.slack.rowSlackName",
+    noteKey: "umbrella.slack.rowSlackNote",
+    read: true,
+    write: true,
+    delete: true,
+  },
+];
 ---
 
 <html lang="tr">
@@ -37,6 +50,19 @@ const GITHUB_CONNECTORS_URL =
         <li data-i18n="umbrella.slack.what2">Dış etkili adımlarda açık onay ve grant modeli.</li>
         <li data-i18n="umbrella.slack.what3">Mail kanalından ayrı tutulan iş yeri bildirim yüzeyi.</li>
       </ul>
+      <h2 data-i18n="umbrella.slack.matrixTitle">İzin matrisi (şartname)</h2>
+      <IntegrationPermMatrix rows={slackRow} />
+      <h2 data-i18n="umbrella.slack.readsTitle">Ne okur?</h2>
+      <ul>
+        <li data-i18n="umbrella.slack.read1">Politika kapsamındaki kanal mesaj özeti ve thread kimliği.</li>
+        <li data-i18n="umbrella.slack.read2">Mention ve bildirim bağlamı (grant kapsamında).</li>
+      </ul>
+      <h2 data-i18n="umbrella.slack.writesTitle">Ne yazar? (onaylı)</h2>
+      <ul>
+        <li data-i18n="umbrella.slack.write1">Mesaj gönderme, kanala post ve reaksiyon — granüler grant + onay.</li>
+      </ul>
+      <h2 data-i18n="umbrella.slack.deletesTitle">Silme</h2>
+      <p data-i18n="umbrella.slack.deleteBody">Mesaj veya kanal silme nadirdir; kurumsal politika ve açık onay gerekir.</p>
       <div class="umbrella-callout">
         <p>
           <strong data-i18n="umbrella.slack.statusTitle">Durum</strong> —
@@ -45,9 +71,12 @@ const GITHUB_CONNECTORS_URL =
       </div>
       <p>
         <a href={GITHUB_CONNECTORS_URL} target="_blank" rel="noopener noreferrer">Çalışma araçları connector kararı (GitHub)</a>
+        ·
+        <a href="/integrations" data-i18n="umbrella.integrations.title">Entegrasyon merkezi</a>
       </p>
       <div class="umbrella-actions">
         <a class="umbrella-btn umbrella-btn--primary" href="/panel" data-i18n="umbrella.slack.panelCta">Web paneline git</a>
+        <a class="umbrella-btn" href="/integrations" data-i18n="umbrella.integrations.title">Entegrasyon merkezi</a>
         <a class="umbrella-btn" href="/" data-i18n="umbrella.slack.homeCta">Ana sayfa</a>
       </div>
     </main>
