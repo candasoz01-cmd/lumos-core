@@ -164,13 +164,20 @@ Kullanıcı onayı «uygundur uygula» ile kilitlendi; ayrıntı §A.8.
 | Demo kuruluş adları | Dokümantasyon ve demo: yalnızca `ÖrnekKuruluş-A` / `-B` / `-C` |
 | **Lumos Cyber** tagline | §A.8'de kilitli (hero `lead` metni) |
 
-### C.2 Bekleyen onay (PENDING)
+### C.2 Owner action — placeholder locked (PENDING real values)
 
-| Konu | Durum | Not |
-|------|-------|-----|
-| Belirli müşteri / pilot kuruluş adları (gerçek) | Bekliyor | Closed Pilot sözleşmesi ve davet listesi — demo kalıbı §A.8 |
-| `support@` ve resmi destek kanalı adresi | Bekliyor | [`support-channel-alpha.md`](./support-channel-alpha.md) — TBD |
-| Apple Team ID ve bundle ID **gerçek değerleri** | Bekliyor | Placeholder kalıplar §A.7'de onaylı; değerler ship öncesi |
+Gerçek müşteri adları, destek e-postası ve Apple kimlik değerleri **repoda commit edilmez**. Aşağıdaki **kalıplar kilitlidir** (§A.7, §A.8, §B.3); yalnızca değerler owner tarafından doldurulur.
+
+| Konu | Kalıp (kilitli) | Durum | Owner adımları |
+|------|-----------------|-------|----------------|
+| Pilot / müşteri kuruluş adları | `ÖrnekKuruluş-A` / `-B` / `-C` (demo); gerçek ad **Closed Pilot sözleşmesinde** | **OWNER_ACTION** | 1) [`pilot-contract-template.md`](./pilot-contract-template.md) doldur 2) Gerçek adı yalnızca private sözleşme / davet listesinde tut — public repoya yazma |
+| Resmi destek e-postası | `support@<DOMAIN_TBD>` (örnek format; `support@welockai.com` **onaylanmadı**) | **OWNER_ACTION** | 1) Domain + posta kutusu oluştur 2) [`support-channel-alpha.md`](./support-channel-alpha.md) §Kanal tanımı güncelle 3) Bu tabloda §C.2 satırını APPROVED LOCKED yap |
+| Apple Team ID | `XXXXXXXXXX` (10 karakter yer tutucu) | **OWNER_ACTION** | 1) [Apple Developer](https://developer.apple.com/help/account/manage-your-team/locate-your-team-id/) Team ID al 2) AASA dosyasında **deploy ortamında** güncelle — repoda gerçek ID yok |
+| Bundle ID | `com.welockai.lumos` (yer tutucu) | **OWNER_ACTION** | 1) Mac app target bundle ID doğrula 2) AASA `appID` = `{TeamID}.{bundleId}` ship öncesi 3) [`mac-app-link-layer.md`](../mac-app-link-layer.md) SHIP BLOCKER kapat |
+
+**Yasak:** Public repoda sahte müşteri adı, gerçek görünümlü e-posta veya Apple Team ID commit etmek.
+
+**Çapraz:** NA-03, NA-05 — [`todo-fixme-sweep-report.md`](./todo-fixme-sweep-report.md); P1-03 / P1-04 — [`INTERNAL_ALPHA_OPERATIONS.md`](../INTERNAL_ALPHA_OPERATIONS.md).
 
 ---
 
