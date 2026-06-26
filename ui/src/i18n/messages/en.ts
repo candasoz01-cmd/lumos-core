@@ -2,6 +2,7 @@
 import type { MessageTree } from "./tr";
 import landing from "./landing/en";
 import panel from "./panel/en";
+import umbrella from "./umbrella/en";
 
 const en: MessageTree = {
   meta: {
@@ -27,6 +28,7 @@ const en: MessageTree = {
     modules: "Modules",
     developer: "Developer",
     install: "Setup",
+    connect: "Connect",
     panel: "Panel",
     github: "GitHub",
     brandAria: "Lumos — top of page",
@@ -51,6 +53,7 @@ const en: MessageTree = {
   },
   landing,
   panel,
+  umbrella,
 };
 
 export default en;

@@ -1,8 +1,10 @@
 ---
 import "../styles/lumos-tokens.css";
+import "../styles/umbrella-chrome.css";
 import GlobalMay19Corner from "../components/GlobalMay19Corner.astro";
 import LanguageSwitcher from "../components/LanguageSwitcher.astro";
 import I18nInit from "../components/I18nInit.astro";
+import WeLockSiteFooter from "../components/WeLockSiteFooter.astro";
 
 const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
 const GITHUB_README_URL = "https://github.com/candasoz01-cmd/lumos-core/blob/main/README.md";
@@ -436,6 +438,7 @@ const showMay19Commemoration = isMay19CommemorationDay();
       #dunya-vizyon,
       #gelistirici,
       #kurulum,
+      #baglan,
       #neden-lumos {
         scroll-margin-top: var(--lumos-sticky-nav-offset);
       }
@@ -2213,6 +2216,9 @@ const showMay19Commemoration = isMay19CommemorationDay();
                 <a class="lumos-site-nav__link" href="#kurulum" data-i18n="nav.install">Kurulum</a>
               </li>
               <li>
+                <a class="lumos-site-nav__link" href="#baglan" data-i18n="nav.connect">Bağlan</a>
+              </li>
+              <li>
                 <a class="lumos-site-nav__link lumos-site-nav__link--accent" href="/panel" data-i18n="nav.panel">Panel</a>
               </li>
               <li>
@@ -2304,6 +2310,43 @@ const showMay19Commemoration = isMay19CommemorationDay();
             >Devam etmek için bir soru yazın.</p>
           </form>
         </div>
+      </div>
+    </section>
+
+    <section id="baglan" class="lumos-shell lumos-section lumos-products-section" aria-labelledby="baglan-baslik">
+      <h2 id="baglan-baslik" class="lumos-cap-title" data-i18n="umbrella.products.title">Bağlan</h2>
+      <p class="lumos-dunya-vizyon__lead" data-i18n="umbrella.products.lead">
+        We Lock AI çatısı altındaki Lumos yüzeyleri tek adreste.
+      </p>
+      <div class="lumos-cap-grid">
+        <a class="lumos-cap-card-link" href="/panel">
+          <article class="lumos-cap-card">
+            <h3 data-i18n="umbrella.products.panelTitle">Lumos Panel</h3>
+            <p data-i18n="umbrella.products.panelBody">Görevler, sohbet, dosyalar ve onay akışları için birincil web çalışma alanı.</p>
+            <span class="lumos-cap-card-cta" data-i18n="umbrella.products.panelCta">Paneli aç</span>
+          </article>
+        </a>
+        <a class="lumos-cap-card-link" href="/slack">
+          <article class="lumos-cap-card">
+            <h3 data-i18n="umbrella.products.slackTitle">Lumos in Slack</h3>
+            <p data-i18n="umbrella.products.slackBody">İş yeri bağlamında kanal özeti ve kontrollü bildirim yüzeyi (yakında).</p>
+            <span class="lumos-cap-card-cta" data-i18n="umbrella.products.slackCta">Slack sayfası</span>
+          </article>
+        </a>
+        <a class="lumos-cap-card-link" href="/connect/mac">
+          <article class="lumos-cap-card">
+            <h3 data-i18n="umbrella.products.macTitle">Mac / Apple</h3>
+            <p data-i18n="umbrella.products.macBody">Universal Links ve gelecekteki Lumos Mac istemcisi için bağlantı katmanı.</p>
+            <span class="lumos-cap-card-cta" data-i18n="umbrella.products.macCta">Mac bağlantıları</span>
+          </article>
+        </a>
+        <a class="lumos-cap-card-link" href="/cyber">
+          <article class="lumos-cap-card">
+            <h3 data-i18n="umbrella.products.cyberTitle">Lumos Cyber</h3>
+            <p data-i18n="umbrella.products.cyberBody">Güvenlik ve risk görünürlüğü odaklı varyant — erken erişim planlanıyor.</p>
+            <span class="lumos-cap-card-cta" data-i18n="umbrella.products.cyberCta">Cyber sayfası</span>
+          </article>
+        </a>
       </div>
     </section>
 
@@ -3106,6 +3149,8 @@ vercel dev</code></pre>
       </div>
     </div>
     )}
+
+    <WeLockSiteFooter />
 
     <script is:inline>
       (function () {

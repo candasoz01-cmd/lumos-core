@@ -1,0 +1,269 @@
+/** WeLockAI umbrella — shared nav, footer, and product page shell (lumos-tokens.css required). */
+
+.umbrella-page {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--lumos-land-page);
+  background-image:
+    radial-gradient(ellipse 130% 88% at 50% -6%, rgb(var(--lumos-land-teal-deep) / 0.18), transparent 54%),
+    linear-gradient(178deg, #0a0e14 0%, #121a24 44%, #0a0e14 100%);
+  background-attachment: fixed;
+  color: var(--lumos-land-title);
+  font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.6;
+}
+
+.lumos-umbrella-nav {
+  margin: 0 auto;
+  max-width: 1240px;
+  padding: clamp(0.75rem, 2vw, 1.1rem) clamp(0.65rem, 2vw, 1.25rem) 0.65rem;
+  border-bottom: 1px solid rgb(var(--lumos-land-teal) / 0.32);
+}
+
+.lumos-umbrella-nav__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  flex-wrap: wrap;
+}
+
+.lumos-umbrella-nav__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-right: auto;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 999px;
+  padding: 0.2rem 0.35rem 0.2rem 0.15rem;
+  border: 1px solid transparent;
+}
+
+.lumos-umbrella-nav__brand:hover,
+.lumos-umbrella-nav__brand:focus-visible {
+  border-color: rgb(var(--lumos-land-teal) / 0.35);
+  background: rgba(8, 14, 28, 0.5);
+}
+
+.lumos-umbrella-nav__brand:focus-visible {
+  outline: 2px solid rgb(var(--lumos-land-teal) / 0.45);
+  outline-offset: 2px;
+}
+
+.lumos-umbrella-nav__logo {
+  width: 40px;
+  height: 40px;
+}
+
+.lumos-umbrella-nav__brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.lumos-umbrella-nav__brand-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.lumos-umbrella-nav__brand-sub {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: rgb(var(--lumos-land-warm) / 0.82);
+}
+
+.lumos-umbrella-nav__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lumos-umbrella-nav__link {
+  display: inline-block;
+  padding: 0.32rem 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgb(var(--lumos-land-teal) / 0.88);
+  text-decoration: none;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.lumos-umbrella-nav__link:hover,
+.lumos-umbrella-nav__link:focus-visible {
+  color: var(--lumos-accent-blue-bright);
+  border-color: rgb(var(--lumos-land-teal) / 0.35);
+  background: rgba(8, 14, 28, 0.55);
+}
+
+.lumos-umbrella-nav__link--active {
+  color: rgb(var(--lumos-land-warm) / 0.95);
+  border-color: rgb(var(--lumos-land-warm-deep) / 0.35);
+}
+
+.lumos-umbrella-nav__link--accent {
+  color: rgb(var(--lumos-land-warm) / 0.9);
+}
+
+.lumos-umbrella-nav__corner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.umbrella-main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: clamp(1.5rem, 4vw, 2.5rem) clamp(0.85rem, 2.5vw, 1.25rem) 3rem;
+}
+
+.umbrella-main h1 {
+  margin: 0 0 0.65rem;
+  font-size: clamp(1.55rem, 4vw, 2rem);
+  letter-spacing: -0.02em;
+}
+
+.umbrella-main .umbrella-eyebrow {
+  margin: 0 0 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgb(var(--lumos-land-warm) / 0.82);
+}
+
+.umbrella-main .umbrella-lead {
+  margin: 0 0 1.25rem;
+  font-size: 1.05rem;
+  color: var(--lumos-text-muted);
+  max-width: 58ch;
+}
+
+.umbrella-main p {
+  margin: 0 0 1rem;
+  color: var(--lumos-text-body);
+  max-width: 62ch;
+}
+
+.umbrella-main ul {
+  margin: 0 0 1.25rem;
+  padding-left: 1.2rem;
+  max-width: 62ch;
+}
+
+.umbrella-main li {
+  margin-bottom: 0.45rem;
+  color: var(--lumos-text-body);
+}
+
+.umbrella-callout {
+  margin: 1.5rem 0;
+  padding: 1rem 1.1rem;
+  border-radius: var(--lumos-radius-lg);
+  border: 1px solid rgb(var(--lumos-land-teal) / 0.28);
+  background: rgba(18, 26, 36, 0.88);
+}
+
+.umbrella-callout strong {
+  color: var(--lumos-land-title);
+}
+
+.umbrella-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1.5rem;
+}
+
+.umbrella-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 1rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: var(--lumos-radius-md);
+  border: 1px solid rgb(var(--lumos-land-teal) / 0.38);
+  color: var(--lumos-land-title);
+  background: rgba(18, 26, 36, 0.92);
+}
+
+.umbrella-btn:hover,
+.umbrella-btn:focus-visible {
+  border-color: rgb(var(--lumos-land-teal) / 0.55);
+  color: var(--lumos-accent-blue-bright);
+}
+
+.umbrella-btn--primary {
+  background: linear-gradient(168deg, rgb(var(--lumos-land-teal-deep) / 0.35), rgb(var(--lumos-land-teal) / 0.12));
+  border-color: rgb(var(--lumos-land-teal) / 0.45);
+}
+
+.umbrella-code {
+  display: block;
+  margin: 0.75rem 0 1rem;
+  padding: 0.75rem 0.9rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  border-radius: var(--lumos-radius-sm);
+  background: #0a0e14;
+  border: 1px solid var(--lumos-border);
+  color: var(--lumos-accent-blue-bright);
+  overflow-x: auto;
+}
+
+.lumos-site-footer {
+  margin-top: auto;
+  border-top: 1px solid rgb(var(--lumos-land-teal) / 0.28);
+  background: rgba(8, 12, 18, 0.65);
+}
+
+.lumos-site-footer__inner {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 1.25rem clamp(0.65rem, 2vw, 1.25rem) 1.5rem;
+}
+
+.lumos-site-footer__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.85rem;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.lumos-site-footer__link {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgb(var(--lumos-land-teal) / 0.82);
+  text-decoration: none;
+}
+
+.lumos-site-footer__link:hover,
+.lumos-site-footer__link:focus-visible {
+  color: var(--lumos-accent-blue-bright);
+}
+
+.lumos-site-footer__meta {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--lumos-muted);
+}
+
+.lumos-products-section {
+  scroll-margin-top: var(--lumos-sticky-nav-offset, 1.25rem);
+}
+
+.lumos-products-section .lumos-cap-card-cta {
+  margin-top: auto;
+  padding-top: 0.55rem;
+}

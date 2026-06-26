@@ -8,6 +8,9 @@ Minimal URLs and Universal Links prep for a future Lumos Mac client. No native a
 |---------|-----|
 | Landing | `https://welockai.com/` |
 | Panel | `https://welockai.com/panel` |
+| Slack (info) | `https://welockai.com/slack` |
+| Mac / Universal Links | `https://welockai.com/connect/mac` |
+| Lumos Cyber (info) | `https://welockai.com/cyber` |
 | PWA manifest | `https://welockai.com/manifest.webmanifest` |
 
 Bridge/chat proxy (same origin as panel): `https://welockai.com/api/bridge/*` (serverless proxy; upstream configured on Vercel).

@@ -1,5 +1,6 @@
 ---
 import "../styles/lumos-tokens.css";
+import "../styles/umbrella-chrome.css";
 import LanguageSwitcher from "../components/LanguageSwitcher.astro";
 import I18nInit from "../components/I18nInit.astro";
 
@@ -95,6 +96,27 @@ const PANEL_DEBUG = import.meta.env.DEV;
         align-items: center;
         column-gap: 0.65rem;
         row-gap: 0.45rem;
+      }
+      .panel-umbrella-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 0.65rem;
+        width: 100%;
+        margin-top: 0.35rem;
+        padding-top: 0.45rem;
+        border-top: 1px solid rgb(var(--lumos-land-teal) / 0.18);
+      }
+      .panel-umbrella-links a {
+        font-size: 0.68rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: rgb(var(--lumos-land-teal) / 0.78);
+        text-decoration: none;
+      }
+      .panel-umbrella-links a:hover,
+      .panel-umbrella-links a:focus-visible {
+        color: var(--lumos-accent-blue-bright);
       }
       .panel-header-brand {
         display: flex;
@@ -4351,6 +4373,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
             <LanguageSwitcher />
           </div>
         </div>
+        <nav class="panel-umbrella-links" aria-label="We Lock AI ürünleri" data-i18n-aria-label="umbrella.nav.aria">
+          <a href="/" data-i18n="umbrella.nav.home">Ana sayfa</a>
+          <a href="/slack" data-i18n="umbrella.nav.slack">Slack</a>
+          <a href="/connect/mac" data-i18n="umbrella.nav.mac">Mac</a>
+          <a href="/cyber" data-i18n="umbrella.nav.cyber">Cyber</a>
+        </nav>
       </header>
       <div class="panel-body">
         <nav class="panel-nav__primary" aria-label="Çalışma modülleri" data-i18n-aria-label="panel.nav.aria">

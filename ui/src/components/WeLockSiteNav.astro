@@ -1,0 +1,57 @@
+---
+import LanguageSwitcher from "./LanguageSwitcher.astro";
+
+export type UmbrellaNavActive = "home" | "panel" | "slack" | "mac" | "cyber" | "";
+
+interface Props {
+  active?: UmbrellaNavActive;
+}
+
+const { active = "" } = Astro.props;
+
+const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
+
+function linkClass(id: UmbrellaNavActive) {
+  return active === id ? "lumos-umbrella-nav__link lumos-umbrella-nav__link--active" : "lumos-umbrella-nav__link";
+}
+---
+
+<nav class="lumos-umbrella-nav" aria-label="We Lock AI site" data-i18n-aria-label="umbrella.nav.aria">
+  <div class="lumos-umbrella-nav__bar">
+    <a class="lumos-umbrella-nav__brand" href="/" data-i18n-aria-label="nav.brandAria">
+      <img class="lumos-umbrella-nav__logo" src="/lumos-tree-logo.svg" alt="" width="40" height="40" decoding="async" />
+      <span class="lumos-umbrella-nav__brand-text">
+        <span class="lumos-umbrella-nav__brand-title" data-i18n="nav.brandTitle">Lumos</span>
+        <span class="lumos-umbrella-nav__brand-sub" data-i18n="nav.brandSub">WE LOCK AI</span>
+      </span>
+    </a>
+    <ul class="lumos-umbrella-nav__list">
+      <li>
+        <a class={linkClass("home")} href="/" data-i18n="umbrella.nav.home">Ana sayfa</a>
+      </li>
+      <li>
+        <a class={linkClass("panel")} href="/panel" data-i18n="umbrella.nav.panel">Panel</a>
+      </li>
+      <li>
+        <a class={linkClass("slack")} href="/slack" data-i18n="umbrella.nav.slack">Slack</a>
+      </li>
+      <li>
+        <a class={linkClass("mac")} href="/connect/mac" data-i18n="umbrella.nav.mac">Mac</a>
+      </li>
+      <li>
+        <a class={linkClass("cyber")} href="/cyber" data-i18n="umbrella.nav.cyber">Cyber</a>
+      </li>
+      <li>
+        <a
+          class="lumos-umbrella-nav__link lumos-umbrella-nav__link--accent"
+          href={GITHUB_REPO_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-i18n="umbrella.nav.github">GitHub</a>
+      </li>
+    </ul>
+    <div class="lumos-umbrella-nav__corner">
+      <LanguageSwitcher />
+    </div>
+  </div>
+</nav>
