@@ -50,8 +50,8 @@ Kaynak: [p0-p1-triage-list.md](analysis/p0-p1-triage-list.md).
 |----|------|-------|-------|-------------------|
 | P1-02 | Çekirdek yolculuk ≥2 hafta | Ürün / QA | **Devam ediyor** | §4 yolculuk planı; haftalık checkpoint |
 | P1-05 | Panel read-only tasks path | Platform | **Kapalı** | [p1-05-tasks-path-audit.md](analysis/p1-05-tasks-path-audit.md) #527 |
-| P1-03 | Pilot sözleşmesi + davet | Ticari / ops | **Açık** | Closed Pilot kapısı — Alpha çıkış sonrası |
-| P1-04 | Destek kanalı + SLA | Destek / ops | **Açık** | Closed Pilot kapısı |
+| P1-03 | Pilot sözleşmesi + davet | Ticari / ops | **Şablon hazır** | [pilot-contract-template.md](analysis/pilot-contract-template.md) — Alpha exit gate; imza Closed Pilot |
+| P1-04 | Destek kanalı + SLA | Destek / ops | **Şablon hazır** | [support-channel-alpha.md](analysis/support-channel-alpha.md) — kanal TBD; Closed Pilot kapısı |
 | P1-06 | RB-06 packaging | Platform | **Spike (defer)** | Launch P1 — Alpha'da `make test` yeterli |
 
 Kapalı P1: P1-01 (#503), P1-07 (#502).
@@ -125,6 +125,9 @@ Her **Pazartesi** (veya ekip sprint günü) bir satır `docs/INTERNAL_ALPHA_OPER
 | 2026-06-26 | Integration hub + GitHub/Google/Slack static pages live (#530) | #530 — welockai.com/integrations* |
 | 2026-06-26 | WeLockAI charter + trust model drafts merged (#531) | [welockai-charter-draft.md](analysis/welockai-charter-draft.md), [welockai-trust-model-draft.md](analysis/welockai-trust-model-draft.md) |
 | 2026-06-26 | Production surface verify — `/`, `/integrations`, `/panel`, `/slack`, `/cyber`, `/connect/mac` → 200 | welockai.com smoke |
+| 2026-06-26 | **P1-02 faz «başladı»** — welockai.com tam yüzey canlı; §4.1 (1)+(3) karşılandı; haftalık checkpoint §4.3 devam | #529–#532 |
+| 2026-06-26 | P1-03/P1-04 şablonları hazır — planlama boşluğu kapandı | [pilot-contract-template.md](analysis/pilot-contract-template.md), [support-channel-alpha.md](analysis/support-channel-alpha.md) |
+| 2026-06-26 | Bridge proxy 503 prod davranışı belgelendi (env yok = beklenen) | [vercel-bridge-proxy-setup.md](vercel-bridge-proxy-setup.md) |
 
 *(Checkpoint satırları buraya veya ekip kanalına eklenir.)*
 
@@ -154,4 +157,4 @@ Tam liste: [`INTERNAL_ALPHA_RELEASE_SCOPE.md`](INTERNAL_ALPHA_RELEASE_SCOPE.md) 
 
 ---
 
-*Son güncelleme: 2026-06-26 — integrations/umbrella milestone; P1-05 kapalı; P1-02 devam.*
+*Son güncelleme: 2026-06-26 — session closure: welockai yüzey canlı; P1-03/04 şablon; bridge 503 doc; P1-02 checkpoint devam.*

@@ -1,0 +1,97 @@
+# Vercel bridge proxy — kurulum ve 503 davranışı
+
+| Alan | Değer |
+|------|-------|
+| **Belge türü** | Operasyon / dev runbook (docs only) |
+| **Kod** | `api/bridge/[...path].js` |
+| **Durum** | Prod: env tanımsız → beklenen 503 |
+
+---
+
+## Ne yapar?
+
+Panel same-origin **`/api/bridge/*`** isteklerini yerel veya tünel üzerindeki **kando_bridge** upstream'e iletir. Token (`KANDO_BRIDGE_SECRET`) yalnızca sunucu tarafında eklenir; tarayıcıya sızmaz.
+
+Desteklenen yollar: `task`, `last-result`, `controlled`, `transcribe`.
+
+---
+
+## Gerekli ortam değişkenleri (Vercel)
+
+Vercel proje ayarları → **Environment Variables** (Production / Preview / Development):
+
+| Değişken | Zorunlu | Örnek | Not |
+|----------|---------|-------|-----|
+| `BRIDGE_UPSTREAM_URL` | Evet (köprü için) | `https://<tunnel-host>` | Sondaki `/` yok; `http://127.0.0.1:8765` yalnızca `vercel dev` + yerel köprü |
+| `KANDO_BRIDGE_SECRET` | Evet (köprü için) | *(gizli — repoya yazmayın)* | Köprü ile aynı değer |
+
+**Asla** `PUBLIC_*` veya client bundle'a koymayın. Şablon: [`.env.example`](../.env.example).
+
+---
+
+## Neden prod'da 503?
+
+`BRIDGE_UPSTREAM_URL` boş veya tanımsızsa proxy şunu döner:
+
+```json
+{
+  "ok": false,
+  "error": "bridge_proxy_unconfigured",
+  "message": "Panel bağlantısı yapılandırılmamış..."
+}
+```
+
+HTTP **503** — **beklenen davranış**; panel «bağlantı yapılandırılmamış» UX'ini gösterir. Bu bir deploy hatası değil, bilinçli «köprü yok» durumudur.
+
+---
+
+## Ortam karşılaştırması
+
+| Ortam | Köprü | Panel görev akışı |
+|-------|-------|-------------------|
+| **Yerel dev** | `kando_bridge` @ `127.0.0.1:8765` + `vercel dev` | `export BRIDGE_UPSTREAM_URL='http://127.0.0.1:8765'` |
+| **Prod (welockai.com)** | Upstream internetten erişilebilir olmalı | Vercel'de `BRIDGE_UPSTREAM_URL` = **HTTPS tünel veya barındırılmış köprü URL'si** |
+| **Prod (env yok)** | Yok | `/api/bridge/*` → **503** (Sınırlı mod; yerel görevler çalışır) |
+
+**Not:** `127.0.0.1` Vercel serverless'tan erişilemez. Prod için ngrok/Cloudflare Tunnel vb. veya kalıcı barındırılmış köprü gerekir — **tünel URL'si ve secret repoda commit edilmez**.
+
+---
+
+## Yerel doğrulama
+
+```bash
+# Terminal 1 — köprü
+make bridge   # veya proje runbook'undaki eşdeğeri
+
+# Terminal 2 — UI + proxy
+export BRIDGE_UPSTREAM_URL='http://127.0.0.1:8765'
+export KANDO_BRIDGE_SECRET='<your-local-secret>'
+vercel dev
+```
+
+Panel → görev gönder → `POST /api/bridge/task` 200 (köprü ayaktaysa).
+
+---
+
+## Prod smoke (env olmadan)
+
+```bash
+curl -sS -o /dev/null -w "%{http_code}" https://welockai.com/api/bridge/task
+# Beklenen: 503 (GET/POST method fark etmez — upstream yok)
+```
+
+Köprü yapılandırıldıktan sonra aynı uç nokta köprü yanıt kodunu yansıtır.
+
+---
+
+## Çapraz referanslar
+
+| Belge | Konu |
+|-------|------|
+| [local-kando-dev-runbook.md](local-kando-dev-runbook.md) | Yerel tam akış |
+| [mac-app-link-layer.md](mac-app-link-layer.md) | Prod URL listesi |
+| [INTERNAL_ALPHA_OPERATIONS.md](INTERNAL_ALPHA_OPERATIONS.md) | Alpha operasyon |
+
+---
+
+*Son güncelleme: 2026-06-26 — 503 documented as expected without Vercel env.*

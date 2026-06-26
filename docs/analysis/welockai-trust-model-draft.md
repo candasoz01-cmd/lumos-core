@@ -316,7 +316,19 @@ Aşağıdaki maddeler bilinçli olarak **bu taslakta kapatılmamıştır**; iler
 | D6 | Çoklu cihaz eşleştirmede güven halkası modeli | LAN pairing (RB-06) / hesap bağlı QR / SSO cihaz | Orta |
 | D7 | Gmail okuma grant'inin varsayılan pilot kapsamı | Sadece özet / thread düzeyi / domain filtreli | Gizlilik |
 
-**Sonraki adım önerisi:** D2 ve D4, ADR-012 Wave 2+ planı ile birlikte değerlendirilmeli; D1 kurumsal sözleşme metnine bırakılmalıdır.
+### Alpha çözüm notları (2026-06-26)
+
+| # | Alpha kararı |
+|---|--------------|
+| D1 | **Deferred — WeLockAI private** + Closed Pilot sözleşmesi ([pilot-contract-template.md](pilot-contract-template.md)) |
+| D2 | **Deferred — Wave 2+**; OSS Policy Engine bağımsız kalır |
+| D3 | **Deferred — ürün**; Alpha onay yüzeyi panel + mobile web stub |
+| D4 | **Resolved for Alpha — opt-in korunur** (ADR-012); varsayılan-on Wave 2+ |
+| D5 | **Deferred — WeLockAI private** compliance |
+| D6 | **Deferred — private**; OSS LAN pairing demo yeterli |
+| D7 | **Deferred — Closed Pilot**; Gmail varsayılan kapalı (charter §5) |
+
+**Sonraki adım:** D2 ve D4 Wave 2+ planı ile; D1/D5 kurumsal private katmanda.
 
 ---
 

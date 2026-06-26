@@ -237,6 +237,8 @@ flowchart TB
 | 3 | Kurumsal audit'in WeLockAI'de ne kadar süre saklanacağı | Compliance kararı — private |
 | 4 | OSS köprü ile üretim orkestrasyon sürüm uyumu | Operasyonel — CI/CD private |
 
+**Alpha notu (2026-06-26):** Maddeler 1–4 **deferred to WeLockAI private** veya Launch; OSS foundation ([trust model D1–D7](welockai-trust-model-draft.md#9-açık-kararlar)) ile hizalı. Public repoda uygulama beklenmez.
+
 ---
 
 *Bu belge mimari foundation taslaktır; hukuki sözleşme veya SLA değildir. Üretim kararları private katmanda ve ilgili ADR/karar kayıtlarında güncellenir.*
