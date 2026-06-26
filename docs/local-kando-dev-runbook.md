@@ -1,6 +1,6 @@
-# Yerel Kando köprü — hızlı dev runbook
+# Yerel köprü — hızlı dev runbook
 
-Kısa smoke rehberi. Ayrıntılı API ve güvenlik: [scripts/README_kando_bridge_server.md](../scripts/README_kando_bridge_server.md).
+Kısa smoke rehberi. Ayrıntılı API ve güvenlik: [Bridge server README](../scripts/README_kando_bridge_server.md).
 
 ## Phase 1: görev köprüsü proxy (`/api/bridge/task`)
 
@@ -204,4 +204,4 @@ Beklenen: Lumos persona cevabı; **OpenAI / ChatGPT / API sağlayıcı adı veya
 
 ## İlgili doküman
 
-- [scripts/README_kando_bridge_server.md](../scripts/README_kando_bridge_server.md) — tam API, watcher akışı, `kando_send.py`, güvenlik notları
+- [Bridge server README](../scripts/README_kando_bridge_server.md) — tam API, watcher akışı, `kando_send.py`, güvenlik notları

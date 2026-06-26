@@ -1,9 +1,9 @@
-# Kando lokal HTTP bridge (`kando_bridge_server.py`)
+# Yerel HTTP köprüsü (`kando_bridge_server.py`)
 
 **Kaynak kod:** `packages/kando_bridge/src/kando_bridge/server.py` (`python -m kando_bridge`).
 `scripts/kando_bridge_server.py` aynı `main()` girişine ince bir sarmalayıcıdır.
 
-ChatGPT, tarayıcı eklentisi veya başka bir istemci **bu makinede** çalışan küçük bir HTTP sunucusuna istek atar; sunucu metni `.lumos/inbox/request.txt` dosyasına yazar. **`kando_watch.py`** bu dosyayı tetikleyici olarak kullanıp Kando zincirini (bridge / patch / apply) çalıştırır.
+ChatGPT, tarayıcı eklentisi veya başka bir istemci **bu makinede** çalışan küçük bir HTTP sunucusuna istek atar; sunucu metni `.lumos/inbox/request.txt` dosyasına yazar. **`kando_watch.py`** bu dosyayı tetikleyici olarak kullanıp yerel görev zincirini (köprü / patch / apply) çalıştırır.
 
 ## Önkoşullar
 
@@ -143,7 +143,7 @@ curl -sS http://127.0.0.1:8765/health
 
 1. Terminal A: `PYTHONPATH=src python scripts/kando_watch.py`
 2. Terminal B: `export KANDO_BRIDGE_SECRET='your-local-dev-secret'` ardından `./scripts/bridge_start.sh`
-3. İstemci `POST /task` ile metni yollar → `request.txt` güncellenir → watcher tetiklenir → Kando çalışır → sonuçlar `.lumos/outbox/` ve `cursor_bridge/` altında güncellenir (mevcut `kando_watch` davranışı).
+3. İstemci `POST /task` ile metni yollar → `request.txt` güncellenir → watcher tetiklenir → yerel görev zinciri çalışır → sonuçlar `.lumos/outbox/` ve `cursor_bridge/` altında güncellenir (mevcut `kando_watch` davranışı).
 
 ## Hızlı gönderim (`kando_send.py`)
 
