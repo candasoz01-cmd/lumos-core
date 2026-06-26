@@ -4,7 +4,7 @@
 |------|-------|
 | **Belge türü** | Operasyonel takip (docs only) |
 | **Faz başlangıcı** | **2026-06-18** |
-| **Repo snapshot** | `main` @ `7a310bf`+; CI yeşil |
+| **Repo snapshot** | `main` @ `bd4b83c`+; CI yeşil |
 | **Üst sınır** | [`INTERNAL_ALPHA_RELEASE_SCOPE.md`](INTERNAL_ALPHA_RELEASE_SCOPE.md), [`lumos-karar-sozlesmesi.md`](lumos-karar-sozlesmesi.md) |
 | **Durum** | **Aktif** — operasyonel faz devam ediyor |
 
@@ -49,7 +49,7 @@ Kaynak: [p0-p1-triage-list.md](analysis/p0-p1-triage-list.md).
 | ID | Konu | Sahip | Durum | İlk hafta aksiyon |
 |----|------|-------|-------|-------------------|
 | P1-02 | Çekirdek yolculuk ≥2 hafta | Ürün / QA | **Devam ediyor** | §4 yolculuk planı; haftalık checkpoint |
-| P1-05 | Panel read-only tasks path | Platform | **Açık** | [PANEL_READONLY_AUDIT.md](PANEL_READONLY_AUDIT.md) §2.1 — path envanteri; Alpha çıkış riski |
+| P1-05 | Panel read-only tasks path | Platform | **Kapalı** | [p1-05-tasks-path-audit.md](analysis/p1-05-tasks-path-audit.md) #527 |
 | P1-03 | Pilot sözleşmesi + davet | Ticari / ops | **Açık** | Closed Pilot kapısı — Alpha çıkış sonrası |
 | P1-04 | Destek kanalı + SLA | Destek / ops | **Açık** | Closed Pilot kapısı |
 | P1-06 | RB-06 packaging | Platform | **Spike (defer)** | Launch P1 — Alpha'da `make test` yeterli |
@@ -121,6 +121,10 @@ Her **Pazartesi** (veya ekip sprint günü) bir satır `docs/INTERNAL_ALPHA_OPER
 | 2026-06-18 | Operasyonel faz başlangıcı — giriş kriterleri karşılandı | DL-C23 |
 | 2026-06-21 | UX finding #1 — premium dark panel polish (in_progress) | [INTERNAL_ALPHA_UX_FINDINGS.md](INTERNAL_ALPHA_UX_FINDINGS.md) #510 |
 | 2026-06-23 | P1-05 tasks path audit — çift depo doğrulandı, migration defer | [p1-05-tasks-path-audit.md](analysis/p1-05-tasks-path-audit.md) |
+| 2026-06-26 | Umbrella site chrome live — nav/footer, landing tokens (#529) | #529 |
+| 2026-06-26 | Integration hub + GitHub/Google/Slack static pages live (#530) | #530 — welockai.com/integrations* |
+| 2026-06-26 | WeLockAI charter + trust model drafts merged (#531) | [welockai-charter-draft.md](analysis/welockai-charter-draft.md), [welockai-trust-model-draft.md](analysis/welockai-trust-model-draft.md) |
+| 2026-06-26 | Production surface verify — `/`, `/integrations`, `/panel`, `/slack`, `/cyber`, `/connect/mac` → 200 | welockai.com smoke |
 
 *(Checkpoint satırları buraya veya ekip kanalına eklenir.)*
 
@@ -150,4 +154,4 @@ Tam liste: [`INTERNAL_ALPHA_RELEASE_SCOPE.md`](INTERNAL_ALPHA_RELEASE_SCOPE.md) 
 
 ---
 
-*Son güncelleme: 2026-06-21 — operasyonel faz kickoff (docs only).*
+*Son güncelleme: 2026-06-26 — integrations/umbrella milestone; P1-05 kapalı; P1-02 devam.*
