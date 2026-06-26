@@ -51,7 +51,7 @@ Kaynak: [p0-p1-triage-list.md](analysis/p0-p1-triage-list.md).
 | P1-02 | Çekirdek yolculuk ≥2 hafta | Ürün / QA | **Devam ediyor** | §4 yolculuk planı; haftalık checkpoint |
 | P1-05 | Panel read-only tasks path | Platform | **Kapalı** | [p1-05-tasks-path-audit.md](analysis/p1-05-tasks-path-audit.md) #527 |
 | P1-03 | Pilot sözleşmesi + davet | Ticari / ops | **Şablon hazır** | [pilot-contract-template.md](analysis/pilot-contract-template.md) — Alpha exit gate; imza Closed Pilot |
-| P1-04 | Destek kanalı + SLA | Destek / ops | **Şablon hazır** | [support-channel-alpha.md](analysis/support-channel-alpha.md) — kanal TBD; Closed Pilot kapısı |
+| P1-04 | Destek kanalı + SLA | Destek / ops | **Şablon hazır** | [support-channel-alpha.md](analysis/support-channel-alpha.md) · [support-report-oraa.md](templates/support-report-oraa.md) — kanal TBD; Closed Pilot kapısı |
 | P1-06 | RB-06 packaging | Platform | **Spike (defer)** | Launch P1 — Alpha'da `make test` yeterli |
 
 Kapalı P1: P1-01 (#503), P1-07 (#502).

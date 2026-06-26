@@ -44,7 +44,7 @@ Yazılı destek kanalı ve **best-effort SLA** tanımı için minimum iskelet. A
 - Internal Alpha: ekip içi kanal + `make test` / CI izleme yeterli.
 - Closed Pilot: bu şablon doldurulmuş ve `support@` (veya eşdeğeri) yayında olmalıdır.
 
-**İlgili:** [pilot-contract-template.md](pilot-contract-template.md) · [p0-p1-triage-list.md](p0-p1-triage-list.md) P1-04
+**İlgili:** [pilot-contract-template.md](pilot-contract-template.md) · [support-report-oraa.md](../templates/support-report-oraa.md) · [p0-p1-triage-list.md](p0-p1-triage-list.md) P1-04
 
 ---
 
