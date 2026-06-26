@@ -162,7 +162,37 @@ Her **Pazartesi** (veya ekip sprint günü) bir satır `docs/INTERNAL_ALPHA_OPER
 
 ---
 
-## 7. Çıkış kriterleri
+## 7. Phase 2 kapısı — 8 saat testi
+
+**Amaç:** Kuzey yıldızı doğrulaması — *«Lumos'u kendim için bütün gün kullanabilir miyim?»* ([`grounded-phase-roadmap.md`](analysis/grounded-phase-roadmap.md)).
+
+| Alan | Değer |
+|------|-------|
+| Runbook | [`INTERNAL_ALPHA_8HOUR_TEST.md`](INTERNAL_ALPHA_8HOUR_TEST.md) |
+| Katman | Phase 2 — **canlı OAuth planlaması öncesi** zorunlu kapı |
+| OAuth | Bu kapı **canlı entegrasyon gerektirmez** |
+
+### Geçiş kriterleri (Phase 2 → entegrasyon planı)
+
+Aşağıdakilerin **tamamı** sağlanmadan GitHub/Slack/Google **production OAuth** kickoff'u başlatılmaz:
+
+1. **P1-02** — Hafta 1 + Hafta 2 checkpoint (§4.3); ardışık ≥14 gün.
+2. **İlk tam 8 saat oturumu** — [`INTERNAL_ALPHA_8HOUR_TEST.md`](INTERNAL_ALPHA_8HOUR_TEST.md): sabah checklist, ≥5 sürtünme satırı, gün sonu 3 soru, `make test` pass.
+3. **P0 regresyon** — SECURITY_NEVER_AUTO ihlali yok (§2 P0-05).
+
+### Operasyon günlüğüne ekleme
+
+8 saat oturumu tamamlandığında §6 günlüğüne bir satır:
+
+```markdown
+| YYYY-MM-DD | 8 saat testi tamamlandı — Phase 2 kapısı | [INTERNAL_ALPHA_8HOUR_TEST.md](INTERNAL_ALPHA_8HOUR_TEST.md) |
+```
+
+**Durum (2026-06-26):** Runbook hazır; **ilk tam oturum bekliyor**.
+
+---
+
+## 8. Çıkış kriterleri
 
 Tam liste: [`INTERNAL_ALPHA_RELEASE_SCOPE.md`](INTERNAL_ALPHA_RELEASE_SCOPE.md) §7.
 
@@ -174,7 +204,7 @@ Tam liste: [`INTERNAL_ALPHA_RELEASE_SCOPE.md`](INTERNAL_ALPHA_RELEASE_SCOPE.md) 
 
 ---
 
-## 8. Çapraz referanslar
+## 9. Çapraz referanslar
 
 | Belge | Amaç |
 |-------|------|
@@ -183,7 +213,9 @@ Tam liste: [`INTERNAL_ALPHA_RELEASE_SCOPE.md`](INTERNAL_ALPHA_RELEASE_SCOPE.md) 
 | [adr-012-internal-alpha-defer-record.md](memory/adr-012-internal-alpha-defer-record.md) | Wave 2 defer |
 | [release-blockers.md](analysis/release-blockers.md) | P1-02–P1-06 RB bağlamı |
 | [next-work-queue.md](analysis/next-work-queue.md) | Retrospektif kuyruk + post-queue ops |
+| [grounded-phase-roadmap.md](analysis/grounded-phase-roadmap.md) | 5 katman + OAuth blokajları |
+| [INTERNAL_ALPHA_8HOUR_TEST.md](INTERNAL_ALPHA_8HOUR_TEST.md) | 8 saat testi runbook |
 
 ---
 
-*Son güncelleme: 2026-06-26 — P1-02 Hafta 2 pending şablon; Hafta 1 kapandı.*
+*Son güncelleme: 2026-06-26 — Phase 2 kapısı (8 saat testi); P1-02 Hafta 2 pending.*
