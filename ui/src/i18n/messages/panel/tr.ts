@@ -812,15 +812,25 @@ const panelModules = {
       "Kuantum yaklaşımı kararın yerine geçmez; seçenekleri düzenler, son yönü kullanıcı iradesine bırakır.",
   },
   resourceModeAdvisor: {
-    title: "Kaynak modu önerisi",
     accept: "Geç",
     reject: "Hayır, aktif kalsın",
+    statusLabel: "Durum:",
+    reasonLabel: "Sebep:",
+    hintLabel: "Öneri:",
+    disclaimer: "Son karar kullanıcıya aittir.",
     reasonFallback: "Kullanım örüntüsüne göre mod değişikliği önerildi.",
-    meta: "{layer} katmanı: {current} → {proposed} (onay gerekir; otomatik uygulanmaz)",
     modes: {
-      active: "Aktif",
-      passive: "Beklemeli",
-      insufficient_data: "Yetersiz veri",
+      active: "Aktif Mod",
+      passive: "Beklemeli Mod",
+      insufficient_data: "Yetersiz Veri",
+    },
+    hints: {
+      active: "Aktif mod daha hızlı yanıt sağlar.",
+      passive: "Beklemeli mod enerji ve kaynak kullanımını azaltır.",
+      insufficient_data: "Daha fazla kullanım verisi toplanana kadar varsayılan mod önerilir.",
+    },
+    layers: {
+      quantum: "Quantum",
     },
   },
   integration: {

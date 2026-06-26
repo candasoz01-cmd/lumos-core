@@ -97,4 +97,7 @@ def test_panel_astro_resource_mode_wiring() -> None:
     assert "/resource-mode/apply" in text
     assert "refreshResourceModeAdvisorPanel" in text
     assert 'id="panel-resource-mode-advisor"' in text
+    assert 'id="panel-resource-mode-advisor-status"' in text
+    assert 'id="panel-resource-mode-advisor-hint"' in text
     assert "applyResourceModeDecision" in text
+    assert "resourceModeAdvisorModeHint" in text
