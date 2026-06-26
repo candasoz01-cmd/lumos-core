@@ -6,6 +6,7 @@
 | Site | [welockai.com/integrations](https://welockai.com/integrations) |
 | Charter | [`docs/analysis/welockai-charter-draft.md`](analysis/welockai-charter-draft.md) §5 (integration matrix) |
 | Trust model | [`docs/analysis/welockai-trust-model-draft.md`](analysis/welockai-trust-model-draft.md) |
+| Naming registry | [`docs/analysis/lumos-approved-naming-registry.md`](analysis/lumos-approved-naming-registry.md) |
 | Permissions | [`docs/memory/external-integrations-permissions.md`](memory/external-integrations-permissions.md) |
 
 This document is **demo-safe** and suitable for the public `lumos-core` repository. It does not describe production credentials, OAuth client IDs, or WeLockAI private orchestration.
