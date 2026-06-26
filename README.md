@@ -56,6 +56,8 @@ The current panel defines visible modules and product direction without claiming
 | **Python** 3.10+ | Optional — CLI (`lumos`), bridge, task server |
 | **Vercel CLI** | Optional — local `/api/bridge/*` proxy via `vercel dev` |
 
+**New here?** Start with **[`docs/getting-started.md`](docs/getting-started.md)** — canonical onboarding (ports, `ui/` vs `panel/`, limited vs full).
+
 ## Quick Start
 
 Pick a path based on what you need:
@@ -83,7 +85,7 @@ Multiple terminals; bridge + task server + optional chat. Canonical guide:
 - **[`docs/local-kando-dev-runbook.md`](docs/local-kando-dev-runbook.md)** — ports, `vercel dev` vs `npm run dev`, smoke steps
 - **[welockai.com/#kurulum](https://welockai.com/#kurulum)** — 8-step setup on the public landing (same flow when running the UI locally)
 
-Summary: copy `ui/.env.example` → `ui/.env.local`, start `./scripts/bridge_start.sh` and `panel/scripts/panel_tasks_server.py`, then run **`vercel dev`** at the repo root (not `npm run dev` alone) for task proxy — panel at http://127.0.0.1:3000/panel.
+Summary: copy `ui/.env.example` → `ui/.env.local`, start `./scripts/bridge_start.sh` and `panel/scripts/panel_tasks_server.py`, then run **`vercel dev`** at the repo root (not `npm run dev` alone) for task proxy — panel at http://127.0.0.1:3000/panel. Details: [`docs/getting-started.md`](docs/getting-started.md).
 
 Product summary: [`docs/PRODUCT_SUMMARY.md`](docs/PRODUCT_SUMMARY.md). Release checklist: [`docs/GITHUB_RELEASE_CHECKLIST.md`](docs/GITHUB_RELEASE_CHECKLIST.md). Internal Alpha scope: [`docs/INTERNAL_ALPHA_RELEASE_SCOPE.md`](docs/INTERNAL_ALPHA_RELEASE_SCOPE.md). Branch strategy: [`docs/repo-branches.md`](docs/repo-branches.md).
 
