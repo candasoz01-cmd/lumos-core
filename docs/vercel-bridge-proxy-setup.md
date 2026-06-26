@@ -100,6 +100,24 @@ Köprü yapılandırıldıktan sonra aynı uç nokta köprü yanıt kodunu yans�
 
 ---
 
+## Owner verification checklist (copy-paste)
+
+Secret veya tünel URL'si **repoda yok**. Owner Vercel dashboard + yerel makinede tamamlar. Durum: **OWNER_ACTION**.
+
+| # | Adım | Doğrulama |
+|---|------|-----------|
+| 1 | Yerel köprü: `make bridge` (veya `./scripts/bridge_start.sh`) | `curl -sS -o /dev/null -w "%{http_code}" http://127.0.0.1:8765/health` veya runbook eşdeğeri → **200** veya köprü yanıt kodu |
+| 2 | HTTPS tünel aç (ngrok / Cloudflare Tunnel) | Tünel base URL not edildi (sonda `/` yok) |
+| 3 | Vercel → Settings → Environment Variables → **Production** | `BRIDGE_UPSTREAM_URL` = tünel URL; `KANDO_BRIDGE_SECRET` = köprü ile aynı gizli değer |
+| 4 | Production **redeploy** | Deploy log success |
+| 5 | Env **yokken** smoke (beklenen 503) | `curl -sS https://welockai.com/api/bridge/task \| jq -r '.error'` → `bridge_proxy_unconfigured` (veya HTTP 503) |
+| 6 | Env **varken** smoke | `curl -sS -o /dev/null -w "%{http_code}" https://welockai.com/api/bridge/task` → **503 değil** (köprü yanıtı; genelde 4xx/2xx köprüye bağlı) |
+| 7 | Panel görev akışı | welockai.com `/panel` → görev gönder → 200 (köprü ayaktaysa) |
+
+**Not:** Adım 5 env yokken **başarı** sayılır (bilinçli Sınırlı mod). Adım 6–7 yalnızca owner env set ettikten sonra.
+
+---
+
 ## Çapraz referanslar
 
 | Belge | Konu |
@@ -110,4 +128,4 @@ Köprü yapılandırıldıktan sonra aynı uç nokta köprü yanıt kodunu yans�
 
 ---
 
-*Son güncelleme: 2026-06-26 — owner quick-start (5 adım); 503 beklenen davranış.*
+*Son güncelleme: 2026-06-26 — owner verification checklist (OWNER_ACTION); 503 beklenen davranış.*

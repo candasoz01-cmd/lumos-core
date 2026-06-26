@@ -121,6 +121,9 @@ Python is **not** required for Katman A.
 | [Local bridge runbook](local-kando-dev-runbook.md) | Bridge smoke, env files, diagnostics |
 | [project-map.md](project-map.md) | Repo layout, entry points, naming |
 | [integrations-overview.md](integrations-overview.md) | welockai.com surfaces vs OSS boundary |
+| [INTERNAL_ALPHA_OPERATIONS.md](INTERNAL_ALPHA_OPERATIONS.md) | Internal Alpha ops, P1-02 checkpoints |
+| [pilot-contract-template.md](analysis/pilot-contract-template.md) | Closed Pilot sözleşme şablonu (P1-03) |
+| [support-channel-alpha.md](analysis/support-channel-alpha.md) | Destek kanalı + SLA şablonu (P1-04) |
 | [Bridge server README](../scripts/README_kando_bridge_server.md) | Bridge API and security |
 
 ---

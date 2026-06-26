@@ -142,6 +142,24 @@ Her **Pazartesi** (veya ekip sprint günü) bir satır `docs/INTERNAL_ALPHA_OPER
 - **Bloker:** yok
 - **Prod yüzey:** `/`, `/integrations`, `/panel`, `/slack`, `/cyber`, `/connect/mac` → 200 ([session-closure](analysis/session-closure-report.md))
 
+### Checkpoint — pending (Hafta 2)
+
+*Şablon — P1-02 kapanışı için ardışık **≥14 takvim günü** ve ikinci tam checkpoint gerekir. Faz başlangıcı 2026-06-18 → hedef doldurma **2026-07-02** veya sonrası (pending pilot week).*
+
+```markdown
+### Checkpoint — YYYY-MM-DD (Hafta 2)
+
+- **Katılımcı(lar):** @owner
+- **Panel yolculuk:** evet / hayır — not (hangi ortam)
+- **Yerel görev [Yerel]:** evet / hayır
+- **Köprü sohbet (opsiyonel):** evet / hayır / N/A
+- **Regresyon:** `make test` — pass / fail
+- **P0-05 izleme:** yeni SECURITY_NEVER_AUTO regresyonu yok / var (ref)
+- **Bloker:** yok / açıklama
+```
+
+**P1-02 durumu:** Devam ediyor — Hafta 1 kapandı; Hafta 2 bekliyor.
+
 ---
 
 ## 7. Çıkış kriterleri
@@ -168,4 +186,4 @@ Tam liste: [`INTERNAL_ALPHA_RELEASE_SCOPE.md`](INTERNAL_ALPHA_RELEASE_SCOPE.md) 
 
 ---
 
-*Son güncelleme: 2026-06-26 — P0-05 izleme (1220 passed); P1-02 Hafta 1 checkpoint; bridge quick-start.*
+*Son güncelleme: 2026-06-26 — P1-02 Hafta 2 pending şablon; Hafta 1 kapandı.*
