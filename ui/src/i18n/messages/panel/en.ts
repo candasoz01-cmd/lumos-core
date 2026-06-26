@@ -816,15 +816,25 @@ const panel: typeof panelTr = {
       "A quantum-oriented approach does not replace judgment; it organizes options and leaves the final direction to your will.",
   },
   resourceModeAdvisor: {
-    title: "Resource mode suggestion",
     accept: "Switch",
     reject: "No, keep active",
+    statusLabel: "Status:",
+    reasonLabel: "Reason:",
+    hintLabel: "Suggestion:",
+    disclaimer: "The final decision is yours.",
     reasonFallback: "A mode change is suggested based on usage patterns.",
-    meta: "{layer} layer: {current} → {proposed} (approval required; never auto-applied)",
     modes: {
-      active: "Active",
-      passive: "Passive",
-      insufficient_data: "Insufficient data",
+      active: "Active Mode",
+      passive: "Passive Mode",
+      insufficient_data: "Insufficient Data",
+    },
+    hints: {
+      active: "Active mode enables faster response times.",
+      passive: "Passive mode reduces energy and resource usage.",
+      insufficient_data: "Default mode is suggested until more usage data is collected.",
+    },
+    layers: {
+      quantum: "Quantum",
     },
   },
   integration: {

@@ -2168,60 +2168,119 @@ const PANEL_DEBUG = import.meta.env.DEV;
       }
       .panel-resource-mode-advisor {
         margin: 0 0.85rem 0.65rem;
-        padding: 0.78rem 0.92rem 0.82rem;
-        border-radius: 10px;
-        border: 1px solid rgba(120, 168, 255, 0.28);
-        background: rgba(8, 14, 28, 0.72);
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+        padding: 0.82rem 0.95rem 0.78rem;
+        border-radius: var(--lumos-radius-md);
+        border: 1px solid var(--lumos-card-border);
+        background: var(--lumos-surface);
+        box-shadow: var(--lumos-shadow-sm);
       }
-      .panel-resource-mode-advisor__title {
-        margin: 0 0 0.35rem;
-        font-size: 0.82rem;
-        font-weight: 600;
-        letter-spacing: 0.01em;
-        color: rgba(226, 236, 248, 0.94);
-      }
-      .panel-resource-mode-advisor__reason {
+      .panel-resource-mode-advisor__layer {
+        display: flex;
+        align-items: center;
+        gap: 0.42rem;
         margin: 0 0 0.55rem;
-        font-size: 0.74rem;
-        line-height: 1.48;
-        color: rgba(168, 188, 210, 0.88);
       }
-      .panel-resource-mode-advisor__meta {
-        margin: 0 0 0.62rem;
-        font-size: 0.68rem;
-        line-height: 1.4;
-        color: rgba(140, 162, 188, 0.78);
+      .panel-resource-mode-advisor__layer-dot {
+        flex-shrink: 0;
+        width: 0.52rem;
+        height: 0.52rem;
+        border-radius: 50%;
+        background: var(--lumos-accent-primary);
+        box-shadow: 0 0 0 2px var(--lumos-teal-18);
+      }
+      .panel-resource-mode-advisor__layer-dot--quantum {
+        background: #34d399;
+        box-shadow: 0 0 0 2px rgb(52 211 153 / 0.22);
+      }
+      .panel-resource-mode-advisor__layer-dot--default {
+        background: var(--lumos-accent-primary);
+        box-shadow: 0 0 0 2px var(--lumos-teal-18);
+      }
+      .panel-resource-mode-advisor__layer-name {
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: var(--lumos-text);
+      }
+      .panel-resource-mode-advisor__row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.28rem 0.38rem;
+        margin: 0 0 0.38rem;
+        font-size: var(--panel-font-caption);
+        line-height: 1.48;
+      }
+      .panel-resource-mode-advisor__label {
+        flex-shrink: 0;
+        font-weight: 600;
+        color: var(--lumos-text-soft);
+      }
+      .panel-resource-mode-advisor__value {
+        color: var(--lumos-text);
+        min-width: 0;
       }
       .panel-resource-mode-advisor__actions {
         display: flex;
         flex-wrap: wrap;
         gap: 0.45rem;
+        margin: 0.58rem 0 0.48rem;
       }
       .panel-resource-mode-advisor__btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.38rem;
         appearance: none;
-        border: 1px solid rgba(120, 168, 255, 0.35);
-        border-radius: 8px;
-        padding: 0.38rem 0.72rem;
-        font-size: 0.72rem;
+        border: 1px solid var(--lumos-card-border);
+        border-radius: var(--lumos-radius-sm);
+        padding: 0.4rem 0.74rem;
+        font-size: var(--panel-font-caption);
         font-weight: 600;
         letter-spacing: 0.01em;
         cursor: pointer;
-        background: rgba(18, 28, 48, 0.88);
-        color: rgba(226, 236, 248, 0.92);
+        background: var(--lumos-btn-b);
+        color: var(--lumos-text);
+        transition: border-color 0.15s ease, background 0.15s ease;
       }
       .panel-resource-mode-advisor__btn:hover,
       .panel-resource-mode-advisor__btn:focus-visible {
-        border-color: rgba(150, 198, 255, 0.55);
+        border-color: var(--lumos-teal-35);
         outline: none;
       }
       .panel-resource-mode-advisor__btn--primary {
-        background: rgba(56, 112, 210, 0.42);
-        border-color: rgba(120, 168, 255, 0.55);
+        background: var(--lumos-teal-16);
+        border-color: var(--lumos-teal-35);
+        color: var(--lumos-interactive-fg-hover);
+      }
+      .panel-resource-mode-advisor__btn--primary:hover,
+      .panel-resource-mode-advisor__btn--primary:focus-visible {
+        background: var(--lumos-teal-22);
+        border-color: var(--lumos-teal-42);
+      }
+      .panel-resource-mode-advisor__btn--secondary {
+        background: var(--lumos-surface-raised);
+        color: var(--lumos-text-soft);
+      }
+      .panel-resource-mode-advisor__btn-dot {
+        flex-shrink: 0;
+        width: 0.46rem;
+        height: 0.46rem;
+        border-radius: 50%;
+        background: rgb(148 163 184 / 0.55);
+        box-shadow: 0 0 0 1px rgb(148 163 184 / 0.25);
+      }
+      .panel-resource-mode-advisor__btn-dot--on {
+        background: #34d399;
+        box-shadow: 0 0 0 1px rgb(52 211 153 / 0.35);
       }
       .panel-resource-mode-advisor__btn:disabled {
         opacity: 0.55;
         cursor: not-allowed;
+      }
+      .panel-resource-mode-advisor__footer {
+        margin: 0;
+        font-size: 0.66rem;
+        line-height: 1.42;
+        color: var(--lumos-muted);
       }
       .lumos-capability-limit-note {
         grid-column: 1 / -1;
@@ -4442,32 +4501,50 @@ const PANEL_DEBUG = import.meta.env.DEV;
         id="panel-resource-mode-advisor"
         class="panel-resource-mode-advisor"
         role="region"
-        aria-labelledby="panel-resource-mode-advisor-title"
+        aria-labelledby="panel-resource-mode-advisor-layer"
         hidden
       >
-        <h2 id="panel-resource-mode-advisor-title" class="panel-resource-mode-advisor__title" data-i18n="panel.modules.resourceModeAdvisor.title">
-          Kaynak modu önerisi
-        </h2>
-        <p id="panel-resource-mode-advisor-reason" class="panel-resource-mode-advisor__reason"></p>
-        <p id="panel-resource-mode-advisor-meta" class="panel-resource-mode-advisor__meta"></p>
+        <div class="panel-resource-mode-advisor__layer">
+          <span
+            id="panel-resource-mode-advisor-layer-dot"
+            class="panel-resource-mode-advisor__layer-dot panel-resource-mode-advisor__layer-dot--default"
+            aria-hidden="true"
+          ></span>
+          <span id="panel-resource-mode-advisor-layer" class="panel-resource-mode-advisor__layer-name"></span>
+        </div>
+        <div class="panel-resource-mode-advisor__row">
+          <span class="panel-resource-mode-advisor__label" data-i18n="panel.modules.resourceModeAdvisor.statusLabel">Durum:</span>
+          <span id="panel-resource-mode-advisor-status" class="panel-resource-mode-advisor__value"></span>
+        </div>
+        <div class="panel-resource-mode-advisor__row">
+          <span class="panel-resource-mode-advisor__label" data-i18n="panel.modules.resourceModeAdvisor.reasonLabel">Sebep:</span>
+          <span id="panel-resource-mode-advisor-reason" class="panel-resource-mode-advisor__value"></span>
+        </div>
+        <div class="panel-resource-mode-advisor__row">
+          <span class="panel-resource-mode-advisor__label" data-i18n="panel.modules.resourceModeAdvisor.hintLabel">Öneri:</span>
+          <span id="panel-resource-mode-advisor-hint" class="panel-resource-mode-advisor__value"></span>
+        </div>
         <div class="panel-resource-mode-advisor__actions">
           <button
             type="button"
             id="panel-resource-mode-advisor-accept"
             class="panel-resource-mode-advisor__btn panel-resource-mode-advisor__btn--primary"
-            data-i18n="panel.modules.resourceModeAdvisor.accept"
           >
-            Geç
+            <span class="panel-resource-mode-advisor__btn-dot panel-resource-mode-advisor__btn-dot--on" aria-hidden="true"></span>
+            <span data-i18n="panel.modules.resourceModeAdvisor.accept">Geç</span>
           </button>
           <button
             type="button"
             id="panel-resource-mode-advisor-reject"
-            class="panel-resource-mode-advisor__btn"
-            data-i18n="panel.modules.resourceModeAdvisor.reject"
+            class="panel-resource-mode-advisor__btn panel-resource-mode-advisor__btn--secondary"
           >
-            Hayır, aktif kalsın
+            <span class="panel-resource-mode-advisor__btn-dot" aria-hidden="true"></span>
+            <span data-i18n="panel.modules.resourceModeAdvisor.reject">Hayır, aktif kalsın</span>
           </button>
         </div>
+        <p class="panel-resource-mode-advisor__footer" data-i18n="panel.modules.resourceModeAdvisor.disclaimer">
+          Son karar kullanıcıya aittir.
+        </p>
       </section>
       <div class="panel-body">
         <nav class="panel-nav__primary" aria-label="Çalışma modülleri" data-i18n-aria-label="panel.nav.aria">
@@ -8404,6 +8481,33 @@ const PANEL_DEBUG = import.meta.env.DEV;
         return String(mode || "—");
       }
 
+      function resourceModeAdvisorModeHint(mode) {
+        const key = String(mode || "").trim().toLowerCase();
+        const hint = panelT(`panel.modules.resourceModeAdvisor.hints.${key}`);
+        if (hint && !hint.startsWith("panel.modules.resourceModeAdvisor")) return hint;
+        return panelT("panel.modules.resourceModeAdvisor.hints.passive");
+      }
+
+      function resourceModeAdvisorLayerLabel(layer) {
+        const key = String(layer || "").trim().toLowerCase();
+        const label = panelT(`panel.modules.resourceModeAdvisor.layers.${key}`);
+        if (label && !label.startsWith("panel.modules.resourceModeAdvisor")) return label;
+        if (!key) return "—";
+        return key.charAt(0).toUpperCase() + key.slice(1);
+      }
+
+      function applyResourceModeAdvisorLayerDot(layer) {
+        const dot = document.getElementById("panel-resource-mode-advisor-layer-dot");
+        if (!dot) return;
+        const key = String(layer || "").trim().toLowerCase();
+        dot.className = "panel-resource-mode-advisor__layer-dot";
+        if (key === "quantum") {
+          dot.classList.add("panel-resource-mode-advisor__layer-dot--quantum");
+        } else {
+          dot.classList.add("panel-resource-mode-advisor__layer-dot--default");
+        }
+      }
+
       function canShowResourceModeAdvisorCard() {
         if (resourceModeAdvisorDismissed) return false;
         if (getPanelUserMode() === "offline") return false;
@@ -8446,17 +8550,19 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
       function paintResourceModeAdvisorCard(proposal) {
         const card = document.getElementById("panel-resource-mode-advisor");
+        const layerEl = document.getElementById("panel-resource-mode-advisor-layer");
+        const statusEl = document.getElementById("panel-resource-mode-advisor-status");
         const reasonEl = document.getElementById("panel-resource-mode-advisor-reason");
-        const metaEl = document.getElementById("panel-resource-mode-advisor-meta");
-        if (!card || !reasonEl || !metaEl || !proposal) return;
+        const hintEl = document.getElementById("panel-resource-mode-advisor-hint");
+        if (!card || !layerEl || !statusEl || !reasonEl || !hintEl || !proposal) return;
+        const layerKey = String(proposal.layer || RESOURCE_MODE_ADVISOR_LAYER);
+        layerEl.textContent = resourceModeAdvisorLayerLabel(layerKey);
+        applyResourceModeAdvisorLayerDot(layerKey);
+        const proposedMode = proposal.proposed_mode || proposal.recommended_mode || "passive";
+        statusEl.textContent = resourceModeAdvisorModeLabel(proposedMode);
         const reason = String(proposal.reason || "").trim();
         reasonEl.textContent = reason || panelT("panel.modules.resourceModeAdvisor.reasonFallback");
-        const currentLabel = resourceModeAdvisorModeLabel(proposal.current_mode || "passive");
-        const proposedLabel = resourceModeAdvisorModeLabel(proposal.proposed_mode);
-        metaEl.textContent = panelT("panel.modules.resourceModeAdvisor.meta")
-          .replace("{current}", currentLabel)
-          .replace("{proposed}", proposedLabel)
-          .replace("{layer}", String(proposal.layer || RESOURCE_MODE_ADVISOR_LAYER));
+        hintEl.textContent = resourceModeAdvisorModeHint(proposedMode);
         card.hidden = false;
       }
 
