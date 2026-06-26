@@ -5,7 +5,7 @@
 | Durum | **Mimari foundation taslak** — kod yok; karar destek belgesi |
 | Tarih | 2026-06-26 |
 | Kapsam | WeLockAI ticari katmanı ile Lumos açık kaynak çekirdeği arasındaki rol, sınır ve entegrasyon ilkeleri |
-| İlgili | [`lumos-approved-naming-registry.md`](./lumos-approved-naming-registry.md), [`lumos-privacy-manifesto-draft.md`](./lumos-privacy-manifesto-draft.md), [`lumos-audit-log-contract.md`](./lumos-audit-log-contract.md), [`public-repo-boundary.md`](../memory/public-repo-boundary.md), [ADR-012](../decisions/ADR-012-lumos-security-codex.md), [`device-connection-information-architecture.md`](./device-connection-information-architecture.md), [`external-integrations-permissions.md`](../memory/external-integrations-permissions.md) |
+| İlgili | [`lumos-approved-naming-registry.md`](./lumos-approved-naming-registry.md), [`lumos-privacy-manifesto-draft.md`](./lumos-privacy-manifesto-draft.md), [`lumos-audit-log-contract.md`](./lumos-audit-log-contract.md), [`lumos-log-vs-approval.md`](./lumos-log-vs-approval.md), [`lumos-character-prompt-draft.md`](./lumos-character-prompt-draft.md), [`lumos-resource-mode-advisor.md`](./lumos-resource-mode-advisor.md), [`grounded-phase-roadmap.md`](./grounded-phase-roadmap.md), [`public-repo-boundary.md`](../memory/public-repo-boundary.md), [ADR-012](../decisions/ADR-012-lumos-security-codex.md), [`device-connection-information-architecture.md`](./device-connection-information-architecture.md), [`external-integrations-permissions.md`](../memory/external-integrations-permissions.md) |
 
 **Sınır notu:** WeLockAI ticari ve özel katmandır. Bu belge `lumos-core` public deposunda **yalnızca mimari foundation** olarak tutulur; üretim kodu, credential, faturalama uygulaması veya operasyonel backend bu repoda **yer almaz** ([`public-repo-boundary.md`](../memory/public-repo-boundary.md)).
 
@@ -13,15 +13,23 @@
 
 ---
 
+## Manifesto
+
+> Lumos tek başına bir yapay zekâ değildir. Birlikte düşünülen, birlikte geliştirilen ve birlikte büyüyen bir yol arkadaşıdır.
+
+Bu cümle ürün kimliğinin sabit köküdür. Lumos bir «agent» etiketi değil; kullanıcının iş ortamındaki **ilk yol arkadaşıdır** — konuşur, önerir, birlikte iş yapar. Karakter kökü [`lumos-character-prompt-draft.md`](./lumos-character-prompt-draft.md) §1'de; enforcement kod ve sözleşmede kalır.
+
+---
+
 ## 1. Rol özeti
 
 ### WeLockAI
 
-WeLockAI, Lumos ürün ailesinin **ticari omurgasıdır**: kurumsal kimlik ve yetkilendirme, abonelik ve faturalama, üretim orkestrasyonu, politika uygulama motoru ve denetim (audit) altyapısını sağlar. Kullanıcıya doğrudan sohbet deneyimi sunmaz; bunun yerine Lumos'un güvenli çalışması için gerekli **hesap, ödeme, politika ve altyapı sözleşmelerini** işletir. `welockai.com` markası altında barındırılan API, kimlik ve kurumsal entegrasyonlar bu katmandadır.
+WeLockAI, Lumos ürün ailesinin **ticari omurgasıdır**: politika, güven, kimlik ve enforcement — kurumsal kimlik ve yetkilendirme, abonelik ve faturalama, üretim orkestrasyonu, politika uygulama motoru ve denetim (audit) altyapısını sağlar. Kullanıcı **bununla uğraşmaz**; doğrudan sohbet deneyimi sunmaz. Lumos'un güvenli çalışması için gerekli **hesap, ödeme, politika ve altyapı sözleşmelerini** arka planda işletir. `welockai.com` markası altında barındırılan API, kimlik ve kurumsal entegrasyonlar bu katmandadır.
 
 ### Lumos
 
-Lumos, kullanıcının günlük iş akışında **birincil yapay zekâ yardımcısıdır**: sohbet, görev yönetimi, karar önerisi, hafıza, yardımcı ajanlar ve panel/CLI/köprü yüzeyleri üzerinden etkileşim sağlar. Lumos tek dış kapı (ADR-012) olarak davranır; dış araçlara erişim Lumos güvenli geçidinden ve kullanıcı onayından geçer. Açık kaynak çekirdeği (`lumos-core`) demo-güvenli foundation; üretim sırları ve ticari orkestrasyon bu repoda değildir.
+Lumos, kullanıcının günlük iş akışında **Slack içi çalışma arkadaşı** ve **ilk yol arkadaşıdır**: kullanıcıyla konuşur, önerir, birlikte iş yapar — sohbet, görev yönetimi, karar önerisi, hafıza, yardımcı ajanlar ve panel/CLI/köprü yüzeyleri üzerinden etkileşim sağlar. Lumos tek dış kapı (ADR-012) olarak davranır; dış araçlara erişim Lumos güvenli geçidinden ve kullanıcı onay zincirinden geçer. Açık kaynak çekirdeği (`lumos-core`) demo-güvenli foundation; üretim sırları ve ticari orkestrasyon bu repoda değildir.
 
 ### Cursor
 
@@ -57,6 +65,18 @@ ChatGPT (ve benzeri genel amaçlı sohbet ürünleri), **geniş bilgi ve sohbet 
 
 Lumos, WeLockAI politikasını **aşamaz**; WeLockAI, Lumos'un kullanıcıya sorduğu onayı **sessizce geçersiz kılmaz**. İkisi birleşik kapı oluşturur: önce politika izin verir, sonra Lumos kullanıcıdan onay ister (risk seviyesine göre).
 
+### Gateway + onay zinciri — Karar ≠ Kayıt
+
+Güvenli geçit yalnızca «izin ver / reddet» demez; **onay** (gelecek — «şimdi yapılsın mı?») ile **kayıt** (geçmiş — «ne oldu, kim onayladı?») ayrımını korur. Karışım bürokrasi veya kontrol kaybı üretir. Ayrıntı: [`lumos-log-vs-approval.md`](./lumos-log-vs-approval.md).
+
+| Mekanizma | Sahip katman | Zaman |
+|-----------|--------------|-------|
+| **Onay** (confirmation, pending, genel onay) | Lumos gateway + policy | Gelecek |
+| **Politika enforcement** | WeLockAI | Gelecek (sistem kuralı) |
+| **Kayıt** (audit, ADR, append-only iz) | Lumos yerel + WeLockAI kurumsal arşiv | Geçmiş |
+
+Onay tüketilmeden kayıt «evet» sayılmaz; kayıt onayın yerine geçmez.
+
 ---
 
 ## 3. WeLockAI yapar / yapmaz
@@ -85,13 +105,30 @@ Lumos, WeLockAI politikasını **aşamaz**; WeLockAI, Lumos'un kullanıcıya sor
 
 ## 4. Lumos konumu
 
-Lumos, kullanıcının iş ortamında **Slack içi çalışma arkadaşı** ve WeLockAI'nin **yerel temsilcisi** olarak konumlanır.
+Lumos, kullanıcının iş ortamında **Slack içi çalışma arkadaşı**, **ilk yol arkadaşı** ve WeLockAI'nin **yerel temsilcisi** olarak konumlanır. Kullanıcı Lumos ile konuşur ve iş yapar; politika, güven ve kimlik enforcement'ı WeLockAI'de kalır — kullanıcı bununla uğraşmaz.
+
+### Ürün ağacı
+
+```
+🍎 Kullanıcı Deneyimi
+      │
+  🤝 Lumos
+      │
+┌─────┴─────┐
+│           │
+🛡️ WeLockAI  🔗 Entegrasyonlar
+│           │
+└─────🌳─────┘
+    KÖK / İlkeler
+```
+
+**Okuma:** Kullanıcı deneyimi en üstte; Lumos birincil yüzey. WeLockAI (politika, güven, kimlik) ve entegrasyonlar (GitHub, Slack, Google vb.) Lumos altında dallanır; ikisi de **Kök / İlkeler**e (dürüstlük, onay, Karar ≠ Kayıt, SECURITY_NEVER_AUTO) bağlanır. Yol haritası: [`grounded-phase-roadmap.md`](./grounded-phase-roadmap.md).
 
 | Boyut | Konum |
 |-------|-------|
 | **Kullanıcı yüzeyi** | Slack, panel (`welockai.com/panel`), CLI, mobil onay (private), yerel köprü |
 | **WeLockAI temsilcisi** | Kimlik durumu, plan limiti, kurumsal politika özeti — Lumos bunları okur ve kullanıcıya şeffaf gösterir; enforcement WeLockAI'de kalır |
-| **Güven geçidi** | Tüm dış etki Lumos gateway + onay zincirinden geçer (ADR-012) |
+| **Güven geçidi** | Tüm dış etki Lumos gateway + onay zincirinden geçer; **Karar ≠ Kayıt** uyumu zorunlu (ADR-012, [`lumos-log-vs-approval.md`](./lumos-log-vs-approval.md)) |
 | **Yerel egemenlik** | `.lumos/` workspace, görevler, hafıza, trash — kullanıcı cihazında veya yetkili ortamda |
 
 **Özet cümle:** Kullanıcı Lumos ile konuşur ve iş yapar; WeLockAI arka planda kimlik, ödeme ve kurumsal kuralları işletir. Lumos, WeLockAI'yi kullanıcıya «gizli operatör» gibi göstermez; bağlantı ve politika durumu panelde görünür olmalıdır ([`device-connection-information-architecture.md`](./device-connection-information-architecture.md)).
@@ -228,6 +265,10 @@ flowchart TB
 | [`device-connection-information-architecture.md`](./device-connection-information-architecture.md) | Bağlantılar hub, izin durumu, köprü vs entegrasyon ayrımı |
 | [`external-integrations-permissions.md`](../memory/external-integrations-permissions.md) | Entegrasyon felsefesi, granüler grant, gateway ilkesi |
 | [`lumos-approved-naming-registry.md`](./lumos-approved-naming-registry.md) | APPROVED LOCKED vs EXAMPLE isim kaydı |
+| [`lumos-log-vs-approval.md`](./lumos-log-vs-approval.md) | Karar ≠ Kayıt — onay vs kayıt; gateway + birleşik kapı |
+| [`lumos-character-prompt-draft.md`](./lumos-character-prompt-draft.md) | Karakter kökü (prompt) vs kod enforcement; yol arkadaşı manifestosu |
+| [`lumos-resource-mode-advisor.md`](./lumos-resource-mode-advisor.md) | ORAA — gözle → öner → onay → uygula referans akışı |
+| [`grounded-phase-roadmap.md`](./grounded-phase-roadmap.md) | Beş katman yol haritası; «bütün gün kullanabilir miyim?» kuzey yıldızı |
 
 ---
 
