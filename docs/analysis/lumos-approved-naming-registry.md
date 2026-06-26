@@ -50,6 +50,7 @@ Kaynak: [`lumos-organization-model-draft.md`](./lumos-organization-model-draft.m
 | `/slack` | Slack entegrasyon yüzeyi |
 | `/connect/mac` | Mac Universal Links / AASA |
 | `/cyber` | Lumos Cyber erken erişim landing |
+| *(planlı)* **Lumos Quantum Layer** | Kuantum kaynak kataloğu + onaylı bağlantı planı — `/cyber` altında değil; bkz. [`lumos-quantum-layer-architecture.md`](./lumos-quantum-layer-architecture.md) |
 
 Kaynak: [`integrations-overview.md`](../integrations-overview.md), `ui/src/pages/`.
 

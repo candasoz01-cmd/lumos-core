@@ -161,3 +161,58 @@ def test_device_unlock_with_approval_is_not_configured_without_vendor_adapter():
     )
     assert result.ok is False
     assert result.error == "device_provider_not_configured"
+
+
+def test_quantum_list_catalog_returns_local_metadata():
+    reg = register_default_integrations()
+    result = reg.run(
+        IntegrationRequest(provider="quantum", action="list_catalog", payload={}),
+    )
+    assert result.ok is True
+    assert result.data["count"] == 13
+    assert result.data["autonomous_connect"] is False
+    ids = {p["provider_id"] for p in result.data["providers"]}
+    assert "ibm_quantum" in ids
+    assert "qiskit_aer" in ids
+
+
+def test_quantum_discover_requires_approval():
+    reg = register_default_integrations()
+    result = reg.run(
+        IntegrationRequest(
+            provider="quantum",
+            action="discover",
+            payload={"provider_id": "ibm_quantum"},
+        ),
+    )
+    assert result.ok is False
+    assert result.error == "approval_required"
+
+
+def test_quantum_connect_with_approval_is_not_configured():
+    reg = register_default_integrations()
+    result = reg.run(
+        IntegrationRequest(
+            provider="quantum",
+            action="connect",
+            payload={"provider_id": "ibm_quantum"},
+            risk_level="high",
+            requires_approval=True,
+        ),
+    )
+    assert result.ok is False
+    assert result.error == "quantum_provider_not_configured"
+    assert result.data["autonomous_connect"] is False
+
+
+def test_quantum_classify_unknown_provider():
+    reg = register_default_integrations()
+    result = reg.run(
+        IntegrationRequest(
+            provider="quantum",
+            action="classify",
+            payload={"provider_id": "unknown_vendor"},
+        ),
+    )
+    assert result.ok is False
+    assert result.error == "quantum_provider_unknown"
