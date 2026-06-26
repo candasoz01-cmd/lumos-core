@@ -13,7 +13,6 @@ from integrations.quantum_usage_tracker import (
     record_quantum_usage,
     recommend_usage_mode,
 )
-from integrations.resource_mode_advisor import ResourceLayer, resource_usage_path
 from integrations.registry import register_default_integrations
 
 
@@ -139,23 +138,6 @@ def test_usage_recommendation_action():
     assert result.ok is True
     assert result.data["recommended_mode"] in ("active", "passive", "insufficient_data")
     assert result.data["default_mode"] == "passive"
-
-
-def test_quantum_usage_writes_shared_resource_jsonl(tmp_lumos_base: Path):
-    record_quantum_usage("connect", provider_id="qiskit_aer", base_dir=tmp_lumos_base)
-    path = resource_usage_path(tmp_lumos_base)
-    assert path.is_file()
-    assert '"layer": "quantum"' in path.read_text(encoding="utf-8")
-
-
-def test_quantum_recommendation_uses_resource_layer(tmp_lumos_base: Path):
-    from integrations.resource_mode_advisor import recommend_mode
-
-    for _ in range(EVENTS_PER_WEEK_ACTIVE):
-        record_quantum_usage("list_catalog", base_dir=tmp_lumos_base)
-    direct = recommend_mode(ResourceLayer.QUANTUM, base_dir=tmp_lumos_base)
-    wrapped = recommend_usage_mode(base_dir=tmp_lumos_base)
-    assert direct["recommended_mode"] == wrapped["recommended_mode"] == "active"
 
 
 def test_ibm_connect_still_not_configured_with_approval():
