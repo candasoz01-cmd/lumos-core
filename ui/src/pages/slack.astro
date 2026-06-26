@@ -1,0 +1,57 @@
+---
+import "../styles/lumos-tokens.css";
+import "../styles/umbrella-chrome.css";
+import WeLockSiteNav from "../components/WeLockSiteNav.astro";
+import WeLockSiteFooter from "../components/WeLockSiteFooter.astro";
+import I18nInit from "../components/I18nInit.astro";
+
+const GITHUB_CONNECTORS_URL =
+  "https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/memory/work-tools-connectors-decision.md";
+---
+
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title data-i18n="umbrella.slack.metaTitle">Lumos in Slack — We Lock AI</title>
+    <meta
+      name="description"
+      content="Lumos'un Slack içi çalışma arkadaşı yüzeyi: iş bağlamı, kontrollü bildirim ve onay — OAuth burada başlatılmaz."
+      data-i18n-content="umbrella.slack.metaDescription"
+    />
+    <link rel="canonical" href="https://welockai.com/slack" />
+    <link rel="icon" href="/lumos-tree-logo.svg" type="image/svg+xml" sizes="any" />
+    <meta name="theme-color" content="#0a0e14" />
+  </head>
+  <body class="umbrella-page">
+    <WeLockSiteNav active="slack" />
+    <main class="umbrella-main">
+      <p class="umbrella-eyebrow" data-i18n="umbrella.slack.eyebrow">WE LOCK AI · SLACK</p>
+      <h1 data-i18n="umbrella.slack.title">Lumos in Slack</h1>
+      <p class="umbrella-lead" data-i18n="umbrella.slack.lead">
+        Slack, Lumos'un iş yeri bağlamında çalıştığı birincil kanallardan biridir.
+      </p>
+      <h2 data-i18n="umbrella.slack.whatTitle">Ne sunar?</h2>
+      <ul>
+        <li data-i18n="umbrella.slack.what1">Politika kapsamındaki kanal ve thread bağlamını Lumos paneliyle hizalı özetler.</li>
+        <li data-i18n="umbrella.slack.what2">Dış etkili adımlarda açık onay ve grant modeli.</li>
+        <li data-i18n="umbrella.slack.what3">Mail kanalından ayrı tutulan iş yeri bildirim yüzeyi.</li>
+      </ul>
+      <div class="umbrella-callout">
+        <p>
+          <strong data-i18n="umbrella.slack.statusTitle">Durum</strong> —
+          <span data-i18n="umbrella.slack.statusBody">Slack OAuth ve kurulum sihirbazı henüz bu sitede yok.</span>
+        </p>
+      </div>
+      <p>
+        <a href={GITHUB_CONNECTORS_URL} target="_blank" rel="noopener noreferrer">Çalışma araçları connector kararı (GitHub)</a>
+      </p>
+      <div class="umbrella-actions">
+        <a class="umbrella-btn umbrella-btn--primary" href="/panel" data-i18n="umbrella.slack.panelCta">Web paneline git</a>
+        <a class="umbrella-btn" href="/" data-i18n="umbrella.slack.homeCta">Ana sayfa</a>
+      </div>
+    </main>
+    <WeLockSiteFooter />
+    <I18nInit />
+  </body>
+</html>
