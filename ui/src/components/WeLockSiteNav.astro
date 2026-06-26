@@ -1,7 +1,7 @@
 ---
 import LanguageSwitcher from "./LanguageSwitcher.astro";
 
-export type UmbrellaNavActive = "home" | "panel" | "slack" | "mac" | "cyber" | "";
+export type UmbrellaNavActive = "home" | "panel" | "slack" | "mac" | "cyber" | "integrations" | "";
 
 interface Props {
   active?: UmbrellaNavActive;
@@ -31,6 +31,9 @@ function linkClass(id: UmbrellaNavActive) {
       </li>
       <li>
         <a class={linkClass("panel")} href="/panel" data-i18n="umbrella.nav.panel">Panel</a>
+      </li>
+      <li>
+        <a class={linkClass("integrations")} href="/integrations" data-i18n="umbrella.nav.integrations">Entegrasyonlar</a>
       </li>
       <li>
         <a class={linkClass("slack")} href="/slack" data-i18n="umbrella.nav.slack">Slack</a>

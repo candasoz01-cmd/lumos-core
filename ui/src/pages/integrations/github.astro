@@ -1,0 +1,80 @@
+---
+import "../../styles/lumos-tokens.css";
+import "../../styles/umbrella-chrome.css";
+import WeLockSiteNav from "../../components/WeLockSiteNav.astro";
+import WeLockSiteFooter from "../../components/WeLockSiteFooter.astro";
+import IntegrationPermMatrix from "../../components/IntegrationPermMatrix.astro";
+import I18nInit from "../../components/I18nInit.astro";
+import type { MatrixRow } from "../../components/IntegrationPermMatrix.astro";
+
+const CONNECTORS_DOC_URL =
+  "https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/memory/work-tools-connectors-decision.md";
+
+const githubRow: MatrixRow[] = [
+  {
+    id: "github",
+    nameKey: "umbrella.integrations.rowGithubName",
+    noteKey: "umbrella.integrations.rowGithubNote",
+    read: true,
+    write: true,
+    delete: true,
+  },
+];
+---
+
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title data-i18n="umbrella.github.metaTitle">GitHub entegrasyonu — We Lock AI</title>
+    <meta
+      name="description"
+      content="Lumos GitHub bağlantısı: issue/PR metadata okuma; yazma onaylı; silme varsayılan kapalı."
+      data-i18n-content="umbrella.github.metaDescription"
+    />
+    <link rel="canonical" href="https://welockai.com/integrations/github" />
+    <link rel="icon" href="/lumos-tree-logo.svg" type="image/svg+xml" sizes="any" />
+    <meta name="theme-color" content="#0a0e14" />
+  </head>
+  <body class="umbrella-page">
+    <WeLockSiteNav active="integrations" />
+    <main class="umbrella-main">
+      <p class="umbrella-eyebrow" data-i18n="umbrella.github.eyebrow">WE LOCK AI · GITHUB</p>
+      <h1 data-i18n="umbrella.github.title">GitHub</h1>
+      <p class="umbrella-lead" data-i18n="umbrella.github.lead">
+        Lumos, GitHub'dan görev bağlamı için issue, PR ve CI durumu özeti okur.
+      </p>
+      <h2 data-i18n="umbrella.integrations.matrixTitle">İzin matrisi</h2>
+      <IntegrationPermMatrix rows={githubRow} />
+      <h2 data-i18n="umbrella.github.readsTitle">Ne okur?</h2>
+      <ul>
+        <li data-i18n="umbrella.github.read1">Repo metadata, issue ve PR listesi, diff özeti.</li>
+        <li data-i18n="umbrella.github.read2">CI durumu özeti.</li>
+        <li data-i18n="umbrella.github.read3">Provenance etiketli özet.</li>
+      </ul>
+      <h2 data-i18n="umbrella.github.writesTitle">Ne yazar? (onaylı)</h2>
+      <ul>
+        <li data-i18n="umbrella.github.write1">Issue/PR yorumu, label ve assign.</li>
+        <li data-i18n="umbrella.github.write2">PR merge — yüksek risk onayı.</li>
+      </ul>
+      <h2 data-i18n="umbrella.github.deletesTitle">Silme</h2>
+      <p data-i18n="umbrella.github.deleteBody">Repo, issue, PR veya branch force silme varsayılan kapalıdır.</p>
+      <div class="umbrella-callout">
+        <p>
+          <strong data-i18n="umbrella.github.statusTitle">Durum</strong> —
+          <span data-i18n="umbrella.github.statusBody">GitHub OAuth bu sitede başlatılmaz.</span>
+        </p>
+      </div>
+      <p>
+        <a href={CONNECTORS_DOC_URL} target="_blank" rel="noopener noreferrer">Work tools connector decision (GitHub)</a>
+      </p>
+      <div class="umbrella-actions">
+        <a class="umbrella-btn umbrella-btn--primary" href="/integrations" data-i18n="umbrella.github.hubCta">Entegrasyon merkezi</a>
+        <a class="umbrella-btn" href="/panel" data-i18n="umbrella.github.panelCta">Panel</a>
+        <a class="umbrella-btn" href="/" data-i18n="umbrella.github.homeCta">Ana sayfa</a>
+      </div>
+    </main>
+    <WeLockSiteFooter />
+    <I18nInit />
+  </body>
+</html>

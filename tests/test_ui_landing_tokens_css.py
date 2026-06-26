@@ -228,3 +228,33 @@ def test_landing_ssr_fallbacks_match_tr_catalog() -> None:
     )
     assert twitter_image is not None
     assert twitter_image.group(1) == og_image
+
+
+def test_umbrella_integration_routes_exist() -> None:
+    """Integration hub and detail pages import shared tokens and umbrella chrome."""
+    routes = (
+        _REPO_ROOT / "ui" / "src" / "pages" / "integrations.astro",
+        _REPO_ROOT / "ui" / "src" / "pages" / "integrations" / "github.astro",
+        _REPO_ROOT / "ui" / "src" / "pages" / "integrations" / "google.astro",
+        _REPO_ROOT / "ui" / "src" / "pages" / "slack.astro",
+    )
+    umbrella_tr = (_REPO_ROOT / "ui" / "src" / "i18n" / "messages" / "umbrella" / "tr.ts").read_text(
+        encoding="utf-8"
+    )
+    umbrella_en = (_REPO_ROOT / "ui" / "src" / "i18n" / "messages" / "umbrella" / "en.ts").read_text(
+        encoding="utf-8"
+    )
+    for path in routes:
+        assert path.is_file(), f"missing route: {path}"
+        text = path.read_text(encoding="utf-8")
+        assert "lumos-tokens.css" in text
+        assert "umbrella-chrome.css" in text
+        assert "WeLockSiteNav" in text
+        assert "IntegrationPermMatrix" in text or path.name == "integrations.astro"
+    assert "integrations:" in umbrella_tr
+    assert "integrations:" in umbrella_en
+    assert 'href="/integrations"' in (_REPO_ROOT / "ui" / "src" / "pages" / "index.astro").read_text(
+        encoding="utf-8"
+    )
+    nav = (_REPO_ROOT / "ui" / "src" / "components" / "WeLockSiteNav.astro").read_text(encoding="utf-8")
+    assert 'href="/integrations"' in nav

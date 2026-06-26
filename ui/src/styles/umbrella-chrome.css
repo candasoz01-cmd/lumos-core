@@ -267,3 +267,111 @@
   margin-top: auto;
   padding-top: 0.55rem;
 }
+
+.umbrella-matrix-legend {
+  margin: 0 0 0.75rem;
+  font-size: 0.82rem;
+  color: var(--lumos-muted);
+}
+
+.umbrella-matrix-wrap {
+  margin: 0 0 1.5rem;
+  overflow-x: auto;
+  border-radius: var(--lumos-radius-lg);
+  border: 1px solid rgb(var(--lumos-land-teal) / 0.28);
+  background: rgba(18, 26, 36, 0.88);
+}
+
+.umbrella-matrix {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+.umbrella-matrix th,
+.umbrella-matrix td {
+  padding: 0.55rem 0.65rem;
+  text-align: left;
+  border-bottom: 1px solid rgb(var(--lumos-land-teal) / 0.18);
+  color: var(--lumos-text-body);
+  vertical-align: top;
+}
+
+.umbrella-matrix thead th {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgb(var(--lumos-land-warm) / 0.82);
+  background: rgba(8, 12, 18, 0.55);
+}
+
+.umbrella-matrix tbody th[scope="row"] {
+  font-weight: 600;
+  color: var(--lumos-land-title);
+  white-space: nowrap;
+}
+
+.umbrella-matrix--yes,
+.umbrella-matrix--lock,
+.umbrella-matrix--ban {
+  text-align: center;
+  width: 3.5rem;
+}
+
+.umbrella-surface-grid {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1.25rem 0 1.5rem;
+}
+
+@media (min-width: 560px) {
+  .umbrella-surface-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.umbrella-surface-card {
+  display: block;
+  padding: 0.85rem 1rem;
+  text-decoration: none;
+  border-radius: var(--lumos-radius-md);
+  border: 1px solid rgb(var(--lumos-land-teal) / 0.28);
+  background: rgba(18, 26, 36, 0.72);
+  color: inherit;
+}
+
+.umbrella-surface-card:hover,
+.umbrella-surface-card:focus-visible {
+  border-color: rgb(var(--lumos-land-teal) / 0.48);
+  color: var(--lumos-accent-blue-bright);
+}
+
+.umbrella-surface-card h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  color: var(--lumos-land-title);
+}
+
+.umbrella-surface-card p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--lumos-text-muted);
+}
+
+.umbrella-surface-card .umbrella-badge {
+  display: inline-block;
+  margin-top: 0.45rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgb(var(--lumos-land-warm) / 0.85);
+}
+
+.umbrella-main h2 {
+  margin: 1.5rem 0 0.65rem;
+  font-size: 1.15rem;
+  color: var(--lumos-land-title);
+}
