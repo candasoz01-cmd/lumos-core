@@ -85,6 +85,8 @@ const landingTr = {
     title: "Yerel kurulum",
     intro:
       "Lumos şu anda açık kaynak geliştirme aşamasındadır. Aşağıdaki adımlar yalnızca yerel geliştirme kurulumu içindir: kaynağı bilgisayarınıza alıp komutları Terminal’de çalıştırırsınız. Son kullanıcı kurulum paketi veya tek tıkla resmi kurulum henüz sunulmuyor.",
+    step0:
+      "Yalnızca arayüz için README Katman A yeterli; köprü ve tam panel için aşağıdaki adımları izleyin.",
     step1: "1 — Depoyu klonla (GitHub)",
     step2: "2 — Proje kök dizinine geç",
     step3: "3 — Arayüz bağımlılıklarını yükle",
