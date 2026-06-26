@@ -19,7 +19,7 @@ Yazılı destek kanalı ve **best-effort SLA** tanımı için minimum iskelet. A
 
 | Kanal | Adres / yol | Durum |
 |-------|-------------|-------|
-| E-posta | `support@welockai.com` (TBD) | ☐ Aktif |
+| E-posta | `support@<DOMAIN_TBD>` (onaylı format — adres TBD) | ☐ Aktif |
 | Ekip içi (Alpha) | Slack / dahili kanal | Alpha döneminde yeterli |
 | Güvenlik bulgusu | Ayrı güvenlik hattı (TBD) | ☐ Tanımlı |
 | Durum sayfası | `status.welockai.com` (TBD) | ☐ Yok |
