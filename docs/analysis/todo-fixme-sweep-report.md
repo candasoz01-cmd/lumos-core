@@ -3,7 +3,7 @@
 | Alan | Değer |
 |------|-------|
 | Tarih | 2026-06-26 |
-| Dal | `chore/hygiene-sweep-20260626` |
+| Dal | `docs/na-sweep-closure-544` |
 | Kapsam | Repo taraması (`.git`, `node_modules`, `.venv`, `dist`, lock dosyaları hariç) |
 
 ## Özet
@@ -12,7 +12,9 @@
 |--------|------|
 | Toplam eşleşme (grep) | ~120 (çoğu UI `placeholder`, iş `TBD`, bilinçli stub) |
 | **SAFE_FIX uygulandı** | **1** |
-| **NEEDS_APPROVAL** | **8** kayıt (NA-01 … NA-08; aşağıdaki tablo) |
+| **RESOLVED-DOC** | **4** (NA-03, NA-06, NA-07, NA-08) |
+| **NEEDS_APPROVAL** | **1** (NA-01 — davranış değişikliği) |
+| **NEEDS_OWNER** | **3** (NA-04, NA-05, NA-02 arşiv notu dahil izleme) |
 | Terminoloji düzeltmesi (Task 2) | 4 dosya, 7 metin değişikliği |
 | Kırık doc linki düzeltmesi (Task 3) | 18 dosya, ~35 link/anchor |
 
@@ -26,18 +28,34 @@
 
 ---
 
-## NEEDS_APPROVAL — dokunulmadı
+## NEEDS_APPROVAL — işlenen kayıtlar (NA-01 … NA-08)
 
-| ID | Konum | Sınıflandırma | Gerekçe |
-|----|-------|---------------|---------|
-| NA-01 | `src/core/decision_runner.py:78` | `TODO` | **core/** — `base_dir` zorunlu kılma; otonom apply davranışı |
-| NA-02 | `archive/packages/kando_core/.../decision_runner.py:78` | `TODO` | Arşiv kopyası; core ile aynı not |
-| NA-03 | `docs/mac-app-link-layer.md` | Placeholder `XXXXXXXXXX`, `com.welockai.lumos` | Bilinçli Alpha stub; gerçek Apple kimlik bilgisi ship öncesi dış kaynak |
-| NA-04 | `src/security/`, `src/engine/online_engine.py`, köprü `KANDO_BRIDGE_SECRET`, OAuth yüzeyleri | Secret / gateway stub | Güvenlik / köprü sözleşmesi; persona gap belgelerinde kayıtlı |
-| NA-05 | İş planı belgelerindeki **TBD** (fiyat, KYC, destek e-postası, SLA) | `TBD` | Ticari / hukuk kararı bekliyor — [`bank-readiness-checklist.md`](./bank-readiness-checklist.md), [`pre-commercial-release-plan.md`](./pre-commercial-release-plan.md) |
-| NA-06 | `src/task_engine/observation/state.py` | `known_files` placeholder | **task_engine/** — gelecek gözlem alanı |
-| NA-07 | UI / CSS `::placeholder`, `placeholder-block` | HTML/CSS | Kullanıcı arayüzü yer tutucu metni; ürün stub değil |
-| NA-08 | `DIRECT_WRITE_ATTEMPT` log sabiti | Kod | Audit terimi; TODO değil, grep yanlış pozitif |
+| ID | Konum | Sınıflandırma | Durum | Gerekçe / kapanış |
+|----|-------|---------------|-------|-------------------|
+| NA-01 | `src/core/decision_runner.py:78` | `DEFER` | **NEEDS_APPROVAL** | **core/** — `base_dir` zorunlu kılma otonom apply davranışını değiştirir; yorum `DEFER(autonomous-apply)` ile etiketlendi; mantık değişikliği ayrı onay |
+| NA-02 | `archive/packages/kando_core/.../decision_runner.py:78` | Arşiv kopyası | **RESOLVED-DOC** | Arşiv mirror; canonical kaynak `src/core/decision_runner.py` (NA-01); arşivde ayrı patch yapılmaz |
+| NA-03 | `docs/mac-app-link-layer.md` | Placeholder `XXXXXXXXXX`, `com.welockai.lumos` | **RESOLVED-DOC** | Bilinçli Alpha stub; SAFE_FIX uygulandı; gerçek Apple kimlik bilgisi → owner (bkz. naming registry §C.2) |
+| NA-04 | `src/security/`, `src/engine/online_engine.py`, köprü `KANDO_BRIDGE_SECRET`, OAuth yüzeyleri | Secret / gateway stub | **NEEDS_OWNER** | Güvenlik / köprü sözleşmesi; repoda secret yok; Vercel env + yerel köprü owner checklist |
+| NA-05 | İş planı belgelerindeki **TBD** (fiyat, KYC, destek e-postası, SLA) | `TBD` | **NEEDS_OWNER** | Ticari / hukuk kararı — [`bank-readiness-checklist.md`](./bank-readiness-checklist.md), [`pre-commercial-release-plan.md`](./pre-commercial-release-plan.md); sahte değer üretilmez |
+| NA-06 | `src/task_engine/observation/state.py` | `known_files` placeholder | **RESOLVED-DOC** | Gözlem v1 bilinçli stub; yorum `intentional stub` ile netleştirildi; davranış değişikliği yok |
+| NA-07 | UI / CSS `::placeholder`, `placeholder-block` | HTML/CSS | **RESOLVED-DOC** | Kullanıcı arayüzü yer tutucu metni; ürün stub değil; grep yanlış pozitif — dokunulmaz |
+| NA-08 | `DIRECT_WRITE_ATTEMPT` log sabiti | Kod | **RESOLVED-DOC** | Audit terimi; TODO değil, grep yanlış pozitif — [`write_interceptor.py`](../../src/core/write_interceptor.py) |
+
+### NA-01 — onay sonrası öneri (kod değişikliği)
+
+`option_to_proposals()` ve çağıranlarda `base_dir: Optional[Path]` → zorunlu `Path`; `base_dir is None` iken `protected_target=False` yerine erken hata veya explicit non-protected audit. **Güvenlik / otonom apply** kapsamı — ayrı PR + güvenlik sahibi.
+
+### NA-04 — owner adımları (özet)
+
+1. Yerel: `KANDO_BRIDGE_SECRET` yalnızca `.env` / shell export — repoya yazma.
+2. Vercel Production: `BRIDGE_UPSTREAM_URL` + `KANDO_BRIDGE_SECRET` — bkz. [`vercel-bridge-proxy-setup.md`](../vercel-bridge-proxy-setup.md).
+3. OAuth / gateway stub: private layer; public repoda implementasyon yok.
+
+### NA-05 — owner adımları (özet)
+
+1. Destek e-postası: `support-channel-alpha.md` doldur → naming registry §C.2.
+2. Fiyat / KYC / SLA: `bank-readiness-checklist.md` + ticari onay.
+3. Repoda `TBD` kalması bilinçli — sahte değer commit edilmez.
 
 ---
 
@@ -77,4 +95,4 @@
 
 ---
 
-*Bu rapor `chore/hygiene-sweep-20260626` hijyen dalının çıktısıdır.*
+*Bu rapor NA sweep closure (`docs/na-sweep-closure-544`) çıktısıdır. Konsolide kapanış: [`backlog-closure-report.md`](./backlog-closure-report.md).*

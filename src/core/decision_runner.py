@@ -75,8 +75,8 @@ def explain_decision(option: MutationOption) -> str:
 
 def _is_protected(base_dir: Optional[Path], target_path: Path) -> bool:
     # When base_dir is None, we cannot resolve core state; protected is treated as False.
-    # TODO: Before autonomous apply is enabled, base_dir must be made mandatory so
-    # protected_target is correctly set for core paths.
+    # DEFER(autonomous-apply): base_dir must be mandatory before autonomous apply
+    # so protected_target is correctly set for core paths (NA-01; logic change needs approval).
     if base_dir is None:
         return False
     return is_core_state_path(base_dir, target_path)
