@@ -5,7 +5,7 @@
 | Durum | **Taslak** — karar destek belgesi; kod değişikliği yok |
 | Tarih | 2026-06-26 |
 | Kapsam | Lumos karakterinin prompt'ta kalması gereken minimum çekirdek ile kod/dokümantasyonda yaşayan kuralların sınırı |
-| İlgili | [`welockai-charter-draft.md`](./welockai-charter-draft.md), [`welockai-trust-model-draft.md`](./welockai-trust-model-draft.md), [`lumos-resource-mode-advisor.md`](./lumos-resource-mode-advisor.md), [`lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md) |
+| İlgili | [`welockai-charter-draft.md`](./welockai-charter-draft.md), [`welockai-trust-model-draft.md`](./welockai-trust-model-draft.md), [`lumos-log-vs-approval.md`](./lumos-log-vs-approval.md), [`lumos-resource-mode-advisor.md`](./lumos-resource-mode-advisor.md), [`lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md) |
 
 **Sınır notu:** Bu belge public `lumos-core` deposunda demo-güvenli foundation olarak tutulur. Üretim sırları, ticari orkestrasyon ve operasyonel backend bu repoda yer almaz.
 
@@ -39,6 +39,8 @@ they do not replace it. (Same root, deeper branches.)
 
 **Kullanım:** Bu blok yalnızca **karakter tonu ve davranış ilkelerini** taşır. Kurallar, güvenlik, entegrasyon ve enforcement detayları aşağıdaki tabloda ve kodda kalır.
 
+**Onay vs kayıt — prompt'ta değil, kod + audit'te:** «Karar ≠ Kayıt» ayrımı (onay geleceği yönetir, kayıt geçmişi korur) sistem prompt'una kopyalanmaz; [`lumos-log-vs-approval.md`](./lumos-log-vs-approval.md) ilkesi `confirmation_policy`, `pending_approvals`, bridge audit ve `resource_usage.jsonl` gibi kod/sözleşme yüzeylerinde enforce edilir. Prompt yalnızca «onay iste» der; pending TTL, audit olay tipleri ve append-only kayıt disiplini prompt'ta listelenmez.
+
 ---
 
 ## 2. Prompt'ta olmaması gerekenler (kod / dokümantasyonda yaşar)
@@ -50,7 +52,8 @@ Prompt büyüdükçe kaos büyür. Aşağıdaki sorumluluklar prompt'a kopyalanm
 | **Karakter** (gözle, öner, onay iste, emin değilsen sus) | **Prompt** | §1 blokları |
 | **Kurallar** (karar katmanları, yetki profilleri, adım türleri) | **Çekirdek kod + sözleşme** | [`lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md), `task_engine/profiles.py` |
 | **Güvenlik** (SECURITY_NEVER_AUTO, kilit, keystore, consent) | **Kod + ADR** | [`lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md) §2–3, ADR-010/011/012 |
-| **ORAA** (kaynak modu danışmanı: gözle → öner → onay → uygula) | **`resource_mode_advisor` modülü** | [`lumos-resource-mode-advisor.md`](./lumos-resource-mode-advisor.md), `src/lumos/resource_mode_advisor.py` |
+| **ORAA** (kaynak modu danışmanı: gözle → öner → onay → uygula) | **`resource_mode_advisor` modülü** | [`lumos-resource-mode-advisor.md`](./lumos-resource-mode-advisor.md), `src/integrations/resource_mode_advisor.py` |
+| **Onay vs kayıt** (Karar ≠ Kayıt, pending ≠ audit) | **Kod + audit sözleşmesi** — prompt'ta değil | [`lumos-log-vs-approval.md`](./lumos-log-vs-approval.md), [`lumos-audit-log-contract.md`](./lumos-audit-log-contract.md) |
 | **Entegrasyon** (GitHub, Slack, mail, köprü sınırları) | **Modüller + belgeler** | [`integrations-overview.md`](../integrations-overview.md), `modules/` |
 | **Trust** (güven modeli, charter, ticari sınır) | **Charter / trust belgeleri** | [`welockai-charter-draft.md`](./welockai-charter-draft.md), [`welockai-trust-model-draft.md`](./welockai-trust-model-draft.md) |
 
@@ -94,6 +97,7 @@ Prompt büyüdükçe kaos büyür. Aşağıdaki sorumluluklar prompt'a kopyalanm
 |-------|-----|
 | WeLockAI charter (ürün / ticari sınır) | [`docs/analysis/welockai-charter-draft.md`](./welockai-charter-draft.md) |
 | Trust modeli taslağı | [`docs/analysis/welockai-trust-model-draft.md`](./welockai-trust-model-draft.md) |
+| Karar ≠ Kayıt (onay vs kayıt) | [`docs/analysis/lumos-log-vs-approval.md`](./lumos-log-vs-approval.md) |
 | Kaynak modu danışmanı (ORAA) | [`docs/analysis/lumos-resource-mode-advisor.md`](./lumos-resource-mode-advisor.md) |
 | Karar sözleşmesi (çekirdek omurga) | [`docs/lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md) |
 | Quantum katman mimarisi | [`docs/analysis/lumos-quantum-layer-architecture.md`](./lumos-quantum-layer-architecture.md) |
