@@ -23,6 +23,7 @@ Or: `make test` (runs pytest). Optional commit guard: `make setup-commit-guard`.
 - One clear theme per PR; keep diffs small
 - CI must pass (`ruff` + `pytest`)
 - Link related docs when you change behavior or onboarding paths
+- **Reporting issues:** pilot / destek raporları için ORAA şablonu — [docs/templates/support-report-oraa.md](docs/templates/support-report-oraa.md)
 
 ## Public repository boundary
 
