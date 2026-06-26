@@ -5,9 +5,11 @@
 | Durum | **Mimari foundation taslak** — kod yok; karar destek belgesi |
 | Tarih | 2026-06-26 |
 | Kapsam | WeLockAI ticari katmanı ile Lumos açık kaynak çekirdeği arasındaki rol, sınır ve entegrasyon ilkeleri |
-| İlgili | [`lumos-privacy-manifesto-draft.md`](./lumos-privacy-manifesto-draft.md), [`lumos-audit-log-contract.md`](./lumos-audit-log-contract.md), [`public-repo-boundary.md`](../memory/public-repo-boundary.md), [ADR-012](../decisions/ADR-012-lumos-security-codex.md), [`device-connection-information-architecture.md`](./device-connection-information-architecture.md), [`external-integrations-permissions.md`](../memory/external-integrations-permissions.md) |
+| İlgili | [`lumos-approved-naming-registry.md`](./lumos-approved-naming-registry.md), [`lumos-privacy-manifesto-draft.md`](./lumos-privacy-manifesto-draft.md), [`lumos-audit-log-contract.md`](./lumos-audit-log-contract.md), [`public-repo-boundary.md`](../memory/public-repo-boundary.md), [ADR-012](../decisions/ADR-012-lumos-security-codex.md), [`device-connection-information-architecture.md`](./device-connection-information-architecture.md), [`external-integrations-permissions.md`](../memory/external-integrations-permissions.md) |
 
 **Sınır notu:** WeLockAI ticari ve özel katmandır. Bu belge `lumos-core` public deposunda **yalnızca mimari foundation** olarak tutulur; üretim kodu, credential, faturalama uygulaması veya operasyonel backend bu repoda **yer almaz** ([`public-repo-boundary.md`](../memory/public-repo-boundary.md)).
+
+**İsim kaydı:** Ürün adları (**Lumos**, **WeLockAI**, **welockai.com**), yüzey rotaları (`/panel`, `/integrations`, …), rol adları ve izin sembolleri (**Read ✅**, **Write 🔒**, **Delete 🚫**) [`lumos-approved-naming-registry.md`](./lumos-approved-naming-registry.md) §A'da kilitlidir. Örnek kuruluş adları (Apple/Android/Huawei vb.) §B'de **EXAMPLE** olarak işaretlenmiştir.
 
 ---
 
@@ -225,6 +227,7 @@ flowchart TB
 | [ADR-012](../decisions/ADR-012-lumos-security-codex.md) | Tek dış kapı, onay + kanıt, profil matrisi, trash prensibi |
 | [`device-connection-information-architecture.md`](./device-connection-information-architecture.md) | Bağlantılar hub, izin durumu, köprü vs entegrasyon ayrımı |
 | [`external-integrations-permissions.md`](../memory/external-integrations-permissions.md) | Entegrasyon felsefesi, granüler grant, gateway ilkesi |
+| [`lumos-approved-naming-registry.md`](./lumos-approved-naming-registry.md) | APPROVED LOCKED vs EXAMPLE isim kaydı |
 
 ---
 
