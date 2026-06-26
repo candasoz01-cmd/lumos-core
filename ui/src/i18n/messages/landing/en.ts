@@ -87,6 +87,8 @@ const landingEn: typeof landingTr = {
     title: "Local setup",
     intro:
       "Lumos is in an open-source development stage. The steps below are for local development only: clone the repo to your machine and run commands in Terminal. There is no end-user installer or official one-click setup yet.",
+    step0:
+      "For UI-only preview see README Katman A; for full local bridge setup follow the steps below.",
     step1: "1 — Clone the repository (GitHub)",
     step2: "2 — Go to the project root folder",
     step3: "3 — Install UI dependencies",
