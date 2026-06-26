@@ -82,7 +82,7 @@ npm run dev
 
 Multiple terminals; bridge + task server + optional chat. Canonical guide:
 
-- **[`docs/local-kando-dev-runbook.md`](docs/local-kando-dev-runbook.md)** — ports, `vercel dev` vs `npm run dev`, smoke steps
+- **[Local bridge runbook](docs/local-kando-dev-runbook.md)** — ports, `vercel dev` vs `npm run dev`, smoke steps
 - **[welockai.com/#kurulum](https://welockai.com/#kurulum)** — 8-step setup on the public landing (same flow when running the UI locally)
 
 Summary: copy `ui/.env.example` → `ui/.env.local`, start `./scripts/bridge_start.sh` and `panel/scripts/panel_tasks_server.py`, then run **`vercel dev`** at the repo root (not `npm run dev` alone) for task proxy — panel at http://127.0.0.1:3000/panel. Details: [`docs/getting-started.md`](docs/getting-started.md).
@@ -221,9 +221,9 @@ Output is written to `ui/dist/`.
 cd backend && npm install && npm run dev
 ```
 
-### Kando bridge (optional dev bridge)
+### Local bridge (optional dev bridge)
 
-**Kando** is early-stage helper tooling that wires the panel toward task, file, and chat targets during local development and experiments. It is not finished product infrastructure—more a practical starting point that may evolve. Security and behavior details: `scripts/README_kando_bridge_server.md`.
+The local bridge is early-stage helper tooling that wires the panel toward task, file, and chat targets during local development and experiments. It is not finished product infrastructure—more a practical starting point that may evolve. Security and behavior details: `scripts/README_kando_bridge_server.md`.
 
 To start the local bridge:
 
@@ -247,11 +247,11 @@ The production UI is built with Astro under `ui/`; output goes to `ui/dist/`.
 
 ### Chat / bridge — separate service (e.g. Render)
 
-The **Kando bridge** (or equivalent backend) for the panel's chat, task, and file targets must be hosted **separately** from the UI—for example on [Render](https://render.com), Railway, Fly.io, or your own VPS. In local development `./scripts/bridge_start.sh` accepts only loopback connections; a remote bridge requires a separate security policy and hosting (see `scripts/README_kando_bridge_server.md`).
+The **local bridge** (or equivalent backend) for the panel's chat, task, and file targets must be hosted **separately** from the UI—for example on [Render](https://render.com), Railway, Fly.io, or your own VPS. In local development `./scripts/bridge_start.sh` accepts only loopback connections; a remote bridge requires a separate security policy and hosting (see `scripts/README_kando_bridge_server.md`).
 
 Provide bridge addresses to the UI via Vercel (or other static host) environment variables; run the bridge process on that service. The example remote addresses in `panel.astro` are references only—use your own URLs and token policy.
 
-**Task bridge proxy (Phase 1):** Panel `POST /task` calls go to same-origin `/api/bridge/task`. Configure **server-side** `BRIDGE_UPSTREAM_URL` (e.g. `http://127.0.0.1:8765`) and `KANDO_BRIDGE_SECRET` on Vercel or `vercel dev`—not `PUBLIC_*`. See [docs/local-kando-dev-runbook.md](docs/local-kando-dev-runbook.md).
+**Task bridge proxy (Phase 1):** Panel `POST /task` calls go to same-origin `/api/bridge/task`. Configure **server-side** `BRIDGE_UPSTREAM_URL` (e.g. `http://127.0.0.1:8765`) and `KANDO_BRIDGE_SECRET` on Vercel or `vercel dev`—not `PUBLIC_*`. See [local bridge runbook](docs/local-kando-dev-runbook.md).
 
 ### Environment variables (`PUBLIC_*`)
 

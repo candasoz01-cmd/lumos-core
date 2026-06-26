@@ -42,7 +42,7 @@ npm run dev
 
 **Prerequisites:** Node >= 22.12, Python 3.10+ (bridge/tasks), [Vercel CLI](https://vercel.com/docs/cli) (`vercel dev` for `/api/bridge/*` proxy)
 
-**Canonical runbook:** [`docs/local-kando-dev-runbook.md`](local-kando-dev-runbook.md)
+**Canonical runbook:** [Local bridge runbook](local-kando-dev-runbook.md)
 
 **Landing walkthrough:** [welockai.com/#kurulum](https://welockai.com/#kurulum) (8 steps — same flow when running UI locally)
 
@@ -64,7 +64,7 @@ For chat: Python venv + `OPENAI_API_KEY` — see runbook.
 |---------|--------------|-----------------|
 | Astro UI (`npm run dev`) | **4321** | `cd ui && npm run dev` — landing + panel; **no** `/api/bridge` proxy |
 | Vercel dev (`vercel dev`) | **3000** | Repo root — serves Astro + **`/api/bridge/*`** serverless proxy |
-| Kando bridge | **8765** | `./scripts/bridge_start.sh`; override via `KANDO_BRIDGE_PORT` |
+| Local bridge | **8765** | `./scripts/bridge_start.sh`; override via `KANDO_BRIDGE_PORT` |
 | Panel task server | **8766** | `python3 panel/scripts/panel_tasks_server.py` |
 
 Use **`127.0.0.1`** in URLs (not `localhost`) to avoid IPv6 drift on macOS.
@@ -118,10 +118,10 @@ Python is **not** required for Katman A.
 | Doc | Purpose |
 |-----|---------|
 | [README](../README.md) | Product overview, deploy, modules |
-| [local-kando-dev-runbook.md](local-kando-dev-runbook.md) | Bridge smoke, env files, diagnostics |
+| [Local bridge runbook](local-kando-dev-runbook.md) | Bridge smoke, env files, diagnostics |
 | [project-map.md](project-map.md) | Repo layout, entry points, naming |
 | [integrations-overview.md](integrations-overview.md) | welockai.com surfaces vs OSS boundary |
-| [scripts/README_kando_bridge_server.md](../scripts/README_kando_bridge_server.md) | Bridge API and security |
+| [Bridge server README](../scripts/README_kando_bridge_server.md) | Bridge API and security |
 
 ---
 

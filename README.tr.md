@@ -26,7 +26,7 @@ npm run dev
 
 Köprü + görev sunucusu + sohbet için:
 
-- [docs/local-kando-dev-runbook.md](docs/local-kando-dev-runbook.md)
+- [Yerel köprü runbook](docs/local-kando-dev-runbook.md)
 - [welockai.com/#kurulum](https://welockai.com/#kurulum)
 
 ## İlgili

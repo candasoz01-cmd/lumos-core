@@ -10,7 +10,7 @@
 
 ## Ne yapar?
 
-Panel same-origin **`/api/bridge/*`** isteklerini yerel veya tünel üzerindeki **kando_bridge** upstream'e iletir. Token (`KANDO_BRIDGE_SECRET`) yalnızca sunucu tarafında eklenir; tarayıcıya sızmaz.
+Panel same-origin **`/api/bridge/*`** isteklerini yerel veya tünel üzerindeki **yerel köprü** (local bridge) upstream'e iletir. Token (`KANDO_BRIDGE_SECRET`) yalnızca sunucu tarafında eklenir; tarayıcıya sızmaz.
 
 Desteklenen yollar: `task`, `last-result`, `controlled`, `transcribe`.
 
@@ -49,7 +49,7 @@ HTTP **503** — **beklenen davranış**; panel «bağlantı yapılandırılmam�
 
 | Ortam | Köprü | Panel görev akışı |
 |-------|-------|-------------------|
-| **Yerel dev** | `kando_bridge` @ `127.0.0.1:8765` + `vercel dev` | `export BRIDGE_UPSTREAM_URL='http://127.0.0.1:8765'` |
+| **Yerel dev** | Yerel köprü @ `127.0.0.1:8765` + `vercel dev` | `export BRIDGE_UPSTREAM_URL='http://127.0.0.1:8765'` |
 | **Prod (welockai.com)** | Upstream internetten erişilebilir olmalı | Vercel'de `BRIDGE_UPSTREAM_URL` = **HTTPS tünel veya barındırılmış köprü URL'si** |
 | **Prod (env yok)** | Yok | `/api/bridge/*` → **503** (Sınırlı mod; yerel görevler çalışır) |
 
@@ -104,7 +104,7 @@ Köprü yapılandırıldıktan sonra aynı uç nokta köprü yanıt kodunu yans�
 
 | Belge | Konu |
 |-------|------|
-| [local-kando-dev-runbook.md](local-kando-dev-runbook.md) | Yerel tam akış |
+| [Yerel köprü runbook](local-kando-dev-runbook.md) | Yerel tam akış |
 | [mac-app-link-layer.md](mac-app-link-layer.md) | Prod URL listesi |
 | [INTERNAL_ALPHA_OPERATIONS.md](INTERNAL_ALPHA_OPERATIONS.md) | Alpha operasyon |
 
