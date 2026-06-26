@@ -2,13 +2,14 @@ PYTHON := python
 PYTEST := pytest
 TEST_PYTHONPATH := $(CURDIR)/src:$(CURDIR)/packages/kando_runtime/src:$(CURDIR)/packages/kando_bridge/src
 
-.PHONY: help install compile test test-api smoke cli web check run cleanlog install-git-hooks setup-commit-guard e2e-package e2e-package-api e2e-tasks-offline-online
+.PHONY: help install compile test test-rust test-api smoke cli web check run cleanlog install-git-hooks setup-commit-guard e2e-package e2e-package-api e2e-tasks-offline-online
 
 help:
 	@echo "Targets:"
 	@echo "  make install   -> pip install -e ."
 	@echo "  make compile   -> py_compile"
 	@echo "  make test      -> CI parity: PYTHONPATH + KANDO_MOCK=1, pytest -q"
+	@echo "  make test-rust -> cargo test (AnchorUSB crates)"
 	@echo "  make e2e-package -> panel paket kapısı (local/demo)"
 	@echo "  make e2e-package-api -> panel paket kapısı (REST /tasks + POST + offline/online)"
 	@echo "  make e2e-tasks-offline-online -> yalnız görev API offline/online e2e"
@@ -39,6 +40,9 @@ compile:
 
 test:
 	PYTHONPATH=$(TEST_PYTHONPATH) KANDO_MOCK=1 $(PYTEST) -q
+
+test-rust:
+	cargo test -p anchorusb-core -p anchorusb-cli
 
 e2e-package:
 	cd panel && npm run e2e:package

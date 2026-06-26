@@ -2,7 +2,7 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Docs-only** — mimari onaylı; uygulama kodu henüz yok |
+| Durum | **Week 1 uygulandı** — `crates/anchorusb-core` + `crates/anchorusb-cli` |
 | Tarih | 2026-06-26 |
 | Çalışma adı | **AnchorUSB** (kilitli) |
 
@@ -27,6 +27,14 @@ Bağımsız taşınabilir vault ürün hattı. Lumos OSS çekirdeğinden ayrı i
 2. **Anahtarlar cihaz dışına çıkmaz** (varsayılan).
 3. **Public repo güvenli** — polis API, gizli telemetri, otomatik dış bildirim yok.
 4. **MVP:** taşınabilir uygulama + USB'de şifreli `.vault` dosyası.
+
+## Uygulama (Week 1)
+
+| Bileşen | Yol |
+|---------|-----|
+| Rust çekirdek | [`crates/anchorusb-core/README.md`](../../../crates/anchorusb-core/README.md) |
+| CLI (`anchorusb`) | `crates/anchorusb-cli` |
+| Test | `cargo test -p anchorusb-core` |
 
 ---
 

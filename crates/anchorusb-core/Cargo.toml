@@ -1,0 +1,20 @@
+[package]
+name = "anchorusb-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "AnchorUSB encrypted vault container core (AES-256-GCM, Argon2id, event log)"
+
+[dependencies]
+aes-gcm = { version = "0.10", features = ["aes"] }
+argon2 = "0.5"
+getrandom = "0.2"
+hex = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+thiserror = "1"
+zeroize = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+tempfile = "3"
