@@ -100,6 +100,11 @@ def test_panel_nav_status_copy_is_honest_not_preview() -> None:
     assert "limited without bridge" in en_text
     assert "Awaiting connection" in en_text
     assert "Architecture ready" in en_text
+    assert "Topraksız mod" in tr_text
+    assert "Toprak bekleniyor" in tr_text
+    assert "Hydroponic mode" in en_text
+    assert "Awaiting soil" in en_text
+    assert 'data-i18n="panel.rootStatus.katmanALink"' in _PANEL_ASTRO.read_text(encoding="utf-8")
     assert "inactiveBadge" not in astro_nav
     assert "Önizleme" not in astro_nav
 

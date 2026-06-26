@@ -960,6 +960,8 @@ PANEL_I18N_V58_MARKERS = (
     'class="panel-root-status"',
     'data-i18n="panel.rootStatus.title"',
     'data-i18n="panel.rootStatus.hydroponic"',
+    'data-i18n="panel.rootStatus.katmanAFootnote"',
+    'data-i18n="panel.rootStatus.katmanALink"',
     'data-i18n="panel.modules.quantum.disclaimer"',
     'lumos-status-pill--developing',
     'lumos-status-pill--active',
@@ -974,6 +976,8 @@ PANEL_I18N_V58_TR_KEYS = (
     "hydroponic:",
     "disclaimer:",
     "Topraksız mod",
+    "katmanAFootnote:",
+    "Katman A",
 )
 
 PANEL_I18N_V58_EN_KEYS = (
@@ -984,6 +988,8 @@ PANEL_I18N_V58_EN_KEYS = (
     "hydroponic:",
     "disclaimer:",
     "Hydroponic mode",
+    "katmanAFootnote:",
+    "Katman A",
 )
 
 
