@@ -27,6 +27,17 @@ This document is **demo-safe** and suitable for the public `lumos-core` reposito
 | Mac links | https://welockai.com/connect/mac | Universal Links for future Mac client |
 | Cyber | https://welockai.com/cyber | Security-focused variant (early access) |
 
+### Quantum Layer (planned)
+
+Kuantum **kaynak keşfi ve onaylı bağlantı** planlı katmanı — `/cyber` ve mevcut entegrasyon connector'larından **ayrıdır**. Lumos **asla** otonom olarak kuantum bulutuna bağlanmaz.
+
+| Yüzey | Rol | Durum |
+|-------|-----|-------|
+| **Quantum Readiness** (ADR-013) | Yerel salt okunur PQC hazırlık tarayıcısı — panel `GET /quantum-readiness` | Faz-2 kısmi (bağlantı yok) |
+| **Quantum Layer** | Bul → sınıflandır → risk/ücret/izin → onay → bağlan | **Planlı** — docs + `quantum_registry` stub |
+
+Belgeler: [`lumos-quantum-layer-architecture.md`](analysis/lumos-quantum-layer-architecture.md), [`lumos-quantum-provider-catalog.md`](analysis/lumos-quantum-provider-catalog.md). Kod: `src/integrations/quantum_registry.py` (metadata), `quantum` provider (`list_catalog` yerel; `discover`/`connect` → `not_configured`).
+
 **OAuth is not started on these static pages.** Connection flows will ship under We Lock AI controlled access when ready (Internal Alpha → official release).
 
 ---
@@ -94,6 +105,7 @@ See [`docs/memory/public-repo-boundary.md`](memory/public-repo-boundary.md).
 ## Code references (OSS)
 
 - Registry: `src/integrations/registry.py`
+- Quantum Layer catalog stub: `src/integrations/quantum_registry.py`, `src/integrations/providers/quantum_provider.py`
 - Mail stub: `src/integrations/mail/`
 - External permissions canon: `docs/memory/external-integrations-permissions.md`
 - Work tools connectors: `docs/memory/work-tools-connectors-decision.md`
