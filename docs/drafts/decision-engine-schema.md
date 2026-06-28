@@ -6,27 +6,88 @@
 
 Backlog listesinden karar sistemine: izlenebilir, ilişkili, katmanlı karar hafızası. Yeni ajan sadece son kararı değil; neden, bağlam, iptal zincirini okur.
 
-## Karar kaydı — hedef alanlar
+## Çekirdek bütünlük kuralı
+
+> **Boş alan olabilir, yanlış alan olmamalı.**
+
+- Gün birinde çoğu alan boş kalabilir; eksik bilgi boş bırakılır.
+- Alan yalnızca doğrulanabilir kaynak varsa doldurulur (toplantı notu, PR, onay kaydı, gerçek kişi/kurul).
+- İleride 30–40 anlamlı alan kabul edilir; her alanın tanımı ve kaynağı net olmalıdır.
+
+## Onay bütünlüğü (approval integrity)
+
+**Yasak:** Uydurma onaylayıcı veya kurul adı — örn. `Approved by: OpenAI`, `WeLockAI Board` — gerçek onay kaydı yoksa yazılmaz.
+
+**İzinli değerler (örnek):**
+
+| Değer | Ne zaman |
+|-------|----------|
+| **Pending** | Onay bekleniyor; henüz kimse onaylamadı |
+| **Project Owner** | Proje sahibi gerçekten onayladıysa |
+| **Core Team** | Çekirdek ekip gerçekten onayladıysa |
+| *(boş)* | Onay süreci başlamadı veya bilinmiyor |
+
+**Review alanları** (Technical, Security, Accessibility, Privacy): aynı kural — `Pending`, gerçek onaylayıcı adı, veya boş. «Reviewed» yazıp kişi uydurma.
+
+Kayıt: [LUMOS-0003](./BACKLOG.md) (BACKLOG).
+
+## Karar kaydı — alan kataloğu
+
+### Kimlik ve durum
 
 | Alan | Açıklama |
 |------|----------|
 | **ID** | LUMOS-NNNN — sabit; güncellemede aynı ID |
-| **Katman** | L0–L4 (aşağı) |
+| **Decision level** | L0–L4 (katman; aşağı) |
+| **Status** | 🟢 AKTİF · 🟡 TEST · 🔴 İPTAL · 🔒 DONDURULDU · 🚀 YAYINLANDI |
 | **Tarih** | İlk kayıt |
 | **Son güncelleme** | Son revizyon |
-| **Durum** | 🟢 AKTİF · 🟡 TEST · 🔴 İPTAL · 🔒 DONDURULDU · 🚀 YAYINLANDI |
+| **Last reviewed** | Son gözden geçirme tarihi |
+| **Review due** | Sonraki gözden geçirme hedefi |
+
+### İçerik
+
+| Alan | Açıklama |
+|------|----------|
 | **Karar** | Ne kararlaştırıldı |
 | **Gerekçe** | Neden |
-| **source** | Kim: insan, Cursor, Lumos… |
-| **basis** | Toplantı, test, geri bildirim… |
+| **Evidence** | Kanıt: link, PR, test, toplantı notu |
+| **source** | Kaynak türü: insan, Cursor, Lumos… |
+| **basis** | Dayanak: toplantı, test, geri bildirim… |
 | **Etkilenen dosyalar / sürümler** | Path veya tag |
-| **supersedes** | Hangi ID geçersiz kılındı |
+
+### Onay ve inceleme
+
+| Alan | Açıklama |
+|------|----------|
+| **Proposed by** | Öneren (kişi veya rol — gerçekse) |
+| **Reviewed by** | İnceleyen (gerçekse; yoksa boş veya Pending) |
+| **Technical review** | Teknik inceleme durumu / onaylayan |
+| **Security review** | Güvenlik inceleme durumu / onaylayan |
+| **Accessibility review** | Erişilebilirlik inceleme durumu / onaylayan |
+| **Privacy review** | Gizlilik inceleme durumu / onaylayan |
+| **approved_by** | Nihai onaylayan (bkz. onay bütünlüğü) |
+
+### Risk ve güven
+
+| Alan | Açıklama |
+|------|----------|
+| **Risk level** | Düşük · Orta · Yüksek · Kritik (tanımlı ölçek) |
+| **Confidence** | Deneysel · Onaylı · Çekirdek |
 | **reversible** | evet / hayır |
-| **confidence** | Deneysel · Onaylı · Çekirdek |
-| **approved_by** | Onaylayan |
-| **effective_from** | Geçerlilik başlangıcı (sürüm veya tag) |
-| **retired_in** | Emekliye ayrılma (sürüm veya tag) |
+
+### İlişki ve yaşam döngüsü
+
+| Alan | Açıklama |
+|------|----------|
+| **Related decisions** | İlgili karar ID'leri |
+| **supersedes** | Bu kaydın geçersiz kıldığı ID |
+| **superseded_by** | Bu kaydı geçersiz kılan ID |
+| **effective_from** | Geçerlilik başlangıcı (sürüm, tag veya tarih) |
+| **retired_in** | Emekliye ayrılma (sürüm, tag veya tarih) |
 | **relations** | spawned · cancelled · updated_by — ID listesi |
+
+**Not:** Pilot aşamada BACKLOG yalnızca temel alanları taşır; katalog hedef şemadır. Boş alan normaldir.
 
 ## Katmanlar (L0 → L4)
 
@@ -59,6 +120,7 @@ Karar A
 |--------|-------|--------|
 | [`BACKLOG.md`](./BACKLOG.md) | LUMOS-0001 — lansman erişilebilirliği | L1 |
 | [`BACKLOG.md`](./BACKLOG.md) | LUMOS-0002 — yerelleştirme omurgası | L1 |
+| [`BACKLOG.md`](./BACKLOG.md) | LUMOS-0003 — onay bütünlüğü / alan kataloğu | L2 |
 | lumos-book-v0.1 (`0799c34`) | 🔒 dondurulmuş omurga | — |
 | [`docs/lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md) | L0 referans adayı (çekirdek sözleşme — ayrı katman) | L0 |
 
