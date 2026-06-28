@@ -31,6 +31,14 @@ Backlog listesinden karar sistemine: izlenebilir, ilişkili, katmanlı karar haf
 
 Kayıt: [LUMOS-0003](./BACKLOG.md) (BACKLOG).
 
+## Belirsizlik ilkesi
+
+> **Belirsizlik hata değildir; gizlenen belirsizlik hatadır.**
+
+Hakem susmaz ve sahte kesinlik üretmez; ikilemi açık tutar. Karar net değilse: seçenek A/B (artı / risk), Lumos değerlendirmesi, **Confidence**, belirsizlik notu — **nihai karar kullanıcı**.
+
+Kayıt: [LUMOS-0005](./BACKLOG.md). İlişki: [LUMOS-0003](./BACKLOG.md) (onay bütünlüğü). Katman: **L2** (Decision Engine / hakem modeli); L0 «belirsizse eminim demez» ile uyumlu.
+
 ## Karar kaydı — alan kataloğu
 
 ### Kimlik ve durum
@@ -121,6 +129,7 @@ Karar A
 | [`BACKLOG.md`](./BACKLOG.md) | LUMOS-0001 — lansman erişilebilirliği | L1 |
 | [`BACKLOG.md`](./BACKLOG.md) | LUMOS-0002 — yerelleştirme omurgası | L1 |
 | [`BACKLOG.md`](./BACKLOG.md) | LUMOS-0003 — onay bütünlüğü / alan kataloğu | L2 |
+| [`BACKLOG.md`](./BACKLOG.md) | LUMOS-0005 — belirsizlik ilkesi / hakem modeli | L2 |
 | lumos-book-v0.1 (`0799c34`) | 🔒 dondurulmuş omurga | — |
 | [`docs/lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md) | L0 referans adayı (çekirdek sözleşme — ayrı katman) | L0 |
 

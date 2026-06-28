@@ -44,6 +44,18 @@ Tam şema taslağı: [decision-engine-schema.md](./decision-engine-schema.md)
 ## Aktif kararlar
 
 ```
+ID: LUMOS-0005
+[2026-06-28] 🟢 AKTİF
+Karar: Belirsizlik hata değildir; gizlenen belirsizlik hatadır. Hakem rolü susmak veya kesin konuşmak değil; ikilemi açık tutmaktır. Karar net değilse ikilem gizlenmez: seçenek A/B (artıları ve riskleri), Lumos değerlendirmesi, güven düzeyi (confidence) ve belirsizlik açıkça sunulur; nihai karar kullanıcıya aittir.
+Gerekçe: Sahte kesinlik veya sessizlik güveni zedeler; dürüst karar hafızası belirsizliği görünür kılar, boş veya yanlış alan üretmez (bkz. LUMOS-0003).
+Uygulama: Decision Engine ve hakem modeli — belirsiz kararlarda A/B şablonu; confidence ve uncertainty alanları doldurulur veya bilinçli boş bırakılır; son söz kullanıcıda.
+İlişkili kararlar: LUMOS-0003
+Decision level: L2 (hakem modeli, Decision Engine davranışı)
+Etkilenen dosyalar: docs/drafts/decision-engine-schema.md, docs/drafts/BACKLOG.md
+Son güncelleme: 2026-06-28
+```
+
+```
 ID: LUMOS-0003
 [2026-06-28] 🟢 AKTİF
 Karar: Karar kayıtları zengin alan seti taşıyabilir (Proposed by, Reviewed by, Technical/Security/Accessibility/Privacy review, Risk level, Confidence, Evidence, Related decisions, Supersedes, Superseded by, Effective from, Last reviewed, Review due, Status, Decision level L0–L4); gün birinde çoğu alan boş kalabilir. Onay bütünlüğü: uydurma onaylayıcı yasak — «Approved by: OpenAI» veya «WeLockAI Board» gibi gerçek olmayan değerler yazılmaz. İzinli örnekler: Pending, Project Owner, Core Team (yalnızca gerçekten onaylandıysa). Çekirdek kural: **Boş alan olabilir, yanlış alan olmamalı.** İleride 30–40 anlamlı ve doğrulanabilir kaynaklı alan kabul edilir.
