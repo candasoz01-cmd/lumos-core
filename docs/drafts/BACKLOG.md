@@ -44,6 +44,16 @@ Tam şema taslağı: [decision-engine-schema.md](./decision-engine-schema.md)
 ## Aktif kararlar
 
 ```
+ID: LUMOS-0003
+[2026-06-28] 🟢 AKTİF
+Karar: Karar kayıtları zengin alan seti taşıyabilir (Proposed by, Reviewed by, Technical/Security/Accessibility/Privacy review, Risk level, Confidence, Evidence, Related decisions, Supersedes, Superseded by, Effective from, Last reviewed, Review due, Status, Decision level L0–L4); gün birinde çoğu alan boş kalabilir. Onay bütünlüğü: uydurma onaylayıcı yasak — «Approved by: OpenAI» veya «WeLockAI Board» gibi gerçek olmayan değerler yazılmaz. İzinli örnekler: Pending, Project Owner, Core Team (yalnızca gerçekten onaylandıysa). Çekirdek kural: **Boş alan olabilir, yanlış alan olmamalı.** İleride 30–40 anlamlı ve doğrulanabilir kaynaklı alan kabul edilir.
+Gerekçe: Karar hafızası güvenilir olmalı; eksik bilgi boş bırakılır, sahte onay veya kurul adı üretilmez.
+Uygulama: `docs/drafts/decision-engine-schema.md` alan kataloğu ve onay bütünlüğü bölümü; yeni kayıtlarda alanlar yalnızca kanıtlandığında doldurulur.
+Etkilenen dosyalar: docs/drafts/decision-engine-schema.md, docs/drafts/BACKLOG.md
+Son güncelleme: 2026-06-28
+```
+
+```
 ID: LUMOS-0001
 [2026-06-28] 🟢 AKTİF
 Karar: Engelli modu lansmanda görünür; temel erişilebilirlik özellikleri ücretsiz açık belirtilir; küçük ve hedef odaklı değişiklik politikası korunur.
