@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "XXXXXXXXXX.com.welockai.lumos",
+        "paths": ["/panel", "/panel/*", "/"]
+      }
+    ]
+  }
+}

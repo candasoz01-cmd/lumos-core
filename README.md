@@ -48,7 +48,23 @@ The current panel defines visible modules and product direction without claiming
 - The project is not yet a stable, fully contribution-ready open source product. External contributions are reviewed on a controlled basis; CONTRIBUTING.md will be added later.
 - Visual brand assets, the Lumos / We Lock AI names, official services, production API access, and user data are **not** covered by the Apache-2.0 license. See [NOTICE](NOTICE).
 
+## Prerequisites
+
+| Requirement | Notes |
+|-------------|--------|
+| **Node.js** >= 22.12.0 | Required for `ui/` (`ui/package.json` `engines`) |
+| **Python** 3.10+ | Optional — CLI (`lumos`), bridge, task server |
+| **Vercel CLI** | Optional — local `/api/bridge/*` proxy via `vercel dev` |
+
+**New here?** Start with **[`docs/getting-started.md`](docs/getting-started.md)** — canonical onboarding (ports, `ui/` vs `panel/`, limited vs full).
+
 ## Quick Start
+
+Pick a path based on what you need:
+
+### Katman A — First 5 minutes (UI only)
+
+Single terminal; guaranteed first success. No bridge or env files required.
 
 ```bash
 git clone https://github.com/candasoz01-cmd/lumos-core
@@ -57,7 +73,39 @@ npm install
 npm run dev
 ```
 
+1. **Landing:** http://127.0.0.1:4321/
+2. **Panel shell:** http://127.0.0.1:4321/panel — opens in **Limited mode** (Sınırlı mod)
+
+**Expectation:** Limited mode without a bridge is **normal** for local exploration. Chat, bridge tasks, and full connectivity require **Katman B** below.
+
+### Katman B — Full local dev (10+ minutes)
+
+Multiple terminals; bridge + task server + optional chat. Canonical guide:
+
+- **[Local bridge runbook](docs/local-kando-dev-runbook.md)** — ports, `vercel dev` vs `npm run dev`, smoke steps
+- **[welockai.com/#kurulum](https://welockai.com/#kurulum)** — 8-step setup on the public landing (same flow when running the UI locally)
+
+Summary: copy `ui/.env.example` → `ui/.env.local`, start `./scripts/bridge_start.sh` and `panel/scripts/panel_tasks_server.py`, then run **`vercel dev`** at the repo root (not `npm run dev` alone) for task proxy — panel at http://127.0.0.1:3000/panel. Details: [`docs/getting-started.md`](docs/getting-started.md).
+
 Product summary: [`docs/PRODUCT_SUMMARY.md`](docs/PRODUCT_SUMMARY.md). Release checklist: [`docs/GITHUB_RELEASE_CHECKLIST.md`](docs/GITHUB_RELEASE_CHECKLIST.md). Internal Alpha scope: [`docs/INTERNAL_ALPHA_RELEASE_SCOPE.md`](docs/INTERNAL_ALPHA_RELEASE_SCOPE.md). Branch strategy: [`docs/repo-branches.md`](docs/repo-branches.md).
+
+## Integrations (We Lock AI)
+
+Official integration pages live under **[welockai.com](https://welockai.com/)** — static, charter-aligned; **no OAuth in the open-source repo**.
+
+| Surface | URL |
+|---------|-----|
+| Integration hub | https://welockai.com/integrations |
+| GitHub | https://welockai.com/integrations/github |
+| Google (Drive, Calendar, Gmail) | https://welockai.com/integrations/google |
+| Slack | https://welockai.com/slack |
+| Panel | https://welockai.com/panel |
+| Mac / Universal Links | https://welockai.com/connect/mac |
+| Cyber | https://welockai.com/cyber |
+
+Technical and product overview: [`docs/integrations-overview.md`](docs/integrations-overview.md). Architecture foundation: [`docs/analysis/welockai-charter-draft.md`](docs/analysis/welockai-charter-draft.md) (§5 integration matrix), [`docs/analysis/welockai-trust-model-draft.md`](docs/analysis/welockai-trust-model-draft.md). Permission canon: [`docs/memory/external-integrations-permissions.md`](docs/memory/external-integrations-permissions.md). OSS stubs: `src/integrations/`.
+
+Live OAuth, production connectors, and enterprise policy enforcement ship in the **WeLockAI private layer** — not in this public repository.
 
 ## Release Tracks
 
@@ -147,9 +195,7 @@ Modules / UI / Feed / Automation / External Systems
 
 Lumos is currently available as **source code** for development and review. A packaged end-user installer is **not** available yet.
 
-### Prerequisites
-
-- **Node.js** >= 22.12.0 (see `ui/package.json` `engines`)
+**Repo layout:** [`docs/project-map.md`](docs/project-map.md) — `ui/` (primary web surface), `panel/` (task-server scripts only), ports, and common naming traps.
 
 ### Web UI
 
@@ -175,9 +221,9 @@ Output is written to `ui/dist/`.
 cd backend && npm install && npm run dev
 ```
 
-### Kando bridge (optional dev bridge)
+### Local bridge (optional dev bridge)
 
-**Kando** is early-stage helper tooling that wires the panel toward task, file, and chat targets during local development and experiments. It is not finished product infrastructure—more a practical starting point that may evolve. Security and behavior details: `scripts/README_kando_bridge_server.md`.
+The local bridge is early-stage helper tooling that wires the panel toward task, file, and chat targets during local development and experiments. It is not finished product infrastructure—more a practical starting point that may evolve. Security and behavior details: `scripts/README_kando_bridge_server.md`.
 
 To start the local bridge:
 
@@ -201,11 +247,11 @@ The production UI is built with Astro under `ui/`; output goes to `ui/dist/`.
 
 ### Chat / bridge — separate service (e.g. Render)
 
-The **Kando bridge** (or equivalent backend) for the panel's chat, task, and file targets must be hosted **separately** from the UI—for example on [Render](https://render.com), Railway, Fly.io, or your own VPS. In local development `./scripts/bridge_start.sh` accepts only loopback connections; a remote bridge requires a separate security policy and hosting (see `scripts/README_kando_bridge_server.md`).
+The **local bridge** (or equivalent backend) for the panel's chat, task, and file targets must be hosted **separately** from the UI—for example on [Render](https://render.com), Railway, Fly.io, or your own VPS. In local development `./scripts/bridge_start.sh` accepts only loopback connections; a remote bridge requires a separate security policy and hosting (see `scripts/README_kando_bridge_server.md`).
 
 Provide bridge addresses to the UI via Vercel (or other static host) environment variables; run the bridge process on that service. The example remote addresses in `panel.astro` are references only—use your own URLs and token policy.
 
-**Task bridge proxy (Phase 1):** Panel `POST /task` calls go to same-origin `/api/bridge/task`. Configure **server-side** `BRIDGE_UPSTREAM_URL` (e.g. `http://127.0.0.1:8765`) and `KANDO_BRIDGE_SECRET` on Vercel or `vercel dev`—not `PUBLIC_*`. See [docs/local-kando-dev-runbook.md](docs/local-kando-dev-runbook.md).
+**Task bridge proxy (Phase 1):** Panel `POST /task` calls go to same-origin `/api/bridge/task`. Configure **server-side** `BRIDGE_UPSTREAM_URL` (e.g. `http://127.0.0.1:8765`) and `KANDO_BRIDGE_SECRET` on Vercel or `vercel dev`—not `PUBLIC_*`. See [local bridge runbook](docs/local-kando-dev-runbook.md).
 
 ### Environment variables (`PUBLIC_*`)
 

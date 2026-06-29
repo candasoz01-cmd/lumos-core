@@ -655,6 +655,44 @@ def build_quantum_readiness_response() -> dict[str, Any]:
     return scan_quantum_readiness(repo_root=_REPO_ROOT, lumos_dir=_base_dir())
 
 
+def build_resource_mode_propose_response(layer: str = "quantum") -> dict[str, Any]:
+    """ORAA: propose mode change — never applies; UI decides with explicit approval."""
+    from integrations.resource_mode_advisor import ResourceLayer, propose_mode_change
+
+    normalized = ResourceLayer(str(layer).strip().lower())
+    proposal = propose_mode_change(normalized, base_dir=_base_dir())
+    current = proposal.get("current_mode")
+    proposed = proposal.get("proposed_mode")
+    show_card = current != proposed
+    return {"ok": True, "proposal": proposal, "show_card": show_card}
+
+
+def build_resource_mode_apply_response(body: dict[str, Any]) -> dict[str, Any]:
+    """ORAA: apply mode only when user_approved is explicitly true."""
+    from integrations.resource_mode_advisor import ResourceLayer, apply_mode_change
+
+    layer = str(body.get("layer", "quantum")).strip().lower()
+    mode = str(body.get("mode", "")).strip().lower()
+    user_approved = body.get("user_approved") is True
+    if not mode:
+        return {"ok": False, "error": "mode_required"}
+    normalized = ResourceLayer(layer)
+    result = apply_mode_change(
+        normalized,
+        mode,  # type: ignore[arg-type]
+        user_approved=user_approved,
+        base_dir=_base_dir(),
+    )
+    return {
+        "ok": result.ok,
+        "layer": result.layer,
+        "mode": result.mode,
+        "error": result.error,
+        "applied_at": result.applied_at,
+        "user_approved": user_approved,
+    }
+
+
 def _send_json(handler: BaseHTTPRequestHandler, code: int, obj: dict) -> None:
     raw = json.dumps(obj, ensure_ascii=False).encode("utf-8")
     handler.send_response(code)
@@ -705,6 +743,8 @@ class Handler(BaseHTTPRequestHandler):
             "/tasks/delete-permanent",
             "/lumos-read-state",
             "/quantum-readiness",
+            "/resource-mode/propose",
+            "/resource-mode/apply",
             "/lumos-consent",
             "/lumos-confirm/request",
             "/evidence/recent",
@@ -792,6 +832,37 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:
             _send_json(self, 500, {"ok": False, "error": str(e)})
 
+    def _parse_resource_mode_layer(self) -> str:
+        try:
+            qs = parse_qs(urlparse(self.path).query)
+            raw = qs.get("layer", ["quantum"])[0]
+        except Exception:
+            raw = "quantum"
+        layer = str(raw or "quantum").strip().lower()
+        return layer or "quantum"
+
+    def _get_resource_mode_propose(self) -> None:
+        layer = self._parse_resource_mode_layer()
+        try:
+            _send_json(self, 200, build_resource_mode_propose_response(layer))
+        except ValueError:
+            _send_json(self, 400, {"ok": False, "error": "invalid_layer", "layer": layer})
+        except Exception as e:
+            _send_json(self, 500, {"ok": False, "error": str(e)})
+
+    def _post_resource_mode_apply(self) -> None:
+        body = self._read_json_body()
+        if not isinstance(body, dict):
+            _send_json(self, 400, {"ok": False, "error": "invalid_json"})
+            return
+        try:
+            _send_json(self, 200, build_resource_mode_apply_response(body))
+        except ValueError:
+            layer = str(body.get("layer", "quantum")).strip().lower()
+            _send_json(self, 400, {"ok": False, "error": "invalid_layer", "layer": layer})
+        except Exception as e:
+            _send_json(self, 500, {"ok": False, "error": str(e)})
+
     def _get_tasks_trash(self) -> None:
         items = _list_trash_disk_records()
         td = _trash_dir()
@@ -852,6 +923,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if p == "/quantum-readiness":
             self._get_quantum_readiness()
+            return
+        if p == "/resource-mode/propose":
+            self._get_resource_mode_propose()
             return
         if p == "/open-folder":
             self.send_error(405)
@@ -954,6 +1028,9 @@ class Handler(BaseHTTPRequestHandler):
         p = self._parse_path()
         if p == "/open-folder":
             self._post_open_folder()
+            return
+        if p == "/resource-mode/apply":
+            self._post_resource_mode_apply()
             return
         if p == "/lumos-consent":
             self._post_lumos_consent()
@@ -1480,7 +1557,7 @@ def main() -> None:
     host = os.environ.get("LUMOS_PANEL_TASKS_HOST", "127.0.0.1")
     httpd = HTTPServer((host, port), Handler)
     sys.stderr.write(
-        "panel_tasks_server: http://%s:%s\n  Statik panel + API aynı port: http://%s:%s/index.html#chat | POST /lumos-consent | GET /lumos-read-state | GET /quantum-readiness | tasks.json: %s\n"
+        "panel_tasks_server: http://%s:%s\n  Statik panel + API aynı port: http://%s:%s/index.html#chat | POST /lumos-consent | GET /lumos-read-state | GET /quantum-readiness | GET /resource-mode/propose | POST /resource-mode/apply | tasks.json: %s\n"
         % (host, port, host, port, _tasks_file())
     )
     try:

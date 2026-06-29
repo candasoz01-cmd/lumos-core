@@ -37,6 +37,63 @@ const panelNav = {
     ayarlar: "Ayarlar",
     inactiveBadge: "Önizleme",
     inactiveBadgeTitle: "Bilgi ve önizleme ekranı — tam modül işlevi aktif değil",
+    status: {
+      sohbet: "🟢 Hazır",
+      gorevler: "🟢 Hazır",
+      ses: "🟡 Gelişiyor",
+      medya: "🔵 Bağlantı bekliyor",
+      sosyal: "🔵 Bağlantı bekliyor",
+      posta: "🟡 Mimari hazır",
+      dosyalar: "🟢 Hazır",
+      kuantum: "🟡 Mimari hazır",
+      yayincilik: "⚪ Kapalı",
+      yapayzeka: "⚪ Kapalı",
+      entegrasyon: "🔗 7 katman",
+      kimlik: "⚪ Kapalı",
+      yetenekler: "🟢 Hazır",
+      guvenlik: "🛡️ Aktif",
+      dunya: "⚪ Kapalı",
+      ayarlar: "⚪ Kapalı",
+    },
+    statusSub: {
+      sohbet: "köprü olmadan sınırlı",
+      gorevler: "yerel görevler",
+      posta: "İzin bekliyor · OD-031",
+      kuantum: "ORAA aktif · Qiskit Aer öncelik 1",
+      entegrasyon: "7 katman tanımlı",
+    },
+    statusTitle: {
+      sohbet: "Yerel sohbet ve görevler çalışır; tam köprü kullanıcı kurulumuna bağlıdır",
+      gorevler: "Görevler cihaz kaydına yazılır; sunucu senkronu isteğe bağlıdır",
+      ses: "Ses arayüzü geliştiriliyor; cihaz izinlerine bağlıdır",
+      medya: "Harici medya bağlantısı henüz yok; taslak akış görüntülenir",
+      sosyal: "OAuth ve platform bağlantısı bekleniyor",
+      posta: "OD-031 e-posta taslağı; gönderim izni ve bağlantı bekliyor",
+      dosyalar: "Yerel dosya yükleme ve özet; köprü bağlantısına bağlıdır",
+      kuantum: "ORAA aktif; kuantum katmanı mimari hazır — üretim iddiası yok",
+      yayincilik: "Modül kapalı; yalnızca bilgi ekranı",
+      yapayzeka: "Modül kapalı; yalnızca bilgi ekranı",
+      entegrasyon: "Yedi katman tanımlı; bağlantılar kullanıcı onayına bağlıdır",
+      kimlik: "Modül kapalı; kimlik bağlantıları henüz aktif değil",
+      yetenekler: "Bağlantı testi ve yetenek özeti kullanılabilir",
+      guvenlik: "Güvenlik katmanı aktif; onay ve risk görünürlüğü açık",
+      dunya: "Modül kapalı; yerelleştirme bilgi ekranı",
+      ayarlar: "Modül kapalı; ayarlar bilgi ekranı",
+    },
+  },
+  rootStatus: {
+    title: "Kök Durumu",
+    disclaimer: "Altyapı durumu — canlı ölçüm değil; dokümantasyon tabanlı özet",
+    core: "🌳 Çekirdek — Sağlıklı",
+    security: "🛡️ Güven — Aktif",
+    oraa: "👀 ORAA — Aktif",
+    quantum: "⚛️ Quantum Layer — Mimari hazır",
+    integration: "🔗 Entegrasyon — 7 katman tanımlı",
+    hydroponic:
+      "🌱 Topraksız mod — Köprü veya tam toprak yokken yerel katmanlar çalışır; sınırlı mod normaldir.",
+    katmanAFootnote:
+      "Katman A (yalnızca arayüz): köprü/toprak yokken sınırlı mod beklenen yoldur.",
+    katmanALink: "Kurulum · Katman A",
   },
   sections: {
     sohbet: "Sohbet",
@@ -122,9 +179,9 @@ const panelModules = {
         "Landing sorusu buraya taşındı — göndermeden önce kontrol edin.",
     },
     modeHints: {
-      sendLimited: "Sınırlı mod: dış sohbet köprüsü yok; yerel yanıtlar ve görev komutları kullanılabilir.",
+      sendLimited: "Sınırlı mod: yerel yanıtlar ve görev komutları çalışır; dış köprü isteyen işlemler bekler.",
       sendLimitedUser:
-        "Sınırlı moddasın (kullanıcı seçimi); yerel yanıtlar ve görev komutları kullanılabilir.",
+        "Sınırlı mod seçili; yerel yanıtlar ve görev komutları çalışır. Daha geniş işlemler için tam bağlantı gerekir.",
       sendOffline: "Çevrimdışı mod: internet ve dış köprü kullanılmaz; yerel yanıtlar kullanılabilir.",
     },
     capability: {
@@ -313,7 +370,7 @@ const panelModules = {
       keywordKayit: "Medya ekranına geçip dosyaları inceleyebilirsin.",
       keywordAkis: "Sosyal ekranına geçip güncel listeyi görebilirsin.",
       limitedDefault:
-        "Sınırlı moddasın (kullanıcı seçimi); yerel görevler ve kısa yönlendirmeler kullanılabilir — örn. «görev oluştur başlık» veya «görevler».",
+        "Sınırlı mod seçili; yerel görevler ve kısa yönlendirmeler çalışır — örn. «görev oluştur başlık» veya «görevler». Daha geniş işlem gerekirse tam bağlantı isterim.",
       offlineDefault:
         "Çevrimdışı moddasın; internet kullanılmaz. Yerel görevler kullanılabilir — örn. «görev oluştur başlık» veya «görevler».",
       timeBase: "Saat {hh}:{mm}. Bugün {date}.",
@@ -329,9 +386,9 @@ const panelModules = {
     bridgeBadgeLimited: "Sınırlı mod",
     transcript: {
       engineMsg: "Ses metne çeviri motoru henüz bağlı değil.",
-      limitedMsg: "Sınırlı modda ses metne çeviri kullanılamaz; dış köprü bağlı değil.",
+      limitedMsg: "Ses metne çeviri için dış köprü gerekir. Sınırlı modda yerel sohbet ve görevler çalışır.",
       limitedUserMsg:
-        "Sınırlı moddasın (kullanıcı seçimi); ses metne çeviri bu modda denenmez.",
+        "Sınırlı mod seçili; ses metne çeviri denenmez. Yerel sohbet ve görevler çalışır.",
       offlineMsg: "Çevrimdışı modda ses metne çeviri kullanılamaz; internet erişimi kapalı.",
       busyMsg: "Metne çevriliyor…",
       privacyMsg:
@@ -406,7 +463,7 @@ const panelModules = {
       listFilter: "Bu filtrede görev yok. «Tümü» ile tüm görevleri görebilirsin.",
       evidence: "Henüz sunucu kanıtı yok",
       evidenceUnreachable:
-        "Görev geçmişi şu an doğrulanamıyor; yerel görevler kullanılabilir.",
+        "Kanıt sunucusuna ulaşılamadı; bağlantıyı kontrol edin.",
     },
     detail: {
       title: "Görev",
@@ -535,7 +592,7 @@ const panelModules = {
   },
   files: {
     intro:
-      "Bu cihazdan bir dosya seçin. Lumos ad, tür ve boyut bilgisini gösterir; .txt, .md, .json ve .csv dosyaları için kısa özet oluşturur. PDF ve Word dosyaları bu sürümde işlenmez.",
+      "Dosyayı cihazınızdan seçin; Lumos köprüsü dosyayı alır, adı/türü/boyutu döner. Metin dosyalarında (.txt, .md, .json, .csv) kısa özet üretilir. PDF ve Word (DOCX) gibi biçimler bu fazda işlenmez.",
     historyHeading: "Son yüklemeler",
     historyDeviceNote: "Bu cihazda saklanır; en fazla 5 kayıt.",
     form: {
@@ -588,25 +645,25 @@ const panelModules = {
   },
   voice: {
     intro:
-      "Ses önizlemesi, konuşmayı kullanıcı kontrolünde metne dönüştürme akışını açıklar. Kullanılabilirlik cihaza, tarayıcıya ve mikrofon iznine bağlıdır.",
+      "Bu sekme, sesli girdinin metne ve komutlara dönüşürken arayüz katmanında kalması ve kararın yine kullanıcıda tutulması için tasarlanan yaklaşımı özetler. Sohbet alt çubuğundaki mikrofon, cihaz, tarayıcı ve verilen izinlere bağlıdır; bazı ortamlarda desteklenmeyebilir.",
     c1Title: "Sesten Metne",
     c1Body:
-      "Konuşma, ekranda kontrol edilebilir metne dönüştürülür.",
+      "Sesli ifade, metin ve komut adımlarına aktarılarak ekranda izlenebilir hale getirilebilir.",
     c2Title: "Arayüz Katmanı",
     c2Body:
-      "Ses sonucu önce ekranda görünür; kullanıcı metni düzeltebilir.",
+      "Ses, doğrudan yerine geçen bir otorite değil; kullanıcının gördüğü ve düzeltebildiği bir katman olarak ele alınır.",
     c3Title: "Karar Kullanıcıda",
-    c3Body: "Metin veya komut uygulanmadan önce kullanıcı kontrol eder.",
+    c3Body: "Özetlenen komut veya metin uygulanmadan önce kullanıcı net biçimde kontrol edebilmelidir.",
     c4Title: "Yanlış Anlama ve Onay",
     c4Body:
-      "Lumos emin değilse durur ve açıklama ister.",
+      "Belirsiz veya düşük güvenli algılarda Lumos duraklatmayı ve netleştirmeyi hedefler; tek başına ilerlemez.",
     c5Title: "Yerel İşlem Önceliği",
     c5Body:
-      "İşlem mümkünse bu cihazda kalır. Dış servis gerekirse ekranda belirtilir.",
+      "Mümkün olduğunda ilk işlem cihaz içinde kalır; dış servise çıkış gerekiyorsa bu görünür tutulmalıdır.",
   },
   media: {
     intro:
-      "Görsel, ses, video ve dosya akışları için paylaşım öncesi kontrol önizlemesi. Kamera kullanımı cihaz ve tarayıcı iznine bağlıdır.",
+      "Bu sekme, görsel, ses, video ve dosya akışlarının düzenlenmesinde paylaşım öncesi kontrol, veri yolu görünürlüğü ve kaynak ile çıktının ayrılması ilkelerini özetler. Sohbet alt çubuğundaki kamera da cihaz, tarayıcı ve izin desteğine bağlıdır; her ortamda çalışmayabilir.",
     outboxTitle: "Son çıktı özeti (salt okunur)",
     outboxIntro:
       "Son görev veya sohbet çıktısının iletimden okunan özeti. Kayıt yoksa kısa bilgi gösterilir.",
@@ -619,9 +676,9 @@ const panelModules = {
     dataType: "Medya özeti",
     c1Title: "Akışlar ve Türler",
     c1Body:
-      "Dosyanın nerede kullanıldığı tek akışta görünür.",
+      "Farklı medya türleri tek çalışma düzeninde izlenebilir; hangi dosyanın nerede kullanıldığı daha okunaklı olabilir.",
     c2Title: "Paylaşım Öncesi Kontrol",
-    c2Body: "İçerik cihazdan çıkmadan önce özet ve kullanım amacı gösterilir.",
+    c2Body: "Dışarıya çıkmadan önce içerik özeti ve hedef kullanım kullanıcıya gösterilmeyi hedefler.",
     c3Title: "Dış Servise Aktarım",
     c3Body:
       "Bir dosyanın veya önizlemenin harici işleme gönderildiği adımlar gizlenmez; bağlantı ve amaç daha net tutulur.",
@@ -728,7 +785,7 @@ const panelModules = {
       dogrulanamadi: "Doğrulanamadı",
     },
     mock: {
-      title: "Örnek hazırlık özeti",
+      title: "Örnek hazırlık özeti (mock)",
       titleLive: "Yerel hazırlık özeti",
       note: "Örnek veri — yerel tarama kullanılamadı.",
       noteLive: "Hazırlık özeti — kuantum güvenli iddiası taşımaz.",
@@ -789,19 +846,21 @@ const panelModules = {
       },
     },
     entropyLab: {
-      title: "Rastgelelik laboratuvarı (deneysel)",
-      body: "Kuantum hazırlığından ayrı, salt okunur deneysel alan. Üretimde kullanılan rastgelelik kaynağı değildir.",
+      title: "Entropy Lab (deneysel)",
+      body: "Quantum Readiness’ten ayrı deneysel alan. Üretim entropy iddiası yok.",
       bodyLive: "Deneysel alan — salt okunur tarama probu.",
       configuredLabel: "Yapılandırılmış sağlayıcı",
-      effectiveLabel: "Kullanılan sağlayıcı (tahmini)",
-      fallbackLabel: "Yedek sağlayıcıya geçiş",
+      effectiveLabel: "Efektif sağlayıcı (heuristic)",
+      fallbackLabel: "Sessiz fallback",
       fallbackYes: "Evet — os fallback aktif",
       fallbackNo: "Hayır",
     },
     intro: "Olasılık ve güvenlik araştırması — kesin vaat yok.",
+    disclaimer:
+      "ORAA (Operational Risk & Assurance Agent) aktif; Quantum Layer mimari hazır. İlk kuantum sağlayıcı (Qiskit Aer öncelik 1) bekleniyor — aktif üretim veya kuantum-güvenli iddiası yok.",
     c1Title: "Kuantum güvenlik araştırması",
     c1Body:
-      "Kuantum sonrası şifreleme seçenekleri burada incelenir. Mevcut sistem kuantum şifreleme kullanmaz.",
+      "Gelecekte kuantum dayanıklı şifreleme değerlendirmesi. Mevcut sistem kuantum şifreleme iddia etmez.",
     c2Title: "Çoklu İhtimal",
     c2Body:
       "Lumos tek bir sonucu kesinmiş gibi dayatmaz; olası yolları ve belirsizlikleri birlikte görünür tutar.",
@@ -810,6 +869,28 @@ const panelModules = {
     c4Title: "Karar Sınırı",
     c4Body:
       "Kuantum yaklaşımı kararın yerine geçmez; seçenekleri düzenler, son yönü kullanıcı iradesine bırakır.",
+  },
+  resourceModeAdvisor: {
+    accept: "Geç",
+    reject: "Hayır, aktif kalsın",
+    statusLabel: "Durum:",
+    reasonLabel: "Sebep:",
+    hintLabel: "Öneri:",
+    disclaimer: "Son karar kullanıcıya aittir.",
+    reasonFallback: "Kullanım örüntüsüne göre mod değişikliği önerildi.",
+    modes: {
+      active: "Aktif Mod",
+      passive: "Beklemeli Mod",
+      insufficient_data: "Yetersiz Veri",
+    },
+    hints: {
+      active: "Aktif mod daha hızlı yanıt sağlar.",
+      passive: "Beklemeli mod enerji ve kaynak kullanımını azaltır.",
+      insufficient_data: "Daha fazla kullanım verisi toplanana kadar varsayılan mod önerilir.",
+    },
+    layers: {
+      quantum: "Quantum",
+    },
   },
   integration: {
     intro:
@@ -889,27 +970,27 @@ const panelModules = {
   },
   settings: {
     intro:
-      "Tercihler, cihaz bağlantısı ve izin sınırları burada görünür.",
+      "Bu sekme, kullanıcı tercihlerinin, bağlantı ve izin sınırlarının ve varsayılan davranışların kullanıcı kontrolünde ve görünür kalması için tasarlanan yaklaşımı özetler.",
     c1Title: "Kullanıcı modu",
     c1Body:
-      "Panelin çalışma kapsamını siz seçersiniz. Cihaz bağlantısı ayrı gösterilir.",
-    c2Title: "Cihaz durumu",
+      "Panelin çalışma kapsamını siz seçersiniz. Bu tercih altyapı bağlantı durumundan ayrıdır; köprü rozeti yalnızca teknik durumu gösterir.",
+    c2Title: "Altyapı durumu",
     c2Body:
-      "Cihaz bağlantısı, doğrulama ve internet durumu.",
+      "Köprü, anahtar, sağlık ve ağ durumu — kullanıcı modundan bağımsız teknik özet.",
     c3Title: "Kullanıcı Tercihleri",
-    c3Body: "Dil kullanılabilir; tema ve bildirim ayarları henüz kapalı.",
+    c3Body: "Dil, tema, bildirim yoğunluğu gibi seçenekler anlaşılır gruplarda sunulmayı hedefler.",
     c4Title: "Sınırlar ve İzinler",
     c4Body:
-      "İzinler bu ekranda değiştirilemez. Kamera ve mikrofon izni cihazdan veya tarayıcıdan yönetilir.",
+      "Hangi özelliğin hangi izne bağlı olduğu kısa özetlerle gösterilir; kapalı tutulan izinler sessizce açılmaz.",
     c5Title: "Bağlantı Ayarları",
     c5Body:
-      "Harici servis bağlantıları bu önizlemede yönetilemez.",
+      "Harici servis ve hesap bağlantıları tek yerden görülebilir; gerektiğinde kesme ve yeniden bağlanma kullanıcıdadır.",
     c6Title: "Görünürlük ve Güvenlik Tercihleri",
     c6Body:
-      "Paylaşım, günlük ve veri saklama ayarları bu önizlemede kullanılamaz.",
+      "Paylaşım, günlük veya veri saklama ile ilgili seçenekler birbirinden ayrılır; her biri net bir açıklamayla sunulur.",
     c7Title: "Varsayılanlar ve Kontrol",
     c7Body:
-      "Bu ekranda yalnızca kullanıcı modu değiştirilebilir.",
+      "Öntanımlı davranışlar kabul edilmeden önce kullanıcıya gösterilir; değişiklikler geri alınabilir biçimde tutulmayı hedefler.",
     corsMsg: "Bu bilgi panelden okunamıyor (CORS).",
     infraSummaryAria: "Altyapı durumu özeti",
     connectionLine: "Bağlantı: {line}",
@@ -923,18 +1004,18 @@ const panelModules = {
   },
   capabilities: {
     intro:
-      "Hangi işlemlerin kullanılabilir, sınırlı veya kapalı olduğunu gösterir. «Bağlantı testi» ilk üç işlemi ve yerel görev tamamlamayı kontrol eder.",
+      "Lumos’un hangi işlemlere hangi bağlantı veya panel yüzeyi üzerinden bağlandığını özetler. «Bağlantı testi» yalnızca 1–3. satırlarda bağlantıyı doğrular; 4. satır yerel kanıtını kontrol eder.",
     legendAria: "Durum sözlüğü",
-    legendActive: "AKTİF — kullanılabilir",
-    legendPassive: "KAPALI — kullanılabilir bağlantı yok",
-    legendDev: "ÖNİZLEME — henüz kullanılamaz",
+    legendActive: "AKTİF kanıtı var veya kısıtlı çalışır",
+    legendPassive: "PASİF şu an çalışır hat yok",
+    legendDev: "GELİŞTİRME AŞAMASINDA hedefleniyor, henüz bağlı değil",
     testBtn: "Bağlantı testi",
     testRunning: "Test çalışıyor…",
-    testBridgeUnavailable: "Cihaz bağlantısı şu an kullanılamıyor.",
+    testBridgeUnavailable: "Köprü şu an kullanılamıyor.",
     testDone: "Bağlantı testi tamamlandı.",
     testPartialFailed: "Bağlantı testi kısmen başarısız. Cihaz ayarlarını kontrol edin.",
-    bridgePending: "Cihaz bağlantısı bekleniyor.",
-    routeTerminal: "Cihaz bağlantısı bekleniyor.",
+    bridgePending: "Bu işlem tam bağlantı ister; yerel işlemler açık kalır.",
+    routeTerminal: "Tam bağlantı sonrası yerel cihaz köprüsü.",
     routeNone: "—",
     routeManualApproval: "manuel onay sonrası",
     row1: "1. Dosya okuma",
@@ -942,13 +1023,13 @@ const panelModules = {
     row3: "3. Görev oluşturma",
     row4: "4. Görev tamamlama",
     row5: "5. Terminal komutu",
-    row6: "6. Masaüstü uygulaması açma",
-    row7: "7. Canlı yayınlama",
+    row6: "6. Mac uygulaması açma",
+    row7: "7. Canlı deploy",
     status: {
       active: "AKTİF",
-      passive: "KAPALI",
+      passive: "PASİF",
       limited: "KISITLI",
-      dev: "ÖNİZLEME",
+      dev: "GELİŞTİRME AŞAMASINDA",
     },
   },
 } as const;
@@ -959,8 +1040,8 @@ const panelShell = {
     ok: "Bağlı",
     bad: "Çevrimdışı",
     limited: "Sınırlı mod",
-    ariaLabel: "Cihaz bağlantı durumu",
-    title: "Cihaz bağlantısı",
+    ariaLabel: "Altyapı bağlantı durumu",
+    title: "Altyapı: köprü bağlantısı",
     setupHint: "Yerel kurulum adımlarına git",
   },
   infra: {
@@ -968,9 +1049,9 @@ const panelShell = {
     tokenPresent: "Tanımlı",
     online: "Çevrimiçi",
     offline: "Çevrimdışı",
-    labelBridge: "Cihaz bağlantısı",
-    labelToken: "Doğrulama",
-    labelHealth: "Erişim",
+    labelBridge: "Köprü",
+    labelToken: "Anahtar",
+    labelHealth: "Sağlık",
     labelInternet: "İnternet",
     unavailableShort: "Köprü erişilemiyor (altyapı)",
     unavailableMsg:
@@ -1045,7 +1126,7 @@ const panelShell = {
     menuLimited: "Sınırlı",
     menuFull: "Tam",
     badgeOffline: "Mod · Çevrimdışı",
-    badgeLimited: "Mod · Sınırlı",
+    badgeLimited: "Mod · Toprak bekleniyor · yerel kök aktif",
     badgeFull: "Mod · Tam",
     badgeAria: "Kullanıcı modu seç",
     badgeTitle: "Mod değiştir (Offline, Sınırlı, Tam)",

@@ -626,7 +626,7 @@ PANEL_I18N_V35_TR_KEYS = (
 )
 
 PANEL_I18N_V36_MARKERS = (
-    'data-i18n-title="panel.nav.kuantumResearchTitle"',
+    'data-i18n-title="panel.nav.statusTitle.kuantum"',
     'panelT("panel.modules.tasks.plan.listPrefix")',
     "function gorevlerPlanTurDisplay(",
     "function gorevlerPlanRiskDisplay(",
@@ -911,6 +911,85 @@ PANEL_I18N_V56_TR_KEYS = (
     "tamamlandi:",
     "kismi:",
     "dogrulanamadi:",
+)
+
+
+PANEL_I18N_V57_MARKERS = (
+    'id="panel-resource-mode-advisor-layer"',
+    'id="panel-resource-mode-advisor-status"',
+    'id="panel-resource-mode-advisor-hint"',
+    'class="panel-resource-mode-advisor__layer-dot',
+    'data-i18n="panel.modules.resourceModeAdvisor.statusLabel"',
+    'data-i18n="panel.modules.resourceModeAdvisor.reasonLabel"',
+    'data-i18n="panel.modules.resourceModeAdvisor.hintLabel"',
+    'data-i18n="panel.modules.resourceModeAdvisor.disclaimer"',
+    'panel-resource-mode-advisor__btn--secondary',
+    "resourceModeAdvisorLayerLabel",
+    "resourceModeAdvisorModeHint",
+    "applyResourceModeAdvisorLayerDot",
+)
+
+PANEL_I18N_V57_TR_KEYS = (
+    "statusLabel:",
+    "reasonLabel:",
+    "hintLabel:",
+    "disclaimer:",
+    "hints:",
+    "layers:",
+    "Beklemeli Mod",
+    "Son karar kullanıcıya aittir.",
+)
+
+PANEL_I18N_V57_EN_KEYS = (
+    "statusLabel:",
+    "reasonLabel:",
+    "hintLabel:",
+    "disclaimer:",
+    "hints:",
+    "layers:",
+    "Passive Mode",
+    "The final decision is yours.",
+)
+
+
+PANEL_I18N_V58_MARKERS = (
+    'data-i18n="panel.nav.status.sohbet"',
+    'data-i18n="panel.nav.statusSub.sohbet"',
+    'data-i18n-title="panel.nav.statusTitle.sohbet"',
+    'class="panel-nav-status-pill lumos-status-pill lumos-status-pill--ready"',
+    'class="panel-root-status"',
+    'data-i18n="panel.rootStatus.title"',
+    'data-i18n="panel.rootStatus.hydroponic"',
+    'data-i18n="panel.rootStatus.katmanAFootnote"',
+    'data-i18n="panel.rootStatus.katmanALink"',
+    'data-i18n="panel.modules.quantum.disclaimer"',
+    'lumos-status-pill--developing',
+    'lumos-status-pill--active',
+    'lumos-status-pill--layers',
+)
+
+PANEL_I18N_V58_TR_KEYS = (
+    "status:",
+    "statusSub:",
+    "statusTitle:",
+    "rootStatus:",
+    "hydroponic:",
+    "disclaimer:",
+    "Topraksız mod",
+    "katmanAFootnote:",
+    "Katman A",
+)
+
+PANEL_I18N_V58_EN_KEYS = (
+    "status:",
+    "statusSub:",
+    "statusTitle:",
+    "rootStatus:",
+    "hydroponic:",
+    "disclaimer:",
+    "Hydroponic mode",
+    "katmanAFootnote:",
+    "Katman A",
 )
 
 
@@ -1793,16 +1872,38 @@ def test_panel_quantum_readiness_report_badge_keys_in_panel_en() -> None:
         assert key in text, f"missing panel en v56 key: {key}"
 
 
-def test_panel_demo_share_i18n_is_resolved_when_rendered() -> None:
+def test_panel_astro_i18n_v57_resource_mode_advisor_card_wiring() -> None:
     text = _PANEL_ASTRO.read_text(encoding="utf-8")
-    for token in (
-        "function demoIdleHint()",
-        "function demoReviewHint()",
-        "function demoMessage()",
-        "function dataTypeLabel()",
-        "hintEl.textContent = demoIdleHint();",
-        "hintEl.textContent = demoMessage();",
-    ):
-        assert token in text, f"missing render-time demo i18n token: {token}"
+    for token in PANEL_I18N_V57_MARKERS:
+        assert token in text, f"missing panel i18n v57 token: {token}"
 
-    assert 'const demoIdleHint = cfg.demoIdleHint || panelT(' not in text
+
+def test_panel_resource_mode_advisor_card_keys_in_panel_tr() -> None:
+    text = _PANEL_TR.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V57_TR_KEYS:
+        assert key in text, f"missing panel tr v57 key: {key}"
+
+
+def test_panel_resource_mode_advisor_card_keys_in_panel_en() -> None:
+    text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V57_EN_KEYS:
+        assert key in text, f"missing panel en v57 key: {key}"
+
+
+def test_panel_astro_i18n_v58_honest_module_status_wiring() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    for token in PANEL_I18N_V58_MARKERS:
+        assert token in text, f"missing panel i18n v58 token: {token}"
+    assert 'data-i18n="panel.nav.inactiveBadge">Önizleme</span>' not in text
+
+
+def test_panel_honest_module_status_keys_in_panel_tr() -> None:
+    text = _PANEL_TR.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V58_TR_KEYS:
+        assert key in text, f"missing panel tr v58 key: {key}"
+
+
+def test_panel_honest_module_status_keys_in_panel_en() -> None:
+    text = _PANEL_EN.read_text(encoding="utf-8")
+    for key in PANEL_I18N_V58_EN_KEYS:
+        assert key in text, f"missing panel en v58 key: {key}"

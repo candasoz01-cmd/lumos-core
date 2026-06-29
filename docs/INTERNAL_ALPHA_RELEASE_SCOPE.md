@@ -117,7 +117,7 @@ Kullanıcı yüzünde «v2» veya «Alpha download» **ilan edilmez**.
 | G-23 | [p0-p1-triage-list.md](analysis/p0-p1-triage-list.md) |
 | G-24 | Bu belge |
 | Ops | [`INTERNAL_ALPHA_OPERATIONS.md`](INTERNAL_ALPHA_OPERATIONS.md) — operasyonel faz takibi (DL-C23) |
-| RB-09 | [`release-blockers.md`](analysis/release-blockers.md#rb-09--readme-kararlı-oss-ürün-iddiası-yok) |
+| RB-09 | [`release-blockers.md`](analysis/release-blockers.md#rb-09-readme-kararlı-oss-ürün-iddiası-yok) |
 | v1 | [`LUMOS_V1_READINESS.md`](LUMOS_V1_READINESS.md) |
 
 ---

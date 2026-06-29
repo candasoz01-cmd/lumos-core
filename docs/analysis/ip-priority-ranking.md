@@ -458,7 +458,7 @@ Kaynak: [`ip-protection-landscape.md` §4](./ip-protection-landscape.md#4-patent
 
 ## 4. Telif paketleri (5)
 
-Kaynak: [`ip-protection-landscape.md` §2.2, §6](./ip-protection-landscape.md#22-telif-kayıt--belgeleme)
+Kaynak: [`ip-protection-landscape.md` §2.2, §6](./ip-protection-landscape.md#22-telif-kayıt-belgeleme)
 
 ### C1 — Kaynak kodu (Apache-2.0)
 

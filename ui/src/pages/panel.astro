@@ -1,4 +1,6 @@
 ---
+import "../styles/lumos-tokens.css";
+import "../styles/umbrella-chrome.css";
 import LanguageSwitcher from "../components/LanguageSwitcher.astro";
 import I18nInit from "../components/I18nInit.astro";
 
@@ -43,86 +45,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
     <link rel="icon" href="/lumos-tree-logo.svg" type="image/svg+xml" sizes="any" />
     <link rel="apple-touch-icon" href="/lumos-tree-logo.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#1e3a5f" />
+    <meta name="theme-color" content="#0a0e14" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Lumos" />
     <style>
-      :root {
-        /**
-         * Panel — premium dark control-center (Internal Alpha).
-         * Parliament-lacivert vurgu; parlak cyan yerine tok, koyu yüzeyler.
-         */
-        --lumos-land-teal: 45 90 140;
-        --lumos-land-teal-deep: 18 36 62;
-        --lumos-land-warm: 168 138 88;
-        --lumos-land-warm-deep: 108 82 52;
-        --lumos-panel-navy: #1e3a5f;
-        --lumos-panel-navy-deep: #0f1f35;
-        --lumos-teal-12: rgb(var(--lumos-land-teal) / 0.12);
-        --lumos-teal-14: rgb(var(--lumos-land-teal) / 0.14);
-        --lumos-teal-16: rgb(var(--lumos-land-teal) / 0.16);
-        --lumos-teal-18: rgb(var(--lumos-land-teal) / 0.18);
-        --lumos-teal-22: rgb(var(--lumos-land-teal) / 0.22);
-        --lumos-teal-28: rgb(var(--lumos-land-teal) / 0.28);
-        --lumos-teal-32: rgb(var(--lumos-land-teal) / 0.32);
-        --lumos-teal-35: rgb(var(--lumos-land-teal) / 0.35);
-        --lumos-teal-38: rgb(var(--lumos-land-teal) / 0.38);
-        --lumos-teal-40: rgb(var(--lumos-land-teal) / 0.4);
-        --lumos-teal-42: rgb(var(--lumos-land-teal) / 0.42);
-        --lumos-teal-48: rgb(var(--lumos-land-teal) / 0.48);
-        --lumos-gold-soft: rgb(var(--lumos-land-warm) / 0.22);
-        --lumos-gold-line: rgb(var(--lumos-land-warm) / 0.32);
-        --lumos-bg: #020408;
-        --lumos-surface: rgba(3, 6, 14, 0.97);
-        --lumos-border: rgb(var(--lumos-land-teal) / 0.18);
-        --lumos-card-border: rgb(var(--lumos-land-teal) / 0.22);
-        --lumos-card-inset: rgba(255, 255, 255, 0.03);
-        --lumos-gold: #b89868;
-        --lumos-accent-blue: rgb(148 176 212 / 0.88);
-        --lumos-text: #c8ced8;
-        --lumos-text-soft: rgb(200 206 216 / 0.78);
-        --lumos-muted: #8a92a4;
-        --lumos-input-bg: #010306;
-        --lumos-sidebar-bg: #010306;
-        --lumos-main-bg: #020408;
-        --lumos-chat-head-bg: #020408;
-        --lumos-chat-history-bg: #03060e;
-        --lumos-compose-bg: rgba(2, 4, 10, 0.94);
-        --lumos-chat-input-bg: #010306;
-        --lumos-tq-badge-inset: rgb(var(--lumos-land-teal) / 0.14);
-        --lumos-tq-badge-glow: rgb(var(--lumos-land-teal) / 0.1);
-        --lumos-btn-a: rgba(12, 20, 36, 0.96);
-        --lumos-btn-b: #030714;
-        --lumos-user-bubble: rgba(8, 14, 28, 0.92);
-        --lumos-lumos-bubble: rgba(4, 10, 22, 0.55);
-        --lumos-error: #f0b4b4;
-        --panel-radius: 10px;
-        --panel-radius-lg: 12px;
-        --panel-strip-bg: linear-gradient(178deg, #010204 0%, #0a1424 52%, #020408 100%);
-        --panel-surface-raised: rgba(4, 8, 18, 0.96);
-        --panel-edge-inset: inset 0 1px 0 rgba(255, 255, 255, 0.035);
-        --panel-shadow-ambient: 0 2px 8px rgba(0, 0, 0, 0.55);
-        --panel-body-wash:
-          radial-gradient(ellipse 120% 80% at 50% -8%, rgb(18 36 62 / 0.38), transparent 52%),
-          radial-gradient(ellipse 80% 48% at 92% 42%, rgb(var(--lumos-land-teal) / 0.04), transparent 48%),
-          radial-gradient(ellipse 68% 44% at 8% 74%, rgb(var(--lumos-land-warm) / 0.022), transparent 50%),
-          linear-gradient(178deg, #010204 0%, #0a1424 46%, #020408 100%);
-        --panel-chat-wash:
-          radial-gradient(ellipse 110% 90% at 50% 0%, rgb(var(--lumos-land-teal-deep) / 0.32), transparent 56%),
-          radial-gradient(ellipse 85% 65% at 100% 100%, rgb(var(--lumos-land-teal) / 0.05), transparent 52%),
-          linear-gradient(180deg, rgb(1 2 6) 0%, rgb(3 6 14) 52%, rgb(2 4 10) 100%);
-        /** Panel shell — typography, spacing, content rhythm (Internal Alpha polish) */
-        --panel-font-display: clamp(1.05rem, 2.2vw, 1.28rem);
-        --panel-font-title: clamp(1rem, 1.9vw, 1.14rem);
-        --panel-font-body: 0.875rem;
-        --panel-font-caption: 0.72rem;
-        --panel-content-max: 44rem;
-        --panel-content-wide: 52rem;
-        --panel-space-section: 1.25rem;
-        --panel-space-block: 0.85rem;
-      }
       * {
         box-sizing: border-box;
       }
@@ -169,6 +97,27 @@ const PANEL_DEBUG = import.meta.env.DEV;
         column-gap: 0.65rem;
         row-gap: 0.45rem;
       }
+      .panel-umbrella-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 0.65rem;
+        width: 100%;
+        margin-top: 0.35rem;
+        padding-top: 0.45rem;
+        border-top: 1px solid rgb(var(--lumos-land-teal) / 0.18);
+      }
+      .panel-umbrella-links a {
+        font-size: 0.68rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: rgb(var(--lumos-land-teal) / 0.78);
+        text-decoration: none;
+      }
+      .panel-umbrella-links a:hover,
+      .panel-umbrella-links a:focus-visible {
+        color: var(--lumos-accent-blue-bright);
+      }
       .panel-header-brand {
         display: flex;
         align-items: center;
@@ -190,6 +139,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
         border: 1px solid rgba(255, 255, 255, 0.12);
         white-space: nowrap;
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        /** Label uzunluğu (Bağlanıyor → Bağlı) header titremesin */
+        min-width: 5.4rem;
+        text-align: center;
+        box-sizing: border-box;
       }
       .panel-conn-badge[data-state="pending"] {
         color: rgba(200, 188, 160, 0.95);
@@ -230,30 +183,31 @@ const PANEL_DEBUG = import.meta.env.DEV;
         font-weight: 600;
         letter-spacing: 0.07em;
         text-transform: uppercase;
-        padding: 0.2rem 0.48rem;
+        padding: 0.22rem 0.5rem;
         border-radius: 999px;
         line-height: 1.25;
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        border: 1px solid var(--lumos-border);
         white-space: nowrap;
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        box-shadow: var(--panel-edge-inset);
       }
       .panel-user-mode-badge[data-mode="offline"] {
-        color: rgba(210, 198, 168, 0.92);
-        background: rgba(72, 62, 48, 0.28);
-        border-color: rgba(160, 140, 108, 0.32);
+        color: var(--lumos-text-soft);
+        background: rgb(var(--lumos-land-warm) / 0.06);
+        border-color: var(--lumos-gold-line);
       }
       .panel-user-mode-badge[data-mode="limited"] {
-        color: rgba(220, 205, 170, 0.94);
-        background: rgba(88, 72, 44, 0.3);
-        border-color: rgba(184, 148, 96, 0.34);
+        color: var(--lumos-accent-gold);
+        background: rgb(var(--lumos-land-warm) / 0.08);
+        border-color: var(--lumos-gold-line);
+        box-shadow: var(--panel-edge-inset);
       }
       .panel-user-mode-badge[data-mode="full"] {
-        color: rgb(196 234 255 / 0.96);
-        background: linear-gradient(180deg, rgb(6 16 36 / 0.96) 0%, rgb(2 6 18 / 0.98) 100%);
-        border-color: var(--lumos-teal-38);
+        color: var(--lumos-accent-primary);
+        background: rgb(var(--lumos-land-teal) / 0.08);
+        border-color: var(--lumos-teal-28);
         box-shadow:
-          inset 0 1px 0 var(--lumos-tq-badge-inset),
-          0 0 10px rgb(var(--lumos-land-teal) / 0.12);
+          var(--panel-edge-inset),
+          0 0 8px rgb(var(--lumos-land-teal) / 0.06);
       }
       .panel-user-mode-wrap {
         position: relative;
@@ -794,6 +748,67 @@ const PANEL_DEBUG = import.meta.env.DEV;
         border-radius: 4px;
         line-height: 1.2;
       }
+      .panel-nav-label-block {
+        display: flex;
+        flex-direction: column;
+        gap: 0.08rem;
+        min-width: 0;
+        flex: 1;
+      }
+      .panel-nav-status-subline {
+        font-size: 0.58rem;
+        font-weight: 450;
+        line-height: 1.2;
+        color: rgb(148 163 184 / 0.72);
+        letter-spacing: 0.01em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .panel-nav-status-pill {
+        display: inline-block;
+        flex-shrink: 0;
+        max-width: 6.4rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 0.5rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        padding: 0.12rem 0.36rem;
+        border-radius: 4px;
+        line-height: 1.25;
+      }
+      .lumos-status-pill--ready {
+        color: var(--lumos-status-ready-fg);
+        background: var(--lumos-status-ready-bg);
+        border: 1px solid var(--lumos-status-ready-border);
+      }
+      .lumos-status-pill--developing {
+        color: var(--lumos-status-developing-fg);
+        background: var(--lumos-status-developing-bg);
+        border: 1px solid var(--lumos-status-developing-border);
+      }
+      .lumos-status-pill--awaiting {
+        color: var(--lumos-status-awaiting-fg);
+        background: var(--lumos-status-awaiting-bg);
+        border: 1px solid var(--lumos-status-awaiting-border);
+      }
+      .lumos-status-pill--off {
+        color: var(--lumos-status-off-fg);
+        background: var(--lumos-status-off-bg);
+        border: 1px solid var(--lumos-status-off-border);
+      }
+      .lumos-status-pill--active {
+        color: var(--lumos-status-active-fg);
+        background: var(--lumos-status-active-bg);
+        border: 1px solid var(--lumos-status-active-border);
+      }
+      .lumos-status-pill--layers {
+        color: var(--lumos-status-layers-fg);
+        background: var(--lumos-status-layers-bg);
+        border: 1px solid var(--lumos-status-layers-border);
+      }
       .panel-nav-inactive-badge {
         flex-shrink: 0;
         max-width: 5.2rem;
@@ -802,6 +817,66 @@ const PANEL_DEBUG = import.meta.env.DEV;
         white-space: nowrap;
         font-size: 0.5rem;
         letter-spacing: 0.04em;
+      }
+      .panel-root-status {
+        margin: 0.35rem 0.35rem 0.15rem 0.35rem;
+        padding: 0.45rem 0.55rem 0.55rem;
+        border-radius: 8px;
+        border: 1px solid var(--lumos-teal-18);
+        background: rgb(2 6 23 / 0.42);
+      }
+      .panel-root-status > summary {
+        cursor: pointer;
+        font-size: 0.68rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: rgb(148 163 184 / 0.88);
+        list-style: none;
+      }
+      .panel-root-status > summary::-webkit-details-marker {
+        display: none;
+      }
+      .panel-root-status > summary::before {
+        content: "▸ ";
+        opacity: 0.72;
+      }
+      .panel-root-status[open] > summary::before {
+        content: "▾ ";
+      }
+      .panel-root-status-disclaimer {
+        margin: 0.35rem 0 0.45rem;
+        font-size: 0.58rem;
+        line-height: 1.35;
+        color: rgb(148 163 184 / 0.72);
+      }
+      .panel-root-status-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0.28rem;
+      }
+      .panel-root-status-list li {
+        font-size: 0.62rem;
+        line-height: 1.35;
+        color: rgb(226 232 240 / 0.86);
+      }
+      .panel-root-status-footnote {
+        margin: 0.45rem 0 0;
+        font-size: 0.56rem;
+        line-height: 1.4;
+        color: rgb(148 163 184 / 0.72);
+      }
+      .panel-root-status-link {
+        color: rgb(94 234 212 / 0.88);
+        text-decoration: none;
+        margin-left: 0.2rem;
+      }
+      .panel-root-status-link:hover,
+      .panel-root-status-link:focus-visible {
+        text-decoration: underline;
       }
       .panel-nav__primary button[data-module-availability="inactive"]:not([aria-current="true"]),
       .panel-nav__lumos button[data-module-availability="inactive"]:not([aria-current="true"]) {
@@ -2216,6 +2291,125 @@ const PANEL_DEBUG = import.meta.env.DEV;
         letter-spacing: 0.01em;
         color: rgba(168, 188, 210, 0.72);
       }
+      .panel-resource-mode-advisor {
+        margin: 0 0.85rem 0.65rem;
+        padding: 0.82rem 0.95rem 0.78rem;
+        border-radius: var(--lumos-radius-md);
+        border: 1px solid var(--lumos-card-border);
+        background: var(--lumos-surface);
+        box-shadow: var(--lumos-shadow-sm);
+      }
+      .panel-resource-mode-advisor[hidden] {
+        display: none !important;
+      }
+      .panel-resource-mode-advisor__layer {
+        display: flex;
+        align-items: center;
+        gap: 0.42rem;
+        margin: 0 0 0.55rem;
+      }
+      .panel-resource-mode-advisor__layer-dot {
+        flex-shrink: 0;
+        width: 0.52rem;
+        height: 0.52rem;
+        border-radius: 50%;
+        background: var(--lumos-accent-primary);
+        box-shadow: 0 0 0 2px var(--lumos-teal-18);
+      }
+      .panel-resource-mode-advisor__layer-dot--quantum {
+        background: #34d399;
+        box-shadow: 0 0 0 2px rgb(52 211 153 / 0.22);
+      }
+      .panel-resource-mode-advisor__layer-dot--default {
+        background: var(--lumos-accent-primary);
+        box-shadow: 0 0 0 2px var(--lumos-teal-18);
+      }
+      .panel-resource-mode-advisor__layer-name {
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: var(--lumos-text);
+      }
+      .panel-resource-mode-advisor__row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.28rem 0.38rem;
+        margin: 0 0 0.38rem;
+        font-size: var(--panel-font-caption);
+        line-height: 1.48;
+      }
+      .panel-resource-mode-advisor__label {
+        flex-shrink: 0;
+        font-weight: 600;
+        color: var(--lumos-text-soft);
+      }
+      .panel-resource-mode-advisor__value {
+        color: var(--lumos-text);
+        min-width: 0;
+      }
+      .panel-resource-mode-advisor__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin: 0.58rem 0 0.48rem;
+      }
+      .panel-resource-mode-advisor__btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.38rem;
+        appearance: none;
+        border: 1px solid var(--lumos-card-border);
+        border-radius: var(--lumos-radius-sm);
+        padding: 0.4rem 0.74rem;
+        font-size: var(--panel-font-caption);
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        cursor: pointer;
+        background: var(--lumos-btn-b);
+        color: var(--lumos-text);
+        transition: border-color 0.15s ease, background 0.15s ease;
+      }
+      .panel-resource-mode-advisor__btn:hover,
+      .panel-resource-mode-advisor__btn:focus-visible {
+        border-color: var(--lumos-teal-35);
+        outline: none;
+      }
+      .panel-resource-mode-advisor__btn--primary {
+        background: var(--lumos-teal-16);
+        border-color: var(--lumos-teal-35);
+        color: var(--lumos-interactive-fg-hover);
+      }
+      .panel-resource-mode-advisor__btn--primary:hover,
+      .panel-resource-mode-advisor__btn--primary:focus-visible {
+        background: var(--lumos-teal-22);
+        border-color: var(--lumos-teal-42);
+      }
+      .panel-resource-mode-advisor__btn--secondary {
+        background: var(--lumos-surface-raised);
+        color: var(--lumos-text-soft);
+      }
+      .panel-resource-mode-advisor__btn-dot {
+        flex-shrink: 0;
+        width: 0.46rem;
+        height: 0.46rem;
+        border-radius: 50%;
+        background: rgb(148 163 184 / 0.55);
+        box-shadow: 0 0 0 1px rgb(148 163 184 / 0.25);
+      }
+      .panel-resource-mode-advisor__btn-dot--on {
+        background: #34d399;
+        box-shadow: 0 0 0 1px rgb(52 211 153 / 0.35);
+      }
+      .panel-resource-mode-advisor__btn:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      .panel-resource-mode-advisor__footer {
+        margin: 0;
+        font-size: 0.66rem;
+        line-height: 1.42;
+        color: var(--lumos-muted);
+      }
       .lumos-capability-limit-note {
         grid-column: 1 / -1;
         margin: 0.12rem 0 0;
@@ -2649,11 +2843,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
       }
       .chat-compose-bar {
         flex-shrink: 0;
-        padding: 0.45rem 0.55rem 0.45rem 0.5rem;
-        border-radius: 999px;
+        padding: 0.5rem 0.6rem 0.5rem 0.55rem;
+        border-radius: var(--lumos-radius-lg);
         border: 1px solid var(--lumos-border);
         background: var(--lumos-compose-bg);
         box-shadow: var(--panel-edge-inset);
+        transition:
+          border-color 0.15s ease,
+          box-shadow 0.15s ease;
       }
       .chat-compose {
         display: flex;
@@ -2686,7 +2883,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         border: none;
         border-radius: 999px;
         background: transparent;
-        color: rgb(130 200 240 / 0.92);
+        color: var(--lumos-accent-primary);
         cursor: pointer;
         transition:
           color 0.15s ease,
@@ -2696,8 +2893,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
       .chat-compose-camera-btn:hover,
       .chat-compose-voice-btn:hover,
       .chat-compose-attach-btn:hover {
-        color: rgb(184 240 255 / 0.98);
-        background: rgb(var(--lumos-land-teal) / 0.08);
+        color: var(--lumos-interactive-fg-hover);
+        background: rgb(var(--lumos-land-teal) / 0.1);
       }
       .chat-compose-camera-btn:focus-visible,
       .chat-compose-voice-btn:focus-visible,
@@ -2707,11 +2904,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
       }
       .chat-compose-camera-btn--active,
       .chat-compose-attach-btn--open {
-        color: rgb(220 248 255 / 0.99);
-        background: rgb(var(--lumos-land-teal) / 0.12);
+        color: var(--lumos-text);
+        background: rgb(var(--lumos-land-teal) / 0.14);
         box-shadow:
-          inset 0 0 0 1px rgb(var(--lumos-land-teal) / 0.38),
-          0 0 12px rgb(var(--lumos-land-warm) / 0.08);
+          inset 0 0 0 1px var(--lumos-teal-28),
+          0 0 8px rgb(var(--lumos-land-teal) / 0.06);
       }
       .chat-compose-camera-btn svg,
       .chat-compose-voice-btn svg,
@@ -2988,13 +3185,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
         flex: 1;
         min-width: 0;
         max-width: 100%;
-        min-height: 2.35rem;
+        min-height: 2.5rem;
         max-height: 9rem;
-        padding: 0.48rem 0.5rem 0.48rem 0.45rem;
+        padding: 0.55rem 0.55rem 0.55rem 0.5rem;
         border-radius: 0;
         border: none;
         background: transparent;
-        color: #e9eef5;
+        color: var(--lumos-text);
         font-size: 0.88rem;
         font-family: inherit;
         line-height: 1.45;
@@ -3011,18 +3208,16 @@ const PANEL_DEBUG = import.meta.env.DEV;
         }
       }
       .chat-compose--gpt textarea::placeholder {
-        color: rgb(138 152 172 / 0.72);
+        color: var(--lumos-muted);
       }
       .chat-compose--gpt textarea:focus {
         outline: none;
       }
       .chat-compose-bar:focus-within {
-        border-color: rgb(var(--lumos-land-teal) / 0.42);
+        border-color: var(--lumos-teal-32);
         box-shadow:
           var(--panel-edge-inset),
-          0 0 0 1px rgb(var(--lumos-land-teal) / 0.2),
-          0 0 20px rgb(var(--lumos-land-teal) / 0.08),
-          0 0 1px rgb(var(--lumos-land-warm) / 0.12);
+          0 0 0 2px rgb(var(--lumos-land-teal) / 0.18);
       }
       .chat-compose-send {
         flex: 0 0 auto;
@@ -3447,6 +3642,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
           line-height: 1.2;
           padding: 0.06rem 0.2rem;
           box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+          min-width: 4.2rem;
+          text-align: center;
+          box-sizing: border-box;
         }
         .panel-user-mode-badge {
           font-size: 0.4rem;
@@ -4422,7 +4620,63 @@ const PANEL_DEBUG = import.meta.env.DEV;
             <LanguageSwitcher />
           </div>
         </div>
+        <nav class="panel-umbrella-links" aria-label="We Lock AI ürünleri" data-i18n-aria-label="umbrella.nav.aria">
+          <a href="/" data-i18n="umbrella.nav.home">Ana sayfa</a>
+          <a href="/integrations" data-i18n="umbrella.nav.integrations">Entegrasyonlar</a>
+          <a href="/slack" data-i18n="umbrella.nav.slack">Slack</a>
+          <a href="/connect/mac" data-i18n="umbrella.nav.mac">Mac</a>
+          <a href="/cyber" data-i18n="umbrella.nav.cyber">Cyber</a>
+        </nav>
       </header>
+      <section
+        id="panel-resource-mode-advisor"
+        class="panel-resource-mode-advisor"
+        role="region"
+        aria-labelledby="panel-resource-mode-advisor-layer"
+        hidden
+      >
+        <div class="panel-resource-mode-advisor__layer">
+          <span
+            id="panel-resource-mode-advisor-layer-dot"
+            class="panel-resource-mode-advisor__layer-dot panel-resource-mode-advisor__layer-dot--default"
+            aria-hidden="true"
+          ></span>
+          <span id="panel-resource-mode-advisor-layer" class="panel-resource-mode-advisor__layer-name"></span>
+        </div>
+        <div class="panel-resource-mode-advisor__row">
+          <span class="panel-resource-mode-advisor__label" data-i18n="panel.modules.resourceModeAdvisor.statusLabel">Durum:</span>
+          <span id="panel-resource-mode-advisor-status" class="panel-resource-mode-advisor__value"></span>
+        </div>
+        <div class="panel-resource-mode-advisor__row">
+          <span class="panel-resource-mode-advisor__label" data-i18n="panel.modules.resourceModeAdvisor.reasonLabel">Sebep:</span>
+          <span id="panel-resource-mode-advisor-reason" class="panel-resource-mode-advisor__value"></span>
+        </div>
+        <div class="panel-resource-mode-advisor__row">
+          <span class="panel-resource-mode-advisor__label" data-i18n="panel.modules.resourceModeAdvisor.hintLabel">Öneri:</span>
+          <span id="panel-resource-mode-advisor-hint" class="panel-resource-mode-advisor__value"></span>
+        </div>
+        <div class="panel-resource-mode-advisor__actions">
+          <button
+            type="button"
+            id="panel-resource-mode-advisor-accept"
+            class="panel-resource-mode-advisor__btn panel-resource-mode-advisor__btn--primary"
+          >
+            <span class="panel-resource-mode-advisor__btn-dot panel-resource-mode-advisor__btn-dot--on" aria-hidden="true"></span>
+            <span data-i18n="panel.modules.resourceModeAdvisor.accept">Geç</span>
+          </button>
+          <button
+            type="button"
+            id="panel-resource-mode-advisor-reject"
+            class="panel-resource-mode-advisor__btn panel-resource-mode-advisor__btn--secondary"
+          >
+            <span class="panel-resource-mode-advisor__btn-dot" aria-hidden="true"></span>
+            <span data-i18n="panel.modules.resourceModeAdvisor.reject">Hayır, aktif kalsın</span>
+          </button>
+        </div>
+        <p class="panel-resource-mode-advisor__footer" data-i18n="panel.modules.resourceModeAdvisor.disclaimer">
+          Son karar kullanıcıya aittir.
+        </p>
+      </section>
       <div class="panel-body">
         <nav class="panel-nav__primary" aria-label="Çalışma modülleri" data-i18n-aria-label="panel.nav.aria">
           <p class="panel-nav-sig"><span data-i18n="panel.nav.lumos">Lumos</span> <span data-i18n="panel.nav.panel">panel</span></p>
@@ -4437,34 +4691,57 @@ const PANEL_DEBUG = import.meta.env.DEV;
               <span class="panel-nav-group-toggle-label" data-i18n="panel.nav.calisma">Çalışma</span>
             </button>
             <div class="panel-nav-group-items" id="panel-nav-items-calisma">
-              <button type="button" data-module="sohbet" aria-current="true">
-                <span class="panel-nav-label" data-i18n="panel.nav.sohbet">Sohbet</span>
+              <button type="button" data-module="sohbet" aria-current="true" data-i18n-title="panel.nav.statusTitle.sohbet">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.sohbet">Sohbet</span>
+                  <span class="panel-nav-status-subline" data-i18n="panel.nav.statusSub.sohbet">köprü olmadan sınırlı</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--ready" data-i18n="panel.nav.status.sohbet">🟢 Hazır</span>
               </button>
-              <button type="button" data-module="gorevler">
-                <span class="panel-nav-label" data-i18n="panel.nav.gorevler">Görevler</span>
+              <button type="button" data-module="gorevler" data-i18n-title="panel.nav.statusTitle.gorevler">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.gorevler">Görevler</span>
+                  <span class="panel-nav-status-subline" data-i18n="panel.nav.statusSub.gorevler">yerel görevler</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--ready" data-i18n="panel.nav.status.gorevler">🟢 Hazır</span>
               </button>
-              <button type="button" data-module="ses" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
-                <span class="panel-nav-label" data-i18n="panel.nav.ses">Ses</span>
-                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Önizleme</span>
+              <button type="button" data-module="ses" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.ses">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.ses">Ses</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--developing" data-i18n="panel.nav.status.ses">🟡 Gelişiyor</span>
               </button>
-              <button type="button" data-module="medya" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
-                <span class="panel-nav-label" data-i18n="panel.nav.medya">Medya</span>
-                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Önizleme</span>
+              <button type="button" data-module="medya" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.medya">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.medya">Medya</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--awaiting" data-i18n="panel.nav.status.medya">🔵 Bağlantı bekliyor</span>
               </button>
-              <button type="button" data-module="sosyal" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
-                <span class="panel-nav-label" data-i18n="panel.nav.sosyal">Sosyal</span>
-                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Önizleme</span>
+              <button type="button" data-module="sosyal" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.sosyal">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.sosyal">Sosyal</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--awaiting" data-i18n="panel.nav.status.sosyal">🔵 Bağlantı bekliyor</span>
               </button>
-              <button type="button" data-module="posta" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
-                <span class="panel-nav-label" data-i18n="panel.nav.posta">Posta</span>
-                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Önizleme</span>
+              <button type="button" data-module="posta" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.posta">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.posta">Posta</span>
+                  <span class="panel-nav-status-subline" data-i18n="panel.nav.statusSub.posta">İzin bekliyor · OD-031</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--developing" data-i18n="panel.nav.status.posta">🟡 Mimari hazır</span>
               </button>
-              <button type="button" data-module="dosyalar">
-                <span class="panel-nav-label" data-i18n="panel.nav.dosyalar">Dosyalar</span>
+              <button type="button" data-module="dosyalar" data-i18n-title="panel.nav.statusTitle.dosyalar">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.dosyalar">Dosyalar</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--ready" data-i18n="panel.nav.status.dosyalar">🟢 Hazır</span>
               </button>
-              <button type="button" class="panel-nav-research-chip" data-module="kuantum" data-module-availability="inactive" data-i18n-title="panel.nav.kuantumResearchTitle">
-                <span class="panel-nav-label" data-i18n="panel.nav.kuantum">Kuantum</span>
-                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Önizleme</span>
+              <button type="button" class="panel-nav-research-chip" data-module="kuantum" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.kuantum">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.kuantum">Kuantum</span>
+                  <span class="panel-nav-status-subline" data-i18n="panel.nav.statusSub.kuantum">ORAA aktif · Qiskit Aer öncelik 1</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--developing" data-i18n="panel.nav.status.kuantum">🟡 Mimari hazır</span>
               </button>
             </div>
           </div>
@@ -5509,6 +5786,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
               <dt data-i18n="panel.modules.quantum.entropyLab.fallbackLabel">Yedek sağlayıcıya geçiş</dt>
               <dd id="panel-quantum-entropy-fallback"></dd>
             </dl>
+            <p class="medya-intro panel-quantum-disclaimer" data-i18n="panel.modules.quantum.disclaimer">
+              ORAA (Operational Risk &amp; Assurance Agent) aktif; Quantum Layer mimari hazır. İlk kuantum sağlayıcı (Qiskit Aer öncelik 1) bekleniyor — aktif üretim veya kuantum-güvenli iddiası yok.
+            </p>
             <p class="medya-intro" data-i18n="panel.modules.quantum.intro">
               Aşağıdaki kartlar olasılık, belirsizlik ve güvenlik araştırması kavramlarını özetler; kesin vaatler yerine şeffaf
               sınırlar önceliklidir.
@@ -5921,43 +6201,86 @@ const PANEL_DEBUG = import.meta.env.DEV;
               <span class="panel-nav-group-toggle-label" data-i18n="panel.nav.lumosCore">Lumos çekirdeği</span>
             </button>
             <div class="panel-nav-group-items" id="panel-nav-items-lumos" hidden>
-              <button type="button" data-module="yayincilik" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
-                <span class="panel-nav-label" data-i18n="panel.nav.yayincilik">Yayıncılık</span>
-                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Önizleme</span>
+              <button type="button" data-module="yayincilik" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.yayincilik">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.yayincilik">Yayıncılık</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--off" data-i18n="panel.nav.status.yayincilik">⚪ Kapalı</span>
               </button>
-              <button type="button" data-module="yapayzeka" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
-                <span class="panel-nav-label" data-i18n="panel.nav.yapayzeka">Yapay Zekâ</span>
-                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Önizleme</span>
+              <button type="button" data-module="yapayzeka" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.yapayzeka">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.yapayzeka">Yapay Zekâ</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--off" data-i18n="panel.nav.status.yapayzeka">⚪ Kapalı</span>
               </button>
-              <button type="button" data-module="kuantum" data-module-availability="inactive" data-i18n-title="panel.nav.kuantumResearchTitle">
-                <span class="panel-nav-label" data-i18n="panel.nav.kuantum">Kuantum</span>
-                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Önizleme</span>
+              <button type="button" data-module="kuantum" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.kuantum">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.kuantum">Kuantum</span>
+                  <span class="panel-nav-status-subline" data-i18n="panel.nav.statusSub.kuantum">ORAA aktif · Qiskit Aer öncelik 1</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--developing" data-i18n="panel.nav.status.kuantum">🟡 Mimari hazır</span>
               </button>
-              <button type="button" data-module="entegrasyon" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
-                <span class="panel-nav-label" data-i18n="panel.nav.entegrasyon">Entegrasyon</span>
-                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Önizleme</span>
+              <button type="button" data-module="entegrasyon" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.entegrasyon">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.entegrasyon">Entegrasyon</span>
+                  <span class="panel-nav-status-subline" data-i18n="panel.nav.statusSub.entegrasyon">7 katman tanımlı</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--layers" data-i18n="panel.nav.status.entegrasyon">🔗 7 katman</span>
               </button>
-              <button type="button" data-module="kimlik" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
-                <span class="panel-nav-label" data-i18n="panel.nav.kimlik">Kimlik</span>
-                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Önizleme</span>
+              <button type="button" data-module="kimlik" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.kimlik">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.kimlik">Kimlik</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--off" data-i18n="panel.nav.status.kimlik">⚪ Kapalı</span>
               </button>
-              <button type="button" data-module="yetenekler">
-                <span class="panel-nav-label" data-i18n="panel.nav.yetenekler">Yetenekler</span>
+              <button type="button" data-module="yetenekler" data-i18n-title="panel.nav.statusTitle.yetenekler">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.yetenekler">Yetenekler</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--ready" data-i18n="panel.nav.status.yetenekler">🟢 Hazır</span>
               </button>
-              <button type="button" data-module="guvenlik" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
-                <span class="panel-nav-label" data-i18n="panel.nav.guvenlik">Güvenlik</span>
-                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Önizleme</span>
+              <button type="button" data-module="guvenlik" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.guvenlik">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.guvenlik">Güvenlik</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--active" data-i18n="panel.nav.status.guvenlik">🛡️ Aktif</span>
               </button>
-              <button type="button" data-module="dunya" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
-                <span class="panel-nav-label" data-i18n="panel.nav.dunya">Dünya</span>
-                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Önizleme</span>
+              <button type="button" data-module="dunya" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.dunya">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.dunya">Dünya</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--off" data-i18n="panel.nav.status.dunya">⚪ Kapalı</span>
               </button>
-              <button type="button" data-module="ayarlar" data-module-availability="inactive" data-i18n-title="panel.nav.inactiveBadgeTitle">
-                <span class="panel-nav-label" data-i18n="panel.nav.ayarlar">Ayarlar</span>
-                <span class="panel-nav-inactive-badge lumos-soon-badge" data-i18n="panel.nav.inactiveBadge">Önizleme</span>
+              <button type="button" data-module="ayarlar" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.ayarlar">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.ayarlar">Ayarlar</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--off" data-i18n="panel.nav.status.ayarlar">⚪ Kapalı</span>
               </button>
             </div>
           </div>
+          <details class="panel-root-status" id="panel-root-status">
+            <summary data-i18n="panel.rootStatus.title">Kök Durumu</summary>
+            <p class="panel-root-status-disclaimer" data-i18n="panel.rootStatus.disclaimer">
+              Altyapı durumu — canlı ölçüm değil; dokümantasyon tabanlı özet
+            </p>
+            <ul class="panel-root-status-list" aria-label="Altyapı durumu özeti" data-i18n-aria-label="panel.rootStatus.disclaimer">
+              <li data-i18n="panel.rootStatus.core">🌳 Çekirdek — Sağlıklı</li>
+              <li data-i18n="panel.rootStatus.security">🛡️ Güven — Aktif</li>
+              <li data-i18n="panel.rootStatus.oraa">👀 ORAA — Aktif</li>
+              <li data-i18n="panel.rootStatus.quantum">⚛️ Quantum Layer — Mimari hazır</li>
+              <li data-i18n="panel.rootStatus.integration">🔗 Entegrasyon — 7 katman tanımlı</li>
+              <li data-i18n="panel.rootStatus.hydroponic">
+                🌱 Topraksız mod — Köprü veya tam toprak yokken yerel katmanlar çalışır; sınırlı mod normaldir.
+              </li>
+            </ul>
+            <p class="panel-root-status-footnote">
+              <span data-i18n="panel.rootStatus.katmanAFootnote">
+                Katman A (yalnızca arayüz): köprü/toprak yokken sınırlı mod beklenen yoldur.
+              </span>
+              <a href="/#kurulum" class="panel-root-status-link" data-i18n="panel.rootStatus.katmanALink">Kurulum · Katman A</a>
+            </p>
+          </details>
         </nav>
       </div>
     </div>
@@ -7642,6 +7965,16 @@ const PANEL_DEBUG = import.meta.env.DEV;
         const badge = document.getElementById("gorevler-sync-badge");
         if (!badge) return;
         const skip = shouldSkipGorevlerTasksApi();
+        const shouldShow = skip;
+        if (shouldShow === !badge.hidden) {
+          if (shouldShow) {
+            const label = panelT("panel.modules.tasks.list.syncBadge");
+            if (badge.textContent !== label) badge.textContent = label;
+            const title = panelT("panel.modules.tasks.list.syncBadgeTitle");
+            if (badge.getAttribute("title") !== title) badge.setAttribute("title", title);
+          }
+          return;
+        }
         badge.hidden = !skip;
         if (skip) {
           badge.textContent = panelT("panel.modules.tasks.list.syncBadge");
@@ -8337,6 +8670,261 @@ const PANEL_DEBUG = import.meta.env.DEV;
           return;
         }
         applyQuantumReadinessMockFallback();
+      }
+
+      const RESOURCE_MODE_ADVISOR_LAYER = "quantum";
+      const RESOURCE_MODE_ADVISOR_POLL_MS = 60000;
+      const RESOURCE_MODE_ADVISOR_FETCH_BACKOFF_INITIAL_MS = 15000;
+      const RESOURCE_MODE_ADVISOR_FETCH_BACKOFF_MAX_MS = 300000;
+      let resourceModeAdvisorDismissed = false;
+      /** @type {null | Record<string, unknown>} */
+      let resourceModeAdvisorProposal = null;
+      let resourceModeAdvisorPollTimer = null;
+      let resourceModeAdvisorCardVisible = false;
+      let resourceModeAdvisorLastHash = "";
+      let resourceModeAdvisorRefreshInFlight = false;
+      let resourceModeAdvisorLastFetchAt = 0;
+      let resourceModeAdvisorFetchBackoffMs = 0;
+
+      function resourceModeAdvisorModeLabel(mode) {
+        const key = String(mode || "").trim().toLowerCase();
+        const label = panelT(`panel.modules.resourceModeAdvisor.modes.${key}`);
+        if (label && !label.startsWith("panel.modules.resourceModeAdvisor")) return label;
+        return String(mode || "—");
+      }
+
+      function resourceModeAdvisorModeHint(mode) {
+        const key = String(mode || "").trim().toLowerCase();
+        const hint = panelT(`panel.modules.resourceModeAdvisor.hints.${key}`);
+        if (hint && !hint.startsWith("panel.modules.resourceModeAdvisor")) return hint;
+        return panelT("panel.modules.resourceModeAdvisor.hints.passive");
+      }
+
+      function resourceModeAdvisorLayerLabel(layer) {
+        const key = String(layer || "").trim().toLowerCase();
+        const label = panelT(`panel.modules.resourceModeAdvisor.layers.${key}`);
+        if (label && !label.startsWith("panel.modules.resourceModeAdvisor")) return label;
+        if (!key) return "—";
+        return key.charAt(0).toUpperCase() + key.slice(1);
+      }
+
+      function applyResourceModeAdvisorLayerDot(layer) {
+        const dot = document.getElementById("panel-resource-mode-advisor-layer-dot");
+        if (!dot) return;
+        const key = String(layer || "").trim().toLowerCase();
+        dot.className = "panel-resource-mode-advisor__layer-dot";
+        if (key === "quantum") {
+          dot.classList.add("panel-resource-mode-advisor__layer-dot--quantum");
+        } else {
+          dot.classList.add("panel-resource-mode-advisor__layer-dot--default");
+        }
+      }
+
+      function canShowResourceModeAdvisorCard() {
+        if (resourceModeAdvisorDismissed) return false;
+        if (getPanelUserMode() === "offline") return false;
+        const tasksReachable =
+          !!resolveGorevlerTasksApiBase() && !shouldSkipGorevlerTasksApi();
+        const badge = document.getElementById("panel-conn-badge");
+        const bridgeOk = badge && badge.getAttribute("data-state") === "ok";
+        if (getPanelUserMode() === "limited") {
+          return tasksReachable || bridgeOk;
+        }
+        return tasksReachable || bridgeOk;
+      }
+
+      async function fetchResourceModeProposal() {
+        const base = resolveGorevlerTasksApiBase();
+        if (!base || shouldSkipGorevlerTasksApi()) return { ok: false };
+        try {
+          const r = await fetch(
+            `${base}/resource-mode/propose?layer=${encodeURIComponent(RESOURCE_MODE_ADVISOR_LAYER)}`,
+            { headers: { Accept: "application/json" } },
+          );
+          if (!r.ok) return { ok: false };
+          const data = await r.json();
+          if (!data || data.ok !== true || !data.proposal) return { ok: false };
+          return data;
+        } catch {
+          return { ok: false };
+        }
+      }
+
+      function shouldDisplayResourceModeCard(data) {
+        if (!data || data.show_card !== true) return false;
+        const proposal = data.proposal;
+        if (!proposal || proposal.never_auto !== true) return false;
+        const current = proposal.current_mode;
+        const proposed = proposal.proposed_mode;
+        if (!proposed || current === proposed) return false;
+        return true;
+      }
+
+      function resourceModeProposalDisplayHash(data) {
+        if (!data || !shouldDisplayResourceModeCard(data)) return "";
+        const proposal = data.proposal;
+        if (!proposal || typeof proposal !== "object") return "";
+        return [
+          String(proposal.layer || RESOURCE_MODE_ADVISOR_LAYER),
+          String(proposal.current_mode || ""),
+          String(proposal.proposed_mode || proposal.recommended_mode || ""),
+          String(proposal.reason || "").trim(),
+          String(data.show_card === true),
+        ].join("\u0001");
+      }
+
+      function bumpResourceModeAdvisorFetchBackoff() {
+        if (resourceModeAdvisorFetchBackoffMs <= 0) {
+          resourceModeAdvisorFetchBackoffMs = RESOURCE_MODE_ADVISOR_FETCH_BACKOFF_INITIAL_MS;
+          return;
+        }
+        resourceModeAdvisorFetchBackoffMs = Math.min(
+          resourceModeAdvisorFetchBackoffMs * 2,
+          RESOURCE_MODE_ADVISOR_FETCH_BACKOFF_MAX_MS,
+        );
+      }
+
+      function resetResourceModeAdvisorFetchBackoff() {
+        resourceModeAdvisorFetchBackoffMs = 0;
+      }
+
+      function shouldDeferResourceModeAdvisorFetch() {
+        if (resourceModeAdvisorFetchBackoffMs <= 0) return false;
+        return Date.now() - resourceModeAdvisorLastFetchAt < resourceModeAdvisorFetchBackoffMs;
+      }
+
+      function paintResourceModeAdvisorCard(proposal, displayHash, forceRepaint) {
+        const card = document.getElementById("panel-resource-mode-advisor");
+        const layerEl = document.getElementById("panel-resource-mode-advisor-layer");
+        const statusEl = document.getElementById("panel-resource-mode-advisor-status");
+        const reasonEl = document.getElementById("panel-resource-mode-advisor-reason");
+        const hintEl = document.getElementById("panel-resource-mode-advisor-hint");
+        if (!card || !layerEl || !statusEl || !reasonEl || !hintEl || !proposal) return;
+        const hash = String(displayHash || "");
+        if (!forceRepaint && resourceModeAdvisorCardVisible && hash && hash === resourceModeAdvisorLastHash) {
+          return;
+        }
+        const layerKey = String(proposal.layer || RESOURCE_MODE_ADVISOR_LAYER);
+        layerEl.textContent = resourceModeAdvisorLayerLabel(layerKey);
+        applyResourceModeAdvisorLayerDot(layerKey);
+        const proposedMode = proposal.proposed_mode || proposal.recommended_mode || "passive";
+        statusEl.textContent = resourceModeAdvisorModeLabel(proposedMode);
+        const reason = String(proposal.reason || "").trim();
+        reasonEl.textContent = reason || panelT("panel.modules.resourceModeAdvisor.reasonFallback");
+        hintEl.textContent = resourceModeAdvisorModeHint(proposedMode);
+        resourceModeAdvisorLastHash = hash;
+        if (card.hidden) card.hidden = false;
+        resourceModeAdvisorCardVisible = true;
+      }
+
+      function hideResourceModeAdvisorCard() {
+        const card = document.getElementById("panel-resource-mode-advisor");
+        if (!card || (!resourceModeAdvisorCardVisible && card.hidden)) return;
+        if (!card.hidden) card.hidden = true;
+        resourceModeAdvisorCardVisible = false;
+        resourceModeAdvisorLastHash = "";
+      }
+
+      function setResourceModeAdvisorBusy(busy) {
+        const acceptBtn = document.getElementById("panel-resource-mode-advisor-accept");
+        const rejectBtn = document.getElementById("panel-resource-mode-advisor-reject");
+        if (acceptBtn instanceof HTMLButtonElement) acceptBtn.disabled = !!busy;
+        if (rejectBtn instanceof HTMLButtonElement) rejectBtn.disabled = !!busy;
+      }
+
+      async function applyResourceModeDecision(userApproved) {
+        const proposal = resourceModeAdvisorProposal;
+        const base = resolveGorevlerTasksApiBase();
+        if (!proposal || !base || shouldSkipGorevlerTasksApi()) return;
+        setResourceModeAdvisorBusy(true);
+        try {
+          const r = await fetch(`${base}/resource-mode/apply`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify({
+              layer: proposal.layer || RESOURCE_MODE_ADVISOR_LAYER,
+              mode: proposal.proposed_mode,
+              user_approved: userApproved === true,
+            }),
+          });
+          if (!r.ok) return;
+          const data = await r.json();
+          if (!data) return;
+          if (userApproved === true && data.ok !== true) return;
+        } catch {
+          return;
+        } finally {
+          setResourceModeAdvisorBusy(false);
+        }
+        resourceModeAdvisorDismissed = true;
+        resourceModeAdvisorProposal = null;
+        hideResourceModeAdvisorCard();
+      }
+
+      async function refreshResourceModeAdvisorPanel() {
+        if (resourceModeAdvisorDismissed) {
+          hideResourceModeAdvisorCard();
+          return;
+        }
+        if (!canShowResourceModeAdvisorCard()) {
+          hideResourceModeAdvisorCard();
+          return;
+        }
+        if (shouldDeferResourceModeAdvisorFetch()) return;
+        if (resourceModeAdvisorRefreshInFlight) return;
+        resourceModeAdvisorRefreshInFlight = true;
+        resourceModeAdvisorLastFetchAt = Date.now();
+        try {
+          const data = await fetchResourceModeProposal();
+          if (!shouldDisplayResourceModeCard(data)) {
+            bumpResourceModeAdvisorFetchBackoff();
+            if (resourceModeAdvisorCardVisible) {
+              resourceModeAdvisorProposal = null;
+              hideResourceModeAdvisorCard();
+            }
+            return;
+          }
+          resetResourceModeAdvisorFetchBackoff();
+          const displayHash = resourceModeProposalDisplayHash(data);
+          resourceModeAdvisorProposal = data.proposal;
+          paintResourceModeAdvisorCard(data.proposal, displayHash);
+        } finally {
+          resourceModeAdvisorRefreshInFlight = false;
+        }
+      }
+
+      function refreshPanelResourceModeAdvisorI18n() {
+        if (resourceModeAdvisorProposal && resourceModeAdvisorCardVisible) {
+          paintResourceModeAdvisorCard(
+            resourceModeAdvisorProposal,
+            resourceModeAdvisorLastHash,
+            true,
+          );
+        }
+      }
+
+      function wireResourceModeAdvisorControls() {
+        const acceptBtn = document.getElementById("panel-resource-mode-advisor-accept");
+        const rejectBtn = document.getElementById("panel-resource-mode-advisor-reject");
+        if (acceptBtn && acceptBtn.dataset.oraaWired !== "1") {
+          acceptBtn.dataset.oraaWired = "1";
+          acceptBtn.addEventListener("click", () => {
+            applyResourceModeDecision(true);
+          });
+        }
+        if (rejectBtn && rejectBtn.dataset.oraaWired !== "1") {
+          rejectBtn.dataset.oraaWired = "1";
+          rejectBtn.addEventListener("click", () => {
+            applyResourceModeDecision(false);
+          });
+        }
+      }
+
+      function scheduleResourceModeAdvisorPoll() {
+        if (resourceModeAdvisorPollTimer != null) return;
+        resourceModeAdvisorPollTimer = window.setInterval(() => {
+          refreshResourceModeAdvisorPanel();
+        }, RESOURCE_MODE_ADVISOR_POLL_MS);
       }
 
       async function refreshGorevlerEvidenceStrip() {
@@ -14680,13 +15268,28 @@ const PANEL_DEBUG = import.meta.env.DEV;
       initCapLabels();
       applyUserModeUi();
       wirePanelConnBadgeSetupLink();
+      wireResourceModeAdvisorControls();
+      refreshResourceModeAdvisorPanel();
+      scheduleResourceModeAdvisorPoll();
 
       function setPanelConnBadge(state) {
         const badge = document.getElementById("panel-conn-badge");
         if (!badge) return;
-        badge.setAttribute("data-state", state);
-        badge.textContent = panelConnBadgeLabel(state);
-        const showSetup = state === "bad" || state === "limited";
+        const prevState = badge.getAttribute("data-state") || "pending";
+        const nextState = String(state || "pending");
+        const prevBridgeOk = prevState === "ok";
+        const nextBridgeOk = nextState === "ok";
+        const label = panelConnBadgeLabel(nextState);
+        const showSetup = nextState === "bad" || nextState === "limited";
+        if (
+          prevState === nextState &&
+          badge.textContent === label &&
+          badge.getAttribute("data-setup-link") === (showSetup ? "1" : "0")
+        ) {
+          return;
+        }
+        badge.setAttribute("data-state", nextState);
+        badge.textContent = label;
         badge.setAttribute("data-setup-link", showSetup ? "1" : "0");
         if (showSetup) {
           badge.setAttribute("tabindex", "0");
@@ -14699,6 +15302,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
           badge.setAttribute("title", panelT("panel.shell.conn.title"));
         }
         paintPanelInfraStatusSkeleton();
+        if (prevBridgeOk !== nextBridgeOk) {
+          refreshResourceModeAdvisorPanel();
+        }
       }
 
       function wirePanelConnBadgeSetupLink() {
@@ -15507,6 +16113,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         refreshPanelGorevlerI18n();
         refreshPanelCapabilitiesI18n();
         refreshPanelQuantumReadinessI18n();
+        refreshPanelResourceModeAdvisorI18n();
         if (typeof window.refreshMedyaOutboxHintI18n === "function") {
           window.refreshMedyaOutboxHintI18n();
         }

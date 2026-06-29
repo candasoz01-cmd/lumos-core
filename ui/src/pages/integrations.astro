@@ -1,0 +1,139 @@
+---
+import "../styles/lumos-tokens.css";
+import "../styles/umbrella-chrome.css";
+import WeLockSiteNav from "../components/WeLockSiteNav.astro";
+import WeLockSiteFooter from "../components/WeLockSiteFooter.astro";
+import IntegrationPermMatrix from "../components/IntegrationPermMatrix.astro";
+import I18nInit from "../components/I18nInit.astro";
+import type { MatrixRow } from "../components/IntegrationPermMatrix.astro";
+
+const DOCS_INTEGRATIONS_URL =
+  "https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/integrations-overview.md";
+
+const charterRows: MatrixRow[] = [
+  {
+    id: "github",
+    nameKey: "umbrella.integrations.rowGithubName",
+    noteKey: "umbrella.integrations.rowGithubNote",
+    read: true,
+    write: true,
+    delete: true,
+  },
+  {
+    id: "slack",
+    nameKey: "umbrella.integrations.rowSlackName",
+    noteKey: "umbrella.integrations.rowSlackNote",
+    read: true,
+    write: true,
+    delete: true,
+  },
+  {
+    id: "drive",
+    nameKey: "umbrella.integrations.rowDriveName",
+    noteKey: "umbrella.integrations.rowDriveNote",
+    read: true,
+    write: true,
+    delete: true,
+  },
+  {
+    id: "calendar",
+    nameKey: "umbrella.integrations.rowCalendarName",
+    noteKey: "umbrella.integrations.rowCalendarNote",
+    read: true,
+    write: true,
+    delete: true,
+  },
+  {
+    id: "gmail",
+    nameKey: "umbrella.integrations.rowGmailName",
+    noteKey: "umbrella.integrations.rowGmailNote",
+    read: true,
+    write: true,
+    delete: true,
+  },
+];
+---
+
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title data-i18n="umbrella.integrations.metaTitle">Entegrasyonlar — We Lock AI</title>
+    <meta
+      name="description"
+      content="Lumos entegrasyon merkezi: GitHub, Slack, Google ve cihaz yüzeyleri — Read / Write / Delete izin matrisi."
+      data-i18n-content="umbrella.integrations.metaDescription"
+    />
+    <link rel="canonical" href="https://welockai.com/integrations" />
+    <link rel="icon" href="/lumos-tree-logo.svg" type="image/svg+xml" sizes="any" />
+    <meta name="theme-color" content="#0a0e14" />
+  </head>
+  <body class="umbrella-page">
+    <WeLockSiteNav active="integrations" />
+    <main class="umbrella-main">
+      <p class="umbrella-eyebrow" data-i18n="umbrella.integrations.eyebrow">WE LOCK AI · ENTEGRASYONLAR</p>
+      <h1 data-i18n="umbrella.integrations.title">Entegrasyon merkezi</h1>
+      <p class="umbrella-lead" data-i18n="umbrella.integrations.lead">
+        Lumos, dış araçlara tek güvenli geçitten bağlanır.
+      </p>
+      <div class="umbrella-callout">
+        <p>
+          <strong data-i18n="umbrella.integrations.statusAlpha">Internal Alpha — OAuth yakında</strong>
+        </p>
+      </div>
+      <h2 data-i18n="umbrella.integrations.matrixTitle">İzin matrisi</h2>
+      <IntegrationPermMatrix rows={charterRows} />
+      <h2 data-i18n="umbrella.integrations.surfacesTitle">Yüzeyler ve bağlantılar</h2>
+      <div class="umbrella-surface-grid">
+        <a class="umbrella-surface-card" href="/integrations/github">
+          <h3 data-i18n="umbrella.integrations.githubCta">GitHub entegrasyonu</h3>
+          <p data-i18n="umbrella.integrations.rowGithubNote">Issue/PR bağlamı</p>
+          <span class="umbrella-badge" data-i18n="umbrella.integrations.statusAlpha">Internal Alpha</span>
+        </a>
+        <a class="umbrella-surface-card" href="/integrations/google">
+          <h3 data-i18n="umbrella.integrations.googleCta">Google entegrasyonu</h3>
+          <p data-i18n="umbrella.google.lead">Drive, Calendar, Gmail — read-first</p>
+          <span class="umbrella-badge" data-i18n="umbrella.integrations.statusAlpha">Internal Alpha</span>
+        </a>
+        <a class="umbrella-surface-card" href="/integrations/mail">
+          <h3 data-i18n="umbrella.integrations.mailCta">Mail (Gmail)</h3>
+          <p data-i18n="umbrella.integrations.rowGmailNote">OD-031 Dar v1 read-only</p>
+          <span class="umbrella-badge" data-i18n="umbrella.integrations.statusAlpha">Internal Alpha</span>
+        </a>
+        <a class="umbrella-surface-card" href="/integrations/linear">
+          <h3 data-i18n="umbrella.integrations.linearCta">Linear</h3>
+          <p data-i18n="umbrella.integrations.rowLinearNote">Katman 3 planned</p>
+          <span class="umbrella-badge" data-i18n="umbrella.integrations.statusPlanned">Planned</span>
+        </a>
+        <a class="umbrella-surface-card" href="/slack">
+          <h3 data-i18n="umbrella.integrations.slackCta">Slack</h3>
+          <p data-i18n="umbrella.integrations.rowSlackNote">İş yeri bağlamı</p>
+          <span class="umbrella-badge" data-i18n="umbrella.integrations.statusAlpha">Internal Alpha</span>
+        </a>
+        <a class="umbrella-surface-card" href="/panel">
+          <h3 data-i18n="umbrella.integrations.panelCta">Panel</h3>
+          <p data-i18n="umbrella.products.panelBody">Birincil web çalışma alanı</p>
+        </a>
+        <a class="umbrella-surface-card" href="/connect/mac">
+          <h3 data-i18n="umbrella.integrations.macCta">Mac bağlantıları</h3>
+          <p data-i18n="umbrella.mac.lead">Universal Links</p>
+        </a>
+        <a class="umbrella-surface-card" href="/cyber">
+          <h3 data-i18n="umbrella.integrations.cyberCta">Cyber</h3>
+          <p data-i18n="umbrella.cyber.lead">Güvenlik varyantı</p>
+        </a>
+      </div>
+      <p>
+        <a href={DOCS_INTEGRATIONS_URL} target="_blank" rel="noopener noreferrer" data-i18n="umbrella.integrations.docsCta"
+          >Teknik özet (repo)</a
+        >
+      </p>
+      <div class="umbrella-actions">
+        <a class="umbrella-btn umbrella-btn--primary" href="/panel" data-i18n="umbrella.integrations.panelCta">Panel</a>
+        <a class="umbrella-btn" href="/" data-i18n="umbrella.integrations.homeCta">Ana sayfa</a>
+      </div>
+    </main>
+    <WeLockSiteFooter />
+    <I18nInit />
+  </body>
+</html>

@@ -1,0 +1,89 @@
+---
+import "../../styles/lumos-tokens.css";
+import "../../styles/umbrella-chrome.css";
+import WeLockSiteNav from "../../components/WeLockSiteNav.astro";
+import WeLockSiteFooter from "../../components/WeLockSiteFooter.astro";
+import IntegrationPermMatrix from "../../components/IntegrationPermMatrix.astro";
+import I18nInit from "../../components/I18nInit.astro";
+import type { MatrixRow } from "../../components/IntegrationPermMatrix.astro";
+
+const ADR_MAIL_URL =
+  "https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/decisions/ADR-002-mail-inbox-intelligence.md";
+
+const googleRows: MatrixRow[] = [
+  {
+    id: "drive",
+    nameKey: "umbrella.integrations.rowDriveName",
+    noteKey: "umbrella.integrations.rowDriveNote",
+    read: true,
+    write: true,
+    delete: true,
+  },
+  {
+    id: "calendar",
+    nameKey: "umbrella.integrations.rowCalendarName",
+    noteKey: "umbrella.integrations.rowCalendarNote",
+    read: true,
+    write: true,
+    delete: true,
+  },
+  {
+    id: "gmail",
+    nameKey: "umbrella.integrations.rowGmailName",
+    noteKey: "umbrella.integrations.rowGmailNote",
+    read: true,
+    write: true,
+    delete: true,
+  },
+];
+---
+
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title data-i18n="umbrella.google.metaTitle">Google entegrasyonu — We Lock AI</title>
+    <meta
+      name="description"
+      content="Lumos Google bağlantısı: Drive, Calendar ve Gmail — read-first politika."
+      data-i18n-content="umbrella.google.metaDescription"
+    />
+    <link rel="canonical" href="https://welockai.com/integrations/google" />
+    <link rel="icon" href="/lumos-tree-logo.svg" type="image/svg+xml" sizes="any" />
+    <meta name="theme-color" content="#0a0e14" />
+  </head>
+  <body class="umbrella-page">
+    <WeLockSiteNav active="integrations" />
+    <main class="umbrella-main">
+      <p class="umbrella-eyebrow" data-i18n="umbrella.google.eyebrow">WE LOCK AI · GOOGLE</p>
+      <h1 data-i18n="umbrella.google.title">Google (Drive, Calendar, Gmail)</h1>
+      <p class="umbrella-lead" data-i18n="umbrella.google.lead">
+        Google entegrasyonları read-first ilkesiyle çalışır.
+      </p>
+      <h2 data-i18n="umbrella.integrations.matrixTitle">İzin matrisi</h2>
+      <IntegrationPermMatrix rows={googleRows} />
+      <h2 data-i18n="umbrella.google.driveTitle">Google Drive</h2>
+      <p data-i18n="umbrella.google.driveBody">Dosya listesi, metadata ve özet.</p>
+      <h2 data-i18n="umbrella.google.calendarTitle">Google Calendar</h2>
+      <p data-i18n="umbrella.google.calendarBody">Etkinlik listesi ve müsaitlik.</p>
+      <h2 data-i18n="umbrella.google.gmailTitle">Gmail</h2>
+      <p data-i18n="umbrella.google.gmailBody">Inbox özeti ve thread metadata.</p>
+      <div class="umbrella-callout">
+        <p>
+          <strong data-i18n="umbrella.google.statusTitle">Durum</strong> —
+          <span data-i18n="umbrella.google.statusBody">Google OAuth bu sitede yok.</span>
+        </p>
+      </div>
+      <p>
+        <a href={ADR_MAIL_URL} target="_blank" rel="noopener noreferrer">ADR-002 mail inbox intelligence</a>
+      </p>
+      <div class="umbrella-actions">
+        <a class="umbrella-btn umbrella-btn--primary" href="/integrations" data-i18n="umbrella.google.hubCta">Entegrasyon merkezi</a>
+        <a class="umbrella-btn" href="/panel" data-i18n="umbrella.google.panelCta">Panel</a>
+        <a class="umbrella-btn" href="/" data-i18n="umbrella.google.homeCta">Ana sayfa</a>
+      </div>
+    </main>
+    <WeLockSiteFooter />
+    <I18nInit />
+  </body>
+</html>

@@ -2302,6 +2302,21 @@ class BridgeHandler(BaseHTTPRequestHandler):
             nt.pop("approval_granted", None)
 
         if token_in.strip() != str(loaded.get("approval_token") or ""):
+            try:
+                from kando_bridge.pending_approvals import is_pc_remote_pending
+                from kando_bridge.pc_remote_audit import EVENT_APPROVAL_DENIED, append_pc_remote_audit
+
+                if is_pc_remote_pending(loaded):
+                    append_pc_remote_audit(
+                        ROOT,
+                        EVENT_APPROVAL_DENIED,
+                        approval_id=str(loaded.get("approval_id") or ""),
+                        command=str(loaded.get("command") or ""),
+                        status="denied",
+                        error="invalid_approval_token",
+                    )
+            except ImportError:
+                pass
             self._send_json(200, {"accepted": False, "error": "geçersiz token"})
             return
         if loaded.get("used"):

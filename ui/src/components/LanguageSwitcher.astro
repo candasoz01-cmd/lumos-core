@@ -18,8 +18,9 @@
     gap: 0.2rem;
     padding: 0.12rem;
     border-radius: 999px;
-    border: 1px solid rgb(56 206 255 / 0.28);
-    background: rgba(4, 10, 22, 0.72);
+    border: 1px solid var(--lumos-border);
+    background: var(--lumos-surface);
+    box-shadow: var(--panel-edge-inset, inset 0 1px 0 rgba(255, 255, 255, 0.04));
   }
   .lumos-lang-btn {
     min-width: 2.1rem;
@@ -27,7 +28,7 @@
     border: 1px solid transparent;
     border-radius: 999px;
     background: transparent;
-    color: rgb(174 182 200 / 0.88);
+    color: var(--lumos-text-soft);
     font-size: 0.72rem;
     font-weight: 600;
     letter-spacing: 0.04em;
@@ -35,22 +36,24 @@
     transition:
       color 0.15s ease,
       background 0.15s ease,
-      border-color 0.15s ease;
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
   }
   .lumos-lang-btn:hover,
   .lumos-lang-btn:focus-visible {
-    color: #e9f6ff;
-    border-color: rgb(56 206 255 / 0.38);
-    background: rgba(8, 14, 28, 0.55);
+    color: var(--lumos-text);
+    border-color: var(--lumos-teal-28);
+    background: rgb(var(--lumos-land-teal) / 0.08);
   }
   .lumos-lang-btn--active,
   .lumos-lang-btn[aria-pressed="true"] {
-    color: #061022;
-    background: rgb(56 206 255 / 0.92);
-    border-color: rgb(130 206 255 / 0.65);
+    color: #0a0e14;
+    background: var(--lumos-accent-primary);
+    border-color: rgb(var(--lumos-land-teal) / 0.55);
+    box-shadow: 0 1px 4px rgb(var(--lumos-land-teal) / 0.2);
   }
   .lumos-lang-btn:focus-visible {
-    outline: 2px solid rgb(56 206 255 / 0.45);
+    outline: 2px solid var(--lumos-teal-38);
     outline-offset: 2px;
   }
 </style>

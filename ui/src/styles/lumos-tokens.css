@@ -1,0 +1,141 @@
+/**
+ * Lumos premium dark design system — shared tokens for landing + panel.
+ * Controlled teal accent, warm gold for emphasis, refined navy surfaces.
+ */
+:root,
+.lumos-theme {
+  /* RGB channels for alpha composition */
+  --lumos-land-teal: 45 212 191;
+  --lumos-land-teal-deep: 20 184 166;
+  --lumos-land-warm: 212 165 116;
+  --lumos-land-warm-deep: 180 130 80;
+
+  /* Core surfaces */
+  --lumos-bg: #0a0e14;
+  --lumos-surface: #121a24;
+  --lumos-surface-raised: #1a2433;
+  --lumos-panel-navy: #1a2433;
+  --lumos-panel-navy-deep: #0a0e14;
+  --lumos-map-canvas: #0a0e14;
+  --lumos-land-page: #0a0e14;
+
+  /* Borders */
+  --lumos-border: rgba(100, 130, 170, 0.15);
+  --lumos-card-border: rgba(100, 130, 170, 0.2);
+  --lumos-card-inset: rgba(255, 255, 255, 0.035);
+
+  /* Teal opacity scale */
+  --lumos-teal-12: rgb(var(--lumos-land-teal) / 0.12);
+  --lumos-teal-14: rgb(var(--lumos-land-teal) / 0.14);
+  --lumos-teal-16: rgb(var(--lumos-land-teal) / 0.16);
+  --lumos-teal-18: rgb(var(--lumos-land-teal) / 0.18);
+  --lumos-teal-22: rgb(var(--lumos-land-teal) / 0.22);
+  --lumos-teal-28: rgb(var(--lumos-land-teal) / 0.28);
+  --lumos-teal-32: rgb(var(--lumos-land-teal) / 0.32);
+  --lumos-teal-35: rgb(var(--lumos-land-teal) / 0.35);
+  --lumos-teal-38: rgb(var(--lumos-land-teal) / 0.38);
+  --lumos-teal-40: rgb(var(--lumos-land-teal) / 0.4);
+  --lumos-teal-42: rgb(var(--lumos-land-teal) / 0.42);
+  --lumos-teal-48: rgb(var(--lumos-land-teal) / 0.48);
+
+  /* Gold / amber (sparing use) */
+  --lumos-gold: #d4a574;
+  --lumos-gold-soft: rgb(var(--lumos-land-warm) / 0.18);
+  --lumos-gold-line: rgb(var(--lumos-land-warm) / 0.28);
+  --lumos-accent-gold: #d4a574;
+  --lumos-accent-amber: #f59e0b;
+
+  /* Text */
+  --lumos-text: #e8edf4;
+  --lumos-text-soft: #94a3b8;
+  --lumos-muted: #64748b;
+  --lumos-land-title: #e8edf4;
+  --lumos-text-muted: #94a3b8;
+  --lumos-text-body: #e8edf4;
+  --lumos-text-sep: rgb(148 163 184 / 0.42);
+  --lumos-heading-warm: #d4c4a8;
+
+  /* Accents */
+  --lumos-accent-primary: #2dd4bf;
+  --lumos-accent-primary-deep: #14b8a6;
+  --lumos-accent-blue: rgb(var(--lumos-land-teal) / 0.88);
+  --lumos-accent-blue-soft: rgb(var(--lumos-land-teal) / 0.28);
+  --lumos-accent-blue-bright: #5eead4;
+  --lumos-interactive-fg: rgb(var(--lumos-land-teal) / 0.9);
+  --lumos-interactive-fg-hover: #5eead4;
+
+  /* Panel / shell surfaces */
+  --lumos-input-bg: #0a0e14;
+  --lumos-sidebar-bg: #0a0e14;
+  --lumos-main-bg: #0a0e14;
+  --lumos-chat-head-bg: #0a0e14;
+  --lumos-chat-history-bg: #121a24;
+  --lumos-compose-bg: rgba(18, 26, 36, 0.94);
+  --lumos-chat-input-bg: #0a0e14;
+  --lumos-tq-badge-inset: rgb(var(--lumos-land-teal) / 0.12);
+  --lumos-tq-badge-glow: rgb(var(--lumos-land-teal) / 0.08);
+  --lumos-btn-a: rgba(26, 36, 51, 0.96);
+  --lumos-btn-b: #121a24;
+  --lumos-user-bubble: rgba(26, 36, 51, 0.92);
+  --lumos-lumos-bubble: rgba(18, 26, 36, 0.72);
+  --lumos-error: #f0b4b4;
+
+  /* Landing cards */
+  --lumos-vizyon-card-bg: rgba(18, 26, 36, 0.96);
+  --lumos-vizyon-card-border: rgba(100, 130, 170, 0.2);
+  --lumos-vizyon-card-border-gold: rgb(var(--lumos-land-warm) / 0.14);
+  --lumos-vizyon-eyebrow: rgb(148 163 184 / 0.78);
+
+  /* Radius (8px grid) */
+  --lumos-radius-sm: 8px;
+  --lumos-radius-md: 10px;
+  --lumos-radius-lg: 12px;
+  --panel-radius: var(--lumos-radius-md);
+  --panel-radius-lg: var(--lumos-radius-lg);
+
+  /* Shadows & washes */
+  --lumos-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.45);
+  --panel-strip-bg: linear-gradient(178deg, #0a0e14 0%, #121a24 52%, #0a0e14 100%);
+  --panel-surface-raised: rgba(26, 36, 51, 0.96);
+  --panel-edge-inset: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --panel-shadow-ambient: var(--lumos-shadow-sm);
+  --panel-body-wash:
+    radial-gradient(ellipse 120% 80% at 50% -8%, rgb(var(--lumos-land-teal-deep) / 0.22), transparent 52%),
+    radial-gradient(ellipse 80% 48% at 92% 42%, rgb(var(--lumos-land-teal) / 0.04), transparent 48%),
+    radial-gradient(ellipse 68% 44% at 8% 74%, rgb(var(--lumos-land-warm) / 0.02), transparent 50%),
+    linear-gradient(178deg, #0a0e14 0%, #121a24 46%, #0a0e14 100%);
+  --panel-chat-wash:
+    radial-gradient(ellipse 110% 90% at 50% 0%, rgb(var(--lumos-land-teal-deep) / 0.18), transparent 56%),
+    radial-gradient(ellipse 85% 65% at 100% 100%, rgb(var(--lumos-land-teal) / 0.04), transparent 52%),
+    linear-gradient(180deg, #0a0e14 0%, #121a24 52%, #0a0e14 100%);
+
+  /* Panel typography & spacing */
+  --panel-font-display: clamp(1.05rem, 2.2vw, 1.28rem);
+  --panel-font-title: clamp(1rem, 1.9vw, 1.14rem);
+  --panel-font-body: 0.875rem;
+  --panel-font-caption: 0.72rem;
+  --panel-content-max: 44rem;
+  --panel-content-wide: 52rem;
+  --panel-space-section: 1.25rem;
+  --panel-space-block: 0.85rem;
+
+  /* Panel module status pills (honest infrastructure labels) */
+  --lumos-status-ready-fg: #6ee7b7;
+  --lumos-status-ready-bg: rgb(16 185 129 / 0.14);
+  --lumos-status-ready-border: rgb(16 185 129 / 0.28);
+  --lumos-status-developing-fg: #fcd34d;
+  --lumos-status-developing-bg: rgb(245 158 11 / 0.14);
+  --lumos-status-developing-border: rgb(245 158 11 / 0.28);
+  --lumos-status-awaiting-fg: #93c5fd;
+  --lumos-status-awaiting-bg: rgb(59 130 246 / 0.14);
+  --lumos-status-awaiting-border: rgb(59 130 246 / 0.28);
+  --lumos-status-off-fg: #94a3b8;
+  --lumos-status-off-bg: rgb(100 116 139 / 0.12);
+  --lumos-status-off-border: rgb(100 116 139 / 0.22);
+  --lumos-status-active-fg: #c4b5fd;
+  --lumos-status-active-bg: rgb(139 92 246 / 0.14);
+  --lumos-status-active-border: rgb(139 92 246 / 0.28);
+  --lumos-status-layers-fg: #7dd3fc;
+  --lumos-status-layers-bg: rgb(14 165 233 / 0.12);
+  --lumos-status-layers-border: rgb(14 165 233 / 0.26);
+}

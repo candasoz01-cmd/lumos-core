@@ -376,3 +376,78 @@ def test_server_tools_schema_requires_token(
     BridgeHandler.do_GET(handler)
     assert handler.reject is not None
     assert handler.reject[0] == 401
+
+
+def test_execute_without_token_after_approve_creates_new_pending(tmp_path: Path) -> None:
+    """Approved disk record alone cannot stub-execute — new pending without token."""
+    pending = execute_tool_stub(
+        CMD_OPEN_URL,
+        {"url": "https://example.com"},
+        repo_root=tmp_path,
+    )
+    found = find_pending_by_approval_id(tmp_path, pending["approval_id"])
+    assert found is not None
+    approve_pc_remote_pending(found[0], found[1], approved=True, repo_root=tmp_path)
+    again = execute_tool_stub(
+        CMD_OPEN_URL,
+        {"url": "https://example.com"},
+        repo_root=tmp_path,
+    )
+    assert again["status"] == "pending_approval"
+    assert again["approval_id"] != pending["approval_id"]
+
+
+def test_execute_with_wrong_token_rejected(tmp_path: Path) -> None:
+    pending = execute_tool_stub(
+        CMD_OPEN_URL,
+        {"url": "https://example.com"},
+        repo_root=tmp_path,
+    )
+    found = find_pending_by_approval_id(tmp_path, pending["approval_id"])
+    approve_pc_remote_pending(found[0], found[1], approved=True, repo_root=tmp_path)
+    out = execute_tool_stub(
+        CMD_OPEN_URL,
+        {"url": "https://example.com"},
+        approval_token="wrong-token-value",
+        approval_id=pending["approval_id"],
+        repo_root=tmp_path,
+    )
+    assert out["status"] == "rejected"
+    assert out["error"] == "invalid_approval_token"
+
+
+def test_handle_tools_execute_ignores_approval_granted_flag(tmp_path: Path) -> None:
+    """Body approval_granted=true must not bypass token consume."""
+    pending = execute_tool_stub(
+        CMD_OPEN_URL,
+        {"url": "https://example.com"},
+        repo_root=tmp_path,
+    )
+    found = find_pending_by_approval_id(tmp_path, pending["approval_id"])
+    approve_pc_remote_pending(found[0], found[1], approved=True, repo_root=tmp_path)
+    status, out = handle_tools_execute_body(
+        {
+            "command": CMD_OPEN_URL,
+            "arguments": {"url": "https://example.com"},
+            "approval_granted": True,
+        },
+        repo_root=tmp_path,
+    )
+    assert status == 200
+    assert out["status"] == "pending_approval"
+
+
+def test_all_approval_commands_blocked_without_consume(tmp_path: Path) -> None:
+    for command, arguments in [
+        (CMD_OPEN_APP, {"app_name": "Safari"}),
+        (CMD_OPEN_URL, {"url": "https://example.com"}),
+        (CMD_TYPE_TEXT, {"text": "hi"}),
+        (CMD_SUGGEST_CLICK, {"target_description": "OK"}),
+        (CMD_REQUEST_FILE_PICKER, {"purpose": "upload"}),
+    ]:
+        pending = execute_tool_stub(command, arguments, repo_root=tmp_path)
+        found = find_pending_by_approval_id(tmp_path, pending["approval_id"])
+        assert found is not None
+        approve_pc_remote_pending(found[0], found[1], approved=True, repo_root=tmp_path)
+        blocked = execute_tool_stub(command, arguments, repo_root=tmp_path)
+        assert blocked["status"] == "pending_approval", command

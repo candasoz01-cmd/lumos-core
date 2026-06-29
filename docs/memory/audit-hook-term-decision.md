@@ -80,7 +80,7 @@ Commit-dışı informal takip listesinde geçen **«audit hook»** maddesinin re
 
 **Firm:** Commit guard geliştirici makinesinde kalite kapısıdır; git commit/push olayları ürün mutasyonu değildir ve EC journal'a **girmez**.
 
-**CI drift (giderildi — 2026-06-20):** Pre-commit'te ruff varken [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) artık `ruff check .` koşar (OD-059 Paket B). Bu «audit hook» değildir; geliştirme kalite parity'sidir.
+**CI drift (giderildi — 2026-06-20):** Pre-commit'te ruff varken [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) artık `ruff check .` koşar (OD-059 Paket B). Bu «audit hook» değildir; geliştirme kalite parity'sidir.
 
 ---
 

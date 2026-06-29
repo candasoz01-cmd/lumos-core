@@ -31,7 +31,7 @@ class WorldState:
         last_errors_max: int = DEFAULT_LAST_ERRORS_MAX,
     ) -> None:
         self._recent_events: deque[ObservationEvent] = deque(maxlen=recent_events_max)
-        self.known_files: list[str] = []  # placeholder for future
+        self.known_files: list[str] = []  # intentional stub — file inventory deferred (NA-06)
         self._last_tasks: deque[dict[str, Any]] = deque(maxlen=last_tasks_max)
         self._last_errors: deque[str] = deque(maxlen=last_errors_max)
 

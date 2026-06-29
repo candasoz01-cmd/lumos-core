@@ -1,0 +1,56 @@
+---
+import "../../styles/lumos-tokens.css";
+import "../../styles/umbrella-chrome.css";
+import WeLockSiteNav from "../../components/WeLockSiteNav.astro";
+import WeLockSiteFooter from "../../components/WeLockSiteFooter.astro";
+import I18nInit from "../../components/I18nInit.astro";
+---
+
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title data-i18n="umbrella.mac.metaTitle">Lumos Mac — Universal Links — We Lock AI</title>
+    <meta
+      name="description"
+      content="Lumos Mac istemcisi için welockai.com Universal Links, panel URL'leri ve Apple App Site Association."
+      data-i18n-content="umbrella.mac.metaDescription"
+    />
+    <link rel="canonical" href="https://welockai.com/connect/mac" />
+    <link rel="icon" href="/lumos-tree-logo.svg" type="image/svg+xml" sizes="any" />
+    <meta name="theme-color" content="#0a0e14" />
+  </head>
+  <body class="umbrella-page">
+    <WeLockSiteNav active="mac" />
+    <main class="umbrella-main">
+      <p class="umbrella-eyebrow" data-i18n="umbrella.mac.eyebrow">WE LOCK AI · MAC</p>
+      <h1 data-i18n="umbrella.mac.title">Mac ve Apple bağlantıları</h1>
+      <p class="umbrella-lead" data-i18n="umbrella.mac.lead">
+        Gelecekteki Lumos Mac istemcisi welockai.com üzerinden panel ve landing URL'lerini açabilir.
+      </p>
+      <h2 data-i18n="umbrella.mac.urlsTitle">Üretim URL'leri</h2>
+      <ul>
+        <li><a href="https://welockai.com/">https://welockai.com/</a> — landing</li>
+        <li><a href="https://welockai.com/panel">https://welockai.com/panel</a> — panel</li>
+        <li><a href="https://welockai.com/manifest.webmanifest">manifest.webmanifest</a> — PWA</li>
+      </ul>
+      <h2 data-i18n="umbrella.mac.ulTitle">Universal Links (AASA)</h2>
+      <p data-i18n="umbrella.mac.ulBody">Apple App Site Association dosyası aşağıdaki yollarda sunulur.</p>
+      <code class="umbrella-code">https://welockai.com/.well-known/apple-app-site-association</code>
+      <code class="umbrella-code">https://welockai.com/apple-app-site-association</code>
+      <p data-i18n="umbrella.mac.ulPaths">Desteklenen yollar: /, /panel, /panel/*</p>
+      <p data-i18n="umbrella.mac.bundleNote">Placeholder bundle: com.welockai.lumos</p>
+      <p>
+        <a href="https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/mac-app-link-layer.md" target="_blank" rel="noopener noreferrer"
+          >Mac app link layer (docs)</a
+        >
+      </p>
+      <div class="umbrella-actions">
+        <a class="umbrella-btn umbrella-btn--primary" href="/panel" data-i18n="umbrella.mac.panelCta">Paneli aç</a>
+        <a class="umbrella-btn" href="/" data-i18n="umbrella.mac.homeCta">Ana sayfa</a>
+      </div>
+    </main>
+    <WeLockSiteFooter />
+    <I18nInit />
+  </body>
+</html>

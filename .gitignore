@@ -22,6 +22,7 @@ venv/
 src/*.egg-info/
 build/
 dist/
+/target/
 node_modules/
 .astro/
 frontend/public/

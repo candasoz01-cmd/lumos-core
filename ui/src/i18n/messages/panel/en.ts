@@ -88,6 +88,63 @@ const panel: typeof panelTr = {
     ayarlar: "Settings",
     inactiveBadge: "Preview",
     inactiveBadgeTitle: "Information and preview screen — the full module is not active",
+    status: {
+      sohbet: "🟢 Ready",
+      gorevler: "🟢 Ready",
+      ses: "🟡 Developing",
+      medya: "🔵 Awaiting connection",
+      sosyal: "🔵 Awaiting connection",
+      posta: "🟡 Architecture ready",
+      dosyalar: "🟢 Ready",
+      kuantum: "🟡 Architecture ready",
+      yayincilik: "⚪ Off",
+      yapayzeka: "⚪ Off",
+      entegrasyon: "🔗 7 layers",
+      kimlik: "⚪ Off",
+      yetenekler: "🟢 Ready",
+      guvenlik: "🛡️ Active",
+      dunya: "⚪ Off",
+      ayarlar: "⚪ Off",
+    },
+    statusSub: {
+      sohbet: "limited without bridge",
+      gorevler: "local tasks",
+      posta: "Awaiting permission · OD-031",
+      kuantum: "ORAA active · Qiskit Aer priority 1",
+      entegrasyon: "7 layers defined",
+    },
+    statusTitle: {
+      sohbet: "Local chat and tasks work; full bridge depends on user setup",
+      gorevler: "Tasks write to device storage; server sync is optional",
+      ses: "Voice UI is in development; depends on device permissions",
+      medya: "No external media connection yet; draft flow only",
+      sosyal: "OAuth and platform connection pending",
+      posta: "OD-031 mail stub; send permission and connection pending",
+      dosyalar: "Local upload and summary; depends on bridge connection",
+      kuantum: "ORAA active; quantum layer architecture ready — no production claim",
+      yayincilik: "Module off; information screen only",
+      yapayzeka: "Module off; information screen only",
+      entegrasyon: "Seven layers defined; connections require user approval",
+      kimlik: "Module off; identity links not active yet",
+      yetenekler: "Connection test and capability summary available",
+      guvenlik: "Security layer active; approval and risk visibility on",
+      dunya: "Module off; localization information screen",
+      ayarlar: "Module off; settings information screen",
+    },
+  },
+  rootStatus: {
+    title: "Root status",
+    disclaimer: "Infrastructure status — not live metrics; documentation-based summary",
+    core: "🌳 Core — Healthy",
+    security: "🛡️ Security — Active",
+    oraa: "👀 ORAA — Active",
+    quantum: "⚛️ Quantum Layer — Architecture ready",
+    integration: "🔗 Integration — 7 layers defined",
+    hydroponic:
+      "🌱 Hydroponic mode — local layers work without full bridge/soil; limited mode is expected.",
+    katmanAFootnote:
+      "Katman A (UI only): limited mode is the expected path without bridge/soil.",
+    katmanALink: "Setup · Katman A",
   },
   sections: {
     sohbet: "Chat",
@@ -123,8 +180,8 @@ const panel: typeof panelTr = {
         "Your landing question was carried here — review before sending.",
     },
     modeHints: {
-      sendLimited: "Limited mode: no external chat bridge; local replies and task commands are available.",
-      sendLimitedUser: "You are in limited mode (user choice); local replies and task commands are available.",
+      sendLimited: "Limited mode: local replies and task commands work; actions that need the external bridge wait.",
+      sendLimitedUser: "Limited mode is selected; local replies and task commands work. Broader actions need full connection.",
       sendOffline: "Offline mode: no internet or external bridge; local replies are available.",
     },
     capability: {
@@ -313,7 +370,7 @@ const panel: typeof panelTr = {
       keywordKayit: "Open Media to browse files.",
       keywordAkis: "Open Social to see the current feed.",
       limitedDefault:
-        "You are in limited mode (user choice); local tasks and short hints work — e.g. «görev oluştur title» or «görevler».",
+        "Limited mode is selected; local tasks and short hints work — e.g. «görev oluştur title» or «görevler». I will ask for full connection only when a broader action needs it.",
       offlineDefault:
         "You are offline; no internet. Local tasks work — e.g. «görev oluştur title» or «görevler».",
       timeBase: "Time {hh}:{mm}. Today {date}.",
@@ -329,9 +386,9 @@ const panel: typeof panelTr = {
     bridgeBadgeLimited: "Limited mode",
     transcript: {
       engineMsg: "Speech-to-text engine is not connected yet.",
-      limitedMsg: "Speech-to-text is unavailable in limited mode; external bridge is not connected.",
+      limitedMsg: "Speech-to-text needs the external bridge. Local chat and tasks still work in limited mode.",
       limitedUserMsg:
-        "You are in limited mode (user choice); speech-to-text is not attempted in this mode.",
+        "Limited mode is selected; speech-to-text is not attempted. Local chat and tasks still work.",
       offlineMsg: "Speech-to-text is unavailable offline; internet access is disabled.",
       busyMsg: "Transcribing…",
       privacyMsg:
@@ -406,7 +463,7 @@ const panel: typeof panelTr = {
       listFilter: "No tasks in this filter. Switch to «All» to see every task.",
       evidence: "No server evidence yet",
       evidenceUnreachable:
-        "Task history cannot be verified right now; local tasks remain available.",
+        "Could not reach the evidence server; check your connection.",
     },
     detail: {
       title: "Task",
@@ -535,7 +592,7 @@ const panel: typeof panelTr = {
   },
   files: {
     intro:
-      "Choose a file from this device. Lumos shows its name, type, and size; .txt, .md, .json, and .csv files get a short summary. PDF and Word files are not processed in this build.",
+      "Pick a file from your device; the Lumos bridge ingests it and returns its name, type, and size. Plain-text formats (.txt, .md, .json, .csv) get a short summary. PDF and Word (DOCX) are not processed in this phase.",
     historyHeading: "Recent uploads",
     historyDeviceNote: "Stored on this device only; up to 5 entries.",
     form: {
@@ -588,25 +645,25 @@ const panel: typeof panelTr = {
   },
   voice: {
     intro:
-      "This voice preview explains how speech becomes text under your control. Availability depends on the device, browser, and microphone permission.",
+      "This tab summarizes an approach where voice input stays in the interface layer as it becomes text and commands, and the decision remains with you. The chat bar microphone depends on your device, browser, and granted permissions; it may not be supported in every environment.",
     c1Title: "Speech to text",
     c1Body:
-      "Speech is converted into text that can be reviewed on screen.",
+      "Spoken input can be turned into text and command steps so it can be reviewed on screen.",
     c2Title: "Interface layer",
     c2Body:
-      "Voice results appear on screen first, and you can correct the text.",
+      "Voice is not treated as a substitute authority; it is a layer the user can see and correct.",
     c3Title: "Decision with the user",
-    c3Body: "You review text or commands before anything is applied.",
+    c3Body: "Summarized commands or text should be clearly under your control before anything is applied.",
     c4Title: "Misunderstanding and confirmation",
     c4Body:
-      "When Lumos is unsure, it stops and asks for clarification.",
+      "When recognition is uncertain or low-confidence, Lumos aims to pause and clarify rather than proceed alone.",
     c5Title: "Local processing first",
     c5Body:
-      "Work stays on this device when possible. The screen shows when an external service is needed.",
+      "Where possible the first step stays on the device; if a remote service is needed, that should remain visible.",
   },
   media: {
     intro:
-      "A pre-share control preview for image, audio, video, and file flows. Camera use depends on device and browser permission.",
+      "This tab summarizes principles for organizing image, audio, video, and file flows: pre-share review, visible data paths, and separating source from output. The chat bar camera also depends on device, browser, and permission support; it may not work in every environment.",
     outboxTitle: "Latest output summary (read-only)",
     outboxIntro:
       "Summary read from transmission for the latest task or chat output. If there is no record, a short notice is shown.",
@@ -619,10 +676,10 @@ const panel: typeof panelTr = {
     dataType: "Media summary",
     c1Title: "Streams and types",
     c1Body:
-      "Where a file is used is visible in one flow.",
+      "Different media types can be followed in one working pattern; which file is used where can be easier to read.",
     c2Title: "Pre-share review",
     c2Body:
-      "Before content leaves the device, its summary and intended use are shown.",
+      "Before anything leaves the device, content summaries and intended use are meant to be shown to you.",
     c3Title: "Handoff to external services",
     c3Body:
       "Steps where a file or preview is sent for external processing are not hidden; connection and purpose stay clearer.",
@@ -731,7 +788,7 @@ const panel: typeof panelTr = {
       dogrulanamadi: "Unverified",
     },
     mock: {
-      title: "Sample readiness summary",
+      title: "Sample readiness summary (mock)",
       titleLive: "Local readiness summary",
       note: "Sample data — local scan unavailable.",
       noteLive: "Readiness summary — not a quantum-safe claim.",
@@ -792,19 +849,21 @@ const panel: typeof panelTr = {
       },
     },
     entropyLab: {
-      title: "Randomness lab (experimental)",
-      body: "A read-only experimental area separate from quantum readiness. It is not the production randomness source.",
+      title: "Entropy Lab (experimental)",
+      body: "Experimental area separate from Quantum Readiness. No production entropy claim.",
       bodyLive: "Experimental area — read-only scan probe.",
       configuredLabel: "Configured provider",
-      effectiveLabel: "Provider in use (estimated)",
-      fallbackLabel: "Fallback provider switch",
+      effectiveLabel: "Effective provider (heuristic)",
+      fallbackLabel: "Silent fallback",
       fallbackYes: "Yes — os fallback active",
       fallbackNo: "No",
     },
     intro: "Probability and security research — no hard promises.",
+    disclaimer:
+      "ORAA (Operational Risk & Assurance Agent) is active; Quantum Layer architecture is ready. First quantum provider (Qiskit Aer priority 1) is pending — not active production or quantum-safe claims.",
     c1Title: "Quantum security research",
     c1Body:
-      "Post-quantum encryption options are examined here. The current system does not use quantum encryption.",
+      "Future post-quantum cryptography evaluation. The current system does not claim quantum encryption.",
     c2Title: "Multiple possibilities",
     c2Body:
       "Lumos does not present one path as definitively certain; it keeps possible routes and uncertainties visible together.",
@@ -814,6 +873,28 @@ const panel: typeof panelTr = {
     c4Title: "Boundary of decision",
     c4Body:
       "A quantum-oriented approach does not replace judgment; it organizes options and leaves the final direction to your will.",
+  },
+  resourceModeAdvisor: {
+    accept: "Switch",
+    reject: "No, keep active",
+    statusLabel: "Status:",
+    reasonLabel: "Reason:",
+    hintLabel: "Suggestion:",
+    disclaimer: "The final decision is yours.",
+    reasonFallback: "A mode change is suggested based on usage patterns.",
+    modes: {
+      active: "Active Mode",
+      passive: "Passive Mode",
+      insufficient_data: "Insufficient Data",
+    },
+    hints: {
+      active: "Active mode enables faster response times.",
+      passive: "Passive mode reduces energy and resource usage.",
+      insufficient_data: "Default mode is suggested until more usage data is collected.",
+    },
+    layers: {
+      quantum: "Quantum",
+    },
   },
   integration: {
     intro:
@@ -893,27 +974,27 @@ const panel: typeof panelTr = {
   },
   settings: {
     intro:
-      "Preferences, device connection, and permission limits are visible here.",
+      "This tab summarizes keeping preferences, connection and permission limits, and default behaviors under your control and visible.",
     c1Title: "User mode",
     c1Body:
-      "You choose how much the panel runs. Device connection is shown separately.",
-    c2Title: "Device status",
+      "You choose how much the panel runs. This preference is separate from infrastructure connection status; the bridge badge only shows technical status.",
+    c2Title: "Infrastructure status",
     c2Body:
-      "Device connection, verification, and internet status.",
+      "Bridge, key, health, and network status — a technical summary independent of user mode.",
     c3Title: "User preferences",
-    c3Body: "Language is available; theme and notification settings are still off.",
+    c3Body: "Options like language, theme, and notification intensity aim to be grouped clearly.",
     c4Title: "Limits and permissions",
     c4Body:
-      "Permissions cannot be changed here. Camera and microphone permissions are managed by the device or browser.",
+      "Which feature depends on which permission is shown in short summaries; permissions you turned off are not silently re-enabled.",
     c5Title: "Connection settings",
     c5Body:
-      "External service connections cannot be managed in this preview.",
+      "External service and account links can be seen in one place; disconnecting and reconnecting stays with you when needed.",
     c6Title: "Visibility and security preferences",
     c6Body:
-      "Sharing, logging, and data retention settings are unavailable in this preview.",
+      "Sharing, logging, or data retention options are separated from each other; each is presented with a clear explanation.",
     c7Title: "Defaults and control",
     c7Body:
-      "Only user mode can be changed on this screen.",
+      "Default behaviors are shown to you before acceptance; changes aim to remain reversible.",
     corsMsg: "This information cannot be read from the panel (CORS).",
     infraSummaryAria: "Infrastructure status summary",
     connectionLine: "Connection: {line}",
@@ -927,18 +1008,18 @@ const panel: typeof panelTr = {
   },
   capabilities: {
     intro:
-      "Shows which operations are available, limited, or off. «Connection test» checks the first three operations and local task completion.",
+      "Summarizes which operations Lumos connects to through which link or panel surface. «Connection test» only verifies rows 1–3; row 4 checks local evidence.",
     legendAria: "Status legend",
-    legendActive: "ACTIVE — available",
-    legendPassive: "OFF — no available connection",
-    legendDev: "PREVIEW — not available yet",
+    legendActive: "ACTIVE — evidence exists or runs in limited mode",
+    legendPassive: "PASSIVE — no working path right now",
+    legendDev: "IN DEVELOPMENT — planned, not connected yet",
     testBtn: "Connection test",
     testRunning: "Test running…",
-    testBridgeUnavailable: "Device connection is unavailable right now.",
+    testBridgeUnavailable: "Bridge is unavailable right now.",
     testDone: "Connection test completed.",
     testPartialFailed: "Connection test partially failed. Check device settings.",
-    bridgePending: "Waiting for device connection.",
-    routeTerminal: "Waiting for device connection.",
+    bridgePending: "This action needs full connection; local actions stay available.",
+    routeTerminal: "Local device bridge after full connection.",
     routeNone: "—",
     routeManualApproval: "after manual approval",
     row1: "1. File read",
@@ -946,13 +1027,13 @@ const panel: typeof panelTr = {
     row3: "3. Task create",
     row4: "4. Task complete",
     row5: "5. Terminal command",
-    row6: "6. Open desktop app",
-    row7: "7. Live publish",
+    row6: "6. Open Mac app",
+    row7: "7. Live deploy",
     status: {
       active: "ACTIVE",
-      passive: "OFF",
+      passive: "PASSIVE",
       limited: "LIMITED",
-      dev: "PREVIEW",
+      dev: "IN DEVELOPMENT",
     },
   },
   },
@@ -962,8 +1043,8 @@ const panel: typeof panelTr = {
       ok: "Connected",
       bad: "Offline",
       limited: "Limited mode",
-      ariaLabel: "Device connection status",
-      title: "Device connection",
+      ariaLabel: "Infrastructure connection status",
+      title: "Infrastructure: bridge connection",
       setupHint: "Go to local setup steps",
     },
     infra: {
@@ -971,9 +1052,9 @@ const panel: typeof panelTr = {
       tokenPresent: "Configured",
       online: "Online",
       offline: "Offline",
-      labelBridge: "Device connection",
-      labelToken: "Verification",
-      labelHealth: "Reachability",
+      labelBridge: "Bridge",
+      labelToken: "Key",
+      labelHealth: "Health",
       labelInternet: "Internet",
       unavailableShort: "Bridge unavailable (infrastructure)",
       unavailableMsg:
@@ -1048,7 +1129,7 @@ const panel: typeof panelTr = {
       menuLimited: "Limited",
       menuFull: "Full",
       badgeOffline: "Mode · Offline",
-      badgeLimited: "Mode · Limited",
+      badgeLimited: "Mode · Awaiting soil · local root active",
       badgeFull: "Mode · Full",
       badgeAria: "Select user mode",
       badgeTitle: "Change mode (Offline, Limited, Full)",

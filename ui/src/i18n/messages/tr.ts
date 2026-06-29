@@ -1,6 +1,7 @@
 /** Turkish UI strings — landing (phase 1) + panel shell (phase 2). */
 import landing from "./landing/tr";
 import panel from "./panel/tr";
+import umbrella from "./umbrella/tr";
 
 const tr = {
   meta: {
@@ -26,6 +27,7 @@ const tr = {
     modules: "Modüller",
     developer: "Geliştirici",
     install: "Kurulum",
+    connect: "Bağlan",
     panel: "Panel",
     github: "GitHub",
     brandAria: "Lumos — sayfa başı",
@@ -50,6 +52,7 @@ const tr = {
   },
   landing,
   panel,
+  umbrella,
 } as const;
 
 export default tr;

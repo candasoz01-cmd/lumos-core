@@ -1,0 +1,54 @@
+---
+/** Charter-aligned Read / Write / Delete matrix (static rows, i18n via data attributes). */
+export interface MatrixRow {
+  id: string;
+  nameKey: string;
+  noteKey: string;
+  read: boolean;
+  write: boolean;
+  delete: boolean;
+}
+
+interface Props {
+  rows: MatrixRow[];
+  legendKey?: string;
+}
+
+const { rows, legendKey = "umbrella.integrations.matrixLegend" } = Astro.props;
+---
+
+<p class="umbrella-matrix-legend" data-i18n={legendKey}>
+  Read ✅ · Write 🔒 (approval) · Delete 🚫 (special permission)
+</p>
+<div class="umbrella-matrix-wrap">
+  <table class="umbrella-matrix">
+    <thead>
+      <tr>
+        <th scope="col" data-i18n="umbrella.integrations.colIntegration">Integration</th>
+        <th scope="col" data-i18n="umbrella.integrations.colRead">Read</th>
+        <th scope="col" data-i18n="umbrella.integrations.colWrite">Write</th>
+        <th scope="col" data-i18n="umbrella.integrations.colDelete">Delete</th>
+        <th scope="col" data-i18n="umbrella.integrations.colNote">Note</th>
+      </tr>
+    </thead>
+    <tbody>
+      {
+        rows.map((row) => (
+          <tr>
+            <th scope="row" data-i18n={row.nameKey} />
+            <td class={row.read ? "umbrella-matrix--yes" : "umbrella-matrix--no"} aria-label="Read">
+              {row.read ? "✅" : "—"}
+            </td>
+            <td class={row.write ? "umbrella-matrix--lock" : "umbrella-matrix--no"} aria-label="Write">
+              {row.write ? "🔒" : "—"}
+            </td>
+            <td class={row.delete ? "umbrella-matrix--ban" : "umbrella-matrix--no"} aria-label="Delete">
+              {row.delete ? "🚫" : "—"}
+            </td>
+            <td data-i18n={row.noteKey} />
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+</div>

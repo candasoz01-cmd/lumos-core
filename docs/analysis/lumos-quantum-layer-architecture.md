@@ -1,0 +1,230 @@
+# Lumos Quantum Layer — Mimari (Planlı)
+
+| Alan | Değer |
+|------|-------|
+| Durum | **Planlı** — docs + kayıt iskeleti; otomatik bağlantı yok |
+| Tarih | 2026-06-26 |
+| Dil | Türkçe (birincil) |
+| İlgili | [ADR-001](../decisions/ADR-001-lumos-quantum-modules.md), [ADR-013](../decisions/ADR-013-lumos-quantum-security-readiness.md), [provider kataloğu](./lumos-quantum-provider-catalog.md), [ilk yol arkadaşı](./lumos-quantum-first-companion.md), [`integrations-overview.md`](../integrations-overview.md) |
+
+**Kullanıcı komutu (gelecek):** «Lumos, kuantum kaynaklarını tara ve kullanılabilir olanları güvenli bağlantı listesine al.»
+
+**Temel ilke:** Lumos **asla** otonom olarak kuantum bulutuna veya ücretli hesaplamaya bağlanmaz. Akış her zaman **bul → sınıflandır → risk/ücret/izin çıkar → kullanıcı onayı → bağlan** şeklindedir.
+
+---
+
+## İlk yol arkadaşı
+
+Kuantum Layer ağacında **ilk bağlantı dalı** (connect spike) Qiskit + yerel Qiskit Aer simülatörüdür. Bulut sağlayıcıları (IBM Quantum, Azure Quantum, Amazon Braket) **sonraki dal** olarak planlanır — Aer kanıtlandıktan sonra.
+
+```
+Quantum Layer
+└── Kök (discovery + onay omurgası)
+    ├── Qiskit / Qiskit Aer  ← ilk yol arkadaşı (connect_priority: 1)
+    │   └── yerel sim spike — API anahtarı yok, düşük maliyet/risk
+    └── Bulut dalları (sonra)
+        ├── IBM Quantum        (connect_priority: 2)
+        ├── Azure Quantum      (planlı)
+        └── Amazon Braket      (planlı)
+```
+
+```mermaid
+flowchart TB
+  root[Quantum Layer — Kök]
+  first[Qiskit + Qiskit Aer<br/>ilk yol arkadaşı]
+  ibm[IBM Quantum cloud]
+  azure[Azure Quantum]
+  braket[Amazon Braket]
+  root --> first
+  root --> ibm
+  root --> azure
+  root --> braket
+  first -.->|Aer kanıtlandıktan sonra| ibm
+```
+
+### Neden önce Qiskit?
+
+| Neden | Açıklama |
+|-------|----------|
+| **Olgun ekosistem** | Geniş dokümantasyon, örnek devreler, topluluk ve iş gücü havuzu |
+| **Yerel Aer** | `pip install qiskit-aer` ile bulut faturası ve API anahtarı olmadan ilk connect spike |
+| **Düşük risk** | Simülatör ≠ QPU; egress ve ücret riski katalogda **düşük** |
+| **Entropy Lab hizası** | Repoda zaten `qiskit_aer` deneysel envanterde — Layer connect ayrı, ama teknik tanıdıklık var |
+
+### İlk yol arkadaşı ≠ otomatik bağlantı
+
+**İlk yol arkadaşı** yalnızca **öncelik sırası** ve pilot hedefi tanımlar. Lumos yine de:
+
+1. **Bul** — katalog + (onaylı) discover
+2. **Sınıflandır** — framework / simulator etiketi
+3. **Onay** — Aer bile `needs-owner` katmanında; sessiz `connect` yok
+4. **Bağlan** — yalnızca kullanıcı onayı + private impl (OSS'te `not_configured`)
+
+Yerel Aer için API anahtarı gerekmez; **otomatik bağlantı yine yasaktır** (`SECURITY_NEVER_AUTO`, Q-01–Q-03). Hikâye: [`lumos-quantum-first-companion.md`](./lumos-quantum-first-companion.md).
+
+---
+
+## Katman ağacı
+
+```
+Lumos (OSS çekirdek)
+├── Güvenlik / karar sözleşmesi (SECURITY_NEVER_AUTO, profiller)
+├── Entegrasyonlar (GitHub, Mail, Device, …)
+├── Quantum Readiness (ADR-013) — yerel salt okunur PQC hazırlık tarayıcısı  ← mevcut, ayrı ürün yüzeyi
+└── Quantum Layer (bu belge) — kuantum kaynak keşfi / onay / bağlantı planı  ← planlı, bağlantı yok
+    ├── Discovery (bul)
+    ├── Classification (sınıflandır)
+    ├── Risk / Cost / Permission matrix
+    ├── Approval gate (onay kapısı)
+    └── Connect (yalnızca onay sonrası — private katmanda)
+```
+
+### `/cyber` ile ilişki
+
+| Yüzey | Rol | Kuantum Layer ile bağ |
+|-------|-----|------------------------|
+| **`/cyber`** (Lumos Cyber) | Güvenlik odaklı ürün varyantı; erken erişim landing | Aynı **onay ve NEVER_AUTO** felsefesi; kuantum hesaplama yüzeyi **değil** |
+| **Panel `#panel-kuantum`** | Quantum Readiness (ADR-013) — yerel rapor | Güvenlik hazırlığı; kaynak bağlantısı yok |
+| **Quantum Layer** | Bulut / çerçeve / simülatör kataloğu + onaylı bağlantı planı | `/cyber` altında **değil**; entegrasyon katmanında ayrı planlı blok |
+
+Kaynak: [`lumos-approved-naming-registry.md`](./lumos-approved-naming-registry.md) — `/cyber` = Lumos Cyber; Quantum Layer ayrı planlı katman olarak bu belgede tanımlıdır.
+
+---
+
+## Akış: Discovery → Classification → Matrix → Approval → Connect
+
+```mermaid
+flowchart LR
+  A[Bul / Discovery] --> B[Sınıflandır]
+  B --> C[Risk / Ücret / İzin matrisi]
+  C --> D{Onay kapısı}
+  D -->|Red| E[Durdur — kayıt yok]
+  D -->|Kullanıcı onayı| F[Bağlan — private impl]
+  D -->|Onay yok| G[Öneri / önizleme only]
+```
+
+### 1. Bul (Discovery)
+
+- Yerel katalog ve dokümantasyon referansları (`lumos-quantum-provider-catalog.md`, `src/integrations/quantum_registry.py`).
+- Harici API taraması **public OSS'te yok**; `discover` aksiyonu `quantum_discover_not_configured` döner.
+- Entropy Lab (`qiskit_aer`, `ibm_runtime`) readiness raporunda **ayrı deneysel** etiket; Quantum Layer bağlantısı sayılmaz.
+
+### 2. Sınıflandır (Classification)
+
+Türler: `cloud` · `framework` · `simulator` · `research`
+
+Her kayıt için: sağlayıcı kimliği, auth modeli özeti, demo-safe / production ayrımı.
+
+### 3. Risk / ücret / izin matrisi
+
+| Boyut | Soru | Public OSS |
+|-------|------|------------|
+| **Maliyet riski** | Job başına / dakika ücreti var mı? | Katalog metadata; canlı fiyat API yok |
+| **Veri egress** | Devre / sonuç dışarı taşınır mı? | Katalog notu; otomatik upload yok |
+| **Kimlik bilgisi** | API key / OAuth / IAM gerekir mi? | Vault yazımı **onaysız yok** |
+| **Dış hesaplama** | Harici kuantum işi submit edilir mi? | `external_write` + NEVER_AUTO sınıfı |
+
+Detay tablolar: [`lumos-quantum-provider-catalog.md`](./lumos-quantum-provider-catalog.md).
+
+### 4. Onay kapısı (Approval gate)
+
+AnchorUSB ve mail entegrasyonu ile **aynı omurga**:
+
+| Desen | Örnek | Quantum Layer |
+|-------|-------|---------------|
+| Salt okunur katalog | `list_catalog` | **İzinli** (yerel metadata) |
+| Harici tarama | Bulut job listesi | **Onaysız yok** — stub `not_configured` |
+| Kimlik bilgisi yazma | API token vault'a kayıt | **OWNER onayı** — public'te yok |
+| İş gönderme / bağlan | QPU job submit | **İşlem bazlı onay** + private impl |
+
+Karşılaştırma:
+
+- **AnchorUSB:** Plugin enable, backup, dış rapor — kullanıcı komutu + NEVER_AUTO tablosu ([`secure-device-framework.md`](./secure-device-framework.md)).
+- **Mail (OD-031):** Varsayılan kapalı; okuma bile explicit grant ([`external-integrations-permissions.md`](../memory/external-integrations-permissions.md)).
+- **Quantum Layer:** Varsayılan **hiç bağlı değil**; `connect` onaysız `approval_required`. Qiskit Aer yerel spike onaylı + opsiyonel `[quantum]` extra ile smoke; diğer sağlayıcılar `quantum_provider_not_configured` (OSS).
+
+### 5. Bağlan (Connect)
+
+- Yalnızca kullanıcı açık onayı (`approved=True` / `user_approved=True` veya `requires_approval`) — **NEVER auto-connect**.
+- **Qiskit Aer (OSS spike):** `provider_id` `qiskit_aer` veya `qiskit_aer_sim`; onay sonrası opsiyonel `qiskit`/`qiskit-aer` import + 1-qubit smoke; deps yoksa `not_configured` + kurulum ipucu.
+- Bulut / diğer sağlayıcılar: public repoda yalnızca reddeden stub (`quantum_provider_not_configured`).
+- CI'da canlı bulut API çağrısı, credential veya otomatik job submit **yasak**; Aer testleri mock veya skip.
+
+### Usage modes (active vs passive)
+
+Lumos yerel kullanım örüntüsüne göre **active-wait** (sıcak oturum, kısa yeniden bağlanma) veya **passive/on-demand** (soğuk bağlantı yeterli) önerir. Veri `.lumos/resource_usage.jsonl` (`layer: quantum`; çekirdek state değil). Paylaşılan danışman: [`lumos-resource-mode-advisor.md`](./lumos-resource-mode-advisor.md) · `src/integrations/resource_mode_advisor.py`.
+
+| Mod | Anlam | Ne zaman önerilir |
+|-----|-------|-------------------|
+| **active** | Sık kullanım — warm session / poll mantıklı | Son 24 saatte ≥ **3** `connect` **veya** son 7 günde ≥ **10** olay (`list_catalog`, `connect`, `disconnect`, `job`) |
+| **passive** | Seyrek kullanım — ihtiyaç anında bağlan | Eşik altı kullanım |
+| **insufficient_data** | Yetersiz geçmiş | Varsayılan **passive** |
+
+Kod: `src/integrations/resource_mode_advisor.py` (paylaşılan) · `src/integrations/quantum_usage_tracker.py` (quantum ince sarmalayıcı) · `recommend_usage_mode()` · provider aksiyonu `usage_recommendation` · `connect` / `list_catalog` yanıtında `recommended_mode`. Mod değişimi **NEVER_AUTO** — yalnızca `apply_mode_change(..., user_approved=True)`.
+
+---
+
+## NEVER_AUTO — kuantum alanı
+
+Lumos `SECURITY_NEVER_AUTO` (`src/task_engine/profiles.py`) ile hizalı; kuantum için **genişletilmiş politika notu** (kod değişikliği bu PR'da yok — dokümantasyon):
+
+| ID | Asla otomatik | Gerekçe |
+|----|---------------|---------|
+| Q-01 | Kuantum bulutuna otonom bağlantı | Dış hesaplama + faturalama |
+| Q-02 | API anahtarı / token yazma veya vault güncelleme | `external_write` / credential |
+| Q-03 | Ücretli job / circuit submit | Faturalama + geri dönüşsüz dış etki |
+| Q-04 | Sonuçların onaysız dışa aktarımı | Veri egress |
+| Q-05 | «Kuantum güvenli» veya donanım iddiası | Public OSS sınırı |
+| Q-06 | Entropy sağlayıcıyı readiness olmadan prod'a alma | ADR-013 sınırı |
+
+AnchorUSB NEVER_AUTO (A-01–A-07) ile **kavramsal paralel**: sistem bilgilendirir; dış etki kullanıcı onayı olmadan gitmez.
+
+---
+
+## Public OSS vs private sınır
+
+| Public `lumos-core` | Private / WeLockAI |
+|---------------------|---------------------|
+| Mimari + katalog belgeleri | OAuth, IAM, enterprise billing limitleri |
+| `quantum_registry.py` metadata stub | Canlı discover / job router |
+| `list_catalog` (yerel) | Credential bridge, vault |
+| Quantum Readiness tarayıcısı (ADR-013) | Üretim kuantum workload yönetimi |
+| Demo-safe `not_configured` handler'lar | Onay UX + işlem onay ekranı |
+
+Kaynak: [`public-repo-boundary.md`](../memory/public-repo-boundary.md).
+
+**Dürüst sınır:** Mevcut kodda Qiskit Aer / IBM Runtime yalnızca **Entropy Lab** (deneysel) ve readiness envanterinde geçer; **Quantum Layer bağlantısı veya üretim kuantum iddiası yok**.
+
+---
+
+## Kod referansları (OSS)
+
+| Parça | Yol | Durum |
+|-------|-----|-------|
+| Katalog metadata | `src/integrations/quantum_registry.py` | Stub |
+| Entegrasyon handler | `src/integrations/providers/quantum_provider.py` | Aer onaylı connect spike; usage önerisi |
+| Resource mode advisor | `src/integrations/resource_mode_advisor.py` | `.lumos/resource_usage.jsonl` |
+| Quantum usage wrapper | `src/integrations/quantum_usage_tracker.py` | `ResourceLayer.QUANTUM` delegasyonu |
+| Readiness tarayıcı | `src/security/readiness/scanner.py` | Faz-2 kısmi (ADR-013) |
+| Entropy (deneysel) | `src/security/entropy/providers/` | Readiness'ten ayrı |
+
+---
+
+## Mevcut repo envanteri (2026-06-26)
+
+| Bulgu | Konum | Quantum Layer ile ilişki |
+|-------|-------|--------------------------|
+| Quantum Readiness | ADR-013, panel `GET /quantum-readiness` | **Ayrı** — PQC hazırlık, bağlantı yok |
+| Entropy Lab | `qiskit_aer.py`, `ibm_runtime.py` | Deneysel; Layer connect değil |
+| Panel kuantum UI | `ui/`, landing i18n | Vizyon + readiness; üretim iddiası yok |
+| `lumos-quantum/` dizin drift | Belgelerde placeholder | Fiziksel dizin yok |
+
+---
+
+## Sonraki adımlar (onay gerektirir)
+
+1. Private katmanda tek sağlayıcı pilotu (ör. salt okunur IBM hesap metadata — job submit yok).
+2. Onay UX: maliyet tahmini + işlem onay ekranı (OD-041 hibrit model ile hizalı).
+3. Panel entegrasyonu: katalog önizlemesi (salt okunur).
+
+*Bu belge uygulama taahhüdü içermez; CI yeşil olmadan «tamamlandı» denmez.*

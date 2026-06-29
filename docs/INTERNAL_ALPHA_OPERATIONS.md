@@ -4,7 +4,7 @@
 |------|-------|
 | **Belge türü** | Operasyonel takip (docs only) |
 | **Faz başlangıcı** | **2026-06-18** |
-| **Repo snapshot** | `main` @ `7a310bf`+; CI yeşil |
+| **Repo snapshot** | `main` @ `57e81ea`; CI yeşil |
 | **Üst sınır** | [`INTERNAL_ALPHA_RELEASE_SCOPE.md`](INTERNAL_ALPHA_RELEASE_SCOPE.md), [`lumos-karar-sozlesmesi.md`](lumos-karar-sozlesmesi.md) |
 | **Durum** | **Aktif** — operasyonel faz devam ediyor |
 
@@ -49,9 +49,9 @@ Kaynak: [p0-p1-triage-list.md](analysis/p0-p1-triage-list.md).
 | ID | Konu | Sahip | Durum | İlk hafta aksiyon |
 |----|------|-------|-------|-------------------|
 | P1-02 | Çekirdek yolculuk ≥2 hafta | Ürün / QA | **Devam ediyor** | §4 yolculuk planı; haftalık checkpoint |
-| P1-05 | Panel read-only tasks path | Platform | **Açık** | [PANEL_READONLY_AUDIT.md](PANEL_READONLY_AUDIT.md) §2.1 — path envanteri; Alpha çıkış riski |
-| P1-03 | Pilot sözleşmesi + davet | Ticari / ops | **Açık** | Closed Pilot kapısı — Alpha çıkış sonrası |
-| P1-04 | Destek kanalı + SLA | Destek / ops | **Açık** | Closed Pilot kapısı |
+| P1-05 | Panel read-only tasks path | Platform | **Kapalı** | [p1-05-tasks-path-audit.md](analysis/p1-05-tasks-path-audit.md) #527 |
+| P1-03 | Pilot sözleşmesi + davet | Ticari / ops | **Şablon hazır** | [pilot-contract-template.md](analysis/pilot-contract-template.md) — Alpha exit gate; imza Closed Pilot |
+| P1-04 | Destek kanalı + SLA | Destek / ops | **Şablon hazır** | [support-channel-alpha.md](analysis/support-channel-alpha.md) · [support-report-oraa.md](templates/support-report-oraa.md) — kanal TBD; Closed Pilot kapısı |
 | P1-06 | RB-06 packaging | Platform | **Spike (defer)** | Launch P1 — Alpha'da `make test` yeterli |
 
 Kapalı P1: P1-01 (#503), P1-07 (#502).
@@ -109,7 +109,7 @@ Her **Pazartesi** (veya ekip sprint günü) bir satır `docs/INTERNAL_ALPHA_OPER
 | 1 | `make test` baseline — kayıt checkpoint Hafta 1 | Platform | P0-05 izleme |
 | 2 | Panel `/panel` yerel görev akışı — 1 ekip üyesi | Ürün / QA | P1-02 «başladı» §4.1 |
 | 3 | İlk haftalık checkpoint doldur (§4.3) | Ürün / QA | 2026-06-23 Pazartesi |
-| 4 | P1-05 path envanteri — `.lumos/tasks.json` vs `.lumos/tasks/tasks.json` | Platform | Alpha çıkış risk azaltma |
+| 4 | P1-05 path envanteri — `.lumos/tasks.json` vs `.lumos/tasks/tasks.json` | Platform | **Kapandı** — [p1-05-tasks-path-audit.md](analysis/p1-05-tasks-path-audit.md) |
 | 5 | Wave 2 / default-on / RB-06 impl **başlatma** | — | **Yasak** — defer kayıtlı |
 
 ---
@@ -120,12 +120,79 @@ Her **Pazartesi** (veya ekip sprint günü) bir satır `docs/INTERNAL_ALPHA_OPER
 |-------|------|-----|
 | 2026-06-18 | Operasyonel faz başlangıcı — giriş kriterleri karşılandı | DL-C23 |
 | 2026-06-21 | UX finding #1 — premium dark panel polish (in_progress) | [INTERNAL_ALPHA_UX_FINDINGS.md](INTERNAL_ALPHA_UX_FINDINGS.md) #510 |
+| 2026-06-23 | P1-05 tasks path audit — çift depo doğrulandı, migration defer | [p1-05-tasks-path-audit.md](analysis/p1-05-tasks-path-audit.md) |
+| 2026-06-26 | Umbrella site chrome live — nav/footer, landing tokens (#529) | #529 |
+| 2026-06-26 | Integration hub + GitHub/Google/Slack static pages live (#530) | #530 — welockai.com/integrations* |
+| 2026-06-26 | WeLockAI charter + trust model drafts merged (#531) | [welockai-charter-draft.md](analysis/welockai-charter-draft.md), [welockai-trust-model-draft.md](analysis/welockai-trust-model-draft.md) |
+| 2026-06-26 | Production surface verify — `/`, `/integrations`, `/panel`, `/slack`, `/cyber`, `/connect/mac` → 200 | welockai.com smoke |
+| 2026-06-26 | **P1-02 faz «başladı»** — welockai.com tam yüzey canlı; §4.1 (1)+(3) karşılandı; haftalık checkpoint §4.3 devam | #529–#532 |
+| 2026-06-26 | P1-03/P1-04 şablonları hazır — planlama boşluğu kapandı | [pilot-contract-template.md](analysis/pilot-contract-template.md), [support-channel-alpha.md](analysis/support-channel-alpha.md) |
+| 2026-06-26 | Bridge proxy 503 prod davranışı belgelendi (env yok = beklenen) | [vercel-bridge-proxy-setup.md](vercel-bridge-proxy-setup.md) |
+| 2026-06-26 | **P0-05 izleme:** `make test` — **1220 passed**, 3 skipped; SECURITY_NEVER_AUTO regresyonu yok | `main` @ `57e81ea` |
+| 2026-06-26 | **P1-02 Hafta 1 checkpoint** — aşağı §4.3 | welockai.com smoke + pytest |
 
-*(Checkpoint satırları buraya veya ekip kanalına eklenir.)*
+### Checkpoint — 2026-06-26 (Hafta 1)
+
+- **Katılımcı(lar):** @owner (placeholder)
+- **Panel yolculuk:** evet — welockai.com `/panel` 200; static deploy doğrulandı; tam görev akışı yerel köprü **veya** Vercel `BRIDGE_UPSTREAM_URL` gerektirir
+- **Yerel görev [Yerel]:** N/A (prod static smoke; yerel akış §4.2 komutlarıyla ayrı doğrulanır)
+- **Köprü sohbet (opsiyonel):** N/A — prod `/api/bridge/task` → **503** (upstream env yok; beklenen)
+- **Regresyon:** `make test` — **pass** (1220 passed, 3 skipped)
+- **P0-05 izleme:** yeni SECURITY_NEVER_AUTO regresyonu yok
+- **Bloker:** yok
+- **Prod yüzey:** `/`, `/integrations`, `/panel`, `/slack`, `/cyber`, `/connect/mac` → 200 ([session-closure](analysis/session-closure-report.md))
+
+### Checkpoint — pending (Hafta 2)
+
+*Şablon — P1-02 kapanışı için ardışık **≥14 takvim günü** ve ikinci tam checkpoint gerekir. Faz başlangıcı 2026-06-18 → hedef doldurma **2026-07-02** veya sonrası (pending pilot week).*
+
+```markdown
+### Checkpoint — YYYY-MM-DD (Hafta 2)
+
+- **Katılımcı(lar):** @owner
+- **Panel yolculuk:** evet / hayır — not (hangi ortam)
+- **Yerel görev [Yerel]:** evet / hayır
+- **Köprü sohbet (opsiyonel):** evet / hayır / N/A
+- **Regresyon:** `make test` — pass / fail
+- **P0-05 izleme:** yeni SECURITY_NEVER_AUTO regresyonu yok / var (ref)
+- **Bloker:** yok / açıklama
+```
+
+**P1-02 durumu:** Devam ediyor — Hafta 1 kapandı; Hafta 2 bekliyor.
 
 ---
 
-## 7. Çıkış kriterleri
+## 7. Phase 2 kapısı — 8 saat testi
+
+**Amaç:** Kuzey yıldızı doğrulaması — *«Lumos'u kendim için bütün gün kullanabilir miyim?»* ([`grounded-phase-roadmap.md`](analysis/grounded-phase-roadmap.md)).
+
+| Alan | Değer |
+|------|-------|
+| Runbook | [`INTERNAL_ALPHA_8HOUR_TEST.md`](INTERNAL_ALPHA_8HOUR_TEST.md) |
+| Katman | Phase 2 — **canlı OAuth planlaması öncesi** zorunlu kapı |
+| OAuth | Bu kapı **canlı entegrasyon gerektirmez** |
+
+### Geçiş kriterleri (Phase 2 → entegrasyon planı)
+
+Aşağıdakilerin **tamamı** sağlanmadan GitHub/Slack/Google **production OAuth** kickoff'u başlatılmaz:
+
+1. **P1-02** — Hafta 1 + Hafta 2 checkpoint (§4.3); ardışık ≥14 gün.
+2. **İlk tam 8 saat oturumu** — [`INTERNAL_ALPHA_8HOUR_TEST.md`](INTERNAL_ALPHA_8HOUR_TEST.md): sabah checklist, ≥5 sürtünme satırı, gün sonu 3 soru, `make test` pass.
+3. **P0 regresyon** — SECURITY_NEVER_AUTO ihlali yok (§2 P0-05).
+
+### Operasyon günlüğüne ekleme
+
+8 saat oturumu tamamlandığında §6 günlüğüne bir satır:
+
+```markdown
+| YYYY-MM-DD | 8 saat testi tamamlandı — Phase 2 kapısı | [INTERNAL_ALPHA_8HOUR_TEST.md](INTERNAL_ALPHA_8HOUR_TEST.md) |
+```
+
+**Durum (2026-06-26):** Runbook hazır; **ilk tam oturum bekliyor**.
+
+---
+
+## 8. Çıkış kriterleri
 
 Tam liste: [`INTERNAL_ALPHA_RELEASE_SCOPE.md`](INTERNAL_ALPHA_RELEASE_SCOPE.md) §7.
 
@@ -137,7 +204,7 @@ Tam liste: [`INTERNAL_ALPHA_RELEASE_SCOPE.md`](INTERNAL_ALPHA_RELEASE_SCOPE.md) 
 
 ---
 
-## 8. Çapraz referanslar
+## 9. Çapraz referanslar
 
 | Belge | Amaç |
 |-------|------|
@@ -146,7 +213,9 @@ Tam liste: [`INTERNAL_ALPHA_RELEASE_SCOPE.md`](INTERNAL_ALPHA_RELEASE_SCOPE.md) 
 | [adr-012-internal-alpha-defer-record.md](memory/adr-012-internal-alpha-defer-record.md) | Wave 2 defer |
 | [release-blockers.md](analysis/release-blockers.md) | P1-02–P1-06 RB bağlamı |
 | [next-work-queue.md](analysis/next-work-queue.md) | Retrospektif kuyruk + post-queue ops |
+| [grounded-phase-roadmap.md](analysis/grounded-phase-roadmap.md) | 5 katman + OAuth blokajları |
+| [INTERNAL_ALPHA_8HOUR_TEST.md](INTERNAL_ALPHA_8HOUR_TEST.md) | 8 saat testi runbook |
 
 ---
 
-*Son güncelleme: 2026-06-21 — operasyonel faz kickoff (docs only).*
+*Son güncelleme: 2026-06-26 — Phase 2 kapısı (8 saat testi); P1-02 Hafta 2 pending.*
