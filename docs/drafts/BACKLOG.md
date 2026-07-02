@@ -44,6 +44,33 @@ Tam şema taslağı: [decision-engine-schema.md](./decision-engine-schema.md)
 ## Aktif kararlar
 
 ```
+ID: LUMOS-0017
+[2026-07-03] 🟢 AKTİF
+🟢 Karar: Model bağımsızlığı ve görev bazlı orkestrasyon. Çekirdek ilke: «Lumos hiçbir modele bağımlı değildir; göreve göre en uygun motoru seçer.»
+🎯 Gerekçe:
+- Lumos değeri model olmak değil; karar veren ve orkestrasyon yapan katman
+- Karar Motoru görevi analiz eder, uygun model/ajan seçer
+- Gerekirse çok modelli çalışma, doğrulama, ikinci modele inceleme
+- Kullanıcı temsil edilir; hangi model kullanıldığı arka planda kalabilir
+- Teknoloji dayanıklılığı: model değişse mimari yeniden tasarlanmaz
+Örnek yönlendirme tablosu (örnek, bağlayıcı değil):
+- Büyük kod değişikliği → Claude (örnek)
+- Hızlı düzeltme → GPT (örnek)
+- Dokümantasyon → GPT/Gemini (örnek)
+- UI → Claude (örnek)
+- Araştırma → GPT + web (örnek)
+- Yerel/offline → küçük OSS model (örnek)
+Anti-pattern: Lumos = tek model wrapper
+Legal review: N/A
+Evidence: Team principle articulation
+🚫 Kapsam dışı: Belirli vendor SLA; runtime router implementasyonu; model isimlerini sabitleyen config
+Decision level: L1 (mimari / orkestrasyon)
+İlişkili kararlar: LUMOS-0008, LUMOS-0010, LUMOS-0013 (multi-agent pentest), karar zinciri
+Etkilenen dosyalar: docs/drafts/BACKLOG.md
+Son güncelleme: 2026-07-03
+```
+
+```
 ID: LUMOS-0016
 [2026-07-03] 🟢 AKTİF
 🟢 Karar: Karar süreci ve denetim zinciri. Beş adım (sabit sıra): öneri → risk/gerekçe → uyarı → açık onay → kayıt. Lumos hiçbir zaman kullanıcı adına gizlice işlem yapmaz. Mahkeme ve denetim sorularına yanıt omurgası: kim karar verdi, kim onayladı, kim uyguladı; yetki; risk bildirimi; log. Omurga dokümanları (kazık eşşek — değiştirilmez çapa): ToS, gizlilik, açık onay, log, yetki matrisi, denetim kayıtları.
