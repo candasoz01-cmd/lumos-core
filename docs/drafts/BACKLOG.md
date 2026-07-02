@@ -46,21 +46,21 @@ Tam şema taslağı: [decision-engine-schema.md](./decision-engine-schema.md)
 ```
 ID: LUMOS-0017
 [2026-07-03] 🟢 AKTİF
-🟢 Karar: Model bağımsızlığı ve görev bazlı orkestrasyon. Çekirdek ilke: «Lumos hiçbir modele bağımlı değildir; göreve göre en uygun motoru seçer.»
+🟢 Karar: Model bağımsızlığı ve görev bazlı orkestrasyon. Çekirdek ilke: Lumos tek bir modele bağlı değildir; göreve göre farklı modeller (motorlar) seçilir. Karar Motoru seçimi yapar; Lumos değeri model olmak değil, karar veren ve orkestrasyon yapan katmandır.
 🎯 Gerekçe:
-- Lumos değeri model olmak değil; karar veren ve orkestrasyon yapan katman
-- Karar Motoru görevi analiz eder, uygun model/ajan seçer
+- Karar Motoru görevi analiz eder, uygun model/ajan seçer ve seçim gerekçesini kaydeder
+- **Kritik:** Önemli olan belirli bir sağlayıcı (ör. Claude) kullanılması değil; **neden o modelin seçildiğinin bilinmesi ve gerekçenin kayıt altına alınması**
 - Gerekirse çok modelli çalışma, doğrulama, ikinci modele inceleme
 - Kullanıcı temsil edilir; hangi model kullanıldığı arka planda kalabilir
-- Teknoloji dayanıklılığı: model değişse mimari yeniden tasarlanmaz
-Örnek yönlendirme tablosu (örnek, bağlayıcı değil):
-- Büyük kod değişikliği → Claude (örnek)
-- Hızlı düzeltme → GPT (örnek)
-- Dokümantasyon → GPT/Gemini (örnek)
-- UI → Claude (örnek)
-- Araştırma → GPT + web (örnek)
-- Yerel/offline → küçük OSS model (örnek)
-Anti-pattern: Lumos = tek model wrapper
+- Teknoloji dayanıklılığı: teknoloji (model/vendor) değişse mimari yeniden tasarlanmaz
+Varsayılan tercih (örnek, bağlayıcı değil):
+- Kod, refactor, mimari ve inceleme görevlerinde pratikte varsayılan tercih Claude olabilir — yalnızca örnek varsayılan; görev ve gerekçe önceliklidir
+Bugünkü örnek yönlendirme (yarın değişebilir; bağlayıcı değil):
+- Kod → Claude (örnek)
+- Araştırma → GPT (örnek)
+- Diğer görevler → Gemini (örnek)
+- Hızlı düzeltme, dokümantasyon, UI, yerel/offline → ihtiyaca göre GPT/Gemini/küçük OSS model (örnek)
+Anti-pattern: Lumos = tek model wrapper; model seçim gerekçesiz veya kayıtsız
 Legal review: N/A
 Evidence: Team principle articulation
 🚫 Kapsam dışı: Belirli vendor SLA; runtime router implementasyonu; model isimlerini sabitleyen config
