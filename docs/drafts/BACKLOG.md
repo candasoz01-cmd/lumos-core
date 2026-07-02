@@ -44,6 +44,30 @@ Tam şema taslağı: [decision-engine-schema.md](./decision-engine-schema.md)
 ## Aktif kararlar
 
 ```
+ID: LUMOS-0007
+[2026-07-02] 🟢 AKTİF
+Karar: Lumos Mobility / Araç Sağlığı — Read-Only MVP. Lumos aracı kontrol etmez; veriyi okur, açıklar ve riski azaltmaya yardımcı olur. Kapsam yalnızca OBD-II salt okunur: ECU yazma, kritik sistem müdahalesi veya araç kontrolü yok. Akış: adaptör → okuyucu → normalize → yorum → rapor. Ürün katmanları: Auto (temel okuma ve açıklama), Auto Pro (derinleştirilmiş tanı ve geçmiş), Auto Expert (uzman yorumu ve karşılaştırma), Performance (ayrı / son / riskli — kontrol veya agresif müdahale iddiası taşımaz). Hakem modeliyle hizalı: teşhis ve açıklama; kontrol veya kesin garanti değil.
+Gerekçe: Araç sağlığı alanında güven, salt okunur sınır ve dürüst belirsizlik sunumuyla başlar; kontrol iddiası güveni ve hukuki riski artırır. Hakem rolü (LUMOS-0005) teşhis sunar, aracı yönetmez.
+Uygulama: Mobility MVP yalnızca OBD-II read pipeline; write/ECU kapısı kapalı; Performance katmanı ayrı risk profili ve onay hattı. Rapor çıktısı: normalize veri + yorum + güven düzeyi; nihai karar kullanıcıda.
+İlişkili kararlar: LUMOS-0005 (hakem — teşhis, kontrol değil)
+Decision level: L1 (ürün / mobility MVP)
+Etkilenen dosyalar: docs/drafts/BACKLOG.md
+Son güncelleme: 2026-07-02
+```
+
+```
+ID: LUMOS-0006
+[2026-06-30] 🟢 AKTİF
+Karar: Panel UX — kullanıcıyı gereksiz bekletme. Hazır modüller (Sohbet, Görevler, Dosyalar) yerel iş mümkünken «tam bağlantı gerekli» ile bloklanmaz; yapılabilir kısım hemen yerelde çalıştırılır. Tam bağlantı yalnızca internet/dış kaynak gerçekten gerektiğinde istenir. Zihniyet: «Bağlantı olmadan yapabildiğimi yaparım; gerektiğinde izin isterim.» Yetenek kararını Lumos verir; kullanıcı her seferinde tahmin etmez. Panel genelinde tutarlı ton: «Yapabildiğim kısmı şimdi yapıyorum» — «yapamıyorum» değil. Bağlantılar: önizleme ve örnekler önceden gösterilir; kullanıcının hesabı varsa aktif, yoksa Lumos açma/kayıt yolunda yardımcı olur.
+Gerekçe: Bekleme ve «önce bağlan» duvarı güveni düşürür; yerel iş varken tam bağlantı şartı kullanıcıyı gereksiz durdurur. Lumos yetenek sınırını netleştirir; kullanıcı modül modül tahmin etmez.
+Uygulama: Panel sınırlı mod, modül durumları ve bağlantı yüzeyi — yerel-önce akış; tam bağlantı yalnızca gerekli adımda; bağlantı kartlarında önizleme/örnek ve hesap durumuna göre aktif veya yardımcı kayıt yolu.
+Decision level: L1 (panel UX / ürün davranışı)
+İlişkili kararlar: LUMOS-0002 (yerelleştirme omurgası)
+Etkilenen dosyalar: ui/src/i18n/messages/panel/tr.ts, ui/src/i18n/messages/panel/en.ts, docs/drafts/BACKLOG.md
+Son güncelleme: 2026-06-30
+```
+
+```
 ID: LUMOS-0005
 [2026-06-28] 🟢 AKTİF
 Karar: Belirsizlik hata değildir; gizlenen belirsizlik hatadır. Hakem rolü susmak veya kesin konuşmak değil; ikilemi açık tutmaktır. Karar net değilse ikilem gizlenmez: seçenek A/B (artıları ve riskleri), Lumos değerlendirmesi, güven düzeyi (confidence) ve belirsizlik açıkça sunulur; nihai karar kullanıcıya aittir.
