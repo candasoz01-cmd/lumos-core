@@ -44,6 +44,71 @@ Tam şema taslağı: [decision-engine-schema.md](./decision-engine-schema.md)
 ## Aktif kararlar
 
 ```
+ID: LUMOS-0012
+[2026-07-02] 🟢 AKTİF
+🟢 Karar: Lumos ürün aileleri haritası — tek sayfalık vizyon referansı (implementasyon değil). Aileler: Trust, Work, Mobility, Home, Health, Finance, Robotics, Accessibility, MicroTools. Harita yeni özellik ve backlog maddelerinin hangi aileye ait olduğunu gösterir; detay roadmap veya kod modülü taşımaz.
+🎯 Gerekçe: Dağınık ürün kararları tek görünür çatı altında toplanmalı; Mobility (LUMOS-0007), Trust (LUMOS-0009) ve MicroTools (LUMOS-0011) aynı haritada konumlanır. Vizyon tutarlılığı için referans katmanı.
+🚫 Kapsam dışı: Aile başına MVP önceliklendirme, sprint planı, kod paketleri veya modül implementasyonu. lumos-book-v0.1 outline'a doğrudan ekleme yok.
+🔄 İleride değerlendirilecek: Aile başına MVP sıralaması; ADR eşlemesi; haritanın panel veya dokümantasyon yüzeyine taşınması (onay ile).
+Decision level: L1 (ürün vizyonu / harita)
+İlişkili kararlar: LUMOS-0007 (Mobility), LUMOS-0009 (Trust), LUMOS-0011 (MicroTools)
+Etkilenen dosyalar: docs/drafts/BACKLOG.md
+Son güncelleme: 2026-07-02
+```
+
+```
+ID: LUMOS-0011
+[2026-07-02] 🟢 AKTİF
+🟢 Karar: MicroTools — Lumos tekrar eden işleri fark eder ve küçük, güvenli, kişisel araç önerir. İlke: «Kullanıcı araç aramaz; Lumos ihtiyacı fark eder.» Öneri yerel-önce ve onaylı yürütme ile hizalı; otomatik kurulum veya geniş yetki genişlemesi yok.
+🎯 Gerekçe: Tekrarlayan kişisel iş yükünü azaltmak; kullanıcıyı marketplace veya araç arama yükünden kurtarmak. LUMOS-0006 yerel-önce ve LUMOS-0008 yetki matrisi (🟡 Öner / 🟠 Yürüt kurallı) ile uyumlu.
+🚫 Kapsam dışı: Üçüncü parti plugin marketplace, otomatik kurulum, geniş sistem yetkisi isteyen araçlar, ticari app store modeli.
+🔄 İleride değerlendirilecek: MicroTool şablon kataloğu; güven profili eşlemesi; tekrar tespiti için minimal pilot (onay kapılı).
+Decision level: L1 (ürün davranışı)
+İlişkili kararlar: LUMOS-0006 (yerel-önce), LUMOS-0008 (yetki matrisi)
+Etkilenen dosyalar: docs/drafts/BACKLOG.md
+Son güncelleme: 2026-07-02
+```
+
+```
+ID: LUMOS-0010
+[2026-07-02] 🟢 AKTİF
+🟢 Karar: Connector Layer — dış sistem entegrasyonunda resmî API / resmî entegrasyon önceliklidir; resmî yol yoksa güvenli köprü (bridge) kullanılır. Ortak connector mantığı: araç, robot, banka, GitHub ve benzeri hedefler aynı güven ve onay modelini paylaşır; her hedef için ayrı güvenlik felsefesi üretilmez.
+🎯 Gerekçe: Dağınık entegrasyon güven açığı ve bakım yükü yaratır; Trust Layer (LUMOS-0009) üzerinde tek connector sözleşmesi tutarlılık sağlar. [ADR-014](../decisions/ADR-014-personal-workspace-language.md) kişisel/organizasyonel ayrımı korunur — connector yalnızca onaylı, kanıtlanabilir veri akışı taşır.
+🚫 Kapsam dışı: Spesifik üçüncü parti API implementasyonları, üretim bridge deploy, operasyonel backend altyapısı (public repo sınırı).
+🔄 İleride değerlendirilecek: Connector sözleşmesi (ADR); güvenli köprü proxy deseni; hedef başına resmî vs köprü karar matrisi.
+Decision level: L2 (mimari / entegrasyon)
+İlişkili kararlar: LUMOS-0009 (Trust Layer), ADR-014 (PWL — katman ayrımı)
+Etkilenen dosyalar: docs/drafts/BACKLOG.md
+Son güncelleme: 2026-07-02
+```
+
+```
+ID: LUMOS-0009
+[2026-07-02] 🟢 AKTİF
+🟢 Karar: Trust Layer — kimlik, yetki, onay ve audit omurgası. Lumos Key hazırlığı: kanıt cihazı (proof device) modeli; Lumos sır taşımaz, kanıt ve onay zincirini yönetir. Tüm yazma, dış etki ve kritik adımlar bu katmandan geçer.
+🎯 Gerekçe: Connector (LUMOS-0010) ve MicroTools (LUMOS-0011) güvenli olmadan anlamlı değildir. LUMOS-0003 onay bütünlüğü ve LUMOS-0008 yetki matrisi (🔴 Kritik onay) bu katmanda somutlaşır. [ADR-014](../decisions/ADR-014-personal-workspace-language.md) organizasyonel kayıt ve audit ihtiyacı ile uyumlu.
+🚫 Kapsam dışı: Üretim keystore, donanım sürücüsü, ticari Lumos Key ürün lansmanı, operasyonel kimlik servisi (public repo).
+🔄 İleride değerlendirilecek: Audit kayıt formatı standardizasyonu; kanıt cihazı MVP tanımı; onay zinciri şema alanları (`decision-engine-schema.md`).
+Decision level: L2 (mimari / güven)
+İlişkili kararlar: LUMOS-0003 (onay bütünlüğü), LUMOS-0008 (L0 yetki matrisi), ADR-014
+Etkilenen dosyalar: docs/drafts/BACKLOG.md, docs/drafts/decision-engine-schema.md
+Son güncelleme: 2026-07-02
+```
+
+```
+ID: LUMOS-0008
+[2026-07-02] 🟢 AKTİF
+🟢 Karar: Çekirdek ilkeler (L0 / anayasa). Lumos kullanıcıyı temsil eder; Lumos'un sınırı kullanıcının sınırıdır. Yetki matrisi: 🟢 Oku · 🟡 Öner · 🟠 Yürüt (kurallı) · 🔴 Kritik onay. Karar zinciri: Anla → Yorumla → Risk → Onay → Uygula. Risk / etik / yasal kapı vardır; reddeder ama bırakmaz — «Lumos engel koymaz, sınırları açıklar». Lumos yeni yetki istemez; mevcut kullanıcı onayı ve profil sınırları içinde kalır.
+🎯 Gerekçe: L0 katmanı tüm alt kararların (L1–L4) değişmez çapasıdır; `decision-engine-schema.md` L0 tanımı ile hizalı. LUMOS-0005 hakem modeli — belirsizlik gizlenmez, nihai karar kullanıcıda — bu ilkeye bağlıdır. Risk kapısı LUMOS-0005 confidence/ikilem sunumunu tamamlar; reddetme açıklamalıdır.
+🚫 Kapsam dışı: `docs/lumos-karar-sozlesmesi.md` metninin yeniden yazımı; runtime otomasyon; yeni yetki profili veya güvenlik gevşetmesi. L0 değişikliği onay + ADR zorunludur (mevcut sözleşme dokunulmaz).
+🔄 İleride değerlendirilecek: Yetki matrisinin Decision Engine alan kataloğuna eklenmesi; karar zinciri adımlarının şema alanları; L0 uyum denetimi checklist'i.
+Decision level: L0 (kurucu ilkeler / anayasa)
+İlişkili kararlar: LUMOS-0005 (hakem — belirsizlik, nihai karar kullanıcıda), LUMOS-0003 (onay bütünlüğü)
+Etkilenen dosyalar: docs/drafts/BACKLOG.md, docs/drafts/decision-engine-schema.md
+Son güncelleme: 2026-07-02
+```
+
+```
 ID: LUMOS-0007
 [2026-07-02] 🟢 AKTİF
 Karar: Lumos Mobility / Araç Sağlığı — Read-Only MVP. Lumos aracı kontrol etmez; veriyi okur, açıklar ve riski azaltmaya yardımcı olur. Kapsam yalnızca OBD-II salt okunur: ECU yazma, kritik sistem müdahalesi veya araç kontrolü yok. Akış: adaptör → okuyucu → normalize → yorum → rapor. Ürün katmanları: Auto (temel okuma ve açıklama), Auto Pro (derinleştirilmiş tanı ve geçmiş), Auto Expert (uzman yorumu ve karşılaştırma), Performance (ayrı / son / riskli — kontrol veya agresif müdahale iddiası taşımaz). Hakem modeliyle hizalı: teşhis ve açıklama; kontrol veya kesin garanti değil.
