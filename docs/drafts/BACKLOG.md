@@ -44,6 +44,23 @@ Tam şema taslağı: [decision-engine-schema.md](./decision-engine-schema.md)
 ## Aktif kararlar
 
 ```
+ID: LUMOS-0015
+[2026-07-03] 🟢 AKTİF
+🟢 Karar: Karar desteği ve sorumluluk dengesi. Çekirdek ilke: «Lumos önerir, açıklar ve riskleri bildirir; kullanıcının açık onayıyla gerçekleştirilen işlemlerin nihai sorumluluğu kullanıcıya aittir.» Tam ifade: Lumos karar desteği sağlar; nihai karar ve kullanıcı tarafından açık onayla gerçekleştirilen işlemlerin sorumluluğu kullanıcıya aittir. Denge yükümlülüğü: Lumos, riskli veya uygun olmadığını değerlendirdiği işlemlerde uyarı vermek, gerekçe sunmak ve güvenli alternatif önermekle yükümlüdür.
+🎯 Gerekçe: Karar destek sistemi ile sorumluluk kaçışı veya «Lumos dedi» savunması arasında net denge; LUMOS-0005 (nihai karar kullanıcıda, hakem modeli), LUMOS-0008 (L0 — karar zinciri, «reddeder ama bırakmaz») ile uyumlu governance / legal-UX temeli; LUMOS-0013 ve LUMOS-0014 güvenlik ve onay halkalarıyla birlikte okunur.
+Kapsam dışı anti-patterns (açıkça reddedilir):
+- ❌ «Lumos sorumlu değildir» tek başına — kullanıcıdan kaçış algısı
+- ❌ Kullanıcının «Lumos dedi diye yaptım» savunması
+- ❌ Lumos'un «hiçbir şeyden sorumlu değilim» noktası
+Evidence: Team principle articulation
+🚫 Kapsam dışı: Sahte kurumsal onay veya endorsement; uydurma «Approved by» (LUMOS-0003 onay bütünlüğü).
+Decision level: L1 (governance / legal-UX foundation)
+İlişkili kararlar: LUMOS-0005 (hakem / belirsizlik), LUMOS-0008 (L0 yetki, karar zinciri), LUMOS-0013, LUMOS-0014
+Etkilenen dosyalar: docs/drafts/BACKLOG.md
+Son güncelleme: 2026-07-03
+```
+
+```
 ID: LUMOS-0014
 [2026-07-03] 🟢 AKTİF
 🟢 Karar: Untrusted external data / dolaylı prompt injection — çekirdek ilke: Dışarıdan gelen her veri güvenilmez kabul edilir; aynı doğrulama kapısından geçer. Kaynak örnekleri (hepsi «dış veri»): PDF, mail, GitHub README, Slack, MCP tool output, OBD, robot sensör, kamera OCR. Mimari savunma: Karar zinciri mimariye dağılır; prompt injection savunması «daha iyi system prompt» değil — kimlik, yetki, risk, onay ayrı halkalar. Connector Layer kuralı: Tüm dış veri girişleri Connector Layer üzerinden; yetki matrisi ile birlikte.
