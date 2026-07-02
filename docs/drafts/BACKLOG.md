@@ -44,6 +44,16 @@ Tam şema taslağı: [decision-engine-schema.md](./decision-engine-schema.md)
 ## Aktif kararlar
 
 ```
+ID: LUMOS-0007
+[2026-07-02] 🟢 AKTİF
+Karar: Lumos Mobility / Araç Sağlığı — Read-Only MVP. Lumos aracı kontrol etmez; veriyi okur, açıklar ve riski azaltmaya yardımcı olur. Kapsam yalnızca OBD-II salt okunur: ECU yazma, kritik sistem müdahalesi veya araç kontrolü yok. Akış: adaptör → okuyucu → normalize → yorum → rapor. Ürün katmanları: Auto (temel okuma ve açıklama), Auto Pro (derinleştirilmiş tanı ve geçmiş), Auto Expert (uzman yorumu ve karşılaştırma), Performance (ayrı / son / riskli — kontrol veya agresif müdahale iddiası taşımaz). Hakem modeliyle hizalı: teşhis ve açıklama; kontrol veya kesin garanti değil.
+Gerekçe: Araç sağlığı alanında güven, salt okunur sınır ve dürüst belirsizlik sunumuyla başlar; kontrol iddiası güveni ve hukuki riski artırır. Hakem rolü (LUMOS-0005) teşhis sunar, aracı yönetmez.
+Uygulama: Mobility MVP yalnızca OBD-II read pipeline; write/ECU kapısı kapalı; Performance katmanı ayrı risk profili ve onay hattı. Rapor çıktısı: normalize veri + yorum + güven düzeyi; nihai karar kullanıcıda.
+İlişkili kararlar: LUMOS-0005 (hakem — teşhis, kontrol değil)
+Decision level: L1 (ürün / mobility MVP)
+Etkilenen dosyalar: docs/drafts/BACKLOG.md
+Son güncelleme: 2026-07-02
+```
 
 ```
 ID: LUMOS-0006
