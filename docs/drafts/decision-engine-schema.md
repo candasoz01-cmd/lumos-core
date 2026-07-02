@@ -130,6 +130,7 @@ Karar A
 | [`BACKLOG.md`](./BACKLOG.md) | LUMOS-0002 — yerelleştirme omurgası | L1 |
 | [`BACKLOG.md`](./BACKLOG.md) | LUMOS-0003 — onay bütünlüğü / alan kataloğu | L2 |
 | [`BACKLOG.md`](./BACKLOG.md) | LUMOS-0005 — belirsizlik ilkesi / hakem modeli | L2 |
+| [`BACKLOG.md`](./BACKLOG.md) | LUMOS-0008 — çekirdek ilkeler / yetki matrisi / karar zinciri | L0 |
 | lumos-book-v0.1 (`0799c34`) | 🔒 dondurulmuş omurga | — |
 | [`docs/lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md) | L0 referans adayı (çekirdek sözleşme — ayrı katman) | L0 |
 
