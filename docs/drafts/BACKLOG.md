@@ -44,6 +44,33 @@ Tam şema taslağı: [decision-engine-schema.md](./decision-engine-schema.md)
 ## Aktif kararlar
 
 ```
+ID: LUMOS-0017
+[2026-07-03] 🟢 AKTİF
+🟢 Karar: Model bağımsızlığı ve görev bazlı orkestrasyon. Çekirdek ilke: Lumos tek bir modele bağlı değildir; göreve göre farklı modeller (motorlar) seçilir. Karar Motoru seçimi yapar; Lumos değeri model olmak değil, karar veren ve orkestrasyon yapan katmandır.
+🎯 Gerekçe:
+- Karar Motoru görevi analiz eder, uygun model/ajan seçer ve seçim gerekçesini kaydeder
+- **Kritik:** Önemli olan belirli bir sağlayıcı (ör. Claude) kullanılması değil; **neden o modelin seçildiğinin bilinmesi ve gerekçenin kayıt altına alınması**
+- Gerekirse çok modelli çalışma, doğrulama, ikinci modele inceleme
+- Kullanıcı temsil edilir; hangi model kullanıldığı arka planda kalabilir
+- Teknoloji dayanıklılığı: teknoloji (model/vendor) değişse mimari yeniden tasarlanmaz
+Varsayılan tercih (örnek, bağlayıcı değil):
+- Kod, refactor, mimari ve inceleme görevlerinde pratikte varsayılan tercih Claude olabilir — yalnızca örnek varsayılan; görev ve gerekçe önceliklidir
+Bugünkü örnek yönlendirme (yarın değişebilir; bağlayıcı değil):
+- Kod → Claude (örnek)
+- Araştırma → GPT (örnek)
+- Diğer görevler → Gemini (örnek)
+- Hızlı düzeltme, dokümantasyon, UI, yerel/offline → ihtiyaca göre GPT/Gemini/küçük OSS model (örnek)
+Anti-pattern: Lumos = tek model wrapper; model seçim gerekçesiz veya kayıtsız
+Legal review: N/A
+Evidence: Team principle articulation
+🚫 Kapsam dışı: Belirli vendor SLA; runtime router implementasyonu; model isimlerini sabitleyen config
+Decision level: L1 (mimari / orkestrasyon)
+İlişkili kararlar: LUMOS-0008, LUMOS-0010, LUMOS-0013 (multi-agent pentest), karar zinciri
+Etkilenen dosyalar: docs/drafts/BACKLOG.md
+Son güncelleme: 2026-07-03
+```
+
+```
 ID: LUMOS-0016
 [2026-07-03] 🟢 AKTİF
 🟢 Karar: Karar süreci ve denetim zinciri — LUMOS-0015 (sorumluluk dengesi) ile birlikte okunur. Çekirdek ilke: Lumos hiçbir zaman kullanıcı adına gizlice işlem yapmaz.
