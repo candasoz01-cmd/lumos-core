@@ -44,6 +44,25 @@ Tam şema taslağı: [decision-engine-schema.md](./decision-engine-schema.md)
 ## Aktif kararlar
 
 ```
+ID: LUMOS-0013
+[2026-07-02] 🟢 AKTİF
+🟢 Karar: External validation — AI güvenlik mimarisi (security bulletin). Çekirdek ilke kaydedildi: «AI security comes from surrounding architecture, not the model alone» — model tek başına güvenlik sağlamaz; kimlik, yetki, connector ve anahtar katmanları birlikte güvenlik üretir. Dış güvenlik bülteni analizi Lumos karar duvarına işlendi; dört tema mevcut L0–L2 kararlarıyla eşlendi.
+🎯 Gerekçe: Harici güvenlik perspektifi mevcut mimari kararları bağımsız doğrular; LUMOS-0008 (L0 yetki matrisi), LUMOS-0009 (Trust Layer / Lumos Key), LUMOS-0010 (Connector Layer) ve ürün çerçevesi (LUMOS-0011, LUMOS-0012) ile tutarlılık kanıtlanır.
+Harita (dış tema → Lumos):
+- Prompt injection / role confusion → Kimlik ve yetki prompt'tan ayrı; kullanıcı metni otoriteyi değiştiremez; rol değişimi yalnız güvenilir sistem katmanından (Trust Layer — LUMOS-0009; L0 yetki matrisi — LUMOS-0008).
+- MCP güvenliği → Connector Layer + yetki matrisi (LUMOS-0010, LUMOS-0008); denetlenen tool çağrıları; araçlar eşit güvene sahip değildir.
+- Multi-agent pentest → Çok modelli orkestrasyon güvenlik görevlerini destekler; hakem ve karar zinciri (LUMOS-0005, LUMOS-0008) ile uyumlu — otomatik saldırı veya yetki genişlemesi değil.
+- Kriptografi / anahtar üretimi → Lumos Key; güvenlik yalnızca algoritmaya değil anahtar üretim ve kanıt cihazı modeline bağlı (LUMOS-0009).
+Evidence: External reference — security bulletin analysis
+🚫 Kapsam dışı: Bülten kaynağının resmî kurumsal onayı veya endorsement; sahte «Approved by» alanı; yeni runtime implementasyonu; model vendor onay adı uydurma (LUMOS-0003 onay bütünlüğü).
+🔄 İleride değerlendirilecek: Bülten kaynağı URL/kanıt alanı doldurulması; tema bazlı ADR veya şema alanı eşlemesi (`decision-engine-schema.md`).
+Decision level: L1 (dış doğrulama / güvenlik mimarisi)
+İlişkili kararlar: LUMOS-0008 (L0 yetki matrisi), LUMOS-0009 (Trust Layer / Lumos Key), LUMOS-0010 (Connector Layer), LUMOS-0011 (MicroTools — onaylı yürütme), LUMOS-0012 (ürün aileleri — Trust)
+Etkilenen dosyalar: docs/drafts/BACKLOG.md
+Son güncelleme: 2026-07-02
+```
+
+```
 ID: LUMOS-0012
 [2026-07-02] 🟢 AKTİF
 🟢 Karar: Lumos ürün aileleri haritası — tek sayfalık vizyon referansı (implementasyon değil). Aileler: Trust, Work, Mobility, Home, Health, Finance, Robotics, Accessibility, MicroTools. Harita yeni özellik ve backlog maddelerinin hangi aileye ait olduğunu gösterir; detay roadmap veya kod modülü taşımaz.
