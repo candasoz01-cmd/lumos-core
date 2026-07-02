@@ -44,6 +44,19 @@ Tam şema taslağı: [decision-engine-schema.md](./decision-engine-schema.md)
 ## Aktif kararlar
 
 ```
+ID: LUMOS-0014
+[2026-07-03] 🟢 AKTİF
+🟢 Karar: Untrusted external data / dolaylı prompt injection — çekirdek ilke: Dışarıdan gelen her veri güvenilmez kabul edilir; aynı doğrulama kapısından geçer. Kaynak örnekleri (hepsi «dış veri»): PDF, mail, GitHub README, Slack, MCP tool output, OBD, robot sensör, kamera OCR. Mimari savunma: Karar zinciri mimariye dağılır; prompt injection savunması «daha iyi system prompt» değil — kimlik, yetki, risk, onay ayrı halkalar. Connector Layer kuralı: Tüm dış veri girişleri Connector Layer üzerinden; yetki matrisi ile birlikte.
+🎯 Gerekçe: Dolaylı enjeksiyon ve rol karışıklığı perspektifi mevcut güvenlik mimarisini somutlaştırır; LUMOS-0013 (dış doğrulama) ile uyumlu; savunma LUMOS-0008 (L0 yetki matrisi), LUMOS-0009 (Trust Layer) ve LUMOS-0010 (Connector Layer) halkalarına dağılır.
+Evidence: External reference — role confusion / prompt injection research + team design alignment
+🚫 Kapsam dışı: Runtime implementasyonu; spesifik sanitizer algoritmaları. Sahte kurumsal onay veya endorsement (LUMOS-0003 onay bütünlüğü).
+Decision level: L1 (güvenlik mimarisi)
+İlişkili kararlar: LUMOS-0013, LUMOS-0010, LUMOS-0008, LUMOS-0009
+Etkilenen dosyalar: docs/drafts/BACKLOG.md
+Son güncelleme: 2026-07-03
+```
+
+```
 ID: LUMOS-0013
 [2026-07-02] 🟢 AKTİF
 🟢 Karar: External validation — AI güvenlik mimarisi (security bulletin). Çekirdek ilke kaydedildi: «AI security comes from surrounding architecture, not the model alone» — model tek başına güvenlik sağlamaz; kimlik, yetki, connector ve anahtar katmanları birlikte güvenlik üretir. Dış güvenlik bülteni analizi Lumos karar duvarına işlendi; dört tema mevcut L0–L2 kararlarıyla eşlendi.
