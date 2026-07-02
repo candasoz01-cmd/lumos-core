@@ -44,6 +44,20 @@ Tam şema taslağı: [decision-engine-schema.md](./decision-engine-schema.md)
 ## Aktif kararlar
 
 ```
+ID: LUMOS-0016
+[2026-07-03] 🟢 AKTİF
+🟢 Karar: Karar süreci ve denetim zinciri. Beş adım (sabit sıra): öneri → risk/gerekçe → uyarı → açık onay → kayıt. Lumos hiçbir zaman kullanıcı adına gizlice işlem yapmaz. Mahkeme ve denetim sorularına yanıt omurgası: kim karar verdi, kim onayladı, kim uyguladı; yetki; risk bildirimi; log. Omurga dokümanları (kazık eşşek — değiştirilmez çapa): ToS, gizlilik, açık onay, log, yetki matrisi, denetim kayıtları.
+🎯 Gerekçe: LUMOS-0015 (sorumluluk dengesi ve açık onay), LUMOS-0008 (L0 karar zinciri, yetki matrisi) ve LUMOS-0014 (onay halkaları, dış veri) ile birlikte denetlenebilir karar akışını tamamlar; «gizli otomasyon» ve «kanıtsız onay» anti-pattern'lerini reddeder.
+Legal review: Pending — genel ilkeler hukuki koruma yerine geçmez.
+Evidence: Team governance articulation
+🚫 Kapsam dışı: Runtime implementasyonu; mahkeme prosedürü veya bölgesel hukuk danışmanlığı bu kayıtla verilmez.
+Decision level: L1 (governance)
+İlişkili kararlar: LUMOS-0015, LUMOS-0008, LUMOS-0014
+Etkilenen dosyalar: docs/drafts/BACKLOG.md
+Son güncelleme: 2026-07-03
+```
+
+```
 ID: LUMOS-0015
 [2026-07-03] 🟢 AKTİF
 🟢 Karar: Karar desteği ve sorumluluk dengesi. Çekirdek ilke: «Lumos önerir, açıklar ve riskleri bildirir; kullanıcının açık onayıyla gerçekleştirilen işlemlerin nihai sorumluluğu kullanıcıya aittir.» Tam ifade: Lumos karar desteği sağlar; nihai karar ve kullanıcı tarafından açık onayla gerçekleştirilen işlemlerin sorumluluğu kullanıcıya aittir. Denge yükümlülüğü: Lumos, riskli veya uygun olmadığını değerlendirdiği işlemlerde uyarı vermek, gerekçe sunmak ve güvenli alternatif önermekle yükümlüdür.
