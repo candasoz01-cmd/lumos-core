@@ -46,13 +46,31 @@ Tam şema taslağı: [decision-engine-schema.md](./decision-engine-schema.md)
 ```
 ID: LUMOS-0016
 [2026-07-03] 🟢 AKTİF
-🟢 Karar: Karar süreci ve denetim zinciri. Beş adım (sabit sıra): öneri → risk/gerekçe → uyarı → açık onay → kayıt. Lumos hiçbir zaman kullanıcı adına gizlice işlem yapmaz. Mahkeme ve denetim sorularına yanıt omurgası: kim karar verdi, kim onayladı, kim uyguladı; yetki; risk bildirimi; log. Omurga dokümanları (kazık eşşek — değiştirilmez çapa): ToS, gizlilik, açık onay, log, yetki matrisi, denetim kayıtları.
-🎯 Gerekçe: LUMOS-0015 (sorumluluk dengesi ve açık onay), LUMOS-0008 (L0 karar zinciri, yetki matrisi) ve LUMOS-0014 (onay halkaları, dış veri) ile birlikte denetlenebilir karar akışını tamamlar; «gizli otomasyon» ve «kanıtsız onay» anti-pattern'lerini reddeder.
-Legal review: Pending — genel ilkeler hukuki koruma yerine geçmez.
+🟢 Karar: Karar süreci ve denetim zinciri — LUMOS-0015 (sorumluluk dengesi) ile birlikte okunur. Çekirdek ilke: Lumos hiçbir zaman kullanıcı adına gizlice işlem yapmaz.
+🎯 Gerekçe: LUMOS-0015, LUMOS-0008 (L0 karar zinciri, yetki matrisi) ve LUMOS-0014 (onay halkaları) ile denetlenebilir karar akışını tamamlar; «gizli otomasyon» ve «kanıtsız onay» anti-pattern'lerini reddeder.
+Ürün ilkesi — karar süreci zinciri:
+1. Lumos öneriyi oluşturur
+2. Riskleri ve gerekçeyi açıklar
+3. Gerekirse hukuki/finansal/güvenlik risk uyarısı gösterir
+4. Kullanıcı açık onay verir
+5. İşlem kayıt altına alınır
+Mahkeme/denetim perspektifi (kayıt amaçlı; hukuk tavsiyesi değildir):
+- Kim karar verdi, kim onay verdi, kim uyguladı, kimin yetkisi vardı
+- Riskler açıkça bildirildi mi, log var mı
+«Kazık eşşek sağlam» omurga — birlikte sağlam olmalı:
+- Kullanım şartları, gizlilik politikası, açık onay mekanizması, log sistemi, yetki matrisi, denetim kayıtları
+Hukuki sınır (dürüst):
+- Genel ilkeler tek başına hukuki koruma sağlamaz
+- Ülke hukuku, sözleşmeler, KVKK/GDPR vb. ve gerçek ürün davranışına bağlıdır
+- Çok ülkeli büyümede teknoloji hukuku avukatı incelemesi gerekir
+Kapsam dışı anti-patterns (açıkça reddedilir):
+- ❌ Kullanıcı adına gizli veya onaysız işlem
+- ❌ Risk uyarısı veya log olmadan «onaylandı» sayılması
 Evidence: Team governance articulation
-🚫 Kapsam dışı: Runtime implementasyonu; mahkeme prosedürü veya bölgesel hukuk danışmanlığı bu kayıtla verilmez.
-Decision level: L1 (governance)
-İlişkili kararlar: LUMOS-0015, LUMOS-0008, LUMOS-0014
+Legal review: Pending (sahte avukat onayı veya «Approved by Legal» yok)
+🚫 Kapsam dışı: Runtime implementasyonu; mahkeme prosedürü veya bölgesel hukuk danışmanlığı bu kayıtla verilmez; sahte kurumsal onay (LUMOS-0003).
+Decision level: L1 (governance / legal-UX foundation)
+İlişkili kararlar: LUMOS-0015, LUMOS-0008 (L0 yetki, karar zinciri), LUMOS-0014
 Etkilenen dosyalar: docs/drafts/BACKLOG.md
 Son güncelleme: 2026-07-03
 ```
@@ -69,7 +87,7 @@ Kapsam dışı anti-patterns (açıkça reddedilir):
 Evidence: Team principle articulation
 🚫 Kapsam dışı: Sahte kurumsal onay veya endorsement; uydurma «Approved by» (LUMOS-0003 onay bütünlüğü).
 Decision level: L1 (governance / legal-UX foundation)
-İlişkili kararlar: LUMOS-0005 (hakem / belirsizlik), LUMOS-0008 (L0 yetki, karar zinciri), LUMOS-0013, LUMOS-0014
+İlişkili kararlar: LUMOS-0005 (hakem / belirsizlik), LUMOS-0008 (L0 yetki, karar zinciri), LUMOS-0013, LUMOS-0014, LUMOS-0016 (karar süreci zinciri, denetim omurgası)
 Etkilenen dosyalar: docs/drafts/BACKLOG.md
 Son güncelleme: 2026-07-03
 ```
