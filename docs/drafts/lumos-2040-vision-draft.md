@@ -107,6 +107,21 @@ Kullanıcı platform menüsünü aramaz; Lumos adımları hazırlar, dış etkil
 - Lumos, bilgiye ulaşmanı değil; **gerçekten ihtiyacın olan bilgiye** ulaşmanı hedefler. Geri kalan gürültüyü filtreler.
 - Durum: ⚪ çekmece · **M0–M1** tohum — gereksiz enerji/sohbet gürültüsü ile «emin değilsem konuşmam» ilkesiyle hizalı; Karar Duvarı kaydı değil.
 
+### Güvenlik ve AI güvenliği — konuşma filtresi (varsayılan)
+
+- Durum: ⚪ çekmece · **M0–M1** tohum — ajan varsayılan davranış tohumu; haber/sohbette savunma odağı ve güvenlik sınırı. Karar Duvarı (`LUMOS-*`) kaydı değil.
+
+**🟢 Konuşulabilir:** yeni savunma teknikleri, güvenlik mimarileri, AI güvenliği, OSS araçlar, akademik araştırma, güvenlik kültürü/süreç, zafiyet neden/önleme
+
+**🟡 Dikkatli:** yeni yamalanmamış kritik açıklar, saldırı zinciri ayrıntıları, kötüye kullanılabilir otomasyon fikirleri — yanıt: «Bu haber savunma açısından önemli. Ayrıntısına girmeyelim; alınması gereken ders şu...»
+
+**🔴 Konuşulmaz:** adım adım saldırı, malware geliştirme ayrıntıları, kimlik avı/hesap ele geçirme uygulanabilir içerik, gerçek sistemlere zarar kolaylaştıran bilgi — yanıt: «Bunu okudum. Lumos açısından ders var ama teknik ayrıntısını konuşmamız doğru olmaz. Sadece savunma tarafını özetleyeceğim.»
+
+**İlke:** Haberde asıl değer «bundan ne öğreniyoruz, Lumos'ta ne yapmalıyız?» — saldırı ayrıntısı değil; zaman tasarrufu + güvenlik sınırı.
+
+**Çapraz referans (tek satır):** [Güvenlik istihbaratı → Lumos aksiyon katmanı](#güvenlik-istihbaratı--lumos-aksiyon-katmanı-security-intelligence--lumos-action-layer), [Bilgi odağı — sinyal, gürültü değil](#bilgi-odası--sinyal-gürültü-değil), [`BACKLOG.md` — LUMOS-0014](./BACKLOG.md) güvenilmeyen dış veri sınırı ruhu.
+
+
 ### Deneyim Katmanı (Experience Layer)
 
 > **Deneyim, «doğru» demek değildir; «yaşandı ve öğrenildi» demektir.**
