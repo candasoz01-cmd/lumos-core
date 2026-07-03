@@ -49,3 +49,27 @@ def resolve_panel_runtime_lock() -> Any | None:
         except Exception:
             return None
     return None
+
+def bootstrap_panel_runtime_lock_from_bridge_env() -> None:
+    """
+    ``panel_tasks_server`` process entry: optional bridge env → injected snapshot.
+
+    Policy gates still fail closed when ``resolve_panel_runtime_lock()`` returns
+    ``None``. This helper runs once in the panel server process so dev/E2E can
+    supply an explicit unlock signal without pretending it is runtime LockState.
+    """
+    if _injected_lock is not None or _provider is not None:
+        return
+    import os
+    from types import SimpleNamespace
+
+    raw = (
+        os.environ.get("LUMOS_PANEL_RUNTIME_LOCK_UNLOCKED")
+        or os.environ.get("LUMOS_SESSION_UNLOCKED")
+        or ""
+    ).strip().lower()
+    if raw in ("1", "true", "yes"):
+        inject_panel_runtime_lock(SimpleNamespace(unlocked=True))
+    elif raw in ("0", "false", "no"):
+        inject_panel_runtime_lock(SimpleNamespace(unlocked=False))
+

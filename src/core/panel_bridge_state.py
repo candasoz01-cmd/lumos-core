@@ -62,6 +62,10 @@ def _session_unlocked_from_runtime_lock(runtime_lock_state: Any | None = None) -
 
 def _panel_policy_context(*, runtime_lock_state: Any | None = None) -> dict:
     """CLI `cli_tasks_mutation` ile aynı policy snapshot — panel köprü ortamı."""
+    if runtime_lock_state is None:
+        from core.panel_runtime_lock import resolve_panel_runtime_lock
+
+        runtime_lock_state = resolve_panel_runtime_lock()
     mode = (os.environ.get("LUMOS_MODE") or "offline").strip().lower()
     online = mode == "online"
     base = _base_dir()

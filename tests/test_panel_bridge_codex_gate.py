@@ -211,6 +211,29 @@ def test_task_action_gate_confirmation_put_write_local_blocked(monkeypatch) -> N
     assert "write_local" in gate["reason"]
 
 
+
+
+def test_bootstrap_panel_runtime_lock_from_bridge_env(monkeypatch) -> None:
+    from core.panel_runtime_lock import (  # noqa: E402
+        bootstrap_panel_runtime_lock_from_bridge_env,
+        clear_panel_runtime_lock_hooks,
+        resolve_panel_runtime_lock,
+    )
+
+    clear_panel_runtime_lock_hooks()
+    try:
+        monkeypatch.setenv("LUMOS_MODE", "online")
+        monkeypatch.setenv("LUMOS_PROFILE", "guvenli_yurut")
+        monkeypatch.setenv("LUMOS_SESSION_UNLOCKED", "true")
+        bootstrap_panel_runtime_lock_from_bridge_env()
+        snap = resolve_panel_runtime_lock()
+        assert snap is not None
+        assert bool(getattr(snap, "unlocked", False)) is True
+        gate = task_action_gate(DELETE_TASK)
+        assert gate["enabled"] is True
+    finally:
+        clear_panel_runtime_lock_hooks()
+
 def test_resolve_panel_runtime_lock_injection() -> None:
     from core.panel_runtime_lock import (  # noqa: E402
         clear_panel_runtime_lock_hooks,

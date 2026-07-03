@@ -34,7 +34,10 @@ if _SRC.is_dir() and str(_SRC) not in sys.path:
 
 from core.lumos_base_dir import lumos_base_dir  # noqa: E402
 from core.panel_bridge_state import task_action_gate  # noqa: E402
-from core.panel_runtime_lock import resolve_panel_runtime_lock  # noqa: E402
+from core.panel_runtime_lock import (  # noqa: E402
+    bootstrap_panel_runtime_lock_from_bridge_env,
+    resolve_panel_runtime_lock,
+)
 from core.workspace_contract import may_perform_permanent_delete  # noqa: E402
 from policy.action_policy import (  # noqa: E402
     COMPLETE_TASK,
@@ -1563,6 +1566,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
+    bootstrap_panel_runtime_lock_from_bridge_env()
     port = int(os.environ.get("LUMOS_PANEL_TASKS_PORT", str(_DEFAULT_PORT)))
     host = os.environ.get("LUMOS_PANEL_TASKS_HOST", "127.0.0.1")
     httpd = HTTPServer((host, port), Handler)
