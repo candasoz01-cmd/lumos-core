@@ -85,6 +85,23 @@ Tek sayfalık harita fikri; implementasyon veya modül listesi değil. Aileler b
 
 İlgili **kesin karar referansı** (harita onayı): [`BACKLOG.md` — LUMOS-0012](./BACKLOG.md). Bu çekmece maddesi LUMOS-0012'yi genişletmez; yalnızca uzun vadeli tohumları tutar.
 
+### Orkestrasyon / niyet akışı (Work + Connectors tohumu)
+
+> **Lumos, menü arayarak ömür tüketmeyi bitirir; niyet → hazırlık → onay → uygulama.**
+
+- Durum: ⚪ çekmece · faz tohumu **M0–M1** — Lumos Key veya production connector değil; vizyon örneği.
+- **Dış yayın = 🔴 açık onay** — LUMOS-0015 (sorumluluk dengesi) ve LUMOS-0016 (denetim zinciri) ruhu: öner → risk/gerekçe → kullanıcı onayı → kayıt.
+
+**Örnek tohum (LinkedIn makale yayını):**
+
+| Adım | Kim |
+|------|-----|
+| «LinkedIn'de yeni makale yayınlamak istiyorum» | Kullanıcı niyeti |
+| Profil → makale yaz → taslak → kapak → etiket öner → önizleme | Lumos hazırlık |
+| Açık **«Yayınla»** onayı | Kullanıcı — dış etki kapısı |
+
+Kullanıcı platform menüsünü aramaz; Lumos adımları hazırlar, dış etkili adımda durur.
+
 ### Lumos Key ekosistemi
 
 - Donanım / yazılım anahtar modeli; güvenin yalnızca modele değil mimariye dayanması.
@@ -154,4 +171,4 @@ Burada sahte onay, «Approved by» veya vendor endorsement **yazılmaz** (bkz. L
 
 ---
 
-*Son güncelleme: 2026-07-02 · Belge durumu: TASLAK / çekmece*
+*Son güncelleme: 2026-07-04 · Belge durumu: TASLAK / çekmece*
