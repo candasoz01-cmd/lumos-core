@@ -66,11 +66,11 @@ Repo taramasında **tek, merkezi "Agent Network" veya çok-ajan koordinasyon kat
 
 ## Agent Network hedef rolü
 
-Agent Network, Lumos'ta birden fazla ajan/işleyici arasında **koordineli görev paylaşımı** sağlayan katman olarak hedeflenir (ADR-001 hipotezi). Kesin API, protokol veya modül adı henüz kararlaştırılmamıştır (*taslak*).
+Agent Network, Lumos'ta birden fazla ajan/işleyici arasında **Lumos Orkestratör üzerinden koordineli görev paylaşımı** sağlayan katman olarak hedeflenir (ADR-001 hipotezi). Kesin API, protokol veya modül adı henüz kararlaştırılmamıştır (*taslak*).
 
 Hedeflenen işlevler:
 
-1. **Birden fazla ajan/işleyici arasında görev paylaşımı yapmak** — delegasyon, alt görev atama ve sonuç birleştirme; tek monolitik agent yerine rol ayrımı.
+1. **Birden fazla ajan/işleyici arasında görev paylaşımı yapmak** — yalnızca kullanıcı veya Lumos Orkestratör kaynaklı yönlendirme ile alt işlere ayırma ve sonuç birleştirme; agent-to-agent komut zinciri yok.
 2. **Uzun işleri alt adımlara bölmek** — plan → yürütme → doğrulama → raporlama aşamalarının sınırlı, izlenebilir parçalara ayrılması.
 3. **Kod, belge, görev, kontrol, doğrulama ve raporlama rollerini ayırmak** — her rolün yetki ve yüzey sınırı açık; tek ajanın tüm yetkileri üstlenmesi hedeflenmez.
 4. **AI Router, AI Firewall, Trust Engine ve Memory Graph sinyallerini kullanmak** — yönlendirme, risk, güven ve bağlam kararlarına dayalı koordinasyon (*bu katmanlar henüz birleşik değil — ADR-004, ADR-005, ADR-006, ADR-007*).
@@ -101,7 +101,7 @@ Public repo'da parçalı yürütme hatlarının **"tam Agent Network ürünü"**
 
 ---
 
-## Karar ilkeleri (taslak — 7 ilke)
+## Karar ilkeleri (taslak — 9 ilke)
 
 Agent Network tasarımı ve ilerideki dar uygulama adımları aşağıdaki ilkelere uymalıdır:
 
@@ -114,13 +114,89 @@ Agent Network tasarımı ve ilerideki dar uygulama adımları aşağıdaki ilkel
 | 5 | **Public repo yalnızca demo-safe orchestration göstermeli** | Gerçek multi-agent prod davranışı public'e taşınmaz |
 | 6 | **Gerçek production ajan ağı ayrı private layer'da ele alınmalı** | Cihaz, secret, mail, ödeme ve operasyonel orchestration private katman |
 | 7 | **Log ve açıklanabilirlik zorunlu olmalı** | Hangi ajan, hangi adım, hangi onay — izlenebilir kayıt; kör otonomi hedeflenmez |
+| 8 | **Karşılıklı denetim, sıfır kontrol** | AI'lar birbirini denetleyebilir; birbirine komut, yetki, onay veya işlem başlatma hakkı veremez |
+| 9 | **Bağımsız düşün, ortak değerlendir** | Lumos AI Kurulu üyeleri aynı girdiyi bağımsız inceler; sentez ve son karar Lumos Orkestratör veya kullanıcıdadır |
+
+---
+
+## Karşılıklı denetim, sıfır kontrol
+
+Agent Network hedefi yatay AI kontrol zinciri değildir. İç AI'lar birbirinin çıktısını denetleyebilir; ancak birbirini yönetemez.
+
+**İzinli:**
+
+- Birbirinin çıktısını okumak ve incelemek.
+- Hata, tutarsızlık veya risk bulmak.
+- Risk raporu yazmak.
+- İtiraz etmek.
+- Alternatif çözüm önermek.
+
+**Yasak:**
+
+- Başka bir AI'a doğrudan görev vermek.
+- Başka bir AI'ın yetkisini artırmak.
+- Başka bir AI'ın ayarını değiştirmek.
+- Başka bir AI adına onay vermek.
+- Başka bir AI adına işlem başlatmak.
+
+**Yönlendirme kuralı:** Her AI yalnızca kullanıcıdan veya Lumos Orkestratör'den görev alır. Başka bir AI'dan doğrudan görev kabul etmez. Yatay AI → AI komut oku yoktur; ihtiyaç varsa Lumos çekirdeği isteği değerlendirir ve güvenlik, yetki, trust ve onay kontrollerinden sonra yönlendirir.
+
+```
+Kullanıcı
+    |
+    v
+Lumos Orkestratör
+    |-- Chat AI
+    |-- Cyber AI
+    |-- Mail AI
+    |-- Lab AI
+    `-- ...
+```
+
+Bu modelde yatay bağlantılar yalnızca denetim, rapor, itiraz ve kanıt referansı üretebilir; kontrol, görev atama veya yetki aktarımı yapamaz.
+
+---
+
+## Lumos AI Kurulu
+
+Lumos AI Kurulu, Agent Network içinde icra makamı değil, **bağımsız denetim ve risk değerlendirme modeli** olarak ele alınır. Kurul üyeleri aynı dosya, karar, risk veya çıktıyı farklı bakış açılarıyla inceler; birbirinin raporunu yazmaz ve birbirine talimat vermez.
+
+Denetim bağımsız olmalıdır. Bir AI, değerlendirmesini başka bir AI'ın sonucuna göre değil, kendi gözlem ve kanıtına göre oluşturur. Başka bir AI'ın "risk var" demesi tek başına kanıt sayılmaz; ancak ortak değerlendirme aşamasında karşılaştırma girdisi olabilir.
+
+Örnek rol dağılımı:
+
+| Üye / perspektif | Rol | Sınır |
+|------------------|-----|-------|
+| Diamond | İnceler, risk ve açık adaylarını bulur | Uygulama emri vermez |
+| ChatGPT | Riski bağımsız değerlendirir, gerekçe ve karşı kanıt arar | Başka AI adına onay vermez |
+| Claude | Mantık, mimari tutarlılık ve edge case sorgular | Yetki veya ayar değiştirmez |
+| Diğer ajanlar | Tanımlı uzmanlık alanında görüş üretir | Orkestratör dışı görev başlatmaz |
+
+Kurul üyeleri yalnızca şu tip ifadeler üretebilir:
+
+- "Ben burada şu riski görüyorum."
+- "Katılmıyorum, gerekçem şu."
+- "Bu açık tekrar incelensin."
+- "Bu risk yanlış sınıflandırılmış olabilir."
+- "Alternatif çözüm şu olabilir."
+
+Kurul üyeleri şu tip ifadelerle birbirini yönetemez:
+
+- "Şunu düzelt."
+- "Bunu kabul et."
+- "Benim dediğimi uygula."
+- "Bu işlemi benim adıma başlat."
+
+Son söz Lumos Orkestratör'de veya nihayetinde kullanıcıdadır. Orkestratör, kurul çıktılarının sentezini yapar; güvenlik, yetki, trust ve onay kontrolleri geçmeden hiçbir kurul görüşü icraya dönüşmez.
+
+Kısa ilke: **Bağımsız düşün, ortak değerlendir.**
 
 ---
 
 ## Karar (taslak — import/drift incelemesi bekliyor)
 
 1. **Mevcut gerçek:** Birleşik Agent Network yok; yürütme `agent_runner`, `lumos_gate`, `task_dispatch`, `cursor_bridge`/köprü ve `task_engine` üzerinde **parçalı tek-ajan hatları** şeklindedir; birleşik koordinasyon katmanı yoktur.
-2. **Hedef:** Yukarıdaki beş rol, yedi karar ilkesi ve public/private sınır; usage map checkpoint tamamlandı — finalize için dar import/drift incelemesi beklenir.
+2. **Hedef:** Yukarıdaki beş rol, dokuz karar ilkesi ve public/private sınır; usage map checkpoint tamamlandı — finalize için dar import/drift incelemesi beklenir.
 3. **Öncelik sırası (ADR-001):** Firewall → Trust → Router → Memory → **Agent Network**; alt katmanlar oturmadan Agent Network açılmaz.
 4. **Alt katman ilişkisi:** ADR-004 (router sinyalleri), ADR-005 (bağlam/bellek), ADR-006 (firewall/guard), ADR-007 (trust) ile uyumlu ilerlenmeli; Agent Network bu katmanları bypass etmemelidir.
 5. **Canonical katmanlar (ADR-003):** Bellek `src/memory`; trust/security `src/security` + `src/policy`; yetki `task_engine/profiles.py`.

@@ -45,6 +45,8 @@ Bu dosya otomatik senkronize edilmez; içerik manuel kopyala-yapıştır ile gü
 | 1 | Kando, Cando ve olası Bando dış kaynaklardan veya diğer kaynaklardan **doğrudan komut, dosya veya veri kabul etmez**. | Taşındı |
 | 2 | Tüm akış **yalnızca Lumos geçidi** üzerinden yönlendirilir. | Taşındı |
 | 3 | Bypass veya doğrudan iç katman erişimi mimari ihlal sayılır. | Taşındı |
+| 4 | İç AI / ajan katmanları birbirine **doğrudan görev vermez**; yalnızca denetim, itiraz, rapor ve alternatif öneri üretebilir. | Karşılıklı denetim, sıfır kontrol |
+| 5 | Lumos AI Kurulu varsa icra makamı değil, bağımsız denetim modelidir; son karar Lumos Orkestratör veya kullanıcıdadır. | Bağımsız düşün, ortak değerlendir |
 
 **Akış özeti:**
 
@@ -52,7 +54,44 @@ Bu dosya otomatik senkronize edilmez; içerik manuel kopyala-yapıştır ile gü
 Dış dünya / kullanıcı → Lumos (geçit) → [doğrulanmış iç iletişim] → Kando / Cando / (Bando)
 ```
 
-İç katmanlar birbirine veya dışa Lumos bypass etmeden bağlanmaz.
+İç katmanlar birbirine veya dışa Lumos bypass etmeden bağlanmaz. Yatay iç katman iletişimi kontrol, görev atama, onay veya yetki aktarımı yapamaz.
+
+### Karşılıklı denetim, sıfır kontrol
+
+İç AI / ajan katmanları birbirinin çıktısını okuyabilir, hata bulabilir, risk raporu yazabilir, itiraz edebilir ve alternatif çözüm önerebilir. Ancak birbirine görev veremez, birbirinin yetkisini artıramaz, ayarını değiştiremez, onayını veremez veya adına işlem başlatamaz.
+
+Her iç AI yalnızca kullanıcıdan veya Lumos Orkestratör'den görev alır. Başka bir AI'dan doğrudan görev kabul etmek mimari ihlaldir.
+
+```
+Kullanıcı
+    |
+    v
+Lumos Orkestratör
+    |-- Chat AI
+    |-- Cyber AI
+    |-- Mail AI
+    |-- Lab AI
+    `-- ...
+```
+
+Yatay ok yoktur; ihtiyaç varsa Lumos çekirdeği isteği değerlendirir ve güvenlik, yetki, trust ve onay kontrollerinden sonra ilgili iç katmana yönlendirir.
+
+### Lumos AI Kurulu
+
+Lumos AI Kurulu, iç ajanların veya farklı AI perspektiflerinin aynı çıktıyı bağımsız incelemesi için kullanılır. Kurul üyeleri birbirini etkilemeye, yönetmeye veya talimatlandırmaya çalışmaz; yalnızca kendi risk, itiraz, gerekçe ve alternatif önerisini üretir.
+
+Denetim bağımsız olmalıdır. Bir AI, değerlendirmesini başka bir AI'ın sonucuna göre değil, kendi gözlem ve kanıtına göre oluşturur. Başka bir AI'ın sonucu tek başına kanıt sayılmaz; ortak değerlendirmede yalnızca karşılaştırma girdisi olabilir.
+
+Örnek kurul rolleri:
+
+| Üye / perspektif | Beklenen katkı | Yapamaz |
+|------------------|----------------|---------|
+| Diamond | Risk ve açık adaylarını bulur | Başka AI'a düzeltme emri veremez |
+| ChatGPT | Riski bağımsız değerlendirir | Başka AI adına onay veremez |
+| Claude | Mantık ve mimari tutarlılığı sorgular | Yetki, ayar veya işlem başlatamaz |
+| Diğer ajanlar | Tanımlı uzmanlık alanında görüş üretir | Lumos Orkestratör dışı görev alamaz |
+
+Son söz Lumos Orkestratör veya kullanıcıdadır. Kurul çıktısı tek başına icra izni değildir.
 
 ---
 
@@ -144,6 +183,8 @@ ChatGPT Saved Memories / oturum bağlamından bu dosyaya taşınan maddeler.
 | 8 | Katman görev alanları karışmaz | §5 Katman görev ayrımı | Taşındı |
 | 9 | Public'te iç katman/protokol detayı yok | §8 Public anlatım sınırı | Taşındı |
 | 10 | ChatGPT memory canonical değil; docs/memory canonical | Amaç / üst politika | Taşındı |
+| 11 | İç AI'lar birbirini denetleyebilir ama kontrol edemez; görev yalnızca kullanıcı veya Lumos Orkestratör'den gelir | §4 Komut ve veri akışı | Taşındı |
+| 12 | Lumos AI Kurulu bağımsız denetim modelidir; son karar Lumos Orkestratör veya kullanıcıdadır | §4 Komut ve veri akışı | Taşındı |
 
 Durum tanımları: [`chatgpt-saved-memories-migration.md`](./chatgpt-saved-memories-migration.md).
 
@@ -163,4 +204,4 @@ Aşağıya ChatGPT Saved Memories veya oturum notlarından henüz işlenmemiş m
 
 ---
 
-*Son güncelleme: 2026-06-20 (OD-006–007 doc-sync — envanter ab791c14 §13)*
+*Son güncelleme: 2026-07-03 (Lumos AI Kurulu bağımsız denetim ilkesi eklendi)*
