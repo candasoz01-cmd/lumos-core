@@ -102,6 +102,11 @@ Tek sayfalık harita fikri; implementasyon veya modül listesi değil. Aileler b
 
 Kullanıcı platform menüsünü aramaz; Lumos adımları hazırlar, dış etkili adımda durur.
 
+### Bilgi odağı — sinyal, gürültü değil
+
+- Lumos, bilgiye ulaşmanı değil; **gerçekten ihtiyacın olan bilgiye** ulaşmanı hedefler. Geri kalan gürültüyü filtreler.
+- Durum: ⚪ çekmece · **M0–M1** tohum — gereksiz enerji/sohbet gürültüsü ile «emin değilsem konuşmam» ilkesiyle hizalı; Karar Duvarı kaydı değil.
+
 ### Lumos Key ekosistemi
 
 - Donanım / yazılım anahtar modeli; güvenin yalnızca modele değil mimariye dayanması.
