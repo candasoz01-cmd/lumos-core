@@ -147,6 +147,28 @@ Kullanıcı platform menüsünü aramaz; Lumos adımları hazırlar, dış etkil
 - «Lumos'u aç» = kullanıcı için güvenilir başlangıç durumu; arka planda dağınık script değil.
 - Uygulama detayı çekmecede; V1 taahhüdü değil.
 
+### Güvenlik istihbaratı → Lumos aksiyon katmanı (Security Intelligence → Lumos Action Layer)
+
+> **Lumos haber takip etmez; haberden savunma üretir.**
+
+- Durum: ⚪ çekmece · faz tohumu **M0–M1** — production özellik değil; Research Memory vizyon tohumu. Karar Duvarı (`LUMOS-*`) kaydı değil.
+
+**Akış (tohum):**
+
+1. **Kaynak izleme** — tl;dr sec, OpenAI, MCP, Microsoft, GitHub, CVE, vendor blog, bülten
+2. **Sınıflandırma** — bizi ilgilendiriyor mu? connector / agent / auth / secret / prompt injection
+3. **Mimari eşleme** — örn. MCP → Connector Layer, Trust Preflight, Permission Chain, Log Redaction
+4. **Aksiyon** — ADR güncelle, test ekle, env default, connector sandbox; yalnızca **öneri**; otomatik uygulama yok
+5. **Gürültü eleme** — yalnızca kırmızı risk, mimari etki, savunma fikri, Lumos dersi
+
+**Çapraz referans:**
+
+- Bilgi odağı / sinyal ilkesi — gürültü değil, mimariye indirgenmiş savunma sinyali.
+- [`BACKLOG.md` — LUMOS-0013](./BACKLOG.md) — external validation, güvenlik mimarisi teması.
+- [`BACKLOG.md` — LUMOS-0014](./BACKLOG.md) — untrusted data / dış veri sınırı.
+
+---
+
 ### Dış doğrulama notu (referans — karar BACKLOG'da)
 
 Endüstride de «güvenlik yalnızca modele değil, çevreleyen mimariye dayanır» yönü desteklenmektedir. Bu çekmece maddesi **dış referans notudur**; kesin karar ve tema eşlemesi:
