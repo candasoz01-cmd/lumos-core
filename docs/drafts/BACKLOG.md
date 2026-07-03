@@ -44,6 +44,28 @@ Tam şema taslağı: [decision-engine-schema.md](./decision-engine-schema.md)
 ## Aktif kararlar
 
 ```
+ID: LUMOS-0019
+[2026-07-03] 🟢 AKTİF
+🟢 Karar: Güvenlik mimarisi vs repository sınırı. Çekirdek ilke: Security tek mimari ve yönetişim çatısı altında tasarlanır. Repository ayrımı teknik ve operasyonel ihtiyaç oluştuğunda yapılır; yeniden kullanılabilir olması tek başına ayrı repository gerekçesi değildir.
+🎯 Gerekçe:
+- Mimari çatı (tek vizyon): Secure Device Framework ağacı — AnchorUSB, Lumos Key, Vault, Device Trust, Touch ID, FIDO2, TPM, Secure Enclave, gelecek donanım bağlayıcıları — tek güvenlik mimarisi
+- Ürün aileleri (Lumos): Core, Security, Connectors, Intelligence, Mobility — aileler ayrı repo olmak zorunda değil
+- Repository bugün: tek repo (lumos-core) OK; ilk implementasyon lumos-core içinde yaşar
+- Ayrı repo (ör. lumos-secure-device) — 3 kriterden 2'si gerekir:
+  1. Diğer projeler Lumos olmadan kullanır
+  2. Kendi semver / release döngüsü
+  3. Kendi test/CI/release pipeline'ı
+- Erken bölünme maliyeti: ayrı issue, CI, release, bağımlılık, sürüm hizası, PR koordinasyonu — olgunluk öncesi kaçınılır
+Evidence: Team strategic articulation
+Legal review: N/A (sahte onay yok)
+🚫 Kapsam dışı: Hemen packages/secure-device klasörü oluşturma; ayrı repo oluşturma; NA-01; Trust Phase 4 implementasyonu; Connector Layer; scripts/anchorusb track
+Decision level: L1 (mimari / governance)
+İlişkili kararlar: LUMOS-0018 (AnchorUSB Faz A/B/C), LUMOS-0009 (Trust), LUMOS-0012 (ürün aileleri), knowledge-repository-lifecycle
+Etkilenen dosyalar: docs/drafts/BACKLOG.md
+Son güncelleme: 2026-07-03
+```
+
+```
 ID: LUMOS-0018
 [2026-07-03] 🟢 AKTİF
 🟢 Karar: AnchorUSB — ürün sınırı ve repo konumu (macOS POC). Çekirdek ilke: AnchorUSB, Secure Device Framework (SDF) için macOS POC laboratuvarıdır; Lumos Key değildir, production güvenlik aracı değil.
