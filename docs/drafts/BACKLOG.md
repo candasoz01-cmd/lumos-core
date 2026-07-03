@@ -44,6 +44,31 @@ Tam şema taslağı: [decision-engine-schema.md](./decision-engine-schema.md)
 ## Aktif kararlar
 
 ```
+ID: LUMOS-0018
+[2026-07-03] 🟢 AKTİF
+🟢 Karar: AnchorUSB — ürün sınırı ve repo konumu (macOS POC). Çekirdek ilke: AnchorUSB, Secure Device Framework (SDF) için macOS POC laboratuvarıdır; Lumos Key değildir, production güvenlik aracı değil.
+🎯 Gerekçe:
+- `scripts/anchorusb/` şimdilik commit edilmez — deney laboratuvarı, macOS POC, üretim kodu değil
+- Secure Device Framework (tasarım, doküman, Rust crate, mimari) repo içinde gelişmeye devam eder — zaten main'de (#549-#551)
+- AnchorUSB = SDF'nin macOS POC'si; Lumos Key değil, production güvenlik aracı değil
+Fazlar:
+- Faz A (repo): SDF tasarım, doküman, crates, mimari
+- Faz B (lokal/untracked şimdilik): scripts/anchorusb/ POC laboratuvarı
+- Faz C (gelecek): Linux/Windows/TPM/Secure Enclave/YubiKey/FIDO2 vb. olgunlaşınca → Secure Device Framework ürünü; o zaman packages/secure-device veya ayrı repo — bugün karar değil
+Taşınabilirlik ve lifecycle:
+- «Bağımsız tasarla, ayrı repo açma» — taşınabilir niyet, ilk ev lumos-core
+- Lifecycle: Needs Decision → Planned kapısı geçilmeden scripts track edilmez
+- Public exposure: açık onay gerekir (device-control-adjacent)
+Evidence: Team product boundary articulation
+Legal review: N/A (sahte onay yok)
+🚫 Kapsam dışı: scripts/anchorusb/ dosyalarının bu kararla commit edilmesi; NA-01; Trust Phase 4; Connector Layer implementasyonu
+Decision level: L1 (ürün sınırı / repo konumu)
+İlişkili kararlar: LUMOS-0009, knowledge-repository-lifecycle AnchorUSB satırı, crates/anchorusb-*
+Etkilenen dosyalar: docs/drafts/BACKLOG.md
+Son güncelleme: 2026-07-03
+```
+
+```
 ID: LUMOS-0017
 [2026-07-03] 🟢 AKTİF
 🟢 Karar: Model bağımsızlığı ve görev bazlı orkestrasyon. Çekirdek ilke: Lumos tek bir modele bağlı değildir; göreve göre farklı modeller (motorlar) seçilir. Karar Motoru seçimi yapar; Lumos değeri model olmak değil, karar veren ve orkestrasyon yapan katmandır.
