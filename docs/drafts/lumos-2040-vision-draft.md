@@ -107,6 +107,36 @@ Kullanıcı platform menüsünü aramaz; Lumos adımları hazırlar, dış etkil
 - Lumos, bilgiye ulaşmanı değil; **gerçekten ihtiyacın olan bilgiye** ulaşmanı hedefler. Geri kalan gürültüyü filtreler.
 - Durum: ⚪ çekmece · **M0–M1** tohum — gereksiz enerji/sohbet gürültüsü ile «emin değilsem konuşmam» ilkesiyle hizalı; Karar Duvarı kaydı değil.
 
+### Deneyim Katmanı (Experience Layer)
+
+> **Deneyim, «doğru» demek değildir; «yaşandı ve öğrenildi» demektir.**
+
+- Durum: ⚪ çekmece · faz tohumu **M0–M1** — production Knowledge Repository değil; vizyon tohumu. Karar Duvarı (`LUMOS-*`) kaydı değil.
+- Hafıza **dogma deposu değil**, **deneyim deposudur** — «Eskiden böyleydi, hâlâ böyledir» refleksi en büyük tehlikelerden biridir.
+- «Lumos, haber tüketmez; deneyim biriktirir» ilkesi — bkz. [Güvenlik istihbaratı → Lumos aksiyon katmanı](#güvenlik-istihbaratı--lumos-aksiyon-katmanı-security-intelligence--lumos-action-layer) (bu çekmece).
+
+**MCP 2026 örneği (tohum):** 2026'da eklenen bir kural yalnızca «MCP riski vardı» diye sonsuza dek kutsal sayılmaz; kayıt şöyle yaşar: «2026 MCP riski nedeniyle eklendi; güncel sürümde zorunlu olmayabilir — yeniden değerlendirilsin.»
+
+**Benzetme:** Yama görmüş lastik — yol alır, ama her yama «orijinal lastik» iddiasını taşımaz; ne zaman değişeceği kayıtlı olmalıdır.
+
+**Kayıt alanları (vizyon tohumu — lifecycle Review Date / Supersedes ruhu):**
+
+| Alan | Soru |
+|------|------|
+| Kural | Ne eklendi / ne değişti? |
+| Neden eklendi? | Hangi risk veya ihtiyaç? |
+| Hangi olay tetikledi? | Olay, bülten, olay kaydı |
+| Son doğrulama tarihi | En son ne zaman test edildi / doğrulandı? |
+| Hâlâ geçerli mi? | Evet / belirsiz / hayır |
+| Yeniden değerlendirme önerisi | Sonraki gözden geçirme veya supersede notu |
+
+**İsimlendirme notu:** İleride «Knowledge Repository» yanında veya yerine **«Deneyim Katmanı»** dili kullanılabilir; bu çekmece maddesi [`docs/knowledge-repository-lifecycle.md`](../knowledge-repository-lifecycle.md) v1.0 belgesini yeniden adlandırmaz — yalnızca uzun vadeli vizyon tohumudur. Lifecycle'daki **Review Date** ve periyodik **gözden geçirme** ruhu buradaki «Son doğrulama» / «Hâlâ geçerli mi?» alanlarıyla hizalıdır.
+
+**Çapraz referans:**
+
+- [Bilgi odağı — sinyal, gürültü değil](#bilgi-odası--sinyal-gürültü-değil) — deneyim, gürültüyü değil öğrenilen dersi biriktirir.
+- [`docs/knowledge-repository-lifecycle.md`](../knowledge-repository-lifecycle.md) — Review Date, gözden geçirme disiplini (v1.0; bu dosyada rename yok).
+
 ### Lumos Key ekosistemi
 
 - Donanım / yazılım anahtar modeli; güvenin yalnızca modele değil mimariye dayanması.
