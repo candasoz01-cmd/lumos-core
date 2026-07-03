@@ -50,6 +50,7 @@ Aşağıdaki ilkeler **firm** (kaynak canonical dosyalar ve çekirdek sözleşme
 | 6 | Doğrulanmamış veya yetkisiz iç mesaj **reddedilir**; güvenlik olayı kaydı oluşturulması hedeflenir (operasyonel detay needs-review). | internal-agent-layers §7; OD-026 |
 | 7 | Public `lumos-core` içeriği **demo-safe** kalır; iç protokol, anahtarlar ve savunma akışları public'e taşınmaz. | security-architecture §Public; internal-agent-layers §8 |
 | 8 | Çekirdek güvenlik, yetki profilleri ve onay kuralları bu kararları gevşetemez. | lumos-karar-sozlesmesi §2 |
+| 9 | İç AI / ajan katmanları arasında **karşılıklı denetim var, yatay kontrol yoktur**. | internal-agent-layers §4; ADR-008 |
 
 ---
 
@@ -81,6 +82,7 @@ Bando aşağıdaki işleri **yapmaz**; yapması veya dıştan buna yönlendirilm
 | 4 | Kullanıcıya görünen yanıt, panel veya chat yüzeyi sunma | Tek dış yüzey Lumos. |
 | 5 | Görev motoru / yetki profili kapsamında otonom “iş tamamlama” | Sıradan görev ajanı değildir. |
 | 6 | Secret, token veya credential tutma/yüzeyleme | Vault ve kimlik katmanı ayrı karar (OD-001, OD-002). |
+| 7 | Başka bir iç katmana doğrudan görev vermek, onay vermek, yetki artırmak veya işlem başlatmak | Karşılıklı denetim mümkündür; yatay kontrol yoktur. |
 
 **Güvenlik olayı (firm):** Dış kaynaktan veya kullanıcı yüzeyinden Bando'ya doğrudan ulaşma girişimi **güvenlik olayı (incident)** olarak sınıflandırılır; reddedilir ve kayıt altına alınması hedeflenir.
 
@@ -103,6 +105,8 @@ Dış dünya / kullanıcı → Lumos (geçit, orkestratör) → [doğrulanmış 
 | 3 | İç katmanlar birbirine veya dışa **Lumos bypass etmeden** bağlanmaz. |
 | 4 | Bridge (varsa) Lumos kontrollü dış kanaldır; iç katmanlara doğrudan köprü kurmaz. |
 | 5 | Bando'ya giden trafik de aynı geçit ve doğrulama ilkesine tabidir; istisna yoktur. |
+| 6 | İç katmanlar birbirinden doğrudan görev kabul etmez; yalnızca Lumos Orkestratör üzerinden yönlendirme yapılır. |
+| 7 | İç katmanlar birbirinin çıktısını denetleyebilir, risk raporu ve itiraz üretebilir; kontrol, onay veya yetki aktarımı yapamaz. |
 
 **Ürün dili:** Kullanıcı yalnızca Lumos'un işi aldığını, başlattığını veya tamamladığını görür; iç orkestrasyon şeffaf değildir.
 
@@ -167,6 +171,7 @@ Onaylı karar sonrası **implementation-pending** kalan başlıklar:
 - Bando = güvenlik/gözlem/anomali katmanı; sıradan görev ajanı değil; yürütme yok; kullanıcıya görünmez.
 - Dış → Bando doğrudan komut/veri/dosya kabulü yok; doğrudan erişim = güvenlik olayı.
 - Lumos → iç katman iletişimi doğrulanmalı; imzalama ve/veya şifreleme tercih edilir.
+- Karşılıklı denetim serbesttir; yatay görev verme, onay, yetki artırma, ayar değiştirme veya işlem başlatma yasaktır.
 
 ---
 

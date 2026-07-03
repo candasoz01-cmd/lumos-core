@@ -82,6 +82,8 @@ Lumos AI Kurulu, iç ajanların veya farklı AI perspektiflerinin aynı çıktı
 
 Denetim bağımsız olmalıdır. Bir AI, değerlendirmesini başka bir AI'ın sonucuna göre değil, kendi gözlem ve kanıtına göre oluşturur. Başka bir AI'ın sonucu tek başına kanıt sayılmaz; ortak değerlendirmede yalnızca karşılaştırma girdisi olabilir.
 
+Varsayılan kurul akışı kör incelemedir: aynı kanıt paketi ilgili AI'lara gider, her AI diğer AI sonuçlarını görmeden bağımsız rapor üretir, raporlar kilitlenir ve ortak değerlendirme yalnızca kilitli raporlar üzerinden yapılır. Lumos Orkestratör veya kullanıcı nihai kararı verir.
+
 Örnek kurul rolleri:
 
 | Üye / perspektif | Beklenen katkı | Yapamaz |

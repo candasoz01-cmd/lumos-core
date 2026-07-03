@@ -203,14 +203,14 @@ ADR-010: **consent ≠ general_approval ≠ confirmation**. İşlem bazlı üç�
 
 ## Açık kalan maddeler (codex kapanış öncesi)
 
-Security Codex **CLOSED değildir**. Faz-2 enforcement dalgası (#460–#463) ve Wave 1 Madde 1–2 (#491–#498) kapandı; Trust Faz 4, sensitivity↔gate ve Panel LockState bilinçli açık. **Internal Alpha defer kaydı:** [`adr-012-internal-alpha-defer-record.md`](../memory/adr-012-internal-alpha-defer-record.md) (G-18 / RB-01).
+Security Codex **CLOSED değildir**. Faz-2 enforcement dalgası (#460–#463) ve Wave 1 Madde 1–2 (#491–#498) kapandı; Panel LockState env bypass'ı kaldırıldı ve runtime snapshot API fail-closed çalışır; Trust Faz 4, sensitivity↔gate, panel process-model snapshot besleme ve tam default-on bilinçli açık. **Internal Alpha defer kaydı:** [`adr-012-internal-alpha-defer-record.md`](../memory/adr-012-internal-alpha-defer-record.md) (G-18 / RB-01).
 
 1. ~~**P2 `SECURITY_NEVER_AUTO`**~~ — **Kapandı (2026-06-21)** — Wave 1 Seçenek B: tam eşleme tablosu #497, engine + yüzey sync #498.
 2. ~~**PR-C6**~~ — **Kapandı (2026-06-21)** — Wave 1 Seçenek B: köprü approve/resume `consume_confirmation` + opt-in env (#494–#495).
 3. **Trust Faz 4** — ADR-007 merkezi trust tüketimi; ADR-011 `keystore_ready` ≠ `session_unlocked`.
 4. ~~**E2E confirmation**~~ — **Kapandı** #459+#460 (opt-in env ile panel+CLI uçtan uca).
 5. ~~**Varsayılan-on kararı**~~ — **Kapandı (docs, 2026-06-21)** — opt-in korunur (#461); tam varsayılan-on ürün incelemesine ertelendi (DL-C18).
-6. **Panel LockState** — Env vekili vs runtime kilit doğrulaması.
+6. **Panel LockState** — Env bypass kapandı; runtime snapshot API var; ayrı panel sürecine canlı LockState besleme/process modeli açık.
 
 ---
 
@@ -235,4 +235,4 @@ Security Codex **CLOSED değildir**. Faz-2 enforcement dalgası (#460–#463) ve
 
 ## Sonuç
 
-Lumos Security Codex (C1–C6) resmi sözleşme olarak kayıt altına alındı. İlk uygulama: docs paketi (#440), panel codex şeffaflığı (#441), panel görev mutasyonlarında `check_policy` (#443–#446), consent ayrımı (#450+#451), panel profil guard (#449), CU4 confirmation zinciri (#452–#458, opt-in), Faz-2 enforcement (#460–#463), Wave 1 PR-C6 wiring (#491–#495) ve P2 tam eşleme (#496–#498). Trust Faz 4, sensitivity↔gate, Panel LockState ve tam default-on **bilinçli sonraki checkpoint'ler** (Wave 2+); codex **CLOSED değildir**.
+Lumos Security Codex (C1–C6) resmi sözleşme olarak kayıt altına alındı. İlk uygulama: docs paketi (#440), panel codex şeffaflığı (#441), panel görev mutasyonlarında `check_policy` (#443–#446), consent ayrımı (#450+#451), panel profil guard (#449), CU4 confirmation zinciri (#452–#458, opt-in), Faz-2 enforcement (#460–#463), Wave 1 PR-C6 wiring (#491–#495), P2 tam eşleme (#496–#498) ve Panel LockState env bypass kapatma + runtime snapshot API. Trust Faz 4, sensitivity↔gate, panel process-model snapshot besleme ve tam default-on **bilinçli sonraki checkpoint'ler** (Wave 2+); codex **CLOSED değildir**.
