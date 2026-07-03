@@ -1,5 +1,7 @@
 # Knowledge Repository Lifecycle
 
+> **Sürüm:** v1.0 — kapsam donduruldu. Yeni fikirler bu dosyaya eklenmez; ayrı kayıtlarda yaşar.
+
 ## 1. Amaç
 
 Lumos Knowledge Repository; kodu, kararları, araştırmaları ve ürün vizyonunu tek bir hafızada tutar.
@@ -33,7 +35,7 @@ Boş alan olabilir; yanlış alan olmaz. Sahip, kanıt veya onay yoksa uydurulma
 
 Bir kayıt birden fazla katmana dokunabilir; ana katman tek seçilir, ilişkiler `Related ADR` / `Related Epic` ile bağlanır.
 
-**İlgili kaynaklar:** [Karar Duvarı](drafts/BACKLOG.md) · [Vizyon çekmecesi](drafts/lumos-2040-vision-draft.md)
+**İlgili kaynaklar:** [Karar Duvarı](docs/drafts/BACKLOG.md) · [Vizyon çekmecesi](docs/drafts/lumos-2040-vision-draft.md)
 
 ---
 
@@ -62,10 +64,10 @@ Status yalnızca sürecin mevcut durumunu gösterir.
 
 | Seviye | Anlam |
 |--------|-------|
-| M0 | Concept — fikir |
-| M1 | Research — araştırıldı |
-| M2 | Decision Ready — karar alındı |
-| M3 | Architecture Ready — mimarisi hazır |
+| M0 | Concept |
+| M1 | Research |
+| M2 | Decision Candidate / Karar Adayı |
+| M3 | Architecture Ready |
 | M4 | Prototype / First Implementation |
 | M5 | Production |
 
@@ -125,4 +127,4 @@ Lumos yalnızca kodun değil; bilginin, kararların ve vizyonun da hafızasını
 | Lumos Mobility | Vision Memory | Recorded | M1 | Uzun vadeli vizyon; uygulama taahhüdü değil |
 | Product Families | Vision Memory | Recorded | M1 | Ürün aileleri için yön kaydı |
 
-**Çapraz bağlantılar:** [docs/drafts/BACKLOG.md](drafts/BACKLOG.md) (Karar Duvarı) · [docs/drafts/lumos-2040-vision-draft.md](drafts/lumos-2040-vision-draft.md) (vizyon çekmecesi)
+**Çapraz bağlantılar:** [Karar Duvarı](docs/drafts/BACKLOG.md) · [Vizyon çekmecesi](docs/drafts/lumos-2040-vision-draft.md)
