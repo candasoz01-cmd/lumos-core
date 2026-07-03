@@ -151,6 +151,18 @@ Kullanıcı platform menüsünü aramaz; Lumos adımları hazırlar, dış etkil
 
 > **Lumos haber takip etmez; haberden savunma üretir.**
 
+**İlke:** «Lumos, haber tüketmez; deneyim biriktirir.»
+
+**Kontrast (tohum):**
+
+- Klasik: haber → oku → unut
+- Bir tık iyi: haber → özetle → kaydet
+- Lumos: haber → etki? → katman? → ADR/test/kural önerisi
+
+**Sabah brifingi (vizyon tohumu):** 17 haber akışından 14'ü gürültü olarak elenir, 2'si izlemeye alınır, 1'i doğrudan ilgilidir; kullanıcı 17 makale okumaz — tek karar paketi görür: önerilen aksiyonlar (ör. ADR-008, MCP Trust Preflight, connector testi).
+
+**Odak:** «Alakasız şeylerden uzak tut» / bilgi odağı ilkesi — bkz. [Bilgi odağı — sinyal, gürültü değil](#bilgi-odası--sinyal-gürültü-değil) (bu çekmece).
+
 - Durum: ⚪ çekmece · faz tohumu **M0–M1** — production özellik değil; Research Memory vizyon tohumu. Karar Duvarı (`LUMOS-*`) kaydı değil.
 
 **Akış (tohum):**
