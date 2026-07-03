@@ -15,6 +15,11 @@ from core.panel_bridge_state import (  # noqa: E402
 )
 
 
+class _RuntimeLock:
+    def __init__(self, unlocked: bool) -> None:
+        self.unlocked = unlocked
+
+
 def test_task_action_gate_offline_blocks_create(monkeypatch) -> None:
     monkeypatch.delenv("LUMOS_MODE", raising=False)
     monkeypatch.delenv("LUMOS_PROFILE", raising=False)
@@ -115,8 +120,17 @@ def test_task_action_gate_online_unlocked_allows_delete(monkeypatch) -> None:
     monkeypatch.setenv("LUMOS_MODE", "online")
     monkeypatch.setenv("LUMOS_PROFILE", "guvenli_yurut")
     monkeypatch.setenv("LUMOS_SESSION_UNLOCKED", "true")
-    gate = task_action_gate(DELETE_TASK)
+    gate = task_action_gate(DELETE_TASK, runtime_lock_state=_RuntimeLock(True))
     assert gate["enabled"] is True
+
+
+def test_task_action_gate_ignores_session_unlocked_env_without_runtime_lock(monkeypatch) -> None:
+    monkeypatch.setenv("LUMOS_MODE", "online")
+    monkeypatch.setenv("LUMOS_PROFILE", "guvenli_yurut")
+    monkeypatch.setenv("LUMOS_SESSION_UNLOCKED", "true")
+    gate = task_action_gate(DELETE_TASK)
+    assert gate["enabled"] is False
+    assert "koruma aktif" in gate["reason"]
 
 
 def test_task_actions_gate_reason_reflects_env(monkeypatch) -> None:
@@ -195,3 +209,46 @@ def test_task_action_gate_confirmation_put_write_local_blocked(monkeypatch) -> N
     assert gate["enabled"] is False
     assert "[CONFIRMATION_BLOCKED]" in gate["reason"]
     assert "write_local" in gate["reason"]
+
+
+def test_resolve_panel_runtime_lock_injection() -> None:
+    from core.panel_runtime_lock import (  # noqa: E402
+        clear_panel_runtime_lock_hooks,
+        inject_panel_runtime_lock,
+        resolve_panel_runtime_lock,
+    )
+
+    clear_panel_runtime_lock_hooks()
+    try:
+        assert resolve_panel_runtime_lock() is None
+        inject_panel_runtime_lock(_RuntimeLock(True))
+        snap = resolve_panel_runtime_lock()
+        assert snap is not None
+        assert bool(getattr(snap, "unlocked", False)) is True
+    finally:
+        clear_panel_runtime_lock_hooks()
+
+
+def test_panel_tasks_server_gate_resolves_injected_lock(monkeypatch) -> None:
+    from core.panel_runtime_lock import (  # noqa: E402
+        clear_panel_runtime_lock_hooks,
+        inject_panel_runtime_lock,
+    )
+
+    panel_scripts = _REPO_ROOT / "panel" / "scripts"
+    if str(panel_scripts) not in sys.path:
+        sys.path.insert(0, str(panel_scripts))
+    import panel_tasks_server as pts  # noqa: E402
+
+    monkeypatch.setenv("LUMOS_MODE", "online")
+    monkeypatch.setenv("LUMOS_PROFILE", "guvenli_yurut")
+    monkeypatch.delenv("LUMOS_SESSION_UNLOCKED", raising=False)
+    clear_panel_runtime_lock_hooks()
+    try:
+        gate_locked = pts._task_action_gate(DELETE_TASK)
+        assert gate_locked["enabled"] is False
+        inject_panel_runtime_lock(_RuntimeLock(True))
+        gate_unlocked = pts._task_action_gate(DELETE_TASK)
+        assert gate_unlocked["enabled"] is True
+    finally:
+        clear_panel_runtime_lock_hooks()

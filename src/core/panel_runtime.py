@@ -13,6 +13,7 @@ from core.context_store import context_reuse_state, load_context, set_last_activ
 from core.lumos_base_dir import lumos_base_dir
 from core.product_features import build_product_features
 from core.panel_bridge_state import build_panel_read_state
+from core.panel_runtime_lock import resolve_panel_runtime_lock
 from core.runtime_state import get_feature_signal, get_kando_runtime, mark_feature_signal
 
 
@@ -73,7 +74,10 @@ def get_live_read_state(*, repo_root: Path | None = None) -> dict[str, Any]:
         cached["product_features"] = build_product_features(cached)
         return cached
     try:
-        state = build_panel_read_state(repo_root=repo)
+        state = build_panel_read_state(
+            repo_root=repo,
+            runtime_lock_state=resolve_panel_runtime_lock(),
+        )
         live_backend_ok = True
     except Exception:
         state = _read_cached_live_state() or {}

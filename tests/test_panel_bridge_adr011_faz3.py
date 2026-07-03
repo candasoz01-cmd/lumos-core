@@ -11,6 +11,11 @@ if str(_SRC) not in sys.path:
 from core.panel_bridge_state import build_panel_read_state  # noqa: E402
 
 
+class _RuntimeLock:
+    def __init__(self, unlocked: bool) -> None:
+        self.unlocked = unlocked
+
+
 def test_keystore_ready_follows_file_not_consent(tmp_path, monkeypatch):
     """keystore_ready = dosya init; consent ayrı alan."""
     monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path))
@@ -44,7 +49,22 @@ def test_guidance_separates_consent_and_general_approval(tmp_path, monkeypatch):
     assert g["consent_ok"] is False
     assert g["general_approval_active"] is True
     assert g["session_unlocked"] is None
-    assert "doğrulamaz" in g["session_unlocked_note"]
+    assert g["session_unlocked_source"] == "unavailable"
+    assert "kilitli" in g["session_unlocked_note"]
+
+
+def test_guidance_reads_runtime_lockstate_when_provided(tmp_path, monkeypatch):
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path))
+    state = build_panel_read_state(
+        repo_root=_REPO_ROOT,
+        runtime_lock_state=_RuntimeLock(True),
+    )
+    g = state["guidance"]
+    ks = state["keystore"]
+    assert g["session_unlocked"] is True
+    assert g["session_unlocked_source"] == "runtime_lock_state"
+    assert ks["session_unlocked"] is True
+    assert ks["session_unlocked_source"] == "runtime_lock_state"
 
 
 def test_no_misleading_hazir_kilitli_labels(tmp_path, monkeypatch):

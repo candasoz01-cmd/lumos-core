@@ -34,6 +34,7 @@ if _SRC.is_dir() and str(_SRC) not in sys.path:
 
 from core.lumos_base_dir import lumos_base_dir  # noqa: E402
 from core.panel_bridge_state import task_action_gate  # noqa: E402
+from core.panel_runtime_lock import resolve_panel_runtime_lock  # noqa: E402
 from core.workspace_contract import may_perform_permanent_delete  # noqa: E402
 from policy.action_policy import (  # noqa: E402
     COMPLETE_TASK,
@@ -105,6 +106,13 @@ def _simulate_photo_capture() -> tuple[str, str]:
     return ("photo_saved", rel)
 
 
+def _resolved_runtime_lock_state(runtime_lock_state: Any | None = None) -> Any | None:
+    """Handler snapshot: explicit arg overrides process resolver; None → fail-closed."""
+    if runtime_lock_state is not None:
+        return runtime_lock_state
+    return resolve_panel_runtime_lock()
+
+
 def _task_action_gate(
     action: str,
     *,
@@ -114,6 +122,7 @@ def _task_action_gate(
     restore: bool = False,
     confirmation_id: str | None = None,
     scope: dict[str, Any] | None = None,
+    runtime_lock_state: Any | None = None,
 ) -> dict:
     """ADR-012 C6: check_policy + profil matrisi + CU4 confirmation gate."""
     return task_action_gate(
@@ -124,6 +133,7 @@ def _task_action_gate(
         restore=restore,
         confirmation_id=confirmation_id,
         scope=scope,
+        runtime_lock_state=_resolved_runtime_lock_state(runtime_lock_state),
     )
 
 

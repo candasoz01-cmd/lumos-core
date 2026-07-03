@@ -45,7 +45,22 @@ _CODEX_PANEL_WARNING = (
 _PANEL_POLICY_NOTE = "Panel görev mutasyonları check_policy ile sınırlandırılır (ADR-012 C6)."
 
 
-def _panel_policy_context() -> dict:
+def _session_unlocked_from_runtime_lock(runtime_lock_state: Any | None = None) -> tuple[bool | None, str]:
+    """
+    Runtime session signal for panel gates.
+
+    ``None`` means the panel process cannot see the runtime LockState; callers must
+    fail closed instead of trusting legacy env flags.
+    """
+    if runtime_lock_state is None:
+        return None, "unavailable"
+    try:
+        return bool(getattr(runtime_lock_state, "unlocked", False)), "runtime_lock_state"
+    except Exception:
+        return None, "unavailable"
+
+
+def _panel_policy_context(*, runtime_lock_state: Any | None = None) -> dict:
     """CLI `cli_tasks_mutation` ile aynı policy snapshot — panel köprü ortamı."""
     mode = (os.environ.get("LUMOS_MODE") or "offline").strip().lower()
     online = mode == "online"
@@ -57,13 +72,16 @@ def _panel_policy_context() -> dict:
         consent = consent_ok(base)
     except Exception:
         pass
-    # Panel okuma yolu runtime LockState doğrulamaz — CLI fallback: kilitli say.
-    session_unlocked_env = (os.environ.get("LUMOS_SESSION_UNLOCKED") or "").strip().lower()
-    if session_unlocked_env in ("1", "true", "yes"):
-        koruma_active = False
-    else:
-        koruma_active = True
-    return {"online": online, "koruma_active": koruma_active, "consent": consent}
+    session_unlocked, session_source = _session_unlocked_from_runtime_lock(runtime_lock_state)
+    # Runtime LockState görülemiyorsa panel gate güvenli kapalı kalır.
+    koruma_active = session_unlocked is not True
+    return {
+        "online": online,
+        "koruma_active": koruma_active,
+        "consent": consent,
+        "session_unlocked": session_unlocked,
+        "session_unlocked_source": session_source,
+    }
 
 
 def _panel_gate_reason_parts() -> list[str]:
@@ -107,6 +125,7 @@ def task_action_gate(
     restore: bool = False,
     confirmation_id: str | None = None,
     scope: Mapping[str, Any] | None = None,
+    runtime_lock_state: Any | None = None,
 ) -> dict:
     """
     Panel görev mutasyon gate — check_policy (ADR-012 C6) + profil matrisi ikinci kapı.
@@ -119,7 +138,7 @@ def task_action_gate(
     PR-C3: Üçüncü kapı — ``policy.confirmation_policy.check_confirmation`` (CU4).
     ``profile_guard=False`` (delete-permanent policy-only) confirmation kapısını atlar.
     """
-    pr = check_policy(action, _panel_policy_context())
+    pr = check_policy(action, _panel_policy_context(runtime_lock_state=runtime_lock_state))
     parts = _panel_gate_reason_parts()
     if not pr.allowed:
         parts.append(policy_user_message(action, pr.reason))
@@ -189,13 +208,13 @@ def task_action_gate(
     return {"enabled": True, "reason": " ".join(parts)}
 
 
-def task_actions_gate() -> dict:
+def task_actions_gate(*, runtime_lock_state: Any | None = None) -> dict:
     """
     Panel görev mutasyon gate — guidance için CREATE_TASK temsili (ADR-012 C6).
 
     Ayrıntılı complete/delete için ``task_action_gate(action)`` kullanın.
     """
-    return task_action_gate(CREATE_TASK)
+    return task_action_gate(CREATE_TASK, runtime_lock_state=runtime_lock_state)
 
 # Panel status (filtre uyumu): engine status → ekran etiketi
 _TASK_STATUS_MAP = {
@@ -677,8 +696,9 @@ def _panel_keystore_initialized(base: Path, keystore_path: Path | None) -> bool:
         return bool(keystore_path and keystore_path.is_file())
 
 
-_PANEL_SESSION_UNLOCKED_NOTE = (
-    "Panel köprüsü runtime oturum kilidini (session_unlocked) bu okuma yolunda doğrulamaz."
+_PANEL_SESSION_LOCKED_NOTE = "Oturum kilidi runtime LockState'ten doğrulandı."
+_PANEL_SESSION_UNAVAILABLE_NOTE = (
+    "Panel köprüsü runtime LockState sinyalini göremiyor; güvenli varsayım kilitli."
 )
 
 
@@ -746,7 +766,11 @@ def _build_lumos_status(
     }
 
 
-def build_panel_read_state(*, repo_root: Path | None = None) -> dict:
+def build_panel_read_state(
+    *,
+    repo_root: Path | None = None,
+    runtime_lock_state: Any | None = None,
+) -> dict:
     """Depo kökü (lumos_decision_history.jsonl yolu için); verilmezse bu dosyanın repo kökü."""
     repo = repo_root if repo_root is not None else Path(__file__).resolve().parent.parent.parent
     base = _base_dir()
@@ -765,7 +789,14 @@ def build_panel_read_state(*, repo_root: Path | None = None) -> dict:
     except Exception:
         pass
 
-    gate = task_actions_gate()
+    session_unlocked, session_source = _session_unlocked_from_runtime_lock(runtime_lock_state)
+    session_note = (
+        _PANEL_SESSION_LOCKED_NOTE
+        if session_source == "runtime_lock_state"
+        else _PANEL_SESSION_UNAVAILABLE_NOTE
+    )
+
+    gate = task_actions_gate(runtime_lock_state=runtime_lock_state)
     dashboard = {
         "sandbox_mode": is_sandbox,
         "writing_base_dir": writing_label,
@@ -814,7 +845,11 @@ def build_panel_read_state(*, repo_root: Path | None = None) -> dict:
     except Exception:
         pass
     general_status = "ok" if consent else "uyarı"
-    general_note = "Consent kayıtlı. Lock/presence bu hatta doğrulanmaz." if consent else "Consent alınmadı."
+    general_note = (
+        f"Consent kayıtlı. {session_note}"
+        if consent
+        else "Consent alınmadı."
+    )
 
     # workspace_contract: gerçek okuma — modül yüklenip path'ler dönebiliyor mu
     _wc_status, _wc_note = "ok", "Sözleşme yüklü; çekirdek path'ler tanımlı."
@@ -902,17 +937,18 @@ def build_panel_read_state(*, repo_root: Path | None = None) -> dict:
         "consent_ok": consent,
         "consent_state": consent_state,
         "general_approval_active": general_approval_active,
-        "session_unlocked": None,
-        "session_unlocked_note": _PANEL_SESSION_UNLOCKED_NOTE,
+        "session_unlocked": session_unlocked,
+        "session_unlocked_source": session_source,
+        "session_unlocked_note": session_note,
         "keystore_last_update": keystore_last,
         "keystore_write_scope": "Kilit açılmadan hassas yazım yapılmaz",
         "display_note": (
             "consent_ok = consent.json; general_approval_active = LUMOS_GENERAL_APPROVAL env; "
-            "session_unlocked bu köprüde doğrulanmaz (ADR-010)."
+            "session_unlocked runtime LockState sinyalidir; sinyal yoksa panel kilitli sayar (ADR-010)."
         ),
     }
 
-    # Guidance: consent (dosya) ve genel onay (env) ayrı; runtime session_unlocked yok
+    # Guidance: consent (dosya), genel onay (env) ve runtime session lock ayrı sinyallerdir.
     mode = (os.environ.get("LUMOS_MODE") or "offline").strip().lower()
     mode = "online" if mode == "online" else "offline"
     guidance = {
@@ -921,8 +957,9 @@ def build_panel_read_state(*, repo_root: Path | None = None) -> dict:
         "consent_ok": consent,
         "consent_state": consent_state,
         "general_approval_active": general_approval_active,
-        "session_unlocked": None,
-        "session_unlocked_note": _PANEL_SESSION_UNLOCKED_NOTE,
+        "session_unlocked": session_unlocked,
+        "session_unlocked_source": session_source,
+        "session_unlocked_note": session_note,
         "blocked_reason": None,
         "next_step": None,
         "codex_warning": _CODEX_PANEL_WARNING,

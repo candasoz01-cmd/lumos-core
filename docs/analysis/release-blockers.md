@@ -49,15 +49,15 @@ Bu belge **release engellerini** (RB-XX) listeler. Teknik borç uygulama sıras�
 | **30 gün içinde kapanış koşulu** | ~~ADR-012 Madde 1 (PR-C6 wiring) kararı verilir…~~ **Sağlandı** — Wave 1 Madde 1 merge. |
 | **Bağımlılıklar** | RB-05 (Madde 1 kararı kapandı) |
 
-### RB-03 — Panel LockState env vekili vs runtime kilit
+### RB-03 — Panel LockState runtime snapshot besleme
 
 | Alan | Değer |
 |------|-------|
 | **Kategori** | teknik / güvenlik |
-| **Blokaj seviyesi** | hard blocker |
-| **Açıklama** | Panel `koruma_active` / `session_unlocked` için `LUMOS_SESSION_UNLOCKED` env vekili kullanır; CLI `LockState.is_locked()` kullanır. Aynı oturumda farklı güvenlik algısı mümkün. |
+| **Blokaj seviyesi** | hard blocker — **kısmi azaltıldı** |
+| **Açıklama** | Panel `koruma_active` / `session_unlocked` için `LUMOS_SESSION_UNLOCKED` env bypass'ı kaldırıldı; runtime `LockState` snapshot API varsa kullanılır, yoksa panel gate fail-closed kilitli sayar. `panel_runtime_lock.resolve_panel_runtime_lock()` + `panel_tasks_server._resolved_runtime_lock_state()` ile handler/read yolu snapshot alır (same-process inject/provider). Kalan risk: ayrı `panel_tasks_server` sürecine CLI'dan canlı LockState besleme (dosya/IPC) henüz yok. |
 | **Kanıt** | td-03; ADR-012 prep L14, L73–74, L143; [execution-map — td-03](technical-debt-execution-map.md#td-03-panel-lockstate-env) |
-| **30 gün içinde kapanış koşulu** | ADR-012 Madde 6 (Panel LockState) kararı verilir; panel process modeli ile runtime kilit sinyali hizalanır veya codex maddesi resmi defer ile kapatılır. |
+| **30 gün içinde kapanış koşulu** | Panel process modeli ile runtime kilit sinyali canlı hizalanır veya codex maddesi resmi defer ile kapatılır; env bypass geri gelmez. |
 | **Bağımlılıklar** | RB-05, RB-11 |
 
 ### RB-04 — P2 `SECURITY_NEVER_AUTO` dar engine kapsamı
