@@ -23,6 +23,11 @@ def _load_panel_tasks_server():
     return pts
 
 
+class _RuntimeLock:
+    def __init__(self, unlocked: bool) -> None:
+        self.unlocked = unlocked
+
+
 def _simulate_delete_permanent(
     *,
     monkeypatch,
@@ -30,6 +35,7 @@ def _simulate_delete_permanent(
     tid: str,
     confirm: bool | str | None = False,
     confirmation_id: str | None = None,
+    runtime_unlocked: bool | None = None,
 ) -> tuple[str, bool]:
     """
     _post_delete_permanent persist yolu — gate + confirmation + confirm geçerse True.
@@ -37,7 +43,17 @@ def _simulate_delete_permanent(
     """
     monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path))
     pts = _load_panel_tasks_server()
-    gate = pts._task_action_gate(DELETE_TASK, log_on_block=True, profile_guard=False)
+    runtime_lock_state = (
+        _RuntimeLock(runtime_unlocked)
+        if runtime_unlocked is not None
+        else None
+    )
+    gate = pts._task_action_gate(
+        DELETE_TASK,
+        log_on_block=True,
+        profile_guard=False,
+        runtime_lock_state=runtime_lock_state,
+    )
     if not gate["enabled"]:
         return "policy_blocked", False
     body: dict = {"id": tid}
@@ -135,6 +151,7 @@ def test_delete_permanent_confirm_required(tmp_path, monkeypatch) -> None:
         tmp_path=tmp_path,
         tid="tsk_noconfirm",
         confirm=False,
+        runtime_unlocked=True,
     )
     assert status == "confirm_blocked"
     assert deleted is False
@@ -150,6 +167,7 @@ def test_delete_permanent_success(tmp_path, monkeypatch) -> None:
         tmp_path=tmp_path,
         tid="tsk_ok",
         confirm=True,
+        runtime_unlocked=True,
     )
     assert status == "allowed"
     assert deleted is True
@@ -170,6 +188,7 @@ def test_delete_permanent_disabled_confirmation_unchanged(tmp_path, monkeypatch)
         tmp_path=tmp_path,
         tid="tsk_dis",
         confirm=True,
+        runtime_unlocked=True,
     )
     assert status == "allowed"
     assert deleted is True
@@ -186,6 +205,7 @@ def test_delete_permanent_enabled_requires_confirmation(tmp_path, monkeypatch) -
         tmp_path=tmp_path,
         tid="tsk_en_req",
         confirm=False,
+        runtime_unlocked=True,
     )
     assert status == "confirmation_blocked:confirmation_required"
     assert deleted is False
@@ -202,6 +222,7 @@ def test_delete_permanent_enabled_legacy_confirm_alias(tmp_path, monkeypatch) ->
         tmp_path=tmp_path,
         tid="tsk_legacy",
         confirm=True,
+        runtime_unlocked=True,
     )
     assert status == "allowed"
     assert deleted is True
@@ -223,6 +244,7 @@ def test_delete_permanent_enabled_grant_consume(tmp_path, monkeypatch) -> None:
         tid=tid,
         confirm=True,
         confirmation_id=pending.confirmation_id,
+        runtime_unlocked=True,
     )
     assert status == "allowed"
     assert deleted is True
@@ -246,6 +268,7 @@ def test_delete_permanent_enabled_scope_mismatch(tmp_path, monkeypatch) -> None:
         tid="tsk_real",
         confirm=True,
         confirmation_id=pending.confirmation_id,
+        runtime_unlocked=True,
     )
     assert status == "confirmation_blocked:scope_mismatch"
     assert deleted is False
@@ -274,6 +297,7 @@ def test_delete_permanent_enabled_expired_grant(tmp_path, monkeypatch) -> None:
         tid=tid,
         confirm=True,
         confirmation_id=pending.confirmation_id,
+        runtime_unlocked=True,
     )
     assert status == "confirmation_blocked:confirmation_expired"
     assert deleted is False
