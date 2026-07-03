@@ -24,7 +24,7 @@ Bu rapor, önümüzdeki 3 ayda geliştirme hızını yavaşlatabilecek **20 tekn
 |---|--------|-------------|------|
 | 1 | [#td-01-panel-astro](#td-01-panel-astro) | `panel.astro` monolitik UI | kritik |
 | 2 | [#td-02-bridge-cu4-gap](#td-02-bridge-cu4-gap) | Köprü onay yolu CU4 birleşmemiş | kritik |
-| 3 | [#td-03-panel-lockstate-env](#td-03-panel-lockstate-env) | Panel koruma env vekili | kritik |
+| 3 | [#td-03-panel-lockstate-env](#td-03-panel-lockstate-env) | Panel LockState snapshot besleme | kritik |
 | 4 | [#td-04-lumos-gate-monolith](#td-04-lumos-gate-monolith) | `lumos_gate.py` yoğun sorumluluk | yüksek |
 | 5 | [#td-05-cursor-bridge-hub](#td-05-cursor-bridge-hub) | `cursor_bridge.py` orchestration hub | yüksek |
 | 6 | [#td-06-bridge-server-monolith](#td-06-bridge-server-monolith) | `kando_bridge/server.py` birleşimi | yüksek |
@@ -67,15 +67,15 @@ Bu rapor, önümüzdeki 3 ayda geliştirme hızını yavaşlatabilecek **20 tekn
 - **Çözülmezse oluşacak etki:** Panel/CLI confirmation zinciri ile köprü `approval_token` akışı paralel kalır; PR-C6 kapanmaz, enforcement drift devam eder.
 - **Kanıt:** `kando_bridge/server.py` içinde `consume_confirmation` / `pending_confirmations` grep sonucu **0**; `_handle_approve` ~L2195+ `approval_token` doğrulaması; `attach_bridge_pending_confirmation` test edilir ([`tests/test_bridge_confirmation_adapter.py`](../../tests/test_bridge_confirmation_adapter.py)) ama approve sonrası consume testi yok; [ADR-012 prep](ADR-012-enforcement-prep-assessment.md) L43–45, L88–95.
 
-### 3. Panel koruma sinyali env vekili — runtime LockState kopuk {#td-03-panel-lockstate-env}
+### 3. Panel LockState snapshot besleme — runtime süreç modeli açık {#td-03-panel-lockstate-env}
 
 - **Kategori:** Untested critical paths / Non-canonical surfaces
 - **Etkilenen dosyalar:** [`src/core/panel_bridge_state.py`](../../src/core/panel_bridge_state.py), [`panel/scripts/panel_tasks_server.py`](../../panel/scripts/panel_tasks_server.py), [`src/security/lock.py`](../../src/security/lock.py)
 - **Risk seviyesi:** kritik
 - **Tahmini bakım maliyeti:** orta (2–4 person-day)
 - **Çözüm zorluğu:** orta
-- **Çözülmezse oluşacak etki:** Panel mutasyon gate'i `LUMOS_SESSION_UNLOCKED` env'ine dayanır; CLI `LockState.is_locked()` kullanır — aynı oturumda farklı güvenlik algısı oluşabilir.
-- **Kanıt:** `panel_bridge_state.py` L61–65 env okuma; [ADR-012 prep](ADR-012-enforcement-prep-assessment.md) L14, L73–74; trust/LockState testleri yalnızca [`tests/test_panel_bridge_adr011_faz3.py`](../../tests/test_panel_bridge_adr011_faz3.py), [`tests/test_keystore_ready_rename.py`](../../tests/test_keystore_ready_rename.py) — `LockState` panel enforcement için doğrudan test yok.
+- **Çözülmezse oluşacak etki:** Panel mutasyon gate'i runtime LockState snapshot alamazsa fail-closed kilitli kalır; unlock UX ve gerçek panel işlem modeli eksik kalır.
+- **Kanıt:** `panel_bridge_state.py` runtime `LockState` snapshot API + fail-closed; [ADR-012 prep](ADR-012-enforcement-prep-assessment.md) kısmi durum; [`tests/test_panel_bridge_codex_gate.py`](../../tests/test_panel_bridge_codex_gate.py) env bypass regression ve runtime lock allow testi.
 
 ### 4. lumos_gate.py yoğun sorumluluk kümesi {#td-04-lumos-gate-monolith}
 
@@ -260,7 +260,7 @@ Yüksek etki + düşük/orta maliyet önce sıralanmıştır. Etki skoru enforce
 | 3 | **[#13](#td-13-archive-parallel-code) archive/ paralel kod** | Yanlış referans ve grep gürültüsü | Temizlik planı; runtime'a dokunmadan |
 | 4 | **[#10](#td-10-sensitivity-gate-gap) change_sensitivity ↔ gate kopuk** | CRITICAL patch vs gate tutarsızlığı | Orta; karar matrisi ADR-012'de mevcut |
 | 5 | **[#9](#td-09-p2-never-auto-narrow) P2 SECURITY_NEVER_AUTO dar kapsam** | Engine bypass yüksek güvenlik etkisi | Orta; mevcut helper genişletilebilir |
-| 6 | **[#3](#td-03-panel-lockstate-env) Panel LockState env vekili** | Yanlış mutasyon izni algısı | Orta; process model kararı gerekir |
+| 6 | **[#3](#td-03-panel-lockstate-env) Panel LockState snapshot besleme** | Unlock UX / canlı process hizası | Orta; process model kararı gerekir |
 | 7 | **[#8](#td-08-parallel-pending-stores) Paralel pending mağazaları** | Duplicate grant state | Orta; [Madde 2](#td-02-bridge-cu4-gap) ile birlikte ele alınır |
 | 8 | **[#18](#td-18-confirmation-opt-in) Confirmation opt-in drift** | 3. kapı çoğu ortamda kapalı | Düşük teknik maliyet; ürün kararı ayrı |
 | 9 | **[#16](#td-16-cli-parse-monolith) cli_parse monolith** | CLI genişleme sürtünmesi | Orta parser ayrıştırma |

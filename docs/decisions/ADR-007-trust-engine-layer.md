@@ -81,6 +81,7 @@ Hedeflenen işlevler:
 3. **AI Firewall'a güven sinyali sağlamak** — lock, consent, presence, profil, geri alınabilirlik ve katman sinyallerini firewall kararına beslemek (*ADR-006: firewall Trust sinyallerini kullanmalı*; guard ≠ trust).
 4. **AI Router'a hangi işlerin public/yerel/private katmanda çalışabileceğini bildirmek** — `STEP_TYPE_EXTERNAL` / `STEP_TYPE_CRITICAL` blok; `private_layer_required` durumu (*ADR-004: router Trust/Firewall sonrası*).
 5. **Hassas işlem yapılmadan önce güven durumunu kontrol etmek** — `may_execute_step_at_runtime`, `check_policy`, `get_durum_parts`; onaysız dış etki veya kritik işlem yok.
+6. **Bağlanmadan önce geçmiş risk kontrolü yapmak** — yeni connector, paket, servis veya cihaz bileşeni eklenmeden önce geçmiş CVE, tekrar eden açık sınıfı, patch disiplini, istenen yetki genişliği ve daha temiz alternatifler değerlendirilir.
 
 Bu rol ADR-001'deki "AI Firewall → Trust → Router → Memory → Agent Network" öncelik sırasında **trust katmanını** somutlaştırmayı hedefler; firewall oturmadan trust'ın tek başına üretim vaadi taşımaması gerekir (*ADR-006 ile hizalı*).
 
@@ -120,6 +121,41 @@ Trust hedefinde değerlendirilecek sinyaller (*henüz merkezi trust modeli yok*;
 | 7 | **İşlem geri alınabilir mi?** | **reversible action** | `SECURITY_NEVER_AUTO`, trash sözleşmesi | Kalıcı silme otomatik değil; formal sinyal yok; engine enforce gap |
 | 8 | **Dış servis etkisi var mı?** | **private_layer** / **production action** | `profiles` `STEP_TYPE_EXTERNAL`, `offline_engine` | External hiçbir profilde yok; merkezi sınıflandırıcı yok |
 | 9 | **Production config etkisi var mı?** | **irreversible action** | `SECURITY_NEVER_AUTO` `critical_system_config`, `change_sensitivity` CRITICAL | CRITICAL path'ler tanımlı; config intent sınıflandırması yok; gate ile sensitivity bağlı değil |
+
+---
+
+## Trust Preflight: Dependency & Connector History Check
+
+**Türkçe adı:** Bağlanmadan Önce Geçmiş Kontrolü.
+
+**Kural:** Lumos'a yeni bir connector, paket, servis, cihaz bileşeni veya dış araç bağlanmadan önce yalnızca "şu an çalışıyor mu?" sorusu sorulmaz. Parçanın geçmiş risk ve kırılma hafızası da kontrol edilir.
+
+Bu kontrol, "yamalı lastik" riskini görünür kılar: geçmişte aynı yerden patlamış, çok patch yemiş, gereğinden fazla yetki isteyen veya geçici çözümle ayakta duran bileşenler doğrudan güvenilir kabul edilmez.
+
+### Preflight soruları
+
+| # | Soru | Beklenen karar etkisi |
+|---|------|-----------------------|
+| 1 | Son 12-24 ayda kritik CVE veya ciddi güvenlik olayı var mı? | Riskli ise sandbox / sınırlı yetki / alternatif değerlendirme |
+| 2 | Aynı sınıf hata tekrar etmiş mi? | Tekil olay mı, tasarım alışkanlığı mı ayrılır |
+| 3 | Güvenlik yamaları hızlı mı çıkmış, gecikmiş mi? | Bakım güveni ve vendor/maintainer disiplini değerlendirilir |
+| 4 | Bağımlılık veya modül çok patch yemiş mi? | Kırılgan alanlar ekstra izlenir |
+| 5 | Eski auth yöntemi veya zayıf token modeli kullanıyor mu? | Modern auth / vault / kısa ömürlü token şartı aranır |
+| 6 | Gereğinden fazla yetki istiyor mu? | En dar scope veya connector reddi |
+| 7 | Log'a secret, token, PII veya ham istek yazma alışkanlığı var mı? | Redaction ve audit şartı |
+| 8 | "Geçici çözüm" olarak kalmış kritik kod var mı? | `Needs Decision` veya izolasyon |
+| 9 | Daha temiz, daha az yetkili veya daha iyi bakılan alternatif var mı? | Alternatif tercih edilebilir |
+
+### Çıktı sınıfları
+
+| Sonuç | Anlam | Trust davranışı |
+|-------|-------|-----------------|
+| **Clean enough** | Geçmiş risk kabul edilebilir | Normal connector değerlendirmesine geçer |
+| **Patch-sensitive** | Geçmişte aynı sınıf sorunlar var | Sandbox, dar scope, ek audit ve review date gerekir |
+| **High-risk history** | Kritik tekrar, kötü bakım veya aşırı yetki var | Varsayılan red veya private/izole PoC |
+| **Insufficient evidence** | Geçmiş kanıtı yok veya belirsiz | `Needs Decision`; güven varsayılmaz |
+
+Bu bölüm **kod veya otomatik tarayıcı eklemez**. Trust Faz 4 için hedef sözleşmedir; uygulanması ayrı PR/karar konusudur.
 
 ---
 

@@ -4,15 +4,16 @@ Kısa smoke rehberi. Ayrıntılı API ve güvenlik: [Bridge server README](../sc
 
 ## Phase 1: görev köprüsü proxy (`/api/bridge/task`)
 
-Panel görev çağrıları (`POST /task`) artık tarayıcıdan doğrudan köprüye gitmez; same-origin **`/api/bridge/task`** üzerinden Vercel serverless proxy'ye gider. Proxy sunucu tarafında `KANDO_BRIDGE_SECRET` ekler ve `BRIDGE_UPSTREAM_URL/task` adresine iletir.
+Panel görev çağrıları (`POST /task`) artık tarayıcıdan doğrudan köprüye gitmez; same-origin **`/api/bridge/task`** üzerinden Vercel serverless proxy'ye gider. Proxy önce caller auth kontrolü yapar, sonra sunucu tarafında `KANDO_BRIDGE_SECRET` ekler ve `BRIDGE_UPSTREAM_URL/task` adresine iletir.
 
 | Değişken | Konum | Açıklama |
 |----------|--------|----------|
 | `BRIDGE_UPSTREAM_URL` | Vercel / `vercel dev` (sunucu) | Örn. `http://127.0.0.1:8765` |
 | `KANDO_BRIDGE_SECRET` | Vercel / `vercel dev` (sunucu) | Köprü token'ı; tarayıcıya gömülmez |
+| `LUMOS_BRIDGE_PROXY_AUTH_TOKEN` | Vercel / `vercel dev` (sunucu) | `/api/bridge/*` caller auth; smoke için header, prod panel için cookie |
 | `PUBLIC_KANDO_TOKEN` | ui `.env.local` (isteğe bağlı) | **Yalnızca** sohbet / upload / health |
 
-`BRIDGE_UPSTREAM_URL` tanımsızsa proxy **503** döner; panel görev akışı mevcut “bağlantı yapılandırılmamış” UX'ini gösterir.
+`BRIDGE_UPSTREAM_URL` veya proxy auth tanımsızsa proxy **503** döner; proxy auth hatalıysa **401** döner.
 
 ## Phase 2: medya outbox (`/api/bridge/last-result`)
 
@@ -27,6 +28,7 @@ Yerel smoke (proxy ile):
 ```bash
 curl -sS -X POST http://localhost:3000/api/bridge/controlled \
   -H 'Content-Type: application/json' \
+  -H "X-Lumos-Bridge-Auth: $LUMOS_BRIDGE_PROXY_AUTH_TOKEN" \
   -d '{"permission":"file_rw","tool":"read_file","action":"read_file","command":"read","path":"capability/_probe.txt"}'
 ```
 
@@ -35,6 +37,7 @@ Yerel smoke (proxy ile):
 ```bash
 export KANDO_BRIDGE_SECRET='test123'
 export BRIDGE_UPSTREAM_URL='http://127.0.0.1:8765'
+export LUMOS_BRIDGE_PROXY_AUTH_TOKEN='local-proxy-auth'
 ./scripts/bridge_start.sh
 # başka terminal:
 vercel dev   # veya Vercel preview; Astro npm run dev tek başına /api/bridge sunmaz
@@ -119,6 +122,7 @@ python3 panel/scripts/panel_tasks_server.py
 # Depo kökü — görev proxy dahil:
 export BRIDGE_UPSTREAM_URL='http://127.0.0.1:8765'
 export KANDO_BRIDGE_SECRET='test123'
+export LUMOS_BRIDGE_PROXY_AUTH_TOKEN='local-proxy-auth'
 vercel dev
 # Panel: http://127.0.0.1:3000/panel (vercel dev varsayılan portu)
 
@@ -155,6 +159,7 @@ export OPENAI_API_KEY='sk-...'
 |--------|---------|
 | Secret tanımsız | Bridge terminalinde `KANDO_BRIDGE_SECRET` export edildi mi? |
 | Token uyuşmazlığı | İstek `X-Kando-Token` veya `Authorization: Bearer` ile secret'ın aynısı mı? |
+| Proxy auth eksik | `/api/bridge/*` isteğinde `X-Lumos-Bridge-Auth` header'ı veya `lumos_bridge_proxy_auth` cookie var mı? |
 | Ortam uyumsuzluğu | `kando_send.py` / panel `PUBLIC_KANDO_TOKEN` farklı shell'de mi kaldı? |
 
 `GET /health` token istemez; 401 yalnızca korumalı uç noktalarda (ör. `POST /task`).

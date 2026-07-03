@@ -163,6 +163,16 @@ Lumos AI Kurulu, Agent Network içinde icra makamı değil, **bağımsız deneti
 
 Denetim bağımsız olmalıdır. Bir AI, değerlendirmesini başka bir AI'ın sonucuna göre değil, kendi gözlem ve kanıtına göre oluşturur. Başka bir AI'ın "risk var" demesi tek başına kanıt sayılmaz; ancak ortak değerlendirme aşamasında karşılaştırma girdisi olabilir.
 
+Varsayılan kurul akışı **kör inceleme (blind review)** modelidir:
+
+1. Aynı kanıt paketi ilgili AI'lara gönderilir.
+2. Her AI diğer AI sonuçlarını görmeden bağımsız rapor üretir.
+3. Raporlar kilitlenir; sonradan başka bir AI'ın görüşüne göre sessizce değiştirilmez.
+4. Kilitli raporlar ortak değerlendirme aşamasında karşılaştırılır.
+5. Lumos Orkestratör veya kullanıcı nihai kararı verir.
+
+Bu akışta kanıt kişiden veya modelden üstündür; güven, tek bir modele değil yönetişim ilkesine dayanır.
+
 Örnek rol dağılımı:
 
 | Üye / perspektif | Rol | Sınır |

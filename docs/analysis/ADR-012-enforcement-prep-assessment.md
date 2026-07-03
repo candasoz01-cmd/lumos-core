@@ -11,7 +11,7 @@
 - ADR-012 **CLOSED değil**; Faz-2 dalgası (#459–#464) ve Wave 1 Madde 1–2 (#491–#498) panel/CLI policy→profil→confirmation→köprü→P2 zincirini merge etti; confirmation **opt-in** (#461) korunuyor.
 - **Wired:** `task_action_gate`, CLI/panel `ensure_*_confirmation` + `consume_confirmation`, köprü approve/resume consume (#494–#495), tam P2 eşleme tablosu + engine/yüzey sync (#497–#498).
 - **Shadow (geçiş tamamlandı):** PR-C6 shadow adapter #462 → Wave 1 Seçenek B wiring #491–#495 ile `consume_confirmation` tek yol.
-- **Documented-only / gap:** Trust Faz 4 (ADR-007), `change_sensitivity` ↔ `lumos_gate` birleşik zincir, panel `LockState` vs `LUMOS_SESSION_UNLOCKED`.
+- **Documented-only / gap:** Trust Faz 4 (ADR-007), `change_sensitivity` ↔ `lumos_gate` birleşik zincir. Panel `LockState` env bypass'ı kaldırıldı; runtime snapshot API + fail-closed var, ayrı panel süreci için canlı snapshot besleme açık.
 - **Runtime değişikliği:** Bu keşif turunda **sıfır** — yalnızca analiz.
 
 ---
@@ -30,7 +30,7 @@
 | PR-C6 (#462 → Wave 1) | **Kapandı** | Seçenek B: köprü `consume_confirmation` + opt-in (#494–#495); karakterizasyon #491–#493 |
 | P2 engine (#463 → Wave 1) | **Kapandı** | Seçenek B: tam eşleme tablosu #497; engine + panel/CLI/store #498; karakterizasyon #496 |
 | Trust Faz 4 | Açık | Kod yok |
-| Panel LockState | Açık | Env vekili; runtime `LockState` doğrulanmaz |
+| Panel LockState | **Kısmi** | Env vekili bypass kapandı; runtime `LockState` snapshot API + fail-closed; panel process feed açık |
 
 **Sonuç:** Codex C1–C6 sözleşmesi dokümante; enforcement **güçlendi** (CLI/panel görev mutasyonları + köprü CU4 + tam P2). Kapanışı engelleyen üç alan: trust motor, sensitivity↔gate zinciri, panel LockState.
 
@@ -69,8 +69,8 @@
 | Sinyal | Kaynak | Kullanım | Gap |
 |--------|--------|----------|-----|
 | `keystore_ready` | `startup_health.py` L26; panel bridge L671+ | CLI `durum`/`hazir`; panel read payload | Dosya-init; consent'ten ayrıldı (#441) |
-| `session_unlocked` | CLI: `LockState.is_locked()`; panel: **None** + note | CLI doğru; panel doğrulamaz | ADR-011 Faz 4 |
-| `koruma_active` | Panel: `LUMOS_SESSION_UNLOCKED` env L61–65 | Policy delete gate | Runtime kilit değil |
+| `session_unlocked` | CLI: `LockState.is_locked()`; panel: runtime snapshot verilirse bool, yoksa **None** + fail-closed note | CLI doğru; panel snapshot API var | ADR-011 Faz 4 kısmi |
+| `koruma_active` | Panel: runtime `LockState` snapshot yoksa `True`; snapshot unlocked ise `False` | Policy delete gate | Env bypass kaldırıldı; panel server canlı snapshot besleme açık |
 | Consent | `effective_consent`, `consent_ok` | Policy identity/keystore; mutation context | Kalıcı consent panel POST ayrı |
 
 ### P2 `SECURITY_NEVER_AUTO`
@@ -140,7 +140,7 @@ main.py → cli_router → cli_tasks_mutation
 | Seviye | Risk | Etki |
 |--------|------|------|
 | **Blocker** | Köprü onayı CU4'tan bağımsız (`approval_token`); duplicate/onaysız yürütme yolu | PR-C6 gap; codex C3/C6 |
-| **Blocker** | Panel `koruma_active` = env vekili; runtime kilit yansımaz | Yanlış delete/mutation izni algısı |
+| **Blocker** | Panel server ayrı süreçte canlı `LockState` snapshot alamazsa fail-closed kilitli kalır | Yanlış izin algısı azaltıldı; canlı unlock UX/process modeli hâlâ açık |
 | **High** | P2 dar scope — tag eşleşmeyen `external_write` vb. engine'i bypass edebilir | CU6 tam kapanış yok |
 | **High** | Trust Faz 4 yok — consent/keystore/session merkezi değil | ADR-007 + codex C3 kanıt |
 | **Medium** | `change_sensitivity` ↔ `lumos_gate` kopuk | CRITICAL path + düşük gate riski |
@@ -161,7 +161,7 @@ Detaylı fayda/risk, etkilenen bileşenler ve geri dönüş maliyeti: [ADR-012 e
 | 3 | **Trust Faz 4 zamanlaması:** Codex kapanış öncesi mi zorunlu, yoksa köprü+P2 sonrası mı? Panel'de `session_unlocked` runtime'dan mı okunacak? | **karar bekliyor** |
 | 4 | **Sensitivity ↔ gate:** `lumos_gate` risk skoru ile `classify_sensitivity` tek zincirde birleşecek mi; eşik politikası ne? | **karar bekliyor** |
 | 5 | **Confirmation varsayılanı:** Opt-in kalıcı mı (#461); tam varsayılan-on için hangi ürün kapıları (E2E, false positive, köprü duplicate) kapanmalı? | **karar bekliyor** |
-| 6 | **Panel LockState:** `LUMOS_SESSION_UNLOCKED` env vekili kaldırılacak mı; panel sunucusu runtime `LockState`'e nasıl bağlanacak (process model)? | **karar bekliyor** |
+| 6 | **Panel LockState:** env vekili bypass kapandı; panel sunucusu runtime `LockState` snapshot'ını hangi process modeliyle alacak? | **kısmi / process kararı bekliyor** |
 
 ### Top 3 karar maddeleri (insan onayı önceliği)
 

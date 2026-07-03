@@ -124,7 +124,7 @@ ADR-012 Security Codex maddelerinin (C1–C6) repo'da **nerede enforce edildiği
 |------|-------|
 | **Sorumluluk** | Panel HTTP: tasks CRUD, trash, evidence, `/lumos-read-state`, `/lumos-consent` |
 | **Enforce edilen** | Trash'e yazma; evidence journal; consent.json; görev mutasyonları `task_action_gate` → `check_policy` (#443–#446) → `may_execute_step_at_runtime` (#449) → `check_confirmation` (#453–#456, opt-in) |
-| **Gap** | `LUMOS_SESSION_UNLOCKED` env vekili; runtime `LockState` doğrulanmaz (ADR-011); confirmation varsayılan kapalı |
+| **Gap** | Runtime `LockState` snapshot API eklendi; snapshot yoksa panel gate fail-closed kilitli sayar. Ayrı `panel_tasks_server` sürecine canlı LockState besleme hâlâ process-model işi; confirmation varsayılan kapalı |
 | **Codex** | C1 yüzey ✓, C5 trash write ✓, C3 **kısmi** (policy+profil+confirmation opt-in ✓; trust motor eksik)
 
 ---
@@ -277,7 +277,7 @@ PR referansları: #443 policy enforcement, #444 PUT /tasks.json, #445 delete-per
 | **CU4** | Dış etkili aksiyon açık onay | **Merge** #453–#456, #458 | `confirmation_policy`; 3. kapı opt-in; bkz. [CU4 skeleton draft](lumos-cu4-confirmation-skeleton-draft.md) |
 | **CU6** | Geri dönüşsüz otomatik yok | **Kısmi** | #445+#454 delete-permanent; P2 engine branch **merge** #463 (dar kapsam) |
 | **CU7** | Ne/nerede/etki görünürlüğü | **Merge** #457 | `POST /lumos-confirm/request` + panel modal (#455 UI) |
-| **CU10** | Online kimlik/kilit koşulu | **Kısmi** | #451 session_consent CLI; panel env vekili; presence ayrı |
+| **CU10** | Online kimlik/kilit koşulu | **Kısmi** | #451 session_consent CLI; panel LockState snapshot API + fail-closed; panel server canlı snapshot besleme ve presence ayrı |
 
 **Hedef zincir (ADR-010):** policy → consent (`effective_consent`) → profil+GA (#449) → confirmation (#453–#458, opt-in) → NEVER_AUTO.
 
@@ -294,7 +294,7 @@ Detaylı keşif değerlendirmesi: [ADR-012 enforcement prep assessment](ADR-012-
 | Trust motor Faz 4 (ADR-007) | Açık | ADR-011 checkpoint |
 | E2E confirmation akışı (opt-in env ile) | **Kapandı** | PR #459 CLI, #460 panel+API E2E |
 | Confirmation varsayılan-on kararı | **Kapandı (docs)** | Opt-in korunur (#461, E2E #460); tam default-on ertelendi; kod değişikliği yok (DL-C18) |
-| Panel `LockState` vs env vekili | Açık | ADR-011 |
+| Panel `LockState` vs env vekili | Kısmi kapandı | Env bypass kapandı; runtime snapshot API var; panel server process-model besleme açık |
 | `is_security_never_auto()` helper | **Kapandı** | #463 — `profiles.py`; engine scope `permanent_delete` hariç |
 
 ---

@@ -51,7 +51,7 @@ npm run dev
 1. `cp ui/.env.example ui/.env.local` — set `PUBLIC_*` URLs and `PUBLIC_KANDO_TOKEN` for local bridge
 2. `export KANDO_BRIDGE_SECRET='test123'` → `./scripts/bridge_start.sh` (port **8765**)
 3. `python3 panel/scripts/panel_tasks_server.py` (port **8766**)
-4. At repo root: `export BRIDGE_UPSTREAM_URL='http://127.0.0.1:8765'` + same secret → **`vercel dev`**
+4. At repo root: `export BRIDGE_UPSTREAM_URL='http://127.0.0.1:8765'` + same secret + `LUMOS_BRIDGE_PROXY_AUTH_TOKEN` → **`vercel dev`**
 5. Open http://127.0.0.1:3000/panel
 
 For chat: Python venv + `OPENAI_API_KEY` — see runbook.
@@ -75,7 +75,7 @@ Use **`127.0.0.1`** in URLs (not `localhost`) to avoid IPv6 drift on macOS.
 |--|------------------------|--------------------------|
 | Port | 4321 | 3000 |
 | Panel URL | `/panel` on :4321 | `/panel` on :3000 |
-| Task proxy `/api/bridge/task` | Not available (503 / missing) | Works when `BRIDGE_UPSTREAM_URL` set |
+| Task proxy `/api/bridge/task` | Not available (503 / missing) | Works when `BRIDGE_UPSTREAM_URL` + bridge secret + proxy auth are set |
 | Best for | UI-only exploration (Katman A) | Full panel + bridge smoke (Katman B) |
 
 ---
@@ -113,7 +113,7 @@ Full repo layout: [`docs/project-map.md`](project-map.md)
 | `/integrations/mail` | Gmail OD-031 read-only sayfası | OAuth yok — bilgi yüzeyi |
 | `/integrations/linear` | Linear OD-033 planned sayfası | OAuth yok — bilgi yüzeyi |
 | `/cyber`, `/slack` | Ürün varyant sayfaları | Statik |
-| `/api/bridge/*` | **503** `bridge_proxy_unconfigured` | `BRIDGE_UPSTREAM_URL` + secret owner adımı — bkz. [vercel-bridge-proxy-setup.md](vercel-bridge-proxy-setup.md) |
+| `/api/bridge/*` | **503** `bridge_proxy_unconfigured` | `BRIDGE_UPSTREAM_URL` + bridge secret + proxy auth owner adımı — bkz. [vercel-bridge-proxy-setup.md](vercel-bridge-proxy-setup.md) |
 
 **Prod'da görünür (bugünkü merge'ler):** entegrasyon hub + mail/linear sayfaları; panel ORAA resource-mode advisor kartı HTML/i18n (#555–#556); landing ve umbrella nav; sınırlı mod panel kopyası (TR/EN).
 

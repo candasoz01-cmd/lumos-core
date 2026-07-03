@@ -83,6 +83,7 @@ Lumos **kendi kendine tam platform yetkisi üstlenmez**; izin paketi ve kurallar
 | WT9 | **Panel/görev akışı çakışma kontrolü** — Lumos iç görev motoru ile dış platform senkronu çakışmada güvenli davranış. | `decision-approved` |
 | WT10 | **Kalıcı import onaysız yok** — toplu dosya/issue/görev içe aktarma açık onay gerektirir. | `decision-approved` |
 | WT11 | **Takvim/kişi/mail/ticari domain bu belgede değil** — OD-032, OD-031, OD-039–042 ayrı. | `decision-approved` |
+| WT12 | **Bağlanmadan Önce Geçmiş Kontrolü** — yeni connector / paket / servis için son 12-24 ay CVE, tekrar eden açık sınıfı, patch hızı, auth modeli, log/secret geçmişi, yetki genişliği ve daha temiz alternatifler değerlendirilir. | `decision-approved` |
 
 ---
 
@@ -194,6 +195,8 @@ Tüm çalışma araçları connector'ları aşağıdaki **ortak omurgayı** payl
 | **Katman 5** | Diğer benzer araçlar (Jira, Trello, Figma, …) | Listeye ekleme **yeni OD veya indeks güncellemesi** ile | `needs-review` — otomatik listeye alınmaz |
 
 **Firm:** Katman sırası **ilk uygulama önerisidir**; her platform yine de **tek tek** değerlendirme kriterlerini ([`tools-technology-watchlist.md`](./tools-technology-watchlist.md) §Kabul kriterleri) geçmeden implemente edilmez.
+
+**Trust preflight:** Her tekil platform değerlendirmesi ayrıca [ADR-007 Trust Preflight](../decisions/ADR-007-trust-engine-layer.md#trust-preflight-dependency--connector-history-check) kontrolünden geçer. Sonuç `clean enough`, `patch-sensitive`, `high-risk history` veya `insufficient evidence` olarak kaydedilir; riskliyse sandbox, dar scope, ek audit veya alternatif parça değerlendirmesi gerekir.
 
 ---
 

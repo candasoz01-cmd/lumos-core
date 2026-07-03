@@ -43,7 +43,7 @@ Kaynak: ADR-012 checkpoint tablosu + Wave 1 merge kanıtı (#491–#498, docs sy
 | Confirmation varsayılan-on | **Kapandı (docs)** — opt-in korunur (DL-C18) | Tam default-on Wave 2+ |
 | **Trust Faz 4** | Açık | **Defer** — Wave 2+ (Madde 3); Alpha blokaj değil |
 | **Sensitivity ↔ gate** | Açık | **Defer** — Wave 2+ (Madde 4); Madde 3 ön koşulu |
-| **Panel LockState** | Açık | **Defer** — Wave 2+ (Madde 6); env vekili vs runtime kilit (RB-03) |
+| **Panel LockState** | Kısmi | **Defer** — Wave 2+ (Madde 6); env bypass kapandı, runtime snapshot API var; panel process snapshot besleme açık (RB-03) |
 
 **Codex genel durum:** **CLOSED değildir** — bilinçli ve dokümante defer.
 
@@ -55,7 +55,7 @@ Internal Alpha yalnızca ekip içidir. Aşağıdaki iddialar **Alpha'da yapılma
 
 - «Tam güvenlik codex kapanışı» veya «tüm SECURITY_NEVER_AUTO yolları garanti» pazarlama iddiası
 - Production vault / entegrasyon / ödeme vaadi
-- Panel LockState ile CLI kilit durumunun tam hizalı olduğu iddiası
+- Panel LockState ile CLI kilit durumunun tam canlı process hizasına ulaştığı iddiası
 
 Alpha'da yeterli olan: README «early active development», panel **Sınırlı mod** etiketi, demo-safe public boundary ([`public-repo-boundary.md`](public-repo-boundary.md)).
 
@@ -94,7 +94,7 @@ Aşağıdakiler bu defer kaydıyla **authorize edilmez** — ayrı kullanıcı o
 - Trust Faz 4 uygulama PR'ları
 - Confirmation default-on flip
 - Sensitivity ↔ gate enforcement
-- Panel LockState runtime hizalama
+- Panel LockState canlı process snapshot hizalama
 
 ---
 
