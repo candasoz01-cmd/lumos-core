@@ -531,6 +531,8 @@ Aşağıdaki liste mevcut Lumos ilkelerinin mühendislik çevirisidir; yeni huku
 
 **Apple / mağaza şeffaflığı:** App Store ve metadata metinlerinde «her bulutta», «tamamen yerel» gibi iddialar yalnızca **gerçekten desteklenen** depolama akışlarıyla uyumlu olmalı; kullanıcı neyin nerede işlendiğini görebilmeli. Özet: [`app-store-product-safety-privacy.md`](../app-store-product-safety-privacy.md).
 
+**v1 Apple capability boundary (M0 pointer):** İlk App Store sürümünde Apple entitlement'ları minimal tutulur — Sign in with Apple, Push, iCloud, App Groups, Siri/Shortcuts vb. yalnızca gerçek ürün ihtiyacı + kanıt + gizlilik etiketi güncellemesi ile tek tek açılır; «ileride lazım olur» diye açılmaz. Operasyonel tek kaynak: [`app-store-review-prep.md`](../app-store-review-prep.md) §5 v1 Capability boundary (Apple services).
+
 **Anti-pattern:**
 
 - Pazarlama dili «her bulutta» / «tamamen yerel» — destek olmadan vaat.
