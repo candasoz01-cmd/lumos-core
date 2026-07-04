@@ -61,13 +61,35 @@ Legal review: N/A (sahte onay yok)
 🚫 Kapsam dışı: Hemen packages/secure-device klasörü oluşturma; ayrı repo oluşturma; NA-01; Trust Phase 4 implementasyonu; Connector Layer; scripts/anchorusb track
 2026-07-04 notu: AnchorUSB binary governance için `docs/memory/anchorusb-repository-governance-decision.md` eklendi; `scripts/anchorusb/bin/` local POC artifact olarak ignored.
 Decision level: L1 (mimari / governance)
-İlişkili kararlar: LUMOS-0018 (AnchorUSB Faz A/B/C), LUMOS-0009 (Trust), LUMOS-0012 (ürün aileleri), knowledge-repository-lifecycle
-Etkilenen dosyalar: docs/drafts/BACKLOG.md
-Son güncelleme: 2026-07-03
+İlişkili kararlar: LUMOS-0018 (AnchorUSB Faz A/B/C), LUMOS-0009 (Trust), LUMOS-0012 (ürün aileleri), knowledge-repository-lifecycle, anchorusb-repository-governance-decision
+Etkilenen dosyalar: docs/drafts/BACKLOG.md, docs/memory/anchorusb-repository-governance-decision.md
+Son güncelleme: 2026-07-04
 ```
 
 ```
--07-04
+ID: LUMOS-0018
+[2026-07-03] 🟢 AKTİF
+🟢 Karar: AnchorUSB — ürün sınırı ve repo konumu (macOS POC). Çekirdek ilke: AnchorUSB, Secure Device Framework (SDF) için macOS POC laboratuvarıdır; Lumos Key değildir, production güvenlik aracı değil.
+🎯 Gerekçe:
+- `scripts/anchorusb/` şimdilik commit edilmez — deney laboratuvarı, macOS POC, üretim kodu değil
+- Secure Device Framework (tasarım, doküman, Rust crate, mimari) repo içinde gelişmeye devam eder — zaten main'de (#549-#551)
+- AnchorUSB = SDF'nin macOS POC'si; Lumos Key değil, production güvenlik aracı değil
+Fazlar:
+- Faz A (repo): SDF tasarım, doküman, crates, mimari
+- Faz B (lokal/untracked şimdilik): scripts/anchorusb/ POC laboratuvarı
+- Faz C (gelecek): Linux/Windows/TPM/Secure Enclave/YubiKey/FIDO2 vb. olgunlaşınca → Secure Device Framework ürünü; product-grade hattı hedef repo `lumos-anchorusb` (bkz. governance memory) — bugün karar değil
+Taşınabilirlik ve lifecycle:
+- «Bağımsız tasarla, ayrı repo açma» — taşınabilir niyet, ilk ev lumos-core
+- Lifecycle: Needs Decision → Planned kapısı geçilmeden scripts track edilmez
+- Public exposure: açık onay gerekir (device-control-adjacent)
+Evidence: Team product boundary articulation
+Legal review: N/A (sahte onay yok)
+🚫 Kapsam dışı: scripts/anchorusb/ dosyalarının bu kararla commit edilmesi; NA-01; Trust Phase 4; Connector Layer implementasyonu
+2026-07-04 notu: Binary governance ve extraction hedefi `docs/memory/anchorusb-repository-governance-decision.md`; `scripts/anchorusb/bin/` local POC artifact, ignored — commit yüzeyi değil.
+Decision level: L1 (ürün sınırı / repo konumu)
+İlişkili kararlar: LUMOS-0019 (mimari vs repo), LUMOS-0009, knowledge-repository-lifecycle AnchorUSB satırı, crates/anchorusb-*, anchorusb-repository-governance-decision
+Etkilenen dosyalar: docs/drafts/BACKLOG.md, docs/memory/anchorusb-repository-governance-decision.md
+Son güncelleme: 2026-07-04
 ```
 
 ```
