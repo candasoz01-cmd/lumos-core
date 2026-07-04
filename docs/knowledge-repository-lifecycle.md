@@ -24,6 +24,28 @@ Boş alan olabilir; yanlış alan olmaz. Sahip, kanıt veya onay yoksa uydurulma
 
 ---
 
+## 2b. Bilgi mimarisi — tek kaynak, işaretçi harita
+
+**Bilgi tek yerde yaşar. Diğer her yer onu işaret eder.**
+
+- **Ev (canonical):** Bilginin asıl metni tek dosyada durur — tek kaynak.
+- **Harita (indeks):** Liste ve indeksler adres tutar; içerik taşımaz, yalnızca canonical yola işaret eder.
+- **Yanlış:** sohbet → dosya A → dosya B → liste C (aynı içerik, drift riski).
+- **Doğru:** sohbet → tek kaynak (rolüne göre vision / ADR / setup) → liste yalnızca pointer.
+
+**Katman rolleri:**
+
+| Rol | İşlev |
+|-----|-------|
+| Vision Draft | Tohum — fikir çekmecesi; karar değil |
+| ADR / LUMOS-* | Karar — kesin kayıt ve gerekçe |
+| Setup | Operasyon — kurulum ve çalıştırma |
+| Liste / indeks | Adres — canonical path'e link; içerik kopyalanmaz |
+
+İndeks veya liste aynı metni tekrar yazmaz; yalnızca canonical dosya yoluna link verir.
+
+---
+
 ## 3. Repository Katmanları
 
 | Katman | İçerik |

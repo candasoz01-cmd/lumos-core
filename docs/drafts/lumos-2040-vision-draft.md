@@ -17,6 +17,8 @@
 
 **Karar şeması / ilişki:** [`docs/drafts/decision-engine-schema.md`](./decision-engine-schema.md) — bir fikir çekmeceden mezun olursa buradaki alanlar doldurulur; uydurma onay yazılmaz.
 
+**Bilgi mimarisi:** Bu dosya tohum evidir; tek-kaynak / işaretçi-harita kuralı [`knowledge-repository-lifecycle.md`](../knowledge-repository-lifecycle.md) §2b'de tanımlıdır — liste ve indeksler yalnızca pointer taşır.
+
 ---
 
 ## Kurumsal ilke (vazgeçilmez)
