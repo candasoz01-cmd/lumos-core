@@ -504,6 +504,48 @@ Aşağıdaki liste mevcut Lumos ilkelerinin mühendislik çevirisidir; yeni huku
 - [Konduktör — blind review protokolü §6](#6-blind-review-protokolü)
 - [Temsilci model (representative)](#temsilci-model-representative) — kullanıcı adına hareket, kullanıcı yerine karar vermez.
 
+### Depolama seçimi ve veri sahipliği (Storage choice — vision tohumu)
+
+> **Lumos kullanıcıyı belirli bir depolama modeline zorlamaz.** Yerel, kendi altyapısı, desteklenen bulut — seçim kullanıcıda. *(EN: Lumos does not force a single storage model; local, self-hosted, or supported cloud — the choice stays with the user.)*
+
+| Alan | Değer |
+|------|-------|
+| **Durum** | ⚪ çekmece · **M0** — vizyon tohumu |
+| **Olgunluk** | **M0 Concept** ([`knowledge-repository-lifecycle.md`](../knowledge-repository-lifecycle.md) §5) |
+| **Karar Duvarı** | Bu madde `LUMOS-*` kaydı **değildir** |
+
+**İlkeler:**
+
+- **Verinin sahibi kullanıcıdır.** Lumos, kullanıcının seçtiği altyapıda çalışacak şekilde tasarlanır. *(User owns the data; Lumos runs on infrastructure the user selects.)*
+- **Anlamadan dinlemeden depolama dayatılmaz** — depolama tercihi, kullanıcının bağlamını anlamadan ve dinlemeden tek model olarak sunulmaz; [Epistemoloji / sorgulanabilirlik](#epistemoloji--sorgulanabilirlik-karakter-tohumu) ilkesiyle hizalı (dinlemeden cevap vermek anti-pattern).
+- **Şeffaflık zorunlu:** Kullanıcı neyin nerede saklandığını ve işlendiğini bilmeli; iddia ile gerçek veri akışı eşleşmeli — bkz. [`app-store-product-safety-privacy.md`](../app-store-product-safety-privacy.md) (data location transparency).
+
+**Avantajlar (vizyon — taahhüt değil):**
+
+| Avantaj | Kısa |
+|---------|------|
+| **Kontrol** | Kullanıcı verinin nerede yaşadığını seçer |
+| **Tek satıcı kilidi yok** | Desteklenen modeller arasında geçiş mümkün olabilir |
+| **Kurumsal kendi altyapısı** | Enterprise kendi ortamında çalıştırabilir |
+| **Gizlilik hassas kullanıcılar** | Yerel veya self-hosted tercih edebilir |
+
+**Apple / mağaza şeffaflığı:** App Store ve metadata metinlerinde «her bulutta», «tamamen yerel» gibi iddialar yalnızca **gerçekten desteklenen** depolama akışlarıyla uyumlu olmalı; kullanıcı neyin nerede işlendiğini görebilmeli. Özet: [`app-store-product-safety-privacy.md`](../app-store-product-safety-privacy.md).
+
+**Anti-pattern:**
+
+- Pazarlama dili «her bulutta» / «tamamen yerel» — destek olmadan vaat.
+- Şeffaflık metni ile gerçek veri akışı uyuşmazlığı (Privacy Nutrition Label, in-app copy vs actual flow).
+- Kullanıcıya tek depolama modelini «varsayılan ve tek doğru» olarak dayatmak.
+
+**Tek kaynak:** Bu blok canonical metindir. Liste ve indeksler aynı içeriği kopyalamaz — yalnızca [`knowledge-repository-lifecycle.md`](../knowledge-repository-lifecycle.md) §2b işaretçi kuralına uygun pointer taşır.
+
+**Çapraz referans:**
+
+- [`BACKLOG.md` — LUMOS-0006](./BACKLOG.md) — yerel-önce panel UX; yerel iş mümkünken gereksiz «tam bağlantı» duvarı yok.
+- [Epistemoloji / sorgulanabilirlik](#epistemoloji--sorgulanabilirlik-karakter-tohumu) — anlamadan dayatma yok; kanıt ve dinleme.
+- [`app-store-product-safety-privacy.md`](../app-store-product-safety-privacy.md) — data location transparency, iddia ↔ uygulama eşleşmesi.
+- [`knowledge-repository-lifecycle.md`](../knowledge-repository-lifecycle.md) §2b — tek kaynak / pointer haritası.
+
 ### Sorgulanabilirlik ve enerji dengesi
 
 > **Kanıtsız aynı tartışmayı tekrar etmek enerji israfıdır.**
@@ -616,4 +658,4 @@ Burada sahte onay, «Approved by» veya vendor endorsement **yazılmaz** (bkz. L
 
 ---
 
-*Son güncelleme: 2026-07-04 (epistemoloji/sorgulanabilirlik metni netleştirildi; enerji ilkesi öne çıkarıldı) · Belge durumu: TASLAK / çekmece*
+*Son güncelleme: 2026-07-04 (depolama seçimi / veri sahipliği M0 tohumu eklendi) · Belge durumu: TASLAK / çekmece*
