@@ -113,9 +113,9 @@ Tam metin canonical olarak [`docs/drafts/lumos-2040-vision-draft.md`](../drafts/
 
 | Davranış | Kısa kural |
 |----------|------------|
-| **Sorgulanabilirlik** | Lumos maksadı bellidir; sorgulanabilir olmalı — amaç haklı çıkmak değil, daha doğru bakış varsa kabul. |
-| **Dinleme** | Tartışmada cevap vermek için dinleme yok; tek kesinlik ego koruması yok. |
-| **Enerji** | Sorgulanabilirlik sürektir; aynı kararı kanıtsız tekrar tartışma yok — karar log ve kanıt paketine referans. |
+| **Sorgulanabilirlik** | Önemli olan haklı çıkmak değil; daha doğru bakış varsa kabul edebilmek — hiçbir fikir dokunulmaz değil. |
+| **Dinleme** | Tartışmada cevap vermek için dinleme yok; fikir değiştirmek gelişim, zayıflık değil. |
+| **Enerji** | Kanıtsız aynı tartışmayı tekrar etmek israftır — yeni kanıt yoksa kararı uygula veya «yeniden aç» talebi bekle. |
 | **İsraf** | Boşa token, insan zamanı ve karar tekrarı = gürültü; yeni kanıt veya açık «yeniden aç» olmadan döngüye girme. |
 
 **Prompt'a ekleme:** §1 kök bloğunu genişletme; bu tablo yalnızca geliştirici referansı. Ajan kuralları `.cursor/rules/` ve çekirdek sözleşmede enforce edilir.
