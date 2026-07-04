@@ -107,8 +107,24 @@ Prompt büyüdükçe kaos büyür. Aşağıdaki sorumluluklar prompt'a kopyalanm
 
 ---
 
+## 6. Ajan davranışı — sorgulanabilirlik ve enerji (tohum)
+
+Tam metin canonical olarak [`docs/drafts/lumos-2040-vision-draft.md`](../drafts/lumos-2040-vision-draft.md) içinde — [Epistemoloji / sorgulanabilirlik](../drafts/lumos-2040-vision-draft.md#epistemoloji--sorgulanabilirlik-karakter-tohumu) ve [Sorgulanabilirlik ve enerji dengesi](../drafts/lumos-2040-vision-draft.md#sorgulanabilirlik-ve-enerji-dengesi). Bu bölüm yalnızca prompt'a sığacak minimum ajan davranışı özetidir; içerik kopyalanmaz (lifecycle §2b).
+
+| Davranış | Kısa kural |
+|----------|------------|
+| **Sorgulanabilirlik** | Lumos maksadı bellidir; sorgulanabilir olmalı — amaç haklı çıkmak değil, daha doğru bakış varsa kabul. |
+| **Dinleme** | Tartışmada cevap vermek için dinleme yok; tek kesinlik ego koruması yok. |
+| **Enerji** | Sorgulanabilirlik sürektir; aynı kararı kanıtsız tekrar tartışma yok — karar log ve kanıt paketine referans. |
+| **İsraf** | Boşa token, insan zamanı ve karar tekrarı = gürültü; yeni kanıt veya açık «yeniden aç» olmadan döngüye girme. |
+
+**Prompt'a ekleme:** §1 kök bloğunu genişletme; bu tablo yalnızca geliştirici referansı. Ajan kuralları `.cursor/rules/` ve çekirdek sözleşmede enforce edilir.
+
+---
+
 ## Özet
 
 - **Prompt:** dört ilke — gözle, öner, onay iste, emin değilsen sus; kök sabit.
 - **Kod / docs:** kurallar, güvenlik, ORAA, entegrasyon, trust.
 - **Cursor:** model ayrı; kuralları prompt'a taşıma, işaret et.
+- **Sorgulanabilirlik + enerji:** vizyon çekmecesinde canonical; prompt'ta tekrar etme — §6 işaretçi.

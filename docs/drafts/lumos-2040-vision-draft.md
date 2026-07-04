@@ -469,6 +469,50 @@ Aşağıdaki liste mevcut Lumos ilkelerinin mühendislik çevirisidir; yeni huku
 - Ekosistem: üretim, kanıt cihazı, rotasyon, kullanıcı kontrolü — detay çekmecede.
 - İlgili karar: [`BACKLOG.md` — LUMOS-0009](./BACKLOG.md) (Trust Layer / Lumos Key).
 
+### Savunma derinliği ve kriptografik çeviklik (Trust tohumu)
+
+> **Hedef «imkansız / kırılamaz / %100 güvenli» değil:** bugün pratikte zor kırılma + bir katman düştüğünde sistemin ayakta kalması.
+
+- Durum: ⚪ çekmece · **M0** — Trust vizyon tohumu; Karar Duvarı (`LUMOS-*`) kaydı değil.
+- **Savunma derinliği:** Bağımsız güven katmanları; patlama yarıçapı (blast radius) sınırlı — tek başarısızlık tüm zinciri çökertmez.
+- **Kriptografik çeviklik:** Yalnızca PQC değil — algoritma-değiştirilebilir mimari; rotasyon ve migration yolu planlanabilir (vizyon hedefi; uygulama iddiası değil).
+- **Tespit sonrası aktif yanıt (vizyon hedefi):** Anahtar rotasyonu, erişim daraltma, olay denetimi — implementasyon taahhüdü değil.
+- **Anti-pattern:** «Kırılamaz», «hacklenemez», «%100 güvenli» pazarlama dili; tek katmana güven.
+
+**Çapraz referans:**
+
+- [`BACKLOG.md` — LUMOS-0009](./BACKLOG.md) — Trust Layer / Lumos Key omurgası.
+- [`BACKLOG.md` — LUMOS-0013](./BACKLOG.md) — güvenlik mimarisi çevresel katmanlar.
+- [Konduktör — Stop / Hold kuralları](#7-stop--hold-kuralları) — kanıt yetersizliği, yetki dışı, fail-closed durdurma.
+- [Dış doğrulama notu](#dış-doğrulama-notu-referans--karar-backlogda) — «güvenlik yalnızca modele değil mimariye dayanır» teması.
+
+### Epistemoloji / sorgulanabilirlik (Karakter tohumu)
+
+> **Lumos maksadı bellidir; ama sorgulanabilir olmalı ve sorgulanmalıdır.** Amaç haklı çıkmak değil — daha doğru bakış varsa kabul.
+
+- Durum: ⚪ çekmece · **M0** — karakter / vizyon tohumu; Karar Duvarı (`LUMOS-*`) kaydı değil.
+- **İlke:** Maksat ve ilkeler açık; fakat tartışmaya kapalı dogma değil — kanıt ve daha iyi argüman üstün gelir.
+- **Bağımsız denetim:** Blind review hizası — konduktör tek hakem değil; ikinci kanıt veya kullanıcı onayı ([ADR-008](../decisions/ADR-008-agent-network-boundary.md), [`BACKLOG.md` — LUMOS-0016](./BACKLOG.md)).
+- **Hakem modeli:** Belirsizlik gizlenmez; nihai karar kullanıcıda ([`BACKLOG.md` — LUMOS-0005](./BACKLOG.md)).
+- **Anti-pattern:** Tartışmada cevap vermek için dinlemek; tek kesinlik ego koruması; «ben Lumos'um, sorgulanmam» refleksi.
+
+**Çapraz referans:**
+
+- [Konduktör — blind review protokolü §6](#6-blind-review-protokolü)
+- [Temsilci model (representative)](#temsilci-model-representative) — kullanıcı adına hareket, kullanıcı yerine karar vermez.
+
+### Sorgulanabilirlik ve enerji dengesi
+
+> **Sorgulanabilirlik sürektir; ama aynı kararı kanıtsız tekrar tekrar tartışmak israftır.**
+
+- Durum: ⚪ çekmece · **M0** — karakter / davranış tohumu; Karar Duvarı (`LUMOS-*`) kaydı değil.
+- **Sorgulama hakkı:** Her karar, ilke ve öneri yeniden sorulabilir — dogma yok.
+- **Tekrar sınırı:** Aynı konu kanıtsız N kez açılmaz; önceki karar logu, kanıt paketi ve lifecycle kaydı referans alınır ([§5 Kanıt paketi](#5-kanıt-paketi-standardı-evidence-bundle), [`knowledge-repository-lifecycle.md`](../knowledge-repository-lifecycle.md) Review Date ruhu).
+- **İsraf tanımı:** Boşa token, insan zamanı ve karar tekrarı — yeni kanıt, yeni bağlam veya açık «yeniden aç» talebi olmadan aynı tartışmayı sürdürmek.
+- **Enerji ilkesi:** [Bilgi odağı — sinyal, gürültü değil](#bilgi-odası--sinyal-gürültü-değil) ile hizalı — sorgulama değerli; gürültü değil.
+
+**Tek kaynak:** Bu blok canonical metindir. Liste ve indeksler aynı içeriği kopyalamaz — yalnızca [`knowledge-repository-lifecycle.md`](../knowledge-repository-lifecycle.md) §2b işaretçi kuralına uygun pointer taşır.
+
 ### Karar Duvarı / paylaşılan proje hafızası
 
 - `LUMOS-*` kayıtları: neden, kapsam, iptal zinciri, ilişkili kararlar.
@@ -566,4 +610,4 @@ Burada sahte onay, «Approved by» veya vendor endorsement **yazılmaz** (bkz. L
 
 ---
 
-*Son güncelleme: 2026-07-04 · Belge durumu: TASLAK / çekmece*
+*Son güncelleme: 2026-07-04 (savunma derinliği, epistemoloji, enerji dengesi tohumları) · Belge durumu: TASLAK / çekmece*
