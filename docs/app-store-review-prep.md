@@ -5,30 +5,34 @@
 | **Document type** | Operational / review prep (docs only) |
 | **Audience** | Apple App Review + internal release ops |
 | **Status** | **Prep template** — native iOS app not in `lumos-core` yet |
-| **Related** | [`MOBILE_PHASE_0_PWA.md`](MOBILE_PHASE_0_PWA.md), [`lumos-mobile-approval-mvp-plan.md`](analysis/lumos-mobile-approval-mvp-plan.md), [`INTERNAL_ALPHA_RELEASE_SCOPE.md`](INTERNAL_ALPHA_RELEASE_SCOPE.md) |
+| **Related** | [`MOBILE_PHASE_0_PWA.md`](MOBILE_PHASE_0_PWA.md), [`lumos-mobile-approval-mvp-plan.md`](analysis/lumos-mobile-approval-mvp-plan.md), [`INTERNAL_ALPHA_RELEASE_SCOPE.md`](INTERNAL_ALPHA_RELEASE_SCOPE.md), [`app-store-product-safety-privacy.md`](app-store-product-safety-privacy.md) |
 
 ---
 
 ## 1. Purpose
 
-This document prepares **App Store Connect** materials for **Lumos Mobile** (native iOS). It is safe for the public OSS repo: **example credentials only**, no production secrets.
+This document prepares **App Store Connect** materials for **Lumos Mobile** (native iOS). It is safe for the public OSS repo: **placeholders only**, no production secrets, **no real review credentials in git**.
 
 **Current repo reality:** `lumos-core` ships a **web panel + PWA shell** and an OSS **mobile web approval UI** (`GET /relay/mobile`). A **native iOS binary is not in this repository**; engineering must implement Review Mode in the **private mobile app repo** before submission.
 
+**Product safety & privacy positioning:** See [`app-store-product-safety-privacy.md`](app-store-product-safety-privacy.md) — do not duplicate that content here.
+
 ---
 
-## 2. Demo account — App Store Connect (copy-paste block)
+## 2. Demo account — placeholders (repo-safe)
 
 > **REVIEW-ONLY — NOT PRODUCTION**  
-> Do not reuse these values in production. Rotate after each review cycle.
+> Real credentials **never** belong in this public repository. Set actual values only in **App Store Connect** (Review Notes / Sign-in required) and in a private ops vault. **Rotate after each review cycle.**
 
 ```
-Username / Email: review@lumos.ai
-Password:         Review2026!
+Username / Email: (App Store Connect Review Account — provision before submission)
+Password:         (Provided only in App Store Connect Review Notes — not in git)
 
 Account type:     Demo / App Review (pre-provisioned)
 Environment:      Review Mode — hosted demo workspace (see §4)
 ```
+
+**Pre-submission requirement:** The review account **must be created and seeded on the hosted demo API before submission**. Apple reviewers cannot sign in if the account does not exist.
 
 **Sign-in notes for reviewers:**
 - No email verification required for this account.
@@ -39,12 +43,16 @@ Environment:      Review Mode — hosted demo workspace (see §4)
 
 ## 3. App Store Connect — Review Notes (English, paste-ready)
 
+### 3.1 Repo template (placeholders — safe for git)
+
+Use this block as the **structure** only. Replace bracketed tokens in App Store Connect; do not commit filled values.
+
 ```
 Thank you for reviewing Lumos.
 
 DEMO ACCOUNT (full access)
-Email:    review@lumos.ai
-Password: Review2026!
+Email:    [REVIEW_EMAIL]
+Password: [REVIEW_PASSWORD]
 
 This is a dedicated App Review account with a pre-provisioned Demo Workspace.
 It contains synthetic sample data only — no real user emails, contacts, files,
@@ -82,8 +90,24 @@ demos and can be skipped.
 If anything is unclear or a screen appears empty, please contact us via
 App Store Connect — we respond within 24 hours.
 
-Support contact: support@welockai.com
+Support contact: [SUPPORT_EMAIL — must be active before submission]
+
+The review account is intended solely for App Store evaluation. It contains
+only synthetic demonstration data and cannot access any production user
+information or customer accounts.
 ```
+
+### 3.2 Ops-only (App Store Connect)
+
+> **Do not commit this subsection with real values.** Paste filled credentials **only** into App Store Connect fields (Review Notes + Sign-in required). Store the password in a private ops vault.
+
+| Field | Where to set | Value |
+|-------|----------------|-------|
+| Review email | App Store Connect → Review Notes + Sign-in required | Ops-provisioned review account email |
+| Review password | App Store Connect → Review Notes only | Ops-generated; rotate after each review cycle |
+| Support email | App Store Connect → App Information | `[SUPPORT_EMAIL — must be active before submission]` until ops confirms an active mailbox |
+
+**Security:** Real credentials **never** in public git. After each App Review cycle, rotate the demo password and optionally reset the demo tenant.
 
 ---
 
@@ -101,7 +125,7 @@ Support contact: support@welockai.com
 
 ### 4.2 Activation (implement in native app + backend)
 
-1. **Account flag:** `is_review_account=true` on `review@lumos.ai` (server-side).
+1. **Account flag:** `is_review_account=true` on the ops-provisioned review account (server-side).
 2. **Client flag:** On login, app enters `reviewMode` — ignores local bridge discovery.
 3. **Hosted demo API:** Review builds use `LUMOS_REVIEW_API_BASE` (staging/demo host), not user PC.
 4. **Bootstrap payload:** Server returns pre-built workspace:
@@ -141,9 +165,10 @@ Support contact: support@welockai.com
 ## 5. Pre-submission checklist
 
 ### App Store Connect
-- [ ] Demo account created and tested on physical device
-- [ ] Review Notes pasted (§3)
-- [ ] Demo credentials in "Sign-in required" section (§2)
+- [ ] Demo account **created on hosted demo API** and tested on physical device
+- [ ] Review Notes pasted (§3) with real credentials set **in Connect only**
+- [ ] Demo credentials in "Sign-in required" section (§3.2 — Connect, not git)
+- [ ] Support email active and listed in App Information
 - [ ] Privacy Nutrition Labels match demo behavior (no real data collection in review path)
 - [ ] Export compliance / encryption questionnaire completed
 - [ ] Support URL and privacy policy URL live
@@ -151,7 +176,7 @@ Support contact: support@welockai.com
 ### Engineering (native app — not in this repo yet)
 - [ ] `reviewMode` bypasses Limited mode and local bridge
 - [ ] Hosted demo API deployed and stable
-- [ ] `review@lumos.ai` seeded; login works without extra steps
+- [ ] Review account seeded; login works without extra steps
 - [ ] All primary tabs reachable with sample content
 - [ ] Approve/reject flow works end-to-end (stub execution)
 - [ ] No production secrets in review build
@@ -173,7 +198,7 @@ Support contact: support@welockai.com
 | G2 | **Cloud auth** (email/password or Sign in with Apple for review account) | Backend / identity service |
 | G3 | **Review Mode + Demo Workspace API** | Backend + mobile |
 | G4 | **Hosted demo environment** (not localhost bridge) | DevOps |
-| G5 | **Review account provisioning** (`review@lumos.ai`) | Ops — **rotate `Review2026!` before each cycle** |
+| G5 | **Review account provisioning** (ops-provisioned email; password in Connect + vault only) | Ops — **rotate after each review cycle** |
 | G6 | **Full-path QA** on review account (no Limited mode dead ends) | Mobile QA |
 
 **OSS repo today:** PWA + panel + LAN mobile web UI only. Treat this doc as the **submission template** until G1–G6 are done.
@@ -182,20 +207,25 @@ Support contact: support@welockai.com
 
 ## 7. Security reminder
 
-- Never commit real review passwords or API keys to git.
-- Example credentials in this doc are **placeholders**; set actual values in App Store Connect and private ops vault only.
-- After review, rotate demo password and optionally reset demo tenant data.
+- **Never** commit real review passwords, API keys, or support credentials to git.
+- Placeholders in this doc are intentional; set actual values in **App Store Connect** and private ops vault only.
+- After each review cycle: rotate demo password and optionally reset demo tenant data.
+- For product safety, privacy labels, and Apple risk framing, see [`app-store-product-safety-privacy.md`](app-store-product-safety-privacy.md).
 
 ---
 
 ## Appendix — minimum viable Review Notes (short excerpt)
 
-Use the full block in §3 above. Minimum viable paste:
+Use the full block in §3.1 above. Minimum viable paste (fill tokens in Connect only):
 
 ```
-Demo account (full access): review@lumos.ai / Review2026!
+Demo account (full access): [REVIEW_EMAIL] / [REVIEW_PASSWORD]
 Pre-provisioned Demo Workspace with synthetic data only — no real PII.
 Sign in → explore Dashboard, Chat, Approvals, Settings. No local PC or VPN needed.
 External send/payments/device control are stubbed or labeled "Demo — not connected."
-Contact: support@welockai.com
+Contact: [SUPPORT_EMAIL — must be active before submission]
+
+The review account is intended solely for App Store evaluation. It contains
+only synthetic demonstration data and cannot access any production user
+information or customer accounts.
 ```
