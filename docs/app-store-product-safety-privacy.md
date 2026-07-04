@@ -20,7 +20,7 @@ Canonical source: [`internal/lumos-product-safety-privacy-policy.md`](internal/l
 
 Lumos does **not** sell the model; it delivers a **safe workflow experience**.
 
-Operational review checklist and Demo Workspace spec: [`app-store-review-prep.md`](app-store-review-prep.md).
+Operational review checklist and Demo Workspace spec: [`app-store-review-prep.md`](app-store-review-prep.md). **v1 Apple entitlements:** enable only what the build uses — [`app-store-review-prep.md`](app-store-review-prep.md) §5 v1 Capability boundary (Apple services).
 
 ---
 
@@ -91,7 +91,7 @@ Paste-ready Review Notes and engineering spec: [`app-store-review-prep.md`](app-
 | Document | Relevance |
 |----------|-----------|
 | [`internal/lumos-product-safety-privacy-policy.md`](internal/lumos-product-safety-privacy-policy.md) | Full internal product safety & privacy policy |
-| [`app-store-review-prep.md`](app-store-review-prep.md) | Demo account, Review Notes, pre-submission checklist |
+| [`app-store-review-prep.md`](app-store-review-prep.md) | Demo account, Review Notes, v1 capability boundary (§5), pre-submission checklist |
 | [`lumos-karar-sozlesmesi.md`](lumos-karar-sozlesmesi.md) | Decision layers, approval rules, never-auto operations |
 | [`drafts/BACKLOG.md`](drafts/BACKLOG.md) — **LUMOS-0005** | Hakem modeli — nihai karar kullanıcıda |
 | [`drafts/BACKLOG.md`](drafts/BACKLOG.md) — **LUMOS-0008** | L0 authority matrix and decision chain |

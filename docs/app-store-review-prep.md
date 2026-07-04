@@ -162,7 +162,75 @@ information or customer accounts.
 
 ---
 
-## 5. Pre-submission checklist
+## 5. v1 Capability boundary (Apple services)
+
+Apple entitlements and capabilities are **not** “enable just in case.” App Review asks: **“Why does this entitlement exist?”** Every capability in the binary must have a **visible, honest user-facing reason** and match Privacy Nutrition Labels and in-app copy. Claims ↔ implementation: [`app-store-product-safety-privacy.md`](app-store-product-safety-privacy.md).
+
+### 5.1 This release (v1 Lumos)
+
+| In scope for v1 | Out of scope for v1 |
+|-----------------|---------------------|
+| Native **iOS app** (App Store launch) | Full Lumos cloud / multi-device sync |
+| Core **user flow** (navigation, tasks, settings) | Sign in with Apple (unless auth path is implemented) |
+| **Secure approval** UX (explicit user consent for effective actions) | Push Notifications (unless approval alerts are live) |
+| **Demo Workspace** / Review Mode ([§4](#4-review-mode--demo-workspace--engineering-spec)) | iCloud, App Groups, shared containers |
+| Honest **App Store metadata** and privacy labels | Siri / Shortcuts, Background modes, Apple Intelligence hooks |
+| | visionOS / macOS targets |
+
+**v1 goal:** A **clean first release** — minimal surface area, no unused entitlements, no “future-proofing” switches left on in Xcode or App Store Connect.
+
+### 5.2 Keep OFF unless actively used
+
+Do **not** enable in the v1 target unless the feature is **implemented, testable, and disclosed**:
+
+| Apple service / capability | Default for v1 | Enable only when |
+|----------------------------|----------------|------------------|
+| **Sign in with Apple** | OFF | Auth product path ships; review notes explain demo/real sign-in |
+| **Push Notifications** | OFF | Remote/local approval alerts are live; usage strings + label updated |
+| **iCloud** (CloudKit, documents, KVS) | OFF | User-visible sync feature ships; data flow documented |
+| **App Groups** | OFF | Extension or widget shares data with main app |
+| **Siri / App Intents / Shortcuts** | OFF | Voice or shortcut flows are implemented and reviewable |
+| **Background modes** | OFF | Justified background work exists (not “maybe later”) |
+| **Apple Intelligence** / Writing Tools hooks | OFF | Explicit product integration with disclosed behavior |
+| **Associated Domains / Universal Links** | OFF | Hosted links are live and match entitlements |
+| **HealthKit, HomeKit, etc.** | OFF | Not in Lumos product scope |
+
+**Review build rule:** If Review Mode does not need a capability, the **App Store submission build must not declare it**.
+
+### 5.3 Future integrated Lumos (after v1)
+
+Add Apple services **one at a time**, each with:
+
+1. **Real product need** (not speculative)
+2. **Engineering evidence** (working path in TestFlight)
+3. **Privacy label + in-app copy update** (claim matches implementation)
+4. **Review Notes** paragraph explaining why the entitlement exists
+
+**Candidate future integrations** (not v1 commitments):
+
+- Sign in with Apple
+- Push Notifications (approval / task prompts)
+- iCloud or user-chosen cloud sync (align with storage-choice vision — see [`drafts/lumos-2040-vision-draft.md`](drafts/lumos-2040-vision-draft.md))
+- App Groups (widgets, share extension)
+- Siri / Shortcuts
+- Apple Intelligence alignment (when product scope is clear)
+- visionOS / macOS (platform expansion — separate review surface)
+
+**Principle:** **Closed now ≠ never.** v1 stays narrow so App Review sees a coherent story; services open **incrementally and transparently**.
+
+> **TR (özet):** İlk sürüm sade çıkar; Apple servisleri ihtiyaç doğunca, tek tek, şeffaf açılır.
+
+### 5.4 Pre-submission capability check
+
+- [ ] Xcode **Signing & Capabilities** matches §5.2 (no unused toggles)
+- [ ] **Info.plist usage descriptions** exist only for permissions the app requests
+- [ ] **App Privacy** details match actual data collection (no “just in case” categories)
+- [ ] Review Notes do not claim integrations that are stubbed or off ([§3](#3-app-store-connect--review-notes-english-paste-ready))
+- [ ] Product safety summary aligned — [`app-store-product-safety-privacy.md`](app-store-product-safety-privacy.md)
+
+---
+
+## 6. Pre-submission checklist
 
 ### App Store Connect
 - [ ] Demo account **created on hosted demo API** and tested on physical device
@@ -174,6 +242,7 @@ information or customer accounts.
 - [ ] Support URL and privacy policy URL live
 
 ### Engineering (native app — not in this repo yet)
+- [ ] Apple capabilities match §5 — no unused entitlements
 - [ ] `reviewMode` bypasses Limited mode and local bridge
 - [ ] Hosted demo API deployed and stable
 - [ ] Review account seeded; login works without extra steps
@@ -190,7 +259,7 @@ information or customer accounts.
 
 ---
 
-## 6. Gaps — what must be built (not in `lumos-core`)
+## 7. Gaps — what must be built (not in `lumos-core`)
 
 | # | Gap | Owner |
 |---|-----|--------|
@@ -205,7 +274,7 @@ information or customer accounts.
 
 ---
 
-## 7. Security reminder
+## 8. Security reminder
 
 - **Never** commit real review passwords, API keys, or support credentials to git.
 - Placeholders in this doc are intentional; set actual values in **App Store Connect** and private ops vault only.
