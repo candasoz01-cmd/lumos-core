@@ -15,7 +15,7 @@ This document prepares **App Store Connect** materials for **Lumos Mobile** (nat
 
 **Current repo reality:** `lumos-core` ships a **web panel + PWA shell** and an OSS **mobile web approval UI** (`GET /relay/mobile`). A **native iOS binary is not in this repository**; engineering must implement Review Mode in the **private mobile app repo** before submission.
 
-**Product safety & privacy positioning:** See [`app-store-product-safety-privacy.md`](app-store-product-safety-privacy.md) — do not duplicate that content here.
+**Product safety & privacy positioning:** Apple summary — [`app-store-product-safety-privacy.md`](app-store-product-safety-privacy.md); full internal policy — [`internal/lumos-product-safety-privacy-policy.md`](internal/lumos-product-safety-privacy-policy.md). Do not duplicate that content here.
 
 ---
 
