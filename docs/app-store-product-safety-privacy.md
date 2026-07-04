@@ -79,6 +79,7 @@ Apple’s primary concerns are not “does the app use AI?” but:
 | **Unauthorized data access** | Review tenant isolated; synthetic data only |
 | **Stability & completeness** | Pre-seeded Demo Workspace; full primary navigation ([`app-store-review-prep.md`](app-store-review-prep.md) §4) |
 | **Permission & consent clarity** | Explicit approval for effective actions; optional device permissions skippable |
+| **Data location transparency** | User must know what is stored/processed where; store and in-app claims must match actual data flow ([`drafts/lumos-2040-vision-draft.md`](drafts/lumos-2040-vision-draft.md) — storage choice M0 seed) |
 | **Review account** | Ops provisions credentials in App Store Connect only — not in git ([`app-store-review-prep.md`](app-store-review-prep.md) §2–§3) |
 
 Paste-ready Review Notes and engineering spec: [`app-store-review-prep.md`](app-store-review-prep.md) — do not duplicate that checklist here.

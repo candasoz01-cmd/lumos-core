@@ -79,7 +79,7 @@ Public OSS boundary: production orchestration, live integrations, auth secrets, 
 | **Device permissions** | Optional voice/capture demos | Camera/microphone optional; clearly labeled; skippable |
 | **Analytics** | Product improvement | Off or anonymized demo-only in review builds |
 
-Lumos does **not** claim to collect data the user did not knowingly provide for the active workflow. Privacy Nutrition Labels must match the **actual review build behavior** (see checklist in [`app-store-review-prep.md`](../app-store-review-prep.md) §5).
+Lumos does **not** claim to collect data the user did not knowingly provide for the active workflow. Privacy Nutrition Labels must match the **actual review build behavior** (see checklist in [`app-store-review-prep.md`](../app-store-review-prep.md) §5). User-chosen storage models and data-location transparency (vision seed): [`drafts/lumos-2040-vision-draft.md`](../drafts/lumos-2040-vision-draft.md) — Depolama seçimi ve veri sahipliği (M0).
 
 ---
 
