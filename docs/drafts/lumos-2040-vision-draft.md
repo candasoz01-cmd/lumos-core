@@ -158,7 +158,188 @@ Kullanıcı niyeti
     → kullanıcıya kısa sonuç (🟢 / 🟡 / 🔴 format)
 ```
 
-[Orkestrasyon / niyet akışı](#orkestrasyon--niyet-akışı-work--connectors-tohumu) ile hizalı: hazırlık → **🔴 açık onay** (dış etki) → uygulama.
+[Orkestrasyon / niyet akışı](#orkestrasyon--niyet akışı-work--connectors-tohumu) ile hizalı: hazırlık → **🔴 açık onay** (dış etki) → uygulama.
+
+---
+
+#### Konduktör — yetki ve yönlendirme protokolü (M0)
+
+> **Çekirdek ilke:** Konduktör icra etmez; yönlendirir, sınırlar, gerekçelendirir, gerektiğinde durdurur.
+
+| Alan | Değer |
+|------|-------|
+| **Durum** | ⚪ çekmece — vizyon tohumu |
+| **Olgunluk** | **M0 Concept** — protokol katmanı; kod/PR değil |
+| **Karar Duvarı** | Bu madde `LUMOS-*` kaydı **değildir** |
+| **İlk giriş** | Protokol tanımı — implementasyon öncesi |
+
+Bu alt bölüm, [Lumos Orkestratör v1](#lumos-orkestratör-v1--orkestra-şefi-katmanı) içindeki konduktör rolünün **yetki, yönlendirme ve durdurma** sözleşmesini mühendislik diliyle sabitler. [Parça haritası](#parça-haritası-m0--mevcut-vs-eksik) mevcut parçaları listeler; bu bölüm eksik katmanın *nasıl davranması gerektiğini* tanımlar.
+
+---
+
+##### 1. Konduktör tanımı
+
+**Konduktör** = Lumos Orkestratör'ün yönlendirme yüzeyi: niyeti alır, risk/yetki kontrolünden geçirir, uygun araca veya role yönlendirir, sonucu sentezler; icra birimine devreder.
+
+| Yapar | Yapmaz |
+|-------|--------|
+| Niyeti ayrıştırır; hedef ve risk sınıflar | Kendi başına dosya/commit/dış yazma icrası |
+| Araç/ajan/rol seçimini **gerekçeli** yönlendirir | Onay uydurma veya «zaten onaylandı» varsayımı |
+| Kanıt yetersizse veya yetki dışıysa **durur** (fail-closed) | Yetki matrisini genişletme veya profil yükseltme |
+| Bağımsız raporları sentezler; kullanıcıya özet döner | Agent-to-agent komut veya yatay delegasyon ([ADR-008](../decisions/ADR-008-agent-network-boundary.md)) |
+| Her yönlendirme için «neden bu yol?» kaydı üretir | Tek model wrapper gibi davranmak (LUMOS-0017 ruhuna aykırı) |
+
+---
+
+##### 2. Görev zarfı standardı (Task Envelope)
+
+Konduktör'e giren her iş bir **görev zarfı** ile tanımlanır. Zarf eksikse yönlendirme yapılmaz — tamamlama veya «tahmin» yok.
+
+| Alan | Açıklama |
+|------|----------|
+| **kaynak** | Kim başlattı: kullanıcı niyeti, zamanlanmış tetik, köprü olayı — kaynak belirsizse STOP |
+| **amaç** | Tek cümle hedef; kapsam dışı genişleme yasak |
+| **risk** | normal · hassas · güvenlik · dış entegrasyon · kalıcı işlem (aşağıdaki tablo) |
+| **hedef** | Dosya, repo, connector, platform veya «salt okuma analiz» gibi somut hedef |
+| **yetki** | Gerekli profil düzeyi: 🟢 Oku · 🟡 Öner · 🟠 Yürüt · 🔴 Kritik onay ([LUMOS-0008](./BACKLOG.md)) |
+| **kanıt** | Karar öncesi mevcut kanıt paketi referansı (§5) |
+| **gerekli onay** | Yok · önizleme onayı · 🔴 açık komut — LUMOS-0015 / LUMOS-0016 zinciri |
+
+---
+
+##### 3. Yetki zinciri
+
+Yönlendirme **dikey** akıştır; yatay AI→AI görev devri yoktur.
+
+```
+Kullanıcı (nihai karar, açık onay)
+    ↓
+Lumos Orkestratör / Konduktör (yönlendirme, sınır, gerekçe, STOP)
+    ↓
+Ajan / tool / executor (sınırlı icra — profil matrisi içinde)
+```
+
+| Kural | Kaynak |
+|-------|--------|
+| Nihai karar kullanıcıda | LUMOS-0005, LUMOS-0015 |
+| Yetki emanet; otomatik genişleme yok | LUMOS-0008, `src/task_engine/profiles.py` |
+| Agent-to-agent komut, yetki devri, onay devri **yok** | ADR-008 § Karşılıklı denetim |
+| Bağımsız inceleme çıktısı konduktöre **rapor** olarak gelir; komut olarak değil | ADR-008, LUMOS-0016 |
+
+---
+
+##### 4. Risk yönlendirme tablosu
+
+Risk sınıfı **ayrı şerit** (lane) seçer; aynı araç tüm risklerde varsayılan değildir.
+
+| Risk sınıfı | Örnek | Yönlendirme şeridi | Onay kapısı |
+|-------------|-------|-------------------|-------------|
+| **normal** | Salt okuma analiz, durum özeti | 🟢 okuma / 🟡 öneri ajanları | Genelde gerekmez |
+| **hassas** | Kişisel veri, repo yazma, görev state | 🟠 yürüt — önizleme zorunlu | Kullanıcı onayı |
+| **güvenlik** | CVE değerlendirme, trust/lock, policy | Bağımsız inceleme + konduktör sentezi | ADR-008 kör inceleme; 🔴 kritik adımda açık onay |
+| **dış entegrasyon** | GitHub push, mail, MCP tool, connector | Connector Layer + bridge proxy | 🔴 açık onay; LUMOS-0010, LUMOS-0014 |
+| **kalıcı işlem** | Kalıcı silme, geri dönüşsüz kullanıcı işlemi | **Asla otomatik yönlendirme yok** | Açık komut + tek satır uyarı; `SECURITY_NEVER_AUTO` |
+
+Fail-closed: risk sınıfı belirsizse **en yüksek uyumlu şerit** seçilir veya STOP.
+
+---
+
+##### 5. Kanıt paketi standardı (Evidence Bundle)
+
+Konduktör karar vermeden önce (veya durdururken) kanıt paketi referanslanır.
+
+| Bileşen | Ne içerir |
+|---------|-----------|
+| **Loglar** | CI/workflow hatası, policy block, bridge onay kuyruğu — teşhis için ilk gerçek hata satırı |
+| **Dosyalar** | İlgili kaynak path, diff özeti, `.lumos/` state (çekirdek path sözleşmesi) |
+| **Testler** | İlgili pytest/lint sonucu veya «çalıştırılmadı — neden» |
+| **Kaynaklar** | ADR, `LUMOS-*`, dış bülten — uydurma onay yok (LUMOS-0003) |
+| **Raporlar** | Bağımsız ajan/rol çıktısı (salt okuma); konduktör sentezi öncesi |
+
+Kanıt yetersizse: 🔴 «Kanıt yetersiz» + ilk kontrol adımı — boşluk doldurma yok ([Cevap formatı](#cevap-formatı--önce-özet-detay-isteğe)).
+
+---
+
+##### 6. Blind review protokolü
+
+Kritik veya güvenlik şeridinde konduktör **tek hakem değildir**.
+
+| Adım | Kim | Çıktı |
+|------|-----|-------|
+| 1 | Bağımsız inceleme rolü (farklı bağlam / kör rapor) | Kanıta dayalı rapor — icra yok |
+| 2 | Konduktör | Raporları sentezler; çelişki varsa kullanıcıya ikilem açar |
+| 3 | Kullanıcı | Nihai onay veya STOP |
+
+Hizalı: ADR-008 (karşılıklı denetim, sıfır kontrol), LUMOS-0016 (denetim zinciri: öner → risk → onay → kayıt). Konduktör sentez yapar; bağımsız raporu **onaylamış saymaz**.
+
+---
+
+##### 7. Stop / Hold kuralları
+
+Aşağıdaki durumlarda yönlendirme **durur** (Hold) veya **reddedilir** (STOP):
+
+| Tetik | Davranış |
+|-------|----------|
+| Kanıt yetersiz | HOLD — ilk kanıt adımı öner; icra yok |
+| Yetki yok / profil dışı | STOP — gerekli yetki düzeyi açıklanır |
+| 🔴 onay gerekli, onay yok | STOP — LUMOS-0015 / LUMOS-0016 |
+| Rol karışıklığı (inceleme rolü icra başlatıyor) | STOP — rol kapma yasağı |
+| `SECURITY_NEVER_AUTO` eşleşmesi | STOP — otomatik yönlendirme yasak |
+| Agent-to-agent delegasyon talebi | STOP — ADR-008 |
+| Belirsiz hedef veya kaynak | STOP — görev zarfı tamamlanmalı |
+
+---
+
+##### 8. Audit event standardı
+
+Her yönlendirme kararı izlenebilir bir **routing audit event** üretir (hedef format; M0'da şema kilidi yok).
+
+| Alan | Açıklama |
+|------|----------|
+| `event_id` | Tekil olay kimliği |
+| `timestamp` | ISO zaman |
+| `envelope_ref` | Görev zarfı özeti |
+| `lane` | Seçilen risk şeridi |
+| `route_to` | Hedef ajan/tool/rol (model adı arka planda kalabilir — LUMOS-0017) |
+| `rationale` | **«Neden bu yola soktum?»** — zorunlu gerekçe |
+| `evidence_ref` | Kanıt paketi referansı |
+| `authority_check` | Yetki matrisi sonucu (pass/fail) |
+| `stop_or_hold` | Devam / hold / stop + neden |
+| `user_gate` | Onay gerekli mi, verildi mi |
+
+Hedef: Karar Duvarı / Knowledge Repository lifecycle ile birleşik iz ([Parça haritası](#parça-haritası-m0--mevcut-vs-eksik)).
+
+---
+
+##### Acil öncelik — Konduktör neyi asla yapmaz
+
+Aşağıdaki liste mevcut Lumos ilkelerinin mühendislik çevirisidir; yeni hukuki iddia veya uydurma onay **içermez**.
+
+| # | Asla | Dayanak |
+|---|------|---------|
+| 1 | Kalıcı silmeyi otomatik yönlendirmek veya icra ettirmek | `SECURITY_NEVER_AUTO` · `permanent_delete` · karar sözleşmesi |
+| 2 | Dış servise kontrolsüz yazma | `SECURITY_NEVER_AUTO` · `external_write` · LUMOS-0010 |
+| 3 | Kullanıcı adına geri dönüşsüz işlem | `SECURITY_NEVER_AUTO` · `irreversible_user_op` · LUMOS-0015 |
+| 4 | Kritik sistem ayarını onaysız değiştirmek | `SECURITY_NEVER_AUTO` · `critical_system_config` |
+| 5 | Yetki profilini sessizce genişletmek veya «genel onay» uydurmak | LUMOS-0008 · LUMOS-0016 · profiles.py |
+| 6 | Agent-to-agent görev/komut/yetki devri | ADR-008 |
+| 7 | Kanıtsız «tamamlandı» veya kesin teşhis yönlendirmesi | CI teşhis zinciri · fail-closed · LUMOS-0005 |
+| 8 | Sahte kurumsal onay, «Approved by», uydurma endorsement | LUMOS-0003 |
+| 9 | Güvenilmeyen dış veriyi otorite saymak | LUMOS-0014 · connector sınırı |
+| 10 | Tek hakem olarak kendi çıktısını denetlemek saymak | ADR-008 · blind review (§6) |
+| 11 | Kullanıcı yerine nihai karar vermek | LUMOS-0005 · temsilci modeli |
+| 12 | Public repo sınırını aşan production multi-agent orchestration vaadi | ADR-008 · public GitHub boundary |
+
+**Çapraz referans (protokol):**
+
+- [Parça haritası (M0)](#parça-haritası-m0--mevcut-vs-eksik) — mevcut vs eksik parçalar.
+- [`ADR-008`](../decisions/ADR-008-agent-network-boundary.md) — yatay delegasyon yasağı, kör inceleme.
+- [`BACKLOG.md` — LUMOS-0008](./BACKLOG.md) — L0 yetki matrisi.
+- [`BACKLOG.md` — LUMOS-0016](./BACKLOG.md) — denetim zinciri.
+- [`BACKLOG.md` — LUMOS-0015](./BACKLOG.md) — sorumluluk dengesi.
+- [`BACKLOG.md` — LUMOS-0017](./BACKLOG.md) — model/ajan seçimi gerekçesi.
+- [`docs/lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md) — çekirdek onay ve kalıcı silme kuralları.
+- `src/task_engine/profiles.py` — `SECURITY_NEVER_AUTO`, profil matrisi.
 
 ---
 
@@ -197,6 +378,7 @@ Kullanıcı niyeti
 
 **Çapraz referans:**
 
+- [Konduktör — yetki ve yönlendirme protokolü (M0)](#konduktör--yetki-ve-yönlendirme-protokolü-m0) — yönlendirme sözleşmesi; M0 protokol katmanı.
 - [Orkestrasyon / niyet akışı](#orkestrasyon--niyet-akışı-work--connectors-tohumu) — niyet → hazırlık → onay → uygulama.
 - [Karar Duvarı / paylaşılan proje hafızası](#karar-duvarı--paylaşılan-proje-hafızası) — `LUMOS-*` bağlam hafızası.
 - [Bootstrap / orkestrasyon — «Lumos'u aç»](#bootstrap--orkestrasyon--lumosu-aç) — tutarlı başlangıç durumu.
