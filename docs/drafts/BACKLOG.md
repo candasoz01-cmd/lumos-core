@@ -50,7 +50,7 @@ ID: LUMOS-0019
 🎯 Gerekçe:
 - Mimari çatı (tek vizyon): Secure Device Framework ağacı — AnchorUSB, Lumos Key, Vault, Device Trust, Touch ID, FIDO2, TPM, Secure Enclave, gelecek donanım bağlayıcıları — tek güvenlik mimarisi
 - Ürün aileleri (Lumos): Core, Security, Connectors, Intelligence, Mobility — aileler ayrı repo olmak zorunda değil
-- Repository bugün: tek repo (lumos-core) OK; ilk implementasyon lumos-core içinde yaşar
+- Repository bugün: `lumos-core` public-safe SDF dokümanı ve mevcut tracked Rust referans crate'leri için OK; product-grade AnchorUSB binary/runtime hattı ayrı repo hedefler
 - Ayrı repo (ör. lumos-secure-device) — 3 kriterden 2'si gerekir:
   1. Diğer projeler Lumos olmadan kullanır
   2. Kendi semver / release döngüsü
@@ -59,6 +59,7 @@ ID: LUMOS-0019
 Evidence: Team strategic articulation
 Legal review: N/A (sahte onay yok)
 🚫 Kapsam dışı: Hemen packages/secure-device klasörü oluşturma; ayrı repo oluşturma; NA-01; Trust Phase 4 implementasyonu; Connector Layer; scripts/anchorusb track
+2026-07-04 notu: AnchorUSB binary governance için `docs/memory/anchorusb-repository-governance-decision.md` eklendi; `scripts/anchorusb/bin/` local POC artifact olarak ignored.
 Decision level: L1 (mimari / governance)
 İlişkili kararlar: LUMOS-0018 (AnchorUSB Faz A/B/C), LUMOS-0009 (Trust), LUMOS-0012 (ürün aileleri), knowledge-repository-lifecycle
 Etkilenen dosyalar: docs/drafts/BACKLOG.md
@@ -66,28 +67,7 @@ Son güncelleme: 2026-07-03
 ```
 
 ```
-ID: LUMOS-0018
-[2026-07-03] 🟢 AKTİF
-🟢 Karar: AnchorUSB — ürün sınırı ve repo konumu (macOS POC). Çekirdek ilke: AnchorUSB, Secure Device Framework (SDF) için macOS POC laboratuvarıdır; Lumos Key değildir, production güvenlik aracı değil.
-🎯 Gerekçe:
-- `scripts/anchorusb/` şimdilik commit edilmez — deney laboratuvarı, macOS POC, üretim kodu değil
-- Secure Device Framework (tasarım, doküman, Rust crate, mimari) repo içinde gelişmeye devam eder — zaten main'de (#549-#551)
-- AnchorUSB = SDF'nin macOS POC'si; Lumos Key değil, production güvenlik aracı değil
-Fazlar:
-- Faz A (repo): SDF tasarım, doküman, crates, mimari
-- Faz B (lokal/untracked şimdilik): scripts/anchorusb/ POC laboratuvarı
-- Faz C (gelecek): Linux/Windows/TPM/Secure Enclave/YubiKey/FIDO2 vb. olgunlaşınca → Secure Device Framework ürünü; o zaman packages/secure-device veya ayrı repo — bugün karar değil
-Taşınabilirlik ve lifecycle:
-- «Bağımsız tasarla, ayrı repo açma» — taşınabilir niyet, ilk ev lumos-core
-- Lifecycle: Needs Decision → Planned kapısı geçilmeden scripts track edilmez
-- Public exposure: açık onay gerekir (device-control-adjacent)
-Evidence: Team product boundary articulation
-Legal review: N/A (sahte onay yok)
-🚫 Kapsam dışı: scripts/anchorusb/ dosyalarının bu kararla commit edilmesi; NA-01; Trust Phase 4; Connector Layer implementasyonu
-Decision level: L1 (ürün sınırı / repo konumu)
-İlişkili kararlar: LUMOS-0009, knowledge-repository-lifecycle AnchorUSB satırı, crates/anchorusb-*
-Etkilenen dosyalar: docs/drafts/BACKLOG.md
-Son güncelleme: 2026-07-03
+-07-04
 ```
 
 ```

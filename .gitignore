@@ -50,3 +50,6 @@ kando-ai/*.png
 
 ui/.env.local
 .vercel
+
+# AnchorUSB local POC artifacts stay out of lumos-core.
+scripts/anchorusb/bin/
