@@ -102,6 +102,111 @@ Tek sayfalık harita fikri; implementasyon veya modül listesi değil. Aileler b
 
 Kullanıcı platform menüsünü aramaz; Lumos adımları hazırlar, dış etkili adımda durur.
 
+### Lumos Orkestratör v1 — orkestra şefi katmanı
+
+> **Orkestra kalabalık; eksik parça başka bir enstrüman değil, konduktör.** Lumos daha fazla zeka eklemek değil — dağınık araçları koordine etmektir.
+
+| Alan | Değer |
+|------|-------|
+| **Durum** | ⚪ çekmece — vizyon tohumu |
+| **Olgunluk** | **M0 Concept** ([`knowledge-repository-lifecycle.md`](../knowledge-repository-lifecycle.md) §5) |
+| **Katman** | Vision Memory |
+| **Karar Duvarı** | Bu madde `LUMOS-*` kaydı **değildir** |
+
+**M0 onayı:** Kavram düzeyi tohum — **implementasyon, kod, PR veya uygulama planı değildir**. Repo'da parçalı yürütme hatları vardır; birleşik orkestratör katmanı henüz yoktur ([ADR-008](../decisions/ADR-008-agent-network-boundary.md)).
+
+**Çekirdek içgörü:** Eksik katman koordinasyon / konduktörlüktür; ek zeka veya yeni araç değil. Orkestra zaten kalabalık: Cursor, Codex, ChatGPT, GitHub, Gmail, panel, köprü (bridge), MCP, CLI, görev motoru… Kullanıcı bunları tek tek yönetmemeli; **niyet bir kez söylenir**, Lumos yönlendirir, birleştirir, kaydeder, özet döner.
+
+**Temel ilke — koordinasyon, zeka değil:** Lumos bir «daha akıllı model» değil; dağınık enstrümanları tek niyet altında koordine eden konduktördür. Yeni zeka veya yeni araç eklemek sorunu çözmez — eksik parça **tek koordinasyon yüzeyi**dir.
+
+---
+
+#### Parça haritası (M0 — mevcut vs eksik)
+
+- **Mevcut parçalar:** Karar Duvarı / BACKLOG · ADR'ler · Knowledge Repository lifecycle · panel · bridge proxy · çok-ajan kuralları · yetki matrisi (LUMOS-0008) · model orkestrasyonu (LUMOS-0017) · bağımsız denetim (ADR-008) · denetim zinciri (LUMOS-0016)
+- **Eksik katman:** Tek koordinasyon yüzeyi — niyet yönlendirme, araç/ajan seçimi (gerekçeli), birleşik sonuç, araçlar arası oturum sürekliliği
+
+Parçalar dağınık ve birleşik değil; orkestratör bunları *hedef olarak* tek akışta bir araya getirir. ADR-008 özeti: parçalı hatlar birbirine bağlı ama **merkezi orchestrator / coordinator yok**.
+
+| Parça | Rol (bugün) | Orkestratörle ilişki |
+|-------|-------------|----------------------|
+| **Karar Duvarı / BACKLOG** | `LUMOS-*` kesin kararlar, gerekçe, iptal zinciri | Hedef: her yönlendirme ve seçim gerekçesi buraya veya ilişkili kayda işlenir |
+| **ADRs** | Mimari karar kayıtları (`docs/decisions/`) | Hedef: araç/ajan seçimi ADR sınırlarına uygun kalır |
+| **Knowledge Repository** | Status, Maturity, kanıt, Review Date disiplini | Hedef: orkestrasyon kararları lifecycle ile izlenir |
+| **Panel** | Görev/kayıt görünürlüğü, demo-safe yüzey | Hedef: kullanıcıya özet sonuç ve durum; orkestratör arka plan |
+| **Bridge proxy** | `cursor_bridge`, `kando_bridge` — yürütme, onay kuyruğu | Hedef: seçilen araca delegasyon hattı; tek başına koordinatör değil |
+| **Çok-ajan kuralları** | Rol sırası, rol kapma yasağı, CI teşhis zinciri | Hedef: alt iş rol bazlı; agent-to-agent komut yok ([ADR-008](../decisions/ADR-008-agent-network-boundary.md)) |
+| **Yetki matrisi** | `task_engine/profiles.py` — 🟢 Oku · 🟡 Öner · 🟠 Yürüt · 🔴 Kritik onay (LUMOS-0008) | Hedef: her yönlendirme ve delegasyon bu matristen geçer; yetki emanet |
+| **Model orkestrasyonu** | LUMOS-0017 — görev bazlı model/ajan seçimi, gerekçe kaydı | Hedef: hangi motor seçildiyse **neden** kayıtlı; model arka planda kalabilir |
+| **Bağımsız denetim** | ADR-008 — kör inceleme, orkestratör tek hakem değil | Hedef: kritik adımda ikinci kanıt veya kullanıcı onayı |
+| **Denetim zinciri** | LUMOS-0016 — kurul sentezi, kanıt zinciri | Hedef: seçim ve sonuç bağımsız doğrulanabilir |
+
+---
+
+#### Akış iskeleti (M0)
+
+**niyet → orkestratör → araç seçimi → yürütme → Karar Duvarı kaydı → 🟢 / 🟡 / 🔴 özet**
+
+```
+Kullanıcı niyeti
+    → Lumos Orkestratör (tek giriş — konduktör)
+        → niyet ayrıştırma + risk / yetki kontrolü (fail-closed)
+        → araç / ajan seçimi (LUMOS-0017 gerekçe)
+        → yürütme (bridge proxy, görev motoru, dış araç)
+        → bağımsız denetim (gerekirse — ADR-008 / LUMOS-0016)
+        → Karar Duvarı / kayıt (seçim gerekçesi + sonuç özeti)
+    → kullanıcıya kısa sonuç (🟢 / 🟡 / 🔴 format)
+```
+
+[Orkestrasyon / niyet akışı](#orkestrasyon--niyet-akışı-work--connectors-tohumu) ile hizalı: hazırlık → **🔴 açık onay** (dış etki) → uygulama.
+
+---
+
+#### İlkeler (hizalı — bağlayıcı değil)
+
+| İlke | Kısa |
+|------|------|
+| **Hakem + yol arkadaşı** | Teşhis ve seçenek sunar; birlikte iş yapar; nihai karar kullanıcıda (LUMOS-0005) |
+| **Yetki emanet** | Yetki matrisi her yönlendirmede; otomatik genişleme yok (LUMOS-0008) |
+| **Karar Duvarı** | Seçim gerekçesi ve sonuç paylaşılan hafızada; yeni ajan bağlamı okur |
+| **Model-agnostik** | Lumos = motor değil, orkestratör; gerekçe kayıtlı (LUMOS-0017) |
+| **Fail-closed** | Emin değilse, yetki yoksa, onay yoksa — dur; boşluk doldurma yok |
+| **Kısa cevap** | Varsayılan 🟢 Sonuç · 🟡 Alternatif · 🔴 Emin değilsem — [Cevap formatı](#cevap-formatı--önce-özet-detay-isteğe) |
+
+**Örnek yönlendirme (tohum — bağlayıcı değil):**
+
+| Kullanıcı niyeti | Lumos yönlendirmesi | Onay kapısı |
+|------------------|---------------------|-------------|
+| «Bu PR'ı incele» | GitHub + inceleme ajanı (ör. Codex) | Salt okuma — onay gerekmez |
+| «Bu hatayı düzelt» | Cursor / kod ajanı | Değişiklik önizlemesi → kullanıcı onayı |
+| «Bu kararı kaydet» | Karar Duvarı (`BACKLOG.md`) | Açık komut — kalıcı kayıt kapısı |
+| «Güvenlik bültenini değerlendir» | Araştırma ajanı + mimari eşleme | Öneri paketi → kullanıcı kararı |
+
+**Anti-pattern:** Lumos = tek model wrapper; kullanıcı her aracı ayrı açar; orkestratör kendi çıktısını denetlemez; seçim gerekçesi kayıtsız; agent-to-agent komut zinciri.
+
+---
+
+#### Kapsam dışı (M0 — açık)
+
+**Kapsam dışı:** kod, PR, implementasyon planı — yalnızca vizyon tohumu.
+
+- Kod, modül, API, PR, migration
+- Uygulama planı, sprint, milestone taahhüdü
+- Production multi-agent orchestration (public sınır dışı — ADR-008)
+- Yeni `LUMOS-*` kaydı — mezuniyet kontrol listesi geçmeden BACKLOG'a taşınmaz
+
+**Çapraz referans:**
+
+- [Orkestrasyon / niyet akışı](#orkestrasyon--niyet-akışı-work--connectors-tohumu) — niyet → hazırlık → onay → uygulama.
+- [Karar Duvarı / paylaşılan proje hafızası](#karar-duvarı--paylaşılan-proje-hafızası) — `LUMOS-*` bağlam hafızası.
+- [Bootstrap / orkestrasyon — «Lumos'u aç»](#bootstrap--orkestrasyon--lumosu-aç) — tutarlı başlangıç durumu.
+- [`knowledge-repository-lifecycle.md`](../knowledge-repository-lifecycle.md) — M0 = Concept.
+- [`ADR-008`](../decisions/ADR-008-agent-network-boundary.md) — parçalı hatlar, hedef orkestratör rolü.
+- [`BACKLOG.md` — LUMOS-0017](./BACKLOG.md) — model bağımsızlığı.
+- [`BACKLOG.md` — LUMOS-0005](./BACKLOG.md) — hakem modeli.
+- [`BACKLOG.md` — LUMOS-0008](./BACKLOG.md) — L0 yetki matrisi.
+- [`BACKLOG.md` — LUMOS-0016](./BACKLOG.md) — denetim zinciri.
+
 ### Bilgi odağı — sinyal, gürültü değil
 
 - Lumos, bilgiye ulaşmanı değil; **gerçekten ihtiyacın olan bilgiye** ulaşmanı hedefler. Geri kalan gürültüyü filtreler.
