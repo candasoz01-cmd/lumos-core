@@ -1,9 +1,9 @@
-# Lumos iOS Core Architecture (M0)
+# Lumos iOS Core Architecture (V1 locked — M0 spec)
 
 | Field | Value |
 |-------|--------|
-| **Document type** | Architecture spec — M0 Concept |
-| **Status** | **Draft / M0** — no Swift code in `lumos-core` |
+| **Document type** | Architecture spec — V1 locked (M0 spec) |
+| **Status** | **V1 locked (M0 spec)** — no Swift code in `lumos-core`; primary goal is **architecture lock**, not setup/install |
 | **Audience** | iOS engineering (private repo), Cursor build agents, release ops |
 | **Related** | [`lumos-2040-vision-draft.md`](./lumos-2040-vision-draft.md), [`app-store-review-prep.md`](../app-store-review-prep.md), [`lumos-mobile-approval-mvp-plan.md`](../analysis/lumos-mobile-approval-mvp-plan.md), [`INTERNAL_ALPHA_RELEASE_SCOPE.md`](../INTERNAL_ALPHA_RELEASE_SCOPE.md) |
 
@@ -22,28 +22,71 @@ Lumos iOS is not a template app. The first shipped screen is a **heartbeat**: pr
 
 **One-line intent:** *«Hayal etmen yeterli.»* — the app opens on black, centered Lumos logo, that line. Everything else comes later on the same skeleton.
 
+**Current focus:** Lock Lumos iOS V1 architecture — not Xcode setup, install guides, or repo scaffolding in this document.
+
 ---
 
-## 2. Repository placement
+## 2. Multi-repo ecosystem (locked)
 
-| Repository | Role | Contents |
-|------------|------|----------|
-| **`lumos-core`** (public OSS) | Spec + App Store prep | This document, [`app-store-review-prep.md`](../app-store-review-prep.md), mobile approval wire contracts — **no native iOS source** |
-| **`lumos-ios`** (recommended **private**) | Xcode project + Swift/SwiftUI | App target, assets, entitlements, TestFlight / App Store binary |
+Long-term Lumos is a **multi-repo ecosystem**. Each surface owns its native stack; shared contracts live in the public core.
+
+| Repository | Visibility | Role | Contents |
+|------------|------------|------|----------|
+| **`lumos-core`** | Public OSS | Shared logic, docs, protocols, architecture, decisions | This document, [`app-store-review-prep.md`](../app-store-review-prep.md), mobile approval wire contracts, ADRs — **no native iOS source** |
+| **`lumos-ios`** | Private | Swift, Xcode, iOS UI, Apple integrations | App target, assets, entitlements, TestFlight / App Store binary |
+| **`lumos-android`** | Future (private) | Kotlin / Compose, Android UI | Same Core contracts; independent team |
+| **`lumos-web`** | Future | Web panel / PWA (partially in core today) | Shared protocols; web-specific UI |
+| **`lumos-macos`** | Future (private) | AppKit / SwiftUI macOS surface | Same Core contracts; independent team |
 
 **Public boundary:** Native iOS app code belongs in the **private** mobile repo per [`lumos-mobile-approval-mvp-plan.md`](../analysis/lumos-mobile-approval-mvp-plan.md) §10 and [`app-store-review-prep.md`](../app-store-review-prep.md) §7 (G1). `lumos-core` holds the **architecture contract** only.
 
-**First commit (when `lumos-ios` is created):**
+### 2.1 Repo timing decision (locked)
 
-```
-Initial iOS project scaffold
-```
+| Decision | Status |
+|----------|--------|
+| **Do NOT open `lumos-ios` GitHub repo immediately** | Locked |
+| **Local development first** — fast iteration for the first few days; mature skeleton locally | Locked (user choice) |
+| **Then** first commit to private `lumos-ios` when skeleton is ready | Locked |
+| **First commit message** (when repo opens) | `Initial iOS project scaffold` |
 
-No feature code in that commit — Xcode project, folder tree, launch screen assets, and README pointing back to this spec.
+Both "repo-first" and "local-first" are valid strategies; **local-first is the chosen path**. No feature code in that first commit — Xcode project, folder tree, launch screen assets, and README pointing back to this spec.
+
+**This spec does not instruct you to create the repo now.** Local Xcode work may proceed without a remote until the skeleton is mature.
 
 ---
 
-## 3. Folder tree and responsibilities
+## 3. V1 Architecture Lock
+
+The following decisions are **locked for Lumos iOS V1**. Changes require an explicit architecture revision in `lumos-core`, not ad-hoc drift in the private repo.
+
+| Locked item | Reference | Notes |
+|-------------|-----------|-------|
+| **Folder tree** | §4 | Logical layout under `Lumos/` — App, Core, Features/*, Services, Models, Resources, Shared |
+| **Layer rules** | §5 | Dependency direction, Conductor alignment, fail-closed, no horizontal Feature↔Feature |
+| **First screen spec** | §6 | Black background, centered logo, «Hayal etmen yeterli.» — heartbeat, not Hello World |
+| **Multi-repo split** | §2 | Core = public contracts; iOS = private native; future platforms mirror pattern |
+| **Local-first repo timing** | §2.1 | Local skeleton first; private repo opens when ready — not day one |
+| **v1 OUT scope** | [`app-store-review-prep.md`](../app-store-review-prep.md) §5 | Canonical boundary for what v1 does **not** ship — locked reference |
+
+### 3.1 v1 OUT scope (locked reference)
+
+Canonical source: [`app-store-review-prep.md`](../app-store-review-prep.md) **§5 v1 Capability boundary**. Summary — do not expand v1 without updating that doc:
+
+| Out of scope for v1 |
+|---------------------|
+| Full Lumos cloud / multi-device sync |
+| Sign in with Apple (unless auth path ships) |
+| Push Notifications (unless approval alerts are live) |
+| iCloud, App Groups, shared containers |
+| Siri / Shortcuts, Background modes, Apple Intelligence hooks |
+| visionOS / macOS targets |
+| Unused Apple entitlements (§5.2 defaults OFF) |
+| LAN relay in App Store build (review uses hosted demo API) |
+| Real OS / device control (private layer; stub in review) |
+
+---
+
+## 4. Folder tree and responsibilities (locked)
 
 Target Xcode / Swift package layout (logical names; physical groups mirror this tree):
 
@@ -64,7 +107,7 @@ Lumos/
 └── Shared/                 # UI primitives, extensions, design tokens — no feature logic
 ```
 
-### 3.1 Per-folder responsibility
+### 4.1 Per-folder responsibility
 
 | Folder | Owns | Must not own |
 |--------|------|--------------|
@@ -76,7 +119,7 @@ Lumos/
 | **Resources** | `Assets.xcassets`, fonts, launch storyboard/SwiftUI launch, `Localizable.strings`, demo JSON fixtures | Swift code (except generated asset symbols) |
 | **Shared** | Design system (colors, typography), reusable components (buttons, banners), Swift extensions | Feature business rules; service implementations |
 
-### 3.2 Feature modules (v1 placeholders)
+### 4.2 Feature modules (v1 placeholders)
 
 Each `Features/*` folder starts as an **empty module boundary** with a README or `FeaturePlaceholder.swift` stub in the **private repo only** — not in `lumos-core`. Responsibilities when implemented:
 
@@ -91,11 +134,11 @@ Each `Features/*` folder starts as an **empty module boundary** with a README or
 
 ---
 
-## 4. Layer rules (Conductor-aligned)
+## 5. Layer rules (Conductor-aligned, locked)
 
 Mobile architecture mirrors the **Lumos Orkestratör / Konduktör** vision ([`lumos-2040-vision-draft.md`](./lumos-2040-vision-draft.md) — M0): coordination, not feature silos talking past each other.
 
-### 4.1 Dependency direction
+### 5.1 Dependency direction
 
 ```
 App
@@ -115,7 +158,7 @@ Shared, Resources
 | **App wires everything** | Composition root registers services and injects into feature entry points |
 | **Fail-closed** | Missing auth, missing relay token, or review/demo misconfiguration → stop with user-visible state, not silent fallback |
 
-### 4.2 Conductor mapping (M0 — conceptual)
+### 5.2 Conductor mapping (M0 — conceptual)
 
 | Conductor concept | iOS layer |
 |-------------------|-----------|
@@ -129,11 +172,11 @@ Shared, Resources
 
 ---
 
-## 5. First launch screen spec (no code)
+## 6. First launch screen spec (locked, no code)
 
-M0 deliverable when the private Xcode repo is scaffolded. **This section is the UI contract** — implementation is SwiftUI in `lumos-ios`, not in `lumos-core`.
+V1 deliverable when the private Xcode project is scaffolded (locally first, then in `lumos-ios`). **This section is the UI contract** — implementation is SwiftUI in the private repo, not in `lumos-core`.
 
-### 5.1 Visual spec
+### 6.1 Visual spec
 
 | Element | Spec |
 |---------|------|
@@ -144,7 +187,7 @@ M0 deliverable when the private Xcode repo is scaffolded. **This section is the 
 | **Chrome** | No tab bar, no navigation bar, no buttons on first paint — pure presence |
 | **Animation** | Optional subtle fade-in (≤ 400ms); no splash video |
 
-### 5.2 Behavior (M0)
+### 6.2 Behavior (M0)
 
 | Behavior | Spec |
 |----------|------|
@@ -153,7 +196,7 @@ M0 deliverable when the private Xcode repo is scaffolded. **This section is the 
 | **Status bar** | Light content on dark background |
 | **Safe area** | Logo + text respect safe area; no clipping on notch/Dynamic Island |
 
-### 5.3 SwiftUI notes (optional — private repo only)
+### 6.3 SwiftUI notes (optional — private repo only)
 
 - Root: `ZStack` with `Color.black.ignoresSafeArea()` + `VStack` (logo, spacing, text)
 - Logo: `Image("LumosLogo")` resizable, scaledToFit, max width ~40% of screen
@@ -161,7 +204,7 @@ M0 deliverable when the private Xcode repo is scaffolded. **This section is the 
 - Preview: `#Preview` with iPhone 15 Pro + SE sizes
 - **Accessibility:** VoiceOver reads «Lumos. Hayal etmen yeterli.»
 
-### 5.4 Explicit non-goals (M0 screen)
+### 6.4 Explicit non-goals (M0 screen)
 
 - No login, no bridge pairing, no network call on launch
 - No «Loading…» spinner unless app init truly blocks (prefer instant paint)
@@ -169,11 +212,11 @@ M0 deliverable when the private Xcode repo is scaffolded. **This section is the 
 
 ---
 
-## 6. v1 scope vs future
+## 7. v1 scope vs future
 
-Canonical App Store boundary: [`app-store-review-prep.md`](../app-store-review-prep.md) **§5 v1 Capability boundary**.
+Canonical App Store boundary: [`app-store-review-prep.md`](../app-store-review-prep.md) **§5 v1 Capability boundary** (locked reference — see §3.1).
 
-### 6.1 In scope for v1 (iOS)
+### 7.1 In scope for v1 (iOS)
 
 | Area | v1 |
 |------|-----|
@@ -184,19 +227,11 @@ Canonical App Store boundary: [`app-store-review-prep.md`](../app-store-review-p
 | Tasks, Settings, Chat/Approvals tabs (demo content) | ✓ |
 | Minimal Apple entitlements (§5.2 defaults OFF) | ✓ |
 
-### 6.2 Out of scope for v1
+### 7.2 Out of scope for v1
 
-| Area | Deferred |
-|------|----------|
-| Full cloud / multi-device sync | Post-v1 |
-| Sign in with Apple | Unless auth path ships |
-| Push notifications | Unless approval alerts live |
-| iCloud, App Groups | Post-v1 |
-| LAN relay in App Store build | Review uses hosted demo API ([§4.3](../app-store-review-prep.md)) |
-| visionOS / macOS targets | Separate surfaces |
-| Real OS / device control | Private layer; stub in review |
+See **§3.1** and [`app-store-review-prep.md`](../app-store-review-prep.md) §5 for the locked OUT list.
 
-### 6.3 OSS vs private (mobile)
+### 7.3 OSS vs private (mobile)
 
 | Capability | `lumos-core` (OSS) | `lumos-ios` (private) |
 |------------|-------------------|----------------------|
@@ -207,7 +242,7 @@ Canonical App Store boundary: [`app-store-review-prep.md`](../app-store-review-p
 
 ---
 
-## 7. Cross-references
+## 8. Cross-references
 
 | Topic | Document |
 |-------|----------|
@@ -219,7 +254,7 @@ Canonical App Store boundary: [`app-store-review-prep.md`](../app-store-review-p
 | **Product safety** | [`app-store-product-safety-privacy.md`](../app-store-product-safety-privacy.md) |
 | **ADR-008** | Agent network boundary — no horizontal feature delegation |
 
-### 7.1 App Store gaps (G1–G6)
+### 8.1 App Store gaps (G1–G6)
 
 From [`app-store-review-prep.md`](../app-store-review-prep.md) §7 — architecture acknowledges; implementation is private:
 
@@ -234,9 +269,9 @@ From [`app-store-review-prep.md`](../app-store-review-prep.md) §7 — architect
 
 ---
 
-## 8. Multi-platform note
+## 9. Multi-platform note
 
-Long-term: **Android, iOS, macOS, Vision Pro** share logic via **Core + Models + Services protocols**, not duplicated feature code.
+Long-term: **Android, iOS, macOS, Vision Pro, Web** share logic via **Core + Models + Services protocols**, not duplicated feature code. See §2 for the repo map.
 
 | Layer | Share strategy |
 |-------|----------------|
@@ -245,41 +280,56 @@ Long-term: **Android, iOS, macOS, Vision Pro** share logic via **Core + Models +
 | **Features** | Per-platform UI (SwiftUI, Compose, AppKit) |
 | **Shared** | Design tokens exported per platform |
 
-**Principle:** Write orchestration and approval rules once in Core; UI stays native per platform. iOS M0 establishes the pattern private repos for other platforms can mirror.
+**Principle:** Write orchestration and approval rules once in Core; UI stays native per platform. iOS V1 establishes the pattern private repos for other platforms can mirror.
 
 ---
 
-## 9. Build phases (recommended)
+## 10. Build phases (recommended)
 
-| Phase | Repo | Deliverable |
-|-------|------|-------------|
-| **M0 (this doc)** | `lumos-core` | Architecture spec only — **no Swift in public repo** |
-| **M1** | `lumos-ios` | Xcode scaffold, folder tree, heartbeat screen, CI (lint/build) |
+| Phase | Where | Deliverable |
+|-------|-------|-------------|
+| **V1 lock (this doc)** | `lumos-core` | Architecture spec locked — **no Swift in public repo** |
+| **M1 — local first** | Local Xcode (no remote required yet) | Folder tree, heartbeat screen, mature skeleton |
+| **M1 — repo open** | Private `lumos-ios` | First commit: `Initial iOS project scaffold`; CI (lint/build) |
 | **M2** | `lumos-ios` | Navigation shell, Review Mode flag, hosted demo API stub |
 | **M3** | `lumos-ios` + backend | Approvals tab, G3 demo workspace |
 | **M4** | Private + ops | TestFlight, App Store Connect, G5–G6 |
 
+**Note:** M1 local work and M1 repo open are sequential, not simultaneous. Do not block local iteration on repo creation.
+
 ---
 
-## 10. Explicit constraints (this PR)
+## 11. Explicit constraints (this PR)
 
-- **NO Swift files** are added to `lumos-core` in the architecture PR — documentation only.
+- **NO Swift files** are added to `lumos-core` — documentation only.
 - **NO Xcode project** in the public repository unless the user explicitly opts into a public scaffold (default: **private `lumos-ios`**).
 - **NO production secrets**, entitlements, or review credentials in git.
-- Cursor and human engineers implement against this spec in the private repo.
+- Cursor and human engineers implement against this spec in the private repo (local first, then remote).
 
 ---
 
-## 11. Success criteria (M0)
+## 12. Success criteria (V1 lock)
 
 | Criterion | Met when |
 |-----------|----------|
-| Folder responsibilities documented | ✓ this doc |
-| Layer rules enforceable | Review checklist in §4 passes for first feature PR |
-| First screen spec unambiguous | Design can implement without guessing |
-| v1 boundary linked | §6 ↔ app-store-review-prep §5 |
-| Repo placement clear | `lumos-ios` private recommended |
+| V1 architecture locked | §3 decisions documented and marked locked |
+| Folder responsibilities documented | ✓ §4 |
+| Layer rules enforceable | Review checklist in §5 passes for first feature PR |
+| First screen spec unambiguous | Design can implement without guessing — §6 |
+| v1 boundary linked | §3.1 / §7 ↔ app-store-review-prep §5 |
+| Repo placement + timing clear | §2 — local-first, private `lumos-ios` when ready |
 
 ---
 
-*Son güncelleme: 2026-07-05 — M0 architecture spec; docs only, no Swift.*
+## 13. Open questions (minimal)
+
+Only unresolved items — not architecture decisions:
+
+| Question | Notes |
+|----------|-------|
+| **Xcode version** | Pin when local skeleton starts (team standard TBD) |
+| **Exact logo asset** | Vector source file / export spec for `Resources/` (brand asset TBD) |
+
+---
+
+*Son güncelleme: 2026-07-05 — V1 architecture lock; multi-repo map; local-first repo timing; docs only, no Swift.*
