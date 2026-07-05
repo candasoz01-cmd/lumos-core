@@ -657,7 +657,8 @@ Burada sahte onay, «Approved by» veya vendor endorsement **yazılmaz** (bkz. L
 | [`BACKLOG.md`](./BACKLOG.md) | Kesin kararlar (`LUMOS-*`) |
 | [`decision-engine-schema.md`](./decision-engine-schema.md) | Karar alanları, onay bütünlüğü, mezuniyet sonrası şema |
 | [`section-14-lumos-academy-vision.md`](./section-14-lumos-academy-vision.md) | Academy uzun vadeli vizyon (ayrı çekmece / arşiv taslağı) |
-| [`lumos-ios-core-architecture.md`](./lumos-ios-core-architecture.md) | iOS M0 iskelet — Core/Features/Services katmanları, konduktör hizası; Swift yalnızca private `lumos-ios` |
+| [`lumos-ios-core-architecture.md`](./lumos-ios-core-architecture.md) | iOS M0 mimari sözleşmesi — kavramsal katmanlar + private `App/` modül ağacı; konduktör hizası |
+| [`lumos-ios-repo-rules.md`](./lumos-ios-repo-rules.md) | Private `lumos-ios` disiplini — `App/UI`, `AI`, `Network`, … modül sahipliği ve import kuralları |
 
 ---
 
