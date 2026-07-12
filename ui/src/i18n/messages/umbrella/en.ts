@@ -50,6 +50,13 @@ const umbrellaEn: typeof umbrellaTr = {
     dream: "Even the dream of a better world feels beautiful.", dreamBody: "Let us build knowledge, trust, and technology together for people.",
     accessibilityCta: "Accessible learning", labCta: "Explore the Lab",
   },
+  moments: {
+    eyebrow: "LUMOS · SMALL MOMENTS", title: "Let technology feel a little more human",
+    lead: "The most important features explain themselves through calm, understandable motion.",
+    approvalTitle: "Your approval comes first", approvalBody: "The door does not rush. It opens gently when you say yes.",
+    connectionTitle: "Connection stays calm", connectionBody: "The world is large; the status signal stays small, clear, and unhurried.",
+    helpTitle: "Help stays nearby", helpBody: "When things get confusing, Lumos waves: ‘I am here. Let us look together.’",
+  },
   products: {
     title: "Product layers and connections",
     lead:

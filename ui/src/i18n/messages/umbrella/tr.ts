@@ -48,6 +48,13 @@ const umbrellaTr = {
     dream: "Daha güzel bir dünyanın hayali bile güzel.", dreamBody: "Gelin; bilgiyi, güveni ve teknolojiyi insan yararına birlikte kuralım.",
     accessibilityCta: "Engelsiz öğrenme", labCta: "Lab'i keşfet",
   },
+  moments: {
+    eyebrow: "LUMOS · KÜÇÜK ANLAR", title: "Teknoloji biraz daha insani hissettirsin",
+    lead: "En önemli özellikler, sakin ve anlaşılır küçük hareketlerle kendini anlatır.",
+    approvalTitle: "Önce senin onayın", approvalBody: "Kapı acele etmez. Sen ‘tamam’ deyince usulca açılır.",
+    connectionTitle: "Bağlantı sakin kalır", connectionBody: "Dünya büyük; durum işareti küçük, açık ve telaşsızdır.",
+    helpTitle: "Yardım yanında", helpBody: "Bir şey karışırsa Lumos el sallar: ‘Buradayım, birlikte bakalım.’",
+  },
   products: {
     title: "Ürün katmanları ve bağlantılar",
     lead:
