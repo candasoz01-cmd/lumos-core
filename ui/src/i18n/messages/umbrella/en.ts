@@ -134,6 +134,8 @@ const umbrellaEn: typeof umbrellaTr = {
     title: "Lumos Cyber",
     lead:
       "Lumos Cyber is the planned We Lock AI variant for security operations, risk visibility, and policy-focused work. It is not a cyberpunk UI — it is a professional control layer.",
+    fortressCaption: "Strong boundaries outside. Trust, science, and collaboration within.",
+    quantumCaption: "Security grows stronger as we prepare for quantum change; people and responsibility remain at the center.",
     focusTitle: "Focus",
     focus1: "Keeping risk and policy summaries visible in the panel.",
     focus2: "Extra approval and audit trail for high-impact steps.",

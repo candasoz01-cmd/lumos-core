@@ -133,6 +133,8 @@ const umbrellaTr = {
     title: "Lumos Cyber",
     lead:
       "Lumos Cyber, We Lock AI çatısı altında güvenlik operasyonları, risk görünürlüğü ve politika odaklı çalışma için planlanan varyanttır. Ayrı bir cyberpunk arayüz değil; profesyonel kontrol katmanıdır.",
+    fortressCaption: "Dışarıda güçlü sınırlar. İçeride güven, bilim ve birlikte çalışma.",
+    quantumCaption: "Kuantuma hazırlanırken güvenlik güçlenir; insan ve sorumluluk merkezde kalır.",
     focusTitle: "Odak",
     focus1: "Risk ve politika özetlerinin panelde görünür tutulması.",
     focus2: "Yüksek etkili adımlarda ek onay ve audit izi.",
