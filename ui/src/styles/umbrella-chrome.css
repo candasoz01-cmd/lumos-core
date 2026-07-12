@@ -417,3 +417,13 @@
 .umbrella-feature-card h3 {
   margin-top: 0;
 }
+
+.umbrella-feature-card--diamond {
+  border-color: rgb(var(--lumos-land-warm) / 0.42);
+  background: linear-gradient(145deg, rgba(26, 24, 32, 0.92), rgba(18, 26, 36, 0.78));
+}
+
+.umbrella-feature-card--cyber {
+  border-color: rgb(var(--lumos-land-teal) / 0.48);
+  box-shadow: inset 3px 0 0 rgb(var(--lumos-land-teal) / 0.42);
+}
