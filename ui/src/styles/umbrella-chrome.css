@@ -384,6 +384,8 @@
   border: 1px solid rgb(var(--lumos-land-teal) / 0.28);
   border-radius: var(--lumos-radius-lg);
   background: rgba(18, 26, 36, 0.78);
+  overflow: hidden;
+  animation: umbrella-rise 560ms ease-out both;
 }
 
 .umbrella-visual img {
@@ -392,6 +394,45 @@
   max-height: 22rem;
   object-fit: cover;
   border-radius: var(--lumos-radius-md);
+  animation: umbrella-photo-settle 5.5s ease-out both;
+}
+
+.umbrella-visual--cinematic {
+  position: relative;
+  padding: 0;
+  min-height: clamp(16rem, 42vw, 27rem);
+}
+
+.umbrella-visual--cinematic img {
+  min-height: inherit;
+  max-height: 30rem;
+  border-radius: inherit;
+}
+
+.umbrella-visual__caption {
+  position: absolute;
+  inset: auto 0 0;
+  margin: 0;
+  padding: clamp(1rem, 4vw, 2.2rem);
+  color: #f5f7fb;
+  background: linear-gradient(transparent, rgba(4, 8, 14, 0.9));
+}
+
+@keyframes umbrella-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes umbrella-photo-settle {
+  from { transform: scale(1.025); filter: saturate(0.82); }
+  to { transform: scale(1); filter: saturate(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .umbrella-visual,
+  .umbrella-visual img {
+    animation: none;
+  }
 }
 
 .umbrella-feature-grid {
