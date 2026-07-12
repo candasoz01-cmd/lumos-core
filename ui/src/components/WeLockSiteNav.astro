@@ -1,7 +1,7 @@
 ---
 import LanguageSwitcher from "./LanguageSwitcher.astro";
 
-export type UmbrellaNavActive = "home" | "panel" | "slack" | "mac" | "cyber" | "integrations" | "";
+export type UmbrellaNavActive = "home" | "panel" | "integrations" | "slack" | "mac" | "cyber" | "accessibility" | "lab" | "education" | "";
 
 interface Props {
   active?: UmbrellaNavActive;
@@ -35,15 +35,12 @@ function linkClass(id: UmbrellaNavActive) {
       <li>
         <a class={linkClass("integrations")} href="/integrations" data-i18n="umbrella.nav.integrations">Entegrasyonlar</a>
       </li>
-      <li>
-        <a class={linkClass("slack")} href="/slack" data-i18n="umbrella.nav.slack">Slack</a>
-      </li>
-      <li>
-        <a class={linkClass("mac")} href="/connect/mac" data-i18n="umbrella.nav.mac">Mac</a>
-      </li>
-      <li>
-        <a class={linkClass("cyber")} href="/cyber" data-i18n="umbrella.nav.cyber">Cyber</a>
-      </li>
+      <li><a class={linkClass("accessibility")} href="/accessibility" data-i18n="umbrella.nav.accessibility">Engelsiz</a></li>
+      <li><a class={linkClass("lab")} href="/lab" data-i18n="umbrella.nav.lab">Lab</a></li>
+      <li><a class={linkClass("education")} href="/education" data-i18n="umbrella.nav.education">Eğitim</a></li>
+      <li><a class={linkClass("slack")} href="/slack" data-i18n="umbrella.nav.slack">Slack</a></li>
+      <li><a class={linkClass("mac")} href="/connect/mac" data-i18n="umbrella.nav.mac">Mac</a></li>
+      <li><a class={linkClass("cyber")} href="/cyber" data-i18n="umbrella.nav.cyber">Cyber</a></li>
       <li>
         <a
           class="lumos-umbrella-nav__link lumos-umbrella-nav__link--accent"

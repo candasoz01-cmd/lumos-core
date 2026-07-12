@@ -1,0 +1,35 @@
+---
+import "../styles/lumos-tokens.css";
+import "../styles/umbrella-chrome.css";
+import WeLockSiteNav from "../components/WeLockSiteNav.astro";
+import WeLockSiteFooter from "../components/WeLockSiteFooter.astro";
+import I18nInit from "../components/I18nInit.astro";
+---
+
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Engelsiz Lumos — We Lock AI</title>
+    <meta name="description" content="Lumos'un erişilebilir, sade ve farklı kullanım ihtiyaçlarına uyumlu deneyim ilkeleri." />
+    <link rel="canonical" href="https://welockai.com/accessibility" />
+    <link rel="icon" href="/lumos-tree-logo.svg" type="image/svg+xml" sizes="any" />
+  </head>
+  <body class="umbrella-page">
+    <WeLockSiteNav active="accessibility" />
+    <main class="umbrella-main">
+      <p class="umbrella-eyebrow" data-i18n="umbrella.accessibility.eyebrow">LUMOS · ENGELSİZ</p>
+      <h1 data-i18n="umbrella.accessibility.title">Engelsiz kullanım</h1>
+      <p class="umbrella-lead" data-i18n="umbrella.accessibility.lead">Lumos; görme, işitme, hareket, dikkat, dil veya bağlantı koşulu fark etmeksizin anlaşılır ve denetlenebilir olmayı hedefler.</p>
+      <div class="umbrella-feature-grid">
+        <article class="umbrella-feature-card"><h2 data-i18n="umbrella.accessibility.readableTitle">Okunabilir</h2><p data-i18n="umbrella.accessibility.readableBody">Yüksek kontrast, büyütülebilir metin ve renk dışında da anlaşılır durum işaretleri.</p></article>
+        <article class="umbrella-feature-card"><h2 data-i18n="umbrella.accessibility.usableTitle">Kullanılabilir</h2><p data-i18n="umbrella.accessibility.usableBody">Klavye, ekran okuyucu, ses ve dokunma için tutarlı gezinme.</p></article>
+        <article class="umbrella-feature-card"><h2 data-i18n="umbrella.accessibility.adaptableTitle">Uyarlanabilir</h2><p data-i18n="umbrella.accessibility.adaptableBody">Düşük bant, sakin arayüz ve kullanıcının seçtiği yardım düzeyi.</p></article>
+      </div>
+      <div class="umbrella-callout"><p><strong data-i18n="umbrella.accessibility.principle">Engelsiz mod ayrı bir dünya değildir.</strong> <span data-i18n="umbrella.accessibility.principleBody">Lumos'un bütün yüzeylerinde geçerli ortak tasarım ilkesidir.</span></p></div>
+      <div class="umbrella-actions"><a class="umbrella-btn umbrella-btn--primary" href="/panel" data-i18n="umbrella.accessibility.panelCta">Lumos'u aç</a><a class="umbrella-btn" href="/education" data-i18n="umbrella.accessibility.educationCta">Eğitime geç</a></div>
+    </main>
+    <WeLockSiteFooter />
+    <I18nInit />
+  </body>
+</html>
