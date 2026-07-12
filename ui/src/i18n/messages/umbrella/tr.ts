@@ -132,7 +132,7 @@ const umbrellaTr = {
     eyebrow: "WE LOCK AI · CYBER",
     title: "Lumos Cyber",
     lead:
-      "Lumos Cyber, We Lock AI çatısı altında güvenlik operasyonları, risk görünürlüğü, savunma ve politika odaklı çalışma için bağımsız katmandır. Entegrasyon veya Lab alt hizmeti değildir.",
+      "Lumos Cyber, We Lock AI çatısı altında güvenlik operasyonları, risk görünürlüğü ve politika odaklı çalışma için planlanan varyanttır. Ayrı bir cyberpunk arayüz değil; profesyonel kontrol katmanıdır.",
     focusTitle: "Odak",
     focus1: "Risk ve politika özetlerinin panelde görünür tutulması.",
     focus2: "Yüksek etkili adımlarda ek onay ve audit izi.",

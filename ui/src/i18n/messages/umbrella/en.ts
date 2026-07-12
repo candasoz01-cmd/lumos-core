@@ -133,7 +133,7 @@ const umbrellaEn: typeof umbrellaTr = {
     eyebrow: "WE LOCK AI · CYBER",
     title: "Lumos Cyber",
     lead:
-      "Lumos Cyber is the independent We Lock AI layer for security operations, risk visibility, defense, and policy-focused work. It is not an integration or a Lab sub-service.",
+      "Lumos Cyber is the planned We Lock AI variant for security operations, risk visibility, and policy-focused work. It is not a cyberpunk UI — it is a professional control layer.",
     focusTitle: "Focus",
     focus1: "Keeping risk and policy summaries visible in the panel.",
     focus2: "Extra approval and audit trail for high-impact steps.",
