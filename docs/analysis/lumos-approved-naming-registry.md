@@ -180,6 +180,19 @@ Gerçek müşteri adları, destek e-postası ve Apple kimlik değerleri **repoda
 
 **Yasak:** Public repoda sahte müşteri adı, gerçek görünümlü e-posta veya Apple Team ID commit etmek.
 
+### C.3 Mimari ad onaylı — dış kullanım düzenleme kapılı (2026-07-13)
+
+Kullanıcı yönüyle aşağıdaki çalışma adları **mimari ve karar belgelerinde onaylıdır**. Bunlar §A gibi koşulsuz public ürün iddiası değildir; ilgili hukuk, lisans, tüzel kişilik, marka ve kamu yetkisi kapıları geçilmeden UI'da aktif/resmi hizmet olarak ship edilmez.
+
+| Çalışma adı | Mimari sınıf | Dış kullanım kapısı |
+|-------------|---------------|---------------------|
+| **Lumos Bank** | Ayrı düzenlemeye tabi finansal kuruluş hedefi | Banka/finans lisansı veya yetkili partner modeli + hukuk/marka onayı |
+| **Lumos Sepet** | Ayrı ticaret ve kullanıcı tercih hizmeti hedefi | Tüketici, sözleşme, iade/iptal ve ödeme-onay modeli |
+| **Lumos POS** | Ayrı merchant ödeme kabul hizmeti hedefi | PSP/merchant, settlement, itiraz ve ülke mevzuatı onayı |
+| **Lumos Devlet** | Ayrı kamu adaptasyon ve birlikte çalışabilirlik birimi hedefi | Yetkili kamu sözleşmesi + adın kamu otoritesi izlenimi yaratmadığına dair hukuk/marka onayı |
+
+**Zorunlu ifade sınırı:** Lumos bugün banka, PSP, ödeme kuruluşu veya devlet/kamu otoritesi olarak tanıtılmaz. Canonical sorumluluk ayrımı: [`ADR-015`](../decisions/ADR-015-regulated-service-entity-boundaries.md); kanıt ve aşama modeli: [`lumos-institutional-service-foundation.md`](./lumos-institutional-service-foundation.md).
+
 **Çapraz:** NA-03, NA-05 — [`todo-fixme-sweep-report.md`](./todo-fixme-sweep-report.md); P1-03 / P1-04 — [`INTERNAL_ALPHA_OPERATIONS.md`](../INTERNAL_ALPHA_OPERATIONS.md).
 
 ---

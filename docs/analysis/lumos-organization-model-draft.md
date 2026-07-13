@@ -5,7 +5,7 @@
 | Durum | **Mimari foundation taslak** — kod yok; karar destek belgesi |
 | Tarih | 2026-06-26 |
 | Kapsam | Gelecek kuruluş ağı modeli; Slack kanal adları değil, hiyerarşik org yapısı |
-| İlgili | [`lumos-approved-naming-registry.md`](./lumos-approved-naming-registry.md), [`welockai-charter-draft.md`](./welockai-charter-draft.md), [`welockai-trust-model-draft.md`](./welockai-trust-model-draft.md), [`device-connection-information-architecture.md`](./device-connection-information-architecture.md), [`integrations-overview.md`](../integrations-overview.md), [`public-repo-boundary.md`](../memory/public-repo-boundary.md) |
+| İlgili | [`lumos-approved-naming-registry.md`](./lumos-approved-naming-registry.md), [`welockai-charter-draft.md`](./welockai-charter-draft.md), [`welockai-trust-model-draft.md`](./welockai-trust-model-draft.md), [`lumos-institutional-service-foundation.md`](./lumos-institutional-service-foundation.md), [`device-connection-information-architecture.md`](./device-connection-information-architecture.md), [`integrations-overview.md`](../integrations-overview.md), [`public-repo-boundary.md`](../memory/public-repo-boundary.md) |
 
 **Sınır notu:** Bu belge `lumos-core` public deposunda **yalnızca mimari foundation** olarak tutulur. Üretim çok kiracılı backend, SSO provisioning veya Slack workspace eşlemesi bu repoda **yer almaz** ([`public-repo-boundary.md`](../memory/public-repo-boundary.md)).
 
@@ -28,6 +28,8 @@ Bu belge, Lumos ekosisteminin **gelecek kuruluş organizasyon modelini** tanıml
 - Sohbet, görev, belge, toplantı ve izinler için **uzun vadede aynı iskelet**
 
 Bu taslak, [`welockai-charter-draft.md`](./welockai-charter-draft.md) ve [`welockai-trust-model-draft.md`](./welockai-trust-model-draft.md) ile uyumludur; mevcut güvenlik sözleşmesini gevşetmez.
+
+**Kuruluş türü ayrımı:** Bu belgedeki `Kuruluş`, sisteme katılan müşteri/kamu/eğitim/sağlık organizasyonu nesnesidir. Lumos Bank, Lumos Sepet, Lumos POS ve Lumos Devlet ise gelecekte ayrı sorumluluk ve düzenleme sınırı taşıyacak **hizmet kuruluşu çalışma adlarıdır**; tenant hiyerarşisinin seviyesi veya hazır müşteri kuruluşu değildir. Ayrıntı: [`ADR-015`](../decisions/ADR-015-regulated-service-entity-boundaries.md).
 
 ---
 

@@ -25,6 +25,7 @@
 | DL-E01 | 2026-06-17 | Ödeme / PSP | Ödeme modeli + PSP/hukuk-mali paket gelene kadar aktif kapsam dışı; şirket/vergi kaydı mevcut | OD-011, [`payment-scope-decision.md`](memory/payment-scope-decision.md) |
 | DL-E02 | 2026-06-17 | Mail entegrasyonu | İletişim kanalları ilke onaylı; **dar v1 public demo-safe stub** (`src/integrations/mail/`, PR #413–#415); **ürün uygulanmamış**; connector + vault credential **private impl** bekliyor | OD-031, ADR-002, [`public-repo-boundary.md`](memory/public-repo-boundary.md), [`mail-integration-approval-decision.md`](memory/mail-integration-approval-decision.md) |
 | DL-E03 | 2026-06-17 | Vault uygulama spec | Vault ilke onaylı (OD-001–005); **V1 teknoloji harman onaylı** (detay private strategy vault); public adapter stub (`src/integrations/vault/`); PoC operatör adımları private impl bekliyor | OD-001–005, [`od-vault-v1-technology-selection.md`](memory/od-vault-v1-technology-selection.md), [`od-vault-dar-v1-design.md`](memory/od-vault-dar-v1-design.md) |
+| DL-E04 | 2026-07-13 | Düzenlemeye tabi hizmet hatları | Lumos Bank, Lumos Sepet, Lumos POS ve Lumos Devlet ayrı sorumluluk alanları olarak foundation seviyesinde onaylandı; lisans, tüzel kişilik, canlı ödeme/kamu bağlantısı ve production altyapısı bekliyor | OD-060, [ADR-015](decisions/ADR-015-regulated-service-entity-boundaries.md), [`lumos-institutional-service-foundation.md`](analysis/lumos-institutional-service-foundation.md) |
 
 ### Geçici ertelendi
 
