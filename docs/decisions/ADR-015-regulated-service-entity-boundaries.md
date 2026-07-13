@@ -39,6 +39,24 @@ Bu nedenle ad yalnız pazarlama yüzeyinden değil, kuruluş modeli ve teknik ye
 
 Entegrasyon katmanının ilk hedefi yeni iş kuralları, merkezi bir devlet sistemi veya genel müdahale hakkı üretmek değildir. İlk hedef, talep eden ülkenin **mevcut sistemlerini authoritative kaynak olarak koruyarak** güvenli entegrasyonun mümkün olup olmadığını göstermektir.
 
+#### İlk kullanım maksadı ve olası hizmetler
+
+İlk kullanım maksadı; devlet ölçeğinde hâlihazırda kullanılan sistemler arasında güvenli bağlantı, uyumluluk ve hizmet sürekliliği sağlamaktır. Olası hizmetler:
+
+| Hizmet alanı | İlk güvenli kapsam |
+|--------------|--------------------|
+| Sistem ve servis envanteri | Kurum, sistem sahibi, protokol, veri sınıfı ve bağımlılık haritası |
+| Birlikte çalışabilirlik | Mevcut API, standart ve kurumca onaylı adaptörler arasında şema/protokol uyumu |
+| Kimlik ve yetki federasyonu | Mevcut kimlik kaynağını değiştirmeden oturum ve operasyon bazlı yetki doğrulama |
+| Güvenli veri alışverişi | Minimum gerekli veri, amaç sınırı, provenance, correlation ve veri yerleşimi kontrolü |
+| Hizmet yönlendirme | Kullanıcıyı doğru mevcut servise yönlendirme; form/talep taslağı hazırlama, kararı yetkili sisteme bırakma |
+| Risk ve olay görünürlüğü | Kesinti, yetki sapması, veri akışı ve güven sinyallerini yetkili ekiplere görünür kılma |
+| Audit ve kanıt | İçerik kopyalamadan işlem özeti, onay, kaynak ve sonuç kanıtı üretme |
+| Dil ve erişilebilirlik | Mevcut hizmetleri farklı dil, cihaz ve erişilebilirlik ihtiyaçlarında anlaşılır sunma |
+| Bağlantı dayanıklılığı | Düşük bant, kesinti ve offline koşullarında güvenli kuyruk, tekrar deneme ve kaynak sistem sürekliliği |
+
+Bu liste ürün vaadi veya otomatik yetki değildir. Hangi hizmetin açılacağı, talep eden ülkenin ihtiyacı, mevcut sistemleri, sözleşmesi ve `country_pack` kanıtlarıyla belirlenir.
+
 Varsayılan sıra şöyledir:
 
 1. Mevcut sistem, veri sahibi, teknik sahip, yetkili kurum ve protokol envanteri çıkarılır.

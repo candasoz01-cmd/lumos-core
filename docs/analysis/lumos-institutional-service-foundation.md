@@ -57,6 +57,22 @@ Kesikli oklar otomatik yetki aktarımı değildir. Her geçiş yeni kapsam, poli
 
 Ülke Sistemleri Entegrasyon Katmanı mevcut sistemleri yeniden tasarlamaz ve tek bir küresel işleyiş dayatmaz. Kaynak sistem; kendi verisinin, iş kuralının ve işleminin authoritative sahibidir. Lumos yalnızca açıkça sözleşmelenmiş adaptör üzerinden bağlam, uyumluluk, risk ve onay görünürlüğü sağlar.
 
+### İlk kullanım maksadı
+
+Devlet ölçeğinde ilk amaç, var olan servislerin yerine geçmek değil; onları güvenli biçimde keşfetmek, bağlamak ve kullanıcıya daha anlaşılır ulaştırmaktır. İlk hizmet kataloğu şu başlıklarla sınırlıdır:
+
+- sistem/servis envanteri ve bağımlılık haritası,
+- standart/API/adaptör uyumluluğu,
+- mevcut kimlik ve yetki kaynaklarıyla federasyon,
+- amaç sınırlı veri alışverişi ve provenance,
+- doğru servise yönlendirme ve talep/form taslağı,
+- risk, kesinti ve yetki sapması görünürlüğü,
+- audit/kanıt özeti,
+- çok dil, erişilebilirlik ve cihaz uyumu,
+- düşük bant, offline ve bağlantı kesintisinde hizmet sürekliliği.
+
+Bu katalog başlangıç olasılık alanıdır; aktif hizmet listesi değildir. Ülke istemedikçe ve ilgili kanıt kapıları geçilmedikçe hiçbir başlık yazma veya müdahale yetkisi açmaz.
+
 ### Entegrasyon katmanları
 
 | Katman | Amaç | Varsayılan |
