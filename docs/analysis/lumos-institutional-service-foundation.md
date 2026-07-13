@@ -4,13 +4,13 @@
 |------|-------|
 | Durum | **Karar destek — foundation**; uygulama bekliyor |
 | Tarih | 2026-07-13 |
-| Hedef | Lumos Bank · Lumos Sepet · Lumos POS · Lumos Devlet için sistemli kuruluş, aşama ve risk çerçevesi |
+| Hedef | Lumos Bank · Lumos Sepet · Lumos POS · Lumos Dünya ve ülke sistemleri entegrasyonu için sistemli sınır, aşama ve risk çerçevesi |
 | Canonical karar | [`ADR-015`](../decisions/ADR-015-regulated-service-entity-boundaries.md) |
 | Üst sınır | [`lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md), [`payment-scope-decision.md`](../memory/payment-scope-decision.md) |
 
 ## 1. Niyet
 
-Bu yapı dört adı aynı uygulamanın menüleri olarak değil, ayrı sorumluluk ve denetim alanları olarak ele alır. Kullanıcı deneyimi Lumos'ta tutarlı kalabilir; fakat para, merchant operasyonu, ticaret tercihi ve kamu verisi aynı yetki veya veri havuzuna girmez.
+Bu yapı üç ticari birimi, Lumos Dünya küresel yüzeyini ve ülke sistemleri entegrasyon katmanını ayrı sorumluluk alanları olarak ele alır. Kullanıcı deneyimi Lumos'ta tutarlı kalabilir; fakat para, merchant operasyonu, ticaret tercihi ve ülke verisi aynı yetki veya veri havuzuna girmez.
 
 ## 2. Kuruluş topolojisi
 
@@ -23,18 +23,20 @@ flowchart TB
   BANK[Lumos Bank\nayrı lisanslı finans hattı]
   CART[Lumos Sepet\nticaret ve tercih hattı]
   POS[Lumos POS\nmerchant kabul hattı]
-  GOV[Lumos Devlet\nmevcut sistem entegrasyon çerçevesi]
+  WORLD[Lumos Dünya\nküresel insan katılımı]
+  COUNTRY[Ülke Sistemleri Entegrasyon Katmanı\nprivate ve sözleşmeli]
 
   USER --> LUMOS
   LUMOS --> TRUST
   TRUST --> BANK
   TRUST --> CART
   TRUST --> POS
-  TRUST --> GOV
+  TRUST --> WORLD
+  TRUST --> COUNTRY
 
   CART -. ödeme niyeti .-> POS
   POS -. yetkili settlement .-> BANK
-  GOV -. sözleşmeli birlikte çalışabilirlik .-> TRUST
+  COUNTRY -. sözleşmeli birlikte çalışabilirlik .-> TRUST
 ```
 
 Kesikli oklar otomatik yetki aktarımı değildir. Her geçiş yeni kapsam, politika ve açık onay değerlendirmesi gerektirir.
@@ -46,11 +48,12 @@ Kesikli oklar otomatik yetki aktarımı değildir. Her geçiş yeni kapsam, poli
 | Lumos Bank | Lisans sonrası finansal hesap/işlem sorumluluğu | Sepet kataloğu, merchant cihaz yönetimi, kamu yetkisi | Lisans ve partner gereksinim haritası |
 | Lumos Sepet | Ürün/hizmet seçimi, tercih, teklif ve sipariş niyeti | Para saklama, settlement, tek taraflı satın alma | Sentetik katalog + onay akışı simülasyonu |
 | Lumos POS | Merchant onboarding, ödeme kabul niyeti, iade/mutabakat orkestrasyonu | Banka lisansı, kullanıcı sepet profili, kamu kimliği | Sentetik merchant sandbox sözleşmesi |
-| Lumos Devlet | Mevcut kamu sistemlerini bozmadan adaptör, güven ve birlikte çalışabilirlik sözleşmeleri | Devlet otoritesi, vatandaş adına karar, varsayılan yazma/müdahale yetkisi | Sistem envanteri + salt-okuma uyumluluk raporu |
+| Lumos Dünya | Küresel tanışma, insan odaklı hizmet görünürlüğü ve kullanıcı kararı | Devlet/ülke sistemi yönetimi, ticari işlem veya kamu yetkisi | İnsan odaklı küresel yüzey |
+| Ülke Sistemleri Entegrasyon Katmanı | Mevcut sistemleri bozmadan adaptör, güven ve birlikte çalışabilirlik sözleşmeleri | Public marka, devlet otoritesi, kişi adına karar, varsayılan yazma/müdahale yetkisi | Sistem envanteri + salt-okuma uyumluluk raporu |
 
-## 4. Lumos Devlet: önce entegrasyon, sonra ülkeye özgü ayrıntı
+## 4. Ülke sistemleri: önce entegrasyon, sonra ülkeye özgü ayrıntı
 
-Lumos Devlet mevcut kamu sistemlerini yeniden tasarlamaz ve tek bir küresel işleyiş dayatmaz. Kaynak sistem; kendi verisinin, iş kuralının ve işleminin authoritative sahibidir. Lumos yalnızca açıkça sözleşmelenmiş adaptör üzerinden bağlam, uyumluluk, risk ve onay görünürlüğü sağlar.
+Ülke Sistemleri Entegrasyon Katmanı mevcut sistemleri yeniden tasarlamaz ve tek bir küresel işleyiş dayatmaz. Kaynak sistem; kendi verisinin, iş kuralının ve işleminin authoritative sahibidir. Lumos yalnızca açıkça sözleşmelenmiş adaptör üzerinden bağlam, uyumluluk, risk ve onay görünürlüğü sağlar.
 
 ### Entegrasyon katmanları
 
@@ -111,7 +114,7 @@ Aşağıdaki koşullardan biri yoksa ilgili **canlı aşama skordan bağımsız 
 - Lumos Bank: gerekli lisans/yetki veya lisanslı partner sözleşmesi.
 - Lumos POS: merchant/PSP hukuki modeli, settlement ve itiraz sorumlusu.
 - Lumos Sepet: açık satın alma onayı, iade/iptal ve tüketici hakları akışı.
-- Lumos Devlet: yetkili kamu sözleşmesi, mevcut sistem envanteri, veri sınıflandırması, veri yerleşimi ve operasyon bazlı yetki matrisi.
+- Ülke sistemleri entegrasyonu: yetkili sözleşme, mevcut sistem envanteri, veri sınıflandırması, veri yerleşimi ve operasyon bazlı yetki matrisi.
 - Tüm hatlar: amaç bazlı erişim, tenant izolasyonu, audit, olay müdahalesi ve geri dönüş planı.
 
 ## 6. Olasılık senaryoları
@@ -152,9 +155,9 @@ Paket kullanıcı tercihini ve Lumos önerisini sınırlar; genişletmez. Kullan
 ## 8. Uygulama sırası
 
 1. İsim ve sorumluluk sınırlarını registry/ADR ile kilitle.
-2. Dört alan için ayrı veri sınıflandırması ve threat model hazırla.
+2. Üç ticari birim ve ülke entegrasyon katmanı için ayrı veri sınıflandırması ve threat model hazırla; Lumos Dünya'yı işlem yetkisinden ayrı tut.
 3. Sentetik sandbox sözleşmelerini birbirinden bağımsız tanımla.
-4. Lumos Devlet için ilk ülkenin mevcut sistem envanteri ve salt-okuma uyumluluk adaptörünü tanımla.
+4. Ülke Sistemleri Entegrasyon Katmanı için ilk ülkenin mevcut sistem envanteri ve salt-okuma uyumluluk adaptörünü tanımla.
 5. İlk ülke için hukuk/lisans/partner kanıt paketini oluştur.
 6. Yalnız sıfırlayan kapılar kapandıktan sonra kontrollü pilot kararı ver.
 7. Canlı pilot sonrası skorları gerçek kanıtla güncelle; ülke çoğaltmasını ayrı karar yap.

@@ -29,7 +29,7 @@ Bu belge, Lumos ekosisteminin **gelecek kuruluş organizasyon modelini** tanıml
 
 Bu taslak, [`welockai-charter-draft.md`](./welockai-charter-draft.md) ve [`welockai-trust-model-draft.md`](./welockai-trust-model-draft.md) ile uyumludur; mevcut güvenlik sözleşmesini gevşetmez.
 
-**Kuruluş türü ayrımı:** Bu belgedeki `Kuruluş`, sisteme katılan müşteri/kamu/eğitim/sağlık organizasyonu nesnesidir. Lumos Bank, Lumos Sepet, Lumos POS ve Lumos Devlet ise gelecekte ayrı sorumluluk ve düzenleme sınırı taşıyacak **hizmet kuruluşu çalışma adlarıdır**; tenant hiyerarşisinin seviyesi veya hazır müşteri kuruluşu değildir. Ayrıntı: [`ADR-015`](../decisions/ADR-015-regulated-service-entity-boundaries.md).
+**Kuruluş türü ayrımı:** Bu belgedeki `Kuruluş`, sisteme katılan müşteri/kamu/eğitim/sağlık organizasyonu nesnesidir. Lumos Bank, Lumos Sepet ve Lumos POS gelecekte ayrı sorumluluk ve düzenleme sınırı taşıyacak **hizmet kuruluşu çalışma adlarıdır**. Lumos Dünya küresel kullanıcı yüzeyidir; Ülke Sistemleri Entegrasyon Katmanı ise private/sözleşmeli teknik kabiliyettir. Bunların hiçbiri tenant hiyerarşisinin seviyesi veya hazır müşteri kuruluşu değildir. Ayrıntı: [`ADR-015`](../decisions/ADR-015-regulated-service-entity-boundaries.md).
 
 ---
 
