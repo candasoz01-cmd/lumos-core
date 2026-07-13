@@ -170,10 +170,11 @@ mod tests {
         let dir = tempdir().unwrap();
         let vault_path = dir.path().join("t.vault");
         let out = dir.path().join("out.json");
-        create_vault(&vault_path, "pw").unwrap();
+        let passphrase = "anchorusb_cli_unique_secret_2026";
+        create_vault(&vault_path, passphrase).unwrap();
         export_report(&vault_path, &out).unwrap();
         let text = fs::read_to_string(&out).unwrap();
         assert!(text.contains("\"events\""));
-        assert!(!text.contains("pw"));
+        assert!(!text.contains(passphrase));
     }
 }
