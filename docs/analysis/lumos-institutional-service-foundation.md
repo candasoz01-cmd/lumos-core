@@ -23,7 +23,7 @@ flowchart TB
   BANK[Lumos Bank\nayrı lisanslı finans hattı]
   CART[Lumos Sepet\nticaret ve tercih hattı]
   POS[Lumos POS\nmerchant kabul hattı]
-  GOV[Lumos Devlet\nkamu adaptasyon birimi]
+  GOV[Lumos Devlet\nmevcut sistem entegrasyon çerçevesi]
 
   USER --> LUMOS
   LUMOS --> TRUST
@@ -46,9 +46,39 @@ Kesikli oklar otomatik yetki aktarımı değildir. Her geçiş yeni kapsam, poli
 | Lumos Bank | Lisans sonrası finansal hesap/işlem sorumluluğu | Sepet kataloğu, merchant cihaz yönetimi, kamu yetkisi | Lisans ve partner gereksinim haritası |
 | Lumos Sepet | Ürün/hizmet seçimi, tercih, teklif ve sipariş niyeti | Para saklama, settlement, tek taraflı satın alma | Sentetik katalog + onay akışı simülasyonu |
 | Lumos POS | Merchant onboarding, ödeme kabul niyeti, iade/mutabakat orkestrasyonu | Banka lisansı, kullanıcı sepet profili, kamu kimliği | Sentetik merchant sandbox sözleşmesi |
-| Lumos Devlet | Kamu politika paketi, veri sınıflandırma, kurumlar arası adaptasyon | Devlet otoritesi, vatandaş adına karar, finansal yetki | Demo-safe kamu uyum kontrol listesi |
+| Lumos Devlet | Mevcut kamu sistemlerini bozmadan adaptör, güven ve birlikte çalışabilirlik sözleşmeleri | Devlet otoritesi, vatandaş adına karar, varsayılan yazma/müdahale yetkisi | Sistem envanteri + salt-okuma uyumluluk raporu |
 
-## 4. Olasılık hesabı: tahmin değil, kanıt skoru
+## 4. Lumos Devlet: önce entegrasyon, sonra ülkeye özgü ayrıntı
+
+Lumos Devlet mevcut kamu sistemlerini yeniden tasarlamaz ve tek bir küresel işleyiş dayatmaz. Kaynak sistem; kendi verisinin, iş kuralının ve işleminin authoritative sahibidir. Lumos yalnızca açıkça sözleşmelenmiş adaptör üzerinden bağlam, uyumluluk, risk ve onay görünürlüğü sağlar.
+
+### Entegrasyon katmanları
+
+| Katman | Amaç | Varsayılan |
+|--------|------|------------|
+| Keşif | Sistem sahibi, protokol, veri sınıfı, kimlik ve bağımlılık envanteri | Metadata; veri çekme yok |
+| Salt-okuma | Şema uyumu, durum, provenance, gecikme ve hata izolasyonu | İlk teknik pilot |
+| Öneri/taslak | Yetkili görevliye değişiklik önerisi veya doldurulmuş taslak sunma | İnsan uygular |
+| Kontrollü yazma | Açıkça izinli tek operasyonu yetkili kaynak sisteme iletme | Kapalı; ülke talebi gerekir |
+| Müdahale/acil durum | Kritik sistem işlemi veya otomatik durdurma | Tanımsız ve yasak; ayrıca hukuk, kurum ve güvenlik kararı gerekir |
+
+### Tam entegrasyonun anlamı
+
+`Tam entegrasyon`, sınırsız erişim değildir. Aşağıdaki koşulların birlikte sağlanmasıdır:
+
+- mevcut sistem değişmeden authoritative kalır,
+- resmi veya kurumca onaylı arayüz/adaptör kullanılır,
+- kimlik ve yetki kaynak sistem tarafından doğrulanır,
+- yalnız izinli alanlar ve operasyonlar görünür,
+- her istek provenance ve correlation kimliği taşır,
+- hata bir sistemden diğerine yayılmaz,
+- bağlantı kesildiğinde kaynak sistem çalışmaya devam eder,
+- ülke/kurum Lumos bağlantısını tek taraflı durdurabilir,
+- audit kaydı içerik kopyası değil, gerekli olay ve kanıt özetidir.
+
+Ülkeye özgü erişim seviyesi, müdahale hakkı, saklama süresi, veri yerleşimi ve kurumlar arası akış bu public foundation'da sabitlenmez; talep eden ülkenin sözleşmeli `country_pack` kaydında belirlenir.
+
+## 5. Olasılık hesabı: tahmin değil, kanıt skoru
 
 Kanıt olmadan yüzdelik başarı tahmini üretmek yanıltıcıdır. Bunun yerine her hat için aynı **100 puanlık hazır olma skoru** kullanılır:
 
@@ -81,10 +111,10 @@ Aşağıdaki koşullardan biri yoksa ilgili **canlı aşama skordan bağımsız 
 - Lumos Bank: gerekli lisans/yetki veya lisanslı partner sözleşmesi.
 - Lumos POS: merchant/PSP hukuki modeli, settlement ve itiraz sorumlusu.
 - Lumos Sepet: açık satın alma onayı, iade/iptal ve tüketici hakları akışı.
-- Lumos Devlet: yetkili kamu sözleşmesi, veri sınıflandırması ve egemenlik/veri yerleşimi kararı.
+- Lumos Devlet: yetkili kamu sözleşmesi, mevcut sistem envanteri, veri sınıflandırması, veri yerleşimi ve operasyon bazlı yetki matrisi.
 - Tüm hatlar: amaç bazlı erişim, tenant izolasyonu, audit, olay müdahalesi ve geri dönüş planı.
 
-## 5. Olasılık senaryoları
+## 6. Olasılık senaryoları
 
 | Senaryo | Sinyal | Karar |
 |---------|--------|-------|
@@ -92,14 +122,19 @@ Aşağıdaki koşullardan biri yoksa ilgili **canlı aşama skordan bağımsız 
 | Temel durum | Kullanıcı değeri net fakat lisans, partner veya veri yerleşimi eksik | Foundation + sandbox sürer; public vaat yok |
 | Kötü durum | Lisans belirsiz, veri izolasyonu zayıf, partner API'si kapanıyor veya kamu yetkisi yok | Canlı hat durur; yalnız araştırma kaydı korunur |
 
-## 6. Ülke paketi
+## 7. Ülke paketi
 
 Tek küresel varsayım yerine her ülke için sürümlü bir politika paketi gerekir:
 
 ```text
 country_pack = {
+  existing_system_inventory,
+  system_and_data_owners,
   legal_authority,
   allowed_services,
+  allowed_and_forbidden_operations,
+  adapter_contracts,
+  approval_and_intervention_matrix,
   data_residency,
   identity_assurance,
   payment_and_banking_partners,
@@ -114,16 +149,17 @@ country_pack = {
 
 Paket kullanıcı tercihini ve Lumos önerisini sınırlar; genişletmez. Kullanıcı tercihi ülke hukukunu, kuruluş politikasını veya `SECURITY_NEVER_AUTO` sınırını aşamaz.
 
-## 7. Uygulama sırası
+## 8. Uygulama sırası
 
 1. İsim ve sorumluluk sınırlarını registry/ADR ile kilitle.
 2. Dört alan için ayrı veri sınıflandırması ve threat model hazırla.
 3. Sentetik sandbox sözleşmelerini birbirinden bağımsız tanımla.
-4. İlk ülke için hukuk/lisans/partner kanıt paketini oluştur.
-5. Yalnız sıfırlayan kapılar kapandıktan sonra kontrollü pilot kararı ver.
-6. Canlı pilot sonrası skorları gerçek kanıtla güncelle; ülke çoğaltmasını ayrı karar yap.
+4. Lumos Devlet için ilk ülkenin mevcut sistem envanteri ve salt-okuma uyumluluk adaptörünü tanımla.
+5. İlk ülke için hukuk/lisans/partner kanıt paketini oluştur.
+6. Yalnız sıfırlayan kapılar kapandıktan sonra kontrollü pilot kararı ver.
+7. Canlı pilot sonrası skorları gerçek kanıtla güncelle; ülke çoğaltmasını ayrı karar yap.
 
-## 8. Bu PR'ın sınırı
+## 9. Bu PR'ın sınırı
 
 **Dahil:** kuruluş topolojisi, isim sınıfı, sorumluluk ayrımı, ülke paketi, kanıt skoru ve aşama kapıları.
 

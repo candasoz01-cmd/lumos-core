@@ -189,7 +189,7 @@ Kullanıcı yönüyle aşağıdaki çalışma adları **mimari ve karar belgeler
 | **Lumos Bank** | Ayrı düzenlemeye tabi finansal kuruluş hedefi | Banka/finans lisansı veya yetkili partner modeli + hukuk/marka onayı |
 | **Lumos Sepet** | Ayrı ticaret ve kullanıcı tercih hizmeti hedefi | Tüketici, sözleşme, iade/iptal ve ödeme-onay modeli |
 | **Lumos POS** | Ayrı merchant ödeme kabul hizmeti hedefi | PSP/merchant, settlement, itiraz ve ülke mevzuatı onayı |
-| **Lumos Devlet** | Ayrı kamu adaptasyon ve birlikte çalışabilirlik birimi hedefi | Yetkili kamu sözleşmesi + adın kamu otoritesi izlenimi yaratmadığına dair hukuk/marka onayı |
+| **Lumos Devlet** | Mevcut kamu sistemleri için entegrasyon ve güven çerçevesi hedefi | Yetkili kamu sözleşmesi + ülkeye özgü adaptör/yetki matrisi + adın kamu otoritesi izlenimi yaratmadığına dair hukuk/marka onayı |
 
 **Zorunlu ifade sınırı:** Lumos bugün banka, PSP, ödeme kuruluşu veya devlet/kamu otoritesi olarak tanıtılmaz. Canonical sorumluluk ayrımı: [`ADR-015`](../decisions/ADR-015-regulated-service-entity-boundaries.md); kanıt ve aşama modeli: [`lumos-institutional-service-foundation.md`](./lumos-institutional-service-foundation.md).
 

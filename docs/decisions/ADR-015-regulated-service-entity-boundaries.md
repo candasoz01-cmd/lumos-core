@@ -22,7 +22,23 @@ Bu ADR kullanıcı tarafından onaylanan kuruluş yönünü kaydeder; mevcut öd
 | **Lumos Bank** | Gelecekte ayrıca yetkilendirilecek/lisanslanacak finansal kuruluş hattı | Mevduat, kredi, para saklama veya transfer yetkisi lisans ve hukuk onayı olmadan yok |
 | **Lumos Sepet** | Kullanıcı tercihleri, ürün/hizmet seçimi ve kontrollü ticaret orkestrasyonu | Banka defteri veya merchant settlement sahibi değildir; satın alma açık onaysız başlamaz |
 | **Lumos POS** | İşletmeler için ödeme kabulü ve merchant operasyon hattı | Sepet ve Bank'tan ayrı merchant, settlement, iade ve mutabakat sınırı |
-| **Lumos Devlet** | Kamu kurumlarının güvenli adaptasyonu ve birlikte çalışabilirliği için ayrı kamu birimi | Bir devlet veya kamu otoritesi değildir; yalnızca sözleşmeli/yetkili kamu iş birliği yüzeyi olabilir |
+| **Lumos Devlet** | Mevcut kamu sistemlerine güvenli entegrasyon ve birlikte çalışabilirlik çerçevesi | Bir devlet, kamu otoritesi veya mevcut sistemlerin yerine geçen platform değildir; varsayılan müdahale yetkisi yoktur |
+
+### Lumos Devlet entegrasyon ilkesi
+
+Lumos Devlet için ilk hedef yeni iş kuralları, merkezi bir devlet sistemi veya genel müdahale hakkı üretmek değildir. İlk hedef, talep eden ülkenin **mevcut sistemlerini authoritative kaynak olarak koruyarak** güvenli entegrasyonun mümkün olup olmadığını göstermektir.
+
+Varsayılan sıra şöyledir:
+
+1. Mevcut sistem, veri sahibi, teknik sahip, yetkili kurum ve protokol envanteri çıkarılır.
+2. Veri sınıfları ve sistemler arası güven sınırları kaydedilir.
+3. Salt-okuma uyumluluk adaptörüyle kimlik, şema, provenance, gecikme ve hata davranışı doğrulanır.
+4. Öneri/taslak akışı eklenir; Lumos değişikliği uygulatmaz, yetkili sisteme ve insana sunar.
+5. Yazma veya sistem müdahalesi yalnız ülkenin açık talebi, hukuk/politika onayı, ayrı yetki matrisi ve geri dönüş planıyla dar kapsamlı açılır.
+
+**Varsayılan yetki:** `deny`. Bir kamu sistemine bağlanabilmek o sistemde işlem yapma, karar verme veya müdahale etme hakkı oluşturmaz.
+
+Her adaptör en az şu sözleşmeyi taşır: sistem sahibi, veri sahibi, amaç, izinli operasyonlar, yasak operasyonlar, kimlik doğrulama seviyesi, veri yerleşimi, audit/provenance, zaman aşımı, hata izolasyonu, geri dönüş ve acil durdurma sahibi.
 
 ### Ortak omurga, ayrı veri ve yetki alanları
 
@@ -40,7 +56,7 @@ Aşağıdakiler ortak depoda veya ortak tenant'ta birleştirilemez:
 - banka defteri, müşteri varlığı ve finansal credential,
 - POS merchant anahtarları, settlement ve iade kayıtları,
 - Sepet sipariş/ödeme niyeti ile finansal işlem gerçeği,
-- kamu kimlikleri, sınıflandırılmış veri ve kurum içi politika,
+- kamu kimlikleri, sınıflandırılmış veri, kurum içi politika ve sistem müdahale yetkileri,
 - üretim secret'ları, banka/PSP endpoint'leri ve gerçek kamu bağlantıları.
 
 ### Yetki kesişimi
@@ -56,7 +72,7 @@ Public `lumos-core` yalnızca sözleşme, demo-safe şema, politika örneği ve 
 1. **Foundation:** isim, sorumluluk, veri ve yetki sınırları.
 2. **Sandbox:** sentetik veri; gerçek para, gerçek merchant ve gerçek kamu verisi yok.
 3. **Kontrollü pilot:** hukuk onayı, sözleşmeli partner, izole tenant, insan müdahalesi ve geri dönüş planı.
-4. **Düzenlemeye tabi üretim:** ilgili ülke lisansı/yetkisi, bağımsız güvenlik denetimi, operasyon ekibi, olay müdahalesi ve mali/kamusal raporlama.
+4. **Düzenlemeye tabi üretim:** ilgili ülke lisansı/yetkisi, bağımsız güvenlik denetimi, operasyon ekibi, olay müdahalesi ve mali/kamusal raporlama. Lumos Devlet için ülkeye özgü adaptör ve yetki matrisi zorunludur.
 5. **Ülke genişlemesi:** her ülke için ayrı mevzuat, veri yerleşimi, dil, erişilebilirlik, sağlayıcı ve bağlantı paketi.
 
 Bir kapı geçilmeden sonraki aşamanın adı UI'da `hazır`, `aktif`, `banka`, `resmi` veya `devlet hizmeti` gibi kesin ifadelerle sunulamaz.
