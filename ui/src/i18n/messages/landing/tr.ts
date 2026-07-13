@@ -1,5 +1,92 @@
 /** Landing page body copy (Turkish) */
 const landingTr = {
+  presentation: {
+    eyebrow: "Önce insan",
+    title: "Pazarladığımız şey yalnızca teknoloji değil; güvenle birlikte ilerleyebilme imkânı.",
+    lead:
+      "Daha güzel bir dünyanın, insanın iradesini büyüten ve kurumların emeğine saygı duyan iş birlikleriyle kurulacağına inanıyoruz.",
+    peopleTitle: "İnsanın yanında",
+    peopleBody: "Teknoloji araçtır. Lumos; insanın kararını, onurunu ve günlük hayatını merkeze alır.",
+    worldTitle: "Dünyaya hizmet",
+    worldBody: "Dil, bölge, cihaz ve erişilebilirlik farklarını gözeten kapsayıcı deneyimler tasarlarız.",
+    togetherTitle: "Yan yana çalışma",
+    togetherBody:
+      "Kurumların, uzmanların ve mevcut sistemlerin yerine geçmeyiz; aralarındaki akışı daha görünür ve uyumlu hâle getiririz.",
+    trustTitle: "Sınırları belli güven",
+    trustBody:
+      "Yetki, veri paylaşımı ve kalıcı işlemler açık kapsam, kullanıcı onayı ve denetlenebilir adımlarla ilerler.",
+    collaborationEyebrow: "Birlikte güzel",
+    collaborationTitle: "Her marka kendi kimliğiyle, her hizmet kendi sorumluluğuyla.",
+    collaborationBody:
+      "Lumos; belgelenmiş anlaşmalar kapsamındaki kuruluşlar ve uyumlu servislerle bağlantı kurarken onların adını, yetkisini veya ürün kimliğini sahiplenmez. Her bağlantı kendi koşulları, izinleri ve sorumluluk sınırları içinde çalışır.",
+    collaborationNote:
+      "Bir servis adının veya logosunun görünmesi; aksi açıkça belirtilmedikçe ortaklık, sponsorluk ya da karşılıklı onay iddiası değildir.",
+    collaborationCta: "Bağlantıları ve kapsamlarını incele",
+    imageAlt:
+      "Farklı yaşlardan, kültürlerden ve erişim ihtiyaçlarından insanların teknoloji etrafında birlikte çalıştığı sıcak bir ortam",
+    layersEyebrow: "Lumos katmanları",
+    layersTitle: "Her katman neyi değiştirir?",
+    layersLead:
+      "Teknik isimlerden önce günlük farkı gösteriyoruz: Lumos olmadan karşılaşılan dağınıklık ve Lumos ile hedeflenen daha görünür, kontrollü akış.",
+    beforeLabel: "Lumos olmadan",
+    afterLabel: "Lumos ile",
+    boundaryLabel: "Sınır",
+    detailsCta: "Katmanı incele",
+    workspace: {
+      title: "Çalışma alanı",
+      kicker: "Sohbet · görev · dosya · medya",
+      body: "Dağınık talepleri, kaynakları ve onay adımlarını tek bir anlaşılır çalışma akışında buluşturur.",
+      before: "Görev farklı uygulamalara dağılır; sıradaki adım ve hangi verinin nereye gittiği kolayca kaybolur.",
+      after: "Bağlam, risk ve sonraki adım aynı yüzeyde görünür; nihai seçim yine kullanıcıda kalır.",
+      boundary: "Lumos otomatik pilot değildir; kullanıcı adına kendiliğinden kalıcı işlem yapmaz.",
+      imageAlt: "Lumos iOS karşılama ekranı",
+    },
+    connections: {
+      title: "Bağlantılar",
+      kicker: "Servisler · kurumlar · cihazlar",
+      body: "Mevcut hizmetleri kendi kimlikleri ve yetki sınırları korunarak aynı iş akışında erişilebilir kılar.",
+      before: "Her servisin izinleri, oturumu ve veri yolu ayrı yerde takip edilir.",
+      after: "Bağlantının kapsamı, durumu ve aktaracağı veri işlemden önce okunur hâle gelir.",
+      boundary: "Bağlantı kurmak, bağlı servisin sahibi olmak veya onun adına sınırsız yetki kullanmak değildir.",
+      imageAlt: "Farklı uzmanların ortak bir teknoloji masasında birlikte çalışması",
+    },
+    security: {
+      title: "Cyber ve güven",
+      kicker: "Risk · doğrulama · denetim",
+      body: "Güvenliği görünmeyen bir arka plan işi olmaktan çıkarıp karar anında anlaşılır bir koruma katmanına dönüştürür.",
+      before: "Risk çoğu zaman işlemden sonra, farklı günlükler ve teknik uyarılar arasında fark edilir.",
+      after: "Olası sonuç, ek doğrulama ihtiyacı ve denetim izi kritik adımdan önce görünür olur.",
+      boundary: "Lumos mevcut güvenlik ekiplerinin, resmî otoritelerin veya kurum politikalarının yerine geçmez.",
+      imageAlt: "İnsan biçimli anahtar deliğine açılan güvenlik geçidi",
+    },
+    accessibility: {
+      title: "Engelsiz deneyim",
+      kicker: "Erişilebilirlik · dil · cihaz",
+      body: "Farklı erişim ihtiyaçlarını sonradan eklenen bir seçenek değil, hizmetin doğal başlangıç noktası kabul eder.",
+      before: "Tek tip arayüz; görme, işitme, hareket, dil veya bağlantı farklarında kullanıcıyı dışarıda bırakabilir.",
+      after: "İçerik ve akış; uygun giriş, açıklama, dil ve cihaz biçimleriyle daha ulaşılabilir hâle gelir.",
+      boundary: "Destek özellikleri tıbbi değerlendirme veya insan desteğinin yerine geçmez.",
+      imageAlt: "Engelsiz bir geleceğe birlikte ilerleyen farklı kullanıcılar",
+    },
+    learning: {
+      title: "Lab ve eğitim",
+      kicker: "Araştırma · öğrenme · kanıt",
+      body: "Yeni fikirleri doğrudan vaat etmek yerine güvenli deneyler, eğitim ve ölçülebilir kanıtlarla olgunlaştırır.",
+      before: "Yeni teknoloji söylemi, kanıt ve kullanım sınırı olmadan beklentiye dönüşebilir.",
+      after: "Deney, öğrenme hedefi, mevcut durum ve üretime geçiş koşulları ayrı ayrı görünür tutulur.",
+      boundary: "Lab sonucu üretim garantisi değildir; eğitim içeriği uzman görüşünün yerini almaz.",
+      imageAlt: "Lumos değerlerini anlatan sıcak taş geçit görseli",
+    },
+    future: {
+      title: "Quantum ve gelecek hazırlığı",
+      kicker: "Hazırlık · araştırma · ölçüm",
+      body: "Kuantum gibi gelecek alanlarını büyük iddialarla değil, bugünden ölçülebilen hazırlık adımlarıyla takip eder.",
+      before: "Gelecek teknolojileri ya göz ardı edilir ya da hazır değilken üretim özelliği gibi sunulur.",
+      after: "Mevcut risk, hazırlık seviyesi, araştırma alanı ve üretim sınırı birbirinden açıkça ayrılır.",
+      boundary: "Lumos bugün kuantum şifreleme kullandığını veya kuantum güvenliği garanti ettiğini iddia etmez.",
+      imageAlt: "Kuantum güvenliği ve dijital kale görselleştirmesi",
+    },
+  },
   principles: {
     title: "Temel ilkeler",
     cardUserControlTitle: "Kullanıcı Kontrolü",
@@ -203,7 +290,7 @@ const landingTr = {
   /** Phase 2: locale-specific rasters when text-free or EN variants exist (paths may match until then). */
   assets: {
     worldMapDecor: "/lumos-world-map.jpg",
-    heroAtaScene: "/lumos-hero-ata-scene.png",
+    heroAtaScene: "/lumos-together-future.webp",
     ogImage: "https://welockai.com/lumos-world-map.jpg",
   },
 } as const;

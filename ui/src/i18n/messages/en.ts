@@ -6,15 +6,15 @@ import umbrella from "./umbrella/en";
 
 const en: MessageTree = {
   meta: {
-    landingTitle: "Lumos — AI Control Layer",
+    landingTitle: "Lumos — People First, Technology for the World",
     description:
-      "Lumos is a prototype AI control layer that unifies voice, media, tasks, files, and multi-panel flows in one place.",
-    ogTitle: "Lumos — AI Control Layer",
+      "Lumos makes AI, security, and connection flows clearer while preserving human choice and each organisation's identity.",
+    ogTitle: "Lumos — People First, Technology for the World",
     ogDescription:
-      "Lumos is a prototype AI control layer that unifies voice, media, tasks, files, and multi-panel flows in one place.",
-    twitterTitle: "Lumos — AI Control Layer",
+      "An AI control layer designed to stand beside people, serve the world, and help systems work better together.",
+    twitterTitle: "Lumos — People First, Technology for the World",
     twitterDescription:
-      "Lumos is a prototype AI control layer that unifies voice, media, tasks, files, and multi-panel flows in one place.",
+      "An AI control layer designed to stand beside people, serve the world, and help systems work better together.",
   },
   lang: {
     switchLabel: "Language",
@@ -37,14 +37,14 @@ const en: MessageTree = {
   },
   hero: {
     eyebrow: "WE LOCK AI · LUMOS",
-    title: "Lumos",
-    subtitle: "AI control layer",
+    title: "People first. Technology for the world.",
+    subtitle: "A safer way to work better together",
     lead1:
-      "An intelligent assistant layer that unifies voice, media, visual analysis, tasks, files, identity, and security flows in one panel.",
-    lead2: "The decision stays with you. Lumos makes risk, context, and next steps visible.",
-    pillar: "One panel · Multiple flows · User control",
-    ctaPanel: "Open Lumos Panel",
-    ctaWorld: "Read the vision",
+      "Lumos brings people, organisations, and the services they use into clearer, more accessible, and safer flows while preserving their identities.",
+    lead2: "It does not replace any person, organisation, or system. It works beside them, makes context visible, and never changes who owns the decision.",
+    pillar: "Human dignity · Clear consent · Equal collaboration",
+    ctaPanel: "Explore Lumos",
+    ctaWorld: "Our world vision",
     askAria: "Ask Lumos — continue in the panel",
     askPlaceholder: "Example: Break a task into safe steps",
     askSubmit: "Open in panel",

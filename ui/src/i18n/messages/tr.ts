@@ -5,15 +5,15 @@ import umbrella from "./umbrella/tr";
 
 const tr = {
   meta: {
-    landingTitle: "Lumos — Yapay Zekâ Kontrol Katmanı",
+    landingTitle: "Lumos — Önce İnsan, Dünya İçin Teknoloji",
     description:
-      "Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştiren yapay zekâ kontrol katmanı prototipidir.",
-    ogTitle: "Lumos — Yapay Zekâ Kontrol Katmanı",
+      "Lumos, insanın kararını ve kurumların kimliğini koruyarak yapay zekâ, güvenlik ve bağlantı akışlarını daha anlaşılır hâle getirir.",
+    ogTitle: "Lumos — Önce İnsan, Dünya İçin Teknoloji",
     ogDescription:
-      "Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştiren yapay zekâ kontrol katmanı prototipidir.",
-    twitterTitle: "Lumos — Yapay Zekâ Kontrol Katmanı",
+      "İnsanın yanında duran, dünyaya hizmet etmeyi ve birlikte daha iyi çalışmayı amaçlayan yapay zekâ kontrol katmanı.",
+    twitterTitle: "Lumos — Önce İnsan, Dünya İçin Teknoloji",
     twitterDescription:
-      "Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştiren yapay zekâ kontrol katmanı prototipidir.",
+      "İnsanın yanında duran, dünyaya hizmet etmeyi ve birlikte daha iyi çalışmayı amaçlayan yapay zekâ kontrol katmanı.",
   },
   lang: {
     switchLabel: "Dil seçimi",
@@ -36,14 +36,14 @@ const tr = {
   },
   hero: {
     eyebrow: "WE LOCK AI · LUMOS",
-    title: "Lumos",
-    subtitle: "Yapay zekâ kontrol katmanı",
+    title: "Önce insan. Dünya için teknoloji.",
+    subtitle: "Birlikte daha güzel çalışmanın güvenli yolu",
     lead1:
-      "Ses, medya, görsel analiz, görevler, dosyalar, kimlik ve güvenlik akışlarını tek panelde birleştirmeyi hedefleyen akıllı asistan altyapısı.",
-    lead2: "Karar kullanıcıda kalır. Lumos riski, bağlamı ve sonraki adımı görünür kılar.",
-    pillar: "Tek panel · Çoklu akış · Kullanıcı kontrolü",
-    ctaPanel: "Geliştirici Panelini Aç",
-    ctaWorld: "Vizyonu oku",
+      "Lumos; insanları, kurumları ve kullandıkları hizmetleri kendi kimliklerini koruyarak daha anlaşılır, erişilebilir ve güvenli akışlarda buluşturur.",
+    lead2: "Hiçbir insanın, kurumun veya sistemin yerine geçmez. Yanında çalışır; bağlamı görünür kılar, kararın sahibini değiştirmez.",
+    pillar: "İnsan onuru · Açık onay · Eşit iş birliği",
+    ctaPanel: "Lumos’u keşfet",
+    ctaWorld: "Dünya vizyonumuz",
     askAria: "Lumos’a sor — geliştirici panelinde devam eder",
     askPlaceholder: "Örnek: Bir görevi güvenli adımlara böl",
     askSubmit: "Panelde devam et",

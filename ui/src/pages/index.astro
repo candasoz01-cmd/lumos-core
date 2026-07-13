@@ -20,34 +20,110 @@ function isMay19CommemorationDay(now = new Date()) {
 }
 
 const showMay19Commemoration = isMay19CommemorationDay();
+
+const PRESENTATION_LAYERS = [
+  {
+    key: "workspace",
+    image: "/showcase/lumos-ios-onboarding.png",
+    href: "/panel",
+    title: "Çalışma alanı",
+    kicker: "Sohbet · görev · dosya · medya",
+    body: "Dağınık talepleri, kaynakları ve onay adımlarını tek bir anlaşılır çalışma akışında buluşturur.",
+    before: "Görev farklı uygulamalara dağılır; sıradaki adım ve hangi verinin nereye gittiği kolayca kaybolur.",
+    after: "Bağlam, risk ve sonraki adım aynı yüzeyde görünür; nihai seçim yine kullanıcıda kalır.",
+    boundary: "Lumos otomatik pilot değildir; kullanıcı adına kendiliğinden kalıcı işlem yapmaz.",
+    imageAlt: "Lumos iOS karşılama ekranı",
+  },
+  {
+    key: "connections",
+    image: "/lumos-together-future.webp",
+    href: "/integrations",
+    title: "Bağlantılar",
+    kicker: "Servisler · kurumlar · cihazlar",
+    body: "Mevcut hizmetleri kendi kimlikleri ve yetki sınırları korunarak aynı iş akışında erişilebilir kılar.",
+    before: "Her servisin izinleri, oturumu ve veri yolu ayrı yerde takip edilir.",
+    after: "Bağlantının kapsamı, durumu ve aktaracağı veri işlemden önce okunur hâle gelir.",
+    boundary: "Bağlantı kurmak, bağlı servisin sahibi olmak veya onun adına sınırsız yetki kullanmak değildir.",
+    imageAlt: "Farklı uzmanların ortak bir teknoloji masasında birlikte çalışması",
+  },
+  {
+    key: "security",
+    image: "/showcase/lumos-trust-gateway.png",
+    href: "/cyber",
+    title: "Cyber ve güven",
+    kicker: "Risk · doğrulama · denetim",
+    body: "Güvenliği görünmeyen bir arka plan işi olmaktan çıkarıp karar anında anlaşılır bir koruma katmanına dönüştürür.",
+    before: "Risk çoğu zaman işlemden sonra, farklı günlükler ve teknik uyarılar arasında fark edilir.",
+    after: "Olası sonuç, ek doğrulama ihtiyacı ve denetim izi kritik adımdan önce görünür olur.",
+    boundary: "Lumos mevcut güvenlik ekiplerinin, resmî otoritelerin veya kurum politikalarının yerine geçmez.",
+    imageAlt: "İnsan biçimli anahtar deliğine açılan güvenlik geçidi",
+  },
+  {
+    key: "accessibility",
+    image: "/showcase/lumos-accessibility.jpg",
+    href: "/accessibility",
+    title: "Engelsiz deneyim",
+    kicker: "Erişilebilirlik · dil · cihaz",
+    body: "Farklı erişim ihtiyaçlarını sonradan eklenen bir seçenek değil, hizmetin doğal başlangıç noktası kabul eder.",
+    before: "Tek tip arayüz; görme, işitme, hareket, dil veya bağlantı farklarında kullanıcıyı dışarıda bırakabilir.",
+    after: "İçerik ve akış; uygun giriş, açıklama, dil ve cihaz biçimleriyle daha ulaşılabilir hâle gelir.",
+    boundary: "Destek özellikleri tıbbi değerlendirme veya insan desteğinin yerine geçmez.",
+    imageAlt: "Engelsiz bir geleceğe birlikte ilerleyen farklı kullanıcılar",
+  },
+  {
+    key: "learning",
+    image: "/showcase/lumos-human-first.png",
+    href: "/lab",
+    title: "Lab ve eğitim",
+    kicker: "Araştırma · öğrenme · kanıt",
+    body: "Yeni fikirleri doğrudan vaat etmek yerine güvenli deneyler, eğitim ve ölçülebilir kanıtlarla olgunlaştırır.",
+    before: "Yeni teknoloji söylemi, kanıt ve kullanım sınırı olmadan beklentiye dönüşebilir.",
+    after: "Deney, öğrenme hedefi, mevcut durum ve üretime geçiş koşulları ayrı ayrı görünür tutulur.",
+    boundary: "Lab sonucu üretim garantisi değildir; eğitim içeriği uzman görüşünün yerini almaz.",
+    imageAlt: "Lumos değerlerini anlatan sıcak taş geçit görseli",
+  },
+  {
+    key: "future",
+    image: "/lumos-cyber-quantum-fortress.webp",
+    href: `${GITHUB_REPO_URL}/blob/main/docs/decisions/ADR-013-lumos-quantum-security-readiness.md`,
+    title: "Quantum ve gelecek hazırlığı",
+    kicker: "Hazırlık · araştırma · ölçüm",
+    body: "Kuantum gibi gelecek alanlarını büyük iddialarla değil, bugünden ölçülebilen hazırlık adımlarıyla takip eder.",
+    before: "Gelecek teknolojileri ya göz ardı edilir ya da hazır değilken üretim özelliği gibi sunulur.",
+    after: "Mevcut risk, hazırlık seviyesi, araştırma alanı ve üretim sınırı birbirinden açıkça ayrılır.",
+    boundary: "Lumos bugün kuantum şifreleme kullandığını veya kuantum güvenliği garanti ettiğini iddia etmez.",
+    imageAlt: "Kuantum güvenliği ve dijital kale görselleştirmesi",
+    external: true,
+  },
+] as const;
 ---
 
 <html lang="tr">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title data-i18n="meta.landingTitle">Lumos — Yapay Zekâ Kontrol Katmanı</title>
+    <title data-i18n="meta.landingTitle">Lumos — Önce İnsan, Dünya İçin Teknoloji</title>
     <meta
       name="description"
-      content="Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştiren yapay zekâ kontrol katmanı prototipidir."
+      content="Lumos, insanın kararını ve kurumların kimliğini koruyarak yapay zekâ, güvenlik ve bağlantı akışlarını daha anlaşılır hâle getirir."
       data-i18n-content="meta.description"
     />
     <link rel="canonical" href="https://welockai.com/" />
-    <meta property="og:title" content="Lumos — Yapay Zekâ Kontrol Katmanı" data-i18n-content="meta.ogTitle" />
+    <meta property="og:title" content="Lumos — Önce İnsan, Dünya İçin Teknoloji" data-i18n-content="meta.ogTitle" />
     <meta
       property="og:description"
-      content="Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştiren yapay zekâ kontrol katmanı prototipidir."
+      content="İnsanın yanında duran, dünyaya hizmet etmeyi ve birlikte daha iyi çalışmayı amaçlayan yapay zekâ kontrol katmanı."
       data-i18n-content="meta.ogDescription"
     />
     <meta name="twitter:card" content="summary_large_image" />
     <meta
       name="twitter:title"
-      content="Lumos — Yapay Zekâ Kontrol Katmanı"
+      content="Lumos — Önce İnsan, Dünya İçin Teknoloji"
       data-i18n-content="meta.twitterTitle"
     />
     <meta
       name="twitter:description"
-      content="Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştiren yapay zekâ kontrol katmanı prototipidir."
+      content="İnsanın yanında duran, dünyaya hizmet etmeyi ve birlikte daha iyi çalışmayı amaçlayan yapay zekâ kontrol katmanı."
       data-i18n-content="meta.twitterDescription"
     />
     <meta
@@ -701,6 +777,302 @@ const showMay19Commemoration = isMay19CommemorationDay();
         text-transform: uppercase;
         color: rgb(var(--lumos-land-teal) / 0.88);
         overflow-wrap: break-word;
+      }
+      .lumos-presentation {
+        padding-top: clamp(2.4rem, 6vw, 5.5rem);
+        padding-bottom: clamp(2.4rem, 6vw, 5.5rem);
+      }
+      .lumos-presentation__intro {
+        max-width: 62rem;
+        margin-bottom: clamp(1.5rem, 3.5vw, 2.8rem);
+      }
+      .lumos-presentation__eyebrow {
+        margin: 0 0 0.6rem;
+        color: rgb(var(--lumos-land-warm) / 0.94);
+        font-size: 0.78rem;
+        font-weight: 750;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+      .lumos-presentation__title {
+        max-width: 24ch;
+        margin: 0;
+        color: var(--lumos-land-title);
+        font-size: clamp(1.75rem, 4.5vw, 3.65rem);
+        line-height: 1.08;
+        letter-spacing: -0.035em;
+      }
+      .lumos-presentation__lead {
+        max-width: 68ch;
+        margin: 1rem 0 0;
+        color: var(--lumos-text-muted);
+        font-size: clamp(1rem, 2vw, 1.18rem);
+      }
+      .lumos-presentation__values {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: clamp(0.8rem, 2vw, 1.25rem);
+      }
+      .lumos-presentation__value {
+        min-height: 8rem;
+        padding: clamp(1rem, 2.4vw, 1.5rem);
+        border: 1px solid rgb(255 255 255 / 0.08);
+        border-radius: 1rem;
+        background: linear-gradient(145deg, rgb(255 255 255 / 0.055), rgb(255 255 255 / 0.018));
+        box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+      }
+      .lumos-presentation__value-index {
+        display: block;
+        margin-bottom: 0.8rem;
+        color: rgb(var(--lumos-land-warm) / 0.85);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+      }
+      .lumos-presentation__value h3 {
+        margin: 0 0 0.5rem;
+        color: var(--lumos-land-title);
+        font-size: clamp(1.05rem, 2vw, 1.3rem);
+      }
+      .lumos-presentation__value p {
+        margin: 0;
+        color: var(--lumos-text-muted);
+      }
+      .lumos-collaboration {
+        display: grid;
+        grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+        gap: clamp(1rem, 3.5vw, 2.6rem);
+        align-items: stretch;
+        margin-top: clamp(2.6rem, 6vw, 5.6rem);
+        overflow: hidden;
+        border: 1px solid rgb(var(--lumos-land-warm) / 0.18);
+        border-radius: clamp(1rem, 2.2vw, 1.6rem);
+        background: linear-gradient(138deg, rgb(28 31 36 / 0.96), rgb(15 20 27 / 0.98));
+        box-shadow: 0 24px 80px rgb(0 0 0 / 0.28);
+      }
+      .lumos-collaboration__visual {
+        min-height: 22rem;
+        position: relative;
+      }
+      .lumos-collaboration__visual::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, transparent 55%, rgb(15 20 27 / 0.82));
+        pointer-events: none;
+      }
+      .lumos-collaboration__visual img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+      }
+      .lumos-collaboration__copy {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: clamp(1.35rem, 3.5vw, 2.8rem) clamp(1.25rem, 3vw, 2.5rem) clamp(1.35rem, 3.5vw, 2.8rem) 0;
+      }
+      .lumos-collaboration__copy h2 {
+        margin: 0 0 0.9rem;
+        color: var(--lumos-land-title);
+        font-size: clamp(1.45rem, 3vw, 2.35rem);
+        line-height: 1.15;
+      }
+      .lumos-collaboration__copy > p:not(.lumos-presentation__eyebrow) {
+        color: var(--lumos-text-muted);
+      }
+      .lumos-collaboration__note {
+        padding-left: 0.85rem;
+        border-left: 2px solid rgb(var(--lumos-land-warm) / 0.55);
+        font-size: 0.82rem;
+      }
+      .lumos-collaboration__link {
+        align-self: flex-start;
+        margin-top: 0.35rem;
+        color: rgb(var(--lumos-land-warm) / 0.98);
+        font-weight: 700;
+        text-decoration: none;
+      }
+      .lumos-collaboration__link:hover,
+      .lumos-collaboration__link:focus-visible {
+        text-decoration: underline;
+        text-underline-offset: 0.22em;
+      }
+      .lumos-layer-showcase {
+        padding-top: clamp(2.5rem, 6vw, 5.5rem);
+        padding-bottom: clamp(2.5rem, 6vw, 5.5rem);
+      }
+      .lumos-layer-showcase__head {
+        max-width: 64rem;
+        margin-bottom: clamp(1.8rem, 4vw, 3.2rem);
+      }
+      .lumos-layer-showcase__head h2 {
+        margin: 0;
+        color: var(--lumos-land-title);
+        font-size: clamp(1.8rem, 4.2vw, 3.25rem);
+        letter-spacing: -0.035em;
+      }
+      .lumos-layer-showcase__head > p:last-child {
+        max-width: 68ch;
+        color: var(--lumos-text-muted);
+        font-size: clamp(1rem, 1.8vw, 1.12rem);
+      }
+      .lumos-layer-list {
+        display: grid;
+        gap: clamp(1.2rem, 3vw, 2.2rem);
+      }
+      .lumos-layer-card {
+        display: grid;
+        grid-template-columns: minmax(16rem, 0.85fr) minmax(0, 1.3fr);
+        min-height: 28rem;
+        overflow: hidden;
+        border: 1px solid rgb(255 255 255 / 0.08);
+        border-radius: clamp(1rem, 2vw, 1.5rem);
+        background: rgb(13 18 25 / 0.86);
+        box-shadow: 0 20px 65px rgb(0 0 0 / 0.22);
+      }
+      .lumos-layer-card:nth-child(even) {
+        grid-template-columns: minmax(0, 1.3fr) minmax(16rem, 0.85fr);
+      }
+      .lumos-layer-card:nth-child(even) .lumos-layer-card__visual {
+        order: 2;
+      }
+      .lumos-layer-card__visual {
+        position: relative;
+        min-height: 22rem;
+        background: #080b10;
+      }
+      .lumos-layer-card__visual::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: linear-gradient(90deg, transparent 58%, rgb(13 18 25 / 0.52));
+      }
+      .lumos-layer-card:nth-child(even) .lumos-layer-card__visual::after {
+        background: linear-gradient(270deg, transparent 58%, rgb(13 18 25 / 0.52));
+      }
+      .lumos-layer-card__visual img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .lumos-layer-card:first-child .lumos-layer-card__visual img {
+        object-fit: contain;
+        padding: 1.25rem;
+        box-sizing: border-box;
+      }
+      .lumos-layer-card__content {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: clamp(1.35rem, 3.5vw, 2.8rem);
+      }
+      .lumos-layer-card__kicker {
+        margin: 0 0 0.45rem;
+        color: rgb(var(--lumos-land-warm) / 0.92);
+        font-size: 0.74rem;
+        font-weight: 750;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .lumos-layer-card__content h3 {
+        margin: 0;
+        color: var(--lumos-land-title);
+        font-size: clamp(1.5rem, 3vw, 2.25rem);
+        line-height: 1.12;
+      }
+      .lumos-layer-card__summary {
+        margin: 0.75rem 0 1.1rem;
+        color: var(--lumos-text-muted);
+      }
+      .lumos-before-after {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+      }
+      .lumos-before-after__item {
+        padding: 0.9rem;
+        border-radius: 0.8rem;
+        background: rgb(255 255 255 / 0.035);
+      }
+      .lumos-before-after__item--after {
+        background: linear-gradient(145deg, rgb(var(--lumos-land-teal-deep) / 0.2), rgb(var(--lumos-land-warm-deep) / 0.07));
+      }
+      .lumos-before-after__label {
+        display: block;
+        margin-bottom: 0.4rem;
+        color: rgb(216 222 232 / 0.72);
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .lumos-before-after__item--after .lumos-before-after__label {
+        color: rgb(var(--lumos-land-teal) / 0.96);
+      }
+      .lumos-before-after__item p {
+        margin: 0;
+        color: rgb(230 235 242 / 0.82);
+        font-size: 0.88rem;
+        line-height: 1.5;
+      }
+      .lumos-layer-card__boundary {
+        margin: 1rem 0 0;
+        padding-top: 0.8rem;
+        border-top: 1px solid rgb(255 255 255 / 0.07);
+        color: rgb(215 221 230 / 0.72);
+        font-size: 0.8rem;
+      }
+      .lumos-layer-card__boundary strong {
+        color: rgb(var(--lumos-land-warm) / 0.86);
+      }
+      .lumos-layer-card__link {
+        align-self: flex-start;
+        margin-top: 0.85rem;
+        color: var(--lumos-accent-blue-bright);
+        font-weight: 700;
+        text-decoration: none;
+      }
+      .lumos-layer-card__link:hover,
+      .lumos-layer-card__link:focus-visible {
+        text-decoration: underline;
+        text-underline-offset: 0.22em;
+      }
+      @media (max-width: 767.98px) {
+        .lumos-presentation__values,
+        .lumos-collaboration {
+          grid-template-columns: 1fr;
+        }
+        .lumos-collaboration__visual {
+          min-height: 15rem;
+        }
+        .lumos-collaboration__visual::after {
+          background: linear-gradient(180deg, transparent 60%, rgb(15 20 27 / 0.82));
+        }
+        .lumos-collaboration__copy {
+          padding: 0 clamp(1.25rem, 5vw, 1.8rem) clamp(1.5rem, 5vw, 2rem);
+        }
+        .lumos-layer-card,
+        .lumos-layer-card:nth-child(even) {
+          grid-template-columns: 1fr;
+          min-height: 0;
+        }
+        .lumos-layer-card:nth-child(even) .lumos-layer-card__visual {
+          order: 0;
+        }
+        .lumos-layer-card__visual {
+          min-height: 15rem;
+        }
+        .lumos-layer-card__visual::after,
+        .lumos-layer-card:nth-child(even) .lumos-layer-card__visual::after {
+          background: linear-gradient(180deg, transparent 62%, rgb(13 18 25 / 0.65));
+        }
+        .lumos-before-after {
+          grid-template-columns: 1fr;
+        }
       }
       @media (min-width: 768px) {
         .lumos-hero-pillar {
@@ -2252,25 +2624,25 @@ const showMay19Commemoration = isMay19CommemorationDay();
                 height="64"
                 decoding="async"
               />
-              <h1 id="lumos-giris-baslik" class="lumos-hero-title-page" data-i18n="hero.title">Lumos</h1>
+              <h1 id="lumos-giris-baslik" class="lumos-hero-title-page lumos-hero-title-page--manifesto" data-i18n="hero.title">Önce insan. Dünya için teknoloji.</h1>
             </div>
-            <p class="lumos-hero-subtitle" data-i18n="hero.subtitle">Yapay zekâ kontrol katmanı</p>
+            <p class="lumos-hero-subtitle" data-i18n="hero.subtitle">Birlikte daha güzel çalışmanın güvenli yolu</p>
             <p class="lumos-hero-lead" data-i18n="hero.lead1">
-              Ses, medya, görsel analiz, görevler, dosyalar, kimlik ve güvenlik akışlarını tek panelde birleştirmeyi hedefleyen akıllı asistan altyapısı.
+              Lumos; insanları, kurumları ve kullandıkları hizmetleri kendi kimliklerini koruyarak daha anlaşılır, erişilebilir ve güvenli akışlarda buluşturur.
             </p>
             <p class="lumos-hero-lead" data-i18n="hero.lead2">
-              Karar kullanıcıda kalır. Lumos riski, bağlamı ve sonraki adımı görünür kılar.
+              Hiçbir insanın, kurumun veya sistemin yerine geçmez. Yanında çalışır; bağlamı görünür kılar, kararın sahibini değiştirmez.
             </p>
-            <p class="lumos-hero-pillar" data-i18n="hero.pillar">Tek panel · Çoklu akış · Kullanıcı kontrolü</p>
+            <p class="lumos-hero-pillar" data-i18n="hero.pillar">İnsan onuru · Açık onay · Eşit iş birliği</p>
             <div class="lumos-hero-actions">
-              <a class="lumos-hero-btn lumos-hero-btn--primary" href="/panel" data-i18n="hero.ctaPanel">Geliştirici Panelini Aç</a>
-              <a class="lumos-hero-btn lumos-hero-btn--ghost" href="#dunya" data-i18n="hero.ctaWorld">Vizyonu oku</a>
+              <a class="lumos-hero-btn lumos-hero-btn--primary" href="/panel" data-i18n="hero.ctaPanel">Lumos’u keşfet</a>
+              <a class="lumos-hero-btn lumos-hero-btn--ghost" href="#dunya" data-i18n="hero.ctaWorld">Dünya vizyonumuz</a>
             </div>
           </div>
           <div class="lumos-hero-scene" aria-hidden="true">
             <img
               class="lumos-hero-scene__img"
-              src="/lumos-hero-ata-scene.png"
+              src="/lumos-together-future.webp"
               data-i18n-src="landing.assets.heroAtaScene"
               alt=""
               width="900"
@@ -2314,6 +2686,117 @@ const showMay19Commemoration = isMay19CommemorationDay();
             >Devam etmek için bir soru yazın.</p>
           </form>
         </div>
+      </div>
+    </section>
+
+    <section class="lumos-shell lumos-presentation" aria-labelledby="lumos-presentation-title">
+      <div class="lumos-presentation__intro">
+        <p class="lumos-presentation__eyebrow" data-i18n="landing.presentation.eyebrow">Önce insan</p>
+        <h2 id="lumos-presentation-title" class="lumos-presentation__title" data-i18n="landing.presentation.title">
+          Pazarladığımız şey yalnızca teknoloji değil; güvenle birlikte ilerleyebilme imkânı.
+        </h2>
+        <p class="lumos-presentation__lead" data-i18n="landing.presentation.lead">
+          Daha güzel bir dünyanın, insanın iradesini büyüten ve kurumların emeğine saygı duyan iş birlikleriyle kurulacağına inanıyoruz.
+        </p>
+      </div>
+      <div class="lumos-presentation__values">
+        <article class="lumos-presentation__value">
+          <span class="lumos-presentation__value-index" aria-hidden="true">01</span>
+          <h3 data-i18n="landing.presentation.peopleTitle">İnsanın yanında</h3>
+          <p data-i18n="landing.presentation.peopleBody">Teknoloji araçtır. Lumos; insanın kararını, onurunu ve günlük hayatını merkeze alır.</p>
+        </article>
+        <article class="lumos-presentation__value">
+          <span class="lumos-presentation__value-index" aria-hidden="true">02</span>
+          <h3 data-i18n="landing.presentation.worldTitle">Dünyaya hizmet</h3>
+          <p data-i18n="landing.presentation.worldBody">Dil, bölge, cihaz ve erişilebilirlik farklarını gözeten kapsayıcı deneyimler tasarlarız.</p>
+        </article>
+        <article class="lumos-presentation__value">
+          <span class="lumos-presentation__value-index" aria-hidden="true">03</span>
+          <h3 data-i18n="landing.presentation.togetherTitle">Yan yana çalışma</h3>
+          <p data-i18n="landing.presentation.togetherBody">Kurumların, uzmanların ve mevcut sistemlerin yerine geçmeyiz; aralarındaki akışı daha görünür ve uyumlu hâle getiririz.</p>
+        </article>
+        <article class="lumos-presentation__value">
+          <span class="lumos-presentation__value-index" aria-hidden="true">04</span>
+          <h3 data-i18n="landing.presentation.trustTitle">Sınırları belli güven</h3>
+          <p data-i18n="landing.presentation.trustBody">Yetki, veri paylaşımı ve kalıcı işlemler açık kapsam, kullanıcı onayı ve denetlenebilir adımlarla ilerler.</p>
+        </article>
+      </div>
+      <div class="lumos-collaboration">
+        <div class="lumos-collaboration__visual">
+          <img
+            src="/lumos-together-future.webp"
+            alt="Farklı yaşlardan, kültürlerden ve erişim ihtiyaçlarından insanların teknoloji etrafında birlikte çalıştığı sıcak bir ortam"
+            data-i18n-alt="landing.presentation.imageAlt"
+            width="1816"
+            height="908"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+        <div class="lumos-collaboration__copy">
+          <p class="lumos-presentation__eyebrow" data-i18n="landing.presentation.collaborationEyebrow">Birlikte güzel</p>
+          <h2 data-i18n="landing.presentation.collaborationTitle">Her marka kendi kimliğiyle, her hizmet kendi sorumluluğuyla.</h2>
+          <p data-i18n="landing.presentation.collaborationBody">
+            Lumos; belgelenmiş anlaşmalar kapsamındaki kuruluşlar ve uyumlu servislerle bağlantı kurarken onların adını, yetkisini veya ürün kimliğini sahiplenmez. Her bağlantı kendi koşulları, izinleri ve sorumluluk sınırları içinde çalışır.
+          </p>
+          <p class="lumos-collaboration__note" data-i18n="landing.presentation.collaborationNote">
+            Bir servis adının veya logosunun görünmesi; aksi açıkça belirtilmedikçe ortaklık, sponsorluk ya da karşılıklı onay iddiası değildir.
+          </p>
+          <a class="lumos-collaboration__link" href="/integrations" data-i18n="landing.presentation.collaborationCta">Bağlantıları ve kapsamlarını incele →</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="lumos-shell lumos-layer-showcase" aria-labelledby="lumos-layers-title">
+      <header class="lumos-layer-showcase__head">
+        <p class="lumos-presentation__eyebrow" data-i18n="landing.presentation.layersEyebrow">Lumos katmanları</p>
+        <h2 id="lumos-layers-title" data-i18n="landing.presentation.layersTitle">Her katman neyi değiştirir?</h2>
+        <p data-i18n="landing.presentation.layersLead">
+          Teknik isimlerden önce günlük farkı gösteriyoruz: Lumos olmadan karşılaşılan dağınıklık ve Lumos ile hedeflenen daha görünür, kontrollü akış.
+        </p>
+      </header>
+      <div class="lumos-layer-list">
+        {PRESENTATION_LAYERS.map((layer) => (
+          <article class="lumos-layer-card">
+            <div class="lumos-layer-card__visual">
+              <img
+                src={layer.image}
+                alt={layer.imageAlt}
+                data-i18n-alt={`landing.presentation.${layer.key}.imageAlt`}
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+            <div class="lumos-layer-card__content">
+              <p class="lumos-layer-card__kicker" data-i18n={`landing.presentation.${layer.key}.kicker`}>{layer.kicker}</p>
+              <h3 data-i18n={`landing.presentation.${layer.key}.title`}>{layer.title}</h3>
+              <p class="lumos-layer-card__summary" data-i18n={`landing.presentation.${layer.key}.body`}>{layer.body}</p>
+              <div class="lumos-before-after">
+                <div class="lumos-before-after__item">
+                  <span class="lumos-before-after__label" data-i18n="landing.presentation.beforeLabel">Lumos olmadan</span>
+                  <p data-i18n={`landing.presentation.${layer.key}.before`}>{layer.before}</p>
+                </div>
+                <div class="lumos-before-after__item lumos-before-after__item--after">
+                  <span class="lumos-before-after__label" data-i18n="landing.presentation.afterLabel">Lumos ile</span>
+                  <p data-i18n={`landing.presentation.${layer.key}.after`}>{layer.after}</p>
+                </div>
+              </div>
+              <p class="lumos-layer-card__boundary">
+                <strong data-i18n="landing.presentation.boundaryLabel">Sınır:</strong>
+                <span data-i18n={`landing.presentation.${layer.key}.boundary`}>{layer.boundary}</span>
+              </p>
+              <a
+                class="lumos-layer-card__link"
+                href={layer.href}
+                target={"external" in layer && layer.external ? "_blank" : undefined}
+                rel={"external" in layer && layer.external ? "noopener noreferrer" : undefined}
+              >
+                <span data-i18n="landing.presentation.detailsCta">Katmanı incele</span>
+                <span aria-hidden="true"> →</span>
+              </a>
+            </div>
+          </article>
+        ))}
       </div>
     </section>
 
