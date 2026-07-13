@@ -192,7 +192,7 @@ Kullanıcı yönüyle aşağıdaki çalışma adları **mimari ve karar belgeler
 | **Lumos Dünya** | İnsan odaklı küresel tanışma ve katılım yüzeyi; ticari birimlerden ayrı | `candasoz01-cmd/Lumos` PR #102 uygulandı; canonical kilit kurucu onayı bekliyor |
 | **Ülke Sistemleri Entegrasyon Katmanı** | Mevcut ülke sistemleri için private/sözleşmeli teknik kabiliyet; public ürün adı değil | Yetkili sözleşme + ülkeye özgü adaptör/yetki matrisi |
 
-**Kaldırılan ad:** **Lumos Devlet** — public marka, kuruluş birimi veya ürün yüzeyi olarak kullanılmaz. Küresel yüzey **Lumos Dünya**; ülke sistemleri bağlantısı markasız teknik entegrasyon katmanıdır.
+**Kaldırılan ad:** **Lumos Devlet** — public marka, kuruluş birimi veya ürün yüzeyi olarak kullanılmaz. Ad; resmî otorite/egemenlik, kamu adına karar verme, mevcut sistemlere genel müdahale ve ülkelere tek kalıp dayatma algısı oluşturabileceği için kaldırılmıştır. Bu algılar Lumos'un insan odaklı hizmet, son kararın kullanıcıda kalması ve ülkeye özgü sözleşmeli entegrasyon ilkeleriyle çelişir. Küresel yüzey **Lumos Dünya**; ülke sistemleri bağlantısı markasız teknik entegrasyon katmanıdır.
 
 **Zorunlu ifade sınırı:** Lumos bugün banka, PSP, ödeme kuruluşu veya devlet/kamu otoritesi olarak tanıtılmaz. Canonical sorumluluk ayrımı: [`ADR-015`](../decisions/ADR-015-regulated-service-entity-boundaries.md); kanıt ve aşama modeli: [`lumos-institutional-service-foundation.md`](./lumos-institutional-service-foundation.md).
 

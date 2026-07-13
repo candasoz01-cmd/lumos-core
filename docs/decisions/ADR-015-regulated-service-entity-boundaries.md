@@ -13,6 +13,16 @@ Finansal hizmet, ticaret, ödeme kabulü, küresel kullanıcı katılımı ve ü
 
 Bu ADR kullanıcı tarafından onaylanan kuruluş yönünü kaydeder; mevcut ödeme kapsam kararını gevşetmez. `candasoz01-cmd/Lumos` PR #102 ve #103 ile uygulanan karar uyarınca eski **Lumos Devlet** adı kaldırılmıştır; küresel yüzey **Lumos Dünya**, ülke sistemleri bağlantısı ise marka/kuruluş olmayan teknik entegrasyon katmanıdır.
 
+### «Lumos Devlet» adı neden kaldırıldı?
+
+- **Resmî otorite algısı:** Ad, Lumos'un bir devlet kurumu, egemen otorite veya kamu adına karar veren sistem olduğu izlenimini yaratabilir.
+- **Müdahale/yetki algısı:** Entegrasyon kabiliyetini, mevcut sistemleri yönetme veya onlara sınırsız müdahale hakkı gibi gösterebilir.
+- **Tek kalıp riski:** Ülkelerin hukuk, kurum, kültür, veri yerleşimi ve teknik altyapı farklarını tek bir merkezî model altında topluyormuş izlenimi verir.
+- **İnsan odaklı yönle çelişki:** Lumos'un rolü yönetmek değil; hizmeti, riski, seçeneği ve kullanıcı kararını görünür kılmaktır.
+- **Kuruluş sınırı karışıklığı:** Lumos Dünya'nın küresel insan katılımı rolü ile private/sözleşmeli ülke sistemi entegrasyonu birbirine karışır.
+
+Bu nedenle ad yalnız pazarlama yüzeyinden değil, kuruluş modeli ve teknik yetki tanımından da çıkarılmıştır. Kaldırma, ülke sistemleriyle çalışmaktan vazgeçmek değildir; bağlantıyı daha doğru sınıra taşımaktır.
+
 ## Karar
 
 ### Ayrı sorumluluk alanları

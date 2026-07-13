@@ -12,6 +12,8 @@
 
 Bu yapı üç ticari birimi, Lumos Dünya küresel yüzeyini ve ülke sistemleri entegrasyon katmanını ayrı sorumluluk alanları olarak ele alır. Kullanıcı deneyimi Lumos'ta tutarlı kalabilir; fakat para, merchant operasyonu, ticaret tercihi ve ülke verisi aynı yetki veya veri havuzuna girmez.
 
+**Adlandırma gerekçesi:** Eski «Lumos Devlet» adı resmî otorite, egemenlik, kamu adına karar ve sınırsız sistem müdahalesi algısı oluşturabileceği için kaldırıldı. Lumos Dünya insan odaklı küresel yüzeydir; ülke sistemleri entegrasyonu ise görünür yetki sınırları olan private ve sözleşmeli teknik kabiliyettir.
+
 ## 2. Kuruluş topolojisi
 
 ```mermaid
