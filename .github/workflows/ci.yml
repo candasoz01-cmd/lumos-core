@@ -82,6 +82,10 @@ jobs:
         working-directory: ui
         run: npm run e2e:smoke
 
+      - name: Run Cyber threat visual E2E
+        working-directory: ui
+        run: npm run e2e:cyber
+
   ui-e2e:
     runs-on: ubuntu-latest
     steps:
