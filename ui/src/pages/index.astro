@@ -5,6 +5,7 @@ import GlobalMay19Corner from "../components/GlobalMay19Corner.astro";
 import LanguageSwitcher from "../components/LanguageSwitcher.astro";
 import I18nInit from "../components/I18nInit.astro";
 import WeLockSiteFooter from "../components/WeLockSiteFooter.astro";
+import LumosMicroStories from "../components/LumosMicroStories.astro";
 
 const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
 const GITHUB_README_URL = "https://github.com/candasoz01-cmd/lumos-core/blob/main/README.md";
@@ -2215,6 +2216,9 @@ const showMay19Commemoration = isMay19CommemorationDay();
               <li>
                 <a class="lumos-site-nav__link" href="#kurulum" data-i18n="nav.install">Kurulum</a>
               </li>
+              <li><a class="lumos-site-nav__link" href="/accessibility" data-i18n="umbrella.nav.accessibility">Engelsiz</a></li>
+              <li><a class="lumos-site-nav__link" href="/lab" data-i18n="umbrella.nav.lab">Lab</a></li>
+              <li><a class="lumos-site-nav__link" href="/education" data-i18n="umbrella.nav.education">Eğitim</a></li>
               <li>
                 <a class="lumos-site-nav__link" href="#baglan" data-i18n="nav.connect">Bağlan</a>
               </li>
@@ -2314,9 +2318,9 @@ const showMay19Commemoration = isMay19CommemorationDay();
     </section>
 
     <section id="baglan" class="lumos-shell lumos-section lumos-products-section" aria-labelledby="baglan-baslik">
-      <h2 id="baglan-baslik" class="lumos-cap-title" data-i18n="umbrella.products.title">Bağlan</h2>
+      <h2 id="baglan-baslik" class="lumos-cap-title" data-i18n="umbrella.products.title">Ürün katmanları ve bağlantılar</h2>
       <p class="lumos-dunya-vizyon__lead" data-i18n="umbrella.products.lead">
-        We Lock AI çatısı altındaki Lumos yüzeyleri tek adreste.
+        Lumos kullanıcı yüzeyi, bağlantılar ve bağımsız güvenlik katmanı aynı marka çatısında; görevleri ve yetkileri birbirine karıştırılmadan sunulur.
       </p>
       <div class="lumos-cap-grid">
         <a class="lumos-cap-card-link" href="/panel">
@@ -2350,8 +2354,8 @@ const showMay19Commemoration = isMay19CommemorationDay();
         <a class="lumos-cap-card-link" href="/cyber">
           <article class="lumos-cap-card">
             <h3 data-i18n="umbrella.products.cyberTitle">Lumos Cyber</h3>
-            <p data-i18n="umbrella.products.cyberBody">Güvenlik ve risk görünürlüğü odaklı varyant — erken erişim planlanıyor.</p>
-            <span class="lumos-cap-card-cta" data-i18n="umbrella.products.cyberCta">Cyber sayfası</span>
+            <p data-i18n="umbrella.products.cyberBody">Entegrasyon değil; risk görünürlüğü, savunma ve politika için bağımsız güvenlik katmanı.</p>
+            <span class="lumos-cap-card-cta" data-i18n="umbrella.products.cyberCta">Cyber katmanı</span>
           </article>
         </a>
       </div>
@@ -2819,6 +2823,22 @@ vercel dev</code></pre>
           </div>
         </div>
       </section>
+
+      <section class="lumos-shell lumos-section" aria-labelledby="birlikte-kuralim-baslik">
+        <div class="umbrella-visual">
+          <img src="/lumos-together-future.webp" alt="Farklı yaşlardan ve yeteneklerden insanların teknolojiyle birlikte çalıştığı Lumos sahnesi" loading="lazy" decoding="async" />
+          <div>
+            <h2 id="birlikte-kuralim-baslik" data-i18n="umbrella.education.dream">Daha güzel bir dünyanın hayali bile güzel</h2>
+            <p data-i18n="umbrella.education.dreamBody">Gelin; bilgiyi, güveni ve teknolojiyi insan yararına birlikte kuralım.</p>
+            <div class="umbrella-actions">
+              <a class="umbrella-btn umbrella-btn--primary" href="/education" data-i18n="umbrella.nav.education">Eğitim</a>
+              <a class="umbrella-btn" href="/accessibility" data-i18n="umbrella.nav.accessibility">Engelsiz</a>
+              <a class="umbrella-btn" href="/lab" data-i18n="umbrella.education.labCta">Lab'i keşfet</a>
+            </div>
+          </div>
+        </div>
+      </section>
+      <LumosMicroStories />
     </div>
 
     <div class="lumos-modules-stack">
@@ -3105,6 +3125,10 @@ vercel dev</code></pre>
           </article>
           <article id="modul-kuantum" class="lumos-module-item">
             <h3 data-i18n="landing.modules.quantumTitle">Kuantum</h3>
+            <div class="umbrella-visual umbrella-visual--cinematic umbrella-visual--fortress">
+              <img src="/lumos-cyber-quantum-fortress.webp" alt="Güvenli mimari içinde insan merkezli kuantum araştırma ortamı" loading="lazy" decoding="async" />
+              <p class="umbrella-visual__caption" data-i18n="umbrella.cyber.quantumCaption">Kuantuma hazırlanırken güvenlik güçlenir; insan ve sorumluluk merkezde kalır.</p>
+            </div>
             <p class="lumos-module-status" data-i18n="landing.modules.quantumDetailStatus">
               Aktif üretim özelliği değildir; kaldırılmadı ve iptal edilmedi. Vizyon, araştırma ve gelecekteki güvenlik
               mimarisi adayı olarak takip edilir. Ücretli API maliyetinin henüz açılmaması, alanın terk edildiği anlamına gelmez;

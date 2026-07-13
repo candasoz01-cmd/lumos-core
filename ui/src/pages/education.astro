@@ -1,0 +1,36 @@
+---
+import "../styles/lumos-tokens.css";
+import "../styles/umbrella-chrome.css";
+import WeLockSiteNav from "../components/WeLockSiteNav.astro";
+import WeLockSiteFooter from "../components/WeLockSiteFooter.astro";
+import I18nInit from "../components/I18nInit.astro";
+---
+
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Lumos Eğitim — We Lock AI</title>
+    <meta name="description" content="Yapay zekâ, dijital güvenlik ve bilinçli teknoloji kullanımı için Lumos eğitim alanı." />
+    <link rel="canonical" href="https://welockai.com/education" />
+    <link rel="icon" href="/lumos-tree-logo.svg" type="image/svg+xml" sizes="any" />
+  </head>
+  <body class="umbrella-page">
+    <WeLockSiteNav active="education" />
+    <main class="umbrella-main">
+      <p class="umbrella-eyebrow" data-i18n="umbrella.education.eyebrow">LUMOS · EĞİTİM</p>
+      <h1 data-i18n="umbrella.education.title">Teknolojiyi birlikte anlayalım</h1>
+      <p class="umbrella-lead" data-i18n="umbrella.education.lead">Kısa ve açık içeriklerle yapay zekâyı, dijital güvenliği, mahremiyeti ve bilinçli onayı herkes için anlaşılır kılmayı hedefliyoruz.</p>
+      <div class="umbrella-visual umbrella-visual--cinematic"><img src="/lumos-world-map.jpg" alt="Öğrenme ve bilim etrafında bir araya gelen farklı topluluklar" decoding="async" /><p class="umbrella-visual__caption" data-i18n="umbrella.education.dreamBody">Gelin; bilgiyi, güveni ve teknolojiyi insan yararına birlikte kuralım.</p></div>
+      <div class="umbrella-feature-grid">
+        <article class="umbrella-feature-card"><h2 data-i18n="umbrella.education.startTitle">Başlangıç</h2><p data-i18n="umbrella.education.startBody">Yapay zekâ nedir, ne değildir; doğru soru ve doğrulama alışkanlığı.</p></article>
+        <article class="umbrella-feature-card"><h2 data-i18n="umbrella.education.securityTitle">Güvenlik</h2><p data-i18n="umbrella.education.securityBody">Hesap, parola, sahte içerik ve riskli bağlantılarda temel korunma.</p></article>
+        <article class="umbrella-feature-card"><h2 data-i18n="umbrella.education.productionTitle">Üretim</h2><p data-i18n="umbrella.education.productionBody">Metin, görsel, kod ve araştırmada kaynak gösteren sorumlu çalışma.</p></article>
+      </div>
+      <div class="umbrella-callout"><p><strong data-i18n="umbrella.education.dream">Daha güzel bir dünyanın hayali bile güzel.</strong><br /><span data-i18n="umbrella.education.dreamBody">Gelin; bilgiyi, güveni ve teknolojiyi insan yararına birlikte kuralım.</span></p></div>
+      <div class="umbrella-actions"><a class="umbrella-btn umbrella-btn--primary" href="/accessibility" data-i18n="umbrella.education.accessibilityCta">Engelsiz öğrenme</a><a class="umbrella-btn" href="/lab" data-i18n="umbrella.education.labCta">Lab'i keşfet</a></div>
+    </main>
+    <WeLockSiteFooter />
+    <I18nInit />
+  </body>
+</html>
