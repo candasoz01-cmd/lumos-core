@@ -5,15 +5,15 @@ import umbrella from "./umbrella/tr";
 
 const tr = {
   meta: {
-    landingTitle: "Lumos — Yapay Zekâ Kontrol Katmanı",
+    landingTitle: "We Lock AI — İnsan Merkezli Yapay Zekâ Ekosistemi",
     description:
-      "Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştiren yapay zekâ kontrol katmanı prototipidir.",
-    ogTitle: "Lumos — Yapay Zekâ Kontrol Katmanı",
+      "We Lock AI, insan merkezli yapay zekâ ekosistemidir. Lumos; sohbet, görev, dosya ve bağlantıları tek çalışma alanında buluşturan son kullanıcı ürünüdür.",
+    ogTitle: "We Lock AI — İnsan Merkezli Yapay Zekâ Ekosistemi",
     ogDescription:
-      "Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştiren yapay zekâ kontrol katmanı prototipidir.",
-    twitterTitle: "Lumos — Yapay Zekâ Kontrol Katmanı",
+      "We Lock AI, insan merkezli yapay zekâ ekosistemidir. Lumos; sohbet, görev, dosya ve bağlantıları tek çalışma alanında buluşturan son kullanıcı ürünüdür.",
+    twitterTitle: "We Lock AI — İnsan Merkezli Yapay Zekâ Ekosistemi",
     twitterDescription:
-      "Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştiren yapay zekâ kontrol katmanı prototipidir.",
+      "We Lock AI, insan merkezli yapay zekâ ekosistemidir. Lumos; sohbet, görev, dosya ve bağlantıları tek çalışma alanında buluşturan son kullanıcı ürünüdür.",
   },
   lang: {
     switchLabel: "Dil seçimi",
@@ -28,11 +28,11 @@ const tr = {
     developer: "Geliştirici",
     install: "Kurulum",
     connect: "Bağlan",
-    panel: "Panel",
+    panel: "Lumos’u Aç",
     github: "GitHub",
-    brandAria: "Lumos — sayfa başı",
-    brandTitle: "Lumos",
-    brandSub: "WE LOCK AI",
+    brandAria: "We Lock AI — sayfa başı",
+    brandTitle: "We Lock AI",
+    brandSub: "AI EKOSİSTEMİ",
   },
   hero: {
     eyebrow: "WE LOCK AI · LUMOS",

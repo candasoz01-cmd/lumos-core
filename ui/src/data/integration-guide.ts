@@ -14,14 +14,14 @@ export const INTEGRATION_GUIDE_ITEMS = [
   { id: "jira", name: "Jira", category: "development", status: "catalog" },
   { id: "linear", name: "Linear", category: "development", status: "planned" },
   { id: "chrome", name: "Google Chrome", category: "browser", status: "catalog" },
-  { id: "safari", name: "Apple Safari", category: "browser", status: "catalog" },
+  { id: "safari", name: "Safari", category: "browser", status: "catalog" },
   { id: "openai", name: "OpenAI", category: "ai", status: "foundation" },
-  { id: "gemini", name: "Google Gemini", category: "ai", status: "catalog" },
+  { id: "gemini", name: "Gemini", category: "ai", status: "catalog" },
   { id: "deepseek", name: "DeepSeek", category: "ai", status: "catalog" },
   { id: "bluetoothAudio", name: "Bluetooth Audio", category: "device", status: "localDiscovery" },
   { id: "matter", name: "Matter", category: "device", status: "catalog" },
   { id: "homeAssistant", name: "Home Assistant", category: "device", status: "catalog" },
-  { id: "smartThings", name: "Samsung SmartThings", category: "device", status: "catalog" },
+  { id: "smartThings", name: "SmartThings", category: "device", status: "catalog" },
   { id: "sonos", name: "Sonos", category: "device", status: "catalog" },
 ] as const;
 

@@ -45,6 +45,13 @@
   --lumos-accent-gold: #d4a574;
   --lumos-accent-amber: #f59e0b;
 
+  /* Product-family accents — decorative only; meaning is never color-only. */
+  --lumos-package-gold: #e0b56d;
+  --lumos-package-sky: #67c7ff;
+  --lumos-package-violet: #a78bfa;
+  --lumos-package-coral: #fb7185;
+  --lumos-package-green: #6ee7b7;
+
   /* Text */
   --lumos-text: #e8edf4;
   --lumos-text-soft: #94a3b8;

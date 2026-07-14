@@ -35,6 +35,7 @@ def register_default_integrations() -> IntegrationRegistry:
     from integrations.providers.openai_provider import register_openai_provider
     from integrations.providers.quantum_provider import register_quantum_provider
     from integrations.providers.web_search_provider import register_web_search_provider
+    from integrations.providers.youtube_provider import register_youtube_provider
 
     register_openai_provider(registry.register)
     register_web_search_provider(registry.register)
@@ -45,4 +46,5 @@ def register_default_integrations() -> IntegrationRegistry:
     register_quantum_provider(registry.register)
     register_communications_provider(registry.register)
     register_china_provider(registry.register)
+    register_youtube_provider(registry.register)
     return registry

@@ -1,6 +1,8 @@
-# Mac app — production link layer
+# Lumos Mac app — production link layer
 
-Minimal URLs and Universal Links prep for a future Lumos Mac client. No native app in this repo.
+The native macOS shell lives in `macos/LumosApp`. It opens the existing Lumos panel directly in desktop mode, while chat, file, task, and approval behavior stays on the current panel/bridge contracts.
+
+Build with `./macos/LumosApp/build-app.sh`. The local output is `macos/LumosApp/dist/Lumos.app`.
 
 ## Production URLs (open in browser or hand off to Mac app)
 

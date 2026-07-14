@@ -5,6 +5,7 @@ const panelCommon: typeof panelTr.common = {
   badges: {
     externalService: "[External service]",
     demoNotConnected: "[Demo — not connected]",
+    identityRequired: "[Identity required]",
     local: "[Local]",
     unknown: "[Unknown]",
   },
@@ -52,11 +53,11 @@ const panelCommon: typeof panelTr.common = {
 
 const panel: typeof panelTr = {
   meta: {
-    title: "Lumos Panel — Workspace",
+    title: "ChatLumos — Lumos Workspace",
   },
   header: {
-    title: "Lumos Panel",
-    subtitle: "Controlled workspace",
+    title: "ChatLumos",
+    subtitle: "Chat and tasks in one place",
   },
   moduleGroups: {
     calisma: "Workspace",
@@ -92,8 +93,8 @@ const panel: typeof panelTr = {
       sohbet: "🟢 Ready",
       gorevler: "🟢 Ready",
       ses: "🟡 Developing",
-      medya: "🔵 Awaiting connection",
-      sosyal: "🔵 Awaiting connection",
+      medya: "🔵 Identity required",
+      sosyal: "🔵 Identity required",
       posta: "🟡 Architecture ready",
       dosyalar: "🟢 Ready",
       kuantum: "🟡 Architecture ready",
@@ -117,8 +118,8 @@ const panel: typeof panelTr = {
       sohbet: "Local chat and tasks work; full bridge depends on user setup",
       gorevler: "Tasks write to device storage; server sync is optional",
       ses: "Voice UI is in development; depends on device permissions",
-      medya: "No external media connection yet; draft flow only",
-      sosyal: "OAuth and platform connection pending",
+      medya: "No external media identity is linked; draft flow only",
+      sosyal: "Platform identity required; OAuth and publishing are not enabled yet",
       posta: "OD-031 mail stub; send permission and connection pending",
       dosyalar: "Local upload and summary; depends on bridge connection",
       kuantum: "ORAA active; quantum layer architecture ready — no production claim",

@@ -26,28 +26,28 @@ const showMay19Commemoration = isMay19CommemorationDay();
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title data-i18n="meta.landingTitle">Lumos — Yapay Zekâ Kontrol Katmanı</title>
+    <title data-i18n="meta.landingTitle">We Lock AI — İnsan Merkezli Yapay Zekâ Ekosistemi</title>
     <meta
       name="description"
-      content="Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştiren yapay zekâ kontrol katmanı prototipidir."
+      content="We Lock AI, insan merkezli yapay zekâ ekosistemidir. Lumos; sohbet, görev, dosya ve bağlantıları tek çalışma alanında buluşturan son kullanıcı ürünüdür."
       data-i18n-content="meta.description"
     />
     <link rel="canonical" href="https://welockai.com/" />
-    <meta property="og:title" content="Lumos — Yapay Zekâ Kontrol Katmanı" data-i18n-content="meta.ogTitle" />
+    <meta property="og:title" content="We Lock AI — İnsan Merkezli Yapay Zekâ Ekosistemi" data-i18n-content="meta.ogTitle" />
     <meta
       property="og:description"
-      content="Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştiren yapay zekâ kontrol katmanı prototipidir."
+      content="We Lock AI, insan merkezli yapay zekâ ekosistemidir. Lumos; sohbet, görev, dosya ve bağlantıları tek çalışma alanında buluşturan son kullanıcı ürünüdür."
       data-i18n-content="meta.ogDescription"
     />
     <meta name="twitter:card" content="summary_large_image" />
     <meta
       name="twitter:title"
-      content="Lumos — Yapay Zekâ Kontrol Katmanı"
+      content="We Lock AI — İnsan Merkezli Yapay Zekâ Ekosistemi"
       data-i18n-content="meta.twitterTitle"
     />
     <meta
       name="twitter:description"
-      content="Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştiren yapay zekâ kontrol katmanı prototipidir."
+      content="We Lock AI, insan merkezli yapay zekâ ekosistemidir. Lumos; sohbet, görev, dosya ve bağlantıları tek çalışma alanında buluşturan son kullanıcı ürünüdür."
       data-i18n-content="meta.twitterDescription"
     />
     <meta
@@ -96,6 +96,7 @@ const showMay19Commemoration = isMay19CommemorationDay();
           radial-gradient(ellipse 130% 88% at 50% -6%, rgb(var(--lumos-land-teal-deep) / 0.2), transparent 54%),
           radial-gradient(ellipse 88% 52% at 94% 38%, rgb(var(--lumos-land-teal) / 0.05), transparent 46%),
           radial-gradient(ellipse 72% 48% at 10% 72%, rgb(var(--lumos-land-warm) / 0.025), transparent 50%),
+          radial-gradient(ellipse 46% 34% at 96% 68%, rgb(167 139 250 / 0.035), transparent 62%),
           linear-gradient(178deg, #0a0e14 0%, #121a24 44%, #0a0e14 100%);
         background-attachment: fixed;
         color: var(--lumos-land-title);
@@ -1390,6 +1391,7 @@ const showMay19Commemoration = isMay19CommemorationDay();
         }
       }
       .lumos-cap-card {
+        --lumos-card-accent: var(--lumos-package-gold);
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
@@ -1404,7 +1406,16 @@ const showMay19Commemoration = isMay19CommemorationDay();
           rgba(11, 10, 14, 0.94) 48%,
           rgba(10, 9, 12, 0.96) 100%
         );
-        box-shadow: inset 0 1px 0 rgb(var(--lumos-land-warm) / 0.05), 0 4px 18px rgba(0, 0, 0, 0.28);
+        box-shadow:
+          inset 0 2px 0 color-mix(in srgb, var(--lumos-card-accent) 56%, transparent),
+          0 4px 18px rgba(0, 0, 0, 0.28);
+      }
+      .lumos-cap-card-link:nth-child(5n + 2) { --lumos-card-accent: var(--lumos-package-sky); }
+      .lumos-cap-card-link:nth-child(5n + 3) { --lumos-card-accent: var(--lumos-package-violet); }
+      .lumos-cap-card-link:nth-child(5n + 4) { --lumos-card-accent: var(--lumos-package-green); }
+      .lumos-cap-card-link:nth-child(5n + 5) { --lumos-card-accent: var(--lumos-package-coral); }
+      .lumos-cap-card-link .lumos-cap-card {
+        --lumos-card-accent: inherit;
       }
       .lumos-cap-card-link {
         display: block;
@@ -2183,7 +2194,7 @@ const showMay19Commemoration = isMay19CommemorationDay();
               <a
                 class="lumos-site-nav__logo lumos-site-nav__brand"
                 href="#top"
-                aria-label="Lumos — sayfa başı"
+                aria-label="We Lock AI — sayfa başı"
                 data-i18n-aria-label="nav.brandAria"
               >
                 <img
@@ -2195,8 +2206,8 @@ const showMay19Commemoration = isMay19CommemorationDay();
                   decoding="async"
                 />
                 <span class="lumos-site-nav__brand-text">
-                  <span class="lumos-site-nav__brand-title" data-i18n="nav.brandTitle">Lumos</span>
-                  <span class="lumos-site-nav__brand-sub" data-i18n="nav.brandSub">WE LOCK AI</span>
+                  <span class="lumos-site-nav__brand-title" data-i18n="nav.brandTitle">We Lock AI</span>
+                  <span class="lumos-site-nav__brand-sub" data-i18n="nav.brandSub">AI EKOSİSTEMİ</span>
                 </span>
               </a>
             </div>
@@ -2223,7 +2234,7 @@ const showMay19Commemoration = isMay19CommemorationDay();
                 <a class="lumos-site-nav__link" href="#baglan" data-i18n="nav.connect">Bağlan</a>
               </li>
               <li>
-                <a class="lumos-site-nav__link lumos-site-nav__link--accent" href="/panel" data-i18n="nav.panel">Panel</a>
+                <a class="lumos-site-nav__link lumos-site-nav__link--accent" href="/panel" data-i18n="nav.panel">Lumos’u Aç</a>
               </li>
               <li>
                 <a

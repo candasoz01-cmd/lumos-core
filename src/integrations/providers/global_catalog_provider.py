@@ -27,8 +27,8 @@ def _entry(
 
 GLOBAL_INTEGRATION_CATALOG: tuple[dict[str, Any], ...] = (
     # Messaging and regional communication
-    _entry("whatsapp", "WhatsApp", "messaging", ("global",), "cloud_api", "connection_check", ("messages", "webhooks")),
-    _entry("telegram", "Telegram", "messaging", ("global",), "bot_api", "connection_check", ("messages", "bots", "webhooks")),
+    _entry("whatsapp", "WhatsApp", "messaging", ("global", "IN"), "cloud_api", "connection_check", ("messages", "webhooks")),
+    _entry("telegram", "Telegram", "messaging", ("global", "IN", "RU"), "bot_api", "connection_check", ("messages", "bots", "webhooks")),
     _entry("signal", "Signal", "messaging", ("global",), "local_bridge", capabilities=("messages",)),
     _entry("line", "LINE", "messaging", ("JP", "TW", "TH"), "oauth_webhook", capabilities=("messages", "official_account")),
     _entry("kakao_talk", "KakaoTalk", "messaging", ("KR",), "oauth_api", capabilities=("messages", "social_login")),
@@ -63,14 +63,19 @@ GLOBAL_INTEGRATION_CATALOG: tuple[dict[str, Any], ...] = (
 
     # Social media
     _entry("facebook", "Facebook", "social", ("global",), "oauth_graph_api", capabilities=("pages", "posts", "messages")),
-    _entry("instagram", "Instagram", "social", ("global",), "oauth_graph_api", capabilities=("media", "comments", "messages")),
+    _entry("instagram", "Instagram", "social", ("global", "IN"), "oauth_graph_api", capabilities=("media", "comments", "messages")),
     _entry("x", "X", "social", ("global",), "oauth_api", capabilities=("posts", "mentions")),
     _entry("linkedin", "LinkedIn", "social", ("global",), "oauth_api", capabilities=("profile", "pages", "posts")),
     _entry("threads", "Threads", "social", ("global",), "oauth_api", capabilities=("posts", "replies")),
     _entry("tiktok", "TikTok", "social", ("global",), "oauth_api", capabilities=("video", "profile")),
+    _entry("youtube", "YouTube", "social", ("global", "IN"), "google_oauth", "oauth_skeleton", ("video", "channels", "publish")),
     _entry("weibo", "Weibo", "social", ("CN",), "oauth_api", capabilities=("posts", "profile")),
     _entry("douyin", "Douyin", "social", ("CN",), "oauth_api", capabilities=("video", "profile")),
+    _entry("bilibili", "Bilibili", "social", ("CN",), "oauth_api", capabilities=("video", "channels", "publish")),
+    _entry("xiaohongshu", "RED / Xiaohongshu", "social", ("CN",), "partner_api", capabilities=("posts", "video", "profile")),
     _entry("vk", "VK", "social", ("RU", "CIS"), "oauth_api", capabilities=("posts", "messages", "communities")),
+    _entry("ok_ru", "OK", "social", ("RU", "CIS"), "oauth_api", capabilities=("posts", "video", "communities")),
+    _entry("rutube", "Rutube", "social", ("RU", "CIS"), "partner_api", capabilities=("video", "channels", "publish")),
     _entry("naver_band", "NAVER BAND", "social", ("KR", "JP"), "oauth_api", capabilities=("groups", "posts")),
     _entry("kakao_story", "KakaoStory", "social", ("KR",), "oauth_api", capabilities=("posts", "profile")),
     _entry("mixi", "mixi", "social", ("JP",), "partner_api", capabilities=("communities", "profile")),

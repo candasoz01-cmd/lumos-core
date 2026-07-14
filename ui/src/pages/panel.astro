@@ -41,15 +41,25 @@ const PANEL_DEBUG = import.meta.env.DEV;
       name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no"
     />
-    <title data-i18n="panel.meta.title">Lumos Panel — Çalışma alanı</title>
-    <link rel="icon" href="/lumos-tree-logo.svg" type="image/svg+xml" sizes="any" />
-    <link rel="apple-touch-icon" href="/lumos-tree-logo.svg" />
+    <title data-i18n="panel.meta.title">ChatLumos — Lumos çalışma alanı</title>
+    <link rel="icon" href="/lumos-skull-mark.svg" type="image/svg+xml" sizes="any" />
+    <link rel="apple-touch-icon" href="/lumos-skull-mark.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#0a0e14" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Lumos" />
+    <script is:inline>
+      (() => {
+        const params = new URLSearchParams(window.location.search);
+        const standalone = window.matchMedia?.("(display-mode: standalone)")?.matches === true;
+        const desktopSource = params.get("source") === "desktop";
+        if (desktopSource || standalone) {
+          document.documentElement.dataset.lumosApp = "true";
+        }
+      })();
+    </script>
     <style>
       * {
         box-sizing: border-box;
@@ -531,46 +541,45 @@ const PANEL_DEBUG = import.meta.env.DEV;
         }
       }
       .lumos-mark {
-        position: relative;
         width: clamp(1.75rem, 4.2vw, 2.125rem);
         height: clamp(1.75rem, 4.2vw, 2.125rem);
         flex-shrink: 0;
-        border-radius: 50%;
-        background:
-          radial-gradient(circle at 32% 22%, rgb(var(--lumos-land-teal) / 0.12) 0%, transparent 42%),
-          radial-gradient(circle at 70% 78%, rgb(var(--lumos-land-warm) / 0.06) 0%, transparent 45%),
-          linear-gradient(155deg, #0c1428 0%, #080f1e 42%, #030714 100%);
-        border: 2px solid rgb(var(--lumos-land-warm) / 0.55);
-        box-shadow:
-          inset 0 0 0 1px rgb(var(--lumos-land-teal) / 0.12),
-          inset 0 1px 0 rgba(255, 255, 255, 0.06),
-          inset 0 -1px 4px rgba(0, 0, 0, 0.4),
-          0 0 0 1px rgb(var(--lumos-land-teal) / 0.08);
+        object-fit: contain;
+        padding: 0.18rem;
+        border: 1px solid rgb(var(--lumos-land-warm) / 0.55);
+        border-radius: 0.55rem;
+        background: #03060d;
+        filter: drop-shadow(0 0 8px rgb(var(--lumos-land-warm) / 0.14));
       }
-      .lumos-mark::before {
-        content: "";
-        position: absolute;
-        inset: 4px;
-        border-radius: 50%;
-        box-sizing: border-box;
-        border: 1px solid rgb(var(--lumos-land-warm) / 0.28);
-        background: rgba(4, 8, 18, 0.62);
-        pointer-events: none;
+
+      html[data-lumos-app="true"] .panel-umbrella-links,
+      html[data-lumos-app="true"] .panel-user-mode-wrap,
+      html[data-lumos-app="true"] .panel-nav__lumos,
+      html[data-lumos-app="true"] .panel-nav-group-toggle,
+      html[data-lumos-app="true"] .panel-nav__primary button[data-module-availability="inactive"],
+      html[data-lumos-app="true"] .panel-nav-status-subline,
+      html[data-lumos-app="true"] .chat-capability-card,
+      html[data-lumos-app="true"] #panel-empty-secret-note,
+      html[data-lumos-app="true"] #panel-sohbet .lumos-security-note:not(:first-of-type) {
+        display: none !important;
       }
-      .lumos-mark::after {
-        content: "";
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        width: 0.48rem;
-        height: 0.62rem;
-        margin: -0.34rem 0 0 -0.22rem;
-        box-sizing: border-box;
-        border-left: 2.5px solid rgba(244, 226, 188, 0.88);
-        border-bottom: 2.5px solid rgba(220, 188, 130, 0.82);
-        border-radius: 0 0 0 2px;
-        filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
-        pointer-events: none;
+
+      html[data-lumos-app="true"] .panel-body {
+        grid-template-rows: minmax(0, 1fr);
+        grid-template-areas: "nav-primary main";
+      }
+
+      html[data-lumos-app="true"] .panel-nav__primary {
+        padding-top: 1rem;
+        border-bottom: none;
+      }
+
+      html[data-lumos-app="true"] .panel-nav-collapsible {
+        margin-bottom: 0;
+      }
+
+      html[data-lumos-app="true"] .panel-header {
+        padding-block: 0.65rem;
       }
       .panel-header-brand-text {
         display: flex;
@@ -3615,10 +3624,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
         .lumos-mark {
           width: 1.08rem;
           height: 1.08rem;
-          border-width: 1.5px;
-          box-shadow:
-            inset 0 0 0 1px rgb(var(--lumos-land-teal) / 0.08),
-            inset 0 1px 0 rgba(255, 255, 255, 0.04);
+          padding: 0.1rem;
+          border-radius: 0.3rem;
+          filter: drop-shadow(0 0 5px rgb(var(--lumos-land-warm) / 0.12));
         }
         .panel-health-row {
           position: static;
@@ -4544,10 +4552,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
       <header class="panel-header">
         <div class="panel-header-title-row">
           <div class="panel-header-brand">
-            <span class="lumos-mark" aria-hidden="true"></span>
+            <img class="lumos-mark" src="/lumos-skull-mark.svg" alt="" width="34" height="34" decoding="async" />
             <div class="panel-header-brand-text">
-              <h1 data-i18n="panel.header.title">Lumos Panel</h1>
-              <p class="panel-header-tagline" data-i18n="panel.header.subtitle">Kontrollü çalışma alanı</p>
+              <h1 data-i18n="panel.header.title">ChatLumos</h1>
+              <p class="panel-header-tagline" data-i18n="panel.header.subtitle">Sohbet ve görevler tek yerde</p>
             </div>
           </div>
           <div class="panel-health-row">
@@ -4715,13 +4723,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 <span class="panel-nav-label-block">
                   <span class="panel-nav-label" data-i18n="panel.nav.medya">Medya</span>
                 </span>
-                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--awaiting" data-i18n="panel.nav.status.medya">🔵 Bağlantı bekliyor</span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--awaiting" data-i18n="panel.nav.status.medya">🔵 Kimlik bekliyor</span>
               </button>
               <button type="button" data-module="sosyal" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.sosyal">
                 <span class="panel-nav-label-block">
                   <span class="panel-nav-label" data-i18n="panel.nav.sosyal">Sosyal</span>
                 </span>
-                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--awaiting" data-i18n="panel.nav.status.sosyal">🔵 Bağlantı bekliyor</span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--awaiting" data-i18n="panel.nav.status.sosyal">🔵 Kimlik bekliyor</span>
               </button>
               <button type="button" data-module="posta" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.posta">
                 <span class="panel-nav-label-block">
@@ -5400,7 +5408,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             </ul>
             <div class="panel-share-proto panel-share-proto--demo gorevler-proto" data-panel-share-demo="true" style="margin-top: 1rem">
               <p class="medya-intro" style="margin-top: 0">
-                <span class="panel-data-flow-badge panel-data-flow-badge--demo" data-i18n="panel.common.badges.demoNotConnected">[Demo — bağlı değil]</span>
+                <span class="panel-data-flow-badge panel-data-flow-badge--demo" data-i18n="panel.common.badges.identityRequired">[Kimlik bekliyor]</span>
                 <span data-i18n="panel.modules.media.sharePreviewIntro">Paylaşım taslağı önizlemesi — gerçek gönderim bu sürümde kapalı.</span>
               </p>
               <div class="gorevler-field">
@@ -5448,14 +5456,40 @@ const PANEL_DEBUG = import.meta.env.DEV;
             </header>
             <div class="panel-share-proto panel-share-proto--demo gorevler-proto" data-panel-share-demo="true">
               <p class="medya-intro" style="margin-top: 0">
-                <span class="panel-data-flow-badge panel-data-flow-badge--demo" data-i18n="panel.common.badges.demoNotConnected">[Demo — bağlı değil]</span>
+                <span class="panel-data-flow-badge panel-data-flow-badge--demo" data-i18n="panel.common.badges.identityRequired">[Kimlik bekliyor]</span>
                 <span data-i18n="panel.modules.social.sharePreviewIntro">Sosyal paylaşım taslağı önizlemesi — gerçek paylaşım bu sürümde kapalı.</span>
               </p>
               <div class="gorevler-field">
                 <label for="sosyal-share-target" data-i18n="panel.common.form.targetPlatform">Hedef platform</label>
                 <select id="sosyal-share-target">
-                  <option value="genel" data-i18n="panel.common.select.generalFeed">Genel akış</option>
-                  <option value="mesaj" data-i18n="panel.common.select.directMessage">Doğrudan mesaj</option>
+                  <optgroup label="Küresel">
+                    <option value="facebook">Facebook — Kimlik bekliyor</option>
+                    <option value="instagram">Instagram — Kimlik bekliyor</option>
+                    <option value="x">X — Kimlik bekliyor</option>
+                    <option value="tiktok">TikTok — Kimlik bekliyor</option>
+                    <option value="linkedin">LinkedIn — Kimlik bekliyor</option>
+                    <option value="youtube">YouTube — Kimlik bekliyor</option>
+                  </optgroup>
+                  <optgroup label="Çin">
+                    <option value="wechat">WeChat — Kimlik bekliyor</option>
+                    <option value="douyin">Douyin — Kimlik bekliyor</option>
+                    <option value="bilibili">Bilibili — Kimlik bekliyor</option>
+                    <option value="xiaohongshu">RED / Xiaohongshu — Kimlik bekliyor</option>
+                    <option value="weibo">Weibo — Kimlik bekliyor</option>
+                  </optgroup>
+                  <optgroup label="Hindistan">
+                    <option value="whatsapp">WhatsApp — Kimlik bekliyor</option>
+                    <option value="instagram">Instagram — Kimlik bekliyor</option>
+                    <option value="youtube">YouTube — Kimlik bekliyor</option>
+                    <option value="sharechat">ShareChat — Kimlik bekliyor</option>
+                    <option value="telegram-in">Telegram — Kimlik bekliyor</option>
+                  </optgroup>
+                  <optgroup label="Rusya">
+                    <option value="vk">VK — Kimlik bekliyor</option>
+                    <option value="telegram-ru">Telegram — Kimlik bekliyor</option>
+                    <option value="ok-ru">OK — Kimlik bekliyor</option>
+                    <option value="rutube">Rutube — Kimlik bekliyor</option>
+                  </optgroup>
                 </select>
               </div>
               <div class="gorevler-field">
@@ -6326,14 +6360,19 @@ const PANEL_DEBUG = import.meta.env.DEV;
         return PANEL_USER_MODES.includes(m) ? m : "limited";
       }
 
+      function isLumosDesktopEntry() {
+        return document.documentElement.dataset.lumosApp === "true";
+      }
+
       function getPanelUserMode() {
         try {
-          if (typeof localStorage === "undefined") return "limited";
+          const defaultMode = isLumosDesktopEntry() ? "full" : "limited";
+          if (typeof localStorage === "undefined") return defaultMode;
           const raw = localStorage.getItem(PANEL_USER_MODE_LS_KEY);
-          if (!raw) return "limited";
+          if (!raw) return defaultMode;
           return normalizePanelUserMode(raw);
         } catch {
-          return "limited";
+          return isLumosDesktopEntry() ? "full" : "limited";
         }
       }
 
