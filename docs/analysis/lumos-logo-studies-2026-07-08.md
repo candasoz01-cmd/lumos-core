@@ -1,7 +1,7 @@
 # Lumos logo calismalari — 2026-07-08
 
-**Durum:** `draft / needs-review`  
-**Kapsam:** Marka yonu ve logo adaylari. Uygulamaya baglanmadi; mevcut logo veya favicon degistirilmedi.  
+**Durum:** `draft / needs-review`
+**Kapsam:** Marka yonu ve logo adaylari. UI entegrasyon adayi calisma dalinda korunur; onaylanmis marka karari veya yayin kaniti degildir.
 **Kisit:** Dis yuzeyde yalniz **Lumos** gorunur. Kando/Cando gibi ic katman adlari marka calismasina tasinmaz.
 
 ## Cikis ilkesi

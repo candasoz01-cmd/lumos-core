@@ -7,15 +7,9 @@
   "background_color": "#030714",
   "icons": [
     {
-      "src": "/lumos-paradise-icon.png",
-      "sizes": "260x260",
+      "src": "/lumos-logo-icon.png",
+      "sizes": "1254x1254",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/lumos-tree-logo.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
       "purpose": "any"
     }
   ]

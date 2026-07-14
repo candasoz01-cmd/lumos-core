@@ -64,8 +64,8 @@ const showMay19Commemoration = isMay19CommemorationDay();
       data-i18n-content="landing.assets.ogImage"
     />
     <meta property="og:image:type" content="image/jpeg" />
-    <link rel="icon" href="/lumos-tree-logo.svg" type="image/svg+xml" sizes="any" />
-    <link rel="apple-touch-icon" href="/lumos-tree-logo.svg" />
+    <link rel="icon" href="/lumos-logo-icon.png" type="image/png" sizes="1254x1254" />
+    <link rel="apple-touch-icon" href="/lumos-logo-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#0a0e14" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -213,7 +213,7 @@ const showMay19Commemoration = isMay19CommemorationDay();
         outline: 2px solid rgb(var(--lumos-land-teal) / 0.45);
         outline-offset: 2px;
       }
-      /** Lumos site logosu: vektör ağaç işareti (lumos-tree-logo.svg); filtre bağlamda (nav / hero) ayrı */
+      /** Lumos site logosu: onaylı altıgen amblem; filtre bağlamda (nav / hero) ayrı */
       .lumos-logo-mark {
         display: block;
         box-sizing: border-box;
@@ -222,15 +222,12 @@ const showMay19Commemoration = isMay19CommemorationDay();
         object-position: center center;
       }
       .lumos-site-nav__logo .lumos-logo-mark {
-        width: 1.42rem;
-        height: 1.42rem;
+        width: 2rem;
+        height: 2rem;
         max-width: none;
         max-height: none;
         opacity: 1;
-        filter: brightness(1.06) saturate(1.08) contrast(1.04)
-          drop-shadow(0 0 1px rgb(var(--lumos-land-teal) / 0.18))
-          drop-shadow(0 0 10px rgb(var(--lumos-land-teal) / 0.06))
-          drop-shadow(0 0 18px rgb(var(--lumos-land-teal) / 0.03));
+        filter: none;
       }
       .lumos-hero-title-lockup {
         display: flex;
@@ -241,8 +238,8 @@ const showMay19Commemoration = isMay19CommemorationDay();
         min-width: 0;
       }
       .lumos-hero-title-lockup .lumos-hero-title-mark {
-        width: clamp(1.36rem, 3.4vw, 1.82rem);
-        height: clamp(1.36rem, 3.4vw, 1.82rem);
+        width: clamp(2.2rem, 4.2vw, 3rem);
+        height: clamp(2.2rem, 4.2vw, 3rem);
         margin-top: 0.04em;
         margin-right: 0;
         flex-shrink: 0;
@@ -2026,8 +2023,8 @@ const showMay19Commemoration = isMay19CommemorationDay();
           padding: 0.22rem 0.26rem;
         }
         .lumos-site-nav__logo .lumos-logo-mark {
-          width: 1.32rem;
-          height: 1.32rem;
+          width: 1.8rem;
+          height: 1.8rem;
         }
         .lumos-hero-cinematic__inner {
           padding-top: clamp(0.45rem, 1.4vw, 0.72rem);
@@ -2188,7 +2185,7 @@ const showMay19Commemoration = isMay19CommemorationDay();
               >
                 <img
                   class="lumos-logo-mark"
-                  src="/lumos-tree-logo.svg"
+                  src="/lumos-logo-icon.png"
                   alt=""
                   width="64"
                   height="64"
@@ -2246,7 +2243,7 @@ const showMay19Commemoration = isMay19CommemorationDay();
             <div class="lumos-hero-title-lockup">
               <img
                 class="lumos-logo-mark lumos-hero-title-mark"
-                src="/lumos-tree-logo.svg"
+                src="/lumos-logo-icon.png"
                 alt=""
                 width="64"
                 height="64"
