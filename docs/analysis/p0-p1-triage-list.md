@@ -36,7 +36,7 @@ Internal Alpha girişinde **bilinen P0/P1 maddelerinin tek kaynak listesi** ve *
 | ID | Konu | Durum | Sahip | Blocker for | Not |
 |----|------|-------|-------|-------------|-----|
 | P1-01 | Modül menüsü iskelet rozet (RB-17 / G-03) | **Kapalı** | UX / panel | Closed Pilot | #503 — nav `inactiveBadge` |
-| P1-02 | Çekirdek yolculuk ≥2 hafta ekip tekrarı (G-02) | **Devam ediyor** | Ürün / QA | Closed Pilot | Faz başlangıç 2026-06-18; [INTERNAL_ALPHA_OPERATIONS.md](../INTERNAL_ALPHA_OPERATIONS.md) §4 |
+| P1-02 | Çekirdek yolculuk ≥2 hafta ekip tekrarı (G-02) | **Kanıt bekliyor** | Ürün / QA | Closed Pilot | 2026-07-14 denetimi: Hafta 1 kaydı kısmi, Hafta 2 yok; [INTERNAL_ALPHA_OPERATIONS.md](../INTERNAL_ALPHA_OPERATIONS.md) §4 |
 | P1-03 | Pilot sözleşmesi + davet ≤20 (G-04) | **Şablon hazır** | Ticari / ops | Closed Pilot | [pilot-contract-template.md](pilot-contract-template.md) — Alpha exit gate; imza pilot başında |
 | P1-04 | Yazılı destek kanalı + best-effort SLA (G-05) | **Şablon hazır** | Destek / ops | Closed Pilot | [support-channel-alpha.md](support-channel-alpha.md) — `support@` TBD |
 | P1-05 | Panel read-only tasks path uyumsuzluğu | **Kapalı** | Platform | Alpha çıkış | [p1-05-tasks-path-audit.md](p1-05-tasks-path-audit.md) — bilinçli çift depo; sync yok; migration defer (ADR-008, EC2-05) |
@@ -80,4 +80,4 @@ Internal Alpha girişinde **bilinen P0/P1 maddelerinin tek kaynak listesi** ve *
 
 ---
 
-*Son güncelleme: 2026-06-26 — session closure: P1-03/04 şablon; welockai yüzey (#529–#532); bridge 503 doc; P1-02 checkpoint devam; P1-06 Launch P1 defer ([python-packaging-spike-rb06.md](python-packaging-spike-rb06.md)).*
+*Son güncelleme: 2026-07-14 — P1-02 kanıt denetimi: teknik kapı yeşil; iki tam kullanıcı yolculuğu checkpoint'i henüz yok. P1-06 Launch P1 defer ([python-packaging-spike-rb06.md](python-packaging-spike-rb06.md)).*

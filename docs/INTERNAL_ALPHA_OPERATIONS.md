@@ -48,7 +48,7 @@ Kaynak: [p0-p1-triage-list.md](analysis/p0-p1-triage-list.md).
 
 | ID | Konu | Sahip | Durum | İlk hafta aksiyon |
 |----|------|-------|-------|-------------------|
-| P1-02 | Çekirdek yolculuk ≥2 hafta | Ürün / QA | **Devam ediyor** | §4 yolculuk planı; haftalık checkpoint |
+| P1-02 | Çekirdek yolculuk ≥2 hafta | Ürün / QA | **Kanıt bekliyor** | Hafta 1 kaydı kısmi; Hafta 2 tam checkpoint yok |
 | P1-05 | Panel read-only tasks path | Platform | **Kapalı** | [p1-05-tasks-path-audit.md](analysis/p1-05-tasks-path-audit.md) #527 |
 | P1-03 | Pilot sözleşmesi + davet | Ticari / ops | **Şablon hazır** | [pilot-contract-template.md](analysis/pilot-contract-template.md) — Alpha exit gate; imza Closed Pilot |
 | P1-04 | Destek kanalı + SLA | Destek / ops | **Şablon hazır** | [support-channel-alpha.md](analysis/support-channel-alpha.md) · [support-report-oraa.md](templates/support-report-oraa.md) — kanal TBD; Closed Pilot kapısı |
@@ -130,6 +130,7 @@ Her **Pazartesi** (veya ekip sprint günü) bir satır `docs/INTERNAL_ALPHA_OPER
 | 2026-06-26 | Bridge proxy 503 prod davranışı belgelendi (env yok = beklenen) | [vercel-bridge-proxy-setup.md](vercel-bridge-proxy-setup.md) |
 | 2026-06-26 | **P0-05 izleme:** `make test` — **1220 passed**, 3 skipped; SECURITY_NEVER_AUTO regresyonu yok | `main` @ `57e81ea` |
 | 2026-06-26 | **P1-02 Hafta 1 checkpoint** — aşağı §4.3 | welockai.com smoke + pytest |
+| 2026-07-14 | **P1-02 kanıt denetimi** — Hafta 1 kaydında katılımcı placeholder ve yerel görev `N/A`; Hafta 2 kaydı yok. Teknik kapı: **1278 passed, 3 skipped**; kullanıcı yolculuğu kanıtı yerine geçmez. | repo denetimi |
 
 ### Checkpoint — 2026-06-26 (Hafta 1)
 
@@ -144,7 +145,7 @@ Her **Pazartesi** (veya ekip sprint günü) bir satır `docs/INTERNAL_ALPHA_OPER
 
 ### Checkpoint — pending (Hafta 2)
 
-*Şablon — P1-02 kapanışı için ardışık **≥14 takvim günü** ve ikinci tam checkpoint gerekir. Faz başlangıcı 2026-06-18 → hedef doldurma **2026-07-02** veya sonrası (pending pilot week).*
+*Şablon — P1-02 kapanışı için ardışık **≥14 takvim günü** ve iki tam checkpoint gerekir. 2026-07-14 denetiminde Hafta 2 kaydı bulunmadı; hedef tarih geçmiş olsa da kanıtsız kapanış yapılmaz.*
 
 ```markdown
 ### Checkpoint — YYYY-MM-DD (Hafta 2)
@@ -158,7 +159,7 @@ Her **Pazartesi** (veya ekip sprint günü) bir satır `docs/INTERNAL_ALPHA_OPER
 - **Bloker:** yok / açıklama
 ```
 
-**P1-02 durumu:** Devam ediyor — Hafta 1 kapandı; Hafta 2 bekliyor.
+**P1-02 durumu:** Kanıt bekliyor — Hafta 1 kaydı kısmi, Hafta 2 kaydı yok. Ürün / QA sahibi gerçek panel + yerel görev yolculuğunu yeni checkpoint ile doğrulamalı.
 
 ---
 
@@ -218,4 +219,4 @@ Tam liste: [`INTERNAL_ALPHA_RELEASE_SCOPE.md`](INTERNAL_ALPHA_RELEASE_SCOPE.md) 
 
 ---
 
-*Son güncelleme: 2026-06-26 — Phase 2 kapısı (8 saat testi); P1-02 Hafta 2 pending.*
+*Son güncelleme: 2026-07-14 — P1-02 kanıt denetimi; teknik test yeşil, kullanıcı yolculuğu checkpoint'i eksik.*
