@@ -9,6 +9,8 @@ import type { MatrixRow } from "../components/IntegrationPermMatrix.astro";
 
 const DOCS_INTEGRATIONS_URL =
   "https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/integrations-overview.md";
+const DOCS_GUIDE_URL =
+  "https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/integration-benefits-security-guide.md";
 
 const charterRows: MatrixRow[] = [
   {
@@ -85,6 +87,11 @@ const charterRows: MatrixRow[] = [
       <IntegrationPermMatrix rows={charterRows} />
       <h2 data-i18n="umbrella.integrations.surfacesTitle">Yüzeyler ve bağlantılar</h2>
       <div class="umbrella-surface-grid">
+        <a class="umbrella-surface-card" href="/integrations/guide">
+          <h3 data-i18n="umbrella.integrations.guideCta">24 bağlantıda kolaylık ve güvenlik</h3>
+          <p data-i18n="umbrella.integrations.guideBody">Uygulama ve cihaz bazında yarar, güvenlik sınırı ve gerçek durum</p>
+          <span class="umbrella-badge" data-i18n="umbrella.integrations.guideBadge">Ayrıntılı rehber</span>
+        </a>
         <a class="umbrella-surface-card" href="/integrations/github">
           <h3 data-i18n="umbrella.integrations.githubCta">GitHub entegrasyonu</h3>
           <p data-i18n="umbrella.integrations.rowGithubNote">Issue/PR bağlamı</p>
@@ -122,6 +129,10 @@ const charterRows: MatrixRow[] = [
       <p>
         <a href={DOCS_INTEGRATIONS_URL} target="_blank" rel="noopener noreferrer" data-i18n="umbrella.integrations.docsCta"
           >Teknik özet (repo)</a
+        >
+        ·
+        <a href={DOCS_GUIDE_URL} target="_blank" rel="noopener noreferrer" data-i18n="umbrella.integrations.guideGithubCta"
+          >Kolaylık ve güvenlik rehberi (GitHub)</a
         >
       </p>
       <div class="umbrella-actions">

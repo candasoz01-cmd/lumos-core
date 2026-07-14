@@ -1,0 +1,28 @@
+export const INTEGRATION_GUIDE_ITEMS = [
+  { id: "github", name: "GitHub", category: "development", status: "foundation" },
+  { id: "gmail", name: "Gmail", category: "productivity", status: "limited" },
+  { id: "googleCalendar", name: "Google Calendar", category: "productivity", status: "planned" },
+  { id: "googleDrive", name: "Google Drive", category: "productivity", status: "planned" },
+  { id: "slack", name: "Slack", category: "communication", status: "planned" },
+  { id: "zoom", name: "Zoom", category: "communication", status: "planned" },
+  { id: "whatsapp", name: "WhatsApp", category: "communication", status: "connectionCheck" },
+  { id: "telegram", name: "Telegram", category: "communication", status: "connectionCheck" },
+  { id: "line", name: "LINE", category: "regional", status: "catalog" },
+  { id: "kakaoTalk", name: "KakaoTalk", category: "regional", status: "catalog" },
+  { id: "microsoftTeams", name: "Microsoft Teams", category: "communication", status: "catalog" },
+  { id: "notion", name: "Notion", category: "productivity", status: "planned" },
+  { id: "jira", name: "Jira", category: "development", status: "catalog" },
+  { id: "linear", name: "Linear", category: "development", status: "planned" },
+  { id: "chrome", name: "Google Chrome", category: "browser", status: "catalog" },
+  { id: "safari", name: "Apple Safari", category: "browser", status: "catalog" },
+  { id: "openai", name: "OpenAI", category: "ai", status: "foundation" },
+  { id: "gemini", name: "Google Gemini", category: "ai", status: "catalog" },
+  { id: "deepseek", name: "DeepSeek", category: "ai", status: "catalog" },
+  { id: "bluetoothAudio", name: "Bluetooth Audio", category: "device", status: "localDiscovery" },
+  { id: "matter", name: "Matter", category: "device", status: "catalog" },
+  { id: "homeAssistant", name: "Home Assistant", category: "device", status: "catalog" },
+  { id: "smartThings", name: "Samsung SmartThings", category: "device", status: "catalog" },
+  { id: "sonos", name: "Sonos", category: "device", status: "catalog" },
+] as const;
+
+export type IntegrationGuideItem = (typeof INTEGRATION_GUIDE_ITEMS)[number];

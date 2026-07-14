@@ -1,0 +1,110 @@
+---
+import "../../styles/lumos-tokens.css";
+import "../../styles/umbrella-chrome.css";
+import I18nInit from "../../components/I18nInit.astro";
+import WeLockSiteFooter from "../../components/WeLockSiteFooter.astro";
+import WeLockSiteNav from "../../components/WeLockSiteNav.astro";
+import { INTEGRATION_GUIDE_ITEMS } from "../../data/integration-guide";
+import umbrellaTr from "../../i18n/messages/umbrella/tr";
+
+const DOC_URL =
+  "https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/integration-benefits-security-guide.md";
+const guide = umbrellaTr.integrationGuide;
+const entryText = guide.entries as Record<string, { benefit: string; security: string }>;
+const categoryText = guide.categories as Record<string, string>;
+const statusText = guide.statuses as Record<string, string>;
+---
+
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title data-i18n="umbrella.integrationGuide.metaTitle">Lumos entegrasyon kolaylığı ve güvenliği — We Lock AI</title>
+    <meta
+      name="description"
+      content="Lumos'un 24 popüler uygulama ve cihaz bağlantısında sağladığı kolaylıklar, güvenlik sınırları ve gerçek destek durumları."
+      data-i18n-content="umbrella.integrationGuide.metaDescription"
+    />
+    <link rel="canonical" href="https://welockai.com/integrations/guide" />
+    <link rel="icon" href="/lumos-tree-logo.svg" type="image/svg+xml" sizes="any" />
+    <meta name="theme-color" content="#0a0e14" />
+  </head>
+  <body class="umbrella-page">
+    <WeLockSiteNav active="integrations" />
+    <main class="umbrella-main">
+      <p class="umbrella-eyebrow" data-i18n="umbrella.integrationGuide.eyebrow">WE LOCK AI · LUMOS BAĞLANTILARI</p>
+      <h1 data-i18n="umbrella.integrationGuide.title">Bağlantı kolaylığı, görünür güvenlik</h1>
+      <p class="umbrella-lead" data-i18n="umbrella.integrationGuide.lead">
+        Lumos, uygulama ve cihaz bağlamını tek yerde toplarken her bağlantının yetkisini ve gerçek durumunu görünür tutar.
+      </p>
+
+      <div class="umbrella-callout">
+        <strong data-i18n="umbrella.integrationGuide.honestyTitle">Katalog kaydı, canlı bağlantı değildir.</strong>
+        <p data-i18n="umbrella.integrationGuide.honestyBody">
+          Her kartta sağlanan kolaylık, güvenlik sınırı ve mevcut destek seviyesi ayrı gösterilir.
+        </p>
+      </div>
+
+      <section aria-labelledby="guide-principles-title">
+        <h2 id="guide-principles-title" data-i18n="umbrella.integrationGuide.principlesTitle">Ortak ilkeler</h2>
+        <div class="integration-principles">
+          <article>
+            <h3 data-i18n="umbrella.integrationGuide.principleDetectTitle">Gerçek sinyal</h3>
+            <p data-i18n="umbrella.integrationGuide.principleDetectBody">Hesap veya cihaz yalnızca doğrulanabilir keşif sinyaliyle “tespit edildi” sayılır.</p>
+          </article>
+          <article>
+            <h3 data-i18n="umbrella.integrationGuide.principleConsentTitle">En az yetki</h3>
+            <p data-i18n="umbrella.integrationGuide.principleConsentBody">Bağlantı teklifi sınırsız yetki değildir; yazma, silme ve cihaz kontrolü ayrı onay ister.</p>
+          </article>
+          <article>
+            <h3 data-i18n="umbrella.integrationGuide.principleCostTitle">En düşük maliyetli resmî yol</h3>
+            <p data-i18n="umbrella.integrationGuide.principleCostBody">Yerel ve mevcut hesap yolu önce; ücretli seçenek yalnızca canlı fiyat doğrulamasıyla önerilir.</p>
+          </article>
+          <article>
+            <h3 data-i18n="umbrella.integrationGuide.principleSecretTitle">Secret ve ödeme ayrımı</h3>
+            <p data-i18n="umbrella.integrationGuide.principleSecretBody">Token, parola ve kart UI'da tutulmaz; entegrasyon onayı ödeme yetkisine dönüşmez.</p>
+          </article>
+        </div>
+      </section>
+
+      <section aria-labelledby="guide-connections-title">
+        <h2 id="guide-connections-title" data-i18n="umbrella.integrationGuide.connectionsTitle">24 uygulama ve cihaz</h2>
+        <p data-i18n="umbrella.integrationGuide.connectionsLead">
+          Farklı alanlardan popüler bağlantılar; kolaylık, güvenlik ve dürüst durum bilgisiyle.
+        </p>
+        <div class="integration-guide-grid">
+          {
+            INTEGRATION_GUIDE_ITEMS.map((item) => (
+              <article class="integration-guide-card">
+                <div class="integration-guide-card__meta">
+                  <span data-i18n={`umbrella.integrationGuide.categories.${item.category}`}>
+                    {categoryText[item.category]}
+                  </span>
+                  <span data-i18n={`umbrella.integrationGuide.statuses.${item.status}`}>
+                    {statusText[item.status]}
+                  </span>
+                </div>
+                <h3>{item.name}</h3>
+                <h4 data-i18n="umbrella.integrationGuide.benefitLabel">Lumos kolaylığı</h4>
+                <p data-i18n={`umbrella.integrationGuide.entries.${item.id}.benefit`}>
+                  {entryText[item.id].benefit}
+                </p>
+                <h4 data-i18n="umbrella.integrationGuide.securityLabel">Güvenlik sınırı</h4>
+                <p data-i18n={`umbrella.integrationGuide.entries.${item.id}.security`}>
+                  {entryText[item.id].security}
+                </p>
+              </article>
+            ))
+          }
+        </div>
+      </section>
+
+      <div class="umbrella-actions">
+        <a class="umbrella-btn umbrella-btn--primary" href={DOC_URL} target="_blank" rel="noopener noreferrer" data-i18n="umbrella.integrationGuide.githubCta">GitHub rehberini aç</a>
+        <a class="umbrella-btn" href="/integrations" data-i18n="umbrella.integrationGuide.hubCta">Entegrasyon merkezine dön</a>
+      </div>
+    </main>
+    <WeLockSiteFooter />
+    <I18nInit />
+  </body>
+</html>

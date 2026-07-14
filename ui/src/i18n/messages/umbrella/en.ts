@@ -120,9 +120,9 @@ const umbrellaEn: typeof umbrellaTr = {
     urlsTitle: "Production URLs",
     ulTitle: "Universal Links (AASA)",
     ulBody:
-      "Apple App Site Association is served at the paths below. Update Team ID and bundle ID before shipping a signed Mac app.",
+      "Apple App Site Association is served at the paths below and matches the signed Lumos app target.",
     ulPaths: "Supported paths: /, /panel, /panel/*",
-    bundleNote: "Placeholder bundle: com.welockai.lumos — Team ID still marked XXXXXXXXXX.",
+    bundleNote: "Bundle: com.welockai.Lumos · Team ID: VQH79C5QU7",
     panelCta: "Open panel",
     homeCta: "Home",
   },
@@ -184,8 +184,153 @@ const umbrellaEn: typeof umbrellaTr = {
     macCta: "Mac links",
     cyberCta: "Cyber",
     panelCta: "Panel",
+    guideCta: "Ease and security across 24 connections",
+    guideBody: "Benefits, security boundary, and honest status for each app and device",
+    guideBadge: "Detailed guide",
+    guideGithubCta: "Ease and security guide (GitHub)",
     docsCta: "Technical overview (repo)",
     homeCta: "Home",
+  },
+  integrationGuide: {
+    metaTitle: "Lumos integration ease and security — We Lock AI",
+    metaDescription:
+      "Benefits, security boundaries, and honest support status for 24 popular Lumos app and device connections.",
+    eyebrow: "WE LOCK AI · LUMOS CONNECTIONS",
+    title: "Connection ease, visible security",
+    lead:
+      "Lumos brings app and device context together while keeping each connection's authority and real status visible.",
+    honestyTitle: "A catalog entry is not a live connection.",
+    honestyBody: "Every card separates the benefit, security boundary, and current support level.",
+    principlesTitle: "Shared principles",
+    principleDetectTitle: "Real signals",
+    principleDetectBody: "An account or device is only called detected when a verifiable discovery signal exists.",
+    principleConsentTitle: "Least privilege",
+    principleConsentBody: "A connection offer is not unlimited authority; writes, deletes, and device control need separate approval.",
+    principleCostTitle: "Lowest-cost official path",
+    principleCostBody: "Local and existing-account paths come first; paid options require a live price check.",
+    principleSecretTitle: "Secrets and payments stay separate",
+    principleSecretBody: "Tokens, passwords, and cards are not stored in the UI; integration consent is not payment authority.",
+    connectionsTitle: "24 apps and devices",
+    connectionsLead: "Popular connections across different fields, with benefits, security, and honest status.",
+    benefitLabel: "Lumos benefit",
+    securityLabel: "Security boundary",
+    githubCta: "Open the GitHub guide",
+    hubCta: "Back to integration hub",
+    categories: {
+      development: "Development",
+      productivity: "Productivity",
+      communication: "Communication",
+      regional: "Regional",
+      browser: "Browser",
+      ai: "AI",
+      device: "Device",
+    },
+    statuses: {
+      foundation: "Public foundation",
+      limited: "Narrow v1",
+      planned: "Planned",
+      connectionCheck: "Connection check",
+      catalog: "Catalog",
+      localDiscovery: "Local discovery",
+    },
+    entries: {
+      github: {
+        benefit: "Summarizes issues, PRs, and CI status in one task context to reduce tracking and review work.",
+        security: "Comments and labels need approval; merge is high risk, and delete is off by default.",
+      },
+      gmail: {
+        benefit: "Prioritizes the inbox, summarizes threads, and prepares safe reply drafts.",
+        security: "Even reads need an explicit grant; Narrow v1 does not send or delete; credentials stay out of the UI.",
+      },
+      googleCalendar: {
+        benefit: "Shows good times, conflicts, and meeting-prep needs in one place.",
+        security: "Create and move need approval; cancellation and attendee changes need separate approval.",
+      },
+      googleDrive: {
+        benefit: "Brings file search, metadata, and permitted summaries into task context.",
+        security: "No full archive; share and delete need separate grants; the source file remains authoritative.",
+      },
+      slack: {
+        benefit: "Turns topics, mentions, and decisions into useful work context.",
+        security: "Channel scope is limited; sends need approval, and delete is off by default.",
+      },
+      zoom: {
+        benefit: "Combines meetings, agendas, attendees, and permitted recording summaries with tasks.",
+        security: "OAuth scope stays narrow; recordings and transcripts are sensitive; starting a meeting needs approval.",
+      },
+      whatsapp: {
+        benefit: "Brings permitted customer conversations into work context and speeds up reply preparation.",
+        security: "Uses Meta Cloud API checks; sends need approval; tokens and personal chats remain protected.",
+      },
+      telegram: {
+        benefit: "Connects bot and channel notifications to task and alert flows.",
+        security: "Bot tokens stay server-side; verification is read-only; bots cannot start a conversation without the user.",
+      },
+      line: {
+        benefit: "Brings official-account conversations in Japan, Taiwan, and Thailand into Lumos workflows.",
+        security: "Webhook signatures and scoped channel tokens are required; broadcasts have separate permission and quota checks.",
+      },
+      kakaoTalk: {
+        benefit: "Unifies service-scoped communication and consented message flows in South Korea.",
+        security: "Kakao Login consent is preserved; friend messages remain service-scoped and need extra permission.",
+      },
+      microsoftTeams: {
+        benefit: "Combines message, meeting, and calendar context with work tasks.",
+        security: "Graph scopes stay narrow; tenant policy is visible; sending needs separate approval.",
+      },
+      notion: {
+        benefit: "Turns page and database context into task summaries.",
+        security: "Only shared workspaces and pages are read; edits need approval and delete stays off.",
+      },
+      jira: {
+        benefit: "Collects issue, sprint, and project status in one priority list.",
+        security: "Project scope is grant-limited; status changes and issue creation need approval.",
+      },
+      linear: {
+        benefit: "Moves issue and project context into a fast, focused task flow.",
+        security: "Issue writes and status changes need separate approval; delete is off by default.",
+      },
+      chrome: {
+        benefit: "Adds open-tab and user-selected page context to a Lumos task.",
+        security: "Cookies, passwords, and local storage are not read; form submission needs separate approval.",
+      },
+      safari: {
+        benefit: "Shares selected web context with Lumos across Apple devices.",
+        security: "Site permission is visible; only selected pages are used; Keychain is not directly accessed.",
+      },
+      openai: {
+        benefit: "Combines text, vision, and tool use in the Lumos task and decision layer.",
+        security: "API keys stay server-side; tool calls pass policy gates; sensitive data is minimized.",
+      },
+      gemini: {
+        benefit: "Adds a multimodal analysis option aligned with the Google ecosystem.",
+        security: "Model and data scope stay visible; Workspace data needs separate OAuth permission.",
+      },
+      deepseek: {
+        benefit: "Adds regional model diversity and an alternative reasoning option.",
+        security: "Provider and data region are shown; sensitive tasks can be routed elsewhere by policy.",
+      },
+      bluetoothAudio: {
+        benefit: "Recognizes headphones, speakers, and microphones through Classic Audio or LE Audio capabilities.",
+        security: "Only the OS bridge is used; no silent pairing; microphone permission remains visible.",
+      },
+      matter: {
+        benefit: "Shows multi-brand smart-home devices through a shared discovery and state model.",
+        security: "The local fabric is preserved; lock, door, and climate actions need per-action approval.",
+      },
+      homeAssistant: {
+        benefit: "Unifies local devices and automations while reducing cloud dependence.",
+        security: "Uses a scoped local token and entity list; read and control permissions stay separate.",
+      },
+      smartThings: {
+        benefit: "Connects SmartThings devices to routine and state flows.",
+        security: "OAuth scope is limited by location and device; locks, cameras, and alarms are high risk.",
+      },
+      sonos: {
+        benefit: "Combines rooms, speaker groups, and playback status with Lumos media tasks.",
+        security: "Home scope stays narrow; playback and grouping follow policy; microphone content is not collected.",
+      },
+    },
   },
   github: {
     metaTitle: "GitHub integration — We Lock AI",
