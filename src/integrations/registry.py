@@ -29,6 +29,8 @@ def register_default_integrations() -> IntegrationRegistry:
     from integrations.providers.china_provider import register_china_provider
     from integrations.providers.communications_provider import register_communications_provider
     from integrations.providers.device_provider import register_device_provider
+    from integrations.providers.global_catalog_provider import register_global_catalog_provider
+    from integrations.providers.integration_onboarding_provider import register_integration_onboarding_provider
     from integrations.providers.mail_provider import register_mail_provider
     from integrations.providers.openai_provider import register_openai_provider
     from integrations.providers.quantum_provider import register_quantum_provider
@@ -37,6 +39,8 @@ def register_default_integrations() -> IntegrationRegistry:
     register_openai_provider(registry.register)
     register_web_search_provider(registry.register)
     register_device_provider(registry.register)
+    register_global_catalog_provider(registry.register)
+    register_integration_onboarding_provider(registry.register)
     register_mail_provider(registry.register)
     register_quantum_provider(registry.register)
     register_communications_provider(registry.register)

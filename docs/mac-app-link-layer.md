@@ -22,6 +22,6 @@ Served at:
 - `https://welockai.com/.well-known/apple-app-site-association`
 - `https://welockai.com/apple-app-site-association` (legacy path)
 
-**SHIP BLOCKER (intentional placeholder — Alpha):** replace `XXXXXXXXXX` in `appID` with your [Apple Team ID](https://developer.apple.com/help/account/manage-your-team/locate-your-team-id/) and confirm the bundle identifier (`com.welockai.lumos` placeholder) matches the app target. Intentional placeholder for Alpha — no fake Team ID in repo.
+The signed app contract is configured as Team ID `VQH79C5QU7` with bundle identifier `com.welockai.Lumos`. The app target must include the associated domain `applinks:welockai.com`.
 
 Associated domains entitlement example: `applinks:welockai.com`

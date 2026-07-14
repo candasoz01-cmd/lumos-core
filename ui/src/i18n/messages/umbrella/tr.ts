@@ -118,10 +118,9 @@ const umbrellaTr = {
     urlsTitle: "Üretim URL'leri",
     ulTitle: "Universal Links (AASA)",
     ulBody:
-      "Apple App Site Association dosyası aşağıdaki yollarda sunulur. İmzalı Mac uygulaması yayınlanmadan önce Team ID ve bundle kimliği güncellenmelidir.",
+      "Apple App Site Association dosyası aşağıdaki yollarda sunulur ve imzalı Lumos uygulama hedefiyle eşleşir.",
     ulPaths: "Desteklenen yollar: /, /panel, /panel/*",
-    bundleNote:
-      "Placeholder bundle: com.welockai.lumos — Team ID henüz XXXXXXXXXX olarak işaretli.",
+    bundleNote: "Bundle: com.welockai.Lumos · Team ID: VQH79C5QU7",
     panelCta: "Paneli aç",
     homeCta: "Ana sayfa",
   },
@@ -183,8 +182,162 @@ const umbrellaTr = {
     macCta: "Mac bağlantıları",
     cyberCta: "Cyber",
     panelCta: "Panel",
+    guideCta: "24 bağlantıda kolaylık ve güvenlik",
+    guideBody: "Uygulama ve cihaz bazında yarar, güvenlik sınırı ve gerçek durum",
+    guideBadge: "Ayrıntılı rehber",
+    guideGithubCta: "Kolaylık ve güvenlik rehberi (GitHub)",
     docsCta: "Teknik özet (repo)",
     homeCta: "Ana sayfa",
+  },
+  integrationGuide: {
+    metaTitle: "Lumos entegrasyon kolaylığı ve güvenliği — We Lock AI",
+    metaDescription:
+      "Lumos'un 24 popüler uygulama ve cihaz bağlantısında sağladığı kolaylıklar, güvenlik sınırları ve gerçek destek durumları.",
+    eyebrow: "WE LOCK AI · LUMOS BAĞLANTILARI",
+    title: "Bağlantı kolaylığı, görünür güvenlik",
+    lead:
+      "Lumos, uygulama ve cihaz bağlamını tek yerde toplarken her bağlantının yetkisini ve gerçek durumunu görünür tutar.",
+    honestyTitle: "Katalog kaydı, canlı bağlantı değildir.",
+    honestyBody: "Her kartta sağlanan kolaylık, güvenlik sınırı ve mevcut destek seviyesi ayrı gösterilir.",
+    beforeAfterTitle: "Önce / sonra",
+    beforeTitle: "Önce",
+    beforeBody: "Hesap, izin ve senkron durumu farklı ekranlara dağılır. Sekmeler arasında küçük bir dünya turu başlar.",
+    afterTitle: "Lumos ile sonra",
+    afterBody: "Bağlantı, kapsam ve sonraki adım tek yerde görünür. Lumos özetler; dış etkili adımlarda sizden önce düğmeye basmaz.",
+    readyTitle: "Bugün gerçekten hazır",
+    readyBody: "WhatsApp ve Telegram bağlantı kontrolü yapabilir. GitHub ve OpenAI public temel; Gmail Dar v1, Bluetooth ise yerel keşif düzeyindedir.",
+    nextTitle: "Sırada",
+    nextBody: "Planned ve catalog araçlarda canlı OAuth, webhook veya senkron adaptörü ayrıca tamamlanır ve test edilir.",
+    principlesTitle: "Ortak ilkeler",
+    principleDetectTitle: "Gerçek sinyal",
+    principleDetectBody: "Hesap veya cihaz yalnızca doğrulanabilir keşif sinyaliyle “tespit edildi” sayılır.",
+    principleConsentTitle: "En az yetki",
+    principleConsentBody: "Bağlantı teklifi sınırsız yetki değildir; yazma, silme ve cihaz kontrolü ayrı onay ister.",
+    principleCostTitle: "En düşük maliyetli resmî yol",
+    principleCostBody: "Yerel ve mevcut hesap yolu önce; ücretli seçenek yalnızca canlı fiyat doğrulamasıyla önerilir.",
+    principleSecretTitle: "Secret ve ödeme ayrımı",
+    principleSecretBody: "Token, parola ve kart UI'da tutulmaz; entegrasyon onayı ödeme yetkisine dönüşmez.",
+    connectionsTitle: "24 uygulama ve cihaz",
+    connectionsLead: "Farklı alanlardan popüler bağlantılar; kolaylık, güvenlik ve dürüst durum bilgisiyle.",
+    benefitLabel: "Lumos kolaylığı",
+    securityLabel: "Güvenlik sınırı",
+    githubCta: "GitHub rehberini aç",
+    hubCta: "Entegrasyon merkezine dön",
+    categories: {
+      development: "Geliştirme",
+      productivity: "Verimlilik",
+      communication: "İletişim",
+      regional: "Bölgesel",
+      browser: "Tarayıcı",
+      ai: "Yapay zekâ",
+      device: "Cihaz",
+    },
+    statuses: {
+      foundation: "Public foundation",
+      limited: "Dar v1",
+      planned: "Planlandı",
+      connectionCheck: "Bağlantı kontrolü",
+      catalog: "Katalog",
+      localDiscovery: "Yerel keşif",
+    },
+    entries: {
+      github: {
+        benefit: "Issue, PR ve CI durumunu tek görev bağlamında özetleyerek takip ve inceleme yükünü azaltır.",
+        security: "Yorum ve label onaylıdır; merge yüksek risk kapısında, silme varsayılan kapalıdır.",
+      },
+      gmail: {
+        benefit: "Gelen kutusunu önceliklendirir, thread özetler ve güvenli yanıt taslağı hazırlar.",
+        security: "Okuma bile açık grant ister; Dar v1 göndermez veya silmez; credential UI'da görünmez.",
+      },
+      googleCalendar: {
+        benefit: "Uygun zamanları, çakışmaları ve toplantı hazırlığını tek yerde gösterir.",
+        security: "Oluşturma ve taşıma onaylıdır; iptal ile katılımcı değişikliği ayrı onay ister.",
+      },
+      googleDrive: {
+        benefit: "Dosya arama, metadata ve izinli özetleri görev bağlamına getirir.",
+        security: "Tam arşiv yoktur; paylaşma ve silme ayrı grant ister; kaynak dosya otorite olarak kalır.",
+      },
+      slack: {
+        benefit: "Konu, mention ve kararları özetleyip iş bağlamına dönüştürür.",
+        security: "Kanal kapsamı sınırlıdır; mesaj gönderme onaylı, silme varsayılan kapalıdır.",
+      },
+      zoom: {
+        benefit: "Toplantı, gündem, katılımcı ve izinli kayıt özetini görevlerle birleştirir.",
+        security: "OAuth kapsamı dar tutulur; kayıt ve transcript hassastır; toplantı başlatma ayrı onay ister.",
+      },
+      whatsapp: {
+        benefit: "İzinli müşteri konuşmalarını iş bağlamına taşır ve yanıt hazırlığını hızlandırır.",
+        security: "Meta Cloud API kontrolü kullanılır; gönderme onaylıdır; token ve kişisel sohbetler korunur.",
+      },
+      telegram: {
+        benefit: "Bot ve kanal bildirimlerini görev ve uyarı akışına bağlar.",
+        security: "Bot token sunucu tarafındadır; salt okunur doğrulama yapılır; kullanıcı başlatmadan konuşma yoktur.",
+      },
+      line: {
+        benefit: "Japonya, Tayvan ve Tayland'daki resmî hesap konuşmalarını Lumos akışına taşır.",
+        security: "Webhook imzası ve dar kanal tokenı gerekir; broadcast ayrı izin ve kota kontrolündedir.",
+      },
+      kakaoTalk: {
+        benefit: "Güney Kore'deki servis içi iletişimi ve kullanıcı onaylı mesaj akışlarını birleştirir.",
+        security: "Kakao Login consent korunur; arkadaş mesajları servis içi sınır ve ek izin gerektirir.",
+      },
+      microsoftTeams: {
+        benefit: "Mesaj, toplantı ve takvim bağlamını iş görevleriyle birleştirir.",
+        security: "Graph scope'ları dar tutulur; tenant politikası görünürdür; gönderme ayrı onay ister.",
+      },
+      notion: {
+        benefit: "Sayfa ve veritabanı bağlamını görev özetine dönüştürür.",
+        security: "Yalnızca paylaşılan workspace ve sayfalar okunur; değişiklik onaylı, silme kapalıdır.",
+      },
+      jira: {
+        benefit: "Issue, sprint ve proje durumlarını tek öncelik listesinde toplar.",
+        security: "Proje kapsamı grant ile sınırlıdır; durum değişimi ve issue oluşturma onaylıdır.",
+      },
+      linear: {
+        benefit: "Issue ve proje bağlamını hızlı, sade görev akışına taşır.",
+        security: "Issue yazma ve durum değişimi ayrı onay ister; silme varsayılan kapalıdır.",
+      },
+      chrome: {
+        benefit: "Açık sekme ve seçili sayfa bağlamını Lumos görevine aktarır.",
+        security: "Cookie, parola ve local storage okunmaz; form gönderimi ayrı onay ister.",
+      },
+      safari: {
+        benefit: "Apple cihazlarında seçilen web bağlamını Lumos ile paylaşır.",
+        security: "Site izni görünürdür; yalnızca seçilmiş sayfa kullanılır; Keychain'e doğrudan erişilmez.",
+      },
+      openai: {
+        benefit: "Metin, görsel ve araç kullanımını Lumos görev ve karar katmanında birleştirir.",
+        security: "API anahtarı sunucu tarafındadır; araç çağrıları politika kapısından geçer; veri minimize edilir.",
+      },
+      gemini: {
+        benefit: "Google ekosistemiyle uyumlu çok modlu analiz seçeneği sunar.",
+        security: "Model ve veri kapsamı görünürdür; Workspace verisi ayrı OAuth izni ister.",
+      },
+      deepseek: {
+        benefit: "Bölgesel model çeşitliliği ve alternatif akıl yürütme seçeneği sağlar.",
+        security: "Sağlayıcı ve veri bölgesi gösterilir; hassas görevler politikaya göre başka yola yönlendirilir.",
+      },
+      bluetoothAudio: {
+        benefit: "Kulaklık, hoparlör ve mikrofonu Classic Audio veya LE Audio yetenekleriyle tanır.",
+        security: "Yalnızca işletim sistemi köprüsü kullanılır; sessiz eşleştirme yoktur; mikrofon izni görünürdür.",
+      },
+      matter: {
+        benefit: "Farklı marka akıllı ev cihazlarını ortak keşif ve durum modelinde gösterir.",
+        security: "Yerel fabric korunur; kilit, kapı ve ısı gibi etkili komutlar işlem onayı ister.",
+      },
+      homeAssistant: {
+        benefit: "Yerel cihaz ve otomasyonları tek bağlamda toplar; bulut bağımlılığını azaltır.",
+        security: "Dar yerel token ve entity kapsamı kullanılır; okuma ve kontrol yetkileri ayrılır.",
+      },
+      smartThings: {
+        benefit: "SmartThings cihazlarını rutin ve durum akışına bağlar.",
+        security: "OAuth kapsamı location ve cihazla sınırlıdır; kilit, kamera ve alarm yüksek risktir.",
+      },
+      sonos: {
+        benefit: "Oda, hoparlör grubu ve oynatma durumunu Lumos medya görevleriyle birleştirir.",
+        security: "Ev kapsamı dar tutulur; oynatma ve grup değişimi politikalıdır; mikrofon içeriği alınmaz.",
+      },
+    },
   },
   github: {
     metaTitle: "GitHub entegrasyonu — We Lock AI",
