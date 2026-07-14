@@ -54,6 +54,40 @@ UI örneği: `⭐ 4.3` + `(27 oy)` → `ratingAvg` + `ratingCount`.
 
 Server: http://localhost:3000 (veya `PORT`).
 
+## Lark persistent connection
+
+Lark bot ayrı bir süreç olarak çalışır; webhook, Redirect URL veya public callback gerektirmez.
+App Secret repoya yazılmaz.
+
+Gerekli Lark uygulama ayarları:
+
+- Bot capability: etkin
+- Event subscription: **Persistent Connection**
+- Event: `im.message.receive_v1`
+- Tenant scopes:
+  - `im:message.p2p_msg:readonly`
+  - `im:message.group_at_msg:readonly`
+  - `im:message:send_as_bot`
+- Redirect URLs: OAuth eklenene kadar boş
+
+Çalıştırma:
+
+```bash
+export LARK_APP_ID="cli_..."
+export LARK_APP_SECRET="..."
+export OPENAI_API_KEY="..."
+export OPENAI_MODEL="gpt-5.6-terra"
+npm run lark:start
+```
+
+Hazır bir Lumos sohbet uç noktası varsa `OPENAI_API_KEY` yerine
+`LUMOS_CHAT_URL="http://127.0.0.1:3000/chat"` kullanılabilir. İki değer birlikte
+verilirse öncelik Lumos sohbet uç noktasındadır. Anahtarlar repoya veya loglara
+yazılmaz.
+
+IP allowlist isteğe bağlıdır. Etkinleştirilirse Lark API çağrılarının yapıldığı Lumos
+sunucusunun sabit dış çıkış IP'si eklenir; Cloudflare proxy IP'leri eklenmez.
+
 ## API smoke test
 
 Repo kökünden; **önce** `backend` içinde `npm start` (veya `PORT` ile). İsteğe bağlı: `BASE_URL=http://127.0.0.1:3000 ./test_api.sh`.

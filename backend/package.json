@@ -7,11 +7,14 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",
+    "lark:start": "node lark-bot.js",
+    "test:lark": "node --test larkBotCore.test.js",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:studio": "prisma studio"
   },
   "dependencies": {
+    "@larksuiteoapi/node-sdk": "^1.71.0",
     "@prisma/client": "^6.0.0",
     "dotenv": "^17.4.2",
     "express": "^4.21.0",
@@ -20,5 +23,10 @@
   },
   "devDependencies": {
     "prisma": "^6.0.0"
+  },
+  "overrides": {
+    "@larksuiteoapi/node-sdk": {
+      "axios": "^1.18.1"
+    }
   }
 }
