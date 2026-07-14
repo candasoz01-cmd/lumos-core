@@ -10,6 +10,23 @@ Lumos'un hedefi kullanıcıyı her servis için tekrar tekrar menü, izin ve hes
 
 Lumos hiçbir zaman bölgeye bakıp hesap varmış gibi davranmaz. Bölge yalnızca LINE, KakaoTalk, NAVER WORKS, VK veya Yandex gibi yerel önemi yüksek seçenekleri **öneri** olarak öne çıkarır. “Tespit edildi” ifadesi yalnızca işletim sistemi, kurulu uygulama, tarayıcı uzantısı, OAuth oturumu, Bluetooth taraması veya yerel ağ keşfi gibi gerçek bir sinyal varsa kullanılır.
 
+## Önce / sonra
+
+### Önce
+
+Hangi hesabın bağlı olduğu, neyin senkronlanacağı ve hangi iznin gerektiği farklı ekranlara dağılır. Kullanıcı sekmeler arasında küçük bir dünya turuna çıkar; yine de “Şimdi bu gerçekten bağlı mı?” sorusu ortada kalabilir.
+
+### Lumos ile sonra
+
+Bağlantı durumu, kullanılacak kapsam ve sonraki adım tek yerde görünür. Lumos önce okur ve özetler; yorum, mesaj, paylaşım, merge veya silme gibi dış etkili adımlarda ayrıca onay ister. Kısacası sekme turizmi azalır, düğmelere sizden önce basılmaz.
+
+### Bugün gerçekten hazır olanlar
+
+- **Bağlantı kontrolü hazır:** WhatsApp ve Telegram, gerekli sunucu kimlik bilgileri verildiğinde salt okunur kimlik kontrolü yapabilir.
+- **Public temel hazır:** GitHub ve OpenAI kayıtlı foundation yüzeylerine sahiptir; bu, sitede canlı OAuth veya otomatik senkron başladığı anlamına gelmez.
+- **Dar veya yerel yol hazır:** Gmail Dar v1 kontrollü okuma stub'ı, Bluetooth Audio ise yerel keşif modeli sunar.
+- **Sırada:** `planned` ve `catalog` etiketli araçlar için gerçek OAuth, webhook veya senkron adaptörü ayrıca tamamlanır ve test edilir.
+
 ## Ortak güvenlik modeli
 
 1. **Sinyal destekli keşif:** Hesap veya cihaz varlığı tahmin edilmez; kaynağı belli bir keşif sinyali gerekir.

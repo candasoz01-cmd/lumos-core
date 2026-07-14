@@ -28,6 +28,11 @@ def test_site_and_github_guide_explain_benefit_security_and_honest_status():
     assert "benefitLabel" in page
     assert "securityLabel" in page
     assert "Katalog kaydı, canlı bağlantı değildir" in page
+    assert "beforeAfterTitle" in page
+    assert "readyBody" in page
+    assert "## Önce / sonra" in doc
+    assert "Bugün gerçekten hazır olanlar" in doc
+    assert "sekme turizmi azalır" in doc
     assert "## Ortak güvenlik modeli" in doc
     assert "## 24 popüler uygulama ve cihaz bağlantısı" in doc
     assert "Entegrasyon onboarding onayı ödeme yetkisine dönüşmez" in doc
