@@ -20,8 +20,8 @@ const mailRows: MatrixRow[] = [
     nameKey: "umbrella.integrations.rowGmailName",
     noteKey: "umbrella.integrations.rowGmailNote",
     read: true,
-    write: true,
-    delete: true,
+    write: false,
+    delete: false,
   },
 ];
 ---
@@ -59,7 +59,7 @@ const mailRows: MatrixRow[] = [
       <h2 data-i18n="umbrella.mail.writesTitle">Ne yazar?</h2>
       <p data-i18n="umbrella.mail.writeBody">Dar v1 kapsamında gönderme, taslak ve yanıt yok; OSS stub yalnızca read-only.</p>
       <h2 data-i18n="umbrella.mail.deletesTitle">Silme</h2>
-      <p data-i18n="umbrella.mail.deleteBody">Silme ve arşiv varsayılan kapalıdır; ayrı grant gerekir.</p>
+      <p data-i18n="umbrella.mail.deleteBody">Dar v1 kapsamında silme ve arşiv yoktur.</p>
       <div class="umbrella-callout">
         <p>
           <strong data-i18n="umbrella.mail.statusTitle">Durum</strong> —

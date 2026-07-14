@@ -244,7 +244,7 @@ const umbrellaTr = {
     writesTitle: "Ne yazar?",
     writeBody: "Dar v1 kapsamında gönderme, taslak ve yanıt yok; OSS stub yalnızca read-only.",
     deletesTitle: "Silme",
-    deleteBody: "Silme ve arşiv varsayılan kapalıdır; ayrı grant gerekir.",
+    deleteBody: "Dar v1 kapsamında silme ve arşiv yoktur.",
     statusTitle: "Durum",
     statusBody: "Gmail OAuth bu sitede başlatılmaz. OSS mail stub (`src/integrations/mail/`) mevcut; üretim connector WeLockAI private katmanda.",
     hubCta: "Entegrasyon merkezi",

@@ -260,3 +260,19 @@ def test_umbrella_integration_routes_exist() -> None:
     )
     nav = (_REPO_ROOT / "ui" / "src" / "components" / "WeLockSiteNav.astro").read_text(encoding="utf-8")
     assert 'href="/integrations"' in nav
+
+
+def test_gmail_dar_v1_matrix_is_read_only() -> None:
+    """Gmail must not advertise write or delete capabilities in Dar v1."""
+    routes = (
+        _REPO_ROOT / "ui" / "src" / "pages" / "integrations.astro",
+        _REPO_ROOT / "ui" / "src" / "pages" / "integrations" / "google.astro",
+        _REPO_ROOT / "ui" / "src" / "pages" / "integrations" / "mail.astro",
+    )
+    gmail_row = re.compile(
+        r'id: "gmail".*?read: true,\s*write: false,\s*delete: false,',
+        re.DOTALL,
+    )
+
+    for path in routes:
+        assert gmail_row.search(path.read_text(encoding="utf-8")), path

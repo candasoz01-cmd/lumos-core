@@ -245,7 +245,7 @@ const umbrellaEn: typeof umbrellaTr = {
     writesTitle: "What it writes",
     writeBody: "Dar v1 has no send, draft, or reply; OSS stub is read-only only.",
     deletesTitle: "Delete",
-    deleteBody: "Delete and archive are off by default; separate grant required.",
+    deleteBody: "Dar v1 does not support delete or archive.",
     statusTitle: "Status",
     statusBody: "Gmail OAuth is not started on this site. OSS mail stub (`src/integrations/mail/`) exists; production connector is in the WeLockAI private layer.",
     hubCta: "Integration hub",
