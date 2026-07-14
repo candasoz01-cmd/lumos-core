@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 820" role="img" aria-labelledby="title desc">
+  <title id="title">Lumos logo studies</title>
+  <desc id="desc">Three draft Lumos logo directions for review: Gate, Living Core, and Wordmark Lockup.</desc>
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff2d2"/>
+      <stop offset="0.5" stop-color="#d4a574"/>
+      <stop offset="1" stop-color="#9f7440"/>
+    </linearGradient>
+    <linearGradient id="teal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7dded1"/>
+      <stop offset="1" stop-color="#1b9f93"/>
+    </linearGradient>
+    <radialGradient id="softGlow" cx="0.5" cy="0.45" r="0.56">
+      <stop offset="0" stop-color="#f6ead0" stop-opacity="0.22"/>
+      <stop offset="0.54" stop-color="#2dd4bf" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#2dd4bf" stop-opacity="0"/>
+    </radialGradient>
+    <style>
+      .bg { fill: #0a0e14; }
+      .panel { fill: #111923; stroke: rgba(212, 165, 116, 0.22); stroke-width: 1; }
+      .title { fill: #edf2f7; font: 680 42px Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .subtitle { fill: #aeb8c7; font: 400 18px Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .label { fill: #edf2f7; font: 650 22px Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .note { fill: #9ca8b8; font: 400 15px Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .word { fill: #edf2f7; font: 680 58px Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: 7px; }
+      .tag { fill: #d4a574; font: 500 16px Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: 3px; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1280" height="820"/>
+  <circle cx="1060" cy="130" r="290" fill="#2dd4bf" opacity="0.05"/>
+  <circle cx="170" cy="760" r="260" fill="#d4a574" opacity="0.045"/>
+
+  <text class="title" x="72" y="86">Lumos logo calismalari</text>
+  <text class="subtitle" x="72" y="122">Taslak: karar degil. Dis yuzeyde yalniz Lumos kimligi kullanilir.</text>
+
+  <g transform="translate(72 176)">
+    <rect class="panel" width="348" height="532" rx="28"/>
+    <circle cx="174" cy="176" r="124" fill="url(#softGlow)"/>
+    <g transform="translate(64 58) scale(0.43)">
+      <path d="M256 76C176 76 112 140 112 220v116c0 52 42 94 94 94h100c52 0 94-42 94-94V220C400 140 336 76 256 76z" fill="#121a24" stroke="url(#gold)" stroke-width="18" stroke-linejoin="round"/>
+      <path d="M174 325V221c0-46 36-83 82-83s82 37 82 83v104c0 20-16 36-36 36h-92c-20 0-36-16-36-36z" fill="none" stroke="url(#teal)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" opacity="0.72"/>
+      <path d="M256 171v156" fill="none" stroke="#f8ead0" stroke-width="18" stroke-linecap="round"/>
+      <circle cx="256" cy="354" r="16" fill="#f8ead0"/>
+    </g>
+    <text class="label" x="38" y="366">01 Gate mark</text>
+    <text class="note" x="38" y="402">En guclu aday: uygulama ikonu, favicon,</text>
+    <text class="note" x="38" y="426">panel girisi ve guvenli gecit hissi icin.</text>
+    <text class="note" x="38" y="468">Risk: portal sembolu fazla teknik okunursa</text>
+    <text class="note" x="38" y="492">wordmark ile yumusatilmali.</text>
+  </g>
+
+  <g transform="translate(466 176)">
+    <rect class="panel" width="348" height="532" rx="28"/>
+    <circle cx="174" cy="176" r="124" fill="url(#softGlow)"/>
+    <g transform="translate(64 58) scale(0.43)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="256" cy="256" r="158" stroke="#d4a574" stroke-width="12" opacity="0.28"/>
+      <path d="M256 356V206" stroke="url(#gold)" stroke-width="22"/>
+      <path d="M256 238C226 214 202 188 184 156" stroke="url(#gold)" stroke-width="18"/>
+      <path d="M256 238C286 214 310 188 328 156" stroke="url(#gold)" stroke-width="18"/>
+      <path d="M256 276C221 266 188 246 158 216" stroke="url(#teal)" stroke-width="14" opacity="0.82"/>
+      <path d="M256 276C291 266 324 246 354 216" stroke="url(#teal)" stroke-width="14" opacity="0.82"/>
+      <path d="M256 330C222 350 196 372 178 398" stroke="url(#gold)" stroke-width="14" opacity="0.88"/>
+      <path d="M256 330C290 350 316 372 334 398" stroke="url(#gold)" stroke-width="14" opacity="0.88"/>
+      <circle cx="256" cy="188" r="18" fill="#f8ead0" stroke="none"/>
+      <circle cx="184" cy="156" r="13" fill="#d4a574" stroke="none"/>
+      <circle cx="328" cy="156" r="13" fill="#d4a574" stroke="none"/>
+      <circle cx="158" cy="216" r="11" fill="#5eead4" stroke="none"/>
+      <circle cx="354" cy="216" r="11" fill="#5eead4" stroke="none"/>
+    </g>
+    <text class="label" x="38" y="366">02 Living core</text>
+    <text class="note" x="38" y="402">Mevcut agac/isik isaretinin daha sade,</text>
+    <text class="note" x="38" y="426">daha sicak ve daha premium yorumu.</text>
+    <text class="note" x="38" y="468">Risk: kucuk boyutta dal detaylari azaltilmali.</text>
+  </g>
+
+  <g transform="translate(860 176)">
+    <rect class="panel" width="348" height="532" rx="28"/>
+    <circle cx="174" cy="176" r="124" fill="url(#softGlow)"/>
+    <g transform="translate(86 76) scale(0.56)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M156 62c-52 0-94 42-94 94v52c0 34 28 62 62 62h64c34 0 62-28 62-62v-52c0-52-42-94-94-94z" fill="#121a24" stroke="url(#gold)" stroke-width="12"/>
+      <path d="M103 202v-44c0-30 23-54 53-54s53 24 53 54v44" stroke="url(#teal)" stroke-width="10" opacity="0.72"/>
+      <path d="M156 124v88" stroke="#f8ead0" stroke-width="12"/>
+      <circle cx="156" cy="228" r="10" fill="#f8ead0" stroke="none"/>
+    </g>
+    <text class="word" x="48" y="338">LUMOS</text>
+    <text class="tag" x="52" y="374">work companion</text>
+    <text class="label" x="38" y="426">03 Wordmark lockup</text>
+    <text class="note" x="38" y="462">Landing, README ve sosyal vitrin icin.</text>
+    <text class="note" x="38" y="486">Risk: final font/claim metni ayrica secilmeli.</text>
+  </g>
+</svg>

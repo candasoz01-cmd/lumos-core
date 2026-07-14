@@ -171,19 +171,49 @@ Lumos'un tek hamlede her seyi yapan bir sistem degil, kontrollu gelisen bir pane
 
 Kaynak notlari toplanirken dikkat: kitabin kullaniciya donuk ana metninde Lumos dis yuz olarak kalmali; ic teknik katman adlari gerekiyorsa kaynak notu veya mimari dipnot seviyesinde tutulmali.
 
-## 6. Henuz belirsiz kalan sorular
+## 6. Netlesen yayin kararlari ve askida kalanlar
 
-- Kitap bir public manifesto mu, ic urun kitabi mi, yoksa gelistirici rehberiyle karisik bir kurucu metin mi olacak?
-- Birincil hedef kitle kim: son kullanici, gelistirici, yatirimci/partner, kurumsal musteri, yoksa ekip ici karar okuyucusu mu?
-- Dil yalnizca Turkce mi olacak, yoksa Turkce ana metin + Ingilizce ozet/terim sozlugu mu hazirlanacak?
-- WeLockAI ticari omurgasi kitapta ne kadar gorunur olacak; hangi bolumlerde yalnizca arka plan siniri olarak kalacak? → **Referans yayininda cozuldu (Belge §10):** WeLockAI yayınci/on planda; kitap icinde Lumos urun sesi agirlikta, WeLockAI ticari omurga **Kitap §14** ve dipnotlarda.
-- Teknik detay derinligi ne olacak: kod/pipeline anlatimi mi, yoksa urun ilkeleri ve ornek senaryolar mi agirlikta olacak?
-- Quantum Readiness bolumu arastirma disiplini olarak mi kalacak, yoksa ayri bir gelecek vizyonu bolumu mu olacak?
-- Gizlilik ve audit iddialari icin hukuki/uyum kontrolu gerekecek mi?
-- Bolumlerde gercek kullanici senaryolari, panel ekranlari veya vaka calismalari kullanilacak mi?
-- Kitap kisa bir "founder letter + ilkeler" metni mi, yoksa uzun soluklu bolumlu kitap mi olacak?
-- Son baslik "Lumos: Kontrol Kullanicida" olarak mi kalacak, yoksa daha sicak/insani bir calisma adina mi evrilecek?
-- **Lansman / yayın tarihi:** Belge §10 «Lansman türleri» — Life ve ticari için **TBD**; referans web/PDF Belge §11 sonrası; dış kamu AI haberleri Lumos takvimi değildir.
+### Netlesen kararlar
+
+- **Uc belge stratejisi:** Public manifesto, ic kurucu kitap ve gelistirici rehberi tek kitapta karistirilmaz; Lumos Manifestosu, Kurucu Kitabi ve Gelistirici El Kitabi ayri belgeler olarak ele alinir.
+- **Hedef kitle onceligi:** 1) kurucu ve ekip ici karar okuyucusu, 2) gelistirici, 3) partner / kurum, 4) son kullanici, 5) yatirimci. Ilk kitap marka satmak icin degil, Lumos'un ruhunu ve kararlarini korumak icin yazilir.
+- **Cok dilli yayin ilkesi:** Ana kaynak Turkce kurucu metin olabilir; ilk tamamlayici katman Ingilizce ozet ve terim sozlugu olur. Uzun vadede mumkun olan her dil icin okuma surumu hedeflenir. Cok dilli surumler ayri ana metin gibi degil, tek kaynak belgeden turetilen ve Belge §11 kontrollerinden gecen dogrulanmis ceviriler olarak hazirlanir.
+- **WeLockAI gorunurlugu:** Referans yayininda WeLockAI yayinlayici / kurumsal catidir; kitap icinde Lumos urun sesi agirlikta kalir, WeLockAI ticari omurga **Kitap §14** ve dipnotlarda anlatilir.
+- **Teknik derinlik:** Kitap kod, API, pipeline, CI/CD veya implementasyon rehberi anlatmaz. Odak: neden boyle tasarlandi, kullanici ne kazanir, guven modeli neden boyledir. Teknik uygulama Gelistirici El Kitabi'na gider.
+- **Quantum konumu:** Quantum Readiness ayri bir "Gelecege Hazirlik" vizyon bolumu olarak ele alinir. Bugunun ozelligi gibi sunulmaz; "bugun ne yapiyoruz?" ve "yarin neye haziriz?" ayrimi korunur.
+- **Hukuki / guvenlik dili:** Mutlak guvenlik iddialari kullanilmaz. "Asla kirilmaz" gibi ifadeler yerine "Lumos guvenligi katmanli tasarlar" ve "kullanici kontrolunu temel ilke kabul eder" gibi dogrulanabilir ifadeler kullanilir.
+- **Gorsel tarihce:** Ilk baskida uygun olan gercek ekran goruntuleri ve erken panel gorunumu kullanilabilir; bunlar "ilk Lumos boyle gorunuyordu" tarihcesi olarak etiketlenir.
+- **Kitap yapisi:** Uzun soluklu kitap hedeflenir; giriste 5-10 sayfalik "Kurucudan Mektup" bolumu yer alir, sonra ana bolumler baslar.
+
+### Askida kalan kararlar
+
+- **Son baslik:** "Lumos: Kontrol Kullanicida" calisma adi olarak korunur. Nihai baslik, Manifesto / Kurucu Kitabi ayrimi ve ilk bastan sona okuma tamamlandiktan sonra kilitlenir.
+- **Lansman / yayin tarihi:** Belge §10 «Lansman turleri» — Life ve ticari icin **TBD**; referans web/PDF Belge §11 sonrasi. Dis kamu AI haberleri Lumos takvimi degildir.
+- **Gorsel kaynak paketi:** Ilk ekran goruntuleri kullanilacaksa her gorsel icin tarih, kaynak yuzey, surum/dal ve "tarihce amacli" etiketi toplanir.
+- **Ayri belge iskeletleri:** Lumos Manifestosu, Kurucu Kitabi ve Gelistirici El Kitabi icin ayri dosya/indeks iskeletleri sonraki dokumantasyon adiminda acilabilir; bu dosya simdilik karar haritasi olarak kalir.
+
+### Uc belge stratejisi
+
+Lumos yayin mimarisi tek kitaba sikistirilmez. Manifesto zamansiz marka ve ilke metni; Kurucu Kitabi kurumun DNA'si; Gelistirici El Kitabi ise surekli degisen teknik rehberdir.
+
+| Belge | Gorunurluk | Amac | Degisim temposu |
+|-------|------------|------|-----------------|
+| **Lumos Manifestosu** | Herkese acik | Neden Lumos var, guven felsefesi, insan odakli yaklasim, gizlilik, kontrol, onay ve gelecek vizyonu | Dusuk; zamansiz kalmasi hedeflenir |
+| **Kurucu Kitabi** | Ic kullanim / sinirli paylasim | Karar sistemi, WeLockAI-Lumos ayrimi, yonetim modeli, yetki katmanlari, OD'ler, kurum kulturu ve karar gerekceleri | Orta; kontrollu ve kayitli degisir |
+| **Gelistirici El Kitabi** | Teknik ekip / katilimci | Repo yapisi, kod standartlari, connector mimarisi, vault, quantum layer, API, test ve CI/CD | Yuksek; sprintlerle guncellenir |
+
+**Karistirma notu:** Manifesto, teknik sprint degisikliklerinden etkilenmemelidir. Gelistirici rehberi degistiginde manifesto yeniden yayinlanmak zorunda kalmaz. Kurucu Kitabi ise iki dunya arasindaki kurumsal hafiza ve karar omurgasi olarak kalir.
+
+### Stratejik kapsam kararları
+
+| Karar alani | Ilke |
+|-------------|------|
+| **Hedef kitle** | Once kurucu ve ekip ici karar okuyucusu; sonra gelistirici, partner/kurum, son kullanici ve yatirimci |
+| **Teknik derinlik** | Kitap "nasil kodlanir?" degil, "neden boyle tasarlandi?" metnidir |
+| **Quantum** | "Gelecege Hazirlik" basligi altinda; bugunun urun vaadi gibi sunulmaz |
+| **Hukuki / guvenlik dili** | Mutlak iddia yok; katmanli guvenlik ve kullanici kontrolu gibi dogrulanabilir ilkeler var |
+| **Gorsel tarihce** | Ilk baskida gercek ekran goruntuleri tarihce amaciyla kullanilabilir |
+| **Kitap boyu** | Kisa manifesto degil; "Kurucudan Mektup" ile baslayan uzun soluklu kurucu kitap |
 
 ## 7. Kurucu hikâye notları
 
@@ -339,7 +369,7 @@ Ayrıntılar aşağıda alt başlıklarda; burada tekrarlanmaz.
 | **Belge §8** | Pusula; şeffaflık ve kanıt önceliği |
 | **Belge §12** | Life **ürün** lansmanı; tarih TBD — §10 yalnızca tür haritası |
 | **Belge §13–§14** | Vizyon; referans yayını kapsam dışı |
-| **Belge §6** | WeLockAI görünürlüğü sorusu → §10 marka tablosu |
+| **Belge §6** | WeLockAI görünürlüğü kararı → §10 marka tablosu |
 | **Kitap §14** | Ticari omurga kitap içeriği; §10 yayıncı yüzeyi |
 | **Üst yayın notu** | GitHub tek kaynak; §11 öncesi okuma sürümü sunulmaz |
 
@@ -451,7 +481,7 @@ Her yeni belge, referans veya mimari karar — web okuma sürümü, PDF/ePub vey
 | PDF / ePub | Evet |
 | Referans Kütüphanesi indeksinde «yayımlandı» | Evet |
 
-**Referans:** `docs/lumos-karar-sozlesmesi.md` (cevap disiplini, emin değil); Belge §6 belirsiz sorular (açık işaretleme).
+**Referans:** `docs/lumos-karar-sozlesmesi.md` (cevap disiplini, emin değil); Belge §6 netleşen kararlar ve askıda kalanlar (açık işaretleme).
 
 ## 12. Lumos Life — Erişilebilirlik Platformu ve Toplumsal Katkı
 

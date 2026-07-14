@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 320" role="img" aria-labelledby="title desc">
+  <title id="title">Lumos wordmark lockup study</title>
+  <desc id="desc">Draft Lumos wordmark lockup with a warm gate symbol and quiet companion wording.</desc>
+  <defs>
+    <linearGradient id="gold" x1="86" y1="50" x2="220" y2="260" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff2d2"/>
+      <stop offset="0.5" stop-color="#d4a574"/>
+      <stop offset="1" stop-color="#9f7440"/>
+    </linearGradient>
+    <linearGradient id="teal" x1="82" y1="74" x2="230" y2="230" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7dded1"/>
+      <stop offset="1" stop-color="#1b9f93"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="156" cy="158" r="96" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f6ead0" stop-opacity="0.25"/>
+      <stop offset="0.52" stop-color="#2dd4bf" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#2dd4bf" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="960" height="320" rx="48" fill="#0a0e14"/>
+  <circle cx="156" cy="158" r="108" fill="url(#glow)"/>
+
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path
+      d="M156 62c-52 0-94 42-94 94v52c0 34 28 62 62 62h64c34 0 62-28 62-62v-52c0-52-42-94-94-94z"
+      fill="#121a24"
+      stroke="url(#gold)"
+      stroke-width="12"
+    />
+    <path
+      d="M103 202v-44c0-30 23-54 53-54s53 24 53 54v44"
+      stroke="url(#teal)"
+      stroke-width="10"
+      opacity="0.72"
+    />
+    <path d="M156 124v88" stroke="#f8ead0" stroke-width="12"/>
+    <circle cx="156" cy="228" r="10" fill="#f8ead0" stroke="none"/>
+  </g>
+
+  <g fill="#edf2f7" font-family="Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+    <text x="302" y="178" font-size="86" font-weight="680" letter-spacing="10">LUMOS</text>
+    <text x="307" y="222" font-size="23" font-weight="500" letter-spacing="5" fill="#d4a574">work companion</text>
+  </g>
+</svg>

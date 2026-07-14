@@ -41,6 +41,42 @@
 
 Bu cümle teknik bir gerekliliktir: Lumos'un uzun vadeli güvenilirliği kişisel güvene değil; kayıtlı kurallara, denetlenebilir yetki katmanlarına ve açık sınırlara dayanır. İyi niyet varsayımı tasarım gerekçesi olamaz.
 
+## Dağıtık Lumos Güven Ağı — bölgesel düğümler (uzun vadeli hedef)
+
+> **Duvar'da yazan şaşmaz. Her şey kontrol altında, gerektiğinde izlenebilir ve doğrudan hedefe odaklıdır.**
+
+Lumos uzun vadede tek bir ana sunucuya bağlı kalmayan; dünya genelinde birbirini doğrulayan ve gerektiğinde birbirinin görevini devralabilen bölgesel düğümlerden oluşan dağıtık bir güven ağı olarak değerlendirilebilir. Bu madde **vizyon tohumu**dur; bugün uygulanmış mimari, altyapı taahhüdü veya yer seçimi kararı değildir.
+
+### Ağ ilkeleri
+
+- **Tek hata noktası yok:** Bir düğüm devre dışı kaldığında uygun başka bir düğüm, aynı yetki sınırları içinde görevi devralabilir.
+- **Karşılıklı doğrulama:** Lumos düğümü, karşı tarafın Lumos ağına ait olduğunu ad, IP veya alan adıyla varsaymaz; iki taraf da kriptografik kimlik, güncel güven durumu ve görev kapsamını kanıtlar.
+- **Duvar her düğümün önünde:** Model, connector, bölgesel merkez veya başka bir Lumos düğümü Duvar'ı atlayarak dış etki üretemez. Ağ içi trafik otomatik güven sayılmaz.
+- **Görev odaklı en az yetki:** Kimlik yalnız doğrulama talep etme hakkı verir; yetki her bağlantı ve görev için yeniden değerlendirilir.
+- **Kontrollü devralma:** Failover yetki genişletmez, onayı devretmez ve yarım işlemi sessizce tekrar başlatmaz.
+- **Dağıtık anahtar güvenliği:** Hassas anahtarlar tek ülkede, tek düğümde veya tek kurumun sınırsız kontrolünde tutulmaz; parçalama, rotasyon, iptal ve kurtarma modeli ayrıca tasarlanır.
+- **Veri egemenliği:** Veri yerleşimi, işleme ve aktarım kuralları bölgesel hukukla uyumlu olmalıdır. Bir görevin başka bölgeye devri, verinin de otomatik taşınacağı anlamına gelmez.
+- **Bağımsız denetim:** Düğümler birbirini doğrulayabilir ve raporlayabilir; tek düğüm ağın mutlak hakemi olmaz. Kritik kararlar kayıtlı kanıt ve gerektiğinde insan onayı gerektirir.
+- **Fail-closed:** Kimlik, güven durumu, görev amacı veya bölgesel izin belirsizse işlem durur; sessiz veya geniş yetkili fallback yapılmaz.
+- **İzlenebilir iş, gözetlenmeyen insan:** Duvar kişiyi izlemez; bağlantının kaynağını, hedefini, yetkisini ve işlem sonucunu denetlenebilir biçimde izler. Gereksiz içerik ve kişisel veri kayda alınmaz.
+
+### Kıbrıs düğümü — koşullu aday rol
+
+Kıbrıs; Avrupa, Orta Doğu ve Afrika'nın kesişimindeki coğrafi konumu, bölgesel erişim ihtimali ve veri hatlarına yakınlığı nedeniyle ağın önemli koordinasyon düğümlerinden biri olmaya aday olabilir. Bu rol ancak gerekli **hukuki, teknik, güvenlik, altyapı ve siyasi değerlendirmeler** olumlu sonuçlanırsa ele alınır.
+
+Kıbrıs düğümü merkezi rollerden birini üstlenebilse bile ağ ona bağımlı tasarlanmaz. Amaç tek merkezli kontrolü Kıbrıs'a taşımak değil; hiçbir ülkeye, şirkete veya düğüme tek başına bağımlı olmayan çok merkezli bir güven ağı kurmaktır.
+
+### Çekmeceden çıkış için ek kanıtlar
+
+Bu vizyon somut mimari karara dönüşmeden önce en az şu başlıklar kanıtlanmalıdır:
+
+1. Bölgesel veri yerleşimi ve sınır ötesi aktarım hukuku.
+2. Düğüm kimliği, karşılıklı doğrulama, sertifika iptali ve anahtar rotasyonu.
+3. Split-brain, quorum, failover ve yarım işlem tekrar güvenliği.
+4. Düğüm ele geçirilmesi, karantina ve güvenli geri kazanım senaryoları.
+5. Denetim kayıtlarının bütünlüğü ve gereksiz kişisel veri toplamama güvencesi.
+6. Tek devlet, şirket, sağlayıcı veya model hakimiyetini önleyen yönetişim modeli.
+
 ---
 
 ## Mezuniyet kontrol listesi (çekmeceden çıkarken)

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Lumos living core mark study</title>
+  <desc id="desc">Draft Lumos logo mark: a simplified living core branching from a warm light source.</desc>
+  <defs>
+    <linearGradient id="gold" x1="158" y1="80" x2="358" y2="438" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff3d6"/>
+      <stop offset="0.46" stop-color="#d7aa75"/>
+      <stop offset="1" stop-color="#a17642"/>
+    </linearGradient>
+    <linearGradient id="teal" x1="146" y1="108" x2="366" y2="384" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#74dfd2"/>
+      <stop offset="1" stop-color="#209e94"/>
+    </linearGradient>
+    <radialGradient id="coreGlow" cx="256" cy="268" r="178" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f8dfad" stop-opacity="0.25"/>
+      <stop offset="0.5" stop-color="#2dd4bf" stop-opacity="0.11"/>
+      <stop offset="1" stop-color="#2dd4bf" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="96" fill="#0a0e14"/>
+  <circle cx="256" cy="268" r="178" fill="url(#coreGlow)"/>
+
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="256" cy="256" r="158" stroke="#d4a574" stroke-width="12" opacity="0.28"/>
+    <path d="M256 356V206" stroke="url(#gold)" stroke-width="22"/>
+    <path d="M256 238C226 214 202 188 184 156" stroke="url(#gold)" stroke-width="18"/>
+    <path d="M256 238C286 214 310 188 328 156" stroke="url(#gold)" stroke-width="18"/>
+    <path d="M256 276C221 266 188 246 158 216" stroke="url(#teal)" stroke-width="14" opacity="0.82"/>
+    <path d="M256 276C291 266 324 246 354 216" stroke="url(#teal)" stroke-width="14" opacity="0.82"/>
+    <path d="M256 330C222 350 196 372 178 398" stroke="url(#gold)" stroke-width="14" opacity="0.88"/>
+    <path d="M256 330C290 350 316 372 334 398" stroke="url(#gold)" stroke-width="14" opacity="0.88"/>
+  </g>
+
+  <circle cx="256" cy="188" r="18" fill="#f8ead0"/>
+  <circle cx="184" cy="156" r="13" fill="#d4a574"/>
+  <circle cx="328" cy="156" r="13" fill="#d4a574"/>
+  <circle cx="158" cy="216" r="11" fill="#5eead4"/>
+  <circle cx="354" cy="216" r="11" fill="#5eead4"/>
+</svg>
