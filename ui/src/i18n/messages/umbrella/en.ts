@@ -15,6 +15,7 @@ const umbrellaEn: typeof umbrellaTr = {
     accessibility: "Accessible",
     lab: "Lab",
     education: "Education",
+    privacy: "Privacy",
   },
   accessibility: {
     eyebrow: "LUMOS · ACCESSIBLE", title: "Accessible use",
@@ -80,6 +81,49 @@ const umbrellaEn: typeof umbrellaTr = {
   footer: {
     tagline: "We Lock AI · welockai.com — Lumos product family",
     rights: "Open-source core on GitHub; official services use controlled access.",
+  },
+  privacy: {
+    metaTitle: "Privacy Notice — We Lock AI · Lumos",
+    metaDescription:
+      "Privacy notice explaining data use, connection permissions, and user controls across We Lock AI and Lumos surfaces.",
+    eyebrow: "WE LOCK AI · LUMOS",
+    title: "Privacy notice",
+    lead:
+      "This notice explains the boundaries for data processing across welockai.com and Lumos connection flows.",
+    updated: "Last updated: July 15, 2026",
+    scopeTitle: "Scope",
+    scopeBody:
+      "This notice covers welockai.com, Lumos web and desktop surfaces, and third-party connections opened at the user's request. Integrations that are not yet live do not provide data access.",
+    dataTitle: "What data may be processed?",
+    data1: "Tasks, files, and approval details provided directly by the user.",
+    data2:
+      "When an account is connected, basic account identity, connection status, and only the content or metadata allowed by approved scopes.",
+    data3: "Limited technical records required for security, troubleshooting, and auditability.",
+    googleTitle: "Google and YouTube data",
+    googleBody:
+      "When a Google or YouTube connection is enabled, Lumos requests only the scopes selected by the user and displayed on Google's consent screen. Data is used to perform the requested task and show connection status; it is not used for advertising, sale, or general-purpose model training.",
+    useTitle: "Why we use data",
+    use1: "Perform the task requested by the user and show the result in Lumos.",
+    use2: "Manage connection, permission, and explicit approval states.",
+    use3: "Prevent misuse, troubleshoot problems, and investigate security incidents.",
+    sharingTitle: "Sharing",
+    sharingBody:
+      "Data is not sold. It may be shared in a limited way with relevant platforms and service providers only when required to provide the requested operation, comply with law, or protect the system.",
+    retentionTitle: "Retention and deletion",
+    retentionBody:
+      "Connection tokens are retained until disconnected or expired; technical records are retained only for the limited period needed for security and operations. A deletion and support channel will be published here before live OAuth access is launched.",
+    controlsTitle: "User controls",
+    controls1: "You can disconnect integrations in Lumos and revoke access in the relevant provider's account settings.",
+    controls2: "Google access can also be removed from the Google Account connections page.",
+    controls3: "Externally visible sharing and publishing actions require explicit approval.",
+    securityTitle: "Security",
+    securityBody:
+      "Core security principles include narrow scopes, keeping secrets out of the user interface, and requiring approval for external effects. No online system can guarantee absolute security.",
+    changesTitle: "Changes",
+    changesBody:
+      "This notice may be updated as the product and connection scope evolve. Material changes will update the date and the relevant product surfaces.",
+    googleControlsCta: "Manage Google access",
+    integrationsCta: "Connection ecosystem",
   },
   slack: {
     metaTitle: "Lumos in Slack — We Lock AI",

@@ -13,6 +13,7 @@ const umbrellaTr = {
     accessibility: "Engelsiz",
     lab: "Lab",
     education: "Eğitim",
+    privacy: "Gizlilik",
   },
   accessibility: {
     eyebrow: "LUMOS · ENGELSİZ", title: "Engelsiz kullanım",
@@ -78,6 +79,49 @@ const umbrellaTr = {
   footer: {
     tagline: "We Lock AI · welockai.com — Lumos ürün ailesi",
     rights: "Açık kaynak çekirdek GitHub'da; resmi servisler kontrollü erişimle.",
+  },
+  privacy: {
+    metaTitle: "Gizlilik Bildirimi — We Lock AI · Lumos",
+    metaDescription:
+      "We Lock AI ve Lumos yüzeylerinde verilerin hangi amaçlarla işlendiğini, bağlantı izinlerini ve kullanıcı denetimlerini açıklayan gizlilik bildirimi.",
+    eyebrow: "WE LOCK AI · LUMOS",
+    title: "Gizlilik bildirimi",
+    lead:
+      "Bu bildirim, welockai.com ve Lumos bağlantı akışlarında verilerin hangi sınırlar içinde işlendiğini açıklar.",
+    updated: "Son güncelleme: 15 Temmuz 2026",
+    scopeTitle: "Kapsam",
+    scopeBody:
+      "Bu bildirim welockai.com, Lumos web ve masaüstü yüzeyleri ile kullanıcının isteğiyle açılan üçüncü taraf bağlantıları kapsar. Henüz canlı olmayan entegrasyonlar veri erişimi sağlamaz.",
+    dataTitle: "Hangi veriler işlenebilir?",
+    data1: "Kullanıcının doğrudan verdiği görev, dosya ve onay bilgileri.",
+    data2:
+      "Bir hesap bağlandığında temel hesap kimliği, bağlantı durumu ve yalnızca onaylanan kapsamların izin verdiği içerik veya metadata.",
+    data3: "Güvenlik, hata ayıklama ve denetlenebilirlik için gerekli sınırlı teknik kayıtlar.",
+    googleTitle: "Google ve YouTube verileri",
+    googleBody:
+      "Google veya YouTube bağlantısı açıldığında Lumos yalnızca kullanıcı tarafından seçilen ve Google onay ekranında gösterilen kapsamları ister. Veriler, istenen görevi yerine getirmek ve bağlantı durumunu göstermek için kullanılır; reklam hedefleme, satış veya genel amaçlı model eğitimi için kullanılmaz.",
+    useTitle: "Verileri neden kullanırız?",
+    use1: "Kullanıcının istediği görevi yerine getirmek ve sonucu Lumos'ta göstermek.",
+    use2: "Bağlantı, izin ve açık onay durumlarını yönetmek.",
+    use3: "Kötüye kullanımı önlemek, sorunları gidermek ve güvenlik olaylarını incelemek.",
+    sharingTitle: "Paylaşım",
+    sharingBody:
+      "Veriler satılmaz. Yalnızca kullanıcının istediği işlemi sunmak, yasal yükümlülükleri karşılamak veya sistemi korumak için gerekli hizmet sağlayıcılarla ve ilgili platformlarla sınırlı biçimde paylaşılabilir.",
+    retentionTitle: "Saklama ve silme",
+    retentionBody:
+      "Bağlantı belirteçleri bağlantı kesilene veya geçerliliğini yitirene kadar; teknik kayıtlar ise güvenlik ve işletim için gerekli olan sınırlı süre boyunca tutulur. Canlı OAuth kullanıma açılmadan önce silme ve destek kanalı bu sayfada yayımlanacaktır.",
+    controlsTitle: "Kullanıcı denetimi",
+    controls1: "Bağlantıları Lumos içinden kapatabilir ve ilgili sağlayıcının hesap ayarlarından erişimi geri alabilirsiniz.",
+    controls2: "Google erişimi Google Hesabı bağlantılar sayfasından ayrıca kaldırılabilir.",
+    controls3: "Dış etkili paylaşım ve yayınlama işlemleri açık onay olmadan yapılmaz.",
+    securityTitle: "Güvenlik",
+    securityBody:
+      "Erişim kapsamını dar tutmak, sırları kullanıcı arayüzüne taşımamak ve dış etkili işlemleri onaya bağlamak temel güvenlik ilkeleridir. Hiçbir çevrimiçi sistem mutlak güvenlik garantisi vermez.",
+    changesTitle: "Değişiklikler",
+    changesBody:
+      "Bu bildirim ürün ve bağlantı kapsamı değiştikçe güncellenebilir. Önemli değişikliklerde güncelleme tarihi ve ilgili yüzeyler yenilenir.",
+    googleControlsCta: "Google erişimini yönet",
+    integrationsCta: "Bağlantı ekosistemi",
   },
   slack: {
     metaTitle: "Lumos in Slack — We Lock AI",
