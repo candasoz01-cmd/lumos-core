@@ -15834,7 +15834,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             method: "OPTIONS",
             cache: "no-store",
             mode: "cors",
-            credentials: "omit",
+            credentials: "same-origin",
           });
           if (r.ok || r.status === 204) {
             return panelDebugText(
