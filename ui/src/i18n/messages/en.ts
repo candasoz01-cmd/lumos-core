@@ -6,15 +6,15 @@ import umbrella from "./umbrella/en";
 
 const en: MessageTree = {
   meta: {
-    landingTitle: "Lumos — AI Control Layer",
+    landingTitle: "We Lock AI — Human-Centered AI Ecosystem",
     description:
-      "Lumos is a prototype AI control layer that unifies voice, media, tasks, files, and multi-panel flows in one place.",
-    ogTitle: "Lumos — AI Control Layer",
+      "We Lock AI is a human-centered AI ecosystem. Lumos is its end-user product for chat, tasks, files, and connected work in one place.",
+    ogTitle: "We Lock AI — Human-Centered AI Ecosystem",
     ogDescription:
-      "Lumos is a prototype AI control layer that unifies voice, media, tasks, files, and multi-panel flows in one place.",
-    twitterTitle: "Lumos — AI Control Layer",
+      "We Lock AI is a human-centered AI ecosystem. Lumos is its end-user product for chat, tasks, files, and connected work in one place.",
+    twitterTitle: "We Lock AI — Human-Centered AI Ecosystem",
     twitterDescription:
-      "Lumos is a prototype AI control layer that unifies voice, media, tasks, files, and multi-panel flows in one place.",
+      "We Lock AI is a human-centered AI ecosystem. Lumos is its end-user product for chat, tasks, files, and connected work in one place.",
   },
   lang: {
     switchLabel: "Language",
@@ -29,11 +29,11 @@ const en: MessageTree = {
     developer: "Developer",
     install: "Setup",
     connect: "Connect",
-    panel: "Panel",
+    panel: "Open Lumos",
     github: "GitHub",
-    brandAria: "Lumos — top of page",
-    brandTitle: "Lumos",
-    brandSub: "WE LOCK AI",
+    brandAria: "We Lock AI — top of page",
+    brandTitle: "We Lock AI",
+    brandSub: "AI ECOSYSTEM",
   },
   hero: {
     eyebrow: "WE LOCK AI · LUMOS",

@@ -32,6 +32,21 @@ def test_catalog_includes_zoom_and_regional_platforms():
     assert {"yandex_browser", "uc_browser", "qq_browser"} <= ids
 
 
+def test_catalog_includes_approved_regional_social_video_package():
+    result = _catalog()
+    ids = {item["provider_id"] for item in result.data["providers"]}
+
+    assert {"facebook", "instagram", "x", "tiktok", "linkedin", "youtube"} <= ids
+    assert {"wechat", "douyin", "bilibili", "xiaohongshu", "weibo"} <= ids
+    assert {"whatsapp", "sharechat", "telegram"} <= ids
+    assert {"vk", "ok_ru", "rutube"} <= ids
+
+    youtube = next(item for item in result.data["providers"] if item["provider_id"] == "youtube")
+    assert youtube["connection_kind"] == "google_oauth"
+    assert youtube["support_level"] == "oauth_skeleton"
+    assert youtube["connected"] is False
+
+
 def test_japan_filter_keeps_global_and_japan_specific_options():
     result = _catalog(region="JP")
     ids = {item["provider_id"] for item in result.data["providers"]}

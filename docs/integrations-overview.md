@@ -42,6 +42,27 @@ Belgeler: [`lumos-quantum-layer-architecture.md`](analysis/lumos-quantum-layer-a
 
 ---
 
+## Approved social / media package
+
+| Region | Catalog slots |
+|--------|---------------|
+| Global | Meta (Facebook, Instagram), X, TikTok, LinkedIn, YouTube |
+| China | WeChat, Douyin, Bilibili, RED / Xiaohongshu, Weibo |
+| India | WhatsApp, Instagram, YouTube, ShareChat, Telegram |
+| Russia | VK, Telegram, OK, Rutube |
+
+All slots use the same locked workflow: **connect → draft → explicit approval → publish**. A catalog entry is not a live connection. Until an official account authorization succeeds, the user-facing state is `identity_required`; the UI does not leave an ambiguous “connection pending” state.
+
+The OSS YouTube bridge is a non-executing Google OAuth skeleton in `src/integrations/providers/youtube_provider.py`. It reads configuration presence only from the environment:
+
+- `LUMOS_GOOGLE_OAUTH_CLIENT_ID`
+- `LUMOS_GOOGLE_OAUTH_CLIENT_SECRET`
+- `LUMOS_GOOGLE_OAUTH_REDIRECT_URI`
+
+No credential value is returned by the provider or stored in the repository. Publish remains disabled even after approval until the controlled-access connector is implemented.
+
+---
+
 ## Permission model (charter summary)
 
 Symbols: **Read ✅** · **Write 🔒 (approval)** · **Delete 🚫 (special permission)**
@@ -105,6 +126,8 @@ See [`docs/memory/public-repo-boundary.md`](memory/public-repo-boundary.md).
 ## Code references (OSS)
 
 - Registry: `src/integrations/registry.py`
+- Social/video catalog: `src/integrations/providers/global_catalog_provider.py`
+- YouTube Google OAuth skeleton: `src/integrations/providers/youtube_provider.py`
 - Quantum Layer catalog stub: `src/integrations/quantum_registry.py`, `src/integrations/providers/quantum_provider.py`
 - Mail stub: `src/integrations/mail/`
 - External permissions canon: `docs/memory/external-integrations-permissions.md`

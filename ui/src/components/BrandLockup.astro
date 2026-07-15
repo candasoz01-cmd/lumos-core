@@ -1,0 +1,161 @@
+---
+interface Props {
+  id: string;
+  name: string;
+  compact?: boolean;
+  linked?: boolean;
+}
+
+const { id, name, compact = false, linked = true } = Astro.props;
+
+const brands: Record<string, { logo: string; href: string; wide?: boolean }> = {
+  github: { logo: "https://api.iconify.design/logos/github-icon.svg", href: "https://github.com/" },
+  gmail: { logo: "https://api.iconify.design/logos/google-gmail.svg", href: "https://workspace.google.com/products/gmail/" },
+  googleCalendar: { logo: "https://api.iconify.design/logos/google-calendar.svg", href: "https://workspace.google.com/products/calendar/" },
+  googleDrive: { logo: "https://api.iconify.design/logos/google-drive.svg", href: "https://workspace.google.com/products/drive/" },
+  google: { logo: "https://api.iconify.design/logos/google-icon.svg", href: "https://about.google/" },
+  slack: { logo: "https://api.iconify.design/logos/slack-icon.svg", href: "https://slack.com/" },
+  zoom: { logo: "https://api.iconify.design/logos/zoom-icon.svg", href: "https://www.zoom.com/" },
+  whatsapp: { logo: "https://api.iconify.design/logos/whatsapp-icon.svg", href: "https://www.whatsapp.com/" },
+  telegram: { logo: "https://api.iconify.design/logos/telegram.svg", href: "https://telegram.org/" },
+  line: { logo: "https://cdn.simpleicons.org/line", href: "https://line.me/" },
+  kakaoTalk: { logo: "https://cdn.simpleicons.org/kakaotalk", href: "https://www.kakaocorp.com/page/service/service/KakaoTalk" },
+  microsoftTeams: { logo: "https://api.iconify.design/logos/microsoft-teams.svg", href: "https://www.microsoft.com/microsoft-teams/" },
+  notion: { logo: "https://api.iconify.design/logos/notion-icon.svg", href: "https://www.notion.com/" },
+  jira: { logo: "https://api.iconify.design/logos/jira.svg", href: "https://www.atlassian.com/software/jira" },
+  linear: { logo: "https://api.iconify.design/logos/linear-icon.svg", href: "https://linear.app/" },
+  chrome: { logo: "https://api.iconify.design/logos/chrome.svg", href: "https://www.google.com/chrome/" },
+  safari: { logo: "https://api.iconify.design/logos/safari.svg", href: "https://www.apple.com/safari/" },
+  apple: { logo: "https://cdn.simpleicons.org/apple/FFFFFF", href: "https://www.apple.com/" },
+  openai: {
+    logo: "https://images.ctfassets.net/kftzwdyauwt9/2fkAIT3PbTRytKTBx9cx8o/229bc28cb338565fe735d8935abc801f/OpenAI_Wordmark_Gif.gif?fm=png&q=90&w=1200",
+    href: "https://openai.com/",
+    wide: true,
+  },
+  gemini: { logo: "https://api.iconify.design/logos/google-gemini.svg", href: "https://gemini.google.com/" },
+  deepseek: { logo: "https://api.iconify.design/logos/deepseek.svg", href: "https://www.deepseek.com/" },
+  bluetoothAudio: { logo: "https://api.iconify.design/logos/bluetooth.svg", href: "https://www.bluetooth.com/" },
+  matter: { logo: "https://api.iconify.design/logos/matter.svg", href: "https://csa-iot.org/all-solutions/matter/" },
+  homeAssistant: { logo: "https://cdn.simpleicons.org/homeassistant", href: "https://www.home-assistant.io/" },
+  smartThings: { logo: "https://cdn.simpleicons.org/smartthings", href: "https://www.samsung.com/us/smartthings/" },
+  sonos: { logo: "https://cdn.simpleicons.org/sonos/FFFFFF", href: "https://www.sonos.com/" },
+};
+
+const brand = brands[id];
+---
+
+{
+  brand && linked ? (
+    <a
+      class:list={["brand-lockup", compact && "brand-lockup--compact", brand.wide && "brand-lockup--wide"]}
+      href={brand.href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={name}
+    >
+      <span class="brand-lockup__mark" aria-hidden="true">
+        <span class="brand-lockup__fallback">{name.slice(0, 1)}</span>
+        <img src={brand.logo} alt="" decoding="async" />
+      </span>
+      <span class="brand-lockup__name">{name}</span>
+    </a>
+  ) : brand ? (
+    <span class:list={["brand-lockup", compact && "brand-lockup--compact", brand.wide && "brand-lockup--wide"]}>
+      <span class="brand-lockup__mark" aria-hidden="true">
+        <span class="brand-lockup__fallback">{name.slice(0, 1)}</span>
+        <img src={brand.logo} alt="" decoding="async" />
+      </span>
+      <span class="brand-lockup__name">{name}</span>
+    </span>
+  ) : (
+    <span class:list={["brand-lockup", compact && "brand-lockup--compact"]}>
+      <span class="brand-lockup__mark brand-lockup__mark--fallback" aria-hidden="true">{name.slice(0, 1)}</span>
+      <span class="brand-lockup__name">{name}</span>
+    </span>
+  )
+}
+
+<style>
+  .brand-lockup {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    max-width: 100%;
+    color: var(--lumos-land-title);
+    text-decoration: none;
+  }
+
+  a.brand-lockup:hover .brand-lockup__name,
+  a.brand-lockup:focus-visible .brand-lockup__name {
+    color: var(--lumos-accent-blue-bright);
+  }
+
+  a.brand-lockup:focus-visible {
+    outline: 2px solid rgb(var(--lumos-land-warm) / 0.5);
+    outline-offset: 4px;
+    border-radius: var(--lumos-radius-sm);
+  }
+
+  .brand-lockup__mark {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 2.5rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0.36rem;
+    box-sizing: border-box;
+    overflow: hidden;
+    border: 1px solid rgb(var(--lumos-land-warm) / 0.28);
+    border-radius: 0.7rem;
+    background: #f8fafc;
+  }
+
+  .brand-lockup__mark img {
+    position: absolute;
+    inset: 0.36rem;
+    width: calc(100% - 0.72rem);
+    height: calc(100% - 0.72rem);
+    object-fit: contain;
+  }
+
+  .brand-lockup__fallback {
+    color: #172033;
+    font-weight: 800;
+  }
+
+  .brand-lockup__name {
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.2;
+    transition: color 0.2s ease;
+  }
+
+  .brand-lockup--compact {
+    gap: 0.5rem;
+  }
+
+  .brand-lockup--compact .brand-lockup__mark {
+    flex-basis: 2rem;
+    width: 2rem;
+    height: 2rem;
+    padding: 0.3rem;
+    border-radius: 0.55rem;
+  }
+
+  .brand-lockup--compact .brand-lockup__mark img {
+    inset: 0.3rem;
+    width: calc(100% - 0.6rem);
+    height: calc(100% - 0.6rem);
+  }
+
+  .brand-lockup--compact .brand-lockup__name {
+    font-size: 0.92rem;
+  }
+
+  .brand-lockup--wide .brand-lockup__mark {
+    flex-basis: 5.2rem;
+    width: 5.2rem;
+  }
+</style>

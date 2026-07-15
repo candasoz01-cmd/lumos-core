@@ -4,6 +4,7 @@ import "../../styles/umbrella-chrome.css";
 import I18nInit from "../../components/I18nInit.astro";
 import WeLockSiteFooter from "../../components/WeLockSiteFooter.astro";
 import WeLockSiteNav from "../../components/WeLockSiteNav.astro";
+import BrandLockup from "../../components/BrandLockup.astro";
 import { INTEGRATION_GUIDE_ITEMS } from "../../data/integration-guide";
 import umbrellaTr from "../../i18n/messages/umbrella/tr";
 
@@ -106,7 +107,7 @@ const statusText = guide.statuses as Record<string, string>;
                     {statusText[item.status]}
                   </span>
                 </div>
-                <h3>{item.name}</h3>
+                <h3><BrandLockup id={item.id} name={item.name} /></h3>
                 <h4 data-i18n="umbrella.integrationGuide.benefitLabel">Lumos kolaylığı</h4>
                 <p data-i18n={`umbrella.integrationGuide.entries.${item.id}.benefit`}>
                   {entryText[item.id].benefit}
@@ -120,6 +121,10 @@ const statusText = guide.statuses as Record<string, string>;
           }
         </div>
       </section>
+
+      <p class="umbrella-brand-notice" data-i18n="umbrella.integrationGuide.brandNotice">
+        Marka adları ve logoları ilgili hak sahiplerine aittir. Buradaki kullanım yalnızca bağlantı yüzeyini tanımlar; ortaklık, sponsorluk veya marka onayı anlamına gelmez.
+      </p>
 
       <div class="umbrella-actions">
         <a class="umbrella-btn umbrella-btn--primary" href={DOC_URL} target="_blank" rel="noopener noreferrer" data-i18n="umbrella.integrationGuide.githubCta">GitHub rehberini aç</a>

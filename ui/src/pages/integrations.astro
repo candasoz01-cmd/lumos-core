@@ -6,6 +6,7 @@ import WeLockSiteFooter from "../components/WeLockSiteFooter.astro";
 import IntegrationPermMatrix from "../components/IntegrationPermMatrix.astro";
 import I18nInit from "../components/I18nInit.astro";
 import type { MatrixRow } from "../components/IntegrationPermMatrix.astro";
+import BrandLockup from "../components/BrandLockup.astro";
 
 const DOCS_INTEGRATIONS_URL =
   "https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/integrations-overview.md";
@@ -54,6 +55,33 @@ const charterRows: MatrixRow[] = [
     delete: true,
   },
 ];
+
+const socialMediaPackages = [
+  {
+    id: "global",
+    titleKey: "umbrella.integrations.socialGlobalTitle",
+    title: "Küresel",
+    platforms: ["Meta (Facebook, Instagram)", "X", "TikTok", "LinkedIn", "YouTube"],
+  },
+  {
+    id: "china",
+    titleKey: "umbrella.integrations.socialChinaTitle",
+    title: "Çin",
+    platforms: ["WeChat", "Douyin", "Bilibili", "RED / Xiaohongshu", "Weibo"],
+  },
+  {
+    id: "india",
+    titleKey: "umbrella.integrations.socialIndiaTitle",
+    title: "Hindistan",
+    platforms: ["WhatsApp", "Instagram", "YouTube", "ShareChat", "Telegram"],
+  },
+  {
+    id: "russia",
+    titleKey: "umbrella.integrations.socialRussiaTitle",
+    title: "Rusya",
+    platforms: ["VK", "Telegram", "OK", "Rutube"],
+  },
+] as const;
 ---
 
 <html lang="tr">
@@ -61,9 +89,9 @@ const charterRows: MatrixRow[] = [
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title data-i18n="umbrella.integrations.metaTitle">Entegrasyonlar — We Lock AI</title>
-    <meta
+      <meta
       name="description"
-      content="Lumos entegrasyon merkezi: GitHub, Slack, Google ve cihaz yüzeyleri — Read / Write / Delete izin matrisi."
+      content="Lumos bağlantı ekosistemi: aktif, foundation ve planlanan bağlantı yüzeyleri ile güvenli yetki sınırları."
       data-i18n-content="umbrella.integrations.metaDescription"
     />
     <link rel="canonical" href="https://welockai.com/integrations" />
@@ -73,68 +101,142 @@ const charterRows: MatrixRow[] = [
   <body class="umbrella-page">
     <WeLockSiteNav active="integrations" />
     <main class="umbrella-main">
-      <p class="umbrella-eyebrow" data-i18n="umbrella.integrations.eyebrow">WE LOCK AI · ENTEGRASYONLAR</p>
-      <h1 data-i18n="umbrella.integrations.title">Entegrasyon merkezi</h1>
-      <p class="umbrella-lead" data-i18n="umbrella.integrations.lead">
-        Lumos, dış araçlara tek güvenli geçitten bağlanır.
-      </p>
-      <div class="umbrella-callout">
-        <p>
-          <strong data-i18n="umbrella.integrations.statusAlpha">Internal Alpha — OAuth yakında</strong>
+      <header class="integration-ecosystem-hero">
+        <p class="umbrella-eyebrow" data-i18n="umbrella.integrations.eyebrow">WE LOCK AI · BAĞLANTI EKOSİSTEMİ</p>
+        <h1 data-i18n="umbrella.integrations.title">We Lock AI Bağlantı Ekosistemi</h1>
+        <p class="umbrella-lead" data-i18n="umbrella.integrations.lead">
+          Lumos'un güvenli bağlantı yüzeyleri; mevcut kapsamı, hazırlık düzeyi ve yetki sınırlarıyla birlikte.
         </p>
-      </div>
-      <h2 data-i18n="umbrella.integrations.matrixTitle">İzin matrisi</h2>
-      <IntegrationPermMatrix rows={charterRows} />
-      <h2 data-i18n="umbrella.integrations.surfacesTitle">Yüzeyler ve bağlantılar</h2>
-      <div class="umbrella-surface-grid">
-        <a class="umbrella-surface-card" href="/integrations/guide">
-          <h3 data-i18n="umbrella.integrations.guideCta">24 bağlantıda kolaylık ve güvenlik</h3>
+        <div class="integration-status-key" aria-label="Bağlantı durumları" data-i18n-aria-label="umbrella.integrations.statusAria">
+          <span class="integration-status integration-status--active" data-i18n="umbrella.integrations.statusActive">Aktif</span>
+          <span class="integration-status integration-status--foundation" lang="en" data-i18n="umbrella.integrations.statusFoundation">Foundation</span>
+          <span class="integration-status integration-status--planned" data-i18n="umbrella.integrations.statusPlanned">Planlanan</span>
+        </div>
+      </header>
+
+      <section class="integration-ecosystem-group" aria-labelledby="active-connections-title">
+        <div class="integration-ecosystem-heading">
+          <div>
+            <p class="umbrella-eyebrow" data-i18n="umbrella.integrations.statusActive">Aktif</p>
+            <h2 id="active-connections-title" data-i18n="umbrella.integrations.activeTitle">Demo-safe kapsamda kullanılabilen bağlantılar</h2>
+          </div>
+          <p data-i18n="umbrella.integrations.activeBody">Aktif durum, yalnızca belirtilen public/demo-safe kapsamı ifade eder.</p>
+        </div>
+        <div class="integration-ecosystem-grid integration-ecosystem-grid--compact">
+          <a class="integration-ecosystem-card" href="/integrations/mail">
+            <span class="integration-ecosystem-card__brand"><BrandLockup id="gmail" name="Gmail" linked={false} /></span>
+            <p data-i18n="umbrella.integrations.activeGmailBody">Demo-safe Dar v1 stub; canlı Gmail OAuth bağlantısı değildir.</p>
+            <span class="integration-status integration-status--active" data-i18n="umbrella.integrations.statusActive">Aktif</span>
+          </a>
+        </div>
+      </section>
+
+      <section class="integration-ecosystem-group" aria-labelledby="foundation-connections-title">
+        <div class="integration-ecosystem-heading">
+          <div>
+            <p class="umbrella-eyebrow" lang="en" data-i18n="umbrella.integrations.statusFoundation">Foundation</p>
+            <h2 id="foundation-connections-title" data-i18n="umbrella.integrations.foundationTitle">Doğrulanmış temel yüzeyler</h2>
+          </div>
+          <p data-i18n="umbrella.integrations.foundationBody">Teknik temel mevcut; ürün düzeyi bağlantı kapsamı kontrollü biçimde genişletilir.</p>
+        </div>
+        <div class="integration-ecosystem-grid">
+          <a class="integration-ecosystem-card" href="/integrations/github">
+            <span class="integration-ecosystem-card__brand"><BrandLockup id="github" name="GitHub" linked={false} /></span>
+            <p data-i18n="umbrella.integrations.foundationGithubBody">Issue ve pull request bağlamı için public temel.</p>
+            <span class="integration-status integration-status--foundation" lang="en" data-i18n="umbrella.integrations.statusFoundation">Foundation</span>
+          </a>
+          <article class="integration-ecosystem-card">
+            <span class="integration-ecosystem-card__brand"><BrandLockup id="openai" name="OpenAI" linked={false} /></span>
+            <p data-i18n="umbrella.integrations.foundationOpenaiBody">Yapılandırıldığında metin yanıtı üretimi için public temel.</p>
+            <span class="integration-status integration-status--foundation" lang="en" data-i18n="umbrella.integrations.statusFoundation">Foundation</span>
+          </article>
+        </div>
+      </section>
+
+      <section class="integration-ecosystem-group" aria-labelledby="planned-connections-title">
+        <div class="integration-ecosystem-heading">
+          <div>
+            <p class="umbrella-eyebrow" data-i18n="umbrella.integrations.statusPlanned">Planlanan</p>
+            <h2 id="planned-connections-title" data-i18n="umbrella.integrations.plannedTitle">Yol haritasındaki bağlantı yüzeyleri</h2>
+          </div>
+          <p data-i18n="umbrella.integrations.plannedBody">Katalog kaydı canlı OAuth, webhook veya senkron bağlantısı anlamına gelmez.</p>
+        </div>
+        <div class="integration-ecosystem-grid">
+          <a class="integration-ecosystem-card" href="/integrations/google">
+            <span class="integration-ecosystem-card__brand"><BrandLockup id="google" name="Google Workspace" linked={false} /></span>
+            <p data-i18n="umbrella.integrations.plannedGoogleBody">Drive ve Calendar için read-first bağlantı kapsamı.</p>
+            <span class="integration-status integration-status--planned" data-i18n="umbrella.integrations.statusPlanned">Planlanan</span>
+          </a>
+          <a class="integration-ecosystem-card" href="/slack">
+            <span class="integration-ecosystem-card__brand"><BrandLockup id="slack" name="Slack" linked={false} /></span>
+            <p data-i18n="umbrella.integrations.plannedSlackBody">Politika kapsamındaki iş yeri bağlamı.</p>
+            <span class="integration-status integration-status--planned" data-i18n="umbrella.integrations.statusPlanned">Planlanan</span>
+          </a>
+          <a class="integration-ecosystem-card" href="/integrations/linear">
+            <span class="integration-ecosystem-card__brand"><BrandLockup id="linear" name="Linear" linked={false} /></span>
+            <p data-i18n="umbrella.integrations.plannedLinearBody">Görev bağlamı için Katman 3 bağlantı planı.</p>
+            <span class="integration-status integration-status--planned" data-i18n="umbrella.integrations.statusPlanned">Planlanan</span>
+          </a>
+          <a class="integration-ecosystem-card" href="/connect/mac">
+            <span class="integration-ecosystem-card__brand"><BrandLockup id="apple" name="Apple" linked={false} /></span>
+            <p data-i18n="umbrella.integrations.plannedAppleBody">Mac ve Universal Links bağlantı yüzeyi.</p>
+            <span class="integration-status integration-status--planned" data-i18n="umbrella.integrations.statusPlanned">Planlanan</span>
+          </a>
+        </div>
+      </section>
+
+      <section id="social-media-packages" class="integration-ecosystem-group" aria-labelledby="social-media-packages-title">
+        <div class="integration-ecosystem-heading">
+          <div>
+            <p class="umbrella-eyebrow" data-i18n="umbrella.integrations.socialEyebrow">SOSYAL VE VİDEO</p>
+            <h2 id="social-media-packages-title" data-i18n="umbrella.integrations.socialTitle">Bölgesel sosyal / medya bağlantı paketleri</h2>
+          </div>
+          <p data-i18n="umbrella.integrations.socialBody">Her platform ayrı kimlikle bağlanır. Akış: bağlantı, taslak, açık onay ve paylaşım.</p>
+        </div>
+        <div class="integration-ecosystem-grid integration-social-package-grid">
+          {socialMediaPackages.map((socialPackage) => (
+            <article class="integration-ecosystem-card integration-social-package-card" data-region={socialPackage.id}>
+              <div class="integration-social-package-card__head">
+                <h3 data-i18n={socialPackage.titleKey}>{socialPackage.title}</h3>
+                <span class="integration-status integration-status--planned" data-i18n="umbrella.integrations.identityRequired">Kimlik bekliyor</span>
+              </div>
+              <ul class="integration-social-platform-list">
+                {socialPackage.platforms.map((platform) => <li>{platform}</li>)}
+              </ul>
+              <p data-i18n="umbrella.integrations.socialCardNote">Katalog yuvası hazır; canlı OAuth ve paylaşım henüz etkin değil.</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <aside class="integration-guide-promo">
+        <div>
+          <p class="umbrella-eyebrow" data-i18n="umbrella.integrations.guideBadge">Ayrıntılı rehber</p>
+          <h2 data-i18n="umbrella.integrations.guideCta">24 bağlantıda kolaylık ve güvenlik</h2>
           <p data-i18n="umbrella.integrations.guideBody">Uygulama ve cihaz bazında yarar, güvenlik sınırı ve gerçek durum</p>
-          <span class="umbrella-badge" data-i18n="umbrella.integrations.guideBadge">Ayrıntılı rehber</span>
-        </a>
-        <a class="umbrella-surface-card" href="/integrations/github">
-          <h3 data-i18n="umbrella.integrations.githubCta">GitHub entegrasyonu</h3>
-          <p data-i18n="umbrella.integrations.rowGithubNote">Issue/PR bağlamı</p>
-          <span class="umbrella-badge" data-i18n="umbrella.integrations.statusAlpha">Internal Alpha</span>
-        </a>
-        <a class="umbrella-surface-card" href="/integrations/google">
-          <h3 data-i18n="umbrella.integrations.googleCta">Google entegrasyonu</h3>
-          <p data-i18n="umbrella.google.lead">Drive, Calendar, Gmail — read-first</p>
-          <span class="umbrella-badge" data-i18n="umbrella.integrations.statusAlpha">Internal Alpha</span>
-        </a>
-        <a class="umbrella-surface-card" href="/integrations/mail">
-          <h3 data-i18n="umbrella.integrations.mailCta">Mail (Gmail)</h3>
-          <p data-i18n="umbrella.integrations.rowGmailNote">OD-031 Dar v1 read-only</p>
-          <span class="umbrella-badge" data-i18n="umbrella.integrations.statusAlpha">Internal Alpha</span>
-        </a>
-        <a class="umbrella-surface-card" href="/integrations/linear">
-          <h3 data-i18n="umbrella.integrations.linearCta">Linear</h3>
-          <p data-i18n="umbrella.integrations.rowLinearNote">Katman 3 planned</p>
-          <span class="umbrella-badge" data-i18n="umbrella.integrations.statusPlanned">Planned</span>
-        </a>
-        <a class="umbrella-surface-card" href="/slack">
-          <h3 data-i18n="umbrella.integrations.slackCta">Slack</h3>
-          <p data-i18n="umbrella.integrations.rowSlackNote">İş yeri bağlamı</p>
-          <span class="umbrella-badge" data-i18n="umbrella.integrations.statusAlpha">Internal Alpha</span>
-        </a>
-        <a class="umbrella-surface-card" href="/panel">
-          <h3 data-i18n="umbrella.integrations.panelCta">Panel</h3>
-          <p data-i18n="umbrella.products.panelBody">Birincil web çalışma alanı</p>
-        </a>
-        <a class="umbrella-surface-card" href="/connect/mac">
-          <h3 data-i18n="umbrella.integrations.macCta">Mac bağlantıları</h3>
-          <p data-i18n="umbrella.mac.lead">Universal Links</p>
-        </a>
-      </div>
-      <p>
-        <a href={DOCS_INTEGRATIONS_URL} target="_blank" rel="noopener noreferrer" data-i18n="umbrella.integrations.docsCta"
-          >Teknik özet (repo)</a
-        >
-        ·
-        <a href={DOCS_GUIDE_URL} target="_blank" rel="noopener noreferrer" data-i18n="umbrella.integrations.guideGithubCta"
-          >Kolaylık ve güvenlik rehberi (GitHub)</a
-        >
+        </div>
+        <a class="umbrella-btn" href="/integrations/guide" data-i18n="umbrella.integrations.guideOpenCta">Rehberi aç</a>
+      </aside>
+
+      <section class="integration-governance" aria-labelledby="permission-matrix-title">
+        <p class="umbrella-eyebrow" data-i18n="umbrella.integrations.governanceEyebrow">GÜVEN VE YETKİ</p>
+        <h2 id="permission-matrix-title" data-i18n="umbrella.integrations.matrixTitle">İzin matrisi</h2>
+        <p data-i18n="umbrella.integrations.matrixIntro">Bağlantı durumu ne olursa olsun, dış etkili işlemler açık onay ve politika sınırlarına tabidir.</p>
+        <IntegrationPermMatrix rows={charterRows} />
+      </section>
+
+      <p class="umbrella-brand-notice" data-i18n="umbrella.integrationGuide.brandNotice">
+        Marka adları ve logoları ilgili hak sahiplerine aittir. Buradaki kullanım yalnızca bağlantı yüzeyini tanımlar; ortaklık, sponsorluk veya marka onayı anlamına gelmez.
       </p>
+
+      <details class="integration-technical-links">
+        <summary data-i18n="umbrella.integrations.technicalLinksTitle">Teknik kaynaklar</summary>
+        <p>
+          <a href={DOCS_INTEGRATIONS_URL} target="_blank" rel="noopener noreferrer" data-i18n="umbrella.integrations.docsCta">Teknik özet (repo)</a>
+          ·
+          <a href={DOCS_GUIDE_URL} target="_blank" rel="noopener noreferrer" data-i18n="umbrella.integrations.guideGithubCta">Kolaylık ve güvenlik rehberi (GitHub)</a>
+        </p>
+      </details>
       <div class="umbrella-actions">
         <a class="umbrella-btn umbrella-btn--primary" href="/panel" data-i18n="umbrella.integrations.panelCta">Panel</a>
         <a class="umbrella-btn" href="/" data-i18n="umbrella.integrations.homeCta">Ana sayfa</a>

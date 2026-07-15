@@ -15,6 +15,7 @@ const umbrellaEn: typeof umbrellaTr = {
     accessibility: "Accessible",
     lab: "Lab",
     education: "Education",
+    privacy: "Privacy",
   },
   accessibility: {
     eyebrow: "LUMOS · ACCESSIBLE", title: "Accessible use",
@@ -68,7 +69,7 @@ const umbrellaEn: typeof umbrellaTr = {
     slackBody: "Organization private area context: Topic summaries, mentions, and controlled notifications (coming soon).",
     slackCta: "Slack page",
     macTitle: "Mac / Apple",
-    macBody: "Universal Links and the future Lumos Mac client link layer.",
+    macBody: "The Lumos Mac app with direct chat launch and Universal Links.",
     macCta: "Mac links",
     cyberTitle: "Lumos Cyber",
     cyberBody: "Not an integration: an independent security layer for risk visibility, defense, and policy.",
@@ -80,6 +81,49 @@ const umbrellaEn: typeof umbrellaTr = {
   footer: {
     tagline: "We Lock AI · welockai.com — Lumos product family",
     rights: "Open-source core on GitHub; official services use controlled access.",
+  },
+  privacy: {
+    metaTitle: "Privacy Notice — We Lock AI · Lumos",
+    metaDescription:
+      "Privacy notice explaining data use, connection permissions, and user controls across We Lock AI and Lumos surfaces.",
+    eyebrow: "WE LOCK AI · LUMOS",
+    title: "Privacy notice",
+    lead:
+      "This notice explains the boundaries for data processing across welockai.com and Lumos connection flows.",
+    updated: "Last updated: July 15, 2026",
+    scopeTitle: "Scope",
+    scopeBody:
+      "This notice covers welockai.com, Lumos web and desktop surfaces, and third-party connections opened at the user's request. Integrations that are not yet live do not provide data access.",
+    dataTitle: "What data may be processed?",
+    data1: "Tasks, files, and approval details provided directly by the user.",
+    data2:
+      "When an account is connected, basic account identity, connection status, and only the content or metadata allowed by approved scopes.",
+    data3: "Limited technical records required for security, troubleshooting, and auditability.",
+    googleTitle: "Google and YouTube data",
+    googleBody:
+      "When a Google or YouTube connection is enabled, Lumos requests only the scopes selected by the user and displayed on Google's consent screen. Data is used to perform the requested task and show connection status; it is not used for advertising, sale, or general-purpose model training.",
+    useTitle: "Why we use data",
+    use1: "Perform the task requested by the user and show the result in Lumos.",
+    use2: "Manage connection, permission, and explicit approval states.",
+    use3: "Prevent misuse, troubleshoot problems, and investigate security incidents.",
+    sharingTitle: "Sharing",
+    sharingBody:
+      "Data is not sold. It may be shared in a limited way with relevant platforms and service providers only when required to provide the requested operation, comply with law, or protect the system.",
+    retentionTitle: "Retention and deletion",
+    retentionBody:
+      "Connection tokens are retained until disconnected or expired; technical records are retained only for the limited period needed for security and operations. A deletion and support channel will be published here before live OAuth access is launched.",
+    controlsTitle: "User controls",
+    controls1: "You can disconnect integrations in Lumos and revoke access in the relevant provider's account settings.",
+    controls2: "Google access can also be removed from the Google Account connections page.",
+    controls3: "Externally visible sharing and publishing actions require explicit approval.",
+    securityTitle: "Security",
+    securityBody:
+      "Core security principles include narrow scopes, keeping secrets out of the user interface, and requiring approval for external effects. No online system can guarantee absolute security.",
+    changesTitle: "Changes",
+    changesBody:
+      "This notice may be updated as the product and connection scope evolve. Material changes will update the date and the relevant product surfaces.",
+    googleControlsCta: "Manage Google access",
+    integrationsCta: "Connection ecosystem",
   },
   slack: {
     metaTitle: "Lumos in Slack — We Lock AI",
@@ -112,11 +156,11 @@ const umbrellaEn: typeof umbrellaTr = {
   mac: {
     metaTitle: "Lumos Mac — Universal Links — We Lock AI",
     metaDescription:
-      "Universal Links on welockai.com for the future Lumos Mac client, panel URLs, and Apple App Site Association.",
+      "The Lumos Mac app, direct chat entry, Universal Links on welockai.com, and Apple App Site Association.",
     eyebrow: "WE LOCK AI · MAC",
     title: "Mac and Apple links",
     lead:
-      "The future Lumos Mac client can open panel and landing URLs on welockai.com. OAuth and Apple Sign In are not started on this page.",
+      "The Lumos Mac app opens the chat workspace directly; tasks, files, and approvals use the existing secure bridge contract.",
     urlsTitle: "Production URLs",
     ulTitle: "Universal Links (AASA)",
     ulBody:
@@ -147,14 +191,41 @@ const umbrellaEn: typeof umbrellaTr = {
     homeCta: "Home",
   },
   integrations: {
-    metaTitle: "Integrations — We Lock AI",
+    metaTitle: "Connection Ecosystem — We Lock AI",
     metaDescription:
-      "Lumos integration hub: GitHub, Slack, Google, and device surfaces — Read / Write / Delete permission matrix. OAuth is not started on this site.",
-    eyebrow: "WE LOCK AI · INTEGRATIONS",
-    title: "Integration hub",
+      "The Lumos connection ecosystem: active, foundation, and planned connection surfaces with secure authority boundaries.",
+    eyebrow: "WE LOCK AI · CONNECTION ECOSYSTEM",
+    title: "We Lock AI Connection Ecosystem",
     lead:
-      "Lumos connects to external tools through a single secure gateway. Read is for analysis and suggestions; write and delete require explicit approval or enterprise policy. Live OAuth is not on this site yet — Internal Alpha.",
+      "Lumos connection surfaces, presented with their current scope, readiness, and authority boundaries.",
+    statusActive: "Active",
+    statusFoundation: "Foundation",
+    statusAria: "Connection statuses",
+    activeTitle: "Connections available within a demo-safe scope",
+    activeBody: "Active refers only to the stated public/demo-safe scope.",
+    activeGmailBody: "Demo-safe Narrow v1 stub; not a live Gmail OAuth connection.",
+    foundationTitle: "Verified foundation surfaces",
+    foundationBody: "The technical foundation exists; product-level connection scope expands in a controlled way.",
+    foundationGithubBody: "Public foundation for issue and pull request context.",
+    foundationOpenaiBody: "Public foundation for text response generation when configured.",
+    plannedTitle: "Connection surfaces on the roadmap",
+    plannedBody: "A catalog entry does not mean live OAuth, webhook, or synchronization.",
+    plannedGoogleBody: "Read-first connection scope for Drive and Calendar.",
+    plannedSlackBody: "Policy-scoped workplace context.",
+    plannedLinearBody: "Layer 3 connection plan for task context.",
+    plannedAppleBody: "Connection surface for Mac and Universal Links.",
+    socialEyebrow: "SOCIAL AND VIDEO",
+    socialTitle: "Regional social / media connection packages",
+    socialBody: "Each platform connects through its own identity. Flow: connect, draft, explicit approval, and publish.",
+    socialGlobalTitle: "Global",
+    socialChinaTitle: "China",
+    socialIndiaTitle: "India",
+    socialRussiaTitle: "Russia",
+    identityRequired: "Identity required",
+    socialCardNote: "The catalog slot is ready; live OAuth and publishing are not enabled yet.",
+    governanceEyebrow: "TRUST AND AUTHORITY",
     matrixTitle: "Permission matrix",
+    matrixIntro: "Regardless of connection status, external actions remain subject to explicit approval and policy boundaries.",
     matrixLegend: "Read ✅ · Write 🔒 (approved) · Delete 🚫 (special permission)",
     colIntegration: "Integration",
     colRead: "Read",
@@ -187,7 +258,23 @@ const umbrellaEn: typeof umbrellaTr = {
     guideCta: "Ease and security across 24 connections",
     guideBody: "Benefits, security boundary, and honest status for each app and device",
     guideBadge: "Detailed guide",
+    guideOpenCta: "Open guide",
     guideGithubCta: "Ease and security guide (GitHub)",
+    technicalLinksTitle: "Technical resources",
+    openaiEyebrow: "MODEL PROVIDER · OPENAI",
+    openaiTitle: "OpenAI service scope",
+    openaiLead:
+      "When configured, Lumos can use the OpenAI API Responses API to generate text responses.",
+    openaiAreaText: "Active foundation: text response generation.",
+    openaiAreaVision:
+      "Catalog scope: vision analysis; not yet a verified live service on the public surface.",
+    openaiAreaTools:
+      "Catalog scope: controlled tool use; subject to policy and user-approval gates.",
+    openaiData:
+      "The API key stays server-side. Submitted content is limited to the scope required for the task.",
+    openaiBrandNotice:
+      "The OpenAI name and logo belong to OpenAI. Any use on this site identifies a compatible service only; it does not imply a partnership, sponsorship, or endorsement by OpenAI. The OpenAI logo is not incorporated into or modified as part of the Lumos brand.",
+    openaiBrandGuide: "OpenAI brand guidelines",
     docsCta: "Technical overview (repo)",
     homeCta: "Home",
   },
@@ -223,6 +310,8 @@ const umbrellaEn: typeof umbrellaTr = {
     connectionsLead: "Popular connections across different fields, with benefits, security, and honest status.",
     benefitLabel: "Lumos benefit",
     securityLabel: "Security boundary",
+    brandNotice:
+      "Brand names and logos belong to their respective owners. Their use here identifies the connection surface only and does not imply partnership, sponsorship, or endorsement.",
     githubCta: "Open the GitHub guide",
     hubCta: "Back to integration hub",
     categories: {

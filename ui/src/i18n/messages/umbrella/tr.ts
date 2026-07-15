@@ -13,6 +13,7 @@ const umbrellaTr = {
     accessibility: "Engelsiz",
     lab: "Lab",
     education: "Eğitim",
+    privacy: "Gizlilik",
   },
   accessibility: {
     eyebrow: "LUMOS · ENGELSİZ", title: "Engelsiz kullanım",
@@ -66,7 +67,7 @@ const umbrellaTr = {
     slackBody: "Kuruluş özel alanı bağlamında Konu özeti, mention ve kontrollü bildirim yüzeyi (yakında).",
     slackCta: "Slack sayfası",
     macTitle: "Mac / Apple",
-    macBody: "Universal Links ve gelecekteki Lumos Mac istemcisi için bağlantı katmanı.",
+    macBody: "Doğrudan sohbet açılışı ve Universal Links kullanan Lumos Mac uygulaması.",
     macCta: "Mac bağlantıları",
     cyberTitle: "Lumos Cyber",
     cyberBody: "Entegrasyon değil; risk görünürlüğü, savunma ve politika için bağımsız güvenlik katmanı.",
@@ -78,6 +79,49 @@ const umbrellaTr = {
   footer: {
     tagline: "We Lock AI · welockai.com — Lumos ürün ailesi",
     rights: "Açık kaynak çekirdek GitHub'da; resmi servisler kontrollü erişimle.",
+  },
+  privacy: {
+    metaTitle: "Gizlilik Bildirimi — We Lock AI · Lumos",
+    metaDescription:
+      "We Lock AI ve Lumos yüzeylerinde verilerin hangi amaçlarla işlendiğini, bağlantı izinlerini ve kullanıcı denetimlerini açıklayan gizlilik bildirimi.",
+    eyebrow: "WE LOCK AI · LUMOS",
+    title: "Gizlilik bildirimi",
+    lead:
+      "Bu bildirim, welockai.com ve Lumos bağlantı akışlarında verilerin hangi sınırlar içinde işlendiğini açıklar.",
+    updated: "Son güncelleme: 15 Temmuz 2026",
+    scopeTitle: "Kapsam",
+    scopeBody:
+      "Bu bildirim welockai.com, Lumos web ve masaüstü yüzeyleri ile kullanıcının isteğiyle açılan üçüncü taraf bağlantıları kapsar. Henüz canlı olmayan entegrasyonlar veri erişimi sağlamaz.",
+    dataTitle: "Hangi veriler işlenebilir?",
+    data1: "Kullanıcının doğrudan verdiği görev, dosya ve onay bilgileri.",
+    data2:
+      "Bir hesap bağlandığında temel hesap kimliği, bağlantı durumu ve yalnızca onaylanan kapsamların izin verdiği içerik veya metadata.",
+    data3: "Güvenlik, hata ayıklama ve denetlenebilirlik için gerekli sınırlı teknik kayıtlar.",
+    googleTitle: "Google ve YouTube verileri",
+    googleBody:
+      "Google veya YouTube bağlantısı açıldığında Lumos yalnızca kullanıcı tarafından seçilen ve Google onay ekranında gösterilen kapsamları ister. Veriler, istenen görevi yerine getirmek ve bağlantı durumunu göstermek için kullanılır; reklam hedefleme, satış veya genel amaçlı model eğitimi için kullanılmaz.",
+    useTitle: "Verileri neden kullanırız?",
+    use1: "Kullanıcının istediği görevi yerine getirmek ve sonucu Lumos'ta göstermek.",
+    use2: "Bağlantı, izin ve açık onay durumlarını yönetmek.",
+    use3: "Kötüye kullanımı önlemek, sorunları gidermek ve güvenlik olaylarını incelemek.",
+    sharingTitle: "Paylaşım",
+    sharingBody:
+      "Veriler satılmaz. Yalnızca kullanıcının istediği işlemi sunmak, yasal yükümlülükleri karşılamak veya sistemi korumak için gerekli hizmet sağlayıcılarla ve ilgili platformlarla sınırlı biçimde paylaşılabilir.",
+    retentionTitle: "Saklama ve silme",
+    retentionBody:
+      "Bağlantı belirteçleri bağlantı kesilene veya geçerliliğini yitirene kadar; teknik kayıtlar ise güvenlik ve işletim için gerekli olan sınırlı süre boyunca tutulur. Canlı OAuth kullanıma açılmadan önce silme ve destek kanalı bu sayfada yayımlanacaktır.",
+    controlsTitle: "Kullanıcı denetimi",
+    controls1: "Bağlantıları Lumos içinden kapatabilir ve ilgili sağlayıcının hesap ayarlarından erişimi geri alabilirsiniz.",
+    controls2: "Google erişimi Google Hesabı bağlantılar sayfasından ayrıca kaldırılabilir.",
+    controls3: "Dış etkili paylaşım ve yayınlama işlemleri açık onay olmadan yapılmaz.",
+    securityTitle: "Güvenlik",
+    securityBody:
+      "Erişim kapsamını dar tutmak, sırları kullanıcı arayüzüne taşımamak ve dış etkili işlemleri onaya bağlamak temel güvenlik ilkeleridir. Hiçbir çevrimiçi sistem mutlak güvenlik garantisi vermez.",
+    changesTitle: "Değişiklikler",
+    changesBody:
+      "Bu bildirim ürün ve bağlantı kapsamı değiştikçe güncellenebilir. Önemli değişikliklerde güncelleme tarihi ve ilgili yüzeyler yenilenir.",
+    googleControlsCta: "Google erişimini yönet",
+    integrationsCta: "Bağlantı ekosistemi",
   },
   slack: {
     metaTitle: "Lumos in Slack — We Lock AI",
@@ -110,11 +154,11 @@ const umbrellaTr = {
   mac: {
     metaTitle: "Lumos Mac — Universal Links — We Lock AI",
     metaDescription:
-      "Lumos Mac istemcisi için welockai.com Universal Links, panel URL'leri ve Apple App Site Association.",
+      "Lumos Mac uygulaması, doğrudan sohbet girişi, welockai.com Universal Links ve Apple App Site Association.",
     eyebrow: "WE LOCK AI · MAC",
     title: "Mac ve Apple bağlantıları",
     lead:
-      "Gelecekteki Lumos Mac istemcisi welockai.com üzerinden panel ve landing URL'lerini açabilir. OAuth veya Apple Sign In bu sayfada başlatılmaz.",
+      "Lumos Mac uygulaması doğrudan sohbet çalışma alanını açar; görev, dosya ve onay akışları mevcut güvenli köprü sözleşmesini kullanır.",
     urlsTitle: "Üretim URL'leri",
     ulTitle: "Universal Links (AASA)",
     ulBody:
@@ -145,14 +189,41 @@ const umbrellaTr = {
     homeCta: "Ana sayfa",
   },
   integrations: {
-    metaTitle: "Entegrasyonlar — We Lock AI",
+    metaTitle: "Bağlantı Ekosistemi — We Lock AI",
     metaDescription:
-      "Lumos entegrasyon merkezi: GitHub, Slack, Google ve cihaz yüzeyleri — Read / Write / Delete izin matrisi. OAuth bu sitede başlatılmaz.",
-    eyebrow: "WE LOCK AI · ENTEGRASYONLAR",
-    title: "Entegrasyon merkezi",
+      "Lumos bağlantı ekosistemi: aktif, foundation ve planlanan bağlantı yüzeyleri ile güvenli yetki sınırları.",
+    eyebrow: "WE LOCK AI · BAĞLANTI EKOSİSTEMİ",
+    title: "We Lock AI Bağlantı Ekosistemi",
     lead:
-      "Lumos, dış araçlara tek güvenli geçitten bağlanır. Okuma analiz ve öneri için; yazma ve silme açık onay veya kurumsal politika gerektirir. Canlı OAuth henüz bu sitede yok — Internal Alpha.",
+      "Lumos'un güvenli bağlantı yüzeyleri; mevcut kapsamı, hazırlık düzeyi ve yetki sınırlarıyla birlikte.",
+    statusActive: "Aktif",
+    statusFoundation: "Foundation",
+    statusAria: "Bağlantı durumları",
+    activeTitle: "Demo-safe kapsamda kullanılabilen bağlantılar",
+    activeBody: "Aktif durum, yalnızca belirtilen public/demo-safe kapsamı ifade eder.",
+    activeGmailBody: "Demo-safe Dar v1 stub; canlı Gmail OAuth bağlantısı değildir.",
+    foundationTitle: "Doğrulanmış temel yüzeyler",
+    foundationBody: "Teknik temel mevcut; ürün düzeyi bağlantı kapsamı kontrollü biçimde genişletilir.",
+    foundationGithubBody: "Issue ve pull request bağlamı için public temel.",
+    foundationOpenaiBody: "Yapılandırıldığında metin yanıtı üretimi için public temel.",
+    plannedTitle: "Yol haritasındaki bağlantı yüzeyleri",
+    plannedBody: "Katalog kaydı canlı OAuth, webhook veya senkron bağlantısı anlamına gelmez.",
+    plannedGoogleBody: "Drive ve Calendar için read-first bağlantı kapsamı.",
+    plannedSlackBody: "Politika kapsamındaki iş yeri bağlamı.",
+    plannedLinearBody: "Görev bağlamı için Katman 3 bağlantı planı.",
+    plannedAppleBody: "Mac ve Universal Links bağlantı yüzeyi.",
+    socialEyebrow: "SOSYAL VE VİDEO",
+    socialTitle: "Bölgesel sosyal / medya bağlantı paketleri",
+    socialBody: "Her platform ayrı kimlikle bağlanır. Akış: bağlantı, taslak, açık onay ve paylaşım.",
+    socialGlobalTitle: "Küresel",
+    socialChinaTitle: "Çin",
+    socialIndiaTitle: "Hindistan",
+    socialRussiaTitle: "Rusya",
+    identityRequired: "Kimlik bekliyor",
+    socialCardNote: "Katalog yuvası hazır; canlı OAuth ve paylaşım henüz etkin değil.",
+    governanceEyebrow: "GÜVEN VE YETKİ",
     matrixTitle: "İzin matrisi",
+    matrixIntro: "Bağlantı durumu ne olursa olsun, dış etkili işlemler açık onay ve politika sınırlarına tabidir.",
     matrixLegend: "Read ✅ · Write 🔒 (onaylı) · Delete 🚫 (özel izin)",
     colIntegration: "Entegrasyon",
     colRead: "Read",
@@ -173,7 +244,7 @@ const umbrellaTr = {
     rowLinearNote: "OD-033 Katman 3 — görev bağlamı; connector planned",
     surfacesTitle: "Yüzeyler ve bağlantılar",
     statusAlpha: "Internal Alpha — OAuth yakında",
-    statusPlanned: "Planned",
+    statusPlanned: "Planlanan",
     githubCta: "GitHub entegrasyonu",
     googleCta: "Google entegrasyonu",
     mailCta: "Mail (Gmail)",
@@ -185,7 +256,23 @@ const umbrellaTr = {
     guideCta: "24 bağlantıda kolaylık ve güvenlik",
     guideBody: "Uygulama ve cihaz bazında yarar, güvenlik sınırı ve gerçek durum",
     guideBadge: "Ayrıntılı rehber",
+    guideOpenCta: "Rehberi aç",
     guideGithubCta: "Kolaylık ve güvenlik rehberi (GitHub)",
+    technicalLinksTitle: "Teknik kaynaklar",
+    openaiEyebrow: "MODEL SAĞLAYICI · OPENAI",
+    openaiTitle: "OpenAI hizmet alanı",
+    openaiLead:
+      "Lumos, uygun yapılandırmada metin yanıtı üretmek için OpenAI API üzerinden Responses API kullanabilir.",
+    openaiAreaText: "Aktif temel: metin tabanlı yanıt üretimi.",
+    openaiAreaVision:
+      "Katalog kapsamı: görsel analiz; public yüzeyde henüz doğrulanmış canlı hizmet değil.",
+    openaiAreaTools:
+      "Katalog kapsamı: kontrollü araç kullanımı; politika ve kullanıcı onayı kapılarından geçer.",
+    openaiData:
+      "API anahtarı sunucu tarafında tutulur. Gönderilen içerik görev için gereken kapsamla sınırlandırılır.",
+    openaiBrandNotice:
+      "OpenAI adı ve logosu OpenAI’ye aittir. Sitedeki olası kullanımı yalnızca uyumlu hizmeti tanımlar; ortaklık, sponsorluk veya OpenAI onayı anlamına gelmez. OpenAI logosu Lumos markasına dahil edilmez ve değiştirilmez.",
+    openaiBrandGuide: "OpenAI marka kullanım kuralları",
     docsCta: "Teknik özet (repo)",
     homeCta: "Ana sayfa",
   },
@@ -221,6 +308,8 @@ const umbrellaTr = {
     connectionsLead: "Farklı alanlardan popüler bağlantılar; kolaylık, güvenlik ve dürüst durum bilgisiyle.",
     benefitLabel: "Lumos kolaylığı",
     securityLabel: "Güvenlik sınırı",
+    brandNotice:
+      "Marka adları ve logoları ilgili hak sahiplerine aittir. Buradaki kullanım yalnızca bağlantı yüzeyini tanımlar; ortaklık, sponsorluk veya marka onayı anlamına gelmez.",
     githubCta: "GitHub rehberini aç",
     hubCta: "Entegrasyon merkezine dön",
     categories: {

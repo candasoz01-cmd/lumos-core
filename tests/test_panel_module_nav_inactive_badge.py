@@ -94,11 +94,11 @@ def test_panel_nav_status_copy_is_honest_not_preview() -> None:
     astro_nav = _PANEL_ASTRO.read_text(encoding="utf-8").split("panel-nav__primary")[1].split("</nav>")[0]
     assert 'sohbet: "🟢 Hazır"' in tr_text
     assert "köprü olmadan sınırlı" in tr_text
-    assert "Bağlantı bekliyor" in tr_text
+    assert "Kimlik bekliyor" in tr_text
     assert "Mimari hazır" in tr_text
     assert 'sohbet: "🟢 Ready"' in en_text
     assert "limited without bridge" in en_text
-    assert "Awaiting connection" in en_text
+    assert "Identity required" in en_text
     assert "Architecture ready" in en_text
     assert "Topraksız mod" in tr_text
     assert "Toprak bekleniyor" in tr_text
