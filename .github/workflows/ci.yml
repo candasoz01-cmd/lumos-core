@@ -48,6 +48,17 @@ jobs:
       - name: Cargo test (AnchorUSB)
         run: cargo test -p anchorusb-core -p anchorusb-cli
 
+  macos-app-build:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: macos/LumosApp
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: swift build (compile check only)
+        run: swift build
+
   ui-smoke:
     runs-on: ubuntu-latest
     steps:
