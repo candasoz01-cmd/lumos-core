@@ -34,6 +34,7 @@ def register_default_integrations() -> IntegrationRegistry:
     from integrations.providers.global_catalog_provider import register_global_catalog_provider
     from integrations.providers.integration_onboarding_provider import register_integration_onboarding_provider
     from integrations.providers.mail_provider import register_mail_provider
+    from integrations.providers.meetings_provider import register_meetings_provider
     from integrations.providers.openai_provider import register_openai_provider
     from integrations.providers.quantum_provider import register_quantum_provider
     from integrations.providers.rutube_provider import register_rutube_provider
@@ -51,6 +52,7 @@ def register_default_integrations() -> IntegrationRegistry:
     register_global_catalog_provider(registry.register)
     register_integration_onboarding_provider(registry.register)
     register_mail_provider(registry.register)
+    register_meetings_provider(registry.register)
     register_quantum_provider(registry.register)
     register_communications_provider(registry.register)
     register_china_provider(registry.register)
