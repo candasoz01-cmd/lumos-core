@@ -6,9 +6,11 @@ import {
   bufferFromBodyValue,
   forwardRequestHeaders,
   isAllowedBridgePath,
+  isAuthenticatedLumosSession,
   isProxyCallerAuthorized,
   readRawBody,
 } from "../api/bridge/[...path].js";
+import { sealSession } from "../api/_lib/lumos_session.js";
 
 const BOUNDARY = "----lumos-proxy-multipart-test";
 const AUDIO = Buffer.from([0x1a, 0x45, 0xdf, 0xa3]);
@@ -173,6 +175,31 @@ test("bridge proxy caller auth accepts header or cookie token", () => {
     ),
     false,
   );
+});
+
+test("bridge proxy accepts a valid sealed Lumos session", () => {
+  process.env.LUMOS_AUTH_STATE_SECRET = "test-only-secret-32-characters-minimum";
+  try {
+    const sealed = sealSession({
+      sid: "session-test",
+      email: "user@example.invalid",
+      exp: Math.floor(Date.now() / 1000) + 60,
+    });
+    assert.equal(
+      isAuthenticatedLumosSession({
+        headers: { cookie: `lumos_session=${sealed}` },
+      }),
+      true,
+    );
+    assert.equal(
+      isAuthenticatedLumosSession({
+        headers: { cookie: "lumos_session=invalid" },
+      }),
+      false,
+    );
+  } finally {
+    delete process.env.LUMOS_AUTH_STATE_SECRET;
+  }
 });
 
 test("handler rejects disallowed bridge paths before upstream fetch", async () => {

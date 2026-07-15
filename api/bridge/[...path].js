@@ -6,6 +6,7 @@
  */
 
 import { timingSafeEqual } from "node:crypto";
+import { openSession, readCookie } from "../_lib/lumos_session.js";
 
 export const config = {
   api: {
@@ -145,6 +146,10 @@ function isProxyCallerAuthorized(req, expectedToken) {
   return safeTokenEqual(requestProxyAuthToken(req), expectedToken);
 }
 
+function isAuthenticatedLumosSession(req) {
+  return Boolean(openSession(readCookie(req)));
+}
+
 function forwardRequestHeaders(req, secret) {
   const out = {};
   for (const [key, value] of Object.entries(req.headers || {})) {
@@ -241,6 +246,7 @@ export {
   bufferFromBodyValue,
   forwardRequestHeaders,
   isAllowedBridgePath,
+  isAuthenticatedLumosSession,
   isProxyCallerAuthorized,
   readRawBody,
 };
@@ -260,7 +266,10 @@ export default async function handler(req, res) {
   if (!proxyAuthToken) {
     return res.status(503).json(PROXY_AUTH_UNAVAILABLE);
   }
-  if (!isProxyCallerAuthorized(req, proxyAuthToken)) {
+  if (
+    !isProxyCallerAuthorized(req, proxyAuthToken) &&
+    !isAuthenticatedLumosSession(req)
+  ) {
     return res.status(401).json(PROXY_UNAUTHORIZED);
   }
 
