@@ -276,8 +276,8 @@ test("handler keeps proxy closed when proxy auth env is not configured", async (
   }
 });
 
-test("handler forwards multipart bytes to upstream fetch mock", async () => {
-  const upstreamBase = "http://127.0.0.1:8765";
+test("handler forwards multipart bytes and skips the ngrok browser interstitial", async () => {
+  const upstreamBase = "https://demo.ngrok-free.dev";
   const secret = "test-secret";
   const proxyAuth = "proxy-auth-token";
   const body = buildMultipartBody();
@@ -330,6 +330,7 @@ test("handler forwards multipart bytes to upstream fetch mock", async () => {
     assert.equal(captured.init.headers["content-type"], contentType);
     assert.equal(captured.init.headers["content-length"], String(body.length));
     assert.equal(captured.init.headers["X-Kando-Token"], secret);
+    assert.equal(captured.init.headers["ngrok-skip-browser-warning"], "1");
     assert.deepEqual(Buffer.from(captured.init.body), body);
     assert.equal(res.statusCode, 503);
     const payload = JSON.parse(Buffer.from(res.payload).toString("utf8"));

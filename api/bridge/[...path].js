@@ -276,6 +276,14 @@ export default async function handler(req, res) {
     method,
     headers: forwardRequestHeaders(req, secret),
   };
+  try {
+    const upstreamHost = new URL(upstreamBase).hostname.toLowerCase();
+    if (/\.ngrok-free\.(app|dev)$/.test(upstreamHost)) {
+      init.headers["ngrok-skip-browser-warning"] = "1";
+    }
+  } catch {
+    /* normalizeUpstreamBase sonrası fetch güvenli hata yanıtını üretir */
+  }
 
   if (method !== "GET" && method !== "HEAD") {
     const rawBody = await readRawBody(req);
