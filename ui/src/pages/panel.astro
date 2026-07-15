@@ -15930,7 +15930,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             method: "GET",
             cache: "no-store",
             mode: "cors",
-            credentials: "omit",
+            credentials: "same-origin",
           });
           const text = await r.text();
           if (!r.ok) {
