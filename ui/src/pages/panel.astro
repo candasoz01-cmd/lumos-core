@@ -392,6 +392,84 @@ const PANEL_DEBUG = import.meta.env.DEV;
         flex: 0 1 auto;
         max-width: 100%;
       }
+      /* Google Web OAuth — panel kimlik yuvası (sağ üst) */
+      .panel-auth-slot {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        min-height: 2rem;
+      }
+      .panel-auth-slot[data-state="loading"] {
+        opacity: 0.55;
+      }
+      .panel-auth-login {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.38rem 0.85rem;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        text-decoration: none;
+        color: #142018;
+        background: linear-gradient(120deg, #f0e6c4, #d4b56a 45%, #8ec4d8);
+        border: 1px solid rgba(36, 53, 58, 0.12);
+        white-space: nowrap;
+      }
+      .panel-auth-login:hover,
+      .panel-auth-login:focus-visible {
+        filter: brightness(1.04);
+        outline: none;
+      }
+      .panel-auth-user {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.15rem 0.25rem 0.15rem 0.15rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.06);
+        max-width: min(240px, 52vw);
+      }
+      .panel-auth-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        object-fit: cover;
+        background: rgba(255, 255, 255, 0.12);
+        flex: 0 0 auto;
+      }
+      .panel-auth-avatar[hidden] {
+        display: none;
+      }
+      .panel-auth-name {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--lumos-text);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 9.5rem;
+      }
+      .panel-auth-logout {
+        appearance: none;
+        border: none;
+        background: transparent;
+        color: rgba(230, 226, 218, 0.78);
+        font-size: 0.72rem;
+        font-weight: 700;
+        cursor: pointer;
+        padding: 0.25rem 0.45rem;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+      .panel-auth-logout:hover,
+      .panel-auth-logout:focus-visible {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.08);
+        outline: none;
+      }
       .gorevler-task-bridge {
         margin: 0;
         margin-top: 0.12rem;
@@ -4554,11 +4632,30 @@ const PANEL_DEBUG = import.meta.env.DEV;
           <div class="panel-header-brand">
             <img class="lumos-mark" src="/lumos-skull-mark.svg" alt="" width="34" height="34" decoding="async" />
             <div class="panel-header-brand-text">
-              <h1 data-i18n="panel.header.title">ChatLumos</h1>
-              <p class="panel-header-tagline" data-i18n="panel.header.subtitle">Sohbet ve görevler tek yerde</p>
+              <h1 data-i18n="panel.header.title">Lumos</h1>
+              <p class="panel-header-tagline" data-i18n="panel.header.subtitle">Merkez · sohbet, görev, kimlik</p>
             </div>
           </div>
           <div class="panel-health-row">
+            <div id="panel-auth-slot" class="panel-auth-slot" data-state="loading" aria-live="polite">
+              <a
+                id="panel-auth-login"
+                class="panel-auth-login"
+                href="/auth/google/start"
+                data-i18n="panel.shell.auth.login"
+                hidden
+              >Google ile Giriş</a>
+              <div id="panel-auth-user" class="panel-auth-user" hidden>
+                <img id="panel-auth-avatar" class="panel-auth-avatar" alt="" width="28" height="28" decoding="async" hidden />
+                <span id="panel-auth-name" class="panel-auth-name"></span>
+                <button
+                  type="button"
+                  id="panel-auth-logout"
+                  class="panel-auth-logout"
+                  data-i18n="panel.shell.auth.logout"
+                >Çıkış Yap</button>
+              </div>
+            </div>
             <div class="panel-user-mode-wrap">
               <button
                 type="button"
@@ -4630,6 +4727,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         </div>
         <nav class="panel-umbrella-links" aria-label="We Lock AI ürünleri" data-i18n-aria-label="umbrella.nav.aria">
           <a href="/" data-i18n="umbrella.nav.home">Ana sayfa</a>
+          <a href="/auth" data-i18n="panel.shell.auth.nav">Giriş</a>
           <a href="/integrations" data-i18n="umbrella.nav.integrations">Entegrasyonlar</a>
           <a href="/slack" data-i18n="umbrella.nav.slack">Slack</a>
           <a href="/connect/mac" data-i18n="umbrella.nav.mac">Mac</a>
@@ -16157,10 +16255,89 @@ const PANEL_DEBUG = import.meta.env.DEV;
           window.refreshMedyaOutboxHintI18n();
         }
         paintSistemDurumuPanel();
+        // Auth slot metinleri i18n ile güncellenir; oturum durumu ayrı
+        const loginEl = document.getElementById("panel-auth-login");
+        const logoutEl = document.getElementById("panel-auth-logout");
+        if (loginEl) loginEl.textContent = panelT("panel.shell.auth.login");
+        if (logoutEl) logoutEl.textContent = panelT("panel.shell.auth.logout");
       }
+
+      async function refreshPanelAuth() {
+        const slot = document.getElementById("panel-auth-slot");
+        const login = document.getElementById("panel-auth-login");
+        const user = document.getElementById("panel-auth-user");
+        const nameEl = document.getElementById("panel-auth-name");
+        const avatar = document.getElementById("panel-auth-avatar");
+        if (!slot || !login || !user || !nameEl || !avatar) return;
+        slot.dataset.state = "loading";
+        try {
+          const r = await fetch("/api/auth/session", {
+            credentials: "include",
+            cache: "no-store",
+            headers: { Accept: "application/json" },
+          });
+          const data = await r.json().catch(() => ({}));
+          const session = data && data.session ? data.session : null;
+          const ok = r.ok && data && data.authenticated === true && session;
+          if (ok) {
+            const label =
+              String(session.name || "").trim() ||
+              String(session.email || "").trim() ||
+              panelT("panel.shell.auth.userFallback");
+            nameEl.textContent = label;
+            nameEl.title = String(session.email || label);
+            const pic = String(session.picture || "").trim();
+            if (pic && /^https?:\/\//i.test(pic)) {
+              avatar.src = pic;
+              avatar.alt = "";
+              avatar.hidden = false;
+            } else {
+              avatar.removeAttribute("src");
+              avatar.hidden = true;
+            }
+            login.hidden = true;
+            user.hidden = false;
+            slot.dataset.state = "in";
+          } else {
+            nameEl.textContent = "";
+            avatar.removeAttribute("src");
+            avatar.hidden = true;
+            user.hidden = true;
+            login.hidden = false;
+            slot.dataset.state = "out";
+          }
+        } catch {
+          nameEl.textContent = "";
+          avatar.removeAttribute("src");
+          avatar.hidden = true;
+          user.hidden = true;
+          login.hidden = false;
+          slot.dataset.state = "out";
+        }
+      }
+
+      document.getElementById("panel-auth-logout")?.addEventListener("click", async () => {
+        try {
+          await fetch("/api/auth/logout", {
+            method: "POST",
+            credentials: "include",
+            cache: "no-store",
+          });
+        } catch {
+          /* ignore network — yine de UI’yi temizle */
+        }
+        await refreshPanelAuth();
+      });
 
       window.addEventListener("lumos:localechange", refreshPanelI18n);
       window.addEventListener("load", refreshPanelI18n, { once: true });
+      window.addEventListener("load", () => {
+        void refreshPanelAuth();
+      }, { once: true });
+      // OAuth dönüşü: ?source=google_web
+      if (new URLSearchParams(location.search).get("source") === "google_web") {
+        void refreshPanelAuth();
+      }
     </script>
     <I18nInit />
   </body>

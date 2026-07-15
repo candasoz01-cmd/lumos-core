@@ -1,0 +1,149 @@
+---
+import "../styles/lumos-tokens.css";
+import "../styles/umbrella-chrome.css";
+import WeLockSiteNav from "../components/WeLockSiteNav.astro";
+import WeLockSiteFooter from "../components/WeLockSiteFooter.astro";
+import I18nInit from "../components/I18nInit.astro";
+
+const UPDATED = "2026-07-15";
+---
+
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Hizmet Şartları — Lumos Kullanım ve Lisans Sözleşmesi</title>
+    <meta
+      name="description"
+      content="Lumos kullanım ve lisans sözleşmesi (Hizmet Şartları). Sürüm 1.0 · Temmuz 2026."
+    />
+    <link rel="canonical" href="https://welockai.com/terms" />
+    <link rel="icon" href="/lumos-tree-logo.svg" type="image/svg+xml" sizes="any" />
+  </head>
+  <body class="umbrella-page">
+    <WeLockSiteNav />
+    <main class="umbrella-main">
+      <p class="umbrella-eyebrow">HİZMET ŞARTLARI</p>
+      <h1>Kullanım ve lisans sözleşmesi</h1>
+      <p class="umbrella-lead">
+        Sürüm 1.0 · Yürürlük: Temmuz 2026 · Kaynak: docs/legal/kullanim-lisans-tr.md
+      </p>
+      <p>Son güncelleme: {UPDATED}</p>
+
+      <p>
+        Bu sözleşme, Lumos uygulamasını ve ilgili hizmetleri kullanan <strong>siz ("Kullanıcı")</strong>
+        ile Lumos'un işletmecisi <strong>("biz")</strong> arasındadır. Lumos'u yükleyerek veya kullanarak
+        bu metni kabul etmiş sayılırsınız.
+      </p>
+
+      <h2>1. Lumos nedir?</h2>
+      <p>
+        Lumos, yapay zekâ destekli bir <strong>yazılım aracıdır</strong> — mobil, web ve panel yüzeyleriyle
+        sunulur. Lumos bir insan, avukat, doktor veya banka değildir. Yanıtlar
+        <strong>yardımcı çıktıdır</strong>; garanti edilmiş gerçeklik iddiası taşımaz.
+      </p>
+
+      <h2>2. Lisans</h2>
+      <p>
+        Size, bu sözleşmeye ve uygulama mağazası kurallarına (Apple App Store dahil) tabi olmak kaydıyla,
+        Lumos'u <strong>kişisel veya iç iş kullanımınız</strong> için devredilemez, münhasır olmayan bir
+        kullanım hakkı verilir.
+      </p>
+
+      <h2>3. Geliştirme aşaması</h2>
+      <p>
+        Lumos <strong>aktif geliştirmededir</strong>. Özellikler değişebilir, sınırlı kalabilir veya geçici
+        olarak kullanılamayabilir. Kesintisiz çalışma veya planlanan her özelliğin build'inizde hazır olması
+        garanti edilmez.
+      </p>
+
+      <h2>4. Kontrol sende</h2>
+      <p>Hassas işlemler için bilinçli onay tasarlanmıştır. Siz sorumlusunuz:</p>
+      <ul>
+        <li>açtığınız bağlantılar ve entegrasyonlar için,</li>
+        <li>verdiğiniz API anahtarları ve cihaz izinleri için,</li>
+        <li>Lumos'a gönderdiğiniz ve aldığınız içerik için.</li>
+      </ul>
+      <p>Lumos, onay akışları olmadan sessizce geri dönüşü olmayan işlem yapmaz.</p>
+
+      <h2>5. Kabul edilebilir kullanım</h2>
+      <p>Yasak:</p>
+      <ul>
+        <li>hukuka aykırı, zararlı veya aldatıcı kullanım,</li>
+        <li>güvenlik / onay kapılarını aşma girişimi,</li>
+        <li>kaynak kodu tersine mühendislik (yasanın açıkça izin verdiği haller hariç),</li>
+        <li>
+          AI çıktısını profesyonel tavsiye yerine <strong>doğrulamadan</strong> kullanma
+          (hukuk, sağlık, finans, güvenlik kritik).
+        </li>
+      </ul>
+
+      <h2>6. Yapay zekâ çıktısı</h2>
+      <p>
+        Yanıtlar eksik veya hatalı olabilir. Önemli kararları
+        <strong>bağımsız doğrulayın</strong>.
+      </p>
+
+      <h2>7. Gizlilik</h2>
+      <p>
+        Veri işleme
+        <a href="/privacy">Gizlilik Politikası</a>
+        sayfasında açıklanır. Sohbet ve oturum verileri hizmeti sunmak için işlenebilir;
+        etkinleştirdiğiniz AI sağlayıcılarına iletilebilir.
+      </p>
+
+      <h2>8. Çocuk kullanımı</h2>
+      <p>
+        Reşit olmayan kullanımda ebeveyn/gözetmen sorumluluğu ve cihaz kontrolleri size aittir.
+      </p>
+
+      <h2>9. Fikri mülkiyet</h2>
+      <p>
+        Lumos yazılımı, markası ve dokümantasyonu korunur. Bu sözleşme mülkiyet devri yapmaz.
+        Sağladığınız içerik size aittir; hizmeti sunmak için gerekli sınırlı işleme hakkını bize verirsiniz.
+      </p>
+
+      <h2>10. Üçüncü taraf hizmetler</h2>
+      <p>AI sağlayıcıları, mesajlaşma platformları vb. kendi koşullarına tabidir.</p>
+
+      <h2>11. Garanti reddi</h2>
+      <p>
+        Yürürlükteki yasanın izin verdiği ölçüde Lumos <strong>"olduğu gibi"</strong> sunulur.
+        «Asla kırılamaz» veya mutlak güvenlik iddiası <strong>yoktur</strong> — güvenlik riski azaltır,
+        sıfırlamaz.
+      </p>
+
+      <h2>12. Sorumluluk sınırı</h2>
+      <p>
+        Yasanın izin verdiği ölçüde dolaylı zararlardan sorumlu değiliz. Toplam sorumluluk,
+        son 12 ayda ödediğiniz tutar veya ödeme yoksa 50 USD ile sınırlıdır.
+      </p>
+
+      <h2>13. Sona erdirme</h2>
+      <p>
+        Uygulamayı kaldırarak kullanımı durdurabilirsiniz. Ciddi ihlalde erişim askıya alınabilir.
+      </p>
+
+      <h2>14. Değişiklikler</h2>
+      <p>
+        Yeni özellik veya yasal gerekliliklerle güncellenebilir. Mağaza listesi veya uygulama içi
+        bildirimle duyurulur.
+      </p>
+
+      <h2>15. Uygulanacak hukuk</h2>
+      <p>
+        İşletmecinin merkezinin tabi olduğu hukuk geçerlidir; zorunlu tüketici koruma hükümleri saklıdır.
+      </p>
+
+      <h2>16. İletişim</h2>
+      <p>Destek URL’si — App Store listesinde belirtilir.</p>
+
+      <div class="umbrella-actions">
+        <a class="umbrella-btn umbrella-btn--primary" href="/privacy">Gizlilik Politikası</a>
+        <a class="umbrella-btn" href="/auth">Lumos girişi</a>
+      </div>
+    </main>
+    <WeLockSiteFooter />
+    <I18nInit />
+  </body>
+</html>
