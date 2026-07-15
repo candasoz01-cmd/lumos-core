@@ -51,15 +51,29 @@ Belgeler: [`lumos-quantum-layer-architecture.md`](analysis/lumos-quantum-layer-a
 | India | WhatsApp, Instagram, YouTube, ShareChat, Telegram |
 | Russia | VK, Telegram, OK, Rutube |
 
-All slots use the same locked workflow: **connect → draft → explicit approval → publish**. A catalog entry is not a live connection. Until an official account authorization succeeds, the user-facing state is `identity_required`; the UI does not leave an ambiguous “connection pending” state.
+All slots use the same locked workflow: **connect → draft → explicit approval → publish**. A catalog entry is not a live connection. Until an official account authorization succeeds, the user-facing state is `identity_required`; the UI does not leave an ambiguous “connection pending” state. `publish` always stays disabled in the OSS foundation — no provider ships a working publish/write path here.
 
-The OSS YouTube bridge is a non-executing Google OAuth skeleton in `src/integrations/providers/youtube_provider.py`. It reads configuration presence only from the environment:
+Each social provider (`src/integrations/providers/*_provider.py`) reads OAuth **app-level** configuration presence only from the environment (client id/secret/redirect) — no credential value is ever returned or stored in the repository.
 
-- `LUMOS_GOOGLE_OAUTH_CLIENT_ID`
-- `LUMOS_GOOGLE_OAUTH_CLIENT_SECRET`
-- `LUMOS_GOOGLE_OAUTH_REDIRECT_URI`
+### Live connection verification (operator-supplied credentials only)
 
-No credential value is returned by the provider or stored in the repository. Publish remains disabled even after approval until the controlled-access connector is implemented.
+A subset of providers additionally support a `verify_connection` action that makes a real, read-only call to the provider's own API — but only when the **operator** supplies their own already-issued access token/credential via environment variable, and only after `requires_approval=True`. No credential is embedded in this repository or returned in any response; a failed or unreachable check fails closed (`*_connection_check_failed` / `verification_failed`), never a fabricated success.
+
+| Provider | Live check | Env var(s) |
+|----------|-----------|------------|
+| Facebook, Instagram | Meta Graph API `/me` | `LUMOS_FACEBOOK_PAGE_ACCESS_TOKEN` / `LUMOS_INSTAGRAM_ACCESS_TOKEN` + `LUMOS_META_GRAPH_VERSION` |
+| Threads | `graph.threads.net/v1.0/me` | `LUMOS_THREADS_ACCESS_TOKEN` |
+| X | `api.twitter.com/2/users/me` | `LUMOS_X_BEARER_TOKEN` |
+| LinkedIn | `api.linkedin.com/v2/userinfo` (OIDC) | `LUMOS_LINKEDIN_ACCESS_TOKEN` |
+| TikTok | `open.tiktokapis.com/v2/user/info` | `LUMOS_TIKTOK_ACCESS_TOKEN` |
+| YouTube | Google `oauth2/v3/userinfo` | `LUMOS_YOUTUBE_ACCESS_TOKEN` |
+| VK | `api.vk.com/method/users.get` | `LUMOS_VK_ACCESS_TOKEN` |
+| Weibo | `api.weibo.com/2/account/get_uid` | `LUMOS_WEIBO_ACCESS_TOKEN` |
+| WeChat | Official Account `token` endpoint | `LUMOS_WECHAT_OFFICIAL_ACCOUNT_APP_ID` / `_APP_SECRET` |
+| Zoom, Microsoft Teams, Google Meet, Webex (`meetings_provider.py`) | vendor `/me`-style endpoint | `LUMOS_ZOOM_ACCESS_TOKEN` / `LUMOS_MICROSOFT_TEAMS_ACCESS_TOKEN` / `LUMOS_GOOGLE_MEET_ACCESS_TOKEN` / `LUMOS_WEBEX_ACCESS_TOKEN` |
+| Sonos (`sonos_provider.py`) | Sonos Control API households | `LUMOS_SONOS_ACCESS_TOKEN` |
+
+**Intentionally left at config-presence-only** (no live check): Bilibili, Douyin, Xiaohongshu, ShareChat, Rutube, OK, Jitsi, Tencent Meeting, Lark Meetings, JioMeet — these vendors don't have a public, self-serve API surface documented with enough confidence to implement correctly; they report `oauth_configuration` status but never attempt a network call.
 
 ---
 
