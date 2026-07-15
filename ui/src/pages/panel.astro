@@ -15959,7 +15959,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         }
       }
 
-      void (async function checkBridgeHealth() {
+      async function checkBridgeHealth() {
         setPanelConnBadge("pending");
         bridgeHealthPhase = "trying";
         bridgeHealthDebugTail = "";
@@ -16009,7 +16009,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
           syncBridgeHealthLine();
         }
         paintSistemDurumuPanel();
-      })();
+      }
+
+      void checkBridgeHealth();
 
       function wireMedyaOutbox() {
         const btn = document.getElementById("medya-outbox-refresh");
@@ -16313,6 +16315,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             if (new URLSearchParams(location.search).get("source") === "google_web") {
               applyPanelUserMode("full");
             }
+            void checkBridgeHealth();
           } else {
             nameEl.textContent = "";
             avatar.removeAttribute("src");
