@@ -179,10 +179,10 @@ def _verify_instagram() -> dict[str, object]:
 
 def _verify_threads() -> dict[str, object]:
     token = os.environ["LUMOS_THREADS_ACCESS_TOKEN"].strip()
-    query = urlencode({"fields": "id,username", "access_token": token})
+    query = urlencode({"fields": "id,username"})
     request = Request(
         f"https://graph.threads.net/v1.0/me?{query}",
-        headers={"Accept": "application/json"},
+        headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
     )
     payload = _http_get_json(request)
     if not payload.get("id"):

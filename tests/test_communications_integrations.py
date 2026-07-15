@@ -211,10 +211,17 @@ def test_instagram_live_check_returns_safe_identity(monkeypatch):
 
 def test_threads_live_check_returns_safe_identity(monkeypatch):
     monkeypatch.setenv("LUMOS_THREADS_ACCESS_TOKEN", "test-secret-token")
+    captured_request = {}
+
+    def fake_http_get_json(request):
+        captured_request["url"] = request.full_url
+        captured_request["authorization"] = request.get_header("Authorization")
+        return {"id": "th-123", "username": "lumos_threads"}
+
     monkeypatch.setattr(
         communications_provider,
         "_http_get_json",
-        lambda request: {"id": "th-123", "username": "lumos_threads"},
+        fake_http_get_json,
     )
 
     result = register_default_integrations().run(
@@ -229,6 +236,8 @@ def test_threads_live_check_returns_safe_identity(monkeypatch):
     assert result.ok is True
     assert result.data["identity"]["username"] == "lumos_threads"
     assert "test-secret-token" not in str(result.data)
+    assert "test-secret-token" not in captured_request["url"]
+    assert captured_request["authorization"] == "Bearer test-secret-token"
 
 
 def test_x_live_check_returns_safe_identity(monkeypatch):
