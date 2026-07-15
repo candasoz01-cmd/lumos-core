@@ -1,7 +1,10 @@
 /**
  * POST|GET /api/auth/logout — Lumos oturum çerezini temizle
  */
-import { clearSessionCookieHeader } from "../_lib/lumos_session.js";
+import {
+  clearBridgeProxyCookieHeader,
+  clearSessionCookieHeader,
+} from "../_lib/lumos_session.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST" && req.method !== "GET") {
@@ -9,7 +12,10 @@ export default async function handler(req, res) {
     res.end("method_not_allowed");
     return;
   }
-  res.setHeader("Set-Cookie", clearSessionCookieHeader());
+  res.setHeader("Set-Cookie", [
+    clearSessionCookieHeader(),
+    clearBridgeProxyCookieHeader(),
+  ]);
   res.setHeader("Cache-Control", "no-store");
   if (req.method === "GET") {
     res.statusCode = 302;

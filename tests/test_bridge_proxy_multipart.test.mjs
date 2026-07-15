@@ -130,14 +130,17 @@ test("applyForwardBody sets body and matching content-length", () => {
   assert.equal(init.headers["content-length"], String(body.length));
 });
 
-test("bridge proxy path allowlist only accepts supported single-segment routes", () => {
+test("bridge proxy path allowlist only accepts supported routes", () => {
   assert.equal(isAllowedBridgePath(["task"]), true);
   assert.equal(isAllowedBridgePath(["chat"]), true);
   assert.equal(isAllowedBridgePath(["last-result"]), true);
   assert.equal(isAllowedBridgePath(["controlled"]), true);
   assert.equal(isAllowedBridgePath(["transcribe"]), true);
-  assert.equal(isAllowedBridgePath(["health"]), false);
+  assert.equal(isAllowedBridgePath(["health"]), true);
+  assert.equal(isAllowedBridgePath(["status"]), true);
+  assert.equal(isAllowedBridgePath(["panel", "upload"]), true);
   assert.equal(isAllowedBridgePath(["task", "extra"]), false);
+  assert.equal(isAllowedBridgePath(["admin", "delete"]), false);
   assert.equal(isAllowedBridgePath([]), false);
 });
 
@@ -188,8 +191,8 @@ test("handler rejects disallowed bridge paths before upstream fetch", async () =
     await handler(
       {
         method: "GET",
-        url: "/api/bridge/health",
-        query: { path: ["health"] },
+        url: "/api/bridge/admin/delete",
+        query: { path: ["admin", "delete"] },
         headers: { "x-lumos-bridge-auth": "proxy-auth-token" },
       },
       res,

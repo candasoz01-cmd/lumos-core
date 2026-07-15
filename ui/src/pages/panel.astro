@@ -422,6 +422,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
         filter: brightness(1.04);
         outline: none;
       }
+      .panel-auth-login[hidden],
+      .panel-auth-user[hidden] {
+        display: none;
+      }
       .panel-auth-user {
         display: flex;
         align-items: center;
@@ -6487,7 +6491,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
       }
 
       const GOREVLER_FIELD_MAX_LEN = 2048;
-      const bridgeTokenMissing = !PANEL_DEBUG && !String(kandoToken || "").trim();
+      const bridgeUsesSameOriginProxy = String(CHAT_URL || "").startsWith("/api/bridge/");
+      const bridgeTokenMissing =
+        !PANEL_DEBUG &&
+        !String(kandoToken || "").trim() &&
+        !bridgeUsesSameOriginProxy;
       /** Phase 1: görev köprüsü same-origin proxy; tarayıcı token taşımaz. */
       const TASK_BRIDGE_URL = "/api/bridge/task";
       /** Phase 2: medya outbox (last-result) same-origin proxy; tarayıcı token taşımaz. */
@@ -16298,6 +16306,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
             login.hidden = true;
             user.hidden = false;
             slot.dataset.state = "in";
+            if (new URLSearchParams(location.search).get("source") === "google_web") {
+              applyPanelUserMode("full");
+            }
           } else {
             nameEl.textContent = "";
             avatar.removeAttribute("src");

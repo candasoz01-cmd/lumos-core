@@ -30,9 +30,12 @@ const PROXY_AUTH_COOKIE = "lumos_bridge_proxy_auth";
 const ALLOWED_BRIDGE_PATHS = new Set([
   "task",
   "chat",
+  "health",
+  "status",
   "last-result",
   "controlled",
   "transcribe",
+  "panel/upload",
 ]);
 
 const PROXY_UNAVAILABLE = {
@@ -99,7 +102,7 @@ function pathSegments(query, url) {
 }
 
 function isAllowedBridgePath(segments) {
-  return segments.length === 1 && ALLOWED_BRIDGE_PATHS.has(String(segments[0] || ""));
+  return ALLOWED_BRIDGE_PATHS.has(segments.map(String).join("/"));
 }
 
 function firstHeader(req, headerName) {

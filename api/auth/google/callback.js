@@ -5,6 +5,7 @@
  */
 import { randomBytes } from "node:crypto";
 import {
+  bridgeProxyCookieHeader,
   clearStateCookieHeader,
   readCookie,
   redirectUri,
@@ -114,10 +115,17 @@ export default async function handler(req, res) {
   });
 
   res.statusCode = 302;
-  res.setHeader("Set-Cookie", [
+  const cookies = [
     sessionCookieHeader(sealed),
     clearStateCookieHeader(),
-  ]);
+  ];
+  const bridgeProxyToken = String(
+    process.env.LUMOS_BRIDGE_PROXY_AUTH_TOKEN || ""
+  ).trim();
+  if (bridgeProxyToken) {
+    cookies.push(bridgeProxyCookieHeader(bridgeProxyToken));
+  }
+  res.setHeader("Set-Cookie", cookies);
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Location", "/panel?source=google_web&door=lumos");
   res.end();
