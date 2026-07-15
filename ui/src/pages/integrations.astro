@@ -61,25 +61,49 @@ const socialMediaPackages = [
     id: "global",
     titleKey: "umbrella.integrations.socialGlobalTitle",
     title: "Küresel",
-    platforms: ["Meta (Facebook, Instagram)", "X", "TikTok", "LinkedIn", "YouTube"],
+    platforms: [
+      { id: "facebook", name: "Facebook" },
+      { id: "instagram", name: "Instagram" },
+      { id: "x", name: "X" },
+      { id: "tiktok", name: "TikTok" },
+      { id: "linkedin", name: "LinkedIn" },
+      { id: "youtube", name: "YouTube" },
+    ],
   },
   {
     id: "china",
     titleKey: "umbrella.integrations.socialChinaTitle",
     title: "Çin",
-    platforms: ["WeChat", "Douyin", "Bilibili", "RED / Xiaohongshu", "Weibo"],
+    platforms: [
+      { id: "wechat", name: "WeChat" },
+      { id: "douyin", name: "Douyin" },
+      { id: "bilibili", name: "Bilibili" },
+      { id: "xiaohongshu", name: "RED / Xiaohongshu" },
+      { id: "weibo", name: "Weibo" },
+    ],
   },
   {
     id: "india",
     titleKey: "umbrella.integrations.socialIndiaTitle",
     title: "Hindistan",
-    platforms: ["WhatsApp", "Instagram", "YouTube", "ShareChat", "Telegram"],
+    platforms: [
+      { id: "whatsapp", name: "WhatsApp" },
+      { id: "instagram", name: "Instagram" },
+      { id: "youtube", name: "YouTube" },
+      { id: "sharechat", name: "ShareChat" },
+      { id: "telegram", name: "Telegram" },
+    ],
   },
   {
     id: "russia",
     titleKey: "umbrella.integrations.socialRussiaTitle",
     title: "Rusya",
-    platforms: ["VK", "Telegram", "OK", "Rutube"],
+    platforms: [
+      { id: "vk", name: "VK" },
+      { id: "telegram", name: "Telegram" },
+      { id: "okru", name: "OK" },
+      { id: "rutube", name: "Rutube" },
+    ],
   },
 ] as const;
 ---
@@ -201,7 +225,11 @@ const socialMediaPackages = [
                 <span class="integration-status integration-status--planned" data-i18n="umbrella.integrations.identityRequired">Kimlik bekliyor</span>
               </div>
               <ul class="integration-social-platform-list">
-                {socialPackage.platforms.map((platform) => <li>{platform}</li>)}
+                {socialPackage.platforms.map((platform) => (
+                  <li>
+                    <BrandLockup id={platform.id} name={platform.name} chip linked={false} />
+                  </li>
+                ))}
               </ul>
               <p data-i18n="umbrella.integrations.socialCardNote">Katalog yuvası hazır; canlı OAuth ve paylaşım henüz etkin değil.</p>
             </article>
