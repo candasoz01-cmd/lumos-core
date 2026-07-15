@@ -162,6 +162,159 @@ def test_whatsapp_live_check_fails_closed(monkeypatch):
     assert "test-secret-token" not in str(result.data)
 
 
+def test_facebook_live_check_returns_safe_identity(monkeypatch):
+    monkeypatch.setenv("LUMOS_FACEBOOK_PAGE_ACCESS_TOKEN", "test-secret-token")
+    monkeypatch.setenv("LUMOS_META_GRAPH_VERSION", "v99.0")
+    monkeypatch.setattr(
+        communications_provider,
+        "_http_get_json",
+        lambda request: {"id": "fb-123", "name": "Lumos Page"},
+    )
+
+    result = register_default_integrations().run(
+        IntegrationRequest(
+            provider="communications",
+            action="verify_connection",
+            payload={"provider_id": "facebook"},
+            requires_approval=True,
+        ),
+    )
+
+    assert result.ok is True
+    assert result.data["status"] == "connected"
+    assert result.data["identity"]["name"] == "Lumos Page"
+    assert "test-secret-token" not in str(result.data)
+
+
+def test_instagram_live_check_returns_safe_identity(monkeypatch):
+    monkeypatch.setenv("LUMOS_INSTAGRAM_ACCESS_TOKEN", "test-secret-token")
+    monkeypatch.setenv("LUMOS_META_GRAPH_VERSION", "v99.0")
+    monkeypatch.setattr(
+        communications_provider,
+        "_http_get_json",
+        lambda request: {"id": "ig-123", "username": "lumos_ig"},
+    )
+
+    result = register_default_integrations().run(
+        IntegrationRequest(
+            provider="communications",
+            action="verify_connection",
+            payload={"provider_id": "instagram"},
+            requires_approval=True,
+        ),
+    )
+
+    assert result.ok is True
+    assert result.data["identity"]["username"] == "lumos_ig"
+    assert "test-secret-token" not in str(result.data)
+
+
+def test_threads_live_check_returns_safe_identity(monkeypatch):
+    monkeypatch.setenv("LUMOS_THREADS_ACCESS_TOKEN", "test-secret-token")
+    monkeypatch.setattr(
+        communications_provider,
+        "_http_get_json",
+        lambda request: {"id": "th-123", "username": "lumos_threads"},
+    )
+
+    result = register_default_integrations().run(
+        IntegrationRequest(
+            provider="communications",
+            action="verify_connection",
+            payload={"provider_id": "threads"},
+            requires_approval=True,
+        ),
+    )
+
+    assert result.ok is True
+    assert result.data["identity"]["username"] == "lumos_threads"
+    assert "test-secret-token" not in str(result.data)
+
+
+def test_x_live_check_returns_safe_identity(monkeypatch):
+    monkeypatch.setenv("LUMOS_X_BEARER_TOKEN", "test-secret-token")
+    monkeypatch.setattr(
+        communications_provider,
+        "_http_get_json",
+        lambda request: {"data": {"id": "x-123", "username": "lumos_x"}},
+    )
+
+    result = register_default_integrations().run(
+        IntegrationRequest(
+            provider="communications",
+            action="verify_connection",
+            payload={"provider_id": "x"},
+            requires_approval=True,
+        ),
+    )
+
+    assert result.ok is True
+    assert result.data["identity"]["username"] == "lumos_x"
+    assert "test-secret-token" not in str(result.data)
+
+
+def test_linkedin_live_check_returns_safe_identity(monkeypatch):
+    monkeypatch.setenv("LUMOS_LINKEDIN_ACCESS_TOKEN", "test-secret-token")
+    monkeypatch.setattr(
+        communications_provider,
+        "_http_get_json",
+        lambda request: {"sub": "li-123", "name": "Lumos LinkedIn"},
+    )
+
+    result = register_default_integrations().run(
+        IntegrationRequest(
+            provider="communications",
+            action="verify_connection",
+            payload={"provider_id": "linkedin"},
+            requires_approval=True,
+        ),
+    )
+
+    assert result.ok is True
+    assert result.data["identity"]["name"] == "Lumos LinkedIn"
+    assert "test-secret-token" not in str(result.data)
+
+
+def test_tiktok_live_check_returns_safe_identity(monkeypatch):
+    monkeypatch.setenv("LUMOS_TIKTOK_ACCESS_TOKEN", "test-secret-token")
+    monkeypatch.setattr(
+        communications_provider,
+        "_http_get_json",
+        lambda request: {"data": {"user": {"open_id": "tt-123", "display_name": "Lumos TikTok"}}},
+    )
+
+    result = register_default_integrations().run(
+        IntegrationRequest(
+            provider="communications",
+            action="verify_connection",
+            payload={"provider_id": "tiktok"},
+            requires_approval=True,
+        ),
+    )
+
+    assert result.ok is True
+    assert result.data["identity"]["display_name"] == "Lumos TikTok"
+    assert "test-secret-token" not in str(result.data)
+
+
+def test_social_live_check_fails_closed_when_identity_missing(monkeypatch):
+    monkeypatch.setenv("LUMOS_X_BEARER_TOKEN", "test-secret-token")
+    monkeypatch.setattr(communications_provider, "_http_get_json", lambda request: {})
+
+    result = register_default_integrations().run(
+        IntegrationRequest(
+            provider="communications",
+            action="verify_connection",
+            payload={"provider_id": "x"},
+            requires_approval=True,
+        ),
+    )
+
+    assert result.ok is False
+    assert result.error == "communications_connection_check_failed"
+    assert result.data["status"] == "verification_failed"
+
+
 def test_communications_rejects_unknown_provider():
     result = register_default_integrations().run(
         IntegrationRequest(
