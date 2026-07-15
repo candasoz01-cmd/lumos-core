@@ -39,6 +39,7 @@ def register_default_integrations() -> IntegrationRegistry:
     from integrations.providers.quantum_provider import register_quantum_provider
     from integrations.providers.rutube_provider import register_rutube_provider
     from integrations.providers.sharechat_provider import register_sharechat_provider
+    from integrations.providers.sonos_provider import register_sonos_provider
     from integrations.providers.vk_provider import register_vk_provider
     from integrations.providers.web_search_provider import register_web_search_provider
     from integrations.providers.wechat_provider import register_wechat_provider
@@ -65,4 +66,5 @@ def register_default_integrations() -> IntegrationRegistry:
     register_weibo_provider(registry.register)
     register_xiaohongshu_provider(registry.register)
     register_wechat_provider(registry.register)
+    register_sonos_provider(registry.register)
     return registry
