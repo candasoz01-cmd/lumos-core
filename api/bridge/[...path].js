@@ -298,6 +298,7 @@ export default async function handler(req, res) {
     for (const [key, value] of Object.entries(fwd)) {
       res.setHeader(key, value);
     }
+    res.setHeader("Cache-Control", "no-store");
     return res.send(Buffer.from(body));
   } catch {
     return res.status(502).json({

@@ -15922,7 +15922,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
       async function probeBridgeHealthOnce(url) {
         try {
-          const r = await fetch(url, {
+          const probeUrl = new URL(url, window.location.origin);
+          if (probeUrl.origin === window.location.origin) {
+            probeUrl.searchParams.set("_lumos_probe", String(Date.now()));
+          }
+          const r = await fetch(probeUrl.toString(), {
             method: "GET",
             cache: "no-store",
             mode: "cors",
