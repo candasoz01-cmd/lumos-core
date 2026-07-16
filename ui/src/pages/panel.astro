@@ -6433,6 +6433,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
       /** PR-1: kullanıcı modu — altyapı durumundan bağımsız tercih. */
       const PANEL_USER_MODE_LS_KEY = "lumos_panel_user_mode_v1";
       const PANEL_USER_MODES = ["offline", "limited", "full"];
+      let panelSessionLumosId = "";
+      const panelConversationId =
+        globalThis.crypto && typeof globalThis.crypto.randomUUID === "function"
+          ? globalThis.crypto.randomUUID()
+          : `conversation_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 
       function panelUserModeBadgeLabel(mode) {
         const m = normalizePanelUserMode(mode);
@@ -11866,6 +11871,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
             const chatBody = {
               message: outgoingMessage,
               history,
+              conversation_id: panelConversationId,
+              identity: panelSessionLumosId
+                ? { lumos_id: panelSessionLumosId }
+                : undefined,
               locale:
                 window.LumosI18n && typeof window.LumosI18n.getLocale === "function"
                   ? window.LumosI18n.getLocale()
@@ -11905,6 +11914,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             }
             const r = await fetch(CHAT_URL, {
               method: "POST",
+              credentials: "same-origin",
               headers: {
                 "Content-Type": "application/json",
                 "X-Kando-Token": kandoToken,
@@ -16294,6 +16304,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
           const session = data && data.session ? data.session : null;
           const ok = r.ok && data && data.authenticated === true && session;
           if (ok) {
+            panelSessionLumosId = String(session.lumos_id || "").trim();
             const label =
               String(session.name || "").trim() ||
               String(session.email || "").trim() ||
@@ -16317,6 +16328,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             }
             void checkBridgeHealth();
           } else {
+            panelSessionLumosId = "";
             nameEl.textContent = "";
             avatar.removeAttribute("src");
             avatar.hidden = true;
@@ -16325,6 +16337,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             slot.dataset.state = "out";
           }
         } catch {
+          panelSessionLumosId = "";
           nameEl.textContent = "";
           avatar.removeAttribute("src");
           avatar.hidden = true;

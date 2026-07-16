@@ -1,10 +1,112 @@
-import { openSession, readCookie } from "./lumos_session.js";
+import { openSession, readCookie, sessionLumosId } from "./lumos_session.js";
 
 export const HOSTED_MODEL = "gemini-2.5-flash";
 export const OPENAI_HOSTED_MODEL = "gpt-5.6-luna";
 
 export function hasLumosSession(req) {
   return Boolean(openSession(readCookie(req)));
+}
+
+export function hostedSessionClaims(req) {
+  return openSession(readCookie(req));
+}
+
+function cleanMemoryItems(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .slice(0, 12)
+    .map((item) =>
+      typeof item === "string" ? item : String(item?.summary || item?.text || ""),
+    )
+    .map((item) => item.trim().slice(0, 1000))
+    .filter(Boolean);
+}
+
+export async function loadAllowedMemory(lumosId) {
+  const url = String(process.env.LUMOS_MEMORY_LOOKUP_URL || "").trim();
+  const token = String(process.env.LUMOS_MEMORY_SERVICE_TOKEN || "").trim();
+  if (!url || !token) return { status: "unavailable", items: [] };
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ lumos_id: lumosId, purpose: "hosted_chat" }),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!response.ok) return { status: "unavailable", items: [] };
+    const payload = await response.json();
+    if (payload?.consent !== true) return { status: "not_granted", items: [] };
+    const items = cleanMemoryItems(payload?.memories);
+    return { status: items.length ? "loaded" : "empty", items };
+  } catch {
+    return { status: "unavailable", items: [] };
+  }
+}
+
+export async function loadHostedUserContext(req, body) {
+  const claims = hostedSessionClaims(req);
+  if (!claims) return { ok: false, error: "unauthorized", status: 401 };
+  const lumosId = sessionLumosId(claims);
+  if (!lumosId) return { ok: false, error: "identity_missing", status: 401 };
+  const requestedLumosId = String(body?.identity?.lumos_id || "").trim();
+  if (requestedLumosId && requestedLumosId !== lumosId) {
+    return { ok: false, error: "identity_mismatch", status: 409 };
+  }
+  const name = String(claims.name || "").trim();
+  const email = String(claims.email || "").trim();
+  const memory = await loadAllowedMemory(lumosId);
+  return {
+    ok: true,
+    lumos_id: lumosId,
+    session_id: String(claims.sid || ""),
+    conversation_id: String(body?.conversation_id || "").trim().slice(0, 120),
+    profile: {
+      status: name || email ? "loaded" : "unavailable",
+      name,
+      email,
+      provider: String(claims.provider || "google_web"),
+      connected: true,
+    },
+    memory,
+    package: String(claims.package || "base"),
+  };
+}
+
+function memoryStatusText(memory) {
+  if (memory?.status === "loaded") return "İzin verilmiş kişisel hafıza yüklendi.";
+  if (memory?.status === "empty") return "İzin var; kişisel hafıza kaydı bulunamadı.";
+  if (memory?.status === "not_granted") return "Kişisel hafıza izni verilmedi; özel hafıza yüklenmedi.";
+  return "Oturum bağlı ama kişisel hafıza yüklenmedi.";
+}
+
+export function identityStatusReply(message, context) {
+  if (!/(beni tanıyor musun|ben kimim|kim olduğumu biliyor musun|do you know me|who am i)/i.test(String(message || ""))) {
+    return "";
+  }
+  if (!context?.profile || context.profile.status !== "loaded") {
+    return "Oturum bağlı ama kullanıcı profili yüklenmedi. " + memoryStatusText(context?.memory);
+  }
+  const name = context.profile.name || context.profile.email || "kullanıcı";
+  return `Evet, ${name}. Google hesabın Lumos oturumuna bağlı. ${memoryStatusText(context.memory)}`;
+}
+
+function identityInstruction(context) {
+  if (!context?.ok) return "";
+  const profile = context.profile || {};
+  const lines = [
+    `Bağlı Lumos kullanıcısı: ${profile.name || "ad yüklenmedi"}.`,
+    `Hesap sağlayıcısı: ${profile.provider || "bilinmiyor"}; bağlı: ${profile.connected === true ? "evet" : "hayır"}.`,
+    `Kişisel hafıza durumu: ${context.memory?.status || "unavailable"}.`,
+    "Paket seviyesi kimliği değiştirmez; yalnız özellik ve limitleri belirler.",
+    "Profil veya hafıza yoksa kullanıcıyı tanıyormuş gibi uydurma.",
+  ];
+  if (context.memory?.status === "loaded" && context.memory.items.length) {
+    lines.push("Yalnız izinli hafıza özetleri:", ...context.memory.items.map((item) => `- ${item}`));
+  }
+  return lines.join("\n");
 }
 
 export function hostedGeminiKey() {
@@ -60,7 +162,7 @@ export function localTimeReply(message) {
   return `Saat ${time}. Bugün ${date}.`;
 }
 
-export function buildGeminiRequest(body) {
+export function buildGeminiRequest(body, context = null) {
   const message = String(body?.message || "").trim().slice(0, 8000);
   const turns = cleanHistory(body?.history);
   if (!turns.length || turns.at(-1)?.role !== "user" || turns.at(-1)?.text !== message) {
@@ -94,7 +196,8 @@ export function buildGeminiRequest(body) {
           text:
             "Sen Lumos'sun. Kısa, doğal ve yardımcı cevap ver. Kullanıcının dilini kullan. " +
             "İç altyapı adlarını kullanıcıya gösterme. Gerçekte yapmadığın bir cihaz veya dosya işlemini yaptığını söyleme; " +
-            "böyle bir işlem istenirse cihaz bağlantısının gerektiğini açıkça belirt.",
+            "böyle bir işlem istenirse cihaz bağlantısının gerektiğini açıkça belirt.\n" +
+            identityInstruction(context),
         },
       ],
     },
@@ -106,7 +209,7 @@ export function buildGeminiRequest(body) {
   };
 }
 
-export function buildOpenAIRequest(body) {
+export function buildOpenAIRequest(body, context = null) {
   const message = String(body?.message || "").trim().slice(0, 8000);
   const turns = cleanHistory(body?.history);
   if (!turns.length || turns.at(-1)?.role !== "user" || turns.at(-1)?.text !== message) {
@@ -140,7 +243,8 @@ export function buildOpenAIRequest(body) {
     instructions:
       "Sen Lumos'sun. Kısa, doğal ve yardımcı cevap ver. Kullanıcının dilini kullan. " +
       "İç altyapı adlarını kullanıcıya gösterme. Gerçekte yapmadığın bir cihaz veya dosya işlemini yaptığını söyleme; " +
-      "böyle bir işlem istenirse cihaz bağlantısının gerektiğini açıkça belirt.",
+      "böyle bir işlem istenirse cihaz bağlantısının gerektiğini açıkça belirt.\n" +
+      identityInstruction(context),
     input,
     reasoning: { effort: "none" },
     max_output_tokens: 1200,

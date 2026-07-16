@@ -25,6 +25,31 @@ export function authSecret() {
   );
 }
 
+function identitySecret() {
+  return process.env.LUMOS_ID_SECRET || authSecret();
+}
+
+/**
+ * Sağlayıcı kimliğini dışarı sızdırmadan, tekrar girişlerde değişmeyen Lumos ID üretir.
+ * sid oturumu; lumos_id kullanıcıyı temsil eder. Bu iki alan birbirinin yerine kullanılmaz.
+ */
+export function lumosIdForProviderIdentity(provider, subject) {
+  const cleanProvider = String(provider || "").trim().toLowerCase();
+  const cleanSubject = String(subject || "").trim();
+  if (!cleanProvider || !cleanSubject) return "";
+  const digest = createHmac("sha256", identitySecret())
+    .update(`lumos-id-v1:${cleanProvider}:${cleanSubject}`)
+    .digest("base64url")
+    .slice(0, 24);
+  return `lumos_${digest}`;
+}
+
+export function sessionLumosId(claims) {
+  const existing = String(claims?.lumos_id || "").trim();
+  if (existing) return existing;
+  return lumosIdForProviderIdentity(claims?.provider, claims?.sub);
+}
+
 function keyBytes() {
   return createHash("sha256").update(authSecret()).digest();
 }

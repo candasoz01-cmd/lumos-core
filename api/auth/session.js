@@ -5,6 +5,7 @@ import {
   bridgeProxyCookieHeader,
   openSession,
   readCookie,
+  sessionLumosId,
 } from "../_lib/lumos_session.js";
 
 export default async function handler(req, res) {
@@ -21,6 +22,12 @@ export default async function handler(req, res) {
     res.end(JSON.stringify({ ok: false, authenticated: false }));
     return;
   }
+  const lumosId = sessionLumosId(claims);
+  if (!lumosId) {
+    res.statusCode = 401;
+    res.end(JSON.stringify({ ok: false, authenticated: false, error: "identity_missing" }));
+    return;
+  }
   const bridgeProxyToken = String(
     process.env.LUMOS_BRIDGE_PROXY_AUTH_TOKEN || ""
   ).trim();
@@ -34,11 +41,13 @@ export default async function handler(req, res) {
       authenticated: true,
       session: {
         session_id: claims.sid,
+        lumos_id: lumosId,
         email: claims.email,
         name: claims.name,
         picture: claims.picture || "",
         door: claims.door || "lumos",
         provider: claims.provider || "google_web",
+        package: claims.package || "base",
         exp: claims.exp,
       },
     })

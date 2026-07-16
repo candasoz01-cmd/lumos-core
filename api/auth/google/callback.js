@@ -9,6 +9,7 @@ import {
   clearStateCookieHeader,
   readCookie,
   redirectUri,
+  lumosIdForProviderIdentity,
   sealSession,
   sessionCookieHeader,
   STATE_COOKIE,
@@ -102,14 +103,23 @@ export default async function handler(req, res) {
   }
   const info = await infoRes.json();
   const now = Math.floor(Date.now() / 1000);
+  const lumosId = lumosIdForProviderIdentity("google_web", info.sub);
+  if (!lumosId) {
+    res.statusCode = 400;
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify({ ok: false, error: "identity_subject_missing" }));
+    return;
+  }
   const sealed = sealSession({
     sid: randomBytes(18).toString("base64url"),
+    lumos_id: lumosId,
     sub: info.sub,
     email: info.email || "",
     name: info.name || "",
     picture: info.picture || "",
     door: "lumos",
     provider: "google_web",
+    package: "base",
     iat: now,
     exp: now + 604800,
   });
