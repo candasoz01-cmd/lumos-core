@@ -103,7 +103,7 @@ Official integration pages live under **[welockai.com](https://welockai.com/)** 
 | Mac / Universal Links | https://welockai.com/connect/mac |
 | Cyber | https://welockai.com/cyber |
 
-Technical and product overview: [`docs/integrations-overview.md`](docs/integrations-overview.md). Lumos API service gateway contract: [`docs/decisions/ADR-015-lumos-service-api-gateway.md`](docs/decisions/ADR-015-lumos-service-api-gateway.md). Architecture foundation: [`docs/analysis/welockai-charter-draft.md`](docs/analysis/welockai-charter-draft.md) (§5 integration matrix), [`docs/analysis/welockai-trust-model-draft.md`](docs/analysis/welockai-trust-model-draft.md). Permission canon: [`docs/memory/external-integrations-permissions.md`](docs/memory/external-integrations-permissions.md). OSS stubs: `src/integrations/`.
+Technical and product overview: [`docs/integrations-overview.md`](docs/integrations-overview.md). Lumos API service gateway contract: [`docs/decisions/ADR-015-lumos-service-api-gateway.md`](docs/decisions/ADR-015-lumos-service-api-gateway.md). Lumos ID + Memory Gateway contract: [`docs/decisions/ADR-016-lumos-id-memory-gateway.md`](docs/decisions/ADR-016-lumos-id-memory-gateway.md). Architecture foundation: [`docs/analysis/welockai-charter-draft.md`](docs/analysis/welockai-charter-draft.md) (§5 integration matrix), [`docs/analysis/welockai-trust-model-draft.md`](docs/analysis/welockai-trust-model-draft.md). Permission canon: [`docs/memory/external-integrations-permissions.md`](docs/memory/external-integrations-permissions.md). OSS stubs: `src/integrations/`.
 
 Live OAuth, production connectors, and enterprise policy enforcement ship in the **WeLockAI private layer** — not in this public repository.
 

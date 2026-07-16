@@ -33,6 +33,7 @@ def register_default_integrations() -> IntegrationRegistry:
     from integrations.providers.douyin_provider import register_douyin_provider
     from integrations.providers.global_catalog_provider import register_global_catalog_provider
     from integrations.providers.integration_onboarding_provider import register_integration_onboarding_provider
+    from integrations.providers.lumos_id_provider import register_lumos_id_provider
     from integrations.providers.mail_provider import register_mail_provider
     from integrations.providers.meetings_provider import register_meetings_provider
     from integrations.providers.openai_provider import register_openai_provider
@@ -69,4 +70,5 @@ def register_default_integrations() -> IntegrationRegistry:
     register_xiaohongshu_provider(registry.register)
     register_wechat_provider(registry.register)
     register_sonos_provider(registry.register)
+    register_lumos_id_provider(registry.register)
     return registry

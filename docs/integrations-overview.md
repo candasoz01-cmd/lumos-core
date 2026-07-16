@@ -19,6 +19,14 @@ Public OSS temelinde `service_gateway` sağlayıcısı sözleşmeyi keşfetmeye 
 
 Karar ve hizmet ailesi tablosu: [`ADR-015: Lumos Service API Gateway`](decisions/ADR-015-lumos-service-api-gateway.md).
 
+## Lumos ID + Memory Gateway
+
+Lumos ID, kullanıcının tek ve sağlayıcıdan bağımsız kimliğidir; OpenAI, Google/Gemini, Apple, GitHub, Gmail gibi hiçbir sağlayıcı bu kimliğin sahibi değildir. Memory Gateway, hafızayı bu kimlik altında zorunlu kaynak etiketiyle ve sağlayıcı bazında ayrılmış şekilde tutar; sağlayıcılar arası veri hiçbir zaman otomatik paylaşılmaz, çapraz kullanım yalnızca açık onayla mümkündür.
+
+Public OSS temelinde `lumos_id` sağlayıcısı yalnızca sözleşme keşfi (`describe_contract`), kayıtlı kaynak etiketi listesi (`list_memory_sources`) ve yürütme yapmayan çapraz kullanım planı (`plan_cross_use`) sağlar — gerçek kullanıcı oturumu, gerçek hafıza deposu veya gerçek çapraz paylaşım yoktur.
+
+Karar: [`ADR-016: Lumos ID + Memory Gateway`](decisions/ADR-016-lumos-id-memory-gateway.md).
+
 ---
 
 ## Product surfaces (welockai.com)
@@ -158,6 +166,7 @@ See [`docs/memory/public-repo-boundary.md`](memory/public-repo-boundary.md).
 - Registry: `src/integrations/registry.py`
 - Social/video catalog: `src/integrations/providers/global_catalog_provider.py`
 - Lumos API contract: `src/integrations/providers/service_gateway_provider.py`
+- Lumos ID + Memory Gateway contract: `src/integrations/providers/lumos_id_provider.py`
 - YouTube Google OAuth skeleton: `src/integrations/providers/youtube_provider.py`
 - Quantum Layer catalog stub: `src/integrations/quantum_registry.py`, `src/integrations/providers/quantum_provider.py`
 - Mail stub: `src/integrations/mail/`
