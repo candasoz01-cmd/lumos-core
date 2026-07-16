@@ -29,6 +29,7 @@ const en: MessageTree = {
     developer: "Developer",
     install: "Setup",
     connect: "Connect",
+    ecosystem: "Trust",
     panel: "Open Lumos",
     github: "GitHub",
     brandAria: "We Lock AI — top of page",
