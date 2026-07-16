@@ -38,6 +38,7 @@ def register_default_integrations() -> IntegrationRegistry:
     from integrations.providers.openai_provider import register_openai_provider
     from integrations.providers.quantum_provider import register_quantum_provider
     from integrations.providers.rutube_provider import register_rutube_provider
+    from integrations.providers.service_gateway_provider import register_service_gateway_provider
     from integrations.providers.sharechat_provider import register_sharechat_provider
     from integrations.providers.sonos_provider import register_sonos_provider
     from integrations.providers.vk_provider import register_vk_provider
@@ -60,6 +61,7 @@ def register_default_integrations() -> IntegrationRegistry:
     register_youtube_provider(registry.register)
     register_bilibili_provider(registry.register)
     register_rutube_provider(registry.register)
+    register_service_gateway_provider(registry.register)
     register_sharechat_provider(registry.register)
     register_vk_provider(registry.register)
     register_douyin_provider(registry.register)

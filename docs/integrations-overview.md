@@ -11,6 +11,14 @@
 
 This document is **demo-safe** and suitable for the public `lumos-core` repository. It does not describe production credentials, OAuth client IDs, or WeLockAI private orchestration.
 
+## Lumos API service gateway
+
+Lumos'un uzun vadeli entegrasyon yönü **tek kapı, çok hizmet, aynı güven çizgisi** ilkesidir. AI, güvenlik, kimlik, araçlar, sosyal/medya, toplantı, ses/cihaz, bölgesel ağ ve kamu hizmeti adaptörleri aynı dış sözleşme altında planlanır.
+
+Public OSS temelinde `service_gateway` sağlayıcısı sözleşmeyi keşfetmeye ve yürütme yapmayan rota planı üretmeye yarar. Bu, canlı bir `api.lumos.ai` veya üretim sağlayıcı yönlendirmesi iddiası değildir. Dış etki her zaman açık onay ister; gerçek OAuth, kurum kimlik bilgileri ve üretim taşıması controlled-access katmanda kalır.
+
+Karar ve hizmet ailesi tablosu: [`ADR-015: Lumos Service API Gateway`](decisions/ADR-015-lumos-service-api-gateway.md).
+
 ---
 
 ## Product surfaces (welockai.com)
@@ -74,6 +82,14 @@ A subset of providers additionally support a `verify_connection` action that mak
 | Sonos (`sonos_provider.py`) | Sonos Control API households | `LUMOS_SONOS_ACCESS_TOKEN` |
 
 **Intentionally left at config-presence-only** (no live check): Bilibili, Douyin, Xiaohongshu, ShareChat, Rutube, OK, Jitsi, Tencent Meeting, Lark Meetings, JioMeet — these vendors don't have a public, self-serve API surface documented with enough confidence to implement correctly; they report `oauth_configuration` status but never attempt a network call.
+
+---
+
+## Public services adapter family
+
+Kamu hizmetleri sosyal/medya senkronundan ayrı bir entegrasyon ailesidir; aynı Lumos güven ve onay sözleşmesini kullanır. Public katalog kimlik, sağlık, eğitim, vergi, belediye ve belge adaptör ailelerini **metadata-only / discovery-only** olarak listeler.
+
+Bu kayıtlar herhangi bir devlet sistemine canlı erişim iddiası taşımaz. Gerçek bağlantı; resmi API, kurum sözleşmesi, bölgesel veri politikası, operatör kimlik bilgisi ve işlem anı kullanıcı/kurum onayı olmadan açılamaz.
 
 ---
 
@@ -141,6 +157,7 @@ See [`docs/memory/public-repo-boundary.md`](memory/public-repo-boundary.md).
 
 - Registry: `src/integrations/registry.py`
 - Social/video catalog: `src/integrations/providers/global_catalog_provider.py`
+- Lumos API contract: `src/integrations/providers/service_gateway_provider.py`
 - YouTube Google OAuth skeleton: `src/integrations/providers/youtube_provider.py`
 - Quantum Layer catalog stub: `src/integrations/quantum_registry.py`, `src/integrations/providers/quantum_provider.py`
 - Mail stub: `src/integrations/mail/`
