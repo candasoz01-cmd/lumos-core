@@ -53,11 +53,11 @@ const panelCommon: typeof panelTr.common = {
 
 const panel: typeof panelTr = {
   meta: {
-    title: "ChatLumos — Lumos Workspace",
+    title: "Lumos Center — chat, tasks, identity",
   },
   header: {
-    title: "ChatLumos",
-    subtitle: "Chat and tasks in one place",
+    title: "Lumos",
+    subtitle: "Center · chat, tasks, identity",
   },
   moduleGroups: {
     calisma: "Workspace",
@@ -132,6 +132,19 @@ const panel: typeof panelTr = {
       dunya: "Module off; localization information screen",
       ayarlar: "Module off; settings information screen",
     },
+  },
+  workspace: {
+    metaTitle: "Lumos Center — chat, tasks, identity",
+    contextTitle: "Workspace context",
+    identityTitle: "Lumos ID",
+    identityBody: "Session and permission context",
+    identityState: "Identity lives in the top bar",
+    systemTitle: "System",
+    systemBody: "Connection and operating mode",
+    systemState: "Tracked with live status",
+    tasksTitle: "Active tasks",
+    tasksBody: "Visible in the Tasks module",
+    tasksState: "Local record ready",
   },
   rootStatus: {
     title: "Root status",

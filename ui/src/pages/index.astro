@@ -1,11 +1,13 @@
 ---
 import "../styles/lumos-tokens.css";
 import "../styles/umbrella-chrome.css";
+import "../styles/lumos-platform.css";
 import GlobalMay19Corner from "../components/GlobalMay19Corner.astro";
 import LanguageSwitcher from "../components/LanguageSwitcher.astro";
 import I18nInit from "../components/I18nInit.astro";
 import WeLockSiteFooter from "../components/WeLockSiteFooter.astro";
 import LumosMicroStories from "../components/LumosMicroStories.astro";
+import LumosPlatformHero from "../components/LumosPlatformHero.astro";
 
 const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
 const GITHUB_README_URL = "https://github.com/candasoz01-cmd/lumos-core/blob/main/README.md";
@@ -2251,6 +2253,7 @@ const showMay19Commemoration = isMay19CommemorationDay();
             </div>
           </div>
         </nav>
+        <LumosPlatformHero />
         <div class="lumos-hero-layout">
           <div class="lumos-hero-copy">
             <p class="lumos-hero-eyebrow" data-i18n="hero.eyebrow">WE LOCK AI · LUMOS</p>
@@ -2325,6 +2328,15 @@ const showMay19Commemoration = isMay19CommemorationDay();
             >Devam etmek için bir soru yazın.</p>
           </form>
         </div>
+      </div>
+    </section>
+
+    <section id="canli-durum" class="lumos-live-band" aria-label="Lumos canlı durum özeti" data-i18n-aria-label="landing.platform.statusAria">
+      <div class="lumos-shell lumos-live-band__grid">
+        <div class="lumos-live-band__item"><strong data-i18n="landing.platform.ready">Hazır</strong><span data-i18n="landing.platform.readyBody">Sohbet · görevler · dosyalar</span></div>
+        <div class="lumos-live-band__item"><strong data-i18n="landing.platform.live">Canlı</strong><span data-i18n="landing.platform.liveBody">Google ile Lumos ID</span></div>
+        <div class="lumos-live-band__item"><strong data-i18n="landing.platform.developing">Gelişiyor</strong><span data-i18n="landing.platform.developingBody">Ses · medya · otomasyon</span></div>
+        <div class="lumos-live-band__item"><strong data-i18n="landing.platform.roadmap">Yol haritası</strong><span data-i18n="landing.platform.roadmapBody">Cihaz · ev · yerel modeller</span></div>
       </div>
     </section>
 
@@ -3194,6 +3206,14 @@ vercel dev</code></pre>
       </div>
     </div>
     )}
+
+    <section class="lumos-shell lumos-final-cta" aria-labelledby="lumos-final-cta-title">
+      <div>
+        <h2 id="lumos-final-cta-title" data-i18n="landing.platform.finalTitle">Tek panelden başla.</h2>
+        <p data-i18n="landing.platform.finalBody">Bugün çalışanları kullan; hazırlananları durumlarıyla birlikte izle.</p>
+      </div>
+      <a class="lumos-hero-btn lumos-hero-btn--primary" href="/panel" data-i18n="landing.platform.openLumos">Lumos’u aç</a>
+    </section>
 
     <WeLockSiteFooter />
 

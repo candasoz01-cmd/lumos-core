@@ -1,5 +1,6 @@
 ---
 import "../styles/lumos-tokens.css";
+import "../styles/lumos-platform.css";
 import "../styles/umbrella-chrome.css";
 import LanguageSwitcher from "../components/LanguageSwitcher.astro";
 import I18nInit from "../components/I18nInit.astro";
@@ -41,7 +42,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
       name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no"
     />
-    <title data-i18n="panel.meta.title">ChatLumos — Lumos çalışma alanı</title>
+    <title data-i18n="panel.workspace.metaTitle">Lumos Merkez — sohbet, görev, kimlik</title>
     <link rel="icon" href="/lumos-skull-mark.svg" type="image/svg+xml" sizes="any" />
     <link rel="apple-touch-icon" href="/lumos-skull-mark.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
@@ -4554,8 +4555,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
           <div class="panel-header-brand">
             <img class="lumos-mark" src="/lumos-skull-mark.svg" alt="" width="34" height="34" decoding="async" />
             <div class="panel-header-brand-text">
-              <h1 data-i18n="panel.header.title">ChatLumos</h1>
-              <p class="panel-header-tagline" data-i18n="panel.header.subtitle">Sohbet ve görevler tek yerde</p>
+              <h1 data-i18n="panel.header.title">Lumos</h1>
+              <p class="panel-header-tagline" data-i18n="panel.header.subtitle">Merkez · sohbet, görev, kimlik</p>
             </div>
           </div>
           <div class="panel-health-row">
@@ -6223,7 +6224,25 @@ const PANEL_DEBUG = import.meta.env.DEV;
             </ul>
           </section>
         </main>
-        <nav class="panel-nav__lumos" aria-label="Lumos çekirdeği" data-i18n-aria-label="panel.nav.lumosCore">
+        <nav class="panel-nav__lumos" aria-label="Çalışma bağlamı ve Lumos çekirdeği" data-i18n-aria-label="panel.nav.lumosCore">
+          <section class="panel-context-overview" aria-labelledby="panel-context-overview-title">
+            <p id="panel-context-overview-title" class="panel-context-overview__eyebrow" data-i18n="panel.workspace.contextTitle">Çalışma bağlamı</p>
+            <div class="panel-context-card">
+              <strong data-i18n="panel.workspace.identityTitle">Lumos ID</strong>
+              <span data-i18n="panel.workspace.identityBody">Oturum ve izin bağlamı</span>
+              <span class="panel-context-card__state" data-i18n="panel.workspace.identityState">Kimlik alanı üst çubukta</span>
+            </div>
+            <div class="panel-context-card">
+              <strong data-i18n="panel.workspace.systemTitle">Sistem</strong>
+              <span data-i18n="panel.workspace.systemBody">Bağlantı ve çalışma modu</span>
+              <span class="panel-context-card__state" data-i18n="panel.workspace.systemState">Canlı rozetle izlenir</span>
+            </div>
+            <div class="panel-context-card">
+              <strong data-i18n="panel.workspace.tasksTitle">Aktif görevler</strong>
+              <span data-i18n="panel.workspace.tasksBody">Görevler modülünde görünür</span>
+              <span class="panel-context-card__state" data-i18n="panel.workspace.tasksState">Yerel kayıt hazır</span>
+            </div>
+          </section>
           <div class="panel-nav-collapsible" data-nav-group="lumos-cekirdegi">
             <button
               type="button"

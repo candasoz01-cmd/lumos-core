@@ -8,6 +8,7 @@ from pathlib import Path
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _INDEX_ASTRO = _REPO_ROOT / "ui" / "src" / "pages" / "index.astro"
 _PANEL_ASTRO = _REPO_ROOT / "ui" / "src" / "pages" / "panel.astro"
+_PLATFORM_HERO = _REPO_ROOT / "ui" / "src" / "components" / "LumosPlatformHero.astro"
 _TOKENS_CSS = _REPO_ROOT / "ui" / "src" / "styles" / "lumos-tokens.css"
 _LANDING_TR = _REPO_ROOT / "ui" / "src" / "i18n" / "messages" / "landing" / "tr.ts"
 _LANDING_EN = _REPO_ROOT / "ui" / "src" / "i18n" / "messages" / "landing" / "en.ts"
@@ -21,6 +22,26 @@ def test_index_imports_shared_lumos_tokens_stylesheet() -> None:
     assert 'import "../styles/lumos-tokens.css"' in panel
     assert "--lumos-land-teal: 45 212 191" in tokens
     assert "--lumos-bg: #0a0e14" in tokens
+
+
+def test_landing_platform_surface_contract() -> None:
+    text = _INDEX_ASTRO.read_text(encoding="utf-8")
+    hero = _PLATFORM_HERO.read_text(encoding="utf-8")
+    assert 'import "../styles/lumos-platform.css"' in text
+    assert "<LumosPlatformHero />" in text
+    assert 'class="lumos-control-map"' in hero
+    assert 'id="canli-durum"' in text
+    assert 'data-i18n="landing.platform.aiState"' in hero
+    assert 'data-i18n="landing.platform.deviceState"' in hero
+
+
+def test_panel_workspace_context_contract() -> None:
+    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    assert 'import "../styles/lumos-platform.css"' in text
+    assert 'class="panel-context-overview"' in text
+    assert 'data-i18n="panel.workspace.identityTitle"' in text
+    assert 'data-i18n="panel.workspace.systemTitle"' in text
+    assert 'data-i18n="panel.workspace.tasksTitle"' in text
 
 
 def test_landing_kurulum_bridge_env_proxy_steps() -> None:

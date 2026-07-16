@@ -41,7 +41,7 @@ try {
   await page.goto(PANEL_URL, { waitUntil: "domcontentloaded", timeout: PANEL_READY_MS });
 
   const title = await page.title();
-  if (!title.includes("ChatLumos")) {
+  if (!title.includes("Lumos")) {
     await browser.close();
     fail("Beklenen başlık yok; title=" + JSON.stringify(title));
   }
@@ -104,7 +104,7 @@ try {
   }
   if (desktopContract.headerLogo !== "/lumos-skull-mark.svg") {
     await browser.close();
-    fail("desktop başlığında ChatLumos logosu yok");
+    fail("desktop başlığında Lumos logosu yok");
   }
   if (!desktopContract.modePickerHidden) {
     await browser.close();

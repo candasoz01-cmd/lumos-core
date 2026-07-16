@@ -1,11 +1,11 @@
 /** Panel shell + module copy — Turkish (from panel.astro sections) */
 const panelNav = {
   meta: {
-    title: "ChatLumos — Lumos çalışma alanı",
+    title: "Lumos Merkez — sohbet, görev, kimlik",
   },
   header: {
-    title: "ChatLumos",
-    subtitle: "Sohbet ve görevler tek yerde",
+    title: "Lumos",
+    subtitle: "Merkez · sohbet, görev, kimlik",
   },
   moduleGroups: {
     calisma: "Çalışma",
@@ -80,6 +80,19 @@ const panelNav = {
       dunya: "Modül kapalı; yerelleştirme bilgi ekranı",
       ayarlar: "Modül kapalı; ayarlar bilgi ekranı",
     },
+  },
+  workspace: {
+    metaTitle: "Lumos Merkez — sohbet, görev, kimlik",
+    contextTitle: "Çalışma bağlamı",
+    identityTitle: "Lumos ID",
+    identityBody: "Oturum ve izin bağlamı",
+    identityState: "Kimlik alanı üst çubukta",
+    systemTitle: "Sistem",
+    systemBody: "Bağlantı ve çalışma modu",
+    systemState: "Canlı rozetle izlenir",
+    tasksTitle: "Aktif görevler",
+    tasksBody: "Görevler modülünde görünür",
+    tasksState: "Yerel kayıt hazır",
   },
   rootStatus: {
     title: "Kök Durumu",
