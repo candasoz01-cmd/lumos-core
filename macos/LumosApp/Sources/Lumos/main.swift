@@ -22,9 +22,7 @@ final class LumosNavigationDelegate: NSObject, WKNavigationDelegate, WKUIDelegat
             return
         }
 
-        if navigationAction.navigationType == .linkActivated {
-            NSWorkspace.shared.open(url)
-        }
+        NSWorkspace.shared.open(url)
         decisionHandler(.cancel)
     }
 

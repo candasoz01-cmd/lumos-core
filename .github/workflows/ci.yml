@@ -56,8 +56,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: swift build (compile check only)
-        run: swift build
+      - name: Build signed app bundle (ad-hoc CI signature)
+        run: ./build-app.sh
+
+      - name: Package app artifact
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent dist/Lumos.app dist/Lumos-macOS.zip
+          shasum -a 256 dist/Lumos-macOS.zip > dist/Lumos-macOS.zip.sha256
+
+      - name: Upload macOS app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Lumos-macOS
+          path: |
+            macos/LumosApp/dist/Lumos-macOS.zip
+            macos/LumosApp/dist/Lumos-macOS.zip.sha256
 
   ui-smoke:
     runs-on: ubuntu-latest

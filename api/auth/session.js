@@ -2,7 +2,6 @@
  * GET /api/auth/session — mühürlü Lumos oturumu (token yok)
  */
 import {
-  bridgeProxyCookieHeader,
   openSession,
   readCookie,
   sessionLumosId,
@@ -27,12 +26,6 @@ export default async function handler(req, res) {
     res.statusCode = 401;
     res.end(JSON.stringify({ ok: false, authenticated: false, error: "identity_missing" }));
     return;
-  }
-  const bridgeProxyToken = String(
-    process.env.LUMOS_BRIDGE_PROXY_AUTH_TOKEN || ""
-  ).trim();
-  if (bridgeProxyToken) {
-    res.setHeader("Set-Cookie", bridgeProxyCookieHeader(bridgeProxyToken));
   }
   res.statusCode = 200;
   res.end(
