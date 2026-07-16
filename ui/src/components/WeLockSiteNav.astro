@@ -1,7 +1,7 @@
 ---
 import LanguageSwitcher from "./LanguageSwitcher.astro";
 
-export type UmbrellaNavActive = "home" | "panel" | "integrations" | "slack" | "mac" | "cyber" | "accessibility" | "lab" | "education" | "";
+export type UmbrellaNavActive = "home" | "panel" | "integrations" | "slack" | "mac" | "cyber" | "accessibility" | "lab" | "education" | "auth" | "";
 
 interface Props {
   active?: UmbrellaNavActive;
@@ -28,6 +28,9 @@ function linkClass(id: UmbrellaNavActive) {
     <ul class="lumos-umbrella-nav__list">
       <li>
         <a class={linkClass("home")} href="/" data-i18n="umbrella.nav.home">Ana sayfa</a>
+      </li>
+      <li>
+        <a class={linkClass("auth")} href="/auth">Giriş</a>
       </li>
       <li>
         <a class={linkClass("panel")} href="/panel" data-i18n="umbrella.nav.panel">Panel</a>

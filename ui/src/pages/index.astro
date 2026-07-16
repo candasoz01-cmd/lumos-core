@@ -2234,6 +2234,9 @@ const showMay19Commemoration = isMay19CommemorationDay();
                 <a class="lumos-site-nav__link" href="#baglan" data-i18n="nav.connect">Bağlan</a>
               </li>
               <li>
+                <a class="lumos-site-nav__link" href="/auth">Giriş</a>
+              </li>
+              <li>
                 <a class="lumos-site-nav__link lumos-site-nav__link--accent" href="/panel" data-i18n="nav.panel">Lumos’u Aç</a>
               </li>
               <li>
@@ -2274,8 +2277,9 @@ const showMay19Commemoration = isMay19CommemorationDay();
             </p>
             <p class="lumos-hero-pillar" data-i18n="hero.pillar">Tek panel · Çoklu akış · Kullanıcı kontrolü</p>
             <div class="lumos-hero-actions">
-              <a class="lumos-hero-btn lumos-hero-btn--primary" href="/panel" data-i18n="hero.ctaPanel">Geliştirici Panelini Aç</a>
-              <a class="lumos-hero-btn lumos-hero-btn--ghost" href="#dunya" data-i18n="hero.ctaWorld">Vizyonu oku</a>
+              <a class="lumos-hero-btn lumos-hero-btn--primary" href="/auth">Lumos ile giriş</a>
+              <a class="lumos-hero-btn lumos-hero-btn--ghost" href="/panel" data-i18n="hero.ctaPanel">Geliştirici Panelini Aç</a>
+              <a class="lumos-hero-btn lumos-hero-btn--ghost" href="#saygi">Saygıyla</a>
             </div>
           </div>
           <div class="lumos-hero-scene" aria-hidden="true">
@@ -2519,9 +2523,9 @@ const showMay19Commemoration = isMay19CommemorationDay();
         </p>
       </section>
 
-      {showMay19Commemoration && (
-      <aside class="lumos-may19-card lumos-may19-card--sideline" aria-labelledby="lumos-may19-heading">
-        <h2 id="lumos-may19-heading" class="lumos-may19-card__heading--inline">
+      {/* Kalıcı saygı — kaldırılmaz; 19 Mayıs köşesi ayrıca bayram günü kalır */}
+      <aside class="lumos-may19-card lumos-may19-card--sideline" id="saygi" aria-labelledby="saygi-baslik">
+        <h2 id="saygi-baslik" class="lumos-may19-card__heading--inline">
           <span class="lumos-may19-card__flag-badges" aria-hidden="true">
             <img
               class="lumos-may19-card__flag-badge"
@@ -2540,13 +2544,11 @@ const showMay19Commemoration = isMay19CommemorationDay();
               decoding="async"
             />
           </span>
-          <span data-i18n="landing.may19.heading">19 Mayıs’a Saygıyla</span>
+          <span>Gazi Mustafa Kemal Atatürk</span>
         </h2>
-        <p data-i18n="landing.may19.p1">
-          Bu metni 19 Mayıs gibi anlamlı bir güne yakın yayımlamak benim için ayrıca değerli.
-        </p>
-        <p data-i18n="landing.may19.p2">
-          Gazi Mustafa Kemal Atatürk’ü saygıyla anıyor, 19 Mayıs Atatürk’ü Anma, Gençlik ve Spor Bayramı’nı kutluyorum.
+        <p>
+          Gazi Mustafa Kemal Atatürk’ü saygı ve minnetle anıyoruz. Bu sahne ve bu metin site yenilense de kalır —
+          kaldırılmaz.
         </p>
         <p data-i18n="landing.may19.p3">
           19 Mayıs’ın taşıdığı gençlik, bilim, bağımsız düşünce ve gelecek fikrini yalnızca bir ülkenin sınırları içinde
@@ -2557,12 +2559,14 @@ const showMay19Commemoration = isMay19CommemorationDay();
           ama samimi bir armağan olarak görüyorum.
         </p>
         <div class="lumos-may19-card__actions">
-          <button type="button" class="lumos-may19-open-btn" id="lumos-may19-open" data-i18n="landing.may19.openBtn">
-            Saygı anını başlat
-          </button>
+          <a class="lumos-hero-btn lumos-hero-btn--ghost" href="/auth">Lumos ile giriş</a>
+          {showMay19Commemoration && (
+            <button type="button" class="lumos-may19-open-btn" id="lumos-may19-open" data-i18n="landing.may19.openBtn">
+              Saygı anını başlat
+            </button>
+          )}
         </div>
       </aside>
-      )}
 
       <section id="lumos-nedir" class="lumos-section" aria-labelledby="lumos-nedir-baslik">
         <h2 id="lumos-nedir-baslik" data-i18n="landing.whatIs.title">Lumos nedir?</h2>
