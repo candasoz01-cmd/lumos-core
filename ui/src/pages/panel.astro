@@ -6474,6 +6474,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
       function getPanelUserMode() {
         try {
           const defaultMode = isLumosDesktopEntry() ? "full" : "limited";
+          if (isLumosDesktopEntry()) return defaultMode;
           if (typeof localStorage === "undefined") return defaultMode;
           const raw = localStorage.getItem(PANEL_USER_MODE_LS_KEY);
           if (!raw) return defaultMode;

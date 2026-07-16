@@ -5,7 +5,8 @@ APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "${APP_DIR}/../.." && pwd)"
 OUTPUT="${APP_DIR}/dist/Lumos.app"
 ICONSET="${APP_DIR}/.build/Lumos.iconset"
-ICON_SOURCE="${APP_DIR}/.build/lumos-skull-mark.png"
+ICON_SOURCE="${APP_DIR}/.build/lumos-logo-mark.png"
+SIGNING_IDENTITY="${LUMOS_MAC_SIGNING_IDENTITY:--}"
 
 swift build --package-path "${APP_DIR}" -c release
 
@@ -14,8 +15,8 @@ mkdir -p "${OUTPUT}/Contents/MacOS" "${OUTPUT}/Contents/Resources" "${ICONSET}"
 cp "${APP_DIR}/.build/release/Lumos" "${OUTPUT}/Contents/MacOS/Lumos"
 cp "${APP_DIR}/Info.plist" "${OUTPUT}/Contents/Info.plist"
 
-qlmanage -t -s 1024 -o "${APP_DIR}/.build" "${ROOT}/ui/public/lumos-skull-mark.svg" >/dev/null 2>&1
-mv "${APP_DIR}/.build/lumos-skull-mark.svg.png" "${ICON_SOURCE}"
+qlmanage -t -s 1024 -o "${APP_DIR}/.build" "${ROOT}/ui/public/lumos-logo-mark.svg" >/dev/null 2>&1
+mv "${APP_DIR}/.build/lumos-logo-mark.svg.png" "${ICON_SOURCE}"
 for size in 16 32 128 256 512; do
   sips -z "${size}" "${size}" "${ICON_SOURCE}" --out "${ICONSET}/icon_${size}x${size}.png" >/dev/null
   double=$((size * 2))
@@ -23,5 +24,13 @@ for size in 16 32 128 256 512; do
 done
 iconutil -c icns "${ICONSET}" -o "${OUTPUT}/Contents/Resources/Lumos.icns"
 
-codesign --force --deep --sign - "${OUTPUT}" >/dev/null
+if [[ "${SIGNING_IDENTITY}" == "-" ]]; then
+  codesign --force --deep --entitlements "${APP_DIR}/Lumos.entitlements" \
+    --sign - "${OUTPUT}" >/dev/null
+else
+  codesign --force --deep --options runtime --timestamp \
+    --entitlements "${APP_DIR}/Lumos.entitlements" \
+    --sign "${SIGNING_IDENTITY}" "${OUTPUT}" >/dev/null
+fi
+codesign --verify --deep --strict "${OUTPUT}"
 echo "Lumos.app hazır: ${OUTPUT}"

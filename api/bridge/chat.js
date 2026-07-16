@@ -77,13 +77,6 @@ export default async function handler(req, res) {
     account_connected: userContext.profile.connected,
     package: userContext.package,
   };
-  if (userContext.profile.status !== "loaded") {
-    return res.status(200).json({
-      reply: "Oturum bağlı ama kullanıcı profili yüklenmedi. Kişisel hafıza kullanılmadı.",
-      mode: "hosted_identity_status",
-      identity,
-    });
-  }
   const identityReply = identityStatusReply(message, userContext);
   if (identityReply) {
     return res.status(200).json({ reply: identityReply, mode: "hosted_identity_status", identity });

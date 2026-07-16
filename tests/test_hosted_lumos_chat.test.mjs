@@ -14,6 +14,7 @@ import {
   openAIReply,
 } from "../api/_lib/hosted_lumos.js";
 import {
+  authSecret,
   lumosIdForProviderIdentity,
   makeState,
   openSession,
@@ -113,6 +114,40 @@ test("hosted chat requires a sealed Lumos session", async () => {
   const res = makeRes();
   await handler({ method: "POST", headers: {}, body: { message: "Merhaba" } }, res);
   assert.equal(res.statusCode, 401);
+});
+
+test("session cryptography fails closed when no server secret exists", () => {
+  const stateSecret = process.env.LUMOS_AUTH_STATE_SECRET;
+  const clientSecret = process.env.LUMOS_GOOGLE_WEB_CLIENT_SECRET;
+  delete process.env.LUMOS_AUTH_STATE_SECRET;
+  delete process.env.LUMOS_GOOGLE_WEB_CLIENT_SECRET;
+  try {
+    assert.throws(() => authSecret(), /lumos_auth_secret_unconfigured/);
+  } finally {
+    if (stateSecret) process.env.LUMOS_AUTH_STATE_SECRET = stateSecret;
+    if (clientSecret) process.env.LUMOS_GOOGLE_WEB_CLIENT_SECRET = clientSecret;
+  }
+});
+
+test("hosted local replies still work when the connected profile is unavailable", async () => {
+  process.env.LUMOS_AUTH_STATE_SECRET = "test-only-secret-32-characters-minimum";
+  const sealed = sealSession(userClaims({ name: "", email: "" }));
+  const res = makeRes();
+  try {
+    await handler(
+      {
+        method: "POST",
+        headers: { cookie: `lumos_session=${sealed}` },
+        body: { message: "Saat kaç?" },
+      },
+      res,
+    );
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.payload.mode, "hosted_local");
+    assert.equal(res.payload.identity.profile_status, "unavailable");
+  } finally {
+    delete process.env.LUMOS_AUTH_STATE_SECRET;
+  }
 });
 
 test("Lumos ID is stable across sessions and distinct from session id", () => {

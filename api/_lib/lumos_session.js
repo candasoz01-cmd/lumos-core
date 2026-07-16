@@ -18,11 +18,15 @@ const MAX_AGE = 604800;
 const STATE_MAX_AGE = 600;
 
 export function authSecret() {
-  return (
+  const secret = (
     process.env.LUMOS_AUTH_STATE_SECRET ||
     process.env.LUMOS_GOOGLE_WEB_CLIENT_SECRET ||
-    "lumos-dev-state-not-for-production"
+    ""
   );
+  if (!secret.trim()) {
+    throw new Error("lumos_auth_secret_unconfigured");
+  }
+  return secret;
 }
 
 function identitySecret() {

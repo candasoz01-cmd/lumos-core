@@ -6,7 +6,7 @@
  */
 
 import { timingSafeEqual } from "node:crypto";
-import { openSession, readCookie } from "../_lib/lumos_session.js";
+import { openSession, readCookie, sessionLumosId } from "../_lib/lumos_session.js";
 
 export const config = {
   api: {
@@ -147,7 +147,17 @@ function isProxyCallerAuthorized(req, expectedToken) {
 }
 
 function isAuthenticatedLumosSession(req) {
-  return Boolean(openSession(readCookie(req)));
+  const claims = openSession(readCookie(req));
+  if (!claims) return false;
+  const lumosId = sessionLumosId(claims);
+  if (!lumosId) return false;
+  const allowedIds = new Set(
+    String(process.env.LUMOS_BRIDGE_ALLOWED_LUMOS_IDS || "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean),
+  );
+  return allowedIds.has(lumosId);
 }
 
 function forwardRequestHeaders(req, secret) {

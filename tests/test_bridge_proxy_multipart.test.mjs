@@ -177,11 +177,13 @@ test("bridge proxy caller auth accepts header or cookie token", () => {
   );
 });
 
-test("bridge proxy accepts a valid sealed Lumos session", () => {
+test("bridge proxy accepts only an allowlisted sealed Lumos session", () => {
   process.env.LUMOS_AUTH_STATE_SECRET = "test-only-secret-32-characters-minimum";
+  process.env.LUMOS_BRIDGE_ALLOWED_LUMOS_IDS = "lumos_allowed";
   try {
     const sealed = sealSession({
       sid: "session-test",
+      lumos_id: "lumos_allowed",
       email: "user@example.invalid",
       exp: Math.floor(Date.now() / 1000) + 60,
     });
@@ -191,6 +193,17 @@ test("bridge proxy accepts a valid sealed Lumos session", () => {
       }),
       true,
     );
+    const denied = sealSession({
+      sid: "session-denied",
+      lumos_id: "lumos_not_allowed",
+      exp: Math.floor(Date.now() / 1000) + 60,
+    });
+    assert.equal(
+      isAuthenticatedLumosSession({
+        headers: { cookie: `lumos_session=${denied}` },
+      }),
+      false,
+    );
     assert.equal(
       isAuthenticatedLumosSession({
         headers: { cookie: "lumos_session=invalid" },
@@ -199,6 +212,7 @@ test("bridge proxy accepts a valid sealed Lumos session", () => {
     );
   } finally {
     delete process.env.LUMOS_AUTH_STATE_SECRET;
+    delete process.env.LUMOS_BRIDGE_ALLOWED_LUMOS_IDS;
   }
 });
 
