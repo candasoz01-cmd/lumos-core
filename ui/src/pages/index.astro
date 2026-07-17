@@ -711,6 +711,14 @@ const showMay19Commemoration = isMay19CommemorationDay();
           letter-spacing: 0.04em;
         }
       }
+      .lumos-hero-audience {
+        margin: 0 0 1.35rem;
+        max-width: min(52ch, 100%);
+        font-size: clamp(0.82rem, 1.6vw, 0.9rem);
+        line-height: 1.5;
+        color: var(--lumos-text-muted);
+        opacity: 0.85;
+      }
       @media (max-width: 559.98px) {
         #top.lumos-section {
           padding-bottom: clamp(1.15rem, 3.2vw, 1.85rem);
@@ -1388,6 +1396,47 @@ const showMay19Commemoration = isMay19CommemorationDay();
         .lumos-cap-grid {
           grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 1.2rem 1.3rem;
+        }
+      }
+      .lumos-how-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        align-items: center;
+        gap: 0.9rem;
+      }
+      .lumos-how-step {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 1rem 1.1rem;
+        border-radius: 14px;
+        border: 1px solid rgb(var(--lumos-land-teal) / 0.28);
+        background: rgba(10, 14, 20, 0.55);
+        text-align: center;
+      }
+      .lumos-how-step h3 {
+        margin: 0 0 0.35rem;
+        font-size: 0.98rem;
+        color: var(--lumos-land-title);
+      }
+      .lumos-how-step p {
+        margin: 0;
+        font-size: 0.88rem;
+        line-height: 1.45;
+        color: var(--lumos-text-muted);
+      }
+      .lumos-how-arrow {
+        display: block;
+        text-align: center;
+        color: rgb(var(--lumos-land-teal) / 0.7);
+        font-size: 1.1rem;
+        transform: rotate(90deg);
+      }
+      @media (min-width: 768px) {
+        .lumos-how-grid {
+          grid-template-columns: 1fr auto 1fr auto 1fr;
+        }
+        .lumos-how-arrow {
+          transform: none;
         }
       }
       .lumos-cap-card {
@@ -2267,14 +2316,15 @@ const showMay19Commemoration = isMay19CommemorationDay();
             </div>
             <p class="lumos-hero-subtitle" data-i18n="hero.subtitle">Yapay zekâ kontrol katmanı</p>
             <p class="lumos-hero-lead" data-i18n="hero.lead1">
-              Ses, medya, görsel analiz, görevler, dosyalar, kimlik ve güvenlik akışlarını tek panelde birleştirmeyi hedefleyen akıllı asistan altyapısı.
+              Lumos yeni bir yapay zekâ değildir. Kullandığınız yapay zekâları (ChatGPT, Copilot ve benzerleri) güvenli, denetlenebilir ve sizin kontrolünüzde çalıştıran ortak katmandır.
             </p>
             <p class="lumos-hero-lead" data-i18n="hero.lead2">
               Karar kullanıcıda kalır. Lumos riski, bağlamı ve sonraki adımı görünür kılar.
             </p>
             <p class="lumos-hero-pillar" data-i18n="hero.pillar">Tek panel · Çoklu akış · Kullanıcı kontrolü</p>
+            <p class="lumos-hero-audience" data-i18n="hero.audience">Şu an: geliştiriciler için açık kaynak · kurumlar için yol haritada · son kullanıcı paketi yakında.</p>
             <div class="lumos-hero-actions">
-              <a class="lumos-hero-btn lumos-hero-btn--primary" href="/panel" data-i18n="hero.ctaPanel">Geliştirici Panelini Aç</a>
+              <a class="lumos-hero-btn lumos-hero-btn--primary" href="/panel" data-i18n="hero.ctaPanel">Paneli Aç</a>
               <a class="lumos-hero-btn lumos-hero-btn--ghost" href="#dunya" data-i18n="hero.ctaWorld">Vizyonu oku</a>
             </div>
           </div>
@@ -2314,7 +2364,7 @@ const showMay19Commemoration = isMay19CommemorationDay();
               />
               <button class="lumos-hero-ask__submit" type="submit" data-i18n="hero.askSubmit">Panelde devam et</button>
             </div>
-            <p class="lumos-hero-ask__hint" id="lumos-hero-ask-hint" data-i18n="hero.askHint">Yanıt burada değil; geliştirici panelinde devam eder.</p>
+            <p class="lumos-hero-ask__hint" id="lumos-hero-ask-hint" data-i18n="hero.askHint">Yanıt burada değil; panelde devam eder.</p>
             <p
               class="lumos-hero-ask__error"
               id="lumos-hero-ask-error"
@@ -2326,6 +2376,64 @@ const showMay19Commemoration = isMay19CommemorationDay();
           </form>
         </div>
       </div>
+    </section>
+
+    <section id="nasil-calisir" class="lumos-shell lumos-section" aria-labelledby="nasil-calisir-baslik">
+      <h2 id="nasil-calisir-baslik" class="lumos-cap-title" data-i18n="landing.howItWorks.title">Nasıl çalışır?</h2>
+      <div class="lumos-how-grid">
+        <article class="lumos-how-step">
+          <h3 data-i18n="landing.howItWorks.stepUserLabel">Kullanıcı</h3>
+          <p data-i18n="landing.howItWorks.stepUserBody">İsteği ve son onayı sen verirsin.</p>
+        </article>
+        <span class="lumos-how-arrow" aria-hidden="true">→</span>
+        <article class="lumos-how-step">
+          <h3 data-i18n="landing.howItWorks.stepLumosLabel">Lumos</h3>
+          <p data-i18n="landing.howItWorks.stepLumosBody">Riski ve bağlamı gösterir, işi izlenebilir adımlara böler.</p>
+        </article>
+        <span class="lumos-how-arrow" aria-hidden="true">→</span>
+        <article class="lumos-how-step">
+          <h3 data-i18n="landing.howItWorks.stepServicesLabel">AI / Servisler</h3>
+          <p data-i18n="landing.howItWorks.stepServicesBody">ChatGPT, Copilot ve bağlı servisler senin onayınla, sınırların içinde çalışır.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="lumos-nedir" class="lumos-shell lumos-section" aria-labelledby="lumos-nedir-baslik">
+      <h2 id="lumos-nedir-baslik" data-i18n="landing.whatIs.title">Lumos nedir?</h2>
+      <p data-i18n="landing.whatIs.p1">
+        Lumos; sesli komutlar, medya işlemleri ve yapay zekâ destekli yardımları yerelde veya sizin tanımladığınız
+        güven sınırları içinde tek bir akışta toparlamayı hedefleyen bir kontrol katmanıdır. Uygulamalar, dosyalar ve
+        harici servisler arasında köprü kurarak dağınık görevleri daha izlenebilir adımlara böler.
+      </p>
+      <p data-i18n="landing.whatIs.p2">
+        Amaç, karmaşık teknik detayların arkasında kalan işlemleri sadeleştirmek; hangi verinin nerede işlendiğini ve
+        bir sonraki adımın olası sonuçlarını daha okunur kılmaktır. Lumos “otomatik pilot” değildir; kullanıcıyı
+        bilgilendiren ve onay kritik noktalarında duraklatan bir ara yüz sunmayı amaçlar.
+      </p>
+      <p data-i18n="landing.whatIs.p3">
+        Lumos aktif geliştirilen bir kontrol katmanıdır; modüller ve entegrasyonlar ölçülü biçimde genişler — vaat
+        yerine görünür yol haritası ve kullanıcı onayı önceliklidir.
+      </p>
+    </section>
+
+    <section id="ne-yapar" class="lumos-shell lumos-section" aria-labelledby="ne-yapar-baslik">
+      <h2 id="ne-yapar-baslik" data-i18n="landing.whatDoes.title">Ne yapar?</h2>
+      <ul>
+        <li data-i18n="landing.whatDoes.item1">Ses ve doğal dil ile iletilen görevleri güvenli ve izlenebilir alt adımlara ayırmayı hedefler.</li>
+        <li data-i18n="landing.whatDoes.item2">Medya ve dosya akışlarını düzenler; paylaşım veya dış servise aktarımda şeffaflığı artırmayı amaçlar.</li>
+        <li data-i18n="landing.whatDoes.item3">Yapay zekâ önerilerini bağlam ve risk bilgisiyle birlikte sunar; kalıcı sonuç doğuran işlemlerde onayı kullanıcıya bırakır.</li>
+        <li data-i18n="landing.whatDoes.item4">Kimlik ve servis bağlantılarını daha yönetilebilir tek bir çatı altında toplamayı hedefler.</li>
+        <li data-i18n="landing.whatDoes.item5">Riski yüksek veya geri alınması güç işlemlerde ek uyarı ve onay akışlarını önceliklendirir.</li>
+      </ul>
+    </section>
+
+    <section id="neden-gerekli" class="lumos-shell lumos-section" aria-labelledby="neden-gerekli-baslik">
+      <h2 id="neden-gerekli-baslik" data-i18n="landing.whyNeeded.title">Neden gerekli?</h2>
+      <p data-i18n="landing.whyNeeded.p1">
+        Araç ve servis sayısı arttıkça bağlam dağılıyor; kullanıcı neyin nerede çalıştığını ve hangi iznin neyi
+        etkinleştirdiğini takip etmekte zorlanabiliyor. Lumos, bu dağınıklığı tek bir kontrol katmanında görünür kılarak
+        yanlış onay ve gereksiz veri aktarımı riskini azaltmayı hedefler.
+      </p>
     </section>
 
     <section id="baglan" class="lumos-shell lumos-section lumos-products-section" aria-labelledby="baglan-baslik">
@@ -2400,29 +2508,6 @@ const showMay19Commemoration = isMay19CommemorationDay();
           </article>
         </a>
       </div>
-      <h2 id="ilkeler-baslik" class="lumos-cap-title lumos-cap-title--follow" data-i18n="landing.principles.workTitle">Çalışma ilkeleri</h2>
-      <p data-i18n="landing.principles.workIntro">
-        We Lock AI çatısındaki Lumos; hız uğruna şeffaflığı feda etmeden, aşağıdaki dört eksende tutarlı kalmayı
-        hedefler.
-      </p>
-      <ul>
-        <li>
-          <strong data-i18n="landing.principles.listUserDecisionLabel">Kullanıcı kararı:</strong>
-          <span data-i18n="landing.principles.listUserDecisionBody">Nihai seçim her zaman sizdedir; Lumos sizin yerinize geçmez.</span>
-        </li>
-        <li>
-          <strong data-i18n="landing.principles.listApprovalLabel">Açık onay:</strong>
-          <span data-i18n="landing.principles.listApprovalBody">Kalıcı veya riskli adımlarda net, geri alınabilir onay akışları.</span>
-        </li>
-        <li>
-          <strong data-i18n="landing.principles.listRiskLabel">Risk görünürlüğü:</strong>
-          <span data-i18n="landing.principles.listRiskBody">Olası sonuçlar ve yan etkiler özetlenerek gösterilir.</span>
-        </li>
-        <li>
-          <strong data-i18n="landing.principles.listDataLabel">Veri farkındalığı:</strong>
-          <span data-i18n="landing.principles.listDataBody">Verinin nerede işlendiği ve hangi sınırların geçerli olduğu okunur biçimde sunulur.</span>
-        </li>
-      </ul>
     </section>
 
     <section
@@ -2563,44 +2648,6 @@ const showMay19Commemoration = isMay19CommemorationDay();
         </div>
       </aside>
       )}
-
-      <section id="lumos-nedir" class="lumos-section" aria-labelledby="lumos-nedir-baslik">
-        <h2 id="lumos-nedir-baslik" data-i18n="landing.whatIs.title">Lumos nedir?</h2>
-        <p data-i18n="landing.whatIs.p1">
-          Lumos; sesli komutlar, medya işlemleri ve yapay zekâ destekli yardımları yerelde veya sizin tanımladığınız
-          güven sınırları içinde tek bir akışta toparlamayı hedefleyen bir kontrol katmanıdır. Uygulamalar, dosyalar ve
-          harici servisler arasında köprü kurarak dağınık görevleri daha izlenebilir adımlara böler.
-        </p>
-        <p data-i18n="landing.whatIs.p2">
-          Amaç, karmaşık teknik detayların arkasında kalan işlemleri sadeleştirmek; hangi verinin nerede işlendiğini ve
-          bir sonraki adımın olası sonuçlarını daha okunur kılmaktır. Lumos “otomatik pilot” değildir; kullanıcıyı
-          bilgilendiren ve onay kritik noktalarında duraklatan bir ara yüz sunmayı amaçlar.
-        </p>
-        <p data-i18n="landing.whatIs.p3">
-          Lumos aktif geliştirilen bir kontrol katmanıdır; modüller ve entegrasyonlar ölçülü biçimde genişler — vaat
-          yerine görünür yol haritası ve kullanıcı onayı önceliklidir.
-        </p>
-      </section>
-
-      <section id="ne-yapar" class="lumos-section" aria-labelledby="ne-yapar-baslik">
-        <h2 id="ne-yapar-baslik" data-i18n="landing.whatDoes.title">Ne yapar?</h2>
-        <ul>
-          <li data-i18n="landing.whatDoes.item1">Ses ve doğal dil ile iletilen görevleri güvenli ve izlenebilir alt adımlara ayırmayı hedefler.</li>
-          <li data-i18n="landing.whatDoes.item2">Medya ve dosya akışlarını düzenler; paylaşım veya dış servise aktarımda şeffaflığı artırmayı amaçlar.</li>
-          <li data-i18n="landing.whatDoes.item3">Yapay zekâ önerilerini bağlam ve risk bilgisiyle birlikte sunar; kalıcı sonuç doğuran işlemlerde onayı kullanıcıya bırakır.</li>
-          <li data-i18n="landing.whatDoes.item4">Kimlik ve servis bağlantılarını daha yönetilebilir tek bir çatı altında toplamayı hedefler.</li>
-          <li data-i18n="landing.whatDoes.item5">Riski yüksek veya geri alınması güç işlemlerde ek uyarı ve onay akışlarını önceliklendirir.</li>
-        </ul>
-      </section>
-
-      <section id="neden-gerekli" class="lumos-section" aria-labelledby="neden-gerekli-baslik">
-        <h2 id="neden-gerekli-baslik" data-i18n="landing.whyNeeded.title">Neden gerekli?</h2>
-        <p data-i18n="landing.whyNeeded.p1">
-          Araç ve servis sayısı arttıkça bağlam dağılıyor; kullanıcı neyin nerede çalıştığını ve hangi iznin neyi
-          etkinleştirdiğini takip etmekte zorlanabiliyor. Lumos, bu dağınıklığı tek bir kontrol katmanında görünür kılarak
-          yanlış onay ve gereksiz veri aktarımı riskini azaltmayı hedefler.
-        </p>
-      </section>
 
       <section
         id="dunya-vizyon"

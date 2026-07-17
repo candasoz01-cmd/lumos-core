@@ -24,6 +24,15 @@ const landingEn: typeof landingTr = {
     listDataLabel: "Data awareness:",
     listDataBody: "Where data is processed and which limits apply is presented in readable form.",
   },
+  howItWorks: {
+    title: "How it works",
+    stepUserLabel: "You",
+    stepUserBody: "You make the request and give final approval.",
+    stepLumosLabel: "Lumos",
+    stepLumosBody: "Shows the risk and context, and breaks the work into traceable steps.",
+    stepServicesLabel: "AI / Services",
+    stepServicesBody: "ChatGPT, Copilot, and connected services run with your approval, inside your limits.",
+  },
   world: {
     title: "World",
     lead:
