@@ -22,6 +22,15 @@ const landingTr = {
     listDataLabel: "Veri farkındalığı:",
     listDataBody: "Verinin nerede işlendiği ve hangi sınırların geçerli olduğu okunur biçimde sunulur.",
   },
+  howItWorks: {
+    title: "Nasıl çalışır?",
+    stepUserLabel: "Kullanıcı",
+    stepUserBody: "İsteği ve son onayı sen verirsin.",
+    stepLumosLabel: "Lumos",
+    stepLumosBody: "Riski ve bağlamı gösterir, işi izlenebilir adımlara böler.",
+    stepServicesLabel: "AI / Servisler",
+    stepServicesBody: "ChatGPT, Copilot ve bağlı servisler senin onayınla, sınırların içinde çalışır.",
+  },
   world: {
     title: "Dünya",
     lead:

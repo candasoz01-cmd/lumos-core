@@ -41,9 +41,10 @@ const en: MessageTree = {
     title: "Lumos",
     subtitle: "AI control layer",
     lead1:
-      "An intelligent assistant layer that unifies voice, media, visual analysis, tasks, files, identity, and security flows in one panel.",
+      "Lumos isn't another AI. It's the shared layer that runs the AI you already use (ChatGPT, Copilot, and others) safely, auditably, and under your control.",
     lead2: "The decision stays with you. Lumos makes risk, context, and next steps visible.",
     pillar: "One panel · Multiple flows · User control",
+    audience: "Right now: open source for developers · on the roadmap for organizations · end-user package coming soon.",
     ctaPanel: "Open Lumos Panel",
     ctaWorld: "Read the vision",
     askAria: "Ask Lumos — continue in the panel",
