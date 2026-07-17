@@ -2,9 +2,9 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Taslak / karar bekliyor** — agent/task/executor usage map checkpoint tamamlandı; karar finalize dar import/drift incelemesi sonrası |
-| Tarih | 2026-06-06 |
-| İlgili | `docs/lumos-karar-sozlesmesi.md`, `docs/lumos-persona-layers.md`, public GitHub sınırı kuralları, ADR-001, ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-010 |
+| Durum | **Taslak / karar bekliyor** — agent/task/executor usage map checkpoint tamamlandı; karar finalize dar import/drift incelemesi sonrası. **Ek karar (2026-07-16):** ortak koordinasyon katmanının resmi adı ve bileşen taksonomisi kabul edildi — bkz. § Lumos Board; bu, Agent Network'ün genel inşa kararını **değiştirmez**, öncelik sırası ve gating aynen geçerlidir |
+| Tarih | 2026-06-06 (güncelleme: 2026-07-16 — Lumos Board adlandırma kararı) |
+| İlgili | `docs/lumos-karar-sozlesmesi.md`, `docs/lumos-persona-layers.md`, public GitHub sınırı kuralları, ADR-001, ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-010, ADR-011 |
 
 ## Amaç
 
@@ -66,7 +66,7 @@ Repo taramasında **tek, merkezi "Agent Network" veya çok-ajan koordinasyon kat
 
 ## Agent Network hedef rolü
 
-Agent Network, Lumos'ta birden fazla ajan/işleyici arasında **Lumos Orkestratör üzerinden koordineli görev paylaşımı** sağlayan katman olarak hedeflenir (ADR-001 hipotezi). Kesin API, protokol veya modül adı henüz kararlaştırılmamıştır (*taslak*).
+Agent Network, Lumos'ta birden fazla ajan/işleyici arasında **Lumos Orkestratör üzerinden koordineli görev paylaşımı** sağlayan katman olarak hedeflenir (ADR-001 hipotezi). Bu katmanın resmi adı **Lumos Board**'dur (bkz. § Lumos Board — resmi ad ve bileşenler); kesin API ve protokol detayları henüz kararlaştırılmamıştır (*taslak*).
 
 Hedeflenen işlevler:
 
@@ -77,6 +77,30 @@ Hedeflenen işlevler:
 5. **Kullanıcı onayı gereken aksiyonlarda durmak** — `lumos-karar-sozlesmesi`, `profiles.py` ve `SECURITY_NEVER_AUTO` ile hizalı; onaysız dış etki veya kritik işlem yok.
 
 Bu rol ADR-001'deki "AI Firewall → Trust → Router → Memory → Agent Network" öncelik sırasında **son katmanı** somutlaştırmayı hedefler; alt katmanlar oturmadan Agent Network'ün tek başına üretim vaadi taşımaması gerekir.
+
+---
+
+## Lumos Board — resmi ad ve bileşenler (karar, 2026-07-16)
+
+Ortak koordinasyon katmanının resmi adı **Lumos Board**'dur. Bu karar kalıcıdır; alternatif adlar (`Lumos Bus`, `Lumos Blackboard`, `Command Wall`) değerlendirilmiş, **Board** tercih edilmiştir.
+
+**Lumos Board bir ajanlar-arası mesaj veri yolu (message bus) değildir.** İsimlendirme bilinçli olarak "bus" değil "board" seçilmiştir çünkü bus terimi peer-to-peer, ajandan-ajana doğrudan mesajlaşmayı çağrıştırır — bu, § Karşılıklı denetim, sıfır kontrol ilkesindeki "yatay AI → AI komut yoktur" kuralıyla çelişir. Lumos Board, mimari olarak bir **kontrolörlü kara tahta (blackboard)** desenidir: ajanlar paylaşılan durumu okur ve kendi sonucunu yazar; görev atama, kilit ve onay kararları yalnızca Lumos Orkestratör üzerinden akar.
+
+### Bileşen taksonomisi (hedef — henüz inşa edilmedi)
+
+Aşağıdaki bileşenler Lumos Board'un **hedeflenen** iç mekanizmalarıdır; kullanıcı tek bir "Board" kavramıyla etkileşir, bu bileşenler geliştirici tarafında ayrışır:
+
+| Bileşen | Rol | Mevcut repo karşılığı / ilişki |
+|---------|-----|-------------------------------|
+| **Event Bus** | Ajanlar arası olay yayını (görev başladı/bitti, durum değişti) — okuma amaçlı, komut değil | Yok; yeni bileşen |
+| **Lock Manager** | Görev/kaynak kilit sahipliği (`TASK-145 → Owner: Cursor`), global pause/resume sinyali | ADR-011 `session_unlocked` / `keystore_ready` ile **karıştırılmamalı** — bu, task/resource-level kilit, oturum kilidi değil |
+| **Task Queue** | Ajanlar arası görev durumu ve sahiplik kaydı | **Önce mevcut drift çözülmeli**: panel `.lumos/tasks.json` ile TaskEngine `.lumos/tasks/tasks.json` zaten iki ayrı, senkron olmayan depo (bkz. § Drift ve çelişki riskleri) — Task Queue üçüncü bir depo olarak eklenemez, ikisini birleştirmelidir |
+| **Memory Events** | Bağlam/bellek güncellemesi bildirimleri | ADR-005 gerçek Memory Graph henüz yok — bu bileşen Memory Graph'a bağımlı |
+| **Agent Status** | Hangi ajan neyle meşgul, hangi durumda | Yok; yeni bileşen |
+| **Permission Channel** | Onay/izin durumu yayını | `task_engine/profiles.py`, dispatch onay kuyruğu ile hizalanmalı; ADR-007 Trust Engine'e bağımlı |
+| **Notification Stream** | Kullanıcıya/diğer ajanlara bildirim akışı | Yok; yeni bileşen |
+
+**Bu tablo bir inşa planı değildir** — bileşenler kavramsal hedef taksonomidir. ADR-001 öncelik sırası (Firewall → Trust → Router → Memory → Agent Network) ve bu ADR'nin genel gating kararı **aynen geçerlidir**: Lock Manager ADR-007 trust motorunu, Permission Channel ADR-006/007'yi, Memory Events ADR-005'i bekler. **Bu turda hiçbir bileşen için kod yazılmaz.**
 
 ---
 
@@ -205,6 +229,7 @@ Kısa ilke: **Bağımsız düşün, ortak değerlendir.**
 
 ## Karar (taslak — import/drift incelemesi bekliyor)
 
+0. **Resmi ad (kalıcı karar, 2026-07-16):** Ortak koordinasyon katmanının adı **Lumos Board**'dur; bileşen taksonomisi (Event Bus, Lock Manager, Task Queue, Memory Events, Agent Status, Permission Channel, Notification Stream) § Lumos Board bölümünde kayıtlıdır. Bu, aşağıdaki gating kararlarını **değiştirmez** — inşa sırası madde 3'e tabidir.
 1. **Mevcut gerçek:** Birleşik Agent Network yok; yürütme `agent_runner`, `lumos_gate`, `task_dispatch`, `cursor_bridge`/köprü ve `task_engine` üzerinde **parçalı tek-ajan hatları** şeklindedir; birleşik koordinasyon katmanı yoktur.
 2. **Hedef:** Yukarıdaki beş rol, dokuz karar ilkesi ve public/private sınır; usage map checkpoint tamamlandı — finalize için dar import/drift incelemesi beklenir.
 3. **Öncelik sırası (ADR-001):** Firewall → Trust → Router → Memory → **Agent Network**; alt katmanlar oturmadan Agent Network açılmaz.
@@ -384,7 +409,8 @@ ADR-001 sırasına göre Agent Network, Firewall → Trust → Router → Memory
 
 - Dar import/drift checkpoint sonuçları ile ADR revizyonu ve karar finalize
 - Rol sözleşmesi taslağı (kod, belge, görev, kontrol, doğrulama, raporlama) — drift incelemesi sonrası
-- ADR-001 (ileri modüller), ADR-003 (canonical katmanlar), ADR-004 (router), ADR-005 (memory graph), ADR-006 (firewall), ADR-007 (trust), ADR-010 (terminoloji) ile çakışma kontrolü
-- Panel `.lumos/tasks.json` ↔ TaskEngine `.lumos/tasks/tasks.json` drift — salt okuma audit; migration kararı ayrı onay
+- ADR-001 (ileri modüller), ADR-003 (canonical katmanlar), ADR-004 (router), ADR-005 (memory graph), ADR-006 (firewall), ADR-007 (trust), ADR-010 (terminoloji), ADR-011 (lock semantiği) ile çakışma kontrolü
+- Panel `.lumos/tasks.json` ↔ TaskEngine `.lumos/tasks/tasks.json` drift — salt okuma audit; migration kararı ayrı onay (Lumos Board Task Queue bileşeni bu birleşmeyi bekler)
 - Public repo sınırı ve çekirdek stabilizasyon durumu ile uyum kontrolü
 - Pilot tek-rol delegasyon seçimi — karar finalize sonrası, ayrı onay
+- Lumos Board bileşen teknik tasarımı (Event Bus, Lock Manager, Task Queue, Memory Events, Agent Status, Permission Channel, Notification Stream) — import/drift checkpoint ve alt katman (ADR-005/006/007) unifikasyonu sonrası ayrı ADR/tasarım turu
