@@ -2,7 +2,7 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Taslak / karar bekliyor** — agent/task/executor usage map checkpoint tamamlandı; karar finalize dar import/drift incelemesi sonrası. **Ek karar (2026-07-16):** ortak koordinasyon katmanının resmi adı ve bileşen taksonomisi kabul edildi — bkz. § Lumos Board; bu, Agent Network'ün genel inşa kararını **değiştirmez**, öncelik sırası ve gating aynen geçerlidir |
+| Durum | **Taslak / karar bekliyor** — agent/task/executor usage map checkpoint tamamlandı; karar finalize dar import/drift incelemesi sonrası. **Ek karar (2026-07-16):** ortak koordinasyon katmanının resmi adı ve bileşen taksonomisi kabul edildi — bkz. § Lumos Board; bu, Agent Network'ün genel inşa kararını **değiştirmez**, öncelik sırası ve gating aynen geçerlidir. **Ek vizyon notu (2026-07-16, karar değil, henüz commit edilmedi):** Board = ortak durum (shared state), mesajlaşma sistemi değil; çapraz-araç (ChatGPT/Codex/Lark) ortak okuma/yazma yüzeyi ihtiyacı — bkz. § Lumos Board = Ortak Durum |
 | Tarih | 2026-06-06 (güncelleme: 2026-07-16 — Lumos Board adlandırma kararı) |
 | İlgili | `docs/lumos-karar-sozlesmesi.md`, `docs/lumos-persona-layers.md`, public GitHub sınırı kuralları, ADR-001, ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-010, ADR-011 |
 
@@ -101,6 +101,168 @@ Aşağıdaki bileşenler Lumos Board'un **hedeflenen** iç mekanizmalarıdır; k
 | **Notification Stream** | Kullanıcıya/diğer ajanlara bildirim akışı | Yok; yeni bileşen |
 
 **Bu tablo bir inşa planı değildir** — bileşenler kavramsal hedef taksonomidir. ADR-001 öncelik sırası (Firewall → Trust → Router → Memory → Agent Network) ve bu ADR'nin genel gating kararı **aynen geçerlidir**: Lock Manager ADR-007 trust motorunu, Permission Channel ADR-006/007'yi, Memory Events ADR-005'i bekler. **Bu turda hiçbir bileşen için kod yazılmaz.**
+
+### Lumos Board = Ortak Durum (Shared State), mesajlaşma sistemi değil (ileri vizyon notu — 2026-07-16, henüz karar değil, henüz commit edilmedi)
+
+Lumos Board'un ilerideki hedefte yalnızca Lumos içi bileşenler arasında değil, **farklı dış araçlar arasında da ortak durum (shared state) yüzeyi** olması vizyonu kaydedilmiştir: ChatGPT, Codex, Cursor, Lark ve benzeri araçlar birbirine doğrudan mesaj göndermez; hepsi aynı ortak duruma yazar ve aynı ortak durumdan okur.
+
+**Temel ayrım: Board ≠ mesajlaşma sistemi. Board = ortak durum.** Bu, § Karşılıklı denetim, sıfır kontrol ilkesindeki "yatay AI → AI komut yoktur" kuralını güçlendirir — araçlar arasında adreslenmiş mesaj veya komut yoktur; her araç bağımsız olarak paylaşılan durumu okur, kendi bulgusunu/sonucunu yazar; karar yine yalnızca Lumos Orkestratör veya kullanıcıdadır.
+
+**Somut tetikleyici:** Bu ADR'nin güncellenmesi sırasında kullanıcı, Claude ile Codex arasında bir mesajı elle taşımak zorunda kaldı — Codex'in "buna doğrudan bir kanalım yok" demesi, Lumos Board'un çözmesi hedeflenen boşluğun canlı örneğidir.
+
+Kullanıcının önerdiği hedef kategori seti (2026-07-16, ikinci tur netleştirme — "Tasarım Kararları" ve "Yapılacaklar" kategorileri "Olaylar" ve "Çalışma Durumu" ile netleştirilerek kaldırıldı):
+
+| Kategori | Bileşen taksonomisiyle ilişki |
+|----------|-------------------------------|
+| Görevler | Task Queue |
+| ADR / Kararlar | `docs/decisions/` mevcut ADR akışının Board'a yansıması |
+| Bekleyen Onaylar | Permission Channel |
+| Handoff Notları | Yeni kategori — ajanlar arası el değişimi notu |
+| Riskler | Yeni kategori |
+| Olaylar (Events) | Event Bus |
+| Çalışma Durumu (Working / Idle / Blocked) | Agent Status |
+| Bilgi Notları | Yeni kategori — genel amaçlı serbest not |
+
+### Kayıt yapısı: serbest metin değil, tipli kayıt (aynı vizyon notu kapsamında, 2026-07-16)
+
+Board'a yazılan her kayıt **serbest metin değil, tipli (typed) bir kayıt** olmalıdır. Bir aracın Board'la ilk teması metni yorumlamak değil, kaydın `TYPE` alanına bakıp kendisini ilgilendiren kayıtları filtrelemek olmalıdır; doğal dil yorumu yalnızca filtrelenmiş kayıt içinde, ikinci aşamada devreye girer.
+
+Örnek kayıt tipleri (kullanıcı önerisi, 2026-07-16):
+
+```text
+TYPE: DECISION
+Başlık: Lumos Board adı kabul edildi.
+ADR: 008
+Durum: Accepted
+```
+
+```text
+TYPE: TASK
+Başlık: Landing page mesajı yeniden yazılacak.
+Öncelik: High
+Sahip: Codex
+Durum: Waiting
+```
+
+```text
+TYPE: QUESTION
+Soru: LinkedIn görselleri şimdi kullanılacak mı?
+Soran: ChatGPT
+Durum: Waiting Answer
+```
+
+```text
+TYPE: HANDOFF
+Özet:
+- Push tamamlandı.
+- 2 untracked dosya var.
+- Commit atılmadı.
+```
+
+**Gerekçe:** Sabit alanlı (`TYPE`, `Durum`, `Sahip` vb.) kayıtlar, ajan sayısı arttıkça (ChatGPT, Codex, Lark, Slack, ...) mimariyi bozmadan ölçeklenir — her yeni araç yalnızca kendi ilgilendiği `TYPE`'ları filtreler, serbest metni baştan sona ayrıştırmaz. Format insan ve araç için ortaktır; insan da aynı yapıyla yazabilir.
+
+**Bu da aynı vizyon notunun bir parçasıdır, karar değildir** — kayıt şeması (zorunlu/opsiyonel alanlar, `TYPE` kümesinin tam listesi) ayrı bir tasarım turunda netleşecektir. Bu turda şema kilitlenmez, kod yazılmaz.
+
+### Kayıt yaşam döngüsü, sahiplik ve değiştirilemezlik (aynı vizyon notu kapsamında, 2026-07-16)
+
+Tipli kayıtlarda yalnızca "ne" olduğu değil, **hangi aşamada** olduğu da sabit bir alanla görünür olmalıdır — kayıt yaşam döngüsü (`STATUS`), sahiplik (`OWNER`) ve zaman damgası da şemanın parçasıdır.
+
+Genişletilmiş örnek alan seti (kullanıcı önerisi, 2026-07-16):
+
+```text
+TYPE: TASK
+STATUS: OPEN
+OWNER: Codex
+PRIORITY: HIGH
+CREATED_BY: ChatGPT
+UPDATED_AT: 2026-07-17T...
+```
+
+Hedeflenen `STATUS` kümesi: `OPEN`, `IN_PROGRESS`, `BLOCKED`, `WAITING_APPROVAL`, `COMPLETED`, `ARCHIVED`.
+
+**Kritik kural: Hiçbir araç başka bir aracın kaydını sessizce değiştiremez.** Bir kayıt güncellenecekse: (1) yeni bir revizyon eklenir, (2) durum açıkça değiştirilir, (3) gerekçe yazılır. Sessiz üzerine yazma yok — iz her zaman kalır. Bu, ADR'lerin kendi karar kaydı disiplinini (ekleyerek revize et, gerekçelendir, sessizce silme/değiştirme yok) Board kayıtlarına da taşır; her kayıt kendi mini "karar kaydı" izlenebilirliğine tabidir.
+
+**Bu da aynı vizyon notunun bir parçasıdır, karar değildir** — `STATUS` kümesinin tam listesi, revizyon formatı ve "kim başkasının kaydını neden güncelleyebilir" sınırı ayrı bir tasarım turunda netleşecektir. Bu turda şema kilitlenmez, kod yazılmaz.
+
+### Erişim modeli: görünürlük ve yetki (aynı vizyon notu kapsamında, 2026-07-16)
+
+Her kaydın kim tarafından görülebileceği ve kimin ne yapabileceği de şemanın parçası olmalıdır.
+
+Hedeflenen görünürlük (`VISIBILITY`) kümesi:
+
+- `PUBLIC` — tüm araçlar okuyabilir
+- `INTERNAL` — yalnızca çekirdek ajanlar
+- `PRIVATE` — yalnızca sahibi ve yetkili ajanlar
+- `USER_ONLY` — yalnızca kullanıcı onayıyla
+
+Hedeflenen yetki seviyeleri: `READ`, `COMMENT`, `PROPOSE_CHANGE`, `APPLY_CHANGE`.
+
+**Neden önemli:** `PROPOSE_CHANGE` ile `APPLY_CHANGE` ayrımı, bir aracın "bu ADR değişsin" diyebilmesini ama **tek başına değiştirememesini** şema seviyesinde somutlaştırır. Bu, ADR-008'in zaten kayıtlı olan § Karşılıklı denetim, sıfır kontrol ilkesi ve § Kayıt yaşam döngüsü "hiçbir araç başka bir aracın kaydını sessizce değiştiremez" kuralıyla birebir örtüşür — yeni bir ilke değil, mevcut ilkenin erişim modeli seviyesinde ifadesidir.
+
+### Board bir bilgi deposu değildir — yalnızca canlı iş (aynı vizyon notu kapsamında, 2026-07-16)
+
+Board, kalıcı bilgi deposuna (ansiklopediye) dönüşmemelidir. Kalıcı bilgi — ADR içerikleri, dokümantasyon, kod, karar gerekçeleri — her zaman kendi canonical yerinde kalır: `docs/decisions/`, Git, `docs/memory/`. Board yalnızca **canlı işin** (açık görev, bekleyen onay, güncel risk, aktif handoff) durumunu tutar ve kalıcı kayda **referans verir**, onu kopyalamaz:
+
+```text
+TYPE: DECISION
+STATUS: ACCEPTED
+REF: ADR-008
+```
+
+**Gerekçe:** Board kendi içinde tam metin taşımaya başlarsa zamanla okunamaz hale gelir ve canonical kaynakla çatallanma (drift) riski doğar — bu ADR'nin zaten teşhis ettiği panel `.lumos/tasks.json` ↔ TaskEngine `.lumos/tasks/tasks.json` drift'inin bir başka türü olurdu (bkz. § Drift ve çelişki riskleri). **Board = işaretçi + canlı durum; ADR/doküman/Git/Memory = gerçek içerik.**
+
+### Denetçi (Guardian) modeli: teslim ≠ commit yetkisi (aynı vizyon notu kapsamında, 2026-07-17)
+
+Ajanlar/araçlar kendi commit'lerini kendileri oluşturmaz. Bir araç işini bitirdiğinde Board'a bir `DELIVERY` kaydı bırakır; commit kararını ayrı bir **Denetçi (Guardian)** rolü verir.
+
+```
+Görev → Ajan(lar) → Lumos Board (TYPE: DELIVERY, STATUS: READY_FOR_REVIEW) → Denetçi → RED (geri gönder) | GREEN (commit oluştur → merge/deploy)
+```
+
+Örnek `DELIVERY` kaydı (kullanıcı önerisi):
+
+```text
+TYPE: DELIVERY
+TASK_ID: T-248
+OWNER: Codex
+FILES:
+ - packages/...
+ - docs/...
+STATUS: READY_FOR_REVIEW
+```
+
+Denetçinin kontrol listesi: aynı dosyaya birden fazla araç mı dokunmuş (çakışma), ADR'ye aykırı mı, testler geçiyor mu, kod standartlarına uyuyor mu, başkasının işini bozuyor mu, commit gerçekten tek bir konuyu mu içeriyor. Hepsi uygunsa: ilişkili `DELIVERY` kayıtlarını gruplar (gerekirse birden fazla aracın işini tek feature commit'inde birleştirir), commit mesajını üretir, onaya sunar, onay sonrası merge/deploy başlatır.
+
+**Rol ayrımı:** İş bitince aracın görevle ilişkisi kesilir; sorumluluk Denetçiye geçer — geliştirici araçlar yeni işe geçebilir, Denetçi kalite ve entegrasyona odaklanır (kullanıcının benzetmesiyle: çalanlar ajanlar, Denetçi şef).
+
+**Mevcut ilkelerle ilişki:** Bu model yeni bir ilke eklemez; ADR-008'in zaten var olan § Lumos AI Kurulu (bağımsız/kör inceleme) ve § Karşılıklı denetim, sıfır kontrol ilkelerinin **commit kapısı olarak somutlaşmış hâlidir**. Kurul ile Denetçi'nin aynı rol mü yoksa ayrı roller mi olduğu netleşmemiştir — ayrı bir tasarım sorusu olarak açık bırakılmıştır. Bu, [[feedback_batch_commit_inventory]] pratiğiyle de örtüşür: bu oturumda zaten "önce envanter tablosu, sonra commit onayı" şeklinde elle uygulanan disiplinin, ilerideki hedefte Board + Denetçi ile yapılandırılmış/otomatikleştirilmiş hâlidir.
+
+**Bu turda kod veya otomasyon kurulmaz** — bu yalnızca akış tasarımı notudur. Denetçi rolünün kim/ne olacağı (insan mı, ayrı bir AI değerlendirici mi, otomatik CI gate mi) ve commit/push/merge/deploy yetkisinin devri ayrı bir karar gerektirir; mevcut "hiçbir kurul üyesi icraya karar veremez, son söz Orkestratör/kullanıcıdadır" ilkesiyle çelişmemelidir.
+
+### Dağıtık Doğrulama (Distributed Validation): doğrulama tek nokta değil, çok katman (aynı vizyon notu kapsamında, 2026-07-17)
+
+**Tetikleyici:** Kullanıcı, AI destekli güvenlik araştırması üzerine bir bülteni ("Harnessing Harnesses — Climbing the LLM Hills") inceledi. Bültendeki yaklaşım tek bir doğrulama aşaması tanımlıyor: `Recon → Hunt → Validate → Trace → Report` zincirinde, bir ajan açık bulduğunda **ikinci bir ajan yalnızca onu çürütmeye çalışıyor** (yanlış pozitifleri azaltmak için tek noktalı bir "validator agent").
+
+Kullanıcının tespiti: Lumos'ta doğrulama tek bir noktada toplanmıyor; **ADR-008'de zaten kayıtlı altı ayrı doğrulama katmanına** dağılmış durumda:
+
+| Katman | Ne sorar | ADR-008'de karşılığı |
+|--------|----------|----------------------|
+| **Politika doğrulaması** | İstek kurallara ve güvenlik politikasına uyuyor mu? | § Karar ilkeleri madde 3 (Firewall + Trust kontrolü); ADR-006/ADR-007 |
+| **Risk doğrulaması** | Risk seviyesi nedir, onay gerekiyor mu? | § Karar ilkeleri madde 4; § Riskler; dispatch onay kuyruğu |
+| **Görev doğrulaması** | Üretilen sonuç gerçekten istenen görevi karşılıyor mu? | `agent_runner` verify adımı; `task_engine` doğrulama aşaması |
+| **İz/kanıt doğrulaması** | Kararın izi ve gerekçesi tutuluyor mu? | § Karar ilkeleri madde 7 (log ve açıklanabilirlik); § Kayıt yaşam döngüsü (sessiz üzerine yazma yok, her değişiklik gerekçeli) |
+| **Çoklu ajan doğrulaması** | Başka bir ajan sonucu sorguluyor mu? | § Lumos AI Kurulu (kör inceleme); § Karşılıklı denetim, sıfır kontrol |
+| **İnsan onayı** | Yüksek riskli işlemde son karar kullanıcıda mı? | § Karar ilkeleri madde 4 (`SECURITY_NEVER_AUTO`); § Denetçi (Guardian) modeli RED/GREEN kapısı |
+
+**Kullanıcının çerçevelemesi:** Bu, sektördeki tekil "validator agent" desenine karşı **"dağıtık doğrulama" (distributed validation)** olarak adlandırılabilir. Avantajı: tek bir doğrulayıcının hata yapması bütün sistemi etkilemez. Dezavantajı: katmanlar arasındaki koordinasyonun iyi tasarlanmasını gerektirir — bu ADR'nin zaten § Karşılıklı denetim ve § Denetçi modelinde ele aldığı koordinasyon sorunuyla aynıdır.
+
+**Kullanıcının teşhisi:** Lumos'un eksiği bu doğrulama katmanlarının *var olmaması* değil; mimarinin **dışarıdan bakan birinin de anlayacağı şekilde belgelenmemiş olması**. Yukarıdaki altı katman zaten ADR-008 içinde dağınık halde kayıtlıydı; bu bölüm onları tek bir isim ve tek bir tablo altında toplar — **yeni bir mekanizma eklemez, yeni bir karar değildir.**
+
+---
+
+**Bu bölümün tamamı (Ortak Durum ayrımı + kategori seti + tipli kayıt yapısı + yaşam döngüsü/sahiplik/değiştirilemezlik + erişim modeli + "Board ansiklopedi değildir" ilkesi + Denetçi/Guardian commit-gate modeli + Dağıtık Doğrulama çerçevesi) bir karar değildir, ileri vizyon notudur** — § Lumos Board resmi ad/bileşen kararının aksine, bu bölüm yalnızca ihtiyacı kayıt altına alır. Geçerli olan kısıtlar: (1) ADR-001 öncelik sırası ve genel gating değişmez; (2) dış araçlar arası paylaşılan yazma erişimi ayrı bir güvenlik/izin/veri sızıntısı risk değerlendirmesi gerektirir (bkz. § Riskler madde 5); (3) **bu turda kod, entegrasyon, otomasyon veya dış araç bağlantısı kurulmaz.**
+
+**Durum notu (güncelleme: 2026-07-17):** Bu bölüm kullanıcı tarafından bilinçli olarak **commit edilmeden** tutuluyor. Kullanıcı 2026-07-16'da tanımı olgunlaşmış kabul edip bir süre dokunulmamasını istemişti; 2026-07-17'de Denetçi/Guardian modeliyle kendisi geri döndü — bu, "dışarıdan proaktif dokunma" kısıtını ihlal etmez, çünkü kısıt bana (Claude'a) yönelikti, kullanıcının kendi kararına değil. Olgunlaşma testi geçerliliğini koruyor: birkaç gün dokunulmadan hâlâ doğru duruyorsa commit için doğru zaman kabul edilecek.
 
 ---
 
@@ -414,3 +576,4 @@ ADR-001 sırasına göre Agent Network, Firewall → Trust → Router → Memory
 - Public repo sınırı ve çekirdek stabilizasyon durumu ile uyum kontrolü
 - Pilot tek-rol delegasyon seçimi — karar finalize sonrası, ayrı onay
 - Lumos Board bileşen teknik tasarımı (Event Bus, Lock Manager, Task Queue, Memory Events, Agent Status, Permission Channel, Notification Stream) — import/drift checkpoint ve alt katman (ADR-005/006/007) unifikasyonu sonrası ayrı ADR/tasarım turu
+- Lumos Board = Ortak Durum vizyon notu — henüz commit edilmedi; tanım netleşince tek commit, ardından karara dönüştürülmeden önce ayrı güvenlik/izin/veri sızıntısı risk değerlendirmesi ve dış araç entegrasyon onayı gerekir
