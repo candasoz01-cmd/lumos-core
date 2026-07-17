@@ -55,3 +55,6 @@ ui/.env.local
 scripts/anchorusb/bin/
 .env.*
 !*.env.example
+
+# Personal Claude Code permission cache, not shared tooling.
+.claude/settings.local.json
