@@ -1,0 +1,83 @@
+/** Elektronik Uzmanı pilot metinleri (Türkçe) — Faz 1 kapsamı.
+ * Kapsam dışı (bu sürüm): kamera ile otomatik teşhis, OCR, cihaz kontrolü,
+ * programlayıcıya yazma, otomatik sipariş. Bkz.
+ * docs/analysis/electronics-expert-pilot-design.md
+ */
+const electronicsTr = {
+  pilotAccess: {
+    programName: "Elektronik Uzmanı Pilot Programı",
+    statusInvited: "Davet edildi",
+    statusActive: "Aktif",
+    statusRevoked: "İptal edildi",
+    quotaLabel: "Vaka kotası",
+    quotaExceeded: "Pilot vaka kotanız doldu.",
+    consentRequired: "Pilot programa katılmak için onay sözleşmesi kabul edilmelidir.",
+    scopeNote: "Bu pilot yalnızca analiz ve öneri sunar; hiçbir cihazı kontrol etmez veya sizin adınıza işlem yapmaz.",
+  },
+  faultCase: {
+    title: "Arıza Vakası",
+    statusOpen: "Açık",
+    statusInProgress: "İşlemde",
+    statusResolved: "Çözüldü",
+    statusArchived: "Arşivlendi",
+    titleLabel: "Vaka başlığı",
+    symptomLabel: "Arıza belirtisi",
+    deviceTypeLabel: "Cihaz türü",
+    brandLabel: "Marka",
+    modelLabel: "Model",
+    boardIdLabel: "Kart/parça numarası",
+  },
+  measurement: {
+    title: "Ölçüm Kaydı",
+    typeVoltage: "Gerilim",
+    typeResistance: "Direnç",
+    typeCurrent: "Akım",
+    typeCapacitance: "Kapasitans",
+    typeContinuity: "Süreklilik",
+    typeFrequency: "Frekans",
+    typeOther: "Diğer",
+    testPointLabel: "Ölçüm noktası",
+    measuredValueLabel: "Ölçülen değer",
+    expectedValueLabel: "Beklenen değer",
+    deviationWarning: "Ölçülen değer beklenen değerden sapıyor — bu yalnızca aritmetik bir yardımdır, kesin arıza göstergesi değildir.",
+    manualEntryNote: "Ölçümler yalnızca elle girilir; cihazdan otomatik veri okuma bu sürümde yoktur.",
+  },
+  finding: {
+    title: "Bulgu",
+    confidenceLow: "Düşük güven",
+    confidenceMedium: "Orta güven",
+    confidenceHigh: "Yüksek güven",
+    evidenceRequired: "Her bulgu en az bir kanıta (ölçüm) dayanmalıdır.",
+    disclaimer: "Bu, kesin bir arıza teşhisi değildir; olası bir bulgudur.",
+    createdByUser: "Kullanıcı",
+    createdByLumosAssist: "Lumos yardımıyla",
+  },
+  risk: {
+    title: "Yüksek Risk Uyarısı",
+    severityWarn: "Uyarı",
+    severityHigh: "Yüksek risk",
+    severityCritical: "Kritik risk",
+    categoryMainsVoltage: "Şebeke gerilimi",
+    categoryCapacitorStoredCharge: "Kapasitörde depolanmış yük",
+    categoryFireSmokeSmell: "Yanık/duman kokusu",
+    categoryBatterySwelling: "Batarya şişmesi",
+    categoryHighCurrent: "Yüksek akım",
+    categoryUnknownHighVoltage: "Bilinmeyen yüksek gerilim",
+    categoryOther: "Diğer",
+    ackRequired: "Devam etmeden önce bu güvenlik uyarısını onaylamalısınız.",
+    neverAutoNote: "Bu uyarı hiçbir zaman otomatik olarak gizlenmez veya bastırılmaz.",
+  },
+  paidFeatureStatus: {
+    title: "Özellik Durumu",
+    closed: "Kapalı",
+    pilot: "Pilot",
+    validated: "Doğrulandı",
+    paid: "Ücretli",
+    transitionNote: "Durum geçişleri otomatik değildir; her biri ayrı bir karar kaydına (ADR/OD) bağlıdır.",
+  },
+  scopeNotice: {
+    outOfScope: "Bu sürümde kamera ile otomatik teşhis, OCR, cihaz kontrolü, programlayıcıya yazma ve otomatik sipariş verme yer almaz.",
+  },
+} as const;
+
+export default electronicsTr;

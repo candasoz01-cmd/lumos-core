@@ -2,10 +2,10 @@
 
 | Alan | Değer |
 |------|--------|
-| **Durum** | **Taslak — docs only; kod veya PR yok.** Onay alınmadan uygulama fazına geçilmez. |
+| **Durum** | **Pilot iskeleti uygulandı; canlı entegrasyon yok.** Veri modeli, erişim/risk kuralları, boş Provider registry, TR/EN metinleri ve birim testleri bu branch'te bulunur. |
 | **Tarih** | 2026-07-17 |
 | **Çalışma adı** | **Elektronik Uzmanı** (kilitli değil — [`lumos-approved-naming-registry.md`](./lumos-approved-naming-registry.md) §C onayı gerekir) |
-| **Kapsam** | Faz 1 pilot: tasarım + veri modeli (kod yok). Elektronik teşhis modülü ve gelecekteki Provider mimarisi için mimari foundation. |
+| **Kapsam** | Faz 1 pilot: tasarım + in-memory veri modeli ve politika iskeleti. Elektronik teşhis modülü ve gelecekteki Provider mimarisi için temel. |
 | **Branch** | `codex/electronics-expert-pilot` (up-to-date `main`'den ayrı; `codex/lumos-entry-social-packages` branch'ine **dokunmaz**) |
 | **Üst sınır** | [`docs/lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md), [`public-repo-boundary.md`](../memory/public-repo-boundary.md), ADR-012 |
 | **İlgili** | [ADR-007](../decisions/ADR-007-trust-engine-layer.md), [ADR-010](../decisions/ADR-010-guard-policy-trust-terminology.md), [ADR-012](../decisions/ADR-012-lumos-security-codex.md), [ADR-015](../decisions/ADR-015-lumos-service-api-gateway.md), [ADR-016](../decisions/ADR-016-lumos-id-memory-gateway.md), [`lumos-action-permission-matrix.md`](./lumos-action-permission-matrix.md), [`pilot-user-program-design.md`](./pilot-user-program-design.md), [`secure-device-framework.md`](./secure-device-framework.md), [`commercial-product-packaging.md`](./commercial-product-packaging.md) |
@@ -62,7 +62,7 @@ flowchart TB
     H[RepairOutcome: doğrulanmış onarım]
   end
   subgraph L6["Katman 6 — Ücretli özellik durumu"]
-    I["kapalı → pilot → validated → paid"]
+    I["closed → pilot → validated → paid"]
   end
   subgraph L7["Katman 7 — Gelecek: Provider katmanı"]
     J[ADR-015 servis ailesi + ADR-016 Lumos ID]
@@ -86,7 +86,7 @@ flowchart TB
 | `src/electronics/models.py` | §3–§6 veri modelleri (dataclass) |
 | `src/electronics/pilot_access.py` | Pilot erişim kontrolü; `src/task_engine/profiles.py` profil kavramına bağlanır |
 | `src/electronics/risk_rules.py` | Şeffaf, kural/anahtar-kelime tabanlı yüksek risk işaretleme (ML "kesin teşhis" değil) |
-| `src/integrations/providers/electronics_tools_registry.py` | (Faz 2+) `quantum_registry.py` deseniyle dış araç kayıtları — bu turda **yok** |
+| `src/integrations/electronics_tools_registry.py` | (Faz 2+) `quantum_registry.py` deseniyle dış araç kayıtları — bu turda **yok** |
 | `docs/decisions/ADR-017-electronics-expert-pilot.md` | Bu tasarım "Kabul edildi" olduğunda ADR'ye taşınır |
 | `ui/src/i18n/messages/electronics/{en,tr}.ts` | Vaka formu, ölçüm formu, risk uyarısı, ücretli özellik rozeti metinleri |
 | `tests/test_electronics_models.py` | Veri modeli birim testleri |
@@ -112,6 +112,8 @@ flowchart TB
 
 **Karar:** Elektronik Uzmanı pilotu `profiles.py` anlamında yalnızca **`rapor`** profiliyle çalışır (analiz/öneri var; `safe_local`, `write_local`, `external` yok). Bu, §6'daki NEVER_AUTO sınırlarını izin matrisi seviyesinde de kilitler.
 
+Bu profil kararı yalnızca yerel/manual kapalı pilot içindir. §7'deki gelecekteki Provider çağrıları `rapor` profilinin `external` yasağını aşamaz; dış çağrı eklenmeden önce ayrı ADR, izin matrisi kararı ve kayıtlı entegrasyon aksiyonu gerekir. Pilot kodu Provider özelliğini gizlice etkinleştiremez.
+
 ---
 
 ## 4. Arıza Vakası — `FaultCase`
@@ -130,7 +132,7 @@ flowchart TB
 | `finding_refs` | FK[] → `Finding` | — |
 | `risk_refs` | FK[] → `RiskFlag` | Boş olabilir |
 | `outcome_ref` | FK → `RepairOutcome` \| null | Vaka kapanışında dolar |
-| `paid_feature_status_snapshot` | enum | Vaka oluşturulduğu andaki `kapalı/pilot/validated/paid` değeri — **denetim için donmuş kopya**, global durum değişse bile vaka geçmişi bozulmaz |
+| `feature_access_state_snapshot` | `FeatureAccessState` | Vaka oluşturulduğu andaki `closed/pilot/validated/paid` değeri — **denetim için donmuş kopya**, global durum değişse bile vaka geçmişi bozulmaz |
 | `source` | string | `"lumos_native"` veya `"provider:<id>"` — §7 Provider mimarisi için köken etiketi, bu fazda yalnızca `"lumos_native"` üretilir |
 
 ### 4.1 Cihaz ve Kart Bilgisi — `DeviceBoardInfo`
@@ -185,13 +187,22 @@ flowchart TB
 | `measurement_id` | UUID | — |
 | `case_id`, `device_id` | FK | — |
 | `test_point_label` | string | Örn. "C12 anot" |
+| `reference_point` | string \| null | Siyah prob/şase/referans noktası; karşılaştırmanın yeniden üretilebilmesi için gerilim ölçümünde zorunlu |
 | `measurement_type` | enum | `voltage` \| `resistance` \| `current` \| `capacitance` \| `continuity` \| `frequency` \| `other` |
-| `measured_value`, `unit` | float, string | Kullanıcı girer |
-| `expected_value` | float \| null | — |
+| `instrument_mode` | string | Örn. `DC_V`, `AC_V`, `ohm`, `diode`, `continuity`; kullanıcı seçer, cihazdan otomatik okunmaz |
+| `circuit_state` | enum | `deenergized` \| `energized` \| `unknown` — `unknown` veya enerjili ölçüm, §6.3 risk kontrolünden geçmeden yönlendirme üretemez |
+| `value_kind` | enum | `numeric` \| `boolean` \| `categorical` — süreklilik/açık devre gibi sonuçlar zorla sayıya çevrilmez |
+| `measured_value` | number \| bool \| string | `value_kind` ile uyumlu kullanıcı girişi |
+| `unit` | string \| null | Sayısal değerlerde kontrollü birim; boolean/categorical sonuçta `null` olabilir |
+| `expected_min`, `expected_nominal`, `expected_max` | number \| null | Beklenen aralık; tek nominal değer şart değildir |
+| `expected_text` | string \| null | `open`, `closed`, `no_short` gibi sayısal olmayan beklenen sonuç |
 | `expected_value_source` | enum | `user_entered` \| `datasheet_reference` \| `provider:<id>` (son değer yalnızca §7 Provider fazında; bu turda pasif) |
-| `deviation_flag` | bool \| null | Basit tolerans dışı hesaplama (aritmetik yardım — "kesin arıza" iddiası değil) |
+| `comparison_result` | enum | `below` \| `within` \| `above` \| `match` \| `mismatch` \| `unknown`; yalnızca aritmetik/kategorik karşılaştırma, teşhis değil |
+| `risk_check_ref` | FK → `RiskFlag` \| null | Enerjili veya durumu bilinmeyen ölçümde zorunlu; `critical/block` kaydı varsa ölçüm yönlendirmesi üretilemez |
 | `entered_by` | literal | `"user"` — bu fazda daima kullanıcı; cihazdan otomatik okuma yok |
 | `recorded_at` | datetime | — |
+
+Ölçüm karşılaştırması tek başına `Finding` oluşturmaz. Bir bulgu için ölçüm koşulları, kaynak ve en az bir ek bağlam/kanıt birlikte değerlendirilir; tolerans dışı değer yalnızca "yeniden kontrol et" sinyalidir.
 
 ### 6.2 Bulgu ve Güven Derecesi — `Finding` (kanıt sistemi)
 
@@ -239,20 +250,24 @@ Bu ayrım, ADR-015 açık onay kapısının fiziksel güvenlikte tek başına ye
 | `verified_at` | datetime \| null | — |
 | `closes_case` | bool | — |
 
-### 6.5 Ücretli Özellik Durumu — geçiş modeli
+### 6.5 Özellik erişim durumu — `FeatureAccessState`
 
-| Değer | Anlam | Çıkış kriteri (bir sonrakine geçmek için) |
-|-------|-------|--------------------------------------------|
-| **kapalı** | Görünür değil, yalnızca geliştirme | Tasarım onayı (bu belge) |
-| **pilot** | Kapalı davet listesi ([`PilotAccessGrant`](#3-pilot-kullanıcı-yetkilendirmesi--pilotaccessgrant)), ücretsiz, break-the-system modunda | Tanımlı sayıda doğrulanmış `RepairOutcome`, 0 P0 güvenlik bulgusu, ayrı pilot kapanış raporu |
-| **validated** | Daha geniş opt-in, hâlâ ücretsiz/sınırlı | Ticari paketleme kararı ([`commercial-product-packaging.md`](./commercial-product-packaging.md), OD-011) |
-| **paid** | Faturalandırılan özellik | [`subscription-payment-control.md`](../subscription-payment-control.md) ile uygulama |
+Kod ve API sözleşmesinde sabit İngilizce değerler kullanılır; kullanıcı arayüzü bunları yerelleştirir. Türkçe görünür etiketler sırasıyla **Kapalı / Pilot / Doğrulandı / Ücretli** olur.
+
+| Kod değeri | Anlam | İleri geçiş kriteri |
+|------------|-------|---------------------|
+| `closed` | Görünür değil, yalnızca geliştirme | Tasarım onayı (bu belge) |
+| `pilot` | Kapalı davet listesi ([`PilotAccessGrant`](#3-pilot-kullanıcı-yetkilendirmesi--pilotaccessgrant)), ücretsiz, break-the-system modunda | Kararla belirlenecek asgari sayıda `pilot_reviewed` sonuç, 0 açık P0 güvenlik bulgusu, ayrı pilot kapanış raporu |
+| `validated` | Daha geniş opt-in, hâlâ ücretsiz/sınırlı | Ticari paketleme kararı ([`commercial-product-packaging.md`](./commercial-product-packaging.md), OD-011) |
+| `paid` | Faturalandırılan özellik | [`subscription-payment-control.md`](../subscription-payment-control.md) ile uygulama; ödeme yalnızca erişim hakkı verir, güvenlik kuralını gevşetmez |
 
 Geçişler **otomatik değildir**; her biri ayrı, numaralandırılmış bir karar kaydı (ADR/OD) gerektirir — mevcut repo pratiğiyle birebir aynı disiplin (bkz. OD-011 payment-scope-decision).
 
+**Geri kapatma yolu:** Güvenlik olayı, yanlış yönlendirme serisi veya veri ihlali şüphesinde yetkili ürün sahibi/Guardian durumu derhal `paid → validated → pilot → closed` yönünde geri alabilir. Bu geri alma mevcut vakaları silmez; vakalar salt okunur kalır, yeni teşhis/Provider çağrıları durur ve gerekçe denetim kaydına yazılır. Kullanıcı ödemesi bu güvenlik kapısını aşamaz.
+
 ---
 
-## 7. Gelecekteki Provider mimarisi (bu turda uygulanmaz)
+## 7. Gelecekteki Provider mimarisi (yalnız arayüz ve boş registry uygulandı)
 
 Kullanıcı yönlendirmesiyle hizalı hedef: Lumos yalnızca kendi Elektronik Uzmanı deneyimi değil, **sağlayıcı/orkestrasyon katmanı** olabilmelidir.
 
@@ -260,11 +275,35 @@ Kullanıcı yönlendirmesiyle hizalı hedef: Lumos yalnızca kendi Elektronik Uz
 |-----|-------|------------------------|
 | **1. Lumos'un kendi uygulaması** | Elektronik Uzmanı pilotu; kimlik burada oluşur | §2–§6 (bu belge) |
 | **2. Diğer uygulamalarda Lumos sağlayıcısı** | E-Helper vb. kendi ürününde "Lumos ile arıza analizi / ölçüm planı / muadil doğrulama / vaka raporu" sunar | [ADR-015](../decisions/ADR-015-lumos-service-api-gateway.md) desenine yeni **servis ailesi**: hedef yol örneği `/v1/electronics/case`, `/v1/electronics/measurement-plan`, `/v1/electronics/finding` — **planlanan**, canlı değil |
-| **3. Lumos içinden dış araç kullanımı** | Datasheet servisi, parça veritabanı, ölçüm cihazı servisleri Lumos'a **adaptör** olarak bağlanır | `quantum_registry.py` deseninde `electronics_tools_registry.py` (dataclass: `provider_id`, `tool_type` (`datasheet`\|`part_database`\|`measurement_device`\|`equivalent_finder`), `approval_tier`, `status`) — **bu turda yazılmaz** |
+| **3. Lumos içinden dış araç kullanımı** | Datasheet servisi, parça veritabanı, ölçüm cihazı servisleri Lumos'a **adaptör** olarak bağlanır | `src/electronics/registry.py` içinde Provider sözleşmesi ve bilinçli olarak boş registry uygulandı; canlı sağlayıcı kaydı veya çağrısı yoktur |
 
 **Neden veri modeli bugünden hazır olmalı:** `FaultCase.source`, `MeasurementEntry.expected_value_source` ve `Finding.created_by` alanları **provider-agnostic** kurgulanmıştır — ileride bir üçüncü taraf vaka açtığında (`source="provider:e-helper"`) şema değişmeden, yalnızca yeni bir sağlayıcı kaydı eklenerek genişler ([ADR-016](../decisions/ADR-016-lumos-id-memory-gateway.md) I6 ilkesiyle aynı: "yeni sağlayıcı eklemek yalnızca yeni bir adaptör kaydı kadar basit olmalı").
 
 **Sınır:** Her iki yönde de aynı 7 adımlı güven zinciri geçerlidir (istek doğrulama → güven anlık görüntüsü → politika kararı → açık onay kapısı → sağlayıcı yönlendirmesi → yürüt/reddet → hassas veriden arındırılmış denetim). Lumos yalnızca API'leri yeniden satan boş bir aracı olmamalı: araçlar veriyi sağlar, **Lumos veriyi vakaya dönüştürür, ölçüm sırasını kurar, riski yönetir, sonucu doğrulatır** — bu belgedeki §4–§6 veri modeli bu değeri taşıyan katmandır.
+
+### 7.1 Provider güven ve veri sözleşmesi
+
+Her dış elektronik aracı **güvenilmeyen öneri kaynağı** kabul edilir. Provider yanıtı doğrudan vaka durumuna yazılmaz; şema doğrulaması, risk kuralları ve Lumos politika kapısından yeniden geçer.
+
+| Alan | Kural |
+|------|-------|
+| `provider_id` | Kayıtlı adaptör kimliği; istek içinde serbestçe değiştirilemez |
+| `capability` | `datasheet_lookup` \| `measurement_plan` \| `finding_suggestion` \| `equivalent_candidates`; adaptör yalnızca kayıtlı yeteneğini çağırabilir |
+| `subject_ref` | Provider'a özgü opak kullanıcı/vaka referansı; ham `lumos_id`, seri numarası veya yerel dosya yolu gönderilmez |
+| `consent_ref` | İstenen yetenek, hedef Provider ve veri sınıflarını kapsayan açık onay; genel entegrasyon/pilot onayı yeterli değildir |
+| `idempotency_key` | Tekrar denemede çift vaka, çift bulgu veya yinelenen maliyet oluşmasını önler |
+| `data_classes` | Gönderilecek alanların açık listesi; izin verilmeyen alan istek gövdesine hiç eklenmez |
+| `audit_ref` | Hassas içerik taşımayan istek/sonuç özeti; ham fotoğraf, OCR metni ve ölçüm değerleri genel audit loguna yazılmaz |
+
+**Provider'ın değiştiremeyeceği alanlar:**
+
+- `RiskFlag.severity` değerini düşüremez, `flow_action=block` kararını açamaz veya uyarıyı bastıramaz.
+- `PilotAccessGrant`, ücretli özellik durumu ve kullanıcı yetkisini oluşturamaz/değiştiremez.
+- `RepairOutcome.outcome_status` değerini `user_confirmed` veya `pilot_reviewed` yapamaz; yalnızca öneri döndürebilir.
+- Sipariş, ödeme, cihaz kontrolü, firmware/programlayıcı yazması veya başka dış etkili işlem başlatamaz.
+- Ham fotoğrafı varsayılan olarak alamaz. Açık fotoğraf onayı varsa dahi yalnızca §5.1'e göre metadata'sı temizlenmiş seçili kırpım gönderilir.
+
+Provider yanıtındaki ölçüm planı veya bulgu, `source="provider:<id>"` etiketiyle kaydedilir ve kullanıcıya kaynak + güven + dayanak birlikte gösterilir. Sağlayıcı hatası Lumos tarafından kesin teşhis diline yükseltilemez.
 
 ---
 
@@ -286,7 +325,7 @@ Kullanıcı yönlendirmesiyle hizalı hedef: Lumos yalnızca kendi Elektronik Uz
 | Dosya/klasör | Amaç | Durum |
 |--------------|------|-------|
 | `src/electronics/__init__.py`, `models.py`, `pilot_access.py`, `risk_rules.py` | §2–§6 veri modeli ve pilot erişim mantığı | Yeni — yazılmadı |
-| `src/integrations/providers/electronics_tools_registry.py` | §7 dış araç kayıt deseni (`quantum_registry.py` benzeri) | Yeni — **Faz 2**, bu turda yok |
+| `src/integrations/electronics_tools_registry.py` | §7 dış araç kayıt deseni (`quantum_registry.py` benzeri) | Yeni — **Faz 2**, bu turda yok |
 | `docs/decisions/ADR-017-electronics-expert-pilot.md` | Bu tasarım onaylanınca ADR'ye taşınır | Bekliyor |
 | `docs/analysis/lumos-approved-naming-registry.md` | "Elektronik Uzmanı" adı §C onayına eklenir | Güncellenecek (ayrı iş) |
 | `ui/src/i18n/messages/electronics/{en,tr}.ts` | Vaka formu, ölçüm formu, risk uyarısı, ücretli özellik rozeti metinleri | Yeni — yazılmadı |
