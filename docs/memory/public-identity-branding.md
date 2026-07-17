@@ -69,10 +69,10 @@ Kullanıcıyı **AI geliştirici** olarak anlatırken aşağıdaki çerçeve kor
 
 | # | Madde | Durum | Not |
 |---|--------|--------|-----|
-| 1 | **"LUMOS AI" skull logo** kullanıcı tercihi olarak not edildi | `[needs-review]` | Gelecek görsel kimlik için referans; bu dosyaya veya repoya görsel commit edilmez |
-| 2 | Logo kullanım alanları (README, landing, sosyal) | `[needs-review]` | Boyut, arka plan, birlikte kullanılacak metin net değil |
-| 3 | Renk / tipografi / ikon seti | `[queued]` | Henüz canonical karar yok |
-| 4 | Landing page görsel tonu | `[needs-review]` | Metin tonu ile uyum gözden geçirilecek |
+| 1 | Ağaç + ay + merkez kuantum yıldızı ana kimlik | `[decision-approved]` | Ana sembol ağaç; ay destekleyici; yıldız küçük çekirdek |
+| 2 | Logo kullanım alanları (README, landing, sosyal, uygulama) | `[decision-approved]` | Küçük vektör ve koyu/derin uygulama ikonu aynı geometriyi korur |
+| 3 | Renk dili | `[decision-approved]` | Altın + koyu zemin; sakin ve kurumsal kullanım |
+| 4 | Hizmet varyantları | `[approved-rule]` | Ana logo değişmez; hizmete göre ikincil rozet/etiket/vurgu türetilir |
 
 **Kısıt:** Görsel dosya bu migration kapsamında eklenmez; yalnızca not ve gelecek karar alanı kaydı tutulur.
 
@@ -103,7 +103,7 @@ Dış vitrin ve public metinlerde **olmaması gerekenler:**
 | ChatGPT memory ile repo metni çelişir | Yanlış dış anlatım | `docs/memory/` canonical; çelişkide repo güncellenir |
 | Başlangıç seviyesi vurgusu kaybolur | Tutarsız veya abartılı profil | Tüm vitrin metinlerinde kontrol listesi |
 | Lumos çıktı sahibi gibi sunulur | Sahiplik / sorumluluk karışıklığı | Sahiplik bölümüne sabit referans |
-| Logo / landing tonu belirsiz | Marka tutarsızlığı | `[needs-review]` maddeler kararlanana kadar yayın ertelenir |
+| Hizmet varyantı ana logodan kopar | Marka tutarsızlığı | Ana geometri korunur; yalnızca ikincil katman türetilir |
 | AI yorumu gerçek gibi yazılır | Yanıltıcı kurucu profili | "AI yorumu" etiketi zorunlu |
 
 ---
@@ -117,10 +117,10 @@ ChatGPT Saved Memories / oturum bağlamından bu dosyaya taşınan maddeler:
 | 1 | `[migrated]` | Dış vitrin fazı: LinkedIn, foto, intro, README, landing | Dış vitrin fazı | |
 | 2 | `[migrated]` | Kullanıcı AI geliştirici; kendi gözünde başlangıç seviyesi | Kullanıcı/kurucu anlatımı · Başlangıç seviyesi vurgusu | AI yorumu etiketi eklendi |
 | 3 | `[migrated]` | Çıktılar kullanıcıya ait; Lumos destekleyici araç | Lumos ile üretilen çıktıların sahipliği | |
-| 4 | `[migrated]` | "LUMOS AI" skull logo tercihi | Marka ve görsel kimlik | `[needs-review]` — görsel commit yok |
+| 4 | `[closed]` | Eski skull/alternatif ana logo arayışı | Marka ve görsel kimlik | Ağaç + ay + kuantum yıldızı kararıyla kapatıldı |
 | 5 | `[migrated]` | Abartısız, istenmeyen iddia yok | Public anlatım sınırı | |
 | 6 | `[needs-review]` | Landing page tonu ve kopya detayı | Dış vitrin fazı · Marka | Kanal bazlı taslak gerekli |
-| 7 | `[needs-review]` | Logo kullanım kuralları | Marka ve görsel kimlik | Görsel kimlik paketi tamamlanmadı |
+| 7 | `[decision-approved]` | Logo kullanım kuralları | Marka ve görsel kimlik | OD-050/051 ile sabitlendi |
 
 ---
 

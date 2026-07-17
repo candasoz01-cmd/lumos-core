@@ -6,6 +6,7 @@ const panelNav = {
   header: {
     title: "ChatLumos",
     subtitle: "Sohbet ve görevler tek yerde",
+    engine: "AI motoru · OpenAI",
   },
   moduleGroups: {
     calisma: "Çalışma",

@@ -102,7 +102,7 @@ try {
     await browser.close();
     fail("desktop görünür modülleri hatalı: " + JSON.stringify(desktopContract.visibleModules));
   }
-  if (desktopContract.headerLogo !== "/lumos-skull-mark.svg") {
+  if (desktopContract.headerLogo !== "/chat-lumos-mark.svg") {
     await browser.close();
     fail("desktop başlığında ChatLumos logosu yok");
   }

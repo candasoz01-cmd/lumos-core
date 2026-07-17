@@ -127,6 +127,16 @@ Kullanici verisinin urun malzemesi olmadigini; reklam, veri satisi ve gereksiz a
 
 Lumos'un yalnizca konusan bir arayuz degil, sozlesmeyle korunan bir cekirdek etrafinda buyuyen sistem olarak neden tasarlandigini anlatir. Dal ajanlarin kok olmadigini; kokun karakter, karar sozlesmesi, guvenlik ve audit ilkeleriyle korundugunu aciklar.
 
+Sik tekrarlanan ve baglama gore uzmanlik isteyen islerde **tek odakli dal ajan** modeli kullanilir. Ornegin marka baglam ajani; yuzeyin anlamina gore logo bicimi, renk, boyut ve bosluk onerisi uretir. Bu ajan:
+
+- Yalnizca kullanicidan veya Lumos Orkestrator'den gorev alir; baska bir ajandan emir kabul etmez.
+- Ana marka geometrisini veya karar sozlesmesini degistiremez; yalnizca onayli kurallardan varyant onerir.
+- Dosya yayini, dis paylasim veya kalici degisiklik yapmaz; sonucu tek merkez kontrol noktasina iletir.
+- Karar, risk, uygulama durumu ve gerekceyi ana merkezdeki bildirim duvarina standart olay olarak birakir.
+- Bildirim duvari icra makami degildir; kullaniciya ve Orkestrator'e gorunurluk saglar.
+
+Akis: **Kullanici / Lumos Orkestrator -> tek odakli ajan -> merkez kontrol noktasi -> bildirim duvari -> onayli uygulama**. Bu desen, `Karşılıklı denetim, sıfır kontrol` ilkesini korur; ajanlar birbirini yonetmez.
+
 ### 11. Entegrasyonlar: araclarin verisine saygi
 
 GitHub, Slack, Google, Gmail, Calendar gibi araclarin kendi verisinin sahibi oldugunu anlatir. Lumos yalnizca kullanici izni ve politika kapsaminda gerekli ozeti, metadata'yi veya eylemi isler; tam kopya, sessiz senkron veya onaysiz dis yazma varsayilan degildir.

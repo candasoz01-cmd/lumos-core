@@ -1,28 +1,33 @@
-# OD-050/051 — Logo paketi karar taslağı
+# OD-050/051 — Logo sistemi kararı
 
-**Durum:** **`needs-review`** (kullanıcı tercihi + kullanım kuralları paketi).  
-**Kaynak OD:** OD-050 (LUMOS AI skull logo), OD-051 (logo kullanım kuralları).  
-**Not:** Görsel asset public repoda **henüz yok**; karar önce politika, sonra commit.
-
----
-
-## 1. Birleşik paket soruları
-
-| Soru | Taslak durum |
-|------|----------------|
-| Skull logo gelecek kimlikte kullanılacak mı? | **needs-review** — kullanıcı tercihi notu; varsayılan: opsiyonel marka öğesi, birincil logo değil |
-| Boyut, arka plan, metin birlikteliği | **needs-review** — minimum set: min boyut, açık/koyu arka plan, «LUMOS» wordmark birlikteliği |
-| Public repo | Yalnızca onaylı, lisansı net asset commit edilir; öncesi placeholder |
+**Durum:** **`decision-approved`** — 15 Temmuz 2026 kullanıcı kararı.
+**Kaynak OD:** OD-050 (önceki logo arayışı), OD-051 (logo kullanım kuralları).
+**Canonical assetler:** `ui/public/lumos-tree-logo.svg`, `ui/public/lumos-logo-mark.svg`.
 
 ---
 
-## 2. Önerilen ilkeler (onay bekliyor)
+## 1. Kilitli kimlik
 
-| # | İlke (taslak) |
+| Katman | Sabit anlam |
+|------|-------------|
+| Ağaç | Ana sembol; We Lock AI ekosistemi ve insan merkezli kök |
+| Ay | Arka planda destekleyici alan; ana sembolün önüne geçmez |
+| Kuantum yıldızı | Küçük, merkezde çekirdek; teknoloji ve gelecek güvenliği |
+| Altın + koyu zemin | Kurumsal ana renk dili |
+| ChatLumos | Sohbet kabuğu + özgün kuantum çekirdeği; yalnızca sohbet yüzeylerinde |
+
+---
+
+## 2. Kullanım ilkeleri
+
+| # | İlke |
 |---|----------------|
-| L1 | Logo kullanımı **ürün yüzeyi + dış vitrin** ile sınırlı; iç mimari dokümanlarda zorunlu değil |
-| L2 | Distorsiyon, renk dışı efekt, düşük kontrast arka plan **yasak** (onay sonrası guideline) |
-| L3 | Skull logo reddedilirse nötr wordmark/icon yolu açık kalır |
+| L1 | Ana geometri ağaç + ay + kuantum yıldızıdır; yeni bağımsız logo aranmaz |
+| L2 | Küçük boyutta sade vektör, uygulama ikonunda koyu ve derinlikli varyant kullanılır |
+| L3 | Hizmet kimlikleri ana geometriyi değiştirmez; yalnızca ikincil rozet, kısa etiket veya kontrollü vurgu rengi ekler |
+| L4 | Distorsiyon, düşük kontrast, rastgele renk/efekt ve başka marka logosuyla birleşim yasaktır |
+| L5 | Üçüncü taraf kurum logoları bağlantı yüzeyinde ayrı gösterilir; ortaklık izlenimi oluşturacak şekilde ana markaya katılmaz |
+| L6 | Model sağlayıcısı sohbet yüzeyinde ayrı bir motor rozetiyle belirtilir; sağlayıcı logosu ChatLumos işaretinin geometrisine katılmaz |
 
 ---
 
@@ -30,11 +35,11 @@
 
 | OD | Durum |
 |----|--------|
-| OD-050 | needs-review — paket altında |
-| OD-051 | needs-review — paket altında |
+| OD-050 | closed — skull ve alternatif ana logo arayışı kapatıldı |
+| OD-051 | decision-approved — kullanım sistemi sabitlendi |
 
-**Sonraki adım:** Kullanıcı görsel tercih onayı → `decision-approved` veya skull **closed (kullanılmayacak)**.
+**Sonraki adım:** Yeni hizmet çıktığında bu kurala bağlı ikincil varyant türetilir; ana logo yeniden tartışmaya açılmaz.
 
 ---
 
-Son güncelleme: 2026-06-20 (envanter ab791c14 §10 — Phase 2)
+Son güncelleme: 2026-07-15
