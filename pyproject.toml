@@ -19,6 +19,18 @@ quantum = [
   "qiskit>=1.0",
   "qiskit-aer>=0.14",
 ]
+quantum-ibm = [
+  "qiskit-ibm-runtime",
+]
+quantum-azure = [
+  "qdk[azure]",
+]
+quantum-aws = [
+  "boto3",
+]
+quantum-google = [
+  "cirq-google",
+]
 
 [project.scripts]
 lumos = "lumos_core.__main__:main"

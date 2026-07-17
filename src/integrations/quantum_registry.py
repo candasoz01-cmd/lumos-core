@@ -35,7 +35,7 @@ QUANTUM_PROVIDERS: tuple[QuantumProviderEntry, ...] = (
         egress_risk="medium",
         approval_tier="needs-owner",
         status="stub",
-        demo_safe_note="OSS metadata only; first cloud branch after local Aer — not production connect",
+        demo_safe_note="Read-only adapter ready; credentials required, no quantum jobs are submitted",
         connect_priority=2,
     ),
     QuantumProviderEntry(
@@ -46,8 +46,8 @@ QUANTUM_PROVIDERS: tuple[QuantumProviderEntry, ...] = (
         cost_risk="high",
         egress_risk="medium",
         approval_tier="needs-owner",
-        status="planned",
-        demo_safe_note="Catalog only in public OSS",
+        status="stub",
+        demo_safe_note="Read-only workspace target discovery adapter; credentials required",
     ),
     QuantumProviderEntry(
         provider_id="amazon_braket",
@@ -57,8 +57,8 @@ QUANTUM_PROVIDERS: tuple[QuantumProviderEntry, ...] = (
         cost_risk="high",
         egress_risk="medium",
         approval_tier="needs-owner",
-        status="planned",
-        demo_safe_note="Catalog only in public OSS",
+        status="stub",
+        demo_safe_note="Read-only Braket device discovery adapter; AWS credentials required",
     ),
     QuantumProviderEntry(
         provider_id="google_quantum_ai",
@@ -68,8 +68,8 @@ QUANTUM_PROVIDERS: tuple[QuantumProviderEntry, ...] = (
         cost_risk="high",
         egress_risk="medium",
         approval_tier="needs-owner",
-        status="planned",
-        demo_safe_note="Catalog only in public OSS",
+        status="stub",
+        demo_safe_note="Read-only processor discovery adapter; access is restricted by Google",
     ),
     QuantumProviderEntry(
         provider_id="qiskit",
