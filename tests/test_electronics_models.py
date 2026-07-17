@@ -9,9 +9,9 @@ from electronics.models import (
     FaultCase,
     Finding,
     InvalidFaultCaseTransition,
-    InvalidPaidFeatureTransition,
+    InvalidFeatureAccessTransition,
     MeasurementEntry,
-    PaidFeatureState,
+    FeatureAccessState,
     PilotAccessGrant,
     RiskFlag,
 )
@@ -61,7 +61,7 @@ def test_fault_case_defaults():
     case = _case()
     assert case.status == "open"
     assert case.source == "lumos_native"
-    assert case.paid_feature_status_snapshot == "pilot"
+    assert case.feature_access_state_snapshot == "pilot"
     assert case.measurement_ids == []
 
 
@@ -286,17 +286,17 @@ def test_warn_risk_allows_flow_only_after_acknowledgement():
 
 
 # ---------------------------------------------------------------------------
-# PaidFeatureState
+# FeatureAccessState
 # ---------------------------------------------------------------------------
 
 
-def test_paid_feature_state_starts_closed():
-    state = PaidFeatureState(feature_key="electronics_expert_pilot")
+def test_feature_access_state_starts_closed():
+    state = FeatureAccessState(feature_key="electronics_expert_pilot")
     assert state.status == "closed"
 
 
-def test_paid_feature_state_linear_transition():
-    state = PaidFeatureState(feature_key="electronics_expert_pilot")
+def test_feature_access_state_linear_transition():
+    state = FeatureAccessState(feature_key="electronics_expert_pilot")
     state.transition_to("pilot", decision_ref="ADR-017")
     assert state.status == "pilot"
     assert state.decision_ref == "ADR-017"
@@ -306,29 +306,29 @@ def test_paid_feature_state_linear_transition():
     assert state.status == "paid"
 
 
-def test_paid_feature_state_cannot_skip_stages():
-    state = PaidFeatureState(feature_key="electronics_expert_pilot")
-    with pytest.raises(InvalidPaidFeatureTransition):
+def test_feature_access_state_cannot_skip_stages():
+    state = FeatureAccessState(feature_key="electronics_expert_pilot")
+    with pytest.raises(InvalidFeatureAccessTransition):
         state.transition_to("validated", decision_ref="ADR-017")
 
 
-def test_paid_feature_state_requires_decision_ref():
-    state = PaidFeatureState(feature_key="electronics_expert_pilot")
-    with pytest.raises(InvalidPaidFeatureTransition):
+def test_feature_access_state_requires_decision_ref():
+    state = FeatureAccessState(feature_key="electronics_expert_pilot")
+    with pytest.raises(InvalidFeatureAccessTransition):
         state.transition_to("pilot", decision_ref="")
 
 
-def test_paid_feature_state_paid_is_terminal():
-    state = PaidFeatureState(feature_key="electronics_expert_pilot")
+def test_feature_access_state_paid_is_terminal():
+    state = FeatureAccessState(feature_key="electronics_expert_pilot")
     state.transition_to("pilot", decision_ref="ADR-017")
     state.transition_to("validated", decision_ref="OD-101")
     state.transition_to("paid", decision_ref="OD-102")
-    with pytest.raises(InvalidPaidFeatureTransition):
+    with pytest.raises(InvalidFeatureAccessTransition):
         state.transition_to("pilot", decision_ref="OD-103")
 
 
-def test_paid_feature_state_can_roll_back_for_safety():
-    state = PaidFeatureState(feature_key="electronics_expert_pilot")
+def test_feature_access_state_can_roll_back_for_safety():
+    state = FeatureAccessState(feature_key="electronics_expert_pilot")
     state.transition_to("pilot", decision_ref="ADR-017")
     state.transition_to("validated", decision_ref="OD-101")
     state.transition_to("paid", decision_ref="OD-102")
@@ -339,7 +339,7 @@ def test_paid_feature_state_can_roll_back_for_safety():
     assert state.rollback_reason == "open critical safety incident"
 
 
-def test_paid_feature_rollback_requires_audit_reason():
-    state = PaidFeatureState(feature_key="electronics_expert_pilot", status="pilot")
-    with pytest.raises(InvalidPaidFeatureTransition):
+def test_feature_access_rollback_requires_audit_reason():
+    state = FeatureAccessState(feature_key="electronics_expert_pilot", status="pilot")
+    with pytest.raises(InvalidFeatureAccessTransition):
         state.rollback_to("closed", decision_ref="OD-103", reason="")

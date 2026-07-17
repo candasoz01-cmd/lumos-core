@@ -1,4 +1,5 @@
 /** Panel shell + module copy — Turkish (from panel.astro sections) */
+import electronics from "../electronics/tr";
 const panelNav = {
   meta: {
     title: "Lumos Merkez — sohbet, görev, kimlik",
@@ -24,6 +25,7 @@ const panelNav = {
     sosyal: "Sosyal",
     posta: "Posta",
     dosyalar: "Dosyalar",
+    elektronik: "Elektronik Uzmanı",
     kuantum: "Kuantum",
     kuantumResearchTitle: "Kuantum — araştırma alanı (aktif üretim özelliği değil)",
     lumosCore: "Lumos çekirdeği",
@@ -45,6 +47,7 @@ const panelNav = {
       sosyal: "🔵 Kimlik bekliyor",
       posta: "🟡 Mimari hazır",
       dosyalar: "🟢 Hazır",
+      elektronik: "🟢 Pilot · Yerel",
       kuantum: "🟡 Mimari hazır",
       yayincilik: "⚪ Kapalı",
       yapayzeka: "⚪ Kapalı",
@@ -58,6 +61,7 @@ const panelNav = {
     statusSub: {
       sohbet: "köprü olmadan sınırlı",
       gorevler: "yerel görevler",
+      elektronik: "bu cihazda kapalı pilot",
       posta: "İzin bekliyor · OD-031",
       kuantum: "ORAA aktif · Qiskit Aer öncelik 1",
       entegrasyon: "7 katman tanımlı",
@@ -70,6 +74,7 @@ const panelNav = {
       sosyal: "Platform kimliği bekleniyor; OAuth ve paylaşım henüz etkin değil",
       posta: "OD-031 e-posta taslağı; gönderim izni ve bağlantı bekliyor",
       dosyalar: "Yerel dosya yükleme ve özet; köprü bağlantısına bağlıdır",
+      elektronik: "Manuel vaka ve ölçüm kaydı bu cihazda yerel çalışır; canlı teşhis yoktur",
       kuantum: "ORAA aktif; kuantum katmanı mimari hazır — üretim iddiası yok",
       yayincilik: "Modül kapalı; yalnızca bilgi ekranı",
       yapayzeka: "Modül kapalı; yalnızca bilgi ekranı",
@@ -103,6 +108,7 @@ const panelNav = {
     sosyal: "Sosyal",
     posta: "Posta",
     dosyalar: "Dosyalar",
+    elektronik: "Elektronik Uzmanı",
     kuantum: "Kuantum Güvenlik Hazırlığı",
     yayincilik: "Yayıncılık",
     yapayzeka: "Yapay Zekâ",
@@ -1149,7 +1155,7 @@ const panel = {
   ...panelNav,
   common: panelCommon,
   shell: panelShell,
-  modules: panelModules,
+  modules: { ...panelModules, electronics },
 };
 
 export default panel;

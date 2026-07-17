@@ -3,6 +3,7 @@ import "../styles/lumos-tokens.css";
 import "../styles/umbrella-chrome.css";
 import LanguageSwitcher from "../components/LanguageSwitcher.astro";
 import I18nInit from "../components/I18nInit.astro";
+import ExpertModulePilotCard from "../components/ExpertModulePilotCard.astro";
 
 /**
  * POST /chat tam URL (örn. `https://host/chat`).
@@ -1202,6 +1203,160 @@ const PANEL_DEBUG = import.meta.env.DEV;
         font-size: 0.78rem;
         line-height: 1.45;
         color: rgba(156, 152, 146, 0.92);
+      }
+      /** Ortak Uzman Modülü pilot kartı — uzmanlığa özgü içerik slot içinde kalır. */
+      .expert-module-card {
+        width: min(100%, 48rem);
+        border: 1px solid var(--lumos-card-border);
+        border-radius: var(--panel-radius-lg);
+        background: rgba(4, 8, 16, 0.94);
+        box-shadow: var(--panel-edge-inset);
+        overflow: hidden;
+      }
+      .expert-module-card__header,
+      .expert-module-card__gate,
+      .expert-module-card__content {
+        padding: 1rem 1.1rem;
+      }
+      .expert-module-card__header {
+        border-bottom: 1px solid rgba(212, 182, 128, 0.14);
+      }
+      .expert-module-card__eyebrow {
+        margin: 0 0 0.35rem;
+        color: var(--lumos-muted);
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .expert-module-card__header h2 {
+        margin: 0 0 0.45rem;
+      }
+      .expert-module-card__intro,
+      .expert-module-card__status,
+      .expert-module-card__local-note {
+        margin: 0;
+        color: var(--lumos-muted);
+        font-size: 0.82rem;
+        line-height: 1.5;
+      }
+      .expert-module-card__gate {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 0.65rem 0.9rem;
+      }
+      .expert-module-card__activate,
+      .expert-module-form__submit {
+        min-height: 2.75rem;
+        border: 1px solid rgba(212, 182, 128, 0.34);
+        border-radius: 0.65rem;
+        background: rgba(116, 82, 42, 0.28);
+        color: var(--lumos-text);
+        padding: 0.65rem 0.9rem;
+        font: inherit;
+        cursor: pointer;
+      }
+      .expert-module-card__activate:disabled {
+        cursor: default;
+        opacity: 0.72;
+      }
+      .expert-module-card__local-note {
+        grid-column: 1 / -1;
+        font-size: 0.74rem;
+      }
+      .expert-module-card__content {
+        border-top: 1px solid rgba(212, 182, 128, 0.14);
+      }
+      .expert-module-form {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.8rem;
+      }
+      .expert-module-form__heading,
+      .expert-module-form__wide,
+      .expert-module-form__notice,
+      .expert-module-form__result,
+      .expert-module-form__recent {
+        grid-column: 1 / -1;
+      }
+      .expert-module-form__heading {
+        margin: 0;
+        font-size: 1rem;
+      }
+      .expert-module-form__field {
+        display: grid;
+        gap: 0.3rem;
+        min-width: 0;
+      }
+      .expert-module-form__field label {
+        color: var(--lumos-muted);
+        font-size: 0.74rem;
+      }
+      .expert-module-form__field input,
+      .expert-module-form__field select,
+      .expert-module-form__field textarea {
+        width: 100%;
+        min-height: 2.75rem;
+        border: 1px solid var(--lumos-card-border);
+        border-radius: 0.55rem;
+        background: rgba(1, 4, 10, 0.82);
+        color: var(--lumos-text);
+        padding: 0.62rem 0.7rem;
+        font: inherit;
+      }
+      .expert-module-form__field textarea {
+        min-height: 5rem;
+        resize: vertical;
+      }
+      .expert-module-form__notice,
+      .expert-module-form__result {
+        margin: 0;
+        color: var(--lumos-muted);
+        font-size: 0.78rem;
+        line-height: 1.5;
+      }
+      .expert-module-form__result[data-state="blocked"] {
+        color: #f2b3a8;
+      }
+      .expert-module-form__recent h3 {
+        margin: 0.35rem 0 0.55rem;
+        font-size: 0.9rem;
+      }
+      .expert-module-form__recent-list {
+        display: grid;
+        gap: 0.45rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .expert-module-form__recent-list li {
+        border: 1px solid rgba(212, 182, 128, 0.14);
+        border-radius: 0.5rem;
+        padding: 0.6rem 0.7rem;
+        color: var(--lumos-muted);
+        font-size: 0.76rem;
+      }
+      @media (max-width: 640px) {
+        .expert-module-card__header,
+        .expert-module-card__gate,
+        .expert-module-card__content {
+          padding: 0.8rem;
+        }
+        .expert-module-card__gate,
+        .expert-module-form {
+          grid-template-columns: 1fr;
+        }
+        .expert-module-card__activate,
+        .expert-module-form__submit,
+        .expert-module-form__heading,
+        .expert-module-form__wide,
+        .expert-module-form__notice,
+        .expert-module-form__result,
+        .expert-module-form__recent {
+          grid-column: 1;
+          width: 100%;
+        }
       }
       .medya-card-list {
         list-style: none;
@@ -4846,6 +5001,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 </span>
                 <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--ready" data-i18n="panel.nav.status.dosyalar">🟢 Hazır</span>
               </button>
+              <button type="button" data-module="elektronik" data-i18n-title="panel.nav.statusTitle.elektronik">
+                <span class="panel-nav-label-block">
+                  <span class="panel-nav-label" data-i18n="panel.nav.elektronik">Elektronik Uzmanı</span>
+                  <span class="panel-nav-status-subline" data-i18n="panel.nav.statusSub.elektronik">bu cihazda kapalı pilot</span>
+                </span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--ready" data-i18n="panel.nav.status.elektronik">🟢 Pilot · Yerel</span>
+              </button>
               <button type="button" class="panel-nav-research-chip" data-module="kuantum" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.kuantum">
                 <span class="panel-nav-label-block">
                   <span class="panel-nav-label" data-i18n="panel.nav.kuantum">Kuantum</span>
@@ -5696,6 +5858,103 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 <ul id="dosyalar-history-list" class="dosyalar-history-list" aria-labelledby="dosyalar-history-heading"></ul>
               </div>
             </div>
+          </section>
+
+          <section
+            id="panel-elektronik"
+            class="module-panel"
+            data-module-panel="elektronik"
+            data-active="false"
+            aria-label="Elektronik Uzmanı"
+            data-i18n-aria-label="panel.sections.elektronik"
+          >
+            <ExpertModulePilotCard
+              moduleId="electronics"
+              title="Elektronik Uzmanı"
+              titleKey="panel.sections.elektronik"
+              eyebrow="Kapalı pilot · Bu cihaz"
+              eyebrowKey="panel.modules.electronics.pilotUi.eyebrow"
+              intro="Arıza vakasını ve manuel ölçümü yalnızca bu tarayıcıda kaydeder. Canlı teşhis veya dış sağlayıcı bağlantısı yoktur."
+              introKey="panel.modules.electronics.pilotUi.intro"
+              activateLabel="Bu cihazda pilotu aç"
+              activateKey="panel.modules.electronics.pilotUi.activate"
+              inactiveLabel="Pilot henüz bu cihazda açılmadı."
+              inactiveKey="panel.modules.electronics.pilotUi.inactive"
+              localNote="Veriler bu cihazın tarayıcı deposunda kalır."
+              localNoteKey="panel.modules.electronics.pilotUi.localOnly"
+            >
+              <form id="electronics-pilot-form" class="expert-module-form" novalidate>
+                <h3 class="expert-module-form__heading" data-i18n="panel.modules.electronics.pilotUi.formTitle">Yeni arıza vakası</h3>
+                <div class="expert-module-form__field">
+                  <label for="electronics-device-type" data-i18n="panel.modules.electronics.pilotUi.deviceType">Cihaz türü</label>
+                  <input id="electronics-device-type" name="deviceType" type="text" maxlength="80" required autocomplete="off" />
+                </div>
+                <div class="expert-module-form__field">
+                  <label for="electronics-board-id" data-i18n="panel.modules.electronics.pilotUi.boardId">Kart / parça numarası</label>
+                  <input id="electronics-board-id" name="boardId" type="text" maxlength="120" autocomplete="off" />
+                </div>
+                <div class="expert-module-form__field expert-module-form__wide">
+                  <label for="electronics-case-title" data-i18n="panel.modules.electronics.pilotUi.caseTitle">Vaka başlığı</label>
+                  <input id="electronics-case-title" name="caseTitle" type="text" maxlength="160" required autocomplete="off" />
+                </div>
+                <div class="expert-module-form__field expert-module-form__wide">
+                  <label for="electronics-symptom" data-i18n="panel.modules.electronics.pilotUi.symptom">Arıza belirtisi</label>
+                  <textarea id="electronics-symptom" name="symptom" maxlength="1000" required></textarea>
+                </div>
+                <div class="expert-module-form__field">
+                  <label for="electronics-circuit-state" data-i18n="panel.modules.electronics.pilotUi.circuitState">Devre durumu</label>
+                  <select id="electronics-circuit-state" name="circuitState">
+                    <option value="deenergized" data-i18n="panel.modules.electronics.pilotUi.deenergized">Enerjisiz</option>
+                    <option value="energized" data-i18n="panel.modules.electronics.pilotUi.energized">Enerjili</option>
+                    <option value="unknown" data-i18n="panel.modules.electronics.pilotUi.unknown">Bilinmiyor</option>
+                  </select>
+                </div>
+                <div class="expert-module-form__field">
+                  <label for="electronics-risk-severity" data-i18n="panel.modules.electronics.pilotUi.riskSeverity">Risk seviyesi</label>
+                  <select id="electronics-risk-severity" name="riskSeverity">
+                    <option value="none" data-i18n="panel.modules.electronics.pilotUi.riskNone">Belirgin risk yok</option>
+                    <option value="warn" data-i18n="panel.modules.electronics.pilotUi.riskWarn">Uyarı</option>
+                    <option value="high" data-i18n="panel.modules.electronics.pilotUi.riskHigh">Yüksek</option>
+                    <option value="critical" data-i18n="panel.modules.electronics.pilotUi.riskCritical">Kritik</option>
+                  </select>
+                </div>
+                <div class="expert-module-form__field">
+                  <label for="electronics-measurement-type" data-i18n="panel.modules.electronics.pilotUi.measurementType">Ölçüm türü</label>
+                  <select id="electronics-measurement-type" name="measurementType">
+                    <option value="voltage" data-i18n="panel.modules.electronics.measurement.typeVoltage">Gerilim</option>
+                    <option value="resistance" data-i18n="panel.modules.electronics.measurement.typeResistance">Direnç</option>
+                    <option value="current" data-i18n="panel.modules.electronics.measurement.typeCurrent">Akım</option>
+                    <option value="capacitance" data-i18n="panel.modules.electronics.measurement.typeCapacitance">Kapasitans</option>
+                    <option value="continuity" data-i18n="panel.modules.electronics.measurement.typeContinuity">Süreklilik</option>
+                    <option value="frequency" data-i18n="panel.modules.electronics.measurement.typeFrequency">Frekans</option>
+                    <option value="other" data-i18n="panel.modules.electronics.measurement.typeOther">Diğer</option>
+                  </select>
+                </div>
+                <div class="expert-module-form__field">
+                  <label for="electronics-test-point" data-i18n="panel.modules.electronics.pilotUi.testPoint">Ölçüm noktası</label>
+                  <input id="electronics-test-point" name="testPoint" type="text" maxlength="120" required autocomplete="off" />
+                </div>
+                <div class="expert-module-form__field">
+                  <label for="electronics-reference-point" data-i18n="panel.modules.electronics.pilotUi.referencePoint">Referans noktası</label>
+                  <input id="electronics-reference-point" name="referencePoint" type="text" maxlength="120" autocomplete="off" />
+                </div>
+                <div class="expert-module-form__field">
+                  <label for="electronics-measured-value" data-i18n="panel.modules.electronics.pilotUi.measuredValue">Ölçülen değer</label>
+                  <input id="electronics-measured-value" name="measuredValue" type="text" inputmode="decimal" maxlength="40" required autocomplete="off" />
+                </div>
+                <div class="expert-module-form__field">
+                  <label for="electronics-unit" data-i18n="panel.modules.electronics.pilotUi.unit">Birim</label>
+                  <input id="electronics-unit" name="unit" type="text" maxlength="20" autocomplete="off" />
+                </div>
+                <button type="submit" class="expert-module-form__submit" data-i18n="panel.modules.electronics.pilotUi.save">Vakayı yerel kaydet</button>
+                <p class="expert-module-form__notice" data-i18n="panel.modules.electronics.pilotUi.definitiveNotice">Bu kayıt kesin arıza teşhisi değildir.</p>
+                <p id="electronics-pilot-result" class="expert-module-form__result" role="status" aria-live="polite" hidden></p>
+                <section class="expert-module-form__recent" aria-labelledby="electronics-recent-title">
+                  <h3 id="electronics-recent-title" data-i18n="panel.modules.electronics.pilotUi.recentTitle">Bu cihazdaki son vakalar</h3>
+                  <ul id="electronics-recent-list" class="expert-module-form__recent-list"></ul>
+                </section>
+              </form>
+            </ExpertModulePilotCard>
           </section>
 
           <section
@@ -10067,6 +10326,191 @@ const PANEL_DEBUG = import.meta.env.DEV;
         scrollActivePanelNavChipIntoView(
           nav.querySelector('button[data-module][aria-current="true"]'),
         );
+
+        const EXPERT_PILOT_STORAGE_PREFIX = "lumos.expert.pilot.v1.";
+
+        function expertPilotStorageKey(moduleId) {
+          return EXPERT_PILOT_STORAGE_PREFIX + moduleId;
+        }
+
+        function setExpertModulePilotState(card, enabled) {
+          if (!(card instanceof HTMLElement)) return;
+          const moduleId = card.dataset.expertModuleId || "";
+          const content = card.querySelector("[data-expert-module-content]");
+          const activate = card.querySelector("[data-expert-module-activate]");
+          const status = card.querySelector("[data-expert-module-status]");
+          if (content instanceof HTMLElement) content.hidden = !enabled;
+          if (activate instanceof HTMLButtonElement) {
+            activate.disabled = enabled;
+            activate.setAttribute("aria-disabled", enabled ? "true" : "false");
+          }
+          if (status instanceof HTMLElement && moduleId) {
+            status.textContent = panelT(
+              `panel.modules.${moduleId}.pilotUi.${enabled ? "active" : "inactive"}`,
+            );
+            status.dataset.i18n = `panel.modules.${moduleId}.pilotUi.${enabled ? "active" : "inactive"}`;
+          }
+          card.dataset.expertPilotActive = enabled ? "true" : "false";
+        }
+
+        document.querySelectorAll("[data-expert-module-card]").forEach((card) => {
+          if (!(card instanceof HTMLElement)) return;
+          const moduleId = card.dataset.expertModuleId || "";
+          let enabled = false;
+          try {
+            enabled = moduleId ? localStorage.getItem(expertPilotStorageKey(moduleId)) === "enabled" : false;
+          } catch {
+            enabled = false;
+          }
+          setExpertModulePilotState(card, enabled);
+          const activate = card.querySelector("[data-expert-module-activate]");
+          activate?.addEventListener("click", () => {
+            if (!moduleId) return;
+            try {
+              localStorage.setItem(expertPilotStorageKey(moduleId), "enabled");
+              setExpertModulePilotState(card, true);
+            } catch {
+              setExpertModulePilotState(card, false);
+            }
+          });
+        });
+
+        const electronicsForm = document.getElementById("electronics-pilot-form");
+        const electronicsResult = document.getElementById("electronics-pilot-result");
+        const electronicsRecentList = document.getElementById("electronics-recent-list");
+        const ELECTRONICS_CASES_STORAGE_KEY = "lumos.expert.electronics.cases.v1";
+        const ELECTRONICS_DYNAMIC_TR_FALLBACK = {
+          noCases: "Henüz yerel vaka yok.",
+          saved: "Vaka bu cihaza kaydedildi.",
+          criticalBlocked:
+            "Kritik risk: yeni ölçüm kaydı durduruldu. Enerjiyi güvenli biçimde kesin ve yetkin teknik destek alın.",
+          energizedRiskRequired:
+            "Enerjili veya durumu bilinmeyen devre için önce risk seviyesi seçilmelidir.",
+          voltageReferenceRequired: "Gerilim ölçümünde referans noktası zorunludur.",
+        };
+
+        function electronicsDynamicT(key) {
+          const fullKey = `panel.modules.electronics.pilotUi.${key}`;
+          const translated = panelT(fullKey);
+          return translated === fullKey
+            ? ELECTRONICS_DYNAMIC_TR_FALLBACK[key] || fullKey
+            : translated;
+        }
+
+        function readElectronicsCases() {
+          try {
+            const parsed = JSON.parse(localStorage.getItem(ELECTRONICS_CASES_STORAGE_KEY) || "[]");
+            return Array.isArray(parsed) ? parsed.slice(0, 20) : [];
+          } catch {
+            return [];
+          }
+        }
+
+        function writeElectronicsCases(cases) {
+          localStorage.setItem(ELECTRONICS_CASES_STORAGE_KEY, JSON.stringify(cases.slice(0, 20)));
+        }
+
+        function renderElectronicsCases() {
+          if (!(electronicsRecentList instanceof HTMLElement)) return;
+          electronicsRecentList.replaceChildren();
+          const cases = readElectronicsCases();
+          if (!cases.length) {
+            const empty = document.createElement("li");
+            empty.textContent = electronicsDynamicT("noCases");
+            electronicsRecentList.appendChild(empty);
+            return;
+          }
+          cases.slice(0, 5).forEach((faultCase) => {
+            const item = document.createElement("li");
+            const title = String(faultCase?.title || "—");
+            const device = String(faultCase?.deviceType || "—");
+            const risk = String(faultCase?.riskSeverity || "none");
+            const date = faultCase?.createdAt
+              ? new Date(faultCase.createdAt).toLocaleString(document.documentElement.lang || "tr")
+              : "";
+            item.textContent = `${title} · ${device} · ${risk}${date ? ` · ${date}` : ""}`;
+            electronicsRecentList.appendChild(item);
+          });
+        }
+
+        function showElectronicsResult(messageKey, blocked) {
+          if (!(electronicsResult instanceof HTMLElement)) return;
+          const shortKey = messageKey.split(".").pop() || messageKey;
+          electronicsResult.textContent = electronicsDynamicT(shortKey);
+          electronicsResult.dataset.state = blocked ? "blocked" : "ok";
+          electronicsResult.hidden = false;
+        }
+
+        if (electronicsForm instanceof HTMLFormElement) {
+          renderElectronicsCases();
+          window.addEventListener("load", renderElectronicsCases, { once: true });
+          window.addEventListener("lumos:localechange", renderElectronicsCases);
+          electronicsForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            if (!electronicsForm.reportValidity()) return;
+            const data = new FormData(electronicsForm);
+            const circuitState = String(data.get("circuitState") || "deenergized");
+            const riskSeverity = String(data.get("riskSeverity") || "none");
+            const measurementType = String(data.get("measurementType") || "voltage");
+            const referencePoint = String(data.get("referencePoint") || "").trim();
+            const hardStop = riskSeverity === "critical";
+            if (circuitState !== "deenergized" && riskSeverity === "none") {
+              showElectronicsResult(
+                "panel.modules.electronics.pilotUi.energizedRiskRequired",
+                true,
+              );
+              return;
+            }
+            if (!hardStop && measurementType === "voltage" && !referencePoint) {
+              showElectronicsResult(
+                "panel.modules.electronics.pilotUi.voltageReferenceRequired",
+                true,
+              );
+              return;
+            }
+            const riskId = riskSeverity === "none"
+              ? null
+              : globalThis.crypto?.randomUUID?.() || `risk-${Date.now()}`;
+            const faultCase = {
+              caseId: globalThis.crypto?.randomUUID?.() || `case-${Date.now()}`,
+              title: String(data.get("caseTitle") || "").trim(),
+              symptom: String(data.get("symptom") || "").trim(),
+              deviceType: String(data.get("deviceType") || "").trim(),
+              boardId: String(data.get("boardId") || "").trim() || null,
+              circuitState,
+              riskSeverity,
+              riskId,
+              blocked: hardStop,
+              measurement: hardStop
+                ? null
+                : {
+                    type: measurementType,
+                    testPoint: String(data.get("testPoint") || "").trim(),
+                    referencePoint: referencePoint || null,
+                    measuredValue: String(data.get("measuredValue") || "").trim(),
+                    unit: String(data.get("unit") || "").trim() || null,
+                    enteredBy: "user",
+                    riskCheckRef: riskId,
+                  },
+              source: "lumos_native",
+              featureAccessState: "pilot",
+              createdAt: new Date().toISOString(),
+            };
+            try {
+              writeElectronicsCases([faultCase, ...readElectronicsCases()]);
+            } catch {
+              return;
+            }
+            renderElectronicsCases();
+            showElectronicsResult(
+              hardStop
+                ? "panel.modules.electronics.pilotUi.criticalBlocked"
+                : "panel.modules.electronics.pilotUi.saved",
+              hardStop,
+            );
+            if (!hardStop) electronicsForm.reset();
+          });
+        }
 
         function scrollPanelComposeIntoView() {
           const stack = document.querySelector("#panel-sohbet .chat-compose-stack");

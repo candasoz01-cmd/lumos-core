@@ -1,0 +1,74 @@
+---
+interface Props {
+  moduleId: string;
+  title: string;
+  titleKey: string;
+  eyebrow: string;
+  eyebrowKey: string;
+  intro: string;
+  introKey: string;
+  activateLabel: string;
+  activateKey: string;
+  inactiveLabel: string;
+  inactiveKey: string;
+  localNote: string;
+  localNoteKey: string;
+}
+
+const {
+  moduleId,
+  title,
+  titleKey,
+  eyebrow,
+  eyebrowKey,
+  intro,
+  introKey,
+  activateLabel,
+  activateKey,
+  inactiveLabel,
+  inactiveKey,
+  localNote,
+  localNoteKey,
+} = Astro.props;
+
+const titleId = `expert-module-${moduleId}-title`;
+const statusId = `expert-module-${moduleId}-status`;
+---
+
+<article
+  class="expert-module-card"
+  data-expert-module-card
+  data-expert-module-id={moduleId}
+  aria-labelledby={titleId}
+>
+  <header class="expert-module-card__header">
+    <p class="expert-module-card__eyebrow" data-i18n={eyebrowKey}>{eyebrow}</p>
+    <h2 id={titleId} data-i18n={titleKey}>{title}</h2>
+    <p class="expert-module-card__intro" data-i18n={introKey}>{intro}</p>
+  </header>
+  <div class="expert-module-card__gate">
+    <p
+      id={statusId}
+      class="expert-module-card__status"
+      role="status"
+      aria-live="polite"
+      data-expert-module-status
+      data-i18n={inactiveKey}
+    >
+      {inactiveLabel}
+    </p>
+    <button
+      type="button"
+      class="expert-module-card__activate"
+      data-expert-module-activate
+      aria-describedby={statusId}
+      data-i18n={activateKey}
+    >
+      {activateLabel}
+    </button>
+    <p class="expert-module-card__local-note" data-i18n={localNoteKey}>{localNote}</p>
+  </div>
+  <div class="expert-module-card__content" data-expert-module-content hidden>
+    <slot />
+  </div>
+</article>

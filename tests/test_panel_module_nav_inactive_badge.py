@@ -36,6 +36,7 @@ PANEL_NAV_ACTIVE_MODULES = (
     "sohbet",
     "gorevler",
     "dosyalar",
+    "elektronik",
     "yetenekler",
 )
 

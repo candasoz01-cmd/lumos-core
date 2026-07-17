@@ -10,6 +10,8 @@ _PANEL_ASTRO = _REPO_ROOT / "ui" / "src" / "pages" / "panel.astro"
 _TOKENS_CSS = _REPO_ROOT / "ui" / "src" / "styles" / "lumos-tokens.css"
 _PANEL_TR = _REPO_ROOT / "ui" / "src" / "i18n" / "messages" / "panel" / "tr.ts"
 _PANEL_EN = _REPO_ROOT / "ui" / "src" / "i18n" / "messages" / "panel" / "en.ts"
+_ELECTRONICS_TR = _REPO_ROOT / "ui" / "src" / "i18n" / "messages" / "electronics" / "tr.ts"
+_ELECTRONICS_EN = _REPO_ROOT / "ui" / "src" / "i18n" / "messages" / "electronics" / "en.ts"
 
 PREMIUM_DARK_MARKERS = (
     "--lumos-panel-navy:",
@@ -56,8 +58,8 @@ def test_panel_i18n_keys_used_in_astro_exist_in_catalogs() -> None:
     keys |= set(re.findall(r'data-i18n-placeholder="(panel\.[^"]+)"', astro))
     keys |= set(re.findall(r'data-i18n-title="(panel\.[^"]+)"', astro))
     keys |= set(re.findall(r'data-i18n-aria-label="(panel\.[^"]+)"', astro))
-    tr_text = _PANEL_TR.read_text(encoding="utf-8")
-    en_text = _PANEL_EN.read_text(encoding="utf-8")
+    tr_text = _PANEL_TR.read_text(encoding="utf-8") + _ELECTRONICS_TR.read_text(encoding="utf-8")
+    en_text = _PANEL_EN.read_text(encoding="utf-8") + _ELECTRONICS_EN.read_text(encoding="utf-8")
     missing_tr: list[str] = []
     missing_en: list[str] = []
     for key in sorted(keys):

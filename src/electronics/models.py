@@ -118,7 +118,7 @@ class FaultCase:
     measurement_ids: list[str] = field(default_factory=list)
     finding_ids: list[str] = field(default_factory=list)
     risk_ids: list[str] = field(default_factory=list)
-    paid_feature_status_snapshot: "PaidFeatureStatus" = "pilot"
+    feature_access_state_snapshot: "FeatureAccessStatus" = "pilot"
     # "lumos_native" | "provider:<id>" — Faz 2 Provider katmanı için ayrılmış
     # alan (design doc §7). Bu fazda yalnızca "lumos_native" üretilir; hiçbir
     # canlı üçüncü taraf (E-Helper vb.) bağlantısı yoktur.
@@ -358,12 +358,12 @@ class RiskFlag:
 
 
 # --------------------------------------------------------------------------
-# §6.5 Ücretli özellik durumu — closed / pilot / validated / paid
+# §6.5 Özellik erişim durumu (FeatureAccessState) — closed / pilot / validated / paid
 # --------------------------------------------------------------------------
 
-PaidFeatureStatus = Literal["closed", "pilot", "validated", "paid"]
+FeatureAccessStatus = Literal["closed", "pilot", "validated", "paid"]
 
-PAID_FEATURE_TRANSITIONS: dict[PaidFeatureStatus, tuple[PaidFeatureStatus, ...]] = {
+FEATURE_ACCESS_TRANSITIONS: dict[FeatureAccessStatus, tuple[FeatureAccessStatus, ...]] = {
     "closed": ("pilot",),
     "pilot": ("validated",),
     "validated": ("paid",),
@@ -371,14 +371,14 @@ PAID_FEATURE_TRANSITIONS: dict[PaidFeatureStatus, tuple[PaidFeatureStatus, ...]]
 }
 
 
-class InvalidPaidFeatureTransition(ValueError):
+class InvalidFeatureAccessTransition(ValueError):
     """Doğrusal olmayan bir geçiş veya karar kaydı (decision_ref) olmadan
     yapılan bir geçiş denendiğinde fırlatılır."""
 
 
 @dataclass
-class PaidFeatureState:
-    """Ücretli özellik durum akışı (bkz. design doc §6.5).
+class FeatureAccessState:
+    """Özellik erişim durum akışı (bkz. design doc §6.5).
 
     Geçişler yalnızca doğrusal sırayla (closed -> pilot -> validated -> paid)
     yapılabilir ve her geçiş bir karar kaydı (`decision_ref`, örn. "ADR-017"
@@ -386,20 +386,20 @@ class PaidFeatureState:
     """
 
     feature_key: str
-    status: PaidFeatureStatus = "closed"
+    status: FeatureAccessStatus = "closed"
     changed_at: datetime = field(default_factory=now_utc)
     decision_ref: str | None = None
     rollback_reason: str | None = None
 
-    def transition_to(self, new_status: PaidFeatureStatus, decision_ref: str) -> None:
+    def transition_to(self, new_status: FeatureAccessStatus, decision_ref: str) -> None:
         if not decision_ref:
-            raise InvalidPaidFeatureTransition(
+            raise InvalidFeatureAccessTransition(
                 "a decision_ref (e.g. an ADR/OD id) is required for every "
                 "paid-feature status transition"
             )
-        allowed = PAID_FEATURE_TRANSITIONS.get(self.status, ())
+        allowed = FEATURE_ACCESS_TRANSITIONS.get(self.status, ())
         if new_status not in allowed:
-            raise InvalidPaidFeatureTransition(
+            raise InvalidFeatureAccessTransition(
                 f"{self.status} -> {new_status} is not an allowed linear transition "
                 f"(allowed: {allowed or 'none — terminal state'})"
             )
@@ -409,16 +409,16 @@ class PaidFeatureState:
         self.changed_at = now_utc()
 
     def rollback_to(
-        self, new_status: PaidFeatureStatus, decision_ref: str, reason: str
+        self, new_status: FeatureAccessStatus, decision_ref: str, reason: str
     ) -> None:
         """Güvenlik/veri olayı için daha kapalı bir duruma kontrollü dönüş."""
-        order: tuple[PaidFeatureStatus, ...] = ("closed", "pilot", "validated", "paid")
+        order: tuple[FeatureAccessStatus, ...] = ("closed", "pilot", "validated", "paid")
         if not decision_ref or not reason:
-            raise InvalidPaidFeatureTransition(
+            raise InvalidFeatureAccessTransition(
                 "rollback requires both decision_ref and an audit reason"
             )
         if order.index(new_status) >= order.index(self.status):
-            raise InvalidPaidFeatureTransition(
+            raise InvalidFeatureAccessTransition(
                 f"{self.status} -> {new_status} is not a rollback to a more closed state"
             )
         self.status = new_status

@@ -1,5 +1,6 @@
 /** Panel shell + module copy — English */
 import type panelTr from "./tr";
+import electronics from "../electronics/en";
 
 const panelCommon: typeof panelTr.common = {
   badges: {
@@ -76,6 +77,7 @@ const panel: typeof panelTr = {
     sosyal: "Social",
     posta: "Mail",
     dosyalar: "Files",
+    elektronik: "Electronics Expert",
     kuantum: "Quantum",
     kuantumResearchTitle: "Quantum — research area (not an active production feature)",
     lumosCore: "Lumos core",
@@ -97,6 +99,7 @@ const panel: typeof panelTr = {
       sosyal: "🔵 Identity required",
       posta: "🟡 Architecture ready",
       dosyalar: "🟢 Ready",
+      elektronik: "🟢 Pilot · Local",
       kuantum: "🟡 Architecture ready",
       yayincilik: "⚪ Off",
       yapayzeka: "⚪ Off",
@@ -110,6 +113,7 @@ const panel: typeof panelTr = {
     statusSub: {
       sohbet: "limited without bridge",
       gorevler: "local tasks",
+      elektronik: "closed pilot on this device",
       posta: "Awaiting permission · OD-031",
       kuantum: "ORAA active · Qiskit Aer priority 1",
       entegrasyon: "7 layers defined",
@@ -122,6 +126,7 @@ const panel: typeof panelTr = {
       sosyal: "Platform identity required; OAuth and publishing are not enabled yet",
       posta: "OD-031 mail stub; send permission and connection pending",
       dosyalar: "Local upload and summary; depends on bridge connection",
+      elektronik: "Manual cases and measurements run locally on this device; no live diagnosis",
       kuantum: "ORAA active; quantum layer architecture ready — no production claim",
       yayincilik: "Module off; information screen only",
       yapayzeka: "Module off; information screen only",
@@ -155,6 +160,7 @@ const panel: typeof panelTr = {
     sosyal: "Social",
     posta: "Mail",
     dosyalar: "Files",
+    elektronik: "Electronics Expert",
     kuantum: "Quantum Security Readiness",
     yayincilik: "Publishing",
     yapayzeka: "AI",
@@ -167,6 +173,7 @@ const panel: typeof panelTr = {
   },
   common: panelCommon,
   modules: {
+  electronics,
   chat: {
     historyAria: "Message history",
     empty: {
