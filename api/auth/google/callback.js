@@ -19,6 +19,17 @@ import {
 const TOKEN = "https://oauth2.googleapis.com/token";
 const USERINFO = "https://openidconnect.googleapis.com/v1/userinfo";
 
+// Bu uç yalnızca Google'ın tam sayfa yönlendirmesiyle tarayıcıdan çağrılır
+// (fetch/XHR ile değil) — bu yüzden her hata dalı ham JSON yerine kullanıcının
+// göreceği /auth?error=... sayfasına yönlendirir (bkz. auth.astro hata metni).
+function redirectAuthError(res, code, extraCookies = []) {
+  res.statusCode = 302;
+  res.setHeader("Set-Cookie", [clearStateCookieHeader(), ...extraCookies]);
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Location", `/auth?error=${encodeURIComponent(code)}`);
+  res.end();
+}
+
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     res.statusCode = 405;
@@ -31,19 +42,24 @@ export default async function handler(req, res) {
   const state = url.searchParams.get("state");
 
   if (err) {
-    res.statusCode = 302;
-    res.setHeader("Location", `/auth?error=${encodeURIComponent(err)}`);
-    res.end();
+    redirectAuthError(res, err);
     return;
   }
-  const cookieState = readCookie(req, STATE_COOKIE);
-  if (!verifyState(state) || !stateMatchesCookie(state, cookieState)) {
+
+  // authSecret() (state/oturum imzalama anahtarı) yapılandırılmamışsa
+  // verifyState/sealSession fırlatır — bunu 500 yerine anlaşılır bir
+  // hataya çeviriyoruz.
+  let stateOk;
+  try {
+    const cookieState = readCookie(req, STATE_COOKIE);
+    stateOk = verifyState(state) && stateMatchesCookie(state, cookieState);
+  } catch {
+    redirectAuthError(res, "auth_not_configured");
+    return;
+  }
+  if (!stateOk) {
     // State uyuşmazlığı — secret/state değeri yanıta yazılmaz
-    res.statusCode = 400;
-    res.setHeader("Content-Type", "application/json");
-    res.setHeader("Cache-Control", "no-store");
-    res.setHeader("Set-Cookie", clearStateCookieHeader());
-    res.end(JSON.stringify({ ok: false, error: "invalid_state" }));
+    redirectAuthError(res, "invalid_state");
     return;
   }
 
@@ -51,9 +67,7 @@ export default async function handler(req, res) {
   const clientSecret = (process.env.LUMOS_GOOGLE_WEB_CLIENT_SECRET || "").trim();
   const cb = redirectUri();
   if (!clientId || !clientSecret || !code) {
-    res.statusCode = 400;
-    res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({ ok: false, error: "missing_credentials_or_code" }));
+    redirectAuthError(res, "missing_credentials_or_code");
     return;
   }
 
@@ -70,23 +84,13 @@ export default async function handler(req, res) {
     body,
   });
   if (!tokenRes.ok) {
-    res.statusCode = 400;
-    res.setHeader("Content-Type", "application/json");
-    res.end(
-      JSON.stringify({
-        ok: false,
-        error: "token_http_error",
-        status: tokenRes.status,
-      })
-    );
+    redirectAuthError(res, "token_http_error");
     return;
   }
   const tok = await tokenRes.json();
   const access = tok.access_token;
   if (!access) {
-    res.statusCode = 400;
-    res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({ ok: false, error: "no_access_token" }));
+    redirectAuthError(res, "no_access_token");
     return;
   }
 
@@ -95,33 +99,35 @@ export default async function handler(req, res) {
   });
   // Google access_token burada düşer — saklanmaz
   if (!infoRes.ok) {
-    res.statusCode = 400;
-    res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({ ok: false, error: "userinfo_http_error" }));
+    redirectAuthError(res, "userinfo_http_error");
     return;
   }
   const info = await infoRes.json();
   const now = Math.floor(Date.now() / 1000);
   const lumosId = lumosIdForProviderIdentity("google_web", info.sub);
   if (!lumosId) {
-    res.statusCode = 400;
-    res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({ ok: false, error: "identity_subject_missing" }));
+    redirectAuthError(res, "identity_subject_missing");
     return;
   }
-  const sealed = sealSession({
-    sid: randomBytes(18).toString("base64url"),
-    lumos_id: lumosId,
-    sub: info.sub,
-    email: info.email || "",
-    name: info.name || "",
-    picture: info.picture || "",
-    door: "lumos",
-    provider: "google_web",
-    package: "base",
-    iat: now,
-    exp: now + 604800,
-  });
+  let sealed;
+  try {
+    sealed = sealSession({
+      sid: randomBytes(18).toString("base64url"),
+      lumos_id: lumosId,
+      sub: info.sub,
+      email: info.email || "",
+      name: info.name || "",
+      picture: info.picture || "",
+      door: "lumos",
+      provider: "google_web",
+      package: "base",
+      iat: now,
+      exp: now + 604800,
+    });
+  } catch {
+    redirectAuthError(res, "auth_not_configured");
+    return;
+  }
 
   res.statusCode = 302;
   const cookies = [sessionCookieHeader(sealed), clearStateCookieHeader()];

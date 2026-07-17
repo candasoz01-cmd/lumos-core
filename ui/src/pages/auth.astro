@@ -29,6 +29,12 @@ const UPDATED = "2026-07-15";
         Google yalnızca kimliğini doğrular. Ürün oturumu Lumos’tur — web, panel ve Mac aynı kapıdan geçer.
       </p>
 
+      <p
+        id="auth-status-message"
+        class="umbrella-callout"
+        style="display:none;border-color:rgb(220 90 60 / 0.5);box-shadow:inset 3px 0 0 rgb(220 90 60 / 0.7)"
+      ></p>
+
       <div class="umbrella-callout">
         <h2>Google ile devam et</h2>
         <p>
@@ -59,5 +65,34 @@ const UPDATED = "2026-07-15";
     </main>
     <WeLockSiteFooter />
     <I18nInit />
+    <script>
+      const ERROR_MESSAGES = {
+        access_denied: "Google girişi onaylanmadı. Tekrar deneyebilirsin.",
+        invalid_state: "Giriş isteği zaman aşımına uğradı veya geçersiz. Lütfen tekrar dene.",
+        auth_not_configured: "Giriş şu an yapılandırılmamış. Lütfen daha sonra tekrar dene.",
+        missing_client_id: "Giriş şu an yapılandırılmamış. Lütfen daha sonra tekrar dene.",
+        missing_credentials_or_code: "Google’dan beklenen bilgi gelmedi. Lütfen tekrar dene.",
+        token_http_error: "Google ile bağlantı kurulamadı. Lütfen tekrar dene.",
+        no_access_token: "Google girişi tamamlanamadı. Lütfen tekrar dene.",
+        userinfo_http_error: "Hesap bilgisi alınamadı. Lütfen tekrar dene.",
+        identity_subject_missing: "Hesap kimliği doğrulanamadı. Lütfen tekrar dene.",
+      };
+
+      const params = new URLSearchParams(location.search);
+      const box = document.getElementById("auth-status-message");
+      if (box) {
+        const error = params.get("error");
+        const loggedOut = params.get("logged_out");
+        if (error) {
+          box.textContent = ERROR_MESSAGES[error] || "Giriş sırasında bir sorun oluştu. Lütfen tekrar dene.";
+          box.style.display = "block";
+        } else if (loggedOut) {
+          box.textContent = "Çıkış yapıldı.";
+          box.style.borderColor = "";
+          box.style.boxShadow = "";
+          box.style.display = "block";
+        }
+      }
+    </script>
   </body>
 </html>
