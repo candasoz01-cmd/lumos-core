@@ -53,8 +53,8 @@
 }
 
 .lumos-umbrella-nav__logo {
-  width: 40px;
-  height: 40px;
+  width: 46px;
+  height: 46px;
 }
 
 .lumos-umbrella-nav__brand-text {
@@ -71,16 +71,16 @@
 
 .lumos-umbrella-nav__brand-sub {
   font-size: 0.62rem;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.14em;
-  color: rgb(var(--lumos-land-warm) / 0.82);
+  color: rgb(var(--lumos-land-warm) / 0.96);
 }
 
 .lumos-umbrella-nav__list {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.2rem 0.45rem;
+  gap: 0.35rem 0.65rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -88,7 +88,7 @@
 
 .lumos-umbrella-nav__link {
   display: inline-block;
-  padding: 0.32rem 0.5rem;
+  padding: 0.38rem 0.65rem;
   font-size: 0.82rem;
   font-weight: 600;
   color: rgb(var(--lumos-land-teal) / 0.88);
@@ -118,6 +118,8 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+  margin-top: 0.4rem;
+  margin-left: auto;
 }
 
 .umbrella-main {

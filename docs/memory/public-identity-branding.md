@@ -23,7 +23,7 @@ Taşıma süreci ve durum tanımları: [`chatgpt-saved-memories-migration.md`](.
 | # | Yapılacak | Durum | Not |
 |---|-----------|--------|-----|
 | 1 | LinkedIn profil güncellemesi | `[queued]` | Kısa, doğru, abartısız tanıtım |
-| 2 | Profil fotoğrafı | `[queued]` | Görsel kimlik ile uyumlu seçim |
+| 2 | Profil fotoğrafı | `[queued]` | ChatLumos işareti (`ui/public/chat-lumos-mark.svg`) kullanılmalı — bkz. Marka ve görsel kimlik #1 |
 | 3 | Kısa kişisel/proje tanıtım metni | `[queued]` | Başlangıç seviyesi vurgusu dahil |
 | 4 | GitHub README metni | `[queued]` | Public repo sınırına uygun |
 | 5 | Landing page kopyası | `[needs-review]` | Ton, iddia seviyesi ve hedef kitle netleşmeli |
@@ -69,10 +69,11 @@ Kullanıcıyı **AI geliştirici** olarak anlatırken aşağıdaki çerçeve kor
 
 | # | Madde | Durum | Not |
 |---|--------|--------|-----|
-| 1 | Ağaç + ay + merkez kuantum yıldızı ana kimlik | `[decision-approved]` | Ana sembol ağaç; ay destekleyici; yıldız küçük çekirdek |
-| 2 | Logo kullanım alanları (README, landing, sosyal, uygulama) | `[decision-approved]` | Küçük vektör ve koyu/derin uygulama ikonu aynı geometriyi korur |
-| 3 | Renk dili | `[decision-approved]` | Altın + koyu zemin; sakin ve kurumsal kullanım |
-| 4 | Hizmet varyantları | `[approved-rule]` | Ana logo değişmez; hizmete göre ikincil rozet/etiket/vurgu türetilir |
+| 1 | ChatLumos ana marka işareti | `[decision-approved]` | 17 Temmuz 2026 amendment — bkz. `od-050-logo-paketi-decision.md` § 4. iOS, web, favicon, OAuth, sosyal profil ve ürün UI'de birincil |
+| 2 | Ağaç + ay + merkez kuantum yıldızı — ikincil kurumsal mühür | `[decision-approved]` | Artık ana kimlik değil; yalnızca `index.astro`'daki "We Lock AI" şirket nav bloğunda kalıyor |
+| 3 | Logo kullanım alanları (README, landing, sosyal, uygulama) | `[decision-approved]` | ChatLumos küçük vektör ve koyu/derin uygulama ikonunda aynı geometriyi korur |
+| 4 | Renk dili | `[decision-approved]` | Altın + koyu zemin; sakin ve kurumsal kullanım |
+| 5 | Hizmet varyantları | `[approved-rule]` | Ana logo değişmez; hizmete göre ikincil rozet/etiket/vurgu türetilir |
 
 **Kısıt:** Görsel dosya bu migration kapsamında eklenmez; yalnızca not ve gelecek karar alanı kaydı tutulur.
 
