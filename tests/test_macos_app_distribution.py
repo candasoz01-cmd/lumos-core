@@ -9,7 +9,7 @@ def test_macos_bundle_uses_current_mark_and_associated_domain() -> None:
     build_script = (APP_DIR / "build-app.sh").read_text(encoding="utf-8")
     entitlements = (APP_DIR / "Lumos.entitlements").read_text(encoding="utf-8")
 
-    assert "ui/public/lumos-logo-mark.svg" in build_script
+    assert "ui/public/chat-lumos-mark.svg" in build_script
     assert "lumos-skull-mark.svg" not in build_script
     assert "--options runtime --timestamp" in build_script
     assert "applinks:welockai.com" in entitlements

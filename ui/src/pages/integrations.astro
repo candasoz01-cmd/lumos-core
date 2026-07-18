@@ -56,30 +56,103 @@ const charterRows: MatrixRow[] = [
   },
 ];
 
-const socialMediaPackages = [
+type ItemStatus = "active" | "foundation" | "planned" | "identity_required";
+
+const STATUS_BADGE: Record<ItemStatus, { cls: string; i18n: string; label: string }> = {
+  active: { cls: "integration-status--active", i18n: "umbrella.integrations.statusActive", label: "Aktif" },
+  foundation: { cls: "integration-status--foundation", i18n: "umbrella.integrations.statusFoundation", label: "Foundation" },
+  planned: { cls: "integration-status--planned", i18n: "umbrella.integrations.statusPlanned", label: "Planlanan" },
+  identity_required: { cls: "integration-status--planned", i18n: "umbrella.integrations.identityRequired", label: "Kimlik bekliyor" },
+};
+
+const ecosystemCategories = [
   {
-    id: "global",
-    titleKey: "umbrella.integrations.socialGlobalTitle",
-    title: "Küresel",
-    platforms: ["Meta (Facebook, Instagram)", "X", "TikTok", "LinkedIn", "YouTube"],
+    id: "ai",
+    labelKey: "umbrella.integrations.categoryAi",
+    label: "AI",
+    items: [
+      { id: "openai", name: "OpenAI", status: "foundation" as ItemStatus },
+      { id: "gemini", name: "Gemini", status: "planned" as ItemStatus },
+      { id: "deepseek", name: "DeepSeek", status: "planned" as ItemStatus },
+    ],
   },
   {
-    id: "china",
-    titleKey: "umbrella.integrations.socialChinaTitle",
-    title: "Çin",
-    platforms: ["WeChat", "Douyin", "Bilibili", "RED / Xiaohongshu", "Weibo"],
+    id: "identity",
+    labelKey: "umbrella.integrations.categoryIdentity",
+    label: "Kimlik",
+    items: [
+      { id: "apple", name: "Apple", status: "planned" as ItemStatus, href: "/connect/mac" },
+      { id: "google", name: "Google", status: "planned" as ItemStatus, href: "/integrations/google" },
+    ],
   },
   {
-    id: "india",
-    titleKey: "umbrella.integrations.socialIndiaTitle",
-    title: "Hindistan",
-    platforms: ["WhatsApp", "Instagram", "YouTube", "ShareChat", "Telegram"],
+    id: "communication",
+    labelKey: "umbrella.integrations.categoryCommunication",
+    label: "İletişim",
+    items: [
+      { id: "slack", name: "Slack", status: "planned" as ItemStatus, href: "/slack" },
+      { id: "whatsapp", name: "WhatsApp", status: "identity_required" as ItemStatus },
+      { id: "telegram", name: "Telegram", status: "identity_required" as ItemStatus },
+      { id: "zoom", name: "Zoom", status: "identity_required" as ItemStatus },
+      { id: "microsoftTeams", name: "Microsoft Teams", status: "identity_required" as ItemStatus },
+      { id: "line", name: "LINE", status: "planned" as ItemStatus },
+      { id: "kakaoTalk", name: "KakaoTalk", status: "planned" as ItemStatus },
+    ],
   },
   {
-    id: "russia",
-    titleKey: "umbrella.integrations.socialRussiaTitle",
-    title: "Rusya",
-    platforms: ["VK", "Telegram", "OK", "Rutube"],
+    id: "developer",
+    labelKey: "umbrella.integrations.categoryDeveloper",
+    label: "Geliştirici",
+    items: [
+      { id: "github", name: "GitHub", status: "foundation" as ItemStatus, href: "/integrations/github" },
+      { id: "linear", name: "Linear", status: "planned" as ItemStatus, href: "/integrations/linear" },
+      { id: "jira", name: "Jira", status: "planned" as ItemStatus },
+      { id: "notion", name: "Notion", status: "planned" as ItemStatus },
+    ],
+  },
+  {
+    id: "media",
+    labelKey: "umbrella.integrations.categoryMedia",
+    label: "Medya",
+    items: [
+      { id: "facebook", name: "Facebook", status: "identity_required" as ItemStatus },
+      { id: "instagram", name: "Instagram", status: "identity_required" as ItemStatus },
+      { id: "x", name: "X", status: "identity_required" as ItemStatus },
+      { id: "tiktok", name: "TikTok", status: "identity_required" as ItemStatus },
+      { id: "linkedin", name: "LinkedIn", status: "identity_required" as ItemStatus },
+      { id: "youtube", name: "YouTube", status: "identity_required" as ItemStatus },
+      { id: "wechat", name: "WeChat", status: "identity_required" as ItemStatus },
+      { id: "douyin", name: "Douyin", status: "identity_required" as ItemStatus },
+      { id: "bilibili", name: "Bilibili", status: "identity_required" as ItemStatus },
+      { id: "xiaohongshu", name: "RED / Xiaohongshu", status: "identity_required" as ItemStatus },
+      { id: "weibo", name: "Weibo", status: "identity_required" as ItemStatus },
+      { id: "sharechat", name: "ShareChat", status: "identity_required" as ItemStatus },
+      { id: "vk", name: "VK", status: "identity_required" as ItemStatus },
+      { id: "okru", name: "OK", status: "identity_required" as ItemStatus },
+      { id: "rutube", name: "Rutube", status: "identity_required" as ItemStatus },
+    ],
+  },
+  {
+    id: "home",
+    labelKey: "umbrella.integrations.categoryHome",
+    label: "Ev",
+    items: [
+      { id: "bluetoothAudio", name: "Bluetooth Audio", status: "planned" as ItemStatus },
+      { id: "matter", name: "Matter", status: "planned" as ItemStatus },
+      { id: "homeAssistant", name: "Home Assistant", status: "planned" as ItemStatus },
+      { id: "smartThings", name: "SmartThings", status: "planned" as ItemStatus },
+      { id: "sonos", name: "Sonos", status: "identity_required" as ItemStatus },
+    ],
+  },
+  {
+    id: "cloud",
+    labelKey: "umbrella.integrations.categoryCloud",
+    label: "Bulut",
+    items: [
+      { id: "gmail", name: "Gmail", status: "foundation" as ItemStatus, href: "/integrations/mail" },
+      { id: "googleCalendar", name: "Google Calendar", status: "planned" as ItemStatus },
+      { id: "googleDrive", name: "Google Drive", status: "planned" as ItemStatus },
+    ],
   },
 ] as const;
 ---
@@ -95,7 +168,7 @@ const socialMediaPackages = [
       data-i18n-content="umbrella.integrations.metaDescription"
     />
     <link rel="canonical" href="https://welockai.com/integrations" />
-    <link rel="icon" href="/lumos-tree-logo.svg" type="image/svg+xml" sizes="any" />
+    <link rel="icon" href="/chat-lumos-mark.svg" type="image/svg+xml" sizes="any" />
     <meta name="theme-color" content="#0a0e14" />
   </head>
   <body class="umbrella-page">
@@ -114,100 +187,80 @@ const socialMediaPackages = [
         </div>
       </header>
 
-      <section class="integration-ecosystem-group" aria-labelledby="active-connections-title">
+      <section id="ecosystem-map" class="ecosystem-map" aria-labelledby="ecosystem-map-title">
         <div class="integration-ecosystem-heading">
           <div>
-            <p class="umbrella-eyebrow" data-i18n="umbrella.integrations.statusActive">Aktif</p>
-            <h2 id="active-connections-title" data-i18n="umbrella.integrations.activeTitle">Demo-safe kapsamda kullanılabilen bağlantılar</h2>
+            <p class="umbrella-eyebrow" data-i18n="umbrella.integrations.ecosystemEyebrow">EKOSİSTEM</p>
+            <h2 id="ecosystem-map-title" data-i18n="umbrella.integrations.ecosystemTitle">Lumos, bu sistemleri birlikte çalıştırır</h2>
           </div>
-          <p data-i18n="umbrella.integrations.activeBody">Aktif durum, yalnızca belirtilen public/demo-safe kapsamı ifade eder.</p>
+          <p data-i18n="umbrella.integrations.ecosystemBody">Önce kategori seç; logolar yalnızca açtığın kategoride görünür. Katalog kaydı canlı bağlantı anlamına gelmez.</p>
         </div>
-        <div class="integration-ecosystem-grid integration-ecosystem-grid--compact">
-          <a class="integration-ecosystem-card" href="/integrations/mail">
-            <span class="integration-ecosystem-card__brand"><BrandLockup id="gmail" name="Gmail" linked={false} /></span>
-            <p data-i18n="umbrella.integrations.activeGmailBody">Demo-safe Dar v1 stub; canlı Gmail OAuth bağlantısı değildir.</p>
-            <span class="integration-status integration-status--active" data-i18n="umbrella.integrations.statusActive">Aktif</span>
-          </a>
-        </div>
-      </section>
 
-      <section class="integration-ecosystem-group" aria-labelledby="foundation-connections-title">
-        <div class="integration-ecosystem-heading">
-          <div>
-            <p class="umbrella-eyebrow" lang="en" data-i18n="umbrella.integrations.statusFoundation">Foundation</p>
-            <h2 id="foundation-connections-title" data-i18n="umbrella.integrations.foundationTitle">Doğrulanmış temel yüzeyler</h2>
-          </div>
-          <p data-i18n="umbrella.integrations.foundationBody">Teknik temel mevcut; ürün düzeyi bağlantı kapsamı kontrollü biçimde genişletilir.</p>
+        <div class="ecosystem-map__center" aria-hidden="true">
+          <img src="/chat-lumos-mark.svg" alt="" width="64" height="64" decoding="async" />
+          <span>Lumos</span>
         </div>
-        <div class="integration-ecosystem-grid">
-          <a class="integration-ecosystem-card" href="/integrations/github">
-            <span class="integration-ecosystem-card__brand"><BrandLockup id="github" name="GitHub" linked={false} /></span>
-            <p data-i18n="umbrella.integrations.foundationGithubBody">Issue ve pull request bağlamı için public temel.</p>
-            <span class="integration-status integration-status--foundation" lang="en" data-i18n="umbrella.integrations.statusFoundation">Foundation</span>
-          </a>
-          <article class="integration-ecosystem-card">
-            <span class="integration-ecosystem-card__brand"><BrandLockup id="openai" name="OpenAI" linked={false} /></span>
-            <p data-i18n="umbrella.integrations.foundationOpenaiBody">Yapılandırıldığında metin yanıtı üretimi için public temel.</p>
-            <span class="integration-status integration-status--foundation" lang="en" data-i18n="umbrella.integrations.statusFoundation">Foundation</span>
-          </article>
-        </div>
-      </section>
 
-      <section class="integration-ecosystem-group" aria-labelledby="planned-connections-title">
-        <div class="integration-ecosystem-heading">
-          <div>
-            <p class="umbrella-eyebrow" data-i18n="umbrella.integrations.statusPlanned">Planlanan</p>
-            <h2 id="planned-connections-title" data-i18n="umbrella.integrations.plannedTitle">Yol haritasındaki bağlantı yüzeyleri</h2>
-          </div>
-          <p data-i18n="umbrella.integrations.plannedBody">Katalog kaydı canlı OAuth, webhook veya senkron bağlantısı anlamına gelmez.</p>
+        <div class="ecosystem-map__categories" role="tablist" aria-label="Entegrasyon kategorileri">
+          {ecosystemCategories.map((category, index) => (
+            <button
+              type="button"
+              class="ecosystem-category"
+              role="tab"
+              id={`ecosystem-tab-${category.id}`}
+              aria-controls={`ecosystem-panel-${category.id}`}
+              aria-selected={index === 0 ? "true" : "false"}
+              data-category={category.id}
+            >
+              <span data-i18n={category.labelKey}>{category.label}</span>
+            </button>
+          ))}
         </div>
-        <div class="integration-ecosystem-grid">
-          <a class="integration-ecosystem-card" href="/integrations/google">
-            <span class="integration-ecosystem-card__brand"><BrandLockup id="google" name="Google Workspace" linked={false} /></span>
-            <p data-i18n="umbrella.integrations.plannedGoogleBody">Drive ve Calendar için read-first bağlantı kapsamı.</p>
-            <span class="integration-status integration-status--planned" data-i18n="umbrella.integrations.statusPlanned">Planlanan</span>
-          </a>
-          <a class="integration-ecosystem-card" href="/slack">
-            <span class="integration-ecosystem-card__brand"><BrandLockup id="slack" name="Slack" linked={false} /></span>
-            <p data-i18n="umbrella.integrations.plannedSlackBody">Politika kapsamındaki iş yeri bağlamı.</p>
-            <span class="integration-status integration-status--planned" data-i18n="umbrella.integrations.statusPlanned">Planlanan</span>
-          </a>
-          <a class="integration-ecosystem-card" href="/integrations/linear">
-            <span class="integration-ecosystem-card__brand"><BrandLockup id="linear" name="Linear" linked={false} /></span>
-            <p data-i18n="umbrella.integrations.plannedLinearBody">Görev bağlamı için Katman 3 bağlantı planı.</p>
-            <span class="integration-status integration-status--planned" data-i18n="umbrella.integrations.statusPlanned">Planlanan</span>
-          </a>
-          <a class="integration-ecosystem-card" href="/connect/mac">
-            <span class="integration-ecosystem-card__brand"><BrandLockup id="apple" name="Apple" linked={false} /></span>
-            <p data-i18n="umbrella.integrations.plannedAppleBody">Mac ve Universal Links bağlantı yüzeyi.</p>
-            <span class="integration-status integration-status--planned" data-i18n="umbrella.integrations.statusPlanned">Planlanan</span>
-          </a>
-        </div>
-      </section>
 
-      <section id="social-media-packages" class="integration-ecosystem-group" aria-labelledby="social-media-packages-title">
-        <div class="integration-ecosystem-heading">
-          <div>
-            <p class="umbrella-eyebrow" data-i18n="umbrella.integrations.socialEyebrow">SOSYAL VE VİDEO</p>
-            <h2 id="social-media-packages-title" data-i18n="umbrella.integrations.socialTitle">Bölgesel sosyal / medya bağlantı paketleri</h2>
-          </div>
-          <p data-i18n="umbrella.integrations.socialBody">Her platform ayrı kimlikle bağlanır. Akış: bağlantı, taslak, açık onay ve paylaşım.</p>
-        </div>
-        <div class="integration-ecosystem-grid integration-social-package-grid">
-          {socialMediaPackages.map((socialPackage) => (
-            <article class="integration-ecosystem-card integration-social-package-card" data-region={socialPackage.id}>
-              <div class="integration-social-package-card__head">
-                <h3 data-i18n={socialPackage.titleKey}>{socialPackage.title}</h3>
-                <span class="integration-status integration-status--planned" data-i18n="umbrella.integrations.identityRequired">Kimlik bekliyor</span>
-              </div>
-              <ul class="integration-social-platform-list">
-                {socialPackage.platforms.map((platform) => <li>{platform}</li>)}
+        <div class="ecosystem-map__panels">
+          {ecosystemCategories.map((category, index) => (
+            <div
+              class="ecosystem-panel"
+              id={`ecosystem-panel-${category.id}`}
+              role="tabpanel"
+              aria-labelledby={`ecosystem-tab-${category.id}`}
+              hidden={index !== 0}
+            >
+              <ul class="ecosystem-panel__grid">
+                {category.items.map((item) => {
+                  const badge = STATUS_BADGE[item.status];
+                  const content = (
+                    <>
+                      <BrandLockup id={item.id} name={item.name} compact monochrome linked={false} />
+                      <span class={`integration-status ${badge.cls}`} data-i18n={badge.i18n}>{badge.label}</span>
+                    </>
+                  );
+                  return (
+                    <li class="ecosystem-panel__item">
+                      {"href" in item && item.href ? <a href={item.href}>{content}</a> : content}
+                    </li>
+                  );
+                })}
               </ul>
-              <p data-i18n="umbrella.integrations.socialCardNote">Katalog yuvası hazır; canlı OAuth ve paylaşım henüz etkin değil.</p>
-            </article>
+            </div>
           ))}
         </div>
       </section>
+
+      <script>
+        const tabs = document.querySelectorAll<HTMLButtonElement>(".ecosystem-category");
+        tabs.forEach((tab) => {
+          tab.addEventListener("click", () => {
+            const targetId = tab.getAttribute("data-category");
+            tabs.forEach((otherTab) => {
+              const isActive = otherTab === tab;
+              otherTab.setAttribute("aria-selected", isActive ? "true" : "false");
+              const panel = document.getElementById(`ecosystem-panel-${otherTab.getAttribute("data-category")}`);
+              if (panel) panel.hidden = otherTab.getAttribute("data-category") !== targetId;
+            });
+          });
+        });
+      </script>
 
       <aside class="integration-guide-promo">
         <div>

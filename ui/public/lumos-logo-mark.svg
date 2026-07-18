@@ -1,62 +1,48 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  Lumos logo mark: symmetric tree-of-life silhouette (not antenna, tower, or candle).
-  Colors: Lumos landing / map palette - navy field, warm gold, subtle sky-cyan rim.
--->
+<!-- Dark application-icon treatment of the canonical tree + crescent + quantum-star mark. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="lumos-logo-title">
   <title id="lumos-logo-title">Lumos</title>
   <defs>
-    <linearGradient id="lumos-gold" x1="20" y1="8" x2="44" y2="52" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#f2e6cf"/>
-      <stop offset="0.45" stop-color="#d4b87a"/>
-      <stop offset="100%" stop-color="#a67c32"/>
+    <linearGradient id="icon-gold" x1="12" y1="5" x2="50" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff1c4"/>
+      <stop offset="0.45" stop-color="#d9a84b"/>
+      <stop offset="1" stop-color="#7a4d12"/>
     </linearGradient>
-    <radialGradient id="lumos-edge-glow" cx="32" cy="32" r="32" gradientUnits="userSpaceOnUse">
-      <stop offset="74%" stop-color="#03060d" stop-opacity="0"/>
-      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.1"/>
+    <radialGradient id="icon-field" cx="32" cy="24" r="34" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2b2114"/>
+      <stop offset="0.55" stop-color="#0d0b09"/>
+      <stop offset="1" stop-color="#030303"/>
     </radialGradient>
+    <radialGradient id="icon-glow" cx="32" cy="22" r="18" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff5c8" stop-opacity="0.72"/>
+      <stop offset="0.22" stop-color="#eab94f" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#eab94f" stop-opacity="0"/>
+    </radialGradient>
+    <mask id="icon-crescent-mask">
+      <rect width="64" height="64" fill="black"/>
+      <circle cx="29" cy="30" r="24" fill="white"/>
+      <circle cx="38" cy="25" r="23" fill="black"/>
+    </mask>
+    <filter id="icon-depth" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="1.2" stdDeviation="1.1" flood-color="#000" flood-opacity="0.85"/>
+    </filter>
   </defs>
 
-  <rect width="64" height="64" fill="#03060d"/>
+  <rect width="64" height="64" rx="14" fill="#030303"/>
+  <rect x="2" y="2" width="60" height="60" rx="12" fill="url(#icon-field)" stroke="#b98735" stroke-opacity="0.28"/>
+  <circle cx="32" cy="24" r="18" fill="url(#icon-glow)"/>
+  <circle cx="29" cy="30" r="24" fill="url(#icon-gold)" opacity="0.38" mask="url(#icon-crescent-mask)"/>
 
-  <circle cx="32" cy="32" r="30" fill="#050810"/>
-  <circle cx="32" cy="32" r="30" fill="url(#lumos-edge-glow)"/>
-  <circle
-    cx="32"
-    cy="32"
-    r="30"
-    fill="none"
-    stroke="#38bdf8"
-    stroke-width="0.55"
-    stroke-opacity="0.24"
-  />
+  <g fill="none" stroke="url(#icon-gold)" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" filter="url(#icon-depth)">
+    <path d="M30.2 47Q30.8 38 31.2 30.5M33.8 47Q33.2 38 32.8 30.5"/>
+    <path d="M31.5 30Q24 22 17 14M31.8 28Q26 16 20 10M32 26Q28 12 24 8M31.2 31Q22 26 12 20"/>
+    <path d="M32.5 30Q40 22 47 14M32.2 28Q38 16 44 10M32 26Q36 12 40 8M32.8 31Q42 26 52 20"/>
+    <path d="M32 24Q28 12 25 8M32 24Q36 12 39 8"/>
+    <path d="M31 45Q25 51 19 55M33 45Q39 51 45 55M31.5 46Q28 51 26 54M32.5 46Q36 51 38 54"/>
+  </g>
 
-  <g
-    fill="none"
-    stroke="url(#lumos-gold)"
-    stroke-width="1.5"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  >
-    <path d="M 30.2 47 Q 30.8 38 31.2 30.5"/>
-    <path d="M 33.8 47 Q 33.2 38 32.8 30.5"/>
-
-    <path d="M 31.5 30 Q 24 22 17 14"/>
-    <path d="M 31.8 28 Q 26 16 20 10"/>
-    <path d="M 32 26 Q 28 12 24 8"/>
-    <path d="M 31.2 31 Q 22 26 12 20"/>
-
-    <path d="M 32.5 30 Q 40 22 47 14"/>
-    <path d="M 32.2 28 Q 38 16 44 10"/>
-    <path d="M 32 26 Q 36 12 40 8"/>
-    <path d="M 32.8 31 Q 42 26 52 20"/>
-
-    <path d="M 32 24 Q 28 12 25 8"/>
-    <path d="M 32 24 Q 36 12 39 8"/>
-
-    <path d="M 31 45 Q 25 51 19 55"/>
-    <path d="M 33 45 Q 39 51 45 55"/>
-    <path d="M 31.5 46 Q 28 51 26 54"/>
-    <path d="M 32.5 46 Q 36 51 38 54"/>
+  <g fill="#fff8d8" stroke="#d49c36" stroke-width="0.55" aria-hidden="true" filter="url(#icon-depth)">
+    <path d="M32 16.2L33.05 20.95L37.8 22L33.05 23.05L32 27.8L30.95 23.05L26.2 22L30.95 20.95Z"/>
+    <circle cx="32" cy="22" r="1.25" fill="#fffdf3"/>
   </g>
 </svg>

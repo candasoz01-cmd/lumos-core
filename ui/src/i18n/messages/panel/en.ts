@@ -56,8 +56,9 @@ const panel: typeof panelTr = {
     title: "Lumos Center — chat, tasks, identity",
   },
   header: {
-    title: "Lumos",
-    subtitle: "Center · chat, tasks, identity",
+    title: "ChatLumos",
+    subtitle: "Chat and tasks in one place",
+    engine: "AI engine · OpenAI",
   },
   moduleGroups: {
     calisma: "Workspace",

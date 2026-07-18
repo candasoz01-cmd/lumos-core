@@ -4,8 +4,9 @@ const panelNav = {
     title: "Lumos Merkez — sohbet, görev, kimlik",
   },
   header: {
-    title: "Lumos",
-    subtitle: "Merkez · sohbet, görev, kimlik",
+    title: "ChatLumos",
+    subtitle: "Sohbet ve görevler tek yerde",
+    engine: "AI motoru · OpenAI",
   },
   moduleGroups: {
     calisma: "Çalışma",

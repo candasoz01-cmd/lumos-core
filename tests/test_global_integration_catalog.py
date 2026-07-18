@@ -18,7 +18,7 @@ def test_catalog_covers_all_requested_integration_groups():
 
     assert result.ok is True
     categories = {item["category"] for item in result.data["providers"]}
-    assert {"messaging", "meeting", "browser", "social", "ai", "work_tool", "device"} <= categories
+    assert {"messaging", "meeting", "browser", "social", "ai", "work_tool", "public_service", "device"} <= categories
     assert result.data["catalog_scope"] == "representative_extensible"
     assert result.data["connection_claim"] == "metadata_only"
 
@@ -63,6 +63,23 @@ def test_device_catalog_covers_bluetooth_audio_and_home_ecosystems():
     assert {"bluetooth_classic_audio", "bluetooth_le_audio", "bluetooth_hid"} <= ids
     assert {"matter", "apple_home", "google_home", "samsung_smartthings", "home_assistant"} <= ids
     assert all(item["connected"] is False for item in result.data["providers"])
+
+
+def test_public_service_catalog_is_metadata_only_and_covers_core_areas():
+    result = _catalog(category="public_service")
+    ids = {item["provider_id"] for item in result.data["providers"]}
+
+    assert {
+        "public_identity",
+        "public_health",
+        "public_education",
+        "public_tax",
+        "public_municipality",
+        "public_documents",
+    } <= ids
+    assert all(item["support_level"] == "discovery_only" for item in result.data["providers"])
+    assert all(item["connected"] is False for item in result.data["providers"])
+    assert all(item["regions"] == ["jurisdiction_specific"] for item in result.data["providers"])
 
 
 def test_capability_filter_finds_audio_devices_without_claiming_connection():
