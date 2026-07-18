@@ -6,6 +6,7 @@ ROOT="$(cd "${APP_DIR}/../.." && pwd)"
 OUTPUT="${APP_DIR}/dist/Lumos.app"
 ICONSET="${APP_DIR}/.build/Lumos.iconset"
 ICON_SOURCE="${APP_DIR}/.build/chat-lumos-mark.png"
+SIGNING_IDENTITY="${LUMOS_MAC_SIGNING_IDENTITY:--}"
 
 swift build --package-path "${APP_DIR}" -c release
 
@@ -23,5 +24,13 @@ for size in 16 32 128 256 512; do
 done
 iconutil -c icns "${ICONSET}" -o "${OUTPUT}/Contents/Resources/Lumos.icns"
 
-codesign --force --deep --sign - "${OUTPUT}" >/dev/null
+if [[ "${SIGNING_IDENTITY}" == "-" ]]; then
+  codesign --force --deep --entitlements "${APP_DIR}/Lumos.entitlements" \
+    --sign - "${OUTPUT}" >/dev/null
+else
+  codesign --force --deep --options runtime --timestamp \
+    --entitlements "${APP_DIR}/Lumos.entitlements" \
+    --sign "${SIGNING_IDENTITY}" "${OUTPUT}" >/dev/null
+fi
+codesign --verify --deep --strict "${OUTPUT}"
 echo "Lumos.app hazır: ${OUTPUT}"

@@ -53,7 +53,7 @@ const panelCommon: typeof panelTr.common = {
 
 const panel: typeof panelTr = {
   meta: {
-    title: "ChatLumos — Lumos Workspace",
+    title: "Lumos Center — chat, tasks, identity",
   },
   header: {
     title: "ChatLumos",
@@ -1040,6 +1040,12 @@ const panel: typeof panelTr = {
   },
   },
   shell: {
+    auth: {
+      login: "Sign in with Google",
+      logout: "Sign out",
+      nav: "Sign in",
+      userFallback: "Lumos user",
+    },
     conn: {
       pending: "Connecting",
       ok: "Connected",

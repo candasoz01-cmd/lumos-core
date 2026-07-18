@@ -3,7 +3,55 @@
   "installCommand": "cd ui && npm install",
   "buildCommand": "cd ui && npm run build",
   "outputDirectory": "ui/dist",
+  "rewrites": [
+    {
+      "source": "/auth/ui",
+      "destination": "/auth"
+    },
+    {
+      "source": "/auth/google/start",
+      "destination": "/api/auth/google/start"
+    },
+    {
+      "source": "/auth/google/callback",
+      "destination": "/api/auth/google/callback"
+    },
+    {
+      "source": "/auth/session",
+      "destination": "/api/auth/session"
+    },
+    {
+      "source": "/auth/logout",
+      "destination": "/api/auth/logout"
+    },
+    {
+      "source": "/auth/readiness",
+      "destination": "/api/auth/readiness"
+    }
+  ],
   "redirects": [
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "chat.welockai.com"
+        }
+      ],
+      "destination": "https://welockai.com/panel",
+      "permanent": true
+    },
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "chat.welockai.com"
+        }
+      ],
+      "destination": "https://welockai.com/$1",
+      "permanent": true
+    },
     {
       "source": "/(.*)",
       "has": [

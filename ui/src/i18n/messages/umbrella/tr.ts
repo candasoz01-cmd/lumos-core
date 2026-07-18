@@ -76,6 +76,23 @@ const umbrellaTr = {
     integrationsBody: "GitHub, Google (Drive, Calendar, Gmail) ve diğer bağlantılar — izin matrisi ve durum.",
     integrationsCta: "Entegrasyon merkezi",
   },
+  ecosystem: {
+    title: "Güven ve ekosistem",
+    lead:
+      "Çoklu AI sağlayıcıları, entegrasyonlar ve cihaz ekosistemi tek güvenlik sınırı içinde durur — izin ve risk işlemden önce görünür kalır.",
+    securityTitle: "Güvenlik durumu",
+    securityPill: "Bağımsız izleniyor",
+    securityRow1: "Bağımsız Cyber katmanı: risk, entegrasyonlardan ayrı görünür.",
+    securityRow2: "Entegrasyon izinleri, işlemden önce okunur hâle gelir.",
+    securityRow3: "Kalıcı silme otomatik değildir; çöp/geri alma önce gelir.",
+    securityRow4: "Ödeme, domain alma ve mail gönderimi kullanıcı onayı olmadan yapılmaz.",
+    aiTitle: "Çoklu AI",
+    aiSub: "Sağlayıcı yönlendirme ve yedekleme",
+    integrationsTitle: "Entegrasyonlar",
+    integrationsSub: "İzin matrisi ve durum",
+    deviceTitle: "Cihaz ekosistemi",
+    deviceSub: "Ev, ses ve akıllı cihaz bağlantıları",
+  },
   footer: {
     tagline: "We Lock AI · welockai.com — Lumos ürün ailesi",
     rights: "Açık kaynak çekirdek GitHub'da; resmi servisler kontrollü erişimle.",

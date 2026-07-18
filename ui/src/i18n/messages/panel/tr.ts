@@ -1,7 +1,7 @@
 /** Panel shell + module copy — Turkish (from panel.astro sections) */
 const panelNav = {
   meta: {
-    title: "ChatLumos — Lumos çalışma alanı",
+    title: "Lumos Merkez — sohbet, görev, kimlik",
   },
   header: {
     title: "ChatLumos",
@@ -1037,6 +1037,12 @@ const panelModules = {
 } as const;
 
 const panelShell = {
+  auth: {
+    login: "Google ile Giriş",
+    logout: "Çıkış Yap",
+    nav: "Giriş",
+    userFallback: "Lumos kullanıcısı",
+  },
   conn: {
     pending: "Bağlanıyor",
     ok: "Bağlı",

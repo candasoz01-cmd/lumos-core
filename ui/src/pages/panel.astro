@@ -392,6 +392,88 @@ const PANEL_DEBUG = import.meta.env.DEV;
         flex: 0 1 auto;
         max-width: 100%;
       }
+      /* Google Web OAuth — panel kimlik yuvası (sağ üst) */
+      .panel-auth-slot {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        min-height: 2rem;
+      }
+      .panel-auth-slot[data-state="loading"] {
+        opacity: 0.55;
+      }
+      .panel-auth-login {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.38rem 0.85rem;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        text-decoration: none;
+        color: #142018;
+        background: linear-gradient(120deg, #f0e6c4, #d4b56a 45%, #8ec4d8);
+        border: 1px solid rgba(36, 53, 58, 0.12);
+        white-space: nowrap;
+      }
+      .panel-auth-login:hover,
+      .panel-auth-login:focus-visible {
+        filter: brightness(1.04);
+        outline: none;
+      }
+      .panel-auth-login[hidden],
+      .panel-auth-user[hidden] {
+        display: none;
+      }
+      .panel-auth-user {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.15rem 0.25rem 0.15rem 0.15rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.06);
+        max-width: min(240px, 52vw);
+      }
+      .panel-auth-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        object-fit: cover;
+        background: rgba(255, 255, 255, 0.12);
+        flex: 0 0 auto;
+      }
+      .panel-auth-avatar[hidden] {
+        display: none;
+      }
+      .panel-auth-name {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--lumos-text);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 9.5rem;
+      }
+      .panel-auth-logout {
+        appearance: none;
+        border: none;
+        background: transparent;
+        color: rgba(230, 226, 218, 0.78);
+        font-size: 0.72rem;
+        font-weight: 700;
+        cursor: pointer;
+        padding: 0.25rem 0.45rem;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+      .panel-auth-logout:hover,
+      .panel-auth-logout:focus-visible {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.08);
+        outline: none;
+      }
       .gorevler-task-bridge {
         margin: 0;
         margin-top: 0.12rem;
@@ -4577,6 +4659,25 @@ const PANEL_DEBUG = import.meta.env.DEV;
             </div>
           </div>
           <div class="panel-health-row">
+            <div id="panel-auth-slot" class="panel-auth-slot" data-state="loading" aria-live="polite">
+              <a
+                id="panel-auth-login"
+                class="panel-auth-login"
+                href="/auth/google/start"
+                data-i18n="panel.shell.auth.login"
+                hidden
+              >Google ile Giriş</a>
+              <div id="panel-auth-user" class="panel-auth-user" hidden>
+                <img id="panel-auth-avatar" class="panel-auth-avatar" alt="" width="28" height="28" decoding="async" hidden />
+                <span id="panel-auth-name" class="panel-auth-name"></span>
+                <button
+                  type="button"
+                  id="panel-auth-logout"
+                  class="panel-auth-logout"
+                  data-i18n="panel.shell.auth.logout"
+                >Çıkış Yap</button>
+              </div>
+            </div>
             <div class="panel-user-mode-wrap">
               <button
                 type="button"
@@ -4648,6 +4749,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         </div>
         <nav class="panel-umbrella-links" aria-label="We Lock AI ürünleri" data-i18n-aria-label="umbrella.nav.aria">
           <a href="/" data-i18n="umbrella.nav.home">Ana sayfa</a>
+          <a href="/auth" data-i18n="panel.shell.auth.nav">Giriş</a>
           <a href="/integrations" data-i18n="umbrella.nav.integrations">Entegrasyonlar</a>
           <a href="/slack" data-i18n="umbrella.nav.slack">Slack</a>
           <a href="/connect/mac" data-i18n="umbrella.nav.mac">Mac</a>
@@ -6349,6 +6451,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
       /** PR-1: kullanıcı modu — altyapı durumundan bağımsız tercih. */
       const PANEL_USER_MODE_LS_KEY = "lumos_panel_user_mode_v1";
       const PANEL_USER_MODES = ["offline", "limited", "full"];
+      let panelSessionLumosId = "";
+      const panelConversationId =
+        globalThis.crypto && typeof globalThis.crypto.randomUUID === "function"
+          ? globalThis.crypto.randomUUID()
+          : `conversation_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 
       function panelUserModeBadgeLabel(mode) {
         const m = normalizePanelUserMode(mode);
@@ -6385,6 +6492,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
       function getPanelUserMode() {
         try {
           const defaultMode = isLumosDesktopEntry() ? "full" : "limited";
+          if (isLumosDesktopEntry()) return defaultMode;
           if (typeof localStorage === "undefined") return defaultMode;
           const raw = localStorage.getItem(PANEL_USER_MODE_LS_KEY);
           if (!raw) return defaultMode;
@@ -6407,7 +6515,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
       }
 
       const GOREVLER_FIELD_MAX_LEN = 2048;
-      const bridgeTokenMissing = !PANEL_DEBUG && !String(kandoToken || "").trim();
+      const bridgeUsesSameOriginProxy = String(CHAT_URL || "").startsWith("/api/bridge/");
+      const bridgeTokenMissing =
+        !PANEL_DEBUG &&
+        !String(kandoToken || "").trim() &&
+        !bridgeUsesSameOriginProxy;
       /** Phase 1: görev köprüsü same-origin proxy; tarayıcı token taşımaz. */
       const TASK_BRIDGE_URL = "/api/bridge/task";
       /** Phase 2: medya outbox (last-result) same-origin proxy; tarayıcı token taşımaz. */
@@ -11778,6 +11890,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
             const chatBody = {
               message: outgoingMessage,
               history,
+              conversation_id: panelConversationId,
+              identity: panelSessionLumosId
+                ? { lumos_id: panelSessionLumosId }
+                : undefined,
               locale:
                 window.LumosI18n && typeof window.LumosI18n.getLocale === "function"
                   ? window.LumosI18n.getLocale()
@@ -11817,6 +11933,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             }
             const r = await fetch(CHAT_URL, {
               method: "POST",
+              credentials: "same-origin",
               headers: {
                 "Content-Type": "application/json",
                 "X-Kando-Token": kandoToken,
@@ -15746,7 +15863,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             method: "OPTIONS",
             cache: "no-store",
             mode: "cors",
-            credentials: "omit",
+            credentials: "same-origin",
           });
           if (r.ok || r.status === 204) {
             return panelDebugText(
@@ -15834,11 +15951,15 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
       async function probeBridgeHealthOnce(url) {
         try {
-          const r = await fetch(url, {
+          const probeUrl = new URL(url, window.location.origin);
+          if (probeUrl.origin === window.location.origin) {
+            probeUrl.searchParams.set("_lumos_probe", String(Date.now()));
+          }
+          const r = await fetch(probeUrl.toString(), {
             method: "GET",
             cache: "no-store",
             mode: "cors",
-            credentials: "omit",
+            credentials: "same-origin",
           });
           const text = await r.text();
           if (!r.ok) {
@@ -15867,7 +15988,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         }
       }
 
-      void (async function checkBridgeHealth() {
+      async function checkBridgeHealth() {
         setPanelConnBadge("pending");
         bridgeHealthPhase = "trying";
         bridgeHealthDebugTail = "";
@@ -15917,7 +16038,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
           syncBridgeHealthLine();
         }
         paintSistemDurumuPanel();
-      })();
+      }
+
+      void checkBridgeHealth();
 
       function wireMedyaOutbox() {
         const btn = document.getElementById("medya-outbox-refresh");
@@ -16175,10 +16298,96 @@ const PANEL_DEBUG = import.meta.env.DEV;
           window.refreshMedyaOutboxHintI18n();
         }
         paintSistemDurumuPanel();
+        // Auth slot metinleri i18n ile güncellenir; oturum durumu ayrı
+        const loginEl = document.getElementById("panel-auth-login");
+        const logoutEl = document.getElementById("panel-auth-logout");
+        if (loginEl) loginEl.textContent = panelT("panel.shell.auth.login");
+        if (logoutEl) logoutEl.textContent = panelT("panel.shell.auth.logout");
       }
+
+      async function refreshPanelAuth() {
+        const slot = document.getElementById("panel-auth-slot");
+        const login = document.getElementById("panel-auth-login");
+        const user = document.getElementById("panel-auth-user");
+        const nameEl = document.getElementById("panel-auth-name");
+        const avatar = document.getElementById("panel-auth-avatar");
+        if (!slot || !login || !user || !nameEl || !avatar) return;
+        slot.dataset.state = "loading";
+        try {
+          const r = await fetch("/api/auth/session", {
+            credentials: "include",
+            cache: "no-store",
+            headers: { Accept: "application/json" },
+          });
+          const data = await r.json().catch(() => ({}));
+          const session = data && data.session ? data.session : null;
+          const ok = r.ok && data && data.authenticated === true && session;
+          if (ok) {
+            panelSessionLumosId = String(session.lumos_id || "").trim();
+            const label =
+              String(session.name || "").trim() ||
+              String(session.email || "").trim() ||
+              panelT("panel.shell.auth.userFallback");
+            nameEl.textContent = label;
+            nameEl.title = String(session.email || label);
+            const pic = String(session.picture || "").trim();
+            if (pic && /^https?:\/\//i.test(pic)) {
+              avatar.src = pic;
+              avatar.alt = "";
+              avatar.hidden = false;
+            } else {
+              avatar.removeAttribute("src");
+              avatar.hidden = true;
+            }
+            login.hidden = true;
+            user.hidden = false;
+            slot.dataset.state = "in";
+            if (new URLSearchParams(location.search).get("source") === "google_web") {
+              applyPanelUserMode("full");
+            }
+            void checkBridgeHealth();
+          } else {
+            panelSessionLumosId = "";
+            nameEl.textContent = "";
+            avatar.removeAttribute("src");
+            avatar.hidden = true;
+            user.hidden = true;
+            login.hidden = false;
+            slot.dataset.state = "out";
+          }
+        } catch {
+          panelSessionLumosId = "";
+          nameEl.textContent = "";
+          avatar.removeAttribute("src");
+          avatar.hidden = true;
+          user.hidden = true;
+          login.hidden = false;
+          slot.dataset.state = "out";
+        }
+      }
+
+      document.getElementById("panel-auth-logout")?.addEventListener("click", async () => {
+        try {
+          await fetch("/api/auth/logout", {
+            method: "POST",
+            credentials: "include",
+            cache: "no-store",
+          });
+        } catch {
+          /* ignore network — yine de UI’yi temizle */
+        }
+        await refreshPanelAuth();
+      });
 
       window.addEventListener("lumos:localechange", refreshPanelI18n);
       window.addEventListener("load", refreshPanelI18n, { once: true });
+      window.addEventListener("load", () => {
+        void refreshPanelAuth();
+      }, { once: true });
+      // OAuth dönüşü: ?source=google_web
+      if (new URLSearchParams(location.search).get("source") === "google_web") {
+        void refreshPanelAuth();
+      }
     </script>
     <I18nInit />
   </body>

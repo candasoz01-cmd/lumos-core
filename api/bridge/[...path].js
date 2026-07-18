@@ -6,6 +6,7 @@
  */
 
 import { timingSafeEqual } from "node:crypto";
+import { openSession, readCookie, sessionLumosId } from "../_lib/lumos_session.js";
 
 export const config = {
   api: {
@@ -30,9 +31,12 @@ const PROXY_AUTH_COOKIE = "lumos_bridge_proxy_auth";
 const ALLOWED_BRIDGE_PATHS = new Set([
   "task",
   "chat",
+  "health",
+  "status",
   "last-result",
   "controlled",
   "transcribe",
+  "panel/upload",
 ]);
 
 const PROXY_UNAVAILABLE = {
@@ -99,7 +103,7 @@ function pathSegments(query, url) {
 }
 
 function isAllowedBridgePath(segments) {
-  return segments.length === 1 && ALLOWED_BRIDGE_PATHS.has(String(segments[0] || ""));
+  return ALLOWED_BRIDGE_PATHS.has(segments.map(String).join("/"));
 }
 
 function firstHeader(req, headerName) {
@@ -140,6 +144,20 @@ function safeTokenEqual(actual, expected) {
 
 function isProxyCallerAuthorized(req, expectedToken) {
   return safeTokenEqual(requestProxyAuthToken(req), expectedToken);
+}
+
+function isAuthenticatedLumosSession(req) {
+  const claims = openSession(readCookie(req));
+  if (!claims) return false;
+  const lumosId = sessionLumosId(claims);
+  if (!lumosId) return false;
+  const allowedIds = new Set(
+    String(process.env.LUMOS_BRIDGE_ALLOWED_LUMOS_IDS || "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean),
+  );
+  return allowedIds.has(lumosId);
 }
 
 function forwardRequestHeaders(req, secret) {
@@ -238,6 +256,7 @@ export {
   bufferFromBodyValue,
   forwardRequestHeaders,
   isAllowedBridgePath,
+  isAuthenticatedLumosSession,
   isProxyCallerAuthorized,
   readRawBody,
 };
@@ -257,7 +276,10 @@ export default async function handler(req, res) {
   if (!proxyAuthToken) {
     return res.status(503).json(PROXY_AUTH_UNAVAILABLE);
   }
-  if (!isProxyCallerAuthorized(req, proxyAuthToken)) {
+  if (
+    !isProxyCallerAuthorized(req, proxyAuthToken) &&
+    !isAuthenticatedLumosSession(req)
+  ) {
     return res.status(401).json(PROXY_UNAUTHORIZED);
   }
 
@@ -273,6 +295,14 @@ export default async function handler(req, res) {
     method,
     headers: forwardRequestHeaders(req, secret),
   };
+  try {
+    const upstreamHost = new URL(upstreamBase).hostname.toLowerCase();
+    if (/\.ngrok-free\.(app|dev)$/.test(upstreamHost)) {
+      init.headers["ngrok-skip-browser-warning"] = "1";
+    }
+  } catch {
+    /* normalizeUpstreamBase sonrası fetch güvenli hata yanıtını üretir */
+  }
 
   if (method !== "GET" && method !== "HEAD") {
     const rawBody = await readRawBody(req);
@@ -287,6 +317,7 @@ export default async function handler(req, res) {
     for (const [key, value] of Object.entries(fwd)) {
       res.setHeader(key, value);
     }
+    res.setHeader("Cache-Control", "no-store");
     return res.send(Buffer.from(body));
   } catch {
     return res.status(502).json({

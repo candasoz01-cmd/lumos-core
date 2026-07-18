@@ -28,6 +28,7 @@ const tr = {
     developer: "Geliştirici",
     install: "Kurulum",
     connect: "Bağlan",
+    ecosystem: "Güven",
     panel: "Lumos’u Aç",
     github: "GitHub",
     brandAria: "We Lock AI — sayfa başı",

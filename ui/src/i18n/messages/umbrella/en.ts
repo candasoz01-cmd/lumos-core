@@ -78,6 +78,23 @@ const umbrellaEn: typeof umbrellaTr = {
     integrationsBody: "GitHub, Google (Drive, Calendar, Gmail), and other connections — permission matrix and status.",
     integrationsCta: "Integration hub",
   },
+  ecosystem: {
+    title: "Trust and ecosystem",
+    lead:
+      "Multi-AI providers, integrations, and the device ecosystem sit inside one security boundary — permission and risk stay visible before action.",
+    securityTitle: "Security status",
+    securityPill: "Independently monitored",
+    securityRow1: "Independent Cyber layer: risk stays visible apart from integrations.",
+    securityRow2: "Integration permissions become readable before the action runs.",
+    securityRow3: "Permanent deletion is never automatic; trash/undo comes first.",
+    securityRow4: "Payments, domain purchases, and sending mail never happen without user approval.",
+    aiTitle: "Multi-AI",
+    aiSub: "Provider routing and fallback",
+    integrationsTitle: "Integrations",
+    integrationsSub: "Permission matrix and status",
+    deviceTitle: "Device ecosystem",
+    deviceSub: "Home, audio, and smart device connections",
+  },
   footer: {
     tagline: "We Lock AI · welockai.com — Lumos product family",
     rights: "Open-source core on GitHub; official services use controlled access.",

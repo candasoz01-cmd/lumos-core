@@ -6,6 +6,7 @@ import LanguageSwitcher from "../components/LanguageSwitcher.astro";
 import I18nInit from "../components/I18nInit.astro";
 import WeLockSiteFooter from "../components/WeLockSiteFooter.astro";
 import LumosMicroStories from "../components/LumosMicroStories.astro";
+import BrandLockup from "../components/BrandLockup.astro";
 
 const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
 const GITHUB_README_URL = "https://github.com/candasoz01-cmd/lumos-core/blob/main/README.md";
@@ -1550,6 +1551,131 @@ const showMay19Commemoration = isMay19CommemorationDay();
         line-height: 1.58;
         color: rgb(174 182 200 / 0.88);
       }
+      /** Güven ve ekosistem: güvenlik durumu kartı + çoklu AI / entegrasyon / cihaz rafları */
+      .lumos-trust-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+      .lumos-trust-card {
+        box-sizing: border-box;
+        padding: 1.1rem 1.25rem;
+        border-radius: 14px;
+        border: 1px solid var(--lumos-card-border);
+        background: rgba(18, 26, 36, 0.85);
+      }
+      .lumos-trust-card__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        margin-bottom: 0.85rem;
+      }
+      .lumos-trust-card__title {
+        font-size: 0.78rem;
+        font-weight: 750;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--lumos-text-muted);
+      }
+      .lumos-trust-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.68rem;
+        font-weight: 750;
+        color: var(--lumos-status-ready-fg);
+        background: var(--lumos-status-ready-bg);
+        border: 1px solid var(--lumos-status-ready-border);
+        border-radius: 999px;
+        padding: 0.22rem 0.65rem;
+      }
+      .lumos-trust-card__list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+      }
+      .lumos-trust-card__list li {
+        position: relative;
+        padding: 0.5rem 0 0.5rem 1.65rem;
+        font-size: 0.87rem;
+        line-height: 1.5;
+        color: var(--lumos-text-body);
+        border-top: 1px solid rgb(255 255 255 / 0.05);
+      }
+      .lumos-trust-card__list li:first-child {
+        border-top: none;
+      }
+      .lumos-trust-card__list li::before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        top: 0.5rem;
+        width: 1.05rem;
+        height: 1.05rem;
+        border-radius: 999px;
+        background: var(--lumos-status-ready-bg);
+        color: var(--lumos-status-ready-fg);
+        font-size: 0.6rem;
+        font-weight: 800;
+        line-height: 1.05rem;
+        text-align: center;
+      }
+      .lumos-trust-shelf {
+        --lumos-shelf-accent: var(--lumos-package-violet);
+        box-sizing: border-box;
+        display: grid;
+        grid-template-columns: 1fr;
+        border-radius: 14px;
+        border: 1px solid var(--lumos-card-border);
+        background: rgba(18, 26, 36, 0.6);
+        overflow: hidden;
+        box-shadow: inset 0 2px 0 color-mix(in srgb, var(--lumos-shelf-accent) 55%, transparent);
+      }
+      @media (min-width: 640px) {
+        .lumos-trust-shelf {
+          grid-template-columns: 11rem 1fr;
+        }
+      }
+      .lumos-trust-shelf--integrations {
+        --lumos-shelf-accent: var(--lumos-package-sky);
+      }
+      .lumos-trust-shelf--devices {
+        --lumos-shelf-accent: var(--lumos-package-green);
+      }
+      .lumos-trust-shelf__label {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 0.2rem;
+        padding: 1rem 1.15rem;
+        border-bottom: 1px solid rgb(255 255 255 / 0.06);
+      }
+      @media (min-width: 640px) {
+        .lumos-trust-shelf__label {
+          border-bottom: none;
+          border-right: 1px solid rgb(255 255 255 / 0.06);
+        }
+      }
+      .lumos-trust-shelf__label b {
+        font-size: 0.92rem;
+        font-weight: 700;
+        color: var(--lumos-land-title);
+      }
+      .lumos-trust-shelf__label span {
+        font-size: 0.76rem;
+        color: var(--lumos-text-muted);
+      }
+      .lumos-trust-shelf__items {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem 0.9rem;
+        padding: 1rem 1.15rem;
+      }
       /** Kapsam modülleri: sade kart ızgarası — CTA yok, vitrin gürültüsü yok */
       .lumos-scope-grid {
         display: grid;
@@ -2283,6 +2409,12 @@ const showMay19Commemoration = isMay19CommemorationDay();
                 <a class="lumos-site-nav__link" href="#baglan" data-i18n="nav.connect">Bağlan</a>
               </li>
               <li>
+                <a class="lumos-site-nav__link" href="#ekosistem" data-i18n="nav.ecosystem">Güven</a>
+              </li>
+              <li>
+                <a class="lumos-site-nav__link" href="/auth">Giriş</a>
+              </li>
+              <li>
                 <a class="lumos-site-nav__link lumos-site-nav__link--accent" href="/panel" data-i18n="nav.panel">Lumos’u Aç</a>
               </li>
               <li>
@@ -2324,8 +2456,9 @@ const showMay19Commemoration = isMay19CommemorationDay();
             <p class="lumos-hero-pillar" data-i18n="hero.pillar">Tek panel · Çoklu akış · Kullanıcı kontrolü</p>
             <p class="lumos-hero-audience" data-i18n="hero.audience">Şu an: geliştiriciler için açık kaynak · kurumlar için yol haritada · son kullanıcı paketi yakında.</p>
             <div class="lumos-hero-actions">
-              <a class="lumos-hero-btn lumos-hero-btn--primary" href="/panel" data-i18n="hero.ctaPanel">Paneli Aç</a>
-              <a class="lumos-hero-btn lumos-hero-btn--ghost" href="#dunya" data-i18n="hero.ctaWorld">Vizyonu oku</a>
+              <a class="lumos-hero-btn lumos-hero-btn--primary" href="/auth">Lumos ile giriş</a>
+              <a class="lumos-hero-btn lumos-hero-btn--ghost" href="/panel" data-i18n="hero.ctaPanel">Geliştirici Panelini Aç</a>
+              <a class="lumos-hero-btn lumos-hero-btn--ghost" href="#saygi">Saygıyla</a>
             </div>
           </div>
           <div class="lumos-hero-scene" aria-hidden="true">
@@ -2480,6 +2613,67 @@ const showMay19Commemoration = isMay19CommemorationDay();
       </div>
     </section>
 
+    <section id="ekosistem" class="lumos-shell lumos-section" aria-labelledby="ekosistem-baslik">
+      <h2 id="ekosistem-baslik" class="lumos-cap-title" data-i18n="umbrella.ecosystem.title">Güven ve ekosistem</h2>
+      <p class="lumos-dunya-vizyon__lead" data-i18n="umbrella.ecosystem.lead">
+        Çoklu AI sağlayıcıları, entegrasyonlar ve cihaz ekosistemi tek güvenlik sınırı içinde durur — izin ve risk
+        işlemden önce görünür kalır.
+      </p>
+      <div class="lumos-trust-grid">
+        <article class="lumos-trust-card">
+          <div class="lumos-trust-card__head">
+            <span class="lumos-trust-card__title" data-i18n="umbrella.ecosystem.securityTitle">Güvenlik durumu</span>
+            <span class="lumos-trust-pill" data-i18n="umbrella.ecosystem.securityPill">Bağımsız izleniyor</span>
+          </div>
+          <ul class="lumos-trust-card__list">
+            <li data-i18n="umbrella.ecosystem.securityRow1">Bağımsız Cyber katmanı: risk, entegrasyonlardan ayrı görünür.</li>
+            <li data-i18n="umbrella.ecosystem.securityRow2">Entegrasyon izinleri, işlemden önce okunur hâle gelir.</li>
+            <li data-i18n="umbrella.ecosystem.securityRow3">Kalıcı silme otomatik değildir; çöp/geri alma önce gelir.</li>
+            <li data-i18n="umbrella.ecosystem.securityRow4">Ödeme, domain alma ve mail gönderimi kullanıcı onayı olmadan yapılmaz.</li>
+          </ul>
+        </article>
+
+        <div class="lumos-trust-shelf lumos-trust-shelf--ai">
+          <div class="lumos-trust-shelf__label">
+            <b data-i18n="umbrella.ecosystem.aiTitle">Çoklu AI</b>
+            <span data-i18n="umbrella.ecosystem.aiSub">Sağlayıcı yönlendirme ve yedekleme</span>
+          </div>
+          <div class="lumos-trust-shelf__items">
+            <BrandLockup id="openai" name="OpenAI" compact linked={false} />
+            <BrandLockup id="gemini" name="Gemini" compact linked={false} />
+            <BrandLockup id="deepseek" name="DeepSeek" compact linked={false} />
+          </div>
+        </div>
+
+        <div class="lumos-trust-shelf lumos-trust-shelf--integrations">
+          <div class="lumos-trust-shelf__label">
+            <b data-i18n="umbrella.ecosystem.integrationsTitle">Entegrasyonlar</b>
+            <span data-i18n="umbrella.ecosystem.integrationsSub">İzin matrisi ve durum</span>
+          </div>
+          <div class="lumos-trust-shelf__items">
+            <BrandLockup id="github" name="GitHub" compact linked={false} />
+            <BrandLockup id="gmail" name="Gmail" compact linked={false} />
+            <BrandLockup id="slack" name="Slack" compact linked={false} />
+            <BrandLockup id="notion" name="Notion" compact linked={false} />
+            <BrandLockup id="whatsapp" name="WhatsApp" compact linked={false} />
+          </div>
+        </div>
+
+        <div class="lumos-trust-shelf lumos-trust-shelf--devices">
+          <div class="lumos-trust-shelf__label">
+            <b data-i18n="umbrella.ecosystem.deviceTitle">Cihaz ekosistemi</b>
+            <span data-i18n="umbrella.ecosystem.deviceSub">Ev, ses ve akıllı cihaz bağlantıları</span>
+          </div>
+          <div class="lumos-trust-shelf__items">
+            <BrandLockup id="matter" name="Matter" compact linked={false} />
+            <BrandLockup id="homeAssistant" name="Home Assistant" compact linked={false} />
+            <BrandLockup id="smartThings" name="SmartThings" compact linked={false} />
+            <BrandLockup id="sonos" name="Sonos" compact linked={false} />
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section id="ilkeler" class="lumos-shell lumos-section lumos-section--post-hero" aria-labelledby="temel-ilkeler-baslik">
       <h2 id="temel-ilkeler-baslik" class="lumos-cap-title" data-i18n="landing.principles.title">Temel ilkeler</h2>
       <div class="lumos-cap-grid">
@@ -2604,9 +2798,9 @@ const showMay19Commemoration = isMay19CommemorationDay();
         </p>
       </section>
 
-      {showMay19Commemoration && (
-      <aside class="lumos-may19-card lumos-may19-card--sideline" aria-labelledby="lumos-may19-heading">
-        <h2 id="lumos-may19-heading" class="lumos-may19-card__heading--inline">
+      {/* Kalıcı saygı — kaldırılmaz; 19 Mayıs köşesi ayrıca bayram günü kalır */}
+      <aside class="lumos-may19-card lumos-may19-card--sideline" id="saygi" aria-labelledby="saygi-baslik">
+        <h2 id="saygi-baslik" class="lumos-may19-card__heading--inline">
           <span class="lumos-may19-card__flag-badges" aria-hidden="true">
             <img
               class="lumos-may19-card__flag-badge"
@@ -2625,13 +2819,11 @@ const showMay19Commemoration = isMay19CommemorationDay();
               decoding="async"
             />
           </span>
-          <span data-i18n="landing.may19.heading">19 Mayıs’a Saygıyla</span>
+          <span>Gazi Mustafa Kemal Atatürk</span>
         </h2>
-        <p data-i18n="landing.may19.p1">
-          Bu metni 19 Mayıs gibi anlamlı bir güne yakın yayımlamak benim için ayrıca değerli.
-        </p>
-        <p data-i18n="landing.may19.p2">
-          Gazi Mustafa Kemal Atatürk’ü saygıyla anıyor, 19 Mayıs Atatürk’ü Anma, Gençlik ve Spor Bayramı’nı kutluyorum.
+        <p>
+          Gazi Mustafa Kemal Atatürk’ü saygı ve minnetle anıyoruz. Bu sahne ve bu metin site yenilense de kalır —
+          kaldırılmaz.
         </p>
         <p data-i18n="landing.may19.p3">
           19 Mayıs’ın taşıdığı gençlik, bilim, bağımsız düşünce ve gelecek fikrini yalnızca bir ülkenin sınırları içinde
@@ -2642,12 +2834,14 @@ const showMay19Commemoration = isMay19CommemorationDay();
           ama samimi bir armağan olarak görüyorum.
         </p>
         <div class="lumos-may19-card__actions">
-          <button type="button" class="lumos-may19-open-btn" id="lumos-may19-open" data-i18n="landing.may19.openBtn">
-            Saygı anını başlat
-          </button>
+          <a class="lumos-hero-btn lumos-hero-btn--ghost" href="/auth">Lumos ile giriş</a>
+          {showMay19Commemoration && (
+            <button type="button" class="lumos-may19-open-btn" id="lumos-may19-open" data-i18n="landing.may19.openBtn">
+              Saygı anını başlat
+            </button>
+          )}
         </div>
       </aside>
-      )}
 
       <section
         id="dunya-vizyon"

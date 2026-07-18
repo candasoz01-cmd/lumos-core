@@ -5,6 +5,12 @@ set -euo pipefail
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
 
+# When committing from a linked worktree, git sets these for the hook process;
+# left in place they leak into any git command tests spawn in their own
+# throwaway repos (e.g. tests/cando/test_branch_cleanup_review.py), pointing
+# those commands at this repo instead of the test's tmp_path repo.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_CEILING_DIRECTORIES
+
 for venv in .venv venv; do
   if [[ -f "$ROOT/$venv/bin/activate" ]]; then
     # shellcheck source=/dev/null
