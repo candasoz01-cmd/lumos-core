@@ -7,6 +7,9 @@
 
 import { timingSafeEqual } from "node:crypto";
 import { openSession, readCookie, sessionLumosId } from "../_lib/lumos_session.js";
+import { captureError, captureSecurityEvent } from "../_lib/observability.js";
+
+const ROUTE = "bridge_proxy";
 
 export const config = {
   api: {
@@ -264,27 +267,46 @@ export {
 export default async function handler(req, res) {
   const upstreamBase = normalizeUpstreamBase();
   if (!upstreamBase) {
+    await captureError(new Error("bridge_proxy_unconfigured"), {
+      route: ROUTE,
+      errorCode: "bridge_proxy_unconfigured",
+    });
     return res.status(503).json(PROXY_UNAVAILABLE);
   }
 
   const segments = pathSegments(req.query, req.url);
   if (!isAllowedBridgePath(segments)) {
+    // Allowlist dışı yol denemesi — keşif/kötüye kullanım denemesi olabilir.
+    await captureSecurityEvent("bridge_proxy_forbidden_path", {
+      route: ROUTE,
+      path: segments.join("/").slice(0, 64),
+    });
     return res.status(404).json(PROXY_FORBIDDEN);
   }
 
   const proxyAuthToken = String(process.env.LUMOS_BRIDGE_PROXY_AUTH_TOKEN || "").trim();
   if (!proxyAuthToken) {
+    await captureError(new Error("bridge_proxy_auth_unconfigured"), {
+      route: ROUTE,
+      errorCode: "bridge_proxy_auth_unconfigured",
+    });
     return res.status(503).json(PROXY_AUTH_UNAVAILABLE);
   }
   if (
     !isProxyCallerAuthorized(req, proxyAuthToken) &&
     !isAuthenticatedLumosSession(req)
   ) {
+    // Ne köprü token'ı ne geçerli Lumos oturumu — başarısız erişim denemesi.
+    await captureSecurityEvent("bridge_proxy_unauthorized", { route: ROUTE, path: segments.join("/").slice(0, 64) });
     return res.status(401).json(PROXY_UNAUTHORIZED);
   }
 
   const secret = String(process.env.KANDO_BRIDGE_SECRET || "").trim();
   if (!secret) {
+    await captureError(new Error("bridge_proxy_secret_unconfigured"), {
+      route: ROUTE,
+      errorCode: "bridge_proxy_secret_unconfigured",
+    });
     return res.status(503).json(PROXY_SECRET_UNAVAILABLE);
   }
 
@@ -319,7 +341,12 @@ export default async function handler(req, res) {
     }
     res.setHeader("Cache-Control", "no-store");
     return res.send(Buffer.from(body));
-  } catch {
+  } catch (e) {
+    await captureError(e, {
+      route: ROUTE,
+      errorCode: "bridge_upstream_unreachable",
+      path: segments.join("/").slice(0, 64),
+    });
     return res.status(502).json({
       ok: false,
       error: "bridge_upstream_unreachable",
