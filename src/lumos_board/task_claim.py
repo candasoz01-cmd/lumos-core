@@ -566,11 +566,17 @@ class TaskClaimStore:
         Kuyruk yer tutar: yeni bir claim, önündeki QUEUED kayıtları da engel
         olarak görür; boşalan slotu her zaman en eski kuyruk kaydı alır.
         """
+        # Pozisyon bazlı değiştirme: terfiler liste girdilerini yerinde
+        # güncellediği için adaylar eşitlikle değil indeksle bulunur.
         queued = sorted(
-            (claim for claim in claims if claim.status is ClaimStatus.QUEUED),
-            key=lambda item: (item.started_at, item.claim_id),
+            (
+                (index, claim)
+                for index, claim in enumerate(claims)
+                if claim.status is ClaimStatus.QUEUED
+            ),
+            key=lambda item: (item[1].started_at, item[1].claim_id),
         )
-        for candidate in queued:
+        for candidate_index, candidate in queued:
             candidate_rank = (candidate.started_at, candidate.claim_id)
             # Engel yalnız aktif kayıtlar ve sırada daha önde bekleyenlerdir;
             # arkadaki kuyruk kayıtları öndekinin terfisini kilitleyemez.
@@ -599,7 +605,7 @@ class TaskClaimStore:
                 heartbeat_at=now,
                 expires_at=now + (candidate.expires_at - candidate.started_at),
             )
-            claims[claims.index(candidate)] = promoted
+            claims[candidate_index] = promoted
             self._audit("CLAIM_PROMOTED", promoted, actor=promoted.owner, at=now)
 
     def _audit(

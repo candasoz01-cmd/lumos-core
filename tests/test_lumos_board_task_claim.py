@@ -546,3 +546,18 @@ def test_delegation_cannot_be_combined_with_override(tmp_path: Path) -> None:
         )
 
     assert store.list_claims()[0].claim_id == parent.claim_id
+
+
+def test_multiple_queued_claims_promote_together_without_error(tmp_path: Path) -> None:
+    store = TaskClaimStore(tmp_path)
+    blocker = _claim(store, task="KA-A", owner="agent-a", scope="src").claim
+    assert blocker is not None
+    second = _claim(store, task="KA-B", owner="agent-b", scope="src/x.py", queue_on_conflict=True).claim
+    third = _claim(store, task="KA-C", owner="agent-c", scope="src/y.py", queue_on_conflict=True).claim
+    assert second is not None and third is not None
+
+    store.release(blocker.claim_id, owner="agent-a")
+
+    states = {claim.task_id: claim.status for claim in store.list_claims(include_closed=True)}
+    assert states["KA-B"] is ClaimStatus.ACTIVE
+    assert states["KA-C"] is ClaimStatus.ACTIVE
