@@ -31,6 +31,7 @@ def register_default_integrations() -> IntegrationRegistry:
     from integrations.providers.communications_provider import register_communications_provider
     from integrations.providers.device_provider import register_device_provider
     from integrations.providers.douyin_provider import register_douyin_provider
+    from integrations.providers.feedback_provider import register_feedback_provider
     from integrations.providers.global_catalog_provider import register_global_catalog_provider
     from integrations.providers.integration_onboarding_provider import register_integration_onboarding_provider
     from integrations.providers.lumos_id_provider import register_lumos_id_provider
@@ -52,6 +53,7 @@ def register_default_integrations() -> IntegrationRegistry:
     register_openai_provider(registry.register)
     register_web_search_provider(registry.register)
     register_device_provider(registry.register)
+    register_feedback_provider(registry.register)
     register_global_catalog_provider(registry.register)
     register_integration_onboarding_provider(registry.register)
     register_mail_provider(registry.register)
