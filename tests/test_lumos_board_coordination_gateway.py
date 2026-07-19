@@ -248,3 +248,39 @@ def test_every_route_and_delivery_action_has_audit_evidence(tmp_path: Path) -> N
         "USER_DIGEST_READ",
         "USER_DIGEST_ACKNOWLEDGED",
     }
+
+
+def test_internal_route_read_cannot_leak_user_inbox(tmp_path: Path) -> None:
+    gateway = SingleReaderGateway(tmp_path, clock=Clock())
+    session = gateway.claim_reader(reader_id="lumos-primary")
+    gateway.submit_event(
+        dedupe_key="d1",
+        source="cyber",
+        task_id="KA-9",
+        kind=EventKind.DECISION_REQUIRED,
+        message="karar gerekli",
+        user_relevant=True,
+    )
+
+    assert gateway.read_internal_routes(session.token, target="user") == ()
+    digest = gateway.read_user_digest(session.token)
+    assert len(digest.decisions) == 1
+
+
+def test_audit_failure_rolls_back_reader_claim(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    gateway = SingleReaderGateway(tmp_path, clock=Clock())
+    original_audit = gateway._audit
+
+    def failing_audit(event_type: str, **kwargs: object) -> None:
+        if event_type == "READER_CLAIMED":
+            raise OSError("disk dolu")
+        original_audit(event_type, **kwargs)
+
+    monkeypatch.setattr(gateway, "_audit", failing_audit)
+    with pytest.raises(CoordinationError, match="geri alındı"):
+        gateway.claim_reader(reader_id="lumos-primary")
+    assert not gateway.reader_path.exists()
+
+    monkeypatch.setattr(gateway, "_audit", original_audit)
+    recovered = gateway.claim_reader(reader_id="lumos-primary")
+    assert recovered.token

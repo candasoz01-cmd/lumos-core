@@ -192,6 +192,7 @@ class SingleReaderGateway:
                 )
             token = secrets.token_urlsafe(32)
             expires_at = now + timedelta(seconds=ttl_seconds)
+            previous = self.reader_path.read_bytes() if self.reader_path.exists() else None
             self._write_json(
                 self.reader_path,
                 {
@@ -202,7 +203,16 @@ class SingleReaderGateway:
                     "expires_at": _format_time(expires_at),
                 },
             )
-            self._audit("READER_CLAIMED", actor=reader_id, at=now)
+            try:
+                self._audit("READER_CLAIMED", actor=reader_id, at=now)
+            except Exception as exc:
+                # Audit yazılamazsa lease geri alınır; aksi halde token'ı
+                # kimsenin almadığı, TTL bitene dek kilitli öksüz lease kalır.
+                if previous is None:
+                    self.reader_path.unlink(missing_ok=True)
+                else:
+                    self.reader_path.write_bytes(previous)
+                raise CoordinationError("audit yazılamadı; reader claim geri alındı") from exc
             return ReaderSession(reader_id, token, expires_at)
 
     def heartbeat_reader(self, token: str, *, ttl_seconds: int = 900) -> datetime:
@@ -318,7 +328,13 @@ class SingleReaderGateway:
         with self._lock():
             now = self._now()
             reader = self._require_reader(token, now)
-            events = tuple(event for event in self._read_events() if event.route_target == target)
+            # USER rotası yalnız read_user_digest + acknowledge akışına aittir;
+            # internal rota okuması kullanıcı gelen kutusunu sızdıramaz.
+            events = tuple(
+                event
+                for event in self._read_events()
+                if event.route is not Route.USER and event.route_target == target
+            )
             self._audit(
                 "INTERNAL_ROUTES_READ",
                 actor=_required_text(reader, "reader_id"),
