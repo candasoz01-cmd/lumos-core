@@ -325,6 +325,13 @@ class TaskClaimStore:
                 parent = _find_claim(claims, parent_claim_id)
                 if parent is None or parent.status is not ClaimStatus.ACTIVE:
                     raise ClaimError("aktif parent claim bulunamadı")
+                # GÜVEN SINIRI (v1): depo, owner dahil bütün kimlikleri
+                # self-asserted kabul eder; delegated_by da bu sınırın
+                # içindedir ve kriptografik olarak doğrulanmaz. Çağıran
+                # kimliğinin gerçek doğrulaması bilinçli olarak coordination
+                # gateway katmanına (KA-003) bırakılmıştır — ortak dosyada
+                # saklanacak her per-claim secret tüm ajanlarca okunabilir
+                # olacağı için burada sahte bir güvence üretilmez.
                 if delegated_by != parent.owner:
                     raise ClaimError("alt görevi yalnız mevcut claim sahibi devredebilir")
                 if repo != parent.repo or not _scopes_within(normalized_scopes, parent.scopes):
@@ -376,6 +383,7 @@ class TaskClaimStore:
                 # Başarılı override sonrası çağıran engellenmiş sayılmaz;
                 # override edilen kayıt audit'te ve details'te izlenir.
                 overridden_claim_ids = [conflict.claim_id]
+                self._close_orphaned_children(claims, now)
                 conflicts = []
                 conflict_records = ()
             elif conflicts and not queue_on_conflict:
@@ -435,6 +443,7 @@ class TaskClaimStore:
             updated = replace(claim, status=ClaimStatus.RELEASED, closed_at=now)
             claims[claims.index(claim)] = updated
             self._audit("CLAIM_RELEASED", updated, actor=owner, at=now)
+            self._close_orphaned_children(claims, now)
             self._promote_queued(claims, now)
             return updated
 
@@ -513,7 +522,38 @@ class TaskClaimStore:
                 expired = replace(claim, status=ClaimStatus.EXPIRED, closed_at=now)
                 claims[index] = expired
                 self._audit("CLAIM_EXPIRED", expired, actor="lumos-board", at=now)
+        self._close_orphaned_children(claims, now)
         self._promote_queued(claims, now)
+
+    def _close_orphaned_children(self, claims: list[TaskClaim], now: datetime) -> None:
+        """Parent'ı artık ACTIVE olmayan ACTIVE/QUEUED alt-claim'leri kapatır.
+
+        Devir modeli "alt görev parent lease'i içinde yaşar" der; parent
+        kapanınca çocuklar kapsam tutmaya devam edemez. Kaskad, torunları da
+        kapsasın diye sabit noktaya kadar tekrarlanır.
+        """
+        changed = True
+        while changed:
+            changed = False
+            by_id = {claim.claim_id: claim for claim in claims}
+            for index, claim in enumerate(claims):
+                if claim.status not in {ClaimStatus.ACTIVE, ClaimStatus.QUEUED}:
+                    continue
+                if not claim.parent_claim_id:
+                    continue
+                parent = by_id.get(claim.parent_claim_id)
+                if parent is not None and parent.status is ClaimStatus.ACTIVE:
+                    continue
+                orphaned = replace(claim, status=ClaimStatus.EXPIRED, closed_at=now)
+                claims[index] = orphaned
+                self._audit(
+                    "CLAIM_EXPIRED",
+                    orphaned,
+                    actor="lumos-board",
+                    at=now,
+                    details={"reason": "parent_closed", "parent_claim_id": claim.parent_claim_id},
+                )
+                changed = True
 
     def _promote_queued(self, claims: list[TaskClaim], now: datetime) -> None:
         """Engeli kalkan QUEUED claim'leri sıra (started_at) düzeninde aktifleştirir.

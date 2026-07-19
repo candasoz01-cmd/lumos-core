@@ -495,3 +495,32 @@ def test_failed_operation_leaves_no_audit_trace(tmp_path: Path) -> None:
         event for event in _events(store.audit_path) if event["event"] == "CLAIM_EXPIRED"
     ]
     assert len(expired_events) == 1
+
+
+def test_parent_closure_cascades_to_children(tmp_path: Path) -> None:
+    store = TaskClaimStore(tmp_path)
+    parent = _claim(store, task="KA-P", owner="lead", scope="src/lumos_board").claim
+    assert parent is not None
+    child = _claim(
+        store,
+        task="KA-P-sub",
+        owner="worker",
+        scope="src/lumos_board/task_claim.py",
+        parent_claim_id=parent.claim_id,
+        delegated_by="lead",
+    ).claim
+    assert child is not None
+
+    store.release(parent.claim_id, owner="lead")
+
+    closed = {claim.task_id: claim.status for claim in store.list_claims(include_closed=True)}
+    assert closed["KA-P-sub"] is ClaimStatus.EXPIRED
+    orphan_events = [
+        event
+        for event in _events(store.audit_path)
+        if event["event"] == "CLAIM_EXPIRED" and event["details"].get("reason") == "parent_closed"
+    ]
+    assert [event["claim_id"] for event in orphan_events] == [child.claim_id]
+
+    reclaimed = _claim(store, task="KA-N", owner="agent-x", scope="src/lumos_board/task_claim.py")
+    assert reclaimed.accepted is True

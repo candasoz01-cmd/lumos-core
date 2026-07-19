@@ -20,7 +20,7 @@ Lumos Board yalnız durum panosu değildir. Yazma işi başlamadan önce sahipli
 2. Eşit veya üst-alt dizin ilişkili kapsamlar `SCOPE_CONFLICT` üretir.
 3. Claim kontrolü ve kayıt tek işletim sistemi dosya kilidi altında yapılır.
 4. Çakışan iş doğrudan başlayamaz; reddedilir, `QUEUED` olur veya mevcut sahibin alt görevi olarak bağlanır.
-5. Alt görev kapsamı parent claim içinde kalır ve yalnız parent sahibi tarafından devredilir. Alt görev **kendi görev kimliğini** taşır; parent'ın görev kimliği devirle ikinci kez aktifleşemez (`DUPLICATE_TASK`).
+5. Alt görev kapsamı parent claim içinde kalır ve yalnız parent sahibi tarafından devredilir. Alt görev **kendi görev kimliğini** taşır; parent'ın görev kimliği devirle ikinci kez aktifleşemez (`DUPLICATE_TASK`). Parent kapanınca (release/expiry/override) ACTIVE/QUEUED alt-claim'ler kaskadla kapanır (`reason: parent_closed`); öksüz alt-claim kapsam tutmaya devam edemez.
 6. Heartbeat lease süresini uzatır. TTL dolunca aktif claim `EXPIRED` olur ve kapsam yeniden alınabilir.
 7. Release, heartbeat ve PR eşleme yalnız kayıt sahibi tarafından yapılır.
 8. Manual override için görev, eski owner, yeni owner, gerekçe ve süreye bağlı HMAC-SHA256 imzalı approval token zorunludur.
@@ -29,6 +29,17 @@ Lumos Board yalnız durum panosu değildir. Yazma işi başlamadan önce sahipli
 11. Acquire, queue, heartbeat, expiry, release, override, promotion ve PR eşleme olayları append-only audit kaydına yazılır. Audit olayı yalnız durum başarıyla kalıcılaştığında yazılır; geri alınan işlem audit izi bırakmaz.
 12. `QUEUED` kayıtlar yer tutar: sonraki claim'ler kuyruktakileri de engel olarak görür. Engeli kalkan kuyruk kaydı sıra düzeninde (`started_at`) otomatik `ACTIVE` olur ve `CLAIM_PROMOTED` olayı yazılır.
 13. Bozuk claim veya approver registry verisi fail-closed davranır; güvenilmeyen durumun üstüne yazılmaz.
+
+## Güven sınırı (v1, bilinçli)
+
+Depo; `owner`, `delegated_by` ve `actor` kimliklerini **self-asserted** kabul
+eder — kooperatif ajanlar varsayımıyla çalışır ve bu alanları kriptografik
+olarak doğrulamaz (tek istisna: HMAC imzalı override approval token'ı).
+Ortak dosyada saklanacak her per-claim secret bütün ajanlarca okunabilir
+olacağından, dosya-tabanlı katmanda kimlik doğrulaması sahte güvence üretir.
+Gerçek çağıran-kimliği doğrulaması, tek yazar/tek okuyucu **coordination
+gateway** katmanının (KA-003) sorumluluğudur; bu sınır o katman devreye
+girene kadar geçerlidir.
 
 ## Kalıcılık
 
