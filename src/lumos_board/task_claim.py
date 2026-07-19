@@ -288,6 +288,7 @@ class TaskClaimStore:
         self.lock_path = self.store_dir / "claims.lock"
         self._clock = clock or (lambda: datetime.now(timezone.utc))
         self._override_verifier = override_verifier
+        self._pending_events: list[dict[str, object]] = []
 
     def claim(
         self,
@@ -462,12 +463,16 @@ class TaskClaimStore:
         with self.lock_path.open("a+", encoding="utf-8") as lock_file:
             fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
             claims = self._read_state()
+            self._pending_events = []
             try:
                 yield claims
             except Exception:
+                # Geri alınan işlem audit izi bırakmaz; bekleyen olaylar düşer.
+                self._pending_events = []
                 raise
             else:
                 self._write_state(claims)
+                self._flush_audit()
             finally:
                 fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
 
@@ -572,10 +577,19 @@ class TaskClaimStore:
             "actor": actor,
             "details": details or {},
         }
+        # Durum kalıcılaşmadan audit yazılmaz (bkz. sözleşme kural 11);
+        # olaylar _locked_state başarıyla kapanınca _flush_audit ile yazılır.
+        self._pending_events.append(event)
+
+    def _flush_audit(self) -> None:
+        if not self._pending_events:
+            return
         with self.audit_path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n")
+            for event in self._pending_events:
+                handle.write(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n")
             handle.flush()
             os.fsync(handle.fileno())
+        self._pending_events = []
 
     def _now(self) -> datetime:
         value = self._clock()

@@ -475,3 +475,23 @@ def test_queue_reserves_place_and_promotes_oldest_first(tmp_path: Path) -> None:
     assert by_task["KA-C"].status is ClaimStatus.QUEUED
     promoted = next(event for event in _events(store.audit_path) if event["event"] == "CLAIM_PROMOTED")
     assert promoted["owner"] == "agent-b"
+
+
+def test_failed_operation_leaves_no_audit_trace(tmp_path: Path) -> None:
+    clock = Clock()
+    store = TaskClaimStore(tmp_path, clock=clock)
+    first = _claim(store, task="KA-A", owner="agent-a", scope="src", ttl_seconds=60).claim
+    assert first is not None
+
+    clock.value = NOW + timedelta(seconds=120)
+    with pytest.raises(ClaimError, match="açık claim bulunamadı"):
+        store.heartbeat(first.claim_id, owner="agent-a", ttl_seconds=60)
+
+    events_after_failure = [event["event"] for event in _events(store.audit_path)]
+    assert "CLAIM_EXPIRED" not in events_after_failure
+
+    store.list_claims()
+    expired_events = [
+        event for event in _events(store.audit_path) if event["event"] == "CLAIM_EXPIRED"
+    ]
+    assert len(expired_events) == 1
