@@ -30,6 +30,16 @@ class CredentialResolution:
     error: str | None = None
 
 
+@dataclass(frozen=True)
+class CredentialWriteResult:
+    """Secret yazma sonucu; yazılan değer hiçbir alanda geri dönmez."""
+
+    ok: bool
+    purpose_code: str
+    ref: str
+    error: str | None = None
+
+
 class VaultAdapter(Protocol):
     """Vault kasa geçidi — Lumos yüzeyinde secret taşınmaz."""
 
@@ -37,6 +47,14 @@ class VaultAdapter(Protocol):
         ...
 
     def resolve_credential(self, ref: str, purpose_code: str) -> CredentialResolution:
+        ...
+
+    def store_credential(
+        self,
+        ref: str,
+        purpose_code: str,
+        secret_value: str,
+    ) -> CredentialWriteResult:
         ...
 
 
@@ -125,6 +143,37 @@ class InfisicalVaultAdapter:
             secret_value=secret_value,
         )
 
+    def store_credential(
+        self,
+        ref: str,
+        purpose_code: str,
+        secret_value: str,
+    ) -> CredentialWriteResult:
+        error = self._configuration_error(purpose_code)
+        if error:
+            return CredentialWriteResult(False, purpose_code, ref, error)
+        if not isinstance(secret_value, str) or not secret_value:
+            return CredentialWriteResult(False, purpose_code, ref, "secret_value_required")
+        if not self._vault_reachable():
+            return CredentialWriteResult(False, purpose_code, ref, "vault_unreachable")
+
+        write_error = self._create_secret_value(ref, secret_value)
+        return CredentialWriteResult(
+            ok=write_error is None,
+            purpose_code=purpose_code,
+            ref=ref,
+            error=write_error,
+        )
+
+    def _configuration_error(self, purpose_code: str) -> str | None:
+        if not self._vault_url or not self._vault_token:
+            return "vault_env_not_configured"
+        if not self._vault_project or not self._vault_env:
+            return "vault_project_env_not_configured"
+        if not is_known_purpose_code(purpose_code):
+            return "unknown_purpose_code"
+        return None
+
     def _vault_reachable(self) -> bool:
         """Read-only health probe — operatör PoC; secret döndürmez."""
         base = self._vault_url.rstrip("/")
@@ -143,12 +192,12 @@ class InfisicalVaultAdapter:
         secret_name = quote(ref, safe="")
         query = urlencode(
             {
-                "workspaceId": self._vault_project,
+                "projectId": self._vault_project,
                 "environment": self._vault_env,
                 "secretPath": self._vault_secret_path,
             }
         )
-        url = f"{base}/api/v3/secrets/raw/{secret_name}?{query}"
+        url = f"{base}/api/v4/secrets/{secret_name}?{query}"
         req = Request(url, method="GET")
         req.add_header("Authorization", f"Bearer {self._vault_token}")
         try:
@@ -179,6 +228,47 @@ class InfisicalVaultAdapter:
         if not isinstance(value, str) or not value:
             return None, "secret_not_found"
         return value, None
+
+    def _create_secret_value(self, ref: str, secret_value: str) -> str | None:
+        """Infisical v4 create; sonuç ve hatalar secret değerini geri taşımaz."""
+        base = self._vault_url.rstrip("/")
+        secret_name = quote(ref, safe="")
+        url = f"{base}/api/v4/secrets/{secret_name}"
+        payload = json.dumps(
+            {
+                "projectId": self._vault_project,
+                "environment": self._vault_env,
+                "secretValue": secret_value,
+                "secretPath": self._vault_secret_path,
+                "type": "shared",
+            },
+            separators=(",", ":"),
+        ).encode("utf-8")
+        req = Request(url, data=payload, method="POST")
+        req.add_header("Authorization", f"Bearer {self._vault_token}")
+        req.add_header("Content-Type", "application/json")
+        try:
+            with urlopen(req, timeout=self._timeout) as resp:  # noqa: S310 — operatör env URL
+                if 200 <= resp.status < 300:
+                    return None
+                return "secret_write_failed"
+        except TimeoutError:
+            return "vault_timeout"
+        except HTTPError as exc:
+            if exc.code in (401, 403):
+                return "vault_write_unauthorized"
+            if exc.code in (409, 422):
+                return "secret_ref_conflict"
+            return "secret_write_failed"
+        except URLError as exc:
+            reason = exc.reason
+            if isinstance(reason, TimeoutError) or (
+                reason is not None and "timed out" in str(reason).lower()
+            ):
+                return "vault_timeout"
+            return "vault_unreachable"
+        except (OSError, ValueError):
+            return "secret_write_failed"
 
 
 _default_adapter: InfisicalVaultAdapter | None = None
