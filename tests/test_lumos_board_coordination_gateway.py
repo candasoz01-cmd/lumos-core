@@ -284,3 +284,28 @@ def test_audit_failure_rolls_back_reader_claim(tmp_path: Path, monkeypatch: pyte
     monkeypatch.setattr(gateway, "_audit", original_audit)
     recovered = gateway.claim_reader(reader_id="lumos-primary")
     assert recovered.token
+
+
+def test_event_append_rolls_back_when_audit_fails(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    gateway = SingleReaderGateway(tmp_path, clock=Clock())
+    original_audit = gateway._audit
+
+    def failing_audit(event_type: str, **kwargs: object) -> None:
+        if event_type == "EVENT_ROUTED":
+            raise OSError("disk dolu")
+        original_audit(event_type, **kwargs)
+
+    monkeypatch.setattr(gateway, "_audit", failing_audit)
+    with pytest.raises(CoordinationError, match="geri alındı"):
+        gateway.submit_event(
+            dedupe_key="d1", source="cyber", task_id="T1",
+            kind=EventKind.INFORMATION, message="bilgi", user_relevant=True,
+        )
+
+    monkeypatch.setattr(gateway, "_audit", original_audit)
+    retry = gateway.submit_event(
+        dedupe_key="d1", source="cyber", task_id="T1",
+        kind=EventKind.INFORMATION, message="bilgi", user_relevant=True,
+    )
+    assert retry.accepted is True
+    assert retry.duplicate_of is None

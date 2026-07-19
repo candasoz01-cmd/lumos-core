@@ -192,27 +192,18 @@ class SingleReaderGateway:
                 )
             token = secrets.token_urlsafe(32)
             expires_at = now + timedelta(seconds=ttl_seconds)
-            previous = self.reader_path.read_bytes() if self.reader_path.exists() else None
-            self._write_json(
-                self.reader_path,
-                {
-                    "schema": READER_SCHEMA,
-                    "reader_id": reader_id,
-                    "token_hash": _token_hash(token),
-                    "heartbeat_at": _format_time(now),
-                    "expires_at": _format_time(expires_at),
-                },
-            )
-            try:
+            with self._audit_rollback(self.reader_path):
+                self._write_json(
+                    self.reader_path,
+                    {
+                        "schema": READER_SCHEMA,
+                        "reader_id": reader_id,
+                        "token_hash": _token_hash(token),
+                        "heartbeat_at": _format_time(now),
+                        "expires_at": _format_time(expires_at),
+                    },
+                )
                 self._audit("READER_CLAIMED", actor=reader_id, at=now)
-            except Exception as exc:
-                # Audit yazılamazsa lease geri alınır; aksi halde token'ı
-                # kimsenin almadığı, TTL bitene dek kilitli öksüz lease kalır.
-                if previous is None:
-                    self.reader_path.unlink(missing_ok=True)
-                else:
-                    self.reader_path.write_bytes(previous)
-                raise CoordinationError("audit yazılamadı; reader claim geri alındı") from exc
             return ReaderSession(reader_id, token, expires_at)
 
     def heartbeat_reader(self, token: str, *, ttl_seconds: int = 900) -> datetime:
@@ -224,8 +215,9 @@ class SingleReaderGateway:
             expires_at = now + timedelta(seconds=ttl_seconds)
             reader["heartbeat_at"] = _format_time(now)
             reader["expires_at"] = _format_time(expires_at)
-            self._write_json(self.reader_path, reader)
-            self._audit("READER_HEARTBEAT", actor=_required_text(reader, "reader_id"), at=now)
+            with self._audit_rollback(self.reader_path):
+                self._write_json(self.reader_path, reader)
+                self._audit("READER_HEARTBEAT", actor=_required_text(reader, "reader_id"), at=now)
             return expires_at
 
     def release_reader(self, token: str) -> None:
@@ -233,8 +225,9 @@ class SingleReaderGateway:
             now = self._now()
             reader = self._require_reader(token, now)
             reader_id = _required_text(reader, "reader_id")
-            self.reader_path.unlink(missing_ok=True)
-            self._audit("READER_RELEASED", actor=reader_id, at=now)
+            with self._audit_rollback(self.reader_path):
+                self.reader_path.unlink(missing_ok=True)
+                self._audit("READER_RELEASED", actor=reader_id, at=now)
 
     def submit_event(
         self,
@@ -285,18 +278,19 @@ class SingleReaderGateway:
                 route_target=route_target,
                 severity=severity,
             )
-            self._append_json(self.events_path, event.to_dict())
-            self._audit(
-                "EVENT_ROUTED",
-                actor=source,
-                details={
-                    "event_id": event.event_id,
-                    "kind": event.kind.value,
-                    "route": event.route.value,
-                    "route_target": event.route_target,
-                },
-                at=event.created_at,
-            )
+            with self._audit_rollback(self.events_path):
+                self._append_json(self.events_path, event.to_dict())
+                self._audit(
+                    "EVENT_ROUTED",
+                    actor=source,
+                    details={
+                        "event_id": event.event_id,
+                        "kind": event.kind.value,
+                        "route": event.route.value,
+                        "route_target": event.route_target,
+                    },
+                    at=event.created_at,
+                )
             return EventReceipt(True, event)
 
     def read_user_digest(self, token: str) -> UserDigest:
@@ -354,16 +348,39 @@ class SingleReaderGateway:
             if not requested <= user_event_ids:
                 raise CoordinationError("yalnız kullanıcı rotasındaki olaylar acknowledge edilebilir")
             acknowledged = self._read_acknowledged() | requested
-            self._write_json(
-                self.delivery_path,
-                {"schema": DELIVERY_SCHEMA, "acknowledged_event_ids": sorted(acknowledged)},
-            )
-            self._audit(
-                "USER_DIGEST_ACKNOWLEDGED",
-                actor=_required_text(reader, "reader_id"),
-                details={"event_ids": sorted(requested)},
-                at=now,
-            )
+            with self._audit_rollback(self.delivery_path):
+                self._write_json(
+                    self.delivery_path,
+                    {"schema": DELIVERY_SCHEMA, "acknowledged_event_ids": sorted(acknowledged)},
+                )
+                self._audit(
+                    "USER_DIGEST_ACKNOWLEDGED",
+                    actor=_required_text(reader, "reader_id"),
+                    details={"event_ids": sorted(requested)},
+                    at=now,
+                )
+
+    @contextmanager
+    def _audit_rollback(self, *paths: Path) -> Iterator[None]:
+        """Mutasyon + audit bloğu: audit/persist hatasında dosyaları geri alır.
+
+        Durum dosyası yazıldıktan sonra audit eklenemezse öksüz durum
+        (örn. token'ı dönmemiş aktif lease, audit izi olmayan ack) kalmasın
+        diye verilen dosyaların önceki içerikleri geri yüklenir ve hata
+        CoordinationError olarak yükselir.
+        """
+        snapshots = {path: (path.read_bytes() if path.exists() else None) for path in paths}
+        try:
+            yield
+        except CoordinationError:
+            raise
+        except Exception as exc:
+            for path, blob in snapshots.items():
+                if blob is None:
+                    path.unlink(missing_ok=True)
+                else:
+                    path.write_bytes(blob)
+            raise CoordinationError("işlem kalıcılaştırılamadı; durum geri alındı") from exc
 
     @contextmanager
     def _lock(self) -> Iterator[None]:
