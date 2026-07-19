@@ -23,9 +23,11 @@ Lumos Board yalnız durum panosu değildir. Yazma işi başlamadan önce sahipli
 5. Alt görev kapsamı parent claim içinde kalır ve yalnız parent sahibi tarafından devredilir.
 6. Heartbeat lease süresini uzatır. TTL dolunca aktif claim `EXPIRED` olur ve kapsam yeniden alınabilir.
 7. Release, heartbeat ve PR eşleme yalnız kayıt sahibi tarafından yapılır.
-8. Manual override için `approved_by` ve gerekçe birlikte zorunludur.
-9. Acquire, queue, heartbeat, expiry, release, override ve PR eşleme olayları append-only audit kaydına yazılır.
-10. Bozuk claim deposu fail-closed davranır; güvenilmeyen durumun üstüne yazılmaz.
+8. Manual override için görev, eski owner, yeni owner, gerekçe ve süreye bağlı HMAC-SHA256 imzalı approval token zorunludur.
+9. Approver fail-closed registry allowlist'inde etkin ve süresi geçmemiş olmalı; eski veya yeni owner kendini onaylayamaz.
+10. Override audit kaydı approver kimliği, approval kimliği, doğrulama yöntemi, doğrulama zamanı ve gerekçeyi içerir.
+11. Acquire, queue, heartbeat, expiry, release, override ve PR eşleme olayları append-only audit kaydına yazılır.
+12. Bozuk claim veya approver registry verisi fail-closed davranır; güvenilmeyen durumun üstüne yazılmaz.
 
 ## Kalıcılık
 
@@ -34,5 +36,7 @@ Lumos Board yalnız durum panosu değildir. Yazma işi başlamadan önce sahipli
 - `claims.lock`: süreçler arası atomiklik kilidi.
 
 CLI ortak çalışma ağacını Git common directory üzerinden bulur. `LUMOS_BOARD_DIR` veya `--store` ile açık bir ortak konum da verilebilir.
+
+Override doğrulamasında CLI `LUMOS_OVERRIDE_APPROVER_REGISTRY` ve `LUMOS_OVERRIDE_APPROVAL_SECRET` ortam değişkenlerini ister. CLI approval token üretmez; token yalnız güvenilen approval servisi tarafından oluşturulur.
 
 Bu sözleşme görev sonucunun başka ajana, insana veya güvenlik akışına yönlendirilmesini tanımlamaz. Bilgi yönlendirme ayrı bir sonraki dilimdir.

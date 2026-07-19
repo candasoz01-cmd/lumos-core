@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import fcntl
+import base64
+import hashlib
+import hmac
 import json
 import os
 import tempfile
@@ -17,6 +20,9 @@ from typing import Callable, Iterator, Sequence
 
 CLAIM_STORE_SCHEMA = "lumos.task_claim_store.v1"
 CLAIM_EVENT_SCHEMA = "lumos.task_claim_event.v1"
+APPROVER_REGISTRY_SCHEMA = "lumos.override_approver_registry.v1"
+OVERRIDE_APPROVAL_SCHEMA = "lumos.override_approval.v1"
+OVERRIDE_VERIFICATION_METHOD = "HMAC_SHA256_ALLOWLIST"
 
 
 class ClaimStatus(str, Enum):
@@ -33,6 +39,138 @@ class ClaimError(ValueError):
 
 class ClaimStoreCorrupt(ClaimError):
     """Raised when persisted state cannot be trusted; writes fail closed."""
+
+
+@dataclass(frozen=True)
+class VerifiedOverrideApproval:
+    approval_id: str
+    approver_id: str
+    verification_method: str
+    expires_at: datetime
+
+
+class OverrideApprovalVerifier:
+    """Verify signed approvals against a fail-closed approver allowlist."""
+
+    def __init__(
+        self,
+        *,
+        secret: bytes,
+        approvers: dict[str, datetime],
+    ) -> None:
+        if len(secret) < 32:
+            raise ClaimError("override approval secret en az 32 byte olmalı")
+        if not approvers:
+            raise ClaimError("override approver allowlist boş olamaz")
+        self._secret = secret
+        self._approvers = dict(approvers)
+
+    @classmethod
+    def from_registry_file(cls, path: Path, *, secret: str) -> OverrideApprovalVerifier:
+        try:
+            payload = json.loads(Path(path).read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            raise ClaimError("override approver registry okunamıyor") from exc
+        if not isinstance(payload, dict) or payload.get("schema") != APPROVER_REGISTRY_SCHEMA:
+            raise ClaimError("override approver registry şeması geçersiz")
+        entries = payload.get("approvers")
+        if not isinstance(entries, list):
+            raise ClaimError("override approver listesi geçersiz")
+        approvers: dict[str, datetime] = {}
+        try:
+            for entry in entries:
+                if not isinstance(entry, dict) or entry.get("enabled") is not True:
+                    continue
+                approver_id = _required_text(entry, "approver_id")
+                if approver_id in approvers:
+                    raise ClaimError("override approver registry tekrarlı kimlik içeriyor")
+                approvers[approver_id] = _parse_time(_required_text(entry, "valid_until"))
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ClaimError("override approver registry kaydı geçersiz") from exc
+        return cls(secret=_clean_text(secret, "override approval secret").encode(), approvers=approvers)
+
+    def verify(
+        self,
+        token: str,
+        *,
+        task_id: str,
+        current_owner: str,
+        new_owner: str,
+        reason: str,
+        now: datetime,
+    ) -> VerifiedOverrideApproval:
+        try:
+            encoded_payload, encoded_signature = _clean_text(token, "override_token").split(".", 1)
+            payload_bytes = _b64url_decode(encoded_payload)
+            signature = _b64url_decode(encoded_signature)
+            expected = hmac.new(self._secret, payload_bytes, hashlib.sha256).digest()
+            if not hmac.compare_digest(signature, expected):
+                raise ClaimError("override approval imzası geçersiz")
+            payload = json.loads(payload_bytes)
+            if not isinstance(payload, dict) or payload.get("schema") != OVERRIDE_APPROVAL_SCHEMA:
+                raise ClaimError("override approval şeması geçersiz")
+            approval_id = _required_text(payload, "approval_id")
+            approver_id = _required_text(payload, "approver_id")
+            issued_at = _parse_time(_required_text(payload, "issued_at"))
+            expires_at = _parse_time(_required_text(payload, "expires_at"))
+        except ClaimError:
+            raise
+        except (KeyError, TypeError, ValueError, UnicodeError, json.JSONDecodeError) as exc:
+            raise ClaimError("override approval token geçersiz") from exc
+
+        if payload.get("verification_method") != OVERRIDE_VERIFICATION_METHOD:
+            raise ClaimError("override doğrulama yöntemi geçersiz")
+        if issued_at > now or expires_at <= now or expires_at <= issued_at:
+            raise ClaimError("override approval süresi geçersiz veya dolmuş")
+        allowlist_until = self._approvers.get(approver_id)
+        if allowlist_until is None or allowlist_until <= now or expires_at > allowlist_until:
+            raise ClaimError("override approver allowlist yetkisi geçersiz")
+        if approver_id in {current_owner, new_owner}:
+            raise ClaimError("override approver owner'lardan farklı olmalı")
+        expected_context = {
+            "task_id": task_id,
+            "current_owner": current_owner,
+            "new_owner": new_owner,
+            "reason": reason,
+        }
+        if any(payload.get(key) != value for key, value in expected_context.items()):
+            raise ClaimError("override approval bağlamı eşleşmiyor")
+        return VerifiedOverrideApproval(
+            approval_id=approval_id,
+            approver_id=approver_id,
+            verification_method=OVERRIDE_VERIFICATION_METHOD,
+            expires_at=expires_at,
+        )
+
+
+def sign_override_approval(
+    *,
+    secret: bytes,
+    approval_id: str,
+    approver_id: str,
+    task_id: str,
+    current_owner: str,
+    new_owner: str,
+    reason: str,
+    issued_at: datetime,
+    expires_at: datetime,
+) -> str:
+    """Create a token in a trusted approval service; the claim CLI never calls this."""
+    payload = {
+        "schema": OVERRIDE_APPROVAL_SCHEMA,
+        "approval_id": _clean_text(approval_id, "approval_id"),
+        "approver_id": _clean_text(approver_id, "approver_id"),
+        "verification_method": OVERRIDE_VERIFICATION_METHOD,
+        "task_id": _clean_text(task_id, "task_id"),
+        "current_owner": _clean_text(current_owner, "current_owner"),
+        "new_owner": _clean_text(new_owner, "new_owner"),
+        "reason": _clean_text(reason, "reason"),
+        "issued_at": _format_time(issued_at),
+        "expires_at": _format_time(expires_at),
+    }
+    payload_bytes = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+    signature = hmac.new(secret, payload_bytes, hashlib.sha256).digest()
+    return f"{_b64url_encode(payload_bytes)}.{_b64url_encode(signature)}"
 
 
 @dataclass(frozen=True)
@@ -142,12 +280,14 @@ class TaskClaimStore:
         store_dir: Path,
         *,
         clock: Callable[[], datetime] | None = None,
+        override_verifier: OverrideApprovalVerifier | None = None,
     ) -> None:
         self.store_dir = Path(store_dir)
         self.state_path = self.store_dir / "claims.json"
         self.audit_path = self.store_dir / "claim_events.jsonl"
         self.lock_path = self.store_dir / "claims.lock"
         self._clock = clock or (lambda: datetime.now(timezone.utc))
+        self._override_verifier = override_verifier
 
     def claim(
         self,
@@ -162,7 +302,7 @@ class TaskClaimStore:
         queue_on_conflict: bool = False,
         parent_claim_id: str | None = None,
         delegated_by: str | None = None,
-        override_approved_by: str | None = None,
+        override_token: str | None = None,
         override_reason: str | None = None,
     ) -> ClaimResult:
         task_id = _clean_text(task_id, "task_id")
@@ -173,8 +313,8 @@ class TaskClaimStore:
         normalized_scopes = _normalize_scopes(scopes)
         if ttl_seconds <= 0:
             raise ClaimError("ttl_seconds sıfırdan büyük olmalı")
-        if bool(override_approved_by) != bool(override_reason):
-            raise ClaimError("override için approved_by ve reason birlikte zorunlu")
+        if bool(override_token) != bool(override_reason):
+            raise ClaimError("override için signed token ve reason birlikte zorunlu")
 
         with self._locked_state() as claims:
             now = self._now()
@@ -197,19 +337,40 @@ class TaskClaimStore:
                 ignored_claim_id=parent.claim_id if parent else None,
             )
             conflict_records = tuple(_to_conflict(claim, task_id, normalized_scopes) for claim in conflicts)
-            if conflicts and override_approved_by:
-                approved_by = _clean_text(override_approved_by, "override_approved_by")
+            if override_token and not conflicts:
+                raise ClaimError("override yalnız aktif conflict için kullanılabilir")
+            if conflicts and override_token:
+                if len(conflicts) != 1:
+                    raise ClaimError("tek approval birden fazla claim'i override edemez")
+                if self._override_verifier is None:
+                    raise ClaimError("override verifier yapılandırılmamış")
                 reason = _clean_text(override_reason or "", "override_reason")
-                for conflict in conflicts:
-                    replacement = replace(conflict, status=ClaimStatus.OVERRIDDEN, closed_at=now)
-                    claims[claims.index(conflict)] = replacement
-                    self._audit(
-                        "CLAIM_OVERRIDDEN",
-                        replacement,
-                        actor=approved_by,
-                        at=now,
-                        details={"reason": reason, "new_owner": owner},
-                    )
+                conflict = conflicts[0]
+                approval = self._override_verifier.verify(
+                    override_token,
+                    task_id=task_id,
+                    current_owner=conflict.owner,
+                    new_owner=owner,
+                    reason=reason,
+                    now=now,
+                )
+                replacement = replace(conflict, status=ClaimStatus.OVERRIDDEN, closed_at=now)
+                claims[claims.index(conflict)] = replacement
+                self._audit(
+                    "CLAIM_OVERRIDDEN",
+                    replacement,
+                    actor=approval.approver_id,
+                    at=now,
+                    details={
+                        "approval_id": approval.approval_id,
+                        "approver_id": approval.approver_id,
+                        "verification_method": approval.verification_method,
+                        "verified_at": _format_time(now),
+                        "reason": reason,
+                        "previous_owner": conflict.owner,
+                        "new_owner": owner,
+                    },
+                )
                 conflicts = []
             elif conflicts and not queue_on_conflict:
                 return ClaimResult(accepted=False, claim=None, conflicts=conflict_records)
@@ -471,3 +632,12 @@ def _parse_time(value: str) -> datetime:
 
 def _format_time(value: datetime) -> str:
     return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _b64url_encode(value: bytes) -> str:
+    return base64.urlsafe_b64encode(value).rstrip(b"=").decode("ascii")
+
+
+def _b64url_decode(value: str) -> bytes:
+    padding = "=" * (-len(value) % 4)
+    return base64.urlsafe_b64decode(value + padding)

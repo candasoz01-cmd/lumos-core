@@ -9,15 +9,19 @@ import pytest
 
 from lumos_board.claim_cli import main as claim_cli_main
 from lumos_board.task_claim import (
+    APPROVER_REGISTRY_SCHEMA,
     CLAIM_EVENT_SCHEMA,
     ClaimError,
     ClaimStatus,
     ClaimStoreCorrupt,
+    OverrideApprovalVerifier,
     TaskClaimStore,
+    sign_override_approval,
 )
 
 
 NOW = datetime(2026, 7, 19, 12, 0, tzinfo=timezone.utc)
+APPROVAL_SECRET = b"a-secure-test-secret-that-is-32-bytes-minimum"
 
 
 class Clock:
@@ -42,6 +46,50 @@ def _claim(store: TaskClaimStore, *, task: str, owner: str, scope: str, **kwargs
 
 def _events(path: Path) -> list[dict[str, object]]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+
+
+def _verifier(tmp_path: Path, *approvers: str) -> OverrideApprovalVerifier:
+    registry = tmp_path / "approvers.json"
+    registry.write_text(
+        json.dumps(
+            {
+                "schema": APPROVER_REGISTRY_SCHEMA,
+                "approvers": [
+                    {
+                        "approver_id": approver,
+                        "enabled": True,
+                        "valid_until": (NOW + timedelta(days=1)).isoformat(),
+                    }
+                    for approver in approvers
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    return OverrideApprovalVerifier.from_registry_file(
+        registry,
+        secret=APPROVAL_SECRET.decode(),
+    )
+
+
+def _approval_token(
+    *,
+    approver: str = "security-admin",
+    current_owner: str = "agent-a",
+    new_owner: str = "agent-b",
+    expires_at: datetime | None = None,
+) -> str:
+    return sign_override_approval(
+        secret=APPROVAL_SECRET,
+        approval_id=f"approval-{approver}-{new_owner}",
+        approver_id=approver,
+        task_id="KA-002",
+        current_owner=current_owner,
+        new_owner=new_owner,
+        reason="owner unavailable",
+        issued_at=NOW - timedelta(minutes=1),
+        expires_at=expires_at or NOW + timedelta(minutes=10),
+    )
 
 
 def test_duplicate_task_and_overlapping_scope_are_refused(tmp_path: Path) -> None:
@@ -160,34 +208,148 @@ def test_child_claim_requires_parent_owner_and_subset_scope(tmp_path: Path) -> N
         )
 
 
-def test_manual_override_requires_approval_and_is_audited(tmp_path: Path) -> None:
-    store = TaskClaimStore(tmp_path)
+def test_fake_human_override_is_rejected(tmp_path: Path) -> None:
+    store = TaskClaimStore(tmp_path, clock=Clock(), override_verifier=_verifier(tmp_path, "security-admin"))
     original = _claim(store, task="KA-002", owner="agent-a", scope="src").claim
     assert original is not None
 
-    with pytest.raises(ClaimError, match="birlikte zorunlu"):
+    with pytest.raises(ClaimError, match="token geçersiz"):
         _claim(
             store,
             task="KA-002",
             owner="agent-b",
             scope="src",
-            override_approved_by="human",
+            override_token="human",
+            override_reason="owner unavailable",
         )
+
+    assert store.list_claims()[0].claim_id == original.claim_id
+
+
+def test_owner_cannot_approve_own_override(tmp_path: Path) -> None:
+    store = TaskClaimStore(tmp_path, clock=Clock(), override_verifier=_verifier(tmp_path, "agent-a"))
+    _claim(store, task="KA-002", owner="agent-a", scope="src")
+
+    with pytest.raises(ClaimError, match="owner'lardan farklı"):
+        _claim(
+            store,
+            task="KA-002",
+            owner="agent-b",
+            scope="src",
+            override_token=_approval_token(approver="agent-a"),
+            override_reason="owner unavailable",
+        )
+
+
+def test_non_allowlisted_approver_is_rejected(tmp_path: Path) -> None:
+    store = TaskClaimStore(tmp_path, clock=Clock(), override_verifier=_verifier(tmp_path, "security-admin"))
+    _claim(store, task="KA-002", owner="agent-a", scope="src")
+
+    with pytest.raises(ClaimError, match="allowlist"):
+        _claim(
+            store,
+            task="KA-002",
+            owner="agent-b",
+            scope="src",
+            override_token=_approval_token(approver="outsider"),
+            override_reason="owner unavailable",
+        )
+
+
+def test_expired_override_approval_is_rejected(tmp_path: Path) -> None:
+    store = TaskClaimStore(tmp_path, clock=Clock(), override_verifier=_verifier(tmp_path, "security-admin"))
+    _claim(store, task="KA-002", owner="agent-a", scope="src")
+
+    with pytest.raises(ClaimError, match="süresi"):
+        _claim(
+            store,
+            task="KA-002",
+            owner="agent-b",
+            scope="src",
+            override_token=_approval_token(expires_at=NOW - timedelta(seconds=1)),
+            override_reason="owner unavailable",
+        )
+
+
+def test_valid_override_is_audited_and_old_owner_stays_revoked(tmp_path: Path) -> None:
+    store = TaskClaimStore(tmp_path, clock=Clock(), override_verifier=_verifier(tmp_path, "security-admin"))
+    original = _claim(store, task="KA-002", owner="agent-a", scope="src").claim
+    assert original is not None
+
     replacement = _claim(
         store,
         task="KA-002",
         owner="agent-b",
         scope="src",
-        override_approved_by="human",
+        override_token=_approval_token(),
         override_reason="owner unavailable",
     )
 
     assert replacement.accepted is True
+    with pytest.raises(ClaimError, match="açık claim bulunamadı"):
+        store.heartbeat(original.claim_id, owner="agent-a")
     claims = store.list_claims(include_closed=True)
     assert next(claim for claim in claims if claim.claim_id == original.claim_id).status is ClaimStatus.OVERRIDDEN
     event = next(event for event in _events(store.audit_path) if event["event"] == "CLAIM_OVERRIDDEN")
-    assert event["actor"] == "human"
-    assert event["details"] == {"new_owner": "agent-b", "reason": "owner unavailable"}
+    assert event["actor"] == "security-admin"
+    assert event["details"] == {
+        "approval_id": "approval-security-admin-agent-b",
+        "approver_id": "security-admin",
+        "verification_method": "HMAC_SHA256_ALLOWLIST",
+        "verified_at": NOW.isoformat().replace("+00:00", "Z"),
+        "reason": "owner unavailable",
+        "previous_owner": "agent-a",
+        "new_owner": "agent-b",
+    }
+
+
+def test_two_simultaneous_overrides_have_one_winner(tmp_path: Path) -> None:
+    clock = Clock()
+    verifier = _verifier(tmp_path, "admin-one", "admin-two")
+    store = TaskClaimStore(tmp_path, clock=clock, override_verifier=verifier)
+    _claim(store, task="KA-002", owner="agent-a", scope="src")
+    barrier = threading.Barrier(2)
+    outcomes: list[str] = []
+
+    def attempt(approver: str, new_owner: str) -> None:
+        barrier.wait()
+        try:
+            result = _claim(
+                TaskClaimStore(tmp_path, clock=clock, override_verifier=verifier),
+                task="KA-002",
+                owner=new_owner,
+                scope="src",
+                override_token=_approval_token(approver=approver, new_owner=new_owner),
+                override_reason="owner unavailable",
+            )
+            outcomes.append("accepted" if result.accepted else "refused")
+        except ClaimError:
+            outcomes.append("rejected")
+
+    threads = [
+        threading.Thread(target=attempt, args=("admin-one", "agent-b")),
+        threading.Thread(target=attempt, args=("admin-two", "agent-c")),
+    ]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    assert outcomes.count("accepted") == 1
+    assert outcomes.count("rejected") == 1
+    assert [event["event"] for event in _events(store.audit_path)].count("CLAIM_OVERRIDDEN") == 1
+
+
+def test_corrupt_approver_registry_fails_closed(tmp_path: Path) -> None:
+    store = TaskClaimStore(tmp_path, clock=Clock())
+    original = _claim(store, task="KA-002", owner="agent-a", scope="src").claim
+    registry = tmp_path / "corrupt-approvers.json"
+    registry.write_text("{broken", encoding="utf-8")
+
+    with pytest.raises(ClaimError, match="registry okunamıyor"):
+        OverrideApprovalVerifier.from_registry_file(registry, secret=APPROVAL_SECRET.decode())
+
+    assert store.list_claims()[0].claim_id == original.claim_id
 
 
 def test_pr_binding_and_release_are_recorded(tmp_path: Path) -> None:

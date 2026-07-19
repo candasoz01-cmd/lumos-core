@@ -9,7 +9,7 @@ import subprocess
 from pathlib import Path
 from typing import Sequence
 
-from lumos_board.task_claim import ClaimError, TaskClaimStore
+from lumos_board.task_claim import ClaimError, OverrideApprovalVerifier, TaskClaimStore
 
 
 def _store_dir(explicit: str | None) -> Path:
@@ -49,7 +49,7 @@ def _parser() -> argparse.ArgumentParser:
     claim.add_argument("--queue", action="store_true")
     claim.add_argument("--parent")
     claim.add_argument("--delegated-by")
-    claim.add_argument("--override-approved-by")
+    claim.add_argument("--override-token")
     claim.add_argument("--override-reason")
 
     heartbeat = subparsers.add_parser("heartbeat")
@@ -74,7 +74,14 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
-        store = TaskClaimStore(_store_dir(args.store))
+        verifier = None
+        if args.command == "claim" and args.override_token:
+            registry = os.environ.get("LUMOS_OVERRIDE_APPROVER_REGISTRY")
+            secret = os.environ.get("LUMOS_OVERRIDE_APPROVAL_SECRET")
+            if not registry or not secret:
+                raise ClaimError("override için approver registry ve approval secret gerekli")
+            verifier = OverrideApprovalVerifier.from_registry_file(Path(registry), secret=secret)
+        store = TaskClaimStore(_store_dir(args.store), override_verifier=verifier)
         if args.command == "claim":
             result = store.claim(
                 task_id=args.task,
@@ -87,7 +94,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 queue_on_conflict=args.queue,
                 parent_claim_id=args.parent,
                 delegated_by=args.delegated_by,
-                override_approved_by=args.override_approved_by,
+                override_token=args.override_token,
                 override_reason=args.override_reason,
             )
             print(json.dumps(result.to_dict(), ensure_ascii=False, sort_keys=True))
