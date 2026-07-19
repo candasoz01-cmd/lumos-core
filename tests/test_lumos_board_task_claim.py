@@ -1,0 +1,250 @@
+from __future__ import annotations
+
+import json
+import threading
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+import pytest
+
+from lumos_board.claim_cli import main as claim_cli_main
+from lumos_board.task_claim import (
+    CLAIM_EVENT_SCHEMA,
+    ClaimError,
+    ClaimStatus,
+    ClaimStoreCorrupt,
+    TaskClaimStore,
+)
+
+
+NOW = datetime(2026, 7, 19, 12, 0, tzinfo=timezone.utc)
+
+
+class Clock:
+    def __init__(self) -> None:
+        self.value = NOW
+
+    def __call__(self) -> datetime:
+        return self.value
+
+
+def _claim(store: TaskClaimStore, *, task: str, owner: str, scope: str, **kwargs: object):
+    return store.claim(
+        task_id=task,
+        repo="lumos-core",
+        branch=f"codex/{task.lower()}",
+        worktree=f"/worktrees/{task.lower()}",
+        owner=owner,
+        scopes=[scope],
+        **kwargs,
+    )
+
+
+def _events(path: Path) -> list[dict[str, object]]:
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+
+
+def test_duplicate_task_and_overlapping_scope_are_refused(tmp_path: Path) -> None:
+    store = TaskClaimStore(tmp_path)
+    first = _claim(store, task="KA-002", owner="agent-a", scope="src/lumos_board")
+
+    duplicate = _claim(store, task="KA-002", owner="agent-b", scope="docs/other.md")
+    overlap = _claim(store, task="KA-003", owner="agent-b", scope="src/lumos_board/task_claim.py")
+    separate = _claim(store, task="KA-004", owner="agent-b", scope="docs/new.md")
+
+    assert first.accepted is True
+    assert duplicate.accepted is False
+    assert duplicate.conflicts[0].reason == "DUPLICATE_TASK"
+    assert overlap.accepted is False
+    assert overlap.conflicts[0].reason == "SCOPE_CONFLICT"
+    assert separate.accepted is True
+
+
+def test_conflicting_claim_can_queue_without_becoming_active(tmp_path: Path) -> None:
+    store = TaskClaimStore(tmp_path)
+    _claim(store, task="KA-002", owner="agent-a", scope="src/lumos_board")
+
+    queued = _claim(
+        store,
+        task="KA-003",
+        owner="agent-b",
+        scope="src/lumos_board/task_claim.py",
+        queue_on_conflict=True,
+    )
+
+    assert queued.accepted is False
+    assert queued.claim is not None
+    assert queued.claim.status is ClaimStatus.QUEUED
+    assert {claim.status for claim in store.list_claims()} == {ClaimStatus.ACTIVE, ClaimStatus.QUEUED}
+
+
+def test_atomic_claim_allows_only_one_concurrent_owner(tmp_path: Path) -> None:
+    barrier = threading.Barrier(2)
+    results: list[bool] = []
+
+    def attempt(owner: str) -> None:
+        barrier.wait()
+        result = _claim(
+            TaskClaimStore(tmp_path),
+            task="KA-002",
+            owner=owner,
+            scope="src/lumos_board/task_claim.py",
+        )
+        results.append(result.accepted)
+
+    threads = [threading.Thread(target=attempt, args=(owner,)) for owner in ("agent-a", "agent-b")]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    assert sorted(results) == [False, True]
+    assert len(TaskClaimStore(tmp_path).list_claims()) == 1
+
+
+def test_heartbeat_extends_lease_and_owner_is_enforced(tmp_path: Path) -> None:
+    clock = Clock()
+    store = TaskClaimStore(tmp_path, clock=clock)
+    claim = _claim(store, task="KA-002", owner="agent-a", scope="src", ttl_seconds=30).claim
+    assert claim is not None
+    clock.value += timedelta(seconds=20)
+
+    renewed = store.heartbeat(claim.claim_id, owner="agent-a", ttl_seconds=60)
+
+    assert renewed.heartbeat_at == clock.value
+    assert renewed.expires_at == clock.value + timedelta(seconds=60)
+    with pytest.raises(ClaimError, match="sahibi"):
+        store.release(claim.claim_id, owner="agent-b")
+
+
+def test_stale_claim_expires_and_scope_can_be_reclaimed(tmp_path: Path) -> None:
+    clock = Clock()
+    store = TaskClaimStore(tmp_path, clock=clock)
+    old = _claim(store, task="KA-002", owner="agent-a", scope="src", ttl_seconds=10).claim
+    assert old is not None
+    clock.value += timedelta(seconds=11)
+
+    replacement = _claim(store, task="KA-002", owner="agent-b", scope="src")
+    all_claims = store.list_claims(include_closed=True)
+
+    assert replacement.accepted is True
+    assert next(claim for claim in all_claims if claim.claim_id == old.claim_id).status is ClaimStatus.EXPIRED
+    assert "CLAIM_EXPIRED" in [event["event"] for event in _events(store.audit_path)]
+
+
+def test_child_claim_requires_parent_owner_and_subset_scope(tmp_path: Path) -> None:
+    store = TaskClaimStore(tmp_path)
+    parent = _claim(store, task="KA-002", owner="lead", scope="src/lumos_board").claim
+    assert parent is not None
+
+    child = _claim(
+        store,
+        task="KA-002-doc",
+        owner="worker",
+        scope="src/lumos_board/task_claim.py",
+        parent_claim_id=parent.claim_id,
+        delegated_by="lead",
+    )
+
+    assert child.accepted is True
+    assert child.claim is not None
+    assert child.claim.parent_claim_id == parent.claim_id
+    with pytest.raises(ClaimError, match="yalnız mevcut claim sahibi"):
+        _claim(
+            store,
+            task="KA-002-bad",
+            owner="worker-2",
+            scope="src/lumos_board/claim_cli.py",
+            parent_claim_id=parent.claim_id,
+            delegated_by="someone-else",
+        )
+
+
+def test_manual_override_requires_approval_and_is_audited(tmp_path: Path) -> None:
+    store = TaskClaimStore(tmp_path)
+    original = _claim(store, task="KA-002", owner="agent-a", scope="src").claim
+    assert original is not None
+
+    with pytest.raises(ClaimError, match="birlikte zorunlu"):
+        _claim(
+            store,
+            task="KA-002",
+            owner="agent-b",
+            scope="src",
+            override_approved_by="human",
+        )
+    replacement = _claim(
+        store,
+        task="KA-002",
+        owner="agent-b",
+        scope="src",
+        override_approved_by="human",
+        override_reason="owner unavailable",
+    )
+
+    assert replacement.accepted is True
+    claims = store.list_claims(include_closed=True)
+    assert next(claim for claim in claims if claim.claim_id == original.claim_id).status is ClaimStatus.OVERRIDDEN
+    event = next(event for event in _events(store.audit_path) if event["event"] == "CLAIM_OVERRIDDEN")
+    assert event["actor"] == "human"
+    assert event["details"] == {"new_owner": "agent-b", "reason": "owner unavailable"}
+
+
+def test_pr_binding_and_release_are_recorded(tmp_path: Path) -> None:
+    store = TaskClaimStore(tmp_path)
+    claim = _claim(store, task="KA-002", owner="agent-a", scope="src").claim
+    assert claim is not None
+
+    attached = store.attach_pr(claim.claim_id, owner="agent-a", pr_ref="#631")
+    released = store.release(claim.claim_id, owner="agent-a")
+
+    assert attached.pr_ref == "#631"
+    assert released.status is ClaimStatus.RELEASED
+    events = _events(store.audit_path)
+    assert all(event["schema"] == CLAIM_EVENT_SCHEMA for event in events)
+    assert [event["event"] for event in events][-2:] == ["CLAIM_PR_ATTACHED", "CLAIM_RELEASED"]
+
+
+def test_corrupt_store_fails_closed_without_overwrite(tmp_path: Path) -> None:
+    state = tmp_path / "claims.json"
+    tmp_path.mkdir(exist_ok=True)
+    state.write_text("{broken", encoding="utf-8")
+
+    with pytest.raises(ClaimStoreCorrupt):
+        _claim(TaskClaimStore(tmp_path), task="KA-002", owner="agent-a", scope="src")
+
+    assert state.read_text(encoding="utf-8") == "{broken"
+
+
+def test_scope_must_be_repo_relative(tmp_path: Path) -> None:
+    store = TaskClaimStore(tmp_path)
+    with pytest.raises(ClaimError, match="repo-relative"):
+        _claim(store, task="KA-002", owner="agent-a", scope="../secret")
+    with pytest.raises(ClaimError, match="repo kökü"):
+        _claim(store, task="KA-002", owner="agent-a", scope=".")
+
+
+def test_cli_returns_conflict_exit_code_and_json(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    common = [
+        "--store",
+        str(tmp_path),
+        "claim",
+        "--task",
+        "KA-002",
+        "--repo",
+        "lumos-core",
+        "--branch",
+        "codex/ka-002",
+        "--worktree",
+        "/worktrees/ka-002",
+        "--scope",
+        "src",
+    ]
+    assert claim_cli_main([*common, "--owner", "agent-a"]) == 0
+    capsys.readouterr()
+
+    assert claim_cli_main([*common, "--owner", "agent-b"]) == 2
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["accepted"] is False
+    assert payload["conflicts"][0]["reason"] == "DUPLICATE_TASK"
