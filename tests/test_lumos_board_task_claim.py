@@ -588,3 +588,26 @@ def test_override_succeeds_with_queued_waiters_and_preserves_queue(tmp_path: Pat
     assert by_id[active.claim_id] is ClaimStatus.OVERRIDDEN
     assert by_id[waiter.claim_id] is ClaimStatus.QUEUED
     assert replacement.claim is not None and by_id[replacement.claim.claim_id] is ClaimStatus.ACTIVE
+
+
+def test_override_promotes_waiters_blocked_only_by_old_lease(tmp_path: Path) -> None:
+    store = TaskClaimStore(
+        tmp_path, clock=Clock(), override_verifier=_verifier(tmp_path, "security-admin")
+    )
+    broad = _claim(store, task="KA-002", owner="agent-a", scope="src").claim
+    assert broad is not None
+    waiter = _claim(store, task="KA-W", owner="agent-w", scope="src/w.py", queue_on_conflict=True).claim
+    assert waiter is not None and waiter.status is ClaimStatus.QUEUED
+
+    replacement = _claim(
+        store,
+        task="KA-002",
+        owner="agent-b",
+        scope="src/b.py",
+        override_token=_approval_token(),
+        override_reason="owner unavailable",
+    )
+
+    assert replacement.accepted is True
+    by_id = {claim.claim_id: claim.status for claim in store.list_claims(include_closed=True)}
+    assert by_id[waiter.claim_id] is ClaimStatus.ACTIVE

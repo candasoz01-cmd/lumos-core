@@ -428,6 +428,10 @@ class TaskClaimStore:
                 at=now,
                 details=acquire_details,
             )
+            if overridden_claim_ids:
+                # Override bir blocker kapattı: yalnız eski lease'e takılan
+                # bekleyenler yeni claim eklendikten sonra terfi edebilmeli.
+                self._promote_queued(claims, now)
             return ClaimResult(accepted=status is ClaimStatus.ACTIVE, claim=claim, conflicts=conflict_records)
 
     def heartbeat(self, claim_id: str, *, owner: str, ttl_seconds: int = 1800) -> TaskClaim:
