@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit",
+      "Write",
+      "Bash(make test*)",
+      "Bash(make check*)",
+      "Bash(pytest*)",
+      "Bash(python -m pytest*)",
+      "Bash(python3 -m pytest*)",
+      "Bash(.venv_test/bin/python -m pytest*)",
+      "Bash(node --test *)",
+      "Bash(npm test*)",
+      "Bash(npm run *)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(git branch*)",
+      "Bash(git add *)",
+      "Bash(git commit*)",
+      "Bash(git stash*)",
+      "Bash(git fetch*)",
+      "Bash(git worktree list*)"
+    ],
+    "ask": [
+      "Bash(git push*)",
+      "Bash(git merge*)",
+      "Bash(git rebase*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean*)",
+      "Bash(gh pr merge*)",
+      "Bash(gh secret*)",
+      "Bash(gh auth*)",
+      "Bash(gh repo *)",
+      "Bash(gh api -X *)",
+      "Bash(gh api --method *)"
+    ]
+  }
+}
