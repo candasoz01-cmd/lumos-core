@@ -1,22 +1,27 @@
 {
   "name": "Lumos",
   "short_name": "Lumos",
-  "start_url": "/",
+  "id": "/panel",
+  "start_url": "/panel?source=desktop",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "description": "Lumos sohbet, görev, dosya ve kontrollü onay çalışma alanı.",
   "theme_color": "#38CEFF",
   "background_color": "#030714",
   "icons": [
     {
-      "src": "/lumos-paradise-icon.png",
-      "sizes": "260x260",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/lumos-tree-logo.svg",
+      "src": "/chat-lumos-mark.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Sohbeti aç",
+      "short_name": "Sohbet",
+      "url": "/panel?source=desktop"
     }
   ]
 }

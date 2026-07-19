@@ -11,6 +11,22 @@
 
 This document is **demo-safe** and suitable for the public `lumos-core` repository. It does not describe production credentials, OAuth client IDs, or WeLockAI private orchestration.
 
+## Lumos API service gateway
+
+Lumos'un uzun vadeli entegrasyon yönü **tek kapı, çok hizmet, aynı güven çizgisi** ilkesidir. AI, güvenlik, kimlik, araçlar, sosyal/medya, toplantı, ses/cihaz, bölgesel ağ ve kamu hizmeti adaptörleri aynı dış sözleşme altında planlanır.
+
+Public OSS temelinde `service_gateway` sağlayıcısı sözleşmeyi keşfetmeye ve yürütme yapmayan rota planı üretmeye yarar. Bu, canlı bir `api.lumos.ai` veya üretim sağlayıcı yönlendirmesi iddiası değildir. Dış etki her zaman açık onay ister; gerçek OAuth, kurum kimlik bilgileri ve üretim taşıması controlled-access katmanda kalır.
+
+Karar ve hizmet ailesi tablosu: [`ADR-015: Lumos Service API Gateway`](decisions/ADR-015-lumos-service-api-gateway.md).
+
+## Lumos ID + Memory Gateway
+
+Lumos ID, kullanıcının tek ve sağlayıcıdan bağımsız kimliğidir; OpenAI, Google/Gemini, Apple, GitHub, Gmail gibi hiçbir sağlayıcı bu kimliğin sahibi değildir. Memory Gateway, hafızayı bu kimlik altında zorunlu kaynak etiketiyle ve sağlayıcı bazında ayrılmış şekilde tutar; sağlayıcılar arası veri hiçbir zaman otomatik paylaşılmaz, çapraz kullanım yalnızca açık onayla mümkündür.
+
+Public OSS temelinde `lumos_id` sağlayıcısı yalnızca sözleşme keşfi (`describe_contract`), kayıtlı kaynak etiketi listesi (`list_memory_sources`) ve yürütme yapmayan çapraz kullanım planı (`plan_cross_use`) sağlar — gerçek kullanıcı oturumu, gerçek hafıza deposu veya gerçek çapraz paylaşım yoktur.
+
+Karar: [`ADR-016: Lumos ID + Memory Gateway`](decisions/ADR-016-lumos-id-memory-gateway.md).
+
 ---
 
 ## Product surfaces (welockai.com)
@@ -39,6 +55,49 @@ Kuantum **kaynak keşfi ve onaylı bağlantı** planlı katmanı — `/cyber` ve
 Belgeler: [`lumos-quantum-layer-architecture.md`](analysis/lumos-quantum-layer-architecture.md), [`lumos-quantum-provider-catalog.md`](analysis/lumos-quantum-provider-catalog.md), [`lumos-quantum-first-companion.md`](analysis/lumos-quantum-first-companion.md) (Qiskit/Aer — ilk yol arkadaşı). Kod: `src/integrations/quantum_registry.py`, `quantum_provider.py` (`list_catalog` yerel; Aer `connect` onay + opsiyonel `[quantum]` extra; `usage_recommendation`).
 
 **OAuth is not started on these static pages.** Connection flows will ship under We Lock AI controlled access when ready (Internal Alpha → official release).
+
+---
+
+## Approved social / media package
+
+| Region | Catalog slots |
+|--------|---------------|
+| Global | Meta (Facebook, Instagram), X, TikTok, LinkedIn, YouTube |
+| China | WeChat, Douyin, Bilibili, RED / Xiaohongshu, Weibo |
+| India | WhatsApp, Instagram, YouTube, ShareChat, Telegram |
+| Russia | VK, Telegram, OK, Rutube |
+
+All slots use the same locked workflow: **connect → draft → explicit approval → publish**. A catalog entry is not a live connection. Until an official account authorization succeeds, the user-facing state is `identity_required`; the UI does not leave an ambiguous “connection pending” state. `publish` always stays disabled in the OSS foundation — no provider ships a working publish/write path here.
+
+Each social provider (`src/integrations/providers/*_provider.py`) reads OAuth **app-level** configuration presence only from the environment (client id/secret/redirect) — no credential value is ever returned or stored in the repository.
+
+### Live connection verification (operator-supplied credentials only)
+
+A subset of providers additionally support a `verify_connection` action that makes a real, read-only call to the provider's own API — but only when the **operator** supplies their own already-issued access token/credential via environment variable, and only after `requires_approval=True`. No credential is embedded in this repository or returned in any response; a failed or unreachable check fails closed (`*_connection_check_failed` / `verification_failed`), never a fabricated success.
+
+| Provider | Live check | Env var(s) |
+|----------|-----------|------------|
+| Facebook, Instagram | Meta Graph API `/me` | `LUMOS_FACEBOOK_PAGE_ACCESS_TOKEN` / `LUMOS_INSTAGRAM_ACCESS_TOKEN` + `LUMOS_META_GRAPH_VERSION` |
+| Threads | `graph.threads.net/v1.0/me` | `LUMOS_THREADS_ACCESS_TOKEN` |
+| X | `api.twitter.com/2/users/me` | `LUMOS_X_BEARER_TOKEN` |
+| LinkedIn | `api.linkedin.com/v2/userinfo` (OIDC) | `LUMOS_LINKEDIN_ACCESS_TOKEN` |
+| TikTok | `open.tiktokapis.com/v2/user/info` | `LUMOS_TIKTOK_ACCESS_TOKEN` |
+| YouTube | Google `oauth2/v3/userinfo` | `LUMOS_YOUTUBE_ACCESS_TOKEN` |
+| VK | `api.vk.com/method/users.get` | `LUMOS_VK_ACCESS_TOKEN` |
+| Weibo | `api.weibo.com/2/account/get_uid` | `LUMOS_WEIBO_ACCESS_TOKEN` |
+| WeChat | Official Account `token` endpoint | `LUMOS_WECHAT_OFFICIAL_ACCOUNT_APP_ID` / `_APP_SECRET` |
+| Zoom, Microsoft Teams, Google Meet, Webex (`meetings_provider.py`) | vendor `/me`-style endpoint | `LUMOS_ZOOM_ACCESS_TOKEN` / `LUMOS_MICROSOFT_TEAMS_ACCESS_TOKEN` / `LUMOS_GOOGLE_MEET_ACCESS_TOKEN` / `LUMOS_WEBEX_ACCESS_TOKEN` |
+| Sonos (`sonos_provider.py`) | Sonos Control API households | `LUMOS_SONOS_ACCESS_TOKEN` |
+
+**Intentionally left at config-presence-only** (no live check): Bilibili, Douyin, Xiaohongshu, ShareChat, Rutube, OK, Jitsi, Tencent Meeting, Lark Meetings, JioMeet — these vendors don't have a public, self-serve API surface documented with enough confidence to implement correctly; they report `oauth_configuration` status but never attempt a network call.
+
+---
+
+## Public services adapter family
+
+Kamu hizmetleri sosyal/medya senkronundan ayrı bir entegrasyon ailesidir; aynı Lumos güven ve onay sözleşmesini kullanır. Public katalog kimlik, sağlık, eğitim, vergi, belediye ve belge adaptör ailelerini **metadata-only / discovery-only** olarak listeler.
+
+Bu kayıtlar herhangi bir devlet sistemine canlı erişim iddiası taşımaz. Gerçek bağlantı; resmi API, kurum sözleşmesi, bölgesel veri politikası, operatör kimlik bilgisi ve işlem anı kullanıcı/kurum onayı olmadan açılamaz.
 
 ---
 
@@ -105,6 +164,10 @@ See [`docs/memory/public-repo-boundary.md`](memory/public-repo-boundary.md).
 ## Code references (OSS)
 
 - Registry: `src/integrations/registry.py`
+- Social/video catalog: `src/integrations/providers/global_catalog_provider.py`
+- Lumos API contract: `src/integrations/providers/service_gateway_provider.py`
+- Lumos ID + Memory Gateway contract: `src/integrations/providers/lumos_id_provider.py`
+- YouTube Google OAuth skeleton: `src/integrations/providers/youtube_provider.py`
 - Quantum Layer catalog stub: `src/integrations/quantum_registry.py`, `src/integrations/providers/quantum_provider.py`
 - Mail stub: `src/integrations/mail/`
 - External permissions canon: `docs/memory/external-integrations-permissions.md`

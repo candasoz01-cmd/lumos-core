@@ -10,7 +10,8 @@ Panel görev çağrıları (`POST /task`) artık tarayıcıdan doğrudan köprü
 |----------|--------|----------|
 | `BRIDGE_UPSTREAM_URL` | Vercel / `vercel dev` (sunucu) | Örn. `http://127.0.0.1:8765` |
 | `KANDO_BRIDGE_SECRET` | Vercel / `vercel dev` (sunucu) | Köprü token'ı; tarayıcıya gömülmez |
-| `LUMOS_BRIDGE_PROXY_AUTH_TOKEN` | Vercel / `vercel dev` (sunucu) | `/api/bridge/*` caller auth; smoke için header, prod panel için cookie |
+| `LUMOS_BRIDGE_PROXY_AUTH_TOKEN` | Vercel / `vercel dev` (sunucu) | `/api/bridge/*` caller auth; smoke / operatör header'ı |
+| `LUMOS_BRIDGE_ALLOWED_LUMOS_IDS` | Vercel / `vercel dev` (sunucu) | Prod panel oturumu için virgülle ayrılmış Lumos ID allowlist'i |
 | `PUBLIC_KANDO_TOKEN` | ui `.env.local` (isteğe bağlı) | **Yalnızca** sohbet / upload / health |
 
 `BRIDGE_UPSTREAM_URL` veya proxy auth tanımsızsa proxy **503** döner; proxy auth hatalıysa **401** döner.

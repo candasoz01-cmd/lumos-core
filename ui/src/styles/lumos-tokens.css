@@ -45,6 +45,13 @@
   --lumos-accent-gold: #d4a574;
   --lumos-accent-amber: #f59e0b;
 
+  /* Product-family accents — decorative only; meaning is never color-only. */
+  --lumos-package-gold: #e0b56d;
+  --lumos-package-sky: #67c7ff;
+  --lumos-package-violet: #a78bfa;
+  --lumos-package-coral: #fb7185;
+  --lumos-package-green: #6ee7b7;
+
   /* Text */
   --lumos-text: #e8edf4;
   --lumos-text-soft: #94a3b8;
@@ -138,4 +145,13 @@
   --lumos-status-layers-fg: #7dd3fc;
   --lumos-status-layers-bg: rgb(14 165 233 / 0.12);
   --lumos-status-layers-border: rgb(14 165 233 / 0.26);
+
+  /* Cyber threat presentation — shared web/iOS thresholds: 0–24 / 25–49 / 50–74 / 75–100 */
+  --lumos-threat-safe: #4ade80;
+  --lumos-threat-caution: #facc15;
+  --lumos-threat-high: #fb923c;
+  --lumos-threat-critical: #ef4444;
+  --lumos-threat-level: 0;
+  --lumos-flame-height: 0%;
+  --lumos-flame-speed: 1.2s;
 }

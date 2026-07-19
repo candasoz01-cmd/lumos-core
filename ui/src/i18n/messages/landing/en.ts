@@ -24,6 +24,15 @@ const landingEn: typeof landingTr = {
     listDataLabel: "Data awareness:",
     listDataBody: "Where data is processed and which limits apply is presented in readable form.",
   },
+  howItWorks: {
+    title: "How it works",
+    stepUserLabel: "You",
+    stepUserBody: "You make the request and give final approval.",
+    stepLumosLabel: "Lumos",
+    stepLumosBody: "Shows the risk and context, and breaks the work into traceable steps.",
+    stepServicesLabel: "AI / Services",
+    stepServicesBody: "ChatGPT, Copilot, and connected services run with your approval, inside your limits.",
+  },
   world: {
     title: "World",
     lead:
@@ -93,14 +102,15 @@ const landingEn: typeof landingTr = {
     step2: "2 — Go to the project root folder",
     step3: "3 — Install UI dependencies",
     step4: "4 — Environment file (.env.local)",
-    step5: "5 — Start the bridge (repo root, separate terminal)",
+    step5: "5 — Complete the full panel setup",
     step6: "6 — Task server and proxy (separate terminals)",
-    step7: "7 — Start the dev server (ui folder)",
-    step8: "8 — Open the local panel in your browser",
+    step7: "6 — Start the dev server (ui folder)",
+    step8: "7 — Open the local panel in your browser",
     step5note:
-      "From the repo root (lumos-core); keep this terminal open. Local placeholder: KANDO_BRIDGE_SECRET=test123",
+      "Bridge and task proxy settings are maintained in the developer guide.",
     step6note:
       "For task proxy (/api/bridge), run vercel dev from the repo root; npm run dev alone does not serve the proxy.",
+    fullSetupGuide: "Full setup guide",
     copy: "Copy",
     copied: "Copied",
     open: "Open",

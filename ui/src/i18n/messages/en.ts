@@ -6,15 +6,15 @@ import umbrella from "./umbrella/en";
 
 const en: MessageTree = {
   meta: {
-    landingTitle: "Lumos — AI Control Layer",
+    landingTitle: "We Lock AI — Human-Centered AI Ecosystem",
     description:
-      "Lumos is a prototype AI control layer that unifies voice, media, tasks, files, and multi-panel flows in one place.",
-    ogTitle: "Lumos — AI Control Layer",
+      "We Lock AI is a human-centered AI ecosystem. Lumos is its end-user product for chat, tasks, files, and connected work in one place.",
+    ogTitle: "We Lock AI — Human-Centered AI Ecosystem",
     ogDescription:
-      "Lumos is a prototype AI control layer that unifies voice, media, tasks, files, and multi-panel flows in one place.",
-    twitterTitle: "Lumos — AI Control Layer",
+      "We Lock AI is a human-centered AI ecosystem. Lumos is its end-user product for chat, tasks, files, and connected work in one place.",
+    twitterTitle: "We Lock AI — Human-Centered AI Ecosystem",
     twitterDescription:
-      "Lumos is a prototype AI control layer that unifies voice, media, tasks, files, and multi-panel flows in one place.",
+      "We Lock AI is a human-centered AI ecosystem. Lumos is its end-user product for chat, tasks, files, and connected work in one place.",
   },
   lang: {
     switchLabel: "Language",
@@ -29,20 +29,22 @@ const en: MessageTree = {
     developer: "Developer",
     install: "Setup",
     connect: "Connect",
-    panel: "Panel",
+    ecosystem: "Trust",
+    panel: "Open Lumos",
     github: "GitHub",
-    brandAria: "Lumos — top of page",
-    brandTitle: "Lumos",
-    brandSub: "WE LOCK AI",
+    brandAria: "We Lock AI — top of page",
+    brandTitle: "We Lock AI",
+    brandSub: "AI ECOSYSTEM",
   },
   hero: {
     eyebrow: "WE LOCK AI · LUMOS",
     title: "Lumos",
     subtitle: "AI control layer",
     lead1:
-      "An intelligent assistant layer that unifies voice, media, visual analysis, tasks, files, identity, and security flows in one panel.",
+      "Lumos isn't another AI. It's the shared layer that runs the AI you already use (ChatGPT, Copilot, and others) safely, auditably, and under your control.",
     lead2: "The decision stays with you. Lumos makes risk, context, and next steps visible.",
     pillar: "One panel · Multiple flows · User control",
+    audience: "Right now: open source for developers · on the roadmap for organizations · end-user package coming soon.",
     ctaPanel: "Open Lumos Panel",
     ctaWorld: "Read the vision",
     askAria: "Ask Lumos — continue in the panel",

@@ -41,15 +41,25 @@ const PANEL_DEBUG = import.meta.env.DEV;
       name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no"
     />
-    <title data-i18n="panel.meta.title">Lumos Panel — Çalışma alanı</title>
-    <link rel="icon" href="/lumos-tree-logo.svg" type="image/svg+xml" sizes="any" />
-    <link rel="apple-touch-icon" href="/lumos-tree-logo.svg" />
+    <title data-i18n="panel.meta.title">ChatLumos — Lumos çalışma alanı</title>
+    <link rel="icon" href="/chat-lumos-mark.svg" type="image/svg+xml" sizes="any" />
+    <link rel="apple-touch-icon" href="/chat-lumos-mark.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#0a0e14" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Lumos" />
+    <script is:inline>
+      (() => {
+        const params = new URLSearchParams(window.location.search);
+        const standalone = window.matchMedia?.("(display-mode: standalone)")?.matches === true;
+        const desktopSource = params.get("source") === "desktop";
+        if (desktopSource || standalone) {
+          document.documentElement.dataset.lumosApp = "true";
+        }
+      })();
+    </script>
     <style>
       * {
         box-sizing: border-box;
@@ -382,6 +392,88 @@ const PANEL_DEBUG = import.meta.env.DEV;
         flex: 0 1 auto;
         max-width: 100%;
       }
+      /* Google Web OAuth — panel kimlik yuvası (sağ üst) */
+      .panel-auth-slot {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        min-height: 2rem;
+      }
+      .panel-auth-slot[data-state="loading"] {
+        opacity: 0.55;
+      }
+      .panel-auth-login {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.38rem 0.85rem;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        text-decoration: none;
+        color: #142018;
+        background: linear-gradient(120deg, #f0e6c4, #d4b56a 45%, #8ec4d8);
+        border: 1px solid rgba(36, 53, 58, 0.12);
+        white-space: nowrap;
+      }
+      .panel-auth-login:hover,
+      .panel-auth-login:focus-visible {
+        filter: brightness(1.04);
+        outline: none;
+      }
+      .panel-auth-login[hidden],
+      .panel-auth-user[hidden] {
+        display: none;
+      }
+      .panel-auth-user {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.15rem 0.25rem 0.15rem 0.15rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.06);
+        max-width: min(240px, 52vw);
+      }
+      .panel-auth-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        object-fit: cover;
+        background: rgba(255, 255, 255, 0.12);
+        flex: 0 0 auto;
+      }
+      .panel-auth-avatar[hidden] {
+        display: none;
+      }
+      .panel-auth-name {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--lumos-text);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 9.5rem;
+      }
+      .panel-auth-logout {
+        appearance: none;
+        border: none;
+        background: transparent;
+        color: rgba(230, 226, 218, 0.78);
+        font-size: 0.72rem;
+        font-weight: 700;
+        cursor: pointer;
+        padding: 0.25rem 0.45rem;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+      .panel-auth-logout:hover,
+      .panel-auth-logout:focus-visible {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.08);
+        outline: none;
+      }
       .gorevler-task-bridge {
         margin: 0;
         margin-top: 0.12rem;
@@ -531,46 +623,45 @@ const PANEL_DEBUG = import.meta.env.DEV;
         }
       }
       .lumos-mark {
-        position: relative;
         width: clamp(1.75rem, 4.2vw, 2.125rem);
         height: clamp(1.75rem, 4.2vw, 2.125rem);
         flex-shrink: 0;
-        border-radius: 50%;
-        background:
-          radial-gradient(circle at 32% 22%, rgb(var(--lumos-land-teal) / 0.12) 0%, transparent 42%),
-          radial-gradient(circle at 70% 78%, rgb(var(--lumos-land-warm) / 0.06) 0%, transparent 45%),
-          linear-gradient(155deg, #0c1428 0%, #080f1e 42%, #030714 100%);
-        border: 2px solid rgb(var(--lumos-land-warm) / 0.55);
-        box-shadow:
-          inset 0 0 0 1px rgb(var(--lumos-land-teal) / 0.12),
-          inset 0 1px 0 rgba(255, 255, 255, 0.06),
-          inset 0 -1px 4px rgba(0, 0, 0, 0.4),
-          0 0 0 1px rgb(var(--lumos-land-teal) / 0.08);
+        object-fit: contain;
+        padding: 0.18rem;
+        border: 1px solid rgb(var(--lumos-land-warm) / 0.55);
+        border-radius: 0.55rem;
+        background: #03060d;
+        filter: drop-shadow(0 0 8px rgb(var(--lumos-land-warm) / 0.14));
       }
-      .lumos-mark::before {
-        content: "";
-        position: absolute;
-        inset: 4px;
-        border-radius: 50%;
-        box-sizing: border-box;
-        border: 1px solid rgb(var(--lumos-land-warm) / 0.28);
-        background: rgba(4, 8, 18, 0.62);
-        pointer-events: none;
+
+      html[data-lumos-app="true"] .panel-umbrella-links,
+      html[data-lumos-app="true"] .panel-user-mode-wrap,
+      html[data-lumos-app="true"] .panel-nav__lumos,
+      html[data-lumos-app="true"] .panel-nav-group-toggle,
+      html[data-lumos-app="true"] .panel-nav__primary button[data-module-availability="inactive"],
+      html[data-lumos-app="true"] .panel-nav-status-subline,
+      html[data-lumos-app="true"] .chat-capability-card,
+      html[data-lumos-app="true"] #panel-empty-secret-note,
+      html[data-lumos-app="true"] #panel-sohbet .lumos-security-note:not(:first-of-type) {
+        display: none !important;
       }
-      .lumos-mark::after {
-        content: "";
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        width: 0.48rem;
-        height: 0.62rem;
-        margin: -0.34rem 0 0 -0.22rem;
-        box-sizing: border-box;
-        border-left: 2.5px solid rgba(244, 226, 188, 0.88);
-        border-bottom: 2.5px solid rgba(220, 188, 130, 0.82);
-        border-radius: 0 0 0 2px;
-        filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
-        pointer-events: none;
+
+      html[data-lumos-app="true"] .panel-body {
+        grid-template-rows: minmax(0, 1fr);
+        grid-template-areas: "nav-primary main";
+      }
+
+      html[data-lumos-app="true"] .panel-nav__primary {
+        padding-top: 1rem;
+        border-bottom: none;
+      }
+
+      html[data-lumos-app="true"] .panel-nav-collapsible {
+        margin-bottom: 0;
+      }
+
+      html[data-lumos-app="true"] .panel-header {
+        padding-block: 0.65rem;
       }
       .panel-header-brand-text {
         display: flex;
@@ -593,6 +684,23 @@ const PANEL_DEBUG = import.meta.env.DEV;
         letter-spacing: 0.02em;
         color: rgba(168, 188, 210, 0.72);
         line-height: 1.35;
+      }
+      .panel-engine-badge {
+        display: inline-flex;
+        align-items: center;
+        align-self: flex-start;
+        width: fit-content;
+        margin-top: 0.08rem;
+        padding: 0.12rem 0.38rem;
+        border: 1px solid rgb(var(--lumos-land-warm) / 0.28);
+        border-radius: 999px;
+        color: rgba(214, 220, 228, 0.72);
+        background: rgba(3, 6, 13, 0.46);
+        font-size: 0.54rem;
+        font-weight: 600;
+        letter-spacing: 0.055em;
+        line-height: 1.25;
+        white-space: nowrap;
       }
       /**
        * Masaüstü: sol sütunda üstte Çalışma, altta Lumos çekirdeği; sağda `main` iki satırı kaplar.
@@ -3615,10 +3723,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
         .lumos-mark {
           width: 1.08rem;
           height: 1.08rem;
-          border-width: 1.5px;
-          box-shadow:
-            inset 0 0 0 1px rgb(var(--lumos-land-teal) / 0.08),
-            inset 0 1px 0 rgba(255, 255, 255, 0.04);
+          padding: 0.1rem;
+          border-radius: 0.3rem;
+          filter: drop-shadow(0 0 5px rgb(var(--lumos-land-warm) / 0.12));
         }
         .panel-health-row {
           position: static;
@@ -4544,13 +4651,33 @@ const PANEL_DEBUG = import.meta.env.DEV;
       <header class="panel-header">
         <div class="panel-header-title-row">
           <div class="panel-header-brand">
-            <span class="lumos-mark" aria-hidden="true"></span>
+            <img class="lumos-mark" src="/chat-lumos-mark.svg" alt="" width="34" height="34" decoding="async" />
             <div class="panel-header-brand-text">
-              <h1 data-i18n="panel.header.title">Lumos Panel</h1>
-              <p class="panel-header-tagline" data-i18n="panel.header.subtitle">Kontrollü çalışma alanı</p>
+              <h1 data-i18n="panel.header.title">ChatLumos</h1>
+              <p class="panel-header-tagline" data-i18n="panel.header.subtitle">Sohbet ve görevler tek yerde</p>
+              <span class="panel-engine-badge" data-i18n="panel.header.engine">AI motoru · OpenAI</span>
             </div>
           </div>
           <div class="panel-health-row">
+            <div id="panel-auth-slot" class="panel-auth-slot" data-state="loading" aria-live="polite">
+              <a
+                id="panel-auth-login"
+                class="panel-auth-login"
+                href="/auth/google/start"
+                data-i18n="panel.shell.auth.login"
+                hidden
+              >Google ile Giriş</a>
+              <div id="panel-auth-user" class="panel-auth-user" hidden>
+                <img id="panel-auth-avatar" class="panel-auth-avatar" alt="" width="28" height="28" decoding="async" hidden />
+                <span id="panel-auth-name" class="panel-auth-name"></span>
+                <button
+                  type="button"
+                  id="panel-auth-logout"
+                  class="panel-auth-logout"
+                  data-i18n="panel.shell.auth.logout"
+                >Çıkış Yap</button>
+              </div>
+            </div>
             <div class="panel-user-mode-wrap">
               <button
                 type="button"
@@ -4622,6 +4749,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         </div>
         <nav class="panel-umbrella-links" aria-label="We Lock AI ürünleri" data-i18n-aria-label="umbrella.nav.aria">
           <a href="/" data-i18n="umbrella.nav.home">Ana sayfa</a>
+          <a href="/auth" data-i18n="panel.shell.auth.nav">Giriş</a>
           <a href="/integrations" data-i18n="umbrella.nav.integrations">Entegrasyonlar</a>
           <a href="/slack" data-i18n="umbrella.nav.slack">Slack</a>
           <a href="/connect/mac" data-i18n="umbrella.nav.mac">Mac</a>
@@ -4715,13 +4843,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 <span class="panel-nav-label-block">
                   <span class="panel-nav-label" data-i18n="panel.nav.medya">Medya</span>
                 </span>
-                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--awaiting" data-i18n="panel.nav.status.medya">🔵 Bağlantı bekliyor</span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--awaiting" data-i18n="panel.nav.status.medya">🔵 Kimlik bekliyor</span>
               </button>
               <button type="button" data-module="sosyal" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.sosyal">
                 <span class="panel-nav-label-block">
                   <span class="panel-nav-label" data-i18n="panel.nav.sosyal">Sosyal</span>
                 </span>
-                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--awaiting" data-i18n="panel.nav.status.sosyal">🔵 Bağlantı bekliyor</span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--awaiting" data-i18n="panel.nav.status.sosyal">🔵 Kimlik bekliyor</span>
               </button>
               <button type="button" data-module="posta" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.posta">
                 <span class="panel-nav-label-block">
@@ -5400,7 +5528,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             </ul>
             <div class="panel-share-proto panel-share-proto--demo gorevler-proto" data-panel-share-demo="true" style="margin-top: 1rem">
               <p class="medya-intro" style="margin-top: 0">
-                <span class="panel-data-flow-badge panel-data-flow-badge--demo" data-i18n="panel.common.badges.demoNotConnected">[Demo — bağlı değil]</span>
+                <span class="panel-data-flow-badge panel-data-flow-badge--demo" data-i18n="panel.common.badges.identityRequired">[Kimlik bekliyor]</span>
                 <span data-i18n="panel.modules.media.sharePreviewIntro">Paylaşım taslağı önizlemesi — gerçek gönderim bu sürümde kapalı.</span>
               </p>
               <div class="gorevler-field">
@@ -5448,14 +5576,40 @@ const PANEL_DEBUG = import.meta.env.DEV;
             </header>
             <div class="panel-share-proto panel-share-proto--demo gorevler-proto" data-panel-share-demo="true">
               <p class="medya-intro" style="margin-top: 0">
-                <span class="panel-data-flow-badge panel-data-flow-badge--demo" data-i18n="panel.common.badges.demoNotConnected">[Demo — bağlı değil]</span>
+                <span class="panel-data-flow-badge panel-data-flow-badge--demo" data-i18n="panel.common.badges.identityRequired">[Kimlik bekliyor]</span>
                 <span data-i18n="panel.modules.social.sharePreviewIntro">Sosyal paylaşım taslağı önizlemesi — gerçek paylaşım bu sürümde kapalı.</span>
               </p>
               <div class="gorevler-field">
                 <label for="sosyal-share-target" data-i18n="panel.common.form.targetPlatform">Hedef platform</label>
                 <select id="sosyal-share-target">
-                  <option value="genel" data-i18n="panel.common.select.generalFeed">Genel akış</option>
-                  <option value="mesaj" data-i18n="panel.common.select.directMessage">Doğrudan mesaj</option>
+                  <optgroup label="Küresel">
+                    <option value="facebook">Facebook — Kimlik bekliyor</option>
+                    <option value="instagram">Instagram — Kimlik bekliyor</option>
+                    <option value="x">X — Kimlik bekliyor</option>
+                    <option value="tiktok">TikTok — Kimlik bekliyor</option>
+                    <option value="linkedin">LinkedIn — Kimlik bekliyor</option>
+                    <option value="youtube">YouTube — Kimlik bekliyor</option>
+                  </optgroup>
+                  <optgroup label="Çin">
+                    <option value="wechat">WeChat — Kimlik bekliyor</option>
+                    <option value="douyin">Douyin — Kimlik bekliyor</option>
+                    <option value="bilibili">Bilibili — Kimlik bekliyor</option>
+                    <option value="xiaohongshu">RED / Xiaohongshu — Kimlik bekliyor</option>
+                    <option value="weibo">Weibo — Kimlik bekliyor</option>
+                  </optgroup>
+                  <optgroup label="Hindistan">
+                    <option value="whatsapp">WhatsApp — Kimlik bekliyor</option>
+                    <option value="instagram">Instagram — Kimlik bekliyor</option>
+                    <option value="youtube">YouTube — Kimlik bekliyor</option>
+                    <option value="sharechat">ShareChat — Kimlik bekliyor</option>
+                    <option value="telegram-in">Telegram — Kimlik bekliyor</option>
+                  </optgroup>
+                  <optgroup label="Rusya">
+                    <option value="vk">VK — Kimlik bekliyor</option>
+                    <option value="telegram-ru">Telegram — Kimlik bekliyor</option>
+                    <option value="ok-ru">OK — Kimlik bekliyor</option>
+                    <option value="rutube">Rutube — Kimlik bekliyor</option>
+                  </optgroup>
                 </select>
               </div>
               <div class="gorevler-field">
@@ -6297,6 +6451,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
       /** PR-1: kullanıcı modu — altyapı durumundan bağımsız tercih. */
       const PANEL_USER_MODE_LS_KEY = "lumos_panel_user_mode_v1";
       const PANEL_USER_MODES = ["offline", "limited", "full"];
+      let panelSessionLumosId = "";
+      const panelConversationId =
+        globalThis.crypto && typeof globalThis.crypto.randomUUID === "function"
+          ? globalThis.crypto.randomUUID()
+          : `conversation_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 
       function panelUserModeBadgeLabel(mode) {
         const m = normalizePanelUserMode(mode);
@@ -6326,14 +6485,20 @@ const PANEL_DEBUG = import.meta.env.DEV;
         return PANEL_USER_MODES.includes(m) ? m : "limited";
       }
 
+      function isLumosDesktopEntry() {
+        return document.documentElement.dataset.lumosApp === "true";
+      }
+
       function getPanelUserMode() {
         try {
-          if (typeof localStorage === "undefined") return "limited";
+          const defaultMode = isLumosDesktopEntry() ? "full" : "limited";
+          if (isLumosDesktopEntry()) return defaultMode;
+          if (typeof localStorage === "undefined") return defaultMode;
           const raw = localStorage.getItem(PANEL_USER_MODE_LS_KEY);
-          if (!raw) return "limited";
+          if (!raw) return defaultMode;
           return normalizePanelUserMode(raw);
         } catch {
-          return "limited";
+          return isLumosDesktopEntry() ? "full" : "limited";
         }
       }
 
@@ -6350,7 +6515,11 @@ const PANEL_DEBUG = import.meta.env.DEV;
       }
 
       const GOREVLER_FIELD_MAX_LEN = 2048;
-      const bridgeTokenMissing = !PANEL_DEBUG && !String(kandoToken || "").trim();
+      const bridgeUsesSameOriginProxy = String(CHAT_URL || "").startsWith("/api/bridge/");
+      const bridgeTokenMissing =
+        !PANEL_DEBUG &&
+        !String(kandoToken || "").trim() &&
+        !bridgeUsesSameOriginProxy;
       /** Phase 1: görev köprüsü same-origin proxy; tarayıcı token taşımaz. */
       const TASK_BRIDGE_URL = "/api/bridge/task";
       /** Phase 2: medya outbox (last-result) same-origin proxy; tarayıcı token taşımaz. */
@@ -11721,6 +11890,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
             const chatBody = {
               message: outgoingMessage,
               history,
+              conversation_id: panelConversationId,
+              identity: panelSessionLumosId
+                ? { lumos_id: panelSessionLumosId }
+                : undefined,
               locale:
                 window.LumosI18n && typeof window.LumosI18n.getLocale === "function"
                   ? window.LumosI18n.getLocale()
@@ -11760,6 +11933,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             }
             const r = await fetch(CHAT_URL, {
               method: "POST",
+              credentials: "same-origin",
               headers: {
                 "Content-Type": "application/json",
                 "X-Kando-Token": kandoToken,
@@ -15689,7 +15863,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             method: "OPTIONS",
             cache: "no-store",
             mode: "cors",
-            credentials: "omit",
+            credentials: "same-origin",
           });
           if (r.ok || r.status === 204) {
             return panelDebugText(
@@ -15777,11 +15951,15 @@ const PANEL_DEBUG = import.meta.env.DEV;
 
       async function probeBridgeHealthOnce(url) {
         try {
-          const r = await fetch(url, {
+          const probeUrl = new URL(url, window.location.origin);
+          if (probeUrl.origin === window.location.origin) {
+            probeUrl.searchParams.set("_lumos_probe", String(Date.now()));
+          }
+          const r = await fetch(probeUrl.toString(), {
             method: "GET",
             cache: "no-store",
             mode: "cors",
-            credentials: "omit",
+            credentials: "same-origin",
           });
           const text = await r.text();
           if (!r.ok) {
@@ -15810,7 +15988,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         }
       }
 
-      void (async function checkBridgeHealth() {
+      async function checkBridgeHealth() {
         setPanelConnBadge("pending");
         bridgeHealthPhase = "trying";
         bridgeHealthDebugTail = "";
@@ -15860,7 +16038,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
           syncBridgeHealthLine();
         }
         paintSistemDurumuPanel();
-      })();
+      }
+
+      void checkBridgeHealth();
 
       function wireMedyaOutbox() {
         const btn = document.getElementById("medya-outbox-refresh");
@@ -16118,10 +16298,96 @@ const PANEL_DEBUG = import.meta.env.DEV;
           window.refreshMedyaOutboxHintI18n();
         }
         paintSistemDurumuPanel();
+        // Auth slot metinleri i18n ile güncellenir; oturum durumu ayrı
+        const loginEl = document.getElementById("panel-auth-login");
+        const logoutEl = document.getElementById("panel-auth-logout");
+        if (loginEl) loginEl.textContent = panelT("panel.shell.auth.login");
+        if (logoutEl) logoutEl.textContent = panelT("panel.shell.auth.logout");
       }
+
+      async function refreshPanelAuth() {
+        const slot = document.getElementById("panel-auth-slot");
+        const login = document.getElementById("panel-auth-login");
+        const user = document.getElementById("panel-auth-user");
+        const nameEl = document.getElementById("panel-auth-name");
+        const avatar = document.getElementById("panel-auth-avatar");
+        if (!slot || !login || !user || !nameEl || !avatar) return;
+        slot.dataset.state = "loading";
+        try {
+          const r = await fetch("/api/auth/session", {
+            credentials: "include",
+            cache: "no-store",
+            headers: { Accept: "application/json" },
+          });
+          const data = await r.json().catch(() => ({}));
+          const session = data && data.session ? data.session : null;
+          const ok = r.ok && data && data.authenticated === true && session;
+          if (ok) {
+            panelSessionLumosId = String(session.lumos_id || "").trim();
+            const label =
+              String(session.name || "").trim() ||
+              String(session.email || "").trim() ||
+              panelT("panel.shell.auth.userFallback");
+            nameEl.textContent = label;
+            nameEl.title = String(session.email || label);
+            const pic = String(session.picture || "").trim();
+            if (pic && /^https?:\/\//i.test(pic)) {
+              avatar.src = pic;
+              avatar.alt = "";
+              avatar.hidden = false;
+            } else {
+              avatar.removeAttribute("src");
+              avatar.hidden = true;
+            }
+            login.hidden = true;
+            user.hidden = false;
+            slot.dataset.state = "in";
+            if (new URLSearchParams(location.search).get("source") === "google_web") {
+              applyPanelUserMode("full");
+            }
+            void checkBridgeHealth();
+          } else {
+            panelSessionLumosId = "";
+            nameEl.textContent = "";
+            avatar.removeAttribute("src");
+            avatar.hidden = true;
+            user.hidden = true;
+            login.hidden = false;
+            slot.dataset.state = "out";
+          }
+        } catch {
+          panelSessionLumosId = "";
+          nameEl.textContent = "";
+          avatar.removeAttribute("src");
+          avatar.hidden = true;
+          user.hidden = true;
+          login.hidden = false;
+          slot.dataset.state = "out";
+        }
+      }
+
+      document.getElementById("panel-auth-logout")?.addEventListener("click", async () => {
+        try {
+          await fetch("/api/auth/logout", {
+            method: "POST",
+            credentials: "include",
+            cache: "no-store",
+          });
+        } catch {
+          /* ignore network — yine de UI’yi temizle */
+        }
+        await refreshPanelAuth();
+      });
 
       window.addEventListener("lumos:localechange", refreshPanelI18n);
       window.addEventListener("load", refreshPanelI18n, { once: true });
+      window.addEventListener("load", () => {
+        void refreshPanelAuth();
+      }, { once: true });
+      // OAuth dönüşü: ?source=google_web
+      if (new URLSearchParams(location.search).get("source") === "google_web") {
+        void refreshPanelAuth();
+      }
     </script>
     <I18nInit />
   </body>

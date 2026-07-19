@@ -2,13 +2,17 @@
 from __future__ import annotations
 
 from pathlib import Path
+import os
 import subprocess
 
 from cando.branch_cleanup_review import classify_branch, format_report, run_review
 
 
 def _git(cwd: Path, *args: str) -> None:
-    subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True)
+    # GIT_DIR/GIT_WORK_TREE (set by git when running hooks from a worktree)
+    # must not leak into this helper's throwaway repo under tmp_path.
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True, env=env)
 
 
 def _init_repo(tmp_path: Path) -> Path:

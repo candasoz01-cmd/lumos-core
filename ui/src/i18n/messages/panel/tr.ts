@@ -1,11 +1,12 @@
 /** Panel shell + module copy — Turkish (from panel.astro sections) */
 const panelNav = {
   meta: {
-    title: "Lumos Panel — Çalışma alanı",
+    title: "Lumos Merkez — sohbet, görev, kimlik",
   },
   header: {
-    title: "Lumos Panel",
-    subtitle: "Kontrollü çalışma alanı",
+    title: "ChatLumos",
+    subtitle: "Sohbet ve görevler tek yerde",
+    engine: "AI motoru · OpenAI",
   },
   moduleGroups: {
     calisma: "Çalışma",
@@ -41,8 +42,8 @@ const panelNav = {
       sohbet: "🟢 Hazır",
       gorevler: "🟢 Hazır",
       ses: "🟡 Gelişiyor",
-      medya: "🔵 Bağlantı bekliyor",
-      sosyal: "🔵 Bağlantı bekliyor",
+      medya: "🔵 Kimlik bekliyor",
+      sosyal: "🔵 Kimlik bekliyor",
       posta: "🟡 Mimari hazır",
       dosyalar: "🟢 Hazır",
       kuantum: "🟡 Mimari hazır",
@@ -66,8 +67,8 @@ const panelNav = {
       sohbet: "Yerel sohbet ve görevler çalışır; tam köprü kullanıcı kurulumuna bağlıdır",
       gorevler: "Görevler cihaz kaydına yazılır; sunucu senkronu isteğe bağlıdır",
       ses: "Ses arayüzü geliştiriliyor; cihaz izinlerine bağlıdır",
-      medya: "Harici medya bağlantısı henüz yok; taslak akış görüntülenir",
-      sosyal: "OAuth ve platform bağlantısı bekleniyor",
+      medya: "Harici medya kimliği bağlı değil; taslak akış görüntülenir",
+      sosyal: "Platform kimliği bekleniyor; OAuth ve paylaşım henüz etkin değil",
       posta: "OD-031 e-posta taslağı; gönderim izni ve bağlantı bekliyor",
       dosyalar: "Yerel dosya yükleme ve özet; köprü bağlantısına bağlıdır",
       kuantum: "ORAA aktif; kuantum katmanı mimari hazır — üretim iddiası yok",
@@ -119,6 +120,7 @@ const panelCommon = {
   badges: {
     externalService: "[Harici Servis]",
     demoNotConnected: "[Demo — bağlı değil]",
+    identityRequired: "[Kimlik bekliyor]",
     local: "[Yerel]",
     unknown: "[Bilinmiyor]",
   },
@@ -1035,6 +1037,12 @@ const panelModules = {
 } as const;
 
 const panelShell = {
+  auth: {
+    login: "Google ile Giriş",
+    logout: "Çıkış Yap",
+    nav: "Giriş",
+    userFallback: "Lumos kullanıcısı",
+  },
   conn: {
     pending: "Bağlanıyor",
     ok: "Bağlı",

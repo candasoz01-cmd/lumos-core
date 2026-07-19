@@ -6,9 +6,12 @@ import WeLockSiteFooter from "../components/WeLockSiteFooter.astro";
 import IntegrationPermMatrix from "../components/IntegrationPermMatrix.astro";
 import I18nInit from "../components/I18nInit.astro";
 import type { MatrixRow } from "../components/IntegrationPermMatrix.astro";
+import BrandLockup from "../components/BrandLockup.astro";
 
 const DOCS_INTEGRATIONS_URL =
   "https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/integrations-overview.md";
+const DOCS_GUIDE_URL =
+  "https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/integration-benefits-security-guide.md";
 
 const charterRows: MatrixRow[] = [
   {
@@ -52,6 +55,106 @@ const charterRows: MatrixRow[] = [
     delete: true,
   },
 ];
+
+type ItemStatus = "active" | "foundation" | "planned" | "identity_required";
+
+const STATUS_BADGE: Record<ItemStatus, { cls: string; i18n: string; label: string }> = {
+  active: { cls: "integration-status--active", i18n: "umbrella.integrations.statusActive", label: "Aktif" },
+  foundation: { cls: "integration-status--foundation", i18n: "umbrella.integrations.statusFoundation", label: "Foundation" },
+  planned: { cls: "integration-status--planned", i18n: "umbrella.integrations.statusPlanned", label: "Planlanan" },
+  identity_required: { cls: "integration-status--planned", i18n: "umbrella.integrations.identityRequired", label: "Kimlik bekliyor" },
+};
+
+const ecosystemCategories = [
+  {
+    id: "ai",
+    labelKey: "umbrella.integrations.categoryAi",
+    label: "AI",
+    items: [
+      { id: "openai", name: "OpenAI", status: "foundation" as ItemStatus },
+      { id: "gemini", name: "Gemini", status: "planned" as ItemStatus },
+      { id: "deepseek", name: "DeepSeek", status: "planned" as ItemStatus },
+    ],
+  },
+  {
+    id: "identity",
+    labelKey: "umbrella.integrations.categoryIdentity",
+    label: "Kimlik",
+    items: [
+      { id: "apple", name: "Apple", status: "planned" as ItemStatus, href: "/connect/mac" },
+      { id: "google", name: "Google", status: "planned" as ItemStatus, href: "/integrations/google" },
+    ],
+  },
+  {
+    id: "communication",
+    labelKey: "umbrella.integrations.categoryCommunication",
+    label: "İletişim",
+    items: [
+      { id: "slack", name: "Slack", status: "planned" as ItemStatus, href: "/slack" },
+      { id: "whatsapp", name: "WhatsApp", status: "identity_required" as ItemStatus },
+      { id: "telegram", name: "Telegram", status: "identity_required" as ItemStatus },
+      { id: "zoom", name: "Zoom", status: "identity_required" as ItemStatus },
+      { id: "microsoftTeams", name: "Microsoft Teams", status: "identity_required" as ItemStatus },
+      { id: "line", name: "LINE", status: "planned" as ItemStatus },
+      { id: "kakaoTalk", name: "KakaoTalk", status: "planned" as ItemStatus },
+    ],
+  },
+  {
+    id: "developer",
+    labelKey: "umbrella.integrations.categoryDeveloper",
+    label: "Geliştirici",
+    items: [
+      { id: "github", name: "GitHub", status: "foundation" as ItemStatus, href: "/integrations/github" },
+      { id: "linear", name: "Linear", status: "planned" as ItemStatus, href: "/integrations/linear" },
+      { id: "jira", name: "Jira", status: "planned" as ItemStatus },
+      { id: "notion", name: "Notion", status: "planned" as ItemStatus },
+    ],
+  },
+  {
+    id: "media",
+    labelKey: "umbrella.integrations.categoryMedia",
+    label: "Medya",
+    items: [
+      { id: "facebook", name: "Facebook", status: "identity_required" as ItemStatus },
+      { id: "instagram", name: "Instagram", status: "identity_required" as ItemStatus },
+      { id: "x", name: "X", status: "identity_required" as ItemStatus },
+      { id: "tiktok", name: "TikTok", status: "identity_required" as ItemStatus },
+      { id: "linkedin", name: "LinkedIn", status: "identity_required" as ItemStatus },
+      { id: "youtube", name: "YouTube", status: "identity_required" as ItemStatus },
+      { id: "wechat", name: "WeChat", status: "identity_required" as ItemStatus },
+      { id: "douyin", name: "Douyin", status: "identity_required" as ItemStatus },
+      { id: "bilibili", name: "Bilibili", status: "identity_required" as ItemStatus },
+      { id: "xiaohongshu", name: "RED / Xiaohongshu", status: "identity_required" as ItemStatus },
+      { id: "weibo", name: "Weibo", status: "identity_required" as ItemStatus },
+      { id: "sharechat", name: "ShareChat", status: "identity_required" as ItemStatus },
+      { id: "vk", name: "VK", status: "identity_required" as ItemStatus },
+      { id: "okru", name: "OK", status: "identity_required" as ItemStatus },
+      { id: "rutube", name: "Rutube", status: "identity_required" as ItemStatus },
+    ],
+  },
+  {
+    id: "home",
+    labelKey: "umbrella.integrations.categoryHome",
+    label: "Ev",
+    items: [
+      { id: "bluetoothAudio", name: "Bluetooth Audio", status: "planned" as ItemStatus },
+      { id: "matter", name: "Matter", status: "planned" as ItemStatus },
+      { id: "homeAssistant", name: "Home Assistant", status: "planned" as ItemStatus },
+      { id: "smartThings", name: "SmartThings", status: "planned" as ItemStatus },
+      { id: "sonos", name: "Sonos", status: "identity_required" as ItemStatus },
+    ],
+  },
+  {
+    id: "cloud",
+    labelKey: "umbrella.integrations.categoryCloud",
+    label: "Bulut",
+    items: [
+      { id: "gmail", name: "Gmail", status: "foundation" as ItemStatus, href: "/integrations/mail" },
+      { id: "googleCalendar", name: "Google Calendar", status: "planned" as ItemStatus },
+      { id: "googleDrive", name: "Google Drive", status: "planned" as ItemStatus },
+    ],
+  },
+] as const;
 ---
 
 <html lang="tr">
@@ -59,71 +162,134 @@ const charterRows: MatrixRow[] = [
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title data-i18n="umbrella.integrations.metaTitle">Entegrasyonlar — We Lock AI</title>
-    <meta
+      <meta
       name="description"
-      content="Lumos entegrasyon merkezi: GitHub, Slack, Google ve cihaz yüzeyleri — Read / Write / Delete izin matrisi."
+      content="Lumos bağlantı ekosistemi: aktif, foundation ve planlanan bağlantı yüzeyleri ile güvenli yetki sınırları."
       data-i18n-content="umbrella.integrations.metaDescription"
     />
     <link rel="canonical" href="https://welockai.com/integrations" />
-    <link rel="icon" href="/lumos-tree-logo.svg" type="image/svg+xml" sizes="any" />
+    <link rel="icon" href="/chat-lumos-mark.svg" type="image/svg+xml" sizes="any" />
     <meta name="theme-color" content="#0a0e14" />
   </head>
   <body class="umbrella-page">
     <WeLockSiteNav active="integrations" />
     <main class="umbrella-main">
-      <p class="umbrella-eyebrow" data-i18n="umbrella.integrations.eyebrow">WE LOCK AI · ENTEGRASYONLAR</p>
-      <h1 data-i18n="umbrella.integrations.title">Entegrasyon merkezi</h1>
-      <p class="umbrella-lead" data-i18n="umbrella.integrations.lead">
-        Lumos, dış araçlara tek güvenli geçitten bağlanır.
-      </p>
-      <div class="umbrella-callout">
-        <p>
-          <strong data-i18n="umbrella.integrations.statusAlpha">Internal Alpha — OAuth yakında</strong>
+      <header class="integration-ecosystem-hero">
+        <p class="umbrella-eyebrow" data-i18n="umbrella.integrations.eyebrow">WE LOCK AI · BAĞLANTI EKOSİSTEMİ</p>
+        <h1 data-i18n="umbrella.integrations.title">We Lock AI Bağlantı Ekosistemi</h1>
+        <p class="umbrella-lead" data-i18n="umbrella.integrations.lead">
+          Lumos'un güvenli bağlantı yüzeyleri; mevcut kapsamı, hazırlık düzeyi ve yetki sınırlarıyla birlikte.
         </p>
-      </div>
-      <h2 data-i18n="umbrella.integrations.matrixTitle">İzin matrisi</h2>
-      <IntegrationPermMatrix rows={charterRows} />
-      <h2 data-i18n="umbrella.integrations.surfacesTitle">Yüzeyler ve bağlantılar</h2>
-      <div class="umbrella-surface-grid">
-        <a class="umbrella-surface-card" href="/integrations/github">
-          <h3 data-i18n="umbrella.integrations.githubCta">GitHub entegrasyonu</h3>
-          <p data-i18n="umbrella.integrations.rowGithubNote">Issue/PR bağlamı</p>
-          <span class="umbrella-badge" data-i18n="umbrella.integrations.statusAlpha">Internal Alpha</span>
-        </a>
-        <a class="umbrella-surface-card" href="/integrations/google">
-          <h3 data-i18n="umbrella.integrations.googleCta">Google entegrasyonu</h3>
-          <p data-i18n="umbrella.google.lead">Drive, Calendar, Gmail — read-first</p>
-          <span class="umbrella-badge" data-i18n="umbrella.integrations.statusAlpha">Internal Alpha</span>
-        </a>
-        <a class="umbrella-surface-card" href="/integrations/mail">
-          <h3 data-i18n="umbrella.integrations.mailCta">Mail (Gmail)</h3>
-          <p data-i18n="umbrella.integrations.rowGmailNote">OD-031 Dar v1 read-only</p>
-          <span class="umbrella-badge" data-i18n="umbrella.integrations.statusAlpha">Internal Alpha</span>
-        </a>
-        <a class="umbrella-surface-card" href="/integrations/linear">
-          <h3 data-i18n="umbrella.integrations.linearCta">Linear</h3>
-          <p data-i18n="umbrella.integrations.rowLinearNote">Katman 3 planned</p>
-          <span class="umbrella-badge" data-i18n="umbrella.integrations.statusPlanned">Planned</span>
-        </a>
-        <a class="umbrella-surface-card" href="/slack">
-          <h3 data-i18n="umbrella.integrations.slackCta">Slack</h3>
-          <p data-i18n="umbrella.integrations.rowSlackNote">İş yeri bağlamı</p>
-          <span class="umbrella-badge" data-i18n="umbrella.integrations.statusAlpha">Internal Alpha</span>
-        </a>
-        <a class="umbrella-surface-card" href="/panel">
-          <h3 data-i18n="umbrella.integrations.panelCta">Panel</h3>
-          <p data-i18n="umbrella.products.panelBody">Birincil web çalışma alanı</p>
-        </a>
-        <a class="umbrella-surface-card" href="/connect/mac">
-          <h3 data-i18n="umbrella.integrations.macCta">Mac bağlantıları</h3>
-          <p data-i18n="umbrella.mac.lead">Universal Links</p>
-        </a>
-      </div>
-      <p>
-        <a href={DOCS_INTEGRATIONS_URL} target="_blank" rel="noopener noreferrer" data-i18n="umbrella.integrations.docsCta"
-          >Teknik özet (repo)</a
-        >
+        <div class="integration-status-key" aria-label="Bağlantı durumları" data-i18n-aria-label="umbrella.integrations.statusAria">
+          <span class="integration-status integration-status--active" data-i18n="umbrella.integrations.statusActive">Aktif</span>
+          <span class="integration-status integration-status--foundation" lang="en" data-i18n="umbrella.integrations.statusFoundation">Foundation</span>
+          <span class="integration-status integration-status--planned" data-i18n="umbrella.integrations.statusPlanned">Planlanan</span>
+        </div>
+      </header>
+
+      <section id="ecosystem-map" class="ecosystem-map" aria-labelledby="ecosystem-map-title">
+        <div class="integration-ecosystem-heading">
+          <div>
+            <p class="umbrella-eyebrow" data-i18n="umbrella.integrations.ecosystemEyebrow">EKOSİSTEM</p>
+            <h2 id="ecosystem-map-title" data-i18n="umbrella.integrations.ecosystemTitle">Lumos, bu sistemleri birlikte çalıştırır</h2>
+          </div>
+          <p data-i18n="umbrella.integrations.ecosystemBody">Önce kategori seç; logolar yalnızca açtığın kategoride görünür. Katalog kaydı canlı bağlantı anlamına gelmez.</p>
+        </div>
+
+        <div class="ecosystem-map__center" aria-hidden="true">
+          <img src="/chat-lumos-mark.svg" alt="" width="64" height="64" decoding="async" />
+          <span>Lumos</span>
+        </div>
+
+        <div class="ecosystem-map__categories" role="tablist" aria-label="Entegrasyon kategorileri">
+          {ecosystemCategories.map((category, index) => (
+            <button
+              type="button"
+              class="ecosystem-category"
+              role="tab"
+              id={`ecosystem-tab-${category.id}`}
+              aria-controls={`ecosystem-panel-${category.id}`}
+              aria-selected={index === 0 ? "true" : "false"}
+              data-category={category.id}
+            >
+              <span data-i18n={category.labelKey}>{category.label}</span>
+            </button>
+          ))}
+        </div>
+
+        <div class="ecosystem-map__panels">
+          {ecosystemCategories.map((category, index) => (
+            <div
+              class="ecosystem-panel"
+              id={`ecosystem-panel-${category.id}`}
+              role="tabpanel"
+              aria-labelledby={`ecosystem-tab-${category.id}`}
+              hidden={index !== 0}
+            >
+              <ul class="ecosystem-panel__grid">
+                {category.items.map((item) => {
+                  const badge = STATUS_BADGE[item.status];
+                  const content = (
+                    <>
+                      <BrandLockup id={item.id} name={item.name} compact monochrome linked={false} />
+                      <span class={`integration-status ${badge.cls}`} data-i18n={badge.i18n}>{badge.label}</span>
+                    </>
+                  );
+                  return (
+                    <li class="ecosystem-panel__item">
+                      {"href" in item && item.href ? <a href={item.href}>{content}</a> : content}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <script>
+        const tabs = document.querySelectorAll<HTMLButtonElement>(".ecosystem-category");
+        tabs.forEach((tab) => {
+          tab.addEventListener("click", () => {
+            const targetId = tab.getAttribute("data-category");
+            tabs.forEach((otherTab) => {
+              const isActive = otherTab === tab;
+              otherTab.setAttribute("aria-selected", isActive ? "true" : "false");
+              const panel = document.getElementById(`ecosystem-panel-${otherTab.getAttribute("data-category")}`);
+              if (panel) panel.hidden = otherTab.getAttribute("data-category") !== targetId;
+            });
+          });
+        });
+      </script>
+
+      <aside class="integration-guide-promo">
+        <div>
+          <p class="umbrella-eyebrow" data-i18n="umbrella.integrations.guideBadge">Ayrıntılı rehber</p>
+          <h2 data-i18n="umbrella.integrations.guideCta">24 bağlantıda kolaylık ve güvenlik</h2>
+          <p data-i18n="umbrella.integrations.guideBody">Uygulama ve cihaz bazında yarar, güvenlik sınırı ve gerçek durum</p>
+        </div>
+        <a class="umbrella-btn" href="/integrations/guide" data-i18n="umbrella.integrations.guideOpenCta">Rehberi aç</a>
+      </aside>
+
+      <section class="integration-governance" aria-labelledby="permission-matrix-title">
+        <p class="umbrella-eyebrow" data-i18n="umbrella.integrations.governanceEyebrow">GÜVEN VE YETKİ</p>
+        <h2 id="permission-matrix-title" data-i18n="umbrella.integrations.matrixTitle">İzin matrisi</h2>
+        <p data-i18n="umbrella.integrations.matrixIntro">Bağlantı durumu ne olursa olsun, dış etkili işlemler açık onay ve politika sınırlarına tabidir.</p>
+        <IntegrationPermMatrix rows={charterRows} />
+      </section>
+
+      <p class="umbrella-brand-notice" data-i18n="umbrella.integrationGuide.brandNotice">
+        Marka adları ve logoları ilgili hak sahiplerine aittir. Buradaki kullanım yalnızca bağlantı yüzeyini tanımlar; ortaklık, sponsorluk veya marka onayı anlamına gelmez.
       </p>
+
+      <details class="integration-technical-links">
+        <summary data-i18n="umbrella.integrations.technicalLinksTitle">Teknik kaynaklar</summary>
+        <p>
+          <a href={DOCS_INTEGRATIONS_URL} target="_blank" rel="noopener noreferrer" data-i18n="umbrella.integrations.docsCta">Teknik özet (repo)</a>
+          ·
+          <a href={DOCS_GUIDE_URL} target="_blank" rel="noopener noreferrer" data-i18n="umbrella.integrations.guideGithubCta">Kolaylık ve güvenlik rehberi (GitHub)</a>
+        </p>
+      </details>
       <div class="umbrella-actions">
         <a class="umbrella-btn umbrella-btn--primary" href="/panel" data-i18n="umbrella.integrations.panelCta">Panel</a>
         <a class="umbrella-btn" href="/" data-i18n="umbrella.integrations.homeCta">Ana sayfa</a>

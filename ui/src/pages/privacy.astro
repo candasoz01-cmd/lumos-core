@@ -1,0 +1,93 @@
+---
+import "../styles/lumos-tokens.css";
+import "../styles/umbrella-chrome.css";
+import WeLockSiteNav from "../components/WeLockSiteNav.astro";
+import WeLockSiteFooter from "../components/WeLockSiteFooter.astro";
+import I18nInit from "../components/I18nInit.astro";
+---
+
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title data-i18n="umbrella.privacy.metaTitle">Gizlilik Bildirimi — We Lock AI · Lumos</title>
+    <meta
+      name="description"
+      content="We Lock AI ve Lumos yüzeylerinde verilerin hangi amaçlarla işlendiğini, bağlantı izinlerini ve kullanıcı denetimlerini açıklayan gizlilik bildirimi."
+      data-i18n-content="umbrella.privacy.metaDescription"
+    />
+    <link rel="canonical" href="https://welockai.com/privacy" />
+    <link rel="icon" href="/chat-lumos-mark.svg" type="image/svg+xml" sizes="any" />
+  </head>
+  <body class="umbrella-page">
+    <WeLockSiteNav />
+    <main class="umbrella-main">
+      <p class="umbrella-eyebrow" data-i18n="umbrella.privacy.eyebrow">WE LOCK AI · LUMOS</p>
+      <h1 data-i18n="umbrella.privacy.title">Gizlilik bildirimi</h1>
+      <p class="umbrella-lead" data-i18n="umbrella.privacy.lead">
+        Bu bildirim, welockai.com ve Lumos bağlantı akışlarında verilerin hangi sınırlar içinde işlendiğini açıklar.
+      </p>
+      <p data-i18n="umbrella.privacy.updated">Son güncelleme: 15 Temmuz 2026</p>
+
+      <h2 data-i18n="umbrella.privacy.scopeTitle">Kapsam</h2>
+      <p data-i18n="umbrella.privacy.scopeBody">
+        Bu bildirim welockai.com, Lumos web ve masaüstü yüzeyleri ile kullanıcının isteğiyle açılan üçüncü taraf bağlantıları kapsar. Henüz canlı olmayan entegrasyonlar veri erişimi sağlamaz.
+      </p>
+
+      <h2 data-i18n="umbrella.privacy.dataTitle">Hangi veriler işlenebilir?</h2>
+      <ul>
+        <li data-i18n="umbrella.privacy.data1">Kullanıcının doğrudan verdiği görev, dosya ve onay bilgileri.</li>
+        <li data-i18n="umbrella.privacy.data2">Bir hesap bağlandığında temel hesap kimliği, bağlantı durumu ve yalnızca onaylanan kapsamların izin verdiği içerik veya metadata.</li>
+        <li data-i18n="umbrella.privacy.data3">Güvenlik, hata ayıklama ve denetlenebilirlik için gerekli sınırlı teknik kayıtlar.</li>
+      </ul>
+
+      <div class="umbrella-callout">
+        <h2 data-i18n="umbrella.privacy.googleTitle">Google ve YouTube verileri</h2>
+        <p data-i18n="umbrella.privacy.googleBody">
+          Google veya YouTube bağlantısı açıldığında Lumos yalnızca kullanıcı tarafından seçilen ve Google onay ekranında gösterilen kapsamları ister. Veriler, istenen görevi yerine getirmek ve bağlantı durumunu göstermek için kullanılır; reklam hedefleme, satış veya genel amaçlı model eğitimi için kullanılmaz.
+        </p>
+      </div>
+
+      <h2 data-i18n="umbrella.privacy.useTitle">Verileri neden kullanırız?</h2>
+      <ul>
+        <li data-i18n="umbrella.privacy.use1">Kullanıcının istediği görevi yerine getirmek ve sonucu Lumos'ta göstermek.</li>
+        <li data-i18n="umbrella.privacy.use2">Bağlantı, izin ve açık onay durumlarını yönetmek.</li>
+        <li data-i18n="umbrella.privacy.use3">Kötüye kullanımı önlemek, sorunları gidermek ve güvenlik olaylarını incelemek.</li>
+      </ul>
+
+      <h2 data-i18n="umbrella.privacy.sharingTitle">Paylaşım</h2>
+      <p data-i18n="umbrella.privacy.sharingBody">
+        Veriler satılmaz. Yalnızca kullanıcının istediği işlemi sunmak, yasal yükümlülükleri karşılamak veya sistemi korumak için gerekli hizmet sağlayıcılarla ve ilgili platformlarla sınırlı biçimde paylaşılabilir.
+      </p>
+
+      <h2 data-i18n="umbrella.privacy.retentionTitle">Saklama ve silme</h2>
+      <p data-i18n="umbrella.privacy.retentionBody">
+        Bağlantı belirteçleri bağlantı kesilene veya geçerliliğini yitirene kadar; teknik kayıtlar ise güvenlik ve işletim için gerekli olan sınırlı süre boyunca tutulur. Canlı OAuth kullanıma açılmadan önce silme ve destek kanalı bu sayfada yayımlanacaktır.
+      </p>
+
+      <h2 data-i18n="umbrella.privacy.controlsTitle">Kullanıcı denetimi</h2>
+      <ul>
+        <li data-i18n="umbrella.privacy.controls1">Bağlantıları Lumos içinden kapatabilir ve ilgili sağlayıcının hesap ayarlarından erişimi geri alabilirsiniz.</li>
+        <li data-i18n="umbrella.privacy.controls2">Google erişimi Google Hesabı bağlantılar sayfasından ayrıca kaldırılabilir.</li>
+        <li data-i18n="umbrella.privacy.controls3">Dış etkili paylaşım ve yayınlama işlemleri açık onay olmadan yapılmaz.</li>
+      </ul>
+
+      <h2 data-i18n="umbrella.privacy.securityTitle">Güvenlik</h2>
+      <p data-i18n="umbrella.privacy.securityBody">
+        Erişim kapsamını dar tutmak, sırları kullanıcı arayüzüne taşımamak ve dış etkili işlemleri onaya bağlamak temel güvenlik ilkeleridir. Hiçbir çevrimiçi sistem mutlak güvenlik garantisi vermez.
+      </p>
+
+      <h2 data-i18n="umbrella.privacy.changesTitle">Değişiklikler</h2>
+      <p data-i18n="umbrella.privacy.changesBody">
+        Bu bildirim ürün ve bağlantı kapsamı değiştikçe güncellenebilir. Önemli değişikliklerde güncelleme tarihi ve ilgili yüzeyler yenilenir.
+      </p>
+
+      <div class="umbrella-actions">
+        <a class="umbrella-btn umbrella-btn--primary" href="https://myaccount.google.com/connections" target="_blank" rel="noopener noreferrer" data-i18n="umbrella.privacy.googleControlsCta">Google erişimini yönet</a>
+        <a class="umbrella-btn" href="/integrations" data-i18n="umbrella.privacy.integrationsCta">Bağlantı ekosistemi</a>
+      </div>
+    </main>
+    <WeLockSiteFooter />
+    <I18nInit />
+  </body>
+</html>

@@ -6,6 +6,7 @@ import LanguageSwitcher from "../components/LanguageSwitcher.astro";
 import I18nInit from "../components/I18nInit.astro";
 import WeLockSiteFooter from "../components/WeLockSiteFooter.astro";
 import LumosMicroStories from "../components/LumosMicroStories.astro";
+import BrandLockup from "../components/BrandLockup.astro";
 
 const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
 const GITHUB_README_URL = "https://github.com/candasoz01-cmd/lumos-core/blob/main/README.md";
@@ -26,28 +27,28 @@ const showMay19Commemoration = isMay19CommemorationDay();
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title data-i18n="meta.landingTitle">Lumos — Yapay Zekâ Kontrol Katmanı</title>
+    <title data-i18n="meta.landingTitle">We Lock AI — İnsan Merkezli Yapay Zekâ Ekosistemi</title>
     <meta
       name="description"
-      content="Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştiren yapay zekâ kontrol katmanı prototipidir."
+      content="We Lock AI, insan merkezli yapay zekâ ekosistemidir. Lumos; sohbet, görev, dosya ve bağlantıları tek çalışma alanında buluşturan son kullanıcı ürünüdür."
       data-i18n-content="meta.description"
     />
     <link rel="canonical" href="https://welockai.com/" />
-    <meta property="og:title" content="Lumos — Yapay Zekâ Kontrol Katmanı" data-i18n-content="meta.ogTitle" />
+    <meta property="og:title" content="We Lock AI — İnsan Merkezli Yapay Zekâ Ekosistemi" data-i18n-content="meta.ogTitle" />
     <meta
       property="og:description"
-      content="Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştiren yapay zekâ kontrol katmanı prototipidir."
+      content="We Lock AI, insan merkezli yapay zekâ ekosistemidir. Lumos; sohbet, görev, dosya ve bağlantıları tek çalışma alanında buluşturan son kullanıcı ürünüdür."
       data-i18n-content="meta.ogDescription"
     />
     <meta name="twitter:card" content="summary_large_image" />
     <meta
       name="twitter:title"
-      content="Lumos — Yapay Zekâ Kontrol Katmanı"
+      content="We Lock AI — İnsan Merkezli Yapay Zekâ Ekosistemi"
       data-i18n-content="meta.twitterTitle"
     />
     <meta
       name="twitter:description"
-      content="Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştiren yapay zekâ kontrol katmanı prototipidir."
+      content="We Lock AI, insan merkezli yapay zekâ ekosistemidir. Lumos; sohbet, görev, dosya ve bağlantıları tek çalışma alanında buluşturan son kullanıcı ürünüdür."
       data-i18n-content="meta.twitterDescription"
     />
     <meta
@@ -64,8 +65,8 @@ const showMay19Commemoration = isMay19CommemorationDay();
       data-i18n-content="landing.assets.ogImage"
     />
     <meta property="og:image:type" content="image/jpeg" />
-    <link rel="icon" href="/lumos-tree-logo.svg" type="image/svg+xml" sizes="any" />
-    <link rel="apple-touch-icon" href="/lumos-tree-logo.svg" />
+    <link rel="icon" href="/chat-lumos-mark.svg" type="image/svg+xml" sizes="any" />
+    <link rel="apple-touch-icon" href="/chat-lumos-mark.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#0a0e14" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -96,6 +97,7 @@ const showMay19Commemoration = isMay19CommemorationDay();
           radial-gradient(ellipse 130% 88% at 50% -6%, rgb(var(--lumos-land-teal-deep) / 0.2), transparent 54%),
           radial-gradient(ellipse 88% 52% at 94% 38%, rgb(var(--lumos-land-teal) / 0.05), transparent 46%),
           radial-gradient(ellipse 72% 48% at 10% 72%, rgb(var(--lumos-land-warm) / 0.025), transparent 50%),
+          radial-gradient(ellipse 46% 34% at 96% 68%, rgb(167 139 250 / 0.035), transparent 62%),
           linear-gradient(178deg, #0a0e14 0%, #121a24 44%, #0a0e14 100%);
         background-attachment: fixed;
         color: var(--lumos-land-title);
@@ -213,7 +215,7 @@ const showMay19Commemoration = isMay19CommemorationDay();
         outline: 2px solid rgb(var(--lumos-land-teal) / 0.45);
         outline-offset: 2px;
       }
-      /** Lumos site logosu: vektör ağaç işareti (lumos-tree-logo.svg); filtre bağlamda (nav / hero) ayrı */
+      /** .lumos-logo-mark iki farklı işaret için ortak kapsayıcı: We Lock AI nav'ında ağaç işareti (lumos-tree-logo.svg), Lumos hero lockup'ında ChatLumos (chat-lumos-mark.svg) */
       .lumos-logo-mark {
         display: block;
         box-sizing: border-box;
@@ -222,15 +224,15 @@ const showMay19Commemoration = isMay19CommemorationDay();
         object-position: center center;
       }
       .lumos-site-nav__logo .lumos-logo-mark {
-        width: 1.42rem;
-        height: 1.42rem;
+        width: 1.78rem;
+        height: 1.78rem;
         max-width: none;
         max-height: none;
         opacity: 1;
-        filter: brightness(1.06) saturate(1.08) contrast(1.04)
-          drop-shadow(0 0 1px rgb(var(--lumos-land-teal) / 0.18))
-          drop-shadow(0 0 10px rgb(var(--lumos-land-teal) / 0.06))
-          drop-shadow(0 0 18px rgb(var(--lumos-land-teal) / 0.03));
+        filter: brightness(1.14) saturate(1.1) contrast(1.1)
+          drop-shadow(0 0 1px rgb(var(--lumos-land-teal) / 0.22))
+          drop-shadow(0 0 12px rgb(var(--lumos-land-teal) / 0.09))
+          drop-shadow(0 0 20px rgb(var(--lumos-land-teal) / 0.05));
       }
       .lumos-hero-title-lockup {
         display: flex;
@@ -709,6 +711,14 @@ const showMay19Commemoration = isMay19CommemorationDay();
           font-size: clamp(0.78rem, 1.35vw, 0.96rem);
           letter-spacing: 0.04em;
         }
+      }
+      .lumos-hero-audience {
+        margin: 0 0 1.35rem;
+        max-width: min(52ch, 100%);
+        font-size: clamp(0.82rem, 1.6vw, 0.9rem);
+        line-height: 1.5;
+        color: var(--lumos-text-muted);
+        opacity: 0.85;
       }
       @media (max-width: 559.98px) {
         #top.lumos-section {
@@ -1389,7 +1399,49 @@ const showMay19Commemoration = isMay19CommemorationDay();
           gap: 1.2rem 1.3rem;
         }
       }
+      .lumos-how-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        align-items: center;
+        gap: 0.9rem;
+      }
+      .lumos-how-step {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 1rem 1.1rem;
+        border-radius: 14px;
+        border: 1px solid rgb(var(--lumos-land-teal) / 0.28);
+        background: rgba(10, 14, 20, 0.55);
+        text-align: center;
+      }
+      .lumos-how-step h3 {
+        margin: 0 0 0.35rem;
+        font-size: 0.98rem;
+        color: var(--lumos-land-title);
+      }
+      .lumos-how-step p {
+        margin: 0;
+        font-size: 0.88rem;
+        line-height: 1.45;
+        color: var(--lumos-text-muted);
+      }
+      .lumos-how-arrow {
+        display: block;
+        text-align: center;
+        color: rgb(var(--lumos-land-teal) / 0.7);
+        font-size: 1.1rem;
+        transform: rotate(90deg);
+      }
+      @media (min-width: 768px) {
+        .lumos-how-grid {
+          grid-template-columns: 1fr auto 1fr auto 1fr;
+        }
+        .lumos-how-arrow {
+          transform: none;
+        }
+      }
       .lumos-cap-card {
+        --lumos-card-accent: var(--lumos-package-gold);
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
@@ -1404,7 +1456,16 @@ const showMay19Commemoration = isMay19CommemorationDay();
           rgba(11, 10, 14, 0.94) 48%,
           rgba(10, 9, 12, 0.96) 100%
         );
-        box-shadow: inset 0 1px 0 rgb(var(--lumos-land-warm) / 0.05), 0 4px 18px rgba(0, 0, 0, 0.28);
+        box-shadow:
+          inset 0 2px 0 color-mix(in srgb, var(--lumos-card-accent) 56%, transparent),
+          0 4px 18px rgba(0, 0, 0, 0.28);
+      }
+      .lumos-cap-card-link:nth-child(5n + 2) { --lumos-card-accent: var(--lumos-package-sky); }
+      .lumos-cap-card-link:nth-child(5n + 3) { --lumos-card-accent: var(--lumos-package-violet); }
+      .lumos-cap-card-link:nth-child(5n + 4) { --lumos-card-accent: var(--lumos-package-green); }
+      .lumos-cap-card-link:nth-child(5n + 5) { --lumos-card-accent: var(--lumos-package-coral); }
+      .lumos-cap-card-link .lumos-cap-card {
+        --lumos-card-accent: inherit;
       }
       .lumos-cap-card-link {
         display: block;
@@ -1489,6 +1550,131 @@ const showMay19Commemoration = isMay19CommemorationDay();
         font-size: 0.92rem;
         line-height: 1.58;
         color: rgb(174 182 200 / 0.88);
+      }
+      /** Güven ve ekosistem: güvenlik durumu kartı + çoklu AI / entegrasyon / cihaz rafları */
+      .lumos-trust-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+      .lumos-trust-card {
+        box-sizing: border-box;
+        padding: 1.1rem 1.25rem;
+        border-radius: 14px;
+        border: 1px solid var(--lumos-card-border);
+        background: rgba(18, 26, 36, 0.85);
+      }
+      .lumos-trust-card__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        margin-bottom: 0.85rem;
+      }
+      .lumos-trust-card__title {
+        font-size: 0.78rem;
+        font-weight: 750;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--lumos-text-muted);
+      }
+      .lumos-trust-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.68rem;
+        font-weight: 750;
+        color: var(--lumos-status-ready-fg);
+        background: var(--lumos-status-ready-bg);
+        border: 1px solid var(--lumos-status-ready-border);
+        border-radius: 999px;
+        padding: 0.22rem 0.65rem;
+      }
+      .lumos-trust-card__list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+      }
+      .lumos-trust-card__list li {
+        position: relative;
+        padding: 0.5rem 0 0.5rem 1.65rem;
+        font-size: 0.87rem;
+        line-height: 1.5;
+        color: var(--lumos-text-body);
+        border-top: 1px solid rgb(255 255 255 / 0.05);
+      }
+      .lumos-trust-card__list li:first-child {
+        border-top: none;
+      }
+      .lumos-trust-card__list li::before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        top: 0.5rem;
+        width: 1.05rem;
+        height: 1.05rem;
+        border-radius: 999px;
+        background: var(--lumos-status-ready-bg);
+        color: var(--lumos-status-ready-fg);
+        font-size: 0.6rem;
+        font-weight: 800;
+        line-height: 1.05rem;
+        text-align: center;
+      }
+      .lumos-trust-shelf {
+        --lumos-shelf-accent: var(--lumos-package-violet);
+        box-sizing: border-box;
+        display: grid;
+        grid-template-columns: 1fr;
+        border-radius: 14px;
+        border: 1px solid var(--lumos-card-border);
+        background: rgba(18, 26, 36, 0.6);
+        overflow: hidden;
+        box-shadow: inset 0 2px 0 color-mix(in srgb, var(--lumos-shelf-accent) 55%, transparent);
+      }
+      @media (min-width: 640px) {
+        .lumos-trust-shelf {
+          grid-template-columns: 11rem 1fr;
+        }
+      }
+      .lumos-trust-shelf--integrations {
+        --lumos-shelf-accent: var(--lumos-package-sky);
+      }
+      .lumos-trust-shelf--devices {
+        --lumos-shelf-accent: var(--lumos-package-green);
+      }
+      .lumos-trust-shelf__label {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 0.2rem;
+        padding: 1rem 1.15rem;
+        border-bottom: 1px solid rgb(255 255 255 / 0.06);
+      }
+      @media (min-width: 640px) {
+        .lumos-trust-shelf__label {
+          border-bottom: none;
+          border-right: 1px solid rgb(255 255 255 / 0.06);
+        }
+      }
+      .lumos-trust-shelf__label b {
+        font-size: 0.92rem;
+        font-weight: 700;
+        color: var(--lumos-land-title);
+      }
+      .lumos-trust-shelf__label span {
+        font-size: 0.76rem;
+        color: var(--lumos-text-muted);
+      }
+      .lumos-trust-shelf__items {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem 0.9rem;
+        padding: 1rem 1.15rem;
       }
       /** Kapsam modülleri: sade kart ızgarası — CTA yok, vitrin gürültüsü yok */
       .lumos-scope-grid {
@@ -2026,8 +2212,8 @@ const showMay19Commemoration = isMay19CommemorationDay();
           padding: 0.22rem 0.26rem;
         }
         .lumos-site-nav__logo .lumos-logo-mark {
-          width: 1.32rem;
-          height: 1.32rem;
+          width: 1.65rem;
+          height: 1.65rem;
         }
         .lumos-hero-cinematic__inner {
           padding-top: clamp(0.45rem, 1.4vw, 0.72rem);
@@ -2183,7 +2369,7 @@ const showMay19Commemoration = isMay19CommemorationDay();
               <a
                 class="lumos-site-nav__logo lumos-site-nav__brand"
                 href="#top"
-                aria-label="Lumos — sayfa başı"
+                aria-label="We Lock AI — sayfa başı"
                 data-i18n-aria-label="nav.brandAria"
               >
                 <img
@@ -2195,8 +2381,8 @@ const showMay19Commemoration = isMay19CommemorationDay();
                   decoding="async"
                 />
                 <span class="lumos-site-nav__brand-text">
-                  <span class="lumos-site-nav__brand-title" data-i18n="nav.brandTitle">Lumos</span>
-                  <span class="lumos-site-nav__brand-sub" data-i18n="nav.brandSub">WE LOCK AI</span>
+                  <span class="lumos-site-nav__brand-title" data-i18n="nav.brandTitle">We Lock AI</span>
+                  <span class="lumos-site-nav__brand-sub" data-i18n="nav.brandSub">AI EKOSİSTEMİ</span>
                 </span>
               </a>
             </div>
@@ -2223,7 +2409,13 @@ const showMay19Commemoration = isMay19CommemorationDay();
                 <a class="lumos-site-nav__link" href="#baglan" data-i18n="nav.connect">Bağlan</a>
               </li>
               <li>
-                <a class="lumos-site-nav__link lumos-site-nav__link--accent" href="/panel" data-i18n="nav.panel">Panel</a>
+                <a class="lumos-site-nav__link" href="#ekosistem" data-i18n="nav.ecosystem">Güven</a>
+              </li>
+              <li>
+                <a class="lumos-site-nav__link" href="/auth">Giriş</a>
+              </li>
+              <li>
+                <a class="lumos-site-nav__link lumos-site-nav__link--accent" href="/panel" data-i18n="nav.panel">Lumos’u Aç</a>
               </li>
               <li>
                 <a
@@ -2246,7 +2438,7 @@ const showMay19Commemoration = isMay19CommemorationDay();
             <div class="lumos-hero-title-lockup">
               <img
                 class="lumos-logo-mark lumos-hero-title-mark"
-                src="/lumos-tree-logo.svg"
+                src="/chat-lumos-mark.svg"
                 alt=""
                 width="64"
                 height="64"
@@ -2256,15 +2448,17 @@ const showMay19Commemoration = isMay19CommemorationDay();
             </div>
             <p class="lumos-hero-subtitle" data-i18n="hero.subtitle">Yapay zekâ kontrol katmanı</p>
             <p class="lumos-hero-lead" data-i18n="hero.lead1">
-              Ses, medya, görsel analiz, görevler, dosyalar, kimlik ve güvenlik akışlarını tek panelde birleştirmeyi hedefleyen akıllı asistan altyapısı.
+              Lumos yeni bir yapay zekâ değildir. Kullandığınız yapay zekâları (ChatGPT, Copilot ve benzerleri) güvenli, denetlenebilir ve sizin kontrolünüzde çalıştıran ortak katmandır.
             </p>
             <p class="lumos-hero-lead" data-i18n="hero.lead2">
               Karar kullanıcıda kalır. Lumos riski, bağlamı ve sonraki adımı görünür kılar.
             </p>
             <p class="lumos-hero-pillar" data-i18n="hero.pillar">Tek panel · Çoklu akış · Kullanıcı kontrolü</p>
+            <p class="lumos-hero-audience" data-i18n="hero.audience">Şu an: geliştiriciler için açık kaynak · kurumlar için yol haritada · son kullanıcı paketi yakında.</p>
             <div class="lumos-hero-actions">
-              <a class="lumos-hero-btn lumos-hero-btn--primary" href="/panel" data-i18n="hero.ctaPanel">Geliştirici Panelini Aç</a>
-              <a class="lumos-hero-btn lumos-hero-btn--ghost" href="#dunya" data-i18n="hero.ctaWorld">Vizyonu oku</a>
+              <a class="lumos-hero-btn lumos-hero-btn--primary" href="/auth">Lumos ile giriş</a>
+              <a class="lumos-hero-btn lumos-hero-btn--ghost" href="/panel" data-i18n="hero.ctaPanel">Geliştirici Panelini Aç</a>
+              <a class="lumos-hero-btn lumos-hero-btn--ghost" href="#saygi">Saygıyla</a>
             </div>
           </div>
           <div class="lumos-hero-scene" aria-hidden="true">
@@ -2303,7 +2497,7 @@ const showMay19Commemoration = isMay19CommemorationDay();
               />
               <button class="lumos-hero-ask__submit" type="submit" data-i18n="hero.askSubmit">Panelde devam et</button>
             </div>
-            <p class="lumos-hero-ask__hint" id="lumos-hero-ask-hint" data-i18n="hero.askHint">Yanıt burada değil; geliştirici panelinde devam eder.</p>
+            <p class="lumos-hero-ask__hint" id="lumos-hero-ask-hint" data-i18n="hero.askHint">Yanıt burada değil; panelde devam eder.</p>
             <p
               class="lumos-hero-ask__error"
               id="lumos-hero-ask-error"
@@ -2315,6 +2509,64 @@ const showMay19Commemoration = isMay19CommemorationDay();
           </form>
         </div>
       </div>
+    </section>
+
+    <section id="nasil-calisir" class="lumos-shell lumos-section" aria-labelledby="nasil-calisir-baslik">
+      <h2 id="nasil-calisir-baslik" class="lumos-cap-title" data-i18n="landing.howItWorks.title">Nasıl çalışır?</h2>
+      <div class="lumos-how-grid">
+        <article class="lumos-how-step">
+          <h3 data-i18n="landing.howItWorks.stepUserLabel">Kullanıcı</h3>
+          <p data-i18n="landing.howItWorks.stepUserBody">İsteği ve son onayı sen verirsin.</p>
+        </article>
+        <span class="lumos-how-arrow" aria-hidden="true">→</span>
+        <article class="lumos-how-step">
+          <h3 data-i18n="landing.howItWorks.stepLumosLabel">Lumos</h3>
+          <p data-i18n="landing.howItWorks.stepLumosBody">Riski ve bağlamı gösterir, işi izlenebilir adımlara böler.</p>
+        </article>
+        <span class="lumos-how-arrow" aria-hidden="true">→</span>
+        <article class="lumos-how-step">
+          <h3 data-i18n="landing.howItWorks.stepServicesLabel">AI / Servisler</h3>
+          <p data-i18n="landing.howItWorks.stepServicesBody">ChatGPT, Copilot ve bağlı servisler senin onayınla, sınırların içinde çalışır.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="lumos-nedir" class="lumos-shell lumos-section" aria-labelledby="lumos-nedir-baslik">
+      <h2 id="lumos-nedir-baslik" data-i18n="landing.whatIs.title">Lumos nedir?</h2>
+      <p data-i18n="landing.whatIs.p1">
+        Lumos; sesli komutlar, medya işlemleri ve yapay zekâ destekli yardımları yerelde veya sizin tanımladığınız
+        güven sınırları içinde tek bir akışta toparlamayı hedefleyen bir kontrol katmanıdır. Uygulamalar, dosyalar ve
+        harici servisler arasında köprü kurarak dağınık görevleri daha izlenebilir adımlara böler.
+      </p>
+      <p data-i18n="landing.whatIs.p2">
+        Amaç, karmaşık teknik detayların arkasında kalan işlemleri sadeleştirmek; hangi verinin nerede işlendiğini ve
+        bir sonraki adımın olası sonuçlarını daha okunur kılmaktır. Lumos “otomatik pilot” değildir; kullanıcıyı
+        bilgilendiren ve onay kritik noktalarında duraklatan bir ara yüz sunmayı amaçlar.
+      </p>
+      <p data-i18n="landing.whatIs.p3">
+        Lumos aktif geliştirilen bir kontrol katmanıdır; modüller ve entegrasyonlar ölçülü biçimde genişler — vaat
+        yerine görünür yol haritası ve kullanıcı onayı önceliklidir.
+      </p>
+    </section>
+
+    <section id="ne-yapar" class="lumos-shell lumos-section" aria-labelledby="ne-yapar-baslik">
+      <h2 id="ne-yapar-baslik" data-i18n="landing.whatDoes.title">Ne yapar?</h2>
+      <ul>
+        <li data-i18n="landing.whatDoes.item1">Ses ve doğal dil ile iletilen görevleri güvenli ve izlenebilir alt adımlara ayırmayı hedefler.</li>
+        <li data-i18n="landing.whatDoes.item2">Medya ve dosya akışlarını düzenler; paylaşım veya dış servise aktarımda şeffaflığı artırmayı amaçlar.</li>
+        <li data-i18n="landing.whatDoes.item3">Yapay zekâ önerilerini bağlam ve risk bilgisiyle birlikte sunar; kalıcı sonuç doğuran işlemlerde onayı kullanıcıya bırakır.</li>
+        <li data-i18n="landing.whatDoes.item4">Kimlik ve servis bağlantılarını daha yönetilebilir tek bir çatı altında toplamayı hedefler.</li>
+        <li data-i18n="landing.whatDoes.item5">Riski yüksek veya geri alınması güç işlemlerde ek uyarı ve onay akışlarını önceliklendirir.</li>
+      </ul>
+    </section>
+
+    <section id="neden-gerekli" class="lumos-shell lumos-section" aria-labelledby="neden-gerekli-baslik">
+      <h2 id="neden-gerekli-baslik" data-i18n="landing.whyNeeded.title">Neden gerekli?</h2>
+      <p data-i18n="landing.whyNeeded.p1">
+        Araç ve servis sayısı arttıkça bağlam dağılıyor; kullanıcı neyin nerede çalıştığını ve hangi iznin neyi
+        etkinleştirdiğini takip etmekte zorlanabiliyor. Lumos, bu dağınıklığı tek bir kontrol katmanında görünür kılarak
+        yanlış onay ve gereksiz veri aktarımı riskini azaltmayı hedefler.
+      </p>
     </section>
 
     <section id="baglan" class="lumos-shell lumos-section lumos-products-section" aria-labelledby="baglan-baslik">
@@ -2361,6 +2613,67 @@ const showMay19Commemoration = isMay19CommemorationDay();
       </div>
     </section>
 
+    <section id="ekosistem" class="lumos-shell lumos-section" aria-labelledby="ekosistem-baslik">
+      <h2 id="ekosistem-baslik" class="lumos-cap-title" data-i18n="umbrella.ecosystem.title">Güven ve ekosistem</h2>
+      <p class="lumos-dunya-vizyon__lead" data-i18n="umbrella.ecosystem.lead">
+        Çoklu AI sağlayıcıları, entegrasyonlar ve cihaz ekosistemi tek güvenlik sınırı içinde durur — izin ve risk
+        işlemden önce görünür kalır.
+      </p>
+      <div class="lumos-trust-grid">
+        <article class="lumos-trust-card">
+          <div class="lumos-trust-card__head">
+            <span class="lumos-trust-card__title" data-i18n="umbrella.ecosystem.securityTitle">Güvenlik durumu</span>
+            <span class="lumos-trust-pill" data-i18n="umbrella.ecosystem.securityPill">Bağımsız izleniyor</span>
+          </div>
+          <ul class="lumos-trust-card__list">
+            <li data-i18n="umbrella.ecosystem.securityRow1">Bağımsız Cyber katmanı: risk, entegrasyonlardan ayrı görünür.</li>
+            <li data-i18n="umbrella.ecosystem.securityRow2">Entegrasyon izinleri, işlemden önce okunur hâle gelir.</li>
+            <li data-i18n="umbrella.ecosystem.securityRow3">Kalıcı silme otomatik değildir; çöp/geri alma önce gelir.</li>
+            <li data-i18n="umbrella.ecosystem.securityRow4">Ödeme, domain alma ve mail gönderimi kullanıcı onayı olmadan yapılmaz.</li>
+          </ul>
+        </article>
+
+        <div class="lumos-trust-shelf lumos-trust-shelf--ai">
+          <div class="lumos-trust-shelf__label">
+            <b data-i18n="umbrella.ecosystem.aiTitle">Çoklu AI</b>
+            <span data-i18n="umbrella.ecosystem.aiSub">Sağlayıcı yönlendirme ve yedekleme</span>
+          </div>
+          <div class="lumos-trust-shelf__items">
+            <BrandLockup id="openai" name="OpenAI" compact linked={false} />
+            <BrandLockup id="gemini" name="Gemini" compact linked={false} />
+            <BrandLockup id="deepseek" name="DeepSeek" compact linked={false} />
+          </div>
+        </div>
+
+        <div class="lumos-trust-shelf lumos-trust-shelf--integrations">
+          <div class="lumos-trust-shelf__label">
+            <b data-i18n="umbrella.ecosystem.integrationsTitle">Entegrasyonlar</b>
+            <span data-i18n="umbrella.ecosystem.integrationsSub">İzin matrisi ve durum</span>
+          </div>
+          <div class="lumos-trust-shelf__items">
+            <BrandLockup id="github" name="GitHub" compact linked={false} />
+            <BrandLockup id="gmail" name="Gmail" compact linked={false} />
+            <BrandLockup id="slack" name="Slack" compact linked={false} />
+            <BrandLockup id="notion" name="Notion" compact linked={false} />
+            <BrandLockup id="whatsapp" name="WhatsApp" compact linked={false} />
+          </div>
+        </div>
+
+        <div class="lumos-trust-shelf lumos-trust-shelf--devices">
+          <div class="lumos-trust-shelf__label">
+            <b data-i18n="umbrella.ecosystem.deviceTitle">Cihaz ekosistemi</b>
+            <span data-i18n="umbrella.ecosystem.deviceSub">Ev, ses ve akıllı cihaz bağlantıları</span>
+          </div>
+          <div class="lumos-trust-shelf__items">
+            <BrandLockup id="matter" name="Matter" compact linked={false} />
+            <BrandLockup id="homeAssistant" name="Home Assistant" compact linked={false} />
+            <BrandLockup id="smartThings" name="SmartThings" compact linked={false} />
+            <BrandLockup id="sonos" name="Sonos" compact linked={false} />
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section id="ilkeler" class="lumos-shell lumos-section lumos-section--post-hero" aria-labelledby="temel-ilkeler-baslik">
       <h2 id="temel-ilkeler-baslik" class="lumos-cap-title" data-i18n="landing.principles.title">Temel ilkeler</h2>
       <div class="lumos-cap-grid">
@@ -2389,29 +2702,6 @@ const showMay19Commemoration = isMay19CommemorationDay();
           </article>
         </a>
       </div>
-      <h2 id="ilkeler-baslik" class="lumos-cap-title lumos-cap-title--follow" data-i18n="landing.principles.workTitle">Çalışma ilkeleri</h2>
-      <p data-i18n="landing.principles.workIntro">
-        We Lock AI çatısındaki Lumos; hız uğruna şeffaflığı feda etmeden, aşağıdaki dört eksende tutarlı kalmayı
-        hedefler.
-      </p>
-      <ul>
-        <li>
-          <strong data-i18n="landing.principles.listUserDecisionLabel">Kullanıcı kararı:</strong>
-          <span data-i18n="landing.principles.listUserDecisionBody">Nihai seçim her zaman sizdedir; Lumos sizin yerinize geçmez.</span>
-        </li>
-        <li>
-          <strong data-i18n="landing.principles.listApprovalLabel">Açık onay:</strong>
-          <span data-i18n="landing.principles.listApprovalBody">Kalıcı veya riskli adımlarda net, geri alınabilir onay akışları.</span>
-        </li>
-        <li>
-          <strong data-i18n="landing.principles.listRiskLabel">Risk görünürlüğü:</strong>
-          <span data-i18n="landing.principles.listRiskBody">Olası sonuçlar ve yan etkiler özetlenerek gösterilir.</span>
-        </li>
-        <li>
-          <strong data-i18n="landing.principles.listDataLabel">Veri farkındalığı:</strong>
-          <span data-i18n="landing.principles.listDataBody">Verinin nerede işlendiği ve hangi sınırların geçerli olduğu okunur biçimde sunulur.</span>
-        </li>
-      </ul>
     </section>
 
     <section
@@ -2508,9 +2798,9 @@ const showMay19Commemoration = isMay19CommemorationDay();
         </p>
       </section>
 
-      {showMay19Commemoration && (
-      <aside class="lumos-may19-card lumos-may19-card--sideline" aria-labelledby="lumos-may19-heading">
-        <h2 id="lumos-may19-heading" class="lumos-may19-card__heading--inline">
+      {/* Kalıcı saygı — kaldırılmaz; 19 Mayıs köşesi ayrıca bayram günü kalır */}
+      <aside class="lumos-may19-card lumos-may19-card--sideline" id="saygi" aria-labelledby="saygi-baslik">
+        <h2 id="saygi-baslik" class="lumos-may19-card__heading--inline">
           <span class="lumos-may19-card__flag-badges" aria-hidden="true">
             <img
               class="lumos-may19-card__flag-badge"
@@ -2529,13 +2819,11 @@ const showMay19Commemoration = isMay19CommemorationDay();
               decoding="async"
             />
           </span>
-          <span data-i18n="landing.may19.heading">19 Mayıs’a Saygıyla</span>
+          <span>Gazi Mustafa Kemal Atatürk</span>
         </h2>
-        <p data-i18n="landing.may19.p1">
-          Bu metni 19 Mayıs gibi anlamlı bir güne yakın yayımlamak benim için ayrıca değerli.
-        </p>
-        <p data-i18n="landing.may19.p2">
-          Gazi Mustafa Kemal Atatürk’ü saygıyla anıyor, 19 Mayıs Atatürk’ü Anma, Gençlik ve Spor Bayramı’nı kutluyorum.
+        <p>
+          Gazi Mustafa Kemal Atatürk’ü saygı ve minnetle anıyoruz. Bu sahne ve bu metin site yenilense de kalır —
+          kaldırılmaz.
         </p>
         <p data-i18n="landing.may19.p3">
           19 Mayıs’ın taşıdığı gençlik, bilim, bağımsız düşünce ve gelecek fikrini yalnızca bir ülkenin sınırları içinde
@@ -2546,50 +2834,14 @@ const showMay19Commemoration = isMay19CommemorationDay();
           ama samimi bir armağan olarak görüyorum.
         </p>
         <div class="lumos-may19-card__actions">
-          <button type="button" class="lumos-may19-open-btn" id="lumos-may19-open" data-i18n="landing.may19.openBtn">
-            Saygı anını başlat
-          </button>
+          <a class="lumos-hero-btn lumos-hero-btn--ghost" href="/auth">Lumos ile giriş</a>
+          {showMay19Commemoration && (
+            <button type="button" class="lumos-may19-open-btn" id="lumos-may19-open" data-i18n="landing.may19.openBtn">
+              Saygı anını başlat
+            </button>
+          )}
         </div>
       </aside>
-      )}
-
-      <section id="lumos-nedir" class="lumos-section" aria-labelledby="lumos-nedir-baslik">
-        <h2 id="lumos-nedir-baslik" data-i18n="landing.whatIs.title">Lumos nedir?</h2>
-        <p data-i18n="landing.whatIs.p1">
-          Lumos; sesli komutlar, medya işlemleri ve yapay zekâ destekli yardımları yerelde veya sizin tanımladığınız
-          güven sınırları içinde tek bir akışta toparlamayı hedefleyen bir kontrol katmanıdır. Uygulamalar, dosyalar ve
-          harici servisler arasında köprü kurarak dağınık görevleri daha izlenebilir adımlara böler.
-        </p>
-        <p data-i18n="landing.whatIs.p2">
-          Amaç, karmaşık teknik detayların arkasında kalan işlemleri sadeleştirmek; hangi verinin nerede işlendiğini ve
-          bir sonraki adımın olası sonuçlarını daha okunur kılmaktır. Lumos “otomatik pilot” değildir; kullanıcıyı
-          bilgilendiren ve onay kritik noktalarında duraklatan bir ara yüz sunmayı amaçlar.
-        </p>
-        <p data-i18n="landing.whatIs.p3">
-          Lumos aktif geliştirilen bir kontrol katmanıdır; modüller ve entegrasyonlar ölçülü biçimde genişler — vaat
-          yerine görünür yol haritası ve kullanıcı onayı önceliklidir.
-        </p>
-      </section>
-
-      <section id="ne-yapar" class="lumos-section" aria-labelledby="ne-yapar-baslik">
-        <h2 id="ne-yapar-baslik" data-i18n="landing.whatDoes.title">Ne yapar?</h2>
-        <ul>
-          <li data-i18n="landing.whatDoes.item1">Ses ve doğal dil ile iletilen görevleri güvenli ve izlenebilir alt adımlara ayırmayı hedefler.</li>
-          <li data-i18n="landing.whatDoes.item2">Medya ve dosya akışlarını düzenler; paylaşım veya dış servise aktarımda şeffaflığı artırmayı amaçlar.</li>
-          <li data-i18n="landing.whatDoes.item3">Yapay zekâ önerilerini bağlam ve risk bilgisiyle birlikte sunar; kalıcı sonuç doğuran işlemlerde onayı kullanıcıya bırakır.</li>
-          <li data-i18n="landing.whatDoes.item4">Kimlik ve servis bağlantılarını daha yönetilebilir tek bir çatı altında toplamayı hedefler.</li>
-          <li data-i18n="landing.whatDoes.item5">Riski yüksek veya geri alınması güç işlemlerde ek uyarı ve onay akışlarını önceliklendirir.</li>
-        </ul>
-      </section>
-
-      <section id="neden-gerekli" class="lumos-section" aria-labelledby="neden-gerekli-baslik">
-        <h2 id="neden-gerekli-baslik" data-i18n="landing.whyNeeded.title">Neden gerekli?</h2>
-        <p data-i18n="landing.whyNeeded.p1">
-          Araç ve servis sayısı arttıkça bağlam dağılıyor; kullanıcı neyin nerede çalıştığını ve hangi iznin neyi
-          etkinleştirdiğini takip etmekte zorlanabiliyor. Lumos, bu dağınıklığı tek bir kontrol katmanında görünür kılarak
-          yanlış onay ve gereksiz veri aktarımı riskini azaltmayı hedefler.
-        </p>
-      </section>
 
       <section
         id="dunya-vizyon"
@@ -2697,55 +2949,21 @@ const showMay19Commemoration = isMay19CommemorationDay();
             </div>
           </article>
           <article class="lumos-install-step">
-            <h3 data-i18n="landing.install.step5">5 — Köprüyü başlat (depo kökü, ayrı terminal)</h3>
-            <div class="lumos-install-cmd">
-              <pre class="lumos-install-pre"><code>export KANDO_BRIDGE_SECRET='test123'
-./scripts/bridge_start.sh</code></pre>
-              <div class="lumos-install-cmd__meta">
-                <button
-                  type="button"
-                  class="lumos-install-copy-btn"
-                  data-install-copy
-                  data-copy-text={"export KANDO_BRIDGE_SECRET='test123'\n./scripts/bridge_start.sh"}
-                  data-i18n="landing.install.copy">Kopyala</button>
-              </div>
-            </div>
+            <h3 data-i18n="landing.install.step5">5 — Tam panel kurulumunu tamamla</h3>
             <p class="lumos-install-step-note" data-i18n="landing.install.step5note">
-              Depo kökünden (lumos-core); bu terminal açık kalsın. Yerel placeholder: KANDO_BRIDGE_SECRET=test123
+              Köprü ve görev proxy ayarları geliştirici rehberinde tutulur.
             </p>
+            <div class="lumos-install-cmd__meta">
+              <a
+                class="lumos-install-open-link"
+                href="https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/getting-started.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-i18n="landing.install.fullSetupGuide">Tam kurulum rehberi</a>
+            </div>
           </article>
           <article class="lumos-install-step">
-            <h3 data-i18n="landing.install.step6">6 — Görev sunucusu ve proxy (ayrı terminaller)</h3>
-            <div class="lumos-install-cmd">
-              <pre class="lumos-install-pre"><code>python3 panel/scripts/panel_tasks_server.py</code></pre>
-              <div class="lumos-install-cmd__meta">
-                <button
-                  type="button"
-                  class="lumos-install-copy-btn"
-                  data-install-copy
-                  data-copy-text="python3 panel/scripts/panel_tasks_server.py"
-                  data-i18n="landing.install.copy">Kopyala</button>
-              </div>
-            </div>
-            <div class="lumos-install-cmd">
-              <pre class="lumos-install-pre"><code>export BRIDGE_UPSTREAM_URL='http://127.0.0.1:8765'
-export KANDO_BRIDGE_SECRET='test123'
-vercel dev</code></pre>
-              <div class="lumos-install-cmd__meta">
-                <button
-                  type="button"
-                  class="lumos-install-copy-btn"
-                  data-install-copy
-                  data-copy-text={"export BRIDGE_UPSTREAM_URL='http://127.0.0.1:8765'\nexport KANDO_BRIDGE_SECRET='test123'\nvercel dev"}
-                  data-i18n="landing.install.copy">Kopyala</button>
-              </div>
-            </div>
-            <p class="lumos-install-step-note" data-i18n="landing.install.step6note">
-              Görev proxy (/api/bridge) için depo kökünde vercel dev kullanın; yalnızca npm run dev proxy sunmaz.
-            </p>
-          </article>
-          <article class="lumos-install-step">
-            <h3 data-i18n="landing.install.step7">7 — Geliştirme sunucusunu başlat (ui klasörü)</h3>
+            <h3 data-i18n="landing.install.step7">6 — Geliştirme sunucusunu başlat (ui klasörü)</h3>
             <div class="lumos-install-cmd">
               <pre class="lumos-install-pre"><code>cd ui && npm run dev</code></pre>
               <div class="lumos-install-cmd__meta">
@@ -2759,7 +2977,7 @@ vercel dev</code></pre>
             </div>
           </article>
           <article class="lumos-install-step">
-            <h3 data-i18n="landing.install.step8">8 — Yerel paneli tarayıcıda aç</h3>
+            <h3 data-i18n="landing.install.step8">7 — Yerel paneli tarayıcıda aç</h3>
             <div class="lumos-install-cmd">
               <pre class="lumos-install-pre"><code>http://127.0.0.1:4321/panel</code></pre>
               <div class="lumos-install-cmd__meta">

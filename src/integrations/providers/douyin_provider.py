@@ -1,0 +1,79 @@
+from __future__ import annotations
+
+import os
+
+from integrations.models import IntegrationRequest, IntegrationResult
+
+
+DOUYIN_OAUTH_SCOPES = (
+    "video.read",
+    "video.publish",
+)
+
+DOUYIN_REQUIRED_ENV = (
+    "LUMOS_DOUYIN_OAUTH_CLIENT_ID",
+    "LUMOS_DOUYIN_OAUTH_CLIENT_SECRET",
+    "LUMOS_DOUYIN_OAUTH_REDIRECT_URI",
+)
+
+
+def _configuration_status() -> dict[str, object]:
+    configured = {name: bool(os.getenv(name, "").strip()) for name in DOUYIN_REQUIRED_ENV}
+    return {
+        "provider_id": "douyin",
+        "connected": False,
+        "identity_status": "identity_required",
+        "oauth_configuration": "configured" if all(configured.values()) else "missing",
+        "required_env": list(DOUYIN_REQUIRED_ENV),
+        "configured_env": configured,
+        "secret_source": "environment_only",
+        "execution_live": False,
+    }
+
+
+def run_douyin_action(request: IntegrationRequest) -> IntegrationResult:
+    action = request.action.strip().lower()
+    if action == "connection_status":
+        return IntegrationResult(True, request.provider, request.action, _configuration_status())
+
+    if action == "authorization_contract":
+        return IntegrationResult(
+            True,
+            request.provider,
+            request.action,
+            {
+                **_configuration_status(),
+                "scopes": list(DOUYIN_OAUTH_SCOPES),
+                "workflow": ["connect", "draft", "explicit_approval", "publish"],
+                "next_step": "configure_oauth_identity",
+            },
+        )
+
+    if action == "publish":
+        if not request.requires_approval:
+            return IntegrationResult(
+                False,
+                request.provider,
+                request.action,
+                {"requires_approval": True, "execution_started": False},
+                "approval_required",
+            )
+        return IntegrationResult(
+            False,
+            request.provider,
+            request.action,
+            {
+                "approved": True,
+                "execution_started": False,
+                "identity_status": "identity_required",
+            },
+            "douyin_publish_connector_not_live",
+        )
+
+    return IntegrationResult(False, request.provider, request.action, {}, "unsupported_douyin_action")
+
+
+def register_douyin_provider(register) -> None:
+    register("douyin", "connection_status", run_douyin_action)
+    register("douyin", "authorization_contract", run_douyin_action)
+    register("douyin", "publish", run_douyin_action)

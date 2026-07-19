@@ -5,15 +5,15 @@ import umbrella from "./umbrella/tr";
 
 const tr = {
   meta: {
-    landingTitle: "Lumos — Yapay Zekâ Kontrol Katmanı",
+    landingTitle: "We Lock AI — İnsan Merkezli Yapay Zekâ Ekosistemi",
     description:
-      "Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştiren yapay zekâ kontrol katmanı prototipidir.",
-    ogTitle: "Lumos — Yapay Zekâ Kontrol Katmanı",
+      "We Lock AI, insan merkezli yapay zekâ ekosistemidir. Lumos; sohbet, görev, dosya ve bağlantıları tek çalışma alanında buluşturan son kullanıcı ürünüdür.",
+    ogTitle: "We Lock AI — İnsan Merkezli Yapay Zekâ Ekosistemi",
     ogDescription:
-      "Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştiren yapay zekâ kontrol katmanı prototipidir.",
-    twitterTitle: "Lumos — Yapay Zekâ Kontrol Katmanı",
+      "We Lock AI, insan merkezli yapay zekâ ekosistemidir. Lumos; sohbet, görev, dosya ve bağlantıları tek çalışma alanında buluşturan son kullanıcı ürünüdür.",
+    twitterTitle: "We Lock AI — İnsan Merkezli Yapay Zekâ Ekosistemi",
     twitterDescription:
-      "Lumos; ses, medya, görevler, dosyalar ve çoklu panel akışlarını tek yerde birleştiren yapay zekâ kontrol katmanı prototipidir.",
+      "We Lock AI, insan merkezli yapay zekâ ekosistemidir. Lumos; sohbet, görev, dosya ve bağlantıları tek çalışma alanında buluşturan son kullanıcı ürünüdür.",
   },
   lang: {
     switchLabel: "Dil seçimi",
@@ -28,26 +28,28 @@ const tr = {
     developer: "Geliştirici",
     install: "Kurulum",
     connect: "Bağlan",
-    panel: "Panel",
+    ecosystem: "Güven",
+    panel: "Lumos’u Aç",
     github: "GitHub",
-    brandAria: "Lumos — sayfa başı",
-    brandTitle: "Lumos",
-    brandSub: "WE LOCK AI",
+    brandAria: "We Lock AI — sayfa başı",
+    brandTitle: "We Lock AI",
+    brandSub: "AI EKOSİSTEMİ",
   },
   hero: {
     eyebrow: "WE LOCK AI · LUMOS",
     title: "Lumos",
     subtitle: "Yapay zekâ kontrol katmanı",
     lead1:
-      "Ses, medya, görsel analiz, görevler, dosyalar, kimlik ve güvenlik akışlarını tek panelde birleştirmeyi hedefleyen akıllı asistan altyapısı.",
+      "Lumos yeni bir yapay zekâ değildir. Kullandığınız yapay zekâları (ChatGPT, Copilot ve benzerleri) güvenli, denetlenebilir ve sizin kontrolünüzde çalıştıran ortak katmandır.",
     lead2: "Karar kullanıcıda kalır. Lumos riski, bağlamı ve sonraki adımı görünür kılar.",
     pillar: "Tek panel · Çoklu akış · Kullanıcı kontrolü",
-    ctaPanel: "Geliştirici Panelini Aç",
+    audience: "Şu an: geliştiriciler için açık kaynak · kurumlar için yol haritada · son kullanıcı paketi yakında.",
+    ctaPanel: "Paneli Aç",
     ctaWorld: "Vizyonu oku",
-    askAria: "Lumos’a sor — geliştirici panelinde devam eder",
+    askAria: "Lumos’a sor — panelde devam eder",
     askPlaceholder: "Örnek: Bir görevi güvenli adımlara böl",
     askSubmit: "Panelde devam et",
-    askHint: "Yanıt burada değil; geliştirici panelinde devam eder.",
+    askHint: "Yanıt burada değil; panelde devam eder.",
     askEmpty: "Devam etmek için bir soru yazın.",
   },
   landing,

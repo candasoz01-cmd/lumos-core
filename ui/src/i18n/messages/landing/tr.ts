@@ -22,6 +22,15 @@ const landingTr = {
     listDataLabel: "Veri farkındalığı:",
     listDataBody: "Verinin nerede işlendiği ve hangi sınırların geçerli olduğu okunur biçimde sunulur.",
   },
+  howItWorks: {
+    title: "Nasıl çalışır?",
+    stepUserLabel: "Kullanıcı",
+    stepUserBody: "İsteği ve son onayı sen verirsin.",
+    stepLumosLabel: "Lumos",
+    stepLumosBody: "Riski ve bağlamı gösterir, işi izlenebilir adımlara böler.",
+    stepServicesLabel: "AI / Servisler",
+    stepServicesBody: "ChatGPT, Copilot ve bağlı servisler senin onayınla, sınırların içinde çalışır.",
+  },
   world: {
     title: "Dünya",
     lead:
@@ -91,14 +100,15 @@ const landingTr = {
     step2: "2 — Proje kök dizinine geç",
     step3: "3 — Arayüz bağımlılıklarını yükle",
     step4: "4 — Ortam dosyası (.env.local)",
-    step5: "5 — Köprüyü başlat (depo kökü, ayrı terminal)",
+    step5: "5 — Tam panel kurulumunu tamamla",
     step6: "6 — Görev sunucusu ve proxy (ayrı terminaller)",
-    step7: "7 — Geliştirme sunucusunu başlat (ui klasörü)",
-    step8: "8 — Yerel paneli tarayıcıda aç",
+    step7: "6 — Geliştirme sunucusunu başlat (ui klasörü)",
+    step8: "7 — Yerel paneli tarayıcıda aç",
     step5note:
-      "Depo kökünden (lumos-core); bu terminal açık kalsın. Yerel placeholder: KANDO_BRIDGE_SECRET=test123",
+      "Köprü ve görev proxy ayarları geliştirici rehberinde tutulur.",
     step6note:
       "Görev proxy (/api/bridge) için depo kökünde vercel dev kullanın; yalnızca npm run dev proxy sunmaz.",
+    fullSetupGuide: "Tam kurulum rehberi",
     copy: "Kopyala",
     copied: "Kopyalandı",
     open: "Aç",

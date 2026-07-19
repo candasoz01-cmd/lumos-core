@@ -6,9 +6,11 @@ import {
   bufferFromBodyValue,
   forwardRequestHeaders,
   isAllowedBridgePath,
+  isAuthenticatedLumosSession,
   isProxyCallerAuthorized,
   readRawBody,
 } from "../api/bridge/[...path].js";
+import { sealSession } from "../api/_lib/lumos_session.js";
 
 const BOUNDARY = "----lumos-proxy-multipart-test";
 const AUDIO = Buffer.from([0x1a, 0x45, 0xdf, 0xa3]);
@@ -130,14 +132,17 @@ test("applyForwardBody sets body and matching content-length", () => {
   assert.equal(init.headers["content-length"], String(body.length));
 });
 
-test("bridge proxy path allowlist only accepts supported single-segment routes", () => {
+test("bridge proxy path allowlist only accepts supported routes", () => {
   assert.equal(isAllowedBridgePath(["task"]), true);
   assert.equal(isAllowedBridgePath(["chat"]), true);
   assert.equal(isAllowedBridgePath(["last-result"]), true);
   assert.equal(isAllowedBridgePath(["controlled"]), true);
   assert.equal(isAllowedBridgePath(["transcribe"]), true);
-  assert.equal(isAllowedBridgePath(["health"]), false);
+  assert.equal(isAllowedBridgePath(["health"]), true);
+  assert.equal(isAllowedBridgePath(["status"]), true);
+  assert.equal(isAllowedBridgePath(["panel", "upload"]), true);
   assert.equal(isAllowedBridgePath(["task", "extra"]), false);
+  assert.equal(isAllowedBridgePath(["admin", "delete"]), false);
   assert.equal(isAllowedBridgePath([]), false);
 });
 
@@ -172,6 +177,45 @@ test("bridge proxy caller auth accepts header or cookie token", () => {
   );
 });
 
+test("bridge proxy accepts only an allowlisted sealed Lumos session", () => {
+  process.env.LUMOS_AUTH_STATE_SECRET = "test-only-secret-32-characters-minimum";
+  process.env.LUMOS_BRIDGE_ALLOWED_LUMOS_IDS = "lumos_allowed";
+  try {
+    const sealed = sealSession({
+      sid: "session-test",
+      lumos_id: "lumos_allowed",
+      email: "user@example.invalid",
+      exp: Math.floor(Date.now() / 1000) + 60,
+    });
+    assert.equal(
+      isAuthenticatedLumosSession({
+        headers: { cookie: `lumos_session=${sealed}` },
+      }),
+      true,
+    );
+    const denied = sealSession({
+      sid: "session-denied",
+      lumos_id: "lumos_not_allowed",
+      exp: Math.floor(Date.now() / 1000) + 60,
+    });
+    assert.equal(
+      isAuthenticatedLumosSession({
+        headers: { cookie: `lumos_session=${denied}` },
+      }),
+      false,
+    );
+    assert.equal(
+      isAuthenticatedLumosSession({
+        headers: { cookie: "lumos_session=invalid" },
+      }),
+      false,
+    );
+  } finally {
+    delete process.env.LUMOS_AUTH_STATE_SECRET;
+    delete process.env.LUMOS_BRIDGE_ALLOWED_LUMOS_IDS;
+  }
+});
+
 test("handler rejects disallowed bridge paths before upstream fetch", async () => {
   process.env.BRIDGE_UPSTREAM_URL = "http://127.0.0.1:8765";
   process.env.KANDO_BRIDGE_SECRET = "test-secret";
@@ -188,8 +232,8 @@ test("handler rejects disallowed bridge paths before upstream fetch", async () =
     await handler(
       {
         method: "GET",
-        url: "/api/bridge/health",
-        query: { path: ["health"] },
+        url: "/api/bridge/admin/delete",
+        query: { path: ["admin", "delete"] },
         headers: { "x-lumos-bridge-auth": "proxy-auth-token" },
       },
       res,
@@ -273,8 +317,8 @@ test("handler keeps proxy closed when proxy auth env is not configured", async (
   }
 });
 
-test("handler forwards multipart bytes to upstream fetch mock", async () => {
-  const upstreamBase = "http://127.0.0.1:8765";
+test("handler forwards multipart bytes and skips the ngrok browser interstitial", async () => {
+  const upstreamBase = "https://demo.ngrok-free.dev";
   const secret = "test-secret";
   const proxyAuth = "proxy-auth-token";
   const body = buildMultipartBody();
@@ -327,6 +371,7 @@ test("handler forwards multipart bytes to upstream fetch mock", async () => {
     assert.equal(captured.init.headers["content-type"], contentType);
     assert.equal(captured.init.headers["content-length"], String(body.length));
     assert.equal(captured.init.headers["X-Kando-Token"], secret);
+    assert.equal(captured.init.headers["ngrok-skip-browser-warning"], "1");
     assert.deepEqual(Buffer.from(captured.init.body), body);
     assert.equal(res.statusCode, 503);
     const payload = JSON.parse(Buffer.from(res.payload).toString("utf8"));

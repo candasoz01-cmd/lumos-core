@@ -25,14 +25,15 @@ Vercel proje ayarları → **Environment Variables** (Production / Preview / Dev
 | `BRIDGE_UPSTREAM_URL` | Evet (köprü için) | `https://<tunnel-host>` | Sondaki `/` yok; `http://127.0.0.1:8765` yalnızca `vercel dev` + yerel köprü |
 | `KANDO_BRIDGE_SECRET` | Evet (köprü için) | *(gizli — repoya yazmayın)* | Köprü ile aynı değer |
 | `LUMOS_BRIDGE_PROXY_AUTH_TOKEN` | Evet (proxy auth) | *(gizli — repoya yazmayın)* | Public `/api/bridge/*` caller auth; `KANDO_BRIDGE_SECRET` ile aynı olmak zorunda değil |
+| `LUMOS_BRIDGE_ALLOWED_LUMOS_IDS` | Panel oturumu için | `lumos_abc,lumos_xyz` | Google oturumuyla köprü kullanabilen Lumos ID allowlist'i |
 
 **Asla** `PUBLIC_*` veya client bundle'a koymayın. Şablon: [`.env.example`](../.env.example).
 
-Caller auth iki yoldan kabul edilir:
+Caller auth iki kontrollü yoldan kabul edilir:
 - `X-Lumos-Bridge-Auth: <LUMOS_BRIDGE_PROXY_AUTH_TOKEN>` header
-- `lumos_bridge_proxy_auth=<LUMOS_BRIDGE_PROXY_AUTH_TOKEN>` cookie
+- `LUMOS_BRIDGE_ALLOWED_LUMOS_IDS` içinde bulunan mühürlü Lumos oturumu
 
-Prod panel için tercih edilen yol, auth katmanının HTTP-only cookie set etmesidir. Header yolu smoke / operatör testi içindir.
+Paylaşımlı proxy token Google oturum çerezine yazılmaz. Header yolu smoke / operatör testi, Lumos ID allowlist'i prod panel içindir.
 
 ---
 
