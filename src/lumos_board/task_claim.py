@@ -354,12 +354,18 @@ class TaskClaimStore:
             if override_token and not conflicts:
                 raise ClaimError("override yalnız aktif conflict için kullanılabilir")
             if conflicts and override_token:
-                if len(conflicts) != 1:
+                # Override yalnız ACTIVE lease'i devralır; QUEUED yer
+                # tutucular ayrı approval gerektirmez, sıralarını koruyup
+                # yeni sahibin arkasında beklemeye devam ederler.
+                active_conflicts = [
+                    item for item in conflicts if item.status is ClaimStatus.ACTIVE
+                ]
+                if len(active_conflicts) != 1:
                     raise ClaimError("tek approval birden fazla claim'i override edemez")
                 if self._override_verifier is None:
                     raise ClaimError("override verifier yapılandırılmamış")
                 reason = _clean_text(override_reason or "", "override_reason")
-                conflict = conflicts[0]
+                conflict = active_conflicts[0]
                 approval = self._override_verifier.verify(
                     override_token,
                     task_id=task_id,

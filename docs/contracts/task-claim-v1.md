@@ -25,7 +25,7 @@ Lumos Board yalnız durum panosu değildir. Yazma işi başlamadan önce sahipli
 7. Release, heartbeat ve PR eşleme yalnız kayıt sahibi tarafından yapılır.
 8. Manual override için görev, eski owner, yeni owner, gerekçe ve süreye bağlı HMAC-SHA256 imzalı approval token zorunludur. Override, devirle (`parent_claim_id`) aynı istekte birleştirilemez.
 9. Approver fail-closed registry allowlist'inde etkin ve süresi geçmemiş olmalı; eski veya yeni owner kendini onaylayamaz.
-10. Override audit kaydı approver kimliği, approval kimliği, doğrulama yöntemi, doğrulama zamanı ve gerekçeyi içerir. Başarılı override sonucunda çağıran engellenmiş sayılmaz (`accepted: true`, boş çakışma listesi); override edilen kayıt ayrıca `overridden` alanında izlenir.
+10. Override audit kaydı approver kimliği, approval kimliği, doğrulama yöntemi, doğrulama zamanı ve gerekçeyi içerir. Başarılı override sonucunda çağıran engellenmiş sayılmaz (`accepted: true`, boş çakışma listesi); override edilen kayıt ayrıca `overridden` alanında izlenir. Override yalnız ACTIVE lease'i kapatır; QUEUED bekleyenler ayrı approval gerektirmez, sıralarını koruyup yeni sahibin arkasında beklemeye devam eder.
 11. Acquire, queue, heartbeat, expiry, release, override, promotion ve PR eşleme olayları append-only audit kaydına yazılır. Audit olayı yalnız durum başarıyla kalıcılaştığında yazılır; geri alınan işlem audit izi bırakmaz.
 12. `QUEUED` kayıtlar yer tutar: sonraki claim'ler kuyruktakileri de engel olarak görür. Engeli kalkan kuyruk kaydı sıra düzeninde (`started_at`) otomatik `ACTIVE` olur ve `CLAIM_PROMOTED` olayı yazılır.
 13. Bozuk claim veya approver registry verisi fail-closed davranır; güvenilmeyen durumun üstüne yazılmaz.

@@ -561,3 +561,30 @@ def test_multiple_queued_claims_promote_together_without_error(tmp_path: Path) -
     states = {claim.task_id: claim.status for claim in store.list_claims(include_closed=True)}
     assert states["KA-B"] is ClaimStatus.ACTIVE
     assert states["KA-C"] is ClaimStatus.ACTIVE
+
+
+def test_override_succeeds_with_queued_waiters_and_preserves_queue(tmp_path: Path) -> None:
+    store = TaskClaimStore(
+        tmp_path, clock=Clock(), override_verifier=_verifier(tmp_path, "security-admin")
+    )
+    active = _claim(store, task="KA-002", owner="agent-a", scope="src").claim
+    assert active is not None
+    waiter = _claim(store, task="KA-W", owner="agent-w", scope="src/w.py", queue_on_conflict=True).claim
+    assert waiter is not None and waiter.status is ClaimStatus.QUEUED
+
+    replacement = _claim(
+        store,
+        task="KA-002",
+        owner="agent-b",
+        scope="src",
+        override_token=_approval_token(),
+        override_reason="owner unavailable",
+    )
+
+    assert replacement.accepted is True
+    states = {claim.task_id: claim.status for claim in store.list_claims(include_closed=True)}
+    assert states["KA-002"] is ClaimStatus.ACTIVE or ClaimStatus.OVERRIDDEN
+    by_id = {claim.claim_id: claim.status for claim in store.list_claims(include_closed=True)}
+    assert by_id[active.claim_id] is ClaimStatus.OVERRIDDEN
+    assert by_id[waiter.claim_id] is ClaimStatus.QUEUED
+    assert replacement.claim is not None and by_id[replacement.claim.claim_id] is ClaimStatus.ACTIVE
