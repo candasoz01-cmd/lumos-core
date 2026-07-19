@@ -334,9 +334,10 @@ class TaskClaimStore:
                 task_id=task_id,
                 repo=repo,
                 scopes=normalized_scopes,
-                ignored_claim_id=parent.claim_id if parent else None,
+                parent_claim_id=parent.claim_id if parent else None,
             )
             conflict_records = tuple(_to_conflict(claim, task_id, normalized_scopes) for claim in conflicts)
+            overridden_claim_ids: list[str] = []
             if override_token and not conflicts:
                 raise ClaimError("override yalnız aktif conflict için kullanılabilir")
             if conflicts and override_token:
@@ -371,7 +372,11 @@ class TaskClaimStore:
                         "new_owner": owner,
                     },
                 )
+                # Başarılı override sonrası çağıran engellenmiş sayılmaz;
+                # override edilen kayıt audit'te ve details'te izlenir.
+                overridden_claim_ids = [conflict.claim_id]
                 conflicts = []
+                conflict_records = ()
             elif conflicts and not queue_on_conflict:
                 return ClaimResult(accepted=False, claim=None, conflicts=conflict_records)
 
@@ -391,12 +396,17 @@ class TaskClaimStore:
                 parent_claim_id=parent_claim_id,
             )
             claims.append(claim)
+            acquire_details: dict[str, object] = {
+                "conflicts": [item.claim_id for item in conflict_records]
+            }
+            if overridden_claim_ids:
+                acquire_details["overridden"] = overridden_claim_ids
             self._audit(
                 "CLAIM_QUEUED" if status is ClaimStatus.QUEUED else "CLAIM_ACQUIRED",
                 claim,
                 actor=owner,
                 at=now,
-                details={"conflicts": [item.claim_id for item in conflict_records]},
+                details=acquire_details,
             )
             return ClaimResult(accepted=status is ClaimStatus.ACTIVE, claim=claim, conflicts=conflict_records)
 
@@ -424,6 +434,7 @@ class TaskClaimStore:
             updated = replace(claim, status=ClaimStatus.RELEASED, closed_at=now)
             claims[claims.index(claim)] = updated
             self._audit("CLAIM_RELEASED", updated, actor=owner, at=now)
+            self._promote_queued(claims, now)
             return updated
 
     def attach_pr(self, claim_id: str, *, owner: str, pr_ref: str) -> TaskClaim:
@@ -497,6 +508,49 @@ class TaskClaimStore:
                 expired = replace(claim, status=ClaimStatus.EXPIRED, closed_at=now)
                 claims[index] = expired
                 self._audit("CLAIM_EXPIRED", expired, actor="lumos-board", at=now)
+        self._promote_queued(claims, now)
+
+    def _promote_queued(self, claims: list[TaskClaim], now: datetime) -> None:
+        """Engeli kalkan QUEUED claim'leri sıra (started_at) düzeninde aktifleştirir.
+
+        Kuyruk yer tutar: yeni bir claim, önündeki QUEUED kayıtları da engel
+        olarak görür; boşalan slotu her zaman en eski kuyruk kaydı alır.
+        """
+        queued = sorted(
+            (claim for claim in claims if claim.status is ClaimStatus.QUEUED),
+            key=lambda item: (item.started_at, item.claim_id),
+        )
+        for candidate in queued:
+            candidate_rank = (candidate.started_at, candidate.claim_id)
+            # Engel yalnız aktif kayıtlar ve sırada daha önde bekleyenlerdir;
+            # arkadaki kuyruk kayıtları öndekinin terfisini kilitleyemez.
+            visible = [
+                claim
+                for claim in claims
+                if claim.status is ClaimStatus.ACTIVE
+                or (
+                    claim.status is ClaimStatus.QUEUED
+                    and (claim.started_at, claim.claim_id) < candidate_rank
+                )
+            ]
+            blockers = _find_conflicts(
+                visible,
+                task_id=candidate.task_id,
+                repo=candidate.repo,
+                scopes=candidate.scopes,
+                parent_claim_id=candidate.parent_claim_id,
+                exclude_claim_id=candidate.claim_id,
+            )
+            if blockers:
+                continue
+            promoted = replace(
+                candidate,
+                status=ClaimStatus.ACTIVE,
+                heartbeat_at=now,
+                expires_at=now + (candidate.expires_at - candidate.started_at),
+            )
+            claims[claims.index(candidate)] = promoted
+            self._audit("CLAIM_PROMOTED", promoted, actor=promoted.owner, at=now)
 
     def _audit(
         self,
@@ -584,13 +638,23 @@ def _find_conflicts(
     task_id: str,
     repo: str,
     scopes: Sequence[str],
-    ignored_claim_id: str | None,
+    parent_claim_id: str | None,
+    exclude_claim_id: str | None = None,
 ) -> list[TaskClaim]:
     conflicts: list[TaskClaim] = []
     for claim in claims:
-        if claim.status is not ClaimStatus.ACTIVE or claim.repo != repo or claim.claim_id == ignored_claim_id:
+        # QUEUED kayıtlar da yer tutar: kuyruktaki ajan sırasını kaybetmez.
+        if claim.status not in {ClaimStatus.ACTIVE, ClaimStatus.QUEUED} or claim.repo != repo:
+            continue
+        if claim.claim_id == exclude_claim_id:
             continue
         duplicate_task = claim.task_id == task_id
+        if claim.claim_id == parent_claim_id:
+            # Devir, parent kapsamı İÇİNDE çalışmaya izin verir; aynı görev
+            # kimliğinin ikinci kez aktifleşmesine izin vermez.
+            if duplicate_task:
+                conflicts.append(claim)
+            continue
         scope_collision = any(_scope_overlap(left, right) for left in scopes for right in claim.scopes)
         if duplicate_task or scope_collision:
             conflicts.append(claim)

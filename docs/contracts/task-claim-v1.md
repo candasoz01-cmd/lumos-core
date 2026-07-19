@@ -20,14 +20,15 @@ Lumos Board yalnız durum panosu değildir. Yazma işi başlamadan önce sahipli
 2. Eşit veya üst-alt dizin ilişkili kapsamlar `SCOPE_CONFLICT` üretir.
 3. Claim kontrolü ve kayıt tek işletim sistemi dosya kilidi altında yapılır.
 4. Çakışan iş doğrudan başlayamaz; reddedilir, `QUEUED` olur veya mevcut sahibin alt görevi olarak bağlanır.
-5. Alt görev kapsamı parent claim içinde kalır ve yalnız parent sahibi tarafından devredilir.
+5. Alt görev kapsamı parent claim içinde kalır ve yalnız parent sahibi tarafından devredilir. Alt görev **kendi görev kimliğini** taşır; parent'ın görev kimliği devirle ikinci kez aktifleşemez (`DUPLICATE_TASK`).
 6. Heartbeat lease süresini uzatır. TTL dolunca aktif claim `EXPIRED` olur ve kapsam yeniden alınabilir.
 7. Release, heartbeat ve PR eşleme yalnız kayıt sahibi tarafından yapılır.
 8. Manual override için görev, eski owner, yeni owner, gerekçe ve süreye bağlı HMAC-SHA256 imzalı approval token zorunludur.
 9. Approver fail-closed registry allowlist'inde etkin ve süresi geçmemiş olmalı; eski veya yeni owner kendini onaylayamaz.
-10. Override audit kaydı approver kimliği, approval kimliği, doğrulama yöntemi, doğrulama zamanı ve gerekçeyi içerir.
-11. Acquire, queue, heartbeat, expiry, release, override ve PR eşleme olayları append-only audit kaydına yazılır.
-12. Bozuk claim veya approver registry verisi fail-closed davranır; güvenilmeyen durumun üstüne yazılmaz.
+10. Override audit kaydı approver kimliği, approval kimliği, doğrulama yöntemi, doğrulama zamanı ve gerekçeyi içerir. Başarılı override sonucunda çağıran engellenmiş sayılmaz (`accepted: true`, boş çakışma listesi); override edilen kayıt ayrıca `overridden` alanında izlenir.
+11. Acquire, queue, heartbeat, expiry, release, override, promotion ve PR eşleme olayları append-only audit kaydına yazılır. Audit olayı yalnız durum başarıyla kalıcılaştığında yazılır; geri alınan işlem audit izi bırakmaz.
+12. `QUEUED` kayıtlar yer tutar: sonraki claim'ler kuyruktakileri de engel olarak görür. Engeli kalkan kuyruk kaydı sıra düzeninde (`started_at`) otomatik `ACTIVE` olur ve `CLAIM_PROMOTED` olayı yazılır.
+13. Bozuk claim veya approver registry verisi fail-closed davranır; güvenilmeyen durumun üstüne yazılmaz.
 
 ## Kalıcılık
 

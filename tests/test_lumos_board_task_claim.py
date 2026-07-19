@@ -410,3 +410,68 @@ def test_cli_returns_conflict_exit_code_and_json(tmp_path: Path, capsys: pytest.
 
     assert payload["accepted"] is False
     assert payload["conflicts"][0]["reason"] == "DUPLICATE_TASK"
+
+
+def test_delegated_child_cannot_reactivate_parent_task_id(tmp_path: Path) -> None:
+    store = TaskClaimStore(tmp_path)
+    parent = _claim(store, task="KA-002", owner="lead", scope="src/lumos_board").claim
+    assert parent is not None
+
+    duplicate = _claim(
+        store,
+        task="KA-002",
+        owner="worker",
+        scope="src/lumos_board/task_claim.py",
+        parent_claim_id=parent.claim_id,
+        delegated_by="lead",
+    )
+
+    assert duplicate.accepted is False
+    assert duplicate.claim is None
+    assert [conflict.reason for conflict in duplicate.conflicts] == ["DUPLICATE_TASK"]
+
+
+def test_override_result_reports_no_blocking_conflicts(tmp_path: Path) -> None:
+    store = TaskClaimStore(
+        tmp_path, clock=Clock(), override_verifier=_verifier(tmp_path, "security-admin")
+    )
+    original = _claim(store, task="KA-002", owner="agent-a", scope="src").claim
+    assert original is not None
+
+    replacement = _claim(
+        store,
+        task="KA-002",
+        owner="agent-b",
+        scope="src",
+        override_token=_approval_token(),
+        override_reason="owner unavailable",
+    )
+
+    assert replacement.accepted is True
+    assert replacement.conflicts == ()
+    acquired = next(
+        event
+        for event in _events(store.audit_path)
+        if event["event"] == "CLAIM_ACQUIRED" and event["owner"] == "agent-b"
+    )
+    assert acquired["details"]["overridden"] == [original.claim_id]
+
+
+def test_queue_reserves_place_and_promotes_oldest_first(tmp_path: Path) -> None:
+    store = TaskClaimStore(tmp_path)
+    first = _claim(store, task="KA-A", owner="agent-a", scope="src").claim
+    assert first is not None
+    second = _claim(store, task="KA-B", owner="agent-b", scope="src", queue_on_conflict=True)
+    third = _claim(store, task="KA-C", owner="agent-c", scope="src", queue_on_conflict=True)
+    assert second.claim is not None and second.claim.status is ClaimStatus.QUEUED
+    assert third.claim is not None and third.claim.status is ClaimStatus.QUEUED
+
+    jumper = _claim(store, task="KA-D", owner="agent-d", scope="src")
+    assert jumper.accepted is False
+
+    store.release(first.claim_id, owner="agent-a")
+    by_task = {claim.task_id: claim for claim in store.list_claims()}
+    assert by_task["KA-B"].status is ClaimStatus.ACTIVE
+    assert by_task["KA-C"].status is ClaimStatus.QUEUED
+    promoted = next(event for event in _events(store.audit_path) if event["event"] == "CLAIM_PROMOTED")
+    assert promoted["owner"] == "agent-b"
