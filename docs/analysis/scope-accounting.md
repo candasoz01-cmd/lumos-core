@@ -5,8 +5,8 @@
 | Alan | Değer |
 | --- | --- |
 | Belge türü | Operasyonel kapsam ve kanıt kaydı |
-| Tarih | 2026-07-18 |
-| Repo kanıtı | `main` @ `ecf165ff9f72b9ee1ef74acaef0aea14c28f1c33` |
+| Tarih | 2026-07-18 (KA-001 kanıt güncellemesi: 2026-07-19) |
+| Repo kanıtı | `main` @ `e3a695ded566f15f04dede330924a229d5f02cda` |
 | Kapsam | Lumos Orkestratör, ortak durum, onay, entegrasyon ve veri egemenliği için ilk 10 açık alan |
 | Sınır | Bu belge P0/P1 triage, release blocker veya Karar Duvarı yerine geçmez |
 
@@ -47,7 +47,7 @@ Ana durum, **bütün kapsam için kanıtlanan en ileri basamaktır**. “Parça 
 
 | ID | Kapsam | Ana durum | Parça kanıtı | Bir sonraki geçiş koşulu |
 | --- | --- | --- | --- | --- |
-| KA-001 | Çalışan ajanların ortak görünürlüğü | **KARAR** | Lumos Board taksonomisinde `Agent Status` kabul edildi; `agent_status_{job_id}.json` yalnız yerel iş sonucu üretir | Ortak, tipli Agent Status deposu; çapraz-araç okuma; sahiplik/çakışma testi; commit/PR/test |
+| KA-001 | Çalışan ajanların ortak görünürlüğü | **KARAR** | Lumos Board taksonomisinde `Agent Status` kabul edildi; `agent_status_{job_id}.json` yalnız yerel iş sonucu üretir; PR #630 (draft) tipli v1 sözleşmesi + salt-okunur okuyucu + sahiplik/çakışma testlerini ekler (`docs/contracts/agent-status-v1.md`, `src/core/agent_status_contract.py`) — merge edilmediği ve ortak depo/çapraz-araç okuma kanıtı olmadığı için ana durumu yükseltmez | Ortak, tipli Agent Status deposu; çapraz-araç okuma; PR #630 merge + gerçek çok-yazarlı kanıt |
 | KA-002 | Tek görev/ajan koordinatörü | **FİKİR** | Brain tek ürün içi akışı orkestre eder; birleşik çok-ajan koordinatörü değildir | Agent Network genel inşa kararı + güvenlik bağımlılıkları + dar teknik sözleşme |
 | KA-003 | Karar → ajan → commit → PR → canlı iz zinciri | **KARAR** | Evidence continuity ve agent-result kayıtları bazı adımları taşır; uçtan uca PR/deploy/validation zinciri yok | Tek correlation kimliğiyle bütün halkaları bağlayan uygulama ve kopuk-halka testleri |
 | KA-004 | Tüm entegrasyonlarda ortak onay sözleşmesi | **KARAR** | Birçok provider `approval_required` / `awaiting_credentials` uygular; birleşik süre, iptal ve eski izin denetimi yok | Ortak sözleşme, adapter uyumluluk matrisi ve entegrasyonlar arası sözleşme testleri |
@@ -79,4 +79,4 @@ Ana durum, **bütün kapsam için kanıtlanan en ileri basamaktır**. “Parça 
 
 ## İlk tek hedef
 
-**KA-001 — ortak ajan görünürlüğü.** Sonraki uygulama turu, yeni bir mesajlaşma sistemi kurmadan, Lumos Board için tipli `Agent Status` sözleşmesini ve salt-okunur ortak görünürlük dilimini tanımlamalıdır. Bu belge o uygulamanın kendisi değildir; yalnız durum ve geçiş kanıtını sabitler.
+**KA-001 — ortak ajan görünürlüğü.** İlk dilim (tipli `Agent Status` v1 sözleşmesi + salt-okunur okuyucu, yeni mesajlaşma sistemi kurulmadan) PR #630 olarak açıldı (2026-07-19, draft). Sıradaki uygulama turu: PR #630 merge'ü, ardından ortak depo ve çapraz-araç okuma kanıtı. Bu belge o uygulamanın kendisi değildir; yalnız durum ve geçiş kanıtını sabitler.
