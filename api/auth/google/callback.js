@@ -15,9 +15,11 @@ import {
   stateMatchesCookie,
   verifyState,
 } from "../../_lib/lumos_session.js";
+import { captureError, captureSecurityEvent, logEvent } from "../../_lib/observability.js";
 
 const TOKEN = "https://oauth2.googleapis.com/token";
 const USERINFO = "https://openidconnect.googleapis.com/v1/userinfo";
+const ROUTE = "google_callback";
 
 // Bu uç yalnızca Google'ın tam sayfa yönlendirmesiyle tarayıcıdan çağrılır
 // (fetch/XHR ile değil) — bu yüzden her hata dalı ham JSON yerine kullanıcının
@@ -42,6 +44,8 @@ export default async function handler(req, res) {
   const state = url.searchParams.get("state");
 
   if (err) {
+    // Google tarafı ret/iptal — kullanıcı akışı, güvenlik olayı değil.
+    logEvent("oauth.callback.provider_error", { route: ROUTE, errorCode: err });
     redirectAuthError(res, err);
     return;
   }
@@ -54,11 +58,14 @@ export default async function handler(req, res) {
     const cookieState = readCookie(req, STATE_COOKIE);
     stateOk = verifyState(state) && stateMatchesCookie(state, cookieState);
   } catch {
+    await captureError(new Error("auth_not_configured"), { route: ROUTE, errorCode: "auth_not_configured" });
     redirectAuthError(res, "auth_not_configured");
     return;
   }
   if (!stateOk) {
-    // State uyuşmazlığı — secret/state değeri yanıta yazılmaz
+    // State uyuşmazlığı — secret/state değeri yanıta yazılmaz.
+    // Güvenlik olayı: CSRF denemesi veya süresi dolmuş/tekrar kullanılan link olabilir.
+    await captureSecurityEvent("invalid_state", { route: ROUTE });
     redirectAuthError(res, "invalid_state");
     return;
   }
@@ -67,6 +74,10 @@ export default async function handler(req, res) {
   const clientSecret = (process.env.LUMOS_GOOGLE_WEB_CLIENT_SECRET || "").trim();
   const cb = redirectUri();
   if (!clientId || !clientSecret || !code) {
+    await captureError(new Error("missing_credentials_or_code"), {
+      route: ROUTE,
+      errorCode: "missing_credentials_or_code",
+    });
     redirectAuthError(res, "missing_credentials_or_code");
     return;
   }
@@ -84,12 +95,18 @@ export default async function handler(req, res) {
     body,
   });
   if (!tokenRes.ok) {
+    await captureError(new Error("token_http_error"), {
+      route: ROUTE,
+      errorCode: "token_http_error",
+      upstreamStatus: tokenRes.status,
+    });
     redirectAuthError(res, "token_http_error");
     return;
   }
   const tok = await tokenRes.json();
   const access = tok.access_token;
   if (!access) {
+    await captureError(new Error("no_access_token"), { route: ROUTE, errorCode: "no_access_token" });
     redirectAuthError(res, "no_access_token");
     return;
   }
@@ -99,6 +116,11 @@ export default async function handler(req, res) {
   });
   // Google access_token burada düşer — saklanmaz
   if (!infoRes.ok) {
+    await captureError(new Error("userinfo_http_error"), {
+      route: ROUTE,
+      errorCode: "userinfo_http_error",
+      upstreamStatus: infoRes.status,
+    });
     redirectAuthError(res, "userinfo_http_error");
     return;
   }
@@ -106,6 +128,10 @@ export default async function handler(req, res) {
   const now = Math.floor(Date.now() / 1000);
   const lumosId = lumosIdForProviderIdentity("google_web", info.sub);
   if (!lumosId) {
+    await captureError(new Error("identity_subject_missing"), {
+      route: ROUTE,
+      errorCode: "identity_subject_missing",
+    });
     redirectAuthError(res, "identity_subject_missing");
     return;
   }
@@ -125,6 +151,7 @@ export default async function handler(req, res) {
       exp: now + 604800,
     });
   } catch {
+    await captureError(new Error("auth_not_configured"), { route: ROUTE, errorCode: "auth_not_configured" });
     redirectAuthError(res, "auth_not_configured");
     return;
   }
@@ -135,4 +162,5 @@ export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Location", "/panel?source=google_web&door=lumos");
   res.end();
+  logEvent("oauth.callback.success", { route: ROUTE, provider: "google_web", lumosId });
 }

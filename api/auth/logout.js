@@ -5,6 +5,7 @@ import {
   clearBridgeProxyCookieHeader,
   clearSessionCookieHeader,
 } from "../_lib/lumos_session.js";
+import { logEvent } from "../_lib/observability.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST" && req.method !== "GET") {
@@ -21,9 +22,11 @@ export default async function handler(req, res) {
     res.statusCode = 302;
     res.setHeader("Location", "/auth?logged_out=1");
     res.end();
+    logEvent("oauth.logout", { route: "auth_logout", method: "GET" });
     return;
   }
   res.statusCode = 200;
   res.setHeader("Content-Type", "application/json");
   res.end(JSON.stringify({ ok: true, logged_out: true }));
+  logEvent("oauth.logout", { route: "auth_logout", method: "POST" });
 }
