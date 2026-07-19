@@ -5,7 +5,7 @@
 | Durum | **Karar destek — foundation**; uygulama bekliyor |
 | Tarih | 2026-07-13 |
 | Hedef | Lumos Bank · Lumos Sepet · Lumos POS · Lumos Dünya ve ülke sistemleri entegrasyonu için sistemli sınır, aşama ve risk çerçevesi |
-| Canonical karar | [`ADR-015`](../decisions/ADR-015-regulated-service-entity-boundaries.md) |
+| Canonical karar | [`ADR-017`](../decisions/ADR-017-regulated-service-entity-boundaries.md) |
 | Üst sınır | [`lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md), [`payment-scope-decision.md`](../memory/payment-scope-decision.md) |
 
 ## 1. Niyet

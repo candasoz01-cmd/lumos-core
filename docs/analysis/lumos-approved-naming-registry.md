@@ -194,7 +194,7 @@ Kullanıcı yönüyle aşağıdaki çalışma adları **mimari ve karar belgeler
 
 **Kaldırılan ad:** **Lumos Devlet** — public marka, kuruluş birimi veya ürün yüzeyi olarak kullanılmaz. Ad; resmî otorite/egemenlik, kamu adına karar verme, mevcut sistemlere genel müdahale ve ülkelere tek kalıp dayatma algısı oluşturabileceği için kaldırılmıştır. Bu algılar Lumos'un insan odaklı hizmet, son kararın kullanıcıda kalması ve ülkeye özgü sözleşmeli entegrasyon ilkeleriyle çelişir. Küresel yüzey **Lumos Dünya**; ülke sistemleri bağlantısı markasız teknik entegrasyon katmanıdır.
 
-**Zorunlu ifade sınırı:** Lumos bugün banka, PSP, ödeme kuruluşu veya devlet/kamu otoritesi olarak tanıtılmaz. Canonical sorumluluk ayrımı: [`ADR-015`](../decisions/ADR-015-regulated-service-entity-boundaries.md); kanıt ve aşama modeli: [`lumos-institutional-service-foundation.md`](./lumos-institutional-service-foundation.md).
+**Zorunlu ifade sınırı:** Lumos bugün banka, PSP, ödeme kuruluşu veya devlet/kamu otoritesi olarak tanıtılmaz. Canonical sorumluluk ayrımı: [`ADR-017`](../decisions/ADR-017-regulated-service-entity-boundaries.md); kanıt ve aşama modeli: [`lumos-institutional-service-foundation.md`](./lumos-institutional-service-foundation.md).
 
 **Çapraz:** NA-03, NA-05 — [`todo-fixme-sweep-report.md`](./todo-fixme-sweep-report.md); P1-03 / P1-04 — [`INTERNAL_ALPHA_OPERATIONS.md`](../INTERNAL_ALPHA_OPERATIONS.md).
 

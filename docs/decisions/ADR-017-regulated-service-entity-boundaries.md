@@ -1,4 +1,4 @@
-# ADR-015: Düzenlemeye Tabi Hizmet Kuruluşu Sınırları
+# ADR-017: Düzenlemeye Tabi Hizmet Kuruluşu Sınırları
 
 | Alan | Değer |
 |------|-------|

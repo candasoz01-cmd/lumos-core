@@ -23,7 +23,7 @@ Bu belge:
 
 **Uygulama notu:** İlke kararları onaylandı; kod, test, panel, bridge, ödeme entegrasyonu, sağlayıcı seçimi, banka/PSP kurulumu veya credential/endpoint tanımı **henüz başlamadı**.
 
-**Kuruluş yönü notu (2026-07-13):** [`ADR-015`](../decisions/ADR-015-regulated-service-entity-boundaries.md), Lumos Bank / Lumos Sepet / Lumos POS sorumluluk sınırlarını Lumos Dünya ve markasız Ülke Sistemleri Entegrasyon Katmanı'ndan ayırır. Eski Lumos Devlet adı kaldırılmıştır. Bu yön OD-011'i gevşetmez; banka/PSP/merchant/checkout/settlement ve gerçek ülke sistemi bağlantısı yine `implementation-pending` ve düzenleme kapılıdır.
+**Kuruluş yönü notu (2026-07-13):** [`ADR-017`](../decisions/ADR-017-regulated-service-entity-boundaries.md), Lumos Bank / Lumos Sepet / Lumos POS sorumluluk sınırlarını Lumos Dünya ve markasız Ülke Sistemleri Entegrasyon Katmanı'ndan ayırır. Eski Lumos Devlet adı kaldırılmıştır. Bu yön OD-011'i gevşetmez; banka/PSP/merchant/checkout/settlement ve gerçek ülke sistemi bağlantısı yine `implementation-pending` ve düzenleme kapılıdır.
 
 ---
 
