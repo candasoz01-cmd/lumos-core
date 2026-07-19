@@ -524,3 +524,25 @@ def test_parent_closure_cascades_to_children(tmp_path: Path) -> None:
 
     reclaimed = _claim(store, task="KA-N", owner="agent-x", scope="src/lumos_board/task_claim.py")
     assert reclaimed.accepted is True
+
+
+def test_delegation_cannot_be_combined_with_override(tmp_path: Path) -> None:
+    store = TaskClaimStore(
+        tmp_path, clock=Clock(), override_verifier=_verifier(tmp_path, "security-admin")
+    )
+    parent = _claim(store, task="KA-002", owner="agent-a", scope="src").claim
+    assert parent is not None
+
+    with pytest.raises(ClaimError, match="birleştirilemez"):
+        _claim(
+            store,
+            task="KA-002",
+            owner="agent-b",
+            scope="src/task.py",
+            parent_claim_id=parent.claim_id,
+            delegated_by="agent-a",
+            override_token=_approval_token(),
+            override_reason="owner unavailable",
+        )
+
+    assert store.list_claims()[0].claim_id == parent.claim_id

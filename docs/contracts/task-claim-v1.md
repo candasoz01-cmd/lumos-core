@@ -23,7 +23,7 @@ Lumos Board yalnız durum panosu değildir. Yazma işi başlamadan önce sahipli
 5. Alt görev kapsamı parent claim içinde kalır ve yalnız parent sahibi tarafından devredilir. Alt görev **kendi görev kimliğini** taşır; parent'ın görev kimliği devirle ikinci kez aktifleşemez (`DUPLICATE_TASK`). Parent kapanınca (release/expiry/override) ACTIVE/QUEUED alt-claim'ler kaskadla kapanır (`reason: parent_closed`); öksüz alt-claim kapsam tutmaya devam edemez.
 6. Heartbeat lease süresini uzatır. TTL dolunca aktif claim `EXPIRED` olur ve kapsam yeniden alınabilir.
 7. Release, heartbeat ve PR eşleme yalnız kayıt sahibi tarafından yapılır.
-8. Manual override için görev, eski owner, yeni owner, gerekçe ve süreye bağlı HMAC-SHA256 imzalı approval token zorunludur.
+8. Manual override için görev, eski owner, yeni owner, gerekçe ve süreye bağlı HMAC-SHA256 imzalı approval token zorunludur. Override, devirle (`parent_claim_id`) aynı istekte birleştirilemez.
 9. Approver fail-closed registry allowlist'inde etkin ve süresi geçmemiş olmalı; eski veya yeni owner kendini onaylayamaz.
 10. Override audit kaydı approver kimliği, approval kimliği, doğrulama yöntemi, doğrulama zamanı ve gerekçeyi içerir. Başarılı override sonucunda çağıran engellenmiş sayılmaz (`accepted: true`, boş çakışma listesi); override edilen kayıt ayrıca `overridden` alanında izlenir.
 11. Acquire, queue, heartbeat, expiry, release, override, promotion ve PR eşleme olayları append-only audit kaydına yazılır. Audit olayı yalnız durum başarıyla kalıcılaştığında yazılır; geri alınan işlem audit izi bırakmaz.

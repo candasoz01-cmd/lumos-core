@@ -316,6 +316,11 @@ class TaskClaimStore:
             raise ClaimError("ttl_seconds sıfırdan büyük olmalı")
         if bool(override_token) != bool(override_reason):
             raise ClaimError("override için signed token ve reason birlikte zorunlu")
+        # Devir kooperatif alt-claim, override insan-onaylı devralmadır;
+        # birleşirse çocuk kendi parent'ını override edip aktif öksüz
+        # kalabilir. İki mekanizma aynı istekte kullanılamaz.
+        if parent_claim_id and override_token:
+            raise ClaimError("devir (parent_claim_id) ve override aynı istekte birleştirilemez")
 
         with self._locked_state() as claims:
             now = self._now()
