@@ -6,6 +6,8 @@ import json
 import sys
 from pathlib import Path
 
+from tests.test_panel_component_split import read_panel_source
+
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _SRC = _REPO_ROOT / "src"
 if str(_SRC) not in sys.path:
@@ -79,7 +81,7 @@ def test_lumos_confirm_request_handler_wiring() -> None:
 
 
 def test_panel_astro_confirmation_wiring() -> None:
-    text = (_REPO_ROOT / "ui" / "src" / "pages" / "panel.astro").read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in (
         "lumos-confirm-dialog",
         "panelEnsureMutationConfirmation",

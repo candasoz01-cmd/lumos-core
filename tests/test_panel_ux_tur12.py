@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from tests.test_panel_component_split import read_panel_source
+
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _PANEL_ASTRO = _REPO_ROOT / "ui" / "src" / "pages" / "panel.astro"
 _PANEL_TR = _REPO_ROOT / "ui" / "src" / "i18n" / "messages" / "panel" / "tr.ts"
@@ -32,7 +34,7 @@ PANEL_UX_TUR12_1_I18N_KEYS = (
 
 
 def test_panel_ux_tur12_1_bubble_copy_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_UX_TUR12_1_MARKERS:
         assert token in text, f"missing tur12-1 token: {token}"
 
@@ -56,7 +58,7 @@ PANEL_UX_TUR12_2_MARKERS = (
 
 
 def test_panel_ux_tur12_2_mobile_compose_scroll_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_UX_TUR12_2_MARKERS:
         assert token in text, f"missing tur12-2 token: {token}"
 
@@ -71,6 +73,6 @@ PANEL_UX_TUR12_3_MARKERS = (
 
 
 def test_panel_ux_tur12_3_module_focus_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_UX_TUR12_3_MARKERS:
         assert token in text, f"missing tur12-3 token: {token}"
