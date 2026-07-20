@@ -2,6 +2,13 @@
 
 # Lumos çalışma düzeni
 
+**Her ajanın (Claude, Cursor, Codex, ...) ilk adımı:** önce
+[`docs/CONSTITUTION.md`](docs/CONSTITUTION.md)'yi oku. Roadmap ve çekirdek
+belgeler (`docs/ROADMAP.md`, `docs/MODULES.md`, `docs/TECHNICAL_DEBT.md`)
+canonical kaynaktır; başka repoda kopyaları oluşturulmaz. Sana atanan kapsamın
+dışına çıkma. Bir dosyanın aynı anda yalnızca bir sahibi vardır — görev
+tamamlanana veya devredilene kadar başka ajan o dosyaya yazmaz.
+
 Bu repoda yazma işi başlamadan önce Lumos Board üzerinde görev claim'i alınır.
 
 1. Aynı görev kimliği ve çakışan dosya kapsamları kontrol edilir.
