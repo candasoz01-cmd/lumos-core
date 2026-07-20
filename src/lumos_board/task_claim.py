@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import fcntl
 import base64
+import fcntl
 import hashlib
 import hmac
 import json
@@ -23,6 +23,9 @@ CLAIM_EVENT_SCHEMA = "lumos.task_claim_event.v1"
 APPROVER_REGISTRY_SCHEMA = "lumos.override_approver_registry.v1"
 OVERRIDE_APPROVAL_SCHEMA = "lumos.override_approval.v1"
 OVERRIDE_VERIFICATION_METHOD = "HMAC_SHA256_ALLOWLIST"
+DELEGATION_OWNER_REGISTRY_SCHEMA = "lumos.delegation_owner_registry.v1"
+DELEGATION_TOKEN_SCHEMA = "lumos.delegation_token.v1"
+DELEGATION_VERIFICATION_METHOD = "HMAC_SHA256_OWNER_ALLOWLIST"
 
 
 class ClaimStatus(str, Enum):
@@ -174,6 +177,140 @@ def sign_override_approval(
 
 
 @dataclass(frozen=True)
+class VerifiedDelegation:
+    delegation_id: str
+    parent_owner: str
+    verification_method: str
+    expires_at: datetime
+
+
+class DelegationVerifier:
+    """Verify parent-owner delegation tokens against an owner allowlist."""
+
+    def __init__(self, *, secret: bytes, owners: dict[str, datetime]) -> None:
+        if len(secret) < 32:
+            raise ClaimError("delegation secret en az 32 byte olmalı")
+        if not owners:
+            raise ClaimError("delegation owner allowlist boş olamaz")
+        self._secret = secret
+        self._owners = dict(owners)
+
+    @classmethod
+    def from_registry_file(cls, path: Path, *, secret: str) -> DelegationVerifier:
+        try:
+            payload = json.loads(Path(path).read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            raise ClaimError("delegation owner registry okunamıyor") from exc
+        if not isinstance(payload, dict) or payload.get("schema") != DELEGATION_OWNER_REGISTRY_SCHEMA:
+            raise ClaimError("delegation owner registry şeması geçersiz")
+        entries = payload.get("owners")
+        if not isinstance(entries, list):
+            raise ClaimError("delegation owner listesi geçersiz")
+        owners: dict[str, datetime] = {}
+        try:
+            for entry in entries:
+                if not isinstance(entry, dict) or entry.get("enabled") is not True:
+                    continue
+                owner_id = _required_text(entry, "owner_id")
+                if owner_id in owners:
+                    raise ClaimError("delegation owner registry tekrarlı kimlik içeriyor")
+                owners[owner_id] = _parse_time(_required_text(entry, "valid_until"))
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ClaimError("delegation owner registry kaydı geçersiz") from exc
+        return cls(secret=_clean_text(secret, "delegation secret").encode(), owners=owners)
+
+    def verify(
+        self,
+        token: str,
+        *,
+        parent_claim_id: str,
+        parent_owner: str,
+        child_owner: str,
+        child_task_id: str,
+        repo: str,
+        scopes: Sequence[str],
+        now: datetime,
+    ) -> VerifiedDelegation:
+        try:
+            encoded_payload, encoded_signature = _clean_text(token, "delegation_token").split(".", 1)
+            payload_bytes = _b64url_decode(encoded_payload)
+            signature = _b64url_decode(encoded_signature)
+            expected = hmac.new(self._secret, payload_bytes, hashlib.sha256).digest()
+            if not hmac.compare_digest(signature, expected):
+                raise ClaimError("delegation token imzası geçersiz")
+            payload = json.loads(payload_bytes)
+            if not isinstance(payload, dict) or payload.get("schema") != DELEGATION_TOKEN_SCHEMA:
+                raise ClaimError("delegation token şeması geçersiz")
+            delegation_id = _required_text(payload, "delegation_id")
+            token_owner = _required_text(payload, "parent_owner")
+            issued_at = _parse_time(_required_text(payload, "issued_at"))
+            expires_at = _parse_time(_required_text(payload, "expires_at"))
+            token_scopes = payload.get("scopes")
+            if not isinstance(token_scopes, list) or not all(isinstance(item, str) for item in token_scopes):
+                raise ClaimError("delegation token scope listesi geçersiz")
+        except ClaimError:
+            raise
+        except (KeyError, TypeError, ValueError, UnicodeError, json.JSONDecodeError) as exc:
+            raise ClaimError("delegation token geçersiz") from exc
+
+        if payload.get("verification_method") != DELEGATION_VERIFICATION_METHOD:
+            raise ClaimError("delegation doğrulama yöntemi geçersiz")
+        if issued_at > now or expires_at <= now or expires_at <= issued_at:
+            raise ClaimError("delegation token süresi geçersiz veya dolmuş")
+        allowlist_until = self._owners.get(token_owner)
+        if allowlist_until is None or allowlist_until <= now or expires_at > allowlist_until:
+            raise ClaimError("delegation owner allowlist yetkisi geçersiz")
+        expected_context: dict[str, object] = {
+            "parent_claim_id": parent_claim_id,
+            "parent_owner": parent_owner,
+            "child_owner": child_owner,
+            "child_task_id": child_task_id,
+            "repo": repo,
+            "scopes": list(scopes),
+        }
+        if any(payload.get(key) != value for key, value in expected_context.items()):
+            raise ClaimError("delegation token parent/owner bağlamı eşleşmiyor")
+        return VerifiedDelegation(
+            delegation_id=delegation_id,
+            parent_owner=token_owner,
+            verification_method=DELEGATION_VERIFICATION_METHOD,
+            expires_at=expires_at,
+        )
+
+
+def sign_delegation_token(
+    *,
+    secret: bytes,
+    delegation_id: str,
+    parent_claim_id: str,
+    parent_owner: str,
+    child_owner: str,
+    child_task_id: str,
+    repo: str,
+    scopes: Sequence[str],
+    issued_at: datetime,
+    expires_at: datetime,
+) -> str:
+    """Create a token in a trusted coordination service; the claim CLI never calls this."""
+    payload = {
+        "schema": DELEGATION_TOKEN_SCHEMA,
+        "delegation_id": _clean_text(delegation_id, "delegation_id"),
+        "verification_method": DELEGATION_VERIFICATION_METHOD,
+        "parent_claim_id": _clean_text(parent_claim_id, "parent_claim_id"),
+        "parent_owner": _clean_text(parent_owner, "parent_owner"),
+        "child_owner": _clean_text(child_owner, "child_owner"),
+        "child_task_id": _clean_text(child_task_id, "child_task_id"),
+        "repo": _clean_text(repo, "repo"),
+        "scopes": list(_normalize_scopes(scopes)),
+        "issued_at": _format_time(issued_at),
+        "expires_at": _format_time(expires_at),
+    }
+    payload_bytes = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+    signature = hmac.new(secret, payload_bytes, hashlib.sha256).digest()
+    return f"{_b64url_encode(payload_bytes)}.{_b64url_encode(signature)}"
+
+
+@dataclass(frozen=True)
 class TaskClaim:
     claim_id: str
     task_id: str
@@ -281,6 +418,7 @@ class TaskClaimStore:
         *,
         clock: Callable[[], datetime] | None = None,
         override_verifier: OverrideApprovalVerifier | None = None,
+        delegation_verifier: DelegationVerifier | None = None,
     ) -> None:
         self.store_dir = Path(store_dir)
         self.state_path = self.store_dir / "claims.json"
@@ -288,6 +426,7 @@ class TaskClaimStore:
         self.lock_path = self.store_dir / "claims.lock"
         self._clock = clock or (lambda: datetime.now(timezone.utc))
         self._override_verifier = override_verifier
+        self._delegation_verifier = delegation_verifier
         self._pending_events: list[dict[str, object]] = []
 
     def claim(
@@ -302,7 +441,7 @@ class TaskClaimStore:
         ttl_seconds: int = 1800,
         queue_on_conflict: bool = False,
         parent_claim_id: str | None = None,
-        delegated_by: str | None = None,
+        delegation_token: str | None = None,
         override_token: str | None = None,
         override_reason: str | None = None,
     ) -> ClaimResult:
@@ -321,26 +460,32 @@ class TaskClaimStore:
         # kalabilir. İki mekanizma aynı istekte kullanılamaz.
         if parent_claim_id and override_token:
             raise ClaimError("devir (parent_claim_id) ve override aynı istekte birleştirilemez")
+        if bool(parent_claim_id) != bool(delegation_token):
+            raise ClaimError("alt görev için parent claim ve signed delegation token birlikte zorunlu")
 
         with self._locked_state() as claims:
             now = self._now()
             self._expire_stale(claims, now)
             parent = None
+            delegation = None
             if parent_claim_id:
                 parent = _find_claim(claims, parent_claim_id)
                 if parent is None or parent.status is not ClaimStatus.ACTIVE:
                     raise ClaimError("aktif parent claim bulunamadı")
-                # GÜVEN SINIRI (v1): depo, owner dahil bütün kimlikleri
-                # self-asserted kabul eder; delegated_by da bu sınırın
-                # içindedir ve kriptografik olarak doğrulanmaz. Çağıran
-                # kimliğinin gerçek doğrulaması bilinçli olarak coordination
-                # gateway katmanına (KA-003) bırakılmıştır — ortak dosyada
-                # saklanacak her per-claim secret tüm ajanlarca okunabilir
-                # olacağı için burada sahte bir güvence üretilmez.
-                if delegated_by != parent.owner:
-                    raise ClaimError("alt görevi yalnız mevcut claim sahibi devredebilir")
                 if repo != parent.repo or not _scopes_within(normalized_scopes, parent.scopes):
                     raise ClaimError("alt görev repo ve kapsamı parent claim içinde olmalı")
+                if self._delegation_verifier is None:
+                    raise ClaimError("delegation verifier yapılandırılmamış")
+                delegation = self._delegation_verifier.verify(
+                    delegation_token or "",
+                    parent_claim_id=parent.claim_id,
+                    parent_owner=parent.owner,
+                    child_owner=owner,
+                    child_task_id=task_id,
+                    repo=repo,
+                    scopes=normalized_scopes,
+                    now=now,
+                )
 
             conflicts = _find_conflicts(
                 claims,
@@ -421,6 +566,14 @@ class TaskClaimStore:
             }
             if overridden_claim_ids:
                 acquire_details["overridden"] = overridden_claim_ids
+            if delegation:
+                acquire_details["delegation"] = {
+                    "delegation_id": delegation.delegation_id,
+                    "parent_claim_id": parent_claim_id,
+                    "parent_owner": delegation.parent_owner,
+                    "verification_method": delegation.verification_method,
+                    "verified_at": _format_time(now),
+                }
             self._audit(
                 "CLAIM_QUEUED" if status is ClaimStatus.QUEUED else "CLAIM_ACQUIRED",
                 claim,
