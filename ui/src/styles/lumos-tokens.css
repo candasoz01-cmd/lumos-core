@@ -133,9 +133,9 @@
   --lumos-status-developing-fg: #fcd34d;
   --lumos-status-developing-bg: rgb(245 158 11 / 0.14);
   --lumos-status-developing-border: rgb(245 158 11 / 0.28);
-  --lumos-status-awaiting-fg: #93c5fd;
-  --lumos-status-awaiting-bg: rgb(59 130 246 / 0.14);
-  --lumos-status-awaiting-border: rgb(59 130 246 / 0.28);
+  --lumos-status-awaiting-fg: #d6d3d1;
+  --lumos-status-awaiting-bg: rgb(120 113 108 / 0.16);
+  --lumos-status-awaiting-border: rgb(245 158 11 / 0.32);
   --lumos-status-off-fg: #94a3b8;
   --lumos-status-off-bg: rgb(100 116 139 / 0.12);
   --lumos-status-off-border: rgb(100 116 139 / 0.22);

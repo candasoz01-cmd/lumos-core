@@ -447,6 +447,27 @@ const PANEL_DEBUG = import.meta.env.DEV;
       .panel-auth-avatar[hidden] {
         display: none;
       }
+
+      .panel-auth-session {
+        flex: 0 0 auto;
+        font-size: 0.62rem;
+        font-weight: 650;
+        letter-spacing: 0.02em;
+        color: #cbd5e1;
+        background: rgba(100, 116, 139, 0.16);
+        border: 1px solid rgba(148, 163, 184, 0.34);
+        border-radius: 999px;
+        padding: 0.12rem 0.42rem;
+        line-height: 1.2;
+        white-space: nowrap;
+        max-width: 7.5rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .panel-auth-session[hidden] {
+        display: none;
+      }
+
       .panel-auth-name {
         font-size: 0.78rem;
         font-weight: 600;
@@ -2425,7 +2446,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         box-shadow: 0 0 0 2px var(--lumos-teal-18);
       }
       .panel-resource-mode-advisor__layer-dot--quantum {
-        background: #34d399;
+        background: var(--lumos-accent-primary);
         box-shadow: 0 0 0 2px rgb(52 211 153 / 0.22);
       }
       .panel-resource-mode-advisor__layer-dot--default {
@@ -2505,7 +2526,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         box-shadow: 0 0 0 1px rgb(148 163 184 / 0.25);
       }
       .panel-resource-mode-advisor__btn-dot--on {
-        background: #34d399;
+        background: var(--lumos-accent-primary);
         box-shadow: 0 0 0 1px rgb(52 211 153 / 0.35);
       }
       .panel-resource-mode-advisor__btn:disabled {
@@ -4669,6 +4690,15 @@ const PANEL_DEBUG = import.meta.env.DEV;
               >Google ile Giriş</a>
               <div id="panel-auth-user" class="panel-auth-user" hidden>
                 <img id="panel-auth-avatar" class="panel-auth-avatar" alt="" width="28" height="28" decoding="async" hidden />
+                <span
+                  id="panel-auth-session"
+                  class="panel-auth-session"
+                  data-state="secure"
+                  hidden
+                  title="Google / Apple ile güvenli oturum açık"
+                  aria-label="Güvenli oturum"
+                >Güvenli oturum</span>
+
                 <span id="panel-auth-name" class="panel-auth-name"></span>
                 <button
                   type="button"
@@ -4843,13 +4873,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 <span class="panel-nav-label-block">
                   <span class="panel-nav-label" data-i18n="panel.nav.medya">Medya</span>
                 </span>
-                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--awaiting" data-i18n="panel.nav.status.medya">🔵 Kimlik bekliyor</span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--awaiting" data-i18n="panel.nav.status.medya">⏳ Oturum bekliyor</span>
               </button>
               <button type="button" data-module="sosyal" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.sosyal">
                 <span class="panel-nav-label-block">
                   <span class="panel-nav-label" data-i18n="panel.nav.sosyal">Sosyal</span>
                 </span>
-                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--awaiting" data-i18n="panel.nav.status.sosyal">🔵 Kimlik bekliyor</span>
+                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--awaiting" data-i18n="panel.nav.status.sosyal">⏳ Oturum bekliyor</span>
               </button>
               <button type="button" data-module="posta" data-module-availability="inactive" data-i18n-title="panel.nav.statusTitle.posta">
                 <span class="panel-nav-label-block">
@@ -5528,7 +5558,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
             </ul>
             <div class="panel-share-proto panel-share-proto--demo gorevler-proto" data-panel-share-demo="true" style="margin-top: 1rem">
               <p class="medya-intro" style="margin-top: 0">
-                <span class="panel-data-flow-badge panel-data-flow-badge--demo" data-i18n="panel.common.badges.identityRequired">[Kimlik bekliyor]</span>
+                <span class="panel-data-flow-badge panel-data-flow-badge--demo" data-i18n="panel.common.badges.identityRequired">[Oturum bekliyor]</span>
                 <span data-i18n="panel.modules.media.sharePreviewIntro">Paylaşım taslağı önizlemesi — gerçek gönderim bu sürümde kapalı.</span>
               </p>
               <div class="gorevler-field">
@@ -5576,39 +5606,39 @@ const PANEL_DEBUG = import.meta.env.DEV;
             </header>
             <div class="panel-share-proto panel-share-proto--demo gorevler-proto" data-panel-share-demo="true">
               <p class="medya-intro" style="margin-top: 0">
-                <span class="panel-data-flow-badge panel-data-flow-badge--demo" data-i18n="panel.common.badges.identityRequired">[Kimlik bekliyor]</span>
+                <span class="panel-data-flow-badge panel-data-flow-badge--demo" data-i18n="panel.common.badges.identityRequired">[Oturum bekliyor]</span>
                 <span data-i18n="panel.modules.social.sharePreviewIntro">Sosyal paylaşım taslağı önizlemesi — gerçek paylaşım bu sürümde kapalı.</span>
               </p>
               <div class="gorevler-field">
                 <label for="sosyal-share-target" data-i18n="panel.common.form.targetPlatform">Hedef platform</label>
                 <select id="sosyal-share-target">
                   <optgroup label="Küresel">
-                    <option value="facebook">Facebook — Kimlik bekliyor</option>
-                    <option value="instagram">Instagram — Kimlik bekliyor</option>
-                    <option value="x">X — Kimlik bekliyor</option>
-                    <option value="tiktok">TikTok — Kimlik bekliyor</option>
-                    <option value="linkedin">LinkedIn — Kimlik bekliyor</option>
-                    <option value="youtube">YouTube — Kimlik bekliyor</option>
+                    <option value="facebook">Facebook — Oturum bekliyor</option>
+                    <option value="instagram">Instagram — Oturum bekliyor</option>
+                    <option value="x">X — Oturum bekliyor</option>
+                    <option value="tiktok">TikTok — Oturum bekliyor</option>
+                    <option value="linkedin">LinkedIn — Oturum bekliyor</option>
+                    <option value="youtube">YouTube — Oturum bekliyor</option>
                   </optgroup>
                   <optgroup label="Çin">
-                    <option value="wechat">WeChat — Kimlik bekliyor</option>
-                    <option value="douyin">Douyin — Kimlik bekliyor</option>
-                    <option value="bilibili">Bilibili — Kimlik bekliyor</option>
-                    <option value="xiaohongshu">RED / Xiaohongshu — Kimlik bekliyor</option>
-                    <option value="weibo">Weibo — Kimlik bekliyor</option>
+                    <option value="wechat">WeChat — Oturum bekliyor</option>
+                    <option value="douyin">Douyin — Oturum bekliyor</option>
+                    <option value="bilibili">Bilibili — Oturum bekliyor</option>
+                    <option value="xiaohongshu">RED / Xiaohongshu — Oturum bekliyor</option>
+                    <option value="weibo">Weibo — Oturum bekliyor</option>
                   </optgroup>
                   <optgroup label="Hindistan">
-                    <option value="whatsapp">WhatsApp — Kimlik bekliyor</option>
-                    <option value="instagram">Instagram — Kimlik bekliyor</option>
-                    <option value="youtube">YouTube — Kimlik bekliyor</option>
-                    <option value="sharechat">ShareChat — Kimlik bekliyor</option>
-                    <option value="telegram-in">Telegram — Kimlik bekliyor</option>
+                    <option value="whatsapp">WhatsApp — Oturum bekliyor</option>
+                    <option value="instagram">Instagram — Oturum bekliyor</option>
+                    <option value="youtube">YouTube — Oturum bekliyor</option>
+                    <option value="sharechat">ShareChat — Oturum bekliyor</option>
+                    <option value="telegram-in">Telegram — Oturum bekliyor</option>
                   </optgroup>
                   <optgroup label="Rusya">
-                    <option value="vk">VK — Kimlik bekliyor</option>
-                    <option value="telegram-ru">Telegram — Kimlik bekliyor</option>
-                    <option value="ok-ru">OK — Kimlik bekliyor</option>
-                    <option value="rutube">Rutube — Kimlik bekliyor</option>
+                    <option value="vk">VK — Oturum bekliyor</option>
+                    <option value="telegram-ru">Telegram — Oturum bekliyor</option>
+                    <option value="ok-ru">OK — Oturum bekliyor</option>
+                    <option value="rutube">Rutube — Oturum bekliyor</option>
                   </optgroup>
                 </select>
               </div>
@@ -6425,7 +6455,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
               <li data-i18n="panel.rootStatus.quantum">⚛️ Quantum Layer — Mimari hazır</li>
               <li data-i18n="panel.rootStatus.integration">🔗 Entegrasyon — 7 katman tanımlı</li>
               <li data-i18n="panel.rootStatus.hydroponic">
-                🌱 Topraksız mod — Köprü veya tam toprak yokken yerel katmanlar çalışır; sınırlı mod normaldir.
+                Sınırlı yerel mod — Köprü yokken yerel katmanlar çalışır; beklenen durum.
               </li>
             </ul>
             <p class="panel-root-status-footnote">
@@ -16342,6 +16372,16 @@ const PANEL_DEBUG = import.meta.env.DEV;
             login.hidden = true;
             user.hidden = false;
             slot.dataset.state = "in";
+            {
+              const sessionEl = document.getElementById("panel-auth-session");
+              if (sessionEl) {
+                sessionEl.hidden = false;
+                sessionEl.dataset.state = "secure";
+                sessionEl.textContent = "Güvenli oturum";
+                sessionEl.title = "Google / Apple ile güvenli oturum açık";
+                sessionEl.setAttribute("aria-label", "Güvenli oturum");
+              }
+            }
             if (new URLSearchParams(location.search).get("source") === "google_web") {
               applyPanelUserMode("full");
             }
@@ -16354,6 +16394,13 @@ const PANEL_DEBUG = import.meta.env.DEV;
             user.hidden = true;
             login.hidden = false;
             slot.dataset.state = "out";
+            {
+              const sessionEl = document.getElementById("panel-auth-session");
+              if (sessionEl) {
+                sessionEl.hidden = true;
+                sessionEl.textContent = "";
+              }
+            }
           }
         } catch {
           panelSessionLumosId = "";

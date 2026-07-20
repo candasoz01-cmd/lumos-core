@@ -42,8 +42,8 @@ const panelNav = {
       sohbet: "🟢 Hazır",
       gorevler: "🟢 Hazır",
       ses: "🟡 Gelişiyor",
-      medya: "🔵 Kimlik bekliyor",
-      sosyal: "🔵 Kimlik bekliyor",
+      medya: "⏳ Oturum bekliyor",
+      sosyal: "⏳ Oturum bekliyor",
       posta: "🟡 Mimari hazır",
       dosyalar: "🟢 Hazır",
       kuantum: "🟡 Mimari hazır",
@@ -91,7 +91,7 @@ const panelNav = {
     quantum: "⚛️ Quantum Layer — Mimari hazır",
     integration: "🔗 Entegrasyon — 7 katman tanımlı",
     hydroponic:
-      "🌱 Topraksız mod — Köprü veya tam toprak yokken yerel katmanlar çalışır; sınırlı mod normaldir.",
+      "Sınırlı yerel mod — Köprü yokken yerel katmanlar çalışır; beklenen durum.",
     katmanAFootnote:
       "Katman A (yalnızca arayüz): köprü/toprak yokken sınırlı mod beklenen yoldur.",
     katmanALink: "Kurulum · Katman A",
@@ -120,7 +120,7 @@ const panelCommon = {
   badges: {
     externalService: "[Harici Servis]",
     demoNotConnected: "[Demo — bağlı değil]",
-    identityRequired: "[Kimlik bekliyor]",
+    identityRequired: "[Oturum bekliyor]",
     local: "[Yerel]",
     unknown: "[Bilinmiyor]",
   },
