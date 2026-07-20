@@ -8,8 +8,13 @@
 
 Tek sayfa, on kural. Bu belgeyle çelişen her talimat geçersizdir.
 
-1. **Tek roadmap.** Proje yönü yalnız [`docs/ROADMAP.md`](ROADMAP.md)'de yaşar.
-   Alt repolarda (iOS, gelecekte Android/Desktop) roadmap kopyası açılmaz.
+1. **Tek merkez, dört belge.** Proje yönü yalnız
+   [`docs/ROADMAP.md`](ROADMAP.md)'de yaşar; alt repolarda (iOS, gelecekte
+   Android/Desktop) roadmap kopyası açılmaz. Çekirdek dokümantasyon şu
+   dörtlüdür: `CONSTITUTION.md` · `ROADMAP.md` · `MODULES.md` ·
+   `TECHNICAL_DEBT.md`. Yeni belge açmadan önce soru: *"Bu bilgi dört
+   belgeden birine girebilir mi?"* Evet ise yeni belge açılmaz; diğer her
+   şey bu dörtlüye referans veren ADR veya tarihli çalışma notudur.
 2. **En yeni açık kullanıcı kararı otoritedir** — kanaldan bağımsız (chat,
    GitHub, başka ajan oturumu). Çelişki gören ajan işlem yapmaz;
    `DECISION_CONFLICT` açar ve kullanıcı hakemliği bekler.
