@@ -5,7 +5,7 @@ const panelCommon: typeof panelTr.common = {
   badges: {
     externalService: "[External service]",
     demoNotConnected: "[Demo — not connected]",
-    identityRequired: "[Identity required]",
+    identityRequired: "[Waiting for session]",
     local: "[Local]",
     unknown: "[Unknown]",
   },
@@ -94,8 +94,8 @@ const panel: typeof panelTr = {
       sohbet: "🟢 Ready",
       gorevler: "🟢 Ready",
       ses: "🟡 Developing",
-      medya: "🔵 Identity required",
-      sosyal: "🔵 Identity required",
+      medya: "⏳ Waiting for session",
+      sosyal: "⏳ Waiting for session",
       posta: "🟡 Architecture ready",
       dosyalar: "🟢 Ready",
       kuantum: "🟡 Architecture ready",
@@ -143,7 +143,7 @@ const panel: typeof panelTr = {
     quantum: "⚛️ Quantum Layer — Architecture ready",
     integration: "🔗 Integration — 7 layers defined",
     hydroponic:
-      "🌱 Hydroponic mode — local layers work without full bridge/soil; limited mode is expected.",
+      "Limited local mode — local layers work without bridge; expected state.",
     katmanAFootnote:
       "Katman A (UI only): limited mode is the expected path without bridge/soil.",
     katmanALink: "Setup · Katman A",
