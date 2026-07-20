@@ -18,11 +18,12 @@ Tek sayfa, on kural. Bu belgeyle çelişen her talimat geçersizdir.
 2. **En yeni açık kullanıcı kararı otoritedir** — kanaldan bağımsız (chat,
    GitHub, başka ajan oturumu). Çelişki gören ajan işlem yapmaz;
    `DECISION_CONFLICT` açar ve kullanıcı hakemliği bekler.
-3. **Aynı iş iki ajana verilemez; ajan kendiliğinden iş alamaz.** Yazmaya
-   başlamadan sahiplik/claim kontrol edilir. Bir ajan yalnız kendi
-   branch/worktree'sine yazar; başkasının kaydı için yalnız öneri, handoff
-   veya açıkça onaylı takeover oluşturabilir. Sessiz amend/kapatma/üstüne
-   yazma yasaktır.
+3. **Bir dosyanın aynı anda yalnızca bir sahibi vardır.** Görev tamamlanana
+   veya açıkça devredilene kadar başka ajan o dosyaya yazmaz. Aynı iş iki
+   ajana verilemez; ajan kendiliğinden iş alamaz — yazmaya başlamadan
+   sahiplik/claim kontrol edilir. Bir ajan yalnız kendi branch/worktree'sine
+   yazar; başkasının kaydı için yalnız öneri, handoff veya açıkça onaylı
+   takeover oluşturabilir. Sessiz amend/kapatma/üstüne yazma yasaktır.
 4. **Her PR bir faza bağlıdır** ve açıklamasında fazını söyler
    (FAZ-1 Ürün / FAZ-2 Altyapı / FAZ-3 Vitrin / FAZ-4 Partner).
 5. **Faz dışı özellik merge edilmez.** FAZ-1 bitmeden
