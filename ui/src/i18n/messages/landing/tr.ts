@@ -335,7 +335,7 @@ const landingTr = {
   /** Phase 2: locale-specific rasters when text-free or EN variants exist (paths may match until then). */
   assets: {
     worldMapDecor: "/lumos-world-map.jpg",
-    heroAtaScene: "/lumos-together-future.webp",
+    heroAtaScene: "/lumos-hero-ata-scene.png",
     ogImage: "https://welockai.com/lumos-world-map.jpg",
   },
 } as const;

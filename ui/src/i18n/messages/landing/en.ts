@@ -337,7 +337,7 @@ const landingEn: typeof landingTr = {
   },
   assets: {
     worldMapDecor: "/lumos-world-map.jpg",
-    heroAtaScene: "/lumos-together-future.webp",
+    heroAtaScene: "/lumos-hero-ata-scene.png",
     ogImage: "https://welockai.com/lumos-world-map.jpg",
   },
 };
