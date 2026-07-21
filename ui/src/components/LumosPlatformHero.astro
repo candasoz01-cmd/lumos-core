@@ -4,7 +4,7 @@
     <div class="lumos-hero-title-lockup">
       <img
         class="lumos-logo-mark lumos-hero-title-mark"
-        src="/lumos-tree-logo.svg"
+        src="/chat-lumos-mark.svg"
         alt=""
         width="64"
         height="64"
@@ -23,6 +23,9 @@
     <p class="lumos-hero-pillar" data-i18n="hero.pillar">Tek panel · Çoklu akış · Kullanıcı kontrolü</p>
     <div class="lumos-hero-actions">
       <a class="lumos-hero-btn lumos-hero-btn--primary" href="/panel" data-i18n="landing.platform.openLumos">Lumos’u aç</a>
+      <!-- Devreye alma bağımlılığı: bu CTA `id="canli-durum"` taşıyan canlı
+           durum bölümünü gerektirir. O bölüm bu kurtarma PR'ının kapsamı
+           dışındaki index.astro'da yaşar; bileşen bağlanırken eklenmelidir. -->
       <a class="lumos-hero-btn lumos-hero-btn--ghost" href="#canli-durum" data-i18n="landing.platform.viewStatus">Canlı durumu gör</a>
     </div>
   </div>
