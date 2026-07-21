@@ -1,0 +1,60 @@
+name: WIF auditor check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  verify-wif:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GCP_PROJECT_ID: we-lock-ai-lumos
+      EXPECTED_PRINCIPAL: lumos-cloud-auditor@we-lock-ai-lumos.iam.gserviceaccount.com
+      WIF_PROVIDER: projects/488336655686/locations/global/workloadIdentityPools/lumos-github-actions/providers/github-actions
+
+    steps:
+      - name: Authenticate with Google Cloud WIF
+        id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.EXPECTED_PRINCIPAL }}
+
+      - name: Set up Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+          version: ">= 363.0.0"
+
+      - name: Verify principal and token exchange
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -n "${GOOGLE_APPLICATION_CREDENTIALS:-}"
+          jq -e '.type == "external_account"' "$GOOGLE_APPLICATION_CREDENTIALS" >/dev/null
+
+          principal="$(gcloud auth list --filter=status:ACTIVE --format='value(account)')"
+          test "$principal" = "$EXPECTED_PRINCIPAL"
+
+          gcloud auth print-access-token >/dev/null
+          project="$(gcloud projects describe "$GCP_PROJECT_ID" --format='value(projectId)')"
+          test "$project" = "$GCP_PROJECT_ID"
+
+          echo "principal=$principal"
+          echo "credential_type=external_account"
+          echo "token_exchange=verified (token not printed)"
+          echo "read_only_check=projects.describe:$project"
+
+          {
+            echo "### WIF auditor verification"
+            echo "- Principal: \`$principal\`"
+            echo "- Credential type: \`external_account\`"
+            echo "- Token exchange: verified; token not printed"
+            echo "- Read-only check: \`projects.describe:$project\`"
+          } >> "$GITHUB_STEP_SUMMARY"
