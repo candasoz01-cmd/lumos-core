@@ -8,6 +8,7 @@ import {
   identityStatusReply,
   loadHostedUserContext,
   localTimeReply,
+  memoryWriteStatusReply,
   OPENAI_HOSTED_MODEL,
   openAIReply,
   readJsonBody,
@@ -103,6 +104,11 @@ export default async function handler(req, res) {
   const identityReply = identityStatusReply(message, userContext);
   if (identityReply) {
     return res.status(200).json({ reply: identityReply, mode: "hosted_identity_status", identity });
+  }
+
+  const memoryReply = memoryWriteStatusReply(userContext);
+  if (memoryReply) {
+    return res.status(200).json({ reply: memoryReply, mode: "hosted_memory_status", identity });
   }
 
   const localReply = localTimeReply(message);
