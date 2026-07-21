@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from core import task_store_mirror
 from core.workspace_contract import (
     ensure_trash_dir,
     may_perform_permanent_delete,
@@ -238,6 +239,33 @@ class TaskStore:
             mutation=mutation,
             entity_id=entity_id,
         )
+        self._mirror_to_canonical(mutation=mutation, entity_id=entity_id)
+
+    def _mirror_to_canonical(self, *, mutation: str | None, entity_id: int | None) -> None:
+        """TD-01 sözleşmesi: engine görevleri canonical panel listesine yansır.
+
+        Kullanıcı-görünür tek kaynak <base>/tasks.json'dur; bu depo çalıştırma
+        günlüğü olarak kalır (docs/contracts/task-store-v1.md). Sandbox
+        çalıştırmaları canonical'a yansımaz; ayna hatası engine akışını bozmaz.
+        """
+        if self.sandbox_mode:
+            return
+        base = self._live_base_dir if self._live_base_dir is not None else self.base_dir.parent
+        try:
+            if entity_id is None:
+                for task in self._tasks:
+                    task_store_mirror.upsert_engine_task(base, task.to_dict())
+                return
+            if mutation in ("soft_delete", "delete", "archive"):
+                task_store_mirror.remove_engine_task(base, entity_id)
+                return
+            task = next((t for t in self._tasks if t.task_id == entity_id), None)
+            if task is not None:
+                task_store_mirror.upsert_engine_task(base, task.to_dict())
+        except Exception:
+            # Ayna best-effort: canonical doküman bozuksa engine akışı durmaz;
+            # bozuk dokümanın üstüne de yazılmaz (mirror fail-closed okur).
+            pass
 
     def create(self, title: str, description: str, permission_profile: str) -> TaskRecord:
         task = TaskRecord(
