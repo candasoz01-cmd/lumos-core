@@ -368,6 +368,32 @@ test("personal memory is ignored unless the memory service returns explicit cons
   }
 });
 
+test("hosted memory reuses the configured private bridge by default", async () => {
+  process.env.BRIDGE_UPSTREAM_URL = "https://bridge.example.test/";
+  process.env.KANDO_BRIDGE_SECRET = "existing-bridge-secret";
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async (url, init) => {
+      assert.equal(url, "https://bridge.example.test/memory/hosted/lookup");
+      assert.equal(init.headers.Authorization, "Bearer existing-bridge-secret");
+      return {
+        ok: true,
+        async json() {
+          return { consent: true, memories: [] };
+        },
+      };
+    };
+    assert.deepEqual(await loadAllowedMemory("lumos_test"), {
+      status: "empty",
+      items: [],
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.BRIDGE_UPSTREAM_URL;
+    delete process.env.KANDO_BRIDGE_SECRET;
+  }
+});
+
 test("explicit memory intent is narrow and does not capture ordinary chat", () => {
   assert.equal(explicitMemoryText("Bunu hatırla: Çayı şekersiz içerim"), "Çayı şekersiz içerim");
   assert.equal(explicitMemoryText("Please remember that I prefer short answers"), "I prefer short answers");

@@ -33,9 +33,16 @@ function cleanMemoryItems(raw) {
 }
 
 function memoryServiceConfig() {
+  const bridgeBase = String(process.env.BRIDGE_UPSTREAM_URL || "")
+    .trim()
+    .replace(/\/+$/, "");
   return {
-    lookupUrl: String(process.env.LUMOS_MEMORY_LOOKUP_URL || "").trim(),
-    token: String(process.env.LUMOS_MEMORY_SERVICE_TOKEN || "").trim(),
+    lookupUrl:
+      String(process.env.LUMOS_MEMORY_LOOKUP_URL || "").trim() ||
+      (bridgeBase ? `${bridgeBase}/memory/hosted/lookup` : ""),
+    token:
+      String(process.env.LUMOS_MEMORY_SERVICE_TOKEN || "").trim() ||
+      String(process.env.KANDO_BRIDGE_SECRET || "").trim(),
   };
 }
 
