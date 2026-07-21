@@ -79,7 +79,12 @@ upstream URL yanıta yazılmaz.
   **universal link + ASWebAuthenticationSession** olarak açık kalmıştır.
 - **Bearer kabulü** oturumu cookie korumalarının (SameSite, HttpOnly) dışına
   taşır; sızan mühürlü oturum doğrudan kullanılabilir. Oturum ömrü (7 gün)
-  bu nedenle mobil için ayrıca değerlendirilmelidir.
+  bu nedenle mobil için ayrıca değerlendirilmelidir. Bearer, cookie kabul eden
+  bütün köprü uçlarında **tutarlı** olarak geçerlidir (`hasLumosSession` ve
+  `hostedSessionClaims` aynı kaynağı okur).
+- **Akış bağlama:** mobil çerez `oauth_state` taşır ve callback'e gelen `state`
+  ile birebir eşleşmelidir. Böylece terk edilmiş/paralel bir mobil akıştan
+  kalan çerez, sonraki normal web girişini deep-link'e kaçıramaz.
 
 ## v1 sınırları (dürüst)
 

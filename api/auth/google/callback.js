@@ -29,9 +29,14 @@ const ROUTE = "google_callback";
 // göreceği /auth?error=... sayfasına yönlendirir (bkz. auth.astro hata metni).
 // Mobil akış (start.js `?mobile=1&app_state=...`) mühürlü, kısa ömürlü bir
 // çerezle taşınır; sonuç web sayfası yerine uygulamanın deep-link'ine döner.
-function mobileAppState(req) {
+// Mobil çerez YALNIZ bu OAuth denemesine aitse geçerlidir: `oauth_state`,
+// Google'ın geri döndürdüğü `state` ile birebir eşleşmelidir. Aksi halde
+// bayat/paralel bir mobil çerez normal web girişini deep-link'e kaçırabilirdi.
+function mobileAppState(req, oauthState) {
   const flow = openSession(readCookie(req, MOBILE_OAUTH_COOKIE));
-  return flow?.kind === "mobile_oauth" ? String(flow.app_state || "").trim() : "";
+  if (flow?.kind !== "mobile_oauth") return "";
+  if (!oauthState || String(flow.oauth_state || "") !== String(oauthState)) return "";
+  return String(flow.app_state || "").trim();
 }
 
 function mobileLocation(appState, params) {
@@ -60,12 +65,12 @@ export default async function handler(req, res) {
     return;
   }
   const url = new URL(req.url || "/", "https://welockai.com");
-  // Mobil akışsa sonuç deep-link'e döner; değilse web davranışı aynen korunur.
-  const appState = mobileAppState(req);
-  const failAuth = (code, extraCookies = []) => redirectAuthError(res, code, extraCookies, appState);
   const err = url.searchParams.get("error");
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
+  // Mobil akışsa sonuç deep-link'e döner; değilse web davranışı aynen korunur.
+  const appState = mobileAppState(req, state);
+  const failAuth = (code2, extraCookies = []) => redirectAuthError(res, code2, extraCookies, appState);
 
   if (err) {
     // Google tarafı ret/iptal — kullanıcı akışı, güvenlik olayı değil.

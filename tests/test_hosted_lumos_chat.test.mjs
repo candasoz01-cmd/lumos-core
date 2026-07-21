@@ -7,6 +7,7 @@ import {
   buildGeminiRequest,
   buildOpenAIRequest,
   geminiReply,
+  hasLumosSession,
   identityStatusReply,
   loadAllowedMemory,
   loadHostedUserContext,
@@ -215,6 +216,8 @@ test("Google callback returns a sealed mobile session to the requesting app stat
   const mobileFlow = sealSession({
     kind: "mobile_oauth",
     app_state: appState,
+    // Akış bu denemeye bağlıdır: oauth_state, callback'e gelen state ile eşleşmeli.
+    oauth_state: oauthState,
     exp: Math.floor(Date.now() / 1000) + 60,
   });
   const req = {
@@ -450,6 +453,52 @@ test("hosted chat accepts a sealed mobile bearer session", async () => {
     assert.equal(context.ok, true);
     assert.equal(context.lumos_id, sessionLumosId(claims));
     assert.equal(context.conversation_id, "mobile-conversation");
+  } finally {
+    delete process.env.LUMOS_AUTH_STATE_SECRET;
+  }
+});
+
+test("stale mobile oauth cookie cannot hijack a web login", async () => {
+  process.env.LUMOS_AUTH_STATE_SECRET = "test-only-secret-32-characters-minimum";
+  const now = Math.floor(Date.now() / 1000);
+  try {
+    // Terk edilmiş/paralel bir mobil akıştan kalan çerez: oauth_state BAŞKA.
+    const staleFlow = sealSession({
+      kind: "mobile_oauth",
+      app_state: "abandoned-mobile-app-state-value",
+      oauth_state: makeState(),
+      iat: now,
+      exp: now + 600,
+    });
+    const webState = makeState();
+    const req = {
+      method: "GET",
+      url: `/api/auth/google/callback?error=access_denied&state=${encodeURIComponent(webState)}`,
+      headers: {
+        cookie: `lumos_oauth_state=${webState}; ${MOBILE_OAUTH_COOKIE}=${staleFlow}`,
+      },
+    };
+    const res = makeRes();
+    await callbackHandler(req, res);
+
+    // Web girişi deep-link'e kaçırılmamalı.
+    assert.equal(res.statusCode, 302);
+    assert.ok(String(res.headers["location"]).startsWith("/auth?error="));
+    assert.ok(!String(res.headers["location"]).includes("lumos://"));
+  } finally {
+    delete process.env.LUMOS_AUTH_STATE_SECRET;
+  }
+});
+
+test("bridge session check accepts the same bearer token as hosted chat", () => {
+  process.env.LUMOS_AUTH_STATE_SECRET = "test-only-secret-32-characters-minimum";
+  try {
+    const sealed = sealSession(userClaims());
+    const bearerReq = { headers: { authorization: `Bearer ${sealed}` } };
+    // hasLumosSession ile hostedSessionClaims aynı kaynağı görmeli:
+    // aksi halde /bridge/health 401 verirken /mobile/chat çalışır.
+    assert.equal(hasLumosSession(bearerReq), true);
+    assert.equal(hasLumosSession({ headers: {} }), false);
   } finally {
     delete process.env.LUMOS_AUTH_STATE_SECRET;
   }

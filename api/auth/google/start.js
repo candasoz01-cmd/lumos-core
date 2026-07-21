@@ -75,7 +75,15 @@ export default async function handler(req, res) {
     const now = Math.floor(Date.now() / 1000);
     cookies.push(
       mobileOAuthCookieHeader(
-        sealSession({ kind: "mobile_oauth", app_state: appState, iat: now, exp: now + 600 }),
+        // `oauth_state`, akışı BU denemeye bağlar; bayat/paralel bir mobil
+        // çerez sonraki web girişini deep-link'e kaçıramaz.
+        sealSession({
+          kind: "mobile_oauth",
+          app_state: appState,
+          oauth_state: state,
+          iat: now,
+          exp: now + 600,
+        }),
       ),
     );
   }
