@@ -93,3 +93,16 @@ def test_panel_write_paths_wired_to_guard() -> None:
     assert "_guard_core_write(" in write_doc
     trash_fn = src.split("def _write_trash_task_file")[1].split("\ndef ")[0]
     assert "_guard_core_write(" in trash_fn
+    # Trash: guard, canlı dizin mkdir'inden önce çağrılır (sandbox'ta mkdir bile olmaz).
+    assert trash_fn.index("_guard_core_write(") < trash_fn.index("d.mkdir(")
+
+
+def test_handlers_translate_core_write_forbidden_to_client_error() -> None:
+    """CoreWriteForbidden işlenmeyen istisna olarak 500'e düşmez; yapılandırılmış 403'e çevrilir."""
+    src = (_REPO_ROOT / "panel" / "scripts" / "panel_tasks_server.py").read_text(encoding="utf-8")
+    do_post = src.split("def do_POST")[1].split("\n    def ")[0]
+    assert "except CoreWriteForbidden" in do_post
+    assert "403" in do_post
+    do_put = src.split("def do_PUT")[1].split("\n    def ")[0]
+    assert "except CoreWriteForbidden" in do_put
+    assert "403" in do_put

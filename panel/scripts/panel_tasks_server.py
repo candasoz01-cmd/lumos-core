@@ -102,8 +102,8 @@ def _tasks_file() -> Path:
 
 
 def _is_sandbox_mode() -> bool:
-    """Panel sandbox modu (panel_bridge_state ile aynı env konvansiyonu)."""
-    return os.environ.get("LUMOS_SANDBOX_MODE", "false").strip().lower() in ("1", "true", "yes")
+    """Panel sandbox modu — panel_bridge_state._is_sandbox_mode ile birebir aynı ayrıştırma."""
+    return os.environ.get("LUMOS_SANDBOX_MODE", "false").lower() in ("1", "true", "yes")
 
 
 def _guard_core_write(target: Path) -> None:
@@ -458,14 +458,15 @@ def _open_folder_in_os_shell(path: Path) -> tuple[bool, str]:
 def _write_trash_task_file(tid: str, task: dict, deleted_at: str) -> None:
     """Bir silinen görev için trash/ altında yeni dosya (read tarafı iterdir ile uyumlu). Overwrite yok."""
     d = _trash_dir()
-    d.mkdir(parents=True, exist_ok=True)
     fn = tid.replace("/", "_").replace("\\", "_").strip() or "task"
     path = d / f"{fn}.json"
     n = 0
     while path.exists():
         n += 1
         path = d / f"{fn}_{n}.json"
+    # Guard önce: sandbox modunda canlı trash/ dizini mkdir ile bile oluşturulmaz.
     _guard_core_write(path)
+    d.mkdir(parents=True, exist_ok=True)
     title = str(task.get("title", ""))
     record = {
         "id": tid,
@@ -1055,6 +1056,9 @@ class Handler(BaseHTTPRequestHandler):
                     "events_appended": 0,
                 },
             )
+        except CoreWriteForbidden as e:
+            self.send_error(403, str(e))
+            return
         except OSError as e:
             self.send_error(500, str(e))
             return
@@ -1064,35 +1068,40 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         # Tek yönlendirme: sorgu / sondaki slash normalize (_parse_path); self.path ham eşleşmesine güvenme.
-        p = self._parse_path()
-        if p == "/open-folder":
-            self._post_open_folder()
-            return
-        if p == "/resource-mode/apply":
-            self._post_resource_mode_apply()
-            return
-        if p == "/lumos-consent":
-            self._post_lumos_consent()
-            return
-        if p == "/lumos-confirm/request":
-            self._post_lumos_confirm_request()
-            return
-        if p == "/tasks/restore":
-            self._post_restore()
-            return
-        if p == "/tasks/delete-permanent":
-            self._post_delete_permanent()
-            return
-        if p == "/tasks/delete":
-            self._post_delete()
-            return
-        if p == "/tasks/complete":
-            self._post_complete()
-            return
-        if p == "/tasks":
-            self._post_create()
-            return
-        _send_json(self, 404, {"ok": False, "error": "not_found"})
+        # Sandbox guard reddi (CoreWriteForbidden) tek noktada yapılandırılmış 403'e çevrilir;
+        # aksi halde her _post_* yolunda ayrı ele almak gerekirdi (işlenmeyen istisna → 500).
+        try:
+            p = self._parse_path()
+            if p == "/open-folder":
+                self._post_open_folder()
+                return
+            if p == "/resource-mode/apply":
+                self._post_resource_mode_apply()
+                return
+            if p == "/lumos-consent":
+                self._post_lumos_consent()
+                return
+            if p == "/lumos-confirm/request":
+                self._post_lumos_confirm_request()
+                return
+            if p == "/tasks/restore":
+                self._post_restore()
+                return
+            if p == "/tasks/delete-permanent":
+                self._post_delete_permanent()
+                return
+            if p == "/tasks/delete":
+                self._post_delete()
+                return
+            if p == "/tasks/complete":
+                self._post_complete()
+                return
+            if p == "/tasks":
+                self._post_create()
+                return
+            _send_json(self, 404, {"ok": False, "error": "not_found"})
+        except CoreWriteForbidden as e:
+            _send_json(self, 403, {"ok": False, "error": "core_write_forbidden", "detail": str(e)})
 
     def _post_lumos_confirm_request(self) -> None:
         """CU7 preview + confirmation_id üretir (PR-C5). Devre dışıyken 404."""
