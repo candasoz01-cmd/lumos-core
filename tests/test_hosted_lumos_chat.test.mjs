@@ -494,10 +494,19 @@ test("bridge session check accepts the same bearer token as hosted chat", () => 
   process.env.LUMOS_AUTH_STATE_SECRET = "test-only-secret-32-characters-minimum";
   try {
     const sealed = sealSession(userClaims());
+    const flowToken = sealSession({
+      kind: "mobile_oauth",
+      nonce: "flow-only",
+      exp: Math.floor(Date.now() / 1000) + 60,
+    });
     const bearerReq = { headers: { authorization: `Bearer ${sealed}` } };
     // hasLumosSession ile hostedSessionClaims aynı kaynağı görmeli:
     // aksi halde /bridge/health 401 verirken /mobile/chat çalışır.
     assert.equal(hasLumosSession(bearerReq), true);
+    assert.equal(
+      hasLumosSession({ headers: { authorization: `Bearer ${flowToken}` } }),
+      false,
+    );
     assert.equal(hasLumosSession({ headers: {} }), false);
   } finally {
     delete process.env.LUMOS_AUTH_STATE_SECRET;

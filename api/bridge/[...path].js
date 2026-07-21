@@ -6,7 +6,8 @@
  */
 
 import { timingSafeEqual } from "node:crypto";
-import { openSession, readCookie, sessionLumosId } from "../_lib/lumos_session.js";
+import { hostedSessionClaims } from "../_lib/hosted_lumos.js";
+import { sessionLumosId } from "../_lib/lumos_session.js";
 import { captureError, captureSecurityEvent } from "../_lib/observability.js";
 
 const ROUTE = "bridge_proxy";
@@ -150,7 +151,7 @@ function isProxyCallerAuthorized(req, expectedToken) {
 }
 
 function isAuthenticatedLumosSession(req) {
-  const claims = openSession(readCookie(req));
+  const claims = hostedSessionClaims(req);
   if (!claims) return false;
   const lumosId = sessionLumosId(claims);
   if (!lumosId) return false;

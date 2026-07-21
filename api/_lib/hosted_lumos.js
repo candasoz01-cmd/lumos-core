@@ -14,7 +14,7 @@ function bearerClaims(req) {
 }
 
 export function hasLumosSession(req) {
-  return Boolean(hostedSessionClaims(req));
+  return Boolean(sessionLumosId(hostedSessionClaims(req)));
 }
 
 export function hostedSessionClaims(req) {
