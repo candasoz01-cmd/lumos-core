@@ -1,9 +1,12 @@
 ---
 import "../styles/lumos-tokens.css";
 import "../styles/umbrella-chrome.css";
+import "../styles/alert-states.css";
 import WeLockSiteNav from "../components/WeLockSiteNav.astro";
 import WeLockSiteFooter from "../components/WeLockSiteFooter.astro";
 import I18nInit from "../components/I18nInit.astro";
+import ThreatFlame from "../components/ThreatFlame.astro";
+import IncidentReport from "../components/IncidentReport.astro";
 ---
 
 <html lang="tr">
@@ -20,9 +23,10 @@ import I18nInit from "../components/I18nInit.astro";
     <link rel="icon" href="/chat-lumos-mark.svg" type="image/svg+xml" sizes="any" />
     <meta name="theme-color" content="#0a0e14" />
   </head>
-  <body class="umbrella-page">
+  <body class="umbrella-page cyber-page" data-demo="off" data-threat-level="0" data-threat-state="safe">
+    <ThreatFlame />
     <WeLockSiteNav active="cyber" />
-    <main class="umbrella-main">
+    <main class="umbrella-main cyber-main">
       <p class="umbrella-eyebrow" data-i18n="umbrella.cyber.eyebrow">WE LOCK AI · CYBER</p>
       <h1 data-i18n="umbrella.cyber.title">Lumos Cyber</h1>
       <p class="umbrella-lead" data-i18n="umbrella.cyber.lead">
@@ -33,16 +37,58 @@ import I18nInit from "../components/I18nInit.astro";
         <p class="umbrella-visual__caption" data-i18n="umbrella.cyber.fortressCaption">Dışarıda güçlü sınırlar. İçeride güven, bilim ve birlikte çalışma.</p>
       </div>
       <div class="umbrella-callout"><p><strong>Katman sınırı:</strong> Lumos Cyber bir entegrasyon veya Lab alt hizmeti değildir; profesyonel güvenlik katmanıdır.</p></div>
+      <section class="cyber-threat-hero" aria-labelledby="cyber-live-title" aria-live="polite">
+        <div>
+          <p class="umbrella-eyebrow" data-i18n="umbrella.cyber.liveEyebrow">CANLI TEHDİT GÖRÜNÜRLÜĞÜ</p>
+          <h2 id="cyber-live-title" data-i18n="umbrella.cyber.liveTitle">Saldırının boyutu tek bakışta anlaşılır</h2>
+          <p data-i18n="umbrella.cyber.liveLead">
+            Alev yüksekliği tehdit puanını görselleştirir; ikon, açık seviye metni ve sayısal puan renk dışında da aynı durumu anlatır.
+          </p>
+          <div class="cyber-threat-level">
+            <span class="cyber-threat-level__icon" aria-hidden="true">◉</span>
+            <span class="cyber-state-copy" data-threat-state-copy="safe" data-i18n="umbrella.cyber.levelSafe">Sakin</span>
+            <span class="cyber-state-copy" data-threat-state-copy="caution" data-i18n="umbrella.cyber.levelCaution" hidden>Dikkat</span>
+            <span class="cyber-state-copy" data-threat-state-copy="high" data-i18n="umbrella.cyber.levelHigh" hidden>Yüksek</span>
+            <span class="cyber-state-copy" data-threat-state-copy="critical" data-i18n="umbrella.cyber.levelCritical" hidden>Kritik</span>
+          </div>
+        </div>
+        <div class="cyber-threat-score">
+          <output id="cyber-threat-score" for="cyber-threat-range">0</output>
+          <small data-i18n="umbrella.cyber.scoreUnit">/ 100 tehdit puanı</small>
+        </div>
+      </section>
+
+      <section class="cyber-demo-controls" aria-labelledby="cyber-demo-title">
+        <div class="cyber-demo-controls__head">
+          <div>
+            <p class="umbrella-eyebrow" data-i18n="umbrella.cyber.demoEyebrow">GÜVENLİ GÖRSEL DEMO</p>
+            <h2 id="cyber-demo-title" data-i18n="umbrella.cyber.demoTitle">Tehdit seviyesini dene</h2>
+          </div>
+          <button class="cyber-demo-toggle" id="cyber-demo-toggle" type="button" aria-pressed="false">
+            <span data-demo-label="off" data-i18n="umbrella.cyber.demoOpen">Demo aç</span>
+            <span data-demo-label="on" data-i18n="umbrella.cyber.demoClose" hidden>Demo kapat</span>
+          </button>
+        </div>
+        <label for="cyber-threat-range" data-i18n="umbrella.cyber.demoRange">Saldırı boyutu: 0–100</label>
+        <input class="cyber-threat-range" id="cyber-threat-range" type="range" min="0" max="100" value="0" disabled />
+        <p class="cyber-demo-note" data-i18n="umbrella.cyber.demoNote">
+          Bu kontrol gerçek saldırı telemetrisi değildir. Demo kapanınca sayfa güvenli varsayılan duruma döner.
+        </p>
+      </section>
+
       <h2 data-i18n="umbrella.cyber.focusTitle">Odak</h2>
       <ul>
         <li data-i18n="umbrella.cyber.focus1">Risk ve politika özetlerinin panelde görünür tutulması.</li>
         <li data-i18n="umbrella.cyber.focus2">Yüksek etkili adımlarda ek onay ve audit izi.</li>
         <li data-i18n="umbrella.cyber.focus3">We Lock AI private katmanıyla hizalı kurumsal politika.</li>
       </ul>
+
+      <IncidentReport />
+
       <div class="umbrella-callout">
         <p>
           <strong data-i18n="umbrella.cyber.statusTitle">Durum</strong> —
-          <span data-i18n="umbrella.cyber.statusBody">Cyber özel landing henüz tamamlanmadı.</span>
+          <span data-i18n="umbrella.cyber.statusBody">Görsel demo hazır; gerçek olay telemetrisi henüz bağlı değil.</span>
         </p>
       </div>
       <div class="umbrella-actions">
@@ -52,5 +98,60 @@ import I18nInit from "../components/I18nInit.astro";
     </main>
     <WeLockSiteFooter />
     <I18nInit />
+    <script>
+      const root = document.body;
+      const toggle = document.querySelector("#cyber-demo-toggle");
+      const range = document.querySelector("#cyber-threat-range");
+      const score = document.querySelector("#cyber-threat-score");
+      const stateCopies = Array.from(document.querySelectorAll("[data-threat-state-copy]"));
+      const demoLabels = Array.from(document.querySelectorAll("[data-demo-label]"));
+      const demoOnly = Array.from(document.querySelectorAll("[data-demo-only]"));
+      const reportEmpty = document.querySelector("#cyber-report-empty");
+
+      function threatState(level) {
+        if (level >= 75) return "critical";
+        if (level >= 50) return "high";
+        if (level >= 25) return "caution";
+        return "safe";
+      }
+
+      function setThreatLevel(rawLevel) {
+        const level = Math.max(0, Math.min(100, Number(rawLevel) || 0));
+        const state = threatState(level);
+        const flameHeight = level === 0 ? 0 : Math.max(18, level);
+        root.dataset.threatLevel = String(level);
+        root.dataset.threatState = state;
+        root.style.setProperty("--lumos-threat-level", String(level));
+        root.style.setProperty("--lumos-flame-height", `${flameHeight}%`);
+        root.style.setProperty("--lumos-flame-speed", `${Math.max(0.42, 1.3 - level / 120)}s`);
+        if (score) score.textContent = String(level);
+        if (range instanceof HTMLInputElement) range.value = String(level);
+        stateCopies.forEach((node) => {
+          node.toggleAttribute("hidden", node.getAttribute("data-threat-state-copy") !== state);
+        });
+      }
+
+      function setDemo(enabled) {
+        root.dataset.demo = enabled ? "on" : "off";
+        if (toggle instanceof HTMLButtonElement) toggle.setAttribute("aria-pressed", String(enabled));
+        if (range instanceof HTMLInputElement) range.disabled = !enabled;
+        demoLabels.forEach((node) => {
+          node.toggleAttribute("hidden", node.getAttribute("data-demo-label") !== (enabled ? "on" : "off"));
+        });
+        demoOnly.forEach((node) => node.toggleAttribute("hidden", !enabled));
+        reportEmpty?.toggleAttribute("hidden", enabled);
+        setThreatLevel(enabled ? 68 : 0);
+      }
+
+      toggle?.addEventListener("click", () => setDemo(root.dataset.demo !== "on"));
+      range?.addEventListener("input", (event) => {
+        if (event.currentTarget instanceof HTMLInputElement && root.dataset.demo === "on") {
+          setThreatLevel(event.currentTarget.value);
+        }
+      });
+
+      const demoRequested = new URLSearchParams(window.location.search).get("demo") === "1";
+      setDemo(demoRequested);
+    </script>
   </body>
 </html>

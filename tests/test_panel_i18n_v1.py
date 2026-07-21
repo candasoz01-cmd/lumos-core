@@ -975,7 +975,7 @@ PANEL_I18N_V58_TR_KEYS = (
     "rootStatus:",
     "hydroponic:",
     "disclaimer:",
-    "Topraksız mod",
+    "Sınırlı yerel mod",
     "katmanAFootnote:",
     "Katman A",
 )
@@ -987,7 +987,7 @@ PANEL_I18N_V58_EN_KEYS = (
     "rootStatus:",
     "hydroponic:",
     "disclaimer:",
-    "Hydroponic mode",
+    "Limited local mode",
     "katmanAFootnote:",
     "Katman A",
 )

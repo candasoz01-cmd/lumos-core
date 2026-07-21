@@ -1,0 +1,21 @@
+# Technical Debt Register
+
+| Alan | Değer |
+| --- | --- |
+| Durum | Yürürlükte — 2026-07-20 |
+| Kural | Borç üreten/fark eden PR buraya kayıt düşer ([Constitution §6](CONSTITUTION.md)); sessiz borç yok |
+| Sıralama | Etkisi en yüksek üstte |
+
+| ID | Borç | Etki | Çıkış kriteri | Durum |
+| --- | --- | --- | --- | --- |
+| TD-01 | İki ayrı task store: panel `.lumos/tasks.json` vs TaskEngine `.lumos/tasks/tasks.json` | Görev sistemi (%60) büyüyemiyor; veri kayması riski; v0.5'in önündeki ana engel | Tek store sözleşmesi + göç + iki yüzeyin aynı kaynağı okuduğunu kanıtlayan test | **Kapandı** (PR #640, `31e7ccf`): canonical panel formatı + compatibility bridge; hedef 12/12, tam takım 1452 geçer. Geçici köprü → TD-11 |
+| TD-11 | TD-01'in geçici köprüsü: `panel_bridge_state._read_tasks_payload` eski TaskEngine formatını (`task_id` + Türkçe statü) hâlâ okuyor (`task-store-v1.md` §Geçiş köprüsü) | Geçici köprünün kalıcılaşması yeni borç; iki-şema mantığı okuyucuda yaşamaya devam ederse TD-01'in kazanımı erir | Tüm canlı `tasks.json` dosyaları `migrate_engine_tasks` ile canonical'a geçirilip doğrulandıktan sonra: `_read_tasks_payload` legacy dalları + `_LEGACY_*_STATUSES` kaldırılır; sözleşmedeki kaldırma sürümü (v0.6) referans alınır | Açık — planlı |
+| TD-02 | `ui/src/pages/panel.astro` ~4.6k satır tek dosya | Her panel değişikliği riskli ve yavaş; review edilemiyor | Bileşenlere bölme; dosya başına makul sınır; davranış değişmeden (read-only audit korunarak) | Açık |
+| TD-03 | Monitoring bağlı değil: Sentry/Axiom kodu main'de, `SENTRY_DSN` / `LUMOS_AXIOM_TOKEN` prod'da yok | Canlı hatalar görünmez; geçmişe dönük log yok | İki env değişkeninin Vercel'e girilmesi (kullanıcı; ~5 dk) + ilk gerçek olayın Sentry'de görülmesi | Açık — kullanıcıda |
+| TD-04 | Board katmanının gerçek kullanımı yok: sözleşme+projeksiyon+claim+gateway main'de ama hiçbir ajan yazmıyor/okumuyor | Bugünkü çarpışmalar (çifte KA-001, yabancı amend, PR kapatma) aynen tekrarlanabilir; KA-001 CANLI'ya çıkamıyor | En az bir gerçek çok-ajanlı oturumda claim + görünürlük kullanımının kayıtlı kanıtı | Açık |
+| TD-05 | Çakışan draft PR'lar: #620 (21 dosya), #614 (9 dosya) main'in 55+ commit gerisinde | Rebase maliyeti her gün büyüyor; FAZ-3 kararına kadar çürüyor | Faz kararı: rebase sahibine atanır ya da kapatılır (iş ADR'de kalır) | Açık — karar bekliyor |
+| TD-06 | Eski dallarda GIT_DIR sızıntılı test: 4b5cf19 öncesi dallarda pre-commit worktree'den koşunca repo config bozuluyor (2026-07-19'da yaşandı: `core.bare=true`, `user=Test`, artık dal) | Eski dalda çalışan her ajan repoyu bozabilir | Eski dala dokunmadan önce origin/main merge kuralı (Constitution §9 pratiği); #620/#614 rebase'lerinde zorunlu | Açık — kural yazıldı |
+| TD-07 | Tarihi commit'lerde `Test <test@example.com>` kimliği (örn. #628 taban commiti `4d7bff2`; main'e merge edilmiş eski commit'ler) | Audit/attribution zinciri kirli | Merge edilmemiş dallarda amend (yalnız kullanıcı onayıyla); main tarihi YENIDEN YAZILMAZ, kabul edilmiş kayıp olarak not düşülür | Kısmen kapalı (#630/#628 HEAD düzeltildi) |
+| TD-08 | Worktree kalabalığı: 25+ worktree, bir kısmı sahipsiz/bayat | Hangi dizinde kimin çalıştığı belirsiz; çarpışma yüzeyi | Sahipsiz worktree envanteri + kapanan PR'ların worktree'lerinin temizliği | Açık |
+| TD-09 | `api/*` public yüzeyinin sözleşme dokümanı yok | Uçlar yalnız kodda tanımlı; iOS/3. taraf entegrasyonu körlemesine | `docs/contracts/` altında API yüzey sözleşmesi | Açık |
+| TD-10 | Vault claim deposu v1 güven sınırı: kimlikler self-asserted (bilinçli; `task-claim-v1.md` §Güven sınırı) | Kötü niyetli ajan sahte kimlik beyan edebilir | Gateway üzerinden kimlik doğrulamalı erişim (KA-003 devamı) — bilinçli v1 sınırı, unutulmasın diye kayıtlı | Bilinçli sınır |
