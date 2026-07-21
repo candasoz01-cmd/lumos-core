@@ -14,6 +14,7 @@ import {
 const COOKIE = "lumos_session";
 const STATE_COOKIE = "lumos_oauth_state";
 const BRIDGE_COOKIE = "lumos_bridge_proxy_auth";
+const MOBILE_OAUTH_COOKIE = "lumos_mobile_oauth";
 const MAX_AGE = 604800;
 const STATE_MAX_AGE = 600;
 
@@ -150,6 +151,14 @@ export function clearBridgeProxyCookieHeader() {
   return `${BRIDGE_COOKIE}=; Path=/api/bridge; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
 }
 
+export function mobileOAuthCookieHeader(sealed) {
+  return `${MOBILE_OAUTH_COOKIE}=${sealed}; Path=/auth/google; HttpOnly; Secure; SameSite=Lax; Max-Age=${STATE_MAX_AGE}`;
+}
+
+export function clearMobileOAuthCookieHeader() {
+  return `${MOBILE_OAUTH_COOKIE}=; Path=/auth/google; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+}
+
 export function readCookie(req, name = COOKIE) {
   const raw = req.headers?.cookie || req.headers?.Cookie || "";
   const parts = String(raw).split(";");
@@ -167,4 +176,11 @@ export function redirectUri() {
   ).trim();
 }
 
-export { BRIDGE_COOKIE, COOKIE, MAX_AGE, STATE_COOKIE, STATE_MAX_AGE };
+export {
+  BRIDGE_COOKIE,
+  COOKIE,
+  MAX_AGE,
+  MOBILE_OAUTH_COOKIE,
+  STATE_COOKIE,
+  STATE_MAX_AGE,
+};

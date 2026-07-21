@@ -17,6 +17,7 @@ import {
   authSecret,
   lumosIdForProviderIdentity,
   makeState,
+  MOBILE_OAUTH_COOKIE,
   openSession,
   sealSession,
   sessionLumosId,
@@ -185,6 +186,55 @@ test("Google callback seals one stable Lumos ID while creating a new session id"
     assert.equal(first.lumos_id, second.lumos_id);
     assert.notEqual(first.sid, second.sid);
     assert.equal(first.package, "base");
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.LUMOS_AUTH_STATE_SECRET;
+    delete process.env.LUMOS_GOOGLE_WEB_CLIENT_ID;
+    delete process.env.LUMOS_GOOGLE_WEB_CLIENT_SECRET;
+  }
+});
+
+test("Google callback returns a sealed mobile session to the requesting app state", async () => {
+  process.env.LUMOS_AUTH_STATE_SECRET = "test-only-secret-32-characters-minimum";
+  process.env.LUMOS_GOOGLE_WEB_CLIENT_ID = "google-client";
+  process.env.LUMOS_GOOGLE_WEB_CLIENT_SECRET = "google-secret";
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    if (String(url).includes("oauth2.googleapis.com/token")) {
+      return { ok: true, async json() { return { access_token: "temporary-access" }; } };
+    }
+    return {
+      ok: true,
+      async json() {
+        return { sub: "google-subject-one", name: "Ada Lovelace", email: "ada@example.test" };
+      },
+    };
+  };
+  const oauthState = makeState();
+  const appState = "mobile_state_12345678901234567890";
+  const mobileFlow = sealSession({
+    kind: "mobile_oauth",
+    app_state: appState,
+    exp: Math.floor(Date.now() / 1000) + 60,
+  });
+  const req = {
+    method: "GET",
+    url: `/api/auth/google/callback?code=test-code&state=${encodeURIComponent(oauthState)}`,
+    headers: {
+      cookie: `lumos_oauth_state=${oauthState}; ${MOBILE_OAUTH_COOKIE}=${mobileFlow}`,
+    },
+  };
+  const res = makeRes();
+  try {
+    await callbackHandler(req, res);
+    assert.equal(res.statusCode, 302);
+    const location = new URL(res.headers.location);
+    assert.equal(location.protocol, "lumos:");
+    const fragment = new URLSearchParams(location.hash.slice(1));
+    assert.equal(fragment.get("state"), appState);
+    const mobileClaims = openSession(fragment.get("session"));
+    assert.equal(mobileClaims.email, "ada@example.test");
+    assert.equal(mobileClaims.lumos_id, lumosIdForProviderIdentity("google_web", "google-subject-one"));
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.LUMOS_AUTH_STATE_SECRET;
@@ -385,5 +435,22 @@ test("hosted chat falls back to Google when OpenAI is unavailable", async () => 
     delete process.env.LUMOS_AUTH_STATE_SECRET;
     delete process.env.OPENAI_API_KEY;
     delete process.env.LUMOS_GOOGLE_GEMINI_API_KEY;
+  }
+});
+
+test("hosted chat accepts a sealed mobile bearer session", async () => {
+  process.env.LUMOS_AUTH_STATE_SECRET = "test-only-secret-32-characters-minimum";
+  const claims = userClaims();
+  const sealed = sealSession(claims);
+  try {
+    const context = await loadHostedUserContext(
+      { headers: { authorization: `Bearer ${sealed}` } },
+      { conversation_id: "mobile-conversation" },
+    );
+    assert.equal(context.ok, true);
+    assert.equal(context.lumos_id, sessionLumosId(claims));
+    assert.equal(context.conversation_id, "mobile-conversation");
+  } finally {
+    delete process.env.LUMOS_AUTH_STATE_SECRET;
   }
 });

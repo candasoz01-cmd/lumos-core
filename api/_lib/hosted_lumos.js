@@ -8,7 +8,13 @@ export function hasLumosSession(req) {
 }
 
 export function hostedSessionClaims(req) {
-  return openSession(readCookie(req));
+  const cookieClaims = openSession(readCookie(req));
+  if (cookieClaims) return cookieClaims;
+  const rawAuthorization = String(
+    req?.headers?.authorization || req?.headers?.Authorization || "",
+  ).trim();
+  const match = rawAuthorization.match(/^Bearer\s+([^\s]+)$/i);
+  return match ? openSession(match[1]) : null;
 }
 
 function cleanMemoryItems(raw) {

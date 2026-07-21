@@ -4,7 +4,9 @@
  */
 import {
   makeState,
+  mobileOAuthCookieHeader,
   redirectUri,
+  sealSession,
   stateCookieHeader,
 } from "../../_lib/lumos_session.js";
 import { captureError, logEvent } from "../../_lib/observability.js";
@@ -46,6 +48,17 @@ export default async function handler(req, res) {
     redirectAuthError(res, "auth_not_configured");
     return;
   }
+  // Mobil akış: uygulama kendi `app_state` değerini verir; yalnız dar bir
+  // karakter kümesi kabul edilir (deep-link fragment'ına enjeksiyon olmasın).
+  const requestURL = new URL(req.url || "/", "https://welockai.com");
+  const mobile = requestURL.searchParams.get("mobile") === "1";
+  const appState = String(requestURL.searchParams.get("app_state") || "").trim();
+  if (mobile && !/^[A-Za-z0-9_-]{20,128}$/.test(appState)) {
+    res.statusCode = 400;
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify({ ok: false, error: "invalid_app_state" }));
+    return;
+  }
   const q = new URLSearchParams({
     client_id: clientId,
     redirect_uri: cb,
@@ -57,7 +70,16 @@ export default async function handler(req, res) {
     prompt: "select_account",
   });
   res.statusCode = 302;
-  res.setHeader("Set-Cookie", stateCookieHeader(state));
+  const cookies = [stateCookieHeader(state)];
+  if (mobile) {
+    const now = Math.floor(Date.now() / 1000);
+    cookies.push(
+      mobileOAuthCookieHeader(
+        sealSession({ kind: "mobile_oauth", app_state: appState, iat: now, exp: now + 600 }),
+      ),
+    );
+  }
+  res.setHeader("Set-Cookie", cookies);
   res.setHeader("Location", `${AUTH}?${q.toString()}`);
   res.setHeader("Cache-Control", "no-store");
   res.end();
