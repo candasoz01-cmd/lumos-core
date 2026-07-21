@@ -106,3 +106,13 @@ def test_handlers_translate_core_write_forbidden_to_client_error() -> None:
     do_put = src.split("def do_PUT")[1].split("\n    def ")[0]
     assert "except CoreWriteForbidden" in do_put
     assert "403" in do_put
+
+
+def test_permanent_delete_guards_before_destructive_unlink() -> None:
+    """Kalıcı silme: guard, yıkıcı unlink'ten ÖNCE çağrılır (sandbox'ta kısmi mutasyon olmaz)."""
+    src = (_REPO_ROOT / "panel" / "scripts" / "panel_tasks_server.py").read_text(encoding="utf-8")
+    fn = src.split("def _post_delete_permanent")[1].split("\n    def ")[0]
+    assert "_guard_core_write(tpath)" in fn
+    assert "tpath.unlink(" in fn
+    # Guard, unlink'ten önce gelmeli.
+    assert fn.index("_guard_core_write(tpath)") < fn.index("tpath.unlink(")

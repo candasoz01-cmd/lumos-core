@@ -1577,6 +1577,10 @@ class Handler(BaseHTTPRequestHandler):
                     title = str(record.get("title") or "")
         except Exception:
             pass
+        # Guard, yıkıcı unlink'ten ÖNCE: sandbox modunda canlı trash dosyası
+        # silinmeden reddedilir (do_POST → 403). Aksi halde unlink olur, sonra
+        # _write_doc guard'ı patlar ve kısmi mutasyon kalırdı.
+        _guard_core_write(tpath)
         try:
             tpath.unlink()
         except OSError as e:
