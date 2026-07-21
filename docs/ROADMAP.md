@@ -79,6 +79,22 @@ FAZ-1 bitene kadar **yeni özellik eklenmez**:
 - ❌ Yeni sayfa
 - ❌ Yeni agent / orchestration katmanı
 
+## FAZ-1 sonrası provider stratejisi
+
+Bu kayıt yalnız FAZ-1 tamamlandıktan sonra değerlendirilecek yönü tanımlar;
+bugün yeni provider geliştirme veya entegrasyon yetkisi vermez.
+
+- **OpenAI:** Ana karar ve genel orkestratör.
+- **Claude:** İlk kontrollü pilot; sınırlı kapsam, ölçüm ve geri alma planıyla
+  FAZ-1 sonrasında denenir.
+- **DeepSeek:** Claude pilotunun kalite, maliyet, gecikme ve bakım sonuçları
+  ölçüldükten sonra değerlendirilecek aday.
+- **Ürün yüzü:** Kullanıcı yalnız **Lumos** görür. Provider adları ürün kimliği
+  olarak sunulmaz; teknik şeffaflık gerektiğinde doğru biçimde açıklanır.
+
+Yeni provider ancak ayrı karar, güvenlik ve veri sınırı, maliyet, test ve geçiş
+kanıtıyla etkinleştirilir.
+
 ## v2 rafı (şimdi konuşulmaz)
 
 - **Media** (video üretimi, render, ses, kolaj)
