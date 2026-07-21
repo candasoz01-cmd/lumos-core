@@ -6,13 +6,16 @@ import callbackHandler from "../api/auth/google/callback.js";
 import {
   buildGeminiRequest,
   buildOpenAIRequest,
+  explicitMemoryText,
   geminiReply,
   hasLumosSession,
   identityStatusReply,
   loadAllowedMemory,
   loadHostedUserContext,
   localTimeReply,
+  memoryWriteStatusReply,
   openAIReply,
+  rememberExplicitMemory,
 } from "../api/_lib/hosted_lumos.js";
 import {
   authSecret,
@@ -358,6 +361,72 @@ test("personal memory is ignored unless the memory service returns explicit cons
       status: "loaded",
       items: ["İzinli tercih"],
     });
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.LUMOS_MEMORY_LOOKUP_URL;
+    delete process.env.LUMOS_MEMORY_SERVICE_TOKEN;
+  }
+});
+
+test("explicit memory intent is narrow and does not capture ordinary chat", () => {
+  assert.equal(explicitMemoryText("Bunu hatırla: Çayı şekersiz içerim"), "Çayı şekersiz içerim");
+  assert.equal(explicitMemoryText("Please remember that I prefer short answers"), "I prefer short answers");
+  assert.equal(explicitMemoryText("Bugün ne yapalım?"), "");
+});
+
+test("explicit memory write stays closed without consent", async () => {
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async () => {
+      throw new Error("fetch_must_not_run");
+    };
+    assert.deepEqual(
+      await rememberExplicitMemory(
+        "lumos_test",
+        "Bunu hatırla: Çayı şekersiz içerim",
+        "google_web",
+        "not_granted",
+      ),
+      { status: "consent_required" },
+    );
+    assert.equal(
+      memoryWriteStatusReply({ memory_write_status: "consent_required" }),
+      "Kişisel hafıza iznin kapalı; bu bilgiyi kaydetmedim.",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("explicit memory write uses the consent-gated sibling endpoint", async () => {
+  process.env.LUMOS_MEMORY_LOOKUP_URL = "https://memory.example.test/memory/hosted/lookup";
+  process.env.LUMOS_MEMORY_SERVICE_TOKEN = "private-memory-token";
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async (url, init) => {
+      assert.equal(url, "https://memory.example.test/memory/hosted/remember");
+      assert.equal(init.headers.Authorization, "Bearer private-memory-token");
+      assert.deepEqual(JSON.parse(init.body), {
+        lumos_id: "lumos_test",
+        summary: "Çayı şekersiz içerim",
+        source_provider: "google_web",
+      });
+      return {
+        ok: true,
+        async json() {
+          return { ok: true, stored: true };
+        },
+      };
+    };
+    assert.deepEqual(
+      await rememberExplicitMemory(
+        "lumos_test",
+        "Hatırla: Çayı şekersiz içerim",
+        "google_web",
+        "empty",
+      ),
+      { status: "stored", summary: "Çayı şekersiz içerim" },
+    );
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.LUMOS_MEMORY_LOOKUP_URL;
