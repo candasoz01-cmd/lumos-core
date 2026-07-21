@@ -2,6 +2,9 @@ name: WIF auditor check
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - codex/wif-auditor-check
 
 permissions:
   contents: read
