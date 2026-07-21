@@ -3,12 +3,22 @@ import { openSession, readCookie, sessionLumosId } from "./lumos_session.js";
 export const HOSTED_MODEL = "gemini-2.5-flash";
 export const OPENAI_HOSTED_MODEL = "gpt-5.6-luna";
 
+// Cookie kullanamayan mobil istemci oturumu Bearer başlığıyla sunabilir.
+// Cookie her zaman önceliklidir; başlık yalnız cookie yoksa değerlendirilir.
+function bearerClaims(req) {
+  const rawAuthorization = String(
+    req?.headers?.authorization || req?.headers?.Authorization || "",
+  ).trim();
+  const match = rawAuthorization.match(/^Bearer\s+([^\s]+)$/i);
+  return match ? openSession(match[1]) : null;
+}
+
 export function hasLumosSession(req) {
-  return Boolean(openSession(readCookie(req)));
+  return Boolean(sessionLumosId(hostedSessionClaims(req)));
 }
 
 export function hostedSessionClaims(req) {
-  return openSession(readCookie(req));
+  return openSession(readCookie(req)) || bearerClaims(req);
 }
 
 function cleanMemoryItems(raw) {

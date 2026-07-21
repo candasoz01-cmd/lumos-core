@@ -15,6 +15,9 @@ bağlanabilsin. Uç ekleyen/değiştiren PR bu belgeyi de günceller.
 
 - **Kimlik:** mühürlü Lumos oturumu HTTP-only cookie ile taşınır; **token
   gövdeye/URL'e yazılmaz**. Yetki gerektiren uçlar oturum yoksa `401` döner.
+  **Mobil istisna:** cookie kullanamayan istemciler oturumu
+  `Authorization: Bearer <sealed>` başlığıyla da sunabilir (yalnız köprü
+  uçları; cookie önceliklidir).
 - **Yöntem uyumsuzluğu:** `405` (`method_not_allowed`).
 - **Önbellek:** kimlik/oturum uçları `Cache-Control: no-store`.
 - **Hata gövdesi:** JSON uçlarda `{ error: "<kod>" }`; bazı uçlarda ek
@@ -28,8 +31,8 @@ bağlanabilsin. Uç ekleyen/değiştiren PR bu belgeyi de günceller.
 
 | Uç | Yöntem | Başarılı | Hata durumları |
 |----|--------|----------|----------------|
-| `/api/auth/google/start` | GET | `302` → Google consent (state cookie set) | `302 /auth?error=missing_client_id\|auth_not_configured` |
-| `/api/auth/google/callback` | GET | `302 /panel?...` (session cookie set) | `302 /auth?error=<kod>` (invalid_state, token_http_error, userinfo_http_error, no_access_token, identity_subject_missing, auth_not_configured, missing_credentials_or_code, provider_error) |
+| `/api/auth/google/start` | GET | `302` → Google consent (state cookie set). **Mobil:** `?mobile=1&app_state=<20-128 [A-Za-z0-9_-]>` → ayrıca kısa ömürlü (600 sn) mühürlü `lumos_mobile_oauth` cookie set edilir | `400 {ok:false,error:"invalid_app_state"}`; `302 /auth?error=missing_client_id\|auth_not_configured` |
+| `/api/auth/google/callback` | GET | Web: `302 /panel?...` (session cookie set). **Mobil akış:** `302 lumos://auth#session=<sealed>&state=<app_state>` | `302 /auth?error=<kod>` (invalid_state, token_http_error, userinfo_http_error, no_access_token, identity_subject_missing, auth_not_configured, missing_credentials_or_code, provider_error) — **mobil akışta** `302 lumos://auth#error=<kod>&state=<app_state>` |
 | `/api/auth/session` | GET | `200 {ok:true, authenticated:true, session:{session_id, lumos_id, email, name, picture, door, provider, package, exp}}` | `401 {ok:false, authenticated:false[, error:"identity_missing"]}` |
 | `/api/auth/logout` | GET \| POST | GET → `302`; POST → `200 {ok:true, logged_out:true}` (session + bridge cookie temizlenir) | `405` |
 | `/api/auth/readiness` | GET | `200 {ok:true, live_login, client_id_prefix, redirect_uri, has_client_secret, has_dedicated_state_secret, stable_identity, has_dedicated_identity_secret, consent_memory_lookup, door}` | `405` |
@@ -46,6 +49,12 @@ değil, yalnız `client_id_prefix` (ilk 8) ve boolean bayraklar.
 | `/api/bridge/chat` | POST | `200 {reply, mode, identity}` (mode: hosted_chat \| hosted_local \| hosted_identity_status) | `400 invalid_json\|message_required`; `401/403 {error, errorKind}`; `503 model_unconfigured`; `502 model_unavailable`; `405`; `204` (OPTIONS) |
 | `/api/bridge/[...path]` | İstek yöntemi upstream'e olduğu gibi geçirilir (GET/HEAD dışı yöntemlerde gövde forward edilir) | Upstream yanıtı ve durum kodu proxy'lenir (`Cache-Control: no-store`) | `404 bridge_proxy_forbidden` (allowlist dışı yol); `401 bridge_proxy_unauthorized`; `503 bridge_proxy_unconfigured\|_auth_unconfigured\|_secret_unconfigured`; `502 bridge_upstream_unreachable` |
 
+### Mobil (`api/mobile/*`)
+
+| Uç | Yöntem | Not |
+|----|--------|-----|
+| `/api/mobile/chat` | POST | `bridge/chat` ile **aynı** handler (re-export). Ayrı yol adı, mobil istemcinin sabit uç kullanabilmesi için; davranış/sözleşme `bridge/chat` ile birebir aynıdır. |
+
 **Proxy allowlist (`ALLOWED_BRIDGE_PATHS`):** `task`, `chat`, `health`,
 `status`, `last-result`, `controlled`, `transcribe`, `panel/upload`. Bu küme
 dışındaki yol `404` (güvenlik olayı olarak audit'e düşer). Köprü secret'ı
@@ -60,6 +69,22 @@ upstream URL yanıta yazılmaz.
   reddedilir.
 - Gönderilmeyen alanlar (observability allowlist'i): email, name, picture,
   sub, access_token, code, state, cookie, client_secret.
+
+## Mobil akış — bilinen riskler (açık kayıt)
+
+- **Deep-link token taşıma:** mühürlü oturum `lumos://auth#session=…`
+  fragment'ında dönüyor. Fragment sunucuya gitmez, ancak cihazda aynı özel
+  şemayı kaydeden başka bir uygulama varsa token kaçırılabilir (custom-scheme
+  hijack). `app_state` bağlaması kısmi koruma sağlar; kalıcı çözüm
+  **universal link + ASWebAuthenticationSession** olarak açık kalmıştır.
+- **Bearer kabulü** oturumu cookie korumalarının (SameSite, HttpOnly) dışına
+  taşır; sızan mühürlü oturum doğrudan kullanılabilir. Oturum ömrü (7 gün)
+  bu nedenle mobil için ayrıca değerlendirilmelidir. Bearer, cookie kabul eden
+  bütün köprü uçlarında **tutarlı** olarak geçerlidir (`hasLumosSession` ve
+  `hostedSessionClaims` aynı kaynağı okur).
+- **Akış bağlama:** mobil çerez `oauth_state` taşır ve callback'e gelen `state`
+  ile birebir eşleşmelidir. Böylece terk edilmiş/paralel bir mobil akıştan
+  kalan çerez, sonraki normal web girişini deep-link'e kaçıramaz.
 
 ## v1 sınırları (dürüst)
 
