@@ -10,7 +10,7 @@
 | Kapsam dışı | **TD-02** (`ui/src/pages/panel.astro` bölme) — dokunulmadı; panel iç mantığı yalnız `UPLOAD_URL` env türetimi düzeyinde referanslandı |
 | İlgili | [`lumos-log-vs-approval.md`](./lumos-log-vs-approval.md), [`lumos-audit-log-contract.md`](./lumos-audit-log-contract.md), [`lumos-action-permission-matrix.md`](./lumos-action-permission-matrix.md), [`../lumos-guard-zincir-durum.md`](../lumos-guard-zincir-durum.md), [`../lumos-phase3-sink-guard-checkpoint.md`](../lumos-phase3-sink-guard-checkpoint.md), [`../lumos-sandbox-hedef-dizin-sozlesmesi.md`](../lumos-sandbox-hedef-dizin-sozlesmesi.md), [`../contracts/task-store-v1.md`](../contracts/task-store-v1.md), [`../TECHNICAL_DEBT.md`](../TECHNICAL_DEBT.md) |
 
-**Sınır notu:** Bu belge yalnızca **mevcut durumu** haritalar ve boşlukları listeler. Hiçbir üretim kodu yazılmadı/değiştirilmedi; önerilen adımlar "sonraki faz" olarak kayıtlıdır. Tüm satır numaraları analiz anındaki `main` (`14fbc29`) durumuna göredir.
+**Sınır notu:** Bu belge yalnızca **mevcut durumu** haritalar ve boşlukları listeler. Hiçbir üretim kodu yazılmadı/değiştirilmedi; önerilen adımlar "sonraki faz" olarak kayıtlıdır. Satır numaraları **`main` @ `8cf82bc`** (2026-07-22) durumuna göre tazelenmiştir; §7.1 çapaları bu SHA'ya karşı yeniden doğrulanmıştır.
 
 ---
 
@@ -70,7 +70,7 @@ flowchart TD
 | Panel — consent | `POST /lumos-consent` | `.lumos/consent.json` (sink dışı) | `panel_tasks_server.py` 1125–1151 |
 | Backend chat (vision) | `POST /chat` + `imageData` base64 | **Disk yok**; ≤256KB inline | `backend/index.js` 82–120 |
 | Rust vault export | `anchorusb-core` report | Kullanıcı tetikli rapor; ana sink'ten ayrı | `crates/anchorusb-core/src/report.rs` |
-| UI upload (hedeflenen) | `UPLOAD_URL` → proxy `panel/upload` | **Upstream handler eksik** (§7) | `ui/src/pages/panel.astro` 16–18; `api/bridge/[...path].js` 42 |
+| UI upload (hedeflenen) | `UPLOAD_URL` → proxy `panel/upload` | **Upstream handler eksik** (§7) | `ui/src/pages/panel.astro` 16–18; `api/bridge/[...path].js` 43 |
 
 ---
 
@@ -129,8 +129,8 @@ Not: passphrase diske yazılmaz (`panel_tasks_server.py` 1126). Onay beklerken `
 
 ### 7.1 Üretim boşlukları (kanıtlı)
 
-1. **Panel upload endpoint'i yok.** Proxy `panel/upload`'ı allowlist'e almış (`api/bridge/[...path].js` 42) ve UI `UPLOAD_URL`'e POST ediyor (`panel.astro` 16–18), ancak `kando_bridge/.../server.py` içinde `upload`/`panel/upload` handler'ı **yok** → upstream 404. Env örneği (`/upload`) ile panel default (`/panel/upload`) de **uyumsuz**.
-2. **Panel trash merkezi sink'i atlıyor.** `panel_tasks_server._write_trash_task_file` (`433–457`) kendi `_trash_dir()`'ine `write_text` ile doğrudan yazıyor; sözleşmedeki `workspace_contract.move_to_trash` (`445–479`) çağrılmıyor → sandbox guard ve tek-trash-hedefi sözleşmesi bu yolda uygulanmıyor.
+1. **Panel upload endpoint'i yok.** Proxy `panel/upload`'ı allowlist'e almış (`api/bridge/[...path].js` 43) ve UI `UPLOAD_URL`'e POST ediyor (`panel.astro` 16–18), ancak `kando_bridge/.../server.py` içinde `upload`/`panel/upload` handler'ı **yok** → upstream 404. Env örneği (`/upload`) ile panel default (`/panel/upload`) de **uyumsuz**.
+2. **Panel trash: guard var, merkezi sink hâlâ yok.** `panel_tasks_server._write_trash_task_file` (`458–480`) kendi `_trash_dir()`'ine doğrudan yazmaya devam ediyor; sözleşmedeki `workspace_contract.move_to_trash` (`445`) çağrılmıyor → **tek-trash-hedefi sözleşmesi bu yolda uygulanmıyor.** Ancak yazımdan önce `_guard_core_write(path)` (`468`) çağrılıyor, yani **sandbox guard bu yolda artık uygulanıyor**; bulgunun "guard yok" kısmı geçersizdir, "merkezi sink atlanıyor" kısmı geçerlidir.
 3. **İki task store / çift guard kapsamı.** `.lumos/tasks.json` (panel, direct) vs `.lumos/tasks/tasks.json` (engine, sink'li). TD-01 kapandı ama geçici köprü (**TD-11**) hâlâ açık; guard kapsamı yüzeyler arası tutarsız.
 4. **`write_interceptor` üretimde bağlı değil.** `intercept_write` (`write_interceptor.py` 56–163) yalnız testlerden çağrılıyor; protected-path direct write → patch yönlendirmesi canlı akışta yok.
 
@@ -162,7 +162,7 @@ Not: passphrase diske yazılmaz (`panel_tasks_server.py` 1126). Onay beklerken `
 2. Panel `upload` akışı için karar: köprüde gerçek `panel/upload` handler'ı mı, yoksa allowlist/env'in geri çekilmesi mi (aksi halde ölü yüzey + kafa karışıklığı).
 3. `write_interceptor`'ın protected-path direct write'lar için canlı akışa bağlanıp bağlanmayacağının netleşmesi.
 
-**Teknik borç kaydı önerisi:** Yukarıdaki (1) ve (2) için `TECHNICAL_DEBT.md`'ye **yeni** bir satır (ör. TD-12: "panel dosya/trash yazımı merkezi sink'i atlıyor + panel upload handler eksik") eklenmesi önerilir. **Bu PR TD-02'ye dokunmaz** ve register'ı bu analiz fazında değiştirmez; kayıt, kullanıcı onayıyla ayrı bir adımda açılabilir.
+**Teknik borç kaydı önerisi:** Yukarıdaki (1) ve (2) için `TECHNICAL_DEBT.md`'ye **yeni** bir satır eklenmesi önerilir: **TD-14** — "panel trash yazımı merkezi sink'i atlıyor + panel upload handler eksik". (Numara notu: TD-12 ve TD-13 bu analizden sonra başka işlere verildi, bu yüzden sıradaki boş numara TD-14'tür.) **Bu PR TD-02'ye dokunmaz** ve register'ı bu analiz fazında değiştirmez; kayıt, kullanıcı onayıyla ayrı bir adımda açılabilir.
 
 ---
 
