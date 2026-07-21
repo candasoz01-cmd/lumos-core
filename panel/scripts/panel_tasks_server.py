@@ -38,7 +38,11 @@ from core.panel_runtime_lock import (  # noqa: E402
     bootstrap_panel_runtime_lock_from_bridge_env,
     resolve_panel_runtime_lock,
 )
-from core.workspace_contract import may_perform_permanent_delete  # noqa: E402
+from core.workspace_contract import (  # noqa: E402
+    CoreWriteForbidden,
+    allow_write_to_core,
+    may_perform_permanent_delete,
+)
 from policy.action_policy import (  # noqa: E402
     COMPLETE_TASK,
     CREATE_TASK,
@@ -95,6 +99,26 @@ def _base_dir() -> Path:
 
 def _tasks_file() -> Path:
     return _base_dir() / "tasks.json"
+
+
+def _is_sandbox_mode() -> bool:
+    """Panel sandbox modu (panel_bridge_state ile aynı env konvansiyonu)."""
+    return os.environ.get("LUMOS_SANDBOX_MODE", "false").strip().lower() in ("1", "true", "yes")
+
+
+def _guard_core_write(target: Path) -> None:
+    """Panel `.lumos` yazımlarını merkezi workspace_contract guard'ından geçir.
+
+    Canlı modda (varsayılan, LUMOS_SANDBOX_MODE kapalı) `allow_write_to_core`
+    her zaman True döner; mevcut davranış birebir korunur. Sandbox modunda ise
+    canlı çekirdek state path'ine (`tasks.json`, `trash/…`) yazma
+    `CoreWriteForbidden` ile reddedilir (fail-closed) — panel yüzeyi artık
+    merkezi sözleşmeyi/guard'ı atlamaz.
+    """
+    if not allow_write_to_core(_base_dir(), target, is_sandbox_mode=_is_sandbox_mode()):
+        raise CoreWriteForbidden(
+            f"Sandbox modunda canlı çekirdek path'ine panel yazımı yasak: {target}",
+        )
 
 
 def _simulate_photo_capture() -> tuple[str, str]:
@@ -269,6 +293,7 @@ def _write_doc(
 ) -> None:
     p = _tasks_file()
     base = _base_dir()
+    _guard_core_write(p)
     corr_id = None
     if evidence and not evidence.get("skip"):
         corr_id = str(evidence.get("correlation_id") or generate_correlation_id())
@@ -440,6 +465,7 @@ def _write_trash_task_file(tid: str, task: dict, deleted_at: str) -> None:
     while path.exists():
         n += 1
         path = d / f"{fn}_{n}.json"
+    _guard_core_write(path)
     title = str(task.get("title", ""))
     record = {
         "id": tid,
