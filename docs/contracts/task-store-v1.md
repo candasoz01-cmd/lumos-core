@@ -40,12 +40,18 @@ geçiş süresince iki şemayı da anlar.
 - **Tekilleştirme:** aynı `id` için son-yazılan kazanır — göç anında eski
   satır + aynalı canonical satır tek kayda iner.
 
-**TODO (göç sonrası):** Eski-format okuma desteği kalıcı değildir. Tüm canlı
-`tasks.json` dosyaları canonical'a geçtiğinde (`migrate_engine_tasks` +
-doğrulama), `_read_tasks_payload` içindeki legacy dalları ve
-`_LEGACY_*_STATUSES` kaldırılır. Bu, ayrı bir teknik borç kaydı olarak
-izlenir: **TD-01-followup — legacy görev formatı okuma desteğinin kaldırılması**
-(TECHNICAL_DEBT.md'ye ayrı, kapsamı dar bir PR ile eklenecek).
+**Kaldırma planı (göç sonrası):** Eski-format okuma desteği kalıcı değildir.
+
+- **Kaldırma sürümü hedefi: v0.6.** Compatibility bridge en geç v0.6'da
+  kaldırılır; o sürüme kadar geçiş için okunur.
+- **Kaldırma önkoşulu:** tüm canlı `tasks.json` dosyaları
+  `migrate_engine_tasks` ile canonical'a geçirilir ve doğrulanır (hiçbir
+  aktif dosyada `task_id`'li satır kalmadığı teyit edilir).
+- **Kaldırılacak:** `_read_tasks_payload` içindeki legacy dalları,
+  `_LEGACY_DONE_STATUSES`, `_LEGACY_KNOWN_STATUSES` ve legacy normalize
+  yolu; okuyucu yalnız canonical formatı kabul eder hale gelir.
+- **İzlenen borç:** **TD-11** (TECHNICAL_DEBT.md) — "TD-01'in geçici
+  köprüsü". Kaldırma ayrı, kapsamı dar bir PR ile yapılır.
 
 ## Bilinen v1 sınırları (dürüst)
 
