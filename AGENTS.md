@@ -28,3 +28,18 @@ python -m lumos_board.claim_cli claim --task KA-000 --repo lumos-core --branch c
 Claim aracı henüz hedef dalda yoksa bootstrap rezervasyonu olarak aynı görev kimliğini
 taşıyan uzak branch açılır; kod değişikliğinden önce açık PR, branch ve worktree çakışması
 elle kontrol edilir.
+
+## Bulgu düzeltme ve otomasyon sınırları (cloud ajanları)
+
+- **Merge edilmemiş dala ait bulgular:** Bir PR'ın dalında olup henüz `main`'e
+  inmemiş kodda tespit edilen bulgular (ör. Bugbot), o kod `main`'e inene kadar
+  "güncel `main` tabanlı ayrı PR" ile düzeltilemez — düzeltilecek dosya `main`'de
+  yoktur. Bu bulgular ilgili PR'da **pre-merge review notu** olarak tutulur;
+  STOP-LIST / dondurulmuş PR'lara düzeltme **yığılmaz**. Kod `main`'e indikten
+  sonra her bulgu ayrı, dar, güncel-`main` tabanlı PR ile ele alınır.
+- **`gh` CLI salt-okunur:** Bu ortamda `gh` yalnız okuma içindir; PR/issue
+  yorumunu **düzenleyemez/silemez** (`PATCH .../issues/comments/{id}` → HTTP 403
+  "Resource not accessible by integration"). Yazma işleri ManagePullRequest ile
+  yapılır, ancak o da yorum düzenleme/silme sunmaz. Yanlış yayımlanan bir yorum
+  geri düzeltilemez; gerekirse tekrar yayımlamak yerine tek bir
+  **düzeltme/indeks yorumu** eklenip canonical kayıt orada belirtilir.
