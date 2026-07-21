@@ -26,20 +26,29 @@ UPLOAD_FIELD = "file"
 UPLOAD_MAX_BYTES_DEFAULT = 10 * 1024 * 1024
 UPLOAD_DIR_NAME = "uploads"
 
-# İzinli tipler: uzantı → beklenen magic byte önekleri (boşsa yalnız uzantı).
+# İzinli tipler: uzantı → alternatif imzalar. Her imza (offset, beklenen)
+# çiftlerinden oluşur ve **tüm çiftler** eşleşmelidir; alternatiflerden biri
+# tutması yeter. Boş demet = yalnız uzantı kontrolü (düz metin biçimleri).
 # Content-Type'a tek başına güvenilmez; uzantı + magic byte birlikte bakılır.
-_ALLOWED: dict[str, tuple[bytes, ...]] = {
+_Signature = tuple[tuple[int, bytes], ...]
+_ALLOWED: dict[str, tuple[_Signature, ...]] = {
     ".txt": (),
     ".md": (),
     ".json": (),
     ".csv": (),
-    ".pdf": (b"%PDF-",),
-    ".png": (b"\x89PNG\r\n\x1a\n",),
-    ".jpg": (b"\xff\xd8\xff",),
-    ".jpeg": (b"\xff\xd8\xff",),
-    ".webp": (b"RIFF",),
-    ".gif": (b"GIF87a", b"GIF89a"),
+    ".pdf": ((((0, b"%PDF-")),),),
+    ".png": (((0, b"\x89PNG\r\n\x1a\n"),),),
+    ".jpg": (((0, b"\xff\xd8\xff"),),),
+    ".jpeg": (((0, b"\xff\xd8\xff"),),),
+    # WebP = RIFF konteyneri + 8. offset'te "WEBP"; yalnız RIFF bakmak WAV gibi
+    # diğer RIFF türlerinin .webp adıyla geçmesine izin verirdi.
+    ".webp": (((0, b"RIFF"), (8, b"WEBP")),),
+    ".gif": (((0, b"GIF87a"),), ((0, b"GIF89a"),)),
 }
+
+
+def _signature_matches(signature: _Signature, data: bytes) -> bool:
+    return all(data[off : off + len(expected)] == expected for off, expected in signature)
 
 _MIME_BY_EXT = {
     ".txt": "text/plain", ".md": "text/markdown", ".json": "application/json",
@@ -82,8 +91,8 @@ def validate_media(name: str, data: bytes) -> tuple[str | None, str | None]:
     ext = _extension(name)
     if ext not in _ALLOWED:
         return None, "unsupported_media_type"
-    magics = _ALLOWED[ext]
-    if magics and not any(data.startswith(m) for m in magics):
+    signatures = _ALLOWED[ext]
+    if signatures and not any(_signature_matches(sig, data) for sig in signatures):
         # Beyan edilen uzantı ile gerçek içerik uyuşmuyor.
         return None, "unsupported_media_type"
     return _MIME_BY_EXT.get(ext, "application/octet-stream"), None

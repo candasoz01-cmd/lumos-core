@@ -207,3 +207,24 @@ def test_v1_response_carries_no_analysis_or_summary(tmp_path: Path) -> None:
     }
     assert body["approval"] is None
     assert "summary" not in body and "analysis" not in body
+
+
+def test_riff_container_lying_about_webp_is_rejected(tmp_path: Path) -> None:
+    """WAV de RIFF konteyneri — yalnız 'RIFF' önekine bakmak yetmez."""
+    wav = b"RIFF" + b"\x24\x00\x00\x00" + b"WAVE" + b"fmt " + b"\x00" * 16
+    status, body = _post(tmp_path, "sahte.webp", wav)
+    assert status == 415
+    assert body["error"] == "unsupported_media_type"
+    assert _stored_files(tmp_path) == []
+
+
+def test_real_webp_signature_passes(tmp_path: Path) -> None:
+    webp = b"RIFF" + b"\x24\x00\x00\x00" + b"WEBP" + b"VP8 " + b"\x00" * 16
+    status, body = _post(tmp_path, "gercek.webp", webp)
+    assert status == 200 and body["file"]["mime"] == "image/webp"
+
+
+def test_gif_alternative_signatures_both_accepted(tmp_path: Path) -> None:
+    for name, magic in (("a.gif", b"GIF87a"), ("b.gif", b"GIF89a")):
+        status, _ = _post(tmp_path, name, magic + b"\x00" * 16)
+        assert status == 200
