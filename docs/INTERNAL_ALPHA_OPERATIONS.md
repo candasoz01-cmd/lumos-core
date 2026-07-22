@@ -130,7 +130,7 @@ Her **Pazartesi** (veya ekip sprint günü) bir satır `docs/INTERNAL_ALPHA_OPER
 | 2026-06-26 | Bridge proxy 503 prod davranışı belgelendi (env yok = beklenen) | [vercel-bridge-proxy-setup.md](vercel-bridge-proxy-setup.md) |
 | 2026-06-26 | **P0-05 izleme:** `make test` — **1220 passed**, 3 skipped; SECURITY_NEVER_AUTO regresyonu yok | `main` @ `57e81ea` |
 | 2026-06-26 | **P1-02 Hafta 1 checkpoint** — aşağı §4.3 | welockai.com smoke + pytest |
-| 2026-07-22 | **P1-02 yeni doğrulama döngüsü başladı** — kimlik doğrulamalı üretim dosya yükleme yolu uçtan uca doğrulandı; tam Hafta 1 checkpoint için yerel görev akışı bekleniyor | `main` @ `7c19ebb`; #661; Lumos #166 |
+| 2026-07-22 | **P1-02 yeni doğrulama döngüsü Hafta 1 tamamlandı** — kimlik doğrulamalı üretim dosya yükleme ve yerel görev ekle → listele → durum güncelle → yeniden yükleme sonrası kalıcılık doğrulandı | `main` @ `7a34798`; #661; #663; Lumos #166 |
 
 ### Checkpoint — 2026-06-26 (Hafta 1)
 
@@ -159,17 +159,17 @@ Her **Pazartesi** (veya ekip sprint günü) bir satır `docs/INTERNAL_ALPHA_OPER
 - **Bloker:** yok / açıklama
 ```
 
-### Checkpoint — 2026-07-22 (Yeni döngü başlangıcı)
+### Checkpoint — 2026-07-22 (Yeni döngü Hafta 1)
 
 - **Katılımcı(lar):** @owner / Codex doğrulaması
-- **Panel yolculuk:** kısmi — `welockai.com/panel` güvenli oturumunda dosya yükleme isteği `200`; ad, tür ve boyut ekranda doğrulandı
-- **Yerel görev [Yerel]:** bekliyor — ekle → listele → düzenle akışı bu checkpoint'te çalıştırılmadı
+- **Panel yolculuk:** evet — `welockai.com/panel` güvenli oturumunda dosya yükleme isteği `200`; ad, tür ve boyut ekranda doğrulandı
+- **Yerel görev [Yerel]:** evet — localhost panelde görev eklendi, listelendi, durumu `Tamamlandı` olarak güncellendi ve sayfa yenilendikten sonra korundu
 - **Köprü sohbet (opsiyonel):** N/A
-- **Regresyon:** ilgili yükleme testleri, tam Python paketi ve üretim smoke doğrulamaları geçti; kaynak PR CI Python 3.12/3.13 yeşil
+- **Regresyon:** `pytest -q` — **1496 passed**, 3 skipped; `test`, `rust`, `macos-app-build`, `ui-smoke` ve `ui-e2e` CI kontrolleri yeşil
 - **P0-05 izleme:** yeni SECURITY_NEVER_AUTO regresyonu gözlenmedi
-- **Bloker:** Tam Hafta 1 için yerel görev akışı; Hafta 2 için bu tam checkpoint'ten sonra ≥14 takvim günü
+- **Bloker:** yok — Hafta 2 için bu checkpoint'ten sonra ≥14 takvim günü gerekir
 
-**P1-02 durumu:** Devam ediyor — yeni doğrulama döngüsü başladı; 2026-07-22 kaydı tam checkpoint değildir. Hafta 2 tarihi, tam Hafta 1 tamamlandıktan en erken 14 gün sonradır.
+**P1-02 durumu:** Devam ediyor — yeni döngü Hafta 1 tamamlandı. Hafta 2 checkpoint tarihi en erken **2026-08-05**; ikinci tam checkpoint ve sıfır P0 regresyon sonrası kapanabilir.
 
 ---
 
@@ -229,4 +229,4 @@ Tam liste: [`INTERNAL_ALPHA_RELEASE_SCOPE.md`](INTERNAL_ALPHA_RELEASE_SCOPE.md) 
 
 ---
 
-*Son güncelleme: 2026-07-22 — P1-02 yeni doğrulama döngüsü başladı; tam Hafta 1 için yerel görev akışı pending.*
+*Son güncelleme: 2026-07-22 — P1-02 yeni doğrulama döngüsü Hafta 1 tamamlandı; Hafta 2 en erken 2026-08-05.*
