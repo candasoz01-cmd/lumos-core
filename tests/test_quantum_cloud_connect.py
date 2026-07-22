@@ -14,6 +14,14 @@ from integrations.quantum_cloud_connect import (
 from integrations.registry import register_default_integrations
 
 
+CLOUD_PROVIDERS = (
+    "ibm_quantum",
+    "azure_quantum",
+    "amazon_braket",
+    "google_quantum_ai",
+)
+
+
 @pytest.mark.parametrize(
     ("provider_id", "missing"),
     [
@@ -142,16 +150,19 @@ def test_google_adapter_lists_processors(monkeypatch: pytest.MonkeyPatch):
     assert result["job_submission"] is False
 
 
-def test_cloud_connect_keeps_approval_gate():
+@pytest.mark.parametrize("provider_id", CLOUD_PROVIDERS)
+@pytest.mark.parametrize("action", ("connect", "discover"))
+def test_cloud_actions_keep_approval_gate(provider_id: str, action: str):
     result = register_default_integrations().run(
         IntegrationRequest(
             provider="quantum",
-            action="connect",
-            payload={"provider_id": "ibm_quantum"},
+            action=action,
+            payload={"provider_id": provider_id},
         ),
     )
     assert result.ok is False
     assert result.error == "approval_required"
+    assert result.data["requires_approval"] is True
 
 
 def test_cloud_connect_success_is_read_only():
@@ -178,3 +189,48 @@ def test_cloud_connect_success_is_read_only():
     assert result.data["connection_status"] == "connected"
     assert result.data["job_submission"] is False
     assert result.data["autonomous_connect"] is False
+
+
+def test_provider_failure_does_not_leak_secret_or_claim_success(caplog: pytest.LogCaptureFixture):
+    secret = "lumos-super-secret-token"
+    with patch(
+        "integrations.providers.quantum_provider.connect_quantum_cloud",
+        side_effect=PermissionError(f"access denied for {secret}"),
+    ):
+        result = register_default_integrations().run(
+            IntegrationRequest(
+                provider="quantum",
+                action="connect",
+                payload={"provider_id": "google_quantum_ai", "approved": True},
+            ),
+        )
+
+    assert result.ok is False
+    assert result.error == "quantum_provider_unavailable"
+    assert result.data["exception_type"] == "PermissionError"
+    assert secret not in repr(result)
+    assert secret not in caplog.text
+
+
+def test_cloud_adapter_source_has_no_job_submission_calls():
+    import ast
+    import inspect
+
+    import integrations.quantum_cloud_connect as adapter
+
+    forbidden_calls = {
+        "create_quantum_task",
+        "run",
+        "run_batch",
+        "run_sweep",
+        "submit",
+        "submit_job",
+    }
+    tree = ast.parse(inspect.getsource(adapter))
+    called_attributes = {
+        node.func.attr
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+    }
+
+    assert called_attributes.isdisjoint(forbidden_calls)
