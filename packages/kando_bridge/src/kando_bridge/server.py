@@ -1770,6 +1770,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
                     "post_task": "POST /task (direct_patch | agent)",
                     "post_controlled": "POST /controlled {permission,command,path,content}",
                     "post_transcribe": "POST /transcribe (multipart audio; STT iskelet)",
+                    "post_panel_upload": "POST /panel/upload (multipart file; v1 attach — sandbox sink)",
                     "post_chat": "POST /chat {message} → gate + execute",
                     "post_replay": "POST /replay (dry_run audit)",
                     "post_approve": "POST /approve (pending high-risk)",
@@ -2534,6 +2535,22 @@ class BridgeHandler(BaseHTTPRequestHandler):
         )
         self._send_json(status, payload)
 
+    def _handle_panel_upload(self) -> None:
+        from kando_bridge.panel_upload import handle_panel_upload_request
+
+        try:
+            length = int(self.headers.get("Content-Length", "0") or "0")
+        except (TypeError, ValueError):
+            length = 0
+        raw = self.rfile.read(length) if length > 0 else b""
+        status, payload = handle_panel_upload_request(
+            self.headers.get("Content-Type"),
+            raw,
+            repo_root=ROOT,
+            content_length=length,
+        )
+        self._send_json(status, payload)
+
     def _handle_tools_execute(self) -> None:
         from kando_bridge.pc_remote_tools import handle_tools_execute_body
 
@@ -2572,6 +2589,9 @@ class BridgeHandler(BaseHTTPRequestHandler):
             return
         if req_path == "/transcribe":
             self._handle_transcribe()
+            return
+        if req_path == "/panel/upload":
+            self._handle_panel_upload()
             return
         if req_path == "/tools/execute":
             self._handle_tools_execute()
