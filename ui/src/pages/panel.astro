@@ -14786,11 +14786,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
       wireEvidenceQueueFlushTriggers();
       wireDosyalarUpload();
 
-      /** Kontrollü köprü file_rw: yalnızca POST /controlled (genel /task akışına dokunulmaz). */
-      const CONTROLLED_MAX_WRITE_BYTES = 64000;
+      /** Kontrollü köprü file_rw: yalnızca yetenek probunda kullanılır. */
       const DOSYALAR_TEXT_EXT = new Set(["txt", "md", "json", "csv"]);
-      const DOSYALAR_READ_EXT = new Set(["txt", "md", "json", "csv", "py"]);
-      const DOSYALAR_DOC_EXT = new Set(["pdf", "docx"]);
       const DOSYALAR_AUDIO_EXT = new Set([
         "mp3",
         "wav",
@@ -14826,37 +14823,6 @@ const PANEL_DEBUG = import.meta.env.DEV;
         if (e && DOSYALAR_AUDIO_EXT.has(e)) return true;
         const m = String(mime ?? "").toLowerCase();
         return m.startsWith("audio/");
-      }
-
-      function dosyalarUnsupportedMessage(ext, mime) {
-        if (dosyalarIsAudioFile(ext, mime)) {
-          return panelT("panel.modules.files.messages.unsupportedAudio");
-        }
-        if (ext === "exe") {
-          return panelT("panel.modules.files.messages.unsupportedExe");
-        }
-        if (DOSYALAR_DOC_EXT.has(ext)) {
-          return panelT("panel.modules.files.messages.unsupportedDoc");
-        }
-        return panelT("panel.modules.files.messages.unsupportedGeneric");
-      }
-
-      function dosyalarInfoMessageForExt(ext) {
-        if (DOSYALAR_TEXT_EXT.has(ext)) return panelT("panel.modules.files.messages.infoSummary");
-        if (ext === "py") {
-          return panelT("panel.modules.files.messages.infoPy");
-        }
-        return "";
-      }
-
-      function dosyalarSafeUploadPath(filename) {
-        const base =
-          String(filename || "upload")
-            .replace(/\\/g, "/")
-            .split("/")
-            .pop() || "upload";
-        const safe = base.replace(/[^\w.\-()+@]/g, "_").slice(0, 120);
-        return "uploads/" + safe;
       }
 
       function dosyalarFileExtension(name) {
@@ -14907,46 +14873,24 @@ const PANEL_DEBUG = import.meta.env.DEV;
         });
       }
 
-      function readBlobAsUtf8(file) {
-        return new Promise((resolve, reject) => {
-          const fr = new FileReader();
-          fr.onload = () => resolve(String(fr.result ?? ""));
-          fr.onerror = () => reject(new Error("read failed"));
-          fr.readAsText(file, "utf-8");
+      async function uploadPanelFile(file) {
+        const form = new FormData();
+        form.append("file", file, file.name);
+        const headers = {};
+        if (kandoToken) headers["X-Kando-Token"] = kandoToken;
+        const r = await fetch(UPLOAD_URL, {
+          method: "POST",
+          headers,
+          body: form,
         });
-      }
-
-      function dosyalarClientSummary(text, ext) {
-        const t = String(text || "").trim();
-        if (!t) return "";
-        if (ext === "json") {
-          try {
-            const o = JSON.parse(t);
-            if (Array.isArray(o)) {
-              return panelT("panel.modules.files.messages.summaryJsonArray").replace("{count}", String(o.length));
-            }
-            if (o && typeof o === "object") {
-              return panelT("panel.modules.files.messages.summaryJsonObject").replace(
-                "{count}",
-                String(Object.keys(o).length),
-              );
-            }
-          } catch {
-            /* geçersiz JSON — düz metin özeti */
-          }
+        const text = await r.text();
+        let data = null;
+        try {
+          data = text && text.trim() ? JSON.parse(text) : null;
+        } catch {
+          data = null;
         }
-        if (ext === "csv") {
-          const lines = t.split(/\r?\n/).filter((l) => l.trim());
-          return panelT("panel.modules.files.messages.summaryCsv").replace("{count}", String(lines.length));
-        }
-        const flat = t.replace(/\s+/g, " ").trim();
-        if (flat.length <= 320) return flat;
-        const cut = flat.slice(0, 317) + "…";
-        const sentences = cut.match(/[^.!?]+[.!?]+/g);
-        if (sentences && sentences.length >= 2) {
-          return sentences.slice(0, 3).join(" ").trim();
-        }
-        return cut;
+        return { ok: r.ok && data && data.ok === true, status: r.status, data };
       }
 
       function wireDosyalarUpload() {
@@ -15254,86 +15198,51 @@ const PANEL_DEBUG = import.meta.env.DEV;
           btn.disabled = true;
           btn.setAttribute("aria-busy", "true");
           const ext = dosyalarFileExtension(file.name);
-          const relPath = dosyalarSafeUploadPath(file.name);
           try {
-            let data = {
+            const uploaded = await uploadPanelFile(file);
+            if (!uploaded.ok) {
+              if (taskBridgeBlockedResponse(uploaded.status)) {
+                const bridgeHint = bridgeBlockedUserHint();
+                if (bridgeHint) setDosyalarHint(() => panelUserVisibleText(bridgeHint));
+                return;
+              }
+              const serverMessage =
+                uploaded.data && uploaded.data.message != null
+                  ? String(uploaded.data.message).trim()
+                  : "";
+              const rawError =
+                uploaded.data && uploaded.data.error != null
+                  ? String(uploaded.data.error)
+                  : "upload_failed";
+              setDosyalarHint(() =>
+                serverMessage
+                  ? panelUserVisibleText(serverMessage)
+                  : panelProdErrorUserMessage({
+                      rawError,
+                      httpStatus: uploaded.status,
+                    }),
+              );
+              return;
+            }
+
+            const meta =
+              uploaded.data && uploaded.data.file && typeof uploaded.data.file === "object"
+                ? uploaded.data.file
+                : {};
+            const filename = meta.name != null && String(meta.name).trim()
+              ? String(meta.name).trim()
+              : file.name;
+            const data = {
               ok: true,
-              filename: file.name,
-              size: file.size,
-              kind: file.type || "application/octet-stream",
-              extension: ext,
+              filename,
+              size: typeof meta.size === "number" ? meta.size : file.size,
+              kind: meta.mime || file.type || "application/octet-stream",
+              extension: dosyalarFileExtension(filename) || ext,
               summary: "",
               info: "",
               unsupported: "",
+              duplicate: uploaded.data.duplicate === true,
             };
-
-            if (!DOSYALAR_READ_EXT.has(ext)) {
-              data.unsupported = dosyalarUnsupportedMessage(ext, file.type);
-              renderResult(data);
-              pushDosyalarHistory(data);
-              return;
-            }
-
-            if (file.size > CONTROLLED_MAX_WRITE_BYTES) {
-              data.unsupported =
-                panelT("panel.modules.files.hints.sizeLimitPrefix") +
-                CONTROLLED_MAX_WRITE_BYTES +
-                panelT("panel.modules.files.hints.sizeLimitSuffix");
-              renderResult(data);
-              pushDosyalarHistory(data);
-              return;
-            }
-
-            let textContent = "";
-            try {
-              textContent = await readBlobAsUtf8(file);
-            } catch {
-              setDosyalarHint(() => panelT("panel.modules.files.hints.readFailed"));
-              return;
-            }
-
-            const w = await controlledWriteFile(relPath, textContent);
-            if (!w.ok) {
-              if (taskBridgeBlockedResponse(w.status)) {
-                const bridgeHint = bridgeBlockedUserHint();
-                if (bridgeHint) setDosyalarHint(() => panelUserVisibleText(bridgeHint));
-                return;
-              }
-              const err =
-                w.data && w.data.error != null
-                  ? String(w.data.error)
-                  : "write_file başarısız";
-              const writeErrCtx = {
-                rawError: err,
-                httpStatus: w.status,
-              };
-              setDosyalarHint(() => panelProdErrorUserMessage(writeErrCtx));
-              return;
-            }
-
-            const rd = await controlledReadFile(relPath);
-            if (!rd.ok) {
-              if (taskBridgeBlockedResponse(rd.status)) {
-                const bridgeHint = bridgeBlockedUserHint();
-                if (bridgeHint) setDosyalarHint(() => panelUserVisibleText(bridgeHint));
-                return;
-              }
-              const err =
-                rd.data && rd.data.error != null
-                  ? String(rd.data.error)
-                  : "read_file başarısız";
-              const readErrCtx = {
-                rawError: err,
-                httpStatus: rd.status,
-              };
-              setDosyalarHint(() => panelProdErrorUserMessage(readErrCtx));
-              return;
-            }
-
-            const readBack =
-              rd.data && rd.data.content != null ? String(rd.data.content) : "";
-            data.summary = dosyalarClientSummary(readBack, ext);
-            data.info = dosyalarInfoMessageForExt(ext);
             renderResult(data);
             pushDosyalarHistory(data);
           } catch {
