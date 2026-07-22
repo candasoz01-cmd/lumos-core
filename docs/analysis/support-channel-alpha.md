@@ -1,17 +1,19 @@
-# Destek Kanalı — Alpha / Pilot Şablonu
+# Destek Kanalı — Alpha / Pilot
 
 | Alan | Değer |
 |------|-------|
-| **Belge türü** | Operasyonel şablon (docs only) |
-| **Durum** | **Alpha exit gate — template ready** |
+| **Belge türü** | Operasyonel kayıt (docs only) |
+| **Durum** | **P1-04 kapalı — özel Slack kanalı aktif** |
 | **P1 ref** | P1-04 |
-| **Kullanım** | Closed Pilot öncesi destek/ops tarafından doldurulur |
+| **Kullanım** | Internal Alpha ve Closed Pilot yazılı destek hattı |
 
 ---
 
 ## Amaç
 
-Yazılı destek kanalı ve **best-effort SLA** tanımı için minimum iskelet. Alpha fazında kanal adresi TBD kalabilir; şablon planlama boşluğunu kapatır.
+Yazılı destek kanalı ve **best-effort SLA** tanımı. Closed Pilot için
+`#lumos-pilot-support` özel Slack kanalı, `support@` adresinin eşdeğeri olarak
+kullanılır.
 
 ---
 
@@ -19,9 +21,10 @@ Yazılı destek kanalı ve **best-effort SLA** tanımı için minimum iskelet. A
 
 | Kanal | Adres / yol | Durum |
 |-------|-------------|-------|
-| E-posta | `support@<DOMAIN_TBD>` (onaylı format — adres TBD) | ☐ Aktif |
-| Ekip içi (Alpha) | Slack / dahili kanal | Alpha döneminde yeterli |
-| Güvenlik bulgusu | Ayrı güvenlik hattı (TBD) | ☐ Tanımlı |
+| Pilot desteği | [Özel Slack `#lumos-pilot-support`](https://lumos-3on9360.slack.com/archives/C0BK7R25NMS) | **Aktif** — davetle erişim |
+| E-posta | `support@<DOMAIN_TBD>` | **Deferred** — özel Slack eşdeğeri aktif |
+| Ekip içi (Alpha) | `#lumos-pilot-support` | **Aktif** |
+| Güvenlik bulgusu | Aynı özel kanalda `[P0]` etiketi; gizli anahtar/veri yazılmaz | **Aktif pilot intake** |
 | Durum sayfası | `status.welockai.com` (TBD) | ☐ Yok |
 
 ---
@@ -41,11 +44,14 @@ Yazılı destek kanalı ve **best-effort SLA** tanımı için minimum iskelet. A
 
 ## Alpha notu
 
-- Internal Alpha: ekip içi kanal + `make test` / CI izleme yeterli.
-- Closed Pilot: bu şablon doldurulmuş ve `support@` (veya eşdeğeri) yayında olmalıdır.
+- Internal Alpha: özel kanal + `make test` / CI izleme yeterli.
+- Closed Pilot: `#lumos-pilot-support` yazılı destek kanalı olarak aktiftir.
+- Kanala yalnız ops ekibi ve davetli pilot katılımcıları alınır.
+- Token, parola, kişisel veri veya ham güvenlik kanıtı kanala yazılmaz; yalnız
+  olay özeti ve güvenli kanıt referansı paylaşılır.
 
 **İlgili:** [pilot-contract-template.md](pilot-contract-template.md) · [support-report-oraa.md](../templates/support-report-oraa.md) · [p0-p1-triage-list.md](p0-p1-triage-list.md) P1-04
 
 ---
 
-*Son güncelleme: 2026-06-26 — template ready; kanal TBD.*
+*Son güncelleme: 2026-07-22 — özel `#lumos-pilot-support` kanalı aktif; P1-04 kapalı.*
