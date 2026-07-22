@@ -58,7 +58,6 @@ const panel: typeof panelTr = {
   header: {
     title: "ChatLumos",
     subtitle: "Chat and tasks in one place",
-    engine: "AI engine · OpenAI",
   },
   moduleGroups: {
     calisma: "Workspace",
@@ -422,11 +421,11 @@ const panel: typeof panelTr = {
     },
   },
   tasks: {
-    eyebrow: "Operations",
+    eyebrow: "List",
     intro:
-      "Tasks are written to the task record on your device; no transmission is required when adding a task. If the server is down, the list is shown from the browser cache.",
+      "Write a short title and add it. The list stays on this device.",
     codexWarning:
-      "This panel is a preview; it pauses for confirmation before risky actions.",
+      "Asks for confirmation before risky actions.",
     form: {
       titleLabel: "Task name",
       titlePlaceholder: "Write a short title…",
@@ -594,15 +593,15 @@ const panel: typeof panelTr = {
   },
   files: {
     intro:
-      "Choose a file from this device. Lumos shows its name, type, and size; .txt, .md, .json, and .csv files get a short summary. PDF and Word files are not processed in this build.",
+      "Choose a file and upload it. The bridge stores it and returns name, type, and size. No summary / OCR in this release.",
     historyHeading: "Recent uploads",
     historyDeviceNote: "Stored on this device only; up to 5 entries.",
     form: {
       pickLabel: "Choose file",
-      uploadBtn: "Upload and analyze",
+      uploadBtn: "Upload",
     },
     hints: {
-      attachNavigate: "Choose a file, then «Upload and analyze».",
+      attachNavigate: "Choose a file, then «Upload».",
       pickFirst: "Choose a file first.",
       readFailed: "Could not read the file as text.",
       unreachable: "Could not reach the server. Check connection settings.",

@@ -82,7 +82,9 @@ PANEL_I18N_V4_MARKERS = (
     'data-i18n="panel.modules.tasks.intro"',
     'data-i18n="panel.modules.tasks.form.titleLabel"',
     'data-i18n-placeholder="panel.modules.tasks.form.titlePlaceholder"',
-    'data-i18n="panel.modules.tasks.status.bekliyor"',
+    # Create form no longer exposes status <option data-i18n>; labels via panelT.
+    'panelT("panel.modules.tasks.status.bekliyor")',
+    'id="gorevler-status"',
     'data-i18n="panel.modules.tasks.list.filterAll"',
     'data-i18n="panel.modules.tasks.detail.close"',
     'function gorevlerStatusLabel(',

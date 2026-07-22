@@ -6,7 +6,6 @@ const panelNav = {
   header: {
     title: "ChatLumos",
     subtitle: "Sohbet ve görevler tek yerde",
-    engine: "AI motoru · OpenAI",
   },
   moduleGroups: {
     calisma: "Çalışma",
@@ -422,11 +421,11 @@ const panelModules = {
     },
   },
   tasks: {
-    eyebrow: "Operasyon",
+    eyebrow: "Liste",
     intro:
-      "Görevler cihazınızdaki görev kaydına yazılır; görev eklerken iletim gerekmez. Sunucu kapalıysa liste tarayıcı önbelleğinden gösterilir.",
+      "Kısa bir başlık yazıp ekleyin. Liste bu cihazda tutulur.",
     codexWarning:
-      "Bu panel önizleme sürümüdür; riskli işlemlerde durur ve onay ister.",
+      "Riskli işlemlerde onay ister.",
     form: {
       titleLabel: "Görev adı",
       titlePlaceholder: "Kısa bir başlık yazın…",
@@ -594,15 +593,15 @@ const panelModules = {
   },
   files: {
     intro:
-      "Bu cihazdan bir dosya seçin. Lumos ad, tür ve boyut bilgisini gösterir; .txt, .md, .json ve .csv dosyaları için kısa özet oluşturur. PDF ve Word dosyaları bu sürümde işlenmez.",
+      "Dosyayı seçip yükleyin. Köprü dosyayı alır; ad, tür ve boyut döner. Özet / OCR bu sürümde yok.",
     historyHeading: "Son yüklemeler",
     historyDeviceNote: "Bu cihazda saklanır; en fazla 5 kayıt.",
     form: {
       pickLabel: "Dosya seç",
-      uploadBtn: "Yükle ve analiz et",
+      uploadBtn: "Yükle",
     },
     hints: {
-      attachNavigate: "Dosyayı seçin; ardından «Yükle ve analiz et».",
+      attachNavigate: "Dosyayı seçin; ardından «Yükle».",
       pickFirst: "Önce bir dosya seçin.",
       readFailed: "Dosya metin olarak okunamadı.",
       unreachable: "Sunucuya ulaşılamadı. Bağlantı ayarlarını kontrol edin.",
