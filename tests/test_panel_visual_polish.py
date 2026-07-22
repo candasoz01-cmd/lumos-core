@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from tests.test_panel_component_split import read_panel_source
+
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _PANEL_ASTRO = _REPO_ROOT / "ui" / "src" / "pages" / "panel.astro"
 _TOKENS_CSS = _REPO_ROOT / "ui" / "src" / "styles" / "lumos-tokens.css"
@@ -27,7 +29,7 @@ PREMIUM_DARK_MARKERS = (
 
 
 def test_panel_premium_dark_control_center_tokens() -> None:
-    panel = _PANEL_ASTRO.read_text(encoding="utf-8")
+    panel = read_panel_source()
     tokens = _TOKENS_CSS.read_text(encoding="utf-8")
     for token in PREMIUM_DARK_MARKERS:
         if token.startswith("--"):
@@ -37,7 +39,7 @@ def test_panel_premium_dark_control_center_tokens() -> None:
 
 
 def test_panel_nav_sig_hidden_to_reduce_branding_repetition() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     assert ".panel-nav-sig {" in text
     assert "display: none;" in text.split(".panel-nav-sig {", 1)[1].split("}", 1)[0]
 
@@ -51,7 +53,7 @@ def test_panel_header_subtitle_and_module_groups_in_i18n() -> None:
 
 
 def test_panel_i18n_keys_used_in_astro_exist_in_catalogs() -> None:
-    astro = _PANEL_ASTRO.read_text(encoding="utf-8")
+    astro = read_panel_source()
     keys = set(re.findall(r'data-i18n="(panel\.[^"]+)"', astro))
     keys |= set(re.findall(r'data-i18n-placeholder="(panel\.[^"]+)"', astro))
     keys |= set(re.findall(r'data-i18n-title="(panel\.[^"]+)"', astro))
@@ -71,6 +73,6 @@ def test_panel_i18n_keys_used_in_astro_exist_in_catalogs() -> None:
 
 
 def test_panel_social_mail_draft_textareas_enlarged() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     assert 'id="sosyal-share-content" rows="6"' in text
     assert 'id="posta-share-content" rows="8"' in text

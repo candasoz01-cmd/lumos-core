@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
-
-PANEL = Path(__file__).resolve().parents[1] / "ui" / "src" / "pages" / "panel.astro"
+from tests.test_panel_component_split import read_panel_source
 
 
 def _source() -> str:
-    return PANEL.read_text(encoding="utf-8")
+    return read_panel_source()
 
 
 def _upload_click_block() -> str:

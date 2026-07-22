@@ -8,6 +8,8 @@ import sys
 import uuid
 from pathlib import Path
 
+from tests.test_panel_component_split import read_panel_source
+
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _SRC = _REPO_ROOT / "src"
 if str(_SRC) not in sys.path:
@@ -142,7 +144,7 @@ def flush_create_op(item: dict, doc: dict | None = None) -> tuple[str, bool]:
 
 
 def _panel_astro_has_evidence_queue() -> bool:
-    text = (_REPO_ROOT / "ui" / "src" / "pages" / "panel.astro").read_text(encoding="utf-8")
+    text = read_panel_source()
     required = [
         PANEL_EVIDENCE_PENDING_OPS_LS_KEY,
         "enqueueEvidencePendingOp",
