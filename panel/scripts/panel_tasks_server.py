@@ -38,7 +38,11 @@ from core.panel_runtime_lock import (  # noqa: E402
     bootstrap_panel_runtime_lock_from_bridge_env,
     resolve_panel_runtime_lock,
 )
-from core.workspace_contract import may_perform_permanent_delete  # noqa: E402
+from core.workspace_contract import (  # noqa: E402
+    CoreWriteForbidden,
+    allow_write_to_core,
+    may_perform_permanent_delete,
+)
 from policy.action_policy import (  # noqa: E402
     COMPLETE_TASK,
     CREATE_TASK,
@@ -95,6 +99,26 @@ def _base_dir() -> Path:
 
 def _tasks_file() -> Path:
     return _base_dir() / "tasks.json"
+
+
+def _is_sandbox_mode() -> bool:
+    """Panel sandbox modu — panel_bridge_state._is_sandbox_mode ile birebir aynı ayrıştırma."""
+    return os.environ.get("LUMOS_SANDBOX_MODE", "false").lower() in ("1", "true", "yes")
+
+
+def _guard_core_write(target: Path) -> None:
+    """Panel `.lumos` yazımlarını merkezi workspace_contract guard'ından geçir.
+
+    Canlı modda (varsayılan, LUMOS_SANDBOX_MODE kapalı) `allow_write_to_core`
+    her zaman True döner; mevcut davranış birebir korunur. Sandbox modunda ise
+    canlı çekirdek state path'ine (`tasks.json`, `trash/…`) yazma
+    `CoreWriteForbidden` ile reddedilir (fail-closed) — panel yüzeyi artık
+    merkezi sözleşmeyi/guard'ı atlamaz.
+    """
+    if not allow_write_to_core(_base_dir(), target, is_sandbox_mode=_is_sandbox_mode()):
+        raise CoreWriteForbidden(
+            f"Sandbox modunda canlı çekirdek path'ine panel yazımı yasak: {target}",
+        )
 
 
 def _simulate_photo_capture() -> tuple[str, str]:
@@ -269,6 +293,7 @@ def _write_doc(
 ) -> None:
     p = _tasks_file()
     base = _base_dir()
+    _guard_core_write(p)
     corr_id = None
     if evidence and not evidence.get("skip"):
         corr_id = str(evidence.get("correlation_id") or generate_correlation_id())
@@ -433,13 +458,15 @@ def _open_folder_in_os_shell(path: Path) -> tuple[bool, str]:
 def _write_trash_task_file(tid: str, task: dict, deleted_at: str) -> None:
     """Bir silinen görev için trash/ altında yeni dosya (read tarafı iterdir ile uyumlu). Overwrite yok."""
     d = _trash_dir()
-    d.mkdir(parents=True, exist_ok=True)
     fn = tid.replace("/", "_").replace("\\", "_").strip() or "task"
     path = d / f"{fn}.json"
     n = 0
     while path.exists():
         n += 1
         path = d / f"{fn}_{n}.json"
+    # Guard önce: sandbox modunda canlı trash/ dizini mkdir ile bile oluşturulmaz.
+    _guard_core_write(path)
+    d.mkdir(parents=True, exist_ok=True)
     title = str(task.get("title", ""))
     record = {
         "id": tid,
@@ -1029,6 +1056,9 @@ class Handler(BaseHTTPRequestHandler):
                     "events_appended": 0,
                 },
             )
+        except CoreWriteForbidden as e:
+            self.send_error(403, str(e))
+            return
         except OSError as e:
             self.send_error(500, str(e))
             return
@@ -1038,35 +1068,40 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         # Tek yönlendirme: sorgu / sondaki slash normalize (_parse_path); self.path ham eşleşmesine güvenme.
-        p = self._parse_path()
-        if p == "/open-folder":
-            self._post_open_folder()
-            return
-        if p == "/resource-mode/apply":
-            self._post_resource_mode_apply()
-            return
-        if p == "/lumos-consent":
-            self._post_lumos_consent()
-            return
-        if p == "/lumos-confirm/request":
-            self._post_lumos_confirm_request()
-            return
-        if p == "/tasks/restore":
-            self._post_restore()
-            return
-        if p == "/tasks/delete-permanent":
-            self._post_delete_permanent()
-            return
-        if p == "/tasks/delete":
-            self._post_delete()
-            return
-        if p == "/tasks/complete":
-            self._post_complete()
-            return
-        if p == "/tasks":
-            self._post_create()
-            return
-        _send_json(self, 404, {"ok": False, "error": "not_found"})
+        # Sandbox guard reddi (CoreWriteForbidden) tek noktada yapılandırılmış 403'e çevrilir;
+        # aksi halde her _post_* yolunda ayrı ele almak gerekirdi (işlenmeyen istisna → 500).
+        try:
+            p = self._parse_path()
+            if p == "/open-folder":
+                self._post_open_folder()
+                return
+            if p == "/resource-mode/apply":
+                self._post_resource_mode_apply()
+                return
+            if p == "/lumos-consent":
+                self._post_lumos_consent()
+                return
+            if p == "/lumos-confirm/request":
+                self._post_lumos_confirm_request()
+                return
+            if p == "/tasks/restore":
+                self._post_restore()
+                return
+            if p == "/tasks/delete-permanent":
+                self._post_delete_permanent()
+                return
+            if p == "/tasks/delete":
+                self._post_delete()
+                return
+            if p == "/tasks/complete":
+                self._post_complete()
+                return
+            if p == "/tasks":
+                self._post_create()
+                return
+            _send_json(self, 404, {"ok": False, "error": "not_found"})
+        except CoreWriteForbidden as e:
+            _send_json(self, 403, {"ok": False, "error": "core_write_forbidden", "detail": str(e)})
 
     def _post_lumos_confirm_request(self) -> None:
         """CU7 preview + confirmation_id üretir (PR-C5). Devre dışıyken 404."""
@@ -1542,6 +1577,10 @@ class Handler(BaseHTTPRequestHandler):
                     title = str(record.get("title") or "")
         except Exception:
             pass
+        # Guard, yıkıcı unlink'ten ÖNCE: sandbox modunda canlı trash dosyası
+        # silinmeden reddedilir (do_POST → 403). Aksi halde unlink olur, sonra
+        # _write_doc guard'ı patlar ve kısmi mutasyon kalırdı.
+        _guard_core_write(tpath)
         try:
             tpath.unlink()
         except OSError as e:

@@ -8,10 +8,14 @@ import {
   identityStatusReply,
   loadHostedUserContext,
   localTimeReply,
+  memoryWriteStatusReply,
   OPENAI_HOSTED_MODEL,
   openAIReply,
   readJsonBody,
 } from "../_lib/hosted_lumos.js";
+import { captureError, captureSecurityEvent } from "../_lib/observability.js";
+
+const ROUTE = "bridge_chat";
 
 async function callOpenAI(body, context) {
   const apiKey = hostedOpenAIKey();
@@ -25,7 +29,15 @@ async function callOpenAI(body, context) {
     body: JSON.stringify(buildOpenAIRequest(body, context)),
     signal: AbortSignal.timeout(25000),
   });
-  if (!upstream.ok) return null;
+  if (!upstream.ok) {
+    await captureError(new Error("integration_openai_error"), {
+      route: ROUTE,
+      provider: "openai",
+      errorCode: "integration_error",
+      upstreamStatus: upstream.status,
+    });
+    return null;
+  }
   const reply = openAIReply(await upstream.json());
   return reply ? { reply, provider: "openai", model: OPENAI_HOSTED_MODEL } : null;
 }
@@ -45,7 +57,15 @@ async function callGemini(body, context) {
       signal: AbortSignal.timeout(25000),
     },
   );
-  if (!upstream.ok) return null;
+  if (!upstream.ok) {
+    await captureError(new Error("integration_google_gemini_error"), {
+      route: ROUTE,
+      provider: "google",
+      errorCode: "integration_error",
+      upstreamStatus: upstream.status,
+    });
+    return null;
+  }
   const reply = geminiReply(await upstream.json());
   return reply ? { reply, provider: "google", model: HOSTED_MODEL } : null;
 }
@@ -65,6 +85,10 @@ export default async function handler(req, res) {
 
   const userContext = await loadHostedUserContext(req, body);
   if (!userContext.ok) {
+    if (userContext.error === "identity_mismatch") {
+      // İstemcinin gönderdiği lumos_id, oturum çerezindekiyle uyuşmuyor — tahrifat denemesi olabilir.
+      await captureSecurityEvent("identity_mismatch", { route: ROUTE, status: userContext.status });
+    }
     return res.status(userContext.status).json({
       error: userContext.error,
       errorKind: userContext.error === "identity_mismatch" ? "identity_mismatch" : "unauthorized",
@@ -82,10 +106,16 @@ export default async function handler(req, res) {
     return res.status(200).json({ reply: identityReply, mode: "hosted_identity_status", identity });
   }
 
+  const memoryReply = memoryWriteStatusReply(userContext);
+  if (memoryReply) {
+    return res.status(200).json({ reply: memoryReply, mode: "hosted_memory_status", identity });
+  }
+
   const localReply = localTimeReply(message);
   if (localReply) return res.status(200).json({ reply: localReply, mode: "hosted_local", identity });
 
   if (!hostedOpenAIKey() && !hostedGeminiKey()) {
+    await captureError(new Error("model_unconfigured"), { route: ROUTE, errorCode: "model_unconfigured" });
     return res.status(503).json({ error: "model_unconfigured", errorKind: "model_error" });
   }
 
@@ -93,13 +123,18 @@ export default async function handler(req, res) {
     let answer = null;
     try {
       answer = await callOpenAI(body, userContext);
-    } catch {
+    } catch (e) {
+      await captureError(e, { route: ROUTE, provider: "openai", errorCode: "integration_exception" });
       answer = null;
     }
     if (!answer) answer = await callGemini(body, userContext);
-    if (!answer) return res.status(502).json({ error: "model_unavailable", errorKind: "model_error" });
+    if (!answer) {
+      await captureError(new Error("model_unavailable"), { route: ROUTE, errorCode: "model_unavailable" });
+      return res.status(502).json({ error: "model_unavailable", errorKind: "model_error" });
+    }
     return res.status(200).json({ ...answer, mode: "hosted_chat", identity });
-  } catch {
+  } catch (e) {
+    await captureError(e, { route: ROUTE, errorCode: "model_unavailable_exception" });
     return res.status(502).json({ error: "model_unavailable", errorKind: "model_error" });
   }
 }

@@ -4,6 +4,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from integrations.models import IntegrationRequest
+from integrations.providers import vk_provider
 from integrations.registry import register_default_integrations
 
 
@@ -46,3 +47,42 @@ def test_vk_publish_requires_explicit_approval_and_never_fakes_execution():
     assert approved.ok is False
     assert approved.error == "vk_publish_connector_not_live"
     assert approved.data["execution_started"] is False
+
+
+def test_vk_live_check_returns_safe_identity(monkeypatch):
+    monkeypatch.setenv("LUMOS_VK_ACCESS_TOKEN", "test-secret-token")
+    monkeypatch.setattr(
+        vk_provider,
+        "_http_get_json",
+        lambda request: {"response": [{"id": 123, "first_name": "Lumos", "last_name": "VK"}]},
+    )
+
+    result = _run("verify_connection", requires_approval=True)
+
+    assert result.ok is True
+    assert result.data["status"] == "connected"
+    assert result.data["identity"]["name"] == "Lumos VK"
+    assert "test-secret-token" not in str(result.data)
+
+
+def test_vk_live_check_requires_approval_and_configuration(monkeypatch):
+    monkeypatch.delenv("LUMOS_VK_ACCESS_TOKEN", raising=False)
+
+    denied = _run("verify_connection")
+    unconfigured = _run("verify_connection", requires_approval=True)
+
+    assert denied.ok is False
+    assert denied.error == "approval_required"
+    assert unconfigured.ok is False
+    assert unconfigured.error == "vk_provider_not_configured"
+
+
+def test_vk_live_check_fails_closed(monkeypatch):
+    monkeypatch.setenv("LUMOS_VK_ACCESS_TOKEN", "test-secret-token")
+    monkeypatch.setattr(vk_provider, "_http_get_json", lambda request: {})
+
+    result = _run("verify_connection", requires_approval=True)
+
+    assert result.ok is False
+    assert result.error == "vk_connection_check_failed"
+    assert result.data["status"] == "verification_failed"

@@ -113,6 +113,14 @@ GLOBAL_INTEGRATION_CATALOG: tuple[dict[str, Any], ...] = (
     _entry("dingtalk", "DingTalk", "work_tool", ("CN",), "app_api", "registered", ("messages", "docs", "calendar")),
     _entry("zoho_workplace", "Zoho Workplace", "work_tool", ("IN", "global"), "oauth_api", capabilities=("mail", "docs", "calendar")),
 
+    # Public services. Entries describe adapter families, not active government access.
+    _entry("public_identity", "Public Identity Services", "public_service", ("jurisdiction_specific",), "official_api_adapter", capabilities=("identity", "verification")),
+    _entry("public_health", "Public Health Services", "public_service", ("jurisdiction_specific",), "official_api_adapter", capabilities=("health", "appointments", "records")),
+    _entry("public_education", "Public Education Services", "public_service", ("jurisdiction_specific",), "official_api_adapter", capabilities=("education", "applications", "records")),
+    _entry("public_tax", "Public Tax Services", "public_service", ("jurisdiction_specific",), "official_api_adapter", capabilities=("tax", "filings", "payments")),
+    _entry("public_municipality", "Municipal Services", "public_service", ("jurisdiction_specific",), "official_api_adapter", capabilities=("municipality", "applications", "notifications")),
+    _entry("public_documents", "Public Document Services", "public_service", ("jurisdiction_specific",), "official_api_adapter", capabilities=("documents", "verification", "delivery")),
+
     # Device protocols and ecosystems. Discovery does not imply control permission.
     _entry("bluetooth_classic_audio", "Bluetooth Classic Audio", "device", ("global",), "os_bluetooth_bridge", capabilities=("a2dp", "hfp", "avrcp", "audio_output", "microphone")),
     _entry("bluetooth_le_audio", "Bluetooth LE Audio / Auracast", "device", ("global",), "os_bluetooth_bridge", capabilities=("le_audio", "auracast", "audio_output", "microphone")),

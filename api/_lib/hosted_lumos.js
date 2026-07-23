@@ -3,12 +3,22 @@ import { openSession, readCookie, sessionLumosId } from "./lumos_session.js";
 export const HOSTED_MODEL = "gemini-2.5-flash";
 export const OPENAI_HOSTED_MODEL = "gpt-5.6-luna";
 
+// Cookie kullanamayan mobil istemci oturumu Bearer başlığıyla sunabilir.
+// Cookie her zaman önceliklidir; başlık yalnız cookie yoksa değerlendirilir.
+function bearerClaims(req) {
+  const rawAuthorization = String(
+    req?.headers?.authorization || req?.headers?.Authorization || "",
+  ).trim();
+  const match = rawAuthorization.match(/^Bearer\s+([^\s]+)$/i);
+  return match ? openSession(match[1]) : null;
+}
+
 export function hasLumosSession(req) {
-  return Boolean(openSession(readCookie(req)));
+  return Boolean(sessionLumosId(hostedSessionClaims(req)));
 }
 
 export function hostedSessionClaims(req) {
-  return openSession(readCookie(req));
+  return openSession(readCookie(req)) || bearerClaims(req);
 }
 
 function cleanMemoryItems(raw) {
@@ -22,10 +32,35 @@ function cleanMemoryItems(raw) {
     .filter(Boolean);
 }
 
-export async function loadAllowedMemory(lumosId) {
-  const url = String(process.env.LUMOS_MEMORY_LOOKUP_URL || "").trim();
-  const token = String(process.env.LUMOS_MEMORY_SERVICE_TOKEN || "").trim();
-  if (!url || !token) return { status: "unavailable", items: [] };
+function memoryServiceConfig() {
+  const bridgeBase = String(process.env.BRIDGE_UPSTREAM_URL || "")
+    .trim()
+    .replace(/\/+$/, "");
+  return {
+    lookupUrl:
+      String(process.env.LUMOS_MEMORY_LOOKUP_URL || "").trim() ||
+      (bridgeBase ? `${bridgeBase}/memory/hosted/lookup` : ""),
+    token:
+      String(process.env.LUMOS_MEMORY_SERVICE_TOKEN || "").trim() ||
+      String(process.env.KANDO_BRIDGE_SECRET || "").trim(),
+  };
+}
+
+function memoryActionUrl(lookupUrl, action) {
+  try {
+    const url = new URL(lookupUrl);
+    if (!url.pathname.endsWith("/lookup")) return "";
+    url.pathname = `${url.pathname.slice(0, -"lookup".length)}${action}`;
+    return url.toString();
+  } catch {
+    return "";
+  }
+}
+
+async function callMemoryService(action, lumosId, fields = {}) {
+  const { lookupUrl, token } = memoryServiceConfig();
+  const url = action === "lookup" ? lookupUrl : memoryActionUrl(lookupUrl, action);
+  if (!url || !token) return null;
   try {
     const response = await fetch(url, {
       method: "POST",
@@ -33,17 +68,58 @@ export async function loadAllowedMemory(lumosId) {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ lumos_id: lumosId, purpose: "hosted_chat" }),
+      body: JSON.stringify({ lumos_id: lumosId, ...fields }),
       signal: AbortSignal.timeout(5000),
     });
-    if (!response.ok) return { status: "unavailable", items: [] };
-    const payload = await response.json();
-    if (payload?.consent !== true) return { status: "not_granted", items: [] };
-    const items = cleanMemoryItems(payload?.memories);
-    return { status: items.length ? "loaded" : "empty", items };
+    if (!response.ok) return null;
+    return await response.json();
   } catch {
-    return { status: "unavailable", items: [] };
+    return null;
   }
+}
+
+export function explicitMemoryText(message) {
+  const text = String(message || "").trim();
+  const match = text.match(
+    /^(?:lütfen\s+)?(?:bunu|şunu)?\s*(?:hatırla|unutma)\s*[:,-]?\s*(.+)$/i,
+  ) || text.match(/^(?:please\s+)?remember(?:\s+that)?\s*[:,-]?\s*(.+)$/i);
+  return String(match?.[1] || "").trim().slice(0, 1000);
+}
+
+export async function loadAllowedMemory(lumosId) {
+  const payload = await callMemoryService("lookup", lumosId, { purpose: "hosted_chat" });
+  if (!payload) return { status: "unavailable", items: [] };
+  if (payload?.consent !== true) return { status: "not_granted", items: [] };
+  const items = cleanMemoryItems(payload?.memories);
+  return { status: items.length ? "loaded" : "empty", items };
+}
+
+export async function grantMemoryConsent(lumosId) {
+  const payload = await callMemoryService("consent", lumosId, { consent: true });
+  return payload?.consent === true
+    ? { ok: true, consent: true }
+    : { ok: false, error: "memory_unavailable" };
+}
+
+export async function deleteAllowedMemory(lumosId) {
+  const payload = await callMemoryService("delete", lumosId, { confirm: true });
+  return payload?.ok === true && payload?.consent === false
+    ? { ok: true, consent: false, deleted: Number(payload.deleted || 0) }
+    : { ok: false, error: "memory_unavailable" };
+}
+
+export async function rememberExplicitMemory(lumosId, message, sourceProvider, memoryStatus) {
+  const summary = explicitMemoryText(message);
+  if (!summary) return { status: "not_requested" };
+  if (memoryStatus === "not_granted") return { status: "consent_required" };
+  if (memoryStatus !== "loaded" && memoryStatus !== "empty") {
+    return { status: "unavailable" };
+  }
+  const payload = await callMemoryService("remember", lumosId, {
+    summary,
+    source_provider: String(sourceProvider || "google_web").trim(),
+  });
+  return payload?.stored === true ? { status: "stored", summary } : { status: "unavailable" };
 }
 
 export async function loadHostedUserContext(req, body) {
@@ -57,7 +133,16 @@ export async function loadHostedUserContext(req, body) {
   }
   const name = String(claims.name || "").trim();
   const email = String(claims.email || "").trim();
-  const memory = await loadAllowedMemory(lumosId);
+  let memory = await loadAllowedMemory(lumosId);
+  const memoryWrite = await rememberExplicitMemory(
+    lumosId,
+    body?.message,
+    claims.provider,
+    memory.status,
+  );
+  if (memoryWrite.status === "stored") {
+    memory = await loadAllowedMemory(lumosId);
+  }
   return {
     ok: true,
     lumos_id: lumosId,
@@ -71,8 +156,22 @@ export async function loadHostedUserContext(req, body) {
       connected: true,
     },
     memory,
+    memory_write_status: memoryWrite.status,
     package: String(claims.package || "base"),
   };
+}
+
+export function memoryWriteStatusReply(context) {
+  if (context?.memory_write_status === "stored") {
+    return "Bunu kişisel hafızana kaydettim.";
+  }
+  if (context?.memory_write_status === "consent_required") {
+    return "Kişisel hafıza iznin kapalı; bu bilgiyi kaydetmedim.";
+  }
+  if (context?.memory_write_status === "unavailable") {
+    return "Kişisel hafıza şu an kullanılamıyor; bu bilgiyi kaydetmedim.";
+  }
+  return "";
 }
 
 function memoryStatusText(memory) {

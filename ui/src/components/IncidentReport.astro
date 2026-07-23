@@ -1,0 +1,38 @@
+<section class="cyber-incident-report" aria-labelledby="cyber-incident-title">
+  <p class="umbrella-eyebrow" data-i18n="umbrella.cyber.reportEyebrow">OLAY KAYDI</p>
+  <h2 id="cyber-incident-title" data-i18n="umbrella.cyber.reportTitle">Süre, etki ve hasar görünürlüğü</h2>
+  <p data-i18n="umbrella.cyber.reportLead">
+    Gerçek telemetri bağlanana kadar üretim olayları gösterilmez. Demo açıldığında yalnızca açıkça işaretlenmiş örnek senaryolar görünür.
+  </p>
+  <p class="cyber-report-empty" id="cyber-report-empty" data-i18n="umbrella.cyber.reportEmpty">
+    Aktif olay verisi yok. Lumos bir saldırı varmış gibi davranmaz.
+  </p>
+  <div class="cyber-incident-table-wrap" data-demo-only hidden>
+    <table class="cyber-incident-table">
+      <thead>
+        <tr>
+          <th scope="col" data-i18n="umbrella.cyber.reportId">Olay</th>
+          <th scope="col" data-i18n="umbrella.cyber.reportSize">Boyut</th>
+          <th scope="col" data-i18n="umbrella.cyber.reportStarted">Başlangıç</th>
+          <th scope="col" data-i18n="umbrella.cyber.reportDuration">Çözüm süresi</th>
+          <th scope="col" data-i18n="umbrella.cyber.reportImpact">Kayıp / hasar</th>
+          <th scope="col" data-i18n="umbrella.cyber.reportStatus">Durum</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>DEMO-001</td><td>38 / 100</td><td data-i18n="umbrella.cyber.demoTime1">10:14 (örnek)</td>
+          <td data-i18n="umbrella.cyber.demoDuration1">4 dk 12 sn</td>
+          <td data-i18n="umbrella.cyber.demoImpact1">Doğrulanmış kayıp yok</td>
+          <td><span class="cyber-incident-status cyber-incident-status--resolved" data-i18n="umbrella.cyber.resolved">Giderildi</span></td>
+        </tr>
+        <tr>
+          <td>DEMO-002</td><td>68 / 100</td><td data-i18n="umbrella.cyber.demoTime2">11:02 (örnek)</td>
+          <td data-i18n="umbrella.cyber.demoDuration2">İzleniyor</td>
+          <td data-i18n="umbrella.cyber.demoImpact2">2 hizmet etkilenmiş varsayımı</td>
+          <td><span class="cyber-incident-status cyber-incident-status--ongoing" data-i18n="umbrella.cyber.ongoing">Sürüyor</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>

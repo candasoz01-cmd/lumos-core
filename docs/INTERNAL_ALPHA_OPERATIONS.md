@@ -51,7 +51,7 @@ Kaynak: [p0-p1-triage-list.md](analysis/p0-p1-triage-list.md).
 | P1-02 | Çekirdek yolculuk ≥2 hafta | Ürün / QA | **Devam ediyor** | §4 yolculuk planı; haftalık checkpoint |
 | P1-05 | Panel read-only tasks path | Platform | **Kapalı** | [p1-05-tasks-path-audit.md](analysis/p1-05-tasks-path-audit.md) #527 |
 | P1-03 | Pilot sözleşmesi + davet | Ticari / ops | **Şablon hazır** | [pilot-contract-template.md](analysis/pilot-contract-template.md) — Alpha exit gate; imza Closed Pilot |
-| P1-04 | Destek kanalı + SLA | Destek / ops | **Şablon hazır** | [support-channel-alpha.md](analysis/support-channel-alpha.md) · [support-report-oraa.md](templates/support-report-oraa.md) — kanal TBD; Closed Pilot kapısı |
+| P1-04 | Destek kanalı + SLA | Destek / ops | **Kapalı** | [support-channel-alpha.md](analysis/support-channel-alpha.md) · özel `#lumos-pilot-support` aktif; `support@` deferred |
 | P1-06 | RB-06 packaging | Platform | **Spike (defer)** | Launch P1 — Alpha'da `make test` yeterli |
 
 Kapalı P1: P1-01 (#503), P1-07 (#502).
@@ -130,6 +130,8 @@ Her **Pazartesi** (veya ekip sprint günü) bir satır `docs/INTERNAL_ALPHA_OPER
 | 2026-06-26 | Bridge proxy 503 prod davranışı belgelendi (env yok = beklenen) | [vercel-bridge-proxy-setup.md](vercel-bridge-proxy-setup.md) |
 | 2026-06-26 | **P0-05 izleme:** `make test` — **1220 passed**, 3 skipped; SECURITY_NEVER_AUTO regresyonu yok | `main` @ `57e81ea` |
 | 2026-06-26 | **P1-02 Hafta 1 checkpoint** — aşağı §4.3 | welockai.com smoke + pytest |
+| 2026-07-22 | **P1-02 yeni doğrulama döngüsü Hafta 1 tamamlandı** — kimlik doğrulamalı üretim dosya yükleme ve yerel görev ekle → listele → durum güncelle → yeniden yükleme sonrası kalıcılık doğrulandı | `main` @ `7a34798`; #661; #663; Lumos #166 |
+| 2026-07-22 | **P1-04 kapandı** — özel `#lumos-pilot-support` yazılı destek kanalı aktif; best-effort SLA ve güvenli intake sınırı kayıtlı | [support-channel-alpha.md](analysis/support-channel-alpha.md) |
 
 ### Checkpoint — 2026-06-26 (Hafta 1)
 
@@ -158,7 +160,17 @@ Her **Pazartesi** (veya ekip sprint günü) bir satır `docs/INTERNAL_ALPHA_OPER
 - **Bloker:** yok / açıklama
 ```
 
-**P1-02 durumu:** Devam ediyor — Hafta 1 kapandı; Hafta 2 bekliyor.
+### Checkpoint — 2026-07-22 (Yeni döngü Hafta 1)
+
+- **Katılımcı(lar):** @owner / Codex doğrulaması
+- **Panel yolculuk:** evet — `welockai.com/panel` güvenli oturumunda dosya yükleme isteği `200`; ad, tür ve boyut ekranda doğrulandı
+- **Yerel görev [Yerel]:** evet — localhost panelde görev eklendi, listelendi, durumu `Tamamlandı` olarak güncellendi ve sayfa yenilendikten sonra korundu
+- **Köprü sohbet (opsiyonel):** N/A
+- **Regresyon:** `pytest -q` — **1496 passed**, 3 skipped; `test`, `rust`, `macos-app-build`, `ui-smoke` ve `ui-e2e` CI kontrolleri yeşil
+- **P0-05 izleme:** yeni SECURITY_NEVER_AUTO regresyonu gözlenmedi
+- **Bloker:** yok — Hafta 2 için bu checkpoint'ten sonra ≥14 takvim günü gerekir
+
+**P1-02 durumu:** Devam ediyor — yeni döngü Hafta 1 tamamlandı. Hafta 2 checkpoint tarihi en erken **2026-08-05**; ikinci tam checkpoint ve sıfır P0 regresyon sonrası kapanabilir.
 
 ---
 
@@ -218,4 +230,4 @@ Tam liste: [`INTERNAL_ALPHA_RELEASE_SCOPE.md`](INTERNAL_ALPHA_RELEASE_SCOPE.md) 
 
 ---
 
-*Son güncelleme: 2026-06-26 — Phase 2 kapısı (8 saat testi); P1-02 Hafta 2 pending.*
+*Son güncelleme: 2026-07-22 — P1-02 yeni doğrulama döngüsü Hafta 1 tamamlandı; Hafta 2 en erken 2026-08-05.*

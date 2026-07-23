@@ -47,6 +47,36 @@ LIVE_CONNECTION_CONFIG = {
         "required_env": ("LUMOS_TELEGRAM_BOT_TOKEN",),
         "connection_mode": "telegram_bot_api_readonly_check",
     },
+    "facebook": {
+        "required_env": (
+            "LUMOS_FACEBOOK_PAGE_ACCESS_TOKEN",
+            "LUMOS_META_GRAPH_VERSION",
+        ),
+        "connection_mode": "meta_graph_api_readonly_check",
+    },
+    "instagram": {
+        "required_env": (
+            "LUMOS_INSTAGRAM_ACCESS_TOKEN",
+            "LUMOS_META_GRAPH_VERSION",
+        ),
+        "connection_mode": "meta_graph_api_readonly_check",
+    },
+    "threads": {
+        "required_env": ("LUMOS_THREADS_ACCESS_TOKEN",),
+        "connection_mode": "threads_graph_api_readonly_check",
+    },
+    "x": {
+        "required_env": ("LUMOS_X_BEARER_TOKEN",),
+        "connection_mode": "x_api_v2_readonly_check",
+    },
+    "linkedin": {
+        "required_env": ("LUMOS_LINKEDIN_ACCESS_TOKEN",),
+        "connection_mode": "linkedin_openid_userinfo_check",
+    },
+    "tiktok": {
+        "required_env": ("LUMOS_TIKTOK_ACCESS_TOKEN",),
+        "connection_mode": "tiktok_api_v2_readonly_check",
+    },
 }
 
 
@@ -119,11 +149,104 @@ def _verify_telegram() -> dict[str, object]:
     }
 
 
+def _verify_facebook() -> dict[str, object]:
+    token = os.environ["LUMOS_FACEBOOK_PAGE_ACCESS_TOKEN"].strip()
+    graph_version = os.environ["LUMOS_META_GRAPH_VERSION"].strip()
+    query = urlencode({"fields": "id,name"})
+    request = Request(
+        f"https://graph.facebook.com/{graph_version}/me?{query}",
+        headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+    )
+    payload = _http_get_json(request)
+    if not payload.get("id"):
+        raise RuntimeError("facebook_connection_check_failed")
+    return {"account_id": str(payload.get("id", "")), "name": str(payload.get("name", ""))}
+
+
+def _verify_instagram() -> dict[str, object]:
+    token = os.environ["LUMOS_INSTAGRAM_ACCESS_TOKEN"].strip()
+    graph_version = os.environ["LUMOS_META_GRAPH_VERSION"].strip()
+    query = urlencode({"fields": "id,username"})
+    request = Request(
+        f"https://graph.facebook.com/{graph_version}/me?{query}",
+        headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+    )
+    payload = _http_get_json(request)
+    if not payload.get("id"):
+        raise RuntimeError("instagram_connection_check_failed")
+    return {"account_id": str(payload.get("id", "")), "username": str(payload.get("username", ""))}
+
+
+def _verify_threads() -> dict[str, object]:
+    token = os.environ["LUMOS_THREADS_ACCESS_TOKEN"].strip()
+    query = urlencode({"fields": "id,username"})
+    request = Request(
+        f"https://graph.threads.net/v1.0/me?{query}",
+        headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+    )
+    payload = _http_get_json(request)
+    if not payload.get("id"):
+        raise RuntimeError("threads_connection_check_failed")
+    return {"account_id": str(payload.get("id", "")), "username": str(payload.get("username", ""))}
+
+
+def _verify_x() -> dict[str, object]:
+    token = os.environ["LUMOS_X_BEARER_TOKEN"].strip()
+    request = Request(
+        "https://api.twitter.com/2/users/me",
+        headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+    )
+    payload = _http_get_json(request)
+    data = payload.get("data")
+    if not isinstance(data, dict) or not data.get("id"):
+        raise RuntimeError("x_connection_check_failed")
+    return {"account_id": str(data.get("id", "")), "username": str(data.get("username", ""))}
+
+
+def _verify_linkedin() -> dict[str, object]:
+    token = os.environ["LUMOS_LINKEDIN_ACCESS_TOKEN"].strip()
+    request = Request(
+        "https://api.linkedin.com/v2/userinfo",
+        headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+    )
+    payload = _http_get_json(request)
+    if not payload.get("sub"):
+        raise RuntimeError("linkedin_connection_check_failed")
+    return {"account_id": str(payload.get("sub", "")), "name": str(payload.get("name", ""))}
+
+
+def _verify_tiktok() -> dict[str, object]:
+    token = os.environ["LUMOS_TIKTOK_ACCESS_TOKEN"].strip()
+    query = urlencode({"fields": "open_id,display_name"})
+    request = Request(
+        f"https://open.tiktokapis.com/v2/user/info/?{query}",
+        headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+    )
+    payload = _http_get_json(request)
+    data = payload.get("data") if isinstance(payload, dict) else None
+    user = data.get("user") if isinstance(data, dict) else None
+    if not isinstance(user, dict) or not user.get("open_id"):
+        raise RuntimeError("tiktok_connection_check_failed")
+    return {"account_id": str(user.get("open_id", "")), "display_name": str(user.get("display_name", ""))}
+
+
 def _verify_provider(provider_id: str) -> dict[str, object]:
     if provider_id == "whatsapp":
         return _verify_whatsapp()
     if provider_id == "telegram":
         return _verify_telegram()
+    if provider_id == "facebook":
+        return _verify_facebook()
+    if provider_id == "instagram":
+        return _verify_instagram()
+    if provider_id == "threads":
+        return _verify_threads()
+    if provider_id == "x":
+        return _verify_x()
+    if provider_id == "linkedin":
+        return _verify_linkedin()
+    if provider_id == "tiktok":
+        return _verify_tiktok()
     raise RuntimeError("communications_live_check_not_supported")
 
 

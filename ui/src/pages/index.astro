@@ -65,8 +65,8 @@ const showMay19Commemoration = isMay19CommemorationDay();
       data-i18n-content="landing.assets.ogImage"
     />
     <meta property="og:image:type" content="image/jpeg" />
-    <link rel="icon" href="/lumos-tree-logo.svg" type="image/svg+xml" sizes="any" />
-    <link rel="apple-touch-icon" href="/lumos-tree-logo.svg" />
+    <link rel="icon" href="/chat-lumos-mark.svg" type="image/svg+xml" sizes="any" />
+    <link rel="apple-touch-icon" href="/chat-lumos-mark.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#0a0e14" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -215,7 +215,7 @@ const showMay19Commemoration = isMay19CommemorationDay();
         outline: 2px solid rgb(var(--lumos-land-teal) / 0.45);
         outline-offset: 2px;
       }
-      /** Lumos site logosu: vektör ağaç işareti (lumos-tree-logo.svg); filtre bağlamda (nav / hero) ayrı */
+      /** .lumos-logo-mark iki farklı işaret için ortak kapsayıcı: We Lock AI nav'ında ağaç işareti (lumos-tree-logo.svg), Lumos hero lockup'ında ChatLumos (chat-lumos-mark.svg) */
       .lumos-logo-mark {
         display: block;
         box-sizing: border-box;
@@ -224,15 +224,15 @@ const showMay19Commemoration = isMay19CommemorationDay();
         object-position: center center;
       }
       .lumos-site-nav__logo .lumos-logo-mark {
-        width: 1.42rem;
-        height: 1.42rem;
+        width: 1.78rem;
+        height: 1.78rem;
         max-width: none;
         max-height: none;
         opacity: 1;
-        filter: brightness(1.06) saturate(1.08) contrast(1.04)
-          drop-shadow(0 0 1px rgb(var(--lumos-land-teal) / 0.18))
-          drop-shadow(0 0 10px rgb(var(--lumos-land-teal) / 0.06))
-          drop-shadow(0 0 18px rgb(var(--lumos-land-teal) / 0.03));
+        filter: brightness(1.14) saturate(1.1) contrast(1.1)
+          drop-shadow(0 0 1px rgb(var(--lumos-land-teal) / 0.22))
+          drop-shadow(0 0 12px rgb(var(--lumos-land-teal) / 0.09))
+          drop-shadow(0 0 20px rgb(var(--lumos-land-teal) / 0.05));
       }
       .lumos-hero-title-lockup {
         display: flex;
@@ -2212,8 +2212,8 @@ const showMay19Commemoration = isMay19CommemorationDay();
           padding: 0.22rem 0.26rem;
         }
         .lumos-site-nav__logo .lumos-logo-mark {
-          width: 1.32rem;
-          height: 1.32rem;
+          width: 1.65rem;
+          height: 1.65rem;
         }
         .lumos-hero-cinematic__inner {
           padding-top: clamp(0.45rem, 1.4vw, 0.72rem);
@@ -2438,7 +2438,7 @@ const showMay19Commemoration = isMay19CommemorationDay();
             <div class="lumos-hero-title-lockup">
               <img
                 class="lumos-logo-mark lumos-hero-title-mark"
-                src="/lumos-tree-logo.svg"
+                src="/chat-lumos-mark.svg"
                 alt=""
                 width="64"
                 height="64"
@@ -2949,55 +2949,21 @@ const showMay19Commemoration = isMay19CommemorationDay();
             </div>
           </article>
           <article class="lumos-install-step">
-            <h3 data-i18n="landing.install.step5">5 — Köprüyü başlat (depo kökü, ayrı terminal)</h3>
-            <div class="lumos-install-cmd">
-              <pre class="lumos-install-pre"><code>export KANDO_BRIDGE_SECRET='test123'
-./scripts/bridge_start.sh</code></pre>
-              <div class="lumos-install-cmd__meta">
-                <button
-                  type="button"
-                  class="lumos-install-copy-btn"
-                  data-install-copy
-                  data-copy-text={"export KANDO_BRIDGE_SECRET='test123'\n./scripts/bridge_start.sh"}
-                  data-i18n="landing.install.copy">Kopyala</button>
-              </div>
-            </div>
+            <h3 data-i18n="landing.install.step5">5 — Tam panel kurulumunu tamamla</h3>
             <p class="lumos-install-step-note" data-i18n="landing.install.step5note">
-              Depo kökünden (lumos-core); bu terminal açık kalsın. Yerel placeholder: KANDO_BRIDGE_SECRET=test123
+              Köprü ve görev proxy ayarları geliştirici rehberinde tutulur.
             </p>
+            <div class="lumos-install-cmd__meta">
+              <a
+                class="lumos-install-open-link"
+                href="https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/getting-started.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-i18n="landing.install.fullSetupGuide">Tam kurulum rehberi</a>
+            </div>
           </article>
           <article class="lumos-install-step">
-            <h3 data-i18n="landing.install.step6">6 — Görev sunucusu ve proxy (ayrı terminaller)</h3>
-            <div class="lumos-install-cmd">
-              <pre class="lumos-install-pre"><code>python3 panel/scripts/panel_tasks_server.py</code></pre>
-              <div class="lumos-install-cmd__meta">
-                <button
-                  type="button"
-                  class="lumos-install-copy-btn"
-                  data-install-copy
-                  data-copy-text="python3 panel/scripts/panel_tasks_server.py"
-                  data-i18n="landing.install.copy">Kopyala</button>
-              </div>
-            </div>
-            <div class="lumos-install-cmd">
-              <pre class="lumos-install-pre"><code>export BRIDGE_UPSTREAM_URL='http://127.0.0.1:8765'
-export KANDO_BRIDGE_SECRET='test123'
-vercel dev</code></pre>
-              <div class="lumos-install-cmd__meta">
-                <button
-                  type="button"
-                  class="lumos-install-copy-btn"
-                  data-install-copy
-                  data-copy-text={"export BRIDGE_UPSTREAM_URL='http://127.0.0.1:8765'\nexport KANDO_BRIDGE_SECRET='test123'\nvercel dev"}
-                  data-i18n="landing.install.copy">Kopyala</button>
-              </div>
-            </div>
-            <p class="lumos-install-step-note" data-i18n="landing.install.step6note">
-              Görev proxy (/api/bridge) için depo kökünde vercel dev kullanın; yalnızca npm run dev proxy sunmaz.
-            </p>
-          </article>
-          <article class="lumos-install-step">
-            <h3 data-i18n="landing.install.step7">7 — Geliştirme sunucusunu başlat (ui klasörü)</h3>
+            <h3 data-i18n="landing.install.step7">6 — Geliştirme sunucusunu başlat (ui klasörü)</h3>
             <div class="lumos-install-cmd">
               <pre class="lumos-install-pre"><code>cd ui && npm run dev</code></pre>
               <div class="lumos-install-cmd__meta">
@@ -3011,7 +2977,7 @@ vercel dev</code></pre>
             </div>
           </article>
           <article class="lumos-install-step">
-            <h3 data-i18n="landing.install.step8">8 — Yerel paneli tarayıcıda aç</h3>
+            <h3 data-i18n="landing.install.step8">7 — Yerel paneli tarayıcıda aç</h3>
             <div class="lumos-install-cmd">
               <pre class="lumos-install-pre"><code>http://127.0.0.1:4321/panel</code></pre>
               <div class="lumos-install-cmd__meta">

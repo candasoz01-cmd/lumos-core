@@ -6,17 +6,22 @@ import callbackHandler from "../api/auth/google/callback.js";
 import {
   buildGeminiRequest,
   buildOpenAIRequest,
+  explicitMemoryText,
   geminiReply,
+  hasLumosSession,
   identityStatusReply,
   loadAllowedMemory,
   loadHostedUserContext,
   localTimeReply,
+  memoryWriteStatusReply,
   openAIReply,
+  rememberExplicitMemory,
 } from "../api/_lib/hosted_lumos.js";
 import {
   authSecret,
   lumosIdForProviderIdentity,
   makeState,
+  MOBILE_OAUTH_COOKIE,
   openSession,
   sealSession,
   sessionLumosId,
@@ -193,6 +198,57 @@ test("Google callback seals one stable Lumos ID while creating a new session id"
   }
 });
 
+test("Google callback returns a sealed mobile session to the requesting app state", async () => {
+  process.env.LUMOS_AUTH_STATE_SECRET = "test-only-secret-32-characters-minimum";
+  process.env.LUMOS_GOOGLE_WEB_CLIENT_ID = "google-client";
+  process.env.LUMOS_GOOGLE_WEB_CLIENT_SECRET = "google-secret";
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    if (String(url).includes("oauth2.googleapis.com/token")) {
+      return { ok: true, async json() { return { access_token: "temporary-access" }; } };
+    }
+    return {
+      ok: true,
+      async json() {
+        return { sub: "google-subject-one", name: "Ada Lovelace", email: "ada@example.test" };
+      },
+    };
+  };
+  const oauthState = makeState();
+  const appState = "mobile_state_12345678901234567890";
+  const mobileFlow = sealSession({
+    kind: "mobile_oauth",
+    app_state: appState,
+    // Akış bu denemeye bağlıdır: oauth_state, callback'e gelen state ile eşleşmeli.
+    oauth_state: oauthState,
+    exp: Math.floor(Date.now() / 1000) + 60,
+  });
+  const req = {
+    method: "GET",
+    url: `/api/auth/google/callback?code=test-code&state=${encodeURIComponent(oauthState)}`,
+    headers: {
+      cookie: `lumos_oauth_state=${oauthState}; ${MOBILE_OAUTH_COOKIE}=${mobileFlow}`,
+    },
+  };
+  const res = makeRes();
+  try {
+    await callbackHandler(req, res);
+    assert.equal(res.statusCode, 302);
+    const location = new URL(res.headers.location);
+    assert.equal(location.protocol, "lumos:");
+    const fragment = new URLSearchParams(location.hash.slice(1));
+    assert.equal(fragment.get("state"), appState);
+    const mobileClaims = openSession(fragment.get("session"));
+    assert.equal(mobileClaims.email, "ada@example.test");
+    assert.equal(mobileClaims.lumos_id, lumosIdForProviderIdentity("google_web", "google-subject-one"));
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.LUMOS_AUTH_STATE_SECRET;
+    delete process.env.LUMOS_GOOGLE_WEB_CLIENT_ID;
+    delete process.env.LUMOS_GOOGLE_WEB_CLIENT_SECRET;
+  }
+});
+
 test("hosted identity rejects a client Lumos ID mismatch", async () => {
   process.env.LUMOS_AUTH_STATE_SECRET = "test-only-secret-32-characters-minimum";
   const sealed = sealSession(userClaims());
@@ -312,6 +368,98 @@ test("personal memory is ignored unless the memory service returns explicit cons
   }
 });
 
+test("hosted memory reuses the configured private bridge by default", async () => {
+  process.env.BRIDGE_UPSTREAM_URL = "https://bridge.example.test/";
+  process.env.KANDO_BRIDGE_SECRET = "existing-bridge-secret";
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async (url, init) => {
+      assert.equal(url, "https://bridge.example.test/memory/hosted/lookup");
+      assert.equal(init.headers.Authorization, "Bearer existing-bridge-secret");
+      return {
+        ok: true,
+        async json() {
+          return { consent: true, memories: [] };
+        },
+      };
+    };
+    assert.deepEqual(await loadAllowedMemory("lumos_test"), {
+      status: "empty",
+      items: [],
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.BRIDGE_UPSTREAM_URL;
+    delete process.env.KANDO_BRIDGE_SECRET;
+  }
+});
+
+test("explicit memory intent is narrow and does not capture ordinary chat", () => {
+  assert.equal(explicitMemoryText("Bunu hatırla: Çayı şekersiz içerim"), "Çayı şekersiz içerim");
+  assert.equal(explicitMemoryText("Please remember that I prefer short answers"), "I prefer short answers");
+  assert.equal(explicitMemoryText("Bugün ne yapalım?"), "");
+});
+
+test("explicit memory write stays closed without consent", async () => {
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async () => {
+      throw new Error("fetch_must_not_run");
+    };
+    assert.deepEqual(
+      await rememberExplicitMemory(
+        "lumos_test",
+        "Bunu hatırla: Çayı şekersiz içerim",
+        "google_web",
+        "not_granted",
+      ),
+      { status: "consent_required" },
+    );
+    assert.equal(
+      memoryWriteStatusReply({ memory_write_status: "consent_required" }),
+      "Kişisel hafıza iznin kapalı; bu bilgiyi kaydetmedim.",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("explicit memory write uses the consent-gated sibling endpoint", async () => {
+  process.env.LUMOS_MEMORY_LOOKUP_URL = "https://memory.example.test/memory/hosted/lookup";
+  process.env.LUMOS_MEMORY_SERVICE_TOKEN = "private-memory-token";
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async (url, init) => {
+      assert.equal(url, "https://memory.example.test/memory/hosted/remember");
+      assert.equal(init.headers.Authorization, "Bearer private-memory-token");
+      assert.deepEqual(JSON.parse(init.body), {
+        lumos_id: "lumos_test",
+        summary: "Çayı şekersiz içerim",
+        source_provider: "google_web",
+      });
+      return {
+        ok: true,
+        async json() {
+          return { ok: true, stored: true };
+        },
+      };
+    };
+    assert.deepEqual(
+      await rememberExplicitMemory(
+        "lumos_test",
+        "Hatırla: Çayı şekersiz içerim",
+        "google_web",
+        "empty",
+      ),
+      { status: "stored", summary: "Çayı şekersiz içerim" },
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.LUMOS_MEMORY_LOOKUP_URL;
+    delete process.env.LUMOS_MEMORY_SERVICE_TOKEN;
+  }
+});
+
 test("hosted chat calls OpenAI first without exposing its key", async () => {
   process.env.LUMOS_AUTH_STATE_SECRET = "test-only-secret-32-characters-minimum";
   process.env.OPENAI_API_KEY = "private-openai-test-key";
@@ -385,5 +533,77 @@ test("hosted chat falls back to Google when OpenAI is unavailable", async () => 
     delete process.env.LUMOS_AUTH_STATE_SECRET;
     delete process.env.OPENAI_API_KEY;
     delete process.env.LUMOS_GOOGLE_GEMINI_API_KEY;
+  }
+});
+
+test("hosted chat accepts a sealed mobile bearer session", async () => {
+  process.env.LUMOS_AUTH_STATE_SECRET = "test-only-secret-32-characters-minimum";
+  const claims = userClaims();
+  const sealed = sealSession(claims);
+  try {
+    const context = await loadHostedUserContext(
+      { headers: { authorization: `Bearer ${sealed}` } },
+      { conversation_id: "mobile-conversation" },
+    );
+    assert.equal(context.ok, true);
+    assert.equal(context.lumos_id, sessionLumosId(claims));
+    assert.equal(context.conversation_id, "mobile-conversation");
+  } finally {
+    delete process.env.LUMOS_AUTH_STATE_SECRET;
+  }
+});
+
+test("stale mobile oauth cookie cannot hijack a web login", async () => {
+  process.env.LUMOS_AUTH_STATE_SECRET = "test-only-secret-32-characters-minimum";
+  const now = Math.floor(Date.now() / 1000);
+  try {
+    // Terk edilmiş/paralel bir mobil akıştan kalan çerez: oauth_state BAŞKA.
+    const staleFlow = sealSession({
+      kind: "mobile_oauth",
+      app_state: "abandoned-mobile-app-state-value",
+      oauth_state: makeState(),
+      iat: now,
+      exp: now + 600,
+    });
+    const webState = makeState();
+    const req = {
+      method: "GET",
+      url: `/api/auth/google/callback?error=access_denied&state=${encodeURIComponent(webState)}`,
+      headers: {
+        cookie: `lumos_oauth_state=${webState}; ${MOBILE_OAUTH_COOKIE}=${staleFlow}`,
+      },
+    };
+    const res = makeRes();
+    await callbackHandler(req, res);
+
+    // Web girişi deep-link'e kaçırılmamalı.
+    assert.equal(res.statusCode, 302);
+    assert.ok(String(res.headers["location"]).startsWith("/auth?error="));
+    assert.ok(!String(res.headers["location"]).includes("lumos://"));
+  } finally {
+    delete process.env.LUMOS_AUTH_STATE_SECRET;
+  }
+});
+
+test("bridge session check accepts the same bearer token as hosted chat", () => {
+  process.env.LUMOS_AUTH_STATE_SECRET = "test-only-secret-32-characters-minimum";
+  try {
+    const sealed = sealSession(userClaims());
+    const flowToken = sealSession({
+      kind: "mobile_oauth",
+      nonce: "flow-only",
+      exp: Math.floor(Date.now() / 1000) + 60,
+    });
+    const bearerReq = { headers: { authorization: `Bearer ${sealed}` } };
+    // hasLumosSession ile hostedSessionClaims aynı kaynağı görmeli:
+    // aksi halde /bridge/health 401 verirken /mobile/chat çalışır.
+    assert.equal(hasLumosSession(bearerReq), true);
+    assert.equal(
+      hasLumosSession({ headers: { authorization: `Bearer ${flowToken}` } }),
+      false,
+    );
+    assert.equal(hasLumosSession({ headers: {} }), false);
+  } finally {
+    delete process.env.LUMOS_AUTH_STATE_SECRET;
   }
 });

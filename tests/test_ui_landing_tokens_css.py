@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from tests.test_panel_component_split import read_panel_source
+
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _INDEX_ASTRO = _REPO_ROOT / "ui" / "src" / "pages" / "index.astro"
 _PANEL_ASTRO = _REPO_ROOT / "ui" / "src" / "pages" / "panel.astro"
@@ -15,7 +17,7 @@ _LANDING_EN = _REPO_ROOT / "ui" / "src" / "i18n" / "messages" / "landing" / "en.
 
 def test_index_imports_shared_lumos_tokens_stylesheet() -> None:
     index = _INDEX_ASTRO.read_text(encoding="utf-8")
-    panel = _PANEL_ASTRO.read_text(encoding="utf-8")
+    panel = read_panel_source()
     tokens = _TOKENS_CSS.read_text(encoding="utf-8")
     assert 'import "../styles/lumos-tokens.css"' in index
     assert 'import "../styles/lumos-tokens.css"' in panel
@@ -23,18 +25,18 @@ def test_index_imports_shared_lumos_tokens_stylesheet() -> None:
     assert "--lumos-bg: #0a0e14" in tokens
 
 
-def test_landing_kurulum_bridge_env_proxy_steps() -> None:
+def test_landing_kurulum_links_full_setup_without_internal_names() -> None:
     text = _INDEX_ASTRO.read_text(encoding="utf-8")
     assert 'data-i18n="landing.install.step4"' in text
     assert "ui/.env.example ui/.env.local" in text
-    assert "bridge_start.sh" in text
-    assert "panel_tasks_server.py" in text
-    assert "vercel dev" in text
+    assert "docs/getting-started.md" in text
+    assert "KANDO_BRIDGE_SECRET" not in text
+    assert "BRIDGE_UPSTREAM_URL" not in text
     assert 'data-i18n="landing.install.tryPanelWarning"' in text
 
 
 def test_panel_conn_badge_setup_link_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     assert "wirePanelConnBadgeSetupLink" in text
     assert 'window.location.href = "/#kurulum"' in text
     assert 'data-setup-link' in text
@@ -48,6 +50,7 @@ def test_landing_install_v8_keys_in_catalogs() -> None:
         "step8:",
         "step5note:",
         "step6note:",
+        "fullSetupGuide:",
         "tryPanelWarning:",
     ):
         assert key in tr_text, f"missing landing tr key: {key}"
@@ -80,7 +83,7 @@ def test_landing_hero_ask_empty_submit_no_panel_redirect() -> None:
 
 
 def test_panel_hero_prefill_scroll_and_banner_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     assert "scrollIntoView({ behavior: \"smooth\", block: \"center\" })" in text
     assert "showPanelHeroPrefillBanner" in text
     assert 'id="panel-hero-prefill-banner"' in text

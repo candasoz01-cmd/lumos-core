@@ -7,6 +7,12 @@ from integrations.quantum_aer_connect import (
     qiskit_aer_import_status,
     run_aer_smoke,
 )
+from integrations.quantum_cloud_connect import (
+    QuantumCloudConfigurationError,
+    configuration_error_data,
+    connect_quantum_cloud,
+    is_quantum_cloud_provider,
+)
 from integrations.quantum_registry import get_quantum_provider, list_quantum_providers
 from integrations.quantum_usage_tracker import (
     record_quantum_usage,
@@ -117,6 +123,63 @@ def _handle_qiskit_aer_connect(request: IntegrationRequest) -> IntegrationResult
     )
 
 
+def _handle_quantum_cloud_connect(
+    request: IntegrationRequest,
+    provider_id: str,
+) -> IntegrationResult:
+    entry = get_quantum_provider(provider_id)
+    if entry is None:
+        return IntegrationResult(
+            ok=False,
+            provider=request.provider,
+            action=request.action,
+            data={"provider_id": provider_id},
+            error="quantum_provider_unknown",
+        )
+
+    try:
+        connection = connect_quantum_cloud(provider_id)
+    except QuantumCloudConfigurationError as exc:
+        record_quantum_usage(request.action, provider_id=provider_id)
+        return IntegrationResult(
+            ok=False,
+            provider=request.provider,
+            action=request.action,
+            data={**configuration_error_data(exc), **_usage_fields()},
+            error="quantum_provider_not_configured",
+        )
+    except Exception as exc:  # Provider SDK/auth/network errors are intentionally sanitized.
+        record_quantum_usage(request.action, provider_id=provider_id)
+        return IntegrationResult(
+            ok=False,
+            provider=request.provider,
+            action=request.action,
+            data={
+                "provider_id": provider_id,
+                "reason": "provider_api_unavailable",
+                "exception_type": type(exc).__name__,
+                "read_only": True,
+                "job_submission": False,
+                "autonomous_connect": False,
+                **_usage_fields(),
+            },
+            error="quantum_provider_unavailable",
+        )
+
+    record_quantum_usage(request.action, provider_id=provider_id)
+    return IntegrationResult(
+        ok=True,
+        provider=request.provider,
+        action=request.action,
+        data={
+            **connection,
+            "approval_tier": entry.approval_tier,
+            "autonomous_connect": False,
+            **_usage_fields(),
+        },
+    )
+
+
 def run_quantum_action(request: IntegrationRequest) -> IntegrationResult:
     action = request.action.strip().lower()
     if action not in SUPPORTED_QUANTUM_ACTIONS:
@@ -194,6 +257,9 @@ def run_quantum_action(request: IntegrationRequest) -> IntegrationResult:
 
     if action == "connect" and is_qiskit_aer_provider(provider_id):
         return _handle_qiskit_aer_connect(request)
+
+    if action in ("connect", "discover") and is_quantum_cloud_provider(provider_id):
+        return _handle_quantum_cloud_connect(request, provider_id)
 
     return IntegrationResult(
         ok=False,

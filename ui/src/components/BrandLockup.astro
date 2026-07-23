@@ -3,10 +3,12 @@ interface Props {
   id: string;
   name: string;
   compact?: boolean;
+  chip?: boolean;
+  monochrome?: boolean;
   linked?: boolean;
 }
 
-const { id, name, compact = false, linked = true } = Astro.props;
+const { id, name, compact = false, chip = false, monochrome = false, linked = true } = Astro.props;
 
 const brands: Record<string, { logo: string; href: string; wide?: boolean }> = {
   github: { logo: "https://api.iconify.design/logos/github-icon.svg", href: "https://github.com/" },
@@ -39,6 +41,18 @@ const brands: Record<string, { logo: string; href: string; wide?: boolean }> = {
   homeAssistant: { logo: "https://cdn.simpleicons.org/homeassistant", href: "https://www.home-assistant.io/" },
   smartThings: { logo: "https://cdn.simpleicons.org/smartthings", href: "https://www.samsung.com/us/smartthings/" },
   sonos: { logo: "https://cdn.simpleicons.org/sonos/FFFFFF", href: "https://www.sonos.com/" },
+  facebook: { logo: "https://api.iconify.design/logos/facebook.svg", href: "https://www.facebook.com/" },
+  instagram: { logo: "https://api.iconify.design/logos/instagram-icon.svg", href: "https://www.instagram.com/" },
+  x: { logo: "https://api.iconify.design/logos/x.svg", href: "https://x.com/" },
+  tiktok: { logo: "https://api.iconify.design/logos/tiktok-icon.svg", href: "https://www.tiktok.com/" },
+  linkedin: { logo: "https://api.iconify.design/logos/linkedin-icon.svg", href: "https://www.linkedin.com/" },
+  youtube: { logo: "https://api.iconify.design/logos/youtube-icon.svg", href: "https://www.youtube.com/" },
+  wechat: { logo: "https://cdn.simpleicons.org/wechat", href: "https://www.wechat.com/" },
+  vk: { logo: "https://cdn.simpleicons.org/vk", href: "https://vk.com/" },
+  bilibili: { logo: "https://cdn.simpleicons.org/bilibili", href: "https://www.bilibili.com/" },
+  xiaohongshu: { logo: "https://cdn.simpleicons.org/xiaohongshu", href: "https://www.xiaohongshu.com/" },
+  weibo: { logo: "https://cdn.simpleicons.org/sinaweibo", href: "https://weibo.com/" },
+  okru: { logo: "https://cdn.simpleicons.org/odnoklassniki", href: "https://ok.ru/" },
 };
 
 const brand = brands[id];
@@ -47,7 +61,7 @@ const brand = brands[id];
 {
   brand && linked ? (
     <a
-      class:list={["brand-lockup", compact && "brand-lockup--compact", brand.wide && "brand-lockup--wide"]}
+      class:list={["brand-lockup", compact && "brand-lockup--compact", chip && "brand-lockup--chip", monochrome && "brand-lockup--mono", brand.wide && "brand-lockup--wide"]}
       href={brand.href}
       target="_blank"
       rel="noopener noreferrer"
@@ -60,7 +74,7 @@ const brand = brands[id];
       <span class="brand-lockup__name">{name}</span>
     </a>
   ) : brand ? (
-    <span class:list={["brand-lockup", compact && "brand-lockup--compact", brand.wide && "brand-lockup--wide"]}>
+    <span class:list={["brand-lockup", compact && "brand-lockup--compact", chip && "brand-lockup--chip", monochrome && "brand-lockup--mono", brand.wide && "brand-lockup--wide"]}>
       <span class="brand-lockup__mark" aria-hidden="true">
         <span class="brand-lockup__fallback">{name.slice(0, 1)}</span>
         <img src={brand.logo} alt="" decoding="async" />
@@ -68,7 +82,7 @@ const brand = brands[id];
       <span class="brand-lockup__name">{name}</span>
     </span>
   ) : (
-    <span class:list={["brand-lockup", compact && "brand-lockup--compact"]}>
+    <span class:list={["brand-lockup", compact && "brand-lockup--compact", chip && "brand-lockup--chip"]}>
       <span class="brand-lockup__mark brand-lockup__mark--fallback" aria-hidden="true">{name.slice(0, 1)}</span>
       <span class="brand-lockup__name">{name}</span>
     </span>
@@ -152,6 +166,58 @@ const brand = brands[id];
 
   .brand-lockup--compact .brand-lockup__name {
     font-size: 0.92rem;
+  }
+
+  .brand-lockup--chip {
+    gap: 0.4rem;
+  }
+
+  .brand-lockup--chip .brand-lockup__mark {
+    flex-basis: 1.15rem;
+    width: 1.15rem;
+    height: 1.15rem;
+    padding: 0.14rem;
+    border-radius: 0.4rem;
+    border-width: 1px;
+  }
+
+  .brand-lockup--chip .brand-lockup__mark img {
+    inset: 0.14rem;
+    width: calc(100% - 0.28rem);
+    height: calc(100% - 0.28rem);
+  }
+
+  .brand-lockup--chip .brand-lockup__fallback {
+    font-size: 0.68rem;
+  }
+
+  .brand-lockup--chip .brand-lockup__name {
+    font-size: inherit;
+    font-weight: 600;
+  }
+
+  .brand-lockup--mono .brand-lockup__mark img {
+    filter: grayscale(1) opacity(0.7);
+    transition: filter 0.2s ease;
+  }
+
+  .brand-lockup--mono .brand-lockup__name {
+    color: var(--lumos-text-muted);
+    transition: color 0.2s ease;
+  }
+
+  a.brand-lockup--mono:hover .brand-lockup__mark img,
+  a.brand-lockup--mono:focus-visible .brand-lockup__mark img,
+  .brand-lockup--mono:hover .brand-lockup__mark img,
+  .brand-lockup--mono:focus-within .brand-lockup__mark img {
+    filter: grayscale(0) opacity(1);
+  }
+
+  a.brand-lockup--mono:hover .brand-lockup__name,
+  a.brand-lockup--mono:focus-visible .brand-lockup__name,
+  .brand-lockup--mono:hover .brand-lockup__name,
+  .brand-lockup--mono:focus-within .brand-lockup__name {
+    color: var(--lumos-land-title);
   }
 
   .brand-lockup--wide .brand-lockup__mark {

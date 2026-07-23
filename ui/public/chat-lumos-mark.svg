@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="chat-lumos-title">
+  <title id="chat-lumos-title">ChatLumos</title>
+  <defs>
+    <linearGradient id="facet-light" x1="16" y1="12" x2="39" y2="42" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff6d2"/>
+      <stop offset="1" stop-color="#d8a844"/>
+    </linearGradient>
+    <linearGradient id="facet-warm" x1="48" y1="14" x2="30" y2="54" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#eac66f"/>
+      <stop offset="1" stop-color="#7f4c12"/>
+    </linearGradient>
+    <radialGradient id="quantum-core" cx="50%" cy="45%" r="58%">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.36" stop-color="#fff0a8"/>
+      <stop offset="1" stop-color="#d89b25"/>
+    </radialGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="#080a0d"/>
+  <path d="M32 7 53 25 32 57 11 25Z" fill="#17130c" stroke="#c89435" stroke-width="1.5"/>
+  <path d="M32 7 30 28 11 25Z" fill="url(#facet-light)"/>
+  <path d="M32 7 53 25 34 28Z" fill="#f0d58c"/>
+  <path d="M11 25 30 28 32 57Z" fill="#a86f1e"/>
+  <path d="M53 25 34 28 32 57Z" fill="url(#facet-warm)"/>
+  <path d="M32 7 34 28 32 57 30 28Z" fill="#fff0b2" fill-opacity="0.42"/>
+  <path
+    d="M19 28c3.2-8 8.2-8 13 0s9.8 8 13 0c-3.2-8-8.2-8-13 0s-9.8 8-13 0"
+    fill="none"
+    stroke="#fff0ad"
+    stroke-width="2.1"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <circle cx="32" cy="28" r="2.15" fill="#080a0d" stroke="#f3c75f" stroke-width="1"/>
+  <circle cx="32" cy="28" r="1.1" fill="url(#quantum-core)"/>
+</svg>

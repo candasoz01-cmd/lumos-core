@@ -6,6 +6,8 @@ import re
 import sys
 from pathlib import Path
 
+from tests.test_panel_component_split import read_panel_source
+
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _PANEL_ASTRO = _REPO_ROOT / "ui" / "src" / "pages" / "panel.astro"
 
@@ -101,7 +103,7 @@ def test_not_found_message_includes_ref_not_raw_error_code() -> None:
 
 
 def test_panel_astro_ec2_01_silme_ux_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     required = [
         'verb: "geri_al"',
         "panelGorevlerRestoreFromChat",
@@ -119,7 +121,7 @@ def test_panel_astro_ec2_01_silme_ux_wiring() -> None:
 
 def test_panel_astro_restore_chat_verifies_list_presence() -> None:
     """Chat restore başarısı yalnızca görev listesinde doğrulama sonrası."""
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     restore_fn = text.split("async function restoreGorevlerTaskFromChat", 1)[1].split(
         "panelGorevlerTasksRender = render", 1
     )[0]
@@ -136,7 +138,7 @@ def test_panel_astro_restore_chat_verifies_list_presence() -> None:
 
 
 def test_panel_astro_chat_delete_server_path_closes_detail() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     delete_fn = text.split("async function deleteGorevlerTaskFromChat", 1)[1].split(
         "async function deleteOpenGorevlerTask", 1
     )[0]
@@ -147,7 +149,7 @@ def test_panel_astro_chat_delete_server_path_closes_detail() -> None:
 
 def test_panel_astro_online_delete_success_does_not_enqueue_evidence() -> None:
     """Online sunucu başarı yolunda delete enqueue yok (EC2-02 semantiği korunur)."""
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     delete_fn = text.split("async function deleteGorevlerTaskFromChat", 1)[1].split(
         "async function deleteOpenGorevlerTask", 1
     )[0]

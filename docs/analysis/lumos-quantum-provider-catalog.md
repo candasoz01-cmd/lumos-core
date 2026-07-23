@@ -2,8 +2,8 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Planlı** — salt okunur katalog; canlı API yok |
-| Tarih | 2026-06-26 |
+| Durum | **Adapter hazır** — salt okunur keşif; canlı hesap bağlantısı credential bekliyor |
+| Tarih | 2026-07-17 |
 | Mimari | [`lumos-quantum-layer-architecture.md`](./lumos-quantum-layer-architecture.md) |
 | Kod stub | `src/integrations/quantum_registry.py` |
 
@@ -33,10 +33,10 @@ Hikâye: [`lumos-quantum-first-companion.md`](./lumos-quantum-first-companion.md
 
 | Sağlayıcı | Tür | `connect_priority` | Auth modeli | Maliyet riski | Veri egress riski | Onay katmanı | Durum | Demo-safe vs production |
 |-----------|-----|-------------------|-------------|---------------|-------------------|--------------|-------|-------------------------|
-| **IBM Quantum** | cloud | **2** | IBM Cloud API key / `QiskitRuntimeService` token | **Yüksek** — QPU/saas dakika ücreti | Orta — devre ve sonuçlar IBM bulutunda | needs-owner | stub | OSS: metadata only; Entropy Lab'de opsiyonel runtime probe (deneysel, üretim değil). **İlk bulut dalı** — yerel Aer kanıtlandıktan sonra. Prod: IAM + billing guard gerekir |
-| **Azure Quantum** | cloud | — | Azure AD + workspace resource | **Yüksek** — reserved / pay-per-shot | Orta — Azure tenant sınırı | needs-owner | planned | OSS: yok. Prod: enterprise policy + maliyet kotası |
-| **Amazon Braket** | cloud | — | AWS IAM + Braket rolü | **Yüksek** — device/time billing | Orta — sonuçlar S3 / AWS | needs-owner | planned | OSS: yok. Prod: AWS Organizations guardrails |
-| **Google Quantum AI** | cloud | — | Google Cloud IAM + Quantum Engine API | **Yüksek** — processor zamanı | Orta — GCP projesi | needs-owner | planned | OSS: yok. Prod: quota + VPC-SC değerlendirmesi |
+| **IBM Quantum** | cloud | **2** | IBM Cloud API key / `QiskitRuntimeService` token | **Yüksek** — QPU/saas dakika ücreti | Orta — devre ve sonuçlar IBM bulutunda | needs-owner | stub | Salt okunur backend keşfi hazır; `IBM_QUANTUM_API_KEY` gerekli; job göndermez |
+| **Azure Quantum** | cloud | — | Azure AD + workspace resource | **Yüksek** — reserved / pay-per-shot | Orta — Azure tenant sınırı | needs-owner | stub | Salt okunur target keşfi hazır; `AZURE_QUANTUM_RESOURCE_ID` ve Azure kimliği gerekli; job göndermez |
+| **Amazon Braket** | cloud | — | AWS IAM + Braket rolü | **Yüksek** — device/time billing | Orta — sonuçlar S3 / AWS | needs-owner | stub | Salt okunur device keşfi hazır; AWS credential chain ve region gerekli; job göndermez |
+| **Google Quantum AI** | cloud | — | Google Cloud IAM + Quantum Engine API | **Yüksek** — processor zamanı | Orta — GCP projesi | needs-owner | stub | Salt okunur processor keşfi hazır; erişim Google tarafından kısıtlıdır; job göndermez |
 
 ---
 
@@ -79,8 +79,8 @@ Hikâye: [`lumos-quantum-first-companion.md`](./lumos-quantum-first-companion.md
 | Framework | 3 |
 | Simulator | 3 |
 | Research | 3 |
-| `stub` durumunda | 5 |
-| `planned` durumunda | 7 |
+| `stub` durumunda | 8 |
+| `planned` durumunda | 4 |
 | `none` (aktif prod bağlantı) | 0 |
 
 ### Onay katmanı dağılımı

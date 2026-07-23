@@ -4,19 +4,21 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from tests.test_panel_component_split import read_panel_source
+
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _PANEL_ASTRO = _REPO_ROOT / "ui" / "src" / "pages" / "panel.astro"
 
 
 def test_panel_full_audio_reply_on_send_path() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     block = text.split("if (hasAudio && !outgoingMessage && !hasPhoto)", 1)[1].split("return;", 1)[0]
     assert 'panelT("panel.modules.chat.compose.hints.fullAudioReply")' in block
     assert 'setSendHint(() => panelT("panel.modules.chat.compose.hints.fullAudioHint"))' in block
 
 
 def test_panel_full_audio_reply_on_attach_path() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     attach_block = text.split(
         'appendUserComposeBubble(panelT("panel.modules.chat.compose.audioFileAttached")', 1
     )[1].split(
@@ -27,6 +29,6 @@ def test_panel_full_audio_reply_on_attach_path() -> None:
 
 
 def test_panel_full_audio_no_deprecated_constants() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     assert "PANEL_FULL_AUDIO_REPLY" not in text
     assert "PANEL_FULL_AUDIO_HINT" not in text

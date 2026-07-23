@@ -193,6 +193,23 @@ test("bridge proxy accepts only an allowlisted sealed Lumos session", () => {
       }),
       true,
     );
+    assert.equal(
+      isAuthenticatedLumosSession({
+        headers: { authorization: `Bearer ${sealed}` },
+      }),
+      true,
+    );
+    const flowToken = sealSession({
+      kind: "mobile_oauth",
+      nonce: "flow-only",
+      exp: Math.floor(Date.now() / 1000) + 60,
+    });
+    assert.equal(
+      isAuthenticatedLumosSession({
+        headers: { authorization: `Bearer ${flowToken}` },
+      }),
+      false,
+    );
     const denied = sealSession({
       sid: "session-denied",
       lumos_id: "lumos_not_allowed",

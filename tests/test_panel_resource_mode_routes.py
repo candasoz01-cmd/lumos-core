@@ -4,6 +4,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+from tests.test_panel_component_split import read_panel_source
+
 import pytest
 
 from integrations.resource_mode_advisor import (
@@ -92,7 +94,7 @@ def test_build_resource_mode_apply_invalid_layer(tmp_lumos_base: Path) -> None:
 
 
 def test_panel_astro_resource_mode_wiring() -> None:
-    text = (_REPO_ROOT / "ui" / "src" / "pages" / "panel.astro").read_text(encoding="utf-8")
+    text = read_panel_source()
     assert "/resource-mode/propose" in text
     assert "/resource-mode/apply" in text
     assert "refreshResourceModeAdvisorPanel" in text

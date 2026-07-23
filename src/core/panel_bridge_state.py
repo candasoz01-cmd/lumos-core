@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from core import task_store_mirror
 from core.lumos_base_dir import lumos_base_dir as _base_dir
 
 from policy.action_policy import (  # noqa: E402
@@ -232,6 +233,76 @@ _TASK_STATUS_MAP = {
     "dogrulanamadi": "dogrulanamadi",
 }
 
+# TD-01 geçiş köprüsü: canonical görev formatı {id, title, status: active|done}.
+# Okuyucu geçiş sürecinde eski TaskEngine formatını da (task_id + Türkçe statü)
+# okuyup normalize eder. GEÇİCİDİR — göç tamamlanınca eski-format okuma desteği
+# ayrı borç olarak kaldırılır (bkz. docs/contracts/task-store-v1.md, TD-01).
+# Yeni yazım YALNIZ canonical format üretir (bkz. core/task_store_mirror.py).
+_CANONICAL_TASK_STATUSES = {"active", "done"}
+_LEGACY_DONE_STATUSES = {"tamamlandi"}
+_LEGACY_KNOWN_STATUSES = {
+    "bekliyor", "calisiyor", "tamamlandi", "hata", "durdu",
+    "kismi", "simulasyon", "dogrulanamadi",
+}
+
+
+def _normalize_task_row(raw: Any) -> tuple[dict | None, str | None]:
+    """Bir görev satırını canonical biçime indirir.
+
+    Dönüş: (canonical_row | None, skip_or_warn_reason | None).
+    - Canonical/panel satırı ({id, status: active|done}) doğrudan kabul edilir.
+    - Eski engine satırı ({task_id, Türkçe statü}) normalize edilir:
+      task_id → engine-<id>, statü → active|done.
+    - Bilinmeyen statü sessizce kabul edilmez: `active`'e düşürülür ve uyarı
+      döndürülür (veri hataları görünür kalsın).
+    - id/task_id olmayan veya obje olmayan satır atlanır (skip reason ile).
+    """
+    if not isinstance(raw, dict):
+        return None, "row_not_object"
+
+    rid = raw.get("id")
+    status = raw.get("status")
+
+    # Canonical / panel-native satır.
+    if rid is not None and status in _CANONICAL_TASK_STATUSES:
+        return _canonical_row(str(rid), raw, status, source=raw.get("source") or "panel"), None
+
+    # Eski TaskEngine formatı (geçici okuma desteği).
+    tid = raw.get("task_id")
+    if tid is not None:
+        legacy = str(status or "bekliyor")
+        if legacy in _LEGACY_DONE_STATUSES:
+            canonical_status, warn = "done", None
+        elif legacy in _LEGACY_KNOWN_STATUSES:
+            canonical_status, warn = "active", None
+        else:
+            canonical_status, warn = "active", f"unknown_legacy_status:{legacy}"
+        row = _canonical_row(task_store_mirror.engine_row_id(tid), raw, canonical_status, source="engine")
+        return row, warn
+
+    # id var ama statü tanınmıyor: güvenli varsayılan + uyarı.
+    if rid is not None:
+        return _canonical_row(str(rid), raw, "active", source=raw.get("source") or "panel"), \
+            f"unknown_status:{status!r}"
+
+    return None, "no_id_or_task_id"
+
+
+def _canonical_row(row_id: str, raw: dict, status: str, *, source: str) -> dict:
+    updated = raw.get("completed_at") or raw.get("createdAt") or raw.get("created_at") or ""
+    last_run = raw.get("completed_at") if status == "done" else None
+    summary = (raw.get("summary") or raw.get("last_output") or "—").strip() or "—"
+    return {
+        "id": row_id,
+        "title": raw.get("title") or "—",
+        "status": status,  # canonical: active | done
+        "source": source,
+        "updated": updated,
+        "last_run": last_run,
+        "guard_result": "—",
+        "output_summary": summary[:200] + ("…" if len(summary) > 200 else ""),
+    }
+
 def _store_file_health(tasks_file: Path) -> tuple[str, str]:
     """Read-only JSON file health → (status, note)."""
     if not tasks_file.is_file():
@@ -267,8 +338,19 @@ def _task_engine_health(base: Path) -> tuple[str, str]:
 
 
 def _read_tasks_payload(base: Path) -> dict:
-    """Read-only: base/tasks.json → task_list, task_filter, selected_task_id, list_updated, list_updated_text, tasks_file_path, tasks_file_exists, task_count.
-    Güvenli sinyaller: tasks.json var/yok, mtime (list_updated), çözülmüş dosya yolu, görev sayısı (task_count)."""
+    """Read-only: base/tasks.json → canonical görev listesi + tamlık sinyalleri.
+
+    TD-01 geçiş köprüsü: canonical panel formatı ({id, title, status:
+    active|done}) esastır; geçiş sürecinde eski TaskEngine satırları da okunup
+    normalize edilir (task_id → engine-<id>, Türkçe statü → active|done). Aynı
+    id son-yazılan kazanır (göç sırasında eski + aynalı satır tekilleşir).
+    Okunamayan/atlanan satırlar sessizce ezilmez; `skipped_rows` ve `warnings`
+    olarak raporlanır (veri hataları görünür kalsın).
+
+    Çıktı anahtarları: task_list, task_filter, selected_task_id, list_updated,
+    list_updated_text, tasks_file_path, tasks_file_exists, task_count,
+    skipped_rows, warnings.
+    """
     tasks_file = base / "tasks.json"
     tasks_file_exists = tasks_file.is_file()
     out = {
@@ -280,6 +362,8 @@ def _read_tasks_payload(base: Path) -> dict:
         "tasks_file_path": None,
         "tasks_file_exists": tasks_file_exists,
         "task_count": 0,
+        "skipped_rows": [],
+        "warnings": [],
     }
     if not tasks_file_exists:
         return out
@@ -297,25 +381,23 @@ def _read_tasks_payload(base: Path) -> dict:
         data = json.loads(tasks_file.read_text(encoding="utf-8"))
         raw = data.get("tasks") or []
     except Exception:
+        out["warnings"].append("tasks.json okunamadı veya JSON değil")
         return out
-    for t in raw:
-        tid = t.get("task_id")
-        if tid is None:
+
+    by_id: dict[str, dict] = {}
+    order: list[str] = []
+    for index, t in enumerate(raw):
+        row, note = _normalize_task_row(t)
+        if row is None:
+            out["skipped_rows"].append({"index": index, "reason": note})
             continue
-        status = t.get("status") or "bekliyor"
-        status_panel = _TASK_STATUS_MAP.get(status, status)
-        updated = t.get("completed_at") or t.get("created_at") or ""
-        last_run = t.get("completed_at") if status in ("tamamlandi", "hata", "durdu", "kismi", "simulasyon", "dogrulanamadi") else None
-        summary = (t.get("summary") or t.get("last_output") or "—").strip() or "—"
-        out["task_list"].append({
-            "id": str(tid),
-            "title": t.get("title") or "—",
-            "status": status_panel,
-            "updated": updated,
-            "last_run": last_run,
-            "guard_result": "—",
-            "output_summary": summary[:200] + ("…" if len(summary) > 200 else ""),
-        })
+        if note is not None:
+            out["warnings"].append({"index": index, "id": row["id"], "reason": note})
+        if row["id"] not in by_id:
+            order.append(row["id"])
+        by_id[row["id"]] = row
+
+    out["task_list"] = [by_id[i] for i in order]
     out["task_count"] = len(out["task_list"])
     return out
 

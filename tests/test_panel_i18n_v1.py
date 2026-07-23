@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from tests.test_panel_component_split import read_panel_source
+
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _PANEL_ASTRO = _REPO_ROOT / "ui" / "src" / "pages" / "panel.astro"
 _TR_MESSAGES = _REPO_ROOT / "ui" / "src" / "i18n" / "messages" / "tr.ts"
@@ -82,7 +84,9 @@ PANEL_I18N_V4_MARKERS = (
     'data-i18n="panel.modules.tasks.intro"',
     'data-i18n="panel.modules.tasks.form.titleLabel"',
     'data-i18n-placeholder="panel.modules.tasks.form.titlePlaceholder"',
-    'data-i18n="panel.modules.tasks.status.bekliyor"',
+    # Create form no longer exposes status <option data-i18n>; labels via panelT.
+    'panelT("panel.modules.tasks.status.bekliyor")',
+    'id="gorevler-status"',
     'data-i18n="panel.modules.tasks.list.filterAll"',
     'data-i18n="panel.modules.tasks.detail.close"',
     'function gorevlerStatusLabel(',
@@ -975,7 +979,7 @@ PANEL_I18N_V58_TR_KEYS = (
     "rootStatus:",
     "hydroponic:",
     "disclaimer:",
-    "Topraksız mod",
+    "Sınırlı yerel mod",
     "katmanAFootnote:",
     "Katman A",
 )
@@ -987,14 +991,14 @@ PANEL_I18N_V58_EN_KEYS = (
     "rootStatus:",
     "hydroponic:",
     "disclaimer:",
-    "Hydroponic mode",
+    "Limited local mode",
     "katmanAFootnote:",
     "Katman A",
 )
 
 
 def test_panel_astro_i18n_wiring_present() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_MARKERS:
         assert token in text, f"missing panel i18n token: {token}"
 
@@ -1009,7 +1013,7 @@ def test_panel_messages_imported_into_catalogs() -> None:
 
 
 def test_panel_dynamic_i18n_refreshes_after_initial_load() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     assert 'window.addEventListener("lumos:localechange", refreshPanelI18n);' in text
     assert 'window.addEventListener("load", refreshPanelI18n, { once: true });' in text
 
@@ -1026,7 +1030,7 @@ def test_panel_nav_keys_exist_in_panel_tr() -> None:
 
 
 def test_panel_astro_i18n_v2_module_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V2_MARKERS:
         assert token in text, f"missing panel i18n v2 token: {token}"
 
@@ -1040,7 +1044,7 @@ def test_panel_i18n_v2_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v3_chat_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V3_MARKERS:
         assert token in text, f"missing panel i18n v3 token: {token}"
 
@@ -1054,7 +1058,7 @@ def test_panel_i18n_v3_chat_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v4_gorevler_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V4_MARKERS:
         assert token in text, f"missing panel i18n v4 token: {token}"
 
@@ -1068,7 +1072,7 @@ def test_panel_i18n_v4_gorevler_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v5_lumos_core_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V5_MARKERS:
         assert token in text, f"missing panel i18n v5 token: {token}"
 
@@ -1082,7 +1086,7 @@ def test_panel_i18n_v5_lumos_core_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v6_shell_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V6_MARKERS:
         assert token in text, f"missing panel i18n v6 token: {token}"
 
@@ -1096,7 +1100,7 @@ def test_panel_i18n_v6_shell_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v7_files_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V7_MARKERS:
         assert token in text, f"missing panel i18n v7 token: {token}"
 
@@ -1110,7 +1114,7 @@ def test_panel_i18n_v7_files_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v8_chat_errors_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V8_MARKERS:
         assert token in text, f"missing panel i18n v8 token: {token}"
 
@@ -1124,7 +1128,7 @@ def test_panel_i18n_v8_chat_errors_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v9_gorevler_evidence_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V9_MARKERS:
         assert token in text, f"missing panel i18n v9 token: {token}"
 
@@ -1138,7 +1142,7 @@ def test_panel_i18n_v9_gorevler_evidence_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v10_transcript_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V10_MARKERS:
         assert token in text, f"missing panel i18n v10 token: {token}"
     assert "AUDIO_TRANSCRIPT_ENGINE_MSG" not in text
@@ -1153,7 +1157,7 @@ def test_panel_i18n_v10_transcript_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v11_compose_hints_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V11_MARKERS:
         assert token in text, f"missing panel i18n v11 token: {token}"
     assert "PANEL_FULL_AUDIO_HINT" not in text
@@ -1169,7 +1173,7 @@ def test_panel_i18n_v11_compose_hints_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v12_camera_hints_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V12_MARKERS:
         assert token in text, f"missing panel i18n v12 token: {token}"
     assert 'setCameraHint("Bu tarayıcıda kamera' not in text
@@ -1185,7 +1189,7 @@ def test_panel_i18n_v12_camera_hints_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v13_record_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V13_MARKERS:
         assert token in text, f"missing panel i18n v13 token: {token}"
     assert "AUDIO_RECORD_UNSUPPORTED_HINT" not in text
@@ -1201,7 +1205,7 @@ def test_panel_i18n_v13_record_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v14_voice_hints_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V14_MARKERS:
         assert token in text, f"missing panel i18n v14 token: {token}"
     assert 'voiceRec.lang = "tr-TR"' not in text
@@ -1218,7 +1222,7 @@ def test_panel_i18n_v14_voice_hints_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v15_camera_photo_status_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V15_MARKERS:
         assert token in text, f"missing panel i18n v15 token: {token}"
     assert '"Seçilen görsel"' not in text
@@ -1234,7 +1238,7 @@ def test_panel_i18n_v15_camera_photo_status_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v16_compose_loading_audio_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V16_MARKERS:
         assert token in text, f"missing panel i18n v16 token: {token}"
     assert 'const loadingLabel = "Gönderiliyor…"' not in text
@@ -1252,7 +1256,7 @@ def test_panel_i18n_v16_compose_loading_audio_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v17_compose_send_clipboard_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V17_MARKERS:
         assert token in text, f"missing panel i18n v17 token: {token}"
     assert 'const sendLabel = "Gönder"' not in text
@@ -1273,7 +1277,7 @@ def test_panel_i18n_v17_compose_send_clipboard_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v18_compose_replies_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V18_MARKERS:
         assert token in text, f"missing panel i18n v18 token: {token}"
     assert '"Bu turda net bir yanıt üretemedim' not in text
@@ -1291,7 +1295,7 @@ def test_panel_i18n_v18_compose_replies_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v19_gorev_chat_fallback_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V19_MARKERS:
         assert token in text, f"missing panel i18n v19 token: {token}"
     assert "Görev silme şu an kullanılamıyor (liste bağlanmadı)." not in text
@@ -1310,7 +1314,7 @@ def test_panel_i18n_v19_gorev_chat_fallback_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v20_gorev_hints_infra_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V20_MARKERS:
         assert token in text, f"missing panel i18n v20 token: {token}"
     assert 'showHint("Görev yerel olarak kaydedildi.")' not in text
@@ -1328,7 +1332,7 @@ def test_panel_i18n_v20_gorev_hints_infra_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v21_infra_health_labels_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V21_MARKERS:
         assert token in text, f"missing panel i18n v21 token: {token}"
     assert 'const PANEL_INFRA_UNAVAILABLE_MSG = "' not in text
@@ -1347,7 +1351,7 @@ def test_panel_i18n_v21_infra_health_labels_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v22_settings_c6_c7_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V22_MARKERS:
         assert token in text, f"missing panel i18n v22 token: {token}"
     assert "<h3>Görünürlük ve Güvenlik Tercihleri</h3>" not in text
@@ -1363,7 +1367,7 @@ def test_panel_i18n_v22_settings_c6_c7_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v23_cap_tts_files_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V23_MARKERS:
         assert token in text, f"missing panel i18n v23 token: {token}"
     assert 'aktif: { label: "AKTİF"' not in text
@@ -1382,7 +1386,7 @@ def test_panel_i18n_v23_cap_tts_files_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v24_settings_cors_cap_compose_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V24_MARKERS:
         assert token in text, f"missing panel i18n v24 token: {token}"
     assert 'corsEl.textContent = "Bu bilgi panelden okunamıyor (CORS)."' not in text
@@ -1399,7 +1403,7 @@ def test_panel_i18n_v24_settings_cors_cap_compose_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v25_sistem_cap_actions_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V25_MARKERS:
         assert token in text, f"missing panel i18n v25 token: {token}"
     assert 'setSistemDurumuDd("panel-sistem-durumu-baglanti", "Bağlantı: "' not in text
@@ -1420,7 +1424,7 @@ def test_panel_i18n_v25_sistem_cap_actions_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v26_chat_status_ping_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V26_MARKERS:
         assert token in text, f"missing panel i18n v26 token: {token}"
     assert 'panelDebugText("OPTIONS OK (" + r.status + ")", "Sohbet bağlantısı hazır")' not in text
@@ -1438,7 +1442,7 @@ def test_panel_i18n_v26_chat_status_ping_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v27_outbox_bridge_debug_user_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V27_MARKERS:
         assert token in text, f"missing panel i18n v27 token: {token}"
     assert 'snippet ? "Sonuç alınamadı: " + snippet' not in text
@@ -1458,7 +1462,7 @@ def test_panel_i18n_v27_outbox_bridge_debug_user_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v28_bridge_token_tasks_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V28_MARKERS:
         assert token in text, f"missing panel i18n v28 token: {token}"
     assert "const BRIDGE_TOKEN_MSG" not in text
@@ -1475,7 +1479,7 @@ def test_panel_i18n_v28_bridge_token_tasks_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v29_strip_leak_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V29_MARKERS:
         assert token in text, f"missing panel i18n v29 token: {token}"
     assert '"bağlantı anahtarı"' not in text
@@ -1492,7 +1496,7 @@ def test_panel_i18n_v29_strip_leak_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v30_strip_leak_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V30_MARKERS:
         assert token in text, f"missing panel i18n v30 token: {token}"
     assert '"bağlantı bilgisi"' not in text
@@ -1512,7 +1516,7 @@ def test_panel_i18n_v30_strip_leak_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v31_strip_leak_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V31_MARKERS:
         assert token in text, f"missing panel i18n v31 token: {token}"
     assert 's.replace(/\bajan\b/gi, "cihaz")' not in text
@@ -1535,7 +1539,7 @@ def test_panel_i18n_v31_strip_leak_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v32_mask_bridge_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V32_MARKERS:
         assert token in text, f"missing panel i18n v32 token: {token}"
     assert '"Bağlantı: ***"' not in text
@@ -1550,7 +1554,7 @@ def test_panel_i18n_v32_mask_bridge_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v33_gorevler_plan_detail_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V33_MARKERS:
         assert token in text, f"missing panel i18n v33 token: {token}"
     assert 'appendDetailRow(dl, "Durum"' not in text
@@ -1568,7 +1572,7 @@ def test_panel_i18n_v33_gorevler_plan_detail_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v34_gorevler_evidence_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V34_MARKERS:
         assert token in text, f"missing panel i18n v34 token: {token}"
     assert '"Köprü: "' not in text
@@ -1587,7 +1591,7 @@ def test_panel_i18n_v34_gorevler_evidence_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v35_datetime_when_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V35_MARKERS:
         assert token in text, f"missing panel i18n v35 token: {token}"
     assert 'parts.push("Yarın")' not in text
@@ -1604,7 +1608,7 @@ def test_panel_i18n_v35_datetime_when_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v36_gorevler_plan_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V36_MARKERS:
         assert token in text, f"missing panel i18n v36 token: {token}"
     assert 'title="Kuantum — araştırma alanı' not in text
@@ -1622,7 +1626,7 @@ def test_panel_i18n_v36_gorevler_plan_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v37_conn_setup_link_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V37_MARKERS:
         assert token in text, f"missing panel i18n v37 token: {token}"
 
@@ -1636,7 +1640,7 @@ def test_panel_i18n_v37_conn_setup_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v38_evidence_unreachable_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V38_MARKERS:
         assert token in text, f"missing panel i18n v38 token: {token}"
 
@@ -1650,7 +1654,7 @@ def test_panel_i18n_v38_evidence_unreachable_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v39_hero_prefill_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V39_MARKERS:
         assert token in text, f"missing panel i18n v39 token: {token}"
 
@@ -1664,7 +1668,7 @@ def test_panel_i18n_v39_hero_prefill_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v40_prod_error_classify_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V40_MARKERS:
         assert token in text, f"missing panel i18n v40 token: {token}"
     assert 'panelT("panel.modules.tasks.hints.saveFailed").replace("{error}"' not in text
@@ -1681,7 +1685,7 @@ def test_panel_i18n_v40_prod_error_classify_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v41_outbox_classified_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V41_MARKERS:
         assert token in text, f"missing panel i18n v41 token: {token}"
     assert 'panelT("panel.modules.media.outboxResultFailedWithSnippet").replace' not in text
@@ -1697,7 +1701,7 @@ def test_panel_i18n_v41_outbox_classified_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v42_locale_hint_refresh_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V42_MARKERS:
         assert token in text, f"missing panel i18n v42 token: {token}"
     assert "function showHint(msg)" not in text
@@ -1708,7 +1712,7 @@ def test_panel_i18n_v42_locale_hint_refresh_has_no_new_catalog_keys() -> None:
 
 
 def test_panel_astro_i18n_v43_chat_http_classified_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V43_MARKERS:
         assert token in text, f"missing panel i18n v43 token: {token}"
     assert "upstreamErr && !PANEL_CHAT_TECH_LEAK_RE.test(upstreamErr)" not in text
@@ -1724,7 +1728,7 @@ def test_panel_i18n_v43_chat_http_classified_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v44_locale_send_hint_refresh_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V44_MARKERS:
         assert token in text, f"missing panel i18n v44 token: {token}"
     assert "function setSendHint(msg)" not in text
@@ -1741,7 +1745,7 @@ def test_panel_i18n_v44_locale_send_hint_refresh_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v45_transcript_classified_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V45_MARKERS:
         assert token in text, f"missing panel i18n v45 token: {token}"
     assert 'showStatus(result.message || panelT("panel.modules.chat.transcript.limitedMsg"))' not in text
@@ -1757,7 +1761,7 @@ def test_panel_i18n_v45_transcript_classified_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v46_transcript_locale_refresh_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V46_MARKERS:
         assert token in text, f"missing panel i18n v46 token: {token}"
     assert 'showStatus(panelT("panel.modules.chat.transcript.busyMsg")' not in text
@@ -1773,7 +1777,7 @@ def test_panel_i18n_v46_transcript_locale_refresh_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v47_chat_log_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V47_MARKERS:
         assert token in text, f"missing panel i18n v47 token: {token}"
     assert '"Bilinmeyen hata"' not in text
@@ -1789,37 +1793,37 @@ def test_panel_i18n_v47_chat_log_keys_in_catalogs() -> None:
 
 
 def test_panel_astro_i18n_v48_mobile_nav_scroll_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V48_MARKERS:
         assert token in text, f"missing panel i18n v48 token: {token}"
 
 
 def test_panel_astro_i18n_v49_chat_200_error_bubble_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V49_MARKERS:
         assert token in text, f"missing panel i18n v49 token: {token}"
 
 
 def test_panel_astro_i18n_v50_locale_bubble_body_refresh_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V50_MARKERS:
         assert token in text, f"missing panel i18n v50 token: {token}"
 
 
 def test_panel_astro_i18n_v52_attach_menu_focus_trap_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V52_MARKERS:
         assert token in text, f"missing panel i18n v52 token: {token}"
 
 
 def test_panel_astro_i18n_v51_chat_200_photo_fallback_reply_priority_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V51_MARKERS:
         assert token in text, f"missing panel i18n v51 token: {token}"
 
 
 def test_panel_astro_i18n_v53_quantum_readiness_mock_banner_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V53_MARKERS:
         assert token in text, f"missing panel i18n v53 token: {token}"
 
@@ -1831,7 +1835,7 @@ def test_panel_quantum_readiness_mock_banner_keys_in_panel_tr() -> None:
 
 
 def test_panel_astro_i18n_v54_quantum_readiness_live_fields_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V54_MARKERS:
         assert token in text, f"missing panel i18n v54 token: {token}"
 
@@ -1843,7 +1847,7 @@ def test_panel_quantum_readiness_live_fields_keys_in_panel_tr() -> None:
 
 
 def test_panel_astro_i18n_v55_quantum_readiness_migration_fields_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V55_MARKERS:
         assert token in text, f"missing panel i18n v55 token: {token}"
 
@@ -1855,7 +1859,7 @@ def test_panel_quantum_readiness_migration_fields_keys_in_panel_tr() -> None:
 
 
 def test_panel_astro_i18n_v56_quantum_readiness_report_badge_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V56_MARKERS:
         assert token in text, f"missing panel i18n v56 token: {token}"
 
@@ -1872,8 +1876,23 @@ def test_panel_quantum_readiness_report_badge_keys_in_panel_en() -> None:
         assert key in text, f"missing panel en v56 key: {key}"
 
 
+def test_panel_demo_share_i18n_is_resolved_when_rendered() -> None:
+    text = read_panel_source()
+    for token in (
+        "function demoIdleHint()",
+        "function demoReviewHint()",
+        "function demoMessage()",
+        "function dataTypeLabel()",
+        "hintEl.textContent = demoIdleHint();",
+        "hintEl.textContent = demoMessage();",
+    ):
+        assert token in text, f"missing render-time demo i18n token: {token}"
+
+    assert 'const demoIdleHint = cfg.demoIdleHint || panelT(' not in text
+
+
 def test_panel_astro_i18n_v57_resource_mode_advisor_card_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V57_MARKERS:
         assert token in text, f"missing panel i18n v57 token: {token}"
 
@@ -1891,7 +1910,7 @@ def test_panel_resource_mode_advisor_card_keys_in_panel_en() -> None:
 
 
 def test_panel_astro_i18n_v58_honest_module_status_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     for token in PANEL_I18N_V58_MARKERS:
         assert token in text, f"missing panel i18n v58 token: {token}"
     assert 'data-i18n="panel.nav.inactiveBadge">Önizleme</span>' not in text

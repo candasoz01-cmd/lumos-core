@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from tests.test_panel_component_split import read_panel_source
+
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _PANEL_ASTRO = _REPO_ROOT / "ui" / "src" / "pages" / "panel.astro"
 _PANEL_TR = _REPO_ROOT / "ui" / "src" / "i18n" / "messages" / "panel" / "tr.ts"
@@ -13,7 +15,7 @@ DEVICE_NOTE_TR = "Bu cihazda saklanır; en fazla 5 kayıt."
 
 
 def test_dosyalar_history_local_storage_wiring() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     assert LS_KEY in text
     assert "loadDosyalarUploadHistory" in text
     assert "persistDosyalarUploadHistory" in text
@@ -22,7 +24,7 @@ def test_dosyalar_history_local_storage_wiring() -> None:
 
 
 def test_dosyalar_history_device_note_present() -> None:
-    text = _PANEL_ASTRO.read_text(encoding="utf-8")
+    text = read_panel_source()
     assert 'id="dosyalar-history-device-note"' in text
     assert 'data-i18n="panel.modules.files.historyDeviceNote"' in text
     assert DEVICE_NOTE_TR in text
