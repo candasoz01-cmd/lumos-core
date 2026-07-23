@@ -32,6 +32,7 @@ from core.workspace_contract import (
     save_keystore_json,
     save_notes_enc_json,
     save_presence_cfg_json,
+    save_trash_record_json,
     trash_path,
     writing_base_dir,
 )
@@ -463,6 +464,33 @@ def test_ensure_trash_dir_sandbox_mode_creates_sandbox_trash(tmp_path):
     sandbox_trash = trash_path(sandbox_base_path(base))
     assert sandbox_trash.is_dir()
     assert sandbox_trash == base / "sandbox" / "trash"
+
+
+def test_save_trash_record_json_uses_canonical_path_and_refuses_overwrite(tmp_path):
+    target = trash_path(tmp_path) / "task_1.json"
+    written = save_trash_record_json(tmp_path, target, {"id": "task_1"})
+
+    assert written == target.resolve()
+    assert json.loads(target.read_text(encoding="utf-8")) == {"id": "task_1"}
+    with pytest.raises(FileExistsError):
+        save_trash_record_json(tmp_path, target, {"id": "changed"})
+    assert json.loads(target.read_text(encoding="utf-8")) == {"id": "task_1"}
+
+
+def test_save_trash_record_json_rejects_noncanonical_or_sandbox_target(tmp_path):
+    outside = tmp_path / "deleted" / "task_1.json"
+    with pytest.raises(CoreWriteForbidden):
+        save_trash_record_json(tmp_path, outside, {"id": "task_1"})
+
+    live_target = trash_path(tmp_path) / "task_1.json"
+    with pytest.raises(CoreWriteForbidden):
+        save_trash_record_json(
+            tmp_path,
+            live_target,
+            {"id": "task_1"},
+            is_sandbox_mode=True,
+        )
+    assert not live_target.exists()
 
 
 def test_move_to_trash_moves_file(tmp_path):

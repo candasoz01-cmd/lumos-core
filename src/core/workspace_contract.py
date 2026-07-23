@@ -442,6 +442,48 @@ def ensure_trash_dir(
     path.mkdir(parents=True, exist_ok=True)
 
 
+def save_trash_record_json(
+    base_dir: Path | str,
+    target_path: Path | str,
+    data: dict,
+    *,
+    is_sandbox_mode: bool = False,
+) -> Path:
+    """Canonical ``trash/*.json`` kaydı için merkezi, overwrite etmeyen sink."""
+    base = Path(base_dir).resolve()
+    target = Path(target_path).resolve()
+    canonical_trash = trash_path(base).resolve()
+
+    if not allow_write_to_core(base, target, is_sandbox_mode=is_sandbox_mode):
+        raise CoreWriteForbidden(
+            "Sandbox modunda canlı çekirdek trash kaydına yazma yasak",
+        )
+    if target.parent != canonical_trash or target.suffix.lower() != ".json":
+        raise CoreWriteForbidden(
+            "Trash kaydı sözleşmedeki trash/*.json hedefinde değil",
+        )
+    if target.exists():
+        raise FileExistsError(f"Trash kaydı zaten var: {target}")
+
+    ensure_trash_dir(base, is_sandbox_mode=False)
+    tmp = target.with_name(target.name + ".tmp")
+    if tmp.exists():
+        raise FileExistsError(f"Trash geçici kaydı zaten var: {tmp}")
+
+    import json  # yerel import: workspace_contract yüzeyini dar tutmak için
+
+    try:
+        tmp.write_text(
+            json.dumps(data, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        tmp.replace(target)
+    except OSError:
+        tmp.unlink(missing_ok=True)
+        raise
+    return target
+
+
 def move_to_trash(
     base_dir: Path | str,
     source_path: Path | str,
