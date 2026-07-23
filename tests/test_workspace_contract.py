@@ -477,6 +477,18 @@ def test_save_trash_record_json_uses_canonical_path_and_refuses_overwrite(tmp_pa
     assert json.loads(target.read_text(encoding="utf-8")) == {"id": "task_1"}
 
 
+def test_save_trash_record_json_recovers_from_orphan_temp(tmp_path):
+    target = trash_path(tmp_path) / "task_1.json"
+    target.parent.mkdir(parents=True)
+    orphan = target.with_name(target.name + ".tmp")
+    orphan.write_text('{"partial":', encoding="utf-8")
+
+    save_trash_record_json(tmp_path, target, {"id": "task_1"})
+
+    assert json.loads(target.read_text(encoding="utf-8")) == {"id": "task_1"}
+    assert not orphan.exists()
+
+
 def test_save_trash_record_json_rejects_noncanonical_or_sandbox_target(tmp_path):
     outside = tmp_path / "deleted" / "task_1.json"
     with pytest.raises(CoreWriteForbidden):

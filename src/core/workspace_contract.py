@@ -467,8 +467,9 @@ def save_trash_record_json(
 
     ensure_trash_dir(base, is_sandbox_mode=False)
     tmp = target.with_name(target.name + ".tmp")
-    if tmp.exists():
-        raise FileExistsError(f"Trash geçici kaydı zaten var: {tmp}")
+    # Önceki süreç temp yazımı ile replace arasında durmuş olabilir. Final kayıt
+    # hâlâ yoksa yalnız bu sink'in kendi temp dosyası temizlenip yeniden kurulur.
+    tmp.unlink(missing_ok=True)
 
     import json  # yerel import: workspace_contract yüzeyini dar tutmak için
 
