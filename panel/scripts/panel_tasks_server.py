@@ -42,6 +42,7 @@ from core.workspace_contract import (  # noqa: E402
     CoreWriteForbidden,
     allow_write_to_core,
     may_perform_permanent_delete,
+    save_trash_record_json,
 )
 from policy.action_policy import (  # noqa: E402
     COMPLETE_TASK,
@@ -466,7 +467,6 @@ def _write_trash_task_file(tid: str, task: dict, deleted_at: str) -> None:
         path = d / f"{fn}_{n}.json"
     # Guard önce: sandbox modunda canlı trash/ dizini mkdir ile bile oluşturulmaz.
     _guard_core_write(path)
-    d.mkdir(parents=True, exist_ok=True)
     title = str(task.get("title", ""))
     record = {
         "id": tid,
@@ -479,11 +479,13 @@ def _write_trash_task_file(tid: str, task: dict, deleted_at: str) -> None:
         "deleted_at": deleted_at,
         "payload": task,
     }
-    tmp = path.parent / (path.name + ".tmp")
-    body = json.dumps(record, ensure_ascii=False, indent=2) + "\n"
-    tmp.write_text(body, encoding="utf-8")
-    tmp.replace(path)
-    print("TRASH WRITE:", str(path.resolve()), flush=True)
+    written = save_trash_record_json(
+        _base_dir(),
+        path,
+        record,
+        is_sandbox_mode=_is_sandbox_mode(),
+    )
+    print("TRASH WRITE:", str(written), flush=True)
 
 
 def _find_trash_json_for_task_id(tid: str) -> Optional[Path]:
