@@ -5,8 +5,8 @@
 | Alan | Değer |
 | --- | --- |
 | Belge türü | Operasyonel kapsam ve kanıt kaydı |
-| Tarih | 2026-07-18 (KA-001 kanıt güncellemesi: 2026-07-19) |
-| Repo kanıtı | `main` @ `e3a695ded566f15f04dede330924a229d5f02cda` |
+| Tarih | 2026-07-18 (son kanıt güncellemesi: 2026-07-23) |
+| Repo kanıtı | `origin/main` @ `56e1e8a5ce22a09a48e9b25489e4ee682c536614` |
 | Kapsam | Lumos Orkestratör, ortak durum, onay, entegrasyon ve veri egemenliği için ilk 10 açık alan |
 | Sınır | Bu belge P0/P1 triage, release blocker veya Karar Duvarı yerine geçmez |
 
@@ -47,8 +47,8 @@ Ana durum, **bütün kapsam için kanıtlanan en ileri basamaktır**. “Parça 
 
 | ID | Kapsam | Ana durum | Parça kanıtı | Bir sonraki geçiş koşulu |
 | --- | --- | --- | --- | --- |
-| KA-001 | Çalışan ajanların ortak görünürlüğü | **KARAR** | Lumos Board taksonomisinde `Agent Status` kabul edildi; `agent_status_{job_id}.json` yalnız yerel iş sonucu üretir; PR #630 (draft) tipli v1 sözleşmesi + salt-okunur okuyucu + sahiplik/çakışma testlerini ekler (`docs/contracts/agent-status-v1.md`, `src/core/agent_status_contract.py`) — merge edilmediği ve ortak depo/çapraz-araç okuma kanıtı olmadığı için ana durumu yükseltmez | Ortak, tipli Agent Status deposu; çapraz-araç okuma; PR #630 merge + gerçek çok-yazarlı kanıt |
-| KA-002 | Tek görev/ajan koordinatörü | **FİKİR** | Brain tek ürün içi akışı orkestre eder; birleşik çok-ajan koordinatörü değildir | Agent Network genel inşa kararı + güvenlik bağımlılıkları + dar teknik sözleşme |
+| KA-001 | Çalışan ajanların ortak görünürlüğü | **KOD** (2026-07-20) | Main'de merge: #630 tipli v1 sözleşmesi (`src/core/agent_status_contract.py`), #629 çoklu-kaynak salt-okunur Board projeksiyonu (`src/lumos_board/agent_status.py`), #631 claim/lease deposu, #632 tek-okuyucu gateway. Gerçek çok-ajanlı claim kullanımı `TECHNICAL_DEBT.md` TD-04 kapanışında kayıtlıdır | Ortak Board yüzeyinin release/deploy kimliği ve canlı sağlık kanıtı (CANLI) |
+| KA-002 | Tek görev/ajan koordinatörü | **FİKİR** | Brain tek ürün içi akışı orkestre eder; birleşik çok-ajan koordinatörü değildir. Parça kanıtı (2026-07-20): #631 task claim/lease sözleşmesi ve #632 single-reader coordination gateway main'de — dar teknik sözleşmeler var, genel koordinatör inşa kararı ve güvenlik bağımlılıkları hâlâ açık | Agent Network genel inşa kararı + güvenlik bağımlılıkları (ADR-008 gating) |
 | KA-003 | Karar → ajan → commit → PR → canlı iz zinciri | **KARAR** | Evidence continuity ve agent-result kayıtları bazı adımları taşır; uçtan uca PR/deploy/validation zinciri yok | Tek correlation kimliğiyle bütün halkaları bağlayan uygulama ve kopuk-halka testleri |
 | KA-004 | Tüm entegrasyonlarda ortak onay sözleşmesi | **KARAR** | Birçok provider `approval_required` / `awaiting_credentials` uygular; birleşik süre, iptal ve eski izin denetimi yok | Ortak sözleşme, adapter uyumluluk matrisi ve entegrasyonlar arası sözleşme testleri |
 | KA-005 | “Lumos’u aç” birleşik durum ekranı | **FİKİR** | Panel, startup health, görevler ve köprü sağlığı ayrı yüzeylerde bulunur | Tek başlangıç sözleşmesi + veri kaynağı haritası + ekran ve durum birleştirme testi |
@@ -62,6 +62,9 @@ Ana durum, **bütün kapsam için kanıtlanan en ileri basamaktır**. “Parça 
 
 - [Lumos Orkestratör v1 vizyon tohumu](../drafts/lumos-2040-vision-draft.md#lumos-orkestratör-v1--orkestra-şefi-katmanı): birleşik koordinasyon katmanının M0 olduğu ve implementasyon sayılmadığı kayıtlıdır.
 - [ADR-008 Agent Network sınırı](../decisions/ADR-008-agent-network-boundary.md): Lumos Board adı ve bileşen taksonomisi karardır; genel Agent Network inşası hâlâ taslak/gated durumdadır.
+- [Lumos Constitution](../CONSTITUTION.md): kanıt merdiveni, tek hedef ve sahiplik/claim kuralları canonical çalışma sınırıdır.
+- [Lumos Master Roadmap](../ROADMAP.md): aktif faz ve STOP LIST bu belgedeki sıra önerilerinden üstündür.
+- [Teknik borç kaydı](../TECHNICAL_DEBT.md): TD-04 gerçek çok-ajanlı Board/claim kullanımının kapanış kanıtını taşır.
 - [Brain flow](../BRAIN_FLOW.md): mevcut tek ürün içi yüksek seviye akışı gösterir; çapraz-araç çok-ajan koordinasyonu kanıtlamaz.
 - [Karar Duvarı — LUMOS-0017](../drafts/BACKLOG.md): model/ajan seçiminin gerekçeli ve model-bağımsız olması kararını taşır.
 - [iOS review kapsamı](../app-store-review-prep.md): full Lumos cloud ve multi-device sync v1 kapsamı dışındadır.
@@ -77,6 +80,23 @@ Ana durum, **bütün kapsam için kanıtlanan en ileri basamaktır**. “Parça 
 4. Eski karar değiştiyse `supersedes` doldurulur; eski kayıt silinmez.
 5. Sonraki iş varsayılan olarak tablodaki en düşük numaralı, geçiş koşulu net madde olur.
 
-## İlk tek hedef
+## KA-001 KOD yükseltmesi — iz zinciri (2026-07-20)
 
-**KA-001 — ortak ajan görünürlüğü.** İlk dilim (tipli `Agent Status` v1 sözleşmesi + salt-okunur okuyucu, yeni mesajlaşma sistemi kurulmadan) PR #630 olarak açıldı (2026-07-19, draft). Sıradaki uygulama turu: PR #630 merge'ü, ardından ortak depo ve çapraz-araç okuma kanıtı. Bu belge o uygulamanın kendisi değildir; yalnız durum ve geçiş kanıtını sabitler.
+| Alan | Değer |
+| --- | --- |
+| `source` | 2026-07-19/20 Claude oturumu; kullanıcı kararı "sıralı dilim: #630 sözleşme → #629 projeksiyon → #631 claim → #632 gateway" |
+| `decision` | ADR-008 `Agent Status` bileşeni; sözleşmeler `docs/contracts/agent-status-v1.md`, `task-claim-v1.md`, `single-reader-gateway-v1.md` |
+| `owner` | Claude (canonical sözleşme + entegrasyon); Codex paralel oturumu (projeksiyon/claim/gateway ilk taslakları, onaylı takeover ile devralındı) |
+| `change` | Merge'ler: #630 `956c486`, #629 `6f731b2`, #631 `3fd9802`, #632 `3bcb389` |
+| `verification` | #630–#632 merge kapılarında hedef testler ve CI geçti; sözleşme, sahiplik/çakışma, maskeleme ve izolasyon testleri main'de |
+| `release` | `yok` — deploy/release kimliği yok, bu yüzden CANLI değil |
+| `validation` | Kısmi operasyonel kanıt: 2026-07-20/21 gerçek çok-ajanlı claim kullanımı TD-04 kapanışında kayıtlı; CANLI önkoşulu ve release kimliği olmadığı için ana durum yükseltilmedi |
+| `supersedes` | KA-001'in 2026-07-18 KARAR satırı (yükseltme; içerik değişmedi) |
+
+## Güncel yönlendirme
+
+Bu tablonun sıra kuralı, canonical [`ROADMAP.md`](../ROADMAP.md) faz kararına
+tabidir. Aktif **FAZ 1** sırasında yeni agent/orchestration katmanı STOP LIST
+kapsamındadır; bu nedenle KA-003 yeni uygulama hedefi olarak açılmaz. Ürün
+çalışması ROADMAP'teki v0.5 Dosya + Görev hedefine göre yürür. Bu belge
+uygulamanın kendisi değildir; yalnız durum ve geçiş kanıtını sabitler.
