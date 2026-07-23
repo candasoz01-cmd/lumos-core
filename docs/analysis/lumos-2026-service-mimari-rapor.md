@@ -6,13 +6,14 @@
 | Tarih | 2026-07-23 |
 | Kapsam | İç katman isimlendirmesi (Core/Local/Sentinel) — canonical karar zinciri + `lumos-core` tarafında uygulama durumu |
 | Önceki sürüm | v1 (aynı dosya) — yanlış repo temelinde yazılmıştı; bu sürüm onun yerine geçer |
+| Doğrulama anı | Bu rapordaki tüm "henüz / şu an / güncel" ifadeleri **2026-07-23 doğrulama turuna** aittir — anlık durum kaydıdır, kalıcı gerçek değildir. Sonraki oturumda GitHub/`git` durumu **yeniden kontrol edilmeden** bu ifadelere güvenilmemelidir. |
 
 ## 0. v1'e göre düzeltme
 
 v1, yalnızca `lumos-core` (bu repo) içeriğine bakarak "Kando/Cando/Bando hâlâ canonical, Core/Local/Sentinel repoda yok" sonucuna varmıştı. Bu **yanlıştı** — analiz kapsamı eksikti. Gerçekte iki ayrı repo var:
 
 - **`candasoz01-cmd/Lumos`** (private) — canonical karar deposu. Core/Local/Sentinel kararı burada verildi, ADR ve PR ile kilitlendi.
-- **`candasoz01-cmd/lumos-core`** (bu repo, public) — uygulama/kod deposu. Karar buraya bir **doküman patch'i** olarak taşınacak; şu ana kadar taşınmadı.
+- **`candasoz01-cmd/lumos-core`** (bu repo, public) — uygulama/kod deposu. Karar buraya bir **doküman patch'i** olarak taşınacak; bu rapor hazırlanırken (2026-07-23) henüz doğrulanmış bir taşıma yoktu.
 
 v1'in üç somut hatası ve düzeltmesi, aşağıda §5'te tablo halinde.
 
@@ -22,7 +23,7 @@ v1'in üç somut hatası ve düzeltmesi, aşağıda §5'te tablo halinde.
 
 **Karar zaten verilmiş ve kilitli:** Kando → **Core**, Cando → **Local**, Bando → **Sentinel**; dış yüzey **Lumos** değişmedi. Bu, `Lumos` reposunda ADR taslağıyla (Accepted, 2026-07-23) ve merge edilmiş **PR #179** ile sabitlendi. Teknik tanımlayıcılar (`kando_bridge`, `KANDO_*`, `X-Kando-Token`, `src/kando/`, `packages/kando_*`) bu karara **dahil değil** — bilinçli olarak ayrı bir cutover işine bırakılmış (EXC-WIRE/ENV/PATH istisna kaydı).
 
-**`lumos-core` tarafında durum — henüz uygulanmadı, ama sebep karar değil, lojistik:**
+**`lumos-core` tarafında durum — bu rapor hazırlanırken (2026-07-23) uygulama henüz doğrulanmamıştı; sebep karar değil, lojistikti:**
 
 1. Karar için `lumos-core`'a uygulanacak bir **doküman patch'i** hazırlandı (35 dosya, tamamı `docs/`+2 test dosyası, sıfır `src/`/`packages/` değişikliği).
 2. Bu patch bir cloud ortamında `lumos-core`'un `56e1e8a` taban commit'i üzerine **gerçekten uygulandı ve test edildi** (7 test geçti), sonuç commit `fbc3a03`.
@@ -31,7 +32,7 @@ v1'in üç somut hatası ve düzeltmesi, aşağıda §5'te tablo halinde.
 5. `lumos-core` remote'unda `cursor/core-local-sentinel-naming-fad2` dalı için: **remote branch oluşturuldu ancak head commit taban SHA (`56e1e8a`) üzerinde kaldı; rename commit'i (`fbc3a03`) remote'a ulaşmadı** (doğrulandı: `git ls-remote origin refs/heads/cursor/core-local-sentinel-naming-fad2` → `56e1e8a…`).
 6. Bu reponun (`lumos-core`) local/`origin` `main`'i şu an `74b5a17` — taban commit'ten (`56e1e8a`) 8 commit ileride. Repoda Core/Local/Sentinel içeriği **sıfır**.
 
-Yani: **karar geçersiz veya tartışmalı değil; uygulama adımı (push → PR → CI → ayrı merge kararı) henüz tamamlanmamış.**
+Yani: **karar geçersiz veya tartışmalı değil; uygulama adımı (push → PR → CI → ayrı merge kararı) bu rapor hazırlanırken (2026-07-23) henüz tamamlanmamıştı.** Bu durum ilerleyen bir tarihte değişmiş olabilir — okuyan kişi güncel durumu yukarıdaki "Doğrulama anı" notuna göre yeniden kontrol etmelidir.
 
 ---
 
@@ -49,7 +50,7 @@ Yani: **karar geçersiz veya tartışmalı değil; uygulama adımı (push → PR
 
 ---
 
-## 3. `lumos-core` tarafı — doğrulanmış güncel durum
+## 3. `lumos-core` tarafı — 2026-07-23 doğrulama turunda tespit edilen durum
 
 ### 3.1 Hazırlanan patch (uygulanmayı bekliyor)
 
