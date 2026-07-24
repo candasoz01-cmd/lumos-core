@@ -87,7 +87,7 @@ Dış vitrin ve public metinlerde **olmaması gerekenler:**
 - Kullanıcının onaylamadığı öz-tanım veya unvan
 - Lumos'un çıktı sahibi veya imza sahibi gibi sunulması
 - Gizli anahtar, PII, production URL, ticari/gizli katman detayı
-- İç katman adlarının (Kando, Cando, Bando vb.) kullanıcıya dönük vitrinde öne çıkarılması
+- İç katman adlarının (Core, Local, Sentinel vb.) kullanıcıya dönük vitrinde öne çıkarılması
 
 **Olması gerekenler:**
 

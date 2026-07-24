@@ -66,7 +66,7 @@ Kaynak: [`integrations-expansion-audit.md`](./integrations-expansion-audit.md), 
 | OpenAI provider (`OPENAI_API_KEY`) | **partial** — env ile yerel |
 | Mail stub (OAuth'suz) | **stub** |
 | Web search (Brave) | **partial** — env ile |
-| Kando bridge (LAN) | **partial** — yerel dev; prod Vercel env **owner** |
+| Core bridge (LAN) | **partial** — yerel dev; prod Vercel env **owner** |
 | Vault Infisical PoC | **stub** — env-gated |
 
 ### Katman 2 durumu

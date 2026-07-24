@@ -10,7 +10,7 @@
 | Olay | Davranış |
 |------|----------|
 | Doğrulanmamış iç mesaj | **Reddet**; yürütme yok |
-| Yetkisiz kaynak → Bando | **Güvenlik olayı** (incident) — OD-006 |
+| Yetkisiz kaynak → Sentinel | **Güvenlik olayı** (incident) — OD-006 |
 | Kayıt | Append-only olay kaydı (EC v1 ruhu); PII/secret loga yazılmaz |
 | Kullanıcıya | Görünmez — iç katman; yalnızca Lumos dili dış yüzde |
 
@@ -23,7 +23,7 @@
 | I1 | Mesaj formatı doğrulama hook'u |
 | I2 | Olay kaydı şeması (public'te tanım yok) |
 | I3 | Anahtar döngüsü / imza hatası eskalasyonu — OD-007 private |
-| I4 | Bando raporlama kanalı |
+| I4 | Sentinel raporlama kanalı |
 
 ---
 

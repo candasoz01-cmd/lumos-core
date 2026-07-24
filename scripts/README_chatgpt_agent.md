@@ -1,6 +1,6 @@
-# ChatGPT ↔ Kando local agent
+# ChatGPT ↔ Core local agent
 
-Terminalden kullanıcı metni alır, OpenAI **Responses API** ile görev metnine çevirir, `kando_bridge_server` üzerinden `request.txt` yazar, `kando_watch` / Kando işini bitince `.lumos/outbox/last_result.json` ve `last_execution.json` dosyalarını okuyup kısa özet basar.
+Terminalden kullanıcı metni alır, OpenAI **Responses API** ile görev metnine çevirir, `kando_bridge_server` üzerinden `request.txt` yazar, `kando_watch` / Core işini bitince `.lumos/outbox/last_result.json` ve `last_execution.json` dosyalarını okuyup kısa özet basar.
 
 ## Önkoşullar
 
@@ -19,7 +19,7 @@ Terminalden kullanıcı metni alır, OpenAI **Responses API** ile görev metnine
 | `KANDO_WAIT_TIMEOUT_SEC` | Hayır | Outbox bekleme (saniye), varsayılan: `600` |
 | `LUMOS_AGENT_STREAM` | Hayır | `1` (varsayılan) = Responses API **streaming**; `0` = senkron `responses.create` yedek |
 | `LUMOS_AGENT_STREAM_STYLE` | Hayır | `execution` (varsayılan): olay bazlı kısa durum + görev metni canlı; `verbose`: reasoning özeti stderr’de, metin stdout’ta canlı (analiz/öneri/uzun reasoning için) |
-| `LUMOS_AGENT_SKIP_BRIDGE` | Hayır | `1` ise yalnızca LLM akışı; bridge/Kando çalışmaz |
+| `LUMOS_AGENT_SKIP_BRIDGE` | Hayır | `1` ise yalnızca LLM akışı; bridge/Core çalışmaz |
 
 Örnek: `export OPENAI_API_KEY=sk-...` veya `set -a; source scripts/chatgpt_agent.env.example; set +a` (dosyayı `.env` olarak kopyalayıp düzenleyin; repoya anahtar commit etmeyin).
 
@@ -64,10 +64,10 @@ Depodaki README dosyasını özetle.
 [durum] doğrulanıyor …
 ```
 
-Akış bitince aynı metin bridge’e POST edilir; ardından Kando özeti okunur.
+Akış bitince aynı metin bridge’e POST edilir; ardından Core özeti okunur.
 
 ## Notlar
 
 - Bridge sunucusu `localhost:8765` üzerinde POST gövdesini `.lumos/inbox/request.txt` olarak yazar; çalışma dizini depo kökü olmalı.
 - `kando_watch` aynı içeriği tekrar görmezden gelir (`.last_request` ile). Aynı görevi tekrarlamak için metni biraz değiştirin veya ilgili durum dosyasını operatör olarak yönetin.
-- Bu script mevcut Kando / watcher / bridge kodunu değiştirmez; sadece üstte ince bir istemci katmanı ekler.
+- Bu script mevcut Core / watcher / bridge kodunu değiştirmez; sadece üstte ince bir istemci katmanı ekler.

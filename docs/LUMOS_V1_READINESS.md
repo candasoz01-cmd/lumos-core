@@ -27,7 +27,7 @@ Design principles carry from the product contract:
 | Item | State |
 |------|--------|
 | Panel route | `/panel` via Astro `ui/` build → `welockai.com/panel` |
-| User-visible brand | Lumos only (no Kando/Cando in UI copy) |
+| User-visible brand | Lumos only (no Core / Local in UI copy) |
 | Limited-mode badge | **Sınırlı mod** when bridge is not configured (`PUBLIC_KANDO_TOKEN` empty in prod bundle) |
 | PWA Phase 0 shell | `manifest.webmanifest`, theme/mobile meta on `/` and `/panel` (commit `8247a59`, on `main`) |
 | Mobile chat camera | Native file input capture on camera icon (not `getUserMedia` on icon) — PR #135 merged |
@@ -90,7 +90,7 @@ User sees:
 
 ## 4. What local features work
 
-These work **without** a configured Kando bridge (limited mode is still a valid v1 experience):
+These work **without** a configured Core bridge (limited mode is still a valid v1 experience):
 
 | Feature | Behavior |
 |---------|----------|
@@ -103,7 +103,7 @@ These work **without** a configured Kando bridge (limited mode is still a valid 
 
 **Requires bridge (not local-only):**
 
-- Chat send to Lumos backend / Kando pipeline
+- Chat send to Lumos backend / Core pipeline
 - File upload to bridge outbox
 - Task execution on bridge (`POST /task` acceptance and outbox updates)
 - Health/capability probes that call bridge endpoints

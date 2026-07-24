@@ -72,7 +72,7 @@ Her aday için beş boyut değerlendirilir:
 | M7 | Starter | Marka | düşük | orta | yüksek | orta | P2 |
 | M8 | Pro | Marka | düşük | orta | yüksek | orta | P2 |
 | M9 | Business | Marka | düşük | orta | yüksek | orta | P2 |
-| M10 | Kando | Marka | düşük | düşük | orta | düşük | P2 |
+| M10 | Core | Marka | düşük | düşük | orta | düşük | P2 |
 | TS1 | Private orchestration katmanı | Ticari sır | yüksek | yüksek | N/A | düşük | **P0** |
 | TS2 | Production API ve barındırılan hizmet | Ticari sır | yüksek | yüksek | N/A | düşük | **P0** |
 | TS3 | Operasyonel altyapı | Ticari sır | yüksek | yüksek | N/A | düşük | **P0** |
@@ -85,7 +85,7 @@ Her aday için beş boyut değerlendirilir:
 | TS10 | Bridge prod güvenlik politikası | Ticari sır | orta | yüksek | N/A | düşük | P1 |
 | TS11 | Entropy Lab prod konfigürasyonu | Ticari sır | düşük | orta | N/A | düşük | P2 |
 | TS12 | Ticari fiyatlandırma ve sözleşme paketleri | Ticari sır | yüksek | orta | N/A | düşük | P1 |
-| TS13 | İç iletişim protokolü (Bando / imzalama) | Ticari sır | orta | yüksek | N/A | düşük | P1 |
+| TS13 | İç iletişim protokolü (Sentinel / imzalama) | Ticari sır | orta | yüksek | N/A | düşük | P1 |
 | P1 | Çok katmanlı onay zinciri | Patent alanı | orta | orta | yüksek | yüksek | P1 |
 | P2 | İki sinyalli lock semantiği | Patent alanı | düşük | düşük | yüksek | yüksek | P2 |
 | P3 | Trust durum hedef sözleşmesi (8 durum) | Patent alanı | düşük | düşük | yüksek | yüksek | P2 |
@@ -198,7 +198,7 @@ Kaynak: [`ip-protection-landscape.md` §2.1, §5](./ip-protection-landscape.md#2
 | Koruma maliyeti | **orta** | Tier lansmanına kadar ertelenebilir |
 | Koruma önceliği | **P2** | |
 
-### M10 — Kando
+### M10 — Core
 
 | Boyut | Değer | Gerekçe (tek satır) |
 |-------|-------|---------------------|
@@ -336,11 +336,11 @@ Kaynak: [`ip-protection-landscape.md` §3](./ip-protection-landscape.md#3-ticari
 | Koruma maliyeti | **düşük** | İç erişim sınırı |
 | Koruma önceliği | **P1** | |
 
-### TS13 — İç iletişim protokolü (Bando / imzalama)
+### TS13 — İç iletişim protokolü (Sentinel / imzalama)
 
 | Boyut | Değer | Gerekçe (tek satır) |
 |-------|-------|---------------------|
-| Ticari değer | **orta** | Lumos → Kando/Cando kanal bütünlüğü — güven zinciri |
+| Ticari değer | **orta** | Lumos → Core / Local kanal bütünlüğü — güven zinciri |
 | Kopyalanma riski | **yüksek** | Protokol implementasyonu henüz pending (OD-006) |
 | Tescil zorluğu | **N/A** | |
 | Koruma maliyeti | **düşük** | Karar özeti public; impl private |
@@ -543,7 +543,7 @@ Kaynak: [`ip-protection-landscape.md` §2.2, §6](./ip-protection-landscape.md#2
 | TS9 | Private entegrasyon pilotları | OAuth handler detayları |
 | TS10 | Bridge prod güvenlik politikası | Prod hosting ayrımı |
 | TS12 | Ticari fiyatlandırma | Nihai rakamlar private |
-| TS13 | İç iletişim protokolü (Bando) | OD-006 implementasyonu pending |
+| TS13 | İç iletişim protokolü (Sentinel) | OD-006 implementasyonu pending |
 | P1 | Çok katmanlı onay zinciri | Potansiyel patent alanı; prior art taraması zorunlu |
 | P7 | Quantum Readiness tarayıcı | Potansiyel (dar); P1 ile birleşik değerlendirme |
 | C2 | UI metinleri (i18n) | Gönüllü telif kaydı delil gücü |
@@ -560,7 +560,7 @@ Kaynak: [`ip-protection-landscape.md` §2.2, §6](./ip-protection-landscape.md#2
 | M7 | Starter | Jenerik; "Lumos Starter" birleşik — tier lansmanına kadar bekle |
 | M8 | Pro | Aşırı jenerik; kullanım kanıtı zayıf |
 | M9 | Business | Jenerik; tier henüz repoda yok |
-| M10 | Kando | İç katman; savunma amaçlı düşük öncelik |
+| M10 | Core | İç katman; savunma amaçlı düşük öncelik |
 | TS11 | Entropy Lab prod | Deneysel; düşük ticari değer şimdilik |
 | P2, P3, P4, P5, P6, P8, P9, P10 | Zayıf patent alanları (8 adet) | Yüksek maliyet / düşük getiri; prior art yoğun |
 

@@ -1,6 +1,6 @@
-# Kando / ürün: otomasyon ve kullanıcı onayı
+# Core / ürün: otomasyon ve kullanıcı onayı
 
-Bu belge **ürün ve Kando davranış modeli** içindir. **Git pre-commit / ruff / pytest** gibi geliştirme otomasyonu ile **karıştırılmamalıdır**.
+Bu belge **ürün ve Core davranış modeli** içindir. **Git pre-commit / ruff / pytest** gibi geliştirme otomasyonu ile **karıştırılmamalıdır**.
 
 | Katman | Otomasyon | Onay |
 |--------|-----------|------|

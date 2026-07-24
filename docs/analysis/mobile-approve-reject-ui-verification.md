@@ -69,7 +69,7 @@ Demo CLI: opt-in dev bypass (`--auto-approve`, uyarı ile); varsayılan mobil on
 |-------|----------|
 | `openai_tool_adapter.py` | Varsayılan `False`; `True` ile dev bypass |
 | `openai_tool_loop_demo.py` | `--auto-approve` opt-in; varsayılan kapalı |
-| `server.py` / `agent_runner.py` | **`auto_approve_safe`** — farklı katman (Kando agent); PC remote bridge ile karıştırılmamalı |
+| `server.py` / `agent_runner.py` | **`auto_approve_safe`** — farklı katman (Core agent); PC remote bridge ile karıştırılmamalı |
 | `kando_direct_patch_client.js` | `auto_approve_safe: true` — patch client, PC remote değil |
 | `main` branch | `auto_approve: bool = True` (henüz merge yok) |
 
@@ -306,7 +306,7 @@ make test   # veya: pytest -q (repo kökü)
 
 5. **Reject kayıt retention** — rejected kayıtlar diskte kalır; GC/TTL politikası dokümante edilmeli (şu an yalnızca pending listesi filtreler).
 6. **Mobile UI E2E** — HTML route testleri var; tarayıcı/Playwright ile buton tıklama E2E yok (statik string assert yeterli MVP için).
-7. **`auto_approve_safe` ayrımı** — operatör dokümantasyonunda PC remote `auto_approve` ile Kando agent `auto_approve_safe` ayrımını netleştir.
+7. **`auto_approve_safe` ayrımı** — operatör dokümantasyonunda PC remote `auto_approve` ile Core agent `auto_approve_safe` ayrımını netleştir.
 8. **Subagent ön rapor** — `docs/analysis/pr-rb-07-openai-tool-loop-verification.md` ile uyumlu; bu rapor 6 soruyu kod+test kanıtıyla genişletir.
 
 ---

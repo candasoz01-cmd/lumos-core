@@ -189,6 +189,6 @@ lumos / python -m lumos_core
 
 Current active runtime is `src/`.
 
-`packages/kando_*` modules exist as separated/package-oriented Kando modules, but the root `lumos` entrypoint does not currently start from those packages.
+`packages/kando_*` modules exist as separated/package-oriented Core modules, but the root `lumos` entrypoint does not currently start from those packages.
 
 Root `package.json` contains `build: cd ui && npm install && npm run build`, but no `ui/` directory is visible in the current confirmed project map. Treat it as a suspicious or legacy build target until verified.

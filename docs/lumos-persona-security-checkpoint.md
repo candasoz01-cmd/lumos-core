@@ -10,7 +10,7 @@
 
 [PR #100](https://github.com/candasoz01-cmd/lumos-core/pull/100) ile eklenen `lumos-persona-layers.md` ilkelerinin **uygulamada nasıl doğrulanacağını** planlar. Bu belge test kodu veya implementasyon taşımaz; salt okuma audit, manuel senaryo ve sonraki faz test tasarımı içindir.
 
-**Mevcut durum (kısa):** Persona ilkeleri büyük ölçüde **docs-only**. Köprü hattında kısmi gate/policy var; CLI, TaskEngine ve Cando recipe yolları tam kapı modelini henüz yansıtmıyor. Bando runtime’da yok.
+**Mevcut durum (kısa):** Persona ilkeleri büyük ölçüde **docs-only**. Köprü hattında kısmi gate/policy var; CLI, TaskEngine ve Local recipe yolları tam kapı modelini henüz yansıtmıyor. Sentinel runtime’da yok.
 
 ---
 
@@ -30,14 +30,14 @@
 
 - Dış dünyadan sisteme giren tüm HTTP/CLI/panel yolları listelenmiş mi?
 - Her yol `lumos_gate` / policy / onay zincirinden geçiyor mu, yoksa bypass var mı?
-- İç katmanlara (Kando görev motoru, Cando recipe) doğrudan erişim kapısı var mı?
+- İç katmanlara (Core görev motoru, Local recipe) doğrudan erişim kapısı var mı?
 
 **Audit hedefleri (salt okuma)**
 
 - `packages/kando_bridge/src/kando_bridge/server.py` — `POST /task`, `/chat`, `/agent-run`
 - `packages/kando_runtime/src/kando_runtime/lumos_gate.py` — `policy_ok`, `run_lumos_gate`
 - `src/main.py`, `src/cli/cli_tasks_mutation.py` — CLI / TaskEngine girişleri
-- `scripts/cando_local.py`, `src/cando/*` — Cando doğrudan çağrı
+- `scripts/cando_local.py`, `src/cando/*` — Local doğrudan çağrı
 
 **Nasıl test / denetlenir**
 
@@ -53,13 +53,13 @@
 
 ---
 
-## 2. Kando / Cando — doğrudan dış komut, iş, dosya, veri
+## 2. Core / Local — doğrudan dış komut, iş, dosya, veri
 
 **Checkpoint soruları**
 
-- Lumos dışından Kando’ya komut ulaşabiliyor mu? (CLI, subprocess, panel → köprü dışı)
-- Cando recipe’ye dosya/path doğrudan verildiğinde “yabancı giriş” veya kanal reddi var mı?
-- Kando/Cando HTTP veya socket yüzeyi dışarıya açık mı?
+- Lumos dışından Core’ya komut ulaşabiliyor mu? (CLI, subprocess, panel → köprü dışı)
+- Local recipe’ye dosya/path doğrudan verildiğinde “yabancı giriş” veya kanal reddi var mı?
+- Core / Local HTTP veya socket yüzeyi dışarıya açık mı?
 
 **Nasıl test / denetlenir**
 
@@ -68,11 +68,11 @@
 | `POST /task` gate öncesi/sonrası reddi | Mevcut köprü + policy blocked body | **Şimdi** |
 | CLI: `main.py` / task mutation gate’siz mi? | Salt okuma + manuel CLI trace | **Şimdi** |
 | `cando_local.py --dry-run` gate’siz repo erişimi | Manuel çalıştırma; dokümante gap | **Şimdi** |
-| Cando’ya doğrudan dosya = reddedilir / loglanır | Davranış testi (henüz yok → tasarla) | **Sonraki faz** |
-| Kando dış komut invariant (tüm girişler doğrulanmış kanal) | Entegrasyon testi seti | **Sonraki faz** |
-| Dış ağdan Kando/Cando port taraması / yüzey yok | Pen-test / deployment audit | **İleride güvenlik sertifikası** |
+| Local’ya doğrudan dosya = reddedilir / loglanır | Davranış testi (henüz yok → tasarla) | **Sonraki faz** |
+| Core dış komut invariant (tüm girişler doğrulanmış kanal) | Entegrasyon testi seti | **Sonraki faz** |
+| Dış ağdan Core / Local port taraması / yüzey yok | Pen-test / deployment audit | **İleride güvenlik sertifikası** |
 
-**Beklenen sonuç:** Dış komut/iş/dosya/veri yalnızca doğrulanmış Lumos kanalından; doğrudan Cando/Kando yolu ya yok ya reddedilir.
+**Beklenen sonuç:** Dış komut/iş/dosya/veri yalnızca doğrulanmış Lumos kanalından; doğrudan Local / Core yolu ya yok ya reddedilir.
 
 ---
 
@@ -131,11 +131,11 @@
 
 ---
 
-## 5. Bando (varsa) — yalnızca gözlem / anomali
+## 5. Sentinel (varsa) — yalnızca gözlem / anomali
 
 **Checkpoint soruları**
 
-- Runtime’da Bando modülü veya endpoint var mı? (Bugün: **yok**, yalnızca persona doc)
+- Runtime’da Sentinel modülü veya endpoint var mı? (Bugün: **yok**, yalnızca persona doc)
 - Varsa: komut çalıştırma, dış iş/veri kabul, dış yüzey var mı?
 - Dış girişim güvenlik olayı olarak raporlanıyor mu?
 
@@ -143,12 +143,12 @@
 
 | Adım | Yöntem | Sınıf |
 |------|--------|-------|
-| Repo’da `Bando` runtime referansı yok | Grep / modül envanteri | **Şimdi** |
-| Bando eklendiğinde: dış komut → güvenlik olayı, görev değil | Tasarım checklist + unit test | **Sonraki faz** |
+| Repo’da `Sentinel` runtime referansı yok | Grep / modül envanteri | **Şimdi** |
+| Sentinel eklendiğinde: dış komut → güvenlik olayı, görev değil | Tasarım checklist + unit test | **Sonraki faz** |
 | İzole gözlem; rapor yalnız Lumos’a | Entegrasyon + audit | **Sonraki faz** |
 | Anomali katmanı formal threat model | Güvenlik sertifikasyon paketi | **İleride güvenlik sertifikası** |
 
-**Beklenen sonuç:** Bando execution/ajan değil; dış komut kabul etmez; doğrudan giriş güvenlik olayı.
+**Beklenen sonuç:** Sentinel execution/ajan değil; dış komut kabul etmez; doğrudan giriş güvenlik olayı.
 
 ---
 
@@ -166,7 +166,7 @@
 |------|--------|-------|
 | İç mesaj güven modeli: hangi yollar imza/doğrulama kullanıyor? | Salt okuma envanter (detay doc’a girilmez) | **Şimdi** |
 | Köprü: yetkisiz token / sahte kaynak reddi | Mevcut `KANDO_BRIDGE_SECRET` manuel test | **Şimdi** |
-| Kando ↔ Lumos kanal bütünlüğü invariant testleri | Sonraki implementasyon checkpoint | **Sonraki faz** |
+| Core ↔ Lumos kanal bütünlüğü invariant testleri | Sonraki implementasyon checkpoint | **Sonraki faz** |
 | Formal impersonation / replay test suite | Güvenlik sertifikasyon | **İleride güvenlik sertifikası** |
 
 **Not:** `lumos-persona-layers.md` uygulamayı ayrı checkpoint olarak işaretler; bu bölüm wire-format, algoritma veya anahtar detayı içermez.
@@ -175,7 +175,7 @@
 
 ## Öncelikli sonraki adımlar
 
-1. **Şimdi:** Giriş envanteri tablosu (köprü / CLI / Cando / panel) — gate bypass listesi.
+1. **Şimdi:** Giriş envanteri tablosu (köprü / CLI / Local / panel) — gate bypass listesi.
 2. **Şimdi:** Offline + push trace (`agent_runner`, panel) — persona ile çelişki var mı kaydı.
 3. **Sonraki faz:** “Tek kapı” ve “offline auto-push yok” için odaklı davranış testleri (test dosyası ayrı PR).
 4. **Sonraki faz:** Secret taşıma ve Anti-Lumos — implementasyon checkpoint (ADR veya ayrı ADR taslağı).
@@ -186,6 +186,6 @@
 
 - Kod, recipe veya test dosyası değişikliği
 - Protokol, anahtar, algoritma veya wire-format spesifikasyonu
-- Bando veya yeni güvenlik modülü implementasyonu
+- Sentinel veya yeni güvenlik modülü implementasyonu
 
 `lumos-karar-sozlesmesi` ile uyum: güvenlik, yetki, consent ve kilit alanları bu planla gevşetilmez.

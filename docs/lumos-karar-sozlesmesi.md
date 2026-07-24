@@ -1,6 +1,6 @@
 # Lumos karar mekanizması ve çekirdek sınırları — minimum uygulanabilir sözleşme
 
-Bu belge, Lumos’un neyi yapıp yapamayacağını, ne zaman duracağını ve kullanıcıdan ne zaman açık onay isteyeceğini tanımlar. Ürün tarafındaki sıkı kurallara referans verir; mevcut çekirdeğe uygulanabilir **minimum omurga** hedeflenir. Kando (geliştirme süreci) kurallarından ayrıdır. **Geliştirme commit guard** (ruff/pytest) ürün onayı değildir; ayrım: `docs/kando-urun-onay-otomasyon-ayrimi.md`.
+Bu belge, Lumos’un neyi yapıp yapamayacağını, ne zaman duracağını ve kullanıcıdan ne zaman açık onay isteyeceğini tanımlar. Ürün tarafındaki sıkı kurallara referans verir; mevcut çekirdeğe uygulanabilir **minimum omurga** hedeflenir. Core (geliştirme süreci) kurallarından ayrıdır. **Geliştirme commit guard** (ruff/pytest) ürün onayı değildir; ayrım: `docs/kando-urun-onay-otomasyon-ayrimi.md`.
 
 ---
 
@@ -29,7 +29,7 @@ Bu alanlara **ürün/geliştirme sözleşmesi** ve **güvenlik sınırı** gere�
 | **Temel politika** | Offline modda hiçbir dış/network işlemi yok. Online modda yalnızca çağrıldığında çalışır. Emin olmadığı yerde konuşmaz; boşluk doldurmaz. |
 | **Kalıcı silme** | Doğrudan kalıcı silme **otomatik** yapılmaz. Kalıcı silme yalnızca kullanıcının açık komutu (ör. `görev sil <id>`) ile ve tek satır uyarı ile yapılır; geri alınamaz. Çöp/silinenler için yalnızca önceden tanımlı `.lumos/trash/` kullanılır (workspace sözleşmesi). |
 | **Ana karar sınırları** | `SECURITY_NEVER_AUTO`: permanent_delete, external_write, irreversible_user_op, critical_system_config — bunlar asla otomatik. |
-| **Çekirdek davranış sözleşmesi** | Karakter: güven verir ama manipüle etmez. İlerleme “yapmadığı yanlışlarla” ölçülür. Çekirdek, güvenlik, yetki, dürüstlük modeli ve durum modeli alanlarına kapsam dışı dokunma (Kando ile uyumlu). |
+| **Çekirdek davranış sözleşmesi** | Karakter: güven verir ama manipüle etmez. İlerleme “yapmadığı yanlışlarla” ölçülür. Çekirdek, güvenlik, yetki, dürüstlük modeli ve durum modeli alanlarına kapsam dışı dokunma (Core ile uyumlu). |
 
 ---
 

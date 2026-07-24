@@ -26,7 +26,7 @@ Taşıma süreci ve durum tanımları: [`chatgpt-saved-memories-migration.md`](.
 | # | Madde | Not |
 |---|--------|-----|
 | 1 | Lumos, kullanıcıya açık **tek dış yüzey**dir. | Taşındı |
-| 2 | Kando, Cando ve Bando **iç katmanlardır**; kullanıcıya gösterilmez. | Taşındı |
+| 2 | Core, Local ve Sentinel **iç katmanlardır**; kullanıcıya gösterilmez. | Taşındı |
 | 3 | Lumos, kullanıcı ile dış dünya arasında **güvenli geçit ve orkestratör** olarak konumlanır. | Taşındı |
 | 4 | İç katmanlar dışarıdan komut veya veri **doğrudan kabul etmez**; akış Lumos geçidinden geçer. | Taşındı |
 
@@ -95,7 +95,7 @@ ChatGPT Saved Memories → bu dosyaya taşınan veya incelenecek maddeler.
 | Kaynak | Durum | Proje ilgisi | Lumos etkisi | Not |
 |--------|--------|--------------|--------------|-----|
 | ChatGPT saved memory / oturum bağlamı — Lumos tek dış yüzey | Taşındı | lumos-core | Ürün sınırı | Ürün ilkeleri §1 |
-| ChatGPT saved memory / oturum bağlamı — Kando/Cando/Bando iç katman | Taşındı | lumos-core | UX gizleme | Ürün ilkeleri §2 |
+| ChatGPT saved memory / oturum bağlamı — Core / Local / Sentinel iç katman | Taşındı | lumos-core | UX gizleme | Ürün ilkeleri §2 |
 | ChatGPT saved memory / oturum bağlamı — Lumos güvenli geçit/orkestratör | Taşındı | lumos-core | Mimari rol | Ürün ilkeleri §3 |
 | ChatGPT saved memory / oturum bağlamı — kullanıcı sahipliği, dijital uzantı | Taşındı | lumos-core | Trust modeli | Lumos–kullanıcı ilişkisi |
 | ChatGPT saved memory / oturum bağlamı — iç katmanlara doğrudan dış akış yok | Taşındı | lumos-core | Gateway zorunluluğu | Veri sahipliği §2 |

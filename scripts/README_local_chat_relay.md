@@ -1,4 +1,4 @@
-# ChatGPT → yerel Kando (pano dinleyici)
+# ChatGPT → yerel Core (pano dinleyici)
 
 ## Teknik sınır (dürüst)
 
@@ -9,10 +9,10 @@
 `scripts/local_chat_relay.py`:
 
 1. ChatGPT’de görev metnini üretin ve **kopyalayın**.
-2. Metnin başına tek satır ekleyin: **`KANDO>>`** (veya `LUMOS_CLIPBOARD_PREFIX` ile özelleştirin).
-3. Yerelde **izleme** veya **tek atım** ile relay’e POST edilir; zincir: `relay_agent` (8766) → bridge → `kando_watch` → Kando → `.lumos/outbox/`.
+2. Metnin başına tek satır ekleyin: **`CORE>>`** (veya `LUMOS_CLIPBOARD_PREFIX` ile özelleştirin).
+3. Yerelde **izleme** veya **tek atım** ile relay’e POST edilir; zincir: `relay_agent` (8766) → bridge → `kando_watch` → Core → `.lumos/outbox/`.
 
-Böylece **Mac Terminalinde görev yazma** kalkar; tek tekrarlayan adım ChatGPT yanıtını **KANDO>>** ile işaretleyip kopyalamaktır.
+Böylece **Mac Terminalinde görev yazma** kalkar; tek tekrarlayan adım ChatGPT yanıtını **CORE>>** ile işaretleyip kopyalamaktır.
 
 ## Önkoşullar (arka plan süreçleri)
 
@@ -27,7 +27,7 @@ Depo kökünde, mevcut hattınız açık olmalı:
 Depo kökü:
 
 ```bash
-# Sürekli: pano değişince KANDO>> ile başlayan metni gönder
+# Sürekli: pano değişince CORE>> ile başlayan metni gönder
 PYTHONPATH=src python scripts/local_chat_relay.py --watch
 ```
 
@@ -40,7 +40,7 @@ PYTHONPATH=src python scripts/local_chat_relay.py --clipboard
 stdin (ör. kısayol veya başka araçtan pipe):
 
 ```bash
-printf 'KANDO>>patch: README.md\nhello\n' | PYTHONPATH=src python scripts/local_chat_relay.py --stdin
+printf 'CORE>>patch: README.md\nhello\n' | PYTHONPATH=src python scripts/local_chat_relay.py --stdin
 ```
 
 ## Ortam
@@ -49,7 +49,7 @@ printf 'KANDO>>patch: README.md\nhello\n' | PYTHONPATH=src python scripts/local_
 |----------|----------|
 | `RELAY_URL` / `RELAY_PORT` | Relay (varsayılan `http://127.0.0.1:8766`) |
 | `KANDO_WAIT_TIMEOUT_SEC` | Outbox bekleme (saniye) |
-| `LUMOS_CLIPBOARD_PREFIX` | Tetik öneki (varsayılan `KANDO>>`) |
+| `LUMOS_CLIPBOARD_PREFIX` | Tetik öneki (varsayılan `CORE>>`) |
 | `KANDO_CLIPBOARD_POLL_SEC` | `--watch` örnekleme aralığı (varsayılan `1`) |
 | `--no-notify` | macOS bildirimini kapatır |
 

@@ -53,7 +53,7 @@ Hedef, Lumos'un cihaz uzerinde kontrolsuz ve serbest yetkiyle davranmasini engel
 - Mail gondermek ya da silmek
 - Gizli bilgileri gereksiz yere Lumos uzerinde tutmak
 - Sahte/mock ciktiyi gercek sistem ciktisi gibi sunmak
-- Kando/Cando gibi ic katman adlarini urun arayuzunde gostermek
+- Core / Local gibi ic katman adlarini urun arayuzunde gostermek
 
 ## Loglama ve dogrulama
 

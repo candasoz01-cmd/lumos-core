@@ -88,7 +88,7 @@ lumos  (veya python -m lumos_core)
 | Madde | Statü |
 |-------|--------|
 | Son kullanıcıya görünen tek dış yüzey **Lumos** (`ui/` deploy yolu dahil) | **aktif kural** |
-| Kando/Cando/Bando kullanıcıya gösterilmez | **aktif kural** |
+| Core / Local / Sentinel kullanıcıya gösterilmez | **aktif kural** |
 
 ---
 
