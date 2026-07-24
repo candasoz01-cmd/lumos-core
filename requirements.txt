@@ -1,5 +1,5 @@
 # CI / local test deps (kando_* resolved via pytest.ini PYTHONPATH + Makefile/CI)
 -e .
 pytest
-ruff
+ruff==0.15.20
 requests>=2.28
