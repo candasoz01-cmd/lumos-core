@@ -27,6 +27,10 @@
     {
       "source": "/auth/readiness",
       "destination": "/api/auth/readiness"
+    },
+    {
+      "source": "/api/feedback",
+      "destination": "/api/feedback"
     }
   ],
   "redirects": [
