@@ -706,23 +706,6 @@ const PANEL_DEBUG = import.meta.env.DEV;
         color: rgba(168, 188, 210, 0.72);
         line-height: 1.35;
       }
-      .panel-engine-badge {
-        display: inline-flex;
-        align-items: center;
-        align-self: flex-start;
-        width: fit-content;
-        margin-top: 0.08rem;
-        padding: 0.12rem 0.38rem;
-        border: 1px solid rgb(var(--lumos-land-warm) / 0.28);
-        border-radius: 999px;
-        color: rgba(214, 220, 228, 0.72);
-        background: rgba(3, 6, 13, 0.46);
-        font-size: 0.54rem;
-        font-weight: 600;
-        letter-spacing: 0.055em;
-        line-height: 1.25;
-        white-space: nowrap;
-      }
       /**
        * Masaüstü: sol sütunda üstte Çalışma, altta Lumos çekirdeği; sağda `main` iki satırı kaplar.
        * Mobil: aynı üç çocuk `grid-template-areas` ile Çalışma → içerik → Lumos (Safari’de `display: contents` gerekmez).
@@ -4676,7 +4659,6 @@ const PANEL_DEBUG = import.meta.env.DEV;
             <div class="panel-header-brand-text">
               <h1 data-i18n="panel.header.title">ChatLumos</h1>
               <p class="panel-header-tagline" data-i18n="panel.header.subtitle">Sohbet ve görevler tek yerde</p>
-              <span class="panel-engine-badge" data-i18n="panel.header.engine">AI motoru · OpenAI</span>
             </div>
           </div>
           <div class="panel-health-row">
