@@ -1,6 +1,6 @@
 # Geliştirme: commit guard (pre-commit)
 
-**Bu belge yalnızca geliştirme akışı içindir.** Ürün/Kando tarafında kullanıcı onayı kurallarından **farklı bir katmandır**; karıştırılmamalıdır.
+**Bu belge yalnızca geliştirme akışı içindir.** Ürün/Core tarafında kullanıcı onayı kurallarından **farklı bir katmandır**; karıştırılmamalıdır.
 
 ## Ne işe yarar?
 

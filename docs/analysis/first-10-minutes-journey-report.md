@@ -43,7 +43,7 @@
 | **B-P1-2** | **`npm run dev` (4321) vs `vercel dev` (3000)** — görev proxy `/api/bridge/*` için `vercel dev` gerekir; README Quick Start bunu söylemiyor. |
 | **B-P1-3** | **Node >= 22.12 Quick Start'ta yok** — `ui/package.json` `engines`. |
 | **B-P1-4** | **Python CLI/Makefile görünmez** — `make install`, `lumos`, `make test` README Quick Start zincirinde değil. |
-| **B-P1-5** | **"Kando" dev dilinde, "Lumos" ürün dilinde** — köprü belgeleri Kando adını taşır; yeni gelen marka sınırını anlamak zorunda. |
+| **B-P1-5** | **"Core" dev dilinde, "Lumos" ürün dilinde** — köprü belgeleri Core adını taşır; yeni gelen marka sınırını anlamak zorunda. |
 | **B-P1-6** | **Stale doc riski** — `STABILIZASYON_LISTESI.md` vs güncel `panel/README.md`; backend `/posts/feed` 410 vs eski checklist (GAP-30). |
 
 ---

@@ -31,7 +31,7 @@ Bu belge, **Lumos karar mekanizması ve çekirdek sınırları sözleşmesi** (`
 | §2 Ana karar sınırları (SECURITY_NEVER_AUTO) | SECURITY_NEVER_AUTO kapsamına giren işlere (kalıcı silme, dış yazma, geri dönüşsüz işlem, kritik config) otomatik izin verilmez. | Yeni kısa kural: "Çekirdek sınırları" — örn. `lumos-core-boundaries.mdc` veya mevcut workspace contract genişletmesi. |
 | §4 Sandbox overwrite yasağı | Deneme/kopya alanı aktif state kaynağı olarak kullanılmaz; tasks/notlar/config doğrudan overwrite edilmez. | Sandbox açıldığında rules’a girecek; şimdi "ileride sandbox açılırsa" notu. |
 | §5 Açık onay gerekir | Kilidi açmak, kalıcı silme, genel onay ile çok adımlı iş — açık onay gerekir. | Rules’ta "Açık onay gerektiren işler" tek maddelik liste. |
-| Kando ilke 11 | Çekirdek, güvenlik, yetki, dürüstlük modeli, durum modeli — kapsam dışı dokunma. | `kando-lumos-multi-agent.mdc` — sözleşme belgesine referans: `docs/lumos-karar-sozlesmesi.md`. |
+| Core ilke 11 | Çekirdek, güvenlik, yetki, dürüstlük modeli, durum modeli — kapsam dışı dokunma. | `kando-lumos-multi-agent.mdc` — sözleşme belgesine referans: `docs/lumos-karar-sozlesmesi.md`. |
 
 ### 1.3 Kod seviyesinde guard/check gerektiren maddeler
 

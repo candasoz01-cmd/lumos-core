@@ -173,7 +173,7 @@ Terminal komutu, cihaz/OS işlemleri ve uygulama kontrolü gibi **yüksek riskli
 2. **Onay:** Belirsiz veya riskli adımda dur; tahminleri açıkça işaretle.
 3. **Doğrulama:** Test, lint veya kanıtlı VERIFY olmadan tamamlandı deme.
 4. **Log:** Faz 2+ yazma ve Faz 3 tüm yürütme işlemleri izlenebilir olmalı.
-5. **Ürün yüzü:** Son kullanıcıya Lumos; iç katman adları (Kando/Cando vb.) görünmez.
+5. **Ürün yüzü:** Son kullanıcıya Lumos; iç katman adları (Core / Local vb.) görünmez.
 
 ---
 

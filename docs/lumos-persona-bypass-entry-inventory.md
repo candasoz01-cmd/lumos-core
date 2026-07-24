@@ -19,8 +19,8 @@
 
 ## Persona özeti
 
-- **Tek giriş:** Kando ve Cando işi yalnızca Lumos üzerinden kabul eder.
-- **Cando read-only:** Recipe/runbook öneri/rapor; otomatik yazma veya dış aksiyon yok.
+- **Tek giriş:** Core ve Local işi yalnızca Lumos üzerinden kabul eder.
+- **Local read-only:** Recipe/runbook öneri/rapor; otomatik yazma veya dış aksiyon yok.
 - **Offline:** Reconnect’te otomatik dış gönderim yok; onay ve doğrulama gerekir.
 - **Secret:** Lumos ana secret deposu değil; gateway iletişimi sonuç odaklı olmalıdır.
 
@@ -34,7 +34,7 @@ Her sınıfta Lumos gate / policy / onay zincirinin tutarlı uygulanması hedefl
 |---|-------|---------------|------------|-----|
 | 1 | **Köprü / gateway** | Dış HTTP geçitleri; tam gate vs kısmi yönlendirme, onay sonrası yürütme | [§1](lumos-persona-security-checkpoint.md#1-lumos-tek-dış-geçit) | [#1](lumos-persona-security-implementation-gaps.md#1-lumos-dışından-kandoya-komut-cli-taskengine-bypass) |
 | 2 | **Yerel CLI / görev motoru** | Terminalden görev oluşturma, mutasyon, motor yürütmesi | [§1](lumos-persona-security-checkpoint.md#1-lumos-tek-dış-geçit) | [#1](lumos-persona-security-implementation-gaps.md#1-lumos-dışından-kandoya-komut-cli-taskengine-bypass) |
-| 3 | **Cando recipe** | Read-only rutinlerin kanal doğrulaması ve yabancı giriş reddi | [§2](lumos-persona-security-checkpoint.md#2-kando-cando-doğrudan-dış-komut-iş-dosya-veri) | [#2](lumos-persona-security-implementation-gaps.md#2-cando-doğrudan-dosya-komut-yabancı-giriş-ve-lumos-kanalı) |
+| 3 | **Local recipe** | Read-only rutinlerin kanal doğrulaması ve yabancı giriş reddi | [§2](lumos-persona-security-checkpoint.md#2-kando-cando-doğrudan-dış-komut-iş-dosya-veri) | [#2](lumos-persona-security-implementation-gaps.md#2-cando-doğrudan-dosya-komut-yabancı-giriş-ve-lumos-kanalı) |
 | 4 | **Offline / push** | Otomatik dış aksiyon, kuyruk flush, reconnect senaryoları | [§3](lumos-persona-security-checkpoint.md#3-offline-kuyruk-otomatik-push-sync-pr-mail-api) | [#3](lumos-persona-security-implementation-gaps.md#3-offline-kuyruk-internet-gelince-otomatik-dış-aksiyon-yok) |
 | 5 | **Secret / imza** | Kimlik doğrulama, keystore, sonuç odaklı gateway sözleşmesi | [§4](lumos-persona-security-checkpoint.md#4-lumos-secret-ana-deposu-değil), [§6](lumos-persona-security-checkpoint.md#6-anti-lumos-taklit-yüksek-seviye) | [#4](lumos-persona-security-implementation-gaps.md#4-lumos-secret-ana-deposu-değil-sonuç-odaklı-iletişim), [#5](lumos-persona-security-implementation-gaps.md#5-sahte-lumos-imzası-iç-mesaj-reddi-anti-taklit) |
 
@@ -48,7 +48,7 @@ Ek yüzey: panel görev durumu yazımı köprü gate’inden ayrı denetlenir (s
 |-------|--------|
 | Köprü / gateway | Kısmi gate; invariant test bekliyor |
 | CLI / görev motoru | Gate zinciri eksik |
-| Cando recipe | Kanal doğrulama yok |
+| Local recipe | Kanal doğrulama yok |
 | Offline / push | Otomatik dış aksiyon riski |
 | Secret / imza | Sözleşme henüz enforce edilmiyor |
 
@@ -62,7 +62,7 @@ Sayısal satır envanteri yalnızca internal belgede; public özet sınıf düze
 
 **PR #101:** Checkpoint ve gap kayıtları.
 
-**Sonraki faz:** Tek kapı invariant testleri, Cando yabancı giriş reddi, offline auto-push yok, gateway sonuç-only contract — [checkpoint](lumos-persona-security-checkpoint.md).
+**Sonraki faz:** Tek kapı invariant testleri, Local yabancı giriş reddi, offline auto-push yok, gateway sonuç-only contract — [checkpoint](lumos-persona-security-checkpoint.md).
 
 ---
 

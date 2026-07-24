@@ -48,7 +48,7 @@ Lumos fikri mülkiyet portföyü **iki katmanlıdır**: (1) **public `lumos-core
 | **Marka metinleri** | Lumos, We Lock AI, welockai.com referansları | README, NOTICE, UI i18n | Marka + telif ayrımı | Public (isim); logo ayrı |
 | **Güvenlik ilkeleri** | Karar sözleşmesi, confirmation policy | `docs/`, `src/policy/` | Telif + uygulama | Public (ilke); prod detay private |
 | **Demo stub entegrasyonlar** | Mail/vault adapter iskeletleri | `src/integrations/` | Apache-2.0 | Public (demo-safe) |
-| **İç katman persona** | Kando, Cando, Bando tanımları | `docs/lumos-persona-layers.md` | Telif (dok); uygulama private | Public (yüksek seviye) |
+| **İç katman persona** | Core, Local, Sentinel tanımları | `docs/lumos-persona-layers.md` | Telif (dok); uygulama private | Public (yüksek seviye) |
 | **Resmi hizmet / prod API** | Barındırılan panel, auth, entegrasyonlar | Private katman | Ticari sır + sözleşme | **Private** |
 | **Operasyonel runbook'lar** | Infra, deploy, smoke | `.lumos/internal/ops-vault/` | Ticari sır | **Private** |
 | **Mail / kanal stratejisi** | Otomasyon spec, vault seçimi | `.lumos/internal/strategy-vault/` | Ticari sır | **Private** |
@@ -94,9 +94,9 @@ Lumos fikri mülkiyet portföyü **iki katmanlıdır**: (1) **public `lumos-core
 | **Starter** | 9, 42 | Düşük / koşullu | Jenerik; birleşik kullanım gerekir ("Lumos Starter") |
 | **Pro** | 9, 42 | Düşük / koşullu | Çok jenerik; tek başına zayıf |
 | **Business** | 9, 42 | Düşük / koşullu | Jenerik; "Lumos Business" birleşik düşünülmeli |
-| **Kando** | 9, 42 | Düşük (savunma) | İç katman; kullanıcıya yansıtılmaz — savunma amaçlı |
+| **Core** | 9, 42 | Düşük (savunma) | İç katman; kullanıcıya yansıtılmaz — savunma amaçlı |
 
-**Marka adayı sayısı (envanter):** **10** (Lumos, We Lock AI, welockai, Lumos Panel, Lumos Core, Lumos Quantum Readiness, Starter, Pro, Business, Kando).
+**Marka adayı sayısı (envanter):** **10** (Lumos, We Lock AI, welockai, Lumos Panel, Lumos Core, Lumos Quantum Readiness, Starter, Pro, Business, Core).
 
 ### 2.2 Telif (kayıt / belgeleme)
 
@@ -136,7 +136,7 @@ Public GitHub boundary ([`public-repo-boundary.md`](../memory/public-repo-bounda
 | 10 | **Bridge prod güvenlik politikası** | Uzak köprü token, IP allowlist, prod secret | Dev loopback script | Prod hosting policy |
 | 11 | **Entropy Lab prod konfigürasyonu** | IBM Runtime, ücretli API, prod entropy yolu | Deneysel sağlayıcı kodu (public) | Prod credential ve maliyet/onay akışı |
 | 12 | **Ticari fiyatlandırma ve sözleşme paketleri** | Pro/Business nihai fiyat, kurumsal ekler | Planlama çerçevesi | Müzakere edilen sözleşmeler |
-| 13 | **İç iletişim protokolü (Bando / imzalama)** | Lumos → Kando/Cando kanal bütünlüğü | OD-006/007 karar özeti | Protokol implementasyonu |
+| 13 | **İç iletişim protokolü (Sentinel / imzalama)** | Lumos → Core / Local kanal bütünlüğü | OD-006/007 karar özeti | Protokol implementasyonu |
 
 **Ticari sır kategori sayısı:** **13**
 
@@ -196,9 +196,9 @@ Public GitHub boundary ([`public-repo-boundary.md`](../memory/public-repo-bounda
 
 | Ad | Kullanıcıya görünür mü | Öneri |
 |----|------------------------|-------|
-| **Kando** | Hayır (iç katman) | Savunma amaçlı tescil değerlendirmesi; README'de dev aracı olarak geçer |
-| **Cando** | Hayır | Tescil önceliği düşük |
-| **Bando** | Hayır | Henüz uygulama pending (OD-006) |
+| **Core** | Hayır (iç katman) | Savunma amaçlı tescil değerlendirmesi; README'de dev aracı olarak geçer |
+| **Local** | Hayır | Tescil önceliği düşük |
+| **Sentinel** | Hayır | Henüz uygulama pending (OD-006) |
 
 ### 5.4 Marka — OSS etkileşimi
 

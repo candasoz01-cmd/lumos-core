@@ -24,7 +24,7 @@ Bu dosya, sohbet/bellek kaybına karşı repo içinde kalıcı tutulan **ürün 
 | # | Madde | Statü |
 |---|--------|--------|
 | PR-001 | Lumos, kullanıcıya açık **tek dış yüzey**dir. | **aktif kural** |
-| PR-002 | Gerçek ürün tarafında son kullanıcı **Kando / Cando / Bando** görmez; bunlar iç katmanlardır. | **aktif kural** |
+| PR-002 | Gerçek ürün tarafında son kullanıcı **Core / Local / Sentinel** görmez; bunlar iç katmanlardır. | **aktif kural** |
 | PR-003 | Lumos, kullanıcı ile dış dünya arasında **güvenli geçit ve orkestratör** olarak çalışır. | **aktif kural** |
 | PR-004 | İç katmanlar dışarıdan komut veya veri **doğrudan kabul etmez**; akış Lumos geçidinden geçer. | **aktif kural** |
 
@@ -34,7 +34,7 @@ Bu dosya, sohbet/bellek kaybına karşı repo içinde kalıcı tutulan **ürün 
 
 | # | Madde | Statü |
 |---|--------|--------|
-| PR-010 | Product UI ve mesajlarda «Kando'ya ilettim», «ajan», «başka AI» gibi **iç katman adları** görünmez. | **aktif kural** |
+| PR-010 | Product UI ve mesajlarda «Core'ya ilettim», «ajan», «başka AI» gibi **iç katman adları** görünmez. | **aktif kural** |
 | PR-011 | Yanıt ve arayüz yalnızca **Lumos kimliği** ile sunulur. | **aktif kural** |
 | PR-012 | Dış etkili veya geri dönüşsüz işlemler (ödeme, domain, kalıcı silme, e-posta vb.) kullanıcı onayı olmadan başlatılmaz. | **aktif kural** |
 

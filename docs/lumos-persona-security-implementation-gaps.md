@@ -13,9 +13,9 @@ Bu belge, [lumos-persona-layers.md](lumos-persona-layers.md) güven sınırları
 
 ---
 
-## 1. Lumos dışından Kando'ya komut — CLI / TaskEngine bypass
+## 1. Lumos dışından Core'ya komut — CLI / TaskEngine bypass
 
-- **Hedef davranış:** Kando işi yalnızca doğrulanmış Lumos kanalından kabul eder; dış dünyadan (CLI, panel köprüsü dışı, subprocess) doğrudan komut reddedilir veya bilinçli yerel-only olarak etiketlenir.
+- **Hedef davranış:** Core işi yalnızca doğrulanmış Lumos kanalından kabul eder; dış dünyadan (CLI, panel köprüsü dışı, subprocess) doğrudan komut reddedilir veya bilinçli yerel-only olarak etiketlenir.
 - **Mevcut kod durumu:** Köprü hattında (`packages/kando_bridge/server.py` → `kando_runtime/lumos_gate.py`) kısmi gate/policy var. Buna karşılık CLI görev mutasyonu (`src/cli/cli_tasks_mutation.py`) `policy.action_policy.check_policy` kullanır; `run_lumos_gate` çağrısı yok. `src/` altında TaskEngine/CLI yollarında `lumos_gate` referansı bulunmuyor. Yerel `python -m` / `src/main.py` ile görev oluşturma ve mutasyon, köprü kapısından bağımsız çalışabilir.
 - **Risk:** Persona “tek giriş: Lumos” ilkesi köprüde kısmen, CLI/TaskEngine’de fiilen bypass. Aynı repo üzerinde onaysız veya gate’siz görev yürütme yolu açık kalır.
 - **İlk uygulanabilir test/assertion:** Salt okuma envanter testi — tüm dış etkili giriş noktaları listelenir; köprü `POST /task` için `lumos_gate` geçişi doğrulanır, CLI `gorev_olustur` yolunda `lumos_gate` çağrısı olmadığı assert edilir.
@@ -23,12 +23,12 @@ Bu belge, [lumos-persona-layers.md](lumos-persona-layers.md) güven sınırları
 
 ---
 
-## 2. Cando doğrudan dosya / komut — yabancı giriş ve Lumos kanalı
+## 2. Local doğrudan dosya / komut — yabancı giriş ve Lumos kanalı
 
-- **Hedef davranış:** Cando read-only recipe/runbook katmanı; dış komut, iş, dosya veya veri yalnızca doğrulanmış Lumos kanalından gelir. Doğrudan shell veya üçüncü taraf çağrısı “yabancı giriş” sayılır, reddedilir veya loglanır.
+- **Hedef davranış:** Local read-only recipe/runbook katmanı; dış komut, iş, dosya veya veri yalnızca doğrulanmış Lumos kanalından gelir. Doğrudan shell veya üçüncü taraf çağrısı “yabancı giriş” sayılır, reddedilir veya loglanır.
 - **Mevcut kod durumu:** `scripts/cando_local.py` recipe’leri doğrudan çalıştırır (`src/cando/branch_cleanup_review`, `pr_ready_check`); `--dry-run` salt okuma sınırı var ancak `lumos_gate`, kanal doğrulama veya yabancı giriş reddi yok. Recipe hedefi sabit `REPO_ROOT`; kullanıcı path argümanı sınırlı olsa da giriş tamamen CLI/subprocess.
-- **Risk:** Persona “Kando/Cando doğrudan dış kabul etmez” kuralı Cando yolunda uygulanmıyor. Operasyonel rutinler Lumos onayı veya gate olmadan tetiklenebilir.
-- **İlk uygulanabilir test/assertion:** `cando_local.py recipe … --dry-run` çalıştırıldığında gate veya kanal kontrolü olmadığı dokümante edilir; sonraki fazda “Lumos kanalı dışı Cando çağrısı → reddedildi / security_event” davranış testi tasarlanır.
+- **Risk:** Persona “Core / Local doğrudan dış kabul etmez” kuralı Local yolunda uygulanmıyor. Operasyonel rutinler Lumos onayı veya gate olmadan tetiklenebilir.
+- **İlk uygulanabilir test/assertion:** `cando_local.py recipe … --dry-run` çalıştırıldığında gate veya kanal kontrolü olmadığı dokümante edilir; sonraki fazda “Lumos kanalı dışı Local çağrısı → reddedildi / security_event” davranış testi tasarlanır.
 - **Faz:** şimdi (manuel dry-run + gap kaydı) → sonraki faz (yabancı giriş reddi davranış testi)
 
 ---
@@ -55,21 +55,21 @@ Bu belge, [lumos-persona-layers.md](lumos-persona-layers.md) güven sınırları
 
 ## 5. Sahte Lumos imzası / iç mesaj reddi (anti-taklit)
 
-- **Hedef davranış:** Lumos dışından veya Lumos’u taklit eden kaynaktan gelen iç mesaj güvenilir sayılmaz; Kando ↔ Lumos (ve gerektiğinde Cando) iç iletişimde doğrulama / bütünlük; sahte iç komut reddedilir.
-- **Mevcut kod durumu:** Köprü kimlik doğrulaması loopback (`127.0.0.1`) + **zorunlu** paylaşımlı token (`KANDO_BRIDGE_SECRET`; boş veya tanımsızsa korumalı uç noktalar **401**). `GET /health` kimlik doğrulamasız kalır. `src/security/request_signer.py` ve `online_engine` imza altyapısı var; köprü ↔ Kando iç mesaj hattına bağlı değil. İç kanalda “Lumos kaynaklı” iddiasını kanıtlayan merkezi anti-taklit katmanı yok.
+- **Hedef davranış:** Lumos dışından veya Lumos’u taklit eden kaynaktan gelen iç mesaj güvenilir sayılmaz; Core ↔ Lumos (ve gerektiğinde Local) iç iletişimde doğrulama / bütünlük; sahte iç komut reddedilir.
+- **Mevcut kod durumu:** Köprü kimlik doğrulaması loopback (`127.0.0.1`) + **zorunlu** paylaşımlı token (`KANDO_BRIDGE_SECRET`; boş veya tanımsızsa korumalı uç noktalar **401**). `GET /health` kimlik doğrulamasız kalır. `src/security/request_signer.py` ve `online_engine` imza altyapısı var; köprü ↔ Core iç mesaj hattına bağlı değil. İç kanalda “Lumos kaynaklı” iddiasını kanıtlayan merkezi anti-taklit katmanı yok.
 - **Risk:** Paylaşımlı bearer tek başına tam anti-taklit değildir; iç kanal bütünlüğü ve imza katmanı hâlâ eksik. Yerel süreç secret bilirse iç komut enjekte edebilir.
 - **İlk uygulanabilir test/assertion:** Gap #5 anti-taklit köprü auth checkpoint testleri geçer (`tests/test_persona_security_simdi_checkpoint.py`); yetkisiz/sahte kaynak için iç kanal bütünlük testleri sonraki faz.
 - **Faz:** şimdi (köprü secret zorunlu — **kısmen kapandı**) → sonraki faz (iç kanal bütünlük invariant testleri)
 
 ---
 
-## 6. Bando — dış komut güvenlik olayı (runtime yok)
+## 6. Sentinel — dış komut güvenlik olayı (runtime yok)
 
-- **Hedef davranış:** Bando yalnızca gözlem / anomali katmanı; dış komut, iş, dosya veya veri kabul etmez. Dış girişim güvenlik olayı → koruma modu; rapor yalnız Lumos’a.
-- **Mevcut kod durumu:** Bando yalnızca [lumos-persona-layers.md](lumos-persona-layers.md) içinde tanımlı. Repo’da `Bando`/`bando` runtime modülü, endpoint veya güvenlik olayı işleyicisi yok. Checkpoint belgesi de “runtime’da yok” olarak kayıtlı.
-- **Risk:** İleride Bando eklendiğinde execution veya dış yüzey olarak yanlış konumlandırma; dış komutun “görev” sanılması persona ihlali.
-- **İlk uygulanabilir test/assertion:** Repo grep — runtime `bando` referansı olmadığı assert; Bando eklendiğinde checklist: dış komut → `security_event` (görev değil), dış yüzey yok, rapor Lumos’a.
-- **Faz:** şimdi (docs-only doğrulama) → sonraki faz (Bando tasarım checklist + unit test) → ileride (formal threat model)
+- **Hedef davranış:** Sentinel yalnızca gözlem / anomali katmanı; dış komut, iş, dosya veya veri kabul etmez. Dış girişim güvenlik olayı → koruma modu; rapor yalnız Lumos’a.
+- **Mevcut kod durumu:** Sentinel yalnızca [lumos-persona-layers.md](lumos-persona-layers.md) içinde tanımlı. Repo’da `Sentinel`/`bando` runtime modülü, endpoint veya güvenlik olayı işleyicisi yok. Checkpoint belgesi de “runtime’da yok” olarak kayıtlı.
+- **Risk:** İleride Sentinel eklendiğinde execution veya dış yüzey olarak yanlış konumlandırma; dış komutun “görev” sanılması persona ihlali.
+- **İlk uygulanabilir test/assertion:** Repo grep — runtime `bando` referansı olmadığı assert; Sentinel eklendiğinde checklist: dış komut → `security_event` (görev değil), dış yüzey yok, rapor Lumos’a.
+- **Faz:** şimdi (docs-only doğrulama) → sonraki faz (Sentinel tasarım checklist + unit test) → ileride (formal threat model)
 
 ---
 

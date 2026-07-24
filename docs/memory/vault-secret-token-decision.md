@@ -94,7 +94,7 @@ Onaylı katman ayrımı — mimari rol **onaylandı**; somut uygulama detayı `i
 | Kullanıcı yüzeyi | Etkileşim, onay, görünürlük | Hayır (ilke) |
 | Lumos geçit | Yönlendirme, orkestrasyon, yetki kontrolü | Hayır |
 | Vault / kasa | Saklama, sınırlı erişim verme | Evet (hedef konum) |
-| İç katmanlar (Kando/Cando/Bando) | Kullanıcıya gösterilmez; dışarıdan doğrudan erişim yok | Hayır (doğrudan dış akış yok) |
+| İç katmanlar (Core / Local / Sentinel) | Kullanıcıya gösterilmez; dışarıdan doğrudan erişim yok | Hayır (doğrudan dış akış yok) |
 
 **OD-001 durumu:** Katman modeli ve rol ayrımı **onaylandı** (`decision-approved`); somut vault uygulaması (ürün, depolama teknolojisi, dağıtım modeli) **`implementation-pending`**.
 

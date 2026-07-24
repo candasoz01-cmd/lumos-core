@@ -33,7 +33,7 @@ Business workspace eski bağlam/yedek olarak korunuyor. Plus tarafında `Project
 ## Product rules
 
 - Son kullanıcıya görünen dış yüz Lumos’tur.
-- Kando/Cando gibi iç katman adları ürün arayüzünde görünmemelidir.
+- Core / Local gibi iç katman adları ürün arayüzünde görünmemelidir.
 - Lumos güvenli geçit/orchestrator gibi düşünülür.
 - Silinen içerikler kalıcı yok edilmez; çöp/silinenler alanına taşınır.
 - Kalıcı silme kararı kullanıcıda kalır.

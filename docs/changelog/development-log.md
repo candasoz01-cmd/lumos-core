@@ -104,7 +104,7 @@ Makefile test/check CI pytest env ile hizalandı (PR #95 merge; `main` @ `aca679
 
 ## 2026-06-07
 
-Cando `branch-cleanup-review` read-only dry-run recipe MVP (PR #97 merge; `main` @ `b6235a0`).
+Local `branch-cleanup-review` read-only dry-run recipe MVP (PR #97 merge; `main` @ `b6235a0`).
 
 | Sıra | PR | Özet |
 |------|-----|------|

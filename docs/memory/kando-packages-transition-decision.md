@@ -24,7 +24,7 @@ Bu belge **kod değişikliği veya taşıma işlemi değildir**. Amaç: gelişti
 | Kod taşıma, import yeniden yönlendirme, entrypoint değişikliği | Bu belge yalnızca karar taslağıdır; uygulama ayrı görev ve açık hedef gerektirir |
 | `panel/`, `ui/`, `frontend/` birincil yüzey seçimi | OD-043, OD-046 — ayrı karar; geçiş zamanlamasını doğrudan kilitlemez |
 | `lumos web` / `web/app.py` restore veya kaldırma | OD-028 — **kapalı (B1):** kök `lumos` web dalı kaldırıldı; `packages/kando_core/__main__.py` web kalıntısı bu geçişte hizalanır |
-| İç katman (Kando/Cando/Bando) protokol detayı | OD-006, OD-007 — [`internal-agent-layers.md`](./internal-agent-layers.md) |
+| İç katman (Core / Local / Sentinel) protokol detayı | OD-006, OD-007 — [`internal-agent-layers.md`](./internal-agent-layers.md) |
 | Vault / token uygulama modeli | OD-001, OD-002 — [`security-architecture.md`](./security-architecture.md) |
 | `kando-ai/` içeriğinin ürünleştirilmesi | Yan/aday alan; canlı Lumos CLI kapsamı dışı |
 

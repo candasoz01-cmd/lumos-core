@@ -5,7 +5,7 @@
 | Durum | **Güncellendi** — docs-only; panel profil guard #449; confirmation opt-in #453–#458 |
 | Tarih | 2026-06-21 |
 | İlgili | [ADR-012](../decisions/ADR-012-lumos-security-codex.md), [action permission matrix](lumos-action-permission-matrix.md), [runtime enforcement map](lumos-runtime-enforcement-map.md), [computer-use-permission-gate-decision](../memory/computer-use-permission-gate-decision.md) (CU1–CU10) |
-| Kapsam | Public Lumos OSS; Kando/Cando iç operasyonu **dışarıda** |
+| Kapsam | Public Lumos OSS; Core / Local iç operasyonu **dışarıda** |
 
 ## Amaç
 
