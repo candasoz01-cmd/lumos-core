@@ -76,6 +76,33 @@ const title = "Canlı ses — Lumos";
         color: #fff;
         background: #9b3e45;
       }
+      .mode-picker {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: .6rem;
+        margin-bottom: .8rem;
+      }
+      .mode-picker button {
+        min-height: 2.8rem;
+        color: #c9d4d3;
+        background: rgba(255, 255, 255, .08);
+      }
+      .mode-picker button[aria-pressed="true"] {
+        color: #0b1a1e;
+        background: #a8eadf;
+      }
+      #push-to-talk {
+        margin-top: .8rem;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      #push-to-talk[data-talking="true"] {
+        color: #fff;
+        background: #2d8f82;
+        transform: scale(.98);
+      }
+      [hidden] { display: none !important; }
       button:disabled { opacity: .48; }
       #status { min-height: 1.5rem; margin: 1rem 0 0; color: #c9d4d3; }
       .note { margin: 1.2rem auto 0; color: #829694; font-size: .82rem; line-height: 1.45; }
@@ -86,9 +113,14 @@ const title = "Canlı ses — Lumos";
     <main>
       <p class="brand">Lumos · Canlı ses</p>
       <h1>Konuşalım.</h1>
-      <p class="lead">Kesintisiz sesli sohbet. Konuşmaya başladığında Lumos dinler; sözünü kestiğinde durur.</p>
+      <p class="lead">Serbest konuş veya mikrofonu yalnız düğmeye basarken aç.</p>
       <div class="orb" id="orb" aria-hidden="true"></div>
+      <div class="mode-picker" id="mode-picker" role="group" aria-label="Konuşma modu">
+        <button id="mode-auto" type="button" aria-pressed="true">Serbest konuş</button>
+        <button id="mode-push" type="button" aria-pressed="false">Bas konuş</button>
+      </div>
       <button id="toggle" type="button">Canlı konuşmayı başlat</button>
+      <button id="push-to-talk" type="button" hidden>Basılı tut ve konuş</button>
       <p id="status" role="status" aria-live="polite">Hazır</p>
       <p class="note">Mikrofon yalnız bu görüşme açıkken kullanılır. Standart API anahtarı telefona gönderilmez.</p>
       <audio id="remote-audio" autoplay></audio>
@@ -99,13 +131,42 @@ const title = "Canlı ses — Lumos";
         const status = document.getElementById("status");
         const orb = document.getElementById("orb");
         const audio = document.getElementById("remote-audio");
+        const modePicker = document.getElementById("mode-picker");
+        const autoModeButton = document.getElementById("mode-auto");
+        const pushModeButton = document.getElementById("mode-push");
+        const pushToTalkButton = document.getElementById("push-to-talk");
         const token = new URLSearchParams(location.hash.slice(1)).get("token") || "";
         history.replaceState(null, "", location.pathname);
 
         let pc = null;
         let stream = null;
+        let mode = "auto";
 
         const setStatus = (text) => { status.textContent = text; };
+        const microphoneTrack = () => stream?.getAudioTracks()[0] || null;
+        const setTalking = (talking) => {
+          if (mode !== "push" || pc?.connectionState !== "connected") return;
+          const track = microphoneTrack();
+          if (track) track.enabled = talking;
+          pushToTalkButton.dataset.talking = String(talking);
+          pushToTalkButton.textContent = talking ? "Dinliyorum…" : "Basılı tut ve konuş";
+          setStatus(talking ? "Canlı — seni dinliyorum" : "Canlı — konuşmak için basılı tut");
+        };
+        const applyMode = () => {
+          const pushMode = mode === "push";
+          autoModeButton.setAttribute("aria-pressed", String(!pushMode));
+          pushModeButton.setAttribute("aria-pressed", String(pushMode));
+          pushToTalkButton.hidden = !pushMode || pc?.connectionState !== "connected";
+          const track = microphoneTrack();
+          if (track) track.enabled = !pushMode;
+          if (pc?.connectionState === "connected") {
+            setStatus(pushMode ? "Canlı — konuşmak için basılı tut" : "Canlı — konuşabilirsin");
+          }
+        };
+        const selectMode = (nextMode) => {
+          mode = nextMode;
+          applyMode();
+        };
         const stop = () => {
           stream?.getTracks().forEach((track) => track.stop());
           stream = null;
@@ -116,6 +177,8 @@ const title = "Canlı ses — Lumos";
           button.dataset.stop = "false";
           button.textContent = "Görüşme sona erdi";
           button.disabled = true;
+          modePicker.hidden = true;
+          pushToTalkButton.hidden = true;
           setStatus("Yeniden başlatmak için Lumos uygulamasına dön.");
         };
 
@@ -136,7 +199,8 @@ const title = "Canlı ses — Lumos";
                 button.disabled = false;
                 button.dataset.stop = "true";
                 button.textContent = "Görüşmeyi bitir";
-                setStatus("Canlı — konuşabilirsin");
+                modePicker.hidden = false;
+                applyMode();
               }
               if (["failed", "disconnected", "closed"].includes(pc?.connectionState)) stop();
             };
@@ -179,6 +243,16 @@ const title = "Canlı ses — Lumos";
         button.addEventListener("click", () => {
           if (pc) stop();
           else start();
+        });
+        autoModeButton.addEventListener("click", () => selectMode("auto"));
+        pushModeButton.addEventListener("click", () => selectMode("push"));
+        pushToTalkButton.addEventListener("pointerdown", (event) => {
+          event.preventDefault();
+          pushToTalkButton.setPointerCapture?.(event.pointerId);
+          setTalking(true);
+        });
+        ["pointerup", "pointercancel", "lostpointercapture"].forEach((eventName) => {
+          pushToTalkButton.addEventListener(eventName, () => setTalking(false));
         });
         if (!token) {
           button.disabled = true;

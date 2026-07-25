@@ -102,6 +102,10 @@ test("live voice page uses WebRTC and removes the secret from the address bar", 
   assert.match(source, /getUserMedia/);
   assert.match(source, /createDataChannel\("oai-events"\)/);
   assert.match(source, /history\.replaceState/);
+  assert.match(source, /Basılı tut ve konuş/);
+  assert.match(source, /track\.enabled = talking/);
+  assert.match(source, /pointerdown/);
+  assert.match(source, /pointerup/);
   assert.doesNotMatch(source, /OPENAI_API_KEY/);
 });
 
