@@ -1,0 +1,183 @@
+---
+const UPDATED = "2026-07-24";
+---
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Geri bildirim (ön izleme) — Lumos · We Lock AI</title>
+  <meta name="description" content="Lumos geri bildirim paneli ön izleme. Kalıcı kayıt yok; Slack/Lark aktarımı yok — deneme modu." />
+  <link rel="canonical" href="https://welockai.com/geri-bildirim" />
+  <link rel="stylesheet" href="/magazine-chrome.css" />
+</head>
+<body class="magazine-page">
+  <nav class="magazine-nav" aria-label="Lumos Dünya">
+    <div class="magazine-nav__bar">
+      <a class="magazine-nav__brand" href="/">Lumos</a>
+      <ul class="magazine-nav__list">
+        <li><a class="magazine-nav__link" href="/">Ana sayfa</a></li>
+        <li><a class="magazine-nav__link" href="/panel">Panel</a></li>
+        <li><a class="magazine-nav__link" href="/help">Yardım</a></li>
+        <li><a class="magazine-nav__link magazine-nav__link--active" href="/geri-bildirim">Geri bildirim</a></li>
+        <li><a class="magazine-nav__link" href="/privacy">Gizlilik</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <header class="magazine-page-hero" style="background:linear-gradient(145deg,#0f1c24,#1a3a42);">
+    <div class="magazine-page-hero__copy">
+      <p class="magazine-kicker" style="color:#9fdad4">GERİ BİLDİRİM · ÖN İZLEME</p>
+      <h1>Lumos</h1>
+      <p>Form denemesi — kalıcı kaydedilmez. Canlı destek veya kayıtlı talep hattı değildir.</p>
+    </div>
+  </header>
+
+  <main class="magazine-main">
+    <section class="magazine-section">
+      <h2>Ne için?</h2>
+      <p class="magazine-lead">
+        Panel, giriş, sohbet veya site metinlerindeki kopuklukları buradan iletebilirsin.
+        Slack/Lark ortak havuzu ayrıdır; kimlik bilgisi yokken sahte «canlı bağlı» gösterilmez.
+      </p>
+      <p class="magazine-note" role="note">
+        <strong>Ön izleme — kalıcı kaydedilmez.</strong>
+        Bu form v0 kabuktur; deneme kalıcı depoya veya ortak havuza yazılmaz.
+      </p>
+    </section>
+
+    <section class="magazine-section">
+      <h2>Geri bildirim paneli</h2>
+      <form class="magazine-form" id="feedback-form" novalidate>
+        <p class="magazine-note">
+          Zorunlu: tür + mesaj. İletişim denemede saklanmaz. Gizli anahtar veya şifre yazma.
+          Bu bir deneme modudur — kalıcı kayıt vaadi yoktur.
+        </p>
+        <label>Tür
+          <select name="feedback_type" required>
+            <option value="">Seçin</option>
+            <option value="bug">Hata / bozulma</option>
+            <option value="copy">Metin / açıklama</option>
+            <option value="ux">Kullanım / panel</option>
+            <option value="idea">Öneri</option>
+            <option value="other">Diğer</option>
+          </select>
+        </label>
+        <label>Mesaj
+          <textarea name="message" required maxlength="2000" rows="5" placeholder="Ne oldu, nerede gördün, ne bekliyordun?"></textarea>
+        </label>
+        <label>Sayfa veya yüzey (isteğe bağlı)
+          <input type="text" name="surface" maxlength="160" placeholder="ör. /panel · giriş · entegrasyonlar" autocomplete="off" />
+        </label>
+        <label>İletişim (isteğe bağlı — denemede saklanmaz)
+          <input type="email" name="contact_email" maxlength="160" autocomplete="email" placeholder="yanıt için (saklanmaz)" />
+        </label>
+        <div style="position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden" aria-hidden="true">
+          <label>Website<input type="text" name="website" tabindex="-1" autocomplete="off" /></label>
+        </div>
+        <div class="magazine-cta-row">
+          <button type="submit" class="magazine-btn magazine-btn--primary">Denemeyi çalıştır</button>
+          <p class="magazine-form__status" id="feedback-status" role="status" aria-live="polite"></p>
+        </div>
+      </form>
+      <p class="magazine-note">
+        API deneme: <code>POST /api/feedback</code> → <code>preview_only</code>, <code>persisted=false</code>
+        · <a href="/api/feedback">GET /api/feedback</a>
+        · Güncelleme: {UPDATED}
+      </p>
+      <div class="magazine-cta-row">
+        <a class="magazine-btn" href="/panel">Panele dön</a>
+        <a class="magazine-btn" href="/help">Yardım</a>
+        <a class="magazine-btn" href="/privacy">Gizlilik</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="magazine-footer">
+    <div class="magazine-footer__inner">
+      <p class="magazine-footer__meta">Lumos · We Lock AI · welockai.com/geri-bildirim</p>
+    </div>
+  </footer>
+
+  <script is:inline>
+    (function () {
+      var form = document.getElementById("feedback-form");
+      var statusEl = document.getElementById("feedback-status");
+      if (!form || !statusEl) return;
+
+      form.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        var data = new FormData(form);
+        var feedbackType = String(data.get("feedback_type") || "").trim();
+        var message = String(data.get("message") || "").trim();
+        var surface = String(data.get("surface") || "").trim();
+        var contact = String(data.get("contact_email") || "").trim();
+        if (!feedbackType || !message) {
+          statusEl.dataset.state = "err";
+          statusEl.textContent = "Tür ve mesaj gerekli.";
+          return;
+        }
+        if (message.length < 8) {
+          statusEl.dataset.state = "err";
+          statusEl.textContent = "Mesaj çok kısa — bir cümle yeter.";
+          return;
+        }
+        statusEl.dataset.state = "";
+        statusEl.textContent = "Deneme çalışıyor…";
+        var website = String(data.get("website") || "").trim();
+        var payload = {
+          source_provider: "web_form",
+          mode: "preview",
+          feedback_type: feedbackType,
+          message: message,
+          surface: surface,
+          contact_email: contact,
+          website: website,
+          page_url: window.location.href,
+        };
+        var ERR = {
+          rate_limited: "Çok sık deneme. Bir dakika sonra tekrar dene.",
+          invalid_feedback_type: "Geçerli bir tür seçin.",
+          message_too_short: "Mesaj çok kısa — bir cümle yeter.",
+          invalid_contact_email: "E-posta geçersiz görünüyor.",
+          honeypot: "İstek reddedildi.",
+        };
+        try {
+          var res = await fetch("/api/feedback", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify(payload),
+          });
+          var body = {};
+          try { body = await res.json(); } catch (_e) {}
+          if (res.status === 429 || (body && body.error === "rate_limited")) {
+            statusEl.dataset.state = "err";
+            statusEl.textContent = (body && body.message) || ERR.rate_limited;
+            return;
+          }
+          if (!res.ok || !body.ok) {
+            var code = (body && body.error) || ("http_" + res.status);
+            statusEl.dataset.state = "err";
+            statusEl.textContent = (body && body.message) || ERR[code] || "Deneme başarısız.";
+            return;
+          }
+          if (body.persisted === true || body.status === "received") {
+            statusEl.dataset.state = "err";
+            statusEl.textContent = "Beklenmeyen yanıt — kalıcı kayıt iddiası reddedildi.";
+            return;
+          }
+          statusEl.dataset.state = "ok";
+          statusEl.textContent =
+            "Deneme tamam — kalıcı kaydedilmedi" +
+            (body.preview_id ? " · " + body.preview_id : "") +
+            ".";
+          form.reset();
+        } catch (_err) {
+          statusEl.dataset.state = "err";
+          statusEl.textContent =
+            "Sunucuya ulaşılamadı. Taslak saklanmadı; kalıcı kayıt bu dilimde zaten yok.";
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
