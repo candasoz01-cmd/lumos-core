@@ -1,0 +1,190 @@
+---
+const title = "Canlı ses — Lumos";
+---
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="theme-color" content="#0c151b" />
+    <title>{title}</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #0c151b;
+        color: #f4f0e7;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100svh;
+        display: grid;
+        place-items: center;
+        background:
+          radial-gradient(circle at 50% 25%, rgba(110, 213, 197, .18), transparent 34rem),
+          linear-gradient(155deg, #0c151b, #12242b 65%, #18343a);
+      }
+      main {
+        width: min(34rem, 100%);
+        min-height: 100svh;
+        padding: max(2rem, env(safe-area-inset-top)) 1.5rem max(2rem, env(safe-area-inset-bottom));
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        text-align: center;
+      }
+      .brand {
+        margin: 0 0 .5rem;
+        color: #9fe3d8;
+        font-size: .78rem;
+        font-weight: 750;
+        letter-spacing: .16em;
+        text-transform: uppercase;
+      }
+      h1 { margin: 0; font-size: clamp(2rem, 10vw, 3.4rem); line-height: 1; }
+      .lead { margin: 1rem auto 2rem; max-width: 27rem; color: #c9d4d3; line-height: 1.55; }
+      .orb {
+        width: 10rem;
+        height: 10rem;
+        margin: 0 auto 2rem;
+        border-radius: 50%;
+        border: 1px solid rgba(159, 227, 216, .45);
+        background: radial-gradient(circle at 35% 30%, #b9fff2, #43a99d 30%, #15383d 68%);
+        box-shadow: 0 0 4rem rgba(94, 217, 198, .24);
+        transition: transform .25s ease, box-shadow .25s ease;
+      }
+      .orb[data-live="true"] {
+        animation: breathe 1.8s ease-in-out infinite;
+        box-shadow: 0 0 5rem rgba(94, 217, 198, .5);
+      }
+      @keyframes breathe {
+        50% { transform: scale(1.08); }
+      }
+      button {
+        width: 100%;
+        min-height: 3.5rem;
+        border: 0;
+        border-radius: 999px;
+        padding: .9rem 1.25rem;
+        font: inherit;
+        font-weight: 760;
+        color: #0b1a1e;
+        background: #a8eadf;
+      }
+      button[data-stop="true"] {
+        color: #fff;
+        background: #9b3e45;
+      }
+      button:disabled { opacity: .48; }
+      #status { min-height: 1.5rem; margin: 1rem 0 0; color: #c9d4d3; }
+      .note { margin: 1.2rem auto 0; color: #829694; font-size: .82rem; line-height: 1.45; }
+      audio { display: none; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="brand">Lumos · Canlı ses</p>
+      <h1>Konuşalım.</h1>
+      <p class="lead">Kesintisiz sesli sohbet. Konuşmaya başladığında Lumos dinler; sözünü kestiğinde durur.</p>
+      <div class="orb" id="orb" aria-hidden="true"></div>
+      <button id="toggle" type="button">Canlı konuşmayı başlat</button>
+      <p id="status" role="status" aria-live="polite">Hazır</p>
+      <p class="note">Mikrofon yalnız bu görüşme açıkken kullanılır. Standart API anahtarı telefona gönderilmez.</p>
+      <audio id="remote-audio" autoplay></audio>
+    </main>
+    <script is:inline>
+      (() => {
+        const button = document.getElementById("toggle");
+        const status = document.getElementById("status");
+        const orb = document.getElementById("orb");
+        const audio = document.getElementById("remote-audio");
+        const token = new URLSearchParams(location.hash.slice(1)).get("token") || "";
+        history.replaceState(null, "", location.pathname);
+
+        let pc = null;
+        let stream = null;
+
+        const setStatus = (text) => { status.textContent = text; };
+        const stop = () => {
+          stream?.getTracks().forEach((track) => track.stop());
+          stream = null;
+          pc?.close();
+          pc = null;
+          audio.srcObject = null;
+          orb.dataset.live = "false";
+          button.dataset.stop = "false";
+          button.textContent = "Görüşme sona erdi";
+          button.disabled = true;
+          setStatus("Yeniden başlatmak için Lumos uygulamasına dön.");
+        };
+
+        const start = async () => {
+          if (!token) {
+            button.disabled = true;
+            setStatus("Canlı ses oturumu bulunamadı. Lumos uygulamasından yeniden aç.");
+            return;
+          }
+          button.disabled = true;
+          setStatus("Mikrofon hazırlanıyor…");
+          try {
+            pc = new RTCPeerConnection();
+            pc.ontrack = (event) => { audio.srcObject = event.streams[0]; };
+            pc.onconnectionstatechange = () => {
+              if (pc?.connectionState === "connected") {
+                orb.dataset.live = "true";
+                button.disabled = false;
+                button.dataset.stop = "true";
+                button.textContent = "Görüşmeyi bitir";
+                setStatus("Canlı — konuşabilirsin");
+              }
+              if (["failed", "disconnected", "closed"].includes(pc?.connectionState)) stop();
+            };
+
+            stream = await navigator.mediaDevices.getUserMedia({
+              audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+              },
+            });
+            stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+            pc.createDataChannel("oai-events");
+
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            const response = await fetch("https://api.openai.com/v1/realtime/calls", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/sdp",
+              },
+              body: offer.sdp,
+            });
+            if (!response.ok) throw new Error("session_failed");
+            await pc.setRemoteDescription({
+              type: "answer",
+              sdp: await response.text(),
+            });
+          } catch (_error) {
+            stream?.getTracks().forEach((track) => track.stop());
+            stream = null;
+            pc?.close();
+            pc = null;
+            button.disabled = true;
+            setStatus("Canlı ses başlatılamadı. Mikrofon iznini ve bağlantını kontrol et.");
+          }
+        };
+
+        button.addEventListener("click", () => {
+          if (pc) stop();
+          else start();
+        });
+        if (!token) {
+          button.disabled = true;
+          setStatus("Lumos uygulamasından açılması gereken güvenli oturum eksik.");
+        }
+      })();
+    </script>
+  </body>
+</html>
