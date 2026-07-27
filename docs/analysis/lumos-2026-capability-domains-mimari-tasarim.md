@@ -33,7 +33,7 @@
 ### Değerlendirme
 
 Kod tabanında Identity **iki ayrı yerde, farklı olgunlukta** gözlemlendi:
-1. Düşük seviye, gerçek: cihaz kriptografik kimliği (`security/identity.py`) — konum olarak Sentinel'in (eski Bando) komşusu değil, Core/Local tarafında bulunuyor.
+1. Düşük seviye, gerçek: cihaz kriptografik kimliği (`security/identity.py`) — konum olarak Sentinel'in (eski: Bando) komşusu değil, Core/Local tarafında bulunuyor.
 2. Yüksek seviye, stub/sözleşme: "Lumos ID" — ADR-016'nın ilkelerini taşıyor ama gerçek depolama yok; kod olarak **Connect'in bir provider'ı** (`lumos_id_provider`) içinde duruyor, bağımsız bir modül olarak bulunamadı.
 
 **Core/Local/Sentinel ile ilişki:** Kod tabanında Identity şu an **peer katman olarak modellenmemiş** — hem Core/Local'a gömülü (cihaz kimliği) hem Connect'e gömülü (kimlik doğrulama servisi) durumda. ADR-016 "Lumos ID" adını ayrıca kilitlemiş durumda; bu iki ev arasındaki sınırın (hangi kod cihaz kimliği, hangisi servis kimlik doğrulama) hangi ADR'de netleştirileceği açık bir soru olarak kalıyor.

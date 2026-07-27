@@ -40,7 +40,7 @@ Yani: **karar geçersiz veya tartışmalı değil; uygulama adımı (push → PR
 
 | Kanıt | Durum | Not |
 |-------|-------|-----|
-| ADR taslağı — `docs/ops/karar-taslagi/2026-07-23-core-local-sentinel-adlandirma.md` | Durum: **Accepted** (2026-07-23) | Kando→Core, Cando→Local, Bando→Sentinel; "tek ADR", ikinci karar dosyası yok |
+| ADR taslağı — `docs/ops/karar-taslagi/2026-07-23-core-local-sentinel-adlandirma.md` | Durum: **Accepted** (2026-07-23) | (eski: Kando)→Core, (eski: Cando)→Local, (eski: Bando)→Sentinel; "tek ADR", ikinci karar dosyası yok |
 | **PR #179** — "docs: Kando/Cando/Bando → Core/Local/Sentinel adlandırma" | **MERGED** | Eşleme tablosu PR body'sinde birebir; "wire/env/paket toplu rename bu PR'de yapılmadı" notu var |
 | `docs/ops/legacy-naming.md` | Salt tarihçe + guard EXC kaynağı | Kilitli eşleme tablosu; `X-Kando-Token`, `KANDO_*`, `packages/kando*`, `src/kando/`, `cando_local` → **EXC** (uyumluluk artığı, katman adı değil, ayrı cutover) |
 | `docs/product/katmanlar.md` | v0 adlandırma sözleşmesi | Hedef ağaç: `Lumos → Core / Local / Sentinel`; **ileride** eklenecek ayrı seviye: Memory · Vision · Voice · Cloud · Studio |
