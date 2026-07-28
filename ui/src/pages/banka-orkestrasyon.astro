@@ -1,7 +1,6 @@
 ---
-const CANONICAL_URL = "https://github.com/candasoz01-cmd/Lumos/blob/main/docs/commerce/lumos-bank-orkestrasyon-makale.md";
-const RAW_URL = "https://raw.githubusercontent.com/candasoz01-cmd/Lumos/main/docs/commerce/lumos-bank-orkestrasyon-makale.md";
-const UPDATED = "2026-07-12";
+const UPDATED = "2026-07-28";
+const BODY = "# Lumos Bank Orkestrasyonu — Bankalar için hazır destek ve işlem ekibi\n\n> **Durum:** Vizyon / ortaklık metni — ürün taahhüdü değil.  \n> **Güncelleme:** 2026-07-12  \n> **İlke:** Lumos karar veren banka değildir; güvenli orkestrasyon ve politika katmanıdır.\n\n---\n\n## Özet (60 saniye)\n\nBankaların müşteri hattı ve işlem operasyonu pahalı, tekrarlı ve düzenlemeye açık alanlardır. Lumos, **tek çekirdek güvenlik** altında çalışan **görev ayrımı yapan ajanlar** ile bu yükü azaltmayı hedefler — kredi kararını Lumos vermez; banka verir. Lumos, doğru ajanın doğru veriye doğru yetkiyle erişmesini sağlar, süreci kaydeder ve kullanıcı onayını korur.\n\n**Ticari çerçeve (hedef):** Sabit veya öngörülebilir aylık ücret — «her işlemde sürpriz fatura» değil; hazır müşteri destek + işlem orkestrasyonu paketi.\n\n---\n\n## Sorun\n\n| Alan | Gerçek |\n|------|--------|\n| Müşteri desteği | Aynı sorular, yüksek bekleme, tutarsız cevap |\n| İşlem operasyonu | Manuel adımlar, çift giriş, denetim izi dağınık |\n| Güvenlik | Her modülde ayrı ayrı yeniden yazılan kurallar |\n| Regülasyon | «Kim ne yaptı?» sorusuna geç cevap |\n\nKlasik «tek dev chatbot» modeli ya yetkisiz kalır ya da fazla yetkili olur — ikisi de banka için risk.\n\n---\n\n## Lumos yaklaşımı: çok ajanlı, tek çekirdek\n\n```\n                 Lumos Core\n                      │\n      Kimlik • Politika • Güvenlik • Log\n                      │\n            ┌─────────┴─────────┐\n            │                   │\n      Lumos Bank         Diğer modüller\n            │\n   ┌────────┼────────┬────────┬────────┐\n   │        │        │        │\nDestek   Müşteri   Ödeme   Risk / Fraud\n ajanı    ajanı     ajanı      ajanı\n```\n\n**Kilit kurallar:**\n\n- Hiçbir alt ajan doğrudan yetkili değildir.\n- Her adım Lumos Core'dan izin ister (AuthorityGate).\n- Kimlik, politika, kayıt ve denetim **tek merkezde** kalır.\n- Kullanıcı onayı olmadan para hareketi yok.\n\nÖrnek — ödeme ajanı:\n\n1. Kimlik bağlamını alır (Core).\n2. Tutar ve risk özetini üretir.\n3. Gerekirse ikinci onay ister.\n4. Yalnızca onay sonrası banka API'sine iletir.\n5. Tüm süreci denetlenebilir kaydeder.\n\n«Sonuçlar çıkar demeye kalamadan tamamdır efendim» değil — **özet burada, onay sende**.\n\n---\n\n## Banka ne kazanır?\n\n| Kazanım | Açıklama |\n|---------|----------|\n| **Hazır ekip metaforu** | Destek + işlem ajanları önceden tanımlı görevlerle çalışır |\n| **Öngörülebilir maliyet** | Sabit / katmanlı aylık ücret hedefi — işlem hacmine göre şeffaf kademe |\n| **Regülasyon uyumu** | Karar bankada; Lumos iz, onay ve politika uygular |\n| **Modüler genişleme** | Yarın sigorta veya kamu modülü — güvenlik omurgası aynı |\n\nLumos **müşteri çalmaz**; bankanın mevcut kanallarına oturan orkestrasyon katmanıdır.\n\n---\n\n## Lumos ne yapmaz?\n\n- Kredi skoru veya limit **kararı** vermez.\n- Paranın **sahibi** olmaz; emanet / agregasyon kapısıdır.\n- Gizli ücret veya otomatik ödeme **yürütmez** (onay kapısı zorunlu).\n- Partner logosunu Lumos markasına **karıştırmaz**.\n\n---\n\n## Ticari model (taslak)\n\n| Paket | Kapsam | Fiyat mantığı |\n|-------|--------|---------------|\n| **Core Orkestrasyon** | Politika, log, onay kapısı, 2 ajan slotu | Sabit aylık taban |\n| **Destek+** | Müşteri destek ajanı + KB bağlantısı | Taban + kullanıcı bandı |\n| **İşlem+** | Ödeme / transfer orkestrasyonu (API köprü) | Taban + işlem bandı (tavanlı) |\n\nFiyatlandırma hedefi: **mantıklı, sabit taban + tavanlı değişken** — bankanın bütçesini okuyabildiği model.\n\n*Not: Bu makale fiyat teklifi değildir; ortaklık görüşmesi çerçevesidir.*\n\n---\n\n## Bugünkü durum (dürüst)\n\n| Bileşen | Durum |\n|---------|--------|\n| AuthorityGate + onay UI | ✅ web v1 |\n| Pay / Sepet | ✅ review-only stub |\n| Banka API bağlantısı | 📋 ortaklık sonrası |\n| Canlı ödeme | ❌ yok — bilinçli |\n\nPilot için: TestFlight v0 + yazılı sohbet oturması sonrası **kapalı beta** banka POC.\n\n---\n\n## İletişim\n\nOrtaklık / POC: `docs/ops/dis-iletisim/` — We Lock AI · Lumos.\n\n**Tek cümle:** Lumos, bankanın ağzını sulandıran sihirli kredi değil; **hazır destek ve işlem ekibini güvenli orkestrasyonla sunan, sabit fiyatlı operasyon katmanı**dır.\n";
 ---
 
 <html lang="tr">
@@ -11,9 +10,6 @@ const UPDATED = "2026-07-12";
   <title>Banka Orkestrasyonu — We Lock AI · Lumos</title>
   <meta name="description" content="Lumos Bank orkestrasyonu: hazır müşteri destek ve işlem ekibi, tek çekirdek güvenlik, sabit fiyat mantığı. Karar bankada; Lumos iz ve onay kapısı." />
   <link rel="canonical" href="https://welockai.com/banka-orkestrasyon" />
-  <meta property="og:title" content="Lumos Bank Orkestrasyonu" />
-  <meta property="og:description" content="Görev ayrımı yapan ajanlar, tek AuthorityGate. Bankalar için öngörülebilir maliyetli destek ve işlem katmanı." />
-  <meta property="og:url" content="https://welockai.com/banka-orkestrasyon" />
   <style>
     body { margin:0; font-family:system-ui,sans-serif; background:#030714; color:#e9eef5; line-height:1.65; }
     a { color:#38ceff; }
@@ -27,16 +23,9 @@ const UPDATED = "2026-07-12";
   <div class="wrap">
     <nav><a href="/">← welockai.com</a> · <a href="/pay-kontrol">Pay</a> · <a href="/kararlar">Kararlar</a></nav>
     <h1>Banka Orkestrasyonu</h1>
-    <p class="note">Vizyon metni — ürün taahhüdü değil. Tek kaynak GitHub; kopya değil referans.</p>
-    <p><a href={CANONICAL_URL}>Kaynak (GitHub)</a> · güncelleme: {UPDATED}</p>
-    <pre id="body">Yükleniyor…</pre>
+    <p class="note">Vizyon metni — ürün taahhüdü değil. Gövde yayın anında gömüldü; tarayıcı private repo fetch yapmaz.</p>
+    <p>Güncelleme: {UPDATED} · gömülü statik metin</p>
+    <pre id="body">{BODY}</pre>
   </div>
-  <script is:inline define:vars={{ rawUrl: RAW_URL }}>
-    fetch(rawUrl).then(r => r.text()).then(t => {
-      document.getElementById('body').textContent = t;
-    }).catch(() => {
-      document.getElementById('body').textContent = 'Kaynak: ' + rawUrl;
-    });
-  </script>
 </body>
 </html>
