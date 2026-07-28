@@ -1,0 +1,61 @@
+---
+const UPDATED = "2026-07-12";
+const ACCENT = "#f59e0b";
+const TAGLINE = "Satıcı için değil, senin için pazarlık eder.";
+const PRINCIPLES = [
+  "Sepet satıcıya değil sana çalışır",
+  "Sponsorlu öneri açık etiketli",
+  "Gizli reklam yok",
+  "Onay olmadan Pay'e geçilmez",
+];
+---
+
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lumos Sepet — We Lock AI</title>
+  <meta name="description" content={TAGLINE} />
+  <link rel="canonical" href="https://welockai.com/sepet" />
+  <style>
+    body { margin:0; font-family:system-ui,sans-serif; background:#030714; color:#e9eef5; }
+    a { color:#38ceff; }
+    .wrap { max-width:52rem; margin:0 auto; padding:1.5rem 1.25rem 3rem; }
+    .hero { text-align:center; margin-bottom:2rem; }
+    .tagline { font-size:clamp(1.1rem,2.8vw,1.35rem); font-weight:650; color:{ACCENT}; margin:1rem 0; }
+    .card { border:1px solid rgb(245 158 11 / 0.35); border-radius:16px; padding:1.5rem; background:linear-gradient(145deg,#1a1408,#0f1420); margin:1.5rem 0; }
+    .badge { display:inline-block; font-size:.72rem; font-weight:600; padding:4px 10px; border-radius:999px; color:#2dd4bf; border:1px solid rgb(45 212 191/.35); background:rgb(45 212 191/.1); }
+    ul { color:#9aa8bc; line-height:1.75; }
+    .flow { white-space:pre-line; color:#9aa8bc; font-size:.92rem; line-height:1.7; text-align:center; margin:2rem 0; }
+    .note { border:1px solid rgb(212 168 75/.35); border-radius:12px; padding:1rem; color:#c9a227; background:rgb(212 168 75/.06); font-size:.88rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav><a href="/">← welockai.com</a> · <a href="/ticari-aile">Ticari aile</a> · <a href="/pay-katman">Pay</a></nav>
+    <div class="hero">
+      <h1>🛒 Lumos Sepet</h1>
+      <p class="tagline">{TAGLINE}</p>
+      <span class="badge">v0 · Taslak — canlı checkout yok</span>
+    </div>
+    <div class="flow">Hayal et
+↓
+Lumos araştırır
+↓
+<strong style="color:#f59e0b">Lumos Sepet oluşturur</strong>
+↓
+Lumos korur (Fiyat · Alternatif · Risk · Sponsor)
+↓
+Sen onaylarsın
+↓
+Lumos Pay</div>
+    <div class="card">
+      <h2 style="margin-top:0;font-size:1.05rem">Bu katman ne yapar?</h2>
+      <p style="color:#9aa8bc;line-height:1.6">Karar sepeti: henüz satın alınmamış seçenekleri toplar. Daha ucuz alternatif, güvenilir satıcı karşılaştırması, kupon, şüpheli satıcı uyarısı. Sponsorlu öneri varsa açıkça «sponsorlu» denir.</p>
+    </div>
+    <h2 style="font-size:1rem">İlkeler</h2>
+    <ul>{PRINCIPLES.map(p => <li>{p}</li>)}</ul>
+    <p class="note">Demo: Lumos web <code>/cart/ui</code> — taslak oluştur + onay stub. Güncelleme: {UPDATED}</p>
+  </div>
+</body>
+</html>

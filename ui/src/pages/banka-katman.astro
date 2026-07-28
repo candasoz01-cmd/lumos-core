@@ -1,0 +1,48 @@
+---
+const UPDATED = "2026-07-12";
+const TAGLINE = "Karar bankada; Lumos iz ve onay kapısı.";
+const PRINCIPLES = [
+  "Lumos para tutmaz",
+  "Banka karar verir",
+  "Lumos kapı ve iz sağlar",
+  "Öngörülebilir maliyet hedefi",
+];
+---
+
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lumos Banka katmanı — We Lock AI</title>
+  <meta name="description" content={TAGLINE} />
+  <link rel="canonical" href="https://welockai.com/banka-katman" />
+  <style>
+    body { margin:0; font-family:system-ui,sans-serif; background:#030714; color:#e9eef5; }
+    a { color:#38ceff; }
+    .wrap { max-width:52rem; margin:0 auto; padding:1.5rem 1.25rem 3rem; }
+    .hero { text-align:center; margin-bottom:2rem; }
+    .tagline { font-size:clamp(1.05rem,2.5vw,1.25rem); font-weight:600; color:#d4a84b; margin:1rem 0; }
+    .card { border:1px solid rgb(201 162 39 / 0.35); border-radius:16px; padding:1.5rem; background:linear-gradient(145deg,#1a1408,#0f1420); margin:1.5rem 0; }
+    .badge { display:inline-block; font-size:.72rem; font-weight:600; padding:4px 10px; border-radius:999px; color:#fbbf24; border:1px solid rgb(251 191 36/.35); background:rgb(251 191 36/.1); }
+    ul { color:#9aa8bc; line-height:1.75; }
+    .note { border:1px solid rgb(212 168 75/.35); border-radius:12px; padding:1rem; color:#c9a227; background:rgb(212 168 75/.06); font-size:.88rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav><a href="/">← welockai.com</a> · <a href="/ticari-aile">Ticari aile</a> · <a href="/banka-orkestrasyon">Orkestrasyon makalesi</a> · <a href="/pay-katman">Pay</a></nav>
+    <div class="hero">
+      <h1>🏦 Lumos Banka</h1>
+      <p class="tagline">{TAGLINE}</p>
+      <span class="badge">Planlı · Orkestrasyon vizyonu</span>
+    </div>
+    <div class="card">
+      <h2 style="margin-top:0;font-size:1.05rem">Orkestrasyon mantığı</h2>
+      <p style="color:#9aa8bc;line-height:1.65;margin:0">Görev ayrımı yapan ajanlar, tek AuthorityGate. Bankalar için öngörülebilir maliyetli destek ve işlem katmanı. Lumos hazır müşteri destek ekibi gibi çalışır — karar bankada kalır.</p>
+    </div>
+    <h2 style="font-size:1rem">İlkeler</h2>
+    <ul>{PRINCIPLES.map(p => <li>{p}</li>)}</ul>
+    <p class="note">Canlı banka API yok. Detay: <a href="/banka-orkestrasyon">Banka orkestrasyonu makalesi</a>. {UPDATED}</p>
+  </div>
+</body>
+</html>

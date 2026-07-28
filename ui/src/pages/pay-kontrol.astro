@@ -1,0 +1,45 @@
+---
+const CANONICAL_URL = "https://github.com/candasoz01-cmd/Lumos/blob/main/docs/ops/dis-iletisim/linkedin-pay-kontrol-makale.md";
+const RAW_URL = "https://raw.githubusercontent.com/candasoz01-cmd/Lumos/main/docs/ops/dis-iletisim/linkedin-pay-kontrol-makale.md";
+const UPDATED = "2026-07-12";
+const TAGLINE = "Paran senin. Karar senin. Lumos arada sadece kapı — komisyon değil, korumacı.";
+---
+
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pay · Kontrol sende — We Lock AI · Lumos</title>
+  <meta name="description" content={TAGLINE} />
+  <link rel="canonical" href="https://welockai.com/pay-kontrol" />
+  <meta property="og:title" content="Paran senin. Karar senin. — Lumos Pay" />
+  <meta property="og:description" content={TAGLINE} />
+  <meta property="og:url" content="https://welockai.com/pay-kontrol" />
+  <style>
+    body { margin:0; font-family:system-ui,sans-serif; background:#030714; color:#e9eef5; line-height:1.65; }
+    a { color:#38ceff; }
+    .wrap { max-width:52rem; margin:0 auto; padding:1.5rem 1.25rem 3rem; }
+    .tagline { font-size:clamp(1.15rem,3vw,1.45rem); font-weight:650; line-height:1.35; color:#d4a84b; margin:1.25rem 0 0.75rem; }
+    .note { border:1px solid rgb(212 168 75 / 0.35); border-radius:12px; padding:1rem; margin:1rem 0; color:#c9a227; background:rgb(212 168 75 / 0.06); font-size:0.9rem; }
+    pre { white-space:pre-wrap; font-size:0.9rem; color:#d4dae8; }
+    h1 { font-size:1.45rem; line-height:1.25; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav><a href="/">← welockai.com</a> · <a href="/banka-orkestrasyon">Banka orkestrasyonu</a> · <a href="/kararlar">Kararlar</a></nav>
+    <h1>Pay · Kontrol sende</h1>
+    <p class="tagline">{TAGLINE}</p>
+    <p class="note">Tasarım metni — canlı ödeme taahhüdü değil. LinkedIn makalesi ile aynı kaynak; kopya değil referans.</p>
+    <p><a href={CANONICAL_URL}>Kaynak (GitHub)</a> · güncelleme: {UPDATED}</p>
+    <pre id="body">Yükleniyor…</pre>
+  </div>
+  <script is:inline define:vars={{ rawUrl: RAW_URL }}>
+    fetch(rawUrl).then(r => r.text()).then(t => {
+      document.getElementById('body').textContent = t;
+    }).catch(() => {
+      document.getElementById('body').textContent = 'Kaynak: ' + rawUrl;
+    });
+  </script>
+</body>
+</html>

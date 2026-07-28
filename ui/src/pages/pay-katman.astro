@@ -1,0 +1,54 @@
+---
+const UPDATED = "2026-07-12";
+const TAGLINE = "Parayı değil, kararını korur.";
+const ALLOWED = [
+  "Kullanıcı onayı olmadan ödeme yok",
+  "Gizli ücret uyarısı",
+  "Daha avantajlı yöntem önerisi",
+  "Sponsorlu teklif açık etiketli",
+];
+const FORBIDDEN = ["Tek tıkla al baskısı", "Sessiz otomatik işlem"];
+---
+
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lumos Pay katmanı — We Lock AI</title>
+  <meta name="description" content={TAGLINE} />
+  <link rel="canonical" href="https://welockai.com/pay-katman" />
+  <style>
+    body { margin:0; font-family:system-ui,sans-serif; background:#030714; color:#e9eef5; }
+    a { color:#38ceff; }
+    .wrap { max-width:52rem; margin:0 auto; padding:1.5rem 1.25rem 3rem; }
+    .hero { text-align:center; margin-bottom:2rem; }
+    .tagline { font-size:clamp(1.1rem,2.8vw,1.35rem); font-weight:650; color:#22c55e; margin:1rem 0; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin:1.5rem 0; }
+    @media(max-width:560px){ .grid { grid-template-columns:1fr; } }
+    .box { border:1px solid #2a3548; border-radius:14px; padding:1rem 1.25rem; background:#0f1420; }
+    .box h3 { margin:0 0 .75rem; font-size:.95rem; }
+    ul { margin:0; padding-left:1.2rem; color:#9aa8bc; line-height:1.65; font-size:.9rem; }
+    .card { border:1px solid rgb(34 197 94 / 0.35); border-radius:16px; padding:1.5rem; background:linear-gradient(145deg,#0d1a12,#0f1420); text-align:center; margin:1.5rem 0; }
+    .badge { display:inline-block; font-size:.72rem; font-weight:600; padding:4px 10px; border-radius:999px; color:#2dd4bf; border:1px solid rgb(45 212 191/.35); }
+    .note { border:1px solid rgb(212 168 75/.35); border-radius:12px; padding:1rem; color:#c9a227; background:rgb(212 168 75/.06); font-size:.88rem; margin-top:1.5rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav><a href="/">← welockai.com</a> · <a href="/ticari-aile">Ticari aile</a> · <a href="/pay-kontrol">Pay makale</a> · <a href="/sepet">Sepet</a></nav>
+    <div class="hero">
+      <h1>💳 Lumos Pay</h1>
+      <p class="tagline">{TAGLINE}</p>
+      <span class="badge">v0 review-only — payment not executed</span>
+    </div>
+    <div class="card">
+      <p style="color:#9aa8bc;line-height:1.65;margin:0">Lumos Pay paranın sahibi değildir; <strong style="color:#86efac">güvenli geçiş kapısıdır</strong>. İlk amacı para çekmek değil, onayı güvenli yönetmektir. Banka, kart veya Apple Pay eklense bile mimari değişmez.</p>
+    </div>
+    <div class="grid">
+      <div class="box"><h3>✅ Yapılır</h3><ul>{ALLOWED.map(p => <li>{p}</li>)}</ul></div>
+      <div class="box"><h3>❌ Yapılmaz</h3><ul>{FORBIDDEN.map(p => <li>{p}</li>)}</ul></div>
+    </div>
+    <p class="note">Slogan makalesi: <a href="/pay-kontrol">Pay · Kontrol sende</a>. Demo: Lumos web <code>/pay/ui</code>. {UPDATED}</p>
+  </div>
+</body>
+</html>

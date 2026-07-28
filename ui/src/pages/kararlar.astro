@@ -1,0 +1,37 @@
+---
+const CANONICAL_URL = "https://github.com/candasoz01-cmd/Lumos/blob/main/docs/canonical/decisions.md";
+const RAW_URL = "https://raw.githubusercontent.com/candasoz01-cmd/Lumos/main/docs/canonical/decisions.md";
+const UPDATED = "2026-07-13";
+---
+
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kararlar — We Lock AI · Lumos</title>
+  <link rel="canonical" href="https://welockai.com/kararlar" />
+  <style>
+    body { margin:0; font-family:system-ui,sans-serif; background:#030714; color:#e9eef5; line-height:1.6; }
+    a { color:#38ceff; }
+    .wrap { max-width:52rem; margin:0 auto; padding:1.5rem; }
+    .note { border:1px solid rgb(56 206 255 / 0.25); border-radius:12px; padding:1rem; color:#9aa8bc; }
+    pre { white-space:pre-wrap; font-size:0.88rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav><a href="/">← welockai.com</a></nav>
+    <h1>Dondurulan kararlar</h1>
+    <p class="note">Tek kaynak — metin kopyalanmaz; canonical GitHub belgesine referans.</p>
+    <p><a href={CANONICAL_URL}>Canonical belge (GitHub)</a> · güncelleme: {UPDATED}</p>
+    <pre id="body">Yükleniyor…</pre>
+  </div>
+  <script is:inline define:vars={{ rawUrl: RAW_URL }}>
+    fetch(rawUrl).then(r => r.text()).then(t => {
+      document.getElementById('body').textContent = t;
+    }).catch(() => {
+      document.getElementById('body').textContent = 'Canonical: ' + rawUrl;
+    });
+  </script>
+</body>
+</html>

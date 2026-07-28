@@ -1,0 +1,72 @@
+---
+const UPDATED = "2026-07-12";
+const IDENTITY = "Lumos'un müşterisi satıcı değil, kullanıcıdır.";
+const ARCH = "Lumos Pay ödeme sistemi değildir — akıllı karar katmanıdır.";
+const LAYERS = [
+  { order: 1, emoji: "🔎", title: "Araştırma", accent: "#8ab4f8", status: "Hazır", tone: "ready", text: "Karşılaştırma ve risk toplama — otomatik sipariş yok.", href: null },
+  { order: 2, emoji: "🛒", title: "Sepet", accent: "#f59e0b", status: "v0 · Taslak", tone: "preparing", text: "Karar sepeti — sponsor etiketi zorunlu.", href: "/sepet" },
+  { order: 3, emoji: "💳", title: "Pay", accent: "#22c55e", status: "Review-only", tone: "preparing", text: "Onay kapısı — ödeme yürütülmez.", href: "/pay-katman" },
+  { order: 4, emoji: "🏦", title: "Banka", accent: "#c9a227", status: "Planlı", tone: "planned", text: "Orkestrasyon vizyonu — karar bankada.", href: "/banka-katman" },
+];
+---
+
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ticari aile — We Lock AI · Lumos</title>
+  <meta name="description" content="Sepet, Pay, Banka katmanları — kullanıcı lehine ticari mimari." />
+  <link rel="canonical" href="https://welockai.com/ticari-aile" />
+  <style>
+    body { margin:0; font-family:system-ui,sans-serif; background:#030714; color:#e9eef5; line-height:1.65; }
+    a { color:#38ceff; }
+    .wrap { max-width:56rem; margin:0 auto; padding:1.5rem 1.25rem 3rem; text-align:center; }
+    .identity { color:#86efac; font-style:italic; margin:1rem 0; }
+    .arch { color:#9aa8bc; max-width:36rem; margin:0 auto 2rem; font-size:.95rem; }
+    .stack { display:flex; flex-direction:column; align-items:center; gap:0; margin:2rem 0; }
+    .layer { width:min(100%,28rem); text-align:left; padding:1.25rem 1.5rem; border-radius:16px; border:1px solid #2a3548; background:linear-gradient(145deg,#0f1420,#141820); }
+    .layer h2 { margin:.35rem 0 .5rem; font-size:1.1rem; }
+    .layer p { margin:0; color:#9aa8bc; font-size:.9rem; }
+    .layer a.demo { display:inline-block; margin-top:.75rem; font-size:.82rem; }
+    .badge { display:inline-block; margin-top:.6rem; font-size:.68rem; font-weight:600; padding:3px 10px; border-radius:999px; border:1px solid; }
+    .ready { color:#34d399; border-color:rgb(52 211 153/.4); background:rgb(52 211 153/.1); }
+    .preparing { color:#2dd4bf; border-color:rgb(45 212 191/.4); background:rgb(45 212 191/.1); }
+    .planned { color:#fbbf24; border-color:rgb(251 191 36/.4); background:rgb(251 191 36/.1); }
+    .arrow { color:#4a5568; padding:.3rem 0; }
+    .nav { display:flex; flex-wrap:wrap; gap:.5rem; justify-content:center; margin:1.5rem 0; }
+    .nav a { padding:.5rem 1rem; border-radius:999px; border:1px solid #2a3548; text-decoration:none; color:#e9eef5; font-size:.85rem; }
+    .note { border:1px solid rgb(212 168 75/.35); border-radius:12px; padding:1rem; color:#c9a227; background:rgb(212 168 75/.06); font-size:.88rem; margin-top:2rem; }
+    .layer-num { font-size:.7rem; text-transform:uppercase; letter-spacing:.08em; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav style="text-align:left;margin-bottom:1rem;font-size:.88rem">
+      <a href="/">← welockai.com</a> · <a href="/ticari-aile">Ticari aile</a> · <a href="/baglanti-aktivasyonlari">Bağlantı</a>
+    </nav>
+    <h1>Ticari aile</h1>
+    <p class="identity">{IDENTITY}</p>
+    <p class="arch">{ARCH}</p>
+    <div class="nav">
+      <a href="/sepet">Sepet</a>
+      <a href="/pay-katman">Pay</a>
+      <a href="/banka-katman">Banka</a>
+    </div>
+    <div class="stack">
+      {LAYERS.map((layer, i) => (
+        <div>
+          {i > 0 ? <div class="arrow">↓</div> : null}
+          <article class="layer">
+            <div class="layer-num" style={`color:${layer.accent}`}>Katman {layer.order}</div>
+            <h2>{layer.emoji} {layer.title}</h2>
+            <p>{layer.text}</p>
+            <span class={`badge ${layer.tone}`}>{layer.status}</span>
+            {layer.href ? <div><a class="demo" href={layer.href}>Katman sayfası →</a></div> : null}
+          </article>
+        </div>
+      ))}
+    </div>
+    <p class="note">Sunum metni — canlı ödeme/banka taahhüdü değil. Güncelleme: {UPDATED}</p>
+  </div>
+</body>
+</html>
