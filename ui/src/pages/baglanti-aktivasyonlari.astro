@@ -1,0 +1,33 @@
+---
+const UPDATED = "2026-07-28";
+const BODY = "# Lumos Bağlantı Aktivasyonları\n\n> **Durum:** v0 — mümkün olan adımlar sırayla devreye alınır; her adım sonrası **farklı bir güvenlik ekseni** çapraz test edilir. Evrensel tek kalıp yok.  \n> **Güncelleme:** 2026-07-12  \n> **Kaynak konfig:** `config/connectivity/activation_pipeline.json`\n\n---\n\n## Özet (site)\n\nLumos bağlantı katmanı ilke olarak uydu, karasal internet, offline ve mağaza bağımsız yüzeyleri kapsar. **Bugün çalışan v0** adımları env simülasyonu, yüzey kataloğu, kontrollü senkron kuyruğu ve readiness raporudur — canlı operatör/uydu API taahhüdü değildir.\n\n**Komut:** `make connectivity-activate` · **Web:** `/connectivity/ui` · **welockai:** `/baglanti-aktivasyonlari`\n\n---\n\n## Aktivasyon adımları\n\n### 1 · Yerel taban (`local_baseline`)\n\n| | |\n|---|---|\n| **Site** | Cihazda omurga: internet yokken bile temel işlevler yerelde sürer. Uydu ve karasal hat kapalı varsayılır. |\n| **GitHub** | `LUMOS_ACCESS_LAYER=local`, tüm `*_AVAILABLE=0`. Düşük bant profili; erişim katmanı çözümlemesi offline tabanı doğrular. |\n| **Güvenlik ekseni** | **Opt-in kapısı** — uydu hattı kullanıcı onayı olmadan devreye girmemeli. |\n| **Durum** | v0 aktif |\n\n### 2 · Karasal internet (`terrestrial_up`)\n\n| | |\n|---|---|\n| **Site** | Normal internet varken tam bant profili; karasal katman tercih edilen yol. Uydu hâlâ kapalı. |\n| **GitHub** | `LUMOS_TERRESTRIAL_AVAILABLE=1`, `LUMOS_ACCESS_LAYER=auto` → `active_layer=terrestrial`, `bandwidth_profile=full`. |\n| **Güvenlik ekseni** | **Otomatik yürütme yasağı** — yetki katmanında `auto` eylem kapalı; bağlantı açılsa bile sistem kendi başına dış aksiyon almaz. |\n| **Durum** | v0 aktif |\n\n### 3 · Yüzey kataloğu (`surfaces_catalog`)\n\n| | |\n|---|---|\n| **Site** | iOS, Android, Web, masaüstü ve bölgesel alternatifler tek listede; mağaza veya ülke engeli yüzey değiştirmez, fallback gösterilir. |\n| **GitHub** | `ConnectivityLayer.surfaces()` — katalogdan 5 yüzey + bölgesel paket önerisi; dağıtım durumu `scaffold` / `live` ayrımı. |\n| **Güvenlik ekseni** | **Platform izolasyonu** — bir platformdaki blok diğer yüzeyi kilitleyemez; çapraz platform engelleme tasarım hatası sayılır. |\n| **Durum** | v0 aktif (katalog + API) |\n\n### 4 · Uydu — onaylı (`satellite_opt_in`)\n\n| | |\n|---|---|\n| **Site** | Son erişim katmanı: karasal yokken, kullanıcı açıkça onayladığında düşük bantta devreye girer. Otomatik uydu bağlantısı yok. |\n| **GitHub** | `LUMOS_SATELLITE_AVAILABLE=1`, `LUMOS_SATELLITE_OPT_IN=1`, karasal kapalı → `active_layer=satellite`, `bandwidth_profile=low`. |\n| **Güvenlik ekseni** | **Delegasyon yürütme bloku** — onaysız dış yürütme (ör. LinkedIn gönderimi) mesaj kapısında durur. |\n| **Durum** | v0 stub (env simülasyonu) |\n| **İlke** | `docs/product/uydu-erisim-ilkesi.md` |\n\n### 5 · Kontrollü senkron (`sync_controlled`)\n\n| | |\n|---|---|\n| **Site** | Bağlantı geri gelince veri kuyruğa alınır; kullanıcı önizler ve onaylamadan yükleme yapılmaz. Acil/kritik kalemler ayrı işaretlenir. |\n| **GitHub** | `sync_demo` aksiyonu — metin + büyük medya + acil kuyruk; `sync_preview()` → `requires_user_approval=true`. |\n| **Güvenlik ekseni** | **Senkron onay kapısı** — önizleme kullanıcı onayı olmadan tamamlanmış sayılmaz. |\n| **Durum** | v0 aktif |\n\n### 6 · Readiness yığını (`readiness_stack`)\n\n| | |\n|---|---|\n| **Site** | Tüm katmanların anlık durumu, uydu otomatik bağlanmıyor bilgisi, bekleyen senkron sayısı ve yüzey sayısı tek raporda. |\n| **GitHub** | `readiness()` — access + bandwidth + sync_queue_pending + surfaces_count + `satellite_auto_connect=false` şeffaflığı. |\n| **Güvenlik ekseni** | **Sohbet otomatik gönderim bloku** — otomatik gönderim sohbet servisinde engellenir. |\n| **Durum** | v0 aktif |\n\n---\n\n## Güvenlik eksenleri (dönen çapraz test)\n\nHer adımda **yalnızca bir** eksen koşulur; adımlar arasında tekrar eden kalıp yoktur.\n\n| Eksen | Adım | Ne doğrulanır |\n|-------|------|----------------|\n| `opt_in_gate` | Yerel taban | Uydu opt-in olmadan son katman açılmaz |\n| `authority_auto_forbidden` | Karasal | Yetki katmanı auto yürütmeyi reddeder |\n| `platform_isolation` | Yüzeyler | Çapraz platform blok yasağı |\n| `delegation_execute_block` | Uydu | Onaysız dış yürütme mesaj kapısında durur |\n| `sync_approval_gate` | Senkron | Önizleme onay ister |\n| `chat_auto_block` | Readiness | Otomatik sohbet gönderimi bloklanır |\n\nKonfig: `config/connectivity/security_cross_axes.json`\n\n---\n\n## Nasıl çalıştırılır\n\n```bash\nmake connectivity-activate\npython3 scripts/connectivity_activate.py list\npython3 scripts/connectivity_activate.py run\npython3 scripts/connectivity_activate.py run --step satellite_opt_in\nlumos connectivity activate run\n```\n\n---\n\n## İlgili ilkeler\n\n- `docs/product/uydu-erisim-ilkesi.md`\n- `docs/product/kuresel-erisim-ilkesi.md`\n- `docs/connectivity/connectivity-v0.md`\n";
+---
+
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bağlantı Aktivasyonları — We Lock AI · Lumos</title>
+  <meta name="description" content="Bağlantı katmanı v0: yerel taban, karasal, yüzeyler, onaylı uydu, kontrollü senkron — her adımda farklı güvenlik kontrolü." />
+  <link rel="canonical" href="https://welockai.com/baglanti-aktivasyonlari" />
+  <style>
+    body { margin:0; font-family:system-ui,sans-serif; background:#030714; color:#e9eef5; line-height:1.65; }
+    a { color:#38ceff; }
+    .wrap { max-width:52rem; margin:0 auto; padding:1.5rem 1.25rem 3rem; }
+    .tagline { font-size:clamp(1rem,2.5vw,1.25rem); font-weight:600; line-height:1.4; color:#d4a84b; margin:1rem 0 0.75rem; }
+    .note { border:1px solid rgb(212 168 75 / 0.35); border-radius:12px; padding:1rem; margin:1rem 0; color:#c9a227; background:rgb(212 168 75 / 0.06); font-size:0.9rem; }
+    pre { white-space:pre-wrap; font-size:0.9rem; color:#d4dae8; }
+    h1 { font-size:1.45rem; line-height:1.25; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav><a href="/">← welockai.com</a> · <a href="/pay-kontrol">Pay</a> · <a href="/banka-orkestrasyon">Banka</a> · <a href="/kararlar">Kararlar</a></nav>
+    <h1>Bağlantı Aktivasyonları</h1>
+    <p class="tagline">Bağlantı katmanı v0: yerel taban, karasal, yüzeyler, onaylı uydu, kontrollü senkron — her adımda farklı güvenlik kontrolü.</p>
+    <p class="note">v0 çalışma durumu — canlı uydu/operatör API taahhüdü değil. Gövde yayın anında gömüldü; tarayıcı private repo fetch yapmaz.</p>
+    <p>Güncelleme: {UPDATED} · gömülü statik metin</p>
+    <pre id="body">{BODY}</pre>
+  </div>
+</body>
+</html>

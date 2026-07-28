@@ -1,0 +1,33 @@
+---
+const UPDATED = "2026-07-28";
+const BODY = "# Paran senin. Karar senin. — Lumos Pay ve onay kapısı\n\n> **Durum:** Tasarım / dış iletişim metni — canlı ödeme taahhüdü değil.  \n> **Güncelleme:** 2026-07-12  \n> **Ton:** *designing* · *building* — bitmiş ürün iddiası yok.  \n> **Site:** https://welockai.com/pay-kontrol\n\n---\n\n## LinkedIn için kısa özet (ilk paragraf)\n\nYapay zekâ asistanları giderek «tek tıkla al» baskısına yaklaşıyor. Ben **Lumos** içinde farklı bir çizgi *tasarlıyorum*: **Paran senin. Karar senin.** Lumos arada sadece kapı — komisyon avcısı değil, korumacı.\n\nLumos Pay bir ödeme sistemi değil; sepetten bankaya giden yolda **onayı görünür tutan** inceleme katmanı. v0’da kart, checkout veya canlı API yok — ama mimari net: kullanıcı onayı olmadan para hareketi yok.\n\nDetay: https://welockai.com/pay-kontrol · Banka orkestrasyon vizyonu: https://welockai.com/banka-orkestrasyon\n\n---\n\n## Makale gövdesi (LinkedIn’de yayınlanacak)\n\n### Sorun: «Tamamdır efendim» ile harcama\n\nÇoğu ticari asistan şunu ima eder: *Hızlan, düşünme, ben hallederim.*\n\nPara söz konusu olunca bu cümle tehlikeli:\n\n- Gizli ücret veya abonelik yenilemesi fark edilmeden geçer.\n- Sponsorlu «en iyi teklif» etiketsiz sunulur.\n- Kullanıcı adına sessiz işlem yapılır.\n\nEski reklamlardaki «paramın kontrolü bende» cümlesi manipülasyon içindi. Lumos’ta aynı kelimeleri **tersine** kullanıyoruz: kontrol gerçekten sende kalacaksa, asistan arada **yetkisiz geçiş** yapamaz.\n\n### Lumos Pay ne?\n\nLumos Pay, parayı tutmaz veya yönlendirmez. Şunu yapar:\n\n1. Sepet / işlem özetini okunur biçimde sunar.\n2. Fiyat, alternatif, risk ve sponsor etiketini görünür kılar.\n3. Onay kaydını tutar.\n4. Yalnızca onay sonrası — ileride — banka / kart / Apple Pay gibi yürütücüye iletir.\n\n**Mimari:** Lumos ödeme ağ geçidi değil; **akıllı karar katmanı**.\n\n```\nHayal et → Lumos araştırır → Sepet → Koruma (fiyat · risk · sponsor)\n    → Sen onaylarsın → Lumos Pay (inceleme) → Banka / kart / …\n```\n\nv0 sınırı dürüstçe söylenmeli: **review-only stub** — ödeme yürütülmez. Bu bir eksiklik değil; güven inşa etmeden önce «canlı» dememek bilinçli tercih.\n\n### Tek çekirdek, çok yüzey\n\nPay tek başına bir eklenti değil. Aynı omurgayı banka orkestrasyon vizyonunda da anlatıyoruz:\n\n- Hiçbir alt ajan doğrudan yetkili değil.\n- Her adım **AuthorityGate**’ten geçer.\n- Karar bankada / kullanıcıda; Lumos iz, politika ve onay uygular.\n\nBanka metni: https://welockai.com/banka-orkestrasyon\n\n### Ne yapmıyoruz?\n\n| ❌ | ✅ |\n|---|---|\n| Kullanıcı adına sessiz ödeme | Açık onay akışı |\n| «Tek tıkla al» baskısı | Özet burada, onay sende |\n| Gizli komisyon | Şeffaf uyarı |\n| Bitmiş fintech iddiası | Test-backed, erken aşama |\n\n### Neden şimdi yazıyorum?\n\nHenüz TestFlight v0, henüz canlı Pay — ama **sınır çizgisini erken netleştirmek** güven inşasının parçası. *Earn trust through engineering rather than appearance* — görünüş değil, mühendislik.\n\nRepoda: onay testleri, Pay stub, sepet ilkeleri. Dışarıda: *designing* approval flows for money — not security theater.\n\n---\n\n## LinkedIn yayın notları\n\n**Önerilen başlık:** Paran senin. Karar senin. — Yapay zekâda ödeme onayını *tasarlıyorum*\n\n**Hashtag (3–5):** `#AI` `#Fintech` `#ProductDesign` `#Trust` `#BuildingInPublic`\n\n**İlk yorum (isteğe bağlı):**  \nTeknik kaynak ve v0 sınırları: https://welockai.com/pay-kontrol · GitHub: https://github.com/candasoz01-cmd/Lumos\n\n**Ton kontrolü:** `make check-dis-iletisim` — bitmiş ürün fiili kullanma; *building* / *designing* tercih et.\n\n**EN kısa versiyon (headline hook):**  \nDesigning Lumos Pay — not a payment processor, an approval gate. Your money, your decision. Early stage · test-backed · not security theater.\n\n---\n\n## İlgili dokümanlar (repo)\n\n| Konu | Yol |\n|------|-----|\n| Pay v0 ilkeleri | `docs/pay/pay-v0.md` |\n| Banka orkestrasyon | `docs/commerce/lumos-bank-orkestrasyon-makale.md` |\n| Ton kuralları | `docs/ops/dis-iletisim/ton-kurallari.md` |\n| Onay / yetki | `docs/authority/guvenlik-v0.md` |\n";
+---
+
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pay · Kontrol sende — We Lock AI · Lumos</title>
+  <meta name="description" content="Paran senin. Karar senin. Lumos arada sadece kapı — komisyon değil, korumacı." />
+  <link rel="canonical" href="https://welockai.com/pay-kontrol" />
+  <style>
+    body { margin:0; font-family:system-ui,sans-serif; background:#030714; color:#e9eef5; line-height:1.65; }
+    a { color:#38ceff; }
+    .wrap { max-width:52rem; margin:0 auto; padding:1.5rem 1.25rem 3rem; }
+    .tagline { font-size:clamp(1rem,2.5vw,1.25rem); font-weight:600; line-height:1.4; color:#d4a84b; margin:1rem 0 0.75rem; }
+    .note { border:1px solid rgb(212 168 75 / 0.35); border-radius:12px; padding:1rem; margin:1rem 0; color:#c9a227; background:rgb(212 168 75 / 0.06); font-size:0.9rem; }
+    pre { white-space:pre-wrap; font-size:0.9rem; color:#d4dae8; }
+    h1 { font-size:1.45rem; line-height:1.25; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav><a href="/">← welockai.com</a> · <a href="/banka-orkestrasyon">Banka orkestrasyonu</a> · <a href="/kararlar">Kararlar</a></nav>
+    <h1>Pay · Kontrol sende</h1>
+    <p class="tagline">Paran senin. Karar senin. Lumos arada sadece kapı — komisyon değil, korumacı.</p>
+    <p class="note">Tasarım metni — canlı ödeme taahhüdü değil. Gövde yayın anında gömüldü; tarayıcı private repo fetch yapmaz.</p>
+    <p>Güncelleme: {UPDATED} · gömülü statik metin</p>
+    <pre id="body">{BODY}</pre>
+  </div>
+</body>
+</html>

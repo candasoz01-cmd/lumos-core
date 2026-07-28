@@ -1,0 +1,109 @@
+---
+const UPDATED = "2026-07-13";
+---
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kurumlar — Lumos giriş yolları</title>
+  <meta name="description" content="Şirket, kamu, üniversite, STK ve araştırma merkezleri için ayrı kurumsal giriş yolları. Hesap açılmaz; önce niyet alınır." />
+  <link rel="canonical" href="https://welockai.com/institutions" />
+  <link rel="stylesheet" href="/magazine-chrome.css" />
+</head>
+<body class="magazine-page">
+  <nav class="magazine-nav" aria-label="Lumos Dünya">
+    <div class="magazine-nav__bar">
+      <a class="magazine-nav__brand" href="/">Lumos</a>
+      <ul class="magazine-nav__list">
+        <li><a class="magazine-nav__link" href="/">Ana sayfa</a></li>
+        <li><a class="magazine-nav__link" href="/world">Dünya</a></li>
+        <li><a class="magazine-nav__link magazine-nav__link--active" href="/institutions">Kurumlar</a></li>
+        <li><a class="magazine-nav__link" href="/marketplace">Ortak Pazar</a></li>
+        <li><a class="magazine-nav__link" href="/lab">Lab</a></li>
+        <li><a class="magazine-nav__link" href="/education">Eğitim</a></li>
+        <li><a class="magazine-nav__link" href="/trust">Güven</a></li>
+              <li><a class="magazine-nav__link" href="/help">Yardım</a></li>
+      </ul>
+    </div>
+  </nav>
+  <header class="magazine-page-hero" style="background:linear-gradient(145deg,#102029,#243843);">
+    <div class="magazine-page-hero__copy">
+      <p class="magazine-kicker" style="color:#9fdad4">KURUMLAR</p>
+      <h1>Her kuruluş kendi kimliğiyle</h1>
+      <p>Ortak teknoloji zemini; her kurumun yetki, marka ve sorumluluk sınırlarını koruyarak.</p>
+    </div>
+  </header>
+  <main class="magazine-main">
+    <section class="magazine-section">
+      <h2>Giriş yolları</h2>
+      <p class="magazine-lead">Tek formla herkesi aynı kalıba sokmayız. Kuruluş türüne göre beklenti, doğrulama ve erişim farklılaşır.</p>
+      <ul class="magazine-pathway-list">
+        <li class="magazine-pathway"><h3>Şirket</h3><p>Operasyon, güvenlik ve entegrasyon ihtiyaçları için kontrollü hizmet yolları.</p></li>
+        <li class="magazine-pathway"><h3>Kamu kurumu</h3><p>Şeffaflık, denetim izi ve yetki kapsamı önce; yazma/müdahale ancak talep ve sözleşme ile.</p></li>
+        <li class="magazine-pathway"><h3>Üniversite</h3><p>Araştırma, eğitim ve lab iş birlikleri için akademik giriş.</p></li>
+        <li class="magazine-pathway"><h3>STK</h3><p>Toplum yararı odaklı programlar; veri minimizasyonu ve açık onay.</p></li>
+        <li class="magazine-pathway"><h3>Araştırma merkezi</h3><p>Deney, yayın ve ölçülebilir kanıt ortaklıkları — üretim iddiası değildir.</p></li>
+      </ul>
+    </section>
+    <section class="magazine-section">
+      <h2>Başvuru niyeti</h2>
+      <p class="magazine-lead">Bu aşama «çalışan kayıt» değildir. Niyet ve kuruluş türü alınır; hesap, belge ve sunucu saklama sonra gelir.</p>
+      <form class="magazine-form" id="institution-intent-form" novalidate>
+        <p class="magazine-note">Bu form hesap açmaz. Yalnızca başvuru niyeti ve kuruluş türünü alır. Kimlik doğrulama, belge kontrolü ve veri saklama sonra etkinleşir.</p>
+        <label>Kuruluş adı<input type="text" name="organization" required maxlength="120" autocomplete="organization" /></label>
+        <label>Kuruluş türü
+          <select name="org_type" required>
+            <option value="">Seçin</option>
+            <option value="company">Şirket</option>
+            <option value="public">Kamu kurumu</option>
+            <option value="university">Üniversite</option>
+            <option value="ngo">STK</option>
+            <option value="research">Araştırma merkezi</option>
+          </select>
+        </label>
+        <label>İletişim e-postası<input type="email" name="contact_email" required maxlength="160" autocomplete="email" /></label>
+        <label>Başvuru niyeti (kısa)<textarea name="intent" required maxlength="600" rows="4"></textarea></label>
+        <div class="magazine-cta-row">
+          <button type="submit" class="magazine-btn magazine-btn--primary">Niyeti kaydet (yerel)</button>
+          <p class="magazine-form__status" id="institution-intent-status" role="status" aria-live="polite"></p>
+        </div>
+      </form>
+      <p class="magazine-note">Güncelleme: {UPDATED}</p>
+    </section>
+  </main>
+  <footer class="magazine-footer"><div class="magazine-footer__inner"><p class="magazine-footer__meta">Lumos Dünya · welockai.com</p></div></footer>
+  <script is:inline>
+    (function () {
+      var form = document.getElementById("institution-intent-form");
+      var statusEl = document.getElementById("institution-intent-status");
+      if (!form || !statusEl) return;
+      form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        var data = new FormData(form);
+        var organization = String(data.get("organization") || "").trim();
+        var orgType = String(data.get("org_type") || "").trim();
+        var contact = String(data.get("contact_email") || "").trim();
+        var intent = String(data.get("intent") || "").trim();
+        if (!organization || !orgType || !contact || !intent) {
+          statusEl.dataset.state = "err";
+          statusEl.textContent = "Lütfen tüm alanları doldurun.";
+          return;
+        }
+        var payload = {
+          phase: "intent_only",
+          organization: organization,
+          org_type: orgType,
+          contact_email: contact,
+          intent: intent,
+          captured_at: new Date().toISOString(),
+          note: "local_browser_only_no_account_no_server_persist",
+        };
+        try { window.localStorage.setItem("lumos_institution_intent_v0", JSON.stringify(payload)); } catch (_e) {}
+        statusEl.dataset.state = "ok";
+        statusEl.textContent = "Niyet bu tarayıcıda yerel olarak not edildi. Hesap açılmadı; sunucuya kayıt yapılmadı.";
+        form.reset();
+      });
+    })();
+  </script>
+</body>
+</html>

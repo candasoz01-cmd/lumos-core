@@ -1,0 +1,48 @@
+---
+const UPDATED = "2026-07-13";
+const PRINCIPLE = "Lumos'ta devlet yok, hizmet var. Aynı geleceğe bakan insanlar bir arada; kim neyi istiyorsa son karar kullanıcıdadır. Ülkesel faaliyetler büyük farklılık gösterir.";
+---
+
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lumos Dünya — küresel tanışma katmanı</title>
+  <meta name="description" content={PRINCIPLE} />
+  <link rel="canonical" href="https://welockai.com/lumos-dunya" />
+  <style>
+    body { margin:0; font-family:system-ui,sans-serif; background:#030714; color:#e9eef5; line-height:1.65; }
+    a { color:#38ceff; }
+    .wrap { max-width:52rem; margin:0 auto; padding:1.5rem 1.25rem 3rem; }
+    .hero { text-align:center; margin-bottom:2rem; }
+    .tagline { color:#60a5fa; font-weight:600; font-size:1.1rem; margin:1rem 0; }
+    .card { border:1px solid rgb(59 130 246 / 0.35); border-radius:16px; padding:1.5rem; background:linear-gradient(145deg,#0a1020,#0f1428); margin:1rem 0; }
+    .badge { display:inline-block; font-size:.72rem; font-weight:600; padding:4px 10px; border-radius:999px; color:#93c5fd; border:1px solid rgb(59 130 246/.35); }
+    ul { color:#9aa8bc; line-height:1.75; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin:1.5rem 0; }
+    @media(max-width:560px){ .grid { grid-template-columns:1fr; } }
+    .box { border:1px solid #2a3548; border-radius:12px; padding:1rem; background:#0f1420; }
+    .box h3 { margin:0 0 .5rem; font-size:.95rem; }
+    .note { border:1px solid rgb(212 168 75/.35); border-radius:12px; padding:1rem; color:#c9a227; background:rgb(212 168 75/.06); font-size:.88rem; margin-top:1.5rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav><a href="/">← welockai.com</a> · <a href="/ticari-aile">Ticari aile</a></nav>
+    <div class="hero">
+      <h1>Lumos Dünya</h1>
+      <p class="tagline">{PRINCIPLE}</p>
+      <span class="badge">Planlı · Küresel tanışma — yalnızca hizmet</span>
+      <p style="margin-top:1rem"><a href="/world">Yeni dergi kapağı → /world</a></p>
+    </div>
+    <div class="card">
+      <p style="margin:0;color:#9aa8bc">Lumos Bank, Lumos Sepet ve Lumos POS <strong style="color:#e9eef5">ticari kuruluş birimleri</strong>dir. Lumos Dünya bunlardan ayrıdır: <strong style="color:#e9eef5">yalnızca hizmet</strong>, son karar kullanıcıda, ülkesel faaliyetler doğal olarak farklılaşır.</p>
+    </div>
+    <div class="grid">
+      <div class="box"><h3>✅ Yapılır</h3><ul><li>Yalnızca hizmet sunumu</li><li>Son karar kullanıcıda</li><li>Bölgesel tercih profili</li><li>Şeffaf kayıt</li><li>İsteğe bağlı adımlar</li></ul></div>
+      <div class="box"><h3>❌ v0 yapmaz</h3><ul><li>Düzen veya yönetim yerine geçmek</li><li>Otomatik resmi işlem</li><li>Merkezi veri toplama</li><li>Tek kalıp dayatma</li></ul></div>
+    </div>
+    <p class="note">Kaynak: Lumos repo <code>docs/commerce/lumos-dunya.md</code>. Güncelleme: {UPDATED}</p>
+  </div>
+</body>
+</html>
