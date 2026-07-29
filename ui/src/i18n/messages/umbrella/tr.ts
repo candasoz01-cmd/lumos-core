@@ -316,13 +316,14 @@ const umbrellaTr = {
   integrationGuide: {
     metaTitle: "Lumos entegrasyon kolaylığı ve güvenliği — We Lock AI",
     metaDescription:
-      "Lumos'un 24 popüler uygulama ve cihaz bağlantısında sağladığı kolaylıklar, güvenlik sınırları ve gerçek destek durumları.",
+      "Lumos bağlantı kataloğunun kategori, kapsam ve doğrulanmış destek durumlarıyla tek rehber görünümü.",
     eyebrow: "WE LOCK AI · LUMOS BAĞLANTILARI",
     title: "Bağlantı kolaylığı, görünür güvenlik",
     lead:
       "Lumos, uygulama ve cihaz bağlamını tek yerde toplarken her bağlantının yetkisini ve gerçek durumunu görünür tutar.",
     honestyTitle: "Katalog kaydı, canlı bağlantı değildir.",
-    honestyBody: "Her kartta sağlanan kolaylık, güvenlik sınırı ve mevcut destek seviyesi ayrı gösterilir.",
+    honestyBody:
+      "Rehber global katalog kimliklerini temel alır; özel Gmail ve Google yüzeyleri ayrıca işaretlenir.",
     beforeAfterTitle: "Önce / sonra",
     beforeTitle: "Önce",
     beforeBody: "Hesap, izin ve senkron durumu farklı ekranlara dağılır. Sekmeler arasında küçük bir dünya turu başlar.",
@@ -331,7 +332,8 @@ const umbrellaTr = {
     readyTitle: "Bugün gerçekten hazır",
     readyBody: "WhatsApp ve Telegram bağlantı kontrolü yapabilir. GitHub ve OpenAI public temel; Gmail Dar v1, Bluetooth ise yerel keşif düzeyindedir.",
     nextTitle: "Sırada",
-    nextBody: "Planned ve catalog araçlarda canlı OAuth, webhook veya senkron adaptörü ayrıca tamamlanır ve test edilir.",
+    nextBody:
+      "Katalog, planlanan ve yapılandırma gerekli durumları canlı bağlantı sayılmaz; OAuth, webhook veya senkron adaptörü ayrıca tamamlanır ve test edilir.",
     principlesTitle: "Ortak ilkeler",
     principleDetectTitle: "Gerçek sinyal",
     principleDetectBody: "Hesap veya cihaz yalnızca doğrulanabilir keşif sinyaliyle “tespit edildi” sayılır.",
@@ -341,8 +343,9 @@ const umbrellaTr = {
     principleCostBody: "Yerel ve mevcut hesap yolu önce; ücretli seçenek yalnızca canlı fiyat doğrulamasıyla önerilir.",
     principleSecretTitle: "Secret ve ödeme ayrımı",
     principleSecretBody: "Token, parola ve kart UI'da tutulmaz; entegrasyon onayı ödeme yetkisine dönüşmez.",
-    connectionsTitle: "24 uygulama ve cihaz",
-    connectionsLead: "Farklı alanlardan popüler bağlantılar; kolaylık, güvenlik ve dürüst durum bilgisiyle.",
+    connectionsTitle: "bağlantı yüzeyi",
+    connectionCountLabel: "bağlantı",
+    connectionsLead: "Sağlayıcılar ülkeye göre ayrıştırılmadan, yaptıkları işe göre gruplanır.",
     benefitLabel: "Lumos kolaylığı",
     securityLabel: "Güvenlik sınırı",
     brandNotice:
@@ -353,9 +356,9 @@ const umbrellaTr = {
       development: "Geliştirme",
       productivity: "Verimlilik",
       communication: "İletişim",
-      regional: "Bölgesel",
+      social: "Sosyal",
       browser: "Tarayıcı",
-      ai: "Yapay zekâ",
+      ai: "AI altyapısı",
       device: "Cihaz",
     },
     statuses: {
@@ -363,6 +366,7 @@ const umbrellaTr = {
       limited: "Dar v1",
       planned: "Planlandı",
       connectionCheck: "Bağlantı kontrolü",
+      configurationRequired: "Yapılandırma gerekli",
       catalog: "Katalog",
       localDiscovery: "Yerel keşif",
     },
@@ -407,6 +411,26 @@ const umbrellaTr = {
         benefit: "Güney Kore'deki servis içi iletişimi ve kullanıcı onaylı mesaj akışlarını birleştirir.",
         security: "Kakao Login consent korunur; arkadaş mesajları servis içi sınır ve ek izin gerektirir.",
       },
+      wechat: {
+        benefit: "WeChat resmî hesap ve mini program bağlamını Lumos görev akışına taşımaya hazırlanır.",
+        security: "Uygulama kimliği ve resmî hesap yetkisi olmadan bağlantı kurulmuş sayılmaz; gönderme ayrıca onay ister.",
+      },
+      lark: {
+        benefit: "Lark / Feishu mesaj, belge ve takvim bağlamını ortak çalışma görünümünde toplar.",
+        security: "Katalog kaydı ve uygulama temeli vardır; tenant kimliği ve dar yetkiler tanımlanmadan senkron başlamaz.",
+      },
+      dingtalk: {
+        benefit: "DingTalk mesaj, belge ve takvim akışlarını görev bağlamına bağlamaya hazırlanır.",
+        security: "Uygulama yapılandırması ve kurum onayı gerekir; otomatik senkron kapalıdır.",
+      },
+      naverWorks: {
+        benefit: "NAVER WORKS mesaj, takvim ve kişi bağlamını Kore ve Japonya çalışma akışlarına taşır.",
+        security: "Katalog düzeyindedir; OAuth, kurum kapsamı ve canlı doğrulama tamamlanmadan bağlantı iddiası kurulmaz.",
+      },
+      jioMeet: {
+        benefit: "JioMeet toplantı bağlamını Hindistan odaklı çalışma akışlarında görünür kılar.",
+        security: "Partner API erişimi katalog düzeyindedir; toplantı başlatma veya kayıt erişimi uygulanmış değildir.",
+      },
       microsoftTeams: {
         benefit: "Mesaj, toplantı ve takvim bağlamını iş görevleriyle birleştirir.",
         security: "Graph scope'ları dar tutulur; tenant politikası görünürdür; gönderme ayrı onay ister.",
@@ -431,6 +455,14 @@ const umbrellaTr = {
         benefit: "Apple cihazlarında seçilen web bağlamını Lumos ile paylaşır.",
         security: "Site izni görünürdür; yalnızca seçilmiş sayfa kullanılır; Keychain'e doğrudan erişilmez.",
       },
+      yandexBrowser: {
+        benefit: "Yandex Browser sekme ve seçili sayfa bağlamını tarayıcıdan bağımsız çalışma modeline dahil eder.",
+        security: "Chromium uzantı yolu yalnız katalog düzeyindedir; cookie, parola veya sayfa verisi okunmaz.",
+      },
+      vk: {
+        benefit: "VK topluluk, mesaj ve içerik bağlamını Rusya ve BDT kullanım senaryolarında görünür kılar.",
+        security: "Katalog kaydı canlı sosyal bağlantı değildir; okuma ve yayınlama ayrı OAuth kapsamı ve onay gerektirir.",
+      },
       openai: {
         benefit: "Metin, görsel ve araç kullanımını Lumos görev ve karar katmanında birleştirir.",
         security: "API anahtarı sunucu tarafındadır; araç çağrıları politika kapısından geçer; veri minimize edilir.",
@@ -442,6 +474,18 @@ const umbrellaTr = {
       deepseek: {
         benefit: "Bölgesel model çeşitliliği ve alternatif akıl yürütme seçeneği sağlar.",
         security: "Sağlayıcı ve veri bölgesi gösterilir; hassas görevler politikaya göre başka yola yönlendirilir.",
+      },
+      qwen: {
+        benefit: "Çin ve küresel kullanım için çok modlu alternatif AI altyapısını katalogda görünür kılar.",
+        security: "Model bağlantısı katalog düzeyindedir; veri bölgesi ve anahtar yapılandırması olmadan canlı kullanım yoktur.",
+      },
+      yandexGpt: {
+        benefit: "Rusça dil kapsamı için YandexGPT seçeneğini sağlayıcı bağımsız AI kataloğunda gösterir.",
+        security: "Yalnız katalog kaydıdır; API anahtarı, veri bölgesi ve politika değerlendirmesi tamamlanmadan kullanılmaz.",
+      },
+      hyperClova: {
+        benefit: "Korece dil kapsamı için HyperCLOVA X seçeneğini AI altyapı kataloğuna ekler.",
+        security: "Yalnız katalog düzeyindedir; canlı istek, anahtar veya veri aktarımı yapılmaz.",
       },
       bluetoothAudio: {
         benefit: "Kulaklık, hoparlör ve mikrofonu Classic Audio veya LE Audio yetenekleriyle tanır.",

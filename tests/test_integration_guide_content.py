@@ -10,14 +10,22 @@ TR = ROOT / "ui/src/i18n/messages/umbrella/tr.ts"
 EN = ROOT / "ui/src/i18n/messages/umbrella/en.ts"
 
 
-def test_guide_has_at_least_twenty_cross_category_connections():
+def test_guide_has_global_catalog_projection_across_functional_categories():
     text = DATA.read_text(encoding="utf-8")
-    ids = re.findall(r'\{ id: "([^"]+)"', text)
+    ids = re.findall(r'\{\s+id: "([^"]+)"', text)
     categories = set(re.findall(r'category: "([^"]+)"', text))
 
-    assert len(ids) >= 20
+    assert len(ids) >= 30
     assert len(ids) == len(set(ids))
-    assert {"development", "productivity", "communication", "regional", "browser", "ai", "device"} <= categories
+    assert {"development", "productivity", "communication", "social", "browser", "ai", "device"} <= categories
+    assert 'category: "regional"' not in text
+    assert 'catalogId: "lark"' in text
+    assert 'catalogId: "dingtalk"' in text
+    assert 'catalogId: "yandex_browser"' in text
+    assert 'catalogId: "yandex_gpt"' in text
+    assert 'catalogId: "naver_works"' in text
+    assert 'catalogId: "jiomeet"' in text
+    assert 'status: "configurationRequired"' in text
 
 
 def test_site_and_github_guide_explain_benefit_security_and_honest_status():
@@ -25,6 +33,10 @@ def test_site_and_github_guide_explain_benefit_security_and_honest_status():
     doc = DOC.read_text(encoding="utf-8")
 
     assert "INTEGRATION_GUIDE_ITEMS" in page
+    assert "INTEGRATION_GUIDE_GROUPS" in page
+    assert "data-catalog-id" in page
+    assert "data-catalog-source" in page
+    assert "data-support-status" in page
     assert "benefitLabel" in page
     assert "securityLabel" in page
     assert "Katalog kaydı, canlı bağlantı değildir" in page
@@ -42,7 +54,7 @@ def test_every_guide_item_has_tr_and_en_copy():
     data = DATA.read_text(encoding="utf-8")
     tr = TR.read_text(encoding="utf-8")
     en = EN.read_text(encoding="utf-8")
-    ids = re.findall(r'\{ id: "([^"]+)"', data)
+    ids = re.findall(r'\{\s+id: "([^"]+)"', data)
 
     for item_id in ids:
         pattern = rf"\b{re.escape(item_id)}:\s*\{{\s*benefit:"
