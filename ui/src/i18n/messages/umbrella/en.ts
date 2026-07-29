@@ -318,13 +318,14 @@ const umbrellaEn: typeof umbrellaTr = {
   integrationGuide: {
     metaTitle: "Lumos integration ease and security — We Lock AI",
     metaDescription:
-      "Benefits, security boundaries, and honest support status for 24 popular Lumos app and device connections.",
+      "A single guide view of the Lumos connection catalog with categories, scope, and verified support status.",
     eyebrow: "WE LOCK AI · LUMOS CONNECTIONS",
     title: "Connection ease, visible security",
     lead:
       "Lumos brings app and device context together while keeping each connection's authority and real status visible.",
     honestyTitle: "A catalog entry is not a live connection.",
-    honestyBody: "Every card separates the benefit, security boundary, and current support level.",
+    honestyBody:
+      "The guide is based on global catalog identities; specialized Gmail and Google surfaces are marked separately.",
     beforeAfterTitle: "Before / after",
     beforeTitle: "Before",
     beforeBody: "Accounts, permissions, and sync status are scattered across different screens. A small world tour of tabs begins.",
@@ -333,7 +334,8 @@ const umbrellaEn: typeof umbrellaTr = {
     readyTitle: "Actually ready today",
     readyBody: "WhatsApp and Telegram can run connection checks. GitHub and OpenAI have public foundations; Gmail is Narrow v1, and Bluetooth supports local discovery.",
     nextTitle: "Next",
-    nextBody: "Live OAuth, webhook, or sync adapters for planned and catalog tools are completed and tested separately.",
+    nextBody:
+      "Catalog, planned, and configuration-required states are not live connections; OAuth, webhook, or sync adapters are completed and tested separately.",
     principlesTitle: "Shared principles",
     principleDetectTitle: "Real signals",
     principleDetectBody: "An account or device is only called detected when a verifiable discovery signal exists.",
@@ -343,8 +345,9 @@ const umbrellaEn: typeof umbrellaTr = {
     principleCostBody: "Local and existing-account paths come first; paid options require a live price check.",
     principleSecretTitle: "Secrets and payments stay separate",
     principleSecretBody: "Tokens, passwords, and cards are not stored in the UI; integration consent is not payment authority.",
-    connectionsTitle: "24 apps and devices",
-    connectionsLead: "Popular connections across different fields, with benefits, security, and honest status.",
+    connectionsTitle: "connection surfaces",
+    connectionCountLabel: "connections",
+    connectionsLead: "Providers are grouped by what they do, not separated by country.",
     benefitLabel: "Lumos benefit",
     securityLabel: "Security boundary",
     brandNotice:
@@ -355,9 +358,9 @@ const umbrellaEn: typeof umbrellaTr = {
       development: "Development",
       productivity: "Productivity",
       communication: "Communication",
-      regional: "Regional",
+      social: "Social",
       browser: "Browser",
-      ai: "AI",
+      ai: "AI infrastructure",
       device: "Device",
     },
     statuses: {
@@ -365,6 +368,7 @@ const umbrellaEn: typeof umbrellaTr = {
       limited: "Narrow v1",
       planned: "Planned",
       connectionCheck: "Connection check",
+      configurationRequired: "Configuration required",
       catalog: "Catalog",
       localDiscovery: "Local discovery",
     },
@@ -409,6 +413,26 @@ const umbrellaEn: typeof umbrellaTr = {
         benefit: "Unifies service-scoped communication and consented message flows in South Korea.",
         security: "Kakao Login consent is preserved; friend messages remain service-scoped and need extra permission.",
       },
+      wechat: {
+        benefit: "Prepares WeChat Official Account and Mini Program context for Lumos task flows.",
+        security: "No connection is claimed without an app identity and official-account authorization; sends need separate approval.",
+      },
+      lark: {
+        benefit: "Brings Lark / Feishu messages, documents, and calendar context into one work view.",
+        security: "A catalog record and app foundation exist; sync does not start without tenant identity and narrow permissions.",
+      },
+      dingtalk: {
+        benefit: "Prepares DingTalk message, document, and calendar flows for task context.",
+        security: "App configuration and organization approval are required; automatic sync stays off.",
+      },
+      naverWorks: {
+        benefit: "Adds NAVER WORKS message, calendar, and contact context for Korean and Japanese work flows.",
+        security: "Catalog only; no connection is claimed before OAuth, organization scope, and live verification are complete.",
+      },
+      jioMeet: {
+        benefit: "Makes JioMeet meeting context visible for India-focused work flows.",
+        security: "Partner API access is catalog-only; meeting launch and recording access are not implemented.",
+      },
       microsoftTeams: {
         benefit: "Combines message, meeting, and calendar context with work tasks.",
         security: "Graph scopes stay narrow; tenant policy is visible; sending needs separate approval.",
@@ -433,6 +457,14 @@ const umbrellaEn: typeof umbrellaTr = {
         benefit: "Shares selected web context with Lumos across Apple devices.",
         security: "Site permission is visible; only selected pages are used; Keychain is not directly accessed.",
       },
+      yandexBrowser: {
+        benefit: "Adds Yandex Browser tab and selected-page context to a browser-independent work model.",
+        security: "The Chromium extension path is catalog-only; cookies, passwords, and page data are not read.",
+      },
+      vk: {
+        benefit: "Makes VK community, message, and content context visible for Russia and CIS use cases.",
+        security: "A catalog record is not a live social connection; reads and publishing need separate OAuth scope and approval.",
+      },
       openai: {
         benefit: "Combines text, vision, and tool use in the Lumos task and decision layer.",
         security: "API keys stay server-side; tool calls pass policy gates; sensitive data is minimized.",
@@ -444,6 +476,18 @@ const umbrellaEn: typeof umbrellaTr = {
       deepseek: {
         benefit: "Adds regional model diversity and an alternative reasoning option.",
         security: "Provider and data region are shown; sensitive tasks can be routed elsewhere by policy.",
+      },
+      qwen: {
+        benefit: "Shows a multimodal AI infrastructure option for Chinese and global use in the catalog.",
+        security: "Catalog only; there is no live use without data-region review and key configuration.",
+      },
+      yandexGpt: {
+        benefit: "Shows YandexGPT as a Russian-language option in the provider-independent AI catalog.",
+        security: "Catalog only; it is not used before API-key, data-region, and policy review.",
+      },
+      hyperClova: {
+        benefit: "Adds HyperCLOVA X to the AI infrastructure catalog for Korean-language coverage.",
+        security: "Catalog only; no live request, key, or data transfer occurs.",
       },
       bluetoothAudio: {
         benefit: "Recognizes headphones, speakers, and microphones through Classic Audio or LE Audio capabilities.",

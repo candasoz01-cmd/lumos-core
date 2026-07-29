@@ -5,15 +5,16 @@ import I18nInit from "../../components/I18nInit.astro";
 import WeLockSiteFooter from "../../components/WeLockSiteFooter.astro";
 import WeLockSiteNav from "../../components/WeLockSiteNav.astro";
 import BrandLockup from "../../components/BrandLockup.astro";
-import { INTEGRATION_GUIDE_ITEMS } from "../../data/integration-guide";
+import { INTEGRATION_GUIDE_GROUPS, INTEGRATION_GUIDE_ITEMS } from "../../data/integration-guide";
 import umbrellaTr from "../../i18n/messages/umbrella/tr";
 
 const DOC_URL =
-  "https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/integration-benefits-security-guide.md";
+  "https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/integrations-overview.md";
 const guide = umbrellaTr.integrationGuide;
 const entryText = guide.entries as Record<string, { benefit: string; security: string }>;
 const categoryText = guide.categories as Record<string, string>;
 const statusText = guide.statuses as Record<string, string>;
+const connectionCount = INTEGRATION_GUIDE_ITEMS.length;
 ---
 
 <html lang="tr">
@@ -23,7 +24,7 @@ const statusText = guide.statuses as Record<string, string>;
     <title data-i18n="umbrella.integrationGuide.metaTitle">Lumos entegrasyon kolaylığı ve güvenliği — We Lock AI</title>
     <meta
       name="description"
-      content="Lumos'un 24 popüler uygulama ve cihaz bağlantısında sağladığı kolaylıklar, güvenlik sınırları ve gerçek destek durumları."
+      content="Lumos bağlantı kataloğunun kategori, kapsam ve doğrulanmış destek durumlarıyla tek rehber görünümü."
       data-i18n-content="umbrella.integrationGuide.metaDescription"
     />
     <link rel="canonical" href="https://welockai.com/integrations/guide" />
@@ -42,7 +43,7 @@ const statusText = guide.statuses as Record<string, string>;
       <div class="umbrella-callout">
         <strong data-i18n="umbrella.integrationGuide.honestyTitle">Katalog kaydı, canlı bağlantı değildir.</strong>
         <p data-i18n="umbrella.integrationGuide.honestyBody">
-          Her kartta sağlanan kolaylık, güvenlik sınırı ve mevcut destek seviyesi ayrı gösterilir.
+          Rehber global katalog kimliklerini temel alır; özel Gmail ve Google yüzeyleri ayrıca işaretlenir.
         </p>
       </div>
 
@@ -91,35 +92,65 @@ const statusText = guide.statuses as Record<string, string>;
       </section>
 
       <section aria-labelledby="guide-connections-title">
-        <h2 id="guide-connections-title" data-i18n="umbrella.integrationGuide.connectionsTitle">24 uygulama ve cihaz</h2>
+        <h2 id="guide-connections-title">
+          <span>{connectionCount}</span>
+          <span data-i18n="umbrella.integrationGuide.connectionsTitle">bağlantı yüzeyi</span>
+        </h2>
         <p data-i18n="umbrella.integrationGuide.connectionsLead">
-          Farklı alanlardan popüler bağlantılar; kolaylık, güvenlik ve dürüst durum bilgisiyle.
+          Sağlayıcılar ülkeye göre ayrıştırılmadan, yaptıkları işe göre gruplanır.
         </p>
-        <div class="integration-guide-grid">
-          {
-            INTEGRATION_GUIDE_ITEMS.map((item) => (
-              <article class="integration-guide-card">
-                <div class="integration-guide-card__meta">
-                  <span data-i18n={`umbrella.integrationGuide.categories.${item.category}`}>
-                    {categoryText[item.category]}
-                  </span>
-                  <span data-i18n={`umbrella.integrationGuide.statuses.${item.status}`}>
-                    {statusText[item.status]}
-                  </span>
-                </div>
-                <h3><BrandLockup id={item.id} name={item.name} /></h3>
-                <h4 data-i18n="umbrella.integrationGuide.benefitLabel">Lumos kolaylığı</h4>
-                <p data-i18n={`umbrella.integrationGuide.entries.${item.id}.benefit`}>
-                  {entryText[item.id].benefit}
+        {
+          INTEGRATION_GUIDE_GROUPS.map((group) => (
+            <section
+              class="integration-guide-group"
+              aria-labelledby={`guide-group-${group.category}`}
+              data-guide-category={group.category}
+            >
+              <div class="integration-guide-group__header">
+                <h3
+                  id={`guide-group-${group.category}`}
+                  data-i18n={`umbrella.integrationGuide.categories.${group.category}`}
+                >
+                  {categoryText[group.category]}
+                </h3>
+                <p>
+                  <strong>{group.items.length}</strong>{" "}
+                  <span data-i18n="umbrella.integrationGuide.connectionCountLabel">bağlantı</span>
                 </p>
-                <h4 data-i18n="umbrella.integrationGuide.securityLabel">Güvenlik sınırı</h4>
-                <p data-i18n={`umbrella.integrationGuide.entries.${item.id}.security`}>
-                  {entryText[item.id].security}
-                </p>
-              </article>
-            ))
-          }
-        </div>
+              </div>
+              <div class="integration-guide-grid">
+                {
+                  group.items.map((item) => (
+                    <article
+                      class="integration-guide-card"
+                      data-catalog-id={
+                        Array.isArray(item.catalogId) ? item.catalogId.join(",") : item.catalogId
+                      }
+                      data-catalog-source={item.source}
+                      data-support-status={item.status}
+                    >
+                      <div class="integration-guide-card__meta">
+                        <span data-i18n={`umbrella.integrationGuide.statuses.${item.status}`}>
+                          {statusText[item.status]}
+                        </span>
+                        <span>{item.regions.join(" · ")}</span>
+                      </div>
+                      <h3><BrandLockup id={item.id} name={item.name} /></h3>
+                      <h4 data-i18n="umbrella.integrationGuide.benefitLabel">Lumos kolaylığı</h4>
+                      <p data-i18n={`umbrella.integrationGuide.entries.${item.id}.benefit`}>
+                        {entryText[item.id].benefit}
+                      </p>
+                      <h4 data-i18n="umbrella.integrationGuide.securityLabel">Güvenlik sınırı</h4>
+                      <p data-i18n={`umbrella.integrationGuide.entries.${item.id}.security`}>
+                        {entryText[item.id].security}
+                      </p>
+                    </article>
+                  ))
+                }
+              </div>
+            </section>
+          ))
+        }
       </section>
 
       <p class="umbrella-brand-notice" data-i18n="umbrella.integrationGuide.brandNotice">
@@ -135,3 +166,34 @@ const statusText = guide.statuses as Record<string, string>;
     <I18nInit />
   </body>
 </html>
+
+<style>
+  .integration-guide-group {
+    margin-top: 1.75rem;
+  }
+
+  .integration-guide-group__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 0.45rem;
+    border-bottom: 1px solid rgb(var(--lumos-land-teal) / 0.2);
+  }
+
+  .integration-guide-group__header h3,
+  .integration-guide-group__header p {
+    margin: 0;
+  }
+
+  .integration-guide-group__header h3 {
+    color: var(--lumos-land-title);
+    font-size: 1rem;
+  }
+
+  .integration-guide-group__header p {
+    flex: 0 0 auto;
+    color: var(--lumos-text-muted);
+    font-size: 0.75rem;
+  }
+</style>
