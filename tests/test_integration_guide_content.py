@@ -42,6 +42,7 @@ def test_site_and_github_guide_explain_benefit_security_and_honest_status():
     assert "Katalog kaydı, canlı bağlantı değildir" in page
     assert "beforeAfterTitle" in page
     assert "readyBody" in page
+    assert "docs/integration-benefits-security-guide.md" in page
     assert "## Önce / sonra" in doc
     assert "Bugün gerçekten hazır olanlar" in doc
     assert "sekme turizmi azalır" in doc
