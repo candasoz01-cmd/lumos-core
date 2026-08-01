@@ -98,7 +98,13 @@ const UPDATED = "2026-07-13";
           captured_at: new Date().toISOString(),
           note: "local_browser_only_no_account_no_server_persist",
         };
-        try { window.localStorage.setItem("lumos_institution_intent_v0", JSON.stringify(payload)); } catch (_e) {}
+        try {
+          window.localStorage.setItem("lumos_institution_intent_v0", JSON.stringify(payload));
+        } catch (_e) {
+          statusEl.dataset.state = "err";
+          statusEl.textContent = "Niyet bu tarayıcıya kaydedilemedi. Form korunuyor; depolama ayarlarını kontrol edip yeniden deneyin.";
+          return;
+        }
         statusEl.dataset.state = "ok";
         statusEl.textContent = "Niyet bu tarayıcıda yerel olarak not edildi. Hesap açılmadı; sunucuya kayıt yapılmadı.";
         form.reset();
