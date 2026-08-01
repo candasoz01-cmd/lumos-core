@@ -9,7 +9,12 @@ import subprocess
 from pathlib import Path
 from typing import Sequence
 
-from lumos_board.task_claim import ClaimError, OverrideApprovalVerifier, TaskClaimStore
+from lumos_board.task_claim import (
+    ClaimError,
+    DelegationVerifier,
+    OverrideApprovalVerifier,
+    TaskClaimStore,
+)
 
 
 def _store_dir(explicit: str | None) -> Path:
@@ -48,7 +53,7 @@ def _parser() -> argparse.ArgumentParser:
     claim.add_argument("--ttl", type=int, default=1800)
     claim.add_argument("--queue", action="store_true")
     claim.add_argument("--parent")
-    claim.add_argument("--delegated-by")
+    claim.add_argument("--delegation-token")
     claim.add_argument("--override-token")
     claim.add_argument("--override-reason")
 
@@ -74,14 +79,25 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
-        verifier = None
+        override_verifier = None
+        delegation_verifier = None
         if args.command == "claim" and args.override_token:
             registry = os.environ.get("LUMOS_OVERRIDE_APPROVER_REGISTRY")
             secret = os.environ.get("LUMOS_OVERRIDE_APPROVAL_SECRET")
             if not registry or not secret:
                 raise ClaimError("override için approver registry ve approval secret gerekli")
-            verifier = OverrideApprovalVerifier.from_registry_file(Path(registry), secret=secret)
-        store = TaskClaimStore(_store_dir(args.store), override_verifier=verifier)
+            override_verifier = OverrideApprovalVerifier.from_registry_file(Path(registry), secret=secret)
+        if args.command == "claim" and args.delegation_token:
+            registry = os.environ.get("LUMOS_DELEGATION_OWNER_REGISTRY")
+            secret = os.environ.get("LUMOS_DELEGATION_SECRET")
+            if not registry or not secret:
+                raise ClaimError("delegation için owner registry ve secret gerekli")
+            delegation_verifier = DelegationVerifier.from_registry_file(Path(registry), secret=secret)
+        store = TaskClaimStore(
+            _store_dir(args.store),
+            override_verifier=override_verifier,
+            delegation_verifier=delegation_verifier,
+        )
         if args.command == "claim":
             result = store.claim(
                 task_id=args.task,
@@ -93,7 +109,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 ttl_seconds=args.ttl,
                 queue_on_conflict=args.queue,
                 parent_claim_id=args.parent,
-                delegated_by=args.delegated_by,
+                delegation_token=args.delegation_token,
                 override_token=args.override_token,
                 override_reason=args.override_reason,
             )

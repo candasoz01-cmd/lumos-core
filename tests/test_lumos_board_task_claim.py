@@ -11,17 +11,21 @@ from lumos_board.claim_cli import main as claim_cli_main
 from lumos_board.task_claim import (
     APPROVER_REGISTRY_SCHEMA,
     CLAIM_EVENT_SCHEMA,
+    DELEGATION_OWNER_REGISTRY_SCHEMA,
     ClaimError,
     ClaimStatus,
     ClaimStoreCorrupt,
+    DelegationVerifier,
     OverrideApprovalVerifier,
     TaskClaimStore,
+    sign_delegation_token,
     sign_override_approval,
 )
 
 
 NOW = datetime(2026, 7, 19, 12, 0, tzinfo=timezone.utc)
 APPROVAL_SECRET = b"a-secure-test-secret-that-is-32-bytes-minimum"
+DELEGATION_SECRET = b"a-secure-delegation-secret-at-least-32-bytes"
 
 
 class Clock:
@@ -87,6 +91,53 @@ def _approval_token(
         current_owner=current_owner,
         new_owner=new_owner,
         reason="owner unavailable",
+        issued_at=NOW - timedelta(minutes=1),
+        expires_at=expires_at or NOW + timedelta(minutes=10),
+    )
+
+
+def _delegation_verifier(tmp_path: Path, *owners: str) -> DelegationVerifier:
+    registry = tmp_path / "delegation-owners.json"
+    registry.write_text(
+        json.dumps(
+            {
+                "schema": DELEGATION_OWNER_REGISTRY_SCHEMA,
+                "owners": [
+                    {
+                        "owner_id": owner,
+                        "enabled": True,
+                        "valid_until": (NOW + timedelta(days=1)).isoformat(),
+                    }
+                    for owner in owners
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    return DelegationVerifier.from_registry_file(
+        registry,
+        secret=DELEGATION_SECRET.decode(),
+    )
+
+
+def _delegation_token(
+    *,
+    parent_claim_id: str,
+    parent_owner: str = "lead",
+    child_owner: str = "worker",
+    child_task_id: str = "KA-002-doc",
+    scope: str = "src/lumos_board/task_claim.py",
+    expires_at: datetime | None = None,
+) -> str:
+    return sign_delegation_token(
+        secret=DELEGATION_SECRET,
+        delegation_id=f"delegation-{parent_claim_id}-{child_owner}",
+        parent_claim_id=parent_claim_id,
+        parent_owner=parent_owner,
+        child_owner=child_owner,
+        child_task_id=child_task_id,
+        repo="lumos-core",
+        scopes=[scope],
         issued_at=NOW - timedelta(minutes=1),
         expires_at=expires_at or NOW + timedelta(minutes=10),
     )
@@ -180,8 +231,12 @@ def test_stale_claim_expires_and_scope_can_be_reclaimed(tmp_path: Path) -> None:
     assert "CLAIM_EXPIRED" in [event["event"] for event in _events(store.audit_path)]
 
 
-def test_child_claim_requires_parent_owner_and_subset_scope(tmp_path: Path) -> None:
-    store = TaskClaimStore(tmp_path)
+def test_child_claim_requires_verified_parent_owner_context(tmp_path: Path) -> None:
+    store = TaskClaimStore(
+        tmp_path,
+        clock=Clock(),
+        delegation_verifier=_delegation_verifier(tmp_path, "lead"),
+    )
     parent = _claim(store, task="KA-002", owner="lead", scope="src/lumos_board").claim
     assert parent is not None
 
@@ -191,20 +246,93 @@ def test_child_claim_requires_parent_owner_and_subset_scope(tmp_path: Path) -> N
         owner="worker",
         scope="src/lumos_board/task_claim.py",
         parent_claim_id=parent.claim_id,
-        delegated_by="lead",
+        delegation_token=_delegation_token(parent_claim_id=parent.claim_id),
     )
 
     assert child.accepted is True
     assert child.claim is not None
     assert child.claim.parent_claim_id == parent.claim_id
-    with pytest.raises(ClaimError, match="yalnız mevcut claim sahibi"):
+    event = _events(store.audit_path)[-1]
+    assert event["details"]["delegation"] == {
+        "delegation_id": f"delegation-{parent.claim_id}-worker",
+        "parent_claim_id": parent.claim_id,
+        "parent_owner": "lead",
+        "verification_method": "HMAC_SHA256_OWNER_ALLOWLIST",
+        "verified_at": NOW.isoformat().replace("+00:00", "Z"),
+    }
+
+
+def test_forged_or_wrong_context_delegation_is_rejected(tmp_path: Path) -> None:
+    store = TaskClaimStore(
+        tmp_path,
+        clock=Clock(),
+        delegation_verifier=_delegation_verifier(tmp_path, "lead"),
+    )
+    parent = _claim(store, task="KA-002", owner="lead", scope="src/lumos_board").claim
+    assert parent is not None
+
+    with pytest.raises(ClaimError, match="token geçersiz"):
         _claim(
             store,
             task="KA-002-bad",
             owner="worker-2",
             scope="src/lumos_board/claim_cli.py",
             parent_claim_id=parent.claim_id,
-            delegated_by="someone-else",
+            delegation_token="lead",
+        )
+
+    wrong_context = _delegation_token(
+        parent_claim_id=parent.claim_id,
+        child_owner="someone-else",
+        child_task_id="KA-002-bad",
+        scope="src/lumos_board/claim_cli.py",
+    )
+    with pytest.raises(ClaimError, match="bağlamı eşleşmiyor"):
+        _claim(
+            store,
+            task="KA-002-bad",
+            owner="worker-2",
+            scope="src/lumos_board/claim_cli.py",
+            parent_claim_id=parent.claim_id,
+            delegation_token=wrong_context,
+        )
+
+
+def test_non_allowlisted_or_expired_delegation_is_rejected(tmp_path: Path) -> None:
+    store = TaskClaimStore(
+        tmp_path,
+        clock=Clock(),
+        delegation_verifier=_delegation_verifier(tmp_path, "another-lead"),
+    )
+    parent = _claim(store, task="KA-002", owner="lead", scope="src/lumos_board").claim
+    assert parent is not None
+
+    with pytest.raises(ClaimError, match="allowlist"):
+        _claim(
+            store,
+            task="KA-002-doc",
+            owner="worker",
+            scope="src/lumos_board/task_claim.py",
+            parent_claim_id=parent.claim_id,
+            delegation_token=_delegation_token(parent_claim_id=parent.claim_id),
+        )
+
+    expired_store = TaskClaimStore(
+        tmp_path,
+        clock=Clock(),
+        delegation_verifier=_delegation_verifier(tmp_path, "lead"),
+    )
+    with pytest.raises(ClaimError, match="süresi"):
+        _claim(
+            expired_store,
+            task="KA-002-doc",
+            owner="worker",
+            scope="src/lumos_board/task_claim.py",
+            parent_claim_id=parent.claim_id,
+            delegation_token=_delegation_token(
+                parent_claim_id=parent.claim_id,
+                expires_at=NOW - timedelta(seconds=1),
+            ),
         )
 
 
@@ -413,7 +541,11 @@ def test_cli_returns_conflict_exit_code_and_json(tmp_path: Path, capsys: pytest.
 
 
 def test_delegated_child_cannot_reactivate_parent_task_id(tmp_path: Path) -> None:
-    store = TaskClaimStore(tmp_path)
+    store = TaskClaimStore(
+        tmp_path,
+        clock=Clock(),
+        delegation_verifier=_delegation_verifier(tmp_path, "lead"),
+    )
     parent = _claim(store, task="KA-002", owner="lead", scope="src/lumos_board").claim
     assert parent is not None
 
@@ -423,7 +555,10 @@ def test_delegated_child_cannot_reactivate_parent_task_id(tmp_path: Path) -> Non
         owner="worker",
         scope="src/lumos_board/task_claim.py",
         parent_claim_id=parent.claim_id,
-        delegated_by="lead",
+        delegation_token=_delegation_token(
+            parent_claim_id=parent.claim_id,
+            child_task_id="KA-002",
+        ),
     )
 
     assert duplicate.accepted is False
@@ -498,7 +633,11 @@ def test_failed_operation_leaves_no_audit_trace(tmp_path: Path) -> None:
 
 
 def test_parent_closure_cascades_to_children(tmp_path: Path) -> None:
-    store = TaskClaimStore(tmp_path)
+    store = TaskClaimStore(
+        tmp_path,
+        clock=Clock(),
+        delegation_verifier=_delegation_verifier(tmp_path, "lead"),
+    )
     parent = _claim(store, task="KA-P", owner="lead", scope="src/lumos_board").claim
     assert parent is not None
     child = _claim(
@@ -507,7 +646,10 @@ def test_parent_closure_cascades_to_children(tmp_path: Path) -> None:
         owner="worker",
         scope="src/lumos_board/task_claim.py",
         parent_claim_id=parent.claim_id,
-        delegated_by="lead",
+        delegation_token=_delegation_token(
+            parent_claim_id=parent.claim_id,
+            child_task_id="KA-P-sub",
+        ),
     ).claim
     assert child is not None
 
@@ -528,7 +670,10 @@ def test_parent_closure_cascades_to_children(tmp_path: Path) -> None:
 
 def test_delegation_cannot_be_combined_with_override(tmp_path: Path) -> None:
     store = TaskClaimStore(
-        tmp_path, clock=Clock(), override_verifier=_verifier(tmp_path, "security-admin")
+        tmp_path,
+        clock=Clock(),
+        override_verifier=_verifier(tmp_path, "security-admin"),
+        delegation_verifier=_delegation_verifier(tmp_path, "agent-a"),
     )
     parent = _claim(store, task="KA-002", owner="agent-a", scope="src").claim
     assert parent is not None
@@ -540,7 +685,13 @@ def test_delegation_cannot_be_combined_with_override(tmp_path: Path) -> None:
             owner="agent-b",
             scope="src/task.py",
             parent_claim_id=parent.claim_id,
-            delegated_by="agent-a",
+            delegation_token=_delegation_token(
+                parent_claim_id=parent.claim_id,
+                parent_owner="agent-a",
+                child_owner="agent-b",
+                child_task_id="KA-002",
+                scope="src/task.py",
+            ),
             override_token=_approval_token(),
             override_reason="owner unavailable",
         )
