@@ -43,6 +43,9 @@ class GitHubCredentialVault(Protocol):
     def resolve_credential(self, ref: str, purpose_code: str) -> CredentialResolution:
         ...
 
+    def delete_credential(self, ref: str, purpose_code: str) -> CredentialWriteResult:
+        ...
+
 
 class GitHubApiError(RuntimeError):
     def __init__(self, reason: str) -> None:
@@ -211,6 +214,9 @@ class GitHubReadOnlyConnector:
             verification_source="github_authenticated_user",
         )
         if not self._registry.upsert(binding):
+            # Registry kaybettiyse (eşzamanlı yarış), az önce vault'a yazılan
+            # secret'ı yetim bırakmamak için en iyi çaba ile geri al.
+            self._vault.delete_credential(vault_ref, PURPOSE_GITHUB_METADATA_READ)
             return GitHubConnectionResult(False, error="stale_connection_completion")
         return GitHubConnectionResult(
             True,

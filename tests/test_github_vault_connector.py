@@ -58,6 +58,10 @@ class _FakeVault:
             error=None if value is not None else "secret_not_found",
         )
 
+    def delete_credential(self, ref: str, purpose_code: str) -> CredentialWriteResult:
+        self.values.pop(ref, None)
+        return CredentialWriteResult(True, purpose_code, ref)
+
 
 class _FakeGitHubApi:
     def __init__(self) -> None:
@@ -261,6 +265,22 @@ def test_concurrent_connection_completions_keep_newest_token_reference(tmp_path)
     assert vault.values[binding.vault_ref] == "token-newer"
 
 
+def test_stale_connection_completion_rolls_back_orphaned_vault_secret(tmp_path):
+    connector, vault, _, registry = _connector(tmp_path)
+    newer_at = NOW + timedelta(seconds=1)
+    assert _complete(connector, token="token-newer", verified_at=newer_at).ok is True
+    newer_ref = registry.get(
+        github_binding_key(owner_id=OWNER_ID, account_id=ACCOUNT_ID)
+    ).vault_ref
+
+    stale_result = _complete(connector, token="token-stale", verified_at=NOW)
+
+    assert stale_result.ok is False
+    assert stale_result.error == "stale_connection_completion"
+    assert "token-stale" not in vault.values.values()
+    assert vault.values[newer_ref] == "token-newer"
+
+
 @patch("integrations.vault.adapter.urlopen")
 def test_infisical_v4_write_sends_token_but_never_returns_it(mock_urlopen):
     mock_urlopen.side_effect = [
@@ -288,6 +308,28 @@ def test_infisical_v4_write_sends_token_but_never_returns_it(mock_urlopen):
     assert payload["secretValue"] == TOKEN_CANARY
     assert payload["secretPath"] == "/integrations/github"
     assert TOKEN_CANARY not in str(result)
+
+
+@patch("integrations.vault.adapter.urlopen")
+def test_infisical_v4_delete_targets_correct_secret_and_treats_404_as_success(mock_urlopen):
+    mock_urlopen.side_effect = [
+        _mock_http_response(status=200),
+        HTTPError("https://vault.test", 404, "not found", hdrs=None, fp=None),
+    ]
+    adapter = InfisicalVaultAdapter(
+        vault_url="https://vault.test",
+        vault_token="vault-service-token",
+        vault_project="project-id",
+        vault_env="prod",
+        vault_secret_path="/integrations/github",
+    )
+
+    result = adapter.delete_credential("github-opaque-ref", PURPOSE_GITHUB_METADATA_READ)
+    request = mock_urlopen.call_args_list[1].args[0]
+
+    assert result.ok is True
+    assert request.get_method() == "DELETE"
+    assert request.full_url.startswith("https://vault.test/api/v4/secrets/github-opaque-ref?")
 
 
 @patch("integrations.github.connector.urlopen")

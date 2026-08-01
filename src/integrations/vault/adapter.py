@@ -57,6 +57,13 @@ class VaultAdapter(Protocol):
     ) -> CredentialWriteResult:
         ...
 
+    def delete_credential(
+        self,
+        ref: str,
+        purpose_code: str,
+    ) -> CredentialWriteResult:
+        ...
+
 
 class InfisicalVaultAdapter:
     """Infisical self-host PoC adapter — env-gated, fails closed when unset."""
@@ -165,6 +172,26 @@ class InfisicalVaultAdapter:
             error=write_error,
         )
 
+    def delete_credential(
+        self,
+        ref: str,
+        purpose_code: str,
+    ) -> CredentialWriteResult:
+        """Best-effort cleanup for orphaned writes — caller must not treat failure as fatal."""
+        error = self._configuration_error(purpose_code)
+        if error:
+            return CredentialWriteResult(False, purpose_code, ref, error)
+        if not self._vault_reachable():
+            return CredentialWriteResult(False, purpose_code, ref, "vault_unreachable")
+
+        delete_error = self._delete_secret_value(ref)
+        return CredentialWriteResult(
+            ok=delete_error is None,
+            purpose_code=purpose_code,
+            ref=ref,
+            error=delete_error,
+        )
+
     def _configuration_error(self, purpose_code: str) -> str | None:
         if not self._vault_url or not self._vault_token:
             return "vault_env_not_configured"
@@ -269,6 +296,43 @@ class InfisicalVaultAdapter:
             return "vault_unreachable"
         except (OSError, ValueError):
             return "secret_write_failed"
+
+    def _delete_secret_value(self, ref: str) -> str | None:
+        """Infisical v4 delete; 404 (zaten yok) temizlik amacıyla başarı sayılır."""
+        base = self._vault_url.rstrip("/")
+        secret_name = quote(ref, safe="")
+        query = urlencode(
+            {
+                "projectId": self._vault_project,
+                "environment": self._vault_env,
+                "secretPath": self._vault_secret_path,
+            }
+        )
+        url = f"{base}/api/v4/secrets/{secret_name}?{query}"
+        req = Request(url, method="DELETE")
+        req.add_header("Authorization", f"Bearer {self._vault_token}")
+        try:
+            with urlopen(req, timeout=self._timeout) as resp:  # noqa: S310 — operatör env URL
+                if 200 <= resp.status < 300:
+                    return None
+                return "secret_delete_failed"
+        except HTTPError as exc:
+            if exc.code == 404:
+                return None
+            if exc.code in (401, 403):
+                return "vault_delete_unauthorized"
+            return "secret_delete_failed"
+        except TimeoutError:
+            return "vault_timeout"
+        except URLError as exc:
+            reason = exc.reason
+            if isinstance(reason, TimeoutError) or (
+                reason is not None and "timed out" in str(reason).lower()
+            ):
+                return "vault_timeout"
+            return "vault_unreachable"
+        except (OSError, ValueError):
+            return "secret_delete_failed"
 
 
 _default_adapter: InfisicalVaultAdapter | None = None
