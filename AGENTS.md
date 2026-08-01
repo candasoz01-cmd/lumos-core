@@ -43,3 +43,28 @@ elle kontrol edilir.
   yapılır, ancak o da yorum düzenleme/silme sunmaz. Yanlış yayımlanan bir yorum
   geri düzeltilemez; gerekirse tekrar yayımlamak yerine tek bir
   **düzeltme/indeks yorumu** eklenip canonical kayıt orada belirtilir.
+
+## PR / CI / Deploy doğrulama (tüm ajanlar)
+
+- PR, CI, merge veya deploy durumu bildirirken canlı doğrulama yapılır.
+  Kullanılan doğrulama yöntemi (GitHub API, `gh`, `git` veya eşdeğer canlı
+  kaynak) açıkça belirtilir.
+
+- Durum bildirimi aşağıdaki bilgileri içerir:
+  - owner/repo
+  - PR numarası
+  - durum
+  - commit SHA (varsa)
+  - doğrulama kaynağı
+  - doğrulama zamanı
+
+  Örnek:
+  `candasoz01-cmd/lumos-core#277 · MERGED · d6d1eb7 · GitHub API · 2026-07-27T19:28Z`
+
+- Yalnızca "#277 merged" gibi repo kimliği içermeyen ifadeler kullanılmaz.
+
+- Canlı doğrulama yapılamıyorsa bu açıkça belirtilir. Tahmin veya eski bağlam
+  kesin bilgi olarak sunulmaz.
+
+- Kaynaklar çelişiyorsa çelişki gizlenmez. Yeniden doğrulama yapılır ve canlı
+  doğrulama sonucu esas alınır.
