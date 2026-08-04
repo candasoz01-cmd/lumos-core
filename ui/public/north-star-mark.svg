@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" fill="none">
+  <title>Lumos North Star mark</title>
+  <line x1="565.25" y1="512.00" x2="585.81" y2="512.00" stroke="#D4A84B" stroke-width="14.34" stroke-linecap="round"/>
+  <line x1="512.00" y1="458.75" x2="512.00" y2="438.19" stroke="#D4A84B" stroke-width="14.34" stroke-linecap="round"/>
+  <line x1="458.75" y1="512.00" x2="438.19" y2="512.00" stroke="#D4A84B" stroke-width="14.34" stroke-linecap="round"/>
+  <line x1="512.00" y1="565.25" x2="512.00" y2="585.81" stroke="#D4A84B" stroke-width="14.34" stroke-linecap="round"/>
+  <path d="M 665.50 665.50 A 217.09 217.09 0 1 0 358.50 665.50" stroke="#D4A84B" stroke-width="16.90" stroke-linecap="round"/>
+  <circle cx="620.54" cy="700.00" r="18.43" fill="#D4A84B"/>
+  <circle cx="512.00" cy="512.00" r="53.25" fill="#FFECB0"/>
+</svg>

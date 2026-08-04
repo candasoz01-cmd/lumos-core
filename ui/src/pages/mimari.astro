@@ -1,0 +1,213 @@
+---
+const UPDATED = "2026-08-04";
+---
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mimari — K0 Anayasa · Provider Orchestrator — We Lock AI</title>
+  <meta
+    name="description"
+    content="Lumos K0 foundation principles: modeller Lumos'a bağlanır; provider değişebilir, politika ve deneyim değişmez; insan nihai karar vericidir."
+  />
+  <link rel="canonical" href="https://welockai.com/mimari" />
+  <link rel="stylesheet" href="/magazine-chrome.css" />
+  <style>
+    .mimari-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.65rem;
+      text-decoration: none;
+      color: inherit;
+    }
+    .mimari-brand img {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+    }
+    .mimari-brand__sub {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: #0f7a72;
+    }
+    .mimari-principles {
+      display: grid;
+      gap: 0.85rem;
+      margin: 1.25rem 0 0;
+    }
+    .mimari-principles article {
+      padding: 1rem 1.15rem;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(16, 32, 41, 0.08);
+    }
+    .mimari-principles h3 {
+      margin: 0 0 0.35rem;
+      font-family: "Fraunces", Georgia, serif;
+      font-size: 1.05rem;
+    }
+    .mimari-principles p {
+      margin: 0;
+      color: #3a4f5c;
+      font-size: 0.95rem;
+    }
+    .mimari-kn {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 0.65rem;
+      margin-top: 1rem;
+    }
+    .mimari-kn span {
+      display: block;
+      padding: 0.75rem 0.85rem;
+      border-radius: 10px;
+      background: #102029;
+      color: #e8eef2;
+      font-size: 0.86rem;
+      font-weight: 600;
+    }
+    .mimari-kn small {
+      display: block;
+      margin-top: 0.25rem;
+      font-weight: 400;
+      color: #9aa8bc;
+      font-size: 0.78rem;
+    }
+    .mimari-hero-marks {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .mimari-hero-marks img {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.25));
+    }
+  </style>
+</head>
+<body class="magazine-page">
+  <nav class="magazine-nav" aria-label="Lumos Dünya">
+    <div class="magazine-nav__bar">
+      <a class="mimari-brand magazine-nav__brand" href="/">
+        <img src="/logo001-mark.png" width="40" height="40" alt="" decoding="async" />
+        <span>
+          Lumos
+          <span class="mimari-brand__sub">WE LOCK AI</span>
+        </span>
+      </a>
+      <ul class="magazine-nav__list">
+        <li><a class="magazine-nav__link" href="/">Ana sayfa</a></li>
+        <li><a class="magazine-nav__link" href="/world">Dünya</a></li>
+        <li><a class="magazine-nav__link" href="/trust">Güven</a></li>
+        <li><a class="magazine-nav__link magazine-nav__link--active" href="/mimari">Mimari</a></li>
+        <li><a class="magazine-nav__link" href="/kararlar">Kararlar</a></li>
+        <li><a class="magazine-nav__link" href="/help">Yardım</a></li>
+        <li>
+          <a
+            class="magazine-nav__link"
+            href="https://github.com/candasoz01-cmd/Lumos/tree/main/docs/ops"
+            target="_blank"
+            rel="noopener noreferrer"
+            >GitHub</a
+          >
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <header class="magazine-page-hero" style="background:linear-gradient(145deg,#0c1820,#0f4c47);">
+    <div class="magazine-page-hero__copy">
+      <div class="mimari-hero-marks" aria-hidden="true">
+        <img src="/logo001-mark.png" alt="" width="48" height="48" decoding="async" />
+        <img src="/north-star-mark.svg" alt="" width="48" height="48" decoding="async" />
+      </div>
+      <p class="magazine-kicker" style="color:#9fdad4">K0 · FOUNDATION</p>
+      <h1>Provider Orchestrator</h1>
+      <p>
+        Lumos hiçbir modele bağlı değildir. Modeller Lumos’a bağlanır. Tek deneyim; yerel adaptasyon; ortak çekirdek.
+      </p>
+    </div>
+  </header>
+
+  <main class="magazine-main">
+    <section class="magazine-section">
+      <h2>K0 — Anayasa ilkeleri</h2>
+      <p class="magazine-note">
+        K0 değişmesi en zor tasarım ilkeleridir. Diğer tüm mimari belgeler K0 ile uyumlu olmak zorundadır. İlk soru:
+        <strong>«Bu K0 ile çelişiyor mu?»</strong>
+      </p>
+      <div class="mimari-principles">
+        <article>
+          <h3>P1 — Modeller Lumos’a bağlanır</h3>
+          <p>Sağlayıcı bağımsız omurga. OpenAI, Qwen, GLM veya yenisi — mimari kalır.</p>
+        </article>
+        <article>
+          <h3>P2 — Provider değişebilir</h3>
+          <p>Politika değişmez. Kullanıcı deneyimi değişmez.</p>
+        </article>
+        <article>
+          <h3>P3 — Tek Lumos</h3>
+          <p>Yerel deneyim. Ortak çekirdek. (TR · UK · CN · GR · …)</p>
+        </article>
+        <article>
+          <h3>P4 — İnsan nihai karar vericidir</h3>
+          <p>Lumos önerir, orkestre eder ve uygular; yetki kullanıcı veya yetkilendirilmiş kurumdadır.</p>
+        </article>
+        <article>
+          <h3>P5 — Güven varsayılmaz; doğrulanır</h3>
+          <p>Preflight, kanıt, audit. «Çalışır görünüyor» yetmez.</p>
+        </article>
+        <article>
+          <h3>P6 — Aynı görev + aynı politika ⇒ aynı sonuç</h3>
+          <p>Deterministik, izlenebilir politika kararı.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="magazine-section">
+      <h2>Kn katmanları</h2>
+      <div class="mimari-kn">
+        <span>K0 <small>Foundation / Constitution</small></span>
+        <span>K1 <small>Strategic Architecture</small></span>
+        <span>K2 <small>Governance &amp; Policy</small></span>
+        <span>K3 <small>Runtime Architecture</small></span>
+        <span>K4 <small>Regional Profiles</small></span>
+        <span>K5 <small>Integration Catalog</small></span>
+        <span>K6 <small>Canonical Decisions</small></span>
+      </div>
+      <p class="magazine-note" style="margin-top:1rem">
+        Karar kayıtları ayrı numaralanır (<code>D1…Dn</code>). Çin AI kısa listesi: <strong>Qwen P1</strong> · <strong>GLM P2</strong>.
+      </p>
+      <div class="magazine-cta-row">
+        <a
+          class="magazine-btn magazine-btn--primary"
+          href="https://github.com/candasoz01-cmd/Lumos/blob/main/docs/ops/K0-foundation-principles.md"
+          target="_blank"
+          rel="noopener noreferrer"
+          >K0 kaynak (GitHub)</a
+        >
+        <a
+          class="magazine-btn"
+          href="https://github.com/candasoz01-cmd/Lumos/blob/main/docs/ops/Kn-architecture-index.md"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Kn indeks</a
+        >
+        <a class="magazine-btn" href="/trust">Güven Merkezi</a>
+        <a class="magazine-btn" href="/kararlar">Kararlar</a>
+      </div>
+      <p class="magazine-note">Güncelleme: {UPDATED} · We Lock AI yüzeyi · canlı runtime iddiası yok.</p>
+    </section>
+  </main>
+
+  <footer class="magazine-footer">
+    <div class="magazine-footer__inner">
+      <p class="magazine-footer__meta">Lumos · We Lock AI · welockai.com/mimari</p>
+    </div>
+  </footer>
+</body>
+</html>
