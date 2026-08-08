@@ -17,6 +17,14 @@
       "destination": "/api/auth/google/callback"
     },
     {
+      "source": "/auth/meta/start",
+      "destination": "/api/auth/meta/start"
+    },
+    {
+      "source": "/auth/meta/callback",
+      "destination": "/api/auth/meta/callback"
+    },
+    {
       "source": "/auth/session",
       "destination": "/api/auth/session"
     },
