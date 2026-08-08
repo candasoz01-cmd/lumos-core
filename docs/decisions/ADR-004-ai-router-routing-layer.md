@@ -2,9 +2,9 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Taslak / karar bekliyor** — routing usage map checkpoint tamamlandı; karar finalize import/drift incelemesi sonrası |
-| Tarih | 2026-06-06 |
-| İlgili | `docs/lumos-karar-sozlesmesi.md`, public GitHub sınırı kuralları, ADR-001, ADR-002, ADR-003, ADR-006, ADR-007, ADR-010 |
+| Durum | **Taslak / karar bekliyor** — routing usage map checkpoint tamamlandı; karar finalize import/drift incelemesi sonrası. **Ek karar (2026-08-08):** Router'ın altındaki model/provider seçim sınırı kabul edildi — bkz. § Router altında ModelRegistry sınırı (ADR-019). Bu, Router'ın genel taslak durumunu **değiştirmez**. |
+| Tarih | 2026-06-06 (güncelleme: 2026-08-08 — ModelRegistry sınırı) |
+| İlgili | `docs/lumos-karar-sozlesmesi.md`, public GitHub sınırı kuralları, ADR-001, ADR-002, ADR-003, ADR-006, ADR-007, ADR-010, ADR-019 |
 
 ## Amaç
 
@@ -280,6 +280,54 @@ Aşağıdaki işler **bilinçli olarak yapılmaz**; ayrı ADR, import/drift ince
 | Public sınır sızıntısı | Prod orchestration veya PII routing public'e taşınabilir |
 | `src/` vs `packages/kando_*` drift | ADR-003 ile uyumlu; iki ağaç senkron riski |
 | Erken birleştirme | CI/regresyon; onay modeli karmaşıklaşması |
+
+---
+
+## Router altında ModelRegistry sınırı (ek karar — 2026-08-08)
+
+**Karar durumu:** Accepted. **Uygulama durumu:** uygulanmadı — bu ek de kodsuzdur.
+**Kaynak karar:** [ADR-019](ADR-019-product-surface-separation-modelregistry.md).
+
+Bu ADR'nin "Henüz olmayan alanlar" tablosunda `Provider / model seçimi: tek provider + env model` olarak kaydedilen boşluğun **nereye** doldurulacağı sabitlenmiştir.
+
+### Konum
+
+```text
+Firewall → Trust → Router → ModelRegistry → Providers
+```
+
+`ModelRegistry`, Router'ın **altında** yer alan ayrı bir katmandır. Router'ın yerine geçmez, önüne geçmez ve Firewall/Trust kararlarından **sonra** devreye girer (ADR-006, ADR-007, ADR-008 öncelik sırası korunur).
+
+### Sorumluluk ayrımı — normatif
+
+| Soru | Karar veren |
+|------|-------------|
+| Bu girdi sohbet mi, görev mi; riski ne? | **Router** |
+| Bu iş hangi kategoriye/executor'a gider? | **Router** |
+| Bu kategori hangi model/ajan yeteneği ister? | **Router** (istek) |
+| O yeteneği bugün hangi sağlayıcı karşılıyor? | **ModelRegistry** (cevap) |
+| Sağlayıcı çağrısının taşıması | Provider adaptörü |
+
+Router **sağlayıcı adı bilmez**; yetenek ister. Sağlayıcı → yetenek eşlemesi yalnız `ModelRegistry`'de durur. Devir (fallback) zinciri de Router politikası olarak tanımlanır, provider adaptörü içine gömülmez.
+
+### ModelRegistry ≠ IntegrationRegistry — normatif
+
+`src/integrations/registry.py` içindeki `IntegrationRegistry` bir **entegrasyon** kaydıdır (`(provider, action) → handler`; mail, takvim, medya, katalog, cihaz). `ModelRegistry` ile **aynı şey değildir**:
+
+1. `ModelRegistry`, `IntegrationRegistry`'ye kayıt olarak eklenmez.
+2. `src/integrations/providers/openai_provider.py` bir entegrasyon sağlayıcısıdır; model sağlayıcı katmanının temeli olarak kullanılmaz.
+3. Belge ve kodda "provider registry" ifadesi tek başına kullanılmaz; hangisi kastediliyorsa tam adıyla yazılır.
+4. `ModelRegistry` yalnız Router tarafından çağrılır.
+
+### Kullanıcı yüzü sınırı
+
+Router ve `ModelRegistry` çıktıları son kullanıcı yüzeyine **sağlayıcı/model adı, `session_id`, `instance_id`, worktree, heartbeat, PR/merge kapısı veya devir zinciri** olarak sızdırılmaz. Bu ayrıntılar yalnız iç operatör yüzeyine (Command Wall) açıktır. Bkz. ADR-019 § 3, [`product-rules.md`](../product-rules.md) PR-005.
+
+### Bu ek ile yapılmayanlar
+
+- `ModelRegistry` arayüz sözleşmesi ve yetenek modeli — ayrı iş
+- Router birleştirme, `src/engine/model_client.py` refaktörü
+- Yeni provider entegrasyonu (ROADMAP STOP LIST sürüyor)
 
 ---
 
