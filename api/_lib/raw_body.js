@@ -24,7 +24,7 @@ export async function readBoundedRawBody(req, maxBytes) {
   if (!Number.isSafeInteger(limit) || limit < 1) throw new Error("raw_body_limit_invalid");
 
   const preloaded = asBuffer(req?.body);
-  if (preloaded) {
+  if (preloaded && preloaded.length > 0) {
     if (preloaded.length > limit) throw new RawBodyTooLargeError();
     return preloaded;
   }

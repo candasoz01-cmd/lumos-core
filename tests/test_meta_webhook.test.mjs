@@ -51,6 +51,13 @@ test("Raw webhook reader preserves streamed bytes and enforces the limit", async
   );
 });
 
+test("Empty preloaded body does not hide signed bytes still available on the stream", async () => {
+  const request = Readable.from([Buffer.from("signed-stream-body")]);
+  request.body = Buffer.alloc(0);
+  const body = await readBoundedRawBody(request, 64);
+  assert.equal(body.toString("utf8"), "signed-stream-body");
+});
+
 test("Meta webhook challenge requires the configured verify token", async () => {
   configure();
   try {
