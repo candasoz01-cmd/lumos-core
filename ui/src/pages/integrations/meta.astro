@@ -98,7 +98,7 @@ const providers = [
         if (status) status.dataset.i18n = `umbrella.metaConnections.status.${state.status}`;
 
         const connected = state.connected ?? new Set(["authorized", "synced", "refreshed"]).has(state.status);
-        const canConnect = new Set(["notConnected", "revokedLocal"]).has(state.status);
+        const canConnect = !connected && new Set(["notConnected", "revokedLocal", "unavailable"]).has(state.status);
         const connect = card.querySelector<HTMLElement>("[data-meta-connect]");
         if (connect) connect.hidden = !canConnect;
         card.querySelectorAll<HTMLButtonElement>("[data-meta-action]").forEach((button) => {

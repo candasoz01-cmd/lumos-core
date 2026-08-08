@@ -37,7 +37,7 @@ def test_meta_status_surface_keeps_external_writes_out_of_scope():
 def test_meta_action_state_preserves_valid_connection_and_expiry():
     text = PAGE.read_text(encoding="utf-8")
     assert "const connected = state.connected ??" in text
-    assert 'const canConnect = new Set(["notConnected", "revokedLocal"])' in text
+    assert 'const canConnect = !connected && new Set(["notConnected", "revokedLocal", "unavailable"])' in text
     assert 'response.status === 401 ? "sessionRequired" : "actionFailed"' in text
     assert text.count("connected: prior?.connected") >= 3
     assert 'status: "unavailable", connected: prior?.connected' in text
