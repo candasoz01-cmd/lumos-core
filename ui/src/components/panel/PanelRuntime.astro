@@ -6015,8 +6015,10 @@ const {
 
         const voiceBtn = document.getElementById("panel-voice-input");
         const voiceHint = document.getElementById("panel-voice-hint");
-        const speechRecognitionSupported = !!(
-          window.SpeechRecognition || window.webkitSpeechRecognition
+        const voiceCaptureSupported = !!(
+          navigator.mediaDevices &&
+          typeof navigator.mediaDevices.getUserMedia === "function" &&
+          typeof MediaRecorder !== "undefined"
         );
         const VOICE_TITLE_SUPPORTED = () => panelT("panel.modules.chat.compose.voiceTitleSupported");
         const VOICE_ARIA_SUPPORTED = () => panelT("panel.modules.chat.compose.voiceAriaSupported");
@@ -6024,25 +6026,20 @@ const {
         const VOICE_ARIA_UNSUPPORTED = () => panelT("panel.modules.chat.compose.voiceAriaUnsupported");
         /** @type {string | null} */
         let voiceHintI18nKey = null;
-        let voiceRec = null;
+        /** @type {MediaRecorder | null} */
+        let voiceRecorder = null;
+        /** @type {MediaStream | null} */
+        let voiceStream = null;
         let voiceListening = false;
         let voiceStartPending = false;
-        let voiceStopRequested = false;
-        let voiceGotResult = false;
-        let voiceHadError = false;
-        let voiceSessionStarted = false;
-
-        function panelSpeechRecognitionLang() {
-          const loc =
-            window.LumosI18n && typeof window.LumosI18n.getLocale === "function"
-              ? window.LumosI18n.getLocale()
-              : "tr";
-          return loc === "en" ? "en-US" : "tr-TR";
-        }
+        let voiceStopPending = false;
+        let voiceTranscribing = false;
+        let voiceStopTimer = null;
+        const VOICE_CAPTURE_MAX_MS = 60_000;
 
         function applyVoiceSupportUi() {
           if (!voiceBtn) return;
-          if (!speechRecognitionSupported) {
+          if (!voiceCaptureSupported) {
             voiceBtn.disabled = true;
             voiceBtn.setAttribute("aria-disabled", "true");
             voiceBtn.classList.add("chat-compose-voice-btn--unsupported");
@@ -6051,11 +6048,16 @@ const {
             setVoiceHintKey("panel.modules.chat.compose.voiceHints.unsupported");
             return;
           }
-          voiceBtn.disabled = false;
-          voiceBtn.removeAttribute("aria-disabled");
+          const busy = voiceStartPending || voiceStopPending || voiceTranscribing;
+          voiceBtn.disabled = busy;
+          voiceBtn.setAttribute("aria-disabled", busy ? "true" : "false");
           voiceBtn.classList.remove("chat-compose-voice-btn--unsupported");
+          voiceBtn.classList.toggle("chat-compose-voice-btn--listening", voiceListening);
           voiceBtn.title = VOICE_TITLE_SUPPORTED();
           voiceBtn.setAttribute("aria-label", VOICE_ARIA_SUPPORTED());
+          voiceBtn.setAttribute("aria-pressed", voiceListening ? "true" : "false");
+          if (busy) voiceBtn.setAttribute("aria-busy", "true");
+          else voiceBtn.removeAttribute("aria-busy");
         }
 
         function setVoiceHintKey(key) {
@@ -6073,48 +6075,170 @@ const {
 
         function setVoiceListeningUi(active) {
           voiceListening = active;
-          if (voiceBtn) {
-            voiceBtn.classList.toggle("chat-compose-voice-btn--listening", active);
-            voiceBtn.setAttribute("aria-pressed", active ? "true" : "false");
-          }
+          applyVoiceSupportUi();
         }
 
-        function stopVoiceListeningUi() {
+        function stopVoiceStream() {
+          if (!voiceStream) return;
+          voiceStream.getTracks().forEach((track) => track.stop());
+          voiceStream = null;
+        }
+
+        function resetVoiceCaptureState(expectedRecorder = null) {
+          if (expectedRecorder && voiceRecorder !== expectedRecorder) return;
+          if (voiceStopTimer !== null) {
+            window.clearTimeout(voiceStopTimer);
+            voiceStopTimer = null;
+          }
+          voiceRecorder = null;
           voiceStartPending = false;
+          voiceStopPending = false;
           setVoiceListeningUi(false);
+          stopVoiceStream();
         }
 
-        function beginVoiceListeningUi() {
-          voiceStartPending = false;
-          voiceSessionStarted = true;
-          setVoiceListeningUi(true);
+        function voiceCaptureFilename(mime) {
+          const type = String(mime || "").toLowerCase();
+          if (type.includes("mp4")) return "voice-input.mp4";
+          if (type.includes("ogg")) return "voice-input.ogg";
+          return "voice-input.webm";
         }
 
-        function voiceErrorHintKey(errorCode) {
-          switch (errorCode) {
-            case "network":
-            case "service-not-allowed":
-              return "panel.modules.chat.compose.voiceHints.serviceUnavailable";
-            case "no-speech":
-              return "panel.modules.chat.compose.voiceHints.noSpeech";
-            case "audio-capture":
-              return "panel.modules.chat.compose.voiceHints.micUnavailable";
-            case "not-allowed":
-              return "panel.modules.chat.compose.voiceHints.micDenied";
-            case "aborted":
-              return "panel.modules.chat.compose.voiceHints.aborted";
-            default:
-              return "panel.modules.chat.compose.voiceHints.failed";
+        function voiceTranscriptionFailureHintKey(result) {
+          if (result && result.blocked) {
+            return isOfflineUserMode()
+              ? "panel.modules.chat.transcript.offlineMsg"
+              : "panel.modules.chat.transcript.limitedUserMsg";
+          }
+          if (result && result.engineUnavailable) {
+            return "panel.modules.chat.transcript.engineMsg";
+          }
+          if (result && result.error === "network_error") {
+            return "panel.modules.chat.transcript.networkFailed";
+          }
+          if (result && result.error === "transcribe_missing_audio") {
+            return "panel.modules.chat.transcript.missingAudio";
+          }
+          return "panel.modules.chat.transcript.failedSpeech";
+        }
+
+        async function transcribeVoiceCapture(blob, mime) {
+          voiceTranscribing = true;
+          applyVoiceSupportUi();
+          setVoiceHintKey("panel.modules.chat.compose.voiceHints.transcribing");
+          try {
+            const result = await requestLocalTranscription(
+              blob,
+              "panel_voice_input",
+              voiceCaptureFilename(mime),
+              mime,
+            );
+            if (result.ok && result.text && fillPanelChatInputWithTranscript(result.text)) {
+              setVoiceHintKey("panel.modules.chat.compose.voiceHints.added");
+              return;
+            }
+            setVoiceHintKey(voiceTranscriptionFailureHintKey(result));
+          } catch {
+            setVoiceHintKey("panel.modules.chat.transcript.failedSpeech");
+          } finally {
+            voiceTranscribing = false;
+            applyVoiceSupportUi();
           }
         }
 
-        function appendVoiceTranscript(chunk) {
-          const t = String(chunk || "").trim();
-          if (!t) return;
-          const cur = input.value;
-          const sep = cur && !/\s$/.test(cur) ? " " : "";
-          input.value = cur + sep + t;
-          input.dispatchEvent(new Event("input", { bubbles: true }));
+        function stopVoiceCapture() {
+          if (!voiceRecorder || voiceRecorder.state === "inactive") return;
+          const recorder = voiceRecorder;
+          voiceStopPending = true;
+          setVoiceHintKey("panel.modules.chat.compose.voiceHints.transcribing");
+          setVoiceListeningUi(false);
+          try {
+            recorder.stop();
+          } catch {
+            resetVoiceCaptureState(recorder);
+            setVoiceHintKey("panel.modules.chat.compose.voiceHints.failed");
+          }
+        }
+
+        async function startVoiceCapture() {
+          const transcribeUserBlock = remoteTranscriptionBlocked();
+          if (transcribeUserBlock.blocked) {
+            setVoiceHintKey(
+              isOfflineUserMode()
+                ? "panel.modules.chat.transcript.offlineMsg"
+                : "panel.modules.chat.transcript.limitedUserMsg",
+            );
+            return;
+          }
+
+          voiceStartPending = true;
+          applyVoiceSupportUi();
+          setVoiceHintKey("");
+
+          let stream;
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          } catch (err) {
+            voiceStartPending = false;
+            applyVoiceSupportUi();
+            const name = err && typeof err === "object" && "name" in err ? String(err.name) : "";
+            setVoiceHintKey(
+              name === "NotAllowedError" || name === "PermissionDeniedError"
+                ? "panel.modules.chat.compose.voiceHints.micDenied"
+                : "panel.modules.chat.compose.voiceHints.micUnavailable",
+            );
+            return;
+          }
+
+          voiceStream = stream;
+          const mimeType = pickAudioRecordMimeType();
+          const options = mimeType ? { mimeType } : undefined;
+          let recorder;
+          try {
+            recorder = options
+              ? new MediaRecorder(stream, options)
+              : new MediaRecorder(stream);
+          } catch {
+            resetVoiceCaptureState();
+            setVoiceHintKey("panel.modules.chat.compose.voiceHints.startFailed");
+            return;
+          }
+
+          voiceRecorder = recorder;
+          /** @type {BlobPart[]} */
+          const recorderChunks = [];
+          let recorderFailed = false;
+          voiceRecorder.ondataavailable = (ev) => {
+            if (ev.data && ev.data.size > 0) recorderChunks.push(ev.data);
+          };
+          voiceRecorder.onerror = () => {
+            recorderFailed = true;
+            resetVoiceCaptureState(recorder);
+            setVoiceHintKey("panel.modules.chat.compose.voiceHints.failed");
+          };
+          voiceRecorder.onstop = () => {
+            const type = recorder.mimeType || mimeType || "audio/webm";
+            const blob = new Blob(recorderChunks, { type });
+            resetVoiceCaptureState(recorder);
+            if (recorderFailed) return;
+            if (blob.size < 512) {
+              setVoiceHintKey("panel.modules.chat.compose.voiceHints.noSpeech");
+              return;
+            }
+            void transcribeVoiceCapture(blob, type);
+          };
+
+          try {
+            voiceRecorder.start();
+          } catch {
+            resetVoiceCaptureState(recorder);
+            setVoiceHintKey("panel.modules.chat.compose.voiceHints.startFailed");
+            return;
+          }
+          voiceStartPending = false;
+          setVoiceListeningUi(true);
+          setVoiceHintKey("panel.modules.chat.compose.voiceHints.recording");
+          voiceStopTimer = window.setTimeout(stopVoiceCapture, VOICE_CAPTURE_MAX_MS);
         }
 
         applyVoiceSupportUi();
@@ -6129,94 +6253,15 @@ const {
           if (typeof refreshPanelVoiceHintsI18n === "function") refreshPanelVoiceHintsI18n();
         });
 
-        if (speechRecognitionSupported) {
+        if (voiceCaptureSupported) {
           voiceBtn?.addEventListener("click", () => {
-          const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-          if (!SR) return;
-
-          if (voiceListening || voiceStartPending) {
-            if (voiceRec) {
-              voiceStopRequested = true;
-              try {
-                voiceRec.stop();
-              } catch {
-                /* ignore */
-              }
-            }
-            return;
-          }
-
-          voiceRec = new SR();
-          voiceRec.lang = panelSpeechRecognitionLang();
-          voiceRec.interimResults = false;
-          voiceRec.continuous = false;
-          voiceRec.maxAlternatives = 1;
-
-          voiceStartPending = true;
-          voiceStopRequested = false;
-          voiceGotResult = false;
-          voiceHadError = false;
-          voiceSessionStarted = false;
-          setVoiceHintKey("");
-
-          voiceRec.onstart = () => {
-            beginVoiceListeningUi();
-          };
-
-          voiceRec.onaudiostart = () => {
-            if (!voiceListening) beginVoiceListeningUi();
-          };
-
-          voiceRec.onresult = (ev) => {
-            let spoken = "";
-            for (let i = ev.resultIndex; i < ev.results.length; i++) {
-              spoken += ev.results[i][0].transcript;
-            }
-            const trimmed = String(spoken || "").trim();
-            if (!trimmed) return;
-            voiceGotResult = true;
-            appendVoiceTranscript(spoken);
-            if (voiceHint) voiceHint.hidden = true;
-          };
-
-          voiceRec.onerror = (ev) => {
-            const code = ev.error || "";
-            if (code !== "aborted" || !voiceStopRequested) {
-              setVoiceHintKey(voiceErrorHintKey(code));
-              voiceHadError = true;
-            }
-            stopVoiceListeningUi();
-          };
-
-          voiceRec.onend = () => {
-            const userStopped = voiceStopRequested;
-            const gotResult = voiceGotResult;
-            const hadError = voiceHadError;
-            const sessionStarted = voiceSessionStarted;
-            const startPendingButNeverStarted =
-              voiceStartPending && !voiceSessionStarted;
-            stopVoiceListeningUi();
-            voiceStopRequested = false;
-            voiceGotResult = false;
-            voiceHadError = false;
-            voiceSessionStarted = false;
-            if (gotResult || userStopped || hadError) return;
-            if (startPendingButNeverStarted) {
-              setVoiceHintKey("panel.modules.chat.compose.voiceHints.startFailed");
+            if (voiceListening) {
+              stopVoiceCapture();
               return;
             }
-            if (sessionStarted) {
-              setVoiceHintKey("panel.modules.chat.compose.voiceHints.noResult");
-            }
-          };
-
-          try {
-            voiceRec.start();
-          } catch {
-            stopVoiceListeningUi();
-            setVoiceHintKey("panel.modules.chat.compose.voiceHints.startFailed");
-          }
-        });
+            if (voiceStartPending || voiceStopPending || voiceTranscribing) return;
+            void startVoiceCapture();
+          });
         }
 
         function syncCameraPhotoStatusVisibilityForViewport() {
