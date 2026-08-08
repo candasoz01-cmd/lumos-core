@@ -239,18 +239,20 @@ PANEL_I18N_V13_TR_KEYS = (
 
 PANEL_I18N_V14_MARKERS = (
     'setVoiceHintKey("panel.modules.chat.compose.voiceHints.unsupported")',
-    'voiceRec.lang = panelSpeechRecognitionLang();',
-    'function panelSpeechRecognitionLang()',
-    'function voiceErrorHintKey(',
+    "navigator.mediaDevices.getUserMedia({ audio: true })",
+    "requestLocalTranscription(",
+    "function voiceTranscriptionFailureHintKey(",
+    "fillPanelChatInputWithTranscript(result.text)",
     'refreshPanelVoiceHintsI18n = () => {',
     'if (typeof refreshPanelVoiceHintsI18n === "function") refreshPanelVoiceHintsI18n();',
 )
 
 PANEL_I18N_V14_TR_KEYS = (
     "voiceHints:",
-    "serviceUnavailable:",
+    "recording:",
+    "transcribing:",
+    "added:",
     "startFailed:",
-    "noResult:",
 )
 
 PANEL_I18N_V15_MARKERS = (
@@ -1208,7 +1210,8 @@ def test_panel_astro_i18n_v14_voice_hints_wiring() -> None:
     text = read_panel_source()
     for token in PANEL_I18N_V14_MARKERS:
         assert token in text, f"missing panel i18n v14 token: {token}"
-    assert 'voiceRec.lang = "tr-TR"' not in text
+    assert "window.SpeechRecognition" not in text
+    assert "window.webkitSpeechRecognition" not in text
     assert "VOICE_UNSUPPORTED_HINT" not in text
     assert "function setVoiceHint(" not in text
 
