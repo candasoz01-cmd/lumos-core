@@ -91,9 +91,43 @@ bugün yeni provider geliştirme veya entegrasyon yetkisi vermez.
   ölçüldükten sonra değerlendirilecek aday.
 - **Ürün yüzü:** Kullanıcı yalnız **Lumos** görür. Provider adları ürün kimliği
   olarak sunulmaz; teknik şeffaflık gerektiğinde doğru biçimde açıklanır.
+  Kullanıcıya model/sağlayıcı seçtiren bir arayüz **yapılmaz** — 2026-08-08
+  kararı, [ADR-019](decisions/ADR-019-product-surface-separation-modelregistry.md)
+  ve [`product-rules.md`](product-rules.md) PR-005.
 
 Yeni provider ancak ayrı karar, güvenlik ve veri sınırı, maliyet, test ve geçiş
 kanıtıyla etkinleştirilir.
+
+### Provider evaluation backlog (FAZ-1 sonrası)
+
+Yukarıdaki sıra (**OpenAI → Claude pilotu → DeepSeek**) **değişmez**. Aşağıdakiler
+bu sıraya girmeyi bekleyen adaylardır; bugün entegrasyon yetkisi **yoktur**.
+
+| Aday | Durum | Not |
+|------|-------|-----|
+| Kimi / Moonshot | **Backlog — değerlendirilmedi** | 2026-08-08'de kayda alındı; entegrasyon yapılmadı |
+| Gemini | Backlog | Ayrı karar bekler |
+
+Değerlendirme tek başına "şu modeli ekle" biçiminde yapılmaz. Adaylar ortak
+ölçütlerle karşılaştırılıp Router'a hangilerinin alınacağına karar verilir:
+**kalite, maliyet, gecikme, tool-use, coding, context penceresi, güvenilirlik.**
+Alınanlar kullanıcı yüzeyine değil, Router'ın altındaki `ModelRegistry`
+katmanına bağlanır (ADR-004 § Router altında ModelRegistry sınırı).
+
+## Command Wall — iç operatör yüzeyi
+
+Command Wall, **internal operator/admin surface**'tir; piyasaya çıkacak bir son
+kullanıcı ürünü **değildir**. Lumos ile aynı motoru (AI Runtime / Router)
+kullanır, ayrı bir motor kurmaz.
+
+- **Karar durumu:** sınır tanımı kabul edildi (2026-08-08, ADR-019).
+- **Uygulama durumu:** yeni operatör arayüzü veya orchestration kodu
+  **yazılmadı**. Bugünkü kapsam `src/lumos_board/` CLI ile sınırlıdır.
+- STOP LIST'teki "yeni agent / orchestration katmanı" yasağı **sürer**; bu tanım
+  onu delmez, yalnız gelecekteki işin adını ve sınırını sabitler.
+
+Kullanıcı yüzüne sağlayıcı/model adı, `session_id`, `instance_id`, worktree,
+heartbeat, PR/merge kapısı ve iç ajan koordinasyonu **sızmaz**.
 
 ## v2 rafı (şimdi konuşulmaz)
 
