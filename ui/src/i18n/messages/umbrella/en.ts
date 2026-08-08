@@ -246,7 +246,7 @@ const umbrellaEn: typeof umbrellaTr = {
     title: "We Lock AI Connection Ecosystem",
     lead:
       "Lumos connection surfaces, presented with their current scope, readiness, and authority boundaries.",
-    statusActive: "Active",
+    statusActive: "Connected",
     statusFoundation: "Foundation",
     statusAria: "Connection statuses",
     identityRequired: "Identity required",
