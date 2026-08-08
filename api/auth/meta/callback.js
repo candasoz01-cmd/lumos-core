@@ -30,7 +30,7 @@ function redirectResult(res, provider, key, value) {
   res.statusCode = 302;
   res.setHeader("Set-Cookie", clearMetaFlowCookieHeader());
   res.setHeader("Cache-Control", "no-store");
-  res.setHeader("Location", `/integrations?${query.toString()}`);
+  res.setHeader("Location", `/integrations/meta?${query.toString()}`);
   res.end();
 }
 

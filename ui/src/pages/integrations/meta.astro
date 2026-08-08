@@ -1,0 +1,211 @@
+---
+import "../../styles/lumos-tokens.css";
+import "../../styles/umbrella-chrome.css";
+import WeLockSiteNav from "../../components/WeLockSiteNav.astro";
+import WeLockSiteFooter from "../../components/WeLockSiteFooter.astro";
+import I18nInit from "../../components/I18nInit.astro";
+
+const providers = [
+  { id: "whatsapp", name: "WhatsApp", scopeKey: "umbrella.metaConnections.whatsappScope" },
+  { id: "instagram", name: "Instagram", scopeKey: "umbrella.metaConnections.instagramScope" },
+  { id: "facebook", name: "Facebook", scopeKey: "umbrella.metaConnections.facebookScope" },
+] as const;
+---
+
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title data-i18n="umbrella.metaConnections.metaTitle">Meta bağlantıları — Lumos</title>
+    <meta
+      name="description"
+      content="Lumos WhatsApp, Instagram ve Facebook read-only bağlantı durumları."
+      data-i18n-content="umbrella.metaConnections.metaDescription"
+    />
+    <link rel="canonical" href="https://welockai.com/integrations/meta" />
+    <link rel="icon" href="/chat-lumos-mark.svg" type="image/svg+xml" sizes="any" />
+    <meta name="theme-color" content="#0a0e14" />
+  </head>
+  <body class="umbrella-page">
+    <WeLockSiteNav active="integrations" />
+    <main class="umbrella-main">
+      <p class="umbrella-eyebrow" data-i18n="umbrella.metaConnections.eyebrow">LUMOS · META COMMUNICATIONS</p>
+      <h1 data-i18n="umbrella.metaConnections.title">Meta bağlantıları</h1>
+      <p class="umbrella-lead" data-i18n="umbrella.metaConnections.lead">
+        WhatsApp, Instagram ve Facebook hesaplarının yetkilendirme ve read-only senkron durumunu tek yerde gör.
+      </p>
+
+      <div class="umbrella-callout">
+        <p data-i18n="umbrella.metaConnections.boundary">
+          Bu yüzey yalnız bağlantı ve salt-okunur metadata senkronunu yönetir. Mesaj gönderme veya yayınlama yetkisi içermez.
+        </p>
+        <p data-meta-notice aria-live="polite" hidden></p>
+      </div>
+
+      <section class="umbrella-feature-grid" aria-label="Meta bağlantı durumları" data-i18n-aria-label="umbrella.metaConnections.cardsAria">
+        {providers.map((provider) => (
+          <article class="umbrella-feature-card meta-connection-card" data-meta-provider={provider.id} data-connection-state="checking">
+            <h2>{provider.name}</h2>
+            <p data-i18n={provider.scopeKey}>Yalnız hesap ve bağlantı metadata'sı.</p>
+            <p class="meta-connection-status">
+              <strong data-i18n="umbrella.metaConnections.statusLabel">Durum</strong>
+              <span aria-hidden="true"> — </span>
+              <span data-meta-status data-i18n="umbrella.metaConnections.status.checking" aria-live="polite">Kontrol ediliyor</span>
+            </p>
+            <p class="meta-connection-detail" data-meta-detail hidden></p>
+            <div class="umbrella-actions meta-connection-actions">
+              <a class="umbrella-btn umbrella-btn--primary" data-meta-connect href={`/auth/meta/start?provider=${provider.id}`} data-i18n="umbrella.metaConnections.connect">Bağla</a>
+              <button class="umbrella-btn" type="button" data-meta-action="sync" disabled data-i18n="umbrella.metaConnections.sync">Read-only senkron</button>
+              <button class="umbrella-btn" type="button" data-meta-action="refresh" disabled data-i18n="umbrella.metaConnections.refresh">Yenile</button>
+              <button class="umbrella-btn" type="button" data-meta-action="revoke" disabled data-i18n="umbrella.metaConnections.revoke">Bağlantıyı kaldır</button>
+            </div>
+          </article>
+        ))}
+      </section>
+
+      <div class="umbrella-actions">
+        <a class="umbrella-btn umbrella-btn--primary" href="/integrations" data-i18n="umbrella.metaConnections.hubCta">Entegrasyon merkezi</a>
+        <a class="umbrella-btn" href="/panel" data-i18n="umbrella.metaConnections.panelCta">Panel</a>
+      </div>
+    </main>
+    <WeLockSiteFooter />
+    <I18nInit />
+
+    <script>
+      type MetaState = {
+        status: string;
+        expiresAt?: number;
+        checkedAt?: string;
+        accountCount?: number;
+      };
+      type LumosWindow = Window & {
+        LumosI18n?: { applyDocumentI18n: (root?: ParentNode) => void; getLocale: () => "tr" | "en" };
+      };
+
+      const stateByProvider = new Map<string, MetaState>();
+      const cards = Array.from(document.querySelectorAll<HTMLElement>("[data-meta-provider]"));
+
+      function translate(root: ParentNode = document) {
+        (window as LumosWindow).LumosI18n?.applyDocumentI18n(root);
+      }
+
+      function setStatus(card: HTMLElement, state: MetaState) {
+        const provider = card.dataset.metaProvider || "";
+        stateByProvider.set(provider, state);
+        card.dataset.connectionState = state.status;
+        const status = card.querySelector<HTMLElement>("[data-meta-status]");
+        if (status) status.dataset.i18n = `umbrella.metaConnections.status.${state.status}`;
+
+        const connected = new Set(["authorized", "synced", "refreshed"]).has(state.status);
+        const connect = card.querySelector<HTMLElement>("[data-meta-connect]");
+        if (connect) connect.hidden = connected;
+        card.querySelectorAll<HTMLButtonElement>("[data-meta-action]").forEach((button) => {
+          const action = button.dataset.metaAction;
+          button.disabled = !connected || (action === "refresh" && !state.expiresAt);
+        });
+
+        const detail = card.querySelector<HTMLElement>("[data-meta-detail]");
+        if (detail) {
+          const locale = (window as LumosWindow).LumosI18n?.getLocale() || "tr";
+          const parts: string[] = [];
+          if (typeof state.accountCount === "number") {
+            parts.push(locale === "en" ? `${state.accountCount} account record(s)` : `${state.accountCount} hesap kaydı`);
+          }
+          if (state.checkedAt) {
+            const date = new Date(state.checkedAt);
+            if (!Number.isNaN(date.getTime())) parts.push(date.toLocaleString(locale === "en" ? "en" : "tr-TR"));
+          } else if (state.expiresAt) {
+            parts.push(`${locale === "en" ? "Expires" : "Bitiş"}: ${new Date(state.expiresAt * 1000).toLocaleString(locale === "en" ? "en" : "tr-TR")}`);
+          }
+          detail.textContent = parts.join(" · ");
+          detail.hidden = parts.length === 0;
+        }
+        translate(card);
+      }
+
+      async function parseResponse(response: Response) {
+        try { return await response.json(); } catch { return {}; }
+      }
+
+      async function loadStatus(card: HTMLElement) {
+        const provider = card.dataset.metaProvider || "";
+        try {
+          const response = await fetch(`/api/integrations/meta/token?provider=${encodeURIComponent(provider)}`, {
+            credentials: "same-origin",
+            headers: { Accept: "application/json" },
+          });
+          const body = await parseResponse(response);
+          if (response.status === 401) return setStatus(card, { status: "sessionRequired" });
+          if (!response.ok) return setStatus(card, { status: "configurationRequired" });
+          setStatus(card, { status: body.status === "authorized" ? "authorized" : "notConnected", expiresAt: Number(body.expires_at || 0) });
+        } catch {
+          setStatus(card, { status: "unavailable" });
+        }
+      }
+
+      async function runAction(card: HTMLElement, action: string) {
+        const provider = card.dataset.metaProvider || "";
+        setStatus(card, { ...stateByProvider.get(provider), status: "working" });
+        const endpoint = action === "sync" ? "/api/integrations/meta/sync" : "/api/integrations/meta/token";
+        const body = action === "sync" ? { provider } : { provider, action };
+        try {
+          const response = await fetch(endpoint, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { Accept: "application/json", "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          const result = await parseResponse(response);
+          if (!response.ok) {
+            if (result.status === "revoked_local") return setStatus(card, { status: "revokedLocal" });
+            return setStatus(card, { status: response.status === 401 ? "sessionRequired" : "actionFailed" });
+          }
+          if (action === "revoke") return setStatus(card, { status: "notConnected" });
+          if (action === "refresh") return setStatus(card, { status: "refreshed", expiresAt: Number(result.expires_at || 0) });
+          const accountCount = (Array.isArray(result.accounts) ? result.accounts.length : 0) + (Array.isArray(result.businesses) ? result.businesses.length : 0);
+          setStatus(card, { status: "synced", checkedAt: result.checked_at, accountCount });
+        } catch {
+          setStatus(card, { status: "unavailable" });
+        }
+      }
+
+      cards.forEach((card) => {
+        card.querySelectorAll<HTMLButtonElement>("[data-meta-action]").forEach((button) => {
+          button.addEventListener("click", () => runAction(card, button.dataset.metaAction || ""));
+        });
+        loadStatus(card);
+      });
+
+      const query = new URLSearchParams(window.location.search);
+      const notice = document.querySelector<HTMLElement>("[data-meta-notice]");
+      if (notice && query.has("meta_status")) {
+        notice.hidden = false;
+        notice.dataset.i18n = "umbrella.metaConnections.oauthAuthorized";
+      } else if (notice && query.has("meta_error")) {
+        notice.hidden = false;
+        notice.dataset.i18n = "umbrella.metaConnections.oauthFailed";
+      }
+      translate();
+      if (query.has("meta_status") || query.has("meta_error")) history.replaceState({}, "", "/integrations/meta");
+      window.addEventListener("lumos:localechange", () => {
+        cards.forEach((card) => {
+          const provider = card.dataset.metaProvider || "";
+          const state = stateByProvider.get(provider);
+          if (state) setStatus(card, state);
+        });
+      });
+    </script>
+  </body>
+</html>
+
+<style>
+  .meta-connection-card { display: flex; flex-direction: column; }
+  .meta-connection-status { margin-top: auto; }
+  .meta-connection-detail { font-size: 0.82rem; color: var(--lumos-text-muted); }
+  .meta-connection-actions { margin-top: 0.7rem; }
+  .meta-connection-actions .umbrella-btn { flex: 1 1 auto; cursor: pointer; }
+  .meta-connection-actions .umbrella-btn[disabled] { cursor: not-allowed; opacity: 0.45; }
+  .meta-connection-card[data-connection-state="authorized"],
+  .meta-connection-card[data-connection-state="synced"],
+  .meta-connection-card[data-connection-state="refreshed"] { border-color: rgb(110 231 183 / 0.42); }
+</style>

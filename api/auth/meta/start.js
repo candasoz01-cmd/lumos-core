@@ -21,7 +21,7 @@ const ROUTE = "meta_oauth_start";
 function redirectError(res, code) {
   res.statusCode = 302;
   res.setHeader("Cache-Control", "no-store");
-  res.setHeader("Location", `/integrations?meta_error=${encodeURIComponent(code)}`);
+  res.setHeader("Location", `/integrations/meta?meta_error=${encodeURIComponent(code)}`);
   res.end();
 }
 
