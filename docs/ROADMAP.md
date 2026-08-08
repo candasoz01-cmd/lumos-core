@@ -79,6 +79,28 @@ FAZ-1 bitene kadar **yeni özellik eklenmez**:
 - ❌ Yeni sayfa
 - ❌ Yeni agent / orchestration katmanı
 
+### Dar istisna — Meta communications tamamlama dilimi
+
+2026-08-08 kullanıcı kararıyla yalnız mevcut `communications` ailesindeki
+**WhatsApp, Instagram ve Facebook** bağlantılarının tamamlanması STOP LIST'ten
+dar kapsamlı olarak istisna tutulmuştur. Bu istisna yeni bir model sağlayıcısı
+kararı değildir ve FAZ-1 sonrası **OpenAI → Claude pilotu → DeepSeek** sırasını
+değiştirmez.
+
+İstisna sınırları:
+
+- mevcut provider kayıtları üzerinde OAuth, sunucu tarafı credential/vault,
+  token yenileme/iptal, webhook doğrulama ve salt-okunur bağlantı/senkron;
+- her dış etkili adımda mevcut onay ve politika kapılarının korunması;
+- ilk dilimde mesaj gönderme, yorum, paylaşım veya yayınlama **yok**;
+- secret, access token ve kişisel içerik client'a veya public repo'ya yazılmaz;
+- Meta kimliği, izin/App Review veya canlı credential yoksa durum
+  `awaiting_credentials` / `external_approval_required` kalır; **canlı** denmez;
+- her uygulama dilimi ayrı küçük PR, test, CI ve merge-sonrası `main`
+  doğrulamasıyla kapanır.
+
+Normatif karar ve kabul kapıları: [ADR-020](decisions/ADR-020-meta-communications-exception.md).
+
 ## FAZ-1 sonrası provider stratejisi
 
 Bu kayıt yalnız FAZ-1 tamamlandıktan sonra değerlendirilecek yönü tanımlar;
