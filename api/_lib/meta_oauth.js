@@ -180,7 +180,7 @@ export async function revokeMetaToken(provider, accessToken, fetchImpl = fetch) 
   });
   if (!response.ok) throw new Error("meta_token_revoke_failed");
   const payload = await response.json();
-  if (payload?.success !== true) throw new Error("meta_token_revoke_failed");
+  if (payload !== true && payload?.success !== true) throw new Error("meta_token_revoke_failed");
   return { revoked: true };
 }
 

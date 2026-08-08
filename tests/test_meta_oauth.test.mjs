@@ -275,6 +275,19 @@ test("Instagram refresh and Meta revoke stay server-side", async () => {
   }
 });
 
+test("Meta revoke accepts the Graph API bare boolean success response", async () => {
+  env();
+  try {
+    const revoked = await revokeMetaToken("facebook", "facebook-token", async () => ({
+      ok: true,
+      async json() { return true; },
+    }));
+    assert.deepEqual(revoked, { revoked: true });
+  } finally {
+    cleanEnv();
+  }
+});
+
 test("Token metadata returns expiry without resolving or exposing the credential", async () => {
   env();
   const originalFetch = globalThis.fetch;
