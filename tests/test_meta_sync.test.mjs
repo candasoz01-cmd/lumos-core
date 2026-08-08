@@ -143,3 +143,48 @@ test("Hosted sync rejects cross-site mutation before vault resolution", async ()
     cleanup();
   }
 });
+
+test("Instagram vault credential without auth mode fails closed", async () => {
+  configure();
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async () => ({
+      ok: true,
+      async json() { return {
+        ok: true,
+        vault_ref: "meta:instagram:legacy",
+        provider_account_id: "ig-1",
+        credential: { access_token: "legacy-token", expires_at: 100 },
+      }; },
+    });
+    const res = response();
+    await handler({
+      method: "POST",
+      headers: { cookie: `lumos_session=${session()}`, origin: "https://welockai.com", host: "welockai.com" },
+      body: { provider: "instagram" },
+    }, res);
+    assert.equal(res.statusCode, 502);
+    assert.equal(JSON.parse(res.body).error, "meta_sync_auth_mode_missing");
+    assert.doesNotMatch(res.body, /legacy-token/);
+  } finally {
+    globalThis.fetch = originalFetch;
+    cleanup();
+  }
+});
+
+test("WhatsApp nested truncation marks the snapshot as incomplete", async () => {
+  configure();
+  try {
+    const accounts = Array.from({ length: 51 }, (_, index) => ({ id: `waba-${index}`, name: `WABA ${index}` }));
+    const result = await syncMetaReadOnly("whatsapp", { accessToken: "token" }, async () => ({
+      ok: true,
+      async json() { return {
+        data: [{ id: "biz-1", name: "Lumos", owned_whatsapp_business_accounts: { data: accounts } }],
+      }; },
+    }));
+    assert.equal(result.accounts.length, 50);
+    assert.equal(result.has_more, true);
+  } finally {
+    cleanup();
+  }
+});

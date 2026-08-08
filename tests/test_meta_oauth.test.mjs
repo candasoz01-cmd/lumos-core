@@ -260,11 +260,11 @@ test("Instagram refresh and Meta revoke stay server-side", async () => {
     const refreshed = await refreshMetaToken("instagram", "long-instagram", async (url, init = {}) => {
       seen.push({ url: String(url), init });
       return { ok: true, async json() { return { access_token: "new-instagram", expires_in: 7000 }; } };
-    });
+    }, "instagram_login");
     const revoked = await revokeMetaToken("instagram", "new-instagram", async (url, init = {}) => {
       seen.push({ url: String(url), init });
       return { ok: true, async json() { return { success: true }; } };
-    });
+    }, "instagram_login");
     assert.equal(refreshed.accessToken, "new-instagram");
     assert.deepEqual(revoked, { revoked: true });
     assert.match(seen[0].url, /refresh_access_token/);
@@ -283,6 +283,25 @@ test("Meta revoke accepts the Graph API bare boolean success response", async ()
       async json() { return true; },
     }));
     assert.deepEqual(revoked, { revoked: true });
+  } finally {
+    cleanEnv();
+  }
+});
+
+test("Instagram Facebook Login lifecycle stays on Facebook Graph", async () => {
+  env();
+  const seen = [];
+  try {
+    await refreshMetaToken("instagram", "facebook-token", async (url) => {
+      seen.push(String(url));
+      return { ok: true, async json() { return { access_token: "extended-facebook", expires_in: 3600 }; } };
+    }, "facebook_login");
+    await revokeMetaToken("instagram", "extended-facebook", async (url) => {
+      seen.push(String(url));
+      return { ok: true, async json() { return true; } };
+    }, "facebook_login");
+    assert.equal(new URL(seen[0]).hostname, "graph.facebook.com");
+    assert.equal(new URL(seen[1]).hostname, "graph.facebook.com");
   } finally {
     cleanEnv();
   }
@@ -340,7 +359,7 @@ test("Token refresh resolves inside the vault boundary and stores only the rotat
             ok: true,
             vault_ref: "meta:instagram:opaque",
             provider_account_id: "ig-account",
-            credential: { access_token: "old-token", token_type: "bearer", expires_at: 100 },
+            credential: { access_token: "old-token", token_type: "bearer", expires_at: 100, auth_mode: "instagram_login" },
           }; } };
         }
         return { ok: true, async json() { return { ok: true, vault_ref: body.vault_ref }; } };

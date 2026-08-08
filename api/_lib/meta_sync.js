@@ -35,6 +35,7 @@ export function metaSyncRequest(provider, credential) {
       url: graphFacebookUrl(credential.providerAccountId, "id,username,media_count"),
     };
   }
+  if (provider === "instagram") throw new Error("meta_sync_auth_mode_missing");
   if (provider === "facebook") {
     return {
       mode: "facebook_login",
@@ -81,16 +82,21 @@ export async function syncMetaReadOnly(provider, credential, fetchImpl = fetch) 
 
   const businesses = safeAccounts(payload?.data, ["id", "name"]);
   const whatsappAccounts = [];
+  let nestedHasMore = false;
   for (const business of Array.isArray(payload?.data) ? payload.data.slice(0, 50) : []) {
-    const owned = safeAccounts(business?.owned_whatsapp_business_accounts?.data, ["id", "name"]);
+    const ownedPayload = business?.owned_whatsapp_business_accounts;
+    const rawOwned = Array.isArray(ownedPayload?.data) ? ownedPayload.data : [];
+    if (rawOwned.length > 50 || ownedPayload?.paging?.next) nestedHasMore = true;
+    const owned = safeAccounts(rawOwned, ["id", "name"]);
     for (const account of owned) {
       whatsappAccounts.push({ ...account, business_id: clean(business?.id) });
     }
   }
+  if (whatsappAccounts.length > 50) nestedHasMore = true;
   return {
     mode: request.mode,
     businesses,
     accounts: whatsappAccounts.slice(0, 50),
-    has_more: Boolean(payload?.paging?.next),
+    has_more: Boolean(payload?.paging?.next) || nestedHasMore,
   };
 }

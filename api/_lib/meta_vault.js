@@ -79,6 +79,7 @@ export async function resolveMetaCredential(lumosId, provider, fetchImpl = fetch
   const accessToken = clean(payload?.credential?.access_token);
   const vaultRef = clean(payload?.vault_ref);
   const providerAccountId = clean(payload?.provider_account_id);
+  const storedAuthMode = clean(payload?.credential?.auth_mode);
   if (!accessToken || !vaultRef || !providerAccountId) {
     throw new Error("meta_vault_credential_missing");
   }
@@ -88,7 +89,7 @@ export async function resolveMetaCredential(lumosId, provider, fetchImpl = fetch
     expiresAt: Number(payload?.credential?.expires_at || 0),
     vaultRef,
     providerAccountId,
-    authMode: clean(payload?.credential?.auth_mode) || (provider === "instagram" ? "instagram_login" : "facebook_login"),
+    authMode: storedAuthMode || (provider === "instagram" ? "" : "facebook_login"),
   };
 }
 
