@@ -112,6 +112,78 @@ export async function exchangeMetaCode(provider, code, fetchImpl = fetch) {
   };
 }
 
+function tokenFromPayload(payload, fallbackToken = "") {
+  const accessToken = clean(payload?.access_token || fallbackToken);
+  if (!accessToken) throw new Error("meta_access_token_missing");
+  return {
+    accessToken,
+    tokenType: clean(payload?.token_type) || "bearer",
+    expiresIn: Number(payload?.expires_in || 0),
+  };
+}
+
+export async function extendMetaToken(provider, accessToken, fetchImpl = fetch) {
+  const config = metaProviderConfig(provider);
+  if (!config || missingMetaConfiguration(provider).length || !clean(accessToken)) {
+    throw new Error("meta_token_extension_not_configured");
+  }
+  const query = config.id === "instagram"
+    ? new URLSearchParams({
+        grant_type: "ig_exchange_token",
+        client_secret: config.clientSecret,
+        access_token: clean(accessToken),
+      })
+    : new URLSearchParams({
+        grant_type: "fb_exchange_token",
+        client_id: config.clientId,
+        client_secret: config.clientSecret,
+        fb_exchange_token: clean(accessToken),
+      });
+  const endpoint = config.id === "instagram"
+    ? "https://graph.instagram.com/access_token"
+    : config.tokenUrl;
+  const response = await fetchImpl(`${endpoint}?${query.toString()}`, {
+    headers: { Accept: "application/json" },
+  });
+  if (!response.ok) throw new Error("meta_token_extension_failed");
+  return tokenFromPayload(await response.json());
+}
+
+export async function refreshMetaToken(provider, accessToken, fetchImpl = fetch) {
+  const config = metaProviderConfig(provider);
+  if (!config || missingMetaConfiguration(provider).length || !clean(accessToken)) {
+    throw new Error("meta_token_refresh_not_configured");
+  }
+  if (config.id !== "instagram") return extendMetaToken(provider, accessToken, fetchImpl);
+  const query = new URLSearchParams({
+    grant_type: "ig_refresh_token",
+    access_token: clean(accessToken),
+  });
+  const response = await fetchImpl(
+    `https://graph.instagram.com/refresh_access_token?${query.toString()}`,
+    { headers: { Accept: "application/json" } },
+  );
+  if (!response.ok) throw new Error("meta_token_refresh_failed");
+  return tokenFromPayload(await response.json(), accessToken);
+}
+
+export async function revokeMetaToken(provider, accessToken, fetchImpl = fetch) {
+  const config = metaProviderConfig(provider);
+  if (!config?.id || !clean(accessToken)) throw new Error("meta_token_revoke_not_configured");
+  const endpoint = config.id === "instagram"
+    ? "https://graph.instagram.com/me/permissions"
+    : `${config.tokenUrl.replace(/\/oauth\/access_token$/, "")}/me/permissions`;
+  if (!endpoint.startsWith("https://")) throw new Error("meta_token_revoke_not_configured");
+  const response = await fetchImpl(endpoint, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${clean(accessToken)}`, Accept: "application/json" },
+  });
+  if (!response.ok) throw new Error("meta_token_revoke_failed");
+  const payload = await response.json();
+  if (payload !== true && payload?.success !== true) throw new Error("meta_token_revoke_failed");
+  return { revoked: true };
+}
+
 export async function fetchMetaIdentity(provider, accessToken, fetchImpl = fetch) {
   const config = metaProviderConfig(provider);
   if (!config?.identityUrl || !clean(accessToken)) throw new Error("meta_identity_not_configured");

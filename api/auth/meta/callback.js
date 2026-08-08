@@ -9,6 +9,7 @@ import {
 } from "../../_lib/lumos_session.js";
 import {
   exchangeMetaCode,
+  extendMetaToken,
   fetchMetaIdentity,
   metaPurposeCode,
   metaVaultRef,
@@ -74,7 +75,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    const token = await exchangeMetaCode(provider, code);
+    const shortToken = await exchangeMetaCode(provider, code);
+    const token = provider === "whatsapp" && shortToken.expiresIn === 0
+      ? shortToken
+      : await extendMetaToken(provider, shortToken.accessToken);
     const identity = await fetchMetaIdentity(provider, token.accessToken);
     const vaultRef = metaVaultRef(lumosId, provider, identity.accountId);
     const purposeCode = metaPurposeCode(provider);
