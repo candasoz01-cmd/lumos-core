@@ -244,7 +244,7 @@ const umbrellaTr = {
     title: "We Lock AI Bağlantı Ekosistemi",
     lead:
       "Lumos'un güvenli bağlantı yüzeyleri; mevcut kapsamı, hazırlık düzeyi ve yetki sınırlarıyla birlikte.",
-    statusActive: "Aktif",
+    statusActive: "Bağlı",
     statusFoundation: "Foundation",
     statusAria: "Bağlantı durumları",
     identityRequired: "Kimlik bekliyor",

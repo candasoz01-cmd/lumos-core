@@ -56,11 +56,10 @@ const charterRows: MatrixRow[] = [
   },
 ];
 
-type ItemStatus = "active" | "foundation" | "planned" | "identity_required";
+type ItemStatus = "active" | "planned" | "identity_required";
 
 const STATUS_BADGE: Record<ItemStatus, { cls: string; i18n: string; label: string }> = {
-  active: { cls: "integration-status--active", i18n: "umbrella.integrations.statusActive", label: "Aktif" },
-  foundation: { cls: "integration-status--foundation", i18n: "umbrella.integrations.statusFoundation", label: "Foundation" },
+  active: { cls: "integration-status--active", i18n: "umbrella.integrations.statusActive", label: "Bağlı" },
   planned: { cls: "integration-status--planned", i18n: "umbrella.integrations.statusPlanned", label: "Planlanan" },
   identity_required: { cls: "integration-status--planned", i18n: "umbrella.integrations.identityRequired", label: "Kimlik bekliyor" },
 };
@@ -71,7 +70,7 @@ const ecosystemCategories = [
     labelKey: "umbrella.integrations.categoryAi",
     label: "AI",
     items: [
-      { id: "openai", name: "OpenAI", status: "foundation" as ItemStatus },
+      { id: "openai", name: "OpenAI", status: "active" as ItemStatus },
       { id: "gemini", name: "Gemini", status: "planned" as ItemStatus },
       { id: "deepseek", name: "DeepSeek", status: "planned" as ItemStatus },
     ],
@@ -91,12 +90,17 @@ const ecosystemCategories = [
     label: "İletişim",
     items: [
       { id: "slack", name: "Slack", status: "planned" as ItemStatus, href: "/slack" },
-      { id: "whatsapp", name: "WhatsApp", status: "foundation" as ItemStatus, href: "/integrations/meta" },
+      { id: "whatsapp", name: "WhatsApp", status: "identity_required" as ItemStatus, href: "/integrations/meta" },
       { id: "telegram", name: "Telegram", status: "identity_required" as ItemStatus },
       { id: "zoom", name: "Zoom", status: "identity_required" as ItemStatus },
       { id: "microsoftTeams", name: "Microsoft Teams", status: "identity_required" as ItemStatus },
       { id: "line", name: "LINE", status: "planned" as ItemStatus },
       { id: "kakaoTalk", name: "KakaoTalk", status: "planned" as ItemStatus },
+      { id: "wechat", name: "WeChat", status: "planned" as ItemStatus },
+      { id: "wecom", name: "WeCom", status: "planned" as ItemStatus },
+      { id: "signal", name: "Signal", status: "planned" as ItemStatus },
+      { id: "viber", name: "Viber", status: "planned" as ItemStatus },
+      { id: "zalo", name: "Zalo", status: "planned" as ItemStatus },
     ],
   },
   {
@@ -104,7 +108,7 @@ const ecosystemCategories = [
     labelKey: "umbrella.integrations.categoryDeveloper",
     label: "Geliştirici",
     items: [
-      { id: "github", name: "GitHub", status: "foundation" as ItemStatus, href: "/integrations/github" },
+      { id: "github", name: "GitHub", status: "planned" as ItemStatus, href: "/integrations/github" },
       { id: "linear", name: "Linear", status: "planned" as ItemStatus, href: "/integrations/linear" },
       { id: "jira", name: "Jira", status: "planned" as ItemStatus },
       { id: "notion", name: "Notion", status: "planned" as ItemStatus },
@@ -115,13 +119,13 @@ const ecosystemCategories = [
     labelKey: "umbrella.integrations.categoryMedia",
     label: "Medya",
     items: [
-      { id: "facebook", name: "Facebook", status: "foundation" as ItemStatus, href: "/integrations/meta" },
-      { id: "instagram", name: "Instagram", status: "foundation" as ItemStatus, href: "/integrations/meta" },
+      { id: "facebook", name: "Facebook", status: "identity_required" as ItemStatus, href: "/integrations/meta" },
+      { id: "instagram", name: "Instagram", status: "identity_required" as ItemStatus, href: "/integrations/meta" },
       { id: "x", name: "X", status: "identity_required" as ItemStatus },
       { id: "tiktok", name: "TikTok", status: "identity_required" as ItemStatus },
       { id: "linkedin", name: "LinkedIn", status: "identity_required" as ItemStatus },
       { id: "youtube", name: "YouTube", status: "identity_required" as ItemStatus },
-      { id: "wechat", name: "WeChat", status: "identity_required" as ItemStatus },
+      { id: "wechat", name: "WeChat", status: "planned" as ItemStatus },
       { id: "douyin", name: "Douyin", status: "identity_required" as ItemStatus },
       { id: "bilibili", name: "Bilibili", status: "identity_required" as ItemStatus },
       { id: "xiaohongshu", name: "RED / Xiaohongshu", status: "identity_required" as ItemStatus },
@@ -149,7 +153,7 @@ const ecosystemCategories = [
     labelKey: "umbrella.integrations.categoryCloud",
     label: "Bulut",
     items: [
-      { id: "gmail", name: "Gmail", status: "foundation" as ItemStatus, href: "/integrations/mail" },
+      { id: "gmail", name: "Gmail", status: "identity_required" as ItemStatus, href: "/integrations/mail" },
       { id: "googleCalendar", name: "Google Calendar", status: "planned" as ItemStatus },
       { id: "googleDrive", name: "Google Drive", status: "planned" as ItemStatus },
     ],
@@ -164,7 +168,7 @@ const ecosystemCategories = [
     <title data-i18n="umbrella.integrations.metaTitle">Entegrasyonlar — We Lock AI</title>
       <meta
       name="description"
-      content="Lumos bağlantı ekosistemi: aktif, foundation ve planlanan bağlantı yüzeyleri ile güvenli yetki sınırları."
+      content="Lumos bağlantı ekosistemi: bağlı, planlanan ve kimlik bekleyen bağlantı yüzeyleri ile güvenli yetki sınırları."
       data-i18n-content="umbrella.integrations.metaDescription"
     />
     <link rel="canonical" href="https://welockai.com/integrations" />
@@ -181,9 +185,9 @@ const ecosystemCategories = [
           Lumos'un güvenli bağlantı yüzeyleri; mevcut kapsamı, hazırlık düzeyi ve yetki sınırlarıyla birlikte.
         </p>
         <div class="integration-status-key" aria-label="Bağlantı durumları" data-i18n-aria-label="umbrella.integrations.statusAria">
-          <span class="integration-status integration-status--active" data-i18n="umbrella.integrations.statusActive">Aktif</span>
-          <span class="integration-status integration-status--foundation" lang="en" data-i18n="umbrella.integrations.statusFoundation">Foundation</span>
+          <span class="integration-status integration-status--active" data-i18n="umbrella.integrations.statusActive">Bağlı</span>
           <span class="integration-status integration-status--planned" data-i18n="umbrella.integrations.statusPlanned">Planlanan</span>
+          <span class="integration-status integration-status--planned" data-i18n="umbrella.integrations.identityRequired">Kimlik bekliyor</span>
         </div>
       </header>
 
