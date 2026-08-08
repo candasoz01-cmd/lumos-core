@@ -2,7 +2,7 @@
 
 | Alan | Değer |
 |------|-------|
-| Karar durumu | **Accepted (2026-08-08)** — sınır ve adlandırma kararı kabul edildi |
+| Karar durumu | **Accepted (2026-08-08)** — sınır ve adlandırma kararı kabul edildi. **Ad güncellemesi (2026-08-08, kurucu):** operatör yüzeyinin ürün adı **Lumos Agent Wall** (eski ad: Command Wall — Lumos repo `docs/ops/00-command-wall.md` ad kararı; ADR-018 disiplini: yalnız görünen ad değişti, teknik tanımlayıcılar ve dosya adları değişmedi) |
 | Uygulama durumu | **Uygulanmadı** — bu turda kod, provider entegrasyonu, router veya UI değişikliği yok |
 | OD | OD-062 |
 | Üst sınır | `docs/lumos-karar-sozlesmesi.md`, [`CONSTITUTION.md`](../CONSTITUTION.md), [`ROADMAP.md`](../ROADMAP.md) STOP LIST |
@@ -42,23 +42,23 @@ Son kullanıcı akışı
   Lumos User Surface  →  AI Runtime / Router  →  ModelRegistry  →  Providers
 
 Operatör akışı
-  Command Wall  →  AI Runtime / Router  +  Agent / Session / Task state
+  Lumos Agent Wall  →  AI Runtime / Router  +  Agent / Session / Task state
 ```
 
 | Katman | Rol | Kime görünür |
 |--------|-----|--------------|
 | **Lumos User Surface** | Piyasaya çıkacak kullanıcı ürünü | Son kullanıcı |
-| **Command Wall** | **İç operatör / yönetici yüzeyi** — ürün değil | Yalnız yetkili operatör |
+| **Lumos Agent Wall** | **İç operatör / yönetici yüzeyi** — ürün değil | Yalnız yetkili operatör |
 | **AI Runtime / Router** | Ortak beyin; her iki yüzeyin de kullandığı tek yönlendirme katmanı | Doğrudan hiçbirine |
 | **ModelRegistry** | Model/ajan sağlayıcılarının takıldığı kayıt katmanı | Doğrudan hiçbirine |
 
 İki yüzey **aynı motoru** kullanır; ayrı motor, ayrı router veya ayrı model yolu **kurulmaz**.
 
-### 2. Command Wall bir son kullanıcı ürünü değildir
+### 2. Lumos Agent Wall bir son kullanıcı ürünü değildir
 
-Command Wall, bu ADR kapsamında **internal operator/admin surface** olarak tanımlanır. Ayrı bir ticari ürün, ayrı bir marka veya ayrı bir kullanıcı segmenti **değildir**. Bu tanım bilinçlidir: yeni bir son kullanıcı ürünü ilan etmek, ROADMAP STOP LIST'indeki "yeni agent / orchestration katmanı" yasağını delerdi.
+Lumos Agent Wall (eski ad: Command Wall), bu ADR kapsamında **internal operator/admin surface** olarak tanımlanır. Ayrı bir ticari ürün, ayrı bir marka veya ayrı bir kullanıcı segmenti **değildir**. Bu tanım bilinçlidir: yeni bir son kullanıcı ürünü ilan etmek, ROADMAP STOP LIST'indeki "yeni agent / orchestration katmanı" yasağını delerdi.
 
-Command Wall'un görme yetkisi (hedef kapsam, uygulanmadı): görev → sağlayıcı/model → instance/session → durum → süre → hata/fallback zinciri; branch/PR durumu; heartbeat; onay kapıları; ileride maliyet ve performans.
+Lumos Agent Wall'un görme yetkisi (hedef kapsam, uygulanmadı): görev → sağlayıcı/model → instance/session → durum → süre → hata/fallback zinciri; branch/PR durumu; heartbeat; onay kapıları; ileride maliyet ve performans.
 
 ### 3. Kullanıcı yüzüne sızmayacaklar — normatif
 
@@ -106,14 +106,14 @@ Kimi/Moonshot, **FAZ-1 sonrası provider evaluation backlog**'una eklenir. Mevcu
 
 - Yeni bir model çıktığında kullanıcı arayüzü yeniden tasarlanmaz; `ModelRegistry`'ye sağlayıcı eklenir.
 - Lumos mimari olarak tek modele bağımlı kalmaz.
-- Command Wall ile piyasaya çıkacak Lumos birbirine karışmaz; motor ortak kalır.
+- Lumos Agent Wall ile piyasaya çıkacak Lumos birbirine karışmaz; motor ortak kalır.
 - Router çalışmasına başlandığında tasarım kararı hazırdır; sıfırdan tartışma açılmaz.
 
 ## Bilinçli yapılmaz
 
 - Provider entegrasyonu (Kimi/Moonshot dahil) — STOP LIST
 - `ModelRegistry` kodu, Router birleştirme, `model_client.py` refaktörü
-- Command Wall için yeni UI veya yeni orchestration kodu
+- Lumos Agent Wall için yeni UI veya yeni orchestration kodu
 - Mevcut `IntegrationRegistry` yeniden adlandırma veya taşıma
 - FAZ-1 provider sırasının değiştirilmesi
 
@@ -121,7 +121,7 @@ Kimi/Moonshot, **FAZ-1 sonrası provider evaluation backlog**'una eklenir. Mevcu
 
 - `ModelRegistry` arayüz sözleşmesi ve yetenek modeli
 - Router'ın model seçim sinyalleri (maliyet / gecikme / risk)
-- Command Wall operatör yüzeyinin teknik paketi ve yetkilendirme sınırı
+- Lumos Agent Wall operatör yüzeyinin teknik paketi ve yetkilendirme sınırı
 - **Kullanıcı yüzü sızıntısı guard testi** (ADR-018'in `tests/test_legacy_layer_names_retired.py` deseniyle benzer). Kapsam tanımı — 2026-08-08 kararı: yalnız model adı değil, tüm internal-only alanlar doğrulanır: `provider`, `agent_id`, `instance_id`, `session_id`, `workspace_path` / worktree, heartbeat, PR/merge gate, iç ajan koordinasyonu. Doğrulama yüzeyi yalnız UI metni değil, **public Lumos API yanıtları dahil** tüm kullanıcıya açık yüzeylerdir. Kod bu turda yazılmaz; bu madde testin kabul kriteridir.
 - FAZ-1 sonrası provider evaluation paketi
 

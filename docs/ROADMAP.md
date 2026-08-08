@@ -158,9 +158,9 @@ Değerlendirme tek başına "şu modeli ekle" biçiminde yapılmaz. Adaylar orta
 Alınanlar kullanıcı yüzeyine değil, Router'ın altındaki `ModelRegistry`
 katmanına bağlanır (ADR-004 § Router altında ModelRegistry sınırı).
 
-## Command Wall — iç operatör yüzeyi
+## Lumos Agent Wall — iç operatör yüzeyi
 
-Command Wall, **internal operator/admin surface**'tir; piyasaya çıkacak bir son
+Lumos Agent Wall (eski ad: Command Wall — 2026-08-08 kurucu ad kararı), **internal operator/admin surface**'tir; piyasaya çıkacak bir son
 kullanıcı ürünü **değildir**. Lumos ile aynı motoru (AI Runtime / Router)
 kullanır, ayrı bir motor kurmaz.
 
