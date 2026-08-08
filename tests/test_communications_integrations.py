@@ -188,12 +188,15 @@ def test_facebook_live_check_returns_safe_identity(monkeypatch):
 
 def test_instagram_live_check_returns_safe_identity(monkeypatch):
     monkeypatch.setenv("LUMOS_INSTAGRAM_ACCESS_TOKEN", "test-secret-token")
-    monkeypatch.setenv("LUMOS_META_GRAPH_VERSION", "v99.0")
-    monkeypatch.setattr(
-        communications_provider,
-        "_http_get_json",
-        lambda request: {"id": "ig-123", "username": "lumos_ig"},
-    )
+    monkeypatch.setenv("LUMOS_INSTAGRAM_AUTH_MODE", "instagram_login")
+    captured_request = {}
+
+    def fake_http_get_json(request):
+        captured_request["url"] = request.full_url
+        captured_request["authorization"] = request.get_header("Authorization")
+        return {"id": "ig-123", "username": "lumos_ig"}
+
+    monkeypatch.setattr(communications_provider, "_http_get_json", fake_http_get_json)
 
     result = register_default_integrations().run(
         IntegrationRequest(
@@ -207,6 +210,69 @@ def test_instagram_live_check_returns_safe_identity(monkeypatch):
     assert result.ok is True
     assert result.data["identity"]["username"] == "lumos_ig"
     assert "test-secret-token" not in str(result.data)
+    assert captured_request["url"].startswith("https://graph.instagram.com/me?")
+    assert "test-secret-token" not in captured_request["url"]
+    assert captured_request["authorization"] == "Bearer test-secret-token"
+
+
+def test_instagram_facebook_login_uses_business_account_graph_path(monkeypatch):
+    monkeypatch.setenv("LUMOS_INSTAGRAM_ACCESS_TOKEN", "test-secret-token")
+    monkeypatch.setenv("LUMOS_INSTAGRAM_AUTH_MODE", "facebook_login")
+    monkeypatch.setenv("LUMOS_META_GRAPH_VERSION", "v99.0")
+    monkeypatch.setenv("LUMOS_INSTAGRAM_BUSINESS_ACCOUNT_ID", "ig-business-123")
+    captured_request = {}
+
+    def fake_http_get_json(request):
+        captured_request["url"] = request.full_url
+        return {"id": "ig-business-123", "username": "lumos_business"}
+
+    monkeypatch.setattr(communications_provider, "_http_get_json", fake_http_get_json)
+    result = register_default_integrations().run(
+        IntegrationRequest(
+            provider="communications",
+            action="verify_connection",
+            payload={"provider_id": "instagram"},
+            requires_approval=True,
+        ),
+    )
+
+    assert result.ok is True
+    assert result.data["connection_mode"] == "instagram_facebook_graph_api_readonly_check"
+    assert captured_request["url"].startswith(
+        "https://graph.facebook.com/v99.0/ig-business-123?",
+    )
+
+
+def test_instagram_connection_requires_explicit_auth_mode(monkeypatch):
+    monkeypatch.setenv("LUMOS_INSTAGRAM_ACCESS_TOKEN", "test-secret-token")
+    monkeypatch.delenv("LUMOS_INSTAGRAM_AUTH_MODE", raising=False)
+    result = register_default_integrations().run(
+        IntegrationRequest(
+            provider="communications",
+            action="connection_status",
+            payload={"provider_id": "instagram"},
+        ),
+    )
+
+    assert result.ok is True
+    assert result.data["status"] == "awaiting_credentials"
+    assert result.data["missing_configuration"] == ["LUMOS_INSTAGRAM_AUTH_MODE"]
+
+
+def test_instagram_connection_rejects_unknown_auth_mode(monkeypatch):
+    monkeypatch.setenv("LUMOS_INSTAGRAM_ACCESS_TOKEN", "test-secret-token")
+    monkeypatch.setenv("LUMOS_INSTAGRAM_AUTH_MODE", "ambiguous")
+    result = register_default_integrations().run(
+        IntegrationRequest(
+            provider="communications",
+            action="connection_status",
+            payload={"provider_id": "instagram"},
+        ),
+    )
+
+    assert result.ok is True
+    assert result.data["status"] == "invalid_configuration"
+    assert result.data["configuration_error"] == "instagram_auth_mode_invalid"
 
 
 def test_threads_live_check_returns_safe_identity(monkeypatch):

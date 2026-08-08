@@ -12,6 +12,7 @@ import {
   extendMetaToken,
   fetchMetaIdentity,
   metaPurposeCode,
+  metaProviderConfig,
   metaVaultRef,
 } from "../../_lib/meta_oauth.js";
 import { writeMetaCredential } from "../../_lib/meta_vault.js";
@@ -92,6 +93,7 @@ export default async function handler(req, res) {
       accessToken: token.accessToken,
       tokenType: token.tokenType,
       expiresAt: token.expiresIn > 0 ? now + token.expiresIn : 0,
+      authMode: metaProviderConfig(provider)?.authMode || "",
     });
     redirectResult(res, provider, "meta_status", "authorized");
     await logEvent("oauth.callback.success", { route: ROUTE, provider, lumosId });

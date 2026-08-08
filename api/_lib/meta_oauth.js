@@ -31,6 +31,7 @@ export function metaProviderConfig(provider) {
       scopes: ["instagram_business_basic"],
       identityUrl: "https://graph.instagram.com/me?fields=id,username",
       configurationId: "",
+      authMode: "instagram_login",
     };
   }
 
@@ -51,6 +52,7 @@ export function metaProviderConfig(provider) {
     configurationId: id === "whatsapp"
       ? clean(process.env.LUMOS_WHATSAPP_LOGIN_CONFIG_ID)
       : "",
+    authMode: "facebook_login",
   };
 }
 

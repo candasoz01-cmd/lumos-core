@@ -123,6 +123,7 @@ export default async function handler(req, res) {
         accessToken: refreshed.accessToken,
         tokenType: refreshed.tokenType,
         expiresAt,
+        authMode: credential.authMode,
       });
       json(res, 200, { ok: true, provider, status: "refreshed", expires_at: expiresAt });
       await logEvent("oauth.token_refreshed", { route: ROUTE, provider, lumosId });
