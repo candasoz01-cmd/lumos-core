@@ -34,6 +34,16 @@ def test_meta_status_surface_keeps_external_writes_out_of_scope():
     assert 'const endpoint = action === "sync" ? "/api/integrations/meta/sync" : "/api/integrations/meta/token"' in text
 
 
+def test_meta_action_state_preserves_valid_connection_and_expiry():
+    text = PAGE.read_text(encoding="utf-8")
+    assert "const connected = state.connected ??" in text
+    assert 'const canConnect = new Set(["notConnected", "revokedLocal"])' in text
+    assert 'response.status === 401 ? "sessionRequired" : "actionFailed"' in text
+    assert text.count("connected: prior?.connected") >= 3
+    assert 'status: "unavailable", connected: prior?.connected' in text
+    assert 'status: "synced", connected: true, expiresAt: prior?.expiresAt' in text
+
+
 def test_meta_oauth_returns_to_status_surface():
     assert '"Location", `/integrations/meta?meta_error=' in START.read_text(encoding="utf-8")
     assert '"Location", `/integrations/meta?${query.toString()}`' in CALLBACK.read_text(encoding="utf-8")

@@ -54,7 +54,7 @@ const providers = [
             </p>
             <p class="meta-connection-detail" data-meta-detail hidden></p>
             <div class="umbrella-actions meta-connection-actions">
-              <a class="umbrella-btn umbrella-btn--primary" data-meta-connect href={`/auth/meta/start?provider=${provider.id}`} data-i18n="umbrella.metaConnections.connect">Bağla</a>
+              <a class="umbrella-btn umbrella-btn--primary" data-meta-connect href={`/auth/meta/start?provider=${provider.id}`} data-i18n="umbrella.metaConnections.connect" hidden>Bağla</a>
               <button class="umbrella-btn" type="button" data-meta-action="sync" disabled data-i18n="umbrella.metaConnections.sync">Read-only senkron</button>
               <button class="umbrella-btn" type="button" data-meta-action="refresh" disabled data-i18n="umbrella.metaConnections.refresh">Yenile</button>
               <button class="umbrella-btn" type="button" data-meta-action="revoke" disabled data-i18n="umbrella.metaConnections.revoke">Bağlantıyı kaldır</button>
@@ -74,6 +74,7 @@ const providers = [
     <script>
       type MetaState = {
         status: string;
+        connected?: boolean;
         expiresAt?: number;
         checkedAt?: string;
         accountCount?: number;
@@ -96,12 +97,13 @@ const providers = [
         const status = card.querySelector<HTMLElement>("[data-meta-status]");
         if (status) status.dataset.i18n = `umbrella.metaConnections.status.${state.status}`;
 
-        const connected = new Set(["authorized", "synced", "refreshed"]).has(state.status);
+        const connected = state.connected ?? new Set(["authorized", "synced", "refreshed"]).has(state.status);
+        const canConnect = new Set(["notConnected", "revokedLocal"]).has(state.status);
         const connect = card.querySelector<HTMLElement>("[data-meta-connect]");
-        if (connect) connect.hidden = connected;
+        if (connect) connect.hidden = !canConnect;
         card.querySelectorAll<HTMLButtonElement>("[data-meta-action]").forEach((button) => {
           const action = button.dataset.metaAction;
-          button.disabled = !connected || (action === "refresh" && !state.expiresAt);
+          button.disabled = state.status === "working" || state.status === "sessionRequired" || !connected || (action === "refresh" && !state.expiresAt);
         });
 
         const detail = card.querySelector<HTMLElement>("[data-meta-detail]");
@@ -137,7 +139,8 @@ const providers = [
           const body = await parseResponse(response);
           if (response.status === 401) return setStatus(card, { status: "sessionRequired" });
           if (!response.ok) return setStatus(card, { status: "configurationRequired" });
-          setStatus(card, { status: body.status === "authorized" ? "authorized" : "notConnected", expiresAt: Number(body.expires_at || 0) });
+          const connected = body.status === "authorized";
+          setStatus(card, { status: connected ? "authorized" : "notConnected", connected, expiresAt: Number(body.expires_at || 0) });
         } catch {
           setStatus(card, { status: "unavailable" });
         }
@@ -145,7 +148,8 @@ const providers = [
 
       async function runAction(card: HTMLElement, action: string) {
         const provider = card.dataset.metaProvider || "";
-        setStatus(card, { ...stateByProvider.get(provider), status: "working" });
+        const prior = stateByProvider.get(provider);
+        setStatus(card, { ...prior, status: "working", connected: prior?.connected });
         const endpoint = action === "sync" ? "/api/integrations/meta/sync" : "/api/integrations/meta/token";
         const body = action === "sync" ? { provider } : { provider, action };
         try {
@@ -157,15 +161,15 @@ const providers = [
           });
           const result = await parseResponse(response);
           if (!response.ok) {
-            if (result.status === "revoked_local") return setStatus(card, { status: "revokedLocal" });
-            return setStatus(card, { status: response.status === 401 ? "sessionRequired" : "actionFailed" });
+            if (result.status === "revoked_local") return setStatus(card, { status: "revokedLocal", connected: false });
+            return setStatus(card, { ...prior, status: response.status === 401 ? "sessionRequired" : "actionFailed", connected: prior?.connected });
           }
-          if (action === "revoke") return setStatus(card, { status: "notConnected" });
-          if (action === "refresh") return setStatus(card, { status: "refreshed", expiresAt: Number(result.expires_at || 0) });
+          if (action === "revoke") return setStatus(card, { status: "notConnected", connected: false });
+          if (action === "refresh") return setStatus(card, { status: "refreshed", connected: true, expiresAt: Number(result.expires_at || 0) });
           const accountCount = (Array.isArray(result.accounts) ? result.accounts.length : 0) + (Array.isArray(result.businesses) ? result.businesses.length : 0);
-          setStatus(card, { status: "synced", checkedAt: result.checked_at, accountCount });
+          setStatus(card, { status: "synced", connected: true, expiresAt: prior?.expiresAt, checkedAt: result.checked_at, accountCount });
         } catch {
-          setStatus(card, { status: "unavailable" });
+          setStatus(card, { ...prior, status: "unavailable", connected: prior?.connected });
         }
       }
 
