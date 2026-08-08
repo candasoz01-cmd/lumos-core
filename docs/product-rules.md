@@ -27,7 +27,7 @@ Bu dosya, sohbet/bellek kaybına karşı repo içinde kalıcı tutulan **ürün 
 | PR-002 | Gerçek ürün tarafında son kullanıcı **Core / Local / Sentinel** görmez; bunlar iç katmanlardır. | **aktif kural** |
 | PR-003 | Lumos, kullanıcı ile dış dünya arasında **güvenli geçit ve orkestratör** olarak çalışır. | **aktif kural** |
 | PR-004 | İç katmanlar dışarıdan komut veya veri **doğrudan kabul etmez**; akış Lumos geçidinden geçer. | **aktif kural** |
-| PR-005 | Son kullanıcı yüzeyinde **sağlayıcı/model adı** (OpenAI, Claude, Gemini, DeepSeek, Kimi/Moonshot vb.), `session_id`, `instance_id`, worktree yolu, heartbeat, PR/merge kapısı ve iç ajan koordinasyonu **görünmez**. Kullanıcıya model seçtiren arayüz yapılmaz. Bu ayrıntılar yalnız iç operatör yüzeyine (Command Wall) açıktır. ([ADR-019](decisions/ADR-019-product-surface-separation-modelregistry.md)) | **aktif kural** |
+| PR-005 | Son kullanıcı yüzeyinde **sağlayıcı/model adı** (OpenAI, Claude, Gemini, DeepSeek, Kimi/Moonshot vb.), `session_id`, `instance_id`, worktree yolu, heartbeat, PR/merge kapısı ve iç ajan koordinasyonu **görünmez**. Kullanıcıya model seçtiren arayüz yapılmaz. Bu ayrıntılar yalnız iç operatör yüzeyine (Lumos Agent Wall) açıktır. ([ADR-019](decisions/ADR-019-product-surface-separation-modelregistry.md)) | **aktif kural** |
 
 ---
 
