@@ -3,7 +3,7 @@
 | Alan | Değer |
 |------|-------|
 | Karar durumu | **Accepted (2026-08-08)** |
-| Uygulama durumu | **Yetkilendirildi; dilimler ayrı PR'larla uygulanacak** |
+| Uygulama durumu | **Kod/test/main teslimi tamamlandı; canlı aktivasyon dış bağımlılık bekliyor** |
 | Kapsam | WhatsApp, Instagram ve Facebook platform bağlantıları |
 | Kapsam dışı | Meta/Llama model provider, kullanıcıya provider seçtirme, mesaj/yayın write yolu |
 | Üst sınır | [`CONSTITUTION.md`](../CONSTITUTION.md), [`ROADMAP.md`](../ROADMAP.md), ADR-012, ADR-015, ADR-016, ADR-019 |
@@ -89,14 +89,24 @@ credential gerekir. Bunlardan biri yoksa dış bağımlılık açıkça raporlan
 
 ## Kabul kriterleri
 
-- [ ] OAuth state/callback güvenlik testleri yeşil.
-- [ ] Raw token hiçbir response, log, URL veya depoya sızmıyor.
-- [ ] Credential handle ve revoke/expiry durumları testli.
-- [ ] Webhook imza, replay ve idempotency testleri testli ve fail-closed.
-- [ ] Instagram Graph host/kimlik modu açıkça ayrılmış.
-- [ ] İlk dilimde bütün write eylemleri yok veya kapalı.
-- [ ] UI katalog ile canlı bağlantıyı ayırıyor.
-- [ ] Her PR CI ve merge-sonrası `main` üzerinde doğrulanmış.
+- [x] OAuth state/callback güvenlik testleri yeşil.
+- [x] Raw token hiçbir response, log, URL veya depoya sızmıyor.
+- [x] Credential handle ve revoke/expiry durumları testli.
+- [x] Webhook imza, replay ve idempotency testleri testli ve fail-closed.
+- [x] Instagram Graph host/kimlik modu açıkça ayrılmış.
+- [x] İlk dilimde bütün write eylemleri yok veya kapalı.
+- [x] UI katalog ile canlı bağlantıyı ayırıyor.
+- [x] Her uygulama PR'ı CI ve merge-sonrası `main` üzerinde doğrulanmış.
+
+## Teslim kaydı — 2026-08-08
+
+- Karar istisnası: #688.
+- OAuth/vault: #689; token yaşam döngüsü: #690; webhook güvenliği: #691.
+- Graph ayrımı ve read-only sync: #692; bağlantı durumu UI: #693.
+- `.env.example` yalnız değişken adlarını ve güvenli server-side sınırı taşır;
+  gerçek değerler operator-controlled secret store/Vercel environment içinde kalır.
+- Üretim route erişimi teslim kanıtıdır; Meta credential, izin ve App Review
+  olmadan sağlayıcı bağlantısı **canlı** sayılmaz.
 
 ## Sonuç
 
