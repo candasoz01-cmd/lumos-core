@@ -80,6 +80,51 @@ Bu rol ADR-001'deki "AI Firewall → Trust → Router → Memory → Agent Netwo
 
 ---
 
+## OpenAI Agents SDK kullanımı — şimdilik eklenmeyecek (karar, 2026-08-08)
+
+**Karar:** OpenAI Agents SDK bugün Lumos'a dependency olarak eklenmeyecek;
+mevcut Responses API mimarisi devam edecektir. Bu karar kapsamında kod,
+entegrasyon veya PR açılmaz.
+
+**Gerekçe:** Agents SDK bugün Lumos'ta eksik olan temel bir yetenek sağlamaz.
+Lumos'ta Orkestratör, Board claim/sahiplik, işlem bazlı confirmation policy,
+Responses API tool-loop ve canonical kanıt/audit katmanları zaten vardır.
+SDK'nin ajan döngüsü, session, handoff, approval ve tracing yüzeylerini bütün
+sisteme eklemek aynı sorumluluklar için ikinci bir kontrol düzlemi ve iki ayrı
+doğruluk kaynağı oluşturma riski taşır.
+
+### Yeniden değerlendirme koşulu
+
+Karar yalnız özel tool-loop'un ölçülebilir bakım maliyeti, tekrar eden hata veya
+geliştirme darboğazı oluşturması halinde; yeni kullanıcı kararıyla yeniden
+değerlendirilir. Bir örnek başlangıç projesinin veya SDK özelliğinin bulunması
+tek başına entegrasyon gerekçesi değildir.
+
+### Olası pilotun zorunlu sınırları
+
+İleride ihtiyaç kanıtlanırsa bütün mimari taşınmaz; önce dar ve geri alınabilir
+bir pilot yapılır:
+
+1. Yalnız tek, salt-okunur uzman ajan kullanılır; gerçek dış etki oluşturamaz.
+2. Ana Lumos Orkestratör yanıt ve görev sahipliğini korur. Uzman ajan araç gibi
+   çağrılır (`agent.as_tool()` benzeri manager modeli); **handoff kullanılmaz**.
+3. Board claim/sahiplik, confirmation policy, kimlik, memory ve canonical audit
+   katmanları authoritative kalır; SDK bunları bypass edemez veya değiştiremez.
+4. SDK session yalnız geçici run state olabilir; Lumos kimliği, oturumu,
+   konuşma kimliği veya kalıcı memory yerine kullanılamaz.
+5. SDK tracing canonical audit değildir. Veri minimizasyonu ve sır maskeleme
+   doğrulanmadan varsayılan açık bırakılmaz; pilotta kapalı veya açıkça
+   filtrelenmiş çalışır.
+6. Pilot başarısı, mevcut güvenlik sözleşmeleri korunurken özel tool-loop bakım
+   yükünün somut olarak azalmasıyla ölçülür.
+
+**Karar anı doğrulaması:** Board claim, coordination gateway, confirmation
+policy ve Responses API tool-loop kapsamındaki 93 hedefli test geçti. Bu sonuç
+mevcut mimarinin test edilen davranışının karar sırasında bozulmadığını
+gösterir; production/canlı Agents SDK doğrulaması değildir.
+
+---
+
 ## Lumos Board — resmi ad ve bileşenler (karar, 2026-07-16)
 
 Ortak koordinasyon katmanının resmi adı **Lumos Board**'dur. Bu karar kalıcıdır; alternatif adlar (`Lumos Bus`, `Lumos Blackboard`, `Command Wall`) değerlendirilmiş, **Board** tercih edilmiştir.
