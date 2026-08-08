@@ -3,12 +3,16 @@ import test from "node:test";
 
 import {
   buildMetaAuthorizeUrl,
+  extendMetaToken,
   metaProviderConfig,
   metaVaultRef,
+  refreshMetaToken,
+  revokeMetaToken,
 } from "../api/_lib/meta_oauth.js";
 import { writeMetaCredential } from "../api/_lib/meta_vault.js";
 import callbackHandler from "../api/auth/meta/callback.js";
 import startHandler, { META_FLOW_COOKIE } from "../api/auth/meta/start.js";
+import tokenHandler from "../api/integrations/meta/token.js";
 import {
   makeState,
   openSession,
@@ -221,6 +225,225 @@ test("Meta callback exchanges server-side, resolves identity and stores an opaqu
     const vaultBody = JSON.parse(vaultRequest.init.body);
     assert.equal(vaultBody.credential.access_token, "raw-access-token");
     assert.equal(vaultBody.vault_ref, metaVaultRef("lumos_test_user", "facebook", "meta-account-1"));
+  } finally {
+    globalThis.fetch = originalFetch;
+    cleanEnv();
+  }
+});
+
+test("Meta token extension uses the provider-specific long-lived exchange", async () => {
+  env();
+  const seen = [];
+  try {
+    const facebook = await extendMetaToken("facebook", "short-facebook", async (url) => {
+      seen.push(String(url));
+      return { ok: true, async json() { return { access_token: "long-facebook", expires_in: 5000 }; } };
+    });
+    const instagram = await extendMetaToken("instagram", "short-instagram", async (url) => {
+      seen.push(String(url));
+      return { ok: true, async json() { return { access_token: "long-instagram", expires_in: 6000 }; } };
+    });
+    assert.equal(facebook.accessToken, "long-facebook");
+    assert.equal(instagram.accessToken, "long-instagram");
+    assert.match(seen[0], /fb_exchange_token=short-facebook/);
+    assert.match(seen[1], /graph\.instagram\.com\/access_token/);
+    assert.match(seen[1], /ig_exchange_token/);
+  } finally {
+    cleanEnv();
+  }
+});
+
+test("Instagram refresh and Meta revoke stay server-side", async () => {
+  env();
+  const seen = [];
+  try {
+    const refreshed = await refreshMetaToken("instagram", "long-instagram", async (url, init = {}) => {
+      seen.push({ url: String(url), init });
+      return { ok: true, async json() { return { access_token: "new-instagram", expires_in: 7000 }; } };
+    });
+    const revoked = await revokeMetaToken("instagram", "new-instagram", async (url, init = {}) => {
+      seen.push({ url: String(url), init });
+      return { ok: true, async json() { return { success: true }; } };
+    });
+    assert.equal(refreshed.accessToken, "new-instagram");
+    assert.deepEqual(revoked, { revoked: true });
+    assert.match(seen[0].url, /refresh_access_token/);
+    assert.equal(seen[1].init.method, "DELETE");
+    assert.equal(seen[1].init.headers.Authorization, "Bearer new-instagram");
+  } finally {
+    cleanEnv();
+  }
+});
+
+test("Token metadata returns expiry without resolving or exposing the credential", async () => {
+  env();
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async (_url, init) => {
+      const body = JSON.parse(init.body);
+      assert.equal(body.operation, "credential.metadata");
+      return { ok: true, async json() { return { ok: true, configured: true, vault_ref: "opaque", expires_at: 9999 }; } };
+    };
+    const res = response();
+    await tokenHandler({
+      method: "GET",
+      url: "/api/integrations/meta/token?provider=facebook",
+      headers: { cookie: `lumos_session=${lumosSession()}` },
+    }, res);
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(JSON.parse(res.body), {
+      ok: true,
+      provider: "facebook",
+      status: "authorized",
+      expires_at: 9999,
+      renewable: true,
+    });
+    assert.doesNotMatch(res.body, /token|vault_ref|opaque/i);
+  } finally {
+    globalThis.fetch = originalFetch;
+    cleanEnv();
+  }
+});
+
+test("Token refresh resolves inside the vault boundary and stores only the rotated token", async () => {
+  env();
+  const originalFetch = globalThis.fetch;
+  const operations = [];
+  try {
+    globalThis.fetch = async (url, init = {}) => {
+      if (String(url) === "https://vault.test/credentials") {
+        const body = JSON.parse(init.body);
+        operations.push(body);
+        if (body.operation === "credential.metadata") {
+          return { ok: true, async json() { return {
+            ok: true,
+            configured: true,
+            vault_ref: "meta:instagram:opaque",
+            expires_at: 100,
+          }; } };
+        }
+        if (body.operation === "credential.resolve") {
+          return { ok: true, async json() { return {
+            ok: true,
+            vault_ref: "meta:instagram:opaque",
+            provider_account_id: "ig-account",
+            credential: { access_token: "old-token", token_type: "bearer", expires_at: 100 },
+          }; } };
+        }
+        return { ok: true, async json() { return { ok: true, vault_ref: body.vault_ref }; } };
+      }
+      return { ok: true, async json() { return { access_token: "rotated-token", expires_in: 3600 }; } };
+    };
+    const res = response();
+    await tokenHandler({
+      method: "POST",
+      url: "/api/integrations/meta/token",
+      headers: { cookie: `lumos_session=${lumosSession()}`, origin: "https://welockai.com", host: "welockai.com" },
+      body: { action: "refresh", provider: "instagram" },
+    }, res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(JSON.parse(res.body).status, "refreshed");
+    assert.doesNotMatch(res.body, /old-token|rotated-token/);
+    assert.deepEqual(operations.map((item) => item.operation), ["credential.metadata", "credential.resolve", "credential.upsert"]);
+    assert.equal(operations[2].credential.access_token, "rotated-token");
+  } finally {
+    globalThis.fetch = originalFetch;
+    cleanEnv();
+  }
+});
+
+test("Non-expiring token refresh reads metadata without resolving the secret", async () => {
+  env();
+  const originalFetch = globalThis.fetch;
+  let operation = "";
+  try {
+    globalThis.fetch = async (_url, init) => {
+      operation = JSON.parse(init.body).operation;
+      return { ok: true, async json() { return {
+        ok: true,
+        configured: true,
+        vault_ref: "meta:whatsapp:opaque",
+        expires_at: 0,
+      }; } };
+    };
+    const res = response();
+    await tokenHandler({
+      method: "POST",
+      url: "/api/integrations/meta/token",
+      headers: { cookie: `lumos_session=${lumosSession()}`, origin: "https://welockai.com", host: "welockai.com" },
+      body: { action: "refresh", provider: "whatsapp" },
+    }, res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(JSON.parse(res.body).status, "non_expiring");
+    assert.equal(operation, "credential.metadata");
+  } finally {
+    globalThis.fetch = originalFetch;
+    cleanEnv();
+  }
+});
+
+test("Revoke deletes the local vault credential even when Meta revoke fails", async () => {
+  env();
+  const originalFetch = globalThis.fetch;
+  const operations = [];
+  try {
+    globalThis.fetch = async (url, init = {}) => {
+      if (String(url) === "https://vault.test/credentials") {
+        const body = JSON.parse(init.body);
+        operations.push(body.operation);
+        if (body.operation === "credential.resolve") {
+          return { ok: true, async json() { return {
+            ok: true,
+            vault_ref: "meta:facebook:opaque",
+            provider_account_id: "fb-account",
+            credential: { access_token: "revoked-token", token_type: "bearer", expires_at: 100 },
+          }; } };
+        }
+        return { ok: true, async json() { return { ok: true, vault_ref: "meta:facebook:opaque" }; } };
+      }
+      return { ok: false, async json() { return {}; } };
+    };
+    const res = response();
+    await tokenHandler({
+      method: "POST",
+      url: "/api/integrations/meta/token",
+      headers: { cookie: `lumos_session=${lumosSession()}`, origin: "https://welockai.com", host: "welockai.com" },
+      body: { action: "revoke", provider: "facebook" },
+    }, res);
+    assert.equal(res.statusCode, 502);
+    assert.deepEqual(JSON.parse(res.body), {
+      ok: false,
+      provider: "facebook",
+      status: "revoked_local",
+      upstream_revoked: false,
+    });
+    assert.deepEqual(operations, ["credential.resolve", "credential.delete"]);
+    assert.doesNotMatch(res.body, /revoked-token/);
+  } finally {
+    globalThis.fetch = originalFetch;
+    cleanEnv();
+  }
+});
+
+test("Token mutation rejects a cross-site request before vault access", async () => {
+  env();
+  const originalFetch = globalThis.fetch;
+  let fetched = false;
+  try {
+    globalThis.fetch = async () => {
+      fetched = true;
+      throw new Error("unexpected_fetch");
+    };
+    const res = response();
+    await tokenHandler({
+      method: "POST",
+      url: "/api/integrations/meta/token",
+      headers: { cookie: `lumos_session=${lumosSession()}`, origin: "https://attacker.test", host: "welockai.com" },
+      body: { action: "revoke", provider: "facebook" },
+    }, res);
+    assert.equal(res.statusCode, 403);
+    assert.equal(JSON.parse(res.body).error, "same_origin_required");
+    assert.equal(fetched, false);
   } finally {
     globalThis.fetch = originalFetch;
     cleanEnv();
