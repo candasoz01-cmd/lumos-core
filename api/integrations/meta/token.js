@@ -111,7 +111,7 @@ export default async function handler(req, res) {
         return;
       }
       const credential = await resolveMetaCredential(lumosId, provider);
-      const refreshed = await refreshMetaToken(provider, credential.accessToken);
+      const refreshed = await refreshMetaToken(provider, credential.accessToken, fetch, credential.authMode);
       const now = Math.floor(Date.now() / 1000);
       const expiresAt = refreshed.expiresIn > 0 ? now + refreshed.expiresIn : 0;
       await writeMetaCredential({
@@ -123,6 +123,7 @@ export default async function handler(req, res) {
         accessToken: refreshed.accessToken,
         tokenType: refreshed.tokenType,
         expiresAt,
+        authMode: credential.authMode,
       });
       json(res, 200, { ok: true, provider, status: "refreshed", expires_at: expiresAt });
       await logEvent("oauth.token_refreshed", { route: ROUTE, provider, lumosId });
@@ -132,7 +133,7 @@ export default async function handler(req, res) {
     const credential = await resolveMetaCredential(lumosId, provider);
     let upstreamRevoked = true;
     try {
-      await revokeMetaToken(provider, credential.accessToken);
+      await revokeMetaToken(provider, credential.accessToken, fetch, credential.authMode);
     } catch {
       upstreamRevoked = false;
     }

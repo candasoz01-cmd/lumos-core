@@ -24,6 +24,7 @@ async function callMetaVault(operation, fields, fetchImpl = fetch) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ operation, ...fields }),
+    signal: AbortSignal.timeout(5000),
   });
   if (!response.ok) throw new Error("meta_vault_operation_failed");
   const payload = await response.json();
@@ -44,6 +45,7 @@ export async function writeMetaCredential(input, fetchImpl = fetch) {
         access_token: input.accessToken,
         token_type: input.tokenType,
         expires_at: input.expiresAt,
+        auth_mode: input.authMode,
       },
     },
     fetchImpl,
@@ -77,6 +79,7 @@ export async function resolveMetaCredential(lumosId, provider, fetchImpl = fetch
   const accessToken = clean(payload?.credential?.access_token);
   const vaultRef = clean(payload?.vault_ref);
   const providerAccountId = clean(payload?.provider_account_id);
+  const storedAuthMode = clean(payload?.credential?.auth_mode);
   if (!accessToken || !vaultRef || !providerAccountId) {
     throw new Error("meta_vault_credential_missing");
   }
@@ -86,6 +89,7 @@ export async function resolveMetaCredential(lumosId, provider, fetchImpl = fetch
     expiresAt: Number(payload?.credential?.expires_at || 0),
     vaultRef,
     providerAccountId,
+    authMode: storedAuthMode || (provider === "instagram" ? "" : "facebook_login"),
   };
 }
 

@@ -55,11 +55,8 @@ LIVE_CONNECTION_CONFIG = {
         "connection_mode": "meta_graph_api_readonly_check",
     },
     "instagram": {
-        "required_env": (
-            "LUMOS_INSTAGRAM_ACCESS_TOKEN",
-            "LUMOS_META_GRAPH_VERSION",
-        ),
-        "connection_mode": "meta_graph_api_readonly_check",
+        "required_env": ("LUMOS_INSTAGRAM_ACCESS_TOKEN", "LUMOS_INSTAGRAM_AUTH_MODE"),
+        "connection_mode": "instagram_graph_api_readonly_check",
     },
     "threads": {
         "required_env": ("LUMOS_THREADS_ACCESS_TOKEN",),
@@ -96,15 +93,32 @@ def _connection_status(provider: dict[str, object]) -> dict[str, object]:
         }
 
     required_env = tuple(config["required_env"])
+    connection_mode = str(config["connection_mode"])
+    configuration_error = None
+    if provider_id == "instagram":
+        auth_mode = os.environ.get("LUMOS_INSTAGRAM_AUTH_MODE", "").strip().lower()
+        if auth_mode == "facebook_login":
+            required_env += ("LUMOS_META_GRAPH_VERSION", "LUMOS_INSTAGRAM_BUSINESS_ACCOUNT_ID")
+            connection_mode = "instagram_facebook_graph_api_readonly_check"
+        elif auth_mode == "instagram_login":
+            connection_mode = "instagram_graph_api_readonly_check"
+        elif auth_mode:
+            configuration_error = "instagram_auth_mode_invalid"
     missing = [name for name in required_env if not os.environ.get(name, "").strip()]
-    return {
+    status = "invalid_configuration" if configuration_error else (
+        "awaiting_credentials" if missing else "configured"
+    )
+    result = {
         **provider,
-        "status": "awaiting_credentials" if missing else "configured",
+        "status": status,
         "autonomous_connect": False,
         "live_check_supported": True,
-        "connection_mode": config["connection_mode"],
+        "connection_mode": connection_mode,
         "missing_configuration": missing,
     }
+    if configuration_error:
+        result["configuration_error"] = configuration_error
+    return result
 
 
 def _http_get_json(request: Request, timeout: float = 10.0) -> dict[str, object]:
@@ -165,10 +179,18 @@ def _verify_facebook() -> dict[str, object]:
 
 def _verify_instagram() -> dict[str, object]:
     token = os.environ["LUMOS_INSTAGRAM_ACCESS_TOKEN"].strip()
-    graph_version = os.environ["LUMOS_META_GRAPH_VERSION"].strip()
+    auth_mode = os.environ["LUMOS_INSTAGRAM_AUTH_MODE"].strip().lower()
     query = urlencode({"fields": "id,username"})
+    if auth_mode == "instagram_login":
+        url = f"https://graph.instagram.com/me?{query}"
+    elif auth_mode == "facebook_login":
+        graph_version = os.environ["LUMOS_META_GRAPH_VERSION"].strip()
+        account_id = os.environ["LUMOS_INSTAGRAM_BUSINESS_ACCOUNT_ID"].strip()
+        url = f"https://graph.facebook.com/{graph_version}/{account_id}?{query}"
+    else:
+        raise RuntimeError("instagram_auth_mode_invalid")
     request = Request(
-        f"https://graph.facebook.com/{graph_version}/me?{query}",
+        url,
         headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
     )
     payload = _http_get_json(request)

@@ -31,6 +31,7 @@ export function metaProviderConfig(provider) {
       scopes: ["instagram_business_basic"],
       identityUrl: "https://graph.instagram.com/me?fields=id,username",
       configurationId: "",
+      authMode: "instagram_login",
     };
   }
 
@@ -51,6 +52,7 @@ export function metaProviderConfig(provider) {
     configurationId: id === "whatsapp"
       ? clean(process.env.LUMOS_WHATSAPP_LOGIN_CONFIG_ID)
       : "",
+    authMode: "facebook_login",
   };
 }
 
@@ -149,12 +151,16 @@ export async function extendMetaToken(provider, accessToken, fetchImpl = fetch) 
   return tokenFromPayload(await response.json());
 }
 
-export async function refreshMetaToken(provider, accessToken, fetchImpl = fetch) {
+export async function refreshMetaToken(provider, accessToken, fetchImpl = fetch, authMode = "") {
+  if (provider === "instagram" && authMode === "facebook_login") {
+    return extendMetaToken("facebook", accessToken, fetchImpl);
+  }
   const config = metaProviderConfig(provider);
   if (!config || missingMetaConfiguration(provider).length || !clean(accessToken)) {
     throw new Error("meta_token_refresh_not_configured");
   }
   if (config.id !== "instagram") return extendMetaToken(provider, accessToken, fetchImpl);
+  if (authMode !== "instagram_login") throw new Error("meta_token_refresh_auth_mode_invalid");
   const query = new URLSearchParams({
     grant_type: "ig_refresh_token",
     access_token: clean(accessToken),
@@ -167,12 +173,16 @@ export async function refreshMetaToken(provider, accessToken, fetchImpl = fetch)
   return tokenFromPayload(await response.json(), accessToken);
 }
 
-export async function revokeMetaToken(provider, accessToken, fetchImpl = fetch) {
+export async function revokeMetaToken(provider, accessToken, fetchImpl = fetch, authMode = "") {
   const config = metaProviderConfig(provider);
   if (!config?.id || !clean(accessToken)) throw new Error("meta_token_revoke_not_configured");
-  const endpoint = config.id === "instagram"
+  if (config.id === "instagram" && !new Set(["instagram_login", "facebook_login"]).has(authMode)) {
+    throw new Error("meta_token_revoke_auth_mode_invalid");
+  }
+  const directInstagram = config.id === "instagram" && authMode === "instagram_login";
+  const endpoint = directInstagram
     ? "https://graph.instagram.com/me/permissions"
-    : `${config.tokenUrl.replace(/\/oauth\/access_token$/, "")}/me/permissions`;
+    : `${(config.id === "instagram" ? metaProviderConfig("facebook")?.tokenUrl || "" : config.tokenUrl).replace(/\/oauth\/access_token$/, "")}/me/permissions`;
   if (!endpoint.startsWith("https://")) throw new Error("meta_token_revoke_not_configured");
   const response = await fetchImpl(endpoint, {
     method: "DELETE",
