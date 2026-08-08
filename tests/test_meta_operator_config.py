@@ -21,19 +21,25 @@ def _example_values() -> dict[str, str]:
     return values
 
 
-def test_meta_server_environment_contract_covers_runtime_usage():
+def _runtime_keys() -> set[str]:
     source = "\n".join(path.read_text(encoding="utf-8") for path in META_MODULES)
-    runtime_keys = set(re.findall(r"process\.env\.(LUMOS_[A-Z0-9_]+)", source))
+    return set(re.findall(r"process\.env\.(LUMOS_[A-Z0-9_]+)", source))
+
+
+def test_meta_server_environment_contract_covers_runtime_usage():
     values = _example_values()
-    assert runtime_keys <= values.keys()
+    assert _runtime_keys() <= values.keys()
     assert values["LUMOS_META_OAUTH_REDIRECT_URI"] == "https://welockai.com/auth/meta/callback"
 
 
 def test_meta_example_never_contains_secret_or_public_client_values():
     values = _example_values()
-    meta_values = {key: value for key, value in values.items() if "META" in key or "VAULT" in key}
-    assert not any(key.startswith("PUBLIC_") for key in meta_values)
-    for key, value in meta_values.items():
+    assert not any(
+        key.startswith("PUBLIC_") and any(part in key for part in ("META", "INSTAGRAM", "WHATSAPP", "VAULT"))
+        for key in values
+    )
+    for key in _runtime_keys():
+        value = values[key]
         if key == "LUMOS_META_OAUTH_REDIRECT_URI":
             continue
         assert value == "", f"{key} must stay empty in the public example"
