@@ -93,7 +93,7 @@ test("Meta OAuth start requires an authenticated Lumos session", async () => {
     const res = response();
     await startHandler({ method: "GET", url: "/api/auth/meta/start?provider=facebook", headers: {} }, res);
     assert.equal(res.statusCode, 302);
-    assert.equal(res.headers.location, "/integrations?meta_error=lumos_session_required");
+    assert.equal(res.headers.location, "/integrations/meta?meta_error=lumos_session_required");
   } finally {
     cleanEnv();
   }
@@ -110,7 +110,7 @@ test("Meta OAuth start fails closed before authorization when vault is unavailab
       headers: { cookie: `lumos_session=${lumosSession()}` },
     }, res);
     assert.equal(res.statusCode, 302);
-    assert.equal(res.headers.location, "/integrations?meta_error=meta_vault_not_configured");
+    assert.equal(res.headers.location, "/integrations/meta?meta_error=meta_vault_not_configured");
     assert.equal(res.headers["set-cookie"], undefined);
   } finally {
     cleanEnv();
@@ -219,7 +219,7 @@ test("Meta callback exchanges server-side, resolves identity and stores an opaqu
       headers: { cookie: `lumos_session=${lumosSession()}; ${META_FLOW_COOKIE}=${flow}` },
     }, res);
     assert.equal(res.statusCode, 302);
-    assert.equal(res.headers.location, "/integrations?provider=facebook&meta_status=authorized");
+    assert.equal(res.headers.location, "/integrations/meta?provider=facebook&meta_status=authorized");
     assert.doesNotMatch(res.headers.location, /raw-access-token|meta-account-1/);
     const vaultRequest = seen.find((item) => item.url === "https://vault.test/credentials");
     const vaultBody = JSON.parse(vaultRequest.init.body);
