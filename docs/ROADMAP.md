@@ -101,6 +101,28 @@ değiştirmez.
 
 Normatif karar ve kabul kapıları: [ADR-020](decisions/ADR-020-meta-communications-exception.md).
 
+### Dar istisna — Robotik egemenlik standardı ve çevrimdışı simülatör
+
+2026-08-08 kullanıcı kararıyla **Lumos Robotics Sovereignty Layer v0.1** için
+yalnız normatif teknik şartname ve gerçek robot/üretici SDK'sı kullanmayan
+çevrimdışı güvenlik simülatörü STOP LIST'ten dar kapsamlı olarak istisna
+tutulmuştur. Bu kayıt yeni bir son kullanıcı ürünü veya canlı robot bağlantısı
+yetkisi vermez.
+
+İstisna sınırları:
+
+- üreticiden bağımsız tehdit modeli, uyumluluk sözleşmesi ve test profili;
+- saf yazılım simülasyonunda varsayılan-red yetki, ağ/veri çıkışı kapısı,
+  yerel imzalı güncelleme kararı, audit zinciri ve güvenli duruş;
+- gerçek robot, üretici firmware'i/SDK'sı, bulut hesabı, yeni UI veya uzaktan
+  komut kanalı **yok**;
+- fiziksel acil durdurma yalnız normatif gereksinim ve simüle olaydır; donanım
+  doğrulaması yapılmadan **uyumlu**, **canlı** veya **doğrulandı** denmez;
+- sonraki donanım pilotu ayrı kullanıcı kararı, Board claim'i, risk analizi ve
+  fiziksel test planı gerektirir.
+
+Normatif karar ve kabul kapıları: [ADR-021](decisions/ADR-021-robotics-sovereignty-layer-v0-1.md).
+
 ## FAZ-1 sonrası provider stratejisi
 
 Bu kayıt yalnız FAZ-1 tamamlandıktan sonra değerlendirilecek yönü tanımlar;
