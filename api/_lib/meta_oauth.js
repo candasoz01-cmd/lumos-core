@@ -2,7 +2,7 @@ import { createHmac } from "node:crypto";
 
 import { authSecret } from "./lumos_session.js";
 
-export const META_PROVIDERS = Object.freeze(["facebook", "instagram", "whatsapp"]);
+export const META_PROVIDERS = Object.freeze(["facebook", "instagram", "whatsapp", "pages"]);
 
 function clean(value) {
   return String(value || "").trim();
@@ -43,6 +43,29 @@ export function metaProviderConfig(provider) {
   // geriye uyumu). Facebook 1544..., WhatsApp 1046... kimliğiyle çalışır.
   const whatsappClientId = clean(process.env.LUMOS_WHATSAPP_APP_ID);
   const whatsappClientSecret = clean(process.env.LUMOS_WHATSAPP_APP_SECRET);
+
+  // ADR-021 Pages dilimi (2026-08-09): Pages izinleri tüketici app'te (1544)
+  // sunulmuyor; "pages" AYRI provider olarak Business app (1046 — env adı
+  // LUMOS_WHATSAPP_APP_ID olsa da paylaşılan Business app kimliğidir) +
+  // "Lumos Pages ReadOnly" Login Configuration ile koşar. facebook provider'ı
+  // (1544 + public_profile) bilinçli olarak DEĞİŞMEDEN kalır; META fallback'i
+  // YOKTUR — Business kimliği eksikse akış kapalı kalır.
+  if (id === "pages") {
+    return {
+      id,
+      clientId: whatsappClientId,
+      clientSecret: whatsappClientSecret,
+      authorizeUrl: graphVersion
+        ? `https://www.facebook.com/${graphVersion}/dialog/oauth`
+        : "",
+      tokenUrl: base ? `${base}/oauth/access_token` : "",
+      scopes: ["pages_show_list"],
+      identityUrl: base ? `${base}/me?fields=id,name` : "",
+      configurationId: clean(process.env.LUMOS_PAGES_LOGIN_CONFIG_ID),
+      authMode: "facebook_login",
+    };
+  }
+
   return {
     id,
     clientId: id === "whatsapp" && whatsappClientId
@@ -76,11 +99,16 @@ export function missingMetaConfiguration(provider) {
   const config = metaProviderConfig(provider);
   if (!config) return ["provider"];
   const missing = [];
-  if (!config.clientId) missing.push(config.id === "instagram" ? "LUMOS_INSTAGRAM_APP_ID" : "LUMOS_META_APP_ID");
-  if (!config.clientSecret) missing.push(config.id === "instagram" ? "LUMOS_INSTAGRAM_APP_SECRET" : "LUMOS_META_APP_SECRET");
+  const idEnvByProvider = { instagram: "LUMOS_INSTAGRAM_APP_ID", pages: "LUMOS_WHATSAPP_APP_ID" };
+  const secretEnvByProvider = { instagram: "LUMOS_INSTAGRAM_APP_SECRET", pages: "LUMOS_WHATSAPP_APP_SECRET" };
+  if (!config.clientId) missing.push(idEnvByProvider[config.id] || "LUMOS_META_APP_ID");
+  if (!config.clientSecret) missing.push(secretEnvByProvider[config.id] || "LUMOS_META_APP_SECRET");
   if (!config.authorizeUrl || !config.tokenUrl || !config.identityUrl) missing.push("LUMOS_META_GRAPH_VERSION");
   if (config.id === "whatsapp" && !config.configurationId) {
     missing.push("LUMOS_WHATSAPP_LOGIN_CONFIG_ID");
+  }
+  if (config.id === "pages" && !config.configurationId) {
+    missing.push("LUMOS_PAGES_LOGIN_CONFIG_ID");
   }
   return missing;
 }
@@ -95,7 +123,7 @@ export function buildMetaAuthorizeUrl(provider, state) {
     scope: config.scopes.join(","),
     state,
   });
-  if (config.id === "whatsapp") {
+  if (config.configurationId) {
     query.set("config_id", config.configurationId);
     query.set("override_default_response_type", "true");
   }

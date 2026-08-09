@@ -36,7 +36,7 @@ export function metaSyncRequest(provider, credential) {
     };
   }
   if (provider === "instagram") throw new Error("meta_sync_auth_mode_missing");
-  if (provider === "facebook") {
+  if (provider === "facebook" || provider === "pages") {
     return {
       mode: "facebook_login",
       url: graphFacebookUrl("me/accounts", "id,name"),
@@ -72,7 +72,7 @@ export async function syncMetaReadOnly(provider, credential, fetchImpl = fetch) 
     if (!accounts.length) throw new Error("meta_sync_identity_missing");
     return { mode: request.mode, accounts };
   }
-  if (provider === "facebook") {
+  if (provider === "facebook" || provider === "pages") {
     return {
       mode: request.mode,
       accounts: safeAccounts(payload?.data, ["id", "name"]),
