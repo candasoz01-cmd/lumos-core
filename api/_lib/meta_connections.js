@@ -50,6 +50,15 @@ export async function enumeratePages(lumosId, credential, fetchImpl = fetch) {
   return { pages, gaps };
 }
 
+export function instagramConnectionId(lumosId, igAccountId) {
+  if (!clean(lumosId) || !clean(igAccountId)) return "";
+  const digest = createHmac("sha256", authSecret())
+    .update(`meta-connection-v1:${lumosId}:instagram:${igAccountId}`)
+    .digest("base64url")
+    .slice(0, 22);
+  return `conn_ig_${digest}`;
+}
+
 export function whatsappConnectionId(lumosId, wabaId, phoneNumberId) {
   if (!clean(lumosId) || !clean(wabaId) || !clean(phoneNumberId)) return "";
   const digest = createHmac("sha256", authSecret())
