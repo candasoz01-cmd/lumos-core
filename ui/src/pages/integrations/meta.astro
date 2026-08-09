@@ -70,6 +70,9 @@ const providers = [
         </h2>
         <p data-connections-note style="font-size:.85rem;opacity:.85" hidden></p>
         <ul data-connections-list style="list-style:none;margin:.5rem 0 0;padding:0;display:grid;gap:.4rem"></ul>
+        <h3 style="font-size:.9rem;margin:.9rem 0 .25rem">WhatsApp numaraları</h3>
+        <p data-wa-numbers-note style="font-size:.85rem;opacity:.85" hidden></p>
+        <ul data-wa-numbers-list style="list-style:none;margin:.4rem 0 0;padding:0;display:grid;gap:.4rem"></ul>
       </section>
 
       <div class="umbrella-actions">
@@ -268,6 +271,67 @@ const providers = [
         }
       }
       loadConnections();
+
+      // ADR-021 S4c — WhatsApp numara bağlantıları: her telefon numarası
+      // kalıcı connection_id'li ayrı satır. Boş/eksik enumeration satır
+      // uydurmaz; boşluklar (gaps) açıkça gösterilir (kurucu sınırı).
+      async function loadWhatsappNumbers() {
+        const noteEl = document.querySelector<HTMLElement>("[data-wa-numbers-note]");
+        const listEl = document.querySelector<HTMLElement>("[data-wa-numbers-list]");
+        if (!noteEl || !listEl) return;
+        const show = (note: string) => { noteEl.textContent = note; noteEl.hidden = false; };
+        try {
+          const response = await fetch("/api/integrations/meta/whatsapp/connections", {
+            headers: { Accept: "application/json" },
+            credentials: "same-origin",
+          });
+          if (response.status === 401) { show("Numara listesi için giriş yap."); return; }
+          if (!response.ok) { show("WhatsApp numara listesi şu anda alınamıyor."); return; }
+          const body = await response.json();
+          const rows = Array.isArray(body.connections) ? body.connections : [];
+          const gaps = Array.isArray(body.gaps) ? body.gaps : [];
+          listEl.textContent = "";
+          if (rows.length === 0) {
+            const li = document.createElement("li");
+            li.textContent = gaps.some((gap: { reason?: string }) => gap.reason === "no_whatsapp_credential")
+              ? "WhatsApp bağlantısı yok — önce Bağla ile yetkilendir."
+              : "Numara bulunamadı.";
+            li.style.opacity = "0.7";
+            listEl.appendChild(li);
+          }
+          for (const row of rows) {
+            const li = document.createElement("li");
+            li.style.cssText = "display:flex;gap:.6rem;align-items:baseline;font-size:.88rem;flex-wrap:wrap";
+            const name = document.createElement("strong");
+            name.textContent = String(row.verified_name || row.display_phone_number || "?");
+            const phone = document.createElement("span");
+            phone.textContent = String(row.display_phone_number || "");
+            phone.style.opacity = "0.85";
+            const waba = document.createElement("span");
+            waba.textContent = `WABA: ${String(row.waba_name || row.waba_id || "?")}`;
+            waba.style.opacity = "0.7";
+            const status = document.createElement("span");
+            status.textContent = row.status === "verified" ? "doğrulandı" : String(row.status || "?");
+            status.style.color = "rgb(110 231 183)";
+            const checked = document.createElement("span");
+            checked.textContent = body.checked_at
+              ? `son doğrulama: ${new Date(body.checked_at).toLocaleString("tr-TR")}` : "";
+            checked.style.opacity = "0.6";
+            li.append(name, phone, waba, status, checked);
+            listEl.appendChild(li);
+          }
+          const visibleGaps = gaps.filter((gap: { reason?: string }) => gap.reason !== "no_whatsapp_credential");
+          if (visibleGaps.length > 0) {
+            show(`Eksik raporu: ${visibleGaps.map((gap: { reason?: string; waba_id?: string }) =>
+              gap.waba_id ? `${gap.reason} (${gap.waba_id})` : String(gap.reason)).join(", ")}`);
+          } else if (rows.length > 0) {
+            noteEl.hidden = true;
+          }
+        } catch {
+          show("WhatsApp numara listesi şu anda alınamıyor.");
+        }
+      }
+      loadWhatsappNumbers();
     </script>
   </body>
 </html>
