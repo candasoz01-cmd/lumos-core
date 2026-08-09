@@ -2,8 +2,8 @@
 
 | Alan | Değer |
 |------|-------|
-| Karar durumu | **Taslak (2026-08-10)** — çerçeve ilkesi kurucu tarafından verildi; sınıf atamaları kurucu onayı bekliyor |
-| Uygulama durumu | Uygulanmadı — bu ADR Accepted olmadan hiçbir yazma/yayın kodu yazılmaz |
+| Karar durumu | **Accepted (2026-08-10)** — kurucu onayı, iki düzeltme ve üç açık sorunun cevabıyla (bkz. §Kurucu kararları) |
+| Uygulama durumu | Uygulanmadı — ilk dilim: A sınıfı WhatsApp gelen-mesaja yanıt, sandbox (ayrı küçük PR'larla) |
 | Üst ilişki | [ADR-020](ADR-020-meta-communications-exception.md) salt-okunur sınırını **yalnız bu ADR Accepted olduğunda ve tanımlı alanlar kapsamında** deler; [ADR-021](ADR-021-meta-multi-connection-model.md) bağlantı modeli üzerine kurulur |
 | Kapsam | Meta hatlarında (WhatsApp, Instagram, Facebook Pages) yazma/yayın yetkisinin modeli |
 
@@ -35,12 +35,29 @@ AuthorityDomain {
 - Her yazma eylemi gönderilmeden önce **sunucu tarafında** aktif bir alanla
   eşleştirilir; eşleşmeyen eylem gönderilmez, onay talebine dönüşür.
 - Her gönderim append-only denetim kaydına yazılır (kim/hangi alan/hangi
-  bağlantı/ne zaman); alan askıya alınabilir (kill-switch).
+  bağlantı/ne zaman).
+- **Kill-switch yetkinin ÜSTÜNDEDİR** (kurucu, 2026-08-10): tek hareketle
+  TÜM yazma alanları askıya alınabilir. Bu bir yeniden-onay süreci değil,
+  acil durdurmadır; hiçbir alan tanımı kill-switch'i daraltamaz.
 - **Yeniden onay tetikleyicileri** (kapsam/risk değişimi sayılır): alana yeni
-  bağlantı eklenmesi · yeni eylem sınıfı · limit artışı · ücretlendirme
-  modelinin değişmesi · platform politika kategorisinin değişmesi.
+  bağlantı eklenmesi · yeni eylem sınıfı · limit artışı · ücret/risk/politika
+  değişimi · elle askıya alınan alanın yeniden açılması. Bunların dışında
+  periyodik "hâlâ onaylıyor musun?" YOKTUR.
 
-## Yetki sınıfları (öneri — kurucu onayı bekliyor)
+## Kurucu kararları (2026-08-10 — taslağı Accepted'a çeken cevaplar)
+
+1. **Sınıf atamaları onaylı**, iki düzeltmeyle: WhatsApp gelen-mesaja yanıt = A
+   (tabloda görünür satır); WhatsApp grup paylaşımı **sınıf DIŞI —
+   `platform capability pending / unsupported until proven`** (Cloud API'de
+   klasik gruplara gönderim standart/güvenilir bir yetenek olarak
+   VARSAYILMAZ; kanıtlanmadan ADR bunu normlaştırmaz).
+2. **B sınıfı tam otonom**: ilk-N taslak kuyruğu YOK (işlem-bazlı onaya geri
+   dönüş olur); sınırlama gerekiyorsa oran, günlük adet, içerik türü ve hedef
+   hesap sınırı AuthorityDomain limitlerinde tanımlanır.
+3. **Geçerlilik varsayılan süresiz**: periyodik yeniden teyit yok; yeniden
+   onay yalnız gerçek tetiklerde (yukarıdaki liste).
+
+## Yetki sınıfları (kurucu onaylı)
 
 | Sınıf | Tanım | Onay modeli |
 |-------|-------|-------------|
@@ -48,17 +65,17 @@ AuthorityDomain {
 | **B — Kendi kanalında yayın** | Kendi varlığında kamuya açık içerik | Alan + oran/şablon sınırı; içinde otonom |
 | **C — Proaktif/toplu erişim** | Muhatabın başlatmadığı, ücret doğuran veya kitlesel gönderim | Her kampanya = yeni kapsam → kurucu onayı; kampanya içinde otonom |
 
-### Dört yeteneğin sınıf ataması (öneri)
+### Yeteneklerin sınıf ataması (kurucu onaylı, 2026-08-10)
 
-| Yetenek | Önerilen sınıf | Gerekçe |
-|---------|----------------|---------|
+| Yetenek | Sınıf | Gerekçe |
+|---------|-------|---------|
+| WhatsApp gelen-mesaja yanıt (24 saat müşteri penceresi) | **A** | Inbound'a yanıt; ücretsiz/karşılıklı; **ilk uygulama dilimi (sandbox)** |
 | WhatsApp toplu mesaj (template/broadcast) | **C** | Konuşma başına ücret; spam/ban riski en yüksek; kampanya doğası gereği kapsam her seferinde değişir |
-| WhatsApp grup paylaşımı | **C** | Cloud API'de grup desteği sınırlı/politika-hassas; kitlesel etki |
+| WhatsApp grup paylaşımı | **sınıf dışı** | `platform capability pending / unsupported until proven` — Cloud API'de kanıtlanmadan yetenek varsayılmaz; kanıtlanırsa sınıf ataması AYRI kurucu kararıdır |
 | Instagram DM — gelen mesaja yanıt | **A** | Muhatap konuşmayı başlatmış; 24 saatlik pencere platform kuralı zaten sınırlar |
 | Instagram DM — proaktif (cold) | **C** | Politika riski; istenmeyen erişim |
 | Instagram yayın (feed/story) | **B** | Kendi kanalı; kamuya açık ama muhatapsız |
 | Facebook Pages yayın | **B** | Kendi Sayfası; Instagram yayınıyla aynı doğa |
-| WhatsApp müşteri penceresi yanıtı | **A** | Inbound'a 24 saat penceresinde yanıt; ücretsiz/karşılıklı |
 
 ## Ön koşullar (bu ADR Accepted olsa bile kod öncesi kapılar)
 
@@ -69,8 +86,11 @@ AuthorityDomain {
 3. Ücret doğuran ilk gönderim sınıf ne olursa olsun kurucu onayına bağlıdır
    (faturalama hattı kurulana kadar).
 
-## Bu taslağın açık soruları (kurucu kararı)
+## İlk uygulama dilimi
 
-- Sınıf atamaları tablosu onaylanıyor mu, değişiklik var mı?
-- B sınıfında içerik onayı: tam otonom mu, yoksa ilk N gönderi için taslak-kuyruk mu?
-- Alan geçerlilik süresi (süresiz mi, periyodik yeniden teyit mi)?
+**A sınıfı — WhatsApp gelen-mesaja yanıt, sandbox** (Test WABA
+`1533094525525137` / test numarası). En düşük risk: inbound'a yanıt, ücret yok,
+gerçek numara yok. Dilim planı ayrı küçük PR'larla gelir; App Review /
+`whatsapp_business_messaging` izni bu dilimin ön koşul analizinde ele alınır
+(repo test guard'ı `doesNotMatch(/messaging/)` o dilimde bilinçli olarak
+güncellenene kadar scope istenmez).
