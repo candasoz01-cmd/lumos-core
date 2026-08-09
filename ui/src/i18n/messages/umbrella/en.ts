@@ -326,6 +326,7 @@ const umbrellaEn: typeof umbrellaTr = {
     whatsappScope: "WhatsApp Business account and business metadata.",
     instagramScope: "Instagram account identity and limited profile metadata.",
     facebookScope: "Facebook Page identity and name metadata.",
+    pagesScope: "Managed Facebook Page list (read-only, Business line).",
     statusLabel: "Status",
     status: {
       checking: "Checking",

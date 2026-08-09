@@ -6,6 +6,7 @@ import {
   extendMetaToken,
   metaProviderConfig,
   metaVaultRef,
+  missingMetaConfiguration,
   refreshMetaToken,
   revokeMetaToken,
 } from "../api/_lib/meta_oauth.js";
@@ -98,6 +99,34 @@ test("Meta OAuth uses provider-specific read-only authorization surfaces", () =>
     assert.equal(instagram.searchParams.get("scope"), "instagram_business_basic");
     assert.equal(metaProviderConfig("instagram").identityUrl, "https://graph.instagram.com/me?fields=id,username");
   } finally {
+    cleanEnv();
+  }
+});
+
+test("Pages provider runs only on the Business app with its own read-only configuration", () => {
+  env();
+  process.env.LUMOS_PAGES_LOGIN_CONFIG_ID = "pages-config-id";
+  try {
+    // Business kimliği yokken akış kapalıdır — META (1544) fallback'i YOK.
+    assert.ok(missingMetaConfiguration("pages").includes("LUMOS_WHATSAPP_APP_ID"));
+    assert.equal(buildMetaAuthorizeUrl("pages", "signed-state"), "");
+
+    process.env.LUMOS_WHATSAPP_APP_ID = "whatsapp-app-id";
+    process.env.LUMOS_WHATSAPP_APP_SECRET = "whatsapp-app-secret";
+    const pages = new URL(buildMetaAuthorizeUrl("pages", "signed-state"));
+    assert.equal(pages.searchParams.get("client_id"), "whatsapp-app-id");
+    assert.equal(pages.searchParams.get("scope"), "pages_show_list");
+    assert.equal(pages.searchParams.get("config_id"), "pages-config-id");
+    assert.doesNotMatch(pages.searchParams.get("scope"), /messaging|manage|engagement/);
+    // facebook provider'ı DEĞİŞMEDİ: 1544 kimliği + public_profile.
+    const facebook = new URL(buildMetaAuthorizeUrl("facebook", "signed-state"));
+    assert.equal(facebook.searchParams.get("client_id"), "meta-app-id");
+    assert.equal(facebook.searchParams.get("scope"), "public_profile");
+    assert.equal(facebook.searchParams.get("config_id"), null);
+  } finally {
+    delete process.env.LUMOS_PAGES_LOGIN_CONFIG_ID;
+    delete process.env.LUMOS_WHATSAPP_APP_ID;
+    delete process.env.LUMOS_WHATSAPP_APP_SECRET;
     cleanEnv();
   }
 });

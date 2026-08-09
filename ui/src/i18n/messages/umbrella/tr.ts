@@ -324,6 +324,7 @@ const umbrellaTr = {
     whatsappScope: "WhatsApp Business hesap ve işletme metadata'sı.",
     instagramScope: "Instagram hesap kimliği ve sınırlı profil metadata'sı.",
     facebookScope: "Facebook Sayfa kimliği ve ad metadata'sı.",
+    pagesScope: "Yönetilen Facebook Sayfa listesi (salt-okunur, İşletme hattı).",
     statusLabel: "Durum",
     status: {
       checking: "Kontrol ediliyor",
