@@ -46,7 +46,7 @@ export function metaProviderConfig(provider) {
       : "",
     tokenUrl: base ? `${base}/oauth/access_token` : "",
     scopes: id === "facebook"
-      ? ["pages_show_list", "pages_read_engagement"]
+      ? ["pages_show_list"]
       : ["business_management", "whatsapp_business_management"],
     identityUrl: base ? `${base}/me?fields=id,name` : "",
     configurationId: id === "whatsapp"
