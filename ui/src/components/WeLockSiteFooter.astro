@@ -1,5 +1,12 @@
 ---
 const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
+
+// Yalnız canlı doğrulanmış profiller listelenir (2026-08-09 doğrulaması).
+// Instagram/X hesapları doğrulanınca buraya eklenir.
+const SOCIAL_LINKS = [
+  { name: "Facebook", href: "https://www.facebook.com/ChatLumos" },
+  { name: "YouTube", href: "https://www.youtube.com/@chatlumos" },
+];
 ---
 
 <footer class="lumos-site-footer">
@@ -25,6 +32,17 @@ const GITHUB_REPO_URL = "https://github.com/candasoz01-cmd/lumos-core";
           rel="noopener noreferrer"
           data-i18n="umbrella.nav.github">GitHub</a>
       </li>
+    </ul>
+    <ul class="lumos-site-footer__nav" aria-label="ChatLumos sosyal medya">
+      {SOCIAL_LINKS.map((s) => (
+        <li>
+          <a
+            class="lumos-site-footer__link"
+            href={s.href}
+            target="_blank"
+            rel="noopener noreferrer">{s.name}</a>
+        </li>
+      ))}
     </ul>
     <p class="lumos-site-footer__meta" data-i18n="umbrella.footer.tagline">We Lock AI · welockai.com — Lumos ürün ailesi</p>
     <p class="lumos-site-footer__meta" data-i18n="umbrella.footer.rights">
