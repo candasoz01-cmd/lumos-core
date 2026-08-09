@@ -63,6 +63,15 @@ const providers = [
         ))}
       </section>
 
+      <section class="umbrella-callout" aria-label="Bağlantı listesi" data-connections-section>
+        <h2 style="font-size:1rem;margin:0 0 .35rem">
+          Bağlantılar
+          <span data-connections-mode style="font-size:.75rem;font-weight:400;opacity:.85"></span>
+        </h2>
+        <p data-connections-note style="font-size:.85rem;opacity:.85" hidden></p>
+        <ul data-connections-list style="list-style:none;margin:.5rem 0 0;padding:0;display:grid;gap:.4rem"></ul>
+      </section>
+
       <div class="umbrella-actions">
         <a class="umbrella-btn umbrella-btn--primary" href="/integrations" data-i18n="umbrella.metaConnections.hubCta">Entegrasyon merkezi</a>
         <a class="umbrella-btn" href="/panel" data-i18n="umbrella.metaConnections.panelCta">Panel</a>
@@ -198,6 +207,67 @@ const providers = [
           if (state) setStatus(card, state);
         });
       });
+
+      // ADR-021 S3 — bağlantı listesi. Fallback modu AÇIKÇA gösterilir
+      // (kurucu sınırı): çoklu bağlantı çalışıyormuş gibi sunulmaz.
+      async function loadConnections() {
+        const modeEl = document.querySelector<HTMLElement>("[data-connections-mode]");
+        const noteEl = document.querySelector<HTMLElement>("[data-connections-note]");
+        const listEl = document.querySelector<HTMLElement>("[data-connections-list]");
+        if (!modeEl || !noteEl || !listEl) return;
+        const show = (note: string) => { noteEl.textContent = note; noteEl.hidden = false; };
+        try {
+          const response = await fetch("/api/integrations/meta/connections", {
+            headers: { Accept: "application/json" },
+            credentials: "same-origin",
+          });
+          if (response.status === 401) { modeEl.textContent = ""; show("Bağlantı listesi için giriş yap."); return; }
+          if (!response.ok) { modeEl.textContent = ""; show("Bağlantı listesi şu anda alınamıyor."); return; }
+          const body = await response.json();
+          const rows = Array.isArray(body.connections) ? body.connections : [];
+          if (body.mode === "single_credential_fallback") {
+            modeEl.textContent = "· GEÇİŞ MODU — sağlayıcı başına tek bağlantı";
+            show("Çoklu bağlantı listesi gateway güncellemesini bekliyor; şimdilik sağlayıcı başına tek kayıt gösteriliyor.");
+          } else {
+            modeEl.textContent = "· çoklu bağlantı";
+            noteEl.hidden = true;
+          }
+          listEl.textContent = "";
+          if (rows.length === 0) {
+            const li = document.createElement("li");
+            li.textContent = "Henüz bağlantı yok.";
+            li.style.opacity = "0.7";
+            listEl.appendChild(li);
+            return;
+          }
+          for (const row of rows) {
+            const li = document.createElement("li");
+            li.style.cssText = "display:flex;gap:.6rem;align-items:baseline;font-size:.88rem;flex-wrap:wrap";
+            const name = document.createElement("strong");
+            name.textContent = String(row.provider || "?");
+            const account = document.createElement("span");
+            account.textContent = row.provider_account_id === "current"
+              ? "(mevcut bağlantı)" : `hesap: ${String(row.provider_account_id || "?")}`;
+            account.style.opacity = "0.8";
+            const status = document.createElement("span");
+            status.textContent = String(row.status || "?");
+            status.style.cssText = row.status === "authorized"
+              ? "color:rgb(110 231 183)" : "color:rgb(252 165 165)";
+            li.append(name, account, status);
+            if (Number(row.expires_at) > 0) {
+              const expiry = document.createElement("span");
+              expiry.textContent = `bitiş: ${new Date(Number(row.expires_at) * 1000).toLocaleDateString("tr-TR")}`;
+              expiry.style.opacity = "0.7";
+              li.append(expiry);
+            }
+            listEl.appendChild(li);
+          }
+        } catch {
+          modeEl.textContent = "";
+          show("Bağlantı listesi şu anda alınamıyor.");
+        }
+      }
+      loadConnections();
     </script>
   </body>
 </html>
