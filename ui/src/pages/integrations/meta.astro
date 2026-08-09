@@ -77,6 +77,9 @@ const providers = [
         <h3 style="font-size:.9rem;margin:.9rem 0 .25rem">Facebook Sayfaları</h3>
         <p data-pages-note style="font-size:.85rem;opacity:.85" hidden></p>
         <ul data-pages-list style="list-style:none;margin:.4rem 0 0;padding:0;display:grid;gap:.4rem"></ul>
+        <h3 style="font-size:.9rem;margin:.9rem 0 .25rem">Instagram hesapları</h3>
+        <p data-ig-note style="font-size:.85rem;opacity:.85" hidden></p>
+        <ul data-ig-list style="list-style:none;margin:.4rem 0 0;padding:0;display:grid;gap:.4rem"></ul>
       </section>
 
       <div class="umbrella-actions">
@@ -403,6 +406,72 @@ const providers = [
         }
       }
       loadPageConnections();
+
+      // Instagram dilimi — her profesyonel hesap kalıcı connection_id'li ayrı
+      // satır; boş enumeration satır uydurmaz, gaps açıkça gösterilir.
+      async function loadInstagramConnections() {
+        const noteEl = document.querySelector<HTMLElement>("[data-ig-note]");
+        const listEl = document.querySelector<HTMLElement>("[data-ig-list]");
+        if (!noteEl || !listEl) return;
+        const show = (note: string) => { noteEl.textContent = note; noteEl.hidden = false; };
+        try {
+          const response = await fetch("/api/integrations/meta/instagram/connections", {
+            headers: { Accept: "application/json" },
+            credentials: "same-origin",
+          });
+          if (response.status === 401) { show("Hesap listesi için giriş yap."); return; }
+          if (!response.ok) { show("Instagram hesap listesi şu anda alınamıyor."); return; }
+          const body = await response.json();
+          const rows = Array.isArray(body.connections) ? body.connections : [];
+          const gaps = Array.isArray(body.gaps) ? body.gaps : [];
+          listEl.textContent = "";
+          if (rows.length === 0) {
+            const li = document.createElement("li");
+            li.textContent = gaps.some((gap: { reason?: string }) => gap.reason === "no_instagram_credential")
+              ? "Instagram bağlantısı yok — önce Instagram kartından Bağla ile yetkilendir."
+              : "Hesap bulunamadı.";
+            li.style.opacity = "0.7";
+            listEl.appendChild(li);
+          }
+          for (const row of rows) {
+            const li = document.createElement("li");
+            li.style.cssText = "display:flex;gap:.6rem;align-items:baseline;font-size:.88rem;flex-wrap:wrap";
+            const name = document.createElement("strong");
+            name.textContent = row.username ? `@${String(row.username)}` : "?";
+            const account = document.createElement("span");
+            account.textContent = row.ig_account_id ? `hesap: ${String(row.ig_account_id)}` : "";
+            account.style.opacity = "0.75";
+            const type = document.createElement("span");
+            type.textContent = String(row.account_type || "");
+            type.style.opacity = "0.6";
+            const scopes = document.createElement("span");
+            scopes.textContent = Array.isArray(row.requested_scopes) ? row.requested_scopes.join(", ") : "";
+            scopes.style.opacity = "0.6";
+            const status = document.createElement("span");
+            status.textContent = row.status === "verified" ? "doğrulandı" : "doğrulanamadı";
+            status.style.color = row.status === "verified" ? "rgb(110 231 183)" : "rgb(252 165 165)";
+            const checked = document.createElement("span");
+            checked.textContent = Number(row.last_verified_at) > 0
+              ? `son doğrulama: ${new Date(Number(row.last_verified_at) * 1000).toLocaleString("tr-TR")}` : "";
+            checked.style.opacity = "0.6";
+            li.append(name, account, type, scopes, status, checked);
+            listEl.appendChild(li);
+          }
+          const notes: string[] = [];
+          if (body.mode === "stored_last_known") {
+            notes.push("Canlı doğrulama şu anda yapılamıyor; son bilinen kayıtlar gösteriliyor.");
+          }
+          const visibleGaps = gaps.filter((gap: { reason?: string }) => gap.reason !== "no_instagram_credential");
+          if (visibleGaps.length > 0) {
+            notes.push(`Eksik raporu: ${visibleGaps.map((gap: { reason?: string }) => String(gap.reason)).join(", ")}`);
+          }
+          if (notes.length > 0) show(notes.join(" · "));
+          else if (rows.length > 0) noteEl.hidden = true;
+        } catch {
+          show("Instagram hesap listesi şu anda alınamıyor.");
+        }
+      }
+      loadInstagramConnections();
     </script>
   </body>
 </html>
