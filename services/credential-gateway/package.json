@@ -1,0 +1,5 @@
+{
+  "name": "lumos-credential-gateway",
+  "private": true,
+  "type": "module"
+}
