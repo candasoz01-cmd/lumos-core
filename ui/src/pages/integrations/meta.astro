@@ -311,22 +311,26 @@ const providers = [
             waba.textContent = `WABA: ${String(row.waba_name || row.waba_id || "?")}`;
             waba.style.opacity = "0.7";
             const status = document.createElement("span");
-            status.textContent = row.status === "verified" ? "doğrulandı" : String(row.status || "?");
-            status.style.color = "rgb(110 231 183)";
+            status.textContent = row.status === "verified" ? "doğrulandı" : "doğrulanamadı";
+            status.style.color = row.status === "verified" ? "rgb(110 231 183)" : "rgb(252 165 165)";
             const checked = document.createElement("span");
-            checked.textContent = body.checked_at
-              ? `son doğrulama: ${new Date(body.checked_at).toLocaleString("tr-TR")}` : "";
+            checked.textContent = Number(row.last_verified_at) > 0
+              ? `son doğrulama: ${new Date(Number(row.last_verified_at) * 1000).toLocaleString("tr-TR")}` : "";
             checked.style.opacity = "0.6";
             li.append(name, phone, waba, status, checked);
             listEl.appendChild(li);
           }
+          const notes: string[] = [];
+          if (body.mode === "stored_last_known") {
+            notes.push("Canlı doğrulama şu anda yapılamıyor; son bilinen kayıtlar gösteriliyor.");
+          }
           const visibleGaps = gaps.filter((gap: { reason?: string }) => gap.reason !== "no_whatsapp_credential");
           if (visibleGaps.length > 0) {
-            show(`Eksik raporu: ${visibleGaps.map((gap: { reason?: string; waba_id?: string }) =>
+            notes.push(`Eksik raporu: ${visibleGaps.map((gap: { reason?: string; waba_id?: string }) =>
               gap.waba_id ? `${gap.reason} (${gap.waba_id})` : String(gap.reason)).join(", ")}`);
-          } else if (rows.length > 0) {
-            noteEl.hidden = true;
           }
+          if (notes.length > 0) show(notes.join(" · "));
+          else if (rows.length > 0) noteEl.hidden = true;
         } catch {
           show("WhatsApp numara listesi şu anda alınamıyor.");
         }

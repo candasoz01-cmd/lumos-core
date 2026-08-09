@@ -65,7 +65,7 @@ export function scanCredentialRecords(secrets) {
   let unparsed = 0;
   for (const secret of secrets) {
     const name = clean(secret?.name);
-    if (!name || name.startsWith("WEBHOOK__")) continue;
+    if (!name || name.startsWith("WEBHOOK__") || name.startsWith("CONN__")) continue;
     const record = parseCredentialRecord(secret.value);
     if (record) {
       records.push({ ...record, secret_name: name });

@@ -19,8 +19,10 @@ import {
 import { enumerateWhatsappNumbers } from "../../../_lib/meta_connections.js";
 import { metaProviderConfig } from "../../../_lib/meta_oauth.js";
 import {
+  listMetaConnections,
   listMetaCredentials,
   resolveMetaCredentialByRef,
+  upsertMetaConnection,
 } from "../../../_lib/meta_vault.js";
 import { captureError, logEvent } from "../../../_lib/observability.js";
 
@@ -64,6 +66,7 @@ export default async function handler(req, res) {
   }
 
   const requestedScopes = metaProviderConfig("whatsapp")?.scopes || [];
+  const nowSeconds = Math.floor(Date.now() / 1000);
   const connections = [];
   const gaps = [];
   let failures = 0;
@@ -77,7 +80,28 @@ export default async function handler(req, res) {
           credential_account_id: row.providerAccountId,
           requested_scopes: requestedScopes,
           status: "verified",
+          last_verified_at: nowSeconds,
         });
+        // ADR-021 S5: başarılı doğrulama kalıcı kayda yazılır. Yazım hatası
+        // canlı sonucu düşürmez ama görünür raporlanır.
+        try {
+          await upsertMetaConnection(lumosId, {
+            connectionId: number.connection_id,
+            provider: "whatsapp",
+            credentialRef: row.vaultRef,
+            wabaId: number.waba_id,
+            wabaName: number.waba_name,
+            businessId: number.business_id,
+            businessName: number.business_name,
+            phoneNumberId: number.phone_number_id,
+            displayPhoneNumber: number.display_phone_number,
+            verifiedName: number.verified_name,
+            lastVerifiedAt: nowSeconds,
+          });
+        } catch (persistError) {
+          await captureError(persistError, { route: ROUTE, errorCode: "connection_persist_failed" });
+          gaps.push({ reason: "persist_failed", connection_id: number.connection_id });
+        }
       }
       for (const gap of result.gaps) {
         gaps.push({ ...gap, credential_account_id: row.providerAccountId });
@@ -94,9 +118,38 @@ export default async function handler(req, res) {
     }
   }
 
-  // "Servis çöktü" ≠ "numara yok": hiç satır yok VE her credential hatayla
-  // düştüyse kesinti raporla.
+  // "Servis çöktü" ≠ "numara yok": canlı satır yok ve her credential düştüyse,
+  // depodaki GERÇEK geçmiş kayıtlar (uydurma değil) eski last_verified_at ile
+  // "doğrulanamadı" durumunda gösterilir; depo da boşsa kesinti raporlanır.
   if (connections.length === 0 && failures === credentials.length) {
+    try {
+      const stored = await listMetaConnections(lumosId, "whatsapp");
+      if (stored.length > 0) {
+        json(res, 200, {
+          ok: true,
+          mode: "stored_last_known",
+          connections: stored.map((item) => ({
+            connection_id: item.connectionId,
+            provider: item.provider,
+            business_id: item.businessId,
+            business_name: item.businessName,
+            waba_id: item.wabaId,
+            waba_name: item.wabaName,
+            phone_number_id: item.phoneNumberId,
+            display_phone_number: item.displayPhoneNumber,
+            verified_name: item.verifiedName,
+            requested_scopes: requestedScopes,
+            status: "unverified",
+            last_verified_at: item.lastVerifiedAt,
+          })),
+          gaps,
+          checked_at: new Date().toISOString(),
+        });
+        return;
+      }
+    } catch (storeError) {
+      await captureError(storeError, { route: ROUTE, errorCode: "connection_store_unavailable" });
+    }
     json(res, 502, { ok: false, error: "whatsapp_enumeration_unavailable", gaps });
     return;
   }

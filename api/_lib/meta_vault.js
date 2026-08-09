@@ -127,6 +127,56 @@ export async function listMetaCredentials(lumosId, provider, fetchImpl = fetch) 
     .filter((item) => item.vaultRef && item.provider && item.providerAccountId);
 }
 
+// ---------------------------------------------------------------- ADR-021 S5
+// Bağlantı kayıtları: connection_id kalıcı iç kimlik; credential'a vault_ref
+// REFERANSI ile bağlanır (upsert'te gönderilir, listede geri DÖNMEZ).
+
+export async function upsertMetaConnection(lumosId, connection, fetchImpl = fetch) {
+  const payload = await callMetaVault(
+    "connection.upsert",
+    {
+      owner_lumos_id: lumosId,
+      connection_id: connection.connectionId,
+      provider: connection.provider,
+      credential_ref: connection.credentialRef,
+      waba_id: connection.wabaId,
+      waba_name: connection.wabaName,
+      business_id: connection.businessId,
+      business_name: connection.businessName,
+      phone_number_id: connection.phoneNumberId,
+      display_phone_number: connection.displayPhoneNumber,
+      verified_name: connection.verifiedName,
+      last_verified_at: connection.lastVerifiedAt,
+    },
+    fetchImpl,
+  );
+  if (clean(payload?.connection_id) !== connection.connectionId) {
+    throw new Error("meta_connection_upsert_invalid_response");
+  }
+  return { connectionId: connection.connectionId };
+}
+
+export async function listMetaConnections(lumosId, provider, fetchImpl = fetch) {
+  const fields = { owner_lumos_id: lumosId };
+  if (clean(provider)) fields.provider = clean(provider);
+  const payload = await callMetaVault("connection.list", fields, fetchImpl);
+  const items = Array.isArray(payload?.connections) ? payload.connections : [];
+  return items
+    .map((item) => ({
+      connectionId: clean(item?.connection_id),
+      provider: clean(item?.provider),
+      wabaId: clean(item?.waba_id),
+      wabaName: clean(item?.waba_name),
+      businessId: clean(item?.business_id),
+      businessName: clean(item?.business_name),
+      phoneNumberId: clean(item?.phone_number_id),
+      displayPhoneNumber: clean(item?.display_phone_number),
+      verifiedName: clean(item?.verified_name),
+      lastVerifiedAt: Number(item?.last_verified_at || 0),
+    }))
+    .filter((item) => item.connectionId && item.provider);
+}
+
 export async function resolveMetaCredentialByRef(lumosId, vaultRef, fetchImpl = fetch) {
   const ref = clean(vaultRef);
   if (!ref) throw new Error("meta_vault_ref_required");
