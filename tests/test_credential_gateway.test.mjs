@@ -243,6 +243,63 @@ test("webhook.ingest dedupes by event key and never requires owner id", async ()
   }
 });
 
+test("connection.upsert/list persists rows owner-scoped without exposing credential_ref", async () => {
+  configure();
+  const { secrets, fetchImpl } = fakeInfisical();
+  const bridge = gatewayFetch(fetchImpl);
+  try {
+    const upsert = await bridge.call("https://gateway.test/api/gateway", {
+      method: "POST",
+      headers: { Authorization: "Bearer gateway-token" },
+      body: JSON.stringify({
+        operation: "connection.upsert",
+        owner_lumos_id: "lumos-1",
+        connection_id: "conn_wa_abc123",
+        provider: "whatsapp",
+        credential_ref: "meta:whatsapp:ref-1",
+        waba_id: "waba-1",
+        waba_name: "Test WABA",
+        phone_number_id: "phone-1",
+        display_phone_number: "+1 555 000 0001",
+        verified_name: "Test Number",
+        last_verified_at: 1234,
+      }),
+    });
+    assert.deepEqual(await upsert.json(), { ok: true, connection_id: "conn_wa_abc123" });
+    assert.ok(secrets.has("CONN__conn_wa_abc123"));
+
+    const list = await bridge.call("https://gateway.test/api/gateway", {
+      method: "POST",
+      headers: { Authorization: "Bearer gateway-token" },
+      body: JSON.stringify({ operation: "connection.list", owner_lumos_id: "lumos-1", provider: "whatsapp" }),
+    });
+    const payload = await list.json();
+    assert.equal(payload.connections.length, 1);
+    assert.equal(payload.connections[0].connection_id, "conn_wa_abc123");
+    assert.equal(payload.connections[0].last_verified_at, 1234);
+    // credential_ref iç referans — liste yanıtına sızmaz.
+    assert.ok(!JSON.stringify(payload).includes("meta:whatsapp:ref-1"));
+
+    const foreign = await bridge.call("https://gateway.test/api/gateway", {
+      method: "POST",
+      headers: { Authorization: "Bearer gateway-token" },
+      body: JSON.stringify({ operation: "connection.list", owner_lumos_id: "lumos-2" }),
+    });
+    assert.equal((await foreign.json()).connections.length, 0);
+
+    // CONN__ kayıtları credential.list'in unparsed sayacına karışmaz.
+    const credentialList = await bridge.call("https://gateway.test/api/gateway", {
+      method: "POST",
+      headers: { Authorization: "Bearer gateway-token" },
+      body: JSON.stringify({ operation: "credential.list", owner_lumos_id: "lumos-1" }),
+    });
+    assert.equal((await credentialList.json()).unparsed_records, 0);
+  } finally {
+    bridge.restore();
+    cleanup();
+  }
+});
+
 test("Health endpoint stays secret-free", () => {
   let body = "";
   const res = { setHeader() {}, statusCode: 0, end(payload) { body = payload; } };

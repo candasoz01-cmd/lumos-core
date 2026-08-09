@@ -68,13 +68,21 @@ const CREDENTIAL_RESOLVE = {
   },
 };
 
-function stubFetch({ businesses, phonesByWaba, graphFails = false }) {
-  return async (url, options = {}) => {
+function stubFetch({ businesses, phonesByWaba, graphFails = false, storedConnections = [] }) {
+  const upserts = [];
+  const fetchImpl = async (url, options = {}) => {
     const target = String(url);
     if (target.startsWith("https://vault.test/credentials")) {
       const body = JSON.parse(options.body);
       if (body.operation === "credential.list") return vaultResponse(CREDENTIAL_LIST);
       if (body.operation === "credential.resolve") return vaultResponse(CREDENTIAL_RESOLVE);
+      if (body.operation === "connection.upsert") {
+        upserts.push(body);
+        return vaultResponse({ ok: true, connection_id: body.connection_id });
+      }
+      if (body.operation === "connection.list") {
+        return vaultResponse({ ok: true, connections: storedConnections });
+      }
       return vaultResponse({ ok: false });
     }
     if (graphFails) return { ok: false, status: 500, async json() { return {}; } };
@@ -83,6 +91,8 @@ function stubFetch({ businesses, phonesByWaba, graphFails = false }) {
     if (phoneMatch) return vaultResponse({ data: phonesByWaba[phoneMatch[1]] || [] });
     return { ok: false, status: 404, async json() { return {}; } };
   };
+  fetchImpl.upserts = upserts;
+  return fetchImpl;
 }
 
 test("Each phone number becomes a distinct permanent connection row without leaks", async () => {
@@ -116,6 +126,10 @@ test("Each phone number becomes a distinct permanent connection row without leak
     assert.deepEqual(first.requested_scopes, ["business_management", "whatsapp_business_management"]);
     // Kalıcılık: aynı üçlü her çağrıda aynı connection_id'yi üretir.
     assert.equal(first.connection_id, whatsappConnectionId("lumos-1", "waba-1", "phone-1"));
+    // S5: her canlı satır kalıcı kayda yazılır (credential_ref ile, kopya yok).
+    assert.equal(globalThis.fetch.upserts.length, 2);
+    assert.equal(globalThis.fetch.upserts[0].credential_ref, "meta:whatsapp:ref-1");
+    assert.ok(Number(first.last_verified_at) > 0);
     // Sızıntı yok: token ve vault_ref gövdede geçmez.
     assert.ok(!res.body.includes("secret-graph-token"));
     assert.ok(!res.body.includes("meta:whatsapp:ref-1"));
@@ -162,6 +176,41 @@ test("Graph outage on every credential is reported as 502, not an empty success"
     const payload = JSON.parse(res.body);
     assert.equal(payload.ok, false);
     assert.equal(payload.error, "whatsapp_enumeration_unavailable");
+    assert.equal(payload.gaps[0].reason, "enumeration_failed");
+  } finally {
+    globalThis.fetch = originalFetch;
+    cleanup();
+  }
+});
+
+test("Graph outage with stored history serves last-known rows as unverified", async () => {
+  configure();
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = stubFetch({
+      businesses: [],
+      phonesByWaba: {},
+      graphFails: true,
+      storedConnections: [{
+        connection_id: "conn_wa_stored1",
+        provider: "whatsapp",
+        waba_id: "waba-1",
+        waba_name: "Test WABA",
+        phone_number_id: "phone-1",
+        display_phone_number: "+1 555 000 0001",
+        verified_name: "Test Number",
+        last_verified_at: 1700000000,
+      }],
+    });
+    const res = response();
+    await handler(sessionRequest(), res);
+    assert.equal(res.statusCode, 200);
+    const payload = JSON.parse(res.body);
+    assert.equal(payload.mode, "stored_last_known");
+    assert.equal(payload.connections.length, 1);
+    assert.equal(payload.connections[0].status, "unverified");
+    assert.equal(payload.connections[0].last_verified_at, 1700000000);
+    // Kesinti yine görünür: gaps boş değil.
     assert.equal(payload.gaps[0].reason, "enumeration_failed");
   } finally {
     globalThis.fetch = originalFetch;

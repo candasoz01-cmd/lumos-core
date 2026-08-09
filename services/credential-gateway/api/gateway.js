@@ -225,6 +225,55 @@ export default async function handler(req, res) {
       return;
     }
 
+    // ADR-021 S5 — bağlantı kayıtları: connection_id kalıcı iç kimlik,
+    // credential'a vault_ref REFERANSI ile bağlanır (kopya yok), sır içermez.
+    if (operation === "connection.upsert") {
+      const connectionId = clean(body?.connection_id);
+      if (!connectionId || !provider) {
+        json(res, 400, { ok: false, error: "invalid_request" });
+        return;
+      }
+      const record = JSON.stringify({
+        schema: "lumos-connection-v1",
+        connection_id: connectionId,
+        owner_lumos_id: ownerLumosId,
+        provider,
+        credential_ref: clean(body?.credential_ref),
+        waba_id: clean(body?.waba_id),
+        waba_name: clean(body?.waba_name),
+        business_id: clean(body?.business_id),
+        business_name: clean(body?.business_name),
+        phone_number_id: clean(body?.phone_number_id),
+        display_phone_number: clean(body?.display_phone_number),
+        verified_name: clean(body?.verified_name),
+        last_verified_at: Number(body?.last_verified_at || 0),
+      });
+      await writeSecret(config, accessToken, `CONN__${connectionId.replace(/[^A-Za-z0-9_-]/g, "_")}`, record);
+      json(res, 200, { ok: true, connection_id: connectionId });
+      return;
+    }
+
+    if (operation === "connection.list") {
+      const secrets = await listSecrets(config, accessToken);
+      const rows = [];
+      for (const secret of secrets) {
+        if (!secret.name.startsWith("CONN__")) continue;
+        let parsed;
+        try {
+          parsed = JSON.parse(secret.value);
+        } catch {
+          continue;
+        }
+        if (clean(parsed?.owner_lumos_id) !== ownerLumosId) continue;
+        if (provider && clean(parsed?.provider) !== provider) continue;
+        // credential_ref iç referanstır; liste yanıtında dışarı verilmez.
+        const { credential_ref: _internalRef, ...publicFields } = parsed;
+        rows.push(publicFields);
+      }
+      json(res, 200, { ok: true, connections: rows });
+      return;
+    }
+
     json(res, 400, { ok: false, error: "unsupported_operation" });
   } catch (error) {
     json(res, 502, { ok: false, error: clean(error?.message) || "gateway_failed" });
