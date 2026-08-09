@@ -14,6 +14,42 @@ function clean(value) {
   return String(value || "").trim().slice(0, 256);
 }
 
+export function pagesConnectionId(lumosId, pageId) {
+  if (!clean(lumosId) || !clean(pageId)) return "";
+  const digest = createHmac("sha256", authSecret())
+    .update(`meta-connection-v1:${lumosId}:pages:${pageId}`)
+    .digest("base64url")
+    .slice(0, 22);
+  return `conn_page_${digest}`;
+}
+
+/**
+ * Pages credential'ı için yönetilen Sayfa listesini çıkarır (me/accounts,
+ * salt-okunur). Boş sonuç satır uydurmaz; `gaps`'te raporlanır.
+ */
+export async function enumeratePages(lumosId, credential, fetchImpl = fetch) {
+  const payload = await graphGet(
+    graphUrl("me/accounts", "id,name"),
+    credential.accessToken,
+    fetchImpl,
+  );
+  const items = Array.isArray(payload?.data) ? payload.data.slice(0, 50) : [];
+  const pages = [];
+  const gaps = [];
+  if (items.length === 0) gaps.push({ reason: "pages_empty" });
+  for (const item of items) {
+    const pageId = clean(item?.id);
+    if (!pageId) continue;
+    pages.push({
+      connection_id: pagesConnectionId(lumosId, pageId),
+      provider: "pages",
+      page_id: pageId,
+      page_name: clean(item?.name),
+    });
+  }
+  return { pages, gaps };
+}
+
 export function whatsappConnectionId(lumosId, wabaId, phoneNumberId) {
   if (!clean(lumosId) || !clean(wabaId) || !clean(phoneNumberId)) return "";
   const digest = createHmac("sha256", authSecret())

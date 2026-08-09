@@ -246,6 +246,8 @@ export default async function handler(req, res) {
         phone_number_id: clean(body?.phone_number_id),
         display_phone_number: clean(body?.display_phone_number),
         verified_name: clean(body?.verified_name),
+        page_id: clean(body?.page_id),
+        page_name: clean(body?.page_name),
         last_verified_at: Number(body?.last_verified_at || 0),
       });
       await writeSecret(config, accessToken, `CONN__${connectionId.replace(/[^A-Za-z0-9_-]/g, "_")}`, record);
