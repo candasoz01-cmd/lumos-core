@@ -46,7 +46,13 @@ export function metaProviderConfig(provider) {
       : "",
     tokenUrl: base ? `${base}/oauth/access_token` : "",
     scopes: id === "facebook"
-      ? ["pages_show_list", "pages_read_engagement"]
+      // GEÇİCİ (2026-08-09, kurucu kararı — "A olmazsa C"): Pages izinleri
+      // tüketici Facebook Login use case'inde sunulmuyor (Meta konsol kanıtı,
+      // app 1544247583316401); Pages scope'ları Business Login/ayrı use case
+      // işi olarak ADR-020 §2.5 dilimine ertelendi. Temel OAuth kanıtı
+      // public_profile ile alınır — kimlik + granted scope doğrulama
+      // (ADR-020 §3) bunun için yeterlidir.
+      ? ["public_profile"]
       : ["business_management", "whatsapp_business_management"],
     identityUrl: base ? `${base}/me?fields=id,name` : "",
     configurationId: id === "whatsapp"

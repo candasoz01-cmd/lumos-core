@@ -73,7 +73,7 @@ test("Meta OAuth uses provider-specific read-only authorization surfaces", () =>
   try {
     const facebook = new URL(buildMetaAuthorizeUrl("facebook", "signed-state"));
     assert.equal(facebook.hostname, "www.facebook.com");
-    assert.equal(facebook.searchParams.get("scope"), "pages_show_list,pages_read_engagement");
+    assert.equal(facebook.searchParams.get("scope"), "public_profile");
     const whatsapp = new URL(buildMetaAuthorizeUrl("whatsapp", "signed-state"));
     assert.equal(whatsapp.searchParams.get("config_id"), "whatsapp-config-id");
     assert.equal(whatsapp.searchParams.get("scope"), "business_management,whatsapp_business_management");
