@@ -78,6 +78,21 @@ test("Meta OAuth uses provider-specific read-only authorization surfaces", () =>
     assert.equal(whatsapp.searchParams.get("config_id"), "whatsapp-config-id");
     assert.equal(whatsapp.searchParams.get("scope"), "business_management,whatsapp_business_management");
     assert.doesNotMatch(whatsapp.searchParams.get("scope"), /messaging/);
+    // ADR-021 S4: whatsapp env'i yoksa META kimliğine düşer (geriye uyum)
+    assert.equal(whatsapp.searchParams.get("client_id"), "meta-app-id");
+    process.env.LUMOS_WHATSAPP_APP_ID = "whatsapp-app-id";
+    process.env.LUMOS_WHATSAPP_APP_SECRET = "whatsapp-app-secret";
+    try {
+      const split = new URL(buildMetaAuthorizeUrl("whatsapp", "signed-state"));
+      assert.equal(split.searchParams.get("client_id"), "whatsapp-app-id");
+      assert.equal(metaProviderConfig("whatsapp").clientSecret, "whatsapp-app-secret");
+      // facebook META kimliğinde kalır — ayrım sızmaz
+      const fbSplit = new URL(buildMetaAuthorizeUrl("facebook", "signed-state"));
+      assert.equal(fbSplit.searchParams.get("client_id"), "meta-app-id");
+    } finally {
+      delete process.env.LUMOS_WHATSAPP_APP_ID;
+      delete process.env.LUMOS_WHATSAPP_APP_SECRET;
+    }
     const instagram = new URL(buildMetaAuthorizeUrl("instagram", "signed-state"));
     assert.equal(instagram.hostname, "www.instagram.com");
     assert.equal(instagram.searchParams.get("scope"), "instagram_business_basic");

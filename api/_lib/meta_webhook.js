@@ -28,6 +28,9 @@ export function verifyMetaWebhookSignature(rawBody, signatureHeader) {
   const secrets = [
     clean(process.env.LUMOS_META_APP_SECRET),
     clean(process.env.LUMOS_INSTAGRAM_APP_SECRET),
+    // ADR-021 S4: WhatsApp ayrı Business app kimliğiyle koşarsa webhook
+    // imzaları o app'in secret'ıyla gelir.
+    clean(process.env.LUMOS_WHATSAPP_APP_SECRET),
   ].filter((value, index, values) => value && values.indexOf(value) === index);
   return secrets.some((secret) => {
     const expected = createHmac("sha256", secret).update(rawBody).digest();

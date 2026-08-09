@@ -149,6 +149,31 @@ test("Instagram app secret is accepted and durable duplicate is acknowledged", a
   }
 });
 
+test("WhatsApp app secret signs webhooks when the Business app split is active", async () => {
+  configure();
+  process.env.LUMOS_WHATSAPP_APP_SECRET = "whatsapp-app-secret";
+  const originalFetch = globalThis.fetch;
+  try {
+    const body = Buffer.from(JSON.stringify({ object: "whatsapp_business_account", entry: [{ id: "waba-1" }] }));
+    globalThis.fetch = async () => ({
+      ok: true,
+      async json() { return { ok: true, status: "accepted" }; },
+    });
+    const res = response();
+    await handler({
+      method: "POST",
+      body,
+      headers: { "x-hub-signature-256": signature(body, "whatsapp-app-secret") },
+    }, res);
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(JSON.parse(res.body), { ok: true, status: "accepted" });
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.LUMOS_WHATSAPP_APP_SECRET;
+    cleanup();
+  }
+});
+
 test("Webhook body limit fails closed before signature or sink processing", async () => {
   configure();
   process.env.LUMOS_META_WEBHOOK_MAX_BYTES = "1024";

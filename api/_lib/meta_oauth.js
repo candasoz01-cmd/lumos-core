@@ -37,10 +37,20 @@ export function metaProviderConfig(provider) {
 
   const graphVersion = metaGraphVersion();
   const base = graphVersion ? `https://graph.facebook.com/${graphVersion}` : "";
+  // ADR-021 S4: WhatsApp, Business tipli ayrı Meta app ile koşar (konsol kanıtı:
+  // tüketici app'e WhatsApp use case'i eklenemiyor). LUMOS_WHATSAPP_APP_ID/SECRET
+  // tanımlıysa onlar kullanılır; yoksa META değerlerine düşer (tek-app kurulum
+  // geriye uyumu). Facebook 1544..., WhatsApp 1046... kimliğiyle çalışır.
+  const whatsappClientId = clean(process.env.LUMOS_WHATSAPP_APP_ID);
+  const whatsappClientSecret = clean(process.env.LUMOS_WHATSAPP_APP_SECRET);
   return {
     id,
-    clientId: clean(process.env.LUMOS_META_APP_ID),
-    clientSecret: clean(process.env.LUMOS_META_APP_SECRET),
+    clientId: id === "whatsapp" && whatsappClientId
+      ? whatsappClientId
+      : clean(process.env.LUMOS_META_APP_ID),
+    clientSecret: id === "whatsapp" && whatsappClientSecret
+      ? whatsappClientSecret
+      : clean(process.env.LUMOS_META_APP_SECRET),
     authorizeUrl: graphVersion
       ? `https://www.facebook.com/${graphVersion}/dialog/oauth`
       : "",
