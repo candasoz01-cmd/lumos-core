@@ -104,3 +104,51 @@ export async function deleteMetaCredential(lumosId, provider, vaultRef, fetchImp
   }
   return { deleted: true, vaultRef };
 }
+
+// ---------------------------------------------------------------- ADR-021 S1
+// Çoklu bağlantı modeli: credential ≠ bağlantı. Bir kullanıcı+provider altında
+// BİRDEN FAZLA credential yaşayabilir; liste secret'sız metadata döner, çözümleme
+// vault_ref ile hesap-kapsamlı yapılır. Eski owner+provider tekil fonksiyonlar
+// geçiş süresince aynen korunur (ADR-021 §2).
+
+export async function listMetaCredentials(lumosId, provider, fetchImpl = fetch) {
+  const fields = { owner_lumos_id: lumosId };
+  if (clean(provider)) fields.provider = clean(provider);
+  const payload = await callMetaVault("credential.list", fields, fetchImpl);
+  const items = Array.isArray(payload?.credentials) ? payload.credentials : [];
+  return items
+    .map((item) => ({
+      vaultRef: clean(item?.vault_ref),
+      provider: clean(item?.provider),
+      providerAccountId: clean(item?.provider_account_id),
+      expiresAt: Number(item?.expires_at || 0),
+      authMode: clean(item?.auth_mode),
+    }))
+    .filter((item) => item.vaultRef && item.provider && item.providerAccountId);
+}
+
+export async function resolveMetaCredentialByRef(lumosId, vaultRef, fetchImpl = fetch) {
+  const ref = clean(vaultRef);
+  if (!ref) throw new Error("meta_vault_ref_required");
+  const payload = await callMetaVault(
+    "credential.resolve",
+    { owner_lumos_id: lumosId, vault_ref: ref },
+    fetchImpl,
+  );
+  if (clean(payload?.vault_ref) !== ref) {
+    throw new Error("meta_vault_resolve_ref_mismatch");
+  }
+  const accessToken = clean(payload?.credential?.access_token);
+  const providerAccountId = clean(payload?.provider_account_id);
+  if (!accessToken || !providerAccountId) {
+    throw new Error("meta_vault_credential_missing");
+  }
+  return {
+    accessToken,
+    tokenType: clean(payload?.credential?.token_type) || "bearer",
+    expiresAt: Number(payload?.credential?.expires_at || 0),
+    vaultRef: ref,
+    providerAccountId,
+    authMode: clean(payload?.credential?.auth_mode),
+  };
+}
