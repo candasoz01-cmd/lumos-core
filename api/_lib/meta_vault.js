@@ -146,6 +146,8 @@ export async function upsertMetaConnection(lumosId, connection, fetchImpl = fetc
       phone_number_id: connection.phoneNumberId,
       display_phone_number: connection.displayPhoneNumber,
       verified_name: connection.verifiedName,
+      page_id: connection.pageId,
+      page_name: connection.pageName,
       last_verified_at: connection.lastVerifiedAt,
     },
     fetchImpl,
@@ -172,6 +174,8 @@ export async function listMetaConnections(lumosId, provider, fetchImpl = fetch) 
       phoneNumberId: clean(item?.phone_number_id),
       displayPhoneNumber: clean(item?.display_phone_number),
       verifiedName: clean(item?.verified_name),
+      pageId: clean(item?.page_id),
+      pageName: clean(item?.page_name),
       lastVerifiedAt: Number(item?.last_verified_at || 0),
     }))
     .filter((item) => item.connectionId && item.provider);
