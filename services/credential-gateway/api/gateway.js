@@ -100,6 +100,185 @@ export default async function handler(req, res) {
   const provider = clean(body?.provider).toLowerCase();
   const vaultRef = clean(body?.vault_ref);
 
+  // ---------------------------------------------------------- ADR-022 D2
+  // Inbound zarfı + gönderim rezervasyonu. Kurucu sınırları (2026-08-10):
+  // mesaj GÖVDESİ saklanmaz (yalnız zarf + varsa içerik hash'i); SEND_INTENT
+  // rezervasyonu yazılamazsa gönderim yapılmaz (gerçek fail-closed); bu
+  // operasyonlar mesaj GÖNDERMEZ — yalnız kayıt düzlemi.
+  const inboundKey = (messageId) => `INBOUND__${clean(messageId).replace(/[^A-Za-z0-9_-]/g, "_")}`;
+  const lastInKey = (phoneNumberId, fromWaId) =>
+    `LASTIN__${clean(phoneNumberId).replace(/[^A-Za-z0-9_-]/g, "_")}__${clean(fromWaId).replace(/[^A-Za-z0-9_-]/g, "_")}`;
+  const sendKey = (inboundMessageId) => `SEND__${clean(inboundMessageId).replace(/[^A-Za-z0-9_-]/g, "_")}`;
+
+  if (operation === "inbound.store") {
+    const messageId = clean(body?.message_id);
+    const fromWaId = clean(body?.from_wa_id);
+    const phoneNumberId = clean(body?.phone_number_id);
+    const wabaId = clean(body?.waba_id);
+    if (!provider || !messageId || !fromWaId || !phoneNumberId || !wabaId) {
+      json(res, 400, { ok: false, error: "invalid_request" });
+      return;
+    }
+    try {
+      const accessToken = await infisicalLogin(config);
+      const existing = await readSecret(config, accessToken, inboundKey(messageId));
+      if (existing) {
+        json(res, 200, { ok: true, status: "duplicate" });
+        return;
+      }
+      const receivedAt = Number(body?.timestamp || 0) || Math.floor(Date.now() / 1000);
+      await writeSecret(config, accessToken, inboundKey(messageId), JSON.stringify({
+        schema: "lumos-inbound-v1",
+        provider,
+        message_id: messageId,
+        from_wa_id: fromWaId,
+        phone_number_id: phoneNumberId,
+        waba_id: wabaId,
+        timestamp: receivedAt,
+        message_type: clean(body?.message_type),
+        content_hash: clean(body?.content_hash),
+      }));
+      await writeSecret(config, accessToken, lastInKey(phoneNumberId, fromWaId), JSON.stringify({
+        last_inbound_at: receivedAt,
+        message_id: messageId,
+      }));
+      json(res, 200, { ok: true, status: "stored" });
+    } catch (error) {
+      json(res, 502, { ok: false, error: clean(error?.message) || "gateway_failed" });
+    }
+    return;
+  }
+
+  if (operation === "inbound.last") {
+    const fromWaId = clean(body?.from_wa_id);
+    const phoneNumberId = clean(body?.phone_number_id);
+    if (!fromWaId || !phoneNumberId) {
+      json(res, 400, { ok: false, error: "invalid_request" });
+      return;
+    }
+    try {
+      const accessToken = await infisicalLogin(config);
+      const raw = await readSecret(config, accessToken, lastInKey(phoneNumberId, fromWaId));
+      if (!raw) {
+        json(res, 200, { ok: true, last_inbound_at: 0 });
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      json(res, 200, {
+        ok: true,
+        last_inbound_at: Number(parsed?.last_inbound_at || 0),
+        message_id: clean(parsed?.message_id),
+      });
+    } catch (error) {
+      json(res, 502, { ok: false, error: clean(error?.message) || "gateway_failed" });
+    }
+    return;
+  }
+
+  if (operation === "connection.lookup") {
+    const phoneNumberId = clean(body?.phone_number_id);
+    const wabaId = clean(body?.waba_id);
+    if (!phoneNumberId || !wabaId) {
+      json(res, 400, { ok: false, error: "invalid_request" });
+      return;
+    }
+    try {
+      const accessToken = await infisicalLogin(config);
+      const secrets = await listSecrets(config, accessToken);
+      // TAM eşleşme, fail-closed: phone_number_id VE waba_id birlikte.
+      let match = null;
+      for (const secret of secrets) {
+        if (!secret.name.startsWith("CONN__")) continue;
+        let parsed;
+        try {
+          parsed = JSON.parse(secret.value);
+        } catch {
+          continue;
+        }
+        if (clean(parsed?.phone_number_id) === phoneNumberId && clean(parsed?.waba_id) === wabaId) {
+          match = parsed;
+          break;
+        }
+      }
+      if (!match) {
+        json(res, 404, { ok: false, error: "connection_not_found" });
+        return;
+      }
+      json(res, 200, {
+        ok: true,
+        connection_id: clean(match.connection_id),
+        owner_lumos_id: clean(match.owner_lumos_id),
+        provider: clean(match.provider),
+      });
+    } catch (error) {
+      json(res, 502, { ok: false, error: clean(error?.message) || "gateway_failed" });
+    }
+    return;
+  }
+
+  if (operation === "send.reserve") {
+    const inboundMessageId = clean(body?.inbound_message_id);
+    const connectionId = clean(body?.connection_id);
+    const domainId = clean(body?.domain_id);
+    if (!inboundMessageId || !connectionId) {
+      json(res, 400, { ok: false, error: "invalid_request" });
+      return;
+    }
+    try {
+      const accessToken = await infisicalLogin(config);
+      const key = sendKey(inboundMessageId);
+      const existing = await readSecret(config, accessToken, key);
+      if (existing) {
+        // İdempotency: aynı inbound için ikinci rezervasyon YOK — çağıran
+        // göndermemelidir.
+        json(res, 200, { ok: true, status: "duplicate" });
+        return;
+      }
+      await writeSecret(config, accessToken, key, JSON.stringify({
+        schema: "lumos-send-v1",
+        inbound_message_id: inboundMessageId,
+        connection_id: connectionId,
+        domain_id: domainId,
+        status: "intent",
+        reserved_at: Math.floor(Date.now() / 1000),
+      }));
+      json(res, 200, { ok: true, status: "reserved" });
+    } catch (error) {
+      // Rezervasyon yazılamadı → çağıran GÖNDERMEZ (fail-closed).
+      json(res, 502, { ok: false, error: clean(error?.message) || "gateway_failed" });
+    }
+    return;
+  }
+
+  if (operation === "send.finalize") {
+    const inboundMessageId = clean(body?.inbound_message_id);
+    const status = clean(body?.status);
+    if (!inboundMessageId || !new Set(["sent", "failed"]).has(status)) {
+      json(res, 400, { ok: false, error: "invalid_request" });
+      return;
+    }
+    try {
+      const accessToken = await infisicalLogin(config);
+      const key = sendKey(inboundMessageId);
+      const raw = await readSecret(config, accessToken, key);
+      if (!raw) {
+        json(res, 404, { ok: false, error: "send_intent_not_found" });
+        return;
+      }
+      const record = JSON.parse(raw);
+      await writeSecret(config, accessToken, key, JSON.stringify({
+        ...record,
+        status,
+        provider_message_id: clean(body?.provider_message_id),
+        finalized_at: Math.floor(Date.now() / 1000),
+      }));
+      json(res, 200, { ok: true, status });
+    } catch (error) {
+      json(res, 502, { ok: false, error: clean(error?.message) || "gateway_failed" });
+    }
+    return;
+  }
+
   // webhook.ingest owner_lumos_id taşımaz (bkz. meta_webhook.js istemcisi):
   // event_key ile idempotent kabul; payload saklanmaz (read-only sınır, ADR-020).
   if (operation === "webhook.ingest") {

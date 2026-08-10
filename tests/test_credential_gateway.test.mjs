@@ -300,6 +300,146 @@ test("connection.upsert/list persists rows owner-scoped without exposing credent
   }
 });
 
+test("D2: inbound envelope is stored without body and drives last-inbound lookup", async () => {
+  configure();
+  const { secrets, fetchImpl } = fakeInfisical();
+  const bridge = gatewayFetch(fetchImpl);
+  const call = (body) => bridge.call("https://gateway.test/api/gateway", {
+    method: "POST",
+    headers: { Authorization: "Bearer gateway-token" },
+    body: JSON.stringify(body),
+  });
+  try {
+    const stored = await call({
+      operation: "inbound.store",
+      provider: "whatsapp",
+      message_id: "wamid.ABC==",
+      from_wa_id: "15551234567",
+      phone_number_id: "phone-1",
+      waba_id: "waba-1",
+      timestamp: 1786400000,
+      message_type: "text",
+      content_hash: "hash-1",
+    });
+    assert.deepEqual(await stored.json(), { ok: true, status: "stored" });
+    // Zarfta gövde YOK: kayıtlarda serbest metin alanı bulunmaz.
+    const inboundRaw = [...secrets.entries()].find(([name]) => name.startsWith("INBOUND__"))[1];
+    assert.ok(!("text" in JSON.parse(inboundRaw)) && !("body" in JSON.parse(inboundRaw)));
+
+    const duplicate = await call({
+      operation: "inbound.store",
+      provider: "whatsapp",
+      message_id: "wamid.ABC==",
+      from_wa_id: "15551234567",
+      phone_number_id: "phone-1",
+      waba_id: "waba-1",
+    });
+    assert.deepEqual(await duplicate.json(), { ok: true, status: "duplicate" });
+
+    const last = await call({
+      operation: "inbound.last",
+      from_wa_id: "15551234567",
+      phone_number_id: "phone-1",
+    });
+    const lastPayload = await last.json();
+    assert.equal(lastPayload.last_inbound_at, 1786400000);
+    assert.equal(lastPayload.message_id, "wamid.ABC==");
+
+    const unknown = await call({
+      operation: "inbound.last",
+      from_wa_id: "15550000000",
+      phone_number_id: "phone-1",
+    });
+    assert.equal((await unknown.json()).last_inbound_at, 0);
+  } finally {
+    bridge.restore();
+    cleanup();
+  }
+});
+
+test("D2: connection.lookup requires exact waba+phone match and fails closed", async () => {
+  configure();
+  const { fetchImpl } = fakeInfisical({
+    CONN__conn_wa_x: JSON.stringify({
+      connection_id: "conn_wa_x",
+      owner_lumos_id: "lumos-1",
+      provider: "whatsapp",
+      waba_id: "waba-1",
+      phone_number_id: "phone-1",
+    }),
+  });
+  const bridge = gatewayFetch(fetchImpl);
+  const call = (body) => bridge.call("https://gateway.test/api/gateway", {
+    method: "POST",
+    headers: { Authorization: "Bearer gateway-token" },
+    body: JSON.stringify(body),
+  });
+  try {
+    const hit = await call({ operation: "connection.lookup", phone_number_id: "phone-1", waba_id: "waba-1" });
+    const payload = await hit.json();
+    assert.equal(payload.connection_id, "conn_wa_x");
+    assert.equal(payload.owner_lumos_id, "lumos-1");
+    // Yalnız phone eşleşmesi YETMEZ — waba uyuşmazsa 404.
+    const miss = await call({ operation: "connection.lookup", phone_number_id: "phone-1", waba_id: "waba-OTHER" });
+    assert.equal(miss.status, 404);
+  } finally {
+    bridge.restore();
+    cleanup();
+  }
+});
+
+test("D2: send.reserve is idempotent and finalize records outcome on the same record", async () => {
+  configure();
+  const { secrets, fetchImpl } = fakeInfisical();
+  const bridge = gatewayFetch(fetchImpl);
+  const call = (body) => bridge.call("https://gateway.test/api/gateway", {
+    method: "POST",
+    headers: { Authorization: "Bearer gateway-token" },
+    body: JSON.stringify(body),
+  });
+  try {
+    const reserved = await call({
+      operation: "send.reserve",
+      inbound_message_id: "wamid.XYZ==",
+      connection_id: "conn_wa_x",
+      domain_id: "domain-1",
+    });
+    assert.deepEqual(await reserved.json(), { ok: true, status: "reserved" });
+    const duplicate = await call({
+      operation: "send.reserve",
+      inbound_message_id: "wamid.XYZ==",
+      connection_id: "conn_wa_x",
+    });
+    assert.deepEqual(await duplicate.json(), { ok: true, status: "duplicate" });
+
+    const orphanFinalize = await call({
+      operation: "send.finalize",
+      inbound_message_id: "wamid.NOPE==",
+      status: "sent",
+    });
+    assert.equal(orphanFinalize.status, 404);
+
+    const finalized = await call({
+      operation: "send.finalize",
+      inbound_message_id: "wamid.XYZ==",
+      status: "sent",
+      provider_message_id: "wamid.OUT==",
+    });
+    assert.deepEqual(await finalized.json(), { ok: true, status: "sent" });
+    const record = JSON.parse([...secrets.entries()].find(([name]) => name.startsWith("SEND__"))[1]);
+    assert.equal(record.status, "sent");
+    assert.equal(record.provider_message_id, "wamid.OUT==");
+    assert.ok(record.reserved_at > 0 && record.finalized_at > 0);
+
+    // D2 kayıtları credential.list'in unparsed sayacına karışmaz.
+    const credentialList = await call({ operation: "credential.list", owner_lumos_id: "lumos-1" });
+    assert.equal((await credentialList.json()).unparsed_records, 0);
+  } finally {
+    bridge.restore();
+    cleanup();
+  }
+});
+
 test("Health endpoint stays secret-free", () => {
   let body = "";
   const res = { setHeader() {}, statusCode: 0, end(payload) { body = payload; } };

@@ -254,14 +254,22 @@ export async function fetchMetaIdentity(provider, accessToken, fetchImpl = fetch
   };
 }
 
-export function metaVaultRef(lumosId, provider, providerAccountId) {
+// ADR-022 D2 — amaç-başına credential ayrımı: read-only credential ile
+// (gelecekteki) reply-scoped credential AYRI vault_ref'lerde yaşar; OAuth
+// callback'i hangi amaçla koşarsa koşsun diğer amacın token'ının üzerine
+// yazamaz (D1'de tespit edilen sessiz scope-yükselme yan etkisinin kapanışı).
+// purpose="read" varsayılanı mevcut ref türetimini BİREBİR korur.
+export function metaVaultRef(lumosId, provider, providerAccountId, purpose = "read") {
   const id = clean(provider).toLowerCase();
+  const scope = clean(purpose).toLowerCase() || "read";
   if (!clean(lumosId) || !META_PROVIDERS.includes(id) || !clean(providerAccountId)) return "";
   const digest = createHmac("sha256", authSecret())
-    .update(`meta-vault-ref-v1:${lumosId}:${id}:${providerAccountId}`)
+    .update(scope === "read"
+      ? `meta-vault-ref-v1:${lumosId}:${id}:${providerAccountId}`
+      : `meta-vault-ref-v2:${lumosId}:${id}:${providerAccountId}:${scope}`)
     .digest("base64url")
     .slice(0, 28);
-  return `meta:${id}:${digest}`;
+  return scope === "read" ? `meta:${id}:${digest}` : `meta:${id}:${scope}:${digest}`;
 }
 
 export function metaPurposeCode(provider) {
