@@ -29,3 +29,4 @@ Durum sözlüğü: **Çalışıyor** (canlıda/testli kullanılabilir) · **Geli
 | Mail | Kapatıldı | — | **v2** | #616 kapatıldı (2026-07-20 kararı); iş ADR-009 ve dokümanlarda kayıtlı |
 | Identity/Lumos ID gateway | Geliştiriliyor | 40 | v1 kısmi | ADR-015/016 sözleşmeleri + provider iskeleti main'de |
 | Vault / credential context | Beklemede | 20 | karar bekliyor | #633 draft (GitHub read-only connector); v1 kapsam kararı açık |
+| Envanter ★ | Çalışıyor | 20 | v0 | Ayrı repo `candasoz01-cmd/Lumos` (#310 + #312, merge `cd548a3`); hesap/SaaS/lisans envanteri + kişisel/kurumsal sınıflandırma + read-only web/CLI yüzeyi + sunucu-tarafı onay kapısı (tek-kullanımlık token). Yazma-üstü-HTTP + renewal/conflict sonraki dilim |
