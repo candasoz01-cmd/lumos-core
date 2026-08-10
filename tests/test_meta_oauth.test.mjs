@@ -131,6 +131,24 @@ test("Pages provider runs only on the Business app with its own read-only config
   }
 });
 
+test("Vault ref purpose separation keeps read refs stable and reply refs distinct", () => {
+  env();
+  try {
+    const readDefault = metaVaultRef("lumos-1", "whatsapp", "acct-1");
+    const readExplicit = metaVaultRef("lumos-1", "whatsapp", "acct-1", "read");
+    // Varsayılan = "read": mevcut ref türetimi birebir korunur.
+    assert.equal(readDefault, readExplicit);
+    assert.match(readDefault, /^meta:whatsapp:[A-Za-z0-9_-]{28}$/);
+    // ADR-022 D2: reply amacı AYRI ref üretir — read credential'ının üzerine
+    // yazılması yapısal olarak imkânsız.
+    const reply = metaVaultRef("lumos-1", "whatsapp", "acct-1", "reply");
+    assert.match(reply, /^meta:whatsapp:reply:[A-Za-z0-9_-]{28}$/);
+    assert.notEqual(reply, readDefault);
+  } finally {
+    cleanEnv();
+  }
+});
+
 test("Meta OAuth start requires an authenticated Lumos session", async () => {
   env();
   try {
