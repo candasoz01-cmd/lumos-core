@@ -91,3 +91,40 @@ whatsapp_business_management`) mesaj GÖNDEREMEZ (scope'ta yok). Gerisi deneyle:
 | D4 | Canlı sandbox kanıtı (kurucu telefonu alıcı olarak eklendikten sonra) | Kanıt |
 
 D1 sonucu raporlanıp kanıtlanmadan D2'ye geçilmez.
+
+## D1 Sonuçları (2026-08-10, konsol kanıtları — kod yok, geri dönüşsüz işlem yok)
+
+### Webhook `messages` aboneliği doğrulaması
+
+| Bulgu | Kanıt |
+|-------|-------|
+| 1046'nın WhatsApp webhook'u HİÇ konfigüre edilmemiş | Configuration → Webhook: Callback URL ve Verify token alanları BOŞ; "Verify and save" pasif. (Önceki challenge kanıtımız 1544 app'ine aitti.) |
+| Unpublished app'e GERÇEK inbound düşmez | Konsol metni aynen: "Apps will only be able to receive test webhooks sent from the app dashboard while the app is unpublished. No production data, including from app admins, developers or testers, will be delivered unless the app has been published." |
+| Dev-mode'da inbound kanıt yolu var | Dashboard "Test webhooks" aracı örnek payload gönderebiliyor → kontrol düzleminin inbound ayağı publish olmadan kanıtlanabilir; GERÇEK telefondan inbound için app **Yayın (publish)** ister — publish'in kendi ön koşulları D4 öncesi ayrıca çıkarılacak (varsayım yok) |
+
+### Deney 1 — konsol sandbox gönderim yolu
+
+| Bulgu | Kanıt |
+|-------|-------|
+| Dev-mode gönderim yolu MEVCUT, App Review adımı YOK | API Setup: "Generate access token" (geçici, admin) → From: test no `+1 555 669 8723` / phone_number_id `1274066459120730` / WABA `1533094525525137` → örnek çağrı `POST graph.facebook.com/v25.0/1274066459120730/messages` (Bearer geçici token). 1–4. adımların hiçbirinde App Review geçmiyor |
+| Sandbox sınırı net | Alıcı listesi boş ("Select a recipient phone number") — alıcı ekleme KURUCU KAPISINDA, durdum. Adım 5 (gerçek numara) ve 6 (ödeme yöntemi) ayrı ve kapsam dışı |
+| App Review'un gerçek yeri | Quickstart'ta yalnız "Become a Tech Provider" onboarding'i altında (1. Business verification · 2. App review) — canlı/müşteri-adına gönderim hattı; sandbox için GEREKMEDİĞİ konsol akışıyla kanıtlı |
+
+### Deney 2 — messaging izinli ayrı Login Configuration (BİLİNÇLİ ERTELENDİ)
+
+Config oluşturmak mümkün (izin listesinde `whatsapp_business_messaging` mevcut,
+2026-08-09 config ekranında görüldü). ANCAK OAuth koşulursa callback
+`(provider, provider_account_id)` eşleşmesiyle mevcut READ-ONLY whatsapp
+credential'ının ÜZERİNE yazar → saklı token'ın scope'u sessizce yükselir.
+Bu yan etki tasarım kararı ister (amaç-başına ayrı credential ref'i veya sınıf
+etiketli credential). Deney, bu karar D2 tasarımına girene kadar KOŞULMADI —
+"grant veriyor mu?" sorusu cevapsız bırakıldı, varsayılmadı.
+
+### D2'ye taşınan işler
+
+1. Gateway ops (plandaki gibi) + credential scope-yükselme yan etkisine tasarım
+   cevabı (amaç-başına credential ayrımı).
+2. Konsol yapılandırması (D1'de bilinçli YAPILMADI — doğrulama sınırı):
+   1046 WhatsApp webhook callback + verify token + `messages` alan aboneliği.
+3. D4 öncesi: publish ön koşullarının çıkarılması + kurucu kapıları (alıcı
+   ekleme; publish kararı).
