@@ -10,7 +10,7 @@ interface Props {
 
 const { id, name, compact = false, chip = false, monochrome = false, linked = true } = Astro.props;
 
-const brands: Record<string, { logo: string; href: string; wide?: boolean }> = {
+const brands: Record<string, { logo: string; href: string }> = {
   github: { logo: "https://api.iconify.design/logos/github-icon.svg", href: "https://github.com/" },
   gmail: { logo: "https://api.iconify.design/logos/google-gmail.svg", href: "https://workspace.google.com/products/gmail/" },
   googleCalendar: { logo: "https://api.iconify.design/logos/google-calendar.svg", href: "https://workspace.google.com/products/calendar/" },
@@ -29,13 +29,9 @@ const brands: Record<string, { logo: string; href: string; wide?: boolean }> = {
   chrome: { logo: "https://api.iconify.design/logos/chrome.svg", href: "https://www.google.com/chrome/" },
   safari: { logo: "https://api.iconify.design/logos/safari.svg", href: "https://www.apple.com/safari/" },
   apple: { logo: "https://cdn.simpleicons.org/apple/FFFFFF", href: "https://www.apple.com/" },
-  openai: {
-    logo: "https://images.ctfassets.net/kftzwdyauwt9/2fkAIT3PbTRytKTBx9cx8o/229bc28cb338565fe735d8935abc801f/OpenAI_Wordmark_Gif.gif?fm=png&q=90&w=1200",
-    href: "https://openai.com/",
-    wide: true,
-  },
-  gemini: { logo: "https://api.iconify.design/logos/google-gemini.svg", href: "https://gemini.google.com/" },
-  deepseek: { logo: "https://api.iconify.design/logos/deepseek.svg", href: "https://www.deepseek.com/" },
+  openai: { logo: "https://api.iconify.design/logos/openai-icon.svg", href: "https://openai.com/" },
+  gemini: { logo: "https://api.iconify.design/simple-icons/googlegemini.svg", href: "https://gemini.google.com/" },
+  deepseek: { logo: "https://api.iconify.design/simple-icons/deepseek.svg", href: "https://www.deepseek.com/" },
   bluetoothAudio: { logo: "https://api.iconify.design/logos/bluetooth.svg", href: "https://www.bluetooth.com/" },
   matter: { logo: "https://api.iconify.design/logos/matter.svg", href: "https://csa-iot.org/all-solutions/matter/" },
   homeAssistant: { logo: "https://cdn.simpleicons.org/homeassistant", href: "https://www.home-assistant.io/" },
@@ -61,7 +57,7 @@ const brand = brands[id];
 {
   brand && linked ? (
     <a
-      class:list={["brand-lockup", compact && "brand-lockup--compact", chip && "brand-lockup--chip", monochrome && "brand-lockup--mono", brand.wide && "brand-lockup--wide"]}
+      class:list={["brand-lockup", compact && "brand-lockup--compact", chip && "brand-lockup--chip", monochrome && "brand-lockup--mono"]}
       href={brand.href}
       target="_blank"
       rel="noopener noreferrer"
@@ -74,7 +70,7 @@ const brand = brands[id];
       <span class="brand-lockup__name">{name}</span>
     </a>
   ) : brand ? (
-    <span class:list={["brand-lockup", compact && "brand-lockup--compact", chip && "brand-lockup--chip", monochrome && "brand-lockup--mono", brand.wide && "brand-lockup--wide"]}>
+    <span class:list={["brand-lockup", compact && "brand-lockup--compact", chip && "brand-lockup--chip", monochrome && "brand-lockup--mono"]}>
       <span class="brand-lockup__mark" aria-hidden="true">
         <span class="brand-lockup__fallback">{name.slice(0, 1)}</span>
         <img src={brand.logo} alt="" decoding="async" />
@@ -220,8 +216,4 @@ const brand = brands[id];
     color: var(--lumos-land-title);
   }
 
-  .brand-lockup--wide .brand-lockup__mark {
-    flex-basis: 5.2rem;
-    width: 5.2rem;
-  }
 </style>
