@@ -71,10 +71,13 @@ kaynak, çift yönlü PCM doğrulandı) — Recall fiyat/politika değiştirirse
 self-host gerekirse geçiş maliyeti sınırlı olur.
 
 **Gizlilik notu (kurucu kararı gerektiren kısım):** Recall.ai yolunda toplantı
-sesi (dış muhataplar dahil) Recall altyapısından geçer ve varsayılan 7 gün
-saklanır. Faz 0 provası için kabul edilebilir görünüyor; ama gerçek dış
-toplantı öncesi saklama/işleme koşulları (DPA, veri bölgesi) ayrıca
-incelenmeli. Bu, sağlayıcı onayıyla birlikte verilecek karardır.
+sesi (dış muhataplar dahil) Recall altyapısından geçer; saklama davranışı
+tamamen `recording_config.retention` alanına bağlıdır ve güncel hesaplarda
+varsayılan SÜRESİZ saklamadır — bu yüzden alan her istekte açıkça set edilir
+(fail-closed; ayrıntı ve nihai tanım aşağıda: "medya-sıfır-saklama + 7 gün
+log + kalıcı meeting URL/custom metadata"). Gerçek dış toplantı öncesi
+saklama/işleme koşulları (DPA, veri bölgesi) ayrıca incelenmeli. Bu,
+sağlayıcı onayıyla birlikte verilecek karardır.
 
 ## Kurucu kararı (2026-08-12) — Recall.ai pilotu ONAYLANDI, şartlı
 
