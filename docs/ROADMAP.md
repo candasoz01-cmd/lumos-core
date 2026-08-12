@@ -2,7 +2,7 @@
 
 | Alan | Değer |
 | --- | --- |
-| Durum | Yürürlükte — 2026-07-20 kullanıcı kararı |
+| Durum | Yürürlükte — 2026-08-12 Dosya v0.5 kabul |
 | Kapsam | Core, Web, iOS, AI, Entegrasyonlar, Partner — bütün yüzeyler |
 | Kural | Alt repolarda roadmap kopyası tutulmaz ([Constitution §1](CONSTITUTION.md)) |
 | Güncelleme | Durum haritası haftada bir, kanıta dayanarak |
@@ -40,23 +40,33 @@ PartnerU kalanları · sertifikalar · sunumlar. Ürünü bekler.
 | Sürüm | Kapsam | Durum |
 | --- | --- | --- |
 | v0.4 | Kimlik + Chat | Fiilen bugünkü durum |
-| v0.5 | Dosya + Görev sistemi | Sıradaki hedef |
-| v0.6 | Mobil temel | Bekliyor |
-| v1.0 | İlk genel sürüm (FAZ 1 tamam) | Bekliyor |
+| v0.5 | Dosya + Görev sistemi | **Tamam** — Dosya kabul 2026-08-12; Görev panel canlı (önceki kanıt) |
+| v0.6 | Mobil temel | **Sıradaki** — TestFlight (Apple hesap) |
+| v1.0 | İlk genel sürüm (FAZ 1 tamam) | Bekliyor (v0.6 sonrası) |
 
-## Durum haritası (2026-07-20 — kanıta dayalı değerlendirme)
+### v0.5 Dosya — kabul kaydı (2026-08-12)
+
+| Alan | Değer |
+| --- | --- |
+| Karar | **Accepted / completed** — yeni kod yok; canlı kanıt + envanter hizası |
+| Kanıt | `prod-verify.sh` RESULT PASS (2026-07-22; yeniden 2026-08-12T06:50:09Z UTC, exit 0) |
+| Uç | `GET /panel` 200 · `>Yükle<` · `fetch(UPLOAD_URL` · upload HEAD/GET/POST **401** |
+| PR omurga | lumos-core #659 route · #661 panel wire · #660 UX |
+| Bilinçli dışı | Sandbox redirect, trash sink derinliği, yeni upload UI — Faz 1 kapısı değil |
+
+## Durum haritası (2026-08-12 — kanıta dayalı)
 
 Ayrıntı ve kanıt: [`docs/MODULES.md`](MODULES.md). iOS ★: ayrı repo, sınırlı görünürlük.
 
 ```text
-Lumos v1 (FAZ 1 tanımına göre)     ~%60
+Lumos v1 (FAZ 1 tanımına göre)     ~%70
 
 Core (agent/task/brain)  ████████░░  %80
 Kimlik (Google OAuth)    █████████░  %90
 Chat (hosted bridge)     ███████░░░  %70
 Panel                    ███████░░░  %70
 Görev sistemi            ██████░░░░  %60
-Dosya                    ███░░░░░░░  %30
+Dosya                    ███████░░░  %70
 Memory                   █████░░░░░  %50
 Security                 ███████░░░  %75
 iOS ★                    ███░░░░░░░ ~%35
@@ -65,7 +75,9 @@ Board/Orchestration      ██████░░░░  %60
 Deploy/Ops               ██████░░░░  %65
 ```
 
-En zayıf iki halka: **Dosya** ve **iOS**.
+En zayıf halka (FAZ 1 ürün): **iOS / TestFlight**.
+
+Deploy/Cloud 403 → FAZ 2 ops debt (FAZ 1 acceptance değil).
 
 ## STOP LIST
 
