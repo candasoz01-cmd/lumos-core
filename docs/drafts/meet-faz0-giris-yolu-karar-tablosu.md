@@ -3,10 +3,10 @@
 > Kapsam notu (2026-08-12): ADR-023 Faz 0 (Tercüman Modu) için Google Meet'e
 > gerçek zamanlı, çift yönlü ses erişimi seçeneklerinin araştırması. Araştırma
 > 2026-08-11/12'de yapıldı; dört yük taşıyan iddia birincil kaynaklardan (Google
-> ve sağlayıcı dokümanları) ayrıca doğrulandı. Doğrulama durumu her satırda
-> işaretli. Bu belge karar ÖNERİSİ içerir; sağlayıcı seçimi kurucu onayı bekler
-> (dış muhatapların sesi üçüncü taraf işlemciden geçeceği için ürün/gizlilik
-> boyutu var).
+> ve sağlayıcı dokümanları) ayrıca doğrulandı. Sağlayıcı kararı 2026-08-12'de
+> şartlı olarak onaylandı. Aynı gün yapılan uygulama öncesi doğrulamada Recall'ın
+> etkileşimli ajanlar için `Output Audio` değil `Output Media` istediği saptandı;
+> aşağıdaki teknik yol güncel birincil kaynağa göre düzeltildi.
 
 ## Belirleyici bulgu (birincil kaynaktan doğrulandı ✓)
 
@@ -33,7 +33,7 @@ katılımcı olarak giren (headless tarayıcı) bot altyapısıdır.
 | Eksen | Meet Media API (resmî) | Recall.ai | Attendee (açık kaynak) | Meeting BaaS |
 |-------|------------------------|-----------|------------------------|--------------|
 | Ses GİRİŞ (dinleme) | ✓ WebRTC, ama max 3 katılımcı akışı — ✓doğrulandı | ✓ Websocket PCM 16-bit/16kHz; katılımcı-başına ayrık ses (feature flag, 4-core bot) | ✓ Websocket PCM, mixed veya katılımcı-başına; 8/16/24 kHz — ✓doğrulandı | ✓ (Pipecat tabanlı) |
-| Ses ÇIKIŞ (konuşma) | **✗ YOK — eleyen kriter** ✓doğrulandı | ✓ Meet'te teyitli: Output Audio (base64 MP3 klip, `automatic_audio_output`) veya Output Media (görünür video karosu ZORUNLU) — ✓doğrulandı | ✓ Websocket'ten base64 PCM geri basma, Meet örnekli — ✓doğrulandı | ✓ "Speaking Bots" ürünü |
+| Ses ÇIKIŞ (konuşma) | **✗ YOK — eleyen kriter** ✓doğrulandı | ✓ Etkileşimli/dinamik TTS için `Output Media`; botun yönettiğimiz web sayfasını kamera akışı olarak vermesi gerekir. `Output Audio` yalnız kısa, önceden kaydedilmiş klip/anons içindir ve etkileşimli ajanlarda kullanılmamalıdır — ✓doğrulandı | ✓ Websocket'ten base64 PCM geri basma, Meet örnekli — ✓doğrulandı | ✓ "Speaking Bots" ürünü |
 | Erişim/onay koşulu | Tüm katılımcılar Preview üyesi + admin kapatabilir | API anahtarı, hemen | Self-host (Docker) veya hosted | API, token modeli |
 | Gecikme | Yayınlanmış rakam yok (WebRTC) | Resmî rakam yok; topluluk ~200ms frame teslimi (ikincil kaynak) | Yayınlanmış rakam yok | Yayınlanmış rakam yok |
 | Maliyet | Ücretsiz (ama kullanılamaz) | $0.50/sa + transkripsiyon $0.15/sa; startup $0.25/sa ilk 10k sa — ✓doğrulandı; 4-core $0.60/sa, GPU $1.50/sa (docs, pricing sayfasında yok) | Açık kaynak: altyapı maliyeti; hosted fiyatı belirsiz | ~$0.63–0.68/sa (üçüncü taraf döküm) + $99–299/ay abonelik |
@@ -53,11 +53,13 @@ devre dışı kalır, toplantı insan-insana devam eder (zarif düşüş).
 
 ## Öneri (teknik sorumlu)
 
-**Faz 0 pilotu: Recall.ai — Output Audio yoluyla.** Gerekçe:
+**Faz 0 pilotu: Recall.ai — Output Media yoluyla.** Gerekçe:
 
-1. Ardıl tercüme klip doğasındadır: cümle biter → çeviri üretilir → MP3 klip
-   basılır. Recall'un Output Audio modeli buna birebir oturur; sürekli akış
-   (Output Media'nın zorunlu video karosu) Faz 0'da gerekmez.
+1. Recall'ın güncel sözleşmesinde canlı tercüman/dinamik TTS bir etkileşimli
+   ajan senaryosudur ve `Output Media` gerektirir. Faz 0'da zorunlu video karosu
+   avatar gibi sunulmaz; nötr bir “Lumos AI Translator” durum yüzeyi gösterir.
+   `Output Audio` yalnız disclosure gibi kısa önceden kaydedilmiş klipler için
+   uygundur ve çeviri kanalı olarak kullanılmaz.
 2. Hosted-varsayılan kararıyla (2026-07-25, Seçenek C) tutarlı: işletme yükü
    yok, bugün API anahtarıyla başlanır; prova toplantısına en kısa yol.
 3. Maliyet önemsiz: 1 saatlik toplantı ≈ $0.65 (bot+transkripsiyon);
@@ -74,8 +76,8 @@ self-host gerekirse geçiş maliyeti sınırlı olur.
 sesi (dış muhataplar dahil) Recall altyapısından geçer; saklama davranışı
 tamamen `recording_config.retention` alanına bağlıdır ve güncel hesaplarda
 varsayılan SÜRESİZ saklamadır — bu yüzden alan her istekte açıkça set edilir
-(fail-closed; ayrıntı ve nihai tanım aşağıda: "medya-sıfır-saklama + 7 gün
-log + kalıcı meeting URL/custom metadata"). Gerçek dış toplantı öncesi
+(fail-closed; ayrıntı ve nihai tanım aşağıda: "medya-sıfır-saklama + ayrı
+bot logu/metadata yaşam döngüsü"). Gerçek dış toplantı öncesi
 saklama/işleme koşulları (DPA, veri bölgesi) ayrıca incelenmeli. Bu,
 sağlayıcı onayıyla birlikte verilecek karardır.
 
@@ -134,7 +136,7 @@ kısa" şartının pratiğe dökülmüş hali.
    ZORUNLU. Kod tasarımı fail-closed: retention alanı açıkça verilmemişse
    bot OLUŞTURULMAZ (istek gönderilmez, hata üretilir). Varsayılana düşme
    yolu yok.
-3. **"Zero-retention" ifadesi kapsam netleşene kadar KULLANILMAZ**: Yalnız
+3. **"Zero-retention" ifadesi nitelemesiz KULLANILMAZ**: Yalnız
    recording media doğrulamak yetmez. Transcript, chat mesajları, bot
    logları, participant metadata, debug/event kayıtları — her artefact'ın
    saklama davranışı AYRI AYRI doğrulanacak (bkz. §Artefact saklama
@@ -144,11 +146,11 @@ kısa" şartının pratiğe dökülmüş hali.
 5. **API secret asla repo/chat'e girmez**: Anahtar yalnız secret store /
    ortam değişkeni; kurucu yerleştirir, kod ortamdan okur.
 
-## Artefact saklama doğrulaması (2026-08-12, birincil kaynak: docs.recall.ai/docs/data-retention + bot-overview)
+## Artefact saklama doğrulaması (2026-08-12, birincil kaynak: docs.recall.ai/docs/storage-and-playback + bot-overview)
 
 Kurucu şartı 3 gereği artefact-bazlı döküm. Sonuç: **"zero-retention" ifadesi
-NİTELEMESİZ KULLANILMAZ** — doğru ifade: "medya-sıfır-saklama + 7 gün log +
-kalıcı meeting URL/custom metadata".
+NİTELEMESİZ KULLANILMAZ** — doğru ifade: "medya-sıfır-saklama + ayrı bot
+logu/metadata yaşam döngüsü".
 
 | Artefact | `retention: null` kapsıyor mu? | Kaynak/nitelik |
 |----------|-------------------------------|----------------|
@@ -160,13 +162,15 @@ kalıcı meeting URL/custom metadata".
 | Debug verisi | ✓ Evet — "Media" tanımında | ✓ doğrulandı |
 | Chat mesajları | ~ Muğlak — bot-overview "participant events" içinde sayıyor ama data-retention sayfasının Media listesinde açıkça geçmiyor | Hafifletme: bot chat özelliği kullanılmaz; Recall'a netleştirme sorusu sorulacak |
 | **Bot logları** | **✗ HAYIR** — ayrı yaşam döngüsü: 7 günde otomatik silinir, medya silme logları SİLMEZ | ✓ doğrulandı; kaçınılmaz kalıntı |
-| **Custom metadata + meeting URL** | **✗ HAYIR** — "Custom metadata and the meeting URL are not deleted upon media expiration/deletion" | ✓ doğrulandı |
+| **Custom metadata** | **✗ HAYIR** — medya expiration/deletion işlemi custom metadata'yı silmez | Yalnız opak iç ID yazılır |
+| **Meeting URL** | **✗ Medya silme kapsamında değil**; güncel dokümana göre bot sonlandıktan 14 gün sonra temizlenir | ✓ 2026-08-12 yeniden doğrulandı |
 
 Kod tarafına yansıması (fail-closed tasarımla birlikte):
 1. Custom metadata alanına ASLA anlamlı/hassas veri yazılmaz — yalnız opak
-   iç ID (Recall tarafında kalıcı olduğu için).
-2. Meeting URL Recall'da kalıcı iz bırakır — kabul edilen kalıntı; kayda
-   geçirildi (URL tek başına içerik taşımaz ama toplantının varlığını gösterir).
+   iç ID (medya silme yaşam döngüsünün dışında olduğu için).
+2. Meeting URL medya silmeyle anında gitmez; bot sonlandıktan sonra 14 günlük
+   metadata penceresinde kalabilir. Bu pencere gerçek dış toplantıların
+   DPA/veri bölgesi blokajını kaldırmaz.
 3. Recall transkripsiyon add-on'u hiç etkinleştirilmez; iki dilli transcript
    tamamen bizim tarafta üretilir/saklanır.
 4. Zero-retention modunda Recall'ın kendi transkripsiyonu gerekseydi
@@ -178,8 +182,10 @@ Kod tarafına yansıması (fail-closed tasarımla birlikte):
 1. ~~Retention/gizlilik doğrulaması~~ — TAMAMLANDI (yukarıda).
 2. Recall.ai hesabı — **kurucu aksiyonu** (hesap açma/kimlik işlemi; API
    anahtarı ortam değişkeni/secret olarak teslim edilir, koda yazılmaz).
-3. `MeetingIngress` arayüz iskeleti (Faz 0 servisi, izole; Recall = ilk
-   gerçekleme, Attendee arayüz adayı olarak göz önünde).
+3. `MeetingIngress` kontrol düzlemi + fail-closed Recall isteği — BAŞLATILDI:
+   retention zorunlu, secret yalnız ortamdan, `Output Media`, opak metadata,
+   join/leave/kill ve sıralı 8-adım prova sözleşmesi. Canlı medya sayfası ile
+   ses giriş/çıkış hattı bir sonraki küçük dilimdir.
 4. Kapalı uçtan uca prova, kurucunun test senaryosuyla: bot katılımı →
    disclosure → TR→EN → EN→TR → düşük güven davranışı → iki dilli transcript
    → kill-switch → bot çıkışı. ≤3 sn medyan ölçülür (hedef; iddia değil).

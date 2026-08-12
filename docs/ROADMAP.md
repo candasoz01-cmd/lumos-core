@@ -135,6 +135,29 @@ yetkisi vermez.
 
 Normatif karar ve kabul kapıları: [ADR-021](decisions/ADR-021-robotics-sovereignty-layer-v0-1.md).
 
+### Dar istisna — Lumos Representative Faz 0 kapalı prova
+
+2026-08-11/12 tarihli kurucu kararlarıyla ADR-023'ün yalnız **Tercüman Modu
+Faz 0 kapalı prova** dilimi STOP LIST'ten dar kapsamlı olarak istisna
+tutulmuştur. Bu kayıt yeni bir genel ajan katmanı, görsel avatar, ses klonu veya
+dış katılımcılı canlı kullanım yetkisi vermez.
+
+İstisna sınırları:
+
+- sağlayıcıdan bağımsız `MeetingIngress` sözleşmesi ve ilk Recall.ai adaptörü;
+- yalnız Google Meet kapalı prova; Recall secret'ı repo/chat dışında ve
+  retention her bot isteğinde fail-closed olarak zorunlu;
+- Recall transkripsiyonu/chat kapalı; custom metadata yalnız opak iç ID;
+- nötr `Output Media` durum yüzeyi; avatar/kişileştirme ve otonom temsil yok;
+- bot katılımı → disclosure → TR→EN → EN→TR → düşük güven → iki dilli
+  transcript → kill-switch → bot çıkışı sıralı kabul senaryosu;
+- DPA ve veri bölgesi çözülene kadar gerçek dış katılımcı **blokeli**;
+- her uygulama dilimi ayrı küçük PR, test, CI ve merge-sonrası `main`
+  doğrulamasıyla kapanır.
+
+Normatif karar ve kabul kapıları: [ADR-023](decisions/ADR-023-lumos-representative.md)
+ve [Meet Faz 0 giriş yolu kararı](drafts/meet-faz0-giris-yolu-karar-tablosu.md).
+
 ## FAZ-1 sonrası provider stratejisi
 
 Bu kayıt yalnız FAZ-1 tamamlandıktan sonra değerlendirilecek yönü tanımlar;
