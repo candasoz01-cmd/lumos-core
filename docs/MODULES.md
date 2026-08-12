@@ -2,7 +2,7 @@
 
 | Alan | Değer |
 | --- | --- |
-| Durum | Yürürlükte — 2026-07-20 taraması |
+| Durum | Yürürlükte — 2026-08-12 Dosya v0.5 kabul güncellemesi |
 | Kural | Yüzdeler kanıta dayalı değerlendirmedir; kanıt sütunu boş bırakılmaz |
 | Güncelleme | ROADMAP durum haritasıyla birlikte haftalık |
 
@@ -16,7 +16,7 @@ Durum sözlüğü: **Çalışıyor** (canlıda/testli kullanılabilir) · **Geli
 | Chat — hosted bridge | Çalışıyor | 70 | v1 | `api/bridge/chat.js` OpenAI/Gemini; limit/UX eksikleri var |
 | Panel | Çalışıyor | 70 | v1 | `ui/src/pages/panel.astro` canlı; 4.6k satır tek dosya (borç kaydı var) |
 | Görev sistemi | Geliştiriliyor | 60 | v1 | `src/task_engine` (27 py); panel/TaskEngine store ayrıklığı (borç kaydı var) |
-| Dosya akışı | Geliştiriliyor | 30 | v1 | patch/file executor var (`src/kando`); kullanıcı-yüzlü akış yok — **v0.5 hedefi** |
+| Dosya akışı | Çalışıyor | 70 | **v0.5 kabul** | Panel Dosya seç / Yükle + `UPLOAD_URL`→`/api/bridge/panel/upload` canlı; #659/#661; `prod-verify` **RESULT PASS** (2026-07-22 ve yeniden 2026-08-12 UTC, exit 0). Auth’suz POST→401 `bridge_proxy_unauthorized` (uç ayakta). Sandbox/trash derinliği Faz 1 dışı. |
 | Memory | Geliştiriliyor | 50 | v1 kısmi | `src/memory` secure store, chat memory prompt; Memory Graph (ADR-005) fikir |
 | Security | Çalışıyor | 75 | v1 | `src/security` (19 py) crypto/guard/policy + testler; bazı katman prototip |
 | iOS ★ | Geliştiriliyor | ~35 | v0.6 | Ayrı repo `candasoz01-cmd/Lumos`; Apple Sign-In + device context merge'lü; gövde sürüyor |
