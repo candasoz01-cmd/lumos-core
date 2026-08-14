@@ -10,7 +10,7 @@
 |------|-------|
 | Dal | `representative-phase0-local-translation-slice` |
 | Üst karar | [ADR-023](../decisions/ADR-023-lumos-representative-avatar.md) + [Meet Faz 0 karar tablosu](meet-faz0-giris-yolu-karar-tablosu.md) |
-| Durum | Aşama A kodda (bu PR); Aşama B (mikrofon+STT) sonraki küçük PR |
+| Durum | Aşama A merge (#724, 2026-08-14). Aşama B kodda: segmenter + half-duplex echo koruması + faster-whisper adaptörü + rig `--audio` modu; T7 mantığı birim testli, donanımlı doğrulama Aşama C provasında |
 
 ## Zincir (kurucu listesi, 2026-08-14)
 
@@ -67,7 +67,7 @@ iddia değil), anlam kaybı kabul edilebilir, düşük güvenli cümle sessizce
 | T4 | **E-sınıfı cümle vakası (kurucu, 2026-08-14):** para/hukuk/taahhüt içeren cümle DOĞRU ve EKSİKSİZ çevrilir, ama YENİ taahhüt üretilmez | Birim: taahhüt cümlesi fikstürü uçtan uca korunur (T3 sözleşmesi) + Aşama C provasında insan değerlendirmeli anlam kontrolü — çeviri modunda bile anlam kayması ayrı vaka olarak ölçülür |
 | T5 | İki dilli transcript append-only ve tam | Birim: her söz için ts + kaynak + çeviri + güven + gecikme kaydı |
 | T6 | Gecikme ölçümü doğru | Birim: sahte saat ile söz-sonu → TTS-başlangıç; medyan hesabı |
-| T7 | Feedback/echo sistemi bozmuyor | Aşama B: hoparlör çıkışı mikrofona dönerken zincir kilitlenmiyor/çeviri döngüsü oluşmuyor |
+| T7 | Feedback/echo sistemi bozmuyor | Tasarım: yarı-çift-yönlü (half-duplex) kapı — TTS konuşurken mikrofon karesi düşürülür, döngü hiç kurulamaz; yarım kalan söz tamponu da atılır. Birim testli (kapalı kapıda kare sızmaz, kapı açılınca temiz başlar). Donanımlı doğrulama (gerçek hoparlör→mikrofon) Aşama C provasının ilk maddesi |
 | T8 | 10–15 dk kapalı prova ölçümleri | Aşama C: medyan ≤3 sn, sapma örnekleri, düşük-güven sayısı belgeye |
 
 ## Sağlayıcı seçimleri (teknik sorumlu; arayüz arkasında değiştirilebilir)
