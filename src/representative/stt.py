@@ -15,14 +15,27 @@ class SttResult:
     language: str
 
 
+# ADR-023 "Lumos bağlam sözlüğü" — STT tarafı: whisper'a bağlam ipucu olarak
+# verilir; bench kanıtı olmadan genişletme (yanlış öncelik tanıma riski).
+LUMOS_TERMS_PROMPT = (
+    "Lumos, ChatLumos, We Lock AI, Lumos temsilcisi, toplantı, sözleşme, teklif."
+)
+
+
 class FasterWhisperSTT:
     """Local whisper STT over raw 16 kHz mono int16 PCM."""
 
-    def __init__(self, model_size: str = "small", language: str | None = None) -> None:
+    def __init__(
+        self,
+        model_size: str = "small",
+        language: str | None = None,
+        initial_prompt: str | None = None,
+    ) -> None:
         from faster_whisper import WhisperModel  # optional dep, deferred
 
         self._model = WhisperModel(model_size, compute_type="int8")
         self._language = language
+        self._initial_prompt = initial_prompt
 
     def transcribe(self, pcm: bytes, sample_rate: int = 16000) -> SttResult:
         import numpy as np  # ships with faster-whisper's dependencies
@@ -30,6 +43,8 @@ class FasterWhisperSTT:
         if sample_rate != 16000:
             raise ValueError("rig captures at 16 kHz; resampling is out of scope")
         audio = np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768.0
-        segments, info = self._model.transcribe(audio, language=self._language)
+        segments, info = self._model.transcribe(
+            audio, language=self._language, initial_prompt=self._initial_prompt
+        )
         text = " ".join(segment.text.strip() for segment in segments).strip()
         return SttResult(text=text, language=info.language)

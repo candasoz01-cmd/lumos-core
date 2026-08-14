@@ -8,9 +8,10 @@ Contract rules (ADR-023 Faz 0, slice doc T1-T6):
 
 from __future__ import annotations
 
+import json
 import statistics
 import time
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Callable, Protocol
 
 
@@ -93,6 +94,10 @@ class BilingualTranscript:
     @property
     def records(self) -> tuple[UtteranceRecord, ...]:
         return tuple(self._records)
+
+    def to_jsonl(self) -> str:
+        """One JSON object per utterance — Aşama C ölçüm kaydı formatı."""
+        return "\n".join(json.dumps(asdict(r), ensure_ascii=False) for r in self._records)
 
     def to_markdown(self) -> str:
         lines = ["| src | çeviri | güven | işaret | gecikme (ms) |", "|---|---|---|---|---|"]

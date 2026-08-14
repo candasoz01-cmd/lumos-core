@@ -110,7 +110,9 @@ class SayTTS:
             subprocess.run(cmd + [text], check=False)
 
 
-def run_audio_mode(pipeline: InterpreterPipeline, segmenter, stt, sample_rate: int) -> None:
+def run_audio_mode(
+    pipeline: InterpreterPipeline, segmenter, stt, sample_rate: int, src_lang: str, dst_lang: str
+) -> None:
     """Blocking mic loop: capture → endpoint → STT → pipeline."""
     import queue
 
@@ -122,7 +124,7 @@ def run_audio_mode(pipeline: InterpreterPipeline, segmenter, stt, sample_rate: i
         frames.put(bytes(indata))
 
     frame_len = int(sample_rate * 0.03)  # 30 ms
-    print("Mikrofon açık — TR konuş; Ctrl+C ile çık.")
+    print(f"Mikrofon açık — {src_lang.upper()} konuş; Ctrl+C ile çık.")
     with sd.RawInputStream(
         samplerate=sample_rate,
         blocksize=frame_len,
@@ -137,16 +139,16 @@ def run_audio_mode(pipeline: InterpreterPipeline, segmenter, stt, sample_rate: i
             heard = stt.transcribe(utterance_pcm, sample_rate)
             if not heard.text:
                 continue
-            print(f"TR(duyulan)> {heard.text}")
+            print(f"{src_lang.upper()}(duyulan)> {heard.text}")
             record = pipeline.process(
                 Utterance(
                     text=heard.text,
-                    source_lang="tr",
-                    target_lang="en",
+                    source_lang=src_lang,
+                    target_lang=dst_lang,
                     speech_end_ts=time.monotonic(),
                 )
             )
-            print(f"EN> {record.translated_text}  ({record.latency_ms:.0f} ms)")
+            print(f"{dst_lang.upper()}> {record.translated_text}  ({record.latency_ms:.0f} ms)")
 
 
 def build_translator(name: str) -> Translator:
@@ -164,7 +166,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--voice", default=None, help="macOS say voice name")
     parser.add_argument("--audio", action="store_true", help="microphone mode (Aşama B)")
     parser.add_argument("--stt-model", default="small", help="faster-whisper model size")
+    parser.add_argument("--source-lang", default="tr", choices=("tr", "en"))
+    parser.add_argument("--target-lang", default="en", choices=("tr", "en"))
+    parser.add_argument("--jsonl-out", default=None, help="prova ölçüm kaydı (jsonl) yolu")
     args = parser.parse_args(argv)
+    if args.source_lang == args.target_lang:
+        parser.error("source and target languages must differ")
 
     duplex_gate = HalfDuplexGate()
     transcript = BilingualTranscript()
@@ -176,21 +183,24 @@ def main(argv: list[str] | None = None) -> int:
         on_flag=lambda r: print(f"  ⚠ düşük güven ({r.flag_reason})"),
     )
 
+    src_lang, dst_lang = args.source_lang, args.target_lang
     if args.audio:
-        from representative.stt import FasterWhisperSTT
+        from representative.stt import LUMOS_TERMS_PROMPT, FasterWhisperSTT
 
         config = SegmenterConfig()
         segmenter = UtteranceSegmenter(config, gate=duplex_gate)
-        stt = FasterWhisperSTT(model_size=args.stt_model, language="tr")
+        stt = FasterWhisperSTT(
+            model_size=args.stt_model, language=src_lang, initial_prompt=LUMOS_TERMS_PROMPT
+        )
         try:
-            run_audio_mode(pipeline, segmenter, stt, config.sample_rate)
+            run_audio_mode(pipeline, segmenter, stt, config.sample_rate, src_lang, dst_lang)
         except KeyboardInterrupt:
             pass
     else:
-        print("TR cümle yaz, boş satır = çık.")
+        print(f"{src_lang.upper()} cümle yaz, boş satır = çık.")
         while True:
             try:
-                line = input("TR> ").strip()
+                line = input(f"{src_lang.upper()}> ").strip()
             except EOFError:
                 break
             if not line:
@@ -198,16 +208,20 @@ def main(argv: list[str] | None = None) -> int:
             record = pipeline.process(
                 Utterance(
                     text=line,
-                    source_lang="tr",
-                    target_lang="en",
+                    source_lang=src_lang,
+                    target_lang=dst_lang,
                     speech_end_ts=time.monotonic(),
                 )
             )
-            print(f"EN> {record.translated_text}  ({record.latency_ms:.0f} ms)")
+            print(f"{dst_lang.upper()}> {record.translated_text}  ({record.latency_ms:.0f} ms)")
 
     print("\n--- transcript ---")
     print(transcript.to_markdown())
     print(summarize_latencies_ms(transcript))
+    if args.jsonl_out:
+        with open(args.jsonl_out, "w", encoding="utf-8") as f:
+            f.write(transcript.to_jsonl() + "\n")
+        print(f"ölçüm kaydı: {args.jsonl_out}")
     return 0
 
 
