@@ -1,13 +1,14 @@
-"""Text-mode local rig: exercises translate → gate → TTS without STT.
+"""Local rig: exercises the interpreter chain without a meeting.
 
-Developer harness only (slice doc, Aşama A) — never a user-facing surface.
-Reads one Turkish line per prompt from stdin, translates to English, speaks
-via macOS `say`, prints the flag state and latency, and dumps the bilingual
-transcript on exit.
+Developer harness only — never a user-facing surface.
+Text mode (Aşama A): stdin TR line → translate → gate → TTS.
+Audio mode (Aşama B): microphone → segmenter (half-duplex gate) → STT →
+translate → gate → TTS. Needs the optional deps: pip install .[representative]
 
 Usage:
     python -m representative.local_rig --translator mock
     python -m representative.local_rig --translator openai  # needs OPENAI_API_KEY
+    python -m representative.local_rig --audio --translator openai
 """
 
 from __future__ import annotations
@@ -17,6 +18,7 @@ import subprocess
 import sys
 import time
 
+from representative.audio import HalfDuplexGate, SegmenterConfig, UtteranceSegmenter
 from representative.pipeline import (
     BilingualTranscript,
     ConfidenceGate,
@@ -87,16 +89,64 @@ class OpenAITranslator:
 
 
 class SayTTS:
-    """macOS `say` output — measurement-grade only, not the product voice."""
+    """macOS `say` output — measurement-grade only, not the product voice.
 
-    def __init__(self, voice: str | None = None) -> None:
+    When a HalfDuplexGate is attached, the microphone is muted for the whole
+    duration of speech so speaker output can never loop back in (T7).
+    """
+
+    def __init__(self, voice: str | None = None, gate: "HalfDuplexGate | None" = None) -> None:
         self._voice = voice
+        self._gate = gate
 
     def speak(self, text: str, lang: str) -> None:
         cmd = ["say"]
         if self._voice:
             cmd += ["-v", self._voice]
-        subprocess.run(cmd + [text], check=False)
+        if self._gate is not None:
+            with self._gate:
+                subprocess.run(cmd + [text], check=False)
+        else:
+            subprocess.run(cmd + [text], check=False)
+
+
+def run_audio_mode(pipeline: InterpreterPipeline, segmenter, stt, sample_rate: int) -> None:
+    """Blocking mic loop: capture → endpoint → STT → pipeline."""
+    import queue
+
+    import sounddevice as sd  # optional dep, deferred
+
+    frames: queue.Queue[bytes] = queue.Queue()
+
+    def on_audio(indata, _frames, _time, _status) -> None:
+        frames.put(bytes(indata))
+
+    frame_len = int(sample_rate * 0.03)  # 30 ms
+    print("Mikrofon açık — TR konuş; Ctrl+C ile çık.")
+    with sd.RawInputStream(
+        samplerate=sample_rate,
+        blocksize=frame_len,
+        dtype="int16",
+        channels=1,
+        callback=on_audio,
+    ):
+        while True:
+            utterance_pcm = segmenter.feed(frames.get())
+            if utterance_pcm is None:
+                continue
+            heard = stt.transcribe(utterance_pcm, sample_rate)
+            if not heard.text:
+                continue
+            print(f"TR(duyulan)> {heard.text}")
+            record = pipeline.process(
+                Utterance(
+                    text=heard.text,
+                    source_lang="tr",
+                    target_lang="en",
+                    speech_end_ts=time.monotonic(),
+                )
+            )
+            print(f"EN> {record.translated_text}  ({record.latency_ms:.0f} ms)")
 
 
 def build_translator(name: str) -> Translator:
@@ -108,38 +158,52 @@ def build_translator(name: str) -> Translator:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Representative Faz 0 text-mode rig")
+    parser = argparse.ArgumentParser(description="Representative Faz 0 local rig")
     parser.add_argument("--translator", default="mock", choices=("mock", "openai"))
     parser.add_argument("--threshold", type=float, default=0.8)
     parser.add_argument("--voice", default=None, help="macOS say voice name")
+    parser.add_argument("--audio", action="store_true", help="microphone mode (Aşama B)")
+    parser.add_argument("--stt-model", default="small", help="faster-whisper model size")
     args = parser.parse_args(argv)
 
+    duplex_gate = HalfDuplexGate()
     transcript = BilingualTranscript()
     pipeline = InterpreterPipeline(
         translator=build_translator(args.translator),
-        tts=SayTTS(voice=args.voice),
+        tts=SayTTS(voice=args.voice, gate=duplex_gate),
         gate=ConfidenceGate(args.threshold),
         transcript=transcript,
         on_flag=lambda r: print(f"  ⚠ düşük güven ({r.flag_reason})"),
     )
 
-    print("TR cümle yaz, boş satır = çık.")
-    while True:
+    if args.audio:
+        from representative.stt import FasterWhisperSTT
+
+        config = SegmenterConfig()
+        segmenter = UtteranceSegmenter(config, gate=duplex_gate)
+        stt = FasterWhisperSTT(model_size=args.stt_model, language="tr")
         try:
-            line = input("TR> ").strip()
-        except EOFError:
-            break
-        if not line:
-            break
-        record = pipeline.process(
-            Utterance(
-                text=line,
-                source_lang="tr",
-                target_lang="en",
-                speech_end_ts=time.monotonic(),
+            run_audio_mode(pipeline, segmenter, stt, config.sample_rate)
+        except KeyboardInterrupt:
+            pass
+    else:
+        print("TR cümle yaz, boş satır = çık.")
+        while True:
+            try:
+                line = input("TR> ").strip()
+            except EOFError:
+                break
+            if not line:
+                break
+            record = pipeline.process(
+                Utterance(
+                    text=line,
+                    source_lang="tr",
+                    target_lang="en",
+                    speech_end_ts=time.monotonic(),
+                )
             )
-        )
-        print(f"EN> {record.translated_text}  ({record.latency_ms:.0f} ms)")
+            print(f"EN> {record.translated_text}  ({record.latency_ms:.0f} ms)")
 
     print("\n--- transcript ---")
     print(transcript.to_markdown())

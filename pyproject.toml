@@ -19,6 +19,10 @@ quantum = [
   "qiskit>=1.0",
   "qiskit-aer>=0.14",
 ]
+representative = [
+  "faster-whisper>=1.0",
+  "sounddevice>=0.4",
+]
 quantum-ibm = [
   "qiskit-ibm-runtime",
 ]
