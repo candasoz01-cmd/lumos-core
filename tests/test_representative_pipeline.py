@@ -130,3 +130,15 @@ def test_t6_latency_measurement_and_median():
 def test_gate_rejects_invalid_threshold():
     with pytest.raises(ValueError):
         ConfidenceGate(1.5)
+
+
+def test_transcript_jsonl_roundtrip():
+    import json
+
+    record, transcript, _ = run_pipeline(StubTranslator("see you tomorrow", confidence=0.4))
+    lines = transcript.to_jsonl().splitlines()
+    assert len(lines) == 1
+    data = json.loads(lines[0])
+    assert data["source_text"] == record.source_text
+    assert data["translated_text"] == "see you tomorrow"
+    assert data["flagged"] is True and data["confidence"] == 0.4
