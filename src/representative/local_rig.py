@@ -241,6 +241,83 @@ def build_translator(name: str) -> Translator:
     raise ValueError(f"unknown translator: {name}")
 
 
+def run_realtime_audio_mode(
+    pipeline: InterpreterPipeline,
+    duplex_gate: HalfDuplexGate,
+    src_lang: str,
+    dst_lang: str,
+) -> None:
+    """Streaming mic loop (kalem 3): capture 24k → realtime STT → pipeline.
+
+    Endpointing sunucu VAD'dedir (yerel segmenter/kalibrasyon yok); half-duplex
+    kuralı yakalama anında uygulanır: kapı kapalıyken kare websocket'e gitmez.
+    """
+    import queue as _queue
+    from collections import deque
+
+    import sounddevice as sd  # optional dep, deferred
+
+    from representative.realtime_stt import SAMPLE_RATE, RealtimeSTTStream
+    from representative.stt import LUMOS_TERMS_PROMPT
+    from representative.terms import TermCorrector, is_prompt_echo
+
+    suppressor = RepeatSuppressor()
+    corrector = TermCorrector()
+    recent: deque[str] = deque(maxlen=4)
+
+    stream = RealtimeSTTStream(language=src_lang, prompt=LUMOS_TERMS_PROMPT)
+    stream.start()
+
+    def on_audio(indata, _frames, _time, _status) -> None:
+        if duplex_gate.listening:
+            stream.feed(bytes(indata))
+
+    frame_len = int(SAMPLE_RATE * 0.06)  # 60 ms
+    print(f"Mikrofon açık (akışlı) — {src_lang.upper()} konuş; Ctrl+C ile çık.")
+    try:
+        with sd.RawInputStream(
+            samplerate=SAMPLE_RATE,
+            blocksize=frame_len,
+            dtype="int16",
+            channels=1,
+            callback=on_audio,
+        ):
+            while True:
+                try:
+                    utt = stream.utterances.get(timeout=0.5)
+                except _queue.Empty:
+                    continue
+                if not utt.text:
+                    continue
+                if is_prompt_echo(utt.text, LUMOS_TERMS_PROMPT):
+                    print(f"  (istem yankısı düşürüldü: {utt.text[:40]})")
+                    continue
+                heard_text = corrector.correct(utt.text)
+                if suppressor.should_drop(heard_text, time.monotonic()):
+                    print(f"  (tekrar düşürüldü: {heard_text[:40]})")
+                    continue
+                if heard_text != utt.text:
+                    print(f"  (terim düzeltildi: {utt.text[:40]} → {heard_text[:40]})")
+                print(f"{src_lang.upper()}(duyulan)> {heard_text}")
+                record = pipeline.process(
+                    Utterance(
+                        text=heard_text,
+                        source_lang=src_lang,
+                        target_lang=dst_lang,
+                        speech_end_ts=utt.speech_end_ts,
+                        context=tuple(recent),
+                    )
+                )
+                recent.append(heard_text)
+                marker = "" if record.delivered else " [TESLİM EDİLMEDİ]"
+                print(
+                    f"{dst_lang.upper()}> {record.translated_text}{marker}  "
+                    f"({record.latency_ms:.0f} ms)"
+                )
+    finally:
+        stream.stop()
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Representative Faz 0 local rig")
     parser.add_argument("--translator", default="mock", choices=("mock", "openai"))
@@ -250,8 +327,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--stt-backend",
         default="cloud",
-        choices=("cloud", "local"),
-        help="cloud=gpt-4o-mini-transcribe (2026-08-14 bench kararı), local=faster-whisper",
+        choices=("cloud", "local", "realtime"),
+        help="cloud=toplu gpt-4o-mini-transcribe; local=faster-whisper; "
+        "realtime=akışlı transkripsiyon (kalem 3 — sunucu VAD, en düşük kuyruk)",
     )
     parser.add_argument("--stt-model", default="small", help="faster-whisper model size (local)")
     parser.add_argument("--source-lang", default="tr", choices=("tr", "en"))
@@ -274,8 +352,9 @@ def main(argv: list[str] | None = None) -> int:
     def on_flag(r):
         print(f"  ⚠ düşük güven ({r.flag_reason})")
 
+    translator = build_translator(args.translator)
     pipeline = InterpreterPipeline(
-        translator=build_translator(args.translator),
+        translator=translator,
         tts=SayTTS(voice=args.voice, gate=duplex_gate),
         gate=ConfidenceGate(args.threshold),
         transcript=transcript,
@@ -298,6 +377,30 @@ def main(argv: list[str] | None = None) -> int:
             raise KeyboardInterrupt
 
         signal.signal(signal.SIGTERM, on_term)
+        if args.translator == "openai":
+            # Isıtma (kalem 3): ilk gerçek söz soğuk TLS/oturum kurulumuna
+            # (+~1.2 sn) denk gelmesin
+            pipeline_warmup = Utterance(
+                text="Merhaba.", source_lang=src_lang, target_lang=dst_lang, speech_end_ts=0.0
+            )
+            try:
+                translator.translate(pipeline_warmup)
+                print("Çevirmen ısıtıldı.")
+            except Exception as exc:
+                print(f"Isıtma başarısız (devam ediliyor): {type(exc).__name__}")
+        if args.stt_backend == "realtime":
+            try:
+                run_realtime_audio_mode(pipeline, duplex_gate, src_lang, dst_lang)
+            except KeyboardInterrupt:
+                pass
+            print("\n--- transcript ---")
+            print(transcript.to_markdown())
+            print(summarize_latencies_ms(transcript))
+            if args.jsonl_out:
+                with open(args.jsonl_out, "w", encoding="utf-8") as f:
+                    f.write(transcript.to_jsonl() + "\n")
+                print(f"ölçüm kaydı: {args.jsonl_out}")
+            return 0
         if args.stt_backend == "cloud":
             stt = OpenAICloudSTT(language=src_lang, prompt=LUMOS_TERMS_PROMPT)
         else:

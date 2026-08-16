@@ -104,3 +104,11 @@ def test_correct_language_passes_without_retry():
     assert translator.calls == 1
     assert record.retried is False and record.postcheck_ms == 0.0
     assert record.delivered is True
+
+
+def test_realtime_speech_end_backdates_vad_silence():
+    from representative.realtime_stt import speech_end_from_stop_event
+
+    # speech_stopped olayı gerçek söz sonundan VAD sessizliği kadar sonra gelir
+    assert speech_end_from_stop_event(100.0, vad_silence_ms=600) == 99.4
+    assert speech_end_from_stop_event(50.0, vad_silence_ms=0) == 50.0
