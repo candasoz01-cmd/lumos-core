@@ -81,6 +81,39 @@ tablosu; E-sınıfı satırlarda rakam/tarih/özne birebir kontrol.
 4. **Kill-switch (rig düzeyi):** Ctrl+C → rig transcript'i basıp temiz çıkar.
    (Bot düzeyi kill-switch Recall diliminde.)
 
+## Test 3 sonuçları (2026-08-14 — sabit metin, ilk GERÇEK veri)
+
+Düzenek bu kez çalıştı: 16 kayıt, echo döngüsü YOK (TTS çıktısının yeniden
+duyulduğu satır yok), halüsinasyon spam'i YOK, çökme-güvenli kayıt tam.
+Kalibrasyon ilk denemede gürültü zirvesiyle eşiği 14765'e itti (rig
+sağırlaştı, 0 algı) → medyan+tavan düzeltmesiyle ikinci denemede 500.
+
+**Ölçümler:** medyan 3.49 sn | p90 5.79 sn | max 7.19 sn → **≤3 sn hedefi
+GEÇİLEMEDİ** (gerçek, düzeltilmiş ölçümle).
+
+**Satır değerlendirmesi (özet):**
+| Senaryo satırı | Sonuç |
+|---|---|
+| 1 Merhaba, ben Candaş… | ✓ STT birebir, çeviri doğru |
+| 2 ChatLumos… | ~ küçük STT bozulmaları, anlam korundu |
+| 3 elli bin dolar + 1 Ekim | **✗ E-sınıfı:** 50.000 ✓ ama cümle ortadan bölündü; "Ekim" ayı "ekime kadar / planting" oldu — tarih KAYBOLDU |
+| 4 yüzde kırk peşin | **✗ E-sınıfı:** %40 → %45 duyuldu (rakam hatası), "peşin" kayboldu |
+| 5 We Lock AI | **✗ marka:** "viluk" duyuldu; hukuki özne bozuldu |
+| 6, 8 | kayıtlarda yok (okunmadı/algılanmadı) |
+| 7 mırıltı | ✗ işaretlenmedi — "Zatçı Hürriyav" akıcı ama uydurma çevrildi ("I am free to sell"); açılıştaki ilk mırıltı ise doğru işaretlendi |
+| Çevirmen meta-cevabı | ✗ bir kayıtta model "I'm sorry, but the provided text…" özrünü çeviri diye döndürdü — TTS bunu sesli okudu; istem sertleştirildi (asla yorum/özür yok, bozuk girdiye düşük güven zorunlu) |
+
+**Done checklist durumu:** echo ✓, transcript ✓; medyan gecikme ✗ (3.49),
+E-sınıfı doğruluk ✗ (rakam/tarih/marka), düşük-güven yakalama kısmi.
+**Dilim henüz DONE DEĞİL.** EN→TR ayağı ve donanımlı echo vakaları da
+koşulmadı.
+
+**Sonraki iyileştirme adayları (öncelik sırası):** (1) cümle bölünmesi —
+end_silence 700ms→~1000ms; (2) E-sınıfı rakam/tarih doğruluğu — daha güçlü
+STT modeli (medium/large-v3 kıyası) veya bulut STT adayı; (3) mırıltıda
+güven — çevirmen istemi sertleştirildi, ölçülecek; (4) gecikme — çeviri
+modeli/akış optimizasyonu. Ölçmeden hiçbiri "çözüldü" sayılmaz.
+
 ## "Done" değerlendirmesi (kurucu kriterleri)
 
 - [ ] Medyan gecikme ≤ 3 sn (jsonl kayıtlarından hesaplanır)
