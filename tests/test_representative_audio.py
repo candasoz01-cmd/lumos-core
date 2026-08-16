@@ -92,8 +92,19 @@ def test_calibration_raises_threshold_above_ambient():
     quiet = [tone_frame(50)] * 10
     noisy = [tone_frame(1000)] * 10
     assert calibrate_rms_threshold(quiet, floor=500.0) == 500.0  # taban korunur
-    assert calibrate_rms_threshold(noisy, floor=500.0) == 4000.0  # ortam × 4
+    assert calibrate_rms_threshold(noisy, floor=500.0) == 4000.0  # medyan × 4
     assert calibrate_rms_threshold([], floor=500.0) == 500.0
+
+
+def test_calibration_is_robust_to_noise_spike_and_capped():
+    # Test 3 bulgusu: tek zirve (öksürük/tıkırtı) max() eşiğini konuşmanın
+    # üstüne itip rig'i sağırlaştırdı; medyan zirveyi yok sayar, tavan sigorta.
+    from representative.audio import calibrate_rms_threshold
+
+    spike = [tone_frame(100)] * 20 + [tone_frame(20000)]
+    assert calibrate_rms_threshold(spike, floor=500.0) == 500.0  # zirve yok sayıldı
+    loud_room = [tone_frame(5000)] * 20
+    assert calibrate_rms_threshold(loud_room, floor=500.0) == 6000.0  # tavana kilitli
 
 
 def test_repeat_suppressor_drops_hallucination_spam():

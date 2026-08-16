@@ -42,16 +42,21 @@ class HalfDuplexGate:
         self._speaking_depth = max(0, self._speaking_depth - 1)
 
 
-def calibrate_rms_threshold(frames: list[bytes], floor: float = 500.0, factor: float = 4.0) -> float:
-    """Ambient-noise calibration (test 2 bulgusu): eşik = max(taban, ortam × çarpan).
+def calibrate_rms_threshold(
+    frames: list[bytes], floor: float = 500.0, factor: float = 4.0, ceiling: float = 6000.0
+) -> float:
+    """Ambient-noise calibration: eşik = clamp(medyan(ortam) × çarpan, taban, tavan).
 
-    Sabit eşik, ortam gürültüsünü "söz" sanıp whisper halüsinasyon döngüsü
-    başlatıyordu; eşik açılışta ortama göre ölçülür.
+    Test 2 bulgusu: sabit eşik gürültüyü söz sanıyordu. Test 3 bulgusu:
+    max() tabanlı ölçüm tek gürültü zirvesine (öksürük, tıkırtı) aldanıp
+    eşiği konuşmanın ÜSTÜNE itti ve rig sağırlaştı (0 algı). Medyan zirveye
+    dayanıklı; tavan, eşiğin konuşma seviyesini asla aşamamasını garantiler.
     """
     if not frames:
         return floor
-    ambient = max(frame_rms(f) for f in frames)
-    return max(floor, ambient * factor)
+    values = sorted(frame_rms(f) for f in frames)
+    ambient = values[len(values) // 2]
+    return min(max(floor, ambient * factor), ceiling)
 
 
 class RepeatSuppressor:
