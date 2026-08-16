@@ -256,6 +256,28 @@ alanda — `postcheck_ms` (retry çevirisi dahil; retry yoksa 0) + `retried`
 bayrağı. Test 6 verisine göre retry oranı düşük beklenir (istem kilidi çoğu
 vakayı tutuyor); gerçek oran ve maliyet bir sonraki canlı provada ölçülür.
 
+## Gecikme optimizasyonu (2026-08-17 — kalem 3: akışlı STT)
+
+Yapısal analiz: EN→TR 4.03 sn medyanın tabanı 1.4 sn istemci bekleme + ~1.1
+sn toplu STT idi — parça oynatarak ≤3'e inmiyor. Çözüm: **GA Realtime API ile
+akışlı transkripsiyon** (`--stt-backend realtime`): transkript konuşma
+SIRASINDA akar; endpointing sunucu VAD'de (600 ms), yerel segmenter/
+kalibrasyon bu backend'de devre dışı; half-duplex kural yakalama anında
+(kapı kapalıyken kare websocket'e gitmez → echo transkripti oluşamaz).
+
+Sentetik ölçümler (2026-08-17):
+- Ses sonu → transkript: **1.88 sn** (0.6 sn VAD dahil); metin E-sınıfı
+  dahil kusursuz ("$50,000, and delivery is on October 1st").
+- Çeviri ayağı ısınmış medyan **0.95 sn** (soğuk ilk çağrı 2.16 → rig
+  açılışına ısıtma çağrısı eklendi).
+- **Öngörülen sıcak bütçe: 0.6 VAD + ~1.3 STT kuyruğu + 0.95 çeviri ≈ 2.85 sn
+  — hedef altı; KANITLANMIŞ SAYILMAZ, test 7 canlı ölçecek.** (Sentetik
+  uçtan uca koşuda görülen 4.7-5.9 sn, test düzeneğinin soğuk bağlantı +
+  hantal sessizlik beslemesindendi; ayrıştırma yukarıda.)
+
+Test 7 komutu (EN→TR, akışlı):
+`nohup env PYTHONUNBUFFERED=1 PYTHONPATH=src .venv/bin/python -m representative.local_rig --audio --stt-backend realtime --translator openai --source-lang en --target-lang tr --voice Yelda --jsonl-out prova_rt.jsonl > prova_rt.log 2>&1 & echo $! > prova.pid`
+
 ## "Done" değerlendirmesi (kurucu kriterleri)
 
 - [ ] Medyan gecikme ≤ 3 sn (jsonl kayıtlarından hesaplanır)
