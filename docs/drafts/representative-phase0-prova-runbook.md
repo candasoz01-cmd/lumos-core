@@ -242,6 +242,20 @@ stoplist'i eklendi (lojistik/biyolojik vb. hiçbir fuzzy eşleşmede yutulmaz).
 Kazanım olarak kalan: çevirmene konuşma bağlamı (brifing + son 4 söz) —
 genel çeviri kalitesi ve gönderme çözümü için kalıcı iyileştirme.
 
+## Çıktı dili post-check (2026-08-16 — kalem 2 kapanışı, kurucu kuralıyla)
+
+Kural aynen uygulandı: deterministik TR/EN tespiti (`langcheck.detect_lang`
+— Türkçe karakter + işlev-kelime skorlaması; kısa/sinyalsiz çıktı "unknown"
+sayılır ve BLOKLANMAZ) → yanlış dilde çıktı → EN FAZLA 1 yeniden çeviri →
+ikinci çıktı da yanlışsa TTS'E VERİLMEZ: `delivered=false`,
+`flag=wrong_output_language` (fail-closed). Retry döngüsü yok (testle sabit:
+çevirmen tam 2 kez çağrılabilir, fazlası imkânsız).
+
+Gecikme muhasebesi (kalem 3 için): post-check'in eklediği süre kayıtta AYRI
+alanda — `postcheck_ms` (retry çevirisi dahil; retry yoksa 0) + `retried`
+bayrağı. Test 6 verisine göre retry oranı düşük beklenir (istem kilidi çoğu
+vakayı tutuyor); gerçek oran ve maliyet bir sonraki canlı provada ölçülür.
+
 ## "Done" değerlendirmesi (kurucu kriterleri)
 
 - [ ] Medyan gecikme ≤ 3 sn (jsonl kayıtlarından hesaplanır)

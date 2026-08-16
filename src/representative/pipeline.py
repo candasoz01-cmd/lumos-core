@@ -83,6 +83,13 @@ class UtteranceRecord:
     flag_reason: str
     latency_ms: float
     recorded_at: float
+    # Kalem 2 (2026-08-16): çıktı-dili post-check muhasebesi.
+    # delivered=False → çıktı TTS'e verilmedi (fail-closed);
+    # postcheck_ms = post-check'in eklediği süre (retry çevirisi dahil) —
+    # kalem 3 gecikme optimizasyonunda maliyet ayrı görülsün diye ayrı alan.
+    delivered: bool = True
+    postcheck_ms: float = 0.0
+    retried: bool = False
 
 
 class BilingualTranscript:
@@ -160,20 +167,43 @@ class InterpreterPipeline:
         self._clock = clock
 
     def process(self, utterance: Utterance) -> UtteranceRecord:
+        from representative.langcheck import detect_lang
+
         result = self._translator.translate(utterance)
+        postcheck_ms = 0.0
+        retried = False
+        lang_ok = detect_lang(result.text) in ("unknown", utterance.target_lang)
+        if not lang_ok:
+            # Kurucu kuralı (2026-08-16): EN FAZLA 1 yeniden çeviri; döngü yok.
+            retried = True
+            retry_start = self._clock()
+            retry_result = self._translator.translate(utterance)
+            postcheck_ms = (self._clock() - retry_start) * 1000.0
+            if detect_lang(retry_result.text) in ("unknown", utterance.target_lang):
+                result = retry_result
+                lang_ok = True
+
         decision = self._gate.evaluate(result)
-        tts_start = self._clock()
-        self._tts.speak(result.text, utterance.target_lang)
+        now = self._clock()
+        if lang_ok:
+            self._tts.speak(result.text, utterance.target_lang)
+            flagged, reason = decision.flagged, decision.reason
+        else:
+            # Fail-closed: ikinci çıktı da yanlış dilde — TTS'e verilmez.
+            flagged, reason = True, "wrong_output_language"
         record = UtteranceRecord(
             source_text=utterance.text,
             source_lang=utterance.source_lang,
             translated_text=result.text,
             target_lang=utterance.target_lang,
             confidence=result.confidence,
-            flagged=decision.flagged,
-            flag_reason=decision.reason,
-            latency_ms=(tts_start - utterance.speech_end_ts) * 1000.0,
-            recorded_at=tts_start,
+            flagged=flagged,
+            flag_reason=reason,
+            latency_ms=(now - utterance.speech_end_ts) * 1000.0,
+            recorded_at=now,
+            delivered=lang_ok,
+            postcheck_ms=postcheck_ms,
+            retried=retried,
         )
         self._transcript.append(record)
         if self._on_record is not None:
