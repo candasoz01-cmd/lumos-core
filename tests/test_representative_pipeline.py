@@ -166,3 +166,29 @@ def test_incremental_jsonl_append_is_crash_safe(tmp_path):
     assert len(lines) == 2
     assert json.loads(lines[0])["source_text"] == "birinci cümle"
     assert json.loads(lines[1])["source_text"] == "ikinci cümle"
+
+
+def test_utterance_context_reaches_translator():
+    seen = {}
+
+    class ContextSpy:
+        def translate(self, utterance):
+            seen["context"] = utterance.context
+            return TranslationResult(text="ok", confidence=0.9, provider="spy")
+
+    pipeline = InterpreterPipeline(
+        translator=ContextSpy(),
+        tts=RecordingTTS(),
+        gate=ConfidenceGate(0.8),
+        transcript=BilingualTranscript(),
+        clock=FakeClock(10.5),
+    )
+    utt = Utterance(
+        text="devam cümlesi",
+        source_lang="tr",
+        target_lang="en",
+        speech_end_ts=10.0,
+        context=("önceki cümle",),
+    )
+    pipeline.process(utt)
+    assert seen["context"] == ("önceki cümle",)

@@ -19,6 +19,14 @@ from difflib import SequenceMatcher
 
 LUMOS_TERMS = ["We Lock AI", "Lumos temsilcisi", "ChatLumos", "Lumos"]
 
+# Gerçek Türkçe kelimeler — fuzzy eşleşme bunları içeren aralığa ASLA dokunmaz
+# (2026-08-16 marka turu: "ve lojistik olarak" gerçek lojistik cümlesinde de
+# geçebilir; markaya çevirmek anlam bozar. Bu aralıklar çevrilmeden geçer ve
+# çevirmen katmanı düşük güvenle işaretler — "düzelt" değil "işaretle").
+REAL_WORD_STOPLIST = frozenset(
+    {"lojistik", "lojistigi", "biyolojik", "lokanta", "villa", "kilit"}
+)
+
 _TR_FOLD = str.maketrans(
     {"w": "v", "q": "k", "ç": "c", "ş": "s", "ğ": "g", "ü": "u", "ö": "o", "ı": "i"}
 )
@@ -49,6 +57,8 @@ class TermCorrector:
         self._threshold = threshold
 
     def _match(self, span: str, term: str) -> bool:
+        if any(_norm(word) in REAL_WORD_STOPLIST for word in span.split()):
+            return False
         n_span, n_term = _norm(span), _norm(term)
         if not n_span:
             return False

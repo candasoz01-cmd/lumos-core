@@ -83,3 +83,16 @@ def test_t4_prompt_echo_is_detected():
     ]
     for text in real:
         assert is_prompt_echo(text, LUMOS_TERMS_PROMPT) is False
+
+
+def test_real_word_stoplist_protects_genuine_sentences(corrector):
+    # Marka turu (2026-08-16): gerçek "lojistik" hiçbir fuzzy eşleşmede
+    # yutulmaz; bozuk marka cümlesi çeviri katmanında İŞARETLENİR, düzeltilmez.
+    logistics = "Depoyu ve lojistik olarak taşımayı biz üstleniyoruz."
+    assert corrector.correct(logistics) == logistics
+
+
+def test_nonsense_garbles_still_corrected_despite_stoplist(corrector):
+    assert "We Lock AI" in corrector.correct(
+        "fukuki sorumluluğu ve ilocikali olarak biz üstleniyoruz."
+    )
