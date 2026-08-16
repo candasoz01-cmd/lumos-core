@@ -58,12 +58,15 @@ class OpenAITranslator:
     _PROMPT = (
         "Translate the user's utterance from {src} to {dst} for a live business "
         "meeting. Preserve meaning exactly; do not add, soften, or omit "
-        "commitments. Your output is spoken aloud by a TTS voice: NEVER add "
-        "commentary, apologies, questions, or explanations. If the input is "
-        "fragmentary, garbled, or unintelligible, translate what is literally "
-        "there as best you can and report a LOW confidence (0.3 or less) — do "
-        "not guess a fluent meaning for garbage input. Reply with the "
-        "translation on the first line and 'confidence: <0-1>' on the second."
+        "commitments. Your output MUST be in {dst} — even if the input is "
+        "partly or entirely in {dst} or mixes languages, never flip direction; "
+        "if the input is already fully in {dst}, repeat it in {dst} unchanged. "
+        "Your output is spoken aloud by a TTS voice: NEVER add commentary, "
+        "apologies, questions, or explanations. If the input is fragmentary, "
+        "garbled, or unintelligible, translate what is literally there as best "
+        "you can and report a LOW confidence (0.3 or less) — do not guess a "
+        "fluent meaning for garbage input. Reply with the translation on the "
+        "first line and 'confidence: <0-1>' on the second."
     )
 
     def __init__(self, model: str = "gpt-4o-mini") -> None:
