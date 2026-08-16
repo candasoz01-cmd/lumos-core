@@ -156,8 +156,11 @@ def run_audio_mode(
             except queue.Empty:
                 return
 
+    from representative.terms import TermCorrector
+
     frame_len = int(base_config.frame_ms * base_config.sample_rate // 1000)
     suppressor = RepeatSuppressor()
+    corrector = TermCorrector()
     with sd.RawInputStream(
         samplerate=base_config.sample_rate,
         blocksize=frame_len,
@@ -182,13 +185,16 @@ def run_audio_mode(
             heard = stt.transcribe(utterance_pcm, config.sample_rate)
             if not heard.text:
                 continue
-            if suppressor.should_drop(heard.text, time.monotonic()):
-                print(f"  (tekrar düşürüldü: {heard.text[:40]})")
+            heard_text = corrector.correct(heard.text)
+            if suppressor.should_drop(heard_text, time.monotonic()):
+                print(f"  (tekrar düşürüldü: {heard_text[:40]})")
                 continue
-            print(f"{src_lang.upper()}(duyulan)> {heard.text}")
+            if heard_text != heard.text:
+                print(f"  (terim düzeltildi: {heard.text[:40]} → {heard_text[:40]})")
+            print(f"{src_lang.upper()}(duyulan)> {heard_text}")
             record = pipeline.process(
                 Utterance(
-                    text=heard.text,
+                    text=heard_text,
                     source_lang=src_lang,
                     target_lang=dst_lang,
                     speech_end_ts=speech_end,
@@ -212,10 +218,23 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--threshold", type=float, default=0.8)
     parser.add_argument("--voice", default=None, help="macOS say voice name")
     parser.add_argument("--audio", action="store_true", help="microphone mode (Aşama B)")
-    parser.add_argument("--stt-model", default="small", help="faster-whisper model size")
+    parser.add_argument(
+        "--stt-backend",
+        default="cloud",
+        choices=("cloud", "local"),
+        help="cloud=gpt-4o-mini-transcribe (2026-08-14 bench kararı), local=faster-whisper",
+    )
+    parser.add_argument("--stt-model", default="small", help="faster-whisper model size (local)")
     parser.add_argument("--source-lang", default="tr", choices=("tr", "en"))
     parser.add_argument("--target-lang", default="en", choices=("tr", "en"))
     parser.add_argument("--jsonl-out", default=None, help="prova ölçüm kaydı (jsonl) yolu")
+    parser.add_argument(
+        "--end-silence-ms",
+        type=int,
+        default=900,
+        help="söz sonu sayılan sessizlik (test 3: 700ms cümle ortasında böldü, "
+        "tarih kaybettirdi; +200ms gecikme pahasına bütünlük)",
+    )
     args = parser.parse_args(argv)
     if args.source_lang == args.target_lang:
         parser.error("source and target languages must differ")
@@ -243,18 +262,22 @@ def main(argv: list[str] | None = None) -> int:
     if args.audio:
         import signal
 
-        from representative.stt import LUMOS_TERMS_PROMPT, FasterWhisperSTT
+        from representative.stt import LUMOS_TERMS_PROMPT, FasterWhisperSTT, OpenAICloudSTT
 
         def on_term(_sig, _frame):
             # SIGTERM'de de temiz kapanış (test 2: SIGINT engelli anlarda yakalanmadı)
             raise KeyboardInterrupt
 
         signal.signal(signal.SIGTERM, on_term)
-        stt = FasterWhisperSTT(
-            model_size=args.stt_model, language=src_lang, initial_prompt=LUMOS_TERMS_PROMPT
-        )
+        if args.stt_backend == "cloud":
+            stt = OpenAICloudSTT(language=src_lang, prompt=LUMOS_TERMS_PROMPT)
+        else:
+            stt = FasterWhisperSTT(
+                model_size=args.stt_model, language=src_lang, initial_prompt=LUMOS_TERMS_PROMPT
+            )
+        base_config = SegmenterConfig(end_silence_ms=args.end_silence_ms)
         try:
-            run_audio_mode(pipeline, stt, duplex_gate, SegmenterConfig(), src_lang, dst_lang)
+            run_audio_mode(pipeline, stt, duplex_gate, base_config, src_lang, dst_lang)
         except KeyboardInterrupt:
             pass
     else:

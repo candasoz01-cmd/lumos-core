@@ -114,6 +114,28 @@ STT modeli (medium/large-v3 kıyası) veya bulut STT adayı; (3) mırıltıda
 güven — çevirmen istemi sertleştirildi, ölçülecek; (4) gecikme — çeviri
 modeli/akış optimizasyonu. Ölçmeden hiçbiri "çözüldü" sayılmaz.
 
+## STT yol kararı (2026-08-14 — kalite turu, kurucunun 4 sütunlu tablosu)
+
+Sentetik E-sınıfı set (S2 elli bin/1 Ekim, S4 yüzde kırk, S5 We Lock AI,
+S3 Lumos temsilcisi); "istemli" = LUMOS_TERMS_PROMPT ile:
+
+| Model | İstemli E-sınıfı doğruluk | Marka doğruluğu | Gerçek süre |
+|-------|---------------------------|-----------------|-------------|
+| small (yerel) | Kısmi — 50.000 ✓, "bir rekim" (tarih ✗); canlıda %40→45 ✗ | "Lumos temsilcisi" ✓ (istemle), We Lock AI ✗ | 1.8–2.3 sn |
+| medium (yerel) | ✗ — %45 hatası AYNEN, "bir ekimde" bozuk | ✗ ("logikağı", "Tlumos") | **5.1–6.7 sn — ELENDİ** (3× yavaş, kazanım yok) |
+| large-v3 (yerel) | ÖLÇÜLMEDİ — medium 3× yavaşlayıp kazanım vermedi; ~2× büyük modelin CPU'da bütçeyi imkânsız kılacağı öngörüsüyle gerekçeli eleme | — | (öngörü ~8-12 sn) |
+| whisper-1 (bulut) | Anlamca ✓ ama normalize (50 bin / 1 Ekim); ikinci sıra | ✗ ("WeLogica'a" → TermCorrector düzeltir) | 1.4–1.9 sn |
+| **gpt-4o-mini-transcribe (bulut) — SEÇİLDİ** | **✓ BİREBİR: "elli bin dolara… bir Ekim'de", "yüzde kırkı peşin"** | ✗ ("ve lojikayı") → **TermCorrector düzeltir (0.78) → birlikte ✓** | **0.9–1.8 sn** |
+
+**Karar:** Faz 0 rig STT = `gpt-4o-mini-transcribe` (bulut, istemli) +
+TermCorrector; yerel small `--stt-backend local` ile çevrimdışı yedek.
+Gizlilik: ses OpenAI'ye gider — çeviri katmanıyla aynı işlemci; kapalı prova
+için kabul, gerçek dış toplantı öncesi DPA blokajı zaten geçerli.
+Uyarı: sentetik ses canlı konuşmayı tam temsil etmez (canlıdaki %40→45 hatası
+sentetikte small'da bile yok) — nihai söz test 4'ün canlı ölçümünde.
+**Öngörülen bütçe:** bekleme 0.9 + STT ~1.3 + çeviri ~1.2 ≈ 3.4 sn — ≤3 sn
+hâlâ kanıtlanmadı; sıradaki kaldıraç çeviri ayağı (akış/model).
+
 ## "Done" değerlendirmesi (kurucu kriterleri)
 
 - [ ] Medyan gecikme ≤ 3 sn (jsonl kayıtlarından hesaplanır)
