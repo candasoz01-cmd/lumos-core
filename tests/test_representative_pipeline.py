@@ -142,3 +142,27 @@ def test_transcript_jsonl_roundtrip():
     assert data["source_text"] == record.source_text
     assert data["translated_text"] == "see you tomorrow"
     assert data["flagged"] is True and data["confidence"] == 0.4
+
+
+def test_incremental_jsonl_append_is_crash_safe(tmp_path):
+    # 2026-08-14 stres testi bulgusu: kayıt yalnız temiz çıkışta yazılırsa
+    # çökmede tüm prova verisi kaybolur; her söz anında diske düşmeli.
+    import json
+
+    path = str(tmp_path / "prova.jsonl")
+    transcript = BilingualTranscript()
+    pipeline = InterpreterPipeline(
+        translator=StubTranslator("see you tomorrow", confidence=0.9),
+        tts=RecordingTTS(),
+        gate=ConfidenceGate(0.8),
+        transcript=transcript,
+        on_record=lambda r: BilingualTranscript.append_jsonl(path, r),
+        clock=FakeClock(10.5),
+    )
+    pipeline.process(make_utterance("birinci cümle"))
+    pipeline.process(make_utterance("ikinci cümle"))
+    with open(path, encoding="utf-8") as f:
+        lines = f.read().splitlines()
+    assert len(lines) == 2
+    assert json.loads(lines[0])["source_text"] == "birinci cümle"
+    assert json.loads(lines[1])["source_text"] == "ikinci cümle"

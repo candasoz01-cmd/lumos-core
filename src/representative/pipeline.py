@@ -99,6 +99,16 @@ class BilingualTranscript:
         """One JSON object per utterance — Aşama C ölçüm kaydı formatı."""
         return "\n".join(json.dumps(asdict(r), ensure_ascii=False) for r in self._records)
 
+    @staticmethod
+    def append_jsonl(path: str, record: UtteranceRecord) -> None:
+        """Crash-safe incremental log: one line per utterance, flushed at once.
+
+        Prova düzeneği çökse bile o ana kadarki her söz diskte kalır (2026-08-14
+        stres testi bulgusu: yalnız çıkışta yazmak çökmede tüm veriyi kaybetti).
+        """
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(asdict(record), ensure_ascii=False) + "\n")
+
     def to_markdown(self) -> str:
         lines = ["| src | çeviri | güven | işaret | gecikme (ms) |", "|---|---|---|---|---|"]
         for r in self._records:
@@ -135,6 +145,7 @@ class InterpreterPipeline:
         gate: ConfidenceGate,
         transcript: BilingualTranscript,
         on_flag: Callable[[UtteranceRecord], None] | None = None,
+        on_record: Callable[[UtteranceRecord], None] | None = None,
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self._translator = translator
@@ -142,6 +153,7 @@ class InterpreterPipeline:
         self._gate = gate
         self._transcript = transcript
         self._on_flag = on_flag
+        self._on_record = on_record
         self._clock = clock
 
     def process(self, utterance: Utterance) -> UtteranceRecord:
@@ -161,6 +173,8 @@ class InterpreterPipeline:
             recorded_at=tts_start,
         )
         self._transcript.append(record)
+        if self._on_record is not None:
+            self._on_record(record)
         if record.flagged and self._on_flag is not None:
             self._on_flag(record)
         return record
