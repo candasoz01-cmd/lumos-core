@@ -84,3 +84,26 @@ def test_gate_is_reentrant():
             assert gate.listening is False
         assert gate.listening is False
     assert gate.listening is True
+
+
+def test_calibration_raises_threshold_above_ambient():
+    from representative.audio import calibrate_rms_threshold
+
+    quiet = [tone_frame(50)] * 10
+    noisy = [tone_frame(1000)] * 10
+    assert calibrate_rms_threshold(quiet, floor=500.0) == 500.0  # taban korunur
+    assert calibrate_rms_threshold(noisy, floor=500.0) == 4000.0  # ortam × 4
+    assert calibrate_rms_threshold([], floor=500.0) == 500.0
+
+
+def test_repeat_suppressor_drops_hallucination_spam():
+    from representative.audio import RepeatSuppressor
+
+    s = RepeatSuppressor(window_s=10.0)
+    assert s.should_drop("Teşekkürler.", now=0.0) is False  # ilk kez: geçer
+    assert s.should_drop("Teşekkürler.", now=3.0) is True  # pencere içi tekrar: düşer
+    assert s.should_drop("Farklı cümle", now=4.0) is False
+    assert s.should_drop("Teşekkürler.", now=5.0) is False  # araya başka metin girdi
+    s2 = RepeatSuppressor(window_s=10.0)
+    s2.should_drop("Teşekkürler.", now=0.0)
+    assert s2.should_drop("Teşekkürler.", now=15.0) is False  # pencere dışı: geçer
