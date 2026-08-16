@@ -22,6 +22,47 @@ LUMOS_TERMS_PROMPT = (
 )
 
 
+class OpenAICloudSTT:
+    """Cloud STT over the existing openai dependency.
+
+    2026-08-14 bench kararı: gpt-4o-mini-transcribe E-sınıfı cümlelerde
+    (elli bin / bir Ekim'de / yüzde kırk) birebir sonuç verdi, 0.9-1.8 sn;
+    yerel medium hem 3 kat yavaş hem isabetsiz çıktı. Gizlilik notu: ses
+    OpenAI'ye gider — çeviri katmanıyla aynı işlemci, kapalı prova için
+    kabul; gerçek dış toplantı öncesi DPA değerlendirmesi zaten blokaj.
+    """
+
+    def __init__(
+        self,
+        model: str = "gpt-4o-mini-transcribe",
+        language: str | None = None,
+        prompt: str | None = None,
+    ) -> None:
+        from openai import OpenAI  # core dependency; deferred for CI'siz kullanım
+
+        self._client = OpenAI()
+        self._model = model
+        self._language = language
+        self._prompt = prompt
+
+    def transcribe(self, pcm: bytes, sample_rate: int = 16000) -> SttResult:
+        import io
+        import wave
+
+        buf = io.BytesIO()
+        with wave.open(buf, "wb") as w:
+            w.setnchannels(1)
+            w.setsampwidth(2)
+            w.setframerate(sample_rate)
+            w.writeframes(pcm)
+        buf.seek(0)
+        buf.name = "utterance.wav"  # openai SDK dosya adından format çıkarır
+        result = self._client.audio.transcriptions.create(
+            model=self._model, file=buf, language=self._language, prompt=self._prompt
+        )
+        return SttResult(text=result.text.strip(), language=self._language or "")
+
+
 class FasterWhisperSTT:
     """Local whisper STT over raw 16 kHz mono int16 PCM."""
 

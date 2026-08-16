@@ -23,6 +23,9 @@ SENTENCES = {
         "Lumos temsilcisi toplantıya katılıp konuşmaları Türkçeden İngilizceye "
         "çevirecek ve düşük güvenli cümleleri işaretleyecek."
     ),
+    # Test 3'te (2026-08-14) sahada başarısız olan E-sınıfı vakalar:
+    "S4-yuzde": "Ödemenin yüzde kırkı peşin, kalanı teslimatta ödenecek.",
+    "S5-marka": "Hukuki sorumluluğu We Lock AI olarak biz üstleniyoruz.",
 }
 
 
