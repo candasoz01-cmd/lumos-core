@@ -112,3 +112,40 @@ def test_realtime_speech_end_backdates_vad_silence():
     # speech_stopped olayı gerçek söz sonundan VAD sessizliği kadar sonra gelir
     assert speech_end_from_stop_event(100.0, vad_silence_ms=600) == 99.4
     assert speech_end_from_stop_event(50.0, vad_silence_ms=0) == 50.0
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected_text", "expected_conf"),
+    [
+        # Normal iki satırlı format
+        ("Merhaba dünya.\nconfidence: 0.9", "Merhaba dünya.", 0.9),
+        # Test 7 bug'ı: yalnız güven satırı → metin BOŞ (seslendirilmez)
+        ("confidence: 0.3", "", 0.3),
+        # Test 7 bug'ı: güven metinle aynı satırda
+        ("Ne dedin? confidence: 0.5", "Ne dedin?", 0.5),
+        # Güven satırı hiç yok
+        ("Sadece çeviri.", "Sadece çeviri.", None),
+        # Aralık dışı güven kırpılır
+        ("Metin.\nconfidence: 1.7", "Metin.", 1.0),
+    ],
+)
+def test_translator_reply_parsing_is_robust(raw, expected_text, expected_conf):
+    from representative.local_rig import OpenAITranslator
+
+    text, conf = OpenAITranslator.parse_reply(raw)
+    assert text == expected_text
+    assert conf == expected_conf
+
+
+def test_empty_translation_is_never_spoken():
+    class EmptyTranslator:
+        def translate(self, utterance):
+            return TranslationResult(text="", confidence=0.3, provider="stub")
+
+    tts = RecordingTTS()
+    record = make_pipeline(EmptyTranslator(), tts).process(
+        Utterance(text="mırıltı", source_lang="en", target_lang="tr", speech_end_ts=0.0)
+    )
+    assert tts.spoken == []
+    assert record.delivered is False
+    assert record.flag_reason == "empty_translation"

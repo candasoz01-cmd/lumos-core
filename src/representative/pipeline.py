@@ -185,7 +185,12 @@ class InterpreterPipeline:
 
         decision = self._gate.evaluate(result)
         now = self._clock()
-        if lang_ok:
+        if not result.text.strip():
+            # Test 7 bug'ı: model boş çeviri döndürebilir — boş metin
+            # seslendirilmez, işaretli düşer (fail-closed).
+            lang_ok = False
+            flagged, reason = True, "empty_translation"
+        elif lang_ok:
             self._tts.speak(result.text, utterance.target_lang)
             flagged, reason = decision.flagged, decision.reason
         else:
