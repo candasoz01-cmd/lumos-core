@@ -195,6 +195,35 @@ transcript ✓ · TR→EN anlaşılırlık büyük ölçüde ✓ · E-sınıfı 
 rakam ✓, marka ✗, bir özne sapması) · **EN→TR ayağı ve donanımlı echo
 vakaları hâlâ koşulmadı → dilim hâlâ DONE DEĞİL ama ilk kez mesafe kısa.**
 
+## Test 6 sonuçları (2026-08-16 — EN→TR ayağı, iki koşu)
+
+Koşu 1 (900 ms): "uzun olunca eksik çeviriyor" — kurucu canlı yakaladı;
+cümle içi duraklar (ikinci dil temposu) 900 ms'te bölünüyor + YENİ BUG:
+karışık dilde çevirmen yön çeviriyordu ("Aranızda var mı?" → "Are you
+there?"). Koşu 2 = `--end-silence-ms 1400` + istem yön kilidi.
+
+Koşu 2 (14 kayıt):
+- **E-sınıfı çekirdek ✓:** "We will sign the contract for \$50,000 and
+  delivery is on October 1st" → "\$50,000'lık sözleşmeyi imzalayacağız ve
+  teslimat 1 Ekim'de yapılacak" — güven 1.0, BİREBİR, bölünmeden. %40
+  yapısı korundu. Bölünme sorunu 1400 ms ile çözüldü.
+- **Mırıltı/parça ✓:** "If you..." 0.3 ⚠ doğru işaretlendi.
+- **Medyan 4.03 sn — bu yönde hedef ÜSTÜ** (bilinçli ödün: 1400 ms bekleme;
+  bütünlük > hız tercihi bu tur doğrulandı, optimizasyon sonraki tur).
+- **Marka yine ✗:** "We Lock AI will take on…" — STT markayı cümle başında
+  tamamen DÜŞÜRDÜ ("will take on the legal responsibility"), çeviri birinci
+  tekile kaydı ("üstleneceğim") — EN yönünde de marka çözülmedi, #1 açık.
+- **Yön kilidi kısmen delik:** istem düzeltmesi çoğunlukla tuttu (TR girdiler
+  TR kaldı) ama iki kayıtta TR girdi İngilizce çıktı / içerik kaybıyla
+  kısaldı — istem tek başına yetmiyor; aday: çıktı dili deterministik
+  tespit + uymarsa yeniden çeviri (post-check).
+
+Done checklist: EN→TR ayağı KOŞULDU — çekirdek doğruluk ✓ ama "güvenilir"
+için marka + yön kilidi + bu yönün medyanı kalmalı. Dilim hâlâ DONE değil;
+kalan üç kalem net: (1) We Lock AI (her iki yönde #1), (2) yön kilidi
+post-check, (3) EN yönü gecikme optimizasyonu. Donanımlı echo vakaları da
+hâlâ ayrıca koşulmadı.
+
 ## "Done" değerlendirmesi (kurucu kriterleri)
 
 - [ ] Medyan gecikme ≤ 3 sn (jsonl kayıtlarından hesaplanır)
