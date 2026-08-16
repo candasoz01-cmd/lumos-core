@@ -3,10 +3,14 @@
 Test 3 + bench bulgusu (2026-08-14): TR konuşma içindeki İngilizce marka
 adlarını ("We Lock AI") HER STT modeli bozuyor (viluk / ve ilocikali /
 WeLogica'a). Model değiştirmek çözmüyor; sınırlı sözlüğe karşı deterministik
-fuzzy düzeltme çözüyor. Eşik deneysel: gerçek bozulmalar 0.59-0.97 bandında,
-kontrol kelimeleri ≤0.53 — eşik 0.55 + ilk-harf koruması ("lokanta" 0.53'te
-ilk harfle elenir). "viluk" (0.31) bilinçli kapsam dışı: o kadar uzak girdiyi
-düzeltmek yanlış pozitif riskine değmez.
+fuzzy düzeltme çözüyor.
+
+Eşik tarihi: 0.55 ilk sürümdü; test 4'te (2026-08-14) GERÇEK KONUŞMADA yanlış
+pozitif üretti — "Lumos projesini" (0.62) "Lumos temsilcisi"ne çevrildi, anlam
+bozuldu. Korumalı bant 0.70'e çekildi: gerçek düzeltmeler 0.78-0.97 bandında
+kalıyor, yanlış pozitif 0.62 kesiliyor. Bilinçli kapsam dışı: "viluk" (0.31)
+ve "WeLogica'a" (0.59) — bunlar STT tarafında (bulut model + istem) çözülür;
+düzelticinin altın kuralı: EMİN DEĞİLSEN DOKUNMA.
 """
 
 from __future__ import annotations
@@ -25,10 +29,20 @@ def _norm(text: str) -> str:
     return "".join(ch for ch in folded if ch.isalnum())
 
 
+def is_prompt_echo(text: str, prompt: str, threshold: float = 0.60) -> bool:
+    """Detects STT output that is just the terms prompt parroted back.
+
+    Test 4 bulgusu (2026-08-14): bulut STT gürültü/sessizlikte terim istemini
+    transkripsiyon diye geri döndürdü (26 kaydın 9'u). Bu çıktı çeviriye
+    girmeden düşürülmeli — istem metni hiçbir gerçek sözün içeriği olamaz.
+    """
+    return SequenceMatcher(None, _norm(text), _norm(prompt)).ratio() >= threshold
+
+
 class TermCorrector:
     """Replaces near-miss STT output spans with canonical glossary terms."""
 
-    def __init__(self, terms: list[str] | None = None, threshold: float = 0.55) -> None:
+    def __init__(self, terms: list[str] | None = None, threshold: float = 0.70) -> None:
         # Uzun terimler önce: "Lumos temsilcisi" varken "Lumos" tek başına
         # eşleşip parçayı bölmesin.
         self._terms = sorted(terms if terms is not None else LUMOS_TERMS, key=len, reverse=True)

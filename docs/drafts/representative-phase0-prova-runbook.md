@@ -136,6 +136,38 @@ sentetikte small'da bile yok) — nihai söz test 4'ün canlı ölçümünde.
 **Öngörülen bütçe:** bekleme 0.9 + STT ~1.3 + çeviri ~1.2 ≈ 3.4 sn — ≤3 sn
 hâlâ kanıtlanmadı; sıradaki kaldıraç çeviri ayağı (akış/model).
 
+## Test 4 sonuçları (2026-08-14 — bulut zinciri, kaos koşusu)
+
+Planlanan temiz okuma yerine fiilen kaos testi oldu (müzik, türkü, kedi,
+serbest konuşma) — 26 kayıt, echo yok, kayıt tam. **Gerçek medyan 3.08 sn**
+(test 3: 3.49; bulut zinciri hızlandırdı). ≤3 sn hedefi HÂLÂ BAŞARISIZ
+(3.08 > 3), kurucu kararıyla kanıtlanana kadar böyle anılır.
+
+Üç geçiş kriteri:
+1. **E-sınıfı — kısmi/başarısız:** "Sözleşmeyi elli bin dolara imzalayacağız"
+   güven 1.0 ile birebir ✓; ama cümle yine bölündü ve ikinci yarı "teslimat
+   bir Ekim'de" → "Mesesimatı birlekinli" → **"The meeting will be in
+   December"** (0.8 güvenle UYDURULMUŞ TARİH — en tehlikeli hata sınıfı).
+   %40 satırı kaosta hiç yakalanmadı.
+2. **Marka — düzeltici GERİ TEPTİ:** "Lumos projesini" (0.62) "Lumos
+   temsilcisi"ne çevrildi — gerçek konuşmada anlam bozan yanlış pozitif.
+3. **Mırıltı — çoğunlukla ✓:** kaos girdilerinin çoğu 0.2-0.7 güvenle
+   işaretlendi; ama "birlekinli" vakası 0.8 ile geçti (bkz. 1).
+
+Bulunan ve KAPATILAN iki yeni bug:
+- **İstem yankısı**: bulut STT gürültüde terim istemini transkripsiyon diye
+  döndürdü (26 kaydın 9'u!) ve düzeltici bunları iyice bozdu →
+  `is_prompt_echo` filtresi: istem metnine ≥0.60 benzeyen STT çıktısı
+  çeviriye girmeden düşürülür.
+- **Düzeltici yanlış pozitifi**: korumalı bant 0.55→0.70 (gerçek düzeltmeler
+  0.78-0.97'de kalıyor; "WeLogica'a" 0.59 bilinçli kapsam dışına çıktı —
+  altın kural: emin değilsen dokunma).
+
+Açık kalan: uydurulmuş-tarih vakası ("birlekinli"→December) çevirmen güven
+skorunun bozuk girdiyi 0.8'le geçirmesi — bir sonraki sertleştirme adayı
+(bozuk Türkçe girdi tespiti). Test 5 = TEMİZ okuma (müzik/kedi yok) ile üç
+kriterin gerçek ölçümü.
+
 ## "Done" değerlendirmesi (kurucu kriterleri)
 
 - [ ] Medyan gecikme ≤ 3 sn (jsonl kayıtlarından hesaplanır)
