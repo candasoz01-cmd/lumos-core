@@ -89,6 +89,24 @@ class OpenAITranslator:
         "and ChatLumos."
     )
 
+    @staticmethod
+    def parse_reply(raw: str) -> tuple[str, float | None]:
+        """Ayrıştırma test 7 bug'ına dayanıklı: model bazen yalnız güven satırı
+        döndürüyor ya da güveni metinle aynı satıra yazıyor — 'confidence: X'
+        deseni NEREDE olursa olsun metinden sökülür; kalan boşsa boş döner
+        (pipeline boş çeviriyi seslendirmez)."""
+        import re
+
+        match = re.search(r"confidence\s*:\s*([0-9.]+)", raw, re.IGNORECASE)
+        confidence: float | None = None
+        if match:
+            try:
+                confidence = max(0.0, min(1.0, float(match.group(1))))
+            except ValueError:
+                confidence = None
+        text = re.sub(r"confidence\s*:\s*[0-9.]+", "", raw, flags=re.IGNORECASE).strip()
+        return text, confidence
+
     def translate(self, utterance: Utterance) -> TranslationResult:
         system = self._PROMPT.format(src=utterance.source_lang, dst=utterance.target_lang)
         system += "\n" + self._MEETING_CONTEXT
@@ -106,15 +124,7 @@ class OpenAITranslator:
             ],
         )
         raw = (response.choices[0].message.content or "").strip()
-        lines = raw.splitlines()
-        confidence: float | None = None
-        text = raw
-        if len(lines) >= 2 and lines[-1].lower().startswith("confidence:"):
-            text = "\n".join(lines[:-1]).strip()
-            try:
-                confidence = max(0.0, min(1.0, float(lines[-1].split(":", 1)[1])))
-            except ValueError:
-                confidence = None
+        text, confidence = self.parse_reply(raw)
         return TranslationResult(text=text, confidence=confidence, provider=self._model)
 
 
@@ -246,6 +256,7 @@ def run_realtime_audio_mode(
     duplex_gate: HalfDuplexGate,
     src_lang: str,
     dst_lang: str,
+    vad_silence_ms: int = 800,
 ) -> None:
     """Streaming mic loop (kalem 3): capture 24k → realtime STT → pipeline.
 
@@ -265,7 +276,9 @@ def run_realtime_audio_mode(
     corrector = TermCorrector()
     recent: deque[str] = deque(maxlen=4)
 
-    stream = RealtimeSTTStream(language=src_lang, prompt=LUMOS_TERMS_PROMPT)
+    stream = RealtimeSTTStream(
+        language=src_lang, prompt=LUMOS_TERMS_PROMPT, vad_silence_ms=vad_silence_ms
+    )
     stream.start()
 
     def on_audio(indata, _frames, _time, _status) -> None:
@@ -336,6 +349,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--target-lang", default="en", choices=("tr", "en"))
     parser.add_argument("--jsonl-out", default=None, help="prova ölçüm kaydı (jsonl) yolu")
     parser.add_argument(
+        "--vad-silence-ms",
+        type=int,
+        default=800,
+        help="realtime backend sunucu VAD sessizliği (test 7: 600ms ikinci-dil "
+        "İngilizce temposunu fazla böldü; 800 varsayılan, prova ölçer)",
+    )
+    parser.add_argument(
         "--end-silence-ms",
         type=int,
         default=900,
@@ -390,7 +410,9 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"Isıtma başarısız (devam ediliyor): {type(exc).__name__}")
         if args.stt_backend == "realtime":
             try:
-                run_realtime_audio_mode(pipeline, duplex_gate, src_lang, dst_lang)
+                run_realtime_audio_mode(
+                    pipeline, duplex_gate, src_lang, dst_lang, args.vad_silence_ms
+                )
             except KeyboardInterrupt:
                 pass
             print("\n--- transcript ---")

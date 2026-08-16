@@ -278,6 +278,35 @@ Sentetik ölçümler (2026-08-17):
 Test 7 komutu (EN→TR, akışlı):
 `nohup env PYTHONUNBUFFERED=1 PYTHONPATH=src .venv/bin/python -m representative.local_rig --audio --stt-backend realtime --translator openai --source-lang en --target-lang tr --voice Yelda --jsonl-out prova_rt.jsonl > prova_rt.log 2>&1 & echo $! > prova.pid`
 
+## Test 7 sonuçları (2026-08-17 — akışlı zincir CANLI, EN→TR)
+
+32 kayıt (KILL'e rağmen tam — artımlı jsonl işledi). Kurucunun beş kriteri:
+
+1. **CANLI MEDYAN 1.92 sn — ≤3.00 hedefi canlıda GEÇİLDİ** (p90 2.28,
+   max 3.94). Akışlı STT + ısıtılmış çevirmen yapısal kazancı kanıtladı;
+   4.03 → 1.92.
+2. **E-sınıfı doğruluk — bu koşuda değerlendirilemedi:** koşu serbest
+   konuşmaya döndü (talimat okumaları + Türkçe sohbet karıştı); 3. satır
+   parçalara bölündü ("Ekim 1." parçası doğru çevrildi). VAD 600 ms
+   ikinci-dil İngilizce temposunu fazla bölüyor → varsayılan 800 ms yapıldı
+   (--vad-silence-ms). Temiz okuma teyidi test 8'e.
+3. **Post-check: 2/32 retry, toplam ~2.1 sn maliyet** (retry başına ~1 sn) —
+   oran düşük, maliyet ölçüldü; fail-closed hiç tetiklenmedi (retry'lar
+   kurtardı).
+4. **Echo: SIFIR** — hiçbir TTS çıktısı yeniden duyulmadı (32 kayıtta
+   birebir eşleşme 0; half-duplex + yakalama-anı düşürme çalışıyor).
+5. **B2 bilinçli kayıp vakası** düzenli koşulamadı (serbest akış) — test 8'de.
+
+Bulunan ve KAPATILAN yeni bug: model 5 kayıtta boş çeviri + yalnız güven
+satırı döndürdü ve rig **"confidence: 0.3" metnini seslendirdi** →
+parse_reply sağlamlaştırıldı ('confidence: X' deseni metinden her yerde
+sökülür) + pipeline boş çeviriyi ASLA seslendirmez (empty_translation,
+fail-closed, testli).
+
+**Test 8 (final teyit, kısa):** temiz 8 satır + B1/B2 echo vakaları,
+akışlı zincir + 800 ms VAD + parser düzeltmesiyle. Geçerse done checklist
+kurucu final değerlendirmesine gider.
+
 ## "Done" değerlendirmesi (kurucu kriterleri)
 
 - [ ] Medyan gecikme ≤ 3 sn (jsonl kayıtlarından hesaplanır)
