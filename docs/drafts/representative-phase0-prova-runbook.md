@@ -168,6 +168,33 @@ skorunun bozuk girdiyi 0.8'le geçirmesi — bir sonraki sertleştirme adayı
 (bozuk Türkçe girdi tespiti). Test 5 = TEMİZ okuma (müzik/kedi yok) ile üç
 kriterin gerçek ölçümü.
 
+## Test 5 sonuçları (2026-08-16 — temiz okuma, tam sertleştirilmiş zincir)
+
+34 kayıt. **MEDYAN 2.89 sn — ≤3 sn HEDEFİ İLK KEZ GEÇİLDİ** (gerçek,
+düzeltilmiş ölçümle; max 6.4 sn uzun cümle kuyruğu, p90 ~3.5 sn).
+
+Üç geçiş kriteri:
+1. **E-sınıfı — İLK KEZ BÜYÜK ÖLÇÜDE ✓:** "Sözleşmeyi elli bin dolara
+   imzalayacağız ve teslimat bir Ekim'de olacak" güven 1.0 ile BİREBİR
+   ("delivery will be on October first") — tarih ilk kez tam geçti, iki kez
+   doğrulandı ("Teslimat 1 Ekim'de" → "October 1st" ✓ 1.0). "%40" ilk kez
+   doğru korundu. İlk denemedeki bölünme doğru şekilde ⚠ işaretlendi (0.7).
+   Kalan leke: "Ödemenin" → "Ödemeyenin" STT hatası özneyi kaydırdı
+   ("non-payers", 0.9 güvenle) — tek gerçek E-sınıfı sapma.
+2. **Marka — hâlâ ✗ ama artık DÜRÜST:** "We Lock AI" canlı konuşmada STT'de
+   hiç doğru duyulmadı (üç deneme: "Bir sonluğu" 0.7⚠, "bilip al" 0.9,
+   "We..." 0.5⚠); düzeltici tasarım gereği dokunmadı (emin değilsen dokunma —
+   yanlış pozitif üretmedi ✓, "Lumos projesini" bu kez dokunulmadan geçti ✓).
+   İstem yankısı filtresi 11 yankının 11'ini kesti ✓. Sonraki aday: tam
+   gpt-4o-transcribe denemesi ve/veya prompt yazım varyantları.
+3. **Mırıltı — ✓✓:** tüm bozuk girdiler işaretlendi (0.1-0.7), hiçbiri akıcı
+   uydurmaya dönüşmedi; test 4'ün "December" vakası TEKRARLAMADI.
+
+Done checklist güncel durumu: medyan ✓ (İLK KEZ) · düşük güven ✓ · echo ✓ ·
+transcript ✓ · TR→EN anlaşılırlık büyük ölçüde ✓ · E-sınıfı kısmi (tarih ve
+rakam ✓, marka ✗, bir özne sapması) · **EN→TR ayağı ve donanımlı echo
+vakaları hâlâ koşulmadı → dilim hâlâ DONE DEĞİL ama ilk kez mesafe kısa.**
+
 ## "Done" değerlendirmesi (kurucu kriterleri)
 
 - [ ] Medyan gecikme ≤ 3 sn (jsonl kayıtlarından hesaplanır)
