@@ -29,10 +29,43 @@ STT ~2 sn + LLM çeviri → ≤3 sn medyan sınırda; prova ölçecek, gerekirse
 iyileştirme sırası: kısa söz segmentleri (segmenter ayarı) → beam_size →
 akışlı transkripsiyon. Hedef hâlâ hedef, iddia değil.
 
+## Stres testi 1 bulguları (2026-08-14 — veri yakalanamadı, düzenek dersleri)
+
+İlk kapalı prova denemesi kaos/stres testine dönüştü: rig, ajan oturumunun
+arka plan süreci olarak koşarken oturum geçişinde öldü ve HİÇBİR söz
+yakalanmadı. Üç zafiyet bulundu ve kapatıldı:
+
+1. **Yaşam döngüsü**: Rig ajan oturumuna bağlı süreç olarak KOŞULMAZ —
+   `nohup ... &` ile bağımsız başlatılır (aşağıdaki komutlar güncellendi).
+2. **Veri kaybı**: JSONL yalnız temiz çıkışta yazılıyordu → artık her söz
+   anında append edilir (`BilingualTranscript.append_jsonl`); çökme o ana
+   kadarki veriyi kaybettirmez.
+3. **Ölçüm hatası**: `speech_end_ts` STT'den sonra damgalanıyordu → kayıtlı
+   gecikme STT süresini (~2 sn) ve endpointing beklemesini (0.7 sn)
+   DIŞLIYORDU. Düzeltildi: damga, segmenter söz-sonu anına çekildi; bundan
+   önceki tüm gecikme sayıları eksik sayımdır, kıyaslanamaz.
+
+## Sabit prova metni (test 2 — kaynak metin sabit, karşılaştırma birebir)
+
+Kurucu sırayla okur (doğal tempo, cümle arasında ~1 sn dur):
+
+1. Merhaba, ben Candaş. Bugün Lumos projesini konuşmak istiyorum.
+2. ChatLumos, kullanıcının tüm yapay zekâ araçlarını tek yerden yönetmesini sağlar.
+3. Sözleşmeyi elli bin dolara imzalayacağız ve teslimat bir Ekim'de olacak. *(E-sınıfı)*
+4. Ödemenin yüzde kırkı peşin, kalanı teslimatta ödenecek. *(E-sınıfı)*
+5. Hukuki sorumluluğu We Lock AI olarak biz üstleniyoruz. *(E-sınıfı + marka)*
+6. Toplantı notlarını yarın sabah size göndereceğim.
+7. *(bilerek mırıldan / yarım bırak — düşük güven işareti düşmeli)*
+8. Teklifi kabul ederseniz gelecek hafta başlayabiliriz.
+
+Değerlendirme: satır satır "söylenen → duyulan (STT) → çeviri (EN) → işaret"
+tablosu; E-sınıfı satırlarda rakam/tarih/özne birebir kontrol.
+
 ## Prova akışı (kurucu + ben)
 
-1. **TR→EN (5-7 dk):**
-   `PYTHONPATH=src .venv/bin/python -m representative.local_rig --audio --translator openai --jsonl-out prova_tr_en.jsonl`
+1. **TR→EN (5-7 dk)** — bağımsız süreç olarak (stres testi 1 dersi):
+   `nohup env PYTHONUNBUFFERED=1 PYTHONPATH=src .venv/bin/python -m representative.local_rig --audio --translator openai --jsonl-out prova_tr_en.jsonl > prova_tr_en.log 2>&1 & echo $! > prova.pid`
+   Bitirme: `kill -INT $(cat prova.pid)` (temiz kapanış: transcript + jsonl).
    Kurucu doğal tempoda Türkçe konuşur; aralarda şu zorunlu vakalar:
    - E-sınıfı cümle: para + tarih + taahhüt içeren en az 3 cümle
      (ör. "Sözleşmeyi elli bin dolara imzalayacağız, teslimat bir Ekim'de.")

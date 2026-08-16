@@ -65,6 +65,10 @@ class UtteranceSegmenter:
         self._speech: bytearray = bytearray()
         self._silence_ms = 0
 
+    @property
+    def config(self) -> SegmenterConfig:
+        return self._config
+
     def _reset(self) -> None:
         self._speech = bytearray()
         self._silence_ms = 0

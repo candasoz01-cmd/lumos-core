@@ -136,6 +136,9 @@ def run_audio_mode(
             utterance_pcm = segmenter.feed(frames.get())
             if utterance_pcm is None:
                 continue
+            # Söz-sonu damgası STT'den ÖNCE ve endpointing beklemesi kadar geriye
+            # çekilir: algılanan gecikme konuşmacının sustuğu anda başlar.
+            speech_end = time.monotonic() - segmenter.config.end_silence_ms / 1000.0
             heard = stt.transcribe(utterance_pcm, sample_rate)
             if not heard.text:
                 continue
@@ -145,7 +148,7 @@ def run_audio_mode(
                     text=heard.text,
                     source_lang=src_lang,
                     target_lang=dst_lang,
-                    speech_end_ts=time.monotonic(),
+                    speech_end_ts=speech_end,
                 )
             )
             print(f"{dst_lang.upper()}> {record.translated_text}  ({record.latency_ms:.0f} ms)")
@@ -175,12 +178,21 @@ def main(argv: list[str] | None = None) -> int:
 
     duplex_gate = HalfDuplexGate()
     transcript = BilingualTranscript()
+
+    def on_flag(r):
+        print(f"  ⚠ düşük güven ({r.flag_reason})")
+
     pipeline = InterpreterPipeline(
         translator=build_translator(args.translator),
         tts=SayTTS(voice=args.voice, gate=duplex_gate),
         gate=ConfidenceGate(args.threshold),
         transcript=transcript,
-        on_flag=lambda r: print(f"  ⚠ düşük güven ({r.flag_reason})"),
+        on_flag=on_flag,
+        on_record=(
+            (lambda r: BilingualTranscript.append_jsonl(args.jsonl_out, r))
+            if args.jsonl_out
+            else None
+        ),
     )
 
     src_lang, dst_lang = args.source_lang, args.target_lang
