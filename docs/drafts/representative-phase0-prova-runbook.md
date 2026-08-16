@@ -224,6 +224,24 @@ kalan üç kalem net: (1) We Lock AI (her iki yönde #1), (2) yön kilidi
 post-check, (3) EN yönü gecikme optimizasyonu. Donanımlı echo vakaları da
 hâlâ ayrıca koşulmadı.
 
+## Marka kararı (2026-08-16 — kalem 1 kapanışı: "düzelt" değil "işaretle")
+
+Matris ölçümü (2 model × 3 istem × 4 söyleyiş): EN söyleyişte marka
+çoğunlukla ✓; TR konuşma içinde HİÇBİR model/istem kombinasyonu güvenilir
+değil ("Biolojik", "ve lojistiği", "lojikal"). Çevirmen katmanında bağlamlı
+onarım denendi (statik toplantı brifingi + son 4 söz yuvarlanır bağlam):
+model onarım YAPMADI ama bozuk-marka cümlelerini 0.5-0.7 güvene düşürdü =
+işaretleniyor; kontroller (gerçek biyoloji/lojistik cümleleri) temiz.
+
+**Karar (teknik sorumlu):** TR içi bozuk marka OTOMATİK ONARILMAZ —
+işaretlenir; kurucu toplantıda bayrağı görür. Gerekçe: tüm onarım yolları
+(alias/fuzzy/LLM) gerçek kelime çakışması riski taşıyor ("ve lojistik
+olarak" gerçek cümlede de geçer); Faz 0'da yanlış-ama-özgüvenli çıktı,
+işaretli-eksik çıktıdan KÖTÜdür. Tutarlılık için düzelticiye gerçek-kelime
+stoplist'i eklendi (lojistik/biyolojik vb. hiçbir fuzzy eşleşmede yutulmaz).
+Kazanım olarak kalan: çevirmene konuşma bağlamı (brifing + son 4 söz) —
+genel çeviri kalitesi ve gönderme çözümü için kalıcı iyileştirme.
+
 ## "Done" değerlendirmesi (kurucu kriterleri)
 
 - [ ] Medyan gecikme ≤ 3 sn (jsonl kayıtlarından hesaplanır)

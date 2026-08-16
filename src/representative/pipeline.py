@@ -23,6 +23,9 @@ class Utterance:
     source_lang: str  # "tr" | "en"
     target_lang: str
     speech_end_ts: float  # seconds, from the pipeline clock
+    # Son birkaç önceki söz (kaynak metin) — çevirmen bağlamı; marka onarımı
+    # ve gönderme çözümü için (test 6 sonrası eklendi). Boş olabilir.
+    context: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

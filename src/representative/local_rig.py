@@ -65,8 +65,16 @@ class OpenAITranslator:
         "apologies, questions, or explanations. If the input is fragmentary, "
         "garbled, or unintelligible, translate what is literally there as best "
         "you can and report a LOW confidence (0.3 or less) — do not guess a "
-        "fluent meaning for garbage input. Reply with the translation on the "
-        "first line and 'confidence: <0-1>' on the second."
+        "fluent meaning for garbage input. Brand-name repair, ONLY from this "
+        "fixed list: Lumos, ChatLumos, We Lock AI, Lumos temsilcisi. Speech "
+        "recognition often garbles these (e.g. 'Biolojik', 've lojistiği', "
+        "'lojikal' for 'We Lock AI'); when the sentence context clearly refers "
+        "to one of the listed brands, use the correct brand name in your "
+        "translation and lower confidence to at most 0.7. NEVER apply this to "
+        "ordinary words used in their real meaning (e.g. biology/biyolojik in "
+        "a science context stays biology), and never repair anything outside "
+        "the list. Reply with the translation on the first line and "
+        "'confidence: <0-1>' on the second."
     )
 
     def __init__(self, model: str = "gpt-4o-mini") -> None:
@@ -75,16 +83,25 @@ class OpenAITranslator:
         self._client = OpenAI()
         self._model = model
 
+    _MEETING_CONTEXT = (
+        "Meeting context: this is a business meeting about the Lumos platform; "
+        "the speakers represent the company We Lock AI and its products Lumos "
+        "and ChatLumos."
+    )
+
     def translate(self, utterance: Utterance) -> TranslationResult:
+        system = self._PROMPT.format(src=utterance.source_lang, dst=utterance.target_lang)
+        system += "\n" + self._MEETING_CONTEXT
+        if utterance.context:
+            recent = "\n".join(f"- {line}" for line in utterance.context)
+            system += (
+                "\nRecent utterances in this conversation (background only — "
+                "translate ONLY the new utterance):\n" + recent
+            )
         response = self._client.chat.completions.create(
             model=self._model,
             messages=[
-                {
-                    "role": "system",
-                    "content": self._PROMPT.format(
-                        src=utterance.source_lang, dst=utterance.target_lang
-                    ),
-                },
+                {"role": "system", "content": system},
                 {"role": "user", "content": utterance.text},
             ],
         )
@@ -162,9 +179,12 @@ def run_audio_mode(
     from representative.stt import LUMOS_TERMS_PROMPT
     from representative.terms import TermCorrector, is_prompt_echo
 
+    from collections import deque
+
     frame_len = int(base_config.frame_ms * base_config.sample_rate // 1000)
     suppressor = RepeatSuppressor()
     corrector = TermCorrector()
+    recent: deque[str] = deque(maxlen=4)
     with sd.RawInputStream(
         samplerate=base_config.sample_rate,
         blocksize=frame_len,
@@ -205,8 +225,10 @@ def run_audio_mode(
                     source_lang=src_lang,
                     target_lang=dst_lang,
                     speech_end_ts=speech_end,
+                    context=tuple(recent),
                 )
             )
+            recent.append(heard_text)
             print(f"{dst_lang.upper()}> {record.translated_text}  ({record.latency_ms:.0f} ms)")
             drain()
 
