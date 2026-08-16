@@ -63,6 +63,26 @@ def new_approval_token() -> str:
     return secrets.token_hex(16)
 
 
+def _atomic_write_json(path: Path, record: dict[str, Any]) -> None:
+    """
+    Kaydı geçici dosya + ``os.replace`` ile yazar.
+
+    Yerinde truncate+write, kilitsiz okuyuculara boş/yarım JSON gösterebilir
+    (ör. eşzamanlı execute yarışında kaybeden taraf `approval_not_found` görürdü).
+    ``os.replace`` atomik olduğundan okuyucu ya eski ya yeni tam içeriği görür.
+    """
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.{secrets.token_hex(4)}.tmp")
+    try:
+        tmp.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
+        os.replace(tmp, path)
+    except OSError:
+        try:
+            tmp.unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise
+
+
 def write_pending_approval(record: dict[str, Any], repo_root: Path) -> Path:
     """Kaydı `.lumos/pending_approvals/<approval_id>.json` altına yazar."""
     approval_id = str(record.get("approval_id") or "").strip()
@@ -73,7 +93,7 @@ def write_pending_approval(record: dict[str, Any], repo_root: Path) -> Path:
     rel = f".lumos/pending_approvals/{approval_id}.json"
     record.setdefault("approval_file", rel)
     path = pending_dir / f"{approval_id}.json"
-    path.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
+    _atomic_write_json(path, record)
     try:
         from kando_bridge.pc_remote_audit import EVENT_PENDING_CREATED, append_pc_remote_audit
 
@@ -171,7 +191,7 @@ def mark_expired_if_needed(path: Path, record: dict[str, Any]) -> bool:
     record["status"] = STATUS_EXPIRED
     record["expired_at"] = _iso(_utc_now())
     try:
-        path.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
+        _atomic_write_json(path, record)
     except OSError:
         pass
     try:
@@ -232,7 +252,7 @@ def validate_approval_token(
         record["status"] = STATUS_EXPIRED
         record["expired_at"] = _iso(_utc_now())
         try:
-            path.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
+            _atomic_write_json(path, record)
         except OSError:
             pass
         return False, "approval_expired", None
@@ -263,7 +283,7 @@ def approve_pending_record(path: Path, record: dict[str, Any]) -> dict[str, Any]
     record["status"] = STATUS_APPROVED
     record["approved_at"] = _iso(_utc_now())
     record["used"] = False
-    path.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
+    _atomic_write_json(path, record)
     from kando_bridge.pc_remote_audit import EVENT_PENDING_APPROVED
 
     _audit_from_pending_path(path, record, event=EVENT_PENDING_APPROVED)
@@ -273,7 +293,7 @@ def approve_pending_record(path: Path, record: dict[str, Any]) -> dict[str, Any]
 def reject_pending_record(path: Path, record: dict[str, Any]) -> dict[str, Any]:
     record["status"] = STATUS_REJECTED
     record["rejected_at"] = _iso(_utc_now())
-    path.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
+    _atomic_write_json(path, record)
     from kando_bridge.pc_remote_audit import EVENT_PENDING_REJECTED
 
     _audit_from_pending_path(path, record, event=EVENT_PENDING_REJECTED)
@@ -283,7 +303,7 @@ def reject_pending_record(path: Path, record: dict[str, Any]) -> dict[str, Any]:
 def consume_pending_record(path: Path, record: dict[str, Any]) -> dict[str, Any]:
     record["used"] = True
     record["consumed_at"] = _iso(_utc_now())
-    path.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
+    _atomic_write_json(path, record)
     return record
 
 
@@ -296,10 +316,13 @@ def try_consume_approval_token(
     Validate approved token and mark ``used=True`` before stub execute (replay guard).
 
     Re-reads disk under an exclusive lock when available (Unix) to reduce TOCTOU races.
+    Kilit, JSON dosyasının kendisinde değil sabit bir ``<name>.json.lock`` sidecar
+    dosyasında tutulur: kayıt ``os.replace`` ile atomik yenilendiğinden inode değişir,
+    JSON üzerindeki flock ikinci okuyucuyu serileştiremezdi.
 
     Windows: ``fcntl`` is unavailable — falls back to validate + write without an
     exclusive lock. Concurrent double-execute is possible on Windows until a
-    cross-platform lock (e.g. ``msvcrt.locking`` or atomic rename) is added.
+    cross-platform lock (e.g. ``msvcrt.locking``) is added.
     """
     tok = (token or "").strip()
     aid = (approval_id or "").strip()
@@ -322,13 +345,12 @@ def try_consume_approval_token(
         fcntl = None  # type: ignore[assignment]
 
     if fcntl is not None:
-        with path.open("r+", encoding="utf-8") as fh:
-            fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+        lock_path = path.with_name(f"{path.name}.lock")
+        with lock_path.open("a", encoding="utf-8") as lock_fh:
+            fcntl.flock(lock_fh.fileno(), fcntl.LOCK_EX)
             try:
-                fh.seek(0)
-                raw = fh.read()
-                fresh = json.loads(raw) if raw.strip() else {}
-                if not isinstance(fresh, dict):
+                fresh = _load_json_path(path)
+                if fresh is None:
                     return False, "approval_not_found", None
                 mark_expired_if_needed(path, fresh)
                 ok, reason, _ = _validate_record_for_execute(fresh, tok)
@@ -336,13 +358,10 @@ def try_consume_approval_token(
                     return False, reason, None
                 fresh["used"] = True
                 fresh["consumed_at"] = _iso(_utc_now())
-                fh.seek(0)
-                fh.truncate()
-                fh.write(json.dumps(fresh, ensure_ascii=False, indent=2))
-                fh.flush()
+                _atomic_write_json(path, fresh)
                 return True, "", fresh
             finally:
-                fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+                fcntl.flock(lock_fh.fileno(), fcntl.LOCK_UN)
 
     ok, reason, record = validate_approval_token(repo_root, aid, tok)
     if not ok or record is None:

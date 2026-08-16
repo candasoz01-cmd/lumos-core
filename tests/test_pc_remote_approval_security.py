@@ -155,6 +155,51 @@ def test_concurrent_execute_one_wins(tmp_path: Path) -> None:
     assert len(already_used) == 1
 
 
+def test_concurrent_execute_many_losers_all_already_used(tmp_path: Path) -> None:
+    """
+    Eight threads race one approved token — losers must ALL see approval_already_used.
+
+    Regression: in-place truncate+write let unlocked readers observe empty/partial
+    JSON, so a loser could get approval_not_found instead (flaky CI on PR #731).
+    Atomic os.replace writes make the loser outcome deterministic.
+    """
+    pending = execute_tool_stub(
+        CMD_OPEN_URL,
+        {"url": "https://example.com"},
+        repo_root=tmp_path,
+    )
+    _approve_pending(tmp_path, pending)
+    token = str(pending["approval_token"])
+    aid = str(pending["approval_id"])
+    n = 8
+    results: list[dict] = []
+    lock = threading.Lock()
+    barrier = threading.Barrier(n)
+
+    def _run() -> None:
+        barrier.wait()
+        r = execute_tool_stub(
+            CMD_OPEN_URL,
+            {"url": "https://example.com"},
+            approval_token=token,
+            approval_id=aid,
+            repo_root=tmp_path,
+        )
+        with lock:
+            results.append(r)
+
+    threads = [threading.Thread(target=_run) for _ in range(n)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=10.0)
+
+    assert len(results) == n
+    errors = sorted(str(r.get("error")) for r in results if r.get("status") != "stub")
+    assert [r.get("status") for r in results].count("stub") == 1
+    assert errors == ["approval_already_used"] * (n - 1)
+
+
 def test_pending_disk_has_no_used_before_execute(tmp_path: Path) -> None:
     pending = execute_tool_stub(
         CMD_OPEN_URL,
