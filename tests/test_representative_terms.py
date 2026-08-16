@@ -19,7 +19,6 @@ def corrector() -> TermCorrector:
             "fukuki sorumluluğu ve ilocikali olarak biz üstleniyoruz.",
             "We Lock AI",
         ),
-        ("Hukuki sorumluluğu WeLogica'a olarak biz üstleniyoruz.", "We Lock AI"),
         ("Plumostem silcisi toplantıya katılıp çevirecek.", "Lumos temsilcisi"),
         ("Luma ostem silcisi toplantıya katıldı.", "Lumos temsilcisi"),
     ],
@@ -46,8 +45,41 @@ def test_no_false_positives_on_ordinary_turkish(corrector, control):
     assert corrector.correct(control) == control
 
 
-def test_viluk_is_honestly_out_of_scope(corrector):
-    # 0.31 benzerlik — düzeltmeye kalkmak yanlış pozitif riskine değmez;
-    # bu vaka STT tarafında (bulut model + istem) çözülmeli.
-    text = "Okuk sorunluluğu, viluk olarak biz üstleniyoruz."
-    assert "We Lock AI" not in corrector.correct(text)
+@pytest.mark.parametrize(
+    "garbled",
+    [
+        "Okuk sorunluluğu, viluk olarak biz üstleniyoruz.",  # 0.31
+        "Hukuki sorumluluğu WeLogica'a olarak biz üstleniyoruz.",  # 0.59
+    ],
+)
+def test_far_garbles_are_honestly_out_of_scope(corrector, garbled):
+    # 0.70 bandının altı: düzeltmeye kalkmak yanlış pozitif riskine değmez;
+    # bu vakalar STT tarafında (bulut model + istem) çözülmeli.
+    assert "We Lock AI" not in corrector.correct(garbled)
+
+
+def test_t4_regression_real_speech_is_never_rewritten(corrector):
+    # Test 4 gerçek yanlış pozitifi: "Lumos projesini" (0.62) "Lumos
+    # temsilcisi"ne çevrilmişti — anlam bozan düzeltme yasak.
+    text = "Merhaba, ben Candaş. Bugün Lumos projesini konuşmak istiyorum."
+    assert corrector.correct(text) == text
+
+
+def test_t4_prompt_echo_is_detected():
+    from representative.stt import LUMOS_TERMS_PROMPT
+    from representative.terms import is_prompt_echo
+
+    echoes = [
+        "Lumos, ChatLumos, We Lock AI, Lumos temsilcisi, toplantı, sözleşme, teklif.",
+        "Lumos ChatLumos WeLock AI Lumos temsilcisi toplantı sözleşme teklif",
+        "ChatLumos, We Lock AI, Lumos temsilcisi, toplantı, sözleşme, teklif.",
+    ]
+    for echo in echoes:
+        assert is_prompt_echo(echo, LUMOS_TERMS_PROMPT) is True
+    real = [
+        "Merhaba, ben Candaş. Bugün Lumos projesini konuşmak istiyorum.",
+        "Sözleşmeyi elli bin dolara imzalayacağız ve teslimat bir Ekim'de olacak.",
+        "ChatLumos tüm yapay zeka araçlarını tek yerden yönetmesini sağlar.",
+    ]
+    for text in real:
+        assert is_prompt_echo(text, LUMOS_TERMS_PROMPT) is False

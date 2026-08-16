@@ -156,7 +156,8 @@ def run_audio_mode(
             except queue.Empty:
                 return
 
-    from representative.terms import TermCorrector
+    from representative.stt import LUMOS_TERMS_PROMPT
+    from representative.terms import TermCorrector, is_prompt_echo
 
     frame_len = int(base_config.frame_ms * base_config.sample_rate // 1000)
     suppressor = RepeatSuppressor()
@@ -184,6 +185,9 @@ def run_audio_mode(
             speech_end = time.monotonic() - config.end_silence_ms / 1000.0
             heard = stt.transcribe(utterance_pcm, config.sample_rate)
             if not heard.text:
+                continue
+            if is_prompt_echo(heard.text, LUMOS_TERMS_PROMPT):
+                print(f"  (istem yankısı düşürüldü: {heard.text[:40]})")
                 continue
             heard_text = corrector.correct(heard.text)
             if suppressor.should_drop(heard_text, time.monotonic()):
