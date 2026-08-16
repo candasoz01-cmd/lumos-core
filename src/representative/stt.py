@@ -43,8 +43,18 @@ class FasterWhisperSTT:
         if sample_rate != 16000:
             raise ValueError("rig captures at 16 kHz; resampling is out of scope")
         audio = np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768.0
+        # vad_filter + no_speech eleme (test 2 bulgusu): gürültü kesitleri
+        # whisper'a girince "Teşekkürler."/"Altyazı M.K." halüsinasyonları
+        # üretiyordu; konuşma olmayan kesitler modele hiç gitmez / elenir.
         segments, info = self._model.transcribe(
-            audio, language=self._language, initial_prompt=self._initial_prompt
+            audio,
+            language=self._language,
+            initial_prompt=self._initial_prompt,
+            vad_filter=True,
         )
-        text = " ".join(segment.text.strip() for segment in segments).strip()
-        return SttResult(text=text, language=info.language)
+        texts = [
+            segment.text.strip()
+            for segment in segments
+            if getattr(segment, "no_speech_prob", 0.0) <= 0.6
+        ]
+        return SttResult(text=" ".join(texts).strip(), language=info.language)

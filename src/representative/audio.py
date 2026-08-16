@@ -42,6 +42,38 @@ class HalfDuplexGate:
         self._speaking_depth = max(0, self._speaking_depth - 1)
 
 
+def calibrate_rms_threshold(frames: list[bytes], floor: float = 500.0, factor: float = 4.0) -> float:
+    """Ambient-noise calibration (test 2 bulgusu): eşik = max(taban, ortam × çarpan).
+
+    Sabit eşik, ortam gürültüsünü "söz" sanıp whisper halüsinasyon döngüsü
+    başlatıyordu; eşik açılışta ortama göre ölçülür.
+    """
+    if not frames:
+        return floor
+    ambient = max(frame_rms(f) for f in frames)
+    return max(floor, ambient * factor)
+
+
+class RepeatSuppressor:
+    """Drops identical consecutive texts inside a time window.
+
+    Test 2 bulgusu: whisper gürültüde aynı halüsinasyonu ("Teşekkürler.")
+    art arda üretip TTS spam'ine dönüştürdü; ardışık aynı metin penceresi
+    içinde düşürülür.
+    """
+
+    def __init__(self, window_s: float = 10.0) -> None:
+        self._last_text: str | None = None
+        self._last_at = float("-inf")
+        self._window_s = window_s
+
+    def should_drop(self, text: str, now: float) -> bool:
+        duplicate = text == self._last_text and (now - self._last_at) < self._window_s
+        self._last_text = text
+        self._last_at = now
+        return duplicate
+
+
 @dataclass(frozen=True)
 class SegmenterConfig:
     sample_rate: int = 16000

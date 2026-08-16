@@ -18,7 +18,13 @@ import subprocess
 import sys
 import time
 
-from representative.audio import HalfDuplexGate, SegmenterConfig, UtteranceSegmenter
+from representative.audio import (
+    HalfDuplexGate,
+    RepeatSuppressor,
+    SegmenterConfig,
+    UtteranceSegmenter,
+    calibrate_rms_threshold,
+)
 from representative.pipeline import (
     BilingualTranscript,
     ConfidenceGate,
@@ -111,9 +117,24 @@ class SayTTS:
 
 
 def run_audio_mode(
-    pipeline: InterpreterPipeline, segmenter, stt, sample_rate: int, src_lang: str, dst_lang: str
+    pipeline: InterpreterPipeline,
+    stt,
+    duplex_gate: HalfDuplexGate,
+    base_config: SegmenterConfig,
+    src_lang: str,
+    dst_lang: str,
 ) -> None:
-    """Blocking mic loop: capture → endpoint → STT → pipeline."""
+    """Blocking mic loop: capture → endpoint → STT → pipeline.
+
+    Test 2 (2026-08-14) sertleştirmeleri:
+    - Kapı kontrolü YAKALAMA anında (callback): TTS konuşurken gelen kareler
+      kuyruğa hiç girmez — kuyruk birikmesi half-duplex kapıyı deliyordu ve
+      rig kendi TTS sesini "duyup" çeviri döngüsüne giriyordu.
+    - Her çeviriden sonra kuyruk boşaltılır (birikmiş yankı kuyruğu temizlenir).
+    - Açılışta ~1 sn ortam gürültüsü ölçülür, eşik ona göre kalibre edilir.
+    - Ardışık aynı metin penceresi içinde düşürülür (halüsinasyon spam'i).
+    """
+    import dataclasses
     import queue
 
     import sounddevice as sd  # optional dep, deferred
@@ -121,26 +142,44 @@ def run_audio_mode(
     frames: queue.Queue[bytes] = queue.Queue()
 
     def on_audio(indata, _frames, _time, _status) -> None:
-        frames.put(bytes(indata))
+        if duplex_gate.listening:
+            frames.put(bytes(indata))
 
-    frame_len = int(sample_rate * 0.03)  # 30 ms
-    print(f"Mikrofon açık — {src_lang.upper()} konuş; Ctrl+C ile çık.")
+    def drain() -> None:
+        while True:
+            try:
+                frames.get_nowait()
+            except queue.Empty:
+                return
+
+    frame_len = int(base_config.frame_ms * base_config.sample_rate // 1000)
+    suppressor = RepeatSuppressor()
     with sd.RawInputStream(
-        samplerate=sample_rate,
+        samplerate=base_config.sample_rate,
         blocksize=frame_len,
         dtype="int16",
         channels=1,
         callback=on_audio,
     ):
+        print("Ortam gürültüsü ölçülüyor (1 sn — sessiz kal)...")
+        calibration = [frames.get() for _ in range(1000 // base_config.frame_ms)]
+        threshold = calibrate_rms_threshold(calibration, floor=base_config.rms_threshold)
+        config = dataclasses.replace(base_config, rms_threshold=threshold)
+        segmenter = UtteranceSegmenter(config, gate=duplex_gate)
+        print(f"Eşik kalibre edildi: {threshold:.0f}")
+        print(f"Mikrofon açık — {src_lang.upper()} konuş; Ctrl+C ile çık.")
         while True:
             utterance_pcm = segmenter.feed(frames.get())
             if utterance_pcm is None:
                 continue
             # Söz-sonu damgası STT'den ÖNCE ve endpointing beklemesi kadar geriye
             # çekilir: algılanan gecikme konuşmacının sustuğu anda başlar.
-            speech_end = time.monotonic() - segmenter.config.end_silence_ms / 1000.0
-            heard = stt.transcribe(utterance_pcm, sample_rate)
+            speech_end = time.monotonic() - config.end_silence_ms / 1000.0
+            heard = stt.transcribe(utterance_pcm, config.sample_rate)
             if not heard.text:
+                continue
+            if suppressor.should_drop(heard.text, time.monotonic()):
+                print(f"  (tekrar düşürüldü: {heard.text[:40]})")
                 continue
             print(f"{src_lang.upper()}(duyulan)> {heard.text}")
             record = pipeline.process(
@@ -152,6 +191,7 @@ def run_audio_mode(
                 )
             )
             print(f"{dst_lang.upper()}> {record.translated_text}  ({record.latency_ms:.0f} ms)")
+            drain()
 
 
 def build_translator(name: str) -> Translator:
@@ -197,15 +237,20 @@ def main(argv: list[str] | None = None) -> int:
 
     src_lang, dst_lang = args.source_lang, args.target_lang
     if args.audio:
+        import signal
+
         from representative.stt import LUMOS_TERMS_PROMPT, FasterWhisperSTT
 
-        config = SegmenterConfig()
-        segmenter = UtteranceSegmenter(config, gate=duplex_gate)
+        def on_term(_sig, _frame):
+            # SIGTERM'de de temiz kapanış (test 2: SIGINT engelli anlarda yakalanmadı)
+            raise KeyboardInterrupt
+
+        signal.signal(signal.SIGTERM, on_term)
         stt = FasterWhisperSTT(
             model_size=args.stt_model, language=src_lang, initial_prompt=LUMOS_TERMS_PROMPT
         )
         try:
-            run_audio_mode(pipeline, segmenter, stt, config.sample_rate, src_lang, dst_lang)
+            run_audio_mode(pipeline, stt, duplex_gate, SegmenterConfig(), src_lang, dst_lang)
         except KeyboardInterrupt:
             pass
     else:
