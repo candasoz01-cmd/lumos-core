@@ -153,12 +153,62 @@ _META_LABEL_RE = re.compile(r"(?:low|medium|high)(?:\s+confidence)?[\s.!]*", re.
 _META_PHRASES = ("translation not clear",)
 
 
+def fold(text: str) -> str:
+    """Türkçe-güvenli küçültme.
+
+    `"İşte".casefold()` → "i̇şte" (i + birleşen nokta): desen listesindeki
+    "işte" ile EŞLEŞMEZ ve kapı sessizce açık kalır. Yalnız noktalı büyük İ
+    çevrilir; noktasız I'ya DOKUNULMAZ — "AI" → "aı" olsaydı İngilizce
+    desenler ("as an ai") bu kez kaçardı.
+    """
+    return text.replace("İ", "i").casefold()
+
+
 def is_meta_output(text: str) -> bool:
     stripped = text.strip()
     if _META_LABEL_RE.fullmatch(stripped):
         return True
-    lower = stripped.lower()
+    lower = fold(stripped)
     return any(phrase in lower for phrase in _META_PHRASES)
+
+
+# Strict tercüman kipi (canlı insan testi 4 bulgusu 2, 2026-08-17): toplantıda
+# konuşulan her cümle ÇEVRİLECEK İÇERİKTİR, modele verilmiş talimat değildir.
+# Canlı kayıtta "Sen şimdi yabancı muhatap rolündesin." gibi cümleler geçti;
+# bunları rol talimatı sanan bir model tercüman olmaktan çıkıp muhatap olur.
+# Birinci savunma istemin kendisidir (OpenAITranslator._STRICT_CLAUSE); bu
+# kapı ikinci savunmadır: asistan kipine düşmüş çıktı sese ÇIKMAZ.
+#
+# Desenler bilinçli olarak dar: yalnız (a) yapay zekâ kimliğine veya (b) çeviri
+# EYLEMİNİN kendisine atıfta bulunan kalıplar. Toplantıda insan böyle konuşmaz.
+# "I cannot attend the meeting" gibi GERÇEK çeviriler kapsam dışıdır — bu kapı
+# reddi değil, tercüman-dışı davranışı yakalar.
+_NON_TRANSLATION_PHRASES = (
+    "as an ai",
+    "i am an ai",
+    "i'm an ai",
+    "bir yapay zeka olarak",
+    "bir yapay zekâ olarak",
+    "here is the translation",
+    "here's the translation",
+    "işte çeviri",
+    "i cannot translate",
+    "i can't translate",
+    "çeviremem",
+    "çeviri yapamam",
+)
+# Yalnız BAŞTA duran etiket önekleri (çeviri metninin içinde geçmesi serbest).
+_NON_TRANSLATION_PREFIX_RE = re.compile(
+    r"^\s*(translation|çeviri|translated text)\s*:", re.IGNORECASE
+)
+
+
+def is_non_translation(text: str) -> bool:
+    """Çevirmen tercüman olmayı bırakıp asistan gibi cevap verdi mi?"""
+    lower = fold(text.strip())
+    if _NON_TRANSLATION_PREFIX_RE.match(text):
+        return True
+    return any(phrase in lower for phrase in _NON_TRANSLATION_PHRASES)
 
 
 class InterpreterPipeline:
@@ -216,6 +266,12 @@ class InterpreterPipeline:
             # metin transkriptte denetim için aynen kalır.
             lang_ok = False
             flagged, reason = True, "meta_output"
+        elif is_non_translation(result.text):
+            # Strict kip: model tercüman olmayı bırakıp asistan gibi cevap
+            # verdiyse (rol talimatı sanılan cümle, "İşte çeviri:" etiketi,
+            # yapay zekâ kimliği) çıktı seslendirilmez.
+            lang_ok = False
+            flagged, reason = True, "non_translation_output"
         elif lang_ok:
             self._tts.speak(result.text, utterance.target_lang)
             flagged, reason = decision.flagged, decision.reason
