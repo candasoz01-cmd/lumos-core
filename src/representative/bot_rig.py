@@ -246,7 +246,7 @@ def main(argv: list[str] | None = None) -> int:
     from representative.terms import TermCorrector, is_prompt_echo
 
     parser = argparse.ArgumentParser(description="Faz 0 toplantı-içi tercüman rig'i")
-    parser.add_argument("--meeting-url", required=True)
+    parser.add_argument("--meeting-url")
     parser.add_argument("--source-lang", default="tr", choices=("tr", "en"))
     parser.add_argument("--target-lang", default="en", choices=("tr", "en"))
     parser.add_argument(
@@ -261,6 +261,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--jsonl-out", default="prova_bot.jsonl")
     parser.add_argument(
+        "--preflight",
+        action="store_true",
+        help="BOTSUZ ön uçuş: env + tünel öz-testi + çevirmen/STT bağlantısı "
+        "doğrulanır, Recall botu YARATILMAZ, toplantı linki gerekmez. Canlı "
+        "provadan önce koş — geçmişte canlı testi yakan hatalar burada görünür",
+    )
+    parser.add_argument(
         "--keep-media",
         action="store_true",
         help="Varsayılan davranış oturum sonunda erken delete_media'dır "
@@ -269,6 +276,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.source_lang == args.target_lang:
         parser.error("source and target languages must differ")
+    if not args.preflight and not args.meeting_url:
+        parser.error("--meeting-url zorunlu (yalnız --preflight ile atlanabilir)")
+    missing = [v for v in ("RECALL_API_KEY", "RECALL_REGION_URL", "OPENAI_API_KEY")
+               if not os.environ.get(v)]
+    if missing:
+        # Fail-loud: eksik anahtar canlı koşuda tünelden sonra patlamasın.
+        parser.error("eksik ortam değişkeni: " + ", ".join(missing))
 
     gate = HalfDuplexGate()
     inbound: queue.Queue[bytes] = queue.Queue()
@@ -307,6 +321,25 @@ def main(argv: list[str] | None = None) -> int:
     print(f"tünel: {wss_url}")
     verify_tunnel(wss_url, probe_received)
     print("tünel öz-testi: GEÇTİ (uçtan uca ws doğrulandı)")
+
+    if args.preflight:
+        # Botsuz ön uçuş: pahalı olan her şey (tünel, anahtarlar, çevirmen,
+        # akışlı STT oturumu) burada denenir; Recall botu YARATILMAZ.
+        from representative.local_rig import OpenAITranslator as _T
+        from representative.realtime_stt import RealtimeSTTStream as _S
+
+        warm = _T().translate(
+            Utterance(text="Merhaba.", source_lang="tr", target_lang="en", speech_end_ts=0.0)
+        )
+        print(f"çevirmen: GEÇTİ (örnek çıktı: {warm.text[:40]!r})")
+        probe_stt = _S(language=None, prompt=LUMOS_TERMS_PROMPT)
+        probe_stt.start()
+        probe_stt.stop()
+        print("akışlı STT oturumu: GEÇTİ")
+        if ngrok_proc is not None:
+            ngrok_proc.terminate()
+        print("\nÖN UÇUŞ TAMAM — canlı prova için hazır (bot yaratılmadı).")
+        return 0
 
     ingress = RecallMeetingIngress(
         REHEARSAL_RETENTION, os.environ["RECALL_REGION_URL"]

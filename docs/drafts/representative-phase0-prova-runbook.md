@@ -540,6 +540,40 @@ python -m representative.local_rig --translator openai --jsonl-out prova_iki_yon
 TR ve EN cümleleri sırayla yaz; her satırda `yön: detected` görünmeli ve yön
 cümleye göre değişmeli. Papağan (kaynak=hedef) çıkarsa dur — bu bir regresyondur.
 
+### Tek kişilik canlı prova — insan testi 5'in kapısı
+
+İkinci insan GEREKMİYOR. Kurucu birkaç cümle söyler, bot chunk TTS ile
+cevaplar, ölçüm jsonl'den okunur.
+
+**1. Botsuz ön uçuş** (bot yaratmaz, toplantı linki istemez):
+
+```bash
+python -m representative.bot_rig --preflight
+```
+
+Doğruladıkları: üç ortam değişkeni · cloudflared tüneli · uçtan uca ws
+öz-testi · çevirmen çağrısı · akışlı STT oturumu. Canlı insan testi 2 ve 3
+tam olarak bu adımlar atlandığı için FAIL olmuştu. Bu komut GEÇMEDEN Meet
+açma.
+
+**2. Canlı prova** (Meet linki elde):
+
+```bash
+python -m representative.bot_rig --meeting-url "<meet-linki>" --jsonl-out prova_chunk.jsonl
+```
+
+Bot üçüncü katılımcı olarak görünüp ifşa duyulduktan SONRA konuş. 8-10 cümle
+yeter; hem TR hem EN söyle (yön yönlendirmesi de ölçülsün).
+
+**3. Karar** — beyanla değil çıkış koduyla:
+
+```bash
+python -m representative.latency prova_chunk.jsonl
+```
+
+Çıkış kodu 0 → hedef tuttu, testçi çağırmaya değer. 1 → rapor hangi aşamanın
+(stt / translate / tts_to_first_audio) suçlu olduğunu söyler; kör bakmak yok.
+
 ### İnsan testi 5'in ön koşulu
 
 Chunk TTS bu repoya girmeden ve yukarıdaki 3b kararı verilmeden yeni canlı
