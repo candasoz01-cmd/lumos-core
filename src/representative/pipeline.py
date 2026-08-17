@@ -112,6 +112,29 @@ class UtteranceRecord:
     e2e_first_audio_ms: float = 0.0
 
 
+# Kurucu kararı (2026-08-17, seçenek C): eşik altı çeviri SESLENDİRİLİR ama
+# transkript/panelde düşük güven olarak İŞARETLENİR. Gerekçe: susmak
+# (seçenek B) toplantıda boşluk yaratır; işaretsiz teslim (seçenek A) şüpheli
+# çeviriyi normalmiş gibi sunar. Kullanıcı kalite sinyalini görebilmeli.
+#
+# Kod tarafında teslim zaten yapılıyordu; eksik olan İŞARETİN OKUNABİLİRLİĞİYDİ:
+# transkript "işaretli ama duyuldu" ile "hiç seslendirilmedi"yi aynı gösteriyordu.
+_FLAG_LABELS = {
+    "ok": "",
+    "below_threshold": "⚠ düşük güven",
+    "no_confidence_signal": "⚠ güven sinyali yok",
+    "empty_translation": "✕ boş çeviri",
+    "meta_output": "✕ iç etiket (sesli okunmadı)",
+    "non_translation_output": "✕ tercüman dışı çıktı",
+    "wrong_output_language": "✕ yanlış dil",
+}
+
+
+def flag_label(record: "UtteranceRecord") -> str:
+    """İşaretin insan tarafından okunur karşılığı (panel/transkript dili)."""
+    return _FLAG_LABELS.get(record.flag_reason, f"⚠ {record.flag_reason}")
+
+
 class BilingualTranscript:
     """Append-only transcript; records are never edited or removed."""
 
@@ -140,12 +163,16 @@ class BilingualTranscript:
             f.write(json.dumps(asdict(record), ensure_ascii=False) + "\n")
 
     def to_markdown(self) -> str:
-        lines = ["| src | çeviri | güven | işaret | gecikme (ms) |", "|---|---|---|---|---|"]
+        lines = [
+            "| src | çeviri | güven | teslim | işaret | gecikme (ms) |",
+            "|---|---|---|---|---|---|",
+        ]
         for r in self._records:
-            flag = "⚠ düşük güven" if r.flagged else ""
             conf = "-" if r.confidence is None else f"{r.confidence:.2f}"
+            delivery = "✓ duyuldu" if r.delivered else "✕ seslendirilmedi"
             lines.append(
-                f"| {r.source_text} | {r.translated_text} | {conf} | {flag} | {r.latency_ms:.0f} |"
+                f"| {r.source_text} | {r.translated_text} | {conf} | {delivery} | "
+                f"{flag_label(r)} | {r.latency_ms:.0f} |"
             )
         return "\n".join(lines)
 
