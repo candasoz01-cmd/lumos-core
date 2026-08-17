@@ -201,6 +201,7 @@ kullanır, ayrı bir motor kurmaz.
   görünürlük dilimi kabul edildi (2026-08-17, ADR-025).
 - **Uygulama durumu:** mevcut `claim_cli list` varsayılanı salt-okunur duvar
   özeti. Yeni public sayfa ve komut kapısı **yok**.
+<<<<<<< HEAD
 - **Decision Queue / Human Action Queue (2026-08-24):** mevcut Agent Wall
   başlığının alt kavramı — paralel ajan işlerinde insan onayı bekleyen
   karar noktalarını görünür kılmak. Ayrı ROADMAP maddesi veya
@@ -211,6 +212,8 @@ kullanır, ayrı bir motor kurmaz.
   sınırı ayrı onay. Kapsam `src/lumos_board/` dilimlerinin genişletmesidir;
   yeni ürün / yeni Agent Network / ajanlar arası doğrudan komut /
   auto-merge / auto-deploy / dış gönderim yok.
+=======
+>>>>>>> 6d053e89 (fix(board): duvar özetini mevcut claim_cli list yüzeyine bağla)
 - STOP LIST'teki "yeni agent / orchestration katmanı" yasağı **sürer**; ADR-025
   yalnız mevcut Board kaydını okumaya izin verir, el/kumanda açmaz.
 

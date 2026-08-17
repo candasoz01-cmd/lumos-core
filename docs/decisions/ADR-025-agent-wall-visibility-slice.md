@@ -46,7 +46,9 @@ yazılmaz, CLI bayrağı olarak eklenmez, API olarak açılmaz. JSON sözleşmes
 
 ### 4. Yüzey sınırı
 
-- Çıktı iç operatör CLI'sidir (`python -m lumos_board.claim_cli wall`).
+- Operatör yüzeyi **mevcut** Board CLI'dir: `python -m lumos_board.claim_cli list`.
+  Varsayılan çıktı duvar özetidir. `wall` aynı projeksiyonun takma adıdır;
+  ikinci bir panel veya komut ailesi değildir.
 - Yeni public sayfa, panel widget veya kullanıcı API'si **yok** (STOP LIST:
   yeni sayfa; ADR-019 sızıntı yasağı).
 - Kullanıcı yüzüne ajan adı, worktree, heartbeat, PR/merge kapısı sızmaz.
