@@ -342,6 +342,29 @@ Done ilan edilirse: yerel TR↔EN dilimi kapanır; sıradaki kapı "Recall hazı
 disclosure). Realtime backend'in varsayılan yapılması da done kararıyla
 birlikte önerilir (iki canlı koşu kanıtı var).
 
+## Recall / MeetingIngress dilimi (2026-08-17 — "Recall hazır" tetiği alındı)
+
+Kurucu zinciri onayladı: Recall hazır → MeetingIngress → mevcut ölçülmüş
+tercüme çekirdeği. Durum:
+
+1. **Secret**: `RECALL_API_KEY` henüz env'de YOK. Yerleştirme (değer chat'e/
+   repoya girmez): `echo 'export RECALL_API_KEY=ANAHTAR' >> ~/.zshenv`
+   Bölge taban URL'si de env ile: `RECALL_REGION_URL` (ör.
+   `https://us-west-2.recall.ai` — hesabın açıldığı bölgeye göre).
+2. **İskelet main'de**: `meeting_ingress.py` — sağlayıcı-bağımsız
+   `MeetingIngress` arayüzü + `RecallMeetingIngress`. Kurucu şartları kod
+   düzeyinde testli: retention imza-düzeyi zorunlu (fail-closed; "forever"
+   diye bir seçenek YOK), prova=timed/24h + erken `delete_media`, gerçek
+   toplantı=zero, yalnız Meet URL, Recall transkripsiyonu asla, metadata
+   yalnız opak referans, ifşa cümleleri (TR+EN) hazır, `kill()` ayrı uç.
+3. **Bot kapalı provası (anahtar gelince)**: kurucu boş bir Meet açar →
+   bot katılır → ifşa cümlesini söyler → 8 adımlık senaryo (katılım →
+   disclosure → TR→EN → EN→TR → düşük güven → transcript → kill-switch →
+   çıkış) → `delete_media` ile erken silme kanıtlanır. HTTP uç şekilleri
+   ilk canlı çağrıda doğrulanır; sapma çıkarsa iskelet küçük PR ile düzelir.
+4. **Hatırlatma**: gerçek DIŞ katılımcılı toplantı öncesi DPA + veri
+   bölgesi hâlâ BLOKAJ (karar tablosu şartı 4).
+
 ## "Done" değerlendirmesi (kurucu kriterleri)
 
 - [ ] Medyan gecikme ≤ 3 sn (jsonl kayıtlarından hesaplanır)

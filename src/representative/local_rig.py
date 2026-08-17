@@ -339,10 +339,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--audio", action="store_true", help="microphone mode (Aşama B)")
     parser.add_argument(
         "--stt-backend",
-        default="cloud",
+        default="realtime",
         choices=("cloud", "local", "realtime"),
-        help="cloud=toplu gpt-4o-mini-transcribe; local=faster-whisper; "
-        "realtime=akışlı transkripsiyon (kalem 3 — sunucu VAD, en düşük kuyruk)",
+        help="realtime=akışlı (VARSAYILAN — test 7/8 canlı kanıtı: medyan "
+        "1.92/2.28s); cloud=toplu gpt-4o-mini-transcribe; local=faster-whisper",
     )
     parser.add_argument("--stt-model", default="small", help="faster-whisper model size (local)")
     parser.add_argument("--source-lang", default="tr", choices=("tr", "en"))
