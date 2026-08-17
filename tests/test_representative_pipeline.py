@@ -192,3 +192,49 @@ def test_utterance_context_reaches_translator():
     )
     pipeline.process(utt)
     assert seen["context"] == ("önceki cümle",)
+
+
+def _run_with_tts(translator_text: str, confidence: float | None):
+    """Meta-sızıntı testleri TTS'e ulaşan metni görmek zorunda."""
+    tts = RecordingTTS()
+    transcript = BilingualTranscript()
+    pipeline = InterpreterPipeline(
+        translator=StubTranslator(translator_text, confidence),
+        tts=tts,
+        gate=ConfidenceGate(0.8),
+        transcript=transcript,
+        clock=FakeClock(10.5),
+    )
+    record = pipeline.process(make_utterance())
+    return record, tts
+
+
+# Canlı insan testi 4 (2026-08-17): üç gerçek meta-sızıntı vakası — iç güven
+# etiketi botun sesinden toplantıya okundu. Bu vakalar birebir sabitlenir.
+@pytest.mark.parametrize(
+    "leaked",
+    ["LOW", "Low", "Translation not clear; LOW confidence.", "low confidence"],
+)
+def test_meta_output_is_never_spoken(leaked):
+    record, tts = _run_with_tts(leaked, 0.2)
+    assert tts.spoken == []
+    assert record.delivered is False
+    assert record.flagged is True
+    assert record.flag_reason == "meta_output"
+    # Denetim izi: metin transkriptte aynen kalır, yalnız seslendirilmez.
+    assert record.translated_text == leaked
+
+
+@pytest.mark.parametrize(
+    "legit",
+    [
+        "We have full confidence in this plan.",
+        "The low offer was rejected.",
+        "Lower the price to fifty thousand dollars.",
+    ],
+)
+def test_real_translations_containing_low_or_confidence_are_delivered(legit):
+    record, tts = _run_with_tts(legit, 0.9)
+    assert tts.spoken == [(legit, "en")]
+    assert record.delivered is True
+    assert record.flag_reason == "ok"
