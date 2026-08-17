@@ -421,3 +421,20 @@ Düzeltmeler (main):
   macOS çözücü yanlış-negatifi için 1.1.1.1 + SNI doğrudan bağlantı yolu.
 - Doğrulama: botsuz öz-test 10 sn'de GEÇTİ (dış dünya → cloudflared →
   yerel ws). Bir sonraki insan testi bu kapının arkasından başlar.
+
+## Oturum otomasyonu — dilim 1 (2026-08-17)
+
+Kurucu hedef davranışı: "linki ver → gerisini Lumos yapar; kullanıcı bot_rig
+bilmez." Bu dilim CLI düzeyinde tam yaşam döngüsünü otomatikleştirir:
+
+Tek komut: `python -m representative.bot_rig --meeting-url <link>` →
+tünel + zorunlu öz-test → bot + ifşa → tercüme → **toplantı bitince
+KENDİLİĞİNDEN kapanış** (Recall durumu call_ended/done/fatal algılanır) →
+leave + STT/tünel kapanışı + **otomatik erken delete_media** (varsayılan;
+teşhis için --keep-media) + transcript/özet. Bekleme odasında 5 dk kabul
+edilmezse gürültülü vazgeçer (fail-loud) — asılı sağır bot kalmaz.
+
+Kalan (dilim 2 — ürün yüzeyi): girişin ChatLumos'tan verilmesi ("toplantıya
+katıl <link>") — tek-arayüz kuralının gerçek karşılığı; panel/chat
+entegrasyonu ürün yüzeyi kararı olarak kurucuyla şekillenecek. Bir sonraki
+insan testi bu otomasyonla yapılacak (üçüncü davet öncesi hazır olan bu).

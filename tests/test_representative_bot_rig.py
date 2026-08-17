@@ -42,3 +42,12 @@ def test_resample_ratio():
     out = resample_16k_to_24k(pcm16k)
     assert len(out) == 240 * 2  # 10 ms @24k
     assert resample_16k_to_24k(b"") == b""
+
+
+def test_terminal_status_detection():
+    from representative.bot_rig import is_terminal_status
+
+    for code in ("call_ended", "done", "fatal"):
+        assert is_terminal_status(code) is True
+    for code in ("joining_call", "in_waiting_room", "in_call_recording", None):
+        assert is_terminal_status(code) is False
