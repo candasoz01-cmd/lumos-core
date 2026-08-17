@@ -307,6 +307,41 @@ fail-closed, testli).
 akışlı zincir + 800 ms VAD + parser düzeltmesiyle. Geçerse done checklist
 kurucu final değerlendirmesine gider.
 
+## Test 8 sonuçları (2026-08-17 — FİNAL TEYİT, akışlı zincir + tüm düzeltmeler)
+
+21 kayıt. **Medyan 2.28 sn | p90 2.63 | max 3.04** — ≤3 hedefi ikinci canlı
+koşuda da teyit. Echo: 0. Retry: 1/21 (672 ms). Fail-closed: 2 kez tetiklendi
+ve ÇALIŞTI — boş çeviri "[TESLİM EDİLMEDİ]" olarak düştü, seslendirilmedi
+(test 7 bug'ının düzeltmesi sahada doğrulandı).
+
+Satır sonuçları: 1 ✓ · 2 ~ (STT "AI tools"→"altcoins" duydu — anlam hatası,
+işaretlenmedi; bilinen STT sınırı) · 3 ilk denemede "sign"→"seek" (anlam
+kayması), kurucu tekrarında ✓ birebir ("$50,000 için sözleşmeyi
+imzalayacağız"); "1 Ekim" ✓ · 4 ✓✓ BİREBİR ("yüzde kırkı peşin… teslimat") —
+üç E-sınıfı değer (para/tarih/yüzde) İLK KEZ AYNI CANLI KOŞUDA doğru ·
+5 marka düşük ("işaretle" kararı kapsamında bilinen sınır) · 6 ✓ · 7 mırıltı/
+sohbet 9 kez işaretlendi ✓ · 8 ✓ iki kez birebir.
+
+## Done checklist — FİNAL DURUM (2026-08-17, teknik değerlendirme)
+
+- [x] Medyan gecikme ≤ 3 sn — CANLI: 1.92 (test 7) ve 2.28 (test 8)
+- [x] TR→EN doğal ve anlaşılır (test 5) / EN→TR güvenilir (test 8)
+- [x] E-sınıfı eksiksizlik — $50,000 ✓ / 1 Ekim ✓ / %40+peşin ✓ (test 8'de
+      üçü birden); bilinen sınırlar belgeli: tekil STT yanlış duymaları
+      (seek/altcoins) işaret/tekrar ile telafi edildi, marka = işaretle kararı
+- [x] Düşük güven işaretleme + boş çeviri fail-closed (2 canlı tetiklenme)
+- [x] Echo — 0 (test 7: 32 kayıt, test 8: 21 kayıt; yapısal half-duplex)
+- [x] İki dilli transcript + çökme-güvenli jsonl (KILL'e rağmen tam kayıt)
+- [ ] **KURUCU FİNAL DEĞERLENDİRMESİ** — teknik öneri: yerel dilim DONE;
+      karar kurucunun. Not: B2 (TTS sırasında konuşmanın bilinçli kaybı)
+      yapısal olarak garanti (kare websocket'e gitmiyor) ama ayrı vaka
+      olarak sahnelenmedi; kurucu isterse 2 dakikalık ek koşu yapılır.
+
+Done ilan edilirse: yerel TR↔EN dilimi kapanır; sıradaki kapı "Recall hazır"
+(MeetingIngress + bot kill-switch + gerçek toplantı provası + bot-düzeyi
+disclosure). Realtime backend'in varsayılan yapılması da done kararıyla
+birlikte önerilir (iki canlı koşu kanıtı var).
+
 ## "Done" değerlendirmesi (kurucu kriterleri)
 
 - [ ] Medyan gecikme ≤ 3 sn (jsonl kayıtlarından hesaplanır)
