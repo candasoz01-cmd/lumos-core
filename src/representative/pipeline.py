@@ -9,6 +9,7 @@ Contract rules (ADR-023 Faz 0, slice doc T1-T6):
 from __future__ import annotations
 
 import json
+import re
 import statistics
 import time
 from dataclasses import asdict, dataclass
@@ -141,6 +142,25 @@ def summarize_latencies_ms(transcript: BilingualTranscript) -> dict[str, float]:
     }
 
 
+# Meta-sızıntı kesici (TD-15 kardeşi; canlı insan testi 4 bulgusu, 2026-08-17):
+# model çeviri yerine iç güven etiketini metin olarak döndürebiliyor ("LOW",
+# "Low", "Translation not clear; LOW confidence.") ve bu üç kez botun sesinden
+# toplantıya okundu. İç etiket kullanıcıya ASLA ses olarak çıkmaz — desenler
+# bilinçli dar tutuldu: yalnız tek-başına etiket metni ve canlıda görülen
+# meta cümle kalıbı; "confidence"/"low" kelimesi geçen GERÇEK çeviriler
+# (ör. "We have confidence in this plan") kapsam dışıdır.
+_META_LABEL_RE = re.compile(r"(?:low|medium|high)(?:\s+confidence)?[\s.!]*", re.IGNORECASE)
+_META_PHRASES = ("translation not clear",)
+
+
+def is_meta_output(text: str) -> bool:
+    stripped = text.strip()
+    if _META_LABEL_RE.fullmatch(stripped):
+        return True
+    lower = stripped.lower()
+    return any(phrase in lower for phrase in _META_PHRASES)
+
+
 class InterpreterPipeline:
     """Consecutive interpretation for one utterance at a time.
 
@@ -190,6 +210,12 @@ class InterpreterPipeline:
             # seslendirilmez, işaretli düşer (fail-closed).
             lang_ok = False
             flagged, reason = True, "empty_translation"
+        elif is_meta_output(result.text):
+            # Canlı insan testi 4: iç güven etiketi çeviri sanılıp
+            # seslendirildi — meta çıktı TTS'e verilmez (fail-closed);
+            # metin transkriptte denetim için aynen kalır.
+            lang_ok = False
+            flagged, reason = True, "meta_output"
         elif lang_ok:
             self._tts.speak(result.text, utterance.target_lang)
             flagged, reason = decision.flagged, decision.reason
