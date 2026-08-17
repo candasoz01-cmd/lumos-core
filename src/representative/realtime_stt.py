@@ -44,7 +44,7 @@ class RealtimeSTTStream:
 
     def __init__(
         self,
-        language: str,
+        language: str | None,
         prompt: str | None = None,
         model: str = "gpt-4o-mini-transcribe",
         vad_silence_ms: int = 600,
@@ -60,6 +60,18 @@ class RealtimeSTTStream:
         self._cm = None
         self._speech_stopped_at: float | None = None
 
+    def transcription_config(self) -> dict:
+        """Transkripsiyon bloğu; `language=None` → anahtar HİÇ gönderilmez.
+
+        Çift yönlü toplantıda dil sabitlenemez (canlı insan testi 4): dil
+        verilirse sağlayıcı karşı tarafın İngilizcesini de Türkçe sanıp
+        uydurulmuş metin üretiyordu. None → sağlayıcının kendi tespiti.
+        """
+        config: dict = {"model": self._model, "prompt": self._prompt or ""}
+        if self._language is not None:
+            config["language"] = self._language
+        return config
+
     def start(self) -> None:
         from openai import OpenAI  # core dep; ağ anahtarı env'den
 
@@ -73,11 +85,7 @@ class RealtimeSTTStream:
                     "audio": {
                         "input": {
                             "format": {"type": "audio/pcm", "rate": SAMPLE_RATE},
-                            "transcription": {
-                                "model": self._model,
-                                "language": self._language,
-                                "prompt": self._prompt or "",
-                            },
+                            "transcription": self.transcription_config(),
                             "turn_detection": {
                                 "type": "server_vad",
                                 "silence_duration_ms": self._vad_silence_ms,

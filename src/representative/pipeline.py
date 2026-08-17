@@ -91,6 +91,11 @@ class UtteranceRecord:
     delivered: bool = True
     postcheck_ms: float = 0.0
     retried: bool = False
+    # Aşama kırılımı (canlı insan testi 4 sonrası): p90 sivrilmesinin HANGİ
+    # aşamadan geldiği toplam süreden okunamıyordu. Her aşama ayrı ölçülür;
+    # alanlar ek olduğu için eski jsonl kayıtları okunmaya devam eder.
+    translate_ms: float = 0.0
+    tts_ms: float = 0.0
 
 
 class BilingualTranscript:
@@ -131,14 +136,34 @@ class BilingualTranscript:
         return "\n".join(lines)
 
 
+def percentile_ms(values: list[float], pct: float) -> float:
+    """En-yakın-sıra (nearest-rank) yüzdelik — interpolasyon YOK.
+
+    Küçük örneklemde (canlı prova n≈60) interpolasyonlu yöntemler kayıtta
+    olmayan bir değer üretir; kuyruk ucu tartışılırken "bu sayı hangi söz?"
+    sorusunun cevabı olmalı. Bu yüzden dönen değer daima gerçek bir kayıttır.
+    """
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    import math
+
+    rank = max(1, math.ceil(pct / 100.0 * len(ordered)))
+    return ordered[rank - 1]
+
+
 def summarize_latencies_ms(transcript: BilingualTranscript) -> dict[str, float]:
     values = [r.latency_ms for r in transcript.records]
     if not values:
-        return {"count": 0, "median_ms": 0.0, "max_ms": 0.0}
+        return {"count": 0, "median_ms": 0.0, "max_ms": 0.0, "p50_ms": 0.0, "p90_ms": 0.0}
     return {
         "count": len(values),
         "median_ms": statistics.median(values),
         "max_ms": max(values),
+        # Canlı insan testi 4'ün FAIL'i p90'daydı; özet onu göstermeden
+        # "hedefe uyduk" denemesin diye p50/p90 buraya da eklendi.
+        "p50_ms": percentile_ms(values, 50),
+        "p90_ms": percentile_ms(values, 90),
     }
 
 
@@ -153,12 +178,62 @@ _META_LABEL_RE = re.compile(r"(?:low|medium|high)(?:\s+confidence)?[\s.!]*", re.
 _META_PHRASES = ("translation not clear",)
 
 
+def fold(text: str) -> str:
+    """Türkçe-güvenli küçültme.
+
+    `"İşte".casefold()` → "i̇şte" (i + birleşen nokta): desen listesindeki
+    "işte" ile EŞLEŞMEZ ve kapı sessizce açık kalır. Yalnız noktalı büyük İ
+    çevrilir; noktasız I'ya DOKUNULMAZ — "AI" → "aı" olsaydı İngilizce
+    desenler ("as an ai") bu kez kaçardı.
+    """
+    return text.replace("İ", "i").casefold()
+
+
 def is_meta_output(text: str) -> bool:
     stripped = text.strip()
     if _META_LABEL_RE.fullmatch(stripped):
         return True
-    lower = stripped.lower()
+    lower = fold(stripped)
     return any(phrase in lower for phrase in _META_PHRASES)
+
+
+# Strict tercüman kipi (canlı insan testi 4 bulgusu 2, 2026-08-17): toplantıda
+# konuşulan her cümle ÇEVRİLECEK İÇERİKTİR, modele verilmiş talimat değildir.
+# Canlı kayıtta "Sen şimdi yabancı muhatap rolündesin." gibi cümleler geçti;
+# bunları rol talimatı sanan bir model tercüman olmaktan çıkıp muhatap olur.
+# Birinci savunma istemin kendisidir (OpenAITranslator._STRICT_CLAUSE); bu
+# kapı ikinci savunmadır: asistan kipine düşmüş çıktı sese ÇIKMAZ.
+#
+# Desenler bilinçli olarak dar: yalnız (a) yapay zekâ kimliğine veya (b) çeviri
+# EYLEMİNİN kendisine atıfta bulunan kalıplar. Toplantıda insan böyle konuşmaz.
+# "I cannot attend the meeting" gibi GERÇEK çeviriler kapsam dışıdır — bu kapı
+# reddi değil, tercüman-dışı davranışı yakalar.
+_NON_TRANSLATION_PHRASES = (
+    "as an ai",
+    "i am an ai",
+    "i'm an ai",
+    "bir yapay zeka olarak",
+    "bir yapay zekâ olarak",
+    "here is the translation",
+    "here's the translation",
+    "işte çeviri",
+    "i cannot translate",
+    "i can't translate",
+    "çeviremem",
+    "çeviri yapamam",
+)
+# Yalnız BAŞTA duran etiket önekleri (çeviri metninin içinde geçmesi serbest).
+_NON_TRANSLATION_PREFIX_RE = re.compile(
+    r"^\s*(translation|çeviri|translated text)\s*:", re.IGNORECASE
+)
+
+
+def is_non_translation(text: str) -> bool:
+    """Çevirmen tercüman olmayı bırakıp asistan gibi cevap verdi mi?"""
+    lower = fold(text.strip())
+    if _NON_TRANSLATION_PREFIX_RE.match(text):
+        return True
+    return any(phrase in lower for phrase in _NON_TRANSLATION_PHRASES)
 
 
 class InterpreterPipeline:
@@ -189,7 +264,9 @@ class InterpreterPipeline:
     def process(self, utterance: Utterance) -> UtteranceRecord:
         from representative.langcheck import detect_lang
 
+        translate_start = self._clock()
         result = self._translator.translate(utterance)
+        translate_ms = (self._clock() - translate_start) * 1000.0
         postcheck_ms = 0.0
         retried = False
         lang_ok = detect_lang(result.text) in ("unknown", utterance.target_lang)
@@ -205,6 +282,7 @@ class InterpreterPipeline:
 
         decision = self._gate.evaluate(result)
         now = self._clock()
+        tts_ms = 0.0
         if not result.text.strip():
             # Test 7 bug'ı: model boş çeviri döndürebilir — boş metin
             # seslendirilmez, işaretli düşer (fail-closed).
@@ -216,8 +294,19 @@ class InterpreterPipeline:
             # metin transkriptte denetim için aynen kalır.
             lang_ok = False
             flagged, reason = True, "meta_output"
+        elif is_non_translation(result.text):
+            # Strict kip: model tercüman olmayı bırakıp asistan gibi cevap
+            # verdiyse (rol talimatı sanılan cümle, "İşte çeviri:" etiketi,
+            # yapay zekâ kimliği) çıktı seslendirilmez.
+            lang_ok = False
+            flagged, reason = True, "non_translation_output"
         elif lang_ok:
+            tts_start = self._clock()
             self._tts.speak(result.text, utterance.target_lang)
+            # `now` BİLEREK güncellenmez: latency_ms'in tanımı "söz sonu →
+            # teslime hazır" olarak kalır (önceki tüm ölçümlerle kıyaslanabilir
+            # olması şart). TTS süresi ayrı alanda muhasebe edilir.
+            tts_ms = (self._clock() - tts_start) * 1000.0
             flagged, reason = decision.flagged, decision.reason
         else:
             # Fail-closed: ikinci çıktı da yanlış dilde — TTS'e verilmez.
@@ -235,6 +324,8 @@ class InterpreterPipeline:
             delivered=lang_ok,
             postcheck_ms=postcheck_ms,
             retried=retried,
+            translate_ms=translate_ms,
+            tts_ms=tts_ms,
         )
         self._transcript.append(record)
         if self._on_record is not None:

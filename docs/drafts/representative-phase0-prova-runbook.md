@@ -503,3 +503,46 @@ olarak gelecek, test/CI görmeden "yapıldı" sayılmaz.
 (1) bu kayıt + bulgular main'e, (2) chunk TTS ayrı teknik PR, (3) yön
 yönlendirme + strict tercüman kipi + meta-sızıntı kapanışı, (4) ancak
 ondan sonra p50/p90 yeniden canlı ölçülür.
+
+---
+
+## Botsuz kapanışlar — insan testi 5 öncesi (2026-08-17)
+
+Kurucu kuralı: **insan testi boşa harcanmaz.** Tek kişiyle/botsuz
+doğrulanabilen her şey önce kapatılır; testçiye "gel bakalım yine çalışıyor
+mu" değil, "her şey hazır, son gerçek dünya kontrolü" denir.
+
+| # | Bulgu (test 4) | Durum | Kanıt |
+|---|----------------|-------|-------|
+| 1 | EN→TR yön yok + papağan | **Kapandı** | `routing.DirectionRouter` — yön her söz için duyulan dile göre; kaynak≠hedef yapısal garanti. auto yönde STT'ye dil verilmez. 14 test |
+| 2 | Strict tercüman kipi yok | **Kapandı** | İstemde `STRICT INTERPRETER MODE` + `<utterance>` sarmalama; çıktıda `is_non_translation` fail-closed kapısı. 21 test |
+| 3a | Meta-sızıntı (iç etiket seslendirildi) | **Kapandı** | `is_meta_output` (#749) + regresyon takımı: etiketin her biçimi, yüksek güvenle de, parse_reply yolları dahil. 34 test |
+| 3b | 23/60 söz eşik altı olmasına rağmen teslim | **AÇIK — ürün kararı** | Davranış teste çakıldı (bilinçli, sessizce değişemez); teslim politikası kurucu kararı bekliyor |
+| 4 | p90 sivrilmesi teşhis edilemiyor | **Ölçüm altyapısı hazır** | Aşama kırılımı (`translate_ms`/`tts_ms`), p50/p90 özet, `python -m representative.latency` PASS/FAIL + çıkış kodu |
+| 5 | Cümle-chunk TTS (p90'ın kök nedeni) | **Bu repoda YOK** | Başka oturumun çalışma alanı; gelmeden p90 hedefi beklenmemeli |
+
+### Ölçüm kaydını çözümleme
+
+```bash
+python -m representative.latency prova_bot.jsonl
+```
+
+Hedefler `p50 ≤ 2.5 sn`, `p90 ≤ 4 sn` (üstte); tutmazsa çıkış kodu **1**.
+Rapor yön kırılımı, aşama p90'ları, işaret dağılımı ve en yavaş 5 sözü verir —
+"genel yavaş" ile "kuyruk ucu bozuk" ayrımı artık kayıttan okunur.
+
+### Çift yönlü kuru prova (botsuz, tek kişi)
+
+```bash
+python -m representative.local_rig --translator openai --jsonl-out prova_iki_yon.jsonl
+```
+
+TR ve EN cümleleri sırayla yaz; her satırda `yön: detected` görünmeli ve yön
+cümleye göre değişmeli. Papağan (kaynak=hedef) çıkarsa dur — bu bir regresyondur.
+
+### İnsan testi 5'in ön koşulu
+
+Chunk TTS bu repoya girmeden ve yukarıdaki 3b kararı verilmeden yeni canlı
+test **planlanmaz**. Test yapıldığında ölçüm dosyası doğrudan
+`representative.latency` ile çözümlenir; PASS/FAIL beyanla değil çıkış koduyla
+kayda geçer.
