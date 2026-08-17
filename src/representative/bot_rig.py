@@ -51,6 +51,14 @@ from representative.stt import LUMOS_TERMS_PROMPT
 
 RECALL_INBOUND_RATE = 16000
 
+# Recall bot durumları: oturumun kendiliğinden kapanacağı uç durumlar
+TERMINAL_BOT_STATUSES = frozenset({"call_ended", "done", "fatal"})
+WAITING_ROOM_TIMEOUT_S = 300  # bekleme odasında 5 dk kabul edilmezse vazgeç
+
+
+def is_terminal_status(code: str | None) -> bool:
+    return code in TERMINAL_BOT_STATUSES
+
 
 def extract_audio_b64(message: dict[str, Any]) -> str | None:
     """Recall realtime ses olayından b64 PCM çıkarır; tanımadığını DÜŞÜRÜR."""
@@ -226,6 +234,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--target-lang", default="en", choices=("tr", "en"))
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--jsonl-out", default="prova_bot.jsonl")
+    parser.add_argument(
+        "--keep-media",
+        action="store_true",
+        help="Varsayılan davranış oturum sonunda erken delete_media'dır "
+        "(kurucu şartı); teşhis gerekiyorsa bu bayrakla 24h penceresi korunur",
+    )
     args = parser.parse_args(argv)
     if args.source_lang == args.target_lang:
         parser.error("source and target languages must differ")
@@ -294,6 +308,38 @@ def main(argv: list[str] | None = None) -> int:
     bot_id = str(ingress._request("POST", "/api/v1/bot/", payload)["id"])
     print(f"bot: {bot_id} — Meet'te katılma isteğini kabul et.")
 
+    # Oturum otomasyonu (2026-08-17): toplantı bitişini Recall durumundan
+    # algıla → kendiliğinden kapan. Bekleme odasında 5 dk kabul edilmezse
+    # sessizce asılı kalma, gürültülü vazgeç (fail-loud).
+    stop_event = threading.Event()
+    end_reason: list[str] = []
+
+    def poll_bot_status() -> None:
+        waiting_since: float | None = None
+        while not stop_event.is_set():
+            try:
+                info = ingress._request("GET", f"/api/v1/bot/{bot_id}/")
+                changes = info.get("status_changes", [])
+                code = changes[-1]["code"] if changes else None
+            except Exception:
+                time.sleep(15)
+                continue
+            if is_terminal_status(code):
+                end_reason.append(str(code))
+                stop_event.set()
+                return
+            if code == "in_waiting_room":
+                waiting_since = waiting_since or time.monotonic()
+                if time.monotonic() - waiting_since > WAITING_ROOM_TIMEOUT_S:
+                    end_reason.append("waiting_room_timeout")
+                    stop_event.set()
+                    return
+            else:
+                waiting_since = None
+            time.sleep(15)
+
+    threading.Thread(target=poll_bot_status, daemon=True).start()
+
     transcript = BilingualTranscript()
     translator = OpenAITranslator()
     translator.translate(  # ısıtma
@@ -319,9 +365,9 @@ def main(argv: list[str] | None = None) -> int:
             stt.feed(resample_16k_to_24k(inbound.get()))
 
     threading.Thread(target=pump_audio, daemon=True).start()
-    print("Tercüman hattı canlı — konuş; Ctrl+C: kill-switch + çıkış.")
+    print("Tercüman hattı canlı — toplantı bitince kendiliğinden kapanır; Ctrl+C: kill-switch.")
     try:
-        while True:
+        while not stop_event.is_set():
             try:
                 utt = stt.utterances.get(timeout=0.5)
             except queue.Empty:
@@ -346,19 +392,33 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{args.target_lang.upper()}> {record.translated_text}{marker}"
                   f"  ({record.latency_ms:.0f} ms)")
     except KeyboardInterrupt:
-        pass
+        end_reason.append("kill_switch")
     finally:
-        print("\nkill-switch: bot çıkarılıyor...")
+        stop_event.set()
+        reason = end_reason[0] if end_reason else "bilinmiyor"
+        print(f"\noturum kapanıyor (sebep: {reason})...")
         try:
             ingress.kill(bot_id)
         except Exception as exc:
-            print(f"leave_call hatası: {type(exc).__name__}")
+            print(f"leave_call: {type(exc).__name__} (bot zaten çıkmış olabilir)")
         stt.stop()
         ngrok_proc.terminate()
+        if not args.keep_media:
+            # Kurucu şartı: sorunsuz oturum sonrası 24h beklenmez, erken sil.
+            # Çıkış anında medya işleniyor olabilir → kısa bekleme + yeniden dene.
+            deleted = False
+            for _ in range(6):
+                try:
+                    ingress.delete_media(bot_id)
+                    deleted = True
+                    break
+                except Exception:
+                    time.sleep(5)
+            print("medya erken silme:", "OK" if deleted else
+                  f"BAŞARISIZ — elle: delete_media bot_id={bot_id}")
         print(transcript.to_markdown())
         print(summarize_latencies_ms(transcript))
         print(f"(bilinmeyen/düşürülen ws mesajı: {dropped_unknown})")
-        print(f"medya erken silme için: bot_id={bot_id} (delete_media ayrı komut)")
     return 0
 
 
