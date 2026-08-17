@@ -401,3 +401,23 @@ p90 4.97 (bot konuşurken half-duplex bekleme sivrilmeleri — bilinen ödün).
 tercüme PASS. Faz 0 zinciri (Recall hazır → MeetingIngress → çekirdek)
 TAMAMLANDI.** Kalan (Faz 0 sonrası): DPA/veri bölgesi (gerçek dış katılımcı
 blokajı), gecikme sivrilmeleri, Meet-altyazı etkileşimi notu.
+
+## Canlı insan testi FAIL ×2 — kök neden ve düzeltme (2026-08-17)
+
+İki insan oturumunda çeviri yoktu. Kök neden zinciri (log + Recall bot
+nesnesi + tünel öz-testiyle kanıtlı, tahminsiz):
+1. Oturum 1: bot_rig o Meet için HİÇ başlatılmamıştı (adım 0; Recall'da bot
+   yok). Ürün dersi: oturum başlatma otomasyonu yok — ayrı dilim.
+2. Oturum 2: bot girdi, Recall'da realtime endpoint kayıtlıydı ama ws
+   BAĞLANMADI: ngrok ücretsiz katman ara sayfası (**ERR_NGROK_6030**)
+   tarayıcı-olmayan istemcileri 400'lüyor. Rig bunu fark etmeden botu
+   toplantıya soktu — sessiz altyapı arızası.
+
+Düzeltmeler (main):
+- Taşıyıcı: **cloudflared quick tunnel birincil** (ws ara sayfasız), ngrok
+  yedek; yarışan ajan temizliği başlangıçta.
+- **Zorunlu tünel öz-testi (fail-closed)**: bot yaratılmadan önce genel wss
+  adresine dışarıdan probe → yerel sunucuya ulaşmazsa bot HİÇ yaratılmaz.
+  macOS çözücü yanlış-negatifi için 1.1.1.1 + SNI doğrudan bağlantı yolu.
+- Doğrulama: botsuz öz-test 10 sn'de GEÇTİ (dış dünya → cloudflared →
+  yerel ws). Bir sonraki insan testi bu kapının arkasından başlar.

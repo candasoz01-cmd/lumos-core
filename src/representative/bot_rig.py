@@ -103,7 +103,97 @@ class RecallSpeaker:
             time.sleep(estimate_speech_seconds(text))
 
 
+TUNNEL_PROBE_EVENT = "lumos.tunnel_probe"
+
+
+def verify_tunnel(public_wss: str, received: "threading.Event") -> None:
+    """Fail-closed tünel öz-testi (canlı insan testi 2 FAIL dersi, 2026-08-17):
+    bot yaratılmadan ÖNCE genel wss adresine dışarıdan bağlanıp işaret
+    mesajının yerel sunucuya ulaştığı kanıtlanır. Ulaşmazsa bot HİÇ
+    yaratılmaz — sessiz altyapı arızası (ölü/yarışan tünel ajanı) toplantıya
+    'sağır bot' sokmak yerine sert hataya dönüşür."""
+    import socket as _socket
+
+    from websockets.sync.client import connect
+
+    host = public_wss.removeprefix("wss://").split("/")[0]
+
+    def _open():
+        try:
+            return connect(public_wss, open_timeout=10)
+        except _socket.gaierror:
+            # Canlı bulgu (2026-08-17): macOS sistem çözücüsü taze quick-tunnel
+            # adlarını çözemeyebiliyor (negatif önbellek/filtre) — DNS sunucusu
+            # çözerken getaddrinfo düşüyor. Recall kendi altyapısından çözer;
+            # öz-testin yanlış-negatif vermemesi için 1.1.1.1'den IP alıp SNI
+            # korumalı doğrudan bağlanılır.
+            out = subprocess.run(
+                ["dig", "+short", host, "@1.1.1.1"], capture_output=True, text=True, timeout=10
+            ).stdout
+            ip = next((line for line in out.splitlines() if line and line[0].isdigit()), None)
+            if not ip:
+                raise
+            sock = _socket.create_connection((ip, 443), timeout=10)
+            return connect(public_wss, sock=sock, server_hostname=host, open_timeout=10)
+
+    deadline = time.monotonic() + 90  # DNS yayılımı payı
+    last_exc: Exception | None = None
+    while time.monotonic() < deadline:
+        try:
+            with _open() as ws:
+                ws.send(json.dumps({"event": TUNNEL_PROBE_EVENT}))
+                if received.wait(timeout=10):
+                    return
+                last_exc = RuntimeError("probe yerel sunucuya ulaşmadı")
+        except Exception as exc:
+            last_exc = exc
+        time.sleep(3)
+    raise RuntimeError(
+        f"TÜNEL ÖZ-TESTİ BAŞARISIZ ({type(last_exc).__name__}: {last_exc}) — "
+        "bot yaratılmadı. Tünel ajanlarını temizleyip yeniden dene."
+    ) from last_exc
+
+
+def start_cloudflared(port: int) -> tuple[subprocess.Popen, str]:
+    """Birincil tünel (2026-08-17 kök neden: ngrok ücretsiz katman ara sayfası
+    ERR_NGROK_6030 ile tarayıcı-olmayan ws istemcilerini 400'lüyor — Recall
+    bağlanamadı). cloudflared quick tunnel ws'i ara sayfasız geçirir."""
+    proc = subprocess.Popen(
+        ["cloudflared", "tunnel", "--url", f"http://127.0.0.1:{port}", "--no-autoupdate"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    deadline = time.monotonic() + 30
+    url = None
+    while time.monotonic() < deadline:
+        line = proc.stdout.readline()
+        if not line:
+            break
+        if ".trycloudflare.com" in line:
+            for token in line.replace("|", " ").split():
+                if token.startswith("https://") and ".trycloudflare.com" in token:
+                    url = token.strip()
+                    break
+        if url:
+            threading.Thread(  # boru dolmasın diye kalan logu tüket
+                target=lambda: [None for _ in proc.stdout], daemon=True
+            ).start()
+            return proc, url.replace("https://", "wss://")
+    proc.terminate()
+    raise RuntimeError("cloudflared tüneli açılamadı")
+
+
 def start_ngrok(port: int) -> tuple[subprocess.Popen, str]:
+    # Yarışan ajan temizliği: aynı sabit alan adı için ikinci bir ngrok
+    # ajanı kenarın ws bağlantılarını 400 ile reddetmesine yol açtı
+    subprocess.run(["pkill", "-9", "-f", "ngrok http"], check=False)
+    for _ in range(50):
+        try:
+            urllib.request.urlopen("http://127.0.0.1:4040/api/tunnels", timeout=1)
+            time.sleep(0.1)
+        except Exception:
+            break
     proc = subprocess.Popen(
         ["ngrok", "http", str(port), "--log", "stdout"],
         stdout=subprocess.DEVNULL,
@@ -142,17 +232,25 @@ def main(argv: list[str] | None = None) -> int:
 
     gate = HalfDuplexGate()
     inbound: queue.Queue[bytes] = queue.Queue()
+    probe_received = threading.Event()
     dropped_unknown = 0
 
     def on_ws(conn) -> None:
         nonlocal dropped_unknown
-        print("Recall websocket bağlandı.")
+        first = True
         for raw in conn:
             try:
-                b64 = extract_audio_b64(json.loads(raw))
+                msg = json.loads(raw)
             except (json.JSONDecodeError, TypeError):
                 dropped_unknown += 1
                 continue
+            if msg.get("event") == TUNNEL_PROBE_EVENT:
+                probe_received.set()
+                continue
+            if first:
+                print("Recall websocket bağlandı.")
+                first = False
+            b64 = extract_audio_b64(msg)
             if b64 is None:
                 dropped_unknown += 1
                 continue
@@ -161,8 +259,14 @@ def main(argv: list[str] | None = None) -> int:
 
     server = serve(on_ws, "127.0.0.1", args.port)
     threading.Thread(target=server.serve_forever, daemon=True).start()
-    ngrok_proc, wss_url = start_ngrok(args.port)
+    try:
+        ngrok_proc, wss_url = start_cloudflared(args.port)
+    except (FileNotFoundError, RuntimeError) as exc:
+        print(f"cloudflared yok/başarısız ({exc}) — ngrok'a düşülüyor")
+        ngrok_proc, wss_url = start_ngrok(args.port)
     print(f"tünel: {wss_url}")
+    verify_tunnel(wss_url, probe_received)
+    print("tünel öz-testi: GEÇTİ (uçtan uca ws doğrulandı)")
 
     ingress = RecallMeetingIngress(
         REHEARSAL_RETENTION, os.environ["RECALL_REGION_URL"]
