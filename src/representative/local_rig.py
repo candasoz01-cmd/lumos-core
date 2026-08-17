@@ -35,6 +35,7 @@ from representative.pipeline import (
     summarize_latencies_ms,
 )
 from representative.routing import Direction, DirectionRouter
+from representative.tts_playback import ChunkedTtsPlayer
 
 
 class MockTranslator:
@@ -160,23 +161,32 @@ class OpenAITranslator:
 class SayTTS:
     """macOS `say` output — measurement-grade only, not the product voice.
 
-    When a HalfDuplexGate is attached, the microphone is muted for the whole
-    duration of speech so speaker output can never loop back in (T7).
+    Chunked like Meet TTS: first sentence is first-audio; remaining sentences
+    play in the background and yield to barge-in. `say` itself blocks for the
+    clip, so the player does not add a second hold sleep.
     """
 
-    def __init__(self, voice: str | None = None, gate: "HalfDuplexGate | None" = None) -> None:
+    def __init__(self, voice: str | None = None, gate: HalfDuplexGate | None = None) -> None:
         self._voice = voice
-        self._gate = gate
+        self._gate = gate if gate is not None else HalfDuplexGate()
+        self._player = ChunkedTtsPlayer(
+            synthesize=lambda text, _lang: text.encode(),
+            deliver=self._say,
+            gate=self._gate,
+            hold_after_deliver=False,
+        )
 
-    def speak(self, text: str, lang: str) -> None:
+    def _say(self, _payload: bytes, text: str, _lang: str) -> None:
         cmd = ["say"]
         if self._voice:
             cmd += ["-v", self._voice]
-        if self._gate is not None:
-            with self._gate:
-                subprocess.run(cmd + [text], check=False)
-        else:
-            subprocess.run(cmd + [text], check=False)
+        subprocess.run(cmd + [text], check=False)
+
+    def barge_in(self) -> int:
+        return self._player.barge_in()
+
+    def speak(self, text: str, lang: str):
+        return self._player.speak(text, lang)
 
 
 def run_audio_mode(
@@ -256,8 +266,10 @@ def run_audio_mode(
                 continue
             if heard_text != heard.text:
                 print(f"  (terim düzeltildi: {heard.text[:40]} → {heard_text[:40]})")
+            stt_final = time.monotonic()
             decision = router.route(heard_text)
             print(f"{decision.direction.source_lang.upper()}(duyulan)> {heard_text}")
+            pipeline.interrupt_playback()
             record = pipeline.process(
                 Utterance(
                     text=heard_text,
@@ -265,12 +277,24 @@ def run_audio_mode(
                     target_lang=decision.direction.target_lang,
                     speech_end_ts=speech_end,
                     context=tuple(recent),
+                    stt_final_ts=stt_final,
                 )
             )
             recent.append(heard_text)
             print(f"{decision.direction.target_lang.upper()}> {record.translated_text}  "
                   f"({record.latency_ms:.0f} ms, yön: {decision.reason})")
             drain()
+
+
+def _print_latency_summary(transcript: BilingualTranscript) -> None:
+    summary = summarize_latencies_ms(transcript)
+    print(summary)
+    if not summary["first_audio_budget_pass"]:
+        print(
+            "first-audio bütçe: FAIL — PASS deme "
+            f"(p50={summary['p50_ms']:.0f} p90={summary['p90_ms']:.0f} ms; "
+            f"en büyük bekleme: {summary['largest_wait'] or 'yok'})"
+        )
 
 
 def build_translator(name: str) -> Translator:
@@ -343,8 +367,10 @@ def run_realtime_audio_mode(
                     continue
                 if heard_text != utt.text:
                     print(f"  (terim düzeltildi: {utt.text[:40]} → {heard_text[:40]})")
+                stt_final = time.monotonic()
                 decision = router.route(heard_text)
                 print(f"{decision.direction.source_lang.upper()}(duyulan)> {heard_text}")
+                pipeline.interrupt_playback()
                 record = pipeline.process(
                     Utterance(
                         text=heard_text,
@@ -352,6 +378,7 @@ def run_realtime_audio_mode(
                         target_lang=decision.direction.target_lang,
                         speech_end_ts=utt.speech_end_ts,
                         context=tuple(recent),
+                        stt_final_ts=stt_final,
                     )
                 )
                 recent.append(heard_text)
@@ -459,7 +486,7 @@ def main(argv: list[str] | None = None) -> int:
                 pass
             print("\n--- transcript ---")
             print(transcript.to_markdown())
-            print(summarize_latencies_ms(transcript))
+            _print_latency_summary(transcript)
             if args.jsonl_out:
                 with open(args.jsonl_out, "w", encoding="utf-8") as f:
                     f.write(transcript.to_jsonl() + "\n")
@@ -502,7 +529,7 @@ def main(argv: list[str] | None = None) -> int:
 
     print("\n--- transcript ---")
     print(transcript.to_markdown())
-    print(summarize_latencies_ms(transcript))
+    _print_latency_summary(transcript)
     if args.jsonl_out:
         with open(args.jsonl_out, "w", encoding="utf-8") as f:
             f.write(transcript.to_jsonl() + "\n")

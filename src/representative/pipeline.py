@@ -12,8 +12,16 @@ import json
 import re
 import statistics
 import time
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
-from typing import Callable, Protocol
+from typing import Protocol
+
+from representative.latency import (
+    evaluate_first_audio_budget,
+    largest_wait_stage,
+    percentile_ms,
+)
+from representative.tts_playback import TtsPlayback
 
 
 @dataclass(frozen=True)
@@ -27,6 +35,9 @@ class Utterance:
     # Son birkaç önceki söz (kaynak metin) — çevirmen bağlamı; marka onarımı
     # ve gönderme çözümü için (test 6 sonrası eklendi). Boş olabilir.
     context: tuple[str, ...] = ()
+    # STT-final damgası: transkript hazır olduğu an. Yoksa speech_end ile
+    # aynı sayılır (metin/stdin rig — STT yok).
+    stt_final_ts: float | None = None
 
 
 @dataclass(frozen=True)
@@ -41,7 +52,7 @@ class Translator(Protocol):
 
 
 class TextToSpeech(Protocol):
-    def speak(self, text: str, lang: str) -> None: ...
+    def speak(self, text: str, lang: str) -> TtsPlayback | None: ...
 
 
 @dataclass(frozen=True)
@@ -91,11 +102,14 @@ class UtteranceRecord:
     delivered: bool = True
     postcheck_ms: float = 0.0
     retried: bool = False
-    # Aşama kırılımı (canlı insan testi 4 sonrası): p90 sivrilmesinin HANGİ
-    # aşamadan geldiği toplam süreden okunamıyordu. Her aşama ayrı ölçülür;
-    # alanlar ek olduğu için eski jsonl kayıtları okunmaya devam eder.
+    # Aşama kırılımı: p90 sivrilmesinin HANGİ aşamadan geldiği tek toplam
+    # süreden okunamıyordu. Zincir: speech-end → STT-final → translation-ready
+    # → TTS-start → first-audio. Alanlar ek olduğu için eski jsonl kayıtları
+    # okunmaya devam eder.
+    stt_ms: float = 0.0
     translate_ms: float = 0.0
-    tts_ms: float = 0.0
+    tts_to_first_audio_ms: float = 0.0
+    e2e_first_audio_ms: float = 0.0
 
 
 class BilingualTranscript:
@@ -136,34 +150,49 @@ class BilingualTranscript:
         return "\n".join(lines)
 
 
-def percentile_ms(values: list[float], pct: float) -> float:
-    """En-yakın-sıra (nearest-rank) yüzdelik — interpolasyon YOK.
-
-    Küçük örneklemde (canlı prova n≈60) interpolasyonlu yöntemler kayıtta
-    olmayan bir değer üretir; kuyruk ucu tartışılırken "bu sayı hangi söz?"
-    sorusunun cevabı olmalı. Bu yüzden dönen değer daima gerçek bir kayıttır.
-    """
-    if not values:
-        return 0.0
-    ordered = sorted(values)
-    import math
-
-    rank = max(1, math.ceil(pct / 100.0 * len(ordered)))
-    return ordered[rank - 1]
-
-
-def summarize_latencies_ms(transcript: BilingualTranscript) -> dict[str, float]:
-    values = [r.latency_ms for r in transcript.records]
-    if not values:
-        return {"count": 0, "median_ms": 0.0, "max_ms": 0.0, "p50_ms": 0.0, "p90_ms": 0.0}
+def summarize_latencies_ms(transcript: BilingualTranscript) -> dict[str, float | str | bool]:
+    records = transcript.records
+    if not records:
+        empty_budget = evaluate_first_audio_budget(0.0, 0.0, count=0)
+        return {
+            "count": 0,
+            "median_ms": 0.0,
+            "max_ms": 0.0,
+            "p50_ms": 0.0,
+            "p90_ms": 0.0,
+            "e2e_first_audio_p50_ms": 0.0,
+            "e2e_first_audio_p90_ms": 0.0,
+            "stt_p50_ms": 0.0,
+            "translate_p50_ms": 0.0,
+            "tts_to_first_audio_p50_ms": 0.0,
+            "largest_wait": "",
+            "first_audio_budget_pass": False,
+            "first_audio_budget_reason": str(empty_budget["reason"]),
+        }
+    e2e = [r.e2e_first_audio_ms or r.latency_ms for r in records]
+    stt = [r.stt_ms for r in records]
+    translate = [r.translate_ms for r in records]
+    tts0 = [r.tts_to_first_audio_ms for r in records]
+    p50 = percentile_ms(e2e, 50)
+    p90 = percentile_ms(e2e, 90)
+    stt_p50 = percentile_ms(stt, 50)
+    translate_p50 = percentile_ms(translate, 50)
+    tts_p50 = percentile_ms(tts0, 50)
+    budget = evaluate_first_audio_budget(p50, p90, count=len(records))
     return {
-        "count": len(values),
-        "median_ms": statistics.median(values),
-        "max_ms": max(values),
-        # Canlı insan testi 4'ün FAIL'i p90'daydı; özet onu göstermeden
-        # "hedefe uyduk" denemesin diye p50/p90 buraya da eklendi.
-        "p50_ms": percentile_ms(values, 50),
-        "p90_ms": percentile_ms(values, 90),
+        "count": len(records),
+        "median_ms": statistics.median(e2e),
+        "max_ms": max(e2e),
+        "p50_ms": p50,
+        "p90_ms": p90,
+        "e2e_first_audio_p50_ms": p50,
+        "e2e_first_audio_p90_ms": p90,
+        "stt_p50_ms": stt_p50,
+        "translate_p50_ms": translate_p50,
+        "tts_to_first_audio_p50_ms": tts_p50,
+        "largest_wait": largest_wait_stage(stt_p50, translate_p50, tts_p50),
+        "first_audio_budget_pass": bool(budget["pass"]),
+        "first_audio_budget_reason": str(budget["reason"]),
     }
 
 
@@ -261,12 +290,17 @@ class InterpreterPipeline:
         self._on_record = on_record
         self._clock = clock
 
+    def interrupt_playback(self) -> int:
+        """Barge-in: drop queued TTS clips. Current clip finishes (echo-safe)."""
+        barge = getattr(self._tts, "barge_in", None)
+        if callable(barge):
+            return int(barge())
+        return 0
+
     def process(self, utterance: Utterance) -> UtteranceRecord:
         from representative.langcheck import detect_lang
 
-        translate_start = self._clock()
         result = self._translator.translate(utterance)
-        translate_ms = (self._clock() - translate_start) * 1000.0
         postcheck_ms = 0.0
         retried = False
         lang_ok = detect_lang(result.text) in ("unknown", utterance.target_lang)
@@ -281,8 +315,9 @@ class InterpreterPipeline:
                 lang_ok = True
 
         decision = self._gate.evaluate(result)
-        now = self._clock()
-        tts_ms = 0.0
+        translation_ready = self._clock()
+        tts_start = translation_ready
+        first_audio = translation_ready
         if not result.text.strip():
             # Test 7 bug'ı: model boş çeviri döndürebilir — boş metin
             # seslendirilmez, işaretli düşer (fail-closed).
@@ -302,15 +337,31 @@ class InterpreterPipeline:
             flagged, reason = True, "non_translation_output"
         elif lang_ok:
             tts_start = self._clock()
-            self._tts.speak(result.text, utterance.target_lang)
-            # `now` BİLEREK güncellenmez: latency_ms'in tanımı "söz sonu →
-            # teslime hazır" olarak kalır (önceki tüm ölçümlerle kıyaslanabilir
-            # olması şart). TTS süresi ayrı alanda muhasebe edilir.
-            tts_ms = (self._clock() - tts_start) * 1000.0
+            # Chunked oynatıcı ilk klibin damgasını döndürür: ölçülen şey
+            # "tüm paragraf bitti" değil, Meet'te İLK SESİN duyulduğu an.
+            playback = self._tts.speak(result.text, utterance.target_lang)
+            first_audio = self._clock()
+            if isinstance(playback, TtsPlayback):
+                tts_start = playback.tts_start_ts
+                first_audio = playback.first_audio_ts
             flagged, reason = decision.flagged, decision.reason
         else:
             # Fail-closed: ikinci çıktı da yanlış dilde — TTS'e verilmez.
             flagged, reason = True, "wrong_output_language"
+        stt_final = (
+            utterance.stt_final_ts
+            if utterance.stt_final_ts is not None
+            else utterance.speech_end_ts
+        )
+        stt_ms = max(0.0, (stt_final - utterance.speech_end_ts) * 1000.0)
+        translate_ms = max(0.0, (translation_ready - stt_final) * 1000.0)
+        tts_to_first_ms = max(0.0, (first_audio - tts_start) * 1000.0)
+        e2e_ms = max(0.0, (first_audio - utterance.speech_end_ts) * 1000.0)
+        latency_ms = (
+            e2e_ms
+            if lang_ok
+            else max(0.0, (translation_ready - utterance.speech_end_ts) * 1000.0)
+        )
         record = UtteranceRecord(
             source_text=utterance.text,
             source_lang=utterance.source_lang,
@@ -319,13 +370,15 @@ class InterpreterPipeline:
             confidence=result.confidence,
             flagged=flagged,
             flag_reason=reason,
-            latency_ms=(now - utterance.speech_end_ts) * 1000.0,
-            recorded_at=now,
+            latency_ms=latency_ms,
+            recorded_at=first_audio if lang_ok else translation_ready,
             delivered=lang_ok,
             postcheck_ms=postcheck_ms,
             retried=retried,
+            stt_ms=stt_ms,
             translate_ms=translate_ms,
-            tts_ms=tts_ms,
+            tts_to_first_audio_ms=tts_to_first_ms,
+            e2e_first_audio_ms=e2e_ms if lang_ok else 0.0,
         )
         self._transcript.append(record)
         if self._on_record is not None:

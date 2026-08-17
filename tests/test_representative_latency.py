@@ -6,6 +6,8 @@ sentetik olarak yeniden üretilir: çözümleyici o kayda "KALDI" demek zorunda.
 
 import json
 
+import pytest
+
 from representative.latency import P50_TARGET_MS, P90_TARGET_MS, analyze, format_report, load_records
 from representative.pipeline import (
     BilingualTranscript,
@@ -18,14 +20,18 @@ from representative.pipeline import (
 )
 
 
-def test_percentile_is_nearest_rank_and_returns_a_real_value() -> None:
+def test_percentile_is_linear_interpolated() -> None:
+    """Tek tanım: Lumos #343 yamasının doğrusal yüzdeliği.
+
+    (Bu dosya önce en-yakın-sıra kullanıyordu; bütçe kararı ile çözümleyici
+    aynı sayıyı vermek zorunda olduğu için yamanın tanımı esas alındı.)
+    """
     values = [1.0, 2.0, 3.0, 4.0, 10.0]
     assert percentile_ms(values, 50) == 3.0
-    assert percentile_ms(values, 90) == 10.0
     assert percentile_ms(values, 100) == 10.0
     assert percentile_ms([], 90) == 0.0
-    # Dönen değer daima kayıtta gerçekten bulunan bir sayıdır.
-    assert percentile_ms(values, 75) in values
+    assert percentile_ms([5.0], 90) == 5.0
+    assert percentile_ms([0.0, 10.0], 50) == 5.0
 
 
 def make_records(latencies_ms: list[float], direction: tuple[str, str] = ("tr", "en")) -> list[dict]:
@@ -37,8 +43,10 @@ def make_records(latencies_ms: list[float], direction: tuple[str, str] = ("tr", 
             "latency_ms": value,
             "delivered": True,
             "flag_reason": "ok",
+            "e2e_first_audio_ms": value,
+            "stt_ms": value * 0.2,
             "translate_ms": value * 0.4,
-            "tts_ms": value * 0.5,
+            "tts_to_first_audio_ms": value * 0.3,
             "postcheck_ms": 0.0,
         }
         for i, value in enumerate(latencies_ms)
@@ -47,7 +55,6 @@ def make_records(latencies_ms: list[float], direction: tuple[str, str] = ("tr", 
 
 def test_live_test_4_numbers_are_reported_as_failed() -> None:
     """p50 hedefte, p90 hedef dışı → sonuç KALDI olmalı (kısmi geçiş yok)."""
-    # n=60, nearest-rank p90 = 54. sıradaki kayıt → kuyrukta en az 7 yavaş söz.
     latencies = [2130.0] * 53 + [7490.0] * 6 + [15070.0]
     report = analyze(make_records(latencies))
     assert report.p50_ok is True
@@ -76,7 +83,7 @@ def test_direction_breakdown_separates_the_two_ways() -> None:
     report = analyze(records)
     assert report.by_direction["tr->en"]["count"] == 2
     assert report.by_direction["en->tr"]["count"] == 2
-    assert report.by_direction["en->tr"]["p90_ms"] == 7000.0
+    assert report.by_direction["en->tr"]["p90_ms"] == pytest.approx(6900.0)
     # Tek yön iyiyken diğeri kötüyse toplam sayı bunu gizlememeli.
     assert report.by_direction["tr->en"]["p90_ms"] < report.by_direction["en->tr"]["p90_ms"]
 
@@ -134,6 +141,7 @@ class FakeClock:
 
 
 def test_stage_timings_are_recorded_separately() -> None:
+    """Aşama damgaları ayrı; toplam artık söz sonu → İLK SES (first-audio)."""
     clock = FakeClock()
     transcript = BilingualTranscript()
     pipeline = InterpreterPipeline(
@@ -147,10 +155,12 @@ def test_stage_timings_are_recorded_separately() -> None:
         Utterance(text="Merhaba.", source_lang="tr", target_lang="en", speech_end_ts=0.0)
     )
     assert record.translate_ms == 1500.0
-    assert record.tts_ms == 2000.0
-    # Toplam gecikmenin tanımı DEĞİŞMEDİ: söz sonu → teslime hazır (TTS hariç).
-    # Aksi hâlde önceki tüm canlı ölçümlerle kıyas bozulurdu.
-    assert record.latency_ms == 1500.0
+    # Chunked TTS'te ölçülen "paragraf bitti" değil, ilk klibin duyulduğu an.
+    assert record.tts_to_first_audio_ms == 2000.0
+    # latency_ms artık söz sonu → first-audio (Lumos #343 ile bilinçli değişti;
+    # eski tanım yalnız çeviri-hazır'ı ölçüyor, TTS beklemesini gizliyordu).
+    assert record.latency_ms == 3500.0
+    assert record.e2e_first_audio_ms == 3500.0
 
 
 def test_summary_now_carries_p50_and_p90() -> None:

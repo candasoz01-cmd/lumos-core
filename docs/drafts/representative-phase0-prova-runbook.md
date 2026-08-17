@@ -546,3 +546,26 @@ Chunk TTS bu repoya girmeden ve yukarıdaki 3b kararı verilmeden yeni canlı
 test **planlanmaz**. Test yapıldığında ölçüm dosyası doğrudan
 `representative.latency` ile çözümlenir; PASS/FAIL beyanla değil çıkış koduyla
 kayda geçer.
+
+## Gecikme zinciri — first-audio (2026-08-17)
+
+Ürün hedefi (doğal sohbet): **p50 ≤ 2.5 sn, p90 ≤ 4 sn** — damga
+`speech-end → STT-final → translation-ready → TTS-start → first-audio-in-Meet`.
+Eski `latency_ms` yalnız çeviri-hazır'ı ölçüyordu; TTS+kapı uykusu içeride
+değildi. 2026-08-14 prova (medyan 3.49 / p90 5.79) bu hedefi **geçmez**;
+PASS deme.
+
+Kod kök nedeni (Meet, `RecallSpeaker`): tam paragraf `gpt-4o-mini-tts` MP3
+sonra `time.sleep(0.075 * len(text) + 1.0)` ile kapı kilitli — inbound kare
+düşer, half-duplex kuyruğu uzun TTS yüzünden konuşmayı bloklar.
+
+Düzeltme (bu dilim, canlı Meet ölçümü yok):
+- Aşama damgaları jsonl'de (`stt_ms`, `translate_ms`, `tts_to_first_audio_ms`,
+  `e2e_first_audio_ms`) + p50/p90 + `largest_wait`.
+- Cümle-chunk TTS: ilk klip first-audio; kalan arka plan; yeni söz barge-in
+  (kuyruk düşer, mevcut klip echo için biter).
+- Kapı hold = tek klip + 0.25s echo kuyruğu (tam paragraf + 1.0s değil).
+- Recall PCM stream yok; chunk'lı MP3 mümkün olan kaldıraç.
+
+Canlı doğrulama yalnız Mac (`RECALL_API_KEY` Cloud'da yok). jsonl özetinde
+`first_audio_budget_pass` false ise **FAIL — PASS deme**.

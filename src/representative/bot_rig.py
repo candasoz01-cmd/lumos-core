@@ -7,10 +7,12 @@ bağlar:
     Recall realtime_endpoints (websocket push, 16k PCM)
       → ngrok tüneli → yerel ws sunucu (bu süreç)
       → 16k→24k → RealtimeSTTStream → filtreler → InterpreterPipeline
-      → RecallSpeaker (OpenAI TTS mp3 → output_audio)
+      → RecallSpeaker (chunked OpenAI TTS mp3 → output_audio)
 
-Half-duplex toplantı içinde de geçerli: bot konuşurken (tahmini klip süresi
-boyunca kapı kapalı) gelen kareler DÜŞÜRÜLÜR — bot kendi sesini çeviremez.
+Half-duplex: kapı yalnız o an giden klip (+echo kuyruğu) boyunca kapalı;
+uzun paragrafın tamamı için kuyruk tutulmaz. Yeni söz kuyruktaki kalan
+klipleri iptal eder (barge-in). Echo için mevcut klip bitene kadar dinleme
+kapalı kalır.
 Fail-closed: wss olmayan endpoint reddedilir; bilinmeyen ws mesaj şekilleri
 sayılır ve düşürülür; retention kuralları meeting_ingress'ten aynen gelir.
 HTTP/ws şekilleri ilk canlı koşuda doğrulanır (dürüstlük notu).
@@ -49,6 +51,7 @@ from representative.pipeline import (
 )
 from representative.routing import Direction, DirectionRouter
 from representative.stt import LUMOS_TERMS_PROMPT
+from representative.tts_playback import ChunkedTtsPlayer
 
 RECALL_INBOUND_RATE = 16000
 
@@ -81,11 +84,6 @@ def resample_16k_to_24k(pcm: bytes) -> bytes:
     return np.interp(positions, np.arange(len(samples)), samples).astype(np.int16).tobytes()
 
 
-def estimate_speech_seconds(text: str) -> float:
-    """Kaba klip süresi tahmini — half-duplex kapının tutulma süresi."""
-    return 0.075 * len(text) + 1.0
-
-
 def build_realtime_endpoint(wss_url: str) -> dict[str, Any]:
     if not wss_url.startswith("wss://"):
         raise ValueError("realtime endpoint wss:// olmalı (fail-closed)")
@@ -93,7 +91,12 @@ def build_realtime_endpoint(wss_url: str) -> dict[str, Any]:
 
 
 class RecallSpeaker:
-    """TextToSpeech gerçeklemesi: nötr erkek TTS → botun sesinden toplantıya."""
+    """Chunked TTS: first Meet clip defines first-audio; rest is barge-in-safe.
+
+    Recall output_audio takes a whole MP3 — true PCM streaming is not available.
+    Short sentence chunks cut time-to-first-audio and stop the half-duplex gate
+    from covering the entire paragraph.
+    """
 
     def __init__(self, ingress: RecallMeetingIngress, bot_id: str, gate: HalfDuplexGate) -> None:
         from openai import OpenAI
@@ -102,14 +105,27 @@ class RecallSpeaker:
         self._ingress = ingress
         self._bot_id = bot_id
         self._gate = gate
+        self._player = ChunkedTtsPlayer(
+            synthesize=self._synthesize,
+            deliver=self._deliver,
+            gate=gate,
+            hold_after_deliver=True,
+        )
 
-    def speak(self, text: str, lang: str) -> None:
+    def _synthesize(self, text: str, _lang: str) -> bytes:
         resp = self._client.audio.speech.create(
             model="gpt-4o-mini-tts", voice="onyx", input=text, response_format="mp3"
         )
-        with self._gate:  # bot konuşurken gelen kareler düşer (toplantı içi yankı)
-            self._ingress.speak(self._bot_id, base64.b64encode(resp.content).decode())
-            time.sleep(estimate_speech_seconds(text))
+        return resp.content
+
+    def _deliver(self, payload: bytes, _text: str, _lang: str) -> None:
+        self._ingress.speak(self._bot_id, base64.b64encode(payload).decode())
+
+    def barge_in(self) -> int:
+        return self._player.barge_in()
+
+    def speak(self, text: str, lang: str):
+        return self._player.speak(text, lang)
 
 
 TUNNEL_PROBE_EVENT = "lumos.tunnel_probe"
@@ -396,8 +412,11 @@ def main(argv: list[str] | None = None) -> int:
             heard = corrector.correct(utt.text)
             if suppressor.should_drop(heard, time.monotonic()):
                 continue
+            stt_final = time.monotonic()
             decision = router.route(heard)
             print(f"{decision.direction.source_lang.upper()}(duyulan)> {heard}")
+            # Barge-in: yeni söz gelince kuyruktaki klipler düşer (chunked TTS).
+            pipeline.interrupt_playback()
             record = pipeline.process(
                 Utterance(
                     text=heard,
@@ -405,12 +424,18 @@ def main(argv: list[str] | None = None) -> int:
                     target_lang=decision.direction.target_lang,
                     speech_end_ts=utt.speech_end_ts,
                     context=tuple(recent),
+                    stt_final_ts=stt_final,
                 )
             )
             recent.append(heard)
             marker = "" if record.delivered else " [TESLİM EDİLMEDİ]"
-            print(f"{decision.direction.target_lang.upper()}> {record.translated_text}{marker}"
-                  f"  ({record.latency_ms:.0f} ms, yön: {decision.reason})")
+            print(
+                f"{decision.direction.target_lang.upper()}> {record.translated_text}{marker}"
+                f"  (e2e {record.latency_ms:.0f} ms"
+                f" stt={record.stt_ms:.0f} tr={record.translate_ms:.0f}"
+                f" tts0={record.tts_to_first_audio_ms:.0f}"
+                f", yön: {decision.reason})"
+            )
     except KeyboardInterrupt:
         end_reason.append("kill_switch")
     finally:
@@ -437,7 +462,19 @@ def main(argv: list[str] | None = None) -> int:
             print("medya erken silme:", "OK" if deleted else
                   f"BAŞARISIZ — elle: delete_media bot_id={bot_id}")
         print(transcript.to_markdown())
-        print(summarize_latencies_ms(transcript))
+        summary = summarize_latencies_ms(transcript)
+        print(summary)
+        if summary["first_audio_budget_pass"]:
+            print(
+                "first-audio bütçe: p50≤2.5s p90≤4s — bu örnek geçti "
+                "(canlı Meet değilse PASS deme)"
+            )
+        else:
+            print(
+                "first-audio bütçe: FAIL — PASS deme "
+                f"(p50={summary['p50_ms']:.0f} p90={summary['p90_ms']:.0f} ms; "
+                f"en büyük bekleme: {summary['largest_wait'] or 'yok'})"
+            )
         print(f"(bilinmeyen/düşürülen ws mesajı: {dropped_unknown})")
     return 0
 

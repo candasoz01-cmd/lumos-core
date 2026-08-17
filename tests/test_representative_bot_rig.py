@@ -6,9 +6,9 @@ import pytest
 
 from representative.bot_rig import (
     build_realtime_endpoint,
-    estimate_speech_seconds,
     extract_audio_b64,
 )
+from representative.tts_playback import estimate_speech_seconds
 
 
 def test_extract_audio_accepts_known_shapes_and_drops_unknown():
@@ -31,7 +31,15 @@ def test_realtime_endpoint_requires_wss():
 def test_speech_duration_estimate_scales_with_text():
     short = estimate_speech_seconds("Evet.")
     long = estimate_speech_seconds("Bu oldukça uzun bir cümledir ve klip süresi artmalıdır.")
-    assert 1.0 < short < long < 10.0
+    assert 0.3 < short < long < 10.0
+    paragraph = (
+        "First sentence stays short. Second sentence is also a clip. "
+        "Third sentence would have held the gate for the whole paragraph."
+    )
+    from representative.tts_playback import split_tts_chunks
+
+    first = split_tts_chunks(paragraph)[0]
+    assert estimate_speech_seconds(first) < estimate_speech_seconds(paragraph)
 
 
 def test_resample_ratio():
