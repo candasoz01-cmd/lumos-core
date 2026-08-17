@@ -174,3 +174,58 @@ def test_missing_confidence_signal_is_flagged_but_delivered() -> None:
     assert record.flag_reason == "no_confidence_signal"
     assert record.delivered is True
     assert len(tts.spoken) == 1
+
+
+# Kurucu kararı 2026-08-17 (seçenek C): eşik altı çeviri seslendirilir AMA
+# transkript/panelde düşük güven olarak işaretlenir.
+def test_low_confidence_is_delivered_and_visibly_marked() -> None:
+    from representative.pipeline import flag_label
+
+    record, tts = run("A quiet, uncertain sentence.", 0.2)
+    assert record.delivered is True  # (b) sessizlik değil
+    assert len(tts.spoken) == 1
+    assert flag_label(record) == "⚠ düşük güven"  # (a) işaretsiz teslim de değil
+
+
+def test_transcript_separates_heard_from_swallowed() -> None:
+    """"İşaretli ama duyuldu" ile "hiç seslendirilmedi" aynı görünmemeli."""
+    transcript = BilingualTranscript()
+    pipeline = InterpreterPipeline(
+        translator=StubTranslator("A quiet, uncertain sentence.", 0.2),
+        tts=RecordingTTS(),
+        gate=ConfidenceGate(0.8),
+        transcript=transcript,
+        clock=lambda: 0.0,
+    )
+    pipeline.process(
+        Utterance(text="Kaynak.", source_lang="tr", target_lang="en", speech_end_ts=0.0)
+    )
+    InterpreterPipeline(
+        translator=StubTranslator("LOW", 0.2),
+        tts=RecordingTTS(),
+        gate=ConfidenceGate(0.8),
+        transcript=transcript,
+        clock=lambda: 0.0,
+    ).process(Utterance(text="Kaynak 2.", source_lang="tr", target_lang="en", speech_end_ts=0.0))
+
+    table = transcript.to_markdown()
+    assert "✓ duyuldu" in table and "⚠ düşük güven" in table
+    assert "✕ seslendirilmedi" in table and "iç etiket" in table
+
+
+def test_every_flag_reason_has_a_human_label() -> None:
+    from representative.pipeline import _FLAG_LABELS, flag_label
+
+    for reason in (
+        "ok",
+        "below_threshold",
+        "no_confidence_signal",
+        "empty_translation",
+        "meta_output",
+        "non_translation_output",
+        "wrong_output_language",
+    ):
+        assert reason in _FLAG_LABELS
+    # Bilinmeyen sebep sessizce kaybolmaz, ham hâliyle görünür.
+    record, _ = run("ok text", 0.9)
+    assert flag_label(record) == ""

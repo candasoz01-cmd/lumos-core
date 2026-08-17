@@ -1,31 +1,98 @@
-"""Prova kaydı (jsonl) gecikme çözümleyicisi — canlı insan testi 4 sonrası.
+"""Aşama gecikmesi muhasebesi + prova kaydı çözümleyici.
 
-Canlı testte tek bir toplam süre vardı: p90 7.49 sn FAIL göründü ama sivrilme
-HANGİ aşamadan geliyor okunamadı. Bu modül kaydı okur, hedeflere göre açık bir
-PASS/FAIL verir ve kuyruk ucunu ayrıştırır.
+Ürün zinciri (canlı insan testi 4, 2026-08-17):
+    speech-end → STT-final → translation-ready → TTS-start → first-audio-in-Meet
 
-Hedefler (runbook, kurucu): **p50 ≤ 2.5 sn, p90 ≤ 4 sn.**
+Hedefler (doğal sohbet): **p50 ≤ 2.5 sn, p90 ≤ 4 sn** — speech-end → first-audio.
+`evaluate_first_audio_budget` boş örneklemden veya bütçe aşımından ASLA PASS
+uydurmaz; ölçüm yoksa cevap "PASS değil"dir.
+
+Bu dosya iki işi birleştirir:
+- **Bütçe çekirdeği** (Lumos PR #343 handoff yaması): aşama adları, yüzdelik,
+  en büyük bekleme aşaması, bütçe kararı.
+- **Çözümleyici** (lumos-core #751): kaydı okuyup insanın bakacağı raporu ve
+  kapı olarak kullanılabilir çıkış kodunu üretir.
 
 Kullanım:
     python -m representative.latency prova_bot.jsonl
     python -m representative.latency prova_bot.jsonl --p90-target-ms 5000
 
-Çıkış kodu: hedefler tutuyorsa 0, tutmuyorsa 1 — kapı olarak kullanılabilir
-(kırmızı ölçüm sessizce "geçti" diye raporlanamasın).
+Çıkış kodu: bütçe tutuyorsa 0, tutmuyorsa 1 — kırmızı ölçüm sessizce "geçti"
+diye raporlanamasın.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from collections import Counter
+from collections.abc import Iterable
 from dataclasses import dataclass
 
-from representative.pipeline import percentile_ms
+FIRST_AUDIO_P50_TARGET_MS = 2500.0
+FIRST_AUDIO_P90_TARGET_MS = 4000.0
 
-P50_TARGET_MS = 2500.0
-P90_TARGET_MS = 4000.0
+# Geriye dönük adlar (çözümleyici CLI varsayılanları).
+P50_TARGET_MS = FIRST_AUDIO_P50_TARGET_MS
+P90_TARGET_MS = FIRST_AUDIO_P90_TARGET_MS
+
+STAGE_STT = "stt"
+STAGE_TRANSLATE = "translate"
+STAGE_TTS_FIRST_AUDIO = "tts_to_first_audio"
+STAGE_E2E = "e2e_first_audio"
+
+
+def percentile_ms(values: Iterable[float], p: float) -> float:
+    """Doğrusal interpolasyonlu yüzdelik. Boş → 0. p 0..100 aralığında."""
+    if not 0.0 <= p <= 100.0:
+        raise ValueError("percentile p must be within [0, 100]")
+    data = sorted(float(v) for v in values)
+    if not data:
+        return 0.0
+    if len(data) == 1:
+        return data[0]
+    rank = (len(data) - 1) * (p / 100.0)
+    lo = math.floor(rank)
+    hi = math.ceil(rank)
+    if lo == hi:
+        return data[int(rank)]
+    weight = rank - lo
+    return data[lo] * (1.0 - weight) + data[hi] * weight
+
+
+def largest_wait_stage(stt_p50: float, translate_p50: float, tts_p50: float) -> str:
+    """p50'si en yüksek aşamayı adlandırır — optimizasyon hedefi."""
+    scores = (
+        (stt_p50, STAGE_STT),
+        (translate_p50, STAGE_TRANSLATE),
+        (tts_p50, STAGE_TTS_FIRST_AUDIO),
+    )
+    return max(scores, key=lambda item: item[0])[1]
+
+
+def evaluate_first_audio_budget(p50_ms: float, p90_ms: float, *, count: int) -> dict[str, object]:
+    """Yalnız boş olmayan örneklemde ve iki hedef de tutuyorsa PASS. Tahmin yok."""
+    met = (
+        count > 0
+        and p50_ms <= FIRST_AUDIO_P50_TARGET_MS
+        and p90_ms <= FIRST_AUDIO_P90_TARGET_MS
+    )
+    return {
+        "pass": met,
+        "count": count,
+        "p50_ms": p50_ms,
+        "p90_ms": p90_ms,
+        "p50_target_ms": FIRST_AUDIO_P50_TARGET_MS,
+        "p90_target_ms": FIRST_AUDIO_P90_TARGET_MS,
+        "reason": "ok" if met else "over_budget_or_empty",
+    }
+
+
+# --------------------------------------------------------------------------
+# Kayıt çözümleyici
+# --------------------------------------------------------------------------
 
 
 @dataclass(frozen=True)
@@ -39,7 +106,8 @@ class LatencyReport:
     p90_target_ms: float
     by_direction: dict[str, dict[str, float]]
     by_flag_reason: dict[str, int]
-    stage_p90_ms: dict[str, float]
+    stage_p50_ms: dict[str, float]
+    largest_wait: str
     slowest: list[tuple[float, str]]
 
     @property
@@ -53,6 +121,11 @@ class LatencyReport:
     @property
     def passed(self) -> bool:
         return self.count > 0 and self.p50_ok and self.p90_ok
+
+
+def _e2e_ms(record: dict) -> float:
+    """first-audio ölçümü varsa o; yoksa eski kayıtların toplam gecikmesi."""
+    return float(record.get("e2e_first_audio_ms") or record.get("latency_ms", 0.0))
 
 
 def load_records(path: str) -> list[dict]:
@@ -72,10 +145,10 @@ def load_records(path: str) -> list[dict]:
 
 def analyze(
     records: list[dict],
-    p50_target_ms: float = P50_TARGET_MS,
-    p90_target_ms: float = P90_TARGET_MS,
+    p50_target_ms: float = FIRST_AUDIO_P50_TARGET_MS,
+    p90_target_ms: float = FIRST_AUDIO_P90_TARGET_MS,
 ) -> LatencyReport:
-    latencies = [float(r.get("latency_ms", 0.0)) for r in records]
+    latencies = [_e2e_ms(r) for r in records]
     by_direction: dict[str, dict[str, float]] = {}
     for record in records:
         key = f"{record.get('source_lang', '?')}->{record.get('target_lang', '?')}"
@@ -83,7 +156,7 @@ def analyze(
         by_direction[key]["count"] += 1
     for key in by_direction:
         values = [
-            float(r.get("latency_ms", 0.0))
+            _e2e_ms(r)
             for r in records
             if f"{r.get('source_lang', '?')}->{r.get('target_lang', '?')}" == key
         ]
@@ -91,12 +164,16 @@ def analyze(
         by_direction[key]["p90_ms"] = percentile_ms(values, 90)
 
     # Aşama kırılımı yalnız yeni kayıtlarda var; eski dosyalarda 0 görünür.
-    stage_p90 = {
-        stage: percentile_ms([float(r.get(stage, 0.0)) for r in records], 90)
-        for stage in ("translate_ms", "tts_ms", "postcheck_ms")
+    stage_p50 = {
+        stage: percentile_ms([float(r.get(field, 0.0)) for r in records], 50)
+        for stage, field in (
+            (STAGE_STT, "stt_ms"),
+            (STAGE_TRANSLATE, "translate_ms"),
+            (STAGE_TTS_FIRST_AUDIO, "tts_to_first_audio_ms"),
+        )
     }
     slowest = sorted(
-        ((float(r.get("latency_ms", 0.0)), str(r.get("source_text", ""))[:60]) for r in records),
+        ((_e2e_ms(r), str(r.get("source_text", ""))[:60]) for r in records),
         reverse=True,
     )[:5]
     return LatencyReport(
@@ -109,20 +186,26 @@ def analyze(
         p90_target_ms=p90_target_ms,
         by_direction=by_direction,
         by_flag_reason=dict(Counter(str(r.get("flag_reason", "?")) for r in records)),
-        stage_p90_ms=stage_p90,
+        stage_p50_ms=stage_p50,
+        largest_wait=largest_wait_stage(
+            stage_p50[STAGE_STT],
+            stage_p50[STAGE_TRANSLATE],
+            stage_p50[STAGE_TTS_FIRST_AUDIO],
+        ),
         slowest=slowest,
     )
 
 
 def format_report(report: LatencyReport) -> str:
     if report.count == 0:
-        return "Kayıt yok — ölçüm dosyası boş."
+        return "Kayıt yok — ölçüm dosyası boş. (PASS uydurulmaz: SONUÇ KALDI)"
 
     def verdict(ok: bool) -> str:
         return "GEÇTİ" if ok else "KALDI"
 
     lines = [
         f"Kayıt: {report.count} söz ({report.delivered} teslim edildi)",
+        "Ölçülen: söz sonu → Meet'te ilk ses (first-audio)",
         "",
         f"p50 {report.p50_ms / 1000:.2f} sn  (hedef ≤ {report.p50_target_ms / 1000:.2f}) "
         f"→ {verdict(report.p50_ok)}",
@@ -138,12 +221,14 @@ def format_report(report: LatencyReport) -> str:
             f"p90 {stats['p90_ms'] / 1000:.2f} sn"
         )
     lines.append("")
-    lines.append("Aşama p90 (yalnız aşama kırılımı olan kayıtlarda anlamlı):")
-    for stage, value in report.stage_p90_ms.items():
+    lines.append("Aşama p50 (yalnız aşama damgası olan kayıtlarda anlamlı):")
+    for stage, value in report.stage_p50_ms.items():
         lines.append(f"  {stage}: {value / 1000:.2f} sn")
+    lines.append(f"  → en büyük bekleme: {report.largest_wait}")
     lines.append("")
-    lines.append("İşaret dağılımı: " + ", ".join(f"{k}={v}" for k, v in sorted(
-        report.by_flag_reason.items())))
+    lines.append(
+        "İşaret dağılımı: " + ", ".join(f"{k}={v}" for k, v in sorted(report.by_flag_reason.items()))
+    )
     lines.append("")
     lines.append("En yavaş 5 söz:")
     for value, text in report.slowest:
@@ -156,8 +241,8 @@ def format_report(report: LatencyReport) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Prova gecikme kaydı çözümleyici")
     parser.add_argument("path", help="prova jsonl kaydı")
-    parser.add_argument("--p50-target-ms", type=float, default=P50_TARGET_MS)
-    parser.add_argument("--p90-target-ms", type=float, default=P90_TARGET_MS)
+    parser.add_argument("--p50-target-ms", type=float, default=FIRST_AUDIO_P50_TARGET_MS)
+    parser.add_argument("--p90-target-ms", type=float, default=FIRST_AUDIO_P90_TARGET_MS)
     args = parser.parse_args(argv)
 
     report = analyze(load_records(args.path), args.p50_target_ms, args.p90_target_ms)

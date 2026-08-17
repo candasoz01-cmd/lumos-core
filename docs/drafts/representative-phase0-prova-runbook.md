@@ -517,9 +517,9 @@ mu" değil, "her şey hazır, son gerçek dünya kontrolü" denir.
 | 1 | EN→TR yön yok + papağan | **Kapandı** | `routing.DirectionRouter` — yön her söz için duyulan dile göre; kaynak≠hedef yapısal garanti. auto yönde STT'ye dil verilmez. 14 test |
 | 2 | Strict tercüman kipi yok | **Kapandı** | İstemde `STRICT INTERPRETER MODE` + `<utterance>` sarmalama; çıktıda `is_non_translation` fail-closed kapısı. 21 test |
 | 3a | Meta-sızıntı (iç etiket seslendirildi) | **Kapandı** | `is_meta_output` (#749) + regresyon takımı: etiketin her biçimi, yüksek güvenle de, parse_reply yolları dahil. 34 test |
-| 3b | 23/60 söz eşik altı olmasına rağmen teslim | **AÇIK — ürün kararı** | Davranış teste çakıldı (bilinçli, sessizce değişemez); teslim politikası kurucu kararı bekliyor |
+| 3b | 23/60 söz eşik altı olmasına rağmen teslim | **Kapandı — kurucu kararı (c)** | Seslendirilir AMA işaretlenir: transkript artık "✓ duyuldu / ✕ seslendirilmedi" + okunur işaret etiketi taşır. (b) sessizlik yaratır, (a) şüpheli çeviriyi normalmiş gibi sunar |
 | 4 | p90 sivrilmesi teşhis edilemiyor | **Ölçüm altyapısı hazır** | Aşama kırılımı (`translate_ms`/`tts_ms`), p50/p90 özet, `python -m representative.latency` PASS/FAIL + çıkış kodu |
-| 5 | Cümle-chunk TTS (p90'ın kök nedeni) | **Bu repoda YOK** | Başka oturumun çalışma alanı; gelmeden p90 hedefi beklenmemeli |
+| 5 | Cümle-chunk TTS (p90'ın kök nedeni) | **Repoda** | Lumos PR #343 handoff yaması `git am --3way` ile alındı, 6 çakışma elle çözüldü; ilk klip = first-audio, kalan arka planda, yeni sözde barge-in. **Canlı ölçüm hâlâ yapılmadı** |
 
 ### Ölçüm kaydını çözümleme
 
@@ -546,3 +546,26 @@ Chunk TTS bu repoya girmeden ve yukarıdaki 3b kararı verilmeden yeni canlı
 test **planlanmaz**. Test yapıldığında ölçüm dosyası doğrudan
 `representative.latency` ile çözümlenir; PASS/FAIL beyanla değil çıkış koduyla
 kayda geçer.
+
+## Gecikme zinciri — first-audio (2026-08-17)
+
+Ürün hedefi (doğal sohbet): **p50 ≤ 2.5 sn, p90 ≤ 4 sn** — damga
+`speech-end → STT-final → translation-ready → TTS-start → first-audio-in-Meet`.
+Eski `latency_ms` yalnız çeviri-hazır'ı ölçüyordu; TTS+kapı uykusu içeride
+değildi. 2026-08-14 prova (medyan 3.49 / p90 5.79) bu hedefi **geçmez**;
+PASS deme.
+
+Kod kök nedeni (Meet, `RecallSpeaker`): tam paragraf `gpt-4o-mini-tts` MP3
+sonra `time.sleep(0.075 * len(text) + 1.0)` ile kapı kilitli — inbound kare
+düşer, half-duplex kuyruğu uzun TTS yüzünden konuşmayı bloklar.
+
+Düzeltme (bu dilim, canlı Meet ölçümü yok):
+- Aşama damgaları jsonl'de (`stt_ms`, `translate_ms`, `tts_to_first_audio_ms`,
+  `e2e_first_audio_ms`) + p50/p90 + `largest_wait`.
+- Cümle-chunk TTS: ilk klip first-audio; kalan arka plan; yeni söz barge-in
+  (kuyruk düşer, mevcut klip echo için biter).
+- Kapı hold = tek klip + 0.25s echo kuyruğu (tam paragraf + 1.0s değil).
+- Recall PCM stream yok; chunk'lı MP3 mümkün olan kaldıraç.
+
+Canlı doğrulama yalnız Mac (`RECALL_API_KEY` Cloud'da yok). jsonl özetinde
+`first_audio_budget_pass` false ise **FAIL — PASS deme**.
