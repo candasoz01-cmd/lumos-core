@@ -15,6 +15,7 @@ from lumos_board.task_claim import (
     OverrideApprovalVerifier,
     TaskClaimStore,
 )
+from lumos_board.wall import format_wall_table, read_wall_projection
 
 
 def _store_dir(explicit: str | None) -> Path:
@@ -73,6 +74,17 @@ def _parser() -> argparse.ArgumentParser:
 
     listing = subparsers.add_parser("list")
     listing.add_argument("--all", action="store_true")
+
+    wall = subparsers.add_parser("wall")
+    wall.add_argument("--format", choices=("table", "json"), default="table")
+    wall.add_argument(
+        "--status-dir",
+        action="append",
+        default=[],
+        metavar="NAME=PATH",
+        help="İsteğe bağlı agent_status kaynağı (tekrarlanabilir)",
+    )
+    wall.add_argument("--stale-after", type=float, default=120.0)
     return parser
 
 
@@ -121,6 +133,25 @@ def main(argv: Sequence[str] | None = None) -> int:
             value = store.release(args.claim_id, owner=args.owner)
         elif args.command == "attach-pr":
             value = store.attach_pr(args.claim_id, owner=args.owner, pr_ref=args.pr)
+        elif args.command == "wall":
+            status_sources: dict[str, str] = {}
+            for item in args.status_dir:
+                if "=" not in item:
+                    raise ClaimError("--status-dir NAME=PATH olmalı")
+                name, path = item.split("=", 1)
+                if not name.strip() or not path.strip():
+                    raise ClaimError("--status-dir NAME=PATH olmalı")
+                status_sources[name.strip()] = path.strip()
+            projection = read_wall_projection(
+                store,
+                status_sources=status_sources or None,
+                stale_after_seconds=args.stale_after,
+            )
+            if args.format == "json":
+                print(json.dumps(projection.to_dict(), ensure_ascii=False, sort_keys=True))
+            else:
+                print(format_wall_table(projection), end="")
+            return 0
         else:
             values = [claim.to_dict() for claim in store.list_claims(include_closed=args.all)]
             print(json.dumps({"claims": values}, ensure_ascii=False, sort_keys=True))
