@@ -2,11 +2,19 @@
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Kabul edildi — public foundation; üretim taşıması bekliyor** |
-| Tarih | 2026-07-15 |
-| İlgili | ADR-015, ADR-007, ADR-008, `docs/integrations-overview.md` |
+| Durum | **Kabul edildi — public foundation; üretim taşıması bekliyor**. **Kısmen güncellendi: "Lumos ID = kullanıcı kimliği" tanımı [ADR-024](ADR-024-lumos-identity-multi-subject-model.md) ile değişti (bkz. aşağıdaki not); I1-I6 hafıza ilkeleri aynen yürürlükte** |
+| Tarih | 2026-07-15 (tanım güncellemesi: 2026-08-17) |
+| İlgili | ADR-015, ADR-007, ADR-008, [ADR-024](ADR-024-lumos-identity-multi-subject-model.md), `docs/integrations-overview.md` |
 
 ## Karar
+
+> **Güncelleme (ADR-024, 2026-08-17):** Aşağıdaki "Lumos ID, kullanıcının tek
+> ve kalıcı kimliğidir" tanımı **yürürlükten kalkmıştır**. Lumos ID bir kimlik
+> değil, **kimlik otoritesidir** (identity authority / trust root); kullanıcının
+> kimliği, Lumos ID altındaki **insan öznesidir** ve yanında Lumos, cihaz, agent,
+> servis özneleri vardır. Bu paragrafın "sağlayıcı sahibi değildir / sağlayıcılar
+> yalnızca adaptördür" kısmı ile I1-I6 ilkelerinin tamamı **değişmeden geçerlidir**;
+> yalnız "tek kimlik" ifadesi "insan öznesi" olarak okunur.
 
 **Lumos ID**, kullanıcının tek ve kalıcı kimliğidir. Hiçbir sağlayıcı (OpenAI, Google/Gemini, Apple, GitHub, Gmail, Meta, vb.) bu kimliğin sahibi değildir; sağlayıcılar Lumos ID'ye bağlanan birer **kimlik adaptörü**dür. Sağlayıcı değişse veya eklense/çıkarılsa bile Lumos ID ve altındaki hafıza değişmez.
 
