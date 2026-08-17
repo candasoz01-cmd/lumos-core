@@ -171,13 +171,19 @@ def test_agent_runner_worker_mirrors_on_success(tmp_path: Path, monkeypatch: pyt
             from kando.agent_runner import start_agent_job
 
             job_id = start_agent_job("agent goal", False, repo_root=tmp_path, outbox_dir=outbox)
-            for _ in range(50):
-                status_path = outbox / f"agent_status_{job_id}.json"
+            # Status dosyasındaki "completed" yayın noktasıdır: worker, evidence journal
+            # mirror'ını bu yayından ÖNCE yazar (agent_runner sıralama sözleşmesi).
+            status_path = outbox / f"agent_status_{job_id}.json"
+            completed = False
+            deadline = time.monotonic() + 10.0
+            while time.monotonic() < deadline:
                 if status_path.is_file():
                     data = json.loads(status_path.read_text(encoding="utf-8"))
                     if data.get("status") == "completed":
+                        completed = True
                         break
                 time.sleep(0.05)
 
+    assert completed, "agent job status dosyası süresinde 'completed' olmadı"
     records = _read_journal_records(tmp_path)
     assert any(r.get("phase") == PHASE_RESULT for r in records)

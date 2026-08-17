@@ -487,6 +487,18 @@ def start_agent_job(
                 repo_root=rr,
                 on_phase=on_phase,
             )
+            # Sıralama sözleşmesi: status dosyasındaki "completed" yayın noktasıdır —
+            # evidence journal ve diğer tamamlanma artefaktları ondan ÖNCE yazılır,
+            # böylece "completed" gören her gözlemci journal'daki result kaydını bulur.
+            last_path = outbox_dir / "agent_last.json"
+            _write_json(last_path, fr)
+            _copy_cursor_bridge_snapshots_to_outbox(rr, outbox_dir)
+            try:
+                from core.evidence_continuity import mirror_bridge_agent_result_to_evidence_journal
+
+                mirror_bridge_agent_result_to_evidence_journal(job_id, fr)
+            except Exception:
+                pass
             state.final_report = fr
             state.status = "completed"
             state.phase = "done"
@@ -500,15 +512,6 @@ def start_agent_job(
                 "errors": state.errors,
             }
             _write_json(path_status, done_payload)
-            last_path = outbox_dir / "agent_last.json"
-            _write_json(last_path, fr)
-            _copy_cursor_bridge_snapshots_to_outbox(rr, outbox_dir)
-            try:
-                from core.evidence_continuity import mirror_bridge_agent_result_to_evidence_journal
-
-                mirror_bridge_agent_result_to_evidence_journal(job_id, fr)
-            except Exception:
-                pass
         except Exception as e:
             state.status = "failed"
             state.errors.append(str(e)[:2000])
@@ -518,6 +521,13 @@ def start_agent_job(
             fr["errors"] = state.errors
             state.final_report = fr
             try:
+                from core.evidence_continuity import mirror_bridge_agent_result_to_evidence_journal
+
+                mirror_bridge_agent_result_to_evidence_journal(job_id, fr)
+            except Exception:
+                pass
+            try:
+                _write_json(outbox_dir / "agent_last.json", fr)
                 _write_json(
                     path_status,
                     {
@@ -528,14 +538,7 @@ def start_agent_job(
                         "errors": state.errors,
                     },
                 )
-                _write_json(outbox_dir / "agent_last.json", fr)
             except OSError:
-                pass
-            try:
-                from core.evidence_continuity import mirror_bridge_agent_result_to_evidence_journal
-
-                mirror_bridge_agent_result_to_evidence_journal(job_id, fr)
-            except Exception:
                 pass
         finally:
             try:
