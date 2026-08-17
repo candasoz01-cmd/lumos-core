@@ -134,7 +134,7 @@ def test_failed_status_and_owner_conflict_surface_on_wall(tmp_path: Path) -> Non
     assert "Sahiplik çakışması" in decisions
 
 
-def test_cli_wall_json_is_read_only(tmp_path: Path, capsys) -> None:
+def test_cli_list_is_the_wall_surface(tmp_path: Path, capsys) -> None:
     assert (
         claim_cli_main(
             [
@@ -158,10 +158,23 @@ def test_cli_wall_json_is_read_only(tmp_path: Path, capsys) -> None:
         == 0
     )
     capsys.readouterr()
+    assert claim_cli_main(["--store", str(tmp_path), "list", "--format", "json"]) == 0
+    list_payload = json.loads(capsys.readouterr().out)
     assert claim_cli_main(["--store", str(tmp_path), "wall", "--format", "json"]) == 0
-    payload = json.loads(capsys.readouterr().out)
-    assert payload["read_only"] is True
-    assert payload["command_surface"] is False
-    assert payload["rows"][0]["state"] == "WORKING"
-    assert "stop" not in payload
-    assert "approve" not in payload
+    wall_payload = json.loads(capsys.readouterr().out)
+    assert list_payload == wall_payload
+    assert list_payload["read_only"] is True
+    assert list_payload["command_surface"] is False
+    assert list_payload["rows"][0]["state"] == "WORKING"
+    assert "stop" not in list_payload
+    assert "approve" not in list_payload
+
+    assert claim_cli_main(["--store", str(tmp_path), "list"]) == 0
+    table = capsys.readouterr().out
+    assert "komut yok" in table
+    assert "çalışıyor" in table
+
+    assert claim_cli_main(["--store", str(tmp_path), "list", "--raw"]) == 0
+    raw = json.loads(capsys.readouterr().out)
+    assert "claims" in raw
+    assert raw["claims"][0]["owner"] == "cursor"

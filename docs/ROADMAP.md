@@ -146,7 +146,8 @@ kayıt, komut kapısı = el. Bu dilim yalnız gözdür.
 
 - mevcut claim ve agent-status kayıtlarını `WORKING` / `WAITING` /
   `BLOCKED` / `NEEDS_DECISION` özetine indirgemek;
-- yüzey yalnız iç CLI: `python -m lumos_board.claim_cli wall`;
+- yüzey mevcut Board CLI: `python -m lumos_board.claim_cli list`
+  (varsayılan = duvar özeti; yeni sayfa yok);
 - durdur / devam / yön / onay / başka ajana ver **yok**;
 - yeni public sayfa, panel widget, kullanıcı API'si veya yatay ajan komutu
   **yok**;
@@ -198,8 +199,8 @@ kullanır, ayrı bir motor kurmaz.
 
 - **Karar durumu:** sınır tanımı kabul edildi (2026-08-08, ADR-019);
   görünürlük dilimi kabul edildi (2026-08-17, ADR-025).
-- **Uygulama durumu:** salt-okunur CLI özeti `python -m lumos_board.claim_cli wall`.
-  Yeni public sayfa ve komut kapısı **yok**.
+- **Uygulama durumu:** mevcut `claim_cli list` varsayılanı salt-okunur duvar
+  özeti. Yeni public sayfa ve komut kapısı **yok**.
 - STOP LIST'teki "yeni agent / orchestration katmanı" yasağı **sürer**; ADR-025
   yalnız mevcut Board kaydını okumaya izin verir, el/kumanda açmaz.
 
