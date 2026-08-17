@@ -75,6 +75,7 @@ def build_recall_bot_payload(
     retention: RetentionPolicy,
     internal_ref: str,
     bot_name: str = "Lumos Temsilcisi",
+    disclosure_mp3_b64: str | None = None,
 ) -> dict[str, Any]:
     """Pure payload builder — unit tests pin the founder's rules here.
 
@@ -93,12 +94,15 @@ def build_recall_bot_payload(
         "meeting_url": meeting_url,
         "bot_name": bot_name,
         "recording_config": {"retention": retention.to_recall()},
-        # Output Audio ucu için ön koşul (docs.recall.ai/output-audio):
-        "automatic_audio_output": {
-            "in_call_recording": {"data": {"kind": "mp3", "b64_data": ""}}
-        },
         "metadata": {"lumos_ref": internal_ref},
     }
+    if disclosure_mp3_b64:
+        # Output Audio ucunun ön koşulu + girişte otomatik ifşa klibi
+        # (prova 2 canlı doğrulaması: boş b64 400 döner — alan ancak gerçek
+        # klip varsa gönderilir)
+        payload["automatic_audio_output"] = {
+            "in_call_recording": {"data": {"kind": "mp3", "b64_data": disclosure_mp3_b64}}
+        }
     assert "transcription" not in json.dumps(payload).lower()
     return payload
 

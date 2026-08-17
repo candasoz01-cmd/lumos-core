@@ -38,6 +38,12 @@ def test_payload_rules_pin_founder_constraints():
     assert payload["recording_config"]["retention"] == {"type": "timed", "hours": 24}
     assert payload["metadata"] == {"lumos_ref": "ref-123"}  # yalnız opak referans
     assert "transcription" not in json.dumps(payload).lower()  # Recall STT asla
+    # Prova 2 canlı bulgusu: boş b64 Recall'da 400 — klip yoksa alan HİÇ gönderilmez
+    assert "automatic_audio_output" not in payload
+    with_clip = build_recall_bot_payload(
+        MEET_URL, REHEARSAL_RETENTION, internal_ref="r", disclosure_mp3_b64="QUJD"
+    )
+    assert with_clip["automatic_audio_output"]["in_call_recording"]["data"]["b64_data"] == "QUJD"
 
 
 def test_only_google_meet_urls_in_phase0():

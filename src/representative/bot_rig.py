@@ -167,10 +167,6 @@ def main(argv: list[str] | None = None) -> int:
     ingress = RecallMeetingIngress(
         REHEARSAL_RETENTION, os.environ["RECALL_REGION_URL"]
     )
-    payload = build_recall_bot_payload(
-        args.meeting_url, REHEARSAL_RETENTION, internal_ref="faz0-bot-prova"
-    )
-    payload["recording_config"]["realtime_endpoints"] = [build_realtime_endpoint(wss_url)]
     from openai import OpenAI
 
     from representative.meeting_ingress import DISCLOSURE_LINE_EN, DISCLOSURE_LINE_TR
@@ -181,9 +177,16 @@ def main(argv: list[str] | None = None) -> int:
         input=DISCLOSURE_LINE_TR + " ... " + DISCLOSURE_LINE_EN,
         response_format="mp3",
     )
-    payload["automatic_audio_output"]["in_call_recording"]["data"]["b64_data"] = (
-        base64.b64encode(disclosure.content).decode()
+    payload = build_recall_bot_payload(
+        args.meeting_url,
+        REHEARSAL_RETENTION,
+        internal_ref="faz0-bot-prova",
+        disclosure_mp3_b64=base64.b64encode(disclosure.content).decode(),
     )
+    # Prova 2 canlı doğrulaması: realtime olayları için audio_mixed_raw
+    # artefact'ı açıkça konfigüre edilmeli (Recall 400 gövdesinden)
+    payload["recording_config"]["audio_mixed_raw"] = {}
+    payload["recording_config"]["realtime_endpoints"] = [build_realtime_endpoint(wss_url)]
     bot_id = str(ingress._request("POST", "/api/v1/bot/", payload)["id"])
     print(f"bot: {bot_id} — Meet'te katılma isteğini kabul et.")
 
