@@ -91,6 +91,11 @@ class UtteranceRecord:
     delivered: bool = True
     postcheck_ms: float = 0.0
     retried: bool = False
+    # Aşama kırılımı (canlı insan testi 4 sonrası): p90 sivrilmesinin HANGİ
+    # aşamadan geldiği toplam süreden okunamıyordu. Her aşama ayrı ölçülür;
+    # alanlar ek olduğu için eski jsonl kayıtları okunmaya devam eder.
+    translate_ms: float = 0.0
+    tts_ms: float = 0.0
 
 
 class BilingualTranscript:
@@ -131,14 +136,34 @@ class BilingualTranscript:
         return "\n".join(lines)
 
 
+def percentile_ms(values: list[float], pct: float) -> float:
+    """En-yakın-sıra (nearest-rank) yüzdelik — interpolasyon YOK.
+
+    Küçük örneklemde (canlı prova n≈60) interpolasyonlu yöntemler kayıtta
+    olmayan bir değer üretir; kuyruk ucu tartışılırken "bu sayı hangi söz?"
+    sorusunun cevabı olmalı. Bu yüzden dönen değer daima gerçek bir kayıttır.
+    """
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    import math
+
+    rank = max(1, math.ceil(pct / 100.0 * len(ordered)))
+    return ordered[rank - 1]
+
+
 def summarize_latencies_ms(transcript: BilingualTranscript) -> dict[str, float]:
     values = [r.latency_ms for r in transcript.records]
     if not values:
-        return {"count": 0, "median_ms": 0.0, "max_ms": 0.0}
+        return {"count": 0, "median_ms": 0.0, "max_ms": 0.0, "p50_ms": 0.0, "p90_ms": 0.0}
     return {
         "count": len(values),
         "median_ms": statistics.median(values),
         "max_ms": max(values),
+        # Canlı insan testi 4'ün FAIL'i p90'daydı; özet onu göstermeden
+        # "hedefe uyduk" denemesin diye p50/p90 buraya da eklendi.
+        "p50_ms": percentile_ms(values, 50),
+        "p90_ms": percentile_ms(values, 90),
     }
 
 
@@ -239,7 +264,9 @@ class InterpreterPipeline:
     def process(self, utterance: Utterance) -> UtteranceRecord:
         from representative.langcheck import detect_lang
 
+        translate_start = self._clock()
         result = self._translator.translate(utterance)
+        translate_ms = (self._clock() - translate_start) * 1000.0
         postcheck_ms = 0.0
         retried = False
         lang_ok = detect_lang(result.text) in ("unknown", utterance.target_lang)
@@ -255,6 +282,7 @@ class InterpreterPipeline:
 
         decision = self._gate.evaluate(result)
         now = self._clock()
+        tts_ms = 0.0
         if not result.text.strip():
             # Test 7 bug'ı: model boş çeviri döndürebilir — boş metin
             # seslendirilmez, işaretli düşer (fail-closed).
@@ -273,7 +301,12 @@ class InterpreterPipeline:
             lang_ok = False
             flagged, reason = True, "non_translation_output"
         elif lang_ok:
+            tts_start = self._clock()
             self._tts.speak(result.text, utterance.target_lang)
+            # `now` BİLEREK güncellenmez: latency_ms'in tanımı "söz sonu →
+            # teslime hazır" olarak kalır (önceki tüm ölçümlerle kıyaslanabilir
+            # olması şart). TTS süresi ayrı alanda muhasebe edilir.
+            tts_ms = (self._clock() - tts_start) * 1000.0
             flagged, reason = decision.flagged, decision.reason
         else:
             # Fail-closed: ikinci çıktı da yanlış dilde — TTS'e verilmez.
@@ -291,6 +324,8 @@ class InterpreterPipeline:
             delivered=lang_ok,
             postcheck_ms=postcheck_ms,
             retried=retried,
+            translate_ms=translate_ms,
+            tts_ms=tts_ms,
         )
         self._transcript.append(record)
         if self._on_record is not None:
