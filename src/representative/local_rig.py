@@ -34,6 +34,7 @@ from representative.pipeline import (
     Utterance,
     summarize_latencies_ms,
 )
+from representative.routing import Direction, DirectionRouter
 
 
 class MockTranslator:
@@ -155,8 +156,7 @@ def run_audio_mode(
     stt,
     duplex_gate: HalfDuplexGate,
     base_config: SegmenterConfig,
-    src_lang: str,
-    dst_lang: str,
+    router: DirectionRouter,
 ) -> None:
     """Blocking mic loop: capture → endpoint → STT → pipeline.
 
@@ -208,7 +208,7 @@ def run_audio_mode(
         config = dataclasses.replace(base_config, rms_threshold=threshold)
         segmenter = UtteranceSegmenter(config, gate=duplex_gate)
         print(f"Eşik kalibre edildi: {threshold:.0f}")
-        print(f"Mikrofon açık — {src_lang.upper()} konuş; Ctrl+C ile çık.")
+        print("Mikrofon açık — TR veya EN konuş (yön kendiliğinden); Ctrl+C ile çık.")
         while True:
             utterance_pcm = segmenter.feed(frames.get())
             if utterance_pcm is None:
@@ -228,18 +228,20 @@ def run_audio_mode(
                 continue
             if heard_text != heard.text:
                 print(f"  (terim düzeltildi: {heard.text[:40]} → {heard_text[:40]})")
-            print(f"{src_lang.upper()}(duyulan)> {heard_text}")
+            decision = router.route(heard_text)
+            print(f"{decision.direction.source_lang.upper()}(duyulan)> {heard_text}")
             record = pipeline.process(
                 Utterance(
                     text=heard_text,
-                    source_lang=src_lang,
-                    target_lang=dst_lang,
+                    source_lang=decision.direction.source_lang,
+                    target_lang=decision.direction.target_lang,
                     speech_end_ts=speech_end,
                     context=tuple(recent),
                 )
             )
             recent.append(heard_text)
-            print(f"{dst_lang.upper()}> {record.translated_text}  ({record.latency_ms:.0f} ms)")
+            print(f"{decision.direction.target_lang.upper()}> {record.translated_text}  "
+                  f"({record.latency_ms:.0f} ms, yön: {decision.reason})")
             drain()
 
 
@@ -254,8 +256,7 @@ def build_translator(name: str) -> Translator:
 def run_realtime_audio_mode(
     pipeline: InterpreterPipeline,
     duplex_gate: HalfDuplexGate,
-    src_lang: str,
-    dst_lang: str,
+    router: DirectionRouter,
     vad_silence_ms: int = 800,
 ) -> None:
     """Streaming mic loop (kalem 3): capture 24k → realtime STT → pipeline.
@@ -276,8 +277,11 @@ def run_realtime_audio_mode(
     corrector = TermCorrector()
     recent: deque[str] = deque(maxlen=4)
 
+    # Çift yönde dil sabitlenmez; yön kararı metinden verilir.
     stream = RealtimeSTTStream(
-        language=src_lang, prompt=LUMOS_TERMS_PROMPT, vad_silence_ms=vad_silence_ms
+        language=None if router.bidirectional else router.default_direction.source_lang,
+        prompt=LUMOS_TERMS_PROMPT,
+        vad_silence_ms=vad_silence_ms,
     )
     stream.start()
 
@@ -286,7 +290,7 @@ def run_realtime_audio_mode(
             stream.feed(bytes(indata))
 
     frame_len = int(SAMPLE_RATE * 0.06)  # 60 ms
-    print(f"Mikrofon açık (akışlı) — {src_lang.upper()} konuş; Ctrl+C ile çık.")
+    print("Mikrofon açık (akışlı) — TR veya EN konuş (yön kendiliğinden); Ctrl+C ile çık.")
     try:
         with sd.RawInputStream(
             samplerate=SAMPLE_RATE,
@@ -311,12 +315,13 @@ def run_realtime_audio_mode(
                     continue
                 if heard_text != utt.text:
                     print(f"  (terim düzeltildi: {utt.text[:40]} → {heard_text[:40]})")
-                print(f"{src_lang.upper()}(duyulan)> {heard_text}")
+                decision = router.route(heard_text)
+                print(f"{decision.direction.source_lang.upper()}(duyulan)> {heard_text}")
                 record = pipeline.process(
                     Utterance(
                         text=heard_text,
-                        source_lang=src_lang,
-                        target_lang=dst_lang,
+                        source_lang=decision.direction.source_lang,
+                        target_lang=decision.direction.target_lang,
                         speech_end_ts=utt.speech_end_ts,
                         context=tuple(recent),
                     )
@@ -324,8 +329,8 @@ def run_realtime_audio_mode(
                 recent.append(heard_text)
                 marker = "" if record.delivered else " [TESLİM EDİLMEDİ]"
                 print(
-                    f"{dst_lang.upper()}> {record.translated_text}{marker}  "
-                    f"({record.latency_ms:.0f} ms)"
+                    f"{decision.direction.target_lang.upper()}> {record.translated_text}{marker}  "
+                    f"({record.latency_ms:.0f} ms, yön: {decision.reason})"
                 )
     finally:
         stream.stop()
@@ -347,6 +352,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--stt-model", default="small", help="faster-whisper model size (local)")
     parser.add_argument("--source-lang", default="tr", choices=("tr", "en"))
     parser.add_argument("--target-lang", default="en", choices=("tr", "en"))
+    parser.add_argument(
+        "--direction",
+        default="auto",
+        choices=("auto", "fixed"),
+        help="auto (varsayılan): yön her söz için duyulan dile göre belirlenir; "
+        "--source/--target yalnız dil tespit edilemeyen kısa sözlerde geçerli "
+        "varsayılan yöndür. fixed: eski tek-yön davranışı",
+    )
     parser.add_argument("--jsonl-out", default=None, help="prova ölçüm kaydı (jsonl) yolu")
     parser.add_argument(
         "--vad-silence-ms",
@@ -387,6 +400,9 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     src_lang, dst_lang = args.source_lang, args.target_lang
+    router = DirectionRouter(
+        Direction(src_lang, dst_lang), bidirectional=args.direction == "auto"
+    )
     if args.audio:
         import signal
 
@@ -410,9 +426,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"Isıtma başarısız (devam ediliyor): {type(exc).__name__}")
         if args.stt_backend == "realtime":
             try:
-                run_realtime_audio_mode(
-                    pipeline, duplex_gate, src_lang, dst_lang, args.vad_silence_ms
-                )
+                run_realtime_audio_mode(pipeline, duplex_gate, router, args.vad_silence_ms)
             except KeyboardInterrupt:
                 pass
             print("\n--- transcript ---")
@@ -423,35 +437,40 @@ def main(argv: list[str] | None = None) -> int:
                     f.write(transcript.to_jsonl() + "\n")
                 print(f"ölçüm kaydı: {args.jsonl_out}")
             return 0
+        # Çift yönde toplu STT'ye de dil verilmez (sağlayıcı kendisi tespit eder).
+        stt_lang = None if args.direction == "auto" else src_lang
         if args.stt_backend == "cloud":
-            stt = OpenAICloudSTT(language=src_lang, prompt=LUMOS_TERMS_PROMPT)
+            stt = OpenAICloudSTT(language=stt_lang, prompt=LUMOS_TERMS_PROMPT)
         else:
             stt = FasterWhisperSTT(
-                model_size=args.stt_model, language=src_lang, initial_prompt=LUMOS_TERMS_PROMPT
+                model_size=args.stt_model, language=stt_lang, initial_prompt=LUMOS_TERMS_PROMPT
             )
         base_config = SegmenterConfig(end_silence_ms=args.end_silence_ms)
         try:
-            run_audio_mode(pipeline, stt, duplex_gate, base_config, src_lang, dst_lang)
+            run_audio_mode(pipeline, stt, duplex_gate, base_config, router)
         except KeyboardInterrupt:
             pass
     else:
-        print(f"{src_lang.upper()} cümle yaz, boş satır = çık.")
+        label = "TR/EN" if router.bidirectional else src_lang.upper()
+        print(f"{label} cümle yaz, boş satır = çık.")
         while True:
             try:
-                line = input(f"{src_lang.upper()}> ").strip()
+                line = input(f"{label}> ").strip()
             except EOFError:
                 break
             if not line:
                 break
+            decision = router.route(line)
             record = pipeline.process(
                 Utterance(
                     text=line,
-                    source_lang=src_lang,
-                    target_lang=dst_lang,
+                    source_lang=decision.direction.source_lang,
+                    target_lang=decision.direction.target_lang,
                     speech_end_ts=time.monotonic(),
                 )
             )
-            print(f"{dst_lang.upper()}> {record.translated_text}  ({record.latency_ms:.0f} ms)")
+            print(f"{decision.direction.target_lang.upper()}> {record.translated_text}  "
+                  f"({record.latency_ms:.0f} ms, yön: {decision.reason})")
 
     print("\n--- transcript ---")
     print(transcript.to_markdown())

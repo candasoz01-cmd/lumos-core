@@ -47,6 +47,7 @@ from representative.pipeline import (
     Utterance,
     summarize_latencies_ms,
 )
+from representative.routing import Direction, DirectionRouter
 from representative.stt import LUMOS_TERMS_PROMPT
 
 RECALL_INBOUND_RATE = 16000
@@ -232,6 +233,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--meeting-url", required=True)
     parser.add_argument("--source-lang", default="tr", choices=("tr", "en"))
     parser.add_argument("--target-lang", default="en", choices=("tr", "en"))
+    parser.add_argument(
+        "--direction",
+        default="auto",
+        choices=("auto", "fixed"),
+        help="auto (varsayılan): yön her söz için duyulan dile göre belirlenir "
+        "— karşı taraf İngilizce konuşunca EN→TR'ye kendiliğinden döner; "
+        "--source/--target yalnız dil tespit edilemeyen kısa sözlerde geçerli "
+        "varsayılan yöndür. fixed: canlı insan testi 4'teki eski tek-yön davranışı",
+    )
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--jsonl-out", default="prova_bot.jsonl")
     parser.add_argument(
@@ -341,6 +351,10 @@ def main(argv: list[str] | None = None) -> int:
     threading.Thread(target=poll_bot_status, daemon=True).start()
 
     transcript = BilingualTranscript()
+    router = DirectionRouter(
+        Direction(args.source_lang, args.target_lang),
+        bidirectional=args.direction == "auto",
+    )
     translator = OpenAITranslator()
     translator.translate(  # ısıtma
         Utterance(text="Merhaba.", source_lang=args.source_lang,
@@ -354,7 +368,12 @@ def main(argv: list[str] | None = None) -> int:
         on_flag=lambda r: print(f"  ⚠ düşük güven ({r.flag_reason})"),
         on_record=lambda r: BilingualTranscript.append_jsonl(args.jsonl_out, r),
     )
-    stt = RealtimeSTTStream(language=args.source_lang, prompt=LUMOS_TERMS_PROMPT)
+    # auto yönde dil sabitlenmez: sağlayıcı duyduğu dili kendisi tespit eder,
+    # yön kararını router metinden verir (canlı insan testi 4 papağan bulgusu).
+    stt = RealtimeSTTStream(
+        language=None if args.direction == "auto" else args.source_lang,
+        prompt=LUMOS_TERMS_PROMPT,
+    )
     stt.start()
     corrector = TermCorrector()
     suppressor = RepeatSuppressor()
@@ -377,20 +396,21 @@ def main(argv: list[str] | None = None) -> int:
             heard = corrector.correct(utt.text)
             if suppressor.should_drop(heard, time.monotonic()):
                 continue
-            print(f"{args.source_lang.upper()}(duyulan)> {heard}")
+            decision = router.route(heard)
+            print(f"{decision.direction.source_lang.upper()}(duyulan)> {heard}")
             record = pipeline.process(
                 Utterance(
                     text=heard,
-                    source_lang=args.source_lang,
-                    target_lang=args.target_lang,
+                    source_lang=decision.direction.source_lang,
+                    target_lang=decision.direction.target_lang,
                     speech_end_ts=utt.speech_end_ts,
                     context=tuple(recent),
                 )
             )
             recent.append(heard)
             marker = "" if record.delivered else " [TESLİM EDİLMEDİ]"
-            print(f"{args.target_lang.upper()}> {record.translated_text}{marker}"
-                  f"  ({record.latency_ms:.0f} ms)")
+            print(f"{decision.direction.target_lang.upper()}> {record.translated_text}{marker}"
+                  f"  ({record.latency_ms:.0f} ms, yön: {decision.reason})")
     except KeyboardInterrupt:
         end_reason.append("kill_switch")
     finally:
