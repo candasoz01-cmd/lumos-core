@@ -376,3 +376,28 @@ tercüme çekirdeği. Durum:
 
 Sonuçlar bu belgeye tarih damgalı işlenir; done ise dilim kapanır ve sıra
 "Recall hazır" tetiğine döner (MeetingIngress + bot kill-switch + gerçek prova).
+
+## BOT PROVA 2 — FİNAL PASS (2026-08-17)
+
+Tam zincir toplantı İÇİNDE canlı doğrulandı: kurucu Meet'te Türkçe konuştu,
+bot İngilizce SESLE cevap verdi. 24 kayıt | **toplantı-içi medyan 2.05 sn** |
+p90 4.97 (bot konuşurken half-duplex bekleme sivrilmeleri — bilinen ödün).
+
+- E-sınıfı final: "50.000 dolara… 1 Ekim'de" → "fifty thousand dollars …
+  October first" ✓ (2.02s); "yüzde kırkını peşin" → "forty percent in
+  advance" ✓ (1.93s). Kurucu kulak teyidi alındı.
+- Fail-closed toplantı içinde 1 kez çalıştı (boş çıktı seslendirilmedi);
+  5 düşük-güven işareti.
+- Kill-switch 200 + erken delete_media 200 (ilk deneme çıkış anında 400 —
+  medya işleniyordu; kısa bekleme sonrası geçti; runbook notu).
+- Canlı doğrulanan yeni şekiller: realtime ws push (audio_mixed_raw.data,
+  data.data.buffer), create için audio_mixed_raw artefact şartı, boş b64
+  reddi. "Regresyon vakası" düzeltmesi: prova sırasında görülen bozuk
+  İngilizce ("Ayten only See my One speakers…") bizim çıktı DEĞİL — Meet'in
+  kendi altyazı motorunun botun gerçek sesini yanlış yazması; bu aynı
+  zamanda output_audio'nun dolaylı kanıtı (kurucu teyitli).
+
+**Recall canlı entegrasyonu: 7 uç canlı doğrulandı; uçtan uca toplantı-içi
+tercüme PASS. Faz 0 zinciri (Recall hazır → MeetingIngress → çekirdek)
+TAMAMLANDI.** Kalan (Faz 0 sonrası): DPA/veri bölgesi (gerçek dış katılımcı
+blokajı), gecikme sivrilmeleri, Meet-altyazı etkileşimi notu.
