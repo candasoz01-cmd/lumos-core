@@ -438,3 +438,68 @@ Kalan (dilim 2 — ürün yüzeyi): girişin ChatLumos'tan verilmesi ("toplantı
 katıl <link>") — tek-arayüz kuralının gerçek karşılığı; panel/chat
 entegrasyonu ürün yüzeyi kararı olarak kurucuyla şekillenecek. Bir sonraki
 insan testi bu otomasyonla yapılacak (üçüncü davet öncesi hazır olan bu).
+
+## Canlı insan testi FAIL ×3 — oturum hiç başlamadı (2026-08-17)
+
+> Kapsam notu: kayıt kurucunun toplantı-içi canlı gözlemine dayanır
+> (katılımcı listesi + ses akışı); bu FAIL için log/Recall doğrulaması bu
+> oturumdan yapılmadı.
+
+Üçüncü insan testi (katılımcı: Tolga) **FAIL**. Toplantıda yalnız kurucu ve
+Tolga vardı; Lumos Temsilcisi botu katılımcı olarak HİÇ görünmedi. Kurucunun
+Türkçe sesi Tolga'ya doğrudan gitti — ortada aktif çeviri zinciri yoktu.
+Test, Tolga bekletilmeden FAIL yazılıp sonlandırıldı.
+
+Kök neden — çeviri kalitesi DEĞİL, oturum başlatma: ChatLumos → execute →
+Mac/Recall backend bağlantısı gerçek oturumu başlatmadı. Lumos PR #342
+("Dilim 2 — ChatService join kablosu (canlı Meet yok)") bilinçli olarak
+canlı Meet'siz; `CallableMeetingBackend(join_fn)` boşluğu açıkken zincir
+"hazır" ilan edildi. Süreç dersi: FAIL ×1'deki ders ("oturum başlatma
+otomasyonu yok — ayrı dilim") CLI düzeyinde kapatılmıştı ama ChatLumos
+yüzeyinden uca kadar doğrulanmadan insan testine çıkıldı.
+
+Bir sonraki insan testinin ön koşulu (kurucu kararı): `join_fn` canlıya
+gerçekten bağlanacak; **bot toplantıda üçüncü katılımcı olarak görünür +
+ifşa (disclosure) sesli duyulur** — ancak ondan sonra Türkçe konuşulur.
+Bu iki işaret görülmeden test başlamaz (fail-closed, botsuz test yok).
+
+## Canlı insan testi 4 — zincir canlı, gecikme kuyruk-ucu FAIL (2026-08-17)
+
+> Kapsam notu: metrikler oturumun jsonl kaydından hesaplandı (n=60 söz, 59
+> teslim); rapor yazılırken oturum hâlâ açıktı, sayılar o andaki anlık
+> görüntüdür. Zincir kanıtları köprü çıktısı + oturum günlüğünden.
+
+FAIL ×3'ün ön koşulu bu testte kapatıldı ve zincir İLK KEZ ChatLumos komut
+sözleşmesi üzerinden uçtan uca canlı koştu: Lumos PR #342
+`evaluate_meeting_join_command(execute=True)` → `run_execute` → gerçek
+`CallableMeetingBackend(join_fn)` → bot_rig (cloudflared tünel → zorunlu
+öz-test GEÇTİ → ifşa → Recall bot `0d4633b1`). Bot üçüncü katılımcı olarak
+görünüp ifşa duyulduktan sonra konuşuldu; tercüme iki insan (kurucu +
+karşı taraf) arasında ~55 dk aktı.
+
+**Gecikme — hedef p50 ≤2.5 sn / p90 ≤4 sn:** p50 **2.13 sn** (hedef İÇİNDE),
+p90 **7.49 sn**, max **15.07 sn** → **p90 FAIL**. Teşhis: "sistem genel
+yavaş" değil, kuyruk ucu bozuk — TTS tam klip çalarken half-duplex kapı
+kapalı; ardışık kısa sözler kuyrukta birikip 8-15 sn'ye şişiyor. Çözüm
+adayı (cümle-chunk TTS + yeni konuşmada kuyruk kesme) bu yazım anında
+**repo gerçeği DEĞİL** — başka oturumun çalışma alanında; ayrı teknik PR
+olarak gelecek, test/CI görmeden "yapıldı" sayılmaz.
+
+**Üç ürün bulgusu (kurucu + günlük, kaybolmayacak):**
+1. **EN→TR yön yok + papağan:** oturum tek yön tr→en; karşı tarafın
+   İngilizcesi STT'ye düşüp aynen geri seslendirildi ("How are you?" →
+   "How are you?"). Kaynak-dil filtresi / yön yönlendirme gerekiyor.
+2. **Strict translation-only modu yok:** papağan davranışı toplantıda
+   "bot kendi kafasına cevap veriyor" olarak algılandı; tercüman kipi
+   konuşma üretmemeli, yalnız çevirmeli, gerektiğinde susmalı.
+3. **Meta-sızıntı + below_threshold'a rağmen teslim (EN CİDDİSİ):** iç
+   güven etiketi 3 kez botun sesinden toplantıya okundu ("LOW",
+   "Translation not clear; LOW confidence."); 23/60 söz düşük güven
+   işaretine rağmen seslendirildi (yalnız 1 empty_translation düşürüldü).
+   İç etiket kullanıcıya ses olarak asla çıkmamalı; ConfidenceGate teslim
+   politikası ürün kararı olarak yeniden ele alınacak.
+
+**Karar (kurucu, 2026-08-17):** Yeni insan testi için acele YOK. Sıra:
+(1) bu kayıt + bulgular main'e, (2) chunk TTS ayrı teknik PR, (3) yön
+yönlendirme + strict tercüman kipi + meta-sızıntı kapanışı, (4) ancak
+ondan sonra p50/p90 yeniden canlı ölçülür.
