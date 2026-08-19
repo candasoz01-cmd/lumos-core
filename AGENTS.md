@@ -44,6 +44,30 @@ elle kontrol edilir.
   geri düzeltilemez; gerekirse tekrar yayımlamak yerine tek bir
   **düzeltme/indeks yorumu** eklenip canonical kayıt orada belirtilir.
 
+## Üçlü merge kapısı (tüm ajanlar)
+
+Normatif metin: [`CONTRIBUTING.md`](CONTRIBUTING.md) § Merge gate.
+
+Hiçbir ajan bu üç kapıdan biri **pending** veya **fail** iken `main`'e
+merge etmez, merge'i hazır saymaz veya merge önerisini uygulamaz:
+
+1. **Zorunlu CI yeşil.** `.github/workflows/ci.yml` CheckRun'ları: `test`,
+   `rust`, `macos-app-build`, `ui-smoke`, `ui-e2e`.
+2. **Güvenlik incelemesi tamamlanmış ve temiz.** CheckRun adı:
+   `Cursor Security Agent: Security Reviewer` (GitHub app: `cursor`; canlı
+   doğrulama: `candasoz01-cmd/lumos-core#755` / `#762` · Checks API ·
+   2026-08-19T17:31Z). Check henüz yoksa, queued/in_progress ise veya
+   conclusion SUCCESS değilse **pending** sayılır. "Security reviewer henüz
+   çalışıyor" merge yasağıdır.
+3. **Açık insan onayı.** Ajan, bot veya GitHub App review'ı insan onayı
+   yerine geçmez. GitHub required-review sayacı bunu ayırt etmez; kural
+   yazılı normdur.
+
+`layer1a.yml` ve `prod-smoke.yml` PR merge kapısı değildir. Branch protection
+`main`'de açıktır ama `required_status_checks` listesi boştur; fiziksel kilit
+Settings'te required check eklenene kadar yoktur. Ajan yine de bu üçlü
+sözleşmeyi uygular. Durum bildirimi bir sonraki bölümün formatını kullanır.
+
 ## PR / CI / Deploy doğrulama (tüm ajanlar)
 
 - PR, CI, merge veya deploy durumu bildirirken canlı doğrulama yapılır.
