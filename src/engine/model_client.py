@@ -18,7 +18,6 @@ CYBER_UNKNOWN = "unknown"
 _CHAT_DEFAULT_MODEL = "gpt-4.1-mini"
 _CYBER_UNAVAILABLE_TYPES = frozenset(
     {
-        "AuthenticationError",
         "NotFoundError",
         "PermissionDeniedError",
     }
@@ -35,10 +34,14 @@ class CyberModelError(Exception):
 
 
 def resolve_openai_model(purpose: str = PURPOSE_CHAT) -> tuple[str, str | None]:
-    """Return (model, cyber_error_status). Chat keeps OPENAI_MODEL; cyber has no fallback."""
+    """Return (model, cyber_error_status). Chat: OPENAI_MODEL_CHAT then OPENAI_MODEL. Cyber: no fallback."""
     normalized = (purpose or PURPOSE_CHAT).strip().lower() or PURPOSE_CHAT
     if normalized != PURPOSE_CYBER:
-        model = (os.getenv("OPENAI_MODEL") or "").strip() or _CHAT_DEFAULT_MODEL
+        model = (
+            (os.getenv("OPENAI_MODEL_CHAT") or "").strip()
+            or (os.getenv("OPENAI_MODEL") or "").strip()
+            or _CHAT_DEFAULT_MODEL
+        )
         return model, None
     model = (os.getenv("OPENAI_MODEL_CYBER") or "").strip()
     if not model:
@@ -54,9 +57,9 @@ def classify_cyber_api_error(exc: BaseException) -> str:
         code = int(raw_code) if raw_code is not None else None
     except (TypeError, ValueError):
         code = None
-    if code in (401, 403, 404):
+    if code in (403, 404):
         return CYBER_UNAVAILABLE
-    if code is not None and code >= 500:
+    if code == 401 or (code is not None and code >= 500):
         return CYBER_UNKNOWN
     if type(exc).__name__ in _CYBER_UNAVAILABLE_TYPES:
         return CYBER_UNAVAILABLE
@@ -323,17 +326,25 @@ class ModelClient:
             # Combined prompt: system identity + state first, then user message (Responses API single input).
             full_prompt = system_prompt + "\n\nUser: " + prompt
             try:
-                try:
+                if is_cyber:
+                    # Cyber: one create() only. No TypeError retry, no chat-model fallback.
                     response = client.responses.create(
                         model=model,
                         input=full_prompt,
                         timeout=10,
                     )
-                except TypeError:
-                    response = client.responses.create(
-                        model=model,
-                        input=full_prompt,
-                    )
+                else:
+                    try:
+                        response = client.responses.create(
+                            model=model,
+                            input=full_prompt,
+                            timeout=10,
+                        )
+                    except TypeError:
+                        response = client.responses.create(
+                            model=model,
+                            input=full_prompt,
+                        )
             except Exception as exc:
                 if is_cyber:
                     status = classify_cyber_api_error(exc)
