@@ -282,3 +282,323 @@ class TestTokenUsageLogging(unittest.TestCase):
                     self.assertEqual(out1, "Aynı yanıt.")
                     self.assertEqual(out2, "Aynı yanıt.")
                     self.assertEqual(out1, out2)
+
+
+class TestCyberPurposeModel(unittest.TestCase):
+    """OPENAI_MODEL_CYBER is fail-closed; chat uses OPENAI_MODEL_CHAT then OPENAI_MODEL."""
+
+    def test_chat_prefers_openai_model_chat(self) -> None:
+        from engine.model_client import resolve_openai_model, PURPOSE_CHAT
+
+        env = {
+            "OPENAI_MODEL_CHAT": "gpt-4.1",
+            "OPENAI_MODEL": "gpt-4.1-mini",
+            "OPENAI_MODEL_CYBER": "gpt-5.6-cyber",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            model, err = resolve_openai_model(PURPOSE_CHAT)
+        self.assertEqual(model, "gpt-4.1")
+        self.assertIsNone(err)
+
+    def test_chat_falls_back_to_openai_model(self) -> None:
+        from engine.model_client import resolve_openai_model, PURPOSE_CHAT
+
+        env = {
+            "OPENAI_MODEL_CHAT": "",
+            "OPENAI_MODEL": "gpt-4.1",
+            "OPENAI_MODEL_CYBER": "gpt-5.6-cyber",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            model, err = resolve_openai_model(PURPOSE_CHAT)
+        self.assertEqual(model, "gpt-4.1")
+        self.assertIsNone(err)
+
+    def test_chat_still_uses_openai_model_default(self) -> None:
+        from engine.model_client import resolve_openai_model, PURPOSE_CHAT
+
+        env = {
+            "OPENAI_MODEL_CHAT": "",
+            "OPENAI_MODEL": "",
+            "OPENAI_MODEL_CYBER": "gpt-5.6-cyber",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            model, err = resolve_openai_model(PURPOSE_CHAT)
+        self.assertEqual(model, "gpt-4.1-mini")
+        self.assertIsNone(err)
+
+    def test_chat_generate_uses_openai_model_chat(self) -> None:
+        from engine.model_client import ModelClient
+
+        captured = {}
+
+        def fake_create(*, model=None, input=None, **kwargs):
+            captured["model"] = model
+            resp = MagicMock()
+            resp.output_text = "ok"
+            resp.output = None
+            resp.usage = None
+            resp.usage_metadata = None
+            return resp
+
+        env = {
+            "OPENAI_API_KEY": "sk-test",
+            "OPENAI_MODEL_CHAT": "gpt-4.1",
+            "OPENAI_MODEL": "gpt-4.1-mini",
+            "OPENAI_MODEL_CYBER": "gpt-5.6-cyber",
+            "LUMOS_SERVER_SIM": "0",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            client = ModelClient()
+            with patch.object(client, "_openai_key", "sk-test"):
+                with patch("openai.OpenAI") as mock_openai_class:
+                    mock_client = MagicMock()
+                    mock_client.responses.create = fake_create
+                    mock_openai_class.return_value = mock_client
+                    out = client.generate("Merhaba", purpose="chat")
+        self.assertEqual(out, "ok")
+        self.assertEqual(captured["model"], "gpt-4.1")
+
+    def test_classify_401_is_unknown_403_404_unavailable(self) -> None:
+        from engine.model_client import classify_cyber_api_error, CYBER_UNAVAILABLE, CYBER_UNKNOWN
+
+        class Auth401(Exception):
+            status_code = 401
+
+        class AuthNoCode(Exception):
+            pass
+
+        class Forbidden(Exception):
+            status_code = 403
+
+        class Missing(Exception):
+            status_code = 404
+
+        class AuthenticationError(Exception):
+            pass
+
+        class PermissionDeniedError(Exception):
+            pass
+
+        self.assertEqual(classify_cyber_api_error(Auth401()), CYBER_UNKNOWN)
+        self.assertEqual(classify_cyber_api_error(AuthenticationError()), CYBER_UNKNOWN)
+        self.assertEqual(classify_cyber_api_error(AuthNoCode()), CYBER_UNKNOWN)
+        self.assertEqual(classify_cyber_api_error(Forbidden()), CYBER_UNAVAILABLE)
+        self.assertEqual(classify_cyber_api_error(Missing()), CYBER_UNAVAILABLE)
+        self.assertEqual(classify_cyber_api_error(PermissionDeniedError()), CYBER_UNAVAILABLE)
+
+    def test_cyber_unset_is_not_configured_no_api(self) -> None:
+        from engine.model_client import CyberModelError, ModelClient, CYBER_NOT_CONFIGURED
+
+        calls = []
+
+        env = {
+            "OPENAI_API_KEY": "sk-test",
+            "OPENAI_MODEL_CHAT": "gpt-4.1",
+            "OPENAI_MODEL": "gpt-4.1-mini",
+            "OPENAI_MODEL_CYBER": "",
+            "LUMOS_SERVER_SIM": "0",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            client = ModelClient()
+            with patch.object(client, "_openai_key", "sk-test"):
+                with patch("openai.OpenAI") as mock_openai_class:
+                    mock_openai_class.side_effect = lambda **kw: calls.append(kw) or MagicMock()
+                    with self.assertRaises(CyberModelError) as raised:
+                        client.generate("scan", purpose="cyber")
+        self.assertEqual(raised.exception.status, CYBER_NOT_CONFIGURED)
+        self.assertEqual(raised.exception.model, "")
+        self.assertEqual(calls, [])
+        mock_openai_class.assert_not_called()
+
+    def test_cyber_uses_cyber_model_not_chat_model(self) -> None:
+        from engine.model_client import ModelClient
+
+        captured = {}
+
+        def fake_create(*, model=None, input=None, **kwargs):
+            captured["model"] = model
+            captured["calls"] = captured.get("calls", 0) + 1
+            resp = MagicMock()
+            resp.output_text = "ok"
+            resp.output = None
+            resp.usage = None
+            resp.usage_metadata = None
+            return resp
+
+        env = {
+            "OPENAI_API_KEY": "sk-test",
+            "OPENAI_MODEL_CHAT": "gpt-4.1",
+            "OPENAI_MODEL": "gpt-4.1-mini",
+            "OPENAI_MODEL_CYBER": "gpt-5.6-cyber",
+            "LUMOS_SERVER_SIM": "0",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            client = ModelClient()
+            with patch.object(client, "_openai_key", "sk-test"):
+                with patch("openai.OpenAI") as mock_openai_class:
+                    mock_client = MagicMock()
+                    mock_client.responses.create = fake_create
+                    mock_openai_class.return_value = mock_client
+                    out = client.generate("scan", purpose="cyber")
+        self.assertEqual(out, "ok")
+        self.assertEqual(captured["model"], "gpt-5.6-cyber")
+        self.assertEqual(captured["calls"], 1)
+
+    def test_cyber_404_is_unavailable_single_call(self) -> None:
+        from engine.model_client import CyberModelError, ModelClient, CYBER_UNAVAILABLE
+
+        class NotFoundError(Exception):
+            status_code = 404
+
+        calls = {"n": 0}
+
+        def fake_create(**kwargs):
+            calls["n"] += 1
+            raise NotFoundError("body-must-not-be-logged")
+
+        env = {
+            "OPENAI_API_KEY": "sk-test",
+            "OPENAI_MODEL_CHAT": "gpt-4.1",
+            "OPENAI_MODEL": "gpt-4.1-mini",
+            "OPENAI_MODEL_CYBER": "gpt-5.6-cyber",
+            "LUMOS_SERVER_SIM": "0",
+        }
+        log_records = []
+
+        def capture_info(msg, *args):
+            log_records.append(msg % args if args else msg)
+
+        import engine.model_client as mod
+
+        with patch.dict(os.environ, env, clear=False):
+            client = ModelClient()
+            with patch.object(client, "_openai_key", "sk-test"):
+                with patch("openai.OpenAI") as mock_openai_class:
+                    mock_client = MagicMock()
+                    mock_client.responses.create = fake_create
+                    mock_openai_class.return_value = mock_client
+                    with patch.object(mod.logger, "info", capture_info):
+                        with self.assertRaises(CyberModelError) as raised:
+                            client.generate("scan", purpose="cyber")
+        self.assertEqual(raised.exception.status, CYBER_UNAVAILABLE)
+        self.assertEqual(raised.exception.model, "gpt-5.6-cyber")
+        self.assertEqual(calls["n"], 1)
+        self.assertTrue(any("status=unavailable" in r and "model=gpt-5.6-cyber" in r for r in log_records))
+        self.assertFalse(any("body-must-not-be-logged" in r for r in log_records))
+        self.assertFalse(any("sk-test" in r for r in log_records))
+
+    def test_cyber_timeout_is_unknown_single_call(self) -> None:
+        from engine.model_client import CyberModelError, ModelClient, CYBER_UNKNOWN
+
+        class APITimeoutError(Exception):
+            pass
+
+        calls = {"n": 0}
+
+        def fake_create(**kwargs):
+            calls["n"] += 1
+            raise APITimeoutError("timeout-body")
+
+        env = {
+            "OPENAI_API_KEY": "sk-test",
+            "OPENAI_MODEL_CHAT": "gpt-4.1",
+            "OPENAI_MODEL": "gpt-4.1-mini",
+            "OPENAI_MODEL_CYBER": "gpt-5.6-cyber",
+            "LUMOS_SERVER_SIM": "0",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            client = ModelClient()
+            with patch.object(client, "_openai_key", "sk-test"):
+                with patch("openai.OpenAI") as mock_openai_class:
+                    mock_client = MagicMock()
+                    mock_client.responses.create = fake_create
+                    mock_openai_class.return_value = mock_client
+                    with self.assertRaises(CyberModelError) as raised:
+                        client.generate("scan", purpose="cyber")
+        self.assertEqual(raised.exception.status, CYBER_UNKNOWN)
+        self.assertEqual(calls["n"], 1)
+
+    def test_cyber_error_api_calls_at_most_one_fallback_zero(self) -> None:
+        """Cyber error: at most one API create(); never fall back to chat models or a second call."""
+        from engine.model_client import CyberModelError, ModelClient, CYBER_UNKNOWN
+
+        class AuthenticationError(Exception):
+            status_code = 401
+
+        calls = []
+
+        def fake_create(*, model=None, input=None, **kwargs):
+            calls.append(model)
+            raise AuthenticationError("auth-body-must-not-be-logged")
+
+        env = {
+            "OPENAI_API_KEY": "sk-test",
+            "OPENAI_MODEL_CHAT": "gpt-4.1",
+            "OPENAI_MODEL": "gpt-4.1-mini",
+            "OPENAI_MODEL_CYBER": "gpt-5.6-cyber",
+            "LUMOS_SERVER_SIM": "0",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            client = ModelClient()
+            with patch.object(client, "_openai_key", "sk-test"):
+                with patch("openai.OpenAI") as mock_openai_class:
+                    mock_client = MagicMock()
+                    mock_client.responses.create = fake_create
+                    mock_openai_class.return_value = mock_client
+                    with self.assertRaises(CyberModelError) as raised:
+                        out = client.generate("scan", purpose="cyber")
+                        self.fail(f"cyber error must not fall back; got {out!r}")
+        self.assertEqual(raised.exception.status, CYBER_UNKNOWN)
+        self.assertEqual(raised.exception.model, "gpt-5.6-cyber")
+        self.assertLessEqual(len(calls), 1)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls, ["gpt-5.6-cyber"])
+        self.assertNotIn("gpt-4.1", calls)
+        self.assertNotIn("gpt-4.1-mini", calls)
+
+    def test_cyber_401_is_unknown_not_unavailable(self) -> None:
+        from engine.model_client import CyberModelError, ModelClient, CYBER_UNKNOWN
+
+        class AuthenticationError(Exception):
+            status_code = 401
+
+        calls = {"n": 0}
+
+        def fake_create(**kwargs):
+            calls["n"] += 1
+            raise AuthenticationError("401")
+
+        env = {
+            "OPENAI_API_KEY": "sk-test",
+            "OPENAI_MODEL_CHAT": "gpt-4.1",
+            "OPENAI_MODEL": "gpt-4.1-mini",
+            "OPENAI_MODEL_CYBER": "gpt-5.6-cyber",
+            "LUMOS_SERVER_SIM": "0",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            client = ModelClient()
+            with patch.object(client, "_openai_key", "sk-test"):
+                with patch("openai.OpenAI") as mock_openai_class:
+                    mock_client = MagicMock()
+                    mock_client.responses.create = fake_create
+                    mock_openai_class.return_value = mock_client
+                    with self.assertRaises(CyberModelError) as raised:
+                        client.generate("scan", purpose="cyber")
+        self.assertEqual(raised.exception.status, CYBER_UNKNOWN)
+        self.assertEqual(calls["n"], 1)
+
+    def test_openai_provider_cyber_not_configured(self) -> None:
+        from integrations.models import IntegrationRequest
+        from integrations.providers.openai_provider import run_openai_action
+
+        req = IntegrationRequest(
+            provider="openai",
+            action="chat",
+            payload={"prompt": "scan", "purpose": "cyber"},
+        )
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test", "OPENAI_MODEL_CYBER": "", "LUMOS_SERVER_SIM": "0"}, clear=False):
+            result = run_openai_action(req)
+        self.assertFalse(result.ok)
+        self.assertEqual(result.error, "openai_cyber_not_configured")
+        self.assertEqual(result.data.get("status"), "not_configured")
+
