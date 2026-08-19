@@ -28,14 +28,8 @@ RESULT_FAIL = "fail"
 RESULT_UNKNOWN = "unknown"
 OVERALL_STALE = "stale"
 
-BRIDGE_FAIL_CLOSED_ERRORS = frozenset(
-    {
-        "bridge_proxy_unconfigured",
-        "bridge_proxy_auth_unconfigured",
-        "bridge_proxy_secret_unconfigured",
-        "bridge_proxy_unauthorized",
-    }
-)
+BRIDGE_PASS_ERROR = "bridge_proxy_unauthorized"
+CheckOutcome = tuple[str, str | None]
 SECRET_KEY_NAMES = frozenset(
     {
         "access_token",
@@ -98,50 +92,53 @@ def default_fetch(url: str, timeout: float) -> tuple[int, str, bytes]:
         return int(exc.code), content_type, body
 
 
-def _http_200(status: int, _content_type: str, _body: bytes) -> str | None:
+def _http_200(status: int, _content_type: str, _body: bytes) -> CheckOutcome:
     if status != 200:
-        return f"expected HTTP 200, got {status}"
-    return None
+        return RESULT_FAIL, f"expected HTTP 200, got {status}"
+    return RESULT_PASS, None
 
 
-def _auth_readiness(status: int, _content_type: str, body: bytes) -> str | None:
+def _auth_readiness(status: int, _content_type: str, body: bytes) -> CheckOutcome:
     if status != 200:
-        return f"expected HTTP 200, got {status}"
+        return RESULT_FAIL, f"expected HTTP 200, got {status}"
     try:
         payload = json.loads(body.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        return f"readiness body is not JSON: {exc}"
+        return RESULT_FAIL, f"readiness body is not JSON: {exc}"
     if not isinstance(payload, dict):
-        return "readiness JSON must be an object"
+        return RESULT_FAIL, "readiness JSON must be an object"
     if payload.get("ok") is not True:
-        return "readiness ok is not true"
+        return RESULT_FAIL, "readiness ok is not true"
     leaked = _secret_leak(payload)
     if leaked:
-        return leaked
+        return RESULT_FAIL, leaked
     prefix = payload.get("client_id_prefix")
     if prefix is not None and (not isinstance(prefix, str) or len(prefix) > 8):
-        return "client_id_prefix must be a string of at most 8 characters"
-    return None
+        return RESULT_FAIL, "client_id_prefix must be a string of at most 8 characters"
+    return RESULT_PASS, None
 
 
-def _bridge_fail_closed(status: int, _content_type: str, body: bytes) -> str | None:
+def _bridge_fail_closed(status: int, _content_type: str, body: bytes) -> CheckOutcome:
+    # Explicit exception to unexpected-HTTP → fail: classify 503 as unknown first.
+    if status == 503:
+        return RESULT_UNKNOWN, "bridge HTTP 503 is unknown"
     if status == 200:
-        return "bridge proxy returned 200; expected fail-closed 401 or 503"
-    if status not in {401, 503}:
-        return f"expected HTTP 401 or 503, got {status}"
+        return RESULT_FAIL, "bridge proxy returned 200; expected fail-closed 401"
+    if status != 401:
+        return RESULT_FAIL, f"expected HTTP 401, got {status}"
     try:
         payload = json.loads(body.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        return f"bridge body is not JSON: {exc}"
+        return RESULT_FAIL, f"bridge body is not JSON: {exc}"
     if not isinstance(payload, dict):
-        return "bridge JSON must be an object"
+        return RESULT_FAIL, "bridge JSON must be an object"
     error = payload.get("error")
-    if error not in BRIDGE_FAIL_CLOSED_ERRORS:
-        return f"unexpected bridge error {error!r}"
+    if error != BRIDGE_PASS_ERROR:
+        return RESULT_FAIL, f"unexpected bridge error {error!r}"
     leaked = _secret_leak(payload)
     if leaked:
-        return leaked
-    return None
+        return RESULT_FAIL, leaked
+    return RESULT_PASS, None
 
 
 def _secret_leak(payload: Mapping[str, Any]) -> str | None:
@@ -154,7 +151,7 @@ def _secret_leak(payload: Mapping[str, Any]) -> str | None:
     return None
 
 
-CHECKS: tuple[tuple[str, str, Callable[[int, str, bytes], str | None]], ...] = (
+CHECKS: tuple[tuple[str, str, Callable[[int, str, bytes], CheckOutcome]], ...] = (
     ("landing", "/", _http_200),
     ("panel", "/panel", _http_200),
     ("integrations", "/integrations", _http_200),
@@ -246,13 +243,11 @@ def run_checks(
         try:
             status, content_type, body = fetch(url)
             entry["status"] = status
-            reason = evaluate(status, content_type, body)
-            if reason is None:
-                entry["ok"] = True
-                entry["result"] = RESULT_PASS
-            else:
-                entry["result"] = RESULT_FAIL
-                entry["detail"] = reason
+            result, detail = evaluate(status, content_type, body)
+            entry["result"] = result
+            entry["ok"] = result == RESULT_PASS
+            if detail:
+                entry["detail"] = detail
         except Exception as exc:  # noqa: BLE001 — pulse must still emit an artifact
             entry["result"] = RESULT_UNKNOWN
             entry["detail"] = f"request failed: {type(exc).__name__}: {exc}"

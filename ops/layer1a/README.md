@@ -21,12 +21,16 @@ Default base URL: `https://welockai.com` (override: `LAYER1A_BASE_URL` or `--bas
 | `panel` | `GET /panel` | HTTP 200 |
 | `integrations` | `GET /integrations` | HTTP 200 |
 | `auth_readiness` | `GET /auth/readiness` | HTTP 200, JSON `ok: true`, no secret values |
-| `bridge_fail_closed` | `GET /api/bridge/task` | HTTP 401 or 503 with a documented proxy error code; never 200 |
+| `bridge_fail_closed` | `GET /api/bridge/task` | HTTP 401 with `bridge_proxy_unauthorized`; never 200 |
 
-`bridge_fail_closed` accepts the documented fail-closed codes from
+General rule: unexpected HTTP status is `fail`. **Explicit exception:**
+bridge HTTP 503 is classified as `unknown` *before* that HTTP rule. A 503
+body (including documented `bridge_proxy_*_unconfigured` codes) does not
+make the check `pass` or `fail`.
+
+`bridge_fail_closed` pass is the documented fail-closed 401 from
 [`api-surface-v1.md`](../../docs/contracts/api-surface-v1.md):
-`bridge_proxy_unconfigured`, `bridge_proxy_auth_unconfigured`,
-`bridge_proxy_secret_unconfigured`, `bridge_proxy_unauthorized`.
+`bridge_proxy_unauthorized`.
 
 ## Acceptance contract
 
@@ -34,7 +38,8 @@ Each check has `result`: `pass` | `fail` | `unknown`.
 
 - `pass` — determinate expected outcome
 - `fail` — determinate unexpected outcome (wrong status, secret field, open bridge)
-- `unknown` — this run could not evaluate (timeout, DNS, TLS, other request error)
+- `unknown` — this run could not evaluate (timeout, DNS, TLS, other request
+  error, **or bridge HTTP 503**)
 
 Report `overall`: `pass` | `fail` | `unknown` | `stale`.
 
@@ -49,6 +54,10 @@ Report `overall`: `pass` | `fail` | `unknown` | `stale`.
 `last_success_at` persists across runs in `--state` (workflow cache:
 `layer1a-state.json`). A fail or unknown run does not clear a previous success
 timestamp.
+
+**Accepted operational limit:** GitHub Actions cache entries unused for 7 days
+are evicted. If `layer1a-state.json` drops, `last_success_at` is missing until
+the next `pass`. Missing history is `unknown`, not `stale`.
 
 ## Run
 

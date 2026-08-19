@@ -37,9 +37,9 @@ PASSING_BODIES = {
         ).encode(),
     ),
     "/api/bridge/task": (
-        503,
+        401,
         "application/json",
-        json.dumps({"ok": False, "error": "bridge_proxy_unconfigured"}).encode(),
+        json.dumps({"ok": False, "error": "bridge_proxy_unauthorized"}).encode(),
     ),
 }
 
@@ -90,6 +90,20 @@ def test_all_pass_writes_schema_and_overall_pass() -> None:
     )
 
 
+def test_landing_503_is_fail_bridge_exception_is_not_global() -> None:
+    bodies = dict(PASSING_BODIES)
+    bodies["/"] = (503, "text/plain", b"unavailable")
+    report = layer1a.run_checks(
+        base_url="https://example.test",
+        fetch=_fetch_from(bodies),
+        now=NOW,
+        checked_at=CHECKED_AT,
+    )
+    landing = next(item for item in report["checks"] if item["id"] == "landing")
+    assert landing["result"] == "fail"
+    assert report["overall"] == "fail"
+
+
 def test_landing_non_200_fails_only_that_check() -> None:
     bodies = dict(PASSING_BODIES)
     bodies["/"] = (500, "text/plain", b"no")
@@ -132,14 +146,41 @@ def test_bridge_200_is_fail_closed_violation() -> None:
 
 
 def test_bridge_401_unauthorized_passes() -> None:
+    report = layer1a.run_checks(
+        base_url="https://example.test",
+        fetch=_fetch_from(PASSING_BODIES),
+        now=NOW,
+        checked_at=CHECKED_AT,
+    )
+    bridge = next(item for item in report["checks"] if item["id"] == "bridge_fail_closed")
+    assert bridge["result"] == "pass"
+    assert report["overall"] == "pass"
+
+
+def test_bridge_503_is_unknown_before_http_fail() -> None:
+    result, detail = layer1a._bridge_fail_closed(
+        503,
+        "application/json",
+        json.dumps({"ok": False, "error": "bridge_proxy_unconfigured"}).encode(),
+    )
+    assert result == "unknown"
+    assert "503" in (detail or "")
+
     bodies = dict(PASSING_BODIES)
     bodies["/api/bridge/task"] = (
-        401,
+        503,
         "application/json",
-        json.dumps({"ok": False, "error": "bridge_proxy_unauthorized"}).encode(),
+        json.dumps({"ok": False, "error": "bridge_proxy_unconfigured"}).encode(),
     )
-    report = layer1a.run_checks(base_url="https://example.test", fetch=_fetch_from(bodies))
-    assert report["overall"] == "pass"
+    report = layer1a.run_checks(
+        base_url="https://example.test",
+        fetch=_fetch_from(bodies),
+        now=NOW,
+        checked_at=CHECKED_AT,
+    )
+    bridge = next(item for item in report["checks"] if item["id"] == "bridge_fail_closed")
+    assert bridge["result"] == "unknown"
+    assert report["overall"] == "unknown"
 
 
 def test_timeout_is_unknown_not_fail() -> None:
