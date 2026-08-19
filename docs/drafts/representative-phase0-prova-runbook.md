@@ -129,12 +129,20 @@ S3 Lumos temsilcisi); "istemli" = LUMOS_TERMS_PROMPT ile:
 
 **Karar:** Faz 0 rig STT = `gpt-4o-mini-transcribe` (bulut, istemli) +
 TermCorrector; yerel small `--stt-backend local` ile çevrimdışı yedek.
-Gizlilik: ses OpenAI'ye gider — çeviri katmanıyla aynı işlemci; kapalı prova
-için kabul, gerçek dış toplantı öncesi DPA blokajı zaten geçerli.
+Model env adı 2026-08-19 itibarıyla **`OPENAI_MODEL_STT`** (sohbet/cyber'den
+ayrı; izinli kimlikler: `whisper-1`, `gpt-4o-transcribe`,
+`gpt-4o-mini-transcribe`) — [stt-data-boundary-v1](../contracts/stt-data-boundary-v1.md),
+[ADR-025](../decisions/ADR-025-stt-openai-data-boundary.md).
+Gizlilik: `/v1/audio/transcriptions` uygulama durumu ve abuse log tutmaz
+(doğrulandı); yine de gerçek Meet sesi Avrupa yerleşimi + MAM/ZDR **yazılı**
+org onayı olmadan gönderilmez. Kapalı prova / sentetik ses iskeleti bu kapı
+öncesi kurulabilir. Realtime Meet-sesi kapsam dışı.
 Uyarı: sentetik ses canlı konuşmayı tam temsil etmez (canlıdaki %40→45 hatası
 sentetikte small'da bile yok) — nihai söz test 4'ün canlı ölçümünde.
 **Öngörülen bütçe:** bekleme 0.9 + STT ~1.3 + çeviri ~1.2 ≈ 3.4 sn — ≤3 sn
 hâlâ kanıtlanmadı; sıradaki kaldıraç çeviri ayağı (akış/model).
+**Maliyet:** veri yerleşimi uçları (5 Mart 2026 sonrası uygun modeller) %10
+ek ücret — bütçe kaydına girer.
 
 ## Test 4 sonuçları (2026-08-14 — bulut zinciri, kaos koşusu)
 

@@ -76,8 +76,11 @@ tamamen `recording_config.retention` alanına bağlıdır ve güncel hesaplarda
 varsayılan SÜRESİZ saklamadır — bu yüzden alan her istekte açıkça set edilir
 (fail-closed; ayrıntı ve nihai tanım aşağıda: "medya-sıfır-saklama + 7 gün
 log + kalıcı meeting URL/custom metadata"). Gerçek dış toplantı öncesi
-saklama/işleme koşulları (DPA, veri bölgesi) ayrıca incelenmeli. Bu,
-sağlayıcı onayıyla birlikte verilecek karardır.
+saklama/işleme koşulları (DPA, veri bölgesi) ayrıca incelenmeli. OpenAI STT
+tarafı 2026-08-19'da kilitlendi: Avrupa depolama **ve** işleme
+(`eu.api.openai.com`) + MAM/ZDR yazılı org onayı; gerçek Meet sesi bu kapı
+kapanmadan gönderilmez — [stt-data-boundary-v1](../contracts/stt-data-boundary-v1.md).
+Bu, sağlayıcı onayıyla birlikte verilecek karardır.
 
 ## Kurucu kararı (2026-08-12) — Recall.ai pilotu ONAYLANDI, şartlı
 
@@ -140,7 +143,8 @@ kısa" şartının pratiğe dökülmüş hali.
    saklama davranışı AYRI AYRI doğrulanacak (bkz. §Artefact saklama
    doğrulaması).
 4. **Veri bölgesi/DPA**: Gerçek dış katılımcılı görüşme öncesi BLOKAJ olmaya
-   devam eder.
+   devam eder. OpenAI transcription için blokaj 2026-08-19'da netleşti:
+   yazılı Avrupa yerleşimi + MAM/ZDR (ADR-025) olmadan gerçek Meet sesi yok.
 5. **API secret asla repo/chat'e girmez**: Anahtar yalnız secret store /
    ortam değişkeni; kurucu yerleştirir, kod ortamdan okur.
 

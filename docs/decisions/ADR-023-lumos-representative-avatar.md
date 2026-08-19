@@ -182,3 +182,9 @@ tarafından cevaplandı — bkz. §Kurucu kararları. Kalan takip işleri:
    işlenmesi (henüz yapılmadı).
 2. **Meet giriş yolu seçimi**: Resmî API vs bot-altyapı sağlayıcısı —
    Faz 0'ın ilk teknik dilimi; kanıt toplanmadan karar yazılmayacak.
+3. **STT veri sınırı (2026-08-19, kilitlendi)**: gerçek Meet sesi için
+   OpenAI batch transcription sözleşmesi
+   [`stt-data-boundary-v1`](../contracts/stt-data-boundary-v1.md) /
+   [ADR-025](ADR-025-stt-openai-data-boundary.md). Açılış kapısı yazılı
+   MAM/ZDR + Avrupa işleme onayına bağlıdır; bu maddenin kendisi artık
+   açık soru değildir.

@@ -59,6 +59,11 @@ Bu dosya, sohbet/bellek kaybına karşı repo içinde kalıcı tutulan **güvenl
 | SEC-030 | Sesli konuşma metne çevrildikten sonra yazılı kanaldakiyle **aynı güvenlik ve niyet sınırından** geçer. | **güvenlik kuralı** |
 | SEC-031 | Bağlam, niyet, güvenlik sınırı ve önceki kararlarla tutarlılık kontrolü atlanmaz. | **güvenlik kuralı** |
 | SEC-032 | Belirsiz niyette kısa netleştirme; otomatik varsayım yok. | **güvenlik kuralı** |
+| SEC-033 | Gerçek Meet sesi yalnız `POST /v1/audio/transcriptions` (batch). Realtime Meet-sesi kapsam dışı. | **güvenlik kuralı** — [stt-data-boundary-v1](contracts/stt-data-boundary-v1.md) |
+| SEC-034 | STT ayrı OpenAI API projesinde; model yalnız `OPENAI_MODEL_STT` (`whisper-1` / `gpt-4o-transcribe` / `gpt-4o-mini-transcribe`). Sohbet/cyber env'ine düşülmez. | **güvenlik kuralı** |
+| SEC-035 | Depolama **ve** işleme `eu.api.openai.com` (Avrupa). Bölgesel işleme ayrı onaydır; veri yerleşimi uçlarında %10 ek ücret kabul. | **güvenlik kuralı** |
+| SEC-036 | Ham ses log/artifact olarak kalıcı saklanmaz. Katılımcı açık onayı olmadan gerçek toplantı sesi gönderilmez. | **güvenlik kuralı** |
+| SEC-037 | Avrupa yerleşimi + MAM/ZDR organizasyonda **yazılı** doğrulanana kadar yalnız sentetik/hassas olmayan test sesi. | **açılış kapısı** — ADR-025 |
 
 ---
 
@@ -87,7 +92,8 @@ Bu dosya, sohbet/bellek kaybına karşı repo içinde kalıcı tutulan **güvenl
 - `docs/product-rules.md` — ürün yüzeyi ve kullanıcı sahipliği
 - `docs/tool-watchlist.md` — dış araç değerlendirme listesi
 - `docs/decision-log.md` — karar ve erteleme günlüğü
+- `docs/contracts/stt-data-boundary-v1.md` — Meet STT veri sınırı (ADR-025)
 
 ---
 
-Son güncelleme: 2026-06-17
+Son güncelleme: 2026-08-19
