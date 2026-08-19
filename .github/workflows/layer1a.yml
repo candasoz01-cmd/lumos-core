@@ -10,6 +10,8 @@ on:
 
 permissions:
   contents: read
+  # Required only so actions/cache/save@v4 can persist per-check last_success_at.
+  # contents stays read; this is not covered by the 90b862b security review.
   actions: write
 
 jobs:
@@ -25,10 +27,10 @@ jobs:
 
       # Cache unused for 7 days is evicted (accepted operational limit; see README).
       - name: Restore last_success_at
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: layer1a-state.json
-          key: layer1a-state-${{ github.ref_name }}-${{ github.run_id }}
+          key: layer1a-state-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             layer1a-state-${{ github.ref_name }}-
 
@@ -36,6 +38,13 @@ jobs:
         id: checks
         continue-on-error: true
         run: python3 ops/layer1a/run.py --output layer1a-result.json --state layer1a-state.json
+
+      - name: Save last_success_at
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: layer1a-state.json
+          key: layer1a-state-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Upload JSON artifact
         if: always()

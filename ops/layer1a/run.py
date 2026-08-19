@@ -160,6 +160,9 @@ CHECKS: tuple[tuple[str, str, Callable[[int, str, bytes], CheckOutcome]], ...] =
 )
 
 
+CHECK_IDS = tuple(item[0] for item in CHECKS)
+
+
 def last_success_is_stale(
     last_success_at: str | None,
     *,
@@ -173,45 +176,60 @@ def last_success_is_stale(
 
 
 def decide_overall(
-    results: list[str],
+    checks: list[Mapping[str, Any]],
     *,
-    last_success_at: str | None,
     now: datetime,
     stale_after_seconds: int,
 ) -> str:
+    results = [str(item.get("result")) for item in checks]
     if any(item == RESULT_FAIL for item in results):
         return RESULT_FAIL
     if all(item == RESULT_PASS for item in results):
         return RESULT_PASS
-    if last_success_is_stale(
-        last_success_at, now=now, stale_after_seconds=stale_after_seconds
-    ):
-        return OVERALL_STALE
+    for item in checks:
+        if item.get("result") != RESULT_UNKNOWN:
+            continue
+        prior = item.get("last_success_at")
+        if isinstance(prior, str) and last_success_is_stale(
+            prior, now=now, stale_after_seconds=stale_after_seconds
+        ):
+            return OVERALL_STALE
     return RESULT_UNKNOWN
 
 
-def load_state(path: str | None) -> str | None:
+def load_state(path: str | None) -> dict[str, str]:
     if not path:
-        return None
+        return {}
     try:
         with open(path, encoding="utf-8") as handle:
             payload = json.loads(handle.read())
     except (OSError, UnicodeError, json.JSONDecodeError):
-        return None
+        return {}
     if not isinstance(payload, dict) or payload.get("schema") != STATE_SCHEMA:
-        return None
-    value = payload.get("last_success_at")
-    if not isinstance(value, str) or parse_utc(value) is None:
-        return None
-    return value
+        return {}
+    raw = payload.get("last_success_at")
+    if not isinstance(raw, dict):
+        return {}
+    out: dict[str, str] = {}
+    for check_id in CHECK_IDS:
+        value = raw.get(check_id)
+        if isinstance(value, str) and parse_utc(value) is not None:
+            out[check_id] = value
+    return out
 
 
-def save_state(path: str | None, last_success_at: str | None) -> None:
+def save_state(path: str | None, last_success_at: Mapping[str, str | None]) -> None:
     if not path:
         return
+    stored = {
+        check_id: last_success_at[check_id]
+        for check_id in CHECK_IDS
+        if isinstance(last_success_at.get(check_id), str)
+        and parse_utc(str(last_success_at[check_id])) is not None
+    }
     payload = {
         "schema": STATE_SCHEMA,
-        "last_success_at": last_success_at,
+        "last_success_at": stored,
     }
     encoded = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     with open(path, "w", encoding="utf-8") as handle:
@@ -223,22 +241,35 @@ def run_checks(
     base_url: str,
     fetch: FetchFn,
     checked_at: str | None = None,
-    last_success_at: str | None = None,
+    last_success_at: Mapping[str, str] | None = None,
     stale_after_seconds: int = DEFAULT_STALE_AFTER_SECONDS,
     now: datetime | None = None,
+    generated_at: str | None = None,
+    run_attempt: int = 1,
 ) -> dict[str, Any]:
     base = normalize_base_url(base_url)
     moment = now or utc_now()
     checked = checked_at or format_utc(moment)
+    previous: dict[str, str] = {}
+    if isinstance(last_success_at, Mapping):
+        for check_id in CHECK_IDS:
+            value = last_success_at.get(check_id)
+            if isinstance(value, str) and parse_utc(value) is not None:
+                previous[check_id] = value
+
     results: list[dict[str, Any]] = []
     for check_id, path, evaluate in CHECKS:
         url = urljoin(base + "/", path.lstrip("/"))
+        prior = previous.get(check_id)
+        if not isinstance(prior, str) or parse_utc(prior) is None:
+            prior = None
         entry: dict[str, Any] = {
             "id": check_id,
             "ok": False,
             "result": RESULT_UNKNOWN,
             "url": url,
             "method": "GET",
+            "last_success_at": prior,
         }
         try:
             status, content_type, body = fetch(url)
@@ -251,18 +282,25 @@ def run_checks(
         except Exception as exc:  # noqa: BLE001 — pulse must still emit an artifact
             entry["result"] = RESULT_UNKNOWN
             entry["detail"] = f"request failed: {type(exc).__name__}: {exc}"
+        if entry["result"] == RESULT_PASS:
+            entry["last_success_at"] = checked
         results.append(entry)
 
     overall = decide_overall(
-        [item["result"] for item in results],
-        last_success_at=last_success_at,
+        results,
         now=moment,
         stale_after_seconds=stale_after_seconds,
     )
-    persisted = checked if overall == RESULT_PASS else last_success_at
+    persisted = {
+        item["id"]: item["last_success_at"]
+        for item in results
+        if isinstance(item.get("last_success_at"), str)
+    }
     return {
         "schema": SCHEMA,
         "checked_at": checked,
+        "generated_at": generated_at or format_utc(moment),
+        "run_attempt": run_attempt,
         "base_url": base,
         "overall": overall,
         "last_success_at": persisted,
@@ -280,14 +318,19 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--output")
     parser.add_argument(
         "--state",
-        help="JSON file that persists last_success_at across runs",
+        help="JSON file that persists per-check last_success_at across runs",
     )
     parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT_SECONDS)
     parser.add_argument(
         "--stale-after",
         type=int,
         default=DEFAULT_STALE_AFTER_SECONDS,
-        help="seconds after last_success_at when overall becomes stale",
+        help="seconds after a check's last_success_at when overall becomes stale",
+    )
+    parser.add_argument(
+        "--run-attempt",
+        type=int,
+        default=int(os.environ.get("GITHUB_RUN_ATTEMPT") or "1"),
     )
     return parser.parse_args(argv)
 
@@ -305,8 +348,12 @@ def main(argv: list[str] | None = None) -> int:
         fetch=fetch,
         last_success_at=previous,
         stale_after_seconds=args.stale_after,
+        run_attempt=args.run_attempt,
     )
-    save_state(args.state, report.get("last_success_at"))
+    persisted = {
+        item["id"]: item.get("last_success_at") for item in report["checks"]
+    }
+    save_state(args.state, persisted)
     encoded = json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     if args.output:
         with open(args.output, "w", encoding="utf-8") as handle:

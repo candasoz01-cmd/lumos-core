@@ -26,7 +26,7 @@ Default base URL: `https://welockai.com` (override: `LAYER1A_BASE_URL` or `--bas
 General rule: unexpected HTTP status is `fail`. **Explicit exception:**
 bridge HTTP 503 is classified as `unknown` *before* that HTTP rule. A 503
 body (including documented `bridge_proxy_*_unconfigured` codes) does not
-make the check `pass` or `fail`.
+make the check `pass` or `fail`. Landing 503 remains `fail`.
 
 `bridge_fail_closed` pass is the documented fail-closed 401 from
 [`api-surface-v1.md`](../../docs/contracts/api-surface-v1.md):
@@ -44,20 +44,28 @@ Each check has `result`: `pass` | `fail` | `unknown`.
 Report `overall`: `pass` | `fail` | `unknown` | `stale`.
 
 - `fail` if any check is `fail`
-- `pass` if every check is `pass` (sets `last_success_at` to `checked_at`)
-- `stale` if there is no determinate fail, at least one `unknown`, and
-  `last_success_at` is older than `stale_after_seconds` (default 3600 = two
-  30-minute cron intervals)
-- `unknown` if there is no determinate fail, at least one `unknown`, and
-  `last_success_at` is missing or still within the stale window
+- `pass` if every check is `pass`
+- `stale` if there is no determinate fail, at least one `unknown`, and **that
+  unknown check's** `last_success_at` is older than `stale_after_seconds`
+  (default 3600 = two 30-minute cron intervals)
+- `unknown` if there is no determinate fail, at least one `unknown`, and every
+  unknown check is missing a last success or is still within the stale window
 
-`last_success_at` persists across runs in `--state` (workflow cache:
-`layer1a-state.json`). A fail or unknown run does not clear a previous success
-timestamp.
+`last_success_at` is a **per-check** map, never a single global timestamp.
+Each check entry also carries its own `last_success_at`. A pass updates that
+check only. Fail or unknown does not clear a previous success for that check.
+
+The artifact also includes `generated_at` and `run_attempt`
+(`GITHUB_RUN_ATTEMPT` or `--run-attempt`).
+
+State persists across runs in `--state` (workflow cache: `layer1a-state.json`).
+The workflow restores with `actions/cache/restore@v4` and saves with
+`actions/cache/save@v4` under `if: always()`. Cache save needs `actions: write`;
+`contents` stays `read`.
 
 **Accepted operational limit:** GitHub Actions cache entries unused for 7 days
-are evicted. If `layer1a-state.json` drops, `last_success_at` is missing until
-the next `pass`. Missing history is `unknown`, not `stale`.
+are evicted. If `layer1a-state.json` drops, per-check history is missing until
+the next `pass` of that check. Missing history is `unknown`, not `stale`.
 
 ## Run
 
