@@ -58,7 +58,7 @@ test("mobile workspace hub returns a fail-closed live snapshot", async () => {
   assert.equal(res.headers["cache-control"], "no-store");
   assert.equal(res.payload.ok, true);
   assert.equal(res.payload.hub.source, "live");
-  assert.deepEqual(res.payload.hub.quick_access, ["chat"]);
+  assert.deepEqual(res.payload.hub.quick_access, ["chat", "cloud"]);
   assert.deepEqual(res.payload.hub.approvals, []);
   assert.deepEqual(res.payload.hub.activities, []);
 
@@ -68,9 +68,17 @@ test("mobile workspace hub returns a fail-closed live snapshot", async () => {
   assert.equal(Object.keys(cards).length, 9);
   assert.equal(cards.chat.state, "connected");
   assert.equal(cards.chat.detail.account_connection_verified, true);
-  for (const workspace of ["mail", "social", "calendar", "files", "tasks", "admin", "github", "cloud"]) {
+  assert.equal(cards.chat.detail.operations_enabled, false);
+  assert.equal(cards.cloud.state, "connected");
+  assert.equal(cards.cloud.summary, "Lumos bulut hizmeti erişilebilir");
+  assert.equal(cards.cloud.detail.account_connection_verified, false);
+  assert.equal(cards.cloud.detail.service_reachability_verified, true);
+  assert.equal(cards.cloud.detail.operations_enabled, false);
+  for (const workspace of ["mail", "social", "calendar", "files", "tasks", "admin", "github"]) {
     assert.equal(cards[workspace].state, "disconnected");
     assert.equal(cards[workspace].detail.account_connection_verified, false);
+    assert.equal(cards[workspace].detail.service_reachability_verified, false);
+    assert.equal(cards[workspace].detail.operations_enabled, false);
   }
 
   const raw = JSON.stringify(res.payload);
