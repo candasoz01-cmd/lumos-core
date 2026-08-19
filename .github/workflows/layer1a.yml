@@ -23,6 +23,7 @@ jobs:
         with:
           python-version: "3.12"
 
+      # Cache unused for 7 days is evicted (accepted operational limit; see README).
       - name: Restore last_success_at
         uses: actions/cache@v4
         with:
