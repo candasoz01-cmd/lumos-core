@@ -8,6 +8,70 @@ export const REALTIME_MODEL = "gpt-realtime-2.1";
 const WINDOW_MS = 60_000;
 const MAX_SESSIONS_PER_WINDOW = 6;
 const sessionWindows = new Map();
+const CAPABILITY_CONTRACT = "lumos.device-capabilities.v1";
+const ALLOWED_CAPABILITIES = new Set([
+  "camera.capture",
+  "microphone.record",
+  "photo_library.read",
+  "speech_recognition",
+  "external_url.open",
+]);
+const ALLOWED_CAPABILITY_STATES = new Set([
+  "authorized",
+  "available",
+  "denied",
+  "limited",
+  "not_determined",
+  "restricted",
+  "unavailable",
+  "unknown",
+]);
+
+export function sanitizeRealtimeDeviceContext(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  if (value.consent !== true || value.surface !== "ios") return null;
+  if (value.capability_contract !== CAPABILITY_CONTRACT) return null;
+
+  const capabilities = {};
+  const rawCapabilities = value.capabilities;
+  if (rawCapabilities && typeof rawCapabilities === "object" && !Array.isArray(rawCapabilities)) {
+    for (const [name, state] of Object.entries(rawCapabilities)) {
+      if (ALLOWED_CAPABILITIES.has(name) && ALLOWED_CAPABILITY_STATES.has(state)) {
+        capabilities[name] = state;
+      }
+    }
+  }
+
+  const nearbyCount = Number.isInteger(value.nearby_lumos_surfaces)
+    ? Math.max(0, Math.min(value.nearby_lumos_surfaces, 20))
+    : 0;
+  return {
+    surface: "iPhone / iOS",
+    screen: "Lumos Canlı Ses",
+    capability_contract: CAPABILITY_CONTRACT,
+    capabilities,
+    nearby_lumos_surfaces: nearbyCount,
+  };
+}
+
+function requestBody(req) {
+  if (req.body && typeof req.body === "object") return req.body;
+  if (typeof req.body !== "string") return {};
+  try {
+    const parsed = JSON.parse(req.body);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function deviceContextInstruction(context) {
+  if (!context) {
+    return "Bu oturumda izinli cihaz bağlamı paylaşılmadı; cihaz yetenekleri hakkında tahmin yürütme.";
+  }
+  return `İzinli cihaz bağlamı: ${JSON.stringify(context)}. `
+    + "Bu veri yalnız mevcut durum bilgisidir; cihazda kendiliğinden işlem yapma yetkisi vermez.";
+}
 
 function allowSession(lumosId, now = Date.now()) {
   const current = sessionWindows.get(lumosId);
@@ -38,6 +102,7 @@ export default async function handler(req, res) {
   }
 
   let upstream;
+  const deviceContext = sanitizeRealtimeDeviceContext(requestBody(req).device_context);
   try {
     upstream = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
       method: "POST",
@@ -52,6 +117,11 @@ export default async function handler(req, res) {
           model: REALTIME_MODEL,
           instructions: [
             "Sen Lumos'sun.",
+            "Bu Lumos ID oturumunun sahibine hizmet eden kişisel yardımcı ve sesli sohbet yüzeyisin.",
+            "Kendini OpenAI modeli, ChatGPT veya WeLockAI olarak tanıtma; kullanıcı doğrudan altyapıyı sorarsa kısa ve dürüstçe Lumos'un harici bir ses modeli kullandığını söyle.",
+            "Kullanıcının adını bilmiyorsan uydurma; ona doğrudan hitap et.",
+            deviceContextInstruction(deviceContext),
+            "Cihazın ekranını, kamerasını veya çevresini kullanıcı ayrıca paylaşmadıkça gördüğünü söyleme.",
             "Türkçe, doğal ve kısa konuş.",
             "Kullanıcı sözünü keserse dur ve onu dinle.",
             "Emin olmadığın bilgiyi kesinmiş gibi söyleme.",

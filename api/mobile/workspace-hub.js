@@ -1,0 +1,54 @@
+import { hostedSessionClaims } from "../_lib/hosted_lumos.js";
+import { sessionLumosId } from "../_lib/lumos_session.js";
+
+const WORKSPACES = [
+  "mail",
+  "social",
+  "calendar",
+  "files",
+  "tasks",
+  "admin",
+  "github",
+  "cloud",
+  "chat",
+];
+
+function card(workspaceId) {
+  const chat = workspaceId === "chat";
+  return {
+    workspace_id: workspaceId,
+    summary: chat ? "Lumos oturumu bağlı" : "Canlı bağlantı doğrulanmadı",
+    health: chat ? "ready" : "stub",
+    attention_count: 0,
+    state: chat ? "connected" : "disconnected",
+    age_seconds: null,
+    detail: {
+      source: "mobile_session",
+      account_connection_verified: chat,
+    },
+  };
+}
+
+export default async function handler(req, res) {
+  res.setHeader("Cache-Control", "no-store");
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "method_not_allowed" });
+  }
+
+  const lumosId = sessionLumosId(hostedSessionClaims(req));
+  if (!lumosId) return res.status(401).json({ error: "unauthorized" });
+
+  return res.status(200).json({
+    ok: true,
+    hub: {
+      source: "live",
+      day_summary_line: "Lumos oturumu bağlı",
+      day_guidance: "Bağlantısı doğrulanmamış alanlarda işlem yapılmaz.",
+      refreshed_at: new Date().toISOString(),
+      quick_access: ["chat"],
+      cards: WORKSPACES.map(card),
+      approvals: [],
+      activities: [],
+    },
+  });
+}
