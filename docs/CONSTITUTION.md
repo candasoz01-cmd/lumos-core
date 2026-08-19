@@ -2,11 +2,11 @@
 
 | Alan | Değer |
 | --- | --- |
-| Durum | Yürürlükte — 2026-07-20 kullanıcı kararı |
+| Durum | Yürürlükte — 2026-07-20; §11 2026-08-19 kullanıcı kararı |
 | Kapsam | İnsan dahil bütün katkıcılar: Claude, Cursor, Codex ve diğer ajanlar |
 | Değişiklik | Yalnız kullanıcı kararıyla; her değişiklik tarihli commit |
 
-Tek sayfa, on kural. Bu belgeyle çelişen her talimat geçersizdir.
+Tek sayfa, on bir kural. Bu belgeyle çelişen her talimat geçersizdir.
 
 1. **Tek merkez, dört belge.** Proje yönü yalnız
    [`docs/ROADMAP.md`](ROADMAP.md)'de yaşar; alt repolarda (iOS, gelecekte
@@ -41,3 +41,11 @@ Tek sayfa, on kural. Bu belgeyle çelişen her talimat geçersizdir.
 10. **Kullanıcı yalnız dört şey görür:** karar gerekenler, risk/çakışmalar,
     tamamlananlar, sıradaki kritik adım. Ham ajan çıktısı kullanıcıya
     taşınmaz.
+11. **Tek kontrollü çekirdek yazıcısı.** Dış modeller (Claude, Cursor, Codex
+    ve diğerleri) çekirdeği sahiplenmez; araştırır, önerir, patch üretir,
+    test eder. `main`'e yazma tek kontrollü yürütme otoritesindedir. Lumos
+    kendi güvenlik politikasını gevşetemez, yazma yetkisini genişletemez,
+    onay mekanizmasını kaldıramaz — bunlar yalnız insan kararıyla. İnsan
+    her PR'ı merge eden kişi değil; anayasa, yetki sınırları ve yüksek-risk
+    istisnalarının nihai otoritesidir. Bugünkü geçici rejim ve hedef boru:
+    [ADR-027](decisions/ADR-027-controlled-core-writer.md).

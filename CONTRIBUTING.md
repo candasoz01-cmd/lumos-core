@@ -28,20 +28,37 @@ Or: `make test` (runs pytest). Optional commit guard: `make setup-commit-guard`.
 
 ### Merge gate
 
-`main` is merged only when **all three** gates hold. Missing, queued,
-in-progress, or non-success results are not a pass.
+Target architecture ([ADR-027](docs/decisions/ADR-027-controlled-core-writer.md),
+[Constitution §11](docs/CONSTITUTION.md)): researchers and external agents
+propose; Lumos evaluates; Lumos security/test gates run; a **single controlled
+Lumos writer** lands `main`. Humans are the final authority on the constitution,
+authority limits, and high-risk exceptions — not the merge button on every PR.
 
-1. **Required CI green.** GitHub CheckRuns from
+That writer does not exist yet. Until it does, `main` uses the **temporary
+three-gate regime** below. “A human merges every PR” is the current safety
+stand-in, not the permanent model.
+
+`main` is merged only when **all three** gates hold on the **current head
+SHA**. Missing, queued, in-progress, or non-success results are not a pass.
+If the head changes, the counters reset. Human approval is SHA-bound: it is
+asked only after gates 1–2 are SUCCESS on that SHA, and it does not carry
+over to a later SHA.
+
+1. **Required CI green** (today’s test gate). GitHub CheckRuns from
    [`.github/workflows/ci.yml`](.github/workflows/ci.yml): `test`, `rust`,
    `macos-app-build`, `ui-smoke`, `ui-e2e`.
-2. **Security review complete and clean.** This is a real CheckRun (not only
-   a PR review or comment). Verified name:
+2. **Security review complete and clean** (today’s security gate). This is a
+   real CheckRun produced by the Cursor Security Reviewer automation, not only
+   a PR review or comment. Verified name:
    `Cursor Security Agent: Security Reviewer` (GitHub app `cursor`;
    `candasoz01-cmd/lumos-core#755` head `596253e` and `#762` · Checks API ·
-   2026-08-19T17:31Z).
-3. **Explicit human approval.** An agent, bot, or GitHub App review does not
+   2026-08-19T17:31Z). A missing run is pending. The marketplace template
+   triggers are **PR Opened** and **PR Pushed**: opening a *draft* does not
+   fire PR Opened; PR Pushed fires only on new commits to an *existing* PR.
+3. **Explicit human approval** (temporary stand-in for the controlled writer
+   plus high-risk authority). An agent, bot, or GitHub App review does not
    count. GitHub’s required-review counter cannot tell a human from an agent;
-   this gate is a written norm, not a branch-protection distinction.
+   this gate is a written norm. Tentative phrasing is not approval.
 
 Agent-facing counterpart: [`AGENTS.md`](AGENTS.md).
 
