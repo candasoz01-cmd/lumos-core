@@ -55,13 +55,19 @@ Report `overall`: `pass` | `fail` | `unknown` | `stale`.
 Each check entry also carries its own `last_success_at`. A pass updates that
 check only. Fail or unknown does not clear a previous success for that check.
 
+Each check in the artifact also carries `age_seconds`:
+`generated_at - last_success_at` (integer seconds), or `null` when that check
+has no history. `age_seconds` is derived at emit time and is **not** written to
+cache/state. State stores only per-check `last_success_at`.
+
 The artifact also includes `generated_at` and `run_attempt`
 (`GITHUB_RUN_ATTEMPT` or `--run-attempt`).
 
 State persists across runs in `--state` (workflow cache: `layer1a-state.json`).
 The workflow restores with `actions/cache/restore@v4` and saves with
 `actions/cache/save@v4` under `if: always()`. Cache save needs `actions: write`;
-`contents` stays `read`.
+`contents` stays `read`. The pulse step uses `continue-on-error: true`; a missing
+artifact still fails the upload step.
 
 **Accepted operational limit:** GitHub Actions cache entries unused for 7 days
 are evicted. If `layer1a-state.json` drops, per-check history is missing until
@@ -80,4 +86,5 @@ Stdlib only.
 
 `.github/workflows/layer1a.yml` runs every 30 minutes on `main` and on
 `workflow_dispatch`. It restores/saves `layer1a-state.json` and uploads
-`layer1a-result.json` as a workflow artifact.
+`layer1a-result.json` as a workflow artifact. Script exit codes are preserved;
+the job stays green unless artifact upload fails.

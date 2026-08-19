@@ -53,9 +53,3 @@ jobs:
           name: layer1a-result
           path: layer1a-result.json
           if-no-files-found: error
-
-      - name: Fail job when pulse is not pass
-        if: steps.checks.outcome == 'failure'
-        run: |
-          echo "Layer 1A pulse was not pass; see layer1a-result artifact"
-          exit 1

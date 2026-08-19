@@ -175,6 +175,14 @@ def last_success_is_stale(
     return now - parsed > timedelta(seconds=stale_after_seconds)
 
 
+def age_seconds_between(generated_at: str, last_success_at: str | None) -> int | None:
+    generated = parse_utc(generated_at)
+    prior = parse_utc(last_success_at) if isinstance(last_success_at, str) else None
+    if generated is None or prior is None:
+        return None
+    return int((generated - prior).total_seconds())
+
+
 def decide_overall(
     checks: list[Mapping[str, Any]],
     *,
@@ -286,6 +294,10 @@ def run_checks(
             entry["last_success_at"] = checked
         results.append(entry)
 
+    generated = generated_at or format_utc(moment)
+    for item in results:
+        item["age_seconds"] = age_seconds_between(generated, item.get("last_success_at"))
+
     overall = decide_overall(
         results,
         now=moment,
@@ -299,7 +311,7 @@ def run_checks(
     return {
         "schema": SCHEMA,
         "checked_at": checked,
-        "generated_at": generated_at or format_utc(moment),
+        "generated_at": generated,
         "run_attempt": run_attempt,
         "base_url": base,
         "overall": overall,
