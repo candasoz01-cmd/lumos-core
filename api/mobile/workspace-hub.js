@@ -15,16 +15,24 @@ const WORKSPACES = [
 
 function card(workspaceId) {
   const chat = workspaceId === "chat";
+  const cloud = workspaceId === "cloud";
+  const connected = chat || cloud;
   return {
     workspace_id: workspaceId,
-    summary: chat ? "Lumos oturumu bağlı" : "Canlı bağlantı doğrulanmadı",
-    health: chat ? "ready" : "stub",
+    summary: chat
+      ? "Lumos oturumu bağlı"
+      : cloud
+        ? "Lumos bulut hizmeti erişilebilir"
+        : "Canlı bağlantı doğrulanmadı",
+    health: connected ? "ready" : "stub",
     attention_count: 0,
-    state: chat ? "connected" : "disconnected",
+    state: connected ? "connected" : "disconnected",
     age_seconds: null,
     detail: {
       source: "mobile_session",
       account_connection_verified: chat,
+      service_reachability_verified: cloud,
+      operations_enabled: false,
     },
   };
 }
@@ -42,10 +50,10 @@ export default async function handler(req, res) {
     ok: true,
     hub: {
       source: "live",
-      day_summary_line: "Lumos oturumu bağlı",
+      day_summary_line: "Lumos oturumu bağlı · bulut hizmeti erişilebilir",
       day_guidance: "Bağlantısı doğrulanmamış alanlarda işlem yapılmaz.",
       refreshed_at: new Date().toISOString(),
-      quick_access: ["chat"],
+      quick_access: ["chat", "cloud"],
       cards: WORKSPACES.map(card),
       approvals: [],
       activities: [],
