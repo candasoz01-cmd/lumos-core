@@ -1,0 +1,41 @@
+# Layer 1A — read-only 30-minute production pulse.
+# No secrets, LLM, panel writes, or notifications. JSON artifact only.
+name: Layer 1A pulse
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pulse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run five deterministic checks
+        id: checks
+        continue-on-error: true
+        run: python3 ops/layer1a/run.py --output layer1a-result.json
+
+      - name: Upload JSON artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: layer1a-result
+          path: layer1a-result.json
+          if-no-files-found: error
+
+      - name: Fail job when pulse failed
+        if: steps.checks.outcome == 'failure'
+        run: |
+          echo "Layer 1A pulse failed; see layer1a-result artifact"
+          exit 1
