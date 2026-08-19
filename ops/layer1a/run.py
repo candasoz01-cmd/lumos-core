@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Layer 1A: five deterministic, read-only production checks.
 
-Stdlib only. No secrets, LLM, panel writes, or notifications.
+Stdlib only. No secrets, LLM, panel writes, or first-party notifications.
 """
 
 from __future__ import annotations
@@ -12,14 +12,21 @@ import os
 import sys
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Mapping
 from urllib.parse import urljoin
 
 SCHEMA = "lumos.ops.layer1a.v1"
+STATE_SCHEMA = "lumos.ops.layer1a.state.v1"
 DEFAULT_BASE_URL = "https://welockai.com"
 DEFAULT_TIMEOUT_SECONDS = 15
+DEFAULT_STALE_AFTER_SECONDS = 3600
 USER_AGENT = "lumos-ops-layer1a/1.0"
+
+RESULT_PASS = "pass"
+RESULT_FAIL = "fail"
+RESULT_UNKNOWN = "unknown"
+OVERALL_STALE = "stale"
 
 BRIDGE_FAIL_CLOSED_ERRORS = frozenset(
     {
@@ -44,8 +51,27 @@ SECRET_KEY_NAMES = frozenset(
 FetchFn = Callable[[str], tuple[int, str, bytes]]
 
 
-def utc_now() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def format_utc(value: datetime) -> str:
+    return value.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def parse_utc(raw: str) -> datetime | None:
+    text = raw.strip()
+    if not text:
+        return None
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
 
 
 def normalize_base_url(raw: str) -> str:
@@ -137,19 +163,83 @@ CHECKS: tuple[tuple[str, str, Callable[[int, str, bytes], str | None]], ...] = (
 )
 
 
+def last_success_is_stale(
+    last_success_at: str | None,
+    *,
+    now: datetime,
+    stale_after_seconds: int,
+) -> bool:
+    parsed = parse_utc(last_success_at) if last_success_at else None
+    if parsed is None:
+        return False
+    return now - parsed > timedelta(seconds=stale_after_seconds)
+
+
+def decide_overall(
+    results: list[str],
+    *,
+    last_success_at: str | None,
+    now: datetime,
+    stale_after_seconds: int,
+) -> str:
+    if any(item == RESULT_FAIL for item in results):
+        return RESULT_FAIL
+    if all(item == RESULT_PASS for item in results):
+        return RESULT_PASS
+    if last_success_is_stale(
+        last_success_at, now=now, stale_after_seconds=stale_after_seconds
+    ):
+        return OVERALL_STALE
+    return RESULT_UNKNOWN
+
+
+def load_state(path: str | None) -> str | None:
+    if not path:
+        return None
+    try:
+        with open(path, encoding="utf-8") as handle:
+            payload = json.loads(handle.read())
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict) or payload.get("schema") != STATE_SCHEMA:
+        return None
+    value = payload.get("last_success_at")
+    if not isinstance(value, str) or parse_utc(value) is None:
+        return None
+    return value
+
+
+def save_state(path: str | None, last_success_at: str | None) -> None:
+    if not path:
+        return
+    payload = {
+        "schema": STATE_SCHEMA,
+        "last_success_at": last_success_at,
+    }
+    encoded = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write(encoded)
+
+
 def run_checks(
     *,
     base_url: str,
     fetch: FetchFn,
     checked_at: str | None = None,
+    last_success_at: str | None = None,
+    stale_after_seconds: int = DEFAULT_STALE_AFTER_SECONDS,
+    now: datetime | None = None,
 ) -> dict[str, Any]:
     base = normalize_base_url(base_url)
+    moment = now or utc_now()
+    checked = checked_at or format_utc(moment)
     results: list[dict[str, Any]] = []
     for check_id, path, evaluate in CHECKS:
         url = urljoin(base + "/", path.lstrip("/"))
         entry: dict[str, Any] = {
             "id": check_id,
             "ok": False,
+            "result": RESULT_UNKNOWN,
             "url": url,
             "method": "GET",
         }
@@ -159,17 +249,29 @@ def run_checks(
             reason = evaluate(status, content_type, body)
             if reason is None:
                 entry["ok"] = True
+                entry["result"] = RESULT_PASS
             else:
+                entry["result"] = RESULT_FAIL
                 entry["detail"] = reason
-        except Exception as exc:  # noqa: BLE001 — pulse must never crash the artifact
+        except Exception as exc:  # noqa: BLE001 — pulse must still emit an artifact
+            entry["result"] = RESULT_UNKNOWN
             entry["detail"] = f"request failed: {type(exc).__name__}: {exc}"
         results.append(entry)
-    overall = "pass" if all(item["ok"] for item in results) else "fail"
+
+    overall = decide_overall(
+        [item["result"] for item in results],
+        last_success_at=last_success_at,
+        now=moment,
+        stale_after_seconds=stale_after_seconds,
+    )
+    persisted = checked if overall == RESULT_PASS else last_success_at
     return {
         "schema": SCHEMA,
-        "checked_at": checked_at or utc_now(),
+        "checked_at": checked,
         "base_url": base,
         "overall": overall,
+        "last_success_at": persisted,
+        "stale_after_seconds": stale_after_seconds,
         "checks": results,
     }
 
@@ -181,25 +283,42 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=os.environ.get("LAYER1A_BASE_URL", DEFAULT_BASE_URL),
     )
     parser.add_argument("--output")
+    parser.add_argument(
+        "--state",
+        help="JSON file that persists last_success_at across runs",
+    )
     parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT_SECONDS)
+    parser.add_argument(
+        "--stale-after",
+        type=int,
+        default=DEFAULT_STALE_AFTER_SECONDS,
+        help="seconds after last_success_at when overall becomes stale",
+    )
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     timeout = args.timeout
+    previous = load_state(args.state)
 
     def fetch(url: str) -> tuple[int, str, bytes]:
         return default_fetch(url, timeout)
 
-    report = run_checks(base_url=args.base_url, fetch=fetch)
+    report = run_checks(
+        base_url=args.base_url,
+        fetch=fetch,
+        last_success_at=previous,
+        stale_after_seconds=args.stale_after,
+    )
+    save_state(args.state, report.get("last_success_at"))
     encoded = json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     if args.output:
         with open(args.output, "w", encoding="utf-8") as handle:
             handle.write(encoded)
     else:
         sys.stdout.write(encoded)
-    return 0 if report["overall"] == "pass" else 1
+    return 0 if report["overall"] == RESULT_PASS else 1
 
 
 if __name__ == "__main__":
