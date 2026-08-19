@@ -10,9 +10,7 @@ on:
 
 permissions:
   contents: read
-  # Required only so actions/cache/save@v4 can persist per-check last_success_at.
-  # contents stays read; this is not covered by the 90b862b security review.
-  actions: write
+  actions: read
 
 jobs:
   pulse:
@@ -53,3 +51,4 @@ jobs:
           name: layer1a-result
           path: layer1a-result.json
           if-no-files-found: error
+          retention-days: 14
