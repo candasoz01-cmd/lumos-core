@@ -26,6 +26,17 @@ const ALLOWED_CAPABILITY_STATES = new Set([
   "unavailable",
   "unknown",
 ]);
+const ALLOWED_DEVICE_MODELS = new Set([
+  "iPhone",
+  "iPhone 12 mini",
+  "iPhone 12",
+  "iPhone 12 Pro",
+  "iPhone 12 Pro Max",
+  "iPhone 15",
+  "iPhone 15 Plus",
+  "iPhone 15 Pro",
+  "iPhone 15 Pro Max",
+]);
 
 export function sanitizeRealtimeDeviceContext(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -63,6 +74,10 @@ export function sanitizeRealtimeDeviceContext(value) {
   const appVersion = String(value.app_version || "").trim();
   if (/^\d{1,4}(?:\.\d{1,4}){0,3}(?:[-+][A-Za-z0-9.-]{1,20})?$/.test(appVersion)) {
     context.app_version = appVersion;
+  }
+  const deviceModel = String(value.device_model || "").trim();
+  if (ALLOWED_DEVICE_MODELS.has(deviceModel)) {
+    context.device_model = deviceModel;
   }
   return context;
 }
@@ -156,6 +171,10 @@ export default async function handler(req, res) {
           ].join(" "),
           audio: {
             input: {
+              transcription: {
+                model: "gpt-4o-mini-transcribe",
+                language: "tr",
+              },
               turn_detection: {
                 type: "semantic_vad",
                 eagerness: "medium",
