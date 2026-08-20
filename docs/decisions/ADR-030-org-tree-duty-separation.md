@@ -104,7 +104,7 @@ kataloğunun tamamı çekirdek **değildir.** Yeni OpenAI yüzeyi varsayılan
 ## Ad çakışması — ADR-018 `Core` ≠ bu çekirdek
 
 [ADR-018](ADR-018-internal-layers-core-local-sentinel.md) iç katman adı
-**Core** (eski Kando) kullanıcıya gösterilmeyen koordinasyon katmanıdır.
+**Core** (kullanıcıya gösterilmeyen koordinasyon katmanı) bu çekirdek değildir.
 Bu ADR’deki **çekirdek**, anayasal küçük sınır katmanıdır. İkisi eşlenmez.
 İç katman `Core` yazmak bir alanı anayasal çekirdek yapmaz.
 
