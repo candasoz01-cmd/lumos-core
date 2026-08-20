@@ -66,6 +66,7 @@ class MeetingIngress(Protocol):
 
     def join(self, meeting_url: str) -> str: ...  # returns session/bot id
     def speak(self, session_id: str, mp3_b64: str) -> None: ...
+    def show_avatar(self, session_id: str, jpeg_b64: str) -> None: ...
     def kill(self, session_id: str) -> None: ...
     def delete_media(self, session_id: str) -> None: ...
 
@@ -76,6 +77,7 @@ def build_recall_bot_payload(
     internal_ref: str,
     bot_name: str = "Lumos · AI Representative",
     disclosure_mp3_b64: str | None = None,
+    avatar_idle_jpeg_b64: str | None = None,
 ) -> dict[str, Any]:
     """Pure payload builder — unit tests pin the founder's rules here.
 
@@ -102,6 +104,12 @@ def build_recall_bot_payload(
         # klip varsa gönderilir)
         payload["automatic_audio_output"] = {
             "in_call_recording": {"data": {"kind": "mp3", "b64_data": disclosure_mp3_b64}}
+        }
+    if avatar_idle_jpeg_b64:
+        idle = {"kind": "jpeg", "b64_data": avatar_idle_jpeg_b64}
+        payload["automatic_video_output"] = {
+            "in_call_not_recording": dict(idle),
+            "in_call_recording": dict(idle),
         }
     assert "transcription" not in json.dumps(payload).lower()
     return payload
@@ -145,6 +153,13 @@ class RecallMeetingIngress:
     def speak(self, session_id: str, mp3_b64: str) -> None:
         self._request(
             "POST", f"/api/v1/bot/{session_id}/output_audio/", {"kind": "mp3", "b64_data": mp3_b64}
+        )
+
+    def show_avatar(self, session_id: str, jpeg_b64: str) -> None:
+        self._request(
+            "POST",
+            f"/api/v1/bot/{session_id}/output_video/",
+            {"kind": "jpeg", "b64_data": jpeg_b64},
         )
 
     def kill(self, session_id: str) -> None:
