@@ -30,6 +30,16 @@ class CredentialResolution:
     error: str | None = None
 
 
+@dataclass(frozen=True)
+class CredentialWriteResult:
+    """Secret yazma/silme sonucu; yazılan değer hiçbir alanda geri dönmez."""
+
+    ok: bool
+    purpose_code: str
+    ref: str
+    error: str | None = None
+
+
 class VaultAdapter(Protocol):
     """Vault kasa geçidi — Lumos yüzeyinde secret taşınmaz."""
 
@@ -37,6 +47,17 @@ class VaultAdapter(Protocol):
         ...
 
     def resolve_credential(self, ref: str, purpose_code: str) -> CredentialResolution:
+        ...
+
+    def store_credential(
+        self,
+        ref: str,
+        purpose_code: str,
+        secret_value: str,
+    ) -> CredentialWriteResult:
+        ...
+
+    def delete_credential(self, ref: str, purpose_code: str) -> CredentialWriteResult:
         ...
 
 
@@ -78,26 +99,13 @@ class InfisicalVaultAdapter:
         )
 
     def resolve_credential(self, ref: str, purpose_code: str) -> CredentialResolution:
-        if not self._vault_url or not self._vault_token:
+        configuration_error = self._configuration_error(purpose_code)
+        if configuration_error:
             return CredentialResolution(
                 ok=False,
                 purpose_code=purpose_code,
                 ref=ref,
-                error="vault_env_not_configured",
-            )
-        if not self._vault_project or not self._vault_env:
-            return CredentialResolution(
-                ok=False,
-                purpose_code=purpose_code,
-                ref=ref,
-                error="vault_project_env_not_configured",
-            )
-        if not is_known_purpose_code(purpose_code):
-            return CredentialResolution(
-                ok=False,
-                purpose_code=purpose_code,
-                ref=ref,
-                error="unknown_purpose_code",
+                error=configuration_error,
             )
         intent = token_intent_for_purpose(purpose_code)
         if not self._vault_reachable():
@@ -124,6 +132,54 @@ class InfisicalVaultAdapter:
             token_intent=intent,
             secret_value=secret_value,
         )
+
+    def store_credential(
+        self,
+        ref: str,
+        purpose_code: str,
+        secret_value: str,
+    ) -> CredentialWriteResult:
+        """Secret'ı kasaya yazar; değer sonuç nesnesine veya hataya taşınmaz."""
+        configuration_error = self._configuration_error(purpose_code)
+        if configuration_error:
+            return CredentialWriteResult(False, purpose_code, ref, configuration_error)
+        if not isinstance(secret_value, str) or not secret_value:
+            return CredentialWriteResult(False, purpose_code, ref, "secret_value_required")
+        if not self._vault_reachable():
+            return CredentialWriteResult(False, purpose_code, ref, "vault_unreachable")
+
+        write_error = self._create_secret_value(ref, secret_value)
+        return CredentialWriteResult(
+            ok=write_error is None,
+            purpose_code=purpose_code,
+            ref=ref,
+            error=write_error,
+        )
+
+    def delete_credential(self, ref: str, purpose_code: str) -> CredentialWriteResult:
+        """Yetim yazımlar için en iyi çaba temizlik — çağıran hatayı ölümcül saymamalı."""
+        configuration_error = self._configuration_error(purpose_code)
+        if configuration_error:
+            return CredentialWriteResult(False, purpose_code, ref, configuration_error)
+        if not self._vault_reachable():
+            return CredentialWriteResult(False, purpose_code, ref, "vault_unreachable")
+
+        delete_error = self._delete_secret_value(ref)
+        return CredentialWriteResult(
+            ok=delete_error is None,
+            purpose_code=purpose_code,
+            ref=ref,
+            error=delete_error,
+        )
+
+    def _configuration_error(self, purpose_code: str) -> str | None:
+        if not self._vault_url or not self._vault_token:
+            return "vault_env_not_configured"
+        if not self._vault_project or not self._vault_env:
+            return "vault_project_env_not_configured"
+        if not is_known_purpose_code(purpose_code):
+            return "unknown_purpose_code"
+        return None
 
     def _vault_reachable(self) -> bool:
         """Read-only health probe — operatör PoC; secret döndürmez."""
@@ -179,6 +235,86 @@ class InfisicalVaultAdapter:
         if not isinstance(value, str) or not value:
             return None, "secret_not_found"
         return value, None
+
+    def _create_secret_value(self, ref: str, secret_value: str) -> str | None:
+        """Infisical v3 raw create — okuma yolu ile aynı API sürümü; secret geri dönmez."""
+        base = self._vault_url.rstrip("/")
+        secret_name = quote(ref, safe="")
+        url = f"{base}/api/v3/secrets/raw/{secret_name}"
+        payload = json.dumps(
+            {
+                "workspaceId": self._vault_project,
+                "environment": self._vault_env,
+                "secretPath": self._vault_secret_path,
+                "secretValue": secret_value,
+                "type": "shared",
+            },
+            separators=(",", ":"),
+        ).encode("utf-8")
+        req = Request(url, data=payload, method="POST")
+        req.add_header("Authorization", f"Bearer {self._vault_token}")
+        req.add_header("Content-Type", "application/json")
+        try:
+            with urlopen(req, timeout=self._timeout) as resp:  # noqa: S310 — operatör env URL
+                if 200 <= resp.status < 300:
+                    return None
+                return "secret_write_failed"
+        except TimeoutError:
+            return "vault_timeout"
+        except HTTPError as exc:
+            if exc.code in (401, 403):
+                return "vault_write_unauthorized"
+            if exc.code in (409, 422):
+                return "secret_ref_conflict"
+            return "secret_write_failed"
+        except URLError as exc:
+            return self._url_error_reason(exc, "vault_unreachable")
+        except (OSError, ValueError):
+            return "secret_write_failed"
+
+    def _delete_secret_value(self, ref: str) -> str | None:
+        """Infisical v3 raw delete; 404 (zaten yok) temizlik amacıyla başarı sayılır."""
+        base = self._vault_url.rstrip("/")
+        secret_name = quote(ref, safe="")
+        url = f"{base}/api/v3/secrets/raw/{secret_name}"
+        payload = json.dumps(
+            {
+                "workspaceId": self._vault_project,
+                "environment": self._vault_env,
+                "secretPath": self._vault_secret_path,
+                "type": "shared",
+            },
+            separators=(",", ":"),
+        ).encode("utf-8")
+        req = Request(url, data=payload, method="DELETE")
+        req.add_header("Authorization", f"Bearer {self._vault_token}")
+        req.add_header("Content-Type", "application/json")
+        try:
+            with urlopen(req, timeout=self._timeout) as resp:  # noqa: S310 — operatör env URL
+                if 200 <= resp.status < 300:
+                    return None
+                return "secret_delete_failed"
+        except HTTPError as exc:
+            if exc.code == 404:
+                return None
+            if exc.code in (401, 403):
+                return "vault_delete_unauthorized"
+            return "secret_delete_failed"
+        except TimeoutError:
+            return "vault_timeout"
+        except URLError as exc:
+            return self._url_error_reason(exc, "vault_unreachable")
+        except (OSError, ValueError):
+            return "secret_delete_failed"
+
+    @staticmethod
+    def _url_error_reason(exc: URLError, fallback: str) -> str:
+        reason = exc.reason
+        if isinstance(reason, TimeoutError) or (
+            reason is not None and "timed out" in str(reason).lower()
+        ):
+            return "vault_timeout"
+        return fallback
 
 
 _default_adapter: InfisicalVaultAdapter | None = None
