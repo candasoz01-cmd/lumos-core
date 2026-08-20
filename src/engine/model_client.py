@@ -9,6 +9,67 @@ from security.request_signer import RequestSigner
 
 logger = logging.getLogger(__name__)
 
+PURPOSE_CHAT = "chat"
+PURPOSE_CYBER = "cyber"
+CYBER_AVAILABLE = "available"
+CYBER_NOT_CONFIGURED = "not_configured"
+CYBER_UNAVAILABLE = "unavailable"
+CYBER_UNKNOWN = "unknown"
+_CHAT_DEFAULT_MODEL = "gpt-4.1-mini"
+_CYBER_UNAVAILABLE_TYPES = frozenset(
+    {
+        "NotFoundError",
+        "PermissionDeniedError",
+    }
+)
+
+
+class CyberModelError(Exception):
+    """Fail-closed cyber model path. status is not_configured | unavailable | unknown."""
+
+    def __init__(self, status: str, model: str = "") -> None:
+        self.status = status
+        self.model = model
+        super().__init__(status)
+
+
+def resolve_openai_model(purpose: str = PURPOSE_CHAT) -> tuple[str, str | None]:
+    """Return (model, cyber_error_status). Chat: OPENAI_MODEL_CHAT then OPENAI_MODEL. Cyber: no fallback."""
+    normalized = (purpose or PURPOSE_CHAT).strip().lower() or PURPOSE_CHAT
+    if normalized != PURPOSE_CYBER:
+        model = (
+            (os.getenv("OPENAI_MODEL_CHAT") or "").strip()
+            or (os.getenv("OPENAI_MODEL") or "").strip()
+            or _CHAT_DEFAULT_MODEL
+        )
+        return model, None
+    model = (os.getenv("OPENAI_MODEL_CYBER") or "").strip()
+    if not model:
+        return "", CYBER_NOT_CONFIGURED
+    return model, None
+
+
+def classify_cyber_api_error(exc: BaseException) -> str:
+    """Map a single failed cyber API call. No retry. Does not read response bodies."""
+    raw_code = getattr(exc, "status_code", None)
+    code: int | None
+    try:
+        code = int(raw_code) if raw_code is not None else None
+    except (TypeError, ValueError):
+        code = None
+    if code in (403, 404):
+        return CYBER_UNAVAILABLE
+    if code == 401 or (code is not None and code >= 500):
+        return CYBER_UNKNOWN
+    if type(exc).__name__ in _CYBER_UNAVAILABLE_TYPES:
+        return CYBER_UNAVAILABLE
+    return CYBER_UNKNOWN
+
+
+def log_cyber_model(status: str, model: str) -> None:
+    """Log only status and model name — never API keys or raw response bodies."""
+    logger.info("cyber_model status=%s model=%s", status, model or "")
+
 
 def _safe_int(value: Any) -> int:
     """Convert usage fields to int; strict so MagicMock/unknown types become 0, never 1."""
@@ -127,6 +188,7 @@ class ModelClient:
         presence: str = "—",
         consent: str = "—",
         lock: str = "—",
+        purpose: str = PURPOSE_CHAT,
     ) -> str:
         if os.getenv("LUMOS_SERVER_SIM", "0") == "1":
             ok, reason = self._server_sim_verify(prompt)
@@ -134,8 +196,24 @@ class ModelClient:
                 return json.dumps({"ok": True, "response": "Sim OK", "error": "", "server": "sim"}, ensure_ascii=False)
             return json.dumps({"ok": False, "response": "", "error": reason or "reject", "server": "sim"}, ensure_ascii=False)
 
+        if (purpose or PURPOSE_CHAT).strip().lower() == PURPOSE_CYBER:
+            return self._generate_openai(
+                prompt,
+                mode=mode,
+                presence=presence,
+                consent=consent,
+                lock=lock,
+                purpose=PURPOSE_CYBER,
+            )
         if self._openai_key:
-            return self._generate_openai(prompt, mode=mode, presence=presence, consent=consent, lock=lock)
+            return self._generate_openai(
+                prompt,
+                mode=mode,
+                presence=presence,
+                consent=consent,
+                lock=lock,
+                purpose=PURPOSE_CHAT,
+            )
         return "Yanındayım."
 
     # System prompt: single source of truth. Split into static prefix, state block, static suffix
@@ -228,8 +306,17 @@ class ModelClient:
         presence: str = "—",
         consent: str = "—",
         lock: str = "—",
+        purpose: str = PURPOSE_CHAT,
     ) -> str:
         """Call OpenAI Responses API with Lumos system prompt + user prompt. Returns response text or error fallback."""
+        is_cyber = (purpose or PURPOSE_CHAT).strip().lower() == PURPOSE_CYBER
+        model, cyber_status = resolve_openai_model(purpose)
+        if is_cyber and cyber_status:
+            log_cyber_model(cyber_status, model)
+            raise CyberModelError(cyber_status, model)
+        if is_cyber and not self._openai_key:
+            log_cyber_model(CYBER_NOT_CONFIGURED, model)
+            raise CyberModelError(CYBER_NOT_CONFIGURED, model)
         try:
             from openai import OpenAI
 
@@ -238,20 +325,31 @@ class ModelClient:
             system_prompt = self._build_system_prompt(mode, presence, consent, lock)
             # Combined prompt: system identity + state first, then user message (Responses API single input).
             full_prompt = system_prompt + "\n\nUser: " + prompt
-            model = (os.getenv("OPENAI_MODEL") or "").strip() or "gpt-4.1-mini"
             try:
-                try:
+                if is_cyber:
+                    # Cyber: one create() only. No TypeError retry, no chat-model fallback.
                     response = client.responses.create(
                         model=model,
                         input=full_prompt,
                         timeout=10,
                     )
-                except TypeError:
-                    response = client.responses.create(
-                        model=model,
-                        input=full_prompt,
-                    )
-            except Exception:
+                else:
+                    try:
+                        response = client.responses.create(
+                            model=model,
+                            input=full_prompt,
+                            timeout=10,
+                        )
+                    except TypeError:
+                        response = client.responses.create(
+                            model=model,
+                            input=full_prompt,
+                        )
+            except Exception as exc:
+                if is_cyber:
+                    status = classify_cyber_api_error(exc)
+                    log_cyber_model(status, model)
+                    raise CyberModelError(status, model) from None
                 return "Model yanıt vermedi"
             # Token usage: strict extraction; only real int/float/digit-string count (MagicMock -> 0).
             usage = getattr(response, "usage", None) or getattr(response, "usage_metadata", None)
@@ -290,7 +388,14 @@ class ModelClient:
                 if out and len(out) > 0 and getattr(out[0], "content", None) and len(out[0].content) > 0:
                     reply = getattr(out[0].content[0], "text", None)
             reply = (reply or "").strip() or "Yanıt yok."
+            if is_cyber:
+                log_cyber_model(CYBER_AVAILABLE, model)
             return reply
+        except CyberModelError:
+            raise
         except Exception as e:
+            if is_cyber:
+                log_cyber_model(CYBER_UNKNOWN, model)
+                raise CyberModelError(CYBER_UNKNOWN, model) from None
             logger.exception("LLM error: %s", e)
             return "Model hatası oluştu."

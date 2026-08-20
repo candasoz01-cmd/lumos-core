@@ -50,8 +50,8 @@ kullanılır.
 - Token, parola, kişisel veri veya ham güvenlik kanıtı kanala yazılmaz; yalnız
   olay özeti ve güvenli kanıt referansı paylaşılır.
 
-**İlgili:** [pilot-contract-template.md](pilot-contract-template.md) · [support-report-oraa.md](../templates/support-report-oraa.md) · [p0-p1-triage-list.md](p0-p1-triage-list.md) P1-04
+**İlgili:** [pilot-contract-template.md](pilot-contract-template.md) · [support-report-oraa.md](../templates/support-report-oraa.md) · [p0-p1-triage-list.md](p0-p1-triage-list.md) P1-04 · ürün içi ticket akışı **tasarım, kod yok:** [ADR-026](../decisions/ADR-026-support-intake-layer23.md)
 
 ---
 
-*Son güncelleme: 2026-07-22 — özel `#lumos-pilot-support` kanalı aktif; P1-04 kapalı.*
+*Son güncelleme: 2026-08-19 — ADR-026 tasarım kilidi (uygulama yok; P1-04 Slack canlı kalır).*

@@ -29,6 +29,10 @@ Taşıma süreci ve durum tanımları: [`chatgpt-saved-memories-migration.md`](.
 2. Metin **ana sisteme yazı gibi** girer.
 3. Ses katmanı **yalnızca UI değildir**; STT sonrası **bağlam, niyet, güvenlik sınırı ve önceki kararlarla tutarlılık** kontrollerinden geçmelidir.
 4. Lumos ses modunda **varsayıma koşmaz**; belirsizlikte **kısa netleştirme** sorar.
+5. **Meet / bulut STT (2026-08-19):** gerçek toplantı sesi
+   [`stt-data-boundary-v1`](../contracts/stt-data-boundary-v1.md) açılış
+   kapısı yazılı kapanmadan OpenAI'ye gitmez. Model `OPENAI_MODEL_STT`;
+   sohbet/cyber env'inden ayrı.
 
 ---
 
