@@ -4,6 +4,7 @@ import "../styles/umbrella-chrome.css";
 import LanguageSwitcher from "../components/LanguageSwitcher.astro";
 import I18nInit from "../components/I18nInit.astro";
 import PanelRuntime from "../components/panel/PanelRuntime.astro";
+import BridgeLlmHealthCard from "../components/panel/BridgeLlmHealthCard.astro";
 
 /**
  * POST /chat tam URL (örn. `https://host/chat`).
@@ -896,6 +897,21 @@ const PANEL_DEBUG = import.meta.env.DEV;
         color: var(--lumos-status-ready-fg);
         background: var(--lumos-status-ready-bg);
         border: 1px solid var(--lumos-status-ready-border);
+      }
+      .lumos-status-pill--unknown {
+        color: rgb(148 163 184 / 0.92);
+        background: rgb(15 23 42 / 0.55);
+        border: 1px solid rgb(148 163 184 / 0.42);
+      }
+      .lumos-status-pill--failed {
+        color: rgb(254 202 202);
+        background: rgb(127 29 29 / 0.42);
+        border: 1px solid rgb(248 113 113 / 0.55);
+      }
+      .lumos-status-pill--stale {
+        color: var(--lumos-status-developing-fg);
+        background: var(--lumos-status-developing-bg);
+        border: 1px dashed var(--lumos-status-developing-border);
       }
       .lumos-status-pill--developing {
         color: var(--lumos-status-developing-fg);
@@ -4837,7 +4853,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   <span class="panel-nav-label" data-i18n="panel.nav.sohbet">Sohbet</span>
                   <span class="panel-nav-status-subline" data-i18n="panel.nav.statusSub.sohbet">köprü olmadan sınırlı</span>
                 </span>
-                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--ready" data-i18n="panel.nav.status.sohbet">🟢 Hazır</span>
+                <span
+                  class="panel-nav-status-pill lumos-status-pill lumos-status-pill--unknown"
+                  data-health-card="bridge.llm"
+                  data-health-state="unknown"
+                  data-health-probe-url={HEALTH_URL}
+                  data-i18n="panel.health.bridgeLlm.unknown"
+                  data-i18n-aria-label="panel.health.bridgeLlm.neverChecked"
+                >◌ Bilinmiyor</span>
               </button>
               <button type="button" data-module="gorevler" data-i18n-title="panel.nav.statusTitle.gorevler">
                 <span class="panel-nav-label-block">
@@ -6448,5 +6471,6 @@ const PANEL_DEBUG = import.meta.env.DEV;
       {PANEL_DEBUG}
     />
     <I18nInit />
+    <BridgeLlmHealthCard />
   </body>
 </html>

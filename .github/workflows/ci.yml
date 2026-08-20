@@ -106,6 +106,10 @@ jobs:
         working-directory: ui
         run: npm run e2e:smoke
 
+      - name: Run bridge.llm dashboard-health observe E2E
+        working-directory: ui
+        run: npm run e2e:dashboard-health
+
       - name: Run Cyber threat visual E2E
         working-directory: ui
         run: npm run e2e:cyber

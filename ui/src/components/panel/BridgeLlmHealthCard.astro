@@ -1,0 +1,160 @@
+---
+/**
+ * Observe-slice runtime for dashboard-health-v1 card id=bridge.llm.
+ * Does not paint other nav pills. Does not hand the domain to Lumos.
+ */
+---
+
+<script>
+  import {
+    applyFreshness,
+    cardFromHttp,
+    pillModifier,
+    unprobedCard,
+  } from "../lib/dashboard-health/bridge-llm.js";
+
+  const POLL_MS = 30000;
+  const PROBE_TIMEOUT_MS = 8000;
+  const I18N = {
+    not_configured: "panel.health.bridgeLlm.notConfigured",
+    unknown: "panel.health.bridgeLlm.unknown",
+    healthy: "panel.health.bridgeLlm.healthy",
+    failed: "panel.health.bridgeLlm.failed",
+    stale: "panel.health.bridgeLlm.stale",
+  };
+
+  let lastCard = unprobedCard();
+
+  function el() {
+    return document.querySelector('[data-health-card="bridge.llm"]');
+  }
+
+  function t(key) {
+    const i18n = window.LumosI18n;
+    if (i18n && typeof i18n.t === "function") return i18n.t(key);
+    return key;
+  }
+
+  function minutesAgo(checkedAt, now) {
+    const ageMs = now.getTime() - Date.parse(checkedAt);
+    if (!Number.isFinite(ageMs) || ageMs < 0) return 0;
+    return Math.floor(ageMs / 60000);
+  }
+
+  function formatAria(card, now) {
+    const state = card.state || "unknown";
+    const checked = card.checked_at;
+    if (state === "unknown" && !checked) return t("panel.health.bridgeLlm.neverChecked");
+    if (state === "not_configured") return t("panel.health.bridgeLlm.notConfigured");
+    if (state === "unknown") return t("panel.health.bridgeLlm.unknown");
+    if (state === "healthy" && checked) {
+      return t("panel.health.bridgeLlm.healthyAria").replace("{n}", String(minutesAgo(checked, now)));
+    }
+    if (state === "failed") {
+      const reason = t("panel.health.bridgeLlm.reasonProbeRejected");
+      return t("panel.health.bridgeLlm.failedAria").replace("{reason}", reason);
+    }
+    if (state === "stale") {
+      const lastKey =
+        card.last_known === "failed"
+          ? "panel.health.bridgeLlm.lastFailed"
+          : "panel.health.bridgeLlm.lastHealthy";
+      return t("panel.health.bridgeLlm.staleAria")
+        .replace("{n}", String(checked ? minutesAgo(checked, now) : 0))
+        .replace("{last}", t(lastKey));
+    }
+    return t("panel.health.bridgeLlm.unknown");
+  }
+
+  function paint(card) {
+    const node = el();
+    if (!node) return;
+    const now = new Date();
+    const fresh = applyFreshness(card, now);
+    lastCard = fresh;
+    const state = fresh.state || "unknown";
+    const mod = pillModifier(state);
+    node.dataset.healthState = state;
+    if (fresh.reason_code) node.dataset.healthReason = fresh.reason_code;
+    else delete node.dataset.healthReason;
+    node.dataset.healthEvidence = fresh.evidence || "";
+    if (fresh.checked_at) node.dataset.healthCheckedAt = fresh.checked_at;
+    else delete node.dataset.healthCheckedAt;
+    if (fresh.last_known) node.dataset.healthLastKnown = fresh.last_known;
+    else delete node.dataset.healthLastKnown;
+    node.className = `panel-nav-status-pill lumos-status-pill lumos-status-pill--${mod}`;
+    const key = I18N[state] || I18N.unknown;
+    node.setAttribute("data-i18n", key);
+    node.removeAttribute("data-i18n-aria-label");
+    const i18n = window.LumosI18n;
+    if (i18n && typeof i18n.applyDocumentI18n === "function") {
+      i18n.applyDocumentI18n(node.parentElement || document);
+    }
+    const aria = formatAria(fresh, now);
+    node.setAttribute("aria-label", aria);
+    node.setAttribute("title", aria);
+    window.dispatchEvent(new CustomEvent("lumos:health-bridge-llm", { detail: fresh }));
+  }
+
+  async function probeOnce() {
+    const node = el();
+    if (!node) return unprobedCard();
+    const url = node.getAttribute("data-health-probe-url") || "/api/bridge/health";
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        credentials: "same-origin",
+        cache: "no-store",
+        signal: controller.signal,
+        headers: { Accept: "application/json" },
+      });
+      let body = null;
+      try {
+        body = await res.json();
+      } catch {
+        body = null;
+      }
+      return cardFromHttp(res.status, body, new Date());
+    } catch {
+      return cardFromHttp(null, null, new Date());
+    } finally {
+      window.clearTimeout(timer);
+    }
+  }
+
+  async function tick() {
+    paint(lastCard);
+    const card = await probeOnce();
+    paint(card);
+  }
+
+  function start() {
+    paint(unprobedCard());
+    tick();
+    window.setInterval(tick, POLL_MS);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start, { once: true });
+  } else {
+    start();
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") tick();
+  });
+  window.addEventListener("lumos:localechange", () => {
+    paint(lastCard);
+  });
+
+  window.LumosBridgeLlmHealth = {
+    getLastCard() {
+      return lastCard;
+    },
+    paintCard(card) {
+      paint(card);
+    },
+  };
+</script>

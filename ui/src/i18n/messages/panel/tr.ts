@@ -12,6 +12,22 @@ const panelNav = {
     lumosCore: "Lumos çekirdeği",
     preview: "Önizleme",
   },
+  health: {
+    bridgeLlm: {
+      unknown: "◌ Bilinmiyor",
+      notConfigured: "⚪ Kurulmadı",
+      healthy: "🟢 Çalışıyor",
+      failed: "🔴 Çalışmıyor",
+      stale: "🟡 Doğrulanmadı",
+      neverChecked: "◌ Bilinmiyor — hiç kontrol edilmedi",
+      healthyAria: "🟢 Çalışıyor · {n} dk önce kontrol edildi",
+      failedAria: "🔴 Çalışmıyor — {reason}",
+      staleAria: "🟡 {n} dakikadır doğrulanmadı (son bilinen: {last})",
+      lastHealthy: "çalışıyor",
+      lastFailed: "çalışmıyor",
+      reasonProbeRejected: "probe reddedildi",
+    },
+  },
   nav: {
     aria: "Çalışma modülleri",
     lumos: "Lumos",
@@ -38,7 +54,7 @@ const panelNav = {
     inactiveBadge: "Önizleme",
     inactiveBadgeTitle: "Bilgi ve önizleme ekranı — tam modül işlevi aktif değil",
     status: {
-      sohbet: "🟢 Hazır",
+      sohbet: "◌ Bilinmiyor",
       gorevler: "🟢 Hazır",
       ses: "🟡 Gelişiyor",
       medya: "⏳ Oturum bekliyor",
@@ -63,7 +79,7 @@ const panelNav = {
       entegrasyon: "7 katman tanımlı",
     },
     statusTitle: {
-      sohbet: "Yerel sohbet ve görevler çalışır; tam köprü kullanıcı kurulumuna bağlıdır",
+      sohbet: "LLM köprüsü sağlığı /api/bridge/health üzerinden ölçülür; ölçülmeden yeşil olmaz",
       gorevler: "Görevler cihaz kaydına yazılır; sunucu senkronu isteğe bağlıdır",
       ses: "Ses arayüzü geliştiriliyor; cihaz izinlerine bağlıdır",
       medya: "Harici medya kimliği bağlı değil; taslak akış görüntülenir",

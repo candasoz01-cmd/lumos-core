@@ -94,11 +94,11 @@ def test_panel_nav_status_copy_is_honest_not_preview() -> None:
     tr_text = _PANEL_TR.read_text(encoding="utf-8")
     en_text = _PANEL_EN.read_text(encoding="utf-8")
     astro_nav = read_panel_source().split("panel-nav__primary")[1].split("</nav>")[0]
-    assert 'sohbet: "🟢 Hazır"' in tr_text
+    assert 'sohbet: "◌ Bilinmiyor"' in tr_text
     assert "köprü olmadan sınırlı" in tr_text
     assert "Oturum bekliyor" in tr_text
     assert "Mimari hazır" in tr_text
-    assert 'sohbet: "🟢 Ready"' in en_text
+    assert 'sohbet: "◌ Unknown"' in en_text
     assert "limited without bridge" in en_text
     assert "Waiting for session" in en_text
     assert "Architecture ready" in en_text

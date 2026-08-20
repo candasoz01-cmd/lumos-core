@@ -959,7 +959,8 @@ PANEL_I18N_V57_EN_KEYS = (
 
 
 PANEL_I18N_V58_MARKERS = (
-    'data-i18n="panel.nav.status.sohbet"',
+    'data-i18n="panel.health.bridgeLlm.unknown"',
+    'data-i18n-aria-label="panel.health.bridgeLlm.neverChecked"',
     'data-i18n="panel.nav.statusSub.sohbet"',
     'data-i18n-title="panel.nav.statusTitle.sohbet"',
     'class="panel-nav-status-pill lumos-status-pill lumos-status-pill--ready"',
@@ -984,6 +985,9 @@ PANEL_I18N_V58_TR_KEYS = (
     "Sınırlı yerel mod",
     "katmanAFootnote:",
     "Katman A",
+    "neverChecked:",
+    "hiç kontrol edilmedi",
+    "Kurulmadı",
 )
 
 PANEL_I18N_V58_EN_KEYS = (
@@ -996,6 +1000,9 @@ PANEL_I18N_V58_EN_KEYS = (
     "Limited local mode",
     "katmanAFootnote:",
     "Katman A",
+    "neverChecked:",
+    "never checked",
+    "Not configured",
 )
 
 

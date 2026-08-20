@@ -11,6 +11,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "e2e:smoke": "node e2e/smoke-panel.mjs",
+    "e2e:dashboard-health": "node e2e/dashboard-health-bridge-llm.mjs",
     "e2e:cyber": "node e2e/cyber-threat.mjs",
     "e2e:smoke:prod": "node e2e/smoke-prod.mjs",
     "e2e:package:local": "node e2e/package-local.mjs",
