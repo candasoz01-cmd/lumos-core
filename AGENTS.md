@@ -71,38 +71,28 @@ elle kontrol edilir.
 
 ## Cursor Cloud specific instructions
 
-The startup update script already refreshes all dependencies (Python, Rust
-toolchain, `ui/` + `backend/` npm deps, Playwright Chromium). The notes below are
-durable, non-obvious gotchas for running/testing in this repo. Standard commands
-live in the [Makefile](Makefile), [CI workflow](.github/workflows/ci.yml),
-[docs/getting-started.md](docs/getting-started.md), and package.json scripts —
-reference those instead of duplicating.
+Standard commands live in the [Makefile](Makefile),
+[CI workflow](.github/workflows/ci.yml), and
+[docs/getting-started.md](docs/getting-started.md). The notes below are
+Cloud Agent gotchas that those docs do not cover (or contradict on purpose).
 
-### Components / services
-
-- **Python core + CLI** (`src/`, `packages/`): lint `ruff check .`, tests
-  `pytest`, CLI entry `lumos` (`lumos --help`).
-- **Rust crates** (`crates/anchorusb-*`): `cargo test -p anchorusb-core -p anchorusb-cli`.
-- **Web UI** (`ui/`, Astro — the primary product): `npm run dev` (landing + `/panel`),
-  `npm run build`, and `e2e:*` Playwright scripts.
-- **Backend** (`backend/`, Express + Prisma/SQLite, optional): `npm run dev`.
-
-### Non-obvious gotchas
-
-- **Python console scripts are in `~/.local/bin`.** `pip install` (no venv) puts
-  `ruff`, `pytest`, and `lumos` there; it is added to `PATH` via `~/.bashrc`. In a
-  non-login shell that does not source `~/.bashrc`, invoke via `python3 -m ruff` /
-  `python3 -m pytest` or add `~/.local/bin` to `PATH`.
-- **pytest needs PYTHONPATH + `KANDO_MOCK=1`.** Run `make test` (sets both) or
-  export `PYTHONPATH=src:packages/kando_runtime/src:packages/kando_bridge/src`
-  and `KANDO_MOCK=1` before `pytest`, matching CI. Running bare `pytest` fails.
-- **Rust needs a recent stable toolchain.** A transitive dep requires the
-  `edition2024` cargo feature; the older pinned toolchain (cargo 1.83) fails. The
-  update script runs `rustup default stable` (>= 1.85) to fix this.
-- **Astro dev server binds to IPv6 localhost only.** `npm run dev` listens on
-  `::1:4321`, so use `http://localhost:4321` — `http://127.0.0.1:4321` refuses the
-  connection.
-- **UI e2e tests need a built `ui/dist` and Playwright Chromium.** They serve the
-  static build and (for the `*-api` / tasks flows) spawn `panel_tasks_server.py`;
-  the panel task flow is gated behind "full" user mode, which the e2e harness
-  patches in — the browser panel opens in Limited mode by default.
+- **`python` / `pytest` may be missing from PATH.** This image often has only
+  `python3`. `pip install` (no venv) puts `ruff`, `pytest`, and `lumos` in
+  `~/.local/bin`, which login shells get via `~/.bashrc`. Prefer
+  `python3 -m ruff` / `python3 -m pytest`, or add `~/.local/bin` to `PATH`.
+- **pytest needs PYTHONPATH + `KANDO_MOCK=1`.** `make test` sets both (CI
+  parity). Bare `pytest` fails. `Makefile` uses `PYTEST := pytest`; if that
+  binary is absent, export the same env and run `python3 -m pytest -q`.
+- **Rust needs current stable, not the image's pinned 1.83.** Workspace
+  edition is 2021, but a crates.io dep (`clap_lex` 1.1.0, checked
+  2026-08-20T08:08Z) requires Cargo `edition2024`. `cargo 1.83` fails to parse
+  that manifest. The environment start script runs `rustup default stable`
+  (>= 1.85). Then `make test-rust`.
+- **Astro `npm run dev` in this Linux cloud binds IPv6 localhost.** Use
+  `http://localhost:4321`. `http://127.0.0.1:4321` refuses. This is the
+  opposite of [getting-started](docs/getting-started.md) (macOS: prefer
+  `127.0.0.1` to avoid IPv6 drift).
+- **UI e2e serves `ui/dist`, not `astro dev`.** Build first (`npm run build`
+  in `ui/`). `*-api` / tasks flows spawn `panel_tasks_server.py`. Task flows
+  need panel user mode `full`; the harness calls `patchPolicyAllowTasks`
+  (`ui/e2e/lib/panel-helpers.mjs`). The browser default is Limited mode.
