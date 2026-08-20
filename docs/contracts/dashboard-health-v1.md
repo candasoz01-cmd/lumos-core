@@ -8,7 +8,8 @@
 | Kod karşılığı | **Henüz yok.** Uygulama ayrı dilimde açılır; o dilim bu belgeyi kaynak alır |
 | Kaynak gerçeği | Sözleşme ile kod ayrışırsa **kod esastır**; ayrışma borç sayılır ([agent-status-v1](agent-status-v1.md) ile aynı kural) |
 | Faz | FAZ-1 · Panel. Yeni sayfa / vitrin / TD-13 bağlama / TD-14 yok |
-| Aday | `#768` modeli (`not_configured / unknown / healthy / failed / stale`); kurucu kilidi: TTL **provisional**, ölçülmeyen **yeşil olmaz** |
+| Merge kapısı | **İnsan onayı zorunlu.** Çekirdek davranış/semantik; docs-only olması ADR-028 standing hattına sokmaz |
+| Aday | `#768` beşlisi; kurucu kilidi: TTL **provisional**, ölçülmeyen **yeşil olmaz** |
 
 Bu belge, kullanıcının panelde gördüğü sağlık göstergelerinin **ne anlama
 geldiğini** sabitler. Amaç yeni bir özellik veya vitrin eklemek değil: panel
@@ -131,21 +132,30 @@ precedent'ini izler: *"bilinmiyorsa `null`, uydurulmaz"*.
    "0 dakika önce", "az önce", "şimdi" yazılmaz.
 5. TTL tek kaynaktan gelir, kart tarafında sabit yazılmaz.
 
-### v1 TTL — **provisional defaults**, kesin gerçek değil
+### Başlangıç TTL değerleri — *provisional*
 
-`60 / 120 / 300` ölçülmüş SLO değildir. Canlı kanıt yokken seçilmiş **geçici
-varsayılanlardır.** Değişmeleri sözleşme ihlali sayılmaz; tek kaynaktan
-gelmeleri ve aşağıdakini ihlal etmemeleri gerekir.
+**Sözleşmenin bağladığı şey `ttl` mekanizmasıdır, bu sayılar değil.**
+`60 / 120 / 300` ölçülmüş SLO / kesin gerçek değildir. Canlı kanıt yokken
+seçilmiş geçici varsayılanlardır.
 
-| Kart sınıfı | `ttl_seconds` (provisional) | Neden bu mertebe (kanıt değil, gerekçe) |
+| Kart sınıfı | Başlangıç `ttl_seconds` | Dayanak (zayıf) |
 | --- | --- | --- |
-| Oturum/kimlik | 60 | Kullanıcı en hızlı burada etkilenir |
+| Oturum/kimlik | 60 | Kullanıcı en hızlı burada etkilenir — ölçülmedi |
 | LLM köprüsü | 120 | Board projeksiyonundaki `stale_after_seconds=120.0` ile hizalı |
-| Dış entegrasyon bağlantıları | 300 | Dış servis kotasını yakmamak için |
+| Dış entegrasyon bağlantıları | 300 | Dış servis kotasını yakmamak için — ölçülmedi |
 
-TTL’yi “doğru” kılmak v1 kabul kriteri **değildir.** Freshness kuralı
-(`age > ttl` → `stale`, `last_known` korunur) bağlayıcıdır; sayıların
-kendisi değil.
+Kurallar:
+
+- Değerler **tek yerde** tanımlanır; kart tarafında sabit yazılmaz.
+- `provisional` kalır; `checked_at`/`age` dağılımı toplanana kadar ürün
+  gerçeği muamelesi görmez.
+- Kalibrasyon girdisi: gerçek değişim sıklığı, probe maliyeti/kotası,
+  kullanıcının yanlış-taze bilgiyle karşılaşma oranı.
+- **Kilitlenen `stale` semantiğidir** (`age > ttl` → `stale`, `last_known`
+  korunur). Eşiğin sayısal değeri kalibrasyonla değişebilir; semantik değişmez.
+- **TTL değişikliği sözleşme değişikliği değildir; semantik değişikliği
+  sözleşme değişikliğidir.**
+- TTL’yi “doğru” kılmak v1 kabul kriteri değildir.
 
 ## 4. Backend → durum türetme
 
@@ -264,7 +274,22 @@ Uygulama dilimi bu maddelerin **hepsi** kanıtlanmadan kapanmaz.
 10. Hiçbir kod yolu ölçülmemiş bir kartı `healthy` yapmaz (invariant 1);
     kaynak taraması + test. "Daha az yeşil panel" gerileme sayılmaz.
 
-## 10. v1 sınırları (dürüst)
+## 10. Uygulama diliminin hedefi (gözlem ayağı)
+
+Sonraki dilimin hedefi **"18 rozeti değiştirmek" değildir.** Hedef, şu
+döngüyü ilk kez uçtan uca tamamlamaktır:
+
+> literal backend state → health contract → doğru semantik → freshness →
+> test → **canlı kanıt**
+
+Bir tek kart bile bu döngüyü tam kapatıyorsa dilim başarılıdır; on sekiz
+rozet kozmetik değişip döngü kapanmıyorsa başarısızdır. Döngü kapandığında
+Dashboard Health'in **gözlemleme** ayağı kazanılmış olur.
+
+ADR-029'un "düzeltir / yükseltir" ayağı **bu state sözleşmesinin uygulama
+hedefi değildir**; gözlemleme kanıtlanmadan açılmaz. Alan devri en sonda.
+
+## 11. v1 sınırları (dürüst)
 
 - **Bu belge sözleşmedir; kod yoktur.** Uygulama ayrı dilimde açılır.
 - Bugün gerçek sağlık üreten **yalnız iki** kaynak var: `api/bridge/health.js`
