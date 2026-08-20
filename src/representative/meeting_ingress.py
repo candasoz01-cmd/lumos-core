@@ -24,15 +24,15 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Any, Protocol
 
+# TR metni V1'de SESLENDİRİLMEZ; yazılı kanal geldiğinde oraya gider.
+# Sesli beyan tek akış ve yalnız İngilizce (kurucu kararı 2026-08-20).
 DISCLOSURE_LINE_TR = (
-    "Merhaba, ben Lumos — Candaş Öz'ün yetkili yapay zekâ tercümanıyım. "
-    "Bu görüşmede söylenenleri iki yönlü çevireceğim ve iki dilli bir "
-    "tutanak tutulacak."
+    "Merhaba, ben Lumos — kurucu Candaş Öz'ün yetkili yapay zekâ temsilcisiyim. "
+    "Bu görüşmede çeviri yapacağım ve bir tutanak tutulacak."
 )
 DISCLOSURE_LINE_EN = (
-    "Hello, I am Lumos — Candaş Öz's authorized AI interpreter. I will "
-    "translate both ways in this meeting, and a bilingual transcript is "
-    "being kept."
+    "Hello, I am Lumos, the authorized AI representative of founder Candaş Öz. "
+    "I will interpret in this meeting, and a transcript is being kept."
 )
 
 
@@ -74,7 +74,7 @@ def build_recall_bot_payload(
     meeting_url: str,
     retention: RetentionPolicy,
     internal_ref: str,
-    bot_name: str = "Lumos Temsilcisi",
+    bot_name: str = "Lumos · AI Representative",
     disclosure_mp3_b64: str | None = None,
 ) -> dict[str, Any]:
     """Pure payload builder — unit tests pin the founder's rules here.

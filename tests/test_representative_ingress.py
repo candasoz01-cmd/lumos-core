@@ -68,3 +68,24 @@ def test_disclosure_lines_state_ai_and_transcript():
         assert "lumos" in low
         assert "yapay zekâ" in low or "ai" in low
         assert "tutanak" in low or "transcript" in low
+
+
+def test_bot_name_is_english_and_does_not_claim_founder_role():
+    """V1 kararı: toplantı arayüzünde herkese görünen ad İngilizce ve sade."""
+    payload = build_recall_bot_payload(MEET_URL, REHEARSAL_RETENTION, internal_ref="ad-testi")
+    assert payload["bot_name"] == "Lumos · AI Representative"
+
+
+def test_spoken_disclosure_is_english_only_and_short():
+    """V1 kurucu kararı (2026-08-20): tek ses akışına yalnız İngilizce beyan."""
+    assert len(DISCLOSURE_LINE_EN) < 200
+    low = DISCLOSURE_LINE_EN.lower()
+    for required in ("lumos", "ai", "representative", "founder", "transcript"):
+        assert required in low, f"beyan '{required}' unsurunu kaybetti"
+
+
+def test_turkish_disclosure_kept_for_written_channel():
+    """TR metni silinmez: yazılı kanal ve ileride çok dilli aşama için durur."""
+    low = DISCLOSURE_LINE_TR.lower()
+    for required in ("lumos", "yapay zekâ", "temsilci", "kurucu", "tutanak"):
+        assert required in low, f"TR beyan '{required}' unsurunu kaybetti"

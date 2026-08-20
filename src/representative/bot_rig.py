@@ -346,12 +346,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     from openai import OpenAI
 
-    from representative.meeting_ingress import DISCLOSURE_LINE_EN, DISCLOSURE_LINE_TR
+    from representative.meeting_ingress import DISCLOSURE_LINE_EN
 
     disclosure = OpenAI().audio.speech.create(
         model="gpt-4o-mini-tts",
         voice="onyx",
-        input=DISCLOSURE_LINE_TR + " ... " + DISCLOSURE_LINE_EN,
+        input=DISCLOSURE_LINE_EN,
         response_format="mp3",
     )
     payload = build_recall_bot_payload(
