@@ -1,0 +1,85 @@
+# bridge.llm → Observe standing shift.
+# Trigger → GET (no cookies/secrets) → dashboard-health-v1 card → JSON evidence.
+# Job stays green on unknown. Report flag is inside the JSON (failed/stale/
+# not_configured or a state change). Not Fix. Not Layer 1-A. Not the other 17 cards.
+name: bridge.llm observe
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Restore previous shift
+        uses: actions/cache/restore@v4
+        with:
+          path: bridge-llm-observe-state.json
+          key: bridge-llm-observe-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            bridge-llm-observe-${{ github.ref_name }}-
+
+      - name: Run one observe shift
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
+          LUMOS_BRIDGE_HEALTH_URL: https://welockai.com/api/bridge/health
+        run: |
+          python3 -m dashboard_health.watch \
+            --output bridge-llm-observe-result.json \
+            --state bridge-llm-observe-state.json
+
+      - name: Save shift state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: bridge-llm-observe-state.json
+          key: bridge-llm-observe-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bridge-llm-observe
+          path: bridge-llm-observe-result.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Summarize
+        if: always()
+        run: |
+          python3 - << 'PY'
+          import json, os, pathlib
+          p = pathlib.Path("bridge-llm-observe-result.json")
+          data = json.loads(p.read_text(encoding="utf-8"))
+          card = data["card"]
+          lines = [
+              "## bridge.llm observe",
+              f"- report: `{data['report']}`",
+              f"- probed: `{data['probed']}`",
+              f"- state: `{card.get('state')}`",
+              f"- reason_code: `{card.get('reason_code')}`",
+              f"- checked_at: `{card.get('checked_at')}`",
+              f"- evidence: `{card.get('evidence')}`",
+              "- boundary: no Fix, no credentials, no other cards",
+          ]
+          if data.get("report"):
+              lines.insert(1, "> REPORT — human glance requested; no remediations applied.")
+          text = "\n".join(lines) + "\n"
+          summary = os.environ.get("GITHUB_STEP_SUMMARY")
+          if summary:
+              pathlib.Path(summary).write_text(text, encoding="utf-8")
+          print(text)
+          PY
