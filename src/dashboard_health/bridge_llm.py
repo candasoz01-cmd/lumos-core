@@ -50,6 +50,16 @@ def card_from_http(
         )
     if http_status == 200 and status_field == "ok":
         return _card("healthy", stamp, None, "GET /api/bridge/health → 200")
+    # §4 `failed` dar tanımı — yalnız kanıtlanmış arıza.
+    # 502/504 cevabını aracı üretir; gövdesiz 503'ün kaynağı belirsizdir
+    # (edge/CDN olabilir). İkisinde de servis gözlenmemiştir; arıza kanıtlanmadı.
+    if http_status in (502, 503, 504):
+        return _card(
+            "unknown",
+            None,
+            "probe_inconclusive",
+            f"GET /api/bridge/health → {http_status} (aracı/erişim belirsizliği)",
+        )
     if http_status >= 500:
         return _card("failed", stamp, "probe_rejected", f"GET /api/bridge/health → {http_status}")
     return _card(

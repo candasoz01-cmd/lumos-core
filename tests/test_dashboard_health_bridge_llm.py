@@ -58,6 +58,62 @@ def test_controlled_500_is_failed_without_credentials() -> None:
     assert pill_modifier(card["state"]) == "failed"
 
 
+def test_gateway_5xx_is_unknown_not_failed() -> None:
+    """§4 dar tanım: 502/504 cevabını aracı üretir, servis gözlenmez."""
+    for status in (502, 504):
+        card = apply_freshness(card_from_http(status, None, fetched_at=_NOW), _NOW)
+        assert card["state"] == "unknown", f"{status} arıza suçlaması üretmemeli"
+        assert card["reason_code"] == "probe_inconclusive"
+        assert card["checked_at"] is None, f"{status} tamamlanmış ölçüm sayılmaz"
+
+
+def test_bare_503_is_unknown_not_failed_and_not_configured() -> None:
+    """Gövdesiz 503 belirsizdir: ne arıza ne 'kurulmamış' hükmü verilebilir."""
+    card = apply_freshness(card_from_http(503, None, fetched_at=_NOW), _NOW)
+    assert card["state"] == "unknown"
+    assert card["reason_code"] == "probe_inconclusive"
+    assert card["checked_at"] is None
+
+
+def test_503_with_unconfigured_body_still_not_configured() -> None:
+    """Gövdeli 503 daraltmadan etkilenmez."""
+    card = apply_freshness(
+        card_from_http(503, {"status": "unconfigured"}, fetched_at=_NOW), _NOW
+    )
+    assert card["state"] == "not_configured"
+    assert card["reason_code"] == "unconfigured"
+
+
+def test_failed_requires_proven_fault() -> None:
+    """`failed` yalnız kanıtlanmış arızada; belirsizlik asla suçlama değildir."""
+    inconclusive = [
+        card_from_http(None, None, fetched_at=_NOW),
+        card_from_http(401, None, fetched_at=_NOW),
+        card_from_http(502, None, fetched_at=_NOW),
+        card_from_http(503, None, fetched_at=_NOW),
+        card_from_http(504, None, fetched_at=_NOW),
+        card_from_http(200, {"status": "belki"}, fetched_at=_NOW),
+    ]
+    for card in inconclusive:
+        assert card["state"] != "failed", f"belirsizlik failed üretti: {card['evidence']}"
+    proven = card_from_http(500, {"error": "boom"}, fetched_at=_NOW)
+    assert proven["state"] == "failed"
+
+
+def test_never_checked_and_inconclusive_are_distinct_reasons() -> None:
+    """Üçü de checked_at=null taşır ama aynı cümleyi kuramaz (§4)."""
+    never = unprobed_card()
+    unreachable = card_from_http(None, None, fetched_at=_NOW)
+    inconclusive = card_from_http(502, None, fetched_at=_NOW)
+    assert never["checked_at"] is None
+    assert unreachable["checked_at"] is None
+    assert inconclusive["checked_at"] is None
+    assert never["reason_code"] == "not_checked"
+    assert unreachable["reason_code"] == "probe_unreachable"
+    assert inconclusive["reason_code"] == "probe_inconclusive"
+    assert len({never["reason_code"], unreachable["reason_code"], inconclusive["reason_code"]}) == 3
+
+
 def test_network_miss_is_unknown_null_checked_at() -> None:
     card = apply_freshness(card_from_http(None, None, fetched_at=_NOW), _NOW)
     assert card["state"] == "unknown"
@@ -159,6 +215,12 @@ def test_js_mapper_stays_in_lockstep() -> None:
     card_py = py.split("def unprobed_card", 1)[1].split("def card_from_http", 1)[0]
     assert "datetime.now" not in card_py
     assert "now()" not in card_py
+    # §4 dar `failed` tanımı iki mapper'da da aynı olmalı.
+    assert "probe_inconclusive" in js, "JS mapper dar failed tanımını taşımıyor"
+    assert "probe_inconclusive" in py, "Python mapper dar failed tanımını taşımıyor"
+    assert "httpStatus === 502" in js and "httpStatus === 504" in js
+    assert "http_status in (502, 503, 504)" in py
+
 
 def test_observe_grant_is_machine_readable() -> None:
     from dashboard_health import RESPONSIBILITY

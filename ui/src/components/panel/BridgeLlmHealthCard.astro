@@ -44,7 +44,15 @@
   function formatAria(card, now) {
     const state = card.state || "unknown";
     const checked = card.checked_at;
-    if (state === "unknown" && !checked) return t("panel.health.bridgeLlm.neverChecked");
+    if (state === "unknown" && !checked) {
+      // Ölçüm YAPILMADI ile ölçüm SONUÇSUZ KALDI farklı gerçeklerdir; ikisi de
+      // checked_at=null taşır ama kullanıcıya aynı cümle kurulamaz. Kontrol
+      // edilmemiş bir kart için "kontrol edildi" demek kadar, edilmiş bir kart
+      // için "hiç kontrol edilmedi" demek de yanlıştır.
+      return card.reason_code === "not_checked"
+        ? t("panel.health.bridgeLlm.neverChecked")
+        : t("panel.health.bridgeLlm.inconclusive");
+    }
     if (state === "not_configured") return t("panel.health.bridgeLlm.notConfigured");
     if (state === "unknown") return t("panel.health.bridgeLlm.unknown");
     if (state === "healthy" && checked) {
