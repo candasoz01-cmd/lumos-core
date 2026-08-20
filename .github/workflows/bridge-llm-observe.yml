@@ -1,7 +1,12 @@
 # bridge.llm → Observe standing shift.
 # Trigger → GET (no cookies/secrets) → dashboard-health-v1 card → JSON evidence.
-# Job stays green on unknown. Report flag is inside the JSON (failed/stale/
-# not_configured or a state change). Not Fix. Not Layer 1-A. Not the other 17 cards.
+# Job stays green on unknown. `report` is a glance flag inside the JSON / step
+# summary (failed/stale/not_configured, a restored-state change, or history
+# loss). It is not a notification dispatch. Not Fix. Not Layer 1-A. Not the
+# other 17 cards.
+#
+# Previous-shift restore is exact: ref + (run_number - 1). No restore-keys
+# prefix. A seen-sentinel (write-once per ref) separates first_shift from loss.
 name: bridge.llm observe
 
 on:
@@ -25,12 +30,29 @@ jobs:
           python-version: "3.12"
 
       - name: Restore previous shift
+        id: prev
         uses: actions/cache/restore@v4
         with:
           path: bridge-llm-observe-state.json
-          key: bridge-llm-observe-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: |
-            bridge-llm-observe-${{ github.ref_name }}-
+          key: bridge-llm-observe-${{ github.ref_name }}-${{ github.run_number - 1 }}
+
+      - name: Restore shift-seen sentinel
+        id: seen
+        uses: actions/cache/restore@v4
+        with:
+          path: bridge-llm-observe-seen
+          key: bridge-llm-observe-${{ github.ref_name }}-seen
+
+      - name: Classify previous
+        id: classify
+        run: |
+          if [ "${{ steps.prev.outputs.cache-hit }}" = "true" ]; then
+            echo "previous_status=restored" >> "$GITHUB_OUTPUT"
+          elif [ "${{ steps.seen.outputs.cache-hit }}" = "true" ]; then
+            echo "previous_status=lost" >> "$GITHUB_OUTPUT"
+          else
+            echo "previous_status=first_shift" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Run one observe shift
         env:
@@ -39,14 +61,26 @@ jobs:
         run: |
           python3 -m dashboard_health.watch \
             --output bridge-llm-observe-result.json \
-            --state bridge-llm-observe-state.json
+            --state bridge-llm-observe-state.json \
+            --previous-status "${{ steps.classify.outputs.previous_status }}"
+
+      - name: Mark shift-seen sentinel
+        if: always()
+        run: date -u +%Y-%m-%dT%H:%M:%SZ > bridge-llm-observe-seen
 
       - name: Save shift state
         if: always()
         uses: actions/cache/save@v4
         with:
           path: bridge-llm-observe-state.json
-          key: bridge-llm-observe-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: bridge-llm-observe-${{ github.ref_name }}-${{ github.run_number }}
+
+      - name: Save shift-seen sentinel
+        if: ${{ always() && steps.seen.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: bridge-llm-observe-seen
+          key: bridge-llm-observe-${{ github.ref_name }}-seen
 
       - name: Upload evidence
         if: always()
@@ -67,7 +101,8 @@ jobs:
           card = data["card"]
           lines = [
               "## bridge.llm observe",
-              f"- report: `{data['report']}`",
+              f"- glance_requested: `{data['report']}` (evidence JSON + this summary; not a notification dispatch)",
+              f"- previous_status: `{data.get('previous_status')}`",
               f"- probed: `{data['probed']}`",
               f"- state: `{card.get('state')}`",
               f"- reason_code: `{card.get('reason_code')}`",
@@ -76,7 +111,7 @@ jobs:
               "- boundary: no Fix, no credentials, no other cards",
           ]
           if data.get("report"):
-              lines.insert(1, "> REPORT — human glance requested; no remediations applied.")
+              lines.insert(1, "> glance requested in this evidence JSON — not a notification dispatch; no remediations applied.")
           text = "\n".join(lines) + "\n"
           summary = os.environ.get("GITHUB_STEP_SUMMARY")
           if summary:

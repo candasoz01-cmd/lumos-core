@@ -1,8 +1,10 @@
 """Standing shift for bridge.llm → Observe.
 
 Trigger → probe (optional URL, no credentials) → dashboard-health-v1 card →
-evidence. Report only when the state needs a human glance. Not Fix. Not Layer 1-A.
-Not the other 17 cards.
+evidence. The `report` field is a glance flag inside that JSON (and the job
+summary). It is not a notification or escalation dispatch.
+
+Not Fix. Not Layer 1-A. Not the other 17 cards.
 """
 
 from __future__ import annotations
@@ -28,6 +30,12 @@ SCHEMA = "lumos.dashboard_health.observe_shift.v1"
 USER_AGENT = "lumos-bridge-llm-observe/1.0"
 DEFAULT_TIMEOUT_SECONDS = 8
 REPORT_STATES = frozenset({"failed", "stale", "not_configured"})
+PREVIOUS_FIRST_SHIFT = "first_shift"
+PREVIOUS_RESTORED = "restored"
+PREVIOUS_LOST = "lost"
+PREVIOUS_STATUSES = frozenset(
+    {PREVIOUS_FIRST_SHIFT, PREVIOUS_RESTORED, PREVIOUS_LOST}
+)
 FetchFn = Callable[[str, float], tuple[int | None, dict[str, Any] | None]]
 
 
@@ -74,10 +82,44 @@ def default_fetch(url: str, timeout: float) -> tuple[int | None, dict[str, Any] 
     return status, body
 
 
+def card_from_previous(previous: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(previous, dict):
+        return None
+    prev_card = previous.get("card") if "card" in previous else previous
+    return prev_card if isinstance(prev_card, dict) else None
+
+
+def normalize_previous_status(
+    explicit: str | None,
+    *,
+    loaded: bool,
+    state_requested: bool = False,
+) -> str:
+    """Separate first shift from history/evidence loss.
+
+    `previous=None` is not enough: a missing file after a requested restore is
+    loss, not genesis. Restored without a payload is also loss.
+    """
+    if explicit:
+        status = str(explicit).strip()
+        if status not in PREVIOUS_STATUSES:
+            return PREVIOUS_LOST
+        if status == PREVIOUS_RESTORED and not loaded:
+            return PREVIOUS_LOST
+        return status
+    if loaded:
+        return PREVIOUS_RESTORED
+    if state_requested:
+        return PREVIOUS_LOST
+    return PREVIOUS_FIRST_SHIFT
+
+
 def run_shift(
     *,
     url: str = "",
     previous: dict[str, Any] | None = None,
+    previous_status: str | None = None,
+    state_requested: bool = False,
     now: datetime | None = None,
     timeout: float = DEFAULT_TIMEOUT_SECONDS,
     fetch: FetchFn = default_fetch,
@@ -97,18 +139,21 @@ def run_shift(
         status, body = fetch(url, timeout)
         card = apply_freshness(card_from_http(status, body, fetched_at=stamp), stamp)
         probed = True
-    prev_card = None
-    if isinstance(previous, dict):
-        prev_card = previous.get("card") if "card" in previous else previous
-        if not isinstance(prev_card, dict):
-            prev_card = None
-    report = should_report(card, prev_card)
+    prev_card = card_from_previous(previous)
+    status = normalize_previous_status(
+        previous_status,
+        loaded=prev_card is not None,
+        state_requested=state_requested,
+    )
+    compare_card = prev_card if status == PREVIOUS_RESTORED else None
+    report = should_report(card, compare_card, previous_status=status)
     return {
         "schema": SCHEMA,
         "grant_id": "DH-BRIDGE-LLM-OBSERVE",
         "action_class": "Observe",
         "data_scope": CARD_ID,
         "probed": probed,
+        "previous_status": status,
         "report": report,
         "observed_at": iso(stamp),
         "card": card,
@@ -121,11 +166,22 @@ def run_shift(
     }
 
 
-def should_report(card: dict[str, Any], previous_card: dict[str, Any] | None) -> bool:
+def should_report(
+    card: dict[str, Any],
+    previous_card: dict[str, Any] | None,
+    previous_status: str = PREVIOUS_FIRST_SHIFT,
+) -> bool:
+    """Return whether this evidence JSON should request a human glance.
+
+    True is not a sent notification. History/evidence loss is never treated as
+    a silent first shift.
+    """
+    if previous_status == PREVIOUS_LOST:
+        return True
     state = str(card.get("state") or "")
     if state in REPORT_STATES:
         return True
-    if previous_card is None:
+    if previous_status == PREVIOUS_FIRST_SHIFT or previous_card is None:
         return False
     return (previous_card.get("state"), previous_card.get("reason_code")) != (
         card.get("state"),
@@ -157,12 +213,28 @@ def main(argv: list[str] | None = None) -> int:
         help="GET target. Empty skips the probe (not_checked). Never sends credentials.",
     )
     parser.add_argument("--output", default="")
-    parser.add_argument("--state", default="", help="Previous shift JSON (for report-on-change).")
+    parser.add_argument(
+        "--state",
+        default="",
+        help="Previous shift JSON path. Missing path is history loss, not first_shift.",
+    )
+    parser.add_argument(
+        "--previous-status",
+        choices=sorted(PREVIOUS_STATUSES),
+        default="",
+        help="first_shift | restored | lost. Empty infers from --state.",
+    )
     parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT_SECONDS)
     args = parser.parse_args(argv)
     url = args.url.strip() or health_url_from_env()
     previous = load_previous(args.state)
-    result = run_shift(url=url, previous=previous, timeout=args.timeout)
+    result = run_shift(
+        url=url,
+        previous=previous,
+        previous_status=args.previous_status or None,
+        state_requested=bool(args.state),
+        timeout=args.timeout,
+    )
     text = json.dumps(result, ensure_ascii=False, indent=2)
     sys.stdout.write(text + "\n")
     if args.output:

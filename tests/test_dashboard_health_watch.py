@@ -12,9 +12,13 @@ import pytest
 
 from dashboard_health.bridge_llm import CARD_ID
 from dashboard_health.watch import (
+    PREVIOUS_FIRST_SHIFT,
+    PREVIOUS_LOST,
+    PREVIOUS_RESTORED,
     default_fetch,
     load_previous,
     main,
+    normalize_previous_status,
     run_shift,
     should_report,
     write_json,
@@ -46,6 +50,7 @@ def test_empty_url_is_not_checked_not_a_probe() -> None:
     assert out["card"]["checked_at"] is None
     assert out["boundary"]["fix"] is False
     assert out["boundary"]["credentials_chased"] is False
+    assert out["previous_status"] == PREVIOUS_FIRST_SHIFT
 
 
 def test_401_is_unknown_completed_check_without_credentials() -> None:
@@ -81,13 +86,16 @@ def test_healthy_is_quiet_until_state_changes() -> None:
     )
     assert first["card"]["state"] == "healthy"
     assert first["report"] is False
+    assert first["previous_status"] == PREVIOUS_FIRST_SHIFT
     second = run_shift(
         url="https://welockai.com/api/bridge/health",
         now=_NOW,
         previous=first,
+        previous_status=PREVIOUS_RESTORED,
         fetch=_fetch_factory(200, {"status": "ok"}),
     )
     assert second["report"] is False
+    assert second["previous_status"] == PREVIOUS_RESTORED
     changed = run_shift(
         url="https://welockai.com/api/bridge/health",
         now=_NOW,
@@ -112,7 +120,63 @@ def test_network_miss_is_unknown_not_healthy() -> None:
 def test_should_report_ignores_first_unknown() -> None:
     card = {"state": "unknown", "reason_code": "not_checked"}
     assert should_report(card, None) is False
+    assert should_report(card, None, previous_status=PREVIOUS_FIRST_SHIFT) is False
     assert should_report({"state": "failed", "reason_code": "probe_rejected"}, None) is True
+
+
+def test_history_loss_is_not_silent_first_shift() -> None:
+    unknown = {"state": "unknown", "reason_code": "probe_inconclusive"}
+    healthy = {"state": "healthy", "reason_code": "ok"}
+    assert should_report(unknown, None, previous_status=PREVIOUS_LOST) is True
+    assert should_report(healthy, None, previous_status=PREVIOUS_LOST) is True
+    lost_unknown = run_shift(
+        url="https://welockai.com/api/bridge/health",
+        now=_NOW,
+        previous=None,
+        previous_status=PREVIOUS_LOST,
+        fetch=_fetch_factory(502, {"error": "bad_gateway"}),
+    )
+    assert lost_unknown["previous_status"] == PREVIOUS_LOST
+    assert lost_unknown["card"]["state"] == "unknown"
+    assert lost_unknown["report"] is True
+    lost_healthy = run_shift(
+        url="https://welockai.com/api/bridge/health",
+        now=_NOW,
+        previous={"card": {"state": "healthy", "reason_code": "ok"}},
+        previous_status=PREVIOUS_LOST,
+        fetch=_fetch_factory(200, {"status": "ok"}),
+    )
+    assert lost_healthy["previous_status"] == PREVIOUS_LOST
+    assert lost_healthy["card"]["state"] == "healthy"
+    assert lost_healthy["report"] is True
+
+
+def test_restored_without_payload_is_history_loss() -> None:
+    out = run_shift(
+        url="https://welockai.com/api/bridge/health",
+        now=_NOW,
+        previous=None,
+        previous_status=PREVIOUS_RESTORED,
+        fetch=_fetch_factory(401, {"error": "unauthorized"}),
+    )
+    assert out["previous_status"] == PREVIOUS_LOST
+    assert out["card"]["state"] == "unknown"
+    assert out["report"] is True
+
+
+def test_missing_state_path_is_history_loss_not_first_shift() -> None:
+    assert (
+        normalize_previous_status(None, loaded=False, state_requested=True)
+        == PREVIOUS_LOST
+    )
+    assert (
+        normalize_previous_status(None, loaded=False, state_requested=False)
+        == PREVIOUS_FIRST_SHIFT
+    )
+    assert (
+        normalize_previous_status(PREVIOUS_RESTORED, loaded=False)
+        == PREVIOUS_LOST
+    )
 
 
 def test_first_inconclusive_502_is_quiet_change_from_healthy_reports() -> None:
@@ -133,9 +197,11 @@ def test_first_inconclusive_502_is_quiet_change_from_healthy_reports() -> None:
         url="https://welockai.com/api/bridge/health",
         now=_NOW,
         previous=healthy,
+        previous_status=PREVIOUS_RESTORED,
         fetch=_fetch_factory(502, {"error": "bad_gateway"}),
     )
     assert changed["report"] is True
+    assert changed["previous_status"] == PREVIOUS_RESTORED
 
 
 def test_evidence_state_file_roundtrip(tmp_path: Path) -> None:
@@ -155,9 +221,11 @@ def test_evidence_state_file_roundtrip(tmp_path: Path) -> None:
         url="https://welockai.com/api/bridge/health",
         now=_NOW,
         previous=loaded,
+        previous_status=PREVIOUS_RESTORED,
         fetch=_fetch_factory(200, {"status": "ok"}),
     )
     assert second["report"] is False
+    assert second["previous_status"] == PREVIOUS_RESTORED
     write_json(str(state), second)
     again = json.loads(state.read_text(encoding="utf-8"))
     assert again["card"]["state"] == "healthy"
@@ -177,6 +245,8 @@ def test_cli_empty_url_exits_zero_without_probe(
             str(evidence),
             "--state",
             str(state),
+            "--previous-status",
+            PREVIOUS_FIRST_SHIFT,
         ]
     )
     assert rc == 0
@@ -186,6 +256,7 @@ def test_cli_empty_url_exits_zero_without_probe(
     assert payload["card"]["checked_at"] is None
     assert payload["probed"] is False
     assert payload["report"] is False
+    assert payload["previous_status"] == PREVIOUS_FIRST_SHIFT
     assert payload["boundary"]["fix"] is False
     assert payload["boundary"]["credentials_chased"] is False
 
@@ -220,6 +291,30 @@ def test_cli_failed_card_keeps_job_green(
     assert payload["card"]["state"] == "failed"
     assert payload["report"] is True
     assert payload["probed"] is True
+    assert payload["previous_status"] == PREVIOUS_LOST
+
+
+def test_cli_missing_state_path_sets_lost_and_glance_flag(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("LUMOS_BRIDGE_HEALTH_URL", raising=False)
+    evidence = tmp_path / "out.json"
+    missing = tmp_path / "missing-state.json"
+    rc = main(
+        [
+            "--url",
+            "",
+            "--output",
+            str(evidence),
+            "--state",
+            str(missing),
+        ]
+    )
+    assert rc == 0
+    payload = json.loads(evidence.read_text(encoding="utf-8"))
+    assert payload["previous_status"] == PREVIOUS_LOST
+    assert payload["card"]["state"] == "unknown"
+    assert payload["report"] is True
 
 
 def test_default_fetch_sends_only_accept_and_user_agent(
@@ -255,6 +350,7 @@ def test_workflow_is_thirty_minute_secretless_watch() -> None:
     assert "python3 -m dashboard_health.watch" in text
     assert "--output bridge-llm-observe-result.json" in text
     assert "--state bridge-llm-observe-state.json" in text
+    assert "--previous-status" in text
     assert "actions/cache/restore@v4" in text
     assert "actions/cache/save@v4" in text
     assert "actions/upload-artifact@v4" in text
@@ -266,4 +362,20 @@ def test_workflow_is_thirty_minute_secretless_watch() -> None:
     assert "Authorization" not in watch
     assert "credentials_chased" in watch
     assert "Not Fix" in text
-    assert "no remediations applied" in text
+    assert "not a notification dispatch" in text
+    assert "insana rapor gönderildi" not in text
+    assert "notification/escalation" not in text.lower()
+
+
+def test_workflow_previous_cache_is_exact_run_number_not_prefix() -> None:
+    text = _WORKFLOW.read_text(encoding="utf-8")
+    assert "restore-keys:" not in text
+    assert "github.run_id" not in text
+    assert "github.run_attempt" not in text
+    assert "github.run_number - 1" in text
+    assert "github.run_number }}" in text
+    assert "bridge-llm-observe-${{ github.ref_name }}-seen" in text
+    assert "previous_status=restored" in text
+    assert "previous_status=lost" in text
+    assert "previous_status=first_shift" in text
+    assert "not a notification dispatch" in text
