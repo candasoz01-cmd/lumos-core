@@ -64,6 +64,22 @@ const panel: typeof panelTr = {
     lumosCore: "Lumos core",
     preview: "Preview",
   },
+  health: {
+    bridgeLlm: {
+      unknown: "◌ Unknown",
+      notConfigured: "⚪ Not configured",
+      healthy: "🟢 Running",
+      failed: "🔴 Not running",
+      stale: "🟡 Unverified",
+      neverChecked: "◌ Unknown — never checked",
+      healthyAria: "🟢 Running · checked {n} min ago",
+      failedAria: "🔴 Not running — {reason}",
+      staleAria: "🟡 Unverified for {n} min (last known: {last})",
+      lastHealthy: "running",
+      lastFailed: "not running",
+      reasonProbeRejected: "probe rejected",
+    },
+  },
   nav: {
     aria: "Workspace modules",
     lumos: "Lumos",
@@ -90,7 +106,7 @@ const panel: typeof panelTr = {
     inactiveBadge: "Preview",
     inactiveBadgeTitle: "Information and preview screen — the full module is not active",
     status: {
-      sohbet: "🟢 Ready",
+      sohbet: "◌ Unknown",
       gorevler: "🟢 Ready",
       ses: "🟡 Developing",
       medya: "⏳ Waiting for session",
@@ -115,7 +131,7 @@ const panel: typeof panelTr = {
       entegrasyon: "7 layers defined",
     },
     statusTitle: {
-      sohbet: "Local chat and tasks work; full bridge depends on user setup",
+      sohbet: "LLM bridge health is measured via /api/bridge/health; unmeasured stays not green",
       gorevler: "Tasks write to device storage; server sync is optional",
       ses: "Voice UI is in development; depends on device permissions",
       medya: "No external media identity is linked; draft flow only",
