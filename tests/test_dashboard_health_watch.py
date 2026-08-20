@@ -372,9 +372,13 @@ def test_workflow_previous_cache_is_exact_run_number_not_prefix() -> None:
     assert "restore-keys:" not in text
     assert "github.run_id" not in text
     assert "github.run_attempt" not in text
-    assert "github.run_number - 1" in text
-    assert "github.run_number }}" in text
-    assert "bridge-llm-observe-${{ github.ref_name }}-seen" in text
+    assert "PREVIOUS_RUN=$((GITHUB_RUN_NUMBER - 1))" in text
+    assert "bridge-llm-observe-${GITHUB_REF_NAME}-${PREVIOUS_RUN}" in text
+    assert "bridge-llm-observe-${GITHUB_REF_NAME}-${GITHUB_RUN_NUMBER}" in text
+    assert "bridge-llm-observe-${GITHUB_REF_NAME}-seen" in text
+    assert "${{ github.run_number - 1 }}" not in text
+    assert "${{ github.run_number-1 }}" not in text
+    assert "${{ github.ref_name }}-${{ github.run_number" not in text
     assert "previous_status=restored" in text
     assert "previous_status=lost" in text
     assert "previous_status=first_shift" in text
