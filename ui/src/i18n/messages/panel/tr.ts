@@ -20,6 +20,7 @@ const panelNav = {
       failed: "🔴 Çalışmıyor",
       stale: "🟡 Doğrulanmadı",
       neverChecked: "◌ Bilinmiyor — hiç kontrol edilmedi",
+      inconclusive: "◌ Bilinmiyor — son kontrol sonuçsuz kaldı",
       healthyAria: "🟢 Çalışıyor · {n} dk önce kontrol edildi",
       failedAria: "🔴 Çalışmıyor — {reason}",
       staleAria: "🟡 {n} dakikadır doğrulanmadı (son bilinen: {last})",

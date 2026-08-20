@@ -72,6 +72,7 @@ const panel: typeof panelTr = {
       failed: "🔴 Not running",
       stale: "🟡 Unverified",
       neverChecked: "◌ Unknown — never checked",
+      inconclusive: "◌ Unknown — last check was inconclusive",
       healthyAria: "🟢 Running · checked {n} min ago",
       failedAria: "🔴 Not running — {reason}",
       staleAria: "🟡 Unverified for {n} min (last known: {last})",
