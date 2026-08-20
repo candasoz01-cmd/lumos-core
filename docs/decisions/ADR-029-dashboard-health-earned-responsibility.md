@@ -59,6 +59,10 @@ Kurucu grant (2026-08-20), makine-okunur dosya:
 Fix / Remediate / runtime escalation / diğer kartlar / yetki genişletme
 **denied**. Bu kayıt Dashboard Health sahipliği **değildir**.
 
+Gözlem kaydı **tek olay akışıdır**; değerlendirme çok boyutludur. Gerekçe ve
+kilit [dashboard-health-v1](../contracts/dashboard-health-v1.md) invariant 7.
+Bu ADR ikinci bir tarihçe tutmaz.
+
 ## Kazanılmış sorumluluk, miras yok
 
 Dashboard Health, bu merdiven tamamlanınca Lumos’un ilk gerçek **earned

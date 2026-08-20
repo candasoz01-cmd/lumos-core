@@ -9,7 +9,7 @@
 | Kaynak gerçeği | Sözleşme ile kod ayrışırsa **kod esastır**; ayrışma borç sayılır ([agent-status-v1](agent-status-v1.md) ile aynı kural) |
 | Faz | FAZ-1 · Panel. Yeni sayfa / vitrin / TD-13 bağlama / TD-14 yok |
 | Merge kapısı | **İnsan onayı zorunlu.** Çekirdek davranış/semantik; docs-only olması ADR-028 standing hattına sokmaz |
-| Aday | `#768` beşlisi; kurucu kilidi: TTL **provisional**, ölçülmeyen **yeşil olmaz** |
+| Canonical | `#770` (`#768` folded). Kilit: TTL **provisional**, ölçülmeyen **yeşil olmaz**, **tek olay kaynağı** |
 
 Bu belge, kullanıcının panelde gördüğü sağlık göstergelerinin **ne anlama
 geldiğini** sabitler. Amaç yeni bir özellik veya vitrin eklemek değil: panel
@@ -293,6 +293,12 @@ durum göstermek zorundadır — bilgi kaybını `last_known` önler.
    doldurulmaz, göreli zamana çevrilmez.
 6. **Global oturum/bulut durumu kartlardan hesaplanmaz.** Tek yön: başlık kendi
    kaynağından; kartlar kendi kaynaklarından.
+7. **Tek olay kaynağı.** Gözlem tek akıştır. `state`, freshness, `reason_code`,
+   glance (`report`), `previous_status` bu olayın **boyutlarıdır** — ikinci bir
+   tarihçe değildir. Aynı hakikatin iki kaydı zamanla ayrışır. Canlı kanıt
+   (2026-08-20): `#768`/`#770`, `#772`/`#773`. Bu kilit event history,
+   kalibrasyon boyutu veya ajan basamak görünürlüğü **yazmaz**; cron vardiya
+   JSON'u birikir, zaman serisi iddiadan üstündür.
 
 ## 9. Kabul kriterleri
 
@@ -332,7 +338,8 @@ hedefi değildir**; gözlemleme kanıtlanmadan açılmaz. Alan devri en sonda.
 
 ## 11. v1 sınırları (dürüst)
 
-- **Bu belge sözleşmedir; kod yoktur.** Uygulama ayrı dilimde açılır.
+- Sözleşme kilitli. `bridge.llm` observe-slice (`#772`) ve 30 dk vardiya
+  (`#776`) kodda. Alan **devredilmedi**; Fix kapısı `denied`.
 - Bugün gerçek sağlık üreten **yalnız iki** kaynak var: `api/bridge/health.js`
   ve `api/integrations/meta/connections.js`. Kalan kartların arkasında ölçüm
   yok.
