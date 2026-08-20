@@ -124,6 +124,12 @@ try {
   eq(failedCard.tone, "negative", "failed → negative ton");
   ok(failedCard.text.startsWith("🔴"), "failed → 🔴 glifi");
 
+  // §4 dar tanım — aracı hatası arıza suçlaması değildir
+  const gateway = await probeWith(page, json(502, { error: "bad_gateway" }));
+  eq(gateway.state, "unknown", "502 → unknown (failed DEĞİL)");
+  eq(gateway.reason, "probe_inconclusive", "502 → probe_inconclusive");
+  ok(gateway.text.startsWith("◌"), "502 → unknown glifi");
+
   // ağ hatası → unknown (bilgi yokluğu)
   const unreachable = await probeWith(page, (route) => route.abort("failed"));
   eq(unreachable.state, "unknown", "ağ hatası → unknown");

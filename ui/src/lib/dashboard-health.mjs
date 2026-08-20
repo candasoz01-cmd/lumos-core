@@ -152,13 +152,24 @@ export function deriveBridgeLlm(probe) {
     });
   }
 
-  // Yapılandırma var ama uç olumsuz cevap verdi → gerçek kontrol, olumsuz sonuç.
-  // (§1 `failed` tanımı: "yapılandırma var, ama çalışmıyor".)
+  // §4 `failed` DAR TANIMI — yalnız kanıtlanmış arıza:
+  // (1) uca gerçekten ulaşıldı, (2) yapılandırma mevcut, (3) servis başarısız.
+  // 502/504 cevabı ARACI üretir, gövdesiz 503'ün kaynağı belirsizdir (edge/CDN
+  // olabilir) — ikisinde de servisin kendisi gözlenmemiştir. Erişim belirsizliği
+  // arıza suçlaması değildir; bunlar `unknown` kalır.
+  if (status === 502 || status === 504 || status === 503) {
+    return makeCard(id, STATES.UNKNOWN, {
+      checkedAt: null,
+      reasonCode: "probe_inconclusive",
+      evidence: `${seen} (aracı/erişim belirsizliği — servis gözlenmedi)`,
+    });
+  }
+
   if (Number.isFinite(status) && status >= 500) {
     return makeCard(id, STATES.FAILED, {
       checkedAt,
       reasonCode: "bridge_error",
-      evidence: `${seen} (köprü hatası)`,
+      evidence: `${seen} (servis kendi hatasını bildirdi)`,
     });
   }
 

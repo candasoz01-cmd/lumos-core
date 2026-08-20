@@ -132,7 +132,27 @@ eq(staled.reason_code, "freshness_expired", "stale → freshness_expired");
 eq(staled.checked_at, AT, "stale checked_at'i uydurmaz, geçmişi taşır");
 
 const failedCard = deriveBridgeLlm({ kind: "response", status: 500, body: {}, checkedAt: AT });
-eq(failedCard.state, STATES.FAILED, "5xx → failed");
+eq(failedCard.state, STATES.FAILED, "500 (servis kendi hatası) → failed");
+
+// ── §4 `failed` dar tanımı — yalnız kanıtlanmış arıza ─────────────────────
+console.log("§4 failed dar tanımı: erişim belirsizliği arıza değildir");
+for (const [st, label] of [[502, "502 gateway"], [504, "504 upstream timeout"]]) {
+  const c = deriveBridgeLlm({ kind: "response", status: st, body: {}, checkedAt: AT });
+  eq(c.state, STATES.UNKNOWN, `${label} → unknown (failed DEĞİL)`);
+  eq(c.reason_code, "probe_inconclusive", `${label} → probe_inconclusive`);
+  eq(c.checked_at, null, `${label} → ölçüm sayılmaz`);
+}
+const bare503 = deriveBridgeLlm({ kind: "response", status: 503, body: {}, checkedAt: AT });
+eq(bare503.state, STATES.UNKNOWN, "gövdesiz 503 → unknown (not_configured da DEĞİL)");
+eq(bare503.reason_code, "probe_inconclusive", "gövdesiz 503 → probe_inconclusive");
+eq(deriveBridgeLlm({ kind: "response", status: 503, body: { status: "unconfigured" }, checkedAt: AT }).state,
+  STATES.NOT_CONFIGURED, "gövdeli 503 hâlâ not_configured");
+for (const st of [401, 502, 503, 504]) {
+  ok(deriveBridgeLlm({ kind: "response", status: st, body: {}, checkedAt: AT }).state !== STATES.FAILED,
+    `${st} asla failed suçlaması üretmez`);
+}
+ok(deriveBridgeLlm({ kind: "network", detail: "dns" }).state !== STATES.FAILED,
+  "ağ hatası asla failed üretmez");
 eq(applyFreshness(failedCard, T0 + (ttl + 1) * 1000).last_known, STATES.FAILED,
   "stale, son bilinen failed'i de korur");
 
