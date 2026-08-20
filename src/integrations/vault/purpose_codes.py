@@ -3,11 +3,13 @@ from __future__ import annotations
 # Public-safe amaç kodları — gerçek token/secret yok; yalnızca scoped intent eşlemesi.
 PURPOSE_MAIL_READ = "integration.mail.read"
 PURPOSE_MAIL_NOTIFY = "integration.mail.notify"
+PURPOSE_GITHUB_METADATA_READ = "integration.github.metadata.read"
 
 # Amaç kodu → scoped token intent (Infisical RBAC / OAuth scope hedefi; gerçek token değil).
 PURPOSE_TOKEN_INTENT: dict[str, str] = {
     PURPOSE_MAIL_READ: "gmail.readonly",
     PURPOSE_MAIL_NOTIFY: "gmail.readonly+notify.meta",
+    PURPOSE_GITHUB_METADATA_READ: "github.metadata.read",
 }
 
 _ALL_PURPOSE_CODES = frozenset(PURPOSE_TOKEN_INTENT)
