@@ -2,10 +2,10 @@
 
 | Alan | Değer |
 | --- | --- |
-| Durum | SÖZLEŞME — yalnız sözlük, freshness, türetme ve kabul kriterleri; **ürün kodu yok** |
-| Üst sözleşme | [ADR-029](../decisions/ADR-029-dashboard-health-earned-responsibility.md) (izle / düzelt / yükselt). Bu belge merdivenin **state** basamağıdır; alan henüz Lumos’a devredilmez |
+| Durum | SÖZLEŞME — sözlük, freshness, türetme, kabul kriterleri. `bridge.llm` observe-slice kodda var; **alan Lumos’a devredilmedi** |
+| Üst sözleşme | [ADR-029](../decisions/ADR-029-dashboard-health-earned-responsibility.md) (izle / düzelt / yükselt). State basamağı kilitli. Mikro-sorumluluk `Observe` kayıtlı; sahiplik yok |
 | Kapsam | Panel/dashboard kartlarının sağlık **durumu**: beş literal, freshness, backend→durum türetme, semantik UI eşlemesi |
-| Kod karşılığı | **Henüz yok.** Uygulama ayrı dilimde açılır; o dilim bu belgeyi kaynak alır |
+| Kod karşılığı | `bridge.llm` mapper + tek kart (`src/dashboard_health/`, `ui/src/lib/dashboard-health/bridge-llm.js`). Grant: [`src/dashboard_health/responsibility.json`](../../src/dashboard_health/responsibility.json) |
 | Kaynak gerçeği | Sözleşme ile kod ayrışırsa **kod esastır**; ayrışma borç sayılır ([agent-status-v1](agent-status-v1.md) ile aynı kural) |
 | Faz | FAZ-1 · Panel. Yeni sayfa / vitrin / TD-13 bağlama / TD-14 yok |
 | Merge kapısı | **İnsan onayı zorunlu.** Çekirdek davranış/semantik; docs-only olması ADR-028 standing hattına sokmaz |

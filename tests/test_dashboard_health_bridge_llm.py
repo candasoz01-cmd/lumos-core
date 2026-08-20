@@ -159,3 +159,25 @@ def test_js_mapper_stays_in_lockstep() -> None:
     card_py = py.split("def unprobed_card", 1)[1].split("def card_from_http", 1)[0]
     assert "datetime.now" not in card_py
     assert "now()" not in card_py
+
+def test_observe_grant_is_machine_readable() -> None:
+    from dashboard_health import RESPONSIBILITY
+
+    assert RESPONSIBILITY["grant_id"] == "DH-BRIDGE-LLM-OBSERVE"
+    assert RESPONSIBILITY["action_class"] == "Observe"
+    assert RESPONSIBILITY["data_scope"] == CARD_ID
+    assert RESPONSIBILITY["status"] == "active"
+    assert RESPONSIBILITY["delegable"] is False
+    denied = set(RESPONSIBILITY["denied"])
+    for blocked in (
+        "DashboardHealth.own",
+        "Fix",
+        "Remediate",
+        "runtime_escalation",
+        "other_cards",
+        "security_policy_change",
+        "self_expand_authority",
+    ):
+        assert blocked in denied
+    assert "refuse_unmeasured_healthy" in RESPONSIBILITY["allowed"]
+    assert (_REPO / "src/dashboard_health/responsibility.json").is_file()

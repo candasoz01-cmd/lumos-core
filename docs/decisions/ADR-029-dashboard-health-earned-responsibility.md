@@ -10,7 +10,7 @@
 | Alan | Değer |
 |------|-------|
 | Karar durumu | **Accepted (sorumluluk, 2026-08-20)** — üç cümle + meta-kural kilitli |
-| Uygulama durumu | Uygulanmadı — şema yok, izleme yok, düzeltme yok, UI yok |
+| Uygulama durumu | `bridge.llm → Observe` **granted** (2026-08-20). Kayıt: [`src/dashboard_health/responsibility.json`](../../src/dashboard_health/responsibility.json). Fix / Escalate / alan sahipliği **kapalı** |
 | Tarih | 2026-08-20 |
 | Üst ilişki | [ADR-028](ADR-028-standing-low-risk-merge-approval.md) (yetki sınırı); [CONSTITUTION](../CONSTITUTION.md) §2 / §9; TD-13 park (eski CSS/hero bu sözleşme **değil**) |
 | STOP LIST | Yeni sayfa / yeni özellik yok. Vitrin/UI bu merdivenin en sonunda |
@@ -48,6 +48,16 @@ sorumluluk (bu ADR)
 
 Vitrin/UI bunun çok daha sonrasında. Bir basamak atlanırsa alan
 **devredilmiş sayılmaz.**
+
+## Mikro-sorumluluk kaydı (yeni ADR değil)
+
+Kurucu grant (2026-08-20), makine-okunur dosya:
+
+[`src/dashboard_health/responsibility.json`](../../src/dashboard_health/responsibility.json)
+
+`action_class=Observe` · `data_scope=bridge.llm` · `delegable=false`.
+Fix / Remediate / runtime escalation / diğer kartlar / yetki genişletme
+**denied**. Bu kayıt Dashboard Health sahipliği **değildir**.
 
 ## Kazanılmış sorumluluk, miras yok
 
