@@ -220,3 +220,26 @@ def test_js_mapper_stays_in_lockstep() -> None:
     assert "probe_inconclusive" in py, "Python mapper dar failed tanımını taşımıyor"
     assert "httpStatus === 502" in js and "httpStatus === 504" in js
     assert "http_status in (502, 503, 504)" in py
+
+
+def test_observe_grant_is_machine_readable() -> None:
+    from dashboard_health import RESPONSIBILITY
+
+    assert RESPONSIBILITY["grant_id"] == "DH-BRIDGE-LLM-OBSERVE"
+    assert RESPONSIBILITY["action_class"] == "Observe"
+    assert RESPONSIBILITY["data_scope"] == CARD_ID
+    assert RESPONSIBILITY["status"] == "active"
+    assert RESPONSIBILITY["delegable"] is False
+    denied = set(RESPONSIBILITY["denied"])
+    for blocked in (
+        "DashboardHealth.own",
+        "Fix",
+        "Remediate",
+        "runtime_escalation",
+        "other_cards",
+        "security_policy_change",
+        "self_expand_authority",
+    ):
+        assert blocked in denied
+    assert "refuse_unmeasured_healthy" in RESPONSIBILITY["allowed"]
+    assert (_REPO / "src/dashboard_health/responsibility.json").is_file()
