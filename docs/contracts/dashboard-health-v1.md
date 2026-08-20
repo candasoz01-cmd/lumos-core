@@ -166,8 +166,11 @@ karşılık.
 | --- | --- | --- | --- |
 | `api/bridge/health.js` | `200 {status:"ok"}` | `healthy` | — |
 | | `503 {status:"unconfigured"}` | `not_configured` | `unconfigured` |
+| | `500` (servis kendi hatasını bildirdi) | `failed` | `probe_rejected` |
+| | `502` / `504` (aracı / upstream) | `unknown`, `checked_at=null` | `probe_inconclusive` |
+| | `503` gövdesiz / tanınmayan | `unknown`, `checked_at=null` | `probe_inconclusive` |
 | | `401` | *(kart durumu değil — bkz. §6)* | `unauthorized` |
-| | ağ hatası / zaman aşımı | `unknown` | `probe_unreachable` |
+| | ağ hatası / DNS / zaman aşımı | `unknown`, `checked_at=null` | `probe_unreachable` |
 | | hiç çağrılmadı | `unknown`, `checked_at=null` | `not_checked` |
 | `api/integrations/meta/connections.js` | `status:"authorized"` | `healthy` | — |
 | | `status:"expired"` | `failed` | `token_expired` |
@@ -179,6 +182,44 @@ karşılık.
 
 Son satır [agent-status-v1](agent-status-v1.md) kuralını izler: *"sözlük dışıysa
 `unknown`"*. Beklenmeyen bir değer **asla** `healthy` sayılmaz.
+
+### `failed` dar tanımı (kurucu kararı, 2026-08-20)
+
+`failed` yalnız **kanıtlanmış arıza**dır. Üçü birden gerekir:
+
+1. Uca **gerçekten ulaşıldı** — cevabı servisin kendisi üretti, aracı değil;
+2. **yapılandırmanın mevcut olduğu biliniyor** — uç `unconfigured` sinyali
+   vermiyor;
+3. servis tarafı **başarısız oldu**.
+
+Bunun dışındaki her olumsuzluk `unknown`'dır:
+
+| Gözlem | Neden `failed` değil |
+| --- | --- |
+| Ağ / DNS / zaman aşımı | Uca ulaşılamadı; arıza kanıtlanmadı |
+| `502` / `504` | Cevabı aracı üretti; servisin kendisi gözlenmedi |
+| Gövdesiz `503` | Kaynağı belirsiz (edge/CDN olabilir); yapılandırma bilinmiyor |
+| `401` | Gözlem **yapılamadı** (§6); entegrasyonun kırıklığına dair bilgi yok |
+| Tanınmayan gövde | Sonuç çözümlenemedi |
+
+**Kural: erişim belirsizliği asla arıza suçlaması değildir.** Lumos
+"çalışmıyor" demeden önce çalışmadığını **görmüş** olmalıdır — tıpkı
+"çalışıyor" demeden önce çalıştığını görmesi gerektiği gibi. Bu, invariant 1'in
+simetrisidir: ölçülmeyen şey ne yeşil gösterilir ne de suçlanır.
+
+### "Ölçülmedi" ile "sonuçsuz kaldı" aynı cümle değildir
+
+`not_checked`, `probe_unreachable` ve `probe_inconclusive` üçü de
+`checked_at=null` taşır — bu doğrudur ve §3.2 gereğidir. Fakat kullanıcıya
+kurulacak cümle aynı olamaz:
+
+| `reason_code` | Kullanıcıya |
+| --- | --- |
+| `not_checked` | "hiç kontrol edilmedi" |
+| `probe_unreachable` / `probe_inconclusive` | "son kontrol sonuçsuz kaldı" |
+
+Kontrol edilmemiş bir karta "kontrol edildi" demek ne kadar yanlışsa, kontrol
+edilmiş bir karta "hiç kontrol edilmedi" demek de o kadar yanlıştır.
 
 **Ölçülmeyen → `healthy` yok.** Statik markup, hiç çağrılmamış uç,
 `checked_at=null`, `unmapped_value`, `401`/`unknown` yolları yeşil

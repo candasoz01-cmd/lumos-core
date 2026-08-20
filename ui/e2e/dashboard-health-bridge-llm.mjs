@@ -65,6 +65,15 @@ async function assertGorevlerUntouched(page, where) {
 try {
   server = await startStaticServer(DIST_DIR, port);
   await waitForServer(PANEL_URL, PANEL_READY_MS);
+  // Gerçek "hiç kontrol edilmedi" hali JS'ten ÖNCEKİ sunucu HTML'idir.
+  const shippedHtml = await (await fetch(PANEL_URL)).text();
+  const shippedPill = (shippedHtml.match(/<span[^>]*data-health-card[^>]*>[\s\S]*?<\/span>/) || [""])[0];
+  if (!shippedPill) fail("health card missing from server HTML");
+  if (/🟢/.test(shippedPill)) fail("unmeasured card shipped green");
+  if (!/data-health-state="unknown"/.test(shippedPill)) {
+    fail("card must ship unknown, got: " + shippedPill.slice(0, 160));
+  }
+
   browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
 
@@ -75,9 +84,15 @@ try {
   const unmeasured = await page.getAttribute(CARD, "data-health-state");
   if (unmeasured === "healthy") fail("unmeasured/missing probe painted healthy");
   if (unmeasured !== "unknown") fail("unmeasured probe must stay unknown, got " + unmeasured);
-  const neverChecked = await page.getAttribute(CARD, "aria-label");
-  if (!neverChecked || !/hiç kontrol edilmedi|never checked/i.test(neverChecked)) {
-    fail("null checked_at must say never-checked, aria=" + neverChecked);
+  // §4 — ağ hatası da checked_at=null verir, AMA probe çalışmıştır.
+  // "hiç kontrol edilmedi" yerine "sonuçsuz kaldı" denmelidir; ölçüm
+  // yapılmadı ile ölçüm sonuçsuz kaldı aynı cümle değildir.
+  const abortedAria = await page.getAttribute(CARD, "aria-label");
+  if (!abortedAria || !/sonuçsuz|inconclusive/i.test(abortedAria)) {
+    fail("aborted probe must say the check was inconclusive, aria=" + abortedAria);
+  }
+  if (/hiç kontrol edilmedi|never checked/i.test(abortedAria)) {
+    fail("aborted probe ran; it must not claim never-checked, aria=" + abortedAria);
   }
   await assertGorevlerUntouched(page, "unmeasured");
 
@@ -145,6 +160,31 @@ try {
     { timeout: PANEL_READY_MS },
   );
 
+  // §4 dar tanım — aracı/erişim belirsizliği arıza suçlaması değildir.
+  for (const gwStatus of [502, 504]) {
+    await loadWithHealth(page, gwStatus, { error: "gateway" });
+    await page.waitForSelector(
+      `${CARD}[data-health-state="unknown"][data-health-reason="probe_inconclusive"]`,
+      { timeout: PANEL_READY_MS },
+    );
+    const gwState = await page.getAttribute(CARD, "data-health-state");
+    if (gwState === "failed") fail(gwStatus + " must never accuse a fault");
+    const gwAria = await page.getAttribute(CARD, "aria-label");
+    if (!gwAria || !/sonuçsuz|inconclusive/i.test(gwAria)) {
+      fail(gwStatus + " aria must say the check was inconclusive: " + gwAria);
+    }
+    if (/hiç kontrol edilmedi|never checked/i.test(gwAria)) {
+      fail(gwStatus + " must not claim the card was never checked: " + gwAria);
+    }
+  }
+
+  // Gövdesiz 503: ne arıza ne 'kurulmamış' hükmü.
+  await loadWithHealth(page, 503, { error: "edge" });
+  await page.waitForSelector(
+    `${CARD}[data-health-state="unknown"][data-health-reason="probe_inconclusive"]`,
+    { timeout: PANEL_READY_MS },
+  );
+
   await assertGorevlerUntouched(page, "end");
   const extraCards = await page.locator("[data-health-card]").count();
   if (extraCards !== 1) fail("expected exactly one health card, got " + extraCards);
@@ -153,7 +193,7 @@ try {
   await closeServer(server);
   console.log("DASHBOARD_HEALTH_BRIDGE_LLM: PASS");
   console.log(
-    "loop: abort=unknown 200=healthy stale=last_known 503=not_configured 500=failed 401=unknown; header unchanged; other pills untouched",
+    "loop: abort=unknown 200=healthy stale=last_known 503+unconfigured=not_configured 500=failed 502/504/bare-503=unknown(probe_inconclusive) 401=unknown; header unchanged; other pills untouched",
   );
 } catch (err) {
   if (browser) await browser.close().catch(() => {});

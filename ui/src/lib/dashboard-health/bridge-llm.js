@@ -33,6 +33,18 @@ export function cardFromHttp(httpStatus, body, fetchedAt) {
   if (httpStatus === 200 && statusField === "ok") {
     return card("healthy", stamp, null, "GET /api/bridge/health → 200");
   }
+  // §4 `failed` dar tanımı — yalnız kanıtlanmış arıza.
+  // 502/504 cevabını ARACI üretir; gövdesiz 503'ün kaynağı belirsizdir
+  // (edge/CDN olabilir). İkisinde de servisin kendisi gözlenmemiştir, yani
+  // arıza kanıtlanmamıştır. Erişim belirsizliği arıza suçlaması değildir.
+  if (httpStatus === 502 || httpStatus === 503 || httpStatus === 504) {
+    return card(
+      "unknown",
+      null,
+      "probe_inconclusive",
+      `GET /api/bridge/health → ${httpStatus} (aracı/erişim belirsizliği)`,
+    );
+  }
   if (httpStatus >= 500) {
     return card("failed", stamp, "probe_rejected", `GET /api/bridge/health → ${httpStatus}`);
   }
