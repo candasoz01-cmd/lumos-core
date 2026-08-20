@@ -7,6 +7,7 @@
 | Kod karşılığı | **Henüz yok.** Uygulama ayrı dilimde açılır; o dilim bu belgeyi kaynak alır |
 | Kaynak gerçeği | Sözleşme ile kod ayrışırsa **kod esastır**; ayrışma borç sayılır ([agent-status-v1](agent-status-v1.md) ile aynı kural) |
 | Faz | FAZ-1 · Panel (ROADMAP kapsamı). Yeni sayfa/entegrasyon/agent katmanı yok → STOP LIST ihlali değil |
+| Merge kapısı | **İnsan onayı zorunlu.** Bu belge çekirdek davranış/semantik tanımlar; docs-only olması onu standing approval kapsamına sokmaz. Kapılar yeşil olsa da otomatik merge edilmez |
 
 Bu belge, kullanıcının panelde gördüğü sağlık göstergelerinin **ne anlama
 geldiğini** sabitler. Amaç yeni bir özellik eklemek değil: panel bugün sağlık
@@ -122,15 +123,29 @@ precedent'ini izler: *"bilinmiyorsa `null`, uydurulmaz"*.
    "0 dakika önce", "az önce", "şimdi" yazılmaz.
 5. TTL tek kaynaktan gelir, kart tarafında sabit yazılmaz.
 
-### v1 varsayılan TTL'leri
+### Başlangıç TTL değerleri — *provisional*
 
-| Kart sınıfı | `ttl_seconds` | Gerekçe |
+**Sözleşmenin bağladığı şey `ttl` mekanizmasıdır, bu sayılar değil.**
+Aşağıdakiler ölçüm görmemiş başlangıç değerleridir; normatif sabit **değildir**
+ve telemetri ile kalibre edilecektir.
+
+| Kart sınıfı | Başlangıç `ttl_seconds` | Dayanak (zayıf) |
 | --- | --- | --- |
-| Oturum/kimlik | 60 | Kullanıcı en hızlı burada etkilenir |
+| Oturum/kimlik | 60 | Kullanıcı en hızlı burada etkilenir — ölçülmedi |
 | LLM köprüsü | 120 | Board projeksiyonundaki `stale_after_seconds=120.0` ile hizalı |
-| Dış entegrasyon bağlantıları | 300 | Dış servis kotasını yakmamak için |
+| Dış entegrasyon bağlantıları | 300 | Dış servis kotasını yakmamak için — ölçülmedi |
 
-Bunlar v1 varsayılanı; ayarlanabilir, fakat **tek yerde** tanımlanır.
+Kurallar:
+
+- Bu değerler **tek yerde** tanımlanır; kart tarafında sabit yazılmaz.
+- Değerler `provisional` olarak işaretli kalır; gerçek kullanımdan
+  `checked_at`/`age` dağılımı toplanana kadar ürün gerçeği muamelesi görmez.
+- Kalibrasyon girdisi: kartın gerçek değişim sıklığı, probe maliyeti/kotası ve
+  kullanıcının yanlış-taze bilgiyle karşılaşma oranı.
+- **Kilitlenen `stale` semantiğidir** (`age > ttl` → `stale`, `last_known`
+  korunur). Eşiğin sayısal değeri kalibrasyonla değişebilir; semantik değişmez.
+- TTL değişikliği sözleşme değişikliği değildir; semantik değişikliği sözleşme
+  değişikliğidir.
 
 ## 4. Backend → durum türetme
 
@@ -237,7 +252,22 @@ Uygulama dilimi bu maddelerin **hepsi** kanıtlanmadan kapanmaz.
    statik rozet ya gerçek kaynağa bağlanır ya `unknown`/`not_configured`'a
    düşer.
 
-## 10. v1 sınırları (dürüst)
+## 10. Uygulama diliminin hedefi
+
+Sonraki dilimin hedefi **"18 rozeti değiştirmek" değildir.** Hedef, şu döngüyü
+ilk kez uçtan uca tamamlamaktır:
+
+> literal backend state → health contract → doğru UI → freshness → test →
+> **canlı kanıt**
+
+Bir tek kart bile bu döngüyü tam kapatıyorsa dilim başarılıdır; on sekiz rozet
+kozmetik olarak değişip döngü kapanmıyorsa başarısızdır. Döngü kapandığında
+Dashboard Health'in **gözlemleme** ayağı kazanılmış olur.
+
+"Neyi kendi düzeltebilir / neyi insana yükseltir" ayağı **bu sözleşmenin
+kapsamı dışındadır**; gözlemleme ayağı kanıtlanmadan açılmaz.
+
+## 11. v1 sınırları (dürüst)
 
 - **Bu belge sözleşmedir; kod yoktur.** Uygulama ayrı dilimde açılır.
 - Bugün gerçek sağlık üreten **yalnız iki** kaynak var: `api/bridge/health.js`
