@@ -1,0 +1,141 @@
+---
+/**
+ * dashboard-health-v1 — kart bağlama katmanı (ilk dilim: `bridge.llm`).
+ *
+ * Sözleşme: docs/contracts/dashboard-health-v1.md
+ *
+ * Markup üretmez. `[data-health-card="<id>"]` taşıyan rozetleri sözleşmeye
+ * göre boyar. Sunucudan gelen ilk hal daima `unknown` / "hiç kontrol edilmedi"
+ * olduğu için JS hiç çalışmasa bile ölçülmemiş bir kart yeşil görünmez (§8.1).
+ *
+ * §6 gereği başlık/oturum rozetine (`#panel-conn-badge`) DOKUNMAZ; o yüzey
+ * kendi kaynağından beslenir ve kart sağlıklarından hesaplanmaz.
+ */
+---
+
+<script>
+  import { t } from "../../i18n/runtime";
+  import {
+    STATES,
+    STATE_PRESENTATION,
+    deriveBridgeLlm,
+    applyFreshness,
+    notCheckedCard,
+    freshnessMinutes,
+  } from "../../lib/dashboard-health.mjs";
+
+  const HEALTH_ENDPOINT = "/api/bridge/health";
+  const PROBE_TIMEOUT_MS = 8000;
+  /** Freshness'ı yeniden değerlendirme aralığı — yeni probe DEĞİL, yalnız yaşlanma. */
+  const FRESHNESS_TICK_MS = 15000;
+
+  /** @type {Record<string, any>} kart kimliği → son türetilmiş kart */
+  const cards = Object.create(null);
+
+  function selectorFor(id) {
+    return `[data-health-card="${id}"]`;
+  }
+
+  /** §3.4 — checked_at=null asla göreli zamana çevrilmez. */
+  function freshnessText(card, nowMs) {
+    const mins = freshnessMinutes(card, nowMs);
+    if (mins === null) {
+      // Ölçüm YAPILMADI ile ölçüm SONUÇ VERMEDİ farklı şeylerdir; ikisi de
+      // checked_at=null taşır ama kullanıcıya aynı cümle kurulamaz.
+      return card.reason_code === "not_checked"
+        ? t("panel.health.freshness.never")
+        : t("panel.health.freshness.inconclusive");
+    }
+    if (card.state === STATES.STALE) {
+      const lastKnown =
+        card.last_known === STATES.HEALTHY
+          ? t("panel.health.freshness.lastKnownHealthy")
+          : t("panel.health.freshness.lastKnownFailed");
+      return `${t("panel.health.freshness.staleMinutes").replace("{n}", String(mins))} (${lastKnown})`;
+    }
+    return t("panel.health.freshness.checkedMinutes").replace("{n}", String(mins));
+  }
+
+  function render(id, nowMs) {
+    const card = cards[id];
+    const el = document.querySelector(selectorFor(id));
+    if (!card || !el) return;
+
+    const view = STATE_PRESENTATION[card.state];
+    const label = t(view.labelKey);
+
+    el.setAttribute("data-health-state", card.state);
+    el.setAttribute("data-health-tone", view.tone);
+    el.setAttribute("data-health-reason", card.reason_code || "");
+    el.textContent = `${view.glyph} ${label}`;
+
+    // Erişilebilir etiket: her durumun KENDİ anahtarı (§5) + freshness gerçeği.
+    el.setAttribute("aria-label", `${t(view.a11yKey)} — ${freshnessText(card, nowMs)}`);
+    el.setAttribute("title", `${label} · ${freshnessText(card, nowMs)}`);
+  }
+
+  function setCard(id, card, nowMs) {
+    cards[id] = applyFreshness(card, nowMs);
+    render(id, nowMs);
+  }
+
+  async function probeBridgeLlm() {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
+    try {
+      const res = await fetch(HEALTH_ENDPOINT, {
+        method: "GET",
+        cache: "no-store",
+        credentials: "same-origin",
+        signal: controller.signal,
+      });
+      let body = {};
+      try {
+        body = await res.json();
+      } catch {
+        body = {};
+      }
+      // checked_at yalnız burada üretilir: probe'un GERÇEKTEN tamamlandığı an.
+      const checkedAt = new Date().toISOString();
+      return deriveBridgeLlm({ kind: "response", status: res.status, body, checkedAt });
+    } catch (err) {
+      const detail = err && err.name === "AbortError" ? "zaman aşımı" : String((err && err.message) || err);
+      return deriveBridgeLlm({ kind: "network", detail });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function refresh(id) {
+    if (id !== "bridge.llm") return;
+    const card = await probeBridgeLlm();
+    setCard(id, card, Date.now());
+  }
+
+  function boot() {
+    const el = document.querySelector(selectorFor("bridge.llm"));
+    if (!el) return;
+
+    // Ölçüm yokken kart "hiç kontrol edilmedi" olarak durur (§4).
+    setCard("bridge.llm", notCheckedCard("bridge.llm"), Date.now());
+
+    el.addEventListener("click", () => void refresh("bridge.llm"));
+
+    void refresh("bridge.llm");
+
+    // Yaşlanmayı görünür kıl: yeni probe atmadan stale'e geçiş.
+    setInterval(() => {
+      const card = cards["bridge.llm"];
+      if (card) setCard("bridge.llm", card, Date.now());
+    }, FRESHNESS_TICK_MS);
+
+    // Dil değişince metin sözleşmeden yeniden üretilir (statik i18n değil).
+    window.addEventListener("lumos:localechange", () => render("bridge.llm", Date.now()));
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot, { once: true });
+  } else {
+    boot();
+  }
+</script>

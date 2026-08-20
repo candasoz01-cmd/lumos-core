@@ -959,7 +959,9 @@ PANEL_I18N_V57_EN_KEYS = (
 
 
 PANEL_I18N_V58_MARKERS = (
-    'data-i18n="panel.nav.status.sohbet"',
+    # NOT: `panel.nav.status.sohbet` bilinçli olarak kaldırıldı. Sohbet rozeti
+    # artık statik i18n metni değil, dashboard-health-v1 kartıdır
+    # (`data-health-card="bridge.llm"`). Aşağıdaki v59 guard'ı bunu korur.
     'data-i18n="panel.nav.statusSub.sohbet"',
     'data-i18n-title="panel.nav.statusTitle.sohbet"',
     'class="panel-nav-status-pill lumos-status-pill lumos-status-pill--ready"',
@@ -1917,6 +1919,46 @@ def test_panel_astro_i18n_v58_honest_module_status_wiring() -> None:
     for token in PANEL_I18N_V58_MARKERS:
         assert token in text, f"missing panel i18n v58 token: {token}"
     assert 'data-i18n="panel.nav.inactiveBadge">Önizleme</span>' not in text
+
+
+DASHBOARD_HEALTH_V1_MARKERS = (
+    'data-health-card="bridge.llm"',
+    'data-health-state="unknown"',
+    'data-health-tone="neutral-secondary"',
+    "PanelHealthCards",
+    ".lumos-health-pill[data-health-tone=",
+)
+
+
+def test_panel_astro_dashboard_health_v1_card_wired() -> None:
+    """dashboard-health-v1: Sohbet rozeti sözleşmeye bağlı ve ölçümsüz başlıyor."""
+    text = read_panel_source()
+    for token in DASHBOARD_HEALTH_V1_MARKERS:
+        assert token in text, f"missing dashboard-health-v1 token: {token}"
+
+
+def test_panel_astro_sohbet_pill_ships_unmeasured() -> None:
+    """§8.1 invariant 1 — ölçülmeyen kart sunucu HTML'inde yeşil olamaz.
+
+    Sohbet rozeti JS çalışmadan önce `unknown` durumunda gelmelidir; statik
+    "🟢 Hazır" iddiası geri gelirse bu test kırılır.
+    """
+    text = read_panel_source()
+    start = text.index('data-health-card="bridge.llm"')
+    pill = text[text.rindex("<span", 0, start) : text.index("</span>", start)]
+    assert 'data-health-state="unknown"' in pill
+    assert "🟢" not in pill, "ölçülmemiş kart yeşil glif ile gönderilemez"
+    assert "lumos-status-pill--ready" not in pill, "ölçülmemiş kart 'ready' stilini alamaz"
+
+
+def test_panel_health_state_keys_present() -> None:
+    """Beş literalin de TR ve EN karşılığı var (§5 — her durumun kendi metni)."""
+    for path in (_PANEL_TR, _PANEL_EN):
+        text = path.read_text(encoding="utf-8")
+        assert "health: {" in text, f"{path.name}: panel.health bloğu yok"
+        for state in ("not_configured", "unknown", "healthy", "failed", "stale"):
+            assert f"{state}:" in text, f"{path.name}: panel.health.*.{state} eksik"
+        assert "inconclusive:" in text, f"{path.name}: freshness.inconclusive eksik"
 
 
 def test_panel_honest_module_status_keys_in_panel_tr() -> None:

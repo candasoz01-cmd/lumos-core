@@ -64,6 +64,35 @@ const panel: typeof panelTr = {
     lumosCore: "Lumos core",
     preview: "Preview",
   },
+  health: {
+    state: {
+      not_configured: "Not set up yet",
+      unknown: "Status unknown",
+      healthy: "Working",
+      failed: "Not working",
+      stale: "Unverified",
+    },
+    a11y: {
+      not_configured: "Not set up yet — configuration required",
+      unknown: "Status unknown — Lumos could not check yet",
+      healthy: "Working — last check succeeded",
+      failed: "Not working — last check failed",
+      stale: "Unverified — more time has passed than the freshness budget allows",
+    },
+    action: {
+      setup: "Set up",
+      check: "Check now",
+      retry: "Retry",
+    },
+    freshness: {
+      never: "never checked",
+      inconclusive: "last check was inconclusive",
+      checkedMinutes: "checked {n} min ago",
+      staleMinutes: "unverified for {n} min",
+      lastKnownHealthy: "last known: working",
+      lastKnownFailed: "last known: not working",
+    },
+  },
   nav: {
     aria: "Workspace modules",
     lumos: "Lumos",

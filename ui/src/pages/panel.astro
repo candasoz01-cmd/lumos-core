@@ -4,6 +4,7 @@ import "../styles/umbrella-chrome.css";
 import LanguageSwitcher from "../components/LanguageSwitcher.astro";
 import I18nInit from "../components/I18nInit.astro";
 import PanelRuntime from "../components/panel/PanelRuntime.astro";
+import PanelHealthCards from "../components/panel/PanelHealthCards.astro";
 
 /**
  * POST /chat tam URL (örn. `https://host/chat`).
@@ -921,6 +922,38 @@ const PANEL_DEBUG = import.meta.env.DEV;
         color: var(--lumos-status-layers-fg);
         background: var(--lumos-status-layers-bg);
         border: 1px solid var(--lumos-status-layers-border);
+      }
+      /* dashboard-health-v1 §5 — her durumun KENDİ görsel kimliği.
+         not_configured (neutral) ile unknown (neutral-secondary) aynı gliflere
+         ve aynı yüzeye indirgenemez; §9.3 bunu test eder. */
+      .lumos-health-pill {
+        cursor: pointer;
+      }
+      .lumos-health-pill[data-health-tone="positive"] {
+        color: var(--lumos-status-ready-fg);
+        background: var(--lumos-status-ready-bg);
+        border: 1px solid var(--lumos-status-ready-border);
+      }
+      .lumos-health-pill[data-health-tone="warning"] {
+        color: var(--lumos-status-developing-fg);
+        background: var(--lumos-status-developing-bg);
+        border: 1px solid var(--lumos-status-developing-border);
+      }
+      .lumos-health-pill[data-health-tone="negative"] {
+        color: var(--lumos-status-awaiting-fg);
+        background: var(--lumos-status-awaiting-bg);
+        border: 1px solid var(--lumos-status-awaiting-border);
+        text-decoration: underline wavy currentColor 1px;
+      }
+      .lumos-health-pill[data-health-tone="neutral"] {
+        color: var(--lumos-status-off-fg);
+        background: var(--lumos-status-off-bg);
+        border: 1px solid var(--lumos-status-off-border);
+      }
+      .lumos-health-pill[data-health-tone="neutral-secondary"] {
+        color: var(--lumos-status-off-fg);
+        background: transparent;
+        border: 1px dashed var(--lumos-status-off-border);
       }
       .panel-nav-inactive-badge {
         flex-shrink: 0;
@@ -4837,7 +4870,14 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   <span class="panel-nav-label" data-i18n="panel.nav.sohbet">Sohbet</span>
                   <span class="panel-nav-status-subline" data-i18n="panel.nav.statusSub.sohbet">köprü olmadan sınırlı</span>
                 </span>
-                <span class="panel-nav-status-pill lumos-status-pill lumos-status-pill--ready" data-i18n="panel.nav.status.sohbet">🟢 Hazır</span>
+                <span
+                  class="panel-nav-status-pill lumos-status-pill lumos-health-pill"
+                  data-health-card="bridge.llm"
+                  data-health-state="unknown"
+                  data-health-tone="neutral-secondary"
+                  role="status"
+                  tabindex="0"
+                >◌ Durum bilinmiyor</span>
               </button>
               <button type="button" data-module="gorevler" data-i18n-title="panel.nav.statusTitle.gorevler">
                 <span class="panel-nav-label-block">
@@ -6437,6 +6477,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
         </nav>
       </div>
     </div>
+    <PanelHealthCards />
     <PanelRuntime
       {CHAT_URL}
       {kandoToken}

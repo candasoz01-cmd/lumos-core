@@ -12,6 +12,35 @@ const panelNav = {
     lumosCore: "Lumos çekirdeği",
     preview: "Önizleme",
   },
+  health: {
+    state: {
+      not_configured: "Henüz kurulmadı",
+      unknown: "Durum bilinmiyor",
+      healthy: "Çalışıyor",
+      failed: "Çalışmıyor",
+      stale: "Doğrulanmadı",
+    },
+    a11y: {
+      not_configured: "Henüz kurulmadı — yapılandırma gerekiyor",
+      unknown: "Durum bilinmiyor — Lumos henüz kontrol edemedi",
+      healthy: "Çalışıyor — son kontrol olumlu",
+      failed: "Çalışmıyor — son kontrol olumsuz",
+      stale: "Doğrulanmadı — son kontrolün üzerinden bütçeden fazla zaman geçti",
+    },
+    action: {
+      setup: "Kur",
+      check: "Kontrol et",
+      retry: "Yeniden dene",
+    },
+    freshness: {
+      never: "hiç kontrol edilmedi",
+      inconclusive: "son kontrol sonuç vermedi",
+      checkedMinutes: "{n} dk önce kontrol edildi",
+      staleMinutes: "{n} dakikadır doğrulanmadı",
+      lastKnownHealthy: "son bilinen: çalışıyor",
+      lastKnownFailed: "son bilinen: çalışmıyor",
+    },
+  },
   nav: {
     aria: "Çalışma modülleri",
     lumos: "Lumos",
