@@ -143,7 +143,8 @@ def test_observe_card_does_not_drive_header_or_conn_badge() -> None:
     )
     assert "panel-root-status" not in card
     assert "panel-conn-badge" not in card
-    assert "data-health-card" in card
+    assert 'from "../../lib/dashboard-health/bridge-llm.js"' in card
+    assert 'from "../lib/dashboard-health/bridge-llm.js"' not in card
 
 
 def test_js_mapper_stays_in_lockstep() -> None:
