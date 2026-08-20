@@ -5,7 +5,9 @@
 # loss). It is not a notification dispatch. Not Fix. Not Layer 1-A. Not the
 # other 17 cards.
 #
-# Previous-shift restore is exact: ref + (run_number - 1). No restore-keys
+# Previous-shift restore is exact: ref + (run_number - 1). Subtraction is
+# bash (`PREVIOUS_RUN=$((GITHUB_RUN_NUMBER - 1))`), not a GitHub Actions
+# expression (spaced minus after run_number does not parse). No restore-keys
 # prefix. A seen-sentinel (write-once per ref) separates first_shift from loss.
 name: bridge.llm observe
 
@@ -24,6 +26,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Cache keys
+        id: keys
+        run: |
+          PREVIOUS_RUN=$((GITHUB_RUN_NUMBER - 1))
+          {
+            echo "previous=bridge-llm-observe-${GITHUB_REF_NAME}-${PREVIOUS_RUN}"
+            echo "current=bridge-llm-observe-${GITHUB_REF_NAME}-${GITHUB_RUN_NUMBER}"
+            echo "seen=bridge-llm-observe-${GITHUB_REF_NAME}-seen"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -34,14 +46,14 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: bridge-llm-observe-state.json
-          key: bridge-llm-observe-${{ github.ref_name }}-${{ github.run_number - 1 }}
+          key: ${{ steps.keys.outputs.previous }}
 
       - name: Restore shift-seen sentinel
         id: seen
         uses: actions/cache/restore@v4
         with:
           path: bridge-llm-observe-seen
-          key: bridge-llm-observe-${{ github.ref_name }}-seen
+          key: ${{ steps.keys.outputs.seen }}
 
       - name: Classify previous
         id: classify
@@ -73,14 +85,14 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: bridge-llm-observe-state.json
-          key: bridge-llm-observe-${{ github.ref_name }}-${{ github.run_number }}
+          key: ${{ steps.keys.outputs.current }}
 
       - name: Save shift-seen sentinel
         if: ${{ always() && steps.seen.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@v4
         with:
           path: bridge-llm-observe-seen
-          key: bridge-llm-observe-${{ github.ref_name }}-seen
+          key: ${{ steps.keys.outputs.seen }}
 
       - name: Upload evidence
         if: always()
