@@ -68,3 +68,31 @@ elle kontrol edilir.
 
 - Kaynaklar çelişiyorsa çelişki gizlenmez. Yeniden doğrulama yapılır ve canlı
   doğrulama sonucu esas alınır.
+
+## Cursor Cloud specific instructions
+
+Standard commands live in the [Makefile](Makefile),
+[CI workflow](.github/workflows/ci.yml), and
+[docs/getting-started.md](docs/getting-started.md). The notes below are
+Cloud Agent gotchas that those docs do not cover (or contradict on purpose).
+
+- **`python` / `pytest` may be missing from PATH.** This image often has only
+  `python3`. `pip install` (no venv) puts `ruff`, `pytest`, and `lumos` in
+  `~/.local/bin`, which login shells get via `~/.bashrc`. Prefer
+  `python3 -m ruff` / `python3 -m pytest`, or add `~/.local/bin` to `PATH`.
+- **pytest needs PYTHONPATH + `KANDO_MOCK=1`.** `make test` sets both (CI
+  parity). Bare `pytest` fails. `Makefile` uses `PYTEST := pytest`; if that
+  binary is absent, export the same env and run `python3 -m pytest -q`.
+- **Rust needs current stable, not the image's pinned 1.83.** Workspace
+  edition is 2021, but a crates.io dep (`clap_lex` 1.1.0, checked
+  2026-08-20T08:08Z) requires Cargo `edition2024`. `cargo 1.83` fails to parse
+  that manifest. The environment start script runs `rustup default stable`
+  (>= 1.85). Then `make test-rust`.
+- **Astro `npm run dev` in this Linux cloud binds IPv6 localhost.** Use
+  `http://localhost:4321`. `http://127.0.0.1:4321` refuses. This is the
+  opposite of [getting-started](docs/getting-started.md) (macOS: prefer
+  `127.0.0.1` to avoid IPv6 drift).
+- **UI e2e serves `ui/dist`, not `astro dev`.** Build first (`npm run build`
+  in `ui/`). `*-api` / tasks flows spawn `panel_tasks_server.py`. Task flows
+  need panel user mode `full`; the harness calls `patchPolicyAllowTasks`
+  (`ui/e2e/lib/panel-helpers.mjs`). The browser default is Limited mode.
