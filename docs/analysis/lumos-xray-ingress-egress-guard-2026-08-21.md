@@ -20,8 +20,8 @@ Aynı gün erken paralel taslak (IEAL adı): [`ieal-ingress-egress-accountabilit
 Kullanıcı bu oturumda üç tasarımı **kilitledi** (Anayasa §2: en yeni açık kullanıcı kararı otoritedir). Aşağıdakiler fikir notunun çerçevesidir; ADR numarası **atanmaz**, FAZ-1 kodu **açılmaz**.
 
 - **Ürün adı Lumos X-Ray** / teknik katman **Ingress/Egress Guard**. Kullanıcı/ürün yüzü = X-Ray; mimari bileşen = Guard. Bu ayrım temiz tutulur.
-- **Provenance Ledger**, `evidence_continuity` **kardeşidir** (kısaca: evidence_continuity kardeşi). Ayrı, ilgisiz bir journal değildir; görev-mutasyon evidence journal'ına gömülmez. Aynı aile (append-only, ham payload yok) ama semantik farklıdır: malzeme soyağacı ≠ görev mutasyonu.
-- **Karantina private katmandadır** (kısaca: **private karantina**). Public OSS: yalnız sözleşme/stub (arayüz, olay şeması, test fikstürü, sahte karar motoru). Gerçek karantina hassas içeriği görür, secret/PII politikasına bağlanır, operasyonel yürütme yapar — private kalır.
+- **Provenance Ledger** `evidence_continuity` kardeşidir. Ayrı, ilgisiz bir journal değildir; görev-mutasyon evidence journal'ına gömülmez. Aynı aile (append-only, ham payload yok) ama semantik farklıdır: malzeme soyağacı ≠ görev mutasyonu.
+- **Karantina private katmandadır.** Public OSS: yalnız sözleşme/stub (arayüz, olay şeması, test fikstürü, sahte karar motoru). Gerçek private karantina hassas içeriği görür, secret/PII politikasına bağlanır, operasyonel yürütme yapar — private kalır.
 - **Beş fiil sırası kilitli** (opsiyonel değil): **girdi → erişti → bıraktı/kopyaladı → üretti → çıkarmaya çalıştı**
 - **Dört kova:** `accounted_from_ingress`, `generated`, `wrapping_overhead`, `unaccounted`
 - **`unaccounted != otomatik saldırı`.** Karar veri sınıfı ile birlikte verilir: `unaccounted` + confidential/secret + yetkisiz hedef = deny/quarantine
