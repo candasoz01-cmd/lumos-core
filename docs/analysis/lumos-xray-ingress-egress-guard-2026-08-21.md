@@ -125,7 +125,7 @@ Bu, 100/140 karşılaştırmasını **davranış sensöründen karar mekanizmas�
 
 İçerik DLP tamamlayıcıdır; **asıl kapı yetki biletidir**. Robotics RSL-02'deki imzalı çıkış izninin ajan oturumuna indirgenmiş hâlidir. Kalıp mevcut `ConfirmationGrant` ailesindendir (TTL, `scope_hash`, ajan bağlamı dışında `.lumos/`); yeni orkestrasyon nesnesi değildir. `PermissionManager.acquire` bugün no-op — isim var, yetenek yok.
 
-**Sticky taint (hâlâ açık — §8 soru 4):** secret sınıfı TTL ile düşmez önerisi duruyor; kullanıcı bu turda kilitlemedi. Bilet ajan prompt'una yazılmaz (taklit edilir); geçit deftere bakar. Taint **oturumu değil veriyi** izler: belleğe yazılan özet gecikmeli egress'tir (ADR-008 risk #5).
+**Sticky taint (oy pusulası açık — §8.4):** A/B/C henüz kilitli değil; kullanıcı tek harfle oy verir. Bilet ajan prompt'una yazılmaz (taklit edilir); geçit deftere bakar. Taint **oturumu değil veriyi** izler: belleğe yazılan özet gecikmeli egress'tir (ADR-008 risk #5). Bilet TTL'si varsayılan okumada **izin penceresidir**, sınıf düşürme değil (A/B bunu korur; C sınıfı da düşürür).
 
 Çift defter: ingress **makbuz** + egress **izin**. Uzlaşmazsa kesilir. Ev, yeni motor değil; `evidence_continuity` **kardeşi** (görev-mutasyon journal'ına gömülmez).
 
@@ -277,7 +277,24 @@ Kabul cümlesi (ileride): «Ajan, biletinin olmadığı hedefe **gönderemez**; 
 1. **KİLİTLİ (2026-08-21).** Ürün adı **Lumos X-Ray**; teknik katman **Ingress/Egress Guard**. Kullanıcı/ürün yüzü ile mimari bileşen ayrı tutulur. Registry §A kaydı ayrı (FAZ-1 sonrası / vitrin).
 2. **KİLİTLİ (2026-08-21).** Provenance Ledger, `evidence_continuity` **kardeşidir**. Ayrı ilgisiz journal değildir; görev-mutasyon evidence journal'ına gömülmez. Aynı aile (append-only, ham payload yok), farklı semantik (malzeme soyağacı ≠ görev mutasyonu).
 3. **KİLİTLİ (2026-08-21).** Karantina **private katmandadır**. Public OSS: yalnız sözleşme/stub (arayüz, olay şeması, test fikstürü, sahte karar motoru).
-4. Secret taint sticky (TTL düşmez, insan deklasifikasyonu) anayasa-sertliğinde mi, yoksa TTL'li mi? — **hâlâ açık**; bu turda kilitlenmedi.
+
+### 8.4 Sticky taint — oy pusulası (A / B / C)
+
+**Durum: AÇIK.** Ajan kilitlemez. Tek harf yeter. Cevap gelince kilit §8.4'e yazılır; bu tur FİKİR kalır, kod yok.
+
+Hatırlatma (oydan bağımsız, zaten kilitli çerçeve):
+
+- Bilet TTL = **izin penceresi**, sınıf düşürme değil. Pencere kapanınca egress fail-closed kesilir.
+- Taint **veriyi** izler, oturumu değil. Belleğe yazılan özet gecikmeli egress'tir (ADR-008 risk #5).
+- `unaccounted != otomatik saldırı` **kilitli durur**; bu pusula onu açmaz.
+
+| Harf | Ad | Ne olur | Ne olmaz |
+|------|----|---------|----------|
+| **A** | Sticky secret *(notun önerisi)* | `secret` TTL ile düşmez; yalnız insan deklasifikasyonu. Permit TTL hâlâ egress penceresini kapatır (fail-closed). `SECURITY_NEVER_AUTO` / Anayasa §11 ile hizalı. | `confidential` / `internal` / `public` bu maddede sticky olmaz. |
+| **B** | Sticky classified | A + `confidential` da TTL ile düşmez. `internal` / `public` yalnız permit-penceresi. | `internal`/`public` sınıfa TTL yapıştırılmaz. |
+| **C** | Sınıf da TTL | TTL bitince taint/sınıf düşer. `ConfirmationGrant` zihin modeline daha yakın. | Risk: bekle-sonra-exfil — türetilmiş içerik yetkisiz hedefe, sınıf düşmüş görünüp çıkar. |
+
+Cevap: **A**, **B** veya **C**.
 
 ---
 
@@ -285,6 +302,8 @@ Kabul cümlesi (ileride): «Ajan, biletinin olmadığı hedefe **gönderemez**; 
 
 Üç tasarım kilitlendi; merdiven **FİKİR**; kod yok. Hacim tek başına yetmez; soyağacı ve ajan-dışı kapı gerekir. 40 MB dört kovaya ayrılır; `unaccounted` tek başına saldırı değildir.
 
+Karar gereken: sticky taint **A / B / C** (§8.4). Ajan oy kullanmaz. Harf gelince kilit yazılır.
+
 X-Ray tarar. Guard durdurur. Ledger hesaplar. Sentinel raporlar. Ajan hiçbirini gevşetmez.
 
-Aday ADR numarası **atanmaz**. Koda dönüşmesi FAZ-1 sonrası, ayrı kullanıcı kararı ve Board claim ister. Sıradaki kritik adım hâlâ o dar dilimdir: ingress receipt + bilinmeyen hedefte fail-closed egress — **şimdi değil**.
+Aday ADR numarası **atanmaz**. Koda dönüşmesi FAZ-1 sonrası, ayrı kullanıcı kararı ve Board claim ister. FAZ-1 sonrası dar dilim durur: ingress receipt + bilinmeyen hedefte fail-closed egress — **şimdi değil**. Sıradaki adım: kullanıcının A/B/C harfi.
