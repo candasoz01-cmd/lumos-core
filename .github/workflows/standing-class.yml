@@ -1,0 +1,109 @@
+# ADR-028 standing-class gate.
+#
+# Verdicts (CLI exit codes):
+#   eligible (0)        → job green. Standing merge may proceed only if the rest
+#                         of ADR-028 also holds.
+#   semantic_review (3) → job red. Path alone cannot decide. NOT a permanent ban:
+#                         re-run with a head-SHA-bound attestation
+#                           --head-sha <head> --attest factual|normative --attest-sha <head>
+#                         factual promotes to eligible, normative demotes to excluded.
+#                         CI never makes that judgement; it belongs to the merge decision.
+#   excluded (2)        → job red. Hard exclusion, unlisted path, dash-prefixed path,
+#                         empty diff, or a missing trusted classifier. Fail-closed.
+#
+# Red is a standing-merge prohibition, not a human-merge prohibition.
+# Do not add this job to GitHub required_status_checks: that would also block
+# human-approved excluded PRs. Physical lock needs a separate merge-authority model.
+#
+# ── TRUST ROOT (three layers, all Security Reviewer HIGH findings) ────────────
+#
+# 1. ORCHESTRATOR. `pull_request_target` runs the workflow definition from the
+#    BASE branch, not from the pull request. Under `pull_request`, a same-repo PR
+#    could rewrite this file to skip extraction and grade itself with its own
+#    tree, forging a green CheckRun while changing hard-excluded paths.
+#
+# 2. CLASSIFIER. `src/standing_merge/**` is materialized from the pull request's
+#    fixed `base.sha`, never from the PR tree. `main` is not read live: main can
+#    move after the check runs; `base.sha` cannot. Missing on base → fail-closed.
+#
+# 3. INPUT. The PR tree is NEVER checked out and its code is NEVER executed.
+#    Changed paths are obtained by fetching the PR head as data and running
+#    `git diff --name-only -z` (fetch + diff execute nothing). Paths are passed
+#    NUL-delimited via a file, so a name containing a newline cannot split into
+#    two paths, and a name like `--help` or `--attest=factual` cannot become a flag.
+#    `--no-renames` is required: with rename detection git reports only the
+#    destination, so moving a hard-excluded file into an allowlisted prefix
+#    would hide the excluded source and forge an `eligible` verdict.
+#
+# `permissions: contents: read` and `persist-credentials: false`: this job needs
+# no write token and no secrets. pull_request_target would otherwise carry both.
+#
+# BOOTSTRAP: the PR that first introduces this workflow cannot prove itself —
+# the base commit has neither this workflow nor the classifier. Its own
+# standing-class stays red. That PR is governance class and is merged by
+# explicit human approval. Adversarial proof belongs to a separate follow-up PR
+# after the trusted version is on main.
+#
+# Incident: #777 / TD-20.
+name: standing-class
+
+on:
+  pull_request_target:
+
+permissions:
+  contents: read
+
+jobs:
+  standing-class:
+    runs-on: ubuntu-latest
+    steps:
+      # Trusted base only. The PR head is never checked out.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Materialize trusted classifier from base SHA
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          # Workspace is the BASE tree here (checkout ref = base.sha above),
+          # never the pull request tree. Bootstrapping the gate from it is safe.
+          PYTHONPATH: ${{ github.workspace }}/src
+        run: |
+          set -euo pipefail
+          test -n "$BASE_SHA"
+          rm -rf "${RUNNER_TEMP}/trusted"
+          python3 -m standing_merge.trusted_gate \
+            --repo . --base-sha "$BASE_SHA" --dest "${RUNNER_TEMP}/trusted"
+
+      - name: Collect changed paths without executing PR content
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          set -euo pipefail
+          # Fetch the PR head as DATA only. No checkout, no execution.
+          git fetch --no-tags origin \
+            "+refs/pull/${PR_NUMBER}/head:refs/remotes/pr/head"
+          # --no-renames is load-bearing: with rename detection git reports only
+          # the destination, so `git mv src/security/x.py tests/x.py` would hide
+          # the excluded SOURCE path and classify as eligible. Without it the
+          # pair is reported as delete + add, so both paths reach the classifier.
+          git diff --name-only -z --no-renames \
+            "${BASE_SHA}...refs/remotes/pr/head" \
+            > "${RUNNER_TEMP}/changed-paths.nul"
+          printf 'changed paths: %s\n' \
+            "$(tr -dc '\0' < "${RUNNER_TEMP}/changed-paths.nul" | wc -c | tr -d ' ')"
+
+      - name: Classify with trusted classifier
+        env:
+          PYTHONPATH: ${{ runner.temp }}/trusted/src
+        run: |
+          set -euo pipefail
+          python3 -m standing_merge.classify \
+            --paths-nul "${RUNNER_TEMP}/changed-paths.nul" --

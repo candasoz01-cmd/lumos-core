@@ -2,16 +2,18 @@
 
 > 2026-08-20 kurucu kararı: her docs PR’ında insan bekleten kapı sürtünme
 > üretiyor. Düşük riskli işler kapıları geçince yürür; yüksek riskte insan
-> kapısı kalır. **Bu ADR kod yazma izni değildir.** CI / Security Reviewer /
-> Bugbot gevşetilmez. `#764` (üçlü kapı / kontrollü writer) bu onaya
-> **girmez**.
+> kapısı kalır. Writer / otomasyon borusu bu ADR’den **uygulanmaz**. CI /
+> Security Reviewer / Bugbot gevşetilmez. `#764` (üçlü kapı / kontrollü
+> writer) bu onaya **girmez**. 2026-08-21 kurucu kararı: hariç sınıf merge
+> öncesi `python -m standing_merge.classify` ile zorunludur ([TD-20](../TECHNICAL_DEBT.md));
+> bu, writer izni değildir.
 
 | Alan | Değer |
 |------|-------|
 | Karar durumu | **Accepted (2026-08-20)** — kurucu; chat kararı |
-| Uygulama durumu | Yürürlükte — ajan, aşağıdaki sınıf + kapı koşulu sağlanınca `main`'e merge edebilir |
-| Tarih | 2026-08-20 |
-| Üst ilişki | [CONSTITUTION](../CONSTITUTION.md) §2 (en yeni açık kullanıcı kararı); açık PR `#764` (ADR-027 / §11) henüz `main`'de değil — bu ADR onu ezmez |
+| Uygulama durumu | Yürürlükte — **sınıf önce**. Classifier hariç/belirsiz ise standing merge yok. Kapılar yeşil olsa bile otorite onayı ayrıdır ([TD-20](../TECHNICAL_DEBT.md) / `#777`) |
+| Tarih | 2026-08-20; sınıf kapısı 2026-08-21 |
+| Üst ilişki | [CONSTITUTION](../CONSTITUTION.md) §2 / §11; [ADR-027](ADR-027-controlled-core-writer.md) (`#764` · MERGED · 2026-08-21T07:19:13Z) — bu ADR onu ezmez |
 
 ## Karar
 
@@ -66,15 +68,118 @@ revizyonlar yine açık insan onayı ister.
 
 ### Kapı (güncel head SHA)
 
-Head değişince sayaç sıfırlanır. Merge yalnız **o anki head SHA** için:
+Head değişince sayaç sıfırlanır. **Sınıf, kapılardan önce gelir.** Hariç
+sınıfta standing merge yoktur; aşağıdaki 1–5 yeşil olsa bile açık insan
+onayı gerekir. Checks yeşili otorite onayının yerine geçmez.
 
+Merge yalnız **o anki head SHA** için:
+
+0. Sınıf **eligible** — `python -m standing_merge.classify` (değişen
+   dosyalar). CheckRun adı: `standing-class`. Güven kökü **PR checkout
+   değildir**: classifier `github.event.pull_request.base.sha` üzerindeki
+   `src/standing_merge` kopyasından, ayrı dizinde çalışır. O SHA'da yoksa
+   fallback yoktur (fail-closed). Yollar NUL-delimited (`git diff -z`) ve
+   `--` sonrasındadır; `-` ile başlayan path (`--help`, `-h`,
+   `--attest=*`, `--head-sha=*`) excluded'dır. **Üç durum vardır:**
+   `excluded` (standing kesinlikle yasak) · `semantic_review` (yol tek başına
+   karar vermeye yetmez; olgu/norm değerlendirmesi **o anki head SHA için**
+   insan tarafından yapılır, otomatik standing yetkisi doğmaz) · `eligible`
+   (yalnız dar ve açıkça makinece güvenli sınıf). Yalnız `eligible` standing
+   hattını açar; `semantic_review` ve `excluded` açmaz. CLI çıkış kodu:
+   0 / 3 / 2. `docs/decisions/**` varsayılan olarak **semantic_review**'dır —
+   komple hariç yapılmadı, çünkü ADR'de salt olgu düzeltmesi (bkz.
+   §Sınıflandırma ölçütü) standing'e girebilmelidir; ayrımı yol değil semantik
+   değerlendirme yapar. Genel `docs/` allowlist'i **kaldırıldı**: isim
+   listesinden kaçan yeni bir governance veya veri sınırı belgesi eligible olamaz.
+
+   **`semantic_review` kalıcı yasak değildir; karar verilmemiş durumdur.**
+   Yol sinyali yetmediğinde olgu/norm değerlendirmesi yapılır ve sonuç
+   **o anki head SHA'ya bağlı bir attestation** olarak taşınır:
+
+   ```
+   python -m standing_merge.classify --paths-nul <nul-file> \
+       --head-sha <head> --attest factual|normative --attest-sha <head> --
+   ```
+
+   | Attestation | Sonuç |
+   |-------------|-------|
+   | `factual` (SHA eşleşir) | `eligible` — standing hattı açılır |
+   | `normative` | `excluded` — açık insan onayı gerekir |
+   | yok, bayat SHA, veya tanınmayan değer | `semantic_review` kalır (fail-closed) |
+
+   Attestation **hard-exclusion'ı terfi ettiremez**: ADR-029 ne söylenirse
+   söylensin `excluded` kalır; listelenmeyen yol da öyle. Attestation head
+   SHA'ya bağlıdır ve sonraki head'e **taşınmaz** — ADR-027'nin SHA kuralıyla
+   aynı ilke.
+
+   `standing-class` CheckRun'ı attestation'sız çalışır; yalnız **yol sınıfını**
+   raporlar. Kırmızı + `excluded` = standing yasak. Kırmızı + `semantic_review`
+   = standing için önce attestation gerekir.
+
+   **Güven kökü — üç katman (2026-08-21, Security Reviewer HIGH x3):**
+
+   | Katman | Kural |
+   |--------|-------|
+   | **Orkestratör** | Workflow tanımı **base dalından** çalışır (`pull_request_target`). Düz `pull_request` altında saldırgan PR, `standing-class.yml`'i classifier'ı hiç çağırmayacak şekilde yeniden yazıp kendine yeşil CheckRun üretebilirdi |
+   | **Sınıflandırıcı** | `src/standing_merge/**` PR'ın sabit `base.sha`'sından çıkarılır |
+   | **Girdi** | PR ağacı **checkout edilmez ve kodu çalıştırılmaz**. Değişen yollar PR head'i veri olarak fetch edilip `git diff --name-only -z --no-renames` ile alınır ve NUL-delimited dosyayla geçilir |
+
+   `--no-renames` taşıyıcı bir ayrıntıdır, biçimsel değil: rename tespiti açıkken
+   git **yalnız hedef yolu** raporlar. `git mv src/security/identity.py
+   tests/identity.py` yapan bir PR'da classifier hariç **kaynağı hiç görmez** ve
+   `eligible` verir. `--no-renames` çifti delete + add olarak raporlatır, böylece
+   kaynak da sınıflandırmaya girer. Aynı açık, workflow dosyasının kendisini
+   allowlist'e taşımak için de kullanılabilirdi.
+
+   Job `contents: read` ve `persist-credentials: false` ile koşar: yazma
+   token'ı ve secret gerekmez. `pull_request_target` aksi hâlde ikisini de taşır.
+
+   Bir PR'ı sınıflandıran kod o PR'dan gelemez. `standing-class`, classifier'ı ve kural dosyasını
+   PR'ın **sabit `base.sha`** commit'inden ayrı bir dizine çıkarıp oradan
+   çalıştırır; PR ağacındaki `src/standing_merge/**` kendi sınıfını
+   belirleyemez. Base commit'te classifier yoksa **fail-closed FAILURE** verilir
+   ve PR sürümüne **fallback yapılmaz**. `main` canlı okunmaz — kontrol
+   çalıştıktan sonra `main` değişebilir, `base.sha` değişmez.
+
+   > **Bootstrap gerçeği:** Bu mekanizmayı ilk getiren PR kendini kanıtlayamaz —
+   > base commit'te ne bu workflow ne de classifier vardır. `pull_request_target`
+   > base'deki tanımı çalıştırdığı için o PR'da `standing-class` ya hiç koşmaz ya
+   > da kırmızı kalır. Kabul edilir; o PR governance sınıfındadır ve **açık insan
+   > onayıyla** bootstrap edilir. Merge'den sonra **ayrı ve küçük bir adversarial
+   > doğrulama PR'ı** açılır: aynı diff içinde workflow'u değiştirmeye çalışan ve
+   > `src/security/...` dokunan bir değişikliğin sahte yeşil üretemediği kanıtlanır.
+
+   **Yol taşıma:** değişen yollar NUL-delimited alınır (`git diff --name-only -z`)
+   ve classifier'a `--` option terminator'ından sonra geçilir. Ek olarak `-` ile
+   başlayan her yol fail-closed `excluded` sayılır. Gerekçe: Git dosya adları
+   `--help` veya `--attest=factual` olabilir ve newline içerebilir; bunlar
+   argparse'a bayrak gibi geçerse sahte yeşil üretir. Hariç kuralı (önek, dosya,
+   yol jetonu: security/privacy/permission/secret/credential/payment/deploy/
+   governance/policy/vault/…) **veya listelenmeyen yol** veya boş diff →
+   fail (fail-closed). `eligible` yalnız allowlist önekine düşen ve hariç
+   kuralına çarpmayan yollar içindir (`docs/`, `tests/`). Eşleşme yoksa
+   `eligible` **yoktur**. PR gövdesindeki “standing hattı yok” cümlesi
+   kanıt değil; yol listesi esastır. `#777` fixture: `docs/contracts/` →
+   excluded. `src/security/` → excluded. `src/policy/` → excluded.
+   `docs/` altındaki security/privacy/permission adlı dosya → excluded.
+   `standing-class` kırmızısını GitHub `required_status_checks` listesine
+   koymayın — o, insan onaylı hariç PR’ı da fiziksel bloke eder; fiziksel
+   kilit ayrı `merge-authority` modeli ister.
 1. Gerekli CI yeşil (`ci.yml`: `test`, `rust`, `macos-app-build`, `ui-smoke`, `ui-e2e`)
 2. `Cursor Security Agent: Security Reviewer` complete + SUCCESS (queued / in_progress / missing = pending)
 3. `Cursor Bugbot` complete + SUCCESS
 4. Unresolved review thread yok
 5. Merge conflict yok (`MERGEABLE` + çakışmasız)
 
-Hepsi yoksa merge yok. Standing onay kapıları atlatmaz.
+Hepsi yoksa merge yok. Standing onay kapıları atlatmaz. `standing-class`
+fail insan merge yasağı değildir; standing merge yasağıdır.
+
+Olgu/norm ikinci filtresi (başka ADR’lerde “ne doğrudur?”) **otomatik
+değildir** ve classifier `eligible` dedikten sonra ajan değerlendirmesidir.
+Hariç liste birinci hard-exclusion’dır; `src/security/` gibi yollar ikinci
+filtreye düşmez. Allowlist dışındaki yol `eligible` değildir. `docs/`
+altında olsa bile security/policy/governance jetonu taşıyan yol hariçtir.
+Olgu/norm, classifier `eligible` dedikten sonra ajan işidir.
 
 ## Örnek
 
@@ -90,3 +195,19 @@ yeniden yeşile dönerse ajan ayrıca beklemeden merge edebilir.
 
 İkisi de ADR dosyasıydı; sınıfı belirleyen dosya türü değil, **değişikliğin ne
 yaptığıydı**.
+
+### Kontrol olayı — `#777` (2026-08-20)
+
+Canonical kayıt: [TD-20](../TECHNICAL_DEBT.md).
+
+`candasoz01-cmd/lumos-core#777` standing-excluded sınıftaydı (çekirdek
+sözleşme `docs/contracts/dashboard-health-v1.md`; PR gövdesi ve sözleşmenin
+kendi merge satırı insan onayı istiyordu). Teknik kapılar `c50127b6`
+üzerinde yeşildi. `cursor[bot]` açık insan merge onayı olmadan
+2026-08-20T14:32:29Z merge etti (`339840f2`).
+
+İçerik geri alınmaz. İhlal **yetki/prosedür**: eksik olan check değil,
+otorite onayı. Kapı 0 bu deliği ajan sözleşmesinde kapatır. GitHub
+`required_status_checks` boşluğu Settings/admin işidir; **`standing-class`
+o listeye konmaz** — kırmızı standing yasağıdır, insan merge yasağı değil.
+Fiziksel kilit ayrı `merge-authority` modeli ister.

@@ -72,6 +72,21 @@ required checks, GitHub will not block merge while the security reviewer is
 still running. Adding them is an admin action; this repository cannot set
 branch protection from a docs PR.
 
+**Standing class (ADR-028 gate 0):** `python -m standing_merge.classify` on
+changed paths. The CheckRun trust root is
+`github.event.pull_request.base.sha`, not the PR checkout: extract
+`src/standing_merge` from that SHA into a separate directory. If the
+classifier is missing on the base SHA, fail closed (no fallback). Feed
+paths NUL-delimited (`git diff -z`) after `--`. A path that starts with
+`-` is excluded. Hard-exclusion (prefix, file, path token, leading dash)
+first. Unlisted paths are excluded (fail-closed). Only allowlisted `docs/`
+and `tests/` paths that miss the hariç rules can be eligible. CheckRun
+`standing-class` fails when the class is excluded. That failure forbids
+standing merge; it does not forbid a human merge. Do **not** add
+`standing-class` to GitHub `required_status_checks` — that would block
+human-approved excluded PRs too. Physical lock needs a separate
+merge-authority model. Incident: `#777` / [TD-20](docs/TECHNICAL_DEBT.md).
+
 ## Public repository boundary
 
 This repo is the **public OSS foundation**. Do not add production secrets, private orchestration, commercial service logic, or operational backend infrastructure. Demo-safe code, docs, placeholders, and foundation tooling belong here; professional Lumos layers stay private unless explicitly approved for public exposure.

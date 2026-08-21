@@ -111,6 +111,30 @@ merge etmez, merge'i hazır saymaz veya merge önerisini uygulamaz. Sayaçlar
    istenir. Ajan/bot/App review yerine geçmez; "sanırım merge edilir"
    nihai onay değildir.
 
+**Standing istisnası ([ADR-028](docs/decisions/ADR-028-standing-low-risk-merge-approval.md))
+sınıftan önce gelir.** CheckRun `standing-class` **workflow'unu da** PR'dan
+almaz: `pull_request_target` ile base dalındaki tanım koşar, PR ağacı checkout
+edilmez ve kodu çalıştırılmaz. Classifier'ı da **PR checkout'tan çalıştırmaz**; `github.event.pull_request.base.sha`
+üzerindeki `src/standing_merge` ayrı dizine çıkarılır. Base'de yoksa
+fallback yoktur — fail-closed FAILURE. Yollar `git diff -z` ile
+NUL-delimited gider, çağrı `--` kullanır; `-` ile başlayan path excluded'dır.
+`python3 -m standing_merge.classify` değişen dosyalara bakılır. Üç durum: `excluded` (yasak) ·
+`semantic_review` (yol karar vermeye yetmez; olgu/norm insanca ve head SHA'ya
+bağlı değerlendirilir) · `eligible` (dar makine-güvenli sınıf). Yalnız
+`eligible` standing açar. `semantic_review` **yasak değil, karar verilmemiş**
+demektir: olgu/norm değerlendirilip sonuç `--attest factual|normative
+--attest-sha <head>` ile taşınır. `factual` → eligible, `normative` →
+excluded, yok/bayat → semantic_review kalır. Attestation hard-exclusion'ı
+terfi ettiremez ve sonraki head SHA'ya taşınmaz. Hariç veya belirsiz →
+standing merge yok, kapı 3 durur. CheckRun `standing-class` hariçte fail olur: bu
+standing yasağıdır, insan merge yasağı değil. Bu CheckRun GitHub required
+check **yapılmaz**; o, insan onaylı hariç PR’ı da fiziksel kilitler.
+Fiziksel kilit ayrı `merge-authority` modeli ister. PR gövdesindeki
+“standing hattı yok” cümlesi tek başına otorite değildir. Listelenmeyen
+yol `eligible` değildir; `docs/` altındaki genel bir belge de değildir
+(semantic_review'a düşer). `docs/` altında security/privacy/permission adlı
+dosya da hariçtir. Canlı ihlal: `#777` / [TD-20](docs/TECHNICAL_DEBT.md).
+
 `layer1a.yml` ve `prod-smoke.yml` PR merge kapısı değildir. Branch protection
 `main`'de açıktır ama `required_status_checks` listesi boştur; fiziksel kilit
 Settings'te required check eklenene kadar yoktur. Ajan yine de bu sözleşmeyi
