@@ -75,7 +75,12 @@ onayı gerekir. Checks yeşili otorite onayının yerine geçmez.
 Merge yalnız **o anki head SHA** için:
 
 0. Sınıf **eligible** — `python -m standing_merge.classify` (değişen
-   dosyalar). CheckRun adı: `standing-class`. **Üç durum vardır:**
+   dosyalar). CheckRun adı: `standing-class`. Güven kökü **PR checkout
+   değildir**: classifier `github.event.pull_request.base.sha` üzerindeki
+   `src/standing_merge` kopyasından, ayrı dizinde çalışır. O SHA'da yoksa
+   fallback yoktur (fail-closed). Yollar NUL-delimited (`git diff -z`) ve
+   `--` sonrasındadır; `-` ile başlayan path (`--help`, `-h`,
+   `--attest=*`, `--head-sha=*`) excluded'dır. **Üç durum vardır:**
    `excluded` (standing kesinlikle yasak) · `semantic_review` (yol tek başına
    karar vermeye yetmez; olgu/norm değerlendirmesi **o anki head SHA için**
    insan tarafından yapılır, otomatik standing yetkisi doğmaz) · `eligible`
@@ -92,8 +97,8 @@ Merge yalnız **o anki head SHA** için:
    **o anki head SHA'ya bağlı bir attestation** olarak taşınır:
 
    ```
-   python -m standing_merge.classify <paths> \
-       --head-sha <head> --attest factual|normative --attest-sha <head>
+   python -m standing_merge.classify --paths-nul <nul-file> \
+       --head-sha <head> --attest factual|normative --attest-sha <head> --
    ```
 
    | Attestation | Sonuç |

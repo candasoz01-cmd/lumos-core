@@ -112,8 +112,12 @@ merge etmez, merge'i hazır saymaz veya merge önerisini uygulamaz. Sayaçlar
    nihai onay değildir.
 
 **Standing istisnası ([ADR-028](docs/decisions/ADR-028-standing-low-risk-merge-approval.md))
-sınıftan önce gelir.** `python3 -m standing_merge.classify` değişen
-dosyalara bakılır. Üç durum: `excluded` (yasak) ·
+sınıftan önce gelir.** CheckRun `standing-class` classifier'ı **PR
+checkout'tan çalıştırmaz**; `github.event.pull_request.base.sha`
+üzerindeki `src/standing_merge` ayrı dizine çıkarılır. Base'de yoksa
+fallback yoktur — fail-closed FAILURE. Yollar `git diff -z` ile
+NUL-delimited gider, çağrı `--` kullanır; `-` ile başlayan path excluded'dır.
+`python3 -m standing_merge.classify` değişen dosyalara bakılır. Üç durum: `excluded` (yasak) ·
 `semantic_review` (yol karar vermeye yetmez; olgu/norm insanca ve head SHA'ya
 bağlı değerlendirilir) · `eligible` (dar makine-güvenli sınıf). Yalnız
 `eligible` standing açar. `semantic_review` **yasak değil, karar verilmemiş**
