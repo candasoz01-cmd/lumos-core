@@ -73,7 +73,7 @@ Bu dosya, sohbet/bellek kaybına karşı repo içinde kalıcı tutulan **güvenl
 |---|--------|--------|
 | SEC-040 | Bu belgeye production secret, PII veya operasyonel credential yazılmaz. | **güvenlik kuralı** |
 | SEC-041 | Public repo içeriği demo-safe olmalıdır. | **güvenlik kuralı** |
-| SEC-042 | Yürütme, görev örneğine özel kısa ömürlü tek kullanımlık anahtar olmadan executor'a geçmez (kim+görev+işlem+kaynak+yetki+TTL). Anahtarsız/uyuşmayan istek default deny + yüksek şüphe audit'tir; "saldırgan" etiketi konmaz. Grant, `SECURITY_NEVER_AUTO` / `surface_blocked` yüzeyini açmaz. CU4 / `approval_token` yerine geçmez. | **güvenlik kuralı** — [ADR-031](decisions/ADR-031-task-execution-grant.md), opt-in `LUMOS_TASK_EXECUTION_GRANT_ENABLED` |
+| SEC-042 | Yürütme üç parçalıdır: Task Registry (görev resmi kaydı) + Capability Token (göreve özel kısa ömürlü anahtar; ajan/kullanıcı üretmez) + Immutable Ledger (kanıt; kapı değil). Kayıtlı görev zincirine bağlanmayan işlem yürümez. Deny default + `unclassified` şüphe; "saldırgan" etiketi yok. Grant `SECURITY_NEVER_AUTO` açmaz. Kullanıcı onayı her adımda değil, yalnız riskli kapılarda. | **güvenlik kuralı** — [ADR-031](decisions/ADR-031-task-execution-grant.md), opt-in `LUMOS_TASK_EXECUTION_GRANT_ENABLED` |
 
 ---
 
