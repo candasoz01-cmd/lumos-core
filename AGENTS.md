@@ -116,8 +116,12 @@ sınıftan önce gelir.** `python3 -m standing_merge.classify` değişen
 dosyalara bakılır. Üç durum: `excluded` (yasak) ·
 `semantic_review` (yol karar vermeye yetmez; olgu/norm insanca ve head SHA'ya
 bağlı değerlendirilir) · `eligible` (dar makine-güvenli sınıf). Yalnız
-`eligible` standing açar; hariç, belirsiz veya `semantic_review` → standing
-merge yok, kapı 3 durur. CheckRun `standing-class` hariçte fail olur: bu
+`eligible` standing açar. `semantic_review` **yasak değil, karar verilmemiş**
+demektir: olgu/norm değerlendirilip sonuç `--attest factual|normative
+--attest-sha <head>` ile taşınır. `factual` → eligible, `normative` →
+excluded, yok/bayat → semantic_review kalır. Attestation hard-exclusion'ı
+terfi ettiremez ve sonraki head SHA'ya taşınmaz. Hariç veya belirsiz →
+standing merge yok, kapı 3 durur. CheckRun `standing-class` hariçte fail olur: bu
 standing yasağıdır, insan merge yasağı değil. Bu CheckRun GitHub required
 check **yapılmaz**; o, insan onaylı hariç PR’ı da fiziksel kilitler.
 Fiziksel kilit ayrı `merge-authority` modeli ister. PR gövdesindeki

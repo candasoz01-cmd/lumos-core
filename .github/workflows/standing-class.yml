@@ -1,7 +1,11 @@
 # ADR-028 standing-class gate.
 # eligible (exit 0) → job green (standing merge may proceed only if the rest of ADR-028 holds).
-# semantic_review (exit 3) → job red. Path alone cannot decide; a human must judge
-#   olgu/norm against the current head SHA. No automatic standing authority.
+# semantic_review (exit 3) → job red. Path alone cannot decide. NOT a permanent ban:
+#   run the classifier again with a head-SHA-bound attestation
+#     --head-sha <head> --attest factual|normative --attest-sha <head>
+#   factual promotes to eligible, normative demotes to excluded. This job runs
+#   WITHOUT an attestation on purpose: CI reports the path class only, it does not
+#   make the olgu/norm judgement. Attestation belongs to the merge decision.
 # excluded / unlisted / empty (exit 2) → job red. Fail-closed.
 # Red is a standing-merge prohibition, not a human-merge prohibition.
 # Do not add this job to GitHub required_status_checks: that would also block

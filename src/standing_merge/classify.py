@@ -5,10 +5,23 @@ Three states, in strict precedence:
 1. ``excluded``        — hard-exclusion hit (file, prefix, path token),
                          unlisted path, or empty diff. Standing merge is
                          forbidden. Fail-closed.
-2. ``semantic_review`` — the path alone cannot decide. Olgu/norm ("ne
-                         doğrudur?" vs "bundan sonra neye izin verilir?")
-                         must be judged by a human against the current head
-                         SHA. No automatic standing authority.
+2. ``semantic_review`` — **the path alone cannot decide.** This is not
+                         "a human must approve"; it means the path signal is
+                         insufficient and an olgu/norm judgement ("ne
+                         doğrudur?" vs "bundan sonra neye izin verilir?") is
+                         required before any standing decision.
+
+                         That judgement is carried by a **SHA-bound
+                         attestation** (see ``SemanticAttestation``):
+
+                         * ``factual``  → promoted to ``eligible``
+                         * ``normative``→ demoted to ``excluded`` (explicit
+                           human approval required)
+                         * missing, or bound to a different head SHA →
+                           stays ``semantic_review`` (fail-closed)
+
+                         An attestation can never promote a hard-exclusion
+                         hit: ADR-029 stays ``excluded`` whatever it says.
 3. ``eligible``        — only narrow, explicitly machine-safe classes.
 
 Precedence is aggregate: any excluded path makes the whole PR excluded; any
@@ -19,10 +32,11 @@ data-boundary document (e.g. ``docs/merge-rules.md``) must not become
 eligible by escaping a hand-maintained name list. It falls to
 semantic_review. Name-based tokens are defence in depth, not the mechanism.
 
-PR body is not authority. Only the changed path list is.
+PR body is not authority. Only the changed path list plus a SHA-bound
+attestation are.
 
 Exit codes (CLI): 0 eligible, 2 excluded, 3 semantic_review.
-Both 2 and 3 mean: no automatic standing merge.
+``3`` means "not yet decided — attest first", not "forbidden".
 """
 
 from __future__ import annotations
@@ -31,6 +45,7 @@ import argparse
 import json
 import re
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -41,6 +56,29 @@ RULES_PATH = Path(__file__).with_name("excluded_paths.json")
 CLASS_ELIGIBLE = "eligible"
 CLASS_EXCLUDED = "excluded"
 CLASS_SEMANTIC = "semantic_review"
+
+VERDICT_FACTUAL = "factual"
+VERDICT_NORMATIVE = "normative"
+
+
+@dataclass(frozen=True)
+class SemanticAttestation:
+    """Olgu/norm judgement, bound to one head SHA.
+
+    Stale attestations do not carry over: if ``head_sha`` does not match the
+    head being classified, the attestation is ignored and the class stays
+    ``semantic_review``. This mirrors ADR-027's SHA-bound approval rule.
+    """
+
+    verdict: str
+    head_sha: str
+    evaluated_by: str = ""
+    note: str = ""
+
+    def applies_to(self, head_sha: str | None) -> bool:
+        if not head_sha or not self.head_sha:
+            return False
+        return self.head_sha.strip().lower() == head_sha.strip().lower()
 
 # candasoz01-cmd/lumos-core#777 · MERGED · c50127b6 — fixture, not a second history.
 PR777_PATHS = (
@@ -88,6 +126,8 @@ def classify_paths(
     paths: list[str] | tuple[str, ...],
     *,
     rules: dict[str, Any] | None = None,
+    attestation: SemanticAttestation | None = None,
+    head_sha: str | None = None,
 ) -> dict[str, Any]:
     loaded = rules if rules is not None else load_rules()
     exclude_files = list(loaded.get("exclude_files") or loaded.get("files") or [])
@@ -120,15 +160,20 @@ def classify_paths(
         unknown.append(item)
         excluded_hits.append({"path": item, "reason": f"unlisted:{item}"})
 
+    attestation_state = "absent"
     if not normalized:
         standing_class = CLASS_EXCLUDED
         reasons = ["empty_diff"]
     elif excluded_hits:
         standing_class = CLASS_EXCLUDED
         reasons = [row["reason"] for row in excluded_hits]
+        # Hard exclusion is never promotable, whatever the attestation says.
+        if attestation is not None:
+            attestation_state = "ignored_hard_exclusion"
     elif semantic_hits:
-        standing_class = CLASS_SEMANTIC
-        reasons = [row["reason"] for row in semantic_hits]
+        standing_class, reasons, attestation_state = _resolve_semantic(
+            semantic_hits, attestation, head_sha
+        )
     else:
         standing_class = CLASS_ELIGIBLE
         reasons = []
@@ -139,11 +184,42 @@ def classify_paths(
         "standing_merge": standing_class == CLASS_ELIGIBLE,
         "human_merge_required": standing_class != CLASS_ELIGIBLE,
         "semantic_review_required": standing_class == CLASS_SEMANTIC,
+        "attestation": attestation_state,
+        "head_sha": (head_sha or "").strip(),
         "paths": normalized,
         "hits": excluded_hits + semantic_hits,
         "unknown": unknown,
         "reasons": reasons,
     }
+
+
+def _resolve_semantic(
+    semantic_hits: list[dict[str, str]],
+    attestation: SemanticAttestation | None,
+    head_sha: str | None,
+) -> tuple[str, list[str], str]:
+    """Promote, demote, or hold a semantic_review verdict.
+
+    This is the step that keeps the ADR-028 §Sınıflandırma ölçütü promise
+    executable: a purely factual ADR correction can still reach the standing
+    lane, instead of being frozen out forever by its path.
+    """
+    base = [row["reason"] for row in semantic_hits]
+    if attestation is None:
+        return CLASS_SEMANTIC, base, "absent"
+    if not attestation.applies_to(head_sha):
+        # Stale or unbound attestation must not carry over to another head.
+        return CLASS_SEMANTIC, [*base, "attestation_sha_mismatch"], "stale"
+    if attestation.verdict == VERDICT_FACTUAL:
+        return CLASS_ELIGIBLE, [f"promoted:factual:{attestation.head_sha[:7]}"], "factual"
+    if attestation.verdict == VERDICT_NORMATIVE:
+        return (
+            CLASS_EXCLUDED,
+            [*base, f"demoted:normative:{attestation.head_sha[:7]}"],
+            "normative",
+        )
+    # Unknown verdict string is not a decision.
+    return CLASS_SEMANTIC, [*base, "attestation_verdict_unknown"], "unknown"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -153,12 +229,47 @@ def main(argv: list[str] | None = None) -> int:
         nargs="*",
         help="Changed paths. Empty = excluded (fail-closed).",
     )
+    parser.add_argument(
+        "--head-sha",
+        default="",
+        help="Head SHA being classified. Required for --attest to apply.",
+    )
+    parser.add_argument(
+        "--attest",
+        choices=(VERDICT_FACTUAL, VERDICT_NORMATIVE),
+        default=None,
+        help=(
+            "Olgu/norm judgement for semantic_review paths. "
+            "factual promotes to eligible; normative demotes to excluded. "
+            "Ignored for hard-exclusion hits. Requires --attest-sha."
+        ),
+    )
+    parser.add_argument(
+        "--attest-sha",
+        default="",
+        help="Head SHA the attestation is bound to. Must equal --head-sha.",
+    )
+    parser.add_argument(
+        "--attest-by",
+        default="",
+        help="Who or what produced the judgement (recorded, not trusted).",
+    )
     args = parser.parse_args(argv)
-    verdict = classify_paths(args.paths)
+    attestation = None
+    if args.attest is not None:
+        attestation = SemanticAttestation(
+            verdict=args.attest,
+            head_sha=args.attest_sha,
+            evaluated_by=args.attest_by,
+        )
+    verdict = classify_paths(
+        args.paths, attestation=attestation, head_sha=args.head_sha
+    )
     sys.stdout.write(json.dumps(verdict, ensure_ascii=False, indent=2) + "\n")
     standing_class = str(verdict["class"])
     sys.stderr.write(
-        f"standing_class={standing_class} standing_merge={verdict['standing_merge']}\n"
+        f"standing_class={standing_class} standing_merge={verdict['standing_merge']} "
+        f"attestation={verdict['attestation']}\n"
     )
     if standing_class == CLASS_ELIGIBLE:
         return 0

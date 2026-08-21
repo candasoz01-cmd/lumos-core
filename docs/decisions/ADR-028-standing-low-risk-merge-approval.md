@@ -83,9 +83,33 @@ Merge yalnız **o anki head SHA** için:
    hattını açar; `semantic_review` ve `excluded` açmaz. CLI çıkış kodu:
    0 / 3 / 2. `docs/decisions/**` varsayılan olarak **semantic_review**'dır —
    komple hariç yapılmadı, çünkü ADR'de salt olgu düzeltmesi (bkz.
-   §Sınıflandırma ölçütü) standing'e girebilmelidir; ayrımı yol değil insan
-   yapar. Genel `docs/` allowlist'i **kaldırıldı**: isim listesinden kaçan yeni
-   bir governance veya veri sınırı belgesi eligible olamaz. Hariç kuralı (önek, dosya,
+   §Sınıflandırma ölçütü) standing'e girebilmelidir; ayrımı yol değil semantik
+   değerlendirme yapar. Genel `docs/` allowlist'i **kaldırıldı**: isim
+   listesinden kaçan yeni bir governance veya veri sınırı belgesi eligible olamaz.
+
+   **`semantic_review` kalıcı yasak değildir; karar verilmemiş durumdur.**
+   Yol sinyali yetmediğinde olgu/norm değerlendirmesi yapılır ve sonuç
+   **o anki head SHA'ya bağlı bir attestation** olarak taşınır:
+
+   ```
+   python -m standing_merge.classify <paths> \
+       --head-sha <head> --attest factual|normative --attest-sha <head>
+   ```
+
+   | Attestation | Sonuç |
+   |-------------|-------|
+   | `factual` (SHA eşleşir) | `eligible` — standing hattı açılır |
+   | `normative` | `excluded` — açık insan onayı gerekir |
+   | yok, bayat SHA, veya tanınmayan değer | `semantic_review` kalır (fail-closed) |
+
+   Attestation **hard-exclusion'ı terfi ettiremez**: ADR-029 ne söylenirse
+   söylensin `excluded` kalır; listelenmeyen yol da öyle. Attestation head
+   SHA'ya bağlıdır ve sonraki head'e **taşınmaz** — ADR-027'nin SHA kuralıyla
+   aynı ilke.
+
+   `standing-class` CheckRun'ı attestation'sız çalışır; yalnız **yol sınıfını**
+   raporlar. Kırmızı + `excluded` = standing yasak. Kırmızı + `semantic_review`
+   = standing için önce attestation gerekir. Hariç kuralı (önek, dosya,
    yol jetonu: security/privacy/permission/secret/credential/payment/deploy/
    governance/policy/vault/…) **veya listelenmeyen yol** veya boş diff →
    fail (fail-closed). `eligible` yalnız allowlist önekine düşen ve hariç

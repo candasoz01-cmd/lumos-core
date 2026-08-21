@@ -6,6 +6,7 @@ from standing_merge.classify import (
     CLASS_ELIGIBLE,
     CLASS_EXCLUDED,
     CLASS_SEMANTIC,
+    SemanticAttestation,
     PR777_PATHS,
     classify_paths,
     main,
@@ -203,3 +204,84 @@ def test_semantic_wins_over_eligible() -> None:
 
 def test_cli_exits_three_when_semantic_review() -> None:
     assert main(["docs/decisions/ADR-023-lumos-representative-avatar.md"]) == 3
+
+
+# --- semantic_review → standing geçişi (attestation, head SHA'ya bağlı) ---
+
+ADR023 = "docs/decisions/ADR-023-lumos-representative-avatar.md"
+ADR029 = "docs/decisions/ADR-029-dashboard-health-earned-responsibility.md"
+HEAD = "89bc0651f0a1b2c3d4e5f60718293a4b5c6d7e8f"
+
+
+def _attest(verdict: str, sha: str = HEAD) -> SemanticAttestation:
+    return SemanticAttestation(verdict=verdict, head_sha=sha, evaluated_by="test")
+
+
+def test_factual_attestation_promotes_adr023_to_standing_candidate() -> None:
+    """#786 ilkesi yürütmede de çalışıyor: salt olgu düzeltmesi standing'e girer.
+    semantic_review kalıcı bir yasak değil, karar verilmemiş durumdur."""
+    verdict = classify_paths(
+        [ADR023], attestation=_attest("factual"), head_sha=HEAD
+    )
+    assert verdict["class"] == CLASS_ELIGIBLE
+    assert verdict["standing_merge"] is True
+    assert verdict["attestation"] == "factual"
+
+
+def test_normative_attestation_demotes_adr023_to_excluded() -> None:
+    """#784 türü yetki normu: semantik değerlendirme norm derse standing kapanır."""
+    verdict = classify_paths(
+        [ADR023], attestation=_attest("normative"), head_sha=HEAD
+    )
+    assert verdict["class"] == CLASS_EXCLUDED
+    assert verdict["human_merge_required"] is True
+
+
+def test_attestation_bound_to_another_sha_does_not_carry_over() -> None:
+    verdict = classify_paths(
+        [ADR023], attestation=_attest("factual", "deadbeef"), head_sha=HEAD
+    )
+    assert verdict["class"] == CLASS_SEMANTIC
+    assert verdict["attestation"] == "stale"
+    assert "attestation_sha_mismatch" in verdict["reasons"]
+
+
+def test_attestation_without_head_sha_is_fail_closed() -> None:
+    verdict = classify_paths([ADR023], attestation=_attest("factual"), head_sha=None)
+    assert verdict["class"] == CLASS_SEMANTIC
+
+
+def test_unknown_verdict_string_is_not_a_decision() -> None:
+    verdict = classify_paths([ADR023], attestation=_attest("maybe"), head_sha=HEAD)
+    assert verdict["class"] == CLASS_SEMANTIC
+    assert verdict["attestation"] == "unknown"
+
+
+def test_attestation_cannot_promote_hard_exclusion_adr029() -> None:
+    """ADR-029 governance: hiçbir semantik değerlendirme onu standing'e sokamaz."""
+    verdict = classify_paths(
+        [ADR029], attestation=_attest("factual"), head_sha=HEAD
+    )
+    assert verdict["class"] == CLASS_EXCLUDED
+    assert verdict["attestation"] == "ignored_hard_exclusion"
+
+
+def test_attestation_cannot_promote_unlisted_path() -> None:
+    verdict = classify_paths(
+        ["some/unknown/path.py"], attestation=_attest("factual"), head_sha=HEAD
+    )
+    assert verdict["class"] == CLASS_EXCLUDED
+
+
+def test_cli_attestation_promotes_and_exits_zero() -> None:
+    assert (
+        main([ADR023, "--head-sha", HEAD, "--attest", "factual", "--attest-sha", HEAD])
+        == 0
+    )
+
+
+def test_cli_attestation_on_adr029_still_exits_two() -> None:
+    assert (
+        main([ADR029, "--head-sha", HEAD, "--attest", "factual", "--attest-sha", HEAD])
+        == 2
+    )
