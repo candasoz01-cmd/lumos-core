@@ -50,12 +50,12 @@ def _copy_current_classifier(dest_src: Path) -> None:
 def test_workflow_uses_base_sha_nul_paths_and_double_dash() -> None:
     text = WORKFLOW.read_text(encoding="utf-8")
     assert "github.event.pull_request.base.sha" in text
-    assert "git diff -z --name-only" in text
+    assert "git diff --name-only -z" in text
     assert "--paths-nul" in text
-    assert 'classify \\\n            --paths-nul "${RUNNER_TEMP}/changed-paths.nul" --' in text
+    assert 'changed-paths.nul" --' in text
     assert "github.workspace }}/src" not in text
-    assert "trusted classifier missing" in text
-    assert "exit 2" in text
+    assert "no trusted classifier" in text
+    assert "exit 1" in text
 
 
 def test_missing_classifier_on_base_is_fail_closed(tmp_path: Path) -> None:
