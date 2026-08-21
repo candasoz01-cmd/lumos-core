@@ -11,6 +11,8 @@
 
 Bu not, 2026-08-21 sohbetindeki **giriş/çıkış hesap verebilirliği** modelini mevcut Lumos katmanlarına oturtur ve X-Ray metaforunun eklediği iki aşamayı kaydeder. Yeni ajan, yeni orkestrasyon katmanı veya FAZ-1 özelliği **değildir**.
 
+Aynı gün erken paralel taslak (IEAL adı, repo eşlemesi daha uzun): [`ieal-ingress-egress-accountability-layer-2026-08-21.md`](ieal-ingress-egress-accountability-layer-2026-08-21.md). Adlandırma çelişirse **bu dosya** esas alınır (Constitution §2).
+
 ---
 
 ## 1. Kayıt edilen kullanıcı modeli
@@ -69,6 +71,10 @@ Lumos geçidi (ADR-012 C1 — tek dış kapı)
 
 Aşağıdakiler sohbetteki tarifi **tekrar etmez**; boşlukları kapatır.
 
+### 3.0 İki firewall — eylem ≠ veri akışı
+
+ADR-006 *eylem* sorar: bu adım yürüsün mü? X-Ray / IEG *veri akışı* sorar: bu bayt bu hedefe gidebilir mi? Köprüde `write` izinli olsa bile confidential içerik dış API'ye **ayrı permit** olmadan çıkamaz. `SECURITY_NEVER_AUTO` eylem için neyse, secret-sınıf egress için aynı sertlik önerilir: asla otomatik gönderme.
+
 ### 3.1 Farkın kaynağı (40 MB sorusu)
 
 Hacim farkı dört kovaya ayrılmadan «şüpheli» denmez:
@@ -92,7 +98,11 @@ Bu, 100/140 karşılaştırmasını **davranış sensöründen karar mekanizmas�
 - Egress, biletsiz hedefe **içerik temiz görünse bile** gitmez.
 - Vault yalnız `vault_ref` verir; ham secret ajan yüzeyine düşmez (SEC-010…013). Çıkışta vault parmak izi varsa ve bilette `vault_ref` yoksa → `unaccounted` secret.
 
-İçerik DLP tamamlayıcıdır; **asıl kapı yetki biletidir**. Robotics RSL-02'deki imzalı çıkış izninin ajan oturumuna indirgenmiş hâlidir.
+İçerik DLP tamamlayıcıdır; **asıl kapı yetki biletidir**. Robotics RSL-02'deki imzalı çıkış izninin ajan oturumuna indirgenmiş hâlidir. Kalıp mevcut `ConfirmationGrant` ailesindendir (TTL, `scope_hash`, ajan bağlamı dışında `.lumos/`); yeni orkestrasyon nesnesi değildir. `PermissionManager.acquire` bugün no-op — isim var, yetenek yok.
+
+**Sticky taint:** secret sınıfı TTL ile düşmez; insan açık deklasifikasyonu olmadan «bekle-sızdır» oyunu kapanmaz. Bilet ajan prompt'una yazılmaz (taklit edilir); geçit deftere bakar. Taint **oturumu değil veriyi** izler: belleğe yazılan özet gecikmeli egress'tir (ADR-008 risk #5).
+
+Çift defter: ingress **makbuz** + egress **izin**. Uzlaşmazsa kesilir. Ev, yeni motor değil; `evidence_continuity` fazları (`before` / `after` / `result`).
 
 ### 3.3 Taranacak yüzey HTTP değildir
 
@@ -101,7 +111,7 @@ Ajan sızıntısı çoğu zaman «POST /exfil» değildir:
 | Kanal | Neden X-Ray kapsamı |
 |-------|---------------------|
 | Model/provider prompt (chat, cyber, STT) | ADR-025 zaten amaç-ayrımı yapıyor; X-Ray aynı sınırı **malzeme** için tekrarlar |
-| Tool / MCP / köprü | `controlled_bridge` bugün yüzey bloklar; hacim+sınıf yok |
+| Tool / MCP / köprü | `controlled_bridge` yüzey blok + `MAX_READ_BYTES` / `MAX_WRITE_BYTES` proto-kota; hedef allowlist ve taint yok |
 | Git push, PR gövdesi, commit mesajı | Kaynak kod + secret klasik kaçış |
 | Panel yükleme, outbox, clipboard | Dosya v0.5 yüzeyi |
 | Sandbox dışı path yazımı | `write_interceptor` path korur, sınıf/provenance yazmaz |
@@ -121,7 +131,7 @@ Sızıntı yalnız çıkış değildir:
 - girişte vardı, çıkışta yok → sağlayıcıda / scratch'te kopya kalmış olabilir;
 - çıkışta var, girişte yok ve `generated` değil → hayali secret veya gerçek vault kaçışı; parmak izi karşılaştırması ayırır.
 
-Ledger dört fiili tutar: **getirdi / erişti / üretti / çıkardı**. Beşincisi isteğe bağlı: **bıraktı** (oturum sonu imha kanıtı).
+Ledger dört fiili tutar: **getirdi / erişti / üretti / çıkardı**. Beşincisi: **bıraktı** (residue). «Göndermedik» ≠ «çalınmadı» — scratch, sağlayıcı retention, journal, clipboard kopyası sonraki ajanın ingress'i olur.
 
 ### 3.6 Fail-closed matrisi
 
@@ -151,7 +161,9 @@ X-Ray küresel paket dump'ı değildir. Oturum + amaç (ADR-012 purpose boundary
 
 ### 3.10 Kota, allowlist, least privilege
 
-Hacim sensörü **kota**yı besler. Kota per-agent × per-destination × per-class'tır ve fail-closed'dur. Allowlist + least privilege + provenance + DLP + kota + anomali birlikte durur; hiçbiri tek başına «%100 engel» iddiası taşımaz.
+Hacim sensörü **kota**yı besler. Kota per-agent × per-destination × per-class'tır ve fail-closed'dur. `MAX_READ_BYTES` / `MAX_WRITE_BYTES` hedef-kör proto-kotadır; sınıf-bilinçli bütçeye büyür. Allowlist + least privilege + provenance + DLP + kota + anomali birlikte durur; hiçbiri tek başına «%100 engel» iddiası taşımaz.
+
+Lumos Cyber yüzeyi MB panosu değildir; oturum grafıdır: kim okudu → hangi taint → hangi hedef denendi → hangi karar.
 
 ---
 
@@ -162,7 +174,9 @@ Hacim sensörü **kota**yı besler. Kota per-agent × per-destination × per-cla
 | `write_interceptor` + `workspace_contract` | Path/sandbox guard | Egress yakalama kancası | Sınıf, taint, hacim yok |
 | `lumos_gate` / `controlled_bridge` | Niyet + yüzey blok | IEG karar tiplerinin alt kümesi | Malzeme soyağacı yok |
 | `guard_audit` + `evidence_continuity` | Append-only karar izi | Ledger'ın kardeşi; **aynı journal'a ham veri gömülmez** | Ingress makbuzu / fark kovası yok |
-| `profiles.py` `SECURITY_NEVER_AUTO` | Kritik adım yasağı | IEG deny ile hizalanır | Veri sınıfı boyutu yok |
+| `profiles.py` `SECURITY_NEVER_AUTO` | Kritik adım yasağı | Secret-sınıf egress için aynı sertlik (asla otomatik) | Veri sınıfı boyutu yok |
+| `ConfirmationGrant` | TTL, `scope_hash`, ajan dışı `.lumos/` | Taint bileti kalıbı | Veri sınıfı / dest allowlist yok |
+| `PermissionManager.acquire` | **no-op stub** | Bilet iskeleti | Yetenek yok |
 | ADR-006 PII kategorisi | Sözleşme | Egress DLP hedefi | Tespit kodu yok |
 | Sentinel (ADR-018) | Karar onaylı, runtime yok | Anomali raporu | Executor olamaz |
 | RSL-02 imzalı çıkış izni | Robot şartnamesi | Bilet modelinin kanıtı | Ajan oturumuna inmemiş |
@@ -226,6 +240,7 @@ Kabul cümlesi (ileride): «Ajan, biletinin olmadığı hedefe ve `unaccounted` 
 1. Ürün adı **Lumos X-Ray** olarak kilitlensin mi, yoksa yalnız metafor kalıp teknik ad **Ingress/Egress Guard** mı olsun?
 2. Provenance Ledger yeni journal mı, `evidence_continuity` şema uzantısı mı? (Öneri: kardeş journal; mevcut evidence görev mutasyonu içindir.)
 3. Karantina store public OSS'te stub mu, yoksa yalnız private katman mı?
+4. Secret taint sticky (TTL düşmez, insan deklasifikasyonu) anayasa-sertliğinde mi, yoksa TTL'li mi?
 
 ---
 
