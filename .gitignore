@@ -58,3 +58,7 @@ scripts/anchorusb/bin/
 
 # Personal Claude Code permission cache, not shared tooling.
 .claude/settings.local.json
+
+# Representative canlı prova çıktıları — runtime artifact, repoya girmez.
+prova*.jsonl
+prova.pid
