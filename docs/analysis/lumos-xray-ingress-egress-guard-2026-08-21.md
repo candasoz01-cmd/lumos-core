@@ -17,7 +17,7 @@ Aynı gün erken paralel taslak (IEAL adı): [`ieal-ingress-egress-accountabilit
 
 ## Kilitli yön (2026-08-21)
 
-Kullanıcı bu oturumda üç tasarımı **kilitledi** (Anayasa §2: en yeni açık kullanıcı kararı otoritedir). Aşağıdakiler fikir notunun çerçevesidir; ADR numarası **atanmaz**, FAZ-1 kodu **açılmaz**.
+Kullanıcı bu oturumda tasarımları **kilitledi** (Anayasa §2: en yeni açık kullanıcı kararı otoritedir). Aşağıdakiler fikir notunun çerçevesidir; ADR numarası **atanmaz**, FAZ-1 kodu **açılmaz**.
 
 - **Ürün adı Lumos X-Ray** / teknik katman **Ingress/Egress Guard**. Kullanıcı/ürün yüzü = X-Ray; mimari bileşen = Guard. Bu ayrım temiz tutulur.
 - **Provenance Ledger** `evidence_continuity` kardeşidir. Ayrı, ilgisiz bir journal değildir; görev-mutasyon evidence journal'ına gömülmez. Aynı aile (append-only, ham payload yok) ama semantik farklıdır: malzeme soyağacı ≠ görev mutasyonu.
@@ -25,6 +25,7 @@ Kullanıcı bu oturumda üç tasarımı **kilitledi** (Anayasa §2: en yeni aç�
 - **Beş fiil sırası kilitli** (opsiyonel değil): **girdi → erişti → bıraktı/kopyaladı → üretti → çıkarmaya çalıştı**
 - **Dört kova:** `accounted_from_ingress`, `generated`, `wrapping_overhead`, `unaccounted`
 - **`unaccounted != otomatik saldırı`.** Karar veri sınıfı ile birlikte verilir: `unaccounted` + confidential/secret + yetkisiz hedef = deny/quarantine
+- **Sticky taint B (2026-08-21).** `secret` ve `confidential` TTL ile düşmez. Permit TTL yalnız erişim/izin penceresini kapatır (fail-closed). Sınıf düşürme yalnız açık insan deklasifikasyonu. `internal` / `public` permit-penceresi. **classification ≠ authorization TTL.** A ve C elendi (§8.4).
 - **Katman haritası:**
   - Lumos X-Ray = ürün yüzü
   - Ingress/Egress Guard = enforcement
@@ -125,7 +126,7 @@ Bu, 100/140 karşılaştırmasını **davranış sensöründen karar mekanizmas�
 
 İçerik DLP tamamlayıcıdır; **asıl kapı yetki biletidir**. Robotics RSL-02'deki imzalı çıkış izninin ajan oturumuna indirgenmiş hâlidir. Kalıp mevcut `ConfirmationGrant` ailesindendir (TTL, `scope_hash`, ajan bağlamı dışında `.lumos/`); yeni orkestrasyon nesnesi değildir. `PermissionManager.acquire` bugün no-op — isim var, yetenek yok.
 
-**Sticky taint (oy pusulası açık — §8.4):** A/B/C henüz kilitli değil; kullanıcı tek harfle oy verir. Bilet ajan prompt'una yazılmaz (taklit edilir); geçit deftere bakar. Taint **oturumu değil veriyi** izler: belleğe yazılan özet gecikmeli egress'tir (ADR-008 risk #5). Bilet TTL'si varsayılan okumada **izin penceresidir**, sınıf düşürme değil (A/B bunu korur; C sınıfı da düşürür).
+**Sticky taint (KİLİTLİ B — §8.4, 2026-08-21):** `secret` ve `confidential` TTL ile düşmez; sınıf düşürme yalnız açık insan deklasifikasyonu. Permit TTL yalnız erişim/izin penceresini kapatır (fail-closed). `internal` / `public` permit-penceresi. **classification ≠ authorization TTL.** Bilet ajan prompt'una yazılmaz (taklit edilir); geçit deftere bakar. Taint **oturumu değil veriyi** izler: belleğe yazılan özet gecikmeli egress'tir (ADR-008 risk #5).
 
 Çift defter: ingress **makbuz** + egress **izin**. Uzlaşmazsa kesilir. Ev, yeni motor değil; `evidence_continuity` **kardeşi** (görev-mutasyon journal'ına gömülmez).
 
@@ -272,38 +273,46 @@ Kabul cümlesi (ileride): «Ajan, biletinin olmadığı hedefe **gönderemez**; 
 
 ---
 
-## 8. Açık sorular (kullanıcı hakemliği)
+## 8. Kullanıcı hakemliği (2026-08-21 kilitler)
+
+Bu turda açık pusula kalmadı. Aşağıdakiler kilitlidir; merdiven **FİKİR**; kod yok.
 
 1. **KİLİTLİ (2026-08-21).** Ürün adı **Lumos X-Ray**; teknik katman **Ingress/Egress Guard**. Kullanıcı/ürün yüzü ile mimari bileşen ayrı tutulur. Registry §A kaydı ayrı (FAZ-1 sonrası / vitrin).
 2. **KİLİTLİ (2026-08-21).** Provenance Ledger, `evidence_continuity` **kardeşidir**. Ayrı ilgisiz journal değildir; görev-mutasyon evidence journal'ına gömülmez. Aynı aile (append-only, ham payload yok), farklı semantik (malzeme soyağacı ≠ görev mutasyonu).
 3. **KİLİTLİ (2026-08-21).** Karantina **private katmandadır**. Public OSS: yalnız sözleşme/stub (arayüz, olay şeması, test fikstürü, sahte karar motoru).
+4. **KİLİTLİ B (2026-08-21).** Sticky taint: `secret` ve `confidential` TTL ile düşmez. Permit TTL yalnız izin penceresini kapatır (fail-closed). Sınıf düşürme yalnız açık insan deklasifikasyonu. `internal` / `public` permit-penceresi. **classification ≠ authorization TTL.** A ve C elendi.
 
-### 8.4 Sticky taint — oy pusulası (A / B / C)
+### 8.4 Sticky taint — **KİLİTLİ B** (2026-08-21)
 
-**Durum: AÇIK.** Ajan kilitlemez. Tek harf yeter. Cevap gelince kilit §8.4'e yazılır; bu tur FİKİR kalır, kod yok.
+**Durum: KİLİTLİ B.** Anayasa §2, kullanıcı kararı 2026-08-21. Ajan kilitlemez; kilit kullanıcı harfidir. Merdiven **FİKİR** kalır; kod yok.
 
-Hatırlatma (oydan bağımsız, zaten kilitli çerçeve):
+**classification ≠ authorization TTL.** TTL yetkiyi (erişim/izin penceresini) kapatır; sınıflandırmayı düşürmez. Bu `secret` için doğruysa `confidential` için de doğrudur.
 
-- Bilet TTL = **izin penceresi**, sınıf düşürme değil. Pencere kapanınca egress fail-closed kesilir.
+Kilit:
+
+- Permit TTL pencereyi **fail-closed** kapatır (egress kesilir).
+- Sınıf hiç düşmez; düşürme yalnız açık insan deklasifikasyonuyla.
+- `secret` **ve** `confidential` sticky: TTL ile düşmez.
+- `internal` / `public` yalnız permit-penceresi (sınıfa TTL yapıştırılmaz).
+
+Elendi:
+
+- **A** — `confidential` TTL ile gevşeyebilir; `secret`'a uygulanan kural `confidential`'da delik bırakır.
+- **C** — ajan TTL bekleyip aynı veriyi düşük sınıfta çıkarabilir (bekle-sonra-exfil).
+
+Hatırlatma (önceki kilitler durur):
+
 - Taint **veriyi** izler, oturumu değil. Belleğe yazılan özet gecikmeli egress'tir (ADR-008 risk #5).
-- `unaccounted != otomatik saldırı` **kilitli durur**; bu pusula onu açmaz.
-
-| Harf | Ad | Ne olur | Ne olmaz |
-|------|----|---------|----------|
-| **A** | Sticky secret *(notun önerisi)* | `secret` TTL ile düşmez; yalnız insan deklasifikasyonu. Permit TTL hâlâ egress penceresini kapatır (fail-closed). `SECURITY_NEVER_AUTO` / Anayasa §11 ile hizalı. | `confidential` / `internal` / `public` bu maddede sticky olmaz. |
-| **B** | Sticky classified | A + `confidential` da TTL ile düşmez. `internal` / `public` yalnız permit-penceresi. | `internal`/`public` sınıfa TTL yapıştırılmaz. |
-| **C** | Sınıf da TTL | TTL bitince taint/sınıf düşer. `ConfirmationGrant` zihin modeline daha yakın. | Risk: bekle-sonra-exfil — türetilmiş içerik yetkisiz hedefe, sınıf düşmüş görünüp çıkar. |
-
-Cevap: **A**, **B** veya **C**.
+- `unaccounted != otomatik saldırı` **kilitli durur**; bu kilit onu açmaz.
 
 ---
 
 ## 9. Sonuç
 
-Üç tasarım kilitlendi; merdiven **FİKİR**; kod yok. Hacim tek başına yetmez; soyağacı ve ajan-dışı kapı gerekir. 40 MB dört kovaya ayrılır; `unaccounted` tek başına saldırı değildir.
+Ad, ledger, karantina ve sticky taint **B** kilitlendi; merdiven **FİKİR**; kod yok. Hacim tek başına yetmez; soyağacı ve ajan-dışı kapı gerekir. 40 MB dört kovaya ayrılır; `unaccounted` tek başına saldırı değildir.
 
-Karar gereken: sticky taint **A / B / C** (§8.4). Ajan oy kullanmaz. Harf gelince kilit yazılır.
+**classification ≠ authorization TTL.** Permit TTL pencereyi kapatır; sınıf düşmez. `secret` ve `confidential` sticky. A ve C elendi.
 
 X-Ray tarar. Guard durdurur. Ledger hesaplar. Sentinel raporlar. Ajan hiçbirini gevşetmez.
 
-Aday ADR numarası **atanmaz**. Koda dönüşmesi FAZ-1 sonrası, ayrı kullanıcı kararı ve Board claim ister. FAZ-1 sonrası dar dilim durur: ingress receipt + bilinmeyen hedefte fail-closed egress — **şimdi değil**. Sıradaki adım: kullanıcının A/B/C harfi.
+Aday ADR numarası **atanmaz**. Koda dönüşmesi FAZ-1 sonrası, ayrı kullanıcı kararı ve Board claim ister. FAZ-1 sonrası dar dilim durur: ingress receipt + bilinmeyen hedefte fail-closed egress — **şimdi değil**.
