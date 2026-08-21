@@ -44,6 +44,42 @@ elle kontrol edilir.
   geri düzeltilemez; gerekirse tekrar yayımlamak yerine tek bir
   **düzeltme/indeks yorumu** eklenip canonical kayıt orada belirtilir.
 
+## Kontrollü çekirdek yazıcısı ve üçlü kapı (tüm ajanlar)
+
+Hedef: [CONSTITUTION §11](docs/CONSTITUTION.md),
+[ADR-027](docs/decisions/ADR-027-controlled-core-writer.md).
+Normatif geçici rejim: [`CONTRIBUTING.md`](CONTRIBUTING.md) § Merge gate.
+
+Dış ajanlar (Claude, Cursor, Codex, …) çekirdeği **sahiplenmez**. Araştırır,
+önerir, patch üretir, test eder. `main`'e yazan taraf tek kontrollü Lumos
+writer'dır; o writer yokken geçici üç kapı yürür. Ajan kendini writer
+saymaz. Lumos (veya ajan) kendi güvenlik politikasını gevşetmez, yazma
+yetkisini genişletmez, onay mekanizmasını kaldırmaz.
+
+Hiçbir ajan bu üç kapıdan biri **pending** veya **fail** iken `main`'e
+merge etmez, merge'i hazır saymaz veya merge önerisini uygulamaz. Sayaçlar
+**o anki head SHA**'ya bağlıdır; head değişince sıfırlanır.
+
+1. **Zorunlu CI yeşil.** `.github/workflows/ci.yml` CheckRun'ları: `test`,
+   `rust`, `macos-app-build`, `ui-smoke`, `ui-e2e`.
+2. **Güvenlik incelemesi tamamlanmış ve temiz.** CheckRun adı:
+   `Cursor Security Agent: Security Reviewer` (GitHub app: `cursor`; canlı
+   doğrulama: `candasoz01-cmd/lumos-core#755` / `#762` · Checks API ·
+   2026-08-19T17:31Z). Check henüz yoksa, queued/in_progress ise veya
+   conclusion SUCCESS değilse **pending** sayılır. Cursor automation
+   tetikleri (Marketplace: **PR Opened** + **PR Pushed**) draft açılışı
+   kapsamaz; CheckRun gökten inmez. "Security reviewer henüz çalışıyor"
+   veya "hiç doğmadı" aynı pending'dir.
+3. **Açık insan onayı** — bugün kontrollü writer + yüksek-risk otoritenin
+   vekili. Kapı 1–2 aynı SHA'da SUCCESS olduktan sonra, **o SHA için**
+   istenir. Ajan/bot/App review yerine geçmez; "sanırım merge edilir"
+   nihai onay değildir.
+
+`layer1a.yml` ve `prod-smoke.yml` PR merge kapısı değildir. Branch protection
+`main`'de açıktır ama `required_status_checks` listesi boştur; fiziksel kilit
+Settings'te required check eklenene kadar yoktur. Ajan yine de bu sözleşmeyi
+uygular. Durum bildirimi bir sonraki bölümün formatını kullanır.
+
 ## PR / CI / Deploy doğrulama (tüm ajanlar)
 
 - PR, CI, merge veya deploy durumu bildirirken canlı doğrulama yapılır.
