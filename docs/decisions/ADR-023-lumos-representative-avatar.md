@@ -8,7 +8,7 @@
 | Alan | Değer |
 |------|-------|
 | Karar durumu | **Accepted (2026-08-11)** — kurucu onayı; üç açık sorunun cevabı ve çekirdek kabul ölçütüyle (bkz. §Kurucu kararları) |
-| Uygulama durumu | Uygulanmadı — kod yok; ilk dilim Faz 0 (Tercüman Modu), ayrı PR'larla |
+| Uygulama durumu | **Faz 0 (Tercüman Modu) uygulanmış durumda** — `src/representative/` main'de (13 kaynak, 11 `test_representative_*` testi); uygulama dilimleri #735, #737, #740, #741, #743, #744. Temsil/beyan kararı ayrıca #779. Canlı insan testleri yapıldı (#746). **Faz 0 çıkış kapısı henüz geçilmedi**; kabul kriterleri tamamlanmadı. Faz 1 ve Faz 2 devreye alınmadı. Meet avatar görsel dilimi ertelendi; #780 kapatıldı, merge edilmedi. |
 | Üst ilişki | [ADR-022](ADR-022-meta-write-authority-domains.md) AuthorityDomain modeli konuşma yetkisine genişletilir; [ADR-007](ADR-007-trust-engine-layer.md) Trust, [ADR-006](ADR-006-ai-firewall-guard-layer.md) Firewall sınırları geçerli; [ADR-008](ADR-008-agent-network-boundary.md) ile ilişki §Sınırlar'da |
 | Kapsam | Lumos'un, kurucu adına toplantılara katılan, çeviren, brifing dahilinde konuşan ve her şeyi denetim kaydına yazan temsilci modülü |
 
