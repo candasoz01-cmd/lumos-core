@@ -1,0 +1,35 @@
+#!/bin/sh
+set -eu
+
+usage() {
+    printf 'Kullanım: ./lumos-meet https://meet.google.com/xxx-xxxx-xxx\n'
+}
+
+if [ "$#" -ne 1 ]; then
+    usage >&2
+    exit 2
+fi
+
+if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    usage
+    exit 0
+fi
+
+case "$1" in
+    https://meet.google.com/*) ;;
+    *)
+        printf 'Hata: yalnız https://meet.google.com/ bağlantısı kabul edilir.\n' >&2
+        exit 2
+        ;;
+esac
+
+repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+python="$repo_dir/.venv/bin/python"
+
+if [ ! -x "$python" ]; then
+    printf 'Hata: Lumos sanal ortamı bulunamadı: %s\n' "$python" >&2
+    exit 1
+fi
+
+cd "$repo_dir"
+exec "$python" -m representative.bot_rig --meeting-url "$1"
