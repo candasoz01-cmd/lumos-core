@@ -67,6 +67,18 @@ def _binding(**overrides: str) -> ExecutionBinding:
     return ExecutionBinding(**data)
 
 
+def _write_grant_expires_at(
+    tmp_path: Path, grant_id: str, expires_at: object | None, *, drop: bool = False
+) -> None:
+    path = tmp_path / GRANTS_DIR / f"{grant_id}.json"
+    record = json.loads(path.read_text(encoding="utf-8"))
+    if drop:
+        record.pop("expires_at", None)
+    else:
+        record["expires_at"] = expires_at
+    path.write_text(json.dumps(record, indent=2), encoding="utf-8")
+
+
 def test_disabled_require_is_noop(tmp_path: Path) -> None:
     result = require_task_execution_grant("", _binding(), base_dir=tmp_path)
     assert result.allowed
@@ -223,15 +235,44 @@ def test_malformed_token_on_registered_task(tmp_path: Path) -> None:
 
 def test_expired_grant_medium_suspicion(tmp_path: Path) -> None:
     issued = accept_execution_task(_binding(), base_dir=tmp_path, ttl_seconds=1)
-    path = tmp_path / GRANTS_DIR / f"{issued.grant_id}.json"
-    record = json.loads(path.read_text(encoding="utf-8"))
     past = (datetime.now(timezone.utc) - timedelta(seconds=5)).replace(microsecond=0)
-    record["expires_at"] = past.isoformat().replace("+00:00", "Z")
-    path.write_text(json.dumps(record, indent=2), encoding="utf-8")
+    _write_grant_expires_at(
+        tmp_path, issued.grant_id, past.isoformat().replace("+00:00", "Z")
+    )
     result = consume_task_execution_grant(issued.token, _binding(), base_dir=tmp_path)
     assert not result.allowed
     assert result.reason == REASON_EXPIRED
     assert result.suspicion == SUSPICION_MEDIUM
+
+
+@pytest.mark.parametrize(
+    "expires_at,drop",
+    [
+        (None, True),
+        ("garbage", False),
+        (12345, False),
+        ("2020-01-01T00:00:00", False),
+        (None, False),
+    ],
+)
+def test_invalid_expires_at_is_fail_closed(
+    tmp_path: Path, expires_at: object | None, drop: bool
+) -> None:
+    issued = accept_execution_task(_binding(), base_dir=tmp_path)
+    _write_grant_expires_at(tmp_path, issued.grant_id, expires_at, drop=drop)
+    result = consume_task_execution_grant(issued.token, _binding(), base_dir=tmp_path)
+    assert not result.allowed
+    assert result.reason == REASON_MALFORMED
+
+
+def test_aware_future_z_expiry_still_allows(tmp_path: Path) -> None:
+    issued = accept_execution_task(_binding(), base_dir=tmp_path)
+    future = (datetime.now(timezone.utc) + timedelta(seconds=60)).replace(microsecond=0)
+    _write_grant_expires_at(
+        tmp_path, issued.grant_id, future.isoformat().replace("+00:00", "Z")
+    )
+    result = consume_task_execution_grant(issued.token, _binding(), base_dir=tmp_path)
+    assert result.allowed
 
 
 def test_never_auto_surface_cannot_be_granted(tmp_path: Path) -> None:

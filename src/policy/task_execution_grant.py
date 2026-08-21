@@ -206,12 +206,19 @@ def _now_iso() -> str:
 
 
 def _parse_iso(ts: str) -> datetime | None:
+    """Parse an aware ISO stamp. Naive, empty, or unparseable → None (fail-closed)."""
+    if not isinstance(ts, str) or not ts.strip():
+        return None
     try:
-        if ts.endswith("Z"):
-            ts = ts[:-1] + "+00:00"
-        return datetime.fromisoformat(ts)
+        raw = ts.strip()
+        if raw.endswith("Z"):
+            raw = raw[:-1] + "+00:00"
+        parsed = datetime.fromisoformat(raw)
     except (TypeError, ValueError):
         return None
+    if parsed.tzinfo is None:
+        return None
+    return parsed.astimezone(timezone.utc)
 
 
 def _grants_dir(base: Path | None) -> Path:
@@ -658,10 +665,13 @@ def _validate_record(
     if bool(record.get("consumed")):
         return REASON_USED, SUSPICION_HIGH
     expires_at = record.get("expires_at")
-    if isinstance(expires_at, str):
-        exp = _parse_iso(expires_at)
-        if exp is not None and _now() > exp:
-            return REASON_EXPIRED, SUSPICION_MEDIUM
+    if not isinstance(expires_at, str):
+        return REASON_MALFORMED, SUSPICION_HIGH
+    exp = _parse_iso(expires_at)
+    if exp is None:
+        return REASON_MALFORMED, SUSPICION_HIGH
+    if _now() > exp:
+        return REASON_EXPIRED, SUSPICION_MEDIUM
     return None
 
 
