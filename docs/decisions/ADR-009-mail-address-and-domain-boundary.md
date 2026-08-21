@@ -84,18 +84,24 @@ Kullanıcı veya şirketin **sahip olduğu ve kontrol ettiği** bir domain altı
 
 Domain sahipliği doğrulanmadan `@lumos.com` adresi **vaat edilmez** ve **kullanılmaz**.
 
-### welockai.com örneği (kontrol altındaki domain varsayımı)
+### welockai.com — doğrulanmış durum (2026-08-21)
 
-Domain **kullanıcı/şirket kontrolünde** olduğunda örnek adresler (*hipotez; henüz açılmamış*):
+Bu bölüm önceki hâlinde dört adresi *"hipotez; henüz açılmamış"* diye listeliyordu. Domain artık kontrol altında ve gerçek durum aşağıdadır. **Operasyonel ayrıntı (yönlendirme hedefleri, hesap sahipliği, kural yapılandırması) bu public repoda tutulmaz** — bkz. [`docs/mail-strategy-private-notice.md`](../mail-strategy-private-notice.md).
 
-| Örnek adres | Olası kullanım (taslak) |
-|-------------|-------------------------|
-| `lumos@welockai.com` | Genel / ürün iletişimi |
-| `support@welockai.com` | Destek kanalı |
-| `noreply@welockai.com` | Bildirim / otomatik yanıt (*gönderim yine onay + altyapı*) |
-| `degetlo@welockai.com` | Kişisel veya rol bazlı adres |
+| Adres | Durum | Not |
+|-------|-------|-----|
+| `admin@welockai.com` | **Tanımlı** | Cloud Identity kullanıcısı + gelen posta yönlendirmesi; posta kutusu değil |
+| `lumos@welockai.com` | **Tanımlı** | Yalnız gelen posta yönlendirmesi — posta kutusu değil |
+| `candasoz@welockai.com` | **Tanımlı** | Yalnız gelen posta yönlendirmesi — posta kutusu değil |
+| `support@welockai.com` | **Tanımlı değil** | Açılmadı |
+| `noreply@welockai.com` | **Tanımlı değil** | Gönderici kimliği olarak kullanılabilmesi için ayrıca outbound mail sağlayıcısı + SPF/DKIM/DMARC gerekir |
+| ~~`degetlo@welockai.com`~~ | **Kullanımda değil** | Önceki taslakta örnek olarak geçiyordu; tanımlı bir adres değil |
 
-Bu adresler **örnek ve tasarım hedefidir**; Lumos bugün bu hesapları **açmaz** ve bu domain üzerinde **DNS veya sağlayıcı işlemi yapmaz**.
+**Gelen ve giden asimetrisi.** Mevcut yapı yalnız gelen postayı yönlendirir. Domain adına outbound gönderim yeteneği kurulmuş değildir. Bu nedenle `noreply@` gibi gönderim amaçlı bir kimlik, ayrı bir outbound sağlayıcı ve gerekli DNS doğrulamaları kurulmadan kullanılamaz.
+
+Gönderim zinciri §Gerekli altyapı'da tanımlıdır ve **gelen posta yolunu değiştirmeden** kurulabilir; ikisi ayrı katmandır.
+
+Lumos bu adresleri **kendisi açmaz** ve bu domain üzerinde **DNS veya sağlayıcı işlemi yapmaz**; yukarıdaki yapı kurucu tarafından elle kurulmuştur.
 
 ---
 
