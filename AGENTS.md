@@ -29,6 +29,42 @@ Claim aracı henüz hedef dalda yoksa bootstrap rezervasyonu olarak aynı görev
 taşıyan uzak branch açılır; kod değişikliğinden önce açık PR, branch ve worktree çakışması
 elle kontrol edilir.
 
+## Ajan koordinasyonu ve maliyet sınırı
+
+- Her işin tek bir koordinatörü vardır. Yardımcı ajanlar birbirleriyle uzun diyalog
+  kurmaz; bulgularını koordinatöre teslim eder. Son karar, kapsam birleştirme ve kullanıcı
+  raporu koordinatörün sorumluluğudur.
+- Aynı anda en fazla iki yardımcı ajan kullanılır. Paralel çalışma yalnız birbirinden
+  bağımsız dosya kapsamları veya salt-okunur incelemeler için açılır. Tek hedefli ya da
+  sıralı işlerde yardımcı ajan kullanılmaz.
+- Yazma yetkisi açıkça verilmemiş yardımcı ajan salt-okunur çalışır. Farklı araçlar aynı
+  checkout'ta eşzamanlı yazamaz. Dosya sahipliği ve worktree/branch kuralları için
+  yukarıdaki claim düzeni geçerlidir; burada tekrarlanmaz.
+- Yardımcı ajana tüm konuşma geçmişi yerine aşağıdaki kısa iş paketi verilir. Talimatlar
+  ve ürün kuralları tekrarlanmaz; canonical belgelere bağlantı verilir.
+
+```text
+HEDEF:
+KAPSAM:
+DOKUNMA:
+KANIT / BAŞARI ÖLÇÜTÜ:
+ÇIKTI: En fazla 10 satır; bulgu, dosya, test, risk ve açık engel.
+```
+
+- Teslim raporu şu alanlarla sınırlıdır: `DURUM`, `DEĞİŞEN DOSYALAR`, `TEST KOMUTU VE
+  SONUCU`, `AÇIK RİSK`, `SONRAKİ ADIM`. Test çalıştırılmadıysa veya bağımlılık eksikse
+  bu açıkça yazılır; tahmini sonuç "geçti" olarak raporlanmaz.
+- Aynı repo taraması ve aynı test paketi yardımcı ajanlarda tekrarlanmaz. Koordinatör
+  ortak ön kontrolü bir kez yapar, görevleri daraltır ve final doğrulamasını bir kez
+  çalıştırır.
+- Yüksek muhakeme ve çoklu ajan yalnız güvenlik, mimari veya kanıtlanmış zor problemlerde
+  kullanılır. Rutin arama, biçimlendirme ve dar test işleri daha düşük maliyetli akışta
+  tutulur.
+- Commit, push, PR, merge ve deploy görev metninde açıkça verilmedikçe ajan tesliminin
+  parçası değildir. `main`'e yazma yetkisinin kendisi aşağıdaki *Kontrollü çekirdek
+  yazıcısı ve üçlü kapı* bölümünde tanımlıdır; bu madde yalnız yardımcı ajana devredilen
+  görevin varsayılan kapsamını sınırlar.
+
 ## Bulgu düzeltme ve otomasyon sınırları (cloud ajanları)
 
 - **Merge edilmemiş dala ait bulgular:** Bir PR'ın dalında olup henüz `main`'e
