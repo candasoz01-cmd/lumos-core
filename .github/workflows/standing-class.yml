@@ -7,32 +7,45 @@
 #                         re-run with a head-SHA-bound attestation
 #                           --head-sha <head> --attest factual|normative --attest-sha <head>
 #                         factual promotes to eligible, normative demotes to excluded.
-#                         This job runs WITHOUT an attestation on purpose: CI reports
-#                         the path class only; the olgu/norm judgement belongs to the
-#                         merge decision, not to CI.
+#                         CI never makes that judgement; it belongs to the merge decision.
 #   excluded (2)        → job red. Hard exclusion, unlisted path, dash-prefixed path,
-#                         or empty diff. Fail-closed.
+#                         empty diff, or a missing trusted classifier. Fail-closed.
 #
 # Red is a standing-merge prohibition, not a human-merge prohibition.
 # Do not add this job to GitHub required_status_checks: that would also block
 # human-approved excluded PRs. Physical lock needs a separate merge-authority model.
 #
-# TRUST ROOT (Security Reviewer HIGH, 2026-08-21): the classifier that judges a PR
-# must not come from that PR. Both the module and the rules file are extracted from
-# the pull request's fixed `base.sha` into a separate directory and run from there.
-# A PR can therefore not rewrite `src/standing_merge/**` to grade itself.
-# If the base commit has no classifier, this job FAILS CLOSED — it never falls back
-# to the PR tree. That is expected for the bootstrap PR that first introduces the
-# classifier; that PR is governance class and needs explicit human approval anyway.
+# ── TRUST ROOT (three layers, all Security Reviewer HIGH findings) ────────────
 #
-# Path transport is NUL-delimited (`git diff --name-only -z` / `--paths-nul`) and
-# passed after `--`, because a repository file may be named `--help` or
-# `--attest=factual` and may contain newlines.
+# 1. ORCHESTRATOR. `pull_request_target` runs the workflow definition from the
+#    BASE branch, not from the pull request. Under `pull_request`, a same-repo PR
+#    could rewrite this file to skip extraction and grade itself with its own
+#    tree, forging a green CheckRun while changing hard-excluded paths.
+#
+# 2. CLASSIFIER. `src/standing_merge/**` is materialized from the pull request's
+#    fixed `base.sha`, never from the PR tree. `main` is not read live: main can
+#    move after the check runs; `base.sha` cannot. Missing on base → fail-closed.
+#
+# 3. INPUT. The PR tree is NEVER checked out and its code is NEVER executed.
+#    Changed paths are obtained by fetching the PR head as data and running
+#    `git diff --name-only -z` (fetch + diff execute nothing). Paths are passed
+#    NUL-delimited via a file, so a name containing a newline cannot split into
+#    two paths, and a name like `--help` or `--attest=factual` cannot become a flag.
+#
+# `permissions: contents: read` and `persist-credentials: false`: this job needs
+# no write token and no secrets. pull_request_target would otherwise carry both.
+#
+# BOOTSTRAP: the PR that first introduces this workflow cannot prove itself —
+# the base commit has neither this workflow nor the classifier. Its own
+# standing-class stays red. That PR is governance class and is merged by
+# explicit human approval. Adversarial proof belongs to a separate follow-up PR
+# after the trusted version is on main.
+#
 # Incident: #777 / TD-20.
 name: standing-class
 
 on:
-  pull_request:
+  pull_request_target:
 
 permissions:
   contents: read
@@ -41,46 +54,45 @@ jobs:
   standing-class:
     runs-on: ubuntu-latest
     steps:
+      # Trusted base only. The PR head is never checked out.
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.base.sha }}
           fetch-depth: 0
+          persist-credentials: false
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Extract trusted classifier from base SHA
+      - name: Materialize trusted classifier from base SHA
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          TRUSTED_ROOT: ${{ runner.temp }}/trusted
         run: |
           set -euo pipefail
           test -n "$BASE_SHA"
-          git fetch --no-tags --depth=1 origin "$BASE_SHA"
-          for blob in \
-            src/standing_merge/__init__.py \
-            src/standing_merge/classify.py \
-            src/standing_merge/excluded_paths.json
-          do
-            if ! git cat-file -e "${BASE_SHA}:${blob}"; then
-              echo "::error::Base commit ${BASE_SHA} has no trusted classifier (${blob})."
-              echo "::error::Fail-closed: refusing to grade this PR with its own code."
-              exit 1
-            fi
-          done
-          rm -rf "${TRUSTED_ROOT}"
-          mkdir -p "${TRUSTED_ROOT}"
-          git archive "$BASE_SHA" src/standing_merge | tar -x -C "${TRUSTED_ROOT}"
-          echo "Trusted classifier extracted from ${BASE_SHA}"
+          rm -rf "${RUNNER_TEMP}/trusted"
+          python3 -m standing_merge.trusted_gate \
+            --repo . --base-sha "$BASE_SHA" --dest "${RUNNER_TEMP}/trusted"
 
-      - name: Classify changed paths
+      - name: Collect changed paths without executing PR content
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          TRUSTED_ROOT: ${{ runner.temp }}/trusted
+          PR_NUMBER: ${{ github.event.number }}
         run: |
           set -euo pipefail
-          git diff --name-only -z "${BASE_SHA}...HEAD" > "${RUNNER_TEMP}/changed-paths.nul"
-          cd "${TRUSTED_ROOT}"
-          PYTHONPATH="${TRUSTED_ROOT}/src" python3 -m standing_merge.classify \
+          # Fetch the PR head as DATA only. No checkout, no execution.
+          git fetch --no-tags origin \
+            "+refs/pull/${PR_NUMBER}/head:refs/remotes/pr/head"
+          git diff --name-only -z "${BASE_SHA}...refs/remotes/pr/head" \
+            > "${RUNNER_TEMP}/changed-paths.nul"
+          printf 'changed paths: %s\n' \
+            "$(tr -dc '\0' < "${RUNNER_TEMP}/changed-paths.nul" | wc -c | tr -d ' ')"
+
+      - name: Classify with trusted classifier
+        env:
+          PYTHONPATH: ${{ runner.temp }}/trusted/src
+        run: |
+          set -euo pipefail
+          python3 -m standing_merge.classify \
             --paths-nul "${RUNNER_TEMP}/changed-paths.nul" --

@@ -112,8 +112,9 @@ merge etmez, merge'i hazır saymaz veya merge önerisini uygulamaz. Sayaçlar
    nihai onay değildir.
 
 **Standing istisnası ([ADR-028](docs/decisions/ADR-028-standing-low-risk-merge-approval.md))
-sınıftan önce gelir.** CheckRun `standing-class` classifier'ı **PR
-checkout'tan çalıştırmaz**; `github.event.pull_request.base.sha`
+sınıftan önce gelir.** CheckRun `standing-class` **workflow'unu da** PR'dan
+almaz: `pull_request_target` ile base dalındaki tanım koşar, PR ağacı checkout
+edilmez ve kodu çalıştırılmaz. Classifier'ı da **PR checkout'tan çalıştırmaz**; `github.event.pull_request.base.sha`
 üzerindeki `src/standing_merge` ayrı dizine çıkarılır. Base'de yoksa
 fallback yoktur — fail-closed FAILURE. Yollar `git diff -z` ile
 NUL-delimited gider, çağrı `--` kullanır; `-` ile başlayan path excluded'dır.

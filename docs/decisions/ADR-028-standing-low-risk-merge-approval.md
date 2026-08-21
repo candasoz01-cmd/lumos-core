@@ -116,17 +116,31 @@ Merge yalnız **o anki head SHA** için:
    raporlar. Kırmızı + `excluded` = standing yasak. Kırmızı + `semantic_review`
    = standing için önce attestation gerekir.
 
-   **Güven kökü (2026-08-21, Security Reviewer HIGH):** Bir PR'ı sınıflandıran
-   kod o PR'dan gelemez. `standing-class`, classifier'ı ve kural dosyasını
+   **Güven kökü — üç katman (2026-08-21, Security Reviewer HIGH x3):**
+
+   | Katman | Kural |
+   |--------|-------|
+   | **Orkestratör** | Workflow tanımı **base dalından** çalışır (`pull_request_target`). Düz `pull_request` altında saldırgan PR, `standing-class.yml`'i classifier'ı hiç çağırmayacak şekilde yeniden yazıp kendine yeşil CheckRun üretebilirdi |
+   | **Sınıflandırıcı** | `src/standing_merge/**` PR'ın sabit `base.sha`'sından çıkarılır |
+   | **Girdi** | PR ağacı **checkout edilmez ve kodu çalıştırılmaz**. Değişen yollar PR head'i veri olarak fetch edilip `git diff --name-only -z` ile alınır ve NUL-delimited dosyayla geçilir |
+
+   Job `contents: read` ve `persist-credentials: false` ile koşar: yazma
+   token'ı ve secret gerekmez. `pull_request_target` aksi hâlde ikisini de taşır.
+
+   Bir PR'ı sınıflandıran kod o PR'dan gelemez. `standing-class`, classifier'ı ve kural dosyasını
    PR'ın **sabit `base.sha`** commit'inden ayrı bir dizine çıkarıp oradan
    çalıştırır; PR ağacındaki `src/standing_merge/**` kendi sınıfını
    belirleyemez. Base commit'te classifier yoksa **fail-closed FAILURE** verilir
    ve PR sürümüne **fallback yapılmaz**. `main` canlı okunmaz — kontrol
    çalıştıktan sonra `main` değişebilir, `base.sha` değişmez.
 
-   > Bootstrap istisnası: classifier'ı ilk getiren PR'ın kendi `standing-class`
-   > kontrolü bu nedenle kırmızı kalır. Kabul edilir; o PR zaten governance
-   > sınıfındadır ve açık insan onayıyla geçer.
+   > **Bootstrap gerçeği:** Bu mekanizmayı ilk getiren PR kendini kanıtlayamaz —
+   > base commit'te ne bu workflow ne de classifier vardır. `pull_request_target`
+   > base'deki tanımı çalıştırdığı için o PR'da `standing-class` ya hiç koşmaz ya
+   > da kırmızı kalır. Kabul edilir; o PR governance sınıfındadır ve **açık insan
+   > onayıyla** bootstrap edilir. Merge'den sonra **ayrı ve küçük bir adversarial
+   > doğrulama PR'ı** açılır: aynı diff içinde workflow'u değiştirmeye çalışan ve
+   > `src/security/...` dokunan bir değişikliğin sahte yeşil üretemediği kanıtlanır.
 
    **Yol taşıma:** değişen yollar NUL-delimited alınır (`git diff --name-only -z`)
    ve classifier'a `--` option terminator'ından sonra geçilir. Ek olarak `-` ile

@@ -432,7 +432,8 @@ def test_workflow_uses_base_sha_and_never_falls_back_to_pr_tree() -> None:
     # PR ağacındaki src asla PYTHONPATH olmaz
     assert "github.workspace }}/src" not in text
     # yollar NUL-delimited taşınır ve -- ile geçilir
-    assert "-z" in text
-    assert "--paths-nul" in text or "classify -- " in text
-    # base'de classifier yoksa fail-closed
-    assert "exit 1" in text or "exit 2" in text
+    assert "--name-only -z" in text
+    assert "--paths-nul" in text
+    assert 'changed-paths.nul" --' in text
+    # orkestratör de PR'dan gelmez
+    assert "pull_request_target:" in text
