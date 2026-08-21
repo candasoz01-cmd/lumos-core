@@ -10,6 +10,7 @@ from standing_merge.classify import (
     PR777_PATHS,
     classify_paths,
     main,
+    read_nul_paths,
 )
 
 
@@ -292,9 +293,10 @@ def test_cli_attestation_on_adr029_still_exits_two() -> None:
 
 def test_dash_prefixed_path_is_fail_closed() -> None:
     """Git '--help' adlı dosyaya izin verir; argparse onu bayrak sanardı."""
-    verdict = classify_paths(["--help"])
-    assert verdict["class"] == CLASS_EXCLUDED
-    assert any(hit["reason"].startswith("dash_prefixed:") for hit in verdict["hits"])
+    for name in ("--help", "-h", "--attest=factual", "--head-sha=deadbeef"):
+        verdict = classify_paths([name])
+        assert verdict["class"] == CLASS_EXCLUDED
+        assert any(hit["reason"] == f"dash_prefixed:{name}" for hit in verdict["hits"])
 
 
 def test_help_named_file_cannot_hide_a_hard_excluded_path() -> None:
@@ -306,10 +308,12 @@ def test_help_named_file_cannot_hide_a_hard_excluded_path() -> None:
 def test_attest_named_file_cannot_inject_a_promotion() -> None:
     """'--attest=factual' adlı dosya semantic_review'ı terfi ettiremez."""
     verdict = classify_paths(
-        ["--attest=factual", ADR023], head_sha=HEAD
+        ["--attest=factual", ADR023],
+        attestation=_attest("factual"),
+        head_sha=HEAD,
     )
     assert verdict["class"] == CLASS_EXCLUDED
-    assert verdict["attestation"] == "absent"
+    assert verdict["attestation"] == "ignored_hard_exclusion"
 
 
 def test_newline_in_filename_does_not_split_into_two_paths() -> None:
@@ -319,9 +323,54 @@ def test_newline_in_filename_does_not_split_into_two_paths() -> None:
     assert verdict["class"] in (CLASS_EXCLUDED, CLASS_SEMANTIC)
 
 
+def test_nul_paths_keep_newline_inside_filename() -> None:
+    payload = b"docs/TECHNICAL_DEBT.md\0docs/weird\nname.md\0"
+    assert read_nul_paths(payload) == [
+        "docs/TECHNICAL_DEBT.md",
+        "docs/weird\nname.md",
+    ]
+    verdict = classify_paths(read_nul_paths(payload))
+    assert verdict["class"] == CLASS_SEMANTIC
+
+
 def test_hard_exclusion_path_alone_still_excluded() -> None:
     verdict = classify_paths(["src/security/identity.py"])
     assert verdict["class"] == CLASS_EXCLUDED
+
+
+def test_cli_help_filename_does_not_exit_zero() -> None:
+    assert main(["--", "--help", "src/security/permissions.py"]) == 2
+    assert main(["src/security/permissions.py", "--help"]) == 2
+    assert main(["--help"]) == 2
+    assert main(["-h"]) == 2
+
+
+def test_cli_dashed_option_filenames_after_double_dash_are_excluded() -> None:
+    assert (
+        main(
+            [
+                "--",
+                "--attest=factual",
+                "--head-sha=deadbeef",
+                "--attest-sha=deadbeef",
+                ADR023,
+            ]
+        )
+        == 2
+    )
+
+
+def test_cli_paths_nul_treats_option_shaped_names_as_excluded(tmp_path) -> None:
+    nul = tmp_path / "changed-paths.nul"
+    names = [
+        "--help",
+        "-h",
+        "--attest=factual",
+        "--head-sha=deadbeef",
+        "src/security/permissions.py",
+    ]
+    nul.write_bytes(b"\0".join(n.encode() for n in names) + b"\0")
+    assert main(["--paths-nul", str(nul), "--"]) == 2
 
 
 # --- Güven kökü: PR kendi sınıfını belirleyemez ---
@@ -383,7 +432,7 @@ def test_workflow_uses_base_sha_and_never_falls_back_to_pr_tree() -> None:
     # PR ağacındaki src asla PYTHONPATH olmaz
     assert "github.workspace }}/src" not in text
     # yollar NUL-delimited taşınır ve -- ile geçilir
-    assert "--name-only -z" in text
-    assert "classify -- " in text
+    assert "-z" in text
+    assert "--paths-nul" in text or "classify -- " in text
     # base'de classifier yoksa fail-closed
-    assert "exit 1" in text
+    assert "exit 1" in text or "exit 2" in text

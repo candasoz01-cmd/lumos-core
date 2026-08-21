@@ -51,7 +51,6 @@ Exit codes (CLI): 0 eligible, 2 excluded, 3 semantic_review.
 
 from __future__ import annotations
 
-import argparse
 import json
 import re
 import sys
@@ -69,6 +68,14 @@ CLASS_SEMANTIC = "semantic_review"
 
 VERDICT_FACTUAL = "factual"
 VERDICT_NORMATIVE = "normative"
+
+_VALUE_FLAGS = {
+    "--head-sha": "head_sha",
+    "--attest": "attest",
+    "--attest-sha": "attest_sha",
+    "--attest-by": "attest_by",
+    "--paths-nul": "paths_nul",
+}
 
 
 @dataclass(frozen=True)
@@ -238,48 +245,102 @@ def _resolve_semantic(
     return CLASS_SEMANTIC, [*base, "attestation_verdict_unknown"], "unknown"
 
 
+def read_nul_paths(data: bytes) -> list[str]:
+    """Split a ``git diff -z --name-only`` payload. Newlines stay inside names."""
+    if not data:
+        return []
+    paths: list[str] = []
+    for part in data.split(b"\0"):
+        if not part:
+            continue
+        paths.append(part.decode("utf-8", errors="surrogateescape"))
+    return paths
+
+
+def read_nul_paths_from(source: str) -> list[str]:
+    raw = sys.stdin.buffer.read() if source == "-" else Path(source).read_bytes()
+    return read_nul_paths(raw)
+
+
+def parse_classify_argv(argv: list[str]) -> dict[str, Any]:
+    """Parse flags without argparse so dashed filenames cannot exit 0.
+
+    ``-h`` / ``--help`` are usage only when they are the entire argv.
+    After ``--``, every token is a path. Known value flags are accepted
+    only before ``--``.
+    """
+    parsed: dict[str, Any] = {
+        "paths": [],
+        "head_sha": "",
+        "attest": None,
+        "attest_sha": "",
+        "attest_by": "",
+        "paths_nul": None,
+        "help": False,
+    }
+    if argv == ["--help"] or argv == ["-h"]:
+        parsed["help"] = True
+        return parsed
+
+    if "--" in argv:
+        idx = argv.index("--")
+        option_tokens = argv[:idx]
+        path_tokens = list(argv[idx + 1 :])
+    else:
+        option_tokens = argv
+        path_tokens = []
+
+    i = 0
+    leftover: list[str] = []
+    while i < len(option_tokens):
+        tok = option_tokens[i]
+        if _flag_name(tok) in _VALUE_FLAGS:
+            key = _VALUE_FLAGS[_flag_name(tok)]
+            value, i = _flag_value(option_tokens, i)
+            parsed[key] = value
+            continue
+        leftover.append(tok)
+        i += 1
+    parsed["paths"] = leftover + path_tokens
+    return parsed
+
+
+def _flag_name(token: str) -> str:
+    if token.startswith("--") and "=" in token:
+        return token.split("=", 1)[0]
+    return token
+
+
+def _flag_value(tokens: list[str], index: int) -> tuple[str, int]:
+    token = tokens[index]
+    if token.startswith("--") and "=" in token:
+        return token.split("=", 1)[1], index + 1
+    if index + 1 >= len(tokens):
+        return "", index + 1
+    return tokens[index + 1], index + 2
+
+
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="python -m standing_merge.classify")
-    parser.add_argument(
-        "paths",
-        nargs="*",
-        help="Changed paths. Empty = excluded (fail-closed).",
-    )
-    parser.add_argument(
-        "--head-sha",
-        default="",
-        help="Head SHA being classified. Required for --attest to apply.",
-    )
-    parser.add_argument(
-        "--attest",
-        choices=(VERDICT_FACTUAL, VERDICT_NORMATIVE),
-        default=None,
-        help=(
-            "Olgu/norm judgement for semantic_review paths. "
-            "factual promotes to eligible; normative demotes to excluded. "
-            "Ignored for hard-exclusion hits. Requires --attest-sha."
-        ),
-    )
-    parser.add_argument(
-        "--attest-sha",
-        default="",
-        help="Head SHA the attestation is bound to. Must equal --head-sha.",
-    )
-    parser.add_argument(
-        "--attest-by",
-        default="",
-        help="Who or what produced the judgement (recorded, not trusted).",
-    )
-    args = parser.parse_args(argv)
+    argv = list(sys.argv[1:] if argv is None else argv)
+    parsed = parse_classify_argv(argv)
+    if parsed["help"]:
+        sys.stderr.write(
+            "usage: python -m standing_merge.classify [--paths-nul FILE] -- [PATH ...]\n"
+            "Dashed path names are excluded. Help is not an eligible verdict.\n"
+        )
+        return 2
+    paths = list(parsed["paths"])
+    if parsed["paths_nul"]:
+        paths.extend(read_nul_paths_from(str(parsed["paths_nul"])))
     attestation = None
-    if args.attest is not None:
+    if parsed["attest"] is not None:
         attestation = SemanticAttestation(
-            verdict=args.attest,
-            head_sha=args.attest_sha,
-            evaluated_by=args.attest_by,
+            verdict=str(parsed["attest"]),
+            head_sha=str(parsed["attest_sha"] or ""),
+            evaluated_by=str(parsed["attest_by"] or ""),
         )
     verdict = classify_paths(
-        args.paths, attestation=attestation, head_sha=args.head_sha
+        paths, attestation=attestation, head_sha=str(parsed["head_sha"] or "")
     )
     sys.stdout.write(json.dumps(verdict, ensure_ascii=False, indent=2) + "\n")
     standing_class = str(verdict["class"])
