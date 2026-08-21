@@ -285,3 +285,105 @@ def test_cli_attestation_on_adr029_still_exits_two() -> None:
         main([ADR029, "--head-sha", HEAD, "--attest", "factual", "--attest-sha", HEAD])
         == 2
     )
+
+
+# --- Adversarial: dosya adı CLI bayrağı gibi görünemez (Security Reviewer HIGH) ---
+
+
+def test_dash_prefixed_path_is_fail_closed() -> None:
+    """Git '--help' adlı dosyaya izin verir; argparse onu bayrak sanardı."""
+    verdict = classify_paths(["--help"])
+    assert verdict["class"] == CLASS_EXCLUDED
+    assert any(hit["reason"].startswith("dash_prefixed:") for hit in verdict["hits"])
+
+
+def test_help_named_file_cannot_hide_a_hard_excluded_path() -> None:
+    """Asıl saldırı: '--help' dosyasıyla aynı diff'te src/security/ değiştirmek."""
+    verdict = classify_paths(["--help", "src/security/identity.py"])
+    assert verdict["class"] == CLASS_EXCLUDED
+
+
+def test_attest_named_file_cannot_inject_a_promotion() -> None:
+    """'--attest=factual' adlı dosya semantic_review'ı terfi ettiremez."""
+    verdict = classify_paths(
+        ["--attest=factual", ADR023], head_sha=HEAD
+    )
+    assert verdict["class"] == CLASS_EXCLUDED
+    assert verdict["attestation"] == "absent"
+
+
+def test_newline_in_filename_does_not_split_into_two_paths() -> None:
+    """NUL-delimited taşıma olmadan bu ad iki yola bölünürdü."""
+    verdict = classify_paths(["docs/evil\nsrc/security/identity.py"])
+    assert len(verdict["paths"]) == 1
+    assert verdict["class"] in (CLASS_EXCLUDED, CLASS_SEMANTIC)
+
+
+def test_hard_exclusion_path_alone_still_excluded() -> None:
+    verdict = classify_paths(["src/security/identity.py"])
+    assert verdict["class"] == CLASS_EXCLUDED
+
+
+# --- Güven kökü: PR kendi sınıfını belirleyemez ---
+
+
+TAMPERED_RULES = {
+    "schema": "tampered",
+    "exclude_prefixes": [],
+    "exclude_files": [],
+    "exclude_tokens": [],
+    "semantic_prefixes": [],
+    "allow_prefixes": [""],
+    "allow_files": [],
+}
+
+ATTACK_DIFF = [
+    "src/standing_merge/classify.py",
+    "src/standing_merge/excluded_paths.json",
+    "src/security/identity.py",
+]
+
+
+def test_tampered_rules_would_pass_the_attack_diff() -> None:
+    """Saldırının neye benzediğini kayda geçirir: PR kendi kuralını gevşetirse
+    kendi diff'ini eligible ilan eder."""
+    verdict = classify_paths(ATTACK_DIFF, rules=TAMPERED_RULES)
+    assert verdict["class"] == CLASS_ELIGIBLE
+
+
+def test_trusted_rules_reject_the_same_attack_diff() -> None:
+    """Güvenilir (base commit) kural dosyası aynı diff'i excluded verir.
+    Workflow classifier'ı PR ağacından değil base.sha'dan çalıştırdığı için
+    geçerli olan bu sonuçtur."""
+    verdict = classify_paths(ATTACK_DIFF)
+    assert verdict["class"] == CLASS_EXCLUDED
+    reasons = " ".join(verdict["reasons"])
+    assert "src/standing_merge/" in reasons
+    assert "src/security/" in reasons
+
+
+def test_classifier_source_is_itself_hard_excluded() -> None:
+    """src/standing_merge/** hard-exclusion'da: sınıflandırıcıya dokunan PR
+    hiçbir zaman standing hattına giremez."""
+    verdict = classify_paths(["src/standing_merge/classify.py"])
+    assert verdict["class"] == CLASS_EXCLUDED
+
+
+# --- Workflow sözleşmesi: güven kökü yapılandırmada da sabit ---
+
+
+def test_workflow_uses_base_sha_and_never_falls_back_to_pr_tree() -> None:
+    from pathlib import Path
+
+    text = (
+        Path(__file__).resolve().parents[1]
+        / ".github/workflows/standing-class.yml"
+    ).read_text(encoding="utf-8")
+    assert "github.event.pull_request.base.sha" in text
+    # PR ağacındaki src asla PYTHONPATH olmaz
+    assert "github.workspace }}/src" not in text
+    # yollar NUL-delimited taşınır ve -- ile geçilir
+    assert "--name-only -z" in text
+    assert "classify -- " in text
+    # base'de classifier yoksa fail-closed
+    assert "exit 1" in text

@@ -125,7 +125,10 @@ standing merge yok, kapı 3 durur. CheckRun `standing-class` hariçte fail olur:
 standing yasağıdır, insan merge yasağı değil. Bu CheckRun GitHub required
 check **yapılmaz**; o, insan onaylı hariç PR’ı da fiziksel kilitler.
 Fiziksel kilit ayrı `merge-authority` modeli ister. PR gövdesindeki
-“standing hattı yok” cümlesi tek başına otorite değildir. Listelenmeyen
+“standing hattı yok” cümlesi tek başına otorite değildir. `standing-class` classifier'ı PR ağacından değil PR'ın sabit `base.sha`
+commit'inden çalışır; base'de classifier yoksa fail-closed FAILURE, PR
+sürümüne fallback yok. Yollar NUL-delimited taşınır, `--` sonrası geçilir;
+`-` ile başlayan yol excluded. Listelenmeyen
 yol `eligible` değildir; `docs/` altındaki genel bir belge de değildir
 (semantic_review'a düşer). `docs/` altında security/privacy/permission adlı
 dosya da hariçtir. Canlı ihlal: `#777` / [TD-20](docs/TECHNICAL_DEBT.md).

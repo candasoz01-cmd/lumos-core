@@ -109,7 +109,25 @@ Merge yalnız **o anki head SHA** için:
 
    `standing-class` CheckRun'ı attestation'sız çalışır; yalnız **yol sınıfını**
    raporlar. Kırmızı + `excluded` = standing yasak. Kırmızı + `semantic_review`
-   = standing için önce attestation gerekir. Hariç kuralı (önek, dosya,
+   = standing için önce attestation gerekir.
+
+   **Güven kökü (2026-08-21, Security Reviewer HIGH):** Bir PR'ı sınıflandıran
+   kod o PR'dan gelemez. `standing-class`, classifier'ı ve kural dosyasını
+   PR'ın **sabit `base.sha`** commit'inden ayrı bir dizine çıkarıp oradan
+   çalıştırır; PR ağacındaki `src/standing_merge/**` kendi sınıfını
+   belirleyemez. Base commit'te classifier yoksa **fail-closed FAILURE** verilir
+   ve PR sürümüne **fallback yapılmaz**. `main` canlı okunmaz — kontrol
+   çalıştıktan sonra `main` değişebilir, `base.sha` değişmez.
+
+   > Bootstrap istisnası: classifier'ı ilk getiren PR'ın kendi `standing-class`
+   > kontrolü bu nedenle kırmızı kalır. Kabul edilir; o PR zaten governance
+   > sınıfındadır ve açık insan onayıyla geçer.
+
+   **Yol taşıma:** değişen yollar NUL-delimited alınır (`git diff --name-only -z`)
+   ve classifier'a `--` option terminator'ından sonra geçilir. Ek olarak `-` ile
+   başlayan her yol fail-closed `excluded` sayılır. Gerekçe: Git dosya adları
+   `--help` veya `--attest=factual` olabilir ve newline içerebilir; bunlar
+   argparse'a bayrak gibi geçerse sahte yeşil üretir. Hariç kuralı (önek, dosya,
    yol jetonu: security/privacy/permission/secret/credential/payment/deploy/
    governance/policy/vault/…) **veya listelenmeyen yol** veya boş diff →
    fail (fail-closed). `eligible` yalnız allowlist önekine düşen ve hariç

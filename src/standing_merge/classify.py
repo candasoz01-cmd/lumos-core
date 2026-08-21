@@ -35,6 +35,16 @@ semantic_review. Name-based tokens are defence in depth, not the mechanism.
 PR body is not authority. Only the changed path list plus a SHA-bound
 attestation are.
 
+Path inputs are hostile by default: a repository file may be named ``--help``
+or ``--attest=factual`` and may contain newlines. Callers must pass paths
+after an ``--`` option terminator and transport them NUL-delimited; this
+module additionally rejects any path starting with ``-`` (fail-closed).
+
+The classifier that decides a PR must not come from that PR. See the
+``standing-class`` workflow: it extracts this module from the pull request's
+fixed ``base.sha`` and refuses to run (fail-closed) when the base commit has
+no classifier. It never falls back to the PR tree.
+
 Exit codes (CLI): 0 eligible, 2 excluded, 3 semantic_review.
 ``3`` means "not yet decided — attest first", not "forbidden".
 """
@@ -143,6 +153,12 @@ def classify_paths(
     unknown: list[str] = []
 
     for item in normalized:
+        # 0. A repo path must never look like a CLI option. Git allows file
+        #    names starting with "-" (and newlines); argparse would otherwise
+        #    read them as flags. Fail-closed before any other rule.
+        if item.startswith("-"):
+            excluded_hits.append({"path": item, "reason": f"dash_prefixed:{item}"})
+            continue
         # 1. Hard exclusion wins over everything.
         excluded = _matches(item, exclude_files, exclude_prefixes, exclude_tokens)
         if excluded:
