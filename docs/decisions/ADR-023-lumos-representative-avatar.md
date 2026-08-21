@@ -68,6 +68,55 @@ kullanıcıya görünür ürünleşmesidir:
 - E sınıfı, kurucunun koyduğu dürüstlük sınırının modeldeki karşılığıdır;
   hiçbir alan tanımı E sınıfını A'ya indiremez.
 
+## Temsil yetki sınırı (Representative authority boundary)
+
+**Karar tarihi:** 2026-08-20 · **Kaynak:** #779 kapı onayı, merge `884fe1e`
+
+**Capability implementation does not imply authority grant.**
+Bir yeteneğin kodda çalışıyor olması, o yetkinin verildiği anlamına gelmez.
+
+"Representative" bu üründe **toplantıya katılım ve iletişim rolünü** ifade eder.
+Şunları **vermez**:
+
+| Vermediği yetki |
+| --- |
+| Karar verme |
+| Fiyat / para taahhüdü |
+| Hukuki temsil |
+| Ortaklık veya şart kabulü |
+| Takvim taahhüdü |
+| Gizli bilgiyi açıklama |
+
+Bu liste yukarıdaki **E — Eskalasyon zorunlu** sınıfıyla aynı kapsamdır:
+E asla otonom değildir.
+
+### Bugünkü durum
+
+| Sınıf | Durum |
+| --- | --- |
+| **T — Tercüme** | **Uygulanmış sınır.** Bugün fiilen yürürlükte |
+| **A — Anlatım** | Genişletme; ayrı insan kararı ister |
+| **E — Eskalasyon** | Tanımlı; otonom yetki vermez |
+
+**T/A/E tablosu "öneri — kurucu onayı gerekir" statüsünden otomatik çıkmış
+sayılmaz.** Bu bölümün eklenmesi o tabloyu onaylamaz; yalnız bugün uygulanan
+sınırı kalıcılaştırır.
+
+### İfşa metninin rolü
+
+#779'daki sesli beyan bu sınırı **ifade eder**; sınırı **genişletmez**. Metnin
+"authorized AI representative" demesi, yukarıdaki yetkilerin verildiği anlamına
+gelmez — cümle aynı nefeste rolü daraltır: *"I will interpret in this meeting."*
+
+Disclosure metni değişirse yetki değişmez; yetki ancak **açık insan kararı ve
+ilgili yönetişim kaydının güncellenmesiyle** değişir.
+
+### Uygulanmış örnek
+
+#780 (Meet avatarı) teknik olarak çalışır durumdaydı — testleri yeşil, güvenlik
+incelemesi temiz. **Yine de kapatıldı**, çünkü görsel katman kapsam kararı
+verilmemişti. Yetenek ≠ yetki ilkesinin ilk somut uygulaması budur.
+
 ## İfşa ilkesi (pazarlıksız)
 
 1. Temsilci her toplantıya kendini tanıtarak girer: yapay zekâ olduğu, kimi
