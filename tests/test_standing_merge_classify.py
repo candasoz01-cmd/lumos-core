@@ -5,6 +5,7 @@ from __future__ import annotations
 from standing_merge.classify import (
     CLASS_ELIGIBLE,
     CLASS_EXCLUDED,
+    CLASS_SEMANTIC,
     PR777_PATHS,
     classify_paths,
     main,
@@ -27,9 +28,12 @@ def test_debt_register_only_is_eligible() -> None:
     assert verdict["unknown"] == []
 
 
-def test_docs_getting_started_is_eligible() -> None:
+def test_generic_docs_file_is_semantic_review_not_eligible() -> None:
+    """Genel docs/ allowlist'i kaldırıldı: isim listesinden kaçan belge
+    otomatik standing kazanamaz, semantik incelemeye düşer."""
     verdict = classify_paths(["docs/getting-started.md"])
-    assert verdict["class"] == CLASS_ELIGIBLE
+    assert verdict["class"] == CLASS_SEMANTIC
+    assert verdict["standing_merge"] is False
 
 
 def test_empty_diff_is_excluded() -> None:
@@ -104,28 +108,98 @@ def test_permission_memory_doc_is_hard_excluded() -> None:
     assert verdict["class"] == CLASS_EXCLUDED
 
 
-def test_adr023_governance_is_hard_excluded() -> None:
+def test_adr023_is_semantic_review_not_auto_eligible() -> None:
+    """Aynı dosyada hem olgu düzeltmesi (#788) hem yetki normu (#784) olabilir.
+    Yol bunu ayıramaz: makine eligible demez, insan semantik olarak karar verir."""
     verdict = classify_paths(
         ["docs/decisions/ADR-023-lumos-representative-avatar.md"]
     )
-    assert verdict["class"] == CLASS_EXCLUDED
-    assert any("ADR-023" in hit["reason"] for hit in verdict["hits"])
+    assert verdict["class"] == CLASS_SEMANTIC
+    assert verdict["standing_merge"] is False
+    assert verdict["semantic_review_required"] is True
 
 
-def test_adr009_path_can_be_eligible() -> None:
-    # Olgu/norm stays agent-side; path class for this ADR is not hariç.
+def test_adr009_stays_open_to_factual_standing_via_semantic_review() -> None:
+    """#786 ilkesi korunuyor: ADR'de salt olgu düzeltmesi standing'e girebilir.
+    docs/decisions/ komple excluded YAPILMADI; semantic_review kapısından geçer."""
     verdict = classify_paths(
         ["docs/decisions/ADR-009-mail-address-and-domain-boundary.md"]
     )
-    assert verdict["class"] == CLASS_ELIGIBLE
+    assert verdict["class"] == CLASS_SEMANTIC
 
 
 def test_tests_prefix_is_allowed_unless_hard_excluded() -> None:
-    verdict = classify_paths(["tests/test_standing_merge_classify.py"])
+    verdict = classify_paths(["tests/test_representative_ingress.py"])
     assert verdict["class"] == CLASS_ELIGIBLE
+
+
+def test_merge_named_test_file_is_hard_excluded() -> None:
+    """Jeton savunması tests/ allowlist'inin de önünde: merge kuralına dokunan
+    dosya adı standing'e giremez."""
+    verdict = classify_paths(["tests/test_standing_merge_classify.py"])
+    assert verdict["class"] == CLASS_EXCLUDED
+    assert any(hit["reason"] == "token:merge" for hit in verdict["hits"])
 
 
 def test_security_named_test_is_hard_excluded() -> None:
     verdict = classify_paths(["tests/test_security_never_auto_engine.py"])
     assert verdict["class"] == CLASS_EXCLUDED
     assert any(hit["reason"] == "token:security" for hit in verdict["hits"])
+
+
+# --- Üç durumlu model: kurucu fixture'ları (2026-08-21) ---
+
+
+def test_adr029_is_hard_excluded() -> None:
+    """TD-20 / #777 olayının ADR'si. Governance-sorumluluk niteliği nedeniyle
+    semantic_review'a bile düşmez; doğrudan excluded."""
+    verdict = classify_paths(
+        ["docs/decisions/ADR-029-dashboard-health-earned-responsibility.md"]
+    )
+    assert verdict["class"] == CLASS_EXCLUDED
+    assert any("ADR-029" in hit["reason"] for hit in verdict["hits"])
+
+
+def test_new_merge_rules_doc_cannot_become_eligible() -> None:
+    """docs/merge-rules.md isim listesinde yok; yine de eligible olamaz."""
+    verdict = classify_paths(["docs/merge-rules.md"])
+    assert verdict["class"] == CLASS_EXCLUDED
+    assert verdict["standing_merge"] is False
+
+
+def test_new_data_boundary_doc_cannot_become_eligible() -> None:
+    """Veri sınırı belgesi isim listesinden kaçsa bile eligible olamaz."""
+    verdict = classify_paths(["docs/data-boundary-policy-notes.md"])
+    assert verdict["class"] == CLASS_EXCLUDED
+    assert verdict["standing_merge"] is False
+
+
+def test_unknown_governance_doc_falls_to_semantic_not_eligible() -> None:
+    """Hiçbir jetona çarpmayan yeni docs/ belgesi bile eligible olmaz."""
+    verdict = classify_paths(["docs/yeni-calisma-duzeni.md"])
+    assert verdict["class"] == CLASS_SEMANTIC
+    assert verdict["standing_merge"] is False
+
+
+def test_excluded_wins_over_semantic() -> None:
+    verdict = classify_paths(
+        [
+            "docs/decisions/ADR-009-mail-address-and-domain-boundary.md",
+            "src/security/identity.py",
+        ]
+    )
+    assert verdict["class"] == CLASS_EXCLUDED
+
+
+def test_semantic_wins_over_eligible() -> None:
+    verdict = classify_paths(
+        [
+            "tests/test_representative_ingress.py",
+            "docs/decisions/ADR-009-mail-address-and-domain-boundary.md",
+        ]
+    )
+    assert verdict["class"] == CLASS_SEMANTIC
+
+
+def test_cli_exits_three_when_semantic_review() -> None:
+    assert main(["docs/decisions/ADR-023-lumos-representative-avatar.md"]) == 3

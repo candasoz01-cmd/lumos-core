@@ -1,7 +1,7 @@
 {
-  "schema": "lumos.standing_merge.rules.v1",
+  "schema": "lumos.standing_merge.rules.v2",
   "authority": "docs/decisions/ADR-028-standing-low-risk-merge-approval.md",
-  "note": "Hard-exclusion first (ADR-028 hariç): prefixes, files, then path tokens. Remaining paths must all match allow (docs/, tests/). Unlisted paths are excluded (fail-closed). Olgu/norm is not automated. standing-class FAILURE is a standing-merge prohibition only — do not make this CheckRun a GitHub required check without a separate merge-authority model.",
+  "note": "Üç durum: excluded > semantic_review > eligible. Hard-exclusion (önek/dosya/jeton) her şeyin önünde. Sonra semantic_prefixes: yol tek başına karar vermeye yetmez, olgu/norm değerlendirmesi head SHA'ya bağlı insan işidir; otomatik standing yok. Sonra dar allow listesi. Hiçbirine düşmeyen yol excluded (fail-closed). docs/ genel allowlist'i KALDIRILDI: docs/merge-rules.md gibi yeni bir governance belgesi isim listesinden kaçsa bile eligible olamaz, semantic_review'a düşer. standing-class FAILURE yalnız standing-merge yasağıdır; GitHub required check yapılmaz. ADR-023 bilinçli olarak hard-exclusion'da DEĞİL: semantic_review'a düşer, çünkü aynı dosyada hem olgu düzeltmesi (#788) hem yetki normu (#784) olabilir; ayrımı yol değil insan yapar.",
   "exclude_prefixes": [
     "docs/contracts/",
     "docs/decisions/ADR-003",
@@ -16,11 +16,11 @@
     "docs/decisions/ADR-017",
     "docs/decisions/ADR-018",
     "docs/decisions/ADR-022",
-    "docs/decisions/ADR-023",
     "docs/decisions/ADR-024",
     "docs/decisions/ADR-025",
     "docs/decisions/ADR-027",
     "docs/decisions/ADR-028",
+    "docs/decisions/ADR-029",
     "docs/decisions/ADR-030",
     "docs/analysis/secure-device/",
     "docs/internal/",
@@ -90,11 +90,24 @@
     "sentinel",
     "oauth",
     "keystore",
-    "firewall"
+    "firewall",
+    "merge",
+    "writer",
+    "authority",
+    "data"
+  ],
+  "semantic_prefixes": [
+    "docs/decisions/",
+    "docs/"
   ],
   "allow_prefixes": [
-    "docs/",
-    "tests/"
+    "tests/",
+    "docs/changelog/",
+    "docs/journal/",
+    "docs/screenshots/",
+    "docs/visual-review/"
   ],
-  "allow_files": []
+  "allow_files": [
+    "docs/TECHNICAL_DEBT.md"
+  ]
 }

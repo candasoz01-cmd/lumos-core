@@ -75,7 +75,17 @@ onayı gerekir. Checks yeşili otorite onayının yerine geçmez.
 Merge yalnız **o anki head SHA** için:
 
 0. Sınıf **eligible** — `python -m standing_merge.classify` (değişen
-   dosyalar). CheckRun adı: `standing-class`. Hariç kuralı (önek, dosya,
+   dosyalar). CheckRun adı: `standing-class`. **Üç durum vardır:**
+   `excluded` (standing kesinlikle yasak) · `semantic_review` (yol tek başına
+   karar vermeye yetmez; olgu/norm değerlendirmesi **o anki head SHA için**
+   insan tarafından yapılır, otomatik standing yetkisi doğmaz) · `eligible`
+   (yalnız dar ve açıkça makinece güvenli sınıf). Yalnız `eligible` standing
+   hattını açar; `semantic_review` ve `excluded` açmaz. CLI çıkış kodu:
+   0 / 3 / 2. `docs/decisions/**` varsayılan olarak **semantic_review**'dır —
+   komple hariç yapılmadı, çünkü ADR'de salt olgu düzeltmesi (bkz.
+   §Sınıflandırma ölçütü) standing'e girebilmelidir; ayrımı yol değil insan
+   yapar. Genel `docs/` allowlist'i **kaldırıldı**: isim listesinden kaçan yeni
+   bir governance veya veri sınırı belgesi eligible olamaz. Hariç kuralı (önek, dosya,
    yol jetonu: security/privacy/permission/secret/credential/payment/deploy/
    governance/policy/vault/…) **veya listelenmeyen yol** veya boş diff →
    fail (fail-closed). `eligible` yalnız allowlist önekine düşen ve hariç
