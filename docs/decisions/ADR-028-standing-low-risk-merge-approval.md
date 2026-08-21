@@ -74,8 +74,37 @@ onayı gerekir. Checks yeşili otorite onayının yerine geçmez.
 
 Merge yalnız **o anki head SHA** için:
 
-0. Sınıf **eligible** — `python -m standing_merge.classify` (değişen
-   dosyalar). CheckRun adı: `standing-class`. Güven kökü **PR checkout
+0. Sınıf **eligible** — `python -m standing_merge.classify` (değişen dosyalar).
+
+   > **CheckRun adı tek başına yeterli değildir.** `#793` canlı olarak gösterdi:
+   > aynı commit üzerinde `standing-class` adlı **iki** run oluşabiliyor — biri
+   > trusted bağlamdan kırmızı, biri PR'ın kendi yazdığı `on: pull_request`
+   > workflow'undan **yeşil**. Ada bakan bir tüketici sahte yeşili standing
+   > sinyali sanardı. Soru *"yeşil check var mı?"* değil, ***"yeşil check'i kim ve
+   > hangi event bağlamında üretti?"***
+
+   **Trusted run kimliği — beşi birden sağlanmalı:**
+
+   | # | Koşul |
+   |---|-------|
+   | 1 | `event` = **`pull_request_target`** |
+   | 2 | workflow = canonical `.github/workflows/standing-class.yml` |
+   | 3 | workflow tanımı **base/default branch bağlamından** gelmeli (`workflow_ref` → `@refs/heads/<default>`) |
+   | 4 | değerlendirme ilgili **PR ve güncel head/base** bağlamıyla eşleşmeli |
+   | 5 | sonuç **`SUCCESS`** |
+
+   `pull_request` event'inden gelen **aynı adlı veya farklı adlı hiçbir CheckRun**
+   standing yetkisi üretmez. Eksik, belirsiz veya uyuşmayan run fail-closed sayılır;
+   `workflow_ref` boşsa geçmez — kanıt yokluğu kanıt değildir.
+
+   Trusted bağlamdan gelen bir run **başarısız** olduğunda bu bir verdict'tir:
+   sahte yeşil onun yerine geçemez ve onu iptal edemez.
+
+   Job veya workflow adını benzersizleştirmek (ör. `standing-class-trusted`)
+   **güvenlik sınırı değildir** — saldırgan kendi workflow'una da o adı verebilir.
+   Yalnız insan ve log okunabilirliği içindir.
+
+   Doğrulama: `src/standing_merge/trusted_run.py` · `standing_evidence()`. Güven kökü **PR checkout
    değildir**: classifier `github.event.pull_request.base.sha` üzerindeki
    `src/standing_merge` kopyasından, ayrı dizinde çalışır. O SHA'da yoksa
    fallback yoktur (fail-closed). Yollar NUL-delimited (`git diff -z`) ve
