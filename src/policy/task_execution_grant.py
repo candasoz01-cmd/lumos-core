@@ -266,11 +266,25 @@ def _hashes_equal(left: str, right: str) -> bool:
     return hmac.compare_digest(a, b)
 
 
+# Filename-safe stem for TASK_ID_RE. Colon is legal in task_id but must not
+# collapse onto underscore: a:b and a_b are distinct records. Percent-hex
+# encoding is injective because '%' itself is outside TASK_ID_RE, so G-12841
+# and other hyphen IDs stay unescaped.
+_REGISTRY_FILENAME_SAFE = frozenset(
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-"
+)
+
+
+def _encode_registry_stem(task_id: str) -> str:
+    return "".join(
+        ch if ch in _REGISTRY_FILENAME_SAFE else f"%{ord(ch):02X}" for ch in task_id
+    )
+
+
 def _registry_path(base: Path, task_id: str) -> Path:
     if not TASK_ID_RE.match(task_id):
         raise ValueError("invalid task_id")
-    safe = task_id.replace(":", "_")
-    return base / REGISTRY_DIR / f"{safe}.json"
+    return base / REGISTRY_DIR / f"{_encode_registry_stem(task_id)}.json"
 
 
 def load_registered_task(task_id: str, *, base_dir: Path | str | None = None) -> dict[str, Any] | None:

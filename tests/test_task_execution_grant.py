@@ -15,6 +15,7 @@ from policy.task_execution_grant import (
     EVENT_DENIED,
     EVENT_ISSUED,
     GRANTS_DIR,
+    REGISTRY_DIR,
     KIND_CAPABILITY_DEVIATION,
     KIND_MISSING_IDENTITY,
     KIND_REPLAY,
@@ -91,6 +92,34 @@ def test_accept_registers_task_and_mints_once(tmp_path: Path) -> None:
     assert second.reason == REASON_USED
     assert second.event_kind == KIND_REPLAY
     assert second.classification == CLASSIFICATION_UNCLASSIFIED
+
+
+def test_colon_and_underscore_task_ids_are_distinct_registry_records(tmp_path: Path) -> None:
+    colon = _binding(task_id="a:b")
+    underscore = _binding(task_id="a_b")
+    issued_colon = accept_execution_task(colon, base_dir=tmp_path)
+    issued_under = accept_execution_task(underscore, base_dir=tmp_path)
+    loaded_colon = load_registered_task("a:b", base_dir=tmp_path)
+    loaded_under = load_registered_task("a_b", base_dir=tmp_path)
+    assert loaded_colon is not None
+    assert loaded_under is not None
+    assert loaded_colon["task_id"] == "a:b"
+    assert loaded_under["task_id"] == "a_b"
+    assert loaded_colon["token_hash"] == issued_colon.token_hash
+    assert loaded_under["token_hash"] == issued_under.token_hash
+    registry = tmp_path / REGISTRY_DIR
+    assert (registry / "a%3Ab.json").is_file()
+    assert (registry / "a_b.json").is_file()
+    assert (registry / "G-12841.json").is_file() is False
+    hyphen = accept_execution_task(_binding(), base_dir=tmp_path)
+    assert load_registered_task("G-12841", base_dir=tmp_path) is not None
+    assert (registry / "G-12841.json").is_file()
+    assert hyphen.token != issued_colon.token
+    crossed = consume_task_execution_grant(issued_colon.token, underscore, base_dir=tmp_path)
+    assert not crossed.allowed
+    assert crossed.reason == REASON_KEY_NOT_REGISTERED
+    own = consume_task_execution_grant(issued_colon.token, colon, base_dir=tmp_path)
+    assert own.allowed
 
 
 def test_issue_is_authority_accept_not_agent_mint(tmp_path: Path) -> None:
