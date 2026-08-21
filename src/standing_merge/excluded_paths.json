@@ -1,0 +1,17 @@
+{
+  "schema": "lumos.standing_merge.excluded_paths.v1",
+  "authority": "docs/decisions/ADR-028-standing-low-risk-merge-approval.md",
+  "note": "Any match forces excluded. The olgu/norm second filter is not automated; unmatched paths stay eligible only if the hariç list does not hit. Empty diff is excluded (fail-closed).",
+  "prefixes": [
+    "docs/contracts/",
+    "docs/decisions/ADR-027",
+    "docs/decisions/ADR-028",
+    "src/standing_merge/",
+    ".github/workflows/standing-class.yml"
+  ],
+  "files": [
+    "docs/CONSTITUTION.md",
+    "AGENTS.md",
+    "CONTRIBUTING.md"
+  ]
+}

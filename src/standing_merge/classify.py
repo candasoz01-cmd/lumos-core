@@ -1,0 +1,100 @@
+"""Classify a PR's paths against ADR-028's standing-excluded class.
+
+Standing merge is allowed only when every path is outside the hariç list.
+PR body text is not authority — paths are. Empty input is excluded.
+
+Exit codes (CLI): 0 eligible, 2 excluded.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+from typing import Any
+
+SCHEMA = "lumos.standing_merge.verdict.v1"
+RULES_PATH = Path(__file__).with_name("excluded_paths.json")
+CLASS_ELIGIBLE = "eligible"
+CLASS_EXCLUDED = "excluded"
+
+# candasoz01-cmd/lumos-core#777 · MERGED · c50127b6 — fixture, not a second history.
+PR777_PATHS = (
+    "docs/contracts/dashboard-health-v1.md",
+    "docs/decisions/ADR-029-dashboard-health-earned-responsibility.md",
+)
+
+
+def load_rules(path: Path = RULES_PATH) -> dict[str, Any]:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def normalize_path(raw: str) -> str:
+    text = raw.strip().replace("\\", "/")
+    while text.startswith("./"):
+        text = text[2:]
+    return text.lstrip("/")
+
+
+def _hit_reason(normalized: str, rules: dict[str, Any]) -> str | None:
+    for exact in rules.get("files") or []:
+        if normalized == exact:
+            return f"file:{exact}"
+    for prefix in rules.get("prefixes") or []:
+        if normalized.startswith(prefix):
+            return f"prefix:{prefix}"
+    return None
+
+
+def classify_paths(
+    paths: list[str] | tuple[str, ...],
+    *,
+    rules: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    loaded = rules if rules is not None else load_rules()
+    normalized = [normalize_path(item) for item in paths if normalize_path(item)]
+    hits = []
+    for item in normalized:
+        reason = _hit_reason(item, loaded)
+        if reason:
+            hits.append({"path": item, "reason": reason})
+    if not normalized:
+        standing_class = CLASS_EXCLUDED
+        reasons = ["empty_diff"]
+    elif hits:
+        standing_class = CLASS_EXCLUDED
+        reasons = [row["reason"] for row in hits]
+    else:
+        standing_class = CLASS_ELIGIBLE
+        reasons = []
+    return {
+        "schema": SCHEMA,
+        "class": standing_class,
+        "standing_merge": standing_class == CLASS_ELIGIBLE,
+        "human_merge_required": standing_class != CLASS_ELIGIBLE,
+        "paths": normalized,
+        "hits": hits,
+        "reasons": reasons,
+    }
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="python -m standing_merge.classify")
+    parser.add_argument(
+        "paths",
+        nargs="*",
+        help="Changed paths. Empty = excluded (fail-closed).",
+    )
+    args = parser.parse_args(argv)
+    verdict = classify_paths(args.paths)
+    sys.stdout.write(json.dumps(verdict, ensure_ascii=False, indent=2) + "\n")
+    standing_class = str(verdict["class"])
+    sys.stderr.write(
+        f"standing_class={standing_class} standing_merge={verdict['standing_merge']}\n"
+    )
+    return 0 if standing_class == CLASS_ELIGIBLE else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

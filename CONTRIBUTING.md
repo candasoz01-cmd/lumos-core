@@ -72,6 +72,11 @@ required checks, GitHub will not block merge while the security reviewer is
 still running. Adding them is an admin action; this repository cannot set
 branch protection from a docs PR.
 
+**Standing class (ADR-028 gate 0):** `python -m standing_merge.classify` on
+changed paths. CheckRun `standing-class` fails when the class is excluded.
+That failure forbids standing merge; it does not forbid a human merge.
+Incident: `#777` / [TD-20](docs/TECHNICAL_DEBT.md).
+
 ## Public repository boundary
 
 This repo is the **public OSS foundation**. Do not add production secrets, private orchestration, commercial service logic, or operational backend infrastructure. Demo-safe code, docs, placeholders, and foundation tooling belong here; professional Lumos layers stay private unless explicitly approved for public exposure.

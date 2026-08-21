@@ -1,0 +1,33 @@
+# ADR-028 standing-class gate.
+# eligible → job green (standing merge may proceed only if the rest of ADR-028 holds).
+# excluded → job red. That is a standing-merge prohibition, not a human-merge prohibition.
+# required_status_checks on main is still empty; GitHub will not physically block.
+# Agents must still refuse standing merge when this job fails. Incident: #777 / TD-20.
+name: standing-class
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  standing-class:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Classify changed paths
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          mapfile -t files < <(git diff --name-only "origin/${{ github.base_ref }}...HEAD")
+          python3 -m standing_merge.classify "${files[@]}"
