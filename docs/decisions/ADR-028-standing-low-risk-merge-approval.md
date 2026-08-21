@@ -75,9 +75,13 @@ onayı gerekir. Checks yeşili otorite onayının yerine geçmez.
 Merge yalnız **o anki head SHA** için:
 
 0. Sınıf **eligible** — `python -m standing_merge.classify` (değişen
-   dosyalar). CheckRun adı: `standing-class`. Hariç veya boş diff → fail.
+   dosyalar). CheckRun adı: `standing-class`. Hariç, **listelenmeyen yol**
+   veya boş diff → fail (fail-closed). Eşleşme yoksa `eligible` **yoktur**.
    PR gövdesindeki “standing hattı yok” cümlesi kanıt değil; yol listesi
-   esastır. `#777` fixture: `docs/contracts/` → excluded.
+   esastır. `#777` fixture: `docs/contracts/` → excluded. `src/security/`
+   → excluded. `standing-class` kırmızısını GitHub `required_status_checks`
+   listesine koymayın — o, insan onaylı hariç PR’ı da fiziksel bloke eder;
+   fiziksel kilit ayrı `merge-authority` modeli ister.
 1. Gerekli CI yeşil (`ci.yml`: `test`, `rust`, `macos-app-build`, `ui-smoke`, `ui-e2e`)
 2. `Cursor Security Agent: Security Reviewer` complete + SUCCESS (queued / in_progress / missing = pending)
 3. `Cursor Bugbot` complete + SUCCESS
@@ -88,7 +92,9 @@ Hepsi yoksa merge yok. Standing onay kapıları atlatmaz. `standing-class`
 fail insan merge yasağı değildir; standing merge yasağıdır.
 
 Olgu/norm ikinci filtresi (başka ADR’lerde “ne doğrudur?”) **otomatik
-değildir**; yalnız hariç liste makine-okunur.
+değildir** ve classifier `eligible` dedikten sonra ajan değerlendirmesidir.
+Hariç liste birinci hard-exclusion’dır; `src/security/` gibi yollar ikinci
+filtreye düşmez. Classifier eşleşmeyen yolu `eligible` saymaz.
 
 ## Örnek
 
@@ -116,6 +122,7 @@ kendi merge satırı insan onayı istiyordu). Teknik kapılar `c50127b6`
 2026-08-20T14:32:29Z merge etti (`339840f2`).
 
 İçerik geri alınmaz. İhlal **yetki/prosedür**: eksik olan check değil,
-otorite onayı. Kapı 0 bu deliği ajan sözleşmesinde kapatır; GitHub
-`required_status_checks` boşluğu Settings/admin işidir ve bu ADR onu
-açmaz.
+otorite onayı. Kapı 0 bu deliği ajan sözleşmesinde kapatır. GitHub
+`required_status_checks` boşluğu Settings/admin işidir; **`standing-class`
+o listeye konmaz** — kırmızı standing yasağıdır, insan merge yasağı değil.
+Fiziksel kilit ayrı `merge-authority` modeli ister.

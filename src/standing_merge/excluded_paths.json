@@ -1,17 +1,58 @@
 {
-  "schema": "lumos.standing_merge.excluded_paths.v1",
+  "schema": "lumos.standing_merge.rules.v1",
   "authority": "docs/decisions/ADR-028-standing-low-risk-merge-approval.md",
-  "note": "Any match forces excluded. The olgu/norm second filter is not automated; unmatched paths stay eligible only if the hariç list does not hit. Empty diff is excluded (fail-closed).",
-  "prefixes": [
+  "note": "Hard-exclusion first (ADR-028 hariç). Then every remaining path must match allow. Unlisted paths are excluded (fail-closed). Olgu/norm is not automated. standing-class FAILURE is a standing-merge prohibition only — do not make this CheckRun a GitHub required check without a separate merge-authority model.",
+  "exclude_prefixes": [
     "docs/contracts/",
+    "docs/decisions/ADR-006",
+    "docs/decisions/ADR-007",
+    "docs/decisions/ADR-010",
+    "docs/decisions/ADR-012",
+    "docs/decisions/ADR-013",
+    "docs/decisions/ADR-024",
+    "docs/decisions/ADR-025",
     "docs/decisions/ADR-027",
     "docs/decisions/ADR-028",
+    "docs/analysis/secure-device/",
+    "docs/internal/",
+    "src/security/",
+    "src/integrations/vault/",
+    "src/representative/",
     "src/standing_merge/",
-    ".github/workflows/standing-class.yml"
+    "api/",
+    "services/credential-gateway/",
+    "crates/anchorusb-core/",
+    "crates/anchorusb-cli/",
+    "packages/kando_runtime/src/kando_runtime/lumos_gate.py",
+    "packages/kando_runtime/src/kando_runtime/executor_gate.py",
+    "packages/kando_bridge/src/kando_bridge/pending_approvals.py",
+    "packages/kando_bridge/src/kando_bridge/mobile_approval_client.py",
+    ".github/"
   ],
-  "files": [
+  "exclude_files": [
     "docs/CONSTITUTION.md",
+    "docs/ROADMAP.md",
+    "docs/product-rules.md",
+    "docs/workflow-rules.md",
+    "docs/security-architecture.md",
+    "docs/memory/security-architecture.md",
+    "docs/memory/product-rules.md",
+    "docs/memory/project-workflow.md",
+    "docs/memory/payment-scope-decision.md",
+    "docs/memory/commercial-domain-payments.md",
+    "docs/memory/data-vault-user-data.md",
+    "docs/memory/public-repo-boundary.md",
+    "docs/subscription-payment-control.md",
+    "docs/app-store-product-safety-privacy.md",
+    "docs/BRIDGE_AGENT_AUTHORITY_MODEL.md",
+    "docs/BRIDGE_AGENT_PHASE_GATES.md",
+    "docs/knowledge-repository-lifecycle.md",
     "AGENTS.md",
-    "CONTRIBUTING.md"
-  ]
+    "CONTRIBUTING.md",
+    "vercel.json"
+  ],
+  "allow_prefixes": [
+    "docs/"
+  ],
+  "allow_files": []
 }

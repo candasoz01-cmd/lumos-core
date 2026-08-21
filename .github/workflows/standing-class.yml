@@ -1,6 +1,8 @@
 # ADR-028 standing-class gate.
 # eligible → job green (standing merge may proceed only if the rest of ADR-028 holds).
-# excluded → job red. That is a standing-merge prohibition, not a human-merge prohibition.
+# excluded / unlisted → job red. Standing-merge prohibition, not a human-merge prohibition.
+# Do not add this job to GitHub required_status_checks: that would also block
+# human-approved excluded PRs. Physical lock needs a separate merge-authority model.
 # required_status_checks on main is still empty; GitHub will not physically block.
 # Agents must still refuse standing merge when this job fails. Incident: #777 / TD-20.
 name: standing-class

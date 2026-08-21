@@ -73,9 +73,12 @@ still running. Adding them is an admin action; this repository cannot set
 branch protection from a docs PR.
 
 **Standing class (ADR-028 gate 0):** `python -m standing_merge.classify` on
-changed paths. CheckRun `standing-class` fails when the class is excluded.
-That failure forbids standing merge; it does not forbid a human merge.
-Incident: `#777` / [TD-20](docs/TECHNICAL_DEBT.md).
+changed paths. Unlisted paths are excluded (fail-closed). CheckRun
+`standing-class` fails when the class is excluded. That failure forbids
+standing merge; it does not forbid a human merge. Do **not** add
+`standing-class` to GitHub `required_status_checks` — that would block
+human-approved excluded PRs too. Physical lock needs a separate
+merge-authority model. Incident: `#777` / [TD-20](docs/TECHNICAL_DEBT.md).
 
 ## Public repository boundary
 

@@ -1,7 +1,7 @@
-"""Classify a PR's paths against ADR-028's standing-excluded class.
+"""Classify a PR's paths against ADR-028 standing class.
 
-Standing merge is allowed only when every path is outside the hariç list.
-PR body text is not authority — paths are. Empty input is excluded.
+Hard-exclusion first. Remaining paths must all match the allow list.
+Unlisted paths are excluded (fail-closed). PR body is not authority.
 
 Exit codes (CLI): 0 eligible, 2 excluded.
 """
@@ -37,11 +37,11 @@ def normalize_path(raw: str) -> str:
     return text.lstrip("/")
 
 
-def _hit_reason(normalized: str, rules: dict[str, Any]) -> str | None:
-    for exact in rules.get("files") or []:
+def _matches(normalized: str, files: list[str], prefixes: list[str]) -> str | None:
+    for exact in files:
         if normalized == exact:
             return f"file:{exact}"
-    for prefix in rules.get("prefixes") or []:
+    for prefix in prefixes:
         if normalized.startswith(prefix):
             return f"prefix:{prefix}"
     return None
@@ -53,12 +53,22 @@ def classify_paths(
     rules: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     loaded = rules if rules is not None else load_rules()
+    exclude_files = list(loaded.get("exclude_files") or loaded.get("files") or [])
+    exclude_prefixes = list(loaded.get("exclude_prefixes") or loaded.get("prefixes") or [])
+    allow_files = list(loaded.get("allow_files") or [])
+    allow_prefixes = list(loaded.get("allow_prefixes") or [])
     normalized = [normalize_path(item) for item in paths if normalize_path(item)]
-    hits = []
+    hits: list[dict[str, str]] = []
+    unknown: list[str] = []
     for item in normalized:
-        reason = _hit_reason(item, loaded)
-        if reason:
-            hits.append({"path": item, "reason": reason})
+        excluded = _matches(item, exclude_files, exclude_prefixes)
+        if excluded:
+            hits.append({"path": item, "reason": excluded})
+            continue
+        allowed = _matches(item, allow_files, allow_prefixes)
+        if allowed is None:
+            unknown.append(item)
+            hits.append({"path": item, "reason": f"unlisted:{item}"})
     if not normalized:
         standing_class = CLASS_EXCLUDED
         reasons = ["empty_diff"]
@@ -75,6 +85,7 @@ def classify_paths(
         "human_merge_required": standing_class != CLASS_ELIGIBLE,
         "paths": normalized,
         "hits": hits,
+        "unknown": unknown,
         "reasons": reasons,
     }
 
