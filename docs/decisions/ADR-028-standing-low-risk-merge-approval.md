@@ -37,6 +37,27 @@ edebilir; yalnız **sınıf** ve **kapı** birlikte tutulursa.
 
 Sınıf belirsizse **hariç** sayılır (fail-closed).
 
+### Sınıflandırma ölçütü (2026-08-21)
+
+Bir dosyanın ADR olması tek başına standing onay dışında bırakmaz. Mevcut olguyu
+düzelten ve yeni normatif karar, yetki, güvenlik sınırı veya çalışma davranışı
+üretmeyen ADR düzeltmeleri düşük-risk sınıfına girebilir.
+
+Ayırt edici soru:
+
+| Değişiklik neyi güncelliyor | Sınıf |
+|-----------------------------|-------|
+| **"Ne doğrudur?"** — mevcut gerçeği kayda geçirir, bayat olguyu düzeltir | Standing'e **uygun olabilir** |
+| **"Bundan sonra neye izin verilir?"** — kural, yetki, sınır veya davranış tanımlar | **Açık insan onayı gerekir** |
+
+Belirsizlikte hariç sayılır.
+
+**Bu ölçüt ikinci filtredir, birincinin yerine geçmez.** Yukarıdaki *Sınıf (hariç)*
+listesi — security, policy, governance, permissions, secrets, veri sınırı/mahremiyet,
+prod/deploy, finans, merge kuralları, çekirdek sözleşmeler ve ADR-027 kapsamı — bir
+değişiklik salt olgu düzeltmesi görünse **bile** her durumda açık insan onayı ister.
+Önce hariç listesi uygulanır; ancak liste dışındaysa bu ölçüte bakılır.
+
 Bu ADR’nin kendisi merge-kuralı kaydıdır; **hariç sınıfa** girer. Kaydı
 `main`'e indiren merge, 2026-08-20 kurucu metninin kendisidir — sonraki
 revizyonlar yine açık insan onayı ister.
@@ -59,3 +80,13 @@ Hepsi yoksa merge yok. Standing onay kapıları atlatmaz.
 
 `#766` (TD-13 park kaydı, docs-only): kayıt düzeltilip yeni head’de kapılar
 yeniden yeşile dönerse ajan ayrıca beklemeden merge edebilir.
+
+### Ölçütün uygulandığı iki gerçek vaka (2026-08-21)
+
+| PR | İçerik | Sınıf | Neden |
+|----|--------|-------|-------|
+| `#785` | ADR-009 adres tablosu: hipotez → doğrulanmış durum | **Standing'e girdi** | *"Ne doğrudur?"* — bayat olguyu düzeltti, yeni kural veya yetki üretmedi, belgenin Taslak statüsü değişmedi |
+| `#784` | ADR-023'e temsil yetki sınırı bölümü | **Girmedi — açık onay alındı** | *"Bundan sonra neye izin verilir?"* — bir yetki sınırını normatifleştirdi; hariç listesindeki governance/permissions kapsamına da girer |
+
+İkisi de ADR dosyasıydı; sınıfı belirleyen dosya türü değil, **değişikliğin ne
+yaptığıydı**.
