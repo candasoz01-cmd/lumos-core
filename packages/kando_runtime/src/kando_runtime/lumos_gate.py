@@ -2626,6 +2626,33 @@ def execute_approved_pending_record(
     return result
 
 
+def _enforce_task_execution_grant(
+    bundle: dict[str, Any],
+    *,
+    lumos_base: Path,
+    norm: dict[str, Any],
+) -> dict[str, Any] | None:
+    """ADR-031 opt-in: grant yoksa/uyuşmazsa execute_plan'e inilmez.
+
+    None = devam. dict = red gövdesi.
+    """
+    from policy.task_execution_grant import (
+        binding_from_mapping,
+        denied_executor_result,
+        is_task_execution_grant_enabled,
+        require_task_execution_grant,
+    )
+
+    if not is_task_execution_grant_enabled():
+        return None
+    expected = binding_from_mapping(bundle, norm=norm)
+    token = str(bundle.get("task_execution_grant_token") or "")
+    result = require_task_execution_grant(token, expected, base_dir=lumos_base)
+    if result.allowed:
+        return None
+    return denied_executor_result(result)
+
+
 def lumos_gate_execute(
     bundle: dict[str, Any],
     *,
@@ -2658,12 +2685,6 @@ def lumos_gate_execute(
         is_confirmation_enabled,
         validate_bridge_confirmation,
     )
-    from policy.task_execution_grant import (
-        binding_from_mapping,
-        denied_executor_result,
-        is_task_execution_grant_enabled,
-        require_task_execution_grant,
-    )
 
     bridge_record: dict[str, Any] | None = None
     pcr = bundle.get("pending_confirmation_record")
@@ -2692,25 +2713,19 @@ def lumos_gate_execute(
             out["lumos_audit_log"] = audit.to_log_entry()
         return out
 
-    if is_task_execution_grant_enabled():
-        expected = binding_from_mapping(bundle, norm=norm)
-        token = str(bundle.get("task_execution_grant_token") or "")
-        grant_result = require_task_execution_grant(
-            token, expected, base_dir=lumos_base
-        )
-        if not grant_result.allowed:
-            out = denied_executor_result(grant_result)
-            if audit is not None:
-                audit.set_plan(plan)
-                audit.set_step_results([])
-                audit.set_summary(
-                    blocked=True,
-                    reason="task_execution_grant_denied",
-                    execution_result="task_execution_grant_denied",
-                    execution_kind="task_execution_grant_denied",
-                )
-                out["lumos_audit_log"] = audit.to_log_entry()
-            return out
+    grant_deny = _enforce_task_execution_grant(bundle, lumos_base=lumos_base, norm=norm)
+    if grant_deny is not None:
+        if audit is not None:
+            audit.set_plan(plan)
+            audit.set_step_results([])
+            audit.set_summary(
+                blocked=True,
+                reason="task_execution_grant_denied",
+                execution_result="task_execution_grant_denied",
+                execution_kind="task_execution_grant_denied",
+            )
+            grant_deny["lumos_audit_log"] = audit.to_log_entry()
+        return grant_deny
 
     parent_task = build_parent_task_context(
         mode=mode,

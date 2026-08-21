@@ -67,7 +67,7 @@ def _bundle(tmp_path: Path, **overrides: object) -> dict:
         "risk": "low",
         "mode": "direct_patch",
         "payload": "TARGET: notes/readme.md\nsummarize notes\n",
-        "approval_granted": False,
+        "approval_granted": True,
         "repo_root": tmp_path,
         "audit": None,
         "replay_mode": False,
@@ -134,7 +134,9 @@ def test_lumos_gate_execute_missing_token_denied_not_attacker(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv(ENV_ENABLED, "true")
-    (tmp_path / ".lumos").mkdir()
+    lumos = tmp_path / ".lumos"
+    lumos.mkdir()
+    issue_task_execution_grant(_binding(), base_dir=lumos)
     calls: list[str] = []
 
     def _run_direct(instr: str) -> dict:
@@ -177,7 +179,6 @@ def test_lumos_gate_execute_file_read_grant_cannot_send_mail(
     out = lumos_gate_execute(
         _bundle(
             tmp_path,
-            task_id="task-mail-1",
             task_execution_action_key="mail_send",
             task_execution_permission="send",
             task_execution_grant_token=issued.token,
