@@ -25,8 +25,9 @@
 # to the PR tree. That is expected for the bootstrap PR that first introduces the
 # classifier; that PR is governance class and needs explicit human approval anyway.
 #
-# Path transport is NUL-delimited and passed after `--`, because a repository file
-# may be named `--help` or `--attest=factual` and may contain newlines.
+# Path transport is NUL-delimited (`git diff --name-only -z` / `--paths-nul`) and
+# passed after `--`, because a repository file may be named `--help` or
+# `--attest=factual` and may contain newlines.
 # Incident: #777 / TD-20.
 name: standing-class
 
@@ -52,26 +53,34 @@ jobs:
       - name: Extract trusted classifier from base SHA
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          TRUSTED_ROOT: ${{ runner.temp }}/trusted
         run: |
           set -euo pipefail
           test -n "$BASE_SHA"
-          git fetch --no-tags --depth=1 origin "$BASE_SHA" 2>/dev/null || true
-          if ! git cat-file -e "${BASE_SHA}:src/standing_merge/classify.py" 2>/dev/null; then
-            echo "::error::Base commit ${BASE_SHA} has no trusted classifier."
-            echo "::error::Fail-closed: refusing to grade this PR with its own code."
-            exit 1
-          fi
-          rm -rf "${RUNNER_TEMP}/trusted"
-          mkdir -p "${RUNNER_TEMP}/trusted"
-          git archive "$BASE_SHA" src/standing_merge \
-            | tar -x -C "${RUNNER_TEMP}/trusted"
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          for blob in \
+            src/standing_merge/__init__.py \
+            src/standing_merge/classify.py \
+            src/standing_merge/excluded_paths.json
+          do
+            if ! git cat-file -e "${BASE_SHA}:${blob}"; then
+              echo "::error::Base commit ${BASE_SHA} has no trusted classifier (${blob})."
+              echo "::error::Fail-closed: refusing to grade this PR with its own code."
+              exit 1
+            fi
+          done
+          rm -rf "${TRUSTED_ROOT}"
+          mkdir -p "${TRUSTED_ROOT}"
+          git archive "$BASE_SHA" src/standing_merge | tar -x -C "${TRUSTED_ROOT}"
           echo "Trusted classifier extracted from ${BASE_SHA}"
 
       - name: Classify changed paths
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          PYTHONPATH: ${{ runner.temp }}/trusted/src
+          TRUSTED_ROOT: ${{ runner.temp }}/trusted
         run: |
           set -euo pipefail
-          mapfile -d '' -t files < <(git diff --name-only -z "${BASE_SHA}...HEAD")
-          python3 -m standing_merge.classify -- ${files[@]+"${files[@]}"}
+          git diff --name-only -z "${BASE_SHA}...HEAD" > "${RUNNER_TEMP}/changed-paths.nul"
+          cd "${TRUSTED_ROOT}"
+          PYTHONPATH="${TRUSTED_ROOT}/src" python3 -m standing_merge.classify \
+            --paths-nul "${RUNNER_TEMP}/changed-paths.nul" --
