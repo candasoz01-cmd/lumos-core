@@ -122,7 +122,14 @@ Merge yalnız **o anki head SHA** için:
    |--------|-------|
    | **Orkestratör** | Workflow tanımı **base dalından** çalışır (`pull_request_target`). Düz `pull_request` altında saldırgan PR, `standing-class.yml`'i classifier'ı hiç çağırmayacak şekilde yeniden yazıp kendine yeşil CheckRun üretebilirdi |
    | **Sınıflandırıcı** | `src/standing_merge/**` PR'ın sabit `base.sha`'sından çıkarılır |
-   | **Girdi** | PR ağacı **checkout edilmez ve kodu çalıştırılmaz**. Değişen yollar PR head'i veri olarak fetch edilip `git diff --name-only -z` ile alınır ve NUL-delimited dosyayla geçilir |
+   | **Girdi** | PR ağacı **checkout edilmez ve kodu çalıştırılmaz**. Değişen yollar PR head'i veri olarak fetch edilip `git diff --name-only -z --no-renames` ile alınır ve NUL-delimited dosyayla geçilir |
+
+   `--no-renames` taşıyıcı bir ayrıntıdır, biçimsel değil: rename tespiti açıkken
+   git **yalnız hedef yolu** raporlar. `git mv src/security/identity.py
+   tests/identity.py` yapan bir PR'da classifier hariç **kaynağı hiç görmez** ve
+   `eligible` verir. `--no-renames` çifti delete + add olarak raporlatır, böylece
+   kaynak da sınıflandırmaya girer. Aynı açık, workflow dosyasının kendisini
+   allowlist'e taşımak için de kullanılabilirdi.
 
    Job `contents: read` ve `persist-credentials: false` ile koşar: yazma
    token'ı ve secret gerekmez. `pull_request_target` aksi hâlde ikisini de taşır.

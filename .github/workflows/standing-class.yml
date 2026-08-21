@@ -31,6 +31,9 @@
 #    `git diff --name-only -z` (fetch + diff execute nothing). Paths are passed
 #    NUL-delimited via a file, so a name containing a newline cannot split into
 #    two paths, and a name like `--help` or `--attest=factual` cannot become a flag.
+#    `--no-renames` is required: with rename detection git reports only the
+#    destination, so moving a hard-excluded file into an allowlisted prefix
+#    would hide the excluded source and forge an `eligible` verdict.
 #
 # `permissions: contents: read` and `persist-credentials: false`: this job needs
 # no write token and no secrets. pull_request_target would otherwise carry both.
@@ -68,6 +71,9 @@ jobs:
       - name: Materialize trusted classifier from base SHA
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          # Workspace is the BASE tree here (checkout ref = base.sha above),
+          # never the pull request tree. Bootstrapping the gate from it is safe.
+          PYTHONPATH: ${{ github.workspace }}/src
         run: |
           set -euo pipefail
           test -n "$BASE_SHA"
@@ -84,7 +90,12 @@ jobs:
           # Fetch the PR head as DATA only. No checkout, no execution.
           git fetch --no-tags origin \
             "+refs/pull/${PR_NUMBER}/head:refs/remotes/pr/head"
-          git diff --name-only -z "${BASE_SHA}...refs/remotes/pr/head" \
+          # --no-renames is load-bearing: with rename detection git reports only
+          # the destination, so `git mv src/security/x.py tests/x.py` would hide
+          # the excluded SOURCE path and classify as eligible. Without it the
+          # pair is reported as delete + add, so both paths reach the classifier.
+          git diff --name-only -z --no-renames \
+            "${BASE_SHA}...refs/remotes/pr/head" \
             > "${RUNNER_TEMP}/changed-paths.nul"
           printf 'changed paths: %s\n' \
             "$(tr -dc '\0' < "${RUNNER_TEMP}/changed-paths.nul" | wc -c | tr -d ' ')"

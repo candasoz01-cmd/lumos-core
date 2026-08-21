@@ -429,11 +429,62 @@ def test_workflow_uses_base_sha_and_never_falls_back_to_pr_tree() -> None:
         / ".github/workflows/standing-class.yml"
     ).read_text(encoding="utf-8")
     assert "github.event.pull_request.base.sha" in text
-    # PR ağacındaki src asla PYTHONPATH olmaz
-    assert "github.workspace }}/src" not in text
+    # PR head'i asla checkout edilmez; workspace = base ağacı
+    assert "ref: ${{ github.event.pull_request.base.sha }}" in text
+    assert "refs/pull/${PR_NUMBER}/head:refs/remotes/pr/head" in text
     # yollar NUL-delimited taşınır ve -- ile geçilir
     assert "--name-only -z" in text
     assert "--paths-nul" in text
     assert 'changed-paths.nul" --' in text
     # orkestratör de PR'dan gelmez
     assert "pull_request_target:" in text
+
+
+# --- Rename gizlemesi (Security Reviewer HIGH, 2026-08-21) ---
+
+
+def test_destination_only_path_list_would_hide_an_excluded_source() -> None:
+    """Saldırının neye benzediğini kayda geçirir.
+
+    `git mv src/security/identity.py tests/identity.py` yapan bir PR'da git,
+    rename tespiti açıkken YALNIZ hedefi raporlar. Classifier o listeyi
+    eligible görür — çünkü kaynağı hiç görmemiştir."""
+    verdict = classify_paths(["tests/identity.py"])
+    assert verdict["class"] == CLASS_ELIGIBLE
+
+
+def test_source_and_destination_together_are_excluded() -> None:
+    """--no-renames ile git çifti delete + add olarak raporlar; kaynak görünür."""
+    verdict = classify_paths(["src/security/identity.py", "tests/identity.py"])
+    assert verdict["class"] == CLASS_EXCLUDED
+
+
+def test_moving_the_workflow_itself_is_caught_when_source_is_reported() -> None:
+    verdict = classify_paths(
+        [".github/workflows/standing-class.yml", "tests/standing-class.yml"]
+    )
+    assert verdict["class"] == CLASS_EXCLUDED
+
+
+def test_workflow_disables_rename_detection() -> None:
+    """Yukarıdaki ikisi ancak workflow --no-renames kullanırsa anlam taşır."""
+    from pathlib import Path
+
+    text = (
+        Path(__file__).resolve().parents[1]
+        / ".github/workflows/standing-class.yml"
+    ).read_text(encoding="utf-8")
+    assert "--no-renames" in text
+
+
+def test_workflow_materialize_step_has_pythonpath() -> None:
+    """PYTHONPATH olmadan trusted_gate ModuleNotFoundError verir ve kapı
+    bootstrap sonrası her PR'da kırmızı kalırdı."""
+    from pathlib import Path
+
+    text = (
+        Path(__file__).resolve().parents[1]
+        / ".github/workflows/standing-class.yml"
+    ).read_text(encoding="utf-8")
+    materialize = text.split("Materialize trusted classifier", 1)[1].split("- name:", 1)[0]
+    assert "PYTHONPATH:" in materialize

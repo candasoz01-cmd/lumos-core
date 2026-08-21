@@ -53,7 +53,7 @@ def test_workflow_uses_base_sha_nul_paths_and_double_dash() -> None:
     assert "git diff --name-only -z" in text
     assert "--paths-nul" in text
     assert 'changed-paths.nul" --' in text
-    assert "github.workspace }}/src" not in text
+    assert "ref: ${{ github.event.pull_request.base.sha }}" in text
     # Fail-closed artık inline shell'de değil, trusted_gate CLI'ında.
     # Workflow onu çağırır; set -euo pipefail sıfırdan farklı çıkışta adımı düşürür.
     assert "standing_merge.trusted_gate" in text
