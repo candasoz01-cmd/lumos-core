@@ -11,6 +11,8 @@
 | Üst sınır | [`CONSTITUTION.md`](../CONSTITUTION.md) §1 · §4 · §5 · §9 · §11; [`ROADMAP.md`](../ROADMAP.md) STOP LIST |
 | Bu turda yapılmaz | Runtime katmanı, ROADMAP/MODULES yüzdesi, canonical çekirdek belge, detector imzası, merge önerisi |
 
+**Aynı gün, sonraki kullanıcı kararı (Constitution §2):** ürün/metafor adı **Lumos X-Ray**; teknik katman **Ingress/Egress Guard**. Bu dosya erken paralel taslaktır (IEAL adı). Adlandırma çelişirse X-Ray notu esas alınır: [`lumos-xray-ingress-egress-guard-2026-08-21.md`](lumos-xray-ingress-egress-guard-2026-08-21.md) (dal `cursor/lumos-xray-working-note-0af5`). Repo eşlemesi ve sticky-taint ayrıntısı bu taslakta daha uzundur; fikir merdiveni değişmez.
+
 Bu belge Constitution §1 gereği dört çekirdek belgeye **sığmayan** yeni bilgiyi tarihli çalışma notu olarak tutar. Dört belgeye referans verir; onların yerine geçmez.
 
 **Çekirdek soru:** *Bu ajan ne getirdi, neye erişti, ne üretti ve neyi dışarı göndermeye çalıştı?*
