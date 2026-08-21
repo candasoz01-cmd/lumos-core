@@ -113,13 +113,14 @@ merge etmez, merge'i hazır saymaz veya merge önerisini uygulamaz. Sayaçlar
 
 **Standing istisnası ([ADR-028](docs/decisions/ADR-028-standing-low-risk-merge-approval.md))
 sınıftan önce gelir.** `python3 -m standing_merge.classify` değişen
-dosyalara bakılır. Hariç veya belirsiz → standing merge yok; kapı 3 durur.
-CheckRun `standing-class` hariçte fail olur: bu standing yasağıdır, insan
-merge yasağı değil. Bu CheckRun GitHub required check **yapılmaz**; o,
-insan onaylı hariç PR’ı da fiziksel kilitler. Fiziksel kilit ayrı
-`merge-authority` modeli ister. PR gövdesindeki “standing hattı yok”
-cümlesi tek başına otorite değildir. Listelenmeyen yol `eligible` değildir.
-Canlı ihlal: `#777` / [TD-20](docs/TECHNICAL_DEBT.md).
+dosyalara bakılır. Hariç (önek/dosya/yol jetonu) veya belirsiz → standing
+merge yok; kapı 3 durur. CheckRun `standing-class` hariçte fail olur: bu
+standing yasağıdır, insan merge yasağı değil. Bu CheckRun GitHub required
+check **yapılmaz**; o, insan onaylı hariç PR’ı da fiziksel kilitler.
+Fiziksel kilit ayrı `merge-authority` modeli ister. PR gövdesindeki
+“standing hattı yok” cümlesi tek başına otorite değildir. Listelenmeyen
+yol `eligible` değildir. `docs/` altında security/privacy/permission adlı
+dosya da hariçtir. Canlı ihlal: `#777` / [TD-20](docs/TECHNICAL_DEBT.md).
 
 `layer1a.yml` ve `prod-smoke.yml` PR merge kapısı değildir. Branch protection
 `main`'de açıktır ama `required_status_checks` listesi boştur; fiziksel kilit

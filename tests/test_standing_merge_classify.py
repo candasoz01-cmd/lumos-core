@@ -79,3 +79,53 @@ def test_cli_exits_two_when_excluded() -> None:
 
 def test_cli_exits_zero_when_eligible() -> None:
     assert main(["docs/TECHNICAL_DEBT.md"]) == 0
+
+
+def test_policy_code_is_hard_excluded() -> None:
+    verdict = classify_paths(["src/policy/action_policy.py"])
+    assert verdict["class"] == CLASS_EXCLUDED
+    assert any("src/policy/" in hit["reason"] for hit in verdict["hits"])
+
+
+def test_security_named_doc_under_docs_is_hard_excluded() -> None:
+    verdict = classify_paths(["docs/lumos-persona-security-checkpoint.md"])
+    assert verdict["class"] == CLASS_EXCLUDED
+    assert any(hit["reason"] == "token:security" for hit in verdict["hits"])
+
+
+def test_privacy_named_doc_is_hard_excluded() -> None:
+    verdict = classify_paths(["docs/analysis/lumos-privacy-manifesto-draft.md"])
+    assert verdict["class"] == CLASS_EXCLUDED
+    assert any(hit["reason"] == "token:privacy" for hit in verdict["hits"])
+
+
+def test_permission_memory_doc_is_hard_excluded() -> None:
+    verdict = classify_paths(["docs/memory/external-integrations-permissions.md"])
+    assert verdict["class"] == CLASS_EXCLUDED
+
+
+def test_adr023_governance_is_hard_excluded() -> None:
+    verdict = classify_paths(
+        ["docs/decisions/ADR-023-lumos-representative-avatar.md"]
+    )
+    assert verdict["class"] == CLASS_EXCLUDED
+    assert any("ADR-023" in hit["reason"] for hit in verdict["hits"])
+
+
+def test_adr009_path_can_be_eligible() -> None:
+    # Olgu/norm stays agent-side; path class for this ADR is not hariç.
+    verdict = classify_paths(
+        ["docs/decisions/ADR-009-mail-address-and-domain-boundary.md"]
+    )
+    assert verdict["class"] == CLASS_ELIGIBLE
+
+
+def test_tests_prefix_is_allowed_unless_hard_excluded() -> None:
+    verdict = classify_paths(["tests/test_standing_merge_classify.py"])
+    assert verdict["class"] == CLASS_ELIGIBLE
+
+
+def test_security_named_test_is_hard_excluded() -> None:
+    verdict = classify_paths(["tests/test_security_never_auto_engine.py"])
+    assert verdict["class"] == CLASS_EXCLUDED
+    assert any(hit["reason"] == "token:security" for hit in verdict["hits"])

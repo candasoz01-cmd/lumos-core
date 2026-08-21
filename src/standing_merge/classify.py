@@ -1,7 +1,8 @@
 """Classify a PR's paths against ADR-028 standing class.
 
-Hard-exclusion first. Remaining paths must all match the allow list.
-Unlisted paths are excluded (fail-closed). PR body is not authority.
+Hard-exclusion first (files, prefixes, path tokens). Remaining paths
+must all match the allow list. Unlisted paths are excluded (fail-closed).
+PR body is not authority. Olgu/norm is not classified here.
 
 Exit codes (CLI): 0 eligible, 2 excluded.
 """
@@ -10,9 +11,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
+
+_TOKEN_SPLIT = re.compile(r"[^a-z0-9]+")
 
 SCHEMA = "lumos.standing_merge.verdict.v1"
 RULES_PATH = Path(__file__).with_name("excluded_paths.json")
@@ -37,13 +41,27 @@ def normalize_path(raw: str) -> str:
     return text.lstrip("/")
 
 
-def _matches(normalized: str, files: list[str], prefixes: list[str]) -> str | None:
+def path_tokens(normalized: str) -> set[str]:
+    return {part for part in _TOKEN_SPLIT.split(normalized.lower()) if part}
+
+
+def _matches(
+    normalized: str,
+    files: list[str],
+    prefixes: list[str],
+    tokens: list[str],
+) -> str | None:
     for exact in files:
         if normalized == exact:
             return f"file:{exact}"
     for prefix in prefixes:
         if normalized.startswith(prefix):
             return f"prefix:{prefix}"
+    parts = path_tokens(normalized)
+    for token in tokens:
+        lowered = token.lower()
+        if lowered in parts:
+            return f"token:{lowered}"
     return None
 
 
@@ -55,17 +73,18 @@ def classify_paths(
     loaded = rules if rules is not None else load_rules()
     exclude_files = list(loaded.get("exclude_files") or loaded.get("files") or [])
     exclude_prefixes = list(loaded.get("exclude_prefixes") or loaded.get("prefixes") or [])
+    exclude_tokens = list(loaded.get("exclude_tokens") or [])
     allow_files = list(loaded.get("allow_files") or [])
     allow_prefixes = list(loaded.get("allow_prefixes") or [])
     normalized = [normalize_path(item) for item in paths if normalize_path(item)]
     hits: list[dict[str, str]] = []
     unknown: list[str] = []
     for item in normalized:
-        excluded = _matches(item, exclude_files, exclude_prefixes)
+        excluded = _matches(item, exclude_files, exclude_prefixes, exclude_tokens)
         if excluded:
             hits.append({"path": item, "reason": excluded})
             continue
-        allowed = _matches(item, allow_files, allow_prefixes)
+        allowed = _matches(item, allow_files, allow_prefixes, [])
         if allowed is None:
             unknown.append(item)
             hits.append({"path": item, "reason": f"unlisted:{item}"})

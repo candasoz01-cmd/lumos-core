@@ -73,7 +73,9 @@ still running. Adding them is an admin action; this repository cannot set
 branch protection from a docs PR.
 
 **Standing class (ADR-028 gate 0):** `python -m standing_merge.classify` on
-changed paths. Unlisted paths are excluded (fail-closed). CheckRun
+changed paths. Hard-exclusion (prefix, file, path token) first. Unlisted
+paths are excluded (fail-closed). Only allowlisted `docs/` and `tests/`
+paths that miss the hariç rules can be eligible. CheckRun
 `standing-class` fails when the class is excluded. That failure forbids
 standing merge; it does not forbid a human merge. Do **not** add
 `standing-class` to GitHub `required_status_checks` — that would block

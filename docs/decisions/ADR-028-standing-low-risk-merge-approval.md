@@ -75,13 +75,18 @@ onayı gerekir. Checks yeşili otorite onayının yerine geçmez.
 Merge yalnız **o anki head SHA** için:
 
 0. Sınıf **eligible** — `python -m standing_merge.classify` (değişen
-   dosyalar). CheckRun adı: `standing-class`. Hariç, **listelenmeyen yol**
-   veya boş diff → fail (fail-closed). Eşleşme yoksa `eligible` **yoktur**.
-   PR gövdesindeki “standing hattı yok” cümlesi kanıt değil; yol listesi
-   esastır. `#777` fixture: `docs/contracts/` → excluded. `src/security/`
-   → excluded. `standing-class` kırmızısını GitHub `required_status_checks`
-   listesine koymayın — o, insan onaylı hariç PR’ı da fiziksel bloke eder;
-   fiziksel kilit ayrı `merge-authority` modeli ister.
+   dosyalar). CheckRun adı: `standing-class`. Hariç kuralı (önek, dosya,
+   yol jetonu: security/privacy/permission/secret/credential/payment/deploy/
+   governance/policy/vault/…) **veya listelenmeyen yol** veya boş diff →
+   fail (fail-closed). `eligible` yalnız allowlist önekine düşen ve hariç
+   kuralına çarpmayan yollar içindir (`docs/`, `tests/`). Eşleşme yoksa
+   `eligible` **yoktur**. PR gövdesindeki “standing hattı yok” cümlesi
+   kanıt değil; yol listesi esastır. `#777` fixture: `docs/contracts/` →
+   excluded. `src/security/` → excluded. `src/policy/` → excluded.
+   `docs/` altındaki security/privacy/permission adlı dosya → excluded.
+   `standing-class` kırmızısını GitHub `required_status_checks` listesine
+   koymayın — o, insan onaylı hariç PR’ı da fiziksel bloke eder; fiziksel
+   kilit ayrı `merge-authority` modeli ister.
 1. Gerekli CI yeşil (`ci.yml`: `test`, `rust`, `macos-app-build`, `ui-smoke`, `ui-e2e`)
 2. `Cursor Security Agent: Security Reviewer` complete + SUCCESS (queued / in_progress / missing = pending)
 3. `Cursor Bugbot` complete + SUCCESS
@@ -94,7 +99,9 @@ fail insan merge yasağı değildir; standing merge yasağıdır.
 Olgu/norm ikinci filtresi (başka ADR’lerde “ne doğrudur?”) **otomatik
 değildir** ve classifier `eligible` dedikten sonra ajan değerlendirmesidir.
 Hariç liste birinci hard-exclusion’dır; `src/security/` gibi yollar ikinci
-filtreye düşmez. Classifier eşleşmeyen yolu `eligible` saymaz.
+filtreye düşmez. Allowlist dışındaki yol `eligible` değildir. `docs/`
+altında olsa bile security/policy/governance jetonu taşıyan yol hariçtir.
+Olgu/norm, classifier `eligible` dedikten sonra ajan işidir.
 
 ## Örnek
 
