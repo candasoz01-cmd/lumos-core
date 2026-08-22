@@ -306,6 +306,18 @@ def load_registered_task(task_id: str, *, base_dir: Path | str | None = None) ->
     return record
 
 
+def _registry_grant_complete(record: Mapping[str, Any]) -> bool:
+    """True only when both grant_id and token_hash were written after mint."""
+    return bool(str(record.get("grant_id") or "").strip()) and bool(
+        str(record.get("token_hash") or "").strip()
+    )
+
+
+def _registry_matches_binding(record: Mapping[str, Any], binding: ExecutionBinding) -> bool:
+    stored = _record_binding(record)
+    return stored is not None and binding_hash(stored) == binding_hash(binding)
+
+
 def _read_tip(base: Path) -> str:
     path = base / LEDGER_TIP_REL
     if not path.is_file():
@@ -549,26 +561,34 @@ def accept_execution_task(
         raise ValueError(REASON_INVALID_TTL)
     base = Path(base_dir).resolve() if base_dir is not None else lumos_base_dir()
     path = _registry_path(base, binding.task_id)
-    if _load_json(path) is not None:
-        raise ValueError(REASON_DUPLICATE_TASK)
-    _atomic_write_json(
-        path,
-        {
-            "schema_version": SCHEMA_REGISTRY,
-            "task_id": binding.task_id,
-            "subject_id": binding.subject_id,
-            "agent_id": binding.agent_id,
-            "session_id": binding.session_id,
-            "action_key": binding.action_key,
-            "resource": binding.resource,
-            "permission": binding.permission,
-            "binding_hash": binding_hash(binding),
-            "grant_id": "",
-            "token_hash": "",
-            "status": "accepted",
-            "created_at": _now_iso(),
-        },
-    )
+    existing = _load_json(path)
+    if existing is not None:
+        # Crash after the first registry write leaves grant_id and/or
+        # token_hash empty. Same-binding retry remints; a finished
+        # record stays duplicate_task.
+        if _registry_grant_complete(existing) or not _registry_matches_binding(
+            existing, binding
+        ):
+            raise ValueError(REASON_DUPLICATE_TASK)
+    else:
+        _atomic_write_json(
+            path,
+            {
+                "schema_version": SCHEMA_REGISTRY,
+                "task_id": binding.task_id,
+                "subject_id": binding.subject_id,
+                "agent_id": binding.agent_id,
+                "session_id": binding.session_id,
+                "action_key": binding.action_key,
+                "resource": binding.resource,
+                "permission": binding.permission,
+                "binding_hash": binding_hash(binding),
+                "grant_id": "",
+                "token_hash": "",
+                "status": "accepted",
+                "created_at": _now_iso(),
+            },
+        )
     grant_id = secrets.token_hex(8)
     secret = secrets.token_urlsafe(32)
     token = f"{TOKEN_PREFIX}.{grant_id}.{secret}"

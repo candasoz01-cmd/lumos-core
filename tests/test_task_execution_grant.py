@@ -16,6 +16,7 @@ from policy.task_execution_grant import (
     EVENT_ISSUED,
     GRANTS_DIR,
     REGISTRY_DIR,
+    SCHEMA_REGISTRY,
     KIND_CAPABILITY_DEVIATION,
     KIND_MISSING_IDENTITY,
     KIND_REPLAY,
@@ -140,6 +141,50 @@ def test_issue_is_authority_accept_not_agent_mint(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match=REASON_DUPLICATE_TASK):
         issue_task_execution_grant(_binding(), base_dir=tmp_path)
     assert issued.token.startswith("teg1.")
+
+
+def test_accept_retry_recovers_incomplete_registry(tmp_path: Path) -> None:
+    binding = _binding()
+    path = tmp_path / REGISTRY_DIR / "G-12841.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    stub = {
+        "schema_version": SCHEMA_REGISTRY,
+        "task_id": binding.task_id,
+        "subject_id": binding.subject_id,
+        "agent_id": binding.agent_id,
+        "session_id": binding.session_id,
+        "action_key": binding.action_key,
+        "resource": binding.resource,
+        "permission": binding.permission,
+        "binding_hash": "pending",
+        "grant_id": "",
+        "token_hash": "",
+        "status": "accepted",
+        "created_at": "2026-08-21T00:00:00Z",
+    }
+    path.write_text(json.dumps(stub, indent=2), encoding="utf-8")
+    issued = accept_execution_task(binding, base_dir=tmp_path)
+    registered = load_registered_task("G-12841", base_dir=tmp_path)
+    assert registered is not None
+    assert registered["grant_id"] == issued.grant_id
+    assert registered["token_hash"] == issued.token_hash
+    assert consume_task_execution_grant(issued.token, binding, base_dir=tmp_path).allowed
+    with pytest.raises(ValueError, match=REASON_DUPLICATE_TASK):
+        accept_execution_task(binding, base_dir=tmp_path)
+
+    leftover = _binding(task_id="G-12842")
+    leftover_path = tmp_path / REGISTRY_DIR / "G-12842.json"
+    leftover_stub = dict(stub)
+    leftover_stub["task_id"] = leftover.task_id
+    leftover_stub["grant_id"] = "deadbeefdeadbeef"
+    leftover_stub["token_hash"] = ""
+    leftover_path.write_text(json.dumps(leftover_stub, indent=2), encoding="utf-8")
+    recovered = accept_execution_task(leftover, base_dir=tmp_path)
+    loaded = load_registered_task("G-12842", base_dir=tmp_path)
+    assert loaded is not None
+    assert loaded["grant_id"] == recovered.grant_id
+    assert loaded["token_hash"] == recovered.token_hash
+    assert consume_task_execution_grant(recovered.token, leftover, base_dir=tmp_path).allowed
 
 
 def test_unknown_task_denied_before_execute(tmp_path: Path) -> None:
