@@ -62,15 +62,22 @@ def _branch_context_is_base(record: CheckRunRecord, default_branch: str) -> bool
     return record.workflow_ref.endswith(f"@refs/heads/{default_branch}")
 
 
-def evaluate_run(
+def context_failures(
     record: CheckRunRecord,
     *,
     pull_request_number: int,
     head_sha: str,
     base_sha: str,
     default_branch: str = "main",
-) -> dict[str, Any]:
-    """Return why this run is or is not trusted standing evidence."""
+) -> list[str]:
+    """Everything except the conclusion: is this run *about this evaluation*?
+
+    Kept as one function on purpose. This check used to be written twice —
+    once in :func:`evaluate_run` and once, incompletely, when collecting
+    trusted-context runs. The second copy omitted the PR and SHA match, so a
+    trusted-context run belonging to a *different* pull request could be
+    reported as a definitive verdict for this one.
+    """
     failures: list[str] = []
     if record.event != TRUSTED_EVENT:
         failures.append(f"event_not_trusted:{record.event or 'missing'}")
@@ -84,6 +91,25 @@ def evaluate_run(
         failures.append("head_sha_mismatch")
     if record.base_sha != base_sha:
         failures.append("base_sha_mismatch")
+    return failures
+
+
+def evaluate_run(
+    record: CheckRunRecord,
+    *,
+    pull_request_number: int,
+    head_sha: str,
+    base_sha: str,
+    default_branch: str = "main",
+) -> dict[str, Any]:
+    """Return why this run is or is not trusted standing evidence."""
+    failures = context_failures(
+        record,
+        pull_request_number=pull_request_number,
+        head_sha=head_sha,
+        base_sha=base_sha,
+        default_branch=default_branch,
+    )
     if record.conclusion != CONCLUSION_SUCCESS:
         failures.append(f"conclusion_not_success:{record.conclusion or 'missing'}")
     return {"trusted": not failures, "name": record.name, "reasons": failures}
@@ -114,14 +140,20 @@ def standing_evidence(
         for record in records
     ]
     trusted = [row for row in evaluations if row["trusted"]]
-    # A canonical trusted-context run that merely failed still counts as a
+    # A trusted run for THIS evaluation that merely failed still counts as a
     # verdict; it must not be ignored in favour of an untrusted green one.
+    # It must also belong to this pull request and these SHAs — otherwise
+    # "no evidence yet" would be reported as "the gate ran and said no".
     trusted_context = [
         record
         for record in records
-        if record.event == TRUSTED_EVENT
-        and record.workflow_path == CANONICAL_WORKFLOW_PATH
-        and _branch_context_is_base(record, default_branch)
+        if not context_failures(
+            record,
+            pull_request_number=pull_request_number,
+            head_sha=head_sha,
+            base_sha=base_sha,
+            default_branch=default_branch,
+        )
     ]
     return {
         "standing_authorized": bool(trusted),

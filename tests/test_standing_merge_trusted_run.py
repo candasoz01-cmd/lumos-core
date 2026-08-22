@@ -127,3 +127,47 @@ def test_forged_green_cannot_mask_trusted_red_even_if_listed_first() -> None:
     trusted = _run(conclusion="failure")
     assert standing_evidence([forged, trusted], **CTX)["standing_authorized"] is False
     assert standing_evidence([trusted, forged], **CTX)["standing_authorized"] is False
+
+
+# --- Bağlam eşleşmesi verdict semantiğini de bağlar (Bugbot Medium, #794) ---
+
+
+def test_other_pull_requests_trusted_run_is_not_a_verdict_for_this_one() -> None:
+    """Başka PR'ın trusted run'ı 'kapı koştu ve hayır dedi' diye okunamaz.
+
+    Yetki sonucu zaten False'du; bozuk olan GEREKÇE idi. Tüketici
+    'kanıt yok' ile 'kesin ret' ayrımını yapabilmeli."""
+    verdict = standing_evidence([_run(pull_request_number=1)], **CTX)
+    assert verdict["standing_authorized"] is False
+    assert verdict["trusted_run_present"] is False
+    assert verdict["reason"] == "no_trusted_run"
+
+
+def test_trusted_run_for_another_head_sha_is_not_a_verdict() -> None:
+    verdict = standing_evidence([_run(head_sha="deadbeef")], **CTX)
+    assert verdict["reason"] == "no_trusted_run"
+    assert verdict["trusted_run_present"] is False
+
+
+def test_trusted_run_for_another_base_sha_is_not_a_verdict() -> None:
+    verdict = standing_evidence([_run(base_sha="deadbeef")], **CTX)
+    assert verdict["reason"] == "no_trusted_run"
+
+
+def test_failed_trusted_run_for_this_evaluation_is_a_verdict() -> None:
+    """Karşıt kontrol: bağlamı eşleşen başarısız run susturulmamalı."""
+    verdict = standing_evidence([_run(conclusion="failure")], **CTX)
+    assert verdict["trusted_run_present"] is True
+    assert verdict["reason"] == "trusted_run_not_success"
+
+
+def test_context_check_is_shared_between_evaluate_and_collection() -> None:
+    """Kök sebep tekrarlanan mantıktı: aynı kontrol iki yerde yazılmış,
+    biri eksik kalmıştı. Tek fonksiyona indirildi."""
+    from standing_merge.trusted_run import context_failures, evaluate_run
+
+    record = _run(pull_request_number=1, conclusion="success")
+    ctx_fail = context_failures(record, **CTX)
+    eval_fail = evaluate_run(record, **CTX)["reasons"]
+    assert ctx_fail, "bağlam uyuşmazlığı yakalanmalı"
+    assert set(ctx_fail).issubset(set(eval_fail))
