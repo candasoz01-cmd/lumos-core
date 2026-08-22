@@ -10,7 +10,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Mapping
 
 from kando_runtime.lumos_audit import (
     LumosAuditCollector,
@@ -1067,6 +1067,31 @@ def _pending_user_facing_title(*, payload: str, norm: dict[str, Any]) -> str:
     return ""
 
 
+_GRANT_PASSTHROUGH_KEYS = (
+    "task_execution_grant_token",
+    "subject_id",
+    "actor_id",
+    "task_id",
+    "agent_id",
+    "session_id",
+    "task_execution_action_key",
+    "action_key",
+    "task_execution_permission",
+    "permission",
+)
+
+
+def _attach_task_execution_grant_fields(
+    dest: dict[str, Any], src: Mapping[str, Any] | None
+) -> None:
+    if not src:
+        return
+    for key in _GRANT_PASSTHROUGH_KEYS:
+        value = src.get(key)
+        if isinstance(value, str) and value.strip():
+            dest[key] = value.strip()
+
+
 def _pending_approval_record(
     *,
     mode: str,
@@ -1139,6 +1164,7 @@ def _return_high_risk_pending(
     *,
     repo_root: Path | None = None,
     confirmation_risk: str = "high",
+    grant_source: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     body = _build_high_risk_pending_http_body(ctx, reasoning)
     out = _handle_task_return(
@@ -1156,6 +1182,7 @@ def _return_high_risk_pending(
         plan=plan,
         reasoning=reasoning,
     )
+    _attach_task_execution_grant_fields(par, grant_source)
     if repo_root is not None:
         try:
             from policy.confirmation_policy import attach_bridge_pending_confirmation
@@ -2586,6 +2613,15 @@ def execute_approved_pending_record(
     if reasoning.get("source") == "llm" and reasoning.get("llm_mode") == "direct_patch":
         ctx.generated_content = (str(reasoning.get("generated_content") or ""))[:2000]
 
+    grant_deny = _enforce_task_execution_grant(
+        loaded,
+        lumos_base=lumos_base,
+        norm=norm if isinstance(norm, dict) else {},
+        plan=plan if isinstance(plan, dict) else {},
+    )
+    if grant_deny is not None:
+        return grant_deny
+
     parent_task = build_parent_task_context(
         mode=mode,
         payload=payload,
@@ -2631,21 +2667,32 @@ def _enforce_task_execution_grant(
     *,
     lumos_base: Path,
     norm: dict[str, Any],
+    plan: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     """ADR-031 opt-in: grant yoksa/uyuşmazsa execute_plan'e inilmez.
 
-    None = devam. dict = red gövdesi.
+    Consume bağı gerçek plan adımlarından türer. None = devam. dict = red.
     """
     from policy.task_execution_grant import (
-        binding_from_mapping,
         denied_executor_result,
         is_task_execution_grant_enabled,
         require_task_execution_grant,
+        resolve_execution_binding,
     )
 
     if not is_task_execution_grant_enabled():
         return None
-    expected = binding_from_mapping(bundle, norm=norm)
+    executable = plan
+    if executable is None:
+        raw_plan = bundle.get("plan")
+        if not isinstance(raw_plan, dict):
+            raw_plan = bundle.get("execution_plan")
+        executable = raw_plan if isinstance(raw_plan, dict) else None
+    expected, denied = resolve_execution_binding(
+        bundle, plan=executable, norm=norm, base_dir=lumos_base
+    )
+    if denied is not None:
+        return denied_executor_result(denied)
     token = str(bundle.get("task_execution_grant_token") or "")
     result = require_task_execution_grant(token, expected, base_dir=lumos_base)
     if result.allowed:
@@ -2700,6 +2747,7 @@ def lumos_gate_execute(
     if risk == "high" and not approval_granted:
         out = _return_high_risk_pending(
             ctx, reasoning, mode, payload, norm, plan=plan, repo_root=rr,
+            grant_source=bundle,
         )
         if audit is not None:
             audit.set_plan(plan)
@@ -2713,7 +2761,9 @@ def lumos_gate_execute(
             out["lumos_audit_log"] = audit.to_log_entry()
         return out
 
-    grant_deny = _enforce_task_execution_grant(bundle, lumos_base=lumos_base, norm=norm)
+    grant_deny = _enforce_task_execution_grant(
+        bundle, lumos_base=lumos_base, norm=norm, plan=plan
+    )
     if grant_deny is not None:
         if audit is not None:
             audit.set_plan(plan)
@@ -2759,6 +2809,7 @@ def lumos_gate_execute(
     if risk == "high" and not approval_granted:
         return _return_high_risk_pending(
             ctx, reasoning, mode, payload, norm, plan=plan, repo_root=rr,
+            grant_source=bundle,
         )
 
     result = _build_result_after_execute(
