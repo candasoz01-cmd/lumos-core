@@ -141,3 +141,26 @@ def test_turkish_disclosure_kept_for_written_channel():
     low = DISCLOSURE_LINE_TR.lower()
     for required in ("lumos", "yapay zekâ", "temsilci", "kurucu", "tutanak"):
         assert required in low, f"TR beyan '{required}' unsurunu kaybetti"
+
+
+def test_disclosure_states_the_video_is_generated_not_a_camera() -> None:
+    """ADR-023 madde 3: görsel katman ancak karşı tarafa ifşa ile açılır.
+
+    Avatar bir kamera görüntüsü değil, üretilmiş iki durumlu gösterge.
+    Karşı taraf bunu duymadan görsel katman açılamaz."""
+    low = DISCLOSURE_LINE_EN.lower()
+    assert "camera" in low
+    assert "generated" in low
+
+    low_tr = DISCLOSURE_LINE_TR.lower()
+    assert "kamera" in low_tr
+    assert "gösterge" in low_tr or "üretilmiş" in low_tr
+
+
+def test_spoken_disclosure_stays_short_enough_to_be_heard() -> None:
+    """Beyan uzadıkça susturma penceresi de uzuyor; bot o sürede karşı tarafı
+    duymuyor. Görüntü ibaresi eklendi, sınır hâlâ korunmalı."""
+    from representative.bot_rig import DISCLOSURE_GUARD_S
+
+    assert len(DISCLOSURE_LINE_EN) < 200
+    assert DISCLOSURE_GUARD_S < 20.0

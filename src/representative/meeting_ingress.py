@@ -28,11 +28,13 @@ from typing import Any, Protocol
 # Sesli beyan tek akış ve yalnız İngilizce (kurucu kararı 2026-08-20).
 DISCLOSURE_LINE_TR = (
     "Merhaba, ben Lumos — kurucu Candaş Öz'ün yetkili yapay zekâ temsilcisiyim. "
-    "Bu görüşmede çeviri yapacağım ve bir tutanak tutulacak."
+    "Bu görüşmede çeviri yapacağım, bir tutanak tutulacak ve gördüğünüz görüntü "
+    "kamera değil, üretilmiş bir göstergedir."
 )
 DISCLOSURE_LINE_EN = (
     "Hello, I am Lumos, the authorized AI representative of founder Candaş Öz. "
-    "I will interpret in this meeting, and a transcript is being kept."
+    "I will interpret in this meeting, a transcript is being kept, and my video "
+    "is a generated indicator, not a camera."
 )
 
 

@@ -123,9 +123,25 @@ verilmemişti. Yetenek ≠ yetki ilkesinin ilk somut uygulaması budur.
    temsil ettiği, kaydın/transcriptin tutulduğu açıkça söylenir.
 2. Kayıt bildirimi platform kurallarının da gereğidir (Zoom/Meet/Teams bot ve
    kayıt bildirimleri); ürün bunun üstüne çıkar, altına inmez.
-3. Ses klonlama ve yüz/video avatar **v0 kapsamı DIŞI**dır ve varsayılan
-   kapalıdır; açılması ayrı kurucu kararı + karşı tarafa ifşa gerektirir.
-   v0 nötr, kaliteli bir TTS sesi kullanır.
+3. **Ses klonlama v0 kapsamı DIŞIdır** ve varsayılan kapalıdır; açılması ayrı
+   kurucu kararı + karşı tarafa ifşa gerektirir. v0 nötr, kaliteli bir TTS
+   sesi kullanır. Bu madde **değişmedi**.
+
+   **Görsel katman — 2026-08-22 kurucu kararıyla AÇILDI (sınırlı).**
+
+   | | Durum |
+   |---|-------|
+   | **Soyut görsel gösterge** (idle / speaking, kamera değil) | ✅ **Açık** |
+   | **İnsan yüzü / gerçekçi avatar** | ❌ Kapalı — ayrı kurucu kararı gerektirir |
+   | **Ses klonlama** | ❌ Kapalı — yukarıdaki madde aynen geçerli |
+
+   Açılan şey bir **yüz** değil: sabit iki durumlu soyut ışık göstergesi. İnsan
+   varlığını taklit etmez, bu yüzden "AI olduğunu gizleme" ilkesiyle çelişmez.
+   Gerçekçi yüz veya kamera görüntüsü hâlâ kapsam dışıdır.
+
+   Madde 3'ün **ifşa şartı korunmuştur ve karşılanmıştır**: beyan metni
+   görüntünün üretilmiş bir gösterge olduğunu, kamera olmadığını söyler
+   (bkz. §İfşa metni). İfşa olmadan görsel katman açılmaz.
 
 ## Faz planı
 
