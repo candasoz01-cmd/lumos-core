@@ -337,6 +337,74 @@ def _registry_matches_binding(record: Mapping[str, Any], binding: ExecutionBindi
     return stored is not None and binding_hash(stored) == binding_hash(binding)
 
 
+def _registry_lock_path(path: Path) -> Path:
+    return path.with_name(f"{path.name}.lock")
+
+
+def _occupy_registry(path: Path, binding: ExecutionBinding) -> None:
+    """Serialize occupancy: one stub, remint only while incomplete + same binding."""
+
+    def _locked() -> None:
+        existing = _load_json(path)
+        if existing is not None:
+            # Complete grant, or an incomplete stub for a different binding,
+            # must not widen or revive authority.
+            if _registry_grant_complete(existing) or not _registry_matches_binding(
+                existing, binding
+            ):
+                raise ValueError(REASON_DUPLICATE_TASK)
+            return
+        _atomic_write_json(
+            path,
+            {
+                "schema_version": SCHEMA_REGISTRY,
+                "task_id": binding.task_id,
+                "subject_id": binding.subject_id,
+                "agent_id": binding.agent_id,
+                "session_id": binding.session_id,
+                "action_key": binding.action_key,
+                "resource": binding.resource,
+                "permission": binding.permission,
+                "binding_hash": binding_hash(binding),
+                "grant_id": "",
+                "token_hash": "",
+                "status": "accepted",
+                "created_at": _now_iso(),
+            },
+        )
+
+    _with_sidecar_lock(_registry_lock_path(path), _locked)
+
+
+def _finalize_registry_grant(
+    path: Path,
+    *,
+    grant_id: str,
+    token_digest: str,
+    binding: ExecutionBinding,
+) -> None:
+    """Stamp grant_id/token_hash only if the registry is still incomplete.
+
+    Recovery that already filled both fields wins. A hung first writer must
+    not clobber that hash: doing so desyncs the live token from the registry
+    (retry consume → key_not_registered) and can revive or widen authority.
+    """
+
+    def _locked() -> None:
+        registered = _load_json(path)
+        if registered is None:
+            raise ValueError(REASON_DUPLICATE_TASK)
+        if _registry_grant_complete(registered) or not _registry_matches_binding(
+            registered, binding
+        ):
+            raise ValueError(REASON_DUPLICATE_TASK)
+        registered["grant_id"] = grant_id
+        registered["token_hash"] = token_digest
+        _atomic_write_json(path, registered)
+
+    _with_sidecar_lock(_registry_lock_path(path), _locked)
+
+
 def _read_tip(base: Path) -> str:
     path = base / LEDGER_TIP_REL
     if not path.is_file():
@@ -587,34 +655,11 @@ def accept_execution_task(
         raise ValueError(REASON_INVALID_TTL)
     base = Path(base_dir).resolve() if base_dir is not None else lumos_base_dir()
     path = _registry_path(base, binding.task_id)
-    existing = _load_json(path)
-    if existing is not None:
-        # Crash after the first registry write leaves grant_id and/or
-        # token_hash empty. Same-binding retry remints; a finished
-        # record stays duplicate_task.
-        if _registry_grant_complete(existing) or not _registry_matches_binding(
-            existing, binding
-        ):
-            raise ValueError(REASON_DUPLICATE_TASK)
-    else:
-        _atomic_write_json(
-            path,
-            {
-                "schema_version": SCHEMA_REGISTRY,
-                "task_id": binding.task_id,
-                "subject_id": binding.subject_id,
-                "agent_id": binding.agent_id,
-                "session_id": binding.session_id,
-                "action_key": binding.action_key,
-                "resource": binding.resource,
-                "permission": binding.permission,
-                "binding_hash": binding_hash(binding),
-                "grant_id": "",
-                "token_hash": "",
-                "status": "accepted",
-                "created_at": _now_iso(),
-            },
-        )
+    # Occupancy (stub vs duplicate) is locked separately from mint so a
+    # same-binding recovery can complete while a hung first accept is still
+    # between stub and final write. Final stamp re-checks under the same
+    # sidecar lock and refuses to overwrite a recovered hash.
+    _occupy_registry(path, binding)
     grant_id = secrets.token_hex(8)
     secret = secrets.token_urlsafe(32)
     token = f"{TOKEN_PREFIX}.{grant_id}.{secret}"
@@ -640,10 +685,9 @@ def accept_execution_task(
         "consumed_at": None,
     }
     _atomic_write_json(_grant_path(base, grant_id), record)
-    registered = _load_json(path) or {}
-    registered["grant_id"] = grant_id
-    registered["token_hash"] = digest
-    _atomic_write_json(path, registered)
+    _finalize_registry_grant(
+        path, grant_id=grant_id, token_digest=digest, binding=binding
+    )
     for event_type, result_label in (
         (EVENT_ACCEPTED, "accepted"),
         (EVENT_ISSUED, "issued"),

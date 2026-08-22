@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -36,6 +37,7 @@ from policy.task_execution_grant import (
     SUSPICION_HIGH,
     SUSPICION_MEDIUM,
     ExecutionBinding,
+    _finalize_registry_grant,
     accept_execution_task,
     action_is_grant_forbidden,
     append_ledger_entry,
@@ -186,6 +188,109 @@ def test_accept_retry_recovers_incomplete_registry(tmp_path: Path) -> None:
     assert loaded["grant_id"] == recovered.grant_id
     assert loaded["token_hash"] == recovered.token_hash
     assert consume_task_execution_grant(recovered.token, leftover, base_dir=tmp_path).allowed
+
+
+def test_hung_accept_does_not_clobber_recovered_grant(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Hung first accept must not overwrite a recovered registry hash."""
+    binding = _binding(task_id="G-HUNG01")
+    path = tmp_path / REGISTRY_DIR / "G-HUNG01.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    stub = {
+        "schema_version": SCHEMA_REGISTRY,
+        "task_id": binding.task_id,
+        "subject_id": binding.subject_id,
+        "agent_id": binding.agent_id,
+        "session_id": binding.session_id,
+        "action_key": binding.action_key,
+        "resource": binding.resource,
+        "permission": binding.permission,
+        "binding_hash": "pending",
+        "grant_id": "",
+        "token_hash": "",
+        "status": "accepted",
+        "created_at": "2026-08-22T00:00:00Z",
+    }
+    path.write_text(json.dumps(stub, indent=2), encoding="utf-8")
+
+    widened = _binding(task_id="G-HUNG01", action_key="mail_send", permission="send")
+    with pytest.raises(ValueError, match=REASON_DUPLICATE_TASK):
+        accept_execution_task(widened, base_dir=tmp_path)
+    stalled = json.loads(path.read_text(encoding="utf-8"))
+    assert stalled["grant_id"] == ""
+    assert stalled["action_key"] == binding.action_key
+
+    recovered = accept_execution_task(binding, base_dir=tmp_path)
+    registered = load_registered_task("G-HUNG01", base_dir=tmp_path)
+    assert registered is not None
+    assert registered["grant_id"] == recovered.grant_id
+    assert registered["token_hash"] == recovered.token_hash
+
+    hung_grant_id = "cafebabecafebabe"
+    hung_token = f"teg1.{hung_grant_id}.hung-secret"
+    with pytest.raises(ValueError, match=REASON_DUPLICATE_TASK):
+        _finalize_registry_grant(
+            path,
+            grant_id=hung_grant_id,
+            token_digest=token_hash(hung_token),
+            binding=binding,
+        )
+
+    after = load_registered_task("G-HUNG01", base_dir=tmp_path)
+    assert after is not None
+    assert after["grant_id"] == recovered.grant_id
+    assert after["token_hash"] == recovered.token_hash
+    assert consume_task_execution_grant(recovered.token, binding, base_dir=tmp_path).allowed
+
+    hung = consume_task_execution_grant(hung_token, binding, base_dir=tmp_path)
+    assert not hung.allowed
+    assert hung.reason == REASON_KEY_NOT_REGISTERED
+
+    with pytest.raises(ValueError, match=REASON_DUPLICATE_TASK):
+        accept_execution_task(binding, base_dir=tmp_path)
+    still = load_registered_task("G-HUNG01", base_dir=tmp_path)
+    assert still is not None
+    assert still["token_hash"] == recovered.token_hash
+
+    race = _binding(task_id="G-HUNG02")
+    hung_at_finalize = threading.Event()
+    recovered_done = threading.Event()
+    hung_errors: list[BaseException] = []
+    orig_finalize = _finalize_registry_grant
+    first = {"seen": False}
+
+    def pausing_finalize(*args: object, **kwargs: object) -> None:
+        if not first["seen"]:
+            first["seen"] = True
+            hung_at_finalize.set()
+            assert recovered_done.wait(timeout=5.0)
+        orig_finalize(*args, **kwargs)
+
+    monkeypatch.setattr(
+        "policy.task_execution_grant._finalize_registry_grant",
+        pausing_finalize,
+    )
+
+    def hung_worker() -> None:
+        try:
+            accept_execution_task(race, base_dir=tmp_path)
+        except ValueError as exc:
+            hung_errors.append(exc)
+
+    worker = threading.Thread(target=hung_worker)
+    worker.start()
+    assert hung_at_finalize.wait(timeout=5.0)
+    recovered_race = accept_execution_task(race, base_dir=tmp_path)
+    recovered_done.set()
+    worker.join(timeout=5.0)
+    assert not worker.is_alive()
+    assert hung_errors and str(hung_errors[0]) == REASON_DUPLICATE_TASK
+    raced = load_registered_task("G-HUNG02", base_dir=tmp_path)
+    assert raced is not None
+    assert raced["grant_id"] == recovered_race.grant_id
+    assert raced["token_hash"] == recovered_race.token_hash
+    assert consume_task_execution_grant(recovered_race.token, race, base_dir=tmp_path).allowed
 
 
 def test_unknown_task_denied_before_execute(tmp_path: Path) -> None:
