@@ -157,44 +157,209 @@ def action_is_grant_forbidden(action_key: str) -> bool:
     return is_security_never_auto(action_key=key, policy_action=key)
 
 
-def binding_from_mapping(
+_PLAN_STEP_CAPABILITY: dict[str, tuple[str, str]] = {
+    "patch": ("patch", "write"),
+    "agent": ("agent", "execute"),
+    "agent_auto": ("agent_auto", "execute"),
+}
+
+
+def _resource_from_instruction(instruction: str) -> str:
+    for line in str(instruction or "").splitlines():
+        stripped = line.strip()
+        if stripped.upper().startswith("TARGET:"):
+            return stripped.split(":", 1)[1].strip().replace("\\", "/")
+    return ""
+
+
+def _capability_from_step(step: Mapping[str, Any]) -> tuple[str, str, str] | None:
+    step_type = str(step.get("type") or "").strip()
+    mapped = _PLAN_STEP_CAPABILITY.get(step_type)
+    if mapped is None:
+        return None
+    action_key, permission = mapped
+    if step_type == "patch":
+        resource = str(step.get("file") or "").strip().replace("\\", "/")
+    elif step_type == "agent":
+        resource = str(step.get("file") or step.get("goal") or "").strip()
+    else:
+        resource = str(step.get("file") or step.get("agent_blob") or "").strip()
+    if not resource:
+        return None
+    return action_key, permission, resource
+
+
+def _capability_from_legacy_action(plan: Mapping[str, Any]) -> tuple[str, str, str] | None:
+    action = str(plan.get("action") or "").strip()
+    if action in ("direct_patch", "patch"):
+        resource = str(plan.get("file") or "").strip().replace("\\", "/")
+        if not resource:
+            resource = _resource_from_instruction(str(plan.get("instruction") or ""))
+        if not resource:
+            return None
+        return "patch", "write", resource
+    if action == "agent":
+        resource = str(plan.get("goal") or "").strip()
+        if not resource:
+            return None
+        return "agent", "execute", resource
+    if action == "agent_auto":
+        resource = str(plan.get("agent_blob") or "").strip()
+        if not resource:
+            return None
+        return "agent_auto", "execute", resource
+    return None
+
+
+def capability_from_plan(plan: Mapping[str, Any] | None) -> tuple[str, str, str] | None:
+    """Executable plan → tek (action_key, permission, resource). Çoklu/eksik → None."""
+    if not isinstance(plan, Mapping):
+        return None
+    found: tuple[str, str, str] | None = None
+    steps = plan.get("steps")
+    if isinstance(steps, list):
+        for raw in steps:
+            if not isinstance(raw, Mapping):
+                return None
+            cap = _capability_from_step(raw)
+            if cap is None:
+                if str(raw.get("type") or "").strip() in _PLAN_STEP_CAPABILITY:
+                    return None
+                continue
+            if found is None:
+                found = cap
+            elif found != cap:
+                return None
+        if found is not None:
+            return found
+        if steps:
+            return None
+    return _capability_from_legacy_action(plan)
+
+
+def _declared_capability(
     data: Mapping[str, Any],
     *,
     norm: Mapping[str, Any] | None = None,
-) -> ExecutionBinding | None:
-    """Gate bundle / test dict → bağ; eksik alanda None (fail-closed)."""
-    subject_id = str(data.get("subject_id") or data.get("actor_id") or "").strip()
-    if not subject_id:
-        return None
-    task_id = str(data.get("task_id") or "").strip()
+) -> dict[str, str]:
+    """Caller metadata only when explicitly set — no permission default."""
+    declared: dict[str, str] = {}
     action_key = str(
         data.get("task_execution_action_key") or data.get("action_key") or ""
     ).strip()
+    if action_key:
+        declared["action_key"] = action_key
+    permission = str(
+        data.get("task_execution_permission") or data.get("permission") or ""
+    ).strip()
+    if permission:
+        declared["permission"] = permission
     resource = ""
     nested = norm if norm is not None else data.get("norm")
     if isinstance(nested, Mapping):
         resource = str(nested.get("target_rel") or nested.get("resource") or "").strip()
     if not resource:
         resource = str(data.get("resource") or "").strip()
-    permission = str(
-        data.get("task_execution_permission") or data.get("permission") or "execute"
-    ).strip()
-    agent_id = str(data.get("agent_id") or "agent:unspecified").strip() or "agent:unspecified"
-    session_id = str(data.get("session_id") or "session:unspecified").strip() or "session:unspecified"
-    if not (task_id and action_key and resource and permission):
+    if resource:
+        declared["resource"] = resource
+    return declared
+
+
+def _identity_from_mapping(data: Mapping[str, Any]) -> dict[str, str]:
+    return {
+        "subject_id": str(data.get("subject_id") or data.get("actor_id") or "").strip(),
+        "task_id": str(data.get("task_id") or "").strip(),
+        "agent_id": str(data.get("agent_id") or "agent:unspecified").strip()
+        or "agent:unspecified",
+        "session_id": str(data.get("session_id") or "session:unspecified").strip()
+        or "session:unspecified",
+    }
+
+
+def binding_from_mapping(
+    data: Mapping[str, Any],
+    *,
+    norm: Mapping[str, Any] | None = None,
+    plan: Mapping[str, Any] | None = None,
+) -> ExecutionBinding | None:
+    """Gate bundle / test dict → bağ; eksik alanda None (fail-closed).
+
+    `plan` varsa consume bağı plan adımlarından türer; caller metadata yalnız
+    kimlik içindir. Çelişki için `resolve_execution_binding` kullanın.
+    """
+    identity = _identity_from_mapping(data)
+    if not identity["subject_id"]:
+        return None
+    if plan is not None:
+        cap = capability_from_plan(plan)
+        if cap is None:
+            return None
+        action_key, permission, resource = cap
+    else:
+        action_key = str(
+            data.get("task_execution_action_key") or data.get("action_key") or ""
+        ).strip()
+        resource = ""
+        nested = norm if norm is not None else data.get("norm")
+        if isinstance(nested, Mapping):
+            resource = str(nested.get("target_rel") or nested.get("resource") or "").strip()
+        if not resource:
+            resource = str(data.get("resource") or "").strip()
+        permission = str(
+            data.get("task_execution_permission") or data.get("permission") or "execute"
+        ).strip()
+    if not (identity["task_id"] and action_key and resource and permission):
         return None
     try:
         return ExecutionBinding(
-            subject_id=subject_id,
-            agent_id=agent_id,
-            session_id=session_id,
-            task_id=task_id,
+            subject_id=identity["subject_id"],
+            agent_id=identity["agent_id"],
+            session_id=identity["session_id"],
+            task_id=identity["task_id"],
             action_key=action_key,
             resource=resource,
             permission=permission,
         )
     except ValueError:
         return None
+
+
+def resolve_execution_binding(
+    data: Mapping[str, Any],
+    *,
+    plan: Mapping[str, Any] | None,
+    norm: Mapping[str, Any] | None = None,
+    base_dir: Path | str | None = None,
+) -> tuple[ExecutionBinding | None, GrantResult | None]:
+    """Plan-derived consume bağ. Metadata plan ile çelişirse mismatch deny.
+
+    (binding, None) = consume aday. (None, deny) = capability_deviation.
+    (None, None) = bağ kurulamadı; caller require() ile fail-closed.
+    """
+    cap = capability_from_plan(plan)
+    if cap is None:
+        return None, None
+    action_key, permission, resource = cap
+    declared = _declared_capability(data, norm=norm)
+    conflict = (
+        ("action_key" in declared and declared["action_key"] != action_key)
+        or ("permission" in declared and declared["permission"] != permission)
+        or ("resource" in declared and declared["resource"] != resource)
+    )
+    expected = binding_from_mapping(data, norm=norm, plan=plan)
+    if conflict:
+        base = Path(base_dir).resolve() if base_dir is not None else None
+        return None, _deny(
+            REASON_MISMATCH,
+            suspicion=SUSPICION_HIGH,
+            event_kind=KIND_CAPABILITY_DEVIATION,
+            grant_id="",
+            base=base,
+            binding=expected,
+            requested_action=declared.get("action_key") or action_key,
+            audit=base is not None,
+        )
+    return expected, None
 
 
 def _now() -> datetime:

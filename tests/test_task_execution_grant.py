@@ -42,11 +42,13 @@ from policy.task_execution_grant import (
     action_is_grant_forbidden,
     append_ledger_entry,
     authorize_execution,
+    capability_from_plan,
     consume_task_execution_grant,
     issue_task_execution_grant,
     load_ledger_entries,
     load_registered_task,
     require_task_execution_grant,
+    resolve_execution_binding,
     token_hash,
     verify_ledger_chain,
 )
@@ -506,3 +508,70 @@ def test_concurrent_ledger_appends_preserve_chain(tmp_path: Path) -> None:
     entries = load_ledger_entries(tmp_path)
     assert len(entries) == n
     assert verify_ledger_chain(tmp_path) is True
+
+
+def test_capability_from_plan_uses_patch_step() -> None:
+    cap = capability_from_plan(
+        {"steps": [{"type": "patch", "file": "notes/fileA.md", "content": "x"}]}
+    )
+    assert cap == ("patch", "write", "notes/fileA.md")
+
+
+def test_capability_from_plan_rejects_mixed_patch_and_agent() -> None:
+    cap = capability_from_plan(
+        {
+            "steps": [
+                {"type": "patch", "file": "a.md", "content": "x"},
+                {"type": "agent", "goal": "do other work"},
+            ]
+        }
+    )
+    assert cap is None
+
+
+def test_file_read_metadata_versus_patch_plan_is_capability_deviation(
+    tmp_path: Path,
+) -> None:
+    data = {
+        "subject_id": "user:X",
+        "task_id": "G-12841",
+        "task_execution_action_key": "file_read",
+        "task_execution_permission": "read",
+    }
+    plan = {"steps": [{"type": "patch", "file": "notes/fileA.md", "content": "x"}]}
+    binding, denied = resolve_execution_binding(
+        data,
+        plan=plan,
+        norm={"target_rel": "notes/fileA.md"},
+        base_dir=tmp_path,
+    )
+    assert binding is None
+    assert denied is not None
+    assert not denied.allowed
+    assert denied.reason == REASON_MISMATCH
+    assert denied.event_kind == KIND_CAPABILITY_DEVIATION
+
+
+def test_matching_patch_plan_binding_consumes(tmp_path: Path) -> None:
+    plan = {"steps": [{"type": "patch", "file": "notes/fileA.md", "content": "x"}]}
+    issued = accept_execution_task(
+        _binding(action_key="patch", permission="write"), base_dir=tmp_path
+    )
+    expected, denied = resolve_execution_binding(
+        {
+            "subject_id": "user:X",
+            "task_id": "G-12841",
+            "agent_id": "agent:kando",
+            "session_id": "session:s1",
+            "task_execution_action_key": "patch",
+            "task_execution_permission": "write",
+            "task_execution_grant_token": issued.token,
+        },
+        plan=plan,
+        norm={"target_rel": "notes/fileA.md"},
+        base_dir=tmp_path,
+    )
+    assert denied is None
+    assert expected is not None
+    assert expected.action_key == "patch"
+    assert consume_task_execution_grant(issued.token, expected, base_dir=tmp_path).allowed
