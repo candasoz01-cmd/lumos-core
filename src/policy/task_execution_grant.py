@@ -22,7 +22,7 @@ import secrets
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 from core.lumos_base_dir import lumos_base_dir
 
@@ -256,6 +256,25 @@ def _load_json(path: Path) -> dict[str, Any] | None:
     return data if isinstance(data, dict) else None
 
 
+def _with_sidecar_lock(lock_path: Path, action: Callable[[], Any]) -> Any:
+    """Unix flock on a sidecar. Windows/no-fcntl runs unlocked (same as consume)."""
+    try:
+        import fcntl
+    except ImportError:
+        fcntl = None  # type: ignore[assignment]
+
+    if fcntl is None:
+        return action()
+
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with lock_path.open("a", encoding="utf-8") as lock_fh:
+        fcntl.flock(lock_fh.fileno(), fcntl.LOCK_EX)
+        try:
+            return action()
+        finally:
+            fcntl.flock(lock_fh.fileno(), fcntl.LOCK_UN)
+
+
 def _audit_path(base: Path) -> Path:
     return base / AUDIT_REL
 
@@ -348,42 +367,49 @@ def append_ledger_entry(
     approval_status: str = "",
     execution_result: str = "",
 ) -> dict[str, Any]:
-    prev = _read_tip(base)
-    body = {
-        "schema_version": SCHEMA_LEDGER,
-        "event_type": event_type,
-        "at": _now_iso(),
-        "grant_id": grant_id,
-        "subject_id": subject_id,
-        "agent_id": agent_id,
-        "session_id": session_id,
-        "task_id": task_id,
-        "granted_action": action_key,
-        "requested_action": requested_action or action_key,
-        "resource": _resource_audit_label(resource),
-        "permission": permission,
-        "policy_decision": policy_decision,
-        "approval_status": approval_status,
-        "execution_result": execution_result or event_type,
-        "reason": reason,
-        "suspicion": suspicion,
-        "classification": classification,
-        "event_kind": event_kind,
-        "token_hash": token_digest,
-        "prev_hash": prev,
-    }
-    canonical = json.dumps(body, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    payload_digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
-    entry_hash = hashlib.sha256((prev + payload_digest).encode("utf-8")).hexdigest()
-    body["entry_hash"] = entry_hash
-    path = base / LEDGER_REL
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as fh:
-        fh.write(json.dumps(body, ensure_ascii=False, sort_keys=True) + "\n")
-    tip = base / LEDGER_TIP_REL
-    tip.parent.mkdir(parents=True, exist_ok=True)
-    tip.write_text(entry_hash + "\n", encoding="utf-8")
-    return body
+    def _append_locked() -> dict[str, Any]:
+        prev = _read_tip(base)
+        body = {
+            "schema_version": SCHEMA_LEDGER,
+            "event_type": event_type,
+            "at": _now_iso(),
+            "grant_id": grant_id,
+            "subject_id": subject_id,
+            "agent_id": agent_id,
+            "session_id": session_id,
+            "task_id": task_id,
+            "granted_action": action_key,
+            "requested_action": requested_action or action_key,
+            "resource": _resource_audit_label(resource),
+            "permission": permission,
+            "policy_decision": policy_decision,
+            "approval_status": approval_status,
+            "execution_result": execution_result or event_type,
+            "reason": reason,
+            "suspicion": suspicion,
+            "classification": classification,
+            "event_kind": event_kind,
+            "token_hash": token_digest,
+            "prev_hash": prev,
+        }
+        canonical = json.dumps(body, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        payload_digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+        entry_hash = hashlib.sha256((prev + payload_digest).encode("utf-8")).hexdigest()
+        body["entry_hash"] = entry_hash
+        path = base / LEDGER_REL
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(body, ensure_ascii=False, sort_keys=True) + "\n")
+        tip = base / LEDGER_TIP_REL
+        tip.parent.mkdir(parents=True, exist_ok=True)
+        tip.write_text(entry_hash + "\n", encoding="utf-8")
+        return body
+
+    ledger_path = base / LEDGER_REL
+    return _with_sidecar_lock(
+        ledger_path.with_name(f"{ledger_path.name}.lock"),
+        _append_locked,
+    )
 
 
 def load_ledger_entries(base_dir: Path | str | None = None) -> list[dict[str, Any]]:
@@ -775,37 +801,17 @@ def consume_task_execution_grant(
             audit=audit,
         )
 
-    try:
-        import fcntl
-    except ImportError:
-        fcntl = None  # type: ignore[assignment]
-
-    if fcntl is not None:
-        lock_path = path.with_name(f"{path.name}.lock")
-        lock_path.parent.mkdir(parents=True, exist_ok=True)
-        with lock_path.open("a", encoding="utf-8") as lock_fh:
-            fcntl.flock(lock_fh.fileno(), fcntl.LOCK_EX)
-            try:
-                return _consume_locked(
-                    path,
-                    full_token,
-                    expected,
-                    base=base,
-                    grant_id=grant_id,
-                    digest=digest,
-                    audit=audit,
-                )
-            finally:
-                fcntl.flock(lock_fh.fileno(), fcntl.LOCK_UN)
-
-    return _consume_locked(
-        path,
-        full_token,
-        expected,
-        base=base,
-        grant_id=grant_id,
-        digest=digest,
-        audit=audit,
+    return _with_sidecar_lock(
+        path.with_name(f"{path.name}.lock"),
+        lambda: _consume_locked(
+            path,
+            full_token,
+            expected,
+            base=base,
+            grant_id=grant_id,
+            digest=digest,
+            audit=audit,
+        ),
     )
 
 

@@ -38,6 +38,7 @@ from policy.task_execution_grant import (
     ExecutionBinding,
     accept_execution_task,
     action_is_grant_forbidden,
+    append_ledger_entry,
     authorize_execution,
     consume_task_execution_grant,
     issue_task_execution_grant,
@@ -382,3 +383,21 @@ def test_concurrent_consume_only_one_wins(tmp_path: Path) -> None:
     with ThreadPoolExecutor(max_workers=8) as pool:
         wins = list(pool.map(lambda _: _once(), range(8)))
     assert sum(1 for ok in wins if ok) == 1
+
+
+def test_concurrent_ledger_appends_preserve_chain(tmp_path: Path) -> None:
+    n = 24
+
+    def _once(i: int) -> None:
+        append_ledger_entry(
+            tmp_path,
+            EVENT_DENIED,
+            reason=f"concurrent-{i}",
+            task_id=f"G-{i}",
+        )
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        list(pool.map(_once, range(n)))
+    entries = load_ledger_entries(tmp_path)
+    assert len(entries) == n
+    assert verify_ledger_chain(tmp_path) is True
