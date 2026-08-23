@@ -64,10 +64,15 @@ The artifact also includes `generated_at` and `run_attempt`
 (`GITHUB_RUN_ATTEMPT` or `--run-attempt`).
 
 State persists across runs in `--state` (workflow cache: `layer1a-state.json`).
-The workflow restores with `actions/cache/restore@v4` and saves with
-`actions/cache/save@v4` under `if: always()`. Cache save needs `actions: write`;
-`contents` stays `read`. The pulse step uses `continue-on-error: true`; a missing
-artifact still fails the upload step.
+The workflow restores with `actions/cache/restore` and saves with
+`actions/cache/save` under `if: always()`. Both cache steps and the other
+third-party actions are pinned to full commit SHAs. Cache save works with
+`actions: read`; `contents` stays `read`. A non-zero pulse exit fails the job.
+Artifact upload and cache save still run (`if: always()`); a missing artifact
+fails the upload step.
+
+Requests are HTTPS-only to the allowlisted host (`welockai.com`). Cross-origin
+redirects are rejected. Response bodies are capped at 1 MiB.
 
 **Accepted operational limit:** GitHub Actions cache entries unused for 7 days
 are evicted. If `layer1a-state.json` drops, per-check history is missing until
@@ -86,5 +91,5 @@ Stdlib only.
 
 `.github/workflows/layer1a.yml` runs every 30 minutes on `main` and on
 `workflow_dispatch`. It restores/saves `layer1a-state.json` and uploads
-`layer1a-result.json` as a workflow artifact. Script exit codes are preserved;
-the job stays green unless artifact upload fails.
+`layer1a-result.json` as a workflow artifact. A failing overall result fails
+the job; artifact upload still runs.

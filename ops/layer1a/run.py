@@ -14,14 +14,18 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Mapping
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 SCHEMA = "lumos.ops.layer1a.v1"
 STATE_SCHEMA = "lumos.ops.layer1a.state.v1"
 DEFAULT_BASE_URL = "https://welockai.com"
 DEFAULT_TIMEOUT_SECONDS = 15
 DEFAULT_STALE_AFTER_SECONDS = 3600
+DEFAULT_MAX_BODY_BYTES = 1_048_576
+ALLOWED_HOSTS = frozenset({"welockai.com"})
 USER_AGENT = "lumos-ops-layer1a/1.0"
+HTTPS_SCHEME = "https"
+HTTPS_PORT = 443
 
 RESULT_PASS = "pass"
 RESULT_FAIL = "fail"
@@ -43,6 +47,14 @@ SECRET_KEY_NAMES = frozenset(
 )
 
 FetchFn = Callable[[str], tuple[int, str, bytes]]
+
+
+class UnsafeURLError(ValueError):
+    """Raised when a URL is not HTTPS to an allowlisted host, or redirects away."""
+
+
+class ResponseTooLargeError(ValueError):
+    """Raised when a response body exceeds the Layer 1A size cap."""
 
 
 def utc_now() -> datetime:
@@ -68,26 +80,130 @@ def parse_utc(raw: str) -> datetime | None:
     return parsed.astimezone(timezone.utc)
 
 
+def _hostname(parsed: Any) -> str:
+    return (parsed.hostname or "").strip().lower().rstrip(".")
+
+
+def _origin(parsed: Any) -> tuple[str, str, int]:
+    scheme = (parsed.scheme or "").lower()
+    host = _hostname(parsed)
+    port = parsed.port
+    if port is None:
+        port = HTTPS_PORT if scheme == HTTPS_SCHEME else 80
+    return scheme, host, port
+
+
+def assert_safe_url(
+    raw: str, *, expected_origin: tuple[str, str, int] | None = None
+) -> str:
+    """Return a stripped HTTPS URL or raise UnsafeURLError.
+
+    When expected_origin is set, the URL must match that origin exactly
+    (scheme, allowlisted host, port). Used to reject cross-origin redirects.
+    """
+    text = raw.strip()
+    if not text:
+        raise UnsafeURLError("URL empty")
+    parsed = urlparse(text)
+    scheme, host, port = _origin(parsed)
+    if scheme != HTTPS_SCHEME:
+        raise UnsafeURLError(f"URL scheme must be https, got {scheme!r}")
+    if parsed.username is not None or parsed.password is not None:
+        raise UnsafeURLError("URL must not include userinfo")
+    if not host or host not in ALLOWED_HOSTS:
+        raise UnsafeURLError(f"host {host!r} is not allowlisted")
+    if port != HTTPS_PORT:
+        raise UnsafeURLError(f"non-default HTTPS port is not allowed: {port}")
+    origin = (scheme, host, port)
+    if expected_origin is not None and origin != expected_origin:
+        raise UnsafeURLError(
+            f"cross-origin redirect rejected: {expected_origin} -> {origin}"
+        )
+    return text
+
+
 def normalize_base_url(raw: str) -> str:
     base = raw.strip().rstrip("/")
     if not base:
         raise ValueError("base URL empty")
-    return base
+    parsed = urlparse(base)
+    if parsed.path not in ("", "/") or parsed.params or parsed.query or parsed.fragment:
+        raise UnsafeURLError(
+            "base URL must be an https origin without path, query, or fragment"
+        )
+    return assert_safe_url(base).rstrip("/")
 
 
-def default_fetch(url: str, timeout: float) -> tuple[int, str, bytes]:
+def read_limited(response: Any, limit: int = DEFAULT_MAX_BODY_BYTES) -> bytes:
+    headers = getattr(response, "headers", None)
+    declared = None
+    if headers is not None:
+        raw_length = headers.get("Content-Length")
+        if raw_length is not None:
+            try:
+                declared = int(raw_length)
+            except (TypeError, ValueError):
+                declared = None
+            else:
+                if declared < 0:
+                    declared = None
+    if declared is not None and declared > limit:
+        raise ResponseTooLargeError(
+            f"response too large: Content-Length {declared} > {limit}"
+        )
+    chunks: list[bytes] = []
+    total = 0
+    while True:
+        remaining_plus = limit - total + 1
+        chunk = response.read(min(65536, remaining_plus))
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > limit:
+            raise ResponseTooLargeError(
+                f"response too large: exceeded {limit} bytes"
+            )
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
+class SameOriginHTTPSRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Follow redirects only when the target is HTTPS to the same allowlisted origin."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: ANN001
+        origin = _origin(urlparse(req.full_url))
+        assert_safe_url(newurl, expected_origin=origin)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def _https_opener() -> urllib.request.OpenerDirector:
+    return urllib.request.build_opener(SameOriginHTTPSRedirectHandler)
+
+
+def default_fetch(
+    url: str,
+    timeout: float,
+    *,
+    max_body_bytes: int = DEFAULT_MAX_BODY_BYTES,
+) -> tuple[int, str, bytes]:
+    safe = assert_safe_url(url)
     request = urllib.request.Request(
-        url,
+        safe,
         method="GET",
         headers={"User-Agent": USER_AGENT, "Accept": "*/*"},
     )
+    opener = _https_opener()
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            body = response.read()
+        with opener.open(request, timeout=timeout) as response:
+            final_url = response.geturl()
+            assert_safe_url(final_url, expected_origin=_origin(urlparse(safe)))
+            body = read_limited(response, max_body_bytes)
             content_type = str(response.headers.get("Content-Type") or "")
             return int(response.status), content_type, body
     except urllib.error.HTTPError as exc:
-        body = exc.read()
+        if exc.url:
+            assert_safe_url(str(exc.url), expected_origin=_origin(urlparse(safe)))
+        body = read_limited(exc, max_body_bytes) if exc.fp is not None else b""
         content_type = str(exc.headers.get("Content-Type") or "") if exc.headers else ""
         return int(exc.code), content_type, body
 
@@ -266,6 +382,7 @@ def run_checks(
                 previous[check_id] = value
 
     results: list[dict[str, Any]] = []
+    origin = _origin(urlparse(base))
     for check_id, path, evaluate in CHECKS:
         url = urljoin(base + "/", path.lstrip("/"))
         prior = previous.get(check_id)
@@ -280,6 +397,7 @@ def run_checks(
             "last_success_at": prior,
         }
         try:
+            assert_safe_url(url, expected_origin=origin)
             status, content_type, body = fetch(url)
             entry["status"] = status
             result, detail = evaluate(status, content_type, body)
