@@ -263,6 +263,94 @@ def test_lumos_gate_execute_matching_patch_grant_allows_patch_plan(
     assert calls, "plan action matching grant must reach execute_plan"
 
 
+def test_lumos_gate_execute_agent_plan_with_file_target_rel_consumes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv(ENV_ENABLED, "true")
+    lumos = tmp_path / ".lumos"
+    lumos.mkdir()
+    issued = issue_task_execution_grant(
+        _binding(
+            action_key="agent",
+            permission="execute",
+            resource="summarize the notes",
+        ),
+        base_dir=lumos,
+    )
+    jobs: list[str] = []
+
+    def _run_direct(instr: str) -> dict:
+        raise AssertionError(f"patch executor must not run: {instr}")
+
+    def _start_agent(goal: str, _auto: bool) -> str:
+        jobs.append(goal)
+        return "job-agent"
+
+    out = lumos_gate_execute(
+        _bundle(
+            tmp_path,
+            plan={"steps": [{"type": "agent", "goal": "summarize the notes"}]},
+            mode="agent",
+            task_execution_action_key="agent",
+            task_execution_permission="execute",
+            task_execution_grant_token=issued.token,
+        ),
+        run_direct=_run_direct,
+        start_agent=_start_agent,
+        run_agent_auto=None,
+    )
+    assert jobs == ["summarize the notes"]
+    assert out.get("blocked") is not True
+    stored = json.loads(
+        (lumos / GRANTS_DIR / f"{issued.grant_id}.json").read_text(encoding="utf-8")
+    )
+    assert stored.get("consumed") is True
+
+
+def test_execute_approved_pending_agent_plan_with_file_target_rel(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv(ENV_ENABLED, "true")
+    lumos = tmp_path / ".lumos"
+    lumos.mkdir()
+    issued = issue_task_execution_grant(
+        _binding(
+            action_key="agent",
+            permission="execute",
+            resource="summarize the notes",
+        ),
+        base_dir=lumos,
+    )
+    jobs: list[str] = []
+
+    def _run_direct(instr: str) -> dict:
+        raise AssertionError(f"patch executor must not run: {instr}")
+
+    def _start_agent(goal: str, _auto: bool) -> str:
+        jobs.append(goal)
+        return "job-approve-agent"
+
+    out = execute_approved_pending_record(
+        _pending_record(
+            tmp_path,
+            mode="agent",
+            execution_plan={"steps": [{"type": "agent", "goal": "summarize the notes"}]},
+            task_execution_action_key="agent",
+            task_execution_permission="execute",
+            task_execution_grant_token=issued.token,
+        ),
+        run_direct=_run_direct,
+        start_agent=_start_agent,
+        repo_root=tmp_path,
+    )
+    assert jobs == ["summarize the notes"]
+    assert out.get("blocked") is not True
+    stored = json.loads(
+        (lumos / GRANTS_DIR / f"{issued.grant_id}.json").read_text(encoding="utf-8")
+    )
+    assert stored.get("consumed") is True
+
+
 def _pending_record(tmp_path: Path, **overrides: object) -> dict:
     record: dict = {
         "schema_version": "lumos.pending_approval.v1",

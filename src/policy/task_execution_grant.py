@@ -237,12 +237,22 @@ def capability_from_plan(plan: Mapping[str, Any] | None) -> tuple[str, str, str]
     return _capability_from_legacy_action(plan)
 
 
+_AGENT_PLAN_ACTIONS = frozenset({"agent", "agent_auto"})
+
+
 def _declared_capability(
     data: Mapping[str, Any],
     *,
     norm: Mapping[str, Any] | None = None,
+    plan: Mapping[str, Any] | None = None,
 ) -> dict[str, str]:
-    """Caller metadata only when explicitly set — no permission default."""
+    """Caller metadata only when explicitly set — no permission default.
+
+    ``norm.target_rel`` is a file hint from task normalization. It is a
+    capability resource only for file-scoped plans (patch). Agent and
+    ``agent_auto`` bind ``goal`` / ``agent_blob``; a leftover file path is
+    not a deviation.
+    """
     declared: dict[str, str] = {}
     action_key = str(
         data.get("task_execution_action_key") or data.get("action_key") or ""
@@ -254,10 +264,15 @@ def _declared_capability(
     ).strip()
     if permission:
         declared["permission"] = permission
+    cap = capability_from_plan(plan) if plan is not None else None
+    file_scoped = cap is None or cap[0] not in _AGENT_PLAN_ACTIONS
     resource = ""
     nested = norm if norm is not None else data.get("norm")
     if isinstance(nested, Mapping):
-        resource = str(nested.get("target_rel") or nested.get("resource") or "").strip()
+        if file_scoped:
+            resource = str(nested.get("target_rel") or nested.get("resource") or "").strip()
+        else:
+            resource = str(nested.get("resource") or "").strip()
     if not resource:
         resource = str(data.get("resource") or "").strip()
     if resource:
@@ -340,7 +355,7 @@ def resolve_execution_binding(
     if cap is None:
         return None, None
     action_key, permission, resource = cap
-    declared = _declared_capability(data, norm=norm)
+    declared = _declared_capability(data, norm=norm, plan=plan)
     conflict = (
         ("action_key" in declared and declared["action_key"] != action_key)
         or ("permission" in declared and declared["permission"] != permission)

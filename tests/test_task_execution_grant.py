@@ -575,3 +575,123 @@ def test_matching_patch_plan_binding_consumes(tmp_path: Path) -> None:
     assert expected is not None
     assert expected.action_key == "patch"
     assert consume_task_execution_grant(issued.token, expected, base_dir=tmp_path).allowed
+
+
+def test_agent_plan_with_file_target_rel_is_not_capability_deviation(
+    tmp_path: Path,
+) -> None:
+    data = {
+        "subject_id": "user:X",
+        "task_id": "G-12841",
+        "task_execution_action_key": "agent",
+        "task_execution_permission": "execute",
+    }
+    plan = {"steps": [{"type": "agent", "goal": "summarize the notes"}]}
+    binding, denied = resolve_execution_binding(
+        data,
+        plan=plan,
+        norm={"target_rel": "notes/fileA.md"},
+        base_dir=tmp_path,
+    )
+    assert denied is None
+    assert binding is not None
+    assert binding.action_key == "agent"
+    assert binding.permission == "execute"
+    assert binding.resource == "summarize the notes"
+
+
+def test_agent_auto_plan_with_file_target_rel_is_not_capability_deviation(
+    tmp_path: Path,
+) -> None:
+    data = {
+        "subject_id": "user:X",
+        "task_id": "G-12841",
+        "task_execution_action_key": "agent_auto",
+        "task_execution_permission": "execute",
+    }
+    plan = {"steps": [{"type": "agent_auto", "agent_blob": "apply the summary"}]}
+    binding, denied = resolve_execution_binding(
+        data,
+        plan=plan,
+        norm={"target_rel": "notes/fileA.md"},
+        base_dir=tmp_path,
+    )
+    assert denied is None
+    assert binding is not None
+    assert binding.action_key == "agent_auto"
+    assert binding.resource == "apply the summary"
+
+
+def test_legacy_agent_action_with_file_target_rel_is_not_capability_deviation(
+    tmp_path: Path,
+) -> None:
+    data = {
+        "subject_id": "user:X",
+        "task_id": "G-12841",
+        "task_execution_action_key": "agent",
+        "task_execution_permission": "execute",
+    }
+    plan = {"action": "agent", "goal": "summarize the notes"}
+    binding, denied = resolve_execution_binding(
+        data,
+        plan=plan,
+        norm={"target_rel": "notes/fileA.md"},
+        base_dir=tmp_path,
+    )
+    assert denied is None
+    assert binding is not None
+    assert binding.resource == "summarize the notes"
+
+
+def test_agent_plan_with_file_read_metadata_is_capability_deviation(
+    tmp_path: Path,
+) -> None:
+    data = {
+        "subject_id": "user:X",
+        "task_id": "G-12841",
+        "task_execution_action_key": "file_read",
+        "task_execution_permission": "read",
+    }
+    plan = {"steps": [{"type": "agent", "goal": "summarize the notes"}]}
+    binding, denied = resolve_execution_binding(
+        data,
+        plan=plan,
+        norm={"target_rel": "notes/fileA.md"},
+        base_dir=tmp_path,
+    )
+    assert binding is None
+    assert denied is not None
+    assert not denied.allowed
+    assert denied.reason == REASON_MISMATCH
+    assert denied.event_kind == KIND_CAPABILITY_DEVIATION
+
+
+def test_matching_agent_plan_binding_consumes(tmp_path: Path) -> None:
+    plan = {"steps": [{"type": "agent", "goal": "summarize the notes"}]}
+    issued = accept_execution_task(
+        _binding(
+            action_key="agent",
+            permission="execute",
+            resource="summarize the notes",
+        ),
+        base_dir=tmp_path,
+    )
+    expected, denied = resolve_execution_binding(
+        {
+            "subject_id": "user:X",
+            "task_id": "G-12841",
+            "agent_id": "agent:kando",
+            "session_id": "session:s1",
+            "task_execution_action_key": "agent",
+            "task_execution_permission": "execute",
+            "task_execution_grant_token": issued.token,
+        },
+        plan=plan,
+        norm={"target_rel": "notes/fileA.md"},
+        base_dir=tmp_path,
+    )
+    assert denied is None
+    assert expected is not None
+    assert expected.action_key == "agent"
+    assert expected.resource == "summarize the notes"
+    assert consume_task_execution_grant(issued.token, expected, base_dir=tmp_path).allowed
