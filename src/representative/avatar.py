@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import base64
-import queue
 import threading
 from dataclasses import dataclass
 from pathlib import Path
@@ -51,8 +50,15 @@ class AvatarStateController:
         self._on_error = on_error or (lambda _exc: None)
         self._generation = 0
         self._lock = threading.Lock()
-        self._updates: queue.Queue[str] | None = queue.Queue() if background else None
-        if self._updates is not None:
+        # Latest-wins slot, not a queue. Only the newest visual state is
+        # meaningful: if publishing lags, an unbounded queue would replay a
+        # stale "speaking" frame long after the speech ended, so the avatar
+        # would drift further and further behind reality. Superseded frames
+        # are dropped on purpose.
+        self._background = background
+        self._pending: str | None = None
+        self._wake = threading.Event()
+        if background:
             threading.Thread(target=self._publish_loop, daemon=True).start()
 
     def _try_publish(self, jpeg_b64: str) -> None:
@@ -62,27 +68,59 @@ class AvatarStateController:
             self._on_error(exc)
 
     def _publish_loop(self) -> None:
-        assert self._updates is not None
         while True:
-            self._try_publish(self._updates.get())
+            self._wake.wait()
+            with self._lock:
+                pending = self._pending
+                self._pending = None
+                self._wake.clear()
+            if pending is not None:
+                self._try_publish(pending)
+
+    def _stage_locked(self, jpeg_b64: str) -> str | None:
+        """Record the newest frame. **Caller must hold ``_lock``.**
+
+        Returns the frame when it must be published directly (no background
+        thread); the caller publishes it *after* releasing the lock, because
+        publishing does network I/O and must never run under the state lock.
+
+        Staging happens under the same lock as the generation counter so a
+        state change and its frame cannot be split. Without that, an ``idle``
+        that wins the counter can still lose the frame race to a late
+        ``speaking``, leaving the avatar stuck speaking.
+        """
+        if not self._background:
+            return jpeg_b64
+        self._pending = jpeg_b64
+        self._wake.set()
+        return None
 
     def _enqueue(self, jpeg_b64: str) -> None:
-        if self._updates is None:
-            self._try_publish(jpeg_b64)
-        else:
-            self._updates.put(jpeg_b64)
+        with self._lock:
+            direct = self._stage_locked(jpeg_b64)
+        if direct is not None:
+            self._try_publish(direct)
+
+    def pending_frame(self) -> str | None:
+        """Frame waiting to be published, if any. For tests and diagnostics."""
+        with self._lock:
+            return self._pending
 
     def speaking_for(self, seconds: float) -> None:
         with self._lock:
             self._generation += 1
             generation = self._generation
-        self._enqueue(self._assets.speaking_jpeg_b64)
+            direct = self._stage_locked(self._assets.speaking_jpeg_b64)
+        if direct is not None:
+            self._try_publish(direct)
 
         def restore() -> None:
             with self._lock:
                 if generation != self._generation:
                     return
-            self._enqueue(self._assets.idle_jpeg_b64)
+                pending = self._stage_locked(self._assets.idle_jpeg_b64)
+            if pending is not None:
+                self._try_publish(pending)
 
         timer = threading.Timer(max(0.1, seconds), restore)
         timer.daemon = True
@@ -91,4 +129,6 @@ class AvatarStateController:
     def idle(self) -> None:
         with self._lock:
             self._generation += 1
-        self._enqueue(self._assets.idle_jpeg_b64)
+            direct = self._stage_locked(self._assets.idle_jpeg_b64)
+        if direct is not None:
+            self._try_publish(direct)

@@ -157,8 +157,12 @@ class RecallSpeaker:
         return resp.content
 
     def _deliver(self, payload: bytes, _text: str, _lang: str) -> None:
-        self._avatar.speaking_for(estimate_speech_seconds(_text))
+        # speaking durumu GERÇEK oynatma başlangıcına bağlanır. speak() bloklayan
+        # bir yüklemedir; timer ondan önce kurulursa sayaç ağ süresi boyunca işler
+        # ve Meet hâlâ sesi çalarken avatar idle'a döner. Chunked TTS'te bu klipler
+        # arası idle titremesine dönüşür.
         self._ingress.speak(self._bot_id, base64.b64encode(payload).decode())
+        self._avatar.speaking_for(estimate_speech_seconds(_text))
 
     def barge_in(self) -> int:
         self._avatar.idle()

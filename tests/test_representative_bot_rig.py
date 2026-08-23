@@ -109,3 +109,19 @@ def test_verified_tunnel_rotates_failed_address_before_bot_creation(monkeypatch)
     assert proc is second
     assert url == "wss://good.example"
     assert verified == ["wss://bad.example", "wss://good.example"]
+
+
+def test_speaking_state_starts_after_upload_not_before() -> None:
+    """Idle timer yükleme süresini saymamalı.
+
+    speaking_for upload'dan ÖNCE çağrılırsa sayaç ağ süresi boyunca işler ve
+    Meet hâlâ sesi çalarken avatar idle'a döner.
+    """
+    import inspect
+
+    from representative import bot_rig
+
+    src = inspect.getsource(bot_rig.RecallSpeaker._deliver)
+    speak_at = src.index("self._ingress.speak(")
+    avatar_at = src.index("self._avatar.speaking_for(")
+    assert speak_at < avatar_at, "speaking_for, speak() çağrısından sonra gelmeli"
