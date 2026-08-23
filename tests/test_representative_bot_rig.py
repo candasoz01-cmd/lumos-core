@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import threading
+
 import pytest
 
 from representative.bot_rig import (
+    DisclosureInputGuard,
     build_realtime_endpoint,
     extract_audio_b64,
+    start_verified_tunnel,
 )
 from representative.tts_playback import estimate_speech_seconds
 
@@ -59,3 +63,65 @@ def test_terminal_status_detection():
         assert is_terminal_status(code) is True
     for code in ("joining_call", "in_waiting_room", "in_call_recording", None):
         assert is_terminal_status(code) is False
+
+
+def test_disclosure_guard_drops_bot_echo_then_opens():
+    guard = DisclosureInputGuard(duration_s=5.0)
+
+    assert guard.allows_audio(99.0) is False
+    guard.mark_connected(100.0)
+    assert guard.allows_audio(104.99) is False
+    assert guard.allows_audio(105.0) is True
+
+    guard.mark_connected(200.0)  # reconnect/message does not extend the first guard
+    assert guard.allows_audio(200.0) is True
+
+
+def test_verified_tunnel_rotates_failed_address_before_bot_creation(monkeypatch):
+    class Proc:
+        def __init__(self):
+            self.terminated = False
+
+        def terminate(self):
+            self.terminated = True
+
+    first = Proc()
+    second = Proc()
+    starts = iter(((first, "wss://bad.example"), (second, "wss://good.example")))
+    verified = []
+
+    monkeypatch.setattr("representative.bot_rig.start_cloudflared", lambda _port: next(starts))
+    monkeypatch.setattr(
+        "representative.bot_rig.start_ngrok",
+        lambda _port: pytest.fail("ngrok fallback was not expected"),
+    )
+
+    def verify(url, _event):
+        verified.append(url)
+        if "bad" in url:
+            raise RuntimeError("dns")
+
+    monkeypatch.setattr("representative.bot_rig.verify_tunnel", verify)
+
+    proc, url = start_verified_tunnel(8765, threading.Event(), attempts=2)
+
+    assert first.terminated is True
+    assert proc is second
+    assert url == "wss://good.example"
+    assert verified == ["wss://bad.example", "wss://good.example"]
+
+
+def test_speaking_state_starts_after_upload_not_before() -> None:
+    """Idle timer yükleme süresini saymamalı.
+
+    speaking_for upload'dan ÖNCE çağrılırsa sayaç ağ süresi boyunca işler ve
+    Meet hâlâ sesi çalarken avatar idle'a döner.
+    """
+    import inspect
+
+    from representative import bot_rig
+
+    src = inspect.getsource(bot_rig.RecallSpeaker._deliver)
+    speak_at = src.index("self._ingress.speak(")
+    avatar_at = src.index("self._avatar.speaking_for(")
+    assert speak_at < avatar_at, "speaking_for, speak() çağrısından sonra gelmeli"

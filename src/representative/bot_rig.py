@@ -37,7 +37,13 @@ from collections import deque
 from typing import Any
 
 from representative.audio import HalfDuplexGate, RepeatSuppressor
+from representative.avatar import (
+    AvatarStateController,
+    MeetAvatarAssets,
+    load_meet_avatar_assets,
+)
 from representative.meeting_ingress import (
+    DISCLOSURE_LINE_EN,
     REHEARSAL_RETENTION,
     RecallMeetingIngress,
     build_recall_bot_payload,
@@ -51,17 +57,36 @@ from representative.pipeline import (
 )
 from representative.routing import Direction, DirectionRouter
 from representative.stt import LUMOS_TERMS_PROMPT
-from representative.tts_playback import ChunkedTtsPlayer
+from representative.tts_playback import ChunkedTtsPlayer, estimate_speech_seconds
 
 RECALL_INBOUND_RATE = 16000
 
 # Recall bot durumları: oturumun kendiliğinden kapanacağı uç durumlar
 TERMINAL_BOT_STATUSES = frozenset({"call_ended", "done", "fatal"})
 WAITING_ROOM_TIMEOUT_S = 300  # bekleme odasında 5 dk kabul edilmezse vazgeç
+# V1 sesli beyan yalnız İngilizce (kurucu kararı 2026-08-20): tek ses akışında
+# iki dil süreyi uzatıyor ve anlaşılırlığı düşürüyordu. TR metni yazılı kanal için
+# saklanıyor, seslendirilmiyor.
+DISCLOSURE_GUARD_S = estimate_speech_seconds(DISCLOSURE_LINE_EN) + 1.0
 
 
 def is_terminal_status(code: str | None) -> bool:
     return code in TERMINAL_BOT_STATUSES
+
+
+class DisclosureInputGuard:
+    """Drop inbound audio while Recall plays the automatic disclosure."""
+
+    def __init__(self, duration_s: float = DISCLOSURE_GUARD_S) -> None:
+        self._duration_s = duration_s
+        self._deadline: float | None = None
+
+    def mark_connected(self, now: float) -> None:
+        if self._deadline is None:
+            self._deadline = now + self._duration_s
+
+    def allows_audio(self, now: float) -> bool:
+        return self._deadline is not None and now >= self._deadline
 
 
 def extract_audio_b64(message: dict[str, Any]) -> str | None:
@@ -98,13 +123,26 @@ class RecallSpeaker:
     from covering the entire paragraph.
     """
 
-    def __init__(self, ingress: RecallMeetingIngress, bot_id: str, gate: HalfDuplexGate) -> None:
+    def __init__(
+        self,
+        ingress: RecallMeetingIngress,
+        bot_id: str,
+        gate: HalfDuplexGate,
+        avatar_assets: MeetAvatarAssets,
+    ) -> None:
         from openai import OpenAI
 
         self._client = OpenAI()
         self._ingress = ingress
         self._bot_id = bot_id
         self._gate = gate
+        self._avatar = AvatarStateController(
+            publish=lambda jpeg: ingress.show_avatar(bot_id, jpeg),
+            assets=avatar_assets,
+            on_error=lambda exc: print(
+                f"avatar güncellenemedi: {type(exc).__name__} (çeviri sürüyor)"
+            ),
+        )
         self._player = ChunkedTtsPlayer(
             synthesize=self._synthesize,
             deliver=self._deliver,
@@ -119,9 +157,15 @@ class RecallSpeaker:
         return resp.content
 
     def _deliver(self, payload: bytes, _text: str, _lang: str) -> None:
+        # speaking durumu GERÇEK oynatma başlangıcına bağlanır. speak() bloklayan
+        # bir yüklemedir; timer ondan önce kurulursa sayaç ağ süresi boyunca işler
+        # ve Meet hâlâ sesi çalarken avatar idle'a döner. Chunked TTS'te bu klipler
+        # arası idle titremesine dönüşür.
         self._ingress.speak(self._bot_id, base64.b64encode(payload).decode())
+        self._avatar.speaking_for(estimate_speech_seconds(_text))
 
     def barge_in(self) -> int:
+        self._avatar.idle()
         return self._player.barge_in()
 
     def speak(self, text: str, lang: str):
@@ -131,7 +175,11 @@ class RecallSpeaker:
 TUNNEL_PROBE_EVENT = "lumos.tunnel_probe"
 
 
-def verify_tunnel(public_wss: str, received: "threading.Event") -> None:
+def verify_tunnel(
+    public_wss: str,
+    received: "threading.Event",
+    timeout_s: float = 45.0,
+) -> None:
     """Fail-closed tünel öz-testi (canlı insan testi 2 FAIL dersi, 2026-08-17):
     bot yaratılmadan ÖNCE genel wss adresine dışarıdan bağlanıp işaret
     mesajının yerel sunucuya ulaştığı kanıtlanır. Ulaşmazsa bot HİÇ
@@ -161,7 +209,7 @@ def verify_tunnel(public_wss: str, received: "threading.Event") -> None:
             sock = _socket.create_connection((ip, 443), timeout=10)
             return connect(public_wss, sock=sock, server_hostname=host, open_timeout=10)
 
-    deadline = time.monotonic() + 90  # DNS yayılımı payı
+    deadline = time.monotonic() + timeout_s
     last_exc: Exception | None = None
     while time.monotonic() < deadline:
         try:
@@ -238,6 +286,36 @@ def start_ngrok(port: int) -> tuple[subprocess.Popen, str]:
     raise RuntimeError("ngrok tüneli açılamadı (authtoken/ağ?)")
 
 
+def start_verified_tunnel(
+    port: int,
+    probe_received: threading.Event,
+    attempts: int = 3,
+) -> tuple[subprocess.Popen, str]:
+    """Create and verify a tunnel before bot creation; rotate flaky DNS names."""
+    if attempts < 1:
+        raise ValueError("tunnel attempts must be positive")
+    last_exc: Exception | None = None
+    for attempt in range(1, attempts + 1):
+        proc: subprocess.Popen | None = None
+        probe_received.clear()
+        try:
+            try:
+                proc, wss_url = start_cloudflared(port)
+            except (FileNotFoundError, RuntimeError) as exc:
+                print(f"cloudflared yok/başarısız ({exc}) — ngrok'a düşülüyor")
+                proc, wss_url = start_ngrok(port)
+            print(f"tünel: {wss_url}")
+            verify_tunnel(wss_url, probe_received)
+            return proc, wss_url
+        except Exception as exc:
+            last_exc = exc
+            if proc is not None:
+                proc.terminate()
+            if attempt < attempts:
+                print(f"tünel öz-testi başarısız — yeni adres deneniyor ({attempt}/{attempts})")
+    raise RuntimeError(f"{attempts} tünel denemesi de doğrulanamadı; bot yaratılmadı") from last_exc
+
+
 def main(argv: list[str] | None = None) -> int:
     from websockets.sync.server import serve  # openai[realtime] ile kurulu
 
@@ -287,6 +365,7 @@ def main(argv: list[str] | None = None) -> int:
     gate = HalfDuplexGate()
     inbound: queue.Queue[bytes] = queue.Queue()
     probe_received = threading.Event()
+    disclosure_guard = DisclosureInputGuard()
     dropped_unknown = 0
 
     def on_ws(conn) -> None:
@@ -303,23 +382,18 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             if first:
                 print("Recall websocket bağlandı.")
+                disclosure_guard.mark_connected(time.monotonic())
                 first = False
             b64 = extract_audio_b64(msg)
             if b64 is None:
                 dropped_unknown += 1
                 continue
-            if gate.listening:
+            if disclosure_guard.allows_audio(time.monotonic()) and gate.listening:
                 inbound.put(base64.b64decode(b64))
 
     server = serve(on_ws, "127.0.0.1", args.port)
     threading.Thread(target=server.serve_forever, daemon=True).start()
-    try:
-        ngrok_proc, wss_url = start_cloudflared(args.port)
-    except (FileNotFoundError, RuntimeError) as exc:
-        print(f"cloudflared yok/başarısız ({exc}) — ngrok'a düşülüyor")
-        ngrok_proc, wss_url = start_ngrok(args.port)
-    print(f"tünel: {wss_url}")
-    verify_tunnel(wss_url, probe_received)
+    ngrok_proc, wss_url = start_verified_tunnel(args.port, probe_received)
     print("tünel öz-testi: GEÇTİ (uçtan uca ws doğrulandı)")
 
     if args.preflight:
@@ -344,9 +418,8 @@ def main(argv: list[str] | None = None) -> int:
     ingress = RecallMeetingIngress(
         REHEARSAL_RETENTION, os.environ["RECALL_REGION_URL"]
     )
+    avatar_assets = load_meet_avatar_assets()
     from openai import OpenAI
-
-    from representative.meeting_ingress import DISCLOSURE_LINE_EN
 
     disclosure = OpenAI().audio.speech.create(
         model="gpt-4o-mini-tts",
@@ -359,6 +432,7 @@ def main(argv: list[str] | None = None) -> int:
         REHEARSAL_RETENTION,
         internal_ref="faz0-bot-prova",
         disclosure_mp3_b64=base64.b64encode(disclosure.content).decode(),
+        avatar_idle_jpeg_b64=avatar_assets.idle_jpeg_b64,
     )
     # Prova 2 canlı doğrulaması: realtime olayları için audio_mixed_raw
     # artefact'ı açıkça konfigüre edilmeli (Recall 400 gövdesinden)
@@ -411,7 +485,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     pipeline = InterpreterPipeline(
         translator=translator,
-        tts=RecallSpeaker(ingress, bot_id, gate),
+        tts=RecallSpeaker(ingress, bot_id, gate, avatar_assets),
         gate=ConfidenceGate(0.8),
         transcript=transcript,
         on_flag=lambda r: print(f"  ⚠ düşük güven ({r.flag_reason})"),
