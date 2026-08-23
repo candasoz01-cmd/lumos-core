@@ -21,6 +21,7 @@ from representative.latency import (
     largest_wait_stage,
     percentile_ms,
 )
+from representative.repair import repair_line
 from representative.tts_playback import TtsPlayback
 
 
@@ -63,12 +64,16 @@ class GateDecision:
 
 
 class ConfidenceGate:
-    """Marks low-confidence translations; missing confidence is treated as low.
+    """Blocks low-confidence translations; missing confidence counts as low.
 
-    Faz 0 behaviour: flagged utterances are still delivered (the human
-    interpreter-owner is in the meeting), but the flag is surfaced via the
-    on_flag hook and recorded in the transcript. Delivery is never blocked
-    here; blocking policies belong to later phases.
+    KURUCU KARARI 2026-08-23 (canlı prova kanıtı — 41 sözün 12'si 0.50-0.70
+    güvenle seslendirilmişti): eşik altı çeviri karşı tarafa OKUNMAZ. Yerine
+    konuşandan tekrar istenir (`representative.repair`). Bu, 2026-08-17
+    "işaretle ama seslendir" kararının (seçenek C) yerini alır — gerekçe:
+    yanlış olabilecek cümle karşı tarafın kulağına gitmemeli, kısa boşluk
+    daha ucuz.
+
+    Güven sinyali hiç yoksa da teslim edilmez: bilmemek, iyi bilmek değildir.
     """
 
     def __init__(self, threshold: float) -> None:
@@ -78,9 +83,9 @@ class ConfidenceGate:
 
     def evaluate(self, result: TranslationResult) -> GateDecision:
         if result.confidence is None:
-            return GateDecision(deliver=True, flagged=True, reason="no_confidence_signal")
+            return GateDecision(deliver=False, flagged=True, reason="no_confidence_signal")
         if result.confidence < self.threshold:
-            return GateDecision(deliver=True, flagged=True, reason="below_threshold")
+            return GateDecision(deliver=False, flagged=True, reason="below_threshold")
         return GateDecision(deliver=True, flagged=False, reason="ok")
 
 
@@ -100,6 +105,9 @@ class UtteranceRecord:
     # postcheck_ms = post-check'in eklediği süre (retry çevirisi dahil) —
     # kalem 3 gecikme optimizasyonunda maliyet ayrı görülsün diye ayrı alan.
     delivered: bool = True
+    # Kurucu kararı 2026-08-23: teslim edilmeyen çeviride konuşana tekrar
+    # isteği seslendirilir. Alan ek olduğu için eski jsonl okunmaya devam eder.
+    repair_spoken: bool = False
     postcheck_ms: float = 0.0
     retried: bool = False
     # Aşama kırılımı: p90 sivrilmesinin HANGİ aşamadan geldiği tek toplam
@@ -121,8 +129,9 @@ class UtteranceRecord:
 # transkript "işaretli ama duyuldu" ile "hiç seslendirilmedi"yi aynı gösteriyordu.
 _FLAG_LABELS = {
     "ok": "",
-    "below_threshold": "⚠ düşük güven",
-    "no_confidence_signal": "⚠ güven sinyali yok",
+    "below_threshold": "⚠ düşük güven (seslendirilmedi, tekrar istendi)",
+    "no_confidence_signal": "⚠ güven sinyali yok (seslendirilmedi, tekrar istendi)",
+    "undetected_language": "✕ dil belirlenemedi (tekrar istendi)",
     "empty_translation": "✕ boş çeviri",
     "meta_output": "✕ iç etiket (sesli okunmadı)",
     "non_translation_output": "✕ tercüman dışı çıktı",
@@ -133,6 +142,34 @@ _FLAG_LABELS = {
 def flag_label(record: "UtteranceRecord") -> str:
     """İşaretin insan tarafından okunur karşılığı (panel/transkript dili)."""
     return _FLAG_LABELS.get(record.flag_reason, f"⚠ {record.flag_reason}")
+
+
+def undetected_language_record(
+    source_text: str, latency_ms: float, recorded_at: float
+) -> UtteranceRecord:
+    """Dili belirlenemeyen söz için denetim kaydı (kurucu kararı 2026-08-23).
+
+    Eskiden bu sözler sessizce varsayılan yöne (TR) düşüp çevriliyordu; canlı
+    provada 41 sözün 3'ü böyleydi ("Translate.", "Hey Hasan, speak English!",
+    "네."). Artık çevrilmez, tekrar istenir — ve iz bırakır: kayıt olmadan
+    "sessizce düştü" ile "tekrar istendi" ayırt edilemez.
+
+    latency_ms gerçek geçen süredir (söz sonu → tekrar isteği); uydurma 0
+    yazılmaz, yoksa gecikme çözümlemesi kendini kandırır.
+    """
+    return UtteranceRecord(
+        source_text=source_text,
+        source_lang="unknown",
+        translated_text="",
+        target_lang="unknown",
+        confidence=None,
+        flagged=True,
+        flag_reason="undetected_language",
+        latency_ms=latency_ms,
+        recorded_at=recorded_at,
+        delivered=False,
+        repair_spoken=True,
+    )
 
 
 class BilingualTranscript:
@@ -342,6 +379,7 @@ class InterpreterPipeline:
                 lang_ok = True
 
         decision = self._gate.evaluate(result)
+        repair_spoken = False
         translation_ready = self._clock()
         tts_start = translation_ready
         first_audio = translation_ready
@@ -362,6 +400,15 @@ class InterpreterPipeline:
             # yapay zekâ kimliği) çıktı seslendirilmez.
             lang_ok = False
             flagged, reason = True, "non_translation_output"
+        elif not decision.deliver:
+            # Kurucu kararı 2026-08-23: eşik altı/sinyalsiz çeviri karşı tarafa
+            # OKUNMAZ; yerine tekrar istenir. İstek konuşanın dilinde kurulur
+            # ama ortak ses kanalından TÜM katılımcılar duyar (özel kanal yok).
+            # Çeviri metni transkriptte denetim için kalır, yalnız seslendirilmez.
+            self._tts.speak(repair_line(utterance.source_lang), utterance.source_lang)
+            repair_spoken = True
+            lang_ok = False
+            flagged, reason = decision.flagged, decision.reason
         elif lang_ok:
             tts_start = self._clock()
             # Chunked oynatıcı ilk klibin damgasını döndürür: ölçülen şey
@@ -400,6 +447,7 @@ class InterpreterPipeline:
             latency_ms=latency_ms,
             recorded_at=first_audio if lang_ok else translation_ready,
             delivered=lang_ok,
+            repair_spoken=repair_spoken,
             postcheck_ms=postcheck_ms,
             retried=retried,
             stt_ms=stt_ms,
