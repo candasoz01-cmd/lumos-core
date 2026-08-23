@@ -57,6 +57,12 @@ from representative.pipeline import (
 )
 from representative.routing import Direction, DirectionRouter
 from representative.stt import LUMOS_TERMS_PROMPT
+from representative.transcript_view import (
+    attribution_note,
+    format_heard,
+    format_telemetry,
+    format_translation,
+)
 from representative.tts_playback import ChunkedTtsPlayer, estimate_speech_seconds
 
 RECALL_INBOUND_RATE = 16000
@@ -508,6 +514,7 @@ def main(argv: list[str] | None = None) -> int:
 
     threading.Thread(target=pump_audio, daemon=True).start()
     print("Tercüman hattı canlı — toplantı bitince kendiliğinden kapanır; Ctrl+C: kill-switch.")
+    print(attribution_note())
     try:
         while not stop_event.is_set():
             try:
@@ -521,7 +528,8 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             stt_final = time.monotonic()
             decision = router.route(heard)
-            print(f"{decision.direction.source_lang.upper()}(duyulan)> {heard}")
+            print()
+            print(format_heard(decision.direction.source_lang, heard))
             # Barge-in: yeni söz gelince kuyruktaki klipler düşer (chunked TTS).
             pipeline.interrupt_playback()
             record = pipeline.process(
@@ -535,14 +543,8 @@ def main(argv: list[str] | None = None) -> int:
                 )
             )
             recent.append(heard)
-            marker = "" if record.delivered else " [TESLİM EDİLMEDİ]"
-            print(
-                f"{decision.direction.target_lang.upper()}> {record.translated_text}{marker}"
-                f"  (e2e {record.latency_ms:.0f} ms"
-                f" stt={record.stt_ms:.0f} tr={record.translate_ms:.0f}"
-                f" tts0={record.tts_to_first_audio_ms:.0f}"
-                f", yön: {decision.reason})"
-            )
+            print(format_translation(record))
+            print(format_telemetry(record, decision.reason))
     except KeyboardInterrupt:
         end_reason.append("kill_switch")
     finally:
