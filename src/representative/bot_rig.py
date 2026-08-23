@@ -56,6 +56,7 @@ from representative.pipeline import (
     summarize_latencies_ms,
 )
 from representative.routing import Direction, DirectionRouter
+from representative.segmentation import Fragment, UtteranceCoalescer
 from representative.stt import LUMOS_TERMS_PROMPT
 from representative.tts_playback import ChunkedTtsPlayer, estimate_speech_seconds
 
@@ -508,41 +509,58 @@ def main(argv: list[str] | None = None) -> int:
 
     threading.Thread(target=pump_audio, daemon=True).start()
     print("Tercüman hattı canlı — toplantı bitince kendiliğinden kapanır; Ctrl+C: kill-switch.")
+    # Parça birleştirme (2026-08-23): VAD'in ortadan kestiği yarım sözler
+    # ayrı ayrı çevrilmesin. Kuyruk zaman aşımı hold_s'ten kısa tutulur ki
+    # bekleyen parça zamanında yayımlansın.
+    coalescer = UtteranceCoalescer()
     try:
         while not stop_event.is_set():
             try:
-                utt = stt.utterances.get(timeout=0.5)
+                utt = stt.utterances.get(timeout=0.2)
             except queue.Empty:
-                continue
-            if not utt.text or is_prompt_echo(utt.text, LUMOS_TERMS_PROMPT):
-                continue
-            heard = corrector.correct(utt.text)
-            if suppressor.should_drop(heard, time.monotonic()):
-                continue
-            stt_final = time.monotonic()
-            decision = router.route(heard)
-            print(f"{decision.direction.source_lang.upper()}(duyulan)> {heard}")
-            # Barge-in: yeni söz gelince kuyruktaki klipler düşer (chunked TTS).
-            pipeline.interrupt_playback()
-            record = pipeline.process(
-                Utterance(
-                    text=heard,
-                    source_lang=decision.direction.source_lang,
-                    target_lang=decision.direction.target_lang,
-                    speech_end_ts=utt.speech_end_ts,
-                    context=tuple(recent),
-                    stt_final_ts=stt_final,
+                segments = coalescer.due(time.monotonic())
+            else:
+                if not utt.text or is_prompt_echo(utt.text, LUMOS_TERMS_PROMPT):
+                    continue
+                heard = corrector.correct(utt.text)
+                if suppressor.should_drop(heard, time.monotonic()):
+                    continue
+                segments = coalescer.offer(
+                    Fragment(
+                        text=heard,
+                        speech_end_ts=utt.speech_end_ts,
+                        stt_final_ts=time.monotonic(),
+                    )
                 )
-            )
-            recent.append(heard)
-            marker = "" if record.delivered else " [TESLİM EDİLMEDİ]"
-            print(
-                f"{decision.direction.target_lang.upper()}> {record.translated_text}{marker}"
-                f"  (e2e {record.latency_ms:.0f} ms"
-                f" stt={record.stt_ms:.0f} tr={record.translate_ms:.0f}"
-                f" tts0={record.tts_to_first_audio_ms:.0f}"
-                f", yön: {decision.reason})"
-            )
+            for segment in segments:
+                heard = segment.text
+                decision = router.route(heard)
+                merge_note = f" (+{segment.parts - 1} parça)" if segment.merged else ""
+                print(
+                    f"{decision.direction.source_lang.upper()}(duyulan){merge_note}> {heard}"
+                )
+                # Barge-in: yeni söz gelince kuyruktaki klipler düşer (chunked TTS).
+                pipeline.interrupt_playback()
+                record = pipeline.process(
+                    Utterance(
+                        text=heard,
+                        source_lang=decision.direction.source_lang,
+                        target_lang=decision.direction.target_lang,
+                        speech_end_ts=segment.speech_end_ts,
+                        context=tuple(recent),
+                        stt_final_ts=segment.stt_final_ts,
+                    )
+                )
+                recent.append(heard)
+                marker = "" if record.delivered else " [TESLİM EDİLMEDİ]"
+                print(
+                    f"{decision.direction.target_lang.upper()}> "
+                    f"{record.translated_text}{marker}"
+                    f"  (e2e {record.latency_ms:.0f} ms"
+                    f" stt={record.stt_ms:.0f} tr={record.translate_ms:.0f}"
+                    f" tts0={record.tts_to_first_audio_ms:.0f}"
+                    f", yön: {decision.reason})"
+                )
     except KeyboardInterrupt:
         end_reason.append("kill_switch")
     finally:
@@ -583,6 +601,8 @@ def main(argv: list[str] | None = None) -> int:
                 f"en büyük bekleme: {summary['largest_wait'] or 'yok'})"
             )
         print(f"(bilinmeyen/düşürülen ws mesajı: {dropped_unknown})")
+        if coalescer.dropped_fillers:
+            print(f"(elenen dolgu parçası: {len(coalescer.dropped_fillers)})")
     return 0
 
 
