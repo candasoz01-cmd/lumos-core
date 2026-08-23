@@ -37,6 +37,36 @@ def test_detect_lang_on_real_field_outputs(text, expected):
     assert detect_lang(text) == expected
 
 
+# Genişletme (2026-08-23): canlı provada sinyalsiz kalıp sessizce varsayılan
+# yöne düşen gerçek cümleler.
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("Hey Hasan, speak English!", "en"),  # provada unknown'dı → TR sayıldı
+        ("What's up, uncle?", "en"),
+        ("That's right.", "en"),
+        ("Bekliyorum.", "tr"),  # biçimbirim izi: -yorum
+        ("Bakıyordum.", "tr"),
+        ("Gelecekmiş.", "tr"),
+        ("Tamam.", "tr"),
+        # Faz 0 çifti dışındaki dil hâlâ unknown olmalı — tekrar istenecek.
+        ("네.", "unknown"),
+        ("Rit.", "unknown"),
+    ],
+)
+def test_detect_lang_after_signal_expansion(text, expected):
+    assert detect_lang(text) == expected
+
+
+def test_domain_words_are_not_memorised_from_the_rehearsal_log():
+    """Kaydı ezberlemek çözüm değil: alan sözcüğü sinyal sayılmaz.
+
+    "Translate." provada unknown'dı; doğru çözüm onu sözlüğe eklemek değil,
+    parçayı devamıyla birleştirmektir (segmentation dilimi).
+    """
+    assert detect_lang("Translate.") == "unknown"
+
+
 class FlippingTranslator:
     """İlk çağrıda yanlış dilde, sonraki çağrılarda istenen çıktı."""
 
