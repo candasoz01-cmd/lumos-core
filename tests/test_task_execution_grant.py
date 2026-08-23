@@ -529,6 +529,51 @@ def test_capability_from_plan_rejects_mixed_patch_and_agent() -> None:
     assert cap is None
 
 
+def test_capability_from_plan_agent_uses_goal_not_file() -> None:
+    cap = capability_from_plan(
+        {
+            "steps": [
+                {
+                    "type": "agent",
+                    "file": "notes/fileA.md",
+                    "goal": "summarize the notes",
+                }
+            ]
+        }
+    )
+    assert cap == ("agent", "execute", "summarize the notes")
+
+
+def test_capability_from_plan_agent_auto_uses_blob_not_file() -> None:
+    cap = capability_from_plan(
+        {
+            "steps": [
+                {
+                    "type": "agent_auto",
+                    "file": "notes/fileA.md",
+                    "agent_blob": "apply the summary",
+                }
+            ]
+        }
+    )
+    assert cap == ("agent_auto", "execute", "apply the summary")
+
+
+def test_capability_from_plan_agent_file_without_goal_is_incomplete() -> None:
+    assert (
+        capability_from_plan(
+            {"steps": [{"type": "agent", "file": "notes/fileA.md"}]}
+        )
+        is None
+    )
+    assert (
+        capability_from_plan(
+            {"steps": [{"type": "agent_auto", "file": "notes/fileA.md"}]}
+        )
+        is None
+    )
+
+
 def test_file_read_metadata_versus_patch_plan_is_capability_deviation(
     tmp_path: Path,
 ) -> None:
@@ -695,3 +740,81 @@ def test_matching_agent_plan_binding_consumes(tmp_path: Path) -> None:
     assert expected.action_key == "agent"
     assert expected.resource == "summarize the notes"
     assert consume_task_execution_grant(issued.token, expected, base_dir=tmp_path).allowed
+
+
+def test_changed_agent_goal_is_denied_even_when_file_matches_grant(
+    tmp_path: Path,
+) -> None:
+    issued = accept_execution_task(
+        _binding(
+            action_key="agent",
+            permission="execute",
+            resource="summarize the notes",
+        ),
+        base_dir=tmp_path,
+    )
+    expected, denied = resolve_execution_binding(
+        {
+            "subject_id": "user:X",
+            "task_id": "G-12841",
+            "agent_id": "agent:kando",
+            "session_id": "session:s1",
+            "task_execution_action_key": "agent",
+            "task_execution_permission": "execute",
+        },
+        plan={
+            "steps": [
+                {
+                    "type": "agent",
+                    "file": "summarize the notes",
+                    "goal": "mail_send inbox",
+                }
+            ]
+        },
+        norm={"target_rel": "notes/fileA.md"},
+        base_dir=tmp_path,
+    )
+    assert denied is None
+    assert expected is not None
+    assert expected.resource == "mail_send inbox"
+    result = consume_task_execution_grant(issued.token, expected, base_dir=tmp_path)
+    assert not result.allowed
+    assert result.reason == REASON_MISMATCH
+    assert result.event_kind == KIND_CAPABILITY_DEVIATION
+
+
+def test_agent_file_field_does_not_satisfy_goal_grant(tmp_path: Path) -> None:
+    issued = accept_execution_task(
+        _binding(
+            action_key="agent",
+            permission="execute",
+            resource="notes/fileA.md",
+        ),
+        base_dir=tmp_path,
+    )
+    expected, denied = resolve_execution_binding(
+        {
+            "subject_id": "user:X",
+            "task_id": "G-12841",
+            "agent_id": "agent:kando",
+            "session_id": "session:s1",
+            "task_execution_action_key": "agent",
+            "task_execution_permission": "execute",
+        },
+        plan={
+            "steps": [
+                {
+                    "type": "agent",
+                    "file": "notes/fileA.md",
+                    "goal": "mail_send inbox",
+                }
+            ]
+        },
+        base_dir=tmp_path,
+    )
+    assert denied is None
+    assert expected is not None
+    assert expected.resource == "mail_send inbox"
+    result = consume_task_execution_grant(issued.token, expected, base_dir=tmp_path)
+    assert not result.allowed
+    assert result.reason == REASON_MISMATCH

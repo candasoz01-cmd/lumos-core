@@ -181,9 +181,10 @@ def _capability_from_step(step: Mapping[str, Any]) -> tuple[str, str, str] | Non
     if step_type == "patch":
         resource = str(step.get("file") or "").strip().replace("\\", "/")
     elif step_type == "agent":
-        resource = str(step.get("file") or step.get("goal") or "").strip()
+        # execute_plan runs goal, not file. file is not an authz resource.
+        resource = str(step.get("goal") or "").strip()
     else:
-        resource = str(step.get("file") or step.get("agent_blob") or "").strip()
+        resource = str(step.get("agent_blob") or "").strip()
     if not resource:
         return None
     return action_key, permission, resource

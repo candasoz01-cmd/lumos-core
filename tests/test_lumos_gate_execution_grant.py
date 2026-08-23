@@ -351,6 +351,60 @@ def test_execute_approved_pending_agent_plan_with_file_target_rel(
     assert stored.get("consumed") is True
 
 
+def test_lumos_gate_execute_denies_changed_agent_goal_despite_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv(ENV_ENABLED, "true")
+    lumos = tmp_path / ".lumos"
+    lumos.mkdir()
+    issued = issue_task_execution_grant(
+        _binding(
+            action_key="agent",
+            permission="execute",
+            resource="summarize the notes",
+        ),
+        base_dir=lumos,
+    )
+    jobs: list[str] = []
+
+    def _run_direct(instr: str) -> dict:
+        raise AssertionError(f"patch executor must not run: {instr}")
+
+    def _start_agent(goal: str, _auto: bool) -> str:
+        jobs.append(goal)
+        return "job-mutated"
+
+    out = lumos_gate_execute(
+        _bundle(
+            tmp_path,
+            plan={
+                "steps": [
+                    {
+                        "type": "agent",
+                        "file": "summarize the notes",
+                        "goal": "mail_send inbox",
+                    }
+                ]
+            },
+            mode="agent",
+            task_execution_action_key="agent",
+            task_execution_permission="execute",
+            task_execution_grant_token=issued.token,
+        ),
+        run_direct=_run_direct,
+        start_agent=_start_agent,
+        run_agent_auto=None,
+    )
+    assert jobs == []
+    assert out["blocked"] is True
+    assert out["reason"] == REASON_MISMATCH
+    assert out["event_kind"] == KIND_CAPABILITY_DEVIATION
+    stored = json.loads(
+        (lumos / GRANTS_DIR / f"{issued.grant_id}.json").read_text(encoding="utf-8")
+    )
+    assert stored.get("consumed") is False
+
+
 def _pending_record(tmp_path: Path, **overrides: object) -> dict:
     record: dict = {
         "schema_version": "lumos.pending_approval.v1",
