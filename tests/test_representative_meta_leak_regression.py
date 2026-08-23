@@ -24,6 +24,7 @@ from representative.pipeline import (
     Utterance,
     is_meta_output,
 )
+from representative.repair import REPAIR_LINES
 
 
 class StubTranslator:
@@ -155,36 +156,42 @@ def test_turkish_translations_are_not_treated_as_labels(legit: str) -> None:
     assert tts.spoken == [(legit, "tr")]
 
 
-def test_below_threshold_utterances_are_still_delivered_by_design() -> None:
-    """Canlı testte 60 sözün 23'ü eşik altıydı ve yine de teslim edildi.
+def test_below_threshold_translation_is_not_read_to_the_other_side() -> None:
+    """KARAR DEĞİŞTİ (kurucu, 2026-08-23) — canlı prova kanıtıyla.
 
-    Bu Faz 0'ın BİLİNÇLİ davranışıdır (ConfidenceGate: işaretle, blokla değil —
-    toplantıda tercümanın sahibi zaten oradadır). Sessizce değişmesin diye
-    çakılıyor: teslim politikası değişecekse karar olarak değişir.
+    Eski kural (2026-08-17 seçenek C) eşik altı çeviriyi seslendiriyordu;
+    2026-08-23 provasında 41 sözün 12'si 0.50-0.70 güvenle karşı tarafa
+    okundu. Yeni kural: okunmaz, konuşandan tekrar istenir.
     """
     record, tts = run("A quiet, uncertain sentence.", 0.2)
     assert record.flagged is True
     assert record.flag_reason == "below_threshold"
-    assert record.delivered is True
-    assert tts.spoken == [("A quiet, uncertain sentence.", "en")]
+    assert record.delivered is False
+    # Çeviri DEĞİL, konuşanın kendi dilinde tekrar isteği duyulur.
+    assert tts.spoken == [(REPAIR_LINES["tr"], "tr")]
+    assert record.repair_spoken is True
+    # Metin transkriptte denetim için durur, yalnız seslendirilmez.
+    assert record.translated_text == "A quiet, uncertain sentence."
 
 
-def test_missing_confidence_signal_is_flagged_but_delivered() -> None:
+def test_missing_confidence_signal_is_also_not_read() -> None:
+    """Bilmemek iyi bilmek değildir: sinyal yoksa da teslim edilmez."""
     record, tts = run("No confidence signal from the provider.", None)
     assert record.flag_reason == "no_confidence_signal"
-    assert record.delivered is True
-    assert len(tts.spoken) == 1
+    assert record.delivered is False
+    assert tts.spoken == [(REPAIR_LINES["tr"], "tr")]
 
 
-# Kurucu kararı 2026-08-17 (seçenek C): eşik altı çeviri seslendirilir AMA
-# transkript/panelde düşük güven olarak işaretlenir.
-def test_low_confidence_is_delivered_and_visibly_marked() -> None:
+# Kurucu kararı 2026-08-23: eşik altı çeviri seslendirilmez; ne sessizlik
+# (konuşan tekrar isteği duyar) ne de işaretsiz teslim.
+def test_low_confidence_asks_for_repeat_and_is_visibly_marked() -> None:
     from representative.pipeline import flag_label
 
     record, tts = run("A quiet, uncertain sentence.", 0.2)
-    assert record.delivered is True  # (b) sessizlik değil
-    assert len(tts.spoken) == 1
-    assert flag_label(record) == "⚠ düşük güven"  # (a) işaretsiz teslim de değil
+    assert record.delivered is False
+    assert tts.spoken == [(REPAIR_LINES["tr"], "tr")]  # sessizlik değil
+    assert "seslendirilmedi" in flag_label(record)  # görünürde de işaretli
+    assert "tekrar istendi" in flag_label(record)
 
 
 def test_transcript_separates_heard_from_swallowed() -> None:
@@ -209,8 +216,9 @@ def test_transcript_separates_heard_from_swallowed() -> None:
     ).process(Utterance(text="Kaynak 2.", source_lang="tr", target_lang="en", speech_end_ts=0.0))
 
     table = transcript.to_markdown()
-    assert "✓ duyuldu" in table and "⚠ düşük güven" in table
-    assert "✕ seslendirilmedi" in table and "iç etiket" in table
+    assert "⚠ düşük güven" in table and "iç etiket" in table
+    # İkisi de artık seslendirilmiyor ama sebepleri ayrı okunuyor.
+    assert table.count("✕ seslendirilmedi") == 2
 
 
 def test_every_flag_reason_has_a_human_label() -> None:

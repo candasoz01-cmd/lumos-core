@@ -54,7 +54,9 @@ from representative.pipeline import (
     InterpreterPipeline,
     Utterance,
     summarize_latencies_ms,
+    undetected_language_record,
 )
+from representative.repair import bilingual_repair_line
 from representative.routing import Direction, DirectionRouter
 from representative.stt import LUMOS_TERMS_PROMPT
 from representative.tts_playback import ChunkedTtsPlayer, estimate_speech_seconds
@@ -483,9 +485,10 @@ def main(argv: list[str] | None = None) -> int:
         Utterance(text="Merhaba.", source_lang=args.source_lang,
                   target_lang=args.target_lang, speech_end_ts=0.0)
     )
+    speaker = RecallSpeaker(ingress, bot_id, gate, avatar_assets)
     pipeline = InterpreterPipeline(
         translator=translator,
-        tts=RecallSpeaker(ingress, bot_id, gate, avatar_assets),
+        tts=speaker,
         gate=ConfidenceGate(0.8),
         transcript=transcript,
         on_flag=lambda r: print(f"  ⚠ düşük güven ({r.flag_reason})"),
@@ -521,6 +524,22 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             stt_final = time.monotonic()
             decision = router.route(heard)
+            if decision.reason == "fallback_unknown":
+                # Kurucu kararı 2026-08-23: dil belirlenemezse sessizce
+                # varsayılan yöne (TR) düşülmez — hangi dili konuştuğu
+                # bilinmediği için iki dilli tekrar isteği gider.
+                print(f"?(dil belirlenemedi)> {heard} — tekrar istendi")
+                pipeline.interrupt_playback()
+                speaker.speak(bilingual_repair_line(), args.source_lang)
+                now = time.monotonic()
+                unrouted = undetected_language_record(
+                    heard,
+                    latency_ms=max(0.0, (now - utt.speech_end_ts) * 1000.0),
+                    recorded_at=now,
+                )
+                transcript.append(unrouted)
+                BilingualTranscript.append_jsonl(args.jsonl_out, unrouted)
+                continue
             print(f"{decision.direction.source_lang.upper()}(duyulan)> {heard}")
             # Barge-in: yeni söz gelince kuyruktaki klipler düşer (chunked TTS).
             pipeline.interrupt_playback()
