@@ -1,6 +1,9 @@
 # Layer 1A — read-only 30-minute production pulse.
 # No secrets, LLM, or panel writes. JSON artifact only.
 # GitHub's default Actions failure notification may still fire if this job is red.
+#
+# Third-party actions are pinned to full commit SHAs (immutable). Version
+# comments are hints only; the SHA is the contract.
 name: Layer 1A pulse
 
 on:
@@ -16,16 +19,16 @@ jobs:
   pulse:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.12"
 
       # Cache unused for 7 days is evicted (accepted operational limit; see README).
       - name: Restore last_success_at
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: layer1a-state.json
           key: layer1a-state-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
@@ -34,19 +37,18 @@ jobs:
 
       - name: Run five deterministic checks
         id: checks
-        continue-on-error: true
         run: python3 ops/layer1a/run.py --output layer1a-result.json --state layer1a-state.json
 
       - name: Save last_success_at
         if: always()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: layer1a-state.json
           key: layer1a-state-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Upload JSON artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: layer1a-result
           path: layer1a-result.json

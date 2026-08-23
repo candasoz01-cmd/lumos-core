@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -64,7 +65,7 @@ def _fetch_unknown(_url: str) -> tuple[int, str, bytes]:
 
 def _report(**kwargs):
     defaults = {
-        "base_url": "https://example.test",
+        "base_url": "https://welockai.com",
         "checked_at": CHECKED_AT,
         "generated_at": GENERATED_AT,
         "now": NOW,
@@ -321,4 +322,105 @@ def test_age_seconds_is_derived_and_omitted_from_state(tmp_path: Path) -> None:
     stored = json.loads(poisoned.read_text(encoding="utf-8"))
     assert set(stored) == {"schema", "last_success_at"}
     assert stored["last_success_at"] == {"landing": OLD_SUCCESS}
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "http://welockai.com",
+        "file:///etc/passwd",
+        "ftp://welockai.com",
+        "https://evil.example",
+        "https://user:pass@welockai.com",
+        "https://welockai.com:8443",
+        "https://welockai.com/panel",
+        "",
+    ],
+)
+def test_normalize_base_url_rejects_unsafe_schemes_hosts_and_paths(raw: str) -> None:
+    with pytest.raises((layer1a.UnsafeURLError, ValueError)):
+        layer1a.normalize_base_url(raw)
+
+
+def test_normalize_base_url_accepts_https_allowlisted_origin() -> None:
+    assert layer1a.normalize_base_url("https://welockai.com/") == "https://welockai.com"
+    assert layer1a.normalize_base_url("https://welockai.com") == "https://welockai.com"
+
+
+def test_redirect_handler_rejects_cross_origin_and_http() -> None:
+    handler = layer1a.SameOriginHTTPSRedirectHandler()
+    req = urllib.request.Request("https://welockai.com/panel")
+    with pytest.raises(layer1a.UnsafeURLError, match="allowlisted"):
+        handler.redirect_request(
+            req,
+            fp=None,
+            code=302,
+            msg="Found",
+            headers={},
+            newurl="https://evil.example/steal",
+        )
+    with pytest.raises(layer1a.UnsafeURLError, match="https"):
+        handler.redirect_request(
+            req,
+            fp=None,
+            code=302,
+            msg="Found",
+            headers={},
+            newurl="http://welockai.com/",
+        )
+
+
+def test_redirect_handler_allows_same_origin_https() -> None:
+    handler = layer1a.SameOriginHTTPSRedirectHandler()
+    req = urllib.request.Request("https://welockai.com/panel")
+    new_req = handler.redirect_request(
+        req,
+        fp=None,
+        code=302,
+        msg="Found",
+        headers={},
+        newurl="https://welockai.com/",
+    )
+    assert new_req is not None
+    assert new_req.full_url.startswith("https://welockai.com")
+
+
+class _FakeResponse:
+    def __init__(self, data: bytes, content_length: str | None = None) -> None:
+        self._buf = __import__("io").BytesIO(data)
+        self.headers: dict[str, str] = {}
+        if content_length is not None:
+            self.headers["Content-Length"] = content_length
+
+    def read(self, n: int = -1) -> bytes:
+        return self._buf.read(n)
+
+
+def test_read_limited_rejects_content_length_over_cap() -> None:
+    fake = _FakeResponse(b"x" * 16, content_length="2000000")
+    with pytest.raises(layer1a.ResponseTooLargeError, match="Content-Length"):
+        layer1a.read_limited(fake, limit=1024)
+    assert fake._buf.tell() == 0
+
+
+def test_read_limited_caps_stream_without_content_length() -> None:
+    fake = _FakeResponse(b"x" * 5000)
+    with pytest.raises(layer1a.ResponseTooLargeError, match="exceeded"):
+        layer1a.read_limited(fake, limit=1024)
+
+
+def test_read_limited_accepts_body_at_cap() -> None:
+    fake = _FakeResponse(b"x" * 1024, content_length="1024")
+    assert layer1a.read_limited(fake, limit=1024) == b"x" * 1024
+
+
+def test_run_checks_rejects_http_base_url() -> None:
+    with pytest.raises(layer1a.UnsafeURLError):
+        _report(base_url="http://welockai.com", fetch=_fetch_from(PASSING_BODIES))
+
+
+def test_default_fetch_rejects_http_without_opening() -> None:
+    with pytest.raises(layer1a.UnsafeURLError, match="https"):
+        layer1a.default_fetch("http://welockai.com/", timeout=1)
+
 
