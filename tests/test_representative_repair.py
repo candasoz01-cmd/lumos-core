@@ -2,6 +2,10 @@
 
 Canlı prova kanıtı: eşik altı çeviriler seslendirildi, dili belirlenemeyen
 sözler sessizce Türkçe sayıldı. Bu testler yeni kuralı çakar.
+
+Kapsam notu: buradaki "konuşanın dili" ifadesi hitap içindir. Tekrar isteği
+ortak ses kanalından tüm katılımcılar tarafından duyulur; kişiye özel ses
+kanalı Faz 0'da yoktur.
 """
 
 import pytest
@@ -55,8 +59,13 @@ def run(translated: str, confidence: float | None, source_lang: str = "tr"):
     return record, tts
 
 
-def test_repair_is_asked_in_the_speakers_own_language() -> None:
-    """Tekrar edecek olan konuşandır; istek onun dilinde gitmeli."""
+def test_repair_is_worded_in_the_language_of_whoever_must_repeat() -> None:
+    """Dil seçimi hitaptır, gizlilik değil.
+
+    İstek Meet'in ortak ses kanalına basılır; toplantıdaki HERKES duyar.
+    Konuşanın dilinde kurulmasının sebebi kime seslenildiğinin anlaşılması,
+    kişiye özel bir kanal olması değil — Faz 0'da öyle bir kanal yok.
+    """
     _, tts_tr = run("An uncertain sentence.", 0.5, source_lang="tr")
     assert tts_tr.spoken == [(REPAIR_LINES["tr"], "tr")]
     _, tts_en = run("Belirsiz bir cümle.", 0.5, source_lang="en")

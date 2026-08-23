@@ -5,9 +5,15 @@ karşı tarafa SESLENDİRİLDİ; 3 söz dili belirlenemediği için sessizce var
 yöne (TR) düştü. Kurucu kararı bunun üzerine değişti:
 
 - Eşik altı / güven sinyali olmayan çeviri artık karşı tarafa okunmaz;
-  onun yerine konuşandan tekrar istenir.
+  onun yerine tekrar istenir.
 - Dil belirlenemezse sessizce Türkçe varsayılmaz; yine tekrar istenir
   (bu durumda hangi dili konuştuğu bilinmediği için istek iki dilli).
+
+KİMİN DUYDUĞU (dürüstlük notu, kurucu düzeltmesi 2026-08-23): tekrar isteği
+yalnız konuşana GİTMEZ. Meet'te tek ortak ses kanalı vardır ve bot çıktısını
+oraya basar — istek TÜM KATILIMCILAR tarafından duyulur. Dilin konuşana göre
+seçilmesi kime hitap edildiğini belli etmek içindir, kanalı özelleştirmek
+için değil; kişiye özel kanal Faz 0'da YOKTUR.
 
 Önceki kural (2026-08-17 seçenek C: "işaretle ama seslendir") canlı kanıtla
 geçersiz kılınmıştır: yanlış olabilecek bir cümlenin karşı tarafın kulağına
@@ -23,7 +29,11 @@ REPAIR_LINES = {
 
 
 def repair_line(lang: str) -> str:
-    """Konuşanın kendi dilinde tekrar isteği — tekrar edecek olan odur."""
+    """Tekrar isteği, tekrar edecek kişinin dilinde kurulur.
+
+    Dil seçimi hitaptır, gizlilik değil: cümle ortak ses kanalından herkese
+    duyulur (bkz. modül başlığı).
+    """
     try:
         return REPAIR_LINES[lang]
     except KeyError:
@@ -31,5 +41,5 @@ def repair_line(lang: str) -> str:
 
 
 def bilingual_repair_line() -> str:
-    """Dil belirlenemediğinde: hangi dili konuştuğu bilinmiyor, ikisi de söylenir."""
+    """Dil belirlenemediğinde iki dilde sorulur; yine herkes duyar."""
     return f"{REPAIR_LINES['tr']} {REPAIR_LINES['en']}"

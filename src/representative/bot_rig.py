@@ -527,7 +527,8 @@ def main(argv: list[str] | None = None) -> int:
             if decision.reason == "fallback_unknown":
                 # Kurucu kararı 2026-08-23: dil belirlenemezse sessizce
                 # varsayılan yöne (TR) düşülmez — hangi dili konuştuğu
-                # bilinmediği için iki dilli tekrar isteği gider.
+                # bilinmediği için iki dilli tekrar isteği gider. İstek ortak
+                # ses kanalına basılır: toplantıdaki herkes duyar.
                 print(f"?(dil belirlenemedi)> {heard} — tekrar istendi")
                 pipeline.interrupt_playback()
                 speaker.speak(bilingual_repair_line(), args.source_lang)

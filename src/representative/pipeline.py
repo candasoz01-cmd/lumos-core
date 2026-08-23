@@ -402,8 +402,9 @@ class InterpreterPipeline:
             flagged, reason = True, "non_translation_output"
         elif not decision.deliver:
             # Kurucu kararı 2026-08-23: eşik altı/sinyalsiz çeviri karşı tarafa
-            # OKUNMAZ; konuşandan kendi dilinde tekrar istenir. Çeviri metni
-            # transkriptte denetim için aynen kalır, yalnız seslendirilmez.
+            # OKUNMAZ; yerine tekrar istenir. İstek konuşanın dilinde kurulur
+            # ama ortak ses kanalından TÜM katılımcılar duyar (özel kanal yok).
+            # Çeviri metni transkriptte denetim için kalır, yalnız seslendirilmez.
             self._tts.speak(repair_line(utterance.source_lang), utterance.source_lang)
             repair_spoken = True
             lang_ok = False
