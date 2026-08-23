@@ -113,3 +113,49 @@ def test_short_but_complete_sentence_is_not_delayed() -> None:
     out = c.offer(frag("Hoş bulduk.", 1.0))
     assert [s.text for s in out] == ["Hoş bulduk."]
     assert c.pending() is False
+
+
+def test_merge_count_reaches_the_transcript_record() -> None:
+    """Birleşme kayda geçmezse "birleşme güveni nasıl etkiledi?" ölçülemez."""
+    from representative.pipeline import (
+        BilingualTranscript,
+        ConfidenceGate,
+        InterpreterPipeline,
+        TranslationResult,
+        Utterance,
+    )
+
+    class _T:
+        def translate(self, utterance: Utterance) -> TranslationResult:
+            return TranslationResult(text="Hello.", confidence=0.9, provider="stub")
+
+    class _TTS:
+        def speak(self, text: str, lang: str) -> None:
+            return None
+
+    c = UtteranceCoalescer(hold_s=0.8)
+    c.offer(frag("My...", 1.0))
+    segment = c.offer(frag("name is Candaş.", 1.4))[0]
+
+    record = InterpreterPipeline(
+        translator=_T(),
+        tts=_TTS(),
+        gate=ConfidenceGate(0.8),
+        transcript=BilingualTranscript(),
+        clock=lambda: 0.0,
+    ).process(
+        Utterance(
+            text=segment.text,
+            source_lang="tr",
+            target_lang="en",
+            speech_end_ts=segment.speech_end_ts,
+            parts=segment.parts,
+        )
+    )
+    assert record.parts == 2
+
+
+def test_single_utterance_records_one_part() -> None:
+    from representative.pipeline import UtteranceRecord
+
+    assert UtteranceRecord.__dataclass_fields__["parts"].default == 1

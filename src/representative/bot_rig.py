@@ -549,6 +549,7 @@ def main(argv: list[str] | None = None) -> int:
                         speech_end_ts=segment.speech_end_ts,
                         context=tuple(recent),
                         stt_final_ts=segment.stt_final_ts,
+                        parts=segment.parts,
                     )
                 )
                 recent.append(heard)

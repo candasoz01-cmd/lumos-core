@@ -38,6 +38,10 @@ class Utterance:
     # STT-final damgası: transkript hazır olduğu an. Yoksa speech_end ile
     # aynı sayılır (metin/stdin rig — STT yok).
     stt_final_ts: float | None = None
+    # Bu söz kaç STT parçasından birleşti (1 = birleşme yok). Kayda geçer,
+    # çünkü "birleşme güven skorunu nasıl etkiledi?" sorusu ancak birleşmiş
+    # sözler işaretliyse ölçülebilir (kurucu ölçüm sırası, 2026-08-23).
+    parts: int = 1
 
 
 @dataclass(frozen=True)
@@ -100,6 +104,9 @@ class UtteranceRecord:
     # postcheck_ms = post-check'in eklediği süre (retry çevirisi dahil) —
     # kalem 3 gecikme optimizasyonunda maliyet ayrı görülsün diye ayrı alan.
     delivered: bool = True
+    # Kaç STT parçasından birleşti (1 = tekil söz). Alan ek olduğu için eski
+    # jsonl kayıtları okunmaya devam eder.
+    parts: int = 1
     postcheck_ms: float = 0.0
     retried: bool = False
     # Aşama kırılımı: p90 sivrilmesinin HANGİ aşamadan geldiği tek toplam
@@ -400,6 +407,7 @@ class InterpreterPipeline:
             latency_ms=latency_ms,
             recorded_at=first_audio if lang_ok else translation_ready,
             delivered=lang_ok,
+            parts=utterance.parts,
             postcheck_ms=postcheck_ms,
             retried=retried,
             stt_ms=stt_ms,
