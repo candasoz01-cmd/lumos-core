@@ -225,6 +225,88 @@ def _unspoken_pipeline():
     return pipeline, tts, written
 
 
+def test_unknown_direction_utterance_is_not_spoken_but_is_recorded():
+    """Kurucu kararı (2026-08-24): yön belirlenemeyen söz fail-closed.
+
+    Provada "What?" tr sanılıp EN'e "çevrildi" ve aynen geri seslendirildi.
+    Artık: ses YOK, ama kaynak metin + gerekçe kayda geçer.
+    """
+    from collections import deque
+
+    from representative.bot_rig import speak_assembled_turns
+    from representative.turns import AssembledTurn
+
+    pipeline, tts, written = _unspoken_pipeline()
+    spoken = speak_assembled_turns(
+        [
+            AssembledTurn(
+                text=PROVA_MEET_1_EN_SHORT,
+                speech_end_ts=1.0,
+                speakable=True,
+                reason="complete",
+            )
+        ],
+        pipeline=pipeline,
+        router=DirectionRouter(Direction("tr", "en")),
+        suppressor=_NeverDrop(),
+        recent=deque(),
+        now=1.0,
+    )
+
+    assert spoken == 0
+    assert tts.spoken == [], "papağan geri döndü: söz seslendirilmemeliydi"
+    assert len(written) == 1, "susturulan söz kayıtsız kaybolmamalı"
+    record = written[0]
+    assert record.source_text == PROVA_MEET_1_EN_SHORT
+    assert record.delivered is False
+    assert record.flag_reason == "fallback_unknown"
+    assert record.detected_language == "unknown"
+    assert record.translated_text == "", "çeviri hiç yapılmamalıydı"
+
+
+@pytest.mark.parametrize("line", PROVA_MEET_1_TR)
+def test_turkish_lines_are_still_spoken_after_suppression_lands(line):
+    """Susturma kapsamı genişlemesin: tespit edilen sözler normal akmalı."""
+    from collections import deque
+
+    from representative.bot_rig import speak_assembled_turns
+    from representative.turns import AssembledTurn
+
+    class _Echo:
+        def translate(self, utterance):
+            return TranslationResult(text="translated", confidence=1.0, provider="stub")
+
+    class _Tts:
+        def __init__(self):
+            self.spoken = []
+
+        def speak(self, text, lang):
+            self.spoken.append((text, lang))
+            return None
+
+    written = []
+    tts = _Tts()
+    pipeline = InterpreterPipeline(
+        translator=_Echo(),
+        tts=tts,
+        gate=ConfidenceGate(0.8),
+        transcript=BilingualTranscript(),
+        on_record=written.append,
+    )
+    spoken = speak_assembled_turns(
+        [AssembledTurn(text=line, speech_end_ts=1.0, speakable=True, reason="complete")],
+        pipeline=pipeline,
+        router=DirectionRouter(Direction("tr", "en")),
+        suppressor=_NeverDrop(),
+        recent=deque(),
+        now=1.0,
+    )
+    assert spoken == 1
+    assert tts.spoken == [("translated", "en")]
+    assert written[0].delivered is True
+    assert written[0].direction_reason == "detected"
+
+
 def test_suppressed_duplicate_leaves_a_record():
     """Tekrar bastırma dalı eskiden konsola bile bir şey basmıyordu."""
     from collections import deque

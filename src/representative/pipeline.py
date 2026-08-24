@@ -153,6 +153,7 @@ _FLAG_LABELS = {
     "held_partial_hold_timeout": "✕ yarım söz (bekleme doldu)",
     "held_partial_incomplete_drop": "✕ yarım söz (tamamlanmadı)",
     "suppressed_duplicate": "✕ tekrar bastırıldı",
+    "fallback_unknown": "✕ yön belirlenemedi (çevrilmedi)",
 }
 
 

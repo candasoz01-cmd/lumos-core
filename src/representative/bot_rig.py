@@ -208,6 +208,20 @@ def speak_assembled_turns(
             pipeline.record_unspoken(turn.text, flag_reason="suppressed_duplicate")
             continue
         decision = router.route(turn.text)
+        if decision.reason == "fallback_unknown":
+            # Kurucu kararı (2026-08-24): dil belirlenemeyen söz SABİT
+            # varsayılan yöne düşürülmez. Provada "What?" tr sanılıp EN'e
+            # "çevrildi" ve aynen geri seslendirildi (papağan). Yanlış yöne
+            # sessizce çevirmektense susulur; kaynak metin + gerekçe kayda
+            # geçer ki eksik sözcükler tahminle değil veriyle onarılsın.
+            print(f"  (yön belirlenemedi, seslendirilmedi: {turn.text})")
+            pipeline.record_unspoken(
+                turn.text,
+                flag_reason="fallback_unknown",
+                detected_language=decision.detected,
+                direction_reason=decision.reason,
+            )
+            continue
         print(f"{decision.direction.source_lang.upper()}(duyulan)> {turn.text}")
         pipeline.interrupt_playback()
         record = pipeline.process(
