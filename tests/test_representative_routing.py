@@ -123,3 +123,211 @@ def test_mixed_conversation_alternates_direction_per_utterance() -> None:
     assert directions == [("tr", "en"), ("en", "tr")] * 3
     # Her söz teslim edildi: yön doğruysa çıktı-dili post-check hiçbirini düşürmez.
     assert all(r.delivered for r in transcript.records)
+
+
+# --- 2026-08-24 Meet provası (prova_meet_1.jsonl, 11 kayıt) --------------------
+# Bulgu: 11 kaydın TAMAMI source_lang=tr/target_lang=en ile gitti. İçlerinden
+# biri İngilizce "What?" idi; tr sanılıp EN'e "çevrildi" ve aynen geri
+# seslendirildi (papağan). Kurucu bunu toplantıda fark edip bir sonraki sözde
+# söyledi.
+#
+# Bu testlerin amacı DAVRANIŞI DOĞRU İLAN ETMEK DEĞİL, teşhisi sabitlemektir:
+# "What?" yanlış TESPİT edilmedi — tespit hiç karar veremedi (unknown) ve
+# yapılandırılmış varsayılan yöne düşüldü. Yani kusur algoritmada değil,
+# iki dilli toplantıda yanlış olan SABİT VARSAYILAN yöndedir. Varsayılanın
+# ne olacağı ürün kararıdır ve bu testler o karar verildiğinde bilinçli
+# olarak güncellenmelidir.
+
+PROVA_MEET_1_TR = [
+    "Ne dediğini sen konuşuyorsun habire bir şeyler ama ne diyorsun ben anlamıyorum.",
+    "Nasıl dedin yahu, anlayamadım.",
+    "Evet, şimdi anladım.",
+    "Nasıl bir daha söyle.",
+    "Seslerin sakin, güzel, bir öncekine göre daha iyi.",
+    "Müzik dinle bakalım biraz.",
+    "Ben de what İngilizce onu Türkçeye çevirmen gerekmiyor muydu?",
+]
+PROVA_MEET_1_EN_SHORT = "What?"
+
+
+@pytest.mark.parametrize("line", PROVA_MEET_1_TR)
+def test_prova_meet_1_turkish_lines_are_detected_not_defaulted(line):
+    """TR sözler gerçekten TESPİT edilmeli; varsayılana düşerek değil.
+
+    Aynı sonucu (tr→en) varsayılan da üretirdi; bu yüzden yönü değil
+    `reason`ı sınıyoruz — aksi hâlde tespit tamamen bozulsa bile test yeşil
+    kalırdı.
+    """
+    decision = DirectionRouter(Direction("tr", "en")).route(line)
+    assert decision.detected == "tr"
+    assert decision.reason == "detected"
+    assert (decision.direction.source_lang, decision.direction.target_lang) == ("tr", "en")
+
+
+def test_prova_meet_1_short_turkish_line_is_detected():
+    """Kısa TR söz de tespit edilebilmeli — "kısa olan her şey unknown" değil."""
+    decision = DirectionRouter(Direction("tr", "en")).route("Evet, şimdi anladım.")
+    assert decision.detected == "tr"
+    assert decision.reason == "detected"
+
+
+def test_prova_meet_1_english_what_abstains_and_falls_back_to_default():
+    """KUSURUN ta kendisi: "What?" için tespit YANLIŞ değil, YOK.
+
+    `detect_lang` "what" kelimesini EN sözlüğünde bulamaz → skorlar 0-0 →
+    unknown. Router da varsayılan yöne (tr→en) düşer. Sonuç kullanıcı
+    açısından yanlıştır (EN girdi EN'e "çevrilir"), ama sebep yanlış tespit
+    DEĞİL, karar verilemeyen sözde sabit varsayılana düşülmesidir.
+    """
+    decision = DirectionRouter(Direction("tr", "en")).route(PROVA_MEET_1_EN_SHORT)
+
+    assert decision.detected == "unknown", "tespit yanlış dil dönmedi; hiç karar vermedi"
+    assert decision.reason == "fallback_unknown", "varsayılan yön kullanıldı"
+    # Provada fiilen kaydedilen (ve yanlış olan) sonuç:
+    assert (decision.direction.source_lang, decision.direction.target_lang) == ("tr", "en")
+
+
+def test_default_direction_decides_the_unknown_case():
+    """Sonucun tespitten değil VARSAYILANDAN geldiğinin kanıtı.
+
+    Varsayılan ters çevrildiğinde aynı "What?" girdisi en→tr'ye gider. Bu,
+    kusurun konumunu tek başına gösterir: sorun varsayılanın kendisidir.
+    """
+    decision = DirectionRouter(Direction("en", "tr")).route(PROVA_MEET_1_EN_SHORT)
+    assert decision.reason == "fallback_unknown"
+    assert (decision.direction.source_lang, decision.direction.target_lang) == ("en", "tr")
+
+
+def _unspoken_pipeline():
+    """Gerçek pipeline; çevirmen ÇAĞRILIRSA test patlar."""
+
+    class _NeverTranslate:
+        def translate(self, utterance):
+            raise AssertionError("seslendirilmeyen söz çeviriye gönderilmemeliydi")
+
+    class _Tts:
+        def __init__(self):
+            self.spoken = []
+
+        def speak(self, text, lang):
+            self.spoken.append((text, lang))
+            return None
+
+    written = []
+    tts = _Tts()
+    pipeline = InterpreterPipeline(
+        translator=_NeverTranslate(),
+        tts=tts,
+        gate=ConfidenceGate(0.8),
+        transcript=BilingualTranscript(),
+        on_record=written.append,
+    )
+    return pipeline, tts, written
+
+
+def test_suppressed_duplicate_leaves_a_record():
+    """Tekrar bastırma dalı eskiden konsola bile bir şey basmıyordu."""
+    from collections import deque
+
+    from representative.bot_rig import speak_assembled_turns
+    from representative.turns import AssembledTurn
+
+    class _AlwaysDrop:
+        def should_drop(self, _text, _now):
+            return True
+
+    pipeline, tts, written = _unspoken_pipeline()
+    spoken = speak_assembled_turns(
+        [AssembledTurn(text="Evet.", speech_end_ts=1.0, speakable=True, reason="complete")],
+        pipeline=pipeline,
+        router=DirectionRouter(Direction("tr", "en")),
+        suppressor=_AlwaysDrop(),
+        recent=deque(),
+        now=1.0,
+    )
+    assert spoken == 0
+    assert tts.spoken == []
+    assert [(r.source_text, r.flag_reason, r.delivered) for r in written] == [
+        ("Evet.", "suppressed_duplicate", False)
+    ]
+
+
+def test_held_partial_leaves_a_record_without_changing_audio_behaviour():
+    """PR #797'nin asıl konusu: tutulan yarım söz artık dosyadan ölçülebilir."""
+    from collections import deque
+
+    from representative.bot_rig import speak_assembled_turns
+    from representative.turns import AssembledTurn
+
+    pipeline, tts, written = _unspoken_pipeline()
+    spoken = speak_assembled_turns(
+        [
+            AssembledTurn(
+                text="Ben de what",
+                speech_end_ts=1.0,
+                speakable=False,
+                reason="hold_timeout",
+            )
+        ],
+        pipeline=pipeline,
+        router=DirectionRouter(Direction("tr", "en")),
+        suppressor=_NeverDrop(),
+        recent=deque(),
+        now=1.0,
+    )
+    assert spoken == 0
+    assert tts.spoken == [], "ses davranışı değişmemeli"
+    assert [(r.source_text, r.flag_reason) for r in written] == [
+        ("Ben de what", "held_partial_hold_timeout")
+    ]
+
+
+class _NeverDrop:
+    def should_drop(self, _text, _now):
+        return False
+
+
+def test_direction_reason_is_persisted_into_the_record():
+    """Teşhis dosyadan yapılabilmeli: yön/sebep/tespit jsonl'e yazılmalı.
+
+    Provada `reason` yalnız konsola basılıyordu; jsonl'de olmadığı için
+    "What?" satırının neden tr→en gittiği dosyadan okunamadı.
+    """
+
+    class _Echo:
+        def translate(self, utterance):
+            return TranslationResult(text=utterance.text, confidence=1.0, provider="stub")
+
+    class _Tts:
+        def speak(self, text, lang):
+            return None
+
+    pipeline = InterpreterPipeline(
+        translator=_Echo(),
+        tts=_Tts(),
+        gate=ConfidenceGate(0.8),
+        transcript=BilingualTranscript(),
+    )
+    # Seslendirilen yol: yön belirlenemeyen söz artık pipeline'a hiç
+    # girmiyor (fail-closed, bkz. üstteki susturma testleri), bu yüzden
+    # kalıcılık tespit EDİLEN bir sözle sınanır.
+    line = PROVA_MEET_1_TR[2]
+    decision = DirectionRouter(Direction("tr", "en")).route(line)
+    record = pipeline.process(
+        Utterance(
+            text=line,
+            source_lang=decision.direction.source_lang,
+            target_lang=decision.direction.target_lang,
+            speech_end_ts=0.0,
+            direction_reason=decision.reason,
+            detected_language=decision.detected,
+        )
+    )
+
+    assert record.direction == "tr->en"
+    assert record.direction_reason == "detected"
+    assert record.detected_language == "tr"
+    # Çeviri güveni ile dil-tespit güveni AYRI alanlardır; ikincisi için
+    # `detect_lang` kalibre skor üretmediğinden None yazılır.
+    assert record.confidence == 1.0
+    assert record.language_detection_confidence is None

@@ -199,8 +199,13 @@ def speak_assembled_turns(
     for turn in turns:
         if not turn.speakable:
             print(f"  (yarım söz seslendirilmedi: {turn.reason})")
+            pipeline.record_unspoken(turn.text, flag_reason=f"held_partial_{turn.reason}")
             continue
         if suppressor.should_drop(turn.text, now):
+            # Bu dal konsola bile bir şey basmıyordu: üç erken çıkışın en
+            # görünmezi. Ses davranışı aynı, yalnız iz bırakıyor.
+            print(f"  (tekrar bastırıldı: {turn.text})")
+            pipeline.record_unspoken(turn.text, flag_reason="suppressed_duplicate")
             continue
         decision = router.route(turn.text)
         print(f"{decision.direction.source_lang.upper()}(duyulan)> {turn.text}")
@@ -213,6 +218,8 @@ def speak_assembled_turns(
                 speech_end_ts=turn.speech_end_ts,
                 context=tuple(recent),
                 stt_final_ts=now,
+                direction_reason=decision.reason,
+                detected_language=decision.detected,
             )
         )
         recent.append(turn.text)

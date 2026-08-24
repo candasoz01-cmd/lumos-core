@@ -138,10 +138,15 @@ def test_incomplete_assembled_turn_does_not_barge_in_or_speak():
         def __init__(self) -> None:
             self.interrupts = 0
             self.processed: list[str] = []
+            self.unspoken: list[tuple[str, str]] = []
 
         def interrupt_playback(self) -> int:
             self.interrupts += 1
             return 0
+
+        def record_unspoken(self, text, **kw):
+            self.unspoken.append((text, kw.get("flag_reason")))
+            return SimpleNamespace(delivered=False)
 
         def process(self, utterance):
             self.processed.append(utterance.text)
@@ -159,6 +164,7 @@ def test_incomplete_assembled_turn_does_not_barge_in_or_speak():
             return SimpleNamespace(
                 direction=SimpleNamespace(source_lang="tr", target_lang="en"),
                 reason="detected",
+                detected="tr",
             )
 
     class _Suppressor:
@@ -184,6 +190,9 @@ def test_incomplete_assembled_turn_does_not_barge_in_or_speak():
     assert spoken == 0
     assert pipe.interrupts == 0
     assert pipe.processed == []
+    # Kurucu kararı (2026-08-24): davranış aynı (ses yok), ama artık iz bırakır
+    # — aksi hâlde turn tutma davranışı prova dosyasından ölçülemiyor.
+    assert pipe.unspoken == [("We should go and", "held_partial_incomplete_drop")]
 
 
 def test_complete_assembled_turn_speaks_once_with_barge_in():
@@ -197,10 +206,15 @@ def test_complete_assembled_turn_speaks_once_with_barge_in():
         def __init__(self) -> None:
             self.interrupts = 0
             self.processed: list[str] = []
+            self.unspoken: list[tuple[str, str]] = []
 
         def interrupt_playback(self) -> int:
             self.interrupts += 1
             return 0
+
+        def record_unspoken(self, text, **kw):
+            self.unspoken.append((text, kw.get("flag_reason")))
+            return SimpleNamespace(delivered=False)
 
         def process(self, utterance):
             self.processed.append(utterance.text)
@@ -218,6 +232,7 @@ def test_complete_assembled_turn_speaks_once_with_barge_in():
             return SimpleNamespace(
                 direction=SimpleNamespace(source_lang="tr", target_lang="en"),
                 reason="detected",
+                detected="tr",
             )
 
     class _Suppressor:

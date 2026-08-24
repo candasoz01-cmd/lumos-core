@@ -38,6 +38,17 @@ class Utterance:
     # STT-final damgası: transkript hazır olduğu an. Yoksa speech_end ile
     # aynı sayılır (metin/stdin rig — STT yok).
     stt_final_ts: float | None = None
+    # Yön kararı muhasebesi (2026-08-24 Meet provası): yön kararı konsola
+    # basılıyordu ama jsonl'e HİÇ yazılmıyordu, bu yüzden "What?" satırının
+    # neden tr→en gittiği dosyadan okunamadı. Karar girdiyle taşınır ki kayıt
+    # tek başına teşhis edilebilsin.
+    direction_reason: str = ""  # detected | fallback_unknown | fixed | ""
+    detected_language: str = ""  # tr | en | unknown — KULLANILAN yönden ayrı
+    # Tespit güveni. DİKKAT: kayıttaki `confidence` ile AYNI ŞEY DEĞİLDİR —
+    # o, çeviri güveni olup ConfidenceGate'i besler. Bu alan dil tespitine
+    # aittir. `detect_lang` kural tabanlıdır, kalibre bir skor ÜRETMEZ;
+    # uydurulmuş sayı yazmaktansa None kalır (bkz. rapor).
+    language_detection_confidence: float | None = None
 
 
 @dataclass(frozen=True)
@@ -110,6 +121,15 @@ class UtteranceRecord:
     translate_ms: float = 0.0
     tts_to_first_audio_ms: float = 0.0
     e2e_first_audio_ms: float = 0.0
+    # Yön teşhisi (2026-08-24): `direction` KULLANILAN yön, `detected_language`
+    # tespitin GERÇEKTEN döndürdüğü dil. İkisi ayrı tutulur çünkü "tespit
+    # çalıştı ve yanıldı" ile "tespit hiç çalışmadı, varsayılana düşüldü"
+    # farklı hatalardır ve dosyadan ayırt edilebilmeleri gerekir.
+    direction: str = ""  # ör. "tr->en"
+    direction_reason: str = ""
+    detected_language: str = ""
+    # Çeviri güveni olan `confidence` ile KARIŞTIRILMAMALI.
+    language_detection_confidence: float | None = None
 
 
 # Kurucu kararı (2026-08-17, seçenek C): eşik altı çeviri SESLENDİRİLİR ama
@@ -127,6 +147,12 @@ _FLAG_LABELS = {
     "meta_output": "✕ iç etiket (sesli okunmadı)",
     "non_translation_output": "✕ tercüman dışı çıktı",
     "wrong_output_language": "✕ yanlış dil",
+    # Seslendirilmeyen erken çıkışlar (2026-08-24). Bunlar düşük güven DEĞİL;
+    # söz hiç çeviriye girmedi. Karşı tarafa giden ses davranışı değişmedi,
+    # yalnız görünürlük eklendi.
+    "held_partial_hold_timeout": "✕ yarım söz (bekleme doldu)",
+    "held_partial_incomplete_drop": "✕ yarım söz (tamamlanmadı)",
+    "suppressed_duplicate": "✕ tekrar bastırıldı",
 }
 
 
@@ -324,6 +350,46 @@ class InterpreterPipeline:
             return int(barge())
         return 0
 
+    def record_unspoken(
+        self,
+        text: str,
+        *,
+        flag_reason: str,
+        detected_language: str = "",
+        direction_reason: str = "",
+    ) -> UtteranceRecord:
+        """Seslendirilmeyen sözü ÇEVİRMEDEN kayda geçirir (2026-08-24 kararı).
+
+        `speak_assembled_turns` üç yerde pipeline'a hiç uğramadan `continue`
+        ediyordu: yarım söz tutma, tekrar bastırma ve (yeni) yön
+        belirlenemeyen söz. Sonuç: turn davranışı — yani PR #797'nin asıl
+        iddiası — jsonl'e tek satır bile yazmıyor, yalnız akıp giden konsol
+        çıktısı olarak var oluyordu. İz bırakmayan davranış ölçülemez.
+
+        Bu yol çevirmene ve TTS'e DOKUNMAZ: karşı tarafa giden ses davranışı
+        aynı kalır, yalnız kayıt eklenir. `on_flag` bilinçli olarak
+        çağrılmaz — o kanca "düşük güven" mesajı basıyor, oysa buradaki
+        kayıtların güvenle ilgisi yok (söz çeviriye hiç girmedi).
+        """
+        record = UtteranceRecord(
+            source_text=text,
+            source_lang="",
+            translated_text="",
+            target_lang="",
+            confidence=None,
+            flagged=True,
+            flag_reason=flag_reason,
+            latency_ms=0.0,
+            recorded_at=self._clock(),
+            delivered=False,
+            detected_language=detected_language,
+            direction_reason=direction_reason,
+        )
+        self._transcript.append(record)
+        if self._on_record is not None:
+            self._on_record(record)
+        return record
+
     def process(self, utterance: Utterance) -> UtteranceRecord:
         from representative.langcheck import detect_lang
 
@@ -406,6 +472,10 @@ class InterpreterPipeline:
             translate_ms=translate_ms,
             tts_to_first_audio_ms=tts_to_first_ms,
             e2e_first_audio_ms=e2e_ms if lang_ok else 0.0,
+            direction=f"{utterance.source_lang}->{utterance.target_lang}",
+            direction_reason=utterance.direction_reason,
+            detected_language=utterance.detected_language,
+            language_detection_confidence=utterance.language_detection_confidence,
         )
         self._transcript.append(record)
         if self._on_record is not None:
