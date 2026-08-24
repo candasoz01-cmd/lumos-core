@@ -309,6 +309,27 @@ Kullanıcının tespiti: Lumos'ta doğrulama tek bir noktada toplanmıyor; **ADR
 
 **Durum notu (güncelleme: 2026-07-17):** Bu bölüm kullanıcı tarafından bilinçli olarak **commit edilmeden** tutuluyor. Kullanıcı 2026-07-16'da tanımı olgunlaşmış kabul edip bir süre dokunulmamasını istemişti; 2026-07-17'de Denetçi/Guardian modeliyle kendisi geri döndü — bu, "dışarıdan proaktif dokunma" kısıtını ihlal etmez, çünkü kısıt bana (Claude'a) yönelikti, kullanıcının kendi kararına değil. Olgunlaşma testi geçerliliğini koruyor: birkaç gün dokunulmadan hâlâ doğru duruyorsa commit için doğru zaman kabul edilecek.
 
+### Gözlem: depo durumu, insan karar bekleme durumunu temsil etmiyor (kanıt kaydı, 2026-08-24)
+
+**Bu bölüm karar veya vizyon notu değildir; gözlemlenmiş bir kullanım bulgusudur.** § Lumos Board gating'ini, ADR-001 öncelik sırasını ve bu ADR'nin taslak durumunu değiştirmez. İleride Agent Wall genişletmesi gündeme gelirse kanıt olarak tutulur.
+
+**Gözlem koşulları (2026-08-24, tek geliştirme günü):** Altı eşzamanlı worktree/oturum açıktı; üçü tek satırlık bir insan onayını bekliyordu ve bekleme üç ayrı oturumdaydı. "Hangi iş nerede bekliyor?" sorusunun cevabı hiçbir yerde tutulmuyordu; durum `git worktree list` + `git status` taramalarıyla elle yeniden kuruldu.
+
+**Bulgu — iki ayrı veri kaynağı:**
+
+| Kaynak | Neyi bilir | Neyi bilmez |
+|--------|-----------|-------------|
+| Git | Dal, taban commit, değişmiş dosya | Bir işin insan kararı beklediğini |
+| Agent Status | Ajanın koşup koşmadığını | Kimi, ne için beklediğini |
+
+Panonun ucuz yarısı (hangi worktree, hangi taban, kaç dosya değişik) bugün zaten iki git komutuyla türetilebiliyor; yeni altyapı gerektirmiyor. Pahalı yarısı — "bu iş şu anda senin kararını bekliyor" — depo durumu değil oturum durumudur ve bugün hiçbir kaynakta tutulmuyor.
+
+**Sözleşme ile tasarım niyeti arasındaki fark (doğrulandı):** `src/core/agent_status_contract.py` (KA-001, şema v1) dört durum tanımlıyor — `running`, `completed`, `failed`, `unknown`. `blocked` veya `awaiting_decision` yok. Gözlem günündeki altı oturumun altısı da bu şemaya göre `running` raporlardı; pano "6 iş çalışıyor" derdi, oysa üçü durmuş ve insanı bekliyordu. Yani mevcut haliyle Agent Status sözleşmesi, bu bölümü tetikleyen problemi çözmezdi. Buna karşılık § Kayıt yaşam döngüsü alt bölümü Board *kayıtları* için `BLOCKED` ve `WAITING_APPROVAL` durumlarını zaten tanımlıyor — fark, tasarım niyeti ile hayata geçmiş sözleşme arasındadır. `docs/contracts/task-claim-v1.md` sözleşmesinin kod karşılığı bu tarihte bulunmuyor.
+
+**Bekleme sebebinin ayrıştırılması, olası bir genişletme yönü olarak kaydedilmiştir** (karar değildir): insan onayı, başka bir ajanın sonucu, dış olay, bağımlılık — bunlar tek bir "blocked" durumunda toplandığında hangi beklemenin insan aksiyonu gerektirdiği yine görünmez kalır.
+
+**Kayıt gerekçesi:** ihtiyaç teoriden türetilmedi; sistem paralel çalışma sayısı arttıkça eksikliği kendisi gösterdi. Bu tarihte kod, şema değişikliği veya yeni ADR açılmamıştır.
+
 ---
 
 ## Public / private sınır
