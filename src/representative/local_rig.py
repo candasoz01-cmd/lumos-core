@@ -36,6 +36,7 @@ from representative.pipeline import (
 )
 from representative.routing import Direction, DirectionRouter
 from representative.tts_playback import ChunkedTtsPlayer
+from representative.turns import TurnAssembler
 
 
 class MockTranslator:
@@ -328,6 +329,7 @@ def run_realtime_audio_mode(
     suppressor = RepeatSuppressor()
     corrector = TermCorrector()
     recent: deque[str] = deque(maxlen=4)
+    assembler = TurnAssembler()
 
     # Çift yönde dil sabitlenmez; yön kararı metinden verilir.
     stream = RealtimeSTTStream(
@@ -342,7 +344,7 @@ def run_realtime_audio_mode(
             stream.feed(bytes(indata))
 
     frame_len = int(SAMPLE_RATE * 0.06)  # 60 ms
-    print("Mikrofon açık (akışlı) — TR veya EN konuş (yön kendiliğinden); Ctrl+C ile çık.")
+    print("Mikrofon açık (akışlı, ardıl tek ses) — TR veya EN konuş; Ctrl+C ile çık.")
     try:
         with sd.RawInputStream(
             samplerate=SAMPLE_RATE,
@@ -352,41 +354,53 @@ def run_realtime_audio_mode(
             callback=on_audio,
         ):
             while True:
+                now = time.monotonic()
                 try:
-                    utt = stream.utterances.get(timeout=0.5)
+                    utt = stream.utterances.get(timeout=0.25)
+                    fragments = [utt]
                 except _queue.Empty:
-                    continue
-                if not utt.text:
-                    continue
-                if is_prompt_echo(utt.text, LUMOS_TERMS_PROMPT):
-                    print(f"  (istem yankısı düşürüldü: {utt.text[:40]})")
-                    continue
-                heard_text = corrector.correct(utt.text)
-                if suppressor.should_drop(heard_text, time.monotonic()):
-                    print(f"  (tekrar düşürüldü: {heard_text[:40]})")
-                    continue
-                if heard_text != utt.text:
-                    print(f"  (terim düzeltildi: {utt.text[:40]} → {heard_text[:40]})")
-                stt_final = time.monotonic()
-                decision = router.route(heard_text)
-                print(f"{decision.direction.source_lang.upper()}(duyulan)> {heard_text}")
-                pipeline.interrupt_playback()
-                record = pipeline.process(
-                    Utterance(
-                        text=heard_text,
-                        source_lang=decision.direction.source_lang,
-                        target_lang=decision.direction.target_lang,
-                        speech_end_ts=utt.speech_end_ts,
-                        context=tuple(recent),
-                        stt_final_ts=stt_final,
+                    fragments = []
+                if fragments:
+                    utt = fragments[0]
+                    if not utt.text:
+                        turns = assembler.poll(now)
+                    elif is_prompt_echo(utt.text, LUMOS_TERMS_PROMPT):
+                        print(f"  (istem yankısı düşürüldü: {utt.text[:40]})")
+                        turns = assembler.poll(now)
+                    else:
+                        heard_text = corrector.correct(utt.text)
+                        if heard_text != utt.text:
+                            print(f"  (terim düzeltildi: {utt.text[:40]} → {heard_text[:40]})")
+                        turns = assembler.push(heard_text, utt.speech_end_ts, now)
+                else:
+                    turns = assembler.poll(now)
+                for turn in turns:
+                    if not turn.speakable:
+                        print(f"  (yarım söz seslendirilmedi: {turn.reason})")
+                        continue
+                    if suppressor.should_drop(turn.text, now):
+                        print(f"  (tekrar düşürüldü: {turn.text[:40]})")
+                        continue
+                    stt_final = time.monotonic()
+                    decision = router.route(turn.text)
+                    print(f"{decision.direction.source_lang.upper()}(duyulan)> {turn.text}")
+                    pipeline.interrupt_playback()
+                    record = pipeline.process(
+                        Utterance(
+                            text=turn.text,
+                            source_lang=decision.direction.source_lang,
+                            target_lang=decision.direction.target_lang,
+                            speech_end_ts=turn.speech_end_ts,
+                            context=tuple(recent),
+                            stt_final_ts=stt_final,
+                        )
                     )
-                )
-                recent.append(heard_text)
-                marker = "" if record.delivered else " [TESLİM EDİLMEDİ]"
-                print(
-                    f"{decision.direction.target_lang.upper()}> {record.translated_text}{marker}  "
-                    f"({record.latency_ms:.0f} ms, yön: {decision.reason})"
-                )
+                    recent.append(turn.text)
+                    marker = "" if record.delivered else " [TESLİM EDİLMEDİ]"
+                    print(
+                        f"{decision.direction.target_lang.upper()}> {record.translated_text}{marker}  "
+                        f"({record.latency_ms:.0f} ms, yön: {decision.reason})"
+                    )
     finally:
         stream.stop()
 
