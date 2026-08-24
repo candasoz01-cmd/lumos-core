@@ -206,10 +206,14 @@ class BilingualTranscript:
 
 def summarize_latencies_ms(transcript: BilingualTranscript) -> dict[str, float | str | bool]:
     records = transcript.records
-    if not records:
+    # `analyze()` ile aynı ayrım (2026-08-24 seçenek A): seslendirilmeyen
+    # kayıtlar sayımda görünür, gecikme hesabına girmez. record_unspoken()
+    # satırları transkripte de eklendiği için bu ikiz yol da kirleniyordu.
+    measured = [r for r in records if r.delivered]
+    if not measured:
         empty_budget = evaluate_first_audio_budget(0.0, 0.0, count=0)
         return {
-            "count": 0,
+            "count": len(records),
             "median_ms": 0.0,
             "max_ms": 0.0,
             "p50_ms": 0.0,
@@ -223,16 +227,16 @@ def summarize_latencies_ms(transcript: BilingualTranscript) -> dict[str, float |
             "first_audio_budget_pass": False,
             "first_audio_budget_reason": str(empty_budget["reason"]),
         }
-    e2e = [r.e2e_first_audio_ms or r.latency_ms for r in records]
-    stt = [r.stt_ms for r in records]
-    translate = [r.translate_ms for r in records]
-    tts0 = [r.tts_to_first_audio_ms for r in records]
+    e2e = [r.e2e_first_audio_ms or r.latency_ms for r in measured]
+    stt = [r.stt_ms for r in measured]
+    translate = [r.translate_ms for r in measured]
+    tts0 = [r.tts_to_first_audio_ms for r in measured]
     p50 = percentile_ms(e2e, 50)
     p90 = percentile_ms(e2e, 90)
     stt_p50 = percentile_ms(stt, 50)
     translate_p50 = percentile_ms(translate, 50)
     tts_p50 = percentile_ms(tts0, 50)
-    budget = evaluate_first_audio_budget(p50, p90, count=len(records))
+    budget = evaluate_first_audio_budget(p50, p90, count=len(measured))
     return {
         "count": len(records),
         "median_ms": statistics.median(e2e),
