@@ -10,9 +10,9 @@ bağlar:
       → RecallSpeaker (chunked OpenAI TTS mp3 → output_audio)
 
 Half-duplex: kapı yalnız o an giden klip (+echo kuyruğu) boyunca kapalı;
-uzun paragrafın tamamı için kuyruk tutulmaz. Yeni söz kuyruktaki kalan
-klipleri iptal eder (barge-in). Echo için mevcut klip bitene kadar dinleme
-kapalı kalır.
+uzun paragrafın tamamı için kuyruk tutulmaz. Ardıl tek-ses kipi (2026-08-24):
+yalnız bitmiş cümle barge-in eder; VAD parçaları birleştirilir, yarım söz
+seslendirilmez. Echo için mevcut klip bitene kadar dinleme kapalı kalır.
 Fail-closed: wss olmayan endpoint reddedilir; bilinmeyen ws mesaj şekilleri
 sayılır ve düşürülür; retention kuralları meeting_ingress'ten aynen gelir.
 HTTP/ws şekilleri ilk canlı koşuda doğrulanır (dürüstlük notu).
@@ -58,6 +58,12 @@ from representative.pipeline import (
 from representative.routing import Direction, DirectionRouter
 from representative.stt import LUMOS_TERMS_PROMPT
 from representative.tts_playback import ChunkedTtsPlayer, estimate_speech_seconds
+from representative.turns import (
+    MEET_VAD_SILENCE_MS,
+    SINGLE_OUTPUT_VOICE,
+    AssembledTurn,
+    TurnAssembler,
+)
 
 RECALL_INBOUND_RATE = 16000
 
@@ -152,7 +158,10 @@ class RecallSpeaker:
 
     def _synthesize(self, text: str, _lang: str) -> bytes:
         resp = self._client.audio.speech.create(
-            model="gpt-4o-mini-tts", voice="onyx", input=text, response_format="mp3"
+            model="gpt-4o-mini-tts",
+            voice=SINGLE_OUTPUT_VOICE,
+            input=text,
+            response_format="mp3",
         )
         return resp.content
 
@@ -170,6 +179,53 @@ class RecallSpeaker:
 
     def speak(self, text: str, lang: str):
         return self._player.speak(text, lang)
+
+
+def speak_assembled_turns(
+    turns: list[AssembledTurn],
+    *,
+    pipeline: InterpreterPipeline,
+    router: DirectionRouter,
+    suppressor: RepeatSuppressor,
+    recent: deque[str],
+    now: float,
+) -> int:
+    """Play finished consecutive turns only. Incomplete fragments stay silent.
+
+    Barge-in runs only for a speakable assembled sentence — never for a VAD
+    mid-thought fragment. Returns how many turns were sent to the pipeline.
+    """
+    spoken = 0
+    for turn in turns:
+        if not turn.speakable:
+            print(f"  (yarım söz seslendirilmedi: {turn.reason})")
+            continue
+        if suppressor.should_drop(turn.text, now):
+            continue
+        decision = router.route(turn.text)
+        print(f"{decision.direction.source_lang.upper()}(duyulan)> {turn.text}")
+        pipeline.interrupt_playback()
+        record = pipeline.process(
+            Utterance(
+                text=turn.text,
+                source_lang=decision.direction.source_lang,
+                target_lang=decision.direction.target_lang,
+                speech_end_ts=turn.speech_end_ts,
+                context=tuple(recent),
+                stt_final_ts=now,
+            )
+        )
+        recent.append(turn.text)
+        spoken += 1
+        marker = "" if record.delivered else " [TESLİM EDİLMEDİ]"
+        print(
+            f"{decision.direction.target_lang.upper()}> {record.translated_text}{marker}"
+            f"  (e2e {record.latency_ms:.0f} ms"
+            f" stt={record.stt_ms:.0f} tr={record.translate_ms:.0f}"
+            f" tts0={record.tts_to_first_audio_ms:.0f}"
+            f", yön: {decision.reason})"
+        )
+    return spoken
 
 
 TUNNEL_PROBE_EVENT = "lumos.tunnel_probe"
@@ -351,6 +407,13 @@ def main(argv: list[str] | None = None) -> int:
         help="Varsayılan davranış oturum sonunda erken delete_media'dır "
         "(kurucu şartı); teşhis gerekiyorsa bu bayrakla 24h penceresi korunur",
     )
+    parser.add_argument(
+        "--vad-silence-ms",
+        type=int,
+        default=MEET_VAD_SILENCE_MS,
+        help="Meet ardıl kip sunucu VAD sessizliği (varsayılan 1100 ms; "
+        "600 ms cümleyi erken kesip avatarı araya sokuyordu)",
+    )
     args = parser.parse_args(argv)
     if args.source_lang == args.target_lang:
         parser.error("source and target languages must differ")
@@ -423,7 +486,7 @@ def main(argv: list[str] | None = None) -> int:
 
     disclosure = OpenAI().audio.speech.create(
         model="gpt-4o-mini-tts",
-        voice="onyx",
+        voice=SINGLE_OUTPUT_VOICE,
         input=DISCLOSURE_LINE_EN,
         response_format="mp3",
     )
@@ -496,52 +559,57 @@ def main(argv: list[str] | None = None) -> int:
     stt = RealtimeSTTStream(
         language=None if args.direction == "auto" else args.source_lang,
         prompt=LUMOS_TERMS_PROMPT,
+        vad_silence_ms=args.vad_silence_ms,
     )
     stt.start()
     corrector = TermCorrector()
     suppressor = RepeatSuppressor()
     recent: deque[str] = deque(maxlen=4)
+    assembler = TurnAssembler()
 
     def pump_audio() -> None:
         while True:
             stt.feed(resample_16k_to_24k(inbound.get()))
 
     threading.Thread(target=pump_audio, daemon=True).start()
-    print("Tercüman hattı canlı — toplantı bitince kendiliğinden kapanır; Ctrl+C: kill-switch.")
+    print(
+        "Tercüman hattı canlı (ardıl tek ses, VAD "
+        f"{args.vad_silence_ms} ms) — toplantı bitince kendiliğinden kapanır; "
+        "Ctrl+C: kill-switch."
+    )
     try:
         while not stop_event.is_set():
+            now = time.monotonic()
             try:
-                utt = stt.utterances.get(timeout=0.5)
+                utt = stt.utterances.get(timeout=0.25)
             except queue.Empty:
+                speak_assembled_turns(
+                    assembler.poll(now),
+                    pipeline=pipeline,
+                    router=router,
+                    suppressor=suppressor,
+                    recent=recent,
+                    now=now,
+                )
                 continue
             if not utt.text or is_prompt_echo(utt.text, LUMOS_TERMS_PROMPT):
+                speak_assembled_turns(
+                    assembler.poll(now),
+                    pipeline=pipeline,
+                    router=router,
+                    suppressor=suppressor,
+                    recent=recent,
+                    now=now,
+                )
                 continue
             heard = corrector.correct(utt.text)
-            if suppressor.should_drop(heard, time.monotonic()):
-                continue
-            stt_final = time.monotonic()
-            decision = router.route(heard)
-            print(f"{decision.direction.source_lang.upper()}(duyulan)> {heard}")
-            # Barge-in: yeni söz gelince kuyruktaki klipler düşer (chunked TTS).
-            pipeline.interrupt_playback()
-            record = pipeline.process(
-                Utterance(
-                    text=heard,
-                    source_lang=decision.direction.source_lang,
-                    target_lang=decision.direction.target_lang,
-                    speech_end_ts=utt.speech_end_ts,
-                    context=tuple(recent),
-                    stt_final_ts=stt_final,
-                )
-            )
-            recent.append(heard)
-            marker = "" if record.delivered else " [TESLİM EDİLMEDİ]"
-            print(
-                f"{decision.direction.target_lang.upper()}> {record.translated_text}{marker}"
-                f"  (e2e {record.latency_ms:.0f} ms"
-                f" stt={record.stt_ms:.0f} tr={record.translate_ms:.0f}"
-                f" tts0={record.tts_to_first_audio_ms:.0f}"
-                f", yön: {decision.reason})"
+            speak_assembled_turns(
+                assembler.push(heard, utt.speech_end_ts, now),
+                pipeline=pipeline,
+                router=router,
+                suppressor=suppressor,
+                recent=recent,
+                now=now,
             )
     except KeyboardInterrupt:
         end_reason.append("kill_switch")
