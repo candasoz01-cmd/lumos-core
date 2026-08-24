@@ -13,10 +13,46 @@ From the repo root (Python deps installed; see getting-started):
 
 ```bash
 ruff check .
-pytest -q
+make test
 ```
 
-Or: `make test` (runs pytest). Optional commit guard: `make setup-commit-guard`.
+`make test` is the CI-parity entry point: it sets `PYTHONPATH` and
+`KANDO_MOCK=1`, which a bare `pytest` invocation does not. Optional commit
+guard: `make setup-commit-guard`.
+
+### Which interpreter runs the tests
+
+CI runs bare `pytest` ([`ci.yml`](.github/workflows/ci.yml)), and that is
+correct there: the workflow installs `requirements.txt` into the job's own
+interpreter, so the test runner and the dependencies are the same environment
+by construction.
+
+Locally the same command is **not** interchangeable. Bare `pytest` resolves to
+whichever `pytest` comes first on your `PATH` — often a system or Homebrew
+install — which need not be the interpreter your project dependencies are
+installed into. Nothing in the output announces the swap: both runs report the
+same pytest version and both print green. The difference surfaces only as tests
+that **skip** instead of run.
+
+Using a virtualenv is optional, not required. If you have one, point the run at
+it explicitly rather than relying on `PATH`:
+
+```bash
+make test PYTEST=".venv/bin/python -m pytest"
+```
+
+Measured 2026-08-24: the venv interpreter reported **3 skipped**; bare `pytest`
+(Homebrew, Python 3.11) reported **4 skipped**, from the same working tree, with
+both runs printing green and reporting the same pytest version. The extra skip
+is `tests/test_representative_bot_rig.py::test_resample_ratio`, guarded by
+`pytest.importorskip("numpy")`. numpy is an optional dependency, so that skip is
+intended behaviour, not a defect; it is absent from `requirements.txt`, so CI
+skips it as well. Absolute pass counts move as tests land — the skip difference
+is the signal.
+
+`pytest.ini` sets `addopts = -rs`, so every skip prints its reason instead of
+collapsing into a bare count. That is what makes an environment difference like
+the one above visible without having to go looking for it.
 
 ## Pull requests
 
