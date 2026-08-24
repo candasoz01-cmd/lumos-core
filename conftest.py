@@ -31,8 +31,21 @@ radius on 2026-08-24, against a shell holding a real OPENAI_API_KEY: five tests
 observe a different environment because of the strip -- all five were making
 live model calls before -- and one test has an outbound connection refused.
 Every other test reads only credentials it sets itself, so the strip is a no-op
-for them. Known gap: the egress guard patches this process only, so the eight
-test modules that spawn subprocesses are neither guarded nor recorded there.
+for them.
+
+Subprocess boundary, measured 2026-08-24 over a full run: of the two rules the
+credential strip crosses it and the egress guard does not. Children inherit the
+already-stripped os.environ -- all 43 Python children were observed holding no
+provider credential -- but the guard patches this process only, so a child that
+connects is neither blocked nor recorded. Nothing exercised that hole on this
+run: those 43 children were instrumented directly and made no connect and no DNS
+lookup, and the 59 non-Python children (51 git, 3 lumos-meet, 2 tar, 2 pwd, 1
+echo) raised no outbound denial under a seatbelt profile refusing non-local
+traffic. Read that as "did not try", not "cannot", and note one path is not
+covered at all: test_representative_launcher runs the lumos-meet script, which
+execs a Meet bot for a real meet.google.com URL, and the three arguments the
+tests pass all exit before that line. An unexercised path and a blocked one look
+identical in a passing run, so that one is unmeasured, not clean.
 """
 from __future__ import annotations
 
