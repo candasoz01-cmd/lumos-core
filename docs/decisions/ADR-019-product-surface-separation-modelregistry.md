@@ -3,7 +3,7 @@
 | Alan | Değer |
 |------|-------|
 | Karar durumu | **Accepted (2026-08-08)** — sınır ve adlandırma kararı kabul edildi. **Ad güncellemesi (2026-08-08, kurucu):** operatör yüzeyinin ürün adı **Lumos Agent Wall** (eski ad: Command Wall — Lumos repo `docs/ops/00-command-wall.md` ad kararı; ADR-018 disiplini: yalnız görünen ad değişti, teknik tanımlayıcılar ve dosya adları değişmedi) |
-| Uygulama durumu | **Uygulanmadı** — bu turda kod, provider entegrasyonu, router veya UI değişikliği yok |
+| Uygulama durumu | **Uygulanmadı** — bu turda kod, provider entegrasyonu, router veya UI değişikliği yok. **Alt kavram (2026-08-24):** Agent Wall → Decision Queue / Human Action Queue — fikir kaydı; kod/UI yok |
 | OD | OD-062 |
 | Üst sınır | `docs/lumos-karar-sozlesmesi.md`, [`CONSTITUTION.md`](../CONSTITUTION.md), [`ROADMAP.md`](../ROADMAP.md) STOP LIST |
 | İlgili | ADR-004 (Router), ADR-006 (Firewall), ADR-007 (Trust), ADR-008 (Agent Network / Board), ADR-018 (iç katman adları), [`product-rules.md`](../product-rules.md) PR-001/002/005/010/011 |
@@ -59,6 +59,8 @@ Operatör akışı
 Lumos Agent Wall (eski ad: Command Wall), bu ADR kapsamında **internal operator/admin surface** olarak tanımlanır. Ayrı bir ticari ürün, ayrı bir marka veya ayrı bir kullanıcı segmenti **değildir**. Bu tanım bilinçlidir: yeni bir son kullanıcı ürünü ilan etmek, ROADMAP STOP LIST'indeki "yeni agent / orchestration katmanı" yasağını delerdi.
 
 Lumos Agent Wall'un görme yetkisi (hedef kapsam, uygulanmadı): görev → sağlayıcı/model → instance/session → durum → süre → hata/fallback zinciri; branch/PR durumu; heartbeat; onay kapıları; ileride maliyet ve performans.
+
+**Decision Queue / Human Action Queue (2026-08-24, kurucu):** Agent Wall içinde Decision Queue ihtiyacı olarak kaydedilsin. Amaç, paralel ajan çalışmalarında insan onayı bekleyen karar noktalarını görünür hale getirmektir. Uygulama ve UI çalışması mevcut kritik akışlar tamamlandıktan sonra değerlendirilir. Bu ayrı ürün veya ayrı ROADMAP maddesi değildir (`Lumos Workboard` / `Control Wall` ürünleştirilmez). Kod, UI ve yeni ADR yok; OD-063.
 
 ### 3. Kullanıcı yüzüne sızmayacaklar — normatif
 
@@ -122,6 +124,7 @@ Kimi/Moonshot, **FAZ-1 sonrası provider evaluation backlog**'una eklenir. Mevcu
 - `ModelRegistry` arayüz sözleşmesi ve yetenek modeli
 - Router'ın model seçim sinyalleri (maliyet / gecikme / risk)
 - Lumos Agent Wall operatör yüzeyinin teknik paketi ve yetkilendirme sınırı
+- **Decision Queue / Human Action Queue** (2026-08-24): paralel oturumlarda “hangi süreç, hangi karar noktasında, kimin aksiyonunu bekliyor?” — iç operatör görünürlüğü; kod/UI ertelenir; OD-063
 - **Kullanıcı yüzü sızıntısı guard testi** (ADR-018'in `tests/test_legacy_layer_names_retired.py` deseniyle benzer). Kapsam tanımı — 2026-08-08 kararı: yalnız model adı değil, tüm internal-only alanlar doğrulanır: `provider`, `agent_id`, `instance_id`, `session_id`, `workspace_path` / worktree, heartbeat, PR/merge gate, iç ajan koordinasyonu. Doğrulama yüzeyi yalnız UI metni değil, **public Lumos API yanıtları dahil** tüm kullanıcıya açık yüzeylerdir. Kod bu turda yazılmaz; bu madde testin kabul kriteridir.
 - FAZ-1 sonrası provider evaluation paketi
 

@@ -179,6 +179,10 @@ kullanır, ayrı bir motor kurmaz.
 - **Karar durumu:** sınır tanımı kabul edildi (2026-08-08, ADR-019).
 - **Uygulama durumu:** yeni operatör arayüzü veya orchestration kodu
   **yazılmadı**. Bugünkü kapsam `src/lumos_board/` CLI ile sınırlıdır.
+- **Decision Queue / Human Action Queue (2026-08-24):** mevcut Agent Wall
+  başlığının alt kavramı — paralel ajan işlerinde insan onayı bekleyen
+  karar noktalarını görünür kılmak. Ayrı ROADMAP maddesi veya
+  `Lumos Workboard` ürünü **değil**. Kod/UI yok; OD-063 / ADR-019.
 - STOP LIST'teki "yeni agent / orchestration katmanı" yasağı **sürer**; bu tanım
   onu delmez, yalnız gelecekteki işin adını ve sınırını sabitler.
 
