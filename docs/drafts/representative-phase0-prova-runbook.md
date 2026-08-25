@@ -611,3 +611,22 @@ Düzeltme (bu dilim, canlı Meet ölçümü yok):
 
 Canlı doğrulama yalnız Mac (`RECALL_API_KEY` Cloud'da yok). jsonl özetinde
 `first_audio_budget_pass` false ise **FAIL — PASS deme**.
+
+## Zamanlama alanları tek ondalık (2026-08-24, kalem 4)
+
+Kurucu kararının ertelenmiş maddelerinden biri (PR #797 kapsamı dışındaydı):
+`latency_ms`, `stt_ms`, `translate_ms`, `tts_to_first_audio_ms`,
+`e2e_first_audio_ms`, `postcheck_ms`, `recorded_at` kayda geçerken tek ondalığa
+yuvarlanır (`pipeline.TIMING_DECIMALS`). Alan listesi elle tutulmaz, kayıttan
+türetilir (`TIMING_FIELDS`) — ileride eklenen bir `*_ms` alanı sessizce tam
+hassasiyette yazılamaz.
+
+Yuvarlama **kayıt üretilirken** yapılır, hesap sırasında değil: aşama süreleri
+tam hassasiyette hesaplanır, ara adımda hata birikmez. Gerçek prova
+dosyalarında ölçülen tasarruf — 08-23 koşusu %13.0, 08-24 Meet koşusu %11.9,
+`prova_bot.jsonl` %11.7.
+
+Çözümleyici tarafı: `percentile_ms` doğrusal ara değer olduğu için her değer
+≤0.05 ms kayınca p50/p90/max/aşama kırılımı da ≤0.05 ms kayar. Dürüst sınır —
+"karar asla değişmez" DOĞRU DEĞİL: GEÇTİ/KALDI yalnız hedefin 0.05 ms
+yakınında (4 sn bütçenin milyonda biri) değişebilir; bu da testle belgelendi.

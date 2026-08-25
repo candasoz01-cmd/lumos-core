@@ -13,7 +13,7 @@ import re
 import statistics
 import time
 from collections.abc import Callable
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, fields
 from typing import Protocol
 
 from representative.latency import (
@@ -130,6 +130,32 @@ class UtteranceRecord:
     detected_language: str = ""
     # Çeviri güveni olan `confidence` ile KARIŞTIRILMAMALI.
     language_detection_confidence: float | None = None
+
+    def __post_init__(self) -> None:
+        # Yuvarlama KAYIT ÜRETİLİRKEN yapılır (bkz. TIMING_DECIMALS): aşama
+        # süreleri tam hassasiyetle hesaplanır, yalnız kayda geçerken kısalır.
+        # Hesap sırasında yuvarlansaydı stt+translate+tts toplamı e2e'den
+        # sapardı; burada her alan kendi tam değerinden bir kez yuvarlanır.
+        for name in TIMING_FIELDS:
+            value = getattr(self, name)
+            if value is not None:
+                object.__setattr__(self, name, round(float(value), TIMING_DECIMALS))
+
+
+# Kurucu kararı (2026-08-24, kalem 4): kayıttaki zamanlama değerleri TEK
+# ONDALIĞA yuvarlanır. Gerçek prova dosyasında süre alanları satırın %44'ünü
+# tutuyor ve `"latency_ms": 9983.732249998866` gibi yazılıyordu — milisaniye
+# altı basamaklar ölçülen bir şey DEĞİL, monotonic saatin artığıdır. Ölçülen
+# tasarruf %12, bilgi kaybı yok.
+TIMING_DECIMALS = 1
+
+# Liste elle tutulmaz: alanın kendisinden TÜRETİLİR. Elle tutulan bir liste,
+# ileride eklenen bir `*_ms` alanının sessizce tam hassasiyette yazılmasına
+# yol açardı ve bunu kimse fark etmezdi (tests/test_representative_pipeline.py
+# içindeki türetme testi iki yönde de kilitler).
+TIMING_FIELDS = tuple(f.name for f in fields(UtteranceRecord) if f.name.endswith("_ms")) + (
+    "recorded_at",
+)
 
 
 # Kurucu kararı (2026-08-17, seçenek C): eşik altı çeviri SESLENDİRİLİR ama
