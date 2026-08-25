@@ -678,9 +678,12 @@ Konsol tarafı kaynak-düzeyi testiyle kilitli: rig'lerdeki her çıktı çağr�
 taşıyan bir ifade `show()` içinden geçmiyorsa test kırılır, yazım biçimi ne
 olursa olsun (f-string, çıplak argüman, `%`, `.format()`). Denetleyicinin
 kendi testi de var: listelenen her biçim bulgu üretmek zorunda, `show()`'dan
-geçenler ve metin olmayan alanlar üretmemek zorunda. Bilinen sınır: bir
-dönüşüm çağrısından doğan yerel adlar (ör. `heard_text`) türetilemez, açıkça
-sayılır.
+geçenler ve metin olmayan alanlar üretmemek zorunda. Metin taşıyan yerel adlar
+da kaynaktan türetilir: karar, çağrılan fonksiyonun **dönüş anotasyonuna**
+bakılarak verilir (`corrector.correct(...) -> str` metin taşır,
+`router.route(...) -> RoutingDecision` taşımaz). Anotasyonu bilinmeyen çağrı
+metin sayılır (fail-closed). Elle tutulan ad listesi yok — bir listenin
+`bot_rig`'deki `heard` adını atlaması PR #806'da High bulguya yol açmıştı.
 
 **Kapsam dışı (ayrı iş):** kapalı provanın 24 saatlik metin penceresinin
 işletilmesi — süresi dolanı silme ve bunu koşturan zamanlayıcı. `rehearsal`

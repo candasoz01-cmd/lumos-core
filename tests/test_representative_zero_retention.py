@@ -242,12 +242,58 @@ TEXT_ATTRS = frozenset({"text", "translated_text", "source_text"})
 # toplantıdan gelen bir söz değildir (bot_rig ön uçuş satırı).
 NON_MEETING_OBJECTS = frozenset({"warm"})
 
-# Dönüşüm çağrısından doğduğu için türetilemeyen, metin taşıyan yerel adlar
-# (bkz. _alias_names bilinen sınırı). Yeni bir tane eklenirse buraya yazılır.
-TEXT_LOCALS = frozenset({"heard_text"})
-
 OUTPUT_FUNCS = frozenset({"print"})
 OUTPUT_METHODS = frozenset({"write", "info", "warning", "error", "debug", "exception"})
+
+
+# Dönüş türü bilinen, metin ÜRETMEYEN çağrılar dışında her çağrı metin taşıyor
+# sayılır (fail-closed). Bilgi kaynağı elle liste değil, paketin KENDİ dönüş
+# anotasyonlarıdır: `TermCorrector.correct(...) -> str` metin döndürür,
+# `DirectionRouter.route(...) -> RoutingDecision` döndürmez.
+_BUILTIN_RETURNS = {
+    "len": "int", "int": "int", "float": "float", "bool": "bool",
+    "min": "?", "max": "?", "str": "str", "repr": "str", "format": "str",
+}
+
+
+def _return_annotations() -> dict[str, str]:
+    """representative paketindeki her fonksiyonun dönüş anotasyonu (basit adla).
+
+    PR #806 Bugbot bulgusu (High): elle tutulan `TEXT_LOCALS` listesi
+    `bot_rig`'in `heard = corrector.correct(utt.text)` adını atlamıştı ve
+    `print(heard)` denetimden kaçıyordu. Liste artık YOK — kural kaynaktan
+    türetilir, böylece yeni bir dönüşüm eklendiğinde kimsenin listeyi
+    güncellemesi gerekmez.
+    """
+    import representative
+
+    package = pathlib.Path(representative.__file__).parent
+    annotations = dict(_BUILTIN_RETURNS)
+    for module in sorted(package.glob("*.py")):
+        tree = ast.parse(module.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            annotations[node.name] = (
+                ast.unparse(node.returns) if node.returns is not None else "?"
+            )
+    return annotations
+
+
+def _call_yields_text(node: ast.Call, returns: dict[str, str]) -> bool:
+    """Bu çağrının DÖNÜŞÜ metin olabilir mi? Bilinmiyorsa EVET (fail-closed)."""
+    func = node.func
+    name = func.id if isinstance(func, ast.Name) else getattr(func, "attr", None)
+    if name is None:
+        return True
+    if name == "show":  # redaksiyon sınırı: çıktısı zaten politikadan geçmiş
+        return False
+    annotation = returns.get(name)
+    if annotation is None or annotation == "?":
+        # Tanınmayan ya da anotasyonsuz çağrı: metin döndürmediği KANITLANMADIĞI
+        # için metin sayılır. Yanlış pozitif, kaçırmaktan iyidir.
+        return True
+    return annotation in ("str", "str | None")
 
 
 def _is_show_call(node: ast.AST) -> bool:
@@ -288,42 +334,44 @@ def _unredacted(node: ast.AST, alias_names: set[str]) -> list[str]:
     return found
 
 
-def _yields_text(node: ast.AST, names: set[str]) -> bool:
-    """Bu ifadenin DEĞERİ metnin kendisi mi? (atama zinciri takibi için)
+def _yields_text(node: ast.AST, names: set[str], returns: dict[str, str]) -> bool:
+    """Bu ifadenin DEĞERİ metin olabilir mi? (atama zinciri takibi için)
 
-    Keyfi bir çağrının dönüşü bilinemez: `decision = router.route(turn.text)`
-    metin ALMASINA rağmen metin DÖNDÜRMEZ. Bu yüzden çağrılar zinciri keser —
-    aksi hâlde `record`, `decision`, `marker` gibi adlar metin sayılıp
-    yanlış pozitif üretirdi.
+    Çağrılar kaynaktaki dönüş anotasyonuna göre ayrılır: `corrector.correct(...)`
+    (-> str) metin taşır, `router.route(...)` (-> RoutingDecision) taşımaz.
+    Böylece `record`, `decision`, `marker` yanlış pozitif olmaz ama `heard`
+    yakalanır.
     """
     if isinstance(node, ast.Call):
-        return False
+        if not _call_yields_text(node, returns):
+            return False
+        return any(
+            _yields_text(child, names, returns) for child in ast.iter_child_nodes(node)
+        )
     if _is_text_expr(node, names):
         return True
     if isinstance(node, (ast.Subscript, ast.BinOp, ast.JoinedStr, ast.IfExp, ast.FormattedValue)):
-        return any(_yields_text(child, names) for child in ast.iter_child_nodes(node))
+        return any(_yields_text(child, names, returns) for child in ast.iter_child_nodes(node))
     return False
 
 
-def _alias_names(tree: ast.AST) -> set[str]:
+def _alias_names(tree: ast.AST, returns: dict[str, str]) -> set[str]:
     """Metin taşıyan yerel adlar kaynaktan türetilir; zincir sabit noktaya kadar.
 
     `first = turn.text` → `second = first` → `print(second)` yakalanır.
 
-    BİLİNEN SINIR: bir dönüşüm ÇAĞRISINDAN doğan adlar türetilemez
-    (`heard_text = corrector.correct(heard.text)` metin döndürür ama
-    `router.route(turn.text)` döndürmez; ikisi de aynı şekle sahip). Bu yüzden
-    o adlar TEXT_LOCALS'ta açıkça sayılır — sayının kendisi kısa tutulur ve
-    gerekçesi budur.
+    Dönüşüm çağrılarından doğan adlar da (`heard = corrector.correct(utt.text)`,
+    `heard_text = corrector.correct(heard.text)`) buradan gelir: karar,
+    çağrılan fonksiyonun kaynaktaki dönüş anotasyonuna bakılarak verilir.
     """
-    names: set[str] = set(TEXT_LOCALS)
+    names: set[str] = set()
     changed = True
     while changed:
         changed = False
         for node in ast.walk(tree):
             if not isinstance(node, ast.Assign):
                 continue
-            if not _yields_text(node.value, names):
+            if not _yields_text(node.value, names, returns):
                 continue
             for target in node.targets:
                 if isinstance(target, ast.Name) and target.id not in names:
@@ -335,7 +383,8 @@ def _alias_names(tree: ast.AST) -> set[str]:
 def unredacted_text_output(source: str) -> list[str]:
     """Çıktı çağrılarında redakte edilmemiş toplantı metni ifadeleri."""
     tree = ast.parse(source)
-    aliases = _alias_names(tree)
+    returns = _return_annotations()
+    aliases = _alias_names(tree, returns)
     offenders: list[str] = []
     for node in ast.walk(tree):
         if not _is_output_call(node):
@@ -375,6 +424,12 @@ def test_no_rig_prints_meeting_text_without_the_text_layer():
         'print(f"TR> {heard.text[:40]}")',
         "heard_text = corrector.correct(heard.text)\nprint(heard_text)",
         "first = turn.text\nsecond = first\nprint(second)",
+        # PR #806 Bugbot bulgusu (High): bot_rig düzeltilmiş sözü `heard` adında
+        # tutuyor; elle tutulan liste bu adı atlamıştı.
+        "heard = corrector.correct(utt.text)\nprint(heard)",
+        "heard = corrector.correct(utt.text)\nlogging.info(heard)",
+        # Tanınmayan çağrı: metin döndürmediği kanıtlanmadıkça metin sayılır.
+        "value = mystery_helper(turn.text)\nprint(value)",
     ],
 )
 def test_the_console_lock_catches_every_output_shape(snippet):
@@ -396,6 +451,10 @@ def test_the_console_lock_catches_every_output_shape(snippet):
         'print(f"  (yarım söz seslendirilmedi: {turn.reason})")',
         'print(f"çevirmen: GEÇTİ (örnek çıktı: {warm.text[:40]!r})")',
         "print(f'{record.latency_ms:.0f} ms')",
+        # Dönüşü metin OLMAYAN çağrılar zinciri keser (yanlış pozitif olmaz).
+        "decision = router.route(turn.text)\nprint(decision.reason)",
+        "count = len(turn.text)\nprint(count)",
+        "redacted = show(turn.text)\nprint(redacted)",
     ],
 )
 def test_the_console_lock_does_not_cry_wolf(snippet):
@@ -405,6 +464,51 @@ def test_the_console_lock_does_not_cry_wolf(snippet):
     toplantıdan gelmeyen ısıtma çıktısı (`warm.text`) bulgu ÜRETMEZ.
     """
     assert not unredacted_text_output(snippet), f"yanlış pozitif: {snippet}"
+
+
+def test_text_carrying_names_are_derived_from_return_annotations():
+    """Elle tutulan ad listesi YOK (PR #806 High bulgusunun kök nedeni buydu).
+
+    Kural kaynağın kendi dönüş anotasyonlarından türetilir; iki yönde de
+    kilitlenir: metin döndüren dönüşüm taşır, döndürmeyen taşımaz. Yeni bir
+    dönüşüm eklendiğinde kimsenin bir listeyi güncellemesi gerekmez.
+    """
+    returns = _return_annotations()
+
+    assert returns["correct"] == "str", "TermCorrector.correct metin döndürür"
+    assert returns["route"] != "str", "DirectionRouter.route karar döndürür"
+    assert returns["transcribe"] != "str", "STT sonucu nesne döndürür"
+
+    module = ast.parse(pathlib.Path(__file__).read_text(encoding="utf-8"))
+    assigned = {
+        target.id
+        for node in module.body
+        if isinstance(node, ast.Assign)
+        for target in node.targets
+        if isinstance(target, ast.Name)
+    }
+    assert "TEXT_LOCALS" not in assigned, "elle tutulan ad listesi geri gelmemeli"
+
+
+def test_console_lock_catches_a_bare_print_injected_into_the_real_rig():
+    """Mutasyon kanıtı: gerçek `bot_rig.py` kaynağına çıplak basım enjekte edilir.
+
+    Sentetik parçacıklar denetleyicinin kendi varsayımlarını test eder; bu test
+    onu GERÇEK kaynağın üzerinde sınar — bulgunun tarif ettiği tam senaryo
+    (`heard = corrector.correct(utt.text)` sonrası çıplak basım).
+    """
+    import representative
+
+    rig = pathlib.Path(representative.__file__).parent / "bot_rig.py"
+    source = rig.read_text(encoding="utf-8")
+    anchor = "heard = corrector.correct(utt.text)"
+    assert anchor in source, "çapa satırı değişmiş — test kendini doğrulayamıyor"
+    assert not unredacted_text_output(source), "değiştirilmemiş kaynak temiz olmalı"
+
+    for injection in ("print(heard)", "logging.info(heard)", 'print("duyulan:", heard)'):
+        mutated = source.replace(anchor, f"{anchor}\n            {injection}", 1)
+        assert unredacted_text_output(mutated) == ["heard"], f"kaçırıldı: {injection}"
+
 
 
 # --- Politika tek kaynaktan gelir -------------------------------------------
