@@ -88,15 +88,21 @@ değişmeden korunur; `version` v2 kayıtlarında `2`'dir. Eklenen alanlar:
 2. **Sessiz yeniden yorumlama yok:** v1 kaydından `blocked` /
    `awaiting_decision` **çıkarımı yapılmaz**. v1 `running` kaydı v1 `running`
    olarak kalır; "bekliyor olabilir" tahmini üretilmez.
-3. **Versiyonsuz eski dosyalar** bugünkü gibi v1'e normalize edilir; bu kural
-   değişmez.
+3. **Sürüm kuralı (normatif):**
+   - **Versiyonsuz** eski dosyalar bugünkü gibi v1'e normalize edilir; bu
+     kural değişmez.
+   - Açık `version: 1` kayıtları v1 kurallarıyla doğrulanır.
+   - Açık `version: 2` kayıtları v2 kurallarıyla doğrulanır.
+   - **Bunlar dışındaki her açık şema sürümü fail closed reddedilir** ve asla
+     sessizce eski format sayılıp normalize edilmez.
 4. **Rollout tehlikesi (doğrulanmış):** mevcut v1 okuyucu `version != 1` olan
    her kaydı eski format sayıp normalize eder — bir v2 kaydını `agent_id =
    kando.agent_runner`, `status = unknown` biçiminde **bozarak** okur. Bu
-   nedenle sıralama zorunludur: **önce okuyucu v2'ye yükseltilir, sonra
-   herhangi bir v2 yazıcısı devreye girer.** KA-003 single-reader gateway tek
-   yükseltme noktası olduğundan bu sıralamayı uygulanabilir kılar; kod PR'ının
-   kabul kriteridir.
+   nedenle sıralama zorunludur: **Agent Status okuma/ayrıştırma yolu v1+v2
+   yetenekli olmadan hiçbir v2 yazıcısı var olamaz.** Bugünkü uygulama hedefi
+   `src/core/agent_status_contract.py`'dir; KA-003 gateway'inin bu okuma
+   yoluna katılımı, ileriki bir uygulama bu entegrasyonu kanıtlayıp
+   belgelemedikçe **varsayılmaz**. Kod PR'ının kabul kriteridir.
 
 ## Güvenilir-yazıcı sınırı (öneri — karar değil, ayrı onay kapısı)
 
@@ -138,6 +144,8 @@ olmak veya ona referans vermek, tek başına yazıcı yetkisi **değildir**.
 2. Doküman ↔ kod durum/`wait_reason` tabloları iki yönlü türetme testiyle bağlı.
 3. Eşleme kuralları ihlalleri (örn. `blocked` + `human_decision`,
    `running` + `wait_reason`, `awaiting_decision` ile eksik/boş `decision_ref`,
-   `completed` + `decision_ref`) testte **bozarak** kanıtlanır.
+   `completed` + `decision_ref`) testte **bozarak** kanıtlanır; bilinmeyen açık
+   sürüm (örn. `version: 3`) için legacy'ye düşmeyen fail-closed ret de
+   negatif testle kanıtlanır.
 4. Okuyucu-önce rollout sırası (bkz. § v1 geriye uyumluluk madde 4) test veya
    koruma ile güvence altındadır.
