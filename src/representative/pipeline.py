@@ -119,7 +119,21 @@ class UtteranceRecord:
     # okunmaya devam eder.
     stt_ms: float = 0.0
     translate_ms: float = 0.0
+    # AD YANILTICI, BİLEREK KORUNUYOR. Gerçek sınır:
+    #     translation_ready -> teslim POST'u döndü
+    # Meet'te sesin DUYULDUĞU an DEĞİL. Yeniden adlandırmak sessiz sıfır
+    # üretir — `latency.py` alan adını sabit yazar ve `r.get(field, 0.0)`
+    # eksik alanı hata değil 0 sayar; 52 tarihsel kayıt bu ada bağlı.
+    # AÇIK BOŞLUK: sesin toplantıda gerçekten duyulduğu an hâlâ HİÇBİR
+    # yerde ölçülmüyor; Recall POST döndükten sonraki kodlama/aktarım
+    # süresi bu sayının dışındadır ve buradan çıkarsanamaz.
     tts_to_first_audio_ms: float = 0.0
+    # `tts_to_first_audio_ms`in üç parçası (2026-08-25 ölçüm işi). Toplamları
+    # ona eşittir; hangi parçanın baskın olduğu ancak böyle okunur. Varsayılan
+    # 0.0 — `record_unspoken()` bu alanların HİÇBİRİNİ yazmaz ve yazmamalı.
+    tts_synth_ms: float = 0.0  # tts-start -> _synthesize döndü
+    tts_gate_wait_ms: float = 0.0  # _synthesize döndü -> kapı alındı
+    tts_deliver_ms: float = 0.0  # kapı alındı -> _deliver döndü
     e2e_first_audio_ms: float = 0.0
     # Yön teşhisi (2026-08-24): `direction` KULLANILAN yön, `detected_language`
     # tespitin GERÇEKTEN döndürdüğü dil. İkisi ayrı tutulur çünkü "tespit
@@ -223,6 +237,9 @@ def summarize_latencies_ms(transcript: BilingualTranscript) -> dict[str, float |
             "stt_p50_ms": 0.0,
             "translate_p50_ms": 0.0,
             "tts_to_first_audio_p50_ms": 0.0,
+            "tts_synth_p50_ms": 0.0,
+            "tts_gate_wait_p50_ms": 0.0,
+            "tts_deliver_p50_ms": 0.0,
             "largest_wait": "",
             "first_audio_budget_pass": False,
             "first_audio_budget_reason": str(empty_budget["reason"]),
@@ -231,6 +248,12 @@ def summarize_latencies_ms(transcript: BilingualTranscript) -> dict[str, float |
     stt = [r.stt_ms for r in measured]
     translate = [r.translate_ms for r in measured]
     tts0 = [r.tts_to_first_audio_ms for r in measured]
+    # Alt-aşamalar da AYNI `measured` örnekleminden. `records` kullanılsaydı
+    # seslendirilmeyen satırların 0'ları üçünü birden aşağı çeker, oran
+    # bozulmadığı için kırılım "doğru görünürken" mutlak sayılar yalan olurdu.
+    tts_synth = [r.tts_synth_ms for r in measured]
+    tts_gate = [r.tts_gate_wait_ms for r in measured]
+    tts_deliver = [r.tts_deliver_ms for r in measured]
     p50 = percentile_ms(e2e, 50)
     p90 = percentile_ms(e2e, 90)
     stt_p50 = percentile_ms(stt, 50)
@@ -248,6 +271,9 @@ def summarize_latencies_ms(transcript: BilingualTranscript) -> dict[str, float |
         "stt_p50_ms": stt_p50,
         "translate_p50_ms": translate_p50,
         "tts_to_first_audio_p50_ms": tts_p50,
+        "tts_synth_p50_ms": percentile_ms(tts_synth, 50),
+        "tts_gate_wait_p50_ms": percentile_ms(tts_gate, 50),
+        "tts_deliver_p50_ms": percentile_ms(tts_deliver, 50),
         "largest_wait": largest_wait_stage(stt_p50, translate_p50, tts_p50),
         "first_audio_budget_pass": bool(budget["pass"]),
         "first_audio_budget_reason": str(budget["reason"]),
@@ -416,6 +442,10 @@ class InterpreterPipeline:
         translation_ready = self._clock()
         tts_start = translation_ready
         first_audio = translation_ready
+        # Seslendirme hiç olmazsa üçü de 0.0 kalır (fail-closed dallar).
+        tts_synth_ms = 0.0
+        tts_gate_wait_ms = 0.0
+        tts_deliver_ms = 0.0
         if not result.text.strip():
             # Test 7 bug'ı: model boş çeviri döndürebilir — boş metin
             # seslendirilmez, işaretli düşer (fail-closed).
@@ -442,6 +472,11 @@ class InterpreterPipeline:
             if isinstance(playback, TtsPlayback):
                 tts_start = playback.tts_start_ts
                 first_audio = playback.first_audio_ts
+                # Damgasız oynatıcı (stub/eski TTS) 0.0 döndürür; toplam
+                # `tts_to_first_audio_ms` her hâlükârda eskisi gibi hesaplanır.
+                tts_synth_ms = playback.synth_ms
+                tts_gate_wait_ms = playback.gate_wait_ms
+                tts_deliver_ms = playback.deliver_ms
             flagged, reason = decision.flagged, decision.reason
         else:
             # Fail-closed: ikinci çıktı da yanlış dilde — TTS'e verilmez.
@@ -476,6 +511,9 @@ class InterpreterPipeline:
             stt_ms=stt_ms,
             translate_ms=translate_ms,
             tts_to_first_audio_ms=tts_to_first_ms,
+            tts_synth_ms=tts_synth_ms,
+            tts_gate_wait_ms=tts_gate_wait_ms,
+            tts_deliver_ms=tts_deliver_ms,
             e2e_first_audio_ms=e2e_ms if lang_ok else 0.0,
             direction=f"{utterance.source_lang}->{utterance.target_lang}",
             direction_reason=utterance.direction_reason,
