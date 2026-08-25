@@ -101,17 +101,28 @@ değişmeden korunur; `version` v2 kayıtlarında `2`'dir. Eklenen alanlar:
 ## Güvenilir-yazıcı sınırı (öneri — karar değil, ayrı onay kapısı)
 
 Bu sözleşme yazıcı davranışı tanımlamaz; kurucu talimatı gereği yazıcı
-uygulanmadan önce sınır önerisi kayda geçirilir:
+uygulanmadan önce sınır önerisi kayda geçirilir.
 
-- **Kendi kendine kayıt yok:** hiçbir ajan/oturum kendini yazıcı olarak
-  kaydedemez. Yazıcı kimlikleri insan onaylı, elle tutulan bir listede durur;
-  liste kod hakkında kural kodladığından iki yönlü türetme testiyle korunur.
-- **Tek yazma yolu:** yazma yalnız KA-002 claim kimliği üzerinden ve KA-003
-  gateway yolundan geçer; şemaya uymayan yazım reddedilir.
+**Mevcut durum tespiti (2026-08-25):** KA-003 gateway'i birden çok kaynaktan
+gönderim kabul eder, ancak bir `source` değerinin yetkili Agent Status
+yazıcısı olduğunu **kendisi kurmaz**. Aynı şekilde bir KA-002 claim'ine sahip
+olmak veya ona referans vermek, tek başına yazıcı yetkisi **değildir**.
+
+- **Görev sahipliği bağlamı:** gelecekteki yazıcı, KA-002 ile uyumlu
+  **aktif/geçerli bir görev sahipliği bağlamını** kanıtlamak zorundadır.
+- **Yetki ayrı ve açık karardır:** yazıcı yetkilendirmesi ayrı bir
+  allowlist/credential/politika kararıdır; `claim_id`, `owner` veya `source`
+  alanlarından hiçbiri tek başına yetki **ima etmez**. İnsan onaylı yazıcı
+  listesi kod hakkında kural kodladığından iki yönlü türetme testiyle korunur.
+- **KA-003'ün rolü:** gateway, kalıcılık/yönlendirme boğaz noktası olarak
+  ancak bu yetki kontrolü var olduktan **sonra** yeniden kullanılabilir;
+  bugünkü haliyle bir yetki kapısı değildir.
+- **Fail closed:** yetkisiz veya kendi kendini kaydetmiş yazıcılar sessizce
+  düşürülmez veya kısmen kabul edilmez — yazım **kapalı biçimde reddedilir**.
 - **Ekle-revize et:** ADR-008 kuralı aynen — sessiz üzerine yazma yok; durum
   değişikliği yeni revizyon + gerekçe ister.
-- Mekanizma ayrıntısı (anahtar dağıtımı, kimlik doğrulama biçimi) bu belgenin
-  kapsamı dışıdır ve yazıcı PR'ından önce ayrıca onaylanır.
+- Kesin credential/token mekanizması bu PR'ın kapsamı **dışındadır** ve ayrı
+  bir insan onayı gerektirir.
 
 ## Kapsam dışı (bilinçli, bu tur)
 
