@@ -120,12 +120,33 @@ class LatencyReport:
 
     @property
     def passed(self) -> bool:
-        return self.count > 0 and self.p50_ok and self.p90_ok
+        # `count` değil `delivered`: gecikmeler yalnız teslim edilen kayıtlardan
+        # hesaplanıyor. Yalnızca seslendirilmeyen satırlardan oluşan bir dosyada
+        # örneklem boş kalır, p50/p90 0.0 döner ve `count > 0` sahte PASS
+        # üretirdi. Eski dosyalarda `delivered` anahtarı yok → hepsi teslim
+        # sayılır → davranış aynı.
+        return self.delivered > 0 and self.p50_ok and self.p90_ok
 
 
 def _e2e_ms(record: dict) -> float:
     """first-audio ölçümü varsa o; yoksa eski kayıtların toplam gecikmesi."""
     return float(record.get("e2e_first_audio_ms") or record.get("latency_ms", 0.0))
+
+
+def delivered_records(records: list[dict]) -> list[dict]:
+    """Yalnız seslendirilmiş kayıtlar — teslim başarımı metriklerinin örneklemi.
+
+    `delivered=false` satırları (yarım söz tutma, tekrar bastırma, yön
+    belirlenemeyen söz) çeviri/TTS hattına hiç girmediği için gecikmeleri
+    0 ms'dir. Havuza karıştıklarında p50/p90'ı AŞAĞI çeker, yani suite
+    gerçekte olduğundan iyi görünür ve kimse iyileşmeyi soruşturmaz. Üstelik
+    fail-closed davranışı çalıştıkça sayıları artar: özellik iyi çalıştıkça
+    ölçüm daha çok yalan söyler.
+
+    Anahtar YOKSA teslim edilmiş sayılır — `delivered` alanından önceki prova
+    dosyaları aynı şekilde okunmaya devam eder.
+    """
+    return [r for r in records if r.get("delivered", True)]
 
 
 def load_records(path: str) -> list[dict]:
@@ -148,16 +169,21 @@ def analyze(
     p50_target_ms: float = FIRST_AUDIO_P50_TARGET_MS,
     p90_target_ms: float = FIRST_AUDIO_P90_TARGET_MS,
 ) -> LatencyReport:
-    latencies = [_e2e_ms(r) for r in records]
+    # Kurucu kararı (2026-08-24, seçenek A): işletimsel görünürlük ile teslim
+    # başarımı AYRI. Seslendirilmeyen kayıtlar `count` ve `by_flag_reason`da
+    # tam görünür kalır (kaynak dosya tek doğruluk kaynağıdır, hiçbir olay
+    # gizlenmez) ama gecikme hesaplarının HİÇBİRİNE girmez.
+    measured = delivered_records(records)
+    latencies = [_e2e_ms(r) for r in measured]
     by_direction: dict[str, dict[str, float]] = {}
-    for record in records:
+    for record in measured:
         key = f"{record.get('source_lang', '?')}->{record.get('target_lang', '?')}"
         by_direction.setdefault(key, {"count": 0, "p50_ms": 0.0, "p90_ms": 0.0})
         by_direction[key]["count"] += 1
     for key in by_direction:
         values = [
             _e2e_ms(r)
-            for r in records
+            for r in measured
             if f"{r.get('source_lang', '?')}->{r.get('target_lang', '?')}" == key
         ]
         by_direction[key]["p50_ms"] = percentile_ms(values, 50)
@@ -165,7 +191,7 @@ def analyze(
 
     # Aşama kırılımı yalnız yeni kayıtlarda var; eski dosyalarda 0 görünür.
     stage_p50 = {
-        stage: percentile_ms([float(r.get(field, 0.0)) for r in records], 50)
+        stage: percentile_ms([float(r.get(field, 0.0)) for r in measured], 50)
         for stage, field in (
             (STAGE_STT, "stt_ms"),
             (STAGE_TRANSLATE, "translate_ms"),
@@ -173,7 +199,7 @@ def analyze(
         )
     }
     slowest = sorted(
-        ((_e2e_ms(r), str(r.get("source_text", ""))[:60]) for r in records),
+        ((_e2e_ms(r), str(r.get("source_text", ""))[:60]) for r in measured),
         reverse=True,
     )[:5]
     return LatencyReport(
@@ -206,6 +232,8 @@ def format_report(report: LatencyReport) -> str:
     lines = [
         f"Kayıt: {report.count} söz ({report.delivered} teslim edildi)",
         "Ölçülen: söz sonu → Meet'te ilk ses (first-audio)",
+        f"Gecikme örneklemi: {report.delivered} teslim edilen kayıt "
+        f"({report.count - report.delivered} seslendirilmeyen kayıt hesaba katılmadı)",
         "",
         f"p50 {report.p50_ms / 1000:.2f} sn  (hedef ≤ {report.p50_target_ms / 1000:.2f}) "
         f"→ {verdict(report.p50_ok)}",

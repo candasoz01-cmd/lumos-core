@@ -47,6 +47,9 @@ class RealtimeSTTStream:
         language: str | None,
         prompt: str | None = None,
         model: str = "gpt-4o-mini-transcribe",
+        # Primitive default stays 600 ms for local experiments. Meet consecutive
+        # mode passes MEET_VAD_SILENCE_MS (1100) from bot_rig — 600 ms was
+        # answering mid-sentence in overlapping meeting speech.
         vad_silence_ms: int = 600,
     ) -> None:
         self._language = language
