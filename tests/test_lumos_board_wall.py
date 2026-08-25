@@ -134,6 +134,49 @@ def test_failed_status_and_owner_conflict_surface_on_wall(tmp_path: Path) -> Non
     assert "Sahiplik çakışması" in decisions
 
 
+def test_waiting_on_and_conflict_mask_secretlike_text(tmp_path: Path) -> None:
+    store = TaskClaimStore(tmp_path, clock=Clock())
+    first = _claim(
+        store,
+        task="KA-001",
+        owner="cursor",
+        scope="src/lumos_board",
+    )
+    assert first.accepted
+    queued = _claim(
+        store,
+        task="KA-001",
+        owner="api_key=sk-wallsecret",
+        scope="src/lumos_board/wall.py",
+        queue_on_conflict=True,
+    )
+    assert queued.claim is not None
+    secret_dir = tmp_path / "secret"
+    other_dir = tmp_path / "other"
+    _write_status(
+        secret_dir,
+        "shared",
+        agent_id="kando.a",
+        owner="api_key=sk-wallsecret",
+        status="running",
+    )
+    _write_status(
+        other_dir,
+        "shared",
+        agent_id="kando.b",
+        owner="codex.cli",
+        status="running",
+    )
+    projection = read_wall_projection(
+        store,
+        status_sources={"secret": secret_dir, "other": other_dir},
+        now=NOW,
+    )
+    blob = json.dumps(projection.to_dict())
+    assert "sk-wallsecret" not in blob
+    assert "[redacted]" in blob
+
+
 def test_cli_list_is_the_wall_surface(tmp_path: Path, capsys) -> None:
     assert (
         claim_cli_main(

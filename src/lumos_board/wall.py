@@ -113,7 +113,10 @@ def _waiting_on(queued: TaskClaim, claims: tuple[TaskClaim, ...]) -> str:
     blockers = [claim for claim in claims if _claim_blocks(queued, claim)]
     if not blockers:
         return ""
-    return ", ".join(f"{claim.owner} ({claim.task_id})" for claim in blockers)
+    return ", ".join(
+        f"{mask_secretlike(claim.owner, limit=80)} ({mask_secretlike(claim.task_id, limit=80)})"
+        for claim in blockers
+    )
 
 
 def _heartbeat_age_seconds(claim: TaskClaim, now: datetime) -> float:
@@ -242,7 +245,7 @@ def read_wall_projection(
             now=read_now,
         )
         for conflict in projection.conflicts:
-            owners = ", ".join(conflict.owners)
+            owners = ", ".join(mask_secretlike(owner, limit=80) for owner in conflict.owners)
             rows.append(
                 WallRow(
                     agent=mask_secretlike(owners, limit=80),
