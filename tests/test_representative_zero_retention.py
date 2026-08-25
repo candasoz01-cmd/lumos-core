@@ -14,6 +14,7 @@ from __future__ import annotations
 import ast
 import json
 import pathlib
+import re
 
 import pytest
 
@@ -316,7 +317,13 @@ def _call_yields_text(node: ast.Call, returns: dict[str, str]) -> bool:
         # Tanınmayan ya da anotasyonsuz çağrı: metin döndürmediği KANITLANMADIĞI
         # için metin sayılır. Yanlış pozitif, kaçırmaktan iyidir.
         return True
-    return annotation in ("str", "str | None")
+    # `str`i İÇEREN her anotasyon metin taşır. Tam eşleşme aramak (`str`,
+    # `str | None`) PR #806 güvenlik incelemesinde (MEDIUM) eksik bulundu:
+    # `split_tts_chunks(...) -> list[str]` ve `parse_reply(...) ->
+    # tuple[str, float | None]` metin döndürdükleri hâlde zinciri kesiyordu.
+    # Sarmalayıcı tip (liste/demet/sözlük/üreteç) fark etmez — içinde metin
+    # varsa taint sürer.
+    return bool(re.search(r"\bstr\b", annotation))
 
 
 def _is_show_call(node: ast.AST) -> bool:
@@ -524,6 +531,10 @@ def test_no_rig_prints_meeting_text_without_the_text_layer():
         "a, b = turn.text, other\nprint(a)",
         "buf = ''\nbuf += turn.text\nprint(buf)",
         "heard = corrector.correct(utt.text)\nfor line in heard.splitlines():\n    print(line)",
+        # PR #806 güvenlik incelemesi (MEDIUM): sarmalayıcı tip içindeki metin
+        "chunks = split_tts_chunks(turn.text)\nprint(chunks)",
+        "for chunk in split_tts_chunks(turn.text):\n    print(chunk)",
+        "text, conf = parse_reply(turn.text)\nprint(text)",
     ],
 )
 def test_the_console_lock_catches_every_output_shape(snippet):
@@ -572,6 +583,9 @@ def test_text_carrying_names_are_derived_from_return_annotations():
     assert returns["correct"] == "str", "TermCorrector.correct metin döndürür"
     assert returns["route"] != "str", "DirectionRouter.route karar döndürür"
     assert returns["transcribe"] != "str", "STT sonucu nesne döndürür"
+    # Sarmalayıcı tipler de metin taşır: tam eşleşme yerine `str` ARANIR.
+    assert "str" in returns["split_tts_chunks"], "list[str] metin taşır"
+    assert "str" in returns["parse_reply"], "tuple[str, ...] metin taşır"
 
     module = ast.parse(pathlib.Path(__file__).read_text(encoding="utf-8"))
     assigned = {
