@@ -44,7 +44,6 @@ from representative.avatar import (
 )
 from representative.meeting_ingress import (
     DISCLOSURE_LINE_EN,
-    REHEARSAL_RETENTION,
     RecallMeetingIngress,
     build_recall_bot_payload,
 )
@@ -55,6 +54,7 @@ from representative.pipeline import (
     Utterance,
     summarize_latencies_ms,
 )
+from representative.retention import POLICIES, text_layer_for
 from representative.routing import Direction, DirectionRouter
 from representative.stt import LUMOS_TERMS_PROMPT
 from representative.tts_playback import ChunkedTtsPlayer, estimate_speech_seconds
@@ -196,6 +196,10 @@ def speak_assembled_turns(
     mid-thought fragment. Returns how many turns were sent to the pipeline.
     """
     spoken = 0
+    # Konsol da kalıcı bir yüzeydir: runbook rig'i `nohup ... > prova.log` ile
+    # koşturuyor. Sıfır saklamada metin ekrana da basılmaz (kurucu şartı
+    # 2026-08-25); karar kayıtla AYNI nesneden gelir, ayrışamaz.
+    show = pipeline.text_layer.show
     for turn in turns:
         if not turn.speakable:
             print(f"  (yarım söz seslendirilmedi: {turn.reason})")
@@ -204,7 +208,7 @@ def speak_assembled_turns(
         if suppressor.should_drop(turn.text, now):
             # Bu dal konsola bile bir şey basmıyordu: üç erken çıkışın en
             # görünmezi. Ses davranışı aynı, yalnız iz bırakıyor.
-            print(f"  (tekrar bastırıldı: {turn.text})")
+            print(f"  (tekrar bastırıldı: {show(turn.text)})")
             pipeline.record_unspoken(turn.text, flag_reason="suppressed_duplicate")
             continue
         decision = router.route(turn.text)
@@ -214,7 +218,7 @@ def speak_assembled_turns(
             # "çevrildi" ve aynen geri seslendirildi (papağan). Yanlış yöne
             # sessizce çevirmektense susulur; kaynak metin + gerekçe kayda
             # geçer ki eksik sözcükler tahminle değil veriyle onarılsın.
-            print(f"  (yön belirlenemedi, seslendirilmedi: {turn.text})")
+            print(f"  (yön belirlenemedi, seslendirilmedi: {show(turn.text)})")
             pipeline.record_unspoken(
                 turn.text,
                 flag_reason="fallback_unknown",
@@ -222,7 +226,7 @@ def speak_assembled_turns(
                 direction_reason=decision.reason,
             )
             continue
-        print(f"{decision.direction.source_lang.upper()}(duyulan)> {turn.text}")
+        print(f"{decision.direction.source_lang.upper()}(duyulan)> {show(turn.text)}")
         pipeline.interrupt_playback()
         record = pipeline.process(
             Utterance(
@@ -240,7 +244,7 @@ def speak_assembled_turns(
         spoken += 1
         marker = "" if record.delivered else " [TESLİM EDİLMEDİ]"
         print(
-            f"{decision.direction.target_lang.upper()}> {record.translated_text}{marker}"
+            f"{decision.direction.target_lang.upper()}> {show(record.translated_text)}{marker}"
             f"  (e2e {record.latency_ms:.0f} ms"
             f" stt={record.stt_ms:.0f} tr={record.translate_ms:.0f}"
             f" tts0={record.tts_to_first_audio_ms:.0f}"
@@ -416,6 +420,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--jsonl-out", default="prova_bot.jsonl")
     parser.add_argument(
+        "--retention",
+        default="rehearsal",
+        choices=sorted(POLICIES),
+        help="rehearsal (varsayılan): kapalı prova — Recall medyası timed/24h, "
+        "kaynak/çeviri metni jsonl'e ve konsola yazılır. real-meeting: sıfır "
+        "saklama — Recall'da medya tutulmaz VE metin ne jsonl'e ne konsola yazılır. "
+        "DİKKAT: bu bayrak gerçek dış katılımcılı toplantı iznini VERMEZ "
+        "(ADR-025 veri bölgesi/DPA blokajı ayrıca sürüyor)",
+    )
+    parser.add_argument(
         "--preflight",
         action="store_true",
         help="BOTSUZ ön uçuş: env + tünel öz-testi + çevirmen/STT bağlantısı "
@@ -445,6 +459,16 @@ def main(argv: list[str] | None = None) -> int:
     if missing:
         # Fail-loud: eksik anahtar canlı koşuda tünelden sonra patlamasın.
         parser.error("eksik ortam değişkeni: " + ", ".join(missing))
+
+    # Saklama politikası TEK yerde seçilir ve her yüzeyi birden yönetir:
+    # Recall medyası, yerel jsonl ve konsol/nohup logu (kurucu kararı
+    # 2026-08-25, şart 2). Ayrı bir yol açılamaması için aşağıdaki her kullanım
+    # aynı `session_retention` nesnesinden beslenir. Kapalı provanın 24 saatlik
+    # metin penceresinin İŞLETİLMESİ (silme + zamanlayıcı) bu dilimde yok.
+    session_retention = POLICIES[args.retention]
+    text_layer = text_layer_for(session_retention)
+    if not text_layer.persists:
+        print("saklama: SIFIR — kaynak/çeviri metni ne kayda ne ekrana yazılır")
 
     gate = HalfDuplexGate()
     inbound: queue.Queue[bytes] = queue.Queue()
@@ -500,7 +524,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     ingress = RecallMeetingIngress(
-        REHEARSAL_RETENTION, os.environ["RECALL_REGION_URL"]
+        session_retention, os.environ["RECALL_REGION_URL"]
     )
     avatar_assets = load_meet_avatar_assets()
     from openai import OpenAI
@@ -513,7 +537,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     payload = build_recall_bot_payload(
         args.meeting_url,
-        REHEARSAL_RETENTION,
+        session_retention,
         internal_ref="faz0-bot-prova",
         disclosure_mp3_b64=base64.b64encode(disclosure.content).decode(),
         avatar_idle_jpeg_b64=avatar_assets.idle_jpeg_b64,
@@ -574,6 +598,7 @@ def main(argv: list[str] | None = None) -> int:
         transcript=transcript,
         on_flag=lambda r: print(f"  ⚠ düşük güven ({r.flag_reason})"),
         on_record=lambda r: BilingualTranscript.append_jsonl(args.jsonl_out, r),
+        text_layer=text_layer,
     )
     # auto yönde dil sabitlenmez: sağlayıcı duyduğu dili kendisi tespit eder,
     # yön kararını router metinden verir (canlı insan testi 4 papağan bulgusu).

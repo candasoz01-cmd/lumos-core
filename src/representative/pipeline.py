@@ -130,6 +130,11 @@ class UtteranceRecord:
     detected_language: str = ""
     # Çeviri güveni olan `confidence` ile KARIŞTIRILMAMALI.
     language_detection_confidence: float | None = None
+    # Metin katmanının durumu (2026-08-25 saklama kararı): "" = metin yerinde,
+    # "not_persisted" = politika gereği hiç yazılmadı (sıfır saklama),
+    # "expired" = süresi doldu, silindi. Boşken jsonl satırına HİÇ yazılmaz
+    # (bkz. record_to_dict) — bayt maliyeti yalnız durum varken ödenir.
+    text_state: str = ""
 
     def __post_init__(self) -> None:
         # Yuvarlama KAYIT ÜRETİLİRKEN yapılır (bkz. TIMING_DECIMALS): aşama
@@ -157,6 +162,68 @@ TIMING_FIELDS = tuple(f.name for f in fields(UtteranceRecord) if f.name.endswith
     "recorded_at",
 )
 
+# Diagnostic (süreli) katman: kaynak ve çeviri metni. Zamanlama listesi gibi
+# bu da elle tutulmaz, kayıttan TÜRETİLİR — ileride eklenen bir `*_text` alanı
+# sessizce süresiz yaşamasın.
+TEXT_FIELDS = tuple(f.name for f in fields(UtteranceRecord) if f.name.endswith("_text"))
+
+TEXT_STATE_NOT_PERSISTED = "not_persisted"
+TEXT_STATE_EXPIRED = "expired"
+
+
+@dataclass(frozen=True)
+class TextLayer:
+    """Metin katmanının bu oturumda diske/loga yazılıp yazılamayacağı.
+
+    Kurucu kararı (2026-08-25): `zero` saklama YEREL metni de kapsar. Karar TEK
+    yerde verilir ve hem KAYIT hem EKRAN aynı nesneden geçer — birini redakte
+    edip diğerini unutma yolu kapalıdır.
+
+    Sıfır saklamada GARANTİ EDİLEN:
+    - kaynak/çeviri düz metni KALICI HÂLE GETİRİLMEZ (jsonl'e yazılmaz),
+    - düz metin konsol/log/markdown çıktısına BASILMAZ,
+    - jsonl satırında metin alanları boş kalır + `text_state="not_persisted"`,
+    - sebep, teslim durumu, yön ve zamanlama olduğu gibi kalır.
+
+    GARANTİNİN DIŞINDA: işlem sırasında bellekte GEÇİCİ olarak bulunan düz
+    metin. STT çıktısı, çeviri istemi ve çeviri sonucu süreç belleğinde düz
+    metindir; sağlayıcıya da düz metin gider. Bu katman kalıcılığı ve çıktıyı
+    yönetir, belleği değil.
+    """
+
+    persists: bool
+
+    # Ekranda boşluk bırakmak "hiçbir şey duyulmadı" gibi okunurdu; yerine
+    # neyin ve NEDEN olmadığı yazılır.
+    redacted_label = "«metin saklanmıyor (sıfır saklama)»"
+
+    def store(self, text: str) -> str:
+        """Kalıcı hâle gelecek metin; sıfır saklamada boş döner.
+
+        "Metin hiç var olmadı" DEMEK DEĞİLDİR — çağıran taraf metni elinde
+        tutar (çeviri/TTS onunla çalışır); burada kesilen şey kalıcılıktır.
+        """
+        return text if self.persists else ""
+
+    def show(self, text: str) -> str:
+        """Konsola basılacak metin (stdout kalıcı bir loga yönlenmiş olabilir)."""
+        return text if self.persists else self.redacted_label
+
+    @property
+    def state(self) -> str:
+        return "" if self.persists else TEXT_STATE_NOT_PERSISTED
+
+
+PERSISTING_TEXT_LAYER = TextLayer(persists=True)
+
+
+def record_to_dict(record: UtteranceRecord) -> dict:
+    """jsonl satırının sözlük hali; boş `text_state` satıra hiç yazılmaz."""
+    data = asdict(record)
+    if not data.get("text_state"):
+        data.pop("text_state", None)
+    return data
+
 
 # Kurucu kararı (2026-08-17, seçenek C): eşik altı çeviri SESLENDİRİLİR ama
 # transkript/panelde düşük güven olarak İŞARETLENİR. Gerekçe: susmak
@@ -183,6 +250,17 @@ _FLAG_LABELS = {
 }
 
 
+_TEXT_STATE_LABELS = {
+    TEXT_STATE_NOT_PERSISTED: "«saklanmadı (sıfır saklama)»",
+    TEXT_STATE_EXPIRED: "«süresi doldu, silindi»",
+}
+
+
+def _text_cell(text: str, state: str) -> str:
+    """Boş hücre "hiçbir şey söylenmedi" gibi okunurdu; sebebi yazılır."""
+    return text or _TEXT_STATE_LABELS.get(state, "")
+
+
 def flag_label(record: "UtteranceRecord") -> str:
     """İşaretin insan tarafından okunur karşılığı (panel/transkript dili)."""
     return _FLAG_LABELS.get(record.flag_reason, f"⚠ {record.flag_reason}")
@@ -203,7 +281,7 @@ class BilingualTranscript:
 
     def to_jsonl(self) -> str:
         """One JSON object per utterance — Aşama C ölçüm kaydı formatı."""
-        return "\n".join(json.dumps(asdict(r), ensure_ascii=False) for r in self._records)
+        return "\n".join(json.dumps(record_to_dict(r), ensure_ascii=False) for r in self._records)
 
     @staticmethod
     def append_jsonl(path: str, record: UtteranceRecord) -> None:
@@ -213,7 +291,7 @@ class BilingualTranscript:
         stres testi bulgusu: yalnız çıkışta yazmak çökmede tüm veriyi kaybetti).
         """
         with open(path, "a", encoding="utf-8") as f:
-            f.write(json.dumps(asdict(record), ensure_ascii=False) + "\n")
+            f.write(json.dumps(record_to_dict(record), ensure_ascii=False) + "\n")
 
     def to_markdown(self) -> str:
         lines = [
@@ -224,7 +302,8 @@ class BilingualTranscript:
             conf = "-" if r.confidence is None else f"{r.confidence:.2f}"
             delivery = "✓ duyuldu" if r.delivered else "✕ seslendirilmedi"
             lines.append(
-                f"| {r.source_text} | {r.translated_text} | {conf} | {delivery} | "
+                f"| {_text_cell(r.source_text, r.text_state)} | "
+                f"{_text_cell(r.translated_text, r.text_state)} | {conf} | {delivery} | "
                 f"{flag_label(r)} | {r.latency_ms:.0f} |"
             )
         return "\n".join(lines)
@@ -365,6 +444,7 @@ class InterpreterPipeline:
         on_flag: Callable[[UtteranceRecord], None] | None = None,
         on_record: Callable[[UtteranceRecord], None] | None = None,
         clock: Callable[[], float] = time.monotonic,
+        text_layer: TextLayer = PERSISTING_TEXT_LAYER,
     ) -> None:
         self._translator = translator
         self._tts = tts
@@ -373,6 +453,9 @@ class InterpreterPipeline:
         self._on_flag = on_flag
         self._on_record = on_record
         self._clock = clock
+        # Rig'ler ekrana basarken de buradan geçer (`pipeline.text_layer.show`);
+        # böylece konsol ile kayıt aynı politikayı paylaşır, ayrışamaz.
+        self.text_layer = text_layer
 
     def interrupt_playback(self) -> int:
         """Barge-in: drop queued TTS clips. Current clip finishes (echo-safe)."""
@@ -403,7 +486,8 @@ class InterpreterPipeline:
         kayıtların güvenle ilgisi yok (söz çeviriye hiç girmedi).
         """
         record = UtteranceRecord(
-            source_text=text,
+            source_text=self.text_layer.store(text),
+            text_state=self.text_layer.state,
             source_lang="",
             translated_text="",
             target_lang="",
@@ -487,9 +571,10 @@ class InterpreterPipeline:
             else max(0.0, (translation_ready - utterance.speech_end_ts) * 1000.0)
         )
         record = UtteranceRecord(
-            source_text=utterance.text,
+            source_text=self.text_layer.store(utterance.text),
             source_lang=utterance.source_lang,
-            translated_text=result.text,
+            translated_text=self.text_layer.store(result.text),
+            text_state=self.text_layer.state,
             target_lang=utterance.target_lang,
             confidence=result.confidence,
             flagged=flagged,
