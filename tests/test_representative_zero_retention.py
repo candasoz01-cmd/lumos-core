@@ -11,6 +11,7 @@ ama sebep/teslim/yön/zamanlama olduğu gibi kalır.
 
 from __future__ import annotations
 
+import ast
 import json
 import pathlib
 
@@ -223,25 +224,187 @@ def test_zero_retention_redacts_the_console_surface():
     assert "«saklanmadı" in transcript.to_markdown(), "boş hücre değil, sebep yazılmalı"
 
 
+# --- Konsol kilidi: biçimden bağımsız AST denetimi ---------------------------
+# PR #805 Bugbot bulgusu (Medium, doğrulandı): önceki denetleyici yalnız
+# f-string `{...}` gruplarını tarıyordu. `print(turn.text)`, `print("TR>",
+# turn.text)`, `%` biçimlendirme, `.format()` ve `logging.info(...)` hiç
+# eşleşmiyordu — yani koruma yeşilken düz metin `prova.log`'a ulaşabilirdi.
+# İddia da kapsamdan genişti ("çıplak print eklenirse test kırılır" — kırılmazdı).
+#
+# Yeni denetim kaynağı AST üzerinden okur, dolayısıyla YAZIM BİÇİMİNDEN
+# BAĞIMSIZDIR: bir çıktı çağrısının argüman ağacında toplantı metni taşıyan
+# bir ifade varsa ve `show(...)` içinden geçmiyorsa bulgu üretir.
+
+TEXT_ATTRS = frozenset({"text", "translated_text", "source_text"})
+
+# Fail-closed: `.text` taşıyan HER nesne toplantı metni sayılır. İstisna tek ve
+# gerekçeli: `warm`, çevirmen ısıtmasının sabit "Merhaba." çıktısıdır —
+# toplantıdan gelen bir söz değildir (bot_rig ön uçuş satırı).
+NON_MEETING_OBJECTS = frozenset({"warm"})
+
+# Dönüşüm çağrısından doğduğu için türetilemeyen, metin taşıyan yerel adlar
+# (bkz. _alias_names bilinen sınırı). Yeni bir tane eklenirse buraya yazılır.
+TEXT_LOCALS = frozenset({"heard_text"})
+
+OUTPUT_FUNCS = frozenset({"print"})
+OUTPUT_METHODS = frozenset({"write", "info", "warning", "error", "debug", "exception"})
+
+
+def _is_show_call(node: ast.AST) -> bool:
+    func = getattr(node, "func", None)
+    if isinstance(func, ast.Name):
+        return func.id == "show"
+    if isinstance(func, ast.Attribute):
+        return func.attr == "show"
+    return False
+
+
+def _is_output_call(node: ast.AST) -> bool:
+    if not isinstance(node, ast.Call):
+        return False
+    if isinstance(node.func, ast.Name):
+        return node.func.id in OUTPUT_FUNCS
+    if isinstance(node.func, ast.Attribute):
+        return node.func.attr in OUTPUT_METHODS
+    return False
+
+
+def _is_text_expr(node: ast.AST, alias_names: set[str]) -> bool:
+    if isinstance(node, ast.Attribute) and node.attr in TEXT_ATTRS:
+        base = node.value
+        return not (isinstance(base, ast.Name) and base.id in NON_MEETING_OBJECTS)
+    return isinstance(node, ast.Name) and node.id in alias_names
+
+
+def _unredacted(node: ast.AST, alias_names: set[str]) -> list[str]:
+    """`show(...)` altına inmeden, ağaçtaki redakte edilmemiş metin ifadeleri."""
+    if isinstance(node, ast.Call) and _is_show_call(node):
+        return []  # show() altındaki her şey politikadan geçmiş sayılır
+    if _is_text_expr(node, alias_names):
+        return [ast.unparse(node)]
+    found: list[str] = []
+    for child in ast.iter_child_nodes(node):
+        found.extend(_unredacted(child, alias_names))
+    return found
+
+
+def _yields_text(node: ast.AST, names: set[str]) -> bool:
+    """Bu ifadenin DEĞERİ metnin kendisi mi? (atama zinciri takibi için)
+
+    Keyfi bir çağrının dönüşü bilinemez: `decision = router.route(turn.text)`
+    metin ALMASINA rağmen metin DÖNDÜRMEZ. Bu yüzden çağrılar zinciri keser —
+    aksi hâlde `record`, `decision`, `marker` gibi adlar metin sayılıp
+    yanlış pozitif üretirdi.
+    """
+    if isinstance(node, ast.Call):
+        return False
+    if _is_text_expr(node, names):
+        return True
+    if isinstance(node, (ast.Subscript, ast.BinOp, ast.JoinedStr, ast.IfExp, ast.FormattedValue)):
+        return any(_yields_text(child, names) for child in ast.iter_child_nodes(node))
+    return False
+
+
+def _alias_names(tree: ast.AST) -> set[str]:
+    """Metin taşıyan yerel adlar kaynaktan türetilir; zincir sabit noktaya kadar.
+
+    `first = turn.text` → `second = first` → `print(second)` yakalanır.
+
+    BİLİNEN SINIR: bir dönüşüm ÇAĞRISINDAN doğan adlar türetilemez
+    (`heard_text = corrector.correct(heard.text)` metin döndürür ama
+    `router.route(turn.text)` döndürmez; ikisi de aynı şekle sahip). Bu yüzden
+    o adlar TEXT_LOCALS'ta açıkça sayılır — sayının kendisi kısa tutulur ve
+    gerekçesi budur.
+    """
+    names: set[str] = set(TEXT_LOCALS)
+    changed = True
+    while changed:
+        changed = False
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Assign):
+                continue
+            if not _yields_text(node.value, names):
+                continue
+            for target in node.targets:
+                if isinstance(target, ast.Name) and target.id not in names:
+                    names.add(target.id)
+                    changed = True
+    return names
+
+
+def unredacted_text_output(source: str) -> list[str]:
+    """Çıktı çağrılarında redakte edilmemiş toplantı metni ifadeleri."""
+    tree = ast.parse(source)
+    aliases = _alias_names(tree)
+    offenders: list[str] = []
+    for node in ast.walk(tree):
+        if not _is_output_call(node):
+            continue
+        for argument in list(node.args) + [kw.value for kw in node.keywords]:
+            offenders.extend(_unredacted(argument, aliases))
+    return offenders
+
+
 def test_no_rig_prints_meeting_text_without_the_text_layer():
     """Yalnız jsonl'i redakte etmek yetmez: `nohup ... > prova.log` konsolu da
-    kalıcı bir düz metin kopyasına çevirir. Toplantı metni basan her f-string
-    `show()` içinden geçmek zorunda; çıplak bir `print(turn.text)` eklenirse
-    bu test kırılır (kural = kod, yorum değil).
+    kalıcı bir düz metin kopyasına çevirir. Bu yüzden rig'lerdeki HER çıktı
+    çağrısı (print / logging / write) AST üzerinden denetlenir: toplantı metni
+    taşıyan bir ifade `show()` içinden geçmiyorsa test kırılır — yazım biçimi
+    ne olursa olsun.
     """
-    import re
-
     import representative
 
     package = pathlib.Path(representative.__file__).parent
-    tokens = ("turn.text", "record.translated_text", "heard_text", "heard.text", "utt.text")
     offenders = []
     for module in sorted(package.glob("*_rig.py")):
-        source = module.read_text(encoding="utf-8")
-        for group in re.findall(r"\{[^{}]*\}", source):
-            if any(token in group for token in tokens) and "show(" not in group:
-                offenders.append(f"{module.name}: {group}")
+        for expression in unredacted_text_output(module.read_text(encoding="utf-8")):
+            offenders.append(f"{module.name}: {expression}")
     assert not offenders, "redakte edilmemiş metin basımı: " + "; ".join(offenders)
+
+
+@pytest.mark.parametrize(
+    "snippet",
+    [
+        'print(f"TR> {turn.text}")',
+        "print(turn.text)",
+        'print("TR>", turn.text)',
+        'print("TR> %s" % record.translated_text)',
+        'print("TR> {}".format(utt.text))',
+        "logging.info(turn.text)",
+        "sys.stdout.write(turn.text)",
+        'print(f"TR> {heard.text[:40]}")',
+        "heard_text = corrector.correct(heard.text)\nprint(heard_text)",
+        "first = turn.text\nsecond = first\nprint(second)",
+    ],
+)
+def test_the_console_lock_catches_every_output_shape(snippet):
+    """Denetleyicinin KENDİ testi (PR #805 Medium bulgusunun kapanışı).
+
+    Yakalayamayan bir koruma, korumasızlıktan daha kötüdür: yeşil görünür.
+    Eski regex bu satırların yalnız f-string olanlarını yakalıyordu; listedeki
+    her biçim artık bulgu üretmek ZORUNDA.
+    """
+    assert unredacted_text_output(snippet), f"kaçırıldı: {snippet}"
+
+
+@pytest.mark.parametrize(
+    "snippet",
+    [
+        'print(f"TR> {show(turn.text)}")',
+        "print(show(turn.text))",
+        'print("TR>", pipeline.text_layer.show(record.translated_text))',
+        'print(f"  (yarım söz seslendirilmedi: {turn.reason})")',
+        'print(f"çevirmen: GEÇTİ (örnek çıktı: {warm.text[:40]!r})")',
+        "print(f'{record.latency_ms:.0f} ms')",
+    ],
+)
+def test_the_console_lock_does_not_cry_wolf(snippet):
+    """Yanlış pozitif üreten bir koruma da işe yaramaz: susturulur.
+
+    `show()` içinden geçen metin, metin olmayan alanlar (`reason`, süreler) ve
+    toplantıdan gelmeyen ısıtma çıktısı (`warm.text`) bulgu ÜRETMEZ.
+    """
+    assert not unredacted_text_output(snippet), f"yanlış pozitif: {snippet}"
 
 
 # --- Politika tek kaynaktan gelir -------------------------------------------

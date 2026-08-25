@@ -673,9 +673,14 @@ Rig bayrağı (iki rig'de de): `--retention rehearsal|real-meeting`.
 > `--retention real-meeting` bayrağı gerçek dış katılımcılı toplantı iznini
 > **VERMEZ**: ADR-025 veri bölgesi/DPA blokajı ayrıca sürüyor.
 
-Konsol tarafı kaynak-düzeyi testiyle kilitli: rig'lerde toplantı metni basan
-her f-string `show()` içinden geçmek zorunda; çıplak bir `print(turn.text)`
-eklenirse test kırılır.
+Konsol tarafı kaynak-düzeyi testiyle kilitli: rig'lerdeki her çıktı çağrısı
+(`print`, `logging.*`, `write`) **AST üzerinden** denetlenir — toplantı metni
+taşıyan bir ifade `show()` içinden geçmiyorsa test kırılır, yazım biçimi ne
+olursa olsun (f-string, çıplak argüman, `%`, `.format()`). Denetleyicinin
+kendi testi de var: listelenen her biçim bulgu üretmek zorunda, `show()`'dan
+geçenler ve metin olmayan alanlar üretmemek zorunda. Bilinen sınır: bir
+dönüşüm çağrısından doğan yerel adlar (ör. `heard_text`) türetilemez, açıkça
+sayılır.
 
 **Kapsam dışı (ayrı iş):** kapalı provanın 24 saatlik metin penceresinin
 işletilmesi — süresi dolanı silme ve bunu koşturan zamanlayıcı. `rehearsal`
