@@ -134,6 +134,26 @@ def test_validators_reject_each_others_version() -> None:
     assert "version_invalid" in validate_agent_status_payload_v2(_v2_payload(version=SCHEMA_VERSION))
 
 
+def test_v2_validator_version_check_is_type_strict() -> None:
+    # Dispatcher atlanıp doğrudan çağrılsa da 2.0 == 2 / True == 1 geçmez.
+    for version in (2.0, True, "2", None):
+        errors = validate_agent_status_payload_v2(_v2_payload(version=version))
+        assert "version_invalid" in errors, f"version={version!r}"
+    try:
+        record_from_payload(_v2_payload(version=2.0))
+    except ValueError as e:
+        assert "version_invalid" in str(e)
+    else:
+        raise AssertionError("ValueError bekleniyordu: version=2.0")
+
+
+def test_v2_validator_is_total_over_malformed_status() -> None:
+    # JSON dizi/nesne/bool/sayı/null status TypeError değil status_invalid üretir.
+    for bad_status in ([], {}, True, 5, None):
+        errors = validate_agent_status_payload_v2(_v2_payload(status=bad_status))
+        assert "status_invalid" in errors, f"status={bad_status!r}"
+
+
 def test_v1_record_gets_no_wait_inference() -> None:
     record = record_from_payload(_v2_payload(version=SCHEMA_VERSION))
     assert record.version == SCHEMA_VERSION
@@ -226,6 +246,42 @@ def test_loader_mixed_directory_v1_v2_legacy_and_unknown(tmp_path: Path) -> None
     assert v2.wait_reason == WAIT_REASON_HUMAN_DECISION
     assert v2.decision_ref == "OD-063"
     assert result.issues == ["agent_status_ffff99.json: version_unsupported: 3"]
+
+
+def test_loader_malformed_status_becomes_issue_and_scan_continues(tmp_path: Path) -> None:
+    (tmp_path / "agent_status_bad001.json").write_text(
+        json.dumps(_v2_payload(job_id="bad001", status=[])), encoding="utf-8"
+    )
+    (tmp_path / "agent_status_bad002.json").write_text(
+        json.dumps(_v2_payload(job_id="bad002", agent_id="other", owner="other", status={})),
+        encoding="utf-8",
+    )
+    (tmp_path / "agent_status_good01.json").write_text(
+        json.dumps(_v2_payload(job_id="good01", agent_id="third", owner="third")),
+        encoding="utf-8",
+    )
+    result = load_agent_status_records(tmp_path)
+    assert [r.job_id for r in result.records] == ["good01"]  # tarama devam etti
+    assert len(result.issues) == 2
+    assert all("status_invalid" in issue for issue in result.issues)
+
+
+def test_board_projection_survives_malformed_status(tmp_path: Path) -> None:
+    (tmp_path / "agent_status_bad001.json").write_text(
+        json.dumps(_v2_payload(job_id="bad001", agent_id="other", owner="other", status=[])),
+        encoding="utf-8",
+    )
+    (tmp_path / "agent_status_bad002.json").write_text(
+        json.dumps(_v2_payload(job_id="bad002", agent_id="third", owner="third", status={})),
+        encoding="utf-8",
+    )
+    (tmp_path / "agent_status_good01.json").write_text(
+        json.dumps(_v2_payload(job_id="good01")), encoding="utf-8"
+    )
+    projection = read_agent_status_projection({"outbox": tmp_path})
+    assert len(projection.records) == 1  # projeksiyon iptal olmadı
+    assert projection.records[0].record.job_id == "good01"
+    assert projection.invalid_records == 2
 
 
 def test_board_projection_accepts_v2_and_drops_unknown_version(tmp_path: Path) -> None:

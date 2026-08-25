@@ -147,13 +147,19 @@ def validate_agent_status_payload_v2(payload: object) -> list[str]:
     errors: list[str] = []
     if not isinstance(payload, dict):
         return ["payload_not_object"]
-    if payload.get("version") != SCHEMA_VERSION_V2:
+    # Tip-katı sürüm kontrolü: 2.0 == 2 / True == 1 zorlaması burada da geçmez;
+    # dispatcher'ı atlayıp doğrudan çağıran yol için de sınır aynıdır.
+    version = payload.get("version")
+    if type(version) is not int or version != SCHEMA_VERSION_V2:
         errors.append("version_invalid")
     for key in ("agent_id", "job_id", "owner", "evidence_ref"):
         value = payload.get(key)
         if not isinstance(value, str) or not value.strip():
             errors.append(f"{key}_missing")
-    status = payload.get("status")
+    # status str olmadan hiçbir sözlük aramasına girmez: JSON dizi/nesne gibi
+    # unhashable değerler status_invalid üretir, TypeError fırlatmaz.
+    raw_status = payload.get("status")
+    status = raw_status if isinstance(raw_status, str) else None
     if status not in V2_VALID_STATUSES:
         errors.append("status_invalid")
     for key in ("started_at", "updated_at"):
