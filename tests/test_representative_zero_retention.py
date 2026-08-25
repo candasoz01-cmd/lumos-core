@@ -243,7 +243,17 @@ TEXT_ATTRS = frozenset({"text", "translated_text", "source_text"})
 NON_MEETING_OBJECTS = frozenset({"warm"})
 
 OUTPUT_FUNCS = frozenset({"print"})
-OUTPUT_METHODS = frozenset({"write", "info", "warning", "error", "debug", "exception"})
+# Standart kütüphanenin yazma/günlükleme yüzeyleri. `critical`, `log`, `warn` ve
+# `writelines` PR #806 güvenlik incelemesinde (MEDIUM) eksik bulundu.
+OUTPUT_METHODS = frozenset(
+    {
+        "write", "writelines",
+        "info", "warning", "warn", "error", "debug", "exception", "critical", "log",
+    }
+)
+# Alıcısı bu köklerden birine dayanan HER metot çağrısı yazma sayılır
+# (ör. `logger.trace(...)`, `sys.stderr.buffer.write(...)`).
+OUTPUT_RECEIVER_ROOTS = frozenset({"logging", "logger", "log", "sys", "stdout", "stderr"})
 
 
 # Dönüş türü bilinen, metin ÜRETMEYEN çağrılar dışında her çağrı metin taşıyor
@@ -318,13 +328,21 @@ def _is_show_call(node: ast.AST) -> bool:
     return False
 
 
+def _receiver_root(node: ast.AST) -> str | None:
+    while isinstance(node, (ast.Attribute, ast.Subscript, ast.Call)):
+        node = node.value if not isinstance(node, ast.Call) else node.func
+    return node.id if isinstance(node, ast.Name) else None
+
+
 def _is_output_call(node: ast.AST) -> bool:
     if not isinstance(node, ast.Call):
         return False
     if isinstance(node.func, ast.Name):
         return node.func.id in OUTPUT_FUNCS
     if isinstance(node.func, ast.Attribute):
-        return node.func.attr in OUTPUT_METHODS
+        if node.func.attr in OUTPUT_METHODS:
+            return True
+        return _receiver_root(node.func.value) in OUTPUT_RECEIVER_ROOTS
     return False
 
 
@@ -372,6 +390,38 @@ def _yields_text(node: ast.AST, names: set[str], returns: dict[str, str]) -> boo
     return any(_yields_text(child, names, returns) for child in ast.iter_child_nodes(node))
 
 
+def _bound_names(target: ast.AST) -> list[str]:
+    """Bir bağlama hedefindeki adlar (demet/liste açımı ve yıldız dahil)."""
+    if isinstance(target, ast.Name):
+        return [target.id]
+    if isinstance(target, (ast.Tuple, ast.List)):
+        return [name for element in target.elts for name in _bound_names(element)]
+    if isinstance(target, ast.Starred):
+        return _bound_names(target.value)
+    return []  # attribute/subscript hedefleri ad bağlamaz
+
+
+def _bindings(tree: ast.AST) -> list[tuple[list[ast.AST], ast.AST | None]]:
+    """Ada değer bağlayan HER biçim: atama, anotasyonlu atama, artırımlı atama,
+    walrus, `for` hedefi, üreteç hedefi ve `with ... as`.
+
+    Yalnız `ast.Assign` bakmak PR #806 güvenlik incelemesinde (MEDIUM) eksik
+    bulundu: `heard: str = ...`, `heard := ...`, `a, b = turn.text, x`,
+    `buf += turn.text` ve `for line in heard.splitlines()` hepsi kaçıyordu.
+    """
+    pairs: list[tuple[list[ast.AST], ast.AST | None]] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            pairs.append((node.targets, node.value))
+        elif isinstance(node, (ast.AnnAssign, ast.AugAssign, ast.NamedExpr)):
+            pairs.append(([node.target], node.value))
+        elif isinstance(node, (ast.For, ast.AsyncFor, ast.comprehension)):
+            pairs.append(([node.target], node.iter))
+        elif isinstance(node, ast.withitem) and node.optional_vars is not None:
+            pairs.append(([node.optional_vars], node.context_expr))
+    return pairs
+
+
 def _alias_names(tree: ast.AST, returns: dict[str, str]) -> set[str]:
     """Metin taşıyan yerel adlar kaynaktan türetilir; zincir sabit noktaya kadar.
 
@@ -385,15 +435,14 @@ def _alias_names(tree: ast.AST, returns: dict[str, str]) -> set[str]:
     changed = True
     while changed:
         changed = False
-        for node in ast.walk(tree):
-            if not isinstance(node, ast.Assign):
+        for targets, value in _bindings(tree):
+            if value is None or not _yields_text(value, names, returns):
                 continue
-            if not _yields_text(node.value, names, returns):
-                continue
-            for target in node.targets:
-                if isinstance(target, ast.Name) and target.id not in names:
-                    names.add(target.id)
-                    changed = True
+            for target in targets:
+                for bound in _bound_names(target):
+                    if bound not in names:
+                        names.add(bound)
+                        changed = True
     return names
 
 
@@ -412,11 +461,21 @@ def unredacted_text_output(source: str) -> list[str]:
 
 
 def test_no_rig_prints_meeting_text_without_the_text_layer():
-    """Yalnız jsonl'i redakte etmek yetmez: `nohup ... > prova.log` konsolu da
-    kalıcı bir düz metin kopyasına çevirir. Bu yüzden rig'lerdeki HER çıktı
-    çağrısı (print / logging / write) AST üzerinden denetlenir: toplantı metni
-    taşıyan bir ifade `show()` içinden geçmiyorsa test kırılır — yazım biçimi
-    ne olursa olsun.
+    """Statik tripwire: rig'lerin yazma yüzeyleri AST üzerinden taranır.
+
+    Yalnız jsonl'i redakte etmek yetmez: `nohup ... > prova.log` konsolu da
+    kalıcı bir düz metin kopyasına çevirir. Bu denetim, toplantı metni taşıyan
+    bir ifade `show()` içinden geçmeden `print`/`logging.*`/`write` benzeri bir
+    çağrıya girerse kırılır — yazım biçiminden bağımsız olarak.
+
+    KAPSAM DÜRÜSTLÜĞÜ: bu bir KANIT DEĞİL, regresyon tripwire'ıdır. Bildiği
+    şeyler: stdlib yazma/günlükleme yüzeyleri (`OUTPUT_*`), tanınan bağlama
+    biçimleri (`_bindings`) ve paket içi dönüş anotasyonları. Kullanıcı-tanımlı
+    keyfi bir çıktı yolu (ör. bir sınıfın kendi `emit()` metodu) ya da paket
+    dışı bir dönüşüm zinciri kapsam DIŞIDIR. Sıfır saklamanın ASIL güvencesi
+    çalışma zamanı sentinel testidir
+    (`test_sentinel_plaintext_reaches_no_persistent_surface_under_zero_retention`):
+    o, gerçek rig yolunu koşturup yakalanan stdout/stderr'i denetler.
     """
     import representative
 
@@ -453,6 +512,18 @@ def test_no_rig_prints_meeting_text_without_the_text_layer():
         "parts = [turn.text]\nprint(parts[0])",
         # stdin metin kipi: sözün kendisi buradan gelir (builtin, türetilemez).
         'line = input("TR> ")\nprint(line)',
+        # PR #806 güvenlik incelemesi (MEDIUM): eksik yazma yüzeyleri
+        "logging.critical(turn.text)",
+        "logging.log(logging.INFO, turn.text)",
+        "logging.warn(turn.text)",
+        "sys.stdout.writelines([turn.text])",
+        "logger.trace(turn.text)",
+        # PR #806 güvenlik incelemesi (MEDIUM): eksik bağlama biçimleri
+        "heard: str = corrector.correct(utt.text)\nprint(heard)",
+        "if (heard := corrector.correct(utt.text)):\n    print(heard)",
+        "a, b = turn.text, other\nprint(a)",
+        "buf = ''\nbuf += turn.text\nprint(buf)",
+        "heard = corrector.correct(utt.text)\nfor line in heard.splitlines():\n    print(line)",
     ],
 )
 def test_the_console_lock_catches_every_output_shape(snippet):

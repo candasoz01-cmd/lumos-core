@@ -673,10 +673,14 @@ Rig bayrağı (iki rig'de de): `--retention rehearsal|real-meeting`.
 > `--retention real-meeting` bayrağı gerçek dış katılımcılı toplantı iznini
 > **VERMEZ**: ADR-025 veri bölgesi/DPA blokajı ayrıca sürüyor.
 
-Konsol tarafı kaynak-düzeyi testiyle kilitli: rig'lerdeki her çıktı çağrısı
-(`print`, `logging.*`, `write`) **AST üzerinden** denetlenir — toplantı metni
-taşıyan bir ifade `show()` içinden geçmiyorsa test kırılır, yazım biçimi ne
-olursa olsun (f-string, çıplak argüman, `%`, `.format()`). Denetleyicinin
+Konsol tarafının **asıl** güvencesi çalışma zamanı sentinel testidir: gerçek
+rig yolu koşturulup yakalanan stdout/stderr denetlenir. Yanında bir **statik
+tripwire** var: rig'lerin yazma yüzeyleri (`print`, `logging.*`, `write`,
+`writelines`) **AST üzerinden** taranır — toplantı metni taşıyan bir ifade
+`show()` içinden geçmiyorsa test kırılır, yazım biçimi ne olursa olsun
+(f-string, çıplak argüman, `%`, `.format()`). Tripwire bir **kanıt değildir**:
+stdlib yazma yüzeylerini ve tanınan bağlama biçimlerini bilir; kullanıcı-tanımlı
+keyfi bir çıktı yolu kapsam dışıdır. Denetleyicinin
 kendi testi de var: listelenen her biçim bulgu üretmek zorunda, `show()`'dan
 geçenler ve metin olmayan alanlar üretmemek zorunda. Metin taşıyan yerel adlar
 da kaynaktan türetilir: karar, çağrılan fonksiyonun **dönüş anotasyonuna**
