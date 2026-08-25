@@ -300,3 +300,79 @@ def test_in_memory_summary_also_excludes_unspoken_records() -> None:
     assert with_unspoken["p50_ms"] == spoken_only["p50_ms"]
     assert with_unspoken["stt_p50_ms"] == spoken_only["stt_p50_ms"]
     assert with_unspoken["translate_p50_ms"] == spoken_only["translate_p50_ms"]
+
+
+# --------------------------------------------------------------------------
+# `tts_to_first_audio` alt kırılımı (2026-08-25). Üst aşamada düzeltilen
+# sıfır-kirlenmesi alt kırılıma geri sızmamalı; eski dosyalar kırılmamalı.
+# --------------------------------------------------------------------------
+
+
+def add_substages(records: list[dict], synth: float, gate: float, deliver: float) -> list[dict]:
+    for record in records:
+        record["tts_synth_ms"] = synth
+        record["tts_gate_wait_ms"] = gate
+        record["tts_deliver_ms"] = deliver
+        record["tts_to_first_audio_ms"] = synth + gate + deliver
+    return records
+
+
+def test_substage_percentiles_are_reported_from_delivered_records_only() -> None:
+    spoken = add_substages(make_records([5000.0] * 10), 2000.0, 30.0, 400.0)
+    clean = analyze(spoken)
+    polluted = analyze(spoken + make_unspoken(8))
+
+    assert clean.tts_substage_p50_ms["tts_synth"] == 2000.0
+    assert clean.tts_substage_p50_ms["tts_gate_wait"] == 30.0
+    assert clean.tts_substage_p50_ms["tts_deliver"] == 400.0
+    assert polluted.tts_substage_p50_ms == clean.tts_substage_p50_ms
+    assert polluted.tts_substage_p90_ms == clean.tts_substage_p90_ms
+    assert polluted.count == 18, "sessiz kayıtlar sayımda görünmeye devam etmeli"
+
+
+def test_old_records_without_substage_fields_read_as_zero() -> None:
+    """52 tarihsel kayıt bu alanları içermez — 0 okunur, çözümleyici kırılmaz."""
+    legacy = make_records([5000.0] * 6)
+    for record in legacy:
+        assert "tts_synth_ms" not in record
+
+    report = analyze(legacy)
+
+    assert report.tts_substage_p50_ms == {
+        "tts_synth": 0.0,
+        "tts_gate_wait": 0.0,
+        "tts_deliver": 0.0,
+    }
+    assert report.stage_p50_ms["tts_to_first_audio"] == 1500.0, "üst aşama etkilenmemeli"
+    text = format_report(report)
+    assert "alt-aşama damgası yok" in text
+
+
+def test_report_renders_substage_split_when_stamps_exist() -> None:
+    report = analyze(add_substages(make_records([5000.0] * 5), 2000.0, 30.0, 400.0))
+    text = format_report(report)
+
+    assert "tts_synth: p50 2.00 sn" in text
+    assert "tts_gate_wait: p50 0.03 sn" in text
+    assert "tts_deliver: p50 0.40 sn" in text
+    # Ad yanıltıcı olduğu için sınır raporda açıkça yazılı olmalı.
+    assert "translation_ready" in text
+
+
+def test_substage_field_name_of_parent_stage_is_not_renamed() -> None:
+    """`tts_to_first_audio_ms` adı sabit: yeniden adlandırma SESSİZ sıfır üretir.
+
+    `latency.py` alanı adıyla okur ve eksik alanı `0.0` sayar — hata değil.
+    Bu yüzden ad değişikliği testte değil, canlı raporda yalan olarak çıkar.
+    """
+    from dataclasses import fields
+
+    from representative.pipeline import UtteranceRecord
+
+    names = {f.name for f in fields(UtteranceRecord)}
+    assert "tts_to_first_audio_ms" in names
+    assert {"tts_synth_ms", "tts_gate_wait_ms", "tts_deliver_ms"} <= names
+    # Alt-aşamalar ek alan: hepsi varsayılanlı olmalı (record_unspoken yolu).
+    defaults = {f.name: f.default for f in fields(UtteranceRecord)}
+    for name in ("tts_synth_ms", "tts_gate_wait_ms", "tts_deliver_ms"):
+        assert defaults[name] == 0.0, f"{name} zorunlu alan olamaz"

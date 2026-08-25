@@ -29,7 +29,7 @@ import math
 import sys
 from collections import Counter
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 FIRST_AUDIO_P50_TARGET_MS = 2500.0
 FIRST_AUDIO_P90_TARGET_MS = 4000.0
@@ -42,6 +42,20 @@ STAGE_STT = "stt"
 STAGE_TRANSLATE = "translate"
 STAGE_TTS_FIRST_AUDIO = "tts_to_first_audio"
 STAGE_E2E = "e2e_first_audio"
+
+# `tts_to_first_audio`ın alt kırılımı (2026-08-25). Adı yanıltıcı olan üst
+# aşamanın GERÇEK sınırı `translation_ready -> teslim POST'u döndü`; bu üçü o
+# aralığı böler ve toplamları ona eşittir:
+#   synth  — OpenAI TTS gidiş-dönüşü
+#   gate   — yarı-çift-yönlü kapının alınması
+#   deliver— base64 + Recall output_audio POST'u
+# Alan adı -> rapor adı. Eski jsonl'lerde bu alanlar YOKTUR; `r.get(f, 0.0)`
+# sayesinde 0 okunur ve çözümleyici kırılmaz (üst aşamalarla aynı davranış).
+TTS_SUBSTAGES: tuple[tuple[str, str], ...] = (
+    ("tts_synth", "tts_synth_ms"),
+    ("tts_gate_wait", "tts_gate_wait_ms"),
+    ("tts_deliver", "tts_deliver_ms"),
+)
 
 
 def percentile_ms(values: Iterable[float], p: float) -> float:
@@ -109,6 +123,10 @@ class LatencyReport:
     stage_p50_ms: dict[str, float]
     largest_wait: str
     slowest: list[tuple[float, str]]
+    # Alt-aşama kırılımı. Varsayılan boş: alanı geçmeyen çağıranlar (ve
+    # tarihsel testler) kırılmaz, yalnız kırılım görünmez.
+    tts_substage_p50_ms: dict[str, float] = field(default_factory=dict)
+    tts_substage_p90_ms: dict[str, float] = field(default_factory=dict)
 
     @property
     def p50_ok(self) -> bool:
@@ -198,6 +216,16 @@ def analyze(
             (STAGE_TTS_FIRST_AUDIO, "tts_to_first_audio_ms"),
         )
     }
+    # Alt-aşamalar da `measured` üzerinden — `records` kullanmak, aşama
+    # alanlarında düzeltilen sıfır-kirlenmesini alt kırılıma geri sokardı.
+    tts_substage_p50 = {
+        name: percentile_ms([float(r.get(f, 0.0)) for r in measured], 50)
+        for name, f in TTS_SUBSTAGES
+    }
+    tts_substage_p90 = {
+        name: percentile_ms([float(r.get(f, 0.0)) for r in measured], 90)
+        for name, f in TTS_SUBSTAGES
+    }
     slowest = sorted(
         ((_e2e_ms(r), str(r.get("source_text", ""))[:60]) for r in measured),
         reverse=True,
@@ -219,6 +247,8 @@ def analyze(
             stage_p50[STAGE_TTS_FIRST_AUDIO],
         ),
         slowest=slowest,
+        tts_substage_p50_ms=tts_substage_p50,
+        tts_substage_p90_ms=tts_substage_p90,
     )
 
 
@@ -253,6 +283,24 @@ def format_report(report: LatencyReport) -> str:
     for stage, value in report.stage_p50_ms.items():
         lines.append(f"  {stage}: {value / 1000:.2f} sn")
     lines.append(f"  → en büyük bekleme: {report.largest_wait}")
+    lines.append("")
+    lines.append(
+        "tts_to_first_audio kırılımı "
+        "(sınır: translation_ready → teslim POST'u döndü; "
+        "Meet'te DUYULMA anı ölçülmüyor):"
+    )
+    if any(report.tts_substage_p50_ms.values()):
+        for name, _f in TTS_SUBSTAGES:
+            p50v = report.tts_substage_p50_ms.get(name, 0.0)
+            p90v = report.tts_substage_p90_ms.get(name, 0.0)
+            share = (
+                f"  (üst aşamanın %{100.0 * p50v / report.stage_p50_ms[STAGE_TTS_FIRST_AUDIO]:.0f}'i)"
+                if report.stage_p50_ms.get(STAGE_TTS_FIRST_AUDIO)
+                else ""
+            )
+            lines.append(f"  {name}: p50 {p50v / 1000:.2f} sn  p90 {p90v / 1000:.2f} sn{share}")
+    else:
+        lines.append("  (bu kayıtta alt-aşama damgası yok — ölçüm öncesi dosya)")
     lines.append("")
     lines.append(
         "İşaret dağılımı: " + ", ".join(f"{k}={v}" for k, v in sorted(report.by_flag_reason.items()))

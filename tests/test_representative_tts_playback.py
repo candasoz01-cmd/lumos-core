@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import threading
 
+import pytest
+
 from representative.audio import HalfDuplexGate
 from representative.tts_playback import (
     ChunkedTtsPlayer,
@@ -118,3 +120,117 @@ def test_gate_hold_is_per_chunk_not_full_paragraph():
     per_first = estimate_speech_seconds(chunks[0])
     full = estimate_speech_seconds(paragraph)
     assert per_first * 1.5 < full
+
+
+# --------------------------------------------------------------------------
+# Alt-aşama ölçümü (2026-08-25). `tts_to_first_audio` p50 2.49 sn ile en büyük
+# aşamaydı ama üç ayrı işi tek sayıda topluyordu; hangisinin baskın olduğu
+# ölçülmeden hiçbir optimizasyon dürüst olamaz. Bu testler ÖLÇÜMÜ sabitler,
+# davranışı değil.
+# --------------------------------------------------------------------------
+
+
+class _StepClock:
+    """Her okumada listedeki sıradaki değeri döndürür (duvar saati yok)."""
+
+    def __init__(self, values: list[float]) -> None:
+        self._values = list(values)
+        self._i = 0
+
+    def __call__(self) -> float:
+        value = self._values[min(self._i, len(self._values) - 1)]
+        self._i += 1
+        return value
+
+
+def _single_chunk_player(clock, gate=None, deliver=None):
+    return ChunkedTtsPlayer(
+        synthesize=lambda text, _lang: text.encode(),
+        deliver=deliver or (lambda _p, _t, _l: None),
+        gate=gate or HalfDuplexGate(),
+        clock=clock,
+        sleeper=lambda _s: None,
+        hold_after_deliver=True,
+        max_chars=200,
+    )
+
+
+def test_substage_timestamps_split_the_first_audio_window():
+    # Saat okumaları sırayla: tts_start, synth_done, gate_acquired, deliver_done
+    player = _single_chunk_player(_StepClock([100.0, 100.4, 100.5, 101.2]))
+
+    playback = player.speak("Tek parça cümle.", "tr")
+
+    assert playback.synth_ms == pytest.approx(400.0)
+    assert playback.gate_wait_ms == pytest.approx(100.0)
+    assert playback.deliver_ms == pytest.approx(700.0)
+    # Üçü üst aşamayı TAM böler — kırılım toplamı tutmuyorsa ölçüm yalandır.
+    total_ms = (playback.first_audio_ts - playback.tts_start_ts) * 1000.0
+    assert total_ms == pytest.approx(1200.0)
+    assert playback.synth_ms + playback.gate_wait_ms + playback.deliver_ms == pytest.approx(
+        total_ms
+    )
+
+
+def test_first_audio_is_still_the_moment_delivery_returned():
+    """first-audio TANIMI değişmedi: `_deliver` döndüğü an, sleeper'dan ÖNCE."""
+    player = _single_chunk_player(_StepClock([10.0, 10.1, 10.1, 10.9]))
+
+    playback = player.speak("Tek parça cümle.", "tr")
+
+    assert playback.first_audio_ts == pytest.approx(10.9)
+    assert playback.deliver_done_ts == pytest.approx(playback.first_audio_ts)
+
+
+def test_blocking_gate_shows_up_as_gate_wait_not_as_synthesis():
+    """Hipotez testi: kapı GERÇEKTEN bloklasaydı ölçüm onu yakalar mıydı?
+
+    Bu, kapının bloklu olduğu İDDİASI değildir — enstrümanın kapı beklemesini
+    sentezden ayırt edebildiğinin kanıtıdır. Gerçek `HalfDuplexGate` bir kilit
+    değil, yeniden girişli bir sayaçtır; bu yüzden gerçek kayıtta bu değerin
+    ~0 çıkması ÖLÇÜM HATASI DEĞİL, kodun hâlihazırdaki şeklidir.
+    """
+    ticks = _StepClock([0.0, 0.1, 3.1, 3.2])
+
+    class _SlowGate:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return None
+
+    player = _single_chunk_player(ticks, gate=_SlowGate())
+    playback = player.speak("Tek parça cümle.", "tr")
+
+    assert playback.gate_wait_ms == pytest.approx(3000.0)
+    assert playback.synth_ms == pytest.approx(100.0)
+
+
+def test_real_half_duplex_gate_is_not_a_blocking_lock():
+    """Kod gerçeği: `HalfDuplexGate.__enter__` yalnız sayaç artırır.
+
+    Kapı beklemesinin neden ~0 ölçüldüğünü açıklayan yapısal olgu. Kapı
+    bloklayıcı bir kilide çevrilirse bu test kırılır ve kırılım yeniden
+    yorumlanmalıdır — sessizce eskimesin diye buraya sabitlendi.
+    """
+    gate = HalfDuplexGate()
+    with gate:
+        assert gate.listening is False
+        # Kilit olsaydı burada kilitlenirdi; sayaç olduğu için yeniden girilir.
+        with gate:
+            assert gate.listening is False
+    assert gate.listening is True
+
+
+def test_empty_text_leaves_substages_unmeasured_not_zero_measured():
+    """Sentez hiç olmadıysa damga YOK (None) — 0.0 "ölçtük, sıfır" demektir."""
+    player = _single_chunk_player(_StepClock([5.0]))
+
+    playback = player.speak("   ", "tr")
+
+    assert playback.chunks_planned == 0
+    assert playback.synth_done_ts is None
+    assert playback.gate_acquired_ts is None
+    assert playback.deliver_done_ts is None
+    # Türetilen süreler yine de güvenle 0.0 okunur.
+    assert (playback.synth_ms, playback.gate_wait_ms, playback.deliver_ms) == (0.0, 0.0, 0.0)
