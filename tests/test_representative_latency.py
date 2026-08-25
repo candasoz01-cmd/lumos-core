@@ -300,3 +300,72 @@ def test_in_memory_summary_also_excludes_unspoken_records() -> None:
     assert with_unspoken["p50_ms"] == spoken_only["p50_ms"]
     assert with_unspoken["stt_p50_ms"] == spoken_only["stt_p50_ms"]
     assert with_unspoken["translate_p50_ms"] == spoken_only["translate_p50_ms"]
+
+
+# --- Kalem 4: yuvarlanmış kayıt çözümleyiciyi kaydırmamalı -------------------
+# Yuvarlama KAYIT üretilirken yapılıyor (pipeline.TIMING_DECIMALS). Buradaki
+# soru: `percentile_ms`/`analyze` yolu aynı dosyayı yuvarlanmış değerlerle
+# okuduğunda aynı cevabı veriyor mu? Yüzdelik iki komşu değerin doğrusal
+# ara değeri olduğundan, her değer ≤0.05 ms kaydığında sonuç da ≤0.05 ms kayar
+# — yani karar (GEÇTİ/KALDI) asla değişemez.
+
+RAW_LATENCIES = [
+    2130.4472849998, 2871.1109999998, 3402.9997310001, 4440.7773100002,
+    5411.0028839999, 6090.3324379998, 7490.8880019999, 9983.7322499988,
+    1988.1230000001, 2503.6660009998, 3099.9999999999, 4001.0490000002,
+]
+
+
+def _round_timings(records: list[dict]) -> list[dict]:
+    fields = (
+        "latency_ms", "e2e_first_audio_ms", "stt_ms", "translate_ms",
+        "tts_to_first_audio_ms", "postcheck_ms",
+    )
+    return [{**r, **{f: round(r[f], 1) for f in fields if f in r}} for r in records]
+
+
+def test_percentiles_are_unchanged_by_one_decimal_rounding() -> None:
+    raw = analyze(make_records(RAW_LATENCIES))
+    rounded = analyze(_round_timings(make_records(RAW_LATENCIES)))
+
+    assert rounded.p50_ms == pytest.approx(raw.p50_ms, abs=0.05)
+    assert rounded.p90_ms == pytest.approx(raw.p90_ms, abs=0.05)
+    assert rounded.max_ms == pytest.approx(raw.max_ms, abs=0.05)
+    assert rounded.p50_ok is raw.p50_ok
+    assert rounded.p90_ok is raw.p90_ok
+    assert rounded.passed is raw.passed
+
+
+def test_stage_breakdown_and_largest_wait_survive_rounding() -> None:
+    raw = analyze(make_records(RAW_LATENCIES))
+    rounded = analyze(_round_timings(make_records(RAW_LATENCIES)))
+
+    assert rounded.largest_wait == raw.largest_wait
+    for stage, value in raw.stage_p50_ms.items():
+        assert rounded.stage_p50_ms[stage] == pytest.approx(value, abs=0.05)
+
+
+def test_percentile_of_rounded_values_stays_within_half_a_tenth() -> None:
+    """Doğrudan `percentile_ms` üzerinde: ara değer de ≤0.05 ms kayar."""
+    for p in (0, 25, 50, 90, 100):
+        raw = percentile_ms(RAW_LATENCIES, p)
+        rounded = percentile_ms([round(v, 1) for v in RAW_LATENCIES], p)
+        assert rounded == pytest.approx(raw, abs=0.05)
+
+
+def test_verdict_can_only_change_within_a_twentieth_of_a_millisecond() -> None:
+    """Sınırın DÜRÜST hali: karar yalnız hedefin ≤0.05 ms yakınında değişebilir.
+
+    "Karar asla değişmez" demek yanlış olurdu. Yuvarlama bir değeri en çok
+    0.05 ms kaydırdığı için, p90'ı hedefin 0.05 ms üstünde olan bir örneklem
+    yuvarlandığında hedefin üstünde OLMAKTAN çıkar. Aşağıdaki kayıt bunu
+    gösteriyor: 4 sn hedefinin 0.04 ms üstü — bütçenin %0.000001'i. Bu
+    pencerenin dışında (aşağıdaki 1 ms'lik örnek) karar aynen korunur.
+    """
+    hairline = [1000.0] * 9 + [4000.04, 5000.0]
+    assert analyze(make_records(hairline)).p90_ok is False
+    assert analyze(_round_timings(make_records(hairline))).p90_ok is True
+
+    outside = [1000.0] * 9 + [4001.0, 5000.0]
+    assert analyze(make_records(outside)).p90_ok is False
+    assert analyze(_round_timings(make_records(outside))).p90_ok is False
