@@ -5,9 +5,10 @@ Tek şema hem burada hem `docs/contracts/agent-status-v1.md` ve
 güncellenene kadar bu modül esas alınır.
 
 Sürüm kuralı (agent-status-v2.md § v1 geriye uyumluluk, normatif):
-versionsuz kayıt eski format sayılıp v1'e normalize edilir; açık `version: 1`
-v1, açık `version: 2` v2 kurallarıyla doğrulanır; başka her açık sürüm fail
-closed reddedilir ve asla sessizce eski format sayılmaz.
+versionsuz (alan hiç yok) kayıt eski format sayılıp v1'e normalize edilir;
+açık tam sayı `version: 1` v1, `version: 2` v2 kurallarıyla doğrulanır;
+başka her açık değer (`null`, bool, float, string dahil) fail closed
+reddedilir ve asla sessizce eski format sayılmaz.
 
 Kapsam sınırı (reader-v2, bilinçli):
 - Yalnız okuma ve normalize etme; hiçbir dosyaya yazılmaz. Yazıcı yoktur —
@@ -268,14 +269,18 @@ class UnsupportedSchemaVersionError(ValueError):
 def resolve_status_payload(payload: dict, *, source_path: Path) -> dict:
     """Sürüm kuralını uygular (agent-status-v2.md § v1 geriye uyumluluk).
 
-    Versionsuz (alan yok veya null) kayıt eski format sayılır ve v1'e
-    normalize edilir; açık 1/2 sürümleri olduğu gibi kendi doğrulayıcısına
-    gider; başka her açık sürüm UnsupportedSchemaVersionError ile reddedilir.
+    Yalnız `version` alanı hiç olmayan kayıt eski format sayılır ve v1'e
+    normalize edilir. Alan mevcutsa değer tam sayı 1 veya 2 olmak zorundadır
+    (tip-katı: `type(version) is int`, bool bu sayede dışarıda kalır; `True
+    == 1` ve `1.0 == 1` zorlaması kabul edilmez). Açık `null`, bool, float,
+    string, sıfır/negatif ve gelecek sürümler dahil başka her açık değer
+    UnsupportedSchemaVersionError ile reddedilir — hiçbir hatalı açık sürüm
+    legacy normalize'a düşmez.
     """
-    version = payload.get("version")
-    if version is None:
+    if "version" not in payload:
         return normalize_legacy_status_payload(payload, source_path=source_path)
-    if version in SUPPORTED_SCHEMA_VERSIONS:
+    version = payload["version"]
+    if type(version) is int and version in SUPPORTED_SCHEMA_VERSIONS:
         return payload
     raise UnsupportedSchemaVersionError(f"version_unsupported: {version!r}")
 

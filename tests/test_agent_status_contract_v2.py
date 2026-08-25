@@ -155,14 +155,37 @@ def test_versionless_payload_normalizes_as_v1(tmp_path: Path) -> None:
 
 
 def test_unknown_explicit_versions_fail_closed(tmp_path: Path) -> None:
+    # Açık null versiyonsuz sayılmaz; bool/float tip zorlaması (True == 1,
+    # 1.0 == 1, 2.0 == 2) legacy'ye veya v1/v2'ye sızamaz.
     source = tmp_path / "agent_status_f00d.json"
-    for version in (3, 0, "2", "legacy"):
+    for version in (3, 0, -1, "2", "legacy", None, True, False, 1.0, 2.0):
         try:
             resolve_status_payload(_v2_payload(version=version), source_path=source)
         except UnsupportedSchemaVersionError as e:
             assert "version_unsupported" in str(e)
         else:
             raise AssertionError(f"fail closed bekleniyordu: version={version!r}")
+
+
+def test_loader_rejects_malformed_explicit_versions_without_legacy_fallback(
+    tmp_path: Path,
+) -> None:
+    malformed = {
+        "agent_status_aa01.json": None,
+        "agent_status_aa02.json": True,
+        "agent_status_aa03.json": 1.0,
+    }
+    for name, version in malformed.items():
+        (tmp_path / name).write_text(
+            json.dumps(_v2_payload(version=version)), encoding="utf-8"
+        )
+    result = load_agent_status_records(tmp_path)
+    assert result.records == []  # hiçbiri legacy'ye normalize edilmedi
+    assert sorted(result.issues) == [
+        "agent_status_aa01.json: version_unsupported: None",
+        "agent_status_aa02.json: version_unsupported: True",
+        "agent_status_aa03.json: version_unsupported: 1.0",
+    ]
 
 
 def test_loader_mixed_directory_v1_v2_legacy_and_unknown(tmp_path: Path) -> None:
@@ -220,13 +243,17 @@ def test_board_projection_accepts_v2_and_drops_unknown_version(tmp_path: Path) -
         json.dumps(_v2_payload(job_id="ffff99", agent_id="other", owner="other", version=7)),
         encoding="utf-8",
     )
+    (tmp_path / "agent_status_eeee88.json").write_text(
+        json.dumps(_v2_payload(job_id="eeee88", agent_id="third", owner="third", version=None)),
+        encoding="utf-8",
+    )
     projection = read_agent_status_projection({"outbox": tmp_path})
     assert len(projection.records) == 1
     record = projection.records[0].record
     assert record.version == SCHEMA_VERSION_V2
     assert record.status == STATUS_BLOCKED
     assert record.agent_id == "claude.code"  # v2 kaydı legacy'ye ezilmedi
-    assert projection.invalid_records == 1  # version=7 fail closed
+    assert projection.invalid_records == 2  # version=7 ve açık null fail closed
 
 
 # --- Doküman ↔ kod türetmesi (iki yönlü) ---
