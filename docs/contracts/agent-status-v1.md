@@ -69,5 +69,9 @@ görülüyorsa çakışmadır. v1'de çakışma yalnız **raporlanır**; çözü
 ## Sürüm kuralı
 
 Alan ekleme/çıkarma veya anlam değişikliği `version` artışı ve bu belgeye yeni
-bölüm gerektirir. `version` alanı v1 olmayan kayıtlar v1 okuyucusunda eski
-format sayılır ve normalize edilir.
+bölüm gerektirir. ~~`version` alanı v1 olmayan kayıtlar v1 okuyucusunda eski
+format sayılır ve normalize edilir.~~ **Güncelleme (reader-v2):** sürüm
+dağıtımı artık [`agent-status-v2.md`](agent-status-v2.md) § v1 geriye
+uyumluluk / Sürüm kuralı'na tabidir — versionsuz kayıtlar v1'e normalize
+edilmeye devam eder, açık `version: 2` v2 kurallarına gider, bilinmeyen açık
+sürümler eski format sayılmaz, fail closed reddedilir.

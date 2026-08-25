@@ -90,10 +90,14 @@ değişmeden korunur; `version` v2 kayıtlarında `2`'dir. Eklenen alanlar:
    olarak kalır; "bekliyor olabilir" tahmini üretilmez.
 3. **Sürüm kuralı (normatif):**
    - **Versiyonsuz** eski dosyalar bugünkü gibi v1'e normalize edilir; bu
-     kural değişmez.
+     kural değişmez. Versiyonsuz = `version` alanı **hiç yok**; açık
+     `version: null` versiyonsuz sayılmaz.
+   - Açık sürüm değeri **tam sayı** olmak zorundadır; tip zorlaması kabul
+     edilmez (`true` ≠ 1, `1.0` ≠ 1 — bool/float/string değerler geçersizdir).
    - Açık `version: 1` kayıtları v1 kurallarıyla doğrulanır.
    - Açık `version: 2` kayıtları v2 kurallarıyla doğrulanır.
-   - **Bunlar dışındaki her açık şema sürümü fail closed reddedilir** ve asla
+   - **Bunlar dışındaki her açık değer fail closed reddedilir** — `null`,
+     bool, float, string, sıfır/negatif ve gelecek sürümler dahil — ve asla
      sessizce eski format sayılıp normalize edilmez.
 4. **Rollout tehlikesi (doğrulanmış):** mevcut v1 okuyucu `version != 1` olan
    her kaydı eski format sayıp normalize eder — bir v2 kaydını `agent_id =

@@ -27,14 +27,13 @@ from enum import Enum
 from pathlib import Path
 
 from core.agent_status_contract import (
-    SCHEMA_VERSION,
     STATUS_COMPLETED,
     STATUS_FAILED,
     STATUS_RUNNING,
     AgentStatusRecord,
     detect_ownership_conflicts,
-    normalize_legacy_status_payload,
     record_from_payload,
+    resolve_status_payload,
 )
 
 AGENT_STATUS_PROJECTION_SCHEMA = "lumos.board.agent_status_projection.v1"
@@ -235,13 +234,11 @@ def read_agent_status_projection(
                 invalid_records += 1
                 continue
 
-            # Tipleme/doğrulama/normalize canonical sözleşmenin işidir.
-            typed_payload = dict(payload)
-            if typed_payload.get("version") != SCHEMA_VERSION:
-                typed_payload = normalize_legacy_status_payload(
-                    typed_payload, source_path=path
-                )
+            # Tipleme/doğrulama/normalize ve sürüm kuralı (versionsuz → v1
+            # normalize, açık 1/2 → kendi kuralları, diğer açık sürüm fail
+            # closed) canonical sözleşmenin işidir.
             try:
+                typed_payload = resolve_status_payload(dict(payload), source_path=path)
                 record = record_from_payload(typed_payload)
             except ValueError:
                 invalid_records += 1
