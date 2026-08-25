@@ -682,8 +682,11 @@ geçenler ve metin olmayan alanlar üretmemek zorunda. Metin taşıyan yerel adl
 da kaynaktan türetilir: karar, çağrılan fonksiyonun **dönüş anotasyonuna**
 bakılarak verilir (`corrector.correct(...) -> str` metin taşır,
 `router.route(...) -> RoutingDecision` taşımaz). Anotasyonu bilinmeyen çağrı
-metin sayılır (fail-closed). Elle tutulan ad listesi yok — bir listenin
-`bot_rig`'deki `heard` adını atlaması PR #806'da High bulguya yol açmıştı.
+metin sayılır (fail-closed). Taint metot çağrıları ve kapsayıcılar boyunca
+korunur (`heard[:40].strip()`, `{'src': turn.text}`); stdin metin kipinde sözün
+kaynağı olan `input()` de metin sayılır. Elle tutulan ad listesi yok — bir
+listenin `bot_rig`'deki `heard` adını atlaması PR #806'da High bulguya, düğüm
+tipi beyaz listesinin metot alıcısını atlaması da Medium bulguya yol açmıştı.
 
 **Kapsam dışı (ayrı iş):** kapalı provanın 24 saatlik metin penceresinin
 işletilmesi — süresi dolanı silme ve bunu koşturan zamanlayıcı. `rehearsal`

@@ -250,6 +250,11 @@ OUTPUT_METHODS = frozenset({"write", "info", "warning", "error", "debug", "excep
 # sayılır (fail-closed). Bilgi kaynağı elle liste değil, paketin KENDİ dönüş
 # anotasyonlarıdır: `TermCorrector.correct(...) -> str` metin döndürür,
 # `DirectionRouter.route(...) -> RoutingDecision` döndürmez.
+# Metin KAYNAĞI olan builtin çağrılar: paketin anotasyonlarından türetilemezler
+# (stdlib'e ait). Şu an tek üye stdin girdisi — `local_rig` metin kipinde
+# kullanıcı sözü buradan gelir.
+TEXT_SOURCE_CALLS = frozenset({"input"})
+
 _BUILTIN_RETURNS = {
     "len": "int", "int": "int", "float": "float", "bool": "bool",
     "min": "?", "max": "?", "str": "str", "repr": "str", "format": "str",
@@ -280,6 +285,12 @@ def _return_annotations() -> dict[str, str]:
     return annotations
 
 
+def _is_text_source(node: ast.Call) -> bool:
+    func = node.func
+    name = func.id if isinstance(func, ast.Name) else getattr(func, "attr", None)
+    return name in TEXT_SOURCE_CALLS
+
+
 def _call_yields_text(node: ast.Call, returns: dict[str, str]) -> bool:
     """Bu çağrının DÖNÜŞÜ metin olabilir mi? Bilinmiyorsa EVET (fail-closed)."""
     func = node.func
@@ -288,6 +299,8 @@ def _call_yields_text(node: ast.Call, returns: dict[str, str]) -> bool:
         return True
     if name == "show":  # redaksiyon sınırı: çıktısı zaten politikadan geçmiş
         return False
+    if name in TEXT_SOURCE_CALLS:
+        return True
     annotation = returns.get(name)
     if annotation is None or annotation == "?":
         # Tanınmayan ya da anotasyonsuz çağrı: metin döndürmediği KANITLANMADIĞI
@@ -344,15 +357,19 @@ def _yields_text(node: ast.AST, names: set[str], returns: dict[str, str]) -> boo
     """
     if isinstance(node, ast.Call):
         if not _call_yields_text(node, returns):
-            return False
+            return False  # dönüşü metin OLMAYAN çağrı zinciri keser
+        if _is_text_source(node):
+            return True
         return any(
             _yields_text(child, names, returns) for child in ast.iter_child_nodes(node)
         )
     if _is_text_expr(node, names):
         return True
-    if isinstance(node, (ast.Subscript, ast.BinOp, ast.JoinedStr, ast.IfExp, ast.FormattedValue)):
-        return any(_yields_text(child, names, returns) for child in ast.iter_child_nodes(node))
-    return False
+    # Kalan her düğüm tipinde ÇOCUKLARA İNİLİR. Beyaz liste tutulmuyor çünkü
+    # tutulduğu sürüm metot alıcısını (`heard.strip()` içindeki `heard`)
+    # atlıyordu ve taint düşüyordu — PR #806 Medium bulgusu. Zinciri kesen tek
+    # yer yukarıdaki çağrı kapısıdır; onun dışında ağaç tam taranır.
+    return any(_yields_text(child, names, returns) for child in ast.iter_child_nodes(node))
 
 
 def _alias_names(tree: ast.AST, returns: dict[str, str]) -> set[str]:
@@ -430,6 +447,12 @@ def test_no_rig_prints_meeting_text_without_the_text_layer():
         "heard = corrector.correct(utt.text)\nlogging.info(heard)",
         # Tanınmayan çağrı: metin döndürmediği kanıtlanmadıkça metin sayılır.
         "value = mystery_helper(turn.text)\nprint(value)",
+        # PR #806 Medium bulgusu: metot ALICISI taranmıyordu, taint düşüyordu.
+        "heard = corrector.correct(utt.text)\ncleaned = heard.strip()\nprint(cleaned)",
+        "cleaned = turn.text.strip()\nprint(cleaned)",
+        "parts = [turn.text]\nprint(parts[0])",
+        # stdin metin kipi: sözün kendisi buradan gelir (builtin, türetilemez).
+        'line = input("TR> ")\nprint(line)',
     ],
 )
 def test_the_console_lock_catches_every_output_shape(snippet):
@@ -508,6 +531,37 @@ def test_console_lock_catches_a_bare_print_injected_into_the_real_rig():
     for injection in ("print(heard)", "logging.info(heard)", 'print("duyulan:", heard)'):
         mutated = source.replace(anchor, f"{anchor}\n            {injection}", 1)
         assert unredacted_text_output(mutated) == ["heard"], f"kaçırıldı: {injection}"
+
+
+
+def test_taint_survives_method_calls_and_containers():
+    """PR #806 Medium bulgusu: `cleaned = heard.strip()` taint'i düşürüyordu.
+
+    Sebep, düğüm tipleri için beyaz liste tutmaktı: alıcı (`heard`) hiç
+    incelenmiyordu. Artık çağrı kapısı dışında ağacın tamamı taranıyor. Bu test
+    zinciri hem metot çağrısı hem kapsayıcı üzerinden izler.
+    """
+    assert unredacted_text_output(
+        "heard = corrector.correct(utt.text)\nkisa = heard[:40].strip().upper()\nprint(kisa)"
+    ) == ["kisa"]
+    assert unredacted_text_output(
+        "payload = {'src': turn.text}\nprint(payload['src'])"
+    ) == ["payload"]
+
+
+def test_console_lock_catches_a_method_call_alias_in_the_real_rig():
+    """Mutasyon kanıtı, bulgunun tarif ettiği şekil: gerçek `bot_rig.py` üzerinde."""
+    import representative
+
+    rig = pathlib.Path(representative.__file__).parent / "bot_rig.py"
+    source = rig.read_text(encoding="utf-8")
+    anchor = "heard = corrector.correct(utt.text)"
+    assert anchor in source, "çapa satırı değişmiş — test kendini doğrulayamıyor"
+
+    mutated = source.replace(
+        anchor, f"{anchor}\n            cleaned = heard.strip()\n            print(cleaned)", 1
+    )
+    assert unredacted_text_output(mutated) == ["cleaned"]
 
 
 
