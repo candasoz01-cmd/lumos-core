@@ -10,9 +10,9 @@ bağlar:
       → RecallSpeaker (chunked OpenAI TTS mp3 → output_audio)
 
 Half-duplex: kapı yalnız o an giden klip (+echo kuyruğu) boyunca kapalı;
-uzun paragrafın tamamı için kuyruk tutulmaz. Yeni söz kuyruktaki kalan
-klipleri iptal eder (barge-in). Echo için mevcut klip bitene kadar dinleme
-kapalı kalır.
+uzun paragrafın tamamı için kuyruk tutulmaz. Ardıl tek-ses kipi (2026-08-24):
+yalnız bitmiş cümle barge-in eder; VAD parçaları birleştirilir, yarım söz
+seslendirilmez. Echo için mevcut klip bitene kadar dinleme kapalı kalır.
 Fail-closed: wss olmayan endpoint reddedilir; bilinmeyen ws mesaj şekilleri
 sayılır ve düşürülür; retention kuralları meeting_ingress'ten aynen gelir.
 HTTP/ws şekilleri ilk canlı koşuda doğrulanır (dürüstlük notu).
@@ -44,7 +44,6 @@ from representative.avatar import (
 )
 from representative.meeting_ingress import (
     DISCLOSURE_LINE_EN,
-    REHEARSAL_RETENTION,
     RecallMeetingIngress,
     build_recall_bot_payload,
 )
@@ -54,19 +53,23 @@ from representative.pipeline import (
     InterpreterPipeline,
     Utterance,
     summarize_latencies_ms,
-    undetected_language_record,
 )
-from representative.repair import bilingual_repair_line
+# NOT: representative.repair dosyada duruyor ama ARTIK ÇAĞRILMIYOR.
+# 2026-08-24 kararı (papağan olayı) 2026-08-23'teki "tekrar isteği seslendir"
+# davranışını ezdi: yön belirlenemeyen söz artık sessizce kayda geçer.
+from representative.retention import POLICIES, text_layer_for
 from representative.routing import Direction, DirectionRouter
-from representative.segmentation import Fragment, UtteranceCoalescer
 from representative.stt import LUMOS_TERMS_PROMPT
 from representative.transcript_view import (
     attribution_note,
-    format_heard,
-    format_telemetry,
-    format_translation,
 )
 from representative.tts_playback import ChunkedTtsPlayer, estimate_speech_seconds
+from representative.turns import (
+    MEET_VAD_SILENCE_MS,
+    SINGLE_OUTPUT_VOICE,
+    AssembledTurn,
+    TurnAssembler,
+)
 
 RECALL_INBOUND_RATE = 16000
 
@@ -161,7 +164,10 @@ class RecallSpeaker:
 
     def _synthesize(self, text: str, _lang: str) -> bytes:
         resp = self._client.audio.speech.create(
-            model="gpt-4o-mini-tts", voice="onyx", input=text, response_format="mp3"
+            model="gpt-4o-mini-tts",
+            voice=SINGLE_OUTPUT_VOICE,
+            input=text,
+            response_format="mp3",
         )
         return resp.content
 
@@ -179,6 +185,78 @@ class RecallSpeaker:
 
     def speak(self, text: str, lang: str):
         return self._player.speak(text, lang)
+
+
+def speak_assembled_turns(
+    turns: list[AssembledTurn],
+    *,
+    pipeline: InterpreterPipeline,
+    router: DirectionRouter,
+    suppressor: RepeatSuppressor,
+    recent: deque[str],
+    now: float,
+) -> int:
+    """Play finished consecutive turns only. Incomplete fragments stay silent.
+
+    Barge-in runs only for a speakable assembled sentence — never for a VAD
+    mid-thought fragment. Returns how many turns were sent to the pipeline.
+    """
+    spoken = 0
+    # Konsol da kalıcı bir yüzeydir: runbook rig'i `nohup ... > prova.log` ile
+    # koşturuyor. Sıfır saklamada metin ekrana da basılmaz (kurucu şartı
+    # 2026-08-25); karar kayıtla AYNI nesneden gelir, ayrışamaz.
+    show = pipeline.text_layer.show
+    for turn in turns:
+        if not turn.speakable:
+            print(f"  (yarım söz seslendirilmedi: {turn.reason})")
+            pipeline.record_unspoken(turn.text, flag_reason=f"held_partial_{turn.reason}")
+            continue
+        if suppressor.should_drop(turn.text, now):
+            # Bu dal konsola bile bir şey basmıyordu: üç erken çıkışın en
+            # görünmezi. Ses davranışı aynı, yalnız iz bırakıyor.
+            print(f"  (tekrar bastırıldı: {show(turn.text)})")
+            pipeline.record_unspoken(turn.text, flag_reason="suppressed_duplicate")
+            continue
+        decision = router.route(turn.text)
+        if decision.reason == "fallback_unknown":
+            # Kurucu kararı (2026-08-24): dil belirlenemeyen söz SABİT
+            # varsayılan yöne düşürülmez. Provada "What?" tr sanılıp EN'e
+            # "çevrildi" ve aynen geri seslendirildi (papağan). Yanlış yöne
+            # sessizce çevirmektense susulur; kaynak metin + gerekçe kayda
+            # geçer ki eksik sözcükler tahminle değil veriyle onarılsın.
+            print(f"  (yön belirlenemedi, seslendirilmedi: {show(turn.text)})")
+            pipeline.record_unspoken(
+                turn.text,
+                flag_reason="fallback_unknown",
+                detected_language=decision.detected,
+                direction_reason=decision.reason,
+            )
+            continue
+        print(f"{decision.direction.source_lang.upper()}(duyulan)> {show(turn.text)}")
+        pipeline.interrupt_playback()
+        record = pipeline.process(
+            Utterance(
+                text=turn.text,
+                source_lang=decision.direction.source_lang,
+                target_lang=decision.direction.target_lang,
+                speech_end_ts=turn.speech_end_ts,
+                context=tuple(recent),
+                stt_final_ts=now,
+                direction_reason=decision.reason,
+                detected_language=decision.detected,
+            )
+        )
+        recent.append(turn.text)
+        spoken += 1
+        marker = "" if record.delivered else " [TESLİM EDİLMEDİ]"
+        print(
+            f"{decision.direction.target_lang.upper()}> {show(record.translated_text)}{marker}"
+            f"  (e2e {record.latency_ms:.0f} ms"
+            f" stt={record.stt_ms:.0f} tr={record.translate_ms:.0f}"
+            f" tts0={record.tts_to_first_audio_ms:.0f}"
+            f", yön: {decision.reason})"
+        )
+    return spoken
 
 
 TUNNEL_PROBE_EVENT = "lumos.tunnel_probe"
@@ -348,6 +426,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--jsonl-out", default="prova_bot.jsonl")
     parser.add_argument(
+        "--retention",
+        default="rehearsal",
+        choices=sorted(POLICIES),
+        help="rehearsal (varsayılan): kapalı prova — Recall medyası timed/24h, "
+        "kaynak/çeviri metni jsonl'e ve konsola yazılır. real-meeting: sıfır "
+        "saklama — Recall'da medya tutulmaz VE metin ne jsonl'e ne konsola yazılır. "
+        "DİKKAT: bu bayrak gerçek dış katılımcılı toplantı iznini VERMEZ "
+        "(ADR-025 veri bölgesi/DPA blokajı ayrıca sürüyor)",
+    )
+    parser.add_argument(
         "--preflight",
         action="store_true",
         help="BOTSUZ ön uçuş: env + tünel öz-testi + çevirmen/STT bağlantısı "
@@ -360,6 +448,13 @@ def main(argv: list[str] | None = None) -> int:
         help="Varsayılan davranış oturum sonunda erken delete_media'dır "
         "(kurucu şartı); teşhis gerekiyorsa bu bayrakla 24h penceresi korunur",
     )
+    parser.add_argument(
+        "--vad-silence-ms",
+        type=int,
+        default=MEET_VAD_SILENCE_MS,
+        help="Meet ardıl kip sunucu VAD sessizliği (varsayılan 1100 ms; "
+        "600 ms cümleyi erken kesip avatarı araya sokuyordu)",
+    )
     args = parser.parse_args(argv)
     if args.source_lang == args.target_lang:
         parser.error("source and target languages must differ")
@@ -370,6 +465,16 @@ def main(argv: list[str] | None = None) -> int:
     if missing:
         # Fail-loud: eksik anahtar canlı koşuda tünelden sonra patlamasın.
         parser.error("eksik ortam değişkeni: " + ", ".join(missing))
+
+    # Saklama politikası TEK yerde seçilir ve her yüzeyi birden yönetir:
+    # Recall medyası, yerel jsonl ve konsol/nohup logu (kurucu kararı
+    # 2026-08-25, şart 2). Ayrı bir yol açılamaması için aşağıdaki her kullanım
+    # aynı `session_retention` nesnesinden beslenir. Kapalı provanın 24 saatlik
+    # metin penceresinin İŞLETİLMESİ (silme + zamanlayıcı) bu dilimde yok.
+    session_retention = POLICIES[args.retention]
+    text_layer = text_layer_for(session_retention)
+    if not text_layer.persists:
+        print("saklama: SIFIR — kaynak/çeviri metni ne kayda ne ekrana yazılır")
 
     gate = HalfDuplexGate()
     inbound: queue.Queue[bytes] = queue.Queue()
@@ -425,20 +530,20 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     ingress = RecallMeetingIngress(
-        REHEARSAL_RETENTION, os.environ["RECALL_REGION_URL"]
+        session_retention, os.environ["RECALL_REGION_URL"]
     )
     avatar_assets = load_meet_avatar_assets()
     from openai import OpenAI
 
     disclosure = OpenAI().audio.speech.create(
         model="gpt-4o-mini-tts",
-        voice="onyx",
+        voice=SINGLE_OUTPUT_VOICE,
         input=DISCLOSURE_LINE_EN,
         response_format="mp3",
     )
     payload = build_recall_bot_payload(
         args.meeting_url,
-        REHEARSAL_RETENTION,
+        session_retention,
         internal_ref="faz0-bot-prova",
         disclosure_mp3_b64=base64.b64encode(disclosure.content).decode(),
         avatar_idle_jpeg_b64=avatar_assets.idle_jpeg_b64,
@@ -500,91 +605,66 @@ def main(argv: list[str] | None = None) -> int:
         transcript=transcript,
         on_flag=lambda r: print(f"  ⚠ düşük güven ({r.flag_reason})"),
         on_record=lambda r: BilingualTranscript.append_jsonl(args.jsonl_out, r),
+        text_layer=text_layer,
     )
     # auto yönde dil sabitlenmez: sağlayıcı duyduğu dili kendisi tespit eder,
     # yön kararını router metinden verir (canlı insan testi 4 papağan bulgusu).
     stt = RealtimeSTTStream(
         language=None if args.direction == "auto" else args.source_lang,
         prompt=LUMOS_TERMS_PROMPT,
+        vad_silence_ms=args.vad_silence_ms,
     )
     stt.start()
     corrector = TermCorrector()
     suppressor = RepeatSuppressor()
     recent: deque[str] = deque(maxlen=4)
+    assembler = TurnAssembler()
 
     def pump_audio() -> None:
         while True:
             stt.feed(resample_16k_to_24k(inbound.get()))
 
     threading.Thread(target=pump_audio, daemon=True).start()
-    print("Tercüman hattı canlı — toplantı bitince kendiliğinden kapanır; Ctrl+C: kill-switch.")
+    print(
+        "Tercüman hattı canlı (ardıl tek ses, VAD "
+        f"{args.vad_silence_ms} ms) — toplantı bitince kendiliğinden kapanır; "
+        "Ctrl+C: kill-switch."
+    )
     print(attribution_note())
-    # Parça birleştirme (2026-08-23): VAD'in ortadan kestiği yarım sözler
-    # ayrı ayrı çevrilmesin. Kuyruk zaman aşımı hold_s'ten kısa tutulur ki
-    # bekleyen parça zamanında yayımlansın.
-    coalescer = UtteranceCoalescer()
     try:
         while not stop_event.is_set():
+            now = time.monotonic()
             try:
-                utt = stt.utterances.get(timeout=0.2)
+                utt = stt.utterances.get(timeout=0.25)
             except queue.Empty:
-                segments = coalescer.due(time.monotonic())
-            else:
-                if not utt.text or is_prompt_echo(utt.text, LUMOS_TERMS_PROMPT):
-                    continue
-                heard = corrector.correct(utt.text)
-                if suppressor.should_drop(heard, time.monotonic()):
-                    continue
-                segments = coalescer.offer(
-                    Fragment(
-                        text=heard,
-                        speech_end_ts=utt.speech_end_ts,
-                        stt_final_ts=time.monotonic(),
-                    )
+                speak_assembled_turns(
+                    assembler.poll(now),
+                    pipeline=pipeline,
+                    router=router,
+                    suppressor=suppressor,
+                    recent=recent,
+                    now=now,
                 )
-            for segment in segments:
-                heard = segment.text
-                decision = router.route(heard)
-                if decision.reason == "fallback_unknown":
-                    # Kurucu kararı 2026-08-23: dil belirlenemezse sessizce
-                    # varsayılan yöne (TR) düşülmez — hangi dili konuştuğu
-                    # bilinmediği için iki dilli tekrar isteği gider. İstek ortak
-                    # ses kanalına basılır: toplantıdaki herkes duyar.
-                    # (Birleştirmeden SONRA bakılır: parça birleşince dil
-                    # sinyali güçlenebilir, gereksiz tekrar isteği çıkmasın.)
-                    print()
-                    print(f"Duyulan (?): {heard}")
-                    print("   Lumos: dil belirlenemedi — tekrar istendi")
-                    pipeline.interrupt_playback()
-                    speaker.speak(bilingual_repair_line(), args.source_lang)
-                    now = time.monotonic()
-                    unrouted = undetected_language_record(
-                        heard,
-                        latency_ms=max(0.0, (now - segment.speech_end_ts) * 1000.0),
-                        recorded_at=now,
-                    )
-                    transcript.append(unrouted)
-                    BilingualTranscript.append_jsonl(args.jsonl_out, unrouted)
-                    continue
-                merge_note = f"  (+{segment.parts - 1} parça)" if segment.merged else ""
-                print()
-                print(format_heard(decision.direction.source_lang, heard) + merge_note)
-                # Barge-in: yeni söz gelince kuyruktaki klipler düşer (chunked TTS).
-                pipeline.interrupt_playback()
-                record = pipeline.process(
-                    Utterance(
-                        text=heard,
-                        source_lang=decision.direction.source_lang,
-                        target_lang=decision.direction.target_lang,
-                        speech_end_ts=segment.speech_end_ts,
-                        context=tuple(recent),
-                        stt_final_ts=segment.stt_final_ts,
-                        parts=segment.parts,
-                    )
+                continue
+            if not utt.text or is_prompt_echo(utt.text, LUMOS_TERMS_PROMPT):
+                speak_assembled_turns(
+                    assembler.poll(now),
+                    pipeline=pipeline,
+                    router=router,
+                    suppressor=suppressor,
+                    recent=recent,
+                    now=now,
                 )
-                recent.append(heard)
-                print(format_translation(record))
-                print(format_telemetry(record, decision.reason))
+                continue
+            heard = corrector.correct(utt.text)
+            speak_assembled_turns(
+                assembler.push(heard, utt.speech_end_ts, now),
+                pipeline=pipeline,
+                router=router,
+                suppressor=suppressor,
+                recent=recent,
+                now=now,
+            )
     except KeyboardInterrupt:
         end_reason.append("kill_switch")
     finally:
@@ -625,8 +705,10 @@ def main(argv: list[str] | None = None) -> int:
                 f"en büyük bekleme: {summary['largest_wait'] or 'yok'})"
             )
         print(f"(bilinmeyen/düşürülen ws mesajı: {dropped_unknown})")
-        if coalescer.dropped_fillers:
-            print(f"(elenen dolgu parçası: {len(coalescer.dropped_fillers)})")
+        # NOT: "elenen dolgu parçası" sayacı kaldırıldı — kaynağı
+        # UtteranceCoalescer'dı, yerini TurnAssembler aldı ve TurnAssembler
+        # dolgu-eleme YAPMIYOR. segmentation.is_filler_only duruyor ama
+        # artık çağrılmıyor (açık kalem, 2026-08-26 merge'ü).
     return 0
 
 

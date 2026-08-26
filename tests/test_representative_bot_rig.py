@@ -125,3 +125,157 @@ def test_speaking_state_starts_after_upload_not_before() -> None:
     speak_at = src.index("self._ingress.speak(")
     avatar_at = src.index("self._avatar.speaking_for(")
     assert speak_at < avatar_at, "speaking_for, speak() çağrısından sonra gelmeli"
+
+
+def test_incomplete_assembled_turn_does_not_barge_in_or_speak():
+    from collections import deque
+    from types import SimpleNamespace
+
+    from representative.bot_rig import speak_assembled_turns
+    from representative.pipeline import PERSISTING_TEXT_LAYER
+    from representative.turns import AssembledTurn
+
+    class _Pipe:
+        def __init__(self) -> None:
+            self.interrupts = 0
+            self.processed: list[str] = []
+            self.unspoken: list[tuple[str, str]] = []
+            # Konsol basımı da saklama politikasından geçer (2026-08-25).
+            self.text_layer = PERSISTING_TEXT_LAYER
+
+        def interrupt_playback(self) -> int:
+            self.interrupts += 1
+            return 0
+
+        def record_unspoken(self, text, **kw):
+            self.unspoken.append((text, kw.get("flag_reason")))
+            return SimpleNamespace(delivered=False)
+
+        def process(self, utterance):
+            self.processed.append(utterance.text)
+            return SimpleNamespace(
+                delivered=True,
+                translated_text="ok",
+                latency_ms=1.0,
+                stt_ms=0.0,
+                translate_ms=0.0,
+                tts_to_first_audio_ms=0.0,
+            )
+
+    class _Router:
+        def route(self, text: str):
+            return SimpleNamespace(
+                direction=SimpleNamespace(source_lang="tr", target_lang="en"),
+                reason="detected",
+                detected="tr",
+            )
+
+    class _Suppressor:
+        def should_drop(self, _text: str, _now: float) -> bool:
+            return False
+
+    pipe = _Pipe()
+    spoken = speak_assembled_turns(
+        [
+            AssembledTurn(
+                text="We should go and",
+                speech_end_ts=1.0,
+                speakable=False,
+                reason="incomplete_drop",
+            )
+        ],
+        pipeline=pipe,
+        router=_Router(),
+        suppressor=_Suppressor(),
+        recent=deque(),
+        now=1.0,
+    )
+    assert spoken == 0
+    assert pipe.interrupts == 0
+    assert pipe.processed == []
+    # Kurucu kararı (2026-08-24): davranış aynı (ses yok), ama artık iz bırakır
+    # — aksi hâlde turn tutma davranışı prova dosyasından ölçülemiyor.
+    assert pipe.unspoken == [("We should go and", "held_partial_incomplete_drop")]
+
+
+def test_complete_assembled_turn_speaks_once_with_barge_in():
+    from collections import deque
+    from types import SimpleNamespace
+
+    from representative.bot_rig import speak_assembled_turns
+    from representative.pipeline import PERSISTING_TEXT_LAYER
+    from representative.turns import AssembledTurn
+
+    class _Pipe:
+        def __init__(self) -> None:
+            self.interrupts = 0
+            self.processed: list[str] = []
+            self.unspoken: list[tuple[str, str]] = []
+            # Konsol basımı da saklama politikasından geçer (2026-08-25).
+            self.text_layer = PERSISTING_TEXT_LAYER
+
+        def interrupt_playback(self) -> int:
+            self.interrupts += 1
+            return 0
+
+        def record_unspoken(self, text, **kw):
+            self.unspoken.append((text, kw.get("flag_reason")))
+            return SimpleNamespace(delivered=False)
+
+        def process(self, utterance):
+            self.processed.append(utterance.text)
+            return SimpleNamespace(
+                delivered=True,
+                translated_text="See you tomorrow.",
+                latency_ms=10.0,
+                stt_ms=1.0,
+                translate_ms=2.0,
+                tts_to_first_audio_ms=3.0,
+            )
+
+    class _Router:
+        def route(self, text: str):
+            return SimpleNamespace(
+                direction=SimpleNamespace(source_lang="tr", target_lang="en"),
+                reason="detected",
+                detected="tr",
+            )
+
+    class _Suppressor:
+        def should_drop(self, _text: str, _now: float) -> bool:
+            return False
+
+    pipe = _Pipe()
+    spoken = speak_assembled_turns(
+        [
+            AssembledTurn(
+                text="Yarın görüşürüz.",
+                speech_end_ts=2.0,
+                speakable=True,
+                reason="complete",
+            )
+        ],
+        pipeline=pipe,
+        router=_Router(),
+        suppressor=_Suppressor(),
+        recent=deque(),
+        now=2.0,
+    )
+    assert spoken == 1
+    assert pipe.interrupts == 1
+    assert pipe.processed == ["Yarın görüşürüz."]
+
+
+def test_meet_main_wires_consecutive_vad_and_single_voice():
+    import inspect
+
+    from representative import bot_rig
+    from representative.turns import MEET_VAD_SILENCE_MS, SINGLE_OUTPUT_VOICE
+
+    src = inspect.getsource(bot_rig.main)
+    assert "TurnAssembler" in src
+    assert "vad_silence_ms=args.vad_silence_ms" in src
+    assert MEET_VAD_SILENCE_MS >= 1000
+    synth = inspect.getsource(bot_rig.RecallSpeaker._synthesize)
+    assert "SINGLE_OUTPUT_VOICE" in synth
+    assert SINGLE_OUTPUT_VOICE == "onyx"

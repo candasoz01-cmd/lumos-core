@@ -347,3 +347,151 @@ def test_budget_pass_requires_both_targets_and_nonempty():
     assert evaluate_first_audio_budget(2400.0, 3900.0, count=8)["pass"] is True
     assert evaluate_first_audio_budget(2400.0, 4100.0, count=8)["pass"] is False
     assert evaluate_first_audio_budget(2600.0, 3900.0, count=8)["pass"] is False
+
+
+# --- Kalem 4: zamanlama alanları tek ondalığa yuvarlanır ---------------------
+# Kurucu kararı (2026-08-24). Gerçek prova kaydında süre alanları satırın
+# %44'ünü tutuyordu ve "latency_ms": 9983.732249998866 gibi yazılıyordu;
+# milisaniye altı hassasiyet ölçülmüyor.
+
+
+def test_timing_fields_are_derived_from_the_record_not_hand_listed():
+    """Türetme testi: kural kaynağı `UtteranceRecord`'un kendisi olmalı.
+
+    Elle tutulan bir liste, ileride eklenen bir `*_ms` alanını sessizce tam
+    hassasiyette bırakırdı. İki yönde de kilitlenir: listedeki her ad gerçek
+    bir alan, `_ms` ile biten her alan da listede.
+    """
+    import dataclasses
+
+    from representative.pipeline import TIMING_FIELDS, UtteranceRecord
+
+    names = {f.name for f in dataclasses.fields(UtteranceRecord)}
+    assert set(TIMING_FIELDS) <= names, "listede var olmayan alan adı yok"
+    assert {n for n in names if n.endswith("_ms")} <= set(TIMING_FIELDS)
+    assert "recorded_at" in TIMING_FIELDS, "saniye cinsinden damga da yuvarlanır"
+
+
+def test_every_timing_field_is_rounded_at_record_creation():
+    from representative.pipeline import TIMING_FIELDS, UtteranceRecord
+
+    noisy = 9983.732249998866
+    record = UtteranceRecord(
+        source_text="s",
+        source_lang="tr",
+        translated_text="t",
+        target_lang="en",
+        confidence=0.9,
+        flagged=False,
+        flag_reason="ok",
+        latency_ms=noisy,
+        recorded_at=1234.5678901,
+        postcheck_ms=12.345678,
+        stt_ms=1.26,
+        translate_ms=4001.049,
+        tts_to_first_audio_ms=0.04,
+        e2e_first_audio_ms=noisy,
+    )
+    for name in TIMING_FIELDS:
+        value = getattr(record, name)
+        assert round(value, 1) == value, f"{name} tek ondalığa yuvarlanmadı"
+    assert record.latency_ms == 9983.7
+    assert record.recorded_at == 1234.6
+    assert record.stt_ms == 1.3
+    assert record.tts_to_first_audio_ms == 0.0
+
+
+def test_confidence_is_not_rounded():
+    """Yuvarlama YALNIZ zamanlama alanlarında; güven skoru olduğu gibi kalır."""
+    from representative.pipeline import UtteranceRecord
+
+    record = UtteranceRecord(
+        source_text="s",
+        source_lang="tr",
+        translated_text="t",
+        target_lang="en",
+        confidence=0.912345,
+        flagged=False,
+        flag_reason="ok",
+        latency_ms=1.0,
+        recorded_at=0.0,
+        language_detection_confidence=0.87654,
+    )
+    assert record.confidence == 0.912345
+    assert record.language_detection_confidence == 0.87654
+
+
+def test_rounding_happens_when_the_record_is_built_not_during_measurement():
+    """Ara hesaplar tam hassasiyette kalır: aşama toplamı e2e'yi tutturmalı.
+
+    Saat değerleri yuvarlanmış olsaydı (hesap sırasında yuvarlama) her aşamada
+    ±0.05 ms'lik hata birikirdi. Kayıt üretilirken yuvarlandığı için her alan
+    kendi TAM değerinden bir kez kısalır.
+    """
+
+    class _Clock:
+        def __init__(self, values):
+            self._values = list(values)
+
+        def __call__(self):
+            return self._values.pop(0) if len(self._values) > 1 else self._values[0]
+
+    # speech_end=0; stt_final=0.0004003s; translation_ready/tts/first_audio
+    stamps = [0.0004003003, 0.0004003003, 1.2345678901]
+    transcript = BilingualTranscript()
+    pipeline = InterpreterPipeline(
+        translator=StubTranslator("see you tomorrow", confidence=0.9),
+        tts=RecordingTTS(),
+        gate=ConfidenceGate(0.8),
+        transcript=transcript,
+        clock=_Clock(stamps),
+    )
+    record = pipeline.process(
+        Utterance(
+            text="yarın görüşürüz",
+            source_lang="tr",
+            target_lang="en",
+            speech_end_ts=0.0,
+            stt_final_ts=0.0004003003,
+        )
+    )
+    stage_sum = record.stt_ms + record.translate_ms + record.tts_to_first_audio_ms
+    assert stage_sum == pytest.approx(record.e2e_first_audio_ms, abs=0.15)
+    assert record.stt_ms == 0.4
+
+
+def test_jsonl_lines_carry_at_most_one_decimal(tmp_path):
+    import json
+
+    from representative.pipeline import TIMING_FIELDS
+
+    path = str(tmp_path / "prova.jsonl")
+    transcript = BilingualTranscript()
+    pipeline = InterpreterPipeline(
+        translator=StubTranslator("see you tomorrow", confidence=0.9),
+        tts=RecordingTTS(),
+        gate=ConfidenceGate(0.8),
+        transcript=transcript,
+        on_record=lambda r: BilingualTranscript.append_jsonl(path, r),
+        clock=FakeClock(10.5123456789),
+    )
+    pipeline.process(make_utterance("yarın görüşürüz", speech_end=0.0123456789))
+    with open(path, encoding="utf-8") as f:
+        data = json.loads(f.read().splitlines()[0])
+    for name in TIMING_FIELDS:
+        text = repr(data[name])
+        assert len(text.split(".")[1]) <= 1, f"{name} dosyaya uzun yazıldı: {text}"
+
+
+def test_unspoken_records_are_rounded_too():
+    """`record_unspoken()` de aynı yoldan geçer — ikinci bir kayıt yolu yok."""
+    transcript = BilingualTranscript()
+    pipeline = InterpreterPipeline(
+        translator=StubTranslator("x", confidence=0.9),
+        tts=RecordingTTS(),
+        gate=ConfidenceGate(0.8),
+        transcript=transcript,
+        clock=FakeClock(4321.987654321),
+    )
+    record = pipeline.record_unspoken("What?", flag_reason="fallback_unknown")
+    assert record.recorded_at == 4322.0
